@@ -1,0 +1,33 @@
+{
+    "tool": "Credential Scanner",
+    "suppressions": [
+        {
+            "file": "PythonIoTBackgroundApplication_TemporaryKey.pfx",
+            "_justification": "Not a real cert but a sample for testing."
+        },
+        {
+            "file": "HubApp452Win81.Windows_TemporaryKey.pfx",
+            "_justification": "Not a real cert but a sample for testing."
+        },
+        {
+            "file": "UWP452_TemporaryKey.pfx",
+            "_justification": "Not a real cert but a sample for testing."
+        },
+        {
+            "file": "UWP452Win81.Windows_TemporaryKey.pfx",
+            "_justification": "Not a real cert but a sample for testing."
+        },
+        {
+            "file": "BlankUWPApp45_TemporaryKey.pfx",
+            "_justification": "Not a real cert but a sample for testing."
+        },
+        {
+            "file": "VBExcelAddIn45_TemporaryKey.pfx",
+            "_justification": "Not a real cert but a sample for testing."
+        },
+        {
+            "file": "WpfBrowserApp451_TemporaryKey.pfx",
+            "_justification": "Not a real cert but a sample for testing."
+        }
+    ]
+}

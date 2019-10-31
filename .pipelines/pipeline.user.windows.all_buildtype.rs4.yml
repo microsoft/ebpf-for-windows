@@ -1,0 +1,45 @@
+environment:
+  host:
+    os: 'windows'
+    flavor: "server"
+    version: "2016"
+  runtime:
+    provider: 'appcontainer'
+    image: 'cdpxwinrs4test.azurecr.io/global/vse2017u7-external-azsdk-mobile-ext-win1803:latest-nodetools'
+    source_mode: map
+
+restore:
+  commands:
+    - !!defaultcommand
+      name: 'Restore Node'
+      command: 'src\WindowsServerSample\Node\restore.cmd'
+
+build:
+  commands:
+    - !!buildcommand
+      name: 'Fake Build for Validation'
+      command: '.pipelines\RS4Test.cmd'
+      fail_on_stderr: false
+      artifacts:
+        - from: '.pipelines'
+          to: 'HelloWorld'
+          include:
+            - '**/*'
+          exclude:
+            - '**/HelloWorld.py'          
+          signing_options:  
+            profile: 'none'
+    - !!buildcommand
+      name: 'Build Node'
+      fail_on_stderr: false
+      command: 'src\WindowsServerSample\Node\officialBuild.cmd'
+      artifacts:
+        - from: 'src\WindowsServerSample\Node\oe-template'
+          to: 'Node'
+          include:
+            - 'build/'
+          signing_options:
+            sign_inline: true
+
+test:
+  commands:

@@ -1,0 +1,18 @@
+restore:
+  commands:
+    - !!defaultcommand
+      name: 'Checkout contents'
+      command: 'testSubmodule.cmd'
+
+build:
+  commands:
+    - !!defaultcommand
+      name: 'Checkout contents'
+      command: 'testSubmodule.cmd'
+
+test:
+  commands:
+    - !!defaultcommand
+      name: 'Checkout contents'
+      command: 'testSubmodule.cmd'
+      

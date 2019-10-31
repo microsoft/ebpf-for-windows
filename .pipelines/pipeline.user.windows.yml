@@ -1,0 +1,133 @@
+environment:
+  host:
+    os: 'windows'
+    flavor: 'server'
+    version: '2016'
+  runtime:
+    provider: 'appcontainer'
+    image: 'cdpxwin.azurecr.io/global/vse2017u7/vse2017u7-external-winltsc2016-20190731:latest'
+    source_mode: 'map'
+
+signing_options:
+  profile: 'azure'
+
+restore:
+  commands:
+    - !!defaultcommand
+      name: 'Restore CSharp'
+      command: 'src\WindowsServerSample\VisualStudio\restore.cmd'
+
+build:
+  commands:
+    - !!buildcommand
+      name: 'Build CSharp'
+      command: 'src\WindowsServerSample\VisualStudio\build.cmd'
+      fail_on_stderr: false
+      artifacts:
+        - from: 'src\WindowsServerSample\VisualStudio\Various\ClassLibrary\bin\Debug'
+          to: 'Dotnet_ClassLibrary'
+          include:
+            - '**/*'
+          signing_options:
+            sign_inline: true
+        - from: 'src\WindowsServerSample\VisualStudio\Various\ClassLibrary.Test\bin\Debug'
+          to: 'ClassLibrary.Test'
+          include:
+            - '**/*'
+    - !!buildcommand
+      name: 'Build CSharp MSBuild'
+      command: 'src\WindowsServerSample\DotNetMSBuild\build.cmd'
+      fail_on_stderr: false
+      artifacts:
+        - from: 'src\WindowsServerSample\DotNetMSBuild\MSBuildSample\bin'
+          to: 'Dotnet_HelloWorld'
+          include:
+            - '**/*'
+          signing_options:
+            sign_inline: true
+    - !!buildcommand
+      name: 'Build Haskell'
+      fail_on_stderr: false
+      command: 'src\WindowsServerSample\Haskell\build.cmd'
+      artifacts:
+        - from: 'src\WindowsServerSample\Haskell'
+          to: 'Haskell'
+          include:
+            - 'HelloWorld.exe'
+    - !!buildcommand
+      name: 'Build Go'
+      fail_on_stderr: false
+      command: 'src\WindowsServerSample\Go\build.cmd'
+      artifacts:
+        - from: 'src\WindowsServerSample\Go\build.cmd'
+          to: 'Go'
+          include:
+            - 'HelloWorld.exe'
+    - !!buildcommand
+      name: 'Build Java'
+      fail_on_stderr: false
+      command: 'src\WindowsServerSample\Java\build.cmd'
+      artifacts:
+        - from: 'src\WindowsServerSample\Java'
+          to: 'Plain JDK'
+          include:
+            - 'HelloWorld.class'
+    - !!buildcommand
+      name: 'Build Perl'
+      fail_on_stderr: false
+      command: 'src\WindowsServerSample\Perl\build.cmd'
+      artifacts:
+        - from: 'src\WindowsServerSample\Perl'
+          to: 'Perl'
+          include:
+            - 'HelloWorld.pl'
+    - !!buildcommand
+      name: 'Build Python3'
+      fail_on_stderr: false
+      command: 'src\WindowsServerSample\Python3\build.cmd'
+      artifacts:
+        - from: 'src\WindowsServerSample\Python3'
+          to: 'Python3'
+          include:
+            - 'HelloWorld.py'
+          signing_options:
+            profile: 'none'
+    - !!buildcommand
+      name: 'Build Ruby'
+      fail_on_stderr: false
+      command: 'src\WindowsServerSample\Ruby\build.cmd'
+      artifacts:
+        - from: 'src\WindowsServerSample\Ruby'
+          to: 'Ruby'
+          include:
+            - 'HelloWorld.rb'
+
+test:
+  commands:
+    - !!testcommand
+      name: 'Test CSharp'
+      command: 'src\WindowsServerSample\VisualStudio\test.cmd'
+      fail_on_stderr: false
+      logs:
+        - to: 'test-csharp-logs'
+          include:
+            - '**/*.trx'
+            - '**/*.coverage'
+      testresults:
+        - from: 'src\WindowsServerSample\VisualStudio'
+          title: 'Even-Odd-Tests'
+          type: 'nunit'
+          include:
+            - '**/*.trx'
+            - '**/*.coverage'
+
+static_analysis_options:
+  policheck_options:
+    scan_comments: true
+    files_to_scan:
+      - exclude:
+        - 'src\WindowsServerSample\VisualStudio2015\AspNet45AppInsights\Scripts\modernizr-2.6.2.js'
+        - 'src\WindowsServerSample\VisualStudio2015\AspNet46\Scripts\modernizr-2.6.2.js'
+        - 'src\WindowsServerSample\VisualStudio2015\DjangoWebProject\app\static\app\scripts\modernizr-2.6.2.js'
+        - 'src\WindowsServerSample\VisualStudio2015\CordovaApp\Project_Readme.html'
+        - 'src\WindowsServerSample\VisualStudio2015\TypescriptCordovaApp\Project_Readme.html'
