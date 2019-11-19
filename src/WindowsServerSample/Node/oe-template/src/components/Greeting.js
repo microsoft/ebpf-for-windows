@@ -1,9 +1,10 @@
-import React from 'react'
+'use strict';
+import React from 'react';
 
 const Greeting = ({userAlias}) => {
   return (
     <h1 className="App-title">Hey there, {userAlias}! Welcome to React</h1>
-  )
-}
+  );
+};
 
-export default Greeting
+export default Greeting;

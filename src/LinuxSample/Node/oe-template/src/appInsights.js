@@ -1,4 +1,5 @@
-import config from 'config'
+'use strict';
+import config from 'config';
 /*
 To collect end-user usage analytics about your application,
 insert the following script into each page you want to track.
@@ -25,4 +26,4 @@ if (window) {
   window.appInsights = appInsights; appInsights.queue && appInsights.queue.length === 0 && appInsights.trackPageView() && appInsights.trackDependency() && appInsights.setAuthenticatedUserContext()
 }
 
-export default appInsights
+export default appInsights;

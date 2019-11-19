@@ -1,3 +1,5 @@
+'use strict';
+
 import { UserAgentApplication } from 'msal'
 
 import * as authActions from 'actions/authActions'

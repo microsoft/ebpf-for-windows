@@ -1,5 +1,6 @@
-import { USER_LOGGED_IN, USER_LOGGED_OUT, USER_LOGIN_ERROR, LOGIN_IN_PROGRESS } from 'actions/authActions.js'
-import * as authService from 'services/authService'
+'use strict';
+import { USER_LOGGED_IN, USER_LOGGED_OUT, USER_LOGIN_ERROR, LOGIN_IN_PROGRESS } from 'actions/authActions.js';
+import * as authService from 'services/authService';
 
 const getDefaultState = () => {
   const defaultState = {
@@ -7,8 +8,8 @@ const getDefaultState = () => {
     loginInProgress: authService.loginInProgress(),
     signInAutomatically: true,
     userAlias: authService.getUserAlias()
-  }
-  return defaultState
+  };
+  return defaultState;
 }
 
 const authReducer = (state = getDefaultState(), action) => {
@@ -18,7 +19,7 @@ const authReducer = (state = getDefaultState(), action) => {
         ...state,
         loginInProgress: true,
         error: null
-      }
+      };
     case USER_LOGGED_IN:
       return {
         ...state,
@@ -27,7 +28,7 @@ const authReducer = (state = getDefaultState(), action) => {
         loginInProgress: false,
         signInAutomatically: true,
         userAlias: authService.getUserAlias(action.user)
-      }
+      };
     case USER_LOGGED_OUT:
       return {
         ...state,
@@ -36,7 +37,7 @@ const authReducer = (state = getDefaultState(), action) => {
         loginInProgress: false,
         signInAutomatically: false,
         userAlias: null
-      }
+      };
     case USER_LOGIN_ERROR:
       return {
         ...state,
@@ -44,10 +45,10 @@ const authReducer = (state = getDefaultState(), action) => {
         error: action.error,
         loginInProgress: false,
         userAlias: null
-      }
+      };
     default:
-      return state
+      return state;
   }
 }
 
-export default authReducer
+export default authReducer;

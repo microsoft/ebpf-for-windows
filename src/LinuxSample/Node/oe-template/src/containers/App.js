@@ -1,10 +1,12 @@
+'use strict';
+
 import React from 'react';
-import { connect } from 'react-redux'
+import { connect } from 'react-redux';
 
 import logo from 'assets/logo.svg';
-import 'styles/App.css'
-import LoadingPage from 'components/LoadingPage'
-import Greeting from 'components/Greeting'
+import 'styles/App.css';
+import LoadingPage from 'components/LoadingPage';
+import Greeting from 'components/Greeting';
 
 export const App = ({ user }) => {
   return user ?
@@ -22,10 +24,10 @@ export const App = ({ user }) => {
     )
   :
   <LoadingPage />
-}
+};
 
 export const mapStateToProps = (state) => ({
   user: state.auth.userAlias  
-})
+});
 
-export default connect(mapStateToProps)(App)
+export default connect(mapStateToProps)(App);

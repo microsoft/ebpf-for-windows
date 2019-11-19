@@ -1,3 +1,4 @@
+'use strict';
 module.exports = {
   authRedirectUri: 'URL FROM APP REGISTRATION -- CORRESPONDS TO APP CLIENT ID',
 
@@ -21,4 +22,4 @@ module.exports = {
   instrumentationKey: 'APP INSIGHTS GOES HERE',
 
   useAppInsights: false
-}
+};

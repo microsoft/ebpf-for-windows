@@ -1,0 +1,31 @@
+environment:
+  host:
+    os: 'windows'
+    flavor: 'server'
+    version: '2019'
+  runtime:
+    provider: 'appcontainer'
+    image: 'cdpxwinrs5.azurecr.io/global/vse2017/15.9.17:latest'
+    source_mode: map
+
+restore:
+  commands:
+    - !!defaultcommand
+      name: 'Restore Node'
+      command: 'src\WindowsServerSample\Node\restore.cmd'
+
+build:
+  commands:
+    - !!buildcommand
+      name: 'Build Node'
+      fail_on_stderr: false
+      command: 'src\WindowsServerSample\Node\officialBuild.cmd'
+      artifacts:
+        - from: 'src\WindowsServerSample\Node\oe-template'
+          to: 'Node'
+          include:
+            - 'build/'
+          signing_options:
+            sign_inline: true
+test:
+  commands:

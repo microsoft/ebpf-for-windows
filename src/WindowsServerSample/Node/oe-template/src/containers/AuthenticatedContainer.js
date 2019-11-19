@@ -1,8 +1,9 @@
+'use strict';
 import React, { Component } from 'react';
-import { Provider } from 'react-redux'
+import { Provider } from 'react-redux';
 
-import EnsureLoggedIn from 'components/auth/EnsureLoggedIn'
-import App from 'containers/App'
+import EnsureLoggedIn from 'components/auth/EnsureLoggedIn';
+import App from 'containers/App';
 
 class AuthenticatedContainer extends Component {
   render() {

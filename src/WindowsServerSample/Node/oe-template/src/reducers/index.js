@@ -1,7 +1,9 @@
-import { combineReducers } from 'redux'
+'use strict';
 
-import authReducer from 'reducers/authReducer'
-import monitoringReducer from 'reducers/monitorReducer'
+import { combineReducers } from 'redux';
+
+import authReducer from 'reducers/authReducer';
+import monitoringReducer from 'reducers/monitorReducer';
 
 const defaultState = {
   auth: {
@@ -13,12 +15,12 @@ const defaultState = {
   monitoring: {
     monitoringInProgress: true
   }
-}
+};
 
 const rootReducer = combineReducers({
   defaultState,
   auth: authReducer,
   monitoring: monitoringReducer
-})
+});
 
-export default rootReducer
+export default rootReducer;
