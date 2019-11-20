@@ -20,6 +20,10 @@ restore:
       name: 'Node Restore'
       command: 'src/LinuxSample/Node/restore.sh'
       fail_on_stderr: false
+    - !!defaultcommand
+      name: 'Azure DevOps Extension Restore'
+      command: 'src/LinuxSample/AzureDevOpsExtension/restore.sh'
+      fail_on_stderr: false
 
 build:
   commands:
@@ -39,6 +43,16 @@ build:
             - '**/node_modules'
           include:
             - '**/*'
+    
+    - !!buildcommand
+      name: 'Build Azure DevOps Extension'
+      fail_on_stderr: false
+      command: 'src/LinuxSample/AzureDevOpsExtension/build.sh'
+      artifacts:
+        - from: 'src/LinuxSample/AzureDevOpsExtension'
+          to: 'Linux/AzureDevOpsExtension'
+          include:
+            - '**/*.vsix'
 
     - !!buildcommand
       name: 'Build C'

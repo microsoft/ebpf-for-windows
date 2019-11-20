@@ -1,0 +1,75 @@
+{
+    "contributions": [
+        {
+            "id": "feature-abc",
+            "type": "ms.vss-web.feature",
+            "description": "Show the new ABC hub in the Pipelines hub group",
+            "targets": [ "ms.vss-web.managed-features", "ms.vss-web.managed-features-onprem" ],
+            "properties": {
+                "name": "Feature ABC",
+                "userConfigurable": true,
+                "hostConfigurable": true
+            }
+        },
+        {
+            "id": "feature-abc-v2",
+            "type": "ms.vss-web.feature",
+            "description": "Try the new ABC v2 hub",
+            "targets": [ "ms.vss-web.managed-features", "ms.vss-web.managed-features-onprem" ],
+            "properties": {
+                "name": "Feature ABC v2",
+                "userConfigurable": true,
+                "hostConfigurable": true,
+                "hostScopes": [ "project", null ],
+                "defaultState": true,
+                "overrideRules": [
+                    {
+                        "name": "Feature",
+                        "featureId": "ms-samples.samples.feature-abc",
+                        "when": "disabled"
+                    }
+                ]
+            }
+        },
+        {
+            "id": "abc-hub",
+            "type": "ms.vss-web.hub",
+            "targets": [
+                "ms.vss-build-web.build-release-hub-group"
+            ],
+            "properties": {
+                "name": "Sample ABC",
+                "uri": "dist/Feature/Feature.html",
+                "icon": "asset://static/sample-icon.png"
+            },
+            "constraints": [
+              {
+                "name": "Feature",
+                "properties": {
+                    "featureId": "ms-samples.samples.feature-abc"
+                }
+              }
+            ]
+        },
+        {
+            "id": "abc-hub-v2-overrides",
+            "type": "ms.vss-web.property-provider",
+            "targets": [".abc-hub"],
+            "properties": {
+              "type": "static",
+              "newProperties": {
+                "name": "Sample ABC (new)",
+                "uri": "dist/Feature/Feature.html?v2=true"
+              }
+            },
+            "constraints": [
+              {
+                "name": "Feature",
+                "properties": {
+                    "featureId": "ms-samples.samples.feature-abc-v2"
+                }
+              }
+            ]
+        }
+    ]
+}

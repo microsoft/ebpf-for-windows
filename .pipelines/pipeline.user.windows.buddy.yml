@@ -21,12 +21,15 @@ static_analysis_options:
       - from: 'src'
         exclude:
         - '**/Node/**/*.js'  # Ignore all because ModernCop does not support ES6+ JavaScript, which is what this application is written with. We are supposed to use TSLint instead. https://www.1eswiki.com/wiki/Secure_Development_Tools_Extension_For_Azure_DevOps
+        - '**/AzureDevOpsExtension/**/*.js'  # Ignore all because ModernCop does not support ES6+ JavaScript, which is what this application is written with. We are supposed to use TSLint instead. https://www.1eswiki.com/wiki/Secure_Development_Tools_Extension_For_Azure_DevOps
         - '**/node_modules/**/*.exe'
         - '**/node_modules/**/*.js'
   binskim_options:
     disable_tool_scan: false
     files_to_scan:
     - from: 'src'
-      exclude:
-      - '**/node_modules/**/*.exe'
-      - '**/node_modules/**/*.js'
+        exclude:
+        - '**/node_modules/**/*.exe'
+        - '**/node_modules/**/*.js'
+        - '**/Go/*.exe'
+        - '**/Haskell/*.exe'

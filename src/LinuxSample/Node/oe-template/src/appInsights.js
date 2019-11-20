@@ -1,4 +1,4 @@
-'use strict';
+
 import config from 'config';
 /*
 To collect end-user usage analytics about your application,

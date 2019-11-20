@@ -1,0 +1,22 @@
+{
+    "contributions": [
+        {
+            "id": "sample-service-yes-command",
+            "type": "ms.vss-web.command",
+            "properties": {
+                "uri": "dist/SampleService/SampleService.html",
+                "serviceName": "SampleCommandService",
+                "methodName": "yesCommand"
+            }
+        },
+        {
+            "id": "sample-service-no-command",
+            "type": "ms.vss-web.command",
+            "properties": {
+                "uri": "dist/SampleService/SampleService.html",
+                "serviceName": "SampleCommandService",
+                "methodName": "noCommand"
+            }
+        }
+    ]
+}

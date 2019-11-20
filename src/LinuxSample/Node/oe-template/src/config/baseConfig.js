@@ -1,4 +1,4 @@
-'use strict';
+
 
 module.exports = {
   authRedirectUri: 'URL FROM APP REGISTRATION -- CORRESPONDS TO APP CLIENT ID',

@@ -1,4 +1,4 @@
-'use strict';
+
 import * as msalService from 'services/msalService';
 import * as adalService from 'services/adalService';
 import * as authActions from 'actions/authActions';

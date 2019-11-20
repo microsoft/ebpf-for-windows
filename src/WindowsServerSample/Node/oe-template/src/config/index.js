@@ -1,4 +1,4 @@
-'use strict';
+
 
 const prodConfig = require('config/prodConfig');
 const devConfig = require('config/devConfig');

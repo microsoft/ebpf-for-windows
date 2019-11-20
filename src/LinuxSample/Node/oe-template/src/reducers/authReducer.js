@@ -1,4 +1,4 @@
-'use strict';
+
 
 import { USER_LOGGED_IN, USER_LOGGED_OUT, USER_LOGIN_ERROR, LOGIN_IN_PROGRESS } from 'actions/authActions.js';
 import * as authService from 'services/authService';

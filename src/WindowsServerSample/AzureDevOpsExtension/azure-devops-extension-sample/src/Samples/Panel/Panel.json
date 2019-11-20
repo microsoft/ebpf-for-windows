@@ -1,0 +1,11 @@
+{
+    "contributions": [
+        {
+            "id": "panel-content",
+            "type": "ms.vss-web.external-content",
+            "properties": {
+                "uri": "dist/Panel/Panel.html"
+            }
+        }
+    ]
+}

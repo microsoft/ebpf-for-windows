@@ -1,4 +1,4 @@
-'use strict';
+
 import { combineReducers } from 'redux';
 
 import authReducer from 'reducers/authReducer';

@@ -1,0 +1,14 @@
+{
+    "contributions": [
+        {
+            "id": "my-code-editor-contribution",
+            "type": "ms.vss-code-web.code-editor-contribution",
+            "description": "Show how to add JSON schemas and custom syntax highlighting",
+            "targets": [ "ms.vss-code-web.code-editor-contribution-collection" ],
+            "properties": {
+                "uri": "dist/CodeEditorContribution/CodeEditorContribution.html",
+                "registeredObjectId": "my-code-editor-contribution"
+            }
+        }
+    ]
+}

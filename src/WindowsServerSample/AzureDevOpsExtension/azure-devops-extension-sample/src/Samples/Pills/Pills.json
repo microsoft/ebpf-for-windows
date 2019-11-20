@@ -1,0 +1,15 @@
+{
+    "contributions": [
+        {
+            "id": "sample-pill-service",
+            "type": "ms.vss-web.pill-provider",
+            "targets": [
+                "ms.vss-build-web.build-definition-detail-view-header-pills"
+            ],
+            "properties": {
+                "serviceName": "sample-pill-service",
+                "uri": "dist/Pills/Pills.html"
+            }
+        }
+    ]
+}

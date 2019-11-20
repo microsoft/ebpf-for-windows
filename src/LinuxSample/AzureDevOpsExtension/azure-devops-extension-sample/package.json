@@ -1,0 +1,49 @@
+{
+  "name": "azure-devops-extension-sample",
+  "version": "1.0.3",
+  "description": "Sample Azure DevOps web extension",
+  "keywords": [
+    "extensions",
+    "Azure DevOps",
+    "Visual Studio Team Services"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Microsoft/azure-devops-extension-sample.git"
+  },
+  "scripts": {
+    "clean": "rimraf ./dist",
+    "compile": "npm run clean && webpack --mode production",
+    "compile:dev": "npm run clean && webpack --mode development",
+    "build": "npm run compile",
+    "build:dev": "npm run compile:dev && npm run postbuild",
+    "postbuild": "npm run package-extension -- --rev-version",
+    "package-extension": "tfx extension create --manifest-globs azure-devops-extension.json src/Samples/**/*.json",
+    "publish-extension": "tfx extension publish --manifest-globs azure-devops-extension.json src/Samples/**/*.json"
+  },
+  "dependencies": {
+    "azure-devops-extension-api": "~1.157.0",
+    "azure-devops-extension-sdk": "~2.0.11",
+    "azure-devops-ui": "~1.157.0",
+    "react": "~16.8.1",
+    "react-dom": "~16.8.1"
+  },
+  "devDependencies": {
+    "@types/react": "~16.8.2",
+    "@types/react-dom": "~16.8.0",
+    "base64-inline-loader": "^1.1.1",
+    "copy-webpack-plugin": "^4.5.4",
+    "css-loader": "~1.0.0",
+    "file-loader": "~2.0.0",
+    "node-sass": "~4.12.0",
+    "rimraf": "~2.6.2",
+    "sass-loader": "~7.1.0",
+    "style-loader": "~0.23.1",
+    "tfx-cli": "^0.6.3",
+    "ts-loader": "~5.2.2",
+    "typescript": "^2.9.2",
+    "webpack": "^4.22.0",
+    "webpack-cli": "^3.1.2"
+  }
+}

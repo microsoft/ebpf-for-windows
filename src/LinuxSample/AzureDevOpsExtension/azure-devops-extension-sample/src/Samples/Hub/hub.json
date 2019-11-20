@@ -1,0 +1,23 @@
+{
+    "contributions": [
+        {
+            "id": "hub",
+            "type": "ms.vss-web.hub",
+            "targets": [
+                "ms.vss-build-web.build-release-hub-group"
+            ],
+            "includes": [
+                "ms.vss-tfs-web.tfs-page-data-service",
+                "ms.vss-features.host-navigation-service",
+                "ms.vss-features.extension-data-service",
+                "ms.vss-features.host-dialog-service"
+            ],
+            "properties": {
+                "name": "Sample hub",
+                "uri": "dist/Hub/Hub.html",
+                "icon": "asset://static/sample-icon.png",
+                "supportsMobile": true
+            }
+        }
+    ]
+}

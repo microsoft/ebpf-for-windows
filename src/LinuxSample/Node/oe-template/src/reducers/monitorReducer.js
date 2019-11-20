@@ -1,4 +1,4 @@
-'use strict';
+
 
 import { MONITORING_IN_PROGRESS } from 'actions/monitorActions';
 

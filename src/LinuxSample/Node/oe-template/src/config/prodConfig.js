@@ -1,4 +1,4 @@
-'use strict';
+
 const baseConfig = require('config/baseConfig');
 
 const config = Object.assign({}, baseConfig, {

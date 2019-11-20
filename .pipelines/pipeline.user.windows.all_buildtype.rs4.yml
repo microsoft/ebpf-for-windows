@@ -13,6 +13,9 @@ restore:
     - !!defaultcommand
       name: 'Restore Node'
       command: 'src\WindowsServerSample\Node\restore.cmd'
+    - !!defaultcommand
+      name: 'Restore Node'
+      command: 'src\WindowsServerSample\AzureDevOpsExtension\restore.cmd'
 
 build:
   commands:
@@ -38,6 +41,17 @@ build:
           to: 'Node'
           include:
             - 'build/'
+          signing_options:
+            sign_inline: true
+    - !!buildcommand
+      name: 'Build Node'
+      fail_on_stderr: false
+      command: 'src\WindowsServerSample\AzureDevOpsExtension\build.cmd'
+      artifacts:
+        - from: 'src\WindowsServerSample\AzureDevOpsExtension\'
+          to: 'AzureDevOpsExtension'
+          include:
+            - '**/*.vsix'
           signing_options:
             sign_inline: true
 

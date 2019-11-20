@@ -1,0 +1,15 @@
+{
+    "contributions": [
+        {
+            "id": "sample-repository-picker-action",
+            "type": "ms.vss-web.menu-item",
+            "targets": [ "ms.vss-code-web.command-bar-repository-picker-actions" ],
+            "properties": {
+                "text": "Sample repository picker action",
+                "uri": "dist/RepositoryActions/RepositoryActions.html",
+                "iconName" : "Add",
+                "registeredObjectId": "sample-repository-action"
+            }
+        }
+    ]
+}

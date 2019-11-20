@@ -1,0 +1,16 @@
+{
+    "contributions": [
+        {
+            "id": "pivot",
+            "type": "ms.vss-web.tab",
+            "targets": [
+                "ms.vss-tfs-web.suite-home-pivots"
+            ],
+            "properties": {
+                "name": "Sample pivot",
+                "uri": "dist/Pivot/Pivot.html",
+                "order": 500000
+            }
+        }
+    ]
+}

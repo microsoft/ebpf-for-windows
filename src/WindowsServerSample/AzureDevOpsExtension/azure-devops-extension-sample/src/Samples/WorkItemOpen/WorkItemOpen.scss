@@ -1,0 +1,21 @@
+@import "node_modules/azure-devops-ui/Core/_platformCommon.scss";
+
+.sample-form-section {
+    margin-top: 20px;
+}
+
+.sample-work-item-id-input {
+    width: 250px;
+    margin-right: 10px;
+}
+
+.sample-work-item-type-picker {
+    width: 250px;
+    margin-top: 8px;
+    margin-right: 10px;
+}
+
+.sample-work-item-button {
+    align-self: flex-end;
+    width: 80px;
+}

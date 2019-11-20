@@ -5,7 +5,7 @@ environment:
     version: '2019'
   runtime:
     provider: 'appcontainer'
-    image: 'cdpxwinrs5.azurecr.io/global/vse2017/15.9.17:latest'
+    image: 'cdpxwinrs5.azurecr.io/global/vse2019/16.3.7:latest'
     source_mode: map
 
 restore:
@@ -13,6 +13,9 @@ restore:
     - !!defaultcommand
       name: 'Restore Node'
       command: 'src\WindowsServerSample\Node\restore.cmd'
+    - !!defaultcommand
+      name: 'Restore Node'
+      command: 'src\WindowsServerSample\AzureDevOpsExtension\restore.cmd'
 
 build:
   commands:
@@ -25,6 +28,17 @@ build:
           to: 'Node'
           include:
             - 'build/'
+          signing_options:
+            sign_inline: true
+    - !!buildcommand
+      name: 'Build Node'
+      fail_on_stderr: false
+      command: 'src\WindowsServerSample\AzureDevOpsExtension\build.cmd'
+      artifacts:
+        - from: 'src\WindowsServerSample\AzureDevOpsExtension\'
+          to: 'AzureDevOpsExtension'
+          include:
+            - '**/*.vsix'
           signing_options:
             sign_inline: true
 test:

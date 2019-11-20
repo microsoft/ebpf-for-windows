@@ -1,4 +1,4 @@
-'use strict';
+
 import AuthenticationContext from 'adal-angular';
 
 import * as authActions from 'actions/authActions';

@@ -1,0 +1,16 @@
+{
+    "contributions": [
+        {
+            "id": "sample-breadcrumb-service",
+            "type": "ms.vss-web.breadcrumb-provider",
+            "targets": [
+                ".hub"
+            ],
+            "properties": {
+                "serviceName": "sample-breadcrumb-service",
+                "breadcrumbId": "ms.vss-tfs-web.vertical-header-breadcrumb",
+                "uri": "dist/BreadcrumbService/BreadcrumbService.html"
+            }
+        }
+    ]
+}

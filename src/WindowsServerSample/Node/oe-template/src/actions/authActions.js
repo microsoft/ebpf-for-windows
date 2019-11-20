@@ -1,4 +1,4 @@
-'use strict';
+
 import appInsights from 'appInsights';
 
 export const LOGIN_IN_PROGRESS = 'LOGIN_IN_PROGRESS';
