@@ -1,0 +1,1 @@
+Install Node 12 and Wix tooling as part of sample

@@ -77,10 +77,3 @@ build:
       logs:
         - include:
             - 'src/LinuxSample/C++/build.log'
-
-package:
-  commands:
-    - !!dockerbuildcommand
-      name: 'Build and Publish image'
-      context_folder: 'src/DockerBuildExample/dummy'
-      repository_name: 'cdpx/stx'

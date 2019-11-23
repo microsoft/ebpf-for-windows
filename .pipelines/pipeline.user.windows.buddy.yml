@@ -27,7 +27,7 @@ static_analysis_options:
   binskim_options:
     disable_tool_scan: false
     files_to_scan:
-    - from: 'src'
+      - from: 'src'
         exclude:
         - '**/node_modules/**/*.exe'
         - '**/node_modules/**/*.js'
