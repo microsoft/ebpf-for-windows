@@ -1,1 +1,0 @@
-echo "Fake build command to produce artifacts for cloud vault upload"

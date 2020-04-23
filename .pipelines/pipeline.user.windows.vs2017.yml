@@ -5,7 +5,7 @@ environment:
     version: '2019'
   runtime:
     provider: 'appcontainer'
-    image: 'cdpxwin1809.azurecr.io/global/vse2019:latest'
+    image: 'cdpxwin1809.azurecr.io/global/vse2017:latest'
     source_mode: 'map'
 
 signing_options:
@@ -64,7 +64,7 @@ build:
             - '**/*'
     - !!buildcommand
       name: 'Build CSharp MSBuild'
-      command: 'src\WindowsServerSample\DotNetMSBuild\build.cmd'
+      command: 'src\WindowsServerSample\DotNetMSBuild\build-vs2017.cmd'
       fail_on_stderr: false
       artifacts:
         - from: 'src\WindowsServerSample\DotNetMSBuild\MSBuildSample\bin'

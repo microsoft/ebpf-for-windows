@@ -19,7 +19,6 @@ EX=$?
 
 # Check exit code and exit with it if it is non-zero so that build will fail
 if [ "$EX" -ne "0" ]; then
-    popd
     echo Failed to install npm modules.
 fi
 

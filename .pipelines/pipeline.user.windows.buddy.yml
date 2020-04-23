@@ -32,4 +32,3 @@ static_analysis_options:
         - '**/node_modules/**/*.exe'
         - '**/node_modules/**/*.js'
         - '**/Go/*.exe'
-        - '**/Haskell/*.exe'

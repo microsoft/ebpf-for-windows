@@ -1,5 +1,5 @@
 # escape=`
-FROM cdpxwinrs5test.azurecr.io/global/windows/windows-servercore-base-winltsc2019:latest
+FROM cdpxwin1809.azurecr.io/global/windows-servercore48-base-winltsc2019:latest
 
 RUN "DISM.EXE /Online /Cleanup-Image /CheckHealth"
 

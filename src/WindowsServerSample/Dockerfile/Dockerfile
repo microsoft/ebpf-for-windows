@@ -6,7 +6,7 @@ RUN powershell -Command \
     $ErrorActionPreference = 'Stop'; \
     "iwr https://chocolatey.org/install.ps1 -UseBasicParsing | iex"
 
-# Go HASKELL JAVA MAVEN NODE PERL PYTHON3 RUBY ERLANG RUBY GRADLE RUST NUGET ANDRIOID-SDK
+# Go JAVA MAVEN NODE PERL PYTHON3 RUBY ERLANG RUBY GRADLE NUGET ANDRIOID-SDK
 RUN powershell -Command $ErrorActionPreference = 'Stop'; \
     choco install -y \
     golang  \
@@ -19,7 +19,6 @@ RUN powershell -Command $ErrorActionPreference = 'Stop'; \
     ruby \
     erlang \
     gradle \
-    rust \
     nuget.commandline 
 	   
 # BOWER

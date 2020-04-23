@@ -21,7 +21,6 @@ static_analysis_options:
     files_to_scan:
       - exclude:
           - '**/Go/*.exe'
-          - '**/Haskell/*.exe'
 
 package_sources:
   nuget:
