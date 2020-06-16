@@ -10,6 +10,8 @@ environment:
 
 signing_options:
   profile: 'azure'
+  codesign_validation_glob_pattern: 'regex|.+(?:dll|exe|sys|ps1|psm1|ps1xml|psc1|psd1|cdxml|vbs|js|wsf)$;-:file|**\linux\**' #CSV does not currently support binaries built for linux, so we exclude this folder
+
 
 restore:
   commands:
