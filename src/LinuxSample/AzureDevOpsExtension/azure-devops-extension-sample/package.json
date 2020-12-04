@@ -40,7 +40,7 @@
     "rimraf": "~2.6.2",
     "sass-loader": "~7.1.0",
     "style-loader": "~0.23.1",
-    "tfx-cli": "^0.6.3",
+    "tfx-cli": "^0.8.3",
     "ts-loader": "~5.2.2",
     "typescript": "^2.9.2",
     "webpack": "^4.22.0",
