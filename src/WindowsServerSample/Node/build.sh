@@ -42,4 +42,4 @@ fi
 popd 
 
 # Exit with explicit 0 exit code so build will not fail
-exit $EX
+exit 0
