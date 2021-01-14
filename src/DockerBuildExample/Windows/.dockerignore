@@ -1,4 +1,0 @@
-# Ignore unnecessary files from being sent as build context.
-metadata.xml
-owners.txt
-README.md

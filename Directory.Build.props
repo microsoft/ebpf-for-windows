@@ -1,0 +1,61 @@
+<!--
+  This file is imported by any project that imports Microsoft.Common.props
+-->
+<Project>
+  <PropertyGroup>
+    <!--
+      Use this property for convenience to build a path starting from the root of the repository.
+    -->
+    <EnlistmentRoot>$(MSBuildThisFileDirectory.TrimEnd('\\'))</EnlistmentRoot>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <!--
+      New SDK-style projects include everything in the project directory by default.  This excludes the files left by QuickBuild local builds.
+    -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);QTestLogs\**;Logs\**;QLogs\**</DefaultItemExcludes>
+    <!--
+      Enable restoring projects with packages.config
+    -->
+    <RestorePackagesConfig>true</RestorePackagesConfig>
+    <!--
+      Enable optimized NuGet restore
+    -->
+    <RestoreUseStaticGraphEvaluation>true</RestoreUseStaticGraphEvaluation>
+    <!-- Produce deterministic assemblies, requirement for ProduceReferenceAssembly -->
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+  <Import Project="PackageList.props" Condition="Exists('PackageList.props')" />
+  <PropertyGroup>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Prefer32Bit Condition=" '$(Prefer32Bit)' == '' ">false</Prefer32Bit>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <BuildArchitecture Condition=" '$(Platform)' == 'x64' ">amd64</BuildArchitecture>
+    <BuildArchitecture Condition=" '$(Platform)' == 'x86' ">i386</BuildArchitecture>
+    <BuildType Condition=" '$(Configuration)' == 'Release' ">retail</BuildType>
+    <BuildType Condition=" '$(Configuration)' == 'Debug' ">debug</BuildType>
+    <PlatformTarget Condition="'$(PlatformSpecificAssembly)' == 'true' And '$(BuildArchitecture)' == 'i386'">x86</PlatformTarget>
+    <PlatformTarget Condition="'$(PlatformSpecificAssembly)' == 'true' And '$(BuildArchitecture)' == 'amd64'">x64</PlatformTarget>
+    <BuildTarget>$(BuildArchitecture)</BuildTarget>
+    <PackagesRoot>$(EnlistmentRoot)\Packages</PackagesRoot>
+    <INETROOT>$(EnlistmentRoot)</INETROOT>
+    <BaseDir>$(EnlistmentRoot)</BaseDir>
+    <SrcRoot>$(EnlistmentRoot)\src</SrcRoot>
+    <DebugSymbols>true</DebugSymbols>
+  </PropertyGroup>
+  <ItemGroup>
+    <SlnGenSolutionItem Include="$(MSBuildThisFileDirectory)CloudBuild.json;&#xD;&#xA;                        $(MSBuildThisFileDirectory)Directory.Build.props;&#xD;&#xA;                        $(MSBuildThisFileDirectory)Directory.Build.rsp;&#xD;&#xA;                        $(MSBuildThisFileDirectory)Directory.Build.targets;&#xD;&#xA;                        $(MSBuildThisFileDirectory)dirs.proj;&#xD;&#xA;                        $(MSBuildThisFileDirectory)global.json;&#xD;&#xA;                        $(MSBuildThisFileDirectory)NuGet.config;&#xD;&#xA;                        $(MSBuildThisFileDirectory)Packages.props;&#xD;&#xA;                        $(MSBuildThisFileDirectory)README.md" />
+  </ItemGroup>
+  <!--
+    Import all custom build variables from CloudBuild (https://www.1eswiki.com/wiki/CloudBuild_Custom_Build_Variables)
+  -->
+  <Import Project="$(MSBuildThisFileDirectory)__CloudBuildServiceProperties__\all.props" Condition="Exists('$(MSBuildThisFileDirectory)__CloudBuildServiceProperties__\all.props')" />
+  <!--
+    The TelemetryLoggerInstallId property defines where to deploy the MSBuild telemetry logger. This
+    must be kept in sync with Directory.Build.rsp. The install path needs to change for each version
+    to avoid file locks (logger dll will be in use while building).
+  -->
+  <PropertyGroup>
+    <TelemetryLoggerInstallId>1.0.10</TelemetryLoggerInstallId>
+  </PropertyGroup>
+</Project>

@@ -100,23 +100,23 @@ extends:
               maximumCpuCount: true
               logProjectEvents: true
 
-          - task: VSTest@2
-            inputs:
-              testSelector: 'testAssemblies'
-              testAssemblyVer2: |
-                **\*test*.dll
-                !**\*TestAdapter.dll
-                !**\obj\**
-              searchFolder: '$(Build.SourcesDirectory)\out'
-              resultsFolder: '$(Build.SourcesDirectory)\out\logs\TestResults'
-              runInParallel: true
-              codeCoverageEnabled: true
-              testRunTitle: 'release_x64'
-              platform: 'x64'
-              configuration: 'release'
-              publishRunAttachments: false
-              failOnMinTestsNotRun: true
-              rerunFailedTests: true
+          # - task: VSTest@2
+          #   inputs:
+          #     testSelector: 'testAssemblies'
+          #     testAssemblyVer2: |
+          #       **\*test*.dll
+          #       !**\*TestAdapter.dll
+          #       !**\obj\**
+          #     searchFolder: '$(Build.SourcesDirectory)\out'
+          #     resultsFolder: '$(Build.SourcesDirectory)\out\logs\TestResults'
+          #     runInParallel: true
+          #     codeCoverageEnabled: true
+          #     testRunTitle: 'release_x64'
+          #     platform: 'x64'
+          #     configuration: 'release'
+          #     publishRunAttachments: false
+          #     failOnMinTestsNotRun: true
+          #     rerunFailedTests: true
 
           - task: PublishTestResults@2
             displayName: 'Publish test results'
