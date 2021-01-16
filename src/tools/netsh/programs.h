@@ -1,0 +1,6 @@
+#pragma once
+
+FN_HANDLE_CMD HandleEbpfAddProgram;
+FN_HANDLE_CMD HandleEbpfDeleteProgram;
+FN_HANDLE_CMD HandleEbpfSetProgram;
+FN_HANDLE_CMD HandleEbpfShowPrograms;
