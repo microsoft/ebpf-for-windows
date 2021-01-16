@@ -1,0 +1,5 @@
+#pragma once
+
+FN_HANDLE_CMD HandleEbpfShowDisassembly;
+FN_HANDLE_CMD HandleEbpfShowSections;
+FN_HANDLE_CMD HandleEbpfShowVerification;

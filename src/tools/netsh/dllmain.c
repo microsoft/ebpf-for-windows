@@ -1,6 +1,8 @@
 // dllmain.cpp : Defines the entry point for the DLL application.
 #include "pch.h"
+#include "elf.h"
 #include "programs.h"
+#include "resource.h"
 
 static const GUID g_EbpfHelperGuid = { /* 634d21b8-13f9-46a3-945f-885cbd661c13 */
     0x634d21b8,
@@ -25,19 +27,20 @@ BOOL WINAPI DllMain(
     return TRUE;
 }
 
-#define HLP_EBPF_ADD_PROGRAM        1001
-#define HLP_EBPF_ADD_PROGRAM_EX     1002
-#define HLP_EBPF_DELETE_PROGRAM     1003
-#define HLP_EBPF_DELETE_PROGRAM_EX  1004
-#define HLP_EBPF_SET_PROGRAM        1007
-#define HLP_EBPF_SET_PROGRAM_EX     1008
-#define HLP_EBPF_SHOW_PROGRAMS       1013
-#define HLP_EBPF_SHOW_PROGRAMS_EX    1014
+// Verbs
+#define CMD_GROUP_ADD        L"add"
+#define CMD_GROUP_DELETE     L"delete"
+#define CMD_GROUP_SET        L"set"
+#define CMD_GROUP_SHOW       L"show"
 
+// Nouns
 #define CMD_EBPF_ADD_PROGRAM        L"program"
 #define CMD_EBPF_DELETE_PROGRAM     L"program"
 #define CMD_EBPF_SET_PROGRAM        L"program"
 #define CMD_EBPF_SHOW_PROGRAMS      L"programs"
+#define CMD_EBPF_SHOW_SECTIONS      L"sections"
+#define CMD_EBPF_SHOW_DISASSEMBLY   L"disassembly"
+#define CMD_EBPF_SHOW_VERIFICATION  L"verification"
 
 CMD_ENTRY g_EbpfAddCmdTable[] =
 {
@@ -53,7 +56,10 @@ CMD_ENTRY g_EbpfSetCmdTable[] =
 };
 CMD_ENTRY g_EbpfShowCmdTable[] =
 {
+    CREATE_CMD_ENTRY(EBPF_SHOW_DISASSEMBLY, HandleEbpfShowDisassembly),
     CREATE_CMD_ENTRY(EBPF_SHOW_PROGRAMS, HandleEbpfShowPrograms),
+    CREATE_CMD_ENTRY(EBPF_SHOW_SECTIONS, HandleEbpfShowSections),
+    CREATE_CMD_ENTRY(EBPF_SHOW_VERIFICATION, HandleEbpfShowVerification),
 };
 
 #define HLP_GROUP_ADD        1100
@@ -64,11 +70,6 @@ CMD_ENTRY g_EbpfShowCmdTable[] =
 #define HLP_GROUP_SET_EX     1105
 #define HLP_GROUP_SHOW       1106
 #define HLP_GROUP_SHOW_EX    1107
-
-#define CMD_GROUP_ADD        L"add"
-#define CMD_GROUP_DELETE     L"delete"
-#define CMD_GROUP_SET        L"set"
-#define CMD_GROUP_SHOW       L"show"
 
 static CMD_GROUP_ENTRY g_EbpfGroupCmds[] =
 {
