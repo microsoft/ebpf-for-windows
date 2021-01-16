@@ -157,25 +157,41 @@ DWORD HandleEbpfShowSections(
     }
 
     try {
-        auto raw_progs = read_elf(filename, section, create_map_crab, nullptr);
+        auto rawPrograms = read_elf(filename, section, create_map_crab, nullptr);
         if (level == VL_NORMAL) {
             std::cout << "\n";
             std::cout << "             Section    Type  # Maps    Size\n";
             std::cout << "====================  ======  ======  ======\n";
         }
-        for (const raw_program& raw_prog : raw_progs) {
+        for (const raw_program& rawProgram : rawPrograms) {
             if (level == VL_NORMAL) {
-                std::cout << std::setw(20) << raw_prog.section << "  " <<
-                    std::setw(6) << (int)raw_prog.info.program_type << "  " <<
-                    std::setw(6) << raw_prog.info.map_defs.size() << "  " <<
-                    std::setw(6) << raw_prog.prog.size() << "\n";
+                std::cout << std::setw(20) << std::right << rawProgram.section << "  " <<
+                    std::setw(6) << (int)rawProgram.info.program_type << "  " <<
+                    std::setw(6) << rawProgram.info.map_defs.size() << "  " <<
+                    std::setw(6) << rawProgram.prog.size() << "\n";
             } else {
+                // Convert the instruction sequence to a control-flow graph
+                // in a "passive", non-deterministic form.
+                std::variant<InstructionSeq, std::string> programOrError = unmarshal(rawProgram);
+                if (std::holds_alternative<std::string>(programOrError)) {
+                    std::cout << "parse failure: " << std::get<std::string>(programOrError) << "\n";
+                    return 1;
+                }
+                auto& program = std::get<InstructionSeq>(programOrError);
+                cfg_t controlFlowGraph = prepare_cfg(program, rawProgram.info, true);
+                std::map<std::string, int> stats = collect_stats(controlFlowGraph);
+
                 std::cout << "\n";
-                std::cout << "Section: " << raw_prog.section << "\n";
-                std::cout << "Type:    " << (int)raw_prog.info.program_type << "\n";
-                std::cout << "# Maps:  " << raw_prog.info.map_defs.size() << "\n";
-                std::cout << "Size:    " << raw_prog.prog.size() << " instructions\n";
-                // TODO: add more stats
+                std::cout << "Section      : " << rawProgram.section << "\n";
+                std::cout << "Type         : " << (int)rawProgram.info.program_type << "\n";
+                std::cout << "# Maps       : " << rawProgram.info.map_defs.size() << "\n";
+                std::cout << "Size         : " << rawProgram.prog.size() << " instructions\n";
+                for (std::map<std::string, int>::iterator iter = stats.begin(); iter != stats.end(); iter++)
+                {
+                    std::string key = iter->first;
+                    int value = iter->second;
+                    std::cout << std::setw(13) << std::left << key << ": " << value << "\n";
+                }
             }
         }
         return NO_ERROR;
