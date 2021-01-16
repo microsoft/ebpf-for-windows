@@ -1,5 +1,9 @@
-// dllmain.cpp : Defines the entry point for the DLL application.
-#include "pch.h"
+// Copyright (C) Microsoft.
+// SPDX-License-Identifier: MIT
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <stdlib.h>
+#include <netsh.h>
 #include "elf.h"
 #include "programs.h"
 #include "resource.h"
@@ -12,18 +16,10 @@ static const GUID g_EbpfHelperGuid = { /* 634d21b8-13f9-46a3-945f-885cbd661c13 *
 };
 
 BOOL WINAPI DllMain(
-    HMODULE hModule,
-    DWORD  ul_reason_for_call,
+    HMODULE moduleHandle,
+    DWORD  reasonForCall,
     void* reserved)
 {
-    switch (ul_reason_for_call)
-    {
-    case DLL_PROCESS_ATTACH:
-    case DLL_THREAD_ATTACH:
-    case DLL_THREAD_DETACH:
-    case DLL_PROCESS_DETACH:
-        break;
-    }
     return TRUE;
 }
 
@@ -42,19 +38,19 @@ BOOL WINAPI DllMain(
 #define CMD_EBPF_SHOW_DISASSEMBLY   L"disassembly"
 #define CMD_EBPF_SHOW_VERIFICATION  L"verification"
 
-CMD_ENTRY g_EbpfAddCmdTable[] =
+CMD_ENTRY g_EbpfAddCommandTable[] =
 {
     CREATE_CMD_ENTRY(EBPF_ADD_PROGRAM, HandleEbpfAddProgram),
 };
-CMD_ENTRY g_EbpfDeleteCmdTable[] =
+CMD_ENTRY g_EbpfDeleteCommandTable[] =
 {
     CREATE_CMD_ENTRY(EBPF_DELETE_PROGRAM, HandleEbpfDeleteProgram),
 };
-CMD_ENTRY g_EbpfSetCmdTable[] =
+CMD_ENTRY g_EbpfSetCommandTable[] =
 {
     CREATE_CMD_ENTRY(EBPF_SET_PROGRAM, HandleEbpfSetProgram),
 };
-CMD_ENTRY g_EbpfShowCmdTable[] =
+CMD_ENTRY g_EbpfShowCommandTable[] =
 {
     CREATE_CMD_ENTRY(EBPF_SHOW_DISASSEMBLY, HandleEbpfShowDisassembly),
     CREATE_CMD_ENTRY(EBPF_SHOW_PROGRAMS, HandleEbpfShowPrograms),
@@ -71,46 +67,41 @@ CMD_ENTRY g_EbpfShowCmdTable[] =
 #define HLP_GROUP_SHOW       1106
 #define HLP_GROUP_SHOW_EX    1107
 
-static CMD_GROUP_ENTRY g_EbpfGroupCmds[] =
+static CMD_GROUP_ENTRY g_EbpfGroupCommands[] =
 {
-    CREATE_CMD_GROUP_ENTRY(GROUP_ADD,    g_EbpfAddCmdTable),
-    CREATE_CMD_GROUP_ENTRY(GROUP_DELETE, g_EbpfDeleteCmdTable),
-    CREATE_CMD_GROUP_ENTRY(GROUP_SET,    g_EbpfSetCmdTable),
-    CREATE_CMD_GROUP_ENTRY(GROUP_SHOW,   g_EbpfShowCmdTable),
+    CREATE_CMD_GROUP_ENTRY(GROUP_ADD,    g_EbpfAddCommandTable),
+    CREATE_CMD_GROUP_ENTRY(GROUP_DELETE, g_EbpfDeleteCommandTable),
+    CREATE_CMD_GROUP_ENTRY(GROUP_SET,    g_EbpfSetCommandTable),
+    CREATE_CMD_GROUP_ENTRY(GROUP_SHOW,   g_EbpfShowCommandTable),
 };
 
-DWORD WINAPI EbpfStartHelper(const GUID* pguidParent, DWORD version)
+DWORD WINAPI EbpfStartHelper(const GUID* parentGuid, DWORD version)
 {
-    DWORD dwErr;
-    NS_CONTEXT_ATTRIBUTES attMyAttributes = { 0 };
+    NS_CONTEXT_ATTRIBUTES attributes = { 0 };
 
-    attMyAttributes.pwszContext = L"ebpf";
-    attMyAttributes.guidHelper = g_EbpfHelperGuid;
-    attMyAttributes.dwVersion = 1;
-    attMyAttributes.dwFlags = CMD_FLAG_LOCAL | CMD_FLAG_ONLINE;
-    attMyAttributes.ulNumTopCmds = 0;
-    attMyAttributes.pTopCmds = NULL;
-    attMyAttributes.ulNumGroups = _countof(g_EbpfGroupCmds);
-    attMyAttributes.pCmdGroups = (CMD_GROUP_ENTRY(*)[]) & g_EbpfGroupCmds;
+    attributes.pwszContext = L"ebpf";
+    attributes.guidHelper = g_EbpfHelperGuid;
+    attributes.dwVersion = 1;
+    attributes.dwFlags = CMD_FLAG_LOCAL | CMD_FLAG_ONLINE;
+    attributes.ulNumGroups = _countof(g_EbpfGroupCommands);
+    attributes.pCmdGroups = (CMD_GROUP_ENTRY(*)[]) & g_EbpfGroupCommands;
 
-    dwErr = RegisterContext(&attMyAttributes);
+    DWORD status = RegisterContext(&attributes);
 
-    return dwErr;
+    return status;
 }
-
-static const GUID g_NetshGuid = NETSH_ROOT_GUID;
 
 __declspec(dllexport)
 DWORD
 InitHelperDll(DWORD netshVersion, void* reserved)
 {
-    NS_HELPER_ATTRIBUTES attMyAttributes = { 0 };
+    NS_HELPER_ATTRIBUTES attributes = { 0 };
 
-    attMyAttributes.guidHelper = g_EbpfHelperGuid;
-    attMyAttributes.dwVersion = 1;
-    attMyAttributes.pfnStart = EbpfStartHelper;
+    attributes.guidHelper = g_EbpfHelperGuid;
+    attributes.dwVersion = 1;
+    attributes.pfnStart = EbpfStartHelper;
 
-    DWORD err = RegisterHelper(&g_NetshGuid, &attMyAttributes);
+    DWORD status = RegisterHelper(NULL, &attributes);
 
-    return NO_ERROR;
+    return status;
 }

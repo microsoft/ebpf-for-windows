@@ -186,9 +186,9 @@ BEGIN
 \n                   normal: Display one line per section.  This\
 \n                           is the default when no section name is\
 \n                           given.\
-\n                   verbose: Display statistics on each\
-\n                            section.  This is the default when\
-\n                            a section name is given.\
+\n                   verbose: Display statistics on each section.\
+\n                            This is the default when a section\
+\n                            name is given.\
 \n\
 \nRemarks: Lists the code sections in the specified ELF file.\
 \n"

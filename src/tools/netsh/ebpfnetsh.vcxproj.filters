@@ -15,9 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="pch.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="programs.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -27,18 +24,18 @@
     <ClInclude Include="resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="tokens.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="pch.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="programs.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="elf.c">
+    <ClCompile Include="elf.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
