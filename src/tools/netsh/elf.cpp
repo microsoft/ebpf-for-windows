@@ -69,23 +69,22 @@ DWORD HandleEbpfShowDisassembly(
     }
 
     try {
-        auto raw_progs = read_elf(filename, section, create_map_crab, nullptr);
-        raw_program raw_prog = raw_progs.back();
-        std::variant<InstructionSeq, std::string> prog_or_error = unmarshal(raw_prog);
-        if (std::holds_alternative<std::string>(prog_or_error)) {
-            std::cout << "parse failure: " << std::get<std::string>(prog_or_error) << "\n";
+        auto rawPrograms = read_elf(filename, section, create_map_crab, nullptr);
+        raw_program rawProgram = rawPrograms.back();
+        std::variant<InstructionSeq, std::string> programOrError = unmarshal(rawProgram);
+        if (std::holds_alternative<std::string>(programOrError)) {
+            std::cout << "parse failure: " << std::get<std::string>(programOrError) << "\n";
             return 1;
         }
-        auto& prog = std::get<InstructionSeq>(prog_or_error);
+        auto& program = std::get<InstructionSeq>(programOrError);
         std::cout << "\n";
-        print(prog, std::cout);
+        print(program, std::cout);
         return NO_ERROR;
     }
     catch (std::exception ex) {
         std::cout << "Failed to load eBPF program from " << filename << "\n";
         return ERROR_SUPPRESS_OUTPUT;
     }
-
 }
 
 DWORD HandleEbpfShowSections(
@@ -176,6 +175,7 @@ DWORD HandleEbpfShowSections(
                 std::cout << "Type:    " << (int)raw_prog.info.program_type << "\n";
                 std::cout << "# Maps:  " << raw_prog.info.map_defs.size() << "\n";
                 std::cout << "Size:    " << raw_prog.prog.size() << " instructions\n";
+                // TODO: add more stats
             }
         }
         return NO_ERROR;
@@ -195,5 +195,75 @@ DWORD HandleEbpfShowVerification(
     LPCVOID data,
     BOOL* done)
 {
-    return ERROR_CALL_NOT_IMPLEMENTED;
+    TAG_TYPE tags[] = {
+            {TOKEN_FILENAME, NS_REQ_PRESENT, FALSE},
+            {TOKEN_SECTION, NS_REQ_ZERO, FALSE},
+    };
+    ULONG tagType[_countof(tags)] = { 0 };
+
+    ULONG status = PreprocessCommand(nullptr,
+        argv,
+        currentIndex,
+        argc,
+        tags,
+        _countof(tags),
+        0,
+        _countof(tags),
+        tagType);
+
+    std::string filename;
+    std::string section = ".text";
+    for (int i = 0; (status == NO_ERROR) && ((i + currentIndex) < argc); i++) {
+        switch (tagType[i]) {
+        case 0: // FILENAME
+        {
+            std::wstring ws(argv[currentIndex + i]);
+            filename = std::string(ws.begin(), ws.end());
+            break;
+        }
+        case 1: // SECTION
+        {
+            std::wstring ws(argv[currentIndex + i]);
+            section = std::string(ws.begin(), ws.end());
+            break;
+        }
+        default:
+            status = ERROR_INVALID_SYNTAX;
+            break;
+        }
+    }
+    if (status != NO_ERROR) {
+        return status;
+    }
+
+    try {
+        auto rawPrograms = read_elf(filename, section, create_map_crab, nullptr);
+        raw_program rawProgram = rawPrograms.back();
+        std::variant<InstructionSeq, std::string> programOrError = unmarshal(rawProgram);
+        if (std::holds_alternative<std::string>(programOrError)) {
+            std::cout << "parse failure: " << std::get<std::string>(programOrError) << "\n";
+            return 1;
+        }
+        auto& program = std::get<InstructionSeq>(programOrError);
+
+        // Convert the instruction sequence to a control-flow graph
+        // in a "passive", non-deterministic form.
+        cfg_t controlFlowGraph = prepare_cfg(program, rawProgram.info, true);
+
+        // Analyze the control-flow graph.
+        ebpf_verifier_options_t verifierOptions = ebpf_verifier_default_options;
+        verifierOptions.print_failures = true;
+        const auto res = run_ebpf_analysis(std::cout, controlFlowGraph, rawProgram.info, &verifierOptions);
+        if (!res) {
+            std::cout << "\nVerification failed\n";
+            return ERROR_SUPPRESS_OUTPUT;
+        }
+
+        std::cout << "\nVerification succeeded\n";
+        return NO_ERROR;
+    }
+    catch (std::exception ex) {
+        std::cout << "Failed to load eBPF program from " << filename << "\n";
+        return ERROR_SUPPRESS_OUTPUT;
+    }
 }
