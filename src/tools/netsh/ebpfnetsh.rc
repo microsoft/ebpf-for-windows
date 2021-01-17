@@ -1,0 +1,227 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "winres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// English (United States) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#pragma code_page(1252)
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#include ""winres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE
+BEGIN
+    HLP_EBPF_ADD_PROGRAM    "Loads an eBPF program.\n"
+    HLP_EBPF_ADD_PROGRAM_EX "\
+\nUsage: %1!s! [[type=]xdp]\
+\n                   [[pinned=]yes|no]\
+\n                   [filename=]<string>\
+\n                   [[section=]<string>]\
+\n\
+\nParameters:\
+\n\
+\n      Tag         Value\
+\n      type      - One of the following values:\
+\n                   xdp: The program is meant to hook into XDP.\
+\n                        This is the default value.\
+\n      pinned    - One of the following values:\
+\n                   yes: Pin the program.\
+\n                        This is the default value.\
+\n                   no: Do not pin the program.\
+\n      filename  - Filename or path to ELF file containing the\
+\n                  program.\
+\n      section   - Optionally the name of the section containing\
+\n                  the program.  If not specified, "".text"" is the\
+\n                  default.\
+\n\
+\nRemarks: Loads a program (if not already loaded) and pins it if\
+\n         requested.\
+\n"
+    HLP_EBPF_DELETE_PROGRAM "Deletes an eBPF program.\n"
+    HLP_EBPF_DELETE_PROGRAM_EX "\
+\nUsage: %1!s! [filename=]<string> [[section=]<string>]\
+\n\
+\nParameters:\
+\n\
+\n      Tag         Value\
+\n      filename  - Filename or path to ELF file containing the\
+\n                  program.  The ELF file itself is not used, but\
+\n                  the filename is used as an identifier to match\
+\n                  a pinned program.\
+\n      section   - Optionally the name of the section containing\
+\n                  the program.  If not specified, "".text"" is the\
+\n                  default.\
+\n\
+\nRemarks: If the program is pinned, this unpins the specified\
+\n         program.  If an unpinned process was loaded by the same\
+\n         netsh instance, via ""add program"", this releases the\
+\n         reference held by netsh. If there are no other\
+\n         references to the program, it will be unloaded.\
+\n         Otherwise, the resulting message will display which\
+\n         process still holds a reference.\
+\n"
+    HLP_EBPF_SET_PROGRAM    "Updates an eBPF program.\n"
+    HLP_EBPF_SET_PROGRAM_EX "\
+\nUsage: %1!s! [filename=]<string>\
+\n                   [[section=]<string>]\
+\n                   [pinned=]yes|no\
+\n\
+\nParameters:\
+\n\
+\n      Tag         Value\
+\n      filename  - Filename or path to ELF file containing the\
+\n                  program.  The ELF file itself is not used, but\
+\n                  the filename is used as an identifier to match\
+\n                  a pinned program.\
+\n      section   - Optionally the name of the section containing\
+\n                  the program.  If not specified, "".text"" is the\
+\n                  default.\
+\n      pinned    - One of the following values:\
+\n                   yes: Pin the program.\
+\n                   no: Unpin the program.\
+\n\
+\nRemarks: Pins or unpins the specified program which must already\
+\n         be loaded.\
+\n"
+    HLP_EBPF_SHOW_PROGRAMS  "Shows eBPF programs.\n"
+    HLP_EBPF_SHOW_PROGRAMS_EX "\
+\nUsage: %1!s! [[type=]xdp]\
+\n                     [[pinned=]yes|no|any]\
+\n                     [[level=]normal|verbose]\
+\n                     [[filename=]<string>\
+\n                     [[section=]<string>]]\
+\n\
+\nParameters:\
+\n\
+\n      Tag         Value\
+\n      type      - One of the following values:\
+\n                   xdp: The program is meant to hook into XDP.\
+\n                        This is the default value.\
+\n      pinned    - One of the following values:\
+\n                   any: Show all programs, pinned or not.\
+\n                        This is the default value.\
+\n                   yes: Only show pinned programs.\
+\n                   no: Only show unpinned programs.\
+\n      level     - One of the following values:\
+\n                   normal: Display one line per program.  This\
+\n                           is the default when no filename is\
+\n                           given.\
+\n                   verbose: Display extra information on each\
+\n                            program.  This is the default when a\
+\n                            filename is given.\
+\n      filename  - Filename or path to ELF file containing the\
+\n                  program.\
+\n      section   - Optionally the name of the section containing\
+\n                  the program.  If not specified, "".text"" is the\
+\n                  default.\
+\n\
+\nRemarks: Shows all loaded programs.\
+\n"
+
+    HLP_EBPF_SHOW_DISASSEMBLY "Shows disassembly of an eBPF program.\n"
+    HLP_EBPF_SHOW_DISASSEMBLY_EX "\
+\nUsage: %1!s! [filename=]<string> [[section=]<string>]\
+\n\
+\nParameters:\
+\n\
+\n      Tag         Value\
+\n      filename  - Filename or path to ELF file.\
+\n      section   - Optionally the name of a section.  If not\
+\n                  specified, "".text"" is the default.\
+\n\
+\nRemarks: Shows the disassembly of the specified eBPF program.\
+\n"
+    HLP_EBPF_SHOW_SECTIONS  "Shows sections of an ELF file.\n"
+    HLP_EBPF_SHOW_SECTIONS_EX "\
+\nUsage: %1!s! [filename=]<string> [[section=]<string>]\
+\n                     [[level=]normal|verbose]\
+\n\
+\nParameters:\
+\n\
+\n      Tag         Value\
+\n      filename  - Filename or path to ELF file.\
+\n      section   - Optionally the name of a section.\
+\n      level     - One of the following values:\
+\n                   normal: Display one line per section.  This\
+\n                           is the default when no section name is\
+\n                           given.\
+\n                   verbose: Display statistics on each section.\
+\n                            This is the default when a section\
+\n                            name is given.\
+\n\
+\nRemarks: Lists the code sections in the specified ELF file.\
+\n"
+    HLP_EBPF_SHOW_VERIFICATION 
+                            "Shows results of trying to verify an eBPF program.\n"
+    HLP_EBPF_SHOW_VERIFICATION_EX "\
+\nUsage: %1!s! [filename=]<string> [[section=]<string>]\
+\n\
+\nParameters:\
+\n\
+\n      Tag         Value\
+\n      filename  - Filename or path to ELF file.\
+\n      section   - Optionally the name of a section.  If not\
+\n                  specified, "".text"" is the default.\
+\n\
+\nRemarks: Shows the verbose verifier results of the specified eBPF\
+\n         program.\
+\n"
+
+END
+
+#endif    // English (United States) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+
