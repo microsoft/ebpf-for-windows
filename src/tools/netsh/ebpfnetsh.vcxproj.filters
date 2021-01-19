@@ -32,10 +32,10 @@
     <ClCompile Include="dllmain.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="programs.c">
+    <ClCompile Include="elf.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="elf.cpp">
+    <ClCompile Include="programs.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

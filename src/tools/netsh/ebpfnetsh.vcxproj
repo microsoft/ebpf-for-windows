@@ -175,7 +175,7 @@
   <ItemGroup>
     <ClCompile Include="dllmain.c" />
     <ClCompile Include="elf.cpp" />
-    <ClCompile Include="programs.c" />
+    <ClCompile Include="programs.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="ebpfnetsh.rc" />
