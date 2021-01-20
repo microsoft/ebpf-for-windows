@@ -31,11 +31,22 @@ Environment:
 // Driver global variables
 
 DEVICE_OBJECT* gWdmDevice;
-
 BOOLEAN gDriverUnloading = FALSE;
-
 DRIVER_INITIALIZE DriverEntry;
 EVT_WDF_DRIVER_UNLOAD EvtDriverUnload;
+DWORD gError = 0;
+DWORD gSuccess = 0;
+
+// Typedefs 
+typedef enum
+{
+    ebpfPoolTag = 'fpbe'
+} EBPF_POOL_TAG;
+
+typedef VOID(WINAPI* FUNCTION_TYPE) (VOID);
+typedef DWORD(WINAPI* FUNCTION_TYPE1) (DWORD);
+typedef DWORD(WINAPI* FUNCTION_TYPE2) (PVOID, PVOID);
+
 
 //
 // Constants
@@ -218,6 +229,89 @@ Exit:
    return status;
 }
 
+size_t gBufferLength = 4096;
+
+// Dummy drop function
+int DropPacket(unsigned int protocol)
+{
+
+    if (protocol == IPPROTO_UDP)
+    {
+        return 0;
+    }
+    else
+    {
+        return 1;
+    }
+}
+
+// Run user mode code provided in an input buffer
+// Assumes code is contained in a page size of 4k 
+VOID
+ExecuteCode(_In_ PVOID inputBuffer)
+{
+    PVOID  buffer = NULL;
+    PMDL  mdl = NULL;
+    NTSTATUS status = STATUS_SUCCESS;
+    FUNCTION_TYPE1 funcPtr1;
+    DWORD result = 0;
+
+    buffer = ExAllocatePool2(
+        POOL_FLAG_NON_PAGED_EXECUTE,
+        gBufferLength,
+        ebpfPoolTag
+    );
+
+    if (buffer == NULL) {
+        status = STATUS_UNSUCCESSFUL;
+        goto Cleanup;
+    }
+
+    mdl = IoAllocateMdl(
+        buffer,
+        (ULONG) gBufferLength,
+        FALSE,
+        TRUE,
+        NULL
+    );
+    if (mdl == NULL) {
+        status = STATUS_UNSUCCESSFUL;
+        goto Cleanup;
+    }
+
+    MmBuildMdlForNonPagedPool(mdl);
+
+    PUCHAR VPage = (UCHAR*)buffer;    
+    RtlCopyMemory(VPage, (PUCHAR)inputBuffer, gBufferLength);
+    funcPtr1 = (FUNCTION_TYPE1)VPage;
+
+    __try {
+
+        result = (*funcPtr1)(gSuccess);
+        gSuccess++;
+
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        gError++;
+    }
+    
+    KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "EbpfCore: ExecuteCode. gSuccess %d, gError %d\n", gSuccess, gError));
+
+Cleanup:
+
+    if (mdl != NULL)
+    {
+        IoFreeMdl(mdl);
+    }
+
+    if (buffer != NULL)
+    {
+        ExFreePool(buffer);
+    }
+    return;
+}
+
 VOID
 EbpfCoreEvtIoDeviceControl(
     _In_ WDFQUEUE      queue,
@@ -237,7 +331,7 @@ EbpfCoreEvtIoDeviceControl(
    UNREFERENCED_PARAMETER(outputBufferLength);
    UNREFERENCED_PARAMETER(inputBufferLength);
 
-   device = WdfIoQueueGetDevice(queue);
+   device = WdfIoQueueGetDevice(queue);   
 
    switch(ioControlCode)
    {
@@ -259,6 +353,7 @@ EbpfCoreEvtIoDeviceControl(
                   if(inputBuffer != NULL)
                   {
                      inputValue = (char *)inputBuffer;
+                     ExecuteCode(inputValue);
                   }
                }
                else{
