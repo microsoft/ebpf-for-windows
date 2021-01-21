@@ -1,0 +1,38 @@
+enclave {
+    from "openenclave/edl/syscall.edl" import *;
+    from "platform.edl" import *;
+
+    struct oe_timeval {
+        time_t tv_sec;
+        suseconds_t tv_usec;
+    };
+
+    struct oe_rusage
+    {
+        struct oe_timeval ru_utime;
+        struct oe_timeval ru_stime;
+        long ru_maxrss;
+        long ru_ixrss;
+        long ru_idrss;
+        long ru_isrss;
+        long ru_minflt;
+        long ru_majflt;
+        long ru_nswap;
+        long ru_inblock;
+        long ru_oublock;
+        long ru_msgsnd;
+        long ru_msgrcv;
+        long ru_nsignals;
+        long ru_nvcsw;
+        long ru_nivcsw;
+    };
+
+    trusted {
+        public int ecall_verify([in,string] const char* filename,
+                                [in,string] const char* sectionname);
+    };
+
+    untrusted {
+        int getrusage(int who, [out] struct oe_rusage* usage);
+    };
+};

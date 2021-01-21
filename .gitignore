@@ -33,6 +33,11 @@
 /**/*.metaproj.tmp
 /**/*.lock.json
 /**/*.nupkg
+/**/*_args.h
+/**/*_t.h
+/**/*_u.h
+/**/*_t.c
+/**/*_u.c
 /**/HelloWorld
 
 # Generated version files.
