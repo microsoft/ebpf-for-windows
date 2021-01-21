@@ -6,3 +6,6 @@
 ; about Ownership Enforcer can be found at https://aka.ms/ownershipenforcer.
 alanjo
 poornag
+dthaler
+anusa
+sseal
