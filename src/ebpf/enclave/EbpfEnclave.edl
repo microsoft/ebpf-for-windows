@@ -1,0 +1,17 @@
+enclave {
+    from "openenclave/edl/syscall.edl" import *;
+    from "platform.edl" import *;
+
+    // This contract is for the demo only will be replaced with a secure channel to ebpfcore
+    trusted {
+        public size_t verify_and_jit([in, count=byte_code_size] unsigned char* byte_code,
+                                  size_t byte_code_size,
+                                  [out, count=machine_code_size] unsigned char* machine_code,
+                                  size_t machine_code_size);
+    };
+
+    untrusted {
+        uint64_t resolve_helper(uint64_t helper_id);
+        uint64_t resolve_handle(uint64_t handle);
+    };
+};
