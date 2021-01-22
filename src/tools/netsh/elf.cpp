@@ -8,11 +8,6 @@
 #include "elf.h"
 #include "tokens.h"
 
-typedef enum {
-    VL_NORMAL = 0,
-    VL_VERBOSE = 1,
-} VERBOSITY_LEVEL;
-
 TOKEN_VALUE g_LevelEnum[2] = {
     { L"normal", VL_NORMAL },
     { L"verbose", VL_VERBOSE },

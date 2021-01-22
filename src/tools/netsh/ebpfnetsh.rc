@@ -54,14 +54,19 @@ STRINGTABLE
 BEGIN
     HLP_EBPF_ADD_PROGRAM    "Loads an eBPF program.\n"
     HLP_EBPF_ADD_PROGRAM_EX "\
-\nUsage: %1!s! [[type=]xdp]\
-\n                   [[pinned=]yes|no]\
-\n                   [filename=]<string>\
+\nUsage: %1!s! [filename=]<string>\
 \n                   [[section=]<string>]\
+\n                   [[type=]xdp]\
+\n                   [[pinned=]yes|no]\
 \n\
 \nParameters:\
 \n\
 \n      Tag         Value\
+\n      filename  - Filename or path to ELF file containing the\
+\n                  program.\
+\n      section   - Optionally the name of the section containing\
+\n                  the program.  If not specified, "".text"" is the\
+\n                  default.\
 \n      type      - One of the following values:\
 \n                   xdp: The program is meant to hook into XDP.\
 \n                        This is the default value.\
@@ -69,11 +74,6 @@ BEGIN
 \n                   yes: Pin the program.\
 \n                        This is the default value.\
 \n                   no: Do not pin the program.\
-\n      filename  - Filename or path to ELF file containing the\
-\n                  program.\
-\n      section   - Optionally the name of the section containing\
-\n                  the program.  If not specified, "".text"" is the\
-\n                  default.\
 \n\
 \nRemarks: Loads a program (if not already loaded) and pins it if\
 \n         requested.\
@@ -104,7 +104,7 @@ BEGIN
     HLP_EBPF_SET_PROGRAM    "Updates an eBPF program.\n"
     HLP_EBPF_SET_PROGRAM_EX "\
 \nUsage: %1!s! [filename=]<string>\
-\n                   [[section=]<string>]\
+\n                   [section=]<string>\
 \n                   [pinned=]yes|no\
 \n\
 \nParameters:\
@@ -114,9 +114,7 @@ BEGIN
 \n                  program.  The ELF file itself is not used, but\
 \n                  the filename is used as an identifier to match\
 \n                  a pinned program.\
-\n      section   - Optionally the name of the section containing\
-\n                  the program.  If not specified, "".text"" is the\
-\n                  default.\
+\n      section   - The name of the section containing the program.\
 \n      pinned    - One of the following values:\
 \n                   yes: Pin the program.\
 \n                   no: Unpin the program.\
@@ -127,7 +125,7 @@ BEGIN
     HLP_EBPF_SHOW_PROGRAMS  "Shows eBPF programs.\n"
     HLP_EBPF_SHOW_PROGRAMS_EX "\
 \nUsage: %1!s! [[type=]xdp]\
-\n                     [[pinned=]yes|no|any]\
+\n                     [[pinned=]any|yes|no]\
 \n                     [[level=]normal|verbose]\
 \n                     [[filename=]<string>\
 \n                     [[section=]<string>]]\
