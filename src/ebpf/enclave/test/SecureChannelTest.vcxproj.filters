@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Generated Files">
+      <UniqueIdentifier>{5d2591e2-8bc7-4ce3-8b33-4307a0302702}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="SecureChannelTest.cpp">
@@ -35,6 +38,9 @@
     </ClCompile>
     <ClCompile Include="helper\X509.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="EbpfEnclave_u.c">
+      <Filter>Generated Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -71,5 +77,16 @@
     <ClInclude Include="helper\X509.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="EbpfEnclave_u.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="EbpfEnclave_args.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <EdlItem Include="..\EbpfEnclave.edl">
+      <Filter>Source Files</Filter>
+    </EdlItem>
   </ItemGroup>
 </Project>

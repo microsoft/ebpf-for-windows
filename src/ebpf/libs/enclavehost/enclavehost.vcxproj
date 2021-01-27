@@ -156,6 +156,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="EbpfEnclave_args.h" />
+    <ClInclude Include="EbpfEnclave_host.h" />
     <ClInclude Include="EbpfEnclave_u.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="pch.h" />

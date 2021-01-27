@@ -69,13 +69,11 @@ int ebpf_verify_jit(
     }
 
     size_t retval;
-    result = verify_and_jit(enclave, &retval, byte_code, byte_code_size, NULL, *machine_code_size);
+    result = ecall_verify_and_jit(enclave, &retval, byte_code, byte_code_size, machine_code, *machine_code_size, machine_code_size);
     if (result != OE_OK)
     {
         goto exit;
     }
-
-    *machine_code_size = retval;
 
 exit:
     /* Clean up the enclave if we created one. */

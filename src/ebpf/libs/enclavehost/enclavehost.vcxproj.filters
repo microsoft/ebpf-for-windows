@@ -30,6 +30,9 @@
     <ClInclude Include="EbpfEnclave_args.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
+    <ClInclude Include="EbpfEnclave_host.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">

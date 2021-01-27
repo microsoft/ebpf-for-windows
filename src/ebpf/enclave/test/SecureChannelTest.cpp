@@ -18,6 +18,10 @@ extern "C"
 {
 #include "../secure_channel.h"
 #include "../log.h"
+#include <openenclave/host.h>
+#include "EbpfEnclave_u.h"
+#include "../../libs/enclavehost/EbpfEnclave_host.h"
+
 }
 
 #include <catch.hpp>
@@ -47,20 +51,21 @@ TEST_CASE("Secure channel generate cert", "[generate_cert]") {
     REQUIRE(secure_channel_free(state) == 0);
 }
 
+struct schannel_state
+{
+    std::vector<unsigned char> token;
+
+    SCHANNEL_CRED sccred;
+
+    SspCredentialPtr cred;
+    SspContextPtr ctx;
+
+} sc_state;
+
+
 TEST_CASE("Secure channel open", "[open]") {
 
     struct secure_channel_state* state = NULL;
-    struct schannel_state
-    {
-        std::vector<unsigned char> token;
-
-        SCHANNEL_CRED sccred;
-
-        SspCredentialPtr cred;
-        SspContextPtr ctx; 
-
-    } sc_state;
-
 
     memset(&sc_state.sccred, 0, sizeof(sc_state.sccred));
     sc_state.sccred.dwVersion = SCHANNEL_CRED_VERSION;
@@ -102,7 +107,83 @@ TEST_CASE("Secure channel open", "[open]") {
     REQUIRE(secure_channel_open(state, &sc_state, send, receive) == 0);
 
     REQUIRE(secure_channel_free(state) == 0);
-
-
 }
 
+TEST_CASE("Invoke JIT", "[jit]") {
+    unsigned short byte_code[] = { 0x00b7, 0x0000, 0x0000, 0x0000, 0x0095, 0x0000, 0x0000, 0x0000 };
+    unsigned char machine_code[1024] = { 0 };
+    size_t machine_code_size = sizeof(machine_code);
+    REQUIRE(ebpf_verify_jit((unsigned char*)byte_code, sizeof(byte_code), machine_code, &machine_code_size) == 0);
+}
+
+uint64_t ocall_open_execution_context()
+{
+    schannel_state* state = new schannel_state();
+    memset(&state->sccred, 0, sizeof(state->sccred));
+    state->sccred.dwVersion = SCHANNEL_CRED_VERSION;
+    state->sccred.dwFlags = SCH_CRED_MANUAL_CRED_VALIDATION | SCH_CRED_NO_SERVERNAME_CHECK;
+    state->cred = SspPackage::GetCredential(nullptr, "Schannel", &state->sccred, true, false);
+    state->ctx = state->cred->CreateClientContext(nullptr);
+
+    // Get initial blob
+    state->ctx->ProcessToken(state->token);
+
+    return (uint64_t)state;
+}
+
+void ocall_close_execution_context(uint64_t context)
+{
+    schannel_state* state = (schannel_state*)context;
+    delete state;
+}
+
+size_t ocall_write_execution_context(uint64_t context, const unsigned char* buffer, size_t buffer_size)
+{
+    schannel_state* state = (schannel_state*)context;
+    state->token.resize(buffer_size);
+    std::copy(buffer, buffer + buffer_size, state->token.begin());
+    state->ctx->ProcessToken(state->token);
+    return buffer_size;
+}
+
+size_t ocall_read_execution_context(uint64_t context, unsigned char* buffer, size_t buffer_size)
+{
+    schannel_state* state = (schannel_state*)context;
+    size_t recv = min(state->token.size(), buffer_size);
+    std::copy(state->token.begin(), state->token.begin() + recv, buffer);
+    if (state->token.size() > recv)
+    {
+        std::vector<unsigned char> temp(state->token.size() - recv);
+        std::copy(state->token.begin() + recv, state->token.end(), temp.begin());
+        state->token = temp;
+    }
+    else
+    {
+        state->token.resize(0);
+    }
+    return recv;
+}
+
+void ocall_ebpf_enclave_log(int level, const char* message)
+{
+    const char* prefix;
+    switch (level)
+    {
+    case error:
+        prefix = "ERROR:";
+        break;
+    case warning:
+        prefix = "WARN:";
+        break;
+    case info:
+        prefix = "INFO:";
+        break;
+    case verbose:
+        prefix = "VERB:";
+        break;
+    default:
+        prefix = "UNKN:";
+        break;
+    }
+    printf("%s%s", prefix, message);
+}

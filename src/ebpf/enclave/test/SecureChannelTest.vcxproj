@@ -74,15 +74,19 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
+    <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
+    <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
+    <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
+    <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -142,6 +146,16 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\secure_channel.c" />
+    <ClCompile Include="EbpfEnclave_u.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+      </PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+      </PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      </PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="helper\Crypto.cpp" />
     <ClCompile Include="helper\SspContextImpl.cpp" />
     <ClCompile Include="helper\SspCredentialImpl.cpp" />
@@ -153,6 +167,8 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="EbpfEnclave_args.h" />
+    <ClInclude Include="EbpfEnclave_u.h" />
     <ClInclude Include="helper\Crypto.h" />
     <ClInclude Include="helper\SspContext.h" />
     <ClInclude Include="helper\SspContextImpl.h" />
@@ -164,13 +180,28 @@
     <ClInclude Include="helper\UnwindHelper.h" />
     <ClInclude Include="helper\X509.h" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\libs\enclavehost\enclavehost.vcxproj">
+      <Project>{bcb950ff-8b48-47a7-ae0a-5fdbbab7a6e1}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\EbpfEnclave.vcxproj">
+      <Project>{729242ad-3250-47d5-adda-651dac658f65}</Project>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <EdlItem Include="..\EbpfEnclave.edl" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-  <ImportGroup Label="ExtensionTargets" />
+  <ImportGroup Label="ExtensionTargets">
+    <Import Project="..\..\..\..\packages\open-enclave-cross.0.12.0.2\build\native\open-enclave-cross.targets" Condition="Exists('..\..\..\..\packages\open-enclave-cross.0.12.0.2\build\native\open-enclave-cross.targets')" />
+  </ImportGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
     <Error Condition="!Exists('packages\CatchOrg.Catch.2.2.0\build\native\CatchOrg.Catch.props')" Text="$([System.String]::Format('$(ErrorText)', 'packages\CatchOrg.Catch.2.2.0\build\native\CatchOrg.Catch.props'))" />
     <Error Condition="!Exists('packages\mbedtls.2.16.3\build\mbedtls.props')" Text="$([System.String]::Format('$(ErrorText)', 'packages\mbedtls.2.16.3\build\mbedtls.props'))" />
+    <Error Condition="!Exists('..\..\..\..\packages\open-enclave-cross.0.12.0.2\build\native\open-enclave-cross.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\..\..\packages\open-enclave-cross.0.12.0.2\build\native\open-enclave-cross.targets'))" />
   </Target>
 </Project>

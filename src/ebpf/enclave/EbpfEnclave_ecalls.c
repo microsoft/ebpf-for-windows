@@ -71,6 +71,7 @@ int send_helper(void* context, const unsigned char* buffer, size_t length)
 {
     size_t return_value;
     oe_result_t oe_result;
+
     oe_result = ocall_write_execution_context(&return_value, context, buffer, length);
     if (oe_result != OE_OK)
     {
@@ -98,17 +99,27 @@ int recv_helper(void* context, unsigned char* buffer, size_t length)
 size_t ecall_verify_and_jit(unsigned char* byte_code,
     size_t byte_code_size,
     unsigned char* machine_code,
-    size_t machine_code_size)
+    size_t machine_code_size,
+    size_t * jitted_size)
 {
     int result = 0;
     struct ubpf_vm* vm = NULL;
     char* errmsg = NULL;
     struct secure_channel_state  * state = NULL;
     uint64_t execution_context = 0;
+    
+    *jitted_size = machine_code_size;
 
     ocall_open_execution_context(&execution_context);
 
     result = secure_channel_init(&state);
+    if (result != 0)
+    {
+        result = -1;
+        goto cleanup;
+    }
+
+    result = secure_channel_generate_cert(state, "CN=EbpfEnclave");
     if (result != 0)
     {
         result = -1;
@@ -121,6 +132,7 @@ size_t ecall_verify_and_jit(unsigned char* byte_code,
         result = -1;
         goto cleanup;
     }
+
 
     vm = ubpf_create();
     if (vm == NULL)
@@ -141,7 +153,7 @@ size_t ecall_verify_and_jit(unsigned char* byte_code,
         goto cleanup;
     }
 
-    result = ubpf_translate(vm, machine_code, machine_code_size, &errmsg);
+    result = ubpf_translate(vm, machine_code, jitted_size, &errmsg);
     if (result != 0)
     {
         goto cleanup;
