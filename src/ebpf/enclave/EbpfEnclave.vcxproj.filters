@@ -24,6 +24,12 @@
     <ClInclude Include="EbpfEnclave_t.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
+    <ClInclude Include="secure_channel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="log.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="EbpfEnclave_private.pem">
@@ -62,6 +68,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\ubpf\vm\ubpf_vm.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="secure_channel.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

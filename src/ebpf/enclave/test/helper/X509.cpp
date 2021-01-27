@@ -1,0 +1,163 @@
+/*
+ *  Copyright (C) 2020, Microsoft Corporation, All Rights Reserved
+ *  SPDX-License-Identifier: MIT
+*/
+#include "stdafx.h"
+#include "X509.h"
+#include "UnwindHelper.h"
+#include <algorithm>
+#include <ctype.h>
+
+inline bool NT_SUCCESS(NTSTATUS Status) { return Status >= 0; }
+
+#define CHECK_RETURN(func, result) \
+    do {\
+        result = func;\
+        const char * msg = #func  " failed in " __FUNCTION__; \
+        DWORD status = GetLastError();\
+        if (!result) { \
+            LogError(msg, status);\
+            throw std::exception(msg);\
+        }\
+    } while(false);\
+
+
+X509::X509()
+{
+}
+
+X509::~X509()
+{
+}
+
+X509::StorePtr X509::OpenStore(const char * Name)
+{
+    HCERTSTORE hCertStore = nullptr;
+    UnwindHelper unwind([&] {
+        if (hCertStore) {
+            CertCloseStore(hCertStore, 0);
+        }
+    });
+
+    CHECK_RETURN(CertOpenStore(CERT_STORE_PROV_SYSTEM_A, 0, NULL, CERT_SYSTEM_STORE_LOCAL_MACHINE, Name), hCertStore);
+
+    StorePtr p = std::make_shared<StoreImpl>(hCertStore);
+    hCertStore = nullptr;
+    return p;
+}
+
+X509::StorePtr X509::OpenSystemStore(const char * Name)
+{
+    HCERTSTORE hCertStore = nullptr;
+    UnwindHelper unwind([&] {
+        if (hCertStore) {
+            CertCloseStore(hCertStore, 0);
+        }
+    });
+
+    CHECK_RETURN(CertOpenSystemStoreA(NULL, Name), hCertStore);
+
+    StorePtr p = std::make_shared<StoreImpl>(hCertStore);
+    hCertStore = nullptr;
+    return p;
+}
+
+X509::Hash X509::HashFromHexString(const char * pHashString)
+{
+    static const unsigned char HexToDecimalTable[] = {
+        0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+        0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+        0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+        0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+        0xff, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+        0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+        0xff, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+        0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+        0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+        0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+        0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+        0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+        0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+        0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+        0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+        0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+
+    Hash hash;
+    bool upper = true;
+    unsigned char value = 0;
+    hash.resize(0);
+
+    for (LPCSTR p = pHashString; *p != '\0'; p++)
+    {
+        if (upper) {
+            value = HexToDecimalTable[*p] << 4;
+        }
+        else {
+            value |= HexToDecimalTable[*p];
+            hash.push_back(value);
+            value = 0;
+        }
+        upper = !upper;
+    }
+    return hash;
+}
+
+void X509::LogError(const char * Message, DWORD Error)
+{
+    printf("%s\t%x", Message, Error);
+}
+
+X509::CertificateImpl::CertificateImpl(PCCERT_CONTEXT & Cert, StoreImpl & Parent) : Parent(Parent), CertContext(Cert)
+{
+}
+
+X509::CertificateImpl::~CertificateImpl()
+{
+    CertFreeCertificateContext(CertContext);
+}
+
+X509::CertificateImpl::operator PCCERT_CONTEXT()
+{
+    return CertContext;
+}
+
+X509::Hash X509::CertificateImpl::GetThumbPrint()
+{
+    return Hash();
+}
+
+void X509::CertificateImpl::LogError(const char * Message, DWORD Error)
+{
+    Parent.LogError(Message, Error);
+}
+
+X509::StoreImpl::StoreImpl(HCERTSTORE hCertStore) : hCertStore(hCertStore)
+{
+}
+
+X509::StoreImpl::~StoreImpl()
+{
+    CertCloseStore(hCertStore, 0);
+}
+
+X509::CertificatePtr X509::StoreImpl::FindCertByHash(const Hash & Hash)
+{
+    CRYPT_HASH_BLOB blob = { Hash.size(), const_cast<BYTE*>(Hash.data()) };
+    PCCERT_CONTEXT cert = nullptr;
+    UnwindHelper unwind([&] {
+        if (cert) {
+            CertFreeCertificateContext(cert);
+        }
+    });
+    
+    CHECK_RETURN(CertFindCertificateInStore(hCertStore, X509_ASN_ENCODING | PKCS_7_ASN_ENCODING, 0, CERT_FIND_SHA1_HASH, &blob, nullptr), cert);
+
+    auto p = std::make_shared<CertificateImpl>(cert, *this);
+    cert = nullptr;
+    return p;
+}
+
+void X509::StoreImpl::LogError(const char * Message, DWORD Error)
+{
+    X509::LogError(Message, Error);
+}

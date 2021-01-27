@@ -75,10 +75,13 @@
     <ClCompile Include="..\..\ubpf\vm\ubpf_vm.c" />
     <ClCompile Include="EbpfEnclave_ecalls.c" />
     <ClCompile Include="EbpfEnclave_t.c" />
+    <ClCompile Include="secure_channel.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EbpfEnclave_args.h" />
     <ClInclude Include="EbpfEnclave_t.h" />
+    <ClInclude Include="log.h" />
+    <ClInclude Include="secure_channel.h" />
   </ItemGroup>
   <ItemGroup>
     <EdlItem Include="EbpfEnclave.edl">
