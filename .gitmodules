@@ -1,7 +1,8 @@
 [submodule "external/ebpf-verifier"]
 	path = external/ebpf-verifier
 	url = https://github.com/vbpf/ebpf-verifier.git
-[submodule "src/ubpf"]
-	path = src/ubpf
-	url = https://github.com/Alan-Jowett/ubpf.git
 
+[submodule "external/ubpf"]
+	path = external/ubpf
+	url = https://github.com/Alan-Jowett/ubpf.git
+	branch = win32
