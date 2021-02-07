@@ -1,27 +1,7 @@
-/*
- *  Copyright (C) 2020, Microsoft Corporation, All Rights Reserved
- *  SPDX-License-Identifier: MIT
-*/
-
-// dllmain.cpp : Defines the entry point for the DLL application.
-#include "pch.h"
-
-BOOL APIENTRY DllMain( HMODULE hModule,
-                       DWORD  ul_reason_for_call,
-                       LPVOID lpReserved
-                     )
-{
-    switch (ul_reason_for_call)
-    {
-    case DLL_PROCESS_ATTACH:
-    case DLL_THREAD_ATTACH:
-    case DLL_THREAD_DETACH:
-    case DLL_PROCESS_DETACH:
-        break;
-    }
-    return TRUE;
-}
-
+#include "mock.h"
+std::function<decltype(CreateFileW)> create_file_handler;
+std::function<decltype(DeviceIoControl)> device_io_control_handler;
+std::function<decltype(CloseHandle)> close_handle_handler;
 
 namespace Platform {
     BOOL
@@ -36,7 +16,7 @@ namespace Platform {
             _Inout_opt_ LPOVERLAPPED lpOverlapped
         )
     {
-        return ::DeviceIoControl(
+        return device_io_control_handler(
             hDevice,
             dwIoControlCode,
             lpInBuffer,
@@ -58,7 +38,7 @@ namespace Platform {
             _In_opt_ HANDLE hTemplateFile
         )
     {
-        return ::CreateFileW(
+        return create_file_handler(
             lpFileName,
             dwDesiredAccess,
             dwShareMode,
@@ -72,7 +52,7 @@ namespace Platform {
             _In_ _Post_ptr_invalid_ HANDLE hObject
         )
     {
-        return ::CloseHandle(hObject);
+        return close_handle_handler(hObject);
     }
 
 }

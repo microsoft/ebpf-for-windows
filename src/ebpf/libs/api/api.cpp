@@ -4,6 +4,7 @@
 */
 
 #include "pch.h"
+#include "platform.h"
 #define EBPF_API
 extern "C"
 {
@@ -14,6 +15,7 @@ extern "C"
 #include "protocol.h"
 #include "UnwindHelper.h"
 
+#include <stdexcept>
 #include "Verifier.h"
 
 #define MAX_CODE_SIZE (32 * 1024) // 32 KB
@@ -66,7 +68,7 @@ static DWORD invoke_ioctl(HANDLE handle, request_t request, reply_t reply)
         reply_ptr = reply;
     }
 
-    auto result = DeviceIoControl(
+    auto result = Platform::DeviceIoControl(
         handle,
         (DWORD)IOCTL_EBPFCTL_METHOD_BUFFERED,
         request_ptr,
@@ -76,12 +78,17 @@ static DWORD invoke_ioctl(HANDLE handle, request_t request, reply_t reply)
         &actual_reply_size,
         nullptr);
 
+    if (!result) 
+    {
+        return GetLastError();
+    }
+
     if (actual_reply_size != reply_size)
     {
         return ERROR_INVALID_PARAMETER;
     }
 
-    return result;
+    return ERROR_SUCCESS;
 }
 
 DWORD EbpfApiInit()
@@ -93,7 +100,7 @@ DWORD EbpfApiInit()
         return ERROR_ALREADY_INITIALIZED;
     }
 
-    device_handle = CreateFile(ebpfDeviceName,
+    device_handle = Platform::CreateFile(ebpfDeviceName,
         GENERIC_READ | GENERIC_WRITE,
         0,
         NULL,
@@ -113,7 +120,7 @@ void EbpfApiTerminate()
 {
     if (device_handle != INVALID_HANDLE_VALUE)
     {
-        CloseHandle(device_handle);
+        Platform::CloseHandle(device_handle);
         device_handle = INVALID_HANDLE_VALUE;
     }
 }
@@ -175,9 +182,23 @@ DLL DWORD EbpfLoadProgram(const char* file_name, const char* section_name, HANDL
 
     DWORD result;
 
-    // Verify code.
-    if (verify(file_name, section_name, byte_code.data(), &byte_code_size, error_message) != 0)
+    try
     {
+        // Verify code.
+        if (verify(file_name, section_name, byte_code.data(), &byte_code_size, error_message) != 0)
+        {
+            return ERROR_INVALID_PARAMETER;
+        }
+    }
+    catch (std::runtime_error & err)
+    {
+        auto message = err.what();
+        auto message_length = strlen(message) + 1;
+        *error_message = reinterpret_cast<char*>(calloc(message_length + 1, sizeof(char)));
+        if (*error_message)
+        {
+            strcpy_s(*error_message, message_length, message);
+        }
         return ERROR_INVALID_PARAMETER;
     }
 
@@ -187,11 +208,7 @@ DLL DWORD EbpfLoadProgram(const char* file_name, const char* section_name, HANDL
     {
         return ERROR_OUTOFMEMORY;
     }
-
-    if (ubpf_load(vm, byte_code.data(), static_cast<uint32_t>(byte_code.size()), error_message) < 0)
-    {
-        return ERROR_INVALID_PARAMETER;
-    }
+    byte_code.resize(byte_code_size);
 
     if (ubpf_register_map_resolver(vm, device_handle, map_resolver) < 0)
     {
@@ -199,6 +216,11 @@ DLL DWORD EbpfLoadProgram(const char* file_name, const char* section_name, HANDL
     }
 
     if (ubpf_register_helper_resolver(vm, device_handle, helper_resolver) < 0)
+    {
+        return ERROR_INVALID_PARAMETER;
+    }
+
+    if (ubpf_load(vm, byte_code.data(), static_cast<uint32_t>(byte_code.size()), error_message) < 0)
     {
         return ERROR_INVALID_PARAMETER;
     }

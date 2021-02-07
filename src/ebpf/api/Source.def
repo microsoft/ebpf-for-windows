@@ -1,0 +1,10 @@
+LIBRARY
+EXPORTS
+	EbpfApiInit
+	EbpfApiTerminate
+	EbpfLoadProgram
+	EbpfFreeErrorMessage
+	EbpfUnloadProgram
+	EbpfAttachProgram
+	EbpfDetachProgram
+
