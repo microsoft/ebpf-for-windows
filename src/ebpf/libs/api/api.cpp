@@ -163,7 +163,7 @@ uint64_t helper_resolver(void* context, uint32_t helper)
     return reply.address[0];
 }
 
-DLL DWORD EbpfLoadProgram(const char* file_name, const char* section_name, HANDLE* handle, char** error_message)
+DLL DWORD EbpfApiLoadProgram(const char* file_name, const char* section_name, HANDLE* handle, char** error_message)
 {
     std::vector<uint8_t> byte_code(MAX_CODE_SIZE);
     size_t byte_code_size = byte_code.size();
@@ -254,19 +254,18 @@ DLL DWORD EbpfLoadProgram(const char* file_name, const char* section_name, HANDL
     return result;
 }
 
-DLL void EbpfFreeErrorMessage(char* error_message)
+DLL void EbpfApiFreeErrorMessage(char* error_message)
 {
     return free(error_message);
 }
 
-DLL void EbpfUnloadProgram(HANDLE handle)
+DLL void EbpfApiUnloadProgram(HANDLE handle)
 {
-    // TBD:
-    // CloseHandle(handle);
+    CloseHandle(handle);
     return;
 }
 
-DLL DWORD EbpfAttachProgram(HANDLE handle, DWORD hook_point)
+DLL DWORD EbpfApiAttachProgram(HANDLE handle, DWORD hook_point)
 {
     EbpfOpAttachDetachRequest request{
         sizeof(request),
@@ -277,7 +276,7 @@ DLL DWORD EbpfAttachProgram(HANDLE handle, DWORD hook_point)
     return invoke_ioctl(device_handle, &request, nullptr);
 }
 
-DLL DWORD EbpfDetachProgram(HANDLE handle, DWORD hook_point)
+DLL DWORD EbpfApiDetachProgram(HANDLE handle, DWORD hook_point)
 {
     EbpfOpAttachDetachRequest request{
         sizeof(request),

@@ -1,6 +1,7 @@
 // Copyright (C) Microsoft.
 // SPDX-License-Identifier: MIT
 #include "ebpf_verifier.hpp"
+#include "windows/windows_platform.hpp"
 #include "asm_ostream.hpp"
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -22,6 +23,8 @@ DWORD HandleEbpfShowDisassembly(
     LPCVOID data,
     BOOL* done)
 {
+    const ebpf_platform_t* platform = &g_ebpf_platform_windows;
+
     TAG_TYPE tags[] = {
         {TOKEN_FILENAME, NS_REQ_PRESENT, FALSE},
         {TOKEN_SECTION, NS_REQ_ZERO, FALSE},
@@ -64,9 +67,9 @@ DWORD HandleEbpfShowDisassembly(
     }
 
     try {
-        auto rawPrograms = read_elf(filename, section, create_map_crab, nullptr);
+        auto rawPrograms = read_elf(filename, section, create_map_crab, nullptr, platform);
         raw_program rawProgram = rawPrograms.back();
-        std::variant<InstructionSeq, std::string> programOrError = unmarshal(rawProgram);
+        std::variant<InstructionSeq, std::string> programOrError = unmarshal(rawProgram, platform);
         if (std::holds_alternative<std::string>(programOrError)) {
             std::cout << "parse failure: " << std::get<std::string>(programOrError) << "\n";
             return 1;
@@ -91,6 +94,8 @@ DWORD HandleEbpfShowSections(
     LPCVOID data,
     BOOL* done)
 {
+    const ebpf_platform_t* platform = &g_ebpf_platform_windows;
+
     TAG_TYPE tags[] = {
         {TOKEN_FILENAME, NS_REQ_PRESENT, FALSE},
         {TOKEN_SECTION, NS_REQ_ZERO, FALSE},
@@ -152,7 +157,7 @@ DWORD HandleEbpfShowSections(
     }
 
     try {
-        auto rawPrograms = read_elf(filename, section, create_map_crab, nullptr);
+        auto rawPrograms = read_elf(filename, section, create_map_crab, nullptr, platform);
         if (level == VL_NORMAL) {
             std::cout << "\n";
             std::cout << "             Section    Type  # Maps    Size\n";
@@ -161,13 +166,13 @@ DWORD HandleEbpfShowSections(
         for (const raw_program& rawProgram : rawPrograms) {
             if (level == VL_NORMAL) {
                 std::cout << std::setw(20) << std::right << rawProgram.section << "  " <<
-                    std::setw(6) << (int)rawProgram.info.program_type << "  " <<
-                    std::setw(6) << rawProgram.info.map_defs.size() << "  " <<
+                    std::setw(6) << rawProgram.info.type.platform_specific_data << "  " <<
+                    std::setw(6) << rawProgram.info.map_descriptors.size() << "  " <<
                     std::setw(6) << rawProgram.prog.size() << "\n";
             } else {
                 // Convert the instruction sequence to a control-flow graph
                 // in a "passive", non-deterministic form.
-                std::variant<InstructionSeq, std::string> programOrError = unmarshal(rawProgram);
+                std::variant<InstructionSeq, std::string> programOrError = unmarshal(rawProgram, platform);
                 if (std::holds_alternative<std::string>(programOrError)) {
                     std::cout << "parse failure: " << std::get<std::string>(programOrError) << "\n";
                     return 1;
@@ -178,8 +183,8 @@ DWORD HandleEbpfShowSections(
 
                 std::cout << "\n";
                 std::cout << "Section      : " << rawProgram.section << "\n";
-                std::cout << "Type         : " << (int)rawProgram.info.program_type << "\n";
-                std::cout << "# Maps       : " << rawProgram.info.map_defs.size() << "\n";
+                std::cout << "Type         : " << (int)rawProgram.info.type.platform_specific_data << "\n";
+                std::cout << "# Maps       : " << rawProgram.info.map_descriptors.size() << "\n";
                 std::cout << "Size         : " << rawProgram.prog.size() << " instructions\n";
                 for (std::map<std::string, int>::iterator iter = stats.begin(); iter != stats.end(); iter++)
                 {
@@ -206,6 +211,8 @@ DWORD HandleEbpfShowVerification(
     LPCVOID data,
     BOOL* done)
 {
+    const ebpf_platform_t* platform = &g_ebpf_platform_windows;
+
     TAG_TYPE tags[] = {
             {TOKEN_FILENAME, NS_REQ_PRESENT, FALSE},
             {TOKEN_SECTION, NS_REQ_ZERO, FALSE},
@@ -248,9 +255,9 @@ DWORD HandleEbpfShowVerification(
     }
 
     try {
-        auto rawPrograms = read_elf(filename, section, create_map_crab, nullptr);
+        auto rawPrograms = read_elf(filename, section, create_map_crab, nullptr, platform);
         raw_program rawProgram = rawPrograms.back();
-        std::variant<InstructionSeq, std::string> programOrError = unmarshal(rawProgram);
+        std::variant<InstructionSeq, std::string> programOrError = unmarshal(rawProgram, platform);
         if (std::holds_alternative<std::string>(programOrError)) {
             std::cout << "parse failure: " << std::get<std::string>(programOrError) << "\n";
             return 1;

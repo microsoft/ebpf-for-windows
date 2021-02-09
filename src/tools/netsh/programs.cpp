@@ -7,6 +7,12 @@
 #include "programs.h"
 #include "tokens.h"
 
+#include "api.h"
+#include <iostream>
+#pragma comment(lib, "EbpfApi.lib")
+
+HANDLE g_program_handle = INVALID_HANDLE_VALUE;
+
 typedef enum {
     PINNED_ANY = 0,
     PINNED_YES = 1,
@@ -97,8 +103,30 @@ unsigned long HandleEbpfAddProgram(
         return status;
     }
 
-    // TODO: add program
-    return ERROR_CALL_NOT_IMPLEMENTED;
+    if (g_program_handle != INVALID_HANDLE_VALUE)
+    {
+        EbpfApiDetachProgram(g_program_handle, EBPF_HOOK_POINT_XDP);
+        EbpfApiUnloadProgram(g_program_handle);
+        g_program_handle = INVALID_HANDLE_VALUE;
+    }
+
+    char* error_message = nullptr;
+
+    status = EbpfApiLoadProgram(filename.c_str(), section.c_str(), &g_program_handle, &error_message);
+
+    if (status != ERROR_SUCCESS)
+    {
+        std::cerr << "EbpfApiLoadProgram failed with error " << status << " and message " << error_message << std::endl;
+        return status;
+    }
+
+    status = EbpfApiAttachProgram(g_program_handle, EBPF_HOOK_POINT_XDP);
+    if (status != ERROR_SUCCESS)
+    {
+        std::cerr << "EbpfApiAttachProgram failed with error " << status << std::endl;
+        return status;
+    }
+    return ERROR_SUCCESS;
 }
 
 DWORD HandleEbpfDeleteProgram(
@@ -147,12 +175,16 @@ DWORD HandleEbpfDeleteProgram(
             break;
         }
     }
-    if (status != NO_ERROR) {
-        return status;
+
+    if (g_program_handle != INVALID_HANDLE_VALUE)
+    {
+        EbpfApiDetachProgram(g_program_handle, EBPF_HOOK_POINT_XDP);
+        EbpfApiUnloadProgram(g_program_handle);
+        g_program_handle = INVALID_HANDLE_VALUE;
     }
 
     // TODO: delete program
-    return ERROR_CALL_NOT_IMPLEMENTED;
+    return ERROR_SUCCESS;
 }
 
 DWORD HandleEbpfSetProgram(

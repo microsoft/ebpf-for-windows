@@ -27,7 +27,10 @@ static char * allocate_error_string(const std::string& str)
     char* retval;
     size_t error_message_length = str.size() + 1;
     retval = (char*)malloc(error_message_length);
-    strcpy_s(retval, error_message_length, str.c_str());
+    if (retval != nullptr)
+    {
+        strcpy_s(retval, error_message_length, str.c_str());
+    }
     return retval; // Error;
 }
 

@@ -169,9 +169,9 @@ TEST_CASE("Load program fail - file not found", "[load_fail_not_found]") {
 
     REQUIRE(EbpfApiInit() == ERROR_SUCCESS);
 
-    REQUIRE(EbpfLoadProgram(fake_file_name, "xdp_fake", &handle, &error_message) == ERROR_INVALID_PARAMETER);
+    REQUIRE(EbpfApiLoadProgram(fake_file_name, "xdp_fake", &handle, &error_message) == ERROR_INVALID_PARAMETER);
     REQUIRE_THAT(error_message, Catch::Matchers::Contains(fake_file_name));
-    EbpfFreeErrorMessage(error_message);
+    EbpfApiFreeErrorMessage(error_message);
     EbpfApiTerminate();
 }
 
@@ -198,9 +198,9 @@ TEST_CASE("Load program fail - malformed", "[load_fail_bad_file]") {
 
     REQUIRE(EbpfApiInit() == ERROR_SUCCESS);
 
-    REQUIRE(EbpfLoadProgram(temp_file_name, "xdp_fake", &handle, &error_message) == ERROR_INVALID_PARAMETER);
+    REQUIRE(EbpfApiLoadProgram(temp_file_name, "xdp_fake", &handle, &error_message) == ERROR_INVALID_PARAMETER);
     REQUIRE_THAT(error_message, Catch::Matchers::Contains(temp_file_name));
-    EbpfFreeErrorMessage(error_message);
+    EbpfApiFreeErrorMessage(error_message);
     EbpfApiTerminate();
 
     DeleteFileA(temp_file_name);
@@ -219,13 +219,13 @@ TEST_CASE("Load program success", "[load_success]") {
 
     REQUIRE(EbpfApiInit() == ERROR_SUCCESS);
 
-    REQUIRE(EbpfLoadProgram("bpf.o", "xdp_prog", &handle, &error_message) == ERROR_SUCCESS);
+    REQUIRE(EbpfApiLoadProgram("bpf.o", "xdp_prog", &handle, &error_message) == ERROR_SUCCESS);
 
     auto load_request = front_request_message<EbpfOpLoadRequest>();
 
     request_messages.clear();
 
-    EbpfFreeErrorMessage(error_message);
+    EbpfApiFreeErrorMessage(error_message);
     EbpfApiTerminate();
 }
 
@@ -245,7 +245,7 @@ TEST_CASE("Load program success - resolve helper", "[load_success - resolve help
 
     REQUIRE(EbpfApiInit() == ERROR_SUCCESS);
 
-    REQUIRE(EbpfLoadProgram("bpf_call.o", "xdp_prog", &handle, &error_message) == 0);
+    REQUIRE(EbpfApiLoadProgram("bpf_call.o", "xdp_prog", &handle, &error_message) == 0);
 
     auto resolve_request = front_request_message<EbpfOpResolveHelperRequest>();
     REQUIRE(resolve_request->helper_id[0] == 3);
@@ -254,6 +254,6 @@ TEST_CASE("Load program success - resolve helper", "[load_success - resolve help
     auto load_request = front_request_message<EbpfOpLoadRequest>();
     request_messages.pop_front();
 
-    EbpfFreeErrorMessage(error_message);
+    EbpfApiFreeErrorMessage(error_message);
     EbpfApiTerminate();
 }

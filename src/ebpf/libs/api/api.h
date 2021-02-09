@@ -21,12 +21,12 @@ extern "C" {
 
     DLL void EbpfApiTerminate();
 
-    DLL DWORD EbpfLoadProgram(const char* file, const char* section_name, HANDLE* handle, char** error_message);
-    DLL void EbpfFreeErrorMessage(char* error_message);
-    DLL void EbpfUnloadProgram(HANDLE handle);
+    DLL DWORD EbpfApiLoadProgram(const char* file, const char* section_name, HANDLE* handle, char** error_message);
+    DLL void EbpfApiFreeErrorMessage(char* error_message);
+    DLL void EbpfApiUnloadProgram(HANDLE handle);
 
-    DLL DWORD EbpfAttachProgram(HANDLE handle, DWORD hook_point);
-    DLL DWORD EbpfDetachProgram(HANDLE handle, DWORD hook_point);
+    DLL DWORD EbpfApiAttachProgram(HANDLE handle, DWORD hook_point);
+    DLL DWORD EbpfApiDetachProgram(HANDLE handle, DWORD hook_point);
 
 #ifdef __cplusplus
 }

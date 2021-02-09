@@ -156,10 +156,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="api.h" />
+    <ClInclude Include="api.h">
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+    </ClInclude>
     <ClInclude Include="framework.h" />
-    <ClInclude Include="platform.h" />
-    <ClInclude Include="protocol.h" />
+    <ClInclude Include="platform.h">
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+    </ClInclude>
     <ClInclude Include="pch.h" />
     <ClInclude Include="UnwindHelper.h" />
   </ItemGroup>

@@ -7,6 +7,7 @@
 #include "elf.h"
 #include "programs.h"
 #include "resource.h"
+#include "api.h"
 
 static const GUID g_EbpfHelperGuid = { /* 634d21b8-13f9-46a3-945f-885cbd661c13 */
     0x634d21b8,
@@ -102,6 +103,11 @@ InitHelperDll(DWORD netshVersion, void* reserved)
     attributes.pfnStart = EbpfStartHelper;
 
     DWORD status = RegisterHelper(NULL, &attributes);
+
+    if (status == ERROR_SUCCESS)
+    {
+        status = EbpfApiInit();
+    }
 
     return status;
 }
