@@ -4,14 +4,15 @@
 */
 #pragma once
 
-enum class EbpfOperation {
+typedef enum EbpfOperation_ {
     evidence,
     resolve_helper,
     resolve_map,
     load_code,
+    unload_code,
     attach,
     detach,
-};
+} EbpfOperation;
 
 struct EbpfOpHeader {
     uint16_t length;
@@ -51,6 +52,11 @@ struct EbpfOpResolveMapReply {
 struct EbpfOpLoadRequest {
     struct EbpfOpHeader header;
     uint8_t machine_code[1];
+};
+
+struct EbpfOpUnloadRequest {
+    struct EbpfOpHeader header;
+    uint64_t handle;
 };
 
 struct EbpfOpLoadReply {

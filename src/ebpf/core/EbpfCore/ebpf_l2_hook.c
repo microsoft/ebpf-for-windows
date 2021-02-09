@@ -23,6 +23,7 @@ Environment:
 #pragma warning(pop)
 
 #include <fwpmk.h>
+#include <netiodef.h>
 
 #include "ebpf_l2_hook.h"
 
@@ -52,6 +53,8 @@ DEFINE_GUID(
 // Callout globals
 HANDLE gEngineHandle;
 UINT32 gL2CalloutId;
+
+extern INT32 ExecuteCodeAtHook(_In_ void* ctx);
 
 NTSTATUS
 EbpfHookAddFilter(
@@ -208,6 +211,12 @@ EbpfHookRegisterCallouts(
 
     FWPM_SESSION session = { 0 };
 
+    if (gEngineHandle != NULL)
+    {
+        // already registered
+        goto Exit;
+    }
+
     session.flags = FWPM_SESSION_FLAG_DYNAMIC;
 
     status = FwpmEngineOpen(
@@ -310,14 +319,52 @@ EbpfHookL2Classify(
 
 -- */
 {
+   FWP_ACTION_TYPE action = FWP_ACTION_PERMIT;
    UNREFERENCED_PARAMETER(inFixedValues);
    UNREFERENCED_PARAMETER(inMetaValues);
-   UNREFERENCED_PARAMETER(layerData);
    UNREFERENCED_PARAMETER(classifyContext);
    UNREFERENCED_PARAMETER(filter);
    UNREFERENCED_PARAMETER(flowContext);
-   
-   classifyOut->actionType = FWP_ACTION_PERMIT;
+   NET_BUFFER_LIST* nbl = (NET_BUFFER_LIST*)layerData;
+   NET_BUFFER* netBuffer = NULL;
+   BYTE* mdlAddr;
+   UINT32 result = 0;
+
+   if (nbl == NULL)
+   {
+       KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "Null nbl \n"));
+       goto done;
+   }
+
+   netBuffer = NET_BUFFER_LIST_FIRST_NB(nbl);
+   if (netBuffer == NULL)
+   {
+       KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "netbuffer not present\n"));
+       // nothing to do
+       goto done;
+   }
+
+   mdlAddr =
+       NdisGetDataBuffer(
+           netBuffer,
+           sizeof(IPV4_HEADER) + max(sizeof(TCP_HEADER), sizeof(UDP_HEADER)),
+           NULL,
+           sizeof(UINT16),
+           0);
+
+   // execute code at hook.
+   result = ExecuteCodeAtHook(mdlAddr);
+   if (result == 1)
+   {
+       action = FWP_ACTION_PERMIT;
+   }
+   else if (result == 2)
+   {
+       action = FWP_ACTION_BLOCK;
+   }
+
+done:   
+   classifyOut->actionType = action;
    return;
 }
 
@@ -352,4 +399,3 @@ EbpfHookL2FlowDelete(
    UNREFERENCED_PARAMETER(flowContext);
    return;
 }
- 

@@ -24,9 +24,10 @@ Environment:
 #pragma warning(pop)
 
 #include <fwpmk.h>
-
+#include <netiodef.h>
 #include "ebpf_l2_hook.h"
-
+#include "types.h"
+#include "protocol.h"
 
 // Driver global variables
 
@@ -35,7 +36,10 @@ BOOLEAN gDriverUnloading = FALSE;
 DRIVER_INITIALIZE DriverEntry;
 EVT_WDF_DRIVER_UNLOAD EvtDriverUnload;
 DWORD gError = 0;
-DWORD gSuccess = 0;
+
+LIST_ENTRY gUserCodeList;
+KSPIN_LOCK gUserCodeLock;
+UINT64 gHandle = 0;
 
 // Typedefs 
 typedef enum
@@ -46,7 +50,6 @@ typedef enum
 typedef VOID(WINAPI* FUNCTION_TYPE) (VOID);
 typedef DWORD(WINAPI* FUNCTION_TYPE1) (DWORD);
 typedef DWORD(WINAPI* FUNCTION_TYPE2) (PVOID, PVOID);
-
 
 //
 // Constants
@@ -69,6 +72,11 @@ PCWSTR EbpfSymbolicDeviceName = L"\\GLOBAL??\\EbpfIoDevice";
 //
 // Pre-Declarations
 //
+
+NTSTATUS
+UnloadCode(
+    _In_ uint64_t handle,
+    _In_ BOOLEAN force);
 VOID
 EbpfCoreEvtIoDeviceControl(
     _In_ WDFQUEUE      queue,
@@ -91,6 +99,8 @@ EvtDriverUnload(
    gDriverUnloading = TRUE; 
 
    EbpfHookUnregisterCallouts();
+
+   UnloadCode(0, TRUE);
 }
 
 //
@@ -214,6 +224,9 @@ EbpfCoreInitDriverObjects(
 
    WdfControlFinishInitializing(*pDevice);
 
+   KeInitializeSpinLock(&gUserCodeLock);
+   InitializeListHead(&gUserCodeList);
+
 Exit:
    if (!NT_SUCCESS(status))
    {
@@ -245,71 +258,220 @@ int DropPacket(unsigned int protocol)
     }
 }
 
-// Run user mode code provided in an input buffer
-// Assumes code is contained in a page size of 4k 
-VOID
-ExecuteCode(_In_ PVOID inputBuffer)
+NTSTATUS
+CheckAndAttachCodeToHook(
+    _In_ struct EbpfOpAttachDetachRequest* attachRequest
+)
 {
-    PVOID  buffer = NULL;
-    PMDL  mdl = NULL;
     NTSTATUS status = STATUS_SUCCESS;
-    FUNCTION_TYPE1 funcPtr1;
-    DWORD result = 0;
+    KIRQL irql;
+    UserCode* code = NULL;
 
+    KeAcquireSpinLock(&gUserCodeLock, &irql);
+    LIST_ENTRY* listEntry = gUserCodeList.Flink;
+    while (listEntry != &gUserCodeList)
+    {
+        code = CONTAINING_RECORD(listEntry, UserCode, entry);
+        if (attachRequest->handle == code->handle)
+        {
+            code->attached = TRUE;
+            break;
+        }
+
+        listEntry = listEntry->Flink;
+    }
+    KeReleaseSpinLock(&gUserCodeLock, irql);
+
+    KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "EbpfCore: AttachCodeToHook 0x%lx handle \n", attachRequest->handle));
+
+    return status;
+}
+
+NTSTATUS
+DetachCodeFromHook(
+    _In_ struct EbpfOpAttachDetachRequest* detachRequest
+)
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    KIRQL irql;
+    UserCode* code = NULL;
+
+    KeAcquireSpinLock(&gUserCodeLock, &irql);
+    LIST_ENTRY* listEntry = gUserCodeList.Flink;
+    while (listEntry != &gUserCodeList)
+    {
+        code = CONTAINING_RECORD(listEntry, UserCode, entry);
+        if (detachRequest->handle == code->handle)
+        {
+            code->attached = FALSE;
+            break;
+        }
+
+        listEntry = listEntry->Flink;
+    }
+    KeReleaseSpinLock(&gUserCodeLock, irql);
+
+    KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "EbpfCore: DetachCodeFromHook 0x%lx handle \n", detachRequest->handle));
+
+    return status;
+}
+
+
+NTSTATUS
+UnloadCode(
+    _In_ uint64_t handle,
+    _In_ BOOLEAN force)
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    KIRQL irql;
+    UserCode* code = NULL;
+    BOOLEAN found = FALSE;
+
+    KeAcquireSpinLock(&gUserCodeLock, &irql);
+    LIST_ENTRY* listEntry = gUserCodeList.Flink;
+    while (listEntry->Flink != &gUserCodeList)
+    {
+        code = CONTAINING_RECORD(listEntry, UserCode, entry);
+        listEntry = listEntry->Flink;
+        if (force || handle == code->handle)
+        {
+            found = TRUE;
+
+            KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "EbpfCore: UnloadCode: 0x%lx handle: 0x%lx. \n", code, code->handle));
+            RemoveEntryList(&code->entry);
+            if (code != NULL)
+            {
+                ExFreePool(code);
+            }
+
+            if (!force)
+            {
+                break;
+            }
+        }
+    }
+    KeReleaseSpinLock(&gUserCodeLock, irql);
+    if (!force && !found)
+    {
+        KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "EbpfCore: UnloadCode: failed to find handle 0x%lx \n",handle));
+    }
+    return status;
+}
+
+NTSTATUS
+AllocateAndLoadCode(
+    _In_ struct EbpfOpLoadRequest* inputRequest,
+    _Out_ struct EbpfOpLoadReply* loadReply)
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PVOID  buffer = NULL;
+    UINT16 codeSize = 0;
+    KIRQL irql;
+    UserCode* code = NULL;
+
+    // validate
+    if (inputRequest->header.length > gBufferLength)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        goto Done;
+    }
+
+    if (loadReply == NULL)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        goto Done;
+    }
+
+    // allocate
+    codeSize = inputRequest->header.length;
     buffer = ExAllocatePool2(
         POOL_FLAG_NON_PAGED_EXECUTE,
-        gBufferLength,
+        codeSize + sizeof(UserCode),
         ebpfPoolTag
     );
-
     if (buffer == NULL) {
-        status = STATUS_UNSUCCESSFUL;
-        goto Cleanup;
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto Done;
     }
 
-    mdl = IoAllocateMdl(
-        buffer,
-        (ULONG) gBufferLength,
-        FALSE,
-        TRUE,
-        NULL
-    );
-    if (mdl == NULL) {
-        status = STATUS_UNSUCCESSFUL;
-        goto Cleanup;
-    }
+    // copy and hang on to user code
+    code = buffer;   
+    buffer = (byte*)buffer + sizeof(UserCode);
+    RtlCopyMemory(buffer, (PUCHAR)inputRequest->machine_code, codeSize);
+    code->code = buffer;
 
-    MmBuildMdlForNonPagedPool(mdl);
+    // todo: polish handle allocation logic
+    code->handle = (0xffff | gHandle++);
 
-    PUCHAR VPage = (UCHAR*)buffer;    
-    RtlCopyMemory(VPage, (PUCHAR)inputBuffer, gBufferLength);
-    funcPtr1 = (FUNCTION_TYPE1)VPage;
+    KeAcquireSpinLock(&gUserCodeLock, &irql);
+    InsertTailList(&gUserCodeList, &code->entry);
+    KeReleaseSpinLock(&gUserCodeLock, irql);
 
-    __try {
+    // construct the response
+    loadReply->handle = code->handle;
+    loadReply->header.id = load_code;
+    loadReply->header.length = sizeof(struct EbpfOpLoadReply);
+    KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "EbpfCore: AllocateAndLoadCode code: 0x%lx handle: 0x%lx. \n", code, code->handle));
 
-        result = (*funcPtr1)(gSuccess);
-        gSuccess++;
-
-    }
-    __except (EXCEPTION_EXECUTE_HANDLER)
+Done:
+    if (!NT_SUCCESS(status))
     {
-        gError++;
+        KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "EbpfCore: AllocateAndLoadCode code failed %d\n", status));
     }
-    
-    KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "EbpfCore: ExecuteCode. gSuccess %d, gError %d\n", gSuccess, gError));
+    return status;
+}
 
-Cleanup:
+// Returns xdp_action
+// permit = 1
+// drop = 2
+UINT32
+ExecuteCodeAtHook(
+    _In_ void* buffer
+)
+{
+    KIRQL irql;
+    UserCode* code = NULL;
+    XDP_HOOK funcPtr;
+    DWORD result = permit;
+    BOOLEAN found = FALSE;
 
-    if (mdl != NULL)
+    xdp_md ctx = {0};
+    ctx.data = (UINT64) buffer;
+    ctx.data_end = (UINT64) ((char *) buffer + sizeof(IPV4_HEADER) + sizeof(UDP_HEADER));
+
+    KeAcquireSpinLock(&gUserCodeLock, &irql);
+
+    LIST_ENTRY* listEntry = gUserCodeList.Flink;
+    while (listEntry != &gUserCodeList)
     {
-        IoFreeMdl(mdl);
+        code = CONTAINING_RECORD(listEntry, UserCode, entry);
+        if (code->attached)
+        {
+            // find the first one and run.
+            found = TRUE;
+            break;
+        }
+
+        listEntry = listEntry->Flink;
     }
 
-    if (buffer != NULL)
+    if (found)
     {
-        ExFreePool(buffer);
+        funcPtr = (XDP_HOOK)code->code;
+        __try {
+            result = (*funcPtr)(&ctx);
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            gError++;
+        }
     }
-    return;
+
+    KeReleaseSpinLock(&gUserCodeLock, irql);
+
+    KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "EbpfCore: ExecuteCode. gError %d\n", gError));
+
+    return (UINT32)result;
 }
 
 VOID
@@ -321,52 +483,101 @@ EbpfCoreEvtIoDeviceControl(
     _In_ ULONG         ioControlCode
     )
 {
+    NTSTATUS status = STATUS_SUCCESS;
+    WDFDEVICE device;
+    void* inputBuffer = NULL;
+    void* outputBuffer = NULL;
+    size_t actualInputLength;
+    size_t actualOutputLength;
+    struct EbpfOpHeader* inputRequest = NULL;
 
-   NTSTATUS status = STATUS_SUCCESS;
-   WDFDEVICE device;
-   void* inputBuffer = NULL;
-   size_t actualLength;
-   char* inputValue = NULL;
+    UNREFERENCED_PARAMETER(outputBufferLength);
+    UNREFERENCED_PARAMETER(inputBufferLength);
 
-   UNREFERENCED_PARAMETER(outputBufferLength);
-   UNREFERENCED_PARAMETER(inputBufferLength);
+    device = WdfIoQueueGetDevice(queue);
 
-   device = WdfIoQueueGetDevice(queue);   
+    switch (ioControlCode)
+    {
+    case IOCTL_EBPFCTL_METHOD_BUFFERED:
+        // Verify that length of the input buffer supplied to the request object
+        // is not zero
+        if (inputBufferLength != 0)
+        {
+            // Retrieve the input buffer associated with the request object
+            status = WdfRequestRetrieveInputBuffer(
+                request,                   // Request object
+                inputBufferLength,         // Length of input buffer
+                &inputBuffer,              // Pointer to buffer
+                &actualInputLength         // Length of buffer
+            );
 
-   switch(ioControlCode)
-   {
-      case IOCTL_EBPFCTL_METHOD_BUFFERED:
-         // Verify that length of the input buffer supplied to the request object
-         // is not zero
-         if(inputBufferLength != 0)
-         {
-               // Retrieve the input buffer associated with the request object
-               status = WdfRequestRetrieveInputBuffer(
-                           request,                    // Request object
-                           inputBufferLength,          // Length of input buffer
-                           &inputBuffer,              // Pointer to buffer
-                           &actualLength               // Length of buffer
-                           );
-                     
-               if(NT_SUCCESS(status))
-               {
-                  if(inputBuffer != NULL)
-                  {
-                     inputValue = (char *)inputBuffer;
-                     ExecuteCode(inputValue);
-                  }
-               }
-               else{
-                  status = STATUS_UNSUCCESSFUL;
-               }
-         }
-         break;
-      default:
-         break;         
-   }
+            if (!NT_SUCCESS(status))
+            {
+                KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "EbpfCore: Input buffer failure %d\n", status));
+                goto Done;
+            }
 
-   WdfRequestComplete(request, status);
-   return;
+            // Retrieve output buffer associated with the request object
+            status = WdfRequestRetrieveOutputBuffer(
+                request,
+                outputBufferLength,
+                &outputBuffer,
+                &actualOutputLength
+            );
+            if (!NT_SUCCESS(status))
+            {
+                KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "EbpfCore: Output buffer failure %d\n", status));
+                goto Done;
+            }
+            if (inputBuffer == NULL || outputBuffer == NULL)
+            {
+                status = STATUS_INVALID_PARAMETER;
+                goto Done;
+            }
+
+            if (inputBuffer != NULL && outputBuffer != NULL)
+            {
+
+                status = EbpfHookRegisterCallouts(gWdmDevice);
+                // non fatal for now while testing               
+
+                inputRequest = inputBuffer;
+                switch (inputRequest->id)
+                {
+                case load_code:
+                {
+                    status = AllocateAndLoadCode(
+                        (struct EbpfOpLoadRequest*)inputRequest,
+                        outputBuffer);
+                    break;
+                }
+                case unload_code:
+                {
+                    struct EbpfOpUnloadRequest* unloadRequest;
+                    unloadRequest = inputBuffer;
+                    status = UnloadCode(unloadRequest->handle, FALSE);
+                    break;
+                }
+                case attach:
+                {
+                    status = CheckAndAttachCodeToHook(inputBuffer);
+                    break;
+                }
+                case detach:
+                    break;
+                default:
+                    break;
+                }
+            }
+        }
+        break;
+    default:
+        break;
+    }
+
+Done:
+    WdfRequestCompleteWithInformation(request, status, outputBufferLength);
+    return;
 }
 
 NTSTATUS
@@ -398,12 +609,9 @@ DriverEntry(
 
    gWdmDevice = WdfDeviceWdmGetDeviceObject(device);
    
-   status = EbpfHookRegisterCallouts(gWdmDevice);
-
-   if (!NT_SUCCESS(status))
-   {
-      goto Exit;
-   }
+   EbpfHookRegisterCallouts(gWdmDevice);
+   // ignore status. at boot, registration can fail.
+   // we will try to re-register during prog load.
 
 Exit:
    
