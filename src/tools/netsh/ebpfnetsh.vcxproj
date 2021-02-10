@@ -130,8 +130,9 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;EBPFNETSH_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\external\ebpf-verifier\src;$(SolutionDir)..\..\ebpf\libs\api;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\external\ebpf-verifier\src;$(SolutionDir)..\..\ebpf\libs\api;$(SolutionDir)src\ebpf\libs\api;$(SolutionDir)external\ebpf-verifier\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -140,7 +141,7 @@
       <AdditionalDependencies>ebpfverifier.lib;netsh.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>
       </ModuleDefinitionFile>
-      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\external\ebpf-verifier\build\$(Configuration);$(SolutionDir)..\..\..\src\ebpf\bin\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\external\ebpf-verifier\build\$(Configuration);$(SolutionDir)..\..\..\src\ebpf\bin\$(Platform)\$(Configuration);$(SolutionDir)external\ebpf-verifier\build\$(Configuration);$(SolutionDir)src\ebpf\bin\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -182,6 +183,14 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\external\ebpf-verifier\build\ebpfverifier.vcxproj">
+      <Project>{939a079d-a1e8-35d9-950f-11b1894d342e}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\ebpf\api\ebpfapi.vcxproj">
+      <Project>{75fe223a-3e45-4b0e-a2e8-04285e52e440}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
