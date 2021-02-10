@@ -4,14 +4,21 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 16.0.30907.101
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "dll", "EbpfApi.vcxproj", "{75FE223A-3E45-4B0E-A2E8-04285E52E440}"
+	ProjectSection(ProjectDependencies) = postProject
+		{67998233-19EF-3ABD-A2E2-A56D6D1A11CE} = {67998233-19EF-3ABD-A2E2-A56D6D1A11CE}
+		{4C10AC76-384C-4539-B884-38E998749FB2} = {4C10AC76-384C-4539-B884-38E998749FB2}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "api", "..\libs\api\api.vcxproj", "{C8BF60C3-40A9-43AD-891A-8AA34F1C3A68}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EbpfJitterDemoLib", "..\libs\EbpfJitterDemoLib\EbpfJitterDemoLib.vcxproj", "{245F0EC7-1EBC-4D68-8B1F-F758EA9196AE}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ebpfverifier", "..\..\..\external\ebpf-verifier\build\ebpfverifier.vcxproj", "{939A079D-A1E8-35D9-950F-11B1894D342E}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ebpfverifier", "..\..\..\external\ebpf-verifier\build\ebpfverifier.vcxproj", "{67998233-19EF-3ABD-A2E2-A56D6D1A11CE}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test", "..\libs\api\test\test.vcxproj", "{4C10AC76-384C-4539-B884-38E998749FB2}"
+	ProjectSection(ProjectDependencies) = postProject
+		{67998233-19EF-3ABD-A2E2-A56D6D1A11CE} = {67998233-19EF-3ABD-A2E2-A56D6D1A11CE}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -73,18 +80,18 @@ Global
 		{245F0EC7-1EBC-4D68-8B1F-F758EA9196AE}.RelWithDebInfo|x64.Build.0 = Release|x64
 		{245F0EC7-1EBC-4D68-8B1F-F758EA9196AE}.RelWithDebInfo|x86.ActiveCfg = Release|Win32
 		{245F0EC7-1EBC-4D68-8B1F-F758EA9196AE}.RelWithDebInfo|x86.Build.0 = Release|Win32
-		{939A079D-A1E8-35D9-950F-11B1894D342E}.Debug|x64.ActiveCfg = Debug|x64
-		{939A079D-A1E8-35D9-950F-11B1894D342E}.Debug|x64.Build.0 = Debug|x64
-		{939A079D-A1E8-35D9-950F-11B1894D342E}.Debug|x86.ActiveCfg = Debug|x64
-		{939A079D-A1E8-35D9-950F-11B1894D342E}.MinSizeRel|x64.ActiveCfg = MinSizeRel|x64
-		{939A079D-A1E8-35D9-950F-11B1894D342E}.MinSizeRel|x64.Build.0 = MinSizeRel|x64
-		{939A079D-A1E8-35D9-950F-11B1894D342E}.MinSizeRel|x86.ActiveCfg = MinSizeRel|x64
-		{939A079D-A1E8-35D9-950F-11B1894D342E}.Release|x64.ActiveCfg = Release|x64
-		{939A079D-A1E8-35D9-950F-11B1894D342E}.Release|x64.Build.0 = Release|x64
-		{939A079D-A1E8-35D9-950F-11B1894D342E}.Release|x86.ActiveCfg = Release|x64
-		{939A079D-A1E8-35D9-950F-11B1894D342E}.RelWithDebInfo|x64.ActiveCfg = RelWithDebInfo|x64
-		{939A079D-A1E8-35D9-950F-11B1894D342E}.RelWithDebInfo|x64.Build.0 = RelWithDebInfo|x64
-		{939A079D-A1E8-35D9-950F-11B1894D342E}.RelWithDebInfo|x86.ActiveCfg = RelWithDebInfo|x64
+		{67998233-19EF-3ABD-A2E2-A56D6D1A11CE}.Debug|x64.ActiveCfg = Debug|x64
+		{67998233-19EF-3ABD-A2E2-A56D6D1A11CE}.Debug|x64.Build.0 = Debug|x64
+		{67998233-19EF-3ABD-A2E2-A56D6D1A11CE}.Debug|x86.ActiveCfg = Debug|x64
+		{67998233-19EF-3ABD-A2E2-A56D6D1A11CE}.MinSizeRel|x64.ActiveCfg = MinSizeRel|x64
+		{67998233-19EF-3ABD-A2E2-A56D6D1A11CE}.MinSizeRel|x64.Build.0 = MinSizeRel|x64
+		{67998233-19EF-3ABD-A2E2-A56D6D1A11CE}.MinSizeRel|x86.ActiveCfg = MinSizeRel|x64
+		{67998233-19EF-3ABD-A2E2-A56D6D1A11CE}.Release|x64.ActiveCfg = Release|x64
+		{67998233-19EF-3ABD-A2E2-A56D6D1A11CE}.Release|x64.Build.0 = Release|x64
+		{67998233-19EF-3ABD-A2E2-A56D6D1A11CE}.Release|x86.ActiveCfg = Release|x64
+		{67998233-19EF-3ABD-A2E2-A56D6D1A11CE}.RelWithDebInfo|x64.ActiveCfg = RelWithDebInfo|x64
+		{67998233-19EF-3ABD-A2E2-A56D6D1A11CE}.RelWithDebInfo|x64.Build.0 = RelWithDebInfo|x64
+		{67998233-19EF-3ABD-A2E2-A56D6D1A11CE}.RelWithDebInfo|x86.ActiveCfg = RelWithDebInfo|x64
 		{4C10AC76-384C-4539-B884-38E998749FB2}.Debug|x64.ActiveCfg = Debug|x64
 		{4C10AC76-384C-4539-B884-38E998749FB2}.Debug|x64.Build.0 = Debug|x64
 		{4C10AC76-384C-4539-B884-38E998749FB2}.Debug|x86.ActiveCfg = Debug|Win32

@@ -30,10 +30,10 @@
     <ClInclude Include="ebpf_l2_hook.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\api\protocol.h">
+    <ClInclude Include="types.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="types.h">
+    <ClInclude Include="..\..\libs\api\protocol.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

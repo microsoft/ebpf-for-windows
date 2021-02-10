@@ -517,25 +517,13 @@ EbpfCoreEvtIoDeviceControl(
                 goto Done;
             }
 
-            // Retrieve output buffer associated with the request object
-            status = WdfRequestRetrieveOutputBuffer(
-                request,
-                outputBufferLength,
-                &outputBuffer,
-                &actualOutputLength
-            );
-            if (!NT_SUCCESS(status))
-            {
-                KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "EbpfCore: Output buffer failure %d\n", status));
-                goto Done;
-            }
-            if (inputBuffer == NULL || outputBuffer == NULL)
+            if (inputBuffer == NULL)
             {
                 status = STATUS_INVALID_PARAMETER;
                 goto Done;
             }
 
-            if (inputBuffer != NULL && outputBuffer != NULL)
+            if (inputBuffer != NULL)
             {
 
                 status = EbpfHookRegisterCallouts(gWdmDevice);
@@ -546,6 +534,23 @@ EbpfCoreEvtIoDeviceControl(
                 {
                 case load_code:
                 {
+                    // Retrieve output buffer associated with the request object
+                    status = WdfRequestRetrieveOutputBuffer(
+                        request,
+                        outputBufferLength,
+                        &outputBuffer,
+                        &actualOutputLength
+                    );
+                    if (!NT_SUCCESS(status))
+                    {
+                        KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "EbpfCore: Output buffer failure %d\n", status));
+                        goto Done;
+                    }
+                    if (outputBuffer == NULL)
+                    {
+                        status = STATUS_INVALID_PARAMETER;
+                        goto Done;
+                    }
                     status = AllocateAndLoadCode(
                         (struct EbpfOpLoadRequest*)inputRequest,
                         outputBuffer);

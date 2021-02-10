@@ -5,8 +5,9 @@
 
 #pragma clang section text="xdp"
 
-typedef unsigned long long __u64;
-typedef unsigned long __u32;
+// define based on linux
+typedef unsigned long __u64;
+typedef unsigned int __u32;
 typedef unsigned short __u16;
 typedef unsigned char __u8;
 
@@ -66,14 +67,14 @@ int DropPacket(xdp_md* ctx)
       UDP_HEADER* udphdr;
       IPV4_HEADER* iphdr = data;
       int rc = 1;
-      if (data + sizeof(IPV4_HEADER) + sizeof(UDP_HEADER) > data_end)
+      if ((char *)data + sizeof(IPV4_HEADER) + sizeof(UDP_HEADER) > (char *)data_end)
            goto Done;
 
       // udp
       if (iphdr->Protocol == 17)
       {
-          udphdr = (UDP_HEADER* )(data + sizeof(IPV4_HEADER));
-          if (data + sizeof(UDP_HEADER) > data_end)
+          udphdr = (UDP_HEADER* )((char *)data + sizeof(IPV4_HEADER));
+          if ((char *)data + sizeof(UDP_HEADER) > (char *)data_end)
               goto Done;
 
           if (udphdr->length ==0)
