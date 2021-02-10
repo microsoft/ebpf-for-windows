@@ -372,14 +372,14 @@ using the `-v` argument:
 
 ```
 > Release\check.exe -v ..\bpf.o
- 
+
 {r10 -> [512, +oo], off10 -> [512], t10 -> [-2], r1 -> [1, 2147418112], off1 -> [0], t1 -> [-3], packet_size -> [0, 65534], meta_offset -> [-4098, 0]
 }
 Numbers -> {}
 0:
   r0 = 0;
   goto 1;
- 
+
 {r10 -> [512, +oo], off10 -> [512], t10 -> [-2], r1 -> [1, 2147418112], off1 -> [0], t1 -> [-3], packet_size -> [0, 65534], meta_offset -> [-4098, 0], r0 -> [0], t0 -> [-4]
 }
 Numbers -> {}
@@ -495,7 +495,7 @@ Let's look at the code above in more detail.  The EbpfContextDescriptor
 info (i.e., xdp_context_descriptor) tells the verifier about the format
 of the context structure (i.e., struct ebpf_xdp_args). The struct is
 4 bytes long, does not include packet data, and so the scalar fields that
-are safe to access start at offset 0. 
+are safe to access start at offset 0.
 
 With the above, our sample program will pass verification (note the
 `-p windows` to tell the verifier to use the Windows platform data
@@ -561,7 +561,7 @@ A sample eBPF program that uses it might look like this:
 
 ```
 #include "helpers.h"
- 
+
 int func(void* ctx)
 {
     return ebpf_get_tick_count(ctx);
@@ -575,9 +575,9 @@ to include source line info:
 > clang -target bpf -Wall -g -O2 -c helpers.c -o helpers.o
 
 > llvm-objdump --triple bpf -S helpers.o
- 
+
 helpers.o: file format ELF64-BPF
- 
+
 Disassembly of section .text:
 func:
 ; {
@@ -614,14 +614,17 @@ The above helps the verifier know the type and semantics of the arguments
 and the return value.
 
 ```
-> Release\check.exe -p windows -f helpers.o
- 
- 
+> Release\check.exe -p windows --asm CON -f helpers.o
+       0:       r0 = ebpf_get_tick_count:3(r1:CTX)
+       1:       exit
+
+
 0 warnings
 1,0.007,6020
 ```
 
-As shown above, verification is successful.
+As shown above, verification is successful, and check.exe understands
+the function name, and knows that the first argument is the context.
 
 ### 5.2.1. Why -O2?
 
@@ -657,9 +660,9 @@ the instruction, here the value 47 (0x2f) is encoded in the data section:
 
 ```
 > llvm-objdump --triple bpf -s helpers.o --section .data
- 
+
 helpers.o:       file format ELF64-BPF
- 
+
 Contents of section .data:
 0000 2f000000 00000000                    /.......
 ```
@@ -671,9 +674,9 @@ where without it llvm-objdump will dump all of them.
 
 ```
 > llvm-objdump --triple bpf --section .rel.text -r helpers.o
- 
+
 helpers.o:       file format ELF64-BPF
- 
+
 RELOCATION RECORDS FOR [.rel.text]:
 0000000000000010 R_BPF_64_64 bpf_get_socket_uid
 ```
@@ -686,9 +689,191 @@ before trying to verify the bytecode.
 
 ## 5.3. Maps
 
-Now that we've seen how hooks work, let's look at how maps are exposed to
-eBPF programs.
+Now that we've seen how helpers work, let's move on to
+[maps](https://github.com/iovisor/bcc/blob/master/docs/reference_guide.md#maps),
+which are memory structures that can be shared between eBPF programs and/or
+applications.  They are typically used to store state between invocations
+of eBPF programs, or to expose information (e.g., statistics) to applications.
 
-// TODO: this section is under construction
+To see how maps are exposed to eBPF programs, let's first start from a
+plain eBPF program:
+
+```
+__attribute__((section("myprog"), used))
+int func()
+{
+    return 0;
+}
+```
+
+We can add a reference to a map to which the program will have access
+by creating a `maps` section as follows.  We'll use a "per-CPU array"
+in this example so that there are no race conditions or corrupted data
+if multiple instances of our program are simultaneously running on different
+CPUs.
 
 
+```
+#include <stdint.h>
+
+struct ebpf_map {
+    uint32_t size;
+    uint32_t type;
+    uint32_t key_size;
+    uint32_t value_size;
+    uint32_t max_entries;
+};
+#define BPF_MAP_TYPE_PERCPU_ARRAY 1
+
+__attribute__((section("maps"), used))
+struct ebpf_map map =
+    {sizeof(struct ebpf_map), BPF_MAP_TYPE_PERCPU_ARRAY, 2, 4, 512};
+
+__attribute__((section("myprog"), used))
+int func()
+{
+    return 0;
+}
+```
+
+So far the program doesn't actually use the map, but the presence of
+the maps section means that when the program is loaded, the system
+will look for the given map and create one if it doesn't already exist,
+using the map parameters specified.  We can see the fields encoded
+into the `maps` section as follows:
+
+```
+> llvm-objdump -s -section maps maponly.o
+
+maponly.o:      file format ELF64-BPF
+
+Contents of section maps:
+ 0000 14000000 01000000 02000000 04000000  ................
+ 0010 00020000                             ....
+```
+
+Now to make use of the map, we have to use helper functions to access it:
+```
+void *ebpf_map_lookup_elem(struct ebpf_map* map, const void* key);
+long ebpf_map_update_elem(struct ebpf_map* map, const void* key, const void* value, uint64_t flags);
+long ebpf_map_delete_elem(struct ebpf_map* map, const void* key);
+```
+
+Let's update the program to write the value "42" to the map section for the
+current CPU, by changing the "myprog" section to the following:
+```
+static void* (*ebpf_map_lookup_elem)(struct ebpf_map* map, const void* key) = (void*) 0;
+static int (*ebpf_map_update_elem)(struct ebpf_map *map, const void *key, const void *value, uint64_t flags) = (void*) 1;
+
+__attribute__((section("myprog"), used))
+int func1()
+{
+    uint32_t key = 0;
+    uint32_t value = 42;
+    int result = ebpf_map_update_elem(&map, &key, &value, 0);
+    return result;
+}
+```
+
+This program results in the following disassembly:
+```
+> llvm-objdump -S -section=myprog map.o
+
+map.o:  file format ELF64-BPF
+
+Disassembly of section myprog:
+func1:
+; {
+       0:       b7 01 00 00 00 00 00 00         r1 = 0
+; uint32_t key = 0;
+       1:       63 1a fc ff 00 00 00 00         *(u32 *)(r10 - 4) = r1
+       2:       b7 01 00 00 2a 00 00 00         r1 = 42
+; uint32_t value = 42;
+       3:       63 1a f8 ff 00 00 00 00         *(u32 *)(r10 - 8) = r1
+       4:       bf a2 00 00 00 00 00 00         r2 = r10
+; uint32_t key = 0;
+       5:       07 02 00 00 fc ff ff ff         r2 += -4
+       6:       bf a3 00 00 00 00 00 00         r3 = r10
+       7:       07 03 00 00 f8 ff ff ff         r3 += -8
+; int result = ebpf_map_update_elem(&map, &key, &value, 0);
+       8:       18 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00         r1 = 0 ll
+      10:       b7 04 00 00 00 00 00 00         r4 = 0
+      11:       85 00 00 00 01 00 00 00         call 1
+; return result;
+      12:       95 00 00 00 00 00 00 00         exit
+```
+
+Above shows "call 1", but check.exe shows more details:
+```
+> check -p windows --asm CON  -f map.o
+       0:       r1 = 0
+       1:       *(u32 *)(r10 - 4) = r1
+       2:       r1 = 42
+       3:       *(u32 *)(r10 - 8) = r1
+       4:       r2 = r10
+       5:       r2 += -4
+       6:       r3 = r10
+       7:       r3 += -8
+       8:       r1 = map_fd 65664
+      10:       r4 = 0
+      11:       r0 = ebpf_map_update_elem:1(r1:FD, r2:K, r3:V, r4)
+      12:       exit
+
+
+0 warnings
+1,0.057,6256
+````
+
+Notice from instruction 11 that check.exe understands that
+ebpf_map_update_elem expects
+a file descriptor (FD) in R1, a key in R2, a value in R3, and R4 can be
+anything.
+
+R1 was set in instruction 8 to a map FD value of 65664.  Where did that value
+come from, since the llvm-objdump disassembly didn't have it?  The
+create_map_crab() function in the Prevail verifier creates a dummy value
+based on (value_size * 16384) + (key_size * 64).  Since we passed
+value_size = 4 and key_size = 2, this gives us 65664.  When installed,
+this value gets replaced with a real map address.  Let's see how that happens.
+
+Now that we're actually using the map, rather than just defining it,
+the relocation section is also populated.  The relocation section for
+a program is in a section with the ".rel" prefix followed by the
+program section name ("myprog" in this example):
+
+```
+> llvm-objdump --triple bpf -section=.relmyprog -r map.o
+
+map.o:  file format ELF64-BPF
+
+RELOCATION RECORDS FOR [.relmyprog]:
+0000000000000040 R_BPF_64_64 map
+```
+
+This record means that the actual address of map should be inserted at
+offset 0x40, but where is that?  llvm-objdump and check both gave us
+instruction numbers not offsets, but we can see the raw bytes as follows:
+
+```
+> >llvm-objdump -s -section=myprog map.o
+
+map.o:  file format ELF64-BPF
+
+Contents of section myprog:
+ 0000 b7010000 00000000 631afcff 00000000  ........c.......
+ 0010 b7010000 2a000000 631af8ff 00000000  ....*...c.......
+ 0020 bfa20000 00000000 07020000 fcffffff  ................
+ 0030 bfa30000 00000000 07030000 f8ffffff  ................
+ 0040 18010000 00000000 00000000 00000000  ................
+ 0050 b7040000 00000000 85000000 01000000  ................
+ 0060 95000000 00000000                    ........
+```
+
+We see that offset 0x40 has "18010000 00000000 00000000 00000000".
+Looking back at the llvm-objdump disassembly above, we see that
+is indeed instruction 8.
+
+So, to summarize, the verifier operates on pseudo FDs, not actual
+FDs or addresses.  When the program is actually installed, the relocation
+section will be used to insert the actual map address into the executable
+code.
