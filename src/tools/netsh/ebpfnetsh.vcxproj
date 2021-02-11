@@ -152,7 +152,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;EBPFNETSH_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\external\ebpf-verifier\src;C:\git\dthaler\ebpf-verifier\packages\boost.1.72.0.0\lib\native\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\external\ebpf-verifier\src;$(SolutionDir)src\ebpf\libs\api;$(SolutionDir)external\ebpf-verifier\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
@@ -164,7 +164,7 @@
       <AdditionalDependencies>ebpfverifier.lib;netsh.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>
       </ModuleDefinitionFile>
-      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\external\ebpf-verifier\build\$(Configuration);$(SolutionDir)..\..\..\src\ebpf\bin\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\external\ebpf-verifier\build\$(Configuration);$(SolutionDir)..\..\..\src\ebpf\bin\$(Platform)\$(Configuration);$(SolutionDir)src\ebpf\bin\$(Platform)\$(Configuration);$(SolutionDir)external\ebpf-verifier\build\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
