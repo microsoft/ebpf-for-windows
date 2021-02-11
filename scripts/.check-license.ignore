@@ -1,0 +1,11 @@
+# This file uses regular expressions, not shell globs!
+
+# File extensions that don't support embedding license info
+.*\.md$
+
+# Other Files
+\.check-license\.ignore
+\.clang-format
+\.gitattributes
+\.gitignore
+\.gitmodules
