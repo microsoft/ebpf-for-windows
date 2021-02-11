@@ -144,7 +144,6 @@ EbpfCoreInitDriverObjects(
       goto Exit;
    }
 
-   DbgBreakPoint();
    pInit = WdfControlDeviceInitAllocate(
                *pDriver,               
                &SDDL_DEVOBJ_SYS_ALL_ADM_ALL // only kernel/system and admins
@@ -569,6 +568,7 @@ EbpfCoreEvtIoDeviceControl(
                     break;
                 }
                 case detach:
+                    status = DetachCodeFromHook(inputBuffer);
                     break;
                 default:
                     break;

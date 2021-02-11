@@ -11,6 +11,11 @@ typedef unsigned int __u32;
 typedef unsigned short __u16;
 typedef unsigned char __u8;
 
+static inline __u16 ntohs(__u16 us)
+{
+    return us << 8 | us >> 8;
+}
+
 typedef struct xdp_md_
 {
    __u64 data;
@@ -73,11 +78,8 @@ int DropPacket(xdp_md* ctx)
       // udp
       if (iphdr->Protocol == 17)
       {
-          udphdr = (UDP_HEADER* )((char *)data + sizeof(IPV4_HEADER));
-          if ((char *)data + sizeof(UDP_HEADER) > (char *)data_end)
-              goto Done;
-
-          if (udphdr->length ==0)
+          udphdr = (UDP_HEADER* )(iphdr  + 1);
+          if (ntohs(udphdr->length) <= sizeof(UDP_HEADER))
           {
               rc = 2;
           }
