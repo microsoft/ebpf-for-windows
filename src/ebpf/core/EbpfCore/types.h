@@ -1,3 +1,8 @@
+/*
+ *  Copyright (C) 2020, Microsoft Corporation, All Rights Reserved
+ *  SPDX-License-Identifier: MIT
+*/
+
 #pragma once
 
 #define uint8_t UINT8

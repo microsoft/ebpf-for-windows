@@ -1,3 +1,8 @@
+/*
+ *  Copyright (C) 2020, Microsoft Corporation, All Rights Reserved
+ *  SPDX-License-Identifier: MIT
+*/
+
 #include "ebpf_verifier.hpp"
 #include "windows/windows_platform.hpp"
 #include "Verifier.h"

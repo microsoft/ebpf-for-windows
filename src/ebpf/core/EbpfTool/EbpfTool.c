@@ -1,3 +1,8 @@
+/*
+ *  Copyright (C) 2020, Microsoft Corporation, All Rights Reserved
+ *  SPDX-License-Identifier: MIT
+*/
+
 #include <windows.h>
 #include <winioctl.h>
 #include <stdio.h>

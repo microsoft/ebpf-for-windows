@@ -1,8 +1,9 @@
-#pragma once
 /*
  *  Copyright (C) 2020, Microsoft Corporation, All Rights Reserved
  *  SPDX-License-Identifier: MIT
 */
+
+#pragma once
 namespace Platform
 {
         BOOL

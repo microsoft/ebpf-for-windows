@@ -1,3 +1,8 @@
+/*
+ *  Copyright (C) 2020, Microsoft Corporation, All Rights Reserved
+ *  SPDX-License-Identifier: MIT
+*/
+
 #include "mock.h"
 std::function<decltype(CreateFileW)> create_file_handler;
 std::function<decltype(DeviceIoControl)> device_io_control_handler;
