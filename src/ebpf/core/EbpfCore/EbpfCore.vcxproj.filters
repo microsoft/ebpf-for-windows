@@ -25,6 +25,9 @@
     <ClCompile Include="ebpf_l2_hook.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ebpf_core.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ebpf_l2_hook.h">
@@ -34,6 +37,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\libs\api\protocol.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ebpf_core.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

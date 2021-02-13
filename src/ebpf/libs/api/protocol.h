@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2020, Microsoft Corporation, All Rights Reserved
+ *  Copyright (c) Microsoft Corporation
  *  SPDX-License-Identifier: MIT
 */
 #pragma once

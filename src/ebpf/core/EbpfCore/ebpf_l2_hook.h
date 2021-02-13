@@ -1,11 +1,9 @@
 /*
- *  Copyright (C) 2020, Microsoft Corporation, All Rights Reserved
+ *  Copyright (c) Microsoft Corporation
  *  SPDX-License-Identifier: MIT
 */
 
 /*++
-
-Copyright (c) Microsoft Corporation. All rights reserved
 
 Abstract:
 
@@ -21,41 +19,6 @@ Environment:
 #ifndef _EBPF_L2HOOK_H_
 #define _EBPF_L2HOOK_H_
 #include "types.h"
-
-// XDP like hook
-typedef struct xdp_md_ {
-    UINT64                      data;                 /*     0     8 */
-    UINT64                      data_end;             /*     8     8 */
-    UINT64                      data_meta;            /*     16    8 */
-
-    /* size: 12, cachelines: 1, members: 3 */
-    /* last cacheline: 12 bytes */
-} xdp_md;
-
-typedef DWORD(WINAPI* XDP_HOOK) (PVOID);
-
-typedef enum xdp_action_
-{
-    permit = 1,
-    drop = 2
-} xdp_action;
-
-typedef struct {
-    LIST_ENTRY entry;
-
-    // pointer to code buffer
-    byte* code;
-
-    // handle required for attach/detach/unload
-    uint64_t handle;
-
-    // is attached ?
-    BOOLEAN attached;
-} UserCode;
-
-// Externs
-extern LIST_ENTRY gUserCodeList;
-extern KSPIN_LOCK gUserCodeLock;
 
 extern UINT32 gL2CalloutId;
 extern BOOLEAN gDriverUnloading;

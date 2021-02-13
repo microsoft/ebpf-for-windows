@@ -222,6 +222,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="ebpf_core.c" />
     <ClCompile Include="ebpf_drv.c" />
     <ClCompile Include="ebpf_l2_hook.c" />
   </ItemGroup>
@@ -233,6 +234,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\libs\api\protocol.h" />
+    <ClInclude Include="ebpf_core.h" />
     <ClInclude Include="ebpf_l2_hook.h" />
     <ClInclude Include="types.h" />
   </ItemGroup>

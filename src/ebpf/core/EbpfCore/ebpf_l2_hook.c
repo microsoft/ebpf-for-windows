@@ -1,11 +1,9 @@
 /*
- *  Copyright (C) 2020, Microsoft Corporation, All Rights Reserved
+ *  Copyright (c) Microsoft Corporation
  *  SPDX-License-Identifier: MIT
 */
 
 /*++
-
-Copyright (c) Microsoft Corporation. All rights reserved
 
 Abstract:
 
@@ -34,6 +32,8 @@ Environment:
 
 #define INITGUID
 #include <guiddef.h>
+#include "protocol.h"
+#include "ebpf_core.h"
 
 // Callout and sublayer GUIDs
 
@@ -58,8 +58,6 @@ DEFINE_GUID(
 // Callout globals
 HANDLE gEngineHandle;
 UINT32 gL2CalloutId;
-
-extern INT32 ExecuteCodeAtHook(_In_ void* ctx);
 
 NTSTATUS
 EbpfHookAddFilter(
@@ -349,23 +347,25 @@ EbpfHookL2Classify(
        goto done;
    }
 
+
    mdlAddr =
        NdisGetDataBuffer(
            netBuffer,
-           sizeof(IPV4_HEADER) + max(sizeof(TCP_HEADER), sizeof(UDP_HEADER)),
+           netBuffer->DataLength,
            NULL,
            sizeof(UINT16),
            0);
-
+   
    // execute code at hook.
-   result = ExecuteCodeAtHook(mdlAddr);
-   if (result == 1)
+   result = EbpfCoreInvokeXdpHook(mdlAddr, netBuffer->DataLength);
+   switch (result)
    {
+   case XDP_PASS:
        action = FWP_ACTION_PERMIT;
-   }
-   else if (result == 2)
-   {
+       break;
+   case XDP_DROP:
        action = FWP_ACTION_BLOCK;
+       break;
    }
 
 done:   
