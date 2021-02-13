@@ -60,11 +60,11 @@ static int analyze(raw_program& raw_prog, char ** error_message)
     return 0; // Success.
 }
 
-int verify(const char* filename, const char* sectionname, uint8_t* byte_code, size_t* byte_code_size, char** error_message)
+int verify(const char* filename, const char* sectionname, uint8_t* byte_code, size_t* byte_code_size, map_create_fp map_create_function, char** error_message)
 {
     const ebpf_platform_t* platform = &g_ebpf_platform_windows;
 
-    auto raw_progs = read_elf(filename, sectionname, create_map_crab, nullptr, platform);
+    auto raw_progs = read_elf(filename, sectionname, reinterpret_cast<MapFd*>(map_create_function), nullptr, platform);
     if (raw_progs.size() != 1) {
         return 1; // Error
     }

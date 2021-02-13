@@ -125,9 +125,40 @@ void EbpfApiTerminate()
     }
 }
 
-uint64_t map_resolver(void* context, uint64_t fd)
+static int create_map_function(uint32_t type, uint32_t key_size, uint32_t value_size, uint32_t max_entries, uint32_t map_flags)
 {
-    EbpfOpResolveMapRequest request{
+    EbpfOpCreateMapRequest request{
+        sizeof(EbpfOpCreateMapRequest),
+        EbpfOperation::create_map,
+        type,
+        key_size,
+        value_size,
+        max_entries,
+        0,
+    };
+
+    EbpfOpCreateMapReply reply{};
+
+    auto retval = invoke_ioctl(device_handle, &request, &reply);
+
+    if (reply.header.id != EbpfOperation::create_map)
+    {
+        return -1;
+    }
+
+    if (retval == ERROR_SUCCESS)
+    {
+        return static_cast<int>(reply.handle);
+    }
+    else
+    {
+        return -1;
+    }
+}
+
+static uint64_t map_resolver(void* context, uint64_t fd)
+{
+EbpfOpResolveMapRequest request{
         sizeof(request),
         EbpfOperation::resolve_map,
         fd };
@@ -146,7 +177,7 @@ uint64_t map_resolver(void* context, uint64_t fd)
 
 uint64_t helper_resolver(void* context, uint32_t helper)
 {
-    EbpfOpResolveHelperRequest request{
+        EbpfOpResolveHelperRequest request{
         sizeof(request),
         EbpfOperation::resolve_helper,
         helper };
@@ -185,7 +216,7 @@ DLL DWORD EbpfApiLoadProgram(const char* file_name, const char* section_name, HA
     try
     {
         // Verify code.
-        if (verify(file_name, section_name, byte_code.data(), &byte_code_size, error_message) != 0)
+        if (verify(file_name, section_name, byte_code.data(), &byte_code_size, create_map_function, error_message) != 0)
         {
             return ERROR_INVALID_PARAMETER;
         }
@@ -287,4 +318,58 @@ DLL DWORD EbpfApiDetachProgram(HANDLE handle, DWORD hook_point)
     return invoke_ioctl(device_handle, &request, nullptr);
 }
 
+DLL DWORD EbpfApiMapLookupElement(HANDLE handle, DWORD key_size, unsigned char* key, DWORD value_size, unsigned char* value)
+{
+    std::vector<uint8_t> request_buffer(sizeof(EbpfOpMapLookupElementRequest) + key_size - 1);
+    std::vector<uint8_t> reply_buffer(sizeof(EbpfOpMapLookupElementReply) + value_size - 1);
+    auto request = reinterpret_cast<EbpfOpMapLookupElementRequest*>(request_buffer.data());
+    auto reply = reinterpret_cast<EbpfOpMapLookupElementReply*>(reply_buffer.data());
 
+    request->header.length = request_buffer.size();
+    request->header.id = EbpfOperation::map_lookup_element;
+    std::copy(key, key + key_size, request->key);
+
+    auto retval = invoke_ioctl(device_handle, request_buffer, reply_buffer);
+
+    if (reply->header.id != EbpfOperation::map_lookup_element)
+    {
+        return ERROR_INVALID_PARAMETER;
+    }
+
+    if (retval == ERROR_SUCCESS)
+    {
+        std::copy(reply->value, reply->value + value_size, value);
+    }
+    return retval;
+
+}
+
+DLL DWORD EbpfApiMapUpdateElement(HANDLE handle, DWORD key_size, unsigned char* key, DWORD value_size, unsigned char* value)
+{
+    std::vector<uint8_t> request_buffer(sizeof(EpfOpMapUpdateElementRequest) - 1 + key_size + value_size);
+    auto request = reinterpret_cast<EpfOpMapUpdateElementRequest*>(request_buffer.data());
+
+    request->header.length = request_buffer.size();
+    request->header.id = EbpfOperation::map_lookup_element;
+    std::copy(key, key + key_size, request->data);
+    std::copy(value, value + value_size, request->data + key_size);
+
+    return invoke_ioctl(device_handle, request_buffer, nullptr);
+}
+
+DLL DWORD EbpfApiMapDeleteElement(HANDLE handle, DWORD key_size, unsigned char* key)
+{
+    std::vector<uint8_t> request_buffer(sizeof(EbpfOpMapDeleteElementRequest) - 1 + key_size);
+    auto request = reinterpret_cast<EbpfOpMapDeleteElementRequest*>(request_buffer.data());
+
+    request->header.length = request_buffer.size();
+    request->header.id = EbpfOperation::map_delete_element;
+    std::copy(key, key + key_size, request->key);
+
+    return invoke_ioctl(device_handle, request_buffer, nullptr);
+}
+
+DLL void EbpfApiDeleteMap(HANDLE handle)
+{
+    CloseHandle(handle);
+}

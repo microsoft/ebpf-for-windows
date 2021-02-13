@@ -61,3 +61,14 @@ typedef struct UDP_HEADER_ {
     __u16 checksum;
 } UDP_HEADER;
 
+struct bpf_map_def {
+      __u32 type;
+      __u32 key_size;
+      __u32 value_size;
+      __u32 max_entries;
+      __u32 map_flags;
+      __u32 inner_map_idx;
+      __u32 numa_node;
+};
+typedef void* (*ebpf_map_lookup_elem_t)(void * map, void* key);
+#define ebpf_map_lookup_elem ((ebpf_map_lookup_elem_t)1)

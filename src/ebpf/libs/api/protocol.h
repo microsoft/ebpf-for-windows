@@ -5,13 +5,17 @@
 #pragma once
 
 typedef enum EbpfOperation_ {
-    evidence,
+    evidence, 
     resolve_helper,
     resolve_map,
     load_code,
     unload_code,
     attach,
     detach,
+    create_map,
+    map_lookup_element,
+    map_update_element,
+    map_delete_element
 } EbpfOperation;
 
 struct EbpfOpHeader {
@@ -68,4 +72,41 @@ struct EbpfOpAttachDetachRequest {
     struct EbpfOpHeader header;
     uint64_t handle;
     uint32_t hook;
+};
+
+struct EbpfOpCreateMapRequest {
+    struct EbpfOpHeader header;
+    uint32_t type;
+    uint32_t key_size;
+    uint32_t value_size;
+    uint32_t max_entries;
+    uint32_t map_flags;
+};
+
+struct EbpfOpCreateMapReply {
+    struct EbpfOpHeader header;
+    uint64_t handle;
+};
+
+struct EbpfOpMapLookupElementRequest {
+    struct EbpfOpHeader header;
+    uint64_t handle;
+    uint8_t key[1];
+};
+
+struct EbpfOpMapLookupElementReply {
+    struct EbpfOpHeader header;
+    uint8_t value[1];
+};
+
+struct EpfOpMapUpdateElementRequest {
+    struct EbpfOpHeader header;
+    uint64_t handle;
+    uint8_t data[1]; // data is key+value
+};
+
+struct EbpfOpMapDeleteElementRequest {
+    struct EbpfOpHeader header;
+    uint64_t handle;
+    uint8_t key[1];
 };

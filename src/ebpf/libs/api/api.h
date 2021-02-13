@@ -28,6 +28,11 @@ extern "C" {
     DLL DWORD EbpfApiAttachProgram(HANDLE handle, DWORD hook_point);
     DLL DWORD EbpfApiDetachProgram(HANDLE handle, DWORD hook_point);
 
+    DLL DWORD EbpfApiMapLookupElement(HANDLE handle, DWORD key_size, unsigned char* key, DWORD value_size, unsigned char* value);
+    DLL DWORD EbpfApiMapUpdateElement(HANDLE handle, DWORD key_size, unsigned char* key, DWORD value_size, unsigned char* value);
+    DLL DWORD EbpfApiMapDeleteElement(HANDLE handle, DWORD key_size, unsigned char* key);
+    DLL void EbpfApiDeleteMap(HANDLE handle);
+
 #ifdef __cplusplus
 }
 #endif

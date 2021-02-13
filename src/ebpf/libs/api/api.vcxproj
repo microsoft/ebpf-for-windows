@@ -165,6 +165,7 @@
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
     </ClInclude>
     <ClInclude Include="pch.h" />
+    <ClInclude Include="protocol.h" />
     <ClInclude Include="UnwindHelper.h" />
   </ItemGroup>
   <ItemGroup>

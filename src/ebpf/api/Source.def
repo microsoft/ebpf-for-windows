@@ -7,4 +7,7 @@ EXPORTS
 	EbpfApiUnloadProgram
 	EbpfApiAttachProgram
 	EbpfApiDetachProgram
-
+	EbpfApiMapLookupElement
+	EbpfApiMapUpdateElement
+	EbpfApiMapDeleteElement
+	EbpfApiDeleteMap
