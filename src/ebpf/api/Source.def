@@ -1,13 +1,13 @@
 LIBRARY
 EXPORTS
-	EbpfApiInit
-	EbpfApiTerminate
-	EbpfApiLoadProgram
-	EbpfApiFreeErrorMessage
-	EbpfApiUnloadProgram
-	EbpfApiAttachProgram
-	EbpfApiDetachProgram
-	EbpfApiMapLookupElement
-	EbpfApiMapUpdateElement
-	EbpfApiMapDeleteElement
-	EbpfApiDeleteMap
+	ebpf_api_initiate
+	ebpf_api_terminate
+	ebpf_api_load_program
+	ebpf_api_free_error_message
+	ebpf_api_unload_program
+	ebpf_api_attach_program
+	ebpf_api_detach_program
+	ebpf_api_map_lookup_element
+	ebpf_api_map_update_element
+	ebpf_api_map_delete_element
+	ebpf_api_delete_map

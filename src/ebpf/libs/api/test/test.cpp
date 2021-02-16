@@ -85,7 +85,7 @@ auto success_ioctl = [&](_In_ HANDLE hDevice,
     return TRUE;
 };
 
-void push_back_reply_message(EbpfOpHeader* header)
+void push_back_reply_message(_ebpf_operation_header* header)
 {
     std::vector<uint8_t> reply(header->length);
 
@@ -98,51 +98,51 @@ request_message_t* front_request_message()
 {
     auto message = reinterpret_cast<request_message_t*>(request_messages.front().data());
     size_t expected_size = 0;
-    EbpfOperation expected_id = (EbpfOperation)-1;
-    if constexpr (std::is_same<request_message_t, EbpfOpEvidenceRequest>::value) {
-        expected_size = sizeof(EbpfOpEvidenceRequest);
-        expected_id = EbpfOperation::evidence;
+    ebpf_operation_id_t expected_id = (ebpf_operation_id_t)-1;
+    if constexpr (std::is_same<request_message_t, _ebpf_operation_eidence_request>::value) {
+        expected_size = sizeof(_ebpf_operation_eidence_request);
+        expected_id = ebpf_operation_id_t::EBPF_OPERATION_EVIDENCE;
     }
-    else if constexpr (std::is_same<request_message_t, EbpfOpResolveHelperRequest>::value) {
-        expected_size = sizeof(EbpfOpResolveHelperRequest);
-        expected_id = EbpfOperation::resolve_helper;
+    else if constexpr (std::is_same<request_message_t, _ebpf_operation_resolve_helper_request>::value) {
+        expected_size = sizeof(_ebpf_operation_resolve_helper_request);
+        expected_id = ebpf_operation_id_t::EBPF_OPERATION_RESOLVE_HELPER;
     }
-    else if constexpr (std::is_same<request_message_t, EbpfOpResolveMapRequest>::value) {
-        expected_size = sizeof(EbpfOpResolveMapRequest);
-        expected_id = EbpfOperation::resolve_map;
+    else if constexpr (std::is_same<request_message_t, _ebpf_operation_resolve_map_request>::value) {
+        expected_size = sizeof(_ebpf_operation_resolve_helper_reply);
+        expected_id = ebpf_operation_id_t::EBPF_OPERATION_RESOLVE_MAP;
     }
-    else if constexpr (std::is_same<request_message_t, EbpfOpLoadRequest>::value) {
-        expected_id = EbpfOperation::load_code;
+    else if constexpr (std::is_same<request_message_t, _ebpf_operation_load_code_request>::value) {
+        expected_id = ebpf_operation_id_t::EBPF_OPERATION_LOAD_CODE;
     }
-    else if constexpr (std::is_same<request_message_t, EbpfOpAttachDetachRequest>::value) {
-        expected_size = sizeof(EbpfOpAttachDetachRequest);
+    else if constexpr (std::is_same<request_message_t, _ebpf_operation_attach_detach_request>::value) {
+        expected_size = sizeof(_ebpf_operation_attach_detach_request);
         switch (message->header.id) {
-        case EbpfOperation::attach:
-        case EbpfOperation::detach:
+        case ebpf_operation_id_t::EBPF_OPERATION_ATTACH_CODE:
+        case ebpf_operation_id_t::EBPF_OPERATION_DETACH_CODE:
             break;
         default:
-            REQUIRE(message->header.id == EbpfOperation::attach);
+            REQUIRE(message->header.id == ebpf_operation_id_t::EBPF_OPERATION_ATTACH_CODE);
             break;
         }
     }
-    else if constexpr (std::is_same<request_message_t, EbpfOpCreateMapRequest>::value) {
-        expected_size = sizeof(EbpfOpCreateMapRequest);
-        expected_id = EbpfOperation::create_map;
+    else if constexpr (std::is_same<request_message_t, _ebpf_operation_create_map_request>::value) {
+        expected_size = sizeof(_ebpf_operation_create_map_request);
+        expected_id = ebpf_operation_id_t::EBPF_OPERATION_CREATE_MAP;
     }
-    else if constexpr (std::is_same<request_message_t, EbpfOpMapLookupElementRequest>::value) {
-        expected_size = sizeof(EbpfOpMapLookupElementRequest);
-        expected_id = EbpfOperation::map_lookup_element;
+    else if constexpr (std::is_same<request_message_t, _ebpf_operation_map_lookup_element_request>::value) {
+        expected_size = sizeof(_ebpf_operation_map_lookup_element_request);
+        expected_id = ebpf_operation_id_t::EBPF_OPERATION_MAP_LOOKUP_ELEMENT;
     }
-    else if constexpr (std::is_same<request_message_t, EpfOpMapUpdateElementRequest>::value) {
-        expected_size = sizeof(EpfOpMapUpdateElementRequest);
-        expected_id = EbpfOperation::map_update_element;
+    else if constexpr (std::is_same<request_message_t, _ebpf_operation_map_update_element_request>::value) {
+        expected_size = sizeof(_ebpf_operation_map_update_element_request);
+        expected_id = ebpf_operation_id_t::EBPF_OPERATION_MAP_UPDATE_ELEMENT;
     }
-    else if constexpr (std::is_same<request_message_t, EbpfOpMapDeleteElementRequest>::value) {
-        expected_size = sizeof(EpfOpMapUpdateElementRequest);
-        expected_id = EbpfOperation::map_update_element;
+    else if constexpr (std::is_same<request_message_t, _ebpf_operation_map_delete_element_request>::value) {
+        expected_size = sizeof(_ebpf_operation_map_update_element_request);
+        expected_id = ebpf_operation_id_t::EBPF_OPERATION_MAP_UPDATE_ELEMENT;
     }
 
-    if (expected_id != (EbpfOperation)-1)
+    if (expected_id != (ebpf_operation_id_t)-1)
         REQUIRE(expected_id == message->header.id);
 
     if (expected_size > 0)
@@ -166,16 +166,16 @@ TEST_CASE("Open failed", "[open_fail]") {
         throw std::exception("Test failed - closing handle not opened");
     };
 
-    REQUIRE(EbpfApiInit() == ERROR_FILE_NOT_FOUND);
-    EbpfApiTerminate();
+    REQUIRE(ebpf_api_initiate() == ERROR_FILE_NOT_FOUND);
+    ebpf_api_terminate();
 }
 
 TEST_CASE("Open success", "[open_success]") {
     create_file_handler = success_create_file_handler;
     close_handle_handler = success_close_handle_handler;
 
-    REQUIRE(EbpfApiInit() == ERROR_SUCCESS);
-    EbpfApiTerminate();
+    REQUIRE(ebpf_api_initiate() == ERROR_SUCCESS);
+    ebpf_api_terminate();
 }
 
 TEST_CASE("Load program fail - file not found", "[load_fail_not_found]") {
@@ -186,12 +186,12 @@ TEST_CASE("Load program fail - file not found", "[load_fail_not_found]") {
     char* error_message = nullptr;
     const char* fake_file_name = "not_a_real_file.elf";
 
-    REQUIRE(EbpfApiInit() == ERROR_SUCCESS);
+    REQUIRE(ebpf_api_initiate() == ERROR_SUCCESS);
 
-    REQUIRE(EbpfApiLoadProgram(fake_file_name, "xdp_fake", &handle, &error_message) == ERROR_INVALID_PARAMETER);
+    REQUIRE(ebpf_api_load_program(fake_file_name, "xdp_fake", &handle, &error_message) == ERROR_INVALID_PARAMETER);
     REQUIRE_THAT(error_message, Catch::Matchers::Contains(fake_file_name));
-    EbpfApiFreeErrorMessage(error_message);
-    EbpfApiTerminate();
+    ebpf_api_free_error_message(error_message);
+    ebpf_api_terminate();
 }
 
 TEST_CASE("Load program fail - malformed", "[load_fail_bad_file]") {
@@ -215,12 +215,12 @@ TEST_CASE("Load program fail - malformed", "[load_fail_bad_file]") {
     out_file.flush();
     out_file.close();
 
-    REQUIRE(EbpfApiInit() == ERROR_SUCCESS);
+    REQUIRE(ebpf_api_initiate() == ERROR_SUCCESS);
 
-    REQUIRE(EbpfApiLoadProgram(temp_file_name, "xdp_fake", &handle, &error_message) == ERROR_INVALID_PARAMETER);
+    REQUIRE(ebpf_api_load_program(temp_file_name, "xdp_fake", &handle, &error_message) == ERROR_INVALID_PARAMETER);
     REQUIRE_THAT(error_message, Catch::Matchers::Contains(temp_file_name));
-    EbpfApiFreeErrorMessage(error_message);
-    EbpfApiTerminate();
+    ebpf_api_free_error_message(error_message);
+    ebpf_api_terminate();
 
     DeleteFileA(temp_file_name);
 }
@@ -233,49 +233,20 @@ TEST_CASE("Load program success", "[load_success]") {
     HANDLE handle;
     char* error_message = nullptr;
 
-    EbpfOpLoadReply load_reply{ sizeof(EbpfOpLoadReply), EbpfOperation::load_code, reinterpret_cast<uint64_t>(&h) };
+    _ebpf_operation_load_code_reply load_reply{ sizeof(_ebpf_operation_load_code_reply), ebpf_operation_id_t::EBPF_OPERATION_LOAD_CODE, reinterpret_cast<uint64_t>(&h) };
     push_back_reply_message(&load_reply.header);
 
-    REQUIRE(EbpfApiInit() == ERROR_SUCCESS);
+    REQUIRE(ebpf_api_initiate() == ERROR_SUCCESS);
 
-    REQUIRE(EbpfApiLoadProgram("bpf.o", "xdp_prog", &handle, &error_message) == ERROR_SUCCESS);
+    REQUIRE(ebpf_api_load_program("bpf.o", "xdp_prog", &handle, &error_message) == ERROR_SUCCESS);
 
-    auto load_request = front_request_message<EbpfOpLoadRequest>();
+    auto load_request = front_request_message<_ebpf_operation_load_code_request>();
 
     request_messages.clear();
 
-    EbpfApiFreeErrorMessage(error_message);
-    EbpfApiTerminate();
+    ebpf_api_free_error_message(error_message);
+    ebpf_api_terminate();
 }
-
-//TEST_CASE("Load program success - resolve helper", "[load_success - resolve helper]") {
-//    create_file_handler = success_create_file_handler;
-//    close_handle_handler = success_close_handle_handler;
-//    device_io_control_handler = success_ioctl;
-//
-//    HANDLE handle;
-//    char* error_message = nullptr;
-//
-//    EbpfOpResolveHelperReply helper_reply{ sizeof(EbpfOpResolveHelperReply), EbpfOperation::resolve_helper, reinterpret_cast<uint64_t>(&GetTickCount) };
-//    push_back_reply_message(&helper_reply.header);
-//
-//    EbpfOpLoadReply load_reply{ sizeof(EbpfOpLoadReply), EbpfOperation::load_code, reinterpret_cast<uint64_t>(&h) };
-//    push_back_reply_message(&load_reply.header);
-//
-//    REQUIRE(EbpfApiInit() == ERROR_SUCCESS);
-//
-//    REQUIRE(EbpfApiLoadProgram("bpf_call.o", "xdp_prog", &handle, &error_message) == 0);
-//
-//    auto resolve_request = front_request_message<EbpfOpResolveHelperRequest>();
-//    REQUIRE(resolve_request->helper_id[0] == 3);
-//    request_messages.pop_front();
-//
-//    auto load_request = front_request_message<EbpfOpLoadRequest>();
-//    request_messages.pop_front();
-//
-//    EbpfApiFreeErrorMessage(error_message);
-//    EbpfApiTerminate();
-//}
 
 unsigned long test_map[1] = { 0 };
 
@@ -284,7 +255,7 @@ void* map_lookup_elem(void* map, void* key)
     return test_map;
 }
 
-TEST_CASE("Load program success - create_map", "[load_success - create map]") {
+TEST_CASE("Load program success - EBPF_OPERATION_CREATE_MAP", "[load_success - create map]") {
     create_file_handler = success_create_file_handler;
     close_handle_handler = success_close_handle_handler;
     device_io_control_handler = success_ioctl;
@@ -292,46 +263,46 @@ TEST_CASE("Load program success - create_map", "[load_success - create map]") {
     HANDLE handle;
     char* error_message = nullptr;
 
-    EbpfOpCreateMapReply map_create_reply{ sizeof(EbpfOpCreateMapReply), EbpfOperation::create_map, 15 };
+    _ebpf_operation_create_map_reply map_create_reply{ sizeof(_ebpf_operation_create_map_reply), ebpf_operation_id_t::EBPF_OPERATION_CREATE_MAP, (15) };
     push_back_reply_message(&map_create_reply.header);
 
-    EbpfOpResolveMapReply map_resolve_reply{ sizeof(EbpfOpResolveMapReply), EbpfOperation::resolve_map, reinterpret_cast<uint64_t>(test_map) };
+    _ebpf_operation_resolve_map_reply map_resolve_reply{ sizeof(_ebpf_operation_resolve_map_reply), ebpf_operation_id_t::EBPF_OPERATION_RESOLVE_MAP, reinterpret_cast<uint64_t>(test_map) };
     push_back_reply_message(&map_resolve_reply.header);
 
-    EbpfOpResolveHelperReply helper_reply{ sizeof(EbpfOpResolveHelperReply), EbpfOperation::resolve_helper, reinterpret_cast<uint64_t>(map_lookup_elem) };
+    _ebpf_operation_resolve_helper_reply helper_reply{ sizeof(_ebpf_operation_resolve_helper_reply), ebpf_operation_id_t::EBPF_OPERATION_RESOLVE_HELPER, reinterpret_cast<uint64_t>(map_lookup_elem) };
     push_back_reply_message(&helper_reply.header);
 
-    EbpfOpLoadReply load_reply{ sizeof(EbpfOpLoadReply), EbpfOperation::load_code, reinterpret_cast<uint64_t>(&h) };
+    _ebpf_operation_load_code_reply load_reply{ sizeof(_ebpf_operation_load_code_reply), ebpf_operation_id_t::EBPF_OPERATION_LOAD_CODE, reinterpret_cast<uint64_t>(&h) };
     push_back_reply_message(&load_reply.header);
 
-    REQUIRE(EbpfApiInit() == ERROR_SUCCESS);
+    REQUIRE(ebpf_api_initiate() == ERROR_SUCCESS);
 
-    auto result = EbpfApiLoadProgram("droppacket.o", "xdp", &handle, &error_message);
+    auto result = ebpf_api_load_program("droppacket.o", "xdp", &handle, &error_message);
     if (result)
     {
         printf("error_message=%s\n", error_message);
     }
     REQUIRE(result == 0);
 
-    auto map_create_request = front_request_message<EbpfOpCreateMapRequest>();
-    REQUIRE(map_create_request->type == 2);
-    REQUIRE(map_create_request->key_size == 4);
-    REQUIRE(map_create_request->value_size == 4);
-    REQUIRE(map_create_request->max_entries == 1);
-    REQUIRE(map_create_request->map_flags == 0);
+    auto map_create_request = front_request_message<_ebpf_operation_create_map_request>();
+    REQUIRE(map_create_request->ebpf_map_definition.size == sizeof(struct _ebpf_map_definition));
+    REQUIRE(map_create_request->ebpf_map_definition.type == 2);
+    REQUIRE(map_create_request->ebpf_map_definition.key_size == 4);
+    REQUIRE(map_create_request->ebpf_map_definition.value_size == 4);
+    REQUIRE(map_create_request->ebpf_map_definition.max_entries == 1);
     request_messages.pop_front();
 
-    auto resolve_map_request = front_request_message<EbpfOpResolveMapRequest>();
-    REQUIRE(resolve_map_request->map_id[0] == 15);
+    auto resolve_map_request = front_request_message<_ebpf_operation_resolve_map_request>();
+    REQUIRE(resolve_map_request->map_handle[0] == 15);
     request_messages.pop_front();
 
-    auto resolve_request = front_request_message<EbpfOpResolveHelperRequest>();
+    auto resolve_request = front_request_message<_ebpf_operation_resolve_helper_request>();
     REQUIRE(resolve_request->helper_id[0] == 1);
     request_messages.pop_front();
 
-    auto load_request = front_request_message<EbpfOpLoadRequest>();
+    auto load_request = front_request_message<_ebpf_operation_load_code_request>();
 
-    auto code_size = load_request->header.length - sizeof(EbpfOpHeader);
+    auto code_size = load_request->header.length - sizeof(_ebpf_operation_header);
     auto code_page = VirtualAlloc(NULL, code_size, MEM_COMMIT, PAGE_READWRITE);
     REQUIRE(code_page != nullptr);
     DWORD oldProtect = 0;
@@ -339,20 +310,20 @@ TEST_CASE("Load program success - create_map", "[load_success - create map]") {
     VirtualProtect(code_page, code_size, PAGE_EXECUTE_READ, &oldProtect);
     request_messages.pop_front();
 
-    EbpfApiFreeErrorMessage(error_message);
-    EbpfApiTerminate();
+    ebpf_api_free_error_message(error_message);
+    ebpf_api_terminate();
 
     typedef unsigned long __u64;
     typedef unsigned int __u32;
     typedef unsigned short __u16;
     typedef unsigned char __u8;
 
-    typedef struct xdp_md_
+    typedef struct _xdp_md
     {
         void* data;
         void* data_end;
         __u64 data_meta;
-    } xdp_md;
+    } xdp_md_t;
 
     typedef struct _IPV4_HEADER {
         union {
@@ -404,10 +375,10 @@ TEST_CASE("Load program success - create_map", "[load_success - create map]") {
 
     udp->length = 0;
 
-    uint64_t (*xdp_hook)(xdp_md* ctx) = reinterpret_cast<decltype(xdp_hook)>(code_page);
+    uint64_t (*xdp_hook)(xdp_md_t* ctx) = reinterpret_cast<decltype(xdp_hook)>(code_page);
     
     // Test that we drop the packet and increment the map
-    xdp_md ctx{packet.data(), packet.data() + packet.size()};
+    xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
     REQUIRE(xdp_hook(&ctx) == 2);
     REQUIRE(test_map[0] == 1);
 

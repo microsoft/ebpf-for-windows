@@ -14,10 +14,10 @@ TOKEN_VALUE g_LevelEnum[2] = {
     { L"verbose", VL_VERBOSE },
 };
 
-DWORD HandleEbpfShowDisassembly(
+DWORD handle_ebpf_show_disassembly(
     LPCWSTR machine,
     LPWSTR* argv,
-    DWORD currentIndex,
+    DWORD current_index,
     DWORD argc,
     DWORD flags,
     LPCVOID data,
@@ -29,31 +29,31 @@ DWORD HandleEbpfShowDisassembly(
         {TOKEN_FILENAME, NS_REQ_PRESENT, FALSE},
         {TOKEN_SECTION, NS_REQ_ZERO, FALSE},
     };
-    ULONG tagType[_countof(tags)] = { 0 };
+    ULONG tag_type[_countof(tags)] = { 0 };
 
     ULONG status = PreprocessCommand(nullptr,
         argv,
-        currentIndex,
+        current_index,
         argc,
         tags,
         _countof(tags),
         0,
         _countof(tags),
-        tagType);
+        tag_type);
 
     std::string filename;
     std::string section = ".text";
-    for (int i = 0; (status == NO_ERROR) && ((i + currentIndex) < argc); i++) {
-        switch (tagType[i]) {
+    for (int i = 0; (status == NO_ERROR) && ((i + current_index) < argc); i++) {
+        switch (tag_type[i]) {
         case 0: // FILENAME
         {
-            std::wstring ws(argv[currentIndex + i]);
+            std::wstring ws(argv[current_index + i]);
             filename = std::string(ws.begin(), ws.end());
             break;
         }
         case 1: // SECTION
         {
-            std::wstring ws(argv[currentIndex + i]);
+            std::wstring ws(argv[current_index + i]);
             section = std::string(ws.begin(), ws.end());
             break;
         }
@@ -85,10 +85,10 @@ DWORD HandleEbpfShowDisassembly(
     }
 }
 
-DWORD HandleEbpfShowSections(
+DWORD handle_ebpf_show_sections(
     LPCWSTR machine,
     LPWSTR* argv,
-    DWORD currentIndex,
+    DWORD current_index,
     DWORD argc,
     DWORD flags,
     LPCVOID data,
@@ -101,38 +101,38 @@ DWORD HandleEbpfShowSections(
         {TOKEN_SECTION, NS_REQ_ZERO, FALSE},
         {TOKEN_LEVEL, NS_REQ_ZERO, FALSE},
     };
-    ULONG tagType[_countof(tags)] = { 0 };
+    ULONG tag_type[_countof(tags)] = { 0 };
 
     ULONG status = PreprocessCommand(nullptr,
         argv,
-        currentIndex,
+        current_index,
         argc,
         tags,
         _countof(tags),
         0,
         _countof(tags),
-        tagType);
+        tag_type);
 
     VERBOSITY_LEVEL level = VL_NORMAL;
     std::string filename;
     std::string section;
-    for (int i = 0; (status == NO_ERROR) && ((i + currentIndex) < argc); i++) {
-        switch (tagType[i]) {
+    for (int i = 0; (status == NO_ERROR) && ((i + current_index) < argc); i++) {
+        switch (tag_type[i]) {
         case 0: // FILENAME
         {
-            std::wstring ws(argv[currentIndex + i]);
+            std::wstring ws(argv[current_index + i]);
             filename = std::string(ws.begin(), ws.end());
             break;
         }
         case 1: // SECTION
         {
-            std::wstring ws(argv[currentIndex + i]);
+            std::wstring ws(argv[current_index + i]);
             section = std::string(ws.begin(), ws.end());
             break;
         }
         case 2: // LEVEL
             status = MatchEnumTag(NULL,
-                argv[currentIndex + i],
+                argv[current_index + i],
                 _countof(g_LevelEnum),
                 g_LevelEnum,
                 (PULONG)&level);
@@ -202,10 +202,10 @@ DWORD HandleEbpfShowSections(
     }
 }
 
-DWORD HandleEbpfShowVerification(
+DWORD handle_ebpf_show_verification(
     LPCWSTR machine,
     LPWSTR* argv,
-    DWORD currentIndex,
+    DWORD current_index,
     DWORD argc,
     DWORD flags,
     LPCVOID data,
@@ -217,31 +217,31 @@ DWORD HandleEbpfShowVerification(
             {TOKEN_FILENAME, NS_REQ_PRESENT, FALSE},
             {TOKEN_SECTION, NS_REQ_ZERO, FALSE},
     };
-    ULONG tagType[_countof(tags)] = { 0 };
+    ULONG tag_type[_countof(tags)] = { 0 };
 
     ULONG status = PreprocessCommand(nullptr,
         argv,
-        currentIndex,
+        current_index,
         argc,
         tags,
         _countof(tags),
         0,
         _countof(tags),
-        tagType);
+        tag_type);
 
     std::string filename;
     std::string section = ".text";
-    for (int i = 0; (status == NO_ERROR) && ((i + currentIndex) < argc); i++) {
-        switch (tagType[i]) {
+    for (int i = 0; (status == NO_ERROR) && ((i + current_index) < argc); i++) {
+        switch (tag_type[i]) {
         case 0: // FILENAME
         {
-            std::wstring ws(argv[currentIndex + i]);
+            std::wstring ws(argv[current_index + i]);
             filename = std::string(ws.begin(), ws.end());
             break;
         }
         case 1: // SECTION
         {
-            std::wstring ws(argv[currentIndex + i]);
+            std::wstring ws(argv[current_index + i]);
             section = std::string(ws.begin(), ws.end());
             break;
         }

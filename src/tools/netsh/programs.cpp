@@ -11,7 +11,7 @@
 #include <iostream>
 #pragma comment(lib, "EbpfApi.lib")
 
-HANDLE g_program_handle = INVALID_HANDLE_VALUE;
+static HANDLE _program_handle = INVALID_HANDLE_VALUE;
 
 typedef enum {
     PINNED_ANY = 0,
@@ -19,20 +19,20 @@ typedef enum {
     PINNED_NO = 2,
 } PINNED_CONSTRAINT;
 
-TOKEN_VALUE g_PinnedEnum[] = {
+static TOKEN_VALUE _pinned_enum[] = {
     { L"any", PINNED_ANY },
     { L"yes", PINNED_YES },
     { L"no", PINNED_NO },
 };
 
-TOKEN_VALUE g_EbpfProgramTypeEnum[] = {
+static TOKEN_VALUE _ebpf_program_type_enum[] = {
     { L"xdp", EBPF_PROGRAM_TYPE_XDP },
 };
 
-unsigned long HandleEbpfAddProgram(
+unsigned long handle_ebpf_add_program(
     LPCWSTR machine,
     LPWSTR* argv,
-    DWORD currentIndex,
+    DWORD current_index,
     DWORD argc,
     DWORD flags,
     LPCVOID data,
@@ -44,41 +44,41 @@ unsigned long HandleEbpfAddProgram(
         {TOKEN_TYPE, NS_REQ_ZERO, FALSE},
         {TOKEN_PINNED, NS_REQ_ZERO, FALSE},
     };
-    ULONG tagType[_countof(tags)] = { 0 };
+    ULONG tag_type[_countof(tags)] = { 0 };
 
     ULONG status = PreprocessCommand(nullptr,
         argv,
-        currentIndex,
+        current_index,
         argc,
         tags,
         _countof(tags),
         0,
         _countof(tags),
-        tagType);
+        tag_type);
 
     std::string filename;
     std::string section = ".text";
     EBPF_PROGRAM_TYPE type = EBPF_PROGRAM_TYPE_XDP;
     PINNED_CONSTRAINT pinned = PINNED_ANY;
-    for (int i = 0; (status == NO_ERROR) && ((i + currentIndex) < argc); i++) {
-        switch (tagType[i]) {
+    for (int i = 0; (status == NO_ERROR) && ((i + current_index) < argc); i++) {
+        switch (tag_type[i]) {
         case 0: // FILENAME
         {
-            std::wstring ws(argv[currentIndex + i]);
+            std::wstring ws(argv[current_index + i]);
             filename = std::string(ws.begin(), ws.end());
             break;
         }
         case 1: // SECTION
         {
-            std::wstring ws(argv[currentIndex + i]);
+            std::wstring ws(argv[current_index + i]);
             section = std::string(ws.begin(), ws.end());
             break;
         }
         case 2: // TYPE
             status = MatchEnumTag(NULL,
-                argv[currentIndex + i],
-                _countof(g_EbpfProgramTypeEnum),
-                g_EbpfProgramTypeEnum,
+                argv[current_index + i],
+                _countof(_ebpf_program_type_enum),
+                _ebpf_program_type_enum,
                 (PULONG)&type);
             if (status != NO_ERROR) {
                 status = ERROR_INVALID_PARAMETER;
@@ -86,9 +86,9 @@ unsigned long HandleEbpfAddProgram(
             break;
         case 3: // PINNED
             status = MatchEnumTag(NULL,
-                argv[currentIndex + i],
-                _countof(g_PinnedEnum),
-                g_PinnedEnum,
+                argv[current_index + i],
+                _countof(_pinned_enum),
+                _pinned_enum,
                 (PULONG)&pinned);
             if (status != NO_ERROR) {
                 status = ERROR_INVALID_PARAMETER;
@@ -103,36 +103,36 @@ unsigned long HandleEbpfAddProgram(
         return status;
     }
 
-    if (g_program_handle != INVALID_HANDLE_VALUE)
+    if (_program_handle != INVALID_HANDLE_VALUE)
     {
-        EbpfApiDetachProgram(g_program_handle, EBPF_HOOK_POINT_XDP);
-        EbpfApiUnloadProgram(g_program_handle);
-        g_program_handle = INVALID_HANDLE_VALUE;
+        ebpf_api_detach_program(_program_handle, EBPF_HOOK_POINT_XDP);
+        ebpf_api_unload_program(_program_handle);
+        _program_handle = INVALID_HANDLE_VALUE;
     }
 
     char* error_message = nullptr;
 
-    status = EbpfApiLoadProgram(filename.c_str(), section.c_str(), &g_program_handle, &error_message);
+    status = ebpf_api_load_program(filename.c_str(), section.c_str(), &_program_handle, &error_message);
 
     if (status != ERROR_SUCCESS)
     {
-        std::cerr << "EbpfApiLoadProgram failed with error " << status << " and message " << error_message << std::endl;
+        std::cerr << "ebpf_api_load_program failed with error " << status << " and message " << error_message << std::endl;
         return status;
     }
 
-    status = EbpfApiAttachProgram(g_program_handle, EBPF_HOOK_POINT_XDP);
+    status = ebpf_api_attach_program(_program_handle, EBPF_HOOK_POINT_XDP);
     if (status != ERROR_SUCCESS)
     {
-        std::cerr << "EbpfApiAttachProgram failed with error " << status << std::endl;
+        std::cerr << "ebpf_api_attach_program failed with error " << status << std::endl;
         return status;
     }
     return ERROR_SUCCESS;
 }
 
-DWORD HandleEbpfDeleteProgram(
+DWORD handle_ebpf_delete_program(
     LPCWSTR machine,
     LPWSTR* argv,
-    DWORD currentIndex,
+    DWORD current_index,
     DWORD argc,
     DWORD flags,
     LPCVOID data,
@@ -142,31 +142,31 @@ DWORD HandleEbpfDeleteProgram(
         {TOKEN_FILENAME, NS_REQ_PRESENT, FALSE},
         {TOKEN_SECTION, NS_REQ_ZERO, FALSE},
     };
-    ULONG tagType[_countof(tags)] = { 0 };
+    ULONG tag_type[_countof(tags)] = { 0 };
 
     ULONG status = PreprocessCommand(nullptr,
         argv,
-        currentIndex,
+        current_index,
         argc,
         tags,
         _countof(tags),
         0,
         _countof(tags),
-        tagType);
+        tag_type);
 
     std::string filename;
     std::string section = ".text";
-    for (int i = 0; (status == NO_ERROR) && ((i + currentIndex) < argc); i++) {
-        switch (tagType[i]) {
+    for (int i = 0; (status == NO_ERROR) && ((i + current_index) < argc); i++) {
+        switch (tag_type[i]) {
         case 0: // FILENAME
         {
-            std::wstring ws(argv[currentIndex + i]);
+            std::wstring ws(argv[current_index + i]);
             filename = std::string(ws.begin(), ws.end());
             break;
         }
         case 1: // SECTION
         {
-            std::wstring ws(argv[currentIndex + i]);
+            std::wstring ws(argv[current_index + i]);
             section = std::string(ws.begin(), ws.end());
             break;
         }
@@ -176,21 +176,21 @@ DWORD HandleEbpfDeleteProgram(
         }
     }
 
-    if (g_program_handle != INVALID_HANDLE_VALUE)
+    if (_program_handle != INVALID_HANDLE_VALUE)
     {
-        EbpfApiDetachProgram(g_program_handle, EBPF_HOOK_POINT_XDP);
-        EbpfApiUnloadProgram(g_program_handle);
-        g_program_handle = INVALID_HANDLE_VALUE;
+        ebpf_api_detach_program(_program_handle, EBPF_HOOK_POINT_XDP);
+        ebpf_api_unload_program(_program_handle);
+        _program_handle = INVALID_HANDLE_VALUE;
     }
 
     // TODO: delete program
     return ERROR_SUCCESS;
 }
 
-DWORD HandleEbpfSetProgram(
+DWORD handle_ebpf_set_program(
     LPCWSTR machine,
     LPWSTR* argv,
-    DWORD currentIndex,
+    DWORD current_index,
     DWORD argc,
     DWORD flags,
     LPCVOID data,
@@ -201,40 +201,40 @@ DWORD HandleEbpfSetProgram(
         {TOKEN_SECTION, NS_REQ_PRESENT, FALSE},
         {TOKEN_PINNED, NS_REQ_ZERO, FALSE},
     };
-    ULONG tagType[_countof(tags)] = { 0 };
+    ULONG tag_type[_countof(tags)] = { 0 };
 
     ULONG status = PreprocessCommand(nullptr,
         argv,
-        currentIndex,
+        current_index,
         argc,
         tags,
         _countof(tags),
         0,
         3, // Two required tags plus at least one optional tag.
-        tagType);
+        tag_type);
 
     std::string filename;
     std::string section = ".text";
     PINNED_CONSTRAINT pinned = PINNED_ANY;
-    for (int i = 0; (status == NO_ERROR) && ((i + currentIndex) < argc); i++) {
-        switch (tagType[i]) {
+    for (int i = 0; (status == NO_ERROR) && ((i + current_index) < argc); i++) {
+        switch (tag_type[i]) {
         case 0: // FILENAME
         {
-            std::wstring ws(argv[currentIndex + i]);
+            std::wstring ws(argv[current_index + i]);
             filename = std::string(ws.begin(), ws.end());
             break;
         }
         case 1: // SECTION
         {
-            std::wstring ws(argv[currentIndex + i]);
+            std::wstring ws(argv[current_index + i]);
             section = std::string(ws.begin(), ws.end());
             break;
         }
         case 2: // PINNED
             status = MatchEnumTag(NULL,
-                argv[currentIndex + i],
-                _countof(g_PinnedEnum),
-                g_PinnedEnum,
+                argv[current_index + i],
+                _countof(_pinned_enum),
+                _pinned_enum,
                 (PULONG)&pinned);
             if ((status != NO_ERROR) || (pinned == PINNED_ANY)) {
                 status = ERROR_INVALID_PARAMETER;
@@ -253,10 +253,10 @@ DWORD HandleEbpfSetProgram(
     return ERROR_CALL_NOT_IMPLEMENTED;
 }
 
-DWORD HandleEbpfShowPrograms(
+DWORD handle_ebpf_show_programs(
     LPCWSTR machine,
     LPWSTR* argv,
-    DWORD currentIndex,
+    DWORD current_index,
     DWORD argc,
     DWORD flags,
     LPCVOID data,
@@ -269,30 +269,30 @@ DWORD HandleEbpfShowPrograms(
         {TOKEN_FILENAME, NS_REQ_ZERO, FALSE},
         {TOKEN_SECTION, NS_REQ_ZERO, FALSE},
     };
-    ULONG tagType[_countof(tags)] = { 0 };
+    ULONG tag_type[_countof(tags)] = { 0 };
 
     ULONG status = PreprocessCommand(nullptr,
         argv,
-        currentIndex,
+        current_index,
         argc,
         tags,
         _countof(tags),
         0,
         _countof(tags),
-        tagType);
+        tag_type);
 
     EBPF_PROGRAM_TYPE type = EBPF_PROGRAM_TYPE_XDP;
     PINNED_CONSTRAINT pinned = PINNED_ANY;
     VERBOSITY_LEVEL level = VL_NORMAL;
     std::string filename;
     std::string section = ".text";
-    for (int i = 0; (status == NO_ERROR) && ((i + currentIndex) < argc); i++) {
-        switch (tagType[i]) {
+    for (int i = 0; (status == NO_ERROR) && ((i + current_index) < argc); i++) {
+        switch (tag_type[i]) {
         case 0: // TYPE
             status = MatchEnumTag(NULL,
-                argv[currentIndex + i],
-                _countof(g_EbpfProgramTypeEnum),
-                g_EbpfProgramTypeEnum,
+                argv[current_index + i],
+                _countof(_ebpf_program_type_enum),
+                _ebpf_program_type_enum,
                 (PULONG)&type);
             if (status != NO_ERROR) {
                 status = ERROR_INVALID_PARAMETER;
@@ -300,9 +300,9 @@ DWORD HandleEbpfShowPrograms(
             break;
         case 1: // PINNED
             status = MatchEnumTag(NULL,
-                argv[currentIndex + i],
-                _countof(g_PinnedEnum),
-                g_PinnedEnum,
+                argv[current_index + i],
+                _countof(_pinned_enum),
+                _pinned_enum,
                 (PULONG)&pinned);
             if (status != NO_ERROR) {
                 status = ERROR_INVALID_PARAMETER;
@@ -310,7 +310,7 @@ DWORD HandleEbpfShowPrograms(
             break;
         case 2: // LEVEL
             status = MatchEnumTag(NULL,
-                argv[currentIndex + i],
+                argv[current_index + i],
                 _countof(g_LevelEnum),
                 g_LevelEnum,
                 (PULONG)&level);
@@ -320,13 +320,13 @@ DWORD HandleEbpfShowPrograms(
             break;
         case 3: // FILENAME
         {
-            std::wstring ws(argv[currentIndex + i]);
+            std::wstring ws(argv[current_index + i]);
             filename = std::string(ws.begin(), ws.end());
             break;
         }
         case 4: // SECTION
         {
-            std::wstring ws(argv[currentIndex + i]);
+            std::wstring ws(argv[current_index + i]);
             section = std::string(ws.begin(), ws.end());
             break;
         }

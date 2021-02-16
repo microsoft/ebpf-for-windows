@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="..\..\..\..\..\packages\CatchOrg.Catch.2.2.0\build\native\CatchOrg.Catch.props" Condition="Exists('..\..\..\..\..\packages\CatchOrg.Catch.2.2.0\build\native\CatchOrg.Catch.props')" />
   <ItemGroup Label="ProjectConfigurations">
@@ -121,7 +121,7 @@
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(DDK_INC_PATH);$(SolutionDir)src\ebpf\libs\api;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ExceptionHandling>Sync</ExceptionHandling>
-      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -149,7 +149,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\ebpf_core.c" />
-    <ClCompile Include="EbpfCoreTest.cpp" />
+    <ClCompile Include="ebpf_core_test.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

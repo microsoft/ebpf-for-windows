@@ -15,10 +15,10 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="EbpfCoreTest.cpp">
+    <ClCompile Include="..\ebpf_core.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\ebpf_core.c">
+    <ClCompile Include="ebpf_core_test.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

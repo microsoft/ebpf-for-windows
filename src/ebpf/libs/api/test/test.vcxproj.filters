@@ -41,8 +41,6 @@
   <ItemGroup>
     <CopyFileToFolders Include="bpf_call.o" />
     <CopyFileToFolders Include="bpf.o" />
-  </ItemGroup>
-  <ItemGroup>
-    <Object Include="droppacket.o" />
+    <CopyFileToFolders Include="droppacket.o" />
   </ItemGroup>
 </Project>

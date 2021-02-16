@@ -17,21 +17,21 @@ extern "C" {
 
 #define EBPF_HOOK_POINT_XDP 1
 
-    DLL DWORD EbpfApiInit();
+    DLL DWORD ebpf_api_initiate();
 
-    DLL void EbpfApiTerminate();
+    DLL void ebpf_api_terminate();
 
-    DLL DWORD EbpfApiLoadProgram(const char* file, const char* section_name, HANDLE* handle, char** error_message);
-    DLL void EbpfApiFreeErrorMessage(char* error_message);
-    DLL void EbpfApiUnloadProgram(HANDLE handle);
+    DLL DWORD ebpf_api_load_program(const char* file, const char* section_name, HANDLE* handle, char** error_message);
+    DLL void ebpf_api_free_error_message(char* error_message);
+    DLL void ebpf_api_unload_program(HANDLE handle);
 
-    DLL DWORD EbpfApiAttachProgram(HANDLE handle, DWORD hook_point);
-    DLL DWORD EbpfApiDetachProgram(HANDLE handle, DWORD hook_point);
+    DLL DWORD ebpf_api_attach_program(HANDLE handle, DWORD hook_point);
+    DLL DWORD ebpf_api_detach_program(HANDLE handle, DWORD hook_point);
 
-    DLL DWORD EbpfApiMapLookupElement(HANDLE handle, DWORD key_size, unsigned char* key, DWORD value_size, unsigned char* value);
-    DLL DWORD EbpfApiMapUpdateElement(HANDLE handle, DWORD key_size, unsigned char* key, DWORD value_size, unsigned char* value);
-    DLL DWORD EbpfApiMapDeleteElement(HANDLE handle, DWORD key_size, unsigned char* key);
-    DLL void EbpfApiDeleteMap(HANDLE handle);
+    DLL DWORD ebpf_api_map_lookup_element(HANDLE handle, DWORD key_size, unsigned char* key, DWORD value_size, unsigned char* value);
+    DLL DWORD ebpf_api_map_update_element(HANDLE handle, DWORD key_size, unsigned char* key, DWORD value_size, unsigned char* value);
+    DLL DWORD ebpf_api_map_delete_element(HANDLE handle, DWORD key_size, unsigned char* key);
+    DLL void ebpf_api_delete_map(HANDLE handle);
 
 #ifdef __cplusplus
 }

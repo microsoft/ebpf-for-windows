@@ -41,22 +41,22 @@ BOOL WINAPI DllMain(
 
 CMD_ENTRY g_EbpfAddCommandTable[] =
 {
-    CREATE_CMD_ENTRY(EBPF_ADD_PROGRAM, HandleEbpfAddProgram),
+    CREATE_CMD_ENTRY(EBPF_ADD_PROGRAM, handle_ebpf_add_program),
 };
 CMD_ENTRY g_EbpfDeleteCommandTable[] =
 {
-    CREATE_CMD_ENTRY(EBPF_DELETE_PROGRAM, HandleEbpfDeleteProgram),
+    CREATE_CMD_ENTRY(EBPF_DELETE_PROGRAM, handle_ebpf_delete_program),
 };
 CMD_ENTRY g_EbpfSetCommandTable[] =
 {
-    CREATE_CMD_ENTRY(EBPF_SET_PROGRAM, HandleEbpfSetProgram),
+    CREATE_CMD_ENTRY(EBPF_SET_PROGRAM, handle_ebpf_set_program),
 };
 CMD_ENTRY g_EbpfShowCommandTable[] =
 {
-    CREATE_CMD_ENTRY(EBPF_SHOW_DISASSEMBLY, HandleEbpfShowDisassembly),
-    CREATE_CMD_ENTRY(EBPF_SHOW_PROGRAMS, HandleEbpfShowPrograms),
-    CREATE_CMD_ENTRY(EBPF_SHOW_SECTIONS, HandleEbpfShowSections),
-    CREATE_CMD_ENTRY(EBPF_SHOW_VERIFICATION, HandleEbpfShowVerification),
+    CREATE_CMD_ENTRY(EBPF_SHOW_DISASSEMBLY, handle_ebpf_show_disassembly),
+    CREATE_CMD_ENTRY(EBPF_SHOW_PROGRAMS, handle_ebpf_show_programs),
+    CREATE_CMD_ENTRY(EBPF_SHOW_SECTIONS, handle_ebpf_show_sections),
+    CREATE_CMD_ENTRY(EBPF_SHOW_VERIFICATION, handle_ebpf_show_verification),
 };
 
 #define HLP_GROUP_ADD        1100
@@ -106,7 +106,7 @@ InitHelperDll(DWORD netshVersion, void* reserved)
 
     if (status == ERROR_SUCCESS)
     {
-        status = EbpfApiInit();
+        status = ebpf_api_initiate();
     }
 
     return status;

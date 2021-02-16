@@ -13,15 +13,15 @@
 
 #pragma clang section data="maps"
 struct bpf_map_def port_map = {
+      .size        = sizeof(struct bpf_map_def),
       .type        = 2,
       .key_size    = sizeof(__u32),
       .value_size  = sizeof(__u32),
-      .max_entries = 1,
-      .map_flags   = 0
+      .max_entries = 1
 };
 
 #pragma clang section text="xdp"
-int DropPacket(xdp_md* ctx)
+int DropPacket(xdp_md_t* ctx)
 {
       IPV4_HEADER* iphdr = (IPV4_HEADER*)ctx->data;
       UDP_HEADER* udphdr = (UDP_HEADER*)(iphdr + 1);

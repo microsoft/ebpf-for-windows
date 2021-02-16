@@ -56,31 +56,31 @@ DEFINE_GUID(
 );
 
 // Callout globals
-HANDLE gEngineHandle;
-UINT32 gL2CalloutId;
+static HANDLE _fwp_engine_handle;
+static UINT32 _fwp_layer_2_callout_id;
 
 NTSTATUS
 EbpfHookAddFilter(
-    _In_ const PWSTR filterName,
-    _In_ const PWSTR filterDesc,
-    _In_ FWP_DIRECTION direction,
-    _In_ const GUID* layerKey,
-    _In_ const GUID* calloutKey
+    _In_ const PWSTR filter_name,
+    _In_ const PWSTR filter_description,
+    _In_ FWP_DIRECTION filter_direction,
+    _In_ const GUID* fwpm_layer_key,
+    _In_ const GUID* fwpm_callout_key
 )
 {
-    UNREFERENCED_PARAMETER(direction);
+    UNREFERENCED_PARAMETER(filter_direction);
     NTSTATUS status = STATUS_SUCCESS;
 
     FWPM_FILTER filter = { 0 };
     FWPM_FILTER_CONDITION filterConditions[3] = { 0 };
     UINT conditionIndex;
 
-    filter.layerKey = *layerKey;
-    filter.displayData.name = (wchar_t*)filterName;
-    filter.displayData.description = (wchar_t*)filterDesc;
+    filter.layerKey = *fwpm_layer_key;
+    filter.displayData.name = (wchar_t*)filter_name;
+    filter.displayData.description = (wchar_t*)filter_description;
 
     filter.action.type = FWP_ACTION_CALLOUT_TERMINATING;
-    filter.action.calloutKey = *calloutKey;
+    filter.action.calloutKey = *fwpm_callout_key;
     filter.filterCondition = filterConditions;
     filter.subLayerKey = EBPF_HOOK_SUBLAYER;
     filter.weight.type = FWP_EMPTY; // auto-weight.
@@ -98,7 +98,7 @@ EbpfHookAddFilter(
     filter.numFilterConditions = conditionIndex;
 
     status = FwpmFilterAdd(
-        gEngineHandle,
+        _fwp_engine_handle,
         &filter,
         NULL,
         NULL);
@@ -109,10 +109,10 @@ EbpfHookAddFilter(
 
 NTSTATUS
 EbpfHookRegisterL2Callout(
-    _In_ const GUID* layerKey,
-    _In_ const GUID* calloutKey,
-    _Inout_ void* deviceObject,
-    _Out_ UINT32* calloutId
+    _In_ const GUID* fwpm_layer_key,
+    _In_ const GUID* fwpm_callout_key,
+    _Inout_ void* device_object,
+    _Out_ UINT32* fwpm_callout_id
 )
 /* ++
 
@@ -130,16 +130,16 @@ EbpfHookRegisterL2Callout(
 
     BOOLEAN calloutRegistered = FALSE;
 
-    sCallout.calloutKey = *calloutKey;
-    sCallout.classifyFn = EbpfHookL2Classify;
-    sCallout.notifyFn = EbpfHookL2Notify;
-    sCallout.flowDeleteFn = EbpfHookL2FlowDelete;
+    sCallout.calloutKey = *fwpm_callout_key;
+    sCallout.classifyFn = ebpf_hook_layer_2_classify;
+    sCallout.notifyFn = ebpf_hook_layer_2_notify;
+    sCallout.flowDeleteFn = ebpf_hook_layer_2_flow_delete;
     sCallout.flags = 0;
 
     status = FwpsCalloutRegister(
-        deviceObject,
+        device_object,
         &sCallout,
-        calloutId
+        fwpm_callout_id
     );
     if (!NT_SUCCESS(status))
     {
@@ -150,12 +150,12 @@ EbpfHookRegisterL2Callout(
     displayData.name = L"L2 XDP Callout";
     displayData.description = L"L2 callout driver for eBPF at XDP-like layer";
 
-    mCallout.calloutKey = *calloutKey;
+    mCallout.calloutKey = *fwpm_callout_key;
     mCallout.displayData = displayData;
-    mCallout.applicableLayer = *layerKey;
+    mCallout.applicableLayer = *fwpm_layer_key;
 
     status = FwpmCalloutAdd(
-        gEngineHandle,
+        _fwp_engine_handle,
         &mCallout,
         NULL,
         NULL
@@ -170,8 +170,8 @@ EbpfHookRegisterL2Callout(
         L"L2 filter (Inbound)",
         L"L2 filter inbound",
         FWP_DIRECTION_INBOUND,
-        layerKey,
-        calloutKey
+        fwpm_layer_key,
+        fwpm_callout_key
     );
 
     if (!NT_SUCCESS(status))
@@ -185,8 +185,8 @@ Exit:
     {
         if (calloutRegistered)
         {
-            FwpsCalloutUnregisterById(*calloutId);
-            *calloutId = 0;
+            FwpsCalloutUnregisterById(*fwpm_callout_id);
+            *fwpm_callout_id = 0;
         }
     }
 
@@ -194,8 +194,8 @@ Exit:
 }
 
 NTSTATUS
-EbpfHookRegisterCallouts(
-    _Inout_ void* deviceObject
+ebpf_hook_register_callouts(
+    _Inout_ void* device_object
 )
 /* ++
 
@@ -214,7 +214,7 @@ EbpfHookRegisterCallouts(
 
     FWPM_SESSION session = { 0 };
 
-    if (gEngineHandle != NULL)
+    if (_fwp_engine_handle != NULL)
     {
         // already registered
         goto Exit;
@@ -227,7 +227,7 @@ EbpfHookRegisterCallouts(
         RPC_C_AUTHN_WINNT,
         NULL,
         &session,
-        &gEngineHandle
+        &_fwp_engine_handle
     );
     if (!NT_SUCCESS(status))
     {
@@ -235,7 +235,7 @@ EbpfHookRegisterCallouts(
     }
     engineOpened = TRUE;
 
-    status = FwpmTransactionBegin(gEngineHandle, 0);
+    status = FwpmTransactionBegin(_fwp_engine_handle, 0);
     if (!NT_SUCCESS(status))
     {
         goto Exit;
@@ -251,7 +251,7 @@ EbpfHookRegisterCallouts(
     ebpfHookL2SubLayer.flags = 0;
     ebpfHookL2SubLayer.weight = FWP_EMPTY; // auto-weight.;
 
-    status = FwpmSubLayerAdd(gEngineHandle, &ebpfHookL2SubLayer, NULL);
+    status = FwpmSubLayerAdd(_fwp_engine_handle, &ebpfHookL2SubLayer, NULL);
     if (!NT_SUCCESS(status))
     {
         goto Exit;
@@ -260,15 +260,15 @@ EbpfHookRegisterCallouts(
     status = EbpfHookRegisterL2Callout(
         &FWPM_LAYER_INBOUND_MAC_FRAME_ETHERNET,
         &EBPF_HOOK_L2_CALLOUT,
-        deviceObject,
-        &gL2CalloutId
+        device_object,
+        &_fwp_layer_2_callout_id
     );
     if (!NT_SUCCESS(status))
     {
         goto Exit;
     }
 
-    status = FwpmTransactionCommit(gEngineHandle);
+    status = FwpmTransactionCommit(_fwp_engine_handle);
     if (!NT_SUCCESS(status))
     {
         goto Exit;
@@ -281,13 +281,13 @@ Exit:
     {
         if (inTransaction)
         {
-            FwpmTransactionAbort(gEngineHandle);
-            _Analysis_assume_lock_not_held_(gEngineHandle); // Potential leak if "FwpmTransactionAbort" fails
+            FwpmTransactionAbort(_fwp_engine_handle);
+            _Analysis_assume_lock_not_held_(_fwp_engine_handle); // Potential leak if "FwpmTransactionAbort" fails
         }
         if (engineOpened)
         {
-            FwpmEngineClose(gEngineHandle);
-            gEngineHandle = NULL;
+            FwpmEngineClose(_fwp_engine_handle);
+            _fwp_engine_handle = NULL;
         }
     }
 
@@ -295,26 +295,26 @@ Exit:
 }
 
 void
-EbpfHookUnregisterCallouts(void)
+ebpf_hook_unregister_callouts(void)
 {
-    if (gEngineHandle != NULL)
+    if (_fwp_engine_handle != NULL)
     {
-        FwpmEngineClose(gEngineHandle);
-        gEngineHandle = NULL;
+        FwpmEngineClose(_fwp_engine_handle);
+        _fwp_engine_handle = NULL;
 
-        FwpsCalloutUnregisterById(gL2CalloutId);
+        FwpsCalloutUnregisterById(_fwp_layer_2_callout_id);
     }
 }
 
 void
-EbpfHookL2Classify(
-   _In_ const FWPS_INCOMING_VALUES* inFixedValues,
-   _In_ const FWPS_INCOMING_METADATA_VALUES* inMetaValues,
-   _Inout_opt_ void* layerData,
-   _In_opt_ const void* classifyContext,
+ebpf_hook_layer_2_classify(
+   _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values,
+   _In_ const FWPS_INCOMING_METADATA_VALUES* incoming_metadata_values,
+   _Inout_opt_ void* layer_data,
+   _In_opt_ const void* classify_context,
    _In_ const FWPS_FILTER* filter,
-   _In_ UINT64 flowContext,
-   _Inout_ FWPS_CLASSIFY_OUT* classifyOut
+   _In_ UINT64 flow_context,
+   _Inout_ FWPS_CLASSIFY_OUT* classify_output
    )
 /* ++
 
@@ -323,14 +323,14 @@ EbpfHookL2Classify(
 -- */
 {
    FWP_ACTION_TYPE action = FWP_ACTION_PERMIT;
-   UNREFERENCED_PARAMETER(inFixedValues);
-   UNREFERENCED_PARAMETER(inMetaValues);
-   UNREFERENCED_PARAMETER(classifyContext);
+   UNREFERENCED_PARAMETER(incoming_fixed_values);
+   UNREFERENCED_PARAMETER(incoming_metadata_values);
+   UNREFERENCED_PARAMETER(classify_context);
    UNREFERENCED_PARAMETER(filter);
-   UNREFERENCED_PARAMETER(flowContext);
-   NET_BUFFER_LIST* nbl = (NET_BUFFER_LIST*)layerData;
-   NET_BUFFER* netBuffer = NULL;
-   BYTE* mdlAddr;
+   UNREFERENCED_PARAMETER(flow_context);
+   NET_BUFFER_LIST* nbl = (NET_BUFFER_LIST*)layer_data;
+   NET_BUFFER* net_buffer = NULL;
+   BYTE* packet_buffer;
    UINT32 result = 0;
 
    if (nbl == NULL)
@@ -339,25 +339,25 @@ EbpfHookL2Classify(
        goto done;
    }
 
-   netBuffer = NET_BUFFER_LIST_FIRST_NB(nbl);
-   if (netBuffer == NULL)
+   net_buffer = NET_BUFFER_LIST_FIRST_NB(nbl);
+   if (net_buffer == NULL)
    {
-       KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "netbuffer not present\n"));
+       KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "net_buffer not present\n"));
        // nothing to do
        goto done;
    }
 
 
-   mdlAddr =
+   packet_buffer =
        NdisGetDataBuffer(
-           netBuffer,
-           netBuffer->DataLength,
+           net_buffer,
+           net_buffer->DataLength,
            NULL,
            sizeof(UINT16),
            0);
    
    // execute code at hook.
-   result = EbpfCoreInvokeXdpHook(mdlAddr, netBuffer->DataLength);
+   result = ebpf_core_invoke_xdp_hook(packet_buffer, net_buffer->DataLength);
    switch (result)
    {
    case XDP_PASS:
@@ -369,29 +369,29 @@ EbpfHookL2Classify(
    }
 
 done:   
-   classifyOut->actionType = action;
+   classify_output->actionType = action;
    return;
 }
 
 NTSTATUS
-EbpfHookL2Notify(
-   _In_ FWPS_CALLOUT_NOTIFY_TYPE notifyType,
-   _In_ const GUID* filterKey,
+ebpf_hook_layer_2_notify(
+   _In_ FWPS_CALLOUT_NOTIFY_TYPE callout_notification_type,
+   _In_ const GUID* filter_key,
    _Inout_ const FWPS_FILTER* filter
    )
 {
-   UNREFERENCED_PARAMETER(notifyType);
-   UNREFERENCED_PARAMETER(filterKey);
+   UNREFERENCED_PARAMETER(callout_notification_type);
+   UNREFERENCED_PARAMETER(filter_key);
    UNREFERENCED_PARAMETER(filter);
 
    return STATUS_SUCCESS;
 }
 
 void
-EbpfHookL2FlowDelete(
-   _In_ UINT16 layerId,
-   _In_ UINT32 calloutId,
-   _In_ UINT64 flowContext
+ebpf_hook_layer_2_flow_delete(
+   _In_ UINT16 layer_id,
+   _In_ UINT32 fwpm_callout_id,
+   _In_ UINT64 flow_context
    )
 /* ++
 
@@ -399,8 +399,8 @@ EbpfHookL2FlowDelete(
 
 -- */
 {
-   UNREFERENCED_PARAMETER(layerId);
-   UNREFERENCED_PARAMETER(calloutId);
-   UNREFERENCED_PARAMETER(flowContext);
+   UNREFERENCED_PARAMETER(layer_id);
+   UNREFERENCED_PARAMETER(fwpm_callout_id);
+   UNREFERENCED_PARAMETER(flow_context);
    return;
 }

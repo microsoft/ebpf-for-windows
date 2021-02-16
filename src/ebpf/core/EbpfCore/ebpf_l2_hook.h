@@ -16,48 +16,40 @@ Environment:
 
 --*/
 
-#ifndef _EBPF_L2HOOK_H_
-#define _EBPF_L2HOOK_H_
+#pragma once 
 #include "types.h"
-
-extern UINT32 gL2CalloutId;
-extern BOOLEAN gDriverUnloading;
 
 //
 // Shared function prototypes
 //
 
 NTSTATUS
-EbpfHookRegisterCallouts(
-    _Inout_ void* deviceObject
+ebpf_hook_register_callouts(
+    _Inout_ void* device_object
 );
 
 void
-EbpfHookUnregisterCallouts(void);
+ebpf_hook_unregister_callouts(void);
 
 void
-EbpfHookL2Classify(
-   _In_ const FWPS_INCOMING_VALUES* inFixedValues,
-   _In_ const FWPS_INCOMING_METADATA_VALUES* inMetaValues,
-   _Inout_opt_ void* layerData,
-   _In_opt_ const void* classifyContext,
-   _In_ const FWPS_FILTER* filter,
-   _In_ UINT64 flowContext,
-   _Inout_ FWPS_CLASSIFY_OUT* classifyOut
-   );
+ebpf_hook_layer_2_classify(
+    _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values,
+    _In_ const FWPS_INCOMING_METADATA_VALUES* incoming_metadata_values,
+    _Inout_opt_ void* layer_data,
+    _In_opt_ const void* classify_context,
+    _In_ const FWPS_FILTER* filter,
+    _In_ UINT64 flow_context,
+    _Inout_ FWPS_CLASSIFY_OUT* classify_output);
 
 void
-EbpfHookL2FlowDelete(
-   _In_ UINT16 layerId,
-   _In_ UINT32 calloutId,
-   _In_ UINT64 flowContext
-   );
+ebpf_hook_layer_2_flow_delete(
+    _In_ UINT16 layer_id,
+    _In_ UINT32 fwpm_callout_id,
+    _In_ UINT64 flow_context);
 
 NTSTATUS
-EbpfHookL2Notify(
-   _In_ FWPS_CALLOUT_NOTIFY_TYPE notifyType,
-   _In_ const GUID* filterKey,
-   _Inout_ const FWPS_FILTER* filter
-   );
+ebpf_hook_layer_2_notify(
+    _In_ FWPS_CALLOUT_NOTIFY_TYPE callout_notification_type,
+    _In_ const GUID* filter_key,
+    _Inout_ const FWPS_FILTER* filter);
 
-#endif // _EBPF_L2HOOK_H_

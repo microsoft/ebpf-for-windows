@@ -5,6 +5,7 @@
 
 #include "ebpf_verifier.hpp"
 #include "windows/windows_platform.hpp"
+#include "platform.hpp"
 #include "Verifier.h"
 #include <sstream>
 #include <iostream>
@@ -51,7 +52,8 @@ static int analyze(raw_program& raw_prog, char ** error_message)
     }
     auto& prog = std::get<InstructionSeq>(prog_or_error);
     cfg_t cfg = prepare_cfg(prog, raw_prog.info, true);
-    ebpf_verifier_options_t options{ true, false, true };
+    ebpf_verifier_options_t options = ebpf_verifier_default_options;
+    options.print_failures = true;
     bool res = run_ebpf_analysis(oss, cfg, raw_prog.info, &options);
     if (!res) {
         *error_message = allocate_error_string(oss.str());
@@ -64,7 +66,7 @@ int verify(const char* filename, const char* sectionname, uint8_t* byte_code, si
 {
     const ebpf_platform_t* platform = &g_ebpf_platform_windows;
 
-    auto raw_progs = read_elf(filename, sectionname, reinterpret_cast<MapFd*>(map_create_function), nullptr, platform);
+    auto raw_progs = read_elf(filename, sectionname, map_create_function, nullptr, platform);
     if (raw_progs.size() != 1) {
         return 1; // Error
     }

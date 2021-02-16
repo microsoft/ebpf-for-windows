@@ -15,7 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="dnsflood.cpp">
+    <ClCompile Include="dns_flood.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

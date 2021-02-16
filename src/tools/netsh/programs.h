@@ -6,10 +6,10 @@
 extern "C" {
 #endif
 
-FN_HANDLE_CMD HandleEbpfAddProgram;
-FN_HANDLE_CMD HandleEbpfDeleteProgram;
-FN_HANDLE_CMD HandleEbpfSetProgram;
-FN_HANDLE_CMD HandleEbpfShowPrograms;
+FN_HANDLE_CMD handle_ebpf_add_program;
+FN_HANDLE_CMD handle_ebpf_delete_program;
+FN_HANDLE_CMD handle_ebpf_set_program;
+FN_HANDLE_CMD handle_ebpf_show_programs;
 
 #ifdef __cplusplus
 }

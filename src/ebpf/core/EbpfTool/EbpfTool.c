@@ -24,23 +24,23 @@ int main(
     _In_reads_(argc) PCHAR argv[]
 )
 {
-    HANDLE deviceHandle = INVALID_HANDLE_VALUE;
+    HANDLE device_handle = INVALID_HANDLE_VALUE;
     DWORD error = NO_ERROR;
-    LPCWSTR ebpfDeviceName = L"\\\\.\\EbpfIoDevice";
-    ULONG bytesReturned;
-    void* inputBuffer = NULL;
-    struct EbpfOpHeader* header = NULL;
+    LPCWSTR ebpf_device_name = L"\\\\.\\EbpfIoDevice";
+    ULONG bytes_returned;
+    void* input_buffer = NULL;
+    struct _ebpf_operation_header* header = NULL;
     int action = 0;
-    UINT64 inputHandle;
-    DWORD inputBufferLength;
-    struct EbpfOpLoadRequest* loadRequest;
-    struct EbpfOpLoadReply outputBuffer = { 0 };
-    DWORD outputBufferLength = sizeof(struct EbpfOpLoadReply);
+    UINT64 input_handle;
+    DWORD input_bufferLength;
+    struct _ebpf_operation_load_code_request* load_request;
+    struct _ebpf_operation_load_code_reply output_buffer = { 0 };
+    DWORD output_buffer_length = sizeof(struct _ebpf_operation_load_code_reply);
     UINT64 handle = 0;
 
     if (argc < 2)
     {
-        printf("usage: ebpftool.exe <load(0)/attach(1)/unload(2)> <handle>\n");
+        printf("usage: ebpftool.exe <load(0)/EBPF_OPERATION_ATTACH_CODE(1)/unload(2)> <handle>\n");
         return;
     }
 
@@ -49,13 +49,13 @@ int main(
     {
         if (argc < 3)
         {
-            printf("handle required for attach and unload.\n");
+            printf("handle required for EBPF_OPERATION_ATTACH_CODE and unload.\n");
             return;
         }
-        inputHandle = atoi(argv[2]);
+        input_handle = atoi(argv[2]);
     }    
         
-    deviceHandle = CreateFile(ebpfDeviceName,
+    device_handle = CreateFile(ebpf_device_name,
         GENERIC_READ | GENERIC_WRITE,
         0,
         NULL,
@@ -63,7 +63,7 @@ int main(
         FILE_ATTRIBUTE_NORMAL,
         NULL);
 
-    if (deviceHandle == INVALID_HANDLE_VALUE) 
+    if (device_handle == INVALID_HANDLE_VALUE) 
     {
         error = GetLastError();
         printf("Error: CreatFile Failed : %d\n", error);
@@ -117,10 +117,10 @@ Disassembly of section :
     0xb8, 0x01, 00, 00, 00,
     0xc3
     };
-    inputBufferLength = sizeof(code) + sizeof(struct EbpfOpLoadRequest);
+    input_bufferLength = sizeof(code) + sizeof(struct _ebpf_operation_load_code_request);
 
-    inputBuffer = malloc(inputBufferLength);
-    if (inputBuffer == NULL)
+    input_buffer = malloc(input_bufferLength);
+    if (input_buffer == NULL)
     {
         error = ERROR_OUTOFMEMORY;
         goto Exit;
@@ -128,20 +128,20 @@ Disassembly of section :
 
     if (action == 0) //load
     {
-        loadRequest = inputBuffer;
-        loadRequest->header.id = load_code;
-        loadRequest->header.length = inputBufferLength;
-        RtlCopyMemory(&loadRequest->machine_code, code, sizeof(code));
+        load_request = input_buffer;
+        load_request->header.id = EBPF_OPERATION_LOAD_CODE;
+        load_request->header.length = input_bufferLength;
+        RtlCopyMemory(&load_request->machine_code, code, sizeof(code));
 
 
         error = DeviceIoControl(
-            deviceHandle,
+            device_handle,
             (DWORD)IOCTL_EBPFCTL_METHOD_BUFFERED,
-            inputBuffer,
-            (DWORD)inputBufferLength,
-            &outputBuffer,
-            outputBufferLength,
-            &bytesReturned,
+            input_buffer,
+            (DWORD)input_bufferLength,
+            &output_buffer,
+            output_buffer_length,
+            &bytes_returned,
             NULL);
         if (!error)
         {
@@ -150,27 +150,27 @@ Disassembly of section :
             goto Exit;
         }
 
-        handle = outputBuffer.handle;
+        handle = output_buffer.handle;
         printf("Load succeeded. Program handle %lld\n", handle);
 
     }
-    else if (action == 1) // attach
+    else if (action == 1) // EBPF_OPERATION_ATTACH_CODE
     {
-        // attach.
-        header = (struct EbpfOpHeader*)inputBuffer;
-        header->id = attach;
-        struct EbpfOpAttachDetachRequest* attachRequest = inputBuffer;
-        attachRequest->handle = inputHandle;
+        // EBPF_OPERATION_ATTACH_CODE.
+        header = (struct _ebpf_operation_header*)input_buffer;
+        header->id = EBPF_OPERATION_ATTACH_CODE;
+        struct _ebpf_operation_attach_detach_request* attachRequest = input_buffer;
+        attachRequest->handle = input_handle;
         attachRequest->hook = 1;
 
         error = DeviceIoControl(
-            deviceHandle,
+            device_handle,
             (DWORD)IOCTL_EBPFCTL_METHOD_BUFFERED,
-            inputBuffer,
-            (DWORD)inputBufferLength,
-            &outputBuffer,
-            outputBufferLength,
-            &bytesReturned,
+            input_buffer,
+            (DWORD)input_bufferLength,
+            &output_buffer,
+            output_buffer_length,
+            &bytes_returned,
             NULL);
         if (!error)
         {
@@ -183,19 +183,19 @@ Disassembly of section :
     }
     else if (action == 2) // unload
     {
-        header = (struct EbpfOpHeader*)inputBuffer;
-        struct EbpfOpUnloadRequest* unloadRequest = inputBuffer;
-        header->id = unload_code;
-        unloadRequest->handle = inputHandle;
+        header = (struct _ebpf_operation_header*)input_buffer;
+        struct _ebpf_operation_unload_code_request* unloadRequest = input_buffer;
+        header->id = EBPF_OPERATION_UNLOAD_CODE;
+        unloadRequest->handle = input_handle;
 
         error = DeviceIoControl(
-            deviceHandle,
+            device_handle,
             (DWORD)IOCTL_EBPFCTL_METHOD_BUFFERED,
-            inputBuffer,
-            (DWORD)inputBufferLength,
-            &outputBuffer,
-            outputBufferLength,
-            &bytesReturned,
+            input_buffer,
+            (DWORD)input_bufferLength,
+            &output_buffer,
+            output_buffer_length,
+            &bytes_returned,
             NULL);
         if (!error)
         {
@@ -207,14 +207,11 @@ Disassembly of section :
         printf("Unload succeeded\n");
     }
 Exit:
-    if (inputBuffer != NULL)
-    {
-        free(inputBuffer);
-    }
+    free(input_buffer);
 
-    if (deviceHandle != INVALID_HANDLE_VALUE)
+    if (device_handle != INVALID_HANDLE_VALUE)
     {
-        CloseHandle(deviceHandle);
+        CloseHandle(device_handle);
     }
 
     return error;

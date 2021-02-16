@@ -13,12 +13,12 @@ __u16 ntohs(__u16 us)
     return us << 8 | us >> 8;
 }
 
-typedef struct xdp_md_
+typedef struct _xdp_md
 {
    void* data;
    void* data_end;
    __u64 data_meta;
-} xdp_md;
+} xdp_md_t;
 
 typedef struct _IPV4_HEADER {
     union {
@@ -62,13 +62,11 @@ typedef struct UDP_HEADER_ {
 } UDP_HEADER;
 
 struct bpf_map_def {
+      __u32 size;
       __u32 type;
       __u32 key_size;
       __u32 value_size;
       __u32 max_entries;
-      __u32 map_flags;
-      __u32 inner_map_idx;
-      __u32 numa_node;
 };
 typedef void* (*ebpf_map_lookup_elem_t)(void * map, void* key);
 #define ebpf_map_lookup_elem ((ebpf_map_lookup_elem_t)1)
