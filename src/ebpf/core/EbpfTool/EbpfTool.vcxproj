@@ -144,17 +144,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <CopyFileToFolders Include="droppacket.c">
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
-      <FileType>CppCode</FileType>
-    </CopyFileToFolders>
     <ClCompile Include="EbpfTool.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\EbpfCore\types.h" />
-    <CopyFileToFolders Include="ebpf.h">
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
-    </CopyFileToFolders>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -239,7 +239,7 @@ Exit:
 }
 
 static const struct {
-    NTSTATUS(*protocol_handler)(_In_ void* input_buffer, void* output_buffer);
+    NTSTATUS(*protocol_handler)(_In_ const void* input_buffer, void* output_buffer);
     SIZE_T minimum_request_size;
     SIZE_T minimum_reply_size;
 } EbpfProtocolHandlers[] = {
@@ -250,7 +250,7 @@ static const struct {
     { ebpf_core_protocol_unload_code, sizeof(struct _ebpf_operation_unload_code_request), 0 },
     { ebpf_core_protocol_attach_code, sizeof(struct _ebpf_operation_attach_detach_request), 0 },
     { ebpf_core_protocol_detach_code, sizeof(struct _ebpf_operation_attach_detach_request), 0 },
-    { ebpf_core_protocol_create_map, sizeof(struct _ebpf_operation_create_map_request), sizeof(struct _ebpf_operation_create_map_request) },
+    { ebpf_core_protocol_create_map, sizeof(struct _ebpf_operation_create_map_request), sizeof(struct _ebpf_operation_create_map_reply) },
     { ebpf_core_protocol_map_lookup_element, sizeof(struct _ebpf_operation_map_lookup_element_request), sizeof(struct _ebpf_operation_map_lookup_element_reply) },
     { ebpf_core_protocol_map_update_element, sizeof(struct _ebpf_operation_map_update_element_request), 0 },
     { ebpf_core_protocol_map_delete_element, sizeof(struct _ebpf_operation_map_delete_element_request), 0 }
@@ -269,9 +269,9 @@ EbpfCoreEvtIoDeviceControl(
     WDFDEVICE device;
     void* input_buffer = NULL;
     void* output_buffer = NULL;
-    size_t actual_input_length;
-    size_t actual_output_length;
-    struct _ebpf_operation_header* user_request = NULL;
+    size_t actual_input_length = 0;
+    size_t actual_output_length = 0;
+    const struct _ebpf_operation_header* user_request = NULL;
     struct _ebpf_operation_header* user_reply = NULL;
 
     UNREFERENCED_PARAMETER(output_buffer_length);
@@ -337,6 +337,7 @@ EbpfCoreEvtIoDeviceControl(
                     goto Done;
                 }
 
+                // Be aware: Input and output buffer point to the same memory.
                 if (EbpfProtocolHandlers[user_request->id].minimum_reply_size > 0)
                 {
                     // Retrieve output buffer associated with the request object
@@ -363,11 +364,15 @@ EbpfCoreEvtIoDeviceControl(
                         goto Done;
                     }
                     user_reply = output_buffer;
-                    user_reply->id = user_request->id;
-                    user_reply->length = (uint16_t)actual_output_length;
                 }
 
                 status = EbpfProtocolHandlers[user_request->id].protocol_handler(user_request, user_reply);
+                // Fill out the rest of the out buffer after processing the input buffer.
+                if (status == STATUS_SUCCESS && user_reply)
+                {
+                    user_reply->id = user_request->id;
+                    user_reply->length = (uint16_t)actual_output_length;
+                }
                 goto Done;
             }
         }

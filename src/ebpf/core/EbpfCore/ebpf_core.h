@@ -48,52 +48,52 @@ void ebpf_core_terminate();
 
 NTSTATUS
 ebpf_core_protocol_attach_code(
-    _In_ struct _ebpf_operation_attach_detach_request* request,
+    _In_ const struct _ebpf_operation_attach_detach_request* request,
     _Inout_ void* reply);
 
 NTSTATUS
 ebpf_core_protocol_detach_code(
-    _In_ struct _ebpf_operation_attach_detach_request* request,
+    _In_ const struct _ebpf_operation_attach_detach_request* request,
     _Inout_ void* reply);
 
 NTSTATUS
 ebpf_core_protocol_unload_code(
-    _In_ struct _ebpf_operation_unload_code_request* request,
+    _In_ const struct _ebpf_operation_unload_code_request* request,
     _Inout_ void* reply);
 
 NTSTATUS
 ebpf_core_protocol_load_code(
-    _In_ struct _ebpf_operation_load_code_request* inputRequest,
+    _In_ const struct _ebpf_operation_load_code_request* inputRequest,
     _Inout_ struct _ebpf_operation_load_code_reply* loadReply);
 
 NTSTATUS 
 ebpf_core_protocol_resolve_helper(
-    _In_ struct _ebpf_operation_resolve_helper_request* request,
+    _In_ const struct _ebpf_operation_resolve_helper_request* request,
     _Out_ struct _ebpf_operation_resolve_helper_reply* reply);
 
 NTSTATUS 
 ebpf_core_protocol_resolve_map(
-    _In_ struct _ebpf_operation_resolve_map_request* request,
+    _In_ const struct _ebpf_operation_resolve_map_request* request,
     _Out_ struct _ebpf_operation_resolve_map_reply* reply);
 
 NTSTATUS 
 ebpf_core_protocol_create_map(
-    _In_ struct _ebpf_operation_create_map_request* request,
+    _In_ const struct _ebpf_operation_create_map_request* request,
     _Inout_ struct _ebpf_operation_create_map_reply* reply);
 
 NTSTATUS 
 ebpf_core_protocol_map_lookup_element(
-    _In_ struct _ebpf_operation_map_lookup_element_request* request,
+    _In_ const struct _ebpf_operation_map_lookup_element_request* request,
     _Inout_ struct _ebpf_operation_map_lookup_element_reply* reply);
 
 NTSTATUS 
 ebpf_core_protocol_map_update_element(
-    _In_ struct _ebpf_operation_map_update_element_request* request,
+    _In_ const struct _ebpf_operation_map_update_element_request* request,
     _Inout_ void* reply);
 
 NTSTATUS 
 ebpf_core_protocol_map_delete_element(
-    _In_ struct _ebpf_operation_map_delete_element_request* request,
+    _In_ const struct _ebpf_operation_map_delete_element_request* request,
     _Inout_ void* reply);
 
 xdp_action_t

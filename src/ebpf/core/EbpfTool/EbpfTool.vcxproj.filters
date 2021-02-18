@@ -24,12 +24,4 @@
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
-  <ItemGroup>
-    <CopyFileToFolders Include="ebpf.h">
-      <Filter>Header Files</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="droppacket.c">
-      <Filter>Source Files</Filter>
-    </CopyFileToFolders>
-  </ItemGroup>
 </Project>

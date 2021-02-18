@@ -125,6 +125,8 @@ DLL void ebpf_api_terminate()
     }
 }
 
+std::vector<uint64_t> _map_file_descriptors;
+
 static int create_map_function(uint32_t type, uint32_t key_size, uint32_t value_size, uint32_t max_entries, ebpf_verifier_options_t options)
 {
     _ebpf_operation_create_map_request request{
@@ -142,28 +144,34 @@ static int create_map_function(uint32_t type, uint32_t key_size, uint32_t value_
     _ebpf_operation_create_map_reply reply{};
 
     auto retval = invoke_ioctl(device_handle, &request, &reply);
+    if (retval != ERROR_SUCCESS)
+    {
+        printf("invoke_ioctl returning %d\n", retval);
+        return -1;
+    }
 
     if (reply.header.id != ebpf_operation_id_t::EBPF_OPERATION_CREATE_MAP)
     {
+        printf("reply.header.id != ebpf_operation_id_t::EBPF_OPERATION_CREATE_MAP\n");
         return -1;
     }
 
-    if (retval == ERROR_SUCCESS)
-    {
-        return static_cast<int>(reply.handle);
-    }
-    else
-    {
-        return -1;
-    }
+    // TODO: prevail encodes map size into the map file descriptor leaving
+    // the lowest 6 bits usable. Use this as an index into a process wide
+    // table.
+    _map_file_descriptors.push_back(reply.handle);
+    return (value_size << 14) + (key_size << 6) + _map_file_descriptors.size();
 }
 
 static uint64_t map_resolver(void* context, uint64_t fd)
 {
+    // TODO: prevail encodes map size into the map file descriptor leaving
+    // the lowest 6 bits usable. Use this as an index into a process wide
+    // table.
     _ebpf_operation_resolve_map_request request{
         sizeof(request),
         ebpf_operation_id_t::EBPF_OPERATION_RESOLVE_MAP,
-        fd };
+        _map_file_descriptors[(fd & 0x1f) - 1] };
 
     _ebpf_operation_resolve_map_reply reply;
 
@@ -217,6 +225,7 @@ DLL DWORD ebpf_api_load_program(const char* file_name, const char* section_name,
 
     try
     {
+        _map_file_descriptors.resize(0);
         // Verify code.
         if (verify(file_name, section_name, byte_code.data(), &byte_code_size, create_map_function, error_message) != 0)
         {

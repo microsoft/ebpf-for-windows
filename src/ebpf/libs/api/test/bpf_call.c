@@ -1,6 +1,6 @@
 #pragma clang section text="xdp_prog"
 
-typedef int (*bpf_helper)(int a, int b, int c, int d);
+typedef int (*bpf_helper)(void* a, void* b, void* c, void* d);
 
 #define ebpf_map_lookup_elem ((bpf_helper)0)
 #define ebpf_map_update_elem ((bpf_helper)1)

@@ -288,7 +288,7 @@ TEST_CASE("Load program success - EBPF_OPERATION_CREATE_MAP", "[load_success - c
     REQUIRE(map_create_request->ebpf_map_definition.size == sizeof(struct _ebpf_map_definition));
     REQUIRE(map_create_request->ebpf_map_definition.type == 2);
     REQUIRE(map_create_request->ebpf_map_definition.key_size == 4);
-    REQUIRE(map_create_request->ebpf_map_definition.value_size == 4);
+    REQUIRE(map_create_request->ebpf_map_definition.value_size == 8);
     REQUIRE(map_create_request->ebpf_map_definition.max_entries == 1);
     request_messages.pop_front();
 

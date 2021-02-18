@@ -23,10 +23,16 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
     <ClInclude Include="mock.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ebpf.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -36,11 +42,14 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <CopyFileToFolders Include="bpf_call.o" />
-    <CopyFileToFolders Include="bpf.o" />
-    <CopyFileToFolders Include="droppacket.o" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="packages.config" />
+    <CustomBuild Include="bpf.c">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="bpf_call.c">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="droppacket.c">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
   </ItemGroup>
 </Project>
