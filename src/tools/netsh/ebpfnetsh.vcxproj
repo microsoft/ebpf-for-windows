@@ -182,15 +182,15 @@
     <ResourceCompile Include="ebpfnetsh.rc" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\..\..\external\ebpf-verifier\build\ebpfverifier.vcxproj">
       <Project>{939a079d-a1e8-35d9-950f-11b1894d342e}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\ebpf\api\ebpfapi.vcxproj">
       <Project>{75fe223a-3e45-4b0e-a2e8-04285e52e440}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

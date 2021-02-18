@@ -23,9 +23,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="mock.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -42,5 +39,8 @@
     <CopyFileToFolders Include="bpf_call.o" />
     <CopyFileToFolders Include="bpf.o" />
     <CopyFileToFolders Include="droppacket.o" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
 </Project>

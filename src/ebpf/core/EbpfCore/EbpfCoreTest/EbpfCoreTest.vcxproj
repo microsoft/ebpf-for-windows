@@ -152,10 +152,10 @@
     <ClCompile Include="ebpf_core_test.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="packages.config" />
+    <ClInclude Include="..\ebpf_core.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\ebpf_core.h" />
+    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />
