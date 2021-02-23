@@ -67,7 +67,9 @@ DWORD handle_ebpf_show_disassembly(
     }
 
     try {
-        auto rawPrograms = read_elf(filename, section, create_map_crab, nullptr, platform);
+        ebpf_verifier_options_t verifierOptions = ebpf_verifier_default_options;
+        verifierOptions.print_failures = true;
+        auto rawPrograms = read_elf(filename, section, &verifierOptions, platform);
         raw_program rawProgram = rawPrograms.back();
         std::variant<InstructionSeq, std::string> programOrError = unmarshal(rawProgram, platform);
         if (std::holds_alternative<std::string>(programOrError)) {
@@ -157,7 +159,7 @@ DWORD handle_ebpf_show_sections(
     }
 
     try {
-        auto rawPrograms = read_elf(filename, section, create_map_crab, nullptr, platform);
+        auto rawPrograms = read_elf(filename, section, &ebpf_verifier_default_options, platform);
         if (level == VL_NORMAL) {
             std::cout << "\n";
             std::cout << "             Section    Type  # Maps    Size\n";
@@ -255,7 +257,10 @@ DWORD handle_ebpf_show_verification(
     }
 
     try {
-        auto rawPrograms = read_elf(filename, section, create_map_crab, nullptr, platform);
+        // Analyze the control-flow graph.
+        ebpf_verifier_options_t verifierOptions = ebpf_verifier_default_options;
+        verifierOptions.print_failures = true;
+        auto rawPrograms = read_elf(filename, section, &verifierOptions, platform);
         raw_program rawProgram = rawPrograms.back();
         std::variant<InstructionSeq, std::string> programOrError = unmarshal(rawProgram, platform);
         if (std::holds_alternative<std::string>(programOrError)) {
@@ -268,9 +273,6 @@ DWORD handle_ebpf_show_verification(
         // in a "passive", non-deterministic form.
         cfg_t controlFlowGraph = prepare_cfg(program, rawProgram.info, true);
 
-        // Analyze the control-flow graph.
-        ebpf_verifier_options_t verifierOptions = ebpf_verifier_default_options;
-        verifierOptions.print_failures = true;
         const auto res = run_ebpf_analysis(std::cout, controlFlowGraph, rawProgram.info, &verifierOptions);
         if (!res) {
             std::cout << "\nVerification failed\n";
