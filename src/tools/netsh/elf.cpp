@@ -78,7 +78,7 @@ DWORD handle_ebpf_show_disassembly(
         }
         auto& program = std::get<InstructionSeq>(programOrError);
         std::cout << "\n";
-        print(program, std::cout);
+        print(program, std::cout, {});
         return NO_ERROR;
     }
     catch (std::exception ex) {
@@ -269,11 +269,7 @@ DWORD handle_ebpf_show_verification(
         }
         auto& program = std::get<InstructionSeq>(programOrError);
 
-        // Convert the instruction sequence to a control-flow graph
-        // in a "passive", non-deterministic form.
-        cfg_t controlFlowGraph = prepare_cfg(program, rawProgram.info, true);
-
-        const auto res = run_ebpf_analysis(std::cout, controlFlowGraph, rawProgram.info, &verifierOptions);
+        const auto res = ebpf_verify_program(std::cout, program, rawProgram.info, &verifierOptions);
         if (!res) {
             std::cout << "\nVerification failed\n";
             return ERROR_SUPPRESS_OUTPUT;
