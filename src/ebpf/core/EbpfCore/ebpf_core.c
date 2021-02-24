@@ -334,7 +334,7 @@ ebpf_core_invoke_xdp_hook(
 
     xdp_md_t ctx = { 0 };
     ctx.data = (UINT64)buffer;
-    ctx.data_end = (UINT64)buffer_length;
+    ctx.data_end = ctx.data + buffer_length;
 
     KeAcquireSpinLock(&_ebpf_core_code_entry_list_lock, &old_irql);
 
