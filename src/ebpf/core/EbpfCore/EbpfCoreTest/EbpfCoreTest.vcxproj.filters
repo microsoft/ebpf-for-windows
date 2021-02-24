@@ -21,9 +21,15 @@
     <ClCompile Include="ebpf_core_test.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\ebpf_maps.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\ebpf_core.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ebpf_maps.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

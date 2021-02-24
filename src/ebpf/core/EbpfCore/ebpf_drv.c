@@ -42,10 +42,6 @@ DRIVER_INITIALIZE DriverEntry;
 EVT_WDF_DRIVER_UNLOAD EvtDriverUnload;
 
 // Typedefs 
-typedef enum
-{
-    ebpfPoolTag = 'fpbe'
-} EBPF_POOL_TAG;
 
 typedef VOID(WINAPI* FUNCTION_TYPE) (VOID);
 typedef DWORD(WINAPI* FUNCTION_TYPE1) (DWORD);

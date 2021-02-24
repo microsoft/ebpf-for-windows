@@ -13,8 +13,9 @@
 
 #include "ebpf_core.h"
 #include "types.h"
+#include "ebpf_maps.h"
 
-
+#define RTL_COUNT_OF(arr) (sizeof(arr) / sizeof(arr[0]))
 
 static DWORD _count_of_seh_raised = 0;
 
@@ -42,25 +43,10 @@ typedef struct _ebpf_core_code_entry {
     ebpf_hook_point_t hook_point;
 } ebpf_core_code_entry_t;
 
-typedef struct _ebpf_core_map {
-    struct _ebpf_map_definition ebpf_map_definition;
-    uint8_t* data;
-} ebpf_core_map_t;
 
-typedef struct _ebpf_core_map_entry {
-    LIST_ENTRY entry;
-    ebpf_core_map_t map;
-    uint64_t handle;
-} ebpf_core_map_entry_t;
-
-typedef enum
-{
-    ebpfPoolTag = 'fpbe'
-} EBPF_POOL_TAG;
-
-static void* _ebpf_core_map_lookup_element(ebpf_core_map_t* map, uint32_t* key);
-static void _ebpf_core_map_update_element(ebpf_core_map_t* map, uint32_t* key, uint8_t* data);
-static void _ebpf_core_map_delete_element(ebpf_core_map_t* map, uint32_t* key);
+static void* _ebpf_core_map_lookup_element(ebpf_core_map_t* map, const uint8_t* key);
+static void _ebpf_core_map_update_element(ebpf_core_map_t* map, const uint8_t* key, const uint8_t* data);
+static void _ebpf_core_map_delete_element(ebpf_core_map_t* map, const uint8_t* key);
 
 static const void * _ebpf_program_helpers[] =
 {
@@ -377,44 +363,28 @@ NTSTATUS ebpf_core_protocol_create_map(
     _Inout_ struct _ebpf_operation_create_map_reply* reply)
 {
     NTSTATUS status = STATUS_SUCCESS;
-    SIZE_T map_entry_size = sizeof(ebpf_core_map_entry_t);
-    SIZE_T map_data_size = 0;
     KIRQL old_irql;
     ebpf_core_map_entry_t* map = NULL;
+    UINT32 type = request->ebpf_map_definition.type;
 
-    // TODO: Add support for other map types
-    if (request->ebpf_map_definition.type != EBPF_MAP_ARRAY)
+    if (type >= RTL_COUNT_OF(ebpf_map_function_tables))
     {
         status = STATUS_NOT_IMPLEMENTED;
         goto Done;
     }
 
-    status = RtlSizeTMult(request->ebpf_map_definition.max_entries, request->ebpf_map_definition.value_size, &map_data_size);
-    if (status != STATUS_SUCCESS)
+    if (ebpf_map_function_tables[type].create_map == NULL)
     {
+        status = STATUS_NOT_IMPLEMENTED;
         goto Done;
     }
 
-    status = RtlSizeTMult(map_data_size, map_entry_size, &map_entry_size);
-    if (status != STATUS_SUCCESS)
+    map = ebpf_map_function_tables[type].create_map(&request->ebpf_map_definition);
+    if (map == NULL)
     {
-        goto Done;
-    }
-
-    // allocate
-    map = ExAllocatePool2(
-        POOL_FLAG_NON_PAGED_EXECUTE,
-        map_entry_size,
-        ebpfPoolTag
-    );
-    if (map == NULL) {
         status = STATUS_INSUFFICIENT_RESOURCES;
         goto Done;
     }
-    memset(map, 0, map_entry_size);
-
-    map->map.ebpf_map_definition = request->ebpf_map_definition;
-    map->map.data = (uint8_t*)(map + 1);
 
     // TODO: Switch this to use real object manager handles
     map->handle = (0xffff | _next_pseudo_handle++);
@@ -442,37 +412,29 @@ NTSTATUS ebpf_core_protocol_map_lookup_element(
     NTSTATUS status = STATUS_NOT_FOUND;
     KIRQL old_irql;
     ebpf_core_map_entry_t* map = NULL;
-    uint32_t key;
-    SIZE_T value_offset = 0;
-
-    if (request->header.length < sizeof(struct _ebpf_operation_map_lookup_element_request) - 1 + sizeof(uint32_t))
-    {
-        status = STATUS_INVALID_PARAMETER;
-        goto Done;
-    }
-
-    key = *(uint32_t*)request->key;
 
     KeAcquireSpinLock(&_ebpf_core_map_entry_list_lock, &old_irql);
     // TODO: Switch this to use real object manager handles
     map = _ebpf_core_find_map_entry(request->handle);
     if (map)
     {
-        // Compute offset into data.
-        status = RtlSizeTMult(key, map->map.ebpf_map_definition.value_size, &value_offset);
-        status = key < map->map.ebpf_map_definition.max_entries ? status : STATUS_INVALID_PARAMETER;
-        status = (reply->header.length - sizeof(struct _ebpf_operation_map_lookup_element_reply) + 1) == (map->map.ebpf_map_definition.value_size) ? status : STATUS_INVALID_PARAMETER;
+        UINT32 type = map->map.ebpf_map_definition.type;
+        void* value = NULL;
 
-        if (status == STATUS_SUCCESS)
+        if ((reply->header.length - sizeof(struct _ebpf_operation_map_lookup_element_reply) + 1) != (map->map.ebpf_map_definition.value_size))
         {
-            memcpy(reply->value, map->map.data + value_offset, map->map.ebpf_map_definition.value_size);
+            status = STATUS_INVALID_PARAMETER;
+        }
+        else if ((value = ebpf_map_function_tables[type].lookup_entry(&map->map, request->key)) != NULL)
+        {
+            memcpy(reply->value, value, map->map.ebpf_map_definition.value_size);
+            status = STATUS_SUCCESS;
         }
     }
     KeReleaseSpinLock(&_ebpf_core_map_entry_list_lock, old_irql);
 
     KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "EbpfCore: ebpf_core_protocol_map_lookup_element 0x%llx handle\n", request->handle));
 
-Done:
     return status;
 }
 
@@ -483,8 +445,8 @@ NTSTATUS ebpf_core_protocol_map_update_element(
     NTSTATUS status = STATUS_NOT_FOUND;
     KIRQL old_irql;
     ebpf_core_map_entry_t* map = NULL;
-    uint32_t key;
-    SIZE_T value_offset = 0;
+    const uint8_t* key;
+    const uint8_t* value;
 
     UNREFERENCED_PARAMETER(reply);
 
@@ -493,22 +455,19 @@ NTSTATUS ebpf_core_protocol_map_update_element(
     map = _ebpf_core_find_map_entry(request->handle);
     if (map)
     {
+        UINT32 type = map->map.ebpf_map_definition.type;
+
         // Is the request big enough to contain both key + value?
         status = (request->header.length - sizeof(struct _ebpf_operation_map_update_element_request) + 1) == ((size_t)map->map.ebpf_map_definition.key_size + (size_t)map->map.ebpf_map_definition.value_size) ? STATUS_SUCCESS : STATUS_INVALID_PARAMETER;
 
         // If success, then extract key
-        key = (status == STATUS_SUCCESS) ? *(uint32_t*)request->data : 0;
-
-        // If success, check if key is in range
-        status = (status == STATUS_SUCCESS) ? key < map->map.ebpf_map_definition.max_entries ? status : STATUS_INVALID_PARAMETER : status;
-
-        // If success, then compute value offset
-        status = (status == STATUS_SUCCESS) ? RtlSizeTMult(key, map->map.ebpf_map_definition.value_size, &value_offset) : status;
-
-        if (status == STATUS_SUCCESS)
-        {
-            memcpy(map->map.data + value_offset, request->data + sizeof(uint32_t), map->map.ebpf_map_definition.value_size);
-        }
+        key = (status == STATUS_SUCCESS) ? request->data : NULL;
+        
+        // If success, then extract value
+        value = (status == STATUS_SUCCESS) ? request->data + map->map.ebpf_map_definition.key_size : NULL;
+        
+        // If success, then update map
+        status = (status == STATUS_SUCCESS) ? ebpf_map_function_tables[type].update_entry(&map->map, key, value) : status;
     }
     KeReleaseSpinLock(&_ebpf_core_map_entry_list_lock, old_irql);
 
@@ -524,8 +483,6 @@ NTSTATUS ebpf_core_protocol_map_delete_element(
     NTSTATUS status = STATUS_NOT_FOUND;
     KIRQL old_irql;
     ebpf_core_map_entry_t* map = NULL;
-    uint32_t key;
-    SIZE_T value_offset = 0;
     UNREFERENCED_PARAMETER(reply);
 
     KeAcquireSpinLock(&_ebpf_core_map_entry_list_lock, &old_irql);
@@ -533,22 +490,13 @@ NTSTATUS ebpf_core_protocol_map_delete_element(
     map = _ebpf_core_find_map_entry(request->handle);
     if (map)
     {
-        // Is the request big enough to contain both key + value?
-        status = (request->header.length - sizeof(struct _ebpf_operation_map_update_element_request) + 1) == map->map.ebpf_map_definition.key_size ? STATUS_SUCCESS : STATUS_INVALID_PARAMETER;
+        UINT32 type = map->map.ebpf_map_definition.type;
 
-        // If success, then extract key
-        key = (status == STATUS_SUCCESS) ? *(uint32_t*)request->key : 0;
+        // Is the request big enough to contain key?
+        status = (request->header.length - sizeof(struct _ebpf_operation_map_update_element_request) + 1) == ((size_t)map->map.ebpf_map_definition.key_size) ? STATUS_SUCCESS : STATUS_INVALID_PARAMETER;
 
-        // If success, check if key is in range
-        status = (status == STATUS_SUCCESS) ? key < map->map.ebpf_map_definition.max_entries ? status : STATUS_INVALID_PARAMETER : status;
-
-        // If success, then compute value offset
-        status = (status == STATUS_SUCCESS) ? RtlSizeTMult(key, map->map.ebpf_map_definition.value_size, &value_offset) : status;
-
-        if (status == STATUS_SUCCESS)
-        {
-            memset(map->map.data + value_offset, 0, map->map.ebpf_map_definition.value_size);
-        }
+        // If success, then update map
+        status = (status == STATUS_SUCCESS) ? ebpf_map_function_tables[type].delete_entry(&map->map, request->key) : status;
     }
     KeReleaseSpinLock(&_ebpf_core_map_entry_list_lock, old_irql);
 
@@ -557,38 +505,20 @@ NTSTATUS ebpf_core_protocol_map_delete_element(
     return status;
 }
 
-// EBPF helper functions
-void* _ebpf_core_map_lookup_element(ebpf_core_map_t* map, uint32_t* key)
+void* _ebpf_core_map_lookup_element(ebpf_core_map_t* map, const uint8_t* key)
 {
-    if (!map || !key)
-        return NULL;
-
-    if (*key > map->ebpf_map_definition.max_entries)
-        return NULL;
-
-    return &map->data[*key * map->ebpf_map_definition.value_size];
+    UINT32 type = map->ebpf_map_definition.type;
+    return ebpf_map_function_tables[type].lookup_entry(map, key);
 }
 
-void _ebpf_core_map_update_element(ebpf_core_map_t* map, uint32_t* key, uint8_t* data)
+void _ebpf_core_map_update_element(ebpf_core_map_t* map, const uint8_t* key, const uint8_t* value)
 {
-    if (!map || !key)
-        return;
-
-    if (*key > map->ebpf_map_definition.max_entries)
-        return;
-
-    uint8_t* entry = &map->data[*key * map->ebpf_map_definition.value_size];
-    memcpy(entry, data, map->ebpf_map_definition.value_size);
+    UINT32 type = map->ebpf_map_definition.type;
+    ebpf_map_function_tables[type].update_entry(map, key, value);
 }
 
-void _ebpf_core_map_delete_element(ebpf_core_map_t* map, uint32_t* key)
+void _ebpf_core_map_delete_element(ebpf_core_map_t* map, const uint8_t* key)
 {
-    if (!map || !key)
-        return;
-
-    if (*key > map->ebpf_map_definition.max_entries)
-        return;
-
-    uint8_t* entry = &map->data[*key * map->ebpf_map_definition.value_size];
-    memset(entry, 0, map->ebpf_map_definition.value_size);
+    UINT32 type = map->ebpf_map_definition.type;
+    ebpf_map_function_tables[type].delete_entry(map, key);
 }

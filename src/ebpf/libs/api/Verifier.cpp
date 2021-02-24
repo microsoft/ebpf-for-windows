@@ -66,6 +66,7 @@ int verify(const char* filename, const char* sectionname, uint8_t* byte_code, si
 {
     ebpf_verifier_options_t verifier_options{ false, false, false, false };
     ebpf_platform_t platform = g_ebpf_platform_windows;
+    // TODO: This duplicates the functions in the prevail windows platform plugin, and we need to rationalize which one to keep rather than having two.
     platform.create_map = map_create_function;
     platform.get_map_descriptor = get_map_descriptor;
     

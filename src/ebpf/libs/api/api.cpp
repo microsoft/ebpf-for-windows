@@ -161,10 +161,7 @@ static int create_map_function(uint32_t type, uint32_t key_size, uint32_t value_
         return -1;
     }
 
-    // TODO: prevail encodes map size into the map file descriptor leaving
-    // the lowest 6 bits usable. Use this as an index into a process wide
-    // table.
-
+    // TODO: Replace this with the CRT helper to create FD from handle once we have real handles.
     int fd = static_cast<int>(_map_file_descriptors.size() + 1);
     _map_file_descriptors.push_back({ reply.handle, {fd, type, key_size, value_size, 0} });
     return _map_file_descriptors.size();
@@ -172,9 +169,6 @@ static int create_map_function(uint32_t type, uint32_t key_size, uint32_t value_
 
 static uint64_t map_resolver(void* context, uint64_t fd)
 {
-    // TODO: prevail encodes map size into the map file descriptor leaving
-    // the lowest 6 bits usable. Use this as an index into a process wide
-    // table.
     _ebpf_operation_resolve_map_request request{
         sizeof(request),
         ebpf_operation_id_t::EBPF_OPERATION_RESOLVE_MAP,

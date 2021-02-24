@@ -225,6 +225,7 @@
     <ClCompile Include="ebpf_core.c" />
     <ClCompile Include="ebpf_drv.c" />
     <ClCompile Include="ebpf_l2_hook.c" />
+    <ClCompile Include="ebpf_maps.c" />
   </ItemGroup>
   <ItemGroup>
     <Inf Include="EbpfCore.inf" />
@@ -236,6 +237,7 @@
     <ClInclude Include="..\..\libs\api\protocol.h" />
     <ClInclude Include="ebpf_core.h" />
     <ClInclude Include="ebpf_l2_hook.h" />
+    <ClInclude Include="ebpf_maps.h" />
     <ClInclude Include="types.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

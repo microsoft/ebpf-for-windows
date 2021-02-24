@@ -18,6 +18,7 @@ typedef uint32_t NTSTATUS;
 extern "C"
 {
 #include "../ebpf_core.h"
+#include "../ebpf_maps.h"
 }
 
 TEST_CASE("ebpf_core_initialize", "ebpf_core_initialize") {
@@ -52,7 +53,7 @@ TEST_CASE("ResolveHelper", "ResolveHelper") {
     _ebpf_operation_resolve_helper_request request{ sizeof(_ebpf_operation_resolve_helper_request), ebpf_operation_id_t::EBPF_OPERATION_RESOLVE_HELPER };
     _ebpf_operation_resolve_helper_reply reply;
 
-    for (ebpf_helper_function_t helper_id = EBPF_LOOKUP_ELEMENT; helper_id <= ebpf_delete_element; helper_id = static_cast<ebpf_helper_function_t>(helper_id + 1))
+    for (ebpf_helper_function_t helper_id = EBPF_LOOKUP_ELEMENT; helper_id <= EBPF_DELETE_ELEMENT; helper_id = static_cast<ebpf_helper_function_t>(helper_id + 1))
     {
         reply.address[0] = 0;
         request.helper_id[0] = helper_id;
@@ -186,7 +187,7 @@ TEST_CASE("HelperTests", "HelperTests") {
         auto element_address = helper_functions[EBPF_LOOKUP_ELEMENT](map, reinterpret_cast<uint64_t>(&key), 0, 0);
         REQUIRE(*reinterpret_cast<uint64_t*>(element_address) == 0x123456789abcdef);
 
-        helper_functions[ebpf_delete_element](map, reinterpret_cast<uint64_t>(&key), 0, 0);
+        helper_functions[EBPF_DELETE_ELEMENT](map, reinterpret_cast<uint64_t>(&key), 0, 0);
 
         element_address = helper_functions[EBPF_LOOKUP_ELEMENT](map, reinterpret_cast<uint64_t>(&key), 0, 0);
         REQUIRE(*reinterpret_cast<uint64_t*>(element_address) == 0);
@@ -195,3 +196,31 @@ TEST_CASE("HelperTests", "HelperTests") {
     ebpf_core_terminate();
 }
 
+TEST_CASE("MapTests_standalone", "MapTests_standalone") {
+    for (uint32_t i = EBPF_MAP_TYPE_UNSPECIFIED; i <= EBPF_MAP_TYPE_ARRAY; i ++)
+    {
+        auto maps = ebpf_map_function_tables[i];
+        if (!maps.create_map)
+        {
+            continue;
+        }
+        ebpf_map_definition_t definition{
+            sizeof(ebpf_map_definition_t),
+            i,
+            sizeof(uint32_t),
+            sizeof(uint64_t),
+            1024
+        };
+        uint32_t key = 1;
+        uint64_t value = 0x1234567890abcdef;
+        auto entry = maps.create_map(&definition);
+        if (i != EBPF_MAP_TYPE_ARRAY)
+        {
+            REQUIRE(maps.lookup_entry(&entry->map, reinterpret_cast<uint8_t*>(&key)) == NULL);
+        }
+        REQUIRE(maps.update_entry(&entry->map, reinterpret_cast<uint8_t*>(&key), reinterpret_cast<uint8_t*>(&value)) == STATUS_SUCCESS);
+        REQUIRE(*reinterpret_cast<uint64_t*>(maps.lookup_entry(&entry->map, reinterpret_cast<uint8_t*>(&key))) == value);
+        REQUIRE(maps.delete_entry(&entry->map, reinterpret_cast<uint8_t*>(&key)) == STATUS_SUCCESS);
+        maps.delete_map(entry);
+    }
+}

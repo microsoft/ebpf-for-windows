@@ -149,10 +149,12 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\ebpf_core.c" />
+    <ClCompile Include="..\ebpf_maps.c" />
     <ClCompile Include="ebpf_core_test.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\ebpf_core.h" />
+    <ClInclude Include="..\ebpf_maps.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

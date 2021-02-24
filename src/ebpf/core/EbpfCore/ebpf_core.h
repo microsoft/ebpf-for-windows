@@ -24,16 +24,11 @@ typedef enum _xdp_action
     XDP_DROP = 2
 } xdp_action_t;
 
-typedef enum _ebpf_map_type
-{
-    EBPF_MAP_ARRAY = 2
-} ebpf_map_type_t;
-
 typedef enum _ebpf_helper_function
 {
     EBPF_LOOKUP_ELEMENT = 1,
     EBPF_UPDATE_ELEMENT = 2,
-    ebpf_delete_element = 3,
+    EBPF_DELETE_ELEMENT = 3,
     EBPF_INVALID
 } ebpf_helper_function_t;
 
@@ -42,6 +37,11 @@ typedef enum _ebpf_hook_point
     EBPF_HOOK_NONE = 0,
     EBPF_HOOK_XDP = 1
 } ebpf_hook_point_t;
+
+typedef enum
+{
+    ebpfPoolTag = 'fpbe'
+} EBPF_POOL_TAG;
 
 NTSTATUS ebpf_core_initialize();
 void ebpf_core_terminate();
