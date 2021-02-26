@@ -42,7 +42,7 @@ DWORD handle_ebpf_show_disassembly(
         tag_type);
 
     std::string filename;
-    std::string section = ".text";
+    std::string section = ""; // Use the first code section by default.
     for (int i = 0; (status == NO_ERROR) && ((i + current_index) < argc); i++) {
         switch (tag_type[i]) {
         case 0: // FILENAME
@@ -66,10 +66,18 @@ DWORD handle_ebpf_show_disassembly(
         return status;
     }
 
+    ebpf_verifier_options_t verifier_options = ebpf_verifier_default_options;
+    verifier_options.print_failures = true;
+    std::vector<raw_program> rawPrograms;
     try {
-        ebpf_verifier_options_t verifierOptions = ebpf_verifier_default_options;
-        verifierOptions.print_failures = true;
-        auto rawPrograms = read_elf(filename, section, &verifierOptions, platform);
+        rawPrograms = read_elf(filename, section, &verifier_options, platform);
+    }
+    catch (std::runtime_error e) {
+        std::cerr << "error: " << e.what() << std::endl;
+        return ERROR_SUPPRESS_OUTPUT;
+    }
+
+    try {
         raw_program rawProgram = rawPrograms.back();
         std::variant<InstructionSeq, std::string> programOrError = unmarshal(rawProgram, platform);
         if (std::holds_alternative<std::string>(programOrError)) {
@@ -158,36 +166,44 @@ DWORD handle_ebpf_show_sections(
         level = VL_VERBOSE;
     }
 
+    std::vector<raw_program> raw_programs;
     try {
-        auto rawPrograms = read_elf(filename, section, &ebpf_verifier_default_options, platform);
+        raw_programs = read_elf(filename, section, &ebpf_verifier_default_options, platform);
+    }
+    catch (std::runtime_error e) {
+        std::cerr << "error: " << e.what() << std::endl;
+        return ERROR_SUPPRESS_OUTPUT;
+    }
+
+    try {
         if (level == VL_NORMAL) {
             std::cout << "\n";
             std::cout << "             Section    Type  # Maps    Size\n";
             std::cout << "====================  ======  ======  ======\n";
         }
-        for (const raw_program& rawProgram : rawPrograms) {
+        for (const raw_program& raw_program : raw_programs) {
             if (level == VL_NORMAL) {
-                std::cout << std::setw(20) << std::right << rawProgram.section << "  " <<
-                    std::setw(6) << rawProgram.info.type.platform_specific_data << "  " <<
-                    std::setw(6) << rawProgram.info.map_descriptors.size() << "  " <<
-                    std::setw(6) << rawProgram.prog.size() << "\n";
+                std::cout << std::setw(20) << std::right << raw_program.section << "  " <<
+                    std::setw(6) << raw_program.info.type.platform_specific_data << "  " <<
+                    std::setw(6) << raw_program.info.map_descriptors.size() << "  " <<
+                    std::setw(6) << raw_program.prog.size() << "\n";
             } else {
                 // Convert the instruction sequence to a control-flow graph
                 // in a "passive", non-deterministic form.
-                std::variant<InstructionSeq, std::string> programOrError = unmarshal(rawProgram, platform);
+                std::variant<InstructionSeq, std::string> programOrError = unmarshal(raw_program, platform);
                 if (std::holds_alternative<std::string>(programOrError)) {
                     std::cout << "parse failure: " << std::get<std::string>(programOrError) << "\n";
                     return 1;
                 }
                 auto& program = std::get<InstructionSeq>(programOrError);
-                cfg_t controlFlowGraph = prepare_cfg(program, rawProgram.info, true);
+                cfg_t controlFlowGraph = prepare_cfg(program, raw_program.info, true);
                 std::map<std::string, int> stats = collect_stats(controlFlowGraph);
 
                 std::cout << "\n";
-                std::cout << "Section      : " << rawProgram.section << "\n";
-                std::cout << "Type         : " << (int)rawProgram.info.type.platform_specific_data << "\n";
-                std::cout << "# Maps       : " << rawProgram.info.map_descriptors.size() << "\n";
-                std::cout << "Size         : " << rawProgram.prog.size() << " instructions\n";
+                std::cout << "Section      : " << raw_program.section << "\n";
+                std::cout << "Type         : " << (int)raw_program.info.type.platform_specific_data << "\n";
+                std::cout << "# Maps       : " << raw_program.info.map_descriptors.size() << "\n";
+                std::cout << "Size         : " << raw_program.prog.size() << " instructions\n";
                 for (std::map<std::string, int>::iterator iter = stats.begin(); iter != stats.end(); iter++)
                 {
                     std::string key = iter->first;
@@ -198,8 +214,8 @@ DWORD handle_ebpf_show_sections(
         }
         return NO_ERROR;
     }
-    catch (std::exception ex) {
-        std::cout << "Failed to load ELF file: " << filename << "\n";
+    catch (std::runtime_error e) {
+        std::cerr << "error: " << e.what() << std::endl;
         return ERROR_SUPPRESS_OUTPUT;
     }
 }
@@ -232,7 +248,7 @@ DWORD handle_ebpf_show_verification(
         tag_type);
 
     std::string filename;
-    std::string section = ".text";
+    std::string section = ""; // Use the first code section by default.
     for (int i = 0; (status == NO_ERROR) && ((i + current_index) < argc); i++) {
         switch (tag_type[i]) {
         case 0: // FILENAME
@@ -256,22 +272,30 @@ DWORD handle_ebpf_show_verification(
         return status;
     }
 
+    ebpf_verifier_options_t verifier_options = ebpf_verifier_default_options;
+    verifier_options.print_failures = true;
+    std::vector<raw_program> raw_programs;
     try {
-        // Analyze the control-flow graph.
-        ebpf_verifier_options_t verifierOptions = ebpf_verifier_default_options;
-        verifierOptions.print_failures = true;
-        auto rawPrograms = read_elf(filename, section, &verifierOptions, platform);
-        raw_program rawProgram = rawPrograms.back();
-        std::variant<InstructionSeq, std::string> programOrError = unmarshal(rawProgram, platform);
+        raw_programs = read_elf(filename, section, &verifier_options, platform);
+    }
+    catch (std::runtime_error e) {
+        std::cerr << "error: " << e.what() << std::endl;
+        return ERROR_SUPPRESS_OUTPUT;
+    }
+
+    try {
+        raw_program raw_program = raw_programs.back();
+        std::variant<InstructionSeq, std::string> programOrError = unmarshal(raw_program, platform);
         if (std::holds_alternative<std::string>(programOrError)) {
             std::cout << "parse failure: " << std::get<std::string>(programOrError) << "\n";
             return 1;
         }
         auto& program = std::get<InstructionSeq>(programOrError);
 
-        const auto res = ebpf_verify_program(std::cout, program, rawProgram.info, &verifierOptions);
+        // Try again without simplifying.
+        verifier_options.no_simplify = true;
+        bool res = ebpf_verify_program(std::cout, program, raw_program.info, &verifier_options);
         if (!res) {
-            std::cout << "\nVerification failed\n";
             return ERROR_SUPPRESS_OUTPUT;
         }
 
