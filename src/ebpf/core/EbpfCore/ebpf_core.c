@@ -141,8 +141,12 @@ ebpf_core_protocol_attach_code(
     ebpf_core_code_entry_t* code = NULL;
     UNREFERENCED_PARAMETER(reply);
 
-    if (request->hook != EBPF_HOOK_XDP)
+    switch (request->hook)
     {
+    case EBPF_HOOK_XDP:
+    case EBPF_HOOK_BIND:
+        break;
+    default:
         status = STATUS_NOT_SUPPORTED;
         goto Done;
     }
@@ -174,9 +178,14 @@ ebpf_core_protocol_detach_code(
     ebpf_core_code_entry_t* code = NULL;
     UNREFERENCED_PARAMETER(reply);
 
-    if (request->hook != EBPF_HOOK_XDP)
+    switch (request->hook)
     {
+    case EBPF_HOOK_XDP:
+    case EBPF_HOOK_BIND:
+        break;
+    default:
         status = STATUS_NOT_SUPPORTED;
+        goto Done;
     }
 
     // TODO: Switch this to use real object manager handles
@@ -191,6 +200,7 @@ ebpf_core_protocol_detach_code(
 
     KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "EbpfCore: DetachCodeFromHook 0x%llx handle\n", request->handle));
 
+Done:
     return status;
 }
 
@@ -348,6 +358,67 @@ ebpf_core_invoke_xdp_hook(
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
             _count_of_seh_raised++;
+            KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "EbpfCore: ExecuteCode. _count_of_seh_raised %d\n", _count_of_seh_raised));
+        }
+    }
+
+    KeReleaseSpinLock(&_ebpf_core_code_entry_list_lock, old_irql);
+
+    return (xdp_action_t)result;
+}
+
+bind_action_t
+ebpf_core_invoke_bind_hook(
+    _In_ struct sockaddr* sockaddr,
+    _In_ uint32_t sockaddr_length,
+    _In_ uint8_t* app_id,
+    _In_ uint32_t app_id_length,
+    _In_ uint64_t process_id,
+    _In_ bind_operation_t operation,
+    _In_ uint8_t protocol)
+{
+    KIRQL old_irql;
+    ebpf_core_code_entry_t* code = NULL;
+    bind_hook_function function_pointer;
+    bind_action_t result = BIND_PERMIT;
+    BOOLEAN found = FALSE;
+
+    bind_md_t ctx = {
+        (uint64_t)sockaddr,
+        (uint64_t)sockaddr + sockaddr_length,
+        (uint64_t)app_id,
+        (uint64_t)app_id + app_id_length,
+        process_id,
+        operation,
+        protocol };
+
+
+    KeAcquireSpinLock(&_ebpf_core_code_entry_list_lock, &old_irql);
+
+    // TODO: Switch this to use real object manager handles
+    LIST_ENTRY* list_entry = _ebpf_core_code_entry_list.Flink;
+    while (list_entry != &_ebpf_core_code_entry_list)
+    {
+        code = CONTAINING_RECORD(list_entry, ebpf_core_code_entry_t, entry);
+        if (code->hook_point == EBPF_HOOK_BIND)
+        {
+            // find the first one and run.
+            found = TRUE;
+            break;
+        }
+
+        list_entry = list_entry->Flink;
+    }
+
+    if (found)
+    {
+        function_pointer = (bind_hook_function)code->code;
+        __try {
+            result = (*function_pointer)(&ctx);
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            _count_of_seh_raised++;
         }
     }
 
@@ -355,7 +426,7 @@ ebpf_core_invoke_xdp_hook(
 
     KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "EbpfCore: ExecuteCode. _count_of_seh_raised %d\n", _count_of_seh_raised));
 
-    return (xdp_action_t)result;
+    return (bind_action_t)result;
 }
 
 NTSTATUS ebpf_core_protocol_create_map(

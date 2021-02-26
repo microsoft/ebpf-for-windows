@@ -35,16 +35,9 @@ Environment:
 #include "protocol.h"
 #include "ebpf_core.h"
 
-// Callout and sublayer GUIDs
+#define RTL_COUNT_OF(arr) (sizeof(arr) / sizeof(arr[0]))
 
-// 5a5614e5-6b64-4738-8367-33c6ca07bf8f
-DEFINE_GUID(
-    EBPF_HOOK_L2_CALLOUT,
-    0x5a5614e5,
-    0x6b64,
-    0x4738,
-    0x83, 0x67, 0x33, 0xc6, 0xca, 0x07, 0xbf, 0x8f
-);
+// Callout and sublayer GUIDs
 
 // 7c7b3fb9-3331-436a-98e1-b901df457fff
 DEFINE_GUID(
@@ -55,47 +48,203 @@ DEFINE_GUID(
     0x98, 0xe1, 0xb9, 0x01, 0xdf, 0x45, 0x7f, 0xff
 );
 
+// 5a5614e5-6b64-4738-8367-33c6ca07bf8f
+DEFINE_GUID(
+    EBPF_HOOK_L2_CALLOUT,
+    0x5a5614e5,
+    0x6b64,
+    0x4738,
+    0x83, 0x67, 0x33, 0xc6, 0xca, 0x07, 0xbf, 0x8f
+);
+
+// c69f4de0-3d80-457d-9aea-75faef42ec12
+DEFINE_GUID(
+    EBPF_HOOK_ALE_BIND_REDIRECT_CALLOUT,
+    0xc69f4de0,
+    0x3d80,
+    0x457d,
+    0x9a, 0xea, 0x75, 0xfa, 0xef, 0x42, 0xec, 0x12
+);
+
+// 732acf94-7319-4fed-97d0-41d3a18f3fa1
+DEFINE_GUID(
+    EBPF_HOOK_ALE_RESOURCE_ALLOCATION_CALLOUT,
+    0x732acf94,
+    0x7319,
+    0x4fed,
+    0x97, 0xd0, 0x41, 0xd3, 0xa1, 0x8f, 0x3f, 0xa1
+);
+
+// d5792949-2d91-4023-9993-3f3dd9d54b2b
+DEFINE_GUID(
+    EBPF_HOOK_ALE_RESOURCE_RELEASE_CALLOUT,
+    0xd5792949,
+    0x2d91,
+    0x4023,
+    0x99, 0x93, 0x3f, 0x3d, 0xd9, 0xd5, 0x4b, 0x2b
+);
+
+static void
+ebpf_hook_layer_2_classify(
+    _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values,
+    _In_ const FWPS_INCOMING_METADATA_VALUES* incoming_metadata_values,
+    _Inout_opt_ void* layer_data,
+    _In_opt_ const void* classify_context,
+    _In_ const FWPS_FILTER* filter,
+    _In_ UINT64 flow_context,
+    _Inout_ FWPS_CLASSIFY_OUT* classify_output);
+
+static void
+ebpf_hook_resource_allocation_classify(
+    _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values,
+    _In_ const FWPS_INCOMING_METADATA_VALUES* incoming_metadata_values,
+    _Inout_opt_ void* layer_data,
+    _In_opt_ const void* classify_context,
+    _In_ const FWPS_FILTER* filter,
+    _In_ UINT64 flow_context,
+    _Inout_ FWPS_CLASSIFY_OUT* classify_output);
+
+static void
+ebpf_hook_resource_release_classify(
+    _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values,
+    _In_ const FWPS_INCOMING_METADATA_VALUES* incoming_metadata_values,
+    _Inout_opt_ void* layer_data,
+    _In_opt_ const void* classify_context,
+    _In_ const FWPS_FILTER* filter,
+    _In_ UINT64 flow_context,
+    _Inout_ FWPS_CLASSIFY_OUT* classify_output);
+
+static void
+ebpf_hook_no_op_flow_delete(
+    _In_ UINT16 layer_id,
+    _In_ UINT32 fwpm_callout_id,
+    _In_ UINT64 flow_context);
+
+static NTSTATUS
+ebpf_hook_no_op_notify(
+    _In_ FWPS_CALLOUT_NOTIFY_TYPE callout_notification_type,
+    _In_ const GUID* filter_key,
+    _Inout_ const FWPS_FILTER* filter);
+
+typedef struct _ebpf_wfp_callout_state
+{
+    const GUID* callout_guid;
+    const GUID* layer_guid;
+    FWPS_CALLOUT_CLASSIFY_FN3 classify_fn;
+    FWPS_CALLOUT_NOTIFY_FN3 notify_fn;
+    FWPS_CALLOUT_FLOW_DELETE_NOTIFY_FN0 delete_fn;
+    wchar_t* name;
+    wchar_t* description;
+    FWP_ACTION_TYPE filter_action_type;
+    uint32_t assigned_callout_id;
+} ebpf_wfp_callout_state_t;
+
+static ebpf_wfp_callout_state_t _ebpf_wfp_callout_state[] =
+{
+{
+    &EBPF_HOOK_L2_CALLOUT,
+    &FWPM_LAYER_INBOUND_MAC_FRAME_ETHERNET,
+    ebpf_hook_layer_2_classify,
+    ebpf_hook_no_op_notify,
+    ebpf_hook_no_op_flow_delete,
+    L"L2 XDP Callout",
+    L"L2 callout driver for eBPF at XDP-like layer",
+    FWP_ACTION_CALLOUT_TERMINATING,
+},
+{
+    &EBPF_HOOK_ALE_RESOURCE_ALLOCATION_CALLOUT,
+    &FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V4,
+    ebpf_hook_resource_allocation_classify,
+    ebpf_hook_no_op_notify,
+    ebpf_hook_no_op_flow_delete,
+    L"Resource Allocation eBPF Callout",
+    L"Resource Allocation callout driver for eBPF",
+    FWP_ACTION_CALLOUT_TERMINATING,
+},
+{
+    &EBPF_HOOK_ALE_RESOURCE_RELEASE_CALLOUT,
+    &FWPM_LAYER_ALE_RESOURCE_RELEASE_V4,
+    ebpf_hook_resource_release_classify,
+    ebpf_hook_no_op_notify,
+    ebpf_hook_no_op_flow_delete,
+    L"Resource Release eBPF Callout",
+    L"Resource Release callout driver for eBPF",
+    FWP_ACTION_CALLOUT_TERMINATING,
+},
+};
+
 // Callout globals
 static HANDLE _fwp_engine_handle;
-static UINT32 _fwp_layer_2_callout_id;
 
+static
 NTSTATUS
-EbpfHookAddFilter(
-    _In_ const PWSTR filter_name,
-    _In_ const PWSTR filter_description,
-    _In_ FWP_DIRECTION filter_direction,
-    _In_ const GUID* fwpm_layer_key,
-    _In_ const GUID* fwpm_callout_key
-)
+ebpf_hook_register_wfp_callout(
+    _Inout_ ebpf_wfp_callout_state_t * callout_state,
+    _Inout_ void* device_object
+    )
+/* ++
+
+   This function registers callouts and filters.
+
+-- */
 {
-    UNREFERENCED_PARAMETER(filter_direction);
     NTSTATUS status = STATUS_SUCCESS;
 
+    FWPS_CALLOUT callout_register_state = { 0 };
+    FWPM_CALLOUT callout_add_state = { 0 };
+
+    FWPM_DISPLAY_DATA display_data = { 0 };
     FWPM_FILTER filter = { 0 };
-    FWPM_FILTER_CONDITION filterConditions[3] = { 0 };
-    UINT conditionIndex;
 
-    filter.layerKey = *fwpm_layer_key;
-    filter.displayData.name = (wchar_t*)filter_name;
-    filter.displayData.description = (wchar_t*)filter_description;
+    BOOLEAN was_callout_registered = FALSE;
 
-    filter.action.type = FWP_ACTION_CALLOUT_TERMINATING;
-    filter.action.calloutKey = *fwpm_callout_key;
-    filter.filterCondition = filterConditions;
+    callout_register_state.calloutKey = *callout_state->callout_guid;
+    callout_register_state.classifyFn = callout_state->classify_fn;
+    callout_register_state.notifyFn = callout_state->notify_fn; 
+    callout_register_state.flowDeleteFn = callout_state->delete_fn; 
+    callout_register_state.flags = 0;
+
+    status = FwpsCalloutRegister(
+        device_object,
+        &callout_register_state,
+        &callout_state->assigned_callout_id
+    );
+    if (!NT_SUCCESS(status))
+    {
+        KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "Ebpf_wfp: FwpsCalloutRegister for %S failed with error %.2X\n", callout_state->name, status));
+        goto Exit;
+    }
+    was_callout_registered = TRUE;
+
+    display_data.name = callout_state->name;
+    display_data.description = callout_state->description;
+
+    callout_add_state.calloutKey = *callout_state->callout_guid;
+    callout_add_state.displayData = display_data;
+    callout_add_state.applicableLayer = *callout_state->layer_guid;
+
+    status = FwpmCalloutAdd(
+        _fwp_engine_handle,
+        &callout_add_state,
+        NULL,
+        NULL
+    );
+
+    if (!NT_SUCCESS(status))
+    {
+        KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "Ebpf_wfp: FwpmCalloutAdd for %S failed with error %.2X\n", callout_state->name, status));
+        goto Exit;
+    }
+
+    filter.layerKey = *callout_state->layer_guid;
+    filter.displayData.name = callout_state->name;
+    filter.displayData.description = callout_state->description;
+    filter.action.type = callout_state->filter_action_type;
+    filter.action.calloutKey = *callout_state->callout_guid;
+    filter.filterCondition = NULL;
+    filter.numFilterConditions = 0;
     filter.subLayerKey = EBPF_HOOK_SUBLAYER;
     filter.weight.type = FWP_EMPTY; // auto-weight.
-    //filter.rawContext = context;
-
-    conditionIndex = 0;
-
-    filterConditions[conditionIndex].fieldKey = FWPM_CONDITION_ETHER_TYPE;
-    filterConditions[conditionIndex].matchType = FWP_MATCH_EQUAL;
-    filterConditions[conditionIndex].conditionValue.type = FWP_UINT16;
-    filterConditions[conditionIndex].conditionValue.uint16 = NDIS_ETH_TYPE_IPV4;
-
-    conditionIndex++;
-
-    filter.numFilterConditions = conditionIndex;
 
     status = FwpmFilterAdd(
         _fwp_engine_handle,
@@ -103,79 +252,9 @@ EbpfHookAddFilter(
         NULL,
         NULL);
 
-    return status;
-}
-
-
-NTSTATUS
-EbpfHookRegisterL2Callout(
-    _In_ const GUID* fwpm_layer_key,
-    _In_ const GUID* fwpm_callout_key,
-    _Inout_ void* device_object,
-    _Out_ UINT32* fwpm_callout_id
-)
-/* ++
-
-   This function registers callouts and filters that intercept L2 traffic at
-   WFP FWPM_LAYER_INBOUND_MAC_FRAME_ETHERNET.
-
--- */
-{
-    NTSTATUS status = STATUS_SUCCESS;
-
-    FWPS_CALLOUT sCallout = { 0 };
-    FWPM_CALLOUT mCallout = { 0 };
-
-    FWPM_DISPLAY_DATA displayData = { 0 };
-
-    BOOLEAN calloutRegistered = FALSE;
-
-    sCallout.calloutKey = *fwpm_callout_key;
-    sCallout.classifyFn = ebpf_hook_layer_2_classify;
-    sCallout.notifyFn = ebpf_hook_layer_2_notify;
-    sCallout.flowDeleteFn = ebpf_hook_layer_2_flow_delete;
-    sCallout.flags = 0;
-
-    status = FwpsCalloutRegister(
-        device_object,
-        &sCallout,
-        fwpm_callout_id
-    );
     if (!NT_SUCCESS(status))
     {
-        goto Exit;
-    }
-    calloutRegistered = TRUE;
-
-    displayData.name = L"L2 XDP Callout";
-    displayData.description = L"L2 callout driver for eBPF at XDP-like layer";
-
-    mCallout.calloutKey = *fwpm_callout_key;
-    mCallout.displayData = displayData;
-    mCallout.applicableLayer = *fwpm_layer_key;
-
-    status = FwpmCalloutAdd(
-        _fwp_engine_handle,
-        &mCallout,
-        NULL,
-        NULL
-    );
-
-    if (!NT_SUCCESS(status))
-    {
-        goto Exit;
-    }
-
-    status = EbpfHookAddFilter(
-        L"L2 filter (Inbound)",
-        L"L2 filter inbound",
-        FWP_DIRECTION_INBOUND,
-        fwpm_layer_key,
-        fwpm_callout_key
-    );
-
-    if (!NT_SUCCESS(status))
-    {
+        KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "Ebpf_wfp: FwpmFilterAdd for %S failed with error %.2X\n", callout_state->name, status));
         goto Exit;
     }
 
@@ -183,15 +262,16 @@ Exit:
 
     if (!NT_SUCCESS(status))
     {
-        if (calloutRegistered)
+        if (was_callout_registered)
         {
-            FwpsCalloutUnregisterById(*fwpm_callout_id);
-            *fwpm_callout_id = 0;
+            FwpsCalloutUnregisterById(callout_state->assigned_callout_id);
+            callout_state->assigned_callout_id = 0;
         }
     }
 
     return status;
 }
+
 
 NTSTATUS
 ebpf_hook_register_callouts(
@@ -207,12 +287,14 @@ ebpf_hook_register_callouts(
 -- */
 {
     NTSTATUS status = STATUS_SUCCESS;
-    FWPM_SUBLAYER ebpfHookL2SubLayer;
+    FWPM_SUBLAYER ebpf_hook_sub_layer;
 
-    BOOLEAN engineOpened = FALSE;
-    BOOLEAN inTransaction = FALSE;
+    BOOLEAN is_engined_opened = FALSE;
+    BOOLEAN is_in_transaction = FALSE;
 
     FWPM_SESSION session = { 0 };
+
+    size_t index;
 
     if (_fwp_engine_handle != NULL)
     {
@@ -231,60 +313,63 @@ ebpf_hook_register_callouts(
     );
     if (!NT_SUCCESS(status))
     {
+        KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "Ebpf_wfp: FwpmEngineOpen failed with error %.2X\n", status));
         goto Exit;
     }
-    engineOpened = TRUE;
+    is_engined_opened = TRUE;
 
     status = FwpmTransactionBegin(_fwp_engine_handle, 0);
     if (!NT_SUCCESS(status))
     {
+        KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "Ebpf_wfp: FwpmTransactionBegin failed with error %.2X\n", status));
         goto Exit;
     }
-    inTransaction = TRUE;
+    is_in_transaction = TRUE;
 
-    RtlZeroMemory(&ebpfHookL2SubLayer, sizeof(FWPM_SUBLAYER));
+    RtlZeroMemory(&ebpf_hook_sub_layer, sizeof(FWPM_SUBLAYER));
 
-    ebpfHookL2SubLayer.subLayerKey = EBPF_HOOK_SUBLAYER;
-    ebpfHookL2SubLayer.displayData.name = L"L2 hook Sub-Layer";
-    ebpfHookL2SubLayer.displayData.description =
-        L"Sub-Layer for use by L2 callouts";
-    ebpfHookL2SubLayer.flags = 0;
-    ebpfHookL2SubLayer.weight = FWP_EMPTY; // auto-weight.;
+    ebpf_hook_sub_layer.subLayerKey = EBPF_HOOK_SUBLAYER;
+    ebpf_hook_sub_layer.displayData.name = L"EBPF hook Sub-Layer";
+    ebpf_hook_sub_layer.displayData.description =
+        L"Sub-Layer for use by EBPF callouts";
+    ebpf_hook_sub_layer.flags = 0;
+    ebpf_hook_sub_layer.weight = FWP_EMPTY; // auto-weight.;
 
-    status = FwpmSubLayerAdd(_fwp_engine_handle, &ebpfHookL2SubLayer, NULL);
+    status = FwpmSubLayerAdd(_fwp_engine_handle, &ebpf_hook_sub_layer, NULL);
     if (!NT_SUCCESS(status))
     {
+        KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "Ebpf_wfp: FwpmSubLayerAdd failed with error %.2X\n", status));
         goto Exit;
     }
 
-    status = EbpfHookRegisterL2Callout(
-        &FWPM_LAYER_INBOUND_MAC_FRAME_ETHERNET,
-        &EBPF_HOOK_L2_CALLOUT,
-        device_object,
-        &_fwp_layer_2_callout_id
-    );
-    if (!NT_SUCCESS(status))
+    for (index = 0; index < RTL_COUNT_OF(_ebpf_wfp_callout_state); index++)
     {
-        goto Exit;
+        status = ebpf_hook_register_wfp_callout(&_ebpf_wfp_callout_state[index], device_object);
+        if (!NT_SUCCESS(status))
+        {
+            KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "Ebpf_wfp: ebpf_hook_register_wfp_callout failed for %S with error %.2X\n", _ebpf_wfp_callout_state[index].name, status));
+            goto Exit;
+        }
     }
 
     status = FwpmTransactionCommit(_fwp_engine_handle);
     if (!NT_SUCCESS(status))
     {
+        KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "Ebpf_wfp: FwpmTransactionCommit failed with error %.2X\n", status));
         goto Exit;
     }
-    inTransaction = FALSE;
+    is_in_transaction = FALSE;
 
 Exit:
 
     if (!NT_SUCCESS(status))
     {
-        if (inTransaction)
+        if (is_in_transaction)
         {
             FwpmTransactionAbort(_fwp_engine_handle);
             _Analysis_assume_lock_not_held_(_fwp_engine_handle); // Potential leak if "FwpmTransactionAbort" fails
         }
-        if (engineOpened)
+        if (is_engined_opened)
         {
             FwpmEngineClose(_fwp_engine_handle);
             _fwp_engine_handle = NULL;
@@ -297,16 +382,20 @@ Exit:
 void
 ebpf_hook_unregister_callouts(void)
 {
+    size_t index;
     if (_fwp_engine_handle != NULL)
     {
         FwpmEngineClose(_fwp_engine_handle);
         _fwp_engine_handle = NULL;
 
-        FwpsCalloutUnregisterById(_fwp_layer_2_callout_id);
+        for (index = 0; index < RTL_COUNT_OF(_ebpf_wfp_callout_state); index++)
+        {
+            FwpsCalloutUnregisterById(_ebpf_wfp_callout_state[index].assigned_callout_id);
+        }
     }
 }
 
-void
+static void
 ebpf_hook_layer_2_classify(
    _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values,
    _In_ const FWPS_INCOMING_METADATA_VALUES* incoming_metadata_values,
@@ -373,34 +462,128 @@ done:
    return;
 }
 
-NTSTATUS
-ebpf_hook_layer_2_notify(
-   _In_ FWPS_CALLOUT_NOTIFY_TYPE callout_notification_type,
-   _In_ const GUID* filter_key,
-   _Inout_ const FWPS_FILTER* filter
-   )
-{
-   UNREFERENCED_PARAMETER(callout_notification_type);
-   UNREFERENCED_PARAMETER(filter_key);
-   UNREFERENCED_PARAMETER(filter);
 
-   return STATUS_SUCCESS;
-}
-
-void
-ebpf_hook_layer_2_flow_delete(
-   _In_ UINT16 layer_id,
-   _In_ UINT32 fwpm_callout_id,
-   _In_ UINT64 flow_context
-   )
+static void
+ebpf_hook_resource_allocation_classify(
+    _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values,
+    _In_ const FWPS_INCOMING_METADATA_VALUES* incoming_metadata_values,
+    _Inout_opt_ void* layer_data,
+    _In_opt_ const void* classify_context,
+    _In_ const FWPS_FILTER* filter,
+    _In_ UINT64 flow_context,
+    _Inout_ FWPS_CLASSIFY_OUT* classify_output)
 /* ++
 
-   This is the flowDeleteFn function of the L2 callout. 
+   A simple classify function at the WFP Resource Allocation layer.
 
 -- */
 {
-   UNREFERENCED_PARAMETER(layer_id);
-   UNREFERENCED_PARAMETER(fwpm_callout_id);
-   UNREFERENCED_PARAMETER(flow_context);
-   return;
+    SOCKADDR_IN addr = {AF_INET};
+    bind_action_t action;
+
+    UNREFERENCED_PARAMETER(incoming_fixed_values);
+    UNREFERENCED_PARAMETER(incoming_metadata_values);
+    UNREFERENCED_PARAMETER(layer_data);
+    UNREFERENCED_PARAMETER(classify_context);
+    UNREFERENCED_PARAMETER(filter);
+    UNREFERENCED_PARAMETER(flow_context);
+
+    addr.sin_port = incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_IP_LOCAL_PORT].value.uint16;
+    addr.sin_addr.S_un.S_addr = incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_IP_LOCAL_ADDRESS].value.uint32;
+
+    action = ebpf_core_invoke_bind_hook(
+        (SOCKADDR*)&addr,
+        sizeof(addr),
+        incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_ALE_APP_ID].value.byteBlob->data,
+        incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_ALE_APP_ID].value.byteBlob->size,
+        incoming_metadata_values->processId,
+        BIND_OPERATION_BIND,
+        incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_IP_PROTOCOL].value.uint8);
+
+    switch (action)
+    {
+    case BIND_PERMIT:
+    case BIND_REDIRECT:
+        classify_output->actionType = FWP_ACTION_PERMIT;
+        break;
+    case BIND_DENY:
+        classify_output->actionType = FWP_ACTION_BLOCK;
+
+    }
+
+    return;
+}
+
+static void
+ebpf_hook_resource_release_classify(
+    _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values,
+    _In_ const FWPS_INCOMING_METADATA_VALUES* incoming_metadata_values,
+    _Inout_opt_ void* layer_data,
+    _In_opt_ const void* classify_context,
+    _In_ const FWPS_FILTER* filter,
+    _In_ UINT64 flow_context,
+    _Inout_ FWPS_CLASSIFY_OUT* classify_output)
+    /* ++
+
+       A simple classify function at the WFP Resource Release layer.
+
+    -- */
+{
+    SOCKADDR_IN addr = { AF_INET };
+    bind_action_t action;
+
+    UNREFERENCED_PARAMETER(incoming_fixed_values);
+    UNREFERENCED_PARAMETER(incoming_metadata_values);
+    UNREFERENCED_PARAMETER(layer_data);
+    UNREFERENCED_PARAMETER(classify_context);
+    UNREFERENCED_PARAMETER(filter);
+    UNREFERENCED_PARAMETER(flow_context);
+
+    addr.sin_port = incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_RELEASE_V4_IP_LOCAL_PORT].value.uint16;
+    addr.sin_addr.S_un.S_addr = incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_RELEASE_V4_IP_LOCAL_ADDRESS].value.uint32;
+
+    action = ebpf_core_invoke_bind_hook(
+        (SOCKADDR*)&addr,
+        sizeof(addr),
+        incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_RELEASE_V4_ALE_APP_ID].value.byteBlob->data,
+        incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_RELEASE_V4_ALE_APP_ID].value.byteBlob->size,
+        incoming_metadata_values->processId,
+        BIND_OPERATION_UNBIND,
+        incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_RELEASE_V4_IP_PROTOCOL].value.uint8);
+
+    classify_output->actionType = FWP_ACTION_PERMIT;
+
+    return;
+}
+
+static NTSTATUS
+ebpf_hook_no_op_notify(
+    _In_ FWPS_CALLOUT_NOTIFY_TYPE callout_notification_type,
+    _In_ const GUID* filter_key,
+    _Inout_ const FWPS_FILTER* filter
+)
+{
+    UNREFERENCED_PARAMETER(callout_notification_type);
+    UNREFERENCED_PARAMETER(filter_key);
+    UNREFERENCED_PARAMETER(filter);
+
+    return STATUS_SUCCESS;
+}
+
+static void
+ebpf_hook_no_op_flow_delete(
+    _In_ UINT16 layer_id,
+    _In_ UINT32 fwpm_callout_id,
+    _In_ UINT64 flow_context
+)
+/* ++
+
+   This is the flowDeleteFn function of the L2 callout.
+
+-- */
+{
+    UNREFERENCED_PARAMETER(layer_id);
+    UNREFERENCED_PARAMETER(fwpm_callout_id);
+    UNREFERENCED_PARAMETER(flow_context);
+    return;
 }
