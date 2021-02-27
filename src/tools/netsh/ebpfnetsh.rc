@@ -64,9 +64,9 @@ BEGIN
 \n      Tag         Value\
 \n      filename  - Filename or path to ELF file containing the\
 \n                  program.\
-\n      section   - Optionally the name of the section containing\
-\n                  the program.  If not specified, "".text"" is the\
-\n                  default.\
+\n      section   - Optionally the name of the section containing the\
+\n                  program.  If not specified, the default is to use the\
+\n                  first code section.\
 \n      type      - One of the following values:\
 \n                   xdp: The program is meant to hook into XDP.\
 \n                        This is the default value.\
@@ -89,9 +89,9 @@ BEGIN
 \n                  program.  The ELF file itself is not used, but\
 \n                  the filename is used as an identifier to match\
 \n                  a pinned program.\
-\n      section   - Optionally the name of the section containing\
-\n                  the program.  If not specified, "".text"" is the\
-\n                  default.\
+\n      section   - Optionally the name of the section containing the\
+\n                  program.  If not specified, the default is to use the\
+\n                  first code section.\
 \n\
 \nRemarks: If the program is pinned, this unpins the specified\
 \n         program.  If an unpinned process was loaded by the same\
@@ -150,9 +150,9 @@ BEGIN
 \n                            filename is given.\
 \n      filename  - Filename or path to ELF file containing the\
 \n                  program.\
-\n      section   - Optionally the name of the section containing\
-\n                  the program.  If not specified, "".text"" is the\
-\n                  default.\
+\n      section   - Optionally the name of the section containing the\
+\n                  program.  If not specified, the default is to use the\
+\n                  first code section.\
 \n\
 \nRemarks: Shows all loaded programs.\
 \n"
@@ -165,8 +165,9 @@ BEGIN
 \n\
 \n      Tag         Value\
 \n      filename  - Filename or path to ELF file.\
-\n      section   - Optionally the name of a section.  If not\
-\n                  specified, "".text"" is the default.\
+\n      section   - Optionally the name of the section containing the\
+\n                  program.  If not specified, the default is to use the\
+\n                  first code section.\
 \n\
 \nRemarks: Shows the disassembly of the specified eBPF program.\
 \n"
@@ -199,8 +200,9 @@ BEGIN
 \n\
 \n      Tag         Value\
 \n      filename  - Filename or path to ELF file.\
-\n      section   - Optionally the name of a section.  If not\
-\n                  specified, "".text"" is the default.\
+\n      section   - Optionally the name of the section containing the\
+\n                  program.  If not specified, the default is to use the\
+\n                  first code section.\
 \n\
 \nRemarks: Shows the verbose verifier results of the specified eBPF\
 \n         program.\

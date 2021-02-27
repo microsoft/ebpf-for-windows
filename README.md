@@ -30,7 +30,7 @@ The following must be installed in order to build this project:
 2. On defender, install and setup DNS
 3. On defender, make sure KD is attached and running.
 1. Install Debug VS 2019 VC redist from TBD (or switch everything to Multi-threaded Debug (/MTd) and rebuild)
-2. Copy ebpfcore.sys to %windir%\system32
+2. Copy ebpfcore.sys to %windir%\system32\drivers
 3. Copy ebpfapi.dll and ebpfnetsh.dll to %windir%\system32
 4. sc create EbpfCore type=kernel start=boot binpath=%windir%\system32\drivers\ebpfcore.sys
 5. sc start EbpfCore
