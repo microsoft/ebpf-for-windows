@@ -273,6 +273,7 @@ DWORD handle_ebpf_show_verification(
     }
 
     ebpf_verifier_options_t verifier_options = ebpf_verifier_default_options;
+    verifier_options.check_termination = true;
     verifier_options.print_failures = true;
     std::vector<raw_program> raw_programs;
     try {

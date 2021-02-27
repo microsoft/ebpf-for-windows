@@ -42,7 +42,6 @@ static char * allocate_error_string(const std::string& str)
 
 static int analyze(raw_program& raw_prog, char ** error_message)
 {
-    std::ostringstream oss;
     const ebpf_platform_t* platform = &g_ebpf_platform_windows;
 
     std::variant<InstructionSeq, std::string> prog_or_error = unmarshal(raw_prog, platform);
@@ -50,12 +49,19 @@ static int analyze(raw_program& raw_prog, char ** error_message)
         *error_message = allocate_error_string(std::get<std::string>(prog_or_error));
         return 1; // Error;
     }
-    auto& prog = std::get<InstructionSeq>(prog_or_error);
-    cfg_t cfg = prepare_cfg(prog, raw_prog.info, true);
+    InstructionSeq& prog = std::get<InstructionSeq>(prog_or_error);
+
+    // First try optimized for the success case.
     ebpf_verifier_options_t options = ebpf_verifier_default_options;
-    options.print_failures = true;
-    bool res = run_ebpf_analysis(oss, cfg, raw_prog.info, &options);
+    options.check_termination = true;
+    bool res = ebpf_verify_program(std::cout, prog, raw_prog.info, &options);
     if (!res) {
+        // On failure, retry to get the more detailed error message.
+        std::ostringstream oss;
+        options.no_simplify = true;
+        options.print_failures = true;
+        (void)ebpf_verify_program(oss, prog, raw_prog.info, &options);
+
         *error_message = allocate_error_string(oss.str());
         return 1; // Error;
     }
