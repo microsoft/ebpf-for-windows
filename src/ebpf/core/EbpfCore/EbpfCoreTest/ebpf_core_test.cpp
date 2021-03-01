@@ -136,6 +136,25 @@ TEST_CASE("MapTests", "MapTests") {
         REQUIRE(*value == 0);
     }
 
+    _ebpf_operation_enumerate_maps_request enumerate_request;
+    enumerate_request.previous_handle = (uint64_t)INVALID_HANDLE_VALUE;
+    _ebpf_operation_enumerate_maps_reply enumerate_reply;
+    REQUIRE(ebpf_core_protocol_enumerate_maps(&enumerate_request, &enumerate_reply) == STATUS_SUCCESS);
+    REQUIRE(enumerate_reply.next_handle != (uint64_t)INVALID_HANDLE_VALUE);
+
+    _ebpf_operation_query_map_definition_request query_request;
+    _ebpf_operation_query_map_definition_reply query_reply;
+    query_request.handle = enumerate_reply.next_handle;
+
+    REQUIRE(ebpf_core_protocol_query_map_definition(&query_request, &query_reply) == STATUS_SUCCESS);
+
+    REQUIRE(memcmp(&query_reply.map_definition, &create_request.ebpf_map_definition, sizeof(query_reply.map_definition)) == 0);
+
+    enumerate_request.previous_handle = enumerate_reply.next_handle;
+    REQUIRE(ebpf_core_protocol_enumerate_maps(&enumerate_request, &enumerate_reply) == STATUS_SUCCESS);
+    REQUIRE(enumerate_reply.next_handle == (uint64_t)INVALID_HANDLE_VALUE);
+
+
     ebpf_core_terminate();
 }
 

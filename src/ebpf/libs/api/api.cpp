@@ -381,6 +381,44 @@ DLL DWORD ebpf_api_map_delete_element(HANDLE handle, DWORD key_size, unsigned ch
     return invoke_ioctl(device_handle, request_buffer, nullptr);
 }
 
+DLL DWORD ebpf_api_map_enumerate(HANDLE previous_handle, HANDLE* next_handle)
+{
+    _ebpf_operation_enumerate_maps_request request{
+        sizeof(request),
+        ebpf_operation_id_t::EBPF_OPERATION_ENUMERATE_MAPS,
+        reinterpret_cast<uint64_t>(previous_handle) };
+
+    _ebpf_operation_enumerate_maps_reply reply;
+
+    DWORD retval = invoke_ioctl(device_handle, &request, &reply);
+    if (retval == ERROR_SUCCESS)
+    {
+        *next_handle = reinterpret_cast<HANDLE>(reply.next_handle);
+    }
+    return retval;
+}
+
+DLL DWORD ebpf_api_map_query_definition(HANDLE handle, DWORD* size, DWORD* type, DWORD* key_size, DWORD* value_size, DWORD* max_entries)
+{
+    _ebpf_operation_query_map_definition_request request{
+        sizeof(request),
+        ebpf_operation_id_t::EBPF_OPERATION_QUERY_MAP_DEFINITION,
+        reinterpret_cast<uint64_t>(handle) };
+
+    _ebpf_operation_query_map_definition_reply reply;
+
+    DWORD retval = invoke_ioctl(device_handle, &request, &reply);
+    if (retval == ERROR_SUCCESS)
+    {
+        *size = reply.map_definition.size;
+        *type = reply.map_definition.type;
+        *key_size = reply.map_definition.key_size;
+        *value_size = reply.map_definition.value_size;
+        *max_entries = reply.map_definition.max_entries;
+    }
+    return retval;
+}
+
 DLL void ebpf_api_delete_map(HANDLE handle)
 {
     CloseHandle(handle);

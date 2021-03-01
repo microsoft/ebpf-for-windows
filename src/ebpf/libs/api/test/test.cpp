@@ -275,6 +275,15 @@ TEST_CASE("Load program success - EBPF_OPERATION_CREATE_MAP", "[load_success - c
     _ebpf_operation_load_code_reply load_reply{ sizeof(_ebpf_operation_load_code_reply), ebpf_operation_id_t::EBPF_OPERATION_LOAD_CODE, reinterpret_cast<uint64_t>(&h) };
     push_back_reply_message(&load_reply.header);
 
+    _ebpf_operation_enumerate_maps_reply enumerate_reply{ sizeof(_ebpf_operation_enumerate_maps_reply), ebpf_operation_id_t::EBPF_OPERATION_ENUMERATE_MAPS, 12345ull };
+    push_back_reply_message(&enumerate_reply.header);
+    
+    _ebpf_operation_query_map_definition_reply query_reply{ sizeof(_ebpf_operation_query_map_definition_reply), ebpf_operation_id_t::EBPF_OPERATION_QUERY_MAP_DEFINITION, 1, 2, 3, 4, 5 };
+    push_back_reply_message(&query_reply.header);
+
+    enumerate_reply.next_handle = (uint64_t)-1;
+    push_back_reply_message(&enumerate_reply.header);
+
     REQUIRE(ebpf_api_initiate() == ERROR_SUCCESS);
 
     auto result = ebpf_api_load_program("droppacket.o", "xdp", &handle, &error_message);
@@ -309,6 +318,22 @@ TEST_CASE("Load program success - EBPF_OPERATION_CREATE_MAP", "[load_success - c
     memcpy(code_page, &load_request->machine_code[0], code_size);
     VirtualProtect(code_page, code_size, PAGE_EXECUTE_READ, &oldProtect);
     request_messages.pop_front();
+
+    HANDLE map_handle = INVALID_HANDLE_VALUE;
+    REQUIRE(ebpf_api_map_enumerate(map_handle, &map_handle) == ERROR_SUCCESS);
+    REQUIRE(map_handle != INVALID_HANDLE_VALUE);
+    
+    DWORD size;
+    DWORD type;
+    DWORD key_size;
+    DWORD value;
+    DWORD max_entries;
+
+    REQUIRE(ebpf_api_map_query_definition(map_handle, &size, &type, &key_size, &value, &max_entries) == ERROR_SUCCESS);
+
+    REQUIRE(ebpf_api_map_enumerate(map_handle, &map_handle) == ERROR_SUCCESS);
+    REQUIRE(map_handle == INVALID_HANDLE_VALUE);
+
 
     ebpf_api_free_error_message(error_message);
     ebpf_api_terminate();

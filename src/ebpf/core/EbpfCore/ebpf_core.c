@@ -576,6 +576,76 @@ NTSTATUS ebpf_core_protocol_map_delete_element(
     return status;
 }
 
+NTSTATUS
+ebpf_core_protocol_enumerate_maps(
+    _In_ const struct _ebpf_operation_enumerate_maps_request* request,
+    _Inout_ struct _ebpf_operation_enumerate_maps_reply* reply)
+{
+    KIRQL old_irql;
+    ebpf_core_map_entry_t* map = NULL;
+    const uint64_t sentinel_value = (uint64_t)-1;
+
+    KeAcquireSpinLock(&_ebpf_core_map_entry_list_lock, &old_irql);
+    // TODO: Switch this to use real object manager handles
+
+    // Are we at the start of the list?
+    if (request->previous_handle == sentinel_value)
+    {
+        // Yes. Return the first entry.
+        map = CONTAINING_RECORD(_ebpf_core_map_entry_list.Flink, ebpf_core_map_entry_t, entry);
+        reply->next_handle = map->handle;
+    }
+    else
+    {
+        // No. Find the entry.
+        map = _ebpf_core_find_map_entry(request->previous_handle);
+        
+        // Did we find the entry and is it not the last?
+        if (map != NULL && map->entry.Flink != &_ebpf_core_map_entry_list)
+        {
+            // Yes. Return handle to next entry.
+            map = CONTAINING_RECORD(map->entry.Flink, ebpf_core_map_entry_t, entry);
+            reply->next_handle = map->handle;
+        }
+        else
+        {
+            // No. Return sentinel.
+            reply->next_handle = sentinel_value;
+        }
+    }
+
+    KeReleaseSpinLock(&_ebpf_core_map_entry_list_lock, old_irql);
+
+    KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "EbpfCore: ebpf_core_protocol_enumerate_maps returning 0x%llx handle\n", reply->next_handle));
+
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS
+ebpf_core_protocol_query_map_definition(
+    _In_ const struct _ebpf_operation_query_map_definition_request* request,
+    _Inout_ struct _ebpf_operation_query_map_definition_reply* reply)
+{
+    NTSTATUS status = STATUS_NOT_FOUND;
+    KIRQL old_irql;
+    ebpf_core_map_entry_t* map = NULL;
+    UNREFERENCED_PARAMETER(reply);
+
+    KeAcquireSpinLock(&_ebpf_core_map_entry_list_lock, &old_irql);
+    // TODO: Switch this to use real object manager handles
+    map = _ebpf_core_find_map_entry(request->handle);
+    if (map)
+    {
+        reply->map_definition = map->map.ebpf_map_definition;
+        status = STATUS_SUCCESS;
+    }
+    KeReleaseSpinLock(&_ebpf_core_map_entry_list_lock, old_irql);
+
+    KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "EbpfCore: ebpf_core_protocol_query_map_definition 0x%llx handle\n", request->handle));
+
+    return status;
+}
+
 void* _ebpf_core_map_lookup_element(ebpf_core_map_t* map, const uint8_t* key)
 {
     UINT32 type = map->ebpf_map_definition.type;

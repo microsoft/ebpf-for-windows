@@ -124,6 +124,16 @@ ebpf_core_protocol_map_delete_element(
     _In_ const struct _ebpf_operation_map_delete_element_request* request,
     _Inout_ void* reply);
 
+NTSTATUS
+ebpf_core_protocol_enumerate_maps(
+    _In_ const struct _ebpf_operation_enumerate_maps_request* request,
+    _Inout_ struct _ebpf_operation_enumerate_maps_reply* reply);
+
+NTSTATUS
+ebpf_core_protocol_query_map_definition(
+    _In_ const struct _ebpf_operation_query_map_definition_request* request,
+    _Inout_ struct _ebpf_operation_query_map_definition_reply* reply);
+
 xdp_action_t
 ebpf_core_invoke_xdp_hook(
     _In_ void* buffer,

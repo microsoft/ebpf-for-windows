@@ -249,7 +249,9 @@ static const struct {
     { ebpf_core_protocol_create_map, sizeof(struct _ebpf_operation_create_map_request), sizeof(struct _ebpf_operation_create_map_reply) },
     { ebpf_core_protocol_map_lookup_element, sizeof(struct _ebpf_operation_map_lookup_element_request), sizeof(struct _ebpf_operation_map_lookup_element_reply) },
     { ebpf_core_protocol_map_update_element, sizeof(struct _ebpf_operation_map_update_element_request), 0 },
-    { ebpf_core_protocol_map_delete_element, sizeof(struct _ebpf_operation_map_delete_element_request), 0 }
+    { ebpf_core_protocol_map_delete_element, sizeof(struct _ebpf_operation_map_delete_element_request), 0 },
+    { ebpf_core_protocol_enumerate_maps, sizeof(struct _ebpf_operation_enumerate_maps_request), sizeof(struct _ebpf_operation_enumerate_maps_reply) },
+    { ebpf_core_protocol_query_map_definition, sizeof(struct _ebpf_operation_query_map_definition_request), sizeof(struct _ebpf_operation_query_map_definition_reply) },
 };
 
 static VOID

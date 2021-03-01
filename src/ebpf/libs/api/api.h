@@ -31,6 +31,10 @@ extern "C" {
     DLL DWORD ebpf_api_map_lookup_element(HANDLE handle, DWORD key_size, unsigned char* key, DWORD value_size, unsigned char* value);
     DLL DWORD ebpf_api_map_update_element(HANDLE handle, DWORD key_size, unsigned char* key, DWORD value_size, unsigned char* value);
     DLL DWORD ebpf_api_map_delete_element(HANDLE handle, DWORD key_size, unsigned char* key);
+
+    DLL DWORD ebpf_api_map_enumerate(HANDLE previous_handle, HANDLE* next_handle);
+    DLL DWORD ebpf_api_map_query_definition(HANDLE handle, DWORD* size, DWORD* type, DWORD* key_size, DWORD* value_size, DWORD* max_entries);
+
     DLL void ebpf_api_delete_map(HANDLE handle);
 
 #ifdef __cplusplus
