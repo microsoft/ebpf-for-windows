@@ -35,6 +35,49 @@ Environment:
 #include "protocol.h"
 #include "ebpf_core.h"
 
+// XDP like hook
+typedef struct _xdp_md {
+    uint64_t                      data;                 /*     0     8 */
+    uint64_t                      data_end;             /*     8     8 */
+    uint64_t                      data_meta;            /*     16    8 */
+
+    /* size: 12, cachelines: 1, members: 3 */
+    /* last cacheline: 12 bytes */
+} xdp_md_t;
+
+typedef enum _xdp_action
+{
+    XDP_PASS = 1,
+    XDP_DROP = 2
+} xdp_action_t;
+
+// BIND hook
+typedef struct _bind_md {
+    uint64_t                      app_id_start;             // 0,8
+    uint64_t                      app_id_end;               // 8,8
+    uint64_t                      process_id;               // 16,8
+    uint8_t                       socket_address[16];       // 24,16
+    uint8_t                       socket_address_length;    // 40,1
+    uint8_t                       operation;                // 41,1
+    uint8_t                       protocol;                 // 42,1
+} bind_md_t;
+
+typedef enum _bind_operation
+{
+    BIND_OPERATION_BIND,          // Entry to bind
+    BIND_OPERATION_POST_BIND,     // After port allocation
+    BIND_OPERATION_UNBIND,        // Release port
+} bind_operation_t;
+
+typedef enum _bind_action
+{
+    BIND_PERMIT,
+    BIND_DENY,
+    BIND_REDIRECT,
+} bind_action_t;
+
+typedef DWORD(__stdcall* bind_hook_function) (PVOID);
+
 #define RTL_COUNT_OF(arr) (sizeof(arr) / sizeof(arr[0]))
 
 // Callout and sublayer GUIDs
@@ -91,7 +134,7 @@ ebpf_hook_layer_2_classify(
     _Inout_opt_ void* layer_data,
     _In_opt_ const void* classify_context,
     _In_ const FWPS_FILTER* filter,
-    _In_ UINT64 flow_context,
+    _In_ uint64_t flow_context,
     _Inout_ FWPS_CLASSIFY_OUT* classify_output);
 
 static void
@@ -101,7 +144,7 @@ ebpf_hook_resource_allocation_classify(
     _Inout_opt_ void* layer_data,
     _In_opt_ const void* classify_context,
     _In_ const FWPS_FILTER* filter,
-    _In_ UINT64 flow_context,
+    _In_ uint64_t flow_context,
     _Inout_ FWPS_CLASSIFY_OUT* classify_output);
 
 static void
@@ -111,14 +154,14 @@ ebpf_hook_resource_release_classify(
     _Inout_opt_ void* layer_data,
     _In_opt_ const void* classify_context,
     _In_ const FWPS_FILTER* filter,
-    _In_ UINT64 flow_context,
+    _In_ uint64_t flow_context,
     _Inout_ FWPS_CLASSIFY_OUT* classify_output);
 
 static void
 ebpf_hook_no_op_flow_delete(
-    _In_ UINT16 layer_id,
-    _In_ UINT32 fwpm_callout_id,
-    _In_ UINT64 flow_context);
+    _In_ uint16_t layer_id,
+    _In_ uint32_t fwpm_callout_id,
+    _In_ uint64_t flow_context);
 
 static NTSTATUS
 ebpf_hook_no_op_notify(
@@ -402,7 +445,7 @@ ebpf_hook_layer_2_classify(
    _Inout_opt_ void* layer_data,
    _In_opt_ const void* classify_context,
    _In_ const FWPS_FILTER* filter,
-   _In_ UINT64 flow_context,
+   _In_ uint64_t flow_context,
    _Inout_ FWPS_CLASSIFY_OUT* classify_output
    )
 /* ++
@@ -419,8 +462,9 @@ ebpf_hook_layer_2_classify(
    UNREFERENCED_PARAMETER(flow_context);
    NET_BUFFER_LIST* nbl = (NET_BUFFER_LIST*)layer_data;
    NET_BUFFER* net_buffer = NULL;
-   BYTE* packet_buffer;
-   UINT32 result = 0;
+   uint8_t* packet_buffer;
+   uint32_t result = 0;
+   NTSTATUS status;
 
    if (nbl == NULL)
    {
@@ -442,21 +486,27 @@ ebpf_hook_layer_2_classify(
            net_buffer,
            net_buffer->DataLength,
            NULL,
-           sizeof(UINT16),
+           sizeof(uint16_t),
            0);
    
-   // execute code at hook.
-   result = ebpf_core_invoke_xdp_hook(packet_buffer, net_buffer->DataLength);
-   switch (result)
-   {
-   case XDP_PASS:
-       action = FWP_ACTION_PERMIT;
-       break;
-   case XDP_DROP:
-       action = FWP_ACTION_BLOCK;
-       break;
-   }
+   xdp_md_t ctx = {
+       (uint64_t)packet_buffer,
+       (uint64_t)packet_buffer + net_buffer->DataLength
+   };
 
+   status = ebpf_core_invoke_hook(EBPF_HOOK_XDP, &ctx, &result);
+   if (result == STATUS_SUCCESS)
+   {
+       switch (result)
+       {
+       case XDP_PASS:
+           action = FWP_ACTION_PERMIT;
+           break;
+       case XDP_DROP:
+           action = FWP_ACTION_BLOCK;
+           break;
+       }
+   }
 done:   
    classify_output->actionType = action;
    return;
@@ -470,7 +520,7 @@ ebpf_hook_resource_allocation_classify(
     _Inout_opt_ void* layer_data,
     _In_opt_ const void* classify_context,
     _In_ const FWPS_FILTER* filter,
-    _In_ UINT64 flow_context,
+    _In_ uint64_t flow_context,
     _Inout_ FWPS_CLASSIFY_OUT* classify_output)
 /* ++
 
@@ -479,10 +529,10 @@ ebpf_hook_resource_allocation_classify(
 -- */
 {
     SOCKADDR_IN addr = {AF_INET};
-    bind_action_t action;
-
-    UNREFERENCED_PARAMETER(incoming_fixed_values);
-    UNREFERENCED_PARAMETER(incoming_metadata_values);
+    uint32_t result;
+    bind_md_t ctx;
+    NTSTATUS status;
+    
     UNREFERENCED_PARAMETER(layer_data);
     UNREFERENCED_PARAMETER(classify_context);
     UNREFERENCED_PARAMETER(filter);
@@ -491,24 +541,31 @@ ebpf_hook_resource_allocation_classify(
     addr.sin_port = incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_IP_LOCAL_PORT].value.uint16;
     addr.sin_addr.S_un.S_addr = incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_IP_LOCAL_ADDRESS].value.uint32;
 
-    action = ebpf_core_invoke_bind_hook(
-        (SOCKADDR*)&addr,
-        sizeof(addr),
-        incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_ALE_APP_ID].value.byteBlob->data,
-        incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_ALE_APP_ID].value.byteBlob->size,
-        incoming_metadata_values->processId,
-        BIND_OPERATION_BIND,
-        incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_IP_PROTOCOL].value.uint8);
+    ctx.process_id = incoming_metadata_values->processId;
+    memcpy(&ctx.socket_address, &addr, sizeof(addr));
+    ctx.operation = BIND_OPERATION_BIND;
+    ctx.protocol = incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_IP_PROTOCOL].value.uint8;
 
-    switch (action)
+    ctx.app_id_start = (uint64_t)incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_ALE_APP_ID].value.byteBlob->data;
+    ctx.app_id_end = ctx.app_id_start + incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_ALE_APP_ID].value.byteBlob->size;
+
+    status = ebpf_core_invoke_hook(
+        EBPF_HOOK_BIND,
+        &ctx,
+        &result);
+
+    if (status == STATUS_SUCCESS)
     {
-    case BIND_PERMIT:
-    case BIND_REDIRECT:
-        classify_output->actionType = FWP_ACTION_PERMIT;
-        break;
-    case BIND_DENY:
-        classify_output->actionType = FWP_ACTION_BLOCK;
+        switch (result)
+        {
+        case BIND_PERMIT:
+        case BIND_REDIRECT:
+            classify_output->actionType = FWP_ACTION_PERMIT;
+            break;
+        case BIND_DENY:
+            classify_output->actionType = FWP_ACTION_BLOCK;
 
+        }
     }
 
     return;
@@ -521,7 +578,7 @@ ebpf_hook_resource_release_classify(
     _Inout_opt_ void* layer_data,
     _In_opt_ const void* classify_context,
     _In_ const FWPS_FILTER* filter,
-    _In_ UINT64 flow_context,
+    _In_ uint64_t flow_context,
     _Inout_ FWPS_CLASSIFY_OUT* classify_output)
     /* ++
 
@@ -530,10 +587,10 @@ ebpf_hook_resource_release_classify(
     -- */
 {
     SOCKADDR_IN addr = { AF_INET };
-    bind_action_t action;
+    uint32_t result;
+    bind_md_t ctx;
+    NTSTATUS status;
 
-    UNREFERENCED_PARAMETER(incoming_fixed_values);
-    UNREFERENCED_PARAMETER(incoming_metadata_values);
     UNREFERENCED_PARAMETER(layer_data);
     UNREFERENCED_PARAMETER(classify_context);
     UNREFERENCED_PARAMETER(filter);
@@ -542,14 +599,18 @@ ebpf_hook_resource_release_classify(
     addr.sin_port = incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_RELEASE_V4_IP_LOCAL_PORT].value.uint16;
     addr.sin_addr.S_un.S_addr = incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_RELEASE_V4_IP_LOCAL_ADDRESS].value.uint32;
 
-    action = ebpf_core_invoke_bind_hook(
-        (SOCKADDR*)&addr,
-        sizeof(addr),
-        incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_RELEASE_V4_ALE_APP_ID].value.byteBlob->data,
-        incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_RELEASE_V4_ALE_APP_ID].value.byteBlob->size,
-        incoming_metadata_values->processId,
-        BIND_OPERATION_UNBIND,
-        incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_RELEASE_V4_IP_PROTOCOL].value.uint8);
+    ctx.process_id = incoming_metadata_values->processId;
+    memcpy(&ctx.socket_address, &addr, sizeof(addr));
+    ctx.operation = BIND_OPERATION_UNBIND;
+    ctx.protocol = incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_RELEASE_V4_IP_PROTOCOL].value.uint8;
+
+    ctx.app_id_start = (uint64_t)incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_RELEASE_V4_ALE_APP_ID].value.byteBlob->data;
+    ctx.app_id_end = ctx.app_id_start + incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_RELEASE_V4_ALE_APP_ID].value.byteBlob->size;
+
+    status = ebpf_core_invoke_hook(
+        EBPF_HOOK_BIND,
+        &ctx,
+        &result);
 
     classify_output->actionType = FWP_ACTION_PERMIT;
 
@@ -572,9 +633,9 @@ ebpf_hook_no_op_notify(
 
 static void
 ebpf_hook_no_op_flow_delete(
-    _In_ UINT16 layer_id,
-    _In_ UINT32 fwpm_callout_id,
-    _In_ UINT64 flow_context
+    _In_ uint16_t layer_id,
+    _In_ uint32_t fwpm_callout_id,
+    _In_ uint64_t flow_context
 )
 /* ++
 

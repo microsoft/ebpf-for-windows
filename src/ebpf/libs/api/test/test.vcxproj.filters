@@ -51,5 +51,8 @@
     <CustomBuild Include="droppacket.c">
       <Filter>Source Files</Filter>
     </CustomBuild>
+    <CustomBuild Include="bindmonitor.c">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
   </ItemGroup>
 </Project>

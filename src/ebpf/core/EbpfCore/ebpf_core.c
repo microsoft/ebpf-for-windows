@@ -317,29 +317,24 @@ NTSTATUS ebpf_core_protocol_resolve_map(
     return status;
 }
 
-xdp_action_t
-ebpf_core_invoke_xdp_hook(
-    _In_ void* buffer,
-    _In_ uint32_t buffer_length)
+NTSTATUS ebpf_core_invoke_hook(
+    _In_ ebpf_hook_point_t hook_point,
+    _Inout_ void* context,
+    _Out_ uint32_t* result)
 {
     KIRQL old_irql;
     ebpf_core_code_entry_t* code = NULL;
-    xdp_hook_function function_pointer;
-    xdp_action_t result = XDP_PASS;
+    ebpf_hook_function function_pointer;
     BOOLEAN found = FALSE;
-
-    xdp_md_t ctx = { 0 };
-    ctx.data = (UINT64)buffer;
-    ctx.data_end = ctx.data + buffer_length;
+    NTSTATUS status = STATUS_NOT_FOUND;
+    *result = 0;
 
     KeAcquireSpinLock(&_ebpf_core_code_entry_list_lock, &old_irql);
-
-    // TODO: Switch this to use real object manager handles
     LIST_ENTRY* list_entry = _ebpf_core_code_entry_list.Flink;
     while (list_entry != &_ebpf_core_code_entry_list)
     {
         code = CONTAINING_RECORD(list_entry, ebpf_core_code_entry_t, entry);
-        if (code->hook_point == EBPF_HOOK_XDP)
+        if (code->hook_point == hook_point)
         {
             // find the first one and run.
             found = TRUE;
@@ -348,85 +343,15 @@ ebpf_core_invoke_xdp_hook(
 
         list_entry = list_entry->Flink;
     }
-
     if (found)
     {
-        function_pointer = (xdp_hook_function)code->code;
-        __try {
-            result = (*function_pointer)(&ctx);
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            _count_of_seh_raised++;
-            KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "EbpfCore: ExecuteCode. _count_of_seh_raised %d\n", _count_of_seh_raised));
-        }
+        function_pointer = (ebpf_hook_function)code->code;
+        *result = (*function_pointer)(context);
+        status = STATUS_SUCCESS;
     }
 
     KeReleaseSpinLock(&_ebpf_core_code_entry_list_lock, old_irql);
-
-    return (xdp_action_t)result;
-}
-
-bind_action_t
-ebpf_core_invoke_bind_hook(
-    _In_ struct sockaddr* sockaddr,
-    _In_ uint32_t sockaddr_length,
-    _In_ uint8_t* app_id,
-    _In_ uint32_t app_id_length,
-    _In_ uint64_t process_id,
-    _In_ bind_operation_t operation,
-    _In_ uint8_t protocol)
-{
-    KIRQL old_irql;
-    ebpf_core_code_entry_t* code = NULL;
-    bind_hook_function function_pointer;
-    bind_action_t result = BIND_PERMIT;
-    BOOLEAN found = FALSE;
-
-    bind_md_t ctx = {
-        (uint64_t)sockaddr,
-        (uint64_t)sockaddr + sockaddr_length,
-        (uint64_t)app_id,
-        (uint64_t)app_id + app_id_length,
-        process_id,
-        operation,
-        protocol };
-
-
-    KeAcquireSpinLock(&_ebpf_core_code_entry_list_lock, &old_irql);
-
-    // TODO: Switch this to use real object manager handles
-    LIST_ENTRY* list_entry = _ebpf_core_code_entry_list.Flink;
-    while (list_entry != &_ebpf_core_code_entry_list)
-    {
-        code = CONTAINING_RECORD(list_entry, ebpf_core_code_entry_t, entry);
-        if (code->hook_point == EBPF_HOOK_BIND)
-        {
-            // find the first one and run.
-            found = TRUE;
-            break;
-        }
-
-        list_entry = list_entry->Flink;
-    }
-
-    if (found)
-    {
-        function_pointer = (bind_hook_function)code->code;
-        __try {
-            result = (*function_pointer)(&ctx);
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            _count_of_seh_raised++;
-        }
-    }
-
-    KeReleaseSpinLock(&_ebpf_core_code_entry_list_lock, old_irql);
-
-    KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "EbpfCore: ExecuteCode. _count_of_seh_raised %d\n", _count_of_seh_raised));
-
-    return (bind_action_t)result;
+    return status;
 }
 
 NTSTATUS ebpf_core_protocol_create_map(

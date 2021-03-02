@@ -20,6 +20,30 @@ typedef struct _xdp_md
    __u64 data_meta;
 } xdp_md_t;
 
+typedef struct _bind_md {
+    void* app_id_start;             // 0,8
+    void* app_id_end;               // 8,8
+    __u64 process_id;               // 16,8
+    __u8 socket_address[16];       // 24,16
+    __u8 socket_address_length;    // 40,1
+    __u8 operation;                // 41,1
+    __u8 protocol;                 // 42,1
+} bind_md_t;
+
+typedef enum _bind_operation
+{
+    BIND_OPERATION_BIND,          // Entry to bind
+    BIND_OPERATION_POST_BIND,     // After port allocation
+    BIND_OPERATION_UNBIND,        // Release port
+} bind_operation_t;
+
+typedef enum _bind_action
+{
+    BIND_PERMIT,
+    BIND_DENY,
+    BIND_REDIRECT,
+} bind_action_t;
+
 typedef struct _IPV4_HEADER {
     union {
         __u8 VersionAndHeaderLength;   // Version and header length.
@@ -61,12 +85,22 @@ typedef struct UDP_HEADER_ {
     __u16 checksum;
 } UDP_HEADER;
 
-struct bpf_map_def {
+typedef struct _bpf_map_def {
       __u32 size;
       __u32 type;
       __u32 key_size;
       __u32 value_size;
       __u32 max_entries;
-};
+} bpf_map_def_t;
+
+typedef enum _ebpf_map_type {
+    EBPF_MAP_TYPE_UNSPECIFIED = 0,
+    EBPF_MAP_TYPE_HASH = 1,
+    EBPF_MAP_TYPE_ARRAY = 2,
+} ebpf_map_type_t;
+
 typedef void* (*ebpf_map_lookup_elem_t)(void * map, void* key);
 #define ebpf_map_lookup_elem ((ebpf_map_lookup_elem_t)1)
+
+typedef void (*ebpf_map_update_element_t)(void* map, void* key, void* data, __u64 flags);
+#define ebpf_map_update_element ((ebpf_map_update_element_t)2)

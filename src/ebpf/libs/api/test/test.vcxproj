@@ -164,6 +164,11 @@
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">clang -target bpf -O2 -Wall -c %(Filename).c -o %(Filename).o</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(Filename).o;%(Outputs)</Outputs>
     </CustomBuild>
+    <CustomBuild Include="bindmonitor.c">
+      <FileType>CppCode</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">clang -target bpf -O2 -Wall -c %(Filename).c -o %(Filename).o</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(Filename).o;%(Outputs)</Outputs>
+    </CustomBuild>
     <ClCompile Include="mock.cpp" />
     <ClCompile Include="test.cpp" />
   </ItemGroup>

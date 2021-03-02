@@ -12,9 +12,9 @@
 #include "ebpf.h"
 
 #pragma clang section data="maps"
-struct bpf_map_def port_map = {
-      .size        = sizeof(struct bpf_map_def),
-      .type        = 2,
+bpf_map_def_t port_map = {
+      .size        = sizeof(bpf_map_def_t),
+      .type        = EBPF_MAP_TYPE_ARRAY,
       .key_size    = sizeof(__u32),
       .value_size  = sizeof(__u64),
       .max_entries = 1

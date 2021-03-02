@@ -16,6 +16,7 @@ extern "C" {
 #endif
 
 #define EBPF_HOOK_POINT_XDP 1
+#define EBPF_HOOK_POINT_BIND 2
 
     DLL DWORD ebpf_api_initiate();
 

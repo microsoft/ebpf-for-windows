@@ -26,7 +26,10 @@ static TOKEN_VALUE _pinned_enum[] = {
 };
 
 static TOKEN_VALUE _ebpf_program_type_enum[] = {
+    { L"unknown", EBPF_PROGRAM_TYPE_UNKNOWN },
     { L"xdp", EBPF_PROGRAM_TYPE_XDP },
+    { L"bind", EBPF_PROGRAM_TYPE_BIND },
+
 };
 
 unsigned long handle_ebpf_add_program(
@@ -105,7 +108,7 @@ unsigned long handle_ebpf_add_program(
 
     if (_program_handle != INVALID_HANDLE_VALUE)
     {
-        ebpf_api_detach_program(_program_handle, EBPF_HOOK_POINT_XDP);
+        ebpf_api_detach_program(_program_handle, type);
         ebpf_api_unload_program(_program_handle);
         _program_handle = INVALID_HANDLE_VALUE;
     }
@@ -120,7 +123,7 @@ unsigned long handle_ebpf_add_program(
         return status;
     }
 
-    status = ebpf_api_attach_program(_program_handle, EBPF_HOOK_POINT_XDP);
+    status = ebpf_api_attach_program(_program_handle, type);
     if (status != ERROR_SUCCESS)
     {
         std::cerr << "ebpf_api_attach_program failed with error " << status << std::endl;
