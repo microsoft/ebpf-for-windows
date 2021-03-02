@@ -40,7 +40,7 @@ typedef struct _ebpf_core_code_entry {
     // handle returned to user mode application
     uint64_t handle;
 
-    ebpf_hook_point_t hook_point;
+    ebpf_program_type_t hook_point;
 } ebpf_core_code_entry_t;
 
 
@@ -143,8 +143,8 @@ ebpf_core_protocol_attach_code(
 
     switch (request->hook)
     {
-    case EBPF_HOOK_XDP:
-    case EBPF_HOOK_BIND:
+    case EBPF_PROGRAM_TYPE_XDP:
+    case EBPF_PROGRAM_TYPE_BIND:
         break;
     default:
         status = STATUS_NOT_SUPPORTED;
@@ -180,8 +180,8 @@ ebpf_core_protocol_detach_code(
 
     switch (request->hook)
     {
-    case EBPF_HOOK_XDP:
-    case EBPF_HOOK_BIND:
+    case EBPF_PROGRAM_TYPE_XDP:
+    case EBPF_PROGRAM_TYPE_BIND:
         break;
     default:
         status = STATUS_NOT_SUPPORTED;
@@ -193,7 +193,7 @@ ebpf_core_protocol_detach_code(
     code = _ebpf_core_find_user_code(request->handle);
     if (code)
     {
-        code->hook_point = EBPF_HOOK_NONE;
+        code->hook_point = EBPF_PROGRAM_TYPE_UNSPECIFIED;
         status = STATUS_SUCCESS;
     }
     KeReleaseSpinLock(&_ebpf_core_code_entry_list_lock, old_irql);
@@ -318,7 +318,7 @@ NTSTATUS ebpf_core_protocol_resolve_map(
 }
 
 NTSTATUS ebpf_core_invoke_hook(
-    _In_ ebpf_hook_point_t hook_point,
+    _In_ ebpf_program_type_t hook_point,
     _Inout_ void* context,
     _Out_ uint32_t* result)
 {

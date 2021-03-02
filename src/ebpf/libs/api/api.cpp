@@ -130,9 +130,12 @@ typedef struct _map_cache {
     EbpfMapDescriptor ebpf_map_descriptor;
 } map_cache_t;
 
+// TODO: this duplicates global_program_info.map_descriptors in ebpfverifier.lib
+// https://github.com/vbpf/ebpf-verifier/issues/113 tracks getting rid of global
+// state in that lib, but won't notice this global state which has the same problem.
 std::vector<map_cache_t> _map_file_descriptors;
 
-static int create_map_function(uint32_t type, uint32_t key_size, uint32_t value_size, uint32_t max_entries, ebpf_verifier_options_t options)
+int create_map_function(uint32_t type, uint32_t key_size, uint32_t value_size, uint32_t max_entries, ebpf_verifier_options_t options)
 {
     _ebpf_operation_create_map_request request{
         sizeof(_ebpf_operation_create_map_request),
@@ -162,7 +165,7 @@ static int create_map_function(uint32_t type, uint32_t key_size, uint32_t value_
     // TODO: Replace this with the CRT helper to create FD from handle once we have real handles.
     int fd = static_cast<int>(_map_file_descriptors.size() + 1);
     _map_file_descriptors.push_back({ reply.handle, {fd, type, key_size, value_size, 0} });
-    return _map_file_descriptors.size();
+    return static_cast<int>(_map_file_descriptors.size());
 }
 
 static map_cache_t& get_map_cache_entry(uint64_t map_fd)
@@ -170,9 +173,9 @@ static map_cache_t& get_map_cache_entry(uint64_t map_fd)
     return _map_file_descriptors[map_fd - 1];
 }
 
-static EbpfMapDescriptor& get_map_descriptor(int map_fd)
+EbpfMapDescriptor& get_map_descriptor_internal(int map_fd)
 {
-    return get_map_cache_entry(map_fd - 1).ebpf_map_descriptor;
+    return get_map_cache_entry(map_fd).ebpf_map_descriptor;
 }
 
 static uint64_t map_resolver(void* context, uint64_t fd)
@@ -236,7 +239,7 @@ DLL DWORD ebpf_api_load_program(const char* file_name, const char* section_name,
     {
         _map_file_descriptors.resize(0);
         // Verify code.
-        if (verify(file_name, section_name, byte_code.data(), &byte_code_size, create_map_function, get_map_descriptor, error_message) != 0)
+        if (verify(file_name, section_name, byte_code.data(), &byte_code_size, error_message) != 0)
         {
             return ERROR_INVALID_PARAMETER;
         }
@@ -316,7 +319,7 @@ DLL void ebpf_api_unload_program(HANDLE handle)
     return;
 }
 
-DLL DWORD ebpf_api_attach_program(HANDLE handle, DWORD hook_point)
+DLL DWORD ebpf_api_attach_program(HANDLE handle, ebpf_program_type_t hook_point)
 {
     _ebpf_operation_attach_detach_request request{
         sizeof(request),
@@ -327,7 +330,7 @@ DLL DWORD ebpf_api_attach_program(HANDLE handle, DWORD hook_point)
     return invoke_ioctl(device_handle, &request, nullptr);
 }
 
-DLL DWORD ebpf_api_detach_program(HANDLE handle, DWORD hook_point)
+DLL DWORD ebpf_api_detach_program(HANDLE handle, ebpf_program_type_t hook_point)
 {
     _ebpf_operation_attach_detach_request request{
         sizeof(request),

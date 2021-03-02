@@ -3,6 +3,7 @@
  *  SPDX-License-Identifier: MIT
 */
 #pragma once
+#include "../../include/ebpf_windows.h"
 
 typedef enum _ebpf_operation_id {
     EBPF_OPERATION_EVIDENCE, 
@@ -81,7 +82,7 @@ typedef struct _ebpf_operation_load_code_reply {
 typedef struct _ebpf_operation_attach_detach_request {
     struct _ebpf_operation_header header;
     uint64_t handle;
-    uint32_t hook;
+    ebpf_program_type_t hook;
 } ebpf_operation_attach_detach_request_t;
 
 typedef struct _ebpf_operation_create_map_request {

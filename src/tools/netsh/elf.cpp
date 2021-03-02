@@ -1,13 +1,15 @@
 // Copyright (C) Microsoft.
 // SPDX-License-Identifier: MIT
 #include "ebpf_verifier.hpp"
-#include "windows/windows_platform.hpp"
+#include "windows_platform.hpp"
 #include "asm_ostream.hpp"
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <netsh.h>
 #include "elf.h"
 #include "tokens.h"
+
+extern const ebpf_platform_t g_ebpf_platform_windows;
 
 TOKEN_VALUE g_LevelEnum[2] = {
     { L"normal", VL_NORMAL },
@@ -68,6 +70,7 @@ DWORD handle_ebpf_show_disassembly(
 
     ebpf_verifier_options_t verifier_options = ebpf_verifier_default_options;
     verifier_options.print_failures = true;
+    verifier_options.mock_map_fds = true;
     std::vector<raw_program> rawPrograms;
     try {
         rawPrograms = read_elf(filename, section, &verifier_options, platform);
@@ -167,8 +170,10 @@ DWORD handle_ebpf_show_sections(
     }
 
     std::vector<raw_program> raw_programs;
+    ebpf_verifier_options_t options = ebpf_verifier_default_options;
+    options.mock_map_fds = true;
     try {
-        raw_programs = read_elf(filename, section, &ebpf_verifier_default_options, platform);
+        raw_programs = read_elf(filename, section, &options, platform);
     }
     catch (std::runtime_error e) {
         std::cerr << "error: " << e.what() << std::endl;
@@ -275,6 +280,7 @@ DWORD handle_ebpf_show_verification(
     ebpf_verifier_options_t verifier_options = ebpf_verifier_default_options;
     verifier_options.check_termination = true;
     verifier_options.print_failures = true;
+    verifier_options.mock_map_fds = true;
     std::vector<raw_program> raw_programs;
     try {
         raw_programs = read_elf(filename, section, &verifier_options, platform);

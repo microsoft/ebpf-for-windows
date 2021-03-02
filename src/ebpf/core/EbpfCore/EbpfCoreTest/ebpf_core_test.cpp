@@ -37,10 +37,10 @@ TEST_CASE("LoadAttachDetachUnload", "AttachDetach") {
 
     REQUIRE(ebpf_core_protocol_load_code(load_request, &load_reply) == STATUS_SUCCESS);
 
-    _ebpf_operation_attach_detach_request attach_request{ sizeof(attach_request), ebpf_operation_id_t::EBPF_OPERATION_ATTACH_CODE, load_reply.handle, EBPF_HOOK_XDP };
+    _ebpf_operation_attach_detach_request attach_request{ sizeof(attach_request), ebpf_operation_id_t::EBPF_OPERATION_ATTACH_CODE, load_reply.handle, EBPF_PROGRAM_TYPE_XDP };
     REQUIRE(ebpf_core_protocol_attach_code(&attach_request, nullptr) == STATUS_SUCCESS);
 
-    _ebpf_operation_attach_detach_request detach_request{ sizeof(detach_request), ebpf_operation_id_t::EBPF_OPERATION_DETACH_CODE, load_reply.handle, EBPF_HOOK_XDP };
+    _ebpf_operation_attach_detach_request detach_request{ sizeof(detach_request), ebpf_operation_id_t::EBPF_OPERATION_DETACH_CODE, load_reply.handle, EBPF_PROGRAM_TYPE_XDP };
     REQUIRE(ebpf_core_protocol_detach_code(&detach_request, nullptr) == STATUS_SUCCESS);
 
     _ebpf_operation_unload_code_request unload_request{ sizeof(unload_request), ebpf_operation_id_t::EBPF_OPERATION_UNLOAD_CODE, load_reply.handle };

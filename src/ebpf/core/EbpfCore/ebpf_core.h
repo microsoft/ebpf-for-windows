@@ -13,13 +13,6 @@ typedef enum _ebpf_helper_function
     EBPF_INVALID
 } ebpf_helper_function_t;
 
-typedef enum _ebpf_hook_point
-{
-    EBPF_HOOK_NONE = 0,
-    EBPF_HOOK_XDP = 1,
-    EBPF_HOOK_BIND = 2,
-} ebpf_hook_point_t;
-
 typedef uint32_t(__stdcall* ebpf_hook_function) (PVOID);
 
 typedef enum
@@ -91,7 +84,7 @@ ebpf_core_protocol_query_map_definition(
     _Inout_ struct _ebpf_operation_query_map_definition_reply* reply);
 
 NTSTATUS ebpf_core_invoke_hook(
-    _In_ ebpf_hook_point_t hook_point,
+    _In_ ebpf_program_type_t hook_point,
     _Inout_ void* context,
     _Out_ uint32_t* result
 );

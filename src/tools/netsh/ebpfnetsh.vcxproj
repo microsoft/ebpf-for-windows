@@ -185,8 +185,11 @@
     <ProjectReference Include="..\..\..\external\ebpf-verifier\build\ebpfverifier.vcxproj">
       <Project>{939a079d-a1e8-35d9-950f-11b1894d342e}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\ebpf\api\ebpfapi.vcxproj">
-      <Project>{75fe223a-3e45-4b0e-a2e8-04285e52e440}</Project>
+    <ProjectReference Include="..\..\ebpf\libs\api\api.vcxproj">
+      <Project>{c8bf60c3-40a9-43ad-891a-8aa34f1c3a68}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\ebpf\libs\EbpfJitterDemoLib\EbpfJitterDemoLib.vcxproj">
+      <Project>{245f0ec7-1ebc-4d68-8b1f-f758ea9196ae}</Project>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
