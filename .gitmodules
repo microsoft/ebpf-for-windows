@@ -1,7 +1,6 @@
 [submodule "external/ebpf-verifier"]
 	path = external/ebpf-verifier
 	url = https://github.com/dthaler/ebpf-verifier.git
-	branch = windows
 
 [submodule "external/ubpf"]
 	path = external/ubpf

@@ -3,12 +3,8 @@
  *  Copyright (c) Microsoft Corporation
  *  SPDX-License-Identifier: MIT
 */
-
-typedef enum _ebpf_map_type {
-    EBPF_MAP_TYPE_UNSPECIFIED = 0,
-    EBPF_MAP_TYPE_HASH = 1,
-    EBPF_MAP_TYPE_ARRAY = 2,
-} ebpf_map_type_t;
+#pragma once
+#include "../../include/ebpf_windows.h"
 
 typedef struct _ebpf_core_map {
     struct _ebpf_map_definition ebpf_map_definition;

@@ -494,7 +494,7 @@ ebpf_hook_layer_2_classify(
        (uint64_t)packet_buffer + net_buffer->DataLength
    };
 
-   status = ebpf_core_invoke_hook(EBPF_HOOK_XDP, &ctx, &result);
+   status = ebpf_core_invoke_hook(EBPF_PROGRAM_TYPE_XDP, &ctx, &result);
    if (result == STATUS_SUCCESS)
    {
        switch (result)
@@ -550,7 +550,7 @@ ebpf_hook_resource_allocation_classify(
     ctx.app_id_end = ctx.app_id_start + incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_ALE_APP_ID].value.byteBlob->size;
 
     status = ebpf_core_invoke_hook(
-        EBPF_HOOK_BIND,
+        EBPF_PROGRAM_TYPE_BIND,
         &ctx,
         &result);
 
@@ -608,7 +608,7 @@ ebpf_hook_resource_release_classify(
     ctx.app_id_end = ctx.app_id_start + incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_RELEASE_V4_ALE_APP_ID].value.byteBlob->size;
 
     status = ebpf_core_invoke_hook(
-        EBPF_HOOK_BIND,
+        EBPF_PROGRAM_TYPE_BIND,
         &ctx,
         &result);
 

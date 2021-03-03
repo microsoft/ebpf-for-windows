@@ -6,10 +6,17 @@
 #include <netsh.h>
 #include "programs.h"
 #include "tokens.h"
+#include "../../include/ebpf_windows.h"
 
 #include "api.h"
 #include <iostream>
-#pragma comment(lib, "EbpfApi.lib")
+
+// TODO: The dynamic library (EbpfApi.lib) doesn't yet expose APIs we need in elf.cpp
+// so as a workaround, we temporarily link with the underlying static lib and call the
+// internal APIs directly.  Once APIs exist for enumerating sections, generating
+// disassembly, and running the verifier without loading into execution context, then
+// this should switch back to EbpfApi.lib instead.
+#pragma comment(lib, "api.lib")
 
 static HANDLE _program_handle = INVALID_HANDLE_VALUE;
 
@@ -26,7 +33,7 @@ static TOKEN_VALUE _pinned_enum[] = {
 };
 
 static TOKEN_VALUE _ebpf_program_type_enum[] = {
-    { L"unknown", EBPF_PROGRAM_TYPE_UNKNOWN },
+    { L"unknown", EBPF_PROGRAM_TYPE_UNSPECIFIED },
     { L"xdp", EBPF_PROGRAM_TYPE_XDP },
     { L"bind", EBPF_PROGRAM_TYPE_BIND },
 
@@ -61,7 +68,7 @@ unsigned long handle_ebpf_add_program(
 
     std::string filename;
     std::string section = ""; // Use the first code section by default.
-    EBPF_PROGRAM_TYPE type = EBPF_PROGRAM_TYPE_XDP;
+    ebpf_program_type_t type = EBPF_PROGRAM_TYPE_XDP;
     PINNED_CONSTRAINT pinned = PINNED_ANY;
     for (int i = 0; (status == NO_ERROR) && ((i + current_index) < argc); i++) {
         switch (tag_type[i]) {
@@ -184,7 +191,7 @@ DWORD handle_ebpf_delete_program(
 
     if (_program_handle != INVALID_HANDLE_VALUE)
     {
-        ebpf_api_detach_program(_program_handle, EBPF_HOOK_POINT_XDP);
+        ebpf_api_detach_program(_program_handle, EBPF_PROGRAM_TYPE_XDP);
         ebpf_api_unload_program(_program_handle);
         _program_handle = INVALID_HANDLE_VALUE;
     }
@@ -287,7 +294,7 @@ DWORD handle_ebpf_show_programs(
         _countof(tags),
         tag_type);
 
-    EBPF_PROGRAM_TYPE type = EBPF_PROGRAM_TYPE_XDP;
+    ebpf_program_type_t type = EBPF_PROGRAM_TYPE_XDP;
     PINNED_CONSTRAINT pinned = PINNED_ANY;
     VERBOSITY_LEVEL level = VL_NORMAL;
     std::string filename;

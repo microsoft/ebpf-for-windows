@@ -4,6 +4,7 @@
 */
 
 #pragma once
+#include "../../include/ebpf_windows.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -15,9 +16,6 @@ extern "C" {
 #define DLL __declspec(dllimport)
 #endif
 
-#define EBPF_HOOK_POINT_XDP 1
-#define EBPF_HOOK_POINT_BIND 2
-
     DLL DWORD ebpf_api_initiate();
 
     DLL void ebpf_api_terminate();
@@ -26,8 +24,8 @@ extern "C" {
     DLL void ebpf_api_free_error_message(char* error_message);
     DLL void ebpf_api_unload_program(HANDLE handle);
 
-    DLL DWORD ebpf_api_attach_program(HANDLE handle, DWORD hook_point);
-    DLL DWORD ebpf_api_detach_program(HANDLE handle, DWORD hook_point);
+    DLL DWORD ebpf_api_attach_program(HANDLE handle, ebpf_program_type_t hook_point);
+    DLL DWORD ebpf_api_detach_program(HANDLE handle, ebpf_program_type_t hook_point);
 
     DLL DWORD ebpf_api_map_lookup_element(HANDLE handle, DWORD key_size, unsigned char* key, DWORD value_size, unsigned char* value);
     DLL DWORD ebpf_api_map_update_element(HANDLE handle, DWORD key_size, unsigned char* key, DWORD value_size, unsigned char* value);

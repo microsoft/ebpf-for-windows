@@ -4,7 +4,7 @@
 */
 
 #include "ebpf_verifier.hpp"
-#include "windows/windows_platform.hpp"
+#include "windows_platform.hpp"
 #include "platform.hpp"
 #include "Verifier.h"
 #include <sstream>
@@ -28,7 +28,7 @@ int get_file_size(char* filename, size_t* byte_code_size)
     return result;
 }
 
-static char * allocate_error_string(const std::string& str)
+static char* allocate_error_string(const std::string& str)
 {
     char* retval;
     size_t error_message_length = str.size() + 1;
@@ -40,7 +40,7 @@ static char * allocate_error_string(const std::string& str)
     return retval; // Error;
 }
 
-static int analyze(raw_program& raw_prog, char ** error_message)
+static int analyze(raw_program& raw_prog, char** error_message)
 {
     const ebpf_platform_t* platform = &g_ebpf_platform_windows;
 
@@ -68,15 +68,12 @@ static int analyze(raw_program& raw_prog, char ** error_message)
     return 0; // Success.
 }
 
-int verify(const char* filename, const char* sectionname, uint8_t* byte_code, size_t* byte_code_size, ebpf_create_map_fn map_create_function, ebpf_get_map_descriptor_fn get_map_descriptor, char** error_message)
+int verify(const char* filename, const char* sectionname, uint8_t* byte_code, size_t* byte_code_size, char** error_message)
 {
     ebpf_verifier_options_t verifier_options{ false, false, false, false };
-    ebpf_platform_t platform = g_ebpf_platform_windows;
-    // TODO: This duplicates the functions in the prevail windows platform plugin, and we need to rationalize which one to keep rather than having two.
-    platform.create_map = map_create_function;
-    platform.get_map_descriptor = get_map_descriptor;
+    const ebpf_platform_t* platform = &g_ebpf_platform_windows;
     
-    auto raw_progs = read_elf(filename, sectionname, &verifier_options, &platform);
+    auto raw_progs = read_elf(filename, sectionname, &verifier_options, platform);
     if (raw_progs.size() != 1) {
         return 1; // Error
     }
