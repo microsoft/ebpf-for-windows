@@ -148,17 +148,15 @@ static int create_map_function(uint32_t type, uint32_t key_size, uint32_t value_
 
     _ebpf_operation_create_map_reply reply{};
 
-    auto retval = invoke_ioctl(device_handle, &request, &reply);
+    DWORD retval = invoke_ioctl(device_handle, &request, &reply);
     if (retval != ERROR_SUCCESS)
     {
-        printf("invoke_ioctl returning %d\n", retval);
-        return -1;
+        throw std::runtime_error(std::string("Error ") + std::to_string(retval) + " trying to create map");
     }
 
     if (reply.header.id != ebpf_operation_id_t::EBPF_OPERATION_CREATE_MAP)
     {
-        printf("reply.header.id != ebpf_operation_id_t::EBPF_OPERATION_CREATE_MAP\n");
-        return -1;
+        throw std::runtime_error(std::string("reply.header.id != ebpf_operation_id_t::EBPF_OPERATION_CREATE_MAP"));
     }
 
     // TODO: Replace this with the CRT helper to create FD from handle once we have real handles.
@@ -167,12 +165,22 @@ static int create_map_function(uint32_t type, uint32_t key_size, uint32_t value_
     return _map_file_descriptors.size();
 }
 
+static map_cache_t& get_map_cache_entry(uint64_t map_fd)
+{
+    return _map_file_descriptors[map_fd - 1];
+}
+
+static EbpfMapDescriptor& get_map_descriptor(int map_fd)
+{
+    return get_map_cache_entry(map_fd - 1).ebpf_map_descriptor;
+}
+
 static uint64_t map_resolver(void* context, uint64_t fd)
 {
     _ebpf_operation_resolve_map_request request{
         sizeof(request),
         ebpf_operation_id_t::EBPF_OPERATION_RESOLVE_MAP,
-        _map_file_descriptors[fd-1].handle };
+        get_map_cache_entry(fd).handle };
 
     _ebpf_operation_resolve_map_reply reply;
 
@@ -228,7 +236,7 @@ DLL DWORD ebpf_api_load_program(const char* file_name, const char* section_name,
     {
         _map_file_descriptors.resize(0);
         // Verify code.
-        if (verify(file_name, section_name, byte_code.data(), &byte_code_size, create_map_function, [](int fd) -> EbpfMapDescriptor& { return _map_file_descriptors[fd - 1].ebpf_map_descriptor; }, error_message) != 0)
+        if (verify(file_name, section_name, byte_code.data(), &byte_code_size, create_map_function, get_map_descriptor, error_message) != 0)
         {
             return ERROR_INVALID_PARAMETER;
         }

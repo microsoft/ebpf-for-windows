@@ -60,7 +60,7 @@ unsigned long handle_ebpf_add_program(
         tag_type);
 
     std::string filename;
-    std::string section = ".text";
+    std::string section = ""; // Use the first code section by default.
     EBPF_PROGRAM_TYPE type = EBPF_PROGRAM_TYPE_XDP;
     PINNED_CONSTRAINT pinned = PINNED_ANY;
     for (int i = 0; (status == NO_ERROR) && ((i + current_index) < argc); i++) {
@@ -116,18 +116,21 @@ unsigned long handle_ebpf_add_program(
     char* error_message = nullptr;
 
     status = ebpf_api_load_program(filename.c_str(), section.c_str(), &_program_handle, &error_message);
-
     if (status != ERROR_SUCCESS)
     {
-        std::cerr << "ebpf_api_load_program failed with error " << status << " and message " << error_message << std::endl;
-        return status;
+        if (error_message != nullptr) {
+            std::cerr << error_message << std::endl;
+        } else {
+            std::cerr << "error " << status << ": could not load program" << std::endl;
+        }
+        return ERROR_SUPPRESS_OUTPUT;
     }
 
     status = ebpf_api_attach_program(_program_handle, type);
     if (status != ERROR_SUCCESS)
     {
-        std::cerr << "ebpf_api_attach_program failed with error " << status << std::endl;
-        return status;
+        std::cerr << "error " << status << ": could not attach program" << std::endl;
+        return ERROR_SUPPRESS_OUTPUT;
     }
     return ERROR_SUCCESS;
 }
@@ -158,7 +161,7 @@ DWORD handle_ebpf_delete_program(
         tag_type);
 
     std::string filename;
-    std::string section = ".text";
+    std::string section = ""; // Use the first code section by default.
     for (int i = 0; (status == NO_ERROR) && ((i + current_index) < argc); i++) {
         switch (tag_type[i]) {
         case 0: // FILENAME
@@ -217,7 +220,7 @@ DWORD handle_ebpf_set_program(
         tag_type);
 
     std::string filename;
-    std::string section = ".text";
+    std::string section = ""; // Use the first code section by default.
     PINNED_CONSTRAINT pinned = PINNED_ANY;
     for (int i = 0; (status == NO_ERROR) && ((i + current_index) < argc); i++) {
         switch (tag_type[i]) {
