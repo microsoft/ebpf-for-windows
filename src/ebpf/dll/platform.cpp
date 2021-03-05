@@ -4,11 +4,12 @@
 #define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers
 #include "pch.h"
 #include <stdint.h>
+#include "api.h"
 
 namespace Platform {
     BOOL
         DeviceIoControl(
-            _In_ HANDLE device_handle,
+            _In_ ebpf_handle_t device_handle,
             uint32_t io_control_code,
             _In_reads_bytes_opt_(input_buffer_size) void* input_buffer,
             uint32_t input_buffer_size,
@@ -24,11 +25,11 @@ namespace Platform {
             input_buffer_size,
             output_buffer,
             output_buffer_size,
-            (LPDWORD)count_of_bytes_returned,
+            (DWORD*)count_of_bytes_returned,
             overlapped);
     }
 
-    HANDLE
+    ebpf_handle_t
         CreateFileW(
             _In_z_ PCWSTR file_name,
             uint32_t desired_access,
@@ -36,7 +37,7 @@ namespace Platform {
             _In_opt_ SECURITY_ATTRIBUTES* security_attributed,
             uint32_t creation_disposition,
             uint32_t flags_and_attributed,
-            _In_opt_ HANDLE template_file)
+            _In_opt_ ebpf_handle_t template_file)
     {
         return ::CreateFileW(
             file_name,
@@ -49,7 +50,7 @@ namespace Platform {
     }
     BOOL
         CloseHandle(
-            _In_ _Post_ptr_invalid_ HANDLE handle)
+            _In_ _Post_ptr_invalid_ ebpf_handle_t handle)
     {
         return ::CloseHandle(handle);
     }

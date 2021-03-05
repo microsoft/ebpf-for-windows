@@ -76,6 +76,7 @@ DWORD handle_ebpf_show_disassembly(
     else
     {
         std::cout << disassembly << std::endl;
+        ebpf_api_free_error_message(disassembly);
         return NO_ERROR;
     }
 }
@@ -156,50 +157,46 @@ DWORD handle_ebpf_show_sections(
     {
         std::cerr << error_message << std::endl;
         ebpf_api_free_error_message(error_message);
+        ebpf_api_elf_free(section_data);
         return ERROR_SUPPRESS_OUTPUT;
     }
 
-    try {
+    if (level == VL_NORMAL) {
+        std::cout << "\n";
+        std::cout << "             Section    Type  # Maps    Size\n";
+        std::cout << "====================  ======  ======  ======\n";
+    }
+    for (auto current_section = tlv_child(section_data); current_section != tlv_next(section_data); current_section = tlv_next(current_section))
+    {
+        auto section_name = tlv_child(current_section);
+        auto type = tlv_next(section_name);
+        auto map_count = tlv_next(type);
+        auto program_bytes = tlv_next(map_count);
+        auto stats_secton = tlv_next(program_bytes);
         if (level == VL_NORMAL) {
-            std::cout << "\n";
-            std::cout << "             Section    Type  # Maps    Size\n";
-            std::cout << "====================  ======  ======  ======\n";
+            std::cout << std::setw(20) << std::right << tlv_value<std::string>(section_name) << "  " <<
+                std::setw(6) << tlv_value<uint64_t>(type) << "  " <<
+                std::setw(6) << tlv_value<size_t>(map_count) << "  " <<
+                std::setw(6) << (program_bytes->length - offsetof(tlv_type_length_value_t, value)) / 8 << "\n";
         }
-        for (auto current_section = tlv_child(section_data); current_section != tlv_next(section_data); current_section = tlv_next(current_section))
+        else
         {
-            auto section_name = tlv_child(current_section);
-            auto type = tlv_next(section_name);
-            auto map_count = tlv_next(type);
-            auto program_bytes = tlv_next(map_count);
-            auto stats_secton = tlv_next(program_bytes);
-            if (level == VL_NORMAL) {
-                std::cout << std::setw(20) << std::right << tlv_value<std::string>(section_name) << "  " <<
-                    std::setw(6) << tlv_value<uint64_t>(type) << "  " <<
-                    std::setw(6) << tlv_value<size_t>(map_count) << "  " <<
-                    std::setw(6) << (program_bytes->length - offsetof(tlv_type_length_value_t, value)) / 8 << "\n";
-            }
-            else
+            std::cout << "\n";
+            std::cout << "Section      : " << tlv_value<std::string>(section_name) << "\n";
+            std::cout << "Type         : " << tlv_value<uint64_t>(type) << "\n";
+            std::cout << "# Maps       : " << tlv_value<size_t>(map_count) << "\n";
+            std::cout << "Size         : " << program_bytes->length - offsetof(tlv_type_length_value_t, value) / 8 << " instructions\n";
+            for (auto stat = tlv_child(stats_secton); stat != tlv_next(current_section); stat = tlv_next(stat))
             {
-                std::cout << "\n";
-                std::cout << "Section      : " << tlv_value<std::string>(section_name) << "\n";
-                std::cout << "Type         : " << tlv_value<uint64_t>(type) << "\n";
-                std::cout << "# Maps       : " << tlv_value<size_t>(map_count) << "\n";
-                std::cout << "Size         : " << program_bytes->length - offsetof(tlv_type_length_value_t, value) / 8 << " instructions\n";
-                for (auto stat = tlv_child(stats_secton); stat != tlv_next(current_section); stat = tlv_next(stat))
-                {
-                    auto key = tlv_child(stat);
-                    auto value = tlv_next(key);
-                    std::cout << std::setw(13) << std::left << tlv_value<std::string>(key) << ": " << tlv_value<int>(value) << "\n";
-                }
+                auto key = tlv_child(stat);
+                auto value = tlv_next(key);
+                std::cout << std::setw(13) << std::left << tlv_value<std::string>(key) << ": " << tlv_value<int>(value) << "\n";
             }
         }
+    }
 
-        return NO_ERROR;
-    }
-    catch (std::runtime_error e) {
-        std::cerr << "error: " << e.what() << std::endl;
-        return ERROR_SUPPRESS_OUTPUT;
-    }
+    ebpf_api_elf_free(section_data);
+    return NO_ERROR;
 }
 
 DWORD handle_ebpf_show_verification(
@@ -271,5 +268,8 @@ DWORD handle_ebpf_show_verification(
         {
             std::cerr << "\nVerification report:\n" << report << std::endl;
         }
+        ebpf_api_free_error_message(error_message);
+        ebpf_api_free_error_message(report);
+        return ERROR_SUPPRESS_OUTPUT;
     }
 }

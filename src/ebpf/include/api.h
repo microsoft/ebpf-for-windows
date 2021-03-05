@@ -12,11 +12,17 @@ extern "C" {
 
     typedef void* ebpf_handle_t;
 
+    typedef enum _ebpf_execution_type
+    {
+        EBPF_EXECUTION_JIT,
+        EBPF_EXECUTION_INTERPRET
+    } ebpf_execution_type_t;
+
     uint32_t ebpf_api_initiate();
 
     void ebpf_api_terminate();
 
-    uint32_t ebpf_api_load_program(const char* file, const char* section_name, ebpf_handle_t* handle, const char** error_message);
+    uint32_t ebpf_api_load_program(const char* file, const char* section_name, ebpf_execution_type_t execution_type, ebpf_handle_t* handle, const char** error_message);
     void ebpf_api_free_error_message(const char* error_message);
     void ebpf_api_unload_program(ebpf_handle_t handle);
 

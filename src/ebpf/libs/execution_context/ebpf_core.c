@@ -14,6 +14,11 @@
 #define RTL_COUNT_OF(arr) (sizeof(arr) / sizeof(arr[0]))
 #define RTL_OFFSET_OF(s, m) (((size_t)&((s*)0)->m))
 
+#if defined(NTDDI_VERSION)
+#define false FALSE
+#define true TRUE
+#endif
+
 typedef struct _ebpf_core_code_entry {
     // pointer to code buffer
     ebpf_code_type_t code_type;
@@ -86,7 +91,7 @@ static uint64_t _ebpf_core_insert_code_entry(ebpf_core_code_entry_t* code)
             break;
         }
     }
-    ebpf_lock_unlock(&_ebpf_core_map_entry_table_lock, &state);
+    ebpf_lock_unlock(&_ebpf_core_code_entry_table_lock, &state);
     return handle;
 }
 
@@ -199,6 +204,7 @@ ebpf_core_initialize()
 {
     ebpf_lock_create(&_ebpf_core_code_entry_table_lock);
     ebpf_lock_create(&_ebpf_core_map_entry_table_lock);
+    ebpf_lock_create(&_ebpf_core_hook_table_lock);
     return EBPF_ERROR_SUCCESS;
 }
 
@@ -284,13 +290,23 @@ ebpf_core_protocol_load_code(
     size_t code_size = request->header.length - RTL_OFFSET_OF(ebpf_operation_load_code_request_t, code);
     size_t allocation_size = 0;
     ebpf_core_code_entry_t* code = NULL;
+    ebpf_memory_type_t memory_type;
     retval = ebpf_safe_size_t_add(code_size, sizeof(ebpf_core_code_entry_t), &allocation_size);
     if (retval != EBPF_ERROR_SUCCESS)
     {
         goto Done;
     }
 
-    code = ebpf_allocate(allocation_size, EBPF_MEMORY_EXECUTE);
+    if (request->code_type == EBPF_CODE_NATIVE)
+    {
+        memory_type = EBPF_MEMORY_EXECUTE;
+    }
+    else
+    {
+        memory_type = EBPF_MEMORY_NO_EXECUTE;
+    }
+
+    code = ebpf_allocate(allocation_size, memory_type);
     if (!code)
     {
         retval = EBPF_ERROR_OUT_OF_RESOURCES;
@@ -305,7 +321,7 @@ ebpf_core_protocol_load_code(
     }
     else
     {
-        char* error_message;
+        char* error_message = NULL;
         code->code_type = EBPF_CODE_EBPF;
         code->vm = ubpf_create();
         if (!code->vm)
@@ -313,9 +329,15 @@ ebpf_core_protocol_load_code(
             retval = EBPF_ERROR_OUT_OF_RESOURCES; 
             goto Done;
         }
+    
+        // BUG - ubpf implements bounds checking to detect interpreted code accesing memory out of bounds.
+        // Currently this is flagging valid access checks and failing.
+        toggle_bounds_check(code->vm, false);
+
         ubpf_register_helper_resolver(code->vm, code, ebpf_core_interpreter_helper_resolver);
         if (ubpf_load(code->vm, &request->code[0], (uint32_t)code_size, &error_message) != 0)
         {
+            ebpf_free(error_message);
             retval = EBPF_ERROR_INVALID_PARAMETER;
             goto Done;
         }
@@ -375,7 +397,7 @@ ebpf_error_code_t ebpf_core_invoke_hook(
 {
     ebpf_core_code_entry_t* code = NULL;
     ebpf_hook_function function_pointer;
-    char* error_message;
+    char* error_message = NULL;
 
     code = _ebpf_core_get_hook_entry(hook_point);
     if (code)

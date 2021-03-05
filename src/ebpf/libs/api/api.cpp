@@ -4,7 +4,6 @@
 */
 
 #include "pch.h"
-#include "platform.h"
 #include "tlv.h"
 
 extern "C"
@@ -12,6 +11,7 @@ extern "C"
 #include "api.h"
 #include "ubpf.h"
 }
+#include "platform.h"
 
 #include "protocol.h"
 #include "unwind_helper.h"
@@ -78,7 +78,7 @@ static uint32_t invoke_ioctl(ebpf_handle_t handle, request_t & request, reply_t 
 
     auto result = Platform::DeviceIoControl(
         handle,
-        (uint32_t)IOCTL_EBPFCTL_METHOD_BUFFERED,
+        IOCTL_EBPFCTL_METHOD_BUFFERED,
         request_ptr,
         request_size,
         reply_ptr,
@@ -224,7 +224,47 @@ static uint64_t helper_resolver(void* context, uint32_t helper)
     return reply.address[0];
 }
 
-uint32_t ebpf_api_load_program(const char* file_name, const char* section_name, ebpf_handle_t* handle, const char** error_message)
+static uint32_t resolve_maps_in_byte_code(std::vector<uint8_t>& byte_code)
+{
+    ebpf_inst* instructions = reinterpret_cast<ebpf_inst*>(byte_code.data());
+    ebpf_inst* instruction_end = reinterpret_cast<ebpf_inst*>(byte_code.data() + byte_code.size());
+    for (size_t index = 0; index < byte_code.size() / sizeof(ebpf_inst); index++)
+    {
+        ebpf_inst& first_instruction = instructions[index];
+        ebpf_inst& second_instruction = instructions[index + 1];
+        if (first_instruction.opcode != INST_OP_LDDW_IMM)
+        {
+            continue;
+        }
+        if (&instructions[index + 1] >= instruction_end)
+        {
+            return ERROR_INVALID_PARAMETER;
+        }
+        index++;
+
+        // Check for LD_MAP flag
+        if (first_instruction.src != 1)
+        {
+            continue;
+        }
+
+        // Clear LD_MAP flag
+        first_instruction.src = 0;
+
+        // Resolve FD -> map address.
+        uint64_t imm = static_cast<uint64_t>(first_instruction.imm) | (static_cast<uint64_t>(second_instruction.imm) << 32);
+        uint64_t new_imm = map_resolver(device_handle, imm);
+        if (new_imm == 0)
+        {
+            return ERROR_INVALID_PARAMETER;
+        }
+        first_instruction.imm = static_cast<uint32_t>(new_imm);
+        second_instruction.imm = static_cast<uint32_t>(new_imm >> 32);
+    }
+    return ERROR_SUCCESS;
+}
+
+uint32_t ebpf_api_load_program(const char* file_name, const char* section_name, ebpf_execution_type_t execution_type, ebpf_handle_t* handle, const char** error_message)
 {
     std::vector<uint8_t> byte_code(MAX_CODE_SIZE);
     size_t byte_code_size = byte_code.size();
@@ -265,41 +305,54 @@ uint32_t ebpf_api_load_program(const char* file_name, const char* section_name, 
         return ERROR_INVALID_PARAMETER;
     }
 
-    // JIT code.
-    vm = ubpf_create();
-    if (vm == nullptr)
-    {
-        return ERROR_OUTOFMEMORY;
-    }
     byte_code.resize(byte_code_size);
-
-    if (ubpf_register_map_resolver(vm, device_handle, map_resolver) < 0)
+    result = resolve_maps_in_byte_code(byte_code);
+    if (result != ERROR_SUCCESS)
     {
-        return ERROR_INVALID_PARAMETER;
+        return result;
     }
 
-    if (ubpf_register_helper_resolver(vm, device_handle, helper_resolver) < 0)
+    if (execution_type == EBPF_EXECUTION_JIT)
     {
-        return ERROR_INVALID_PARAMETER;
-    }
+        // JIT code.
+        vm = ubpf_create();
+        if (vm == nullptr)
+        {
+            return ERROR_OUTOFMEMORY;
+        }
 
-    if (ubpf_load(vm, byte_code.data(), static_cast<uint32_t>(byte_code.size()), const_cast<char**>(error_message)) < 0)
+        if (ubpf_register_helper_resolver(vm, device_handle, helper_resolver) < 0)
+        {
+            return ERROR_INVALID_PARAMETER;
+        }
+
+        if (ubpf_load(vm, byte_code.data(), static_cast<uint32_t>(byte_code.size()), const_cast<char**>(error_message)) < 0)
+        {
+            return ERROR_INVALID_PARAMETER;
+        }
+
+        if (ubpf_translate(vm, machine_code.data(), &machine_code_size, const_cast<char**>(error_message)))
+        {
+            return ERROR_INVALID_PARAMETER;
+        }
+        machine_code.resize(machine_code_size);
+
+        request_buffer.resize(machine_code.size() + offsetof(ebpf_operation_load_code_request_t, code));
+        auto request = reinterpret_cast<ebpf_operation_load_code_request_t*>(request_buffer.data());
+        request->header.id = ebpf_operation_id_t::EBPF_OPERATION_LOAD_CODE;
+        request->header.length = static_cast<uint16_t>(request_buffer.size());
+        request->code_type = EBPF_CODE_NATIVE;
+        std::copy(machine_code.begin(), machine_code.end(), request_buffer.begin() + offsetof(ebpf_operation_load_code_request_t, code));
+    }
+    else
     {
-        return ERROR_INVALID_PARAMETER;
+        request_buffer.resize(byte_code.size() + offsetof(ebpf_operation_load_code_request_t, code));
+        auto request = reinterpret_cast<ebpf_operation_load_code_request_t*>(request_buffer.data());
+        request->header.id = ebpf_operation_id_t::EBPF_OPERATION_LOAD_CODE;
+        request->header.length = static_cast<uint16_t>(request_buffer.size());
+        request->code_type = EBPF_CODE_EBPF;
+        std::copy(byte_code.begin(), byte_code.end(), request_buffer.begin() + offsetof(ebpf_operation_load_code_request_t, code));
     }
-
-    if (ubpf_translate(vm, machine_code.data(), &machine_code_size, const_cast<char**>(error_message)))
-    {
-        return ERROR_INVALID_PARAMETER;
-    }
-    machine_code.resize(machine_code_size);
-
-    request_buffer.resize(machine_code.size() + offsetof(ebpf_operation_load_code_request_t, code));
-    auto request = reinterpret_cast<ebpf_operation_load_code_request_t*>(request_buffer.data());
-    request->header.id = ebpf_operation_id_t::EBPF_OPERATION_LOAD_CODE;
-    request->header.length = static_cast<uint16_t>(request_buffer.size());
-    request->code_type = EBPF_CODE_NATIVE;
-    std::copy(machine_code.begin(), machine_code.end(), request_buffer.begin() + offsetof(ebpf_operation_load_code_request_t, code));
 
     result = invoke_ioctl(device_handle, request_buffer, reply);
 

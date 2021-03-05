@@ -11,7 +11,12 @@
 
 void* ubpf_alloc(size_t size, size_t count)
 {
-    return ExAllocatePool(POOL_FLAG_NON_PAGED, size * count);
+    void * memory = ExAllocatePool(POOL_FLAG_NON_PAGED, size * count);
+    if (memory)
+    {
+        memset(memory, 0, size * count);
+    }
+    return memory;
 }
 
 void ubpf_free(void* memory)

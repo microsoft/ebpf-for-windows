@@ -7,6 +7,7 @@
 #define TOKEN_SECTION  L"section"
 #define TOKEN_PINNED   L"pinned"
 #define TOKEN_TYPE     L"type"
+#define TOKEN_EXECUTION L"execution"
 
 typedef enum {
     VL_NORMAL = 0,

@@ -58,6 +58,7 @@ BEGIN
 \n                   [[section=]<string>]\
 \n                   [[type=]xdp]\
 \n                   [[pinned=]yes|no]\
+\n                   [[execution=]jit|interpret]\
 \n\
 \nParameters:\
 \n\
@@ -74,6 +75,9 @@ BEGIN
 \n                   yes: Pin the program.\
 \n                        This is the default value.\
 \n                   no: Do not pin the program.\
+\n      execution - One of the following values:\
+\n                   jit: Convert the program to machine code.\
+\n                   interpret: Run the program as byte code.\
 \n\
 \nRemarks: Loads a program (if not already loaded) and pins it if\
 \n         requested.\

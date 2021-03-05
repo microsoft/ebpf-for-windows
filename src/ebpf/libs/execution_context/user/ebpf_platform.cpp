@@ -11,6 +11,7 @@
 #include "ebpf_core.h"
 #include "ebpf_platform.h"
 #include <Windows.h>
+#include <mutex>
 
 std::set<uint64_t> _executable_segments;
 
@@ -58,18 +59,26 @@ ebpf_error_code_t ebpf_safe_size_t_add(size_t augend, size_t addend, size_t* res
 
 void ebpf_lock_create(ebpf_lock_t* lock)
 {
+    auto mutex = new std::mutex();
+    *reinterpret_cast<std::mutex**>(lock) = mutex;
 }
 
 void ebpf_lock_destroy(ebpf_lock_t* lock)
 {
+    auto mutex = *reinterpret_cast<std::mutex**>(lock);
+    delete mutex;
 }
 
 void ebpf_lock_lock(ebpf_lock_t* lock, ebpf_lock_state_t* state)
 {
+    auto mutex = *reinterpret_cast<std::mutex**>(lock);
+    mutex->lock();
 }
 
 void ebpf_lock_unlock(ebpf_lock_t* lock, ebpf_lock_state_t* state)
 {
+    auto mutex = *reinterpret_cast<std::mutex**>(lock);
+    mutex->unlock();
 }
 
 typedef struct _hash_table {

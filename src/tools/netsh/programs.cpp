@@ -32,6 +32,12 @@ static TOKEN_VALUE _ebpf_program_type_enum[] = {
 
 };
 
+static TOKEN_VALUE _ebpf_execution_type_enum[] = {
+    { L"jit", EBPF_EXECUTION_JIT },
+    { L"interpret", EBPF_EXECUTION_INTERPRET },
+
+};
+
 unsigned long handle_ebpf_add_program(
     LPCWSTR machine,
     LPWSTR* argv,
@@ -46,6 +52,7 @@ unsigned long handle_ebpf_add_program(
         {TOKEN_SECTION, NS_REQ_ZERO, FALSE},
         {TOKEN_TYPE, NS_REQ_ZERO, FALSE},
         {TOKEN_PINNED, NS_REQ_ZERO, FALSE},
+        {TOKEN_EXECUTION, NS_REQ_ZERO, FALSE }
     };
     ULONG tag_type[_countof(tags)] = { 0 };
 
@@ -63,6 +70,7 @@ unsigned long handle_ebpf_add_program(
     std::string section = ""; // Use the first code section by default.
     ebpf_program_type_t type = EBPF_PROGRAM_TYPE_XDP;
     PINNED_CONSTRAINT pinned = PINNED_ANY;
+    ebpf_execution_type_t execution = EBPF_EXECUTION_JIT;
     for (int i = 0; (status == NO_ERROR) && ((i + current_index) < argc); i++) {
         switch (tag_type[i]) {
         case 0: // FILENAME
@@ -97,6 +105,13 @@ unsigned long handle_ebpf_add_program(
                 status = ERROR_INVALID_PARAMETER;
             }
             break;
+        case 4: // EXECUTION
+            status = MatchEnumTag(NULL,
+                argv[current_index + i],
+                _countof(_ebpf_execution_type_enum),
+                _ebpf_execution_type_enum,
+                (PULONG)&execution);
+            break;
         default:
             status = ERROR_INVALID_SYNTAX;
             break;
@@ -115,7 +130,7 @@ unsigned long handle_ebpf_add_program(
 
     const char* error_message = nullptr;
 
-    status = ebpf_api_load_program(filename.c_str(), section.c_str(), &_program_handle, &error_message);
+    status = ebpf_api_load_program(filename.c_str(), section.c_str(), execution, &_program_handle, &error_message);
     if (status != ERROR_SUCCESS)
     {
         if (error_message != nullptr) {
@@ -123,6 +138,7 @@ unsigned long handle_ebpf_add_program(
         } else {
             std::cerr << "error " << status << ": could not load program" << std::endl;
         }
+        ebpf_api_free_error_message(error_message);
         return ERROR_SUPPRESS_OUTPUT;
     }
 
