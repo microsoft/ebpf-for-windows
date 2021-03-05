@@ -3,53 +3,54 @@
 
 #define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers
 #include "pch.h"
+#include <stdint.h>
 
 namespace Platform {
     BOOL
         DeviceIoControl(
-            _In_ HANDLE hDevice,
-            DWORD dwIoControlCode,
-            _In_reads_bytes_opt_(nInBufferSize) VOID* lpInBuffer,
-            DWORD nInBufferSize,
-            _Out_writes_bytes_to_opt_(nOutBufferSize, *lpBytesReturned) VOID* lpOutBuffer,
-            DWORD nOutBufferSize,
-            _Out_opt_ DWORD* lpBytesReturned,
-            _Inout_opt_ OVERLAPPED* lpOverlapped)
+            _In_ HANDLE device_handle,
+            uint32_t io_control_code,
+            _In_reads_bytes_opt_(input_buffer_size) void* input_buffer,
+            uint32_t input_buffer_size,
+            _Out_writes_bytes_to_opt_(output_buffer_size, *count_of_bytes_returned) void* output_buffer,
+            uint32_t output_buffer_size,
+            _Out_opt_ uint32_t* count_of_bytes_returned,
+            _Inout_opt_ OVERLAPPED* overlapped)
     {
         return ::DeviceIoControl(
-            hDevice,
-            dwIoControlCode,
-            lpInBuffer,
-            nInBufferSize,
-            lpOutBuffer,
-            nOutBufferSize,
-            lpBytesReturned,
-            lpOverlapped);
+            device_handle,
+            io_control_code,
+            input_buffer,
+            input_buffer_size,
+            output_buffer,
+            output_buffer_size,
+            (LPDWORD)count_of_bytes_returned,
+            overlapped);
     }
 
     HANDLE
         CreateFileW(
-            _In_z_ LPCWSTR lpFileName,
-            DWORD dwDesiredAccess,
-            DWORD dwShareMode,
-            _In_opt_ SECURITY_ATTRIBUTES* lpSecurityAttributes,
-            DWORD dwCreationDisposition,
-            DWORD dwFlagsAndAttributes,
-            _In_opt_ HANDLE hTemplateFile)
+            _In_z_ PCWSTR file_name,
+            uint32_t desired_access,
+            uint32_t share_mode,
+            _In_opt_ SECURITY_ATTRIBUTES* security_attributed,
+            uint32_t creation_disposition,
+            uint32_t flags_and_attributed,
+            _In_opt_ HANDLE template_file)
     {
         return ::CreateFileW(
-            lpFileName,
-            dwDesiredAccess,
-            dwShareMode,
-            lpSecurityAttributes,
-            dwCreationDisposition,
-            dwFlagsAndAttributes,
-            hTemplateFile);
+            file_name,
+            desired_access,
+            share_mode,
+            security_attributed,
+            creation_disposition,
+            flags_and_attributed,
+            template_file);
     }
     BOOL
         CloseHandle(
-            _In_ _Post_ptr_invalid_ HANDLE hObject)
+            _In_ _Post_ptr_invalid_ HANDLE handle)
     {
-        return ::CloseHandle(hObject);
+        return ::CloseHandle(handle);
     }
 }

@@ -11,12 +11,6 @@
 #include "api.h"
 #include <iostream>
 
-// TODO: The dynamic library (EbpfApi.lib) doesn't yet expose APIs we need in elf.cpp
-// so as a workaround, we temporarily link with the underlying static lib and call the
-// internal APIs directly.  Once APIs exist for enumerating sections, generating
-// disassembly, and running the verifier without loading into execution context, then
-// this should switch back to EbpfApi.lib instead.
-
 static HANDLE _program_handle = INVALID_HANDLE_VALUE;
 
 typedef enum {
@@ -119,7 +113,7 @@ unsigned long handle_ebpf_add_program(
         _program_handle = INVALID_HANDLE_VALUE;
     }
 
-    char* error_message = nullptr;
+    const char* error_message = nullptr;
 
     status = ebpf_api_load_program(filename.c_str(), section.c_str(), &_program_handle, &error_message);
     if (status != ERROR_SUCCESS)

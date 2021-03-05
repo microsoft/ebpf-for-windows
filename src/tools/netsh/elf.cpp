@@ -1,15 +1,14 @@
 // Copyright (C) Microsoft.
 // SPDX-License-Identifier: MIT
-#include "ebpf_verifier.hpp"
-#include "windows_platform.hpp"
-#include "asm_ostream.hpp"
 #define WIN32_LEAN_AND_MEAN
+#include <iostream>
+#include <iomanip>
 #include <windows.h>
 #include <netsh.h>
 #include "elf.h"
 #include "tokens.h"
-
-extern const ebpf_platform_t g_ebpf_platform_windows;
+#include "api.h"
+#include "tlv.h"
 
 TOKEN_VALUE g_LevelEnum[2] = {
     { L"normal", VL_NORMAL },
@@ -25,8 +24,6 @@ DWORD handle_ebpf_show_disassembly(
     LPCVOID data,
     BOOL* done)
 {
-    const ebpf_platform_t* platform = &g_ebpf_platform_windows;
-
     TAG_TYPE tags[] = {
         {TOKEN_FILENAME, NS_REQ_PRESENT, FALSE},
         {TOKEN_SECTION, NS_REQ_ZERO, FALSE},
@@ -68,33 +65,18 @@ DWORD handle_ebpf_show_disassembly(
         return status;
     }
 
-    ebpf_verifier_options_t verifier_options = ebpf_verifier_default_options;
-    verifier_options.print_failures = true;
-    verifier_options.mock_map_fds = true;
-    std::vector<raw_program> rawPrograms;
-    try {
-        rawPrograms = read_elf(filename, section, &verifier_options, platform);
-    }
-    catch (std::runtime_error e) {
-        std::cerr << "error: " << e.what() << std::endl;
+    const char* disassembly = nullptr;
+    const char* error_message = nullptr;
+    if (ebpf_api_elf_disassemble_section(filename.c_str(), section.c_str(), &disassembly, &error_message) != 0)
+    {
+        std::cerr << error_message << std::endl;
+        ebpf_api_free_error_message(error_message);
         return ERROR_SUPPRESS_OUTPUT;
     }
-
-    try {
-        raw_program rawProgram = rawPrograms.back();
-        std::variant<InstructionSeq, std::string> programOrError = unmarshal(rawProgram, platform);
-        if (std::holds_alternative<std::string>(programOrError)) {
-            std::cout << "parse failure: " << std::get<std::string>(programOrError) << "\n";
-            return 1;
-        }
-        auto& program = std::get<InstructionSeq>(programOrError);
-        std::cout << "\n";
-        print(program, std::cout, {});
+    else
+    {
+        std::cout << disassembly << std::endl;
         return NO_ERROR;
-    }
-    catch (std::exception ex) {
-        std::cout << "Failed to load eBPF program from " << filename << "\n";
-        return ERROR_SUPPRESS_OUTPUT;
     }
 }
 
@@ -107,8 +89,6 @@ DWORD handle_ebpf_show_sections(
     LPCVOID data,
     BOOL* done)
 {
-    const ebpf_platform_t* platform = &g_ebpf_platform_windows;
-
     TAG_TYPE tags[] = {
         {TOKEN_FILENAME, NS_REQ_PRESENT, FALSE},
         {TOKEN_SECTION, NS_REQ_ZERO, FALSE},
@@ -169,14 +149,13 @@ DWORD handle_ebpf_show_sections(
         level = VL_VERBOSE;
     }
 
-    std::vector<raw_program> raw_programs;
-    ebpf_verifier_options_t options = ebpf_verifier_default_options;
-    options.mock_map_fds = true;
-    try {
-        raw_programs = read_elf(filename, section, &options, platform);
-    }
-    catch (std::runtime_error e) {
-        std::cerr << "error: " << e.what() << std::endl;
+    const tlv_type_length_value_t* section_data = nullptr;
+
+    const char* error_message = nullptr;
+    if (ebpf_api_elf_enumerate_sections(filename.c_str(), section.c_str(), level == VL_VERBOSE, &section_data, &error_message) != 0)
+    {
+        std::cerr << error_message << std::endl;
+        ebpf_api_free_error_message(error_message);
         return ERROR_SUPPRESS_OUTPUT;
     }
 
@@ -186,37 +165,35 @@ DWORD handle_ebpf_show_sections(
             std::cout << "             Section    Type  # Maps    Size\n";
             std::cout << "====================  ======  ======  ======\n";
         }
-        for (const raw_program& raw_program : raw_programs) {
+        for (auto current_section = tlv_child(section_data); current_section != tlv_next(section_data); current_section = tlv_next(current_section))
+        {
+            auto section_name = tlv_child(current_section);
+            auto type = tlv_next(section_name);
+            auto map_count = tlv_next(type);
+            auto program_bytes = tlv_next(map_count);
+            auto stats_secton = tlv_next(program_bytes);
             if (level == VL_NORMAL) {
-                std::cout << std::setw(20) << std::right << raw_program.section << "  " <<
-                    std::setw(6) << raw_program.info.type.platform_specific_data << "  " <<
-                    std::setw(6) << raw_program.info.map_descriptors.size() << "  " <<
-                    std::setw(6) << raw_program.prog.size() << "\n";
-            } else {
-                // Convert the instruction sequence to a control-flow graph
-                // in a "passive", non-deterministic form.
-                std::variant<InstructionSeq, std::string> programOrError = unmarshal(raw_program, platform);
-                if (std::holds_alternative<std::string>(programOrError)) {
-                    std::cout << "parse failure: " << std::get<std::string>(programOrError) << "\n";
-                    return 1;
-                }
-                auto& program = std::get<InstructionSeq>(programOrError);
-                cfg_t controlFlowGraph = prepare_cfg(program, raw_program.info, true);
-                std::map<std::string, int> stats = collect_stats(controlFlowGraph);
-
+                std::cout << std::setw(20) << std::right << tlv_value<std::string>(section_name) << "  " <<
+                    std::setw(6) << tlv_value<uint64_t>(type) << "  " <<
+                    std::setw(6) << tlv_value<size_t>(map_count) << "  " <<
+                    std::setw(6) << (program_bytes->length - offsetof(tlv_type_length_value_t, value)) / 8 << "\n";
+            }
+            else
+            {
                 std::cout << "\n";
-                std::cout << "Section      : " << raw_program.section << "\n";
-                std::cout << "Type         : " << (int)raw_program.info.type.platform_specific_data << "\n";
-                std::cout << "# Maps       : " << raw_program.info.map_descriptors.size() << "\n";
-                std::cout << "Size         : " << raw_program.prog.size() << " instructions\n";
-                for (std::map<std::string, int>::iterator iter = stats.begin(); iter != stats.end(); iter++)
+                std::cout << "Section      : " << tlv_value<std::string>(section_name) << "\n";
+                std::cout << "Type         : " << tlv_value<uint64_t>(type) << "\n";
+                std::cout << "# Maps       : " << tlv_value<size_t>(map_count) << "\n";
+                std::cout << "Size         : " << program_bytes->length - offsetof(tlv_type_length_value_t, value) / 8 << " instructions\n";
+                for (auto stat = tlv_child(stats_secton); stat != tlv_next(current_section); stat = tlv_next(stat))
                 {
-                    std::string key = iter->first;
-                    int value = iter->second;
-                    std::cout << std::setw(13) << std::left << key << ": " << value << "\n";
+                    auto key = tlv_child(stat);
+                    auto value = tlv_next(key);
+                    std::cout << std::setw(13) << std::left << tlv_value<std::string>(key) << ": " << tlv_value<int>(value) << "\n";
                 }
             }
         }
+
         return NO_ERROR;
     }
     catch (std::runtime_error e) {
@@ -234,8 +211,6 @@ DWORD handle_ebpf_show_verification(
     LPCVOID data,
     BOOL* done)
 {
-    const ebpf_platform_t* platform = &g_ebpf_platform_windows;
-
     TAG_TYPE tags[] = {
             {TOKEN_FILENAME, NS_REQ_PRESENT, FALSE},
             {TOKEN_SECTION, NS_REQ_ZERO, FALSE},
@@ -277,40 +252,24 @@ DWORD handle_ebpf_show_verification(
         return status;
     }
 
-    ebpf_verifier_options_t verifier_options = ebpf_verifier_default_options;
-    verifier_options.check_termination = true;
-    verifier_options.print_failures = true;
-    verifier_options.mock_map_fds = true;
-    std::vector<raw_program> raw_programs;
-    try {
-        raw_programs = read_elf(filename, section, &verifier_options, platform);
-    }
-    catch (std::runtime_error e) {
-        std::cerr << "error: " << e.what() << std::endl;
-        return ERROR_SUPPRESS_OUTPUT;
-    }
+    const char* report;
+    const char* error_message;
 
-    try {
-        raw_program raw_program = raw_programs.back();
-        std::variant<InstructionSeq, std::string> programOrError = unmarshal(raw_program, platform);
-        if (std::holds_alternative<std::string>(programOrError)) {
-            std::cout << "parse failure: " << std::get<std::string>(programOrError) << "\n";
-            return 1;
-        }
-        auto& program = std::get<InstructionSeq>(programOrError);
-
-        // Try again without simplifying.
-        verifier_options.no_simplify = true;
-        bool res = ebpf_verify_program(std::cout, program, raw_program.info, &verifier_options);
-        if (!res) {
-            return ERROR_SUPPRESS_OUTPUT;
-        }
-
+    status = ebpf_api_elf_verify_section(filename.c_str(), section.c_str(), &report, &error_message);
+    if (status == ERROR_SUCCESS)
+    { 
         std::cout << "\nVerification succeeded\n";
         return NO_ERROR;
     }
-    catch (std::exception ex) {
-        std::cout << "Failed to load eBPF program from " << filename << "\n";
-        return ERROR_SUPPRESS_OUTPUT;
+    else
+    {
+        if (error_message)
+        {
+            std::cerr << "error: " << error_message << std::endl;
+        }
+        if (report)
+        {
+            std::cerr << "\nVerification report:\n" << report << std::endl;
+        }
     }
 }

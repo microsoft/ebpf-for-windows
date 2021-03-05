@@ -8,29 +8,29 @@ namespace Platform
 {
         BOOL
         DeviceIoControl(
-            _In_ HANDLE hDevice,
-            _In_ DWORD dwIoControlCode,
-            _In_reads_bytes_opt_(nInBufferSize) LPVOID lpInBuffer,
-            _In_ DWORD nInBufferSize,
-            _Out_writes_bytes_to_opt_(nOutBufferSize, *lpBytesReturned) LPVOID lpOutBuffer,
-            _In_ DWORD nOutBufferSize,
-            _Out_opt_ LPDWORD lpBytesReturned,
-            _Inout_opt_ LPOVERLAPPED lpOverlapped
+            _In_ HANDLE device_handle,
+            uint32_t io_control_code,
+            _In_reads_bytes_opt_(input_buffer_size) void* input_buffer,
+            uint32_t input_buffer_size,
+            _Out_writes_bytes_to_opt_(output_buffer_size, *count_of_bytes_returned) void* output_buffer,
+            uint32_t output_buffer_size,
+            _Out_opt_ uint32_t* count_of_bytes_returned,
+            _Inout_opt_ OVERLAPPED* overlapped
         );
 
         HANDLE
         CreateFileW(
-            _In_ LPCWSTR lpFileName,
-            _In_ DWORD dwDesiredAccess,
-            _In_ DWORD dwShareMode,
-            _In_opt_ LPSECURITY_ATTRIBUTES lpSecurityAttributes,
-            _In_ DWORD dwCreationDisposition,
-            _In_ DWORD dwFlagsAndAttributes,
-            _In_opt_ HANDLE hTemplateFile
+            _In_ PCWSTR file_name,
+            uint32_t desired_access,
+            uint32_t share_mode,
+            _In_opt_ SECURITY_ATTRIBUTES* security_attributed,
+            uint32_t creation_disposition,
+            uint32_t flags_and_attributed,
+            _In_opt_ HANDLE template_file
         );
 
         BOOL
         CloseHandle(
-            _In_ _Post_ptr_invalid_ HANDLE hObject
+            _In_ _Post_ptr_invalid_ HANDLE handle
         );
 }

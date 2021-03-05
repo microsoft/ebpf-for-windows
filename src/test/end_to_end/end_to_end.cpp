@@ -6,6 +6,7 @@
 #define CATCH_CONFIG_MAIN
 #include "catch.hpp"
 
+#include "tlv.h"
 #include "api.h"
 #include "protocol.h"
 #include "ebpf_core.h"
@@ -148,7 +149,7 @@ TEST_CASE("droppacket", "[droppacket]")
     close_handle_handler = GlueCloseHandle;
 
     HANDLE program_handle;
-    char* error_message;
+    const char* error_message;
     uint32_t result = 0;
 
     REQUIRE(ebpf_core_initialize() == EBPF_ERROR_SUCCESS);
@@ -189,3 +190,45 @@ TEST_CASE("droppacket", "[droppacket]")
     REQUIRE(value == 0);
 
 }
+
+TEST_CASE("enum section", "[enum sections]") {
+    const char* error_message = nullptr;
+    const tlv_type_length_value_t* section_data = nullptr;
+    REQUIRE(ebpf_api_elf_enumerate_sections(SAMPLE_PATH "droppacket.o", nullptr, true, &section_data, &error_message) == 0);
+    for (auto current_section = tlv_child(section_data); current_section != tlv_next(section_data); current_section = tlv_next(current_section))
+    {
+        auto section_name = tlv_child(current_section);
+        auto type = tlv_next(section_name);
+        auto map_count = tlv_next(type);
+        auto program_bytes = tlv_next(map_count);
+        auto stats_secton = tlv_next(program_bytes);
+
+        REQUIRE(static_cast<tlv_type_t>(section_name->type) == tlv_type_t::STRING);
+        REQUIRE(static_cast<tlv_type_t>(type->type) == tlv_type_t::UINT);
+        REQUIRE(static_cast<tlv_type_t>(map_count->type) == tlv_type_t::UINT);
+        REQUIRE(static_cast<tlv_type_t>(program_bytes->type) == tlv_type_t::BLOB);
+        REQUIRE(static_cast<tlv_type_t>(stats_secton->type) == tlv_type_t::SEQUENCE);
+
+        for (auto current_stat = tlv_child(stats_secton); current_stat != tlv_next(stats_secton); current_stat = tlv_next(current_stat))
+        {
+            auto name = tlv_child(current_stat);
+            auto value = tlv_next(name);
+            REQUIRE(static_cast<tlv_type_t>(name->type) == tlv_type_t::STRING);
+            REQUIRE(static_cast<tlv_type_t>(value->type) == tlv_type_t::UINT);
+        }
+    }
+    ebpf_api_elf_free(section_data);
+    ebpf_api_free_error_message(error_message);
+
+}
+
+TEST_CASE("verify section", "[verify section]") {
+    const char* error_message = nullptr;
+    const char* report = nullptr;
+    REQUIRE(ebpf_api_elf_verify_section(SAMPLE_PATH "droppacket.o", "xdp", &report, &error_message) == 0);
+    REQUIRE(report != nullptr);
+    REQUIRE(error_message == nullptr);
+    ebpf_api_free_error_message(report);
+    ebpf_api_free_error_message(error_message);
+}
+

@@ -159,6 +159,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\include\api.h" />
+    <ClInclude Include="..\..\include\protocol.h" />
+    <ClInclude Include="..\..\include\tlv.h" />
+    <ClInclude Include="..\..\include\types.h" />
+    <ClInclude Include="..\..\include\windows_platform.hpp" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="platform.h">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>

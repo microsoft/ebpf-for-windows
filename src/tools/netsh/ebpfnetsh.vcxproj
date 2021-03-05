@@ -174,7 +174,6 @@
     <ClInclude Include="tokens.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\ebpf\dll\platform.cpp" />
     <ClCompile Include="dllmain.c" />
     <ClCompile Include="elf.cpp" />
     <ClCompile Include="programs.cpp" />
@@ -186,14 +185,8 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\external\ebpf-verifier\build\ebpfverifier.vcxproj">
-      <Project>{bd587773-916f-365f-82c0-2e8db12f40a0}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\..\ebpf\libs\api\api.vcxproj">
-      <Project>{c8bf60c3-40a9-43ad-891a-8aa34f1c3a68}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\..\ebpf\libs\ubpf\user\ubpf_user.vcxproj">
-      <Project>{245f0ec7-1ebc-4d68-8b1f-f758ea9196ae}</Project>
+    <ProjectReference Include="..\..\ebpf\dll\ebpfapi.vcxproj">
+      <Project>{75fe223a-3e45-4b0e-a2e8-04285e52e440}</Project>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
