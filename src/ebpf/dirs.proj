@@ -1,7 +1,0 @@
-<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" Sdk="Microsoft.Build.Traversal">
-  <ItemGroup>
-    <ProjectFile Include="core\dirs.proj" />
-    <ProjectFile Include="enclave\EbpfEnclave.vcxproj" />
-    <ProjectFile Include="libs\dirs.proj" />
-  </ItemGroup>
-</Project>

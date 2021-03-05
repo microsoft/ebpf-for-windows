@@ -29,8 +29,10 @@ extern "C"
 
 static HANDLE device_handle = INVALID_HANDLE_VALUE;
 
-template <typename request_t, typename reply_t>
-static DWORD invoke_ioctl(HANDLE handle, request_t request, reply_t reply)
+struct empty_reply {} _empty_reply;
+
+template <typename request_t, typename reply_t = empty_reply>
+static DWORD invoke_ioctl(HANDLE handle, request_t & request, reply_t & reply = _empty_reply)
 {
     DWORD actual_reply_size;
     DWORD request_size;
@@ -49,8 +51,8 @@ static DWORD invoke_ioctl(HANDLE handle, request_t request, reply_t reply)
     }
     else
     {
-        request_size = sizeof(*request);
-        request_ptr = request;
+        request_size = sizeof(request);
+        request_ptr = &request;
     }
 
     if constexpr (std::is_same<reply_t, nullptr_t>::value) {
@@ -62,10 +64,15 @@ static DWORD invoke_ioctl(HANDLE handle, request_t request, reply_t reply)
         reply_size = reply.size();
         reply_ptr = reply.data();
     }
+    else if constexpr (std::is_same< reply_t, empty_reply >::value)
+    {
+        reply_size = 0;
+        reply_ptr = nullptr;
+    }
     else
     {
-        reply_size = sizeof(*reply);
-        reply_ptr = reply;
+        reply_size = sizeof(reply);
+        reply_ptr = &reply;
     }
 
     auto result = Platform::DeviceIoControl(
@@ -91,7 +98,7 @@ static DWORD invoke_ioctl(HANDLE handle, request_t request, reply_t reply)
     return ERROR_SUCCESS;
 }
 
-DLL DWORD ebpf_api_initiate()
+DWORD ebpf_api_initiate()
 {
     LPCWSTR ebpfDeviceName = L"\\\\.\\EbpfIoDevice";
 
@@ -116,7 +123,7 @@ DLL DWORD ebpf_api_initiate()
     return 0;
 }
 
-DLL void ebpf_api_terminate()
+void ebpf_api_terminate()
 {
     if (device_handle != INVALID_HANDLE_VALUE)
     {
@@ -151,7 +158,7 @@ int create_map_function(uint32_t type, uint32_t key_size, uint32_t value_size, u
 
     _ebpf_operation_create_map_reply reply{};
 
-    DWORD retval = invoke_ioctl(device_handle, &request, &reply);
+    DWORD retval = invoke_ioctl(device_handle, request, reply);
     if (retval != ERROR_SUCCESS)
     {
         throw std::runtime_error(std::string("Error ") + std::to_string(retval) + " trying to create map");
@@ -187,7 +194,7 @@ static uint64_t map_resolver(void* context, uint64_t fd)
 
     _ebpf_operation_resolve_map_reply reply;
 
-    invoke_ioctl(context, &request, &reply);
+    invoke_ioctl(context, request, reply);
 
     if (reply.header.id != ebpf_operation_id_t::EBPF_OPERATION_RESOLVE_MAP)
     {
@@ -206,7 +213,7 @@ static uint64_t helper_resolver(void* context, uint32_t helper)
 
     _ebpf_operation_resolve_map_reply reply;
 
-    invoke_ioctl(context, &request, &reply);
+    invoke_ioctl(context, request, reply);
 
     if (reply.header.id != ebpf_operation_id_t::EBPF_OPERATION_RESOLVE_HELPER)
     {
@@ -216,7 +223,7 @@ static uint64_t helper_resolver(void* context, uint32_t helper)
     return reply.address[0];
 }
 
-DLL DWORD ebpf_api_load_program(const char* file_name, const char* section_name, HANDLE* handle, char** error_message)
+DWORD ebpf_api_load_program(const char* file_name, const char* section_name, HANDLE* handle, char** error_message)
 {
     std::vector<uint8_t> byte_code(MAX_CODE_SIZE);
     size_t byte_code_size = byte_code.size();
@@ -285,13 +292,14 @@ DLL DWORD ebpf_api_load_program(const char* file_name, const char* section_name,
     }
     machine_code.resize(machine_code_size);
 
-    request_buffer.resize(machine_code.size() + sizeof(_ebpf_operation_header));
-    auto header = reinterpret_cast<_ebpf_operation_header*>(request_buffer.data());
-    header->id = ebpf_operation_id_t::EBPF_OPERATION_LOAD_CODE;
-    header->length = static_cast<uint16_t>(request_buffer.size());
-    std::copy(machine_code.begin(), machine_code.end(), request_buffer.begin() + sizeof(_ebpf_operation_header));
+    request_buffer.resize(machine_code.size() + offsetof(ebpf_operation_load_code_request_t, code));
+    auto request = reinterpret_cast<ebpf_operation_load_code_request_t*>(request_buffer.data());
+    request->header.id = ebpf_operation_id_t::EBPF_OPERATION_LOAD_CODE;
+    request->header.length = static_cast<uint16_t>(request_buffer.size());
+    request->code_type = EBPF_CODE_NATIVE;
+    std::copy(machine_code.begin(), machine_code.end(), request_buffer.begin() + offsetof(ebpf_operation_load_code_request_t, code));
 
-    result = invoke_ioctl(device_handle, request_buffer, &reply);
+    result = invoke_ioctl(device_handle, request_buffer, reply);
 
     if (result != ERROR_SUCCESS)
     {
@@ -308,18 +316,18 @@ DLL DWORD ebpf_api_load_program(const char* file_name, const char* section_name,
     return result;
 }
 
-DLL void ebpf_api_free_error_message(char* error_message)
+void ebpf_api_free_error_message(char* error_message)
 {
     return free(error_message);
 }
 
-DLL void ebpf_api_unload_program(HANDLE handle)
+void ebpf_api_unload_program(HANDLE handle)
 {
     CloseHandle(handle);
     return;
 }
 
-DLL DWORD ebpf_api_attach_program(HANDLE handle, ebpf_program_type_t hook_point)
+DWORD ebpf_api_attach_program(HANDLE handle, ebpf_program_type_t hook_point)
 {
     _ebpf_operation_attach_detach_request request{
         sizeof(request),
@@ -327,10 +335,10 @@ DLL DWORD ebpf_api_attach_program(HANDLE handle, ebpf_program_type_t hook_point)
         reinterpret_cast<uint64_t>(handle),
         hook_point };
 
-    return invoke_ioctl(device_handle, &request, nullptr);
+    return invoke_ioctl(device_handle, request);
 }
 
-DLL DWORD ebpf_api_detach_program(HANDLE handle, ebpf_program_type_t hook_point)
+DWORD ebpf_api_detach_program(HANDLE handle, ebpf_program_type_t hook_point)
 {
     _ebpf_operation_attach_detach_request request{
         sizeof(request),
@@ -338,10 +346,10 @@ DLL DWORD ebpf_api_detach_program(HANDLE handle, ebpf_program_type_t hook_point)
         reinterpret_cast<uint64_t>(handle),
         hook_point };
 
-    return invoke_ioctl(device_handle, &request, nullptr);
+    return invoke_ioctl(device_handle, request);
 }
 
-DLL DWORD ebpf_api_map_lookup_element(HANDLE handle, DWORD key_size, unsigned char* key, DWORD value_size, unsigned char* value)
+DWORD ebpf_api_map_lookup_element(HANDLE handle, DWORD key_size, unsigned char* key, DWORD value_size, unsigned char* value)
 {
     std::vector<uint8_t> request_buffer(sizeof(_ebpf_operation_map_lookup_element_request) + key_size - 1);
     std::vector<uint8_t> reply_buffer(sizeof(_ebpf_operation_map_lookup_element_reply) + value_size - 1);
@@ -350,6 +358,7 @@ DLL DWORD ebpf_api_map_lookup_element(HANDLE handle, DWORD key_size, unsigned ch
 
     request->header.length = request_buffer.size();
     request->header.id = ebpf_operation_id_t::EBPF_OPERATION_MAP_LOOKUP_ELEMENT;
+    request->handle = reinterpret_cast<uint64_t>(handle);
     std::copy(key, key + key_size, request->key);
 
     auto retval = invoke_ioctl(device_handle, request_buffer, reply_buffer);
@@ -367,32 +376,34 @@ DLL DWORD ebpf_api_map_lookup_element(HANDLE handle, DWORD key_size, unsigned ch
 
 }
 
-DLL DWORD ebpf_api_map_update_element(HANDLE handle, DWORD key_size, unsigned char* key, DWORD value_size, unsigned char* value)
+DWORD ebpf_api_map_update_element(HANDLE handle, DWORD key_size, unsigned char* key, DWORD value_size, unsigned char* value)
 {
     std::vector<uint8_t> request_buffer(sizeof(_ebpf_operation_map_update_element_request) - 1 + key_size + value_size);
     auto request = reinterpret_cast<_ebpf_operation_map_update_element_request*>(request_buffer.data());
 
     request->header.length = request_buffer.size();
-    request->header.id = ebpf_operation_id_t::EBPF_OPERATION_MAP_LOOKUP_ELEMENT;
+    request->header.id = ebpf_operation_id_t::EBPF_OPERATION_MAP_UPDATE_ELEMENT;
+    request->handle = (uint64_t)handle;
     std::copy(key, key + key_size, request->data);
     std::copy(value, value + value_size, request->data + key_size);
 
-    return invoke_ioctl(device_handle, request_buffer, nullptr);
+    return invoke_ioctl(device_handle, request_buffer);
 }
 
-DLL DWORD ebpf_api_map_delete_element(HANDLE handle, DWORD key_size, unsigned char* key)
+DWORD ebpf_api_map_delete_element(HANDLE handle, DWORD key_size, unsigned char* key)
 {
     std::vector<uint8_t> request_buffer(sizeof(_ebpf_operation_map_delete_element_request) - 1 + key_size);
     auto request = reinterpret_cast<_ebpf_operation_map_delete_element_request*>(request_buffer.data());
 
     request->header.length = request_buffer.size();
     request->header.id = ebpf_operation_id_t::EBPF_OPERATION_MAP_DELETE_ELEMENT;
+    request->handle = (uint64_t)handle;
     std::copy(key, key + key_size, request->key);
 
-    return invoke_ioctl(device_handle, request_buffer, nullptr);
+    return invoke_ioctl(device_handle, request_buffer);
 }
 
-DLL DWORD ebpf_api_map_enumerate(HANDLE previous_handle, HANDLE* next_handle)
+DWORD ebpf_api_map_enumerate(HANDLE previous_handle, HANDLE* next_handle)
 {
     _ebpf_operation_enumerate_maps_request request{
         sizeof(request),
@@ -401,7 +412,7 @@ DLL DWORD ebpf_api_map_enumerate(HANDLE previous_handle, HANDLE* next_handle)
 
     _ebpf_operation_enumerate_maps_reply reply;
 
-    DWORD retval = invoke_ioctl(device_handle, &request, &reply);
+    DWORD retval = invoke_ioctl(device_handle, request, reply);
     if (retval == ERROR_SUCCESS)
     {
         *next_handle = reinterpret_cast<HANDLE>(reply.next_handle);
@@ -409,7 +420,7 @@ DLL DWORD ebpf_api_map_enumerate(HANDLE previous_handle, HANDLE* next_handle)
     return retval;
 }
 
-DLL DWORD ebpf_api_map_query_definition(HANDLE handle, DWORD* size, DWORD* type, DWORD* key_size, DWORD* value_size, DWORD* max_entries)
+DWORD ebpf_api_map_query_definition(HANDLE handle, DWORD* size, DWORD* type, DWORD* key_size, DWORD* value_size, DWORD* max_entries)
 {
     _ebpf_operation_query_map_definition_request request{
         sizeof(request),
@@ -418,7 +429,7 @@ DLL DWORD ebpf_api_map_query_definition(HANDLE handle, DWORD* size, DWORD* type,
 
     _ebpf_operation_query_map_definition_reply reply;
 
-    DWORD retval = invoke_ioctl(device_handle, &request, &reply);
+    DWORD retval = invoke_ioctl(device_handle, request, reply);
     if (retval == ERROR_SUCCESS)
     {
         *size = reply.map_definition.size;
@@ -430,7 +441,7 @@ DLL DWORD ebpf_api_map_query_definition(HANDLE handle, DWORD* size, DWORD* type,
     return retval;
 }
 
-DLL void ebpf_api_delete_map(HANDLE handle)
+void ebpf_api_delete_map(HANDLE handle)
 {
     CloseHandle(handle);
 }

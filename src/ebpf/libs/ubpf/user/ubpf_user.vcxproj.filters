@@ -15,39 +15,28 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="programs.h">
+    <ClInclude Include="..\..\..\..\..\external\ubpf\vm\ebpf.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="elf.h">
+    <ClInclude Include="..\..\..\..\..\external\ubpf\vm\platform.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="resource.h">
+    <ClInclude Include="..\..\..\..\..\external\ubpf\vm\ubpf_int.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="tokens.h">
+    <ClInclude Include="..\..\..\..\..\external\ubpf\vm\ubpf_jit_x86_64.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="dllmain.c">
+    <ClCompile Include="..\..\..\..\..\external\ubpf\vm\ubpf_jit_x86_64.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="elf.cpp">
+    <ClCompile Include="..\..\..\..\..\external\ubpf\vm\ubpf_vm.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="programs.cpp">
+    <ClCompile Include="platform.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\ebpf\dll\platform.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ResourceCompile Include="ebpfnetsh.rc">
-      <Filter>Resource Files</Filter>
-    </ResourceCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="packages.config" />
   </ItemGroup>
 </Project>

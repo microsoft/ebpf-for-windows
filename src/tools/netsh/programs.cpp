@@ -6,7 +6,7 @@
 #include <netsh.h>
 #include "programs.h"
 #include "tokens.h"
-#include "../../include/ebpf_windows.h"
+#include "ebpf_windows.h"
 
 #include "api.h"
 #include <iostream>
@@ -16,7 +16,6 @@
 // internal APIs directly.  Once APIs exist for enumerating sections, generating
 // disassembly, and running the verifier without loading into execution context, then
 // this should switch back to EbpfApi.lib instead.
-#pragma comment(lib, "api.lib")
 
 static HANDLE _program_handle = INVALID_HANDLE_VALUE;
 

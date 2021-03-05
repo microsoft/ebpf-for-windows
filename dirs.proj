@@ -1,5 +1,0 @@
-<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" Sdk="Microsoft.Build.Traversal">
-  <ItemGroup>
-    <ProjectFile Include="src\dirs.proj" />
-  </ItemGroup>
-</Project>

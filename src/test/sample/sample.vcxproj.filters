@@ -15,39 +15,22 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="programs.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="elf.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="resource.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="tokens.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="dllmain.c">
+    <ClCompile Include="bindmonitor.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="elf.cpp">
+    <ClCompile Include="bpf.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="programs.cpp">
+    <ClCompile Include="bpf_call.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\ebpf\dll\platform.cpp">
+    <ClCompile Include="droppacket.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="ebpfnetsh.rc">
-      <Filter>Resource Files</Filter>
-    </ResourceCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="packages.config" />
+    <ClInclude Include="ebpf.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
