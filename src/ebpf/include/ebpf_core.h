@@ -21,7 +21,8 @@ extern "C" {
         EBPF_ERROR_SUCCESS,
         EBPF_ERROR_OUT_OF_RESOURCES,
         EBPF_ERROR_NOT_FOUND,
-        EBPF_ERROR_INVALID_PARAMETER
+        EBPF_ERROR_INVALID_PARAMETER,
+        EBPF_ERROR_BLOCKED_BY_POLICY,
     } ebpf_error_code_t;
 
     typedef uint32_t(__stdcall* ebpf_hook_function) (uint8_t*);

@@ -43,6 +43,9 @@ static ebpf_core_map_t* _ebpf_core_map_entry_table[1024] = { 0 };
 static ebpf_lock_t _ebpf_core_hook_table_lock = { 0 };
 static ebpf_core_code_entry_t* _ebpf_core_hook_table[EBPF_PROGRAM_TYPE_BIND + 1] = { 0 };
 
+// Assume enabled until we can query it
+static ebpf_code_integrity_state_t _ebpf_core_code_integrity_state = EBPF_CODE_INTEGRITY_HYPER_VISOR_KERNEL_MODE;
+
 static void* _ebpf_core_map_lookup_element(ebpf_core_map_t* map, const uint8_t* key);
 static void _ebpf_core_map_update_element(ebpf_core_map_t* map, const uint8_t* key, const uint8_t* data);
 static void _ebpf_core_map_delete_element(ebpf_core_map_t* map, const uint8_t* key);
@@ -205,7 +208,8 @@ ebpf_core_initialize()
     ebpf_lock_create(&_ebpf_core_code_entry_table_lock);
     ebpf_lock_create(&_ebpf_core_map_entry_table_lock);
     ebpf_lock_create(&_ebpf_core_hook_table_lock);
-    return EBPF_ERROR_SUCCESS;
+
+    return ebpf_query_code_integrity_state(&_ebpf_core_code_integrity_state);
 }
 
 void
@@ -299,6 +303,11 @@ ebpf_core_protocol_load_code(
 
     if (request->code_type == EBPF_CODE_NATIVE)
     {
+        if (_ebpf_core_code_integrity_state == EBPF_CODE_INTEGRITY_HYPER_VISOR_KERNEL_MODE)
+        {
+            retval = EBPF_ERROR_BLOCKED_BY_POLICY;
+            goto Done;
+        }
         memory_type = EBPF_MEMORY_EXECUTE;
     }
     else

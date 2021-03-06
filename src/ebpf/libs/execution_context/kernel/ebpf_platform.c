@@ -25,8 +25,48 @@ void* ebpf_allocate(size_t size, ebpf_memory_type_t type)
 
 void ebpf_free(void* memory)
 {
-    ExFreePool(memory);
+    if (memory)
+    {
+        ExFreePool(memory);
+    }
 }
+
+// There isn't an official API to query this information from kernel.
+// Use NtQuerySystemInformation with struct + header from winternl.h.
+
+// Begin code pulled from winternl.h.
+#define SystemCodeIntegrityInformation 103
+typedef struct _SYSTEM_CODEINTEGRITY_INFORMATION {
+    ULONG  Length;
+    ULONG  CodeIntegrityOptions;
+} SYSTEM_CODEINTEGRITY_INFORMATION, * PSYSTEM_CODEINTEGRITY_INFORMATION;
+#define CODEINTEGRITY_OPTION_HVCI_KMCI_ENABLED              0x400
+NTSTATUS NtQuerySystemInformation(
+    uint32_t system_information_class,
+    void* system_information,
+    uint32_t system_information_length,
+    uint32_t* return_length
+);
+// End code pulled from winternl.h.
+
+ebpf_error_code_t ebpf_query_code_integrity_state(ebpf_code_integrity_state_t* state)
+{
+    NTSTATUS status;
+    SYSTEM_CODEINTEGRITY_INFORMATION code_integrity_information = { sizeof(SYSTEM_CODEINTEGRITY_INFORMATION), 0 };
+    uint32_t system_information_length = sizeof(code_integrity_information);
+    uint32_t returned_length = 0;
+    status = NtQuerySystemInformation(SystemCodeIntegrityInformation, &code_integrity_information, system_information_length, &returned_length);
+    if (NT_SUCCESS(status))
+    {
+        *state = (code_integrity_information.CodeIntegrityOptions & CODEINTEGRITY_OPTION_HVCI_KMCI_ENABLED) != 0 ? EBPF_CODE_INTEGRITY_HYPER_VISOR_KERNEL_MODE : EBPF_CODE_INTEGRITY_DEFAULT;
+        return EBPF_ERROR_SUCCESS;
+    }
+    else
+    {
+        return EBPF_ERROR_INVALID_PARAMETER;
+    }
+}
+
 
 ebpf_error_code_t ebpf_safe_size_t_multiply(size_t multiplicand, size_t multiplier, size_t* result)
 {
@@ -62,11 +102,9 @@ void ebpf_lock_unlock(ebpf_lock_t* lock, ebpf_lock_state_t* state)
 // Compare can be called with a partial struct only containing the key.
 // Do not access beyond map->ebpf_map_definition.key_size bytes.
 static RTL_GENERIC_COMPARE_RESULTS
-ebpf_hash_map_compare(
-    _In_ struct _RTL_AVL_TABLE* table,
-    _In_ PVOID  first_struct,
-    _In_ PVOID  second_struct
-)
+ebpf_hash_map_compare(struct _RTL_AVL_TABLE* table, 
+    void*  first_struct, 
+    void*  second_struct)
 {
     size_t sizes = (size_t)table->TableContext;
     uint16_t key_size = (uint16_t)(sizes >> 16);
@@ -85,10 +123,10 @@ ebpf_hash_map_compare(
     }
 }
 
-static PVOID
+static void*
 ebpf_hash_map_allocate(
-    _In_ struct _RTL_AVL_TABLE* table,
-    _In_ CLONG  byte_size
+    struct _RTL_AVL_TABLE* table,
+    uint32_t byte_size
 )
 {
     UNREFERENCED_PARAMETER(table);
@@ -101,15 +139,17 @@ ebpf_hash_map_allocate(
 
 static VOID
 ebpf_hash_map_free(
-    _In_ struct _RTL_AVL_TABLE* table,
-    _In_ PVOID  buffer
+    struct _RTL_AVL_TABLE* table,
+    void* buffer
 )
 {
     UNREFERENCED_PARAMETER(table);
     ExFreePool(buffer);
 }
 
-ebpf_error_code_t ebpf_hash_table_create(ebpf_hash_table_t** hash_table, size_t key_size, size_t value_size)
+ebpf_error_code_t ebpf_hash_table_create(ebpf_hash_table_t** hash_table, 
+    size_t key_size, 
+    size_t value_size)
 {
     ebpf_error_code_t retval;
     RTL_AVL_TABLE* table = NULL;
@@ -126,7 +166,7 @@ ebpf_error_code_t ebpf_hash_table_create(ebpf_hash_table_t** hash_table, size_t 
         goto Done;
     }
 
-    RtlInitializeGenericTableAvl(table, ebpf_hash_map_compare, ebpf_hash_map_allocate, ebpf_hash_map_free, (PVOID)sizes);
+    RtlInitializeGenericTableAvl(table, ebpf_hash_map_compare, ebpf_hash_map_allocate, ebpf_hash_map_free, (void*)sizes);
 
     *hash_table = (ebpf_hash_table_t*)table;
     retval = EBPF_ERROR_SUCCESS;

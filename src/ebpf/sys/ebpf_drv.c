@@ -89,6 +89,9 @@ inline NTSTATUS ebpf_error_code_to_ntstatus(ebpf_error_code_t error)
         return STATUS_NOT_FOUND;
     case EBPF_ERROR_INVALID_PARAMETER:
         return STATUS_INVALID_PARAMETER;
+    case EBPF_ERROR_BLOCKED_BY_POLICY:
+        // TODO: Find a better erorr code for this.
+        return STATUS_NOT_SUPPORTED; 
     default:
         return STATUS_INVALID_PARAMETER;
     }

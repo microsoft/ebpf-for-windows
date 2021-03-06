@@ -15,6 +15,21 @@
 
 std::set<uint64_t> _executable_segments;
 
+bool _ebpf_platform_code_integrity_enabled = false;
+
+ebpf_error_code_t ebpf_query_code_integrity_state(ebpf_code_integrity_state_t* state)
+{
+    if (_ebpf_platform_code_integrity_enabled)
+    {
+        *state = EBPF_CODE_INTEGRITY_HYPER_VISOR_KERNEL_MODE;
+    }
+    else
+    {
+        *state = EBPF_CODE_INTEGRITY_DEFAULT;
+    }
+    return EBPF_ERROR_SUCCESS;
+}
+
 void* ebpf_allocate(size_t size, ebpf_memory_type_t type)
 {
     void* memory;
