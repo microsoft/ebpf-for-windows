@@ -127,7 +127,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\external\ebpf-verifier\build\ebpfverifier.vcxproj">
-      <Project>{bd587773-916f-365f-82c0-2e8db12f40a0}</Project>
+      <Project>{d2e4cac3-b91e-3dd8-bbac-d570ec568c8b}</Project>
     </ProjectReference>
     <ProjectReference Include="..\libs\api\api.vcxproj">
       <Project>{c8bf60c3-40a9-43ad-891a-8aa34f1c3a68}</Project>

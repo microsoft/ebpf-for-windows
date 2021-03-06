@@ -1,1 +1,14 @@
-*.sh text eol=lf
+# Files identified as text should be checked in with LFs, and checked
+# out with the platform-specific EOL markers.
+#
+# Essentially runs `git config core.autocrlf true` for every clone.
+* text=auto
+
+# Bash shell scripts should always have LFs.
+*.sh                text eol=lf
+/scripts/**         text eol=lf
+
+# Windows build files should always have CRLFs.
+*.sln               text eol=crlf
+*.vcxproj           text eol=crlf
+*.vcxproj.filters   text eol=crlf

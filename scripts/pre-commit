@@ -38,7 +38,7 @@ fi
 scripts=$(git rev-parse --show-toplevel)/scripts
 
 if ! "$scripts/format-code" --quiet --whatif --files="${files[*]}"; then
-    exit_ "Commit failed: please run './scripts/format-code --staged' to fix the formatting"
+    exit_ "Commit failed: to fix the formatting please run './scripts/format-code --staged' in bash or '.\\scripts\\format-code.ps1 --staged' in powershell"
 fi
 if ! "$scripts/check-license.sh" "${files[@]}"; then
     exit_ "Commit failed: please add license headers to the above files"
