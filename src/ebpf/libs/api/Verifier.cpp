@@ -3,7 +3,11 @@
  *  SPDX-License-Identifier: MIT
 */
 
+#pragma warning(push)
+#pragma warning(disable:4100) // 'identifier' : unreferenced formal parameter
+#pragma warning(disable:4244) // 'conversion' conversion from 'type1' to 'type2', possible loss of data
 #include "ebpf_verifier.hpp"
+#pragma warning(pop)
 #include "windows_platform.hpp"
 #include "platform.hpp"
 #include "Verifier.h"
@@ -152,15 +156,14 @@ uint32_t ebpf_api_elf_enumerate_sections(const char* file, const char* section, 
                 }
             }
 
-            auto section = tlv_pack<tlv_sequence>(
+            sequence.emplace_back(tlv_pack<tlv_sequence>(
                 {
                 tlv_pack(raw_program.section.c_str()),
                 tlv_pack(raw_program.info.type.platform_specific_data),
                 tlv_pack(raw_program.info.map_descriptors.size()),
                 tlv_pack(convert_ebpf_program_to_bytes(raw_program.prog)),
                 tlv_pack(stats_sequence)
-                });
-            sequence.emplace_back(std::move(section));
+                }));
         }
 
         auto retval = tlv_pack(sequence);
@@ -186,7 +189,7 @@ uint32_t ebpf_api_elf_disassemble_section(const char* file, const char* section,
     std::ostringstream output;
     try
     {
-        auto raw_programs = read_elf(file, std::string(), &verifier_options, platform);
+        auto raw_programs = read_elf(file, section, &verifier_options, platform);
         raw_program raw_program = raw_programs.back();
         std::variant<InstructionSeq, std::string> programOrError = unmarshal(raw_program, platform);
         if (std::holds_alternative<std::string>(programOrError)) {

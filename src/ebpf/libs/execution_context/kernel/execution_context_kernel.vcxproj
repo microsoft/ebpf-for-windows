@@ -40,12 +40,15 @@
     <ClCompile Include="ebpf_platform.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\include\api.h" />
     <ClInclude Include="..\..\..\include\ebpf_core.h" />
     <ClInclude Include="..\..\..\include\ebpf_maps.h" />
     <ClInclude Include="..\..\..\include\ebpf_platform.h" />
-    <ClInclude Include="..\..\..\include\protocol.h" />
-    <ClInclude Include="..\..\..\include\types.h" />
-    <ClInclude Include="..\framework.h" />
+    <ClInclude Include="..\..\..\include\ebpf_protocol.h" />
+    <ClInclude Include="..\..\..\include\ebpf_windows.h" />
+    <ClInclude Include="..\..\..\include\tlv.h" />
+    <ClInclude Include="..\..\..\include\unwind_helper.h" />
+    <ClInclude Include="..\..\..\include\windows_platform.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{26E7ED0B-C128-4D7C-A90E-C246DEF40AD3}</ProjectGuid>

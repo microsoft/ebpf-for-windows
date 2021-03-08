@@ -8,12 +8,15 @@
 
 #include "tlv.h"
 #include "api.h"
-#include "protocol.h"
+#include "ebpf_protocol.h"
 #include "ebpf_core.h"
 #include "mock.h"
 namespace ebpf
 {
+#pragma warning(push)
+#pragma warning(disable:4201) //nonstandard extension used : nameless struct/union
 #include "../sample/ebpf.h"
+#pragma warning(pop)
 };
 
 #include "unwind_helper.h"
@@ -46,17 +49,24 @@ GlueCreateFileW(
     PSECURITY_ATTRIBUTES lpSecurityAttributes,
     DWORD dwCreationDisposition,
     DWORD dwFlagsAndAttributes,
-    ebpf_handle_t hTemplateFile
-)
+    ebpf_handle_t hTemplateFile)
 {
+    UNREFERENCED_PARAMETER(lpFileName);
+    UNREFERENCED_PARAMETER(dwDesiredAccess);
+    UNREFERENCED_PARAMETER(dwShareMode);
+    UNREFERENCED_PARAMETER(lpSecurityAttributes);
+    UNREFERENCED_PARAMETER(dwCreationDisposition);
+    UNREFERENCED_PARAMETER(dwFlagsAndAttributes);
+    UNREFERENCED_PARAMETER(hTemplateFile);
+
     return (ebpf_handle_t)0x12345678;
 }
 
 BOOL
 GlueCloseHandle(
-    ebpf_handle_t hObject
-)
+    ebpf_handle_t hObject)
 {
+    UNREFERENCED_PARAMETER(hObject);
     return TRUE;
 }
 
@@ -71,6 +81,11 @@ GlueDeviceIoControl(
     PDWORD lpBytesReturned,
     OVERLAPPED* lpOverlapped)
 {
+    UNREFERENCED_PARAMETER(hDevice);
+    UNREFERENCED_PARAMETER(nInBufferSize);
+    UNREFERENCED_PARAMETER(dwIoControlCode);
+    UNREFERENCED_PARAMETER(lpOverlapped);
+
     ebpf_error_code_t retval;
     const ebpf_operation_header_t* user_request = reinterpret_cast<decltype(user_request)>(lpInBuffer);
     ebpf_operation_header_t* user_reply = nullptr;
@@ -97,7 +112,7 @@ GlueDeviceIoControl(
         {
             goto Fail;
         }
-        user_reply->length = nOutBufferSize;
+        user_reply->length = static_cast<uint16_t>(nOutBufferSize);
         user_reply->id = user_request->id;
         *lpBytesReturned = user_reply->length;
     }

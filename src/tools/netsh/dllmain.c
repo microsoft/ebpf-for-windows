@@ -25,6 +25,9 @@ BOOL WINAPI DllMain(
     DWORD  reasonForCall,
     void* reserved)
 {
+    UNREFERENCED_PARAMETER(moduleHandle);
+    UNREFERENCED_PARAMETER(reasonForCall);
+    UNREFERENCED_PARAMETER(reserved);
     return TRUE;
 }
 
@@ -83,6 +86,8 @@ static CMD_GROUP_ENTRY g_EbpfGroupCommands[] =
 DWORD WINAPI EbpfStartHelper(const GUID* parentGuid, DWORD version)
 {
     NS_CONTEXT_ATTRIBUTES attributes = { 0 };
+    UNREFERENCED_PARAMETER(parentGuid);
+    UNREFERENCED_PARAMETER(version);
 
     attributes.pwszContext = L"ebpf";
     attributes.guidHelper = g_EbpfHelperGuid;
@@ -101,7 +106,8 @@ DWORD
 InitHelperDll(DWORD netshVersion, void* reserved)
 {
     NS_HELPER_ATTRIBUTES attributes = { 0 };
-
+    UNREFERENCED_PARAMETER(netshVersion);
+    UNREFERENCED_PARAMETER(reserved);
     attributes.guidHelper = g_EbpfHelperGuid;
     attributes.dwVersion = 1;
     attributes.pfnStart = EbpfStartHelper;

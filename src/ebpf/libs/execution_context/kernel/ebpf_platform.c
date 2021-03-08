@@ -3,8 +3,7 @@
  *  SPDX-License-Identifier: MIT
 */
 #include <ntddk.h>
-#include "types.h"
-#include "protocol.h"
+#include "ebpf_protocol.h"
 #include "ebpf_core.h"
 #include "ebpf_platform.h"
 #include <ntintsafe.h>
@@ -102,9 +101,9 @@ void ebpf_lock_unlock(ebpf_lock_t* lock, ebpf_lock_state_t* state)
 // Compare can be called with a partial struct only containing the key.
 // Do not access beyond map->ebpf_map_definition.key_size bytes.
 static RTL_GENERIC_COMPARE_RESULTS
-ebpf_hash_map_compare(struct _RTL_AVL_TABLE* table, 
+ebpf_hash_map_compare(struct _RTL_AVL_TABLE* table,
     void*  first_struct, 
-    void*  second_struct)
+    void* second_struct)
 {
     size_t sizes = (size_t)table->TableContext;
     uint16_t key_size = (uint16_t)(sizes >> 16);
@@ -126,7 +125,7 @@ ebpf_hash_map_compare(struct _RTL_AVL_TABLE* table,
 static void*
 ebpf_hash_map_allocate(
     struct _RTL_AVL_TABLE* table,
-    uint32_t byte_size
+    unsigned long byte_size
 )
 {
     UNREFERENCED_PARAMETER(table);

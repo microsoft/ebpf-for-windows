@@ -29,9 +29,9 @@ Environment:
 
 #include <fwpmk.h>
 #include <netiodef.h>
+#include "ebpf_windows.h"
 #include "ebpf_l2_hook.h"
-#include "types.h"
-#include "protocol.h"
+#include "ebpf_protocol.h"
 #include "ebpf_core.h"
 
 // Driver global variables

@@ -32,7 +32,7 @@ Environment:
 
 #define INITGUID
 #include <guiddef.h>
-#include "protocol.h"
+#include "ebpf_windows.h"
 #include "ebpf_core.h"
 
 // XDP like hook

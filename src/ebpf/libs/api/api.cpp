@@ -13,7 +13,7 @@ extern "C"
 }
 #include "platform.h"
 
-#include "protocol.h"
+#include "ebpf_protocol.h"
 #include "unwind_helper.h"
 #include "Verifier.h"
 
@@ -143,7 +143,7 @@ typedef struct _map_cache {
 // state in that lib, but won't notice this global state which has the same problem.
 std::vector<map_cache_t> _map_file_descriptors;
 
-int create_map_function(uint32_t type, uint32_t key_size, uint32_t value_size, uint32_t max_entries, ebpf_verifier_options_t options)
+int create_map_function(uint32_t type, uint32_t key_size, uint32_t value_size, uint32_t max_entries, ebpf_verifier_options_t)
 {
     _ebpf_operation_create_map_request request{
         sizeof(_ebpf_operation_create_map_request),
@@ -411,7 +411,7 @@ uint32_t ebpf_api_map_lookup_element(ebpf_handle_t handle, uint32_t key_size, co
     auto request = reinterpret_cast<_ebpf_operation_map_lookup_element_request*>(request_buffer.data());
     auto reply = reinterpret_cast<_ebpf_operation_map_lookup_element_reply*>(reply_buffer.data());
 
-    request->header.length = request_buffer.size();
+    request->header.length = static_cast<uint16_t>(request_buffer.size());
     request->header.id = ebpf_operation_id_t::EBPF_OPERATION_MAP_LOOKUP_ELEMENT;
     request->handle = reinterpret_cast<uint64_t>(handle);
     std::copy(key, key + key_size, request->key);
@@ -436,7 +436,7 @@ uint32_t ebpf_api_map_update_element(ebpf_handle_t handle, uint32_t key_size, co
     std::vector<uint8_t> request_buffer(sizeof(_ebpf_operation_map_update_element_request) - 1 + key_size + value_size);
     auto request = reinterpret_cast<_ebpf_operation_map_update_element_request*>(request_buffer.data());
 
-    request->header.length = request_buffer.size();
+    request->header.length = static_cast<uint16_t>(request_buffer.size());
     request->header.id = ebpf_operation_id_t::EBPF_OPERATION_MAP_UPDATE_ELEMENT;
     request->handle = (uint64_t)handle;
     std::copy(key, key + key_size, request->data);
@@ -450,7 +450,7 @@ uint32_t ebpf_api_map_delete_element(ebpf_handle_t handle, uint32_t key_size, co
     std::vector<uint8_t> request_buffer(sizeof(_ebpf_operation_map_delete_element_request) - 1 + key_size);
     auto request = reinterpret_cast<_ebpf_operation_map_delete_element_request*>(request_buffer.data());
 
-    request->header.length = request_buffer.size();
+    request->header.length = static_cast<uint16_t>(request_buffer.size());
     request->header.id = ebpf_operation_id_t::EBPF_OPERATION_MAP_DELETE_ELEMENT;
     request->handle = (uint64_t)handle;
     std::copy(key, key + key_size, request->key);

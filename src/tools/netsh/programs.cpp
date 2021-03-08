@@ -38,6 +38,8 @@ static TOKEN_VALUE _ebpf_execution_type_enum[] = {
 
 };
 
+std::string down_cast_from_wstring(const std::wstring& wide_string);
+
 unsigned long handle_ebpf_add_program(
     LPCWSTR machine,
     LPWSTR* argv,
@@ -47,6 +49,11 @@ unsigned long handle_ebpf_add_program(
     LPCVOID data,
     BOOL* done)
 {
+    UNREFERENCED_PARAMETER(machine);
+    UNREFERENCED_PARAMETER(flags);
+    UNREFERENCED_PARAMETER(data);
+    UNREFERENCED_PARAMETER(done);
+
     TAG_TYPE tags[] = {
         {TOKEN_FILENAME, NS_REQ_PRESENT, FALSE},
         {TOKEN_SECTION, NS_REQ_ZERO, FALSE},
@@ -75,14 +82,12 @@ unsigned long handle_ebpf_add_program(
         switch (tag_type[i]) {
         case 0: // FILENAME
         {
-            std::wstring ws(argv[current_index + i]);
-            filename = std::string(ws.begin(), ws.end());
+            filename = down_cast_from_wstring(std::wstring(argv[current_index + i]));
             break;
         }
         case 1: // SECTION
         {
-            std::wstring ws(argv[current_index + i]);
-            section = std::string(ws.begin(), ws.end());
+            section = down_cast_from_wstring(std::wstring(argv[current_index + i]));
             break;
         }
         case 2: // TYPE
@@ -160,6 +165,11 @@ DWORD handle_ebpf_delete_program(
     LPCVOID data,
     BOOL* done)
 {
+    UNREFERENCED_PARAMETER(machine);
+    UNREFERENCED_PARAMETER(flags);
+    UNREFERENCED_PARAMETER(data);
+    UNREFERENCED_PARAMETER(done);
+
     TAG_TYPE tags[] = {
         {TOKEN_FILENAME, NS_REQ_PRESENT, FALSE},
         {TOKEN_SECTION, NS_REQ_ZERO, FALSE},
@@ -182,14 +192,12 @@ DWORD handle_ebpf_delete_program(
         switch (tag_type[i]) {
         case 0: // FILENAME
         {
-            std::wstring ws(argv[current_index + i]);
-            filename = std::string(ws.begin(), ws.end());
+            filename = down_cast_from_wstring(std::wstring(argv[current_index + i]));
             break;
         }
         case 1: // SECTION
         {
-            std::wstring ws(argv[current_index + i]);
-            section = std::string(ws.begin(), ws.end());
+            section = down_cast_from_wstring(std::wstring(argv[current_index + i]));
             break;
         }
         default:
@@ -218,6 +226,11 @@ DWORD handle_ebpf_set_program(
     LPCVOID data,
     BOOL* done)
 {
+    UNREFERENCED_PARAMETER(machine);
+    UNREFERENCED_PARAMETER(flags);
+    UNREFERENCED_PARAMETER(data);
+    UNREFERENCED_PARAMETER(done);
+
     TAG_TYPE tags[] = {
         {TOKEN_FILENAME, NS_REQ_PRESENT, FALSE},
         {TOKEN_SECTION, NS_REQ_PRESENT, FALSE},
@@ -242,14 +255,12 @@ DWORD handle_ebpf_set_program(
         switch (tag_type[i]) {
         case 0: // FILENAME
         {
-            std::wstring ws(argv[current_index + i]);
-            filename = std::string(ws.begin(), ws.end());
+            filename = down_cast_from_wstring(std::wstring(argv[current_index + i]));
             break;
         }
         case 1: // SECTION
         {
-            std::wstring ws(argv[current_index + i]);
-            section = std::string(ws.begin(), ws.end());
+            section = down_cast_from_wstring(std::wstring(argv[current_index + i]));
             break;
         }
         case 2: // PINNED
@@ -284,6 +295,11 @@ DWORD handle_ebpf_show_programs(
     LPCVOID data,
     BOOL* done)
 {
+    UNREFERENCED_PARAMETER(machine);
+    UNREFERENCED_PARAMETER(flags);
+    UNREFERENCED_PARAMETER(data);
+    UNREFERENCED_PARAMETER(done);
+
     TAG_TYPE tags[] = {
         {TOKEN_TYPE, NS_REQ_ZERO, FALSE},
         {TOKEN_PINNED, NS_REQ_ZERO, FALSE},
@@ -342,14 +358,12 @@ DWORD handle_ebpf_show_programs(
             break;
         case 3: // FILENAME
         {
-            std::wstring ws(argv[current_index + i]);
-            filename = std::string(ws.begin(), ws.end());
+            filename = down_cast_from_wstring(std::wstring(argv[current_index + i]));
             break;
         }
         case 4: // SECTION
         {
-            std::wstring ws(argv[current_index + i]);
-            section = std::string(ws.begin(), ws.end());
+            section = down_cast_from_wstring(std::wstring(argv[current_index + i]));
             break;
         }
         default:

@@ -17,7 +17,6 @@ Environment:
 --*/
 
 #pragma once 
-#include "types.h"
 
 //
 // Shared function prototypes

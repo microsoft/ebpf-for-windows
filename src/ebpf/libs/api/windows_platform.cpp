@@ -2,9 +2,12 @@
 // SPDX-License-Identifier: MIT
 #include <cassert>
 #include <stdexcept>
+#pragma warning(push)
+#pragma warning(disable:4100) // 'identifier' : unreferenced formal parameter
+#pragma warning(disable:4244) // 'conversion' conversion from 'type1' to 'type2', possible loss of data
 #include "crab_verifier.hpp"
-#include "protocol.h"
-#include "../../include/ebpf_windows.h"
+#pragma warning(pop)
+#include "ebpf_windows.h"
 #include "spec_type_descriptors.hpp"
 #include "helpers.hpp"
 #include "platform.hpp"
@@ -35,7 +38,7 @@ const std::vector<EbpfProgramType> windows_program_types = {
     windows_xdp_program_type,
 };
 
-static EbpfProgramType get_program_type_windows(const std::string& section, const std::string& path)
+static EbpfProgramType get_program_type_windows(const std::string& section, const std::string&)
 {
     EbpfProgramType type{};
 
@@ -88,7 +91,7 @@ static int create_map_windows(uint32_t map_type, uint32_t key_size, uint32_t val
     return create_map_function(map_type, key_size, value_size, max_entries, options);
 }
 
-void parse_maps_section_windows(std::vector<EbpfMapDescriptor>& map_descriptors, const char* data, size_t size, const struct ebpf_platform_t* platform, ebpf_verifier_options_t options)
+void parse_maps_section_windows(std::vector<EbpfMapDescriptor>& map_descriptors, const char* data, size_t size, const struct ebpf_platform_t*, ebpf_verifier_options_t options)
 {
     if (size % sizeof(ebpf_maps_section_record_windows) != 0) {
         throw std::runtime_error(std::string("bad maps section size, must be a multiple of ") +

@@ -4,7 +4,7 @@
 */
 
 #include "pch.h"
-#include "protocol.h"
+#include "ebpf_protocol.h"
 
 #include "ebpf_core.h"
 #include "ebpf_maps.h"
@@ -118,7 +118,6 @@ ebpf_core_map_t* ebpf_create_hash_map(
         goto Done;
     }
 
-    ebpf_lock_create(&map->lock);
     map->ebpf_map_definition = *map_definition;
     map->data = NULL;
 

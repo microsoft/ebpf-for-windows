@@ -5,6 +5,7 @@
 #pragma once
 #include <stdint.h>
 #include <vector>
+#include <string>
 
 typedef enum class _tlv_type {
     BLOB,

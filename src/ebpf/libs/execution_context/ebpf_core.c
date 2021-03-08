@@ -4,7 +4,7 @@
 */
 
 #include "pch.h"
-#include "protocol.h"
+#include "ebpf_protocol.h"
 
 #include "ebpf_core.h"
 #include "ebpf_platform.h"
@@ -17,6 +17,9 @@
 #if defined(NTDDI_VERSION)
 #define false FALSE
 #define true TRUE
+
+#else
+#define UNREFERENCED_PARAMETER(X) (X)
 #endif
 
 typedef struct _ebpf_core_code_entry {
@@ -30,7 +33,7 @@ typedef struct _ebpf_core_code_entry {
 
         // EBPF_CODE_EBPF
         struct ubpf_vm* vm;
-    };
+    } code_or_vm;
     ebpf_program_type_t hook_point;
 } ebpf_core_code_entry_t;
 
@@ -191,7 +194,7 @@ static ebpf_error_code_t _ebpf_core_delete_code_entry(uint64_t handle)
     {
         if (code && code->code_type == EBPF_CODE_EBPF)
         {
-            ubpf_destroy(code->vm);
+            ubpf_destroy(code->code_or_vm.vm);
         }
 
         ebpf_free(code);
@@ -234,6 +237,7 @@ ebpf_core_protocol_attach_code(
 {
     ebpf_error_code_t retval = EBPF_ERROR_NOT_FOUND;
     ebpf_core_code_entry_t* code = NULL;
+    UNREFERENCED_PARAMETER(reply);
 
     switch (request->hook)
     {
@@ -265,6 +269,7 @@ ebpf_core_protocol_detach_code(
 {
     ebpf_error_code_t retval = EBPF_ERROR_NOT_FOUND;
     ebpf_core_code_entry_t* code = NULL;
+    UNREFERENCED_PARAMETER(reply);
 
     code = _ebpf_core_find_user_code(request->handle);
     if (code)
@@ -282,6 +287,7 @@ ebpf_core_protocol_unload_code(
     _In_ const struct _ebpf_operation_unload_code_request* request,
     _Inout_ void* reply)
 {
+    UNREFERENCED_PARAMETER(reply);
     return _ebpf_core_delete_code_entry(request->handle);
 }
 
@@ -321,19 +327,19 @@ ebpf_core_protocol_load_code(
         retval = EBPF_ERROR_OUT_OF_RESOURCES;
         goto Done;
     }
-    code->code = (uint8_t*)(code + 1);
+    code->code_or_vm.code = (uint8_t*)(code + 1);
 
     if (request->code_type == EBPF_CODE_NATIVE)
     {
         code->code_type = EBPF_CODE_NATIVE;
-        memcpy(code->code, request->code, request->header.length - RTL_OFFSET_OF(ebpf_operation_load_code_request_t, code));
+        memcpy(code->code_or_vm.code, request->code, request->header.length - RTL_OFFSET_OF(ebpf_operation_load_code_request_t, code));
     }
     else
     {
         char* error_message = NULL;
         code->code_type = EBPF_CODE_EBPF;
-        code->vm = ubpf_create();
-        if (!code->vm)
+        code->code_or_vm.vm = ubpf_create();
+        if (!code->code_or_vm.vm)
         {
             retval = EBPF_ERROR_OUT_OF_RESOURCES; 
             goto Done;
@@ -341,10 +347,10 @@ ebpf_core_protocol_load_code(
     
         // BUG - ubpf implements bounds checking to detect interpreted code accesing memory out of bounds.
         // Currently this is flagging valid access checks and failing.
-        toggle_bounds_check(code->vm, false);
+        toggle_bounds_check(code->code_or_vm.vm, false);
 
-        ubpf_register_helper_resolver(code->vm, code, ebpf_core_interpreter_helper_resolver);
-        if (ubpf_load(code->vm, &request->code[0], (uint32_t)code_size, &error_message) != 0)
+        ubpf_register_helper_resolver(code->code_or_vm.vm, code, ebpf_core_interpreter_helper_resolver);
+        if (ubpf_load(code->code_or_vm.vm, &request->code[0], (uint32_t)code_size, &error_message) != 0)
         {
             ebpf_free(error_message);
             retval = EBPF_ERROR_INVALID_PARAMETER;
@@ -361,7 +367,7 @@ Done:
     {
         if (code && code->code_type == EBPF_CODE_EBPF)
         {
-            ubpf_destroy(code->vm);
+            ubpf_destroy(code->code_or_vm.vm);
         }
         ebpf_free(code);
     }
@@ -413,13 +419,13 @@ ebpf_error_code_t ebpf_core_invoke_hook(
     {
         if (code->code_type == EBPF_CODE_NATIVE)
         {
-            function_pointer = (ebpf_hook_function)(code->code);
+            function_pointer = (ebpf_hook_function)(code->code_or_vm.code);
             *result = (function_pointer)(context);
             return EBPF_ERROR_SUCCESS;
         }
         else
         {
-            *result = (uint32_t)(ubpf_exec(code->vm, context, 1024, &error_message));
+            *result = (uint32_t)(ubpf_exec(code->code_or_vm.vm, context, 1024, &error_message));
             if (error_message)
             {
                 ebpf_free(error_message);
@@ -527,6 +533,7 @@ ebpf_error_code_t ebpf_core_protocol_map_update_element(
     ebpf_error_code_t retval;
     ebpf_core_map_t* map = NULL;
     size_t type;
+    UNREFERENCED_PARAMETER(reply);
 
     map = _ebpf_core_find_map_entry(request->handle);
     if (!map)
@@ -556,6 +563,7 @@ ebpf_error_code_t ebpf_core_protocol_map_delete_element(
     ebpf_error_code_t retval;
     ebpf_core_map_t* map = NULL;
     size_t type;
+    UNREFERENCED_PARAMETER(reply);
 
     map = _ebpf_core_find_map_entry(request->handle);
     if (!map)
@@ -584,6 +592,7 @@ ebpf_core_protocol_enumerate_maps(
     _Inout_ struct _ebpf_operation_enumerate_maps_reply* reply)
 {
     uint64_t current_handle = request->previous_handle;
+    UNREFERENCED_PARAMETER(reply);
 
     // Start search from begining
     if (current_handle == UINT64_MAX)
@@ -649,6 +658,7 @@ void _ebpf_core_map_delete_element(ebpf_core_map_t* map, const uint8_t* key)
 
 static uint64_t ebpf_core_interpreter_helper_resolver(void* context, uint32_t helper_id)
 {
+    UNREFERENCED_PARAMETER(context);
     if (helper_id >= RTL_COUNT_OF(_ebpf_program_helpers))
     {
         return 0;

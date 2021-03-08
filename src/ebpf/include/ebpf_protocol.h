@@ -21,14 +21,6 @@ typedef enum _ebpf_operation_id {
     EBPF_OPERATION_QUERY_MAP_DEFINITION,
 } ebpf_operation_id_t;
 
-typedef struct _ebpf_map_definition {
-    uint32_t size;
-    uint32_t type;
-    uint32_t key_size;
-    uint32_t value_size;
-    uint32_t max_entries;
-} ebpf_map_definition_t;
-
 typedef enum _ebpf_code_type {
     EBPF_CODE_NATIVE,
     EBPF_CODE_EBPF

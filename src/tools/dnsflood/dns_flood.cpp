@@ -46,7 +46,7 @@ int main(int argc, const char ** argv)
         return 1;
     }
 
-    if (connect(socket, addrinfo->ai_addr, addrinfo->ai_addrlen) != 0)
+    if (connect(socket, addrinfo->ai_addr, static_cast<int>(addrinfo->ai_addrlen)) != 0)
     {
         printf("connect failed \n");
         return 1;
@@ -69,12 +69,12 @@ int main(int argc, const char ** argv)
         t = std::thread([&] {
             for (;;)
             {
-                if (WSASend(socket, buffers.data(), buffers.size(), &bytes_sent, 0, nullptr, nullptr) != 0)
+                if (WSASend(socket, buffers.data(), static_cast<DWORD>(buffers.size()), &bytes_sent, 0, nullptr, nullptr) != 0)
                 {
                     printf("WSASend failed\n");
                     return 1;
                 }
-                InterlockedAdd(&packet_sent, buffers.size());
+                InterlockedAdd(&packet_sent, static_cast<LONG>(buffers.size()));
             }
            });
     }

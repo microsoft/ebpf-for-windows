@@ -7,7 +7,7 @@
 #include <set>
 #include <map>
 #include <vector>
-#include "protocol.h"
+#include "ebpf_protocol.h"
 #include "ebpf_core.h"
 #include "ebpf_platform.h"
 #include <Windows.h>
@@ -86,12 +86,14 @@ void ebpf_lock_destroy(ebpf_lock_t* lock)
 
 void ebpf_lock_lock(ebpf_lock_t* lock, ebpf_lock_state_t* state)
 {
+    UNREFERENCED_PARAMETER(state);
     auto mutex = *reinterpret_cast<std::mutex**>(lock);
     mutex->lock();
 }
 
 void ebpf_lock_unlock(ebpf_lock_t* lock, ebpf_lock_state_t* state)
 {
+    UNREFERENCED_PARAMETER(state);
     auto mutex = *reinterpret_cast<std::mutex**>(lock);
     mutex->unlock();
 }
@@ -104,6 +106,8 @@ typedef struct _hash_table {
 
 ebpf_error_code_t ebpf_hash_table_create(ebpf_hash_table_t** hash_table, size_t key_size, size_t value_size)
 {
+    UNREFERENCED_PARAMETER(key_size);
+    UNREFERENCED_PARAMETER(value_size);
     *hash_table = reinterpret_cast<ebpf_hash_table_t *>(new hash_table_t());
     return EBPF_ERROR_SUCCESS;
 }

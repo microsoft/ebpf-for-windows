@@ -1,8 +1,11 @@
 // Copyright (C) Microsoft.
 // SPDX-License-Identifier: MIT
 #define WIN32_LEAN_AND_MEAN
+#define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
 #include <iostream>
 #include <iomanip>
+#include <locale>
+#include <codecvt>
 #include <windows.h>
 #include <netsh.h>
 #include "elf.h"
@@ -15,6 +18,12 @@ TOKEN_VALUE g_LevelEnum[2] = {
     { L"verbose", VL_VERBOSE },
 };
 
+std::string down_cast_from_wstring(const std::wstring& wide_string)
+{
+    std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
+    return converter.to_bytes(wide_string);
+}
+
 DWORD handle_ebpf_show_disassembly(
     LPCWSTR machine,
     LPWSTR* argv,
@@ -24,6 +33,11 @@ DWORD handle_ebpf_show_disassembly(
     LPCVOID data,
     BOOL* done)
 {
+    UNREFERENCED_PARAMETER(machine);
+    UNREFERENCED_PARAMETER(flags);
+    UNREFERENCED_PARAMETER(data);
+    UNREFERENCED_PARAMETER(done);
+
     TAG_TYPE tags[] = {
         {TOKEN_FILENAME, NS_REQ_PRESENT, FALSE},
         {TOKEN_SECTION, NS_REQ_ZERO, FALSE},
@@ -46,14 +60,12 @@ DWORD handle_ebpf_show_disassembly(
         switch (tag_type[i]) {
         case 0: // FILENAME
         {
-            std::wstring ws(argv[current_index + i]);
-            filename = std::string(ws.begin(), ws.end());
+            filename = down_cast_from_wstring(std::wstring(argv[current_index + i]));
             break;
         }
         case 1: // SECTION
         {
-            std::wstring ws(argv[current_index + i]);
-            section = std::string(ws.begin(), ws.end());
+            section = down_cast_from_wstring(std::wstring(argv[current_index + i]));
             break;
         }
         default:
@@ -90,6 +102,11 @@ DWORD handle_ebpf_show_sections(
     LPCVOID data,
     BOOL* done)
 {
+    UNREFERENCED_PARAMETER(machine);
+    UNREFERENCED_PARAMETER(flags);
+    UNREFERENCED_PARAMETER(data);
+    UNREFERENCED_PARAMETER(done);
+
     TAG_TYPE tags[] = {
         {TOKEN_FILENAME, NS_REQ_PRESENT, FALSE},
         {TOKEN_SECTION, NS_REQ_ZERO, FALSE},
@@ -114,14 +131,12 @@ DWORD handle_ebpf_show_sections(
         switch (tag_type[i]) {
         case 0: // FILENAME
         {
-            std::wstring ws(argv[current_index + i]);
-            filename = std::string(ws.begin(), ws.end());
+            filename = down_cast_from_wstring(std::wstring(argv[current_index + i]));
             break;
         }
         case 1: // SECTION
         {
-            std::wstring ws(argv[current_index + i]);
-            section = std::string(ws.begin(), ws.end());
+            section = down_cast_from_wstring(std::wstring(argv[current_index + i]));
             break;
         }
         case 2: // LEVEL
@@ -208,6 +223,11 @@ DWORD handle_ebpf_show_verification(
     LPCVOID data,
     BOOL* done)
 {
+    UNREFERENCED_PARAMETER(machine);
+    UNREFERENCED_PARAMETER(flags);
+    UNREFERENCED_PARAMETER(data);
+    UNREFERENCED_PARAMETER(done);
+
     TAG_TYPE tags[] = {
             {TOKEN_FILENAME, NS_REQ_PRESENT, FALSE},
             {TOKEN_SECTION, NS_REQ_ZERO, FALSE},
@@ -230,14 +250,12 @@ DWORD handle_ebpf_show_verification(
         switch (tag_type[i]) {
         case 0: // FILENAME
         {
-            std::wstring ws(argv[current_index + i]);
-            filename = std::string(ws.begin(), ws.end());
+            filename = down_cast_from_wstring(std::wstring(argv[current_index + i]));
             break;
         }
         case 1: // SECTION
         {
-            std::wstring ws(argv[current_index + i]);
-            section = std::string(ws.begin(), ws.end());
+            section = down_cast_from_wstring(std::wstring(argv[current_index + i]));
             break;
         }
         default:
