@@ -1,7 +1,7 @@
 /*
  *  Copyright (c) Microsoft Corporation
  *  SPDX-License-Identifier: MIT
-*/
+ */
 
 /*++
 
@@ -16,18 +16,13 @@ Environment:
 
 --*/
 
-#pragma once 
+#pragma once
 
 //
 // Shared function prototypes
 //
 
 NTSTATUS
-ebpf_hook_register_callouts(
-    _Inout_ void* device_object
-);
+ebpf_hook_register_callouts(_Inout_ void *device_object);
 
-void
-ebpf_hook_unregister_callouts(void);
-
-
+void ebpf_hook_unregister_callouts(void);

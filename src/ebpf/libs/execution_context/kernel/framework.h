@@ -1,8 +1,8 @@
 #pragma once
 
-#include <ntstatus.h>
-#include <ntintsafe.h>
 #include <ntdef.h>
+#include <ntintsafe.h>
+#include <ntstatus.h>
 #define uint8_t UINT8
 #define uint16_t UINT16
 #define uint32_t UINT32
