@@ -1,0 +1,304 @@
+#!/usr/bin/env bash
+
+# Copyright (c) Microsoft Corporation.
+# SPDX-License-Identifier: MIT
+
+##==============================================================================
+##
+## Echo if verbose flag (ignores quiet flag)
+##
+##==============================================================================
+log_verbose()
+{
+    if [[ ${verbose} -eq 1 ]]; then
+        echo "$1"
+    fi
+}
+
+##==============================================================================
+##
+## Echo if whatif flag is specified but not quiet flag
+##
+##==============================================================================
+log_whatif()
+{
+    if [[ ${whatif} -eq 1 && ${quiet} -ne 1 ]]; then
+        echo "$1"
+    fi
+}
+
+##==============================================================================
+##
+## Process command-line options:
+##
+##==============================================================================
+
+for opt in "$@"
+do
+  case $opt in
+    -h | --help)
+        usage=1
+        ;;
+
+    -v | --verbose)
+        verbose=1
+        ;;
+
+    -q | --quiet)
+        quiet=1
+        ;;
+
+    -w | --whatif)
+        whatif=1
+        ;;
+
+    -s | --staged)
+        # Split into array
+        mapfile -t userFiles <<< "$(git diff --cached --name-only --diff-filter=ACMR)"
+        ;;
+
+    --exclude-dirs=*)
+        userExcludeDirs="${opt#*=}"
+        ;;
+
+    --include-exts=*)
+        userIncludeExts="${opt#*=}"
+        ;;
+
+    --files=*)
+        read -ra userFiles <<< "${opt#*=}"
+        ;;
+    *)
+        echo "$0: unknown option:  $opt"
+        exit 1
+        ;;
+  esac
+done
+
+##==============================================================================
+##
+## Display help
+##
+##==============================================================================
+
+if [[ ${usage} -eq 1 ]]; then
+    cat<<EOF
+
+OVERVIEW:
+
+Formats all C/C++ source files based on the .clang-format rules
+
+    $ format-code [-h] [-q] [-s] [-v] [-w] [--exclude-dirs="..."] [--include-exts="..."] [--files="..."]
+
+OPTIONS:
+    -h, --help              Print this help message.
+    -q, --quiet             Display only clang-format output and errors.
+    -s, --staged            Only format files which are staged to be committed.
+    -v, --verbose           Display verbose output.
+    -w, --whatif            Run the script without actually modifying the files
+                            and display the diff of expected changes, if any.
+    --exclude-dirs          Subdirectories to exclude. If unspecified, then
+                            ./external, ./packages and ./x64 are excluded.
+                            All subdirectories are relative to the current path.
+    --include-exts          File extensions to include for formatting. If
+                            unspecified, then *.h, *.hpp, *.c, and *.cpp are
+                            included.
+    --files                 Only run the script against the specified files from
+                            the current directory.
+
+EXAMPLES:
+
+To determine what lines of each file in the default configuration would be
+modified by format-code, you can run from the root folder:
+
+    $ ./scripts/format-code -w
+
+To update only all .c and .cpp files in src/ except for src/tools/netsh, you
+can run from the src folder:
+
+    src$ ../scripts/format-code --exclude-dirs="tools/netsh" \
+      --include-exts="c cpp"
+
+To run only against a specified set of comma separated files in the current directory:
+
+    $ ./scripts/format-code -w --files="file1 file2"
+
+EOF
+    exit 0
+fi
+
+##==============================================================================
+##
+## Check for acceptable version of clang-format
+##
+##==============================================================================
+check_version()
+{
+    # shellcheck disable=SC2206
+    v1=(${1//./ })
+    # shellcheck disable=SC2206
+    v2=(${2//./ })
+    if [[ ${#v1[@]} -ne ${#v2[@]} ]]; then
+        echo "Cannot parse clang-format version number: $2"
+        exit 1
+    fi
+    for ((i=0; i<${#v1[@]}; i++));
+    do
+        # Because clang-format is not invariant across versions, this
+        # is an explicit equivalence check.
+        if [[ ${v1[$i]} -ne ${v2[$i]} ]]; then
+            echo "Warning: format-code prefers clang-format version $1, installed version is $2"
+        fi
+    done
+}
+
+##==============================================================================
+##
+## Check for installed clang-format tool
+##
+##==============================================================================
+check_clang-format()
+{
+    # First check explicitly for the clang-format-7 executable.
+    cf=$(command -v clang-format-7 2> /dev/null)
+
+    if [[ -x ${cf} ]]; then
+        cf="clang-format-7"
+        return
+    else
+        cf=$(command -v clang-format 2> /dev/null)
+        if [[ ! -x ${cf} ]]; then
+            echo "clang-format is not installed"
+            exit 1
+        fi
+        cf="clang-format"
+    fi
+
+    local required_cfver='7.0.1'
+    # shellcheck disable=SC2155
+    local cfver=$(${cf} --version | grep -o -E '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+    check_version "${required_cfver}" "${cfver}"
+}
+
+check_clang-format
+
+##==============================================================================
+##
+## Determine parameters for finding files to format
+##
+##==============================================================================
+
+findargs='find .'
+
+get_find_args()
+{
+    local defaultExcludeDirs='./.git ./external ./packages ./x64'
+    local defaultIncludeExts='h hpp c cpp'
+
+    if [[ -z ${userExcludeDirs} ]]; then
+        read -r -a excludeDirs <<< "${defaultExcludeDirs}"
+    else
+        log_verbose "Using user directory exclusions: ${userExcludeDirs}"
+        read -r -a excludeDirs <<< "${userExcludeDirs}"
+    fi
+
+    for exc in "${excludeDirs[@]}"
+    do
+        findargs="${findargs} ! \( -path '${exc}' -prune \)"
+    done
+
+    if [[ -z ${userIncludeExts} ]]; then
+        # not local as this is used in get_file_list() too
+        read -r -a includeExts <<< "${defaultIncludeExts}"
+    else
+        log_verbose "Using user extension inclusions: ${userIncludeExts}"
+        read -r -a includeExts <<< "${userIncludeExts}"
+    fi
+
+    findargs="${findargs} \("
+    for ((i=0; i<${#includeExts[@]}; i++));
+    do
+        findargs="${findargs} -iname '*.${includeExts[$i]}'"
+        if [[ $((i + 1)) -lt ${#includeExts[@]} ]]; then
+            findargs="${findargs} -o"
+        fi
+    done
+    findargs="${findargs} \)"
+}
+
+get_find_args
+
+log_verbose "Query for files for format:"
+log_verbose "${findargs}"
+log_verbose ""
+
+##==============================================================================
+##
+## Call clang-format for each file to be formatted
+##
+##==============================================================================
+
+filecount=0
+changecount=0
+
+cfargs="${cf} -style=file"
+if [[ ${whatif} -ne 1 ]]; then
+    cfargs="${cfargs} -i"
+fi
+
+get_file_list()
+{
+    if [[ -z "${userFiles[*]}" ]]; then
+        mapfile -t file_list < <(eval "$findargs")
+        if [[ ${#file_list[@]} -eq 0 ]]; then
+            echo "No files were found to format!"
+            exit 1
+        fi
+    else
+        log_verbose "Using user files: ${userFiles[*]}"
+        file_list=()
+        for file in "${userFiles[@]}"; do
+            for ext in "${includeExts[@]}"; do
+                if [[ ${file##*\.} == "$ext" ]]; then
+                    file_list+=( "$file" )
+                    log_verbose "Checking user file: ${file}"
+                    break
+                fi
+            done
+        done
+    fi
+}
+
+get_file_list
+
+for file in "${file_list[@]}"
+do
+    ((filecount+=1))
+    cf="${cfargs} $file"
+
+    log_whatif "Formatting $file ..."
+
+    if [[ ${whatif} -eq 1 ]]; then
+        ${cf} | diff -u "$file" -
+    else
+        if [[ ${verbose} -eq 1 ]]; then
+            ${cf}
+        else
+            ${cf} > /dev/null
+        fi
+    fi
+
+    #shellcheck disable=SC2181
+    if [[ $? -ne 0 ]]; then
+        if [[ ${whatif} -eq 1 ]]; then
+            ((changecount+=1))
+        else
+            echo "clang-format failed on file: $file."
+        fi
+    fi
+done
+
+log_whatif "${filecount} files processed, ${changecount} changed."
+
+# If files are being edited, this count is zero so we exit with success.
+exit "$changecount"

@@ -16,12 +16,10 @@ The following must be installed in order to build this project:
 
 1. ```git clone -b demo --recurse-submodules https://msazure.visualstudio.com/DefaultCollection/One/_git/EdgeOS-CoreNetworking-WindowsEbpf```
 2. ```cd EdgeOS-CoreNetworking-WindowsEbpf```
-2. ```cd external\ebpf-verifier```
-3. ```cmake -B build```
-4. ```cd ..\..```
-5. Open ebpf-demo.sln
-6. Switch to debug / x64
-7. Build solution
+3. ```cmake -S external\ebpf-verifier -B external\ebpf-verifier\build```
+4. Open ebpf-demo.sln
+5. Switch to debug / x64
+6. Build solution
 
 ## Demo script
 

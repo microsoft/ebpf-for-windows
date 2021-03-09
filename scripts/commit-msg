@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+# Copyright (c) Microsoft Corporation
+# SPDX-License-Identifier: MIT
+
+set -o errexit
+
+exit_() {
+    echo ""
+    echo "$1"
+    echo ""
+    echo "This hook can be skipped if needed with 'git commit --no-verify'"
+    echo "See '.git/hooks/commit-msg., installed from 'scripts/commit-msg'"
+    exit 1
+}
+
+sign_offs="$(grep '^Signed-off-by: ' "$1" || test $? = 1 )"
+
+if [[ -z $sign_offs ]]; then
+    exit_ "Commit failed: please sign-off on the DCO with 'git commit -s'"
+fi
+
+if [[ -n $(echo "$sign_offs" | sort | uniq -c | sed -e '/^[ 	]*1[ 	]/d') ]]; then
+    exit_ "Commit failed: please remove duplicate Signed-off-by lines"
+fi
