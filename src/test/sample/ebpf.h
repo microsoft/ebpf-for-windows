@@ -3,12 +3,17 @@
  *  SPDX-License-Identifier: MIT
 */
 
-typedef unsigned long __u64;
-typedef unsigned int __u32;
-typedef unsigned short __u16;
-typedef unsigned char __u8;
+#if defined(_MSC_VER)
+typedef unsigned long long uint64_t;
+#else
+typedef unsigned long uint64_t;
+#endif
 
-__u16 ntohs(__u16 us)
+typedef unsigned int uint32_t;
+typedef unsigned short uint16_t;
+typedef unsigned char uint8_t;
+
+uint16_t ntohs(uint16_t us)
 {
     return us << 8 | us >> 8;
 }
@@ -17,17 +22,17 @@ typedef struct _xdp_md
 {
    void* data;
    void* data_end;
-   __u64 data_meta;
+   uint64_t data_meta;
 } xdp_md_t;
 
 typedef struct _bind_md {
-    void* app_id_start;             // 0,8
-    void* app_id_end;               // 8,8
-    __u64 process_id;               // 16,8
-    __u8 socket_address[16];       // 24,16
-    __u8 socket_address_length;    // 40,1
-    __u8 operation;                // 41,1
-    __u8 protocol;                 // 42,1
+    char* app_id_start;             
+    char* app_id_end;
+    uint64_t process_id;               
+    uint8_t socket_address[16];       
+    uint8_t socket_address_length;    
+    uint8_t operation;                
+    uint8_t protocol;                 
 } bind_md_t;
 
 typedef enum _bind_operation
@@ -46,51 +51,51 @@ typedef enum _bind_action
 
 typedef struct _IPV4_HEADER {
     union {
-        __u8 VersionAndHeaderLength;   // Version and header length.
+        uint8_t VersionAndHeaderLength;   // Version and header length.
         struct {
-            __u8 HeaderLength : 4;
-            __u8 Version : 4;
+            uint8_t HeaderLength : 4;
+            uint8_t Version : 4;
         };
     };
     union {
-        __u8 TypeOfServiceAndEcnField; // Type of service & ECN (RFC 3168).
+        uint8_t TypeOfServiceAndEcnField; // Type of service & ECN (RFC 3168).
         struct {
-            __u8 EcnField : 2;
-            __u8 TypeOfService : 6;
+            uint8_t EcnField : 2;
+            uint8_t TypeOfService : 6;
         };
     };
-    __u16 TotalLength;                 // Total length of datagram.
-    __u16 Identification;
+    uint16_t TotalLength;                 // Total length of datagram.
+    uint16_t Identification;
     union {
-        __u16 FlagsAndOffset;          // Flags and fragment offset.
+        uint16_t FlagsAndOffset;          // Flags and fragment offset.
         struct {
-            __u16 DontUse1 : 5;        // High bits of fragment offset.
-            __u16 MoreFragments : 1;
-            __u16 DontFragment : 1;
-            __u16 Reserved : 1;
-            __u16 DontUse2 : 8;        // Low bits of fragment offset.
+            uint16_t DontUse1 : 5;        // High bits of fragment offset.
+            uint16_t MoreFragments : 1;
+            uint16_t DontFragment : 1;
+            uint16_t Reserved : 1;
+            uint16_t DontUse2 : 8;        // Low bits of fragment offset.
         };
     };
-    __u8 TimeToLive;
-    __u8 Protocol;
-    __u16 HeaderChecksum;
-    __u32 SourceAddress;
-    __u32 DestinationAddress;
+    uint8_t TimeToLive;
+    uint8_t Protocol;
+    uint16_t HeaderChecksum;
+    uint32_t SourceAddress;
+    uint32_t DestinationAddress;
 } IPV4_HEADER, *PIPV4_HEADER;
 
 typedef struct UDP_HEADER_ {
-    __u16 srcPort;
-    __u16 destPort;
-    __u16 length;
-    __u16 checksum;
+    uint16_t srcPort;
+    uint16_t destPort;
+    uint16_t length;
+    uint16_t checksum;
 } UDP_HEADER;
 
 typedef struct _bpf_map_def {
-      __u32 size;
-      __u32 type;
-      __u32 key_size;
-      __u32 value_size;
-      __u32 max_entries;
+      uint32_t size;
+      uint32_t type;
+      uint32_t key_size;
+      uint32_t value_size;
+      uint32_t max_entries;
 } bpf_map_def_t;
 
 typedef enum _ebpf_map_type {
@@ -102,5 +107,5 @@ typedef enum _ebpf_map_type {
 typedef void* (*ebpf_map_lookup_elem_t)(void * map, void* key);
 #define ebpf_map_lookup_elem ((ebpf_map_lookup_elem_t)1)
 
-typedef void (*ebpf_map_update_element_t)(void* map, void* key, void* data, __u64 flags);
+typedef void (*ebpf_map_update_element_t)(void* map, void* key, void* data, uint64_t flags);
 #define ebpf_map_update_element ((ebpf_map_update_element_t)2)

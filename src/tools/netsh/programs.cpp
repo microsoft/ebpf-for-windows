@@ -11,7 +11,8 @@
 #include "api.h"
 #include <iostream>
 
-static HANDLE _program_handle = INVALID_HANDLE_VALUE;
+static ebpf_handle_t _program_handle = INVALID_HANDLE_VALUE;
+static ebpf_handle_t _map_handles[10];
 
 typedef enum {
     PINNED_ANY = 0,
@@ -134,8 +135,8 @@ unsigned long handle_ebpf_add_program(
     }
 
     const char* error_message = nullptr;
-
-    status = ebpf_api_load_program(filename.c_str(), section.c_str(), execution, &_program_handle, &error_message);
+    uint32_t count_of_map_handles = sizeof(_map_handles);
+    status = ebpf_api_load_program(filename.c_str(), section.c_str(), execution, &_program_handle, &count_of_map_handles, _map_handles, &error_message);
     if (status != ERROR_SUCCESS)
     {
         if (error_message != nullptr) {

@@ -15,22 +15,22 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="bindmonitor.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="bpf.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="bpf_call.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="droppacket.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="ebpf.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="bindmonitor.c">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="bpf.c">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="bpf_call.c">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="droppacket.c">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
   </ItemGroup>
 </Project>

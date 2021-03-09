@@ -66,7 +66,7 @@ static uint8_t* ebpf_lookup_array_map_entry(
     return &map->data[key_value * map->ebpf_map_definition.value_size];
 }
 
-static ebpf_error_code_t ebpf_update_array_map(
+static ebpf_error_code_t ebpf_update_array_map_entry(
     _In_ ebpf_core_map_t* map, 
     _In_ const uint8_t* key, 
     _In_ const uint8_t* data)
@@ -85,7 +85,7 @@ static ebpf_error_code_t ebpf_update_array_map(
     return EBPF_ERROR_SUCCESS;
 }
 
-static ebpf_error_code_t ebpf_delete_array_entry(
+static ebpf_error_code_t ebpf_delete_array_map_entry(
     _In_ ebpf_core_map_t* map, 
     _In_ const uint8_t* key)
 {
@@ -126,6 +126,8 @@ ebpf_core_map_t* ebpf_create_hash_map(
     {
         goto Done;
     }
+
+    ebpf_lock_create(&map->lock);
     retval = EBPF_ERROR_SUCCESS;
 
 Done:
@@ -144,6 +146,7 @@ Done:
 static void ebpf_delete_hash_map(
     _In_ ebpf_core_map_t* map)
 {
+    ebpf_lock_destroy(&map->lock);
     ebpf_hash_table_destroy((ebpf_hash_table_t*)map->data);
     ebpf_free(map);
 }
@@ -167,7 +170,7 @@ static uint8_t* ebpf_lookup_hash_map_entry(
     return value;
 }
 
-static ebpf_error_code_t ebpf_update_hash_map(
+static ebpf_error_code_t ebpf_update_hash_map_entry(
     _In_ ebpf_core_map_t* map, 
     _In_ const uint8_t* key, 
     _In_ const uint8_t* data)
@@ -183,7 +186,7 @@ static ebpf_error_code_t ebpf_update_hash_map(
     return EBPF_ERROR_SUCCESS;
 }
 
-static ebpf_error_code_t ebpf_delete_hash_entry(
+static ebpf_error_code_t ebpf_delete_hash_map_entry(
     _In_ ebpf_core_map_t* map, 
     _In_ const uint8_t* key)
 {
@@ -199,6 +202,22 @@ static ebpf_error_code_t ebpf_delete_hash_entry(
 
 }
 
+static ebpf_error_code_t ebpf_next_hash_map_key(
+    _In_ ebpf_core_map_t* map,
+    _In_ const uint8_t* previous_key,
+    _Out_ uint8_t* next_key)
+{
+    ebpf_error_code_t result;
+    ebpf_lock_state_t lock_state;
+    if (!map || !next_key)
+        return EBPF_ERROR_INVALID_PARAMETER;
+
+    ebpf_lock_lock(&map->lock, &lock_state);
+    result = ebpf_hash_table_next_key((ebpf_hash_table_t*)map->data, previous_key, next_key);
+    ebpf_lock_unlock(&map->lock, &lock_state);
+    return result;
+}
+
 ebpf_map_function_table_t ebpf_map_function_tables[] =
 {
     { // EBPF_MAP_TYPE_UNSPECIFIED
@@ -208,14 +227,16 @@ ebpf_map_function_table_t ebpf_map_function_tables[] =
         ebpf_create_hash_map,
         ebpf_delete_hash_map,
         ebpf_lookup_hash_map_entry,
-        ebpf_update_hash_map,
-        ebpf_delete_hash_entry
+        ebpf_update_hash_map_entry,
+        ebpf_delete_hash_map_entry,
+        ebpf_next_hash_map_key
     },
     { // EBPF_MAP_TYPE_ARRAY
         ebpf_create_array_map,
         ebpf_delete_array_map,
         ebpf_lookup_array_map_entry,
-        ebpf_update_array_map,
-        ebpf_delete_array_entry
+        ebpf_update_array_map_entry,
+        ebpf_delete_array_map_entry,
+        NULL
     },
 };

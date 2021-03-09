@@ -20,6 +20,7 @@ namespace ebpf
 };
 
 #include "unwind_helper.h"
+#include <WinSock2.h>
 
 static const struct {
     ebpf_error_code_t(*protocol_handler)(_In_ const void* input_buffer, void* output_buffer);
@@ -37,6 +38,7 @@ static const struct {
     { reinterpret_cast<ebpf_error_code_t(*)(_In_ const void* input_buffer, void* output_buffer)>(ebpf_core_protocol_map_lookup_element), sizeof(struct _ebpf_operation_map_lookup_element_request), sizeof(struct _ebpf_operation_map_lookup_element_reply) },
     { reinterpret_cast<ebpf_error_code_t(*)(_In_ const void* input_buffer, void* output_buffer)>(ebpf_core_protocol_map_update_element), sizeof(struct _ebpf_operation_map_update_element_request), 0 },
     { reinterpret_cast<ebpf_error_code_t(*)(_In_ const void* input_buffer, void* output_buffer)>(ebpf_core_protocol_map_delete_element), sizeof(struct _ebpf_operation_map_delete_element_request), 0 },
+    { reinterpret_cast<ebpf_error_code_t(*)(_In_ const void* input_buffer, void* output_buffer)>(ebpf_core_protocol_map_get_next_key), offsetof(ebpf_operation_map_next_key_request_t, previous_key), sizeof(ebpf_operation_map_next_key_reply_t) },
     { reinterpret_cast<ebpf_error_code_t(*)(_In_ const void* input_buffer, void* output_buffer)>(ebpf_core_protocol_enumerate_maps), sizeof(struct _ebpf_operation_enumerate_maps_request), sizeof(struct _ebpf_operation_enumerate_maps_reply) },
     { reinterpret_cast<ebpf_error_code_t(*)(_In_ const void* input_buffer, void* output_buffer)>(ebpf_core_protocol_query_map_definition), sizeof(struct _ebpf_operation_query_map_definition_request), sizeof(struct _ebpf_operation_query_map_definition_reply) },
 };
@@ -130,6 +132,9 @@ GlueDeviceIoControl(
         case EBPF_ERROR_INVALID_PARAMETER:
             SetLastError(ERROR_INVALID_PARAMETER);
             break;
+        case EBPF_ERROR_NO_MORE_KEYS:
+            SetLastError(ERROR_NO_MORE_ITEMS);
+            break;
         default:
             SetLastError(ERROR_INVALID_PARAMETER);
             break;
@@ -167,6 +172,8 @@ TEST_CASE("droppacket-jit", "[droppacket_jit]")
     close_handle_handler = GlueCloseHandle;
 
     ebpf_handle_t program_handle;
+    ebpf_handle_t map_handle;
+    uint32_t count_of_map_handle = 1;
     uint32_t result = 0;
     const char* error_message = NULL;
     bool ec_initialized = false;
@@ -185,7 +192,7 @@ TEST_CASE("droppacket-jit", "[droppacket_jit]")
     REQUIRE(ebpf_api_initiate() == ERROR_SUCCESS);
     api_initialized = true;
 
-    REQUIRE(ebpf_api_load_program(SAMPLE_PATH "droppacket.o", "xdp", EBPF_EXECUTION_JIT, &program_handle, &error_message) == ERROR_SUCCESS);
+    REQUIRE(ebpf_api_load_program(SAMPLE_PATH "droppacket.o", "xdp", EBPF_EXECUTION_JIT, &program_handle, &count_of_map_handle, &map_handle, &error_message) == ERROR_SUCCESS);
 
     REQUIRE(ebpf_api_attach_program(program_handle, EBPF_PROGRAM_TYPE_XDP) == ERROR_SUCCESS);
 
@@ -193,19 +200,19 @@ TEST_CASE("droppacket-jit", "[droppacket_jit]")
 
     uint32_t key = 0;
     uint64_t value = 1000;
-    REQUIRE(ebpf_api_map_update_element((ebpf_handle_t)1, sizeof(key), (uint8_t*)&key, sizeof(value), (uint8_t*)&value) == ERROR_SUCCESS);
+    REQUIRE(ebpf_api_map_update_element(map_handle, sizeof(key), (uint8_t*)&key, sizeof(value), (uint8_t*)&value) == ERROR_SUCCESS);
 
     // Test that we drop the packet and increment the map
     ebpf::xdp_md_t ctx{ packet.data(), packet.data() + packet.size() };
     REQUIRE(ebpf_core_invoke_hook(EBPF_PROGRAM_TYPE_XDP, &ctx, &result) == EBPF_ERROR_SUCCESS);
     REQUIRE(result == 2);
 
-    REQUIRE(ebpf_api_map_lookup_element((ebpf_handle_t)1, sizeof(key), (uint8_t*)&key, sizeof(value), (uint8_t*)&value) == ERROR_SUCCESS);
+    REQUIRE(ebpf_api_map_lookup_element(map_handle, sizeof(key), (uint8_t*)&key, sizeof(value), (uint8_t*)&value) == ERROR_SUCCESS);
     REQUIRE(value == 1001);
 
-    REQUIRE(ebpf_api_map_delete_element((ebpf_handle_t)1, sizeof(key), (uint8_t*)&key) == ERROR_SUCCESS);
+    REQUIRE(ebpf_api_map_delete_element(map_handle, sizeof(key), (uint8_t*)&key) == ERROR_SUCCESS);
 
-    REQUIRE(ebpf_api_map_lookup_element((ebpf_handle_t)1, sizeof(key), (uint8_t*)&key, sizeof(value), (uint8_t*)&value) == ERROR_SUCCESS);
+    REQUIRE(ebpf_api_map_lookup_element(map_handle, sizeof(key), (uint8_t*)&key, sizeof(value), (uint8_t*)&value) == ERROR_SUCCESS);
     REQUIRE(value == 0);
 
 
@@ -215,7 +222,7 @@ TEST_CASE("droppacket-jit", "[droppacket_jit]")
     REQUIRE(ebpf_core_invoke_hook(EBPF_PROGRAM_TYPE_XDP, &ctx2, &result) == EBPF_ERROR_SUCCESS);
     REQUIRE(result == 1);
 
-    REQUIRE(ebpf_api_map_lookup_element((ebpf_handle_t)1, sizeof(key), (uint8_t*)&key, sizeof(value), (uint8_t*)&value) == ERROR_SUCCESS);
+    REQUIRE(ebpf_api_map_lookup_element(map_handle, sizeof(key), (uint8_t*)&key, sizeof(value), (uint8_t*)&value) == ERROR_SUCCESS);
     REQUIRE(value == 0);
 }
 
@@ -229,6 +236,8 @@ TEST_CASE("droppacket-interpret", "[droppacket_interpret]")
     const char* error_message = NULL;
     bool ec_initialized = false;
     bool api_initialized = false;
+    ebpf_handle_t map_handle;
+    uint32_t count_of_map_handle = 1;
     _unwind_helper on_exit([&]
         {
             ebpf_api_free_error_message(error_message);
@@ -245,7 +254,7 @@ TEST_CASE("droppacket-interpret", "[droppacket_interpret]")
     REQUIRE(ebpf_api_initiate() == ERROR_SUCCESS);
     api_initialized = true;
 
-    REQUIRE(ebpf_api_load_program(SAMPLE_PATH "droppacket.o", "xdp", EBPF_EXECUTION_INTERPRET, &program_handle, &error_message) == ERROR_SUCCESS);
+    REQUIRE(ebpf_api_load_program(SAMPLE_PATH "droppacket.o", "xdp", EBPF_EXECUTION_INTERPRET, &program_handle, &count_of_map_handle, &map_handle, &error_message) == ERROR_SUCCESS);
 
     REQUIRE(ebpf_api_attach_program(program_handle, EBPF_PROGRAM_TYPE_XDP) == ERROR_SUCCESS);
 
@@ -349,3 +358,121 @@ TEST_CASE("verify section", "[verify section]") {
     REQUIRE(error_message == nullptr);
 }
 
+
+typedef struct _process_entry
+{
+    uint32_t count;
+    uint8_t name[64];
+    uint64_t appid_length;
+} process_entry_t;
+
+
+uint32_t get_bind_count_for_pid(ebpf_handle_t handle, uint64_t pid)
+{
+    process_entry_t entry{};
+    REQUIRE(ebpf_api_map_lookup_element(handle, sizeof(pid), (uint8_t*)&pid, sizeof(entry), (uint8_t*)&entry) == ERROR_SUCCESS);
+   
+    return entry.count;
+}
+
+ebpf::bind_action_t emulate_bind(uint64_t pid, const char * appid)
+{
+    uint32_t result;
+    std::string app_id = appid;
+    ebpf::bind_md_t ctx{0};
+    ctx.app_id_start = const_cast<char*>(app_id.c_str());
+    ctx.app_id_end = const_cast<char*>(app_id.c_str()) + app_id.size();
+    ctx.process_id = pid;
+    ctx.operation = ebpf::BIND_OPERATION_BIND;
+    REQUIRE(ebpf_core_invoke_hook(EBPF_PROGRAM_TYPE_BIND, &ctx, &result) == EBPF_ERROR_SUCCESS);
+    return static_cast<ebpf::bind_action_t>(result);
+}
+
+void emulate_unbind(uint64_t pid, const char* appid)
+{
+    uint32_t result;
+    std::string app_id = appid;
+    ebpf::bind_md_t ctx{ 0 };
+    ctx.process_id = pid;
+    ctx.operation = ebpf::BIND_OPERATION_UNBIND;
+    REQUIRE(ebpf_core_invoke_hook(EBPF_PROGRAM_TYPE_BIND, &ctx, &result) == EBPF_ERROR_SUCCESS);
+}
+
+void set_bind_limit(ebpf_handle_t handle, uint32_t limit)
+{
+    uint32_t limit_key = 0;
+    REQUIRE(ebpf_api_map_update_element(handle, sizeof(limit_key), (uint8_t*)&limit_key, sizeof(limit), (uint8_t*)&limit) == ERROR_SUCCESS);
+
+}
+
+TEST_CASE("bindmonitor-interpret", "[bindmonitor_interpret]")
+{
+    device_io_control_handler = GlueDeviceIoControl;
+    create_file_handler = GlueCreateFileW;
+    close_handle_handler = GlueCloseHandle;
+
+    ebpf_handle_t program_handle;
+    const char* error_message = NULL;
+    bool ec_initialized = false;
+    bool api_initialized = false;
+    ebpf_handle_t map_handles[2];
+    uint32_t count_of_map_handles = 2;
+    uint64_t fake_pid = 12345;
+
+    _unwind_helper on_exit([&] {
+        ebpf_api_free_error_message(error_message);
+        if (api_initialized)
+            ebpf_api_terminate();
+        if (ec_initialized)
+            ebpf_core_terminate();
+        });
+
+    REQUIRE(ebpf_core_initialize() == EBPF_ERROR_SUCCESS);
+    ec_initialized = true;
+
+    REQUIRE(ebpf_api_initiate() == ERROR_SUCCESS);
+    api_initialized = true;
+
+    REQUIRE(ebpf_api_load_program(SAMPLE_PATH "bindmonitor.o", "bind", EBPF_EXECUTION_INTERPRET, &program_handle, &count_of_map_handles, map_handles, &error_message) == ERROR_SUCCESS);
+    REQUIRE(error_message == NULL);
+
+    REQUIRE(ebpf_api_attach_program(program_handle, EBPF_PROGRAM_TYPE_BIND) == ERROR_SUCCESS);
+
+    // Apply policy of maximum 2 binds per process
+    set_bind_limit(map_handles[1], 2);
+
+    // Bind first port - success
+    REQUIRE(emulate_bind(fake_pid, "fake_app_1") == ebpf::BIND_PERMIT);
+    REQUIRE(get_bind_count_for_pid(map_handles[0], fake_pid) == 1);
+
+    // Bind second port - success
+    REQUIRE(emulate_bind(fake_pid, "fake_app_1") == ebpf::BIND_PERMIT);
+    REQUIRE(get_bind_count_for_pid(map_handles[0], fake_pid) == 2);
+
+    // Bind third port - blocked
+    REQUIRE(emulate_bind(fake_pid, "fake_app_1") == ebpf::BIND_DENY);
+    REQUIRE(get_bind_count_for_pid(map_handles[0], fake_pid) == 2);
+
+    // Unbind second port
+    emulate_unbind(fake_pid, "fake_app_1");
+    REQUIRE(get_bind_count_for_pid(map_handles[0], fake_pid) == 1);
+
+    // Unbind first port
+    emulate_unbind(fake_pid, "fake_app_1");
+    REQUIRE(get_bind_count_for_pid(map_handles[0], fake_pid) == 0);
+
+    // Unbind a port we don't own
+    emulate_unbind(fake_pid, "fake_app_1");
+    REQUIRE(get_bind_count_for_pid(map_handles[0], fake_pid) == 0);
+
+    fake_pid = 54321;
+    REQUIRE(emulate_bind(fake_pid, "fake_app_2") == ebpf::BIND_PERMIT);
+    REQUIRE(get_bind_count_for_pid(map_handles[0], fake_pid) == 1);
+
+    uint64_t pid;
+    REQUIRE(ebpf_api_map_next_key(map_handles[0], sizeof(uint64_t), NULL, reinterpret_cast<uint8_t*>(&pid)) == ERROR_SUCCESS);
+    REQUIRE(pid != 0);
+    REQUIRE(ebpf_api_map_next_key(map_handles[0], sizeof(uint64_t), reinterpret_cast<uint8_t*>(&pid), reinterpret_cast<uint8_t*>(&pid)) == ERROR_SUCCESS);
+    REQUIRE(pid != 0);
+    REQUIRE(ebpf_api_map_next_key(map_handles[0], sizeof(uint64_t), reinterpret_cast<uint8_t*>(&pid), reinterpret_cast<uint8_t*>(&pid)) == ERROR_NO_MORE_ITEMS);
+}

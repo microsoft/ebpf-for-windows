@@ -38,10 +38,12 @@ extern "C" {
      * @param[out] handle Handle to eBPF program.
      * @param[out] error_message Error message describing what failed.
      */
-    uint32_t ebpf_api_load_program(const char* file, 
-        const char* section_name, 
-        ebpf_execution_type_t execution_type, 
-        ebpf_handle_t* handle, 
+    uint32_t ebpf_api_load_program(const char* file,
+        const char* section_name,
+        ebpf_execution_type_t execution_type,
+        ebpf_handle_t* handle,
+        uint32_t* count_of_map_handles,
+        ebpf_handle_t* map_handles,
         const char** error_message);
 
     /** 
@@ -104,6 +106,22 @@ extern "C" {
     uint32_t ebpf_api_map_delete_element(ebpf_handle_t handle, 
         uint32_t key_size, 
         const uint8_t* key);
+
+    /**
+     * @brief Return the next key in an eBPF map.
+     * @param[in] handle Handle to eBPF map.
+     * @param[in] key_size Size of the key buffer.
+     * @param[in] previous_key Pointer to buffer containing 
+     previous key or NULL to restart enumeration.
+     * @param[out] next_key Pointer to buffer that contains next
+     * key on success.
+     * @retval ERROR_NO_MORE_ITEMS previous_key was the last key.
+     * @retval ERROR_NOT_FOUND previous_key was deleted.
+     */
+    uint32_t ebpf_api_map_next_key(ebpf_handle_t handle,
+        uint32_t key_size,
+        const uint8_t* previous_key,
+        uint8_t* next_key);
 
     /** 
      * @brief Enumerate through eBPF maps.

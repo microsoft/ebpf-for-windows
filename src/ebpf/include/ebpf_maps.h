@@ -20,6 +20,7 @@ typedef struct _ebpf_map_function_table
     uint8_t* (*lookup_entry)(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key);
     ebpf_error_code_t (*update_entry)(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_ const uint8_t* value);
     ebpf_error_code_t (*delete_entry)(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key);
+    ebpf_error_code_t (*next_key)(_In_ ebpf_core_map_t* map, _In_ const uint8_t* previous_key, _Out_ uint8_t* next_key);
 } ebpf_map_function_table_t;
 
 extern ebpf_map_function_table_t ebpf_map_function_tables[EBPF_MAP_TYPE_ARRAY + 1];

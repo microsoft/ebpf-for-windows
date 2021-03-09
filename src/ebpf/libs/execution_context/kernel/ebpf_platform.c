@@ -253,10 +253,58 @@ Done:
 
 ebpf_error_code_t ebpf_hash_table_delete(ebpf_hash_table_t* hash_table, const uint8_t* key)
 {
-    PRTL_AVL_TABLE table = NULL;
     BOOLEAN result;
+    RTL_AVL_TABLE* table = (RTL_AVL_TABLE*)hash_table;
 
     result = RtlDeleteElementGenericTableAvl(table, (uint8_t*)key);
     return result == FALSE ? EBPF_ERROR_NOT_FOUND : EBPF_ERROR_SUCCESS;
 }
 
+ebpf_error_code_t ebpf_hash_table_next_key(ebpf_hash_table_t* hash_table, const uint8_t* previous_key, uint8_t* next_key)
+{
+    RTL_AVL_TABLE* table = (RTL_AVL_TABLE*)hash_table;
+    uint8_t* entry;
+    size_t sizes = (size_t)table->TableContext;
+    uint16_t key_size = (uint16_t)(sizes >> 16);
+    void* restart_key;
+
+    if (!previous_key)
+    {
+        entry = RtlEnumerateGenericTableAvl(table, TRUE);
+    }
+    else
+    {
+        // Note - We need a better option to resume the search when the element was deleted.
+        entry = RtlLookupFirstMatchingElementGenericTableAvl(table, (void*)previous_key, &restart_key);
+        if (!entry)
+        {
+            // Entry deleted.
+            
+            // Start at the begining of the table.
+            entry = RtlEnumerateGenericTableAvl(table, TRUE);
+
+            // Advance the cursor until we reach the first entry that is greater than the key.
+            while (!(ebpf_hash_map_compare(table, (uint8_t*)previous_key, entry) == GenericGreaterThan))
+            {
+                entry = RtlEnumerateGenericTableAvl(table, FALSE);
+                if (!entry)
+                {
+                    break;
+                }
+            }
+        }
+        else
+        {
+            entry = RtlEnumerateGenericTableAvl(table, FALSE);
+        }
+    }
+    if (entry == NULL)
+    {
+        return EBPF_ERROR_NO_MORE_KEYS;
+    }
+    else
+    {
+        memcpy(next_key, entry, key_size);
+    }
+    return EBPF_ERROR_SUCCESS;
+}

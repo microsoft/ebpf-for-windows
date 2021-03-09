@@ -33,9 +33,20 @@ constexpr EbpfContextDescriptor xdp_context_descriptor = {
 const EbpfProgramType windows_xdp_program_type =
     PTYPE("xdp", xdp_context_descriptor, EBPF_PROGRAM_TYPE_XDP, {"xdp"});
 
+constexpr EbpfContextDescriptor bind_context_descriptor = {
+    43, // Size of ctx struct.
+    0, // Offset into ctx struct of pointer to data, or -1 if none.
+    8, // Offset into ctx struct of pointer to end of data, or -1 if none.
+    -1, // Offset into ctx struct of pointer to metadata, or -1 if none.
+};
+
+const EbpfProgramType windows_bind_program_type =
+PTYPE("bind", bind_context_descriptor, EBPF_PROGRAM_TYPE_BIND, { "bind" });
+
 const std::vector<EbpfProgramType> windows_program_types = {
     PTYPE("unspecified", {0}, EBPF_PROGRAM_TYPE_UNSPECIFIED, {}),
     windows_xdp_program_type,
+    windows_bind_program_type,
 };
 
 static EbpfProgramType get_program_type_windows(const std::string& section, const std::string&)

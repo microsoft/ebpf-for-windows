@@ -90,6 +90,8 @@
       <FileType>CppCode</FileType>
       <Command>clang -target bpf -O2 -Wall -c %(Filename).c -o %(Filename).o</Command>
       <Outputs>%(Filename).o;%(Outputs)</Outputs>
+      <TreatOutputAsContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</TreatOutputAsContent>
+      <TreatOutputAsContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</TreatOutputAsContent>
     </CustomBuild>
     <CustomBuild Include="bpf.c">
       <FileType>CppCode</FileType>

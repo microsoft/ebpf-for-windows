@@ -34,6 +34,8 @@ Environment:
 #include "ebpf_protocol.h"
 #include "ebpf_core.h"
 
+#define RTL_OFFSET_OF(s, m) (((size_t)&((s*)0)->m))
+
 // Driver global variables
 
 static DEVICE_OBJECT* _wdm_device_object;
@@ -91,7 +93,13 @@ inline NTSTATUS ebpf_error_code_to_ntstatus(ebpf_error_code_t error)
         return STATUS_INVALID_PARAMETER;
     case EBPF_ERROR_BLOCKED_BY_POLICY:
         // TODO: Find a better erorr code for this.
-        return STATUS_NOT_SUPPORTED; 
+        return STATUS_NOT_SUPPORTED;
+    case EBPF_ERROR_NO_MORE_KEYS:
+        return STATUS_NO_MORE_MATCHES;
+    case EBPF_ERROR_INVALID_HANDLE:
+        return STATUS_INVALID_HANDLE;
+    case EBPF_ERROR_NOT_SUPPORTED:
+        return STATUS_NOT_SUPPORTED;
     default:
         return STATUS_INVALID_PARAMETER;
     }
@@ -271,6 +279,7 @@ static const struct {
     { ebpf_core_protocol_map_lookup_element, sizeof(struct _ebpf_operation_map_lookup_element_request), sizeof(struct _ebpf_operation_map_lookup_element_reply) },
     { ebpf_core_protocol_map_update_element, sizeof(struct _ebpf_operation_map_update_element_request), 0 },
     { ebpf_core_protocol_map_delete_element, sizeof(struct _ebpf_operation_map_delete_element_request), 0 },
+    { ebpf_core_protocol_map_get_next_key, RTL_OFFSET_OF(ebpf_operation_map_next_key_request_t, previous_key), sizeof(ebpf_operation_map_next_key_reply_t) },
     { ebpf_core_protocol_enumerate_maps, sizeof(struct _ebpf_operation_enumerate_maps_request), sizeof(struct _ebpf_operation_enumerate_maps_reply) },
     { ebpf_core_protocol_query_map_definition, sizeof(struct _ebpf_operation_query_map_definition_request), sizeof(struct _ebpf_operation_query_map_definition_reply) },
 };

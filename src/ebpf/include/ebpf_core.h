@@ -55,6 +55,10 @@ ebpf_error_code_t ebpf_core_protocol_map_delete_element(
     _In_ const struct _ebpf_operation_map_delete_element_request* request,
     _Inout_ void* reply);
 
+ebpf_error_code_t ebpf_core_protocol_map_get_next_key(
+    _In_ const struct _ebpf_operation_map_next_key_request* request,
+    _Inout_ struct _ebpf_operation_map_next_key_reply* reply);
+
 ebpf_error_code_t ebpf_core_protocol_enumerate_maps(
     _In_ const struct _ebpf_operation_enumerate_maps_request* request,
     _Inout_ struct _ebpf_operation_enumerate_maps_reply* reply);

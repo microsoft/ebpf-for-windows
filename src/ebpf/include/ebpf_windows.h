@@ -39,6 +39,9 @@ typedef enum _ebpf_error_code
     EBPF_ERROR_NOT_FOUND,
     EBPF_ERROR_INVALID_PARAMETER,
     EBPF_ERROR_BLOCKED_BY_POLICY,
+    EBPF_ERROR_NO_MORE_KEYS,
+    EBPF_ERROR_INVALID_HANDLE,
+    EBPF_ERROR_NOT_SUPPORTED
 } ebpf_error_code_t;
 
 typedef struct _ebpf_map_definition {

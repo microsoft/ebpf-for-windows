@@ -45,6 +45,7 @@ void ebpf_hash_table_destroy(ebpf_hash_table_t* hash_table);
 ebpf_error_code_t ebpf_hash_table_lookup(ebpf_hash_table_t* hash_table, const uint8_t* key, uint8_t** value);
 ebpf_error_code_t ebpf_hash_table_update(ebpf_hash_table_t* hash_table, const uint8_t* key, const uint8_t* value);
 ebpf_error_code_t ebpf_hash_table_delete(ebpf_hash_table_t* hash_table, const uint8_t* key);
+ebpf_error_code_t ebpf_hash_table_next_key(ebpf_hash_table_t* hash_table, const uint8_t* previous_key, uint8_t* next_key);
 
 #ifdef __cplusplus
 }

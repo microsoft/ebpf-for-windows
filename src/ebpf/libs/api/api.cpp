@@ -264,7 +264,13 @@ static uint32_t resolve_maps_in_byte_code(std::vector<uint8_t>& byte_code)
     return ERROR_SUCCESS;
 }
 
-uint32_t ebpf_api_load_program(const char* file_name, const char* section_name, ebpf_execution_type_t execution_type, ebpf_handle_t* handle, const char** error_message)
+uint32_t ebpf_api_load_program(const char* file_name, 
+    const char* section_name, 
+    ebpf_execution_type_t execution_type, 
+    ebpf_handle_t* handle, 
+    uint32_t* count_of_map_handles,
+    ebpf_handle_t* map_handles,
+    const char** error_message)
 {
     std::vector<uint8_t> byte_code(MAX_CODE_SIZE);
     size_t byte_code_size = byte_code.size();
@@ -278,6 +284,10 @@ uint32_t ebpf_api_load_program(const char* file_name, const char* section_name, 
             if (vm)
             {
                 ubpf_destroy(vm);
+            }
+            for (auto& map : _map_file_descriptors)
+            {
+                ebpf_api_delete_map(reinterpret_cast<ebpf_handle_t>(map.handle));
             }
         });
 
@@ -303,6 +313,18 @@ uint32_t ebpf_api_load_program(const char* file_name, const char* section_name, 
         }
         *error_message = error;
         return ERROR_INVALID_PARAMETER;
+    }
+
+    if (_map_file_descriptors.size() > *count_of_map_handles)
+    {
+        return ERROR_INSUFFICIENT_BUFFER;
+    }
+
+    *count_of_map_handles = 0;
+    for (const auto& map : _map_file_descriptors)
+    {
+        map_handles[*count_of_map_handles] = reinterpret_cast<HANDLE>(map.handle);
+        (*count_of_map_handles)++;
     }
 
     byte_code.resize(byte_code_size);
@@ -368,6 +390,10 @@ uint32_t ebpf_api_load_program(const char* file_name, const char* section_name, 
 
     *handle = reinterpret_cast<ebpf_handle_t>(reply.handle);
 
+    if (result == ERROR_SUCCESS)
+    {
+        _map_file_descriptors.clear();
+    }
     return result;
 }
 
@@ -378,7 +404,13 @@ void ebpf_api_free_error_message(const char* error_message)
 
 void ebpf_api_unload_program(ebpf_handle_t handle)
 {
-    CloseHandle(handle);
+    _ebpf_operation_unload_code_request request{
+        sizeof(request),
+        ebpf_operation_id_t::EBPF_OPERATION_UNLOAD_CODE,
+        reinterpret_cast<uint64_t>(handle) };
+
+    invoke_ioctl(device_handle, request);
+
     return;
 }
 
@@ -456,6 +488,39 @@ uint32_t ebpf_api_map_delete_element(ebpf_handle_t handle, uint32_t key_size, co
     std::copy(key, key + key_size, request->key);
 
     return invoke_ioctl(device_handle, request_buffer);
+}
+
+uint32_t ebpf_api_map_next_key(ebpf_handle_t handle, uint32_t key_size, const uint8_t* previous_key, uint8_t* next_key)
+{
+    std::vector<uint8_t> request_buffer(offsetof(ebpf_operation_map_next_key_request_t, previous_key) + key_size);
+    std::vector<uint8_t> reply_buffer(offsetof(ebpf_operation_map_next_key_reply_t, next_key) + key_size);
+    auto request = reinterpret_cast<ebpf_operation_map_next_key_request_t*>(request_buffer.data());
+    auto reply = reinterpret_cast<ebpf_operation_map_next_key_reply_t*>(reply_buffer.data());
+
+    request->header.length = static_cast<uint16_t>(request_buffer.size());
+    request->header.id = ebpf_operation_id_t::EBPF_OPERATION_MAP_NEXT_KEY;
+    request->handle = reinterpret_cast<uint64_t>(handle);
+    if (previous_key)
+    {
+        std::copy(previous_key, previous_key + key_size, request->previous_key);
+    }
+    else
+    {
+        request->header.length = offsetof(ebpf_operation_map_next_key_request_t, previous_key);
+    }
+
+    auto retval = invoke_ioctl(device_handle, request_buffer, reply_buffer);
+
+    if (reply->header.id != ebpf_operation_id_t::EBPF_OPERATION_MAP_NEXT_KEY)
+    {
+        return ERROR_INVALID_PARAMETER;
+    }
+
+    if (retval == ERROR_SUCCESS)
+    {
+        std::copy(reply->next_key, reply->next_key + key_size, next_key);
+    }
+    return retval;
 }
 
 uint32_t ebpf_api_map_enumerate(ebpf_handle_t previous_handle, ebpf_handle_t* next_handle)

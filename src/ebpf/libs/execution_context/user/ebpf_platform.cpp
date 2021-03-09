@@ -108,7 +108,12 @@ ebpf_error_code_t ebpf_hash_table_create(ebpf_hash_table_t** hash_table, size_t 
 {
     UNREFERENCED_PARAMETER(key_size);
     UNREFERENCED_PARAMETER(value_size);
-    *hash_table = reinterpret_cast<ebpf_hash_table_t *>(new hash_table_t());
+    auto local_hash_table = new hash_table_t();
+    local_hash_table->key_size = key_size;
+    local_hash_table->value_size = value_size;
+    *hash_table = reinterpret_cast<ebpf_hash_table_t *>(local_hash_table);
+    
+    
     return EBPF_ERROR_SUCCESS;
 }
 
@@ -129,7 +134,7 @@ ebpf_error_code_t ebpf_hash_table_lookup(ebpf_hash_table_t* hash_table, const ui
         return EBPF_ERROR_NOT_FOUND;
     }
 
-    std::copy(local_value->second.begin(), local_value->second.end(), *value);
+    *value = local_value->second.data();
     return EBPF_ERROR_SUCCESS;
 }
 
@@ -157,3 +162,22 @@ ebpf_error_code_t ebpf_hash_table_delete(ebpf_hash_table_t* hash_table, const ui
     return EBPF_ERROR_SUCCESS;
 }
 
+ebpf_error_code_t ebpf_hash_table_next_key(ebpf_hash_table_t* hash_table, const uint8_t* previous_key, uint8_t* next_key)
+{
+    hash_table_t* local_hash_table = reinterpret_cast<decltype(local_hash_table)>(hash_table);
+    auto iter = local_hash_table->hash_table.begin();
+    
+    if (previous_key)
+    {
+        std::vector<uint8_t> local_key(previous_key, previous_key + local_hash_table->key_size);
+        iter = local_hash_table->hash_table.upper_bound(local_key);
+    }
+
+    if (iter == local_hash_table->hash_table.end())
+    {
+        return EBPF_ERROR_NO_MORE_KEYS;
+    }
+    std::copy(iter->first.begin(), iter->first.end(), next_key);
+
+    return EBPF_ERROR_SUCCESS;
+}
