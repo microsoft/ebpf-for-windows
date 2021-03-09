@@ -1,89 +1,78 @@
 /*
  *  Copyright (c) Microsoft Corporation
  *  SPDX-License-Identifier: MIT
-*/
+ */
 
-#include <iostream>
-#include <vector>
-#include <thread>
 #include <WinSock2.h>
+#include <iostream>
+#include <thread>
+#include <vector>
 #include <ws2tcpip.h>
 #pragma comment(lib, "ws2_32.lib")
 
+int main(int argc, const char **argv) {
+  WSAData data;
 
-int main(int argc, const char ** argv)
-{
-    WSAData data;
+  if (argc != 2) {
+    printf("Usage: %s target_ip\n", argv[0]);
+    return 1;
+  }
 
-    if (argc != 2)
-    {
-        printf("Usage: %s target_ip\n", argv[0]);
-        return 1;
-    }
+  if (WSAStartup(2, &data) != 0) {
+    printf("WSAStartup failed\n");
+    return 1;
+  }
 
-    if (WSAStartup(2, &data) != 0)
-    {
-        printf("WSAStartup failed\n");
-        return 1;
-    }
+  unsigned short us = 0x1234;
+  us = us >> 8 | us << 8;
+  printf("%.2X\n", us);
+  Sleep(10000);
 
-    unsigned short us = 0x1234;
-    us = us >> 8 | us << 8;
-    printf("%.2X\n", us);
-    Sleep(10000);
+  auto socket = WSASocket(AF_INET, SOCK_DGRAM, IPPROTO_UDP, nullptr, 0, 0);
+  if (socket == INVALID_SOCKET) {
+    printf("WSASocket failed\n");
+    return 1;
+  }
+  ADDRINFOA *addrinfo = nullptr;
 
-    auto socket = WSASocket(AF_INET, SOCK_DGRAM, IPPROTO_UDP, nullptr, 0, 0);
-    if (socket == INVALID_SOCKET)
-    {
-        printf("WSASocket failed\n");
-        return 1;
-    }
-    ADDRINFOA* addrinfo = nullptr;
+  if (getaddrinfo(argv[1], "53", nullptr, &addrinfo) != 0) {
+    printf("getaddrinfo failed \n");
+    return 1;
+  }
 
-    if (getaddrinfo(argv[1], "53", nullptr, &addrinfo) != 0)
-    {
-        printf("getaddrinfo failed \n");
-        return 1;
-    }
+  if (connect(socket, addrinfo->ai_addr,
+              static_cast<int>(addrinfo->ai_addrlen)) != 0) {
+    printf("connect failed \n");
+    return 1;
+  }
 
-    if (connect(socket, addrinfo->ai_addr, static_cast<int>(addrinfo->ai_addrlen)) != 0)
-    {
-        printf("connect failed \n");
-        return 1;
-    }
+  std::vector<WSABUF> buffers(1024);
+  char a = 'A';
+  for (auto &b : buffers) {
+    b.buf = &a;
+    b.len = 0;
+  }
+  DWORD bytes_sent;
 
-    std::vector<WSABUF> buffers(1024);
-    char a = 'A';
-    for (auto& b : buffers)
-    {
-        b.buf = &a;
-        b.len = 0;
-    }
-    DWORD bytes_sent;
+  volatile long packet_sent = 0;
+  std::vector<std::thread> threads(4);
 
-    volatile long packet_sent = 0;
-    std::vector<std::thread> threads(4);
+  for (auto &t : threads) {
+    t = std::thread([&] {
+      for (;;) {
+        if (WSASend(socket, buffers.data(), static_cast<DWORD>(buffers.size()),
+                    &bytes_sent, 0, nullptr, nullptr) != 0) {
+          printf("WSASend failed\n");
+          return 1;
+        }
+        InterlockedAdd(&packet_sent, static_cast<LONG>(buffers.size()));
+      }
+    });
+  }
 
-    for (auto& t : threads)
-    {
-        t = std::thread([&] {
-            for (;;)
-            {
-                if (WSASend(socket, buffers.data(), static_cast<DWORD>(buffers.size()), &bytes_sent, 0, nullptr, nullptr) != 0)
-                {
-                    printf("WSASend failed\n");
-                    return 1;
-                }
-                InterlockedAdd(&packet_sent, static_cast<LONG>(buffers.size()));
-            }
-           });
-    }
-    
-    for (;;)
-    {
-        long old = packet_sent;
-        Sleep(1000);
-        printf("%d\n", packet_sent - old);
-    }
-    
+  for (;;) {
+    long old = packet_sent;
+    Sleep(1000);
+    printf("%d\n", packet_sent - old);
+  }
 }
