@@ -1,12 +1,15 @@
-// Copyright (C) Microsoft.
-// SPDX-License-Identifier: MIT
+/*
+ *  Copyright (c) Microsoft Corporation
+ *  SPDX-License-Identifier: MIT
+ */
+
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <netsh.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include "api.h"
+#include "ebpf_api.h"
 #include "elf.h"
 #include "programs.h"
 #include "resource.h"
@@ -17,14 +20,15 @@ static const GUID g_EbpfHelperGuid = {/* 634d21b8-13f9-46a3-945f-885cbd661c13 */
                                       0x634d21b8,
                                       0x13f9,
                                       0x46a3,
-                                      {0x94, 0x5f, 0x88, 0x5c, 0xbd, 0x66, 0x1c,
-                                       0x13}};
+                                      {0x94, 0x5f, 0x88, 0x5c, 0xbd, 0x66, 0x1c, 0x13}};
 
-BOOL WINAPI DllMain(HMODULE moduleHandle, DWORD reasonForCall, void *reserved) {
-  UNREFERENCED_PARAMETER(moduleHandle);
-  UNREFERENCED_PARAMETER(reasonForCall);
-  UNREFERENCED_PARAMETER(reserved);
-  return TRUE;
+BOOL WINAPI
+DllMain(HMODULE moduleHandle, DWORD reasonForCall, void* reserved)
+{
+    UNREFERENCED_PARAMETER(moduleHandle);
+    UNREFERENCED_PARAMETER(reasonForCall);
+    UNREFERENCED_PARAMETER(reserved);
+    return TRUE;
 }
 
 // Verbs
@@ -74,38 +78,41 @@ static CMD_GROUP_ENTRY g_EbpfGroupCommands[] = {
     CREATE_CMD_GROUP_ENTRY(GROUP_SHOW, g_EbpfShowCommandTable),
 };
 
-DWORD WINAPI EbpfStartHelper(const GUID *parentGuid, DWORD version) {
-  NS_CONTEXT_ATTRIBUTES attributes = {0};
-  UNREFERENCED_PARAMETER(parentGuid);
-  UNREFERENCED_PARAMETER(version);
+DWORD WINAPI
+EbpfStartHelper(const GUID* parentGuid, DWORD version)
+{
+    NS_CONTEXT_ATTRIBUTES attributes = {0};
+    UNREFERENCED_PARAMETER(parentGuid);
+    UNREFERENCED_PARAMETER(version);
 
-  attributes.pwszContext = L"ebpf";
-  attributes.guidHelper = g_EbpfHelperGuid;
-  attributes.dwVersion = 1;
-  attributes.dwFlags = CMD_FLAG_LOCAL | CMD_FLAG_ONLINE;
-  attributes.ulNumGroups = _countof(g_EbpfGroupCommands);
-  attributes.pCmdGroups = (CMD_GROUP_ENTRY(*)[]) & g_EbpfGroupCommands;
+    attributes.pwszContext = L"ebpf";
+    attributes.guidHelper = g_EbpfHelperGuid;
+    attributes.dwVersion = 1;
+    attributes.dwFlags = CMD_FLAG_LOCAL | CMD_FLAG_ONLINE;
+    attributes.ulNumGroups = _countof(g_EbpfGroupCommands);
+    attributes.pCmdGroups = (CMD_GROUP_ENTRY(*)[]) & g_EbpfGroupCommands;
 
-  DWORD status = RegisterContext(&attributes);
+    DWORD status = RegisterContext(&attributes);
 
-  return status;
+    return status;
 }
 
-__declspec(dllexport) DWORD InitHelperDll(DWORD netshVersion, void *reserved) {
-  NS_HELPER_ATTRIBUTES attributes = {0};
-  UNREFERENCED_PARAMETER(netshVersion);
-  UNREFERENCED_PARAMETER(reserved);
-  attributes.guidHelper = g_EbpfHelperGuid;
-  attributes.dwVersion = 1;
-  attributes.pfnStart = EbpfStartHelper;
+__declspec(dllexport) DWORD InitHelperDll(DWORD netshVersion, void* reserved)
+{
+    NS_HELPER_ATTRIBUTES attributes = {0};
+    UNREFERENCED_PARAMETER(netshVersion);
+    UNREFERENCED_PARAMETER(reserved);
+    attributes.guidHelper = g_EbpfHelperGuid;
+    attributes.dwVersion = 1;
+    attributes.pfnStart = EbpfStartHelper;
 
-  DWORD status = RegisterHelper(NULL, &attributes);
+    DWORD status = RegisterHelper(NULL, &attributes);
 
-  if (status == ERROR_SUCCESS) {
-    // Allow for this to fail since some commands currently
-    // don't require the ebpf_api.
-    g_ApiDllInitialized = ebpf_api_initiate();
-  }
+    if (status == ERROR_SUCCESS) {
+        // Allow for this to fail since some commands currently
+        // don't require the ebpf_api.
+        g_ApiDllInitialized = ebpf_api_initiate();
+    }
 
-  return status;
+    return status;
 }

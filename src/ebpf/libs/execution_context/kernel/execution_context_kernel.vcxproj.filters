@@ -35,9 +35,6 @@
     <ClInclude Include="..\..\..\include\ebpf_platform.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\include\api.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\include\ebpf_protocol.h">
       <Filter>Header Files</Filter>
     </ClInclude>

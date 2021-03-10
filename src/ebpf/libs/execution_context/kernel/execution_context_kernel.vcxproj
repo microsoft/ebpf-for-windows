@@ -40,7 +40,6 @@
     <ClCompile Include="ebpf_platform.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\include\api.h" />
     <ClInclude Include="..\..\..\include\ebpf_core.h" />
     <ClInclude Include="..\..\..\include\ebpf_maps.h" />
     <ClInclude Include="..\..\..\include\ebpf_platform.h" />

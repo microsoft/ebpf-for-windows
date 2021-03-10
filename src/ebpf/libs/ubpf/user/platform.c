@@ -7,12 +7,22 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-void *ubpf_alloc(size_t size, size_t count) { return calloc(size, count); }
+void*
+ubpf_alloc(size_t size, size_t count)
+{
+    return calloc(size, count);
+}
 
-void ubpf_free(void *memory) { free(memory); }
+void
+ubpf_free(void* memory)
+{
+    free(memory);
+}
 
-int vasprintf(char **target, const char *format, va_list argptr) {
-  int length = 1024;
-  *target = ubpf_alloc(length, sizeof(const char));
-  return vsprintf_s(*target, length, format, argptr);
+int
+vasprintf(char** target, const char* format, va_list argptr)
+{
+    int length = 1024;
+    *target = ubpf_alloc(length, sizeof(const char));
+    return vsprintf_s(*target, length, format, argptr);
 }
