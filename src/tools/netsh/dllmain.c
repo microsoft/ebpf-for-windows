@@ -1,15 +1,15 @@
 // Copyright (C) Microsoft.
 // SPDX-License-Identifier: MIT
 #define WIN32_LEAN_AND_MEAN
-#include "api.h"
-#include "elf.h"
-#include "programs.h"
-#include "resource.h"
+#include <windows.h>
 #include <netsh.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <windows.h>
+#include "api.h"
+#include "elf.h"
+#include "programs.h"
+#include "resource.h"
 
 DWORD g_ApiDllInitialized = ERROR_SUCCESS;
 

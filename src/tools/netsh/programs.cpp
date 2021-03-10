@@ -2,11 +2,11 @@
 // SPDX-License-Identifier: MIT
 #include <string>
 #define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <netsh.h>
 #include "ebpf_windows.h"
 #include "programs.h"
 #include "tokens.h"
-#include <netsh.h>
-#include <windows.h>
 
 #include "api.h"
 #include <iostream>

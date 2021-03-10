@@ -2,11 +2,11 @@
  *  Copyright (c) Microsoft Corporation
  *  SPDX-License-Identifier: MIT
  */
-#include "ebpf_platform.h"
-#include "ebpf_core.h"
-#include "ebpf_protocol.h"
 #include <ntddk.h>
 #include <ntintsafe.h>
+#include "ebpf_core.h"
+#include "ebpf_platform.h"
+#include "ebpf_protocol.h"
 
 typedef enum { ebpfPoolTag = 'fpbe' } EBPF_POOL_TAG;
 

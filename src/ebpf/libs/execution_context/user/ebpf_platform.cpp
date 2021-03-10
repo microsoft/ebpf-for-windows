@@ -2,9 +2,6 @@
  *  Copyright (c) Microsoft Corporation
  *  SPDX-License-Identifier: MIT
  */
-#include "ebpf_platform.h"
-#include "ebpf_core.h"
-#include "ebpf_protocol.h"
 #include <Windows.h>
 #include <map>
 #include <mutex>
@@ -12,6 +9,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <vector>
+#include "ebpf_core.h"
+#include "ebpf_platform.h"
+#include "ebpf_protocol.h"
 
 std::set<uint64_t> _executable_segments;
 

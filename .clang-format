@@ -18,3 +18,6 @@ BinPackParameters: false
 #
 # Open brace goes on new line only when starting a new struct, enum, or func.
 BreakBeforeBraces: Mozilla
+#
+# Don't sort includes in alphabetical order because Windows headers are odd.
+SortIncludes: false
