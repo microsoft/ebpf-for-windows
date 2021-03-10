@@ -90,7 +90,13 @@ GlueDeviceIoControl(
         user_reply->id = user_request->id;
         *lpBytesReturned = user_reply->length;
     }
-    retval = EbpfProtocolHandlers[request_id].protocol_handler(user_request, user_reply);
+    if (EbpfProtocolHandlers[request_id].minimum_reply_size == 0) {
+        retval = EbpfProtocolHandlers[request_id].dispatch.protocol_handler_no_reply(user_request);
+    } else {
+        retval = EbpfProtocolHandlers[request_id].dispatch.protocol_handler_with_reply(
+            user_request, user_reply, static_cast<uint16_t>(nOutBufferSize));
+    }
+
     if (retval != EBPF_ERROR_SUCCESS) {
         switch (retval) {
         case EBPF_ERROR_OUT_OF_RESOURCES:
@@ -370,9 +376,7 @@ uint32_t
 get_bind_count_for_pid(ebpf_handle_t handle, uint64_t pid)
 {
     process_entry_t entry{};
-    REQUIRE(
-        ebpf_api_map_lookup_element(handle, sizeof(pid), (uint8_t*)&pid, sizeof(entry), (uint8_t*)&entry) ==
-        ERROR_SUCCESS);
+    ebpf_api_map_lookup_element(handle, sizeof(pid), (uint8_t*)&pid, sizeof(entry), (uint8_t*)&entry);
 
     return entry.count;
 }
@@ -530,9 +534,9 @@ TEST_CASE("bindmonitor-interpret", "[bindmonitor_interpret]")
     emulate_unbind(fake_pid, "fake_app_1");
     REQUIRE(get_bind_count_for_pid(map_handles[0], fake_pid) == 0);
 
-    // Unbind a port we don't own
-    emulate_unbind(fake_pid, "fake_app_1");
-    REQUIRE(get_bind_count_for_pid(map_handles[0], fake_pid) == 0);
+    // Bind from two apps to test enumeration
+    REQUIRE(emulate_bind(fake_pid, "fake_app_1") == ebpf::BIND_PERMIT);
+    REQUIRE(get_bind_count_for_pid(map_handles[0], fake_pid) == 1);
 
     fake_pid = 54321;
     REQUIRE(emulate_bind(fake_pid, "fake_app_2") == ebpf::BIND_PERMIT);

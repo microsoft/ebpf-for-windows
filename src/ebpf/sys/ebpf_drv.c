@@ -282,7 +282,7 @@ EbpfCoreEvtIoDeviceControl(
                     goto Done;
                 }
 
-                if (!EbpfProtocolHandlers[user_request->id].protocol_handler) {
+                if (!EbpfProtocolHandlers[user_request->id].dispatch.protocol_handler_no_reply) {
                     status = STATUS_INVALID_PARAMETER;
                     goto Done;
                 }
@@ -309,8 +309,14 @@ EbpfCoreEvtIoDeviceControl(
                     user_reply = output_buffer;
                 }
 
-                status = ebpf_error_code_to_ntstatus(
-                    EbpfProtocolHandlers[user_request->id].protocol_handler(user_request, user_reply));
+                if (EbpfProtocolHandlers[user_request->id].minimum_reply_size == 0) {
+                    status = ebpf_error_code_to_ntstatus(
+                        EbpfProtocolHandlers[user_request->id].dispatch.protocol_handler_no_reply(user_request));
+                } else {
+                    status = ebpf_error_code_to_ntstatus(
+                        EbpfProtocolHandlers[user_request->id].dispatch.protocol_handler_with_reply(
+                            user_request, user_reply, (uint16_t)actual_output_length));
+                }
 
                 // Fill out the rest of the out buffer after processing the input
                 // buffer.

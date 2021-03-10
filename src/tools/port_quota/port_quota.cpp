@@ -4,6 +4,7 @@
  */
 
 #include <iostream>
+#include <string>
 #include <windows.h>
 #include "ebpf_api.h"
 
@@ -32,6 +33,13 @@ load(int argc, char** argv)
         ebpf_api_free_error_message(error_message);
         return 1;
     }
+
+    result = ebpf_api_attach_program(program, ebpf_program_type::EBPF_PROGRAM_TYPE_BIND);
+    if (result != ERROR_SUCCESS) {
+        fprintf(stderr, "Failed to attach eBPF program\n");
+        return 1;
+    }
+
     result = ebpf_api_pin_map(maps[0], process_map, sizeof(process_map));
     if (result != ERROR_SUCCESS) {
         fprintf(stderr, "Failed to pin eBPF program: %d\n", result);
@@ -82,8 +90,8 @@ stats(int argc, char** argv)
             fprintf(stderr, "Failed to look up eBPF map entry: %d\n", result);
             return 1;
         }
-
-        printf("%lld\t%d\t%s\n", pid, process_entry.count, process_entry.name);
+        std::wstring name(reinterpret_cast<wchar_t*>(process_entry.name), process_entry.count / 2);
+        printf("%lld\t%d\t%S\n", pid, process_entry.count, reinterpret_cast<wchar_t*>(process_entry.name));
         result = ebpf_api_map_next_key(
             map, sizeof(uint64_t), reinterpret_cast<uint8_t*>(&pid), reinterpret_cast<uint8_t*>(&pid));
     };

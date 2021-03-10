@@ -159,6 +159,14 @@ Done:
 void
 ebpf_hash_table_destroy(ebpf_hash_table_t* hash_table)
 {
+    RTL_AVL_TABLE* table = (RTL_AVL_TABLE*)hash_table;
+    for (;;) {
+        uint8_t* entry;
+        entry = RtlEnumerateGenericTableAvl(table, TRUE);
+        if (!entry)
+            break;
+        RtlDeleteElementGenericTableAvl(table, entry);
+    }
     ExFreePool(hash_table);
 }
 
@@ -173,7 +181,7 @@ ebpf_hash_table_lookup(ebpf_hash_table_t* hash_table, const uint8_t* key, uint8_
 
     entry = RtlLookupElementGenericTableAvl(table, (uint8_t*)key);
 
-    if (!entry) {
+    if (entry) {
         *value = entry + key_size;
         retval = EBPF_ERROR_SUCCESS;
     } else {
@@ -202,7 +210,7 @@ ebpf_hash_table_update(ebpf_hash_table_t* hash_table, const uint8_t* key, const 
 
     temp = ebpf_allocate(temp_size, EBPF_MEMORY_NO_EXECUTE);
     if (!temp) {
-        retval = EBPF_ERROR_INVALID_PARAMETER;
+        retval = EBPF_ERROR_OUT_OF_RESOURCES;
         goto Done;
     }
 

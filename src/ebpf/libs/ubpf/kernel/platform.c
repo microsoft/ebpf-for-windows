@@ -16,7 +16,7 @@ typedef enum _ubpd_pool_tag
 void*
 ubpf_alloc(size_t size, size_t count)
 {
-    void* memory = ExAllocatePool2(POOL_FLAG_NON_PAGED, size, EBPF_POOL_TAG);
+    void* memory = ExAllocatePool2(POOL_FLAG_NON_PAGED, size * count, EBPF_POOL_TAG);
 
     if (memory) {
         memset(memory, 0, size * count);
