@@ -263,6 +263,9 @@ ebpf_hash_table_next_key(ebpf_hash_table_t* hash_table, const uint8_t* previous_
 
             // Start at the begining of the table.
             entry = RtlEnumerateGenericTableAvl(table, TRUE);
+            if (entry == NULL) {
+                return EBPF_ERROR_NO_MORE_KEYS;
+            }
 
             // Advance the cursor until we reach the first entry that is greater than
             // the key.

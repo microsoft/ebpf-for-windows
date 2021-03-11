@@ -90,7 +90,6 @@ stats(int argc, char** argv)
             fprintf(stderr, "Failed to look up eBPF map entry: %d\n", result);
             return 1;
         }
-        std::wstring name(reinterpret_cast<wchar_t*>(process_entry.name), process_entry.count / 2);
         printf("%lld\t%d\t%S\n", pid, process_entry.count, reinterpret_cast<wchar_t*>(process_entry.name));
         result = ebpf_api_map_next_key(
             map, sizeof(uint64_t), reinterpret_cast<uint8_t*>(&pid), reinterpret_cast<uint8_t*>(&pid));
