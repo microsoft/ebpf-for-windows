@@ -13,6 +13,7 @@
 
 #include "ebpf_api.h"
 #include <iostream>
+#include <iomanip>
 
 static ebpf_handle_t _program_handle = INVALID_HANDLE_VALUE;
 static ebpf_handle_t _map_handles[10];
@@ -139,7 +140,7 @@ handle_ebpf_add_program(
         } else {
             std::cerr << "error " << status << ": could not load program" << std::endl;
         }
-        ebpf_api_free_error_message(error_message);
+        ebpf_api_free_string(error_message);
         return ERROR_SUPPRESS_OUTPUT;
     }
 
@@ -335,6 +336,42 @@ handle_ebpf_show_programs(
         level = VL_VERBOSE;
     }
 
-    // TODO: enumerate programs using specified constraints
-    return ERROR_CALL_NOT_IMPLEMENTED;
+    // BUG: We need to implement the other columns and implement filtering.
+
+    std::cout << "\n";
+    std::cout << "           File Name          Section  Requested Execution Type\n";
+    std::cout << "====================  ===============  ========================\n";
+
+    ebpf_handle_t program_handle = INVALID_HANDLE_VALUE;
+    for (;;) {
+        const char* program_file_name;
+        const char* program_section_name;
+        const char* program_type_name;
+        ebpf_execution_type_t program_execution_type;
+        status = ebpf_api_get_next_program(program_handle, &program_handle);
+
+        if (status != ERROR_SUCCESS) {
+            return status;
+        }
+
+        if (program_handle == INVALID_HANDLE_VALUE) {
+            break;
+        }
+
+        status = ebpf_api_program_query_information(
+            program_handle, &program_execution_type, &program_file_name, &program_section_name);
+
+        if (status != ERROR_SUCCESS) {
+            return status;
+        }
+
+        program_type_name = program_execution_type == EBPF_EXECUTION_JIT ? "JIT" : "INTERPRET";
+        std::cout << std::setw(20) << std::right << program_file_name << "  " << std::setw(15) << std::right
+                  << program_section_name << "  " << std::setw(24) << std::right << program_type_name << "\n";
+
+        ebpf_api_free_string(program_file_name);
+        ebpf_api_free_string(program_section_name);
+    }
+
+    return ERROR_SUCCESS;
 }

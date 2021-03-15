@@ -42,6 +42,7 @@ invoke_ioctl(ebpf_handle_t handle, request_t& request, reply_t& reply = _empty_r
     void* request_ptr;
     uint32_t reply_size;
     void* reply_ptr;
+    bool variable_reply_size = false;
 
     if constexpr (std::is_same<request_t, nullptr_t>::value) {
         request_size = 0;
@@ -60,6 +61,7 @@ invoke_ioctl(ebpf_handle_t handle, request_t& request, reply_t& reply = _empty_r
     } else if constexpr (std::is_same<reply_t, std::vector<uint8_t>>::value) {
         reply_size = static_cast<uint32_t>(reply.size());
         reply_ptr = reply.data();
+        variable_reply_size = true;
     } else if constexpr (std::is_same<reply_t, empty_reply>::value) {
         reply_size = 0;
         reply_ptr = nullptr;
@@ -82,7 +84,7 @@ invoke_ioctl(ebpf_handle_t handle, request_t& request, reply_t& reply = _empty_r
         return GetLastError();
     }
 
-    if (actual_reply_size != reply_size) {
+    if (actual_reply_size != reply_size && !variable_reply_size) {
         return ERROR_INVALID_PARAMETER;
     }
 
@@ -251,8 +253,6 @@ ebpf_api_load_program(
 {
     std::vector<uint8_t> byte_code(MAX_CODE_SIZE);
     size_t byte_code_size = byte_code.size();
-    std::vector<uint8_t> machine_code(MAX_CODE_SIZE);
-    size_t machine_code_size = machine_code.size();
     std::vector<uint8_t> request_buffer;
     _ebpf_operation_load_code_reply reply;
     struct ubpf_vm* vm = nullptr;
@@ -300,7 +300,15 @@ ebpf_api_load_program(
         return result;
     }
 
+    std::vector<uint8_t> file_name_bytes(strlen(file_name));
+    std::vector<uint8_t> section_name_bytes(strlen(section_name));
+    std::copy(file_name, file_name + file_name_bytes.size(), file_name_bytes.begin());
+    std::copy(section_name, section_name + section_name_bytes.size(), section_name_bytes.begin());
+
     if (execution_type == EBPF_EXECUTION_JIT) {
+        std::vector<uint8_t> machine_code(MAX_CODE_SIZE);
+        size_t machine_code_size = machine_code.size();
+
         // JIT code.
         vm = ubpf_create();
         if (vm == nullptr) {
@@ -320,27 +328,24 @@ ebpf_api_load_program(
             return ERROR_INVALID_PARAMETER;
         }
         machine_code.resize(machine_code_size);
-
-        request_buffer.resize(machine_code.size() + offsetof(ebpf_operation_load_code_request_t, code));
-        auto request = reinterpret_cast<ebpf_operation_load_code_request_t*>(request_buffer.data());
-        request->header.id = ebpf_operation_id_t::EBPF_OPERATION_LOAD_CODE;
-        request->header.length = static_cast<uint16_t>(request_buffer.size());
-        request->code_type = EBPF_CODE_NATIVE;
-        std::copy(
-            machine_code.begin(),
-            machine_code.end(),
-            request_buffer.begin() + offsetof(ebpf_operation_load_code_request_t, code));
-    } else {
-        request_buffer.resize(byte_code.size() + offsetof(ebpf_operation_load_code_request_t, code));
-        auto request = reinterpret_cast<ebpf_operation_load_code_request_t*>(request_buffer.data());
-        request->header.id = ebpf_operation_id_t::EBPF_OPERATION_LOAD_CODE;
-        request->header.length = static_cast<uint16_t>(request_buffer.size());
-        request->code_type = EBPF_CODE_EBPF;
-        std::copy(
-            byte_code.begin(),
-            byte_code.end(),
-            request_buffer.begin() + offsetof(ebpf_operation_load_code_request_t, code));
+        byte_code = machine_code;
     }
+
+    request_buffer.resize(
+        offsetof(ebpf_operation_load_code_request_t, data) + file_name_bytes.size() + section_name_bytes.size() +
+        byte_code.size());
+    auto request = reinterpret_cast<ebpf_operation_load_code_request_t*>(request_buffer.data());
+    request->header.id = ebpf_operation_id_t::EBPF_OPERATION_LOAD_CODE;
+    request->header.length = static_cast<uint16_t>(request_buffer.size());
+    request->code_type = execution_type == EBPF_EXECUTION_JIT ? EBPF_CODE_NATIVE : EBPF_CODE_EBPF;
+    request->file_name_offset = offsetof(ebpf_operation_load_code_request_t, data);
+    request->section_name_offset = request->file_name_offset + static_cast<uint16_t>(file_name_bytes.size());
+    request->code_offset = request->section_name_offset + static_cast<uint16_t>(section_name_bytes.size());
+    std::copy(file_name_bytes.begin(), file_name_bytes.end(), request_buffer.begin() + request->file_name_offset);
+    std::copy(
+        section_name_bytes.begin(), section_name_bytes.end(), request_buffer.begin() + request->section_name_offset);
+
+    std::copy(byte_code.begin(), byte_code.end(), request_buffer.begin() + request->code_offset);
 
     result = invoke_ioctl(device_handle, request_buffer, reply);
 
@@ -361,7 +366,7 @@ ebpf_api_load_program(
 }
 
 void
-ebpf_api_free_error_message(const char* error_message)
+ebpf_api_free_string(const char* error_message)
 {
     return free(const_cast<char*>(error_message));
 }
@@ -508,25 +513,25 @@ ebpf_api_map_delete_element(ebpf_handle_t handle, uint32_t key_size, const uint8
 }
 
 uint32_t
-ebpf_api_map_next_key(ebpf_handle_t handle, uint32_t key_size, const uint8_t* previous_key, uint8_t* next_key)
+ebpf_api_get_next_map_key(ebpf_handle_t handle, uint32_t key_size, const uint8_t* previous_key, uint8_t* next_key)
 {
-    std::vector<uint8_t> request_buffer(offsetof(ebpf_operation_map_next_key_request_t, previous_key) + key_size);
-    std::vector<uint8_t> reply_buffer(offsetof(ebpf_operation_map_next_key_reply_t, next_key) + key_size);
-    auto request = reinterpret_cast<ebpf_operation_map_next_key_request_t*>(request_buffer.data());
-    auto reply = reinterpret_cast<ebpf_operation_map_next_key_reply_t*>(reply_buffer.data());
+    std::vector<uint8_t> request_buffer(offsetof(ebpf_operation_map_get_next_key_request_t, previous_key) + key_size);
+    std::vector<uint8_t> reply_buffer(offsetof(ebpf_operation_map_get_next_key_reply_t, next_key) + key_size);
+    auto request = reinterpret_cast<ebpf_operation_map_get_next_key_request_t*>(request_buffer.data());
+    auto reply = reinterpret_cast<ebpf_operation_map_get_next_key_reply_t*>(reply_buffer.data());
 
     request->header.length = static_cast<uint16_t>(request_buffer.size());
-    request->header.id = ebpf_operation_id_t::EBPF_OPERATION_MAP_NEXT_KEY;
+    request->header.id = ebpf_operation_id_t::EBPF_OPERATION_MAP_GET_NEXT_KEY;
     request->handle = reinterpret_cast<uint64_t>(handle);
     if (previous_key) {
         std::copy(previous_key, previous_key + key_size, request->previous_key);
     } else {
-        request->header.length = offsetof(ebpf_operation_map_next_key_request_t, previous_key);
+        request->header.length = offsetof(ebpf_operation_map_get_next_key_request_t, previous_key);
     }
 
     auto retval = invoke_ioctl(device_handle, request_buffer, reply_buffer);
 
-    if (reply->header.id != ebpf_operation_id_t::EBPF_OPERATION_MAP_NEXT_KEY) {
+    if (reply->header.id != ebpf_operation_id_t::EBPF_OPERATION_MAP_GET_NEXT_KEY) {
         return ERROR_INVALID_PARAMETER;
     }
 
@@ -537,14 +542,29 @@ ebpf_api_map_next_key(ebpf_handle_t handle, uint32_t key_size, const uint8_t* pr
 }
 
 uint32_t
-ebpf_api_map_enumerate(ebpf_handle_t previous_handle, ebpf_handle_t* next_handle)
+ebpf_api_get_next_map(ebpf_handle_t previous_handle, ebpf_handle_t* next_handle)
 {
-    _ebpf_operation_enumerate_maps_request request{
+    _ebpf_operation_get_next_map_request request{
+        sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_MAP, reinterpret_cast<uint64_t>(previous_handle)};
+
+    _ebpf_operation_get_next_map_reply reply;
+
+    uint32_t retval = invoke_ioctl(device_handle, request, reply);
+    if (retval == ERROR_SUCCESS) {
+        *next_handle = reinterpret_cast<ebpf_handle_t>(reply.next_handle);
+    }
+    return retval;
+}
+
+uint32_t
+ebpf_api_get_next_program(ebpf_handle_t previous_handle, ebpf_handle_t* next_handle)
+{
+    _ebpf_operation_get_next_program_request request{
         sizeof(request),
-        ebpf_operation_id_t::EBPF_OPERATION_ENUMERATE_MAPS,
+        ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_PROGRAM,
         reinterpret_cast<uint64_t>(previous_handle)};
 
-    _ebpf_operation_enumerate_maps_reply reply;
+    _ebpf_operation_get_next_program_reply reply;
 
     uint32_t retval = invoke_ioctl(device_handle, request, reply);
     if (retval == ERROR_SUCCESS) {
@@ -575,6 +595,47 @@ ebpf_api_map_query_definition(
         *value_size = reply.map_definition.value_size;
         *max_entries = reply.map_definition.max_entries;
     }
+    return retval;
+}
+
+uint32_t
+ebpf_api_program_query_information(
+    ebpf_handle_t handle, ebpf_execution_type_t* program_type, const char** file_name, const char** section_name)
+{
+    std::vector<uint8_t> reply_buffer(1024);
+    _ebpf_operation_query_program_information_request request{
+        sizeof(request),
+        ebpf_operation_id_t::EBPF_OPERATION_QUERY_PROGRAM_INFORMATION,
+        reinterpret_cast<uint64_t>(handle)};
+
+    auto reply = reinterpret_cast<_ebpf_operation_query_program_information_reply*>(reply_buffer.data());
+
+    uint32_t retval = invoke_ioctl(device_handle, request, reply_buffer);
+    if (retval != ERROR_SUCCESS) {
+        return retval;
+    }
+
+    size_t file_name_length = reply->section_name_offset - reply->file_name_offset;
+    size_t section_name_length = reply->header.length - reply->section_name_offset;
+    char* local_file_name = reinterpret_cast<char*>(calloc(file_name_length + 1, sizeof(char)));
+    char* local_section_name = reinterpret_cast<char*>(calloc(section_name_length + 1, sizeof(char)));
+
+    if (!local_file_name || !local_section_name) {
+        free(local_file_name);
+        free(local_section_name);
+        return ERROR_OUTOFMEMORY;
+    }
+
+    memcpy(local_file_name, reply_buffer.data() + reply->file_name_offset, file_name_length);
+    memcpy(local_section_name, reply_buffer.data() + reply->section_name_offset, section_name_length);
+
+    local_file_name[file_name_length] = '\0';
+    local_section_name[section_name_length] = '\0';
+
+    *program_type = reply->code_type == EBPF_CODE_NATIVE ? EBPF_EXECUTION_JIT : EBPF_EXECUTION_INTERPRET;
+    *file_name = local_file_name;
+    *section_name = local_section_name;
+
     return retval;
 }
 

@@ -119,17 +119,27 @@ extern "C"
      * @retval ERROR_NO_MORE_ITEMS previous_key was the last key.
      */
     uint32_t
-    ebpf_api_map_next_key(ebpf_handle_t handle, uint32_t key_size, const uint8_t* previous_key, uint8_t* next_key);
+    ebpf_api_get_next_map_key(ebpf_handle_t handle, uint32_t key_size, const uint8_t* previous_key, uint8_t* next_key);
 
     /**
-     * @brief Enumerate through eBPF maps.
+     * @brief Get the next eBPF map.
      * @param[in] previous_handle Handle to previous eBPF map or
      *  ebpf_handle_invalid to start enumeration.
      * @param[out] next_handle The next eBPF map or ebpf_handle_invalid if this
      *  is the last map.
      */
     uint32_t
-    ebpf_api_map_enumerate(ebpf_handle_t previous_handle, ebpf_handle_t* next_handle);
+    ebpf_api_get_next_map(ebpf_handle_t previous_handle, ebpf_handle_t* next_handle);
+
+    /**
+     * @brief Get the next eBPF program.
+     * @param[in] previous_handle Handle to previous eBPF program or
+     *  ebpf_handle_invalid to start enumeration.
+     * @param[out] next_handle The next eBPF program or ebpf_handle_invalid if this
+     *  is the last map.
+     */
+    uint32_t
+    ebpf_api_get_next_program(ebpf_handle_t previous_handle, ebpf_handle_t* next_handle);
 
     /**
      * @brief Query properties of an eBPF map.
@@ -148,6 +158,14 @@ extern "C"
         uint32_t* key_size,
         uint32_t* value_size,
         uint32_t* max_entries);
+
+    /**
+     * @brief Query information about an eBPF program.
+     * @param[in] handle Handle to an eBPF program.
+     */
+    uint32_t
+    ebpf_api_program_query_information(
+        ebpf_handle_t handle, ebpf_execution_type_t* program_type, const char** file_name, const char** section_name);
 
     /**
      * @brief Close a handle to an eBPF map.
@@ -225,10 +243,10 @@ extern "C"
 
     /**
      * @brief Free memory for a string returned from eBPF API.
-     * @param[in] error_message Memory to free.
+     * @param[in] string Memory to free.
      */
     void
-    ebpf_api_free_error_message(const char* error_message);
+    ebpf_api_free_string(const char* string);
 
     /**
      * @brief Associate a name with a map handle.

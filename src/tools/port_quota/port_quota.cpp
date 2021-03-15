@@ -30,7 +30,7 @@ load(int argc, char** argv)
     if (result != ERROR_SUCCESS) {
         fprintf(stderr, "Failed to load port quota eBPF program\n");
         fprintf(stderr, "%s", error_message);
-        ebpf_api_free_error_message(error_message);
+        ebpf_api_free_string(error_message);
         return 1;
     }
 
@@ -43,13 +43,13 @@ load(int argc, char** argv)
     result = ebpf_api_pin_map(maps[0], process_map, sizeof(process_map));
     if (result != ERROR_SUCCESS) {
         fprintf(stderr, "Failed to pin eBPF program: %d\n", result);
-        ebpf_api_free_error_message(error_message);
+        ebpf_api_free_string(error_message);
         return 1;
     }
     result = ebpf_api_pin_map(maps[1], limits_map, sizeof(limits_map));
     if (result != ERROR_SUCCESS) {
         fprintf(stderr, "Failed to pin eBPF program: %d\n", result);
-        ebpf_api_free_error_message(error_message);
+        ebpf_api_free_string(error_message);
         return 1;
     }
     return 0;
@@ -77,7 +77,7 @@ stats(int argc, char** argv)
     }
 
     printf("Pid\tCount\tAppId\n");
-    result = ebpf_api_map_next_key(map, sizeof(uint64_t), nullptr, reinterpret_cast<uint8_t*>(&pid));
+    result = ebpf_api_get_next_map_key(map, sizeof(uint64_t), nullptr, reinterpret_cast<uint8_t*>(&pid));
     while (result == ERROR_SUCCESS) {
         memset(&process_entry, 0, sizeof(process_entry));
         result = ebpf_api_map_lookup_element(
@@ -91,7 +91,7 @@ stats(int argc, char** argv)
             return 1;
         }
         printf("%lld\t%d\t%S\n", pid, process_entry.count, reinterpret_cast<wchar_t*>(process_entry.name));
-        result = ebpf_api_map_next_key(
+        result = ebpf_api_get_next_map_key(
             map, sizeof(uint64_t), reinterpret_cast<uint8_t*>(&pid), reinterpret_cast<uint8_t*>(&pid));
     };
     return 0;

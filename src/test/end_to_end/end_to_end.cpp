@@ -155,7 +155,7 @@ TEST_CASE("droppacket-jit", "[droppacket_jit]")
     bool ec_initialized = false;
     bool api_initialized = false;
     _unwind_helper on_exit([&] {
-        ebpf_api_free_error_message(error_message);
+        ebpf_api_free_string(error_message);
         if (api_initialized)
             ebpf_api_terminate();
         if (ec_initialized)
@@ -230,7 +230,7 @@ TEST_CASE("droppacket-interpret", "[droppacket_interpret]")
     ebpf_handle_t map_handle;
     uint32_t count_of_map_handle = 1;
     _unwind_helper on_exit([&] {
-        ebpf_api_free_error_message(error_message);
+        ebpf_api_free_string(error_message);
         if (api_initialized)
             ebpf_api_terminate();
         if (ec_initialized)
@@ -300,7 +300,7 @@ TEST_CASE("enum section", "[enum sections]")
     bool ec_initialized = false;
     bool api_initialized = false;
     _unwind_helper on_exit([&] {
-        ebpf_api_free_error_message(error_message);
+        ebpf_api_free_string(error_message);
         ebpf_api_elf_free(section_data);
         if (api_initialized)
             ebpf_api_terminate();
@@ -347,8 +347,8 @@ TEST_CASE("verify section", "[verify section]")
     bool ec_initialized = false;
     bool api_initialized = false;
     _unwind_helper on_exit([&] {
-        ebpf_api_free_error_message(error_message);
-        ebpf_api_free_error_message(report);
+        ebpf_api_free_string(error_message);
+        ebpf_api_free_string(report);
         if (api_initialized)
             ebpf_api_terminate();
         if (ec_initialized)
@@ -430,7 +430,7 @@ TEST_CASE("bindmonitor-interpret", "[bindmonitor_interpret]")
     uint64_t fake_pid = 12345;
 
     _unwind_helper on_exit([&] {
-        ebpf_api_free_error_message(error_message);
+        ebpf_api_free_string(error_message);
         if (api_initialized)
             ebpf_api_terminate();
         if (ec_initialized)
@@ -502,11 +502,11 @@ TEST_CASE("bindmonitor-interpret", "[bindmonitor_interpret]")
             &test_handle) == ERROR_NOT_FOUND);
 
     ebpf_handle_t handle_iterator = INVALID_HANDLE_VALUE;
-    REQUIRE(ebpf_api_map_enumerate(handle_iterator, &handle_iterator) == ERROR_SUCCESS);
+    REQUIRE(ebpf_api_get_next_map(handle_iterator, &handle_iterator) == ERROR_SUCCESS);
     REQUIRE(handle_iterator == map_handles[0]);
-    REQUIRE(ebpf_api_map_enumerate(handle_iterator, &handle_iterator) == ERROR_SUCCESS);
+    REQUIRE(ebpf_api_get_next_map(handle_iterator, &handle_iterator) == ERROR_SUCCESS);
     REQUIRE(handle_iterator == map_handles[1]);
-    REQUIRE(ebpf_api_map_enumerate(handle_iterator, &handle_iterator) == ERROR_SUCCESS);
+    REQUIRE(ebpf_api_get_next_map(handle_iterator, &handle_iterator) == ERROR_SUCCESS);
     REQUIRE(handle_iterator == INVALID_HANDLE_VALUE);
 
     REQUIRE(ebpf_api_attach_program(program_handle, EBPF_PROGRAM_TYPE_BIND) == ERROR_SUCCESS);
@@ -544,16 +544,93 @@ TEST_CASE("bindmonitor-interpret", "[bindmonitor_interpret]")
 
     uint64_t pid;
     REQUIRE(
-        ebpf_api_map_next_key(map_handles[0], sizeof(uint64_t), NULL, reinterpret_cast<uint8_t*>(&pid)) ==
+        ebpf_api_get_next_map_key(map_handles[0], sizeof(uint64_t), NULL, reinterpret_cast<uint8_t*>(&pid)) ==
         ERROR_SUCCESS);
     REQUIRE(pid != 0);
     REQUIRE(
-        ebpf_api_map_next_key(
+        ebpf_api_get_next_map_key(
             map_handles[0], sizeof(uint64_t), reinterpret_cast<uint8_t*>(&pid), reinterpret_cast<uint8_t*>(&pid)) ==
         ERROR_SUCCESS);
     REQUIRE(pid != 0);
     REQUIRE(
-        ebpf_api_map_next_key(
+        ebpf_api_get_next_map_key(
             map_handles[0], sizeof(uint64_t), reinterpret_cast<uint8_t*>(&pid), reinterpret_cast<uint8_t*>(&pid)) ==
         ERROR_NO_MORE_ITEMS);
+}
+
+TEST_CASE("enumerate_and_query_programs", "[enumerate_and_query_programs]")
+{
+    device_io_control_handler = GlueDeviceIoControl;
+    create_file_handler = GlueCreateFileW;
+    close_handle_handler = GlueCloseHandle;
+
+    ebpf_handle_t program_handle;
+    ebpf_handle_t map_handles[3];
+    uint32_t count_of_map_handle = 1;
+    const char* error_message = NULL;
+    bool ec_initialized = false;
+    bool api_initialized = false;
+    const char* file_name = nullptr;
+    const char* section_name = nullptr;
+
+    _unwind_helper on_exit([&] {
+        ebpf_api_free_string(error_message);
+        if (api_initialized)
+            ebpf_api_terminate();
+        if (ec_initialized)
+            ebpf_core_terminate();
+        ebpf_api_free_string(file_name);
+        ebpf_api_free_string(section_name);
+    });
+
+    REQUIRE(ebpf_core_initialize() == EBPF_ERROR_SUCCESS);
+    ec_initialized = true;
+
+    REQUIRE(ebpf_api_initiate() == ERROR_SUCCESS);
+    api_initialized = true;
+
+    REQUIRE(
+        ebpf_api_load_program(
+            SAMPLE_PATH "droppacket.o",
+            "xdp",
+            EBPF_EXECUTION_JIT,
+            &program_handle,
+            &count_of_map_handle,
+            map_handles,
+            &error_message) == ERROR_SUCCESS);
+
+    REQUIRE(
+        ebpf_api_load_program(
+            SAMPLE_PATH "droppacket.o",
+            "xdp",
+            EBPF_EXECUTION_INTERPRET,
+            &program_handle,
+            &count_of_map_handle,
+            map_handles,
+            &error_message) == ERROR_SUCCESS);
+
+    ebpf_execution_type_t type;
+    program_handle = INVALID_HANDLE_VALUE;
+    REQUIRE(ebpf_api_get_next_program(program_handle, &program_handle) == ERROR_SUCCESS);
+    REQUIRE(ebpf_api_program_query_information(program_handle, &type, &file_name, &section_name) == ERROR_SUCCESS);
+    REQUIRE(type == EBPF_EXECUTION_JIT);
+    REQUIRE(strcmp(file_name, SAMPLE_PATH "droppacket.o") == 0);
+    REQUIRE(strcmp(section_name, "xdp") == 0);
+    REQUIRE(program_handle != INVALID_HANDLE_VALUE);
+    ebpf_api_free_string(file_name);
+    ebpf_api_free_string(section_name);
+    file_name = nullptr;
+    section_name = nullptr;
+    REQUIRE(ebpf_api_get_next_program(program_handle, &program_handle) == ERROR_SUCCESS);
+    REQUIRE(program_handle != INVALID_HANDLE_VALUE);
+    REQUIRE(ebpf_api_program_query_information(program_handle, &type, &file_name, &section_name) == ERROR_SUCCESS);
+    REQUIRE(type == EBPF_EXECUTION_INTERPRET);
+    REQUIRE(strcmp(file_name, SAMPLE_PATH "droppacket.o") == 0);
+    REQUIRE(strcmp(section_name, "xdp") == 0);
+    ebpf_api_free_string(file_name);
+    ebpf_api_free_string(section_name);
+    file_name = nullptr;
+    section_name = nullptr;
+    REQUIRE(ebpf_api_get_next_program(program_handle, &program_handle) == ERROR_SUCCESS);
+    REQUIRE(program_handle == INVALID_HANDLE_VALUE);
 }
