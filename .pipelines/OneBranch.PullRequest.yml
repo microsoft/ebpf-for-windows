@@ -76,6 +76,13 @@ extends:
               minor: '0'
               exclude_commit: true
 
+          - task: NuGetCommand@2
+            inputs:
+              command: 'restore'
+              restoreSolution: '$(Build.SourcesDirectory)\ebpf-user.sln'
+              feedsToUse: 'config'
+              nugetConfigPath: 'nuget.config'
+
           - task: MSBuild@1
             inputs:
               solution: '$(Build.SourcesDirectory)\ebpf-user.sln'
