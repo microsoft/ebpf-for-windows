@@ -80,9 +80,16 @@ extends:
               minor: '0'
               exclude_commit: true
 
+          - task: NuGetCommand@2
+            inputs:
+              command: 'restore'
+              restoreSolution: '$(Build.SourcesDirectory)\ebpf-user.sln'
+              feedsToUse: 'config'
+              nugetConfigPath: 'nuget.config'
+
           - task: MSBuild@1
             inputs:
-              solution: '$(Build.SourcesDirectory)\dirs.proj'
+              solution: '$(Build.SourcesDirectory)\ebpf-user.sln'
               msbuildLocationMethod: 'location'
               msbuildLocation: 'C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\MSBuild\Current\Bin\MSBuild.exe'
               platform: 'x64'
@@ -94,7 +101,7 @@ extends:
 
           - task: MSBuild@1
             inputs:
-              solution: '$(Build.SourcesDirectory)\dirs.proj'
+              solution: '$(Build.SourcesDirectory)\ebpf-user.sln'
               msbuildLocationMethod: 'location'
               msbuildLocation: 'C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\MSBuild\Current\Bin\MSBuild.exe'
               platform: 'x64'
