@@ -47,6 +47,9 @@ extends:
       # suppression:
       #   suppressionFile: $(Build.SourcesDirectory)\.gdn\global.gdnsuppress
 
+    git:
+      submodules: recursive
+
     stages:
     - stage: build
       jobs:
