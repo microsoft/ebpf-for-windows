@@ -25,17 +25,11 @@
     <ClInclude Include="..\..\..\..\..\external\ubpf\vm\ubpf_int.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\external\ubpf\vm\ubpf_jit_x86_64.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\..\..\external\ubpf\vm\platform.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\..\external\ubpf\vm\ubpf_jit_x86_64.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\..\external\ubpf\vm\ubpf_vm.c">
       <Filter>Source Files</Filter>
     </ClCompile>

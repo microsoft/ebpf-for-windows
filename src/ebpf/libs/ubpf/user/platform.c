@@ -8,16 +8,10 @@
 #include <stdlib.h>
 
 void*
-ubpf_alloc(size_t size, size_t count)
-{
-    return calloc(size, count);
-}
+ubpf_alloc(size_t size, size_t count);
 
 void
-ubpf_free(void* memory)
-{
-    free(memory);
-}
+ubpf_free(void* memory);
 
 int
 vasprintf(char** target, const char* format, va_list argptr)

@@ -363,6 +363,20 @@ ebpf_core_protocol_unload_code(_In_ const struct _ebpf_operation_unload_code_req
 }
 
 static ebpf_error_code_t
+ebpf_core_register_helpers(struct ubpf_vm* vm)
+{
+    uint32_t index = 0;
+    for (index = 0; index < RTL_COUNT_OF(_ebpf_program_helpers); index++) {
+        if (_ebpf_program_helpers[index] == NULL)
+            continue;
+
+        if (ubpf_register(vm, index, NULL, (void*)_ebpf_program_helpers[index]) < 0)
+            return EBPF_ERROR_INVALID_PARAMETER;
+    }
+    return EBPF_ERROR_SUCCESS;
+}
+
+static ebpf_error_code_t
 ebpf_core_protocol_load_code(
     _In_ const ebpf_operation_load_code_request_t* request,
     _Inout_ struct _ebpf_operation_load_code_reply* reply,
@@ -447,7 +461,11 @@ ebpf_core_protocol_load_code(
         // failing.
         toggle_bounds_check(code_entry->code_or_vm.vm, false);
 
-        ubpf_register_helper_resolver(code_entry->code_or_vm.vm, code_entry, ebpf_core_interpreter_helper_resolver);
+        retval = ebpf_core_register_helpers(code_entry->code_or_vm.vm);
+        if (retval != EBPF_ERROR_SUCCESS) {
+            goto Done;
+        }
+
         if (ubpf_load(code_entry->code_or_vm.vm, code, (uint32_t)code_length, &error_message) != 0) {
             ebpf_free(error_message);
             retval = EBPF_ERROR_INVALID_PARAMETER;
@@ -474,12 +492,24 @@ ebpf_core_protocol_resolve_helper(
     _Inout_ struct _ebpf_operation_resolve_helper_reply* reply,
     uint16_t reply_length)
 {
-    UNREFERENCED_PARAMETER(reply_length);
+    size_t count_of_helpers =
+        (request->header.length - RTL_OFFSET_OF(ebpf_operation_resolve_helper_request_t, helper_id)) /
+        sizeof(request->helper_id[0]);
+    size_t required_reply_length =
+        RTL_OFFSET_OF(ebpf_operation_resolve_helper_reply_t, address) + count_of_helpers * sizeof(reply->address[0]);
+    size_t helper_index;
 
-    if (request->helper_id[0] >= RTL_COUNT_OF(_ebpf_program_helpers)) {
+    if (reply_length < required_reply_length) {
         return EBPF_ERROR_INVALID_PARAMETER;
     }
-    reply->address[0] = (uint64_t)_ebpf_program_helpers[request->helper_id[0]];
+
+    for (helper_index = 0; helper_index < count_of_helpers; helper_index++) {
+        if (request->helper_id[helper_index] >= RTL_COUNT_OF(_ebpf_program_helpers)) {
+            return EBPF_ERROR_INVALID_PARAMETER;
+        }
+        reply->address[helper_index] = (uint64_t)_ebpf_program_helpers[request->helper_id[helper_index]];
+    }
+    reply->header.length = (uint16_t)required_reply_length;
 
     return EBPF_ERROR_SUCCESS;
 }
@@ -490,16 +520,26 @@ ebpf_core_protocol_resolve_map(
     _Inout_ struct _ebpf_operation_resolve_map_reply* reply,
     uint16_t reply_length)
 {
+    size_t count_of_maps = (request->header.length - RTL_OFFSET_OF(ebpf_operation_resolve_map_request_t, map_handle)) /
+                           sizeof(request->map_handle[0]);
+    size_t required_reply_length =
+        RTL_OFFSET_OF(ebpf_operation_resolve_map_reply_t, address) + count_of_maps * sizeof(reply->address[0]);
+    size_t map_index;
     ebpf_core_map_t* map;
-    UNREFERENCED_PARAMETER(reply_length);
 
-    map = _ebpf_core_find_map_entry(request->map_handle[0]);
-    if (map) {
-        reply->address[0] = (uint64_t)map;
-        return EBPF_ERROR_SUCCESS;
-    } else {
-        return EBPF_ERROR_INVALID_HANDLE;
+    if (reply_length < required_reply_length) {
+        return EBPF_ERROR_INVALID_PARAMETER;
     }
+
+    for (map_index = 0; map_index < count_of_maps; map_index++) {
+        map = _ebpf_core_find_map_entry(request->map_handle[map_index]);
+        if (!map) {
+            return EBPF_ERROR_INVALID_HANDLE;
+        }
+        reply->address[map_index] = (uint64_t)map;
+    }
+    reply->header.length = (uint16_t)required_reply_length;
+    return EBPF_ERROR_SUCCESS;
 }
 
 ebpf_error_code_t
