@@ -4,6 +4,7 @@
 .*\.md$
 
 # Other Files
+LICENSE.txt
 \.check-license\.ignore
 \.clang-format
 \.gitattributes
