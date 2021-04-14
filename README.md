@@ -1,5 +1,10 @@
 # eBPF on Windows
 
+eBPF is a well-known technology for providing programmability and agility, especially for extending an
+OS kernel, for use cases such as DoS protection and observability. This project allows using existing eBPF
+toolchains and APIs familiar in the Linux ecosystem to be used on top of Windows.  That is, this project
+takes existing eBPF projects (as submodules) and adds the layer in between to make them run on top of Windows.
+
 ## Prerequisites
 
 The following must be installed in order to build this project:
@@ -12,37 +17,44 @@ The following must be installed in order to build this project:
 4. [WDK for Windows 10, version 2004](https://go.microsoft.com/fwlink/?linkid=2128854)
 5. [Clang/LLVM for Windows 64-bit](https://github.com/llvm/llvm-project/releases/download/llvmorg-8.0.1/LLVM-8.0.1-win64.exe)
 
-## How to build the demo project
+## How to clone and build the project
 
-1. ```git clone -b demo --recurse-submodules https://msazure.visualstudio.com/DefaultCollection/One/_git/EdgeOS-CoreNetworking-WindowsEbpf```
-2. ```cd EdgeOS-CoreNetworking-WindowsEbpf```
+1. ```git clone --recurse-submodules https://github.com/microsoft/ebpf-for-windows.git```
+2. ```cd ebpf-for-windows```
 3. ```cmake -S external\ebpf-verifier -B external\ebpf-verifier\build```
-4. Open ebpf-demo.sln
-5. Switch to debug / x64
-6. Build solution
+4. ```msbuild /m /p:Configuration=Debug /p:Platform=x64 ebpf-demo.sln```
+   or to build from within Visual Studio:
+   - Open ebpf-demo.sln
+   - Switch to debug / x64
+   - Build solution
 
-## Demo script
+## Using eBPF for Windows
+
+This section shows how to use eBPF for Windows in a demo that defends against a 0-byte UDP attack on a DNS server.
 
 ### Prep 
-1. Setup 2 VMs, attacker and defender
-2. On defender, install and setup DNS
-3. On defender, make sure KD is attached and running.
-1. Install Debug VS 2019 VC redist from TBD (or switch everything to Multi-threaded Debug (/MTd) and rebuild)
-2. Copy ebpfcore.sys to %windir%\system32\drivers
-3. Copy ebpfapi.dll and ebpfnetsh.dll to %windir%\system32
-4. sc create EbpfCore type=kernel start=boot binpath=%windir%\system32\drivers\ebpfcore.sys
-5. sc start EbpfCore
-6. netsh add helper %windir%\system32\ebpfnetsh.dll
-7. Install [clang](https://github.com/llvm/llvm-project/releases/download/llvmorg-11.0.0/LLVM-11.0.0-win64.exe)
-8. Copy droppacket.c and ebpf.h to a folder (like c:\test)
+Set up 2 VMs, which we will refer to as the "attacker" machine and the "defender" machine
 
+On the defender machine, do the following:
+1. Install and set up a DNS server
+2. Make sure the kernel debugger (KD) is attached and running.
+3. Install Debug VS 2019 VC redist from TBD (or switch everything to Multi-threaded Debug (/MTd) and rebuild)
+4. Copy ebpfcore.sys to %windir%\system32\drivers
+5. Copy ebpfapi.dll and ebpfnetsh.dll to %windir%\system32
+6. Do `sc create EbpfCore type=kernel start=boot binpath=%windir%\system32\drivers\ebpfcore.sys`
+7. Do `sc start EbpfCore`
+8. Do `netsh add helper %windir%\system32\ebpfnetsh.dll`
+9. Install [clang](https://github.com/llvm/llvm-project/releases/download/llvmorg-11.0.0/LLVM-11.0.0-win64.exe)
+10. Copy droppacket.c and ebpf.h to a folder (such as c:\test)
+
+On the attacker machine, do the following:
+1. Copy DnsFlood.exe to attacker machine
 
 ### Demo
-#### On attacker machine
-1. Copy DnsFlood.exe to attacker machine
-2. Run ```for /L %i in (1,1,4) do start /min DnsFlood <ip of defender>```
+#### On the attacker machine
+1. Run ```for /L %i in (1,1,4) do start /min DnsFlood <ip of defender>```
 
-#### On defender machine
+#### On the defender machine
 1. Start perfomance monitor and add UDPv4 Datagrams/sec
 2. Show that 200K packets per second are being received
 3. Show & explain code of droppacket.c 
