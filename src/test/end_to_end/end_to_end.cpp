@@ -4,7 +4,7 @@
  */
 
 #define CATCH_CONFIG_MAIN
-#include "catch.hpp"
+#include "catch2\catch.hpp"
 
 #include "ebpf_api.h"
 #include "ebpf_core.h"
@@ -139,7 +139,7 @@ prepare_udp_packet(uint16_t udp_length)
     return packet;
 }
 
-#define SAMPLE_PATH "..\\sample\\"
+#define SAMPLE_PATH ""
 
 TEST_CASE("droppacket-jit", "[droppacket_jit]")
 {

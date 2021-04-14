@@ -96,24 +96,40 @@
       <Outputs>%(Filename).o;%(Outputs)</Outputs>
       <TreatOutputAsContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</TreatOutputAsContent>
       <TreatOutputAsContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</TreatOutputAsContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">clang -target bpf -O2 -Wall -c %(Filename).c -o $(OutputPath)%(Filename).o</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">clang -target bpf -O2 -Wall -c %(Filename).c -o $(OutputPath)%(Filename).o</Command>
     </CustomBuild>
     <CustomBuild Include="bpf.c">
       <FileType>CppCode</FileType>
       <Command>clang -target bpf -O2 -Wall -c %(Filename).c -o %(Filename).o</Command>
       <Outputs>%(Filename).o;%(Outputs)</Outputs>
       <TreatOutputAsContent>true</TreatOutputAsContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">clang -target bpf -O2 -Wall -c %(Filename).c -o $(OutputPath)%(Filename).o</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">clang -target bpf -O2 -Wall -c %(Filename).c -o $(OutputPath)%(Filename).o</Command>
     </CustomBuild>
     <CustomBuild Include="bpf_call.c">
       <FileType>CppCode</FileType>
       <Command>clang -target bpf -O2 -Wall -c %(Filename).c -o %(Filename).o</Command>
       <Outputs>%(Filename).o;%(Outputs)</Outputs>
       <TreatOutputAsContent>true</TreatOutputAsContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">clang -target bpf -O2 -Wall -c %(Filename).c -o $(OutputPath)%(Filename).o</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">clang -target bpf -O2 -Wall -c %(Filename).c -o $(OutputPath)%(Filename).o</Command>
     </CustomBuild>
     <CustomBuild Include="droppacket.c">
       <FileType>CppCode</FileType>
       <Command>clang -target bpf -O2 -Wall -c %(Filename).c -o %(Filename).o</Command>
       <Outputs>%(Filename).o;%(Outputs)</Outputs>
       <TreatOutputAsContent>true</TreatOutputAsContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">clang -target bpf -O2 -Wall -c %(Filename).c -o $(OutputPath)%(Filename).o</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">clang -target bpf -O2 -Wall -c %(Filename).c -o $(OutputPath)%(Filename).o</Command>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
