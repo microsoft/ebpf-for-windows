@@ -2,13 +2,6 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 
-#if defined(NTDDI_VERSION)
-typedef unsigned char uint8_t;
-typedef unsigned short uint16_t;
-typedef unsigned int uint32_t;
-typedef unsigned long long uint64_t;
-#endif
-
 // This file contains eBPF definitions needed by eBPF programs as well as
 // the verifier and execution context.
 

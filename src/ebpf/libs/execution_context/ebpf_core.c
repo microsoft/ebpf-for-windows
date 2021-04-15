@@ -3,24 +3,13 @@
  *  SPDX-License-Identifier: MIT
  */
 
-#include "pch.h"
-#include "ebpf_protocol.h"
-
 #include "ebpf_core.h"
+
 #include "ebpf_maps.h"
-#include "ebpf_platform.h"
 #include "ubpf.h"
 
 #define RTL_COUNT_OF(arr) (sizeof(arr) / sizeof(arr[0]))
 #define RTL_OFFSET_OF(s, m) (((size_t) & ((s*)0)->m))
-
-#if defined(NTDDI_VERSION)
-#define false FALSE
-#define true TRUE
-
-#else
-#define UNREFERENCED_PARAMETER(X) (X)
-#endif
 
 typedef struct _ebpf_core_code_entry
 {

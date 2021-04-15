@@ -5,6 +5,9 @@
 
 #pragma once
 
+#include "ebpf_platform.h"
+#include "ebpf_protocol.h"
+
 #ifdef __cplusplus
 extern "C"
 {

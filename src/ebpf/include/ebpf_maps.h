@@ -3,9 +3,8 @@
  *  SPDX-License-Identifier: MIT
  */
 #pragma once
+
 #include "ebpf_platform.h"
-#include "ebpf_windows.h"
-#include "pch.h"
 
 typedef struct _ebpf_core_map
 {
