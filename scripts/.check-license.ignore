@@ -10,3 +10,4 @@ LICENSE.txt
 \.gitattributes
 \.gitignore
 \.gitmodules
+\.github/workflows/build.yml
