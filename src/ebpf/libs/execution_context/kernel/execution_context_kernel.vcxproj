@@ -41,7 +41,6 @@
   <ItemGroup>
     <ClCompile Include="..\ebpf_core.c" />
     <ClCompile Include="..\ebpf_maps.c" />
-    <ClCompile Include="ebpf_platform.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\include\ebpf_core.h" />
