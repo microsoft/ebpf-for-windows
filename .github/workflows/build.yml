@@ -5,7 +5,7 @@
 # https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions
 name: MSBuild
 
-on: [push]
+on: pull_request
 
 env:
   # Path to the solution file relative to the root of the project.
