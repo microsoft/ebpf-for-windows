@@ -5,6 +5,10 @@ OS kernel, for use cases such as DoS protection and observability. This project 
 toolchains and APIs familiar in the Linux ecosystem to be used on top of Windows.  That is, this project
 takes existing eBPF projects (as submodules) and adds the layer in between to make them run on top of Windows.
 
+## New to eBPF?
+
+See our [eBPF tutorial](docs/tutorial.md).
+
 ## Prerequisites
 
 The following must be installed in order to build this project:

@@ -1,11 +1,11 @@
 # 1. Introduction
 
-This tutorial illustrates how to run the Prevail verifier on Windows, starting from authoring a new program in C.
+This tutorial illustrates how eBPF works and how to run eBPF verifier on Windows,
+starting from authoring a new eBPF program in C.
 
-Prerequisites:
-* Visual Studio 2019 (any edition)
-* Git
-* Clang/LLVM for Windows (download from [Clang/LLVM for Windows 64-bit](http://releases.llvm.org/7.0.1/LLVM-7.0.1-win64.exe) if needed)
+To try out this tutorial yourself, you should first install the [Prerequisites](../README.md#Prerequisites).
+We'll start by understanding the basic structure of eBPF programs and then walk through how to
+apply them in a real use case.
 
 # 2. Authoring a simple eBPF Program
 
@@ -14,7 +14,7 @@ and in fact the same steps should work on both Windows and Linux, including
 in WSL on Windows.  (The only exception is that the llvm-objdump utility will
 fail if you have an old LLVM version in WSL, i.e., if `llvm-objdump -version`
 shows only LLVM version 3.8.0, it is too old and needs to be upgraded first.)
-However, we'll do the walkthrough assuming one is only using Windows.
+However, we'll do this walkthrough assuming one is only using Windows.
 
 **Step 1)** Author a new file by putting some content into a file, say bpf.c:
 
@@ -34,8 +34,8 @@ anything.
 > clang -target bpf -Wall -O2 -c bpf.c -o bpf.o
 ```
 
-This will compile bpf.c (into bpf.o in this example) using bpf as the
-assembly format.
+This will compile bpf.c (into bpf.o in this example) using bpf as the assembly format,
+since eBPF has its own [instruction set architecture (ISA)](https://github.com/iovisor/bpf-docs/blob/master/eBPF.md).
 
 To see what clang did, we can generate disassembly as follows:
 
@@ -51,7 +51,7 @@ func:
 ```
 
 You can see that all the program does is set register 0 (the register used
-for return values) to 0, and exit.
+for return values in the eBPF ISA) to 0, and exit.
 
 Since we compiled the program optimized, and without debug info, that's
 all we can get.
@@ -95,10 +95,12 @@ bpf.o:  file format ELF64-BPF
 Sections:
 Idx Name          Size      Address          Type
   0               00000000 0000000000000000
-  1 .strtab       0000002a 0000000000000000
+  1 .strtab       0000003e 0000000000000000
   2 .text         00000010 0000000000000000 TEXT
-  3 .llvm_addrsig 00000000 0000000000000000
-  4 .symtab       00000030 0000000000000000
+  3 .BTF          00000019 0000000000000000
+  4 .BTF.ext      00000020 0000000000000000
+  5 .llvm_addrsig 00000000 0000000000000000
+  6 .symtab       00000048 0000000000000000
 ```
 
 Notice that the only section with actual code in it (i.e., with the "TEXT"
@@ -113,26 +115,25 @@ bpf-d.o:  file format ELF64-BPF
 Sections:
 Idx Name          Size      Address          Type
   0               00000000 0000000000000000
-  1 .strtab       000000ab 0000000000000000
+  1 .strtab       0000009b 0000000000000000
   2 .text         00000010 0000000000000000 TEXT
-  3 .debug_str    00000049 0000000000000000
-  4 .debug_abbrev 00000037 0000000000000000
+  3 .debug_str    00000052 0000000000000000
+  4 .debug_abbrev 00000034 0000000000000000
   5 .debug_info   0000004b 0000000000000000
   6 .rel.debug_info 00000090 0000000000000000
   7 .debug_macinfo 00000001 0000000000000000
-  8 .debug_pubnames 0000001b 0000000000000000
-  9 .rel.debug_pubnames 00000010 0000000000000000
- 10 .debug_pubtypes 0000001a 0000000000000000
- 11 .rel.debug_pubtypes 00000010 0000000000000000
- 12 .debug_frame  00000028 0000000000000000
- 13 .rel.debug_frame 00000020 0000000000000000
- 14 .debug_line   0000003c 0000000000000000
- 15 .rel.debug_line 00000010 0000000000000000
- 16 .llvm_addrsig 00000001 0000000000000000
- 17 .symtab       00000120 0000000000000000
+  8 .BTF          0000007a 0000000000000000
+  9 .BTF.ext      00000048 0000000000000000
+  10 .rel.BTF.ext  00000020 0000000000000000
+  11 .debug_frame  00000028 0000000000000000
+  12 .rel.debug_frame 00000020 0000000000000000
+  13 .debug_line   0000003c 0000000000000000
+  14 .rel.debug_line 00000010 0000000000000000
+  15 .llvm_addrsig 00000000 0000000000000000
+  16 .symtab       00000120 0000000000000000
 ```
 
-The Prevail verifier also supports multiple TEXT sections, with custom
+The static verifier that checks the safety of eBPF programs also supports multiple TEXT sections, with custom
 names, so let's also try using a custom name instead, say "myprog".  We
 can do this by adding a pragma, where any functions following that pragma
 will be put into a section with a specified name, until another such
@@ -170,12 +171,14 @@ bpf2.o: file format ELF64-BPF
 Sections:
 Idx Name          Size      Address          Type
   0               00000000 0000000000000000
-  1 .strtab       00000040 0000000000000000
+  1 .strtab       00000055 0000000000000000
   2 .text         00000000 0000000000000000 TEXT
   3 myprog        00000010 0000000000000000 TEXT
   4 another       00000010 0000000000000000 TEXT
-  5 .llvm_addrsig 00000000 0000000000000000
-  6 .symtab       00000048 0000000000000000
+  5 .BTF          00000019 0000000000000000
+  6 .BTF.ext      00000020 0000000000000000
+  7 .llvm_addrsig 00000000 0000000000000000
+  8 .symtab       00000060 0000000000000000
 ```
 
 Notice that there is still the .text section, but it has a size of 0,
@@ -188,185 +191,191 @@ To dump a specific section (e.g., myprog), use the following:
 > llvm-objdump --triple=bpf -S --section=myprog bpf2.o
 ```
 
-# 3. Compiling the Prevail Verifier for Windows
+# 3. Compiling eBPF for Windows
 
-**Step 1)** Get the source code, currently in the windows branch of Dave's
-fork:
+**Step 1)** Get the source code:
 
 ```
-> git clone --recurse-submodules -b windows https://github.com/dthaler/ebpf-verifier.git
+> git clone --recurse-submodules https://github.com/microsoft/ebpf-for-windows.git
 
-> cd ebpf-verifier
+> cd ebpf-for-windows
 ```
 
 **Step 2)** Generate a solution:
 
+eBPF for Windows uses the [Prevail eBPF verifier](https://github.com/vbpf/ebpf-verifier) as a submodule
+which uses a cmake-based build, so first we need to generate the Visual Studio project for it:
+
 ```
-> cmake -B build
+> cmake -S external\ebpf-verifier -B external\ebpf-verifier\build
 ```
 
 This will result in a Visual Studio solution and projects getting generated
-in the specified subdirectory ("build").
+in the specified subdirectory ("external\ebpf-verifier\build").
 
 **Step 3)** Build the solution:
 
-This can be done either from the command line or from within the Visual
-Studio UI.
-
-From the command line, this can be done with:
+This can be done from within the Visual Studio UI as follows.
+First, open the solution in Visual Studio:
 
 ```
-> cmake --build build --config Release
+> ebpf-demo.sln
 ```
 
-(or replace "Release" with "Debug" to build the debug configuration instead).
-
-Or to build inside Visual Studio, open the solution in Visual Studio:
-
-```
-> ebpf-verifier.sln
-```
-
-Then compile it with "Build->Build Solution".
+Next, right click on the solution in the Solution Explorer and select "Restore NuGet Packages".
+Then set the configuration to Debug and the platform to x64 (if not already set), and
+compile it with "Build->Build Solution".
 
 Building the solution may generate some compiler warnings, but should still
-compile successfully:
+compile successfully.
+
+
+# 4. Installing eBPF on Windows
+
+Now we're ready to learn how to use eBPF on Windows.  Let's first install the `netsh` helper.
+From an Admin command shell, do the following from your ebpf-for-windows directory:
 
 ```
-... (many other messages)
-1>Generating Code...
-1>check.vcxproj -> C:\Temp\ebpf\ebpf-verifier\x64\Debug\check.exe
-1>Done building project "check.vcxproj".
-========== Build: 1 succeeded, 0 failed, 0 up-to-date, 0 skipped ==========
+> copy x64\Debug\*.dll %windir%\system32
+> netsh add helper %windir%\system32\ebpfnetsh.dll
 ```
 
-# 4. Running the Prevail verifier on Windows
+# 5. Running eBPF on Windows
 
 **Step 1)** Enumerate sections
 
 In step 4 of part 2, we saw how to use `llvm-objdump -h` to list all sections
-in an object file.  We'll now do the same with the Prevail verifier by using
-the `-l` argument (replace "Release" in the path with "Debug" if you only
+in an object file.  We'll now do the same with `netsh`.  Do the following from
+the directory you used for part 1 (replace "Release" in the path with "Debug" if you only
 built a Debug version in step 3):
 
 ```
-> Release\check.exe -l ..\bpf.o
-.text
+> netsh ebpf show sections bpf.o
 
-> Release\check.exe -l ..\bpf-d.o
-.text
+             Section    Type  # Maps    Size
+====================  ======  ======  ======
+               .text       1       0       2
 
-> Release\check.exe -l ..\bpf2.o
-myprog another
+> netsh ebpf show sections bpf-d.o
+
+             Section    Type  # Maps    Size
+====================  ======  ======  ======
+               .text       1       0       2
+
+> netsh ebpf show sections bpf2.o
+
+             Section    Type  # Maps    Size
+====================  ======  ======  ======
+              myprog       1       0       2
+             another       1       0       2
 ```
 
 Notice that it only lists non-empty TEXT sections, whereas `llvm-objdump -h`
-showed all sections.  That's because the verifier is just looking for eBPF
+showed all sections.  That's because netsh is just looking for eBPF
 programs, which are always in non-empty TEXT sections.
+
+`netsh` allows all keywords to be abbreviatied, so we could have done
+`netsh ebpf sh sec bpf.o` instead.  Throughout this tutorial, we'll always spell
+things out for readability, but feel free to abbreviate to save typing.
 
 **Step 2)** Run the verifier on our sample program
 
 ```
-> Release\check.exe ..\bpf.o
-1,0.011,6672
+> netsh ebpf show verification bpf.o
+
+Verification succeeded
 ```
 
-The first number "1" indicates that verification passed ("0" would show for
-a failure).
-
-The second number ("0.014" here) indicates the amount of CPU time consumed,
-in seconds.
-
-The third number ("6644" here) indicates the amount of memory consumed during
-the verification process, in kB.
-
-One can see the labels for these values via:
-
-```
-> Release\check.exe @headers
-zoneCrab?,zoneCrab_sec,zoneCrab_kb
-```
-
-This is so a .csv file can be generated by running the above command,
-followed by running the verifier on any number of .o files, and redirecting
-all the results to a file that can then be opened in a spreadsheet such as
-Excel.
-
-The first verification command succeeded because there was only one
+The verification command succeeded because there was only one
 non-empty TEXT section in bpf.o, so the verifier found it and used that
 as the eBPF program to verify.  If we try the same on an object file with
 multiple such sections, we instead get this:
 
 ```
-> Release\check.exe ..\bpf2.o
-please specify a section
-available sections:
-myprog another
+> netsh ebpf show verification bpf2.o
+
+Verification succeeded
 ```
 
-This is because the verifier needs to run on a single eBPF program, i.e.,
-a single TEXT section.  For object files with multiple such sections, we
-must specify the section to use, to disambiguate:
+This is because the verifier ran on the *first* eBPF program it found,
+which was "myprog" in the section listing.  We can explicitly
+specify the section to use as follows:
 
 ```
-> Release\check.exe ..\bpf2.o myprog
-1,0.012,6656
+> netsh ebpf show verification bpf2.o myprog
 
-> Release\check.exe ..\bpf2.o another
-1,0.01,6668
+Verification succeeded
+
+> netsh ebpf show verification bpf2.o another
+
+Verification succeeded
 ```
 
 **Step 2)** View disassembly
 
 In step 2 of part 2, we saw how to use "llvm-objdump -S" to view disassembly.
-We'll now do the same with the Prevail verifier.  Normally it would save
-output to a file, but we can use the special "CON" file in Windows to output
-to stdout:
+We'll now do the same with `netsh`:
 
 ```
-> Release\check.exe --asm CON ..\bpf.o
+> netsh ebpf show disassembly bpf.o
        0:       r0 = 0
        1:       exit
-1,0.014,6644
 ```
 
 You can see that the two instructions match the two seen back in step 2 of
-part 2, and then the verification results are shown.  Again for bpf2.o we
-would need to specify which section to use, since there is more than one:
+part 2.  Again for bpf2.o we
+can specify which section to use, since there is more than one:
 
 ```
-> Release\check.exe --asm CON ..\bpf2.o myprog
+> netsh ebpf show disassembly bpf2.o myprog
        0:       r0 = 0
        1:       exit
-1,0.02,6628
 
-> Release\check.exe --asm CON ..\bpf2.o another
+> netsh ebpf show disassembly bpf2.o another
        0:       r0 = 1
        1:       exit
-1,0.019,6664
 ```
 
 **Step 3)** View program stats
 
 One can view various stats about the program, without running the
-verification process:
+verification process, using the "level=verbose" option to "show section":
 
+(TODO: the values shown in the output appear to be buggy)
 ```
-> Release\check.exe --domain=stats @headers
-hash,instructions,basic_blocks,joins,other,jumps,assign,arith,load,store,load_store,packet_access,call_1,call_mem,call_nomem,adjust_head,map_in_map,arith64,arith32
+> netsh ebpf show section bpf.o .text verbose
 
-> Release\check.exe --domain=stats ..\bpf.o
-b4a9048dc70e4fd,2,2,0,2,0,1,0,0,0,0,0,0,0,0,0,0,1,0
+Section      : .text
+Type         : 1
+# Maps       : 0
+Size         : 20 instructions
+adjust_head  : 0
+arith        : 0
+arith32      : 0
+arith64      : 1
+assign       : 1
+basic_blocks : 2
+call_1       : 0
+call_mem     : 0
+call_nomem   : 0
+instructions : 3
+joins        : 0
+jumps        : 0
+load         : 0
+load_store   : 0
+map_in_map   : 0
+other        : 2
+packet_access: 0
+store        : 0
 ```
 
 So for our tiny bpf.c program that just does `return 0;`, we can see that
 it has 2 instructions, in 2 basic blocks, with 1 assign and no jumps or
-joins.  Again these outputs are formatted such that one can construct a .csv
-file by running the `@headers` command followed by the second command on any
-number of .o files.
+joins.
 
 **Step 4)** View verifier verbose output
 
+(TODO: this section needs to be updated for netsh)
 We can view verbose output to see what the verifier is actually doing,
 using the `-v` argument:
 
@@ -415,9 +424,9 @@ type of value in the associated register, where -4 means an integer, etc.
 "meta_offset" is the number of bytes of packet metadata preceding (i.e.,
 with negative offset from) the start of the packet buffer.
 
-# 5. Advanced Topics
+# 6. Advanced Topics
 
-## 5.1. Hooks and arguments
+## 6.1. Hooks and arguments
 
 Hook points are callouts exposed by the system to which eBPF programs can
 attach.  By convention, the section name of the eBPF program in an ELF file
@@ -443,12 +452,16 @@ Let's say that the "xdp" hook point has the following prototype:
 
 ```
 // xdp.h
+#include <stdint.h>
 
-struct ebpf_xdp_args {
-    int length;
-};
+typedef struct _ebpf_xdp_args
+{
+    void* data;
+    void* data_end;
+    uint64_t data_meta;
+} ebpf_xdp_args_t;
 
-typedef int (*xdp_callout)(struct ebpf_xdp_args* args);
+typedef int (*xdp_callout)(ebpf_xdp_args_t* args);
 ```
 
 A sample eBPF program might look like this:
@@ -460,9 +473,9 @@ A sample eBPF program might look like this:
 // The __attribute__ below has the same effect as the
 // clang pragma used in section 2 of this tutorial.
 __attribute__((section("xdp"), used))
-int my_xdp_parser(struct ebpf_xdp_args* args)
+int my_xdp_parser(ebpf_xdp_args_t* args)
 {
-    int length = args->length;
+    int length = (char *)args->data_end - (char *)args->data;
 
     if (length > 1) {
         return 1; // allow
@@ -473,15 +486,15 @@ int my_xdp_parser(struct ebpf_xdp_args* args)
 
 The verifier needs to be enlightened with the same prototype or all
 programs written for that hook will fail verification.  For Windows,
-this info is in the ebpf-verifier\src\windows\windows_platform.cpp file,
+this info is in the [windows_platform.cpp](../src/ebpf/libs/api/windows_platform.cpp) file,
 which for the above prototype might have:
 
 ```
 constexpr EbpfContextDescriptor xdp_context_descriptor = {
-    4, // Size of ctx struct.
-    -1, // Offset into ctx struct of pointer to data, or -1 if none.
-    -1, // Offset into ctx struct of pointer to end of data, or -1 if none.
-    0, // Offset into ctx struct of pointer to metadata, or -1 if none.
+    24, // Size of ctx struct.
+    0,  // Offset into ctx struct of pointer to data, or -1 if none.
+    8,  // Offset into ctx struct of pointer to end of data, or -1 if none.
+    16, // Offset into ctx struct of pointer to metadata, or -1 if none.
 };
 
 const EbpfProgramType windows_xdp_program_type =
@@ -492,20 +505,17 @@ const EbpfProgramType windows_xdp_program_type =
 ```
 
 Let's look at the code above in more detail.  The EbpfContextDescriptor
-info (i.e., xdp_context_descriptor) tells the verifier about the format
-of the context structure (i.e., struct ebpf_xdp_args). The struct is
-4 bytes long, does not include packet data, and so the scalar fields that
-are safe to access start at offset 0.
+info (i.e., `xdp_context_descriptor`) tells the verifier about the format
+of the context structure (i.e., `struct ebpf_xdp_args`). The struct is
+24 bytes long, includes packet data, and so the scalar fields that
+are safe to access start at offset 16.
 
-With the above, our sample program will pass verification (note the
-`-p windows` to tell the verifier to use the Windows platform data
-instead of the Linux platform data):
+With the above, our sample program will pass verification:
 
 ```
-> Release\check.exe -p windows -f myxdp.o
+> >netsh ebpf show verification myxdp.o
 
-0 warnings
-1,0.148,6336
+Verification succeeded
 ```
 
 What would have happened had the prototype not matched?  Let's say the
@@ -513,48 +523,55 @@ verifier is the same as above but xdp.h instead had a different struct
 definition:
 
 ```
-struct ebpf_xdp_args {
-    int dummy;
-    int length;
-};
+typedef struct _ebpf_xdp_args
+{
+    uint64_t more;
+    uint64_t stuff;
+    uint64_t here;
+    void* data;
+    void* data_end;
+    uint64_t data_meta;
+} ebpf_xdp_args_t;
 ```
 
 Now our sample program that checks the length would now be looking for
-the length starting at offset 4, which is larger than what the verifier
+the data starting at offset 24, which is past the end of what the verifier
 thinks the context structure size is, and the verifier fails the program:
 
 ```
-> Release\check.exe -p windows -f myxdp2.o
+> netsh ebpf show verification myxdp.o
+error: Verification failed
 
-entry:
-  Upper bound must be lower than 4 (valid_access(r1, 4:4))
-  Invariant became _|_ after entry
+Verification report:
 
-1 warnings
-0,0.05,6184
+0: r2 = *(u64 *)(r1 + 24)
+  assertion failed: Upper bound must be at most 24 (valid_access(r1, 24:8))
+  Code is unreachable after 0
+
+1 errors
 ```
 
 Notice that the verifier is complaining about access to memory pointed to
-by R1 (since the first argument is in register R1) past the end of the
-valid buffer of size 4.  This illustrates why ideally the same header
+by r1 (since the first argument is in register R1) past the end of the
+valid buffer of size 24.  This illustrates why ideally the same header
 file (xdp.h in the above example) should be included by the ebpf program,
 the component exposing the hook, and the verifier itself, e.g., so that
-the size of the context struct could be `sizeof(struct ebpf_xdp_args)`
-rather than hardcoding the number 4 in the above example.
+the size of the context struct could be `sizeof(ebpf_xdp_args_t)`
+rather than hardcoding the number 24 in the above example.
 
-## 5.2. Helper functions and arguments
+## 6.2. Helper functions and arguments
 
 Now that we've seen how hooks work, let's look at how calls from an eBPF
 program into helper functions exposed by the system are verified.
 As with hook prototypes, the set of helper functions and their prototypes
-can vary by platform.  Helpers for Linux are documented in the
+can vary by platform.  For comparison, helpers for Linux are documented in the
 [IOVisor docs](https://github.com/iovisor/bpf-docs/blob/master/bpf_helpers.rst).
 
 Let's say the following helper function prototype is exposed by Windows:
 
 ```
 // helpers.h
-static int (*ebpf_get_tick_count)(void* ctx) = (void*) 3;
+static int (*ebpf_get_tick_count)(void* ctx) = (void*) 4;
 ```
 
 A sample eBPF program that uses it might look like this:
@@ -576,12 +593,12 @@ to include source line info:
 
 > llvm-objdump --triple bpf -S helpers.o
 
-helpers.o: file format ELF64-BPF
+helpers.o:      file format ELF64-BPF
 
 Disassembly of section .text:
-func:
+0000000000000000 func:
 ; {
-       0:       85 00 00 00 03 00 00 00         call 3
+       0:       85 00 00 00 04 00 00 00         call 4
 ; return ebpf_get_tick_count(ctx);
        1:       95 00 00 00 00 00 00 00         exit
 ```
@@ -591,9 +608,9 @@ know the prototype in order to verify that eBPF program passes arguments
 correctly, and handles the results correct (e.g., not passing an invalid
 value in a pointer argument).
 
-The verifier calls into a `get_helper_prototype(3)` API exposed by
+The verifier calls into a `get_helper_prototype(4)` API exposed by
 platform-specific code to query the prototype for a given helper function.
-The platform-specific code will return an entry like this one:
+The platform-specific code ([windows_helpers.cpp](../src/ebpf/libs/api/windows_helpers.cpp)) will return an entry like this one:
 
 ```
     {
@@ -614,19 +631,19 @@ The above helps the verifier know the type and semantics of the arguments
 and the return value.
 
 ```
-> Release\check.exe -p windows --asm CON -f helpers.o
-       0:       r0 = ebpf_get_tick_count:3(r1:CTX)
+> netsh ebpf show verification helpers.o
+
+Verification succeeded
+
+> netsh ebpf show disassembly helpers.o
+       0:       r0 = ebpf_get_tick_count:4(r1:CTX)
        1:       exit
-
-
-0 warnings
-1,0.007,6020
 ```
 
-As shown above, verification is successful, and check.exe understands
+As shown above, verification is successful, and the verifier understands
 the function name, and knows that the first argument is the context.
 
-### 5.2.1. Why -O2?
+### 6.2.1. Why -O2?
 
 This section is a slight digression, so skip ahead if you prefer.  It's
 important that we compiled with `-O2` throughout this tutorial.  What
@@ -687,7 +704,7 @@ bytecode conforming to the eBPF spec), relocation records are always for
 maps.  So if you forget to compile with -O2, it will fail elf parsing even
 before trying to verify the bytecode.
 
-## 5.3. Maps
+## 6.3. Maps
 
 Now that we've seen how helpers work, let's move on to
 [maps](https://github.com/iovisor/bcc/blob/master/docs/reference_guide.md#maps),
@@ -743,6 +760,7 @@ using the map parameters specified.  We can see the fields encoded
 into the `maps` section as follows:
 
 ```
+> clang -target bpf -Wall -g -O2 -c maponly.c -o maponly.o
 > llvm-objdump -s -section maps maponly.o
 
 maponly.o:      file format ELF64-BPF
@@ -803,9 +821,10 @@ func1:
       12:       95 00 00 00 00 00 00 00         exit
 ```
 
-Above shows "call 1", but check.exe shows more details:
+Above shows "call 1", but `netsh` shows more details
+(TODO: this step fails if ebpfcore is not running):
 ```
-> check -p windows --asm CON  -f map.o
+> netsh ebpf show disassembly map.o
        0:       r1 = 0
        1:       *(u32 *)(r10 - 4) = r1
        2:       r1 = 42
@@ -818,14 +837,10 @@ Above shows "call 1", but check.exe shows more details:
       10:       r4 = 0
       11:       r0 = ebpf_map_update_elem:1(r1:FD, r2:K, r3:V, r4)
       12:       exit
-
-
-0 warnings
-1,0.057,6256
 ````
 
-Notice from instruction 11 that check.exe understands that
-ebpf_map_update_elem expects
+Notice from instruction 11 that `netsh` understands that
+`ebpf_map_update_elem()` expects
 a file descriptor (FD) in R1, a key in R2, a value in R3, and R4 can be
 anything.
 
@@ -855,7 +870,7 @@ offset 0x40, but where is that?  llvm-objdump and check both gave us
 instruction numbers not offsets, but we can see the raw bytes as follows:
 
 ```
-> >llvm-objdump -s -section=myprog map.o
+> llvm-objdump -s -section=myprog map.o
 
 map.o:  file format ELF64-BPF
 
