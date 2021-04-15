@@ -86,7 +86,9 @@ ebpf_lock_create(ebpf_lock_t* lock)
 
 void
 ebpf_lock_destroy(ebpf_lock_t* lock)
-{}
+{
+    UNREFERENCED_PARAMETER(lock);
+}
 
 void
 ebpf_lock_lock(ebpf_lock_t* lock, ebpf_lock_state_t* state)
