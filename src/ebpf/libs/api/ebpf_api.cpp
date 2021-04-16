@@ -18,6 +18,7 @@ extern "C"
 #include "unwind_helper.h"
 
 #include <stdexcept>
+#include <map>
 
 #define MAX_CODE_SIZE (32 * 1024) // 32 KB
 
