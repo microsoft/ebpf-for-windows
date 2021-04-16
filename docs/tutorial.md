@@ -341,14 +341,13 @@ can specify which section to use, since there is more than one:
 One can view various stats about the program, without running the
 verification process, using the "level=verbose" option to "show section":
 
-(TODO: the values shown in the output appear to be buggy)
 ```
 > netsh ebpf show section bpf.o .text verbose
 
 Section      : .text
-Type         : 1
+Program Type : 1
 # Maps       : 0
-Size         : 20 instructions
+Size         : 2 instructions
 adjust_head  : 0
 arith        : 0
 arith32      : 0
@@ -358,7 +357,6 @@ basic_blocks : 2
 call_1       : 0
 call_mem     : 0
 call_nomem   : 0
-instructions : 3
 joins        : 0
 jumps        : 0
 load         : 0
