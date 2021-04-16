@@ -4,12 +4,16 @@
  */
 
 #define CATCH_CONFIG_MAIN
-#include "catch2\catch.hpp"
 
+#include <chrono>
+#include "catch2\catch.hpp"
 #include "ebpf_api.h"
 #include "ebpf_core.h"
+#include "ebpf_epoch.h"
 #include "ebpf_protocol.h"
 #include "mock.h"
+#include <mutex>
+#include <thread>
 #include "tlv.h"
 namespace ebpf {
 #pragma warning(push)
@@ -70,33 +74,42 @@ GlueDeviceIoControl(
     ebpf_operation_header_t* user_reply = nullptr;
     *lpBytesReturned = 0;
     auto request_id = user_request->id;
-    if (request_id >= _countof(EbpfProtocolHandlers)) {
+    size_t minimum_request_size = 0;
+    size_t minimum_reply_size = 0;
+
+    retval = ebpf_core_get_protocol_handler_properties(request_id, &minimum_request_size, &minimum_reply_size);
+    if (retval != EBPF_ERROR_SUCCESS)
+        goto Fail;
+
+    if (user_request->length < minimum_request_size) {
+        retval = EBPF_ERROR_INVALID_PARAMETER;
         goto Fail;
     }
 
-    if (user_request->length < EbpfProtocolHandlers[request_id].minimum_request_size) {
-        goto Fail;
-    }
-
-    if (EbpfProtocolHandlers[request_id].minimum_reply_size > 0) {
+    if (minimum_reply_size > 0) {
         user_reply = reinterpret_cast<decltype(user_reply)>(lpOutBuffer);
         if (!user_reply) {
+            retval = EBPF_ERROR_INVALID_PARAMETER;
             goto Fail;
         }
-        if (nOutBufferSize < EbpfProtocolHandlers[request_id].minimum_reply_size) {
+        if (nOutBufferSize < minimum_reply_size) {
+            retval = EBPF_ERROR_INVALID_PARAMETER;
             goto Fail;
         }
         user_reply->length = static_cast<uint16_t>(nOutBufferSize);
         user_reply->id = user_request->id;
         *lpBytesReturned = user_reply->length;
     }
-    if (EbpfProtocolHandlers[request_id].minimum_reply_size == 0) {
-        retval = EbpfProtocolHandlers[request_id].dispatch.protocol_handler_no_reply(user_request);
-    } else {
-        retval = EbpfProtocolHandlers[request_id].dispatch.protocol_handler_with_reply(
-            user_request, user_reply, static_cast<uint16_t>(nOutBufferSize));
-    }
 
+    retval =
+        ebpf_core_invoke_protocol_handler(request_id, user_request, user_reply, static_cast<uint16_t>(nOutBufferSize));
+
+    if (retval != EBPF_ERROR_SUCCESS)
+        goto Fail;
+
+    return TRUE;
+
+Fail:
     if (retval != EBPF_ERROR_SUCCESS) {
         switch (retval) {
         case EBPF_ERROR_OUT_OF_RESOURCES:
@@ -115,12 +128,7 @@ GlueDeviceIoControl(
             SetLastError(ERROR_INVALID_PARAMETER);
             break;
         }
-        goto Fail;
     }
-
-    return TRUE;
-
-Fail:
 
     return FALSE;
 }
@@ -633,4 +641,49 @@ TEST_CASE("enumerate_and_query_programs", "[enumerate_and_query_programs]")
     section_name = nullptr;
     REQUIRE(ebpf_api_get_next_program(program_handle, &program_handle) == ERROR_SUCCESS);
     REQUIRE(program_handle == INVALID_HANDLE_VALUE);
+}
+
+TEST_CASE("epoch_test_single_epoch", "[epoch_test_single_epoch]")
+{
+    bool ep_initialized = false;
+    _unwind_helper on_exit([&] {
+        if (ep_initialized)
+            ebpf_epoch_terminate();
+    });
+
+    REQUIRE(ebpf_epoch_initialize() == EBPF_ERROR_SUCCESS);
+    ep_initialized = true;
+
+    REQUIRE(ebpf_epoch_enter() == EBPF_ERROR_SUCCESS);
+    void* memory = ebpf_epoch_allocate(10, EBPF_MEMORY_NO_EXECUTE);
+    ebpf_epoch_free(memory);
+    ebpf_epoch_exit();
+    ebpf_epoch_flush();
+}
+
+TEST_CASE("epoch_test_two_threads", "[epoch_test_two_threads]")
+{
+    bool ep_initialized = false;
+    _unwind_helper on_exit([&] {
+        if (ep_initialized)
+            ebpf_epoch_terminate();
+    });
+
+    REQUIRE(ebpf_epoch_initialize() == EBPF_ERROR_SUCCESS);
+    ep_initialized = true;
+
+    auto epoch = []() {
+        ebpf_epoch_enter();
+        void* memory = ebpf_epoch_allocate(10, EBPF_MEMORY_NO_EXECUTE);
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+        ebpf_epoch_free(memory);
+        ebpf_epoch_exit();
+        ebpf_epoch_flush();
+    };
+
+    std::thread thread_1(epoch);
+    std::thread thread_2(epoch);
+    thread_1.join();
+    thread_2.join();
 }

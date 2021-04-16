@@ -135,6 +135,9 @@
     <ClInclude Include="ebpf_l2_hook.h" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\libs\epoch\kernel\epoch_kernel.vcxproj">
+      <Project>{fb2680fb-13cf-400c-8a5d-042c0ac20a3f}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\libs\execution_context\kernel\execution_context_kernel.vcxproj">
       <Project>{26e7ed0b-c128-4d7c-a90e-c246def40ad3}</Project>
     </ProjectReference>

@@ -109,13 +109,102 @@ ebpf_lock_unlock(ebpf_lock_t* lock, ebpf_lock_state_t* state)
 }
 
 int32_t
-ebpf_interlocked_increment(volatile int32_t* addend)
+ebpf_interlocked_increment_int32(volatile int32_t* addend)
 {
-    return InterlockedIncrement((volatile LONG*)addend);
+    return InterlockedIncrement((volatile long*)addend);
 }
 
 int32_t
-ebpf_interlocked_decrement(volatile int32_t* addend)
+ebpf_interlocked_decrement_int32(volatile int32_t* addend)
 {
-    return InterlockedDecrement((volatile LONG*)addend);
+    return InterlockedDecrement((volatile long*)addend);
+}
+
+int64_t
+ebpf_interlocked_increment_int64(volatile int64_t* addend)
+{
+    return InterlockedIncrement64(addend);
+}
+
+int64_t
+ebpf_interlocked_decrement_int64(volatile int64_t* addend)
+{
+    return InterlockedDecrement64(addend);
+}
+
+ebpf_error_code_t
+ebpf_get_cpu_count(uint32_t* cpu_count)
+{
+    *cpu_count = KeQueryMaximumProcessorCount();
+    return EBPF_ERROR_SUCCESS;
+}
+
+bool
+ebpf_is_preemptable()
+{
+    KIRQL irql = KeGetCurrentIrql();
+    return irql >= DISPATCH_LEVEL;
+}
+
+uint32_t
+ebpf_get_current_cpu()
+{
+    return KeGetCurrentProcessorNumber();
+}
+
+uint64_t
+ebpf_get_current_thread_id()
+{
+    return (uint64_t)KeGetCurrentThread();
+}
+
+typedef struct _epbf_non_preemptable_work_item
+{
+    KDPC deferred_procedure_call;
+    void (*work_item_routine)(void* work_item_context, void* parameter_1);
+} epbf_non_preemtable_work_item_t;
+
+static void
+_ebpf_deferred_routine(
+    KDPC* deferred_procedure_call, PVOID deferred_context, PVOID system_argument_1, PVOID system_argument_2)
+{
+    epbf_non_preemtable_work_item_t* deferred_routine_context =
+        (epbf_non_preemtable_work_item_t*)deferred_procedure_call;
+    UNREFERENCED_PARAMETER(system_argument_2);
+    deferred_routine_context->work_item_routine(deferred_context, system_argument_1);
+}
+
+ebpf_error_code_t
+ebpf_allocate_non_preemptable_work_item(
+    epbf_non_preemtable_work_item_t** work_item,
+    uint32_t cpu_id,
+    void (*work_item_routine)(void* work_item_context, void* parameter_1),
+    void* work_item_context)
+{
+    *work_item = ebpf_allocate(sizeof(epbf_non_preemtable_work_item_t), EBPF_MEMORY_NO_EXECUTE);
+    if (*work_item == NULL) {
+        return EBPF_ERROR_OUT_OF_RESOURCES;
+    }
+
+    (*work_item)->work_item_routine = work_item_routine;
+
+    KeInitializeDpc(&(*work_item)->deferred_procedure_call, _ebpf_deferred_routine, work_item_context);
+    KeSetTargetProcessorDpc(&(*work_item)->deferred_procedure_call, (uint8_t)cpu_id);
+    return EBPF_ERROR_SUCCESS;
+}
+
+void
+ebpf_free_non_preemptable_work_item(epbf_non_preemtable_work_item_t* work_item)
+{
+    if (!work_item)
+        return;
+
+    KeRemoveQueueDpc(&work_item->deferred_procedure_call);
+    ebpf_free(work_item);
+}
+
+bool
+ebpf_queue_non_preemptable_work_item(epbf_non_preemtable_work_item_t* work_item, void* parameter_1)
+{
+    return KeInsertQueueDpc(&work_item->deferred_procedure_call, parameter_1, NULL);
 }

@@ -13,7 +13,11 @@
 
 std::set<uint64_t> _executable_segments;
 
+// Global variables used to override behavior for testing.
+// Permit the test to simulate both HVCI.
 bool _ebpf_platform_code_integrity_enabled = false;
+// Permit the test to simulate non-preemptable execution.
+bool _ebpf_platform_is_preemptable = true;
 
 void (*RtlInitializeGenericTableAvl)(
     _Out_ PRTL_AVL_TABLE Table,
@@ -167,13 +171,80 @@ ebpf_lock_unlock(ebpf_lock_t* lock, ebpf_lock_state_t* state)
 }
 
 int32_t
-ebpf_interlocked_increment(volatile int32_t* addend)
+ebpf_interlocked_increment_int32(volatile int32_t* addend)
 {
-    return InterlockedIncrement((volatile LONG*)addend);
+    return InterlockedIncrement((volatile long*)addend);
 }
 
 int32_t
-ebpf_interlocked_decrement(volatile int32_t* addend)
+ebpf_interlocked_decrement_int32(volatile int32_t* addend)
 {
-    return InterlockedDecrement((volatile LONG*)addend);
+    return InterlockedDecrement((volatile long*)addend);
+}
+
+int64_t
+ebpf_interlocked_increment_int64(volatile int64_t* addend)
+{
+    return InterlockedIncrement64(addend);
+}
+
+int64_t
+ebpf_interlocked_decrement_int64(volatile int64_t* addend)
+{
+    return InterlockedDecrement64(addend);
+}
+
+ebpf_error_code_t
+ebpf_get_cpu_count(uint32_t* cpu_count)
+{
+    SYSTEM_INFO system_information;
+    GetNativeSystemInfo(&system_information);
+    *cpu_count = system_information.dwNumberOfProcessors;
+    return EBPF_ERROR_SUCCESS;
+}
+
+bool
+ebpf_is_preemptable()
+{
+    return _ebpf_platform_is_preemptable;
+}
+
+uint32_t
+ebpf_get_current_cpu()
+{
+    return GetCurrentProcessorNumber();
+}
+
+uint64_t
+ebpf_get_current_thread_id()
+{
+    return GetCurrentThreadId();
+}
+
+ebpf_error_code_t
+ebpf_allocate_non_preemptable_work_item(
+    epbf_non_preemtable_work_item_t** work_item,
+    uint32_t cpu_id,
+    void (*work_item_routine)(void* work_item_context, void* parameter_1),
+    void* work_item_context)
+{
+    UNREFERENCED_PARAMETER(work_item);
+    UNREFERENCED_PARAMETER(cpu_id);
+    UNREFERENCED_PARAMETER(work_item_routine);
+    UNREFERENCED_PARAMETER(work_item_context);
+    return EBPF_ERROR_NOT_SUPPORTED;
+}
+
+void
+ebpf_free_non_preemptable_work_item(epbf_non_preemtable_work_item_t* work_item)
+{
+    UNREFERENCED_PARAMETER(work_item);
+}
+
+bool
+ebpf_queue_non_preemptable_work_item(epbf_non_preemtable_work_item_t* work_item, void* parameter_1)
+{
+    UNREFERENCED_PARAMETER(work_item);
+    UNREFERENCED_PARAMETER(parameter_1);
+    return false;
 }
