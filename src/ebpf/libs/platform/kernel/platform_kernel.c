@@ -284,3 +284,15 @@ ebpf_hash_table_next_key(ebpf_hash_table_t* hash_table, const uint8_t* previous_
     }
     return EBPF_ERROR_SUCCESS;
 }
+
+int32_t
+ebpf_interlocked_increment(volatile int32_t* addend)
+{
+    return InterlockedIncrement((volatile LONG*)addend);
+}
+
+int32_t
+ebpf_interlocked_decrement(volatile int32_t* addend)
+{
+    return InterlockedDecrement((volatile LONG*)addend);
+}
