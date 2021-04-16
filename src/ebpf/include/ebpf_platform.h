@@ -11,6 +11,9 @@ extern "C"
 {
 #endif
 
+#define EBPF_COUNT_OF(arr) (sizeof(arr) / sizeof(arr[0]))
+#define EBPF_OFFSET_OF(s, m) (((size_t) & ((s*)0)->m))
+
     typedef enum _ebpf_memory_type
     {
         EBPF_MEMORY_NO_EXECUTE = 0,
@@ -64,6 +67,12 @@ extern "C"
     ebpf_hash_table_delete(ebpf_hash_table_t* hash_table, const uint8_t* key);
     ebpf_error_code_t
     ebpf_hash_table_next_key(ebpf_hash_table_t* hash_table, const uint8_t* previous_key, uint8_t* next_key);
+
+    int32_t
+    ebpf_interlocked_increment(volatile int32_t* addend);
+
+    int32_t
+    ebpf_interlocked_decrement(volatile int32_t* addend);
 
 #ifdef __cplusplus
 }
