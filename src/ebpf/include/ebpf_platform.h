@@ -26,6 +26,12 @@ extern "C"
         EBPF_CODE_INTEGRITY_HYPER_VISOR_KERNEL_MODE = 1
     } ebpf_code_integrity_state_t;
 
+    ebpf_error_code_t
+    ebpf_platform_initialize();
+
+    void
+    ebpf_platform_terminate();
+
     void*
     ebpf_allocate(size_t size, ebpf_memory_type_t type);
     void

@@ -219,7 +219,7 @@ This can be done from within the Visual Studio UI as follows.
 First, open the solution in Visual Studio:
 
 ```
-> ebpf-demo.sln
+> ebpf-for-windows.sln
 ```
 
 Next, right click on the solution in the Solution Explorer and select "Restore NuGet Packages".

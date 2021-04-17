@@ -3,6 +3,7 @@
 # File extensions that don't support embedding license info
 .*\.md$
 .*\.rc$
+.*\.sln$
 
 # Other Files
 LICENSE.txt
