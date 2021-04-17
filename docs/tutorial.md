@@ -838,7 +838,6 @@ func1:
 ```
 
 Above shows "call 1", but `netsh` shows more details
-(TODO: this step fails if ebpfcore is not running):
 ```
 > netsh ebpf show disassembly map.o
        0:       r1 = 0
@@ -849,7 +848,7 @@ Above shows "call 1", but `netsh` shows more details
        5:       r2 += -4
        6:       r3 = r10
        7:       r3 += -8
-       8:       r1 = map_fd 65664
+       8:       r1 = map_fd 1026
       10:       r4 = 0
       11:       r0 = ebpf_map_update_elem:1(r1:FD, r2:K, r3:V, r4)
       12:       exit
@@ -860,11 +859,11 @@ Notice from instruction 11 that `netsh` understands that
 a file descriptor (FD) in R1, a key in R2, a value in R3, and R4 can be
 anything.
 
-R1 was set in instruction 8 to a map FD value of 65664.  Where did that value
+R1 was set in instruction 8 to a map FD value of 1026.  Where did that value
 come from, since the llvm-objdump disassembly didn't have it?  The
 create_map_crab() function in the Prevail verifier creates a dummy value
-based on (value_size * 16384) + (key_size * 64).  Since we passed
-value_size = 4 and key_size = 2, this gives us 65664.  When installed,
+based on (value_size * 256) + key_size.  Since we passed
+value_size = 4 and key_size = 2, this gives us 1026.  When installed,
 this value gets replaced with a real map address.  Let's see how that happens.
 
 Now that we're actually using the map, rather than just defining it,

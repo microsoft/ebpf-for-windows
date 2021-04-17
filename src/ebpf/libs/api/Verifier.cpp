@@ -190,7 +190,7 @@ uint32_t
 ebpf_api_elf_disassemble_section(
     const char* file, const char* section, const char** disassembly, const char** error_message)
 {
-    ebpf_verifier_options_t verifier_options{false, false, false, false};
+    ebpf_verifier_options_t verifier_options = ebpf_verifier_default_options;
     const ebpf_platform_t* platform = &g_ebpf_platform_windows;
     std::ostringstream error;
     std::ostringstream output;
