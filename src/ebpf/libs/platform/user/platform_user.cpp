@@ -15,6 +15,81 @@ std::set<uint64_t> _executable_segments;
 
 bool _ebpf_platform_code_integrity_enabled = false;
 
+void (*RtlInitializeGenericTableAvl)(
+    _Out_ PRTL_AVL_TABLE Table,
+    _In_ PRTL_AVL_COMPARE_ROUTINE CompareRoutine,
+    _In_ PRTL_AVL_ALLOCATE_ROUTINE AllocateRoutine,
+    _In_ PRTL_AVL_FREE_ROUTINE FreeRoutine,
+    _In_opt_ PVOID TableContext);
+
+void* (*RtlEnumerateGenericTableAvl)(_In_ PRTL_AVL_TABLE Table, _In_ BOOLEAN Restart);
+
+BOOLEAN (*RtlDeleteElementGenericTableAvl)(_In_ PRTL_AVL_TABLE Table, _In_ PVOID Buffer);
+
+void* (*RtlLookupElementGenericTableAvl)(_In_ PRTL_AVL_TABLE Table, _In_ PVOID Buffer);
+
+void* (*RtlInsertElementGenericTableAvl)(
+    _In_ PRTL_AVL_TABLE Table,
+    _In_reads_bytes_(BufferSize) PVOID Buffer,
+    _In_ const uint32_t BufferSize,
+    _Out_opt_ PBOOLEAN NewElement);
+
+PVOID(*RtlLookupFirstMatchingElementGenericTableAvl)
+(_In_ PRTL_AVL_TABLE Table, _In_ PVOID Buffer, _Out_ PVOID* RestartKey);
+
+template <typename fn>
+bool
+resolve_function(HMODULE module_handle, fn& function, const char* function_name)
+{
+    function = reinterpret_cast<fn>(GetProcAddress(module_handle, function_name));
+    return (function != nullptr);
+}
+
+ebpf_error_code_t
+ebpf_platform_initialize()
+{
+    HMODULE ntdll_module = nullptr;
+
+    ntdll_module = LoadLibrary(L"ntdll.dll");
+    if (ntdll_module == nullptr) {
+        return EBPF_ERROR_NOT_SUPPORTED;
+    }
+
+    if (!resolve_function(ntdll_module, RtlInitializeGenericTableAvl, "RtlInitializeGenericTableAvl")) {
+        return EBPF_ERROR_NOT_SUPPORTED;
+    }
+    if (!resolve_function(ntdll_module, RtlEnumerateGenericTableAvl, "RtlEnumerateGenericTableAvl")) {
+        return EBPF_ERROR_NOT_SUPPORTED;
+    }
+    if (!resolve_function(ntdll_module, RtlDeleteElementGenericTableAvl, "RtlDeleteElementGenericTableAvl")) {
+        return EBPF_ERROR_NOT_SUPPORTED;
+    }
+    if (!resolve_function(ntdll_module, RtlLookupElementGenericTableAvl, "RtlLookupElementGenericTableAvl")) {
+        return EBPF_ERROR_NOT_SUPPORTED;
+    }
+    if (!resolve_function(ntdll_module, RtlEnumerateGenericTableAvl, "RtlEnumerateGenericTableAvl")) {
+        return EBPF_ERROR_NOT_SUPPORTED;
+    }
+    if (!resolve_function(
+            ntdll_module,
+            RtlLookupFirstMatchingElementGenericTableAvl,
+            "RtlLookupFirstMatchingElementGenericTableAvl")) {
+        return EBPF_ERROR_NOT_SUPPORTED;
+    }
+    if (!resolve_function(ntdll_module, RtlInsertElementGenericTableAvl, "RtlInsertElementGenericTableAvl")) {
+        return EBPF_ERROR_NOT_SUPPORTED;
+    }
+
+    // Note: This is safe because ntdll is never unloaded becuase
+    // ntdll.dll houses the module loader, which cannot unload itself.
+    FreeLibrary(ntdll_module);
+    return EBPF_ERROR_SUCCESS;
+}
+
+void
+ebpf_platform_terminate()
+{}
+
 ebpf_error_code_t
 ebpf_query_code_integrity_state(ebpf_code_integrity_state_t* state)
 {
@@ -68,116 +143,27 @@ ebpf_safe_size_t_add(size_t augend, size_t addend, size_t* result)
 void
 ebpf_lock_create(ebpf_lock_t* lock)
 {
-    auto mutex = new std::mutex();
-    *reinterpret_cast<std::mutex**>(lock) = mutex;
+    InitializeSRWLock(reinterpret_cast<PSRWLOCK>(lock));
 }
 
 void
 ebpf_lock_destroy(ebpf_lock_t* lock)
 {
-    auto mutex = *reinterpret_cast<std::mutex**>(lock);
-    delete mutex;
+    UNREFERENCED_PARAMETER(lock);
 }
 
 void
 ebpf_lock_lock(ebpf_lock_t* lock, ebpf_lock_state_t* state)
 {
     UNREFERENCED_PARAMETER(state);
-    auto mutex = *reinterpret_cast<std::mutex**>(lock);
-    mutex->lock();
+    AcquireSRWLockExclusive(reinterpret_cast<PSRWLOCK>(lock));
 }
 
 void
 ebpf_lock_unlock(ebpf_lock_t* lock, ebpf_lock_state_t* state)
 {
     UNREFERENCED_PARAMETER(state);
-    auto mutex = *reinterpret_cast<std::mutex**>(lock);
-    mutex->unlock();
-}
-
-typedef struct _hash_table
-{
-    size_t key_size;
-    size_t value_size;
-    std::map<std::vector<uint8_t>, std::vector<uint8_t>> hash_table;
-} hash_table_t;
-
-ebpf_error_code_t
-ebpf_hash_table_create(ebpf_hash_table_t** hash_table, size_t key_size, size_t value_size)
-{
-    UNREFERENCED_PARAMETER(key_size);
-    UNREFERENCED_PARAMETER(value_size);
-    auto local_hash_table = new hash_table_t();
-    local_hash_table->key_size = key_size;
-    local_hash_table->value_size = value_size;
-    *hash_table = reinterpret_cast<ebpf_hash_table_t*>(local_hash_table);
-
-    return EBPF_ERROR_SUCCESS;
-}
-
-void
-ebpf_hash_table_destroy(ebpf_hash_table_t* hash_table)
-{
-    hash_table_t* local_hash_table = reinterpret_cast<decltype(local_hash_table)>(hash_table);
-
-    delete local_hash_table;
-}
-
-ebpf_error_code_t
-ebpf_hash_table_lookup(ebpf_hash_table_t* hash_table, const uint8_t* key, uint8_t** value)
-{
-    hash_table_t* local_hash_table = reinterpret_cast<decltype(local_hash_table)>(hash_table);
-    std::vector<uint8_t> local_key(key, key + local_hash_table->key_size);
-    auto local_value = local_hash_table->hash_table.find(local_key);
-    if (local_value == local_hash_table->hash_table.end()) {
-        return EBPF_ERROR_NOT_FOUND;
-    }
-
-    *value = local_value->second.data();
-    return EBPF_ERROR_SUCCESS;
-}
-
-ebpf_error_code_t
-ebpf_hash_table_update(ebpf_hash_table_t* hash_table, const uint8_t* key, const uint8_t* value)
-{
-    hash_table_t* local_hash_table = reinterpret_cast<decltype(local_hash_table)>(hash_table);
-    std::vector<uint8_t> local_key(key, key + local_hash_table->key_size);
-    std::vector<uint8_t> local_value(value, value + local_hash_table->value_size);
-
-    local_hash_table->hash_table[local_key] = local_value;
-    return EBPF_ERROR_SUCCESS;
-}
-
-ebpf_error_code_t
-ebpf_hash_table_delete(ebpf_hash_table_t* hash_table, const uint8_t* key)
-{
-    hash_table_t* local_hash_table = reinterpret_cast<decltype(local_hash_table)>(hash_table);
-    std::vector<uint8_t> local_key(key, key + local_hash_table->key_size);
-    auto iter = local_hash_table->hash_table.find(local_key);
-    if (iter == local_hash_table->hash_table.end()) {
-        return EBPF_ERROR_NOT_FOUND;
-    }
-    local_hash_table->hash_table.erase(iter);
-    return EBPF_ERROR_SUCCESS;
-}
-
-ebpf_error_code_t
-ebpf_hash_table_next_key(ebpf_hash_table_t* hash_table, const uint8_t* previous_key, uint8_t* next_key)
-{
-    hash_table_t* local_hash_table = reinterpret_cast<decltype(local_hash_table)>(hash_table);
-    auto iter = local_hash_table->hash_table.begin();
-
-    if (previous_key) {
-        std::vector<uint8_t> local_key(previous_key, previous_key + local_hash_table->key_size);
-        iter = local_hash_table->hash_table.upper_bound(local_key);
-    }
-
-    if (iter == local_hash_table->hash_table.end()) {
-        return EBPF_ERROR_NO_MORE_KEYS;
-    }
-    std::copy(iter->first.begin(), iter->first.end(), next_key);
-
-    return EBPF_ERROR_SUCCESS;
+    ReleaseSRWLockExclusive(reinterpret_cast<PSRWLOCK>(lock));
 }
 
 int32_t

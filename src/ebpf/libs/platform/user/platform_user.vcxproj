@@ -27,6 +27,7 @@
     <ClInclude Include="..\..\..\include\user\framework.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\ebpf_hash_table.c" />
     <ClCompile Include="platform_user.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
