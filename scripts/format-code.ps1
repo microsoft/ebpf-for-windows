@@ -227,7 +227,7 @@ function get_file_list()
             $user_file_name = get-ChildItem -Path '.' -Name $file_name
             $file = New-Object System.IO.FileInfo($user_file_name)
             foreach ( $ext in $includeExts ) {
-                if ( $file.Extension -match "$ext" ) {
+                if ( $file.Extension -eq ".$ext" ) {
                     $file_list += $file_name
                     log_verbose "Checking user file: $file_name"
                     break;
