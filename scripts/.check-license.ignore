@@ -3,6 +3,7 @@
 # File extensions that don't support embedding license info
 .*\.md$
 .*\.png$
+.*\.rc$
 .*\.sln$
 
 # Other Files

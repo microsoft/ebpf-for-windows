@@ -199,6 +199,7 @@ BEGIN
                             "Shows results of trying to verify an eBPF program.\n"
     HLP_EBPF_SHOW_VERIFICATION_EX "\
 \nUsage: %1!s! [filename=]<string> [[section=]<string>]\
+\n                     [[level=]normal|verbose]\
 \n\
 \nParameters:\
 \n\
@@ -207,9 +208,12 @@ BEGIN
 \n      section   - Optionally the name of the section containing the\
 \n                  program.  If not specified, the default is to use the\
 \n                  first code section.\
+\n      level     - One of the following values:\
+\n                   normal: Only display details of errors. This is the\
+\n                           default.\
+\n                   verbose: Display details on every instruction.\
 \n\
-\nRemarks: Shows the verbose verifier results of the specified eBPF\
-\n         program.\
+\nRemarks: Shows the verifier results of the specified eBPF program.\
 \n"
 
 END

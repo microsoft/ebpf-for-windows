@@ -226,13 +226,15 @@ extern "C"
      * @brief Convert an eBPF program to human readable byte code.
      * @param[in] file Name of ELF file containing eBPF program.
      * @param[in] section The name of the section to query.
+     * @param[in] verbose Obtain additional information about the programs.
      * @param[out] report Points to a text section describing why the program
      *  failed verification.
      * @param[out] error_message On failure points to a text description of
      *  the error.
      */
     uint32_t
-    ebpf_api_elf_verify_section(const char* file, const char* section, const char** report, const char** error_message);
+    ebpf_api_elf_verify_section(
+        const char* file, const char* section, bool verbose, const char** report, const char** error_message);
 
     /**
      * @brief Free a TLV returned from ebpf_api_elf_enumerate_sections
