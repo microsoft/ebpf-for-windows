@@ -75,3 +75,43 @@ On the attacker machine, do the following:
 14. Compile droppacket.c ```clang -target bpf -O2 -Wall -c droppacket.c -o droppacket.o```
 15. Show that the verifier rejects the code ```netsh ebpf show verification droppacket.o xdp```
 16. Show that loading the program fails ```netsh ebpf add program droppacket.o xdp```
+
+## Frequently Asked Questions
+
+### 1. Is this a fork of eBPF?
+
+The Linux kernel contains an eBPF execution environment, hooks, helpers, a JIT compiler, verifier, interpreter, etc.
+That code is GPL licensed and so cannot be used for purposes that require a more permissive license.
+
+For that reason, there are various projects in the eBPF community that have permissive licenses, such as
+the [IOVisor uBPF project](https://github.com/iovisor/ubpf),
+the [Prevail verifier](https://github.com/vbpf/ebpf-verifier),
+and the [generic-ebpf project](https://github.com/generic-ebpf/generic-ebpf), among others.
+
+The eBPF for Windows project leverages existing permissive licensed projects, including uBPF and the Prevail
+verifier, running them on top of Windows by adding the Windows-specific hosting environment for that code.
+Similarly, it provides Windows-specific hooks and helpers, along with non-GPL'ed hooks/helpers that are
+common across Linux, Windows, and other platforms.
+
+### 2. Does this provide app compatibility with eBPF programs written for Linux?
+
+Linux provides *many* hooks and helpers, most of which are GPL-licensed but some are more permissively
+licensed.  The intent is to provide source code compatibility for code that only uses permissively
+licensed hooks and helpers.  The GPL-licensed hooks and helpers tend to be very Linux specific (e.g., using
+Linux internal data structs) that would not be applicable to other platforms anyway, including other
+platforms supported by the [generic-ebpf project](https://github.com/generic-ebpf/generic-ebpf).
+
+### 3. Will eBPF work with HyperVisor-enforced Code Integrity (HVCI)?
+
+eBPF programs can be run either in an interpreter or natively using a JIT compiler.
+
+[HyperVisor-enforced Code Integrity (HVCI)](https://techcommunity.microsoft.com/t5/windows-insider-program/virtualization-based-security-vbs-and-hypervisor-enforced-code/m-p/240571)
+whereby a hybervisor, such as Hyper-V, uses hardware virtualization to protect kernel-mode processes against
+the injection and execution of malicious or unverified code. Code integrity validation is performed in a secure
+environment that is resistant to attack from malicious software, and page permissions for kernel mode are set and
+maintained by the hypervisor.
+
+Since a hypervisor doing such code integrity checks will refuse to accept code pages that aren't signed by
+a key that the hypervisor trusts, this does impact eBPF programs running natively.  As such, currently
+eBPF programs work fine in interpreted mode, but not when using JIT compilation, regardless of whether
+one is using Linux or Windows.
