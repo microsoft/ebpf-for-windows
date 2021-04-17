@@ -11,6 +11,7 @@ LICENSE.txt
 \.check-license\.ignore
 \.clang-format
 \.gitattributes
+\.github/CODEOWNERS
+\.github/workflows/build.yml
 \.gitignore
 \.gitmodules
-\.github/workflows/build.yml
