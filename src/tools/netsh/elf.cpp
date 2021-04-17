@@ -197,12 +197,14 @@ handle_ebpf_show_verification(
     TAG_TYPE tags[] = {
         {TOKEN_FILENAME, NS_REQ_PRESENT, FALSE},
         {TOKEN_SECTION, NS_REQ_ZERO, FALSE},
+        {TOKEN_LEVEL, NS_REQ_ZERO, FALSE},
     };
     ULONG tag_type[_countof(tags)] = {0};
 
     ULONG status =
         PreprocessCommand(nullptr, argv, current_index, argc, tags, _countof(tags), 0, _countof(tags), tag_type);
 
+    VERBOSITY_LEVEL level = VL_NORMAL;
     std::string filename;
     std::string section = ""; // Use the first code section by default.
     for (int i = 0; (status == NO_ERROR) && ((i + current_index) < argc); i++) {
@@ -217,6 +219,14 @@ handle_ebpf_show_verification(
             section = down_cast_from_wstring(std::wstring(argv[current_index + i]));
             break;
         }
+        case 2: // LEVEL
+        {
+            status = MatchEnumTag(NULL, argv[current_index + i], _countof(g_LevelEnum), g_LevelEnum, (PULONG)&level);
+            if (status != NO_ERROR) {
+                status = ERROR_INVALID_PARAMETER;
+            }
+            break;
+        }
         default:
             status = ERROR_INVALID_SYNTAX;
             break;
@@ -229,9 +239,10 @@ handle_ebpf_show_verification(
     const char* report;
     const char* error_message;
 
-    status = ebpf_api_elf_verify_section(filename.c_str(), section.c_str(), &report, &error_message);
+    status =
+        ebpf_api_elf_verify_section(filename.c_str(), section.c_str(), level == VL_VERBOSE, &report, &error_message);
     if (status == ERROR_SUCCESS) {
-        std::cout << "\nVerification succeeded\n";
+        std::cout << report;
         return NO_ERROR;
     } else {
         if (error_message) {

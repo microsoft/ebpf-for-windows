@@ -219,7 +219,7 @@ This can be done from within the Visual Studio UI as follows.
 First, open the solution in Visual Studio:
 
 ```
-> ebpf-demo.sln
+> ebpf-for-windows.sln
 ```
 
 Next, right click on the solution in the Solution Explorer and select "Restore NuGet Packages".
@@ -373,39 +373,58 @@ joins.
 
 **Step 4)** View verifier verbose output
 
-(TODO: this section needs to be updated for netsh)
 We can view verbose output to see what the verifier is actually doing,
-using the `-v` argument:
+using the "level=verbose" option to "show verification":
 
 ```
-> Release\check.exe -v ..\bpf.o
+> netsh ebpf show verification bpf.o level=verbose
 
-{r10 -> [512, +oo], off10 -> [512], t10 -> [-2], r1 -> [1, 2147418112], off1 -> [0], t1 -> [-3], packet_size -> [0, 65534], meta_offset -> [-4098, 0]
-}
-Numbers -> {}
+Preconditions : {r10.value=[512, 2147418112], r10.offset=[512], r10.type=stack_pointer, r1.value=[1, 2147418112], r1.offset=[0], r1.type=ctx_pointer, packet_size=[0, 65534], meta_offset=[-4098, 0], instruction_count=[0]
+ }
+Stack: Numbers -> {}
+entry:
+  goto 0;
+
+Postconditions: {r10.value=[512, 2147418112], r10.offset=[512], r10.type=stack_pointer, r1.value=[1, 2147418112], r1.offset=[0], r1.type=ctx_pointer, packet_size=[0, 65534], meta_offset=[-4098, 0], instruction_count=[1]
+ }
+Stack: Numbers -> {}
+
+Preconditions : {r10.value=[512, 2147418112], r10.offset=[512], r10.type=stack_pointer, r1.value=[1, 2147418112], r1.offset=[0], r1.type=ctx_pointer, packet_size=[0, 65534], meta_offset=[-4098, 0], instruction_count=[1]
+ }
+Stack: Numbers -> {}
 0:
   r0 = 0;
   goto 1;
 
-{r10 -> [512, +oo], off10 -> [512], t10 -> [-2], r1 -> [1, 2147418112], off1 -> [0], t1 -> [-3], packet_size -> [0, 65534], meta_offset -> [-4098, 0], r0 -> [0], t0 -> [-4]
-}
-Numbers -> {}
+Postconditions: {r10.value=[512, 2147418112], r10.offset=[512], r10.type=stack_pointer, r1.value=[1, 2147418112], r1.offset=[0], r1.type=ctx_pointer, packet_size=[0, 65534], meta_offset=[-4098, 0], instruction_count=[3], r0.value=[0], r0.type=number
+ }
+Stack: Numbers -> {}
 
-{r10 -> [512, +oo], off10 -> [512], t10 -> [-2], r1 -> [1, 2147418112], off1 -> [0], t1 -> [-3], packet_size -> [0, 65534], meta_offset -> [-4098, 0], r0 -> [0], t0 -> [-4]
-}
-Numbers -> {}
+Preconditions : {r10.value=[512, 2147418112], r10.offset=[512], r10.type=stack_pointer, r1.value=[1, 2147418112], r1.offset=[0], r1.type=ctx_pointer, packet_size=[0, 65534], meta_offset=[-4098, 0], instruction_count=[3], r0.value=[0], r0.type=number
+ }
+Stack: Numbers -> {}
 1:
-  assert r0 : num;
+  assert r0 is number;
   exit;
+  goto exit;
+
+Postconditions: {r10.value=[512, 2147418112], r10.offset=[512], r10.type=stack_pointer, r1.value=[1, 2147418112], r1.offset=[0], r1.type=ctx_pointer, packet_size=[0, 65534], meta_offset=[-4098, 0], instruction_count=[6], r0.value=[0], r0.type=number
+ }
+Stack: Numbers -> {}
+
+Preconditions : {r10.value=[512, 2147418112], r10.offset=[512], r10.type=stack_pointer, r1.value=[1, 2147418112], r1.offset=[0], r1.type=ctx_pointer, packet_size=[0, 65534], meta_offset=[-4098, 0], instruction_count=[6], r0.value=[0], r0.type=number
+ }
+Stack: Numbers -> {}
+exit:
 
 
-{r10 -> [512, +oo], off10 -> [512], t10 -> [-2], r1 -> [1, 2147418112], off1 -> [0], t1 -> [-3], packet_size -> [0, 65534], meta_offset -> [-4098, 0], r0 -> [0], t0 -> [-4]
-}
-Numbers -> {}
+Postconditions: {r10.value=[512, 2147418112], r10.offset=[512], r10.type=stack_pointer, r1.value=[1, 2147418112], r1.offset=[0], r1.type=ctx_pointer, packet_size=[0, 65534], meta_offset=[-4098, 0], instruction_count=[7], r0.value=[0], r0.type=number
+ }
+Stack: Numbers -> {}
 
 
-0 warnings
-1,0.029,6692
+0 errors
+Verification succeeded
 ```
 
 Normally we wouldn't need to do this, but it is illustrative to see how the
@@ -416,8 +435,7 @@ Each instruction is shown as before, but is preceded by its preconditions
 
 "oo" means infinity, "r0" through "r10" are registers (r10 is the stack
 pointer, r0 is used for return values, r1-5 are used to pass args to other
-functions, r6 is the 'ctx' pointer, etc., "t0" through "t10" contains the
-type of value in the associated register, where -4 means an integer, etc.
+functions, r6 is the 'ctx' pointer, etc.
 
 "meta_offset" is the number of bytes of packet metadata preceding (i.e.,
 with negative offset from) the start of the packet buffer.
@@ -820,7 +838,6 @@ func1:
 ```
 
 Above shows "call 1", but `netsh` shows more details
-(TODO: this step fails if ebpfcore is not running):
 ```
 > netsh ebpf show disassembly map.o
        0:       r1 = 0
@@ -831,7 +848,7 @@ Above shows "call 1", but `netsh` shows more details
        5:       r2 += -4
        6:       r3 = r10
        7:       r3 += -8
-       8:       r1 = map_fd 65664
+       8:       r1 = map_fd 1026
       10:       r4 = 0
       11:       r0 = ebpf_map_update_elem:1(r1:FD, r2:K, r3:V, r4)
       12:       exit
@@ -842,11 +859,11 @@ Notice from instruction 11 that `netsh` understands that
 a file descriptor (FD) in R1, a key in R2, a value in R3, and R4 can be
 anything.
 
-R1 was set in instruction 8 to a map FD value of 65664.  Where did that value
+R1 was set in instruction 8 to a map FD value of 1026.  Where did that value
 come from, since the llvm-objdump disassembly didn't have it?  The
 create_map_crab() function in the Prevail verifier creates a dummy value
-based on (value_size * 16384) + (key_size * 64).  Since we passed
-value_size = 4 and key_size = 2, this gives us 65664.  When installed,
+based on (value_size * 256) + key_size.  Since we passed
+value_size = 4 and key_size = 2, this gives us 1026.  When installed,
 this value gets replaced with a real map address.  Let's see how that happens.
 
 Now that we're actually using the map, rather than just defining it,

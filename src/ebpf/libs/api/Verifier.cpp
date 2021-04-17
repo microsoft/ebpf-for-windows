@@ -190,7 +190,7 @@ uint32_t
 ebpf_api_elf_disassemble_section(
     const char* file, const char* section, const char** disassembly, const char** error_message)
 {
-    ebpf_verifier_options_t verifier_options{false, false, false, false};
+    ebpf_verifier_options_t verifier_options = ebpf_verifier_default_options;
     const ebpf_platform_t* platform = &g_ebpf_platform_windows;
     std::ostringstream error;
     std::ostringstream output;
@@ -219,7 +219,8 @@ ebpf_api_elf_disassemble_section(
 }
 
 uint32_t
-ebpf_api_elf_verify_section(const char* file, const char* section, const char** report, const char** error_message)
+ebpf_api_elf_verify_section(
+    const char* file, const char* section, bool verbose, const char** report, const char** error_message)
 {
     std::ostringstream error;
     std::ostringstream output;
@@ -227,6 +228,7 @@ ebpf_api_elf_verify_section(const char* file, const char* section, const char** 
         const ebpf_platform_t* platform = &g_ebpf_platform_windows;
         ebpf_verifier_options_t verifier_options = ebpf_verifier_default_options;
         verifier_options.check_termination = true;
+        verifier_options.print_invariants = verbose;
         verifier_options.print_failures = true;
         verifier_options.mock_map_fds = true;
 

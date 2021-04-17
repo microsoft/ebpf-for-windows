@@ -39,6 +39,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\ebpf_hash_table.c" />
     <ClCompile Include="platform_kernel.c" />
   </ItemGroup>
   <ItemGroup>
