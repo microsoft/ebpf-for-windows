@@ -9,72 +9,40 @@ takes existing eBPF projects (as submodules) and adds the layer in between to ma
 
 See our [eBPF tutorial](docs/tutorial.md).
 
-## Prerequisites
+## Architectural Overview
 
-The following must be installed in order to build this project:
+The following diagram shows the architecture of this project and related components:
 
-1. Git (e.g., [Git for Windows 64-bit](https://git-scm.com/download/win))
-2. [Visual Studio 2019](https://visualstudio.microsoft.com/vs/), including
-   the "MSVC v142 - VS 2019 C++ x64/x86 Spectre-mitigated libs (v14.28)"
-   which must be selected as an Individual component in the VS installer
-3. [Visual Studio Build Tools 2019](https://aka.ms/vs/16/release/vs_buildtools.exe)
-4. [WDK for Windows 10, version 2004](https://go.microsoft.com/fwlink/?linkid=2128854)
-5. [Clang/LLVM for Windows 64-bit](https://github.com/llvm/llvm-project/releases/download/llvmorg-8.0.1/LLVM-8.0.1-win64.exe)
+![Architectural Overview](docs/ArchitectureDiagram.png)
 
-## How to clone and build the project
+As shown in the diagram, existing eBPF toolchains (clang, etc.) can be used to generate eBPF bytecode from
+source code.  Bytecode can be consumed by any application, or via the Netsh CLI, which use a shared library
+that exposes APIs (intended to match [Libbpf APIs](https://github.com/libbpf/libbpf), plus some additions,
+though this is still in progress).
 
-1. ```git clone --recurse-submodules https://github.com/microsoft/ebpf-for-windows.git```
-2. ```cd ebpf-for-windows```
-3. ```cmake -S external\ebpf-verifier -B external\ebpf-verifier\build```
-4. ```msbuild /m /p:Configuration=Debug /p:Platform=x64 ebpf-for-windows.sln```
-   or to build from within Visual Studio:
-   - Open ebpf-for-windows.sln
-   - Switch to debug / x64
-   - Build solution
+The eBPF bytecode is sent to a static verifier (the [PREVAIL verifier](https://github.com/vbpf/ebpf-verifier))
+that is hosted in a user-mode [protected process](https://docs.microsoft.com/en-us/windows/win32/services/protecting-anti-malware-services-#system-protected-process)
+(a Windows security environment that allows a kernel component to trust a user-mode daemon signed by
+a key that it trusts).  If the bytecode passes all the verifier checks, it can be either loaded into
+an interpreter (from [uBPF](https://github.com/iovisor/ubpf) in the kernel-mode execution context, or
+JIT compiled (via the [uBPF](https://github.com/iovisor/ubpf) JIT compiler) and have native code load
+into the kernel-mode execution context (but see the FAQ at bottom about HVCI).
 
-## Using eBPF for Windows
+*Temporary Note: some parts are still under development and may not appear
+when building the master branch, but the end-to-end functionality can still be tested immediately
+while the security hardening is still in progress.*
 
-This section shows how to use eBPF for Windows in a demo that defends against a 0-byte UDP attack on a DNS server.
+eBPF programs installed into the kernel-mode execution context can attach to various hooks (currently
+two hooks so far: XDP and a socket bind hook) and call various helper APIs exposed by the eBPF shim,
+which internally wraps public Windows kernel APIs, allowing the use of eBPF on existing versions of Windows.
+More hooks and helpers will be added over time.
 
-### Prep 
-Set up 2 VMs, which we will refer to as the "attacker" machine and the "defender" machine
+## Getting Started
 
-On the defender machine, do the following:
-1. Install and set up a DNS server
-2. Make sure the kernel debugger (KD) is attached and running.
-3. Install Debug VS 2019 VC redist from TBD (or switch everything to Multi-threaded Debug (/MTd) and rebuild)
-4. Copy ebpfcore.sys to %windir%\system32\drivers
-5. Copy ebpfapi.dll and ebpfnetsh.dll to %windir%\system32
-6. Do `sc create EbpfCore type=kernel start=boot binpath=%windir%\system32\drivers\ebpfcore.sys`
-7. Do `sc start EbpfCore`
-8. Do `netsh add helper %windir%\system32\ebpfnetsh.dll`
-9. Install [clang](https://github.com/llvm/llvm-project/releases/download/llvmorg-11.0.0/LLVM-11.0.0-win64.exe)
-10. Copy droppacket.c and ebpf.h to a folder (such as c:\test)
+This project supports eBPF on Windows 10, and on Windows Server 2016 or later.
+To try out this project, see our [Getting Started Guide](docs/GettingStarted.md).
 
-On the attacker machine, do the following:
-1. Copy DnsFlood.exe to attacker machine
-
-### Demo
-#### On the attacker machine
-1. Run ```for /L %i in (1,1,4) do start /min DnsFlood <ip of defender>```
-
-#### On the defender machine
-1. Start perfomance monitor and add UDPv4 Datagrams/sec
-2. Show that 200K packets per second are being received
-3. Show & explain code of droppacket.c 
-4. Compile droppacket.c ```clang -target bpf -O2 -Wall -c droppacket.c -o droppacket.o```
-5. Show eBPF byte code for droppacket.o ```netsh ebpf show disassembly droppacket.o xdp```
-6. Show that the verifier checks the code ```netsh ebpf show verification droppacket.o xdp```
-7. Launch netsh ```netsh```
-8. Switch to ebpf context ```ebpf```
-9. Load eBPF program ```add program droppacket.o xdp```
-10. Show UDP datagrams received drop to under 10 per second
-11. Unload program ```delete program droppacket.o xdp```
-12. Show UDP datagrams received drop to back up to ~200K per second
-13. Modify droppacket.c to be unsafe - Comment out line 20 & 21
-14. Compile droppacket.c ```clang -target bpf -O2 -Wall -c droppacket.c -o droppacket.o```
-15. Show that the verifier rejects the code ```netsh ebpf show verification droppacket.o xdp```
-16. Show that loading the program fails ```netsh ebpf add program droppacket.o xdp```
+Want to help?  We welcome contributions!  See our [Contributing guidelines](CONTRIBUTING.md).
 
 ## Frequently Asked Questions
 
@@ -83,12 +51,13 @@ On the attacker machine, do the following:
 The Linux kernel contains an eBPF execution environment, hooks, helpers, a JIT compiler, verifier, interpreter, etc.
 That code is GPL licensed and so cannot be used for purposes that require a more permissive license.
 
-For that reason, there are various projects in the eBPF community that have permissive licenses, such as
-the [IOVisor uBPF project](https://github.com/iovisor/ubpf),
-the [Prevail verifier](https://github.com/vbpf/ebpf-verifier),
-and the [generic-ebpf project](https://github.com/generic-ebpf/generic-ebpf), among others.
+For that reason, there are various projects in the eBPF community that have permissive licenses, such as:
+* the [IOVisor uBPF project](https://github.com/iovisor/ubpf),
+* the [PREVAIL verifier](https://github.com/vbpf/ebpf-verifier),
+* [Libbpf APIs](https://github.com/libbpf/libbpf), and
+* the [generic-ebpf project](https://github.com/generic-ebpf/generic-ebpf), among others.
 
-The eBPF for Windows project leverages existing permissive licensed projects, including uBPF and the Prevail
+The eBPF for Windows project leverages existing permissive licensed projects, including uBPF and the PREVAIL
 verifier, running them on top of Windows by adding the Windows-specific hosting environment for that code.
 Similarly, it provides Windows-specific hooks and helpers, along with non-GPL'ed hooks/helpers that are
 common across Linux, Windows, and other platforms.
@@ -101,17 +70,21 @@ licensed hooks and helpers.  The GPL-licensed hooks and helpers tend to be very 
 Linux internal data structs) that would not be applicable to other platforms anyway, including other
 platforms supported by the [generic-ebpf project](https://github.com/generic-ebpf/generic-ebpf).
 
+Similarly, the eBPF for Windows project leverages [Libbpf APIs](https://github.com/libbpf/libbpf)
+to provide source code compatibility for applications that interact with eBPF programs.
+
 ### 3. Will eBPF work with HyperVisor-enforced Code Integrity (HVCI)?
 
 eBPF programs can be run either in an interpreter or natively using a JIT compiler.
 
 [HyperVisor-enforced Code Integrity (HVCI)](https://techcommunity.microsoft.com/t5/windows-insider-program/virtualization-based-security-vbs-and-hypervisor-enforced-code/m-p/240571)
+is a mechanism
 whereby a hybervisor, such as Hyper-V, uses hardware virtualization to protect kernel-mode processes against
 the injection and execution of malicious or unverified code. Code integrity validation is performed in a secure
 environment that is resistant to attack from malicious software, and page permissions for kernel mode are set and
 maintained by the hypervisor.
 
 Since a hypervisor doing such code integrity checks will refuse to accept code pages that aren't signed by
-a key that the hypervisor trusts, this does impact eBPF programs running natively.  As such, currently
-eBPF programs work fine in interpreted mode, but not when using JIT compilation, regardless of whether
+a key that the hypervisor trusts, this does impact eBPF programs running natively.  As such, when HVCI
+is enabled, eBPF programs work fine in interpreted mode, but not when using JIT compilation, regardless of whether
 one is using Linux or Windows.

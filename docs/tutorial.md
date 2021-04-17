@@ -3,7 +3,7 @@
 This tutorial illustrates how eBPF works and how to run eBPF verifier on Windows,
 starting from authoring a new eBPF program in C.
 
-To try out this tutorial yourself, you should first install the [Prerequisites](../README.md#Prerequisites).
+To try out this tutorial yourself, you should first install the [Prerequisites](GettingStarted.md#Prerequisites).
 We'll start by understanding the basic structure of eBPF programs and then walk through how to
 apply them in a real use case.
 
