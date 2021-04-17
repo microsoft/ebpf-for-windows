@@ -360,7 +360,7 @@ TEST_CASE("verify section", "[verify section]")
     REQUIRE(ebpf_api_initiate() == ERROR_SUCCESS);
     ec_initialized = true;
 
-    REQUIRE(ebpf_api_elf_verify_section(SAMPLE_PATH "droppacket.o", "xdp", &report, &error_message) == 0);
+    REQUIRE(ebpf_api_elf_verify_section(SAMPLE_PATH "droppacket.o", "xdp", false, &report, &error_message) == 0);
     REQUIRE(report != nullptr);
     REQUIRE(error_message == nullptr);
 }

@@ -373,39 +373,58 @@ joins.
 
 **Step 4)** View verifier verbose output
 
-(TODO: this section needs to be updated for netsh)
 We can view verbose output to see what the verifier is actually doing,
-using the `-v` argument:
+using the "level=verbose" option to "show verification":
 
 ```
-> Release\check.exe -v ..\bpf.o
+> netsh ebpf show verification bpf.o level=verbose
 
-{r10 -> [512, +oo], off10 -> [512], t10 -> [-2], r1 -> [1, 2147418112], off1 -> [0], t1 -> [-3], packet_size -> [0, 65534], meta_offset -> [-4098, 0]
-}
-Numbers -> {}
+Preconditions : {r10.value=[512, 2147418112], r10.offset=[512], r10.type=stack_pointer, r1.value=[1, 2147418112], r1.offset=[0], r1.type=ctx_pointer, packet_size=[0, 65534], meta_offset=[-4098, 0], instruction_count=[0]
+ }
+Stack: Numbers -> {}
+entry:
+  goto 0;
+
+Postconditions: {r10.value=[512, 2147418112], r10.offset=[512], r10.type=stack_pointer, r1.value=[1, 2147418112], r1.offset=[0], r1.type=ctx_pointer, packet_size=[0, 65534], meta_offset=[-4098, 0], instruction_count=[1]
+ }
+Stack: Numbers -> {}
+
+Preconditions : {r10.value=[512, 2147418112], r10.offset=[512], r10.type=stack_pointer, r1.value=[1, 2147418112], r1.offset=[0], r1.type=ctx_pointer, packet_size=[0, 65534], meta_offset=[-4098, 0], instruction_count=[1]
+ }
+Stack: Numbers -> {}
 0:
   r0 = 0;
   goto 1;
 
-{r10 -> [512, +oo], off10 -> [512], t10 -> [-2], r1 -> [1, 2147418112], off1 -> [0], t1 -> [-3], packet_size -> [0, 65534], meta_offset -> [-4098, 0], r0 -> [0], t0 -> [-4]
-}
-Numbers -> {}
+Postconditions: {r10.value=[512, 2147418112], r10.offset=[512], r10.type=stack_pointer, r1.value=[1, 2147418112], r1.offset=[0], r1.type=ctx_pointer, packet_size=[0, 65534], meta_offset=[-4098, 0], instruction_count=[3], r0.value=[0], r0.type=number
+ }
+Stack: Numbers -> {}
 
-{r10 -> [512, +oo], off10 -> [512], t10 -> [-2], r1 -> [1, 2147418112], off1 -> [0], t1 -> [-3], packet_size -> [0, 65534], meta_offset -> [-4098, 0], r0 -> [0], t0 -> [-4]
-}
-Numbers -> {}
+Preconditions : {r10.value=[512, 2147418112], r10.offset=[512], r10.type=stack_pointer, r1.value=[1, 2147418112], r1.offset=[0], r1.type=ctx_pointer, packet_size=[0, 65534], meta_offset=[-4098, 0], instruction_count=[3], r0.value=[0], r0.type=number
+ }
+Stack: Numbers -> {}
 1:
-  assert r0 : num;
+  assert r0 is number;
   exit;
+  goto exit;
+
+Postconditions: {r10.value=[512, 2147418112], r10.offset=[512], r10.type=stack_pointer, r1.value=[1, 2147418112], r1.offset=[0], r1.type=ctx_pointer, packet_size=[0, 65534], meta_offset=[-4098, 0], instruction_count=[6], r0.value=[0], r0.type=number
+ }
+Stack: Numbers -> {}
+
+Preconditions : {r10.value=[512, 2147418112], r10.offset=[512], r10.type=stack_pointer, r1.value=[1, 2147418112], r1.offset=[0], r1.type=ctx_pointer, packet_size=[0, 65534], meta_offset=[-4098, 0], instruction_count=[6], r0.value=[0], r0.type=number
+ }
+Stack: Numbers -> {}
+exit:
 
 
-{r10 -> [512, +oo], off10 -> [512], t10 -> [-2], r1 -> [1, 2147418112], off1 -> [0], t1 -> [-3], packet_size -> [0, 65534], meta_offset -> [-4098, 0], r0 -> [0], t0 -> [-4]
-}
-Numbers -> {}
+Postconditions: {r10.value=[512, 2147418112], r10.offset=[512], r10.type=stack_pointer, r1.value=[1, 2147418112], r1.offset=[0], r1.type=ctx_pointer, packet_size=[0, 65534], meta_offset=[-4098, 0], instruction_count=[7], r0.value=[0], r0.type=number
+ }
+Stack: Numbers -> {}
 
 
-0 warnings
-1,0.029,6692
+0 errors
+Verification succeeded
 ```
 
 Normally we wouldn't need to do this, but it is illustrative to see how the
@@ -416,8 +435,7 @@ Each instruction is shown as before, but is preceded by its preconditions
 
 "oo" means infinity, "r0" through "r10" are registers (r10 is the stack
 pointer, r0 is used for return values, r1-5 are used to pass args to other
-functions, r6 is the 'ctx' pointer, etc., "t0" through "t10" contains the
-type of value in the associated register, where -4 means an integer, etc.
+functions, r6 is the 'ctx' pointer, etc.
 
 "meta_offset" is the number of bytes of packet metadata preceding (i.e.,
 with negative offset from) the start of the packet buffer.
