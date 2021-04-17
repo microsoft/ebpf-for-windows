@@ -264,6 +264,12 @@ _ebpf_core_delete_code_entry(uint64_t handle)
 ebpf_error_code_t
 ebpf_core_initialize()
 {
+    ebpf_error_code_t return_value;
+    return_value = ebpf_platform_initialize();
+    if (return_value != EBPF_ERROR_SUCCESS) {
+        return return_value;
+    }
+
     ebpf_lock_create(&_ebpf_core_code_entry_table_lock);
     ebpf_lock_create(&_ebpf_core_map_entry_table_lock);
     ebpf_lock_create(&_ebpf_core_hook_table_lock);
