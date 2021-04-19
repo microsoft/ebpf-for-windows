@@ -180,7 +180,7 @@ ebpf_epoch_exit()
         ebpf_lock_unlock(&_ebpf_epoch_thread_table_lock, &lock_state);
     } else {
         uint32_t current_cpu = ebpf_get_current_cpu();
-        if (current_cpu > _ebpf_epoch_cpu_table_size) {
+        if (current_cpu >= _ebpf_epoch_cpu_table_size) {
             return;
         }
 
