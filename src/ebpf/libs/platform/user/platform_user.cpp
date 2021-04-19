@@ -194,6 +194,12 @@ ebpf_interlocked_decrement_int64(volatile int64_t* addend)
     return InterlockedDecrement64(addend);
 }
 
+int32_t
+ebpf_interlocked_compare_exchange_int32(volatile int32_t* destination, int32_t exchange, int32_t comperand)
+{
+    return InterlockedCompareExchange((long volatile*)destination, exchange, comperand);
+}
+
 ebpf_error_code_t
 ebpf_get_cpu_count(uint32_t* cpu_count)
 {
@@ -253,4 +259,74 @@ ebpf_queue_non_preemptable_work_item(epbf_non_preemtable_work_item_t* work_item,
     UNREFERENCED_PARAMETER(work_item);
     UNREFERENCED_PARAMETER(parameter_1);
     return false;
+}
+
+typedef struct _ebpf_timer_work_item
+{
+    TP_TIMER* threadpool_timer;
+    void (*work_item_routine)(void* work_item_context);
+    void* work_item_context;
+} ebpf_timer_work_item_t;
+
+void
+_ebpf_timer_callback(_Inout_ TP_CALLBACK_INSTANCE* instance, _Inout_opt_ void* Context, _Inout_ TP_TIMER* Timer)
+{
+    ebpf_timer_work_item_t* timer_work_item = reinterpret_cast<ebpf_timer_work_item_t*>(Context);
+    UNREFERENCED_PARAMETER(instance);
+    UNREFERENCED_PARAMETER(Timer);
+
+    timer_work_item->work_item_routine(timer_work_item->work_item_context);
+}
+
+ebpf_error_code_t
+ebpf_allocate_timer_work_item(
+    ebpf_timer_work_item_t** work_item, void (*work_item_routine)(void* work_item_context), void* work_item_context)
+{
+    *work_item = (ebpf_timer_work_item_t*)ebpf_allocate(sizeof(ebpf_timer_work_item_t), EBPF_MEMORY_NO_EXECUTE);
+
+    if (*work_item == NULL)
+        goto Error;
+
+    (*work_item)->threadpool_timer = CreateThreadpoolTimer(_ebpf_timer_callback, *work_item, NULL);
+    if ((*work_item)->threadpool_timer == NULL)
+        goto Error;
+
+    (*work_item)->work_item_routine = work_item_routine;
+    (*work_item)->work_item_context = work_item_context;
+
+    return EBPF_ERROR_SUCCESS;
+
+Error:
+    if (*work_item != NULL) {
+        if ((*work_item)->threadpool_timer != NULL)
+            CloseThreadpoolTimer((*work_item)->threadpool_timer);
+
+        ebpf_free(*work_item);
+    }
+    return EBPF_ERROR_OUT_OF_RESOURCES;
+}
+
+#define MICROSECOND_PER_TICK 10
+#define MICROSECOND_PER_MILLISECOND 1000
+
+void
+ebpf_schedule_timer_work_item(ebpf_timer_work_item_t* work_item, uint32_t elaped_microseconds)
+{
+    int64_t due_time;
+    due_time = static_cast<int64_t>(elaped_microseconds) * MICROSECOND_PER_TICK;
+    due_time = -(due_time);
+
+    SetThreadpoolTimer(
+        work_item->threadpool_timer,
+        reinterpret_cast<FILETIME*>(&due_time),
+        0,
+        elaped_microseconds / MICROSECOND_PER_MILLISECOND);
+}
+
+void
+ebpf_free_timer_work_item(ebpf_timer_work_item_t* work_item)
+{
+    WaitForThreadpoolTimerCallbacks(work_item->threadpool_timer, true);
+    CloseThreadpoolTimer(work_item->threadpool_timer);
+    ebpf_free(work_item);
 }

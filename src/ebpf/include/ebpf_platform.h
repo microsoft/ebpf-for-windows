@@ -27,6 +27,7 @@ extern "C"
     } ebpf_code_integrity_state_t;
 
     typedef struct _epbf_non_preemptable_work_item epbf_non_preemtable_work_item_t;
+    typedef struct _ebpf_timer_work_item ebpf_timer_work_item_t;
 
     ebpf_error_code_t
     ebpf_platform_initiate();
@@ -89,6 +90,18 @@ extern "C"
     bool
     ebpf_queue_non_preemptable_work_item(epbf_non_preemtable_work_item_t* work_item, void* parameter_1);
 
+    ebpf_error_code_t
+    ebpf_allocate_timer_work_item(
+        ebpf_timer_work_item_t** work_item,
+        void (*work_item_routine)(void* work_item_context),
+        void* work_item_context);
+
+    void
+    ebpf_schedule_timer_work_item(ebpf_timer_work_item_t* work_item, uint32_t elaped_microseconds);
+
+    void
+    ebpf_free_timer_work_item(ebpf_timer_work_item_t* work_item);
+
     typedef struct _ebpf_hash_table ebpf_hash_table_t;
 
     ebpf_error_code_t
@@ -121,6 +134,9 @@ extern "C"
 
     int64_t
     ebpf_interlocked_decrement_int64(volatile int64_t* addend);
+
+    int32_t
+    ebpf_interlocked_compare_exchange_int32(volatile int32_t* destination, int32_t exchange, int32_t comperand);
 
 #ifdef __cplusplus
 }

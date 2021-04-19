@@ -36,6 +36,8 @@
 // As long as the entries in the CPU table increase, this gives correct behavior.
 //
 
+#define EBPF_EPOCH_FLUSH_DELAY_IN_MICROSECONDS 1000
+
 // TODO: This lock may become a contention point.
 // Investigate partitioning the table.
 static ebpf_lock_t _ebpf_epoch_thread_table_lock = {0};
@@ -54,6 +56,9 @@ static ebpf_epoch_cpu_entry_t* _ebpf_epoch_cpu_table = NULL;
 static uint32_t _ebpf_epoch_cpu_table_size = 0;
 
 static volatile int64_t _ebpf_current_epoch = 1;
+
+static ebpf_timer_work_item_t* _ebpf_flush_timer = NULL;
+static volatile int32_t _ebpf_flush_timer_set = 0;
 
 typedef struct _ebpf_epoch_allocation_header
 {
@@ -74,6 +79,9 @@ ebpf_epoch_get_release_epoch(int64_t* released_epoch);
 
 static void
 _ebpf_epoch_update_cpu_entry(void* context, void* parameter_1);
+
+static void
+_ebpf_flush_worker(void* context);
 
 ebpf_error_code_t
 ebpf_epoch_initiate()
@@ -128,6 +136,11 @@ ebpf_epoch_initiate()
         goto Error;
     }
 
+    return_value = ebpf_allocate_timer_work_item(&_ebpf_flush_timer, _ebpf_flush_worker, NULL);
+    if (return_value != EBPF_ERROR_SUCCESS) {
+        goto Error;
+    }
+
     return return_value;
 
 Error:
@@ -138,6 +151,7 @@ Error:
 void
 ebpf_epoch_terminate()
 {
+    ebpf_free_timer_work_item(_ebpf_flush_timer);
     ebpf_hash_table_destroy(_ebpf_epoch_thread_table);
     ebpf_free(_ebpf_epoch_cpu_table);
     ebpf_lock_destroy(&_ebpf_epoch_thread_table_lock);
@@ -189,9 +203,9 @@ ebpf_epoch_exit()
         _ebpf_epoch_cpu_table[current_cpu].epoch = _ebpf_current_epoch;
     }
 
-    // TODO: Investigate if this causes performance issues.
-    if (_ebpf_epoch_free_list.next != NULL) {
-        ebpf_epoch_flush();
+    if (_ebpf_epoch_free_list.next != NULL &&
+        (ebpf_interlocked_compare_exchange_int32(&_ebpf_flush_timer_set, 0, 1) != 0)) {
+        ebpf_schedule_timer_work_item(_ebpf_flush_timer, EBPF_EPOCH_FLUSH_DELAY_IN_MICROSECONDS);
     }
 }
 
@@ -328,4 +342,15 @@ _ebpf_epoch_update_cpu_entry(void* context, void* parameter_1)
     UNREFERENCED_PARAMETER(parameter_1);
 
     cpu_entry->epoch = _ebpf_current_epoch;
+}
+
+static void
+_ebpf_flush_worker(void* context)
+{
+    UNREFERENCED_PARAMETER(context);
+
+    if (ebpf_interlocked_compare_exchange_int32(&_ebpf_flush_timer_set, 1, 0) != 1) {
+        return;
+    }
+    ebpf_epoch_flush();
 }
