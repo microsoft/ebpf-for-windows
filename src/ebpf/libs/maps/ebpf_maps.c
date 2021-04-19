@@ -202,7 +202,8 @@ ebpf_create_hash_map(_In_ const ebpf_map_definition_t* map_definition)
         ebpf_epoch_allocate,
         ebpf_epoch_free,
         map->ebpf_map_definition.key_size,
-        map->ebpf_map_definition.value_size);
+        map->ebpf_map_definition.value_size,
+        NULL);
     if (retval != EBPF_ERROR_SUCCESS) {
         goto Done;
     }
