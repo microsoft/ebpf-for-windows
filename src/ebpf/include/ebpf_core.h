@@ -16,7 +16,7 @@ extern "C"
 
     typedef uint32_t(__stdcall* ebpf_hook_function)(uint8_t*);
     ebpf_error_code_t
-    ebpf_core_initialize();
+    ebpf_core_initiate();
 
     void
     ebpf_core_terminate();

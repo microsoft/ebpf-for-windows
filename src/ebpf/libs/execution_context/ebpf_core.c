@@ -263,18 +263,18 @@ _ebpf_core_delete_code_entry(uint64_t handle)
 }
 
 ebpf_error_code_t
-ebpf_core_initialize()
+ebpf_core_initiate()
 {
     ebpf_error_code_t return_value;
     bool platform_initialized = false;
     bool epoch_initialize = false;
 
-    return_value = ebpf_platform_initialize();
+    return_value = ebpf_platform_initiate();
     if (return_value != EBPF_ERROR_SUCCESS)
         goto Done;
     platform_initialized = true;
 
-    return_value = ebpf_epoch_initialize();
+    return_value = ebpf_epoch_initiate();
     if (return_value != EBPF_ERROR_SUCCESS)
         goto Done;
     epoch_initialize = true;

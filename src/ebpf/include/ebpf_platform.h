@@ -29,7 +29,7 @@ extern "C"
     typedef struct _epbf_non_preemptable_work_item epbf_non_preemtable_work_item_t;
 
     ebpf_error_code_t
-    ebpf_platform_initialize();
+    ebpf_platform_initiate();
 
     void
     ebpf_platform_terminate();
@@ -72,6 +72,9 @@ extern "C"
 
     uint64_t
     ebpf_get_current_thread_id();
+
+    bool
+    ebpf_is_non_preemtable_work_item_supported();
 
     ebpf_error_code_t
     ebpf_allocate_non_preemptable_work_item(

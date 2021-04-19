@@ -50,7 +50,7 @@ resolve_function(HMODULE module_handle, fn& function, const char* function_name)
 }
 
 ebpf_error_code_t
-ebpf_platform_initialize()
+ebpf_platform_initiate()
 {
     HMODULE ntdll_module = nullptr;
 
@@ -207,6 +207,12 @@ bool
 ebpf_is_preemptable()
 {
     return _ebpf_platform_is_preemptable;
+}
+
+bool
+ebpf_is_non_preemtable_work_item_supported()
+{
+    return false;
 }
 
 uint32_t

@@ -170,7 +170,7 @@ TEST_CASE("droppacket-jit", "[droppacket_jit]")
             ebpf_core_terminate();
     });
 
-    REQUIRE(ebpf_core_initialize() == EBPF_ERROR_SUCCESS);
+    REQUIRE(ebpf_core_initiate() == EBPF_ERROR_SUCCESS);
     ec_initialized = true;
 
     REQUIRE(ebpf_api_initiate() == ERROR_SUCCESS);
@@ -246,7 +246,7 @@ TEST_CASE("droppacket-interpret", "[droppacket_interpret]")
     });
     uint32_t result = 0;
 
-    REQUIRE(ebpf_core_initialize() == EBPF_ERROR_SUCCESS);
+    REQUIRE(ebpf_core_initiate() == EBPF_ERROR_SUCCESS);
     ec_initialized = true;
 
     REQUIRE(ebpf_api_initiate() == ERROR_SUCCESS);
@@ -316,7 +316,7 @@ TEST_CASE("enum section", "[enum sections]")
             ebpf_core_terminate();
     });
 
-    REQUIRE(ebpf_core_initialize() == EBPF_ERROR_SUCCESS);
+    REQUIRE(ebpf_core_initiate() == EBPF_ERROR_SUCCESS);
     ec_initialized = true;
     REQUIRE(ebpf_api_initiate() == ERROR_SUCCESS);
     api_initialized = true;
@@ -363,7 +363,7 @@ TEST_CASE("verify section", "[verify section]")
             ebpf_core_terminate();
     });
 
-    REQUIRE(ebpf_core_initialize() == EBPF_ERROR_SUCCESS);
+    REQUIRE(ebpf_core_initiate() == EBPF_ERROR_SUCCESS);
     api_initialized = true;
     REQUIRE(ebpf_api_initiate() == ERROR_SUCCESS);
     ec_initialized = true;
@@ -445,7 +445,7 @@ TEST_CASE("bindmonitor-interpret", "[bindmonitor_interpret]")
             ebpf_core_terminate();
     });
 
-    REQUIRE(ebpf_core_initialize() == EBPF_ERROR_SUCCESS);
+    REQUIRE(ebpf_core_initiate() == EBPF_ERROR_SUCCESS);
     ec_initialized = true;
 
     REQUIRE(ebpf_api_initiate() == ERROR_SUCCESS);
@@ -591,7 +591,7 @@ TEST_CASE("enumerate_and_query_programs", "[enumerate_and_query_programs]")
         ebpf_api_free_string(section_name);
     });
 
-    REQUIRE(ebpf_core_initialize() == EBPF_ERROR_SUCCESS);
+    REQUIRE(ebpf_core_initiate() == EBPF_ERROR_SUCCESS);
     ec_initialized = true;
 
     REQUIRE(ebpf_api_initiate() == ERROR_SUCCESS);
@@ -651,7 +651,7 @@ TEST_CASE("epoch_test_single_epoch", "[epoch_test_single_epoch]")
             ebpf_epoch_terminate();
     });
 
-    REQUIRE(ebpf_epoch_initialize() == EBPF_ERROR_SUCCESS);
+    REQUIRE(ebpf_epoch_initiate() == EBPF_ERROR_SUCCESS);
     ep_initialized = true;
 
     REQUIRE(ebpf_epoch_enter() == EBPF_ERROR_SUCCESS);
@@ -669,7 +669,7 @@ TEST_CASE("epoch_test_two_threads", "[epoch_test_two_threads]")
             ebpf_epoch_terminate();
     });
 
-    REQUIRE(ebpf_epoch_initialize() == EBPF_ERROR_SUCCESS);
+    REQUIRE(ebpf_epoch_initiate() == EBPF_ERROR_SUCCESS);
     ep_initialized = true;
 
     auto epoch = []() {

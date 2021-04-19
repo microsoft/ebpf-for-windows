@@ -196,7 +196,7 @@ EbpfCoreInitDriverObjects(
         goto Exit;
     }
 
-    status = ebpf_error_code_to_ntstatus(ebpf_core_initialize());
+    status = ebpf_error_code_to_ntstatus(ebpf_core_initiate());
     if (!NT_SUCCESS(status)) {
         goto Exit;
     }

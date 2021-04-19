@@ -12,13 +12,15 @@ extern "C"
 #endif
 
     ebpf_error_code_t
-    ebpf_epoch_initialize();
+    ebpf_epoch_initiate();
 
     void
     ebpf_epoch_terminate();
 
     /**
      * @brief Called prior to touching memory with lifetime under epoch control.
+     * @retval Can return EBPF_ERROR_OUT_OF_RESOURCES if unable to allocate per
+     *   thread tracking state.
      */
     ebpf_error_code_t
     ebpf_epoch_enter();

@@ -10,7 +10,7 @@ typedef enum _ebpf_pool_tag
 } ebpf_pool_tag_t;
 
 ebpf_error_code_t
-ebpf_platform_initialize()
+ebpf_platform_initiate()
 {
     return EBPF_ERROR_SUCCESS;
 }
@@ -144,6 +144,12 @@ ebpf_is_preemptable()
 {
     KIRQL irql = KeGetCurrentIrql();
     return irql >= DISPATCH_LEVEL;
+}
+
+bool
+ebpf_is_non_preemtable_work_item_supported()
+{
+    return true;
 }
 
 uint32_t
