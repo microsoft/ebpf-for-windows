@@ -49,7 +49,7 @@ ebpf_pinning_table_allocate(
     ebpf_lock_create(&(*pinning_table)->lock);
 
     return_value = ebpf_hash_table_create(
-        &(*pinning_table)->hash_table, sizeof(uint64_t), sizeof(uint64_t), _ebpf_pining_table_compare_function);
+        &(*pinning_table)->hash_table, ebpf_allocate, ebpf_free, sizeof(uint64_t), sizeof(uint64_t), _ebpf_pining_table_compare_function);
 
     if (return_value != EBPF_ERROR_SUCCESS)
         goto Done;

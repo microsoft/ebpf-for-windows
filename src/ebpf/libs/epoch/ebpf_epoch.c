@@ -131,7 +131,7 @@ ebpf_epoch_initiate()
     }
 
     return_value =
-        ebpf_hash_table_create(&_ebpf_epoch_thread_table, ebpf_allocate, ebpf_free, sizeof(uint64_t), sizeof(int64_t));
+        ebpf_hash_table_create(&_ebpf_epoch_thread_table, ebpf_allocate, ebpf_free, sizeof(uint64_t), sizeof(int64_t), NULL);
     if (return_value != EBPF_ERROR_SUCCESS) {
         goto Error;
     }

@@ -266,10 +266,6 @@ ebpf_core_terminate()
         _ebpf_core_delete_code_entry(index);
     }
 
-    for (index = 0; index < EBPF_COUNT_OF(_ebpf_core_pinning_table); index++) {
-        _ebpf_core_delete_code_entry(index);
-    }
-
     ebpf_pinning_table_free(_ebpf_core_map_pinning_table);
 
     ebpf_epoch_terminate();
@@ -879,7 +875,7 @@ ebpf_core_protocol_get_pinned_map(
     ebpf_error_code_t retval;
     ebpf_map_t* map = NULL;
     uint8_t* name = NULL;
-    size_t name_length = request->header.length - EBPF_OFFSET_OF(ebpf_operation_lookup_map_pinning_request_t, name);
+    size_t name_length = request->header.length - EBPF_OFFSET_OF(ebpf_operation_get_map_pinning_request_t, name);
     UNREFERENCED_PARAMETER(reply_length);
 
     if (name_length == 0) {

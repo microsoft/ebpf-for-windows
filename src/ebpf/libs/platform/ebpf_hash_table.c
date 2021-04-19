@@ -39,14 +39,14 @@ _ebpf_hash_map_compare(struct _RTL_AVL_TABLE* avl_table, void* first_struct, voi
 }
 
 static void*
-_ebpf_hash_table_allocate(struct _RTL_AVL_TABLE* table, unsigned long byte_size)
+_ebpf_hash_table_allocate(struct _RTL_AVL_TABLE* avl_table, unsigned long byte_size)
 {
     ebpf_hash_table_t* table = (ebpf_hash_table_t*)avl_table;
     return table->allocate(byte_size, EBPF_MEMORY_NO_EXECUTE);
 }
 
 static void
-_ebpf_hash_table_free(struct _RTL_AVL_TABLE* table, void* buffer)
+_ebpf_hash_table_free(struct _RTL_AVL_TABLE* avl_table, void* buffer)
 {
     ebpf_hash_table_t* table = (ebpf_hash_table_t*)avl_table;
     table->free(buffer);

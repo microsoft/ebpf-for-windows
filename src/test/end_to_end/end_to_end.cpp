@@ -165,7 +165,7 @@ TEST_CASE("pinning_test", "[pinning_test]")
         std::string name;
     } some_object_t;
 
-    REQUIRE(ebpf_platform_initialize() == EBPF_ERROR_SUCCESS);
+    REQUIRE(ebpf_platform_initiate() == EBPF_ERROR_SUCCESS);
 
     some_object_t an_object{1};
     some_object_t another_object{1};
