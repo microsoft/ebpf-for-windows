@@ -14,7 +14,7 @@
 std::set<uint64_t> _executable_segments;
 
 // Global variables used to override behavior for testing.
-// Permit the test to simulate both HVCI.
+// Permit the test to simulate both Hyper-V Code Integrity.
 bool _ebpf_platform_code_integrity_enabled = false;
 // Permit the test to simulate non-preemptable execution.
 bool _ebpf_platform_is_preemptable = true;
@@ -216,7 +216,7 @@ ebpf_is_preemptable()
 }
 
 bool
-ebpf_is_non_preemtable_work_item_supported()
+ebpf_is_non_preepmtable_work_item_supported()
 {
     return false;
 }
@@ -235,7 +235,7 @@ ebpf_get_current_thread_id()
 
 ebpf_error_code_t
 ebpf_allocate_non_preemptable_work_item(
-    epbf_non_preemtable_work_item_t** work_item,
+    epbf_non_preepmtable_work_item_t** work_item,
     uint32_t cpu_id,
     void (*work_item_routine)(void* work_item_context, void* parameter_1),
     void* work_item_context)
@@ -248,13 +248,13 @@ ebpf_allocate_non_preemptable_work_item(
 }
 
 void
-ebpf_free_non_preemptable_work_item(epbf_non_preemtable_work_item_t* work_item)
+ebpf_free_non_preemptable_work_item(epbf_non_preepmtable_work_item_t* work_item)
 {
     UNREFERENCED_PARAMETER(work_item);
 }
 
 bool
-ebpf_queue_non_preemptable_work_item(epbf_non_preemtable_work_item_t* work_item, void* parameter_1)
+ebpf_queue_non_preemptable_work_item(epbf_non_preepmtable_work_item_t* work_item, void* parameter_1)
 {
     UNREFERENCED_PARAMETER(work_item);
     UNREFERENCED_PARAMETER(parameter_1);
@@ -306,21 +306,20 @@ Error:
     return EBPF_ERROR_OUT_OF_RESOURCES;
 }
 
-#define MICROSECOND_PER_TICK 10
-#define MICROSECOND_PER_MILLISECOND 1000
+#define MICROSECONDS_PER_TICK 10
+#define MICROSECONDS_PER_MILLISECOND 1000
 
 void
 ebpf_schedule_timer_work_item(ebpf_timer_work_item_t* work_item, uint32_t elaped_microseconds)
 {
     int64_t due_time;
-    due_time = static_cast<int64_t>(elaped_microseconds) * MICROSECOND_PER_TICK;
-    due_time = -(due_time);
+    due_time = -static_cast<int64_t>(elaped_microseconds) * MICROSECONDS_PER_TICK;
 
     SetThreadpoolTimer(
         work_item->threadpool_timer,
         reinterpret_cast<FILETIME*>(&due_time),
         0,
-        elaped_microseconds / MICROSECOND_PER_MILLISECOND);
+        elaped_microseconds / MICROSECONDS_PER_MILLISECOND);
 }
 
 void

@@ -6,14 +6,16 @@
 #define CATCH_CONFIG_MAIN
 
 #include <chrono>
+#include <mutex>
+#include <thread>
+#include <WinSock2.h>
+
 #include "catch2\catch.hpp"
 #include "ebpf_api.h"
 #include "ebpf_core.h"
 #include "ebpf_epoch.h"
 #include "ebpf_protocol.h"
 #include "mock.h"
-#include <mutex>
-#include <thread>
 #include "tlv.h"
 namespace ebpf {
 #pragma warning(push)
@@ -23,7 +25,6 @@ namespace ebpf {
 }; // namespace ebpf
 
 #include "unwind_helper.h"
-#include <WinSock2.h>
 
 ebpf_handle_t
 GlueCreateFileW(

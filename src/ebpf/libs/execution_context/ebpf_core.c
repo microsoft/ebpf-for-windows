@@ -922,13 +922,13 @@ Done:
 
 static ebpf_error_code_t
 ebpf_core_protocol_lookup_map_pinning(
-    _In_ const struct _ebpf_operation_lookup_map_pinning_request* request,
-    _Inout_ struct _ebpf_operation_lookup_map_pinning_reply* reply,
+    _In_ const struct _EBPF_OPERATION_GET_MAP_PINNING_request* request,
+    _Inout_ struct _EBPF_OPERATION_GET_MAP_PINNING_reply* reply,
     uint16_t reply_length)
 {
     ebpf_error_code_t retval;
     const uint8_t* name = request->name;
-    size_t name_length = request->header.length - EBPF_OFFSET_OF(ebpf_operation_lookup_map_pinning_request_t, name);
+    size_t name_length = request->header.length - EBPF_OFFSET_OF(EBPF_OPERATION_GET_MAP_PINNING_request_t, name);
     UNREFERENCED_PARAMETER(reply_length);
 
     if (name_length == 0) {
@@ -990,7 +990,7 @@ typedef struct _ebpf_protocol_handler
     size_t minimum_reply_size;
 } const ebpf_protocol_handler_t;
 
-static ebpf_protocol_handler_t _ebpf_protocol_handlers[EBPF_OPERATION_LOOKUP_MAP_PINNING + 1] = {
+static ebpf_protocol_handler_t _ebpf_protocol_handlers[EBPF_OPERATION_GET_MAP_PINNING + 1] = {
     {NULL, sizeof(struct _ebpf_operation_eidence_request)}, // EBPF_OPERATION_EVIDENCE
     {(ebpf_error_code_t(__cdecl*)(const void*))ebpf_core_protocol_resolve_helper,
      sizeof(struct _ebpf_operation_resolve_helper_request),
@@ -1029,8 +1029,8 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[EBPF_OPERATION_LOOKUP_MAP
      sizeof(struct _ebpf_operation_query_program_information_reply)},
     {ebpf_core_protocol_update_map_pinning, sizeof(struct _ebpf_operation_update_map_pinning_request), 0},
     {(ebpf_error_code_t(__cdecl*)(const void*))ebpf_core_protocol_lookup_map_pinning,
-     sizeof(struct _ebpf_operation_lookup_map_pinning_request),
-     sizeof(struct _ebpf_operation_lookup_map_pinning_reply)},
+     sizeof(struct _EBPF_OPERATION_GET_MAP_PINNING_request),
+     sizeof(struct _EBPF_OPERATION_GET_MAP_PINNING_reply)},
 };
 
 ebpf_error_code_t
@@ -1040,7 +1040,7 @@ ebpf_core_get_protocol_handler_properties(
     *minimum_request_size = 0;
     *minimum_reply_size = 0;
 
-    if (operation_id > EBPF_OPERATION_LOOKUP_MAP_PINNING || operation_id < EBPF_OPERATION_EVIDENCE)
+    if (operation_id > EBPF_OPERATION_GET_MAP_PINNING || operation_id < EBPF_OPERATION_EVIDENCE)
         return EBPF_ERROR_NOT_SUPPORTED;
 
     if (!_ebpf_protocol_handlers[operation_id].dispatch.protocol_handler_no_reply)
@@ -1060,7 +1060,7 @@ ebpf_core_invoke_protocol_handler(
 {
     ebpf_error_code_t retval;
 
-    if (operation_id > EBPF_OPERATION_LOOKUP_MAP_PINNING || operation_id < EBPF_OPERATION_EVIDENCE) {
+    if (operation_id > EBPF_OPERATION_GET_MAP_PINNING || operation_id < EBPF_OPERATION_EVIDENCE) {
         return EBPF_ERROR_NOT_SUPPORTED;
     }
 

@@ -153,7 +153,7 @@ ebpf_is_preemptable()
 }
 
 bool
-ebpf_is_non_preemtable_work_item_supported()
+ebpf_is_non_preepmtable_work_item_supported()
 {
     return true;
 }
@@ -174,26 +174,26 @@ typedef struct _epbf_non_preemptable_work_item
 {
     KDPC deferred_procedure_call;
     void (*work_item_routine)(void* work_item_context, void* parameter_1);
-} epbf_non_preemtable_work_item_t;
+} epbf_non_preepmtable_work_item_t;
 
 static void
 _ebpf_deferred_routine(
     KDPC* deferred_procedure_call, PVOID deferred_context, PVOID system_argument_1, PVOID system_argument_2)
 {
-    epbf_non_preemtable_work_item_t* deferred_routine_context =
-        (epbf_non_preemtable_work_item_t*)deferred_procedure_call;
+    epbf_non_preepmtable_work_item_t* deferred_routine_context =
+        (epbf_non_preepmtable_work_item_t*)deferred_procedure_call;
     UNREFERENCED_PARAMETER(system_argument_2);
     deferred_routine_context->work_item_routine(deferred_context, system_argument_1);
 }
 
 ebpf_error_code_t
 ebpf_allocate_non_preemptable_work_item(
-    epbf_non_preemtable_work_item_t** work_item,
+    epbf_non_preepmtable_work_item_t** work_item,
     uint32_t cpu_id,
     void (*work_item_routine)(void* work_item_context, void* parameter_1),
     void* work_item_context)
 {
-    *work_item = ebpf_allocate(sizeof(epbf_non_preemtable_work_item_t), EBPF_MEMORY_NO_EXECUTE);
+    *work_item = ebpf_allocate(sizeof(epbf_non_preepmtable_work_item_t), EBPF_MEMORY_NO_EXECUTE);
     if (*work_item == NULL) {
         return EBPF_ERROR_OUT_OF_RESOURCES;
     }
@@ -206,7 +206,7 @@ ebpf_allocate_non_preemptable_work_item(
 }
 
 void
-ebpf_free_non_preemptable_work_item(epbf_non_preemtable_work_item_t* work_item)
+ebpf_free_non_preemptable_work_item(epbf_non_preepmtable_work_item_t* work_item)
 {
     if (!work_item)
         return;
@@ -216,7 +216,7 @@ ebpf_free_non_preemptable_work_item(epbf_non_preemtable_work_item_t* work_item)
 }
 
 bool
-ebpf_queue_non_preemptable_work_item(epbf_non_preemtable_work_item_t* work_item, void* parameter_1)
+ebpf_queue_non_preemptable_work_item(epbf_non_preepmtable_work_item_t* work_item, void* parameter_1)
 {
     return KeInsertQueueDpc(&work_item->deferred_procedure_call, parameter_1, NULL);
 }
@@ -258,15 +258,14 @@ ebpf_allocate_timer_work_item(
     return EBPF_ERROR_SUCCESS;
 }
 
-#define MICROSECOND_PER_TICK 10
-#define MICROSECOND_PER_MILLISECOND 1000
+#define MICROSECONDS_PER_TICK 10
+#define MICROSECONDS_PER_MILLISECOND 1000
 
 void
 ebpf_schedule_timer_work_item(ebpf_timer_work_item_t* work_item, uint32_t elaped_microseconds)
 {
     LARGE_INTEGER due_time;
-    due_time.QuadPart = elaped_microseconds * MICROSECOND_PER_TICK;
-    due_time.QuadPart = -due_time.QuadPart;
+    due_time.QuadPart = -(elaped_microseconds * MICROSECONDS_PER_TICK);
 
     KeSetTimer(&work_item->timer, due_time, &work_item->deferred_procedure_call);
 }

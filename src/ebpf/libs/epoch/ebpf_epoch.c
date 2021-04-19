@@ -49,7 +49,7 @@ static ebpf_hash_table_t* _ebpf_epoch_thread_table = NULL;
 typedef struct _ebpf_epoch_cpu_entry
 {
     int64_t epoch;
-    epbf_non_preemtable_work_item_t* non_preemtable_work_item;
+    epbf_non_preepmtable_work_item_t* non_preemtable_work_item;
 } ebpf_epoch_cpu_entry_t;
 
 static ebpf_epoch_cpu_entry_t* _ebpf_epoch_cpu_table = NULL;
@@ -94,7 +94,7 @@ ebpf_epoch_initiate()
     ebpf_lock_create(&_ebpf_epoch_thread_table_lock);
     ebpf_lock_create(&_ebpf_epoch_free_list_lock);
 
-    if (ebpf_is_non_preemtable_work_item_supported()) {
+    if (ebpf_is_non_preepmtable_work_item_supported()) {
         return_value = ebpf_get_cpu_count(&_ebpf_epoch_cpu_table_size);
         if (return_value != EBPF_ERROR_SUCCESS) {
             goto Error;
@@ -162,7 +162,7 @@ ebpf_epoch_terminate()
 ebpf_error_code_t
 ebpf_epoch_enter()
 {
-    if (!ebpf_is_non_preemtable_work_item_supported() || ebpf_is_preemptable()) {
+    if (!ebpf_is_non_preepmtable_work_item_supported() || ebpf_is_preemptable()) {
         ebpf_error_code_t return_value;
         ebpf_lock_state_t lock_state;
         uint64_t current_thread_id = ebpf_get_current_thread_id();
@@ -216,7 +216,7 @@ ebpf_epoch_flush()
     int64_t released_epoch;
     uint32_t cpu_id;
 
-    if (ebpf_is_non_preemtable_work_item_supported()) {
+    if (ebpf_is_non_preepmtable_work_item_supported()) {
         // Schedule a non-preemptable work item to bring the CPU up to the current
         // epoch.
         // Note: May not affect the current flush.
@@ -301,7 +301,7 @@ ebpf_epoch_get_release_epoch(int64_t* release_epoch)
     ebpf_lock_state_t lock_state;
     ebpf_error_code_t return_value;
 
-    if (ebpf_is_non_preemtable_work_item_supported()) {
+    if (ebpf_is_non_preepmtable_work_item_supported()) {
         for (cpu_id = 0; cpu_id < _ebpf_epoch_cpu_table_size; cpu_id++) {
             if ((_ebpf_epoch_cpu_table[cpu_id].epoch != 0) && _ebpf_epoch_cpu_table[cpu_id].epoch < lowest_epoch)
                 lowest_epoch = _ebpf_epoch_cpu_table[cpu_id].epoch;

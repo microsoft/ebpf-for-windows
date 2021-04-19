@@ -26,7 +26,7 @@ extern "C"
         EBPF_CODE_INTEGRITY_HYPER_VISOR_KERNEL_MODE = 1
     } ebpf_code_integrity_state_t;
 
-    typedef struct _epbf_non_preemptable_work_item epbf_non_preemtable_work_item_t;
+    typedef struct _epbf_non_preemptable_work_item epbf_non_preepmtable_work_item_t;
     typedef struct _ebpf_timer_work_item ebpf_timer_work_item_t;
 
     ebpf_error_code_t
@@ -75,20 +75,20 @@ extern "C"
     ebpf_get_current_thread_id();
 
     bool
-    ebpf_is_non_preemtable_work_item_supported();
+    ebpf_is_non_preepmtable_work_item_supported();
 
     ebpf_error_code_t
     ebpf_allocate_non_preemptable_work_item(
-        epbf_non_preemtable_work_item_t** work_item,
+        epbf_non_preepmtable_work_item_t** work_item,
         uint32_t cpu_id,
         void (*work_item_routine)(void* work_item_context, void* parameter_1),
         void* work_item_context);
 
     void
-    ebpf_free_non_preemptable_work_item(epbf_non_preemtable_work_item_t* work_item);
+    ebpf_free_non_preemptable_work_item(epbf_non_preepmtable_work_item_t* work_item);
 
     bool
-    ebpf_queue_non_preemptable_work_item(epbf_non_preemtable_work_item_t* work_item, void* parameter_1);
+    ebpf_queue_non_preemptable_work_item(epbf_non_preepmtable_work_item_t* work_item, void* parameter_1);
 
     ebpf_error_code_t
     ebpf_allocate_timer_work_item(

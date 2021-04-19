@@ -24,7 +24,7 @@ typedef enum _ebpf_operation_id
     EBPF_OPERATION_QUERY_MAP_DEFINITION,
     EBPF_OPERATION_QUERY_PROGRAM_INFORMATION,
     EBPF_OPERATION_UPDATE_MAP_PINNING,
-    EBPF_OPERATION_LOOKUP_MAP_PINNING,
+    EBPF_OPERATION_GET_MAP_PINNING,
 } ebpf_operation_id_t;
 
 typedef enum _ebpf_code_type
@@ -215,14 +215,14 @@ typedef struct _ebpf_operation_update_map_pinning_request
     uint8_t name[1];
 } ebpf_operation_update_map_pinning_request_t;
 
-typedef struct _ebpf_operation_lookup_map_pinning_request
+typedef struct _EBPF_OPERATION_GET_MAP_PINNING_request
 {
     struct _ebpf_operation_header header;
     uint8_t name[1];
-} ebpf_operation_lookup_map_pinning_request_t;
+} EBPF_OPERATION_GET_MAP_PINNING_request_t;
 
-typedef struct _ebpf_operation_lookup_map_pinning_reply
+typedef struct _EBPF_OPERATION_GET_MAP_PINNING_reply
 {
     struct _ebpf_operation_header header;
     uint64_t handle;
-} ebpf_operation_lookup_map_pinning_reply_t;
+} EBPF_OPERATION_GET_MAP_PINNING_reply_t;
