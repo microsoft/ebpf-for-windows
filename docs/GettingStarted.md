@@ -89,7 +89,7 @@ On the attacker machine, do the following:
 
 ## Alternative to running with kernel debugger attached
 Windows requires that one of the following criteria is met prior to loading a driver:
-1. Driver is signed using a certificate that chains up to Microsoft code signign root (aka production signed driver).
+1. Driver is signed using a certificate that chains up to the Microsoft code signing root (aka a production signed driver).
 2. The OS is booted with a kernel debugger attached.
 3. The OS is running in [test-signing mode](https://docs.microsoft.com/en-us/windows-hardware/drivers/install/the-testsigning-boot-configuration-option), the [driver is test signed](https://docs.microsoft.com/en-us/windows-hardware/drivers/install/test-signing-a-driver-through-an-embedded-signature) and the [test certificate is installed](https://docs.microsoft.com/en-us/windows-hardware/drivers/install/installing-test-certificates).
 
