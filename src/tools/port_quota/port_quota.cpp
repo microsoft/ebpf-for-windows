@@ -70,7 +70,7 @@ stats(int argc, char** argv)
     uint64_t pid;
     process_entry_t process_entry;
 
-    result = ebpf_api_lookup_map(process_map, sizeof(process_map), &map);
+    result = ebpf_api_get_pinned_map(process_map, sizeof(process_map), &map);
     if (result != ERROR_SUCCESS) {
         fprintf(stderr, "Failed to look up eBPF map: %d\n", result);
         return 1;
@@ -111,7 +111,7 @@ limit(int argc, char** argv)
     uint32_t result;
     uint32_t key = 0;
 
-    result = ebpf_api_lookup_map(limits_map, sizeof(limits_map), &map);
+    result = ebpf_api_get_pinned_map(limits_map, sizeof(limits_map), &map);
     if (result != ERROR_SUCCESS) {
         fprintf(stderr, "Failed to look up eBPF map: %d\n", result);
         return 1;

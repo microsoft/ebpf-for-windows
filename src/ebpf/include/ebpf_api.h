@@ -37,7 +37,7 @@ extern "C"
      * @brief Load an eBFP program into the kernel execution context.
      * @param[in] file An ELF file containing one or more eBPF programs.
      * @param[in] section_name Name of the section in the ELF file to load.
-     * @param[in] execution_type How this program should be run in the exeuction
+     * @param[in] execution_type How this program should be run in the execution
      * context.
      * @param[out] handle Handle to eBPF program.
      * @param[out] error_message Error message describing what failed.
@@ -214,13 +214,13 @@ extern "C"
      * @brief Convert an eBPF program to human readable byte code.
      * @param[in] file Name of ELF file containing eBPF program.
      * @param[in] section The name of the section to query.
-     * @param[out] dissassembly On success points text version of the program.
+     * @param[out] disassembly On success points text version of the program.
      * @param[out] error_message On failure points to a text description of
      *  the error.
      */
     uint32_t
     ebpf_api_elf_disassemble_section(
-        const char* file, const char* section, const char** dissassembly, const char** error_message);
+        const char* file, const char* section, const char** disassembly, const char** error_message);
 
     /**
      * @brief Convert an eBPF program to human readable byte code.
@@ -259,8 +259,8 @@ extern "C"
     ebpf_api_pin_map(ebpf_handle_t handle, const uint8_t* name, uint32_t name_length);
 
     /**
-     * @brief Desasociate a name with a map handle.
-     * @param[in] name Name to deassociate.
+     * @brief Dissociate a name with a map handle.
+     * @param[in] name Name to dissociate.
      */
     uint32_t
     ebpf_api_unpin_map(const uint8_t* name, uint32_t name_length);
@@ -270,7 +270,7 @@ extern "C"
      * @param[in] name Name to find.
      */
     uint32_t
-    ebpf_api_lookup_map(const uint8_t* name, uint32_t name_length, ebpf_handle_t* handle);
+    ebpf_api_get_pinned_map(const uint8_t* name, uint32_t name_length, ebpf_handle_t* handle);
 
 #ifdef __cplusplus
 }

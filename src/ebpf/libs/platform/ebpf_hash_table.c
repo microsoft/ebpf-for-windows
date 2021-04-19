@@ -9,6 +9,8 @@ struct _ebpf_hash_table
     struct _RTL_AVL_TABLE avl_table;
     size_t key_size;
     size_t value_size;
+    void* (*allocate)(size_t size, ebpf_memory_type_t type);
+    void (*free)(void* memory);
 };
 
 // NOTE:
@@ -31,21 +33,26 @@ ebpf_hash_map_compare(struct _RTL_AVL_TABLE* avl_table, void* first_struct, void
 }
 
 static void*
-ebpf_hash_map_allocate(struct _RTL_AVL_TABLE* table, unsigned long byte_size)
+ebpf_hash_map_allocate(struct _RTL_AVL_TABLE* avl_table, unsigned long byte_size)
 {
-    UNREFERENCED_PARAMETER(table);
-    return ebpf_allocate(byte_size, EBPF_MEMORY_NO_EXECUTE);
+    ebpf_hash_table_t* table = (ebpf_hash_table_t*)avl_table;
+    return table->allocate(byte_size, EBPF_MEMORY_NO_EXECUTE);
 }
 
 static void
-ebpf_hash_map_free(struct _RTL_AVL_TABLE* table, void* buffer)
+ebpf_hash_map_free(struct _RTL_AVL_TABLE* avl_table, void* buffer)
 {
-    UNREFERENCED_PARAMETER(table);
-    ebpf_free(buffer);
+    ebpf_hash_table_t* table = (ebpf_hash_table_t*)avl_table;
+    table->free(buffer);
 }
 
 ebpf_error_code_t
-ebpf_hash_table_create(ebpf_hash_table_t** hash_table, size_t key_size, size_t value_size)
+ebpf_hash_table_create(
+    ebpf_hash_table_t** hash_table,
+    void* (*allocate)(size_t size, ebpf_memory_type_t type),
+    void (*free)(void* memory),
+    size_t key_size,
+    size_t value_size)
 {
     ebpf_error_code_t retval;
     ebpf_hash_table_t* table = NULL;
@@ -62,6 +69,8 @@ ebpf_hash_table_create(ebpf_hash_table_t** hash_table, size_t key_size, size_t v
 
     table->key_size = key_size;
     table->value_size = value_size;
+    table->allocate = allocate;
+    table->free = free;
 
     *hash_table = table;
     retval = EBPF_ERROR_SUCCESS;
@@ -165,7 +174,7 @@ ebpf_hash_table_next_key(ebpf_hash_table_t* hash_table, const uint8_t* previous_
         if (!entry) {
             // Entry deleted.
 
-            // Start at the begining of the table.
+            // Start at the beginning of the table.
             entry = RtlEnumerateGenericTableAvl(table, TRUE);
             if (entry == NULL) {
                 return EBPF_ERROR_NO_MORE_KEYS;
