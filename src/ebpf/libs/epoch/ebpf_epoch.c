@@ -19,7 +19,7 @@
 // 2) Accessed without synchronization.
 // 3) Set to the current epoch on entry.
 //
-// Pre-emptable invocations:
+// Pre-emptable invocations are:
 // 1) Tracked by thread ID.
 // 2) Accessed under a lock.
 // 3) Set to the current epoch on entry.
