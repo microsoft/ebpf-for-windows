@@ -33,6 +33,7 @@ extern "C"
      * @brief Allocate memory under epoch control.
      * @param[in] size Size of memory to allocate
      * @param[in] type Allocate memory as executable vs non-executable
+     * @returns Pointer to memory block allocated, or null on failure.
      */
     void*
     ebpf_epoch_allocate(size_t size, ebpf_memory_type_t type);
