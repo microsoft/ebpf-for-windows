@@ -158,7 +158,7 @@ ebpf_epoch_enter()
         return return_value;
     } else {
         uint32_t current_cpu = ebpf_get_current_cpu();
-        if (current_cpu > _ebpf_epoch_cpu_table_size) {
+        if (current_cpu >= _ebpf_epoch_cpu_table_size) {
             return EBPF_ERROR_NOT_SUPPORTED;
         }
 
