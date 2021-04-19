@@ -104,13 +104,21 @@ extern "C"
 
     typedef struct _ebpf_hash_table ebpf_hash_table_t;
 
+    typedef enum _ebpf_hash_table_compare_result
+    {
+        EBPF_HASH_TABLE_LESS_THAN = 0,
+        EBPF_HASH_TABLE_GREATER_THAN = 1,
+        EBPF_HASH_TABLE_EQUAL = 2,
+    } ebpf_hash_table_compare_result_t;
+
     ebpf_error_code_t
     ebpf_hash_table_create(
         ebpf_hash_table_t** hash_table,
         void* (*allocate)(size_t size, ebpf_memory_type_t type),
         void (*free)(void* memory),
         size_t key_size,
-        size_t value_size);
+        size_t value_size,
+        ebpf_hash_table_compare_result_t (*compare_function)(const uint8_t* key1, const uint8_t* key2));
 
     void
     ebpf_hash_table_destroy(ebpf_hash_table_t* hash_table);
@@ -137,6 +145,27 @@ extern "C"
 
     int32_t
     ebpf_interlocked_compare_exchange_int32(volatile int32_t* destination, int32_t exchange, int32_t comperand);
+
+    typedef struct _ebpf_pinning_table ebpf_pinning_table_t;
+
+    ebpf_error_code_t
+    ebpf_pinning_table_allocate(
+        ebpf_pinning_table_t** pinning_table, void (*acquire_reference)(void*), void (*release_reference)(void*));
+
+    void
+    ebpf_pinning_table_free(ebpf_pinning_table_t* pinning_table);
+
+    ebpf_error_code_t
+    ebpf_pinning_table_insert(ebpf_pinning_table_t* pinning_table, const uint8_t* name, void* object);
+
+    ebpf_error_code_t
+    ebpf_pinning_table_lookup(ebpf_pinning_table_t* pinning_table, const uint8_t* name, void** object);
+
+    ebpf_error_code_t
+    ebpf_pinning_table_delete(ebpf_pinning_table_t* pinning_table, const uint8_t* name);
+
+    ebpf_error_code_t
+    ebpf_pinning_table_next_name(ebpf_pinning_table_t* hash_table, const uint8_t* previous_name, uint8_t* next_name);
 
 #ifdef __cplusplus
 }

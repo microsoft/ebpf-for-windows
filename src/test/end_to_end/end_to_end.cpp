@@ -150,6 +150,56 @@ prepare_udp_packet(uint16_t udp_length)
 
 #define SAMPLE_PATH ""
 
+TEST_CASE("pinning_test", "[pinning_test]")
+{
+
+    bool platform_initiated;
+    _unwind_helper on_exit([&] {
+        if (platform_initiated)
+            ebpf_platform_terminate();
+    });
+
+    typedef struct _some_object
+    {
+        int32_t reference_count;
+        std::string name;
+    } some_object_t;
+
+    REQUIRE(ebpf_platform_initialize() == EBPF_ERROR_SUCCESS);
+
+    some_object_t an_object{1};
+    some_object_t another_object{1};
+    some_object_t* some_object;
+
+    auto aquire_ref = [](void* object) {
+        some_object_t* some_object = reinterpret_cast<some_object_t*>(object);
+        (some_object->reference_count)++;
+    };
+
+    auto release_ref = [](void* object) {
+        some_object_t* some_object = reinterpret_cast<some_object_t*>(object);
+        (some_object->reference_count)--;
+    };
+
+    ebpf_pinning_table_t* pinning_table;
+    REQUIRE(ebpf_pinning_table_allocate(&pinning_table, aquire_ref, release_ref) == EBPF_ERROR_SUCCESS);
+
+    REQUIRE(ebpf_pinning_table_insert(pinning_table, (uint8_t*)"foo", &an_object) == EBPF_ERROR_SUCCESS);
+    REQUIRE(an_object.reference_count == 2);
+    REQUIRE(ebpf_pinning_table_insert(pinning_table, (uint8_t*)"bar", &another_object) == EBPF_ERROR_SUCCESS);
+    REQUIRE(another_object.reference_count == 2);
+    REQUIRE(ebpf_pinning_table_lookup(pinning_table, (uint8_t*)"foo", (void**)&some_object) == EBPF_ERROR_SUCCESS);
+    REQUIRE(an_object.reference_count == 3);
+    REQUIRE(some_object == &an_object);
+    release_ref(&an_object);
+    REQUIRE(ebpf_pinning_table_delete(pinning_table, (uint8_t*)"foo") == EBPF_ERROR_SUCCESS);
+    REQUIRE(another_object.reference_count == 2);
+
+    ebpf_pinning_table_free(pinning_table);
+    REQUIRE(an_object.reference_count == 1);
+    REQUIRE(another_object.reference_count == 1);
+}
+
 TEST_CASE("droppacket-jit", "[droppacket_jit]")
 {
     device_io_control_handler = GlueDeviceIoControl;

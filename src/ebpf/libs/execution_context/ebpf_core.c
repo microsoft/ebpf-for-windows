@@ -31,12 +31,7 @@ typedef struct _ebpf_core_code_entry
     ebpf_program_type_t hook_point;
 } ebpf_core_code_entry_t;
 
-typedef struct _ebpf_core_pinning_entry
-{
-    uint64_t handle;
-    size_t name_length;
-    uint8_t name[1];
-} ebpf_core_pinning_entry_t;
+static ebpf_pinning_table_t* _ebpf_core_map_pinning_table = NULL;
 
 static ebpf_lock_t _ebpf_core_code_entry_table_lock = {0};
 static ebpf_core_code_entry_t* _ebpf_core_code_entry_table[1024] = {0};
@@ -46,9 +41,6 @@ static ebpf_map_t* _ebpf_core_map_entry_table[1024] = {0};
 
 static ebpf_lock_t _ebpf_core_hook_table_lock = {0};
 static ebpf_core_code_entry_t* _ebpf_core_hook_table[EBPF_PROGRAM_TYPE_BIND + 1] = {0};
-
-static ebpf_lock_t _ebpf_core_pinning_table_lock = {0};
-static ebpf_core_pinning_entry_t* _ebpf_core_pinning_table[1024] = {0};
 
 // Assume enabled until we can query it
 static ebpf_code_integrity_state_t _ebpf_core_code_integrity_state = EBPF_CODE_INTEGRITY_HYPER_VISOR_KERNEL_MODE;
@@ -147,56 +139,21 @@ _ebpf_core_find_map_entry(uint64_t handle)
     return map;
 }
 
-// Helper functions for pinning entry table
 static uint64_t
-_ebpf_core_insert_pinning_entry(ebpf_core_pinning_entry_t* pin)
+_ebpf_core_find_map_entry_handle(ebpf_map_t* map)
 {
-    uint64_t handle = UINT64_MAX;
-    uint64_t index = 0;
+    uint64_t handle;
     ebpf_lock_state_t state;
-    ebpf_lock_lock(&_ebpf_core_pinning_table_lock, &state);
-    for (index = 1; index < EBPF_COUNT_OF(_ebpf_core_pinning_table); index++) {
-        if (!_ebpf_core_pinning_table[index]) {
-            handle = index;
-            _ebpf_core_pinning_table[index] = pin;
+    ebpf_lock_lock(&_ebpf_core_map_entry_table_lock, &state);
+    for (handle = 0; handle < EBPF_COUNT_OF(_ebpf_core_map_entry_table); handle++) {
+        if (_ebpf_core_map_entry_table[handle] == map) {
             break;
         }
     }
-    ebpf_lock_unlock(&_ebpf_core_pinning_table_lock, &state);
-    return handle;
-}
-
-static void
-_ebpf_core_delete_pinning_entry(const uint8_t* name, const size_t name_length)
-{
-    uint64_t index = 0;
-    ebpf_lock_state_t state;
-    ebpf_lock_lock(&_ebpf_core_pinning_table_lock, &state);
-    for (index = 1; index < EBPF_COUNT_OF(_ebpf_core_pinning_table); index++) {
-        if (_ebpf_core_pinning_table[index] && name_length == _ebpf_core_pinning_table[index]->name_length &&
-            memcmp(name, _ebpf_core_pinning_table[index]->name, name_length) == 0) {
-            ebpf_free(_ebpf_core_pinning_table[index]);
-            _ebpf_core_pinning_table[index] = NULL;
-        }
+    ebpf_lock_unlock(&_ebpf_core_map_entry_table_lock, &state);
+    if (handle == EBPF_COUNT_OF(_ebpf_core_map_entry_table)) {
+        handle = MAXUINT64;
     }
-    ebpf_lock_unlock(&_ebpf_core_pinning_table_lock, &state);
-}
-
-static uint64_t
-_ebpf_core_find_pinning_entry(const uint8_t* name, const size_t name_length)
-{
-    uint64_t handle = UINT64_MAX;
-    uint64_t index = 0;
-    ebpf_lock_state_t state;
-    ebpf_lock_lock(&_ebpf_core_pinning_table_lock, &state);
-    for (index = 1; index < EBPF_COUNT_OF(_ebpf_core_pinning_table); index++) {
-        if (_ebpf_core_pinning_table[index] && name_length == _ebpf_core_pinning_table[index]->name_length &&
-            memcmp(name, _ebpf_core_pinning_table[index]->name, name_length) == 0) {
-            handle = index;
-            break;
-        }
-    }
-    ebpf_lock_unlock(&_ebpf_core_pinning_table_lock, &state);
     return handle;
 }
 
@@ -279,10 +236,12 @@ ebpf_core_initiate()
         goto Done;
     epoch_initialize = true;
 
+    return_value = ebpf_pinning_table_allocate(
+        &_ebpf_core_map_pinning_table, ebpf_map_acquire_reference, ebpf_map_release_reference);
+
     ebpf_lock_create(&_ebpf_core_code_entry_table_lock);
     ebpf_lock_create(&_ebpf_core_map_entry_table_lock);
     ebpf_lock_create(&_ebpf_core_hook_table_lock);
-    ebpf_lock_create(&_ebpf_core_pinning_table_lock);
 
     return_value = ebpf_query_code_integrity_state(&_ebpf_core_code_integrity_state);
 
@@ -311,11 +270,7 @@ ebpf_core_terminate()
         _ebpf_core_delete_code_entry(index);
     }
 
-    ebpf_lock_state_t state;
-    ebpf_lock_lock(&_ebpf_core_pinning_table_lock, &state);
-    for (index = 0; index < EBPF_COUNT_OF(_ebpf_core_pinning_table); index++)
-        ebpf_free(_ebpf_core_pinning_table[index]);
-    ebpf_lock_unlock(&_ebpf_core_pinning_table_lock, &state);
+    ebpf_pinning_table_free(_ebpf_core_map_pinning_table);
 
     ebpf_epoch_terminate();
 
@@ -883,8 +838,7 @@ static ebpf_error_code_t
 ebpf_core_protocol_update_map_pinning(_In_ const struct _ebpf_operation_update_map_pinning_request* request)
 {
     ebpf_error_code_t retval;
-    ebpf_core_pinning_entry_t* entry = NULL;
-    const uint8_t* name = request->name;
+    uint8_t* name = NULL;
     size_t name_length = request->header.length - EBPF_OFFSET_OF(ebpf_operation_update_map_pinning_request_t, name);
 
     if (name_length == 0) {
@@ -892,31 +846,27 @@ ebpf_core_protocol_update_map_pinning(_In_ const struct _ebpf_operation_update_m
         goto Done;
     }
 
+    name = ebpf_allocate(name_length + 1, EBPF_MEMORY_NO_EXECUTE);
+    if (name == NULL) {
+        retval = EBPF_ERROR_OUT_OF_RESOURCES;
+        goto Done;
+    }
+
+    memset(name, 0, name_length + 1);
+    memcpy(name, request->name, name_length);
+
     if (request->handle == UINT64_MAX) {
-        _ebpf_core_delete_pinning_entry(request->name, name_length);
-        retval = EBPF_ERROR_SUCCESS;
+        retval = ebpf_pinning_table_delete(_ebpf_core_map_pinning_table, name);
         goto Done;
     } else {
-        size_t entry_size = EBPF_OFFSET_OF(ebpf_core_pinning_entry_t, name) + name_length;
-
-        entry = ebpf_allocate(entry_size, EBPF_MEMORY_NO_EXECUTE);
-        if (!entry) {
-            retval = EBPF_ERROR_OUT_OF_RESOURCES;
-            goto Done;
+        ebpf_map_t* map = _ebpf_core_find_map_entry(request->handle);
+        if (!map) {
+            return EBPF_ERROR_INVALID_HANDLE;
         }
-        entry->handle = request->handle;
-        memcpy(entry->name, name, name_length);
-        entry->name_length = name_length;
-
-        if (_ebpf_core_insert_pinning_entry(entry) == UINT64_MAX) {
-            retval = EBPF_ERROR_OUT_OF_RESOURCES;
-            goto Done;
-        }
-        entry = NULL;
-        retval = EBPF_ERROR_SUCCESS;
+        retval = ebpf_pinning_table_insert(_ebpf_core_map_pinning_table, name, map);
     }
 Done:
-    ebpf_free(entry);
+    ebpf_free(name);
     return retval;
 }
 
@@ -927,8 +877,9 @@ ebpf_core_protocol_get_pinned_map(
     uint16_t reply_length)
 {
     ebpf_error_code_t retval;
-    const uint8_t* name = request->name;
-    size_t name_length = request->header.length - EBPF_OFFSET_OF(ebpf_operation_get_map_pinning_request_t, name);
+    ebpf_map_t* map = NULL;
+    uint8_t* name = NULL;
+    size_t name_length = request->header.length - EBPF_OFFSET_OF(ebpf_operation_lookup_map_pinning_request_t, name);
     UNREFERENCED_PARAMETER(reply_length);
 
     if (name_length == 0) {
@@ -936,15 +887,24 @@ ebpf_core_protocol_get_pinned_map(
         goto Done;
     }
 
-    reply->handle = _ebpf_core_find_pinning_entry(name, name_length);
-    if (reply->handle == UINT64_MAX) {
-        retval = EBPF_ERROR_NOT_FOUND;
+    name = ebpf_allocate(name_length + 1, EBPF_MEMORY_NO_EXECUTE);
+    if (name == NULL) {
+        retval = EBPF_ERROR_OUT_OF_RESOURCES;
         goto Done;
     }
+    memset(name, 0, name_length + 1);
+    memcpy(name, request->name, name_length);
+
+    retval = ebpf_pinning_table_lookup(_ebpf_core_map_pinning_table, name, (void**)&map);
+    if (retval != EBPF_ERROR_SUCCESS)
+        goto Done;
+
+    reply->handle = _ebpf_core_find_map_entry_handle(map);
 
     retval = EBPF_ERROR_SUCCESS;
 
 Done:
+    ebpf_free(name);
     return retval;
 }
 
