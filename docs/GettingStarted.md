@@ -52,7 +52,7 @@ Set up 2 VMs, which we will refer to as the "attacker" machine and the "defender
 
 On the defender machine, do the following:
 1. Install and set up a DNS server
-2. Make sure the kernel debugger (KD) is attached and running.
+2. Make sure the kernel debugger (KD) is attached and running. [Alternatives](#alternative-to-running-with-kernel-debugger-attached)
 3. Install Debug VS 2019 VC redist from TBD (or switch everything to Multi-threaded Debug (/MTd) and rebuild)
 4. Copy ebpfcore.sys to %windir%\system32\drivers
 5. Copy ebpfapi.dll and ebpfnetsh.dll to %windir%\system32
@@ -93,4 +93,4 @@ Windows requires that one of the following criteria is met prior to loading a dr
 2. The OS is booted with a kernel debugger attached.
 3. The OS is running in [test-signing mode](https://docs.microsoft.com/en-us/windows-hardware/drivers/install/the-testsigning-boot-configuration-option), the [driver is test signed](https://docs.microsoft.com/en-us/windows-hardware/drivers/install/test-signing-a-driver-through-an-embedded-signature) and the [test certificate is installed](https://docs.microsoft.com/en-us/windows-hardware/drivers/install/installing-test-certificates).
 
-Official released of Ebpf-For-Windows will be signed by production signed.
+Official released of Ebpf-For-Windows will be production signed.
