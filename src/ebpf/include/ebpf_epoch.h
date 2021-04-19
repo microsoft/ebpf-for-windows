@@ -19,8 +19,8 @@ extern "C"
 
     /**
      * @brief Called prior to touching memory with lifetime under epoch control.
-     * @retval Can return EBPF_ERROR_OUT_OF_RESOURCES if unable to allocate per
-     *   thread tracking state.
+     * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate per-thread
+     *   tracking state.
      */
     ebpf_error_code_t
     ebpf_epoch_enter();
