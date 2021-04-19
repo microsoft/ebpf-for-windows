@@ -74,14 +74,13 @@ ebpf_pinning_table_free(ebpf_pinning_table_t* pinning_table)
 {
     ebpf_error_code_t return_value;
     uint64_t key = 0;
-    uint64_t* value = 0;
 
     for (;;) {
         return_value = ebpf_hash_table_next_key(pinning_table->hash_table, NULL, (uint8_t*)&key);
         if (return_value != EBPF_ERROR_SUCCESS) {
             break;
         }
-        ebpf_pinning_table_delete(pinning_table, (char*)key);
+        ebpf_pinning_table_delete(pinning_table, (uint8_t*)key);
     }
 
     ebpf_hash_table_destroy(pinning_table->hash_table);
@@ -96,7 +95,7 @@ ebpf_pinning_table_insert(ebpf_pinning_table_t* pinning_table, const uint8_t* na
     uint64_t key;
     uint64_t value;
     ebpf_pinning_entry_t* entry = NULL;
-    size_t name_length = strlen(name);
+    size_t name_length = strlen((const char*)name);
     entry = ebpf_allocate(sizeof(ebpf_pinning_entry_t) + name_length, EBPF_MEMORY_NO_EXECUTE);
     if (entry == NULL) {
         return_value = EBPF_ERROR_OUT_OF_RESOURCES;
