@@ -443,7 +443,7 @@ ebpf_api_unpin_map(const uint8_t* name, uint32_t name_length)
 }
 
 uint32_t
-ebpf_api_lookup_map(const uint8_t* name, uint32_t name_length, ebpf_handle_t* handle)
+ebpf_api_get_pinned_map(const uint8_t* name, uint32_t name_length, ebpf_handle_t* handle)
 {
     std::vector<uint8_t> request_buffer(offsetof(ebpf_operation_get_map_pinning_request_t, name) + name_length);
     auto request = reinterpret_cast<ebpf_operation_get_map_pinning_request_t*>(request_buffer.data());

@@ -479,13 +479,13 @@ TEST_CASE("bindmonitor-interpret", "[bindmonitor_interpret]")
 
     ebpf_handle_t test_handle;
     REQUIRE(
-        ebpf_api_lookup_map(
+        ebpf_api_get_pinned_map(
             reinterpret_cast<const uint8_t*>(process_maps_name.c_str()),
             static_cast<uint32_t>(process_maps_name.size()),
             &test_handle) == ERROR_SUCCESS);
     REQUIRE(test_handle == map_handles[0]);
     REQUIRE(
-        ebpf_api_lookup_map(
+        ebpf_api_get_pinned_map(
             reinterpret_cast<const uint8_t*>(limit_maps_name.c_str()),
             static_cast<uint32_t>(limit_maps_name.size()),
             &test_handle) == ERROR_SUCCESS);
@@ -500,12 +500,12 @@ TEST_CASE("bindmonitor-interpret", "[bindmonitor_interpret]")
             reinterpret_cast<const uint8_t*>(limit_maps_name.c_str()), static_cast<uint32_t>(limit_maps_name.size())) ==
         ERROR_SUCCESS);
     REQUIRE(
-        ebpf_api_lookup_map(
+        ebpf_api_get_pinned_map(
             reinterpret_cast<const uint8_t*>(process_maps_name.c_str()),
             static_cast<uint32_t>(process_maps_name.size()),
             &test_handle) == ERROR_NOT_FOUND);
     REQUIRE(
-        ebpf_api_lookup_map(
+        ebpf_api_get_pinned_map(
             reinterpret_cast<const uint8_t*>(limit_maps_name.c_str()),
             static_cast<uint32_t>(limit_maps_name.size()),
             &test_handle) == ERROR_NOT_FOUND);

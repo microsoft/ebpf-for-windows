@@ -270,7 +270,7 @@ extern "C"
      * @param[in] name Name to find.
      */
     uint32_t
-    ebpf_api_lookup_map(const uint8_t* name, uint32_t name_length, ebpf_handle_t* handle);
+    ebpf_api_get_pinned_map(const uint8_t* name, uint32_t name_length, ebpf_handle_t* handle);
 
 #ifdef __cplusplus
 }

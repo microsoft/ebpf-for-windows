@@ -921,7 +921,7 @@ Done:
 }
 
 static ebpf_error_code_t
-ebpf_core_protocol_lookup_map_pinning(
+ebpf_core_protocol_get_pinned_map(
     _In_ const struct _ebpf_operation_get_map_pinning_request* request,
     _Inout_ struct _ebpf_operation_get_map_pinning_reply* reply,
     uint16_t reply_length)
@@ -1027,7 +1027,7 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[EBPF_OPERATION_GET_MAP_PI
      sizeof(struct _ebpf_operation_query_program_information_request),
      sizeof(struct _ebpf_operation_query_program_information_reply)},
     {ebpf_core_protocol_update_map_pinning, sizeof(struct _ebpf_operation_update_map_pinning_request), 0},
-    {(ebpf_error_code_t(__cdecl*)(const void*))ebpf_core_protocol_lookup_map_pinning,
+    {(ebpf_error_code_t(__cdecl*)(const void*))ebpf_core_protocol_get_pinned_map,
      sizeof(struct _ebpf_operation_get_map_pinning_request),
      sizeof(struct _ebpf_operation_get_map_pinning_reply)},
 };
