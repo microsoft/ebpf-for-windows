@@ -86,3 +86,11 @@ On the attacker machine, do the following:
 14. Compile droppacket.c ```clang -target bpf -O2 -Wall -c droppacket.c -o droppacket.o```
 15. Show that the verifier rejects the code ```netsh ebpf show verification droppacket.o xdp```
 16. Show that loading the program fails ```netsh ebpf add program droppacket.o xdp```
+
+## Alternative to running with kernel debugger attached
+Windows requires that one of the following criteria is met prior to loading a driver:
+1. Driver is signed using a certificate that chains up to Microsoft code signign root (aka production signed driver).
+2. The OS is booted with a kernel debugger attached.
+3. The OS is running in [test-signing mode](https://docs.microsoft.com/en-us/windows-hardware/drivers/install/the-testsigning-boot-configuration-option), the [driver is test signed](https://docs.microsoft.com/en-us/windows-hardware/drivers/install/test-signing-a-driver-through-an-embedded-signature) and the [test certificate is installed](https://docs.microsoft.com/en-us/windows-hardware/drivers/install/installing-test-certificates).
+
+Official released of Ebpf-For-Windows will be signed by production signed.
