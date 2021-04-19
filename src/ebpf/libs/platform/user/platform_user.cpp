@@ -13,7 +13,11 @@
 
 std::set<uint64_t> _executable_segments;
 
+// Global variables used to override behavior for testing.
+// Permit the test to simulate both Hyper-V Code Integrity.
 bool _ebpf_platform_code_integrity_enabled = false;
+// Permit the test to simulate non-preemptable execution.
+bool _ebpf_platform_is_preemptable = true;
 
 void (*RtlInitializeGenericTableAvl)(
     _Out_ PRTL_AVL_TABLE Table,
@@ -46,7 +50,7 @@ resolve_function(HMODULE module_handle, fn& function, const char* function_name)
 }
 
 ebpf_error_code_t
-ebpf_platform_initialize()
+ebpf_platform_initiate()
 {
     HMODULE ntdll_module = nullptr;
 
@@ -167,13 +171,161 @@ ebpf_lock_unlock(ebpf_lock_t* lock, ebpf_lock_state_t* state)
 }
 
 int32_t
-ebpf_interlocked_increment(volatile int32_t* addend)
+ebpf_interlocked_increment_int32(volatile int32_t* addend)
 {
-    return InterlockedIncrement((volatile LONG*)addend);
+    return InterlockedIncrement((volatile long*)addend);
 }
 
 int32_t
-ebpf_interlocked_decrement(volatile int32_t* addend)
+ebpf_interlocked_decrement_int32(volatile int32_t* addend)
 {
-    return InterlockedDecrement((volatile LONG*)addend);
+    return InterlockedDecrement((volatile long*)addend);
+}
+
+int64_t
+ebpf_interlocked_increment_int64(volatile int64_t* addend)
+{
+    return InterlockedIncrement64(addend);
+}
+
+int64_t
+ebpf_interlocked_decrement_int64(volatile int64_t* addend)
+{
+    return InterlockedDecrement64(addend);
+}
+
+int32_t
+ebpf_interlocked_compare_exchange_int32(volatile int32_t* destination, int32_t exchange, int32_t comperand)
+{
+    return InterlockedCompareExchange((long volatile*)destination, exchange, comperand);
+}
+
+ebpf_error_code_t
+ebpf_get_cpu_count(uint32_t* cpu_count)
+{
+    SYSTEM_INFO system_information;
+    GetNativeSystemInfo(&system_information);
+    *cpu_count = system_information.dwNumberOfProcessors;
+    return EBPF_ERROR_SUCCESS;
+}
+
+bool
+ebpf_is_preemptable()
+{
+    return _ebpf_platform_is_preemptable;
+}
+
+bool
+ebpf_is_non_preepmtable_work_item_supported()
+{
+    return false;
+}
+
+uint32_t
+ebpf_get_current_cpu()
+{
+    return GetCurrentProcessorNumber();
+}
+
+uint64_t
+ebpf_get_current_thread_id()
+{
+    return GetCurrentThreadId();
+}
+
+ebpf_error_code_t
+ebpf_allocate_non_preemptable_work_item(
+    epbf_non_preepmtable_work_item_t** work_item,
+    uint32_t cpu_id,
+    void (*work_item_routine)(void* work_item_context, void* parameter_1),
+    void* work_item_context)
+{
+    UNREFERENCED_PARAMETER(work_item);
+    UNREFERENCED_PARAMETER(cpu_id);
+    UNREFERENCED_PARAMETER(work_item_routine);
+    UNREFERENCED_PARAMETER(work_item_context);
+    return EBPF_ERROR_NOT_SUPPORTED;
+}
+
+void
+ebpf_free_non_preemptable_work_item(epbf_non_preepmtable_work_item_t* work_item)
+{
+    UNREFERENCED_PARAMETER(work_item);
+}
+
+bool
+ebpf_queue_non_preemptable_work_item(epbf_non_preepmtable_work_item_t* work_item, void* parameter_1)
+{
+    UNREFERENCED_PARAMETER(work_item);
+    UNREFERENCED_PARAMETER(parameter_1);
+    return false;
+}
+
+typedef struct _ebpf_timer_work_item
+{
+    TP_TIMER* threadpool_timer;
+    void (*work_item_routine)(void* work_item_context);
+    void* work_item_context;
+} ebpf_timer_work_item_t;
+
+void
+_ebpf_timer_callback(_Inout_ TP_CALLBACK_INSTANCE* instance, _Inout_opt_ void* Context, _Inout_ TP_TIMER* Timer)
+{
+    ebpf_timer_work_item_t* timer_work_item = reinterpret_cast<ebpf_timer_work_item_t*>(Context);
+    UNREFERENCED_PARAMETER(instance);
+    UNREFERENCED_PARAMETER(Timer);
+
+    timer_work_item->work_item_routine(timer_work_item->work_item_context);
+}
+
+ebpf_error_code_t
+ebpf_allocate_timer_work_item(
+    ebpf_timer_work_item_t** work_item, void (*work_item_routine)(void* work_item_context), void* work_item_context)
+{
+    *work_item = (ebpf_timer_work_item_t*)ebpf_allocate(sizeof(ebpf_timer_work_item_t), EBPF_MEMORY_NO_EXECUTE);
+
+    if (*work_item == NULL)
+        goto Error;
+
+    (*work_item)->threadpool_timer = CreateThreadpoolTimer(_ebpf_timer_callback, *work_item, NULL);
+    if ((*work_item)->threadpool_timer == NULL)
+        goto Error;
+
+    (*work_item)->work_item_routine = work_item_routine;
+    (*work_item)->work_item_context = work_item_context;
+
+    return EBPF_ERROR_SUCCESS;
+
+Error:
+    if (*work_item != NULL) {
+        if ((*work_item)->threadpool_timer != NULL)
+            CloseThreadpoolTimer((*work_item)->threadpool_timer);
+
+        ebpf_free(*work_item);
+    }
+    return EBPF_ERROR_OUT_OF_RESOURCES;
+}
+
+#define MICROSECONDS_PER_TICK 10
+#define MICROSECONDS_PER_MILLISECOND 1000
+
+void
+ebpf_schedule_timer_work_item(ebpf_timer_work_item_t* work_item, uint32_t elaped_microseconds)
+{
+    int64_t due_time;
+    due_time = -static_cast<int64_t>(elaped_microseconds) * MICROSECONDS_PER_TICK;
+
+    SetThreadpoolTimer(
+        work_item->threadpool_timer,
+        reinterpret_cast<FILETIME*>(&due_time),
+        0,
+        elaped_microseconds / MICROSECONDS_PER_MILLISECOND);
+}
+
+void
+ebpf_free_timer_work_item(ebpf_timer_work_item_t* work_item)
+{
+    WaitForThreadpoolTimerCallbacks(work_item->threadpool_timer, true);
+    CloseThreadpoolTimer(work_item->threadpool_timer);
+    ebpf_free(work_item);
 }

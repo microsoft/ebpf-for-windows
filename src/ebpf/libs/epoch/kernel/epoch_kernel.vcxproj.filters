@@ -19,17 +19,14 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="platform_kernel.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\ebpf_hash_table.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\ebpf_pinning_table.c">
+    <ClCompile Include="..\ebpf_epoch.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\include\ebpf_epoch.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\include\ebpf_platform.h">
       <Filter>Header Files</Filter>
     </ClInclude>

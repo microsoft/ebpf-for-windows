@@ -7,8 +7,11 @@
 struct _ebpf_hash_table
 {
     struct _RTL_AVL_TABLE avl_table;
+    ebpf_hash_table_compare_result_t (*compare_function)(const uint8_t* key1, const uint8_t* key2);
     size_t key_size;
     size_t value_size;
+    void* (*allocate)(size_t size, ebpf_memory_type_t type);
+    void (*free)(void* memory);
 };
 
 // NOTE:
@@ -16,36 +19,47 @@ struct _ebpf_hash_table
 // Compare can be called with a partial struct only containing the key.
 // Do not access beyond map->ebpf_map_definition.key_size bytes.
 static RTL_GENERIC_COMPARE_RESULTS
-ebpf_hash_map_compare(struct _RTL_AVL_TABLE* avl_table, void* first_struct, void* second_struct)
+_ebpf_hash_map_compare(struct _RTL_AVL_TABLE* avl_table, void* first_struct, void* second_struct)
 {
     ebpf_hash_table_t* table = (ebpf_hash_table_t*)avl_table;
 
-    int result = memcmp(first_struct, second_struct, table->key_size);
-    if (result < 0) {
-        return GenericLessThan;
-    } else if (result > 0) {
-        return GenericGreaterThan;
+    if (table->compare_function) {
+        return (RTL_GENERIC_COMPARE_RESULTS)table->compare_function(
+            (const uint8_t*)first_struct, (const uint8_t*)second_struct);
     } else {
-        return GenericEqual;
+        int result = memcmp(first_struct, second_struct, table->key_size);
+        if (result < 0) {
+            return GenericLessThan;
+        } else if (result > 0) {
+            return GenericGreaterThan;
+        } else {
+            return GenericEqual;
+        }
     }
 }
 
 static void*
-ebpf_hash_map_allocate(struct _RTL_AVL_TABLE* table, unsigned long byte_size)
+_ebpf_hash_table_allocate(struct _RTL_AVL_TABLE* avl_table, unsigned long byte_size)
 {
-    UNREFERENCED_PARAMETER(table);
-    return ebpf_allocate(byte_size, EBPF_MEMORY_NO_EXECUTE);
+    ebpf_hash_table_t* table = (ebpf_hash_table_t*)avl_table;
+    return table->allocate(byte_size, EBPF_MEMORY_NO_EXECUTE);
 }
 
 static void
-ebpf_hash_map_free(struct _RTL_AVL_TABLE* table, void* buffer)
+_ebpf_hash_table_free(struct _RTL_AVL_TABLE* avl_table, void* buffer)
 {
-    UNREFERENCED_PARAMETER(table);
-    ebpf_free(buffer);
+    ebpf_hash_table_t* table = (ebpf_hash_table_t*)avl_table;
+    table->free(buffer);
 }
 
 ebpf_error_code_t
-ebpf_hash_table_create(ebpf_hash_table_t** hash_table, size_t key_size, size_t value_size)
+ebpf_hash_table_create(
+    ebpf_hash_table_t** hash_table,
+    void* (*allocate)(size_t size, ebpf_memory_type_t type),
+    void (*free)(void* memory),
+    size_t key_size,
+    size_t value_size,
+    ebpf_hash_table_compare_result_t (*compare_function)(const uint8_t* key1, const uint8_t* key2))
 {
     ebpf_error_code_t retval;
     ebpf_hash_table_t* table = NULL;
@@ -57,11 +71,15 @@ ebpf_hash_table_create(ebpf_hash_table_t** hash_table, size_t key_size, size_t v
         goto Done;
     }
 
+    table->compare_function = compare_function;
+
     RtlInitializeGenericTableAvl(
-        &table->avl_table, ebpf_hash_map_compare, ebpf_hash_map_allocate, ebpf_hash_map_free, NULL);
+        &table->avl_table, _ebpf_hash_map_compare, _ebpf_hash_table_allocate, _ebpf_hash_table_free, NULL);
 
     table->key_size = key_size;
     table->value_size = value_size;
+    table->allocate = allocate;
+    table->free = free;
 
     *hash_table = table;
     retval = EBPF_ERROR_SUCCESS;
@@ -165,7 +183,7 @@ ebpf_hash_table_next_key(ebpf_hash_table_t* hash_table, const uint8_t* previous_
         if (!entry) {
             // Entry deleted.
 
-            // Start at the begining of the table.
+            // Start at the beginning of the table.
             entry = RtlEnumerateGenericTableAvl(table, TRUE);
             if (entry == NULL) {
                 return EBPF_ERROR_NO_MORE_KEYS;
@@ -173,7 +191,7 @@ ebpf_hash_table_next_key(ebpf_hash_table_t* hash_table, const uint8_t* previous_
 
             // Advance the cursor until we reach the first entry that is greater than
             // the key.
-            while (!(ebpf_hash_map_compare(table, (uint8_t*)previous_key, entry) == GenericGreaterThan)) {
+            while (!(_ebpf_hash_map_compare(table, (uint8_t*)previous_key, entry) == GenericGreaterThan)) {
                 entry = RtlEnumerateGenericTableAvl(table, FALSE);
                 if (!entry) {
                     break;

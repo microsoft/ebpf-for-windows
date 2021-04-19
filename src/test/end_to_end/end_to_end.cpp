@@ -4,10 +4,16 @@
  */
 
 #define CATCH_CONFIG_MAIN
-#include "catch2\catch.hpp"
 
+#include <chrono>
+#include <mutex>
+#include <thread>
+#include <WinSock2.h>
+
+#include "catch2\catch.hpp"
 #include "ebpf_api.h"
 #include "ebpf_core.h"
+#include "ebpf_epoch.h"
 #include "ebpf_protocol.h"
 #include "mock.h"
 #include "tlv.h"
@@ -19,7 +25,6 @@ namespace ebpf {
 }; // namespace ebpf
 
 #include "unwind_helper.h"
-#include <WinSock2.h>
 
 ebpf_handle_t
 GlueCreateFileW(
@@ -70,33 +75,42 @@ GlueDeviceIoControl(
     ebpf_operation_header_t* user_reply = nullptr;
     *lpBytesReturned = 0;
     auto request_id = user_request->id;
-    if (request_id >= _countof(EbpfProtocolHandlers)) {
+    size_t minimum_request_size = 0;
+    size_t minimum_reply_size = 0;
+
+    retval = ebpf_core_get_protocol_handler_properties(request_id, &minimum_request_size, &minimum_reply_size);
+    if (retval != EBPF_ERROR_SUCCESS)
+        goto Fail;
+
+    if (user_request->length < minimum_request_size) {
+        retval = EBPF_ERROR_INVALID_PARAMETER;
         goto Fail;
     }
 
-    if (user_request->length < EbpfProtocolHandlers[request_id].minimum_request_size) {
-        goto Fail;
-    }
-
-    if (EbpfProtocolHandlers[request_id].minimum_reply_size > 0) {
+    if (minimum_reply_size > 0) {
         user_reply = reinterpret_cast<decltype(user_reply)>(lpOutBuffer);
         if (!user_reply) {
+            retval = EBPF_ERROR_INVALID_PARAMETER;
             goto Fail;
         }
-        if (nOutBufferSize < EbpfProtocolHandlers[request_id].minimum_reply_size) {
+        if (nOutBufferSize < minimum_reply_size) {
+            retval = EBPF_ERROR_INVALID_PARAMETER;
             goto Fail;
         }
         user_reply->length = static_cast<uint16_t>(nOutBufferSize);
         user_reply->id = user_request->id;
         *lpBytesReturned = user_reply->length;
     }
-    if (EbpfProtocolHandlers[request_id].minimum_reply_size == 0) {
-        retval = EbpfProtocolHandlers[request_id].dispatch.protocol_handler_no_reply(user_request);
-    } else {
-        retval = EbpfProtocolHandlers[request_id].dispatch.protocol_handler_with_reply(
-            user_request, user_reply, static_cast<uint16_t>(nOutBufferSize));
-    }
 
+    retval =
+        ebpf_core_invoke_protocol_handler(request_id, user_request, user_reply, static_cast<uint16_t>(nOutBufferSize));
+
+    if (retval != EBPF_ERROR_SUCCESS)
+        goto Fail;
+
+    return TRUE;
+
+Fail:
     if (retval != EBPF_ERROR_SUCCESS) {
         switch (retval) {
         case EBPF_ERROR_OUT_OF_RESOURCES:
@@ -115,12 +129,7 @@ GlueDeviceIoControl(
             SetLastError(ERROR_INVALID_PARAMETER);
             break;
         }
-        goto Fail;
     }
-
-    return TRUE;
-
-Fail:
 
     return FALSE;
 }
@@ -140,6 +149,56 @@ prepare_udp_packet(uint16_t udp_length)
 }
 
 #define SAMPLE_PATH ""
+
+TEST_CASE("pinning_test", "[pinning_test]")
+{
+
+    bool platform_initiated;
+    _unwind_helper on_exit([&] {
+        if (platform_initiated)
+            ebpf_platform_terminate();
+    });
+
+    typedef struct _some_object
+    {
+        int32_t reference_count;
+        std::string name;
+    } some_object_t;
+
+    REQUIRE(ebpf_platform_initiate() == EBPF_ERROR_SUCCESS);
+
+    some_object_t an_object{1};
+    some_object_t another_object{1};
+    some_object_t* some_object;
+
+    auto aquire_ref = [](void* object) {
+        some_object_t* some_object = reinterpret_cast<some_object_t*>(object);
+        (some_object->reference_count)++;
+    };
+
+    auto release_ref = [](void* object) {
+        some_object_t* some_object = reinterpret_cast<some_object_t*>(object);
+        (some_object->reference_count)--;
+    };
+
+    ebpf_pinning_table_t* pinning_table;
+    REQUIRE(ebpf_pinning_table_allocate(&pinning_table, aquire_ref, release_ref) == EBPF_ERROR_SUCCESS);
+
+    REQUIRE(ebpf_pinning_table_insert(pinning_table, (uint8_t*)"foo", &an_object) == EBPF_ERROR_SUCCESS);
+    REQUIRE(an_object.reference_count == 2);
+    REQUIRE(ebpf_pinning_table_insert(pinning_table, (uint8_t*)"bar", &another_object) == EBPF_ERROR_SUCCESS);
+    REQUIRE(another_object.reference_count == 2);
+    REQUIRE(ebpf_pinning_table_lookup(pinning_table, (uint8_t*)"foo", (void**)&some_object) == EBPF_ERROR_SUCCESS);
+    REQUIRE(an_object.reference_count == 3);
+    REQUIRE(some_object == &an_object);
+    release_ref(&an_object);
+    REQUIRE(ebpf_pinning_table_delete(pinning_table, (uint8_t*)"foo") == EBPF_ERROR_SUCCESS);
+    REQUIRE(another_object.reference_count == 2);
+
+    ebpf_pinning_table_free(pinning_table);
+    REQUIRE(an_object.reference_count == 1);
+    REQUIRE(another_object.reference_count == 1);
+}
 
 TEST_CASE("droppacket-jit", "[droppacket_jit]")
 {
@@ -162,7 +221,7 @@ TEST_CASE("droppacket-jit", "[droppacket_jit]")
             ebpf_core_terminate();
     });
 
-    REQUIRE(ebpf_core_initialize() == EBPF_ERROR_SUCCESS);
+    REQUIRE(ebpf_core_initiate() == EBPF_ERROR_SUCCESS);
     ec_initialized = true;
 
     REQUIRE(ebpf_api_initiate() == ERROR_SUCCESS);
@@ -238,7 +297,7 @@ TEST_CASE("droppacket-interpret", "[droppacket_interpret]")
     });
     uint32_t result = 0;
 
-    REQUIRE(ebpf_core_initialize() == EBPF_ERROR_SUCCESS);
+    REQUIRE(ebpf_core_initiate() == EBPF_ERROR_SUCCESS);
     ec_initialized = true;
 
     REQUIRE(ebpf_api_initiate() == ERROR_SUCCESS);
@@ -308,7 +367,7 @@ TEST_CASE("enum section", "[enum sections]")
             ebpf_core_terminate();
     });
 
-    REQUIRE(ebpf_core_initialize() == EBPF_ERROR_SUCCESS);
+    REQUIRE(ebpf_core_initiate() == EBPF_ERROR_SUCCESS);
     ec_initialized = true;
     REQUIRE(ebpf_api_initiate() == ERROR_SUCCESS);
     api_initialized = true;
@@ -355,7 +414,7 @@ TEST_CASE("verify section", "[verify section]")
             ebpf_core_terminate();
     });
 
-    REQUIRE(ebpf_core_initialize() == EBPF_ERROR_SUCCESS);
+    REQUIRE(ebpf_core_initiate() == EBPF_ERROR_SUCCESS);
     api_initialized = true;
     REQUIRE(ebpf_api_initiate() == ERROR_SUCCESS);
     ec_initialized = true;
@@ -437,7 +496,7 @@ TEST_CASE("bindmonitor-interpret", "[bindmonitor_interpret]")
             ebpf_core_terminate();
     });
 
-    REQUIRE(ebpf_core_initialize() == EBPF_ERROR_SUCCESS);
+    REQUIRE(ebpf_core_initiate() == EBPF_ERROR_SUCCESS);
     ec_initialized = true;
 
     REQUIRE(ebpf_api_initiate() == ERROR_SUCCESS);
@@ -470,13 +529,13 @@ TEST_CASE("bindmonitor-interpret", "[bindmonitor_interpret]")
 
     ebpf_handle_t test_handle;
     REQUIRE(
-        ebpf_api_lookup_map(
+        ebpf_api_get_pinned_map(
             reinterpret_cast<const uint8_t*>(process_maps_name.c_str()),
             static_cast<uint32_t>(process_maps_name.size()),
             &test_handle) == ERROR_SUCCESS);
     REQUIRE(test_handle == map_handles[0]);
     REQUIRE(
-        ebpf_api_lookup_map(
+        ebpf_api_get_pinned_map(
             reinterpret_cast<const uint8_t*>(limit_maps_name.c_str()),
             static_cast<uint32_t>(limit_maps_name.size()),
             &test_handle) == ERROR_SUCCESS);
@@ -491,12 +550,12 @@ TEST_CASE("bindmonitor-interpret", "[bindmonitor_interpret]")
             reinterpret_cast<const uint8_t*>(limit_maps_name.c_str()), static_cast<uint32_t>(limit_maps_name.size())) ==
         ERROR_SUCCESS);
     REQUIRE(
-        ebpf_api_lookup_map(
+        ebpf_api_get_pinned_map(
             reinterpret_cast<const uint8_t*>(process_maps_name.c_str()),
             static_cast<uint32_t>(process_maps_name.size()),
             &test_handle) == ERROR_NOT_FOUND);
     REQUIRE(
-        ebpf_api_lookup_map(
+        ebpf_api_get_pinned_map(
             reinterpret_cast<const uint8_t*>(limit_maps_name.c_str()),
             static_cast<uint32_t>(limit_maps_name.size()),
             &test_handle) == ERROR_NOT_FOUND);
@@ -583,7 +642,7 @@ TEST_CASE("enumerate_and_query_programs", "[enumerate_and_query_programs]")
         ebpf_api_free_string(section_name);
     });
 
-    REQUIRE(ebpf_core_initialize() == EBPF_ERROR_SUCCESS);
+    REQUIRE(ebpf_core_initiate() == EBPF_ERROR_SUCCESS);
     ec_initialized = true;
 
     REQUIRE(ebpf_api_initiate() == ERROR_SUCCESS);
@@ -633,4 +692,49 @@ TEST_CASE("enumerate_and_query_programs", "[enumerate_and_query_programs]")
     section_name = nullptr;
     REQUIRE(ebpf_api_get_next_program(program_handle, &program_handle) == ERROR_SUCCESS);
     REQUIRE(program_handle == INVALID_HANDLE_VALUE);
+}
+
+TEST_CASE("epoch_test_single_epoch", "[epoch_test_single_epoch]")
+{
+    bool ep_initialized = false;
+    _unwind_helper on_exit([&] {
+        if (ep_initialized)
+            ebpf_epoch_terminate();
+    });
+
+    REQUIRE(ebpf_epoch_initiate() == EBPF_ERROR_SUCCESS);
+    ep_initialized = true;
+
+    REQUIRE(ebpf_epoch_enter() == EBPF_ERROR_SUCCESS);
+    void* memory = ebpf_epoch_allocate(10, EBPF_MEMORY_NO_EXECUTE);
+    ebpf_epoch_free(memory);
+    ebpf_epoch_exit();
+    ebpf_epoch_flush();
+}
+
+TEST_CASE("epoch_test_two_threads", "[epoch_test_two_threads]")
+{
+    bool ep_initialized = false;
+    _unwind_helper on_exit([&] {
+        if (ep_initialized)
+            ebpf_epoch_terminate();
+    });
+
+    REQUIRE(ebpf_epoch_initiate() == EBPF_ERROR_SUCCESS);
+    ep_initialized = true;
+
+    auto epoch = []() {
+        ebpf_epoch_enter();
+        void* memory = ebpf_epoch_allocate(10, EBPF_MEMORY_NO_EXECUTE);
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+        ebpf_epoch_free(memory);
+        ebpf_epoch_exit();
+        ebpf_epoch_flush();
+    };
+
+    std::thread thread_1(epoch);
+    std::thread thread_2(epoch);
+    thread_1.join();
+    thread_2.join();
 }

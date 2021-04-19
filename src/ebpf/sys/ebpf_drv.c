@@ -196,7 +196,7 @@ EbpfCoreInitDriverObjects(
         goto Exit;
     }
 
-    status = ebpf_error_code_to_ntstatus(ebpf_core_initialize());
+    status = ebpf_error_code_to_ntstatus(ebpf_core_initiate());
     if (!NT_SUCCESS(status)) {
         goto Exit;
     }
@@ -262,6 +262,8 @@ EbpfCoreEvtIoDeviceControl(
             }
 
             if (input_buffer != NULL) {
+                size_t minimum_request_size = 0;
+                size_t minimum_reply_size = 0;
 
                 status = ebpf_hook_register_callouts(_wdm_device_object);
                 // non fatal for now while testing
@@ -272,23 +274,13 @@ EbpfCoreEvtIoDeviceControl(
                     goto Done;
                 }
 
-                if (user_request->id >= sizeof(EbpfProtocolHandlers) / sizeof(EbpfProtocolHandlers[0])) {
-                    status = STATUS_INVALID_PARAMETER;
+                status = ebpf_error_code_to_ntstatus(ebpf_core_get_protocol_handler_properties(
+                    user_request->id, &minimum_request_size, &minimum_reply_size));
+                if (status != STATUS_SUCCESS)
                     goto Done;
-                }
-
-                if (user_request->length < EbpfProtocolHandlers[user_request->id].minimum_request_size) {
-                    status = STATUS_INVALID_PARAMETER;
-                    goto Done;
-                }
-
-                if (!EbpfProtocolHandlers[user_request->id].dispatch.protocol_handler_no_reply) {
-                    status = STATUS_INVALID_PARAMETER;
-                    goto Done;
-                }
 
                 // Be aware: Input and output buffer point to the same memory.
-                if (EbpfProtocolHandlers[user_request->id].minimum_reply_size > 0) {
+                if (minimum_reply_size > 0) {
                     // Retrieve output buffer associated with the request object
                     status = WdfRequestRetrieveOutputBuffer(
                         request, output_buffer_length, &output_buffer, &actual_output_length);
@@ -302,21 +294,15 @@ EbpfCoreEvtIoDeviceControl(
                         goto Done;
                     }
 
-                    if (actual_output_length < EbpfProtocolHandlers[user_request->id].minimum_reply_size) {
+                    if (actual_output_length < minimum_reply_size) {
                         status = STATUS_BUFFER_TOO_SMALL;
                         goto Done;
                     }
                     user_reply = output_buffer;
                 }
 
-                if (EbpfProtocolHandlers[user_request->id].minimum_reply_size == 0) {
-                    status = ebpf_error_code_to_ntstatus(
-                        EbpfProtocolHandlers[user_request->id].dispatch.protocol_handler_no_reply(user_request));
-                } else {
-                    status = ebpf_error_code_to_ntstatus(
-                        EbpfProtocolHandlers[user_request->id].dispatch.protocol_handler_with_reply(
-                            user_request, user_reply, (uint16_t)actual_output_length));
-                }
+                status = ebpf_error_code_to_ntstatus(ebpf_core_invoke_protocol_handler(
+                    user_request->id, user_request, user_reply, (uint16_t)actual_output_length));
 
                 // Fill out the rest of the out buffer after processing the input
                 // buffer.
@@ -362,7 +348,7 @@ DriverEntry(_In_ DRIVER_OBJECT* driver_object, _In_ UNICODE_STRING* registry_pat
 
     ebpf_hook_register_callouts(_wdm_device_object);
     // ignore status. at boot, registration can fail.
-    // we will try to re-register during prog load.
+    // we will try to re-register during program load.
 
 Exit:
 

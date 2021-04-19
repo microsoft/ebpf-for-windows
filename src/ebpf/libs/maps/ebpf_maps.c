@@ -4,6 +4,7 @@
  */
 
 #include "ebpf_maps.h"
+#include "ebpf_epoch.h"
 
 typedef struct _ebpf_core_map
 {
@@ -52,13 +53,13 @@ ebpf_map_create(const ebpf_map_definition_t* ebpf_map_definition, ebpf_map_t** e
 void
 ebpf_map_acquire_reference(ebpf_map_t* map)
 {
-    ebpf_interlocked_increment(&map->reference_count);
+    ebpf_interlocked_increment_int32(&map->reference_count);
 }
 
 void
 ebpf_map_release_reference(ebpf_map_t* map)
 {
-    uint32_t new_ref_count = ebpf_interlocked_decrement(&map->reference_count);
+    uint32_t new_ref_count = ebpf_interlocked_decrement_int32(&map->reference_count);
     if (new_ref_count == 0)
         ebpf_map_function_tables[map->ebpf_map_definition.type].delete_map(map);
 }
@@ -197,7 +198,12 @@ ebpf_create_hash_map(_In_ const ebpf_map_definition_t* map_definition)
     map->data = NULL;
 
     retval = ebpf_hash_table_create(
-        (ebpf_hash_table_t**)&map->data, map->ebpf_map_definition.key_size, map->ebpf_map_definition.value_size);
+        (ebpf_hash_table_t**)&map->data,
+        ebpf_epoch_allocate,
+        ebpf_epoch_free,
+        map->ebpf_map_definition.key_size,
+        map->ebpf_map_definition.value_size,
+        NULL);
     if (retval != EBPF_ERROR_SUCCESS) {
         goto Done;
     }

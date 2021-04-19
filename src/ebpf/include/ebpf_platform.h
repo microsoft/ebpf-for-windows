@@ -26,8 +26,11 @@ extern "C"
         EBPF_CODE_INTEGRITY_HYPER_VISOR_KERNEL_MODE = 1
     } ebpf_code_integrity_state_t;
 
+    typedef struct _epbf_non_preemptable_work_item epbf_non_preepmtable_work_item_t;
+    typedef struct _ebpf_timer_work_item ebpf_timer_work_item_t;
+
     ebpf_error_code_t
-    ebpf_platform_initialize();
+    ebpf_platform_initiate();
 
     void
     ebpf_platform_terminate();
@@ -59,10 +62,64 @@ extern "C"
     void
     ebpf_lock_unlock(ebpf_lock_t* lock, ebpf_lock_state_t* state);
 
-    typedef struct _ebpf_hash_table ebpf_hash_table_t;
+    ebpf_error_code_t
+    ebpf_get_cpu_count(uint32_t* cpu_count);
+
+    bool
+    ebpf_is_preemptable();
+
+    uint32_t
+    ebpf_get_current_cpu();
+
+    uint64_t
+    ebpf_get_current_thread_id();
+
+    bool
+    ebpf_is_non_preepmtable_work_item_supported();
 
     ebpf_error_code_t
-    ebpf_hash_table_create(ebpf_hash_table_t** hash_table, size_t key_size, size_t value_size);
+    ebpf_allocate_non_preemptable_work_item(
+        epbf_non_preepmtable_work_item_t** work_item,
+        uint32_t cpu_id,
+        void (*work_item_routine)(void* work_item_context, void* parameter_1),
+        void* work_item_context);
+
+    void
+    ebpf_free_non_preemptable_work_item(epbf_non_preepmtable_work_item_t* work_item);
+
+    bool
+    ebpf_queue_non_preemptable_work_item(epbf_non_preepmtable_work_item_t* work_item, void* parameter_1);
+
+    ebpf_error_code_t
+    ebpf_allocate_timer_work_item(
+        ebpf_timer_work_item_t** work_item,
+        void (*work_item_routine)(void* work_item_context),
+        void* work_item_context);
+
+    void
+    ebpf_schedule_timer_work_item(ebpf_timer_work_item_t* work_item, uint32_t elaped_microseconds);
+
+    void
+    ebpf_free_timer_work_item(ebpf_timer_work_item_t* work_item);
+
+    typedef struct _ebpf_hash_table ebpf_hash_table_t;
+
+    typedef enum _ebpf_hash_table_compare_result
+    {
+        EBPF_HASH_TABLE_LESS_THAN = 0,
+        EBPF_HASH_TABLE_GREATER_THAN = 1,
+        EBPF_HASH_TABLE_EQUAL = 2,
+    } ebpf_hash_table_compare_result_t;
+
+    ebpf_error_code_t
+    ebpf_hash_table_create(
+        ebpf_hash_table_t** hash_table,
+        void* (*allocate)(size_t size, ebpf_memory_type_t type),
+        void (*free)(void* memory),
+        size_t key_size,
+        size_t value_size,
+        ebpf_hash_table_compare_result_t (*compare_function)(const uint8_t* key1, const uint8_t* key2));
+
     void
     ebpf_hash_table_destroy(ebpf_hash_table_t* hash_table);
     ebpf_error_code_t
@@ -75,10 +132,40 @@ extern "C"
     ebpf_hash_table_next_key(ebpf_hash_table_t* hash_table, const uint8_t* previous_key, uint8_t* next_key);
 
     int32_t
-    ebpf_interlocked_increment(volatile int32_t* addend);
+    ebpf_interlocked_increment_int32(volatile int32_t* addend);
 
     int32_t
-    ebpf_interlocked_decrement(volatile int32_t* addend);
+    ebpf_interlocked_decrement_int32(volatile int32_t* addend);
+
+    int64_t
+    ebpf_interlocked_increment_int64(volatile int64_t* addend);
+
+    int64_t
+    ebpf_interlocked_decrement_int64(volatile int64_t* addend);
+
+    int32_t
+    ebpf_interlocked_compare_exchange_int32(volatile int32_t* destination, int32_t exchange, int32_t comperand);
+
+    typedef struct _ebpf_pinning_table ebpf_pinning_table_t;
+
+    ebpf_error_code_t
+    ebpf_pinning_table_allocate(
+        ebpf_pinning_table_t** pinning_table, void (*acquire_reference)(void*), void (*release_reference)(void*));
+
+    void
+    ebpf_pinning_table_free(ebpf_pinning_table_t* pinning_table);
+
+    ebpf_error_code_t
+    ebpf_pinning_table_insert(ebpf_pinning_table_t* pinning_table, const uint8_t* name, void* object);
+
+    ebpf_error_code_t
+    ebpf_pinning_table_lookup(ebpf_pinning_table_t* pinning_table, const uint8_t* name, void** object);
+
+    ebpf_error_code_t
+    ebpf_pinning_table_delete(ebpf_pinning_table_t* pinning_table, const uint8_t* name);
+
+    ebpf_error_code_t
+    ebpf_pinning_table_next_name(ebpf_pinning_table_t* hash_table, const uint8_t* previous_name, uint8_t* next_name);
 
 #ifdef __cplusplus
 }
