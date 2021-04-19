@@ -32,7 +32,7 @@
 // Note:
 // CPU table entries aren't cleared on exit as we can't rely on
 // memory ordering.
-// i.e., thread doing the cleanup may have a stale view of the CPU table.
+// I.e., the thread doing the cleanup may have a stale view of the CPU table.
 // As long as the entries in the CPU table increase, this gives correct behavior.
 //
 
