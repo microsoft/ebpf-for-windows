@@ -152,7 +152,7 @@ _ebpf_core_find_map_entry_handle(ebpf_map_t* map)
     }
     ebpf_lock_unlock(&_ebpf_core_map_entry_table_lock, &state);
     if (handle == EBPF_COUNT_OF(_ebpf_core_map_entry_table)) {
-        handle = MAXUINT64;
+        handle = UINT64_MAX;
     }
     return handle;
 }

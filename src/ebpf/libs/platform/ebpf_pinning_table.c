@@ -176,6 +176,3 @@ ebpf_pinning_table_delete(ebpf_pinning_table_t* pinning_table, const uint8_t* na
 
     return return_value;
 }
-
-// ebpf_error_code_t
-// ebpf_pinning_table_next_name(ebpf_pinning_table_t* hash_table, const char* previous_name, uint8_t* next_name);
