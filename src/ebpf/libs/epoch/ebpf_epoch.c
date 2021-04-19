@@ -14,7 +14,7 @@
 // Epoch tracking is handled differently for pre-emptable vs non-pre-emptable
 // invocations.
 //
-// Non-pre-emptable invocations:
+// Non-pre-emptable invocations are:
 // 1) Tracked by the CPU they are running on as they don't switch CPUs.
 // 2) Accessed without synchronization.
 // 3) Set to the current epoch on entry.
