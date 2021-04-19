@@ -26,9 +26,8 @@
 // 4) Set to epoch 0 on exit.
 //
 // Memory can be freed only if there is no code using that epoch.
-// CPU epoch table is scanned to find the lowest epoch in use.
-// Thread table is scanned to find the lowest epoch in use.
-// Release epoch is then lowest epoch - 1 (if not 0).
+// The CPU epoch table and thread table are scanned to find the lowest epoch in use.
+// The release epoch is then lowest epoch - 1 (if not 0).
 //
 // Note:
 // CPU table entries aren't cleared on exit as we can't rely on
