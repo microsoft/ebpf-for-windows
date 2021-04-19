@@ -207,7 +207,7 @@ ebpf_epoch_flush()
         if (!_ebpf_epoch_cpu_table[cpu_id].non_preemtable_work_item)
             break;
 
-        // Don't synchronize CPU's that have never participated.
+        // Don't synchronize CPUs that have never participated.
         if (_ebpf_epoch_cpu_table[cpu_id].epoch == 0)
             continue;
 
