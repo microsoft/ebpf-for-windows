@@ -93,4 +93,4 @@ Windows requires that one of the following criteria be met prior to loading a dr
 2. The OS is booted with a kernel debugger attached.
 3. The OS is running in [test-signing mode](https://docs.microsoft.com/en-us/windows-hardware/drivers/install/the-testsigning-boot-configuration-option), the [driver is test signed](https://docs.microsoft.com/en-us/windows-hardware/drivers/install/test-signing-a-driver-through-an-embedded-signature) and the [test certificate is installed](https://docs.microsoft.com/en-us/windows-hardware/drivers/install/installing-test-certificates).
 
-Official released of Ebpf-For-Windows will be production signed.
+Official releases of eBPF for Windows will be production signed.
