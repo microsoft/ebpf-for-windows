@@ -265,7 +265,7 @@ void
 ebpf_schedule_timer_work_item(ebpf_timer_work_item_t* work_item, uint32_t elaped_microseconds)
 {
     LARGE_INTEGER due_time;
-    due_time.QuadPart = -(elaped_microseconds * MICROSECONDS_PER_TICK);
+    due_time.QuadPart = -((int64_t)elaped_microseconds * MICROSECONDS_PER_TICK);
 
     KeSetTimer(&work_item->timer, due_time, &work_item->deferred_procedure_call);
 }
