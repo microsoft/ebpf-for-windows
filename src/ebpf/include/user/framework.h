@@ -115,9 +115,10 @@ extern "C"
     extern PVOID (*RtlLookupFirstMatchingElementGenericTableAvl)(
         _In_ PRTL_AVL_TABLE Table, _In_ PVOID Buffer, _Out_ PVOID* RestartKey);
 
-    inline void
-    InitializeListHead(_Out_ LIST_ENTRY* list_head)
+    typedef LIST_ENTRY ebpf_list_entry_t;
 
+    inline void
+    ebpf_list_initialize(_Out_ ebpf_list_entry_t* list_head)
     {
 
         list_head->Flink = list_head->Blink = list_head;
@@ -125,18 +126,16 @@ extern "C"
     }
 
     inline bool
-    IsListEmpty(_In_ const LIST_ENTRY* list_head)
-
+    ebpf_list_is_empty(_In_ const ebpf_list_entry_t* list_head)
     {
 
         return (list_head->Flink == list_head);
     }
 
     inline void
-    InsertTailList(_Inout_ LIST_ENTRY* list_head, _Out_ LIST_ENTRY* entry)
+    ebpf_list_insert_tail(_Inout_ ebpf_list_entry_t* list_head, _Out_ ebpf_list_entry_t* entry)
     {
-
-        LIST_ENTRY* previous_entry;
+        ebpf_list_entry_t* previous_entry;
         previous_entry = list_head->Blink;
 
         entry->Flink = list_head;
@@ -147,12 +146,10 @@ extern "C"
     }
 
     inline bool
-    RemoveEntryList(_In_ LIST_ENTRY* entry)
-
+    ebpf_list_remove_entry(_In_ ebpf_list_entry_t* entry)
     {
-
-        LIST_ENTRY* previous_entry;
-        LIST_ENTRY* next_entry;
+        ebpf_list_entry_t* previous_entry;
+        ebpf_list_entry_t* next_entry;
 
         next_entry = entry->Flink;
         previous_entry = entry->Blink;
@@ -161,6 +158,7 @@ extern "C"
         next_entry->Blink = previous_entry;
         return (previous_entry == next_entry);
     }
+
 #ifdef __cplusplus
 }
 #endif
