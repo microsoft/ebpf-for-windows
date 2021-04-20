@@ -27,8 +27,8 @@
     <ClInclude Include="..\..\..\include\user\framework.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\ebpf_hash_table.c" />
-    <ClCompile Include="..\ebpf_pinning_table.c" />
+    <ClCompile Include="..\..\ebpf_hash_table.c" />
+    <ClCompile Include="..\..\ebpf_pinning_table.c" />
     <ClCompile Include="platform_user.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -137,7 +137,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)\src\ebpf\include;$(SolutionDir)\src\ebpf\include\user</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\src\ebpf\include;$(SolutionDir)\src\ebpf\include\windows\user</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -155,7 +155,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)\src\ebpf\include;$(SolutionDir)\src\ebpf\include\user</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\src\ebpf\include;$(SolutionDir)\src\ebpf\include\windows\user</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>
