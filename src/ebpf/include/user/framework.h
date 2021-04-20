@@ -114,6 +114,51 @@ extern "C"
 
     extern PVOID (*RtlLookupFirstMatchingElementGenericTableAvl)(
         _In_ PRTL_AVL_TABLE Table, _In_ PVOID Buffer, _Out_ PVOID* RestartKey);
+
+    typedef LIST_ENTRY ebpf_list_entry_t;
+
+    inline void
+    ebpf_list_initialize(_Out_ ebpf_list_entry_t* list_head)
+    {
+
+        list_head->Flink = list_head->Blink = list_head;
+        return;
+    }
+
+    inline bool
+    ebpf_list_is_empty(_In_ const ebpf_list_entry_t* list_head)
+    {
+
+        return (list_head->Flink == list_head);
+    }
+
+    inline void
+    ebpf_list_insert_tail(_Inout_ ebpf_list_entry_t* list_head, _Out_ ebpf_list_entry_t* entry)
+    {
+        ebpf_list_entry_t* previous_entry;
+        previous_entry = list_head->Blink;
+
+        entry->Flink = list_head;
+        entry->Blink = previous_entry;
+        previous_entry->Flink = entry;
+        list_head->Blink = entry;
+        return;
+    }
+
+    inline bool
+    ebpf_list_remove_entry(_In_ ebpf_list_entry_t* entry)
+    {
+        ebpf_list_entry_t* previous_entry;
+        ebpf_list_entry_t* next_entry;
+
+        next_entry = entry->Flink;
+        previous_entry = entry->Blink;
+
+        previous_entry->Flink = next_entry;
+        next_entry->Blink = previous_entry;
+        return (previous_entry == next_entry);
+    }
+
 #ifdef __cplusplus
 }
 #endif
