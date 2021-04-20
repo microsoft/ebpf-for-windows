@@ -52,7 +52,7 @@ Set up 2 VMs, which we will refer to as the "attacker" machine and the "defender
 
 On the defender machine, do the following:
 1. Install and set up a DNS server
-2. Make sure the kernel debugger (KD) is attached and running.
+2. Make sure that either the kernel debugger (KD) is attached and running, or one of the [alternatives to running with kernel debugger attached](#alternative-to-running-with-kernel-debugger-attached) is in place
 3. Install Debug VS 2019 VC redist from TBD (or switch everything to Multi-threaded Debug (/MTd) and rebuild)
 4. Copy ebpfcore.sys to %windir%\system32\drivers
 5. Copy ebpfapi.dll and ebpfnetsh.dll to %windir%\system32
@@ -86,3 +86,11 @@ On the attacker machine, do the following:
 14. Compile droppacket.c ```clang -target bpf -O2 -Wall -c droppacket.c -o droppacket.o```
 15. Show that the verifier rejects the code ```netsh ebpf show verification droppacket.o xdp```
 16. Show that loading the program fails ```netsh ebpf add program droppacket.o xdp```
+
+## Alternatives to running with kernel debugger attached
+Windows requires that one of the following criteria be met prior to loading a driver:
+1. Driver is signed using a certificate that chains up to the Microsoft code signing root (aka a production signed driver).
+2. The OS is booted with a kernel debugger attached.
+3. The OS is running in [test-signing mode](https://docs.microsoft.com/en-us/windows-hardware/drivers/install/the-testsigning-boot-configuration-option), the [driver is test signed](https://docs.microsoft.com/en-us/windows-hardware/drivers/install/test-signing-a-driver-through-an-embedded-signature) and the [test certificate is installed](https://docs.microsoft.com/en-us/windows-hardware/drivers/install/installing-test-certificates).
+
+Official releases of eBPF for Windows will be production signed.
