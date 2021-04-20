@@ -87,7 +87,7 @@ On the attacker machine, do the following:
 15. Show that the verifier rejects the code ```netsh ebpf show verification droppacket.o xdp```
 16. Show that loading the program fails ```netsh ebpf add program droppacket.o xdp```
 
-## Alternative to running with kernel debugger attached
+## Alternatives to running with kernel debugger attached
 Windows requires that one of the following criteria be met prior to loading a driver:
 1. Driver is signed using a certificate that chains up to the Microsoft code signing root (aka a production signed driver).
 2. The OS is booted with a kernel debugger attached.
