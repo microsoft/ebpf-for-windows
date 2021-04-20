@@ -110,7 +110,7 @@ ebpf_epoch_initiate()
         memset(_ebpf_epoch_cpu_table, 0, _ebpf_epoch_cpu_table_size * sizeof(ebpf_epoch_cpu_entry_t));
 
         for (cpu_id = 0; cpu_id < _ebpf_epoch_cpu_table_size; cpu_id++) {
-            _ebpf_epoch_cpu_table[cpu_id].epoch = 0;
+            _ebpf_epoch_cpu_table[cpu_id].epoch = _ebpf_current_epoch;
             return_value = ebpf_allocate_non_preemptable_work_item(
                 &_ebpf_epoch_cpu_table[cpu_id].non_preemtable_work_item,
                 cpu_id,
@@ -221,13 +221,6 @@ ebpf_epoch_flush()
         // epoch.
         // Note: May not affect the current flush.
         for (cpu_id = 0; cpu_id < _ebpf_epoch_cpu_table_size; cpu_id++) {
-            if (!_ebpf_epoch_cpu_table[cpu_id].non_preemtable_work_item)
-                break;
-
-            // Don't synchronize CPUs that have never participated.
-            if (_ebpf_epoch_cpu_table[cpu_id].epoch == 0)
-                continue;
-
             // Note: Either the per-cpu epoch or the global epoch could be out of date.
             // That is acceptable as it may schedule an extra work item.
             if (_ebpf_epoch_cpu_table[cpu_id].epoch != _ebpf_current_epoch)
