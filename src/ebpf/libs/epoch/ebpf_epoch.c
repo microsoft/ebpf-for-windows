@@ -62,12 +62,12 @@ static volatile int32_t _ebpf_flush_timer_set = 0;
 
 typedef struct _ebpf_epoch_allocation_header
 {
-    struct _ebpf_epoch_allocation_header* next;
+    LIST_ENTRY list_entry;
     int64_t freed_epoch;
 } ebpf_epoch_allocation_header_t;
 
 static ebpf_lock_t _ebpf_epoch_free_list_lock = {0};
-static ebpf_epoch_allocation_header_t _ebpf_epoch_free_list = {0};
+static LIST_ENTRY _ebpf_epoch_free_list = {0};
 
 // Release memory that was freed during this epoch or a prior epoch.
 static void
@@ -90,6 +90,7 @@ ebpf_epoch_initiate()
     uint32_t cpu_id;
 
     _ebpf_current_epoch = 1;
+    InitializeListHead(&_ebpf_epoch_free_list);
 
     ebpf_lock_create(&_ebpf_epoch_thread_table_lock);
     ebpf_lock_create(&_ebpf_epoch_free_list_lock);
@@ -130,8 +131,8 @@ ebpf_epoch_initiate()
             goto Error;
     }
 
-    return_value =
-        ebpf_hash_table_create(&_ebpf_epoch_thread_table, ebpf_allocate, ebpf_free, sizeof(uint64_t), sizeof(int64_t), NULL);
+    return_value = ebpf_hash_table_create(
+        &_ebpf_epoch_thread_table, ebpf_allocate, ebpf_free, sizeof(uint64_t), sizeof(int64_t), NULL);
     if (return_value != EBPF_ERROR_SUCCESS) {
         goto Error;
     }
@@ -203,7 +204,7 @@ ebpf_epoch_exit()
         _ebpf_epoch_cpu_table[current_cpu].epoch = _ebpf_current_epoch;
     }
 
-    if (_ebpf_epoch_free_list.next != NULL &&
+    if (!IsListEmpty(&_ebpf_epoch_free_list) &&
         (ebpf_interlocked_compare_exchange_int32(&_ebpf_flush_timer_set, 0, 1) != 0)) {
         ebpf_schedule_timer_work_item(_ebpf_flush_timer, EBPF_EPOCH_FLUSH_DELAY_IN_MICROSECONDS);
     }
@@ -253,11 +254,10 @@ ebpf_epoch_free(void* memory)
     ebpf_lock_state_t lock_state;
     header--;
 
-    header->freed_epoch = ebpf_interlocked_increment_int64(&_ebpf_current_epoch) - 1;
-
+    // Items are inserted into the free list in increasing epoch order.
     ebpf_lock_lock(&_ebpf_epoch_free_list_lock, &lock_state);
-    header->next = _ebpf_epoch_free_list.next;
-    _ebpf_epoch_free_list.next = header;
+    header->freed_epoch = ebpf_interlocked_increment_int64(&_ebpf_current_epoch) - 1;
+    InsertTailList(&_ebpf_epoch_free_list, &header->list_entry);
     ebpf_lock_unlock(&_ebpf_epoch_free_list_lock, &lock_state);
 }
 
@@ -265,23 +265,32 @@ static void
 ebpf_epoch_release_free_list(int64_t released_epoch)
 {
     ebpf_lock_state_t lock_state;
+    LIST_ENTRY* entry;
     ebpf_epoch_allocation_header_t* header;
-    ebpf_epoch_allocation_header_t* previous_header;
+    LIST_ENTRY free_list;
 
+    InitializeListHead(&free_list);
+
+    // Move all expired items to the free list.
     ebpf_lock_lock(&_ebpf_epoch_free_list_lock, &lock_state);
-    header = _ebpf_epoch_free_list.next;
-    previous_header = &_ebpf_epoch_free_list;
-    while (header) {
+    while (!IsListEmpty(&_ebpf_epoch_free_list)) {
+        entry = _ebpf_epoch_free_list.Flink;
+        header = CONTAINING_RECORD(entry, ebpf_epoch_allocation_header_t, list_entry);
         if (header->freed_epoch <= released_epoch) {
-            previous_header->next = header->next;
-            ebpf_free(header);
-            header = previous_header->next;
+            RemoveEntryList(entry);
+            InsertTailList(&free_list, entry);
         } else {
-            previous_header = header;
-            header = header->next;
+            break;
         }
     }
     ebpf_lock_unlock(&_ebpf_epoch_free_list_lock, &lock_state);
+
+    // Free all the expired items outside of the lock.
+    while (!IsListEmpty(&free_list)) {
+        entry = free_list.Flink;
+        RemoveEntryList(entry);
+        ebpf_free(entry);
+    }
 }
 
 static ebpf_error_code_t
