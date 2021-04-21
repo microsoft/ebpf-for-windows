@@ -24,7 +24,10 @@ typedef struct _ebpf_hook
 } ebpf_hook_t;
 
 // TODO: Get the actual GUID for the hook client.
-static const GUID _ebpf_hook_client_id;
+static const GUID _ebpf_hook_client_id = {0};
+
+ebpf_error_code_t
+_ebpf_hook_instance_invoke(ebpf_hook_t* hook, void* program_context);
 
 static struct
 {
