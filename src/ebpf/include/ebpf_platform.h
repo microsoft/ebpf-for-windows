@@ -172,7 +172,7 @@ extern "C"
      * @return true non-preemptible work items are supported.
      */
     bool
-    ebpf_is_non_preepmtable_work_item_supported();
+    ebpf_is_non_preemptible_work_item_supported();
 
     /**
      * @brief Create a non-preemptible work item.

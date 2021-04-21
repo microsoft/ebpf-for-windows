@@ -214,7 +214,7 @@ ebpf_is_preemptible()
 }
 
 bool
-ebpf_is_non_preepmtable_work_item_supported()
+ebpf_is_non_preemptible_work_item_supported()
 {
     return false;
 }
