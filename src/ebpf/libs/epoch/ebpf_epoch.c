@@ -86,7 +86,7 @@ _ebpf_flush_worker(void* context);
 ebpf_error_code_t
 ebpf_epoch_initiate()
 {
-    ebpf_error_code_t return_value;
+    ebpf_error_code_t return_value = EBPF_ERROR_SUCCESS;
     uint32_t cpu_id;
 
     _ebpf_current_epoch = 1;
@@ -96,10 +96,7 @@ ebpf_epoch_initiate()
     ebpf_lock_create(&_ebpf_epoch_free_list_lock);
 
     if (ebpf_is_non_preemptible_work_item_supported()) {
-        return_value = ebpf_get_cpu_count(&_ebpf_epoch_cpu_table_size);
-        if (return_value != EBPF_ERROR_SUCCESS) {
-            goto Error;
-        }
+        ebpf_get_cpu_count(&_ebpf_epoch_cpu_table_size);
 
         _ebpf_epoch_cpu_table =
             ebpf_allocate(_ebpf_epoch_cpu_table_size * sizeof(ebpf_epoch_cpu_entry_t), EBPF_MEMORY_NO_EXECUTE);

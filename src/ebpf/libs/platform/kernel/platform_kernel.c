@@ -53,7 +53,7 @@ NtQuerySystemInformation(
 // End code pulled from winternl.h.
 
 ebpf_error_code_t
-ebpf_query_code_integrity_state(ebpf_code_integrity_state_t* state)
+ebpf_get_code_integrity_state(ebpf_code_integrity_state_t* state)
 {
     NTSTATUS status;
     SYSTEM_CODEINTEGRITY_INFORMATION code_integrity_information = {sizeof(SYSTEM_CODEINTEGRITY_INFORMATION), 0};
