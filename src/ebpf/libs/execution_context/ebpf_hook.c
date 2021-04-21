@@ -140,7 +140,7 @@ ebpf_hook_instance_release_reference(ebpf_hook_instance_t* hook)
 }
 
 ebpf_error_code_t
-_ebpf_hook_instance_invoke(ebpf_hook_instance_t* hook, void* program_context)
+_ebpf_hook_instance_invoke(const ebpf_hook_instance_t* hook, void* program_context)
 {
     ebpf_error_code_t return_value;
     ebpf_epoch_enter();
