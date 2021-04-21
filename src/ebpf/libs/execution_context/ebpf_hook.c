@@ -50,7 +50,7 @@ ebpf_hook_instance_create(ebpf_hook_instance_t** hook)
 
 ebpf_error_code_t
 ebpf_hook_instance_initialize(
-    ebpf_hook_instance_t* hook, ebpf_attach_type_t attach_type, uint8_t* context_data, size_t context_data_length)
+    ebpf_hook_instance_t* hook, ebpf_attach_type_t attach_type, const uint8_t* context_data, size_t context_data_length)
 {
     ebpf_error_code_t return_value;
 

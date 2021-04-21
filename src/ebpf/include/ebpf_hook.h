@@ -36,13 +36,13 @@ extern "C"
      * @param[in] context_data Data to be passed to the hook provider.
      * @param[in] context_data_length Length of the data to be passed to the hook
      *  provider.
-     * @return ebpf_error_code_t TBD
+     * @retval EBPF_ERROR_SUCCESS The operation was successful.
      */
     ebpf_error_code_t
     ebpf_hook_instance_initialize(
         ebpf_hook_instance_t* hook_instance,
         ebpf_attach_type_t attach_type,
-        uint8_t* context_data,
+        const uint8_t* context_data,
         size_t context_data_length);
 
     /**
@@ -53,8 +53,9 @@ extern "C"
      *  provider properties on success.
      * @param[out] hook_properties_length Pointer to size that contains the size
      *  of the hook provider properties.
+     * @retval EBPF_ERROR_SUCCESS The operation was successful.
      * @retval EBPF_ERROR_INVALID_PARAMETER Hook instance has not been
-     *  initialzed.
+     *  initialized.
      */
     ebpf_error_code_t
     ebpf_hook_instance_get_properties(
@@ -65,8 +66,9 @@ extern "C"
      *
      * @param hook_instance The hook instance to attach the program to.
      * @param program The program to attach to this hook instance.
+     * @retval EBPF_ERROR_SUCCESS The operation was successful.
      * @retval EBPF_ERROR_INVALID_PARAMETER Hook instance has not been
-     *  initialzed.
+     *  initialized.
      */
     ebpf_error_code_t
     ebpf_hook_instance_attach_program(ebpf_hook_instance_t* hook_instance, ebpf_program_t* program);
