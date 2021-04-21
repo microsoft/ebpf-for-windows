@@ -14,7 +14,7 @@ typedef struct _ebpf_hook
     ebpf_program_t* program;
     ebpf_program_entry_point program_entry_point;
 
-    ebpf_hook_type_t hook_type;
+    ebpf_attach_type_t attach_type;
     ebpf_extension_client_t* extension_client_context;
 
     uint8_t* hook_properties;
@@ -23,16 +23,17 @@ typedef struct _ebpf_hook
     ebpf_extension_dispatch_table_t* provider_dispatch_table;
 } ebpf_hook_t;
 
-static GUID _ebpf_hook_client_id;
+// TODO: Get the actual GUID for the hook client.
+static const GUID _ebpf_hook_client_id;
 
 static struct
 {
     size_t size;
     _ebpf_extension_dispatch_function function[1];
-} _ebpf_hook_dispatch_table = {1, {ebpf_hook_invoke}};
+} _ebpf_hook_dispatch_table = {1, {_ebpf_hook_instance_invoke}};
 
 ebpf_error_code_t
-ebpf_hook_create(ebpf_hook_t** hook)
+ebpf_hook_instance_create(ebpf_hook_t** hook)
 {
     *hook = ebpf_epoch_allocate(sizeof(ebpf_hook_t), EBPF_MEMORY_NO_EXECUTE);
     if (*hook == NULL)
@@ -45,7 +46,8 @@ ebpf_hook_create(ebpf_hook_t** hook)
 }
 
 ebpf_error_code_t
-ebpf_hook_initialize(ebpf_hook_t* hook, ebpf_hook_type_t hook_type, uint8_t* context_data, size_t context_data_length)
+ebpf_hook_instance_initialize(
+    ebpf_hook_t* hook, ebpf_attach_type_t attach_type, uint8_t* context_data, size_t context_data_length)
 {
     ebpf_error_code_t return_value;
 
@@ -55,7 +57,7 @@ ebpf_hook_initialize(ebpf_hook_t* hook, ebpf_hook_type_t hook_type, uint8_t* con
         context_data,
         context_data_length,
         (ebpf_extension_dispatch_table_t*)&_ebpf_hook_dispatch_table,
-        hook_type,
+        attach_type,
         &(hook->hook_properties),
         &(hook->hook_properties_length),
         &(hook->provider_dispatch_table));
@@ -64,7 +66,7 @@ ebpf_hook_initialize(ebpf_hook_t* hook, ebpf_hook_type_t hook_type, uint8_t* con
 }
 
 ebpf_error_code_t
-ebpf_hook_get_properties(ebpf_hook_t* hook, uint8_t** hook_properties, size_t* hook_properties_length)
+ebpf_hook_instance_get_properties(ebpf_hook_t* hook, uint8_t** hook_properties, size_t* hook_properties_length)
 {
     if (!hook->hook_properties)
         return EBPF_ERROR_INVALID_PARAMETER;
@@ -75,7 +77,7 @@ ebpf_hook_get_properties(ebpf_hook_t* hook, uint8_t** hook_properties, size_t* h
 }
 
 ebpf_error_code_t
-ebpf_hook_attach_program(ebpf_hook_t* hook, ebpf_program_t* program)
+ebpf_hook_instance_attach_program(ebpf_hook_t* hook, ebpf_program_t* program)
 {
     ebpf_error_code_t return_value;
     if (hook->program) {
@@ -102,7 +104,7 @@ Done:
 }
 
 void
-ebpf_hook_detach_program(ebpf_hook_t* hook)
+ebpf_hook_instance_detach_program(ebpf_hook_t* hook)
 {
     if (!hook->program)
         return;
@@ -115,19 +117,19 @@ ebpf_hook_detach_program(ebpf_hook_t* hook)
 static void
 _ebpf_hook_free(ebpf_hook_t* hook)
 {
-    ebpf_hook_detach_program(hook);
+    ebpf_hook_instance_detach_program(hook);
     ebpf_extension_unload(hook->extension_client_context);
     ebpf_epoch_free(hook);
 }
 
 void
-ebpf_hook_acquire_reference(ebpf_hook_t* hook)
+ebpf_hook_instance_acquire_reference(ebpf_hook_t* hook)
 {
     ebpf_interlocked_increment_int32(&hook->reference_count);
 }
 
 void
-ebpf_hook_release_reference(ebpf_hook_t* hook)
+ebpf_hook_instance_release_reference(ebpf_hook_t* hook)
 {
     int32_t new_ref_count = ebpf_interlocked_decrement_int32(&hook->reference_count);
     if (new_ref_count == 0)
@@ -135,7 +137,7 @@ ebpf_hook_release_reference(ebpf_hook_t* hook)
 }
 
 ebpf_error_code_t
-ebpf_hook_invoke(ebpf_hook_t* hook, void* program_context)
+_ebpf_hook_instance_invoke(ebpf_hook_t* hook, void* program_context)
 {
     ebpf_error_code_t return_value;
     ebpf_epoch_enter();
