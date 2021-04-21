@@ -14,7 +14,7 @@ extern "C"
 #endif
 
     typedef GUID ebpf_attach_type_t;
-    typedef struct _ebpf_hook ebpf_hook_t;
+    typedef struct _ebpf_hook_instance ebpf_hook_instance_t;
 
     /**
      * @brief Create a new hook instance.
@@ -25,7 +25,7 @@ extern "C"
      *  hook instance.
      */
     ebpf_error_code_t
-    ebpf_hook_instance_create(ebpf_hook_t** hook_instance);
+    ebpf_hook_instance_create(ebpf_hook_instance_t** hook_instance);
 
     /**
      * @brief Initialize this hook instance and load the associated hook
@@ -40,7 +40,10 @@ extern "C"
      */
     ebpf_error_code_t
     ebpf_hook_instance_initialize(
-        ebpf_hook_t* hook_instance, ebpf_attach_type_t attach_type, uint8_t* context_data, size_t context_data_length);
+        ebpf_hook_instance_t* hook_instance,
+        ebpf_attach_type_t attach_type,
+        uint8_t* context_data,
+        size_t context_data_length);
 
     /**
      * @brief Get the properties from the hook provider.
@@ -55,7 +58,7 @@ extern "C"
      */
     ebpf_error_code_t
     ebpf_hook_instance_get_properties(
-        ebpf_hook_t* hook_instance, uint8_t** hook_properties, size_t* hook_properties_length);
+        ebpf_hook_instance_t* hook_instance, uint8_t** hook_properties, size_t* hook_properties_length);
 
     /**
      * @brief Attach a program to this hook instance.
@@ -66,7 +69,7 @@ extern "C"
      *  initialzed.
      */
     ebpf_error_code_t
-    ebpf_hook_instance_attach_program(ebpf_hook_t* hook_instance, ebpf_program_t* program);
+    ebpf_hook_instance_attach_program(ebpf_hook_instance_t* hook_instance, ebpf_program_t* program);
 
     /**
      * @brief Detach a program from this hook instance.
@@ -74,7 +77,7 @@ extern "C"
      * @param hook_instance The hook instance to detach from.
      */
     void
-    ebpf_hook_instance_detach_program(ebpf_hook_t* hook_instance);
+    ebpf_hook_instance_detach_program(ebpf_hook_instance_t* hook_instance);
 
     /**
      * @brief Acquire a reference on this hook instance.
@@ -82,7 +85,7 @@ extern "C"
      * @param[in] hook_instance Hook instance to acquire reference on.
      */
     void
-    ebpf_hook_instance_acquire_reference(ebpf_hook_t* hook_instance);
+    ebpf_hook_instance_acquire_reference(ebpf_hook_instance_t* hook_instance);
 
     /**
      * @brief Release a reference on this hook instance.
@@ -90,7 +93,7 @@ extern "C"
      * @param[in] hook_instance Hook instance to release reference on.
      */
     void
-    ebpf_hook_instance_release_reference(ebpf_hook_t* hook_instance);
+    ebpf_hook_instance_release_reference(ebpf_hook_instance_t* hook_instance);
 
 #ifdef __cplusplus
 }
