@@ -38,7 +38,7 @@ extern "C"
      *
      * @param[in] map Map to search.
      * @param[in] key Key to use when searching map.
-     * @return uint8_t* Pointer to the value if found or NULL.
+     * @return Pointer to the value if found or NULL.
      */
     uint8_t*
     ebpf_map_lookup_entry(ebpf_map_t* map, const uint8_t* key);
