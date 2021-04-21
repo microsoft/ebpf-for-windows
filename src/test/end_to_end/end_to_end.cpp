@@ -479,7 +479,7 @@ TEST_CASE("bindmonitor-interpret", "[bindmonitor_interpret]")
     const char* error_message = NULL;
     bool ec_initialized = false;
     bool api_initialized = false;
-    ebpf_handle_t map_handles[2];
+    ebpf_handle_t map_handles[4];
     uint32_t count_of_map_handles = 2;
     uint64_t fake_pid = 12345;
 
@@ -527,14 +527,12 @@ TEST_CASE("bindmonitor-interpret", "[bindmonitor_interpret]")
         ebpf_api_get_pinned_map(
             reinterpret_cast<const uint8_t*>(process_maps_name.c_str()),
             static_cast<uint32_t>(process_maps_name.size()),
-            &test_handle) == ERROR_SUCCESS);
-    REQUIRE(test_handle == map_handles[0]);
+            &map_handles[2]) == ERROR_SUCCESS);
     REQUIRE(
         ebpf_api_get_pinned_map(
             reinterpret_cast<const uint8_t*>(limit_maps_name.c_str()),
             static_cast<uint32_t>(limit_maps_name.size()),
-            &test_handle) == ERROR_SUCCESS);
-    REQUIRE(test_handle == map_handles[1]);
+            &map_handles[3]) == ERROR_SUCCESS);
 
     REQUIRE(
         ebpf_api_unpin_map(
@@ -560,6 +558,10 @@ TEST_CASE("bindmonitor-interpret", "[bindmonitor_interpret]")
     REQUIRE(handle_iterator == map_handles[0]);
     REQUIRE(ebpf_api_get_next_map(handle_iterator, &handle_iterator) == ERROR_SUCCESS);
     REQUIRE(handle_iterator == map_handles[1]);
+    REQUIRE(ebpf_api_get_next_map(handle_iterator, &handle_iterator) == ERROR_SUCCESS);
+    REQUIRE(handle_iterator == map_handles[2]);
+    REQUIRE(ebpf_api_get_next_map(handle_iterator, &handle_iterator) == ERROR_SUCCESS);
+    REQUIRE(handle_iterator == map_handles[3]);
     REQUIRE(ebpf_api_get_next_map(handle_iterator, &handle_iterator) == ERROR_SUCCESS);
     REQUIRE(handle_iterator == INVALID_HANDLE_VALUE);
 

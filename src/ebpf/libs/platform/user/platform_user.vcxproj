@@ -27,6 +27,7 @@
     <ClInclude Include="..\..\..\include\user\framework.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\ebpf_handle.c" />
     <ClCompile Include="..\ebpf_hash_table.c" />
     <ClCompile Include="..\ebpf_object.c" />
     <ClCompile Include="..\ebpf_pinning_table.c" />
