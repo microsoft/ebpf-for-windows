@@ -27,7 +27,7 @@ typedef struct _ebpf_hook_instance
 static const GUID _ebpf_hook_client_id = {0};
 
 ebpf_error_code_t
-_ebpf_hook_instance_invoke(ebpf_hook_instance_t* hook, void* program_context);
+_ebpf_hook_instance_invoke(const ebpf_hook_instance_t* hook, void* program_context);
 
 static struct
 {
