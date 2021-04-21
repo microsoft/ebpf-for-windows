@@ -243,7 +243,7 @@ ebpf_core_initiate()
     ebpf_lock_create(&_ebpf_core_map_entry_table_lock);
     ebpf_lock_create(&_ebpf_core_hook_table_lock);
 
-    return_value = ebpf_query_code_integrity_state(&_ebpf_core_code_integrity_state);
+    return_value = ebpf_get_code_integrity_state(&_ebpf_core_code_integrity_state);
 
 Done:
     if (return_value != EBPF_ERROR_SUCCESS) {

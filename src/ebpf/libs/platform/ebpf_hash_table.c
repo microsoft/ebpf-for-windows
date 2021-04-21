@@ -144,11 +144,13 @@ ebpf_hash_table_update(ebpf_hash_table_t* hash_table, const uint8_t* key, const 
     memcpy(temp + hash_table->key_size, value, hash_table->value_size);
 
     entry = RtlInsertElementGenericTableAvl(table, temp, (uint32_t)temp_size, &new_entry);
+    if (!entry) {
+        retval = EBPF_ERROR_OUT_OF_RESOURCES;
+        goto Done;
+    }
 
     // Update existing entry
-    if (!new_entry) {
-        memcpy(entry + hash_table->key_size, value, hash_table->value_size);
-    }
+    memcpy(entry + hash_table->key_size, value, hash_table->value_size);
     retval = EBPF_ERROR_SUCCESS;
 
 Done:

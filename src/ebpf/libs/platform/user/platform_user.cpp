@@ -4,6 +4,7 @@
  */
 
 #include "ebpf_platform.h"
+#include <intsafe.h>
 #include <map>
 #include <mutex>
 #include <set>
@@ -16,8 +17,8 @@ std::set<uint64_t> _executable_segments;
 // Global variables used to override behavior for testing.
 // Permit the test to simulate both Hyper-V Code Integrity.
 bool _ebpf_platform_code_integrity_enabled = false;
-// Permit the test to simulate non-preemptable execution.
-bool _ebpf_platform_is_preemptable = true;
+// Permit the test to simulate non-preemptible execution.
+bool _ebpf_platform_is_preemptible = true;
 
 void (*RtlInitializeGenericTableAvl)(
     _Out_ PRTL_AVL_TABLE Table,
@@ -95,7 +96,7 @@ ebpf_platform_terminate()
 {}
 
 ebpf_error_code_t
-ebpf_query_code_integrity_state(ebpf_code_integrity_state_t* state)
+ebpf_get_code_integrity_state(ebpf_code_integrity_state_t* state)
 {
     if (_ebpf_platform_code_integrity_enabled) {
         *state = EBPF_CODE_INTEGRITY_HYPER_VISOR_KERNEL_MODE;
@@ -133,15 +134,13 @@ ebpf_free(void* memory)
 ebpf_error_code_t
 ebpf_safe_size_t_multiply(size_t multiplicand, size_t multiplier, size_t* result)
 {
-    *result = multiplicand * multiplier;
-    return EBPF_ERROR_SUCCESS;
+    return SUCCEEDED(SizeTMult(multiplicand, multiplier, result)) ? EBPF_ERROR_SUCCESS : EBPF_ERROR_INVALID_PARAMETER;
 }
 
 ebpf_error_code_t
 ebpf_safe_size_t_add(size_t augend, size_t addend, size_t* result)
 {
-    *result = augend + addend;
-    return EBPF_ERROR_SUCCESS;
+    return SUCCEEDED(SizeTAdd(augend, addend, result)) ? EBPF_ERROR_SUCCESS : EBPF_ERROR_INVALID_PARAMETER;
 }
 
 void
@@ -200,19 +199,18 @@ ebpf_interlocked_compare_exchange_int32(volatile int32_t* destination, int32_t e
     return InterlockedCompareExchange((long volatile*)destination, exchange, comperand);
 }
 
-ebpf_error_code_t
+void
 ebpf_get_cpu_count(uint32_t* cpu_count)
 {
     SYSTEM_INFO system_information;
     GetNativeSystemInfo(&system_information);
     *cpu_count = system_information.dwNumberOfProcessors;
-    return EBPF_ERROR_SUCCESS;
 }
 
 bool
-ebpf_is_preemptable()
+ebpf_is_preemptible()
 {
-    return _ebpf_platform_is_preemptable;
+    return _ebpf_platform_is_preemptible;
 }
 
 bool
@@ -234,8 +232,8 @@ ebpf_get_current_thread_id()
 }
 
 ebpf_error_code_t
-ebpf_allocate_non_preemptable_work_item(
-    epbf_non_preepmtable_work_item_t** work_item,
+ebpf_allocate_non_preemptible_work_item(
+    epbf_non_preemptible_work_item_t** work_item,
     uint32_t cpu_id,
     void (*work_item_routine)(void* work_item_context, void* parameter_1),
     void* work_item_context)
@@ -248,13 +246,13 @@ ebpf_allocate_non_preemptable_work_item(
 }
 
 void
-ebpf_free_non_preemptable_work_item(epbf_non_preepmtable_work_item_t* work_item)
+ebpf_free_non_preemptible_work_item(epbf_non_preemptible_work_item_t* work_item)
 {
     UNREFERENCED_PARAMETER(work_item);
 }
 
 bool
-ebpf_queue_non_preemptable_work_item(epbf_non_preepmtable_work_item_t* work_item, void* parameter_1)
+ebpf_queue_non_preemptible_work_item(epbf_non_preemptible_work_item_t* work_item, void* parameter_1)
 {
     UNREFERENCED_PARAMETER(work_item);
     UNREFERENCED_PARAMETER(parameter_1);
@@ -310,16 +308,16 @@ Error:
 #define MICROSECONDS_PER_MILLISECOND 1000
 
 void
-ebpf_schedule_timer_work_item(ebpf_timer_work_item_t* work_item, uint32_t elaped_microseconds)
+ebpf_schedule_timer_work_item(ebpf_timer_work_item_t* work_item, uint32_t elapsed_microseconds)
 {
     int64_t due_time;
-    due_time = -static_cast<int64_t>(elaped_microseconds) * MICROSECONDS_PER_TICK;
+    due_time = -static_cast<int64_t>(elapsed_microseconds) * MICROSECONDS_PER_TICK;
 
     SetThreadpoolTimer(
         work_item->threadpool_timer,
         reinterpret_cast<FILETIME*>(&due_time),
         0,
-        elaped_microseconds / MICROSECONDS_PER_MILLISECOND);
+        elapsed_microseconds / MICROSECONDS_PER_MILLISECOND);
 }
 
 void
