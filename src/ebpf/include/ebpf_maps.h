@@ -28,7 +28,7 @@ extern "C"
      * @brief Get a pointer to the map definition.
      *
      * @param[in] map Map to get definition from.
-     * @return ebpf_map_definition_t* Pointer to map definition.
+     * @return Pointer to map definition.
      */
     ebpf_map_definition_t*
     ebpf_map_get_definition(ebpf_map_t* map);
