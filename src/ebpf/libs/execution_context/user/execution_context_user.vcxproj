@@ -115,6 +115,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\include\ebpf_core.h" />
+    <ClInclude Include="..\..\..\include\ebpf_hook.h" />
     <ClInclude Include="..\..\..\include\ebpf_maps.h" />
     <ClInclude Include="..\..\..\include\ebpf_platform.h" />
     <ClInclude Include="..\..\..\include\ebpf_protocol.h" />
