@@ -102,7 +102,7 @@ ebpf_hash_table_destroy(ebpf_hash_table_t* hash_table)
 }
 
 ebpf_error_code_t
-ebpf_hash_table_lookup(ebpf_hash_table_t* hash_table, const uint8_t* key, uint8_t** value)
+ebpf_hash_table_find(ebpf_hash_table_t* hash_table, const uint8_t* key, uint8_t** value)
 {
     ebpf_error_code_t retval;
     RTL_AVL_TABLE* table = (RTL_AVL_TABLE*)hash_table;

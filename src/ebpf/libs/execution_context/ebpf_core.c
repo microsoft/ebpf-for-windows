@@ -47,7 +47,7 @@ static ebpf_core_code_entry_t* _ebpf_core_hook_table[EBPF_PROGRAM_TYPE_BIND + 1]
 static ebpf_code_integrity_state_t _ebpf_core_code_integrity_state = EBPF_CODE_INTEGRITY_HYPER_VISOR_KERNEL_MODE;
 
 static void*
-_ebpf_core_map_lookup_element(ebpf_map_t* map, const uint8_t* key);
+_ebpf_core_map_find_element(ebpf_map_t* map, const uint8_t* key);
 static void
 _ebpf_core_map_update_element(ebpf_map_t* map, const uint8_t* key, const uint8_t* data);
 static void
@@ -58,7 +58,7 @@ ebpf_core_interpreter_helper_resolver(void* context, uint32_t helper_id);
 
 static const void* _ebpf_program_helpers[] = {
     NULL,
-    (void*)&_ebpf_core_map_lookup_element,
+    (void*)&_ebpf_core_map_find_element,
     (void*)&_ebpf_core_map_update_element,
     (void*)&_ebpf_core_map_delete_element};
 
@@ -569,9 +569,9 @@ Done:
 }
 
 static ebpf_error_code_t
-ebpf_core_protocol_map_lookup_element(
-    _In_ const ebpf_operation_map_lookup_element_request_t* request,
-    _Inout_ ebpf_operation_map_lookup_element_reply_t* reply,
+ebpf_core_protocol_map_find_element(
+    _In_ const ebpf_operation_map_find_element_request_t* request,
+    _Inout_ ebpf_operation_map_find_element_reply_t* reply,
     uint16_t reply_length)
 {
     ebpf_error_code_t retval;
@@ -588,18 +588,17 @@ ebpf_core_protocol_map_lookup_element(
     map_definition = ebpf_map_get_definition(map);
 
     if (request->header.length <
-        (EBPF_OFFSET_OF(ebpf_operation_map_lookup_element_request_t, key) + map_definition->key_size)) {
+        (EBPF_OFFSET_OF(ebpf_operation_map_find_element_request_t, key) + map_definition->key_size)) {
         retval = EBPF_ERROR_INVALID_PARAMETER;
         goto Done;
     }
 
-    if (reply_length <
-        (EBPF_OFFSET_OF(ebpf_operation_map_lookup_element_reply_t, value) + map_definition->value_size)) {
+    if (reply_length < (EBPF_OFFSET_OF(ebpf_operation_map_find_element_reply_t, value) + map_definition->value_size)) {
         retval = EBPF_ERROR_INVALID_PARAMETER;
         goto Done;
     }
 
-    value = ebpf_map_lookup_entry(map, request->key);
+    value = ebpf_map_find_entry(map, request->key);
     if (value == NULL) {
         retval = EBPF_ERROR_NOT_FOUND;
         goto Done;
@@ -891,7 +890,7 @@ ebpf_core_protocol_get_pinned_map(
     memset(name, 0, name_length + 1);
     memcpy(name, request->name, name_length);
 
-    retval = ebpf_pinning_table_lookup(_ebpf_core_map_pinning_table, name, (ebpf_object_t**)&map);
+    retval = ebpf_pinning_table_find(_ebpf_core_map_pinning_table, name, (ebpf_object_t**)&map)
     if (retval != EBPF_ERROR_SUCCESS)
         goto Done;
 
@@ -905,9 +904,9 @@ Done:
 }
 
 static void*
-_ebpf_core_map_lookup_element(ebpf_map_t* map, const uint8_t* key)
+_ebpf_core_map_find_element(ebpf_map_t* map, const uint8_t* key)
 {
-    return ebpf_map_lookup_entry(map, key);
+    return ebpf_map_find_entry(map, key);
 }
 
 static void
@@ -962,9 +961,9 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[EBPF_OPERATION_GET_MAP_PI
     {(ebpf_error_code_t(__cdecl*)(const void*))ebpf_core_protocol_create_map,
      sizeof(struct _ebpf_operation_create_map_request),
      sizeof(struct _ebpf_operation_create_map_reply)},
-    {(ebpf_error_code_t(__cdecl*)(const void*))ebpf_core_protocol_map_lookup_element,
-     sizeof(struct _ebpf_operation_map_lookup_element_request),
-     sizeof(struct _ebpf_operation_map_lookup_element_reply)},
+    {(ebpf_error_code_t(__cdecl*)(const void*))ebpf_core_protocol_map_find_element,
+     sizeof(struct _ebpf_operation_map_find_element_request),
+     sizeof(struct _ebpf_operation_map_find_element_reply)},
     {ebpf_core_protocol_map_update_element, sizeof(struct _ebpf_operation_map_update_element_request), 0},
     {ebpf_core_protocol_map_delete_element, sizeof(struct _ebpf_operation_map_delete_element_request), 0},
     {(ebpf_error_code_t(__cdecl*)(const void*))ebpf_core_protocol_map_get_next_key,

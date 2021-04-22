@@ -44,6 +44,9 @@ extern "C"
 
     /**
      *  @brief Initialize the eBPF platform abstraction layer.
+     * @retval EBPF_ERROR_SUCCESS The operation was successful.
+     * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
+     *  operation.
      */
     ebpf_error_code_t
     ebpf_platform_initiate();
@@ -73,8 +76,8 @@ extern "C"
     /**
      * @brief Get the code integrity state from the platform.
      * @param[out] state The code integrity state being enforced.
-     * @retval EBPF_ERROR_INVALID_PARAMETER Call to platform to get code
-     *   integrity state failed.
+     * @retval EBPF_ERROR_SUCCESS The operation was successful.
+     * @retval EBPF_ERROR_NOT_SUPPORTED Unable to obtain state from platform.
      */
     ebpf_error_code_t
     ebpf_get_code_integrity_state(ebpf_code_integrity_state_t* state);
@@ -83,9 +86,10 @@ extern "C"
      * @brief Multiplies one value of type size_t by another and check for
      *   overflow.
      * @param[in] multiplicand The value to be multiplied by multiplier.
-     * @param[in] multiplicand The value by which to multiply multiplicand.
+     * @param[in] multiplier The value by which to multiply multiplicand.
      * @param[out] result A pointer to the result.
-     * @retval EBPF_ERROR_INVALID_PARAMETER Multiplication overflowed.
+     * @retval EBPF_ERROR_SUCCESS The operation was successful.
+     * @retval EBPF_ERROR_ARITHMETIC_OVERFLOW Multiplication overflowed.
      */
     ebpf_error_code_t
     ebpf_safe_size_t_multiply(size_t multiplicand, size_t multiplier, size_t* result);
@@ -96,7 +100,8 @@ extern "C"
      * @param[in] augend The value to be added by addend.
      * @param[in] addend The value add to augend.
      * @param[out] result A pointer to the result.
-     * @retval EBPF_ERROR_INVALID_PARAMETER Addition overflowed.
+     * @retval EBPF_ERROR_SUCCESS The operation was successful.
+     * @retval EBPF_ERROR_ARITHMETIC_OVERFLOW Addition overflowed.
      */
     ebpf_error_code_t
     ebpf_safe_size_t_add(size_t augend, size_t addend, size_t* result);
@@ -144,7 +149,7 @@ extern "C"
     /**
      * @brief Query the platform to determine if the current execution can
      *    be preempted by other execution.
-     * @return True if this execution can be preempted.
+     * @retrval True if this execution can be preempted.
      */
     bool
     ebpf_is_preemptible();
@@ -152,7 +157,7 @@ extern "C"
     /**
      * @brief Query the platform to determine which CPU this execution is
      *   running on. Only valid if ebpf_is_preemptible() == true.
-     * @return Zero based index of CPUs.
+     * @retval Zero based index of CPUs.
      */
     uint32_t
     ebpf_get_current_cpu();
@@ -160,7 +165,7 @@ extern "C"
     /**
      * @brief Query the platform to determine an opaque identifier for the
      *   current thread. Only valid if ebpf_is_preemptible() == false.
-     * @return Zero based index of CPUs.
+     * @return Opaque identifier for the current thread.
      */
     uint64_t
     ebpf_get_current_thread_id();
@@ -169,7 +174,8 @@ extern "C"
      * @brief Query the platform to determine if non-preemptible work items are
      *   supported.
      *
-     * @return true non-preemptible work items are supported.
+     * @retval true Non-preemptible work items are supported.
+     * @retval false Non-preemptible work items are not supported.
      */
     bool
     ebpf_is_non_preemptible_work_item_supported();
@@ -182,6 +188,7 @@ extern "C"
      * @param[in] cpu_id Associate the work item with this CPU.
      * @param[in] work_item_routine Routine to execute as a work item.
      * @param[in] work_item_context Context to pass to the routine.
+     * @retval EBPF_ERROR_SUCCESS The operation was successful.
      * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
      *  work item.
      */
@@ -205,6 +212,7 @@ extern "C"
      *
      * @param[in] work_item Work item to schedule.
      * @param[in] parameter_1 Parameter to pass to work item.
+     * @retval true Work item was queued.
      * @retval false Work item is already queued.
      */
     bool
@@ -216,6 +224,7 @@ extern "C"
      * @param[out] timer Pointer to memory that will contain timer on success.
      * @param[in] work_item_routine Routine to execute when time expires.
      * @param[in] work_item_context Context to pass to routine.
+     * @retval EBPF_ERROR_SUCCESS The operation was successful.
      * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
      *  timer.
      */
@@ -224,7 +233,7 @@ extern "C"
         ebpf_timer_work_item_t** timer, void (*work_item_routine)(void* work_item_context), void* work_item_context);
 
     /**
-     * @brief Schedule
+     * @brief Schedule a work item to be executed after elaped_microseconds.
      *
      * @param[in] timer Pointer to timer to schedule.
      * @param[in] elapsed_microseconds Microseconds to delay before executing
@@ -236,7 +245,7 @@ extern "C"
     /**
      * @brief Free a timer.
      *
-     * @param[in] work_item Timer to be freed.
+     * @param[in] timer Timer to be freed.
      */
     void
     ebpf_free_timer_work_item(ebpf_timer_work_item_t* timer);
@@ -253,16 +262,18 @@ extern "C"
     /**
      * @brief Allocate and initialize a hash table.
      *
-     * @param[out] hash_table Pointer to memory that will contain hash-table on
+     * @param[out] hash_table Pointer to memory that will contain hash table on
      *   success.
      * @param[in] allocate Function to use when allocating elements in the
-     *   hash-table.
-     * @param[in] free Function to use when freeing elements in the hash-table.
-     * @param[in] key_size Size of the keys used in the hash-table.
-     * @param[in] value_size
-     * @param[in] compare_function
+     *   hash table.
+     * @param[in] free Function to use when freeing elements in the hash table.
+     * @param[in] key_size Size of the keys used in the hash table.
+     * @param[in] value_size Size of the values used in the hash table.
+     * @param[in] compare_function Function used to lexicographically order
+     * keys.
+     * @retval EBPF_ERROR_SUCCESS The operation was successful.
      * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
-     *  hash-table.
+     *  hash table.
      */
     ebpf_error_code_t
     ebpf_hash_table_create(
@@ -282,45 +293,50 @@ extern "C"
     ebpf_hash_table_destroy(ebpf_hash_table_t* hash_table);
 
     /**
-     * @brief Find an element in the hash-table.
+     * @brief Find an element in the hash table.
      *
      * @param[in] hash_table Hash-table to search.
-     * @param[in] key Key to find in hash-table.
+     * @param[in] key Key to find in hash table.
      * @param[out] value Pointer to value if found.
-     * @retval EBPF_ERROR_NOT_FOUND Key not found in hash-table.
+     * @retval EBPF_ERROR_SUCCESS The operation was successful.
+     * @retval EBPF_ERROR_NOT_FOUND Key not found in hash table.
      */
     ebpf_error_code_t
-    ebpf_hash_table_lookup(ebpf_hash_table_t* hash_table, const uint8_t* key, uint8_t** value);
+    ebpf_hash_table_find(ebpf_hash_table_t* hash_table, const uint8_t* key, uint8_t** value);
 
     /**
-     * @brief Insert or update an entry in the hash-table.
+     * @brief Insert or update an entry in the hash table.
      *
      * @param[in] hash_table Hash-table to update.
      * @param[in] key Key to find and insert or update.
-     * @param[in] value Value to insert into hash-table.
+     * @param[in] value Value to insert into hash table.
+     * @retval EBPF_ERROR_SUCCESS The operation was successful.
      * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate memory for this
-     *  entry in the hash-table.
+     *  entry in the hash table.
      */
     ebpf_error_code_t
     ebpf_hash_table_update(ebpf_hash_table_t* hash_table, const uint8_t* key, const uint8_t* value);
 
     /**
-     * @brief Remove an entry from the hash-table.
+     * @brief Remove an entry from the hash table.
      *
      * @param hash_table Hash-table to update.
      * @param key Key to find and remove.
-     * @return ebpf_error_code_t
+     * @retval EBPF_ERROR_SUCCESS The operation was successful.
+     * @retval EBPF_ERROR_SUCCESS The operation was successful.
      */
     ebpf_error_code_t
     ebpf_hash_table_delete(ebpf_hash_table_t* hash_table, const uint8_t* key);
 
     /**
-     * @brief Find the next key in the hash-table.
+     * @brief Find the next key in the hash table.
      *
      * @param[in] hash_table Hash-table to query.
      * @param[in] previous_key Previous key or NULL to restart.
      * @param[out] next_key Next key if it exists.
-     * @retval EBPF_ERROR_NO_MORE_KEYS Previous_key is the last key.
+     * @retval EBPF_ERROR_SUCCESS The operation was successful.
+     * @retval EBPF_ERROR_NO_MORE_KEYS No keys exist in the hash table that
+     * are lexicographically after the specified key.
      */
     ebpf_error_code_t
     ebpf_hash_table_next_key(ebpf_hash_table_t* hash_table, const uint8_t* previous_key, uint8_t* next_key);
@@ -330,7 +346,7 @@ extern "C"
      *  value.
      *
      * @param[in,out] addend Value to increase by 1.
-     * @return int32_t The new value.
+     * @return The new value.
      */
     int32_t
     ebpf_interlocked_increment_int32(volatile int32_t* addend);
@@ -340,7 +356,7 @@ extern "C"
      *  value.
      *
      * @param[in,out] addend Value to decrease by 1.
-     * @return int32_t The new value.
+     * @return The new value.
      */
     int32_t
     ebpf_interlocked_decrement_int32(volatile int32_t* addend);
@@ -350,7 +366,7 @@ extern "C"
      *  value.
      *
      * @param[in,out] addend Value to increase by 1.
-     * @return int64_t The new value.
+     * @return The new value.
      */
     int64_t
     ebpf_interlocked_increment_int64(volatile int64_t* addend);
@@ -360,7 +376,7 @@ extern "C"
      *  value.
      *
      * @param[in,out] addend Value to increase by 1.
-     * @return int64_t The new value.
+     * @return The new value.
      */
     int64_t
     ebpf_interlocked_decrement_int64(volatile int64_t* addend);

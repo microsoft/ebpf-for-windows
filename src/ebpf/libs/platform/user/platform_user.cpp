@@ -134,13 +134,13 @@ ebpf_free(void* memory)
 ebpf_error_code_t
 ebpf_safe_size_t_multiply(size_t multiplicand, size_t multiplier, size_t* result)
 {
-    return SUCCEEDED(SizeTMult(multiplicand, multiplier, result)) ? EBPF_ERROR_SUCCESS : EBPF_ERROR_INVALID_PARAMETER;
+    return SUCCEEDED(SizeTMult(multiplicand, multiplier, result)) ? EBPF_ERROR_SUCCESS : EBPF_ERROR_ARITHMETIC_OVERFLOW;
 }
 
 ebpf_error_code_t
 ebpf_safe_size_t_add(size_t augend, size_t addend, size_t* result)
 {
-    return SUCCEEDED(SizeTAdd(augend, addend, result)) ? EBPF_ERROR_SUCCESS : EBPF_ERROR_INVALID_PARAMETER;
+    return SUCCEEDED(SizeTAdd(augend, addend, result)) ? EBPF_ERROR_SUCCESS : EBPF_ERROR_ARITHMETIC_OVERFLOW;
 }
 
 void

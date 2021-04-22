@@ -11,14 +11,26 @@ extern "C"
 {
 #endif
 
+    /**
+     * @brief Initialize the ebpf epoch tracking module.
+     *
+     * @retval EBPF_ERROR_SUCCESS The operation was successful.
+     * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
+     *  operation.
+     */
     ebpf_error_code_t
     ebpf_epoch_initiate();
 
+    /**
+     * @brief Uninitialize the ebpf epoch tracking module.
+     *
+     */
     void
     ebpf_epoch_terminate();
 
     /**
      * @brief Called prior to touching memory with lifetime under epoch control.
+     * @retval EBPF_ERROR_SUCCESS The operation was successful.
      * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate per-thread
      *   tracking state.
      */

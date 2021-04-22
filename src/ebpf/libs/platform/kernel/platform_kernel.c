@@ -67,7 +67,7 @@ ebpf_get_code_integrity_state(ebpf_code_integrity_state_t* state)
                      : EBPF_CODE_INTEGRITY_DEFAULT;
         return EBPF_ERROR_SUCCESS;
     } else {
-        return EBPF_ERROR_INVALID_PARAMETER;
+        return EBPF_ERROR_NOT_SUPPORTED;
     }
 }
 
@@ -75,13 +75,13 @@ ebpf_error_code_t
 ebpf_safe_size_t_multiply(size_t multiplicand, size_t multiplier, size_t* result)
 {
     return RtlSizeTMult(multiplicand, multiplier, result) == STATUS_SUCCESS ? EBPF_ERROR_SUCCESS
-                                                                            : EBPF_ERROR_INVALID_PARAMETER;
+                                                                            : EBPF_ERROR_ARITHMETIC_OVERFLOW;
 }
 
 ebpf_error_code_t
 ebpf_safe_size_t_add(size_t augend, size_t addend, size_t* result)
 {
-    return RtlSizeTAdd(augend, addend, result) == STATUS_SUCCESS ? EBPF_ERROR_SUCCESS : EBPF_ERROR_INVALID_PARAMETER;
+    return RtlSizeTAdd(augend, addend, result) == STATUS_SUCCESS ? EBPF_ERROR_SUCCESS : EBPF_ERROR_ARITHMETIC_OVERFLOW;
 }
 
 void

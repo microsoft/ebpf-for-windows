@@ -312,7 +312,7 @@ ebpf_epoch_get_release_epoch(int64_t* release_epoch)
     if (return_value == EBPF_ERROR_SUCCESS)
         for (;;) {
             return_value =
-                ebpf_hash_table_lookup(_ebpf_epoch_thread_table, (uint8_t*)&thread_id, (uint8_t**)&thread_epoch);
+                ebpf_hash_table_find(_ebpf_epoch_thread_table, (uint8_t*)&thread_id, (uint8_t**)&thread_epoch);
             if (return_value != EBPF_ERROR_SUCCESS)
                 break;
 

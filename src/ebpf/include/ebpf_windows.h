@@ -36,7 +36,8 @@ typedef enum _ebpf_error_code
     EBPF_ERROR_NO_MORE_KEYS,
     EBPF_ERROR_INVALID_HANDLE,
     EBPF_ERROR_NOT_SUPPORTED,
-    EBPF_ERROR_DUPLICATE_NAME
+    EBPF_ERROR_DUPLICATE_NAME,
+    EBPF_ERROR_ARITHMETIC_OVERFLOW,
 } ebpf_error_code_t;
 
 typedef struct _ebpf_map_definition
