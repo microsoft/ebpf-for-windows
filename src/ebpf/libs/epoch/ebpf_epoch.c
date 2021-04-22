@@ -305,7 +305,7 @@ ebpf_epoch_get_release_epoch(int64_t* release_epoch)
 
     if (ebpf_is_non_preepmtable_work_item_supported()) {
         for (cpu_id = 0; cpu_id < _ebpf_epoch_cpu_table_size; cpu_id++) {
-            if ((_ebpf_epoch_cpu_table[cpu_id].epoch != 0) && _ebpf_epoch_cpu_table[cpu_id].epoch < lowest_epoch)
+            if (_ebpf_epoch_cpu_table[cpu_id].epoch < lowest_epoch)
                 lowest_epoch = _ebpf_epoch_cpu_table[cpu_id].epoch;
         }
     }
