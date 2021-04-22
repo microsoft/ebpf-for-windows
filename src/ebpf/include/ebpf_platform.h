@@ -178,9 +178,9 @@ extern "C"
     ebpf_extension_load(
         ebpf_extension_client_t** client_context,
         GUID client_id,
-        uint8_t* client_data,
+        const uint8_t* client_data,
         size_t client_data_length,
-        ebpf_extension_dispatch_table_t* client_dispatch_table,
+        const ebpf_extension_dispatch_table_t* client_dispatch_table,
         GUID provider_id,
         uint8_t** provider_data,
         size_t* provider_data_length,
