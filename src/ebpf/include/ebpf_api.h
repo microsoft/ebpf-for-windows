@@ -76,7 +76,7 @@ extern "C"
     ebpf_api_detach_program(ebpf_handle_t handle, ebpf_program_type_t hook_point);
 
     /**
-     * @brief find an element in an eBPF map.
+     * @brief Find an element in an eBPF map.
      * @param[in] handle Handle to eBPF map.
      * @param[in] key_size Size of the key buffer.
      * @param[in] key Pointer to buffer containing key.
