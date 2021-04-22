@@ -28,6 +28,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\ebpf_hash_table.c" />
+    <ClCompile Include="..\ebpf_object.c" />
     <ClCompile Include="..\ebpf_pinning_table.c" />
     <ClCompile Include="platform_user.cpp" />
   </ItemGroup>

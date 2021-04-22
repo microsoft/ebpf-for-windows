@@ -4,6 +4,7 @@
  */
 #pragma once
 #include "framework.h"
+#include "ebpf_object.h"
 #include "ebpf_windows.h"
 
 #ifdef __cplusplus
@@ -152,42 +153,6 @@ extern "C"
 
     int32_t
     ebpf_interlocked_compare_exchange_int32(volatile int32_t* destination, int32_t exchange, int32_t comperand);
-
-    typedef struct _ebpf_pinning_table ebpf_pinning_table_t;
-
-    ebpf_error_code_t
-    ebpf_pinning_table_allocate(
-        ebpf_pinning_table_t** pinning_table, void (*acquire_reference)(void*), void (*release_reference)(void*));
-
-    void
-    ebpf_pinning_table_free(ebpf_pinning_table_t* pinning_table);
-
-    ebpf_error_code_t
-    ebpf_pinning_table_insert(ebpf_pinning_table_t* pinning_table, const uint8_t* name, void* object);
-
-    ebpf_error_code_t
-    ebpf_pinning_table_lookup(ebpf_pinning_table_t* pinning_table, const uint8_t* name, void** object);
-
-    ebpf_error_code_t
-    ebpf_pinning_table_delete(ebpf_pinning_table_t* pinning_table, const uint8_t* name);
-
-    ebpf_error_code_t
-    ebpf_pinning_table_next_name(ebpf_pinning_table_t* hash_table, const uint8_t* previous_name, uint8_t* next_name);
-
-    ebpf_error_code_t
-    ebpf_extension_load(
-        ebpf_extension_client_t** client_context,
-        GUID client_id,
-        const uint8_t* client_data,
-        size_t client_data_length,
-        const ebpf_extension_dispatch_table_t* client_dispatch_table,
-        GUID provider_id,
-        uint8_t** provider_data,
-        size_t* provider_data_length,
-        ebpf_extension_dispatch_table_t** provider_dispatch_table);
-
-    void
-    ebpf_extension_unload(ebpf_extension_client_t* client_context);
 
 #ifdef __cplusplus
 }

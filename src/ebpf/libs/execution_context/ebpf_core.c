@@ -7,6 +7,7 @@
 
 #include "ebpf_epoch.h"
 #include "ebpf_maps.h"
+#include "ebpf_pinning_table.h"
 #include "ubpf.h"
 
 typedef struct _ebpf_core_code_entry
@@ -185,7 +186,7 @@ _ebpf_core_delete_map_entry(uint64_t handle)
     map = _ebpf_core_map_entry_table[handle];
     _ebpf_core_map_entry_table[handle] = NULL;
     if (map)
-        ebpf_map_release_reference(map);
+        ebpf_object_release_reference((ebpf_object_t*)map);
 
     ebpf_lock_unlock(&_ebpf_core_map_entry_table_lock, &state);
     return EBPF_ERROR_SUCCESS;
@@ -236,8 +237,7 @@ ebpf_core_initiate()
         goto Done;
     epoch_initialize = true;
 
-    return_value = ebpf_pinning_table_allocate(
-        &_ebpf_core_map_pinning_table, ebpf_map_acquire_reference, ebpf_map_release_reference);
+    return_value = ebpf_pinning_table_allocate(&_ebpf_core_map_pinning_table);
 
     ebpf_lock_create(&_ebpf_core_code_entry_table_lock);
     ebpf_lock_create(&_ebpf_core_map_entry_table_lock);
@@ -562,7 +562,7 @@ ebpf_core_protocol_create_map(
 
 Done:
     if (map != NULL) {
-        ebpf_map_release_reference(map);
+        ebpf_object_release_reference((ebpf_object_t*)map);
     }
 
     return retval;
@@ -859,7 +859,7 @@ ebpf_core_protocol_update_map_pinning(_In_ const struct _ebpf_operation_update_m
         if (!map) {
             return EBPF_ERROR_INVALID_HANDLE;
         }
-        retval = ebpf_pinning_table_insert(_ebpf_core_map_pinning_table, name, map);
+        retval = ebpf_pinning_table_insert(_ebpf_core_map_pinning_table, name, (ebpf_object_t*)map);
     }
 Done:
     ebpf_free(name);
@@ -891,7 +891,7 @@ ebpf_core_protocol_get_pinned_map(
     memset(name, 0, name_length + 1);
     memcpy(name, request->name, name_length);
 
-    retval = ebpf_pinning_table_lookup(_ebpf_core_map_pinning_table, name, (void**)&map);
+    retval = ebpf_pinning_table_lookup(_ebpf_core_map_pinning_table, name, (ebpf_object_t**)&map);
     if (retval != EBPF_ERROR_SUCCESS)
         goto Done;
 

@@ -20,6 +20,8 @@
 #define true 1
 #define false 0
 
+#define ebpf_assert(x) ASSERT(x)
+
 #define ebpf_list_entry_t LIST_ENTRY
 
 #define ebpf_list_initialize InitializeListHead
