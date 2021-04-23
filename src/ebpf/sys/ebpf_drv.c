@@ -88,7 +88,7 @@ ebpf_error_code_to_ntstatus(ebpf_error_code_t error)
     case EBPF_ERROR_INVALID_PARAMETER:
         return STATUS_INVALID_PARAMETER;
     case EBPF_ERROR_BLOCKED_BY_POLICY:
-        // TODO: Find a better erorr code for this.
+        // TODO: Find a better error code for this.
         return STATUS_NOT_SUPPORTED;
     case EBPF_ERROR_NO_MORE_KEYS:
         return STATUS_NO_MORE_MATCHES;

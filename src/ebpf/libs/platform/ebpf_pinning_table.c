@@ -2,19 +2,19 @@
  *  Copyright (c) Microsoft Corporation
  *  SPDX-License-Identifier: MIT
  */
-#include "ebpf_platform.h"
+#include "ebpf_pinning_table.h"
+
+#include "ebpf_object.h"
 
 typedef struct _ebpf_pinning_table
 {
     ebpf_hash_table_t* hash_table;
     ebpf_lock_t lock;
-    void (*acquire_reference)(void*);
-    void (*release_reference)(void*);
 } ebpf_pinning_table_t;
 
 typedef struct _ebpf_pinning_entry
 {
-    void* object;
+    ebpf_object_t* object;
     uint8_t name[1];
 } ebpf_pinning_entry_t;
 
@@ -34,8 +34,7 @@ _ebpf_pining_table_compare_function(const uint8_t* key1, const uint8_t* key2)
 }
 
 ebpf_error_code_t
-ebpf_pinning_table_allocate(
-    ebpf_pinning_table_t** pinning_table, void (*acquire_reference)(void*), void (*release_reference)(void*))
+ebpf_pinning_table_allocate(ebpf_pinning_table_t** pinning_table)
 {
     ebpf_error_code_t return_value;
     *pinning_table = ebpf_allocate(sizeof(ebpf_pinning_table_t), EBPF_MEMORY_NO_EXECUTE);
@@ -49,13 +48,15 @@ ebpf_pinning_table_allocate(
     ebpf_lock_create(&(*pinning_table)->lock);
 
     return_value = ebpf_hash_table_create(
-        &(*pinning_table)->hash_table, ebpf_allocate, ebpf_free, sizeof(uint64_t), sizeof(uint64_t), _ebpf_pining_table_compare_function);
+        &(*pinning_table)->hash_table,
+        ebpf_allocate,
+        ebpf_free,
+        sizeof(uint64_t),
+        sizeof(uint64_t),
+        _ebpf_pining_table_compare_function);
 
     if (return_value != EBPF_ERROR_SUCCESS)
         goto Done;
-
-    (*pinning_table)->acquire_reference = acquire_reference;
-    (*pinning_table)->release_reference = release_reference;
 
     return_value = EBPF_ERROR_SUCCESS;
 Done:
@@ -88,7 +89,7 @@ ebpf_pinning_table_free(ebpf_pinning_table_t* pinning_table)
 }
 
 ebpf_error_code_t
-ebpf_pinning_table_insert(ebpf_pinning_table_t* pinning_table, const uint8_t* name, void* object)
+ebpf_pinning_table_insert(ebpf_pinning_table_t* pinning_table, const uint8_t* name, ebpf_object_t* object)
 {
     ebpf_lock_state_t state;
     ebpf_error_code_t return_value;
@@ -110,7 +111,7 @@ ebpf_pinning_table_insert(ebpf_pinning_table_t* pinning_table, const uint8_t* na
 
     ebpf_lock_lock(&pinning_table->lock, &state);
 
-    return_value = ebpf_hash_table_lookup(pinning_table->hash_table, (const uint8_t*)&key, (uint8_t**)&value);
+    return_value = ebpf_hash_table_find(pinning_table->hash_table, (const uint8_t*)&key, (uint8_t**)&value);
     if (return_value == EBPF_ERROR_SUCCESS) {
         return_value = EBPF_ERROR_DUPLICATE_NAME;
     } else {
@@ -121,7 +122,7 @@ ebpf_pinning_table_insert(ebpf_pinning_table_t* pinning_table, const uint8_t* na
     ebpf_lock_unlock(&pinning_table->lock, &state);
 
     if (return_value == EBPF_ERROR_SUCCESS) {
-        pinning_table->acquire_reference(object);
+        ebpf_object_acquire_reference(object);
     }
 
 Done:
@@ -131,7 +132,7 @@ Done:
 }
 
 ebpf_error_code_t
-ebpf_pinning_table_lookup(ebpf_pinning_table_t* pinning_table, const uint8_t* name, void** object)
+ebpf_pinning_table_find(ebpf_pinning_table_t* pinning_table, const uint8_t* name, ebpf_object_t** object)
 {
     ebpf_lock_state_t state;
     ebpf_error_code_t return_value;
@@ -140,12 +141,12 @@ ebpf_pinning_table_lookup(ebpf_pinning_table_t* pinning_table, const uint8_t* na
     ebpf_pinning_entry_t* entry = NULL;
 
     ebpf_lock_lock(&pinning_table->lock, &state);
-    return_value = ebpf_hash_table_lookup(pinning_table->hash_table, (const uint8_t*)&key, (uint8_t**)&value);
+    return_value = ebpf_hash_table_find(pinning_table->hash_table, (const uint8_t*)&key, (uint8_t**)&value);
 
     if (return_value == EBPF_ERROR_SUCCESS) {
         entry = ((ebpf_pinning_entry_t*)*value);
         *object = entry->object;
-        pinning_table->acquire_reference(*object);
+        ebpf_object_acquire_reference(*object);
     }
 
     ebpf_lock_unlock(&pinning_table->lock, &state);
@@ -163,12 +164,12 @@ ebpf_pinning_table_delete(ebpf_pinning_table_t* pinning_table, const uint8_t* na
     ebpf_pinning_entry_t* entry = NULL;
 
     ebpf_lock_lock(&pinning_table->lock, &state);
-    return_value = ebpf_hash_table_lookup(pinning_table->hash_table, (const uint8_t*)&key, (uint8_t**)&value);
+    return_value = ebpf_hash_table_find(pinning_table->hash_table, (const uint8_t*)&key, (uint8_t**)&value);
     if (return_value == EBPF_ERROR_SUCCESS) {
         entry = ((ebpf_pinning_entry_t*)*value);
         return_value = ebpf_hash_table_delete(pinning_table->hash_table, (const uint8_t*)&key);
         if (return_value == EBPF_ERROR_SUCCESS) {
-            pinning_table->release_reference(entry->object);
+            ebpf_object_release_reference(entry->object);
             ebpf_free(entry);
         }
     }

@@ -53,7 +53,7 @@ NtQuerySystemInformation(
 // End code pulled from winternl.h.
 
 ebpf_error_code_t
-ebpf_query_code_integrity_state(ebpf_code_integrity_state_t* state)
+ebpf_get_code_integrity_state(ebpf_code_integrity_state_t* state)
 {
     NTSTATUS status;
     SYSTEM_CODEINTEGRITY_INFORMATION code_integrity_information = {sizeof(SYSTEM_CODEINTEGRITY_INFORMATION), 0};
@@ -67,7 +67,7 @@ ebpf_query_code_integrity_state(ebpf_code_integrity_state_t* state)
                      : EBPF_CODE_INTEGRITY_DEFAULT;
         return EBPF_ERROR_SUCCESS;
     } else {
-        return EBPF_ERROR_INVALID_PARAMETER;
+        return EBPF_ERROR_NOT_SUPPORTED;
     }
 }
 
@@ -75,13 +75,13 @@ ebpf_error_code_t
 ebpf_safe_size_t_multiply(size_t multiplicand, size_t multiplier, size_t* result)
 {
     return RtlSizeTMult(multiplicand, multiplier, result) == STATUS_SUCCESS ? EBPF_ERROR_SUCCESS
-                                                                            : EBPF_ERROR_INVALID_PARAMETER;
+                                                                            : EBPF_ERROR_ARITHMETIC_OVERFLOW;
 }
 
 ebpf_error_code_t
 ebpf_safe_size_t_add(size_t augend, size_t addend, size_t* result)
 {
-    return RtlSizeTAdd(augend, addend, result) == STATUS_SUCCESS ? EBPF_ERROR_SUCCESS : EBPF_ERROR_INVALID_PARAMETER;
+    return RtlSizeTAdd(augend, addend, result) == STATUS_SUCCESS ? EBPF_ERROR_SUCCESS : EBPF_ERROR_ARITHMETIC_OVERFLOW;
 }
 
 void
@@ -138,22 +138,21 @@ ebpf_interlocked_compare_exchange_int32(volatile int32_t* destination, int32_t e
     return InterlockedCompareExchange((long volatile*)destination, exchange, comperand);
 }
 
-ebpf_error_code_t
+void
 ebpf_get_cpu_count(uint32_t* cpu_count)
 {
     *cpu_count = KeQueryMaximumProcessorCount();
-    return EBPF_ERROR_SUCCESS;
 }
 
 bool
-ebpf_is_preemptable()
+ebpf_is_preemptible()
 {
     KIRQL irql = KeGetCurrentIrql();
     return irql >= DISPATCH_LEVEL;
 }
 
 bool
-ebpf_is_non_preepmtable_work_item_supported()
+ebpf_is_non_preemptible_work_item_supported()
 {
     return true;
 }
@@ -170,30 +169,30 @@ ebpf_get_current_thread_id()
     return (uint64_t)KeGetCurrentThread();
 }
 
-typedef struct _epbf_non_preemptable_work_item
+typedef struct _epbf_non_preemptible_work_item
 {
     KDPC deferred_procedure_call;
     void (*work_item_routine)(void* work_item_context, void* parameter_1);
-} epbf_non_preepmtable_work_item_t;
+} epbf_non_preemptible_work_item_t;
 
 static void
 _ebpf_deferred_routine(
     KDPC* deferred_procedure_call, PVOID deferred_context, PVOID system_argument_1, PVOID system_argument_2)
 {
-    epbf_non_preepmtable_work_item_t* deferred_routine_context =
-        (epbf_non_preepmtable_work_item_t*)deferred_procedure_call;
+    epbf_non_preemptible_work_item_t* deferred_routine_context =
+        (epbf_non_preemptible_work_item_t*)deferred_procedure_call;
     UNREFERENCED_PARAMETER(system_argument_2);
     deferred_routine_context->work_item_routine(deferred_context, system_argument_1);
 }
 
 ebpf_error_code_t
-ebpf_allocate_non_preemptable_work_item(
-    epbf_non_preepmtable_work_item_t** work_item,
+ebpf_allocate_non_preemptible_work_item(
+    epbf_non_preemptible_work_item_t** work_item,
     uint32_t cpu_id,
     void (*work_item_routine)(void* work_item_context, void* parameter_1),
     void* work_item_context)
 {
-    *work_item = ebpf_allocate(sizeof(epbf_non_preepmtable_work_item_t), EBPF_MEMORY_NO_EXECUTE);
+    *work_item = ebpf_allocate(sizeof(epbf_non_preemptible_work_item_t), EBPF_MEMORY_NO_EXECUTE);
     if (*work_item == NULL) {
         return EBPF_ERROR_OUT_OF_RESOURCES;
     }
@@ -206,7 +205,7 @@ ebpf_allocate_non_preemptable_work_item(
 }
 
 void
-ebpf_free_non_preemptable_work_item(epbf_non_preepmtable_work_item_t* work_item)
+ebpf_free_non_preemptible_work_item(epbf_non_preemptible_work_item_t* work_item)
 {
     if (!work_item)
         return;
@@ -216,7 +215,7 @@ ebpf_free_non_preemptable_work_item(epbf_non_preepmtable_work_item_t* work_item)
 }
 
 bool
-ebpf_queue_non_preemptable_work_item(epbf_non_preepmtable_work_item_t* work_item, void* parameter_1)
+ebpf_queue_non_preemptible_work_item(epbf_non_preemptible_work_item_t* work_item, void* parameter_1)
 {
     return KeInsertQueueDpc(&work_item->deferred_procedure_call, parameter_1, NULL);
 }
@@ -262,10 +261,10 @@ ebpf_allocate_timer_work_item(
 #define MICROSECONDS_PER_MILLISECOND 1000
 
 void
-ebpf_schedule_timer_work_item(ebpf_timer_work_item_t* work_item, uint32_t elaped_microseconds)
+ebpf_schedule_timer_work_item(ebpf_timer_work_item_t* work_item, uint32_t elapsed_microseconds)
 {
     LARGE_INTEGER due_time;
-    due_time.QuadPart = -((int64_t)elaped_microseconds * MICROSECONDS_PER_TICK);
+    due_time.QuadPart = -((int64_t)elapsed_microseconds * MICROSECONDS_PER_TICK);
 
     KeSetTimer(&work_item->timer, due_time, &work_item->deferred_procedure_call);
 }

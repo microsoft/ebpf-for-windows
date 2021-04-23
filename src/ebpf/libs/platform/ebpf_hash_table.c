@@ -102,7 +102,7 @@ ebpf_hash_table_destroy(ebpf_hash_table_t* hash_table)
 }
 
 ebpf_error_code_t
-ebpf_hash_table_lookup(ebpf_hash_table_t* hash_table, const uint8_t* key, uint8_t** value)
+ebpf_hash_table_find(ebpf_hash_table_t* hash_table, const uint8_t* key, uint8_t** value)
 {
     ebpf_error_code_t retval;
     RTL_AVL_TABLE* table = (RTL_AVL_TABLE*)hash_table;
@@ -144,11 +144,13 @@ ebpf_hash_table_update(ebpf_hash_table_t* hash_table, const uint8_t* key, const 
     memcpy(temp + hash_table->key_size, value, hash_table->value_size);
 
     entry = RtlInsertElementGenericTableAvl(table, temp, (uint32_t)temp_size, &new_entry);
+    if (!entry) {
+        retval = EBPF_ERROR_OUT_OF_RESOURCES;
+        goto Done;
+    }
 
     // Update existing entry
-    if (!new_entry) {
-        memcpy(entry + hash_table->key_size, value, hash_table->value_size);
-    }
+    memcpy(entry + hash_table->key_size, value, hash_table->value_size);
     retval = EBPF_ERROR_SUCCESS;
 
 Done:

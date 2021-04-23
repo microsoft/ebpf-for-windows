@@ -80,7 +80,7 @@ stats(int argc, char** argv)
     result = ebpf_api_get_next_map_key(map, sizeof(uint64_t), nullptr, reinterpret_cast<uint8_t*>(&pid));
     while (result == ERROR_SUCCESS) {
         memset(&process_entry, 0, sizeof(process_entry));
-        result = ebpf_api_map_lookup_element(
+        result = ebpf_api_map_find_element(
             map,
             sizeof(uint64_t),
             reinterpret_cast<uint8_t*>(&pid),

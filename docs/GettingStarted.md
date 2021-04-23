@@ -70,7 +70,7 @@ On the attacker machine, do the following:
 1. Run ```for /L %i in (1,1,4) do start /min DnsFlood <ip of defender>```
 
 #### On the defender machine
-1. Start perfomance monitor and add UDPv4 Datagrams/sec
+1. Start performance monitor and add UDPv4 Datagrams/sec
 2. Show that 200K packets per second are being received
 3. Show & explain code of droppacket.c
 4. Compile droppacket.c ```clang -target bpf -O2 -Wall -c droppacket.c -o droppacket.o```

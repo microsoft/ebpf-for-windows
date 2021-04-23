@@ -274,7 +274,7 @@ Notice that it only lists non-empty TEXT sections, whereas `llvm-objdump -h`
 showed all sections.  That's because netsh is just looking for eBPF
 programs, which are always in non-empty TEXT sections.
 
-`netsh` allows all keywords to be abbreviatied, so we could have done
+`netsh` allows all keywords to be abbreviated, so we could have done
 `netsh ebpf sh sec bpf.o` instead.  Throughout this tutorial, we'll always spell
 things out for readability, but feel free to abbreviate to save typing.
 

@@ -8,7 +8,6 @@
 #include "ebpf_hook.h"
 #include "ebpf_maps.h"
 #include "ebpf_platform.h"
-
 #ifdef __cplusplus
 extern "C"
 {

@@ -12,7 +12,7 @@ EXPORTS
 	ebpf_api_unload_program
 	ebpf_api_attach_program
 	ebpf_api_detach_program
-	ebpf_api_map_lookup_element
+	ebpf_api_map_find_element
 	ebpf_api_map_update_element
 	ebpf_api_map_delete_element
 	ebpf_api_get_next_map_key
