@@ -12,18 +12,64 @@ extern "C"
 #endif
     typedef struct _ebpf_pinning_table ebpf_pinning_table_t;
 
+    /**
+     * @brief Allocate a pinning table.
+     *
+     * @param[out] pinning_table Pointer to memory that will contain pinning
+     *  table on success.
+     * @retval EBPF_ERROR_SUCCESS The operation was successful.
+     * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
+     *  pinning table.
+     */
     ebpf_error_code_t
     ebpf_pinning_table_allocate(ebpf_pinning_table_t** pinning_table);
 
+    /**
+     * @brief Free a pinning table.
+     *
+     * @param[in] pinning_table Pinning table to free.
+     */
     void
     ebpf_pinning_table_free(ebpf_pinning_table_t* pinning_table);
 
+    /**
+     * @brief Insert an entry into the pinning table and acquire a reference on
+     *  the object.
+     *
+     * @param[in] pinning_table Pinning table to update.
+     * @param[in] name Name to associate with this entry.
+     * @param[in] object Ebpf object to associate with this entry.
+     * @retval EBPF_ERROR_SUCCESS The operation was successful.
+     * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
+     *  entry.
+     */
     ebpf_error_code_t
     ebpf_pinning_table_insert(ebpf_pinning_table_t* pinning_table, const uint8_t* name, ebpf_object_t* object);
 
+    /**
+     * @brief Find an entry in the pinning table and acquire a reference on the
+     *  object associate with it.
+     *
+     * @param[in] pinning_table Pinning table to search.
+     * @param[in] name Name to find in the pinning table.
+     * @param[out] object Pointer to memory that contains the object on success.
+     * @retval EBPF_ERROR_SUCCESS The operation was successful.
+     * @retval EBPF_ERROR_NOT_FOUND The name is not present in the pinning
+     *  table.
+     */
     ebpf_error_code_t
     ebpf_pinning_table_lookup(ebpf_pinning_table_t* pinning_table, const uint8_t* name, ebpf_object_t** object);
 
+    /**
+     * @brief Find an entry in the pinning table, remove it and release a
+     *  refernce on the object associated with it.
+     *
+     * @param[in] pinning_table Pinning table to update.
+     * @param[in] name Name to find in the pinning table.
+     * @retval EBPF_ERROR_SUCCESS The operation was successful.
+     * @retval EBPF_ERROR_NOT_FOUND The name is not present in the pinning
+     *  table.
+     */
     ebpf_error_code_t
     ebpf_pinning_table_delete(ebpf_pinning_table_t* pinning_table, const uint8_t* name);
 

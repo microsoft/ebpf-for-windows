@@ -7,7 +7,7 @@
 static const uint32_t _ebpf_object_marker = 0x67453201;
 
 void
-ebpf_object_initiate(ebpf_object_t* object, ebpf_object_type object_type, ebfp_free_object_t free_function)
+ebpf_object_initiate(ebpf_object_t* object, ebpf_object_type_t object_type, ebfp_free_object_t free_function)
 {
     object->marker = _ebpf_object_marker;
     object->reference_count = 1;
@@ -38,7 +38,7 @@ ebpf_object_release_reference(ebpf_object_t* object)
     }
 }
 
-ebpf_object_type
+ebpf_object_type_t
 ebpf_object_get_type(ebpf_object_t* object)
 {
     return object->type;
