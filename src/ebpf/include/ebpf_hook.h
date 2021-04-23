@@ -77,7 +77,7 @@ extern "C"
     /**
      * @brief Detach a program from this hook instance.
      *
-     * @param hook_instance The hook instance to detach from.
+     * @param[in[ hook_instance The hook instance to detach.
      */
     void
     ebpf_hook_instance_detach_program(ebpf_hook_instance_t* hook_instance);
