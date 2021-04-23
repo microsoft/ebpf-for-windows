@@ -31,7 +31,7 @@ extern "C"
     } ebpf_object_t;
 
     /**
-     * @brief Initialize a ebpf_object_t structure.
+     * @brief Initialize an ebpf_object_t structure.
      *
      * @param[in,out] object ebpf_object_t structure to initialize.
      * @param[in] object_type The type of the object.
