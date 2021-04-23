@@ -115,13 +115,16 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\include\ebpf_core.h" />
+    <ClInclude Include="..\..\..\include\ebpf_hook.h" />
     <ClInclude Include="..\..\..\include\ebpf_maps.h" />
     <ClInclude Include="..\..\..\include\ebpf_platform.h" />
+    <ClInclude Include="..\..\..\include\ebpf_program.h" />
     <ClInclude Include="..\..\..\include\ebpf_protocol.h" />
     <ClInclude Include="pch.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\ebpf_core.c" />
+    <ClCompile Include="..\ebpf_hook.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

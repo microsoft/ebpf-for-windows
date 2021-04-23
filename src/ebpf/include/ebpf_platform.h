@@ -28,6 +28,13 @@ extern "C"
 
     typedef struct _epbf_non_preemptable_work_item epbf_non_preepmtable_work_item_t;
     typedef struct _ebpf_timer_work_item ebpf_timer_work_item_t;
+    typedef struct _ebpf_extension_client ebpf_extension_client_t;
+    typedef ebpf_error_code_t (*_ebpf_extension_dispatch_function)();
+    typedef struct _ebpf_extension_dispatch_table
+    {
+        size_t size;
+        _ebpf_extension_dispatch_function function[1];
+    } ebpf_extension_dispatch_table_t;
 
     ebpf_error_code_t
     ebpf_platform_initiate();
@@ -166,6 +173,21 @@ extern "C"
 
     ebpf_error_code_t
     ebpf_pinning_table_next_name(ebpf_pinning_table_t* hash_table, const uint8_t* previous_name, uint8_t* next_name);
+
+    ebpf_error_code_t
+    ebpf_extension_load(
+        ebpf_extension_client_t** client_context,
+        GUID client_id,
+        const uint8_t* client_data,
+        size_t client_data_length,
+        const ebpf_extension_dispatch_table_t* client_dispatch_table,
+        GUID provider_id,
+        uint8_t** provider_data,
+        size_t* provider_data_length,
+        ebpf_extension_dispatch_table_t** provider_dispatch_table);
+
+    void
+    ebpf_extension_unload(ebpf_extension_client_t* client_context);
 
 #ifdef __cplusplus
 }
