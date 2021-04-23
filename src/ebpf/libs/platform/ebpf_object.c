@@ -49,7 +49,7 @@ ebpf_object_get_type(ebpf_object_t* object)
 }
 
 ebpf_error_code_t
-ebpf_duplicate_string(ebpf_string_t* destination, const ebpf_string_t* source)
+ebpf_duplicate_utf_8(ebpf_utf_8_t* destination, const ebpf_utf_8_t* source)
 {
     if (!source->value) {
         destination->value = NULL;

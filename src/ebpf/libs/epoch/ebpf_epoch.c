@@ -257,6 +257,10 @@ ebpf_epoch_free(void* memory)
 {
     ebpf_epoch_allocation_header_t* header = (ebpf_epoch_allocation_header_t*)memory;
     ebpf_lock_state_t lock_state;
+
+    if (!memory)
+        return;
+
     header--;
 
     // Items are inserted into the free list in increasing epoch order.
