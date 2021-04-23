@@ -30,10 +30,13 @@
     <ClCompile Include="platform_user.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\ebpf_pinning_table.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\ebpf_hash_table.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\ebpf_pinning_table.c">
+    <ClCompile Include="..\ebpf_handle.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\ebpf_object.c">
