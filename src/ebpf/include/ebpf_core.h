@@ -17,7 +17,7 @@ extern "C"
     typedef uint32_t(__stdcall* ebpf_hook_function)(uint8_t*);
 
     /**
-     * @brief Initialize the ebpf core execution context.
+     * @brief Initialize the eBPF core execution context.
      *
      * @retval EBPF_ERROR_SUCCESS The operation was successful.
      * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
@@ -27,7 +27,7 @@ extern "C"
     ebpf_core_initiate();
 
     /**
-     * @brief Uninitialize the ebpf core execution context.
+     * @brief Uninitialize the eBPF core execution context.
      *
      */
     void

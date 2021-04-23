@@ -12,7 +12,7 @@ extern "C"
 #endif
 
     /**
-     * @brief Initialize the ebpf epoch tracking module.
+     * @brief Initialize the eBPF epoch tracking module.
      *
      * @retval EBPF_ERROR_SUCCESS The operation was successful.
      * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
@@ -22,7 +22,7 @@ extern "C"
     ebpf_epoch_initiate();
 
     /**
-     * @brief Uninitialize the ebpf epoch tracking module.
+     * @brief Uninitialize the eBPF epoch tracking module.
      *
      */
     void
