@@ -82,9 +82,9 @@ extern "C"
     /**
      * @brief Allocate and copy an ebpf_string_t.
      *
-     * @param destination Pointer to memory where the new string will be
+     * @param[out] destination Pointer to memory where the new string will be
      *  allocated.
-     * @param source String that will be copied.
+     * @param[in] source String that will be copied.
      * @retval EBPF_ERROR_SUCCESS The operation was successful.
      * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
      *  string.
@@ -440,11 +440,11 @@ extern "C"
     ebpf_error_code_t
     ebpf_extension_load(
         ebpf_extension_client_t** client_context,
-        const GUID client_id,
+        const GUID* client_id,
         const uint8_t* client_data,
         size_t client_data_length,
         const ebpf_extension_dispatch_table_t* client_dispatch_table,
-        const GUID provider_id,
+        const GUID* provider_id,
         uint8_t** provider_data,
         size_t* provider_data_length,
         ebpf_extension_dispatch_table_t** provider_dispatch_table);

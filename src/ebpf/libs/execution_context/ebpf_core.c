@@ -166,7 +166,7 @@ _ebpf_core_protocol_detach_code(_In_ const struct _ebpf_operation_attach_detach_
     if (retval != EBPF_ERROR_SUCCESS)
         goto Done;
 
-    _ebpf_core_set_hook_entry(NULL, parameters.type);
+    _ebpf_core_set_hook_entry(NULL, parameters.program_type);
 
     retval = EBPF_ERROR_SUCCESS;
 

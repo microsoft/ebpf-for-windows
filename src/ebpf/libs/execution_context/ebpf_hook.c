@@ -57,11 +57,11 @@ ebpf_hook_instance_initialize(
 
     return_value = ebpf_extension_load(
         &(hook->extension_client_context),
-        _ebpf_hook_client_id,
+        &_ebpf_hook_client_id,
         context_data,
         context_data_length,
         (ebpf_extension_dispatch_table_t*)&_ebpf_hook_dispatch_table,
-        attach_type,
+        &attach_type,
         &(hook->hook_properties),
         &(hook->hook_properties_length),
         &(hook->provider_dispatch_table));

@@ -27,8 +27,7 @@ extern "C"
     typedef struct _ebpf_program ebpf_program_t;
     typedef struct _ebpf_program_parameters
     {
-        GUID program_type;
-        ebpf_program_type_t type;
+        ebpf_program_type_t program_type;
         ebpf_string_t program_name;
         ebpf_string_t section_name;
         ebpf_code_type_t code_type;

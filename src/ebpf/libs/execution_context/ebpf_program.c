@@ -15,13 +15,9 @@ typedef struct _ebpf_program
 {
     ebpf_object_t object;
 
-    // pointer to code buffer
-    ebpf_code_type_t code_type;
+    ebpf_program_parameters_t parameters;
 
-    ebpf_string_t file_name;
-    ebpf_string_t section_name;
-
-    // determinant is code_type
+    // determinant is parameters.code_type
     union
     {
         // EBPF_CODE_NATIVE
@@ -30,8 +26,6 @@ typedef struct _ebpf_program
         // EBPF_CODE_EBPF
         struct ubpf_vm* vm;
     } code_or_vm;
-    ebpf_program_type_t hook_point;
-    GUID program_type;
 } ebpf_program_t;
 
 static void
@@ -41,7 +35,7 @@ _ebpf_program_free(ebpf_object_t* object)
     if (!program)
         return;
 
-    if (program->code_type == EBPF_CODE_NATIVE) {
+    if (program->parameters.code_type == EBPF_CODE_NATIVE) {
         ebpf_epoch_free(program->code_or_vm.code);
     } else {
         ubpf_destroy(program->code_or_vm.vm);
@@ -51,7 +45,7 @@ _ebpf_program_free(ebpf_object_t* object)
 ebpf_error_code_t
 ebpf_program_create(ebpf_program_t** program)
 {
-    ebpf_program_t* local_program = NULL;
+    ebpf_program_t* local_program;
 
     local_program = (ebpf_program_t*)ebpf_epoch_allocate(sizeof(ebpf_program_t), EBPF_MEMORY_NO_EXECUTE);
     if (!local_program)
@@ -81,11 +75,12 @@ ebpf_program_initialize(ebpf_program_t* program, const ebpf_program_parameters_t
     if (return_value != EBPF_ERROR_SUCCESS)
         goto Done;
 
-    program->file_name = local_program_name;
+    program->parameters = *program_parameters;
+
+    program->parameters.program_name = local_program_name;
     local_program_name.value = NULL;
-    program->section_name = local_section_name;
+    program->parameters.section_name = local_section_name;
     local_section_name.value = NULL;
-    program->program_type = program_parameters->program_type;
     return_value = EBPF_ERROR_SUCCESS;
 
 Done:
@@ -97,10 +92,7 @@ Done:
 ebpf_error_code_t
 ebpf_program_get_properties(ebpf_program_t* program, ebpf_program_parameters_t* program_parameters)
 {
-    program_parameters->program_name = program->file_name;
-    program_parameters->section_name = program->section_name;
-    program_parameters->program_type = program->program_type;
-    program_parameters->code_type = program->code_type;
+    *program_parameters = program->parameters;
     return EBPF_ERROR_SUCCESS;
 }
 
@@ -122,16 +114,15 @@ ebpf_program_load_machine_code(ebpf_program_t* program, uint8_t* machine_code, s
 
     memcpy(local_machine_code, machine_code, machine_code_size);
 
-    program->code_type = EBPF_CODE_NATIVE;
+    program->parameters.code_type = EBPF_CODE_NATIVE;
     program->code_or_vm.code = local_machine_code;
     local_machine_code = NULL;
 
     return_value = EBPF_ERROR_SUCCESS;
 
 Done:
-    if (local_machine_code) {
-        ebpf_epoch_free(local_machine_code);
-    }
+    ebpf_epoch_free(local_machine_code);
+
     return return_value;
 }
 
@@ -157,7 +148,7 @@ ebpf_program_load_byte_code(ebpf_program_t* program, ebpf_instuction_t* instruct
 {
     ebpf_error_code_t return_value;
     char* error_message = NULL;
-    program->code_type = EBPF_CODE_EBPF;
+    program->parameters.code_type = EBPF_CODE_EBPF;
     program->code_or_vm.vm = ubpf_create();
     if (!program->code_or_vm.vm) {
         return_value = EBPF_ERROR_OUT_OF_RESOURCES;
@@ -195,8 +186,7 @@ Done:
 void
 ebpf_program_invoke(ebpf_program_t* program, void* context, uint32_t* result)
 {
-
-    if (program->code_type == EBPF_CODE_NATIVE) {
+    if (program->parameters.code_type == EBPF_CODE_NATIVE) {
         ebpf_program_entry_point_t function_pointer;
         function_pointer = (ebpf_program_entry_point_t)(program->code_or_vm.code);
         *result = (function_pointer)(context);
