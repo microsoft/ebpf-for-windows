@@ -43,12 +43,14 @@ extern "C"
     ebpf_handle_create(ebpf_handle_t* handle, ebpf_object_t* object);
 
     /**
-     * @brief Remove an existing handle from the handle table and release it's
+     * @brief Remove an existing handle from the handle table and release its
      *  reference on the object.
      *
      * @param[in] handle Handle to be released.
+     * @retval EBPF_ERROR_SUCCESS The operation was successful.
+     * @retval EBPF_ERROR_INVALID_HANDLE The provided handle is not valid.
      */
-    void
+    ebpf_error_code_t
     ebpf_handle_close(ebpf_handle_t handle);
 
     /**

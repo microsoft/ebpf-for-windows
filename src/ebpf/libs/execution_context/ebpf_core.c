@@ -94,19 +94,14 @@ ebpf_error_code_t
 ebpf_core_initiate()
 {
     ebpf_error_code_t return_value;
-    bool platform_initialized = false;
-    bool epoch_initialize = false;
-    bool handle_initialize = false;
 
     return_value = ebpf_platform_initiate();
     if (return_value != EBPF_ERROR_SUCCESS)
         goto Done;
-    platform_initialized = true;
 
     return_value = ebpf_epoch_initiate();
     if (return_value != EBPF_ERROR_SUCCESS)
         goto Done;
-    epoch_initialize = true;
 
     return_value = ebpf_pinning_table_allocate(&_ebpf_core_map_pinning_table);
     if (return_value != EBPF_ERROR_SUCCESS)
@@ -116,20 +111,15 @@ ebpf_core_initiate()
     if (return_value != EBPF_ERROR_SUCCESS)
         goto Done;
 
-    handle_initialize = true;
-
     ebpf_lock_create(&_ebpf_core_hook_table_lock);
 
     return_value = ebpf_get_code_integrity_state(&_ebpf_core_code_integrity_state);
 
 Done:
     if (return_value != EBPF_ERROR_SUCCESS) {
-        if (epoch_initialize)
-            ebpf_epoch_terminate();
-        if (platform_initialized)
-            ebpf_platform_terminate();
-        if (handle_initialize)
-            ebpf_handle_table_terminate();
+        ebpf_epoch_terminate();
+        ebpf_platform_terminate();
+        ebpf_handle_table_terminate();
     }
     return return_value;
 }
@@ -147,7 +137,7 @@ ebpf_core_terminate()
 }
 
 static ebpf_error_code_t
-ebpf_core_protocol_attach_code(_In_ const struct _ebpf_operation_attach_detach_request* request)
+_ebpf_core_protocol_attach_code(_In_ const struct _ebpf_operation_attach_detach_request* request)
 {
     ebpf_error_code_t retval = EBPF_ERROR_NOT_FOUND;
     ebpf_core_code_entry_t* code = NULL;
@@ -175,7 +165,7 @@ Done:
 }
 
 static ebpf_error_code_t
-ebpf_core_protocol_detach_code(_In_ const struct _ebpf_operation_attach_detach_request* request)
+_ebpf_core_protocol_detach_code(_In_ const struct _ebpf_operation_attach_detach_request* request)
 {
     ebpf_error_code_t retval = EBPF_ERROR_NOT_FOUND;
     ebpf_core_code_entry_t* code = NULL;
@@ -195,14 +185,14 @@ Done:
 }
 
 static ebpf_error_code_t
-ebpf_core_protocol_unload_code(_In_ const struct _ebpf_operation_unload_code_request* request)
+_ebpf_core_protocol_unload_code(_In_ const struct _ebpf_operation_unload_code_request* request)
 {
     ebpf_handle_close(request->handle);
     return EBPF_ERROR_SUCCESS;
 }
 
 static ebpf_error_code_t
-ebpf_core_register_helpers(struct ubpf_vm* vm)
+_ebpf_core_register_helpers(struct ubpf_vm* vm)
 {
     uint32_t index = 0;
     for (index = 0; index < EBPF_COUNT_OF(_ebpf_program_helpers); index++) {
@@ -229,7 +219,7 @@ _ebpf_free_code_entry(ebpf_object_t* object)
 }
 
 static ebpf_error_code_t
-ebpf_core_protocol_load_code(
+_ebpf_core_protocol_load_code(
     _In_ const ebpf_operation_load_code_request_t* request,
     _Inout_ struct _ebpf_operation_load_code_reply* reply,
     uint16_t reply_length)
@@ -313,7 +303,7 @@ ebpf_core_protocol_load_code(
         // failing.
         toggle_bounds_check(code_entry->code_or_vm.vm, false);
 
-        retval = ebpf_core_register_helpers(code_entry->code_or_vm.vm);
+        retval = _ebpf_core_register_helpers(code_entry->code_or_vm.vm);
         if (retval != EBPF_ERROR_SUCCESS) {
             goto Done;
         }
@@ -334,7 +324,7 @@ Done:
 }
 
 static ebpf_error_code_t
-ebpf_core_protocol_resolve_helper(
+_ebpf_core_protocol_resolve_helper(
     _In_ const struct _ebpf_operation_resolve_helper_request* request,
     _Inout_ struct _ebpf_operation_resolve_helper_reply* reply,
     uint16_t reply_length)
@@ -362,7 +352,7 @@ ebpf_core_protocol_resolve_helper(
 }
 
 static ebpf_error_code_t
-ebpf_core_protocol_resolve_map(
+_ebpf_core_protocol_resolve_map(
     _In_ const struct _ebpf_operation_resolve_map_request* request,
     _Inout_ struct _ebpf_operation_resolve_map_reply* reply,
     uint16_t reply_length)
@@ -427,7 +417,7 @@ ebpf_core_invoke_hook(ebpf_program_type_t hook_point, _Inout_ void* context, _In
 }
 
 static ebpf_error_code_t
-ebpf_core_protocol_create_map(
+_ebpf_core_protocol_create_map(
     _In_ const struct _ebpf_operation_create_map_request* request,
     _Inout_ struct _ebpf_operation_create_map_reply* reply,
     uint16_t reply_length)
@@ -453,7 +443,7 @@ Done:
 }
 
 static ebpf_error_code_t
-ebpf_core_protocol_map_find_element(
+_ebpf_core_protocol_map_find_element(
     _In_ const ebpf_operation_map_find_element_request_t* request,
     _Inout_ ebpf_operation_map_find_element_reply_t* reply,
     uint16_t reply_length)
@@ -495,7 +485,7 @@ Done:
 }
 
 static ebpf_error_code_t
-ebpf_core_protocol_map_update_element(_In_ const epf_operation_map_update_element_request_t* request)
+_ebpf_core_protocol_map_update_element(_In_ const epf_operation_map_update_element_request_t* request)
 {
     ebpf_error_code_t retval;
     ebpf_map_t* map = NULL;
@@ -521,7 +511,7 @@ Done:
 }
 
 static ebpf_error_code_t
-ebpf_core_protocol_map_delete_element(_In_ const ebpf_operation_map_delete_element_request_t* request)
+_ebpf_core_protocol_map_delete_element(_In_ const ebpf_operation_map_delete_element_request_t* request)
 {
     ebpf_error_code_t retval;
     ebpf_map_t* map = NULL;
@@ -547,7 +537,7 @@ Done:
 }
 
 static ebpf_error_code_t
-ebpf_core_protocol_map_get_next_key(
+_ebpf_core_protocol_map_get_next_key(
     _In_ const ebpf_operation_map_get_next_key_request_t* request,
     _Inout_ ebpf_operation_map_get_next_key_reply_t* reply,
     uint16_t reply_length)
@@ -591,7 +581,7 @@ Done:
 }
 
 static ebpf_error_code_t
-ebpf_core_protocol_get_next_map(
+_ebpf_core_protocol_get_next_map(
     _In_ const struct _ebpf_operation_get_next_map_request* request,
     _Inout_ struct _ebpf_operation_get_next_map_reply* reply,
     uint16_t reply_length)
@@ -602,7 +592,7 @@ ebpf_core_protocol_get_next_map(
 }
 
 static ebpf_error_code_t
-ebpf_core_protocol_get_next_program(
+_ebpf_core_protocol_get_next_program(
     _In_ const struct _ebpf_operation_get_next_program_request* request,
     _Inout_ struct _ebpf_operation_get_next_program_reply* reply,
     uint16_t reply_length)
@@ -613,7 +603,7 @@ ebpf_core_protocol_get_next_program(
 }
 
 static ebpf_error_code_t
-ebpf_core_protocol_query_map_definition(
+_ebpf_core_protocol_query_map_definition(
     _In_ const struct _ebpf_operation_query_map_definition_request* request,
     _Inout_ struct _ebpf_operation_query_map_definition_reply* reply,
     uint16_t reply_length)
@@ -636,7 +626,7 @@ Done:
 }
 
 static ebpf_error_code_t
-ebpf_core_protocol_query_program_information(
+_ebpf_core_protocol_query_program_information(
     _In_ const struct _ebpf_operation_query_program_information_request* request,
     _Inout_ struct _ebpf_operation_query_program_information_reply* reply,
     uint16_t reply_length)
@@ -672,7 +662,7 @@ Done:
 }
 
 static ebpf_error_code_t
-ebpf_core_protocol_update_map_pinning(_In_ const struct _ebpf_operation_update_map_pinning_request* request)
+_ebpf_core_protocol_update_map_pinning(_In_ const struct _ebpf_operation_update_map_pinning_request* request)
 {
     ebpf_error_code_t retval;
     uint8_t* name = NULL;
@@ -711,7 +701,7 @@ Done:
 }
 
 static ebpf_error_code_t
-ebpf_core_protocol_get_pinned_map(
+_ebpf_core_protocol_get_pinned_map(
     _In_ const struct _ebpf_operation_get_map_pinning_request* request,
     _Inout_ struct _ebpf_operation_get_map_pinning_reply* reply,
     uint16_t reply_length)
@@ -790,43 +780,43 @@ typedef struct _ebpf_protocol_handler
 } const ebpf_protocol_handler_t;
 
 static ebpf_protocol_handler_t _ebpf_protocol_handlers[EBPF_OPERATION_GET_MAP_PINNING + 1] = {
-    {(ebpf_error_code_t(__cdecl*)(const void*))ebpf_core_protocol_resolve_helper,
+    {(ebpf_error_code_t(__cdecl*)(const void*))_ebpf_core_protocol_resolve_helper,
      sizeof(struct _ebpf_operation_resolve_helper_request),
      sizeof(struct _ebpf_operation_resolve_helper_reply)},
-    {(ebpf_error_code_t(__cdecl*)(const void*))ebpf_core_protocol_resolve_map,
+    {(ebpf_error_code_t(__cdecl*)(const void*))_ebpf_core_protocol_resolve_map,
      sizeof(struct _ebpf_operation_resolve_map_request),
      sizeof(struct _ebpf_operation_resolve_map_reply)},
-    {(ebpf_error_code_t(__cdecl*)(const void*))ebpf_core_protocol_load_code,
+    {(ebpf_error_code_t(__cdecl*)(const void*))_ebpf_core_protocol_load_code,
      sizeof(struct _ebpf_operation_load_code_request),
      sizeof(struct _ebpf_operation_load_code_reply)},
-    {ebpf_core_protocol_unload_code, sizeof(struct _ebpf_operation_unload_code_request), 0},
-    {ebpf_core_protocol_attach_code, sizeof(struct _ebpf_operation_attach_detach_request), 0},
-    {ebpf_core_protocol_detach_code, sizeof(struct _ebpf_operation_attach_detach_request), 0},
-    {(ebpf_error_code_t(__cdecl*)(const void*))ebpf_core_protocol_create_map,
+    {_ebpf_core_protocol_unload_code, sizeof(struct _ebpf_operation_unload_code_request), 0},
+    {_ebpf_core_protocol_attach_code, sizeof(struct _ebpf_operation_attach_detach_request), 0},
+    {_ebpf_core_protocol_detach_code, sizeof(struct _ebpf_operation_attach_detach_request), 0},
+    {(ebpf_error_code_t(__cdecl*)(const void*))_ebpf_core_protocol_create_map,
      sizeof(struct _ebpf_operation_create_map_request),
      sizeof(struct _ebpf_operation_create_map_reply)},
-    {(ebpf_error_code_t(__cdecl*)(const void*))ebpf_core_protocol_map_find_element,
+    {(ebpf_error_code_t(__cdecl*)(const void*))_ebpf_core_protocol_map_find_element,
      sizeof(struct _ebpf_operation_map_find_element_request),
      sizeof(struct _ebpf_operation_map_find_element_reply)},
-    {ebpf_core_protocol_map_update_element, sizeof(struct _ebpf_operation_map_update_element_request), 0},
-    {ebpf_core_protocol_map_delete_element, sizeof(struct _ebpf_operation_map_delete_element_request), 0},
-    {(ebpf_error_code_t(__cdecl*)(const void*))ebpf_core_protocol_map_get_next_key,
+    {_ebpf_core_protocol_map_update_element, sizeof(struct _ebpf_operation_map_update_element_request), 0},
+    {_ebpf_core_protocol_map_delete_element, sizeof(struct _ebpf_operation_map_delete_element_request), 0},
+    {(ebpf_error_code_t(__cdecl*)(const void*))_ebpf_core_protocol_map_get_next_key,
      EBPF_OFFSET_OF(ebpf_operation_map_get_next_key_request_t, previous_key),
      sizeof(ebpf_operation_map_get_next_key_reply_t)},
-    {(ebpf_error_code_t(__cdecl*)(const void*))ebpf_core_protocol_get_next_map,
+    {(ebpf_error_code_t(__cdecl*)(const void*))_ebpf_core_protocol_get_next_map,
      sizeof(struct _ebpf_operation_get_next_map_request),
      sizeof(struct _ebpf_operation_get_next_map_reply)},
-    {(ebpf_error_code_t(__cdecl*)(const void*))ebpf_core_protocol_get_next_program,
+    {(ebpf_error_code_t(__cdecl*)(const void*))_ebpf_core_protocol_get_next_program,
      sizeof(struct _ebpf_operation_get_next_program_request),
      sizeof(struct _ebpf_operation_get_next_program_reply)},
-    {(ebpf_error_code_t(__cdecl*)(const void*))ebpf_core_protocol_query_map_definition,
+    {(ebpf_error_code_t(__cdecl*)(const void*))_ebpf_core_protocol_query_map_definition,
      sizeof(struct _ebpf_operation_query_map_definition_request),
      sizeof(struct _ebpf_operation_query_map_definition_reply)},
-    {(ebpf_error_code_t(__cdecl*)(const void*))ebpf_core_protocol_query_program_information,
+    {(ebpf_error_code_t(__cdecl*)(const void*))_ebpf_core_protocol_query_program_information,
      sizeof(struct _ebpf_operation_query_program_information_request),
      sizeof(struct _ebpf_operation_query_program_information_reply)},
-    {ebpf_core_protocol_update_map_pinning, sizeof(struct _ebpf_operation_update_map_pinning_request), 0},
-    {(ebpf_error_code_t(__cdecl*)(const void*))ebpf_core_protocol_get_pinned_map,
+    {_ebpf_core_protocol_update_map_pinning, sizeof(struct _ebpf_operation_update_map_pinning_request), 0},
+    {(ebpf_error_code_t(__cdecl*)(const void*))_ebpf_core_protocol_get_pinned_map,
      sizeof(struct _ebpf_operation_get_map_pinning_request),
      sizeof(struct _ebpf_operation_get_map_pinning_reply)},
 };

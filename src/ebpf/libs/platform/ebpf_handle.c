@@ -7,16 +7,19 @@
 typedef ebpf_object_t* ebpf_handle_entry_t;
 
 // Simplified handle table implementation.
-// TODO: Replace this with the real OB handle table code.
+// TODO: Replace this with the real Windows object manager handle table code.
 
 static ebpf_lock_t _ebpf_handle_table_lock = {0};
 static ebpf_handle_entry_t _ebpf_handle_table[1024];
+
+static bool _ebpf_handle_table_initiated = false;
 
 ebpf_error_code_t
 ebpf_handle_table_initiate()
 {
     ebpf_lock_create(&_ebpf_handle_table_lock);
     memset(_ebpf_handle_table, 0, sizeof(_ebpf_handle_table));
+    _ebpf_handle_table_initiated = true;
     return EBPF_ERROR_SUCCESS;
 }
 
@@ -24,9 +27,13 @@ void
 ebpf_handle_table_terminate()
 {
     ebpf_handle_t handle;
+    if (!_ebpf_handle_table_initiated)
+        return;
+
     for (handle = 0; handle < EBPF_COUNT_OF(_ebpf_handle_table); handle++) {
         ebpf_handle_close(handle);
     }
+    _ebpf_handle_table_initiated = false;
 }
 
 ebpf_error_code_t
@@ -57,14 +64,20 @@ Done:
     return EBPF_ERROR_SUCCESS;
 }
 
-void
+ebpf_error_code_t
 ebpf_handle_close(ebpf_handle_t handle)
 {
     ebpf_lock_state_t state;
+    ebpf_error_code_t return_value;
     ebpf_lock_lock(&_ebpf_handle_table_lock, &state);
-    ebpf_object_release_reference(_ebpf_handle_table[handle]);
-    _ebpf_handle_table[handle] = NULL;
+    if (_ebpf_handle_table[handle] != NULL) {
+        ebpf_object_release_reference(_ebpf_handle_table[handle]);
+        _ebpf_handle_table[handle] = NULL;
+        return_value = EBPF_ERROR_SUCCESS;
+    } else
+        return_value = EBPF_ERROR_INVALID_HANDLE;
     ebpf_lock_unlock(&_ebpf_handle_table_lock, &state);
+    return return_value;
 }
 
 ebpf_error_code_t
