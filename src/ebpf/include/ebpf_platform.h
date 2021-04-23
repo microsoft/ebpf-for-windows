@@ -15,6 +15,12 @@ extern "C"
 #define EBPF_COUNT_OF(arr) (sizeof(arr) / sizeof(arr[0]))
 #define EBPF_OFFSET_OF(s, m) (((size_t) & ((s*)0)->m))
 
+    typedef struct _ebpf_string
+    {
+        uint8_t* value;
+        size_t length;
+    } ebpf_string_t;
+
     typedef enum _ebpf_memory_type
     {
         EBPF_MEMORY_NO_EXECUTE = 0,
@@ -72,6 +78,9 @@ extern "C"
      */
     void
     ebpf_free(void* memory);
+
+    ebpf_error_code_t
+    ebpf_duplicate_string(ebpf_string_t* destination, const ebpf_string_t* source);
 
     /**
      * @brief Get the code integrity state from the platform.
@@ -421,11 +430,11 @@ extern "C"
     ebpf_error_code_t
     ebpf_extension_load(
         ebpf_extension_client_t** client_context,
-        GUID client_id,
+        const GUID client_id,
         const uint8_t* client_data,
         size_t client_data_length,
         const ebpf_extension_dispatch_table_t* client_dispatch_table,
-        GUID provider_id,
+        const GUID provider_id,
         uint8_t** provider_data,
         size_t* provider_data_length,
         ebpf_extension_dispatch_table_t** provider_dispatch_table);

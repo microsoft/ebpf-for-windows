@@ -13,19 +13,28 @@
 extern "C"
 {
 #endif
+    typedef enum _ebpf_code_type
+    {
+        EBPF_CODE_NATIVE,
+        EBPF_CODE_EBPF
+    } ebpf_code_type_t;
 
     typedef struct _ebpf_instuction
     {
-        std::uint8_t opcode;
-        std::uint8_t dst : 4; //< Destination register
-        std::uint8_t src : 4; //< Source register
-        std::int16_t offset;
-        std::int32_t imm; //< Immediate constant
+        uint8_t opcode;
+        uint8_t dst : 4; //< Destination register
+        uint8_t src : 4; //< Source register
+        int16_t offset;
+        int32_t imm; //< Immediate constant
     } ebpf_instuction_t;
 
     typedef struct _ebpf_program ebpf_program_t;
-    typedef struct _ebpf_program_parameters ebpf_program_parameters_t;
-    typedef struct _ebpf_program_properties ebpf_program_properties_t;
+    typedef struct _ebpf_program_parameters
+    {
+        GUID program_type;
+        ebpf_string_t program_name;
+        ebpf_string_t section_name;
+    } ebpf_program_parameters_t;
 
     typedef ebpf_error_code_t (*ebpf_program_entry_point_t)(void* context);
 
@@ -58,13 +67,13 @@ extern "C"
      * @brief Get properties describing the program instance.
      *
      * @param[in] program Program instance to query.
-     * @param[in] program_properties Properties of of the program.
+     * @param[in] program_parameters Parameters of the program.
      * @retval EBPF_ERROR_SUCCESS The operation was successful.
      * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
      *  program instance.
      */
     ebpf_error_code_t
-    ebpf_program_get_properties(ebpf_program_t* program, ebpf_program_properties_t** program_properties);
+    ebpf_program_get_properties(ebpf_program_t* program, ebpf_program_parameters_t* program_parameters);
 
     /**
      * @brief Associate a set of maps with this program instance.
