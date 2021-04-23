@@ -34,7 +34,7 @@ extern "C"
      * @brief Create a handle that holds a reference on the object.
      *
      * @param[out] handle Pointer to memory that contains the handle on success.
-     * @param object Object to be referenced by this handle.
+     * @param[in] object Object to be referenced by this handle.
      * @retval EBPF_ERROR_SUCCESS The operation was successful.
      * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
      *  operation.
@@ -46,7 +46,7 @@ extern "C"
      * @brief Remove an existing handle from the handle table and release it's
      *  reference on the object.
      *
-     * @param handle Handle to be released.
+     * @param[in] handle Handle to be released.
      */
     void
     ebpf_handle_close(ebpf_handle_t handle);
