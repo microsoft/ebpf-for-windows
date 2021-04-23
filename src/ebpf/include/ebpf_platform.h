@@ -79,6 +79,16 @@ extern "C"
     void
     ebpf_free(void* memory);
 
+    /**
+     * @brief Allocate and copy an ebpf_string_t.
+     *
+     * @param destination Pointer to memory where the new string will be
+     *  allocated.
+     * @param source String that will be copied.
+     * @retval EBPF_ERROR_SUCCESS The operation was successful.
+     * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
+     *  string.
+     */
     ebpf_error_code_t
     ebpf_duplicate_string(ebpf_string_t* destination, const ebpf_string_t* source);
 

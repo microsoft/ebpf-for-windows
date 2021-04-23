@@ -47,3 +47,20 @@ ebpf_object_get_type(ebpf_object_t* object)
 {
     return object->type;
 }
+
+ebpf_error_code_t
+ebpf_duplicate_string(ebpf_string_t* destination, const ebpf_string_t* source)
+{
+    if (!source->value) {
+        destination->value = NULL;
+        destination->length = 0;
+        return EBPF_ERROR_SUCCESS;
+    } else {
+        destination->value = ebpf_allocate(source->length, EBPF_MEMORY_NO_EXECUTE);
+        if (!destination->value)
+            return EBPF_ERROR_OUT_OF_RESOURCES;
+        memcpy(destination->value, source->value, source->length);
+        destination->length = source->length;
+        return EBPF_ERROR_SUCCESS;
+    }
+}

@@ -100,6 +100,7 @@ ebpf_program_get_properties(ebpf_program_t* program, ebpf_program_parameters_t* 
     program_parameters->program_name = program->file_name;
     program_parameters->section_name = program->section_name;
     program_parameters->program_type = program->program_type;
+    program_parameters->code_type = program->code_type;
     return EBPF_ERROR_SUCCESS;
 }
 
@@ -172,7 +173,11 @@ ebpf_program_load_byte_code(ebpf_program_t* program, ebpf_instuction_t* instruct
     if (return_value != EBPF_ERROR_SUCCESS)
         goto Done;
 
-    if (ubpf_load(program->code_or_vm.vm, instructions, (uint32_t)instruction_count, &error_message) != 0) {
+    if (ubpf_load(
+            program->code_or_vm.vm,
+            instructions,
+            (uint32_t)(instruction_count * sizeof(ebpf_instuction_t)),
+            &error_message) != 0) {
         ebpf_free(error_message);
         return_value = EBPF_ERROR_INVALID_PARAMETER;
         goto Done;
