@@ -21,6 +21,7 @@ extern "C"
      *
      * @param[out] hook_instance Pointer to memory that will contain the hook instance
      *  on success.
+     * @retval EBPF_ERROR_SUCCESS The operation was successful.
      * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
      *  hook instance.
      */
@@ -64,8 +65,8 @@ extern "C"
     /**
      * @brief Attach a program to this hook instance.
      *
-     * @param hook_instance The hook instance to attach the program to.
-     * @param program The program to attach to this hook instance.
+     * @param[in] hook_instance The hook instance to attach the program to.
+     * @param[in] program The program to attach to this hook instance.
      * @retval EBPF_ERROR_SUCCESS The operation was successful.
      * @retval EBPF_ERROR_INVALID_PARAMETER Hook instance has not been
      *  initialized.
@@ -76,7 +77,7 @@ extern "C"
     /**
      * @brief Detach a program from this hook instance.
      *
-     * @param hook_instance The hook instance to detach from.
+     * @param[in] hook_instance The hook instance to detach.
      */
     void
     ebpf_hook_instance_detach_program(ebpf_hook_instance_t* hook_instance);
