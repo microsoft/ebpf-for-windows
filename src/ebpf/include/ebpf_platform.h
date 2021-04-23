@@ -433,7 +433,7 @@ extern "C"
     /**
      * @brief Unload an extension.
      *
-     * @param client_context Context of the extension to unload.
+     * @param[in] client_context Context of the extension to unload.
      */
     void
     ebpf_extension_unload(ebpf_extension_client_t* client_context);

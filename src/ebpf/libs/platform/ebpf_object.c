@@ -27,6 +27,10 @@ void
 ebpf_object_release_reference(ebpf_object_t* object)
 {
     uint32_t new_ref_count;
+
+    if (!object)
+        return;
+
     ebpf_assert(object->marker == _ebpf_object_marker);
     ebpf_assert(object->reference_count != 0);
 
