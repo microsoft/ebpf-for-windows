@@ -154,6 +154,21 @@ extern "C"
     int32_t
     ebpf_interlocked_compare_exchange_int32(volatile int32_t* destination, int32_t exchange, int32_t comperand);
 
+    ebpf_error_code_t
+    ebpf_extension_load(
+        ebpf_extension_client_t** client_context,
+        GUID client_id,
+        const uint8_t* client_data,
+        size_t client_data_length,
+        const ebpf_extension_dispatch_table_t* client_dispatch_table,
+        GUID provider_id,
+        uint8_t** provider_data,
+        size_t* provider_data_length,
+        ebpf_extension_dispatch_table_t** provider_dispatch_table);
+
+    void
+    ebpf_extension_unload(ebpf_extension_client_t* client_context);
+
 #ifdef __cplusplus
 }
 #endif
