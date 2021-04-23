@@ -16,7 +16,7 @@ class _unwind_helper
     /**
      * @brief Construct a new unwind helper object
      *
-     * @param unwind Function to invoke when the unwind object is destroyed.
+     * @param[in] unwind Function to invoke when the unwind object is destroyed.
      */
     _unwind_helper(std::function<void()> unwind) : _unwind(unwind) {}
 

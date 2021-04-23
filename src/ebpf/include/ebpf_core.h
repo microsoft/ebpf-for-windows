@@ -34,9 +34,9 @@ extern "C"
     ebpf_core_terminate();
 
     /**
-     * @brief Invoke any programs attached to this eBPF attach point.
+     * @brief Invoke any programs attached to this eBPF hook point.
      *
-     * @param[in] attach_point eBPF attach point to invoke.
+     * @param[in] hook_point eBPF hook point to invoke.
      * @param[in] context Opaque pointer passed to eBPF program.
      * @param[out] result Value returned from the eBPF program.
      * @retval EBPF_ERROR_SUCCESS The operation was successful.

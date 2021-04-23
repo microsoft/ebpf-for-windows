@@ -72,10 +72,10 @@ extern "C"
     /**
      * @brief Retrieve the next key from the map.
      *
-     * @param map Map to search.
-     * @param previous_key The previous key need not be present. This will
+     * @param[in] map Map to search.
+     * @param[in] previous_key The previous key need not be present. This will
      * return the next key lexicographically after the specified key.
-     * @param next_key Next key on success.
+     * @param[in] next_key Next key on success.
      * @retval EBPF_ERROR_SUCCESS The operation was successful.
      * @retval EBPF_ERROR_NO_MORE_KEYS There is no key following the specified
      * key in lexicographically order.

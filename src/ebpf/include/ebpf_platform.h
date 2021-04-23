@@ -320,8 +320,8 @@ extern "C"
     /**
      * @brief Remove an entry from the hash table.
      *
-     * @param hash_table Hash-table to update.
-     * @param key Key to find and remove.
+     * @param[in] hash_table Hash-table to update.
+     * @param[in] key Key to find and remove.
      * @retval EBPF_ERROR_SUCCESS The operation was successful.
      * @retval EBPF_ERROR_SUCCESS The operation was successful.
      */
@@ -393,7 +393,7 @@ extern "C"
      *  comperand.
      * @param[in] comperand Specifies the value that is compared with the input
      *  value pointed to by destination.
-     * @return int32_t Returns the original value of memory pointed to by
+     * @return Returns the original value of memory pointed to by
      *  destination.
      */
     int32_t
