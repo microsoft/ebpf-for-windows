@@ -82,6 +82,12 @@ extern "C"
     ebpf_core_get_protocol_handler_properties(
         ebpf_operation_id_t operation_id, _Out_ size_t* minimum_request_size, _Out_ size_t* minimum_reply_size);
 
+    size_t
+    ebpf_core_get_global_helper_count();
+
+    const void*
+    ebpf_core_get_global_helper(size_t helper_id);
+
 #ifdef __cplusplus
 }
 #endif

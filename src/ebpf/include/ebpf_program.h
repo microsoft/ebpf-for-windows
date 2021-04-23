@@ -13,11 +13,7 @@
 extern "C"
 {
 #endif
-    typedef enum _ebpf_code_type
-    {
-        EBPF_CODE_NATIVE,
-        EBPF_CODE_EBPF
-    } ebpf_code_type_t;
+    typedef enum _ebpf_code_type ebpf_code_type_t;
 
     typedef struct _ebpf_instuction
     {
@@ -175,6 +171,9 @@ extern "C"
      */
     ebpf_error_code_t
     ebpf_program_get_entry_point(ebpf_program_t* program, ebpf_program_entry_point_t* program_entry_point);
+
+    void
+    ebpf_program_invoke(ebpf_program_t* program, void* context, uint32_t* result);
 
 #ifdef __cplusplus
 }

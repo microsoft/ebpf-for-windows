@@ -59,6 +59,18 @@ static const void* _ebpf_program_helpers[] = {
     (void*)&_ebpf_core_map_update_element,
     (void*)&_ebpf_core_map_delete_element};
 
+size_t
+ebpf_core_get_global_helper_count()
+{
+    return EBPF_COUNT_OF(_ebpf_program_helpers);
+}
+
+const void*
+ebpf_core_get_global_helper(size_t helper_id)
+{
+    return _ebpf_program_helpers[helper_id];
+}
+
 static ebpf_error_code_t
 _ebpf_core_set_hook_entry(ebpf_core_code_entry_t* code, ebpf_program_type_t program_type)
 {
