@@ -119,6 +119,7 @@
     <ClInclude Include="..\..\..\include\ebpf_epoch.h" />
     <ClInclude Include="..\..\..\include\ebpf_maps.h" />
     <ClInclude Include="..\..\..\include\ebpf_object.h" />
+    <ClInclude Include="..\..\..\include\ebpf_pinning_table.h" />
     <ClInclude Include="..\..\..\include\ebpf_platform.h" />
     <ClInclude Include="..\..\..\include\ebpf_program.h" />
     <ClInclude Include="..\..\..\include\ebpf_protocol.h" />

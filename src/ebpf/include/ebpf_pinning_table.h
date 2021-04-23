@@ -58,7 +58,7 @@ extern "C"
      *  table.
      */
     ebpf_error_code_t
-    ebpf_pinning_table_lookup(ebpf_pinning_table_t* pinning_table, const uint8_t* name, ebpf_object_t** object);
+    ebpf_pinning_table_find(ebpf_pinning_table_t* pinning_table, const uint8_t* name, ebpf_object_t** object);
 
     /**
      * @brief Find an entry in the pinning table, remove it and release a

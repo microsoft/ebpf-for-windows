@@ -890,7 +890,7 @@ ebpf_core_protocol_get_pinned_map(
     memset(name, 0, name_length + 1);
     memcpy(name, request->name, name_length);
 
-    retval = ebpf_pinning_table_find(_ebpf_core_map_pinning_table, name, (ebpf_object_t**)&map)
+    retval = ebpf_pinning_table_find(_ebpf_core_map_pinning_table, name, (ebpf_object_t**)&map);
     if (retval != EBPF_ERROR_SUCCESS)
         goto Done;
 
