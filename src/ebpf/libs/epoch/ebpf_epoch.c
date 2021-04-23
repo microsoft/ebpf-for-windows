@@ -153,6 +153,9 @@ Error:
 void
 ebpf_epoch_terminate()
 {
+    if (!_ebpf_epoch_initiated)
+        return;
+
     ebpf_free_timer_work_item(_ebpf_flush_timer);
     ebpf_hash_table_destroy(_ebpf_epoch_thread_table);
     ebpf_free(_ebpf_epoch_cpu_table);
