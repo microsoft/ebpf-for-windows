@@ -23,6 +23,7 @@ extern "C"
      *  on success.
      * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
      *  hook instance.
+     * @retval EBPF_SUCCESS The operation was successful.
      */
     ebpf_error_code_t
     ebpf_hook_instance_create(ebpf_hook_instance_t** hook_instance);
