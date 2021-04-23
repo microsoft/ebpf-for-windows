@@ -16,12 +16,6 @@ extern "C"
     ebpf_error_code_t
     ebpf_map_create(const ebpf_map_definition_t* ebpf_map_definition, ebpf_map_t** map);
 
-    void
-    ebpf_map_acquire_reference(ebpf_map_t* map);
-
-    void
-    ebpf_map_release_reference(ebpf_map_t* map);
-
     ebpf_map_definition_t*
     ebpf_map_get_definition(ebpf_map_t* map);
 

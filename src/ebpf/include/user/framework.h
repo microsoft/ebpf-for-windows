@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <assert.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
@@ -13,6 +14,8 @@
 // Windows Header Files
 #include <windows.h>
 #include <winioctl.h>
+
+#define ebpf_assert(x) assert(x)
 
 #if !defined(UNREFERENCED_PARAMETER)
 #define UNREFERENCED_PARAMETER(X) (X)

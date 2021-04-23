@@ -5,13 +5,14 @@
 
 #include "ebpf_maps.h"
 #include "ebpf_epoch.h"
+#include "ebpf_object.h"
 
 typedef struct _ebpf_core_map
 {
+    ebpf_object_t object;
     struct _ebpf_map_definition ebpf_map_definition;
     ebpf_lock_t lock;
     uint8_t* data;
-    volatile int32_t reference_count;
 } ebpf_core_map_t;
 
 typedef struct _ebpf_map_function_table
@@ -42,26 +43,14 @@ ebpf_map_create(const ebpf_map_definition_t* ebpf_map_definition, ebpf_map_t** e
     if (!local_map)
         return EBPF_ERROR_OUT_OF_RESOURCES;
 
-    if (local_map != NULL)
-        ebpf_map_acquire_reference(local_map);
+    ebpf_object_initiate(
+        &local_map->object,
+        EBPF_OBJECT_MAP,
+        (ebfp_free_object_t)ebpf_map_function_tables[local_map->ebpf_map_definition.type].delete_map);
 
     *ebpf_map = local_map;
 
     return EBPF_ERROR_SUCCESS;
-}
-
-void
-ebpf_map_acquire_reference(ebpf_map_t* map)
-{
-    ebpf_interlocked_increment_int32(&map->reference_count);
-}
-
-void
-ebpf_map_release_reference(ebpf_map_t* map)
-{
-    uint32_t new_ref_count = ebpf_interlocked_decrement_int32(&map->reference_count);
-    if (new_ref_count == 0)
-        ebpf_map_function_tables[map->ebpf_map_definition.type].delete_map(map);
 }
 
 ebpf_map_definition_t*

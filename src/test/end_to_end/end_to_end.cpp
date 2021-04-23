@@ -14,6 +14,7 @@
 #include "ebpf_api.h"
 #include "ebpf_core.h"
 #include "ebpf_epoch.h"
+#include "ebpf_pinning_table.h"
 #include "ebpf_protocol.h"
 #include "mock.h"
 #include "tlv.h"
@@ -161,43 +162,37 @@ TEST_CASE("pinning_test", "[pinning_test]")
 
     typedef struct _some_object
     {
-        int32_t reference_count;
+        ebpf_object_t object;
         std::string name;
     } some_object_t;
 
     REQUIRE(ebpf_platform_initiate() == EBPF_ERROR_SUCCESS);
 
-    some_object_t an_object{1};
-    some_object_t another_object{1};
+    some_object_t an_object;
+    some_object_t another_object;
     some_object_t* some_object;
 
-    auto aquire_ref = [](void* object) {
-        some_object_t* some_object = reinterpret_cast<some_object_t*>(object);
-        (some_object->reference_count)++;
-    };
-
-    auto release_ref = [](void* object) {
-        some_object_t* some_object = reinterpret_cast<some_object_t*>(object);
-        (some_object->reference_count)--;
-    };
+    ebpf_object_initiate(&an_object.object, EBPF_OBJECT_MAP, [](ebpf_object_t*) {});
+    ebpf_object_initiate(&another_object.object, EBPF_OBJECT_MAP, [](ebpf_object_t*) {});
 
     ebpf_pinning_table_t* pinning_table;
-    REQUIRE(ebpf_pinning_table_allocate(&pinning_table, aquire_ref, release_ref) == EBPF_ERROR_SUCCESS);
+    REQUIRE(ebpf_pinning_table_allocate(&pinning_table) == EBPF_ERROR_SUCCESS);
 
-    REQUIRE(ebpf_pinning_table_insert(pinning_table, (uint8_t*)"foo", &an_object) == EBPF_ERROR_SUCCESS);
-    REQUIRE(an_object.reference_count == 2);
-    REQUIRE(ebpf_pinning_table_insert(pinning_table, (uint8_t*)"bar", &another_object) == EBPF_ERROR_SUCCESS);
-    REQUIRE(another_object.reference_count == 2);
-    REQUIRE(ebpf_pinning_table_lookup(pinning_table, (uint8_t*)"foo", (void**)&some_object) == EBPF_ERROR_SUCCESS);
-    REQUIRE(an_object.reference_count == 3);
+    REQUIRE(ebpf_pinning_table_insert(pinning_table, (uint8_t*)"foo", &an_object.object) == EBPF_ERROR_SUCCESS);
+    REQUIRE(an_object.object.reference_count == 2);
+    REQUIRE(ebpf_pinning_table_insert(pinning_table, (uint8_t*)"bar", &another_object.object) == EBPF_ERROR_SUCCESS);
+    REQUIRE(another_object.object.reference_count == 2);
+    REQUIRE(
+        ebpf_pinning_table_lookup(pinning_table, (uint8_t*)"foo", (ebpf_object_t**)&some_object) == EBPF_ERROR_SUCCESS);
+    REQUIRE(an_object.object.reference_count == 3);
     REQUIRE(some_object == &an_object);
-    release_ref(&an_object);
+    ebpf_object_release_reference(&some_object->object);
     REQUIRE(ebpf_pinning_table_delete(pinning_table, (uint8_t*)"foo") == EBPF_ERROR_SUCCESS);
-    REQUIRE(another_object.reference_count == 2);
+    REQUIRE(another_object.object.reference_count == 2);
 
     ebpf_pinning_table_free(pinning_table);
-    REQUIRE(an_object.reference_count == 1);
-    REQUIRE(another_object.reference_count == 1);
+    REQUIRE(an_object.object.reference_count == 1);
+    REQUIRE(another_object.object.reference_count == 1);
 }
 
 TEST_CASE("droppacket-jit", "[droppacket_jit]")
