@@ -55,9 +55,9 @@ extern "C"
      * @brief Find the handle in the handle table, verify the type matches,
      *  acquire a reference to the object and return it.
      *
-     * @param[in] handle
-     * @param[in] object_type
-     * @param[out] object
+     * @param[in] handle Handle to find in table.
+     * @param[in] object_type Object type to match.
+     * @param[out] object Pointer to memory that contains object success.
      * @retval EBPF_ERROR_SUCCESS The operation was successful.
      * @retval EBPF_ERROR_INVALID_HANDLE The provided handle is not valid.
      */
