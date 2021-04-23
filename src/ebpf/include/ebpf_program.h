@@ -147,23 +147,6 @@ extern "C"
     ebpf_program_attach_hook(ebpf_program_t* program, ebpf_hook_instance_t* hook_instance);
 
     /**
-     * @brief Acquire a reference to the program instance.
-     *
-     * @param[in] program Program instance on which to acquire the reference.
-     */
-    void
-    ebpf_program_acquire_reference(ebpf_program_t* program);
-
-    /**
-     * @brief Release a reference to the program instance. When reference count
-     *  reaches zero, the program instance is freed.
-     *
-     * @param[in] program Program instance on which to release the reference.
-     */
-    void
-    ebpf_program_release_reference(ebpf_program_t* program);
-
-    /**
      * @brief Obtain the entry point for the program instance. Only applicable
      *  to when program instance has machine code loaded.
      *
@@ -174,6 +157,13 @@ extern "C"
     ebpf_error_code_t
     ebpf_program_get_entry_point(ebpf_program_t* program, ebpf_program_entry_point_t* program_entry_point);
 
+    /**
+     * @brief Invoke an ebpf_program_t instance.
+     *
+     * @param[in] program Program to invoke.
+     * @param[in] context Pointer to eBPF context for this program.
+     * @param[out] result Output from the program.
+     */
     void
     ebpf_program_invoke(ebpf_program_t* program, void* context, uint32_t* result);
 
