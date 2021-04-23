@@ -11,15 +11,16 @@ The following must be installed in order to build this project:
 3. [Visual Studio Build Tools 2019](https://aka.ms/vs/16/release/vs_buildtools.exe)
 4. [WDK for Windows 10, version 2004](https://go.microsoft.com/fwlink/?linkid=2128854)
 5. [Clang/LLVM for Windows 64-bit](https://github.com/llvm/llvm-project/releases/download/llvmorg-8.0.1/LLVM-8.0.1-win64.exe)
+6. [nuget.exe](https://www.nuget.org/downloads)
 
 ## How to clone and build the project
 
 1. ```git clone --recurse-submodules https://github.com/microsoft/ebpf-for-windows.git```
 2. ```cd ebpf-for-windows```
 3. ```cmake -S external\ebpf-verifier -B external\ebpf-verifier\build```
-4. ```msbuild /m /p:Configuration=Debug /p:Platform=x64 ebpf-demo.sln```
+4. ```msbuild /m /p:Configuration=Debug /p:Platform=x64 ebpf-for-windows.sln```
    or to build from within Visual Studio:
-   - Open ebpf-demo.sln
+   - Open ebpf-for-windows.sln
    - Switch to debug / x64
    - Build solution
 
