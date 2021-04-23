@@ -76,7 +76,7 @@ extern "C"
     ebpf_api_detach_program(ebpf_handle_t handle, ebpf_program_type_t hook_point);
 
     /**
-     * @brief Lookup an element in an eBPF map.
+     * @brief Find an element in an eBPF map.
      * @param[in] handle Handle to eBPF map.
      * @param[in] key_size Size of the key buffer.
      * @param[in] key Pointer to buffer containing key.
@@ -84,7 +84,7 @@ extern "C"
      * @param[out] value Pointer to buffer that contains value on success.
      */
     uint32_t
-    ebpf_api_map_lookup_element(
+    ebpf_api_map_find_element(
         ebpf_handle_t handle, uint32_t key_size, const uint8_t* key, uint32_t value_size, uint8_t* value);
 
     /**

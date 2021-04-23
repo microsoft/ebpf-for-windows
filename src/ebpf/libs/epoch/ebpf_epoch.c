@@ -49,7 +49,7 @@ static ebpf_hash_table_t* _ebpf_epoch_thread_table = NULL;
 typedef struct _ebpf_epoch_cpu_entry
 {
     int64_t epoch;
-    epbf_non_preepmtable_work_item_t* non_preemtable_work_item;
+    epbf_non_preemptible_work_item_t* non_preemtable_work_item;
 } ebpf_epoch_cpu_entry_t;
 
 static ebpf_epoch_cpu_entry_t* _ebpf_epoch_cpu_table = NULL;
@@ -86,7 +86,7 @@ _ebpf_flush_worker(void* context);
 ebpf_error_code_t
 ebpf_epoch_initiate()
 {
-    ebpf_error_code_t return_value;
+    ebpf_error_code_t return_value = EBPF_ERROR_SUCCESS;
     uint32_t cpu_id;
 
     _ebpf_current_epoch = 1;
@@ -95,11 +95,8 @@ ebpf_epoch_initiate()
     ebpf_lock_create(&_ebpf_epoch_thread_table_lock);
     ebpf_lock_create(&_ebpf_epoch_free_list_lock);
 
-    if (ebpf_is_non_preepmtable_work_item_supported()) {
-        return_value = ebpf_get_cpu_count(&_ebpf_epoch_cpu_table_size);
-        if (return_value != EBPF_ERROR_SUCCESS) {
-            goto Error;
-        }
+    if (ebpf_is_non_preemptible_work_item_supported()) {
+        ebpf_get_cpu_count(&_ebpf_epoch_cpu_table_size);
 
         _ebpf_epoch_cpu_table =
             ebpf_allocate(_ebpf_epoch_cpu_table_size * sizeof(ebpf_epoch_cpu_entry_t), EBPF_MEMORY_NO_EXECUTE);
@@ -112,7 +109,7 @@ ebpf_epoch_initiate()
 
         for (cpu_id = 0; cpu_id < _ebpf_epoch_cpu_table_size; cpu_id++) {
             _ebpf_epoch_cpu_table[cpu_id].epoch = _ebpf_current_epoch;
-            return_value = ebpf_allocate_non_preemptable_work_item(
+            return_value = ebpf_allocate_non_preemptible_work_item(
                 &_ebpf_epoch_cpu_table[cpu_id].non_preemtable_work_item,
                 cpu_id,
                 _ebpf_epoch_update_cpu_entry,
@@ -124,7 +121,7 @@ ebpf_epoch_initiate()
 
         if (return_value != EBPF_ERROR_SUCCESS) {
             for (cpu_id = 0; cpu_id < _ebpf_epoch_cpu_table_size; cpu_id++) {
-                ebpf_free_non_preemptable_work_item(_ebpf_epoch_cpu_table[cpu_id].non_preemtable_work_item);
+                ebpf_free_non_preemptible_work_item(_ebpf_epoch_cpu_table[cpu_id].non_preemtable_work_item);
             }
         }
         if (return_value != EBPF_ERROR_SUCCESS)
@@ -163,7 +160,7 @@ ebpf_epoch_terminate()
 ebpf_error_code_t
 ebpf_epoch_enter()
 {
-    if (!ebpf_is_non_preepmtable_work_item_supported() || ebpf_is_preemptable()) {
+    if (!ebpf_is_non_preemptible_work_item_supported() || ebpf_is_preemptible()) {
         ebpf_error_code_t return_value;
         ebpf_lock_state_t lock_state;
         uint64_t current_thread_id = ebpf_get_current_thread_id();
@@ -187,7 +184,7 @@ ebpf_epoch_enter()
 void
 ebpf_epoch_exit()
 {
-    if (ebpf_is_preemptable()) {
+    if (ebpf_is_preemptible()) {
         ebpf_lock_state_t lock_state;
         uint64_t current_thread_id = ebpf_get_current_thread_id();
         int64_t current_epoch = 0;
@@ -217,15 +214,15 @@ ebpf_epoch_flush()
     int64_t released_epoch;
     uint32_t cpu_id;
 
-    if (ebpf_is_non_preepmtable_work_item_supported()) {
-        // Schedule a non-preemptable work item to bring the CPU up to the current
+    if (ebpf_is_non_preemptible_work_item_supported()) {
+        // Schedule a non-preemptible work item to bring the CPU up to the current
         // epoch.
         // Note: May not affect the current flush.
         for (cpu_id = 0; cpu_id < _ebpf_epoch_cpu_table_size; cpu_id++) {
             // Note: Either the per-cpu epoch or the global epoch could be out of date.
             // That is acceptable as it may schedule an extra work item.
             if (_ebpf_epoch_cpu_table[cpu_id].epoch != _ebpf_current_epoch)
-                ebpf_queue_non_preemptable_work_item(_ebpf_epoch_cpu_table[cpu_id].non_preemtable_work_item, NULL);
+                ebpf_queue_non_preemptible_work_item(_ebpf_epoch_cpu_table[cpu_id].non_preemtable_work_item, NULL);
         }
     }
 
@@ -303,7 +300,7 @@ ebpf_epoch_get_release_epoch(int64_t* release_epoch)
     ebpf_lock_state_t lock_state;
     ebpf_error_code_t return_value;
 
-    if (ebpf_is_non_preepmtable_work_item_supported()) {
+    if (ebpf_is_non_preemptible_work_item_supported()) {
         for (cpu_id = 0; cpu_id < _ebpf_epoch_cpu_table_size; cpu_id++) {
             if (_ebpf_epoch_cpu_table[cpu_id].epoch < lowest_epoch)
                 lowest_epoch = _ebpf_epoch_cpu_table[cpu_id].epoch;
@@ -315,7 +312,7 @@ ebpf_epoch_get_release_epoch(int64_t* release_epoch)
     if (return_value == EBPF_ERROR_SUCCESS)
         for (;;) {
             return_value =
-                ebpf_hash_table_lookup(_ebpf_epoch_thread_table, (uint8_t*)&thread_id, (uint8_t**)&thread_epoch);
+                ebpf_hash_table_find(_ebpf_epoch_thread_table, (uint8_t*)&thread_id, (uint8_t**)&thread_epoch);
             if (return_value != EBPF_ERROR_SUCCESS)
                 break;
 

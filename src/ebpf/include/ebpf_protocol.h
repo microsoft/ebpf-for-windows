@@ -14,7 +14,7 @@ typedef enum _ebpf_operation_id
     EBPF_OPERATION_ATTACH_CODE,
     EBPF_OPERATION_DETACH_CODE,
     EBPF_OPERATION_CREATE_MAP,
-    EBPF_OPERATION_MAP_LOOKUP_ELEMENT,
+    EBPF_OPERATION_MAP_FIND_ELEMENT,
     EBPF_OPERATION_MAP_UPDATE_ELEMENT,
     EBPF_OPERATION_MAP_DELETE_ELEMENT,
     EBPF_OPERATION_MAP_GET_NEXT_KEY,
@@ -103,18 +103,18 @@ typedef struct _ebpf_operation_create_map_reply
     uint64_t handle;
 } ebpf_operation_create_map_reply_t;
 
-typedef struct _ebpf_operation_map_lookup_element_request
+typedef struct _ebpf_operation_map_find_element_request
 {
     struct _ebpf_operation_header header;
     uint64_t handle;
     uint8_t key[1];
-} ebpf_operation_map_lookup_element_request_t;
+} ebpf_operation_map_find_element_request_t;
 
-typedef struct _ebpf_operation_map_lookup_element_reply
+typedef struct _ebpf_operation_map_find_element_reply
 {
     struct _ebpf_operation_header header;
     uint8_t value[1];
-} ebpf_operation_map_lookup_element_reply_t;
+} ebpf_operation_map_find_element_reply_t;
 
 typedef struct _ebpf_operation_map_update_element_request
 {

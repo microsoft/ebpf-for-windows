@@ -183,7 +183,7 @@ TEST_CASE("pinning_test", "[pinning_test]")
     REQUIRE(ebpf_pinning_table_insert(pinning_table, (uint8_t*)"bar", &another_object.object) == EBPF_ERROR_SUCCESS);
     REQUIRE(another_object.object.reference_count == 2);
     REQUIRE(
-        ebpf_pinning_table_lookup(pinning_table, (uint8_t*)"foo", (ebpf_object_t**)&some_object) == EBPF_ERROR_SUCCESS);
+        ebpf_pinning_table_find(pinning_table, (uint8_t*)"foo", (ebpf_object_t**)&some_object) == EBPF_ERROR_SUCCESS);
     REQUIRE(an_object.object.reference_count == 3);
     REQUIRE(some_object == &an_object);
     ebpf_object_release_reference(&some_object->object);
@@ -248,14 +248,14 @@ TEST_CASE("droppacket-jit", "[droppacket_jit]")
     REQUIRE(result == 2);
 
     REQUIRE(
-        ebpf_api_map_lookup_element(map_handle, sizeof(key), (uint8_t*)&key, sizeof(value), (uint8_t*)&value) ==
+        ebpf_api_map_find_element(map_handle, sizeof(key), (uint8_t*)&key, sizeof(value), (uint8_t*)&value) ==
         ERROR_SUCCESS);
     REQUIRE(value == 1001);
 
     REQUIRE(ebpf_api_map_delete_element(map_handle, sizeof(key), (uint8_t*)&key) == ERROR_SUCCESS);
 
     REQUIRE(
-        ebpf_api_map_lookup_element(map_handle, sizeof(key), (uint8_t*)&key, sizeof(value), (uint8_t*)&value) ==
+        ebpf_api_map_find_element(map_handle, sizeof(key), (uint8_t*)&key, sizeof(value), (uint8_t*)&value) ==
         ERROR_SUCCESS);
     REQUIRE(value == 0);
 
@@ -266,7 +266,7 @@ TEST_CASE("droppacket-jit", "[droppacket_jit]")
     REQUIRE(result == 1);
 
     REQUIRE(
-        ebpf_api_map_lookup_element(map_handle, sizeof(key), (uint8_t*)&key, sizeof(value), (uint8_t*)&value) ==
+        ebpf_api_map_find_element(map_handle, sizeof(key), (uint8_t*)&key, sizeof(value), (uint8_t*)&value) ==
         ERROR_SUCCESS);
     REQUIRE(value == 0);
 }
@@ -324,14 +324,14 @@ TEST_CASE("droppacket-interpret", "[droppacket_interpret]")
     REQUIRE(result == 2);
 
     REQUIRE(
-        ebpf_api_map_lookup_element((ebpf_handle_t)1, sizeof(key), (uint8_t*)&key, sizeof(value), (uint8_t*)&value) ==
+        ebpf_api_map_find_element((ebpf_handle_t)1, sizeof(key), (uint8_t*)&key, sizeof(value), (uint8_t*)&value) ==
         ERROR_SUCCESS);
     REQUIRE(value == 1001);
 
     REQUIRE(ebpf_api_map_delete_element((ebpf_handle_t)1, sizeof(key), (uint8_t*)&key) == ERROR_SUCCESS);
 
     REQUIRE(
-        ebpf_api_map_lookup_element((ebpf_handle_t)1, sizeof(key), (uint8_t*)&key, sizeof(value), (uint8_t*)&value) ==
+        ebpf_api_map_find_element((ebpf_handle_t)1, sizeof(key), (uint8_t*)&key, sizeof(value), (uint8_t*)&value) ==
         ERROR_SUCCESS);
     REQUIRE(value == 0);
 
@@ -342,7 +342,7 @@ TEST_CASE("droppacket-interpret", "[droppacket_interpret]")
     REQUIRE(result == 1);
 
     REQUIRE(
-        ebpf_api_map_lookup_element((ebpf_handle_t)1, sizeof(key), (uint8_t*)&key, sizeof(value), (uint8_t*)&value) ==
+        ebpf_api_map_find_element((ebpf_handle_t)1, sizeof(key), (uint8_t*)&key, sizeof(value), (uint8_t*)&value) ==
         ERROR_SUCCESS);
     REQUIRE(value == 0);
 }
@@ -430,7 +430,7 @@ uint32_t
 get_bind_count_for_pid(ebpf_handle_t handle, uint64_t pid)
 {
     process_entry_t entry{};
-    ebpf_api_map_lookup_element(handle, sizeof(pid), (uint8_t*)&pid, sizeof(entry), (uint8_t*)&entry);
+    ebpf_api_map_find_element(handle, sizeof(pid), (uint8_t*)&pid, sizeof(entry), (uint8_t*)&entry);
 
     return entry.count;
 }

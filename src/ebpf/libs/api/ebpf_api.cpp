@@ -4,21 +4,20 @@
  */
 
 #include "pch.h"
-#include "tlv.h"
+#include "ebpf_api.h"
 
+#include <map>
+#include <stdexcept>
+
+#include "ebpf_protocol.h"
+#include "platform.h"
+#include "tlv.h"
 extern "C"
 {
-#include "ebpf_api.h"
 #include "ubpf.h"
 }
-#include "platform.h"
-
-#include "Verifier.h"
-#include "ebpf_protocol.h"
 #include "unwind_helper.h"
-
-#include <stdexcept>
-#include <map>
+#include "Verifier.h"
 
 #define MAX_CODE_SIZE (32 * 1024) // 32 KB
 
@@ -502,22 +501,22 @@ ebpf_api_detach_program(ebpf_handle_t handle, ebpf_program_type_t hook_point)
 }
 
 uint32_t
-ebpf_api_map_lookup_element(
+ebpf_api_map_find_element(
     ebpf_handle_t handle, uint32_t key_size, const uint8_t* key, uint32_t value_size, uint8_t* value)
 {
-    std::vector<uint8_t> request_buffer(sizeof(_ebpf_operation_map_lookup_element_request) + key_size - 1);
-    std::vector<uint8_t> reply_buffer(sizeof(_ebpf_operation_map_lookup_element_reply) + value_size - 1);
-    auto request = reinterpret_cast<_ebpf_operation_map_lookup_element_request*>(request_buffer.data());
-    auto reply = reinterpret_cast<_ebpf_operation_map_lookup_element_reply*>(reply_buffer.data());
+    std::vector<uint8_t> request_buffer(sizeof(_ebpf_operation_map_find_element_request) + key_size - 1);
+    std::vector<uint8_t> reply_buffer(sizeof(_ebpf_operation_map_find_element_reply) + value_size - 1);
+    auto request = reinterpret_cast<_ebpf_operation_map_find_element_request*>(request_buffer.data());
+    auto reply = reinterpret_cast<_ebpf_operation_map_find_element_reply*>(reply_buffer.data());
 
     request->header.length = static_cast<uint16_t>(request_buffer.size());
-    request->header.id = ebpf_operation_id_t::EBPF_OPERATION_MAP_LOOKUP_ELEMENT;
+    request->header.id = ebpf_operation_id_t::EBPF_OPERATION_MAP_FIND_ELEMENT;
     request->handle = reinterpret_cast<uint64_t>(handle);
     std::copy(key, key + key_size, request->key);
 
     auto retval = invoke_ioctl(device_handle, request_buffer, reply_buffer);
 
-    if (reply->header.id != ebpf_operation_id_t::EBPF_OPERATION_MAP_LOOKUP_ELEMENT) {
+    if (reply->header.id != ebpf_operation_id_t::EBPF_OPERATION_MAP_FIND_ELEMENT) {
         return ERROR_INVALID_PARAMETER;
     }
 
