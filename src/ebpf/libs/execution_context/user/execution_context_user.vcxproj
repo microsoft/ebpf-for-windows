@@ -118,7 +118,6 @@
     <ClInclude Include="..\..\..\include\ebpf_handle.h" />
     <ClInclude Include="..\..\..\include\ebpf_hook.h" />
     <ClInclude Include="..\..\..\include\ebpf_epoch.h" />
-    <ClInclude Include="..\..\..\include\ebpf_hook.h" />
     <ClInclude Include="..\..\..\include\ebpf_maps.h" />
     <ClInclude Include="..\..\..\include\ebpf_object.h" />
     <ClInclude Include="..\..\..\include\ebpf_pinning_table.h" />
