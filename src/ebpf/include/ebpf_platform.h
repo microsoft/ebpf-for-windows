@@ -399,6 +399,25 @@ extern "C"
     int32_t
     ebpf_interlocked_compare_exchange_int32(volatile int32_t* destination, int32_t exchange, int32_t comperand);
 
+    /**
+     * @brief Load an extension and get it's dispatch table.
+     *
+     * @param[out] client_context Context used to unload the extension.
+     * @param[in] client_id GUID representing the identity of the client.
+     * @param[in] client_data Opaque client data passed to the extension.
+     * @param[in] client_data_length Length of the client data.
+     * @param[in] client_dispatch_table Table of function pointers the client
+     *  exposes.
+     * @param[in] provider_id GUID representing the extension to load.
+     * @param[out] provider_data Opaque provider data.
+     * @param[out] provider_data_length Length of the provider data.
+     * @param[out] provider_dispatch_table Table of function pointer the
+     *  provider exposes.
+     * @retval EBPF_ERROR_SUCCESS The operation was successful.
+     * @retval EBPF_ERROR_NOT_FOUND The provider was not found.
+     * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
+     *  operation.
+     */
     ebpf_error_code_t
     ebpf_extension_load(
         ebpf_extension_client_t** client_context,
@@ -411,6 +430,11 @@ extern "C"
         size_t* provider_data_length,
         ebpf_extension_dispatch_table_t** provider_dispatch_table);
 
+    /**
+     * @brief Unload an extension.
+     *
+     * @param client_context Context of the extension to unload.
+     */
     void
     ebpf_extension_unload(ebpf_extension_client_t* client_context);
 
