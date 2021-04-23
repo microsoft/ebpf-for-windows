@@ -27,7 +27,7 @@ extern "C"
     typedef struct _ebpf_program_parameters ebpf_program_parameters_t;
     typedef struct _ebpf_program_properties ebpf_program_properties_t;
 
-    typedef ebpf_error_code_t (*ebpf_program_entry_point)(void* context);
+    typedef ebpf_error_code_t (*ebpf_program_entry_point_t)(void* context);
 
     /**
      * @brief Create a new program instance.
@@ -58,7 +58,7 @@ extern "C"
      * @brief Get properties describing the program instance.
      *
      * @param[in] program Program instance to query.
-     * @param[in] program_properties Properties of
+     * @param[in] program_properties Properties of of the program.
      * @retval EBPF_ERROR_SUCCESS The operation was successful.
      * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
      *  program instance.
@@ -109,7 +109,7 @@ extern "C"
     /**
      * @brief Create a hook instance and attach it to the program instance.
      *
-     * @param program Program instance to attach to.
+     * @param[in] program Program instance to attach to.
      * @param[in] attach_type Attach type to load.
      * @param[in] context_data Data to be passed to the hook provider.
      * @param[in] context_data_length Length of the data to be passed to the
@@ -148,7 +148,7 @@ extern "C"
     ebpf_program_acquire_reference(ebpf_program_t* program);
 
     /**
-     * @brief Release a referene to the program instance. When reference count
+     * @brief Release a reference to the program instance. When reference count
      *  reaches zero, the program instance is freed.
      *
      * @param[in] program Program instance on which to release the reference.
@@ -165,7 +165,7 @@ extern "C"
      * @retval EBPF_ERROR_SUCCESS The operation was successful.
      */
     ebpf_error_code_t
-    ebpf_program_get_entry_point(ebpf_program_t* program, ebpf_program_entry_point* program_entry_point);
+    ebpf_program_get_entry_point(ebpf_program_t* program, ebpf_program_entry_point_t* program_entry_point);
 
 #ifdef __cplusplus
 }
