@@ -6,7 +6,6 @@
 #pragma once
 
 #include "ebpf_platform.h"
-#include "ebpf_program.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -15,6 +14,7 @@ extern "C"
 
     typedef GUID ebpf_attach_type_t;
     typedef struct _ebpf_hook_instance ebpf_hook_instance_t;
+    typedef struct _ebpf_program ebpf_program_t;
 
     /**
      * @brief Create a new hook instance.

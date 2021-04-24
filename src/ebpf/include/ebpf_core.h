@@ -82,6 +82,23 @@ extern "C"
     ebpf_core_get_protocol_handler_properties(
         ebpf_operation_id_t operation_id, _Out_ size_t* minimum_request_size, _Out_ size_t* minimum_reply_size);
 
+    /**
+     * @brief Get the count of global helper functions.
+     *
+     * @return Count of global helper functions.
+     */
+    size_t
+    ebpf_core_get_global_helper_count();
+
+    /**
+     * @brief Get the address of a global helper function.
+     *
+     * @param[in] helper_id Id of the global helper function.
+     * @return Address of the global helper function.
+     */
+    const void*
+    ebpf_core_get_global_helper(size_t helper_id);
+
 #ifdef __cplusplus
 }
 #endif

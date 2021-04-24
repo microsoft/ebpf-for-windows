@@ -5,6 +5,7 @@
 
 #include "ebpf_hook.h"
 
+#include "ebpf_program.h"
 #include "ebpf_epoch.h"
 #include "ebpf_platform.h"
 
@@ -12,7 +13,7 @@ typedef struct _ebpf_hook_instance
 {
     volatile int32_t reference_count;
     ebpf_program_t* program;
-    ebpf_program_entry_point program_entry_point;
+    ebpf_program_entry_point_t program_entry_point;
 
     ebpf_attach_type_t attach_type;
     ebpf_extension_client_t* extension_client_context;
@@ -56,11 +57,11 @@ ebpf_hook_instance_initialize(
 
     return_value = ebpf_extension_load(
         &(hook->extension_client_context),
-        _ebpf_hook_client_id,
+        &_ebpf_hook_client_id,
         context_data,
         context_data_length,
         (ebpf_extension_dispatch_table_t*)&_ebpf_hook_dispatch_table,
-        attach_type,
+        &attach_type,
         &(hook->hook_properties),
         &(hook->hook_properties_length),
         &(hook->provider_dispatch_table));
@@ -89,7 +90,7 @@ ebpf_hook_instance_attach_program(ebpf_hook_instance_t* hook, ebpf_program_t* pr
     }
 
     hook->program = program;
-    ebpf_program_acquire_reference(program);
+    ebpf_object_acquire_reference((ebpf_object_t*)program);
 
     return_value = ebpf_program_get_entry_point(program, &(hook->program_entry_point));
     if (return_value != EBPF_ERROR_SUCCESS)
@@ -98,7 +99,7 @@ ebpf_hook_instance_attach_program(ebpf_hook_instance_t* hook, ebpf_program_t* pr
 Done:
     if (return_value != EBPF_ERROR_SUCCESS) {
         if (hook->program == program) {
-            ebpf_program_release_reference(program);
+            ebpf_object_release_reference((ebpf_object_t*)program);
             hook->program = NULL;
             hook->program_entry_point = NULL;
         }
@@ -113,7 +114,7 @@ ebpf_hook_instance_detach_program(ebpf_hook_instance_t* hook)
         return;
 
     hook->program_entry_point = NULL;
-    ebpf_program_release_reference(hook->program);
+    ebpf_object_release_reference((ebpf_object_t*)hook->program);
     hook->program = NULL;
 }
 

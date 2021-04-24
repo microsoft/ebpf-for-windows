@@ -9,36 +9,12 @@
 #include "ebpf_handle.h"
 #include "ebpf_maps.h"
 #include "ebpf_pinning_table.h"
-#include "ubpf.h"
-
-typedef struct _ebpf_core_code_entry
-{
-    ebpf_object_t object;
-
-    // pointer to code buffer
-    ebpf_code_type_t code_type;
-
-    uint8_t* file_name;
-    size_t file_name_length;
-    uint8_t* section_name;
-    size_t section_name_length;
-
-    // determinant is code_type
-    union
-    {
-        // EBPF_CODE_NATIVE
-        uint8_t* code;
-
-        // EBPF_CODE_EBPF
-        struct ubpf_vm* vm;
-    } code_or_vm;
-    ebpf_program_type_t hook_point;
-} ebpf_core_code_entry_t;
+#include "ebpf_program.h"
 
 static ebpf_pinning_table_t* _ebpf_core_map_pinning_table = NULL;
 
 static ebpf_lock_t _ebpf_core_hook_table_lock = {0};
-static ebpf_core_code_entry_t* _ebpf_core_hook_table[EBPF_PROGRAM_TYPE_BIND + 1] = {0};
+static ebpf_program_t* _ebpf_core_hook_table[EBPF_PROGRAM_TYPE_BIND + 1] = {0};
 
 // Assume enabled until we can query it
 static ebpf_code_integrity_state_t _ebpf_core_code_integrity_state = EBPF_CODE_INTEGRITY_HYPER_VISOR_KERNEL_MODE;
@@ -59,8 +35,20 @@ static const void* _ebpf_program_helpers[] = {
     (void*)&_ebpf_core_map_update_element,
     (void*)&_ebpf_core_map_delete_element};
 
+size_t
+ebpf_core_get_global_helper_count()
+{
+    return EBPF_COUNT_OF(_ebpf_program_helpers);
+}
+
+const void*
+ebpf_core_get_global_helper(size_t helper_id)
+{
+    return _ebpf_program_helpers[helper_id];
+}
+
 static ebpf_error_code_t
-_ebpf_core_set_hook_entry(ebpf_core_code_entry_t* code, ebpf_program_type_t program_type)
+_ebpf_core_set_hook_entry(ebpf_program_t* code, ebpf_program_type_t program_type)
 {
     ebpf_lock_state_t state;
     if (program_type > EBPF_PROGRAM_TYPE_BIND || program_type <= EBPF_PROGRAM_TYPE_UNSPECIFIED) {
@@ -68,18 +56,18 @@ _ebpf_core_set_hook_entry(ebpf_core_code_entry_t* code, ebpf_program_type_t prog
     }
     ebpf_lock_lock(&_ebpf_core_hook_table_lock, &state);
     if (_ebpf_core_hook_table[program_type])
-        ebpf_object_release_reference(&_ebpf_core_hook_table[program_type]->object);
+        ebpf_object_release_reference((ebpf_object_t*)_ebpf_core_hook_table[program_type]);
     _ebpf_core_hook_table[program_type] = code;
     if (_ebpf_core_hook_table[program_type])
-        ebpf_object_acquire_reference(&_ebpf_core_hook_table[program_type]->object);
+        ebpf_object_acquire_reference((ebpf_object_t*)_ebpf_core_hook_table[program_type]);
     ebpf_lock_unlock(&_ebpf_core_hook_table_lock, &state);
     return EBPF_ERROR_SUCCESS;
 }
 
-static ebpf_core_code_entry_t*
+static ebpf_program_t*
 _ebpf_core_get_hook_entry(ebpf_program_type_t program_type)
 {
-    ebpf_core_code_entry_t* code = NULL;
+    ebpf_program_t* code = NULL;
     ebpf_lock_state_t state;
     if (program_type > EBPF_PROGRAM_TYPE_BIND || program_type <= EBPF_PROGRAM_TYPE_UNSPECIFIED) {
         return NULL;
@@ -140,9 +128,9 @@ static ebpf_error_code_t
 _ebpf_core_protocol_attach_code(_In_ const struct _ebpf_operation_attach_detach_request* request)
 {
     ebpf_error_code_t retval = EBPF_ERROR_NOT_FOUND;
-    ebpf_core_code_entry_t* code = NULL;
+    ebpf_program_t* program = NULL;
 
-    retval = ebpf_reference_object_by_handle(request->handle, EBPF_OBJECT_PROGRAM, (ebpf_object_t**)&code);
+    retval = ebpf_reference_object_by_handle(request->handle, EBPF_OBJECT_PROGRAM, (ebpf_object_t**)&program);
     if (retval != EBPF_ERROR_SUCCESS)
         goto Done;
 
@@ -155,12 +143,11 @@ _ebpf_core_protocol_attach_code(_In_ const struct _ebpf_operation_attach_detach_
         goto Done;
     }
 
-    code->hook_point = request->hook;
-    _ebpf_core_set_hook_entry(code, code->hook_point);
+    _ebpf_core_set_hook_entry(program, request->hook);
     retval = EBPF_ERROR_SUCCESS;
 
 Done:
-    ebpf_object_release_reference((ebpf_object_t*)code);
+    ebpf_object_release_reference((ebpf_object_t*)program);
     return retval;
 }
 
@@ -168,18 +155,23 @@ static ebpf_error_code_t
 _ebpf_core_protocol_detach_code(_In_ const struct _ebpf_operation_attach_detach_request* request)
 {
     ebpf_error_code_t retval = EBPF_ERROR_NOT_FOUND;
-    ebpf_core_code_entry_t* code = NULL;
+    ebpf_program_t* program = NULL;
+    ebpf_program_parameters_t parameters;
 
-    retval = ebpf_reference_object_by_handle(request->handle, EBPF_OBJECT_PROGRAM, (ebpf_object_t**)&code);
+    retval = ebpf_reference_object_by_handle(request->handle, EBPF_OBJECT_PROGRAM, (ebpf_object_t**)&program);
     if (retval != EBPF_ERROR_SUCCESS)
         goto Done;
 
-    _ebpf_core_set_hook_entry(NULL, code->hook_point);
-    code->hook_point = EBPF_PROGRAM_TYPE_UNSPECIFIED;
+    retval = ebpf_program_get_properties(program, &parameters);
+    if (retval != EBPF_ERROR_SUCCESS)
+        goto Done;
+
+    _ebpf_core_set_hook_entry(NULL, parameters.program_type);
+
     retval = EBPF_ERROR_SUCCESS;
 
 Done:
-    ebpf_object_release_reference(&code->object);
+    ebpf_object_release_reference((ebpf_object_t*)program);
 
     return retval;
 }
@@ -192,56 +184,22 @@ _ebpf_core_protocol_unload_code(_In_ const struct _ebpf_operation_unload_code_re
 }
 
 static ebpf_error_code_t
-_ebpf_core_register_helpers(struct ubpf_vm* vm)
-{
-    uint32_t index = 0;
-    for (index = 0; index < EBPF_COUNT_OF(_ebpf_program_helpers); index++) {
-        if (_ebpf_program_helpers[index] == NULL)
-            continue;
-
-        if (ubpf_register(vm, index, NULL, (void*)_ebpf_program_helpers[index]) < 0)
-            return EBPF_ERROR_INVALID_PARAMETER;
-    }
-    return EBPF_ERROR_SUCCESS;
-}
-
-static void
-_ebpf_free_code_entry(ebpf_object_t* object)
-{
-    ebpf_core_code_entry_t* code_entry = (ebpf_core_code_entry_t*)object;
-    if (!code_entry)
-        return;
-
-    if (code_entry && code_entry->code_type == EBPF_CODE_EBPF) {
-        ubpf_destroy(code_entry->code_or_vm.vm);
-    }
-    ebpf_free(code_entry);
-}
-
-static ebpf_error_code_t
 _ebpf_core_protocol_load_code(
     _In_ const ebpf_operation_load_code_request_t* request,
     _Inout_ struct _ebpf_operation_load_code_reply* reply,
     uint16_t reply_length)
 {
     ebpf_error_code_t retval;
-    size_t blob_size = request->header.length - EBPF_OFFSET_OF(ebpf_operation_load_code_request_t, data);
-    size_t allocation_size = 0;
-    ebpf_core_code_entry_t* code_entry = NULL;
-    ebpf_memory_type_t memory_type;
+    ebpf_program_t* program = NULL;
     uint8_t* file_name = NULL;
     size_t file_name_length = 0;
     uint8_t* section_name = NULL;
     size_t section_name_length = 0;
     uint8_t* code = NULL;
     size_t code_length = 0;
+    ebpf_program_parameters_t parameters;
 
     UNREFERENCED_PARAMETER(reply_length);
-
-    retval = ebpf_safe_size_t_add(blob_size, sizeof(ebpf_core_code_entry_t), &allocation_size);
-    if (retval != EBPF_ERROR_SUCCESS) {
-        goto Done;
-    }
 
     if (request->file_name_offset > request->header.length) {
         return EBPF_ERROR_INVALID_PARAMETER;
@@ -260,16 +218,11 @@ _ebpf_core_protocol_load_code(
             retval = EBPF_ERROR_BLOCKED_BY_POLICY;
             goto Done;
         }
-        memory_type = EBPF_MEMORY_EXECUTE;
-    } else {
-        memory_type = EBPF_MEMORY_NO_EXECUTE;
     }
 
-    code_entry = ebpf_allocate(allocation_size, memory_type);
-    if (!code_entry) {
-        retval = EBPF_ERROR_OUT_OF_RESOURCES;
+    retval = ebpf_program_create(&program);
+    if (retval != EBPF_ERROR_SUCCESS)
         goto Done;
-    }
 
     file_name = (uint8_t*)request + request->file_name_offset;
     section_name = (uint8_t*)request + request->section_name_offset;
@@ -278,48 +231,29 @@ _ebpf_core_protocol_load_code(
     section_name_length = code - section_name;
     code_length = request->header.length - request->code_offset;
 
-    code_entry->file_name = (uint8_t*)(code_entry + 1);
-    code_entry->file_name_length = file_name_length;
-    memcpy(code_entry->file_name, file_name, code_entry->file_name_length);
-    code_entry->section_name = code_entry->file_name + file_name_length;
-    code_entry->section_name_length = section_name_length;
-    memcpy(code_entry->section_name, section_name, code_entry->section_name_length);
+    parameters.program_name.value = file_name;
+    parameters.program_name.length = file_name_length;
+    parameters.section_name.value = section_name;
+    parameters.section_name.length = section_name_length;
+
+    retval = ebpf_program_initialize(program, &parameters);
+    if (retval != EBPF_ERROR_SUCCESS)
+        goto Done;
 
     if (request->code_type == EBPF_CODE_NATIVE) {
-        code_entry->code_type = EBPF_CODE_NATIVE;
-        code_entry->code_or_vm.code = code_entry->section_name + section_name_length;
-        memcpy(code_entry->code_or_vm.code, code, code_length);
+        retval = ebpf_program_load_machine_code(program, code, code_length);
     } else {
-        char* error_message = NULL;
-        code_entry->code_type = EBPF_CODE_EBPF;
-        code_entry->code_or_vm.vm = ubpf_create();
-        if (!code_entry->code_or_vm.vm) {
-            retval = EBPF_ERROR_OUT_OF_RESOURCES;
-            goto Done;
-        }
-
-        // BUG - ubpf implements bounds checking to detect interpreted code accessing
-        // memory out of bounds. Currently this is flagging valid access checks and
-        // failing.
-        toggle_bounds_check(code_entry->code_or_vm.vm, false);
-
-        retval = _ebpf_core_register_helpers(code_entry->code_or_vm.vm);
-        if (retval != EBPF_ERROR_SUCCESS) {
-            goto Done;
-        }
-
-        if (ubpf_load(code_entry->code_or_vm.vm, code, (uint32_t)code_length, &error_message) != 0) {
-            ebpf_free(error_message);
-            retval = EBPF_ERROR_INVALID_PARAMETER;
-            goto Done;
-        }
+        retval =
+            ebpf_program_load_byte_code(program, (ebpf_instuction_t*)code, code_length / sizeof(ebpf_instuction_t));
     }
-    ebpf_object_initiate(&code_entry->object, EBPF_OBJECT_PROGRAM, _ebpf_free_code_entry);
 
-    retval = ebpf_handle_create(&reply->handle, &code_entry->object);
+    if (retval != EBPF_ERROR_SUCCESS)
+        goto Done;
+
+    retval = ebpf_handle_create(&reply->handle, (ebpf_object_t*)program);
 
 Done:
-    ebpf_object_release_reference((ebpf_object_t*)code_entry);
+    ebpf_object_release_reference((ebpf_object_t*)program);
     return retval;
 }
 
@@ -391,25 +325,15 @@ ebpf_error_code_t
 ebpf_core_invoke_hook(ebpf_program_type_t hook_point, _Inout_ void* context, _Inout_ uint32_t* result)
 {
     ebpf_error_code_t retval;
-    ebpf_core_code_entry_t* code = NULL;
-    ebpf_hook_function function_pointer;
-    char* error_message = NULL;
+    ebpf_program_t* program = NULL;
 
     retval = ebpf_epoch_enter();
     if (retval != EBPF_ERROR_SUCCESS)
         return retval;
 
-    code = _ebpf_core_get_hook_entry(hook_point);
-    if (code) {
-        if (code->code_type == EBPF_CODE_NATIVE) {
-            function_pointer = (ebpf_hook_function)(code->code_or_vm.code);
-            *result = (function_pointer)(context);
-        } else {
-            *result = (uint32_t)(ubpf_exec(code->code_or_vm.vm, context, 1024, &error_message));
-            if (error_message) {
-                ebpf_free(error_message);
-            }
-        }
+    program = _ebpf_core_get_hook_entry(hook_point);
+    if (program) {
+        ebpf_program_invoke(program, context, result);
     }
 
     ebpf_epoch_exit();
@@ -632,31 +556,36 @@ _ebpf_core_protocol_query_program_information(
     uint16_t reply_length)
 {
     ebpf_error_code_t retval;
-    ebpf_core_code_entry_t* code = NULL;
+    ebpf_program_t* program = NULL;
     size_t required_reply_length;
+    ebpf_program_parameters_t parameters;
 
-    retval = ebpf_reference_object_by_handle(request->handle, EBPF_OBJECT_PROGRAM, (ebpf_object_t**)&code);
+    retval = ebpf_reference_object_by_handle(request->handle, EBPF_OBJECT_PROGRAM, (ebpf_object_t**)&program);
+    if (retval != EBPF_ERROR_SUCCESS)
+        goto Done;
+
+    retval = ebpf_program_get_properties(program, &parameters);
     if (retval != EBPF_ERROR_SUCCESS)
         goto Done;
 
     required_reply_length = EBPF_OFFSET_OF(struct _ebpf_operation_query_program_information_reply, data) +
-                            code->file_name_length + code->section_name_length;
+                            parameters.program_name.length + parameters.section_name.length;
 
     if (reply_length < required_reply_length) {
         return EBPF_ERROR_INVALID_PARAMETER;
     }
 
     reply->file_name_offset = EBPF_OFFSET_OF(struct _ebpf_operation_query_program_information_reply, data);
-    reply->section_name_offset = reply->file_name_offset + (uint16_t)code->file_name_length;
+    reply->section_name_offset = reply->file_name_offset + (uint16_t)parameters.program_name.length;
 
-    memcpy(reply->data, code->file_name, code->file_name_length);
-    memcpy(reply->data + code->file_name_length, code->section_name, code->section_name_length);
-    reply->code_type = code->code_type;
+    memcpy(reply->data, parameters.program_name.value, parameters.program_name.length);
+    memcpy(reply->data + parameters.program_name.length, parameters.section_name.value, parameters.section_name.length);
+    reply->code_type = parameters.code_type;
 
     reply->header.length = (uint16_t)required_reply_length;
 
 Done:
-    ebpf_object_release_reference((ebpf_object_t*)code);
+    ebpf_object_release_reference((ebpf_object_t*)program);
 
     return retval;
 }

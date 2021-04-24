@@ -129,6 +129,7 @@
   <ItemGroup>
     <ClCompile Include="..\ebpf_core.c" />
     <ClCompile Include="..\ebpf_hook.c" />
+    <ClCompile Include="..\ebpf_program.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
