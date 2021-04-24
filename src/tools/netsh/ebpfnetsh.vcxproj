@@ -113,21 +113,21 @@
     <ResourceCompile Include="ebpfnetsh.rc" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\..\ebpf\dll\ebpfapi.vcxproj">
       <Project>{75fe223a-3e45-4b0e-a2e8-04285e52e440}</Project>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
-    <Import Project="..\..\..\packages\boost.1.72.0.0\build\boost.targets" Condition="Exists('..\..\..\packages\boost.1.72.0.0\build\boost.targets')" />
+    <Import Project="..\..\..\packages\boost.1.75.0.0\build\boost.targets" Condition="Exists('..\..\..\packages\boost.1.75.0.0\build\boost.targets')" />
   </ImportGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
-    <Error Condition="!Exists('..\..\..\packages\boost.1.72.0.0\build\boost.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\..\packages\boost.1.72.0.0\build\boost.targets'))" />
+    <Error Condition="!Exists('..\..\..\packages\boost.1.75.0.0\build\boost.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\..\packages\boost.1.75.0.0\build\boost.targets'))" />
   </Target>
 </Project>
