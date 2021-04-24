@@ -15,11 +15,19 @@ extern "C"
 #define EBPF_COUNT_OF(arr) (sizeof(arr) / sizeof(arr[0]))
 #define EBPF_OFFSET_OF(s, m) (((size_t) & ((s*)0)->m))
 
-    typedef struct _ebpf_utf_8
+    /**
+     * @brief A UTF-8 encoded string.
+     * Notes:
+     * 1) This string is not NULL terminated, instead relies on length.
+     * 2) A single UTF-8 code point (aka character) could be 1-4 bytes in
+     *  length.
+     *
+     */
+    typedef struct _ebpf_utf8_string
     {
         uint8_t* value;
         size_t length;
-    } ebpf_utf_8_t;
+    } ebpf_utf8_string_t;
 
     typedef enum _ebpf_memory_type
     {
@@ -80,17 +88,17 @@ extern "C"
     ebpf_free(void* memory);
 
     /**
-     * @brief Allocate and copy an UTF-8 character sequence.
+     * @brief Allocate and copy a UTF-8 string.
      *
      * @param[out] destination Pointer to memory where the new UTF-8 character
      * sequence will be allocated.
-     * @param[in] source UTF character sequence that will be copied.
+     * @param[in] source UTF-8 string that will be copied.
      * @retval EBPF_ERROR_SUCCESS The operation was successful.
      * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
-     *  UTF-8 character sequence.
+     *  UTF-8 string.
      */
     ebpf_error_code_t
-    ebpf_duplicate_utf_8(ebpf_utf_8_t* destination, const ebpf_utf_8_t* source);
+    ebpf_duplicate_utf8_string(ebpf_utf8_string_t* destination, const ebpf_utf8_string_t* source);
 
     /**
      * @brief Get the code integrity state from the platform.

@@ -64,14 +64,14 @@ ebpf_error_code_t
 ebpf_program_initialize(ebpf_program_t* program, const ebpf_program_parameters_t* program_parameters)
 {
     ebpf_error_code_t return_value;
-    ebpf_utf_8_t local_program_name = {NULL, 0};
-    ebpf_utf_8_t local_section_name = {NULL, 0};
+    ebpf_utf8_string_t local_program_name = {NULL, 0};
+    ebpf_utf8_string_t local_section_name = {NULL, 0};
 
-    return_value = ebpf_duplicate_utf_8(&local_program_name, &program_parameters->program_name);
+    return_value = ebpf_duplicate_utf8_string(&local_program_name, &program_parameters->program_name);
     if (return_value != EBPF_ERROR_SUCCESS)
         goto Done;
 
-    return_value = ebpf_duplicate_utf_8(&local_section_name, &program_parameters->section_name);
+    return_value = ebpf_duplicate_utf8_string(&local_section_name, &program_parameters->section_name);
     if (return_value != EBPF_ERROR_SUCCESS)
         goto Done;
 

@@ -28,8 +28,8 @@ extern "C"
     typedef struct _ebpf_program_parameters
     {
         ebpf_program_type_t program_type;
-        ebpf_utf_8_t program_name;
-        ebpf_utf_8_t section_name;
+        ebpf_utf8_string_t program_name;
+        ebpf_utf8_string_t section_name;
         ebpf_code_type_t code_type;
     } ebpf_program_parameters_t;
 
