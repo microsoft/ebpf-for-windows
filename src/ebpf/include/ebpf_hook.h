@@ -83,22 +83,6 @@ extern "C"
     void
     ebpf_hook_instance_detach_program(ebpf_hook_instance_t* hook_instance);
 
-    /**
-     * @brief Acquire a reference on this hook instance.
-     *
-     * @param[in] hook_instance Hook instance to acquire reference on.
-     */
-    void
-    ebpf_hook_instance_acquire_reference(ebpf_hook_instance_t* hook_instance);
-
-    /**
-     * @brief Release a reference on this hook instance.
-     *
-     * @param[in] hook_instance Hook instance to release reference on.
-     */
-    void
-    ebpf_hook_instance_release_reference(ebpf_hook_instance_t* hook_instance);
-
 #ifdef __cplusplus
 }
 #endif
