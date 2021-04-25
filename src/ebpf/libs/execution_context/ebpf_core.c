@@ -594,38 +594,29 @@ static ebpf_error_code_t
 _ebpf_core_protocol_update_map_pinning(_In_ const struct _ebpf_operation_update_map_pinning_request* request)
 {
     ebpf_error_code_t retval;
-    uint8_t* name = NULL;
+    const ebpf_utf8_string_t name = {
+        (uint8_t*)request->name,
+        request->header.length - EBPF_OFFSET_OF(ebpf_operation_update_map_pinning_request_t, name)};
     ebpf_map_t* map = NULL;
-    size_t name_length = request->header.length - EBPF_OFFSET_OF(ebpf_operation_update_map_pinning_request_t, name);
 
-    if (name_length == 0) {
+    if (name.length == 0) {
         retval = EBPF_ERROR_INVALID_PARAMETER;
         goto Done;
     }
 
-    name = ebpf_allocate(name_length + 1, EBPF_MEMORY_NO_EXECUTE);
-    if (name == NULL) {
-        retval = EBPF_ERROR_OUT_OF_RESOURCES;
-        goto Done;
-    }
-
-    memset(name, 0, name_length + 1);
-    memcpy(name, request->name, name_length);
-
     if (request->handle == UINT64_MAX) {
-        retval = ebpf_pinning_table_delete(_ebpf_core_map_pinning_table, name);
+        retval = ebpf_pinning_table_delete(_ebpf_core_map_pinning_table, &name);
         goto Done;
     } else {
         retval = ebpf_reference_object_by_handle(request->handle, EBPF_OBJECT_MAP, (ebpf_object_t**)&map);
         if (retval != EBPF_ERROR_SUCCESS)
             goto Done;
 
-        retval = ebpf_pinning_table_insert(_ebpf_core_map_pinning_table, name, (ebpf_object_t*)map);
+        retval = ebpf_pinning_table_insert(_ebpf_core_map_pinning_table, &name, (ebpf_object_t*)map);
     }
 Done:
     ebpf_object_release_reference((ebpf_object_t*)map);
 
-    ebpf_free(name);
     return retval;
 }
 
@@ -637,24 +628,17 @@ _ebpf_core_protocol_get_pinned_map(
 {
     ebpf_error_code_t retval;
     ebpf_map_t* map = NULL;
-    uint8_t* name = NULL;
-    size_t name_length = request->header.length - EBPF_OFFSET_OF(ebpf_operation_get_map_pinning_request_t, name);
+    const ebpf_utf8_string_t name = {
+        (uint8_t*)request->name,
+        request->header.length - EBPF_OFFSET_OF(ebpf_operation_get_map_pinning_request_t, name)};
     UNREFERENCED_PARAMETER(reply_length);
 
-    if (name_length == 0) {
+    if (name.length == 0) {
         retval = EBPF_ERROR_INVALID_PARAMETER;
         goto Done;
     }
 
-    name = ebpf_allocate(name_length + 1, EBPF_MEMORY_NO_EXECUTE);
-    if (name == NULL) {
-        retval = EBPF_ERROR_OUT_OF_RESOURCES;
-        goto Done;
-    }
-    memset(name, 0, name_length + 1);
-    memcpy(name, request->name, name_length);
-
-    retval = ebpf_pinning_table_find(_ebpf_core_map_pinning_table, name, (ebpf_object_t**)&map);
+    retval = ebpf_pinning_table_find(_ebpf_core_map_pinning_table, &name, (ebpf_object_t**)&map);
     if (retval != EBPF_ERROR_SUCCESS)
         goto Done;
 
@@ -662,7 +646,6 @@ _ebpf_core_protocol_get_pinned_map(
 
 Done:
     ebpf_object_release_reference((ebpf_object_t*)map);
-    ebpf_free(name);
     return retval;
 }
 
