@@ -44,7 +44,8 @@ extern "C"
      *  entry.
      */
     ebpf_error_code_t
-    ebpf_pinning_table_insert(ebpf_pinning_table_t* pinning_table, const uint8_t* name, ebpf_object_t* object);
+    ebpf_pinning_table_insert(
+        ebpf_pinning_table_t* pinning_table, const ebpf_utf8_string_t* name, ebpf_object_t* object);
 
     /**
      * @brief Find an entry in the pinning table and acquire a reference on the
@@ -58,7 +59,8 @@ extern "C"
      *  table.
      */
     ebpf_error_code_t
-    ebpf_pinning_table_find(ebpf_pinning_table_t* pinning_table, const uint8_t* name, ebpf_object_t** object);
+    ebpf_pinning_table_find(
+        ebpf_pinning_table_t* pinning_table, const ebpf_utf8_string_t* name, ebpf_object_t** object);
 
     /**
      * @brief Find an entry in the pinning table, remove it and release a
@@ -71,7 +73,7 @@ extern "C"
      *  table.
      */
     ebpf_error_code_t
-    ebpf_pinning_table_delete(ebpf_pinning_table_t* pinning_table, const uint8_t* name);
+    ebpf_pinning_table_delete(ebpf_pinning_table_t* pinning_table, const ebpf_utf8_string_t* name);
 
 #ifdef __cplusplus
 }

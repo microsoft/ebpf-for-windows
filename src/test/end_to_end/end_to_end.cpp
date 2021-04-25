@@ -27,6 +27,11 @@ namespace ebpf {
 
 #include "unwind_helper.h"
 
+#define EBPF_UTF8_STRING_FROM_CONST_STRING(x) \
+    {                                         \
+        ((uint8_t*)x), sizeof((x)) - 1        \
+    }
+
 ebpf_handle_t
 GlueCreateFileW(
     PCWSTR lpFileName,
@@ -171,6 +176,8 @@ TEST_CASE("pinning_test", "[pinning_test]")
     some_object_t an_object;
     some_object_t another_object;
     some_object_t* some_object;
+    ebpf_utf8_string_t foo = EBPF_UTF8_STRING_FROM_CONST_STRING("foo");
+    ebpf_utf8_string_t bar = EBPF_UTF8_STRING_FROM_CONST_STRING("bar");
 
     ebpf_object_initiate(&an_object.object, EBPF_OBJECT_MAP, [](ebpf_object_t*) {});
     ebpf_object_initiate(&another_object.object, EBPF_OBJECT_MAP, [](ebpf_object_t*) {});
@@ -178,16 +185,15 @@ TEST_CASE("pinning_test", "[pinning_test]")
     ebpf_pinning_table_t* pinning_table;
     REQUIRE(ebpf_pinning_table_allocate(&pinning_table) == EBPF_ERROR_SUCCESS);
 
-    REQUIRE(ebpf_pinning_table_insert(pinning_table, (uint8_t*)"foo", &an_object.object) == EBPF_ERROR_SUCCESS);
+    REQUIRE(ebpf_pinning_table_insert(pinning_table, &foo, &an_object.object) == EBPF_ERROR_SUCCESS);
     REQUIRE(an_object.object.reference_count == 2);
-    REQUIRE(ebpf_pinning_table_insert(pinning_table, (uint8_t*)"bar", &another_object.object) == EBPF_ERROR_SUCCESS);
+    REQUIRE(ebpf_pinning_table_insert(pinning_table, &bar, &another_object.object) == EBPF_ERROR_SUCCESS);
     REQUIRE(another_object.object.reference_count == 2);
-    REQUIRE(
-        ebpf_pinning_table_find(pinning_table, (uint8_t*)"foo", (ebpf_object_t**)&some_object) == EBPF_ERROR_SUCCESS);
+    REQUIRE(ebpf_pinning_table_find(pinning_table, &foo, (ebpf_object_t**)&some_object) == EBPF_ERROR_SUCCESS);
     REQUIRE(an_object.object.reference_count == 3);
     REQUIRE(some_object == &an_object);
     ebpf_object_release_reference(&some_object->object);
-    REQUIRE(ebpf_pinning_table_delete(pinning_table, (uint8_t*)"foo") == EBPF_ERROR_SUCCESS);
+    REQUIRE(ebpf_pinning_table_delete(pinning_table, &foo) == EBPF_ERROR_SUCCESS);
     REQUIRE(another_object.object.reference_count == 2);
 
     ebpf_pinning_table_free(pinning_table);
