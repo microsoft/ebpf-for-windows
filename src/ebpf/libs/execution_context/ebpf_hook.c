@@ -5,13 +5,14 @@
 
 #include "ebpf_hook.h"
 
+#include "ebpf_object.h"
 #include "ebpf_program.h"
 #include "ebpf_epoch.h"
 #include "ebpf_platform.h"
 
 typedef struct _ebpf_hook_instance
 {
-    volatile int32_t reference_count;
+    ebpf_object_t object;
     ebpf_program_t* program;
     ebpf_program_entry_point_t program_entry_point;
 
@@ -36,6 +37,15 @@ static struct
     _ebpf_extension_dispatch_function function[1];
 } _ebpf_hook_dispatch_table = {1, {_ebpf_hook_instance_invoke}};
 
+static void
+_ebpf_hook_free(ebpf_object_t* object)
+{
+    ebpf_hook_instance_t* hook = (ebpf_hook_instance_t*)object;
+    ebpf_hook_instance_detach_program(hook);
+    ebpf_extension_unload(hook->extension_client_context);
+    ebpf_epoch_free(hook);
+}
+
 ebpf_error_code_t
 ebpf_hook_instance_create(ebpf_hook_instance_t** hook)
 {
@@ -45,7 +55,7 @@ ebpf_hook_instance_create(ebpf_hook_instance_t** hook)
 
     memset(*hook, 0, sizeof(ebpf_hook_instance_t));
 
-    (*hook)->reference_count = 1;
+    ebpf_object_initiate(&(*hook)->object, EBPF_OBJECT_HOOK_INSTANCE, _ebpf_hook_free);
     return EBPF_ERROR_SUCCESS;
 }
 
@@ -116,28 +126,6 @@ ebpf_hook_instance_detach_program(ebpf_hook_instance_t* hook)
     hook->program_entry_point = NULL;
     ebpf_object_release_reference((ebpf_object_t*)hook->program);
     hook->program = NULL;
-}
-
-static void
-_ebpf_hook_free(ebpf_hook_instance_t* hook)
-{
-    ebpf_hook_instance_detach_program(hook);
-    ebpf_extension_unload(hook->extension_client_context);
-    ebpf_epoch_free(hook);
-}
-
-void
-ebpf_hook_instance_acquire_reference(ebpf_hook_instance_t* hook)
-{
-    ebpf_interlocked_increment_int32(&hook->reference_count);
-}
-
-void
-ebpf_hook_instance_release_reference(ebpf_hook_instance_t* hook)
-{
-    int32_t new_ref_count = ebpf_interlocked_decrement_int32(&hook->reference_count);
-    if (new_ref_count == 0)
-        _ebpf_hook_free(hook);
 }
 
 ebpf_error_code_t
