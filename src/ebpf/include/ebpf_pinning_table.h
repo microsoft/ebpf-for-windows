@@ -64,7 +64,7 @@ extern "C"
 
     /**
      * @brief Find an entry in the pinning table, remove it and release a
-     *  refernce on the object associated with it.
+     *  reference on the object associated with it.
      *
      * @param[in] pinning_table Pinning table to update.
      * @param[in] name Name to find in the pinning table.
