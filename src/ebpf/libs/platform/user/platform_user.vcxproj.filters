@@ -27,7 +27,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="platform_user.cpp">
+    <ClCompile Include="ebpf_platform_user.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\ebpf_pinning_table.c">
@@ -43,6 +43,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\ebpf_hash_table.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ebpf_extension_user.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

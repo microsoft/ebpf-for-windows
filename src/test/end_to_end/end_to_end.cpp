@@ -741,3 +741,66 @@ TEST_CASE("epoch_test_two_threads", "[epoch_test_two_threads]")
     thread_1.join();
     thread_2.join();
 }
+
+TEST_CASE("extension_test", "[extension_test]")
+{
+    auto client_function = []() { return EBPF_ERROR_SUCCESS; };
+    auto provider_function = []() { return EBPF_ERROR_SUCCESS; };
+    auto provider_attach = [](const GUID* client_id,
+                              void* client_binding_context,
+                              const ebpf_extension_data_t* client_data,
+                              const ebpf_extension_dispatch_table_t* client_dispatch_table) {
+        UNREFERENCED_PARAMETER(client_id);
+        UNREFERENCED_PARAMETER(client_data);
+        UNREFERENCED_PARAMETER(client_dispatch_table);
+        UNREFERENCED_PARAMETER(client_binding_context);
+        return EBPF_ERROR_SUCCESS;
+    };
+    auto provider_detach = [](const GUID* client_id) {
+        UNREFERENCED_PARAMETER(client_id);
+        return EBPF_ERROR_SUCCESS;
+    };
+    ebpf_extension_dispatch_table_t client_dispatch_table = {
+        0, sizeof(ebpf_extension_dispatch_table_t), client_function};
+    ebpf_extension_dispatch_table_t provider_dispatch_table = {
+        0, sizeof(ebpf_extension_dispatch_table_t), provider_function};
+    ebpf_extension_data_t client_data;
+    ebpf_extension_data_t provider_data;
+    GUID interface_id;
+
+    ebpf_extension_dispatch_table_t* returned_provider_dispatch_table;
+    ebpf_extension_data_t* returned_provider_data;
+
+    ebpf_extension_provider_t* provider_context;
+    ebpf_extension_client_t* client_context;
+    void* provider_binding_context;
+
+    ebpf_guid_create(&interface_id);
+
+    REQUIRE(
+        ebpf_provider_load(
+            &provider_context,
+            &interface_id,
+            nullptr,
+            &provider_data,
+            &provider_dispatch_table,
+            provider_attach,
+            provider_detach) == EBPF_ERROR_SUCCESS);
+
+    REQUIRE(
+        ebpf_extension_load(
+            &client_context,
+            &interface_id,
+            nullptr,
+            &client_data,
+            &client_dispatch_table,
+            &provider_binding_context,
+            &returned_provider_data,
+            &returned_provider_dispatch_table) == EBPF_ERROR_SUCCESS);
+
+    REQUIRE(returned_provider_data == &provider_data);
+    REQUIRE(returned_provider_dispatch_table == &provider_dispatch_table);
+
+    ebpf_extension_unload(client_context);
+    epbf_provider_unload(provider_context);
+}

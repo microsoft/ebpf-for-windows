@@ -12,8 +12,11 @@
 
 #define WIN32_LEAN_AND_MEAN // Exclude rarely-used stuff from Windows headers
 // Windows Header Files
+#include <rpc.h>
 #include <windows.h>
 #include <winioctl.h>
+
+#pragma comment(lib, "rpcrt4")
 
 #define ebpf_assert(x) assert(x)
 

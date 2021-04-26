@@ -7,6 +7,7 @@
 #include <intsafe.h>
 #include <map>
 #include <mutex>
+#include <random>
 #include <set>
 #include <stdbool.h>
 #include <stdint.h>
@@ -326,4 +327,11 @@ ebpf_free_timer_work_item(ebpf_timer_work_item_t* work_item)
     WaitForThreadpoolTimerCallbacks(work_item->threadpool_timer, true);
     CloseThreadpoolTimer(work_item->threadpool_timer);
     ebpf_free(work_item);
+}
+
+ebpf_error_code_t
+ebpf_guid_create(GUID* new_guid)
+{
+    UuidCreate(new_guid);
+    return EBPF_ERROR_SUCCESS;
 }

@@ -42,12 +42,21 @@ extern "C"
     typedef struct _epbf_non_preemptible_work_item epbf_non_preemptible_work_item_t;
     typedef struct _ebpf_timer_work_item ebpf_timer_work_item_t;
     typedef struct _ebpf_extension_client ebpf_extension_client_t;
+    typedef struct _ebpf_extension_provider ebpf_extension_provider_t;
     typedef ebpf_error_code_t (*_ebpf_extension_dispatch_function)();
     typedef struct _ebpf_extension_dispatch_table
     {
-        size_t size;
+        uint16_t version;
+        uint16_t size;
         _ebpf_extension_dispatch_function function[1];
     } ebpf_extension_dispatch_table_t;
+
+    typedef struct _ebpf_extension_data
+    {
+        uint16_t version;
+        uint16_t size;
+        uint8_t data[1];
+    } ebpf_extension_data_t;
 
 #define EBPF_LOCK_SIZE sizeof(uint64_t)
 #define EBPF_LOCK_STATE_SIZE sizeof(uint64_t)
@@ -425,18 +434,18 @@ extern "C"
     ebpf_interlocked_compare_exchange_int32(volatile int32_t* destination, int32_t exchange, int32_t comperand);
 
     /**
-     * @brief Load an extension and get it's dispatch table.
+     * @brief Load an extension and get its dispatch table.
      *
      * @param[out] client_context Context used to unload the extension.
-     * @param[in] client_id GUID representing the identity of the client.
+     * @param[in] interface_id GUID representing the identity of the interface.
+     * @param[in] client_binding_context Opaque per-instance pointer passed to the extension.
      * @param[in] client_data Opaque client data passed to the extension.
      * @param[in] client_data_length Length of the client data.
      * @param[in] client_dispatch_table Table of function pointers the client
      *  exposes.
      * @param[in] provider_id GUID representing the extension to load.
      * @param[out] provider_data Opaque provider data.
-     * @param[out] provider_data_length Length of the provider data.
-     * @param[out] provider_dispatch_table Table of function pointer the
+     * @param[out] provider_dispatch_table Table of function pointers the
      *  provider exposes.
      * @retval EBPF_ERROR_SUCCESS The operation was successful.
      * @retval EBPF_ERROR_NOT_FOUND The provider was not found.
@@ -446,13 +455,12 @@ extern "C"
     ebpf_error_code_t
     ebpf_extension_load(
         ebpf_extension_client_t** client_context,
-        const GUID* client_id,
-        const uint8_t* client_data,
-        size_t client_data_length,
+        const GUID* interface_id,
+        void* client_binding_context,
+        const ebpf_extension_data_t* client_data,
         const ebpf_extension_dispatch_table_t* client_dispatch_table,
-        const GUID* provider_id,
-        uint8_t** provider_data,
-        size_t* provider_data_length,
+        void** provider_binding_context,
+        ebpf_extension_data_t** provider_data,
         ebpf_extension_dispatch_table_t** provider_dispatch_table);
 
     /**
@@ -462,6 +470,51 @@ extern "C"
      */
     void
     ebpf_extension_unload(ebpf_extension_client_t* client_context);
+
+    typedef ebpf_error_code_t (*ebpf_provider_client_attach_callback_t)(
+        const GUID* client_id,
+        void* client_binding_context,
+        const ebpf_extension_data_t* client_data,
+        const ebpf_extension_dispatch_table_t* client_dispatch_table);
+
+    typedef ebpf_error_code_t (*ebpf_provider_client_detach_callback_t)(const GUID* client_id);
+
+    /**
+     * @brief Register as an extension provider.
+     *
+     * @param[out] provider_context Context used to unload the provider.
+     * @param[in] interface_id GUID representing the identity of the interface.
+     * @param[in] provider_data Opaque provider data.
+     * @param[in] provider_dispatch_table Table of function pointers the
+     *  provider exposes.
+     * @param[in] client_attach_callback Function invoked when a client attaches.
+     * @param[in] client_detach_callback Function invoked when a client detaches.
+     * @retval EBPF_ERROR_SUCCESS The operation was successful.
+     * @retval EBPF_ERROR_EXTENSION_FAILED_TO_LOAD The provider was unable to
+     *  load.
+     * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
+     *  operation.
+     */
+    ebpf_error_code_t
+    ebpf_provider_load(
+        ebpf_extension_provider_t** provider_context,
+        const GUID* interface_id,
+        void* provider_binding_context,
+        const ebpf_extension_data_t* provider_data,
+        const ebpf_extension_dispatch_table_t* provider_dispatch_table,
+        ebpf_provider_client_attach_callback_t client_attach_callback,
+        ebpf_provider_client_detach_callback_t client_detach_callback);
+
+    /**
+     * @brief Unload a provider.
+     *
+     * @param[in] provider_context Provider to unload.
+     */
+    void
+    epbf_provider_unload(ebpf_extension_provider_t* provider_context);
+
+    ebpf_error_code_t
+    ebpf_guid_create(GUID* new_guid);
 
 #ifdef __cplusplus
 }
