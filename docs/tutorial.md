@@ -289,7 +289,7 @@ Verification succeeded
 The verification command succeeded because there was only one
 non-empty TEXT section in bpf.o, so the verifier found it and used that
 as the eBPF program to verify.  If we try the same on an object file with
-multiple such sections, we instead get this:
+multiple such sections, we get this:
 
 ```
 > netsh ebpf show verification bpf2.o
@@ -529,7 +529,7 @@ are safe to access start at offset 16.
 With the above, our sample program will pass verification:
 
 ```
-> >netsh ebpf show verification myxdp.o
+> netsh ebpf show verification myxdp.o
 
 Verification succeeded
 ```
@@ -880,7 +880,7 @@ RELOCATION RECORDS FOR [.relmyprog]:
 0000000000000040 R_BPF_64_64 map
 ```
 
-This record means that the actual address of map should be inserted at
+This record means that the actual address of `map` should be inserted at
 offset 0x40, but where is that?  llvm-objdump and check both gave us
 instruction numbers not offsets, but we can see the raw bytes as follows:
 
