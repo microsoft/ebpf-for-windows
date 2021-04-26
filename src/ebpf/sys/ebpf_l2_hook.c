@@ -120,7 +120,7 @@ ebpf_hook_layer_2_classify(
     _Inout_opt_ void* layer_data,
     _In_opt_ const void* classify_context,
     _In_ const FWPS_FILTER* filter,
-    _In_ uint64_t flow_context,
+    uint64_t flow_context,
     _Inout_ FWPS_CLASSIFY_OUT* classify_output);
 
 static void
@@ -130,7 +130,7 @@ ebpf_hook_resource_allocation_classify(
     _Inout_opt_ void* layer_data,
     _In_opt_ const void* classify_context,
     _In_ const FWPS_FILTER* filter,
-    _In_ uint64_t flow_context,
+    uint64_t flow_context,
     _Inout_ FWPS_CLASSIFY_OUT* classify_output);
 
 static void
@@ -140,17 +140,15 @@ ebpf_hook_resource_release_classify(
     _Inout_opt_ void* layer_data,
     _In_opt_ const void* classify_context,
     _In_ const FWPS_FILTER* filter,
-    _In_ uint64_t flow_context,
+    uint64_t flow_context,
     _Inout_ FWPS_CLASSIFY_OUT* classify_output);
 
 static void
-ebpf_hook_no_op_flow_delete(_In_ uint16_t layer_id, _In_ uint32_t fwpm_callout_id, _In_ uint64_t flow_context);
+ebpf_hook_no_op_flow_delete(uint16_t layer_id, uint32_t fwpm_callout_id, uint64_t flow_context);
 
 static NTSTATUS
 ebpf_hook_no_op_notify(
-    _In_ FWPS_CALLOUT_NOTIFY_TYPE callout_notification_type,
-    _In_ const GUID* filter_key,
-    _Inout_ const FWPS_FILTER* filter);
+    FWPS_CALLOUT_NOTIFY_TYPE callout_notification_type, _In_ const GUID* filter_key, _Inout_ const FWPS_FILTER* filter);
 
 typedef struct _ebpf_wfp_callout_state
 {
@@ -411,7 +409,7 @@ ebpf_hook_layer_2_classify(
     _Inout_opt_ void* layer_data,
     _In_opt_ const void* classify_context,
     _In_ const FWPS_FILTER* filter,
-    _In_ uint64_t flow_context,
+    uint64_t flow_context,
     _Inout_ FWPS_CLASSIFY_OUT* classify_output)
 /* ++
 
@@ -483,7 +481,7 @@ ebpf_hook_resource_allocation_classify(
     _Inout_opt_ void* layer_data,
     _In_opt_ const void* classify_context,
     _In_ const FWPS_FILTER* filter,
-    _In_ uint64_t flow_context,
+    uint64_t flow_context,
     _Inout_ FWPS_CLASSIFY_OUT* classify_output)
 /* ++
 
@@ -538,7 +536,7 @@ ebpf_hook_resource_release_classify(
     _Inout_opt_ void* layer_data,
     _In_opt_ const void* classify_context,
     _In_ const FWPS_FILTER* filter,
-    _In_ uint64_t flow_context,
+    uint64_t flow_context,
     _Inout_ FWPS_CLASSIFY_OUT* classify_output)
 /* ++
 
@@ -580,9 +578,7 @@ ebpf_hook_resource_release_classify(
 
 static NTSTATUS
 ebpf_hook_no_op_notify(
-    _In_ FWPS_CALLOUT_NOTIFY_TYPE callout_notification_type,
-    _In_ const GUID* filter_key,
-    _Inout_ const FWPS_FILTER* filter)
+    FWPS_CALLOUT_NOTIFY_TYPE callout_notification_type, _In_ const GUID* filter_key, _Inout_ const FWPS_FILTER* filter)
 {
     UNREFERENCED_PARAMETER(callout_notification_type);
     UNREFERENCED_PARAMETER(filter_key);
@@ -592,7 +588,7 @@ ebpf_hook_no_op_notify(
 }
 
 static void
-ebpf_hook_no_op_flow_delete(_In_ uint16_t layer_id, _In_ uint32_t fwpm_callout_id, _In_ uint64_t flow_context)
+ebpf_hook_no_op_flow_delete(uint16_t layer_id, uint32_t fwpm_callout_id, uint64_t flow_context)
 /* ++
 
    This is the flowDeleteFn function of the L2 callout.
