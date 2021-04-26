@@ -3,7 +3,7 @@
  *  SPDX-License-Identifier: MIT
  */
 
-#include "ebpf_hook.h"
+#include "ebpf_link.h"
 
 #include "ebpf_object.h"
 #include "ebpf_program.h"

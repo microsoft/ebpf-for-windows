@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "ebpf_hook.h"
+#include "ebpf_link.h"
 #include "ebpf_maps.h"
 #include "ebpf_platform.h"
 
