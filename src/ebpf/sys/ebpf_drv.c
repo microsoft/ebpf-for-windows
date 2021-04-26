@@ -8,7 +8,7 @@
 Abstract:
 WDF based driver that does the following:
 1. Registers as a WFP L2 Callout
-2. Opens a IOCTL surface
+2. Opens an IOCTL surface
 
 Environment:
 
@@ -71,9 +71,9 @@ static VOID
 EbpfCoreEvtIoDeviceControl(
     _In_ WDFQUEUE queue,
     _In_ WDFREQUEST request,
-    _In_ size_t output_buffer_length,
-    _In_ size_t input_buffer_length,
-    _In_ ULONG io_control_code);
+    size_t output_buffer_length,
+    size_t input_buffer_length,
+    ULONG io_control_code);
 
 inline NTSTATUS
 ebpf_error_code_to_ntstatus(ebpf_error_code_t error)
@@ -88,8 +88,7 @@ ebpf_error_code_to_ntstatus(ebpf_error_code_t error)
     case EBPF_ERROR_INVALID_PARAMETER:
         return STATUS_INVALID_PARAMETER;
     case EBPF_ERROR_BLOCKED_BY_POLICY:
-        // TODO: Find a better error code for this.
-        return STATUS_NOT_SUPPORTED;
+        return STATUS_CONTENT_BLOCKED;
     case EBPF_ERROR_NO_MORE_KEYS:
         return STATUS_NO_MORE_MATCHES;
     case EBPF_ERROR_INVALID_HANDLE:
@@ -173,7 +172,7 @@ EbpfCoreInitDriverObjects(
 
     device_create_flag = TRUE;
 
-    // create symbolic link for control object for um
+    // Create symbolic link for control object for user mode.
     RtlInitUnicodeString(&ebpf_symbolic_device_name, EBPF_SYMBOLIC_DEVICE_NAME);
     status = WdfDeviceCreateSymbolicLink(*device, &ebpf_symbolic_device_name);
 
@@ -220,9 +219,9 @@ static VOID
 EbpfCoreEvtIoDeviceControl(
     _In_ WDFQUEUE queue,
     _In_ WDFREQUEST request,
-    _In_ size_t output_buffer_length,
-    _In_ size_t input_buffer_length,
-    _In_ ULONG io_control_code)
+    size_t output_buffer_length,
+    size_t input_buffer_length,
+    ULONG io_control_code)
 {
     NTSTATUS status = STATUS_SUCCESS;
     WDFDEVICE device;

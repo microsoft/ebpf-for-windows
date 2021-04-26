@@ -53,7 +53,7 @@ Set up 2 VMs, which we will refer to as the "attacker" machine and the "defender
 
 On the defender machine, do the following:
 1. Install and set up a DNS server
-2. Make sure that either the kernel debugger (KD) is attached and running, or one of the [alternatives to running with kernel debugger attached](#alternative-to-running-with-kernel-debugger-attached) is in place
+2. Make sure that either the kernel debugger (KD) is attached and running, or one of the [alternatives to running with kernel debugger attached](#alternatives-to-running-with-kernel-debugger-attached) is in place
 3. Install Debug VS 2019 VC redist from TBD (or switch everything to Multi-threaded Debug (/MTd) and rebuild)
 4. Copy ebpfcore.sys to %windir%\system32\drivers
 5. Copy ebpfapi.dll and ebpfnetsh.dll to %windir%\system32
