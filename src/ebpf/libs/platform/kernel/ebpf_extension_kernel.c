@@ -9,9 +9,11 @@ typedef struct _ebpf_extension_client
     NPIID npi_id;
     NPI_CLIENT_CHARACTERISTICS client_characteristics;
     NPI_MODULEID client_id;
+    void* client_binding_context;
     const ebpf_extension_data_t* client_data;
     const ebpf_extension_dispatch_table_t* client_dispatch_table;
     NPI_MODULEID provider_id;
+    void* provider_binding_context;
     ebpf_extension_data_t* provider_data;
     ebpf_extension_dispatch_table_t* provider_dispatch_table;
     HANDLE nmr_client_handle;
@@ -23,6 +25,7 @@ typedef struct _ebpf_extension_provider
     NPIID npi_id;
     NPI_PROVIDER_CHARACTERISTICS provider_characteristics;
     NPI_MODULEID provider_id;
+    void* provider_binding_context;
     const ebpf_extension_data_t* provider_data;
     const ebpf_extension_dispatch_table_t* provider_dispatch_table;
     HANDLE nmr_provider_handle;
@@ -62,10 +65,10 @@ _ebpf_extension_client_attach_provider(
 
     status = NmrClientAttachProvider(
         nmr_binding_handle,
-        local_client_context,
+        local_client_context->client_binding_context,
         local_client_context->client_dispatch_table,
-        &local_client_context->provider_data,
-        &(local_client_context->provider_dispatch_table));
+        &local_client_context->provider_binding_context,
+        &local_client_context->provider_dispatch_table);
 
     local_client_context->provider_is_attached = NT_SUCCESS(status);
 
@@ -89,8 +92,10 @@ ebpf_error_code_t
 ebpf_extension_load(
     ebpf_extension_client_t** client_context,
     const GUID* interface_id,
+    void* client_binding_context,
     const ebpf_extension_data_t* client_data,
     const ebpf_extension_dispatch_table_t* client_dispatch_table,
+    void** provider_binding_context,
     ebpf_extension_data_t** provider_data,
     ebpf_extension_dispatch_table_t** provider_dispatch_table)
 {
@@ -111,6 +116,7 @@ ebpf_extension_load(
 
     local_client_context->client_data = client_data;
     local_client_context->npi_id = *interface_id;
+    local_client_context->client_binding_context = client_binding_context;
     local_client_context->client_id.Length = sizeof(local_client_context->client_id);
     local_client_context->client_id.Type = MIT_GUID;
     local_client_context->client_dispatch_table = client_dispatch_table;
@@ -148,6 +154,7 @@ ebpf_extension_load(
         goto Done;
     }
 
+    *provider_binding_context = local_client_context->provider_binding_context;
     *provider_data = local_client_context->provider_data;
     *provider_dispatch_table = local_client_context->provider_dispatch_table;
     *client_context = local_client_context;
@@ -211,6 +218,7 @@ _ebpf_extension_provider_attach_client(
 
     if (local_provider_context->client_attach_callback) {
         return_value = local_provider_context->client_attach_callback(
+            client_binding_context,
             &local_provider_binding_context->client_id,
             (const ebpf_extension_data_t*)client_registration_instance->NpiSpecificCharacteristics,
             (const ebpf_extension_dispatch_table_t*)client_dispatch);
@@ -253,6 +261,7 @@ ebpf_error_code_t
 ebpf_provider_load(
     ebpf_extension_provider_t** provider_context,
     const GUID* interface_id,
+    void* provider_binding_context,
     const ebpf_extension_data_t* provider_data,
     const ebpf_extension_dispatch_table_t* provider_dispatch_table,
     ebpf_provider_client_attach_callback_t client_attach_callback,
@@ -273,6 +282,7 @@ ebpf_provider_load(
 
     memset(local_provider_context, 0, sizeof(ebpf_extension_client_t));
 
+    local_provider_context->provider_binding_context = provider_binding_context;
     local_provider_context->provider_data = provider_data;
     local_provider_context->npi_id = *interface_id;
     local_provider_context->provider_id.Length = sizeof(local_provider_context->provider_id);

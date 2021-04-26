@@ -20,6 +20,7 @@ typedef struct _ebpf_hook_instance
     ebpf_extension_data_t* client_data;
     ebpf_extension_client_t* extension_client_context;
 
+    void* provider_binding_context;
     ebpf_extension_data_t* provider_data;
     ebpf_extension_dispatch_table_t* provider_dispatch_table;
 } ebpf_hook_instance_t;
@@ -76,8 +77,10 @@ ebpf_hook_instance_initialize(
     return_value = ebpf_extension_load(
         &(hook->extension_client_context),
         &attach_type,
+        hook,
         hook->client_data,
         (ebpf_extension_dispatch_table_t*)&_ebpf_hook_dispatch_table,
+        &(hook->provider_binding_context),
         &(hook->provider_data),
         &(hook->provider_dispatch_table));
 

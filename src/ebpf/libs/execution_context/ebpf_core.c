@@ -116,6 +116,7 @@ ebpf_core_initiate()
         &_ebpf_global_helper_function_provider_context,
         &ebpf_global_helper_function_interface_id,
         NULL,
+        NULL,
         _ebpf_global_helper_function_dispatch_table,
         NULL,
         NULL);

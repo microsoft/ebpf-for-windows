@@ -8,6 +8,7 @@ typedef struct _ebpf_extension_client
 {
     GUID client_id;
     GUID interface_id;
+    void* client_binding_context;
     const ebpf_extension_data_t* client_data;
     const ebpf_extension_dispatch_table_t* client_dispatch_table;
 } ebpf_extension_client_t;
@@ -15,6 +16,7 @@ typedef struct _ebpf_extension_client
 typedef struct _ebpf_extension_provider
 {
     GUID interface_id;
+    void* provider_binding_context;
     const ebpf_extension_data_t* provider_data;
     const ebpf_extension_dispatch_table_t* provider_dispatch_table;
     ebpf_provider_client_attach_callback_t client_attach_callback;
@@ -29,8 +31,10 @@ ebpf_error_code_t
 ebpf_extension_load(
     ebpf_extension_client_t** client_context,
     const GUID* interface_id,
+    void* client_binding_context,
     const ebpf_extension_data_t* client_data,
     const ebpf_extension_dispatch_table_t* client_dispatch_table,
+    void** provider_binding_context,
     ebpf_extension_data_t** provider_data,
     ebpf_extension_dispatch_table_t** provider_dispatch_table)
 {
@@ -53,6 +57,7 @@ ebpf_extension_load(
     }
 
     memset(local_extension_client, 0, sizeof(ebpf_extension_client_t));
+    local_extension_client->client_binding_context = client_binding_context;
     local_extension_client->client_data = client_data;
     local_extension_client->client_dispatch_table = client_dispatch_table;
     local_extension_client->interface_id = *interface_id;
@@ -77,7 +82,10 @@ ebpf_extension_load(
 
     if (local_extension_provider->client_attach_callback) {
         return_value = local_extension_provider->client_attach_callback(
-            &local_extension_client->client_id, client_data, client_dispatch_table);
+            local_extension_client->client_binding_context,
+            &local_extension_client->client_id,
+            client_data,
+            client_dispatch_table);
         if (return_value != EBPF_ERROR_SUCCESS) {
             return_value = EBPF_ERROR_NOT_FOUND;
             goto Done;
@@ -86,6 +94,7 @@ ebpf_extension_load(
     *client_context = local_extension_client;
     local_extension_client = NULL;
 
+    *provider_binding_context = local_extension_provider->provider_binding_context;
     *provider_data = local_extension_provider->provider_data;
     *provider_dispatch_table = local_extension_provider->provider_dispatch_table;
 
@@ -137,6 +146,7 @@ ebpf_error_code_t
 ebpf_provider_load(
     ebpf_extension_provider_t** provider_context,
     const GUID* interface_id,
+    void* provider_binding_context,
     const ebpf_extension_data_t* provider_data,
     const ebpf_extension_dispatch_table_t* provider_dispatch_table,
     ebpf_provider_client_attach_callback_t client_attach_callback,
@@ -170,6 +180,7 @@ ebpf_provider_load(
     memset(local_extension_provider, 0, sizeof(ebpf_extension_provider_t));
 
     local_extension_provider->interface_id = *interface_id;
+    local_extension_provider->provider_binding_context = provider_binding_context;
     local_extension_provider->provider_data = provider_data;
     local_extension_provider->provider_dispatch_table = provider_dispatch_table;
     local_extension_provider->client_attach_callback = client_attach_callback;

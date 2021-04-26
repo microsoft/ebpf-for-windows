@@ -75,12 +75,15 @@ ebpf_program_initialize(ebpf_program_t* program, const ebpf_program_parameters_t
     ebpf_error_code_t return_value;
     ebpf_utf8_string_t local_program_name = {NULL, 0};
     ebpf_utf8_string_t local_section_name = {NULL, 0};
+    void* provider_binding_context;
 
     return_value = ebpf_extension_load(
         &program->global_helper_extension_client,
         &ebpf_global_helper_function_interface_id,
         NULL,
         NULL,
+        NULL,
+        &provider_binding_context,
         &program->global_helper_provider_data,
         &program->global_helper_provider_dispatch_table);
 
