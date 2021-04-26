@@ -27,7 +27,7 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      */
     ebpf_error_code_t
-    ebpf_hook_instance_create(ebpf_link_t** link);
+    ebpf_link_create(ebpf_link_t** link);
 
     /**
      * @brief Initialize this link object and load the associated hook
@@ -41,7 +41,7 @@ extern "C"
      * @retval EBPF_ERROR_SUCCESS The operation was successful.
      */
     ebpf_error_code_t
-    ebpf_hook_instance_initialize(
+    ebpf_link_initialize(
         ebpf_link_t* link, ebpf_attach_type_t attach_type, const uint8_t* context_data, size_t context_data_length);
 
     /**
@@ -57,7 +57,7 @@ extern "C"
      *  initialized.
      */
     ebpf_error_code_t
-    ebpf_hook_instance_get_properties(ebpf_link_t* link, uint8_t** hook_properties, size_t* hook_properties_length);
+    ebpf_link_get_properties(ebpf_link_t* link, uint8_t** hook_properties, size_t* hook_properties_length);
 
     /**
      * @brief Attach a program to this link object.
@@ -69,7 +69,7 @@ extern "C"
      *  initialized.
      */
     ebpf_error_code_t
-    ebpf_hook_instance_attach_program(ebpf_link_t* link, ebpf_program_t* program);
+    ebpf_link_attach_program(ebpf_link_t* link, ebpf_program_t* program);
 
     /**
      * @brief Detach a program from this link object.
@@ -77,7 +77,7 @@ extern "C"
      * @param[in] link The link object to detach.
      */
     void
-    ebpf_hook_instance_detach_program(ebpf_link_t* link);
+    ebpf_link_detach_program(ebpf_link_t* link);
 
 #ifdef __cplusplus
 }
