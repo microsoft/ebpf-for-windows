@@ -3,21 +3,22 @@
  *  SPDX-License-Identifier: MIT
  */
 
-#pragma warning(push)
-#pragma warning(disable : 4100) // 'identifier' : unreferenced formal parameter
-#pragma warning(disable : 4244) // 'conversion' conversion from 'type1' to
-                                // 'type2', possible loss of data
-#include "ebpf_verifier.hpp"
-#pragma warning(pop)
-#include "Verifier.h"
-#include "ebpf_api.h"
-#include "platform.hpp"
-#include "tlv.h"
-#include "windows_platform.hpp"
 #include <filesystem>
 #include <iostream>
 #include <sstream>
 #include <sys/stat.h>
+#include "ebpf_api.h"
+#pragma warning(push)
+#pragma warning(disable : 4100) // 'identifier' : unreferenced formal parameter
+#pragma warning(disable : 4244) // 'conversion' conversion from 'type1' to
+                                // 'type2', possible loss of data
+#undef VOID
+#include "ebpf_verifier.hpp"
+#pragma warning(pop)
+#include "platform.hpp"
+#include "tlv.h"
+#include "windows_platform.hpp"
+#include "Verifier.h"
 
 int
 get_file_size(const char* filename, size_t* byte_code_size)
