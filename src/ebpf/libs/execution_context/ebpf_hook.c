@@ -17,16 +17,12 @@ typedef struct _ebpf_hook_instance
     ebpf_program_entry_point_t program_entry_point;
 
     ebpf_attach_type_t attach_type;
+    ebpf_extension_data_t* client_data;
     ebpf_extension_client_t* extension_client_context;
 
-    uint8_t* hook_properties;
-    size_t hook_properties_length;
-
+    ebpf_extension_data_t* provider_data;
     ebpf_extension_dispatch_table_t* provider_dispatch_table;
 } ebpf_hook_instance_t;
-
-// TODO: Get the actual GUID for the hook client.
-static const GUID _ebpf_hook_client_id = {0};
 
 ebpf_error_code_t
 _ebpf_hook_instance_invoke(const ebpf_hook_instance_t* hook, void* program_context);
@@ -43,6 +39,7 @@ _ebpf_hook_free(ebpf_object_t* object)
     ebpf_hook_instance_t* hook = (ebpf_hook_instance_t*)object;
     ebpf_hook_instance_detach_program(hook);
     ebpf_extension_unload(hook->extension_client_context);
+    ebpf_free(hook->client_data);
     ebpf_epoch_free(hook);
 }
 
@@ -64,16 +61,24 @@ ebpf_hook_instance_initialize(
     ebpf_hook_instance_t* hook, ebpf_attach_type_t attach_type, const uint8_t* context_data, size_t context_data_length)
 {
     ebpf_error_code_t return_value;
+    size_t client_data_length;
+
+    ebpf_safe_size_t_add(sizeof(ebpf_extension_data_t), context_data_length, &client_data_length);
+
+    hook->client_data = ebpf_allocate(client_data_length, EBPF_MEMORY_NO_EXECUTE);
+    if (!hook->client_data)
+        return EBPF_ERROR_OUT_OF_RESOURCES;
+
+    hook->client_data->version = 0;
+    hook->client_data->size = (uint16_t)client_data_length;
+    memcpy(hook->client_data->data, context_data, context_data_length);
 
     return_value = ebpf_extension_load(
         &(hook->extension_client_context),
-        &_ebpf_hook_client_id,
-        context_data,
-        context_data_length,
-        (ebpf_extension_dispatch_table_t*)&_ebpf_hook_dispatch_table,
         &attach_type,
-        &(hook->hook_properties),
-        &(hook->hook_properties_length),
+        hook->client_data,
+        (ebpf_extension_dispatch_table_t*)&_ebpf_hook_dispatch_table,
+        &(hook->provider_data),
         &(hook->provider_dispatch_table));
 
     return return_value;
@@ -82,11 +87,11 @@ ebpf_hook_instance_initialize(
 ebpf_error_code_t
 ebpf_hook_instance_get_properties(ebpf_hook_instance_t* hook, uint8_t** hook_properties, size_t* hook_properties_length)
 {
-    if (!hook->hook_properties)
+    if (!hook->provider_data)
         return EBPF_ERROR_INVALID_PARAMETER;
 
-    *hook_properties = hook->hook_properties;
-    *hook_properties_length = hook->hook_properties_length;
+    *hook_properties = hook->provider_data->data;
+    *hook_properties_length = hook->provider_data->size;
     return EBPF_ERROR_SUCCESS;
 }
 

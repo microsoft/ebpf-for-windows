@@ -40,6 +40,7 @@ typedef enum _ebpf_error_code
     EBPF_ERROR_NOT_SUPPORTED,
     EBPF_ERROR_DUPLICATE_NAME,
     EBPF_ERROR_ARITHMETIC_OVERFLOW,
+    EBPF_ERROR_EXTENSION_FAILED_TO_LOAD,
 } ebpf_error_code_t;
 
 typedef struct _ebpf_map_definition

@@ -11,6 +11,15 @@
 #include "ebpf_pinning_table.h"
 #include "ebpf_program.h"
 
+GUID ebpf_global_helper_function_interface_id = {/* 8d2a1d3f-9ce6-473d-b48e-17aa5c5581fe */
+                                                 0x8d2a1d3f,
+                                                 0x9ce6,
+                                                 0x473d,
+                                                 {0xb4, 0x8e, 0x17, 0xaa, 0x5c, 0x55, 0x81, 0xfe}};
+
+static ebpf_extension_dispatch_table_t* _ebpf_global_helper_function_dispatch_table = NULL;
+static ebpf_extension_provider_t* _ebpf_global_helper_function_provider_context = NULL;
+
 static ebpf_pinning_table_t* _ebpf_core_map_pinning_table = NULL;
 
 static ebpf_lock_t _ebpf_core_hook_table_lock = {0};
@@ -34,18 +43,6 @@ static const void* _ebpf_program_helpers[] = {
     (void*)&_ebpf_core_map_find_element,
     (void*)&_ebpf_core_map_update_element,
     (void*)&_ebpf_core_map_delete_element};
-
-size_t
-ebpf_core_get_global_helper_count()
-{
-    return EBPF_COUNT_OF(_ebpf_program_helpers);
-}
-
-const void*
-ebpf_core_get_global_helper(size_t helper_id)
-{
-    return _ebpf_program_helpers[helper_id];
-}
 
 static ebpf_error_code_t
 _ebpf_core_set_hook_entry(ebpf_program_t* code, ebpf_program_type_t program_type)
@@ -101,13 +98,37 @@ ebpf_core_initiate()
 
     ebpf_lock_create(&_ebpf_core_hook_table_lock);
 
+    _ebpf_global_helper_function_dispatch_table = ebpf_allocate(
+        EBPF_OFFSET_OF(ebpf_extension_dispatch_table_t, function) + sizeof(_ebpf_program_helpers),
+        EBPF_MEMORY_NO_EXECUTE);
+    if (!_ebpf_global_helper_function_dispatch_table) {
+        return_value = EBPF_ERROR_OUT_OF_RESOURCES;
+        goto Done;
+    }
+
+    _ebpf_global_helper_function_dispatch_table->version = 0;
+    _ebpf_global_helper_function_dispatch_table->size =
+        EBPF_OFFSET_OF(ebpf_extension_dispatch_table_t, function) + sizeof(_ebpf_program_helpers);
+
+    memcpy(_ebpf_global_helper_function_dispatch_table->function, _ebpf_program_helpers, sizeof(_ebpf_program_helpers));
+
+    return_value = ebpf_provider_load(
+        &_ebpf_global_helper_function_provider_context,
+        &ebpf_global_helper_function_interface_id,
+        NULL,
+        _ebpf_global_helper_function_dispatch_table,
+        NULL,
+        NULL);
+
+    if (return_value != EBPF_ERROR_SUCCESS) {
+        goto Done;
+    }
+
     return_value = ebpf_get_code_integrity_state(&_ebpf_core_code_integrity_state);
 
 Done:
     if (return_value != EBPF_ERROR_SUCCESS) {
-        ebpf_epoch_terminate();
-        ebpf_platform_terminate();
-        ebpf_handle_table_terminate();
+        ebpf_core_terminate();
     }
     return return_value;
 }
@@ -115,6 +136,12 @@ Done:
 void
 ebpf_core_terminate()
 {
+    epbf_provider_unload(_ebpf_global_helper_function_provider_context);
+    _ebpf_global_helper_function_provider_context = NULL;
+
+    ebpf_free(_ebpf_global_helper_function_dispatch_table);
+    _ebpf_global_helper_function_dispatch_table = NULL;
+
     ebpf_handle_table_terminate();
 
     ebpf_pinning_table_free(_ebpf_core_map_pinning_table);

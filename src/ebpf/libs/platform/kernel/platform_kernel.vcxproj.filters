@@ -19,7 +19,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="platform_kernel.c">
+    <ClCompile Include="ebpf_platform_kernel.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\ebpf_hash_table.c">
@@ -32,6 +32,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\ebpf_handle.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ebpf_extension_kernel.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

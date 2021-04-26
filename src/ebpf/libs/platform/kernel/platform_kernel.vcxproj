@@ -43,7 +43,8 @@
     <ClCompile Include="..\ebpf_hash_table.c" />
     <ClCompile Include="..\ebpf_object.c" />
     <ClCompile Include="..\ebpf_pinning_table.c" />
-    <ClCompile Include="platform_kernel.c" />
+    <ClCompile Include="ebpf_extension_kernel.c" />
+    <ClCompile Include="ebpf_platform_kernel.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\include\ebpf_platform.h" />

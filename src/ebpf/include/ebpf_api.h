@@ -266,7 +266,7 @@ extern "C"
     ebpf_api_unpin_map(const uint8_t* name, uint32_t name_length);
 
     /**
-     * @brief Find a map given it's associated name.
+     * @brief Find a map given its associated name.
      * @param[in] name Name to find.
      */
     uint32_t

@@ -26,6 +26,11 @@ typedef struct _ebpf_program
         // EBPF_CODE_EBPF
         struct ubpf_vm* vm;
     } code_or_vm;
+
+    ebpf_extension_client_t* global_helper_extension_client;
+    ebpf_extension_data_t* global_helper_provider_data;
+    ebpf_extension_dispatch_table_t* global_helper_provider_dispatch_table;
+
 } ebpf_program_t;
 
 static void
@@ -34,6 +39,10 @@ _ebpf_program_free(ebpf_object_t* object)
     ebpf_program_t* program = (ebpf_program_t*)object;
     if (!program)
         return;
+
+    if (program->global_helper_extension_client) {
+        ebpf_extension_unload(program->global_helper_extension_client);
+    }
 
     if (program->parameters.code_type == EBPF_CODE_NATIVE) {
         ebpf_epoch_free(program->code_or_vm.code);
@@ -66,6 +75,17 @@ ebpf_program_initialize(ebpf_program_t* program, const ebpf_program_parameters_t
     ebpf_error_code_t return_value;
     ebpf_utf8_string_t local_program_name = {NULL, 0};
     ebpf_utf8_string_t local_section_name = {NULL, 0};
+
+    return_value = ebpf_extension_load(
+        &program->global_helper_extension_client,
+        &ebpf_global_helper_function_interface_id,
+        NULL,
+        NULL,
+        &program->global_helper_provider_data,
+        &program->global_helper_provider_dispatch_table);
+
+    if (return_value != EBPF_ERROR_SUCCESS)
+        goto Done;
 
     return_value = ebpf_duplicate_utf8_string(&local_program_name, &program_parameters->program_name);
     if (return_value != EBPF_ERROR_SUCCESS)
@@ -127,17 +147,19 @@ Done:
 }
 
 static ebpf_error_code_t
-_ebpf_program_register_helpers(struct ubpf_vm* vm)
+_ebpf_program_register_helpers(ebpf_program_t* program)
 {
     size_t index = 0;
-    size_t count = ebpf_core_get_global_helper_count();
+    size_t count = (program->global_helper_provider_dispatch_table->size -
+                    EBPF_OFFSET_OF(ebpf_extension_dispatch_table_t, function)) /
+                   sizeof(program->global_helper_provider_dispatch_table->function);
 
     for (index = 0; index < count; index++) {
-        const void* helper = ebpf_core_get_global_helper(index);
+        const void* helper = (void*)program->global_helper_provider_dispatch_table->function[index];
         if (helper == NULL)
             continue;
 
-        if (ubpf_register(vm, (unsigned int)index, NULL, (void*)helper) < 0)
+        if (ubpf_register(program->code_or_vm.vm, (unsigned int)index, NULL, (void*)helper) < 0)
             return EBPF_ERROR_INVALID_PARAMETER;
     }
     return EBPF_ERROR_SUCCESS;
@@ -160,7 +182,7 @@ ebpf_program_load_byte_code(ebpf_program_t* program, ebpf_instuction_t* instruct
     // failing.
     toggle_bounds_check(program->code_or_vm.vm, false);
 
-    return_value = _ebpf_program_register_helpers(program->code_or_vm.vm);
+    return_value = _ebpf_program_register_helpers(program);
     if (return_value != EBPF_ERROR_SUCCESS)
         goto Done;
 
