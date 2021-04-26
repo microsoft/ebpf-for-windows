@@ -7,7 +7,7 @@
 
 #include "ebpf_core.h"
 #include "ebpf_epoch.h"
-#include "ebpf_hook.h"
+#include "ebpf_link.h"
 #include "ebpf_object.h"
 #include "ubpf.h"
 

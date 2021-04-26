@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "ebpf_hook.h"
+#include "ebpf_link.h"
 #include "ebpf_maps.h"
 #include "ebpf_platform.h"
 
@@ -113,14 +113,14 @@ extern "C"
     ebpf_program_load_byte_code(ebpf_program_t* program, ebpf_instuction_t* instructions, size_t instruction_count);
 
     /**
-     * @brief Create a hook instance and attach it to the program instance.
+     * @brief Create a link object and attach it to the program instance.
      *
      * @param[in] program Program instance to attach to.
      * @param[in] attach_type Attach type to load.
      * @param[in] context_data Data to be passed to the hook provider.
      * @param[in] context_data_length Length of the data to be passed to the
      *  hook provider.
-     * @param[out] hook_instance The hook instance to initialize.
+     * @param[out] link The link object to initialize.
      * @retval EBPF_ERROR_SUCCESS The operation was successful.
      * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
      *  program instance.
@@ -131,19 +131,19 @@ extern "C"
         ebpf_attach_type_t attach_type,
         uint8_t* context_data,
         size_t context_data_length,
-        ebpf_hook_instance_t** hook_instance);
+        ebpf_link_t** link);
 
     /**
-     * @brief Attach this program instance to an existing hook instance.
+     * @brief Attach this program instance to an existing link object.
      *
      * @param[in] program Program instance to attach to.
-     * @param[in] hook_instance Hook instance to attach the program instance to.
+     * @param[in] link Hook instance to attach the program instance to.
      * @retval EBPF_ERROR_SUCCESS The operation was successful.
      * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
      *  program instance.
      */
     ebpf_error_code_t
-    ebpf_program_attach_hook(ebpf_program_t* program, ebpf_hook_instance_t* hook_instance);
+    ebpf_program_attach_hook(ebpf_program_t* program, ebpf_link_t* link);
 
     /**
      * @brief Obtain the entry point for the program instance. Only applicable

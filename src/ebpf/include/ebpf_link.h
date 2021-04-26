@@ -13,27 +13,27 @@ extern "C"
 #endif
 
     typedef GUID ebpf_attach_type_t;
-    typedef struct _ebpf_hook_instance ebpf_hook_instance_t;
+    typedef struct _ebpf_link ebpf_link_t;
     typedef struct _ebpf_program ebpf_program_t;
 
     /**
-     * @brief Create a new hook instance.
+     * @brief Create a new link object.
      *
-     * @param[out] hook_instance Pointer to memory that will contain the hook instance
+     * @param[out] link Pointer to memory that will contain the link object
      *  on success.
      * @retval EBPF_ERROR_SUCCESS The operation was successful.
      * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
-     *  hook instance.
+     *  link object.
      * @retval EBPF_SUCCESS The operation was successful.
      */
     ebpf_error_code_t
-    ebpf_hook_instance_create(ebpf_hook_instance_t** hook_instance);
+    ebpf_link_create(ebpf_link_t** link);
 
     /**
-     * @brief Initialize this hook instance and load the associated hook
+     * @brief Initialize this link object and load the associated hook
      *  provider if needed.
      *
-     * @param[in] hook_instance The hook instance to initialize.
+     * @param[in] link The link object to initialize.
      * @param[in] attach_type Attach type to load.
      * @param[in] context_data Data to be passed to the hook provider.
      * @param[in] context_data_length Length of the data to be passed to the hook
@@ -41,16 +41,13 @@ extern "C"
      * @retval EBPF_ERROR_SUCCESS The operation was successful.
      */
     ebpf_error_code_t
-    ebpf_hook_instance_initialize(
-        ebpf_hook_instance_t* hook_instance,
-        ebpf_attach_type_t attach_type,
-        const uint8_t* context_data,
-        size_t context_data_length);
+    ebpf_link_initialize(
+        ebpf_link_t* link, ebpf_attach_type_t attach_type, const uint8_t* context_data, size_t context_data_length);
 
     /**
      * @brief Get the properties from the hook provider.
      *
-     * @param[in] hook_instance The hook instance to get properties from.
+     * @param[in] link The link object to get properties from.
      * @param[out] hook_properties Pointer to buffer that contains the hook
      *  provider properties on success.
      * @param[out] hook_properties_length Pointer to size that contains the size
@@ -60,28 +57,27 @@ extern "C"
      *  initialized.
      */
     ebpf_error_code_t
-    ebpf_hook_instance_get_properties(
-        ebpf_hook_instance_t* hook_instance, uint8_t** hook_properties, size_t* hook_properties_length);
+    ebpf_link_get_properties(ebpf_link_t* link, uint8_t** hook_properties, size_t* hook_properties_length);
 
     /**
-     * @brief Attach a program to this hook instance.
+     * @brief Attach a program to this link object.
      *
-     * @param[in] hook_instance The hook instance to attach the program to.
-     * @param[in] program The program to attach to this hook instance.
+     * @param[in] link The link object to attach the program to.
+     * @param[in] program The program to attach to this link object.
      * @retval EBPF_ERROR_SUCCESS The operation was successful.
      * @retval EBPF_ERROR_INVALID_PARAMETER Hook instance has not been
      *  initialized.
      */
     ebpf_error_code_t
-    ebpf_hook_instance_attach_program(ebpf_hook_instance_t* hook_instance, ebpf_program_t* program);
+    ebpf_link_attach_program(ebpf_link_t* link, ebpf_program_t* program);
 
     /**
-     * @brief Detach a program from this hook instance.
+     * @brief Detach a program from this link object.
      *
-     * @param[in] hook_instance The hook instance to detach.
+     * @param[in] link The link object to detach.
      */
     void
-    ebpf_hook_instance_detach_program(ebpf_hook_instance_t* hook_instance);
+    ebpf_link_detach_program(ebpf_link_t* link);
 
 #ifdef __cplusplus
 }
