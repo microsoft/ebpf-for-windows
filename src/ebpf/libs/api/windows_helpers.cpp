@@ -1,4 +1,4 @@
-// Copyright (c) Prevail Verifier contributors.
+// Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 #include "platform.hpp"
 
@@ -57,15 +57,18 @@ const struct EbpfHelperPrototype windows_helper_prototypes[] = {
 };
 
 // Check whether a given integer is a valid helper ID.
-bool is_helper_usable_windows(unsigned int n) {
-  return (n > 0) && (n < (sizeof(windows_helper_prototypes) /
-                          sizeof(*windows_helper_prototypes)));
+bool
+is_helper_usable_windows(unsigned int n)
+{
+    return (n > 0) && (n < (sizeof(windows_helper_prototypes) / sizeof(*windows_helper_prototypes)));
 }
 
 // Get the prototype for the helper with a given ID.
-EbpfHelperPrototype get_helper_prototype_windows(unsigned int n) {
-  if (!is_helper_usable_windows(n)) {
-    throw std::exception();
-  }
-  return windows_helper_prototypes[n];
+EbpfHelperPrototype
+get_helper_prototype_windows(unsigned int n)
+{
+    if (!is_helper_usable_windows(n)) {
+        throw std::exception();
+    }
+    return windows_helper_prototypes[n];
 }

@@ -3,8 +3,6 @@
  *  SPDX-License-Identifier: MIT
  */
 #pragma once
-#include "framework.h"
-#include "ebpf_object.h"
 #include "ebpf_windows.h"
 
 #ifdef __cplusplus
