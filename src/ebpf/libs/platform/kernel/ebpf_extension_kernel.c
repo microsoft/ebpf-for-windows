@@ -50,7 +50,7 @@ _ebpf_extension_client_attach_provider(
 
     // Check that the interface matches.
     if (memcmp(
-            &provider_registration_instance->NpiId,
+            provider_registration_instance->NpiId,
             &local_client_context->npi_id,
             sizeof(local_client_context->npi_id)) != 0) {
         return STATUS_NOINTERFACE;
@@ -162,8 +162,12 @@ Done:
 void
 ebpf_extension_unload(ebpf_extension_client_t* client_context)
 {
-    if (client_context)
-        NmrDeregisterClient(client_context->nmr_client_handle);
+    NTSTATUS status;
+    if (client_context) {
+        status = NmrDeregisterClient(client_context->nmr_client_handle);
+        if (status == STATUS_PENDING)
+            NmrWaitForClientDeregisterComplete(client_context->nmr_client_handle);
+    }
 
     ebpf_free(client_context);
 }
@@ -187,7 +191,7 @@ _ebpf_extension_provider_attach_client(
 
     // Check that the interface matches.
     if (memcmp(
-            &client_registration_instance->NpiId,
+            client_registration_instance->NpiId,
             &local_provider_context->npi_id,
             sizeof(local_provider_context->npi_id)) != 0) {
         status = STATUS_NOINTERFACE;
@@ -318,8 +322,12 @@ Done:
 void
 epbf_provider_unload(ebpf_extension_provider_t* provider_context)
 {
-    if (provider_context)
-        NmrDeregisterProvider(provider_context->nmr_provider_handle);
+    NTSTATUS status;
+    if (provider_context) {
+        status = NmrDeregisterProvider(provider_context->nmr_provider_handle);
+        if (status == STATUS_PENDING)
+            NmrWaitForProviderDeregisterComplete(provider_context->nmr_provider_handle);
+    }
 
     ebpf_free(provider_context);
 }
