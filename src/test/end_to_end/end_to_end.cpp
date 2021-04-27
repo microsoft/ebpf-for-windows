@@ -346,7 +346,7 @@ TEST_CASE("droppacket-jit", "[droppacket_jit]")
     packet = prepare_udp_packet(10);
     ebpf::xdp_md_t ctx2{packet.data(), packet.data() + packet.size()};
 
-    REQUIRE(hook.fire(&ctx, &result) == EBPF_ERROR_SUCCESS);
+    REQUIRE(hook.fire(&ctx2, &result) == EBPF_ERROR_SUCCESS);
     REQUIRE(result == 1);
 
     REQUIRE(
@@ -426,7 +426,7 @@ TEST_CASE("droppacket-interpret", "[droppacket_interpret]")
     packet = prepare_udp_packet(10);
     ebpf::xdp_md_t ctx2{packet.data(), packet.data() + packet.size()};
 
-    REQUIRE(hook.fire(&ctx, &result) == EBPF_ERROR_SUCCESS);
+    REQUIRE(hook.fire(&ctx2, &result) == EBPF_ERROR_SUCCESS);
     REQUIRE(result == 1);
 
     REQUIRE(
