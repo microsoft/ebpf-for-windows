@@ -154,6 +154,85 @@ prepare_udp_packet(uint16_t udp_length)
     return packet;
 }
 
+typedef class _single_instance_hook
+{
+  public:
+    _single_instance_hook()
+    {
+        ebpf_guid_create(&attach_type);
+
+        REQUIRE(
+            ebpf_provider_load(
+                &provider,
+                &attach_type,
+                NULL,
+                &provider_data,
+                NULL,
+                this,
+                client_attach_callback,
+                client_detach_callback) == EBPF_ERROR_SUCCESS);
+    }
+    ~_single_instance_hook() { epbf_provider_unload(provider); }
+
+    uint32_t
+    attach(ebpf_handle_t program_handle)
+    {
+        return ebpf_api_link_program(program_handle, attach_type, &link_handle);
+    }
+
+    void
+    detach()
+    {
+        ebpf_api_close_handle(link_handle);
+    }
+
+    ebpf_error_code_t
+    fire(void* context, uint32_t* result)
+    {
+        ebpf_error_code_t (*invoke_program)(void* link, void* context, uint32_t* result) =
+            reinterpret_cast<decltype(invoke_program)>(client_dispatch_table->function[0]);
+
+        return invoke_program(client_binding_context, context, result);
+    }
+
+  private:
+    static ebpf_error_code_t
+    client_attach_callback(
+        void* context,
+        const GUID* client_id,
+        void* client_binding_context,
+        const ebpf_extension_data_t* client_data,
+        const ebpf_extension_dispatch_table_t* client_dispatch_table)
+    {
+        auto hook = reinterpret_cast<_single_instance_hook*>(context);
+        hook->client_id = *client_id;
+        hook->client_binding_context = client_binding_context;
+        hook->client_data = client_data;
+        hook->client_dispatch_table = client_dispatch_table;
+        return EBPF_ERROR_SUCCESS;
+    };
+
+    static ebpf_error_code_t
+    client_detach_callback(void* context, const GUID* client_id)
+    {
+        auto hook = reinterpret_cast<_single_instance_hook*>(context);
+        hook->client_binding_context = NULL;
+        hook->client_data = NULL;
+        hook->client_dispatch_table = NULL;
+        UNREFERENCED_PARAMETER(client_id);
+        return EBPF_ERROR_SUCCESS;
+    };
+    ebpf_attach_type_t attach_type;
+
+    ebpf_extension_data_t provider_data = {0, 0};
+    ebpf_extension_provider_t* provider;
+    GUID client_id;
+    void* client_binding_context;
+    const ebpf_extension_data_t* client_data;
+    const ebpf_extension_dispatch_table_t* client_dispatch_table;
+    ebpf_handle_t link_handle;
+} single_instance_hook_t;
+
 #define SAMPLE_PATH ""
 
 TEST_CASE("pinning_test", "[pinning_test]")
@@ -225,6 +304,8 @@ TEST_CASE("droppacket-jit", "[droppacket_jit]")
     REQUIRE(ebpf_core_initiate() == EBPF_ERROR_SUCCESS);
     ec_initialized = true;
 
+    single_instance_hook_t hook;
+
     REQUIRE(ebpf_api_initiate() == ERROR_SUCCESS);
     api_initialized = true;
 
@@ -238,7 +319,7 @@ TEST_CASE("droppacket-jit", "[droppacket_jit]")
             &map_handle,
             &error_message) == ERROR_SUCCESS);
 
-    REQUIRE(ebpf_api_attach_program(program_handle, EBPF_PROGRAM_TYPE_XDP) == ERROR_SUCCESS);
+    REQUIRE(hook.attach(program_handle) == ERROR_SUCCESS);
 
     auto packet = prepare_udp_packet(0);
 
@@ -250,7 +331,8 @@ TEST_CASE("droppacket-jit", "[droppacket_jit]")
 
     // Test that we drop the packet and increment the map
     ebpf::xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
-    REQUIRE(ebpf_core_invoke_hook(EBPF_PROGRAM_TYPE_XDP, &ctx, &result) == EBPF_ERROR_SUCCESS);
+
+    REQUIRE(hook.fire(&ctx, &result) == EBPF_ERROR_SUCCESS);
     REQUIRE(result == 2);
 
     REQUIRE(
@@ -268,13 +350,15 @@ TEST_CASE("droppacket-jit", "[droppacket_jit]")
     packet = prepare_udp_packet(10);
     ebpf::xdp_md_t ctx2{packet.data(), packet.data() + packet.size()};
 
-    REQUIRE(ebpf_core_invoke_hook(EBPF_PROGRAM_TYPE_XDP, &ctx2, &result) == EBPF_ERROR_SUCCESS);
+    REQUIRE(hook.fire(&ctx2, &result) == EBPF_ERROR_SUCCESS);
     REQUIRE(result == 1);
 
     REQUIRE(
         ebpf_api_map_find_element(map_handle, sizeof(key), (uint8_t*)&key, sizeof(value), (uint8_t*)&value) ==
         ERROR_SUCCESS);
     REQUIRE(value == 0);
+
+    hook.detach();
 }
 
 TEST_CASE("droppacket-interpret", "[droppacket_interpret]")
@@ -304,6 +388,8 @@ TEST_CASE("droppacket-interpret", "[droppacket_interpret]")
     REQUIRE(ebpf_api_initiate() == ERROR_SUCCESS);
     api_initialized = true;
 
+    single_instance_hook_t hook;
+
     REQUIRE(
         ebpf_api_load_program(
             SAMPLE_PATH "droppacket.o",
@@ -314,7 +400,7 @@ TEST_CASE("droppacket-interpret", "[droppacket_interpret]")
             &map_handle,
             &error_message) == ERROR_SUCCESS);
 
-    REQUIRE(ebpf_api_attach_program(program_handle, EBPF_PROGRAM_TYPE_XDP) == ERROR_SUCCESS);
+    REQUIRE(hook.attach(program_handle) == ERROR_SUCCESS);
 
     auto packet = prepare_udp_packet(0);
 
@@ -326,7 +412,7 @@ TEST_CASE("droppacket-interpret", "[droppacket_interpret]")
 
     // Test that we drop the packet and increment the map
     ebpf::xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
-    REQUIRE(ebpf_core_invoke_hook(EBPF_PROGRAM_TYPE_XDP, &ctx, &result) == EBPF_ERROR_SUCCESS);
+    REQUIRE(hook.fire(&ctx, &result) == EBPF_ERROR_SUCCESS);
     REQUIRE(result == 2);
 
     REQUIRE(
@@ -344,7 +430,7 @@ TEST_CASE("droppacket-interpret", "[droppacket_interpret]")
     packet = prepare_udp_packet(10);
     ebpf::xdp_md_t ctx2{packet.data(), packet.data() + packet.size()};
 
-    REQUIRE(ebpf_core_invoke_hook(EBPF_PROGRAM_TYPE_XDP, &ctx2, &result) == EBPF_ERROR_SUCCESS);
+    REQUIRE(hook.fire(&ctx2, &result) == EBPF_ERROR_SUCCESS);
     REQUIRE(result == 1);
 
     REQUIRE(
@@ -746,17 +832,20 @@ TEST_CASE("extension_test", "[extension_test]")
 {
     auto client_function = []() { return EBPF_ERROR_SUCCESS; };
     auto provider_function = []() { return EBPF_ERROR_SUCCESS; };
-    auto provider_attach = [](const GUID* client_id,
+    auto provider_attach = [](void* context,
+                              const GUID* client_id,
                               void* client_binding_context,
                               const ebpf_extension_data_t* client_data,
                               const ebpf_extension_dispatch_table_t* client_dispatch_table) {
+        UNREFERENCED_PARAMETER(context);
         UNREFERENCED_PARAMETER(client_id);
         UNREFERENCED_PARAMETER(client_data);
         UNREFERENCED_PARAMETER(client_dispatch_table);
         UNREFERENCED_PARAMETER(client_binding_context);
         return EBPF_ERROR_SUCCESS;
     };
-    auto provider_detach = [](const GUID* client_id) {
+    auto provider_detach = [](void* context, const GUID* client_id) {
+        UNREFERENCED_PARAMETER(context);
         UNREFERENCED_PARAMETER(client_id);
         return EBPF_ERROR_SUCCESS;
     };
@@ -784,6 +873,7 @@ TEST_CASE("extension_test", "[extension_test]")
             nullptr,
             &provider_data,
             &provider_dispatch_table,
+            nullptr,
             provider_attach,
             provider_detach) == EBPF_ERROR_SUCCESS);
 

@@ -208,6 +208,16 @@ Done:
     return return_value;
 }
 
+ebpf_error_code_t
+ebpf_program_get_entry_point(ebpf_program_t* program, ebpf_program_entry_point_t* program_entry_point)
+{
+    if (program->parameters.code_type != EBPF_CODE_NATIVE) {
+        return EBPF_ERROR_INVALID_PARAMETER;
+    }
+    *program_entry_point = (ebpf_program_entry_point_t)program->code_or_vm.code;
+    return EBPF_ERROR_SUCCESS;
+}
+
 void
 ebpf_program_invoke(ebpf_program_t* program, void* context, uint32_t* result)
 {

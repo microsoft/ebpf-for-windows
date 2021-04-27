@@ -4,6 +4,7 @@
  */
 
 #pragma once
+#include "ebpf_protocol.h"
 #include "ebpf_windows.h"
 
 #ifdef __cplusplus
@@ -168,13 +169,6 @@ extern "C"
         ebpf_handle_t handle, ebpf_execution_type_t* program_type, const char** file_name, const char** section_name);
 
     /**
-     * @brief Close a handle to an eBPF map.
-     * @param[in] handle Handle to eBPF map.
-     */
-    void
-    ebpf_api_delete_map(ebpf_handle_t handle);
-
-    /**
      * @brief Get list of programs and stats in an ELF eBPF file.
      * @param[in] file Name of ELF file containing eBPF program.
      * @param[in] section Optionally, the name of the section to query.
@@ -271,6 +265,30 @@ extern "C"
      */
     uint32_t
     ebpf_api_get_pinned_map(const uint8_t* name, uint32_t name_length, ebpf_handle_t* handle);
+
+    /**
+     * @brief Bind a program to an attach point and return a handle representing
+     *  the link.
+     *
+     * @param[in] program_handle Handle to program to attach.
+     * @param[in] attach_type Attach point to attach program to.
+     * @param[out] link_handle Pointer to memory that contains the link handle
+     * on success.
+     * @retval ERROR_SUCCESS The operations succeeded.
+     * @retval ERROR_INVALID_PARAMETER One or more parameters are incorrect.
+     */
+    uint32_t
+    ebpf_api_link_program(ebpf_handle_t program_handle, ebpf_attach_type_t attach_type, ebpf_handle_t* link_handle);
+
+    /**
+     * @brief Close an ebpf handle.
+     *
+     * @param handle Handle to close.
+     * @return ERROR_SUCCESS Handle was closed.
+     * @retval ERROR_INVALID_HANDLE Handle is not valid.
+     */
+    uint32_t
+    ebpf_api_close_handle(ebpf_handle_t handle);
 
 #ifdef __cplusplus
 }
