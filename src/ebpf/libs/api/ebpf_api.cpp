@@ -689,3 +689,27 @@ ebpf_api_delete_map(ebpf_handle_t handle)
     UNREFERENCED_PARAMETER(handle);
     // TODO: Call close handle once the switch to using OB handles
 }
+
+uint32_t
+ebpf_api_link_program(ebpf_handle_t program_handle, ebpf_attach_type_t attach_type, ebpf_handle_t* link_handle)
+{
+    ebpf_operation_link_program_request_t request = { sizeof(request), EBPF_OPERATION_LINK_PROGRAM, reinterpret_cast<uint64_t>(program_handle), attach_type} ;
+    ebpf_operation_link_program_reply_t reply;
+
+    uint32_t retval = invoke_ioctl(device_handle, request, reply);
+    if (retval != ERROR_SUCCESS) {
+        return retval;
+    }
+
+    *link_handle = reinterpret_cast<ebpf_handle_t>(reply.link_handle);
+    return retval;
+}
+
+uint32_t
+ebpf_api_close_handle(ebpf_handle_t handle)
+{
+    ebpf_operation_close_handle_request_t request = {
+        sizeof(request), EBPF_OPERATION_CLOSE_HANDLE, reinterpret_cast<uint64_t>(handle)};
+
+    return invoke_ioctl(device_handle, request);
+}

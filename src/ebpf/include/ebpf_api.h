@@ -5,6 +5,7 @@
 
 #pragma once
 #include "ebpf_windows.h"
+#include "ebpf_protocol.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -271,6 +272,12 @@ extern "C"
      */
     uint32_t
     ebpf_api_get_pinned_map(const uint8_t* name, uint32_t name_length, ebpf_handle_t* handle);
+
+    uint32_t
+    ebpf_api_link_program(ebpf_handle_t program_handle, ebpf_attach_type_t attach_type, ebpf_handle_t* link_handle);
+
+    uint32_t
+    ebpf_api_close_handle(ebpf_handle_t handle);
 
 #ifdef __cplusplus
 }

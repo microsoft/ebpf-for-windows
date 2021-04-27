@@ -7,6 +7,7 @@
 
 #include "ebpf_epoch.h"
 #include "ebpf_handle.h"
+#include "ebpf_link.h"
 #include "ebpf_maps.h"
 #include "ebpf_pinning_table.h"
 #include "ebpf_program.h"
@@ -677,6 +678,46 @@ Done:
     return retval;
 }
 
+static ebpf_error_code_t
+_ebpf_core_protocol_link_program(_In_ const ebpf_operation_link_program_request_t* request, _Inout_ ebpf_operation_link_program_reply_t* reply)
+{
+    ebpf_error_code_t retval;
+    ebpf_program_t* program = NULL;
+    ebpf_link_t* link = NULL;
+
+    retval = ebpf_reference_object_by_handle(request->program_handle, EBPF_OBJECT_PROGRAM, (ebpf_object_t**)&program);
+    if (retval != EBPF_ERROR_SUCCESS)
+        goto Done;
+
+    retval = ebpf_link_create(&link);
+    if (retval != EBPF_ERROR_SUCCESS)
+        goto Done;
+
+    retval = ebpf_link_initialize(link, request->attach_type, NULL, 0);
+    if (retval != EBPF_ERROR_SUCCESS)
+        goto Done;
+
+    retval = ebpf_link_attach_program(link, program);
+    if (retval != EBPF_ERROR_SUCCESS)
+        goto Done;
+
+    retval = ebpf_handle_create(&reply->link_handle, (ebpf_object_t*)link);
+    if (retval != EBPF_ERROR_SUCCESS)
+        goto Done;
+
+Done:
+    ebpf_object_release_reference((ebpf_object_t*)program);
+    ebpf_object_release_reference((ebpf_object_t*)link);
+    return retval;
+}
+
+static ebpf_error_code_t
+_ebpf_core_protocol_close_handle(
+    _In_ const ebpf_operation_close_handle_request_t* request)
+{
+    return ebpf_handle_close(request->handle);
+}
+
 static void*
 _ebpf_core_map_find_element(ebpf_map_t* map, const uint8_t* key)
 {
@@ -719,7 +760,7 @@ typedef struct _ebpf_protocol_handler
     size_t minimum_reply_size;
 } const ebpf_protocol_handler_t;
 
-static ebpf_protocol_handler_t _ebpf_protocol_handlers[EBPF_OPERATION_GET_MAP_PINNING + 1] = {
+static ebpf_protocol_handler_t _ebpf_protocol_handlers[EBPF_OPERATION_CLOSE_HANDLE + 1] = {
     {(ebpf_error_code_t(__cdecl*)(const void*))_ebpf_core_protocol_resolve_helper,
      sizeof(struct _ebpf_operation_resolve_helper_request),
      sizeof(struct _ebpf_operation_resolve_helper_reply)},
@@ -759,6 +800,12 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[EBPF_OPERATION_GET_MAP_PI
     {(ebpf_error_code_t(__cdecl*)(const void*))_ebpf_core_protocol_get_pinned_map,
      sizeof(struct _ebpf_operation_get_map_pinning_request),
      sizeof(struct _ebpf_operation_get_map_pinning_reply)},
+    {(ebpf_error_code_t(__cdecl*)(const void*))_ebpf_core_protocol_link_program,
+     sizeof(ebpf_operation_link_program_request_t),
+     sizeof(ebpf_operation_link_program_reply_t)},
+    {(ebpf_error_code_t(__cdecl*)(const void*))_ebpf_core_protocol_close_handle,
+     sizeof(ebpf_operation_close_handle_request_t),
+     0},
 };
 
 ebpf_error_code_t

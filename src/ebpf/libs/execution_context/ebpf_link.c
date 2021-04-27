@@ -26,7 +26,7 @@ typedef struct _ebpf_link
 } ebpf_link_t;
 
 ebpf_error_code_t
-_ebpf_link_instance_invoke(const ebpf_link_t* link, void* program_context);
+_ebpf_link_instance_invoke(const ebpf_link_t* link, void* program_context, uint32_t* result);
 
 static struct
 {
@@ -137,11 +137,13 @@ ebpf_link_detach_program(ebpf_link_t* link)
 }
 
 ebpf_error_code_t
-_ebpf_link_instance_invoke(const ebpf_link_t* link, void* program_context)
+_ebpf_link_instance_invoke(const ebpf_link_t* link, void* program_context, uint32_t* result)
 {
     ebpf_error_code_t return_value;
-    ebpf_epoch_enter();
-    return_value = link->program_entry_point(program_context);
+    return_value = ebpf_epoch_enter();
+    if (!return_value)
+        return return_value;
+    ebpf_program_invoke(link->program, program_context, result);
     ebpf_epoch_exit();
-    return return_value;
+    return EBPF_ERROR_SUCCESS;
 }
