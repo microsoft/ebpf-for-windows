@@ -14,7 +14,6 @@ typedef struct _ebpf_link
 {
     ebpf_object_t object;
     ebpf_program_t* program;
-    ebpf_program_entry_point_t program_entry_point;
 
     ebpf_attach_type_t attach_type;
     ebpf_extension_data_t* client_data;
@@ -101,7 +100,7 @@ ebpf_link_get_properties(ebpf_link_t* link, uint8_t** hook_properties, size_t* h
 ebpf_error_code_t
 ebpf_link_attach_program(ebpf_link_t* link, ebpf_program_t* program)
 {
-    ebpf_error_code_t return_value;
+    ebpf_error_code_t return_value = EBPF_ERROR_SUCCESS;
     if (link->program) {
         return_value = EBPF_ERROR_INVALID_PARAMETER;
         goto Done;
@@ -110,16 +109,11 @@ ebpf_link_attach_program(ebpf_link_t* link, ebpf_program_t* program)
     link->program = program;
     ebpf_object_acquire_reference((ebpf_object_t*)program);
 
-    return_value = ebpf_program_get_entry_point(program, &(link->program_entry_point));
-    if (return_value != EBPF_ERROR_SUCCESS)
-        goto Done;
-
 Done:
     if (return_value != EBPF_ERROR_SUCCESS) {
         if (link->program == program) {
             ebpf_object_release_reference((ebpf_object_t*)program);
             link->program = NULL;
-            link->program_entry_point = NULL;
         }
     }
     return return_value;
@@ -131,7 +125,6 @@ ebpf_link_detach_program(ebpf_link_t* link)
     if (!link->program)
         return;
 
-    link->program_entry_point = NULL;
     ebpf_object_release_reference((ebpf_object_t*)link->program);
     link->program = NULL;
 }

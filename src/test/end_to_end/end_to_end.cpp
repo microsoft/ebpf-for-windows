@@ -315,7 +315,7 @@ TEST_CASE("droppacket-jit", "[droppacket_jit]")
             &map_handle,
             &error_message) == ERROR_SUCCESS);
 
-    hook.attach(program_handle);
+    REQUIRE(hook.attach(program_handle) == ERROR_SUCCESS);
 
     auto packet = prepare_udp_packet(0);
 
@@ -396,7 +396,7 @@ TEST_CASE("droppacket-interpret", "[droppacket_interpret]")
             &map_handle,
             &error_message) == ERROR_SUCCESS);
 
-    hook.attach(program_handle);
+    REQUIRE(hook.attach(program_handle) == ERROR_SUCCESS);
 
     auto packet = prepare_udp_packet(0);
 
