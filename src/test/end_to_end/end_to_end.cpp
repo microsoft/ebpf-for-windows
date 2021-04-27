@@ -161,12 +161,16 @@ typedef class _single_instance_hook
     {
         ebpf_guid_create(&attach_type);
 
-        ebpf_provider_client_attach_callback_t attach = client_attach_callback;
-        ebpf_provider_client_detach_callback_t detach = client_detach_callback;
-
         REQUIRE(
-            ebpf_provider_load(&provider, &attach_type, NULL, &provider_data, NULL, this, attach, detach) ==
-            EBPF_ERROR_SUCCESS);
+            ebpf_provider_load(
+                &provider,
+                &attach_type,
+                NULL,
+                &provider_data,
+                NULL,
+                this,
+                client_attach_callback,
+                client_detach_callback) == EBPF_ERROR_SUCCESS);
     }
     ~_single_instance_hook() { epbf_provider_unload(provider); }
 

@@ -297,7 +297,7 @@ ebpf_api_load_program(
             ubpf_destroy(vm);
         }
         for (auto& map : _map_file_descriptors) {
-            ebpf_api_delete_map(reinterpret_cast<ebpf_handle_t>(map.handle));
+            ebpf_api_close_handle(reinterpret_cast<ebpf_handle_t>(map.handle));
         }
     });
 
@@ -681,13 +681,6 @@ ebpf_api_program_query_information(
     *section_name = local_section_name;
 
     return retval;
-}
-
-void
-ebpf_api_delete_map(ebpf_handle_t handle)
-{
-    UNREFERENCED_PARAMETER(handle);
-    // TODO: Call close handle once the switch to using OB handles
 }
 
 uint32_t
