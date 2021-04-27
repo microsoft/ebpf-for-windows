@@ -10,9 +10,6 @@ typedef enum _ebpf_operation_id
     EBPF_OPERATION_RESOLVE_HELPER,
     EBPF_OPERATION_RESOLVE_MAP,
     EBPF_OPERATION_LOAD_CODE,
-    EBPF_OPERATION_UNLOAD_CODE,
-    EBPF_OPERATION_ATTACH_CODE,
-    EBPF_OPERATION_DETACH_CODE,
     EBPF_OPERATION_CREATE_MAP,
     EBPF_OPERATION_MAP_FIND_ELEMENT,
     EBPF_OPERATION_MAP_UPDATE_ELEMENT,
@@ -76,24 +73,11 @@ typedef struct _ebpf_operation_load_code_request
     uint8_t data[1];
 } ebpf_operation_load_code_request_t;
 
-typedef struct _ebpf_operation_unload_code_request
-{
-    struct _ebpf_operation_header header;
-    uint64_t handle;
-} ebpf_operation_unload_code_request_t;
-
 typedef struct _ebpf_operation_load_code_reply
 {
     struct _ebpf_operation_header header;
     uint64_t handle;
 } ebpf_operation_load_code_reply_t;
-
-typedef struct _ebpf_operation_attach_detach_request
-{
-    struct _ebpf_operation_header header;
-    uint64_t handle;
-    ebpf_program_type_t hook;
-} ebpf_operation_attach_detach_request_t;
 
 typedef struct _ebpf_operation_create_map_request
 {

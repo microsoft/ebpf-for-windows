@@ -12,6 +12,11 @@ extern "C"
 {
 #endif
 
+    __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_XDP = {
+        0x85e0d8ef, 0x579e, 0x4931, {0xb0, 0x72, 0x8e, 0xe2, 0x26, 0xbb, 0x2e, 0x9d}};
+    __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_BIND = {
+        0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
+
     typedef void* ebpf_handle_t;
     const ebpf_handle_t ebpf_handle_invalid = (ebpf_handle_t)-1;
     typedef struct _tlv_type_length_value tlv_type_length_value_t;
@@ -52,29 +57,6 @@ extern "C"
         uint32_t* count_of_map_handles,
         ebpf_handle_t* map_handles,
         const char** error_message);
-
-    /**
-     * @brief Close a handle to an eBPF program.
-     * @param[in] handle Handle to eBPF program.
-     */
-    void
-    ebpf_api_unload_program(ebpf_handle_t handle);
-
-    /**
-     * @brief Attach an eBPF program to a hook point.
-     * @param[in] handle Handle to eBPF program.
-     * @param[in] hook_point Which hook point to attach to.
-     */
-    uint32_t
-    ebpf_api_attach_program(ebpf_handle_t handle, ebpf_program_type_t hook_point);
-
-    /**
-     * @brief Detach an eBPF program from a hook point.
-     * @param[in] handle Handle to eBPF program.
-     * @param[in] hook_point Which hook point to detach from.
-     */
-    uint32_t
-    ebpf_api_detach_program(ebpf_handle_t handle, ebpf_program_type_t hook_point);
 
     /**
      * @brief Find an element in an eBPF map.

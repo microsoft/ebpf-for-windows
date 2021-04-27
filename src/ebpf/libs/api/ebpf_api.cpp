@@ -465,41 +465,6 @@ ebpf_api_get_pinned_map(const uint8_t* name, uint32_t name_length, ebpf_handle_t
     return result;
 }
 
-void
-ebpf_api_unload_program(ebpf_handle_t handle)
-{
-    _ebpf_operation_unload_code_request request{
-        sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_UNLOAD_CODE, reinterpret_cast<uint64_t>(handle)};
-
-    invoke_ioctl(device_handle, request);
-
-    return;
-}
-
-uint32_t
-ebpf_api_attach_program(ebpf_handle_t handle, ebpf_program_type_t hook_point)
-{
-    _ebpf_operation_attach_detach_request request{
-        sizeof(request),
-        ebpf_operation_id_t::EBPF_OPERATION_ATTACH_CODE,
-        reinterpret_cast<uint64_t>(handle),
-        hook_point};
-
-    return invoke_ioctl(device_handle, request);
-}
-
-uint32_t
-ebpf_api_detach_program(ebpf_handle_t handle, ebpf_program_type_t hook_point)
-{
-    _ebpf_operation_attach_detach_request request{
-        sizeof(request),
-        ebpf_operation_id_t::EBPF_OPERATION_DETACH_CODE,
-        reinterpret_cast<uint64_t>(handle),
-        hook_point};
-
-    return invoke_ioctl(device_handle, request);
-}
-
 uint32_t
 ebpf_api_map_find_element(
     ebpf_handle_t handle, uint32_t key_size, const uint8_t* key, uint32_t value_size, uint8_t* value)

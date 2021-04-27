@@ -528,7 +528,7 @@ get_bind_count_for_pid(ebpf_handle_t handle, uint64_t pid)
 }
 
 ebpf::bind_action_t
-emulate_bind(uint64_t pid, const char* appid)
+emulate_bind(single_instance_hook_t& hook, uint64_t pid, const char* appid)
 {
     uint32_t result;
     std::string app_id = appid;
@@ -537,19 +537,19 @@ emulate_bind(uint64_t pid, const char* appid)
     ctx.app_id_end = const_cast<char*>(app_id.c_str()) + app_id.size();
     ctx.process_id = pid;
     ctx.operation = ebpf::BIND_OPERATION_BIND;
-    REQUIRE(ebpf_core_invoke_hook(EBPF_PROGRAM_TYPE_BIND, &ctx, &result) == EBPF_ERROR_SUCCESS);
+    REQUIRE(hook.fire(&ctx, &result) == EBPF_ERROR_SUCCESS);
     return static_cast<ebpf::bind_action_t>(result);
 }
 
 void
-emulate_unbind(uint64_t pid, const char* appid)
+emulate_unbind(single_instance_hook_t& hook, uint64_t pid, const char* appid)
 {
     uint32_t result;
     std::string app_id = appid;
     ebpf::bind_md_t ctx{0};
     ctx.process_id = pid;
     ctx.operation = ebpf::BIND_OPERATION_UNBIND;
-    REQUIRE(ebpf_core_invoke_hook(EBPF_PROGRAM_TYPE_BIND, &ctx, &result) == EBPF_ERROR_SUCCESS);
+    REQUIRE(hook.fire(&ctx, &result) == EBPF_ERROR_SUCCESS);
 }
 
 void
@@ -599,6 +599,8 @@ TEST_CASE("bindmonitor-interpret", "[bindmonitor_interpret]")
             map_handles,
             &error_message) == ERROR_SUCCESS);
     REQUIRE(error_message == NULL);
+
+    single_instance_hook_t hook;
 
     std::string process_maps_name = "bindmonitor::process_maps";
     std::string limit_maps_name = "bindmonitor::limits_map";
@@ -657,37 +659,37 @@ TEST_CASE("bindmonitor-interpret", "[bindmonitor_interpret]")
     REQUIRE(ebpf_api_get_next_map(handle_iterator, &handle_iterator) == ERROR_SUCCESS);
     REQUIRE(handle_iterator == INVALID_HANDLE_VALUE);
 
-    REQUIRE(ebpf_api_attach_program(program_handle, EBPF_PROGRAM_TYPE_BIND) == ERROR_SUCCESS);
+    hook.attach(program_handle);
 
     // Apply policy of maximum 2 binds per process
     set_bind_limit(map_handles[1], 2);
 
     // Bind first port - success
-    REQUIRE(emulate_bind(fake_pid, "fake_app_1") == ebpf::BIND_PERMIT);
+    REQUIRE(emulate_bind(hook, fake_pid, "fake_app_1") == ebpf::BIND_PERMIT);
     REQUIRE(get_bind_count_for_pid(map_handles[0], fake_pid) == 1);
 
     // Bind second port - success
-    REQUIRE(emulate_bind(fake_pid, "fake_app_1") == ebpf::BIND_PERMIT);
+    REQUIRE(emulate_bind(hook, fake_pid, "fake_app_1") == ebpf::BIND_PERMIT);
     REQUIRE(get_bind_count_for_pid(map_handles[0], fake_pid) == 2);
 
     // Bind third port - blocked
-    REQUIRE(emulate_bind(fake_pid, "fake_app_1") == ebpf::BIND_DENY);
+    REQUIRE(emulate_bind(hook, fake_pid, "fake_app_1") == ebpf::BIND_DENY);
     REQUIRE(get_bind_count_for_pid(map_handles[0], fake_pid) == 2);
 
     // Unbind second port
-    emulate_unbind(fake_pid, "fake_app_1");
+    emulate_unbind(hook, fake_pid, "fake_app_1");
     REQUIRE(get_bind_count_for_pid(map_handles[0], fake_pid) == 1);
 
     // Unbind first port
-    emulate_unbind(fake_pid, "fake_app_1");
+    emulate_unbind(hook, fake_pid, "fake_app_1");
     REQUIRE(get_bind_count_for_pid(map_handles[0], fake_pid) == 0);
 
     // Bind from two apps to test enumeration
-    REQUIRE(emulate_bind(fake_pid, "fake_app_1") == ebpf::BIND_PERMIT);
+    REQUIRE(emulate_bind(hook, fake_pid, "fake_app_1") == ebpf::BIND_PERMIT);
     REQUIRE(get_bind_count_for_pid(map_handles[0], fake_pid) == 1);
 
     fake_pid = 54321;
-    REQUIRE(emulate_bind(fake_pid, "fake_app_2") == ebpf::BIND_PERMIT);
+    REQUIRE(emulate_bind(hook, fake_pid, "fake_app_2") == ebpf::BIND_PERMIT);
     REQUIRE(get_bind_count_for_pid(map_handles[0], fake_pid) == 1);
 
     uint64_t pid;
@@ -704,6 +706,8 @@ TEST_CASE("bindmonitor-interpret", "[bindmonitor_interpret]")
         ebpf_api_get_next_map_key(
             map_handles[0], sizeof(uint64_t), reinterpret_cast<uint8_t*>(&pid), reinterpret_cast<uint8_t*>(&pid)) ==
         ERROR_NO_MORE_ITEMS);
+
+    hook.detach();
 }
 
 TEST_CASE("enumerate_and_query_programs", "[enumerate_and_query_programs]")

@@ -23,9 +23,6 @@ static ebpf_extension_provider_t* _ebpf_global_helper_function_provider_context 
 
 static ebpf_pinning_table_t* _ebpf_core_map_pinning_table = NULL;
 
-static ebpf_lock_t _ebpf_core_hook_table_lock = {0};
-static ebpf_program_t* _ebpf_core_hook_table[EBPF_PROGRAM_TYPE_BIND + 1] = {0};
-
 // Assume enabled until we can query it
 static ebpf_code_integrity_state_t _ebpf_core_code_integrity_state = EBPF_CODE_INTEGRITY_HYPER_VISOR_KERNEL_MODE;
 
@@ -44,37 +41,6 @@ static const void* _ebpf_program_helpers[] = {
     (void*)&_ebpf_core_map_find_element,
     (void*)&_ebpf_core_map_update_element,
     (void*)&_ebpf_core_map_delete_element};
-
-static ebpf_error_code_t
-_ebpf_core_set_hook_entry(ebpf_program_t* code, ebpf_program_type_t program_type)
-{
-    ebpf_lock_state_t state;
-    if (program_type > EBPF_PROGRAM_TYPE_BIND || program_type <= EBPF_PROGRAM_TYPE_UNSPECIFIED) {
-        return EBPF_ERROR_INVALID_PARAMETER;
-    }
-    ebpf_lock_lock(&_ebpf_core_hook_table_lock, &state);
-    if (_ebpf_core_hook_table[program_type])
-        ebpf_object_release_reference((ebpf_object_t*)_ebpf_core_hook_table[program_type]);
-    _ebpf_core_hook_table[program_type] = code;
-    if (_ebpf_core_hook_table[program_type])
-        ebpf_object_acquire_reference((ebpf_object_t*)_ebpf_core_hook_table[program_type]);
-    ebpf_lock_unlock(&_ebpf_core_hook_table_lock, &state);
-    return EBPF_ERROR_SUCCESS;
-}
-
-static ebpf_program_t*
-_ebpf_core_get_hook_entry(ebpf_program_type_t program_type)
-{
-    ebpf_program_t* code = NULL;
-    ebpf_lock_state_t state;
-    if (program_type > EBPF_PROGRAM_TYPE_BIND || program_type <= EBPF_PROGRAM_TYPE_UNSPECIFIED) {
-        return NULL;
-    }
-    ebpf_lock_lock(&_ebpf_core_hook_table_lock, &state);
-    code = _ebpf_core_hook_table[program_type];
-    ebpf_lock_unlock(&_ebpf_core_hook_table_lock, &state);
-    return code;
-}
 
 ebpf_error_code_t
 ebpf_core_initiate()
@@ -96,8 +62,6 @@ ebpf_core_initiate()
     return_value = ebpf_handle_table_initiate();
     if (return_value != EBPF_ERROR_SUCCESS)
         goto Done;
-
-    ebpf_lock_create(&_ebpf_core_hook_table_lock);
 
     _ebpf_global_helper_function_dispatch_table = ebpf_allocate(
         EBPF_OFFSET_OF(ebpf_extension_dispatch_table_t, function) + sizeof(_ebpf_program_helpers),
@@ -152,65 +116,6 @@ ebpf_core_terminate()
     ebpf_epoch_terminate();
 
     ebpf_platform_terminate();
-}
-
-static ebpf_error_code_t
-_ebpf_core_protocol_attach_code(_In_ const struct _ebpf_operation_attach_detach_request* request)
-{
-    ebpf_error_code_t retval = EBPF_ERROR_NOT_FOUND;
-    ebpf_program_t* program = NULL;
-
-    retval = ebpf_reference_object_by_handle(request->handle, EBPF_OBJECT_PROGRAM, (ebpf_object_t**)&program);
-    if (retval != EBPF_ERROR_SUCCESS)
-        goto Done;
-
-    switch (request->hook) {
-    case EBPF_PROGRAM_TYPE_XDP:
-    case EBPF_PROGRAM_TYPE_BIND:
-        break;
-    default:
-        retval = EBPF_ERROR_INVALID_PARAMETER;
-        goto Done;
-    }
-
-    _ebpf_core_set_hook_entry(program, request->hook);
-    retval = EBPF_ERROR_SUCCESS;
-
-Done:
-    ebpf_object_release_reference((ebpf_object_t*)program);
-    return retval;
-}
-
-static ebpf_error_code_t
-_ebpf_core_protocol_detach_code(_In_ const struct _ebpf_operation_attach_detach_request* request)
-{
-    ebpf_error_code_t retval = EBPF_ERROR_NOT_FOUND;
-    ebpf_program_t* program = NULL;
-    ebpf_program_parameters_t parameters;
-
-    retval = ebpf_reference_object_by_handle(request->handle, EBPF_OBJECT_PROGRAM, (ebpf_object_t**)&program);
-    if (retval != EBPF_ERROR_SUCCESS)
-        goto Done;
-
-    retval = ebpf_program_get_properties(program, &parameters);
-    if (retval != EBPF_ERROR_SUCCESS)
-        goto Done;
-
-    _ebpf_core_set_hook_entry(NULL, parameters.program_type);
-
-    retval = EBPF_ERROR_SUCCESS;
-
-Done:
-    ebpf_object_release_reference((ebpf_object_t*)program);
-
-    return retval;
-}
-
-static ebpf_error_code_t
-_ebpf_core_protocol_unload_code(_In_ const struct _ebpf_operation_unload_code_request* request)
-{
-    ebpf_handle_close(request->handle);
-    return EBPF_ERROR_SUCCESS;
 }
 
 static ebpf_error_code_t
@@ -349,25 +254,6 @@ _ebpf_core_protocol_resolve_map(
 
 Done:
     return return_value;
-}
-
-ebpf_error_code_t
-ebpf_core_invoke_hook(ebpf_program_type_t hook_point, _Inout_ void* context, _Inout_ uint32_t* result)
-{
-    ebpf_error_code_t retval;
-    ebpf_program_t* program = NULL;
-
-    retval = ebpf_epoch_enter();
-    if (retval != EBPF_ERROR_SUCCESS)
-        return retval;
-
-    program = _ebpf_core_get_hook_entry(hook_point);
-    if (program) {
-        ebpf_program_invoke(program, context, result);
-    }
-
-    ebpf_epoch_exit();
-    return EBPF_ERROR_SUCCESS;
 }
 
 static ebpf_error_code_t
@@ -771,9 +657,6 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[EBPF_OPERATION_CLOSE_HAND
     {(ebpf_error_code_t(__cdecl*)(const void*))_ebpf_core_protocol_load_code,
      sizeof(struct _ebpf_operation_load_code_request),
      sizeof(struct _ebpf_operation_load_code_reply)},
-    {_ebpf_core_protocol_unload_code, sizeof(struct _ebpf_operation_unload_code_request), 0},
-    {_ebpf_core_protocol_attach_code, sizeof(struct _ebpf_operation_attach_detach_request), 0},
-    {_ebpf_core_protocol_detach_code, sizeof(struct _ebpf_operation_attach_detach_request), 0},
     {(ebpf_error_code_t(__cdecl*)(const void*))_ebpf_core_protocol_create_map,
      sizeof(struct _ebpf_operation_create_map_request),
      sizeof(struct _ebpf_operation_create_map_reply)},
