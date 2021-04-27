@@ -29,6 +29,7 @@ typedef struct _ebpf_extension_provider
     const ebpf_extension_data_t* provider_data;
     const ebpf_extension_dispatch_table_t* provider_dispatch_table;
     HANDLE nmr_provider_handle;
+    void* callback_context;
     ebpf_provider_client_attach_callback_t client_attach_callback;
     ebpf_provider_client_detach_callback_t client_detach_callback;
 } ebpf_extension_provider_t;
@@ -36,6 +37,7 @@ typedef struct _ebpf_extension_provider
 typedef struct _ebpf_extension_provider_binding_context
 {
     GUID client_id;
+    void* callback_context;
     ebpf_provider_client_detach_callback_t client_detach_callback;
 } ebpf_extension_provider_binding_context;
 
@@ -214,10 +216,12 @@ _ebpf_extension_provider_attach_client(
     }
 
     local_provider_binding_context->client_id = client_registration_instance->ModuleId->Guid;
+    local_provider_binding_context->callback_context = local_provider_context->callback_context;
     local_provider_binding_context->client_detach_callback = local_provider_context->client_detach_callback;
 
     if (local_provider_context->client_attach_callback) {
         return_value = local_provider_context->client_attach_callback(
+            local_provider_context->callback_context,
             client_binding_context,
             &local_provider_binding_context->client_id,
             (const ebpf_extension_data_t*)client_registration_instance->NpiSpecificCharacteristics,
@@ -246,7 +250,8 @@ _ebpf_extension_provider_detach_client(void* provider_binding_context)
         (ebpf_extension_provider_binding_context*)provider_binding_context;
 
     if (local_provider_binding_context->client_detach_callback)
-        local_provider_binding_context->client_detach_callback(&local_provider_binding_context->client_id);
+        local_provider_binding_context->client_detach_callback(
+            local_provider_binding_context->callback_context, &local_provider_binding_context->client_id);
 
     return STATUS_SUCCESS;
 }
@@ -264,6 +269,7 @@ ebpf_provider_load(
     void* provider_binding_context,
     const ebpf_extension_data_t* provider_data,
     const ebpf_extension_dispatch_table_t* provider_dispatch_table,
+    void* callback_context,
     ebpf_provider_client_attach_callback_t client_attach_callback,
     ebpf_provider_client_detach_callback_t client_detach_callback)
 {
@@ -288,6 +294,7 @@ ebpf_provider_load(
     local_provider_context->provider_id.Length = sizeof(local_provider_context->provider_id);
     local_provider_context->provider_id.Type = MIT_GUID;
     local_provider_context->provider_dispatch_table = provider_dispatch_table;
+    local_provider_context->callback_context = callback_context;
     local_provider_context->client_attach_callback = client_attach_callback;
     local_provider_context->client_detach_callback = client_detach_callback;
 

@@ -19,6 +19,7 @@ typedef struct _ebpf_extension_provider
     void* provider_binding_context;
     const ebpf_extension_data_t* provider_data;
     const ebpf_extension_dispatch_table_t* provider_dispatch_table;
+    void* callback_context;
     ebpf_provider_client_attach_callback_t client_attach_callback;
     ebpf_provider_client_detach_callback_t client_detach_callback;
     ebpf_hash_table_t* client_table;
@@ -82,8 +83,9 @@ ebpf_extension_load(
 
     if (local_extension_provider->client_attach_callback) {
         return_value = local_extension_provider->client_attach_callback(
-            local_extension_client->client_binding_context,
+            local_extension_provider->callback_context,
             &local_extension_client->client_id,
+            local_extension_client->client_binding_context,
             client_data,
             client_dispatch_table);
         if (return_value != EBPF_ERROR_SUCCESS) {
@@ -133,7 +135,8 @@ ebpf_extension_unload(ebpf_extension_client_t* client_context)
     local_extension_provider = *hash_table_find_result;
 
     if (local_extension_provider->client_detach_callback) {
-        local_extension_provider->client_detach_callback(&client_context->client_id);
+        local_extension_provider->client_detach_callback(
+            local_extension_provider->callback_context, &client_context->client_id);
     }
     ebpf_hash_table_delete(local_extension_provider->client_table, (const uint8_t*)&client_context->client_id);
 
@@ -149,6 +152,7 @@ ebpf_provider_load(
     void* provider_binding_context,
     const ebpf_extension_data_t* provider_data,
     const ebpf_extension_dispatch_table_t* provider_dispatch_table,
+    void* callback_context,
     ebpf_provider_client_attach_callback_t client_attach_callback,
     ebpf_provider_client_detach_callback_t client_detach_callback)
 {
@@ -183,6 +187,7 @@ ebpf_provider_load(
     local_extension_provider->provider_binding_context = provider_binding_context;
     local_extension_provider->provider_data = provider_data;
     local_extension_provider->provider_dispatch_table = provider_dispatch_table;
+    local_extension_provider->callback_context = callback_context;
     local_extension_provider->client_attach_callback = client_attach_callback;
     local_extension_provider->client_detach_callback = client_detach_callback;
 

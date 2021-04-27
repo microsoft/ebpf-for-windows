@@ -141,7 +141,7 @@ _ebpf_link_instance_invoke(const ebpf_link_t* link, void* program_context, uint3
 {
     ebpf_error_code_t return_value;
     return_value = ebpf_epoch_enter();
-    if (!return_value)
+    if (return_value != EBPF_ERROR_SUCCESS)
         return return_value;
     ebpf_program_invoke(link->program, program_context, result);
     ebpf_epoch_exit();

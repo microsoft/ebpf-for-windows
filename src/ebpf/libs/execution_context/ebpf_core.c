@@ -120,6 +120,7 @@ ebpf_core_initiate()
         NULL,
         _ebpf_global_helper_function_dispatch_table,
         NULL,
+        NULL,
         NULL);
 
     if (return_value != EBPF_ERROR_SUCCESS) {
@@ -679,7 +680,8 @@ Done:
 }
 
 static ebpf_error_code_t
-_ebpf_core_protocol_link_program(_In_ const ebpf_operation_link_program_request_t* request, _Inout_ ebpf_operation_link_program_reply_t* reply)
+_ebpf_core_protocol_link_program(
+    _In_ const ebpf_operation_link_program_request_t* request, _Inout_ ebpf_operation_link_program_reply_t* reply)
 {
     ebpf_error_code_t retval;
     ebpf_program_t* program = NULL;
@@ -712,8 +714,7 @@ Done:
 }
 
 static ebpf_error_code_t
-_ebpf_core_protocol_close_handle(
-    _In_ const ebpf_operation_close_handle_request_t* request)
+_ebpf_core_protocol_close_handle(_In_ const ebpf_operation_close_handle_request_t* request)
 {
     return ebpf_handle_close(request->handle);
 }
@@ -815,7 +816,7 @@ ebpf_core_get_protocol_handler_properties(
     *minimum_request_size = 0;
     *minimum_reply_size = 0;
 
-    if (operation_id > EBPF_OPERATION_GET_MAP_PINNING || operation_id < EBPF_OPERATION_RESOLVE_HELPER)
+    if (operation_id > EBPF_OPERATION_CLOSE_HANDLE || operation_id < EBPF_OPERATION_RESOLVE_HELPER)
         return EBPF_ERROR_NOT_SUPPORTED;
 
     if (!_ebpf_protocol_handlers[operation_id].dispatch.protocol_handler_no_reply)
@@ -835,7 +836,7 @@ ebpf_core_invoke_protocol_handler(
 {
     ebpf_error_code_t retval;
 
-    if (operation_id > EBPF_OPERATION_GET_MAP_PINNING || operation_id < EBPF_OPERATION_RESOLVE_HELPER) {
+    if (operation_id > EBPF_OPERATION_CLOSE_HANDLE || operation_id < EBPF_OPERATION_RESOLVE_HELPER) {
         return EBPF_ERROR_NOT_SUPPORTED;
     }
 

@@ -472,12 +472,13 @@ extern "C"
     ebpf_extension_unload(ebpf_extension_client_t* client_context);
 
     typedef ebpf_error_code_t (*ebpf_provider_client_attach_callback_t)(
+        void* context,
         const GUID* client_id,
         void* client_binding_context,
         const ebpf_extension_data_t* client_data,
         const ebpf_extension_dispatch_table_t* client_dispatch_table);
 
-    typedef ebpf_error_code_t (*ebpf_provider_client_detach_callback_t)(const GUID* client_id);
+    typedef ebpf_error_code_t (*ebpf_provider_client_detach_callback_t)(void* context, const GUID* client_id);
 
     /**
      * @brief Register as an extension provider.
@@ -502,6 +503,7 @@ extern "C"
         void* provider_binding_context,
         const ebpf_extension_data_t* provider_data,
         const ebpf_extension_dispatch_table_t* provider_dispatch_table,
+        void* callback_context,
         ebpf_provider_client_attach_callback_t client_attach_callback,
         ebpf_provider_client_detach_callback_t client_detach_callback);
 
