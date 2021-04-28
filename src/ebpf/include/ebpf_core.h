@@ -36,19 +36,6 @@ extern "C"
     ebpf_core_terminate();
 
     /**
-     * @brief Invoke any programs attached to this eBPF hook point.
-     *
-     * @param[in] hook_point eBPF hook point to invoke.
-     * @param[in] context Opaque pointer passed to eBPF program.
-     * @param[out] result Value returned from the eBPF program.
-     * @retval EBPF_ERROR_SUCCESS The operation was successful.
-     * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
-     *  operation.
-     */
-    ebpf_error_code_t
-    ebpf_core_invoke_hook(ebpf_program_type_t hook_point, _Inout_ void* context, _Inout_ uint32_t* result);
-
-    /**
      * @brief Invoke an operations on the eBPF execution context that was issued
      *  by the user mode library.
      *

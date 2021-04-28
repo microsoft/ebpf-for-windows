@@ -152,6 +152,7 @@ ebpf_extension_load(
     }
 
     if (!local_client_context->provider_is_attached) {
+        ebpf_extension_unload(local_client_context);
         return_value = EBPF_ERROR_EXTENSION_FAILED_TO_LOAD;
         goto Done;
     }
@@ -222,8 +223,8 @@ _ebpf_extension_provider_attach_client(
     if (local_provider_context->client_attach_callback) {
         return_value = local_provider_context->client_attach_callback(
             local_provider_context->callback_context,
-            client_binding_context,
             &local_provider_binding_context->client_id,
+            client_binding_context,
             (const ebpf_extension_data_t*)client_registration_instance->NpiSpecificCharacteristics,
             (const ebpf_extension_dispatch_table_t*)client_dispatch);
 

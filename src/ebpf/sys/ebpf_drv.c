@@ -107,6 +107,8 @@ _Function_class_(EVT_WDF_DRIVER_UNLOAD) _IRQL_requires_same_
 
     _driver_unloading_flag = TRUE;
 
+    ebpf_hook_unregister_providers();
+
     ebpf_hook_unregister_callouts();
 
     ebpf_core_terminate();
@@ -196,6 +198,11 @@ EbpfCoreInitDriverObjects(
     }
 
     status = ebpf_error_code_to_ntstatus(ebpf_core_initiate());
+    if (!NT_SUCCESS(status)) {
+        goto Exit;
+    }
+
+    status = ebpf_hook_register_providers();
     if (!NT_SUCCESS(status)) {
         goto Exit;
     }

@@ -16,6 +16,7 @@
 #include <iomanip>
 
 static ebpf_handle_t _program_handle = INVALID_HANDLE_VALUE;
+static ebpf_handle_t _link_handle = INVALID_HANDLE_VALUE;
 static ebpf_handle_t _map_handles[10];
 
 typedef enum
@@ -42,6 +43,12 @@ static TOKEN_VALUE _ebpf_execution_type_enum[] = {
     {L"jit", EBPF_EXECUTION_JIT},
     {L"interpret", EBPF_EXECUTION_INTERPRET},
 
+};
+
+GUID _ebpf_attach_type_guids[] = {
+    EBPF_ATTACH_TYPE_UNSPECIFIED,
+    EBPF_ATTACH_TYPE_XDP,
+    EBPF_ATTACH_TYPE_BIND,
 };
 
 std::string
@@ -118,11 +125,8 @@ handle_ebpf_add_program(
         return status;
     }
 
-    if (_program_handle != INVALID_HANDLE_VALUE) {
-        ebpf_api_detach_program(_program_handle, type);
-        ebpf_api_unload_program(_program_handle);
-        _program_handle = INVALID_HANDLE_VALUE;
-    }
+    ebpf_api_close_handle(_link_handle);
+    ebpf_api_close_handle(_program_handle);
 
     const char* error_message = nullptr;
     uint32_t count_of_map_handles = sizeof(_map_handles);
@@ -144,7 +148,7 @@ handle_ebpf_add_program(
         return ERROR_SUPPRESS_OUTPUT;
     }
 
-    status = ebpf_api_attach_program(_program_handle, type);
+    status = ebpf_api_link_program(_program_handle, _ebpf_attach_type_guids[type], &_link_handle);
     if (status != ERROR_SUCCESS) {
         std::cerr << "error " << status << ": could not attach program" << std::endl;
         return ERROR_SUPPRESS_OUTPUT;
@@ -190,11 +194,8 @@ handle_ebpf_delete_program(
         }
     }
 
-    if (_program_handle != INVALID_HANDLE_VALUE) {
-        ebpf_api_detach_program(_program_handle, EBPF_PROGRAM_TYPE_XDP);
-        ebpf_api_unload_program(_program_handle);
-        _program_handle = INVALID_HANDLE_VALUE;
-    }
+    ebpf_api_close_handle(_link_handle);
+    ebpf_api_close_handle(_program_handle);
 
     // TODO: delete program
     return ERROR_SUCCESS;

@@ -80,7 +80,7 @@ ebpf_program_initialize(ebpf_program_t* program, const ebpf_program_parameters_t
     return_value = ebpf_extension_load(
         &program->global_helper_extension_client,
         &ebpf_global_helper_function_interface_id,
-        NULL,
+        program,
         NULL,
         NULL,
         &provider_binding_context,

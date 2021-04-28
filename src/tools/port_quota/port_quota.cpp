@@ -21,6 +21,7 @@ int
 load(int argc, char** argv)
 {
     ebpf_handle_t program;
+    ebpf_handle_t link;
     ebpf_handle_t maps[2];
     uint32_t map_count = _countof(maps);
     const char* error_message = NULL;
@@ -34,7 +35,7 @@ load(int argc, char** argv)
         return 1;
     }
 
-    result = ebpf_api_attach_program(program, ebpf_program_type::EBPF_PROGRAM_TYPE_BIND);
+    result = ebpf_api_link_program(program, EBPF_ATTACH_TYPE_BIND, &link);
     if (result != ERROR_SUCCESS) {
         fprintf(stderr, "Failed to attach eBPF program\n");
         return 1;

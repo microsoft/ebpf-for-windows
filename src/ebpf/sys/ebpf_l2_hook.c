@@ -15,25 +15,23 @@ Environment:
     Kernel mode
 
 --*/
-
-#include <ntddk.h>
-
-#pragma warning(push)
-#pragma warning(disable : 4201) // unnamed struct/union
-
-#include <fwpsk.h>
-
-#pragma warning(pop)
-
-#include <fwpmk.h>
-#include <netiodef.h>
+#define INITGUID
 
 #include "ebpf_l2_hook.h"
 
-#define INITGUID
-#include "ebpf_core.h"
-#include "ebpf_windows.h"
+#pragma warning(push)
+#pragma warning(disable : 4201) // unnamed struct/union
+#include <fwpsk.h>
+#pragma warning(pop)
+
+#include <fwpmk.h>
 #include <guiddef.h>
+#include <netiodef.h>
+#include <ntddk.h>
+
+#include "ebpf_core.h"
+#include "ebpf_platform.h"
+#include "ebpf_windows.h"
 
 // XDP like hook
 typedef struct _xdp_md
@@ -80,6 +78,19 @@ typedef enum _bind_action
 
 typedef DWORD(__stdcall* bind_hook_function)(PVOID);
 
+typedef struct _ebpf_hook_provider_registration
+{
+    ebpf_extension_data_t* provider_data;
+    ebpf_extension_provider_t* provider;
+    GUID client_id;
+    void* client_binding_context;
+    const ebpf_extension_data_t* client_data;
+    const ebpf_error_code_t (*invoke_hook)(void* bind_context, void* context, uint32_t* result);
+} ebpf_hook_provider_registration;
+
+static ebpf_hook_provider_registration _ebpf_xdp_hook_provider_registration = {0};
+static ebpf_hook_provider_registration _ebpf_bind_hook_provider_registration = {0};
+
 #define RTL_COUNT_OF(arr) (sizeof(arr) / sizeof(arr[0]))
 
 // Callout and sublayer GUIDs
@@ -112,6 +123,12 @@ DEFINE_GUID(
 // d5792949-2d91-4023-9993-3f3dd9d54b2b
 DEFINE_GUID(
     EBPF_HOOK_ALE_RESOURCE_RELEASE_CALLOUT, 0xd5792949, 0x2d91, 0x4023, 0x99, 0x93, 0x3f, 0x3d, 0xd9, 0xd5, 0x4b, 0x2b);
+
+// 85e0d8ef-579e-4931-b072-8ee226bb2e9d
+DEFINE_GUID(EBPF_ATTACH_TYPE_XDP, 0x85e0d8ef, 0x579e, 0x4931, 0xb0, 0x72, 0x8e, 0xe2, 0x26, 0xbb, 0x2e, 0x9d);
+
+// b9707e04-8127-4c72-833e-05b1fb439496
+DEFINE_GUID(EBPF_ATTACH_TYPE_BIND, 0xb9707e04, 0x8127, 0x4c72, 0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96);
 
 static void
 ebpf_hook_layer_2_classify(
@@ -428,6 +445,9 @@ ebpf_hook_layer_2_classify(
     uint8_t* packet_buffer;
     uint32_t result = 0;
 
+    if (!_ebpf_xdp_hook_provider_registration.invoke_hook)
+        goto done;
+
     if (nbl == NULL) {
         KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "Null nbl \n"));
         goto done;
@@ -444,7 +464,8 @@ ebpf_hook_layer_2_classify(
 
     xdp_md_t ctx = {(uint64_t)packet_buffer, (uint64_t)packet_buffer + net_buffer->DataLength};
 
-    if (ebpf_core_invoke_hook(EBPF_PROGRAM_TYPE_XDP, &ctx, &result) == EBPF_ERROR_SUCCESS) {
+    if (_ebpf_xdp_hook_provider_registration.invoke_hook(
+            _ebpf_xdp_hook_provider_registration.client_binding_context, &ctx, &result) == EBPF_ERROR_SUCCESS) {
         switch (result) {
         case XDP_PASS:
             action = FWP_ACTION_PERMIT;
@@ -498,6 +519,11 @@ ebpf_hook_resource_allocation_classify(
     UNREFERENCED_PARAMETER(filter);
     UNREFERENCED_PARAMETER(flow_context);
 
+    if (!_ebpf_bind_hook_provider_registration.invoke_hook) {
+        classify_output->actionType = FWP_ACTION_PERMIT;
+        return;
+    }
+
     addr.sin_port =
         incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_IP_LOCAL_PORT].value.uint16;
     addr.sin_addr.S_un.S_addr =
@@ -515,7 +541,8 @@ ebpf_hook_resource_allocation_classify(
         incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_ALE_APP_ID].value.byteBlob->size;
 
     ebpf_hook_resource_truncate_appid(&ctx);
-    if (ebpf_core_invoke_hook(EBPF_PROGRAM_TYPE_BIND, &ctx, &result) == EBPF_ERROR_SUCCESS) {
+    if (_ebpf_bind_hook_provider_registration.invoke_hook(
+            _ebpf_bind_hook_provider_registration.client_binding_context, &ctx, &result) == EBPF_ERROR_SUCCESS) {
         switch (result) {
         case BIND_PERMIT:
         case BIND_REDIRECT:
@@ -553,6 +580,11 @@ ebpf_hook_resource_release_classify(
     UNREFERENCED_PARAMETER(filter);
     UNREFERENCED_PARAMETER(flow_context);
 
+    if (!_ebpf_bind_hook_provider_registration.invoke_hook) {
+        classify_output->actionType = FWP_ACTION_PERMIT;
+        return;
+    }
+
     addr.sin_port = incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_RELEASE_V4_IP_LOCAL_PORT].value.uint16;
     addr.sin_addr.S_un.S_addr =
         incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_RELEASE_V4_IP_LOCAL_ADDRESS].value.uint32;
@@ -569,7 +601,8 @@ ebpf_hook_resource_release_classify(
         incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_RELEASE_V4_ALE_APP_ID].value.byteBlob->size;
 
     ebpf_hook_resource_truncate_appid(&ctx);
-    ebpf_core_invoke_hook(EBPF_PROGRAM_TYPE_BIND, &ctx, &result);
+    _ebpf_bind_hook_provider_registration.invoke_hook(
+        _ebpf_bind_hook_provider_registration.client_binding_context, &ctx, &result);
 
     classify_output->actionType = FWP_ACTION_PERMIT;
 
@@ -599,4 +632,79 @@ ebpf_hook_no_op_flow_delete(uint16_t layer_id, uint32_t fwpm_callout_id, uint64_
     UNREFERENCED_PARAMETER(fwpm_callout_id);
     UNREFERENCED_PARAMETER(flow_context);
     return;
+}
+
+ebpf_error_code_t
+_ebpf_provider_client_attach_callback(
+    void* context,
+    const GUID* client_id,
+    void* client_binding_context,
+    const ebpf_extension_data_t* client_data,
+    const ebpf_extension_dispatch_table_t* client_dispatch_table)
+{
+    ebpf_hook_provider_registration* hook_registration = (ebpf_hook_provider_registration*)context;
+    if (hook_registration->client_binding_context)
+        return EBPF_ERROR_EXTENSION_FAILED_TO_LOAD;
+
+    hook_registration->client_binding_context = client_binding_context;
+    hook_registration->client_id = *client_id;
+    hook_registration->client_data = client_data;
+    hook_registration->invoke_hook =
+        (const ebpf_error_code_t(__cdecl*)(void*, void*, UINT32*))client_dispatch_table->function[0];
+
+    return EBPF_ERROR_SUCCESS;
+}
+
+ebpf_error_code_t
+_ebpf_provider_client_detach_callback(void* context, const GUID* client_id)
+{
+    ebpf_hook_provider_registration* hook_registration = (ebpf_hook_provider_registration*)context;
+    UNREFERENCED_PARAMETER(client_id);
+    hook_registration->client_binding_context = NULL;
+    hook_registration->client_data = NULL;
+
+    return EBPF_ERROR_SUCCESS;
+}
+
+NTSTATUS
+ebpf_hook_register_providers()
+{
+    ebpf_error_code_t return_value;
+    return_value = ebpf_provider_load(
+        &_ebpf_xdp_hook_provider_registration.provider,
+        &EBPF_ATTACH_TYPE_XDP,
+        &_ebpf_xdp_hook_provider_registration,
+        _ebpf_xdp_hook_provider_registration.provider_data,
+        NULL,
+        &_ebpf_xdp_hook_provider_registration,
+        _ebpf_provider_client_attach_callback,
+        _ebpf_provider_client_detach_callback);
+
+    if (return_value != EBPF_ERROR_SUCCESS) {
+        goto Done;
+    }
+
+    return_value = ebpf_provider_load(
+        &_ebpf_bind_hook_provider_registration.provider,
+        &EBPF_ATTACH_TYPE_BIND,
+        &_ebpf_bind_hook_provider_registration,
+        _ebpf_bind_hook_provider_registration.provider_data,
+        NULL,
+        &_ebpf_bind_hook_provider_registration,
+        _ebpf_provider_client_attach_callback,
+        _ebpf_provider_client_detach_callback);
+
+Done:
+    if (return_value != EBPF_ERROR_SUCCESS) {
+        ebpf_hook_unregister_providers();
+        return STATUS_UNSUCCESSFUL;
+    } else
+        return STATUS_SUCCESS;
+}
+
+void
+ebpf_hook_unregister_providers()
+{
+    epbf_provider_unload(_ebpf_xdp_hook_provider_registration.provider);
+    epbf_provider_unload(_ebpf_bind_hook_provider_registration.provider);
 }

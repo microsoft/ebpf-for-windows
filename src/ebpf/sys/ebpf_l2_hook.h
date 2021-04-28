@@ -18,11 +18,41 @@ Environment:
 
 #pragma once
 
+#include <ntddk.h>
+
 //
 // Shared function prototypes
 //
 
+/**
+ * @brief Register for the WFP callouts used to power hooks.
+ *
+ * @param[in] device_object Device object used by this driver.
+ * @retval STATUS_SUCCESS Operation succeeded.
+ * @retval FWP_E_* A Windows Filtering Platform (WFP) specific error.
+ */
 NTSTATUS
-ebpf_hook_register_callouts(_Inout_ void *device_object);
+ebpf_hook_register_callouts(_Inout_ void* device_object);
 
-void ebpf_hook_unregister_callouts(void);
+/**
+ * @brief Unregister the WFP callouts.
+ *
+ */
+void
+ebpf_hook_unregister_callouts(void);
+
+/**
+ * @brief Register hook providers with eBPF core.
+ *
+ * @retval STATUS_SUCCESS Operation succeeded.
+ * @retval STATUS_UNSUCCESSFUL Operation failed.
+ */
+NTSTATUS
+ebpf_hook_register_providers();
+
+/**
+ * @brief Unregister hook providers from eBPF core.
+ *
+ */
+void
+ebpf_hook_unregister_providers();
