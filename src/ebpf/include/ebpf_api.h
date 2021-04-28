@@ -12,6 +12,7 @@ extern "C"
 {
 #endif
 
+    __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_UNSPECIFIED = {0};
     __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_XDP = {
         0x85e0d8ef, 0x579e, 0x4931, {0xb0, 0x72, 0x8e, 0xe2, 0x26, 0xbb, 0x2e, 0x9d}};
     __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_BIND = {

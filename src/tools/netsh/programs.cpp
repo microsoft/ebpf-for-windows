@@ -46,7 +46,7 @@ static TOKEN_VALUE _ebpf_execution_type_enum[] = {
 };
 
 GUID _ebpf_attach_type_guids[] = {
-    {0},
+    EBPF_ATTACH_TYPE_UNSPECIFIED,
     EBPF_ATTACH_TYPE_XDP,
     EBPF_ATTACH_TYPE_BIND,
 };
