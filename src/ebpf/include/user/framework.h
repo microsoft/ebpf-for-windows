@@ -24,7 +24,7 @@
 #define UNREFERENCED_PARAMETER(X) (X)
 #endif
 
-// Types and functions from the ntddk duplicated here to allow user and kernel more closely allign.
+// Types and functions from the ntddk duplicated here to allow user and kernel more closely align.
 
 //
 //  The results of a compare can be less than, equal, or greater than.
@@ -46,7 +46,7 @@ struct _RTL_AVL_TABLE;
 //
 
 typedef _IRQL_requires_same_ _Function_class_(RTL_AVL_COMPARE_ROUTINE) RTL_GENERIC_COMPARE_RESULTS NTAPI
-    RTL_AVL_COMPARE_ROUTINE(_In_ struct _RTL_AVL_TABLE* Table, _In_ PVOID FirstStruct, _In_ PVOID SecondStruct);
+    RTL_AVL_COMPARE_ROUTINE(_In_ struct _RTL_AVL_TABLE* table, _In_ void* first_struct, _In_ void* second_struct);
 typedef RTL_AVL_COMPARE_ROUTINE* PRTL_AVL_COMPARE_ROUTINE;
 
 //
@@ -54,8 +54,8 @@ typedef RTL_AVL_COMPARE_ROUTINE* PRTL_AVL_COMPARE_ROUTINE;
 //  it needs to allocate memory for the table.
 //
 
-typedef _IRQL_requires_same_ _Function_class_(RTL_AVL_ALLOCATE_ROUTINE) __drv_allocatesMem(Mem) PVOID NTAPI
-    RTL_AVL_ALLOCATE_ROUTINE(_In_ struct _RTL_AVL_TABLE* Table, _In_ const uint32_t ByteSize);
+typedef _IRQL_requires_same_ _Function_class_(RTL_AVL_ALLOCATE_ROUTINE) __drv_allocatesMem(Mem) void* NTAPI
+    RTL_AVL_ALLOCATE_ROUTINE(_In_ struct _RTL_AVL_TABLE* table, _In_ const unsigned long byte_size);
 typedef RTL_AVL_ALLOCATE_ROUTINE* PRTL_AVL_ALLOCATE_ROUTINE;
 
 //
@@ -65,7 +65,7 @@ typedef RTL_AVL_ALLOCATE_ROUTINE* PRTL_AVL_ALLOCATE_ROUTINE;
 //
 
 typedef _IRQL_requires_same_ _Function_class_(RTL_AVL_FREE_ROUTINE) VOID NTAPI
-    RTL_AVL_FREE_ROUTINE(_In_ struct _RTL_AVL_TABLE* Table, _In_ __drv_freesMem(Mem) _Post_invalid_ PVOID Buffer);
+    RTL_AVL_FREE_ROUTINE(_In_ struct _RTL_AVL_TABLE* table, _In_ __drv_freesMem(Mem) _Post_invalid_ void* buffer);
 typedef RTL_AVL_FREE_ROUTINE* PRTL_AVL_FREE_ROUTINE;
 
 typedef struct _RTL_BALANCED_LINKS
@@ -100,26 +100,26 @@ extern "C"
 #endif
 
     extern void (*RtlInitializeGenericTableAvl)(
-        _Out_ PRTL_AVL_TABLE Table,
-        _In_ PRTL_AVL_COMPARE_ROUTINE CompareRoutine,
-        _In_ PRTL_AVL_ALLOCATE_ROUTINE AllocateRoutine,
-        _In_ PRTL_AVL_FREE_ROUTINE FreeRoutine,
-        _In_opt_ PVOID TableContext);
+        _Out_ PRTL_AVL_TABLE table,
+        _In_ PRTL_AVL_COMPARE_ROUTINE compare_routine,
+        _In_ PRTL_AVL_ALLOCATE_ROUTINE allocate_routine,
+        _In_ PRTL_AVL_FREE_ROUTINE free_routine,
+        _In_opt_ PVOID table_context);
 
-    extern void* (*RtlEnumerateGenericTableAvl)(_In_ PRTL_AVL_TABLE Table, _In_ BOOLEAN Restart);
+    extern void* (*RtlEnumerateGenericTableAvl)(_In_ PRTL_AVL_TABLE table, _In_ BOOLEAN restart);
 
-    extern BOOLEAN (*RtlDeleteElementGenericTableAvl)(_In_ PRTL_AVL_TABLE Table, _In_ PVOID Buffer);
+    extern BOOLEAN (*RtlDeleteElementGenericTableAvl)(_In_ PRTL_AVL_TABLE table, _In_ void* buffer);
 
-    extern void* (*RtlLookupElementGenericTableAvl)(_In_ PRTL_AVL_TABLE Table, _In_ PVOID Buffer);
+    extern void* (*RtlLookupElementGenericTableAvl)(_In_ PRTL_AVL_TABLE table, _In_ void* buffer);
 
     extern void* (*RtlInsertElementGenericTableAvl)(
-        _In_ PRTL_AVL_TABLE Table,
-        _In_reads_bytes_(BufferSize) PVOID Buffer,
-        _In_ const uint32_t BufferSize,
-        _Out_opt_ PBOOLEAN NewElement);
+        _In_ PRTL_AVL_TABLE table,
+        _In_reads_bytes_(BufferSize) void* buffer,
+        _In_ const uint32_t buffer_size,
+        _Out_opt_ PBOOLEAN new_element);
 
     extern PVOID (*RtlLookupFirstMatchingElementGenericTableAvl)(
-        _In_ PRTL_AVL_TABLE Table, _In_ PVOID Buffer, _Out_ PVOID* RestartKey);
+        _In_ PRTL_AVL_TABLE table, _In_ void* buffer, _Out_ void** RestartKey);
 
     typedef LIST_ENTRY ebpf_list_entry_t;
 
