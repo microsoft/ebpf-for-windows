@@ -5,6 +5,7 @@
 .*\.png$
 .*\.rc$
 .*\.sln$
+.*\.vsdx$
 
 # Other Files
 LICENSE.txt
