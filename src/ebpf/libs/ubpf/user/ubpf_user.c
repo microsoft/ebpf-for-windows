@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation
+// SPDX-License-Identifier: MIT
+
 #define _CRT_SECURE_NO_WARNINGS 1
 
 #include "ebpf_platform.h"

@@ -8,7 +8,6 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-
 int
 rand_r(unsigned int* seedp)
 {

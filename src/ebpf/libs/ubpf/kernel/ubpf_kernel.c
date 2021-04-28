@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation
+// SPDX-License-Identifier: MIT
+
 #define _CRT_SECURE_NO_WARNINGS 1
 
 #include "ebpf_platform.h"
@@ -20,5 +23,8 @@
 #include <endian.h>
 #include <unistd.h>
 
+#if !defined(_countof)
+#define _countof(_Array) (sizeof(_Array) / sizeof(_Array[0]))
+#endif
 
 #include "ubpf_vm.c"
