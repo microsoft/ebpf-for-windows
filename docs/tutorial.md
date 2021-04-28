@@ -1,6 +1,6 @@
 # 1. Introduction
 
-This tutorial illustrates how eBPF works and how to run eBPF verifier on Windows,
+This tutorial illustrates how eBPF works and in particular how the eBPF verifier works on Windows,
 starting from authoring a new eBPF program in C.
 
 To try out this tutorial yourself, you should first install the [Prerequisites](GettingStarted.md#Prerequisites).
@@ -215,8 +215,15 @@ in the specified subdirectory ("external\ebpf-verifier\build").
 
 **Step 3)** Build the solution:
 
-This can be done from within the Visual Studio UI as follows.
-First, open the solution in Visual Studio:
+This can be done either from the command line or from within the Visual Studio UI.
+
+To use the command line:
+
+```
+> msbuild /m /p:Configuration=Debug /p:Platform=x64 ebpf-for-windows.sln
+```
+
+Or, to use the Visual Studio UI, open the solution in Visual Studio:
 
 ```
 > ebpf-for-windows.sln
@@ -230,9 +237,9 @@ Building the solution may generate some compiler warnings, but should still
 compile successfully.
 
 
-# 4. Installing eBPF on Windows
+# 4. Installing the eBPF netsh helper on Windows
 
-Now we're ready to learn how to use eBPF on Windows.  Let's first install the `netsh` helper.
+Now we're ready to learn how to use eBPF on Windows.  For this tutorial, we only need to install the `netsh` helper.
 From an Admin command shell, do the following from your ebpf-for-windows directory:
 
 ```
@@ -240,7 +247,11 @@ From an Admin command shell, do the following from your ebpf-for-windows directo
 > netsh add helper %windir%\system32\ebpfnetsh.dll
 ```
 
-# 5. Running eBPF on Windows
+# 5. Verifying eBPF programs on Windows
+
+Normally verification happens at the time an eBPF program is submitted to be loaded.  That can be done,
+but in this tutorial, we'll just do verification _without_ needing to load the program.  This allows this
+tutorial to be done on any machine, not just one with the eBPF driver installed into the kernel.
 
 **Step 1)** Enumerate sections
 
@@ -450,7 +461,7 @@ is commonly used to designate which hook point the eBPF program is designed
 for.  Specifically, a set of prefix strings are used to match against the
 section name.  For example, any section name starting with "xdp" is meant
 as an XDP layer program.  This is a convenient default, but can be
-overridden by an app, such as when the eBPF program is simply in the
+overridden by an app asking to load an eBPF program, such as when the eBPF program is simply in the
 ".text" section.
 
 Each hook point has a specified prototype which must be understood by the
@@ -506,7 +517,7 @@ this info is in the [windows_platform.cpp](../src/ebpf/libs/api/windows_platform
 which for the above prototype might have:
 
 ```
-constexpr EbpfContextDescriptor xdp_context_descriptor = {
+const EbpfContextDescriptor g_xdp_context_descriptor = {
     24, // Size of ctx struct.
     0,  // Offset into ctx struct of pointer to data, or -1 if none.
     8,  // Offset into ctx struct of pointer to end of data, or -1 if none.
@@ -515,13 +526,13 @@ constexpr EbpfContextDescriptor xdp_context_descriptor = {
 
 const EbpfProgramType windows_xdp_program_type =
     PTYPE("xdp",    // Just for printing messages to users.
-          xdp_context_descriptor,
+          &g_xdp_context_descriptor,
           EBPF_PROG_TYPE_XDP,
           {"xdp"}); // Set of section name prefixes for matching.
 ```
 
 Let's look at the code above in more detail.  The EbpfContextDescriptor
-info (i.e., `xdp_context_descriptor`) tells the verifier about the format
+info (i.e., `g_xdp_context_descriptor`) tells the verifier about the format
 of the context structure (i.e., `struct ebpf_xdp_args`). The struct is
 24 bytes long, includes packet data, and so the scalar fields that
 are safe to access start at offset 16.
@@ -581,23 +592,27 @@ Now that we've seen how hooks work, let's look at how calls from an eBPF
 program into helper functions exposed by the system are verified.
 As with hook prototypes, the set of helper functions and their prototypes
 can vary by platform.  For comparison, helpers for Linux are documented in the
-[IOVisor docs](https://github.com/iovisor/bpf-docs/blob/master/bpf_helpers.rst).
+[IOVisor bpf helpers documentation](https://github.com/iovisor/bpf-docs/blob/master/bpf_helpers.rst).
 
 Let's say the following helper function prototype is exposed by Windows:
 
 ```
 // helpers.h
-static int (*ebpf_get_tick_count)(void* ctx) = (void*) 4;
+#include <stdint.h>
+struct ebpf_map;
+static int (*ebpf_map_update_elem)(struct ebpf_map* map, const void* key, const void* value, uint64_t flags) = (void*) 2;
 ```
 
-A sample eBPF program that uses it might look like this:
+We'll cover in section 6.3 what this function does, but for now we only care about the prototype.
+We can create a sample (but, as we will see, invalid) program like so:
 
 ```
 #include "helpers.h"
 
-int func(void* ctx)
+int func()
 {
-    return ebpf_get_tick_count(ctx);
+    int result = ebpf_map_update_elem((struct ebpf_map*)0, (uint32_t*)0, (uint32_t*)0, 0);
+    return result;
 }
 ```
 
@@ -614,50 +629,69 @@ helpers.o:      file format ELF64-BPF
 Disassembly of section .text:
 0000000000000000 func:
 ; {
-       0:       85 00 00 00 04 00 00 00         call 4
-; return ebpf_get_tick_count(ctx);
-       1:       95 00 00 00 00 00 00 00         exit
+       0:       b7 01 00 00 00 00 00 00         r1 = 0
+; int result = ebpf_map_update_elem((struct ebpf_map*)0, (uint32_t*)0, (uint32_t*)0, 0);
+       1:       b7 02 00 00 00 00 00 00         r2 = 0
+       2:       b7 03 00 00 00 00 00 00         r3 = 0
+       3:       b7 04 00 00 00 00 00 00         r4 = 0
+       4:       85 00 00 00 02 00 00 00         call 2
+; return result;
+       5:       95 00 00 00 00 00 00 00         exit
 ```
 
 Now let's see how the verifier deals with this.  The verifier needs to
-know the prototype in order to verify that eBPF program passes arguments
+know the prototype in order to verify that the eBPF program passes arguments
 correctly, and handles the results correct (e.g., not passing an invalid
 value in a pointer argument).
 
-The verifier calls into a `get_helper_prototype(4)` API exposed by
+The verifier calls into a `get_helper_prototype(2)` API exposed by
 platform-specific code to query the prototype for a given helper function.
 The platform-specific code ([windows_helpers.cpp](../src/ebpf/libs/api/windows_helpers.cpp)) will return an entry like this one:
 
 ```
-    {
-        // int ebpf_get_tick_count(void* ctx);
-        .name = "ebpf_get_tick_count",
-        .return_type = EbpfHelperReturnType::INTEGER,
-        .argument_type = {
-            EbpfHelperArgumentType::PTR_TO_CTX,
-            EbpfHelperArgumentType::DONTCARE,
-            EbpfHelperArgumentType::DONTCARE,
-            EbpfHelperArgumentType::DONTCARE,
-            EbpfHelperArgumentType::DONTCARE,
-        }
-    },
+    {// long ebpf_map_update_elem(struct ebpf_map *map, const void *key,  const
+     // void *value, uint64_t flags);
+     .name = "ebpf_map_update_elem",
+     .return_type = EbpfHelperReturnType::INTEGER,
+     .argument_type =
+         {
+             EbpfHelperArgumentType::PTR_TO_MAP,
+             EbpfHelperArgumentType::PTR_TO_MAP_KEY,
+             EbpfHelperArgumentType::PTR_TO_MAP_VALUE,
+             EbpfHelperArgumentType::ANYTHING,
+             EbpfHelperArgumentType::DONTCARE,
+         }},
 ```
 
 The above helps the verifier know the type and semantics of the arguments
 and the return value.
 
 ```
+> netsh ebpf show disassembly helpers.o
+       0:       r1 = 0
+       1:       r2 = 0
+       2:       r3 = 0
+       3:       r4 = 0
+       4:       r0 = ebpf_map_update_elem:2(r1:FD, r2:K, r3:V, r4)
+       5:       exit
+
 > netsh ebpf show verification helpers.o
 
-Verification succeeded
+error: Verification failed
 
-> netsh ebpf show disassembly helpers.o
-       0:       r0 = ebpf_get_tick_count:4(r1:CTX)
-       1:       exit
+Verification report:
+
+4: r0 = ebpf_map_update_elem:2(r1:FD, r2:K, r3:V, r4)
+  assertion failed: r1 is map_fd
+  Code is unreachable after 4
+
+1 errors
 ```
 
-As shown above, verification is successful, and the verifier understands
-the function name, and knows that the first argument is the context.
+As shown above, the verifier understands the function name and prototype,
+and knows that the program is invalid because it is passing null instead
+of a valid value.  We'll come back to this in section 6.3 to see how to
+use the helper correctly.
 
 ### 6.2.1. Why -O2?
 
@@ -667,29 +701,39 @@ happens if we didn't compile with `-O2`?  The disassembly looks instead
 like this:
 
 ```
-func:
+> clang -target bpf -Wall -g -c helpers.c -o helpers.o
+
+> llvm-objdump --triple bpf -S helpers.o
+
+helpers.o:      file format ELF64-BPF
+
+Disassembly of section .text:
+0000000000000000 func:
 ; {
-       0:       bf 12 00 00 00 00 00 00         r2 = r1
-       1:       7b 1a f8 ff 00 00 00 00         *(u64 *)(r10 - 8) = r1
-; return bpf_get_socket_uid(ctx);
-       2:       18 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00         r1 = 0 ll
-       4:       79 11 00 00 00 00 00 00         r1 = *(u64 *)(r1 + 0)
-       5:       79 a3 f8 ff 00 00 00 00         r3 = *(u64 *)(r10 - 8)
-       6:       7b 1a f0 ff 00 00 00 00         *(u64 *)(r10 - 16) = r1
-       7:       bf 31 00 00 00 00 00 00         r1 = r3
-       8:       79 a3 f0 ff 00 00 00 00         r3 = *(u64 *)(r10 - 16)
-       9:       7b 2a e8 ff 00 00 00 00         *(u64 *)(r10 - 24) = r2
-      10:       8d 00 00 00 03 00 00 00         callx 3
-      11:       95 00 00 00 00 00 00 00         exit
+       0:       18 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00         r1 = 0 ll
+; int result = ebpf_map_update_elem((struct ebpf_map*)0, (uint32_t*)0, (uint32_t*)0, 0);
+       2:       79 11 00 00 00 00 00 00         r1 = *(u64 *)(r1 + 0)
+       3:       b7 02 00 00 00 00 00 00         r2 = 0
+       4:       7b 1a f0 ff 00 00 00 00         *(u64 *)(r10 - 16) = r1
+       5:       bf 21 00 00 00 00 00 00         r1 = r2
+       6:       7b 2a e8 ff 00 00 00 00         *(u64 *)(r10 - 24) = r2
+       7:       79 a3 e8 ff 00 00 00 00         r3 = *(u64 *)(r10 - 24)
+       8:       79 a4 e8 ff 00 00 00 00         r4 = *(u64 *)(r10 - 24)
+       9:       79 a5 f0 ff 00 00 00 00         r5 = *(u64 *)(r10 - 16)
+      10:       8d 00 00 00 05 00 00 00         callx 5
+      11:       63 0a fc ff 00 00 00 00         *(u32 *)(r10 - 4) = r0
+; return result;
+      12:       61 a0 fc ff 00 00 00 00         r0 = *(u32 *)(r10 - 4)
+      13:       95 00 00 00 00 00 00 00         exit
 ```
 
 The helper function is called in line 10 via the `callx` instruction
 (0x8d), but importantly that instruction *is not listed in the
 [eBPF spec](https://github.com/iovisor/bpf-docs/blob/master/eBPF.md)*!
-Furthermore, the Prevail verifier's ELF parser also has problems with it.
+Furthermore, the PREVAIL verifier's ELF parser also has problems with it.
 Let's see
 why.  Unlike the optimized disassembly where the helper id is encoded in
-the instruction, here the value 47 (0x2f) is encoded in the data section:
+the instruction, here the value 32 (0x20) is encoded in the data section:
 
 ```
 > llvm-objdump --triple bpf -s helpers.o --section .data
@@ -697,7 +741,7 @@ the instruction, here the value 47 (0x2f) is encoded in the data section:
 helpers.o:       file format ELF64-BPF
 
 Contents of section .data:
-0000 2f000000 00000000                    /.......
+ 0000 02000000 00000000
 ```
 
 An entry also appears in the relocation section, which we can see as follows.
@@ -708,14 +752,14 @@ where without it llvm-objdump will dump all of them.
 ```
 > llvm-objdump --triple bpf --section .rel.text -r helpers.o
 
-helpers.o:       file format ELF64-BPF
+helpers.o:      file format ELF64-BPF
 
 RELOCATION RECORDS FOR [.rel.text]:
-0000000000000010 R_BPF_64_64 bpf_get_socket_uid
+0000000000000000 R_BPF_64_64 .data
 ```
 
 However the verifier's ELF parser only handles relocation records for
-maps, not helper functions, since in "correct" eBPF bytecode (i.e.,
+maps (which we'll cover next), not helper functions, since in "correct" eBPF bytecode (i.e.,
 bytecode conforming to the eBPF spec), relocation records are always for
 maps.  So if you forget to compile with -O2, it will fail elf parsing even
 before trying to verify the bytecode.
@@ -789,8 +833,8 @@ Contents of section maps:
 Now to make use of the map, we have to use helper functions to access it:
 ```
 void *ebpf_map_lookup_elem(struct ebpf_map* map, const void* key);
-long ebpf_map_update_elem(struct ebpf_map* map, const void* key, const void* value, uint64_t flags);
-long ebpf_map_delete_elem(struct ebpf_map* map, const void* key);
+int ebpf_map_update_elem(struct ebpf_map* map, const void* key, const void* value, uint64_t flags);
+int ebpf_map_delete_elem(struct ebpf_map* map, const void* key);
 ```
 
 Let's update the program to write the value "42" to the map section for the
