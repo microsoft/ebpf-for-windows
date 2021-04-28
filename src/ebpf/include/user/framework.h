@@ -55,7 +55,7 @@ typedef RTL_AVL_COMPARE_ROUTINE* PRTL_AVL_COMPARE_ROUTINE;
 //
 
 typedef _IRQL_requires_same_ _Function_class_(RTL_AVL_ALLOCATE_ROUTINE) __drv_allocatesMem(Mem) PVOID NTAPI
-    RTL_AVL_ALLOCATE_ROUTINE(_In_ struct _RTL_AVL_TABLE* Table, _In_ const uint32_t ByteSize);
+    RTL_AVL_ALLOCATE_ROUTINE(_In_ struct _RTL_AVL_TABLE* Table, _In_ const unsigned long ByteSize);
 typedef RTL_AVL_ALLOCATE_ROUTINE* PRTL_AVL_ALLOCATE_ROUTINE;
 
 //

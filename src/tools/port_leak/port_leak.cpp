@@ -11,7 +11,11 @@ int
 main()
 {
     WSADATA wsa_data;
-    WSAStartup(2, &wsa_data);
+    if (WSAStartup(2, &wsa_data) != 0) {
+        printf("WSAStartup failed\n");
+        exit(1);
+    }
+
     int leaked_ports = 0;
 
     for (;;) {
@@ -31,18 +35,18 @@ main()
                 Sleep(10);
             }
         } else {
-            DWORD err = WSAGetLastError();
-            wchar_t* s = NULL;
+            DWORD error_value = WSAGetLastError();
+            wchar_t* error_string = NULL;
             FormatMessageW(
                 FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
                 NULL,
-                WSAGetLastError(),
+                error_value,
                 MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
                 (LPWSTR)&s,
                 0,
                 NULL);
-            printf("bind failed: %S\t%d\n", s, WSAGetLastError());
-            LocalFree(s);
+            printf("bind failed: %S\t%d\n", error_string, error_value);
+            LocalFree(error_string);
             Sleep(1000);
         }
     }

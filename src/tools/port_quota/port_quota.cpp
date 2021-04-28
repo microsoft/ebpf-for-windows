@@ -26,6 +26,8 @@ load(int argc, char** argv)
     uint32_t map_count = _countof(maps);
     const char* error_message = NULL;
     uint32_t result;
+    UNREFERENCED_PARAMETER(argc);
+    UNREFERENCED_PARAMETER(argv);
     result = ebpf_api_load_program(
         "bindmonitor.o", "bind", EBPF_EXECUTION_INTERPRET, &program, &map_count, maps, &error_message);
     if (result != ERROR_SUCCESS) {
@@ -59,6 +61,8 @@ load(int argc, char** argv)
 int
 unload(int argc, char** argv)
 {
+    UNREFERENCED_PARAMETER(argc);
+    UNREFERENCED_PARAMETER(argv);
     fprintf(stderr, "Not implemented yet.\n");
     return 1;
 }
@@ -71,6 +75,8 @@ stats(int argc, char** argv)
     uint64_t pid;
     process_entry_t process_entry;
 
+    UNREFERENCED_PARAMETER(argc);
+    UNREFERENCED_PARAMETER(argv);
     result = ebpf_api_get_pinned_map(process_map, sizeof(process_map), &map);
     if (result != ERROR_SUCCESS) {
         fprintf(stderr, "Failed to look up eBPF map: %d\n", result);
