@@ -16,12 +16,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\..\external\ubpf\vm\ebpf.h" />
-    <ClInclude Include="..\..\..\..\..\external\ubpf\vm\platform.h" />
     <ClInclude Include="..\..\..\..\..\external\ubpf\vm\ubpf_int.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\..\external\ubpf\vm\ubpf_vm.c" />
-    <ClCompile Include="platform.c" />
+    <ClCompile Include="ubpf_kernel.c" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{675B59F8-089E-40B5-8388-56254447CFA3}</ProjectGuid>
@@ -66,7 +64,7 @@
     <ClCompile>
       <PreprocessorDefinitions>_DEBUG;WINAPI_FAMILY=WINAPI_FAMILY_DESKTOP_APP;WINAPI_PARTITION_DESKTOP=1;WINAPI_PARTITION_SYSTEM=1;WINAPI_PARTITION_APP=1;WINAPI_PARTITION_PC_APP=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
-      <AdditionalIncludeDirectories>$(SolutionDir)\external\ubpf\vm;$(SolutionDir)\external\ubpf\vm\inc;$(SolutionDir)\src\ebpf\libs\ubpf\kernel;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\src\ebpf\include;$(SolutionDir)\src\ebpf\include\kernel;$(SolutionDir)\external\ubpf\vm;$(SolutionDir)\external\ubpf\vm\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <TreatWarningAsError>false</TreatWarningAsError>
     </ClCompile>
@@ -74,7 +72,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <PreprocessorDefinitions>WINAPI_FAMILY=WINAPI_FAMILY_DESKTOP_APP;WINAPI_PARTITION_DESKTOP=1;WINAPI_PARTITION_SYSTEM=1;WINAPI_PARTITION_APP=1;WINAPI_PARTITION_PC_APP=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)\external\ubpf\vm;$(SolutionDir)\external\ubpf\vm\inc;$(SolutionDir)\src\ebpf\libs\ubpf\kernel;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\src\ebpf\include;$(SolutionDir)\src\ebpf\include\kernel;$(SolutionDir)\external\ubpf\vm;$(SolutionDir)\external\ubpf\vm\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <TreatWarningAsError>false</TreatWarningAsError>
     </ClCompile>
