@@ -19,6 +19,7 @@ swap16(uint16_t value)
 {
     return value << 8 | value >> 8;
 }
+
 inline uint32_t
 swap32(uint32_t value)
 {
