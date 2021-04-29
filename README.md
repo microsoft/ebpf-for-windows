@@ -80,7 +80,7 @@ eBPF programs can be run either in an interpreter or natively using a JIT compil
 
 [HyperVisor-enforced Code Integrity (HVCI)](https://techcommunity.microsoft.com/t5/windows-insider-program/virtualization-based-security-vbs-and-hypervisor-enforced-code/m-p/240571)
 is a mechanism
-whereby a hybervisor, such as Hyper-V, uses hardware virtualization to protect kernel-mode processes against
+whereby a hypervisor, such as Hyper-V, uses hardware virtualization to protect kernel-mode processes against
 the injection and execution of malicious or unverified code. Code integrity validation is performed in a secure
 environment that is resistant to attack from malicious software, and page permissions for kernel mode are set and
 maintained by the hypervisor.
