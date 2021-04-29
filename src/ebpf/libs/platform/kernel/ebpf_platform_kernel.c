@@ -4,7 +4,7 @@
  */
 #include "ebpf_platform.h"
 
-#include <Ntstrsafe.h>
+#include <ntstrsafe.h>
 
 typedef enum _ebpf_pool_tag
 {
