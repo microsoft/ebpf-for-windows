@@ -42,18 +42,6 @@ const struct EbpfHelperPrototype windows_helper_prototypes[] = {
              EbpfHelperArgumentType::DONTCARE,
              EbpfHelperArgumentType::DONTCARE,
          }},
-    {// Just for a tutorial, can probably be removed.
-     // int ebpf_get_tick_count(void* ctx);
-     .name = "ebpf_get_tick_count",
-     .return_type = EbpfHelperReturnType::INTEGER,
-     .argument_type =
-         {
-             EbpfHelperArgumentType::PTR_TO_CTX,
-             EbpfHelperArgumentType::DONTCARE,
-             EbpfHelperArgumentType::DONTCARE,
-             EbpfHelperArgumentType::DONTCARE,
-             EbpfHelperArgumentType::DONTCARE,
-         }},
 };
 
 // Check whether a given integer is a valid helper ID.

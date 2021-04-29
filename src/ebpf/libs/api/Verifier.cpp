@@ -50,9 +50,7 @@ allocate_error_string(const std::string& str)
 static int
 analyze(raw_program& raw_prog, const char** error_message)
 {
-    const ebpf_platform_t* platform = &g_ebpf_platform_windows;
-
-    std::variant<InstructionSeq, std::string> prog_or_error = unmarshal(raw_prog, platform);
+    std::variant<InstructionSeq, std::string> prog_or_error = unmarshal(raw_prog);
     if (!std::holds_alternative<InstructionSeq>(prog_or_error)) {
         *error_message = allocate_error_string(std::get<std::string>(prog_or_error));
         return 1; // Error;
@@ -154,7 +152,7 @@ ebpf_api_elf_enumerate_sections(
         for (const auto& raw_program : raw_programs) {
             tlv_sequence stats_sequence;
             if (verbose) {
-                std::variant<InstructionSeq, std::string> programOrError = unmarshal(raw_program, platform);
+                std::variant<InstructionSeq, std::string> programOrError = unmarshal(raw_program);
                 if (std::holds_alternative<std::string>(programOrError)) {
                     std::cout << "parse failure: " << std::get<std::string>(programOrError) << "\n";
                     return 1;
@@ -198,7 +196,7 @@ ebpf_api_elf_disassemble_section(
     try {
         auto raw_programs = read_elf(file, section, &verifier_options, platform);
         raw_program raw_program = raw_programs.back();
-        std::variant<InstructionSeq, std::string> programOrError = unmarshal(raw_program, platform);
+        std::variant<InstructionSeq, std::string> programOrError = unmarshal(raw_program);
         if (std::holds_alternative<std::string>(programOrError)) {
             error << "parse failure: " << std::get<std::string>(programOrError);
             *error_message = allocate_error_string(error.str());
@@ -235,7 +233,7 @@ ebpf_api_elf_verify_section(
 
         auto raw_programs = read_elf(file, section, &verifier_options, platform);
         raw_program raw_program = raw_programs.back();
-        std::variant<InstructionSeq, std::string> programOrError = unmarshal(raw_program, platform);
+        std::variant<InstructionSeq, std::string> programOrError = unmarshal(raw_program);
         if (std::holds_alternative<std::string>(programOrError)) {
             error << "parse failure: " << std::get<std::string>(programOrError);
             *error_message = allocate_error_string(error.str());
