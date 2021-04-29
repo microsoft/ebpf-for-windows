@@ -15,6 +15,7 @@ extern "C"
 
     typedef enum _ebpf_object_type
     {
+        EBPF_OBJECT_UNKNOWN,
         EBPF_OBJECT_MAP,
         EBPF_OBJECT_LINK,
         EBPF_OBJECT_PROGRAM,

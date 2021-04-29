@@ -228,19 +228,19 @@ extern "C"
     ebpf_api_free_string(const char* string);
 
     /**
-     * @brief Associate a name with a map handle.
-     * @param[in] handle Handle to map.
+     * @brief Associate a name with a object handle.
+     * @param[in] handle Handle to object.
      * @param[in] name Name to associate with handle.
      */
     uint32_t
-    ebpf_api_pin_map(ebpf_handle_t handle, const uint8_t* name, uint32_t name_length);
+    ebpf_api_pin_object(ebpf_handle_t handle, const uint8_t* name, uint32_t name_length);
 
     /**
-     * @brief Dissociate a name with a map handle.
+     * @brief Dissociate a name with a object handle.
      * @param[in] name Name to dissociate.
      */
     uint32_t
-    ebpf_api_unpin_map(const uint8_t* name, uint32_t name_length);
+    ebpf_api_unpin_object(const uint8_t* name, uint32_t name_length);
 
     /**
      * @brief Find a map given its associated name.

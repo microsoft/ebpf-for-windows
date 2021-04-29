@@ -10,6 +10,7 @@
 
 const unsigned char process_map[] = "port_quota::process_map";
 const unsigned char limits_map[] = "port_quota::limits_map";
+const unsigned char program_link[] = "port_quota::program_link";
 
 typedef struct _process_entry
 {
@@ -37,19 +38,26 @@ load(int argc, char** argv)
         return 1;
     }
 
+    result = ebpf_api_pin_object(maps[0], process_map, sizeof(process_map));
+    if (result != ERROR_SUCCESS) {
+        fprintf(stderr, "Failed to pin eBPF program: %d\n", result);
+        ebpf_api_free_string(error_message);
+        return 1;
+    }
+    result = ebpf_api_pin_object(maps[1], limits_map, sizeof(limits_map));
+    if (result != ERROR_SUCCESS) {
+        fprintf(stderr, "Failed to pin eBPF program: %d\n", result);
+        ebpf_api_free_string(error_message);
+        return 1;
+    }
+
     result = ebpf_api_link_program(program, EBPF_ATTACH_TYPE_BIND, &link);
     if (result != ERROR_SUCCESS) {
         fprintf(stderr, "Failed to attach eBPF program\n");
         return 1;
     }
 
-    result = ebpf_api_pin_map(maps[0], process_map, sizeof(process_map));
-    if (result != ERROR_SUCCESS) {
-        fprintf(stderr, "Failed to pin eBPF program: %d\n", result);
-        ebpf_api_free_string(error_message);
-        return 1;
-    }
-    result = ebpf_api_pin_map(maps[1], limits_map, sizeof(limits_map));
+    result = ebpf_api_pin_object(link, program_link, sizeof(program_link));
     if (result != ERROR_SUCCESS) {
         fprintf(stderr, "Failed to pin eBPF program: %d\n", result);
         ebpf_api_free_string(error_message);
@@ -63,6 +71,10 @@ unload(int argc, char** argv)
 {
     UNREFERENCED_PARAMETER(argc);
     UNREFERENCED_PARAMETER(argv);
+
+    ebpf_api_unpin_object(program_link, sizeof(program_link));
+    ebpf_api_unpin_object(limits_map, sizeof(limits_map));
+    ebpf_api_unpin_object(process_map, sizeof(process_map));
     fprintf(stderr, "Not implemented yet.\n");
     return 1;
 }
