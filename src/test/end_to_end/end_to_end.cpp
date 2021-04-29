@@ -861,8 +861,8 @@ TEST_CASE("extension_test", "[extension_test]")
     ebpf_extension_data_t provider_data;
     GUID interface_id;
 
-    ebpf_extension_dispatch_table_t* returned_provider_dispatch_table;
-    ebpf_extension_data_t* returned_provider_data;
+    const ebpf_extension_dispatch_table_t* returned_provider_dispatch_table;
+    const ebpf_extension_data_t* returned_provider_data;
 
     ebpf_extension_provider_t* provider_context;
     ebpf_extension_client_t* client_context;

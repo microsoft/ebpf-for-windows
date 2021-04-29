@@ -460,8 +460,8 @@ extern "C"
         const ebpf_extension_data_t* client_data,
         const ebpf_extension_dispatch_table_t* client_dispatch_table,
         void** provider_binding_context,
-        ebpf_extension_data_t** provider_data,
-        ebpf_extension_dispatch_table_t** provider_dispatch_table);
+        const ebpf_extension_data_t** provider_data,
+        const ebpf_extension_dispatch_table_t** provider_dispatch_table);
 
     /**
      * @brief Unload an extension.
