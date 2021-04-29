@@ -439,6 +439,58 @@ TEST_CASE("droppacket-interpret", "[droppacket_interpret]")
     REQUIRE(value == 0);
 }
 
+TEST_CASE("divide_by_zero_jit", "[divide_by_zero_jit]")
+{
+    device_io_control_handler = GlueDeviceIoControl;
+    create_file_handler = GlueCreateFileW;
+    close_handle_handler = GlueCloseHandle;
+
+    ebpf_handle_t program_handle;
+    ebpf_handle_t map_handle;
+    uint32_t count_of_map_handle = 1;
+    uint32_t result = 0;
+    const char* error_message = NULL;
+    bool ec_initialized = false;
+    bool api_initialized = false;
+    _unwind_helper on_exit([&] {
+        ebpf_api_free_string(error_message);
+        if (api_initialized)
+            ebpf_api_terminate();
+        if (ec_initialized)
+            ebpf_core_terminate();
+    });
+
+    REQUIRE(ebpf_core_initiate() == EBPF_ERROR_SUCCESS);
+    ec_initialized = true;
+
+    single_instance_hook_t hook;
+
+    REQUIRE(ebpf_api_initiate() == ERROR_SUCCESS);
+    api_initialized = true;
+
+    REQUIRE(
+        ebpf_api_load_program(
+            SAMPLE_PATH "divide_by_zero.o",
+            "xdp",
+            EBPF_EXECUTION_JIT,
+            &program_handle,
+            &count_of_map_handle,
+            &map_handle,
+            &error_message) == ERROR_SUCCESS);
+
+    REQUIRE(hook.attach(program_handle) == ERROR_SUCCESS);
+
+    auto packet = prepare_udp_packet(0);
+
+    // Test that we drop the packet and increment the map
+    ebpf::xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
+
+    REQUIRE(hook.fire(&ctx, &result) == EBPF_ERROR_SUCCESS);
+    REQUIRE(result == -1);
+
+    hook.detach();
+}
+
 TEST_CASE("enum section", "[enum sections]")
 {
     const char* error_message = nullptr;

@@ -135,6 +135,17 @@
   <ItemGroup>
     <ClInclude Include="ebpf.h" />
   </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="divide_by_zero.c">
+      <FileType>CppCode</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">clang -g -target bpf -O2 -Wall -c %(Filename).c -o $(OutputPath)%(Filename).o</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">clang -g -target bpf -O2 -Wall -c %(Filename).c -o $(OutputPath)%(Filename).o</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(Filename).o;%(Outputs)</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(Filename).o;%(Outputs)</Outputs>
+      <TreatOutputAsContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</TreatOutputAsContent>
+      <TreatOutputAsContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</TreatOutputAsContent>
+    </CustomBuild>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

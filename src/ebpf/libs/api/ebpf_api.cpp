@@ -35,8 +35,8 @@ struct empty_reply
 
 extern "C"
 {
-    bool
-    toggle_printf_on_divide_by_zero(struct ubpf_vm* vm, bool enable);
+    void
+    set_error_print(struct ubpf_vm* vm, void* address);
 }
 
 template <typename request_t, typename reply_t = empty_reply>
@@ -206,6 +206,10 @@ resolve_maps_in_byte_code(std::vector<uint8_t>& byte_code)
         map_handles.push_back(imm);
     }
 
+    if (map_handles.size() == 0) {
+        return ERROR_SUCCESS;
+    }
+
     std::vector<uint8_t> request_buffer(
         offsetof(ebpf_operation_resolve_map_request_t, map_handle) + sizeof(uint64_t) * map_handles.size());
 
@@ -254,6 +258,9 @@ build_helper_id_to_address_map(std::vector<uint8_t>& byte_code, std::map<uint32_
         helper_id_to_adddress[instruction.imm] = 0;
     }
 
+    if (helper_id_to_adddress.size() == 0)
+        return ERROR_SUCCESS;
+
     std::vector<uint8_t> request_buffer(
         offsetof(ebpf_operation_resolve_helper_request_t, helper_id) + sizeof(uint32_t) * helper_id_to_adddress.size());
 
@@ -283,6 +290,26 @@ build_helper_id_to_address_map(std::vector<uint8_t>& byte_code, std::map<uint32_
     return EBPF_ERROR_SUCCESS;
 }
 
+static uint32_t
+resolve_ec_function(ebpf_ec_function_t function, uint64_t* address)
+{
+    ebpf_operation_get_ec_function_request_t request = {sizeof(request), EBPF_OPERATION_GET_EC_FUNCTION, function};
+    ebpf_operation_get_ec_function_reply_t reply;
+
+    uint32_t retval = invoke_ioctl(device_handle, request, reply);
+    if (retval != ERROR_SUCCESS) {
+        return retval;
+    }
+
+    if (reply.header.id != ebpf_operation_id_t::EBPF_OPERATION_GET_EC_FUNCTION) {
+        return ERROR_INVALID_PARAMETER;
+    }
+
+    *address = reply.address;
+
+    return retval;
+}
+
 uint32_t
 ebpf_api_load_program(
     const char* file_name,
@@ -298,6 +325,7 @@ ebpf_api_load_program(
     std::vector<uint8_t> request_buffer;
     _ebpf_operation_load_code_reply reply;
     struct ubpf_vm* vm = nullptr;
+    uint64_t log_function_address;
     _unwind_helper unwind([&] {
         if (vm) {
             ubpf_destroy(vm);
@@ -342,6 +370,11 @@ ebpf_api_load_program(
         return result;
     }
 
+    result = resolve_ec_function(EBPF_EC_FUNCTION_LOG, &log_function_address);
+    if (result != ERROR_SUCCESS) {
+        return result;
+    }
+
     std::vector<uint8_t> file_name_bytes(strlen(file_name));
     std::vector<uint8_t> section_name_bytes(strlen(section_name));
     std::copy(file_name, file_name + file_name_bytes.size(), file_name_bytes.begin());
@@ -369,7 +402,7 @@ ebpf_api_load_program(
             }
         }
 
-        toggle_printf_on_divide_by_zero(vm, false);
+        set_error_print(vm, reinterpret_cast<void*>(log_function_address));
 
         if (ubpf_load(
                 vm, byte_code.data(), static_cast<uint32_t>(byte_code.size()), const_cast<char**>(error_message)) < 0) {

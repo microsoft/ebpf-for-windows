@@ -36,5 +36,8 @@
     <CustomBuild Include="droppacket.c">
       <Filter>Source Files</Filter>
     </CustomBuild>
+    <CustomBuild Include="divide_by_zero.c">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
   </ItemGroup>
 </Project>

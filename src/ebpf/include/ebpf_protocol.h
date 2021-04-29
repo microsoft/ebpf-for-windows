@@ -23,6 +23,7 @@ typedef enum _ebpf_operation_id
     EBPF_OPERATION_GET_MAP_PINNING,
     EBPF_OPERATION_LINK_PROGRAM,
     EBPF_OPERATION_CLOSE_HANDLE,
+    EBPF_OPERATION_GET_EC_FUNCTION,
 } ebpf_operation_id_t;
 
 typedef GUID ebpf_attach_type_t;
@@ -38,6 +39,11 @@ typedef struct _ebpf_operation_header
     uint16_t length;
     ebpf_operation_id_t id;
 } ebpf_operation_header_t;
+
+typedef enum _ebpf_ec_function
+{
+    EBPF_EC_FUNCTION_LOG
+} ebpf_ec_function_t;
 
 typedef struct _ebpf_operation_resolve_helper_request
 {
@@ -220,3 +226,15 @@ typedef struct _ebpf_operation_close_handle_request
     struct _ebpf_operation_header header;
     uint64_t handle;
 } ebpf_operation_close_handle_request_t;
+
+typedef struct _ebpf_operation_get_ec_function_request
+{
+    struct _ebpf_operation_header header;
+    ebpf_ec_function_t function;
+} ebpf_operation_get_ec_function_request_t;
+
+typedef struct _ebpf_operation_get_ec_function_reply
+{
+    struct _ebpf_operation_header header;
+    uint64_t address;
+} ebpf_operation_get_ec_function_reply_t;

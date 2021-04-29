@@ -518,6 +518,9 @@ extern "C"
     ebpf_error_code_t
     ebpf_guid_create(GUID* new_guid);
 
+    int32_t
+    ebpf_log_function(void* context, const char* format_string, ...);
+
 #ifdef __cplusplus
 }
 #endif
