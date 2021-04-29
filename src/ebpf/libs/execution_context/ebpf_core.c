@@ -605,6 +605,17 @@ _ebpf_core_protocol_close_handle(_In_ const ebpf_operation_close_handle_request_
     return ebpf_handle_close(request->handle);
 }
 
+static uint64_t
+_ebpf_core_protocol_get_ec_function(
+    _In_ const ebpf_operation_get_ec_function_request_t* request, _Inout_ ebpf_operation_get_ec_function_reply_t* reply)
+{
+    if (request->function != EBPF_EC_FUNCTION_LOG)
+        return EBPF_ERROR_INVALID_PARAMETER;
+
+    reply->address = (uint64_t)ebpf_log_function;
+    return EBPF_ERROR_SUCCESS;
+}
+
 static void*
 _ebpf_core_map_find_element(ebpf_map_t* map, const uint8_t* key)
 {
@@ -647,7 +658,7 @@ typedef struct _ebpf_protocol_handler
     size_t minimum_reply_size;
 } const ebpf_protocol_handler_t;
 
-static ebpf_protocol_handler_t _ebpf_protocol_handlers[EBPF_OPERATION_CLOSE_HANDLE + 1] = {
+static ebpf_protocol_handler_t _ebpf_protocol_handlers[EBPF_OPERATION_GET_EC_FUNCTION + 1] = {
     {(ebpf_error_code_t(__cdecl*)(const void*))_ebpf_core_protocol_resolve_helper,
      sizeof(struct _ebpf_operation_resolve_helper_request),
      sizeof(struct _ebpf_operation_resolve_helper_reply)},
@@ -690,7 +701,9 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[EBPF_OPERATION_CLOSE_HAND
     {(ebpf_error_code_t(__cdecl*)(const void*))_ebpf_core_protocol_close_handle,
      sizeof(ebpf_operation_close_handle_request_t),
      0},
-};
+    {(ebpf_error_code_t(__cdecl*)(const void*))_ebpf_core_protocol_get_ec_function,
+     sizeof(ebpf_operation_get_ec_function_request_t),
+     sizeof(ebpf_operation_get_ec_function_reply_t)}};
 
 ebpf_error_code_t
 ebpf_core_get_protocol_handler_properties(
@@ -699,7 +712,7 @@ ebpf_core_get_protocol_handler_properties(
     *minimum_request_size = 0;
     *minimum_reply_size = 0;
 
-    if (operation_id > EBPF_OPERATION_CLOSE_HANDLE || operation_id < EBPF_OPERATION_RESOLVE_HELPER)
+    if (operation_id > EBPF_OPERATION_GET_EC_FUNCTION || operation_id < EBPF_OPERATION_RESOLVE_HELPER)
         return EBPF_ERROR_NOT_SUPPORTED;
 
     if (!_ebpf_protocol_handlers[operation_id].dispatch.protocol_handler_no_reply)
@@ -719,7 +732,7 @@ ebpf_core_invoke_protocol_handler(
 {
     ebpf_error_code_t retval;
 
-    if (operation_id > EBPF_OPERATION_CLOSE_HANDLE || operation_id < EBPF_OPERATION_RESOLVE_HELPER) {
+    if (operation_id > EBPF_OPERATION_GET_EC_FUNCTION || operation_id < EBPF_OPERATION_RESOLVE_HELPER) {
         return EBPF_ERROR_NOT_SUPPORTED;
     }
 

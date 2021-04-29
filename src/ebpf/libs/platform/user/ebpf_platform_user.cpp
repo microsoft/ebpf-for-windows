@@ -335,3 +335,17 @@ ebpf_guid_create(GUID* new_guid)
     UuidCreate(new_guid);
     return EBPF_ERROR_SUCCESS;
 }
+
+int32_t
+ebpf_log_function(void* context, const char* format_string, ...)
+{
+    va_list arg_start;
+    va_start(arg_start, format_string);
+
+    UNREFERENCED_PARAMETER(context);
+
+    vprintf(format_string, arg_start);
+
+    va_end(arg_start);
+    return 0;
+}

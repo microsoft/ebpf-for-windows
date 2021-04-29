@@ -25,15 +25,9 @@
     <ClInclude Include="..\..\..\..\..\external\ubpf\vm\ubpf_int.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\external\ubpf\vm\platform.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\..\external\ubpf\vm\ubpf_vm.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="platform.c">
+    <ClCompile Include="ubpf_kernel.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

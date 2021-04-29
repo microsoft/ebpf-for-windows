@@ -33,13 +33,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\..\external\ubpf\vm\ubpf_jit_x86_64.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\external\ubpf\vm\ubpf_vm.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="platform.c">
+    <ClCompile Include="ubpf_user.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
