@@ -33,12 +33,6 @@ struct empty_reply
 {
 } _empty_reply;
 
-extern "C"
-{
-    void
-    set_error_print(struct ubpf_vm* vm, void* address);
-}
-
 template <typename request_t, typename reply_t = empty_reply>
 static uint32_t
 invoke_ioctl(ebpf_handle_t handle, request_t& request, reply_t& reply = _empty_reply)
@@ -402,7 +396,8 @@ ebpf_api_load_program(
             }
         }
 
-        set_error_print(vm, reinterpret_cast<void*>(log_function_address));
+        set_error_print(
+            vm, reinterpret_cast<int(*)(FILE * stream, const char* format, ...)>(log_function_address));
 
         if (ubpf_load(
                 vm, byte_code.data(), static_cast<uint32_t>(byte_code.size()), const_cast<char**>(error_message)) < 0) {
