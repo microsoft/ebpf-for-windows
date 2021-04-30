@@ -49,6 +49,11 @@ _ebpf_program_free(ebpf_object_t* object)
     } else {
         ubpf_destroy(program->code_or_vm.vm);
     }
+
+    ebpf_free(program->parameters.program_name.value);
+    ebpf_free(program->parameters.section_name.value);
+
+    ebpf_epoch_free(object);
 }
 
 ebpf_error_code_t

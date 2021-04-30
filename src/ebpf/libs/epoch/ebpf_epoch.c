@@ -153,8 +153,15 @@ Error:
 void
 ebpf_epoch_terminate()
 {
+    uint32_t cpu_id;
+
     if (!_ebpf_epoch_initiated)
         return;
+
+    for (cpu_id = 0; cpu_id < _ebpf_epoch_cpu_table_size; cpu_id++) {
+        ebpf_free_non_preemptible_work_item(_ebpf_epoch_cpu_table[cpu_id].non_preemtable_work_item);
+    }
+    _ebpf_epoch_cpu_table_size = 0;
 
     ebpf_free_timer_work_item(_ebpf_flush_timer);
     ebpf_hash_table_destroy(_ebpf_epoch_thread_table);

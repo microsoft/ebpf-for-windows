@@ -287,7 +287,7 @@ ebpf_provider_load(
         goto Done;
     }
 
-    memset(local_provider_context, 0, sizeof(ebpf_extension_client_t));
+    memset(local_provider_context, 0, sizeof(ebpf_extension_provider_t));
 
     local_provider_context->provider_binding_context = provider_binding_context;
     local_provider_context->provider_data = provider_data;
