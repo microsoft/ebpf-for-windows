@@ -17,8 +17,8 @@ EXPORTS
 	ebpf_api_elf_disassemble_section
 	ebpf_api_elf_verify_section
 	ebpf_api_elf_free
-	ebpf_api_pin_map
-	ebpf_api_unpin_map
+	ebpf_api_pin_object
+	ebpf_api_unpin_object
 	ebpf_api_get_next_map
 	ebpf_api_get_pinned_map
 	ebpf_api_get_next_program

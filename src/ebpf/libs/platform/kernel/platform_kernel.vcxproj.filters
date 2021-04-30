@@ -31,10 +31,10 @@
     <ClCompile Include="..\ebpf_object.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\ebpf_handle.c">
+    <ClCompile Include="ebpf_extension_kernel.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="ebpf_extension_kernel.c">
+    <ClCompile Include="ebpf_handle_kernel.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

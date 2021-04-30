@@ -90,12 +90,14 @@ ebpf_reference_object_by_handle(ebpf_handle_t handle, ebpf_object_type_t object_
         return EBPF_ERROR_INVALID_HANDLE;
 
     ebpf_lock_lock(&_ebpf_handle_table_lock, &state);
-    if (_ebpf_handle_table[handle] != NULL && _ebpf_handle_table[handle]->type == object_type) {
+    if ((_ebpf_handle_table[handle] != NULL) &&
+        ((_ebpf_handle_table[handle]->type == object_type) || (object_type == EBPF_OBJECT_UNKNOWN))) {
         ebpf_object_acquire_reference(_ebpf_handle_table[handle]);
         *object = _ebpf_handle_table[handle];
         return_value = EBPF_ERROR_SUCCESS;
     } else
         return_value = EBPF_ERROR_INVALID_HANDLE;
+
     ebpf_lock_unlock(&_ebpf_handle_table_lock, &state);
     return return_value;
 }
