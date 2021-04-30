@@ -664,12 +664,12 @@ TEST_CASE("bindmonitor-interpret", "[bindmonitor_interpret]")
     std::string limit_maps_name = "bindmonitor::limits_map";
 
     REQUIRE(
-        ebpf_api_pin_map(
+        ebpf_api_pin_object(
             map_handles[0],
             reinterpret_cast<const uint8_t*>(process_maps_name.c_str()),
             static_cast<uint32_t>(process_maps_name.size())) == ERROR_SUCCESS);
     REQUIRE(
-        ebpf_api_pin_map(
+        ebpf_api_pin_object(
             map_handles[1],
             reinterpret_cast<const uint8_t*>(limit_maps_name.c_str()),
             static_cast<uint32_t>(limit_maps_name.size())) == ERROR_SUCCESS);
@@ -687,11 +687,11 @@ TEST_CASE("bindmonitor-interpret", "[bindmonitor_interpret]")
             &map_handles[3]) == ERROR_SUCCESS);
 
     REQUIRE(
-        ebpf_api_unpin_map(
+        ebpf_api_unpin_object(
             reinterpret_cast<const uint8_t*>(process_maps_name.c_str()),
             static_cast<uint32_t>(process_maps_name.size())) == ERROR_SUCCESS);
     REQUIRE(
-        ebpf_api_unpin_map(
+        ebpf_api_unpin_object(
             reinterpret_cast<const uint8_t*>(limit_maps_name.c_str()), static_cast<uint32_t>(limit_maps_name.size())) ==
         ERROR_SUCCESS);
     REQUIRE(

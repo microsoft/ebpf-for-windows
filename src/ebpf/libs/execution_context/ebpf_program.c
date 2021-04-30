@@ -9,6 +9,8 @@
 #include "ebpf_epoch.h"
 #include "ebpf_link.h"
 #include "ebpf_object.h"
+
+typedef struct _FILE FILE;
 #include "ubpf.h"
 
 typedef struct _ebpf_program

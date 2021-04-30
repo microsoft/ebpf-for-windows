@@ -39,11 +39,11 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\ebpf_handle.c" />
     <ClCompile Include="..\ebpf_hash_table.c" />
     <ClCompile Include="..\ebpf_object.c" />
     <ClCompile Include="..\ebpf_pinning_table.c" />
     <ClCompile Include="ebpf_extension_kernel.c" />
+    <ClCompile Include="ebpf_handle_kernel.c" />
     <ClCompile Include="ebpf_platform_kernel.c" />
   </ItemGroup>
   <ItemGroup>

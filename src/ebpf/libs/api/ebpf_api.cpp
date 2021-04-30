@@ -10,6 +10,7 @@
 #include <stdexcept>
 
 #include "ebpf_protocol.h"
+#include "ebpf_platform.h"
 #include "platform.h"
 #include "tlv.h"
 extern "C"
@@ -32,12 +33,6 @@ static ebpf_handle_t device_handle = INVALID_HANDLE_VALUE;
 struct empty_reply
 {
 } _empty_reply;
-
-extern "C"
-{
-    void
-    set_error_print(struct ubpf_vm* vm, void* address);
-}
 
 template <typename request_t, typename reply_t = empty_reply>
 static uint32_t
@@ -100,14 +95,12 @@ invoke_ioctl(ebpf_handle_t handle, request_t& request, reply_t& reply = _empty_r
 uint32_t
 ebpf_api_initiate()
 {
-    LPCWSTR ebpfDeviceName = L"\\\\.\\EbpfIoDevice";
-
     if (device_handle != INVALID_HANDLE_VALUE) {
         return ERROR_ALREADY_INITIALIZED;
     }
 
     device_handle = Platform::CreateFile(
-        ebpfDeviceName, GENERIC_READ | GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+        EBPF_DEVICE_WIN32_NAME, GENERIC_READ | GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 
     if (device_handle == INVALID_HANDLE_VALUE) {
         return GetLastError();
@@ -222,7 +215,10 @@ resolve_maps_in_byte_code(std::vector<uint8_t>& byte_code)
     request->header.length = static_cast<uint16_t>(request_buffer.size());
 
     for (size_t index = 0; index < map_handles.size(); index++) {
-        request->map_handle[index] = map_handles[index];
+        if (map_handles[index] > _map_file_descriptors.size()) {
+            return ERROR_INVALID_PARAMETER;
+        }
+        request->map_handle[index] = _map_file_descriptors[map_handles[index] - 1].handle;
     }
 
     uint32_t result = invoke_ioctl(device_handle, request_buffer, reply_buffer);
@@ -402,7 +398,7 @@ ebpf_api_load_program(
             }
         }
 
-        set_error_print(vm, reinterpret_cast<void*>(log_function_address));
+        set_error_print(vm, reinterpret_cast<int (*)(FILE * stream, const char* format, ...)>(log_function_address));
 
         if (ubpf_load(
                 vm, byte_code.data(), static_cast<uint32_t>(byte_code.size()), const_cast<char**>(error_message)) < 0) {
@@ -457,12 +453,12 @@ ebpf_api_free_string(const char* error_message)
 }
 
 uint32_t
-ebpf_api_pin_map(ebpf_handle_t handle, const uint8_t* name, uint32_t name_length)
+ebpf_api_pin_object(ebpf_handle_t handle, const uint8_t* name, uint32_t name_length)
 {
-    std::vector<uint8_t> request_buffer(offsetof(ebpf_operation_update_map_pinning_request_t, name) + name_length);
-    auto request = reinterpret_cast<ebpf_operation_update_map_pinning_request_t*>(request_buffer.data());
+    std::vector<uint8_t> request_buffer(offsetof(ebpf_operation_update_pinning_request_t, name) + name_length);
+    auto request = reinterpret_cast<ebpf_operation_update_pinning_request_t*>(request_buffer.data());
 
-    request->header.id = EBPF_OPERATION_UPDATE_MAP_PINNING;
+    request->header.id = EBPF_OPERATION_UPDATE_PINNING;
     request->header.length = static_cast<uint16_t>(request_buffer.size());
     request->handle = reinterpret_cast<uint64_t>(handle);
     std::copy(name, name + name_length, request->name);
@@ -470,12 +466,12 @@ ebpf_api_pin_map(ebpf_handle_t handle, const uint8_t* name, uint32_t name_length
 }
 
 uint32_t
-ebpf_api_unpin_map(const uint8_t* name, uint32_t name_length)
+ebpf_api_unpin_object(const uint8_t* name, uint32_t name_length)
 {
-    std::vector<uint8_t> request_buffer(offsetof(ebpf_operation_update_map_pinning_request_t, name) + name_length);
-    auto request = reinterpret_cast<ebpf_operation_update_map_pinning_request_t*>(request_buffer.data());
+    std::vector<uint8_t> request_buffer(offsetof(ebpf_operation_update_pinning_request_t, name) + name_length);
+    auto request = reinterpret_cast<ebpf_operation_update_pinning_request_t*>(request_buffer.data());
 
-    request->header.id = EBPF_OPERATION_UPDATE_MAP_PINNING;
+    request->header.id = EBPF_OPERATION_UPDATE_PINNING;
     request->header.length = static_cast<uint16_t>(request_buffer.size());
     request->handle = UINT64_MAX;
     std::copy(name, name + name_length, request->name);
@@ -485,11 +481,11 @@ ebpf_api_unpin_map(const uint8_t* name, uint32_t name_length)
 uint32_t
 ebpf_api_get_pinned_map(const uint8_t* name, uint32_t name_length, ebpf_handle_t* handle)
 {
-    std::vector<uint8_t> request_buffer(offsetof(ebpf_operation_get_map_pinning_request_t, name) + name_length);
-    auto request = reinterpret_cast<ebpf_operation_get_map_pinning_request_t*>(request_buffer.data());
+    std::vector<uint8_t> request_buffer(offsetof(ebpf_operation_get_pinning_request_t, name) + name_length);
+    auto request = reinterpret_cast<ebpf_operation_get_pinning_request_t*>(request_buffer.data());
     ebpf_operation_get_map_pinning_reply_t reply;
 
-    request->header.id = EBPF_OPERATION_GET_MAP_PINNING;
+    request->header.id = EBPF_OPERATION_GET_PINNING;
     request->header.length = static_cast<uint16_t>(request_buffer.size());
     std::copy(name, name + name_length, request->name);
     auto result = invoke_ioctl(device_handle, request_buffer, reply);
@@ -497,7 +493,7 @@ ebpf_api_get_pinned_map(const uint8_t* name, uint32_t name_length, ebpf_handle_t
         return result;
     }
 
-    if (reply.header.id != ebpf_operation_id_t::EBPF_OPERATION_GET_MAP_PINNING) {
+    if (reply.header.id != ebpf_operation_id_t::EBPF_OPERATION_GET_PINNING) {
         return ERROR_INVALID_PARAMETER;
     }
 

@@ -538,13 +538,13 @@ Done:
 }
 
 static ebpf_error_code_t
-_ebpf_core_protocol_update_map_pinning(_In_ const struct _ebpf_operation_update_map_pinning_request* request)
+_ebpf_core_protocol_update_pinning(_In_ const struct _ebpf_operation_update_map_pinning_request* request)
 {
     ebpf_error_code_t retval;
     const ebpf_utf8_string_t name = {
         (uint8_t*)request->name,
-        request->header.length - EBPF_OFFSET_OF(ebpf_operation_update_map_pinning_request_t, name)};
-    ebpf_map_t* map = NULL;
+        request->header.length - EBPF_OFFSET_OF(ebpf_operation_update_pinning_request_t, name)};
+    ebpf_object_t* object = NULL;
 
     if (name.length == 0) {
         retval = EBPF_ERROR_INVALID_PARAMETER;
@@ -555,29 +555,28 @@ _ebpf_core_protocol_update_map_pinning(_In_ const struct _ebpf_operation_update_
         retval = ebpf_pinning_table_delete(_ebpf_core_map_pinning_table, &name);
         goto Done;
     } else {
-        retval = ebpf_reference_object_by_handle(request->handle, EBPF_OBJECT_MAP, (ebpf_object_t**)&map);
+        retval = ebpf_reference_object_by_handle(request->handle, EBPF_OBJECT_UNKNOWN, (ebpf_object_t**)&object);
         if (retval != EBPF_ERROR_SUCCESS)
             goto Done;
 
-        retval = ebpf_pinning_table_insert(_ebpf_core_map_pinning_table, &name, (ebpf_object_t*)map);
+        retval = ebpf_pinning_table_insert(_ebpf_core_map_pinning_table, &name, (ebpf_object_t*)object);
     }
 Done:
-    ebpf_object_release_reference((ebpf_object_t*)map);
+    ebpf_object_release_reference((ebpf_object_t*)object);
 
     return retval;
 }
 
 static ebpf_error_code_t
-_ebpf_core_protocol_get_pinned_map(
-    _In_ const struct _ebpf_operation_get_map_pinning_request* request,
-    _Inout_ struct _ebpf_operation_get_map_pinning_reply* reply,
+_ebpf_core_protocol_get_pinned_object(
+    _In_ const struct _ebpf_operation_get_pinning_request* request,
+    _Inout_ struct _ebpf_operation_get_pinning_reply* reply,
     uint16_t reply_length)
 {
     ebpf_error_code_t retval;
-    ebpf_map_t* map = NULL;
+    ebpf_object_t* object = NULL;
     const ebpf_utf8_string_t name = {
-        (uint8_t*)request->name,
-        request->header.length - EBPF_OFFSET_OF(ebpf_operation_get_map_pinning_request_t, name)};
+        (uint8_t*)request->name, request->header.length - EBPF_OFFSET_OF(ebpf_operation_get_pinning_request_t, name)};
     UNREFERENCED_PARAMETER(reply_length);
 
     if (name.length == 0) {
@@ -585,14 +584,14 @@ _ebpf_core_protocol_get_pinned_map(
         goto Done;
     }
 
-    retval = ebpf_pinning_table_find(_ebpf_core_map_pinning_table, &name, (ebpf_object_t**)&map);
+    retval = ebpf_pinning_table_find(_ebpf_core_map_pinning_table, &name, (ebpf_object_t**)&object);
     if (retval != EBPF_ERROR_SUCCESS)
         goto Done;
 
-    retval = ebpf_handle_create(&reply->handle, (ebpf_object_t*)map);
+    retval = ebpf_handle_create(&reply->handle, (ebpf_object_t*)object);
 
 Done:
-    ebpf_object_release_reference((ebpf_object_t*)map);
+    ebpf_object_release_reference((ebpf_object_t*)object);
     return retval;
 }
 
@@ -722,10 +721,10 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[EBPF_OPERATION_GET_EC_FUN
     {(ebpf_error_code_t(__cdecl*)(const void*))_ebpf_core_protocol_query_program_information,
      sizeof(struct _ebpf_operation_query_program_information_request),
      sizeof(struct _ebpf_operation_query_program_information_reply)},
-    {_ebpf_core_protocol_update_map_pinning, sizeof(struct _ebpf_operation_update_map_pinning_request), 0},
-    {(ebpf_error_code_t(__cdecl*)(const void*))_ebpf_core_protocol_get_pinned_map,
-     sizeof(struct _ebpf_operation_get_map_pinning_request),
-     sizeof(struct _ebpf_operation_get_map_pinning_reply)},
+    {_ebpf_core_protocol_update_pinning, sizeof(struct _ebpf_operation_update_map_pinning_request), 0},
+    {(ebpf_error_code_t(__cdecl*)(const void*))_ebpf_core_protocol_get_pinned_object,
+     sizeof(struct _ebpf_operation_get_pinning_request),
+     sizeof(struct _ebpf_operation_get_pinning_reply)},
     {(ebpf_error_code_t(__cdecl*)(const void*))_ebpf_core_protocol_link_program,
      sizeof(ebpf_operation_link_program_request_t),
      sizeof(ebpf_operation_link_program_reply_t)},

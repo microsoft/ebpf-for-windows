@@ -14,6 +14,10 @@ extern "C"
 #define EBPF_OFFSET_OF(s, m) (((size_t) & ((s*)0)->m))
 #define EBPF_FROM_FIELD(s, m, o) (s*)((uint8_t*)o - EBPF_OFFSET_OF(s, m))
 
+#define EBPF_DEVICE_NAME L"\\Device\\EbpfIoDevice"
+#define EBPF_SYMBOLIC_DEVICE_NAME L"\\GLOBAL??\\EbpfIoDevice"
+#define EBPF_DEVICE_WIN32_NAME L"\\\\.\\EbpfIoDevice"
+
     /**
      * @brief A UTF-8 encoded string.
      * Notes:
