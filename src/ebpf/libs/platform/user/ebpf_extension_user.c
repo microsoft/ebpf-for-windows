@@ -212,7 +212,7 @@ Done:
 }
 
 void
-epbf_provider_unload(ebpf_extension_provider_t* provider_context)
+ebpf_provider_unload(ebpf_extension_provider_t* provider_context)
 {
     ebpf_error_code_t return_value;
     ebpf_lock_state_t state;

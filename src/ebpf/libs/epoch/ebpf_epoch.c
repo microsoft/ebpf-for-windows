@@ -49,7 +49,7 @@ static ebpf_hash_table_t* _ebpf_epoch_thread_table = NULL;
 typedef struct _ebpf_epoch_cpu_entry
 {
     int64_t epoch;
-    epbf_non_preemptible_work_item_t* non_preemtable_work_item;
+    ebpf_non_preemptible_work_item_t* non_preemtable_work_item;
 } ebpf_epoch_cpu_entry_t;
 
 static ebpf_epoch_cpu_entry_t* _ebpf_epoch_cpu_table = NULL;

@@ -22,15 +22,30 @@ extern "C"
     } ebpf_object_type_t;
 
     typedef struct _ebpf_object ebpf_object_t;
-    typedef void (*ebfp_free_object_t)(ebpf_object_t* object);
+    typedef void (*ebpf_free_object_t)(ebpf_object_t* object);
 
     typedef struct _ebpf_object
     {
         uint32_t marker;
         volatile int32_t reference_count;
         ebpf_object_type_t type;
-        ebfp_free_object_t free_function;
+        ebpf_free_object_t free_function;
+        ebpf_list_entry_t entry;
     } ebpf_object_t;
+
+    /**
+     * @brief Initiate object tracking.
+     *
+     */
+    void
+    ebpf_object_tracking_initiate();
+
+    /**
+     * @brief Terminate object tracking.
+     *
+     */
+    void
+    ebpf_object_tracking_terminate();
 
     /**
      * @brief Initialize an ebpf_object_t structure.
@@ -40,7 +55,7 @@ extern "C"
      * @param[in] free_function The function used to free the object.
      */
     void
-    ebpf_object_initiate(ebpf_object_t* object, ebpf_object_type_t object_type, ebfp_free_object_t free_function);
+    ebpf_object_initialize(ebpf_object_t* object, ebpf_object_type_t object_type, ebpf_free_object_t free_function);
 
     /**
      * @brief Acquire a reference to this object.
@@ -67,6 +82,20 @@ extern "C"
      */
     ebpf_object_type_t
     ebpf_object_get_type(ebpf_object_t* object);
+
+    /**
+     * @brief Find the next object that is of this type and acquire reference
+     *  on it.
+     *
+     * @param[in] previous_object Previous object that was found. Can be NULL
+     *  to find first object.
+     * @param[in] type Type of object to find.
+     * @param[out] next_object Pointer to memory containing the next object or
+     *  NULL if there are no more objects of that type.
+     */
+    void
+    ebpf_object_reference_next_object(
+        ebpf_object_t* previous_object, ebpf_object_type_t type, ebpf_object_t** next_object);
 
 #ifdef __cplusplus
 }

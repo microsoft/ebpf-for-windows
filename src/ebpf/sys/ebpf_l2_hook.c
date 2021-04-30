@@ -705,6 +705,6 @@ Done:
 void
 ebpf_hook_unregister_providers()
 {
-    epbf_provider_unload(_ebpf_xdp_hook_provider_registration.provider);
-    epbf_provider_unload(_ebpf_bind_hook_provider_registration.provider);
+    ebpf_provider_unload(_ebpf_xdp_hook_provider_registration.provider);
+    ebpf_provider_unload(_ebpf_bind_hook_provider_registration.provider);
 }
