@@ -9,8 +9,9 @@ typedef enum _ebpf_operation_id
 {
     EBPF_OPERATION_RESOLVE_HELPER,
     EBPF_OPERATION_RESOLVE_MAP,
-    EBPF_OPERATION_LOAD_CODE,
+    EBPF_OPERATION_CREATE_PROGRAM,
     EBPF_OPERATION_CREATE_MAP,
+    EBPF_OPERATION_LOAD_CODE,
     EBPF_OPERATION_MAP_FIND_ELEMENT,
     EBPF_OPERATION_MAP_UPDATE_ELEMENT,
     EBPF_OPERATION_MAP_DELETE_ELEMENT,
@@ -48,6 +49,7 @@ typedef enum _ebpf_ec_function
 typedef struct _ebpf_operation_resolve_helper_request
 {
     struct _ebpf_operation_header header;
+    uint64_t program_handle;
     uint32_t helper_id[1];
 } ebpf_operation_resolve_helper_request_t;
 
@@ -60,6 +62,7 @@ typedef struct _ebpf_operation_resolve_helper_reply
 typedef struct _ebpf_operation_resolve_map_request
 {
     struct _ebpf_operation_header header;
+    uint64_t program_handle;
     uint64_t map_handle[1];
 } ebpf_operation_resolve_map_request_t;
 
@@ -69,21 +72,28 @@ typedef struct _ebpf_operation_resolve_map_reply
     uint64_t address[1];
 } ebpf_operation_resolve_map_reply_t;
 
+typedef struct _ebpf_operation_create_program_request
+{
+    struct _ebpf_operation_header header;
+    ebpf_program_type_t program_type;
+} ebpf_operation_create_program_request_t;
+
+typedef struct _ebpf_operation_create_program_reply
+{
+    struct _ebpf_operation_header header;
+    uint64_t program_handle;
+} ebpf_operation_create_program_reply_t;
+
 typedef struct _ebpf_operation_load_code_request
 {
     struct _ebpf_operation_header header;
+    uint64_t program_handle;
     ebpf_code_type_t code_type;
     uint16_t file_name_offset;
     uint16_t section_name_offset;
     uint16_t code_offset;
     uint8_t data[1];
 } ebpf_operation_load_code_request_t;
-
-typedef struct _ebpf_operation_load_code_reply
-{
-    struct _ebpf_operation_header header;
-    uint64_t handle;
-} ebpf_operation_load_code_reply_t;
 
 typedef struct _ebpf_operation_create_map_request
 {

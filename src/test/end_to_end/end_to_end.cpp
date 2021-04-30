@@ -172,7 +172,7 @@ typedef class _single_instance_hook
                 client_attach_callback,
                 client_detach_callback) == EBPF_ERROR_SUCCESS);
     }
-    ~_single_instance_hook() { epbf_provider_unload(provider); }
+    ~_single_instance_hook() { ebpf_provider_unload(provider); }
 
     uint32_t
     attach(ebpf_handle_t program_handle)
@@ -242,6 +242,7 @@ TEST_CASE("pinning_test", "[pinning_test]")
     _unwind_helper on_exit([&] {
         if (platform_initiated)
             ebpf_platform_terminate();
+        ebpf_object_tracking_terminate();
     });
 
     typedef struct _some_object
@@ -249,6 +250,8 @@ TEST_CASE("pinning_test", "[pinning_test]")
         ebpf_object_t object;
         std::string name;
     } some_object_t;
+
+    ebpf_object_tracking_initiate();
 
     REQUIRE(ebpf_platform_initiate() == EBPF_ERROR_SUCCESS);
 
@@ -258,8 +261,8 @@ TEST_CASE("pinning_test", "[pinning_test]")
     ebpf_utf8_string_t foo = EBPF_UTF8_STRING_FROM_CONST_STRING("foo");
     ebpf_utf8_string_t bar = EBPF_UTF8_STRING_FROM_CONST_STRING("bar");
 
-    ebpf_object_initiate(&an_object.object, EBPF_OBJECT_MAP, [](ebpf_object_t*) {});
-    ebpf_object_initiate(&another_object.object, EBPF_OBJECT_MAP, [](ebpf_object_t*) {});
+    ebpf_object_initialize(&an_object.object, EBPF_OBJECT_MAP, [](ebpf_object_t*) {});
+    ebpf_object_initialize(&another_object.object, EBPF_OBJECT_MAP, [](ebpf_object_t*) {});
 
     ebpf_pinning_table_t* pinning_table;
     REQUIRE(ebpf_pinning_table_allocate(&pinning_table) == EBPF_ERROR_SUCCESS);
@@ -278,6 +281,9 @@ TEST_CASE("pinning_test", "[pinning_test]")
     ebpf_pinning_table_free(pinning_table);
     REQUIRE(an_object.object.reference_count == 1);
     REQUIRE(another_object.object.reference_count == 1);
+
+    ebpf_object_release_reference(&an_object.object);
+    ebpf_object_release_reference(&another_object.object);
 }
 
 TEST_CASE("droppacket-jit", "[droppacket_jit]")
@@ -701,13 +707,7 @@ TEST_CASE("bindmonitor-interpret", "[bindmonitor_interpret]")
 
     ebpf_handle_t handle_iterator = INVALID_HANDLE_VALUE;
     REQUIRE(ebpf_api_get_next_map(handle_iterator, &handle_iterator) == ERROR_SUCCESS);
-    REQUIRE(handle_iterator == map_handles[0]);
     REQUIRE(ebpf_api_get_next_map(handle_iterator, &handle_iterator) == ERROR_SUCCESS);
-    REQUIRE(handle_iterator == map_handles[1]);
-    REQUIRE(ebpf_api_get_next_map(handle_iterator, &handle_iterator) == ERROR_SUCCESS);
-    REQUIRE(handle_iterator == map_handles[2]);
-    REQUIRE(ebpf_api_get_next_map(handle_iterator, &handle_iterator) == ERROR_SUCCESS);
-    REQUIRE(handle_iterator == map_handles[3]);
     REQUIRE(ebpf_api_get_next_map(handle_iterator, &handle_iterator) == ERROR_SUCCESS);
     REQUIRE(handle_iterator == INVALID_HANDLE_VALUE);
 
@@ -948,5 +948,5 @@ TEST_CASE("extension_test", "[extension_test]")
     REQUIRE(returned_provider_dispatch_table == &provider_dispatch_table);
 
     ebpf_extension_unload(client_context);
-    epbf_provider_unload(provider_context);
+    ebpf_provider_unload(provider_context);
 }

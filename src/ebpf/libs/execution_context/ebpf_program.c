@@ -33,11 +33,15 @@ typedef struct _ebpf_program
     ebpf_extension_data_t* global_helper_provider_data;
     ebpf_extension_dispatch_table_t* global_helper_provider_dispatch_table;
 
+    ebpf_map_t** maps;
+    size_t count_of_maps;
+
 } ebpf_program_t;
 
 static void
 _ebpf_program_free(ebpf_object_t* object)
 {
+    size_t index;
     ebpf_program_t* program = (ebpf_program_t*)object;
     if (!program)
         return;
@@ -55,6 +59,9 @@ _ebpf_program_free(ebpf_object_t* object)
     ebpf_free(program->parameters.program_name.value);
     ebpf_free(program->parameters.section_name.value);
 
+    for (index = 0; index < program->count_of_maps; index++)
+        ebpf_object_release_reference((ebpf_object_t*)program->maps[index]);
+
     ebpf_epoch_free(object);
 }
 
@@ -69,7 +76,7 @@ ebpf_program_create(ebpf_program_t** program)
 
     memset(local_program, 0, sizeof(ebpf_program_t));
 
-    ebpf_object_initiate(&local_program->object, EBPF_OBJECT_PROGRAM, _ebpf_program_free);
+    ebpf_object_initialize(&local_program->object, EBPF_OBJECT_PROGRAM, _ebpf_program_free);
 
     *program = local_program;
 
@@ -123,6 +130,22 @@ ebpf_error_code_t
 ebpf_program_get_properties(ebpf_program_t* program, ebpf_program_parameters_t* program_parameters)
 {
     *program_parameters = program->parameters;
+    return EBPF_ERROR_SUCCESS;
+}
+
+ebpf_error_code_t
+ebpf_program_associate_maps(ebpf_program_t* program, ebpf_map_t** maps, size_t maps_count)
+{
+    size_t index;
+    program->maps = ebpf_allocate(maps_count * sizeof(ebpf_map_t*), EBPF_MEMORY_NO_EXECUTE);
+    if (!program->maps)
+        return EBPF_ERROR_OUT_OF_RESOURCES;
+
+    memcpy(program->maps, maps, sizeof(ebpf_map_t*) * maps_count);
+    program->count_of_maps = maps_count;
+    for (index = 0; index < program->count_of_maps; index++)
+        ebpf_object_acquire_reference((ebpf_object_t*)program->maps[index]);
+
     return EBPF_ERROR_SUCCESS;
 }
 

@@ -55,6 +55,8 @@ ebpf_core_initiate()
     if (return_value != EBPF_ERROR_SUCCESS)
         goto Done;
 
+    ebpf_object_tracking_initiate();
+
     return_value = ebpf_pinning_table_allocate(&_ebpf_core_map_pinning_table);
     if (return_value != EBPF_ERROR_SUCCESS)
         goto Done;
@@ -103,7 +105,7 @@ Done:
 void
 ebpf_core_terminate()
 {
-    epbf_provider_unload(_ebpf_global_helper_function_provider_context);
+    ebpf_provider_unload(_ebpf_global_helper_function_provider_context);
     _ebpf_global_helper_function_provider_context = NULL;
 
     ebpf_free(_ebpf_global_helper_function_dispatch_table);
@@ -113,16 +115,15 @@ ebpf_core_terminate()
 
     ebpf_pinning_table_free(_ebpf_core_map_pinning_table);
 
+    ebpf_object_tracking_terminate();
+
     ebpf_epoch_terminate();
 
     ebpf_platform_terminate();
 }
 
 static ebpf_error_code_t
-_ebpf_core_protocol_load_code(
-    _In_ const ebpf_operation_load_code_request_t* request,
-    _Inout_ struct _ebpf_operation_load_code_reply* reply,
-    uint16_t reply_length)
+_ebpf_core_protocol_load_code(_In_ const ebpf_operation_load_code_request_t* request)
 {
     ebpf_error_code_t retval;
     ebpf_program_t* program = NULL;
@@ -133,8 +134,6 @@ _ebpf_core_protocol_load_code(
     uint8_t* code = NULL;
     size_t code_length = 0;
     ebpf_program_parameters_t parameters;
-
-    UNREFERENCED_PARAMETER(reply_length);
 
     if (request->file_name_offset > request->header.length) {
         return EBPF_ERROR_INVALID_PARAMETER;
@@ -155,7 +154,7 @@ _ebpf_core_protocol_load_code(
         }
     }
 
-    retval = ebpf_program_create(&program);
+    retval = ebpf_reference_object_by_handle(request->program_handle, EBPF_OBJECT_PROGRAM, (ebpf_object_t**)&program);
     if (retval != EBPF_ERROR_SUCCESS)
         goto Done;
 
@@ -184,8 +183,6 @@ _ebpf_core_protocol_load_code(
 
     if (retval != EBPF_ERROR_SUCCESS)
         goto Done;
-
-    retval = ebpf_handle_create(&reply->handle, (ebpf_object_t*)program);
 
 Done:
     ebpf_object_release_reference((ebpf_object_t*)program);
@@ -226,6 +223,7 @@ _ebpf_core_protocol_resolve_map(
     _Inout_ struct _ebpf_operation_resolve_map_reply* reply,
     uint16_t reply_length)
 {
+    ebpf_program_t* program = NULL;
     size_t count_of_maps = (request->header.length - EBPF_OFFSET_OF(ebpf_operation_resolve_map_request_t, map_handle)) /
                            sizeof(request->map_handle[0]);
     size_t required_reply_length =
@@ -237,6 +235,11 @@ _ebpf_core_protocol_resolve_map(
         return EBPF_ERROR_INVALID_PARAMETER;
     }
 
+    return_value =
+        ebpf_reference_object_by_handle(request->program_handle, EBPF_OBJECT_PROGRAM, (ebpf_object_t**)&program);
+    if (return_value != EBPF_ERROR_SUCCESS)
+        goto Done;
+
     for (map_index = 0; map_index < count_of_maps; map_index++) {
         ebpf_map_t* map;
         return_value =
@@ -245,14 +248,18 @@ _ebpf_core_protocol_resolve_map(
         if (return_value != EBPF_ERROR_SUCCESS)
             goto Done;
 
-        ebpf_object_release_reference((ebpf_object_t*)map);
-
         reply->address[map_index] = (uint64_t)map;
+
+        ebpf_object_release_reference((ebpf_object_t*)map);
     }
+
+    return_value = ebpf_program_associate_maps(program, (ebpf_map_t**)reply->address, count_of_maps);
+
     reply->header.length = (uint16_t)required_reply_length;
-    return_value = EBPF_ERROR_SUCCESS;
 
 Done:
+    ebpf_object_release_reference((ebpf_object_t*)program);
+
     return return_value;
 }
 
@@ -278,6 +285,33 @@ _ebpf_core_protocol_create_map(
 
 Done:
     ebpf_object_release_reference((ebpf_object_t*)map);
+
+    return retval;
+}
+
+static ebpf_error_code_t
+_ebpf_core_protocol_create_program(
+    _In_ const ebpf_operation_create_program_request_t* request,
+    _Inout_ ebpf_operation_create_program_reply_t* reply,
+    uint16_t reply_length)
+{
+    ebpf_error_code_t retval;
+    ebpf_program_t* program = NULL;
+    UNREFERENCED_PARAMETER(request);
+    UNREFERENCED_PARAMETER(reply_length);
+
+    retval = ebpf_program_create(&program);
+    if (retval != EBPF_ERROR_SUCCESS)
+        goto Done;
+
+    retval = ebpf_handle_create(&reply->program_handle, (ebpf_object_t*)program);
+    if (retval != EBPF_ERROR_SUCCESS)
+        goto Done;
+
+    retval = EBPF_ERROR_SUCCESS;
+
+Done:
+    ebpf_object_release_reference((ebpf_object_t*)program);
 
     return retval;
 }
@@ -421,14 +455,42 @@ Done:
 }
 
 static ebpf_error_code_t
+_ebpf_core_get_next_handle(ebpf_handle_t previous_handle, ebpf_object_type_t type, ebpf_handle_t* next_handle)
+{
+    ebpf_error_code_t retval;
+    ebpf_object_t* previous_object = NULL;
+    ebpf_object_t* next_object = NULL;
+
+    if (previous_handle != UINT64_MAX) {
+        retval = ebpf_reference_object_by_handle(previous_handle, type, (ebpf_object_t**)&previous_object);
+        if (retval != EBPF_ERROR_SUCCESS)
+            goto Done;
+    }
+
+    ebpf_object_reference_next_object(previous_object, type, &next_object);
+
+    if (next_object)
+        retval = ebpf_handle_create(next_handle, next_object);
+    else
+        *next_handle = UINT64_MAX;
+
+    retval = EBPF_ERROR_SUCCESS;
+
+Done:
+    ebpf_object_release_reference(previous_object);
+    ebpf_object_release_reference(next_object);
+
+    return retval;
+}
+
+static ebpf_error_code_t
 _ebpf_core_protocol_get_next_map(
     _In_ const struct _ebpf_operation_get_next_map_request* request,
     _Inout_ struct _ebpf_operation_get_next_map_reply* reply,
     uint16_t reply_length)
 {
     UNREFERENCED_PARAMETER(reply_length);
-
-    return ebpf_get_next_handle_by_type(request->previous_handle, EBPF_OBJECT_MAP, &reply->next_handle);
+    return _ebpf_core_get_next_handle(request->previous_handle, EBPF_OBJECT_MAP, &reply->next_handle);
 }
 
 static ebpf_error_code_t
@@ -438,8 +500,7 @@ _ebpf_core_protocol_get_next_program(
     uint16_t reply_length)
 {
     UNREFERENCED_PARAMETER(reply_length);
-
-    return ebpf_get_next_handle_by_type(request->previous_handle, EBPF_OBJECT_PROGRAM, &reply->next_handle);
+    return _ebpf_core_get_next_handle(request->previous_handle, EBPF_OBJECT_PROGRAM, &reply->next_handle);
 }
 
 static ebpf_error_code_t
@@ -659,17 +720,20 @@ typedef struct _ebpf_protocol_handler
 
 static ebpf_protocol_handler_t _ebpf_protocol_handlers[EBPF_OPERATION_GET_EC_FUNCTION + 1] = {
     {(ebpf_error_code_t(__cdecl*)(const void*))_ebpf_core_protocol_resolve_helper,
-     sizeof(struct _ebpf_operation_resolve_helper_request),
+     EBPF_OFFSET_OF(ebpf_operation_resolve_helper_request_t, helper_id),
      sizeof(struct _ebpf_operation_resolve_helper_reply)},
     {(ebpf_error_code_t(__cdecl*)(const void*))_ebpf_core_protocol_resolve_map,
-     sizeof(struct _ebpf_operation_resolve_map_request),
+     EBPF_OFFSET_OF(ebpf_operation_resolve_map_request_t, map_handle),
      sizeof(struct _ebpf_operation_resolve_map_reply)},
-    {(ebpf_error_code_t(__cdecl*)(const void*))_ebpf_core_protocol_load_code,
-     sizeof(struct _ebpf_operation_load_code_request),
-     sizeof(struct _ebpf_operation_load_code_reply)},
+    {(ebpf_error_code_t(__cdecl*)(const void*))_ebpf_core_protocol_create_program,
+     sizeof(struct _ebpf_operation_create_program_request),
+     sizeof(struct _ebpf_operation_create_program_reply)},
     {(ebpf_error_code_t(__cdecl*)(const void*))_ebpf_core_protocol_create_map,
      sizeof(struct _ebpf_operation_create_map_request),
      sizeof(struct _ebpf_operation_create_map_reply)},
+    {(ebpf_error_code_t(__cdecl*)(const void*))_ebpf_core_protocol_load_code,
+     sizeof(struct _ebpf_operation_load_code_request),
+     0},
     {(ebpf_error_code_t(__cdecl*)(const void*))_ebpf_core_protocol_map_find_element,
      sizeof(struct _ebpf_operation_map_find_element_request),
      sizeof(struct _ebpf_operation_map_find_element_reply)},
