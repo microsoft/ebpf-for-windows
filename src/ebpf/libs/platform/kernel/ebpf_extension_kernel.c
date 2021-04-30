@@ -338,7 +338,7 @@ Done:
 }
 
 void
-epbf_provider_unload(ebpf_extension_provider_t* provider_context)
+ebpf_provider_unload(ebpf_extension_provider_t* provider_context)
 {
     NTSTATUS status;
     if (provider_context) {

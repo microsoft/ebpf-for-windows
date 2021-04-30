@@ -55,6 +55,8 @@ ebpf_core_initiate()
     if (return_value != EBPF_ERROR_SUCCESS)
         goto Done;
 
+    ebpf_object_tracking_initiate();
+
     return_value = ebpf_pinning_table_allocate(&_ebpf_core_map_pinning_table);
     if (return_value != EBPF_ERROR_SUCCESS)
         goto Done;
@@ -103,7 +105,7 @@ Done:
 void
 ebpf_core_terminate()
 {
-    epbf_provider_unload(_ebpf_global_helper_function_provider_context);
+    ebpf_provider_unload(_ebpf_global_helper_function_provider_context);
     _ebpf_global_helper_function_provider_context = NULL;
 
     ebpf_free(_ebpf_global_helper_function_dispatch_table);
@@ -112,6 +114,8 @@ ebpf_core_terminate()
     ebpf_handle_table_terminate();
 
     ebpf_pinning_table_free(_ebpf_core_map_pinning_table);
+
+    ebpf_object_tracking_terminate();
 
     ebpf_epoch_terminate();
 
@@ -421,14 +425,42 @@ Done:
 }
 
 static ebpf_error_code_t
+_ebpf_core_get_next_handle(ebpf_handle_t previous_handle, ebpf_object_type_t type, ebpf_handle_t* next_handle)
+{
+    ebpf_error_code_t retval;
+    ebpf_object_t* previous_object = NULL;
+    ebpf_object_t* next_object = NULL;
+
+    if (previous_handle != UINT64_MAX) {
+        retval = ebpf_reference_object_by_handle(previous_handle, type, (ebpf_object_t**)&previous_object);
+        if (retval != EBPF_ERROR_SUCCESS)
+            goto Done;
+    }
+
+    ebpf_object_reference_next_object(previous_object, type, &next_object);
+
+    if (next_object)
+        retval = ebpf_handle_create(next_handle, next_object);
+    else
+        *next_handle = UINT64_MAX;
+
+    retval = EBPF_ERROR_SUCCESS;
+
+Done:
+    ebpf_object_release_reference(previous_object);
+    ebpf_object_release_reference(next_object);
+
+    return retval;
+}
+
+static ebpf_error_code_t
 _ebpf_core_protocol_get_next_map(
     _In_ const struct _ebpf_operation_get_next_map_request* request,
     _Inout_ struct _ebpf_operation_get_next_map_reply* reply,
     uint16_t reply_length)
 {
     UNREFERENCED_PARAMETER(reply_length);
-
-    return ebpf_get_next_handle_by_type(request->previous_handle, EBPF_OBJECT_MAP, &reply->next_handle);
+    return _ebpf_core_get_next_handle(request->previous_handle, EBPF_OBJECT_MAP, &reply->next_handle);
 }
 
 static ebpf_error_code_t
@@ -438,8 +470,7 @@ _ebpf_core_protocol_get_next_program(
     uint16_t reply_length)
 {
     UNREFERENCED_PARAMETER(reply_length);
-
-    return ebpf_get_next_handle_by_type(request->previous_handle, EBPF_OBJECT_PROGRAM, &reply->next_handle);
+    return _ebpf_core_get_next_handle(request->previous_handle, EBPF_OBJECT_PROGRAM, &reply->next_handle);
 }
 
 static ebpf_error_code_t
