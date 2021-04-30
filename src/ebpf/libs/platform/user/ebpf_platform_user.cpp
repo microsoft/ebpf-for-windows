@@ -234,7 +234,7 @@ ebpf_get_current_thread_id()
 
 ebpf_error_code_t
 ebpf_allocate_non_preemptible_work_item(
-    epbf_non_preemptible_work_item_t** work_item,
+    ebpf_non_preemptible_work_item_t** work_item,
     uint32_t cpu_id,
     void (*work_item_routine)(void* work_item_context, void* parameter_1),
     void* work_item_context)
@@ -247,13 +247,13 @@ ebpf_allocate_non_preemptible_work_item(
 }
 
 void
-ebpf_free_non_preemptible_work_item(epbf_non_preemptible_work_item_t* work_item)
+ebpf_free_non_preemptible_work_item(ebpf_non_preemptible_work_item_t* work_item)
 {
     UNREFERENCED_PARAMETER(work_item);
 }
 
 bool
-ebpf_queue_non_preemptible_work_item(epbf_non_preemptible_work_item_t* work_item, void* parameter_1)
+ebpf_queue_non_preemptible_work_item(ebpf_non_preemptible_work_item_t* work_item, void* parameter_1)
 {
     UNREFERENCED_PARAMETER(work_item);
     UNREFERENCED_PARAMETER(parameter_1);

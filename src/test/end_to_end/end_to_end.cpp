@@ -172,7 +172,7 @@ typedef class _single_instance_hook
                 client_attach_callback,
                 client_detach_callback) == EBPF_ERROR_SUCCESS);
     }
-    ~_single_instance_hook() { epbf_provider_unload(provider); }
+    ~_single_instance_hook() { ebpf_provider_unload(provider); }
 
     uint32_t
     attach(ebpf_handle_t program_handle)
@@ -948,5 +948,5 @@ TEST_CASE("extension_test", "[extension_test]")
     REQUIRE(returned_provider_dispatch_table == &provider_dispatch_table);
 
     ebpf_extension_unload(client_context);
-    epbf_provider_unload(provider_context);
+    ebpf_provider_unload(provider_context);
 }

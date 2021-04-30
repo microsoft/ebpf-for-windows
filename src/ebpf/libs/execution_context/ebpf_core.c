@@ -105,7 +105,7 @@ Done:
 void
 ebpf_core_terminate()
 {
-    epbf_provider_unload(_ebpf_global_helper_function_provider_context);
+    ebpf_provider_unload(_ebpf_global_helper_function_provider_context);
     _ebpf_global_helper_function_provider_context = NULL;
 
     ebpf_free(_ebpf_global_helper_function_dispatch_table);

@@ -40,7 +40,7 @@ extern "C"
         EBPF_CODE_INTEGRITY_HYPER_VISOR_KERNEL_MODE = 1
     } ebpf_code_integrity_state_t;
 
-    typedef struct _epbf_non_preemptible_work_item epbf_non_preemptible_work_item_t;
+    typedef struct _ebpf_non_preemptible_work_item ebpf_non_preemptible_work_item_t;
     typedef struct _ebpf_timer_work_item ebpf_timer_work_item_t;
     typedef struct _ebpf_extension_client ebpf_extension_client_t;
     typedef struct _ebpf_extension_provider ebpf_extension_provider_t;
@@ -229,7 +229,7 @@ extern "C"
      */
     ebpf_error_code_t
     ebpf_allocate_non_preemptible_work_item(
-        epbf_non_preemptible_work_item_t** work_item,
+        ebpf_non_preemptible_work_item_t** work_item,
         uint32_t cpu_id,
         void (*work_item_routine)(void* work_item_context, void* parameter_1),
         void* work_item_context);
@@ -240,7 +240,7 @@ extern "C"
      * @param[in] work_item Pointer to the work item to free.
      */
     void
-    ebpf_free_non_preemptible_work_item(epbf_non_preemptible_work_item_t* work_item);
+    ebpf_free_non_preemptible_work_item(ebpf_non_preemptible_work_item_t* work_item);
 
     /**
      * @brief Schedule a non-preemptible work item to run.
@@ -251,7 +251,7 @@ extern "C"
      * @retval false Work item is already queued.
      */
     bool
-    ebpf_queue_non_preemptible_work_item(epbf_non_preemptible_work_item_t* work_item, void* parameter_1);
+    ebpf_queue_non_preemptible_work_item(ebpf_non_preemptible_work_item_t* work_item, void* parameter_1);
 
     /**
      * @brief Allocate a timer to run a non-preemptible work item.
@@ -514,7 +514,7 @@ extern "C"
      * @param[in] provider_context Provider to unload.
      */
     void
-    epbf_provider_unload(ebpf_extension_provider_t* provider_context);
+    ebpf_provider_unload(ebpf_extension_provider_t* provider_context);
 
     ebpf_error_code_t
     ebpf_guid_create(GUID* new_guid);
