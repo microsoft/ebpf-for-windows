@@ -75,7 +75,6 @@ unload(int argc, char** argv)
     ebpf_api_unpin_object(program_link, sizeof(program_link));
     ebpf_api_unpin_object(limits_map, sizeof(limits_map));
     ebpf_api_unpin_object(process_map, sizeof(process_map));
-    fprintf(stderr, "Not implemented yet.\n");
     return 1;
 }
 
