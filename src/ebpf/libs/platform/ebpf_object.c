@@ -41,7 +41,7 @@ ebpf_object_tracking_terminate()
 }
 
 void
-ebpf_object_initiate(ebpf_object_t* object, ebpf_object_type_t object_type, ebpf_free_object_t free_function)
+ebpf_object_initialize(ebpf_object_t* object, ebpf_object_type_t object_type, ebpf_free_object_t free_function)
 {
     object->marker = _ebpf_object_marker;
     object->reference_count = 1;

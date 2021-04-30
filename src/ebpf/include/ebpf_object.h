@@ -33,14 +33,14 @@ extern "C"
     } ebpf_object_t;
 
     /**
-     * @brief Initialize the object tracking state.
+     * @brief Initiate object tracking.
      *
      */
     void
     ebpf_object_tracking_initiate();
 
     /**
-     * @brief Terminate the object tracking state.
+     * @brief Terminate object tracking.
      *
      */
     void
@@ -54,7 +54,7 @@ extern "C"
      * @param[in] free_function The function used to free the object.
      */
     void
-    ebpf_object_initiate(ebpf_object_t* object, ebpf_object_type_t object_type, ebpf_free_object_t free_function);
+    ebpf_object_initialize(ebpf_object_t* object, ebpf_object_type_t object_type, ebpf_free_object_t free_function);
 
     /**
      * @brief Acquire a reference to this object.

@@ -67,7 +67,7 @@ ebpf_program_create(ebpf_program_t** program)
 
     memset(local_program, 0, sizeof(ebpf_program_t));
 
-    ebpf_object_initiate(&local_program->object, EBPF_OBJECT_PROGRAM, _ebpf_program_free);
+    ebpf_object_initialize(&local_program->object, EBPF_OBJECT_PROGRAM, _ebpf_program_free);
 
     *program = local_program;
 

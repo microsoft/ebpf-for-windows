@@ -43,7 +43,7 @@ ebpf_map_create(const ebpf_map_definition_t* ebpf_map_definition, ebpf_map_t** e
     if (!local_map)
         return EBPF_ERROR_OUT_OF_RESOURCES;
 
-    ebpf_object_initiate(
+    ebpf_object_initialize(
         &local_map->object,
         EBPF_OBJECT_MAP,
         (ebpf_free_object_t)ebpf_map_function_tables[local_map->ebpf_map_definition.type].delete_map);

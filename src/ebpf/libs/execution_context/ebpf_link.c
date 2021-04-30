@@ -52,7 +52,7 @@ ebpf_link_create(ebpf_link_t** link)
 
     memset(*link, 0, sizeof(ebpf_link_t));
 
-    ebpf_object_initiate(&(*link)->object, EBPF_OBJECT_LINK, _ebpf_link_free);
+    ebpf_object_initialize(&(*link)->object, EBPF_OBJECT_LINK, _ebpf_link_free);
     return EBPF_ERROR_SUCCESS;
 }
 
