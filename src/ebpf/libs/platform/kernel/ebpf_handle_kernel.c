@@ -4,6 +4,9 @@
  */
 #include "ebpf_handle.h"
 
+extern DEVICE_OBJECT*
+ebpf_driver_get_device_object();
+
 ebpf_error_code_t
 ebpf_handle_table_initiate()
 {
@@ -88,6 +91,11 @@ ebpf_reference_object_by_handle(ebpf_handle_t handle, ebpf_object_type_t object_
 
     status = ObReferenceObjectByHandle((HANDLE)handle, 0, NULL, UserMode, &file_object, NULL);
     if (!NT_SUCCESS(status)) {
+        return_value = EBPF_ERROR_INVALID_HANDLE;
+        goto Done;
+    }
+
+    if (file_object->DeviceObject != ebpf_driver_get_device_object()) {
         return_value = EBPF_ERROR_INVALID_HANDLE;
         goto Done;
     }
