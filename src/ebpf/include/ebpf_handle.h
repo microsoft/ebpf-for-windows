@@ -66,19 +66,6 @@ extern "C"
     ebpf_error_code_t
     ebpf_reference_object_by_handle(ebpf_handle_t handle, ebpf_object_type_t object_type, ebpf_object_t** object);
 
-    /**
-     * @brief Scan the handle table for the next handle of this type.
-     *
-     * @param[in] previous_handle Previous handle or UINT64_MAX to restart.
-     * @param[in] object_type Object type to match on.
-     * @param[out] next_handle Next handle or UINT64_MAX if no more handles.
-     * @retval EBPF_ERROR_SUCCESS The operation was successful.
-     * @retval EBPF_ERROR_INVALID_HANDLE The provided handle is not valid.
-     */
-    ebpf_error_code_t
-    ebpf_get_next_handle_by_type(
-        ebpf_handle_t previous_handle, ebpf_object_type_t object_type, ebpf_handle_t* next_handle);
-
 #ifdef __cplusplus
 }
 #endif

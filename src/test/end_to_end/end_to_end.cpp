@@ -242,6 +242,7 @@ TEST_CASE("pinning_test", "[pinning_test]")
     _unwind_helper on_exit([&] {
         if (platform_initiated)
             ebpf_platform_terminate();
+        ebpf_object_tracking_terminate();
     });
 
     typedef struct _some_object
@@ -249,6 +250,8 @@ TEST_CASE("pinning_test", "[pinning_test]")
         ebpf_object_t object;
         std::string name;
     } some_object_t;
+
+    ebpf_object_tracking_initiate();
 
     REQUIRE(ebpf_platform_initiate() == EBPF_ERROR_SUCCESS);
 
@@ -278,6 +281,9 @@ TEST_CASE("pinning_test", "[pinning_test]")
     ebpf_pinning_table_free(pinning_table);
     REQUIRE(an_object.object.reference_count == 1);
     REQUIRE(another_object.object.reference_count == 1);
+
+    ebpf_object_release_reference(&an_object.object);
+    ebpf_object_release_reference(&another_object.object);
 }
 
 TEST_CASE("droppacket-jit", "[droppacket_jit]")
@@ -701,13 +707,7 @@ TEST_CASE("bindmonitor-interpret", "[bindmonitor_interpret]")
 
     ebpf_handle_t handle_iterator = INVALID_HANDLE_VALUE;
     REQUIRE(ebpf_api_get_next_map(handle_iterator, &handle_iterator) == ERROR_SUCCESS);
-    REQUIRE(handle_iterator == map_handles[0]);
     REQUIRE(ebpf_api_get_next_map(handle_iterator, &handle_iterator) == ERROR_SUCCESS);
-    REQUIRE(handle_iterator == map_handles[1]);
-    REQUIRE(ebpf_api_get_next_map(handle_iterator, &handle_iterator) == ERROR_SUCCESS);
-    REQUIRE(handle_iterator == map_handles[2]);
-    REQUIRE(ebpf_api_get_next_map(handle_iterator, &handle_iterator) == ERROR_SUCCESS);
-    REQUIRE(handle_iterator == map_handles[3]);
     REQUIRE(ebpf_api_get_next_map(handle_iterator, &handle_iterator) == ERROR_SUCCESS);
     REQUIRE(handle_iterator == INVALID_HANDLE_VALUE);
 

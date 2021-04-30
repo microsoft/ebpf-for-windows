@@ -46,7 +46,7 @@ ebpf_map_create(const ebpf_map_definition_t* ebpf_map_definition, ebpf_map_t** e
     ebpf_object_initiate(
         &local_map->object,
         EBPF_OBJECT_MAP,
-        (ebfp_free_object_t)ebpf_map_function_tables[local_map->ebpf_map_definition.type].delete_map);
+        (ebpf_free_object_t)ebpf_map_function_tables[local_map->ebpf_map_definition.type].delete_map);
 
     *ebpf_map = local_map;
 
