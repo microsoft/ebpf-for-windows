@@ -7,6 +7,27 @@
 static const uint32_t _ebpf_object_marker = 0x67453201;
 
 static ebpf_lock_t _ebpf_object_tracking_list_lock = {0};
+
+/**
+ * @brief Objects are added to the list when they are initialized and removed
+ * from the list when they are freed. Objects in the list always have a
+ *  ref-count > 0.
+ * 
+ * Map objects can have references due to one of the following:
+ * 1) An open handle holds a reference on it.
+ * 2) A pinning table entry holds a reference on it.
+ * 3) Program holds a reference on the map when it is associated with it.
+ * 
+ * Program objects can have references due to one of the following:
+ * 1) An open handle holds a reference on it.
+ * 2) A pinning table entry holds a reference on it.
+ * 3) A link object can hold a reference when it is associated with a hook.
+ * 
+ * A link object can have a reference due to on of the following:
+ * 1) An open handle holds a reference on it.
+ * 2) A pinning table entry holds a reference on it.
+ * 
+ */
 static ebpf_list_entry_t _ebpf_object_tracking_list;
 
 static void
