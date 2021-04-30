@@ -68,11 +68,6 @@ extern "C"
     ebpf_object_type_t
     ebpf_object_get_type(ebpf_object_t* object);
 
-    void
-    ebpf_object_tracker_reset();
-
-    void
-    ebpf_object_tracker_assert();
 #ifdef __cplusplus
 }
 #endif

@@ -46,7 +46,6 @@ ebpf_error_code_t
 ebpf_core_initiate()
 {
     ebpf_error_code_t return_value;
-    ebpf_object_tracker_reset();
 
     return_value = ebpf_platform_initiate();
     if (return_value != EBPF_ERROR_SUCCESS)
@@ -117,7 +116,6 @@ ebpf_core_terminate()
     ebpf_epoch_terminate();
 
     ebpf_platform_terminate();
-    ebpf_object_tracker_assert();
 }
 
 static ebpf_error_code_t

@@ -5,7 +5,6 @@
 #include "ebpf_object.h"
 
 static const uint32_t _ebpf_object_marker = 0x67453201;
-volatile int32_t _ebpf_object_counts[EBPF_OBJECT_PROGRAM + 1] = {0};
 
 void
 ebpf_object_initiate(ebpf_object_t* object, ebpf_object_type_t object_type, ebfp_free_object_t free_function)
@@ -14,7 +13,6 @@ ebpf_object_initiate(ebpf_object_t* object, ebpf_object_type_t object_type, ebfp
     object->reference_count = 1;
     object->type = object_type;
     object->free_function = free_function;
-    ebpf_interlocked_increment_int32(&_ebpf_object_counts[object_type]);
 }
 
 void
@@ -39,7 +37,6 @@ ebpf_object_release_reference(ebpf_object_t* object)
     new_ref_count = ebpf_interlocked_decrement_int32(&object->reference_count);
 
     if (new_ref_count == 0) {
-        ebpf_interlocked_decrement_int32(&_ebpf_object_counts[object->type]);
         object->marker = ~object->marker;
         object->free_function(object);
     }
@@ -66,20 +63,4 @@ ebpf_duplicate_utf8_string(ebpf_utf8_string_t* destination, const ebpf_utf8_stri
         destination->length = source->length;
         return EBPF_ERROR_SUCCESS;
     }
-}
-
-void
-ebpf_object_tracker_reset()
-{
-    _ebpf_object_counts[EBPF_OBJECT_MAP] = 0;
-    _ebpf_object_counts[EBPF_OBJECT_LINK] = 0;
-    _ebpf_object_counts[EBPF_OBJECT_PROGRAM] = 0;
-}
-
-void
-ebpf_object_tracker_assert()
-{
-    ebpf_assert(_ebpf_object_counts[EBPF_OBJECT_MAP] == 0);
-    ebpf_assert(_ebpf_object_counts[EBPF_OBJECT_LINK] == 0);
-    ebpf_assert(_ebpf_object_counts[EBPF_OBJECT_PROGRAM] == 0);
 }
