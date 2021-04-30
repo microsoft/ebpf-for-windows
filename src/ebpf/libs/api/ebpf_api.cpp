@@ -10,6 +10,7 @@
 #include <stdexcept>
 
 #include "ebpf_protocol.h"
+#include "ebpf_platform.h"
 #include "platform.h"
 #include "tlv.h"
 extern "C"
@@ -94,14 +95,12 @@ invoke_ioctl(ebpf_handle_t handle, request_t& request, reply_t& reply = _empty_r
 uint32_t
 ebpf_api_initiate()
 {
-    LPCWSTR ebpfDeviceName = L"\\\\.\\EbpfIoDevice";
-
     if (device_handle != INVALID_HANDLE_VALUE) {
         return ERROR_ALREADY_INITIALIZED;
     }
 
     device_handle = Platform::CreateFile(
-        ebpfDeviceName, GENERIC_READ | GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+        EBPF_DEVICE_WIN32_NAME, GENERIC_READ | GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 
     if (device_handle == INVALID_HANDLE_VALUE) {
         return GetLastError();

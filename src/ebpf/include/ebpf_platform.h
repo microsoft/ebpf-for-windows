@@ -13,6 +13,10 @@ extern "C"
 #define EBPF_COUNT_OF(arr) (sizeof(arr) / sizeof(arr[0]))
 #define EBPF_OFFSET_OF(s, m) (((size_t) & ((s*)0)->m))
 
+#define EBPF_DEVICE_NAME L"\\Device\\EbpfIoDevice"
+#define EBPF_SYMBOLIC_DEVICE_NAME L"\\GLOBAL??\\EbpfIoDevice"
+#define EBPF_DEVICE_WIN32_NAME L"\\\\.\\EbpfIoDevice"
+
     /**
      * @brief A UTF-8 encoded string.
      * Notes:

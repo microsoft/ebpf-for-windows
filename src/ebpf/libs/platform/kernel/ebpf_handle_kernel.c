@@ -25,7 +25,7 @@ ebpf_handle_create(ebpf_handle_t* handle, ebpf_object_t* object)
     NTSTATUS status;
     FILE_OBJECT* file_object = NULL;
 
-    RtlInitUnicodeString(&object_name, L"\\GLOBAL??\\EbpfIoDevice");
+    RtlInitUnicodeString(&object_name, EBPF_SYMBOLIC_DEVICE_NAME);
 
     InitializeObjectAttributes(&object_attributes, &object_name, 0, NULL, NULL);
 

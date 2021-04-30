@@ -228,7 +228,7 @@ extern "C"
     ebpf_api_free_string(const char* string);
 
     /**
-     * @brief Associate a name with a object handle.
+     * @brief Associate a name with an object handle.
      * @param[in] handle Handle to object.
      * @param[in] name Name to associate with handle.
      */
@@ -236,7 +236,7 @@ extern "C"
     ebpf_api_pin_object(ebpf_handle_t handle, const uint8_t* name, uint32_t name_length);
 
     /**
-     * @brief Dissociate a name with a object handle.
+     * @brief Dissociate a name with an object handle.
      * @param[in] name Name to dissociate.
      */
     uint32_t
