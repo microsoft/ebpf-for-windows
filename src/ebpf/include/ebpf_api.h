@@ -18,6 +18,14 @@ extern "C"
     __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_BIND = {
         0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
 
+    __declspec(selectany) ebpf_attach_type_t EBPF_PROGRAM_TYPE_UNSPECIFIED = {0};
+
+    __declspec(selectany) ebpf_program_type_t EBPF_PROGRAM_TYPE_XDP = {
+        0xf1832a85, 0x85d5, 0x45b0, {0x98, 0xa0, 0x70, 0x69, 0xd6, 0x30, 0x13, 0xb0}};
+
+    __declspec(selectany) ebpf_program_type_t EBPF_PROGRAM_TYPE_BIND = {
+        0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
+
     typedef void* ebpf_handle_t;
     const ebpf_handle_t ebpf_handle_invalid = (ebpf_handle_t)-1;
     typedef struct _tlv_type_length_value tlv_type_length_value_t;

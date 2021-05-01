@@ -310,7 +310,7 @@ resolve_ec_function(ebpf_ec_function_t function, uint64_t* address)
 }
 
 static uint32_t
-create_program(ebpf_program_type_t program_type, ebpf_handle_t* program_handle)
+_create_program(ebpf_program_type_t program_type, ebpf_handle_t* program_handle)
 {
     ebpf_operation_create_program_request_t request = {sizeof(request), EBPF_OPERATION_CREATE_PROGRAM, program_type};
     ebpf_operation_create_program_reply_t reply;
@@ -320,6 +320,40 @@ create_program(ebpf_program_type_t program_type, ebpf_handle_t* program_handle)
         return retval;
     }
     *program_handle = reinterpret_cast<ebpf_handle_t>(reply.program_handle);
+    return retval;
+}
+
+static uint32_t
+_get_program_information_data(ebpf_handle_t program_handle, ebpf_extension_data_t** program_information_data)
+{
+    std::vector<uint8_t> reply_buffer(1024);
+    ebpf_operation_get_program_information_request_t request{
+        sizeof(request),
+        ebpf_operation_id_t::EBPF_OPERATION_GET_PROGRAM_INFORMATION,
+        reinterpret_cast<uint64_t>(program_handle)};
+
+    auto reply = reinterpret_cast<ebpf_operation_get_program_information_reply_t*>(reply_buffer.data());
+    uint32_t retval = invoke_ioctl(device_handle, request, reply_buffer);
+    if (retval != ERROR_SUCCESS) {
+        return retval;
+    }
+
+    if (reply->header.id != ebpf_operation_id_t::EBPF_OPERATION_GET_PROGRAM_INFORMATION) {
+        return ERROR_INVALID_PARAMETER;
+    }
+
+    size_t allocation_size =
+        reply->header.length - EBPF_OFFSET_OF(ebpf_operation_get_program_information_reply_t, version);
+
+    *program_information_data = (ebpf_extension_data_t*)malloc(allocation_size);
+    if (!*program_information_data)
+        return ERROR_OUTOFMEMORY;
+
+    memcpy(
+        *program_information_data,
+        reply_buffer.data() + EBPF_OFFSET_OF(ebpf_operation_get_program_information_reply_t, version),
+        allocation_size);
+
     return retval;
 }
 
@@ -334,12 +368,13 @@ ebpf_api_load_program(
     const char** error_message)
 {
     ebpf_handle_t program_handle;
-    ebpf_program_type program_type;
+    ebpf_program_type_t program_type;
     std::vector<uint8_t> byte_code(MAX_CODE_SIZE);
     size_t byte_code_size = byte_code.size();
     std::vector<uint8_t> request_buffer;
     struct ubpf_vm* vm = nullptr;
     uint64_t log_function_address;
+    ebpf_extension_data_t* program_information_data = NULL;
     _unwind_helper unwind([&] {
         if (vm) {
             ubpf_destroy(vm);
@@ -347,9 +382,12 @@ ebpf_api_load_program(
         for (auto& map : _map_file_descriptors) {
             ebpf_api_close_handle(reinterpret_cast<ebpf_handle_t>(map.handle));
         }
+        free(program_information_data);
     });
 
     uint32_t result;
+
+    // TODO: Pass the resulting program information to the verifier.
 
     try {
         _map_file_descriptors.resize(0);
@@ -368,7 +406,12 @@ ebpf_api_load_program(
         return ERROR_INVALID_PARAMETER;
     }
 
-    result = create_program(program_type, &program_handle);
+    result = _create_program(program_type, &program_handle);
+    if (result != ERROR_SUCCESS) {
+        return result;
+    }
+
+    result = _get_program_information_data(program_handle, &program_information_data);
     if (result != ERROR_SUCCESS) {
         return result;
     }

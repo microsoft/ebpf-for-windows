@@ -14,12 +14,14 @@ typedef enum _ebpf_map_type
     EBPF_MAP_TYPE_ARRAY = 2,
 } ebpf_map_type_t;
 
-typedef enum ebpf_program_type
+typedef enum _ebpf_program_type_old
 {
-    EBPF_PROGRAM_TYPE_UNSPECIFIED = 0,
-    EBPF_PROGRAM_TYPE_XDP = 1,
-    EBPF_PROGRAM_TYPE_BIND = 2
-} ebpf_program_type_t;
+    EBPF_PROGRAM_TYPE_UNSPECIFIED_OLD = 0,
+    EBPF_PROGRAM_TYPE_XDP_OLD = 1,
+    EBPF_PROGRAM_TYPE_BIND_OLD = 2
+} ebpf_program_type_old_t;
+
+typedef GUID ebpf_program_type_t;
 
 typedef enum _ebpf_helper_function
 {
@@ -41,6 +43,7 @@ typedef enum _ebpf_error_code
     EBPF_ERROR_DUPLICATE_NAME,
     EBPF_ERROR_ARITHMETIC_OVERFLOW,
     EBPF_ERROR_EXTENSION_FAILED_TO_LOAD,
+    EBPF_ERROR_INSUFFICIENT_BUFFER,
 } ebpf_error_code_t;
 
 typedef struct _ebpf_map_definition

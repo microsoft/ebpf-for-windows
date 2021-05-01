@@ -37,7 +37,7 @@ const EbpfContextDescriptor g_xdp_context_descriptor = {
 };
 
 const EbpfProgramType windows_xdp_program_type =
-    PTYPE("xdp", &g_xdp_context_descriptor, EBPF_PROGRAM_TYPE_XDP, {"xdp"});
+    PTYPE("xdp", &g_xdp_context_descriptor, EBPF_PROGRAM_TYPE_XDP_OLD, {"xdp"});
 
 const EbpfContextDescriptor g_bind_context_descriptor = {
     43, // Size of ctx struct.
@@ -47,10 +47,10 @@ const EbpfContextDescriptor g_bind_context_descriptor = {
 };
 
 const EbpfProgramType windows_bind_program_type =
-    PTYPE("bind", &g_bind_context_descriptor, EBPF_PROGRAM_TYPE_BIND, {"bind"});
+    PTYPE("bind", &g_bind_context_descriptor, EBPF_PROGRAM_TYPE_BIND_OLD, {"bind"});
 
 const std::vector<EbpfProgramType> windows_program_types = {
-    PTYPE("unspecified", {0}, EBPF_PROGRAM_TYPE_UNSPECIFIED, {}),
+    PTYPE("unspecified", {0}, EBPF_PROGRAM_TYPE_UNSPECIFIED_OLD, {}),
     windows_xdp_program_type,
     windows_bind_program_type,
 };
