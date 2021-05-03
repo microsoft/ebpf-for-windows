@@ -303,7 +303,8 @@ ebpf_program_invoke(ebpf_program_t* program, void* context, uint32_t* result)
 }
 
 ebpf_error_code_t
-ebpf_program_get_program_information_data(ebpf_program_t* program, ebpf_extension_data_t** program_information_data)
+ebpf_program_get_program_information_data(
+    const ebpf_program_t* program, const ebpf_extension_data_t** program_information_data)
 {
     if (!program->program_information_data)
         return EBPF_ERROR_INVALID_PARAMETER;

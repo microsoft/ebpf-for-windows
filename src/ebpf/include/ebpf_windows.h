@@ -14,6 +14,8 @@ typedef enum _ebpf_map_type
     EBPF_MAP_TYPE_ARRAY = 2,
 } ebpf_map_type_t;
 
+// TODO - Convert all code that uses ebpf_program_type_old_t to use
+// ebpf_program_type_t.
 typedef enum _ebpf_program_type_old
 {
     EBPF_PROGRAM_TYPE_UNSPECIFIED_OLD = 0,
