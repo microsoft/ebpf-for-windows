@@ -7,8 +7,12 @@
 
 Abstract:
 
-   This file implements the classifyFn, notifiFn, and flowDeleteFn callout
-   functions for the l2 callout.
+   This file implements the classifyFn, notifiFn, and flowDeleteFn callouts
+   functions for:
+   Layer 2 network receive
+   Resource Acquire
+   Resource Release
+   Bind redirect
 
 Environment:
 
@@ -17,7 +21,7 @@ Environment:
 --*/
 #define INITGUID
 
-#include "ebpf_l2_hook.h"
+#include "ebpf_wfp_ext.h"
 
 #pragma warning(push)
 #pragma warning(disable : 4201) // unnamed struct/union

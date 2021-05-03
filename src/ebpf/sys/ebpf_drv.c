@@ -28,7 +28,7 @@ Environment:
 #include <wdf.h>
 
 #include "ebpf_core.h"
-#include "ebpf_l2_hook.h"
+#include "ebpf_wfp_ext.h"
 #include "ebpf_object.h"
 
 // Driver global variables

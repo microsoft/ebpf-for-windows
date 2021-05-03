@@ -26,12 +26,12 @@
     <ClCompile Include="ebpf_drv.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="ebpf_l2_hook.c">
+    <ClCompile Include="ebpf_wfp_ext.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="ebpf_l2_hook.h">
+    <ClInclude Include="ebpf_wfp_ext.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -123,7 +123,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ebpf_drv.c" />
-    <ClCompile Include="ebpf_l2_hook.c" />
+    <ClCompile Include="ebpf_wfp_ext.c" />
   </ItemGroup>
   <ItemGroup>
     <Inf Include="EbpfCore.inf" />
@@ -132,7 +132,7 @@
     <FilesToPackage Include="$(TargetPath)" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="ebpf_l2_hook.h" />
+    <ClInclude Include="ebpf_wfp_ext.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\libs\epoch\kernel\epoch_kernel.vcxproj">
