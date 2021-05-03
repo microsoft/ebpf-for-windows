@@ -74,13 +74,16 @@ analyze(raw_program& raw_prog, const char** error_message)
     return 0; // Success.
 }
 
+static GUID _ebpf_program_type_old_to_ebpf_program_type[EBPF_PROGRAM_TYPE_BIND_OLD + 1] = {
+    EBPF_PROGRAM_TYPE_UNSPECIFIED, EBPF_PROGRAM_TYPE_XDP, EBPF_PROGRAM_TYPE_BIND};
+
 int
 verify(
     const char* filename,
     const char* sectionname,
     uint8_t* byte_code,
     size_t* byte_code_size,
-    ebpf_program_type* program_type,
+    ebpf_program_type_t* program_type,
     const char** error_message)
 {
     ebpf_verifier_options_t verifier_options{false, false, false, false};
@@ -105,7 +108,7 @@ verify(
 
         *byte_code_size = ebpf_bytes;
     }
-    *program_type = static_cast<ebpf_program_type>(raw_prog.info.type.platform_specific_data);
+    *program_type = _ebpf_program_type_old_to_ebpf_program_type[raw_prog.info.type.platform_specific_data];
 
     return analyze(raw_prog, error_message);
 }

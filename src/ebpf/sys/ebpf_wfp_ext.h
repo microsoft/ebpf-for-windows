@@ -56,3 +56,19 @@ ebpf_hook_register_providers();
  */
 void
 ebpf_hook_unregister_providers();
+
+/**
+ * @brief Register program information providers with eBPF core.
+ *
+ * @retval STATUS_SUCCESS Operation succeeded.
+ * @retval STATUS_UNSUCCESSFUL Operation failed.
+ */
+NTSTATUS
+ebpf_program_information_provider_register();
+
+/**
+ * @brief Unregister program information providers from eBPF core.
+ *
+ */
+void
+ebpf_program_information_provider_unregister();

@@ -28,7 +28,7 @@ Environment:
 #include <wdf.h>
 
 #include "ebpf_core.h"
-#include "ebpf_l2_hook.h"
+#include "ebpf_wfp_ext.h"
 #include "ebpf_object.h"
 
 // Driver global variables
@@ -90,6 +90,8 @@ static _Function_class_(EVT_WDF_DRIVER_UNLOAD) _IRQL_requires_same_
     UNREFERENCED_PARAMETER(driver_object);
 
     _ebpf_driver_unloading_flag = TRUE;
+
+    ebpf_program_information_provider_unregister();
 
     ebpf_hook_unregister_providers();
 
@@ -199,6 +201,11 @@ _ebpf_driver_initialize_objects(
     }
 
     status = ebpf_hook_register_providers();
+    if (!NT_SUCCESS(status)) {
+        goto Exit;
+    }
+
+    status = ebpf_program_information_provider_register();
     if (!NT_SUCCESS(status)) {
         goto Exit;
     }
@@ -368,7 +375,8 @@ Exit:
     return status;
 }
 
-DEVICE_OBJECT* ebpf_driver_get_device_object()
+DEVICE_OBJECT*
+ebpf_driver_get_device_object()
 {
     return _ebpf_driver_device_object;
 }

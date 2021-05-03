@@ -36,6 +36,11 @@ typedef struct _ebpf_program
     ebpf_map_t** maps;
     size_t count_of_maps;
 
+    ebpf_extension_client_t* program_information_client;
+    void* program_information_binding_context;
+    ebpf_extension_data_t* program_information_data;
+    ebpf_extension_dispatch_table_t* program_information_provider_dispatch_table;
+
 } ebpf_program_t;
 
 static void
@@ -46,9 +51,8 @@ _ebpf_program_free(ebpf_object_t* object)
     if (!program)
         return;
 
-    if (program->global_helper_extension_client) {
-        ebpf_extension_unload(program->global_helper_extension_client);
-    }
+    ebpf_extension_unload(program->global_helper_extension_client);
+    ebpf_extension_unload(program->program_information_client);
 
     if (program->parameters.code_type == EBPF_CODE_NATIVE) {
         ebpf_epoch_free(program->code_or_vm.code);
@@ -65,30 +69,10 @@ _ebpf_program_free(ebpf_object_t* object)
     ebpf_epoch_free(object);
 }
 
-ebpf_error_code_t
-ebpf_program_create(ebpf_program_t** program)
-{
-    ebpf_program_t* local_program;
-
-    local_program = (ebpf_program_t*)ebpf_epoch_allocate(sizeof(ebpf_program_t), EBPF_MEMORY_NO_EXECUTE);
-    if (!local_program)
-        return EBPF_ERROR_OUT_OF_RESOURCES;
-
-    memset(local_program, 0, sizeof(ebpf_program_t));
-
-    ebpf_object_initialize(&local_program->object, EBPF_OBJECT_PROGRAM, _ebpf_program_free);
-
-    *program = local_program;
-
-    return EBPF_ERROR_SUCCESS;
-}
-
-ebpf_error_code_t
-ebpf_program_initialize(ebpf_program_t* program, const ebpf_program_parameters_t* program_parameters)
+static ebpf_error_code_t
+ebpf_program_load_providers(ebpf_program_t* program)
 {
     ebpf_error_code_t return_value;
-    ebpf_utf8_string_t local_program_name = {NULL, 0};
-    ebpf_utf8_string_t local_section_name = {NULL, 0};
     void* provider_binding_context;
 
     return_value = ebpf_extension_load(
@@ -103,6 +87,62 @@ ebpf_program_initialize(ebpf_program_t* program, const ebpf_program_parameters_t
 
     if (return_value != EBPF_ERROR_SUCCESS)
         goto Done;
+
+    return_value = ebpf_extension_load(
+        &program->program_information_client,
+        &program->parameters.program_type,
+        program,
+        NULL,
+        NULL,
+        &program->program_information_binding_context,
+        &program->program_information_data,
+        &program->program_information_provider_dispatch_table);
+
+    if (return_value != EBPF_ERROR_SUCCESS)
+        goto Done;
+Done:
+    return return_value;
+}
+
+ebpf_error_code_t
+ebpf_program_create(ebpf_program_t** program, ebpf_program_type_t program_type)
+{
+    ebpf_error_code_t retval;
+    ebpf_program_t* local_program;
+
+    local_program = (ebpf_program_t*)ebpf_epoch_allocate(sizeof(ebpf_program_t), EBPF_MEMORY_NO_EXECUTE);
+    if (!local_program) {
+        retval = EBPF_ERROR_OUT_OF_RESOURCES;
+        goto Done;
+    }
+
+    memset(local_program, 0, sizeof(ebpf_program_t));
+
+    local_program->parameters.program_type = program_type;
+
+    retval = ebpf_program_load_providers(local_program);
+    if (retval != EBPF_ERROR_SUCCESS) {
+        goto Done;
+    }
+
+    ebpf_object_initialize(&local_program->object, EBPF_OBJECT_PROGRAM, _ebpf_program_free);
+
+    *program = local_program;
+    local_program = NULL;
+
+Done:
+
+    _ebpf_program_free(&local_program->object);
+
+    return retval;
+}
+
+ebpf_error_code_t
+ebpf_program_initialize(ebpf_program_t* program, const ebpf_program_parameters_t* program_parameters)
+{
+    ebpf_error_code_t return_value;
+    ebpf_utf8_string_t local_program_name = {NULL, 0};
+    ebpf_utf8_string_t local_section_name = {NULL, 0};
 
     return_value = ebpf_duplicate_utf8_string(&local_program_name, &program_parameters->program_name);
     if (return_value != EBPF_ERROR_SUCCESS)
@@ -260,4 +300,16 @@ ebpf_program_invoke(ebpf_program_t* program, void* context, uint32_t* result)
         *result = (uint32_t)(ubpf_exec(program->code_or_vm.vm, context, 1024, &error_message));
         ebpf_free(error_message);
     }
+}
+
+ebpf_error_code_t
+ebpf_program_get_program_information_data(
+    const ebpf_program_t* program, const ebpf_extension_data_t** program_information_data)
+{
+    if (!program->program_information_data)
+        return EBPF_ERROR_INVALID_PARAMETER;
+
+    *program_information_data = program->program_information_data;
+
+    return EBPF_ERROR_SUCCESS;
 }

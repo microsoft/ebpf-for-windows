@@ -300,7 +300,7 @@ _ebpf_core_protocol_create_program(
     UNREFERENCED_PARAMETER(request);
     UNREFERENCED_PARAMETER(reply_length);
 
-    retval = ebpf_program_create(&program);
+    retval = ebpf_program_create(&program, request->program_type);
     if (retval != EBPF_ERROR_SUCCESS)
         goto Done;
 
@@ -676,6 +676,45 @@ _ebpf_core_protocol_get_ec_function(
     return EBPF_ERROR_SUCCESS;
 }
 
+static uint64_t
+_ebpf_core_protocol_get_program_information(
+    _In_ const ebpf_operation_get_program_information_request_t* request,
+    _Inout_ ebpf_operation_get_program_information_reply_t* reply,
+    uint16_t reply_length)
+{
+    ebpf_error_code_t retval;
+    ebpf_program_t* program = NULL;
+    ebpf_extension_data_t* program_information_data;
+    size_t required_length;
+
+    retval = ebpf_reference_object_by_handle(request->program_handle, EBPF_OBJECT_PROGRAM, (ebpf_object_t**)&program);
+    if (retval != EBPF_ERROR_SUCCESS)
+        goto Done;
+
+    retval = ebpf_program_get_program_information_data(program, &program_information_data);
+    if (retval != EBPF_ERROR_SUCCESS)
+        goto Done;
+
+    required_length = EBPF_OFFSET_OF(ebpf_operation_get_program_information_reply_t, data);
+    required_length += program_information_data->size;
+
+    if (required_length > reply_length) {
+        retval = EBPF_ERROR_INSUFFICIENT_BUFFER;
+        goto Done;
+    }
+
+    reply->version = program_information_data->version;
+    reply->size = program_information_data->size;
+    memcpy(&reply->data, program_information_data->data, program_information_data->size);
+
+    reply->header.length = (uint16_t)required_length;
+    retval = EBPF_ERROR_SUCCESS;
+
+Done:
+    ebpf_object_release_reference((ebpf_object_t*)program);
+    return retval;
+}
+
 static void*
 _ebpf_core_map_find_element(ebpf_map_t* map, const uint8_t* key)
 {
@@ -718,7 +757,7 @@ typedef struct _ebpf_protocol_handler
     size_t minimum_reply_size;
 } const ebpf_protocol_handler_t;
 
-static ebpf_protocol_handler_t _ebpf_protocol_handlers[EBPF_OPERATION_GET_EC_FUNCTION + 1] = {
+static ebpf_protocol_handler_t _ebpf_protocol_handlers[EBPF_OPERATION_GET_PROGRAM_INFORMATION + 1] = {
     {(ebpf_error_code_t(__cdecl*)(const void*))_ebpf_core_protocol_resolve_helper,
      EBPF_OFFSET_OF(ebpf_operation_resolve_helper_request_t, helper_id),
      sizeof(struct _ebpf_operation_resolve_helper_reply)},
@@ -766,7 +805,11 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[EBPF_OPERATION_GET_EC_FUN
      0},
     {(ebpf_error_code_t(__cdecl*)(const void*))_ebpf_core_protocol_get_ec_function,
      sizeof(ebpf_operation_get_ec_function_request_t),
-     sizeof(ebpf_operation_get_ec_function_reply_t)}};
+     sizeof(ebpf_operation_get_ec_function_reply_t)},
+    {(ebpf_error_code_t(__cdecl*)(const void*))_ebpf_core_protocol_get_program_information,
+     sizeof(ebpf_operation_get_program_information_request_t),
+     sizeof(ebpf_operation_get_program_information_reply_t)},
+};
 
 ebpf_error_code_t
 ebpf_core_get_protocol_handler_properties(
@@ -775,7 +818,7 @@ ebpf_core_get_protocol_handler_properties(
     *minimum_request_size = 0;
     *minimum_reply_size = 0;
 
-    if (operation_id > EBPF_OPERATION_GET_EC_FUNCTION || operation_id < EBPF_OPERATION_RESOLVE_HELPER)
+    if (operation_id > EBPF_OPERATION_GET_PROGRAM_INFORMATION || operation_id < EBPF_OPERATION_RESOLVE_HELPER)
         return EBPF_ERROR_NOT_SUPPORTED;
 
     if (!_ebpf_protocol_handlers[operation_id].dispatch.protocol_handler_no_reply)
@@ -795,7 +838,7 @@ ebpf_core_invoke_protocol_handler(
 {
     ebpf_error_code_t retval;
 
-    if (operation_id > EBPF_OPERATION_GET_EC_FUNCTION || operation_id < EBPF_OPERATION_RESOLVE_HELPER) {
+    if (operation_id > EBPF_OPERATION_GET_PROGRAM_INFORMATION || operation_id < EBPF_OPERATION_RESOLVE_HELPER) {
         return EBPF_ERROR_NOT_SUPPORTED;
     }
 

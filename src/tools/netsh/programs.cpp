@@ -33,9 +33,9 @@ static TOKEN_VALUE _pinned_enum[] = {
 };
 
 static TOKEN_VALUE _ebpf_program_type_enum[] = {
-    {L"unknown", EBPF_PROGRAM_TYPE_UNSPECIFIED},
-    {L"xdp", EBPF_PROGRAM_TYPE_XDP},
-    {L"bind", EBPF_PROGRAM_TYPE_BIND},
+    {L"unknown", EBPF_PROGRAM_TYPE_UNSPECIFIED_OLD},
+    {L"xdp", EBPF_PROGRAM_TYPE_XDP_OLD},
+    {L"bind", EBPF_PROGRAM_TYPE_BIND_OLD},
 
 };
 
@@ -76,7 +76,7 @@ handle_ebpf_add_program(
 
     std::string filename;
     std::string section = ""; // Use the first code section by default.
-    ebpf_program_type_t type = EBPF_PROGRAM_TYPE_XDP;
+    ebpf_program_type_old_t type = EBPF_PROGRAM_TYPE_XDP_OLD;
     PINNED_CONSTRAINT pinned = PINNED_ANY;
     ebpf_execution_type_t execution = EBPF_EXECUTION_JIT;
     for (int i = 0; (status == NO_ERROR) && ((i + current_index) < argc); i++) {

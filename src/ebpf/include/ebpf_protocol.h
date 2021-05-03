@@ -25,9 +25,11 @@ typedef enum _ebpf_operation_id
     EBPF_OPERATION_LINK_PROGRAM,
     EBPF_OPERATION_CLOSE_HANDLE,
     EBPF_OPERATION_GET_EC_FUNCTION,
+    EBPF_OPERATION_GET_PROGRAM_INFORMATION,
 } ebpf_operation_id_t;
 
 typedef GUID ebpf_attach_type_t;
+typedef GUID ebpf_program_type_t;
 
 typedef enum _ebpf_code_type
 {
@@ -248,3 +250,17 @@ typedef struct _ebpf_operation_get_ec_function_reply
     struct _ebpf_operation_header header;
     uint64_t address;
 } ebpf_operation_get_ec_function_reply_t;
+
+typedef struct _ebpf_operation_get_program_information_request
+{
+    struct _ebpf_operation_header header;
+    uint64_t program_handle;
+} ebpf_operation_get_program_information_request_t;
+
+typedef struct _ebpf_operation_get_program_information_reply
+{
+    struct _ebpf_operation_header header;
+    uint16_t version;
+    uint16_t size;
+    uint8_t data[1];
+} ebpf_operation_get_program_information_reply_t;

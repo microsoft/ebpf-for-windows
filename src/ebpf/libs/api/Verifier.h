@@ -18,7 +18,7 @@ verify(
     const char* sectionname,
     uint8_t* byte_code,
     size_t* byte_code_size,
-    ebpf_program_type* program_type,
+    ebpf_program_type_t* program_type,
     const char** error_message);
 int
 verify_byte_code(

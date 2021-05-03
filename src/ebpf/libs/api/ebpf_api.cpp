@@ -30,6 +30,9 @@ extern "C"
 
 static ebpf_handle_t device_handle = INVALID_HANDLE_VALUE;
 
+typedef std::vector<uint8_t> ebpf_protocol_buffer_t;
+typedef std::vector<uint8_t> ebpf_code_buffer_t;
+
 struct empty_reply
 {
 } _empty_reply;
@@ -48,7 +51,7 @@ invoke_ioctl(ebpf_handle_t handle, request_t& request, reply_t& reply = _empty_r
     if constexpr (std::is_same<request_t, nullptr_t>::value) {
         request_size = 0;
         request_ptr = nullptr;
-    } else if constexpr (std::is_same<request_t, std::vector<uint8_t>>::value) {
+    } else if constexpr (std::is_same<request_t, ebpf_protocol_buffer_t>::value) {
         request_size = static_cast<uint32_t>(request.size());
         request_ptr = request.data();
     } else {
@@ -59,7 +62,7 @@ invoke_ioctl(ebpf_handle_t handle, request_t& request, reply_t& reply = _empty_r
     if constexpr (std::is_same<reply_t, nullptr_t>::value) {
         reply_size = 0;
         reply_ptr = nullptr;
-    } else if constexpr (std::is_same<reply_t, std::vector<uint8_t>>::value) {
+    } else if constexpr (std::is_same<reply_t, ebpf_protocol_buffer_t>::value) {
         reply_size = static_cast<uint32_t>(reply.size());
         reply_ptr = reply.data();
         variable_reply_size = true;
@@ -170,7 +173,7 @@ get_map_descriptor_internal(int map_fd)
 }
 
 static uint32_t
-resolve_maps_in_byte_code(ebpf_handle_t program_handle, std::vector<uint8_t>& byte_code)
+resolve_maps_in_byte_code(ebpf_handle_t program_handle, ebpf_code_buffer_t& byte_code)
 {
     std::vector<size_t> instruction_offsets;
     std::vector<uint64_t> map_handles;
@@ -203,10 +206,10 @@ resolve_maps_in_byte_code(ebpf_handle_t program_handle, std::vector<uint8_t>& by
         return ERROR_SUCCESS;
     }
 
-    std::vector<uint8_t> request_buffer(
+    ebpf_protocol_buffer_t request_buffer(
         offsetof(ebpf_operation_resolve_map_request_t, map_handle) + sizeof(uint64_t) * map_handles.size());
 
-    std::vector<uint8_t> reply_buffer(
+    ebpf_protocol_buffer_t reply_buffer(
         offsetof(ebpf_operation_resolve_map_reply_t, address) + sizeof(uint64_t) * map_handles.size());
 
     auto request = reinterpret_cast<ebpf_operation_resolve_map_request_t*>(request_buffer.data());
@@ -245,7 +248,7 @@ resolve_maps_in_byte_code(ebpf_handle_t program_handle, std::vector<uint8_t>& by
 
 static uint32_t
 build_helper_id_to_address_map(
-    ebpf_handle_t program_handle, std::vector<uint8_t>& byte_code, std::map<uint32_t, uint64_t>& helper_id_to_adddress)
+    ebpf_handle_t program_handle, ebpf_code_buffer_t& byte_code, std::map<uint32_t, uint64_t>& helper_id_to_adddress)
 {
     ebpf_inst* instructions = reinterpret_cast<ebpf_inst*>(byte_code.data());
     for (size_t index = 0; index < byte_code.size() / sizeof(ebpf_inst); index++) {
@@ -259,10 +262,10 @@ build_helper_id_to_address_map(
     if (helper_id_to_adddress.size() == 0)
         return ERROR_SUCCESS;
 
-    std::vector<uint8_t> request_buffer(
+    ebpf_protocol_buffer_t request_buffer(
         offsetof(ebpf_operation_resolve_helper_request_t, helper_id) + sizeof(uint32_t) * helper_id_to_adddress.size());
 
-    std::vector<uint8_t> reply_buffer(
+    ebpf_protocol_buffer_t reply_buffer(
         offsetof(ebpf_operation_resolve_helper_reply_t, address) + sizeof(uint64_t) * helper_id_to_adddress.size());
 
     auto request = reinterpret_cast<ebpf_operation_resolve_helper_request_t*>(request_buffer.data());
@@ -310,7 +313,7 @@ resolve_ec_function(ebpf_ec_function_t function, uint64_t* address)
 }
 
 static uint32_t
-create_program(ebpf_program_type_t program_type, ebpf_handle_t* program_handle)
+_create_program(ebpf_program_type_t program_type, ebpf_handle_t* program_handle)
 {
     ebpf_operation_create_program_request_t request = {sizeof(request), EBPF_OPERATION_CREATE_PROGRAM, program_type};
     ebpf_operation_create_program_reply_t reply;
@@ -320,6 +323,40 @@ create_program(ebpf_program_type_t program_type, ebpf_handle_t* program_handle)
         return retval;
     }
     *program_handle = reinterpret_cast<ebpf_handle_t>(reply.program_handle);
+    return retval;
+}
+
+static uint32_t
+_get_program_information_data(ebpf_handle_t program_handle, ebpf_extension_data_t** program_information_data)
+{
+    ebpf_protocol_buffer_t reply_buffer(1024);
+    ebpf_operation_get_program_information_request_t request{
+        sizeof(request),
+        ebpf_operation_id_t::EBPF_OPERATION_GET_PROGRAM_INFORMATION,
+        reinterpret_cast<uint64_t>(program_handle)};
+
+    auto reply = reinterpret_cast<ebpf_operation_get_program_information_reply_t*>(reply_buffer.data());
+    uint32_t retval = invoke_ioctl(device_handle, request, reply_buffer);
+    if (retval != ERROR_SUCCESS) {
+        return retval;
+    }
+
+    if (reply->header.id != ebpf_operation_id_t::EBPF_OPERATION_GET_PROGRAM_INFORMATION) {
+        return ERROR_INVALID_PARAMETER;
+    }
+
+    size_t allocation_size =
+        reply->header.length - EBPF_OFFSET_OF(ebpf_operation_get_program_information_reply_t, version);
+
+    *program_information_data = (ebpf_extension_data_t*)malloc(allocation_size);
+    if (!*program_information_data)
+        return ERROR_OUTOFMEMORY;
+
+    memcpy(
+        *program_information_data,
+        reply_buffer.data() + EBPF_OFFSET_OF(ebpf_operation_get_program_information_reply_t, version),
+        allocation_size);
+
     return retval;
 }
 
@@ -334,12 +371,13 @@ ebpf_api_load_program(
     const char** error_message)
 {
     ebpf_handle_t program_handle;
-    ebpf_program_type program_type;
-    std::vector<uint8_t> byte_code(MAX_CODE_SIZE);
+    ebpf_program_type_t program_type;
+    ebpf_code_buffer_t byte_code(MAX_CODE_SIZE);
     size_t byte_code_size = byte_code.size();
-    std::vector<uint8_t> request_buffer;
+    ebpf_protocol_buffer_t request_buffer;
     struct ubpf_vm* vm = nullptr;
     uint64_t log_function_address;
+    ebpf_extension_data_t* program_information_data = NULL;
     _unwind_helper unwind([&] {
         if (vm) {
             ubpf_destroy(vm);
@@ -347,9 +385,12 @@ ebpf_api_load_program(
         for (auto& map : _map_file_descriptors) {
             ebpf_api_close_handle(reinterpret_cast<ebpf_handle_t>(map.handle));
         }
+        free(program_information_data);
     });
 
     uint32_t result;
+
+    // TODO: Pass the resulting program information to the verifier.
 
     try {
         _map_file_descriptors.resize(0);
@@ -368,7 +409,12 @@ ebpf_api_load_program(
         return ERROR_INVALID_PARAMETER;
     }
 
-    result = create_program(program_type, &program_handle);
+    result = _create_program(program_type, &program_handle);
+    if (result != ERROR_SUCCESS) {
+        return result;
+    }
+
+    result = _get_program_information_data(program_handle, &program_information_data);
     if (result != ERROR_SUCCESS) {
         return result;
     }
@@ -394,8 +440,8 @@ ebpf_api_load_program(
         return result;
     }
 
-    std::vector<uint8_t> file_name_bytes(strlen(file_name));
-    std::vector<uint8_t> section_name_bytes(strlen(section_name));
+    ebpf_protocol_buffer_t file_name_bytes(strlen(file_name));
+    ebpf_protocol_buffer_t section_name_bytes(strlen(section_name));
     std::copy(file_name, file_name + file_name_bytes.size(), file_name_bytes.begin());
     std::copy(section_name, section_name + section_name_bytes.size(), section_name_bytes.begin());
 
@@ -406,7 +452,7 @@ ebpf_api_load_program(
             return result;
         }
 
-        std::vector<uint8_t> machine_code(MAX_CODE_SIZE);
+        ebpf_code_buffer_t machine_code(MAX_CODE_SIZE);
         size_t machine_code_size = machine_code.size();
 
         // JIT code.
@@ -475,7 +521,7 @@ ebpf_api_free_string(const char* error_message)
 uint32_t
 ebpf_api_pin_object(ebpf_handle_t handle, const uint8_t* name, uint32_t name_length)
 {
-    std::vector<uint8_t> request_buffer(offsetof(ebpf_operation_update_pinning_request_t, name) + name_length);
+    ebpf_protocol_buffer_t request_buffer(offsetof(ebpf_operation_update_pinning_request_t, name) + name_length);
     auto request = reinterpret_cast<ebpf_operation_update_pinning_request_t*>(request_buffer.data());
 
     request->header.id = EBPF_OPERATION_UPDATE_PINNING;
@@ -488,7 +534,7 @@ ebpf_api_pin_object(ebpf_handle_t handle, const uint8_t* name, uint32_t name_len
 uint32_t
 ebpf_api_unpin_object(const uint8_t* name, uint32_t name_length)
 {
-    std::vector<uint8_t> request_buffer(offsetof(ebpf_operation_update_pinning_request_t, name) + name_length);
+    ebpf_protocol_buffer_t request_buffer(offsetof(ebpf_operation_update_pinning_request_t, name) + name_length);
     auto request = reinterpret_cast<ebpf_operation_update_pinning_request_t*>(request_buffer.data());
 
     request->header.id = EBPF_OPERATION_UPDATE_PINNING;
@@ -501,7 +547,7 @@ ebpf_api_unpin_object(const uint8_t* name, uint32_t name_length)
 uint32_t
 ebpf_api_get_pinned_map(const uint8_t* name, uint32_t name_length, ebpf_handle_t* handle)
 {
-    std::vector<uint8_t> request_buffer(offsetof(ebpf_operation_get_pinning_request_t, name) + name_length);
+    ebpf_protocol_buffer_t request_buffer(offsetof(ebpf_operation_get_pinning_request_t, name) + name_length);
     auto request = reinterpret_cast<ebpf_operation_get_pinning_request_t*>(request_buffer.data());
     ebpf_operation_get_map_pinning_reply_t reply;
 
@@ -526,8 +572,8 @@ uint32_t
 ebpf_api_map_find_element(
     ebpf_handle_t handle, uint32_t key_size, const uint8_t* key, uint32_t value_size, uint8_t* value)
 {
-    std::vector<uint8_t> request_buffer(sizeof(_ebpf_operation_map_find_element_request) + key_size - 1);
-    std::vector<uint8_t> reply_buffer(sizeof(_ebpf_operation_map_find_element_reply) + value_size - 1);
+    ebpf_protocol_buffer_t request_buffer(sizeof(_ebpf_operation_map_find_element_request) + key_size - 1);
+    ebpf_protocol_buffer_t reply_buffer(sizeof(_ebpf_operation_map_find_element_reply) + value_size - 1);
     auto request = reinterpret_cast<_ebpf_operation_map_find_element_request*>(request_buffer.data());
     auto reply = reinterpret_cast<_ebpf_operation_map_find_element_reply*>(reply_buffer.data());
 
@@ -552,7 +598,8 @@ uint32_t
 ebpf_api_map_update_element(
     ebpf_handle_t handle, uint32_t key_size, const uint8_t* key, uint32_t value_size, const uint8_t* value)
 {
-    std::vector<uint8_t> request_buffer(sizeof(_ebpf_operation_map_update_element_request) - 1 + key_size + value_size);
+    ebpf_protocol_buffer_t request_buffer(
+        sizeof(_ebpf_operation_map_update_element_request) - 1 + key_size + value_size);
     auto request = reinterpret_cast<_ebpf_operation_map_update_element_request*>(request_buffer.data());
 
     request->header.length = static_cast<uint16_t>(request_buffer.size());
@@ -567,7 +614,7 @@ ebpf_api_map_update_element(
 uint32_t
 ebpf_api_map_delete_element(ebpf_handle_t handle, uint32_t key_size, const uint8_t* key)
 {
-    std::vector<uint8_t> request_buffer(sizeof(_ebpf_operation_map_delete_element_request) - 1 + key_size);
+    ebpf_protocol_buffer_t request_buffer(sizeof(_ebpf_operation_map_delete_element_request) - 1 + key_size);
     auto request = reinterpret_cast<_ebpf_operation_map_delete_element_request*>(request_buffer.data());
 
     request->header.length = static_cast<uint16_t>(request_buffer.size());
@@ -581,8 +628,8 @@ ebpf_api_map_delete_element(ebpf_handle_t handle, uint32_t key_size, const uint8
 uint32_t
 ebpf_api_get_next_map_key(ebpf_handle_t handle, uint32_t key_size, const uint8_t* previous_key, uint8_t* next_key)
 {
-    std::vector<uint8_t> request_buffer(offsetof(ebpf_operation_map_get_next_key_request_t, previous_key) + key_size);
-    std::vector<uint8_t> reply_buffer(offsetof(ebpf_operation_map_get_next_key_reply_t, next_key) + key_size);
+    ebpf_protocol_buffer_t request_buffer(offsetof(ebpf_operation_map_get_next_key_request_t, previous_key) + key_size);
+    ebpf_protocol_buffer_t reply_buffer(offsetof(ebpf_operation_map_get_next_key_reply_t, next_key) + key_size);
     auto request = reinterpret_cast<ebpf_operation_map_get_next_key_request_t*>(request_buffer.data());
     auto reply = reinterpret_cast<ebpf_operation_map_get_next_key_reply_t*>(reply_buffer.data());
 
@@ -668,7 +715,7 @@ uint32_t
 ebpf_api_program_query_information(
     ebpf_handle_t handle, ebpf_execution_type_t* program_type, const char** file_name, const char** section_name)
 {
-    std::vector<uint8_t> reply_buffer(1024);
+    ebpf_protocol_buffer_t reply_buffer(1024);
     _ebpf_operation_query_program_information_request request{
         sizeof(request),
         ebpf_operation_id_t::EBPF_OPERATION_QUERY_PROGRAM_INFORMATION,

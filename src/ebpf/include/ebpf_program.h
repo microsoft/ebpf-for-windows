@@ -44,7 +44,7 @@ extern "C"
      *  program instance.
      */
     ebpf_error_code_t
-    ebpf_program_create(ebpf_program_t** program);
+    ebpf_program_create(ebpf_program_t** program, ebpf_program_type_t program_type);
 
     /**
      * @brief Initialize a program instance from the provided program
@@ -71,6 +71,10 @@ extern "C"
      */
     ebpf_error_code_t
     ebpf_program_get_properties(ebpf_program_t* program, ebpf_program_parameters_t* program_parameters);
+
+    ebpf_error_code_t
+    ebpf_program_get_program_information_data(
+        const ebpf_program_t* program, const ebpf_extension_data_t** program_information_data);
 
     /**
      * @brief Associate a set of maps with this program instance.
