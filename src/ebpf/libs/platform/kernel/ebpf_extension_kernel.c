@@ -319,7 +319,7 @@ ebpf_provider_load(
     provider_registration_instance->NpiId = &local_provider_context->npi_id;
     provider_registration_instance->ModuleId = &local_provider_context->provider_id;
 
-    provider_registration_instance->NpiSpecificCharacteristics = &local_provider_context->provider_data;
+    provider_registration_instance->NpiSpecificCharacteristics = local_provider_context->provider_data;
 
     status = NmrRegisterProvider(
         provider_characteristics, local_provider_context, &local_provider_context->nmr_provider_handle);

@@ -90,6 +90,10 @@ typedef struct _ebpf_hook_provider_registration
 
 static ebpf_hook_provider_registration _ebpf_xdp_hook_provider_registration = {0};
 static ebpf_hook_provider_registration _ebpf_bind_hook_provider_registration = {0};
+static ebpf_extension_provider_t* _ebpf_xdp_program_information_provider = NULL;
+static ebpf_extension_provider_t* _ebpf_bind_program_information_provider = NULL;
+static ebpf_extension_data_t _ebpf_xdp_program_information_provider_data = {0, 0};
+static ebpf_extension_data_t _ebpf_bind_program_information_provider_data = {0, 0};
 
 #define RTL_COUNT_OF(arr) (sizeof(arr) / sizeof(arr[0]))
 
@@ -129,6 +133,10 @@ DEFINE_GUID(EBPF_ATTACH_TYPE_XDP, 0x85e0d8ef, 0x579e, 0x4931, 0xb0, 0x72, 0x8e, 
 
 // b9707e04-8127-4c72-833e-05b1fb439496
 DEFINE_GUID(EBPF_ATTACH_TYPE_BIND, 0xb9707e04, 0x8127, 0x4c72, 0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96);
+
+DEFINE_GUID(EBPF_PROGRAM_TYPE_XDP, 0xf1832a85, 0x85d5, 0x45b0, 0x98, 0xa0, 0x70, 0x69, 0xd6, 0x30, 0x13, 0xb0);
+
+DEFINE_GUID(EBPF_PROGRAM_TYPE_BIND, 0x608c517c, 0x6c52, 0x4a26, 0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf);
 
 static void
 ebpf_hook_layer_2_classify(
@@ -707,4 +715,50 @@ ebpf_hook_unregister_providers()
 {
     ebpf_provider_unload(_ebpf_xdp_hook_provider_registration.provider);
     ebpf_provider_unload(_ebpf_bind_hook_provider_registration.provider);
+}
+
+NTSTATUS
+ebpf_program_information_provider_register()
+{
+    ebpf_error_code_t return_value;
+    return_value = ebpf_provider_load(
+        &_ebpf_xdp_program_information_provider,
+        &EBPF_PROGRAM_TYPE_XDP,
+        NULL,
+        &_ebpf_xdp_program_information_provider_data,
+        NULL,
+        NULL,
+        NULL,
+        NULL);
+
+    if (return_value != EBPF_ERROR_SUCCESS) {
+        goto Done;
+    }
+    return_value = ebpf_provider_load(
+        &_ebpf_bind_program_information_provider,
+        &EBPF_PROGRAM_TYPE_BIND,
+        NULL,
+        &_ebpf_bind_program_information_provider_data,
+        NULL,
+        NULL,
+        NULL,
+        NULL);
+
+    if (return_value != EBPF_ERROR_SUCCESS) {
+        goto Done;
+    }
+
+Done:
+    if (return_value != EBPF_ERROR_SUCCESS) {
+        ebpf_program_information_provider_unregister();
+        return STATUS_UNSUCCESSFUL;
+    } else
+        return STATUS_SUCCESS;
+}
+
+void
+ebpf_program_information_provider_unregister()
+{
+    ebpf_provider_unload(_ebpf_xdp_program_information_provider);
+    ebpf_provider_unload(_ebpf_bind_program_information_provider);
 }
