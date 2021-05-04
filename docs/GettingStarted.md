@@ -27,7 +27,7 @@ The following must be installed in order to build this project:
 This will build the following binaries:
 
 * ebpfcore.sys: The kernel-mode execution context in which eBPF programs run.
-* ebpfwfpext.sys: The kernel-mode extension for WFP hooks.
+* netebpfext.sys: The kernel-mode extension for WFP hooks.
 * ebpfapi.dll: A user-mode shared library exposing APIs for apps to call to perform operations such as
                loading eBPF programs.
 * ebpfnetsh.dll: A plugin for the Windows netsh.exe command line tool that provides eBPF command line
@@ -57,12 +57,12 @@ On the defender machine, do the following:
 2. Make sure that either the kernel debugger (KD) is attached and running, or one of the [alternatives to running with kernel debugger attached](#alternatives-to-running-with-kernel-debugger-attached) is in place
 3. Install Debug VS 2019 VC redist from TBD (or switch everything to Multi-threaded Debug (/MTd) and rebuild)
 4. Copy ebpfcore.sys to %windir%\system32\drivers
-5. Copy ebpfwfpext.sys to %windir%\system32\drivers
+5. Copy netebpfext.sys to %windir%\system32\drivers
 6. Copy ebpfapi.dll and ebpfnetsh.dll to %windir%\system32
 7. Do `sc create EbpfCore type=kernel start=boot binpath=%windir%\system32\drivers\ebpfcore.sys`
 8. Do `sc start EbpfCore`
-9. Do `sc create EbpfWfpExt type=kernel start=boot binpath=%windir%\system32\drivers\ebpfwfpext.sys`
-10. Do `sc start EbpfWfpExt`
+9. Do `sc create NetEbpfExt type=kernel start=boot binpath=%windir%\system32\drivers\netebpfext.sys`
+10. Do `sc start NetEbpfExt`
 11. Do `netsh add helper %windir%\system32\ebpfnetsh.dll`
 12. Install [clang](https://github.com/llvm/llvm-project/releases/download/llvmorg-11.0.0/LLVM-11.0.0-win64.exe)
 13. Copy droppacket.c and ebpf.h to a folder (such as c:\test)

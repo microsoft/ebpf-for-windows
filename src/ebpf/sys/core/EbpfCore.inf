@@ -9,8 +9,8 @@
 
 [Version]
 Signature="$WINDOWS NT$"
-Class=Sample ; TODO: edit Class
-ClassGuid={78A1C341-4539-11d3-B88D-00C04FAD5171} ; TODO: edit ClassGuid
+Class=EbpfExtension
+ClassGuid={b23b88e3-60fb-4950-b71e-2f70e591dff6}
 Provider=%ManufacturerName%
 CatalogFile=EbpfCore.cat
 DriverVer= 1/11/2021,1.0.0.0
@@ -23,9 +23,9 @@ EbpfCore_Device_CoInstaller_CopyFiles = 11
 ; ================= Class section =====================
 
 [ClassInstall32]
-Addreg=SampleClassReg
+Addreg=EbpfExtensionClassReg
 
-[SampleClassReg]
+[EbpfExtensionClassReg]
 HKR,,,0,%ClassName%
 HKR,,Icon,,-5
 
@@ -44,7 +44,7 @@ WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll=1 ; make sure the number matches with
 %ManufacturerName%=Standard,NT$ARCH$
 
 [Standard.NT$ARCH$]
-%EbpfCore.DeviceDesc%=EbpfCore_Device, Root\EbpfCore ; TODO: edit hw-id
+%EbpfCore.DeviceDesc%=EbpfCore_Device, Root\EbpfCore
 
 [EbpfCore_Device.NT]
 CopyFiles=Drivers_Dir
@@ -92,7 +92,7 @@ KmdfLibraryVersion = $KMDFVERSION$
 [Strings]
 SPSVCINST_ASSOCSERVICE= 0x00000002
 ManufacturerName="EdgeOS CoreNet"
-ClassName="Samples" ; TODO: edit ClassName
+ClassName="EbpfExtension"
 DiskName = "EbpfCore Installation Disk"
 EbpfCore.DeviceDesc = "EbpfCore Device"
 EbpfCore.SVCDESC = "EbpfCore Service"
