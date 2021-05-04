@@ -293,7 +293,7 @@ ebpf_program_invoke(ebpf_program_t* program, void* context, uint32_t* result)
 }
 
 ebpf_error_code_t
-ebpf_program_get_helper_function_address(ebpf_program_t* program, uint32_t helper_function_id, uint64_t* address)
+ebpf_program_get_helper_function_address(const ebpf_program_t* program, uint32_t helper_function_id, uint64_t* address)
 {
     size_t count = (program->global_helper_provider_dispatch_table->size -
                     EBPF_OFFSET_OF(ebpf_extension_dispatch_table_t, function)) /
