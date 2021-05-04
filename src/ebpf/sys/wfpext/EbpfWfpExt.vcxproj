@@ -39,14 +39,14 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{97E52ABB-2F1E-4AD2-AEFD-6EB7FDC0A41D}</ProjectGuid>
+    <ProjectGuid>{55499E36-37D4-4F86-B694-9F2990315758}</ProjectGuid>
     <TemplateGuid>{1bc93793-694f-48fe-9372-81e2b05556fd}</TemplateGuid>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <MinimumVisualStudioVersion>12.0</MinimumVisualStudioVersion>
     <Configuration>Debug</Configuration>
     <Platform Condition="'$(Platform)' == ''">Win32</Platform>
     <RootNamespace>EbpfDriver</RootNamespace>
-    <ProjectName>EbpfCore</ProjectName>
+    <ProjectName>EbpfWfpExt</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
@@ -126,7 +126,7 @@
     <ClCompile Include="ebpf_wfp_ext.c" />
   </ItemGroup>
   <ItemGroup>
-    <Inf Include="EbpfCore.inf" />
+    <Inf Include="EbpfWfpExt.inf" />
   </ItemGroup>
   <ItemGroup>
     <FilesToPackage Include="$(TargetPath)" />
@@ -135,20 +135,8 @@
     <ClInclude Include="ebpf_wfp_ext.h" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\libs\epoch\kernel\epoch_kernel.vcxproj">
-      <Project>{fb2680fb-13cf-400c-8a5d-042c0ac20a3f}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\libs\execution_context\kernel\execution_context_kernel.vcxproj">
-      <Project>{26e7ed0b-c128-4d7c-a90e-c246def40ad3}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\libs\maps\kernel\maps_kernel.vcxproj">
-      <Project>{08b41a2e-3aa3-49c4-a525-d45b902d9db0}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\libs\platform\kernel\platform_kernel.vcxproj">
+    <ProjectReference Include="..\..\libs\platform\kernel\platform_kernel.vcxproj">
       <Project>{fc3f9998-4085-4767-8386-5453f07c3aad}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\libs\ubpf\kernel\ubpf_kernel.vcxproj">
-      <Project>{675b59f8-089e-40b5-8388-56254447cfa3}</Project>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

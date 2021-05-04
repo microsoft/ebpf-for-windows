@@ -7,7 +7,7 @@
 
 Abstract:
 WDF based driver that does the following:
-1. Registers a set of WFP callouts.
+1. Initialize the eBPF execution context.
 2. Opens an IOCTL surface that forwards commands to ebfp_core.
 
 Environment:
@@ -19,16 +19,10 @@ Environment:
 // ntddk.h needs to be included first due to inter header dependencies on Windows.
 #include <ntddk.h>
 
-#pragma warning(push)
-#pragma warning(disable : 4201) // unnamed struct/union
-#include <fwpmk.h>
-#include <fwpsk.h>
-#pragma warning(pop)
 #include <netiodef.h>
 #include <wdf.h>
 
 #include "ebpf_core.h"
-#include "ebpf_wfp_ext.h"
 #include "ebpf_object.h"
 
 // Driver global variables
@@ -90,12 +84,6 @@ static _Function_class_(EVT_WDF_DRIVER_UNLOAD) _IRQL_requires_same_
     UNREFERENCED_PARAMETER(driver_object);
 
     _ebpf_driver_unloading_flag = TRUE;
-
-    ebpf_program_information_provider_unregister();
-
-    ebpf_hook_unregister_providers();
-
-    ebpf_hook_unregister_callouts();
 
     ebpf_core_terminate();
 }
@@ -200,16 +188,6 @@ _ebpf_driver_initialize_objects(
         goto Exit;
     }
 
-    status = ebpf_hook_register_providers();
-    if (!NT_SUCCESS(status)) {
-        goto Exit;
-    }
-
-    status = ebpf_program_information_provider_register();
-    if (!NT_SUCCESS(status)) {
-        goto Exit;
-    }
-
     WdfControlFinishInitializing(*device);
 
 Exit:
@@ -281,9 +259,6 @@ _ebpf_driver_io_device_control(
                 size_t minimum_request_size = 0;
                 size_t minimum_reply_size = 0;
 
-                status = ebpf_hook_register_callouts(_ebpf_driver_device_object);
-                // non fatal for now while testing
-
                 user_request = input_buffer;
                 if (actual_input_length < sizeof(struct _ebpf_operation_header)) {
                     status = STATUS_INVALID_PARAMETER;
@@ -329,7 +304,7 @@ _ebpf_driver_io_device_control(
                 goto Done;
             }
         } else {
-            status = NDIS_STATUS_INVALID_PARAMETER;
+            status = STATUS_INVALID_PARAMETER;
             goto Done;
         }
         break;
@@ -362,16 +337,7 @@ DriverEntry(_In_ DRIVER_OBJECT* driver_object, _In_ UNICODE_STRING* registry_pat
 
     _ebpf_driver_device_object = WdfDeviceWdmGetDeviceObject(device);
 
-    ebpf_hook_register_callouts(_ebpf_driver_device_object);
-    // ignore status. at boot, registration can fail.
-    // we will try to re-register during program load.
-
 Exit:
-
-    if (!NT_SUCCESS(status)) {
-        ebpf_hook_unregister_callouts();
-    }
-
     return status;
 }
 

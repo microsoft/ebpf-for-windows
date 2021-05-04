@@ -33,7 +33,6 @@ Environment:
 #include <netiodef.h>
 #include <ntddk.h>
 
-#include "ebpf_core.h"
 #include "ebpf_platform.h"
 #include "ebpf_windows.h"
 
@@ -674,6 +673,7 @@ _ebpf_provider_client_detach_callback(void* context, const GUID* client_id)
     UNREFERENCED_PARAMETER(client_id);
     hook_registration->client_binding_context = NULL;
     hook_registration->client_data = NULL;
+    hook_registration->invoke_hook = NULL;
 
     return EBPF_ERROR_SUCCESS;
 }
