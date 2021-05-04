@@ -33,9 +33,6 @@ _ebpf_core_map_update_element(ebpf_map_t* map, const uint8_t* key, const uint8_t
 static void
 _ebpf_core_map_delete_element(ebpf_map_t* map, const uint8_t* key);
 
-static uint64_t
-ebpf_core_interpreter_helper_resolver(void* context, uint32_t helper_id);
-
 static const void* _ebpf_program_helpers[] = {
     NULL,
     (void*)&_ebpf_core_map_find_element,
@@ -127,25 +124,8 @@ _ebpf_core_protocol_load_code(_In_ const ebpf_operation_load_code_request_t* req
 {
     ebpf_error_code_t retval;
     ebpf_program_t* program = NULL;
-    uint8_t* file_name = NULL;
-    size_t file_name_length = 0;
-    uint8_t* section_name = NULL;
-    size_t section_name_length = 0;
     uint8_t* code = NULL;
     size_t code_length = 0;
-    ebpf_program_parameters_t parameters;
-
-    if (request->file_name_offset > request->header.length) {
-        return EBPF_ERROR_INVALID_PARAMETER;
-    }
-
-    if (request->section_name_offset > request->header.length) {
-        return EBPF_ERROR_INVALID_PARAMETER;
-    }
-
-    if (request->code_offset > request->header.length) {
-        return EBPF_ERROR_INVALID_PARAMETER;
-    }
 
     if (request->code_type == EBPF_CODE_NATIVE) {
         if (_ebpf_core_code_integrity_state == EBPF_CODE_INTEGRITY_HYPER_VISOR_KERNEL_MODE) {
@@ -158,21 +138,8 @@ _ebpf_core_protocol_load_code(_In_ const ebpf_operation_load_code_request_t* req
     if (retval != EBPF_ERROR_SUCCESS)
         goto Done;
 
-    file_name = (uint8_t*)request + request->file_name_offset;
-    section_name = (uint8_t*)request + request->section_name_offset;
-    code = (uint8_t*)request + request->code_offset;
-    file_name_length = section_name - file_name;
-    section_name_length = code - section_name;
-    code_length = request->header.length - request->code_offset;
-
-    parameters.program_name.value = file_name;
-    parameters.program_name.length = file_name_length;
-    parameters.section_name.value = section_name;
-    parameters.section_name.length = section_name_length;
-
-    retval = ebpf_program_initialize(program, &parameters);
-    if (retval != EBPF_ERROR_SUCCESS)
-        goto Done;
+    code = (uint8_t*)request->code;
+    code_length = request->header.length - EBPF_OFFSET_OF(ebpf_operation_load_code_request_t, code);
 
     if (request->code_type == EBPF_CODE_NATIVE) {
         retval = ebpf_program_load_machine_code(program, code, code_length);
@@ -195,6 +162,8 @@ _ebpf_core_protocol_resolve_helper(
     _Inout_ struct _ebpf_operation_resolve_helper_reply* reply,
     uint16_t reply_length)
 {
+    ebpf_program_t* program = NULL;
+    ebpf_error_code_t return_value;
     size_t count_of_helpers =
         (request->header.length - EBPF_OFFSET_OF(ebpf_operation_resolve_helper_request_t, helper_id)) /
         sizeof(request->helper_id[0]);
@@ -203,18 +172,27 @@ _ebpf_core_protocol_resolve_helper(
     size_t helper_index;
 
     if (reply_length < required_reply_length) {
-        return EBPF_ERROR_INVALID_PARAMETER;
+        return_value = EBPF_ERROR_INVALID_PARAMETER;
+        goto Done;
     }
 
+    return_value =
+        ebpf_reference_object_by_handle(request->program_handle, EBPF_OBJECT_PROGRAM, (ebpf_object_t**)&program);
+    if (return_value != EBPF_ERROR_SUCCESS)
+        goto Done;
+
     for (helper_index = 0; helper_index < count_of_helpers; helper_index++) {
-        if (request->helper_id[helper_index] >= EBPF_COUNT_OF(_ebpf_program_helpers)) {
-            return EBPF_ERROR_INVALID_PARAMETER;
-        }
-        reply->address[helper_index] = (uint64_t)_ebpf_program_helpers[request->helper_id[helper_index]];
+        return_value = ebpf_program_get_helper_function_address(
+            program, request->helper_id[helper_index], &reply->address[helper_index]);
+        if (return_value != EBPF_ERROR_SUCCESS)
+            goto Done;
     }
     reply->header.length = (uint16_t)required_reply_length;
 
-    return EBPF_ERROR_SUCCESS;
+Done:
+    ebpf_object_release_reference((ebpf_object_t*)program);
+
+    return return_value;
 }
 
 static ebpf_error_code_t
@@ -297,10 +275,34 @@ _ebpf_core_protocol_create_program(
 {
     ebpf_error_code_t retval;
     ebpf_program_t* program = NULL;
-    UNREFERENCED_PARAMETER(request);
+    ebpf_program_parameters_t parameters;
+    uint8_t* file_name = NULL;
+    size_t file_name_length = 0;
+    uint8_t* section_name = NULL;
+    size_t section_name_length = 0;
+
     UNREFERENCED_PARAMETER(reply_length);
 
-    retval = ebpf_program_create(&program, request->program_type);
+    if (request->section_name_offset > request->header.length) {
+        retval = EBPF_ERROR_INVALID_PARAMETER;
+        goto Done;
+    }
+    file_name = (uint8_t*)request->data;
+    section_name = ((uint8_t*)request) + request->section_name_offset;
+    file_name_length = section_name - file_name;
+    section_name_length = ((uint8_t*)request) + request->header.length - section_name;
+
+    retval = ebpf_program_create(&program);
+    if (retval != EBPF_ERROR_SUCCESS)
+        goto Done;
+
+    parameters.program_type = request->program_type;
+    parameters.program_name.value = file_name;
+    parameters.program_name.length = file_name_length;
+    parameters.section_name.value = section_name;
+    parameters.section_name.length = section_name_length;
+
+    retval = ebpf_program_initialize(program, &parameters);
     if (retval != EBPF_ERROR_SUCCESS)
         goto Done;
 
@@ -731,16 +733,6 @@ static void
 _ebpf_core_map_delete_element(ebpf_map_t* map, const uint8_t* key)
 {
     ebpf_map_delete_entry(map, key);
-}
-
-static uint64_t
-ebpf_core_interpreter_helper_resolver(void* context, uint32_t helper_id)
-{
-    UNREFERENCED_PARAMETER(context);
-    if (helper_id >= EBPF_COUNT_OF(_ebpf_program_helpers)) {
-        return 0;
-    }
-    return (uint64_t)_ebpf_program_helpers[helper_id];
 }
 
 typedef struct _ebpf_protocol_handler

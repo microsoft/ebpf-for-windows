@@ -175,6 +175,7 @@
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
     </ClInclude>
     <ClInclude Include="pch.h" />
+    <ClInclude Include="Verifier.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ebpf_api.cpp" />

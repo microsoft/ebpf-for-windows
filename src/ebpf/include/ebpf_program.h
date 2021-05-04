@@ -44,7 +44,7 @@ extern "C"
      *  program instance.
      */
     ebpf_error_code_t
-    ebpf_program_create(ebpf_program_t** program, ebpf_program_type_t program_type);
+    ebpf_program_create(ebpf_program_t** program);
 
     /**
      * @brief Initialize a program instance from the provided program
@@ -72,6 +72,16 @@ extern "C"
     ebpf_error_code_t
     ebpf_program_get_properties(ebpf_program_t* program, ebpf_program_parameters_t* program_parameters);
 
+    /**
+     * @brief Get the program information data from the program information
+     *  extension.
+     *
+     * @param[in] program Program that loaded the extension.
+     * @param[out] program_information_data Pointer to the program information.
+     * @retval EBPF_ERROR_SUCCESS The operation was successful.
+     * @retval EBPF_ERROR_INVALID_PARAMETER The program information isn't
+     *  available.
+     */
     ebpf_error_code_t
     ebpf_program_get_program_information_data(
         const ebpf_program_t* program, const ebpf_extension_data_t** program_information_data);
@@ -117,50 +127,6 @@ extern "C"
     ebpf_program_load_byte_code(ebpf_program_t* program, ebpf_instuction_t* instructions, size_t instruction_count);
 
     /**
-     * @brief Create a link object and attach it to the program instance.
-     *
-     * @param[in] program Program instance to attach to.
-     * @param[in] attach_type Attach type to load.
-     * @param[in] context_data Data to be passed to the hook provider.
-     * @param[in] context_data_length Length of the data to be passed to the
-     *  hook provider.
-     * @param[out] link The link object to initialize.
-     * @retval EBPF_ERROR_SUCCESS The operation was successful.
-     * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
-     *  program instance.
-     */
-    ebpf_error_code_t
-    ebpf_program_create_and_attach_hook(
-        ebpf_program_t* program,
-        ebpf_attach_type_t attach_type,
-        uint8_t* context_data,
-        size_t context_data_length,
-        ebpf_link_t** link);
-
-    /**
-     * @brief Attach this program instance to an existing link object.
-     *
-     * @param[in] program Program instance to attach to.
-     * @param[in] link Hook instance to attach the program instance to.
-     * @retval EBPF_ERROR_SUCCESS The operation was successful.
-     * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
-     *  program instance.
-     */
-    ebpf_error_code_t
-    ebpf_program_attach_hook(ebpf_program_t* program, ebpf_link_t* link);
-
-    /**
-     * @brief Obtain the entry point for the program instance. Only applicable
-     *  to when program instance has machine code loaded.
-     *
-     * @param[in] program Program instance to retrieve entry point from.
-     * @param[out] program_entry_point Entry point for the machine code.
-     * @retval EBPF_ERROR_SUCCESS The operation was successful.
-     */
-    ebpf_error_code_t
-    ebpf_program_get_entry_point(ebpf_program_t* program, ebpf_program_entry_point_t* program_entry_point);
-
-    /**
      * @brief Invoke an ebpf_program_t instance.
      *
      * @param[in] program Program to invoke.
@@ -169,6 +135,18 @@ extern "C"
      */
     void
     ebpf_program_invoke(ebpf_program_t* program, void* context, uint32_t* result);
+
+    /**
+     * @brief Get the address of a helper function.
+     *
+     * @param[in] program Program object to query this on.
+     * @param[in] helper_function_id Helper function ID to look up.
+     * @param[out] address Address of the helper function.
+     * @retval EBPF_ERROR_SUCCESS The operation was successful.
+     * @retval EBPF_ERROR_INVALID_PARAMETER The helper_function_id is not valid.
+     */
+    ebpf_error_code_t
+    ebpf_program_get_helper_function_address(ebpf_program_t* program, uint32_t helper_function_id, uint64_t* address);
 
 #ifdef __cplusplus
 }

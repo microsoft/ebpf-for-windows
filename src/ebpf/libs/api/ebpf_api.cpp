@@ -313,12 +313,33 @@ resolve_ec_function(ebpf_ec_function_t function, uint64_t* address)
 }
 
 static uint32_t
-_create_program(ebpf_program_type_t program_type, ebpf_handle_t* program_handle)
+_create_program(
+    ebpf_program_type_t program_type,
+    const std::string& file_name,
+    const std::string& section_name,
+    ebpf_handle_t* program_handle)
 {
-    ebpf_operation_create_program_request_t request = {sizeof(request), EBPF_OPERATION_CREATE_PROGRAM, program_type};
+    ebpf_protocol_buffer_t request_buffer;
+    ebpf_operation_create_program_request_t* request;
     ebpf_operation_create_program_reply_t reply;
 
-    uint32_t retval = invoke_ioctl(device_handle, request, reply);
+    request_buffer.resize(
+        offsetof(ebpf_operation_create_program_request_t, data) + file_name.size() + section_name.size());
+
+    request = reinterpret_cast<ebpf_operation_create_program_request_t*>(request_buffer.data());
+    request->header.id = EBPF_OPERATION_CREATE_PROGRAM;
+    request->header.length = static_cast<uint16_t>(request_buffer.size());
+    request->program_type = program_type;
+    request->section_name_offset =
+        static_cast<uint16_t>(offsetof(ebpf_operation_create_program_request_t, data) + file_name.size());
+    std::copy(
+        file_name.begin(),
+        file_name.end(),
+        request_buffer.begin() + offsetof(ebpf_operation_create_program_request_t, data));
+
+    std::copy(section_name.begin(), section_name.end(), request_buffer.begin() + request->section_name_offset);
+
+    uint32_t retval = invoke_ioctl(device_handle, request_buffer, reply);
     if (retval != ERROR_SUCCESS) {
         return retval;
     }
@@ -390,12 +411,26 @@ ebpf_api_load_program(
 
     uint32_t result;
 
-    // TODO: Pass the resulting program information to the verifier.
-
     try {
         _map_file_descriptors.resize(0);
+
+        if (load_byte_code(file_name, section_name, byte_code.data(), &byte_code_size, &program_type) != 0) {
+            return ERROR_INVALID_PARAMETER;
+        }
+
+        result = _create_program(program_type, file_name, section_name, &program_handle);
+        if (result != ERROR_SUCCESS) {
+            return result;
+        }
+
+        // TODO: Pass the resulting program information to the verifier.
+        result = _get_program_information_data(program_handle, &program_information_data);
+        if (result != ERROR_SUCCESS) {
+            return result;
+        }
+
         // Verify code.
-        if (verify(file_name, section_name, byte_code.data(), &byte_code_size, &program_type, error_message) != 0) {
+        if (verify_byte_code(file_name, section_name, byte_code.data(), byte_code_size, error_message) != 0) {
             return ERROR_INVALID_PARAMETER;
         }
     } catch (std::runtime_error& err) {
@@ -407,16 +442,6 @@ ebpf_api_load_program(
         }
         *error_message = error;
         return ERROR_INVALID_PARAMETER;
-    }
-
-    result = _create_program(program_type, &program_handle);
-    if (result != ERROR_SUCCESS) {
-        return result;
-    }
-
-    result = _get_program_information_data(program_handle, &program_information_data);
-    if (result != ERROR_SUCCESS) {
-        return result;
     }
 
     if (_map_file_descriptors.size() > *count_of_map_handles) {
@@ -439,11 +464,6 @@ ebpf_api_load_program(
     if (result != ERROR_SUCCESS) {
         return result;
     }
-
-    ebpf_protocol_buffer_t file_name_bytes(strlen(file_name));
-    ebpf_protocol_buffer_t section_name_bytes(strlen(section_name));
-    std::copy(file_name, file_name + file_name_bytes.size(), file_name_bytes.begin());
-    std::copy(section_name, section_name + section_name_bytes.size(), section_name_bytes.begin());
 
     if (execution_type == EBPF_EXECUTION_JIT) {
         std::map<uint32_t, uint64_t> helper_id_to_adddress;
@@ -481,22 +501,17 @@ ebpf_api_load_program(
         byte_code = machine_code;
     }
 
-    request_buffer.resize(
-        offsetof(ebpf_operation_load_code_request_t, data) + file_name_bytes.size() + section_name_bytes.size() +
-        byte_code.size());
+    request_buffer.resize(offsetof(ebpf_operation_load_code_request_t, code) + byte_code.size());
     auto request = reinterpret_cast<ebpf_operation_load_code_request_t*>(request_buffer.data());
     request->header.id = ebpf_operation_id_t::EBPF_OPERATION_LOAD_CODE;
     request->header.length = static_cast<uint16_t>(request_buffer.size());
     request->program_handle = reinterpret_cast<uint64_t>(program_handle);
     request->code_type = execution_type == EBPF_EXECUTION_JIT ? EBPF_CODE_NATIVE : EBPF_CODE_EBPF;
-    request->file_name_offset = offsetof(ebpf_operation_load_code_request_t, data);
-    request->section_name_offset = request->file_name_offset + static_cast<uint16_t>(file_name_bytes.size());
-    request->code_offset = request->section_name_offset + static_cast<uint16_t>(section_name_bytes.size());
-    std::copy(file_name_bytes.begin(), file_name_bytes.end(), request_buffer.begin() + request->file_name_offset);
-    std::copy(
-        section_name_bytes.begin(), section_name_bytes.end(), request_buffer.begin() + request->section_name_offset);
 
-    std::copy(byte_code.begin(), byte_code.end(), request_buffer.begin() + request->code_offset);
+    std::copy(
+        byte_code.begin(),
+        byte_code.end(),
+        request_buffer.begin() + offsetof(ebpf_operation_load_code_request_t, code));
 
     result = invoke_ioctl(device_handle, request_buffer);
 

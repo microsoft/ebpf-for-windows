@@ -78,6 +78,8 @@ typedef struct _ebpf_operation_create_program_request
 {
     struct _ebpf_operation_header header;
     ebpf_program_type_t program_type;
+    uint16_t section_name_offset;
+    uint8_t data[1];
 } ebpf_operation_create_program_request_t;
 
 typedef struct _ebpf_operation_create_program_reply
@@ -91,10 +93,7 @@ typedef struct _ebpf_operation_load_code_request
     struct _ebpf_operation_header header;
     uint64_t program_handle;
     ebpf_code_type_t code_type;
-    uint16_t file_name_offset;
-    uint16_t section_name_offset;
-    uint16_t code_offset;
-    uint8_t data[1];
+    uint8_t code[1];
 } ebpf_operation_load_code_request_t;
 
 typedef struct _ebpf_operation_create_map_request
