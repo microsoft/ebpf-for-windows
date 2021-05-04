@@ -438,6 +438,8 @@ extern "C"
     int32_t
     ebpf_interlocked_compare_exchange_int32(volatile int32_t* destination, int32_t exchange, int32_t comperand);
 
+    typedef void (*ebpf_extension_unload_callback_t)(void* client_binding_context);
+
     /**
      * @brief Load an extension and get its dispatch table.
      *
@@ -466,7 +468,8 @@ extern "C"
         const ebpf_extension_dispatch_table_t* client_dispatch_table,
         void** provider_binding_context,
         const ebpf_extension_data_t** provider_data,
-        const ebpf_extension_dispatch_table_t** provider_dispatch_table);
+        const ebpf_extension_dispatch_table_t** provider_dispatch_table,
+        ebpf_extension_unload_callback_t extension_unload);
 
     /**
      * @brief Unload an extension.

@@ -83,7 +83,8 @@ ebpf_program_load_providers(ebpf_program_t* program)
         NULL,
         &provider_binding_context,
         &program->global_helper_provider_data,
-        &program->global_helper_provider_dispatch_table);
+        &program->global_helper_provider_dispatch_table,
+        NULL);
 
     if (return_value != EBPF_ERROR_SUCCESS)
         goto Done;
@@ -96,7 +97,8 @@ ebpf_program_load_providers(ebpf_program_t* program)
         NULL,
         &program->program_information_binding_context,
         &program->program_information_data,
-        &program->program_information_provider_dispatch_table);
+        &program->program_information_provider_dispatch_table,
+        NULL);
 
     if (return_value != EBPF_ERROR_SUCCESS)
         goto Done;

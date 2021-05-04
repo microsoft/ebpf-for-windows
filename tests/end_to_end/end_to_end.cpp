@@ -970,7 +970,8 @@ TEST_CASE("extension_test", "[extension_test]")
             &client_dispatch_table,
             &provider_binding_context,
             &returned_provider_data,
-            &returned_provider_dispatch_table) == EBPF_ERROR_SUCCESS);
+            &returned_provider_dispatch_table,
+            nullptr) == EBPF_ERROR_SUCCESS);
 
     REQUIRE(returned_provider_data == &provider_data);
     REQUIRE(returned_provider_dispatch_table == &provider_dispatch_table);
