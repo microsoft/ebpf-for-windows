@@ -7,7 +7,7 @@
 
 Abstract:
 WDF based driver that does the following:
-1. Initialize the eBPF execution context.
+1. Initializes the eBPF execution context.
 2. Opens an IOCTL surface that forwards commands to ebfp_core.
 
 Environment:
