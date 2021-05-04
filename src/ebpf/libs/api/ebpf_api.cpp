@@ -423,7 +423,7 @@ ebpf_api_load_program(
             return result;
         }
 
-        // TODO: Pass the resulting program information to the verifier.
+        // TODO (issue #67): Pass the resulting program information to the verifier.
         result = _get_program_information_data(program_handle, &program_information_data);
         if (result != ERROR_SUCCESS) {
             return result;

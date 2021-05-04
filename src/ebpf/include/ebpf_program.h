@@ -79,7 +79,7 @@ extern "C"
      * @param[in] program Program that loaded the extension.
      * @param[out] program_information_data Pointer to the program information.
      * @retval EBPF_ERROR_SUCCESS The operation was successful.
-     * @retval EBPF_ERROR_INVALID_PARAMETER The program information isn't
+     * @retval EBPF_ERROR_EXTENSION_FAILED_TO_LOAD The program information isn't
      *  available.
      */
     ebpf_error_code_t
