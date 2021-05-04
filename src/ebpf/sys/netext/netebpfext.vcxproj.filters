@@ -23,20 +23,20 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="ebpf_drv.c">
+    <ClCompile Include="net_ebpf_ext_drv.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="ebpf_wfp_ext.c">
+    <ClCompile Include="net_ebpf_ext.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="ebpf_wfp_ext.h">
+    <ClInclude Include="net_ebpf_ext.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <Inf Include="EbpfCore.inf">
+    <Inf Include="NetEbpfExt.inf">
       <Filter>Driver Files</Filter>
     </Inf>
   </ItemGroup>

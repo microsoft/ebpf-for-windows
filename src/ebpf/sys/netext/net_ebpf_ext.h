@@ -32,14 +32,14 @@ Environment:
  * @retval FWP_E_* A Windows Filtering Platform (WFP) specific error.
  */
 NTSTATUS
-ebpf_hook_register_callouts(_Inout_ void* device_object);
+net_ebpf_ext_register_callouts(_Inout_ void* device_object);
 
 /**
  * @brief Unregister the WFP callouts.
  *
  */
 void
-ebpf_hook_unregister_callouts(void);
+net_ebpf_ext_unregister_callouts(void);
 
 /**
  * @brief Register hook providers with eBPF core.
@@ -48,14 +48,14 @@ ebpf_hook_unregister_callouts(void);
  * @retval STATUS_UNSUCCESSFUL Operation failed.
  */
 NTSTATUS
-ebpf_hook_register_providers();
+net_ebpf_ext_register_providers();
 
 /**
  * @brief Unregister hook providers from eBPF core.
  *
  */
 void
-ebpf_hook_unregister_providers();
+net_ebpf_ext_unregister_providers();
 
 /**
  * @brief Register program information providers with eBPF core.
@@ -64,11 +64,11 @@ ebpf_hook_unregister_providers();
  * @retval STATUS_UNSUCCESSFUL Operation failed.
  */
 NTSTATUS
-ebpf_program_information_provider_register();
+net_ebpf_ext_program_information_provider_register();
 
 /**
  * @brief Unregister program information providers from eBPF core.
  *
  */
 void
-ebpf_program_information_provider_unregister();
+net_ebpf_ext_program_information_provider_unregister();
