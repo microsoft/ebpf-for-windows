@@ -146,7 +146,8 @@ extern "C"
      * @retval EBPF_ERROR_INVALID_PARAMETER The helper_function_id is not valid.
      */
     ebpf_error_code_t
-    ebpf_program_get_helper_function_address(ebpf_program_t* program, uint32_t helper_function_id, uint64_t* address);
+    ebpf_program_get_helper_function_address(
+        const ebpf_program_t* program, uint32_t helper_function_id, uint64_t* address);
 
 #ifdef __cplusplus
 }
