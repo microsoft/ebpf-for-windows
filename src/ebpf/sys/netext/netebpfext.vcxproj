@@ -46,7 +46,7 @@
     <Configuration>Debug</Configuration>
     <Platform Condition="'$(Platform)' == ''">Win32</Platform>
     <RootNamespace>EbpfDriver</RootNamespace>
-    <ProjectName>EbpfWfpExt</ProjectName>
+    <ProjectName>NetEbpfExt</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
@@ -122,17 +122,17 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="ebpf_drv.c" />
-    <ClCompile Include="ebpf_wfp_ext.c" />
+    <ClCompile Include="net_ebpf_ext_drv.c" />
+    <ClCompile Include="net_ebpf_ext.c" />
   </ItemGroup>
   <ItemGroup>
-    <Inf Include="EbpfWfpExt.inf" />
+    <Inf Include="NetEbpfExt.inf" />
   </ItemGroup>
   <ItemGroup>
     <FilesToPackage Include="$(TargetPath)" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="ebpf_wfp_ext.h" />
+    <ClInclude Include="net_ebpf_ext.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\libs\platform\kernel\platform_kernel.vcxproj">

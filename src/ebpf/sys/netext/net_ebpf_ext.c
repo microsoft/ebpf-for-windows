@@ -21,7 +21,7 @@ Environment:
 --*/
 #define INITGUID
 
-#include "ebpf_wfp_ext.h"
+#include "net_ebpf_ext.h"
 
 #pragma warning(push)
 #pragma warning(disable : 4201) // unnamed struct/union
@@ -81,7 +81,7 @@ typedef enum _bind_action
 
 typedef DWORD(__stdcall* bind_hook_function)(PVOID);
 
-typedef struct _ebpf_hook_provider_registration
+typedef struct _net_ebpf_ext_hook_provider_registration
 {
     ebpf_extension_data_t* provider_data;
     ebpf_extension_provider_t* provider;
@@ -89,10 +89,10 @@ typedef struct _ebpf_hook_provider_registration
     void* client_binding_context;
     const ebpf_extension_data_t* client_data;
     const ebpf_error_code_t (*invoke_hook)(void* bind_context, void* context, uint32_t* result);
-} ebpf_hook_provider_registration;
+} net_ebpf_ext_hook_provider_registration_t;
 
-static ebpf_hook_provider_registration _ebpf_xdp_hook_provider_registration = {0};
-static ebpf_hook_provider_registration _ebpf_bind_hook_provider_registration = {0};
+static net_ebpf_ext_hook_provider_registration_t _ebpf_xdp_hook_provider_registration = {0};
+static net_ebpf_ext_hook_provider_registration_t _ebpf_bind_hook_provider_registration = {0};
 static ebpf_extension_provider_t* _ebpf_xdp_program_information_provider = NULL;
 static ebpf_extension_provider_t* _ebpf_bind_program_information_provider = NULL;
 static ebpf_extension_data_t _ebpf_xdp_program_information_provider_data = {0, 0};
@@ -142,7 +142,7 @@ DEFINE_GUID(EBPF_PROGRAM_TYPE_XDP, 0xf1832a85, 0x85d5, 0x45b0, 0x98, 0xa0, 0x70,
 DEFINE_GUID(EBPF_PROGRAM_TYPE_BIND, 0x608c517c, 0x6c52, 0x4a26, 0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf);
 
 static void
-ebpf_hook_layer_2_classify(
+_net_ebpf_ext_layer_2_classify(
     _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values,
     _In_ const FWPS_INCOMING_METADATA_VALUES* incoming_metadata_values,
     _Inout_opt_ void* layer_data,
@@ -152,7 +152,7 @@ ebpf_hook_layer_2_classify(
     _Inout_ FWPS_CLASSIFY_OUT* classify_output);
 
 static void
-ebpf_hook_resource_allocation_classify(
+_net_ebpf_ext_resource_allocation_classify(
     _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values,
     _In_ const FWPS_INCOMING_METADATA_VALUES* incoming_metadata_values,
     _Inout_opt_ void* layer_data,
@@ -162,7 +162,7 @@ ebpf_hook_resource_allocation_classify(
     _Inout_ FWPS_CLASSIFY_OUT* classify_output);
 
 static void
-ebpf_hook_resource_release_classify(
+_net_ebpf_ext_resource_release_classify(
     _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values,
     _In_ const FWPS_INCOMING_METADATA_VALUES* incoming_metadata_values,
     _Inout_opt_ void* layer_data,
@@ -172,13 +172,13 @@ ebpf_hook_resource_release_classify(
     _Inout_ FWPS_CLASSIFY_OUT* classify_output);
 
 static void
-ebpf_hook_no_op_flow_delete(uint16_t layer_id, uint32_t fwpm_callout_id, uint64_t flow_context);
+_net_ebpf_ext_no_op_flow_delete(uint16_t layer_id, uint32_t fwpm_callout_id, uint64_t flow_context);
 
 static NTSTATUS
-ebpf_hook_no_op_notify(
+_net_ebpf_ext_no_op_notify(
     FWPS_CALLOUT_NOTIFY_TYPE callout_notification_type, _In_ const GUID* filter_key, _Inout_ const FWPS_FILTER* filter);
 
-typedef struct _ebpf_wfp_callout_state
+typedef struct _net_ebpf_ext_wfp_callout_state
 {
     const GUID* callout_guid;
     const GUID* layer_guid;
@@ -189,15 +189,15 @@ typedef struct _ebpf_wfp_callout_state
     wchar_t* description;
     FWP_ACTION_TYPE filter_action_type;
     uint32_t assigned_callout_id;
-} ebpf_wfp_callout_state_t;
+} net_ebpf_ext_wfp_callout_state_t;
 
-static ebpf_wfp_callout_state_t _ebpf_wfp_callout_state[] = {
+static net_ebpf_ext_wfp_callout_state_t _net_ebpf_ext_wfp_callout_state[] = {
     {
         &EBPF_HOOK_L2_CALLOUT,
         &FWPM_LAYER_INBOUND_MAC_FRAME_ETHERNET,
-        ebpf_hook_layer_2_classify,
-        ebpf_hook_no_op_notify,
-        ebpf_hook_no_op_flow_delete,
+        _net_ebpf_ext_layer_2_classify,
+        _net_ebpf_ext_no_op_notify,
+        _net_ebpf_ext_no_op_flow_delete,
         L"L2 XDP Callout",
         L"L2 callout driver for eBPF at XDP-like layer",
         FWP_ACTION_CALLOUT_TERMINATING,
@@ -205,9 +205,9 @@ static ebpf_wfp_callout_state_t _ebpf_wfp_callout_state[] = {
     {
         &EBPF_HOOK_ALE_RESOURCE_ALLOCATION_CALLOUT,
         &FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V4,
-        ebpf_hook_resource_allocation_classify,
-        ebpf_hook_no_op_notify,
-        ebpf_hook_no_op_flow_delete,
+        _net_ebpf_ext_resource_allocation_classify,
+        _net_ebpf_ext_no_op_notify,
+        _net_ebpf_ext_no_op_flow_delete,
         L"Resource Allocation eBPF Callout",
         L"Resource Allocation callout driver for eBPF",
         FWP_ACTION_CALLOUT_TERMINATING,
@@ -215,9 +215,9 @@ static ebpf_wfp_callout_state_t _ebpf_wfp_callout_state[] = {
     {
         &EBPF_HOOK_ALE_RESOURCE_RELEASE_CALLOUT,
         &FWPM_LAYER_ALE_RESOURCE_RELEASE_V4,
-        ebpf_hook_resource_release_classify,
-        ebpf_hook_no_op_notify,
-        ebpf_hook_no_op_flow_delete,
+        _net_ebpf_ext_resource_release_classify,
+        _net_ebpf_ext_no_op_notify,
+        _net_ebpf_ext_no_op_flow_delete,
         L"Resource Release eBPF Callout",
         L"Resource Release callout driver for eBPF",
         FWP_ACTION_CALLOUT_TERMINATING,
@@ -228,7 +228,7 @@ static ebpf_wfp_callout_state_t _ebpf_wfp_callout_state[] = {
 static HANDLE _fwp_engine_handle;
 
 static NTSTATUS
-ebpf_hook_register_wfp_callout(_Inout_ ebpf_wfp_callout_state_t* callout_state, _Inout_ void* device_object)
+_net_ebpf_ext_register_wfp_callout(_Inout_ net_ebpf_ext_wfp_callout_state_t* callout_state, _Inout_ void* device_object)
 /* ++
 
    This function registers callouts and filters.
@@ -256,7 +256,7 @@ ebpf_hook_register_wfp_callout(_Inout_ ebpf_wfp_callout_state_t* callout_state, 
         KdPrintEx(
             (DPFLTR_IHVDRIVER_ID,
              DPFLTR_INFO_LEVEL,
-             "Ebpf_wfp: FwpsCalloutRegister for %S failed with error %.2X\n",
+             "NetEbpfExt: FwpsCalloutRegister for %S failed with error %.2X\n",
              callout_state->name,
              status));
         goto Exit;
@@ -276,7 +276,7 @@ ebpf_hook_register_wfp_callout(_Inout_ ebpf_wfp_callout_state_t* callout_state, 
         KdPrintEx(
             (DPFLTR_IHVDRIVER_ID,
              DPFLTR_INFO_LEVEL,
-             "Ebpf_wfp: FwpmCalloutAdd for %S failed with error %.2X\n",
+             "NetEbpfExt: FwpmCalloutAdd for %S failed with error %.2X\n",
              callout_state->name,
              status));
         goto Exit;
@@ -298,7 +298,7 @@ ebpf_hook_register_wfp_callout(_Inout_ ebpf_wfp_callout_state_t* callout_state, 
         KdPrintEx(
             (DPFLTR_IHVDRIVER_ID,
              DPFLTR_INFO_LEVEL,
-             "Ebpf_wfp: FwpmFilterAdd for %S failed with error %.2X\n",
+             "NetEbpfExt: FwpmFilterAdd for %S failed with error %.2X\n",
              callout_state->name,
              status));
         goto Exit;
@@ -317,7 +317,7 @@ Exit:
 }
 
 NTSTATUS
-ebpf_hook_register_callouts(_Inout_ void* device_object)
+net_ebpf_ext_register_callouts(_Inout_ void* device_object)
 /* ++
 
    This function registers dynamic callouts and filters that
@@ -347,15 +347,18 @@ ebpf_hook_register_callouts(_Inout_ void* device_object)
     status = FwpmEngineOpen(NULL, RPC_C_AUTHN_WINNT, NULL, &session, &_fwp_engine_handle);
     if (!NT_SUCCESS(status)) {
         KdPrintEx(
-            (DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "Ebpf_wfp: FwpmEngineOpen failed with error %.2X\n", status));
+            (DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "NetEbpfExt: FwpmEngineOpen failed with error %.2X\n", status));
         goto Exit;
     }
     is_engined_opened = TRUE;
 
     status = FwpmTransactionBegin(_fwp_engine_handle, 0);
     if (!NT_SUCCESS(status)) {
-        KdPrintEx((
-            DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "Ebpf_wfp: FwpmTransactionBegin failed with error %.2X\n", status));
+        KdPrintEx(
+            (DPFLTR_IHVDRIVER_ID,
+             DPFLTR_INFO_LEVEL,
+             "NetEbpfExt: FwpmTransactionBegin failed with error %.2X\n",
+             status));
         goto Exit;
     }
     is_in_transaction = TRUE;
@@ -371,19 +374,19 @@ ebpf_hook_register_callouts(_Inout_ void* device_object)
     status = FwpmSubLayerAdd(_fwp_engine_handle, &ebpf_hook_sub_layer, NULL);
     if (!NT_SUCCESS(status)) {
         KdPrintEx(
-            (DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "Ebpf_wfp: FwpmSubLayerAdd failed with error %.2X\n", status));
+            (DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "NetEbpfExt: FwpmSubLayerAdd failed with error %.2X\n", status));
         goto Exit;
     }
 
-    for (index = 0; index < RTL_COUNT_OF(_ebpf_wfp_callout_state); index++) {
-        status = ebpf_hook_register_wfp_callout(&_ebpf_wfp_callout_state[index], device_object);
+    for (index = 0; index < RTL_COUNT_OF(_net_ebpf_ext_wfp_callout_state); index++) {
+        status = _net_ebpf_ext_register_wfp_callout(&_net_ebpf_ext_wfp_callout_state[index], device_object);
         if (!NT_SUCCESS(status)) {
             KdPrintEx(
                 (DPFLTR_IHVDRIVER_ID,
                  DPFLTR_INFO_LEVEL,
-                 "Ebpf_wfp: ebpf_hook_register_wfp_callout failed for %S with "
+                 "NetEbpfExt: _net_ebpf_ext_register_wfp_callout failed for %S with "
                  "error %.2X\n",
-                 _ebpf_wfp_callout_state[index].name,
+                 _net_ebpf_ext_wfp_callout_state[index].name,
                  status));
             goto Exit;
         }
@@ -394,7 +397,7 @@ ebpf_hook_register_callouts(_Inout_ void* device_object)
         KdPrintEx(
             (DPFLTR_IHVDRIVER_ID,
              DPFLTR_INFO_LEVEL,
-             "Ebpf_wfp: FwpmTransactionCommit failed with error %.2X\n",
+             "NetEbpfExt: FwpmTransactionCommit failed with error %.2X\n",
              status));
         goto Exit;
     }
@@ -417,21 +420,21 @@ Exit:
 }
 
 void
-ebpf_hook_unregister_callouts(void)
+net_ebpf_ext_unregister_callouts(void)
 {
     size_t index;
     if (_fwp_engine_handle != NULL) {
         FwpmEngineClose(_fwp_engine_handle);
         _fwp_engine_handle = NULL;
 
-        for (index = 0; index < RTL_COUNT_OF(_ebpf_wfp_callout_state); index++) {
-            FwpsCalloutUnregisterById(_ebpf_wfp_callout_state[index].assigned_callout_id);
+        for (index = 0; index < RTL_COUNT_OF(_net_ebpf_ext_wfp_callout_state); index++) {
+            FwpsCalloutUnregisterById(_net_ebpf_ext_wfp_callout_state[index].assigned_callout_id);
         }
     }
 }
 
 static void
-ebpf_hook_layer_2_classify(
+_net_ebpf_ext_layer_2_classify(
     _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values,
     _In_ const FWPS_INCOMING_METADATA_VALUES* incoming_metadata_values,
     _Inout_opt_ void* layer_data,
@@ -491,8 +494,8 @@ done:
     return;
 }
 
-void
-ebpf_hook_resource_truncate_appid(bind_md_t* ctx)
+static void
+_net_ebpf_ext_resource_truncate_appid(bind_md_t* ctx)
 {
     wchar_t* last_separator = (wchar_t*)ctx->app_id_start;
     for (wchar_t* position = (wchar_t*)ctx->app_id_start; position < (wchar_t*)ctx->app_id_end; position++) {
@@ -507,7 +510,7 @@ ebpf_hook_resource_truncate_appid(bind_md_t* ctx)
 }
 
 static void
-ebpf_hook_resource_allocation_classify(
+_net_ebpf_ext_resource_allocation_classify(
     _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values,
     _In_ const FWPS_INCOMING_METADATA_VALUES* incoming_metadata_values,
     _Inout_opt_ void* layer_data,
@@ -551,7 +554,7 @@ ebpf_hook_resource_allocation_classify(
         ctx.app_id_start +
         incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_ALE_APP_ID].value.byteBlob->size;
 
-    ebpf_hook_resource_truncate_appid(&ctx);
+    _net_ebpf_ext_resource_truncate_appid(&ctx);
     if (_ebpf_bind_hook_provider_registration.invoke_hook(
             _ebpf_bind_hook_provider_registration.client_binding_context, &ctx, &result) == EBPF_ERROR_SUCCESS) {
         switch (result) {
@@ -568,7 +571,7 @@ ebpf_hook_resource_allocation_classify(
 }
 
 static void
-ebpf_hook_resource_release_classify(
+_net_ebpf_ext_resource_release_classify(
     _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values,
     _In_ const FWPS_INCOMING_METADATA_VALUES* incoming_metadata_values,
     _Inout_opt_ void* layer_data,
@@ -611,7 +614,7 @@ ebpf_hook_resource_release_classify(
         ctx.app_id_start +
         incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_RELEASE_V4_ALE_APP_ID].value.byteBlob->size;
 
-    ebpf_hook_resource_truncate_appid(&ctx);
+    _net_ebpf_ext_resource_truncate_appid(&ctx);
     _ebpf_bind_hook_provider_registration.invoke_hook(
         _ebpf_bind_hook_provider_registration.client_binding_context, &ctx, &result);
 
@@ -621,7 +624,7 @@ ebpf_hook_resource_release_classify(
 }
 
 static NTSTATUS
-ebpf_hook_no_op_notify(
+_net_ebpf_ext_no_op_notify(
     FWPS_CALLOUT_NOTIFY_TYPE callout_notification_type, _In_ const GUID* filter_key, _Inout_ const FWPS_FILTER* filter)
 {
     UNREFERENCED_PARAMETER(callout_notification_type);
@@ -632,7 +635,7 @@ ebpf_hook_no_op_notify(
 }
 
 static void
-ebpf_hook_no_op_flow_delete(uint16_t layer_id, uint32_t fwpm_callout_id, uint64_t flow_context)
+_net_ebpf_ext_no_op_flow_delete(uint16_t layer_id, uint32_t fwpm_callout_id, uint64_t flow_context)
 /* ++
 
    This is the flowDeleteFn function of the L2 callout.
@@ -646,14 +649,14 @@ ebpf_hook_no_op_flow_delete(uint16_t layer_id, uint32_t fwpm_callout_id, uint64_
 }
 
 ebpf_error_code_t
-_ebpf_provider_client_attach_callback(
+_net_ebpf_ext_provider_client_attach_callback(
     void* context,
     const GUID* client_id,
     void* client_binding_context,
     const ebpf_extension_data_t* client_data,
     const ebpf_extension_dispatch_table_t* client_dispatch_table)
 {
-    ebpf_hook_provider_registration* hook_registration = (ebpf_hook_provider_registration*)context;
+    net_ebpf_ext_hook_provider_registration_t* hook_registration = (net_ebpf_ext_hook_provider_registration_t*)context;
     if (hook_registration->client_binding_context)
         return EBPF_ERROR_EXTENSION_FAILED_TO_LOAD;
 
@@ -667,9 +670,9 @@ _ebpf_provider_client_attach_callback(
 }
 
 ebpf_error_code_t
-_ebpf_provider_client_detach_callback(void* context, const GUID* client_id)
+_net_ebpf_ext_provider_client_detach_callback(void* context, const GUID* client_id)
 {
-    ebpf_hook_provider_registration* hook_registration = (ebpf_hook_provider_registration*)context;
+    net_ebpf_ext_hook_provider_registration_t* hook_registration = (net_ebpf_ext_hook_provider_registration_t*)context;
     UNREFERENCED_PARAMETER(client_id);
     hook_registration->client_binding_context = NULL;
     hook_registration->client_data = NULL;
@@ -679,7 +682,7 @@ _ebpf_provider_client_detach_callback(void* context, const GUID* client_id)
 }
 
 NTSTATUS
-ebpf_hook_register_providers()
+net_ebpf_ext_register_providers()
 {
     ebpf_error_code_t return_value;
     return_value = ebpf_provider_load(
@@ -689,8 +692,8 @@ ebpf_hook_register_providers()
         _ebpf_xdp_hook_provider_registration.provider_data,
         NULL,
         &_ebpf_xdp_hook_provider_registration,
-        _ebpf_provider_client_attach_callback,
-        _ebpf_provider_client_detach_callback);
+        _net_ebpf_ext_provider_client_attach_callback,
+        _net_ebpf_ext_provider_client_detach_callback);
 
     if (return_value != EBPF_ERROR_SUCCESS) {
         goto Done;
@@ -703,26 +706,26 @@ ebpf_hook_register_providers()
         _ebpf_bind_hook_provider_registration.provider_data,
         NULL,
         &_ebpf_bind_hook_provider_registration,
-        _ebpf_provider_client_attach_callback,
-        _ebpf_provider_client_detach_callback);
+        _net_ebpf_ext_provider_client_attach_callback,
+        _net_ebpf_ext_provider_client_detach_callback);
 
 Done:
     if (return_value != EBPF_ERROR_SUCCESS) {
-        ebpf_hook_unregister_providers();
+        net_ebpf_ext_unregister_providers();
         return STATUS_UNSUCCESSFUL;
     } else
         return STATUS_SUCCESS;
 }
 
 void
-ebpf_hook_unregister_providers()
+net_ebpf_ext_unregister_providers()
 {
     ebpf_provider_unload(_ebpf_xdp_hook_provider_registration.provider);
     ebpf_provider_unload(_ebpf_bind_hook_provider_registration.provider);
 }
 
 NTSTATUS
-ebpf_program_information_provider_register()
+net_ebpf_ext_program_information_provider_register()
 {
     ebpf_error_code_t return_value;
     return_value = ebpf_provider_load(
@@ -754,14 +757,14 @@ ebpf_program_information_provider_register()
 
 Done:
     if (return_value != EBPF_ERROR_SUCCESS) {
-        ebpf_program_information_provider_unregister();
+        net_ebpf_ext_program_information_provider_unregister();
         return STATUS_UNSUCCESSFUL;
     } else
         return STATUS_SUCCESS;
 }
 
 void
-ebpf_program_information_provider_unregister()
+net_ebpf_ext_program_information_provider_unregister()
 {
     ebpf_provider_unload(_ebpf_xdp_program_information_provider);
     ebpf_provider_unload(_ebpf_bind_program_information_provider);
