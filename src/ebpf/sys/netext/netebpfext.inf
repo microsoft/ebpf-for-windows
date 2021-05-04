@@ -4,28 +4,28 @@
 ;
 
 ;
-; EbpfCore.inf
+; NetEbpfExt.inf
 ;
 
 [Version]
 Signature="$WINDOWS NT$"
-Class=Sample ; TODO: edit Class
-ClassGuid={78A1C341-4539-11d3-B88D-00C04FAD5171} ; TODO: edit ClassGuid
+Class=EbpfExtension
+ClassGuid={b23b88e3-60fb-4950-b71e-2f70e591dff6}
 Provider=%ManufacturerName%
-CatalogFile=EbpfCore.cat
+CatalogFile=NetEbpfExt.cat
 DriverVer= 1/11/2021,1.0.0.0
 PnpLockDown=1
 
 [DestinationDirs]
 DefaultDestDir = 12
-EbpfCore_Device_CoInstaller_CopyFiles = 11
+NetEbpfExt_Device_CoInstaller_CopyFiles = 11
 
 ; ================= Class section =====================
 
 [ClassInstall32]
-Addreg=SampleClassReg
+Addreg=EbpfExtensionClassReg
 
-[SampleClassReg]
+[EbpfExtensionClassReg]
 HKR,,,0,%ClassName%
 HKR,,Icon,,-5
 
@@ -33,7 +33,7 @@ HKR,,Icon,,-5
 1 = %DiskName%,,,""
 
 [SourceDisksFiles]
-EbpfCore.sys  = 1,,
+NetEbpfExt.sys  = 1,,
 WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll=1 ; make sure the number matches with SourceDisksNames
 
 ;*****************************************
@@ -44,55 +44,55 @@ WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll=1 ; make sure the number matches with
 %ManufacturerName%=Standard,NT$ARCH$
 
 [Standard.NT$ARCH$]
-%EbpfCore.DeviceDesc%=EbpfCore_Device, Root\EbpfCore ; TODO: edit hw-id
+%NetEbpfExt.DeviceDesc%=NetEbpfExt_Device, Root\NetEbpfExt
 
-[EbpfCore_Device.NT]
+[NetEbpfExt_Device.NT]
 CopyFiles=Drivers_Dir
 
 [Drivers_Dir]
-EbpfCore.sys
+NetEbpfExt.sys
 
 [DefaultUninstall]
 DelFiles = Drivers_Dir
 
 [DefaultUninstall.Services]
-DelService = EbpfCore,0x200                                ; SPSVCINST_STOPSERVICE
+DelService = NetEbpfExt,0x200                                ; SPSVCINST_STOPSERVICE
 
 ;-------------- Service installation
-[EbpfCore_Device.NT.Services]
-AddService = EbpfCore,%SPSVCINST_ASSOCSERVICE%, EbpfCore_Service_Inst
+[NetEbpfExt_Device.NT.Services]
+AddService = NetEbpfExt,%SPSVCINST_ASSOCSERVICE%, NetEbpfExt_Service_Inst
 
-; -------------- EbpfCore driver install sections
-[EbpfCore_Service_Inst]
-DisplayName    = %EbpfCore.SVCDESC%
+; -------------- NetEbpfExt driver install sections
+[NetEbpfExt_Service_Inst]
+DisplayName    = %NetEbpfExt.SVCDESC%
 ServiceType    = 1               ; SERVICE_KERNEL_DRIVER
 StartType      = 3               ; SERVICE_DEMAND_START
 ErrorControl   = 1               ; SERVICE_ERROR_NORMAL
-ServiceBinary  = %12%\EbpfCore.sys
+ServiceBinary  = %12%\NetEbpfExt.sys
 
 ;
-;--- EbpfCore_Device Coinstaller installation ------
+;--- NetEbpfExt_Device Coinstaller installation ------
 ;
 
-[EbpfCore_Device.NT.CoInstallers]
-AddReg=EbpfCore_Device_CoInstaller_AddReg
-CopyFiles=EbpfCore_Device_CoInstaller_CopyFiles
+[NetEbpfExt_Device.NT.CoInstallers]
+AddReg=NetEbpfExt_Device_CoInstaller_AddReg
+CopyFiles=NetEbpfExt_Device_CoInstaller_CopyFiles
 
-[EbpfCore_Device_CoInstaller_AddReg]
+[NetEbpfExt_Device_CoInstaller_AddReg]
 HKR,,CoInstallers32,0x00010000, "WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll,WdfCoInstaller"
 
-[EbpfCore_Device_CoInstaller_CopyFiles]
+[NetEbpfExt_Device_CoInstaller_CopyFiles]
 WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll
 
-[EbpfCore_Device.NT.Wdf]
-KmdfService =  EbpfCore, EbpfCore_wdfsect
-[EbpfCore_wdfsect]
+[NetEbpfExt_Device.NT.Wdf]
+KmdfService =  NetEbpfExt, NetEbpfExt_wdfsect
+[NetEbpfExt_wdfsect]
 KmdfLibraryVersion = $KMDFVERSION$
 
 [Strings]
 SPSVCINST_ASSOCSERVICE= 0x00000002
 ManufacturerName="EdgeOS CoreNet"
-ClassName="Samples" ; TODO: edit ClassName
-DiskName = "EbpfCore Installation Disk"
-EbpfCore.DeviceDesc = "EbpfCore Device"
-EbpfCore.SVCDESC = "EbpfCore Service"
+ClassName="EbpfExtension"
+DiskName = "NetEbpfExt Installation Disk"
+NetEbpfExt.DeviceDesc = "NetEbpfExt Device"
+NetEbpfExt.SVCDESC = "NetEbpfExt Service"
