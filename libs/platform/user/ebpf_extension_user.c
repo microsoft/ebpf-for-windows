@@ -38,7 +38,7 @@ ebpf_extension_load(
     void** provider_binding_context,
     const ebpf_extension_data_t** provider_data,
     const ebpf_extension_dispatch_table_t** provider_dispatch_table,
-    ebpf_extension_unload_callback_t extension_unload)
+    ebpf_extension_change_callback_t extension_changed)
 {
     ebpf_error_code_t return_value;
     ebpf_lock_state_t state;
@@ -46,7 +46,7 @@ ebpf_extension_load(
     ebpf_extension_provider_t** hash_table_find_result = NULL;
     ebpf_extension_client_t* local_extension_client = NULL;
 
-    UNREFERENCED_PARAMETER(extension_unload);
+    UNREFERENCED_PARAMETER(extension_changed);
 
     ebpf_lock_lock(&_ebpf_provider_table_lock, &state);
 
