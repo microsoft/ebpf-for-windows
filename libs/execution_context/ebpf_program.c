@@ -37,9 +37,9 @@ typedef struct _ebpf_program
     size_t count_of_maps;
 
     ebpf_extension_client_t* program_information_client;
-    void* program_information_binding_context;
-    ebpf_extension_data_t* program_information_data;
-    ebpf_extension_dispatch_table_t* program_information_provider_dispatch_table;
+    const void* program_information_binding_context;
+    const ebpf_extension_data_t* program_information_data;
+    const ebpf_extension_dispatch_table_t* program_information_provider_dispatch_table;
     bool program_invalidated;
 
     size_t trampoline_entry_count;
@@ -55,8 +55,6 @@ _ebpf_program_program_information_provider_changed(
 {
     ebpf_error_code_t return_value;
     ebpf_program_t* program = (ebpf_program_t*)client_binding_context;
-    UNREFERENCED_PARAMETER(provider_binding_context);
-    UNREFERENCED_PARAMETER(provider_data);
 
     if (program->program_information_provider_dispatch_table != NULL) {
         if (provider_dispatch_table == NULL) {
@@ -71,6 +69,10 @@ _ebpf_program_program_information_provider_changed(
             return;
         }
     }
+
+    program->program_information_provider_dispatch_table = provider_dispatch_table;
+    program->program_information_binding_context = provider_binding_context;
+    program->program_information_data = provider_data;
 }
 
 static void
@@ -128,7 +130,7 @@ ebpf_program_load_providers(ebpf_program_t* program)
         program,
         NULL,
         NULL,
-        &program->program_information_binding_context,
+        (void**)&program->program_information_binding_context,
         &program->program_information_data,
         &program->program_information_provider_dispatch_table,
         _ebpf_program_program_information_provider_changed);
@@ -356,6 +358,9 @@ ebpf_error_code_t
 ebpf_program_get_program_information_data(
     const ebpf_program_t* program, const ebpf_extension_data_t** program_information_data)
 {
+    if (program->program_invalidated)
+        return EBPF_ERROR_EXTENSION_FAILED_TO_LOAD;
+
     if (!program->program_information_data)
         return EBPF_ERROR_EXTENSION_FAILED_TO_LOAD;
 
