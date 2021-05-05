@@ -979,3 +979,31 @@ TEST_CASE("extension_test", "[extension_test]")
     ebpf_extension_unload(client_context);
     ebpf_provider_unload(provider_context);
 }
+
+TEST_CASE("trampoline_test", "[trampoline_test]")
+{
+    size_t count = 0;
+    ebpf_trampoline_entry_t* table = NULL;
+    ebpf_error_code_t (*test_function)();
+    auto provider_function1 = []() { return EBPF_ERROR_SUCCESS; };
+    auto provider_function2 = []() { return EBPF_ERROR_DUPLICATE_NAME; };
+
+    ebpf_extension_dispatch_table_t provider_dispatch_table1 = {
+        0, sizeof(ebpf_extension_dispatch_table_t), provider_function1};
+    ebpf_extension_dispatch_table_t provider_dispatch_table2 = {
+        0, sizeof(ebpf_extension_dispatch_table_t), provider_function2};
+
+    REQUIRE(ebpf_epoch_initiate() == EBPF_ERROR_SUCCESS);
+    REQUIRE(ebpf_build_trampoline_table(&count, &table, &provider_dispatch_table1) == EBPF_ERROR_SUCCESS);
+    test_function = reinterpret_cast<decltype(test_function)>(table);
+
+    // Verify that the trampoline function invokes the provider function
+    REQUIRE(test_function() == EBPF_ERROR_SUCCESS);
+
+    REQUIRE(ebpf_build_trampoline_table(&count, &table, &provider_dispatch_table2) == EBPF_ERROR_SUCCESS);
+
+    // Verify that the trampoline function now invokes the new provider function
+    REQUIRE(test_function() == EBPF_ERROR_DUPLICATE_NAME);
+    ebpf_epoch_free(table);
+    ebpf_epoch_terminate();
+}

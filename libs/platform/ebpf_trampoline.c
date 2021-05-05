@@ -10,6 +10,7 @@ ebpf_error_code_t
 ebpf_build_trampoline_table(
     size_t* entry_count, ebpf_trampoline_entry_t** entries, const ebpf_extension_dispatch_table_t* dispatch_table)
 {
+#if defined(_AMD64_)
     size_t function_count = (dispatch_table->size - EBPF_OFFSET_OF(ebpf_extension_dispatch_table_t, function)) /
                             sizeof(dispatch_table->function[0]);
     ebpf_trampoline_entry_t* local_entries = *entries;
@@ -37,4 +38,10 @@ ebpf_build_trampoline_table(
     *entry_count = local_entry_count;
     *entries = local_entries;
     return EBPF_ERROR_SUCCESS;
+#elif
+    UNREFERENCED_PARAMETER(entry_count);
+    UNREFERENCED_PARAMETER(ebpf_trampoline_entry_t);
+    UNREFERENCED_PARAMETER(dispatch_table);
+    return EBPF_ERROR_NOT_SUPPORTED;
+#endif
 }

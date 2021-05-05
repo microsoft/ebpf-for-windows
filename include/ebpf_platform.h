@@ -470,7 +470,7 @@ extern "C"
      * @param[out] provider_data Opaque provider data.
      * @param[out] provider_dispatch_table Table of function pointers the
      *  provider exposes.
-     * #param[in] extension_changed Callback invoked when a provider attaches
+     * @param[in] extension_changed Callback invoked when a provider attaches
      *  or detaches.
      * @retval EBPF_ERROR_SUCCESS The operation was successful.
      * @retval EBPF_ERROR_NOT_FOUND The provider was not found.
@@ -562,6 +562,8 @@ extern "C"
      *  ebpf_trampoline_entry_t table.
      * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
      *  operation.
+     * @retval EBPF_ERROR_NOT_SUPPORTED This operation is not supported on this
+     *  platform.
      */
     ebpf_error_code_t
     ebpf_build_trampoline_table(
