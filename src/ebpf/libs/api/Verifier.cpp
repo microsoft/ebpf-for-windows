@@ -78,13 +78,12 @@ static GUID _ebpf_program_type_old_to_ebpf_program_type[EBPF_PROGRAM_TYPE_BIND_O
     EBPF_PROGRAM_TYPE_UNSPECIFIED, EBPF_PROGRAM_TYPE_XDP, EBPF_PROGRAM_TYPE_BIND};
 
 int
-verify(
+load_byte_code(
     const char* filename,
     const char* sectionname,
     uint8_t* byte_code,
     size_t* byte_code_size,
-    ebpf_program_type_t* program_type,
-    const char** error_message)
+    ebpf_program_type_t* program_type)
 {
     ebpf_verifier_options_t verifier_options{false, false, false, false};
     const ebpf_platform_t* platform = &g_ebpf_platform_windows;
@@ -96,21 +95,19 @@ verify(
     raw_program raw_prog = raw_progs.back();
 
     // copy out the bytecode for the jitter
-    if (byte_code) {
-        size_t ebpf_bytes = raw_prog.prog.size() * sizeof(ebpf_inst);
-        int i = 0;
-        for (ebpf_inst inst : raw_prog.prog) {
-            char* buf = (char*)&inst;
-            for (int j = 0; j < sizeof(ebpf_inst) && i < ebpf_bytes; i++, j++) {
-                byte_code[i] = buf[j];
-            }
+    size_t ebpf_bytes = raw_prog.prog.size() * sizeof(ebpf_inst);
+    int i = 0;
+    for (ebpf_inst inst : raw_prog.prog) {
+        char* buf = (char*)&inst;
+        for (int j = 0; j < sizeof(ebpf_inst) && i < ebpf_bytes; i++, j++) {
+            byte_code[i] = buf[j];
         }
-
-        *byte_code_size = ebpf_bytes;
     }
+
+    *byte_code_size = ebpf_bytes;
     *program_type = _ebpf_program_type_old_to_ebpf_program_type[raw_prog.info.type.platform_specific_data];
 
-    return analyze(raw_prog, error_message);
+    return 0;
 }
 
 int

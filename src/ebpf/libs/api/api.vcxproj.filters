@@ -43,6 +43,9 @@
     <ClInclude Include="..\..\include\windows_platform.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Verifier.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
