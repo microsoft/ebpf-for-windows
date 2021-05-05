@@ -458,6 +458,8 @@ extern "C"
      * @param[out] provider_data Opaque provider data.
      * @param[out] provider_dispatch_table Table of function pointers the
      *  provider exposes.
+     * #param[in] extension_changed Callback invoked when a provider attaches
+     *  or detaches.
      * @retval EBPF_ERROR_SUCCESS The operation was successful.
      * @retval EBPF_ERROR_NOT_FOUND The provider was not found.
      * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
@@ -473,7 +475,7 @@ extern "C"
         void** provider_binding_context,
         const ebpf_extension_data_t** provider_data,
         const ebpf_extension_dispatch_table_t** provider_dispatch_table,
-        ebpf_extension_change_callback_t extension_unload);
+        ebpf_extension_change_callback_t extension_changed);
 
     /**
      * @brief Unload an extension.
