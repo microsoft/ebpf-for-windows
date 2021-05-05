@@ -18,6 +18,7 @@ extern "C"
 #define EBPF_SYMBOLIC_DEVICE_NAME L"\\GLOBAL??\\EbpfIoDevice"
 #define EBPF_DEVICE_WIN32_NAME L"\\\\.\\EbpfIoDevice"
 
+#define EBPF_MAX_GLOBAL_HELPER_FUNCTION 0xFFFF
     /**
      * @brief A UTF-8 encoded string.
      * Notes:
@@ -62,6 +63,17 @@ extern "C"
         uint16_t size;
         uint8_t data[1];
     } ebpf_extension_data_t;
+
+#pragma pack(push)
+#pragma pack(1)
+    typedef struct _ebpf_trampoline_entry
+    {
+        uint16_t load_rax;
+        void* indirect_address;
+        uint16_t jmp_rax;
+        void* address;
+    } ebpf_trampoline_entry_t;
+#pragma pack(pop)
 
 #define EBPF_LOCK_SIZE sizeof(uint64_t)
 #define EBPF_LOCK_STATE_SIZE sizeof(uint64_t)
@@ -534,6 +546,26 @@ extern "C"
 
     int32_t
     ebpf_log_function(void* context, const char* format_string, ...);
+
+    /**
+     * @brief Create or update a table of ebpf_trampoline_entry_t with
+     * trampoline functions to allow for relocation of functions in the
+     *  dispatch table.
+     *
+     * @param[in,out] entry_count Size of the ebpf_trampoline_entry_t table.
+     * @param[in,out] entries Block of memory that contains the trampoline
+     *  functions on success.
+     * @param dispatch_table Dispatch table to build trampoline functions for.
+     * @retval EBPF_ERROR_SUCCESS ebpf_trampoline_entry_t table successfully
+     *  populated.
+     * @retval EBPF_ERROR_EXTENSION_FAILED_TO_LOAD Unable to populate
+     *  ebpf_trampoline_entry_t table.
+     * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
+     *  operation.
+     */
+    ebpf_error_code_t
+    ebpf_build_trampoline_table(
+        size_t* entry_count, ebpf_trampoline_entry_t** entries, const ebpf_extension_dispatch_table_t* dispatch_table);
 
 #ifdef __cplusplus
 }

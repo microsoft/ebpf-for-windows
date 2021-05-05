@@ -37,6 +37,9 @@
     <ClCompile Include="ebpf_handle_kernel.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\ebpf_trampoline.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\include\ebpf_platform.h">
