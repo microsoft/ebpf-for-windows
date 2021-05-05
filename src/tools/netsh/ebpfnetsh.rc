@@ -25,18 +25,18 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 // TEXTINCLUDE
 //
 
-1 TEXTINCLUDE 
+1 TEXTINCLUDE
 BEGIN
     "resource.h\0"
 END
 
-2 TEXTINCLUDE 
+2 TEXTINCLUDE
 BEGIN
     "#include ""winres.h""\r\n"
     "\0"
 END
 
-3 TEXTINCLUDE 
+3 TEXTINCLUDE
 BEGIN
     "\r\n"
     "\0"
@@ -195,7 +195,7 @@ BEGIN
 \n\
 \nRemarks: Lists the code sections in the specified ELF file.\
 \n"
-    HLP_EBPF_SHOW_VERIFICATION 
+    HLP_EBPF_SHOW_VERIFICATION
                             "Shows results of trying to verify an eBPF program.\n"
     HLP_EBPF_SHOW_VERIFICATION_EX "\
 \nUsage: %1!s! [filename=]<string> [[section=]<string>]\
