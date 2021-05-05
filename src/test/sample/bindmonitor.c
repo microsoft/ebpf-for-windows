@@ -17,19 +17,17 @@ typedef struct _process_entry
 } process_entry_t;
 
 #pragma clang section data = "maps"
-bpf_map_def_t process_map = {
-    .size = sizeof(bpf_map_def_t),
-    .type = EBPF_MAP_TYPE_HASH,
-    .key_size = sizeof(uint64_t),
-    .value_size = sizeof(process_entry_t),
-    .max_entries = 1024};
+bpf_map_def_t process_map = {.size = sizeof(bpf_map_def_t),
+                             .type = EBPF_MAP_TYPE_HASH,
+                             .key_size = sizeof(uint64_t),
+                             .value_size = sizeof(process_entry_t),
+                             .max_entries = 1024};
 
-bpf_map_def_t limits_map = {
-    .size = sizeof(bpf_map_def_t),
-    .type = EBPF_MAP_TYPE_ARRAY,
-    .key_size = sizeof(uint32_t),
-    .value_size = sizeof(uint32_t),
-    .max_entries = 1};
+bpf_map_def_t limits_map = {.size = sizeof(bpf_map_def_t),
+                            .type = EBPF_MAP_TYPE_ARRAY,
+                            .key_size = sizeof(uint32_t),
+                            .value_size = sizeof(uint32_t),
+                            .max_entries = 1};
 
 inline void
 copy_app_id(process_entry_t* entry, uint64_t start_index, char* begin, char* end)
