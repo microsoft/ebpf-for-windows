@@ -40,8 +40,24 @@ typedef struct _ebpf_program
     void* program_information_binding_context;
     ebpf_extension_data_t* program_information_data;
     ebpf_extension_dispatch_table_t* program_information_provider_dispatch_table;
-
+    bool program_invalidated;
 } ebpf_program_t;
+
+static void
+_ebpf_program_program_information_provider_changed(
+    void* client_binding_context,
+    const void* provider_binding_context,
+    const ebpf_extension_data_t* provider_data,
+    const ebpf_extension_dispatch_table_t* provider_dispatch_table)
+{
+    ebpf_program_t* program = (ebpf_program_t*)client_binding_context;
+    UNREFERENCED_PARAMETER(provider_binding_context);
+    UNREFERENCED_PARAMETER(provider_data);
+
+    // Invalidate the program if there are any helper functions from the provider.
+    if (provider_dispatch_table != NULL || program->program_information_provider_dispatch_table != NULL)
+        program->program_invalidated = true;
+}
 
 static void
 _ebpf_program_free(ebpf_object_t* object)
@@ -74,6 +90,7 @@ ebpf_program_load_providers(ebpf_program_t* program)
 {
     ebpf_error_code_t return_value;
     void* provider_binding_context;
+    program->program_invalidated = false;
 
     return_value = ebpf_extension_load(
         &program->global_helper_extension_client,
@@ -98,7 +115,7 @@ ebpf_program_load_providers(ebpf_program_t* program)
         &program->program_information_binding_context,
         &program->program_information_data,
         &program->program_information_provider_dispatch_table,
-        NULL);
+        _ebpf_program_program_information_provider_changed);
 
     if (return_value != EBPF_ERROR_SUCCESS)
         goto Done;
@@ -283,6 +300,9 @@ Done:
 void
 ebpf_program_invoke(ebpf_program_t* program, void* context, uint32_t* result)
 {
+    if (program->program_invalidated)
+        return;
+
     if (program->parameters.code_type == EBPF_CODE_NATIVE) {
         ebpf_program_entry_point_t function_pointer;
         function_pointer = (ebpf_program_entry_point_t)(program->code_or_vm.code);
