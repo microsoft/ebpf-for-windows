@@ -1,4 +1,4 @@
-// Copyright (c) Prevail Verifier contributors.
+// Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 #pragma once
 

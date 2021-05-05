@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft Corporation
+// SPDX-License-Identifier: MIT
 #pragma once
 #ifndef _WIN_EBPF_H
 #define _WIN_EBPF_H

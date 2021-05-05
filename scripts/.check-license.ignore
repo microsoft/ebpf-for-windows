@@ -3,9 +3,13 @@
 # File extensions that don't support embedding license info
 .*\.md$
 .*\.png$
+.*\.proj$
 .*\.rc$
 .*\.sln$
 .*\.vsdx$
+
+# Generated files
+tools/netsh/resource.h
 
 # Other Files
 LICENSE.txt
