@@ -1,9 +1,0 @@
-<!--
-  Copyright (c) Microsoft Corporation
-  SPDX-License-Identifier: MIT
--->
-<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" Sdk="Microsoft.Build.Traversal">
-  <ItemGroup>
-    <ProjectFile Include="enclavehost\enclavehost.vcxproj" />
-  </ItemGroup>
-</Project>
