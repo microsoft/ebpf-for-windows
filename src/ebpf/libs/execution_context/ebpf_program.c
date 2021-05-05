@@ -105,7 +105,7 @@ Done:
 }
 
 ebpf_error_code_t
-ebpf_program_create(ebpf_program_t** program, ebpf_program_type_t program_type)
+ebpf_program_create(ebpf_program_t** program)
 {
     ebpf_error_code_t retval;
     ebpf_program_t* local_program;
@@ -118,21 +118,15 @@ ebpf_program_create(ebpf_program_t** program, ebpf_program_type_t program_type)
 
     memset(local_program, 0, sizeof(ebpf_program_t));
 
-    local_program->parameters.program_type = program_type;
-
-    retval = ebpf_program_load_providers(local_program);
-    if (retval != EBPF_ERROR_SUCCESS) {
-        goto Done;
-    }
-
     ebpf_object_initialize(&local_program->object, EBPF_OBJECT_PROGRAM, _ebpf_program_free);
 
     *program = local_program;
     local_program = NULL;
+    retval = EBPF_ERROR_SUCCESS;
 
 Done:
-
-    _ebpf_program_free(&local_program->object);
+    if (local_program)
+        _ebpf_program_free(&local_program->object);
 
     return retval;
 }
@@ -158,6 +152,12 @@ ebpf_program_initialize(ebpf_program_t* program, const ebpf_program_parameters_t
     local_program_name.value = NULL;
     program->parameters.section_name = local_section_name;
     local_section_name.value = NULL;
+
+    return_value = ebpf_program_load_providers(program);
+    if (return_value != EBPF_ERROR_SUCCESS) {
+        goto Done;
+    }
+
     return_value = EBPF_ERROR_SUCCESS;
 
 Done:
@@ -278,16 +278,6 @@ Done:
     return return_value;
 }
 
-ebpf_error_code_t
-ebpf_program_get_entry_point(ebpf_program_t* program, ebpf_program_entry_point_t* program_entry_point)
-{
-    if (program->parameters.code_type != EBPF_CODE_NATIVE) {
-        return EBPF_ERROR_INVALID_PARAMETER;
-    }
-    *program_entry_point = (ebpf_program_entry_point_t)program->code_or_vm.code;
-    return EBPF_ERROR_SUCCESS;
-}
-
 void
 ebpf_program_invoke(ebpf_program_t* program, void* context, uint32_t* result)
 {
@@ -303,11 +293,26 @@ ebpf_program_invoke(ebpf_program_t* program, void* context, uint32_t* result)
 }
 
 ebpf_error_code_t
+ebpf_program_get_helper_function_address(const ebpf_program_t* program, uint32_t helper_function_id, uint64_t* address)
+{
+    size_t count = (program->global_helper_provider_dispatch_table->size -
+                    EBPF_OFFSET_OF(ebpf_extension_dispatch_table_t, function)) /
+                   sizeof(program->global_helper_provider_dispatch_table->function);
+
+    if (helper_function_id > count) {
+        return EBPF_ERROR_INVALID_PARAMETER;
+    }
+    *address = (uint64_t)program->global_helper_provider_dispatch_table->function[helper_function_id];
+
+    return EBPF_ERROR_SUCCESS;
+}
+
+ebpf_error_code_t
 ebpf_program_get_program_information_data(
     const ebpf_program_t* program, const ebpf_extension_data_t** program_information_data)
 {
     if (!program->program_information_data)
-        return EBPF_ERROR_INVALID_PARAMETER;
+        return EBPF_ERROR_EXTENSION_FAILED_TO_LOAD;
 
     *program_information_data = program->program_information_data;
 
