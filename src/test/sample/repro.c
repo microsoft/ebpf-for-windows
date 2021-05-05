@@ -69,12 +69,11 @@ typedef void (*ebpf_map_delete_elem_t)(bpf_map_def_t* map, void* key);
 #define ebpf_map_delete_elem ((ebpf_map_delete_elem_t)3)
 
 #pragma clang section data = "maps"
-bpf_map_def_t test_map = {
-    .size = sizeof(bpf_map_def_t),
-    .type = EBPF_MAP_TYPE_HASH,
-    .key_size = sizeof(uint64_t),
-    .value_size = sizeof(uint64_t),
-    .max_entries = 1};
+bpf_map_def_t test_map = {.size = sizeof(bpf_map_def_t),
+                          .type = EBPF_MAP_TYPE_HASH,
+                          .key_size = sizeof(uint64_t),
+                          .value_size = sizeof(uint64_t),
+                          .max_entries = 1};
 
 #pragma clang section text = "bind"
 int

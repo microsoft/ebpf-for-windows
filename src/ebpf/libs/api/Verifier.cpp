@@ -119,8 +119,8 @@ verify_byte_code(
     const char** error_message)
 {
     const ebpf_platform_t* platform = &g_ebpf_platform_windows;
-    std::vector<ebpf_inst> instructions{
-        (ebpf_inst*)byte_code, (ebpf_inst*)byte_code + byte_code_size / sizeof(ebpf_inst)};
+    std::vector<ebpf_inst> instructions{(ebpf_inst*)byte_code,
+                                        (ebpf_inst*)byte_code + byte_code_size / sizeof(ebpf_inst)};
     program_info info{platform};
     info.type = platform->get_program_type(section_name, path);
 
@@ -167,12 +167,11 @@ ebpf_api_elf_enumerate_sections(
                 }
             }
 
-            sequence.emplace_back(tlv_pack<tlv_sequence>(
-                {tlv_pack(raw_program.section.c_str()),
-                 tlv_pack(raw_program.info.type.platform_specific_data),
-                 tlv_pack(raw_program.info.map_descriptors.size()),
-                 tlv_pack(convert_ebpf_program_to_bytes(raw_program.prog)),
-                 tlv_pack(stats_sequence)}));
+            sequence.emplace_back(tlv_pack<tlv_sequence>({tlv_pack(raw_program.section.c_str()),
+                                                          tlv_pack(raw_program.info.type.platform_specific_data),
+                                                          tlv_pack(raw_program.info.map_descriptors.size()),
+                                                          tlv_pack(convert_ebpf_program_to_bytes(raw_program.prog)),
+                                                          tlv_pack(stats_sequence)}));
         }
 
         auto retval = tlv_pack(sequence);

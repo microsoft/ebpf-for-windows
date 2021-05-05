@@ -11,12 +11,11 @@
 #include "ebpf.h"
 
 #pragma clang section data = "maps"
-bpf_map_def_t test_map = {
-    .size = sizeof(bpf_map_def_t),
-    .type = EBPF_MAP_TYPE_ARRAY,
-    .key_size = sizeof(uint32_t),
-    .value_size = sizeof(uint32_t),
-    .max_entries = 1};
+bpf_map_def_t test_map = {.size = sizeof(bpf_map_def_t),
+                          .type = EBPF_MAP_TYPE_ARRAY,
+                          .key_size = sizeof(uint32_t),
+                          .value_size = sizeof(uint32_t),
+                          .max_entries = 1};
 
 #pragma clang section text = "xdp"
 uint32_t

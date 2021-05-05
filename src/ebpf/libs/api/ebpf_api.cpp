@@ -687,10 +687,9 @@ ebpf_api_get_next_map(ebpf_handle_t previous_handle, ebpf_handle_t* next_handle)
 uint32_t
 ebpf_api_get_next_program(ebpf_handle_t previous_handle, ebpf_handle_t* next_handle)
 {
-    _ebpf_operation_get_next_program_request request{
-        sizeof(request),
-        ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_PROGRAM,
-        reinterpret_cast<uint64_t>(previous_handle)};
+    _ebpf_operation_get_next_program_request request{sizeof(request),
+                                                     ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_PROGRAM,
+                                                     reinterpret_cast<uint64_t>(previous_handle)};
 
     _ebpf_operation_get_next_program_reply reply;
 
