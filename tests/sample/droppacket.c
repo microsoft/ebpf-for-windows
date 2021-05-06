@@ -11,11 +11,11 @@
 #include "ebpf.h"
 
 #pragma clang section data = "maps"
-bpf_map_def_t port_map = {.size = sizeof(bpf_map_def_t),
-                          .type = EBPF_MAP_TYPE_ARRAY,
-                          .key_size = sizeof(uint32_t),
-                          .value_size = sizeof(uint64_t),
-                          .max_entries = 1};
+ebpf_map_definition_t port_map = {.size = sizeof(ebpf_map_definition_t),
+                                  .type = EBPF_MAP_TYPE_ARRAY,
+                                  .key_size = sizeof(uint32_t),
+                                  .value_size = sizeof(uint64_t),
+                                  .max_entries = 1};
 
 #pragma clang section text = "xdp"
 int
@@ -31,7 +31,7 @@ DropPacket(xdp_md_t* ctx)
     if (iphdr->Protocol == 17) {
         if (ntohs(udphdr->length) <= sizeof(UDP_HEADER)) {
             long key = 0;
-            long* count = ebpf_map_lookup_elem(&port_map, &key);
+            long* count = ebpf_map_lookup_element(&port_map, &key);
             if (count)
                 *count = (*count + 1);
             rc = 2;

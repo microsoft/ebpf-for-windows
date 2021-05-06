@@ -615,8 +615,8 @@ emulate_bind(single_instance_hook_t& hook, uint64_t pid, const char* appid)
     uint32_t result;
     std::string app_id = appid;
     ebpf::bind_md_t ctx{0};
-    ctx.app_id_start = const_cast<char*>(app_id.c_str());
-    ctx.app_id_end = const_cast<char*>(app_id.c_str()) + app_id.size();
+    ctx.app_id_start = (uint8_t*)app_id.c_str();
+    ctx.app_id_end = (uint8_t*)(app_id.c_str()) + app_id.size();
     ctx.process_id = pid;
     ctx.operation = ebpf::BIND_OPERATION_BIND;
     REQUIRE(hook.fire(&ctx, &result) == EBPF_ERROR_SUCCESS);

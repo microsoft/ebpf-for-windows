@@ -33,53 +33,9 @@ Environment:
 #include <netiodef.h>
 #include <ntddk.h>
 
+#include "ebpf_nethooks.h"
 #include "ebpf_platform.h"
 #include "ebpf_windows.h"
-
-// XDP like hook
-typedef struct _xdp_md
-{
-    uint64_t data;      /*     0     8 */
-    uint64_t data_end;  /*     8     8 */
-    uint64_t data_meta; /*     16    8 */
-
-    /* size: 12, cachelines: 1, members: 3 */
-    /* last cacheline: 12 bytes */
-} xdp_md_t;
-
-typedef enum _xdp_action
-{
-    XDP_PASS = 1,
-    XDP_DROP = 2
-} xdp_action_t;
-
-// BIND hook
-typedef struct _bind_md
-{
-    uint64_t app_id_start;         // 0,8
-    uint64_t app_id_end;           // 8,8
-    uint64_t process_id;           // 16,8
-    uint8_t socket_address[16];    // 24,16
-    uint8_t socket_address_length; // 40,1
-    uint8_t operation;             // 41,1
-    uint8_t protocol;              // 42,1
-} bind_md_t;
-
-typedef enum _bind_operation
-{
-    BIND_OPERATION_BIND,      // Entry to bind
-    BIND_OPERATION_POST_BIND, // After port allocation
-    BIND_OPERATION_UNBIND,    // Release port
-} bind_operation_t;
-
-typedef enum _bind_action
-{
-    BIND_PERMIT,
-    BIND_DENY,
-    BIND_REDIRECT,
-} bind_action_t;
-
-typedef DWORD(__stdcall* bind_hook_function)(PVOID);
 
 typedef struct _net_ebpf_ext_hook_provider_registration
 {
