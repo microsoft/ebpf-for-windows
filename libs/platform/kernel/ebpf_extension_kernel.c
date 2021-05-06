@@ -79,7 +79,7 @@ _ebpf_extension_client_attach_provider(
 
     status = NmrClientAttachProvider(
         nmr_binding_handle,
-        local_client_context->client_binding_context,
+        local_client_context,
         local_client_context->client_dispatch_table,
         &local_client_context->provider_binding_context,
         &local_client_context->provider_dispatch_table);
@@ -220,8 +220,7 @@ _ebpf_extension_provider_attach_client(
     ebpf_extension_provider_t* local_provider_context = (ebpf_extension_provider_t*)provider_context;
     ebpf_extension_provider_binding_context* local_provider_binding_context = NULL;
     UNREFERENCED_PARAMETER(nmr_binding_handle);
-    UNREFERENCED_PARAMETER(client_binding_context);
-
+    ebpf_extension_client_t* local_extension_client = (ebpf_extension_client_t*)client_binding_context;
     // Check that the interface matches.
     if (memcmp(
             client_registration_instance->NpiId,
@@ -247,7 +246,7 @@ _ebpf_extension_provider_attach_client(
         return_value = local_provider_context->client_attach_callback(
             local_provider_context->callback_context,
             &local_provider_binding_context->client_id,
-            client_binding_context,
+            local_extension_client->client_binding_context,
             (const ebpf_extension_data_t*)client_registration_instance->NpiSpecificCharacteristics,
             (const ebpf_extension_dispatch_table_t*)client_dispatch);
 

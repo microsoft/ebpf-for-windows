@@ -100,6 +100,8 @@ _ebpf_program_free(ebpf_object_t* object)
     for (index = 0; index < program->count_of_maps; index++)
         ebpf_object_release_reference((ebpf_object_t*)program->maps[index]);
 
+    ebpf_free(program->maps);
+
     ebpf_epoch_free(object);
 }
 
