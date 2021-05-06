@@ -18,8 +18,8 @@ The following diagram shows the architecture of this project and related compone
 
 As shown in the diagram, existing eBPF toolchains (clang, etc.) can be used to generate eBPF bytecode from
 source code in various languages.  Bytecode can be consumed by any application, or via the Netsh command line tool, which use a shared library
-that exposes APIs (intended to match [Libbpf APIs](https://github.com/libbpf/libbpf) plus some additions,
-though this is still in progress).
+that exposes [Libbpf APIs](https://github.com/libbpf/libbpf),
+though this is still in progress.
 
 The eBPF bytecode is sent to a static verifier (the [PREVAIL verifier](https://github.com/vbpf/ebpf-verifier))
 that is hosted in a user-mode [protected process](https://docs.microsoft.com/en-us/windows/win32/services/protecting-anti-malware-services-#system-protected-process)
@@ -66,7 +66,7 @@ Linux internal data structs) that would not be applicable to other platforms.
 Other hooks and helpers are generically applicable and the intent is to support them for eBPF
 programs.
 
-Similarly, the eBPF for Windows project supports [Libbpf APIs](https://github.com/libbpf/libbpf)
+Similarly, the eBPF for Windows project exposes [Libbpf APIs](https://github.com/libbpf/libbpf)
 to provide source code compatibility for applications that interact with eBPF programs.
 
 ### 3. Will eBPF work with HyperVisor-enforced Code Integrity (HVCI)?
