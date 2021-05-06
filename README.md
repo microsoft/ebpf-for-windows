@@ -51,31 +51,20 @@ Want to help?  We welcome contributions!  See our [Contributing guidelines](CONT
 
 No.
 
-The eBPF for Windows project leverages existing permissive licensed projects, including uBPF and the PREVAIL
-verifier, running them on top of Windows by adding the Windows-specific hosting environment for that code.
-Similarly, it provides Windows-specific hooks and helpers, along with non-GPL'ed hooks/helpers that are
-common across Linux, Windows, and other platforms.
-
-The Linux kernel contains an eBPF execution environment, hooks, helpers, a JIT compiler, verifier, interpreter, etc.
-that is GPL licensed and so cannot be used for purposes that require a more permissive license.
-
-For that reason, there are already various projects in the eBPF community that have permissive licenses, such as:
-* the [IOVisor uBPF project](https://github.com/iovisor/ubpf),
-* the [PREVAIL verifier](https://github.com/vbpf/ebpf-verifier),
-* [Libbpf APIs](https://github.com/libbpf/libbpf), and
-* the [generic-ebpf project](https://github.com/generic-ebpf/generic-ebpf), among others.
+The eBPF for Windows project leverages existing projects, including
+the [IOVisor uBPF project](https://github.com/iovisor/ubpf) and the
+the [PREVAIL verifier](https://github.com/vbpf/ebpf-verifier),
+running them on top of Windows by adding the Windows-specific hosting environment for that code.
 
 ### 2. Does this provide app compatibility with eBPF programs written for Linux?
 
-The intent is to provide source code compatibility for code that uses permissively
-licensed hooks and helpers.
+The intent is to provide source code compatibility for code that uses common
+hooks and helpers that apply across OS ecosystems.
 
-Linux provides many hooks and helpers, some of which are GPL-licensed but some are more permissively
-licensed.  The GPL-licensed hooks and helpers tend to be very Linux specific (e.g., using
-Linux internal data structs) that would not be applicable to other platforms anyway, including other
-platforms supported by the [generic-ebpf project](https://github.com/generic-ebpf/generic-ebpf).
-The hooks and helpers that can be used with a permissive license tend to be generically applicable
-and those will be supported.
+Linux provides many hooks and helpers, some of which are very Linux specific (e.g., using
+Linux internal data structs) that would not be applicable to other platforms.
+Other hooks and helpers are generically applicable and the intent is to support them for eBPF
+programs.
 
 Similarly, the eBPF for Windows project supports [Libbpf APIs](https://github.com/libbpf/libbpf)
 to provide source code compatibility for applications that interact with eBPF programs.
