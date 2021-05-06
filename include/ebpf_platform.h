@@ -19,6 +19,7 @@ extern "C"
 #define EBPF_DEVICE_WIN32_NAME L"\\\\.\\EbpfIoDevice"
 
 #define EBPF_MAX_GLOBAL_HELPER_FUNCTION 0xFFFF
+
     /**
      * @brief A UTF-8 encoded string.
      * Notes:
@@ -555,7 +556,7 @@ extern "C"
      * @param[in,out] entry_count Size of the ebpf_trampoline_entry_t table.
      * @param[in,out] entries Block of memory that contains the trampoline
      *  functions on success.
-     * @param dispatch_table Dispatch table to build trampoline functions for.
+     * @param[in] dispatch_table Dispatch table to build trampoline functions for.
      * @retval EBPF_ERROR_SUCCESS ebpf_trampoline_entry_t table successfully
      *  populated.
      * @retval EBPF_ERROR_EXTENSION_FAILED_TO_LOAD Unable to populate
