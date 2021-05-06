@@ -18,6 +18,8 @@ extern "C"
 #define EBPF_SYMBOLIC_DEVICE_NAME L"\\GLOBAL??\\EbpfIoDevice"
 #define EBPF_DEVICE_WIN32_NAME L"\\\\.\\EbpfIoDevice"
 
+#define EBPF_MAX_GLOBAL_HELPER_FUNCTION 0xFFFF
+
     /**
      * @brief A UTF-8 encoded string.
      * Notes:
@@ -62,6 +64,17 @@ extern "C"
         uint16_t size;
         uint8_t data[1];
     } ebpf_extension_data_t;
+
+#pragma pack(push)
+#pragma pack(1)
+    typedef struct _ebpf_trampoline_entry
+    {
+        uint16_t load_rax;
+        void* indirect_address;
+        uint16_t jmp_rax;
+        void* address;
+    } ebpf_trampoline_entry_t;
+#pragma pack(pop)
 
 #define EBPF_LOCK_SIZE sizeof(uint64_t)
 #define EBPF_LOCK_STATE_SIZE sizeof(uint64_t)
@@ -438,6 +451,12 @@ extern "C"
     int32_t
     ebpf_interlocked_compare_exchange_int32(volatile int32_t* destination, int32_t exchange, int32_t comperand);
 
+    typedef void (*ebpf_extension_change_callback_t)(
+        void* client_binding_context,
+        const void* provider_binding_context,
+        const ebpf_extension_data_t* provider_data,
+        const ebpf_extension_dispatch_table_t* provider_dispatch_table);
+
     /**
      * @brief Load an extension and get its dispatch table.
      *
@@ -452,6 +471,8 @@ extern "C"
      * @param[out] provider_data Opaque provider data.
      * @param[out] provider_dispatch_table Table of function pointers the
      *  provider exposes.
+     * @param[in] extension_changed Callback invoked when a provider attaches
+     *  or detaches.
      * @retval EBPF_ERROR_SUCCESS The operation was successful.
      * @retval EBPF_ERROR_NOT_FOUND The provider was not found.
      * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
@@ -466,7 +487,8 @@ extern "C"
         const ebpf_extension_dispatch_table_t* client_dispatch_table,
         void** provider_binding_context,
         const ebpf_extension_data_t** provider_data,
-        const ebpf_extension_dispatch_table_t** provider_dispatch_table);
+        const ebpf_extension_dispatch_table_t** provider_dispatch_table,
+        ebpf_extension_change_callback_t extension_changed);
 
     /**
      * @brief Unload an extension.
@@ -525,6 +547,28 @@ extern "C"
 
     int32_t
     ebpf_log_function(void* context, const char* format_string, ...);
+
+    /**
+     * @brief Create or update a table of ebpf_trampoline_entry_t with
+     * trampoline functions to allow for relocation of functions in the
+     *  dispatch table.
+     *
+     * @param[in,out] entry_count Size of the ebpf_trampoline_entry_t table.
+     * @param[in,out] entries Block of memory that contains the trampoline
+     *  functions on success.
+     * @param[in] dispatch_table Dispatch table to build trampoline functions for.
+     * @retval EBPF_ERROR_SUCCESS ebpf_trampoline_entry_t table successfully
+     *  populated.
+     * @retval EBPF_ERROR_EXTENSION_FAILED_TO_LOAD Unable to populate
+     *  ebpf_trampoline_entry_t table.
+     * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
+     *  operation.
+     * @retval EBPF_ERROR_NOT_SUPPORTED This operation is not supported on this
+     *  platform.
+     */
+    ebpf_error_code_t
+    ebpf_build_trampoline_table(
+        size_t* entry_count, ebpf_trampoline_entry_t** entries, const ebpf_extension_dispatch_table_t* dispatch_table);
 
 #ifdef __cplusplus
 }

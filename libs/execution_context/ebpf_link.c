@@ -81,7 +81,8 @@ ebpf_link_initialize(
         (ebpf_extension_dispatch_table_t*)&_ebpf_link_dispatch_table,
         &(link->provider_binding_context),
         &(link->provider_data),
-        &(link->provider_dispatch_table));
+        &(link->provider_dispatch_table),
+        NULL);
 
     return return_value;
 }

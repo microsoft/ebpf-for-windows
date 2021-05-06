@@ -37,13 +37,17 @@ ebpf_extension_load(
     const ebpf_extension_dispatch_table_t* client_dispatch_table,
     void** provider_binding_context,
     const ebpf_extension_data_t** provider_data,
-    const ebpf_extension_dispatch_table_t** provider_dispatch_table)
+    const ebpf_extension_dispatch_table_t** provider_dispatch_table,
+    ebpf_extension_change_callback_t extension_changed)
 {
     ebpf_error_code_t return_value;
     ebpf_lock_state_t state;
     ebpf_extension_provider_t* local_extension_provider = NULL;
     ebpf_extension_provider_t** hash_table_find_result = NULL;
     ebpf_extension_client_t* local_extension_client = NULL;
+
+    UNREFERENCED_PARAMETER(extension_changed);
+
     ebpf_lock_lock(&_ebpf_provider_table_lock, &state);
 
     if (!_ebpf_provider_table) {

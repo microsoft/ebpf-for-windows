@@ -18,6 +18,7 @@ typedef struct _ebpf_extension_client
     ebpf_extension_dispatch_table_t* provider_dispatch_table;
     HANDLE nmr_client_handle;
     bool provider_is_attached;
+    ebpf_extension_change_callback_t extension_change_callback;
 } ebpf_extension_client_t;
 
 typedef struct _ebpf_extension_provider
@@ -40,6 +41,17 @@ typedef struct _ebpf_extension_provider_binding_context
     void* callback_context;
     ebpf_provider_client_detach_callback_t client_detach_callback;
 } ebpf_extension_provider_binding_context;
+
+static void
+_ebpf_extension_client_notify_change(ebpf_extension_client_t* client_context)
+{
+    if (client_context->extension_change_callback)
+        client_context->extension_change_callback(
+            client_context->client_binding_context,
+            client_context->provider_binding_context,
+            client_context->provider_data,
+            client_context->provider_dispatch_table);
+}
 
 NTSTATUS
 _ebpf_extension_client_attach_provider(
@@ -67,12 +79,14 @@ _ebpf_extension_client_attach_provider(
 
     status = NmrClientAttachProvider(
         nmr_binding_handle,
-        local_client_context->client_binding_context,
+        local_client_context,
         local_client_context->client_dispatch_table,
         &local_client_context->provider_binding_context,
         &local_client_context->provider_dispatch_table);
 
     local_client_context->provider_is_attached = NT_SUCCESS(status);
+
+    _ebpf_extension_client_notify_change(local_client_context);
 
     return status;
 }
@@ -80,7 +94,14 @@ _ebpf_extension_client_attach_provider(
 NTSTATUS
 _ebpf_extension_client_detach_provider(void* client_binding_context)
 {
-    UNREFERENCED_PARAMETER(client_binding_context);
+    ebpf_extension_client_t* local_client_context = (ebpf_extension_client_t*)client_binding_context;
+
+    local_client_context->provider_binding_context = NULL;
+    local_client_context->provider_dispatch_table = NULL;
+    local_client_context->provider_data = NULL;
+
+    _ebpf_extension_client_notify_change(local_client_context);
+
     return STATUS_SUCCESS;
 }
 
@@ -99,7 +120,8 @@ ebpf_extension_load(
     const ebpf_extension_dispatch_table_t* client_dispatch_table,
     void** provider_binding_context,
     const ebpf_extension_data_t** provider_data,
-    const ebpf_extension_dispatch_table_t** provider_dispatch_table)
+    const ebpf_extension_dispatch_table_t** provider_dispatch_table,
+    ebpf_extension_change_callback_t extension_changed)
 {
     ebpf_error_code_t return_value;
     ebpf_extension_client_t* local_client_context;
@@ -122,6 +144,7 @@ ebpf_extension_load(
     local_client_context->client_id.Length = sizeof(local_client_context->client_id);
     local_client_context->client_id.Type = MIT_GUID;
     local_client_context->client_dispatch_table = client_dispatch_table;
+    local_client_context->extension_change_callback = extension_changed;
 
     status = ExUuidCreate(&local_client_context->client_id.Guid);
     if (!NT_SUCCESS(status)) {
@@ -197,8 +220,7 @@ _ebpf_extension_provider_attach_client(
     ebpf_extension_provider_t* local_provider_context = (ebpf_extension_provider_t*)provider_context;
     ebpf_extension_provider_binding_context* local_provider_binding_context = NULL;
     UNREFERENCED_PARAMETER(nmr_binding_handle);
-    UNREFERENCED_PARAMETER(client_binding_context);
-
+    ebpf_extension_client_t* local_extension_client = (ebpf_extension_client_t*)client_binding_context;
     // Check that the interface matches.
     if (memcmp(
             client_registration_instance->NpiId,
@@ -224,7 +246,7 @@ _ebpf_extension_provider_attach_client(
         return_value = local_provider_context->client_attach_callback(
             local_provider_context->callback_context,
             &local_provider_binding_context->client_id,
-            client_binding_context,
+            local_extension_client->client_binding_context,
             (const ebpf_extension_data_t*)client_registration_instance->NpiSpecificCharacteristics,
             (const ebpf_extension_dispatch_table_t*)client_dispatch);
 
