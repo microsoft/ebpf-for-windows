@@ -8,8 +8,8 @@ const struct EbpfHelperPrototype windows_helper_prototypes[] = {
     {
         // Not used.  Clang can't deal with a "call 0"
     },
-    {// void *ebpf_map_lookup_elem(struct ebpf_map *map, const void *key);
-     .name = "ebpf_map_lookup_elem",
+    {// void *ebpf_map_lookup_element(struct ebpf_map *map, const void *key);
+     .name = "ebpf_map_lookup_element",
      .return_type = EbpfHelperReturnType::PTR_TO_MAP_VALUE_OR_NULL,
      .argument_type =
          {
@@ -19,9 +19,9 @@ const struct EbpfHelperPrototype windows_helper_prototypes[] = {
              EbpfHelperArgumentType::DONTCARE,
              EbpfHelperArgumentType::DONTCARE,
          }},
-    {// long ebpf_map_update_elem(struct ebpf_map *map, const void *key,  const
+    {// long ebpf_map_update_element(struct ebpf_map *map, const void *key,  const
      // void *value, uint64_t flags);
-     .name = "ebpf_map_update_elem",
+     .name = "ebpf_map_update_element",
      .return_type = EbpfHelperReturnType::INTEGER,
      .argument_type =
          {
@@ -31,8 +31,8 @@ const struct EbpfHelperPrototype windows_helper_prototypes[] = {
              EbpfHelperArgumentType::ANYTHING,
              EbpfHelperArgumentType::DONTCARE,
          }},
-    {// long ebpf_map_delete_elem(struct bpf_map *map, const void *key);
-     .name = "ebpf_map_delete_elem",
+    {// long ebpf_map_delete_element(struct bpf_map *map, const void *key);
+     .name = "ebpf_map_delete_element",
      .return_type = EbpfHelperReturnType::INTEGER,
      .argument_type =
          {

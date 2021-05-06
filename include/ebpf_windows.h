@@ -7,13 +7,6 @@
 // This file contains eBPF definitions needed by eBPF programs as well as
 // the verifier and execution context.
 
-typedef enum _ebpf_map_type
-{
-    EBPF_MAP_TYPE_UNSPECIFIED = 0,
-    EBPF_MAP_TYPE_HASH = 1,
-    EBPF_MAP_TYPE_ARRAY = 2,
-} ebpf_map_type_t;
-
 // TODO - Convert all code that uses ebpf_program_type_old_t to use
 // ebpf_program_type_t.
 typedef enum _ebpf_program_type_old
@@ -47,12 +40,3 @@ typedef enum _ebpf_error_code
     EBPF_ERROR_EXTENSION_FAILED_TO_LOAD,
     EBPF_ERROR_INSUFFICIENT_BUFFER,
 } ebpf_error_code_t;
-
-typedef struct _ebpf_map_definition
-{
-    uint32_t size;
-    uint32_t type;
-    uint32_t key_size;
-    uint32_t value_size;
-    uint32_t max_entries;
-} ebpf_map_definition_t;

@@ -10,6 +10,7 @@
 #pragma warning(pop)
 #include "ebpf_windows.h"
 #undef VOID
+#include "ebpf_helpers.h"
 #include "helpers.hpp"
 #include "platform.hpp"
 #include "spec_type_descriptors.hpp"
