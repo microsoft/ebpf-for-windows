@@ -37,11 +37,43 @@ typedef struct _ebpf_program
     size_t count_of_maps;
 
     ebpf_extension_client_t* program_information_client;
-    void* program_information_binding_context;
-    ebpf_extension_data_t* program_information_data;
-    ebpf_extension_dispatch_table_t* program_information_provider_dispatch_table;
+    const void* program_information_binding_context;
+    const ebpf_extension_data_t* program_information_data;
+    const ebpf_extension_dispatch_table_t* program_information_provider_dispatch_table;
+    bool program_invalidated;
 
+    size_t trampoline_entry_count;
+    ebpf_trampoline_entry_t* trampoline_entries;
 } ebpf_program_t;
+
+static void
+_ebpf_program_program_information_provider_changed(
+    void* client_binding_context,
+    const void* provider_binding_context,
+    const ebpf_extension_data_t* provider_data,
+    const ebpf_extension_dispatch_table_t* provider_dispatch_table)
+{
+    ebpf_error_code_t return_value;
+    ebpf_program_t* program = (ebpf_program_t*)client_binding_context;
+
+    if (program->program_information_provider_dispatch_table != NULL) {
+        if (provider_dispatch_table == NULL) {
+            program->program_invalidated = true;
+            return;
+        }
+
+        return_value = ebpf_build_trampoline_table(
+            &program->trampoline_entry_count, &program->trampoline_entries, provider_dispatch_table);
+        if (return_value != EBPF_ERROR_SUCCESS) {
+            program->program_invalidated = true;
+            return;
+        }
+    }
+
+    program->program_information_provider_dispatch_table = provider_dispatch_table;
+    program->program_information_binding_context = provider_binding_context;
+    program->program_information_data = provider_data;
+}
 
 static void
 _ebpf_program_free(ebpf_object_t* object)
@@ -50,6 +82,8 @@ _ebpf_program_free(ebpf_object_t* object)
     ebpf_program_t* program = (ebpf_program_t*)object;
     if (!program)
         return;
+
+    ebpf_epoch_free(program->trampoline_entries);
 
     ebpf_extension_unload(program->global_helper_extension_client);
     ebpf_extension_unload(program->program_information_client);
@@ -66,6 +100,8 @@ _ebpf_program_free(ebpf_object_t* object)
     for (index = 0; index < program->count_of_maps; index++)
         ebpf_object_release_reference((ebpf_object_t*)program->maps[index]);
 
+    ebpf_free(program->maps);
+
     ebpf_epoch_free(object);
 }
 
@@ -74,6 +110,7 @@ ebpf_program_load_providers(ebpf_program_t* program)
 {
     ebpf_error_code_t return_value;
     void* provider_binding_context;
+    program->program_invalidated = false;
 
     return_value = ebpf_extension_load(
         &program->global_helper_extension_client,
@@ -83,7 +120,8 @@ ebpf_program_load_providers(ebpf_program_t* program)
         NULL,
         &provider_binding_context,
         &program->global_helper_provider_data,
-        &program->global_helper_provider_dispatch_table);
+        &program->global_helper_provider_dispatch_table,
+        NULL);
 
     if (return_value != EBPF_ERROR_SUCCESS)
         goto Done;
@@ -94,9 +132,10 @@ ebpf_program_load_providers(ebpf_program_t* program)
         program,
         NULL,
         NULL,
-        &program->program_information_binding_context,
+        (void**)&program->program_information_binding_context,
         &program->program_information_data,
-        &program->program_information_provider_dispatch_table);
+        &program->program_information_provider_dispatch_table,
+        _ebpf_program_program_information_provider_changed);
 
     if (return_value != EBPF_ERROR_SUCCESS)
         goto Done;
@@ -281,6 +320,9 @@ Done:
 void
 ebpf_program_invoke(ebpf_program_t* program, void* context, uint32_t* result)
 {
+    if (program->program_invalidated)
+        return;
+
     if (program->parameters.code_type == EBPF_CODE_NATIVE) {
         ebpf_program_entry_point_t function_pointer;
         function_pointer = (ebpf_program_entry_point_t)(program->code_or_vm.code);
@@ -298,11 +340,18 @@ ebpf_program_get_helper_function_address(const ebpf_program_t* program, uint32_t
     size_t count = (program->global_helper_provider_dispatch_table->size -
                     EBPF_OFFSET_OF(ebpf_extension_dispatch_table_t, function)) /
                    sizeof(program->global_helper_provider_dispatch_table->function);
+    if (helper_function_id > EBPF_MAX_GLOBAL_HELPER_FUNCTION) {
+        helper_function_id >>= 16;
+        if ((program->trampoline_entries == NULL) || (helper_function_id > program->trampoline_entry_count))
+            return EBPF_ERROR_INVALID_PARAMETER;
 
-    if (helper_function_id > count) {
-        return EBPF_ERROR_INVALID_PARAMETER;
+        *address = (uint64_t)(program->trampoline_entries + helper_function_id);
+    } else {
+        if (helper_function_id > count) {
+            return EBPF_ERROR_INVALID_PARAMETER;
+        }
+        *address = (uint64_t)program->global_helper_provider_dispatch_table->function[helper_function_id];
     }
-    *address = (uint64_t)program->global_helper_provider_dispatch_table->function[helper_function_id];
 
     return EBPF_ERROR_SUCCESS;
 }
@@ -311,6 +360,9 @@ ebpf_error_code_t
 ebpf_program_get_program_information_data(
     const ebpf_program_t* program, const ebpf_extension_data_t** program_information_data)
 {
+    if (program->program_invalidated)
+        return EBPF_ERROR_EXTENSION_FAILED_TO_LOAD;
+
     if (!program->program_information_data)
         return EBPF_ERROR_EXTENSION_FAILED_TO_LOAD;
 
