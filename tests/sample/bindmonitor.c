@@ -8,7 +8,8 @@
 // For bpf code: clang -target bpf -O2 -Wall -c bindmonitor.c -o bindmonitor.o
 // this passes the checker
 
-#include "ebpf.h"
+#include "ebpf_helpers.h"
+#include "ebpf_nethooks.h"
 
 typedef struct _process_entry
 {
@@ -17,20 +18,20 @@ typedef struct _process_entry
 } process_entry_t;
 
 #pragma clang section data = "maps"
-bpf_map_def_t process_map = {.size = sizeof(bpf_map_def_t),
-                             .type = EBPF_MAP_TYPE_HASH,
-                             .key_size = sizeof(uint64_t),
-                             .value_size = sizeof(process_entry_t),
-                             .max_entries = 1024};
+ebpf_map_definition_t process_map = {.size = sizeof(ebpf_map_definition_t),
+                                     .type = EBPF_MAP_TYPE_HASH,
+                                     .key_size = sizeof(uint64_t),
+                                     .value_size = sizeof(process_entry_t),
+                                     .max_entries = 1024};
 
-bpf_map_def_t limits_map = {.size = sizeof(bpf_map_def_t),
-                            .type = EBPF_MAP_TYPE_ARRAY,
-                            .key_size = sizeof(uint32_t),
-                            .value_size = sizeof(uint32_t),
-                            .max_entries = 1};
+ebpf_map_definition_t limits_map = {.size = sizeof(ebpf_map_definition_t),
+                                    .type = EBPF_MAP_TYPE_ARRAY,
+                                    .key_size = sizeof(uint32_t),
+                                    .value_size = sizeof(uint32_t),
+                                    .max_entries = 1};
 
 inline void
-copy_app_id(process_entry_t* entry, uint64_t start_index, char* begin, char* end)
+copy_app_id(process_entry_t* entry, uint64_t start_index, uint8_t* begin, uint8_t* end)
 {
     uint64_t index = 0;
     for (index = start_index; index < start_index + 16; index++) {
@@ -44,12 +45,12 @@ BindMonitor(bind_md_t* ctx)
 {
     uint64_t key = ctx->process_id;
     uint32_t limit_key = 0;
-    uint32_t* limit = ebpf_map_lookup_elem(&limits_map, &limit_key);
+    uint32_t* limit = ebpf_map_lookup_element(&limits_map, &limit_key);
     if (!limit || *limit == 0) {
         return BIND_PERMIT;
     }
 
-    process_entry_t* entry = ebpf_map_lookup_elem(&process_map, &key);
+    process_entry_t* entry = ebpf_map_lookup_element(&process_map, &key);
     // Only add entries on bind
     if ((!entry) && (ctx->operation == BIND_OPERATION_BIND)) {
         process_entry_t value = {0};
@@ -61,7 +62,7 @@ BindMonitor(bind_md_t* ctx)
         copy_app_id(&value, 32, ctx->app_id_start, ctx->app_id_end);
         copy_app_id(&value, 48, ctx->app_id_start, ctx->app_id_end);
         ebpf_map_update_element(&process_map, &key, &value, 0);
-        entry = ebpf_map_lookup_elem(&process_map, &key);
+        entry = ebpf_map_lookup_element(&process_map, &key);
     }
     if (!entry) {
         return BIND_PERMIT;
@@ -84,7 +85,7 @@ BindMonitor(bind_md_t* ctx)
     }
 
     if (entry->count == 0) {
-        ebpf_map_delete_elem(&process_map, &key);
+        ebpf_map_delete_element(&process_map, &key);
     }
 
     return BIND_PERMIT;
