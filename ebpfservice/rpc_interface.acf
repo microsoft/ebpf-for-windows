@@ -1,0 +1,7 @@
+[
+    implicit_handle (handle_t ebpf_service_interface_IfHandle)
+] 
+
+interface ebpf_service_interface
+{
+}
