@@ -18,52 +18,64 @@ typedef struct _process_entry
 } process_entry_t;
 
 #pragma clang section data = "maps"
-ebpf_map_definition_t process_map = {.size = sizeof(ebpf_map_definition_t),
-                                     .type = EBPF_MAP_TYPE_HASH,
-                                     .key_size = sizeof(uint64_t),
-                                     .value_size = sizeof(process_entry_t),
-                                     .max_entries = 1024};
+ebpf_map_definition_t process_map = {
+    .size = sizeof(ebpf_map_definition_t),
+    .type = EBPF_MAP_TYPE_HASH,
+    .key_size = sizeof(uint64_t),
+    .value_size = sizeof(process_entry_t),
+    .max_entries = 1024};
 
-ebpf_map_definition_t limits_map = {.size = sizeof(ebpf_map_definition_t),
-                                    .type = EBPF_MAP_TYPE_ARRAY,
-                                    .key_size = sizeof(uint32_t),
-                                    .value_size = sizeof(uint32_t),
-                                    .max_entries = 1};
+ebpf_map_definition_t limits_map = {
+    .size = sizeof(ebpf_map_definition_t),
+    .type = EBPF_MAP_TYPE_ARRAY,
+    .key_size = sizeof(uint32_t),
+    .value_size = sizeof(uint32_t),
+    .max_entries = 1};
 
-inline void
-copy_app_id(process_entry_t* entry, uint64_t start_index, uint8_t* begin, uint8_t* end)
+inline process_entry_t*
+find_or_create_process_entry(bind_md_t* ctx)
 {
-    uint64_t index = 0;
-    for (index = start_index; index < start_index + 16; index++) {
-        entry->name[index] = (begin + index < end) ? begin[index] : 0;
+    uint64_t key = ctx->process_id;
+    process_entry_t* entry;
+    process_entry_t value = {0};
+    int index;
+
+    entry = ebpf_map_lookup_element(&process_map, &key);
+    if (entry)
+        return entry;
+
+    if (ctx->operation != BIND_OPERATION_BIND)
+        return entry;
+
+    if (!ctx->app_id_start || !ctx->app_id_end)
+        return entry;
+
+    ebpf_map_update_element(&process_map, &key, &value, 0);
+    entry = ebpf_map_lookup_element(&process_map, &key);
+    if (!entry)
+        return entry;
+
+    for (index = 0; index < 64; index++) {
+        if ((ctx->app_id_start + index) >= ctx->app_id_end)
+            break;
+
+        entry->name[index] = ctx->app_id_start[index];
     }
+    return entry;
 }
 
 #pragma clang section text = "bind"
 int
 BindMonitor(bind_md_t* ctx)
 {
-    uint64_t key = ctx->process_id;
     uint32_t limit_key = 0;
+    process_entry_t* entry;
     uint32_t* limit = ebpf_map_lookup_element(&limits_map, &limit_key);
-    if (!limit || *limit == 0) {
+    if (!limit || *limit == 0)
         return BIND_PERMIT;
-    }
 
-    process_entry_t* entry = ebpf_map_lookup_element(&process_map, &key);
-    // Only add entries on bind
-    if ((!entry) && (ctx->operation == BIND_OPERATION_BIND)) {
-        process_entry_t value = {0};
-        // To work around a limitation in eBPF verifier, copy the string
-        // in blocks of 16 bytes. Copying all 64 bytes triggers a verification
-        // failure.
-        copy_app_id(&value, 0, ctx->app_id_start, ctx->app_id_end);
-        copy_app_id(&value, 16, ctx->app_id_start, ctx->app_id_end);
-        copy_app_id(&value, 32, ctx->app_id_start, ctx->app_id_end);
-        copy_app_id(&value, 48, ctx->app_id_start, ctx->app_id_end);
-        ebpf_map_update_element(&process_map, &key, &value, 0);
-        entry = ebpf_map_lookup_element(&process_map, &key);
-    }
+    entry = find_or_create_process_entry(ctx);
+
     if (!entry) {
         return BIND_PERMIT;
     }
@@ -85,6 +97,7 @@ BindMonitor(bind_md_t* ctx)
     }
 
     if (entry->count == 0) {
+        uint64_t key = ctx->process_id;
         ebpf_map_delete_element(&process_map, &key);
     }
 
