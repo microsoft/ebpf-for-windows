@@ -164,4 +164,5 @@ const ebpf_platform_t g_ebpf_platform_windows = {
     sizeof(ebpf_maps_section_record_windows),
     parse_maps_section_windows,
     get_map_descriptor_windows,
+    get_map_type_windows,
 };
