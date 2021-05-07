@@ -161,7 +161,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
-    <ClInclude Include="verifier.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="api.cpp" />
