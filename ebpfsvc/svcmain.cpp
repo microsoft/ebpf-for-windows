@@ -11,21 +11,19 @@ SERVICE_STATUS _service_status;
 SERVICE_STATUS_HANDLE _service_status_handle;
 HANDLE _service_stop_event_handle = nullptr;
 
-VOID WINAPI
-service_control_handler(DWORD dwCtrl);
-VOID
-service_report_event(LPTSTR function);
-VOID
+void WINAPI
+service_control_handler(DWORD ctrl);
+void
+service_report_event(PTSTR function);
+void
 report_service_status(DWORD current_state, DWORD win32exitcode, DWORD wait_hint);
-VOID
-service_init(DWORD argc, LPTSTR* argv);
+void
+service_init(DWORD argc, PTSTR* argv);
 
-VOID WINAPI
-service_main(DWORD argc, LPTSTR* argv);
-VOID
+void WINAPI
+service_main(DWORD argc, PTSTR* argv);
+void
 service_install();
-
-DWORD rpcStatus = 0;
 
 DWORD
 initialize_rpc_server();
@@ -34,8 +32,8 @@ shutdown_rpc_server();
 
 int __cdecl wmain(__in ULONG argc, __in_ecount(argc) PWSTR* argv)
 {
-    SERVICE_TABLE_ENTRY dispatch_table[] = {{(LPWSTR)SERVICE_NAME, (LPSERVICE_MAIN_FUNCTION)service_main},
-                                            {NULL, NULL}};
+    SERVICE_TABLE_ENTRY dispatch_table[] = {{(PWSTR)SERVICE_NAME, (LPSERVICE_MAIN_FUNCTION)service_main},
+                                            {nullptr, nullptr}};
 
     // If command-line parameter is "install", install the service.
     // Otherwise, the service is probably being started by the SCM.
@@ -51,7 +49,7 @@ int __cdecl wmain(__in ULONG argc, __in_ecount(argc) PWSTR* argv)
     // The process should simply terminate when the call returns.
 
     if (!StartServiceCtrlDispatcher(dispatch_table)) {
-        service_report_event((LPWSTR)L"StartServiceCtrlDispatcher");
+        service_report_event((PWSTR)L"StartServiceCtrlDispatcher");
     }
 
     return 0;
@@ -67,27 +65,25 @@ int __cdecl wmain(__in ULONG argc, __in_ecount(argc) PWSTR* argv)
 // Return value:
 //   None
 //
-VOID
+void
 service_install()
 {
     SC_HANDLE scmanager;
     SC_HANDLE service;
     TCHAR path[MAX_PATH];
 
-    if (!GetModuleFileName(NULL, path, MAX_PATH)) {
-        // printf("Cannot install service (%d)\n", GetLastError());
+    if (!GetModuleFileName(nullptr, path, MAX_PATH)) {
         return;
     }
 
     // Get a handle to the SCM database.
 
     scmanager = OpenSCManager(
-        NULL,                   // local computer
-        NULL,                   // ServicesActive database
+        nullptr,                // local computer
+        nullptr,                // ServicesActive database
         SC_MANAGER_ALL_ACCESS); // full access rights
 
-    if (NULL == scmanager) {
-        // printf("OpenSCManager failed (%d)\n", GetLastError());
+    if (nullptr == scmanager) {
         return;
     }
 
@@ -102,18 +98,16 @@ service_install()
         SERVICE_DEMAND_START,      // start type
         SERVICE_ERROR_NORMAL,      // error control type
         path,                      // path to service's binary
-        NULL,                      // no load ordering group
-        NULL,                      // no tag identifier
-        NULL,                      // no dependencies
-        NULL,                      // LocalSystem account
-        NULL);                     // no password
+        nullptr,                   // no load ordering group
+        nullptr,                   // no tag identifier
+        nullptr,                   // no dependencies
+        nullptr,                   // LocalSystem account
+        nullptr);                  // no password
 
-    if (service == NULL) {
-        // printf("CreateService failed (%d)\n", GetLastError());
+    if (service == nullptr) {
         CloseServiceHandle(scmanager);
         return;
     }
-    // else printf("Service installed successfully\n");
 
     CloseServiceHandle(service);
     CloseServiceHandle(scmanager);
@@ -132,8 +126,8 @@ service_install()
 // Return value:
 //   None.
 //
-VOID WINAPI
-service_main(DWORD argc, LPTSTR* argv)
+void WINAPI
+service_main(DWORD argc, PTSTR* argv)
 {
     // Register the handler function for the service
 
@@ -156,8 +150,8 @@ service_main(DWORD argc, LPTSTR* argv)
     service_init(argc, argv);
 }
 
-VOID
-service_report_event(LPTSTR function)
+void
+service_report_event(PTSTR function)
 {
     UNREFERENCED_PARAMETER(function);
     return;
@@ -174,7 +168,7 @@ service_report_event(LPTSTR function)
 // Return value:
 //   None
 //
-VOID WINAPI
+void WINAPI
 service_control_handler(DWORD ctrl)
 {
     // Handle the requested control code.
@@ -194,10 +188,10 @@ service_control_handler(DWORD ctrl)
     }
 }
 
-VOID
+void
 report_service_status(DWORD current_state, DWORD win32_exit_code, DWORD wait_hint)
 {
-    static DWORD checkpoint = 1;
+    static DWORD _checkpoint = 1;
 
     // Fill in the SERVICE_STATUS structure.
 
@@ -213,7 +207,7 @@ report_service_status(DWORD current_state, DWORD win32_exit_code, DWORD wait_hin
     if ((current_state == SERVICE_RUNNING) || (current_state == SERVICE_STOPPED))
         _service_status.dwCheckPoint = 0;
     else
-        _service_status.dwCheckPoint = checkpoint++;
+        _service_status.dwCheckPoint = _checkpoint++;
 
     // Report the status of the service to the SCM.
     SetServiceStatus(_service_status_handle, &_service_status);
@@ -228,7 +222,7 @@ Initialize()
     return status;
 }
 
-VOID
+void
 Cleanup()
 {
     shutdown_rpc_server();
@@ -250,8 +244,8 @@ Cleanup()
 // Return value:
 //   None
 //
-VOID
-service_init(DWORD argc, LPTSTR* argv)
+void
+service_init(DWORD argc, PTSTR* argv)
 {
     UNREFERENCED_PARAMETER(argc);
     UNREFERENCED_PARAMETER(argv);
@@ -261,12 +255,12 @@ service_init(DWORD argc, LPTSTR* argv)
     // Create an event. The control handler function, service_control_handler,
     // signals this event when it receives the stop control code.
     _service_stop_event_handle = CreateEvent(
-        NULL,  // default security attributes
-        TRUE,  // manual reset event
-        FALSE, // not signaled
-        NULL); // no name
+        nullptr,  // default security attributes
+        TRUE,     // manual reset event
+        FALSE,    // not signaled
+        nullptr); // no name
 
-    if (_service_stop_event_handle == NULL) {
+    if (_service_stop_event_handle == nullptr) {
         report_service_status(SERVICE_STOPPED, NO_ERROR, 0);
         return;
     }
@@ -281,13 +275,11 @@ service_init(DWORD argc, LPTSTR* argv)
     // Report running status when initialization is complete.
     report_service_status(SERVICE_RUNNING, NO_ERROR, 0);
 
-    while (1) {
-        // Check whether to stop the service.
-        WaitForSingleObject(_service_stop_event_handle, INFINITE);
+    // Check whether to stop the service.
+    WaitForSingleObject(_service_stop_event_handle, INFINITE);
 
-        Cleanup();
+    Cleanup();
 
-        report_service_status(SERVICE_STOPPED, NO_ERROR, 0);
-        return;
-    }
+    report_service_status(SERVICE_STOPPED, NO_ERROR, 0);
+    return;
 }

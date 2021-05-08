@@ -10,14 +10,14 @@
 #pragma comment(lib, "Rpcrt4.lib")
 
 #define RPC_SERVER_ENDPOINT L"\\pipe\\ebpf_service"
-bool _rpc_server_initialized = false;
+static bool _rpc_server_initialized = false;
 
 DWORD
 initialize_rpc_server()
 {
     RPC_STATUS status;
     const WCHAR* protocol_sequence = L"ncacn_np";
-    unsigned char* security = NULL;
+    unsigned char* security = nullptr;
     const WCHAR* endpoint = RPC_SERVER_ENDPOINT;
     unsigned int minimum_calls = 1;
     unsigned int dont_wait = TRUE;
@@ -29,7 +29,7 @@ initialize_rpc_server()
         goto Exit;
     }
 
-    status = RpcServerRegisterIf(ebpf_service_interface_v1_0_s_ifspec, NULL, NULL);
+    status = RpcServerRegisterIf(ebpf_service_interface_v1_0_s_ifspec, nullptr, nullptr);
     if (status != RPC_S_OK) {
         goto Exit;
     }
@@ -43,7 +43,7 @@ initialize_rpc_server()
 Exit:
     if (status != RPC_S_OK) {
         if (registered) {
-            RpcServerUnregisterIf(NULL, NULL, TRUE);
+            RpcServerUnregisterIf(nullptr, nullptr, TRUE);
         }
     }
     return status;
@@ -57,13 +57,13 @@ shutdown_rpc_server()
     }
     RPC_STATUS status;
 
-    status = RpcMgmtStopServerListening(NULL);
+    status = RpcMgmtStopServerListening(nullptr);
     if (status != RPC_S_OK) {
         // Add a trace that something happened.
         return;
     }
 
-    status = RpcServerUnregisterIf(NULL, NULL, TRUE);
+    status = RpcServerUnregisterIf(nullptr, nullptr, TRUE);
     if (status != RPC_S_OK) {
         // Add a trace that something happened.
         return;

@@ -24,8 +24,7 @@ interface ebpf_service_interface
     // eBPF instruction is 64-bit.
     typedef uint64_t ebpf_instruction;
 
-    typedef void* RHANDLE;
-    typedef [system_handle(sh_file)] RHANDLE file_handle_t;
+    typedef [system_handle(sh_file)] HANDLE file_handle_t;
 
     typedef struct _fd_handle_map
     {

@@ -96,7 +96,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NetEbpfExt", "netebpfext\ne
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "service", "service", "{4B0B9AFE-78D9-48AF-9968-88D3BB83770F}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ebpfservice", "ebpfsvc\eBPFSvc.vcxproj", "{BA065B6A-38F8-4197-8F66-87C84AFAD513}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ebpfsvc", "ebpfsvc\eBPFSvc.vcxproj", "{BA065B6A-38F8-4197-8F66-87C84AFAD513}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
