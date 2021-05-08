@@ -8,7 +8,7 @@
                                 // 'type2', possible loss of data
 #include "crab_verifier.hpp"
 #pragma warning(pop)
-#include "ebpf_windows.h"
+#include "ebpf_api.h"
 #undef VOID
 #include "ebpf_helpers.h"
 #include "helpers.hpp"
@@ -38,7 +38,7 @@ const EbpfContextDescriptor g_xdp_context_descriptor = {
 };
 
 const EbpfProgramType windows_xdp_program_type =
-    PTYPE("xdp", &g_xdp_context_descriptor, EBPF_PROGRAM_TYPE_XDP_OLD, {"xdp"});
+    PTYPE("xdp", &g_xdp_context_descriptor, (uint64_t)&EBPF_PROGRAM_TYPE_XDP, {"xdp"});
 
 const EbpfContextDescriptor g_bind_context_descriptor = {
     43, // Size of ctx struct.
@@ -48,10 +48,10 @@ const EbpfContextDescriptor g_bind_context_descriptor = {
 };
 
 const EbpfProgramType windows_bind_program_type =
-    PTYPE("bind", &g_bind_context_descriptor, EBPF_PROGRAM_TYPE_BIND_OLD, {"bind"});
+    PTYPE("bind", &g_bind_context_descriptor, (uint64_t)&EBPF_PROGRAM_TYPE_BIND, {"bind"});
 
 const std::vector<EbpfProgramType> windows_program_types = {
-    PTYPE("unspecified", {0}, EBPF_PROGRAM_TYPE_UNSPECIFIED_OLD, {}),
+    PTYPE("unspecified", {0}, 0, {}),
     windows_xdp_program_type,
     windows_bind_program_type,
 };

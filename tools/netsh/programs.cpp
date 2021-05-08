@@ -32,16 +32,23 @@ static TOKEN_VALUE _pinned_enum[] = {
     {L"no", PINNED_NO},
 };
 
-static TOKEN_VALUE _ebpf_program_type_enum[] = {
-    {L"unknown", EBPF_PROGRAM_TYPE_UNSPECIFIED_OLD},
-    {L"xdp", EBPF_PROGRAM_TYPE_XDP_OLD},
-    {L"bind", EBPF_PROGRAM_TYPE_BIND_OLD},
+// TODO: ebpf_attach_type_index_t, _ebpf_attach_type_enum, and
+// _ebpf_attach_type_guids should all be replaced as soon as we
+// can query the information from ebpfapi.
 
-};
+// Index into the _ebpf_attach_type_guids array below (this need
+// not match an integer used anywhere outside this file).
+typedef enum _ebpf_attach_type_index
+{
+    EBPF_ATTACH_TYPE_UNSPECIFIED_INDEX = 0,
+    EBPF_ATTACH_TYPE_XDP_INDEX = 1,
+    EBPF_ATTACH_TYPE_BIND_INDEX = 2
+} ebpf_attach_type_index_t;
 
-static TOKEN_VALUE _ebpf_execution_type_enum[] = {
-    {L"jit", EBPF_EXECUTION_JIT},
-    {L"interpret", EBPF_EXECUTION_INTERPRET},
+static TOKEN_VALUE _ebpf_attach_type_enum[] = {
+    {L"unknown", EBPF_ATTACH_TYPE_UNSPECIFIED_INDEX},
+    {L"xdp", EBPF_ATTACH_TYPE_XDP_INDEX},
+    {L"bind", EBPF_ATTACH_TYPE_BIND_INDEX},
 
 };
 
@@ -49,6 +56,12 @@ GUID _ebpf_attach_type_guids[] = {
     EBPF_ATTACH_TYPE_UNSPECIFIED,
     EBPF_ATTACH_TYPE_XDP,
     EBPF_ATTACH_TYPE_BIND,
+};
+
+static TOKEN_VALUE _ebpf_execution_type_enum[] = {
+    {L"jit", EBPF_EXECUTION_JIT},
+    {L"interpret", EBPF_EXECUTION_INTERPRET},
+
 };
 
 std::string
@@ -75,7 +88,7 @@ handle_ebpf_add_program(
 
     std::string filename;
     std::string section = ""; // Use the first code section by default.
-    ebpf_program_type_old_t type = EBPF_PROGRAM_TYPE_XDP_OLD;
+    ebpf_attach_type_t attach_type = EBPF_ATTACH_TYPE_XDP;
     PINNED_CONSTRAINT pinned = PINNED_ANY;
     ebpf_execution_type_t execution = EBPF_EXECUTION_JIT;
     for (int i = 0; (status == NO_ERROR) && ((i + current_index) < argc); i++) {
@@ -91,16 +104,21 @@ handle_ebpf_add_program(
             break;
         }
         case 2: // TYPE
+        {
+            ebpf_attach_type_index_t attach_type_index;
             status = MatchEnumTag(
                 NULL,
                 argv[current_index + i],
-                _countof(_ebpf_program_type_enum),
-                _ebpf_program_type_enum,
-                (PULONG)&type);
+                _countof(_ebpf_attach_type_enum),
+                _ebpf_attach_type_enum,
+                (PULONG)&attach_type_index);
             if (status != NO_ERROR) {
                 status = ERROR_INVALID_PARAMETER;
+            } else {
+                attach_type = _ebpf_attach_type_guids[attach_type_index];
             }
             break;
+        }
         case 3: // PINNED
             status = MatchEnumTag(NULL, argv[current_index + i], _countof(_pinned_enum), _pinned_enum, (PULONG)&pinned);
             if (status != NO_ERROR) {
@@ -147,7 +165,7 @@ handle_ebpf_add_program(
         return ERROR_SUPPRESS_OUTPUT;
     }
 
-    status = ebpf_api_link_program(_program_handle, _ebpf_attach_type_guids[type], &_link_handle);
+    status = ebpf_api_link_program(_program_handle, attach_type, &_link_handle);
     if (status != ERROR_SUCCESS) {
         std::cerr << "error " << status << ": could not attach program" << std::endl;
         return ERROR_SUPPRESS_OUTPUT;
@@ -282,7 +300,7 @@ handle_ebpf_show_programs(
     ULONG status =
         PreprocessCommand(nullptr, argv, current_index, argc, tags, _countof(tags), 0, _countof(tags), tag_type);
 
-    ebpf_program_type_t type = EBPF_PROGRAM_TYPE_XDP;
+    ebpf_attach_type_t attach_type = EBPF_ATTACH_TYPE_XDP;
     PINNED_CONSTRAINT pinned = PINNED_ANY;
     VERBOSITY_LEVEL level = VL_NORMAL;
     std::string filename;
@@ -290,16 +308,21 @@ handle_ebpf_show_programs(
     for (int i = 0; (status == NO_ERROR) && ((i + current_index) < argc); i++) {
         switch (tag_type[i]) {
         case 0: // TYPE
+        {
+            ebpf_attach_type_index_t attach_type_index;
             status = MatchEnumTag(
                 NULL,
                 argv[current_index + i],
-                _countof(_ebpf_program_type_enum),
-                _ebpf_program_type_enum,
-                (PULONG)&type);
+                _countof(_ebpf_attach_type_enum),
+                _ebpf_attach_type_enum,
+                (PULONG)&attach_type_index);
             if (status != NO_ERROR) {
                 status = ERROR_INVALID_PARAMETER;
+            } else {
+                attach_type = _ebpf_attach_type_guids[attach_type_index];
             }
             break;
+        }
         case 1: // PINNED
             status = MatchEnumTag(NULL, argv[current_index + i], _countof(_pinned_enum), _pinned_enum, (PULONG)&pinned);
             if (status != NO_ERROR) {
@@ -358,6 +381,7 @@ handle_ebpf_show_programs(
             break;
         }
 
+        // TODO: we also need the program type so we can filter on it.
         status = ebpf_api_program_query_information(
             program_handle, &program_execution_type, &program_file_name, &program_section_name);
 
