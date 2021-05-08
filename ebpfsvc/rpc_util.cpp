@@ -12,71 +12,59 @@
 #define RPC_SERVER_ENDPOINT L"\\pipe\\ebpf_service"
 bool _rpc_server_initialized = false;
 
-DWORD initialize_rpc_server()
+DWORD
+initialize_rpc_server()
 {
     RPC_STATUS status;
     const WCHAR* protocol_sequence = L"ncacn_np";
     unsigned char* security = NULL;
     const WCHAR* endpoint = RPC_SERVER_ENDPOINT;
-    unsigned int    minimum_calls = 1;
-    unsigned int    dont_wait = TRUE;
+    unsigned int minimum_calls = 1;
+    unsigned int dont_wait = TRUE;
     bool registered = false;
 
-    status = RpcServerUseProtseqEp((RPC_WSTR)protocol_sequence,
-        RPC_C_LISTEN_MAX_CALLS_DEFAULT,
-        (RPC_WSTR)endpoint,
-        security);
-    if (status != RPC_S_OK)
-    {
+    status = RpcServerUseProtseqEp(
+        (RPC_WSTR)protocol_sequence, RPC_C_LISTEN_MAX_CALLS_DEFAULT, (RPC_WSTR)endpoint, security);
+    if (status != RPC_S_OK) {
         goto Exit;
     }
 
-    status = RpcServerRegisterIf(ebpf_service_interface_v1_0_s_ifspec,
-        NULL,
-        NULL);
-    if (status != RPC_S_OK)
-    {
+    status = RpcServerRegisterIf(ebpf_service_interface_v1_0_s_ifspec, NULL, NULL);
+    if (status != RPC_S_OK) {
         goto Exit;
     }
     registered = true;
 
-    status = RpcServerListen(minimum_calls,
-        RPC_C_LISTEN_MAX_CALLS_DEFAULT,
-        dont_wait);
-    
-    if (status == RPC_S_OK)
-    {
+    status = RpcServerListen(minimum_calls, RPC_C_LISTEN_MAX_CALLS_DEFAULT, dont_wait);
+
+    if (status == RPC_S_OK) {
         _rpc_server_initialized = true;
     }
 Exit:
-    if (status != RPC_S_OK)
-    {
-        if (registered)
-        {
+    if (status != RPC_S_OK) {
+        if (registered) {
             RpcServerUnregisterIf(NULL, NULL, TRUE);
         }
     }
     return status;
 }
 
-void shutdown_rpc_server()
+void
+shutdown_rpc_server()
 {
-    if (!_rpc_server_initialized)
-    {
+    if (!_rpc_server_initialized) {
         return;
     }
     RPC_STATUS status;
 
     status = RpcMgmtStopServerListening(NULL);
-    if (status != RPC_S_OK)
-    {
+    if (status != RPC_S_OK) {
         // Add a trace that something happened.
         return;
     }
 
     status = RpcServerUnregisterIf(NULL, NULL, TRUE);
-    if (status != RPC_S_OK)
-    {
+    if (status != RPC_S_OK) {
         // Add a trace that something happened.
         return;
     }
@@ -87,17 +75,14 @@ void shutdown_rpc_server()
 /******************************************************/
 /*         MIDL allocate and free                     */
 /******************************************************/
-_Must_inspect_result_
-_Ret_maybenull_ _Post_writable_byte_size_(size)
-void* __RPC_USER MIDL_user_allocate(_In_ size_t size)
+_Must_inspect_result_ _Ret_maybenull_ _Post_writable_byte_size_(size) void* __RPC_USER
+    MIDL_user_allocate(_In_ size_t size)
 {
-    return(malloc(size));
+    return (malloc(size));
 }
 
-void __RPC_USER MIDL_user_free(_Pre_maybenull_ _Post_invalid_ void* ptr)
+void __RPC_USER
+MIDL_user_free(_Pre_maybenull_ _Post_invalid_ void* ptr)
 {
-    if (ptr != nullptr)
-    {
-        free(ptr);
-    }
+    free(ptr);
 }

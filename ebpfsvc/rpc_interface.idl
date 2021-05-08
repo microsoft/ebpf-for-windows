@@ -6,10 +6,8 @@
 #include "ebpf_result.h"
 #include "ebpf_execution_context.h"
 
+import "stdint.h";
 import "wtypes.idl";
-
-typedef unsigned __int64 uint64_t;
-typedef unsigned __int32 uint32_t;
 
 //
 // Interface Attributes
@@ -27,12 +25,12 @@ interface ebpf_service_interface
     typedef uint64_t ebpf_instruction;
 
     typedef void* RHANDLE;
-    typedef [system_handle(sh_file)] RHANDLE FILE_HANDLE;
+    typedef [system_handle(sh_file)] RHANDLE file_handle_t;
 
     typedef struct _fd_handle_map
     {
         uint32_t file_descriptor;
-        FILE_HANDLE handle;
+        file_handle_t handle;
     } fd_handle_map;
 
     typedef struct _ebpf_program_load_info
@@ -42,7 +40,7 @@ interface ebpf_service_interface
         // Optional program name.
         [string] char* program_name;
         GUID program_type;
-        FILE_HANDLE program_handle;
+        file_handle_t program_handle;
         ebpf_execution_context_t execution_context;
         uint32_t map_count;
         [size_is(map_count)] fd_handle_map* handle_map;
@@ -65,7 +63,7 @@ interface ebpf_service_interface
         [in] ebpf_program_load_info* info,
         [out] uint32_t* log_size,
         [out, size_is(,*log_size)]char** logs);
-    
+
     ebpf_result_t
     ebpf_verify_program(
         [in] ebpf_program_verify_info* info,
