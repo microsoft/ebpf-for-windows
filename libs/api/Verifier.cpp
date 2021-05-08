@@ -74,9 +74,6 @@ analyze(raw_program& raw_prog, const char** error_message)
     return 0; // Success.
 }
 
-static GUID _ebpf_program_type_old_to_ebpf_program_type[EBPF_PROGRAM_TYPE_BIND_OLD + 1] = {
-    EBPF_PROGRAM_TYPE_UNSPECIFIED, EBPF_PROGRAM_TYPE_XDP, EBPF_PROGRAM_TYPE_BIND};
-
 int
 load_byte_code(
     const char* filename,
@@ -94,6 +91,11 @@ load_byte_code(
     }
     raw_program raw_prog = raw_progs.back();
 
+    // Sanity check that we have a program type GUID.
+    if (raw_prog.info.type.platform_specific_data == 0) {
+        return 1; // Error
+    }
+
     // copy out the bytecode for the jitter
     size_t ebpf_bytes = raw_prog.prog.size() * sizeof(ebpf_inst);
     int i = 0;
@@ -105,7 +107,7 @@ load_byte_code(
     }
 
     *byte_code_size = ebpf_bytes;
-    *program_type = _ebpf_program_type_old_to_ebpf_program_type[raw_prog.info.type.platform_specific_data];
+    *program_type = *(const GUID*)raw_prog.info.type.platform_specific_data;
 
     return 0;
 }

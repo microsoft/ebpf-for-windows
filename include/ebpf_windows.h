@@ -7,15 +7,6 @@
 // This file contains eBPF definitions needed by eBPF programs as well as
 // the verifier and execution context.
 
-// TODO - Convert all code that uses ebpf_program_type_old_t to use
-// ebpf_program_type_t.
-typedef enum _ebpf_program_type_old
-{
-    EBPF_PROGRAM_TYPE_UNSPECIFIED_OLD = 0,
-    EBPF_PROGRAM_TYPE_XDP_OLD = 1,
-    EBPF_PROGRAM_TYPE_BIND_OLD = 2
-} ebpf_program_type_old_t;
-
 typedef GUID ebpf_program_type_t;
 
 typedef enum _ebpf_helper_function
