@@ -570,6 +570,16 @@ extern "C"
     ebpf_build_trampoline_table(
         size_t* entry_count, ebpf_trampoline_entry_t** entries, const ebpf_extension_dispatch_table_t* dispatch_table);
 
+    typedef struct _ebpf_program_information ebpf_program_information_t;
+
+    ebpf_error_code_t
+    ebpf_program_information_encode(
+        ebpf_program_information_t* program_information, uint8_t** buffer, unsigned long* buffer_size);
+
+    ebpf_error_code_t
+    ebpf_program_information_decode(
+        ebpf_program_information_t** program_information, uint8_t* buffer, unsigned long buffer_size);
+
 #ifdef __cplusplus
 }
 #endif

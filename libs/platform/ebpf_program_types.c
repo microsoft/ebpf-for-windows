@@ -7,8 +7,6 @@
 
 #include "ebpf_program_types_h.h"
 #include "ebpf_program_types_c.c"
-#pragma comment(lib, "rpcrt4")
-#pragma comment(lib, "msrpc")
 
 ebpf_error_code_t
 ebpf_program_information_encode(
