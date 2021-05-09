@@ -44,7 +44,7 @@ interface ebpf_service_interface
         uint32_t map_count;
         [size_is(map_count)] fd_handle_map* handle_map;
         uint32_t instruction_count;
-        [size_is(instruction_count)] ebpf_instruction * instructions;
+        [size_is(instruction_count)] ebpf_instruction* instructions;
     } ebpf_program_load_info;
 
     typedef struct _ebpf_program_verify_info
@@ -54,18 +54,18 @@ interface ebpf_service_interface
         uint32_t map_count;
         [size_is(map_count)] fd_handle_map* handle_map;
         uint32_t instruction_count;
-        [size_is(instruction_count)] ebpf_instruction * instructions;
+        [size_is(instruction_count)] ebpf_instruction* instructions;
     } ebpf_program_verify_info;
 
     ebpf_result_t
     ebpf_verify_and_jit_program(
         [in] ebpf_program_load_info* info,
-        [out] uint32_t* log_size,
-        [out, size_is(,*log_size)]char** logs);
+        [out] uint32_t* logs_size,
+        [out, size_is(,*logs_size)]char** logs);
 
     ebpf_result_t
     ebpf_verify_program(
         [in] ebpf_program_verify_info* info,
-        [out] uint32_t* log_size,
-        [out, size_is(,*log_size)]char** logs);
+        [out] uint32_t* logs_size,
+        [out, size_is(,*logs_size)]char** logs);
 }

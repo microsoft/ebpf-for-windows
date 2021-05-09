@@ -20,7 +20,7 @@ initialize_rpc_server()
     unsigned char* security = nullptr;
     const WCHAR* endpoint = RPC_SERVER_ENDPOINT;
     unsigned int minimum_calls = 1;
-    unsigned int dont_wait = TRUE;
+    unsigned int dont_wait = true;
     bool registered = false;
 
     status = RpcServerUseProtseqEp(
@@ -43,7 +43,7 @@ initialize_rpc_server()
 Exit:
     if (status != RPC_S_OK) {
         if (registered) {
-            RpcServerUnregisterIf(nullptr, nullptr, TRUE);
+            RpcServerUnregisterIf(nullptr, nullptr, true);
         }
     }
     return status;
@@ -63,7 +63,7 @@ shutdown_rpc_server()
         return;
     }
 
-    status = RpcServerUnregisterIf(nullptr, nullptr, TRUE);
+    status = RpcServerUnregisterIf(nullptr, nullptr, true);
     if (status != RPC_S_OK) {
         // Add a trace that something happened.
         return;

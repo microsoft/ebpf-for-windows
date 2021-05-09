@@ -7,9 +7,9 @@
 
 #define SERVICE_NAME TEXT("eBPFSvc")
 
-SERVICE_STATUS _service_status;
-SERVICE_STATUS_HANDLE _service_status_handle;
-HANDLE _service_stop_event_handle = nullptr;
+SERVICE_STATUS ebpf_service_status;
+SERVICE_STATUS_HANDLE ebpf_service_status_handle;
+HANDLE ebpf_service_stop_event_handle = nullptr;
 
 void WINAPI
 service_control_handler(DWORD ctrl);
@@ -30,7 +30,7 @@ initialize_rpc_server();
 void
 shutdown_rpc_server();
 
-int __cdecl wmain(__in ULONG argc, __in_ecount(argc) PWSTR* argv)
+int __cdecl wmain(ULONG argc, PWSTR* argv)
 {
     SERVICE_TABLE_ENTRY dispatch_table[] = {{(PWSTR)SERVICE_NAME, (LPSERVICE_MAIN_FUNCTION)service_main},
                                             {nullptr, nullptr}};
@@ -55,16 +55,10 @@ int __cdecl wmain(__in ULONG argc, __in_ecount(argc) PWSTR* argv)
     return 0;
 }
 
-//
-// Purpose:
-//   Installs a service in the SCM database
-//
-// Parameters:
-//   None
-//
-// Return value:
-//   None
-//
+/**
+ * @brief Installs a service in the SCM database.
+ *
+ */
 void
 service_install()
 {
@@ -113,33 +107,29 @@ service_install()
     CloseServiceHandle(scmanager);
 }
 
-//
-// Purpose:
-//   Entry point for the service
-//
-// Parameters:
-//   argc - Number of arguments in the argv array
-//   argv - Array of strings. The first string is the name of
-//     the service and subsequent strings are passed by the process
-//     that called the StartService function to start the service.
-//
-// Return value:
-//   None.
-//
+/**
+ * @brief Entry point for the service.
+ *
+ * @param[in] argc Number of arguments in the argv array.
+ * @param[in] argv Array of strings. The first string is the name of
+ *  the service and subsequent strings are passed by the process
+ *  that called the StartService function to start the service.
+ *
+ */
 void WINAPI
 service_main(DWORD argc, PTSTR* argv)
 {
     // Register the handler function for the service
 
-    _service_status_handle = RegisterServiceCtrlHandler(SERVICE_NAME, service_control_handler);
+    ebpf_service_status_handle = RegisterServiceCtrlHandler(SERVICE_NAME, service_control_handler);
 
-    if (!_service_status_handle) {
+    if (!ebpf_service_status_handle) {
         return;
     }
 
     // These SERVICE_STATUS members remain as set here
-    _service_status.dwServiceType = SERVICE_WIN32_OWN_PROCESS;
-    _service_status.dwServiceSpecificExitCode = 0;
+    ebpf_service_status.dwServiceType = SERVICE_WIN32_OWN_PROCESS;
+    ebpf_service_status.dwServiceSpecificExitCode = 0;
 
     // Report initial status to the SCM
 
@@ -157,17 +147,13 @@ service_report_event(PTSTR function)
     return;
 }
 
-//
-// Purpose:
-//   Called by SCM whenever a control code is sent to the service
-//   using the ControlService function.
-//
-// Parameters:
-//   ctrl - control code
-//
-// Return value:
-//   None
-//
+/**
+ * @brief Called by SCM whenever a control code is sent to the service
+ *  using the ControlService function.
+ *
+ * @param[in] ctrl control code.
+ *
+ */
 void WINAPI
 service_control_handler(DWORD ctrl)
 {
@@ -177,7 +163,7 @@ service_control_handler(DWORD ctrl)
     case SERVICE_CONTROL_STOP:
         report_service_status(SERVICE_STOP_PENDING, NO_ERROR, 0);
         // Signal the service to stop.
-        SetEvent(_service_stop_event_handle);
+        SetEvent(ebpf_service_stop_event_handle);
         return;
 
     case SERVICE_CONTROL_INTERROGATE:
@@ -195,22 +181,22 @@ report_service_status(DWORD current_state, DWORD win32_exit_code, DWORD wait_hin
 
     // Fill in the SERVICE_STATUS structure.
 
-    _service_status.dwCurrentState = current_state;
-    _service_status.dwWin32ExitCode = win32_exit_code;
-    _service_status.dwWaitHint = wait_hint;
+    ebpf_service_status.dwCurrentState = current_state;
+    ebpf_service_status.dwWin32ExitCode = win32_exit_code;
+    ebpf_service_status.dwWaitHint = wait_hint;
 
     if (current_state == SERVICE_START_PENDING)
-        _service_status.dwControlsAccepted = 0;
+        ebpf_service_status.dwControlsAccepted = 0;
     else
-        _service_status.dwControlsAccepted = SERVICE_ACCEPT_STOP;
+        ebpf_service_status.dwControlsAccepted = SERVICE_ACCEPT_STOP;
 
     if ((current_state == SERVICE_RUNNING) || (current_state == SERVICE_STOPPED))
-        _service_status.dwCheckPoint = 0;
+        ebpf_service_status.dwCheckPoint = 0;
     else
-        _service_status.dwCheckPoint = _checkpoint++;
+        ebpf_service_status.dwCheckPoint = _checkpoint++;
 
     // Report the status of the service to the SCM.
-    SetServiceStatus(_service_status_handle, &_service_status);
+    SetServiceStatus(ebpf_service_status_handle, &ebpf_service_status);
 }
 
 DWORD
@@ -226,24 +212,20 @@ void
 Cleanup()
 {
     shutdown_rpc_server();
-    if (_service_stop_event_handle) {
-        CloseHandle(_service_stop_event_handle);
+    if (ebpf_service_stop_event_handle) {
+        CloseHandle(ebpf_service_stop_event_handle);
     }
 }
 
-//
-// Purpose:
-//   The service code
-//
-// Parameters:
-//   argc - Number of arguments in the argv array
-//   argv - Array of strings. The first string is the name of
-//     the service and subsequent strings are passed by the process
-//     that called the StartService function to start the service.
-//
-// Return value:
-//   None
-//
+/**
+ * @brief The service code.
+ *
+ * @param[in] argc Number of arguments in the argv array.
+ * @param[in] argv Array of strings. The first string is the name of
+ *  the service and subsequent strings are passed by the process
+ *  that called the StartService function to start the service.
+ *
+ */
 void
 service_init(DWORD argc, PTSTR* argv)
 {
@@ -254,13 +236,13 @@ service_init(DWORD argc, PTSTR* argv)
 
     // Create an event. The control handler function, service_control_handler,
     // signals this event when it receives the stop control code.
-    _service_stop_event_handle = CreateEvent(
+    ebpf_service_stop_event_handle = CreateEvent(
         nullptr,  // default security attributes
-        TRUE,     // manual reset event
-        FALSE,    // not signaled
+        true,     // manual reset event
+        false,    // not signaled
         nullptr); // no name
 
-    if (_service_stop_event_handle == nullptr) {
+    if (ebpf_service_stop_event_handle == nullptr) {
         report_service_status(SERVICE_STOPPED, NO_ERROR, 0);
         return;
     }
@@ -276,7 +258,7 @@ service_init(DWORD argc, PTSTR* argv)
     report_service_status(SERVICE_RUNNING, NO_ERROR, 0);
 
     // Check whether to stop the service.
-    WaitForSingleObject(_service_stop_event_handle, INFINITE);
+    WaitForSingleObject(ebpf_service_stop_event_handle, INFINITE);
 
     Cleanup();
 

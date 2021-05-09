@@ -10,11 +10,11 @@ extern "C"
 {
 #endif
 
-typedef enum ebpf_execution_context
-{
-	execution_context_user_mode,
-	execution_context_kernel_mode
-} ebpf_execution_context_t;
+    typedef enum ebpf_execution_context
+    {
+        execution_context_user_mode,
+        execution_context_kernel_mode
+    } ebpf_execution_context_t;
 
 #ifdef __cplusplus
 }
