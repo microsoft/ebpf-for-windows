@@ -8,6 +8,7 @@
 // the verifier and execution context.
 
 typedef GUID ebpf_program_type_t;
+typedef GUID ebpf_attach_type_t;
 
 typedef enum _ebpf_helper_function
 {

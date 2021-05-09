@@ -29,9 +29,6 @@ typedef enum _ebpf_operation_id
     EBPF_OPERATION_GET_PROGRAM_INFORMATION,
 } ebpf_operation_id_t;
 
-typedef GUID ebpf_attach_type_t;
-typedef GUID ebpf_program_type_t;
-
 typedef enum _ebpf_code_type
 {
     EBPF_CODE_NATIVE,
