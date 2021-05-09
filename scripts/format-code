@@ -193,7 +193,7 @@ findargs='find .'
 get_find_args()
 {
     local defaultExcludeDirs='./.git ./external ./packages ./x64'
-    local defaultIncludeExts='h hpp c cpp'
+    local defaultIncludeExts='h hpp c cpp idl acf'
 
     if [[ -z ${userExcludeDirs} ]]; then
         read -r -a excludeDirs <<< "${defaultExcludeDirs}"

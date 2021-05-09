@@ -40,6 +40,9 @@
     <ClCompile Include="..\ebpf_trampoline.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\ebpf_program_types.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\include\ebpf_platform.h">

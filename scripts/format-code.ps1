@@ -164,7 +164,7 @@ To run only against a specified set of comma separated files in the current dire
 function get_find_args()
 {
     $defaultExcludeDirs=@( ".git", "external", "packages", "x64" );
-    $defaultIncludeExts=@( "h", "hpp", "c", "cpp" )
+    $defaultIncludeExts=@( "h", "hpp", "c", "cpp", "idl", "acf" )
 
     $findargs='get-childitem -Recurse -Name "*" -Path "." '
     if ( !($userIncludeExts) ) {

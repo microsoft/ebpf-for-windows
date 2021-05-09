@@ -42,6 +42,7 @@
     <ClCompile Include="..\ebpf_hash_table.c" />
     <ClCompile Include="..\ebpf_object.c" />
     <ClCompile Include="..\ebpf_pinning_table.c" />
+    <ClCompile Include="..\ebpf_program_types.c" />
     <ClCompile Include="..\ebpf_trampoline.c" />
     <ClCompile Include="ebpf_extension_kernel.c" />
     <ClCompile Include="ebpf_handle_kernel.c" />
@@ -57,8 +58,8 @@
     <Midl Include="..\ebpf_program_types.idl">
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/acf ..\ebpf_program_types.acf %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">/acf ..\ebpf_program_types.acf %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/acf ..\ebpf_program_types.acf /protocol dce %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">/acf ..\ebpf_program_types.acf /protocol dce %(AdditionalOptions)</AdditionalOptions>
       <DefaultCharType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Signed</DefaultCharType>
       <DefaultCharType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Signed</DefaultCharType>
       <HeaderFileName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(Filename)_h.h</HeaderFileName>
@@ -89,6 +90,8 @@
       <GenerateClientFiles Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Stub</GenerateClientFiles>
       <GenerateServerFiles Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">None</GenerateServerFiles>
       <GenerateServerFiles Condition="'$(Configuration)|$(Platform)'=='Release|x64'">None</GenerateServerFiles>
+      <TargetEnvironment Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Win32</TargetEnvironment>
+      <TargetEnvironment Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Win32</TargetEnvironment>
     </Midl>
   </ItemGroup>
   <PropertyGroup Label="Globals">

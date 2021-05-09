@@ -35,6 +35,7 @@ Environment:
 
 #include "ebpf_nethooks.h"
 #include "ebpf_platform.h"
+#include "ebpf_program_types.h"
 #include "ebpf_windows.h"
 
 typedef struct _net_ebpf_ext_hook_provider_registration
@@ -724,4 +725,10 @@ net_ebpf_ext_program_information_provider_unregister()
 {
     ebpf_provider_unload(_ebpf_xdp_program_information_provider);
     ebpf_provider_unload(_ebpf_bind_program_information_provider);
+}
+
+ebpf_error_code_t
+_net_ebpf_ext_program_information_encode_xdp()
+{
+    return EBPF_ERROR_NOT_SUPPORTED;
 }

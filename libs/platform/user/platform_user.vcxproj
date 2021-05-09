@@ -52,8 +52,8 @@
       <GenerateServerFiles Condition="'$(Configuration)|$(Platform)'=='Release|x64'">None</GenerateServerFiles>
       <GenerateTypeLibrary Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</GenerateTypeLibrary>
       <GenerateTypeLibrary Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</GenerateTypeLibrary>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/acf ..\ebpf_program_types.acf %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">/acf ..\ebpf_program_types.acf %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/acf ..\ebpf_program_types.acf /protocol dce %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">/acf ..\ebpf_program_types.acf /protocol dce %(AdditionalOptions)</AdditionalOptions>
       <TypeLibraryName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
       </TypeLibraryName>
       <TypeLibraryName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">

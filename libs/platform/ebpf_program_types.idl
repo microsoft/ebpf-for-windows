@@ -3,12 +3,11 @@
  *  SPDX-License-Identifier: MIT
  */
 
-
 interface ebpf_program_types
 {
     typedef unsigned int uint32_t;
     typedef unsigned long long uint64_t;
 
-    #include "ebpf_program_types.h"
-    typedef ebpf_program_information_t * ebpf_program_information_p;
+#include "ebpf_program_types.h"
+    typedef ebpf_program_information_t* ebpf_program_information_pointer_t;
 }
