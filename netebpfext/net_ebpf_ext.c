@@ -687,7 +687,9 @@ net_ebpf_ext_program_information_provider_unregister()
     ebpf_provider_unload(_ebpf_xdp_program_information_provider);
     ebpf_provider_unload(_ebpf_bind_program_information_provider);
     ebpf_free(_ebpf_xdp_program_information_provider_data);
+    _ebpf_xdp_program_information_provider_data = NULL;
     ebpf_free(_ebpf_bind_program_information_provider_data);
+    _ebpf_bind_program_information_provider_data = NULL;
 }
 
 static ebpf_error_code_t
@@ -696,7 +698,11 @@ _net_ebpf_ext_program_information_encode_xdp()
     ebpf_error_code_t return_value;
     uint8_t* buffer = NULL;
     unsigned long buffer_size = 0;
-    ebpf_context_descriptor_t xdp_context_descriptor = {24, 0, 8, -1};
+    ebpf_context_descriptor_t xdp_context_descriptor = {
+        sizeof(xdp_md_t),
+        EBPF_OFFSET_OF(xdp_md_t, data),
+        EBPF_OFFSET_OF(xdp_md_t, data_end),
+        EBPF_OFFSET_OF(xdp_md_t, data_meta)};
     ebpf_program_type_descriptor_t xdp_program_type = {"xdp", &xdp_context_descriptor};
     ebpf_program_information_t xdp_program_information = {xdp_program_type, 0, NULL};
 
@@ -732,7 +738,8 @@ _net_ebpf_ext_program_information_encode_bind()
     ebpf_error_code_t return_value;
     uint8_t* buffer = NULL;
     unsigned long buffer_size = 0;
-    ebpf_context_descriptor_t bind_context_descriptor = {43, 0, 8, -1};
+    ebpf_context_descriptor_t bind_context_descriptor = {
+        sizeof(bind_md_t), EBPF_OFFSET_OF(bind_md_t, app_id_start), EBPF_OFFSET_OF(bind_md_t, app_id_end), -1};
     ebpf_program_type_descriptor_t bind_program_type = {"bind", &bind_context_descriptor};
     ebpf_program_information_t bind_program_information = {bind_program_type, 0, NULL};
 

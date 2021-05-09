@@ -576,34 +576,34 @@ extern "C"
      * @brief Serialize an ebpf_program_information_t structure into a flat
      *  buffer.
      *
-     * @param program_information ebpf_program_information_t to be serialized.
-     * @param buffer On success, the buffer that contains the serialized
+     * @param[in] program_information ebpf_program_information_t to be serialized.
+     * @param[out] buffer On success, the buffer that contains the serialized
      *  structure. Must be freed by caller using ebpf_free.
-     * @param buffer_size On success, the size of the serialized buffer.
+     * @param[out] buffer_size On success, the size of the serialized buffer.
      * @retval EBPF_ERROR_SUCCESS The operation succeeded.
      * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
      *  operation.
      */
     ebpf_error_code_t
     ebpf_program_information_encode(
-        ebpf_program_information_t* program_information, uint8_t** buffer, unsigned long* buffer_size);
+        const ebpf_program_information_t* program_information, uint8_t** buffer, unsigned long* buffer_size);
 
     /**
      * @brief Deserialize an ebpf_program_information_t structure from a flat
      *  buffer.
      *
-     * @param program_information On success, a newly allocated
+     * @param[out] program_information On success, a newly allocated
      *  ebpf_program_information_t with the data from the flat buffer. Must be
      *  freed by the caller using ebpf_free.
-     * @param buffer Buffer containing the serialized structure.
-     * @param buffer_size Size of the buffer.
+     * @param[in] buffer Buffer containing the serialized structure.
+     * @param[in] buffer_size Size of the buffer.
      * @retval EBPF_ERROR_SUCCESS The operation succeeded.
      * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
      *  operation.
      */
     ebpf_error_code_t
     ebpf_program_information_decode(
-        ebpf_program_information_t** program_information, uint8_t* buffer, unsigned long buffer_size);
+        ebpf_program_information_t** program_information, const uint8_t* buffer, unsigned long buffer_size);
 
 #ifdef __cplusplus
 }

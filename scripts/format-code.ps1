@@ -129,8 +129,8 @@ OPTIONS:
                             ./external, ./packages and ./x64 are excluded.
                             All subdirectories are relative to the current path.
     --include-exts          File extensions to include for formatting. If
-                            unspecified, then *.h, *.c, *.hpp, and *.cpp are
-                            included.
+                            unspecified, then *.h, *.hpp, *.c, *.cpp, *idl, and
+                             *.acf are included.
     --files                 Only run the script against the specified files from
                             the current directory.
 

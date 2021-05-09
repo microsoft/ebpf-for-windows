@@ -9,10 +9,10 @@
 
 ebpf_error_code_t
 ebpf_program_information_encode(
-    ebpf_program_information_t* program_information, uint8_t** buffer, unsigned long* buffer_size)
+    const ebpf_program_information_t* program_information, uint8_t** buffer, unsigned long* buffer_size)
 {
     handle_t handle = NULL;
-    ebpf_program_information_pointer_t local_program_information = program_information;
+    ebpf_program_information_pointer_t local_program_information = (ebpf_program_information_t*)program_information;
     RPC_STATUS status = MesEncodeDynBufferHandleCreate((char**)buffer, buffer_size, &handle);
     if (status != RPC_S_OK)
         return EBPF_ERROR_OUT_OF_RESOURCES;
@@ -28,7 +28,7 @@ ebpf_program_information_encode(
 
 ebpf_error_code_t
 ebpf_program_information_decode(
-    ebpf_program_information_t** program_information, uint8_t* buffer, unsigned long buffer_size)
+    ebpf_program_information_t** program_information, const uint8_t* buffer, unsigned long buffer_size)
 {
     handle_t handle = NULL;
     ebpf_program_information_pointer_t local_program_information = NULL;
