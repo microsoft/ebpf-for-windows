@@ -578,7 +578,7 @@ extern "C"
      *
      * @param program_information ebpf_program_information_t to be serialized.
      * @param buffer On success, the buffer that contains the serialized
-     *  structure. Must be free by caller using ebpf_free.
+     *  structure. Must be freed by caller using ebpf_free.
      * @param buffer_size On success, the size of the serialized buffer.
      * @retval EBPF_ERROR_SUCCESS The operation succeeded.
      * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
