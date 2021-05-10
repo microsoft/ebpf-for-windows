@@ -65,7 +65,7 @@ shutdown_rpc_server()
 
     status = RpcServerUnregisterIf(nullptr, nullptr, true);
     if (status != RPC_S_OK) {
-        // Add a trace that something happened.
+        // TODO: Add a trace that something happened.
         return;
     }
 
