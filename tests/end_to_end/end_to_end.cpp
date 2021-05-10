@@ -12,7 +12,9 @@
 
 #include "catch2\catch.hpp"
 #include "ebpf_api.h"
+#include "ebpf_bind_program_data.h"
 #include "ebpf_core.h"
+#include "ebpf_xdp_program_data.h"
 #include "helpers.h"
 #include "mock.h"
 #include "tlv.h"
@@ -202,7 +204,7 @@ TEST_CASE("droppacket-jit", "[droppacket_jit]")
         ERROR_SUCCESS);
 
     // Test that we drop the packet and increment the map
-    ebpf::xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
+    xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
 
     REQUIRE(hook.fire(&ctx, &result) == EBPF_ERROR_SUCCESS);
     REQUIRE(result == 2);
@@ -220,7 +222,7 @@ TEST_CASE("droppacket-jit", "[droppacket_jit]")
     REQUIRE(value == 0);
 
     packet = prepare_udp_packet(10);
-    ebpf::xdp_md_t ctx2{packet.data(), packet.data() + packet.size()};
+    xdp_md_t ctx2{packet.data(), packet.data() + packet.size()};
 
     REQUIRE(hook.fire(&ctx2, &result) == EBPF_ERROR_SUCCESS);
     REQUIRE(result == 1);
@@ -285,7 +287,7 @@ TEST_CASE("droppacket-interpret", "[droppacket_interpret]")
         ERROR_SUCCESS);
 
     // Test that we drop the packet and increment the map
-    ebpf::xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
+    xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
     REQUIRE(hook.fire(&ctx, &result) == EBPF_ERROR_SUCCESS);
     REQUIRE(result == 2);
 
@@ -302,7 +304,7 @@ TEST_CASE("droppacket-interpret", "[droppacket_interpret]")
     REQUIRE(value == 0);
 
     packet = prepare_udp_packet(10);
-    ebpf::xdp_md_t ctx2{packet.data(), packet.data() + packet.size()};
+    xdp_md_t ctx2{packet.data(), packet.data() + packet.size()};
 
     REQUIRE(hook.fire(&ctx2, &result) == EBPF_ERROR_SUCCESS);
     REQUIRE(result == 1);
@@ -360,7 +362,7 @@ TEST_CASE("divide_by_zero_jit", "[divide_by_zero_jit]")
     auto packet = prepare_udp_packet(0);
 
     // Test that we drop the packet and increment the map
-    ebpf::xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
+    xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
 
     REQUIRE(hook.fire(&ctx, &result) == EBPF_ERROR_SUCCESS);
     REQUIRE(result == -1);
@@ -456,18 +458,18 @@ get_bind_count_for_pid(ebpf_handle_t handle, uint64_t pid)
     return entry.count;
 }
 
-ebpf::bind_action_t
+bind_action_t
 emulate_bind(single_instance_hook_t& hook, uint64_t pid, const char* appid)
 {
     uint32_t result;
     std::string app_id = appid;
-    ebpf::bind_md_t ctx{0};
+    bind_md_t ctx{0};
     ctx.app_id_start = (uint8_t*)app_id.c_str();
     ctx.app_id_end = (uint8_t*)(app_id.c_str()) + app_id.size();
     ctx.process_id = pid;
-    ctx.operation = ebpf::BIND_OPERATION_BIND;
+    ctx.operation = BIND_OPERATION_BIND;
     REQUIRE(hook.fire(&ctx, &result) == EBPF_ERROR_SUCCESS);
-    return static_cast<ebpf::bind_action_t>(result);
+    return static_cast<bind_action_t>(result);
 }
 
 void
@@ -475,9 +477,9 @@ emulate_unbind(single_instance_hook_t& hook, uint64_t pid, const char* appid)
 {
     uint32_t result;
     std::string app_id = appid;
-    ebpf::bind_md_t ctx{0};
+    bind_md_t ctx{0};
     ctx.process_id = pid;
-    ctx.operation = ebpf::BIND_OPERATION_UNBIND;
+    ctx.operation = BIND_OPERATION_UNBIND;
     REQUIRE(hook.fire(&ctx, &result) == EBPF_ERROR_SUCCESS);
 }
 
@@ -590,15 +592,15 @@ TEST_CASE("bindmonitor-interpret", "[bindmonitor_interpret]")
     set_bind_limit(map_handles[1], 2);
 
     // Bind first port - success
-    REQUIRE(emulate_bind(hook, fake_pid, "fake_app_1") == ebpf::BIND_PERMIT);
+    REQUIRE(emulate_bind(hook, fake_pid, "fake_app_1") == BIND_PERMIT);
     REQUIRE(get_bind_count_for_pid(map_handles[0], fake_pid) == 1);
 
     // Bind second port - success
-    REQUIRE(emulate_bind(hook, fake_pid, "fake_app_1") == ebpf::BIND_PERMIT);
+    REQUIRE(emulate_bind(hook, fake_pid, "fake_app_1") == BIND_PERMIT);
     REQUIRE(get_bind_count_for_pid(map_handles[0], fake_pid) == 2);
 
     // Bind third port - blocked
-    REQUIRE(emulate_bind(hook, fake_pid, "fake_app_1") == ebpf::BIND_DENY);
+    REQUIRE(emulate_bind(hook, fake_pid, "fake_app_1") == BIND_DENY);
     REQUIRE(get_bind_count_for_pid(map_handles[0], fake_pid) == 2);
 
     // Unbind second port
@@ -610,11 +612,11 @@ TEST_CASE("bindmonitor-interpret", "[bindmonitor_interpret]")
     REQUIRE(get_bind_count_for_pid(map_handles[0], fake_pid) == 0);
 
     // Bind from two apps to test enumeration
-    REQUIRE(emulate_bind(hook, fake_pid, "fake_app_1") == ebpf::BIND_PERMIT);
+    REQUIRE(emulate_bind(hook, fake_pid, "fake_app_1") == BIND_PERMIT);
     REQUIRE(get_bind_count_for_pid(map_handles[0], fake_pid) == 1);
 
     fake_pid = 54321;
-    REQUIRE(emulate_bind(hook, fake_pid, "fake_app_2") == ebpf::BIND_PERMIT);
+    REQUIRE(emulate_bind(hook, fake_pid, "fake_app_2") == BIND_PERMIT);
     REQUIRE(get_bind_count_for_pid(map_handles[0], fake_pid) == 1);
 
     uint64_t pid;

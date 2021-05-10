@@ -33,10 +33,12 @@ Environment:
 #include <netiodef.h>
 #include <ntddk.h>
 
+#include "ebpf_bind_program_data.h"
 #include "ebpf_nethooks.h"
 #include "ebpf_platform.h"
 #include "ebpf_program_types.h"
 #include "ebpf_windows.h"
+#include "ebpf_xdp_program_data.h"
 
 typedef struct _net_ebpf_ext_hook_provider_registration
 {
@@ -696,8 +698,9 @@ static ebpf_error_code_t
 _net_ebpf_ext_program_information_encode_xdp()
 {
     ebpf_error_code_t return_value;
-    uint8_t* buffer = NULL;
+    const uint8_t* buffer = NULL;
     unsigned long buffer_size = 0;
+#if defined(MSRPC_LIB)
     ebpf_context_descriptor_t xdp_context_descriptor = {
         sizeof(xdp_md_t),
         EBPF_OFFSET_OF(xdp_md_t, data),
@@ -706,28 +709,34 @@ _net_ebpf_ext_program_information_encode_xdp()
     ebpf_program_type_descriptor_t xdp_program_type = {"xdp", &xdp_context_descriptor};
     ebpf_program_information_t xdp_program_information = {xdp_program_type, 0, NULL};
 
-#if defined(MSRPC_LIB)
     return_value = ebpf_program_information_encode(&xdp_program_information, &buffer, &buffer_size);
     if (return_value != EBPF_ERROR_SUCCESS)
         goto Done;
 #else
-    UNREFERENCED_PARAMETER(xdp_program_information);
+    buffer = _ebpf_encoded_xdp_program_information_data;
+    buffer_size = sizeof(_ebpf_encoded_xdp_program_information_data);
 #endif
 
     _ebpf_xdp_program_information_provider_data = (ebpf_extension_data_t*)ebpf_allocate(
-        sizeof(EBPF_OFFSET_OF(ebpf_extension_data_t, data) + buffer_size), EBPF_MEMORY_NO_EXECUTE);
+        EBPF_OFFSET_OF(ebpf_extension_data_t, data) + buffer_size, EBPF_MEMORY_NO_EXECUTE);
 
     if (_ebpf_xdp_program_information_provider_data == NULL) {
         return_value = EBPF_ERROR_OUT_OF_RESOURCES;
         goto Done;
     }
 
+    _ebpf_xdp_program_information_provider_data->size =
+        (uint16_t)(EBPF_OFFSET_OF(ebpf_extension_data_t, data) + buffer_size);
+    _ebpf_xdp_program_information_provider_data->version = 0;
+
     memcpy(_ebpf_xdp_program_information_provider_data->data, buffer, buffer_size);
 
     return_value = EBPF_ERROR_SUCCESS;
 
 Done:
+#if defined(MSRPC_LIB)
     ebpf_free(buffer);
+#endif
 
     return return_value;
 }
@@ -736,35 +745,41 @@ static ebpf_error_code_t
 _net_ebpf_ext_program_information_encode_bind()
 {
     ebpf_error_code_t return_value;
-    uint8_t* buffer = NULL;
+    const uint8_t* buffer = NULL;
     unsigned long buffer_size = 0;
+#if defined(MSRPC_LIB)
     ebpf_context_descriptor_t bind_context_descriptor = {
         sizeof(bind_md_t), EBPF_OFFSET_OF(bind_md_t, app_id_start), EBPF_OFFSET_OF(bind_md_t, app_id_end), -1};
     ebpf_program_type_descriptor_t bind_program_type = {"bind", &bind_context_descriptor};
     ebpf_program_information_t bind_program_information = {bind_program_type, 0, NULL};
 
-#if defined(MSRPC_LIB)
     return_value = ebpf_program_information_encode(&bind_program_information, &buffer, &buffer_size);
     if (return_value != EBPF_ERROR_SUCCESS)
         goto Done;
 #else
-    UNREFERENCED_PARAMETER(bind_program_information);
+    buffer = _ebpf_encoded_bind_program_information_data;
+    buffer_size = sizeof(_ebpf_encoded_bind_program_information_data);
 #endif
 
     _ebpf_bind_program_information_provider_data = (ebpf_extension_data_t*)ebpf_allocate(
-        sizeof(EBPF_OFFSET_OF(ebpf_extension_data_t, data) + buffer_size), EBPF_MEMORY_NO_EXECUTE);
+        EBPF_OFFSET_OF(ebpf_extension_data_t, data) + buffer_size, EBPF_MEMORY_NO_EXECUTE);
 
     if (_ebpf_bind_program_information_provider_data == NULL) {
         return_value = EBPF_ERROR_OUT_OF_RESOURCES;
         goto Done;
     }
 
+    _ebpf_bind_program_information_provider_data->size =
+        (uint16_t)(EBPF_OFFSET_OF(ebpf_extension_data_t, data) + buffer_size);
+    _ebpf_bind_program_information_provider_data->version = 0;
     memcpy(_ebpf_bind_program_information_provider_data->data, buffer, buffer_size);
 
     return_value = EBPF_ERROR_SUCCESS;
 
 Done:
+#if defined(MSRPC_LIB)
     ebpf_free(buffer);
+#endif
 
     return return_value;
 }
