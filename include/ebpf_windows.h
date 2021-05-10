@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 
-#include "framework.h"
+#include <guiddef.h>
 
 // This file contains eBPF definitions needed by eBPF programs as well as
 // the verifier and execution context.
