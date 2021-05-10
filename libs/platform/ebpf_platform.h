@@ -21,6 +21,11 @@ extern "C"
 
 #define EBPF_MAX_GLOBAL_HELPER_FUNCTION 0xFFFF
 
+#define EBPF_UTF8_STRING_FROM_CONST_STRING(x) \
+    {                                         \
+        ((uint8_t*)(x)), sizeof((x)) - 1      \
+    }
+
     /**
      * @brief A UTF-8 encoded string.
      * Notes:
