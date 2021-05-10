@@ -163,10 +163,31 @@ ebpf_delete_array_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
     key_value = *(uint32_t*)key;
 
     if (key_value > map->ebpf_map_definition.max_entries)
-        return EBPF_ERROR_INVALID_PARAMETER;
+        return EBPF_ERROR_NOT_FOUND;
 
     uint8_t* entry = &map->data[key_value * map->ebpf_map_definition.value_size];
     memset(entry, 0, map->ebpf_map_definition.value_size);
+    return EBPF_ERROR_SUCCESS;
+}
+
+static ebpf_error_code_t
+ebpf_next_array_map_key(_In_ ebpf_core_map_t* map, _In_ const uint8_t* previous_key, _Out_ uint8_t* next_key)
+{
+    uint32_t key_value;
+    if (!map || !next_key)
+        return EBPF_ERROR_INVALID_PARAMETER;
+
+    if (previous_key) {
+        key_value = *(uint32_t*)previous_key;
+        key_value++;
+    } else
+        key_value = 0;
+
+    if (key_value >= map->ebpf_map_definition.max_entries)
+        return EBPF_ERROR_NO_MORE_KEYS;
+
+    *(uint32_t*)next_key = key_value;
+
     return EBPF_ERROR_SUCCESS;
 }
 
@@ -241,13 +262,21 @@ ebpf_update_hash_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _
 {
     ebpf_error_code_t result;
     ebpf_lock_state_t lock_state;
+    size_t entry_count = 0;
+    uint8_t* value;
     if (!map || !key || !data)
         return EBPF_ERROR_INVALID_PARAMETER;
 
     ebpf_lock_lock(&map->lock, &lock_state);
-    result = ebpf_hash_table_update((ebpf_hash_table_t*)map->data, key, data);
+    entry_count = ebpf_hash_table_key_count((ebpf_hash_table_t*)map->data);
+
+    if ((entry_count == map->ebpf_map_definition.max_entries) &&
+        (ebpf_hash_table_find((ebpf_hash_table_t*)map->data, key, &value) != EBPF_ERROR_SUCCESS))
+        result = EBPF_ERROR_INVALID_PARAMETER;
+    else
+        result = ebpf_hash_table_update((ebpf_hash_table_t*)map->data, key, data);
     ebpf_lock_unlock(&map->lock, &lock_state);
-    return EBPF_ERROR_SUCCESS;
+    return result;
 }
 
 static ebpf_error_code_t
@@ -261,7 +290,7 @@ ebpf_delete_hash_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
     ebpf_lock_lock(&map->lock, &lock_state);
     result = ebpf_hash_table_delete((ebpf_hash_table_t*)map->data, key);
     ebpf_lock_unlock(&map->lock, &lock_state);
-    return EBPF_ERROR_SUCCESS;
+    return result;
 }
 
 static ebpf_error_code_t
@@ -294,5 +323,5 @@ ebpf_map_function_table_t ebpf_map_function_tables[] = {
      ebpf_find_array_map_entry,
      ebpf_update_array_map_entry,
      ebpf_delete_array_map_entry,
-     NULL},
+     ebpf_next_array_map_key},
 };

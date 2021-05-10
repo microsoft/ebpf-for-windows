@@ -395,6 +395,15 @@ extern "C"
     ebpf_hash_table_next_key(ebpf_hash_table_t* hash_table, const uint8_t* previous_key, uint8_t* next_key);
 
     /**
+     * @brief Get the number of keys in the hash table
+     *
+     * @param hash_table  Hash-table to query.
+     * @return Count of entries in the hash table.
+     */
+    size_t
+    ebpf_hash_table_key_count(ebpf_hash_table_t* hash_table);
+
+    /**
      * @brief Atomically increase the value of addend by 1 and return the new
      *  value.
      *

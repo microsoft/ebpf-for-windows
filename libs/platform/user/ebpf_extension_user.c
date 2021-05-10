@@ -122,7 +122,7 @@ ebpf_extension_unload(ebpf_extension_client_t* client_context)
     ebpf_extension_provider_t** hash_table_find_result = NULL;
     ebpf_extension_provider_t* local_extension_provider = NULL;
 
-    if (client_context)
+    if (!client_context)
         return;
 
     ebpf_lock_lock(&_ebpf_provider_table_lock, &state);
