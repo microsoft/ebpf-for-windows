@@ -42,6 +42,7 @@
     <ClCompile Include="..\ebpf_hash_table.c" />
     <ClCompile Include="..\ebpf_object.c" />
     <ClCompile Include="..\ebpf_pinning_table.c" />
+    <ClCompile Include="..\ebpf_program_types.c" />
     <ClCompile Include="..\ebpf_trampoline.c" />
     <ClCompile Include="ebpf_extension_kernel.c" />
     <ClCompile Include="ebpf_handle_kernel.c" />
@@ -49,6 +50,49 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\include\ebpf_platform.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\ebpf_program_types.acf" />
+  </ItemGroup>
+  <ItemGroup>
+    <Midl Include="..\ebpf_program_types.idl">
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/acf ..\ebpf_program_types.acf /protocol dce %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">/acf ..\ebpf_program_types.acf /protocol dce %(AdditionalOptions)</AdditionalOptions>
+      <DefaultCharType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Signed</DefaultCharType>
+      <DefaultCharType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Signed</DefaultCharType>
+      <HeaderFileName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(Filename)_h.h</HeaderFileName>
+      <HeaderFileName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(Filename)_h.h</HeaderFileName>
+      <OutputDirectory Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </OutputDirectory>
+      <OutputDirectory Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      </OutputDirectory>
+      <GenerateTypeLibrary Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</GenerateTypeLibrary>
+      <GenerateTypeLibrary Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</GenerateTypeLibrary>
+      <DllDataFileName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </DllDataFileName>
+      <InterfaceIdentifierFileName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </InterfaceIdentifierFileName>
+      <ProxyFileName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ProxyFileName>
+      <TypeLibraryName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </TypeLibraryName>
+      <DllDataFileName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      </DllDataFileName>
+      <InterfaceIdentifierFileName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      </InterfaceIdentifierFileName>
+      <ProxyFileName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      </ProxyFileName>
+      <TypeLibraryName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      </TypeLibraryName>
+      <GenerateClientFiles Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Stub</GenerateClientFiles>
+      <GenerateClientFiles Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Stub</GenerateClientFiles>
+      <GenerateServerFiles Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">None</GenerateServerFiles>
+      <GenerateServerFiles Condition="'$(Configuration)|$(Platform)'=='Release|x64'">None</GenerateServerFiles>
+      <TargetEnvironment Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Win32</TargetEnvironment>
+      <TargetEnvironment Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Win32</TargetEnvironment>
+    </Midl>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{FC3F9998-4085-4767-8386-5453F07C3AAD}</ProjectGuid>
@@ -145,16 +189,22 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <PreprocessorDefinitions>_DEBUG;WINAPI_FAMILY=WINAPI_FAMILY_DESKTOP_APP;WINAPI_PARTITION_DESKTOP=1;WINAPI_PARTITION_SYSTEM=1;WINAPI_PARTITION_APP=1;WINAPI_PARTITION_PC_APP=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;WINAPI_FAMILY=WINAPI_FAMILY_DESKTOP_APP;WINAPI_PARTITION_DESKTOP=1;WINAPI_PARTITION_SYSTEM=1;WINAPI_PARTITION_APP=1;WINAPI_PARTITION_PC_APP=1;%(PreprocessorDefinitions);_KRPCENV_</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)include\kernel;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)include\kernel;$(SolutionDir)libs\platform\kernel;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
+    <Midl>
+      <PreprocessorDefinitions>_KRPCENV_;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </Midl>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <PreprocessorDefinitions>WINAPI_FAMILY=WINAPI_FAMILY_DESKTOP_APP;WINAPI_PARTITION_DESKTOP=1;WINAPI_PARTITION_SYSTEM=1;WINAPI_PARTITION_APP=1;WINAPI_PARTITION_PC_APP=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)include\kernel;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WINAPI_FAMILY=WINAPI_FAMILY_DESKTOP_APP;WINAPI_PARTITION_DESKTOP=1;WINAPI_PARTITION_SYSTEM=1;WINAPI_PARTITION_APP=1;WINAPI_PARTITION_PC_APP=1;%(PreprocessorDefinitions);_KRPCENV_</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)include\kernel;$(SolutionDir)libs\platform\kernel;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
+    <Midl>
+      <PreprocessorDefinitions>_KRPCENV_;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </Midl>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
     <ClCompile>

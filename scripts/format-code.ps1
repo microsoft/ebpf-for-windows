@@ -129,8 +129,8 @@ OPTIONS:
                             ./external, ./packages and ./x64 are excluded.
                             All subdirectories are relative to the current path.
     --include-exts          File extensions to include for formatting. If
-                            unspecified, then *.h, *.c, *.hpp, and *.cpp are
-                            included.
+                            unspecified, then *.h, *.hpp, *.c, *.cpp, *idl, and
+                             *.acf are included.
     --files                 Only run the script against the specified files from
                             the current directory.
 
@@ -164,7 +164,7 @@ To run only against a specified set of comma separated files in the current dire
 function get_find_args()
 {
     $defaultExcludeDirs=@( ".git", "external", "packages", "x64" );
-    $defaultIncludeExts=@( "h", "hpp", "c", "cpp" )
+    $defaultIncludeExts=@( "h", "hpp", "c", "cpp", "idl", "acf" )
 
     $findargs='get-childitem -Recurse -Name "*" -Path "." '
     if ( !($userIncludeExts) ) {

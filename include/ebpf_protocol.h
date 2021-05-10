@@ -3,6 +3,7 @@
  *  SPDX-License-Identifier: MIT
  */
 #pragma once
+#include "ebpf_helpers.h"
 #include "ebpf_windows.h"
 
 typedef enum _ebpf_operation_id

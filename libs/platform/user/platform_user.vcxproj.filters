@@ -60,5 +60,18 @@
     <ClCompile Include="..\ebpf_trampoline.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\ebpf_program_types.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Midl Include="..\ebpf_program_types.idl">
+      <Filter>Source Files</Filter>
+    </Midl>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\ebpf_program_types.acf">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
 </Project>
