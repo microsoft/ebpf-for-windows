@@ -1,0 +1,8 @@
+/*
+ *  Copyright (c) Microsoft Corporation
+ *  SPDX-License-Identifier: MIT
+ */
+
+[explicit_handle] interface ebpf_program_types {
+    typedef[encode, decode, allocate(all_nodes)] ebpf_program_information_pointer_t;
+}

@@ -35,6 +35,7 @@ Environment:
 
 #include "ebpf_nethooks.h"
 #include "ebpf_platform.h"
+#include "ebpf_program_types.h"
 #include "ebpf_windows.h"
 
 typedef struct _net_ebpf_ext_hook_provider_registration
@@ -51,8 +52,8 @@ static net_ebpf_ext_hook_provider_registration_t _ebpf_xdp_hook_provider_registr
 static net_ebpf_ext_hook_provider_registration_t _ebpf_bind_hook_provider_registration = {0};
 static ebpf_extension_provider_t* _ebpf_xdp_program_information_provider = NULL;
 static ebpf_extension_provider_t* _ebpf_bind_program_information_provider = NULL;
-static ebpf_extension_data_t _ebpf_xdp_program_information_provider_data = {0, 0};
-static ebpf_extension_data_t _ebpf_bind_program_information_provider_data = {0, 0};
+static ebpf_extension_data_t* _ebpf_xdp_program_information_provider_data = NULL;
+static ebpf_extension_data_t* _ebpf_bind_program_information_provider_data = NULL;
 
 #define RTL_COUNT_OF(arr) (sizeof(arr) / sizeof(arr[0]))
 
@@ -680,15 +681,114 @@ net_ebpf_ext_unregister_providers()
     ebpf_provider_unload(_ebpf_bind_hook_provider_registration.provider);
 }
 
+void
+net_ebpf_ext_program_information_provider_unregister()
+{
+    ebpf_provider_unload(_ebpf_xdp_program_information_provider);
+    ebpf_provider_unload(_ebpf_bind_program_information_provider);
+    ebpf_free(_ebpf_xdp_program_information_provider_data);
+    _ebpf_xdp_program_information_provider_data = NULL;
+    ebpf_free(_ebpf_bind_program_information_provider_data);
+    _ebpf_bind_program_information_provider_data = NULL;
+}
+
+static ebpf_error_code_t
+_net_ebpf_ext_program_information_encode_xdp()
+{
+    ebpf_error_code_t return_value;
+    uint8_t* buffer = NULL;
+    unsigned long buffer_size = 0;
+    ebpf_context_descriptor_t xdp_context_descriptor = {
+        sizeof(xdp_md_t),
+        EBPF_OFFSET_OF(xdp_md_t, data),
+        EBPF_OFFSET_OF(xdp_md_t, data_end),
+        EBPF_OFFSET_OF(xdp_md_t, data_meta)};
+    ebpf_program_type_descriptor_t xdp_program_type = {"xdp", &xdp_context_descriptor};
+    ebpf_program_information_t xdp_program_information = {xdp_program_type, 0, NULL};
+
+#if defined(MSRPC_LIB)
+    return_value = ebpf_program_information_encode(&xdp_program_information, &buffer, &buffer_size);
+    if (return_value != EBPF_ERROR_SUCCESS)
+        goto Done;
+#else
+    UNREFERENCED_PARAMETER(xdp_program_information);
+#endif
+
+    _ebpf_xdp_program_information_provider_data = (ebpf_extension_data_t*)ebpf_allocate(
+        sizeof(EBPF_OFFSET_OF(ebpf_extension_data_t, data) + buffer_size), EBPF_MEMORY_NO_EXECUTE);
+
+    if (_ebpf_xdp_program_information_provider_data == NULL) {
+        return_value = EBPF_ERROR_OUT_OF_RESOURCES;
+        goto Done;
+    }
+
+    memcpy(_ebpf_xdp_program_information_provider_data->data, buffer, buffer_size);
+
+    return_value = EBPF_ERROR_SUCCESS;
+
+Done:
+    ebpf_free(buffer);
+
+    return return_value;
+}
+
+static ebpf_error_code_t
+_net_ebpf_ext_program_information_encode_bind()
+{
+    ebpf_error_code_t return_value;
+    uint8_t* buffer = NULL;
+    unsigned long buffer_size = 0;
+    ebpf_context_descriptor_t bind_context_descriptor = {
+        sizeof(bind_md_t), EBPF_OFFSET_OF(bind_md_t, app_id_start), EBPF_OFFSET_OF(bind_md_t, app_id_end), -1};
+    ebpf_program_type_descriptor_t bind_program_type = {"bind", &bind_context_descriptor};
+    ebpf_program_information_t bind_program_information = {bind_program_type, 0, NULL};
+
+#if defined(MSRPC_LIB)
+    return_value = ebpf_program_information_encode(&bind_program_information, &buffer, &buffer_size);
+    if (return_value != EBPF_ERROR_SUCCESS)
+        goto Done;
+#else
+    UNREFERENCED_PARAMETER(bind_program_information);
+#endif
+
+    _ebpf_bind_program_information_provider_data = (ebpf_extension_data_t*)ebpf_allocate(
+        sizeof(EBPF_OFFSET_OF(ebpf_extension_data_t, data) + buffer_size), EBPF_MEMORY_NO_EXECUTE);
+
+    if (_ebpf_bind_program_information_provider_data == NULL) {
+        return_value = EBPF_ERROR_OUT_OF_RESOURCES;
+        goto Done;
+    }
+
+    memcpy(_ebpf_bind_program_information_provider_data->data, buffer, buffer_size);
+
+    return_value = EBPF_ERROR_SUCCESS;
+
+Done:
+    ebpf_free(buffer);
+
+    return return_value;
+}
+
 NTSTATUS
 net_ebpf_ext_program_information_provider_register()
 {
     ebpf_error_code_t return_value;
+
+    return_value = _net_ebpf_ext_program_information_encode_xdp();
+    if (return_value != EBPF_ERROR_SUCCESS) {
+        goto Done;
+    }
+
+    return_value = _net_ebpf_ext_program_information_encode_bind();
+    if (return_value != EBPF_ERROR_SUCCESS) {
+        goto Done;
+    }
+
     return_value = ebpf_provider_load(
         &_ebpf_xdp_program_information_provider,
         &EBPF_PROGRAM_TYPE_XDP,
         NULL,
-        &_ebpf_xdp_program_information_provider_data,
+        _ebpf_xdp_program_information_provider_data,
         NULL,
         NULL,
         NULL,
@@ -701,7 +801,7 @@ net_ebpf_ext_program_information_provider_register()
         &_ebpf_bind_program_information_provider,
         &EBPF_PROGRAM_TYPE_BIND,
         NULL,
-        &_ebpf_bind_program_information_provider_data,
+        _ebpf_bind_program_information_provider_data,
         NULL,
         NULL,
         NULL,
@@ -714,14 +814,9 @@ net_ebpf_ext_program_information_provider_register()
 Done:
     if (return_value != EBPF_ERROR_SUCCESS) {
         net_ebpf_ext_program_information_provider_unregister();
+        ebpf_free(_ebpf_xdp_program_information_provider_data);
+        ebpf_free(_ebpf_bind_program_information_provider_data);
         return STATUS_UNSUCCESSFUL;
     } else
         return STATUS_SUCCESS;
-}
-
-void
-net_ebpf_ext_program_information_provider_unregister()
-{
-    ebpf_provider_unload(_ebpf_xdp_program_information_provider);
-    ebpf_provider_unload(_ebpf_bind_program_information_provider);
 }

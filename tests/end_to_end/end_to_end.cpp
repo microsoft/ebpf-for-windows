@@ -15,6 +15,7 @@
 #include "ebpf_core.h"
 #include "ebpf_epoch.h"
 #include "ebpf_pinning_table.h"
+#include "ebpf_program_types.h"
 #include "ebpf_protocol.h"
 #include "mock.h"
 #include "tlv.h"
@@ -1006,4 +1007,32 @@ TEST_CASE("trampoline_test", "[trampoline_test]")
     REQUIRE(test_function() == EBPF_ERROR_DUPLICATE_NAME);
     ebpf_epoch_free(table);
     ebpf_epoch_terminate();
+}
+
+TEST_CASE("program_type_info", "[program_type_info]")
+{
+
+    ebpf_helper_function_prototype_t helper_functions[] = {
+        {1,
+         "ebpf_map_lookup_element",
+         EBPF_RETURN_TYPE_PTR_TO_MAP_VALUE_OR_NULL,
+         {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY}},
+        {2,
+         "ebpf_map_update_element",
+         EBPF_RETURN_TYPE_INTEGER,
+         {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_VALUE}},
+        {3,
+         "ebpf_map_delete_element",
+         EBPF_RETURN_TYPE_PTR_TO_MAP_VALUE_OR_NULL,
+         {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY}},
+    };
+    ebpf_context_descriptor_t context_descriptor{24, 0, 8, -1};
+    ebpf_program_type_descriptor_t program_type{"xdp", &context_descriptor};
+    ebpf_program_information_t program_information{program_type, _countof(helper_functions), helper_functions};
+    ebpf_program_information_t* new_program_information = nullptr;
+    uint8_t* buffer;
+    unsigned long buffer_size;
+    REQUIRE(ebpf_program_information_encode(&program_information, &buffer, &buffer_size) == EBPF_ERROR_SUCCESS);
+    REQUIRE(ebpf_program_information_decode(&new_program_information, buffer, buffer_size) == EBPF_ERROR_SUCCESS);
+    ebpf_free(new_program_information);
 }

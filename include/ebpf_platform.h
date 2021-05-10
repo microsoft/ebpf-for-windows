@@ -570,6 +570,41 @@ extern "C"
     ebpf_build_trampoline_table(
         size_t* entry_count, ebpf_trampoline_entry_t** entries, const ebpf_extension_dispatch_table_t* dispatch_table);
 
+    typedef struct _ebpf_program_information ebpf_program_information_t;
+
+    /**
+     * @brief Serialize an ebpf_program_information_t structure into a flat
+     *  buffer.
+     *
+     * @param[in] program_information ebpf_program_information_t to be serialized.
+     * @param[out] buffer On success, the buffer that contains the serialized
+     *  structure. Must be freed by caller using ebpf_free.
+     * @param[out] buffer_size On success, the size of the serialized buffer.
+     * @retval EBPF_ERROR_SUCCESS The operation succeeded.
+     * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
+     *  operation.
+     */
+    ebpf_error_code_t
+    ebpf_program_information_encode(
+        const ebpf_program_information_t* program_information, uint8_t** buffer, unsigned long* buffer_size);
+
+    /**
+     * @brief Deserialize an ebpf_program_information_t structure from a flat
+     *  buffer.
+     *
+     * @param[out] program_information On success, a newly allocated
+     *  ebpf_program_information_t with the data from the flat buffer. Must be
+     *  freed by the caller using ebpf_free.
+     * @param[in] buffer Buffer containing the serialized structure.
+     * @param[in] buffer_size Size of the buffer.
+     * @retval EBPF_ERROR_SUCCESS The operation succeeded.
+     * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
+     *  operation.
+     */
+    ebpf_error_code_t
+    ebpf_program_information_decode(
+        ebpf_program_information_t** program_information, const uint8_t* buffer, unsigned long buffer_size);
+
 #ifdef __cplusplus
 }
 #endif
