@@ -59,7 +59,7 @@ shutdown_rpc_server()
 
     status = RpcMgmtStopServerListening(nullptr);
     if (status != RPC_S_OK) {
-        // Add a trace that something happened.
+        // TODO: Add a trace that something happened.
         return;
     }
 
