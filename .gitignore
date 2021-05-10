@@ -34,10 +34,13 @@
 /**/*.lock.json
 /**/*.nupkg
 /**/*_args.h
+/**/*_h.h
 /**/*_t.h
 /**/*_u.h
 /**/*_t.c
 /**/*_u.c
+/**/*_c.c
+/**/*_s.c
 /**/HelloWorld
 
 # Generated version files.
