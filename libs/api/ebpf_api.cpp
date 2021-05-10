@@ -12,7 +12,6 @@
 #include "ebpf_protocol.h"
 #include "ebpf_platform.h"
 #include "platform.h"
-#include "tlv.h"
 extern "C"
 {
 #include "ubpf.h"

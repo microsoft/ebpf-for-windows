@@ -52,7 +52,7 @@ Want to help?  We welcome contributions!  See our [Contributing guidelines](CONT
 No.
 
 The eBPF for Windows project leverages existing projects, including
-the [IOVisor uBPF project](https://github.com/iovisor/ubpf) and the
+the [IOVisor uBPF project](https://github.com/iovisor/ubpf) and
 the [PREVAIL verifier](https://github.com/vbpf/ebpf-verifier),
 running them on top of Windows by adding the Windows-specific hosting environment for that code.
 
@@ -82,5 +82,4 @@ maintained by the hypervisor.
 
 Since a hypervisor doing such code integrity checks will refuse to accept code pages that aren't signed by
 a key that the hypervisor trusts, this does impact eBPF programs running natively.  As such, when HVCI
-is enabled, eBPF programs work fine in interpreted mode, but not when using JIT compilation, regardless of whether
-one is using Linux or Windows.
+is enabled, eBPF programs work fine in interpreted mode, but not when using JIT compilation.
