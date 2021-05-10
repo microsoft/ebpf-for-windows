@@ -4,6 +4,7 @@
  */
 #pragma once
 #include "ebpf_windows.h"
+#include "framework.h"
 
 #ifdef __cplusplus
 extern "C"

@@ -2,12 +2,13 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 
-#include "framework.h"
+#include <guiddef.h>
 
 // This file contains eBPF definitions needed by eBPF programs as well as
 // the verifier and execution context.
 
 typedef GUID ebpf_program_type_t;
+typedef GUID ebpf_attach_type_t;
 
 typedef enum _ebpf_helper_function
 {

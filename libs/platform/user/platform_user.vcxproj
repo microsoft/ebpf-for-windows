@@ -23,21 +23,21 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\include\ebpf_handle.h" />
-    <ClInclude Include="..\..\..\include\ebpf_object.h" />
-    <ClInclude Include="..\..\..\include\ebpf_pinning_table.h" />
-    <ClInclude Include="..\..\..\include\ebpf_platform.h" />
-    <ClInclude Include="..\..\..\include\user\framework.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="..\ebpf_handle.c" />
+    <ClCompile Include="..\ebpf_epoch.c" />
     <ClCompile Include="..\ebpf_hash_table.c" />
     <ClCompile Include="..\ebpf_object.c" />
     <ClCompile Include="..\ebpf_pinning_table.c" />
     <ClCompile Include="..\ebpf_program_types.c" />
     <ClCompile Include="..\ebpf_trampoline.c" />
     <ClCompile Include="ebpf_extension_user.c" />
+    <ClCompile Include="ebpf_handle_user.c" />
     <ClCompile Include="ebpf_platform_user.cpp" />
+    <ClInclude Include="..\ebpf_epoch.h" />
+    <ClInclude Include="..\ebpf_handle.h" />
+    <ClInclude Include="..\ebpf_object.h" />
+    <ClInclude Include="..\ebpf_pinning_table.h" />
+    <ClInclude Include="..\ebpf_platform.h" />
+    <ClInclude Include="framework.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\ebpf_program_types.acf" />
@@ -166,7 +166,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)include\user;$(SolutionDir)libs\platform\user</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\user</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
@@ -185,7 +185,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)include\user;$(SolutionDir)libs\platform\user</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\user</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>

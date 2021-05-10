@@ -4,7 +4,6 @@
  */
 
 #pragma once
-#include "ebpf_protocol.h"
 #include "ebpf_windows.h"
 
 #ifdef __cplusplus

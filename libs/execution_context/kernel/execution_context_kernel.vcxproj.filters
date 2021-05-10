@@ -25,36 +25,30 @@
     <ClCompile Include="..\ebpf_link.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\ebpf_maps.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\ebpf_program.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\include\ebpf_core.h">
+    <ClInclude Include="..\ebpf_core.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\include\ebpf_maps.h">
+    <ClInclude Include="..\ebpf_link.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\include\ebpf_platform.h">
+    <ClInclude Include="..\ebpf_maps.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\include\ebpf_protocol.h">
+    <ClInclude Include="..\ebpf_program.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\include\ebpf_windows.h">
+    <ClInclude Include="..\ebpf_protocol.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\include\tlv.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\include\unwind_helper.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\include\windows_platform.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\include\kernel\framework.h">
+    <ClInclude Include="pch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
