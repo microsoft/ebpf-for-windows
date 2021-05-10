@@ -18,9 +18,9 @@ typedef class _single_instance_hook
             ebpf_provider_load(
                 &provider,
                 &attach_type,
-                NULL,
+                nullptr,
                 &provider_data,
-                NULL,
+                nullptr,
                 this,
                 client_attach_callback,
                 client_detach_callback) == EBPF_ERROR_SUCCESS);
@@ -69,9 +69,9 @@ typedef class _single_instance_hook
     client_detach_callback(void* context, const GUID* client_id)
     {
         auto hook = reinterpret_cast<_single_instance_hook*>(context);
-        hook->client_binding_context = NULL;
-        hook->client_data = NULL;
-        hook->client_dispatch_table = NULL;
+        hook->client_binding_context = nullptr;
+        hook->client_data = nullptr;
+        hook->client_dispatch_table = nullptr;
         UNREFERENCED_PARAMETER(client_id);
         return EBPF_ERROR_SUCCESS;
     };
@@ -92,7 +92,7 @@ typedef class _program_information_provider
     _program_information_provider(ebpf_program_type_t program_type) : program_type(program_type)
     {
         REQUIRE(
-            ebpf_provider_load(&provider, &program_type, NULL, &provider_data, NULL, NULL, NULL, NULL) ==
+            ebpf_provider_load(&provider, &program_type, nullptr, &provider_data, nullptr, nullptr, nullptr, nullptr) ==
             EBPF_ERROR_SUCCESS);
     }
     ~_program_information_provider() { ebpf_provider_unload(provider); }

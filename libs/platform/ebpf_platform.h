@@ -397,7 +397,7 @@ extern "C"
     /**
      * @brief Get the number of keys in the hash table
      *
-     * @param hash_table  Hash-table to query.
+     * @param[in] hash_table  Hash-table to query.
      * @return Count of entries in the hash table.
      */
     size_t

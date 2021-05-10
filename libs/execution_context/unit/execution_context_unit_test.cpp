@@ -149,7 +149,7 @@ TEST_CASE("program")
 
     REQUIRE(ebpf_program_get_program_information_data(program.get(), &program_information_data) == EBPF_ERROR_SUCCESS);
 
-    REQUIRE(program_information_data != NULL);
+    REQUIRE(program_information_data != nullptr);
 
     ebpf_map_t* maps[] = {map.get()};
 
@@ -163,12 +163,14 @@ TEST_CASE("program")
     machine_code.jmp_rax = 0xe0ff;
     machine_code.address = (void*)test_function;
 
-    ebpf_program_load_machine_code(program.get(), (uint8_t*)&machine_code, sizeof(machine_code));
+    REQUIRE(
+        ebpf_program_load_machine_code(program.get(), (uint8_t*)&machine_code, sizeof(machine_code)) ==
+        EBPF_ERROR_SUCCESS);
     uint32_t result = 0;
     ebpf_program_invoke(program.get(), nullptr, &result);
     REQUIRE(result == TEST_FUNCTION_RETURN);
 
-    uint64_t address = NULL;
+    uint64_t address = 0;
     REQUIRE(ebpf_program_get_helper_function_address(program.get(), 1, &address) == EBPF_ERROR_SUCCESS);
     REQUIRE(address != 0);
     REQUIRE(ebpf_program_get_helper_function_address(program.get(), 0, &address) == EBPF_ERROR_SUCCESS);
