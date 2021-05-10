@@ -21,6 +21,11 @@ extern "C"
 
 #define EBPF_MAX_GLOBAL_HELPER_FUNCTION 0xFFFF
 
+#define EBPF_UTF8_STRING_FROM_CONST_STRING(x) \
+    {                                         \
+        ((uint8_t*)(x)), sizeof((x)) - 1      \
+    }
+
     /**
      * @brief A UTF-8 encoded string.
      * Notes:
@@ -393,6 +398,15 @@ extern "C"
      */
     ebpf_error_code_t
     ebpf_hash_table_next_key(ebpf_hash_table_t* hash_table, const uint8_t* previous_key, uint8_t* next_key);
+
+    /**
+     * @brief Get the number of keys in the hash table
+     *
+     * @param[in] hash_table  Hash-table to query.
+     * @return Count of entries in the hash table.
+     */
+    size_t
+    ebpf_hash_table_key_count(ebpf_hash_table_t* hash_table);
 
     /**
      * @brief Atomically increase the value of addend by 1 and return the new

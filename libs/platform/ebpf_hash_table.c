@@ -210,3 +210,9 @@ ebpf_hash_table_next_key(ebpf_hash_table_t* hash_table, const uint8_t* previous_
     }
     return EBPF_ERROR_SUCCESS;
 }
+
+size_t
+ebpf_hash_table_key_count(ebpf_hash_table_t* hash_table)
+{
+    return hash_table->avl_table.NumberGenericTableElements;
+}
