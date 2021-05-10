@@ -151,7 +151,6 @@ prepare_udp_packet(uint16_t udp_length)
 
 TEST_CASE("droppacket-jit", "[droppacket_jit]")
 {
-    program_information_provider_t xdp_program_information(EBPF_PROGRAM_TYPE_XDP);
 
     device_io_control_handler = GlueDeviceIoControl;
     create_file_handler = GlueCreateFileW;
@@ -179,6 +178,8 @@ TEST_CASE("droppacket-jit", "[droppacket_jit]")
 
     REQUIRE(ebpf_api_initiate() == ERROR_SUCCESS);
     api_initialized = true;
+
+    program_information_provider_t xdp_program_information(EBPF_PROGRAM_TYPE_XDP);
 
     REQUIRE(
         ebpf_api_load_program(
@@ -234,8 +235,6 @@ TEST_CASE("droppacket-jit", "[droppacket_jit]")
 
 TEST_CASE("droppacket-interpret", "[droppacket_interpret]")
 {
-    program_information_provider_t xdp_program_information(EBPF_PROGRAM_TYPE_XDP);
-
     device_io_control_handler = GlueDeviceIoControl;
     create_file_handler = GlueCreateFileW;
     close_handle_handler = GlueCloseHandle;
@@ -260,6 +259,8 @@ TEST_CASE("droppacket-interpret", "[droppacket_interpret]")
 
     REQUIRE(ebpf_api_initiate() == ERROR_SUCCESS);
     api_initialized = true;
+
+    program_information_provider_t xdp_program_information(EBPF_PROGRAM_TYPE_XDP);
 
     single_instance_hook_t hook;
 
@@ -314,7 +315,6 @@ TEST_CASE("droppacket-interpret", "[droppacket_interpret]")
 
 TEST_CASE("divide_by_zero_jit", "[divide_by_zero_jit]")
 {
-    program_information_provider_t xdp_program_information(EBPF_PROGRAM_TYPE_XDP);
 
     device_io_control_handler = GlueDeviceIoControl;
     create_file_handler = GlueCreateFileW;
@@ -342,6 +342,8 @@ TEST_CASE("divide_by_zero_jit", "[divide_by_zero_jit]")
 
     REQUIRE(ebpf_api_initiate() == ERROR_SUCCESS);
     api_initialized = true;
+
+    program_information_provider_t xdp_program_information(EBPF_PROGRAM_TYPE_XDP);
 
     REQUIRE(
         ebpf_api_load_program(
@@ -490,8 +492,6 @@ set_bind_limit(ebpf_handle_t handle, uint32_t limit)
 
 TEST_CASE("bindmonitor-interpret", "[bindmonitor_interpret]")
 {
-    program_information_provider_t bind_program_information(EBPF_PROGRAM_TYPE_BIND);
-
     device_io_control_handler = GlueDeviceIoControl;
     create_file_handler = GlueCreateFileW;
     close_handle_handler = GlueCloseHandle;
@@ -517,6 +517,8 @@ TEST_CASE("bindmonitor-interpret", "[bindmonitor_interpret]")
 
     REQUIRE(ebpf_api_initiate() == ERROR_SUCCESS);
     api_initialized = true;
+
+    program_information_provider_t bind_program_information(EBPF_PROGRAM_TYPE_BIND);
 
     REQUIRE(
         ebpf_api_load_program(
@@ -635,8 +637,6 @@ TEST_CASE("bindmonitor-interpret", "[bindmonitor_interpret]")
 
 TEST_CASE("enumerate_and_query_programs", "[enumerate_and_query_programs]")
 {
-    program_information_provider_t xdp_program_information(EBPF_PROGRAM_TYPE_XDP);
-
     device_io_control_handler = GlueDeviceIoControl;
     create_file_handler = GlueCreateFileW;
     close_handle_handler = GlueCloseHandle;
@@ -665,6 +665,8 @@ TEST_CASE("enumerate_and_query_programs", "[enumerate_and_query_programs]")
 
     REQUIRE(ebpf_api_initiate() == ERROR_SUCCESS);
     api_initialized = true;
+
+    program_information_provider_t xdp_program_information(EBPF_PROGRAM_TYPE_XDP);
 
     REQUIRE(
         ebpf_api_load_program(
