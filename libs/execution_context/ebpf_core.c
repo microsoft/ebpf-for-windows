@@ -33,10 +33,11 @@ _ebpf_core_map_update_element(ebpf_map_t* map, const uint8_t* key, const uint8_t
 static void
 _ebpf_core_map_delete_element(ebpf_map_t* map, const uint8_t* key);
 
-static const void* _ebpf_program_helpers[] = {NULL,
-                                              (void*)&_ebpf_core_map_find_element,
-                                              (void*)&_ebpf_core_map_update_element,
-                                              (void*)&_ebpf_core_map_delete_element};
+static const void* _ebpf_program_helpers[] = {
+    NULL,
+    (void*)&_ebpf_core_map_find_element,
+    (void*)&_ebpf_core_map_update_element,
+    (void*)&_ebpf_core_map_delete_element};
 
 ebpf_error_code_t
 ebpf_core_initiate()
@@ -572,9 +573,9 @@ static ebpf_error_code_t
 _ebpf_core_protocol_update_pinning(_In_ const struct _ebpf_operation_update_map_pinning_request* request)
 {
     ebpf_error_code_t retval;
-    const ebpf_utf8_string_t name = {(uint8_t*)request->name,
-                                     request->header.length -
-                                         EBPF_OFFSET_OF(ebpf_operation_update_pinning_request_t, name)};
+    const ebpf_utf8_string_t name = {
+        (uint8_t*)request->name,
+        request->header.length - EBPF_OFFSET_OF(ebpf_operation_update_pinning_request_t, name)};
     ebpf_object_t* object = NULL;
 
     if (name.length == 0) {
@@ -687,8 +688,15 @@ _ebpf_core_protocol_get_program_information(
     ebpf_program_t* program = NULL;
     ebpf_extension_data_t* program_information_data;
     size_t required_length;
+    ebpf_program_parameters_t program_parameters = {0};
 
-    retval = ebpf_reference_object_by_handle(request->program_handle, EBPF_OBJECT_PROGRAM, (ebpf_object_t**)&program);
+    retval = ebpf_program_create(&program);
+    if (retval != EBPF_ERROR_SUCCESS)
+        goto Done;
+
+    program_parameters.program_type = request->program_type;
+
+    retval = ebpf_program_initialize(program, &program_parameters);
     if (retval != EBPF_ERROR_SUCCESS)
         goto Done;
 

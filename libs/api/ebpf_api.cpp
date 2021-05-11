@@ -346,13 +346,11 @@ _create_program(
 }
 
 static uint32_t
-_get_program_information_data(ebpf_handle_t program_handle, ebpf_extension_data_t** program_information_data)
+_get_program_information_data(ebpf_program_type_t program_type, ebpf_extension_data_t** program_information_data)
 {
     ebpf_protocol_buffer_t reply_buffer(1024);
     ebpf_operation_get_program_information_request_t request{
-        sizeof(request),
-        ebpf_operation_id_t::EBPF_OPERATION_GET_PROGRAM_INFORMATION,
-        reinterpret_cast<uint64_t>(program_handle)};
+        sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_GET_PROGRAM_INFORMATION, program_type};
 
     auto reply = reinterpret_cast<ebpf_operation_get_program_information_reply_t*>(reply_buffer.data());
     uint32_t retval = invoke_ioctl(device_handle, request, reply_buffer);
@@ -415,7 +413,7 @@ ebpf_api_load_program(
     if (result != ERROR_SUCCESS)
         goto Done;
 
-    result = _get_program_information_data(program_handle, &program_information_data);
+    result = _get_program_information_data(program_type, &program_information_data);
     if (result != ERROR_SUCCESS)
         goto Done;
 
