@@ -46,7 +46,7 @@ typedef struct _ebpf_program_type_descriptor
     MIDL([string])
     const char* name;
     ebpf_context_descriptor_t* context_descriptor;
-    uint64_t platform_specific_data;
+    GUID platform_specific_data;
     char is_privileged;
 } ebpf_program_type_descriptor_t;
 
