@@ -3,6 +3,8 @@
  *  SPDX-License-Identifier: MIT
  */
 
+import "wtypes.idl";
+
 interface ebpf_program_types
 {
     typedef unsigned int uint32_t;

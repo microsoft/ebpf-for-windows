@@ -142,7 +142,7 @@ typedef class _program_information_provider
         };
         ebpf_context_descriptor_t context_descriptor{
             sizeof(bind_md_t), EBPF_OFFSET_OF(bind_md_t, app_id_start), EBPF_OFFSET_OF(bind_md_t, app_id_end), -1};
-        ebpf_program_type_descriptor_t program_type_descriptor{"bind", &context_descriptor};
+        ebpf_program_type_descriptor_t program_type_descriptor{"bind", &context_descriptor, EBPF_PROGRAM_TYPE_BIND};
         ebpf_program_information_t program_information{
             program_type_descriptor, _countof(helper_functions), helper_functions};
         uint8_t* buffer;
@@ -180,7 +180,7 @@ typedef class _program_information_provider
             EBPF_OFFSET_OF(xdp_md_t, data),
             EBPF_OFFSET_OF(xdp_md_t, data_end),
             EBPF_OFFSET_OF(xdp_md_t, data_meta)};
-        ebpf_program_type_descriptor_t program_type_descriptor{"xdp", &context_descriptor};
+        ebpf_program_type_descriptor_t program_type_descriptor{"xdp", &context_descriptor, EBPF_PROGRAM_TYPE_XDP};
         ebpf_program_information_t program_information{
             program_type_descriptor, _countof(helper_functions), helper_functions};
         uint8_t* buffer;

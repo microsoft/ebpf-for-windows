@@ -623,3 +623,22 @@ extern "C"
 #ifdef __cplusplus
 }
 #endif
+
+#ifdef __cplusplus
+#include <memory>
+namespace ebpf_helper {
+
+struct _ebpf_free_functor
+{
+    void
+    operator()(void* memory)
+    {
+        ebpf_free(memory);
+    }
+};
+
+typedef std::unique_ptr<void, _ebpf_free_functor> ebpf_memory_ptr;
+
+} // namespace ebpf_helper
+
+#endif

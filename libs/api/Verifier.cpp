@@ -8,6 +8,10 @@
 #include <sstream>
 #include <sys/stat.h>
 #include "ebpf_api.h"
+#include "ebpf_bind_program_data.h"
+#include "ebpf_platform.h"
+#include "ebpf_xdp_program_data.h"
+
 #pragma warning(push)
 #pragma warning(disable : 4100) // 'identifier' : unreferenced formal parameter
 #pragma warning(disable : 4244) // 'conversion' conversion from 'type1' to
@@ -121,8 +125,8 @@ verify_byte_code(
     const char** error_message)
 {
     const ebpf_platform_t* platform = &g_ebpf_platform_windows;
-    std::vector<ebpf_inst> instructions{(ebpf_inst*)byte_code,
-                                        (ebpf_inst*)byte_code + byte_code_size / sizeof(ebpf_inst)};
+    std::vector<ebpf_inst> instructions{
+        (ebpf_inst*)byte_code, (ebpf_inst*)byte_code + byte_code_size / sizeof(ebpf_inst)};
     program_info info{platform};
     info.type = platform->get_program_type(section_name, path);
 
@@ -169,11 +173,12 @@ ebpf_api_elf_enumerate_sections(
                 }
             }
 
-            sequence.emplace_back(tlv_pack<tlv_sequence>({tlv_pack(raw_program.section.c_str()),
-                                                          tlv_pack(raw_program.info.type.platform_specific_data),
-                                                          tlv_pack(raw_program.info.map_descriptors.size()),
-                                                          tlv_pack(convert_ebpf_program_to_bytes(raw_program.prog)),
-                                                          tlv_pack(stats_sequence)}));
+            sequence.emplace_back(tlv_pack<tlv_sequence>(
+                {tlv_pack(raw_program.section.c_str()),
+                 tlv_pack(raw_program.info.type.platform_specific_data),
+                 tlv_pack(raw_program.info.map_descriptors.size()),
+                 tlv_pack(convert_ebpf_program_to_bytes(raw_program.prog)),
+                 tlv_pack(stats_sequence)}));
         }
 
         auto retval = tlv_pack(sequence);
@@ -226,7 +231,32 @@ ebpf_api_elf_verify_section(
     const char* file, const char* section, bool verbose, const char** report, const char** error_message)
 {
     std::ostringstream error;
+
     std::ostringstream output;
+    ebpf_error_code_t result;
+    ebpf_program_information_t* program_information_xdp = NULL;
+    ebpf_program_information_t* program_information_bind = NULL;
+    ebpf_helper::ebpf_memory_ptr program_information_xdp_ptr;
+    ebpf_helper::ebpf_memory_ptr program_information_bind_ptr;
+
+    result = ebpf_program_information_decode(
+        &program_information_bind,
+        _ebpf_encoded_bind_program_information_data,
+        sizeof(_ebpf_encoded_bind_program_information_data));
+    if (result != ERROR_SUCCESS) {
+        return result;
+    }
+    program_information_bind_ptr.reset(program_information_bind);
+
+    result = ebpf_program_information_decode(
+        &program_information_xdp,
+        _ebpf_encoded_xdp_program_information_data,
+        sizeof(_ebpf_encoded_xdp_program_information_data));
+    if (result != ERROR_SUCCESS) {
+        return result;
+    }
+    program_information_xdp_ptr.reset(program_information_xdp);
+
     try {
         const ebpf_platform_t* platform = &g_ebpf_platform_windows;
         ebpf_verifier_options_t verifier_options = ebpf_verifier_default_options;
