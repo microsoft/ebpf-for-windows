@@ -42,6 +42,7 @@
 /**/*_c.c
 /**/*_s.c
 /**/HelloWorld
+docs/html
 
 # Generated version files.
 .version/**/*
