@@ -9,6 +9,17 @@
 #include "ebpf_platform.h"
 #include "ebpf_program_types.h"
 
+typedef struct _ebpf_free_memory
+{
+    void
+    operator()(uint8_t* memory)
+    {
+        ebpf_free(memory);
+    }
+} ebpf_free_memory_t;
+
+typedef std::unique_ptr<uint8_t, ebpf_free_memory_t> ebpf_memory_t;
+
 typedef class _single_instance_hook
 {
   public:
@@ -97,8 +108,6 @@ typedef class _program_information_provider
             encode_xdp();
         else if (program_type == EBPF_PROGRAM_TYPE_BIND)
             encode_bind();
-        else
-            REQUIRE(program_type == EBPF_PROGRAM_TYPE_UNSPECIFIED);
 
         REQUIRE(
             ebpf_provider_load(
@@ -139,6 +148,8 @@ typedef class _program_information_provider
         uint8_t* buffer;
         unsigned long buffer_size;
         REQUIRE(ebpf_program_information_encode(&program_information, &buffer, &buffer_size) == EBPF_ERROR_SUCCESS);
+        ebpf_memory_t memory(buffer);
+
         provider_data.resize(EBPF_OFFSET_OF(ebpf_extension_data_t, data) + buffer_size);
         ebpf_extension_data_t* extension_data = reinterpret_cast<ebpf_extension_data_t*>(provider_data.data());
         extension_data->size = static_cast<uint16_t>(provider_data.size());
@@ -174,6 +185,8 @@ typedef class _program_information_provider
         uint8_t* buffer;
         unsigned long buffer_size;
         REQUIRE(ebpf_program_information_encode(&program_information, &buffer, &buffer_size) == EBPF_ERROR_SUCCESS);
+        ebpf_memory_t memory(buffer);
+
         provider_data.resize(EBPF_OFFSET_OF(ebpf_extension_data_t, data) + buffer_size);
         ebpf_extension_data_t* extension_data = reinterpret_cast<ebpf_extension_data_t*>(provider_data.data());
         extension_data->size = static_cast<uint16_t>(provider_data.size());
