@@ -84,34 +84,47 @@ load_byte_code(
     const char* sectionname,
     uint8_t* byte_code,
     size_t* byte_code_size,
-    ebpf_program_type_t* program_type)
+    ebpf_program_type_t* program_type,
+    const char** error_message)
 {
-    ebpf_verifier_options_t verifier_options{false, false, false, false};
-    const ebpf_platform_t* platform = &g_ebpf_platform_windows;
+    try {
 
-    auto raw_progs = read_elf(filename, sectionname, &verifier_options, platform);
-    if (raw_progs.size() != 1) {
-        return 1; // Error
-    }
-    raw_program raw_prog = raw_progs.back();
+        ebpf_verifier_options_t verifier_options{false, false, false, false};
+        const ebpf_platform_t* platform = &g_ebpf_platform_windows;
 
-    // Sanity check that we have a program type GUID.
-    if (raw_prog.info.type.platform_specific_data == 0) {
-        return 1; // Error
-    }
-
-    // copy out the bytecode for the jitter
-    size_t ebpf_bytes = raw_prog.prog.size() * sizeof(ebpf_inst);
-    int i = 0;
-    for (ebpf_inst inst : raw_prog.prog) {
-        char* buf = (char*)&inst;
-        for (int j = 0; j < sizeof(ebpf_inst) && i < ebpf_bytes; i++, j++) {
-            byte_code[i] = buf[j];
+        auto raw_progs = read_elf(filename, sectionname, &verifier_options, platform);
+        if (raw_progs.size() != 1) {
+            return 1; // Error
         }
-    }
+        raw_program raw_prog = raw_progs.back();
 
-    *byte_code_size = ebpf_bytes;
-    *program_type = *(const GUID*)raw_prog.info.type.platform_specific_data;
+        // Sanity check that we have a program type GUID.
+        if (raw_prog.info.type.platform_specific_data == 0) {
+            return 1; // Error
+        }
+
+        // copy out the bytecode for the jitter
+        size_t ebpf_bytes = raw_prog.prog.size() * sizeof(ebpf_inst);
+        int i = 0;
+        for (ebpf_inst inst : raw_prog.prog) {
+            char* buf = (char*)&inst;
+            for (int j = 0; j < sizeof(ebpf_inst) && i < ebpf_bytes; i++, j++) {
+                byte_code[i] = buf[j];
+            }
+        }
+
+        *byte_code_size = ebpf_bytes;
+        *program_type = *(const GUID*)raw_prog.info.type.platform_specific_data;
+    } catch (std::runtime_error& err) {
+        auto message = err.what();
+        auto message_length = strlen(message) + 1;
+        char* error = reinterpret_cast<char*>(calloc(message_length + 1, sizeof(char)));
+        if (error) {
+            strcpy_s(error, message_length, message);
+        }
+        *error_message = error;
+        return ERROR_INVALID_PARAMETER;
+    }
 
     return 0;
 }

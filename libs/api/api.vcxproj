@@ -177,7 +177,6 @@
     <ClInclude Include="pch.h" />
     <ClInclude Include="platform.h" />
     <ClInclude Include="tlv.h" />
-    <ClInclude Include="unwind_helper.h" />
     <ClInclude Include="Verifier.h" />
     <ClInclude Include="windows_platform.hpp" />
   </ItemGroup>
