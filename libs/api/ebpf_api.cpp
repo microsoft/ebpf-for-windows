@@ -399,6 +399,8 @@ ebpf_api_load_program(
     uint64_t log_function_address;
     ebpf_extension_data_t* program_information_data = NULL;
     ebpf_program_information_t* program_information = NULL;
+    ebpf_helper::ebpf_memory_ptr program_information_data_ptr;
+    ebpf_helper::ebpf_memory_ptr program_information_ptr;
     _unwind_helper unwind([&] {
         if (vm) {
             ubpf_destroy(vm);
@@ -406,8 +408,6 @@ ebpf_api_load_program(
         for (auto& map : _map_file_descriptors) {
             ebpf_api_close_handle(reinterpret_cast<ebpf_handle_t>(map.handle));
         }
-        ebpf_free(program_information);
-        free(program_information_data);
     });
 
     uint32_t result;
@@ -419,6 +419,8 @@ ebpf_api_load_program(
             return ERROR_INVALID_PARAMETER;
         }
 
+        // TODO: (issue #169): Should switch this to more idiomatic C++
+        // Note: This leaks the program handle on some errors.
         result = _create_program(program_type, file_name, section_name, &program_handle);
         if (result != ERROR_SUCCESS) {
             return result;
@@ -428,8 +430,8 @@ ebpf_api_load_program(
         if (result != ERROR_SUCCESS) {
             return result;
         }
+        program_information_data_ptr.reset(program_information_data);
 
-        // TODO (issue #67): Pass the resulting program information to the verifier.
         result = ebpf_program_information_decode(
             &program_information,
             program_information_data->data,
@@ -437,7 +439,9 @@ ebpf_api_load_program(
         if (result != ERROR_SUCCESS) {
             return result;
         }
+        program_information_ptr.reset(program_information);
 
+        // TODO (issue #67): Pass the resulting program information to the verifier.
         // Verify code.
         if (verify_byte_code(file_name, section_name, byte_code.data(), byte_code_size, error_message) != 0) {
             return ERROR_INVALID_PARAMETER;

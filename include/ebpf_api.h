@@ -4,6 +4,10 @@
  */
 
 #pragma once
+
+#include <stdbool.h>
+#include <stdint.h>
+
 #include "ebpf_windows.h"
 
 #ifdef __cplusplus
