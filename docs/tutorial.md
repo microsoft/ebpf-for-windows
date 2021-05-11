@@ -9,7 +9,7 @@ apply them in a real use case.
 
 # 2. Authoring a simple eBPF Program
 
-Note: This walkthrough is based on the one at [eBPF assembly with LLVM (qmonnet.github.io)](http://releases.llvm.org/7.0.1/LLVM-7.0.1-win64.exe),
+Note: This walkthrough is based on the one at [eBPF assembly with LLVM (qmonnet.github.io)](https://qmonnet.github.io/whirl-offload/2020/04/12/llvm-ebpf-asm/),
 and in fact the same steps should work on both Windows and Linux, including
 in WSL on Windows.  (The only exception is that the llvm-objdump utility will
 fail if you have an old LLVM version in WSL, i.e., if `llvm-objdump -version`
