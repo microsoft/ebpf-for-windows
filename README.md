@@ -25,7 +25,7 @@ The eBPF bytecode is sent to a static verifier (the [PREVAIL verifier](https://g
 that is hosted in a user-mode [protected process](https://docs.microsoft.com/en-us/windows/win32/services/protecting-anti-malware-services-#system-protected-process)
 (a Windows security environment that allows a kernel component to trust a user-mode daemon signed by
 a key that it trusts).  If the bytecode passes all the verifier checks, it can be either loaded into
-an interpreter (from [uBPF](https://github.com/iovisor/ubpf) in the kernel-mode execution context, or
+an interpreter (from [uBPF](https://github.com/iovisor/ubpf) in the kernel-mode execution context), or
 JIT compiled (via the [uBPF](https://github.com/iovisor/ubpf) JIT compiler) and have native code load
 into the kernel-mode execution context (but see the FAQ at bottom about HVCI).
 
