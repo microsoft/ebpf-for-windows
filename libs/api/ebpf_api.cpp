@@ -398,6 +398,7 @@ ebpf_api_load_program(
     struct ubpf_vm* vm = nullptr;
     uint64_t log_function_address;
     ebpf_extension_data_t* program_information_data = NULL;
+    ebpf_program_information_t* program_information = NULL;
     _unwind_helper unwind([&] {
         if (vm) {
             ubpf_destroy(vm);
@@ -405,6 +406,7 @@ ebpf_api_load_program(
         for (auto& map : _map_file_descriptors) {
             ebpf_api_close_handle(reinterpret_cast<ebpf_handle_t>(map.handle));
         }
+        ebpf_free(program_information);
         free(program_information_data);
     });
 
@@ -422,8 +424,16 @@ ebpf_api_load_program(
             return result;
         }
 
-        // TODO (issue #67): Pass the resulting program information to the verifier.
         result = _get_program_information_data(program_handle, &program_information_data);
+        if (result != ERROR_SUCCESS) {
+            return result;
+        }
+
+        // TODO (issue #67): Pass the resulting program information to the verifier.
+        result = ebpf_program_information_decode(
+            &program_information,
+            program_information_data->data,
+            program_information_data->size - EBPF_OFFSET_OF(ebpf_extension_data_t, data));
         if (result != ERROR_SUCCESS) {
             return result;
         }
@@ -686,9 +696,10 @@ ebpf_api_get_next_map(ebpf_handle_t previous_handle, ebpf_handle_t* next_handle)
 uint32_t
 ebpf_api_get_next_program(ebpf_handle_t previous_handle, ebpf_handle_t* next_handle)
 {
-    _ebpf_operation_get_next_program_request request{sizeof(request),
-                                                     ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_PROGRAM,
-                                                     reinterpret_cast<uint64_t>(previous_handle)};
+    _ebpf_operation_get_next_program_request request{
+        sizeof(request),
+        ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_PROGRAM,
+        reinterpret_cast<uint64_t>(previous_handle)};
 
     _ebpf_operation_get_next_program_reply reply;
 

@@ -128,13 +128,11 @@ TEST_CASE("program")
         map.reset(local_map);
     }
 
-    ebpf_program_type_t program_type;
-    ebpf_guid_create(&program_type);
     const ebpf_utf8_string_t program_name{(uint8_t*)("foo"), 3};
     const ebpf_utf8_string_t section_name{(uint8_t*)("bar"), 3};
-    program_information_provider_t program_information_provider(program_type);
+    program_information_provider_t program_information_provider(EBPF_PROGRAM_TYPE_BIND);
 
-    const ebpf_program_parameters_t program_parameters{program_type, program_name, section_name};
+    const ebpf_program_parameters_t program_parameters{EBPF_PROGRAM_TYPE_BIND, program_name, section_name};
     ebpf_program_parameters_t returned_program_parameters{};
     const ebpf_extension_data_t* program_information_data;
 
