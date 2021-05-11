@@ -32,7 +32,11 @@ Environment:
 #include <guiddef.h>
 #include <netiodef.h>
 #include <ntddk.h>
-
+// ebpf_bind_program_data.h and ebpf_xdp_program_data.h are generated
+// headers. encode_program_information generates them from the structs
+// in ebpf_nethooks.h. This workaround exists due to the inability
+// to call RPC serialization services from kernel mode. Once we switch
+// to a different serializer, we can get rid of this work around.
 #include "ebpf_bind_program_data.h"
 #include "ebpf_nethooks.h"
 #include "ebpf_platform.h"

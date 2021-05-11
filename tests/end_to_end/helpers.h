@@ -148,6 +148,7 @@ typedef class _program_information_provider
         uint8_t* buffer;
         unsigned long buffer_size;
         REQUIRE(ebpf_program_information_encode(&program_information, &buffer, &buffer_size) == EBPF_ERROR_SUCCESS);
+        // Capture the buffer so that it's freed on scope exit.
         ebpf_memory_t memory(buffer);
 
         provider_data.resize(EBPF_OFFSET_OF(ebpf_extension_data_t, data) + buffer_size);
@@ -185,6 +186,7 @@ typedef class _program_information_provider
         uint8_t* buffer;
         unsigned long buffer_size;
         REQUIRE(ebpf_program_information_encode(&program_information, &buffer, &buffer_size) == EBPF_ERROR_SUCCESS);
+        // Capture the buffer so that it's freed on scope exit.
         ebpf_memory_t memory(buffer);
 
         provider_data.resize(EBPF_OFFSET_OF(ebpf_extension_data_t, data) + buffer_size);
