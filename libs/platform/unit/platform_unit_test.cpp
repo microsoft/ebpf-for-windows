@@ -16,27 +16,41 @@
 #include "ebpf_platform.h"
 #include "ebpf_pinning_table.h"
 #include "ebpf_program_types.h"
-#include "unwind_helper.h"
 
-TEST_CASE("pinning_test", "[pinning_test]")
+class _test_helper
 {
-
-    bool platform_initiated;
-    _unwind_helper on_exit([&] {
+  public:
+    _test_helper()
+    {
+        ebpf_object_tracking_initiate();
+        REQUIRE(ebpf_platform_initiate() == EBPF_ERROR_SUCCESS);
+        platform_initiated = true;
+        REQUIRE(ebpf_epoch_initiate() == EBPF_ERROR_SUCCESS);
+        epoch_initated = true;
+    }
+    ~_test_helper()
+    {
+        if (epoch_initated)
+            ebpf_epoch_terminate();
         if (platform_initiated)
             ebpf_platform_terminate();
         ebpf_object_tracking_terminate();
-    });
+    }
+
+  private:
+    bool platform_initiated = false;
+    bool epoch_initated = false;
+};
+
+TEST_CASE("pinning_test", "[pinning_test]")
+{
+    _test_helper test_helper;
 
     typedef struct _some_object
     {
         ebpf_object_t object;
         std::string name;
     } some_object_t;
-
-    ebpf_object_tracking_initiate();
-
-    REQUIRE(ebpf_platform_initiate() == EBPF_ERROR_SUCCESS);
 
     some_object_t an_object;
     some_object_t another_object;
@@ -71,14 +85,7 @@ TEST_CASE("pinning_test", "[pinning_test]")
 
 TEST_CASE("epoch_test_single_epoch", "[epoch_test_single_epoch]")
 {
-    bool ep_initialized = false;
-    _unwind_helper on_exit([&] {
-        if (ep_initialized)
-            ebpf_epoch_terminate();
-    });
-
-    REQUIRE(ebpf_epoch_initiate() == EBPF_ERROR_SUCCESS);
-    ep_initialized = true;
+    _test_helper test_helper;
 
     REQUIRE(ebpf_epoch_enter() == EBPF_ERROR_SUCCESS);
     void* memory = ebpf_epoch_allocate(10, EBPF_MEMORY_NO_EXECUTE);
@@ -89,14 +96,7 @@ TEST_CASE("epoch_test_single_epoch", "[epoch_test_single_epoch]")
 
 TEST_CASE("epoch_test_two_threads", "[epoch_test_two_threads]")
 {
-    bool ep_initialized = false;
-    _unwind_helper on_exit([&] {
-        if (ep_initialized)
-            ebpf_epoch_terminate();
-    });
-
-    REQUIRE(ebpf_epoch_initiate() == EBPF_ERROR_SUCCESS);
-    ep_initialized = true;
+    _test_helper test_helper;
 
     auto epoch = []() {
         ebpf_epoch_enter();
@@ -116,6 +116,8 @@ TEST_CASE("epoch_test_two_threads", "[epoch_test_two_threads]")
 
 TEST_CASE("extension_test", "[extension_test]")
 {
+    _test_helper test_helper;
+
     auto client_function = []() { return EBPF_ERROR_SUCCESS; };
     auto provider_function = []() { return EBPF_ERROR_SUCCESS; };
     auto provider_attach = [](void* context,
@@ -184,6 +186,8 @@ TEST_CASE("extension_test", "[extension_test]")
 
 TEST_CASE("trampoline_test", "[trampoline_test]")
 {
+    _test_helper test_helper;
+
     size_t count = 0;
     ebpf_trampoline_entry_t* table = NULL;
     ebpf_error_code_t (*test_function)();
@@ -212,6 +216,7 @@ TEST_CASE("trampoline_test", "[trampoline_test]")
 
 TEST_CASE("program_type_info", "[program_type_info]")
 {
+    _test_helper test_helper;
 
     ebpf_helper_function_prototype_t helper_functions[] = {
         {1,
