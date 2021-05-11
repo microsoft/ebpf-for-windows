@@ -47,6 +47,8 @@ and a few binaries just used for demo'ing eBPF functionality, as in the demo wal
 
 If you're not already familiar with eBPF, or want a detailed walkthrough, see our [eBPF tutorial](tutorial.md).
 
+For API documentation, see https://microsoft.github.io/ebpf-for-windows/
+
 This section shows how to use eBPF for Windows in a demo that defends against a 0-byte UDP attack on a DNS server.
 
 ### Prep
