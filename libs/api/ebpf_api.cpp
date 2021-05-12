@@ -103,7 +103,13 @@ ebpf_api_initiate()
     }
 
     device_handle = Platform::CreateFile(
-        EBPF_DEVICE_WIN32_NAME, GENERIC_READ | GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+        EBPF_DEVICE_WIN32_NAME,
+        GENERIC_READ | GENERIC_WRITE,
+        0,
+        nullptr,
+        CREATE_ALWAYS,
+        FILE_ATTRIBUTE_NORMAL,
+        nullptr);
 
     if (device_handle == INVALID_HANDLE_VALUE) {
         return GetLastError();
@@ -319,8 +325,8 @@ _create_program(
     return retval;
 }
 
-static uint32_t
-_get_program_information_data(ebpf_program_type_t program_type, ebpf_extension_data_t** program_information_data)
+uint32_t
+get_program_information_data(ebpf_program_type_t program_type, ebpf_extension_data_t** program_information_data)
 {
     ebpf_protocol_buffer_t reply_buffer(1024);
     ebpf_operation_get_program_information_request_t request{
@@ -430,12 +436,13 @@ ebpf_api_load_program(
     ebpf_protocol_buffer_t request_buffer;
     struct ubpf_vm* vm = nullptr;
     uint64_t log_function_address;
-    ebpf_extension_data_t* program_information_data = NULL;
-    ebpf_program_information_t* program_information = NULL;
-    ebpf_operation_load_code_request_t* request = NULL;
-    uint32_t error_message_size;
+    ebpf_operation_load_code_request_t* request = nullptr;
+    uint32_t error_message_size = 0;
     std::vector<uintptr_t> handles;
     uint32_t result;
+
+    *handle = 0;
+    *error_message = nullptr;
 
     clear_map_descriptors();
 
@@ -458,18 +465,6 @@ ebpf_api_load_program(
     if (result != ERROR_SUCCESS)
         goto Done;
 
-    result = _get_program_information_data(program_type, &program_information_data);
-    if (result != ERROR_SUCCESS)
-        goto Done;
-
-    result = ebpf_program_information_decode(
-        &program_information,
-        program_information_data->data,
-        program_information_data->size - EBPF_OFFSET_OF(ebpf_extension_data_t, data));
-    if (result != ERROR_SUCCESS)
-        goto Done;
-
-    // TODO (issue #67): Pass the resulting program information to the verifier.
     // Verify code.
     if (verify_byte_code(&program_type, byte_code.data(), byte_code_size, error_message, &error_message_size) != 0) {
         result = ERROR_INVALID_PARAMETER;
@@ -491,7 +486,7 @@ ebpf_api_load_program(
     byte_code.resize(byte_code_size);
     result = resolve_maps_in_byte_code(program_handle, byte_code);
     if (result != ERROR_SUCCESS) {
-        return result;
+        goto Done;
     }
 
     result = resolve_ec_function(EBPF_EC_FUNCTION_LOG, &log_function_address);
@@ -565,9 +560,6 @@ Done:
 
     if (vm)
         ubpf_destroy(vm);
-
-    ebpf_free(program_information_data);
-    ebpf_free(program_information);
 
     if (program_handle != INVALID_HANDLE_VALUE)
         ebpf_api_close_handle(program_handle);

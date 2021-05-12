@@ -3,6 +3,7 @@
  *  SPDX-License-Identifier: MIT
  */
 
+#include <limits.h>
 #include "ebpf_platform.h"
 
 #include "ebpf_program_types_c.c"
@@ -28,12 +29,17 @@ ebpf_program_information_encode(
 
 ebpf_result_t
 ebpf_program_information_decode(
-    ebpf_program_information_t** program_information, const uint8_t* buffer, unsigned long buffer_size)
+    ebpf_program_information_t** program_information, const uint8_t* buffer, size_t buffer_size)
 {
     ebpf_result_t return_value;
     handle_t handle = NULL;
     ebpf_program_information_pointer_t local_program_information = NULL;
     uint8_t* local_buffer = NULL;
+
+    if (buffer_size > ULONG_MAX) {
+        return_value = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
 
     local_buffer = ebpf_allocate(buffer_size, EBPF_MEMORY_NO_EXECUTE);
     if (!local_buffer) {
@@ -43,7 +49,7 @@ ebpf_program_information_decode(
 
     memcpy(local_buffer, buffer, buffer_size);
 
-    RPC_STATUS status = MesDecodeBufferHandleCreate((char*)local_buffer, buffer_size, &handle);
+    RPC_STATUS status = MesDecodeBufferHandleCreate((char*)local_buffer, (unsigned long)buffer_size, &handle);
     if (status != RPC_S_OK) {
         return_value = EBPF_NO_MEMORY;
         goto Done;

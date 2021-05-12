@@ -5,6 +5,8 @@
 #pragma once
 
 #include "config.hpp"
+#include "ebpf_program_types.h"
+#include "ebpf_result.h"
 #undef VOID
 #include "platform.hpp"
 #define VOID void
@@ -20,3 +22,6 @@ load_byte_code(
     size_t* byte_code_size,
     ebpf_program_type_t* program_type,
     const char** error_message);
+
+ebpf_result_t
+get_program_type_info(const ebpf_program_information_t** info);

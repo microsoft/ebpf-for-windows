@@ -7,8 +7,12 @@
 
 #ifdef __midl
 #define MIDL(x) x
+typedef unsigned int uint32_t;
+typedef unsigned long long uint64_t;
 #else
 #define MIDL(x)
+#include <guiddef.h>
+#include <stdint.h>
 #endif
 
 typedef enum _ebpf_helper_return_type
