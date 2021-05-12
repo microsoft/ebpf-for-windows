@@ -131,6 +131,9 @@
     <ProjectReference Include="..\libs\api\api.vcxproj">
       <Project>{c8bf60c3-40a9-43ad-891a-8aa34f1c3a68}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\libs\platform\user\platform_user.vcxproj">
+      <Project>{c26cb6a9-158c-4a9e-a243-755ddd98e5fe}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\libs\ubpf\user\ubpf_user.vcxproj">
       <Project>{245f0ec7-1ebc-4d68-8b1f-f758ea9196ae}</Project>
     </ProjectReference>

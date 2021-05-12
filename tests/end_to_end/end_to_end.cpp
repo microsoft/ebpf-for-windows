@@ -12,7 +12,9 @@
 
 #include "catch2\catch.hpp"
 #include "ebpf_api.h"
+#include "ebpf_bind_program_data.h"
 #include "ebpf_core.h"
+#include "ebpf_xdp_program_data.h"
 #include "helpers.h"
 #include "mock.h"
 #include "tlv.h"
@@ -22,8 +24,6 @@ namespace ebpf {
 #include "../sample/ebpf.h"
 #pragma warning(pop)
 }; // namespace ebpf
-
-#include "unwind_helper.h"
 
 ebpf_handle_t
 GlueCreateFileW(
@@ -147,49 +147,64 @@ prepare_udp_packet(uint16_t udp_length)
     return packet;
 }
 
+class _test_helper
+{
+  public:
+    _test_helper()
+    {
+        device_io_control_handler = GlueDeviceIoControl;
+        create_file_handler = GlueCreateFileW;
+        close_handle_handler = GlueCloseHandle;
+        REQUIRE(ebpf_core_initiate() == EBPF_ERROR_SUCCESS);
+        ec_initialized = true;
+        REQUIRE(ebpf_api_initiate() == ERROR_SUCCESS);
+        api_initialized = true;
+    }
+    ~_test_helper()
+    {
+        if (api_initialized)
+            ebpf_api_terminate();
+        if (ec_initialized)
+            ebpf_core_terminate();
+
+        device_io_control_handler = nullptr;
+        create_file_handler = nullptr;
+        close_handle_handler = nullptr;
+    }
+
+  private:
+    bool ec_initialized = false;
+    bool api_initialized = false;
+};
+
 #define SAMPLE_PATH ""
 
 TEST_CASE("droppacket-jit", "[droppacket_jit]")
 {
-
-    device_io_control_handler = GlueDeviceIoControl;
-    create_file_handler = GlueCreateFileW;
-    close_handle_handler = GlueCloseHandle;
+    _test_helper test_helper;
 
     ebpf_handle_t program_handle;
     ebpf_handle_t map_handle;
     uint32_t count_of_map_handle = 1;
     uint32_t result = 0;
     const char* error_message = NULL;
-    bool ec_initialized = false;
-    bool api_initialized = false;
-    _unwind_helper on_exit([&] {
-        ebpf_api_free_string(error_message);
-        if (api_initialized)
-            ebpf_api_terminate();
-        if (ec_initialized)
-            ebpf_core_terminate();
-    });
-
-    REQUIRE(ebpf_core_initiate() == EBPF_ERROR_SUCCESS);
-    ec_initialized = true;
 
     single_instance_hook_t hook;
-
-    REQUIRE(ebpf_api_initiate() == ERROR_SUCCESS);
-    api_initialized = true;
-
     program_information_provider_t xdp_program_information(EBPF_PROGRAM_TYPE_XDP);
 
     REQUIRE(
-        ebpf_api_load_program(
-            SAMPLE_PATH "droppacket.o",
-            "xdp",
-            EBPF_EXECUTION_JIT,
-            &program_handle,
-            &count_of_map_handle,
-            &map_handle,
-            &error_message) == ERROR_SUCCESS);
+        (result = ebpf_api_load_program(
+             SAMPLE_PATH "droppacket.o",
+             "xdp",
+             EBPF_EXECUTION_JIT,
+             &program_handle,
+             &count_of_map_handle,
+             &map_handle,
+             &error_message),
+         error_message ? printf("ebpf_api_load_program failed with %s\n", error_message) : 0,
+         ebpf_api_free_string(error_message),
+         error_message = nullptr,
+         result == ERROR_SUCCESS));
 
     REQUIRE(hook.attach(program_handle) == ERROR_SUCCESS);
 
@@ -202,7 +217,7 @@ TEST_CASE("droppacket-jit", "[droppacket_jit]")
         ERROR_SUCCESS);
 
     // Test that we drop the packet and increment the map
-    ebpf::xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
+    xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
 
     REQUIRE(hook.fire(&ctx, &result) == EBPF_ERROR_SUCCESS);
     REQUIRE(result == 2);
@@ -220,7 +235,7 @@ TEST_CASE("droppacket-jit", "[droppacket_jit]")
     REQUIRE(value == 0);
 
     packet = prepare_udp_packet(10);
-    ebpf::xdp_md_t ctx2{packet.data(), packet.data() + packet.size()};
+    xdp_md_t ctx2{packet.data(), packet.data() + packet.size()};
 
     REQUIRE(hook.fire(&ctx2, &result) == EBPF_ERROR_SUCCESS);
     REQUIRE(result == 1);
@@ -235,44 +250,31 @@ TEST_CASE("droppacket-jit", "[droppacket_jit]")
 
 TEST_CASE("droppacket-interpret", "[droppacket_interpret]")
 {
-    device_io_control_handler = GlueDeviceIoControl;
-    create_file_handler = GlueCreateFileW;
-    close_handle_handler = GlueCloseHandle;
+    _test_helper test_helper;
 
     ebpf_handle_t program_handle;
     const char* error_message = NULL;
-    bool ec_initialized = false;
-    bool api_initialized = false;
     ebpf_handle_t map_handle;
     uint32_t count_of_map_handle = 1;
-    _unwind_helper on_exit([&] {
-        ebpf_api_free_string(error_message);
-        if (api_initialized)
-            ebpf_api_terminate();
-        if (ec_initialized)
-            ebpf_core_terminate();
-    });
     uint32_t result = 0;
-
-    REQUIRE(ebpf_core_initiate() == EBPF_ERROR_SUCCESS);
-    ec_initialized = true;
-
-    REQUIRE(ebpf_api_initiate() == ERROR_SUCCESS);
-    api_initialized = true;
 
     program_information_provider_t xdp_program_information(EBPF_PROGRAM_TYPE_XDP);
 
     single_instance_hook_t hook;
 
     REQUIRE(
-        ebpf_api_load_program(
-            SAMPLE_PATH "droppacket.o",
-            "xdp",
-            EBPF_EXECUTION_INTERPRET,
-            &program_handle,
-            &count_of_map_handle,
-            &map_handle,
-            &error_message) == ERROR_SUCCESS);
+        (result = ebpf_api_load_program(
+             SAMPLE_PATH "droppacket.o",
+             "xdp",
+             EBPF_EXECUTION_INTERPRET,
+             &program_handle,
+             &count_of_map_handle,
+             &map_handle,
+             &error_message),
+         error_message ? printf("ebpf_api_load_program failed with %s\n", error_message) : 0,
+         ebpf_api_free_string(error_message),
+         error_message = NULL,
+         result == ERROR_SUCCESS));
 
     REQUIRE(hook.attach(program_handle) == ERROR_SUCCESS);
 
@@ -285,7 +287,7 @@ TEST_CASE("droppacket-interpret", "[droppacket_interpret]")
         ERROR_SUCCESS);
 
     // Test that we drop the packet and increment the map
-    ebpf::xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
+    xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
     REQUIRE(hook.fire(&ctx, &result) == EBPF_ERROR_SUCCESS);
     REQUIRE(result == 2);
 
@@ -302,7 +304,7 @@ TEST_CASE("droppacket-interpret", "[droppacket_interpret]")
     REQUIRE(value == 0);
 
     packet = prepare_udp_packet(10);
-    ebpf::xdp_md_t ctx2{packet.data(), packet.data() + packet.size()};
+    xdp_md_t ctx2{packet.data(), packet.data() + packet.size()};
 
     REQUIRE(hook.fire(&ctx2, &result) == EBPF_ERROR_SUCCESS);
     REQUIRE(result == 1);
@@ -315,52 +317,37 @@ TEST_CASE("droppacket-interpret", "[droppacket_interpret]")
 
 TEST_CASE("divide_by_zero_jit", "[divide_by_zero_jit]")
 {
-
-    device_io_control_handler = GlueDeviceIoControl;
-    create_file_handler = GlueCreateFileW;
-    close_handle_handler = GlueCloseHandle;
+    _test_helper test_helper;
 
     ebpf_handle_t program_handle;
     ebpf_handle_t map_handle;
     uint32_t count_of_map_handle = 1;
     uint32_t result = 0;
     const char* error_message = NULL;
-    bool ec_initialized = false;
-    bool api_initialized = false;
-    _unwind_helper on_exit([&] {
-        ebpf_api_free_string(error_message);
-        if (api_initialized)
-            ebpf_api_terminate();
-        if (ec_initialized)
-            ebpf_core_terminate();
-    });
-
-    REQUIRE(ebpf_core_initiate() == EBPF_ERROR_SUCCESS);
-    ec_initialized = true;
 
     single_instance_hook_t hook;
-
-    REQUIRE(ebpf_api_initiate() == ERROR_SUCCESS);
-    api_initialized = true;
-
     program_information_provider_t xdp_program_information(EBPF_PROGRAM_TYPE_XDP);
 
     REQUIRE(
-        ebpf_api_load_program(
-            SAMPLE_PATH "divide_by_zero.o",
-            "xdp",
-            EBPF_EXECUTION_JIT,
-            &program_handle,
-            &count_of_map_handle,
-            &map_handle,
-            &error_message) == ERROR_SUCCESS);
+        (result = ebpf_api_load_program(
+             SAMPLE_PATH "divide_by_zero.o",
+             "xdp",
+             EBPF_EXECUTION_JIT,
+             &program_handle,
+             &count_of_map_handle,
+             &map_handle,
+             &error_message),
+         error_message ? printf("ebpf_api_load_program failed with %s\n", error_message) : 0,
+         ebpf_api_free_string(error_message),
+         error_message = nullptr,
+         result == ERROR_SUCCESS));
 
     REQUIRE(hook.attach(program_handle) == ERROR_SUCCESS);
 
     auto packet = prepare_udp_packet(0);
 
     // Test that we drop the packet and increment the map
-    ebpf::xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
+    xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
 
     REQUIRE(hook.fire(&ctx, &result) == EBPF_ERROR_SUCCESS);
     REQUIRE(result == -1);
@@ -370,26 +357,18 @@ TEST_CASE("divide_by_zero_jit", "[divide_by_zero_jit]")
 
 TEST_CASE("enum section", "[enum sections]")
 {
+    _test_helper test_helper;
+
     const char* error_message = nullptr;
     const tlv_type_length_value_t* section_data = nullptr;
-    bool ec_initialized = false;
-    bool api_initialized = false;
-    _unwind_helper on_exit([&] {
-        ebpf_api_free_string(error_message);
-        ebpf_api_elf_free(section_data);
-        if (api_initialized)
-            ebpf_api_terminate();
-        if (ec_initialized)
-            ebpf_core_terminate();
-    });
-
-    REQUIRE(ebpf_core_initiate() == EBPF_ERROR_SUCCESS);
-    ec_initialized = true;
-    REQUIRE(ebpf_api_initiate() == ERROR_SUCCESS);
-    api_initialized = true;
+    uint32_t result;
 
     REQUIRE(
-        ebpf_api_elf_enumerate_sections(SAMPLE_PATH "droppacket.o", nullptr, true, &section_data, &error_message) == 0);
+        (result =
+             ebpf_api_elf_enumerate_sections(SAMPLE_PATH "droppacket.o", nullptr, true, &section_data, &error_message),
+         ebpf_api_free_string(error_message),
+         error_message = nullptr,
+         result == 0));
     for (auto current_section = tlv_child(section_data); current_section != tlv_next(section_data);
          current_section = tlv_next(current_section)) {
         auto section_name = tlv_child(current_section);
@@ -416,28 +395,19 @@ TEST_CASE("enum section", "[enum sections]")
 
 TEST_CASE("verify section", "[verify section]")
 {
+    _test_helper test_helper;
 
     const char* error_message = nullptr;
     const char* report = nullptr;
-    bool ec_initialized = false;
-    bool api_initialized = false;
-    _unwind_helper on_exit([&] {
-        ebpf_api_free_string(error_message);
-        ebpf_api_free_string(report);
-        if (api_initialized)
-            ebpf_api_terminate();
-        if (ec_initialized)
-            ebpf_core_terminate();
-    });
+    uint32_t result;
 
-    REQUIRE(ebpf_core_initiate() == EBPF_ERROR_SUCCESS);
-    api_initialized = true;
-    REQUIRE(ebpf_api_initiate() == ERROR_SUCCESS);
-    ec_initialized = true;
-
-    REQUIRE(ebpf_api_elf_verify_section(SAMPLE_PATH "droppacket.o", "xdp", false, &report, &error_message) == 0);
+    REQUIRE(
+        (result = ebpf_api_elf_verify_section(SAMPLE_PATH "droppacket.o", "xdp", false, &report, &error_message),
+         ebpf_api_free_string(error_message),
+         error_message = nullptr,
+         result == 0));
     REQUIRE(report != nullptr);
-    REQUIRE(error_message == nullptr);
+    ebpf_api_free_string(report);
 }
 
 typedef struct _process_entry
@@ -456,18 +426,18 @@ get_bind_count_for_pid(ebpf_handle_t handle, uint64_t pid)
     return entry.count;
 }
 
-ebpf::bind_action_t
+bind_action_t
 emulate_bind(single_instance_hook_t& hook, uint64_t pid, const char* appid)
 {
     uint32_t result;
     std::string app_id = appid;
-    ebpf::bind_md_t ctx{0};
+    bind_md_t ctx{0};
     ctx.app_id_start = (uint8_t*)app_id.c_str();
     ctx.app_id_end = (uint8_t*)(app_id.c_str()) + app_id.size();
     ctx.process_id = pid;
-    ctx.operation = ebpf::BIND_OPERATION_BIND;
+    ctx.operation = BIND_OPERATION_BIND;
     REQUIRE(hook.fire(&ctx, &result) == EBPF_ERROR_SUCCESS);
-    return static_cast<ebpf::bind_action_t>(result);
+    return static_cast<bind_action_t>(result);
 }
 
 void
@@ -475,9 +445,9 @@ emulate_unbind(single_instance_hook_t& hook, uint64_t pid, const char* appid)
 {
     uint32_t result;
     std::string app_id = appid;
-    ebpf::bind_md_t ctx{0};
+    bind_md_t ctx{0};
     ctx.process_id = pid;
-    ctx.operation = ebpf::BIND_OPERATION_UNBIND;
+    ctx.operation = BIND_OPERATION_UNBIND;
     REQUIRE(hook.fire(&ctx, &result) == EBPF_ERROR_SUCCESS);
 }
 
@@ -492,44 +462,30 @@ set_bind_limit(ebpf_handle_t handle, uint32_t limit)
 
 TEST_CASE("bindmonitor-interpret", "[bindmonitor_interpret]")
 {
-    device_io_control_handler = GlueDeviceIoControl;
-    create_file_handler = GlueCreateFileW;
-    close_handle_handler = GlueCloseHandle;
+    _test_helper test_helper;
 
     ebpf_handle_t program_handle;
     const char* error_message = NULL;
-    bool ec_initialized = false;
-    bool api_initialized = false;
     ebpf_handle_t map_handles[4];
     uint32_t count_of_map_handles = 2;
     uint64_t fake_pid = 12345;
-
-    _unwind_helper on_exit([&] {
-        ebpf_api_free_string(error_message);
-        if (api_initialized)
-            ebpf_api_terminate();
-        if (ec_initialized)
-            ebpf_core_terminate();
-    });
-
-    REQUIRE(ebpf_core_initiate() == EBPF_ERROR_SUCCESS);
-    ec_initialized = true;
-
-    REQUIRE(ebpf_api_initiate() == ERROR_SUCCESS);
-    api_initialized = true;
+    uint32_t result;
 
     program_information_provider_t bind_program_information(EBPF_PROGRAM_TYPE_BIND);
 
     REQUIRE(
-        ebpf_api_load_program(
-            SAMPLE_PATH "bindmonitor.o",
-            "bind",
-            EBPF_EXECUTION_INTERPRET,
-            &program_handle,
-            &count_of_map_handles,
-            map_handles,
-            &error_message) == ERROR_SUCCESS);
-    REQUIRE(error_message == NULL);
+        (result = ebpf_api_load_program(
+             SAMPLE_PATH "bindmonitor.o",
+             "bind",
+             EBPF_EXECUTION_INTERPRET,
+             &program_handle,
+             &count_of_map_handles,
+             map_handles,
+             &error_message),
+         error_message ? printf("ebpf_api_load_program failed with %s\n", error_message) : 0,
+         ebpf_api_free_string(error_message),
+         error_message = nullptr,
+         result == ERROR_SUCCESS));
 
     single_instance_hook_t hook;
 
@@ -590,15 +546,15 @@ TEST_CASE("bindmonitor-interpret", "[bindmonitor_interpret]")
     set_bind_limit(map_handles[1], 2);
 
     // Bind first port - success
-    REQUIRE(emulate_bind(hook, fake_pid, "fake_app_1") == ebpf::BIND_PERMIT);
+    REQUIRE(emulate_bind(hook, fake_pid, "fake_app_1") == BIND_PERMIT);
     REQUIRE(get_bind_count_for_pid(map_handles[0], fake_pid) == 1);
 
     // Bind second port - success
-    REQUIRE(emulate_bind(hook, fake_pid, "fake_app_1") == ebpf::BIND_PERMIT);
+    REQUIRE(emulate_bind(hook, fake_pid, "fake_app_1") == BIND_PERMIT);
     REQUIRE(get_bind_count_for_pid(map_handles[0], fake_pid) == 2);
 
     // Bind third port - blocked
-    REQUIRE(emulate_bind(hook, fake_pid, "fake_app_1") == ebpf::BIND_DENY);
+    REQUIRE(emulate_bind(hook, fake_pid, "fake_app_1") == BIND_DENY);
     REQUIRE(get_bind_count_for_pid(map_handles[0], fake_pid) == 2);
 
     // Unbind second port
@@ -610,11 +566,11 @@ TEST_CASE("bindmonitor-interpret", "[bindmonitor_interpret]")
     REQUIRE(get_bind_count_for_pid(map_handles[0], fake_pid) == 0);
 
     // Bind from two apps to test enumeration
-    REQUIRE(emulate_bind(hook, fake_pid, "fake_app_1") == ebpf::BIND_PERMIT);
+    REQUIRE(emulate_bind(hook, fake_pid, "fake_app_1") == BIND_PERMIT);
     REQUIRE(get_bind_count_for_pid(map_handles[0], fake_pid) == 1);
 
     fake_pid = 54321;
-    REQUIRE(emulate_bind(hook, fake_pid, "fake_app_2") == ebpf::BIND_PERMIT);
+    REQUIRE(emulate_bind(hook, fake_pid, "fake_app_2") == BIND_PERMIT);
     REQUIRE(get_bind_count_for_pid(map_handles[0], fake_pid) == 1);
 
     uint64_t pid;
@@ -637,56 +593,45 @@ TEST_CASE("bindmonitor-interpret", "[bindmonitor_interpret]")
 
 TEST_CASE("enumerate_and_query_programs", "[enumerate_and_query_programs]")
 {
-    device_io_control_handler = GlueDeviceIoControl;
-    create_file_handler = GlueCreateFileW;
-    close_handle_handler = GlueCloseHandle;
+    _test_helper test_helper;
 
     ebpf_handle_t program_handle;
     ebpf_handle_t map_handles[3];
     uint32_t count_of_map_handle = 1;
     const char* error_message = NULL;
-    bool ec_initialized = false;
-    bool api_initialized = false;
+    uint32_t result;
     const char* file_name = nullptr;
     const char* section_name = nullptr;
-
-    _unwind_helper on_exit([&] {
-        ebpf_api_free_string(error_message);
-        if (api_initialized)
-            ebpf_api_terminate();
-        if (ec_initialized)
-            ebpf_core_terminate();
-        ebpf_api_free_string(file_name);
-        ebpf_api_free_string(section_name);
-    });
-
-    REQUIRE(ebpf_core_initiate() == EBPF_ERROR_SUCCESS);
-    ec_initialized = true;
-
-    REQUIRE(ebpf_api_initiate() == ERROR_SUCCESS);
-    api_initialized = true;
 
     program_information_provider_t xdp_program_information(EBPF_PROGRAM_TYPE_XDP);
 
     REQUIRE(
-        ebpf_api_load_program(
-            SAMPLE_PATH "droppacket.o",
-            "xdp",
-            EBPF_EXECUTION_JIT,
-            &program_handle,
-            &count_of_map_handle,
-            map_handles,
-            &error_message) == ERROR_SUCCESS);
+        (result = ebpf_api_load_program(
+             SAMPLE_PATH "droppacket.o",
+             "xdp",
+             EBPF_EXECUTION_JIT,
+             &program_handle,
+             &count_of_map_handle,
+             map_handles,
+             &error_message),
+         ebpf_api_free_string(error_message),
+         error_message ? printf("ebpf_api_load_program failed with %s\n", error_message) : 0,
+         error_message = nullptr,
+         result == ERROR_SUCCESS));
 
     REQUIRE(
-        ebpf_api_load_program(
-            SAMPLE_PATH "droppacket.o",
-            "xdp",
-            EBPF_EXECUTION_INTERPRET,
-            &program_handle,
-            &count_of_map_handle,
-            map_handles,
-            &error_message) == ERROR_SUCCESS);
+        (result = ebpf_api_load_program(
+             SAMPLE_PATH "droppacket.o",
+             "xdp",
+             EBPF_EXECUTION_INTERPRET,
+             &program_handle,
+             &count_of_map_handle,
+             map_handles,
+             &error_message),
+         ebpf_api_free_string(error_message),
+         error_message ? printf("ebpf_api_load_program failed with %s\n", error_message) : 0,
+         error_message = nullptr,
+         result == ERROR_SUCCESS));
 
     ebpf_execution_type_t type;
     program_handle = INVALID_HANDLE_VALUE;
@@ -694,11 +639,11 @@ TEST_CASE("enumerate_and_query_programs", "[enumerate_and_query_programs]")
     REQUIRE(ebpf_api_program_query_information(program_handle, &type, &file_name, &section_name) == ERROR_SUCCESS);
     REQUIRE(type == EBPF_EXECUTION_JIT);
     REQUIRE(strcmp(file_name, SAMPLE_PATH "droppacket.o") == 0);
+    ebpf_api_free_string(file_name);
+    file_name = nullptr;
     REQUIRE(strcmp(section_name, "xdp") == 0);
     REQUIRE(program_handle != INVALID_HANDLE_VALUE);
-    ebpf_api_free_string(file_name);
     ebpf_api_free_string(section_name);
-    file_name = nullptr;
     section_name = nullptr;
     REQUIRE(ebpf_api_get_next_program(program_handle, &program_handle) == ERROR_SUCCESS);
     REQUIRE(program_handle != INVALID_HANDLE_VALUE);

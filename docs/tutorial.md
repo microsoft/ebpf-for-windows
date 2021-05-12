@@ -9,7 +9,7 @@ apply them in a real use case.
 
 # 2. Authoring a simple eBPF Program
 
-Note: This walkthrough is based on the one at [eBPF assembly with LLVM (qmonnet.github.io)](http://releases.llvm.org/7.0.1/LLVM-7.0.1-win64.exe),
+Note: This walkthrough is based on the one at [eBPF assembly with LLVM (qmonnet.github.io)](https://qmonnet.github.io/whirl-offload/2020/04/12/llvm-ebpf-asm/),
 and in fact the same steps should work on both Windows and Linux, including
 in WSL on Windows.  (The only exception is that the llvm-objdump utility will
 fail if you have an old LLVM version in WSL, i.e., if `llvm-objdump -version`
@@ -85,7 +85,7 @@ func:
 
 In steps 2 and 3, the code is placed into a section called ".text" as can be
 seen from the header in the middle of the disassembly output.  One can list
-all sections in the object file using -h as follows:
+all sections in the object file using `-h` as follows:
 
 ```
 > llvm-objdump --triple=bpf -h bpf.o
@@ -239,7 +239,7 @@ compile successfully.
 
 # 4. Installing the eBPF netsh helper on Windows
 
-Now we're ready to learn how to use eBPF on Windows.  For this tutorial, we only need to install the `netsh` helper.
+Now we're ready to learn how to use eBPF on Windows.  For this tutorial, we only need to install the netsh helper.
 From an Admin command shell, do the following from your ebpf-for-windows directory:
 
 ```
@@ -256,9 +256,8 @@ tutorial to be done on any machine, not just one with the eBPF driver installed 
 **Step 1)** Enumerate sections
 
 In step 4 of part 2, we saw how to use `llvm-objdump -h` to list all sections
-in an object file.  We'll now do the same with `netsh`.  Do the following from
-the directory you used for part 1 (replace "Release" in the path with "Debug" if you only
-built a Debug version in step 3):
+in an object file.  We'll now do the same with netsh.  Do the following from
+the directory you used for part 1:
 
 ```
 > netsh ebpf show sections bpf.o
@@ -282,7 +281,7 @@ built a Debug version in step 3):
 ```
 
 Notice that it only lists non-empty TEXT sections, whereas `llvm-objdump -h`
-showed all sections.  That's because netsh is just looking for eBPF
+showed all sections.  That's because the netsh command is just looking for eBPF
 programs, which are always in non-empty TEXT sections.
 
 `netsh` allows all keywords to be abbreviated, so we could have done
@@ -325,7 +324,7 @@ Verification succeeded
 **Step 2)** View disassembly
 
 In step 2 of part 2, we saw how to use "llvm-objdump -S" to view disassembly.
-We'll now do the same with `netsh`:
+We'll now do the same with netsh:
 
 ```
 > netsh ebpf show disassembly bpf.o
@@ -458,7 +457,7 @@ with negative offset from) the start of the packet buffer.
 Hook points are callouts exposed by the system to which eBPF programs can
 attach.  By convention, the section name of the eBPF program in an ELF file
 is commonly used to designate which hook point the eBPF program is designed
-for.  Specifically, a set of prefix strings are used to match against the
+for.  Specifically, a set of prefix strings are typically used to match against the
 section name.  For example, any section name starting with "xdp" is meant
 as an XDP layer program.  This is a convenient default, but can be
 overridden by an app asking to load an eBPF program, such as when the eBPF program is simply in the
@@ -468,7 +467,7 @@ Each hook point has a specified prototype which must be understood by the
 verifier.  That is, the verifier needs to understand all the hooks for the
 specified platform on which the eBPF program will execute.  The hook points
 are in general different for Linux vs. Windows, as are the prototypes for
-hook points that might be similarly named.
+hook points, though some may be cross-platform.
 
 Typically the first and only argument of the hook point is a context
 structure which contains an arbitrary amount of data.  (Tail calls to
@@ -513,7 +512,7 @@ int my_xdp_parser(ebpf_xdp_args_t* args)
 
 The verifier needs to be enlightened with the same prototype or all
 programs written for that hook will fail verification.  For Windows,
-this info is in the [windows_platform.cpp](../src/ebpf/libs/api/windows_platform.cpp) file,
+this info is temporarily in the [windows_platform.cpp](../libs/api/windows_platform.cpp) file,
 which for the above prototype might have:
 
 ```
@@ -581,7 +580,7 @@ Verification report:
 Notice that the verifier is complaining about access to memory pointed to
 by r1 (since the first argument is in register R1) past the end of the
 valid buffer of size 24.  This illustrates why ideally the same header
-file (xdp.h in the above example) should be included by the ebpf program,
+file (xdp.h in the above example) should be used by the eBPF program,
 the component exposing the hook, and the verifier itself, e.g., so that
 the size of the context struct could be `sizeof(ebpf_xdp_args_t)`
 rather than hardcoding the number 24 in the above example.
@@ -599,8 +598,8 @@ Let's say the following helper function prototype is exposed by Windows:
 ```
 // helpers.h
 #include <stdint.h>
-struct ebpf_map;
-static int (*ebpf_map_update_elem)(struct ebpf_map* map, const void* key, const void* value, uint64_t flags) = (void*) 2;
+struct bpf_map;
+static int (*bpf_map_update_elem)(struct bpf_map* map, const void* key, const void* value, uint64_t flags) = (void*) 2;
 ```
 
 We'll cover in section 6.3 what this function does, but for now we only care about the prototype.
@@ -611,7 +610,7 @@ We can create a sample (but, as we will see, invalid) program like so:
 
 int func()
 {
-    int result = ebpf_map_update_elem((struct ebpf_map*)0, (uint32_t*)0, (uint32_t*)0, 0);
+    int result = bpf_map_update_elem((struct bpf_map*)0, (uint32_t*)0, (uint32_t*)0, 0);
     return result;
 }
 ```
@@ -630,7 +629,7 @@ Disassembly of section .text:
 0000000000000000 func:
 ; {
        0:       b7 01 00 00 00 00 00 00         r1 = 0
-; int result = ebpf_map_update_elem((struct ebpf_map*)0, (uint32_t*)0, (uint32_t*)0, 0);
+; int result = bpf_map_update_elem((struct bpf_map*)0, (uint32_t*)0, (uint32_t*)0, 0);
        1:       b7 02 00 00 00 00 00 00         r2 = 0
        2:       b7 03 00 00 00 00 00 00         r3 = 0
        3:       b7 04 00 00 00 00 00 00         r4 = 0
@@ -641,17 +640,17 @@ Disassembly of section .text:
 
 Now let's see how the verifier deals with this.  The verifier needs to
 know the prototype in order to verify that the eBPF program passes arguments
-correctly, and handles the results correct (e.g., not passing an invalid
+correctly, and handles the results correctly (e.g., not passing an invalid
 value in a pointer argument).
 
 The verifier calls into a `get_helper_prototype(2)` API exposed by
 platform-specific code to query the prototype for a given helper function.
-The platform-specific code ([windows_helpers.cpp](../src/ebpf/libs/api/windows_helpers.cpp)) will return an entry like this one:
+The platform-specific code ([windows_helpers.cpp](../libs/api/windows_helpers.cpp)) will return an entry like this one:
 
 ```
-    {// long ebpf_map_update_elem(struct ebpf_map *map, const void *key,  const
+    {// long ebpf_map_update_element(struct ebpf_map *map, const void *key,  const
      // void *value, uint64_t flags);
-     .name = "ebpf_map_update_elem",
+     .name = "ebpf_map_update_element",
      .return_type = EbpfHelperReturnType::INTEGER,
      .argument_type =
          {
@@ -664,7 +663,9 @@ The platform-specific code ([windows_helpers.cpp](../src/ebpf/libs/api/windows_h
 ```
 
 The above helps the verifier know the type and semantics of the arguments
-and the return value.
+and the return value.  It again illustrates some aliases, where
+"bpf_map" is an alias of "ebpf_map" and "bpf_map_update_elem" is an alias
+of "ebpf_map_update_element".
 
 ```
 > netsh ebpf show disassembly helpers.o
@@ -672,7 +673,7 @@ and the return value.
        1:       r2 = 0
        2:       r3 = 0
        3:       r4 = 0
-       4:       r0 = ebpf_map_update_elem:2(r1:FD, r2:K, r3:V, r4)
+       4:       r0 = ebpf_map_update_element:2(map_fd r1, map_key r2, map_value r3, uint64_t r4)
        5:       exit
 
 > netsh ebpf show verification helpers.o
@@ -681,7 +682,7 @@ error: Verification failed
 
 Verification report:
 
-4: r0 = ebpf_map_update_elem:2(r1:FD, r2:K, r3:V, r4)
+4: r0 = ebpf_map_update_element:2(map_fd r1, map_key r2, map_value r3, uint64_t r4)
   assertion failed: r1 is map_fd
   Code is unreachable after 4
 
@@ -711,7 +712,7 @@ Disassembly of section .text:
 0000000000000000 func:
 ; {
        0:       18 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00         r1 = 0 ll
-; int result = ebpf_map_update_elem((struct ebpf_map*)0, (uint32_t*)0, (uint32_t*)0, 0);
+; int result = bpf_map_update_elem((struct bpf_map*)0, (uint32_t*)0, (uint32_t*)0, 0);
        2:       79 11 00 00 00 00 00 00         r1 = *(u64 *)(r1 + 0)
        3:       b7 02 00 00 00 00 00 00         r2 = 0
        4:       7b 1a f0 ff 00 00 00 00         *(u64 *)(r10 - 16) = r1
@@ -793,7 +794,7 @@ CPUs.
 ```
 #include <stdint.h>
 
-struct ebpf_map {
+struct bpf_map {
     uint32_t size;
     uint32_t type;
     uint32_t key_size;
@@ -803,8 +804,8 @@ struct ebpf_map {
 #define BPF_MAP_TYPE_PERCPU_ARRAY 1
 
 __attribute__((section("maps"), used))
-struct ebpf_map map =
-    {sizeof(struct ebpf_map), BPF_MAP_TYPE_PERCPU_ARRAY, 2, 4, 512};
+struct bpf_map map =
+    {sizeof(struct bpf_map), BPF_MAP_TYPE_PERCPU_ARRAY, 2, 4, 512};
 
 __attribute__((section("myprog"), used))
 int func()
@@ -832,23 +833,22 @@ Contents of section maps:
 
 Now to make use of the map, we have to use helper functions to access it:
 ```
-void *ebpf_map_lookup_elem(struct ebpf_map* map, const void* key);
-int ebpf_map_update_elem(struct ebpf_map* map, const void* key, const void* value, uint64_t flags);
-int ebpf_map_delete_elem(struct ebpf_map* map, const void* key);
+void *bpf_map_lookup_elem(struct bpf_map* map, const void* key);
+int bpf_map_update_elem(struct bpf_map* map, const void* key, const void* value, uint64_t flags);
+int bpf_map_delete_elem(struct bpf_map* map, const void* key);
 ```
 
 Let's update the program to write the value "42" to the map section for the
 current CPU, by changing the "myprog" section to the following:
 ```
-static void* (*ebpf_map_lookup_elem)(struct ebpf_map* map, const void* key) = (void*) 0;
-static int (*ebpf_map_update_elem)(struct ebpf_map *map, const void *key, const void *value, uint64_t flags) = (void*) 1;
+static int (*bpf_map_update_elem)(struct bpf_map *map, const void *key, const void *value, uint64_t flags) = (void*) 2;
 
 __attribute__((section("myprog"), used))
 int func1()
 {
     uint32_t key = 0;
     uint32_t value = 42;
-    int result = ebpf_map_update_elem(&map, &key, &value, 0);
+    int result = bpf_map_update_elem(&map, &key, &value, 0);
     return result;
 }
 ```
@@ -873,15 +873,15 @@ func1:
        5:       07 02 00 00 fc ff ff ff         r2 += -4
        6:       bf a3 00 00 00 00 00 00         r3 = r10
        7:       07 03 00 00 f8 ff ff ff         r3 += -8
-; int result = ebpf_map_update_elem(&map, &key, &value, 0);
+; int result = bpf_map_update_elem(&map, &key, &value, 0);
        8:       18 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00         r1 = 0 ll
       10:       b7 04 00 00 00 00 00 00         r4 = 0
-      11:       85 00 00 00 01 00 00 00         call 1
+      11:       85 00 00 00 02 00 00 00         call 2
 ; return result;
       12:       95 00 00 00 00 00 00 00         exit
 ```
 
-Above shows "call 1", but `netsh` shows more details
+Above shows "call 2", but `netsh` shows more details
 ```
 > netsh ebpf show disassembly map.o
        0:       r1 = 0
@@ -894,13 +894,13 @@ Above shows "call 1", but `netsh` shows more details
        7:       r3 += -8
        8:       r1 = map_fd 1026
       10:       r4 = 0
-      11:       r0 = ebpf_map_update_elem:1(r1:FD, r2:K, r3:V, r4)
+      11:       r0 = ebpf_map_update_element:2(map_fd r1, map_key r2, map_value r3, uint64_t r4)
       12:       exit
 ````
 
 Notice from instruction 11 that `netsh` understands that
-`ebpf_map_update_elem()` expects
-a file descriptor (FD) in R1, a key in R2, a value in R3, and R4 can be
+`ebpf_map_update_element()` (an alias of `bpf_map_update_elem()`) expects
+a map file descriptor (FD) in R1, a map key in R2, a map value in R3, and R4 can be
 anything.
 
 R1 was set in instruction 8 to a map FD value of 1026.  Where did that value

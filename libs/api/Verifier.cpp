@@ -8,6 +8,10 @@
 #include <sstream>
 #include <sys/stat.h>
 #include "ebpf_api.h"
+#include "ebpf_bind_program_data.h"
+#include "ebpf_platform.h"
+#include "ebpf_xdp_program_data.h"
+
 #pragma warning(push)
 #pragma warning(disable : 4100) // 'identifier' : unreferenced formal parameter
 #pragma warning(disable : 4244) // 'conversion' conversion from 'type1' to
@@ -80,34 +84,47 @@ load_byte_code(
     const char* sectionname,
     uint8_t* byte_code,
     size_t* byte_code_size,
-    ebpf_program_type_t* program_type)
+    ebpf_program_type_t* program_type,
+    const char** error_message)
 {
-    ebpf_verifier_options_t verifier_options{false, false, false, false};
-    const ebpf_platform_t* platform = &g_ebpf_platform_windows;
+    try {
 
-    auto raw_progs = read_elf(filename, sectionname, &verifier_options, platform);
-    if (raw_progs.size() != 1) {
-        return 1; // Error
-    }
-    raw_program raw_prog = raw_progs.back();
+        ebpf_verifier_options_t verifier_options{false, false, false, false};
+        const ebpf_platform_t* platform = &g_ebpf_platform_windows;
 
-    // Sanity check that we have a program type GUID.
-    if (raw_prog.info.type.platform_specific_data == 0) {
-        return 1; // Error
-    }
-
-    // copy out the bytecode for the jitter
-    size_t ebpf_bytes = raw_prog.prog.size() * sizeof(ebpf_inst);
-    int i = 0;
-    for (ebpf_inst inst : raw_prog.prog) {
-        char* buf = (char*)&inst;
-        for (int j = 0; j < sizeof(ebpf_inst) && i < ebpf_bytes; i++, j++) {
-            byte_code[i] = buf[j];
+        auto raw_progs = read_elf(filename, sectionname, &verifier_options, platform);
+        if (raw_progs.size() != 1) {
+            return 1; // Error
         }
-    }
+        raw_program raw_prog = raw_progs.back();
 
-    *byte_code_size = ebpf_bytes;
-    *program_type = *(const GUID*)raw_prog.info.type.platform_specific_data;
+        // Sanity check that we have a program type GUID.
+        if (raw_prog.info.type.platform_specific_data == 0) {
+            return 1; // Error
+        }
+
+        // copy out the bytecode for the jitter
+        size_t ebpf_bytes = raw_prog.prog.size() * sizeof(ebpf_inst);
+        int i = 0;
+        for (ebpf_inst inst : raw_prog.prog) {
+            char* buf = (char*)&inst;
+            for (int j = 0; j < sizeof(ebpf_inst) && i < ebpf_bytes; i++, j++) {
+                byte_code[i] = buf[j];
+            }
+        }
+
+        *byte_code_size = ebpf_bytes;
+        *program_type = *(const GUID*)raw_prog.info.type.platform_specific_data;
+    } catch (std::runtime_error& err) {
+        auto message = err.what();
+        auto message_length = strlen(message) + 1;
+        char* error = reinterpret_cast<char*>(calloc(message_length + 1, sizeof(char)));
+        if (error) {
+            strcpy_s(error, message_length, message);
+        }
+        *error_message = error;
+        return ERROR_INVALID_PARAMETER;
+    }
 
     return 0;
 }
@@ -227,7 +244,32 @@ ebpf_api_elf_verify_section(
     const char* file, const char* section, bool verbose, const char** report, const char** error_message)
 {
     std::ostringstream error;
+
     std::ostringstream output;
+    ebpf_error_code_t result;
+    ebpf_program_information_t* program_information_xdp = NULL;
+    ebpf_program_information_t* program_information_bind = NULL;
+    ebpf_helper::ebpf_memory_ptr program_information_xdp_ptr;
+    ebpf_helper::ebpf_memory_ptr program_information_bind_ptr;
+
+    result = ebpf_program_information_decode(
+        &program_information_bind,
+        _ebpf_encoded_bind_program_information_data,
+        sizeof(_ebpf_encoded_bind_program_information_data));
+    if (result != ERROR_SUCCESS) {
+        return result;
+    }
+    program_information_bind_ptr.reset(program_information_bind);
+
+    result = ebpf_program_information_decode(
+        &program_information_xdp,
+        _ebpf_encoded_xdp_program_information_data,
+        sizeof(_ebpf_encoded_xdp_program_information_data));
+    if (result != ERROR_SUCCESS) {
+        return result;
+    }
+    program_information_xdp_ptr.reset(program_information_xdp);
+
     try {
         const ebpf_platform_t* platform = &g_ebpf_platform_windows;
         ebpf_verifier_options_t verifier_options = ebpf_verifier_default_options;
