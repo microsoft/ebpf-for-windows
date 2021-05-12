@@ -27,6 +27,7 @@
 #define _countof(_Array) (sizeof(_Array) / sizeof(_Array[0]))
 #endif
 
+#define stderr 0
 #define fprintf NULL
 
 #include "ubpf_vm.c"

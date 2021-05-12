@@ -500,7 +500,8 @@ ebpf_api_load_program(
             }
         }
 
-        set_error_print(vm, reinterpret_cast<int (*)(FILE * stream, const char* format, ...)>(log_function_address));
+        ubpf_set_error_print(
+            vm, reinterpret_cast<int (*)(FILE * stream, const char* format, ...)>(log_function_address));
 
         if (ubpf_load(
                 vm, byte_code.data(), static_cast<uint32_t>(byte_code.size()), const_cast<char**>(error_message)) < 0) {
