@@ -1,0 +1,46 @@
+# Copyright (c) Microsoft Corporation
+# SPDX-License-Identifier: MIT
+
+# This action will run doxygen to update the documentation at https://microsoft.github.io/ebpf-for-windows/
+# which is a view of the gh-pages branch.  This action is done whenever the master branch is updated.
+# For docs on gh-pages see https://pages.github.com/
+#
+# The following two links discuss steps similar to this action so may be useful reading
+# to understand how the automatic update works:
+#  https://growworkinghard.altervista.org/doxygen-documentation-on-github-using-gh-pages/
+#  https://github.com/m-a-d-n-e-s-s/madness/issues/104
+
+name: Doxygen Action
+
+# Controls when the action will run. Triggers the workflow on push # events
+# but only for the master branch
+on:
+  push:
+    branches: [ master ]
+
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+
+    - name: Install doxygen
+      run: |
+        sudo apt install doxygen
+
+    - uses: actions/checkout@v2
+
+    - name: Clone docs
+      run: |
+        git config --global user.email 'ebpf-for-windows@users.noreply.github.com'
+        git config --global user.name 'Github Action'
+        git clone --branch gh-pages https://github.com/microsoft/ebpf-for-windows.git docs/html
+
+    - name: Update docs
+      run: |
+        doxygen
+        cd docs/html
+        git commit -s -am "Updated documentation"
+        git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/microsoft/ebpf-for-windows.git
+        git push
