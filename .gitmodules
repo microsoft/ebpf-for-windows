@@ -4,5 +4,5 @@
 
 [submodule "external/ubpf"]
 	path = external/ubpf
-	url = https://github.com/Alan-Jowett/ubpf.git
-	branch = win32
+	url = https://github.com/iovisor/ubpf.git
+	branch = master
