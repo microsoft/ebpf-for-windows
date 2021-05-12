@@ -62,7 +62,7 @@ https://cla.opensource.microsoft.com/.
 ## Contributing Code
 
 For all but the absolute simplest changes, first
-[submit a GitHub Issue](https://github.com/microsoft/msquic/issues/new/choose) so that the
+[submit a GitHub Issue](https://github.com/microsoft/ebpf-for-windows/issues/new) so that the
 community can review and provide feedback. Getting early feedback will help ensure your work
 is accepted by the community. This will also allow us to better coordinate our efforts and
 minimize duplicated effort.

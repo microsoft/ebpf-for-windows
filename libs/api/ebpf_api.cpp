@@ -16,7 +16,6 @@ extern "C"
 {
 #include "ubpf.h"
 }
-#include "unwind_helper.h"
 #include "Verifier.h"
 
 #define MAX_CODE_SIZE (32 * 1024) // 32 KB
@@ -347,13 +346,11 @@ _create_program(
 }
 
 static uint32_t
-_get_program_information_data(ebpf_handle_t program_handle, ebpf_extension_data_t** program_information_data)
+_get_program_information_data(ebpf_program_type_t program_type, ebpf_extension_data_t** program_information_data)
 {
     ebpf_protocol_buffer_t reply_buffer(1024);
     ebpf_operation_get_program_information_request_t request{
-        sizeof(request),
-        ebpf_operation_id_t::EBPF_OPERATION_GET_PROGRAM_INFORMATION,
-        reinterpret_cast<uint64_t>(program_handle)};
+        sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_GET_PROGRAM_INFORMATION, program_type};
 
     auto reply = reinterpret_cast<ebpf_operation_get_program_information_reply_t*>(reply_buffer.data());
     uint32_t retval = invoke_ioctl(device_handle, request, reply_buffer);
@@ -390,7 +387,7 @@ ebpf_api_load_program(
     ebpf_handle_t* map_handles,
     const char** error_message)
 {
-    ebpf_handle_t program_handle;
+    ebpf_handle_t program_handle = INVALID_HANDLE_VALUE;
     ebpf_program_type_t program_type;
     ebpf_code_buffer_t byte_code(MAX_CODE_SIZE);
     size_t byte_code_size = byte_code.size();
@@ -399,66 +396,44 @@ ebpf_api_load_program(
     uint64_t log_function_address;
     ebpf_extension_data_t* program_information_data = NULL;
     ebpf_program_information_t* program_information = NULL;
-    ebpf_helper::ebpf_memory_ptr program_information_data_ptr;
-    ebpf_helper::ebpf_memory_ptr program_information_ptr;
-    _unwind_helper unwind([&] {
-        if (vm) {
-            ubpf_destroy(vm);
-        }
-        for (auto& map : _map_file_descriptors) {
-            ebpf_api_close_handle(reinterpret_cast<ebpf_handle_t>(map.handle));
-        }
-    });
+    ebpf_operation_load_code_request_t* request = NULL;
 
     uint32_t result;
 
-    try {
-        _map_file_descriptors.resize(0);
+    _map_file_descriptors.resize(0);
 
-        if (load_byte_code(file_name, section_name, byte_code.data(), &byte_code_size, &program_type) != 0) {
-            return ERROR_INVALID_PARAMETER;
-        }
+    if (load_byte_code(file_name, section_name, byte_code.data(), &byte_code_size, &program_type, error_message) != 0) {
+        result = ERROR_INVALID_PARAMETER;
+        goto Done;
+    }
 
-        // TODO: (issue #169): Should switch this to more idiomatic C++
-        // Note: This leaks the program handle on some errors.
-        result = _create_program(program_type, file_name, section_name, &program_handle);
-        if (result != ERROR_SUCCESS) {
-            return result;
-        }
+    // TODO: (issue #169): Should switch this to more idiomatic C++
+    // Note: This leaks the program handle on some errors.
+    result = _create_program(program_type, file_name, section_name, &program_handle);
+    if (result != ERROR_SUCCESS)
+        goto Done;
 
-        result = _get_program_information_data(program_handle, &program_information_data);
-        if (result != ERROR_SUCCESS) {
-            return result;
-        }
-        program_information_data_ptr.reset(program_information_data);
+    result = _get_program_information_data(program_type, &program_information_data);
+    if (result != ERROR_SUCCESS)
+        goto Done;
 
-        result = ebpf_program_information_decode(
-            &program_information,
-            program_information_data->data,
-            program_information_data->size - EBPF_OFFSET_OF(ebpf_extension_data_t, data));
-        if (result != ERROR_SUCCESS) {
-            return result;
-        }
-        program_information_ptr.reset(program_information);
+    result = ebpf_program_information_decode(
+        &program_information,
+        program_information_data->data,
+        program_information_data->size - EBPF_OFFSET_OF(ebpf_extension_data_t, data));
+    if (result != ERROR_SUCCESS)
+        goto Done;
 
-        // TODO (issue #67): Pass the resulting program information to the verifier.
-        // Verify code.
-        if (verify_byte_code(file_name, section_name, byte_code.data(), byte_code_size, error_message) != 0) {
-            return ERROR_INVALID_PARAMETER;
-        }
-    } catch (std::runtime_error& err) {
-        auto message = err.what();
-        auto message_length = strlen(message) + 1;
-        char* error = reinterpret_cast<char*>(calloc(message_length + 1, sizeof(char)));
-        if (error) {
-            strcpy_s(error, message_length, message);
-        }
-        *error_message = error;
-        return ERROR_INVALID_PARAMETER;
+    // TODO (issue #67): Pass the resulting program information to the verifier.
+    // Verify code.
+    if (verify_byte_code(file_name, section_name, byte_code.data(), byte_code_size, error_message) != 0) {
+        result = ERROR_INVALID_PARAMETER;
+        goto Done;
     }
 
     if (_map_file_descriptors.size() > *count_of_map_handles) {
-        return ERROR_INSUFFICIENT_BUFFER;
+        result = ERROR_INSUFFICIENT_BUFFER;
+        goto Done;
     }
 
     *count_of_map_handles = 0;
@@ -474,30 +449,26 @@ ebpf_api_load_program(
     }
 
     result = resolve_ec_function(EBPF_EC_FUNCTION_LOG, &log_function_address);
-    if (result != ERROR_SUCCESS) {
-        return result;
-    }
+    if (result != ERROR_SUCCESS)
+        goto Done;
 
     if (execution_type == EBPF_EXECUTION_JIT) {
         std::map<uint32_t, uint64_t> helper_id_to_adddress;
         result = build_helper_id_to_address_map(program_handle, byte_code, helper_id_to_adddress);
-        if (result != ERROR_SUCCESS) {
-            return result;
-        }
+        if (result != ERROR_SUCCESS)
+            goto Done;
 
         ebpf_code_buffer_t machine_code(MAX_CODE_SIZE);
         size_t machine_code_size = machine_code.size();
 
         // JIT code.
         vm = ubpf_create();
-        if (vm == nullptr) {
-            return ERROR_OUTOFMEMORY;
-        }
+        if (vm == nullptr)
+            goto Done;
 
         for (const auto& helper : helper_id_to_adddress) {
-            if (ubpf_register(vm, helper.first, nullptr, reinterpret_cast<void*>(helper.second)) < 0) {
-                return ERROR_INVALID_PARAMETER;
-            }
+            if (ubpf_register(vm, helper.first, nullptr, reinterpret_cast<void*>(helper.second)) < 0)
+                goto Done;
         }
 
         ubpf_set_error_print(
@@ -505,18 +476,20 @@ ebpf_api_load_program(
 
         if (ubpf_load(
                 vm, byte_code.data(), static_cast<uint32_t>(byte_code.size()), const_cast<char**>(error_message)) < 0) {
-            return ERROR_INVALID_PARAMETER;
+            result = ERROR_INVALID_PARAMETER;
+            goto Done;
         }
 
         if (ubpf_translate(vm, machine_code.data(), &machine_code_size, const_cast<char**>(error_message))) {
-            return ERROR_INVALID_PARAMETER;
+            result = ERROR_INVALID_PARAMETER;
+            goto Done;
         }
         machine_code.resize(machine_code_size);
         byte_code = machine_code;
     }
 
     request_buffer.resize(offsetof(ebpf_operation_load_code_request_t, code) + byte_code.size());
-    auto request = reinterpret_cast<ebpf_operation_load_code_request_t*>(request_buffer.data());
+    request = reinterpret_cast<ebpf_operation_load_code_request_t*>(request_buffer.data());
     request->header.id = ebpf_operation_id_t::EBPF_OPERATION_LOAD_CODE;
     request->header.length = static_cast<uint16_t>(request_buffer.size());
     request->program_handle = reinterpret_cast<uint64_t>(program_handle);
@@ -529,15 +502,29 @@ ebpf_api_load_program(
 
     result = invoke_ioctl(device_handle, request_buffer);
 
-    if (result != ERROR_SUCCESS) {
-        return result;
-    }
+    if (result != ERROR_SUCCESS)
+        goto Done;
 
     *handle = program_handle;
+    program_handle = INVALID_HANDLE_VALUE;
 
-    if (result == ERROR_SUCCESS) {
-        _map_file_descriptors.clear();
+Done:
+    if (result != ERROR_SUCCESS) {
+        for (const auto& map : _map_file_descriptors) {
+            ebpf_api_close_handle((ebpf_handle_t)map.handle);
+        }
     }
+    _map_file_descriptors.resize(0);
+
+    if (vm)
+        ubpf_destroy(vm);
+
+    ebpf_free(program_information_data);
+    ebpf_free(program_information);
+
+    if (program_handle != INVALID_HANDLE_VALUE)
+        ebpf_api_close_handle(program_handle);
+
     return result;
 }
 

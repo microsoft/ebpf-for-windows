@@ -39,9 +39,6 @@
     <ClInclude Include="tlv.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="unwind_helper.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Verifier.h">
       <Filter>Header Files</Filter>
     </ClInclude>
