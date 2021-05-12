@@ -251,7 +251,7 @@ typedef struct _ebpf_operation_get_ec_function_reply
 typedef struct _ebpf_operation_get_program_information_request
 {
     struct _ebpf_operation_header header;
-    uint64_t program_handle;
+    ebpf_program_type_t program_type;
 } ebpf_operation_get_program_information_request_t;
 
 typedef struct _ebpf_operation_get_program_information_reply
