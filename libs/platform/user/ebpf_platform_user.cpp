@@ -343,3 +343,85 @@ ebpf_log_function(void* context, const char* format_string, ...)
     UNREFERENCED_PARAMETER(format_string);
     return 0;
 }
+
+ebpf_error_code_t
+ebpf_access_check(
+    ebpf_security_descriptor_t* security_descriptor,
+    ebpf_security_access_mask_t request_access,
+    ebpf_security_generic_mapping_t* generic_mapping)
+{
+    ebpf_error_code_t result;
+    HANDLE token = INVALID_HANDLE_VALUE;
+    BOOL access_status = FALSE;
+    DWORD granted_access;
+    uint32_t privilege_set[sizeof(PRIVILEGE_SET)];
+    DWORD privilege_set_size = sizeof(privilege_set);
+    bool is_impersonating = false;
+
+    if (!ImpersonateSelf(SecurityImpersonation)) {
+        result = EBPF_ERROR_ACCESS_DENIED;
+        goto Done;
+    }
+    is_impersonating = true;
+    if (!OpenThreadToken(GetCurrentThread(), TOKEN_QUERY, TRUE, &token)) {
+        result = EBPF_ERROR_ACCESS_DENIED;
+        goto Done;
+    }
+
+    if (!AccessCheck(
+            security_descriptor,
+            token,
+            request_access,
+            generic_mapping,
+            (PRIVILEGE_SET*)privilege_set,
+            &privilege_set_size,
+            &granted_access,
+            &access_status)) {
+        DWORD err = GetLastError();
+        printf("LastError: %d\n", err);
+        result = EBPF_ERROR_ACCESS_DENIED;
+    } else
+        result = access_status ? EBPF_ERROR_SUCCESS : EBPF_ERROR_ACCESS_DENIED;
+
+Done:
+    if (token != INVALID_HANDLE_VALUE)
+        CloseHandle(token);
+
+    if (is_impersonating)
+        RevertToSelf();
+    return result;
+}
+
+ebpf_error_code_t
+ebpf_validate_security_descriptor(ebpf_security_descriptor_t* security_descriptor, size_t security_descriptor_length)
+{
+    ebpf_error_code_t result;
+    SECURITY_DESCRIPTOR_CONTROL security_descriptor_control;
+    DWORD version;
+    DWORD length;
+    if (!IsValidSecurityDescriptor(security_descriptor)) {
+        result = EBPF_ERROR_INVALID_PARAMETER;
+        goto Done;
+    }
+
+    if (!GetSecurityDescriptorControl(security_descriptor, &security_descriptor_control, &version)) {
+        result = EBPF_ERROR_INVALID_PARAMETER;
+        goto Done;
+    }
+
+    if ((security_descriptor_control & SE_SELF_RELATIVE) == 0) {
+        result = EBPF_ERROR_INVALID_PARAMETER;
+        goto Done;
+    }
+
+    length = GetSecurityDescriptorLength(security_descriptor);
+    if (length != security_descriptor_length) {
+        result = EBPF_ERROR_INVALID_PARAMETER;
+        goto Done;
+    }
+
+    result = EBPF_ERROR_SUCCESS;
+
+Done:
+    return result;
+}

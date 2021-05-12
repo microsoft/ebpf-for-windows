@@ -87,6 +87,11 @@ extern "C"
     typedef uint8_t ebpf_lock_t[EBPF_LOCK_SIZE];
     typedef uint8_t ebpf_lock_state_t[EBPF_LOCK_STATE_SIZE];
 
+    // A self-relative security descriptor.
+    typedef struct _SECURITY_DESCRIPTOR ebpf_security_descriptor_t;
+    typedef struct _GENERIC_MAPPING ebpf_security_generic_mapping_t;
+    typedef uint32_t ebpf_security_access_mask_t;
+
     /**
      *  @brief Initialize the eBPF platform abstraction layer.
      * @retval EBPF_ERROR_SUCCESS The operation was successful.
@@ -619,6 +624,36 @@ extern "C"
     ebpf_error_code_t
     ebpf_program_information_decode(
         ebpf_program_information_t** program_information, const uint8_t* buffer, unsigned long buffer_size);
+
+    /**
+     * @brief Check if the user associated with the current thread is granted
+     *  the rights requested.
+     *
+     * @param[in] security_descriptor Security descriptor represneting the
+     *  security policy.
+     * @param[in] request_access Access the caller is requesting.
+     * @param[in] generic_mapping Mappings for generic read/write/execute to
+     *  specific rights.
+     * @retval EBPF_ERROR_SUCCESS Requested access is granted.
+     * @retval EBPF_ERROR_ACCESS_DENIED Requested access is denied.
+     */
+    ebpf_error_code_t
+    ebpf_access_check(
+        ebpf_security_descriptor_t* security_descriptor,
+        ebpf_security_access_mask_t request_access,
+        ebpf_security_generic_mapping_t* generic_mapping);
+
+    /**
+     * @brief Check the validity of the provided security descriptor.
+     *
+     * @param[in] security_descriptor
+     * @param[in] security_descriptor_length
+     * @retval EBPF_ERROR_SUCCESS Security descriptor is well formed.
+     * @retval EBPF_ERROR_INVALID_PARAMETER Security descriptor is malformed.
+     */
+    ebpf_error_code_t
+    ebpf_validate_security_descriptor(
+        ebpf_security_descriptor_t* security_descriptor, size_t security_descriptor_length);
 
 #ifdef __cplusplus
 }
