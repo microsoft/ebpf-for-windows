@@ -151,9 +151,9 @@ verify_byte_code(
 std::vector<uint8_t>
 convert_ebpf_program_to_bytes(const std::vector<ebpf_inst>& instructions)
 {
-    std::vector<uint8_t> retval(instructions.size() * sizeof(ebpf_inst));
-    memcpy(retval.data(), instructions.data(), retval.size());
-    return retval;
+    return {
+        reinterpret_cast<const uint8_t*>(instructions.data()),
+        reinterpret_cast<const uint8_t*>(instructions.data()) + instructions.size() * sizeof(ebpf_inst)};
 }
 
 uint32_t
