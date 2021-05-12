@@ -292,7 +292,7 @@ ebpf_program_load_byte_code(ebpf_program_t* program, ebpf_instuction_t* instruct
     // BUG - ubpf implements bounds checking to detect interpreted code accessing
     // memory out of bounds. Currently this is flagging valid access checks and
     // failing.
-    toggle_bounds_check(program->code_or_vm.vm, false);
+    ubpf_toggle_bounds_check(program->code_or_vm.vm, false);
 
     return_value = _ebpf_program_register_helpers(program);
     if (return_value != EBPF_ERROR_SUCCESS)
@@ -328,9 +328,7 @@ ebpf_program_invoke(ebpf_program_t* program, void* context, uint32_t* result)
         function_pointer = (ebpf_program_entry_point_t)(program->code_or_vm.code);
         *result = (function_pointer)(context);
     } else {
-        char* error_message = NULL;
-        *result = (uint32_t)(ubpf_exec(program->code_or_vm.vm, context, 1024, &error_message));
-        ebpf_free(error_message);
+        *result = (uint32_t)(ubpf_exec(program->code_or_vm.vm, context, 1024));
     }
 }
 
