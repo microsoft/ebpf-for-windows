@@ -88,10 +88,15 @@ _ebpf_program_free(ebpf_object_t* object)
     ebpf_extension_unload(program->global_helper_extension_client);
     ebpf_extension_unload(program->program_information_client);
 
-    if (program->parameters.code_type == EBPF_CODE_NATIVE) {
+    switch (program->parameters.code_type) {
+    case EBPF_CODE_NATIVE:
         ebpf_epoch_free(program->code_or_vm.code);
-    } else {
+        break;
+    case EBPF_CODE_EBPF:
         ubpf_destroy(program->code_or_vm.vm);
+        break;
+    case EBPF_CODE_NONE:
+        break;
     }
 
     ebpf_free(program->parameters.program_name.value);
@@ -177,6 +182,11 @@ ebpf_program_initialize(ebpf_program_t* program, const ebpf_program_parameters_t
     ebpf_utf8_string_t local_program_name = {NULL, 0};
     ebpf_utf8_string_t local_section_name = {NULL, 0};
 
+    if (program->parameters.code_type != EBPF_CODE_NONE) {
+        return_value = EBPF_ERROR_INVALID_PARAMETER;
+        goto Done;
+    }
+
     return_value = ebpf_duplicate_utf8_string(&local_program_name, &program_parameters->program_name);
     if (return_value != EBPF_ERROR_SUCCESS)
         goto Done;
@@ -191,6 +201,8 @@ ebpf_program_initialize(ebpf_program_t* program, const ebpf_program_parameters_t
     local_program_name.value = NULL;
     program->parameters.section_name = local_section_name;
     local_section_name.value = NULL;
+
+    program->parameters.code_type = EBPF_CODE_NONE;
 
     return_value = ebpf_program_load_providers(program);
     if (return_value != EBPF_ERROR_SUCCESS) {
@@ -233,7 +245,8 @@ ebpf_program_load_machine_code(ebpf_program_t* program, uint8_t* machine_code, s
 {
     ebpf_error_code_t return_value;
     uint8_t* local_machine_code = NULL;
-    if (program->code_or_vm.code) {
+
+    if (program->parameters.code_type != EBPF_CODE_NONE) {
         return_value = EBPF_ERROR_INVALID_PARAMETER;
         goto Done;
     }
@@ -282,6 +295,11 @@ ebpf_program_load_byte_code(ebpf_program_t* program, ebpf_instuction_t* instruct
 {
     ebpf_error_code_t return_value;
     char* error_message = NULL;
+    if (program->parameters.code_type != EBPF_CODE_NONE) {
+        return_value = EBPF_ERROR_INVALID_PARAMETER;
+        goto Done;
+    }
+
     program->parameters.code_type = EBPF_CODE_EBPF;
     program->code_or_vm.vm = ubpf_create();
     if (!program->code_or_vm.vm) {

@@ -31,8 +31,9 @@ typedef enum _ebpf_operation_id
 
 typedef enum _ebpf_code_type
 {
+    EBPF_CODE_NONE,
     EBPF_CODE_NATIVE,
-    EBPF_CODE_EBPF
+    EBPF_CODE_EBPF,
 } ebpf_code_type_t;
 
 typedef struct _ebpf_operation_header

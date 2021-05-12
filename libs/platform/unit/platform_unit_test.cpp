@@ -11,11 +11,13 @@
 #include <WinSock2.h>
 
 #include "catch2\catch.hpp"
+#include "ebpf_bind_program_data.h"
 #include "ebpf_epoch.h"
 #include "ebpf_nethooks.h"
 #include "ebpf_platform.h"
 #include "ebpf_pinning_table.h"
 #include "ebpf_program_types.h"
+#include "ebpf_xdp_program_data.h"
 
 class _test_helper
 {
@@ -245,4 +247,28 @@ TEST_CASE("program_type_info", "[program_type_info]")
     REQUIRE(ebpf_program_information_encode(&program_information, &buffer, &buffer_size) == EBPF_ERROR_SUCCESS);
     REQUIRE(ebpf_program_information_decode(&new_program_information, buffer, buffer_size) == EBPF_ERROR_SUCCESS);
     ebpf_free(new_program_information);
+}
+
+TEST_CASE("program_type_info_stored", "[program_type_info_stored]")
+{
+    _test_helper test_helper;
+    ebpf_program_information_t* xdp_program_information = nullptr;
+    ebpf_program_information_t* bind_program_information = nullptr;
+    REQUIRE(
+        ebpf_program_information_decode(
+            &xdp_program_information,
+            _ebpf_encoded_xdp_program_information_data,
+            sizeof(_ebpf_encoded_xdp_program_information_data)) == EBPF_ERROR_SUCCESS);
+    REQUIRE(xdp_program_information->count_of_helpers == 3);
+    REQUIRE(strcmp(xdp_program_information->program_type_descriptor.name, "xdp") == 0);
+    ebpf_free(xdp_program_information);
+
+    REQUIRE(
+        ebpf_program_information_decode(
+            &bind_program_information,
+            _ebpf_encoded_bind_program_information_data,
+            sizeof(_ebpf_encoded_bind_program_information_data)) == EBPF_ERROR_SUCCESS);
+    REQUIRE(strcmp(xdp_program_information->program_type_descriptor.name, "bind") == 0);
+    REQUIRE(bind_program_information->count_of_helpers == 3);
+    ebpf_free(bind_program_information);
 }

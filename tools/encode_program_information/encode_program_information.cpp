@@ -32,6 +32,20 @@ _emit_program_information_file(
     return EBPF_ERROR_SUCCESS;
 }
 
+static ebpf_helper_function_prototype_t _ebpf_helper_function_prototype[] = {
+    {1,
+     "ebpf_map_lookup_element",
+     EBPF_RETURN_TYPE_PTR_TO_MAP_VALUE_OR_NULL,
+     {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY}},
+    {2,
+     "ebpf_map_update_element",
+     EBPF_RETURN_TYPE_INTEGER,
+     {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_VALUE}},
+    {3,
+     "ebpf_map_delete_element",
+     EBPF_RETURN_TYPE_INTEGER,
+     {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY}}};
+
 static ebpf_error_code_t
 _encode_bind()
 {
@@ -41,7 +55,8 @@ _encode_bind()
     ebpf_context_descriptor_t bind_context_descriptor = {
         sizeof(bind_md_t), EBPF_OFFSET_OF(bind_md_t, app_id_start), EBPF_OFFSET_OF(bind_md_t, app_id_end), -1};
     ebpf_program_type_descriptor_t bind_program_type = {"bind", &bind_context_descriptor, EBPF_PROGRAM_TYPE_BIND};
-    ebpf_program_information_t bind_program_information = {bind_program_type, 0, NULL};
+    ebpf_program_information_t bind_program_information = {
+        bind_program_type, EBPF_COUNT_OF(_ebpf_helper_function_prototype), _ebpf_helper_function_prototype};
 
     return_value = ebpf_program_information_encode(&bind_program_information, &buffer, &buffer_size);
     if (return_value != EBPF_ERROR_SUCCESS)
@@ -72,7 +87,8 @@ _encode_xdp()
         EBPF_OFFSET_OF(xdp_md_t, data_end),
         EBPF_OFFSET_OF(xdp_md_t, data_meta)};
     ebpf_program_type_descriptor_t xdp_program_type = {"xdp", &xdp_context_descriptor, EBPF_PROGRAM_TYPE_XDP};
-    ebpf_program_information_t xdp_program_information = {xdp_program_type, 0, NULL};
+    ebpf_program_information_t xdp_program_information = {
+        xdp_program_type, EBPF_COUNT_OF(_ebpf_helper_function_prototype), _ebpf_helper_function_prototype};
 
     return_value = ebpf_program_information_encode(&xdp_program_information, &buffer, &buffer_size);
     if (return_value != EBPF_ERROR_SUCCESS)
