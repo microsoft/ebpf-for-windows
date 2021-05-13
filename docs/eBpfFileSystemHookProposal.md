@@ -2,7 +2,7 @@
 
 ## Overview
 
-Windows provides functionality to create filesystem mini-filters, which are drivers that permit hooking filesystem operations to allow modification and inspection of filesystem IO operations. Exposing this as a set of eBPF hooks would allow developers to easily extend the filesystem operations on Windows with out the need for writing a new mini-filter.
+Windows provides functionality to create filesystem [mini-filters](https://docs.microsoft.com/en-us/windows-hardware/drivers/ifs/filter-manager-concepts), which are drivers that permit hooking filesystem operations to allow modification and inspection of filesystem IO operations. Exposing this as a set of eBPF hooks would allow developers to easily extend the filesystem operations on Windows with out the need for writing a new mini-filter.
 
 ## Scenarios
 
@@ -26,11 +26,11 @@ Driver needs to define a new eBPF program type (and define the context structure
 
 ### NMR program information provider
 
-Driver needs to register as an NMR provider for the eBPF program type. Driver needs to provide the program information as a the NpiSpecificCharacteristics in the NmrRegisterProvider call.
+Driver needs to register as an [NMR](https://docs.microsoft.com/en-us/windows-hardware/drivers/network/network-programming-interface) provider for the eBPF program type. Driver needs to provide the program information as a the NpiSpecificCharacteristics in the [NmrRegisterProvider](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/netioddk/nf-netioddk-nmrregisterprovider) call.
 
 ### NMR hook provider
 
-Driver needs to register as an NMR provider for the eBPF hook type. In the ProviderAttachClient callback, the driver gets a pointer to the program context and the dispatch table. When an event occurs, the driver invokes the function in the dispatch table, passing the program context as well as the hook context structure.
+Driver needs to register as an NMR provider for the eBPF hook type. In the [ProviderAttachClient](https://docs.microsoft.com/en-us/windows-hardware/drivers/network/network-module-attachment) callback, the driver gets a pointer to the program context and the dispatch table. When an event occurs, the driver invokes the function in the dispatch table, passing the program context as well as the hook context structure.
 
 ### Filter Manager
 
