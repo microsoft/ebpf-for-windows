@@ -2,6 +2,10 @@
  *  Copyright (c) Microsoft Corporation
  *  SPDX-License-Identifier: MIT
  */
+// ntifs.h needs to be included ahead of other headers to satisfy the Windows
+// build system.
+#include <ntifs.h>
+
 #include "ebpf_platform.h"
 
 #include <ntstrsafe.h>
@@ -299,4 +303,60 @@ ebpf_log_function(void* context, const char* format_string, ...)
 
     va_end(arg_start);
     return 0;
+}
+
+ebpf_error_code_t
+ebpf_access_check(
+    ebpf_security_descriptor_t* security_descriptor,
+    ebpf_security_access_mask_t request_access,
+    ebpf_security_generic_mapping_t* generic_mapping)
+{
+    ebpf_error_code_t result;
+    NTSTATUS status;
+    SECURITY_SUBJECT_CONTEXT subject_context = {0};
+    DWORD granted_access;
+
+    SeCaptureSubjectContext(&subject_context);
+    SeLockSubjectContext(&subject_context);
+    if (!SeAccessCheck(
+            security_descriptor,
+            &subject_context,
+            true,
+            request_access,
+            0,
+            NULL,
+            generic_mapping,
+            KernelMode,
+            &granted_access,
+            &status)) {
+        result = EBPF_ERROR_ACCESS_DENIED;
+    } else {
+        result = NT_SUCCESS(status) ? EBPF_ERROR_SUCCESS : EBPF_ERROR_ACCESS_DENIED;
+    }
+
+    SeUnlockSubjectContext(&subject_context);
+    return result;
+}
+
+ebpf_error_code_t
+ebpf_validate_security_descriptor(ebpf_security_descriptor_t* security_descriptor, size_t security_descriptor_length)
+{
+    ebpf_error_code_t result;
+    if ((security_descriptor->Control & SE_SELF_RELATIVE) == 0) {
+        result = EBPF_ERROR_INVALID_PARAMETER;
+        goto Done;
+    }
+
+    if (!RtlValidRelativeSecurityDescriptor(
+            security_descriptor,
+            (ULONG)security_descriptor_length,
+            DACL_SECURITY_INFORMATION | OWNER_SECURITY_INFORMATION | GROUP_SECURITY_INFORMATION)) {
+        result = EBPF_ERROR_INVALID_PARAMETER;
+        goto Done;
+    }
+
+    result = EBPF_ERROR_SUCCESS;
+
+Done:
+    return result;
 }

@@ -4,11 +4,14 @@
  */
 
 #define CATCH_CONFIG_MAIN
+// Windows build system requires include of Windows.h before other Windows
+// headers.
+#include <Windows.h>
 
 #include <chrono>
 #include <mutex>
 #include <thread>
-#include <WinSock2.h>
+#include <sddl.h>
 
 #include "catch2\catch.hpp"
 #include "ebpf_bind_program_data.h"
@@ -271,4 +274,28 @@ TEST_CASE("program_type_info_stored", "[program_type_info_stored]")
     REQUIRE(strcmp(xdp_program_information->program_type_descriptor.name, "bind") == 0);
     REQUIRE(bind_program_information->count_of_helpers == 3);
     ebpf_free(bind_program_information);
+}
+
+TEST_CASE("access_check", "[access_check]")
+{
+    _test_helper test_helper;
+    ebpf_security_descriptor_t* sd = NULL;
+    DWORD sd_size = 0;
+    ebpf_security_generic_mapping_t generic_mapping{1, 1, 1};
+    ebpf_error_code_t result;
+    auto allow_sddl = L"O:COG:BUD:(A;;FA;;;WD)";
+    auto deny_sddl = L"O:COG:BUD:(D;;FA;;;WD)";
+    REQUIRE(ConvertStringSecurityDescriptorToSecurityDescriptor(
+        allow_sddl, SDDL_REVISION_1, (PSECURITY_DESCRIPTOR*)&sd, &sd_size));
+
+    REQUIRE(ebpf_validate_security_descriptor(sd, sd_size) == EBPF_ERROR_SUCCESS);
+
+    REQUIRE((result = ebpf_access_check(sd, 1, &generic_mapping), LocalFree(sd), result == EBPF_ERROR_SUCCESS));
+
+    REQUIRE(ConvertStringSecurityDescriptorToSecurityDescriptor(
+        deny_sddl, SDDL_REVISION_1, (PSECURITY_DESCRIPTOR*)&sd, &sd_size));
+
+    REQUIRE(ebpf_validate_security_descriptor(sd, sd_size) == EBPF_ERROR_SUCCESS);
+
+    REQUIRE((result = ebpf_access_check(sd, 1, &generic_mapping), LocalFree(sd), result == EBPF_ERROR_ACCESS_DENIED));
 }
