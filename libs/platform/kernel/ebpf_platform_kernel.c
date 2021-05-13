@@ -328,9 +328,9 @@ ebpf_access_check(
             generic_mapping,
             KernelMode,
             &granted_access,
-            &status))
+            &status)) {
         result = EBPF_ERROR_ACCESS_DENIED;
-    else {
+    } else {
         result = NT_SUCCESS(status) ? EBPF_ERROR_SUCCESS : EBPF_ERROR_ACCESS_DENIED;
     }
 
