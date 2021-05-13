@@ -646,8 +646,8 @@ extern "C"
     /**
      * @brief Check the validity of the provided security descriptor.
      *
-     * @param[in] security_descriptor
-     * @param[in] security_descriptor_length
+     * @param[in] security_descriptor Security descriptor to verify.
+     * @param[in] security_descriptor_length Length of security descriptor.
      * @retval EBPF_ERROR_SUCCESS Security descriptor is well formed.
      * @retval EBPF_ERROR_INVALID_PARAMETER Security descriptor is malformed.
      */
