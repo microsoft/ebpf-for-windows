@@ -354,7 +354,7 @@ ebpf_access_check(
     HANDLE token = INVALID_HANDLE_VALUE;
     BOOL access_status = FALSE;
     DWORD granted_access;
-    uint32_t privilege_set[sizeof(PRIVILEGE_SET)];
+    PRIVILEGE_SET privilege_set;
     DWORD privilege_set_size = sizeof(privilege_set);
     bool is_impersonating = false;
 
@@ -373,7 +373,7 @@ ebpf_access_check(
             token,
             request_access,
             generic_mapping,
-            (PRIVILEGE_SET*)privilege_set,
+            &privilege_set,
             &privilege_set_size,
             &granted_access,
             &access_status)) {
