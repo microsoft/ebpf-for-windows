@@ -380,8 +380,9 @@ ebpf_access_check(
         DWORD err = GetLastError();
         printf("LastError: %d\n", err);
         result = EBPF_ERROR_ACCESS_DENIED;
-    } else
+    } else {
         result = access_status ? EBPF_ERROR_SUCCESS : EBPF_ERROR_ACCESS_DENIED;
+    }
 
 Done:
     if (token != INVALID_HANDLE_VALUE)

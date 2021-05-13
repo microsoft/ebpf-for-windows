@@ -629,7 +629,7 @@ extern "C"
      * @brief Check if the user associated with the current thread is granted
      *  the rights requested.
      *
-     * @param[in] security_descriptor Security descriptor represneting the
+     * @param[in] security_descriptor Security descriptor representing the
      *  security policy.
      * @param[in] request_access Access the caller is requesting.
      * @param[in] generic_mapping Mappings for generic read/write/execute to
