@@ -4,11 +4,13 @@
  */
 
 #define CATCH_CONFIG_MAIN
+// Windows build system requires include of Windows.h before other Windows
+// headers.
+#include <Windows.h>
 
 #include <chrono>
 #include <mutex>
 #include <thread>
-#include <WinSock2.h>
 #include <sddl.h>
 
 #include "catch2\catch.hpp"
