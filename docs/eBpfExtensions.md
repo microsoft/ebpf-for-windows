@@ -2,7 +2,7 @@
 
 ## Overview
 
-Ebpf-On-Windows is designed to permit anyone to add new hooks, program types or helper functions, with out the need to modify either the eBPF execution context or the eBPF verifier. Ebpf-On-Windows uses NMR to decouple the eBPF extensions from the core Ebpf-For-Windows. NPI contracts are identified by a GUID.
+Ebpf-On-Windows is designed to permit anyone to add new hooks, program types or helper functions, with out the need to modify either the eBPF execution context or the eBPF verifier. Ebpf-On-Windows uses [NMR](https://docs.microsoft.com/en-us/windows-hardware/drivers/network/network-module-registrar2) to decouple the eBPF extensions from the core Ebpf-For-Windows. [NPI](https://docs.microsoft.com/en-us/windows-hardware/drivers/network/network-programming-interface) contracts are identified by a GUID.
 
 ## NPI for Program Information
 
