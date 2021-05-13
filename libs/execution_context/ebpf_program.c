@@ -307,6 +307,7 @@ ebpf_program_load_byte_code(ebpf_program_t* program, ebpf_instuction_t* instruct
         goto Done;
     }
 
+    // https://github.com/iovisor/ubpf/issues/68
     // BUG - ubpf implements bounds checking to detect interpreted code accessing
     // memory out of bounds. Currently this is flagging valid access checks and
     // failing.
