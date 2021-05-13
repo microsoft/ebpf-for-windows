@@ -2,9 +2,11 @@
  *  Copyright (c) Microsoft Corporation
  *  SPDX-License-Identifier: MIT
  */
+// ntifs.h needs to be included ahead of other headers to satisfy Windows build system.
+#include <ntifs.h>
+
 #include "ebpf_platform.h"
 
-#include <ntifs.h>
 #include <ntstrsafe.h>
 
 typedef enum _ebpf_pool_tag
@@ -346,7 +348,7 @@ ebpf_validate_security_descriptor(ebpf_security_descriptor_t* security_descripto
 
     if (!RtlValidRelativeSecurityDescriptor(
             security_descriptor,
-            security_descriptor_length,
+            (ULONG)security_descriptor_length,
             DACL_SECURITY_INFORMATION | OWNER_SECURITY_INFORMATION | GROUP_SECURITY_INFORMATION)) {
         result = EBPF_ERROR_INVALID_PARAMETER;
         goto Done;
