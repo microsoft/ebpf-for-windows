@@ -29,3 +29,12 @@ verify_byte_code(
     const uint8_t* byte_code,
     size_t byte_code_size,
     const char** error_message);
+
+int
+verify_byte_code2(
+    const char* path,
+    const char* section_name,
+    const GUID* program_type,
+    const uint8_t* byte_code,
+    size_t byte_code_size,
+    const char** error_message);

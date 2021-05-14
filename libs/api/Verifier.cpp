@@ -148,6 +148,26 @@ verify_byte_code(
     return analyze(raw_prog, error_message);
 }
 
+int
+verify_byte_code2(
+    const char* path,
+    const char* section_name,
+    const GUID* program_type,
+    const uint8_t* byte_code,
+    size_t byte_code_size,
+    const char** error_message)
+{
+    const ebpf_platform_t* platform = &g_ebpf_platform_windows;
+    std::vector<ebpf_inst> instructions{(ebpf_inst*)byte_code,
+                                        (ebpf_inst*)byte_code + byte_code_size / sizeof(ebpf_inst)};
+    program_info info{platform};
+    info.type = get_program_type_windows(*program_type);
+
+    raw_program raw_prog{path, section_name, instructions, info};
+
+    return analyze(raw_prog, error_message);
+}
+
 std::vector<uint8_t>
 convert_ebpf_program_to_bytes(const std::vector<ebpf_inst>& instructions)
 {
