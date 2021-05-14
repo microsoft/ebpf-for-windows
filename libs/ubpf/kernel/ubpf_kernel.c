@@ -30,4 +30,6 @@
 #define stderr 0
 #define fprintf NULL
 
+#define UBPF_STACK_SIZE 512
+
 #include "ubpf_vm.c"
