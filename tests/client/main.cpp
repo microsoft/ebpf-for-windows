@@ -88,26 +88,3 @@ TEST_CASE("verify-program", "[verify-program]")
 
     cleanup_rpc_binding();
 }
-
-/*
-int main(int argc, char** argv)
-{
-    char* file_name;
-    char* section_name;
-    uint32_t result = ERROR_SUCCESS;
-
-    if (argc != 3)
-    {
-        printf("invalid args\n");
-        return ERROR_INVALID_PARAMETER;
-    }
-
-    // argv[1] is the file name
-    file_name = argv[1];
-
-    // argv[1] is the section name
-    section_name = argv[2];
-
-    return test_verify_program(file_name, section_name);
-}
-*/
