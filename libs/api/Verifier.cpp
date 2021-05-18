@@ -139,10 +139,14 @@ verify_byte_code(
     const char** error_message)
 {
     const ebpf_platform_t* platform = &g_ebpf_platform_windows;
-    ebpf_program_type_t program_type =
-        *(const GUID*)platform->get_program_type(section_name, path).platform_specific_data;
+    std::vector<ebpf_inst> instructions{
+        (ebpf_inst*)byte_code, (ebpf_inst*)byte_code + byte_code_size / sizeof(ebpf_inst) };
+    program_info info{ platform };
+    info.type = platform->get_program_type(section_name, path);
 
-    return verify_byte_code2(path, section_name, &program_type, byte_code, byte_code_size, error_message);
+    raw_program raw_prog{path, section_name, instructions, info};
+
+    return analyze(raw_prog, error_message);
 }
 
 int

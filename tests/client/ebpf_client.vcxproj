@@ -151,6 +151,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="platform.cpp" />
     <ClCompile Include="rpc_client.cpp" />
+    <ClCompile Include="service_helper.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\external\ebpf-verifier\build\ebpfverifier.vcxproj">
@@ -171,6 +172,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="header.h" />
+    <ClInclude Include="service_helper.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

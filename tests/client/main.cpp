@@ -15,8 +15,10 @@
 #pragma warning(pop)
 #include "ebpf_windows.h"
 #include "ebpf_api.h"
+#include "service_helper.h"
 
-// int test_verify_program();
+#define EBPF_SERVICE_BINARY_NAME L"ebpfsvc.exe"
+#define EBPF_SERVICE_NAME L"ebpfsvc"
 
 RPC_STATUS
 initialize_rpc_binding();
@@ -37,7 +39,7 @@ ebpf_get_program_byte_code(
 int
 ebpf_rpc_verify_program(ebpf_program_verify_info* info, unsigned char** logs, uint32_t* logs_size);
 
-TEST_CASE("verify-program", "[verify-program]")
+TEST_CASE("verify-program-droppacket", "[verify-program-droppacket]")
 {
     uint8_t* instruction_array;
     uint32_t instruction_array_size;
@@ -49,6 +51,9 @@ TEST_CASE("verify-program", "[verify-program]")
     unsigned char* verifier_message = nullptr;
     uint32_t verifier_message_size;
     ebpf_program_verify_info info = {0};
+
+    service_install_helper service_helper(EBPF_SERVICE_NAME, EBPF_SERVICE_BINARY_NAME);
+    REQUIRE(service_helper.initialize() == ERROR_SUCCESS);
 
     // Get byte code and map descriptors from ELF file.
     REQUIRE(
@@ -87,4 +92,5 @@ TEST_CASE("verify-program", "[verify-program]")
          result == ERROR_SUCCESS));
 
     cleanup_rpc_binding();
+    service_helper.uninitialize();
 }
