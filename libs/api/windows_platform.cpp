@@ -120,13 +120,19 @@ int
 create_map_function(
     uint32_t type, uint32_t key_size, uint32_t value_size, uint32_t max_entries, ebpf_verifier_options_t options);
 
+void
+cache_map_file_descriptor(uint32_t type, uint32_t key_size, uint32_t value_size, int fd);
+
 static int
 create_map_windows(
     uint32_t map_type, uint32_t key_size, uint32_t value_size, uint32_t max_entries, ebpf_verifier_options_t options)
 {
+    int fd;
     if (options.mock_map_fds) {
         EbpfMapType type = get_map_type_windows(map_type);
-        return create_map_crab(type, key_size, value_size, max_entries, options);
+        fd = create_map_crab(type, key_size, value_size, max_entries, options);
+        cache_map_file_descriptor(map_type, key_size, value_size, fd);
+        return fd;
     }
 
     return create_map_function(map_type, key_size, value_size, max_entries, options);

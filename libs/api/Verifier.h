@@ -17,6 +17,7 @@ int
 load_byte_code(
     const char* filename,
     const char* sectionname,
+    bool use_mock_fd,
     uint8_t* byte_code,
     size_t* byte_code_size,
     ebpf_program_type_t* program_type,

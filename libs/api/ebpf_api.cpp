@@ -131,6 +131,29 @@ typedef struct _map_cache
 // problem.
 std::vector<map_cache_t> _map_file_descriptors;
 
+void
+cache_map_file_descriptor(uint32_t type, uint32_t key_size, uint32_t value_size, int fd)
+{
+    _map_file_descriptors.push_back({(uintptr_t)fd, {fd, type, key_size, value_size, 0}});
+}
+
+void
+cache_map_file_descriptors(const EbpfMapDescriptor* map_descriptors, uint32_t map_descriptors_count)
+{
+    for (uint32_t i = 0; i < map_descriptors_count; i++) {
+        auto descriptor = map_descriptors[i];
+        _map_file_descriptors.push_back(
+            {(uintptr_t)descriptor.original_fd,
+             {descriptor.original_fd, descriptor.type, descriptor.key_size, descriptor.value_size, 0}});
+    }
+}
+
+void
+clear_map_descriptors()
+{
+    _map_file_descriptors.resize(0);
+}
+
 int
 create_map_function(
     uint32_t type, uint32_t key_size, uint32_t value_size, uint32_t max_entries, ebpf_verifier_options_t)
@@ -161,7 +184,14 @@ create_map_function(
 static map_cache_t&
 get_map_cache_entry(uint64_t map_fd)
 {
-    return _map_file_descriptors[map_fd - 1];
+    size_t size = _map_file_descriptors.size();
+    for (size_t i = 0; i < size; i++) {
+        if (_map_file_descriptors[i].ebpf_map_descriptor.original_fd == map_fd) {
+            return _map_file_descriptors[i];
+        }
+    }
+
+    return _map_file_descriptors[0];
 }
 
 EbpfMapDescriptor&
@@ -378,6 +408,56 @@ _get_program_information_data(ebpf_program_type_t program_type, ebpf_extension_d
 }
 
 uint32_t
+ebpf_get_program_byte_code(
+    const char* file_name,
+    const char* section_name,
+    ebpf_program_type_t* program_type,
+    bool mock_map_fd,
+    uint8_t** instructions,
+    uint32_t* instructions_size,
+    EbpfMapDescriptor** map_descriptors,
+    int* map_descriptors_count,
+    const char** error_message)
+{
+    ebpf_code_buffer_t byte_code(MAX_CODE_SIZE);
+    size_t byte_code_size = byte_code.size();
+    uint32_t result = ERROR_SUCCESS;
+
+    _map_file_descriptors.resize(0);
+
+    if (load_byte_code(
+            file_name, section_name, mock_map_fd, byte_code.data(), &byte_code_size, program_type, error_message) !=
+        0) {
+        result = ERROR_INVALID_PARAMETER;
+        goto Done;
+    }
+
+    // Copy instructions to output buffer.
+    *instructions = new uint8_t[byte_code_size];
+    if (*instructions == nullptr) {
+        result = ERROR_NOT_ENOUGH_MEMORY;
+        goto Done;
+    }
+    memcpy(*instructions, byte_code.data(), byte_code_size);
+    *instructions_size = (uint32_t)byte_code_size;
+
+    // Get size of _map_file_descriptors
+    *map_descriptors = new EbpfMapDescriptor[_map_file_descriptors.size()];
+    if (*map_descriptors == nullptr) {
+        result = ERROR_NOT_ENOUGH_MEMORY;
+        goto Done;
+    }
+    for (int i = 0; i < _map_file_descriptors.size(); i++) {
+        *map_descriptors[i] = _map_file_descriptors[i].ebpf_map_descriptor;
+    }
+    *map_descriptors_count = (int)_map_file_descriptors.size();
+
+Done:
+    _map_file_descriptors.resize(0);
+    return result;
+}
+
+uint32_t
 ebpf_api_load_program(
     const char* file_name,
     const char* section_name,
@@ -402,7 +482,8 @@ ebpf_api_load_program(
 
     _map_file_descriptors.resize(0);
 
-    if (load_byte_code(file_name, section_name, byte_code.data(), &byte_code_size, &program_type, error_message) != 0) {
+    if (load_byte_code(
+            file_name, section_name, false, byte_code.data(), &byte_code_size, &program_type, error_message) != 0) {
         result = ERROR_INVALID_PARAMETER;
         goto Done;
     }

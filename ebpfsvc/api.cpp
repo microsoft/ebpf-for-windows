@@ -9,6 +9,12 @@
 #include "ebpf_windows.h"
 #include "Verifier.h"
 
+void
+cache_map_file_descriptors(const EbpfMapDescriptor* map_descriptors, uint32_t map_descriptors_count);
+
+void
+clear_map_descriptors();
+
 ebpf_result_t
 ebpf_verify_and_jit_program(
     /* [in] */ ebpf_program_load_info* info,
@@ -36,23 +42,27 @@ ebpf_verify_program(
     const char* error_message;
     ebpf_result_t result = EBPF_SUCCESS;
     int retVal = 0;
-    const char* path = nullptr;
-    const char* section_name = nullptr;
+    const char* path = "";
+    const char* section_name = "";
+
+    // Validate input
+    if (info == nullptr || info->byte_code_size == 0) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    clear_map_descriptors();
+
+    cache_map_file_descriptors(reinterpret_cast<EbpfMapDescriptor*>(info->map_descriptors), info->map_count);
 
     // Verify the program
     retVal = verify_byte_code2(
         path,
         section_name,
         reinterpret_cast<const GUID*>(&info->program_type),
-        reinterpret_cast<uint8_t*>(info->instructions),
-        info->instruction_count * sizeof(uint64_t),
+        info->byte_code,
+        info->byte_code_size,
         (const char**)logs);
-    /*
-    if (verify_byte_code(nullptr, nullptr, reinterpret_cast<uint8_t *>instructions byte_code.data(), byte_code_size,
-    error_message) != 0) { return ERROR_INVALID_PARAMETER;
-    }
-    */
-    // *log_size =
+
     if (retVal != 0) {
         result = EBPF_VALIDATION_FAILED;
     }
