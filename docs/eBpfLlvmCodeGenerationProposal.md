@@ -2,15 +2,15 @@
 
 ## Overview
 
-Clang/LLVM has a much richer tool chain for generating optimal ISA specific
-instruction sequences. Proposal is to switch to LLVM to emit optimal native
-instruction sequences.
+Clang/LLVM has a much richer tool chain for generating optimal ISA-specific
+instruction sequences. Proposal is to use LLVM to convert eBPF byte code to
+optimal native instruction sequences (replacing the current uBPF jitter).
 
 ## Background
 
 Clang/LLVM has a language neutral internal representation (IR). Various
 front-ends produce IR that is then handed off to back-ends to produce optimal
-and secure ISA specific machine code. LLVM code generation is platform aware
+and secure ISA-specific machine code. LLVM code generation is platform aware
 and can take advantage of advanced processor features like vectored / SIMD
 instructions as well as having support for speculative load hardening and
 other security features.
