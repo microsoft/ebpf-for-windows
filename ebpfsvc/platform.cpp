@@ -2,12 +2,12 @@
 // SPDX-License-Identifier: MIT
 
 #define WIN32_LEAN_AND_MEAN // Exclude rarely-used stuff from Windows headers
-#include "pch.h"
+#include "svc_common.h"
 #include <stdint.h>
 #include "ebpf_api.h"
 
 namespace Platform {
-BOOL
+bool
 DeviceIoControl(
     _In_ ebpf_handle_t device_handle,
     uint32_t io_control_code,
@@ -48,7 +48,8 @@ CreateFileW(
         flags_and_attributed,
         template_file);
 }
-BOOL
+
+bool
 CloseHandle(_In_ _Post_ptr_invalid_ ebpf_handle_t handle)
 {
     return ::CloseHandle(handle);

@@ -1,9 +1,7 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include "header.h"
-#include "rpc_interface_c.c"
-
+#include "ebpf_api.h"
 #pragma warning(push)
 #pragma warning(disable : 4100) // 'identifier' : unreferenced formal parameter
 #pragma warning(disable : 4244) // 'conversion' conversion from 'type1' to
@@ -12,7 +10,8 @@
 #include "ebpf_verifier.hpp"
 #pragma warning(pop)
 #include "ebpf_windows.h"
-#include "ebpf_api.h"
+#include "header.h"
+#include "rpc_interface_c.c"
 
 #pragma comment(lib, "Rpcrt4.lib")
 
@@ -24,40 +23,40 @@ static const WCHAR* _protocol_sequence = L"ncacn_np";
 int
 ebpf_rpc_verify_program(ebpf_program_verify_info* info, unsigned char** logs, uint32_t* logs_size)
 {
-    unsigned long ulCode;
-    int retCode;
+    unsigned long code;
+    int result;
 
     RpcTryExcept
     {
-        retCode = (int)ebpf_verify_program(info, logs_size, logs);
+        result = (int)ebpf_verify_program(info, logs_size, logs);
     }
-    RpcExcept(1)
+    RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
     {
-        ulCode = RpcExceptionCode();
-        printf("ebpf_rpc_verify_program: runtime reported exception 0x%lx = %ld\n", ulCode, ulCode);
-        retCode = (int)EBPF_FAILED;
+        code = RpcExceptionCode();
+        printf("ebpf_rpc_verify_program: runtime reported exception 0x%lx = %ld\n", code, code);
+        result = (int)EBPF_FAILED;
     }
     RpcEndExcept
 
-    printf("ebpf_rpc_verify_program: got return code %d from the server\n\n", retCode);
+    printf("ebpf_rpc_verify_program: got return code %d from the server\n\n", result);
 
-    return retCode;
+    return result;
 }
 
 RPC_STATUS
 initialize_rpc_binding()
 {
     RPC_STATUS status;
-    RPC_WSTR pszUuid = NULL;
-    const WCHAR* pszNetworkAddress = nullptr; //  L"\\\\10.216.117.143";
-    RPC_WSTR pszOptions = NULL;
+    RPC_WSTR uuid = NULL;
+    const WCHAR* network_address = nullptr;
+    RPC_WSTR options = NULL;
 
     status = RpcStringBindingCompose(
-        pszUuid,
+        uuid,
         (RPC_WSTR)_protocol_sequence,
-        (RPC_WSTR)pszNetworkAddress,
+        (RPC_WSTR)network_address,
         (RPC_WSTR)RPC_SERVER_ENDPOINT,
-        pszOptions,
+        options,
         &_string_binding);
 
     if (status != RPC_S_OK) {
@@ -68,7 +67,7 @@ initialize_rpc_binding()
 }
 
 RPC_STATUS
-cleanup_rpc_binding()
+clean_up_rpc_binding()
 {
     RPC_STATUS status = RpcStringFree(&_string_binding);
     if (status != RPC_S_OK) {

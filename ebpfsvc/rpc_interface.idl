@@ -3,9 +3,8 @@
  *  SPDX-License-Identifier: MIT
  */
 
-#include "ebpf_result.h"
-#include "ebpf_execution_context.h"
-
+import "ebpf_execution_context.h";
+import "ebpf_result.h";
 import "stdint.h";
 import "wtypes.idl";
 
@@ -16,7 +15,6 @@ import "wtypes.idl";
 [uuid(6bef171d-7205-4b63-a1e5-d00f01e6a0c1), version(1.0), pointer_default(unique)]
 
     interface ebpf_service_interface {
-
         // TODO: This is a duplicate of EbpfMapDescriptor structure
         // defined in spec_type_descriptor.hpp. See if that file
         // can be included so that we do not have to redefine this.
@@ -50,24 +48,26 @@ import "wtypes.idl";
             uint32_t map_count;
             [size_is(map_count)] fd_handle_map* handle_map;
             uint32_t byte_code_size;
-            [size_is(byte_code_size)] uint8_t* byte_code;
+            [ size_is(byte_code_size), ref ] uint8_t* byte_code;
         } ebpf_program_load_info;
 
         typedef struct _ebpf_program_verify_info
         {
             GUID program_type;
             ebpf_execution_context_t execution_context;
-            uint32_t map_count;
-            [size_is(map_count)] ebpf_map_descriptor* map_descriptors;
+            uint32_t map_descriptors_count;
+            [size_is(map_descriptors_count)] ebpf_map_descriptor* map_descriptors;
             uint32_t byte_code_size;
-            [size_is(byte_code_size)] uint8_t* byte_code;
+            [ size_is(byte_code_size), ref ] uint8_t* byte_code;
         } ebpf_program_verify_info;
 
         ebpf_result_t ebpf_verify_and_jit_program(
-            [in] ebpf_program_load_info * info, [out] uint32_t * logs_size, [ out, size_is(, *logs_size) ] char** logs);
+            [ in, ref ] ebpf_program_load_info * info,
+            [ out, ref ] uint32_t * logs_size,
+            [ out, size_is(, *logs_size), ref ] char** logs);
 
         ebpf_result_t ebpf_verify_program(
-            [in] ebpf_program_verify_info * info,
+            [ in, ref ] ebpf_program_verify_info * info,
             [out] uint32_t * logs_size,
-            [ out, size_is(, *logs_size) ] char** logs);
+            [ out, size_is(, *logs_size), ref ] char** logs);
     }

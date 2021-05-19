@@ -3,7 +3,7 @@
  *  SPDX-License-Identifier: MIT
  */
 
-#include "pch.h"
+#include "svc_common.h"
 #include "rpc_interface_s.c"
 #include <malloc.h>
 

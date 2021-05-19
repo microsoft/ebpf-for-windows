@@ -10,7 +10,7 @@ std::function<decltype(DeviceIoControl)> device_io_control_handler;
 std::function<decltype(CloseHandle)> close_handle_handler;
 
 namespace Platform {
-BOOL
+bool
 DeviceIoControl(
     _In_ ebpf_handle_t device_handle,
     uint32_t io_control_code,
@@ -51,7 +51,8 @@ CreateFileW(
         flags_and_attributed,
         template_file);
 }
-BOOL
+
+bool
 CloseHandle(_In_ _Post_ptr_invalid_ ebpf_handle_t handle)
 {
     return close_handle_handler(handle);

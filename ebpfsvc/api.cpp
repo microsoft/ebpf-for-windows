@@ -3,17 +3,17 @@
  *  SPDX-License-Identifier: MIT
  */
 
-#include "pch.h"
+#include "svc_common.h"
 #include <stdio.h>
 #include "rpc_interface_h.h"
 #include "ebpf_windows.h"
 #include "Verifier.h"
+#include "api_internal.h"
 
-void
-cache_map_file_descriptors(const EbpfMapDescriptor* map_descriptors, uint32_t map_descriptors_count);
-
-void
-clear_map_descriptors();
+// Critical section to serialize RPC calls.
+// Currently ebpfsvc uses a global context to track verification
+// and JIT compilation, hence all RPC calls should be serialized.
+static CRITICAL_SECTION _critical_section;
 
 ebpf_result_t
 ebpf_verify_and_jit_program(
@@ -34,38 +34,54 @@ ebpf_verify_program(
     /* [out] */ uint32_t* logs_size,
     /* [size_is][size_is][out] */ unsigned char** logs)
 {
-    UNREFERENCED_PARAMETER(info);
-    UNREFERENCED_PARAMETER(logs_size);
-    UNREFERENCED_PARAMETER(logs);
-
-    const char* report;
-    const char* error_message;
     ebpf_result_t result = EBPF_SUCCESS;
-    int retVal = 0;
-    const char* path = "";
-    const char* section_name = "";
+    int error = 0;
 
-    // Validate input
-    if (info == nullptr || info->byte_code_size == 0) {
+    if (info->byte_code_size == 0) {
         return EBPF_INVALID_ARGUMENT;
     }
 
-    clear_map_descriptors();
+    EnterCriticalSection(&_critical_section);
 
-    cache_map_file_descriptors(reinterpret_cast<EbpfMapDescriptor*>(info->map_descriptors), info->map_count);
+    clear_map_descriptors();
+    if (info->map_descriptors_count != 0) {
+        try {
+            cache_map_file_descriptors(
+                reinterpret_cast<EbpfMapDescriptor*>(info->map_descriptors), info->map_descriptors_count);
+        } catch (const std::bad_alloc&) {
+            result = EBPF_NO_MEMORY;
+            goto Exit;
+        } catch (...) {
+            result = EBPF_FAILED;
+            goto Exit;
+        }
+    }
 
     // Verify the program
-    retVal = verify_byte_code2(
-        path,
-        section_name,
+    error = verify_byte_code(
         reinterpret_cast<const GUID*>(&info->program_type),
         info->byte_code,
         info->byte_code_size,
-        (const char**)logs);
+        (const char**)logs,
+        logs_size);
 
-    if (retVal != 0) {
+    if (error != 0) {
         result = EBPF_VALIDATION_FAILED;
     }
 
+Exit:
+    LeaveCriticalSection(&_critical_section);
     return result;
+}
+
+void
+initialize_api_globals()
+{
+    InitializeCriticalSection(&_critical_section);
+}
+
+void
+clean_up_api_globals()
+{
+    DeleteCriticalSection(&_critical_section);
 }

@@ -45,5 +45,8 @@
     <ClInclude Include="windows_platform.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="api_internal.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

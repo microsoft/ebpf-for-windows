@@ -129,7 +129,7 @@ typedef struct _map_cache
 // https://github.com/vbpf/ebpf-verifier/issues/113 tracks getting rid of global
 // state in that lib, but won't notice this global state which has the same
 // problem.
-std::vector<map_cache_t> _map_file_descriptors;
+static std::vector<map_cache_t> _map_file_descriptors;
 
 void
 cache_map_file_descriptor(uint32_t type, uint32_t key_size, uint32_t value_size, int fd)
@@ -149,7 +149,7 @@ cache_map_file_descriptors(const EbpfMapDescriptor* map_descriptors, uint32_t ma
 }
 
 void
-clear_map_descriptors()
+clear_map_descriptors(void)
 {
     _map_file_descriptors.resize(0);
 }
@@ -425,9 +425,15 @@ ebpf_get_program_byte_code(
 
     _map_file_descriptors.resize(0);
 
+    ebpf_verifier_options_t verifier_options{false, false, false, false, mock_map_fd};
     if (load_byte_code(
-            file_name, section_name, mock_map_fd, byte_code.data(), &byte_code_size, program_type, error_message) !=
-        0) {
+            file_name,
+            section_name,
+            &verifier_options,
+            byte_code.data(),
+            &byte_code_size,
+            program_type,
+            error_message) != 0) {
         result = ERROR_INVALID_PARAMETER;
         goto Done;
     }
@@ -441,7 +447,7 @@ ebpf_get_program_byte_code(
     memcpy(*instructions, byte_code.data(), byte_code_size);
     *instructions_size = (uint32_t)byte_code_size;
 
-    // Get size of _map_file_descriptors
+    // Copy map file descriptors to output buffer.
     *map_descriptors = new EbpfMapDescriptor[_map_file_descriptors.size()];
     if (*map_descriptors == nullptr) {
         result = ERROR_NOT_ENOUGH_MEMORY;
@@ -482,8 +488,15 @@ ebpf_api_load_program(
 
     _map_file_descriptors.resize(0);
 
+    ebpf_verifier_options_t verifier_options{false, false, false, false, false};
     if (load_byte_code(
-            file_name, section_name, false, byte_code.data(), &byte_code_size, &program_type, error_message) != 0) {
+            file_name,
+            section_name,
+            &verifier_options,
+            byte_code.data(),
+            &byte_code_size,
+            &program_type,
+            error_message) != 0) {
         result = ERROR_INVALID_PARAMETER;
         goto Done;
     }
@@ -507,7 +520,7 @@ ebpf_api_load_program(
 
     // TODO (issue #67): Pass the resulting program information to the verifier.
     // Verify code.
-    if (verify_byte_code(file_name, section_name, byte_code.data(), byte_code_size, error_message) != 0) {
+    if (verify_byte_code_with_section(file_name, section_name, byte_code.data(), byte_code_size, error_message) != 0) {
         result = ERROR_INVALID_PARAMETER;
         goto Done;
     }

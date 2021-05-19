@@ -3,7 +3,8 @@
  *  SPDX-License-Identifier: MIT
  */
 
-#include "pch.h"
+#include "svc_common.h"
+#include "api.h"
 
 #define SERVICE_NAME TEXT("eBPFSvc")
 
@@ -203,6 +204,7 @@ DWORD
 Initialize()
 {
     DWORD status;
+    initialize_api_globals();
     status = initialize_rpc_server();
 
     return status;
@@ -212,6 +214,7 @@ void
 Cleanup()
 {
     shutdown_rpc_server();
+    clean_up_api_globals();
     if (ebpf_service_stop_event_handle) {
         CloseHandle(ebpf_service_stop_event_handle);
     }

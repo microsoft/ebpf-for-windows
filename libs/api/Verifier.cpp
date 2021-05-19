@@ -40,23 +40,26 @@ get_file_size(const char* filename, size_t* byte_code_size)
 }
 
 static const char*
-allocate_error_string(const std::string& str)
+allocate_error_string(const std::string& str, uint32_t* length = nullptr)
 {
     char* retval;
     size_t error_message_length = str.size() + 1;
     retval = (char*)malloc(error_message_length);
     if (retval != nullptr) {
         strcpy_s(retval, error_message_length, str.c_str());
+        if (length != nullptr) {
+            *length = (uint32_t)error_message_length;
+        }
     }
     return retval; // Error;
 }
 
 static int
-analyze(raw_program& raw_prog, const char** error_message)
+analyze(raw_program& raw_prog, const char** error_message, uint32_t* error_message_size = nullptr)
 {
     std::variant<InstructionSeq, std::string> prog_or_error = unmarshal(raw_prog);
     if (!std::holds_alternative<InstructionSeq>(prog_or_error)) {
-        *error_message = allocate_error_string(std::get<std::string>(prog_or_error));
+        *error_message = allocate_error_string(std::get<std::string>(prog_or_error), error_message_size);
         return 1; // Error;
     }
     InstructionSeq& prog = std::get<InstructionSeq>(prog_or_error);
@@ -72,7 +75,7 @@ analyze(raw_program& raw_prog, const char** error_message)
         options.print_failures = true;
         (void)ebpf_verify_program(oss, prog, raw_prog.info, &options);
 
-        *error_message = allocate_error_string(oss.str());
+        *error_message = allocate_error_string(oss.str(), error_message_size);
         return 1; // Error;
     }
     return 0; // Success.
@@ -82,7 +85,7 @@ int
 load_byte_code(
     const char* filename,
     const char* sectionname,
-    bool use_mock_fd,
+    ebpf_verifier_options_t* verifier_options,
     uint8_t* byte_code,
     size_t* byte_code_size,
     ebpf_program_type_t* program_type,
@@ -90,10 +93,9 @@ load_byte_code(
 {
     try {
 
-        ebpf_verifier_options_t verifier_options{false, false, false, false, use_mock_fd};
         const ebpf_platform_t* platform = &g_ebpf_platform_windows;
 
-        auto raw_progs = read_elf(filename, sectionname, &verifier_options, platform);
+        auto raw_progs = read_elf(filename, sectionname, verifier_options, platform);
         if (raw_progs.size() != 1) {
             return 1; // Error
         }
@@ -131,7 +133,7 @@ load_byte_code(
 }
 
 int
-verify_byte_code(
+verify_byte_code_with_section(
     const char* path,
     const char* section_name,
     const uint8_t* byte_code,
@@ -150,25 +152,24 @@ verify_byte_code(
 }
 
 int
-verify_byte_code2(
-    const char* path,
-    const char* section_name,
+verify_byte_code(
     const GUID* program_type,
     const uint8_t* byte_code,
     size_t byte_code_size,
-    const char** error_message)
+    const char** error_message,
+    uint32_t* error_message_size)
 {
     const ebpf_platform_t* platform = &g_ebpf_platform_windows;
     std::vector<ebpf_inst> instructions{(ebpf_inst*)byte_code,
                                         (ebpf_inst*)byte_code + byte_code_size / sizeof(ebpf_inst)};
     program_info info{platform};
-    std::string section(section_name);
-    std::string file(path);
+    std::string section;
+    std::string file;
     info.type = get_program_type_windows(*program_type);
 
     raw_program raw_prog{file, section, instructions, info};
 
-    return analyze(raw_prog, error_message);
+    return analyze(raw_prog, error_message, error_message_size);
 }
 
 std::vector<uint8_t>

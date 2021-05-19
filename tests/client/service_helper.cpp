@@ -50,16 +50,17 @@ QueryService:
             printf("CreateService failed, 0x%x.\n", error);
             return error;
         }
+    } else {
+        already_installed = true;
     }
 
-    // start the service
     return start_service();
 }
 
 void
 service_install_helper::uninitialize()
 {
-    if (service_handle != nullptr) {
+    if (service_handle != nullptr && !already_installed) {
         stop_service();
         if (!DeleteService(service_handle)) {
             DWORD error = GetLastError();
@@ -91,6 +92,7 @@ service_install_helper::start_service()
 
     return error;
 }
+
 int
 service_install_helper::stop_service()
 {
