@@ -83,10 +83,37 @@ TEST_CASE("verify-program-droppacket", "[verify-program-droppacket]")
 
     REQUIRE(
         (result = ebpf_rpc_verify_program(&info, &verifier_message, &verifier_message_size),
-         verifier_message ? printf("ebpf_get_program_byte_code failed with %s\n", verifier_message) : 0,
+         verifier_message ? printf("ebpf_rpc_verify_program failed with: %s\n", verifier_message) : 0,
          ebpf_api_free_string((const char*)verifier_message),
          verifier_message = nullptr,
          result == ERROR_SUCCESS));
+
+    ebpf_api_free_string((const char*)verifier_message);
+    clean_up_rpc_binding();
+    service_helper.uninitialize();
+}
+
+TEST_CASE("verify-program-bindmonitor", "[verify-program-bindmonitor]")
+{
+    uint32_t result;
+    unsigned char* verifier_message = nullptr;
+    uint32_t verifier_message_size;
+    ebpf_program_verify_info info = { 0 };
+
+    service_install_helper service_helper(EBPF_SERVICE_NAME, EBPF_SERVICE_BINARY_NAME);
+    REQUIRE(service_helper.initialize() == ERROR_SUCCESS);
+
+    // Get byte code and map descriptors from ELF file.
+    _get_program_byte_code_helper("bindmonitor.o", "bind", &info);
+
+    REQUIRE(initialize_rpc_binding() == RPC_S_OK);
+
+    REQUIRE(
+        (result = ebpf_rpc_verify_program(&info, &verifier_message, &verifier_message_size),
+            verifier_message ? printf("ebpf_rpc_verify_program failed with %s\n", verifier_message) : 0,
+            ebpf_api_free_string((const char*)verifier_message),
+            verifier_message = nullptr,
+            result == ERROR_SUCCESS));
 
     ebpf_api_free_string((const char*)verifier_message);
     clean_up_rpc_binding();

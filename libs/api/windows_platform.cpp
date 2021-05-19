@@ -59,13 +59,14 @@ const std::vector<EbpfProgramType> windows_program_types = {
 EbpfProgramType
 get_program_type_windows(const GUID& program_type)
 {
-    EbpfProgramType type{};
-
-    // TODO: Make an IOCTL call to fetch the program context information
-    //       and then fill the EbpfProgramType struct.
+    // TODO: (Issue #205) Make an IOCTL call to fetch the program context
+    //       information and then fill the EbpfProgramType struct.
     for (const EbpfProgramType t : windows_program_types) {
-        if (IsEqualGUID(reinterpret_cast<const GUID&>(t.platform_specific_data), program_type)) {
-            return t;
+        if (t.platform_specific_data != 0)
+        {
+            if (IsEqualGUID(*(GUID*)t.platform_specific_data, program_type)) {
+                return t;
+            }
         }
     }
 

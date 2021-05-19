@@ -24,14 +24,6 @@ load_byte_code(
     const char** error_message);
 
 int
-verify_byte_code_with_section(
-    const char* path,
-    const char* section_name,
-    const uint8_t* byte_code,
-    size_t byte_code_size,
-    const char** error_message);
-
-int
 verify_byte_code(
     const GUID* program_type,
     const uint8_t* byte_code,

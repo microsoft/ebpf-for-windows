@@ -133,25 +133,6 @@ load_byte_code(
 }
 
 int
-verify_byte_code_with_section(
-    const char* path,
-    const char* section_name,
-    const uint8_t* byte_code,
-    size_t byte_code_size,
-    const char** error_message)
-{
-    const ebpf_platform_t* platform = &g_ebpf_platform_windows;
-    std::vector<ebpf_inst> instructions{
-        (ebpf_inst*)byte_code, (ebpf_inst*)byte_code + byte_code_size / sizeof(ebpf_inst) };
-    program_info info{ platform };
-    info.type = platform->get_program_type(section_name, path);
-
-    raw_program raw_prog{path, section_name, instructions, info};
-
-    return analyze(raw_prog, error_message);
-}
-
-int
 verify_byte_code(
     const GUID* program_type,
     const uint8_t* byte_code,

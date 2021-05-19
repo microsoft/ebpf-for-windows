@@ -424,6 +424,8 @@ ebpf_get_program_byte_code(
     uint32_t result = ERROR_SUCCESS;
 
     _map_file_descriptors.resize(0);
+    *instructions = nullptr;
+    *map_descriptors = nullptr;
 
     ebpf_verifier_options_t verifier_options{false, false, false, false, mock_map_fd};
     if (load_byte_code(
@@ -439,24 +441,30 @@ ebpf_get_program_byte_code(
     }
 
     // Copy instructions to output buffer.
-    *instructions = new uint8_t[byte_code_size];
-    if (*instructions == nullptr) {
-        result = ERROR_NOT_ENOUGH_MEMORY;
-        goto Done;
-    }
-    memcpy(*instructions, byte_code.data(), byte_code_size);
     *instructions_size = (uint32_t)byte_code_size;
+    if (*instructions_size > 0)
+    {
+        *instructions = new uint8_t[byte_code_size];
+        if (*instructions == nullptr) {
+            result = ERROR_NOT_ENOUGH_MEMORY;
+            goto Done;
+        }
+        memcpy(*instructions, byte_code.data(), byte_code_size);
+    }
 
-    // Copy map file descriptors to output buffer.
-    *map_descriptors = new EbpfMapDescriptor[_map_file_descriptors.size()];
-    if (*map_descriptors == nullptr) {
-        result = ERROR_NOT_ENOUGH_MEMORY;
-        goto Done;
-    }
-    for (int i = 0; i < _map_file_descriptors.size(); i++) {
-        *map_descriptors[i] = _map_file_descriptors[i].ebpf_map_descriptor;
-    }
+    // Copy map file descriptors (if any) to output buffer.
     *map_descriptors_count = (int)_map_file_descriptors.size();
+    if (*map_descriptors_count > 0)
+    {
+        *map_descriptors = new EbpfMapDescriptor[*map_descriptors_count];
+        if (*map_descriptors == nullptr) {
+            result = ERROR_NOT_ENOUGH_MEMORY;
+            goto Done;
+        }
+        for (int i = 0; i < *map_descriptors_count; i++) {
+            *(*map_descriptors + i) = _map_file_descriptors[i].ebpf_map_descriptor;
+        }
+    }
 
 Done:
     _map_file_descriptors.resize(0);
@@ -483,6 +491,7 @@ ebpf_api_load_program(
     ebpf_extension_data_t* program_information_data = NULL;
     ebpf_program_information_t* program_information = NULL;
     ebpf_operation_load_code_request_t* request = NULL;
+    uint32_t error_message_size;
 
     uint32_t result;
 
@@ -520,7 +529,7 @@ ebpf_api_load_program(
 
     // TODO (issue #67): Pass the resulting program information to the verifier.
     // Verify code.
-    if (verify_byte_code_with_section(file_name, section_name, byte_code.data(), byte_code_size, error_message) != 0) {
+    if (verify_byte_code(&program_type, byte_code.data(), byte_code_size, error_message, &error_message_size) != 0) {
         result = ERROR_INVALID_PARAMETER;
         goto Done;
     }
