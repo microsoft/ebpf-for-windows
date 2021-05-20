@@ -21,6 +21,8 @@
 #define EBPF_SERVICE_BINARY_NAME L"ebpfsvc.exe"
 #define EBPF_SERVICE_NAME L"ebpfsvc"
 
+service_install_helper service_helper(EBPF_SERVICE_NAME, EBPF_SERVICE_BINARY_NAME);
+
 int
 ebpf_rpc_verify_program(ebpf_program_verify_info* info, char** logs, uint32_t* logs_size);
 
@@ -73,9 +75,6 @@ TEST_CASE("verify-program-droppacket", "[verify-program-droppacket]")
     uint32_t verifier_message_size;
     ebpf_program_verify_info info = {0};
 
-    service_install_helper service_helper(EBPF_SERVICE_NAME, EBPF_SERVICE_BINARY_NAME);
-    REQUIRE(service_helper.initialize() == ERROR_SUCCESS);
-
     // Get byte code and map descriptors from ELF file.
     _get_program_byte_code_helper("droppacket.o", "xdp", &info);
 
@@ -90,7 +89,6 @@ TEST_CASE("verify-program-droppacket", "[verify-program-droppacket]")
 
     ebpf_api_free_string((const char*)verifier_message);
     clean_up_rpc_binding();
-    service_helper.uninitialize();
 }
 
 TEST_CASE("verify-program-bindmonitor", "[verify-program-bindmonitor]")
@@ -99,9 +97,6 @@ TEST_CASE("verify-program-bindmonitor", "[verify-program-bindmonitor]")
     char* verifier_message = nullptr;
     uint32_t verifier_message_size;
     ebpf_program_verify_info info = {0};
-
-    service_install_helper service_helper(EBPF_SERVICE_NAME, EBPF_SERVICE_BINARY_NAME);
-    REQUIRE(service_helper.initialize() == ERROR_SUCCESS);
 
     // Get byte code and map descriptors from ELF file.
     _get_program_byte_code_helper("bindmonitor.o", "bind", &info);
@@ -117,7 +112,6 @@ TEST_CASE("verify-program-bindmonitor", "[verify-program-bindmonitor]")
 
     ebpf_api_free_string((const char*)verifier_message);
     clean_up_rpc_binding();
-    service_helper.uninitialize();
 }
 
 TEST_CASE("verify-program-divide_by_zero", "[verify-program-divide_by_zero]")
@@ -126,9 +120,6 @@ TEST_CASE("verify-program-divide_by_zero", "[verify-program-divide_by_zero]")
     char* verifier_message = nullptr;
     uint32_t verifier_message_size;
     ebpf_program_verify_info info = {0};
-
-    service_install_helper service_helper(EBPF_SERVICE_NAME, EBPF_SERVICE_BINARY_NAME);
-    REQUIRE(service_helper.initialize() == ERROR_SUCCESS);
 
     // Get byte code and map descriptors from ELF file.
     _get_program_byte_code_helper("divide_by_zero.o", "xdp", &info);
@@ -144,7 +135,6 @@ TEST_CASE("verify-program-divide_by_zero", "[verify-program-divide_by_zero]")
 
     ebpf_api_free_string((const char*)verifier_message);
     clean_up_rpc_binding();
-    service_helper.uninitialize();
 }
 
 TEST_CASE("verify-program-droppacket_unsafe", "[verify-program-droppacket_unsafe]")
@@ -153,9 +143,6 @@ TEST_CASE("verify-program-droppacket_unsafe", "[verify-program-droppacket_unsafe
     char* verifier_message = nullptr;
     uint32_t verifier_message_size;
     ebpf_program_verify_info info = {0};
-
-    service_install_helper service_helper(EBPF_SERVICE_NAME, EBPF_SERVICE_BINARY_NAME);
-    REQUIRE(service_helper.initialize() == ERROR_SUCCESS);
 
     // Get byte code and map descriptors from ELF file.
     _get_program_byte_code_helper("droppacket_unsafe.o", "xdp", &info);
@@ -175,5 +162,4 @@ TEST_CASE("verify-program-droppacket_unsafe", "[verify-program-droppacket_unsafe
 
     ebpf_api_free_string((const char*)verifier_message);
     clean_up_rpc_binding();
-    service_helper.uninitialize();
 }

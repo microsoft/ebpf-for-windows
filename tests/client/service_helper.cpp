@@ -4,13 +4,19 @@
 #include "header.h"
 #include "service_helper.h"
 
-#define MAX_RETRY_COUNT 10
+#define MAX_RETRY_COUNT 20
 #define WAIT_TIME 500 // in ms.
 
 int
 service_install_helper::initialize()
 {
     int error;
+    int retry_count = 0;
+
+    if (initialized) {
+        return ERROR_SUCCESS;
+    }
+
     scm_handle = OpenSCManager(nullptr, nullptr, SC_MANAGER_ALL_ACCESS);
     if (scm_handle == nullptr) {
         error = GetLastError();
@@ -47,10 +53,12 @@ QueryService:
 
         if (service_handle == nullptr) {
             error = GetLastError();
-            if (error == ERROR_SERVICE_EXISTS) {
+            if (error == ERROR_SERVICE_EXISTS && retry_count < MAX_RETRY_COUNT) {
+                printf("CreateService for %ws failed, retrying.\n", service_name.c_str());
+                retry_count++;
                 goto QueryService;
             }
-            printf("CreateService failed, 0x%x.\n", error);
+            printf("CreateService for %ws failed, 0x%x.\n", service_name.c_str(), error);
             return error;
         }
     } else {
@@ -58,25 +66,39 @@ QueryService:
         printf("Service %ws already installed.\n", service_name.c_str());
     }
 
-    return start_service();
+    error = start_service();
+    if (error == ERROR_SUCCESS) {
+        initialized = true;
+    }
+
+    return error;
 }
 
 void
-service_install_helper::uninitialize()
+service_install_helper::cleanup()
 {
+    printf("cleanup %ws entered.\n", service_name.c_str());
     if (service_handle != nullptr && !already_installed) {
         stop_service();
         if (!DeleteService(service_handle)) {
             DWORD error = GetLastError();
             printf("DeleteService for %ws failed, 0x%x.\n", service_name.c_str(), error);
+        } else {
+            printf("DeleteService for %ws done.\n", service_name.c_str());
         }
         CloseServiceHandle(service_handle);
         service_handle = nullptr;
+    } else if (service_handle == nullptr) {
+        printf("cleanup: service_handle is null for %ws.\n", service_name.c_str());
+    } else {
+        printf("cleanup: service %ws was already installed, skipping cleanup.\n", service_name.c_str());
     }
     if (scm_handle != nullptr) {
         CloseServiceHandle(scm_handle);
         scm_handle = nullptr;
     }
+
+    initialized = false;
 }
 
 int
