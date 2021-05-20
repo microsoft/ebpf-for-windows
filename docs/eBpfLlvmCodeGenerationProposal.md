@@ -4,7 +4,7 @@
 
 Clang/LLVM has a much richer tool chain for generating optimal ISA-specific
 instruction sequences. Proposal is to use LLVM to convert eBPF byte code to
-optimal native instruction sequences (replacing the current uBPF jitter).
+optimal native instruction sequences (updating the current uBPF jitter).
 
 ## Background
 
