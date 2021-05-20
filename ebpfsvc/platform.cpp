@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: MIT
 
 #define WIN32_LEAN_AND_MEAN // Exclude rarely-used stuff from Windows headers
-#include "svc_common.h"
 #include <stdint.h>
 #include "ebpf_api.h"
+#include "svc_common.h"
 
 namespace Platform {
 bool
@@ -34,18 +34,18 @@ CreateFileW(
     _In_z_ PCWSTR file_name,
     uint32_t desired_access,
     uint32_t share_mode,
-    _In_opt_ SECURITY_ATTRIBUTES* security_attributed,
+    _In_opt_ SECURITY_ATTRIBUTES* security_attributes,
     uint32_t creation_disposition,
-    uint32_t flags_and_attributed,
+    uint32_t flags_and_attributes,
     _In_opt_ ebpf_handle_t template_file)
 {
     return ::CreateFileW(
         file_name,
         desired_access,
         share_mode,
-        security_attributed,
+        security_attributes,
         creation_disposition,
-        flags_and_attributed,
+        flags_and_attributes,
         template_file);
 }
 

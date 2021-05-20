@@ -143,6 +143,9 @@
       <EnableUAC>false</EnableUAC>
       <AdditionalLibraryDirectories>rpcrt4.lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
+    <Midl>
+      <DefaultCharType>Unsigned</DefaultCharType>
+    </Midl>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -164,9 +167,12 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
     </Link>
+    <Midl>
+      <DefaultCharType>Unsigned</DefaultCharType>
+    </Midl>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="api.h" />
+    <ClInclude Include="rpc_util.h" />
     <ClInclude Include="svc_common.h" />
   </ItemGroup>
   <ItemGroup>

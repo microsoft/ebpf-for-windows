@@ -39,7 +39,7 @@ get_file_size(const char* filename, size_t* byte_code_size)
     return result;
 }
 
-static const char*
+const char*
 allocate_error_string(const std::string& str, uint32_t* length = nullptr)
 {
     char* retval;

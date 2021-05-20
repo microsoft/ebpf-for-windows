@@ -22,7 +22,7 @@
     <ClInclude Include="svc_common.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="api.h">
+    <ClInclude Include="rpc_util.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>

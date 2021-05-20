@@ -15,9 +15,9 @@ import "wtypes.idl";
 [uuid(6bef171d-7205-4b63-a1e5-d00f01e6a0c1), version(1.0), pointer_default(unique)]
 
     interface ebpf_service_interface {
-        // TODO: This is a duplicate of EbpfMapDescriptor structure
-        // defined in spec_type_descriptor.hpp. See if that file
-        // can be included so that we do not have to redefine this.
+        // TODO: (Issue #208): This is a duplicate of EbpfMapDescriptor
+        // structure defined in spec_type_descriptor.hpp. See if that
+        // file can be included so that we do not have to redefine this.
         typedef struct _ebpf_map_descriptor
         {
             int original_fd;

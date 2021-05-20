@@ -3,8 +3,8 @@
  *  SPDX-License-Identifier: MIT
  */
 
+#include "rpc_util.h"
 #include "svc_common.h"
-#include "api.h"
 
 #define SERVICE_NAME TEXT("eBPFSvc")
 
@@ -25,11 +25,6 @@ void WINAPI
 service_main(DWORD argc, PTSTR* argv);
 void
 service_install();
-
-DWORD
-initialize_rpc_server();
-void
-shutdown_rpc_server();
 
 int __cdecl wmain(ULONG argc, PWSTR* argv)
 {
@@ -204,7 +199,6 @@ DWORD
 Initialize()
 {
     DWORD status;
-    initialize_api_globals();
     status = initialize_rpc_server();
 
     return status;
@@ -214,7 +208,6 @@ void
 Cleanup()
 {
     shutdown_rpc_server();
-    clean_up_api_globals();
     if (ebpf_service_stop_event_handle) {
         CloseHandle(ebpf_service_stop_event_handle);
     }

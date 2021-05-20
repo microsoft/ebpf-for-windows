@@ -4,6 +4,9 @@
 #include "header.h"
 #include "service_helper.h"
 
+#define MAX_RETRY_COUNT 10
+#define WAIT_TIME 500 // in ms.
+
 int
 service_install_helper::initialize()
 {
@@ -52,6 +55,7 @@ QueryService:
         }
     } else {
         already_installed = true;
+        printf("Service %ws already installed.\n", service_name.c_str());
     }
 
     return start_service();
@@ -64,7 +68,7 @@ service_install_helper::uninitialize()
         stop_service();
         if (!DeleteService(service_handle)) {
             DWORD error = GetLastError();
-            printf("DeleteService for %ws failed, 0x%x.", service_name.c_str(), error);
+            printf("DeleteService for %ws failed, 0x%x.\n", service_name.c_str(), error);
         }
         CloseServiceHandle(service_handle);
         service_handle = nullptr;
@@ -79,16 +83,28 @@ int
 service_install_helper::start_service()
 {
     int error = ERROR_SUCCESS;
+    bool service_running = false;
+    DWORD service_state;
+
     if ((service_handle != nullptr) && !StartService(service_handle, 0, nullptr)) {
         error = GetLastError();
         if (error != ERROR_SERVICE_ALREADY_RUNNING) {
             printf("StartService for %ws failed, 0x%x.\n", service_name.c_str(), error);
             return error;
         }
-
         error = ERROR_SUCCESS;
     }
-    printf("Service %ws started successfully.\n", service_name.c_str());
+
+    service_running = check_service_state(SERVICE_RUNNING, &service_state);
+    if (!service_running) {
+        error = ERROR_SERVICE_REQUEST_TIMEOUT;
+        printf(
+            "start_service: Service %ws failed to move to running state. Current state = %d\n",
+            service_name.c_str(),
+            service_state);
+    } else {
+        printf("start_service: Service %ws successfully started.\n", service_name.c_str());
+    }
 
     return error;
 }
@@ -97,11 +113,57 @@ int
 service_install_helper::stop_service()
 {
     SERVICE_STATUS status;
+    bool service_stopped = false;
+    DWORD service_state;
     int error = ERROR_SUCCESS;
+
     if ((service_handle != nullptr) && !ControlService(service_handle, SERVICE_CONTROL_STOP, &status)) {
         error = GetLastError();
         printf("StopService for %ws failed, 0x%x.\n", service_name.c_str(), error);
         return error;
     }
+
+    service_stopped = check_service_state(SERVICE_STOPPED, &service_state);
+    if (!service_stopped) {
+        error = ERROR_SERVICE_REQUEST_TIMEOUT;
+        printf(
+            "stop_service: Service %ws failed to move to stopped state. Current state = %d\n",
+            service_name.c_str(),
+            service_state);
+    } else {
+        printf("stop_service: Service %ws successfully stopped.\n", service_name.c_str());
+    }
     return error;
+}
+
+bool
+service_install_helper::check_service_state(DWORD expected_state, DWORD* final_state)
+{
+    int retry_count = 0;
+    bool status = false;
+    int error;
+    SERVICE_STATUS service_status = {0};
+
+    // Query service state.
+    while (retry_count < MAX_RETRY_COUNT) {
+        if (!QueryServiceStatus(service_handle, &service_status)) {
+            error = GetLastError();
+            printf("start_service: failed to query service %ws status 0x%x\n", service_name.c_str(), error);
+            break;
+        } else if (service_status.dwCurrentState == expected_state) {
+            status = true;
+            break;
+        } else {
+            printf(
+                "start_service: service %ws not yet in desired state, state=%d, desired_state=%d\n",
+                service_name.c_str(),
+                service_status.dwCurrentState,
+                expected_state);
+            Sleep(WAIT_TIME);
+            retry_count++;
+        }
+    }
+
+    *final_state = service_status.dwCurrentState;
+    return status;
 }

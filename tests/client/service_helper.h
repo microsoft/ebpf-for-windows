@@ -15,13 +15,15 @@ class service_install_helper
     ~service_install_helper() { uninitialize(); }
 
     int
-    initialize();
+    initialize(void);
     void
-    uninitialize();
+    uninitialize(void);
     int
-    start_service();
+    start_service(void);
     int
-    stop_service();
+    stop_service(void);
+    bool
+    check_service_state(DWORD expected_state, DWORD* final_state);
 
   private:
     std::wstring service_name;

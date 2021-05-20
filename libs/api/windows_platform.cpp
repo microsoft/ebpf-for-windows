@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 #include <cassert>
 #include <stdexcept>
+#include "api_internal.h"
 #pragma warning(push)
 #pragma warning(disable : 4100) // 'identifier' : unreferenced formal parameter
 #pragma warning(disable : 4244) // 'conversion' conversion from 'type1' to
@@ -62,8 +63,7 @@ get_program_type_windows(const GUID& program_type)
     // TODO: (Issue #205) Make an IOCTL call to fetch the program context
     //       information and then fill the EbpfProgramType struct.
     for (const EbpfProgramType t : windows_program_types) {
-        if (t.platform_specific_data != 0)
-        {
+        if (t.platform_specific_data != 0) {
             if (IsEqualGUID(*(GUID*)t.platform_specific_data, program_type)) {
                 return t;
             }
@@ -120,9 +120,6 @@ struct ebpf_maps_section_record_windows
 int
 create_map_function(
     uint32_t type, uint32_t key_size, uint32_t value_size, uint32_t max_entries, ebpf_verifier_options_t options);
-
-void
-cache_map_file_descriptor(uint32_t type, uint32_t key_size, uint32_t value_size, int fd);
 
 static int
 create_map_windows(

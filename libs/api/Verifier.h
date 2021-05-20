@@ -30,3 +30,6 @@ verify_byte_code(
     size_t byte_code_size,
     const char** error_message,
     uint32_t* error_message_size);
+
+const char*
+allocate_error_string(const std::string& str, uint32_t* length);

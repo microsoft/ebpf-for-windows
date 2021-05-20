@@ -23,7 +23,7 @@ DropPacket(xdp_md_t* ctx)
 {
     IPV4_HEADER* iphdr = (IPV4_HEADER*)ctx->data;
     UDP_HEADER* udphdr = (UDP_HEADER*)(iphdr + 1);
-    int rc = 1;
+    int rc = XDP_PASS;
     if ((char*)ctx->data + sizeof(IPV4_HEADER) + sizeof(UDP_HEADER) > (char*)ctx->data_end)
         goto Done;
 
@@ -34,7 +34,7 @@ DropPacket(xdp_md_t* ctx)
             long* count = ebpf_map_lookup_element(&port_map, &key);
             if (count)
                 *count = (*count + 1);
-            rc = 2;
+            rc = XDP_DROP;
         }
     }
 Done:

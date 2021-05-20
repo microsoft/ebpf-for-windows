@@ -3,23 +3,26 @@
  *  SPDX-License-Identifier: MIT
  */
 
-#include "svc_common.h"
+#include <mutex>
+#include <stdexcept>
 #include <stdio.h>
-#include "rpc_interface_h.h"
-#include "ebpf_windows.h"
-#include "Verifier.h"
+#include <vector>
 #include "api_internal.h"
+#include "ebpf_windows.h"
+#include "rpc_interface_h.h"
+#include "svc_common.h"
+#include "Verifier.h"
 
 // Critical section to serialize RPC calls.
 // Currently ebpfsvc uses a global context to track verification
 // and JIT compilation, hence all RPC calls should be serialized.
-static CRITICAL_SECTION _critical_section;
+static std::mutex _mutex;
 
 ebpf_result_t
 ebpf_verify_and_jit_program(
-    /* [in] */ ebpf_program_load_info* info,
-    /* [out] */ uint32_t* logs_size,
-    /* [size_is][size_is][out] */ unsigned char** logs)
+    /* [ref][in] */ ebpf_program_load_info* info,
+    /* [ref][out] */ uint32_t* logs_size,
+    /* [ref][size_is][size_is][out] */ char** logs)
 {
     UNREFERENCED_PARAMETER(info);
     UNREFERENCED_PARAMETER(logs_size);
@@ -30,9 +33,9 @@ ebpf_verify_and_jit_program(
 
 ebpf_result_t
 ebpf_verify_program(
-    /* [in] */ ebpf_program_verify_info* info,
+    /* [ref][in] */ ebpf_program_verify_info* info,
     /* [out] */ uint32_t* logs_size,
-    /* [size_is][size_is][out] */ unsigned char** logs)
+    /* [ref][size_is][size_is][out] */ char** logs)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     int error = 0;
@@ -41,47 +44,37 @@ ebpf_verify_program(
         return EBPF_INVALID_ARGUMENT;
     }
 
-    EnterCriticalSection(&_critical_section);
+    std::scoped_lock lock(_mutex);
 
     clear_map_descriptors();
-    if (info->map_descriptors_count != 0) {
-        try {
+
+    try {
+        if (info->map_descriptors_count != 0) {
             cache_map_file_descriptors(
                 reinterpret_cast<EbpfMapDescriptor*>(info->map_descriptors), info->map_descriptors_count);
-        } catch (const std::bad_alloc&) {
-            result = EBPF_NO_MEMORY;
-            goto Exit;
-        } catch (...) {
-            result = EBPF_FAILED;
-            goto Exit;
         }
-    }
 
-    // Verify the program
-    error = verify_byte_code(
-        reinterpret_cast<const GUID*>(&info->program_type),
-        info->byte_code,
-        info->byte_code_size,
-        (const char**)logs,
-        logs_size);
+        // Verify the program
+        error = verify_byte_code(
+            reinterpret_cast<const GUID*>(&info->program_type),
+            info->byte_code,
+            info->byte_code_size,
+            (const char**)logs,
+            logs_size);
 
-    if (error != 0) {
+        if (error != 0) {
+            result = EBPF_VALIDATION_FAILED;
+        }
+    } catch (const std::bad_alloc&) {
+        result = EBPF_NO_MEMORY;
+    } catch (std::runtime_error& err) {
+        auto message = err.what();
+        *logs = const_cast<char*>(allocate_error_string(message, logs_size));
+
         result = EBPF_VALIDATION_FAILED;
+    } catch (...) {
+        result = EBPF_FAILED;
     }
 
-Exit:
-    LeaveCriticalSection(&_critical_section);
     return result;
-}
-
-void
-initialize_api_globals()
-{
-    InitializeCriticalSection(&_critical_section);
-}
-
-void
-clean_up_api_globals()
-{
-    DeleteCriticalSection(&_critical_section);
 }

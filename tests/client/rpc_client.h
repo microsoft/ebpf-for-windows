@@ -6,7 +6,7 @@
 #include <rpc.h>
 
 RPC_STATUS
-initialize_rpc_binding();
+initialize_rpc_binding(void);
 
 RPC_STATUS
-clean_up_rpc_binding();
+clean_up_rpc_binding(void);
