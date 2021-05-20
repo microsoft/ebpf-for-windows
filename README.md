@@ -45,6 +45,10 @@ To try out this project, see our [Getting Started Guide](docs/GettingStarted.md)
 
 Want to help?  We welcome contributions!  See our [Contributing guidelines](CONTRIBUTING.md).
 
+Want to chat with us?  We have a:
+* [Slack channel](https://slack.com/app_redirect?channel=ebpf-for-windows)
+* Zoom meeting for github issue triage: see [meeting info](https://github.com/microsoft/ebpf-for-windows/issues/162)
+
 ## Frequently Asked Questions
 
 ### 1. Is this a fork of eBPF?
