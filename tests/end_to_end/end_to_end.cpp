@@ -69,7 +69,7 @@ GlueDeviceIoControl(
     UNREFERENCED_PARAMETER(dwIoControlCode);
     UNREFERENCED_PARAMETER(lpOverlapped);
 
-    ebpf_error_code_t retval;
+    ebpf_result_t result;
     const ebpf_operation_header_t* user_request = reinterpret_cast<decltype(user_request)>(lpInBuffer);
     ebpf_operation_header_t* user_reply = nullptr;
     *lpBytesReturned = 0;
@@ -77,23 +77,23 @@ GlueDeviceIoControl(
     size_t minimum_request_size = 0;
     size_t minimum_reply_size = 0;
 
-    retval = ebpf_core_get_protocol_handler_properties(request_id, &minimum_request_size, &minimum_reply_size);
-    if (retval != EBPF_ERROR_SUCCESS)
+    result = ebpf_core_get_protocol_handler_properties(request_id, &minimum_request_size, &minimum_reply_size);
+    if (result != EBPF_SUCCESS)
         goto Fail;
 
     if (user_request->length < minimum_request_size) {
-        retval = EBPF_ERROR_INVALID_PARAMETER;
+        result = EBPF_INVALID_ARGUMENT;
         goto Fail;
     }
 
     if (minimum_reply_size > 0) {
         user_reply = reinterpret_cast<decltype(user_reply)>(lpOutBuffer);
         if (!user_reply) {
-            retval = EBPF_ERROR_INVALID_PARAMETER;
+            result = EBPF_INVALID_ARGUMENT;
             goto Fail;
         }
         if (nOutBufferSize < minimum_reply_size) {
-            retval = EBPF_ERROR_INVALID_PARAMETER;
+            result = EBPF_INVALID_ARGUMENT;
             goto Fail;
         }
         user_reply->length = static_cast<uint16_t>(nOutBufferSize);
@@ -101,24 +101,24 @@ GlueDeviceIoControl(
         *lpBytesReturned = user_reply->length;
     }
 
-    retval =
+    result =
         ebpf_core_invoke_protocol_handler(request_id, user_request, user_reply, static_cast<uint16_t>(nOutBufferSize));
 
-    if (retval != EBPF_ERROR_SUCCESS)
+    if (result != EBPF_SUCCESS)
         goto Fail;
 
     return TRUE;
 
 Fail:
-    if (retval != EBPF_ERROR_SUCCESS) {
-        switch (retval) {
-        case EBPF_ERROR_OUT_OF_RESOURCES:
+    if (result != EBPF_SUCCESS) {
+        switch (result) {
+        case EBPF_NO_MEMORY:
             SetLastError(ERROR_OUTOFMEMORY);
             break;
         case EBPF_ERROR_NOT_FOUND:
             SetLastError(ERROR_NOT_FOUND);
             break;
-        case EBPF_ERROR_INVALID_PARAMETER:
+        case EBPF_INVALID_ARGUMENT:
             SetLastError(ERROR_INVALID_PARAMETER);
             break;
         case EBPF_ERROR_NO_MORE_KEYS:
@@ -155,9 +155,9 @@ class _test_helper
         device_io_control_handler = GlueDeviceIoControl;
         create_file_handler = GlueCreateFileW;
         close_handle_handler = GlueCloseHandle;
-        REQUIRE(ebpf_core_initiate() == EBPF_ERROR_SUCCESS);
+        REQUIRE(ebpf_core_initiate() == EBPF_SUCCESS);
         ec_initialized = true;
-        REQUIRE(ebpf_api_initiate() == ERROR_SUCCESS);
+        REQUIRE(ebpf_api_initiate() == EBPF_SUCCESS);
         api_initialized = true;
     }
     ~_test_helper()
@@ -204,9 +204,9 @@ TEST_CASE("droppacket-jit", "[droppacket_jit]")
          error_message ? printf("ebpf_api_load_program failed with %s\n", error_message) : 0,
          ebpf_api_free_string(error_message),
          error_message = nullptr,
-         result == ERROR_SUCCESS));
+         result == EBPF_SUCCESS));
 
-    REQUIRE(hook.attach(program_handle) == ERROR_SUCCESS);
+    REQUIRE(hook.attach(program_handle) == EBPF_SUCCESS);
 
     auto packet = prepare_udp_packet(0);
 
@@ -214,35 +214,35 @@ TEST_CASE("droppacket-jit", "[droppacket_jit]")
     uint64_t value = 1000;
     REQUIRE(
         ebpf_api_map_update_element(map_handle, sizeof(key), (uint8_t*)&key, sizeof(value), (uint8_t*)&value) ==
-        ERROR_SUCCESS);
+        EBPF_SUCCESS);
 
     // Test that we drop the packet and increment the map
     xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
 
-    REQUIRE(hook.fire(&ctx, &result) == EBPF_ERROR_SUCCESS);
+    REQUIRE(hook.fire(&ctx, &result) == EBPF_SUCCESS);
     REQUIRE(result == 2);
 
     REQUIRE(
         ebpf_api_map_find_element(map_handle, sizeof(key), (uint8_t*)&key, sizeof(value), (uint8_t*)&value) ==
-        ERROR_SUCCESS);
+        EBPF_SUCCESS);
     REQUIRE(value == 1001);
 
-    REQUIRE(ebpf_api_map_delete_element(map_handle, sizeof(key), (uint8_t*)&key) == ERROR_SUCCESS);
+    REQUIRE(ebpf_api_map_delete_element(map_handle, sizeof(key), (uint8_t*)&key) == EBPF_SUCCESS);
 
     REQUIRE(
         ebpf_api_map_find_element(map_handle, sizeof(key), (uint8_t*)&key, sizeof(value), (uint8_t*)&value) ==
-        ERROR_SUCCESS);
+        EBPF_SUCCESS);
     REQUIRE(value == 0);
 
     packet = prepare_udp_packet(10);
     xdp_md_t ctx2{packet.data(), packet.data() + packet.size()};
 
-    REQUIRE(hook.fire(&ctx2, &result) == EBPF_ERROR_SUCCESS);
+    REQUIRE(hook.fire(&ctx2, &result) == EBPF_SUCCESS);
     REQUIRE(result == 1);
 
     REQUIRE(
         ebpf_api_map_find_element(map_handle, sizeof(key), (uint8_t*)&key, sizeof(value), (uint8_t*)&value) ==
-        ERROR_SUCCESS);
+        EBPF_SUCCESS);
     REQUIRE(value == 0);
 
     hook.detach();
@@ -274,9 +274,9 @@ TEST_CASE("droppacket-interpret", "[droppacket_interpret]")
          error_message ? printf("ebpf_api_load_program failed with %s\n", error_message) : 0,
          ebpf_api_free_string(error_message),
          error_message = NULL,
-         result == ERROR_SUCCESS));
+         result == EBPF_SUCCESS));
 
-    REQUIRE(hook.attach(program_handle) == ERROR_SUCCESS);
+    REQUIRE(hook.attach(program_handle) == EBPF_SUCCESS);
 
     auto packet = prepare_udp_packet(0);
 
@@ -284,34 +284,34 @@ TEST_CASE("droppacket-interpret", "[droppacket_interpret]")
     uint64_t value = 1000;
     REQUIRE(
         ebpf_api_map_update_element((ebpf_handle_t)1, sizeof(key), (uint8_t*)&key, sizeof(value), (uint8_t*)&value) ==
-        ERROR_SUCCESS);
+        EBPF_SUCCESS);
 
     // Test that we drop the packet and increment the map
     xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
-    REQUIRE(hook.fire(&ctx, &result) == EBPF_ERROR_SUCCESS);
+    REQUIRE(hook.fire(&ctx, &result) == EBPF_SUCCESS);
     REQUIRE(result == 2);
 
     REQUIRE(
         ebpf_api_map_find_element((ebpf_handle_t)1, sizeof(key), (uint8_t*)&key, sizeof(value), (uint8_t*)&value) ==
-        ERROR_SUCCESS);
+        EBPF_SUCCESS);
     REQUIRE(value == 1001);
 
-    REQUIRE(ebpf_api_map_delete_element((ebpf_handle_t)1, sizeof(key), (uint8_t*)&key) == ERROR_SUCCESS);
+    REQUIRE(ebpf_api_map_delete_element((ebpf_handle_t)1, sizeof(key), (uint8_t*)&key) == EBPF_SUCCESS);
 
     REQUIRE(
         ebpf_api_map_find_element((ebpf_handle_t)1, sizeof(key), (uint8_t*)&key, sizeof(value), (uint8_t*)&value) ==
-        ERROR_SUCCESS);
+        EBPF_SUCCESS);
     REQUIRE(value == 0);
 
     packet = prepare_udp_packet(10);
     xdp_md_t ctx2{packet.data(), packet.data() + packet.size()};
 
-    REQUIRE(hook.fire(&ctx2, &result) == EBPF_ERROR_SUCCESS);
+    REQUIRE(hook.fire(&ctx2, &result) == EBPF_SUCCESS);
     REQUIRE(result == 1);
 
     REQUIRE(
         ebpf_api_map_find_element((ebpf_handle_t)1, sizeof(key), (uint8_t*)&key, sizeof(value), (uint8_t*)&value) ==
-        ERROR_SUCCESS);
+        EBPF_SUCCESS);
     REQUIRE(value == 0);
 }
 
@@ -340,16 +340,16 @@ TEST_CASE("divide_by_zero_jit", "[divide_by_zero_jit]")
          error_message ? printf("ebpf_api_load_program failed with %s\n", error_message) : 0,
          ebpf_api_free_string(error_message),
          error_message = nullptr,
-         result == ERROR_SUCCESS));
+         result == EBPF_SUCCESS));
 
-    REQUIRE(hook.attach(program_handle) == ERROR_SUCCESS);
+    REQUIRE(hook.attach(program_handle) == EBPF_SUCCESS);
 
     auto packet = prepare_udp_packet(0);
 
     // Test that we drop the packet and increment the map
     xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
 
-    REQUIRE(hook.fire(&ctx, &result) == EBPF_ERROR_SUCCESS);
+    REQUIRE(hook.fire(&ctx, &result) == EBPF_SUCCESS);
     REQUIRE(result == -1);
 
     hook.detach();
@@ -436,7 +436,7 @@ emulate_bind(single_instance_hook_t& hook, uint64_t pid, const char* appid)
     ctx.app_id_end = (uint8_t*)(app_id.c_str()) + app_id.size();
     ctx.process_id = pid;
     ctx.operation = BIND_OPERATION_BIND;
-    REQUIRE(hook.fire(&ctx, &result) == EBPF_ERROR_SUCCESS);
+    REQUIRE(hook.fire(&ctx, &result) == EBPF_SUCCESS);
     return static_cast<bind_action_t>(result);
 }
 
@@ -448,7 +448,7 @@ emulate_unbind(single_instance_hook_t& hook, uint64_t pid, const char* appid)
     bind_md_t ctx{0};
     ctx.process_id = pid;
     ctx.operation = BIND_OPERATION_UNBIND;
-    REQUIRE(hook.fire(&ctx, &result) == EBPF_ERROR_SUCCESS);
+    REQUIRE(hook.fire(&ctx, &result) == EBPF_SUCCESS);
 }
 
 void
@@ -457,7 +457,7 @@ set_bind_limit(ebpf_handle_t handle, uint32_t limit)
     uint32_t limit_key = 0;
     REQUIRE(
         ebpf_api_map_update_element(handle, sizeof(limit_key), (uint8_t*)&limit_key, sizeof(limit), (uint8_t*)&limit) ==
-        ERROR_SUCCESS);
+        EBPF_SUCCESS);
 }
 
 TEST_CASE("bindmonitor-interpret", "[bindmonitor_interpret]")
@@ -485,7 +485,7 @@ TEST_CASE("bindmonitor-interpret", "[bindmonitor_interpret]")
          error_message ? printf("ebpf_api_load_program failed with %s\n", error_message) : 0,
          ebpf_api_free_string(error_message),
          error_message = nullptr,
-         result == ERROR_SUCCESS));
+         result == EBPF_SUCCESS));
 
     single_instance_hook_t hook;
 
@@ -496,33 +496,33 @@ TEST_CASE("bindmonitor-interpret", "[bindmonitor_interpret]")
         ebpf_api_pin_object(
             map_handles[0],
             reinterpret_cast<const uint8_t*>(process_maps_name.c_str()),
-            static_cast<uint32_t>(process_maps_name.size())) == ERROR_SUCCESS);
+            static_cast<uint32_t>(process_maps_name.size())) == EBPF_SUCCESS);
     REQUIRE(
         ebpf_api_pin_object(
             map_handles[1],
             reinterpret_cast<const uint8_t*>(limit_maps_name.c_str()),
-            static_cast<uint32_t>(limit_maps_name.size())) == ERROR_SUCCESS);
+            static_cast<uint32_t>(limit_maps_name.size())) == EBPF_SUCCESS);
 
     ebpf_handle_t test_handle;
     REQUIRE(
         ebpf_api_get_pinned_map(
             reinterpret_cast<const uint8_t*>(process_maps_name.c_str()),
             static_cast<uint32_t>(process_maps_name.size()),
-            &map_handles[2]) == ERROR_SUCCESS);
+            &map_handles[2]) == EBPF_SUCCESS);
     REQUIRE(
         ebpf_api_get_pinned_map(
             reinterpret_cast<const uint8_t*>(limit_maps_name.c_str()),
             static_cast<uint32_t>(limit_maps_name.size()),
-            &map_handles[3]) == ERROR_SUCCESS);
+            &map_handles[3]) == EBPF_SUCCESS);
 
     REQUIRE(
         ebpf_api_unpin_object(
             reinterpret_cast<const uint8_t*>(process_maps_name.c_str()),
-            static_cast<uint32_t>(process_maps_name.size())) == ERROR_SUCCESS);
+            static_cast<uint32_t>(process_maps_name.size())) == EBPF_SUCCESS);
     REQUIRE(
         ebpf_api_unpin_object(
             reinterpret_cast<const uint8_t*>(limit_maps_name.c_str()), static_cast<uint32_t>(limit_maps_name.size())) ==
-        ERROR_SUCCESS);
+        EBPF_SUCCESS);
     REQUIRE(
         ebpf_api_get_pinned_map(
             reinterpret_cast<const uint8_t*>(process_maps_name.c_str()),
@@ -535,9 +535,9 @@ TEST_CASE("bindmonitor-interpret", "[bindmonitor_interpret]")
             &test_handle) == ERROR_NOT_FOUND);
 
     ebpf_handle_t handle_iterator = INVALID_HANDLE_VALUE;
-    REQUIRE(ebpf_api_get_next_map(handle_iterator, &handle_iterator) == ERROR_SUCCESS);
-    REQUIRE(ebpf_api_get_next_map(handle_iterator, &handle_iterator) == ERROR_SUCCESS);
-    REQUIRE(ebpf_api_get_next_map(handle_iterator, &handle_iterator) == ERROR_SUCCESS);
+    REQUIRE(ebpf_api_get_next_map(handle_iterator, &handle_iterator) == EBPF_SUCCESS);
+    REQUIRE(ebpf_api_get_next_map(handle_iterator, &handle_iterator) == EBPF_SUCCESS);
+    REQUIRE(ebpf_api_get_next_map(handle_iterator, &handle_iterator) == EBPF_SUCCESS);
     REQUIRE(handle_iterator == INVALID_HANDLE_VALUE);
 
     hook.attach(program_handle);
@@ -576,12 +576,12 @@ TEST_CASE("bindmonitor-interpret", "[bindmonitor_interpret]")
     uint64_t pid;
     REQUIRE(
         ebpf_api_get_next_map_key(map_handles[0], sizeof(uint64_t), NULL, reinterpret_cast<uint8_t*>(&pid)) ==
-        ERROR_SUCCESS);
+        EBPF_SUCCESS);
     REQUIRE(pid != 0);
     REQUIRE(
         ebpf_api_get_next_map_key(
             map_handles[0], sizeof(uint64_t), reinterpret_cast<uint8_t*>(&pid), reinterpret_cast<uint8_t*>(&pid)) ==
-        ERROR_SUCCESS);
+        EBPF_SUCCESS);
     REQUIRE(pid != 0);
     REQUIRE(
         ebpf_api_get_next_map_key(
@@ -617,7 +617,7 @@ TEST_CASE("enumerate_and_query_programs", "[enumerate_and_query_programs]")
          ebpf_api_free_string(error_message),
          error_message ? printf("ebpf_api_load_program failed with %s\n", error_message) : 0,
          error_message = nullptr,
-         result == ERROR_SUCCESS));
+         result == EBPF_SUCCESS));
 
     REQUIRE(
         (result = ebpf_api_load_program(
@@ -631,12 +631,12 @@ TEST_CASE("enumerate_and_query_programs", "[enumerate_and_query_programs]")
          ebpf_api_free_string(error_message),
          error_message ? printf("ebpf_api_load_program failed with %s\n", error_message) : 0,
          error_message = nullptr,
-         result == ERROR_SUCCESS));
+         result == EBPF_SUCCESS));
 
     ebpf_execution_type_t type;
     program_handle = INVALID_HANDLE_VALUE;
-    REQUIRE(ebpf_api_get_next_program(program_handle, &program_handle) == ERROR_SUCCESS);
-    REQUIRE(ebpf_api_program_query_information(program_handle, &type, &file_name, &section_name) == ERROR_SUCCESS);
+    REQUIRE(ebpf_api_get_next_program(program_handle, &program_handle) == EBPF_SUCCESS);
+    REQUIRE(ebpf_api_program_query_information(program_handle, &type, &file_name, &section_name) == EBPF_SUCCESS);
     REQUIRE(type == EBPF_EXECUTION_JIT);
     REQUIRE(strcmp(file_name, SAMPLE_PATH "droppacket.o") == 0);
     ebpf_api_free_string(file_name);
@@ -645,9 +645,9 @@ TEST_CASE("enumerate_and_query_programs", "[enumerate_and_query_programs]")
     REQUIRE(program_handle != INVALID_HANDLE_VALUE);
     ebpf_api_free_string(section_name);
     section_name = nullptr;
-    REQUIRE(ebpf_api_get_next_program(program_handle, &program_handle) == ERROR_SUCCESS);
+    REQUIRE(ebpf_api_get_next_program(program_handle, &program_handle) == EBPF_SUCCESS);
     REQUIRE(program_handle != INVALID_HANDLE_VALUE);
-    REQUIRE(ebpf_api_program_query_information(program_handle, &type, &file_name, &section_name) == ERROR_SUCCESS);
+    REQUIRE(ebpf_api_program_query_information(program_handle, &type, &file_name, &section_name) == EBPF_SUCCESS);
     REQUIRE(type == EBPF_EXECUTION_INTERPRET);
     REQUIRE(strcmp(file_name, SAMPLE_PATH "droppacket.o") == 0);
     REQUIRE(strcmp(section_name, "xdp") == 0);
@@ -655,6 +655,6 @@ TEST_CASE("enumerate_and_query_programs", "[enumerate_and_query_programs]")
     ebpf_api_free_string(section_name);
     file_name = nullptr;
     section_name = nullptr;
-    REQUIRE(ebpf_api_get_next_program(program_handle, &program_handle) == ERROR_SUCCESS);
+    REQUIRE(ebpf_api_get_next_program(program_handle, &program_handle) == EBPF_SUCCESS);
     REQUIRE(program_handle == INVALID_HANDLE_VALUE);
 }

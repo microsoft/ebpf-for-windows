@@ -138,8 +138,8 @@ verify_byte_code(
     const char** error_message)
 {
     const ebpf_platform_t* platform = &g_ebpf_platform_windows;
-    std::vector<ebpf_inst> instructions{
-        (ebpf_inst*)byte_code, (ebpf_inst*)byte_code + byte_code_size / sizeof(ebpf_inst)};
+    std::vector<ebpf_inst> instructions{(ebpf_inst*)byte_code,
+                                        (ebpf_inst*)byte_code + byte_code_size / sizeof(ebpf_inst)};
     program_info info{platform};
     info.type = platform->get_program_type(section_name, path);
 
@@ -151,9 +151,8 @@ verify_byte_code(
 std::vector<uint8_t>
 convert_ebpf_program_to_bytes(const std::vector<ebpf_inst>& instructions)
 {
-    return {
-        reinterpret_cast<const uint8_t*>(instructions.data()),
-        reinterpret_cast<const uint8_t*>(instructions.data()) + instructions.size() * sizeof(ebpf_inst)};
+    return {reinterpret_cast<const uint8_t*>(instructions.data()),
+            reinterpret_cast<const uint8_t*>(instructions.data()) + instructions.size() * sizeof(ebpf_inst)};
 }
 
 uint32_t
@@ -186,12 +185,11 @@ ebpf_api_elf_enumerate_sections(
                 }
             }
 
-            sequence.emplace_back(tlv_pack<tlv_sequence>(
-                {tlv_pack(raw_program.section.c_str()),
-                 tlv_pack(raw_program.info.type.platform_specific_data),
-                 tlv_pack(raw_program.info.map_descriptors.size()),
-                 tlv_pack(convert_ebpf_program_to_bytes(raw_program.prog)),
-                 tlv_pack(stats_sequence)}));
+            sequence.emplace_back(tlv_pack<tlv_sequence>({tlv_pack(raw_program.section.c_str()),
+                                                          tlv_pack(raw_program.info.type.platform_specific_data),
+                                                          tlv_pack(raw_program.info.map_descriptors.size()),
+                                                          tlv_pack(convert_ebpf_program_to_bytes(raw_program.prog)),
+                                                          tlv_pack(stats_sequence)}));
         }
 
         auto retval = tlv_pack(sequence);
@@ -246,7 +244,7 @@ ebpf_api_elf_verify_section(
     std::ostringstream error;
 
     std::ostringstream output;
-    ebpf_error_code_t result;
+    ebpf_result_t result;
     ebpf_program_information_t* program_information_xdp = NULL;
     ebpf_program_information_t* program_information_bind = NULL;
     ebpf_helper::ebpf_memory_ptr program_information_xdp_ptr;

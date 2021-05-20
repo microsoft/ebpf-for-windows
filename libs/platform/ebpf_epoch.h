@@ -14,11 +14,11 @@ extern "C"
     /**
      * @brief Initialize the eBPF epoch tracking module.
      *
-     * @retval EBPF_ERROR_SUCCESS The operation was successful.
-     * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  operation.
      */
-    ebpf_error_code_t
+    ebpf_result_t
     ebpf_epoch_initiate();
 
     /**
@@ -30,11 +30,11 @@ extern "C"
 
     /**
      * @brief Called prior to touching memory with lifetime under epoch control.
-     * @retval EBPF_ERROR_SUCCESS The operation was successful.
-     * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate per-thread
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MEMORY Unable to allocate per-thread
      *   tracking state.
      */
-    ebpf_error_code_t
+    ebpf_result_t
     ebpf_epoch_enter();
 
     /**

@@ -15,7 +15,7 @@
 class _ebpf_core_initializer
 {
   public:
-    _ebpf_core_initializer() { REQUIRE(ebpf_core_initiate() == EBPF_ERROR_SUCCESS); }
+    _ebpf_core_initializer() { REQUIRE(ebpf_core_initiate() == EBPF_SUCCESS); }
     ~_ebpf_core_initializer() { ebpf_core_terminate(); }
 };
 
@@ -42,7 +42,7 @@ test_crud_operations(ebpf_map_type_t map_type)
     map_ptr map;
     {
         ebpf_map_t* local_map;
-        REQUIRE(ebpf_map_create(&map_definition, &local_map) == EBPF_ERROR_SUCCESS);
+        REQUIRE(ebpf_map_create(&map_definition, &local_map) == EBPF_SUCCESS);
         map.reset(local_map);
     }
     for (uint32_t key = 0; key < 10; key++) {
@@ -50,7 +50,7 @@ test_crud_operations(ebpf_map_type_t map_type)
         REQUIRE(
             ebpf_map_update_entry(
                 map.get(), reinterpret_cast<const uint8_t*>(&key), reinterpret_cast<const uint8_t*>(&value)) ==
-            EBPF_ERROR_SUCCESS);
+            EBPF_SUCCESS);
     }
 
     // Test for inserting max_entries + 1
@@ -59,7 +59,7 @@ test_crud_operations(ebpf_map_type_t map_type)
     REQUIRE(
         ebpf_map_update_entry(
             map.get(), reinterpret_cast<const uint8_t*>(&bad_key), reinterpret_cast<const uint8_t*>(&bad_value)) ==
-        EBPF_ERROR_INVALID_PARAMETER);
+        EBPF_INVALID_ARGUMENT);
 
     REQUIRE(ebpf_map_delete_entry(map.get(), reinterpret_cast<const uint8_t*>(&bad_key)) == EBPF_ERROR_NOT_FOUND);
 
@@ -78,7 +78,7 @@ test_crud_operations(ebpf_map_type_t map_type)
             ebpf_map_next_key(
                 map.get(),
                 key == 0 ? nullptr : reinterpret_cast<const uint8_t*>(&previous_key),
-                reinterpret_cast<uint8_t*>(&next_key)) == EBPF_ERROR_SUCCESS);
+                reinterpret_cast<uint8_t*>(&next_key)) == EBPF_SUCCESS);
 
         previous_key = next_key;
         REQUIRE(previous_key == key);
@@ -89,7 +89,7 @@ test_crud_operations(ebpf_map_type_t map_type)
         EBPF_ERROR_NO_MORE_KEYS);
 
     for (uint32_t key = 0; key < 10; key++) {
-        REQUIRE(ebpf_map_delete_entry(map.get(), reinterpret_cast<const uint8_t*>(&key)) == EBPF_ERROR_SUCCESS);
+        REQUIRE(ebpf_map_delete_entry(map.get(), reinterpret_cast<const uint8_t*>(&key)) == EBPF_SUCCESS);
     }
 
     auto retrieved_map_definition = ebpf_map_get_definition(map.get());
@@ -115,7 +115,7 @@ TEST_CASE("program")
     program_ptr program;
     {
         ebpf_program_t* local_program = nullptr;
-        REQUIRE(ebpf_program_create(&local_program) == EBPF_ERROR_SUCCESS);
+        REQUIRE(ebpf_program_create(&local_program) == EBPF_SUCCESS);
         program.reset(local_program);
     }
 
@@ -124,7 +124,7 @@ TEST_CASE("program")
     map_ptr map;
     {
         ebpf_map_t* local_map;
-        REQUIRE(ebpf_map_create(&map_definition, &local_map) == EBPF_ERROR_SUCCESS);
+        REQUIRE(ebpf_map_create(&map_definition, &local_map) == EBPF_SUCCESS);
         map.reset(local_map);
     }
 
@@ -136,23 +136,23 @@ TEST_CASE("program")
     ebpf_program_parameters_t returned_program_parameters{};
     const ebpf_extension_data_t* program_information_data;
 
-    REQUIRE(ebpf_program_initialize(program.get(), &program_parameters) == EBPF_ERROR_SUCCESS);
+    REQUIRE(ebpf_program_initialize(program.get(), &program_parameters) == EBPF_SUCCESS);
 
-    REQUIRE(ebpf_program_get_properties(program.get(), &returned_program_parameters) == EBPF_ERROR_SUCCESS);
+    REQUIRE(ebpf_program_get_properties(program.get(), &returned_program_parameters) == EBPF_SUCCESS);
     REQUIRE(
         memcmp(
             &program_parameters.program_type,
             &returned_program_parameters.program_type,
             sizeof(program_parameters.program_type)) == 0);
 
-    REQUIRE(ebpf_program_get_program_information_data(program.get(), &program_information_data) == EBPF_ERROR_SUCCESS);
+    REQUIRE(ebpf_program_get_program_information_data(program.get(), &program_information_data) == EBPF_SUCCESS);
 
     REQUIRE(program_information_data != nullptr);
 
     ebpf_map_t* maps[] = {map.get()};
 
     REQUIRE(((ebpf_object_t*)map.get())->reference_count == 1);
-    REQUIRE(ebpf_program_associate_maps(program.get(), maps, EBPF_COUNT_OF(maps)) == EBPF_ERROR_SUCCESS);
+    REQUIRE(ebpf_program_associate_maps(program.get(), maps, EBPF_COUNT_OF(maps)) == EBPF_SUCCESS);
     REQUIRE(((ebpf_object_t*)map.get())->reference_count == 2);
 
     ebpf_trampoline_entry_t machine_code;
@@ -162,17 +162,16 @@ TEST_CASE("program")
     machine_code.address = (void*)test_function;
 
     REQUIRE(
-        ebpf_program_load_machine_code(program.get(), (uint8_t*)&machine_code, sizeof(machine_code)) ==
-        EBPF_ERROR_SUCCESS);
+        ebpf_program_load_machine_code(program.get(), (uint8_t*)&machine_code, sizeof(machine_code)) == EBPF_SUCCESS);
     uint32_t result = 0;
     ebpf_program_invoke(program.get(), nullptr, &result);
     REQUIRE(result == TEST_FUNCTION_RETURN);
 
     uint64_t address = 0;
-    REQUIRE(ebpf_program_get_helper_function_address(program.get(), 1, &address) == EBPF_ERROR_SUCCESS);
+    REQUIRE(ebpf_program_get_helper_function_address(program.get(), 1, &address) == EBPF_SUCCESS);
     REQUIRE(address != 0);
-    REQUIRE(ebpf_program_get_helper_function_address(program.get(), 0, &address) == EBPF_ERROR_SUCCESS);
+    REQUIRE(ebpf_program_get_helper_function_address(program.get(), 0, &address) == EBPF_SUCCESS);
     REQUIRE(address == 0);
-    REQUIRE(ebpf_program_get_helper_function_address(program.get(), 0xFFFF, &address) == EBPF_ERROR_INVALID_PARAMETER);
+    REQUIRE(ebpf_program_get_helper_function_address(program.get(), 0xFFFF, &address) == EBPF_INVALID_ARGUMENT);
     REQUIRE(address == 0);
 }

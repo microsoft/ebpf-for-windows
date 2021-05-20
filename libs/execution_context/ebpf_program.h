@@ -33,17 +33,17 @@ extern "C"
         ebpf_code_type_t code_type;
     } ebpf_program_parameters_t;
 
-    typedef ebpf_error_code_t (*ebpf_program_entry_point_t)(void* context);
+    typedef ebpf_result_t (*ebpf_program_entry_point_t)(void* context);
 
     /**
      * @brief Create a new program instance.
      *
      * @param[out] program Pointer to memory that will contain the program instance.
-     * @retval EBPF_ERROR_SUCCESS The operation was successful.
-     * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  program instance.
      */
-    ebpf_error_code_t
+    ebpf_result_t
     ebpf_program_create(ebpf_program_t** program);
 
     /**
@@ -53,11 +53,11 @@ extern "C"
      * @param[in] program Program instance to initialize.
      * @param[in] program_parameters Program parameters to be used to initialize
      *  the program instance.
-     * @retval EBPF_ERROR_SUCCESS The operation was successful.
-     * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  program instance.
      */
-    ebpf_error_code_t
+    ebpf_result_t
     ebpf_program_initialize(ebpf_program_t* program, const ebpf_program_parameters_t* program_parameters);
 
     /**
@@ -65,11 +65,11 @@ extern "C"
      *
      * @param[in] program Program instance to query.
      * @param[in] program_parameters Parameters of the program.
-     * @retval EBPF_ERROR_SUCCESS The operation was successful.
-     * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  program instance.
      */
-    ebpf_error_code_t
+    ebpf_result_t
     ebpf_program_get_properties(ebpf_program_t* program, ebpf_program_parameters_t* program_parameters);
 
     /**
@@ -78,11 +78,11 @@ extern "C"
      *
      * @param[in] program Program that loaded the extension.
      * @param[out] program_information_data Pointer to the program information.
-     * @retval EBPF_ERROR_SUCCESS The operation was successful.
+     * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_ERROR_EXTENSION_FAILED_TO_LOAD The program information isn't
      *  available.
      */
-    ebpf_error_code_t
+    ebpf_result_t
     ebpf_program_get_program_information_data(
         const ebpf_program_t* program, const ebpf_extension_data_t** program_information_data);
 
@@ -92,11 +92,11 @@ extern "C"
      * @param[in] program Program instance to associate with the maps.
      * @param[in] maps Array of maps to associate with this program.
      * @param[in] maps_count Count of elements in the maps array.
-     * @retval EBPF_ERROR_SUCCESS The operation was successful.
-     * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  program instance.
      */
-    ebpf_error_code_t
+    ebpf_result_t
     ebpf_program_associate_maps(ebpf_program_t* program, ebpf_map_t** maps, size_t maps_count);
 
     /**
@@ -106,11 +106,11 @@ extern "C"
      * @param[in] machine_code Pointer to memory containing the machine code.
      * @param[in] machine_code_size Size of the memory block containing the machine
      *  code.
-     * @retval EBPF_ERROR_SUCCESS The operation was successful.
-     * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  program instance.
      */
-    ebpf_error_code_t
+    ebpf_result_t
     ebpf_program_load_machine_code(ebpf_program_t* program, uint8_t* machine_code, size_t machine_code_size);
 
     /**
@@ -119,11 +119,11 @@ extern "C"
      * @param[in] program Program instance to load the byte code into.
      * @param[in] instructions Pointer to array of eBPF instructions.
      * @param[in] instruction_count Count of eBPF instructions to load.
-     * @retval EBPF_ERROR_SUCCESS The operation was successful.
-     * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  program instance.
      */
-    ebpf_error_code_t
+    ebpf_result_t
     ebpf_program_load_byte_code(ebpf_program_t* program, ebpf_instuction_t* instructions, size_t instruction_count);
 
     /**
@@ -142,10 +142,10 @@ extern "C"
      * @param[in] program Program object to query this on.
      * @param[in] helper_function_id Helper function ID to look up.
      * @param[out] address Address of the helper function.
-     * @retval EBPF_ERROR_SUCCESS The operation was successful.
-     * @retval EBPF_ERROR_INVALID_PARAMETER The helper_function_id is not valid.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INVALID_ARGUMENT The helper_function_id is not valid.
      */
-    ebpf_error_code_t
+    ebpf_result_t
     ebpf_program_get_helper_function_address(
         const ebpf_program_t* program, uint32_t helper_function_id, uint64_t* address);
 

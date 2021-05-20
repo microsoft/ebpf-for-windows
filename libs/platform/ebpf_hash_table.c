@@ -52,7 +52,7 @@ _ebpf_hash_table_free(struct _RTL_AVL_TABLE* avl_table, void* buffer)
     table->free(buffer);
 }
 
-ebpf_error_code_t
+ebpf_result_t
 ebpf_hash_table_create(
     ebpf_hash_table_t** hash_table,
     void* (*allocate)(size_t size, ebpf_memory_type_t type),
@@ -61,13 +61,13 @@ ebpf_hash_table_create(
     size_t value_size,
     ebpf_hash_table_compare_result_t (*compare_function)(const uint8_t* key1, const uint8_t* key2))
 {
-    ebpf_error_code_t retval;
+    ebpf_result_t retval;
     ebpf_hash_table_t* table = NULL;
 
     // allocate
     table = ebpf_allocate(sizeof(ebpf_hash_table_t), EBPF_MEMORY_NO_EXECUTE);
     if (table == NULL) {
-        retval = EBPF_ERROR_OUT_OF_RESOURCES;
+        retval = EBPF_NO_MEMORY;
         goto Done;
     }
 
@@ -82,7 +82,7 @@ ebpf_hash_table_create(
     table->free = free;
 
     *hash_table = table;
-    retval = EBPF_ERROR_SUCCESS;
+    retval = EBPF_SUCCESS;
 Done:
     return retval;
 }
@@ -101,10 +101,10 @@ ebpf_hash_table_destroy(ebpf_hash_table_t* hash_table)
     ebpf_free(hash_table);
 }
 
-ebpf_error_code_t
+ebpf_result_t
 ebpf_hash_table_find(ebpf_hash_table_t* hash_table, const uint8_t* key, uint8_t** value)
 {
-    ebpf_error_code_t retval;
+    ebpf_result_t retval;
     RTL_AVL_TABLE* table = (RTL_AVL_TABLE*)hash_table;
     uint8_t* entry;
 
@@ -112,17 +112,17 @@ ebpf_hash_table_find(ebpf_hash_table_t* hash_table, const uint8_t* key, uint8_t*
 
     if (entry) {
         *value = entry + hash_table->key_size;
-        retval = EBPF_ERROR_SUCCESS;
+        retval = EBPF_SUCCESS;
     } else {
         retval = EBPF_ERROR_NOT_FOUND;
     }
     return retval;
 }
 
-ebpf_error_code_t
+ebpf_result_t
 ebpf_hash_table_update(ebpf_hash_table_t* hash_table, const uint8_t* key, const uint8_t* value)
 {
-    ebpf_error_code_t retval;
+    ebpf_result_t retval;
     RTL_AVL_TABLE* table = (RTL_AVL_TABLE*)hash_table;
     uint8_t* entry;
     uint8_t* temp = NULL;
@@ -130,13 +130,13 @@ ebpf_hash_table_update(ebpf_hash_table_t* hash_table, const uint8_t* key, const 
     BOOLEAN new_entry;
 
     if (!hash_table || !key || !value) {
-        retval = EBPF_ERROR_INVALID_PARAMETER;
+        retval = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
 
     temp = ebpf_allocate(temp_size, EBPF_MEMORY_NO_EXECUTE);
     if (!temp) {
-        retval = EBPF_ERROR_OUT_OF_RESOURCES;
+        retval = EBPF_NO_MEMORY;
         goto Done;
     }
 
@@ -145,13 +145,13 @@ ebpf_hash_table_update(ebpf_hash_table_t* hash_table, const uint8_t* key, const 
 
     entry = RtlInsertElementGenericTableAvl(table, temp, (uint32_t)temp_size, &new_entry);
     if (!entry) {
-        retval = EBPF_ERROR_OUT_OF_RESOURCES;
+        retval = EBPF_NO_MEMORY;
         goto Done;
     }
 
     // Update existing entry
     memcpy(entry + hash_table->key_size, value, hash_table->value_size);
-    retval = EBPF_ERROR_SUCCESS;
+    retval = EBPF_SUCCESS;
 
 Done:
     ebpf_free(temp);
@@ -159,17 +159,17 @@ Done:
     return retval;
 }
 
-ebpf_error_code_t
+ebpf_result_t
 ebpf_hash_table_delete(ebpf_hash_table_t* hash_table, const uint8_t* key)
 {
     BOOLEAN result;
     RTL_AVL_TABLE* table = (RTL_AVL_TABLE*)hash_table;
 
     result = RtlDeleteElementGenericTableAvl(table, (uint8_t*)key);
-    return result ? EBPF_ERROR_SUCCESS : EBPF_ERROR_NOT_FOUND;
+    return result ? EBPF_SUCCESS : EBPF_ERROR_NOT_FOUND;
 }
 
-ebpf_error_code_t
+ebpf_result_t
 ebpf_hash_table_next_key(ebpf_hash_table_t* hash_table, const uint8_t* previous_key, uint8_t* next_key)
 {
     RTL_AVL_TABLE* table = (RTL_AVL_TABLE*)hash_table;
@@ -208,7 +208,7 @@ ebpf_hash_table_next_key(ebpf_hash_table_t* hash_table, const uint8_t* previous_
     } else {
         memcpy(next_key, entry, hash_table->key_size);
     }
-    return EBPF_ERROR_SUCCESS;
+    return EBPF_SUCCESS;
 }
 
 size_t

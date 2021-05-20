@@ -17,11 +17,11 @@ extern "C"
      *
      * @param[out] pinning_table Pointer to memory that will contain pinning
      *  table on success.
-     * @retval EBPF_ERROR_SUCCESS The operation was successful.
-     * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  pinning table.
      */
-    ebpf_error_code_t
+    ebpf_result_t
     ebpf_pinning_table_allocate(ebpf_pinning_table_t** pinning_table);
 
     /**
@@ -39,11 +39,11 @@ extern "C"
      * @param[in] pinning_table Pinning table to update.
      * @param[in] name Name to associate with this entry.
      * @param[in] object Ebpf object to associate with this entry.
-     * @retval EBPF_ERROR_SUCCESS The operation was successful.
-     * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  entry.
      */
-    ebpf_error_code_t
+    ebpf_result_t
     ebpf_pinning_table_insert(
         ebpf_pinning_table_t* pinning_table, const ebpf_utf8_string_t* name, ebpf_object_t* object);
 
@@ -54,11 +54,11 @@ extern "C"
      * @param[in] pinning_table Pinning table to search.
      * @param[in] name Name to find in the pinning table.
      * @param[out] object Pointer to memory that contains the object on success.
-     * @retval EBPF_ERROR_SUCCESS The operation was successful.
-     * @retval EBPF_ERROR_NOT_FOUND The name is not present in the pinning
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_OBJECT_NOT_FOUND The name is not present in the pinning
      *  table.
      */
-    ebpf_error_code_t
+    ebpf_result_t
     ebpf_pinning_table_find(
         ebpf_pinning_table_t* pinning_table, const ebpf_utf8_string_t* name, ebpf_object_t** object);
 
@@ -68,11 +68,11 @@ extern "C"
      *
      * @param[in] pinning_table Pinning table to update.
      * @param[in] name Name to find in the pinning table.
-     * @retval EBPF_ERROR_SUCCESS The operation was successful.
-     * @retval EBPF_ERROR_NOT_FOUND The name is not present in the pinning
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_OBJECT_NOT_FOUND The name is not present in the pinning
      *  table.
      */
-    ebpf_error_code_t
+    ebpf_result_t
     ebpf_pinning_table_delete(ebpf_pinning_table_t* pinning_table, const ebpf_utf8_string_t* name);
 
 #ifdef __cplusplus
