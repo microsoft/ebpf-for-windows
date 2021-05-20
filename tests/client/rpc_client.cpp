@@ -47,9 +47,9 @@ RPC_STATUS
 initialize_rpc_binding()
 {
     RPC_STATUS status;
-    RPC_WSTR uuid = NULL;
+    RPC_WSTR uuid = nullptr;
     const WCHAR* network_address = nullptr;
-    RPC_WSTR options = NULL;
+    RPC_WSTR options = nullptr;
 
     status = RpcStringBindingCompose(
         uuid,

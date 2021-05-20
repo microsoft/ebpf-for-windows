@@ -23,9 +23,6 @@
 
 service_install_helper service_helper(EBPF_SERVICE_NAME, EBPF_SERVICE_BINARY_NAME);
 
-int
-ebpf_rpc_verify_program(ebpf_program_verify_info* info, char** logs, uint32_t* logs_size);
-
 void
 _get_program_byte_code_helper(const char* file_name, const char* section_name, ebpf_program_verify_info* info)
 {
