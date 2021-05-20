@@ -155,7 +155,7 @@ service_install_helper::check_service_state(DWORD expected_state, DWORD* final_s
             break;
         } else {
             printf(
-                "start_service: service %ws not yet in desired state, state=%d, desired_state=%d\n",
+                "check_service_state: service %ws not yet in desired state, state=%d, desired_state=%d\n",
                 service_name.c_str(),
                 service_status.dwCurrentState,
                 expected_state);
