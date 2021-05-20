@@ -19,11 +19,11 @@ extern "C"
      *
      * @param[in] ebpf_map_definition Definition of the new map.
      * @param[out] map Pointer to memory that will contain the map on success.
-     * @retval EBPF_ERROR_SUCCESS The operation was successful.
-     * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  map.
      */
-    ebpf_error_code_t
+    ebpf_result_t
     ebpf_map_create(const ebpf_map_definition_t* ebpf_map_definition, ebpf_map_t** map);
 
     /**
@@ -51,11 +51,11 @@ extern "C"
      * @param[in] map Map to update.
      * @param[in] key Key to use when searching and updating the map.
      * @param[in] value Value to insert into the map.
-     * @retval EBPF_ERROR_SUCCESS The operation was successful.
-     * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  entry.
      */
-    ebpf_error_code_t
+    ebpf_result_t
     ebpf_map_update_entry(ebpf_map_t* map, const uint8_t* key, const uint8_t* value);
 
     /**
@@ -63,11 +63,11 @@ extern "C"
      *
      * @param[in] map Map to update.
      * @param[in] key Key to use when searching and updating the map.
-     * @retval EBPF_ERROR_SUCCESS The operation was successful.
-     * @retval EBPF_ERROR_INVALID_PARAMETER One or more parameters are
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INVALID_ARGUMENT One or more parameters are
      *  invalid.
      */
-    ebpf_error_code_t
+    ebpf_result_t
     ebpf_map_delete_entry(ebpf_map_t* map, const uint8_t* key);
 
     /**
@@ -77,11 +77,11 @@ extern "C"
      * @param[in] previous_key The previous key need not be present. This will
      * return the next key lexicographically after the specified key.
      * @param[in] next_key Next key on success.
-     * @retval EBPF_ERROR_SUCCESS The operation was successful.
-     * @retval EBPF_ERROR_NO_MORE_KEYS There is no key following the specified
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MORE_KEYS There is no key following the specified
      * key in lexicographically order.
      */
-    ebpf_error_code_t
+    ebpf_result_t
     ebpf_map_next_key(ebpf_map_t* map, const uint8_t* previous_key, uint8_t* next_key);
 
 #ifdef __cplusplus

@@ -54,16 +54,16 @@ _ebpf_driver_io_device_control(
     ULONG io_control_code);
 
 inline NTSTATUS
-_ebpf_driver_error_code_to_ntstatus(ebpf_error_code_t error)
+_ebpf_result_to_ntstatus(ebpf_result_t result)
 {
-    switch (error) {
-    case EBPF_ERROR_SUCCESS:
+    switch (result) {
+    case EBPF_SUCCESS:
         return STATUS_SUCCESS;
-    case EBPF_ERROR_OUT_OF_RESOURCES:
+    case EBPF_NO_MEMORY:
         return STATUS_INSUFFICIENT_RESOURCES;
     case EBPF_ERROR_NOT_FOUND:
         return STATUS_NOT_FOUND;
-    case EBPF_ERROR_INVALID_PARAMETER:
+    case EBPF_INVALID_ARGUMENT:
         return STATUS_INVALID_PARAMETER;
     case EBPF_ERROR_BLOCKED_BY_POLICY:
         return STATUS_CONTENT_BLOCKED;
@@ -183,7 +183,7 @@ _ebpf_driver_initialize_objects(
         goto Exit;
     }
 
-    status = _ebpf_driver_error_code_to_ntstatus(ebpf_core_initiate());
+    status = _ebpf_result_to_ntstatus(ebpf_core_initiate());
     if (!NT_SUCCESS(status)) {
         goto Exit;
     }
@@ -265,7 +265,7 @@ _ebpf_driver_io_device_control(
                     goto Done;
                 }
 
-                status = _ebpf_driver_error_code_to_ntstatus(ebpf_core_get_protocol_handler_properties(
+                status = _ebpf_result_to_ntstatus(ebpf_core_get_protocol_handler_properties(
                     user_request->id, &minimum_request_size, &minimum_reply_size));
                 if (status != STATUS_SUCCESS)
                     goto Done;
@@ -292,7 +292,7 @@ _ebpf_driver_io_device_control(
                     user_reply = output_buffer;
                 }
 
-                status = _ebpf_driver_error_code_to_ntstatus(ebpf_core_invoke_protocol_handler(
+                status = _ebpf_result_to_ntstatus(ebpf_core_invoke_protocol_handler(
                     user_request->id, user_request, user_reply, (uint16_t)actual_output_length));
 
                 // Fill out the rest of the out buffer after processing the input

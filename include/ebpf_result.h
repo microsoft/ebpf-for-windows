@@ -12,6 +12,7 @@ extern "C"
 
     typedef enum ebpf_result
     {
+        // The operation was successful.
         EBPF_SUCCESS,
 
         // Program verification failed.
@@ -23,9 +24,10 @@ extern "C"
         // Invalid FD provided.
         EBPF_INVALID_FD,
 
-        // Invalid object provided (ebpf_object, ebpf_map, ebpf_program)
+        // Invalid object provided (ebpf_object, ebpf_map, ebpf_program).
         EBPF_INVALID_OBJECT,
 
+        // An invalid argument was supplied.
         EBPF_INVALID_ARGUMENT,
 
         // No pinned map or program exists for the path provided.
@@ -34,7 +36,7 @@ extern "C"
         // A program or map is already pinned with the same path.
         EBPF_OBJECT_ALREADY_EXISTS,
 
-        // Invalid ELF file path
+        // Invalid ELF file path.
         EBPF_FILE_NOT_FOUND,
 
         // Program or map already pinned.
@@ -43,14 +45,38 @@ extern "C"
         // Program or map is not pinned.
         EBPF_NOT_PINNED,
 
-        // Map key not found.
-        EBPF_MAP_KEY_NOT_FOUND,
-
         // Low memory.
         EBPF_NO_MEMORY,
 
         // Generic failure code for all other errors.
         EBPF_FAILED,
+
+        // Operation is not supported.
+        EBPF_ERROR_NOT_SUPPORTED,
+
+        // The requested item was not found.
+        EBPF_ERROR_NOT_FOUND,
+
+        // Access was denied for the requested operation.
+        EBPF_ERROR_ACCESS_DENIED,
+
+        // The operation was blocked by policy.
+        EBPF_ERROR_BLOCKED_BY_POLICY,
+
+        // Arithmetic overflow occurred.
+        EBPF_ERROR_ARITHMETIC_OVERFLOW,
+
+        // The eBPF extension failed to load.
+        EBPF_ERROR_EXTENSION_FAILED_TO_LOAD,
+
+        // A buffer of insufficient size was supplied.
+        EBPF_ERROR_INSUFFICIENT_BUFFER,
+
+        // The enumeration found no more keys.
+        EBPF_ERROR_NO_MORE_KEYS,
+
+        // The handle was invalid.
+        EBPF_ERROR_INVALID_HANDLE,
     } ebpf_result_t;
 
 #ifdef __cplusplus
