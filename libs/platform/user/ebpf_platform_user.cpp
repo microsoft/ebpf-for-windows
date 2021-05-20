@@ -51,7 +51,7 @@ resolve_function(HMODULE module_handle, fn& function, const char* function_name)
     return (function != nullptr);
 }
 
-ebpf_error_code_t
+ebpf_result_t
 ebpf_platform_initiate()
 {
     HMODULE ntdll_module = nullptr;
@@ -89,14 +89,14 @@ ebpf_platform_initiate()
     // Note: This is safe because ntdll is never unloaded becuase
     // ntdll.dll houses the module loader, which cannot unload itself.
     FreeLibrary(ntdll_module);
-    return EBPF_ERROR_SUCCESS;
+    return EBPF_SUCCESS;
 }
 
 void
 ebpf_platform_terminate()
 {}
 
-ebpf_error_code_t
+ebpf_result_t
 ebpf_get_code_integrity_state(ebpf_code_integrity_state_t* state)
 {
     if (_ebpf_platform_code_integrity_enabled) {
@@ -104,7 +104,7 @@ ebpf_get_code_integrity_state(ebpf_code_integrity_state_t* state)
     } else {
         *state = EBPF_CODE_INTEGRITY_DEFAULT;
     }
-    return EBPF_ERROR_SUCCESS;
+    return EBPF_SUCCESS;
 }
 
 void*
@@ -132,16 +132,16 @@ ebpf_free(void* memory)
     }
 }
 
-ebpf_error_code_t
+ebpf_result_t
 ebpf_safe_size_t_multiply(size_t multiplicand, size_t multiplier, size_t* result)
 {
-    return SUCCEEDED(SizeTMult(multiplicand, multiplier, result)) ? EBPF_ERROR_SUCCESS : EBPF_ERROR_ARITHMETIC_OVERFLOW;
+    return SUCCEEDED(SizeTMult(multiplicand, multiplier, result)) ? EBPF_SUCCESS : EBPF_ERROR_ARITHMETIC_OVERFLOW;
 }
 
-ebpf_error_code_t
+ebpf_result_t
 ebpf_safe_size_t_add(size_t augend, size_t addend, size_t* result)
 {
-    return SUCCEEDED(SizeTAdd(augend, addend, result)) ? EBPF_ERROR_SUCCESS : EBPF_ERROR_ARITHMETIC_OVERFLOW;
+    return SUCCEEDED(SizeTAdd(augend, addend, result)) ? EBPF_SUCCESS : EBPF_ERROR_ARITHMETIC_OVERFLOW;
 }
 
 void
@@ -232,7 +232,7 @@ ebpf_get_current_thread_id()
     return GetCurrentThreadId();
 }
 
-ebpf_error_code_t
+ebpf_result_t
 ebpf_allocate_non_preemptible_work_item(
     ebpf_non_preemptible_work_item_t** work_item,
     uint32_t cpu_id,
@@ -277,7 +277,7 @@ _ebpf_timer_callback(_Inout_ TP_CALLBACK_INSTANCE* instance, _Inout_opt_ void* C
     timer_work_item->work_item_routine(timer_work_item->work_item_context);
 }
 
-ebpf_error_code_t
+ebpf_result_t
 ebpf_allocate_timer_work_item(
     ebpf_timer_work_item_t** work_item, void (*work_item_routine)(void* work_item_context), void* work_item_context)
 {
@@ -293,7 +293,7 @@ ebpf_allocate_timer_work_item(
     (*work_item)->work_item_routine = work_item_routine;
     (*work_item)->work_item_context = work_item_context;
 
-    return EBPF_ERROR_SUCCESS;
+    return EBPF_SUCCESS;
 
 Error:
     if (*work_item != NULL) {
@@ -302,7 +302,7 @@ Error:
 
         ebpf_free(*work_item);
     }
-    return EBPF_ERROR_OUT_OF_RESOURCES;
+    return EBPF_NO_MEMORY;
 }
 
 #define MICROSECONDS_PER_TICK 10
@@ -329,11 +329,11 @@ ebpf_free_timer_work_item(ebpf_timer_work_item_t* work_item)
     ebpf_free(work_item);
 }
 
-ebpf_error_code_t
+ebpf_result_t
 ebpf_guid_create(GUID* new_guid)
 {
     UuidCreate(new_guid);
-    return EBPF_ERROR_SUCCESS;
+    return EBPF_SUCCESS;
 }
 
 int32_t
@@ -344,13 +344,13 @@ ebpf_log_function(void* context, const char* format_string, ...)
     return 0;
 }
 
-ebpf_error_code_t
+ebpf_result_t
 ebpf_access_check(
     ebpf_security_descriptor_t* security_descriptor,
     ebpf_security_access_mask_t request_access,
     ebpf_security_generic_mapping_t* generic_mapping)
 {
-    ebpf_error_code_t result;
+    ebpf_result_t result;
     HANDLE token = INVALID_HANDLE_VALUE;
     BOOL access_status = FALSE;
     DWORD granted_access;
@@ -381,7 +381,7 @@ ebpf_access_check(
         printf("LastError: %d\n", err);
         result = EBPF_ERROR_ACCESS_DENIED;
     } else {
-        result = access_status ? EBPF_ERROR_SUCCESS : EBPF_ERROR_ACCESS_DENIED;
+        result = access_status ? EBPF_SUCCESS : EBPF_ERROR_ACCESS_DENIED;
     }
 
 Done:
@@ -393,35 +393,35 @@ Done:
     return result;
 }
 
-ebpf_error_code_t
+ebpf_result_t
 ebpf_validate_security_descriptor(ebpf_security_descriptor_t* security_descriptor, size_t security_descriptor_length)
 {
-    ebpf_error_code_t result;
+    ebpf_result_t result;
     SECURITY_DESCRIPTOR_CONTROL security_descriptor_control;
     DWORD version;
     DWORD length;
     if (!IsValidSecurityDescriptor(security_descriptor)) {
-        result = EBPF_ERROR_INVALID_PARAMETER;
+        result = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
 
     if (!GetSecurityDescriptorControl(security_descriptor, &security_descriptor_control, &version)) {
-        result = EBPF_ERROR_INVALID_PARAMETER;
+        result = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
 
     if ((security_descriptor_control & SE_SELF_RELATIVE) == 0) {
-        result = EBPF_ERROR_INVALID_PARAMETER;
+        result = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
 
     length = GetSecurityDescriptorLength(security_descriptor);
     if (length != security_descriptor_length) {
-        result = EBPF_ERROR_INVALID_PARAMETER;
+        result = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
 
-    result = EBPF_ERROR_SUCCESS;
+    result = EBPF_SUCCESS;
 
 Done:
     return result;

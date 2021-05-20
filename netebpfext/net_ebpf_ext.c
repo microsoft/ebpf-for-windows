@@ -51,7 +51,7 @@ typedef struct _net_ebpf_ext_hook_provider_registration
     GUID client_id;
     void* client_binding_context;
     const ebpf_extension_data_t* client_data;
-    const ebpf_error_code_t (*invoke_hook)(void* bind_context, void* context, uint32_t* result);
+    const ebpf_result_t (*invoke_hook)(void* bind_context, void* context, uint32_t* result);
 } net_ebpf_ext_hook_provider_registration_t;
 
 static net_ebpf_ext_hook_provider_registration_t _ebpf_xdp_hook_provider_registration = {0};
@@ -442,7 +442,7 @@ _net_ebpf_ext_layer_2_classify(
     xdp_md_t ctx = {packet_buffer, packet_buffer + net_buffer->DataLength};
 
     if (_ebpf_xdp_hook_provider_registration.invoke_hook(
-            _ebpf_xdp_hook_provider_registration.client_binding_context, &ctx, &result) == EBPF_ERROR_SUCCESS) {
+            _ebpf_xdp_hook_provider_registration.client_binding_context, &ctx, &result) == EBPF_SUCCESS) {
         switch (result) {
         case XDP_PASS:
             action = FWP_ACTION_PERMIT;
@@ -519,7 +519,7 @@ _net_ebpf_ext_resource_allocation_classify(
 
     _net_ebpf_ext_resource_truncate_appid(&ctx);
     if (_ebpf_bind_hook_provider_registration.invoke_hook(
-            _ebpf_bind_hook_provider_registration.client_binding_context, &ctx, &result) == EBPF_ERROR_SUCCESS) {
+            _ebpf_bind_hook_provider_registration.client_binding_context, &ctx, &result) == EBPF_SUCCESS) {
         switch (result) {
         case BIND_PERMIT:
         case BIND_REDIRECT:
@@ -611,7 +611,7 @@ _net_ebpf_ext_no_op_flow_delete(uint16_t layer_id, uint32_t fwpm_callout_id, uin
     return;
 }
 
-ebpf_error_code_t
+ebpf_result_t
 _net_ebpf_ext_provider_client_attach_callback(
     void* context,
     const GUID* client_id,
@@ -627,12 +627,12 @@ _net_ebpf_ext_provider_client_attach_callback(
     hook_registration->client_id = *client_id;
     hook_registration->client_data = client_data;
     hook_registration->invoke_hook =
-        (const ebpf_error_code_t(__cdecl*)(void*, void*, UINT32*))client_dispatch_table->function[0];
+        (const ebpf_result_t(__cdecl*)(void*, void*, UINT32*))client_dispatch_table->function[0];
 
-    return EBPF_ERROR_SUCCESS;
+    return EBPF_SUCCESS;
 }
 
-ebpf_error_code_t
+ebpf_result_t
 _net_ebpf_ext_provider_client_detach_callback(void* context, const GUID* client_id)
 {
     net_ebpf_ext_hook_provider_registration_t* hook_registration = (net_ebpf_ext_hook_provider_registration_t*)context;
@@ -641,13 +641,13 @@ _net_ebpf_ext_provider_client_detach_callback(void* context, const GUID* client_
     hook_registration->client_data = NULL;
     hook_registration->invoke_hook = NULL;
 
-    return EBPF_ERROR_SUCCESS;
+    return EBPF_SUCCESS;
 }
 
 NTSTATUS
 net_ebpf_ext_register_providers()
 {
-    ebpf_error_code_t return_value;
+    ebpf_result_t return_value;
     return_value = ebpf_provider_load(
         &_ebpf_xdp_hook_provider_registration.provider,
         &EBPF_ATTACH_TYPE_XDP,
@@ -658,7 +658,7 @@ net_ebpf_ext_register_providers()
         _net_ebpf_ext_provider_client_attach_callback,
         _net_ebpf_ext_provider_client_detach_callback);
 
-    if (return_value != EBPF_ERROR_SUCCESS) {
+    if (return_value != EBPF_SUCCESS) {
         goto Done;
     }
 
@@ -673,7 +673,7 @@ net_ebpf_ext_register_providers()
         _net_ebpf_ext_provider_client_detach_callback);
 
 Done:
-    if (return_value != EBPF_ERROR_SUCCESS) {
+    if (return_value != EBPF_SUCCESS) {
         net_ebpf_ext_unregister_providers();
         return STATUS_UNSUCCESSFUL;
     } else
@@ -698,10 +698,10 @@ net_ebpf_ext_program_information_provider_unregister()
     _ebpf_bind_program_information_provider_data = NULL;
 }
 
-static ebpf_error_code_t
+static ebpf_result_t
 _net_ebpf_ext_program_information_encode_xdp()
 {
-    ebpf_error_code_t return_value;
+    ebpf_result_t return_value;
     const uint8_t* buffer = _ebpf_encoded_xdp_program_information_data;
     unsigned long buffer_size = sizeof(_ebpf_encoded_xdp_program_information_data);
 
@@ -709,7 +709,7 @@ _net_ebpf_ext_program_information_encode_xdp()
         EBPF_OFFSET_OF(ebpf_extension_data_t, data) + buffer_size, EBPF_MEMORY_NO_EXECUTE);
 
     if (_ebpf_xdp_program_information_provider_data == NULL) {
-        return_value = EBPF_ERROR_OUT_OF_RESOURCES;
+        return_value = EBPF_NO_MEMORY;
         goto Done;
     }
 
@@ -719,16 +719,16 @@ _net_ebpf_ext_program_information_encode_xdp()
 
     memcpy(_ebpf_xdp_program_information_provider_data->data, buffer, buffer_size);
 
-    return_value = EBPF_ERROR_SUCCESS;
+    return_value = EBPF_SUCCESS;
 
 Done:
     return return_value;
 }
 
-static ebpf_error_code_t
+static ebpf_result_t
 _net_ebpf_ext_program_information_encode_bind()
 {
-    ebpf_error_code_t return_value;
+    ebpf_result_t return_value;
     const uint8_t* buffer = _ebpf_encoded_bind_program_information_data;
     unsigned long buffer_size = sizeof(_ebpf_encoded_bind_program_information_data);
 
@@ -736,7 +736,7 @@ _net_ebpf_ext_program_information_encode_bind()
         EBPF_OFFSET_OF(ebpf_extension_data_t, data) + buffer_size, EBPF_MEMORY_NO_EXECUTE);
 
     if (_ebpf_bind_program_information_provider_data == NULL) {
-        return_value = EBPF_ERROR_OUT_OF_RESOURCES;
+        return_value = EBPF_NO_MEMORY;
         goto Done;
     }
 
@@ -745,7 +745,7 @@ _net_ebpf_ext_program_information_encode_bind()
     _ebpf_bind_program_information_provider_data->version = 0;
     memcpy(_ebpf_bind_program_information_provider_data->data, buffer, buffer_size);
 
-    return_value = EBPF_ERROR_SUCCESS;
+    return_value = EBPF_SUCCESS;
 
 Done:
     return return_value;
@@ -754,15 +754,15 @@ Done:
 NTSTATUS
 net_ebpf_ext_program_information_provider_register()
 {
-    ebpf_error_code_t return_value;
+    ebpf_result_t return_value;
 
     return_value = _net_ebpf_ext_program_information_encode_xdp();
-    if (return_value != EBPF_ERROR_SUCCESS) {
+    if (return_value != EBPF_SUCCESS) {
         goto Done;
     }
 
     return_value = _net_ebpf_ext_program_information_encode_bind();
-    if (return_value != EBPF_ERROR_SUCCESS) {
+    if (return_value != EBPF_SUCCESS) {
         goto Done;
     }
 
@@ -776,7 +776,7 @@ net_ebpf_ext_program_information_provider_register()
         NULL,
         NULL);
 
-    if (return_value != EBPF_ERROR_SUCCESS) {
+    if (return_value != EBPF_SUCCESS) {
         goto Done;
     }
     return_value = ebpf_provider_load(
@@ -789,12 +789,12 @@ net_ebpf_ext_program_information_provider_register()
         NULL,
         NULL);
 
-    if (return_value != EBPF_ERROR_SUCCESS) {
+    if (return_value != EBPF_SUCCESS) {
         goto Done;
     }
 
 Done:
-    if (return_value != EBPF_ERROR_SUCCESS) {
+    if (return_value != EBPF_SUCCESS) {
         net_ebpf_ext_program_information_provider_unregister();
         ebpf_free(_ebpf_xdp_program_information_provider_data);
         ebpf_free(_ebpf_bind_program_information_provider_data);
