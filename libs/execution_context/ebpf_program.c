@@ -53,7 +53,7 @@ _ebpf_program_program_information_provider_changed(
     const ebpf_extension_data_t* provider_data,
     const ebpf_extension_dispatch_table_t* provider_dispatch_table)
 {
-    ebpf_error_code_t return_value;
+    ebpf_result_t return_value;
     ebpf_program_t* program = (ebpf_program_t*)client_binding_context;
 
     if (program->program_information_provider_dispatch_table != NULL) {
@@ -64,7 +64,7 @@ _ebpf_program_program_information_provider_changed(
 
         return_value = ebpf_build_trampoline_table(
             &program->trampoline_entry_count, &program->trampoline_entries, provider_dispatch_table);
-        if (return_value != EBPF_ERROR_SUCCESS) {
+        if (return_value != EBPF_SUCCESS) {
             program->program_invalidated = true;
             return;
         }
@@ -110,10 +110,10 @@ _ebpf_program_free(ebpf_object_t* object)
     ebpf_epoch_free(object);
 }
 
-static ebpf_error_code_t
+static ebpf_result_t
 ebpf_program_load_providers(ebpf_program_t* program)
 {
-    ebpf_error_code_t return_value;
+    ebpf_result_t return_value;
     void* provider_binding_context;
     program->program_invalidated = false;
 
@@ -128,7 +128,7 @@ ebpf_program_load_providers(ebpf_program_t* program)
         &program->global_helper_provider_dispatch_table,
         NULL);
 
-    if (return_value != EBPF_ERROR_SUCCESS)
+    if (return_value != EBPF_SUCCESS)
         goto Done;
 
     return_value = ebpf_extension_load(
@@ -142,21 +142,21 @@ ebpf_program_load_providers(ebpf_program_t* program)
         &program->program_information_provider_dispatch_table,
         _ebpf_program_program_information_provider_changed);
 
-    if (return_value != EBPF_ERROR_SUCCESS)
+    if (return_value != EBPF_SUCCESS)
         goto Done;
 Done:
     return return_value;
 }
 
-ebpf_error_code_t
+ebpf_result_t
 ebpf_program_create(ebpf_program_t** program)
 {
-    ebpf_error_code_t retval;
+    ebpf_result_t retval;
     ebpf_program_t* local_program;
 
     local_program = (ebpf_program_t*)ebpf_epoch_allocate(sizeof(ebpf_program_t), EBPF_MEMORY_NO_EXECUTE);
     if (!local_program) {
-        retval = EBPF_ERROR_OUT_OF_RESOURCES;
+        retval = EBPF_NO_MEMORY;
         goto Done;
     }
 
@@ -166,7 +166,7 @@ ebpf_program_create(ebpf_program_t** program)
 
     *program = local_program;
     local_program = NULL;
-    retval = EBPF_ERROR_SUCCESS;
+    retval = EBPF_SUCCESS;
 
 Done:
     if (local_program)
@@ -175,24 +175,24 @@ Done:
     return retval;
 }
 
-ebpf_error_code_t
+ebpf_result_t
 ebpf_program_initialize(ebpf_program_t* program, const ebpf_program_parameters_t* program_parameters)
 {
-    ebpf_error_code_t return_value;
+    ebpf_result_t return_value;
     ebpf_utf8_string_t local_program_name = {NULL, 0};
     ebpf_utf8_string_t local_section_name = {NULL, 0};
 
     if (program->parameters.code_type != EBPF_CODE_NONE) {
-        return_value = EBPF_ERROR_INVALID_PARAMETER;
+        return_value = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
 
     return_value = ebpf_duplicate_utf8_string(&local_program_name, &program_parameters->program_name);
-    if (return_value != EBPF_ERROR_SUCCESS)
+    if (return_value != EBPF_SUCCESS)
         goto Done;
 
     return_value = ebpf_duplicate_utf8_string(&local_section_name, &program_parameters->section_name);
-    if (return_value != EBPF_ERROR_SUCCESS)
+    if (return_value != EBPF_SUCCESS)
         goto Done;
 
     program->parameters = *program_parameters;
@@ -205,11 +205,11 @@ ebpf_program_initialize(ebpf_program_t* program, const ebpf_program_parameters_t
     program->parameters.code_type = EBPF_CODE_NONE;
 
     return_value = ebpf_program_load_providers(program);
-    if (return_value != EBPF_ERROR_SUCCESS) {
+    if (return_value != EBPF_SUCCESS) {
         goto Done;
     }
 
-    return_value = EBPF_ERROR_SUCCESS;
+    return_value = EBPF_SUCCESS;
 
 Done:
     ebpf_free(local_program_name.value);
@@ -217,43 +217,43 @@ Done:
     return return_value;
 }
 
-ebpf_error_code_t
+ebpf_result_t
 ebpf_program_get_properties(ebpf_program_t* program, ebpf_program_parameters_t* program_parameters)
 {
     *program_parameters = program->parameters;
-    return EBPF_ERROR_SUCCESS;
+    return EBPF_SUCCESS;
 }
 
-ebpf_error_code_t
+ebpf_result_t
 ebpf_program_associate_maps(ebpf_program_t* program, ebpf_map_t** maps, size_t maps_count)
 {
     size_t index;
     program->maps = ebpf_allocate(maps_count * sizeof(ebpf_map_t*), EBPF_MEMORY_NO_EXECUTE);
     if (!program->maps)
-        return EBPF_ERROR_OUT_OF_RESOURCES;
+        return EBPF_NO_MEMORY;
 
     memcpy(program->maps, maps, sizeof(ebpf_map_t*) * maps_count);
     program->count_of_maps = maps_count;
     for (index = 0; index < program->count_of_maps; index++)
         ebpf_object_acquire_reference((ebpf_object_t*)program->maps[index]);
 
-    return EBPF_ERROR_SUCCESS;
+    return EBPF_SUCCESS;
 }
 
-ebpf_error_code_t
+ebpf_result_t
 ebpf_program_load_machine_code(ebpf_program_t* program, uint8_t* machine_code, size_t machine_code_size)
 {
-    ebpf_error_code_t return_value;
+    ebpf_result_t return_value;
     uint8_t* local_machine_code = NULL;
 
     if (program->parameters.code_type != EBPF_CODE_NONE) {
-        return_value = EBPF_ERROR_INVALID_PARAMETER;
+        return_value = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
 
     local_machine_code = ebpf_epoch_allocate(machine_code_size, EBPF_MEMORY_EXECUTE);
     if (!local_machine_code) {
-        return_value = EBPF_ERROR_OUT_OF_RESOURCES;
+        return_value = EBPF_NO_MEMORY;
         goto Done;
     }
 
@@ -263,7 +263,7 @@ ebpf_program_load_machine_code(ebpf_program_t* program, uint8_t* machine_code, s
     program->code_or_vm.code = local_machine_code;
     local_machine_code = NULL;
 
-    return_value = EBPF_ERROR_SUCCESS;
+    return_value = EBPF_SUCCESS;
 
 Done:
     ebpf_epoch_free(local_machine_code);
@@ -271,7 +271,7 @@ Done:
     return return_value;
 }
 
-static ebpf_error_code_t
+static ebpf_result_t
 _ebpf_program_register_helpers(ebpf_program_t* program)
 {
     size_t index = 0;
@@ -285,25 +285,25 @@ _ebpf_program_register_helpers(ebpf_program_t* program)
             continue;
 
         if (ubpf_register(program->code_or_vm.vm, (unsigned int)index, NULL, (void*)helper) < 0)
-            return EBPF_ERROR_INVALID_PARAMETER;
+            return EBPF_INVALID_ARGUMENT;
     }
-    return EBPF_ERROR_SUCCESS;
+    return EBPF_SUCCESS;
 }
 
-ebpf_error_code_t
+ebpf_result_t
 ebpf_program_load_byte_code(ebpf_program_t* program, ebpf_instuction_t* instructions, size_t instruction_count)
 {
-    ebpf_error_code_t return_value;
+    ebpf_result_t return_value;
     char* error_message = NULL;
     if (program->parameters.code_type != EBPF_CODE_NONE) {
-        return_value = EBPF_ERROR_INVALID_PARAMETER;
+        return_value = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
 
     program->parameters.code_type = EBPF_CODE_EBPF;
     program->code_or_vm.vm = ubpf_create();
     if (!program->code_or_vm.vm) {
-        return_value = EBPF_ERROR_OUT_OF_RESOURCES;
+        return_value = EBPF_NO_MEMORY;
         goto Done;
     }
 
@@ -314,7 +314,7 @@ ebpf_program_load_byte_code(ebpf_program_t* program, ebpf_instuction_t* instruct
     ubpf_toggle_bounds_check(program->code_or_vm.vm, false);
 
     return_value = _ebpf_program_register_helpers(program);
-    if (return_value != EBPF_ERROR_SUCCESS)
+    if (return_value != EBPF_SUCCESS)
         goto Done;
 
     if (ubpf_load(
@@ -323,12 +323,12 @@ ebpf_program_load_byte_code(ebpf_program_t* program, ebpf_instuction_t* instruct
             (uint32_t)(instruction_count * sizeof(ebpf_instuction_t)),
             &error_message) != 0) {
         ebpf_free(error_message);
-        return_value = EBPF_ERROR_INVALID_PARAMETER;
+        return_value = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
 
 Done:
-    if (return_value != EBPF_ERROR_SUCCESS) {
+    if (return_value != EBPF_SUCCESS) {
         ubpf_destroy(program->code_or_vm.vm);
         program->code_or_vm.vm = NULL;
     }
@@ -351,7 +351,7 @@ ebpf_program_invoke(ebpf_program_t* program, void* context, uint32_t* result)
     }
 }
 
-ebpf_error_code_t
+ebpf_result_t
 ebpf_program_get_helper_function_address(const ebpf_program_t* program, uint32_t helper_function_id, uint64_t* address)
 {
     size_t count = (program->global_helper_provider_dispatch_table->size -
@@ -360,20 +360,20 @@ ebpf_program_get_helper_function_address(const ebpf_program_t* program, uint32_t
     if (helper_function_id > EBPF_MAX_GLOBAL_HELPER_FUNCTION) {
         helper_function_id >>= 16;
         if ((program->trampoline_entries == NULL) || (helper_function_id > program->trampoline_entry_count))
-            return EBPF_ERROR_INVALID_PARAMETER;
+            return EBPF_INVALID_ARGUMENT;
 
         *address = (uint64_t)(program->trampoline_entries + helper_function_id);
     } else {
         if (helper_function_id > count) {
-            return EBPF_ERROR_INVALID_PARAMETER;
+            return EBPF_INVALID_ARGUMENT;
         }
         *address = (uint64_t)program->global_helper_provider_dispatch_table->function[helper_function_id];
     }
 
-    return EBPF_ERROR_SUCCESS;
+    return EBPF_SUCCESS;
 }
 
-ebpf_error_code_t
+ebpf_result_t
 ebpf_program_get_program_information_data(
     const ebpf_program_t* program, const ebpf_extension_data_t** program_information_data)
 {
@@ -385,5 +385,5 @@ ebpf_program_get_program_information_data(
 
     *program_information_data = program->program_information_data;
 
-    return EBPF_ERROR_SUCCESS;
+    return EBPF_SUCCESS;
 }

@@ -3,6 +3,7 @@
  *  SPDX-License-Identifier: MIT
  */
 #pragma once
+#include "ebpf_result.h"
 #include "ebpf_windows.h"
 #include "framework.h"
 
@@ -56,7 +57,7 @@ extern "C"
     typedef struct _ebpf_timer_work_item ebpf_timer_work_item_t;
     typedef struct _ebpf_extension_client ebpf_extension_client_t;
     typedef struct _ebpf_extension_provider ebpf_extension_provider_t;
-    typedef ebpf_error_code_t (*_ebpf_extension_dispatch_function)();
+    typedef ebpf_result_t (*_ebpf_extension_dispatch_function)();
     typedef struct _ebpf_extension_dispatch_table
     {
         uint16_t version;
@@ -94,11 +95,11 @@ extern "C"
 
     /**
      *  @brief Initialize the eBPF platform abstraction layer.
-     * @retval EBPF_ERROR_SUCCESS The operation was successful.
-     * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  operation.
      */
-    ebpf_error_code_t
+    ebpf_result_t
     ebpf_platform_initiate();
 
     /**
@@ -129,20 +130,20 @@ extern "C"
      * @param[out] destination Pointer to memory where the new UTF-8 character
      * sequence will be allocated.
      * @param[in] source UTF-8 string that will be copied.
-     * @retval EBPF_ERROR_SUCCESS The operation was successful.
-     * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  UTF-8 string.
      */
-    ebpf_error_code_t
+    ebpf_result_t
     ebpf_duplicate_utf8_string(ebpf_utf8_string_t* destination, const ebpf_utf8_string_t* source);
 
     /**
      * @brief Get the code integrity state from the platform.
      * @param[out] state The code integrity state being enforced.
-     * @retval EBPF_ERROR_SUCCESS The operation was successful.
-     * @retval EBPF_ERROR_NOT_SUPPORTED Unable to obtain state from platform.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NOT_SUPPORTED Unable to obtain state from platform.
      */
-    ebpf_error_code_t
+    ebpf_result_t
     ebpf_get_code_integrity_state(ebpf_code_integrity_state_t* state);
 
     /**
@@ -151,10 +152,10 @@ extern "C"
      * @param[in] multiplicand The value to be multiplied by multiplier.
      * @param[in] multiplier The value by which to multiply multiplicand.
      * @param[out] result A pointer to the result.
-     * @retval EBPF_ERROR_SUCCESS The operation was successful.
+     * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_ERROR_ARITHMETIC_OVERFLOW Multiplication overflowed.
      */
-    ebpf_error_code_t
+    ebpf_result_t
     ebpf_safe_size_t_multiply(size_t multiplicand, size_t multiplier, size_t* result);
 
     /**
@@ -163,10 +164,10 @@ extern "C"
      * @param[in] augend The value to be added by addend.
      * @param[in] addend The value add to augend.
      * @param[out] result A pointer to the result.
-     * @retval EBPF_ERROR_SUCCESS The operation was successful.
+     * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_ERROR_ARITHMETIC_OVERFLOW Addition overflowed.
      */
-    ebpf_error_code_t
+    ebpf_result_t
     ebpf_safe_size_t_add(size_t augend, size_t addend, size_t* result);
 
     /**
@@ -251,11 +252,11 @@ extern "C"
      * @param[in] cpu_id Associate the work item with this CPU.
      * @param[in] work_item_routine Routine to execute as a work item.
      * @param[in] work_item_context Context to pass to the routine.
-     * @retval EBPF_ERROR_SUCCESS The operation was successful.
-     * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  work item.
      */
-    ebpf_error_code_t
+    ebpf_result_t
     ebpf_allocate_non_preemptible_work_item(
         ebpf_non_preemptible_work_item_t** work_item,
         uint32_t cpu_id,
@@ -287,11 +288,11 @@ extern "C"
      * @param[out] timer Pointer to memory that will contain timer on success.
      * @param[in] work_item_routine Routine to execute when time expires.
      * @param[in] work_item_context Context to pass to routine.
-     * @retval EBPF_ERROR_SUCCESS The operation was successful.
-     * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  timer.
      */
-    ebpf_error_code_t
+    ebpf_result_t
     ebpf_allocate_timer_work_item(
         ebpf_timer_work_item_t** timer, void (*work_item_routine)(void* work_item_context), void* work_item_context);
 
@@ -334,11 +335,11 @@ extern "C"
      * @param[in] value_size Size of the values used in the hash table.
      * @param[in] compare_function Function used to lexicographically order
      * keys.
-     * @retval EBPF_ERROR_SUCCESS The operation was successful.
-     * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  hash table.
      */
-    ebpf_error_code_t
+    ebpf_result_t
     ebpf_hash_table_create(
         ebpf_hash_table_t** hash_table,
         void* (*allocate)(size_t size, ebpf_memory_type_t type),
@@ -361,10 +362,10 @@ extern "C"
      * @param[in] hash_table Hash-table to search.
      * @param[in] key Key to find in hash table.
      * @param[out] value Pointer to value if found.
-     * @retval EBPF_ERROR_SUCCESS The operation was successful.
-     * @retval EBPF_ERROR_NOT_FOUND Key not found in hash table.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NOT_FOUND Key not found in hash table.
      */
-    ebpf_error_code_t
+    ebpf_result_t
     ebpf_hash_table_find(ebpf_hash_table_t* hash_table, const uint8_t* key, uint8_t** value);
 
     /**
@@ -373,11 +374,11 @@ extern "C"
      * @param[in] hash_table Hash-table to update.
      * @param[in] key Key to find and insert or update.
      * @param[in] value Value to insert into hash table.
-     * @retval EBPF_ERROR_SUCCESS The operation was successful.
-     * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate memory for this
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MEMORY Unable to allocate memory for this
      *  entry in the hash table.
      */
-    ebpf_error_code_t
+    ebpf_result_t
     ebpf_hash_table_update(ebpf_hash_table_t* hash_table, const uint8_t* key, const uint8_t* value);
 
     /**
@@ -385,10 +386,10 @@ extern "C"
      *
      * @param[in] hash_table Hash-table to update.
      * @param[in] key Key to find and remove.
-     * @retval EBPF_ERROR_SUCCESS The operation was successful.
-     * @retval EBPF_ERROR_SUCCESS The operation was successful.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_SUCCESS The operation was successful.
      */
-    ebpf_error_code_t
+    ebpf_result_t
     ebpf_hash_table_delete(ebpf_hash_table_t* hash_table, const uint8_t* key);
 
     /**
@@ -397,11 +398,11 @@ extern "C"
      * @param[in] hash_table Hash-table to query.
      * @param[in] previous_key Previous key or NULL to restart.
      * @param[out] next_key Next key if it exists.
-     * @retval EBPF_ERROR_SUCCESS The operation was successful.
-     * @retval EBPF_ERROR_NO_MORE_KEYS No keys exist in the hash table that
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MORE_KEYS No keys exist in the hash table that
      * are lexicographically after the specified key.
      */
-    ebpf_error_code_t
+    ebpf_result_t
     ebpf_hash_table_next_key(ebpf_hash_table_t* hash_table, const uint8_t* previous_key, uint8_t* next_key);
 
     /**
@@ -493,12 +494,12 @@ extern "C"
      *  provider exposes.
      * @param[in] extension_changed Callback invoked when a provider attaches
      *  or detaches.
-     * @retval EBPF_ERROR_SUCCESS The operation was successful.
-     * @retval EBPF_ERROR_NOT_FOUND The provider was not found.
-     * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NOT_FOUND The provider was not found.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  operation.
      */
-    ebpf_error_code_t
+    ebpf_result_t
     ebpf_extension_load(
         ebpf_extension_client_t** client_context,
         const GUID* interface_id,
@@ -518,14 +519,14 @@ extern "C"
     void
     ebpf_extension_unload(ebpf_extension_client_t* client_context);
 
-    typedef ebpf_error_code_t (*ebpf_provider_client_attach_callback_t)(
+    typedef ebpf_result_t (*ebpf_provider_client_attach_callback_t)(
         void* context,
         const GUID* client_id,
         void* client_binding_context,
         const ebpf_extension_data_t* client_data,
         const ebpf_extension_dispatch_table_t* client_dispatch_table);
 
-    typedef ebpf_error_code_t (*ebpf_provider_client_detach_callback_t)(void* context, const GUID* client_id);
+    typedef ebpf_result_t (*ebpf_provider_client_detach_callback_t)(void* context, const GUID* client_id);
 
     /**
      * @brief Register as an extension provider.
@@ -537,13 +538,13 @@ extern "C"
      *  provider exposes.
      * @param[in] client_attach_callback Function invoked when a client attaches.
      * @param[in] client_detach_callback Function invoked when a client detaches.
-     * @retval EBPF_ERROR_SUCCESS The operation was successful.
+     * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_ERROR_EXTENSION_FAILED_TO_LOAD The provider was unable to
      *  load.
-     * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  operation.
      */
-    ebpf_error_code_t
+    ebpf_result_t
     ebpf_provider_load(
         ebpf_extension_provider_t** provider_context,
         const GUID* interface_id,
@@ -562,7 +563,7 @@ extern "C"
     void
     ebpf_provider_unload(ebpf_extension_provider_t* provider_context);
 
-    ebpf_error_code_t
+    ebpf_result_t
     ebpf_guid_create(GUID* new_guid);
 
     int32_t
@@ -577,16 +578,16 @@ extern "C"
      * @param[in,out] entries Block of memory that contains the trampoline
      *  functions on success.
      * @param[in] dispatch_table Dispatch table to build trampoline functions for.
-     * @retval EBPF_ERROR_SUCCESS ebpf_trampoline_entry_t table successfully
+     * @retval EBPF_SUCCESS ebpf_trampoline_entry_t table successfully
      *  populated.
      * @retval EBPF_ERROR_EXTENSION_FAILED_TO_LOAD Unable to populate
      *  ebpf_trampoline_entry_t table.
-     * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  operation.
-     * @retval EBPF_ERROR_NOT_SUPPORTED This operation is not supported on this
+     * @retval EBPF_NOT_SUPPORTED This operation is not supported on this
      *  platform.
      */
-    ebpf_error_code_t
+    ebpf_result_t
     ebpf_build_trampoline_table(
         size_t* entry_count, ebpf_trampoline_entry_t** entries, const ebpf_extension_dispatch_table_t* dispatch_table);
 
@@ -600,11 +601,11 @@ extern "C"
      * @param[out] buffer On success, the buffer that contains the serialized
      *  structure. Must be freed by caller using ebpf_free.
      * @param[out] buffer_size On success, the size of the serialized buffer.
-     * @retval EBPF_ERROR_SUCCESS The operation succeeded.
-     * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
+     * @retval EBPF_SUCCESS The operation succeeded.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  operation.
      */
-    ebpf_error_code_t
+    ebpf_result_t
     ebpf_program_information_encode(
         const ebpf_program_information_t* program_information, uint8_t** buffer, unsigned long* buffer_size);
 
@@ -617,11 +618,11 @@ extern "C"
      *  freed by the caller using ebpf_free.
      * @param[in] buffer Buffer containing the serialized structure.
      * @param[in] buffer_size Size of the buffer.
-     * @retval EBPF_ERROR_SUCCESS The operation succeeded.
-     * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
+     * @retval EBPF_SUCCESS The operation succeeded.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  operation.
      */
-    ebpf_error_code_t
+    ebpf_result_t
     ebpf_program_information_decode(
         ebpf_program_information_t** program_information, const uint8_t* buffer, unsigned long buffer_size);
 
@@ -634,10 +635,10 @@ extern "C"
      * @param[in] request_access Access the caller is requesting.
      * @param[in] generic_mapping Mappings for generic read/write/execute to
      *  specific rights.
-     * @retval EBPF_ERROR_SUCCESS Requested access is granted.
-     * @retval EBPF_ERROR_ACCESS_DENIED Requested access is denied.
+     * @retval EBPF_SUCCESS Requested access is granted.
+     * @retval EBPF_ACCESS_DENIED Requested access is denied.
      */
-    ebpf_error_code_t
+    ebpf_result_t
     ebpf_access_check(
         ebpf_security_descriptor_t* security_descriptor,
         ebpf_security_access_mask_t request_access,
@@ -648,10 +649,10 @@ extern "C"
      *
      * @param[in] security_descriptor Security descriptor to verify.
      * @param[in] security_descriptor_length Length of security descriptor.
-     * @retval EBPF_ERROR_SUCCESS Security descriptor is well formed.
-     * @retval EBPF_ERROR_INVALID_PARAMETER Security descriptor is malformed.
+     * @retval EBPF_SUCCESS Security descriptor is well formed.
+     * @retval EBPF_INVALID_ARGUMENT Security descriptor is malformed.
      */
-    ebpf_error_code_t
+    ebpf_result_t
     ebpf_validate_security_descriptor(
         ebpf_security_descriptor_t* security_descriptor, size_t security_descriptor_length);
 

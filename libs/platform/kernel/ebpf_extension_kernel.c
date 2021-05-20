@@ -111,7 +111,7 @@ _ebpf_extension_client_cleanup_binding_context(void* client_binding_context)
     UNREFERENCED_PARAMETER(client_binding_context);
 }
 
-ebpf_error_code_t
+ebpf_result_t
 ebpf_extension_load(
     ebpf_extension_client_t** client_context,
     const GUID* interface_id,
@@ -123,7 +123,7 @@ ebpf_extension_load(
     const ebpf_extension_dispatch_table_t** provider_dispatch_table,
     ebpf_extension_change_callback_t extension_changed)
 {
-    ebpf_error_code_t return_value;
+    ebpf_result_t return_value;
     ebpf_extension_client_t* local_client_context;
     NPI_CLIENT_CHARACTERISTICS* client_characteristics;
     NPI_REGISTRATION_INSTANCE* client_registration_instance;
@@ -132,7 +132,7 @@ ebpf_extension_load(
     local_client_context = ebpf_allocate(sizeof(ebpf_extension_client_t), EBPF_MEMORY_NO_EXECUTE);
 
     if (!local_client_context) {
-        return_value = EBPF_ERROR_OUT_OF_RESOURCES;
+        return_value = EBPF_NO_MEMORY;
         goto Done;
     }
 
@@ -185,7 +185,7 @@ ebpf_extension_load(
     *provider_dispatch_table = local_client_context->provider_dispatch_table;
     *client_context = local_client_context;
     local_client_context = NULL;
-    return_value = EBPF_ERROR_SUCCESS;
+    return_value = EBPF_SUCCESS;
 
 Done:
     ebpf_free(local_client_context);
@@ -216,7 +216,7 @@ _ebpf_extension_provider_attach_client(
     const void** provider_dispatch)
 {
     NTSTATUS status;
-    ebpf_error_code_t return_value;
+    ebpf_result_t return_value;
     ebpf_extension_provider_t* local_provider_context = (ebpf_extension_provider_t*)provider_context;
     ebpf_extension_provider_binding_context* local_provider_binding_context = NULL;
     UNREFERENCED_PARAMETER(nmr_binding_handle);
@@ -250,7 +250,7 @@ _ebpf_extension_provider_attach_client(
             (const ebpf_extension_data_t*)client_registration_instance->NpiSpecificCharacteristics,
             (const ebpf_extension_dispatch_table_t*)client_dispatch);
 
-        if (return_value != EBPF_ERROR_SUCCESS) {
+        if (return_value != EBPF_SUCCESS) {
             status = STATUS_NOINTERFACE;
             goto Done;
         }
@@ -285,7 +285,7 @@ _ebpf_extension_provider_cleanup_binding_context(void* provider_binding_context)
     ebpf_free(provider_binding_context);
 }
 
-ebpf_error_code_t
+ebpf_result_t
 ebpf_provider_load(
     ebpf_extension_provider_t** provider_context,
     const GUID* interface_id,
@@ -296,7 +296,7 @@ ebpf_provider_load(
     ebpf_provider_client_attach_callback_t client_attach_callback,
     ebpf_provider_client_detach_callback_t client_detach_callback)
 {
-    ebpf_error_code_t return_value;
+    ebpf_result_t return_value;
     ebpf_extension_provider_t* local_provider_context;
     NPI_PROVIDER_CHARACTERISTICS* provider_characteristics;
     NPI_REGISTRATION_INSTANCE* provider_registration_instance;
@@ -305,7 +305,7 @@ ebpf_provider_load(
     local_provider_context = ebpf_allocate(sizeof(ebpf_extension_provider_t), EBPF_MEMORY_NO_EXECUTE);
 
     if (!local_provider_context) {
-        return_value = EBPF_ERROR_OUT_OF_RESOURCES;
+        return_value = EBPF_NO_MEMORY;
         goto Done;
     }
 
@@ -352,7 +352,7 @@ ebpf_provider_load(
 
     *provider_context = local_provider_context;
     local_provider_context = NULL;
-    return_value = EBPF_ERROR_SUCCESS;
+    return_value = EBPF_SUCCESS;
 
 Done:
     ebpf_free(local_provider_context);

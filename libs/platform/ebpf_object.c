@@ -106,20 +106,20 @@ ebpf_object_get_type(ebpf_object_t* object)
     return object->type;
 }
 
-ebpf_error_code_t
+ebpf_result_t
 ebpf_duplicate_utf8_string(ebpf_utf8_string_t* destination, const ebpf_utf8_string_t* source)
 {
     if (!source->value) {
         destination->value = NULL;
         destination->length = 0;
-        return EBPF_ERROR_SUCCESS;
+        return EBPF_SUCCESS;
     } else {
         destination->value = ebpf_allocate(source->length, EBPF_MEMORY_NO_EXECUTE);
         if (!destination->value)
-            return EBPF_ERROR_OUT_OF_RESOURCES;
+            return EBPF_NO_MEMORY;
         memcpy(destination->value, source->value, source->length);
         destination->length = source->length;
-        return EBPF_ERROR_SUCCESS;
+        return EBPF_SUCCESS;
     }
 }
 

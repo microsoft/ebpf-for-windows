@@ -21,11 +21,11 @@ extern "C"
     /**
      * @brief Initialize the eBPF core execution context.
      *
-     * @retval EBPF_ERROR_SUCCESS The operation was successful.
-     * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  operation.
      */
-    ebpf_error_code_t
+    ebpf_result_t
     ebpf_core_initiate();
 
     /**
@@ -45,11 +45,11 @@ extern "C"
      * @param[out] output_buffer Pointer to memory that will contain the
      *  encoded result parameters for this operation.
      * @param[in] output_buffer_length Length of the output buffer.
-     * @retval EBPF_ERROR_SUCCESS The operation was successful.
-     * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  operation.
      */
-    ebpf_error_code_t
+    ebpf_result_t
     ebpf_core_invoke_protocol_handler(
         ebpf_operation_id_t operation_id,
         _In_ const void* input_buffer,
@@ -64,10 +64,10 @@ extern "C"
      *  this operation.
      * @param[out] minimum_reply_size Minimum size of the reply buffer for this
      *  operation.
-     * @retval EBPF_ERROR_SUCCESS The operation was successful.
-     * @retval EBPF_ERROR_NOT_SUPPORTED The operation id is not valid.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NOT_SUPPORTED The operation id is not valid.
      */
-    ebpf_error_code_t
+    ebpf_result_t
     ebpf_core_get_protocol_handler_properties(
         ebpf_operation_id_t operation_id, _Out_ size_t* minimum_request_size, _Out_ size_t* minimum_reply_size);
 

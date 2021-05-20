@@ -6,7 +6,7 @@
 #include "ebpf_platform.h"
 #include "ebpf_epoch.h"
 
-ebpf_error_code_t
+ebpf_result_t
 ebpf_build_trampoline_table(
     size_t* entry_count, ebpf_trampoline_entry_t** entries, const ebpf_extension_dispatch_table_t* dispatch_table)
 {
@@ -21,7 +21,7 @@ ebpf_build_trampoline_table(
         local_entry_count = function_count;
         local_entries = ebpf_epoch_allocate(local_entry_count * sizeof(ebpf_trampoline_entry_t), EBPF_MEMORY_EXECUTE);
         if (local_entries == NULL)
-            return EBPF_ERROR_OUT_OF_RESOURCES;
+            return EBPF_NO_MEMORY;
     } else {
         // Verify the existing table is the correct size
         if (local_entry_count != function_count)
@@ -37,7 +37,7 @@ ebpf_build_trampoline_table(
     }
     *entry_count = local_entry_count;
     *entries = local_entries;
-    return EBPF_ERROR_SUCCESS;
+    return EBPF_SUCCESS;
 #elif
     UNREFERENCED_PARAMETER(entry_count);
     UNREFERENCED_PARAMETER(ebpf_trampoline_entry_t);
