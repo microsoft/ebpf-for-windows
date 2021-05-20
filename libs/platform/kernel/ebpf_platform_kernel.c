@@ -15,10 +15,10 @@ typedef enum _ebpf_pool_tag
     EBPF_POOL_TAG = 'fpbe'
 } ebpf_pool_tag_t;
 
-ebpf_error_code_t
+ebpf_result_t
 ebpf_platform_initiate()
 {
-    return EBPF_ERROR_SUCCESS;
+    return EBPF_SUCCESS;
 }
 
 void
@@ -58,7 +58,7 @@ NtQuerySystemInformation(
     uint32_t* return_length);
 // End code pulled from winternl.h.
 
-ebpf_error_code_t
+ebpf_result_t
 ebpf_get_code_integrity_state(ebpf_code_integrity_state_t* state)
 {
     NTSTATUS status;
@@ -71,23 +71,23 @@ ebpf_get_code_integrity_state(ebpf_code_integrity_state_t* state)
         *state = (code_integrity_information.CodeIntegrityOptions & CODEINTEGRITY_OPTION_HVCI_KMCI_ENABLED) != 0
                      ? EBPF_CODE_INTEGRITY_HYPER_VISOR_KERNEL_MODE
                      : EBPF_CODE_INTEGRITY_DEFAULT;
-        return EBPF_ERROR_SUCCESS;
+        return EBPF_SUCCESS;
     } else {
         return EBPF_ERROR_NOT_SUPPORTED;
     }
 }
 
-ebpf_error_code_t
+ebpf_result_t
 ebpf_safe_size_t_multiply(size_t multiplicand, size_t multiplier, size_t* result)
 {
-    return RtlSizeTMult(multiplicand, multiplier, result) == STATUS_SUCCESS ? EBPF_ERROR_SUCCESS
+    return RtlSizeTMult(multiplicand, multiplier, result) == STATUS_SUCCESS ? EBPF_SUCCESS
                                                                             : EBPF_ERROR_ARITHMETIC_OVERFLOW;
 }
 
-ebpf_error_code_t
+ebpf_result_t
 ebpf_safe_size_t_add(size_t augend, size_t addend, size_t* result)
 {
-    return RtlSizeTAdd(augend, addend, result) == STATUS_SUCCESS ? EBPF_ERROR_SUCCESS : EBPF_ERROR_ARITHMETIC_OVERFLOW;
+    return RtlSizeTAdd(augend, addend, result) == STATUS_SUCCESS ? EBPF_SUCCESS : EBPF_ERROR_ARITHMETIC_OVERFLOW;
 }
 
 void
@@ -191,7 +191,7 @@ _ebpf_deferred_routine(
     deferred_routine_context->work_item_routine(deferred_context, system_argument_1);
 }
 
-ebpf_error_code_t
+ebpf_result_t
 ebpf_allocate_non_preemptible_work_item(
     ebpf_non_preemptible_work_item_t** work_item,
     uint32_t cpu_id,
@@ -200,14 +200,14 @@ ebpf_allocate_non_preemptible_work_item(
 {
     *work_item = ebpf_allocate(sizeof(ebpf_non_preemptible_work_item_t), EBPF_MEMORY_NO_EXECUTE);
     if (*work_item == NULL) {
-        return EBPF_ERROR_OUT_OF_RESOURCES;
+        return EBPF_NO_MEMORY;
     }
 
     (*work_item)->work_item_routine = work_item_routine;
 
     KeInitializeDpc(&(*work_item)->deferred_procedure_call, _ebpf_deferred_routine, work_item_context);
     KeSetTargetProcessorDpc(&(*work_item)->deferred_procedure_call, (uint8_t)cpu_id);
-    return EBPF_ERROR_SUCCESS;
+    return EBPF_SUCCESS;
 }
 
 void
@@ -244,7 +244,7 @@ _ebpf_timer_routine(
     timer_work_item->work_item_routine(deferred_context);
 }
 
-ebpf_error_code_t
+ebpf_result_t
 ebpf_allocate_timer_work_item(
     ebpf_timer_work_item_t** timer_work_item,
     void (*work_item_routine)(void* work_item_context),
@@ -252,7 +252,7 @@ ebpf_allocate_timer_work_item(
 {
     *timer_work_item = ebpf_allocate(sizeof(ebpf_timer_work_item_t), EBPF_MEMORY_NO_EXECUTE);
     if (*timer_work_item == NULL)
-        return EBPF_ERROR_OUT_OF_RESOURCES;
+        return EBPF_NO_MEMORY;
 
     (*timer_work_item)->work_item_routine = work_item_routine;
     (*timer_work_item)->work_item_context = work_item_context;
@@ -260,7 +260,7 @@ ebpf_allocate_timer_work_item(
     KeInitializeTimer(&(*timer_work_item)->timer);
     KeInitializeDpc(&(*timer_work_item)->deferred_procedure_call, _ebpf_timer_routine, work_item_context);
 
-    return EBPF_ERROR_SUCCESS;
+    return EBPF_SUCCESS;
 }
 
 #define MICROSECONDS_PER_TICK 10
@@ -305,13 +305,13 @@ ebpf_log_function(void* context, const char* format_string, ...)
     return 0;
 }
 
-ebpf_error_code_t
+ebpf_result_t
 ebpf_access_check(
     ebpf_security_descriptor_t* security_descriptor,
     ebpf_security_access_mask_t request_access,
     ebpf_security_generic_mapping_t* generic_mapping)
 {
-    ebpf_error_code_t result;
+    ebpf_result_t result;
     NTSTATUS status;
     SECURITY_SUBJECT_CONTEXT subject_context = {0};
     DWORD granted_access;
@@ -331,19 +331,19 @@ ebpf_access_check(
             &status)) {
         result = EBPF_ERROR_ACCESS_DENIED;
     } else {
-        result = NT_SUCCESS(status) ? EBPF_ERROR_SUCCESS : EBPF_ERROR_ACCESS_DENIED;
+        result = NT_SUCCESS(status) ? EBPF_SUCCESS : EBPF_ERROR_ACCESS_DENIED;
     }
 
     SeUnlockSubjectContext(&subject_context);
     return result;
 }
 
-ebpf_error_code_t
+ebpf_result_t
 ebpf_validate_security_descriptor(ebpf_security_descriptor_t* security_descriptor, size_t security_descriptor_length)
 {
-    ebpf_error_code_t result;
+    ebpf_result_t result;
     if ((security_descriptor->Control & SE_SELF_RELATIVE) == 0) {
-        result = EBPF_ERROR_INVALID_PARAMETER;
+        result = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
 
@@ -351,11 +351,11 @@ ebpf_validate_security_descriptor(ebpf_security_descriptor_t* security_descripto
             security_descriptor,
             (ULONG)security_descriptor_length,
             DACL_SECURITY_INFORMATION | OWNER_SECURITY_INFORMATION | GROUP_SECURITY_INFORMATION)) {
-        result = EBPF_ERROR_INVALID_PARAMETER;
+        result = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
 
-    result = EBPF_ERROR_SUCCESS;
+    result = EBPF_SUCCESS;
 
 Done:
     return result;

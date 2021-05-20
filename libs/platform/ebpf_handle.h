@@ -18,9 +18,9 @@ extern "C"
     /**
      * @brief Initialize the global handle table.
      *
-     * @retval EBPF_ERROR_SUCCESS The operation was successful.
+     * @retval EBPF_SUCCESS The operation was successful.
      */
-    ebpf_error_code_t
+    ebpf_result_t
     ebpf_handle_table_initiate();
 
     /**
@@ -35,11 +35,11 @@ extern "C"
      *
      * @param[out] handle Pointer to memory that contains the handle on success.
      * @param[in] object Object to be referenced by this handle.
-     * @retval EBPF_ERROR_SUCCESS The operation was successful.
-     * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  operation.
      */
-    ebpf_error_code_t
+    ebpf_result_t
     ebpf_handle_create(ebpf_handle_t* handle, ebpf_object_t* object);
 
     /**
@@ -47,10 +47,10 @@ extern "C"
      *  reference on the object.
      *
      * @param[in] handle Handle to be released.
-     * @retval EBPF_ERROR_SUCCESS The operation was successful.
+     * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_ERROR_INVALID_HANDLE The provided handle is not valid.
      */
-    ebpf_error_code_t
+    ebpf_result_t
     ebpf_handle_close(ebpf_handle_t handle);
 
     /**
@@ -60,10 +60,10 @@ extern "C"
      * @param[in] handle Handle to find in table.
      * @param[in] object_type Object type to match.
      * @param[out] object Pointer to memory that contains object success.
-     * @retval EBPF_ERROR_SUCCESS The operation was successful.
+     * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_ERROR_INVALID_HANDLE The provided handle is not valid.
      */
-    ebpf_error_code_t
+    ebpf_result_t
     ebpf_reference_object_by_handle(ebpf_handle_t handle, ebpf_object_type_t object_type, ebpf_object_t** object);
 
 #ifdef __cplusplus
