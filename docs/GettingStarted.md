@@ -122,7 +122,7 @@ abstraction layer.
 
 ### execution_context_unit_test.exe
 This test invokes the APIs exposed by the execution context, including map
-operations, program operations (link operations aren’t present yet in the test).
+operations and program operations (link operations aren’t present yet in the test).
 
 ### Running the tests
 1.	Set the build output folder as the current working directory.
