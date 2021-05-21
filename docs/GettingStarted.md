@@ -134,6 +134,6 @@ cases.
 
 Other useful options include:
 1.	-s to list both passing and failing test cases
-2.	-b to break into the debugger on test failure.
+2.	-b to break into the debugger on test failure
 3.	-l to list test cases
 4.	Test_name to run a single test
