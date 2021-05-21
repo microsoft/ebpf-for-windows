@@ -121,7 +121,7 @@ This test invokes APIs exposed by the user-mode implementation of platform
 abstraction layer.
 
 ### execution_context_unit_test.exe
-This test invokes the API’s exposed by the execution context to including map
+This test invokes the APIs exposed by the execution context, including map
 operations, program operations (link operations aren’t present yet in the test).
 
 ### Running the tests
