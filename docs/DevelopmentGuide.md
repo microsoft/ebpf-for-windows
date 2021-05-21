@@ -29,6 +29,19 @@ Coding Conventions
 * **DON'T** use the same C function name with two different prototypes across
   the project where possible.
 
+Header Files
+------------
+
+* **DO** make sure any header file can be included directly, without requiring other
+  headers to be included first.  That is, any dependencies should be included within
+  the header file itself.
+
+* **DO** include system headers (with `<>`) before local headers (with `""`), and list them
+  in alphabetical order where possible.  This helps ensure there are not duplicate includes,
+  and also helps ensure that headers are usable directly.
+
+* Use `#pragma once` in all header files, rather than using ifdefs to test for duplicate inclusion.
+
 Style Guide
 -----------
 

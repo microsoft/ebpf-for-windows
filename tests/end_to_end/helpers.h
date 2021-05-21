@@ -36,7 +36,7 @@ typedef class _single_instance_hook
                 nullptr,
                 this,
                 client_attach_callback,
-                client_detach_callback) == EBPF_ERROR_SUCCESS);
+                client_detach_callback) == EBPF_SUCCESS);
     }
     ~_single_instance_hook() { ebpf_provider_unload(provider); }
 
@@ -52,17 +52,17 @@ typedef class _single_instance_hook
         ebpf_api_close_handle(link_handle);
     }
 
-    ebpf_error_code_t
+    ebpf_result_t
     fire(void* context, uint32_t* result)
     {
-        ebpf_error_code_t (*invoke_program)(void* link, void* context, uint32_t* result) =
+        ebpf_result_t (*invoke_program)(void* link, void* context, uint32_t* result) =
             reinterpret_cast<decltype(invoke_program)>(client_dispatch_table->function[0]);
 
         return invoke_program(client_binding_context, context, result);
     }
 
   private:
-    static ebpf_error_code_t
+    static ebpf_result_t
     client_attach_callback(
         void* context,
         const GUID* client_id,
@@ -75,10 +75,10 @@ typedef class _single_instance_hook
         hook->client_binding_context = client_binding_context;
         hook->client_data = client_data;
         hook->client_dispatch_table = client_dispatch_table;
-        return EBPF_ERROR_SUCCESS;
+        return EBPF_SUCCESS;
     };
 
-    static ebpf_error_code_t
+    static ebpf_result_t
     client_detach_callback(void* context, const GUID* client_id)
     {
         auto hook = reinterpret_cast<_single_instance_hook*>(context);
@@ -86,7 +86,7 @@ typedef class _single_instance_hook
         hook->client_data = nullptr;
         hook->client_dispatch_table = nullptr;
         UNREFERENCED_PARAMETER(client_id);
-        return EBPF_ERROR_SUCCESS;
+        return EBPF_SUCCESS;
     };
     ebpf_attach_type_t attach_type;
 
@@ -118,7 +118,7 @@ typedef class _program_information_provider
                 nullptr,
                 nullptr,
                 nullptr,
-                nullptr) == EBPF_ERROR_SUCCESS);
+                nullptr) == EBPF_SUCCESS);
     }
     ~_program_information_provider() { ebpf_provider_unload(provider); }
 
@@ -147,7 +147,7 @@ typedef class _program_information_provider
             program_type_descriptor, _countof(helper_functions), helper_functions};
         uint8_t* buffer;
         unsigned long buffer_size;
-        REQUIRE(ebpf_program_information_encode(&program_information, &buffer, &buffer_size) == EBPF_ERROR_SUCCESS);
+        REQUIRE(ebpf_program_information_encode(&program_information, &buffer, &buffer_size) == EBPF_SUCCESS);
         // Capture the buffer so that it's freed on scope exit.
         ebpf_memory_t memory(buffer);
 
@@ -175,17 +175,16 @@ typedef class _program_information_provider
              EBPF_RETURN_TYPE_PTR_TO_MAP_VALUE_OR_NULL,
              {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY}},
         };
-        ebpf_context_descriptor_t context_descriptor{
-            sizeof(xdp_md_t),
-            EBPF_OFFSET_OF(xdp_md_t, data),
-            EBPF_OFFSET_OF(xdp_md_t, data_end),
-            EBPF_OFFSET_OF(xdp_md_t, data_meta)};
+        ebpf_context_descriptor_t context_descriptor{sizeof(xdp_md_t),
+                                                     EBPF_OFFSET_OF(xdp_md_t, data),
+                                                     EBPF_OFFSET_OF(xdp_md_t, data_end),
+                                                     EBPF_OFFSET_OF(xdp_md_t, data_meta)};
         ebpf_program_type_descriptor_t program_type_descriptor{"xdp", &context_descriptor, EBPF_PROGRAM_TYPE_XDP};
         ebpf_program_information_t program_information{
             program_type_descriptor, _countof(helper_functions), helper_functions};
         uint8_t* buffer;
         unsigned long buffer_size;
-        REQUIRE(ebpf_program_information_encode(&program_information, &buffer, &buffer_size) == EBPF_ERROR_SUCCESS);
+        REQUIRE(ebpf_program_information_encode(&program_information, &buffer, &buffer_size) == EBPF_SUCCESS);
         // Capture the buffer so that it's freed on scope exit.
         ebpf_memory_t memory(buffer);
 

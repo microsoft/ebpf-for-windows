@@ -39,5 +39,8 @@
     <CustomBuild Include="divide_by_zero.c">
       <Filter>Source Files</Filter>
     </CustomBuild>
+    <CustomBuild Include="droppacket_unsafe.c">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
   </ItemGroup>
 </Project>

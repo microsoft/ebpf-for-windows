@@ -21,12 +21,11 @@ extern "C"
      *
      * @param[out] link Pointer to memory that will contain the link object
      *  on success.
-     * @retval EBPF_ERROR_SUCCESS The operation was successful.
-     * @retval EBPF_ERROR_OUT_OF_RESOURCES Unable to allocate resources for this
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  link object.
      * @retval EBPF_SUCCESS The operation was successful.
      */
-    ebpf_error_code_t
+    ebpf_result_t
     ebpf_link_create(ebpf_link_t** link);
 
     /**
@@ -38,9 +37,9 @@ extern "C"
      * @param[in] context_data Data to be passed to the hook provider.
      * @param[in] context_data_length Length of the data to be passed to the hook
      *  provider.
-     * @retval EBPF_ERROR_SUCCESS The operation was successful.
+     * @retval EBPF_SUCCESS The operation was successful.
      */
-    ebpf_error_code_t
+    ebpf_result_t
     ebpf_link_initialize(
         ebpf_link_t* link, ebpf_attach_type_t attach_type, const uint8_t* context_data, size_t context_data_length);
 
@@ -52,11 +51,11 @@ extern "C"
      *  provider properties on success.
      * @param[out] hook_properties_length Pointer to size that contains the size
      *  of the hook provider properties.
-     * @retval EBPF_ERROR_SUCCESS The operation was successful.
-     * @retval EBPF_ERROR_INVALID_PARAMETER Hook instance has not been
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INVALID_ARGUMENT Hook instance has not been
      *  initialized.
      */
-    ebpf_error_code_t
+    ebpf_result_t
     ebpf_link_get_properties(ebpf_link_t* link, uint8_t** hook_properties, size_t* hook_properties_length);
 
     /**
@@ -64,11 +63,11 @@ extern "C"
      *
      * @param[in] link The link object to attach the program to.
      * @param[in] program The program to attach to this link object.
-     * @retval EBPF_ERROR_SUCCESS The operation was successful.
-     * @retval EBPF_ERROR_INVALID_PARAMETER Hook instance has not been
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INVALID_ARGUMENT Hook instance has not been
      *  initialized.
      */
-    ebpf_error_code_t
+    ebpf_result_t
     ebpf_link_attach_program(ebpf_link_t* link, ebpf_program_t* program);
 
     /**

@@ -3,7 +3,8 @@
  *  SPDX-License-Identifier: MIT
  */
 
-#include "pch.h"
+#include "rpc_util.h"
+#include "svc_common.h"
 
 #define SERVICE_NAME TEXT("eBPFSvc")
 
@@ -24,11 +25,6 @@ void WINAPI
 service_main(DWORD argc, PTSTR* argv);
 void
 service_install();
-
-DWORD
-initialize_rpc_server();
-void
-shutdown_rpc_server();
 
 int __cdecl wmain(ULONG argc, PWSTR* argv)
 {

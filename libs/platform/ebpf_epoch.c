@@ -76,7 +76,7 @@ static void
 ebpf_epoch_release_free_list(int64_t released_epoch);
 
 // Get the highest epoch that is no longer in use.
-static ebpf_error_code_t
+static ebpf_result_t
 ebpf_epoch_get_release_epoch(int64_t* released_epoch);
 
 static void
@@ -85,10 +85,10 @@ _ebpf_epoch_update_cpu_entry(void* context, void* parameter_1);
 static void
 _ebpf_flush_worker(void* context);
 
-ebpf_error_code_t
+ebpf_result_t
 ebpf_epoch_initiate()
 {
-    ebpf_error_code_t return_value = EBPF_ERROR_SUCCESS;
+    ebpf_result_t return_value = EBPF_SUCCESS;
     uint32_t cpu_id;
 
     _ebpf_epoch_initiated = true;
@@ -105,7 +105,7 @@ ebpf_epoch_initiate()
         _ebpf_epoch_cpu_table =
             ebpf_allocate(_ebpf_epoch_cpu_table_size * sizeof(ebpf_epoch_cpu_entry_t), EBPF_MEMORY_NO_EXECUTE);
         if (!_ebpf_epoch_cpu_table) {
-            return_value = EBPF_ERROR_OUT_OF_RESOURCES;
+            return_value = EBPF_NO_MEMORY;
             goto Error;
         }
 
@@ -119,27 +119,27 @@ ebpf_epoch_initiate()
                 _ebpf_epoch_update_cpu_entry,
                 &_ebpf_epoch_cpu_table[cpu_id]);
 
-            if (return_value != EBPF_ERROR_SUCCESS)
+            if (return_value != EBPF_SUCCESS)
                 break;
         }
 
-        if (return_value != EBPF_ERROR_SUCCESS) {
+        if (return_value != EBPF_SUCCESS) {
             for (cpu_id = 0; cpu_id < _ebpf_epoch_cpu_table_size; cpu_id++) {
                 ebpf_free_non_preemptible_work_item(_ebpf_epoch_cpu_table[cpu_id].non_preemtable_work_item);
             }
         }
-        if (return_value != EBPF_ERROR_SUCCESS)
+        if (return_value != EBPF_SUCCESS)
             goto Error;
     }
 
     return_value = ebpf_hash_table_create(
         &_ebpf_epoch_thread_table, ebpf_allocate, ebpf_free, sizeof(uint64_t), sizeof(int64_t), NULL);
-    if (return_value != EBPF_ERROR_SUCCESS) {
+    if (return_value != EBPF_SUCCESS) {
         goto Error;
     }
 
     return_value = ebpf_allocate_timer_work_item(&_ebpf_flush_timer, _ebpf_flush_worker, NULL);
-    if (return_value != EBPF_ERROR_SUCCESS) {
+    if (return_value != EBPF_SUCCESS) {
         goto Error;
     }
 
@@ -172,11 +172,11 @@ ebpf_epoch_terminate()
     _ebpf_epoch_initiated = false;
 }
 
-ebpf_error_code_t
+ebpf_result_t
 ebpf_epoch_enter()
 {
     if (!ebpf_is_non_preemptible_work_item_supported() || ebpf_is_preemptible()) {
-        ebpf_error_code_t return_value;
+        ebpf_result_t return_value;
         ebpf_lock_state_t lock_state;
         uint64_t current_thread_id = ebpf_get_current_thread_id();
         int64_t current_epoch = _ebpf_current_epoch;
@@ -192,7 +192,7 @@ ebpf_epoch_enter()
         }
 
         _ebpf_epoch_cpu_table[current_cpu].epoch = _ebpf_current_epoch;
-        return EBPF_ERROR_SUCCESS;
+        return EBPF_SUCCESS;
     }
 }
 
@@ -225,7 +225,7 @@ ebpf_epoch_exit()
 void
 ebpf_epoch_flush()
 {
-    ebpf_error_code_t return_value;
+    ebpf_result_t return_value;
     int64_t released_epoch;
     uint32_t cpu_id;
 
@@ -242,7 +242,7 @@ ebpf_epoch_flush()
     }
 
     return_value = ebpf_epoch_get_release_epoch(&released_epoch);
-    if (return_value == EBPF_ERROR_SUCCESS) {
+    if (return_value == EBPF_SUCCESS) {
         ebpf_epoch_release_free_list(released_epoch);
     }
 }
@@ -309,7 +309,7 @@ ebpf_epoch_release_free_list(int64_t released_epoch)
     }
 }
 
-static ebpf_error_code_t
+static ebpf_result_t
 ebpf_epoch_get_release_epoch(int64_t* release_epoch)
 {
     int64_t lowest_epoch = INT64_MAX;
@@ -317,7 +317,7 @@ ebpf_epoch_get_release_epoch(int64_t* release_epoch)
     uint32_t cpu_id;
     uint64_t thread_id = 0;
     ebpf_lock_state_t lock_state;
-    ebpf_error_code_t return_value;
+    ebpf_result_t return_value;
 
     if (ebpf_is_non_preemptible_work_item_supported()) {
         for (cpu_id = 0; cpu_id < _ebpf_epoch_cpu_table_size; cpu_id++) {
@@ -328,11 +328,11 @@ ebpf_epoch_get_release_epoch(int64_t* release_epoch)
 
     ebpf_lock_lock(&_ebpf_epoch_thread_table_lock, &lock_state);
     return_value = ebpf_hash_table_next_key(_ebpf_epoch_thread_table, NULL, (uint8_t*)&thread_id);
-    if (return_value == EBPF_ERROR_SUCCESS)
+    if (return_value == EBPF_SUCCESS)
         for (;;) {
             return_value =
                 ebpf_hash_table_find(_ebpf_epoch_thread_table, (uint8_t*)&thread_id, (uint8_t**)&thread_epoch);
-            if (return_value != EBPF_ERROR_SUCCESS)
+            if (return_value != EBPF_SUCCESS)
                 break;
 
             if (*thread_epoch != 0 && *thread_epoch < lowest_epoch)
@@ -340,7 +340,7 @@ ebpf_epoch_get_release_epoch(int64_t* release_epoch)
 
             return_value =
                 ebpf_hash_table_next_key(_ebpf_epoch_thread_table, (uint8_t*)&thread_id, (uint8_t*)&thread_id);
-            if (return_value != EBPF_ERROR_SUCCESS)
+            if (return_value != EBPF_SUCCESS)
                 break;
         }
     ebpf_lock_unlock(&_ebpf_epoch_thread_table_lock, &lock_state);
@@ -350,7 +350,7 @@ ebpf_epoch_get_release_epoch(int64_t* release_epoch)
     }
 
     *release_epoch = lowest_epoch - 1;
-    return EBPF_ERROR_SUCCESS;
+    return EBPF_SUCCESS;
 }
 
 static void

@@ -7,7 +7,7 @@
 
 #include "ebpf_program_types_c.c"
 
-ebpf_error_code_t
+ebpf_result_t
 ebpf_program_information_encode(
     const ebpf_program_information_t* program_information, uint8_t** buffer, unsigned long* buffer_size)
 {
@@ -15,7 +15,7 @@ ebpf_program_information_encode(
     ebpf_program_information_pointer_t local_program_information = (ebpf_program_information_t*)program_information;
     RPC_STATUS status = MesEncodeDynBufferHandleCreate((char**)buffer, buffer_size, &handle);
     if (status != RPC_S_OK)
-        return EBPF_ERROR_OUT_OF_RESOURCES;
+        return EBPF_NO_MEMORY;
 
     RpcTryExcept { ebpf_program_information_pointer_t_Encode(handle, &local_program_information); }
     RpcExcept(RpcExceptionFilter(RpcExceptionCode())) { status = RpcExceptionCode(); }
@@ -23,21 +23,21 @@ ebpf_program_information_encode(
 
     if (handle)
         MesHandleFree(handle);
-    return status == RPC_S_OK ? EBPF_ERROR_SUCCESS : EBPF_ERROR_INVALID_PARAMETER;
+    return status == RPC_S_OK ? EBPF_SUCCESS : EBPF_INVALID_ARGUMENT;
 }
 
-ebpf_error_code_t
+ebpf_result_t
 ebpf_program_information_decode(
     ebpf_program_information_t** program_information, const uint8_t* buffer, unsigned long buffer_size)
 {
-    ebpf_error_code_t return_value;
+    ebpf_result_t return_value;
     handle_t handle = NULL;
     ebpf_program_information_pointer_t local_program_information = NULL;
     uint8_t* local_buffer = NULL;
 
     local_buffer = ebpf_allocate(buffer_size, EBPF_MEMORY_NO_EXECUTE);
     if (!local_buffer) {
-        return_value = EBPF_ERROR_OUT_OF_RESOURCES;
+        return_value = EBPF_NO_MEMORY;
         goto Done;
     }
 
@@ -45,7 +45,7 @@ ebpf_program_information_decode(
 
     RPC_STATUS status = MesDecodeBufferHandleCreate((char*)local_buffer, buffer_size, &handle);
     if (status != RPC_S_OK) {
-        return_value = EBPF_ERROR_OUT_OF_RESOURCES;
+        return_value = EBPF_NO_MEMORY;
         goto Done;
     }
 
@@ -54,7 +54,7 @@ ebpf_program_information_decode(
     RpcEndExcept;
 
     if (status != RPC_S_OK) {
-        return_value = EBPF_ERROR_INVALID_PARAMETER;
+        return_value = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
 
@@ -65,7 +65,7 @@ Done:
         MesHandleFree(handle);
     ebpf_free(local_buffer);
 
-    return EBPF_ERROR_SUCCESS;
+    return EBPF_SUCCESS;
 }
 
 void* __RPC_USER

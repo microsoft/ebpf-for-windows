@@ -17,6 +17,7 @@ int
 load_byte_code(
     const char* filename,
     const char* sectionname,
+    ebpf_verifier_options_t* verifier_options,
     uint8_t* byte_code,
     size_t* byte_code_size,
     ebpf_program_type_t* program_type,
@@ -24,8 +25,11 @@ load_byte_code(
 
 int
 verify_byte_code(
-    const char* path,
-    const char* section_name,
+    const GUID* program_type,
     const uint8_t* byte_code,
     size_t byte_code_size,
-    const char** error_message);
+    const char** error_message,
+    uint32_t* error_message_size);
+
+const char*
+allocate_error_string(const std::string& str, uint32_t* length);

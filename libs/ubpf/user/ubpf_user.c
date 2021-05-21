@@ -14,6 +14,7 @@
 #pragma warning(disable : 4267)
 
 #include <endian.h>
+#define UBPF_STACK_SIZE 512
 
 #include "ubpf_jit_x86_64.c"
 #include "ubpf_vm.c"
