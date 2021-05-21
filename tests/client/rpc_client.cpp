@@ -21,7 +21,7 @@ static const WCHAR* _protocol_sequence = L"ncacn_np";
 #define RPC_SERVER_ENDPOINT L"\\pipe\\ebpf_service"
 
 int
-ebpf_rpc_verify_program(ebpf_program_verify_info* info, char** logs, uint32_t* logs_size)
+ebpf_rpc_verify_program(ebpf_program_verify_info* info, const char** logs, uint32_t* logs_size)
 {
     unsigned long code;
     int result;

@@ -22,7 +22,7 @@ ebpf_result_t
 ebpf_verify_and_jit_program(
     /* [ref][in] */ ebpf_program_load_info* info,
     /* [ref][out] */ uint32_t* logs_size,
-    /* [ref][size_is][size_is][out] */ char** logs)
+    /* [ref][size_is][size_is][out] */ const char** logs)
 {
     UNREFERENCED_PARAMETER(info);
     UNREFERENCED_PARAMETER(logs_size);
@@ -35,7 +35,7 @@ ebpf_result_t
 ebpf_verify_program(
     /* [ref][in] */ ebpf_program_verify_info* info,
     /* [out] */ uint32_t* logs_size,
-    /* [ref][size_is][size_is][out] */ char** logs)
+    /* [ref][size_is][size_is][out] */ const char** logs)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     int error = 0;
@@ -56,11 +56,7 @@ ebpf_verify_program(
 
         // Verify the program
         error = verify_byte_code(
-            reinterpret_cast<const GUID*>(&info->program_type),
-            info->byte_code,
-            info->byte_code_size,
-            (const char**)logs,
-            logs_size);
+            reinterpret_cast<const GUID*>(&info->program_type), info->byte_code, info->byte_code_size, logs, logs_size);
 
         if (error != 0) {
             result = EBPF_VALIDATION_FAILED;
@@ -69,7 +65,7 @@ ebpf_verify_program(
         result = EBPF_NO_MEMORY;
     } catch (std::runtime_error& err) {
         auto message = err.what();
-        *logs = const_cast<char*>(allocate_error_string(message, logs_size));
+        *logs = allocate_error_string(message, logs_size);
 
         result = EBPF_VALIDATION_FAILED;
     } catch (...) {

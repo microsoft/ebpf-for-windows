@@ -21,9 +21,9 @@
 #define EBPF_SERVICE_BINARY_NAME L"ebpfsvc.exe"
 #define EBPF_SERVICE_NAME L"ebpfsvc"
 
-service_install_helper service_helper(EBPF_SERVICE_NAME, EBPF_SERVICE_BINARY_NAME);
+static service_install_helper _service_helper(EBPF_SERVICE_NAME, EBPF_SERVICE_BINARY_NAME);
 
-void
+static void
 _get_program_byte_code_helper(const char* file_name, const char* section_name, ebpf_program_verify_info* info)
 {
     uint8_t* instruction_array;
@@ -68,7 +68,7 @@ _get_program_byte_code_helper(const char* file_name, const char* section_name, e
 TEST_CASE("verify-program-droppacket", "[verify-program-droppacket]")
 {
     uint32_t result;
-    char* verifier_message = nullptr;
+    const char* verifier_message = nullptr;
     uint32_t verifier_message_size;
     ebpf_program_verify_info info = {0};
 
@@ -80,18 +80,18 @@ TEST_CASE("verify-program-droppacket", "[verify-program-droppacket]")
     REQUIRE(
         (result = ebpf_rpc_verify_program(&info, &verifier_message, &verifier_message_size),
          verifier_message ? printf("ebpf_rpc_verify_program failed with: %s\n", verifier_message) : 0,
-         ebpf_api_free_string((const char*)verifier_message),
+         ebpf_api_free_string(verifier_message),
          verifier_message = nullptr,
          result == ERROR_SUCCESS));
 
-    ebpf_api_free_string((const char*)verifier_message);
+    ebpf_api_free_string(verifier_message);
     clean_up_rpc_binding();
 }
 
 TEST_CASE("verify-program-bindmonitor", "[verify-program-bindmonitor]")
 {
     uint32_t result;
-    char* verifier_message = nullptr;
+    const char* verifier_message = nullptr;
     uint32_t verifier_message_size;
     ebpf_program_verify_info info = {0};
 
@@ -103,18 +103,18 @@ TEST_CASE("verify-program-bindmonitor", "[verify-program-bindmonitor]")
     REQUIRE(
         (result = ebpf_rpc_verify_program(&info, &verifier_message, &verifier_message_size),
          verifier_message ? printf("ebpf_rpc_verify_program failed with %s\n", verifier_message) : 0,
-         ebpf_api_free_string((const char*)verifier_message),
+         ebpf_api_free_string(verifier_message),
          verifier_message = nullptr,
          result == ERROR_SUCCESS));
 
-    ebpf_api_free_string((const char*)verifier_message);
+    ebpf_api_free_string(verifier_message);
     clean_up_rpc_binding();
 }
 
 TEST_CASE("verify-program-divide_by_zero", "[verify-program-divide_by_zero]")
 {
     uint32_t result;
-    char* verifier_message = nullptr;
+    const char* verifier_message = nullptr;
     uint32_t verifier_message_size;
     ebpf_program_verify_info info = {0};
 
@@ -126,18 +126,18 @@ TEST_CASE("verify-program-divide_by_zero", "[verify-program-divide_by_zero]")
     REQUIRE(
         (result = ebpf_rpc_verify_program(&info, &verifier_message, &verifier_message_size),
          verifier_message ? printf("ebpf_get_program_byte_code failed with %s\n", verifier_message) : 0,
-         ebpf_api_free_string((const char*)verifier_message),
+         ebpf_api_free_string(verifier_message),
          verifier_message = nullptr,
          result == ERROR_SUCCESS));
 
-    ebpf_api_free_string((const char*)verifier_message);
+    ebpf_api_free_string(verifier_message);
     clean_up_rpc_binding();
 }
 
 TEST_CASE("verify-program-droppacket_unsafe", "[verify-program-droppacket_unsafe]")
 {
     uint32_t result;
-    char* verifier_message = nullptr;
+    const char* verifier_message = nullptr;
     uint32_t verifier_message_size;
     ebpf_program_verify_info info = {0};
 
@@ -150,13 +150,13 @@ TEST_CASE("verify-program-droppacket_unsafe", "[verify-program-droppacket_unsafe
     if (result != ERROR_SUCCESS) {
         if (verifier_message_size > 0) {
             printf("message from verifier:\n %s\n", verifier_message);
-            ebpf_api_free_string((const char*)verifier_message);
+            ebpf_api_free_string(verifier_message);
             verifier_message = nullptr;
         }
     }
     REQUIRE((result == (int)EBPF_VALIDATION_FAILED));
     REQUIRE(verifier_message_size > 0);
 
-    ebpf_api_free_string((const char*)verifier_message);
+    ebpf_api_free_string(verifier_message);
     clean_up_rpc_binding();
 }
