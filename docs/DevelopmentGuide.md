@@ -40,7 +40,7 @@ Header Files
   in alphabetical order where possible.  This helps ensure there are not duplicate includes,
   and also helps ensure that headers are usable directly.
 
-* Use `#pragma once` in all header files, rather than using ifdefs to test for duplicate inclusion.
+* **DO** use `#pragma once` in all header files, rather than using ifdefs to test for duplicate inclusion.
 
 Style Guide
 -----------
