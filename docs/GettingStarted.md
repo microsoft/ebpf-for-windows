@@ -113,7 +113,7 @@ There are 2 types of tests present:
 ### end_to_end.exe
 This test uses a mocking layer to bind the user mode components to the kernel mode
 components via a Mock IOCTL interface. The tests initialize the user mode and kernel
-mode components, load a eBPF program from an ELF file and then run the eBPF program
+mode components, load an eBPF program from an ELF file, and then run the eBPF program
 by having the mocked extensions emit events.
 
 ### platform_unit_test.exe
