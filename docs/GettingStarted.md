@@ -107,7 +107,7 @@ Official releases of eBPF for Windows will be production signed.
 The tests in Ebpf-For-Windows are written using the [Catch2](https://github.com/catchorg/Catch2) test framework.
 
 There are 2 types of tests present:
-1.	End-to-End tests - These exercise the entire path: User API, verifier, jitter, execution context and mock extensions.
+1.	End-to-End tests - These exercise the entire path: User API, verifier, jitter, execution context, and mock extensions.
 2.	Unit tests – These exercise a specific component in isolation.
 
 ### end_to_end.exe
