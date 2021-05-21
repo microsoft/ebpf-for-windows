@@ -1,7 +1,5 @@
-/*
- *  Copyright (c) Microsoft Corporation
- *  SPDX-License-Identifier: MIT
- */
+// Copyright (c) Microsoft Corporation
+// SPDX-License-Identifier: MIT
 
 // clang -O2 -Wall -c droppacket.c -o dropjit.o
 //
@@ -24,8 +22,6 @@ DropPacket(xdp_md_t* ctx)
     IPV4_HEADER* iphdr = (IPV4_HEADER*)ctx->data;
     UDP_HEADER* udphdr = (UDP_HEADER*)(iphdr + 1);
     int rc = XDP_PASS;
-    if ((char*)ctx->data + sizeof(IPV4_HEADER) + sizeof(UDP_HEADER) > (char*)ctx->data_end)
-        goto Done;
 
     // udp
     if (iphdr->Protocol == 17) {
