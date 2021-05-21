@@ -117,7 +117,7 @@ mode components, load an eBPF program from an ELF file, and then run the eBPF pr
 by having the mocked extensions emit events.
 
 ### platform_unit_test.exe
-This test invokes API’s exposed by the user-mode implementation of platform
+This test invokes APIs exposed by the user-mode implementation of platform
 abstraction layer.
 
 ### execution_context_unit_test.exe
