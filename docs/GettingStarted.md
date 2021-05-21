@@ -101,3 +101,39 @@ Windows requires that one of the following criteria be met prior to loading a dr
 3. The OS is running in [test-signing mode](https://docs.microsoft.com/en-us/windows-hardware/drivers/install/the-testsigning-boot-configuration-option), the [driver is test signed](https://docs.microsoft.com/en-us/windows-hardware/drivers/install/test-signing-a-driver-through-an-embedded-signature) and the [test certificate is installed](https://docs.microsoft.com/en-us/windows-hardware/drivers/install/installing-test-certificates).
 
 Official releases of eBPF for Windows will be production signed.
+
+## Tests in Ebpf-For-Windows
+
+The tests in Ebpf-For-Windows are written using the [Catch2](https://github.com/catchorg/Catch2) test framework.
+
+There are 2 types of tests present:
+1.	End-to-End tests - These exercise the entire path: User API, verifier, jitter, execution context, and mock extensions.
+2.	Unit tests – These exercise a specific component in isolation.
+
+### end_to_end.exe
+This test uses a mocking layer to bind the user mode components to the kernel mode
+components via a Mock IOCTL interface. The tests initialize the user mode and kernel
+mode components, load an eBPF program from an ELF file, and then run the eBPF program
+by having the mocked extensions emit events.
+
+### platform_unit_test.exe
+This test invokes APIs exposed by the user-mode implementation of platform
+abstraction layer.
+
+### execution_context_unit_test.exe
+This test invokes the APIs exposed by the execution context, including map
+operations and program operations (link operations aren’t present yet in the test).
+
+### Running the tests
+1.	Set the build output folder as the current working directory.
+2.	Invoke the appropriate exe.
+
+The Catch2 exes have various command line options to control behavior. Default
+behavior is to run all the tests and only print information about failing test
+cases.
+
+Other useful options include:
+1.	-s to list both passing and failing test cases
+2.	-b to break into the debugger on test failure
+3.	-l to list test cases
+4.	Test_name to run a single test
