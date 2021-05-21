@@ -5,7 +5,7 @@
 
 #pragma once
 namespace Platform {
-BOOL
+bool
 DeviceIoControl(
     _In_ ebpf_handle_t device_handle,
     uint32_t io_control_code,
@@ -21,11 +21,11 @@ CreateFileW(
     _In_ PCWSTR file_name,
     uint32_t desired_access,
     uint32_t share_mode,
-    _In_opt_ SECURITY_ATTRIBUTES* security_attributed,
+    _In_opt_ SECURITY_ATTRIBUTES* security_attributes,
     uint32_t creation_disposition,
-    uint32_t flags_and_attributed,
+    uint32_t flags_and_attributes,
     _In_opt_ ebpf_handle_t template_file);
 
-BOOL
+bool
 CloseHandle(_In_ _Post_ptr_invalid_ ebpf_handle_t handle);
 } // namespace Platform

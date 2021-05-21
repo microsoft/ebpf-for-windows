@@ -68,6 +68,10 @@ jobs:
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
       run: ./end_to_end.exe -s
 
+    - name: Run RPC Client Tests
+      working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+      run: ./ebpf_client.exe -s
+
     - name: Run Platform Unit Tests
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
       run: ./platform_unit_test.exe -s
