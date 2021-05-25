@@ -74,7 +74,7 @@ attach points for visibility.
 ### Control
 
 A secondary use case for eBPF on other platforms is to extend existing system
-behavior with out the need to author new in-box components. As this invariably
+behavior without the need to author new kernel drivers. As this invariably
 involves modification of the flow of control within existing components, this is
 often via predefined extension points. Typical modifications can include
 permit/deny decisions, alteration of the flow of control, or modification of the
