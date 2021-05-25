@@ -13,7 +13,7 @@ eBPF For Windows needs to meet.
 
 ## Security
 
-The most important aspect of this project is that needs to uphold the security
+The most important aspect of this project is that it needs to uphold the security
 principles in Windows and the security promises that Windows customers have come
 to expect, while maintaining the flexibility to meet our customers needs.
 Customer should be able to deploy and run eBPF programs on Windows when the
