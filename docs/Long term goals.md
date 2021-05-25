@@ -16,7 +16,7 @@ eBPF For Windows needs to meet.
 The most important aspect of this project is that it needs to uphold the security
 principles in Windows and the security promises that Windows users have come
 to expect, while maintaining the flexibility to meet their needs.
-Customer should be able to deploy and run eBPF programs on Windows when the
+Users should be able to deploy and run eBPF programs on Windows when the
 system is configured for its most secure mode, whether that is a shielded VM,
 Hyper-Visor Code Integrity or other security mitigations.
 
