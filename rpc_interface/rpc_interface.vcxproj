@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (c) Microsoft Corporation
+  SPDX-License-Identifier: MIT
+-->
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -123,7 +127,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Midl>
-      <AdditionalIncludeDirectories>$(SolutionDir)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)libs\api;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DefaultCharType>Unsigned</DefaultCharType>
       <AdditionalOptions>/prefix server "ebpf_server_" /prefix client "ebpf_client_" %(AdditionalOptions)</AdditionalOptions>
     </Midl>
@@ -144,7 +148,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Midl>
-      <AdditionalIncludeDirectories>$(SolutionDir)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)libs\api;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </Midl>
     <Midl>
       <DefaultCharType>Unsigned</DefaultCharType>
