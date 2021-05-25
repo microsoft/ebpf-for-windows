@@ -58,7 +58,7 @@ state and modification of system behavior.
 
 ### Observability
 
-One of the largest use case of eBPF on other platforms is observe the behavior
+One of the largest use cases for eBPF on other platforms is to observe the behavior
 of the system, both through predefined observability points as well as
 dynamically created observability points. Similar technologies already exist for
 Windows, with [DTrace on Windows](https://docs.microsoft.com/en-us/windows-hardware/drivers/devtest/dtrace)
