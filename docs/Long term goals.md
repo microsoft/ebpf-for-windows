@@ -5,7 +5,7 @@
 This is intended as a living document that will be updated as the project
 evolves. It is not intended as definitive guide, but rather as set of
 aspirational goals for the project. It is expected that it will evolve based on
-the needs of our customers and the feedback of people working on this project.
+the needs of users and the feedback of contributors working on this project.
 
 To achieve long term success, this project needs to succeed in several
 different areas. Each section of this document covers an area or scenario that
