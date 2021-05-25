@@ -39,7 +39,7 @@
     <ClInclude Include="windows_platform_service.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="service_api.h">
+    <ClInclude Include="api_service.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

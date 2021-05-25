@@ -174,7 +174,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
-    <ClInclude Include="service_api.h" />
+    <ClInclude Include="api_service.h" />
     <ClInclude Include="tlv.h" />
     <ClInclude Include="verifier_service.h" />
     <ClInclude Include="windows_platform_service.hpp" />
