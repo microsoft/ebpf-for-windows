@@ -35,7 +35,7 @@ from Linux to Windows. The main obstacle to this is around helper APIs and
 the type definitions that are OS-specific.
 
 The project aims to provide interface compatible APIs for loading and managing
-eBPF programs, while also providing extended APIs for functionality that is not
+eBPF programs, while also providing extended APIs (hooks and related helpers) for functionality that is not
 present in other platforms.
 
 Given the fundamental differences between Linux and Windows, attach points are
