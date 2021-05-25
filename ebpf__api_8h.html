@@ -828,6 +828,8 @@ Variables</h2></td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">section_name</td><td>Name of the section in the ELF file to load. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">execution_type</td><td>How this program should be run in the execution context. </td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">handle</td><td>Handle to eBPF program. </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">count_of_map_handles</td><td>On input, contains the maximum number of map_handles to return. On output, contains the actual number of map_handles returned. </td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">map_handles</td><td>Array of map handles to be filled in. </td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">error_message</td><td>Error message describing what failed. </td></tr>
   </table>
   </dd>
