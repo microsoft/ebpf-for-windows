@@ -1,5 +1,6 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
+
 #include <cassert>
 #include <stdexcept>
 #include "api_internal.h"
@@ -62,7 +63,7 @@ const std::vector<EbpfProgramType> windows_program_types = {
 EbpfProgramType
 get_program_type_windows(const GUID& program_type)
 {
-    // TODO: (Issue #205) Make an IOCTL call to fetch the program context
+    // TODO: (Issue #67) Make an IOCTL call to fetch the program context
     //       information and then fill the EbpfProgramType struct.
     for (const EbpfProgramType t : windows_program_types) {
         if (t.platform_specific_data != 0) {
@@ -80,6 +81,8 @@ get_program_type_windows(const std::string& section, const std::string&)
 {
     EbpfProgramType type{};
 
+    // TODO: (Issue #223) Read the registry to fetch all the section
+    //       prefixes and corresponding program and attach types.
     for (const EbpfProgramType t : windows_program_types) {
         for (const std::string prefix : t.section_prefixes) {
             if (section.find(prefix) == 0)

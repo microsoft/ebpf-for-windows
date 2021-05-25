@@ -47,14 +47,14 @@ parse_maps_section_windows(
     const struct ebpf_platform_t*,
     ebpf_verifier_options_t options)
 {
-    if (size % sizeof(ebpf_maps_section_record_windows) != 0) {
+    if (size % sizeof(ebpf_map_definition_t) != 0) {
         throw std::runtime_error(
             std::string("bad maps section size, must be a multiple of ") +
-            std::to_string(sizeof(ebpf_maps_section_record_windows)));
+            std::to_string(sizeof(ebpf_map_definition_t)));
     }
 
-    auto mapdefs = std::vector<ebpf_maps_section_record_windows>(
-        (ebpf_maps_section_record_windows*)data, (ebpf_maps_section_record_windows*)(data + size));
+    auto mapdefs =
+        std::vector<ebpf_map_definition_t>((ebpf_map_definition_t*)data, (ebpf_map_definition_t*)(data + size));
     for (auto s : mapdefs) {
         map_descriptors.emplace_back(EbpfMapDescriptor{
             .original_fd = create_map_windows(s.type, s.key_size, s.value_size, s.max_entries, options),
@@ -69,7 +69,7 @@ const ebpf_platform_t g_ebpf_platform_windows = {
     get_program_type_windows,
     get_helper_prototype_windows,
     is_helper_usable_windows,
-    sizeof(ebpf_maps_section_record_windows),
+    sizeof(ebpf_map_definition_t),
     parse_maps_section_windows,
     get_map_descriptor_windows,
     get_map_type_windows,

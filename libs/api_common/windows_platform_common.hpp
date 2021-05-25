@@ -5,6 +5,7 @@
 
 EbpfHelperPrototype
 get_helper_prototype_windows(unsigned int n);
+
 bool
 is_helper_usable_windows(unsigned int n);
 

@@ -1,5 +1,6 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
+
 #include "platform.hpp"
 
 // Array of eBPF helpers exposed by Windows, where the index is an integer
