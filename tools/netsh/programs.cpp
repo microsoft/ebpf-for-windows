@@ -146,7 +146,7 @@ handle_ebpf_add_program(
     ebpf_api_close_handle(_program_handle);
 
     const char* error_message = nullptr;
-    uint32_t count_of_map_handles = sizeof(_map_handles);
+    uint32_t count_of_map_handles = _countof(_map_handles);
     status = ebpf_api_load_program(
         filename.c_str(),
         section.c_str(),
