@@ -87,7 +87,7 @@ number of extensions.
 ## Context Agility
 
 The threat profile being faced by computer systems is continually evolving and
-as result it is likely that the mitigations required will likewise evolve. To
+as a result it is likely that the mitigations required will likewise evolve. To
 this end, the project has invested heavily in the ability to run code within in
 a wide variety of contexts, ranging from operating in kernel mode, to running
 within user mode processes or in isolate enclaves (either hardware backed or
