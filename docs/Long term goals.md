@@ -53,7 +53,7 @@ Developing new scenarios and use cases should be achieved without the need to
 update the core eBPF for Windows project and likewise updates to the core eBPF
 for Windows project should not break extensions.
 
-The project envisions two main scenarios for extensions, observability of system
+The project envisions two main scenarios for extensions: observability of system
 state and modification of system behavior.
 
 ### Observability
