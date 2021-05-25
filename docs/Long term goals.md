@@ -27,8 +27,8 @@ perform any operations.
 
 ## Compatibility
 
-eBPF as a technology is available on other platforms (mainly Linux) and our
-customers have an expectation that eBPF programs written for Linux should be
+eBPF as a technology is available on other platforms (mainly Linux) and
+users have an expectation that eBPF programs written for Linux should be
 portable to Windows. While binary compatibility of the compiled eBPF programs is
 likely not possible, it should be relatively straight forward to port programs
 from Linux to Windows eBPF. The main obstacle to this is around helper APIs and
