@@ -624,7 +624,7 @@ extern "C"
      */
     ebpf_result_t
     ebpf_program_information_decode(
-        ebpf_program_information_t** program_information, const uint8_t* buffer, unsigned long buffer_size);
+        ebpf_program_information_t** program_information, const uint8_t* buffer, size_t buffer_size);
 
     /**
      * @brief Check if the user associated with the current thread is granted
