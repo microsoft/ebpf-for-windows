@@ -5,17 +5,7 @@
 
 #pragma once
 
-// #include "ebpf_api.h"
-// #include "ebpf_execution_context.h"
-// #undef VOID
-// #include "ebpf_helpers.h"
 #include "platform.hpp"
-/*
-extern "C"
-{
-#include "ubpf.h"
-}
-*/
 
 EbpfMapDescriptor&
 get_map_descriptor(int map_fd);

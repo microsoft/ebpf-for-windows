@@ -8,21 +8,14 @@
 #include <map>
 #include <stdexcept>
 #include "ebpf_api.h"
-// #include "api_internal.h"
 #include "ebpf_execution_context.h"
 #undef VOID
 #include "ebpf_helpers.h"
-// #include "ebpf_protocol.h"
-// #include "ebpf_platform.h"
-// #include "pch.h"
-// #include "platform.h"
 #include "platform.hpp"
 extern "C"
 {
 #include "ubpf.h"
 }
-// #include "Verifier.h"
-// #include "spec_type_descriptors.hpp"
 
 typedef struct _map_cache
 {
