@@ -29,6 +29,9 @@ Coding Conventions
 * **DON'T** use the same C function name with two different prototypes across
   the project where possible.
 
+* **DON'T** use commented-out code, or code in an `#if 0` or equivalent.  Make sure all code is actually
+  built.
+
 Header Files
 ------------
 
@@ -40,7 +43,7 @@ Header Files
   in alphabetical order where possible.  This helps ensure there are not duplicate includes,
   and also helps ensure that headers are usable directly.
 
-* Use `#pragma once` in all header files, rather than using ifdefs to test for duplicate inclusion.
+* **DO** use `#pragma once` in all header files, rather than using ifdefs to test for duplicate inclusion.
 
 Style Guide
 -----------
