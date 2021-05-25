@@ -16,13 +16,16 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="ebpf_api.cpp">
+    <ClCompile Include="windows_helpers.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Verifier.cpp">
+    <ClCompile Include="windows_platform_common.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="windows_platform.cpp">
+    <ClCompile Include="api_common.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="map_descriptors.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -30,19 +33,16 @@
     <ClInclude Include="pch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="platform.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="tlv.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Verifier.h">
+    <ClInclude Include="windows_platform_common.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="windows_platform.hpp">
+    <ClInclude Include="api_common.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="api_internal.h">
+    <ClInclude Include="map_descriptors.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

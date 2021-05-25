@@ -26,10 +26,7 @@ ebpf_rpc_verify_program(ebpf_program_verify_info* info, const char** logs, uint3
     unsigned long code;
     int result;
 
-    RpcTryExcept
-    {
-        result = (int)ebpf_verify_program(info, logs_size, logs);
-    }
+    RpcTryExcept { result = (int)ebpf_client_verify_program(info, logs_size, logs); }
     RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
     {
         code = RpcExceptionCode();
@@ -38,7 +35,7 @@ ebpf_rpc_verify_program(ebpf_program_verify_info* info, const char** logs, uint3
     }
     RpcEndExcept
 
-    printf("ebpf_rpc_verify_program: got return code %d from the server\n\n", result);
+        printf("ebpf_rpc_verify_program: got return code %d from the server\n\n", result);
 
     return result;
 }

@@ -29,7 +29,7 @@ initialize_rpc_server()
         goto Exit;
     }
 
-    status = RpcServerRegisterIf(ebpf_service_interface_v1_0_s_ifspec, nullptr, nullptr);
+    status = RpcServerRegisterIf(ebpf_server_ebpf_service_interface_v1_0_s_ifspec, nullptr, nullptr);
     if (status != RPC_S_OK) {
         goto Exit;
     }

@@ -12,7 +12,6 @@
 #include "ebpf_bind_program_data.h"
 #include "ebpf_platform.h"
 #include "ebpf_xdp_program_data.h"
-
 #pragma warning(push)
 #pragma warning(disable : 4100) // 'identifier' : unreferenced formal parameter
 #pragma warning(disable : 4244) // 'conversion' conversion from 'type1' to
@@ -21,61 +20,59 @@
 #include "ebpf_verifier.hpp"
 #pragma warning(pop)
 #include "platform.hpp"
-#include "tlv.h"
-#include "windows_platform.hpp"
 #include "Verifier.h"
+#include "tlv.h"
+#include "windows_platform_service.hpp"
 
-int
-load_byte_code(
-    const char* filename,
-    const char* sectionname,
-    ebpf_verifier_options_t* verifier_options,
-    uint8_t* byte_code,
-    size_t* byte_code_size,
-    ebpf_program_type_t* program_type,
-    const char** error_message)
+static int
+analyze(raw_program& raw_prog, const char** error_message, uint32_t* error_message_size = nullptr)
 {
-    try {
-
-        const ebpf_platform_t* platform = &g_ebpf_platform_windows;
-
-        auto raw_progs = read_elf(filename, sectionname, verifier_options, platform);
-        if (raw_progs.size() != 1) {
-            return 1; // Error
-        }
-        raw_program raw_prog = raw_progs.back();
-
-        // Sanity check that we have a program type GUID.
-        if (raw_prog.info.type.platform_specific_data == 0) {
-            return 1; // Error
-        }
-
-        // copy out the bytecode for the jitter
-        size_t ebpf_bytes = raw_prog.prog.size() * sizeof(ebpf_inst);
-        int i = 0;
-        for (ebpf_inst inst : raw_prog.prog) {
-            char* buf = (char*)&inst;
-            for (int j = 0; j < sizeof(ebpf_inst) && i < ebpf_bytes; i++, j++) {
-                byte_code[i] = buf[j];
-            }
-        }
-
-        *byte_code_size = ebpf_bytes;
-        *program_type = *(const GUID*)raw_prog.info.type.platform_specific_data;
-    } catch (std::runtime_error& err) {
-        auto message = err.what();
-        auto message_length = strlen(message) + 1;
-        char* error = reinterpret_cast<char*>(calloc(message_length + 1, sizeof(char)));
-        if (error) {
-            strcpy_s(error, message_length, message);
-        }
-        *error_message = error;
-        return ERROR_INVALID_PARAMETER;
+    std::variant<InstructionSeq, std::string> prog_or_error = unmarshal(raw_prog);
+    if (!std::holds_alternative<InstructionSeq>(prog_or_error)) {
+        *error_message = allocate_error_string(std::get<std::string>(prog_or_error), error_message_size);
+        return 1; // Error;
     }
+    InstructionSeq& prog = std::get<InstructionSeq>(prog_or_error);
 
-    return 0;
+    // First try optimized for the success case.
+    ebpf_verifier_options_t options = ebpf_verifier_default_options;
+    options.check_termination = true;
+    bool res = ebpf_verify_program(std::cout, prog, raw_prog.info, &options);
+    if (!res) {
+        // On failure, retry to get the more detailed error message.
+        std::ostringstream oss;
+        options.no_simplify = true;
+        options.print_failures = true;
+        (void)ebpf_verify_program(oss, prog, raw_prog.info, &options);
+
+        *error_message = allocate_error_string(oss.str(), error_message_size);
+        return 1; // Error;
+    }
+    return 0; // Success.
 }
 
+int
+verify_byte_code(
+    const GUID* program_type,
+    const uint8_t* byte_code,
+    size_t byte_code_size,
+    const char** error_message,
+    uint32_t* error_message_size)
+{
+    const ebpf_platform_t* platform = &g_ebpf_platform_windows_service;
+    std::vector<ebpf_inst> instructions{(ebpf_inst*)byte_code,
+                                        (ebpf_inst*)byte_code + byte_code_size / sizeof(ebpf_inst)};
+    program_info info{platform};
+    std::string section;
+    std::string file;
+    info.type = get_program_type_windows(*program_type);
+
+    raw_program raw_prog{file, section, instructions, info};
+
+    return analyze(raw_prog, error_message, error_message_size);
+}
+
+/*
 uint32_t
 ebpf_api_elf_enumerate_sections(
     const char* file,
@@ -125,7 +122,9 @@ ebpf_api_elf_enumerate_sections(
 
     return 0;
 }
+*/
 
+/*
 uint32_t
 ebpf_api_elf_disassemble_section(
     const char* file, const char* section, const char** disassembly, const char** error_message)
@@ -157,7 +156,9 @@ ebpf_api_elf_disassemble_section(
     }
     return 0;
 }
+*/
 
+/*
 uint32_t
 ebpf_api_elf_verify_section(
     const char* file, const char* section, bool verbose, const char** report, const char** error_message)
@@ -231,9 +232,12 @@ ebpf_api_elf_verify_section(
 
     return 0;
 }
+*/
 
+/*
 void
 ebpf_api_elf_free(const tlv_type_length_value_t* data)
 {
     free(const_cast<tlv_type_length_value_t*>(data));
 }
+*/

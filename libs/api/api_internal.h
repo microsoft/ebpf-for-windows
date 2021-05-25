@@ -19,12 +19,3 @@ ebpf_get_program_byte_code(
     EbpfMapDescriptor** map_descriptors,
     int* map_descriptors_count,
     const char** error_message);
-
-void
-cache_map_file_descriptors(const EbpfMapDescriptor* map_descriptors, uint32_t map_descriptors_count);
-
-void
-cache_map_file_descriptor(uint32_t type, uint32_t key_size, uint32_t value_size, int fd);
-
-void
-clear_map_descriptors(void);
