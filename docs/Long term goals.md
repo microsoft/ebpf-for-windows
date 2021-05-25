@@ -31,7 +31,7 @@ eBPF as a technology is available on other platforms (mainly Linux) and
 users have an expectation that eBPF programs written for Linux should be
 portable to Windows. While binary compatibility of the compiled eBPF programs is
 likely not possible, it should be relatively straightforward to port programs
-from Linux to Windows eBPF. The main obstacle to this is around helper APIs and
+from Linux to Windows. The main obstacle to this is around helper APIs and
 the type definitions that are subject to incompatible license agreements.
 
 The project aims to provide interface compatible APIs for loading and managing
