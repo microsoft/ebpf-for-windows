@@ -90,7 +90,7 @@ The threat profile being faced by computer systems is continually evolving and
 as a result it is likely that the mitigations required will likewise evolve. To
 this end, the project has invested heavily in the ability to run code within
 a wide variety of contexts, ranging from operating in kernel mode, to running
-within user mode processes or in isolate enclaves (either hardware backed or
+within user mode processes or in isolated enclaves (either hardware backed or
 virtualized). This primarily impacts the execution context, which is designed to
 have a bounded set of dependencies that can be satisfied in a wide variety of
 contexts.
