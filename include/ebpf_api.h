@@ -58,6 +58,9 @@ extern "C"
      * @param[in] execution_type How this program should be run in the execution
      * context.
      * @param[out] handle Handle to eBPF program.
+     * @param[in,out] count_of_map_handles On input, contains the maximum number of map_handles to return.
+     * On output, contains the actual number of map_handles returned.
+     * @param[out] map_handles Array of map handles to be filled in.
      * @param[out] error_message Error message describing what failed.
      */
     uint32_t

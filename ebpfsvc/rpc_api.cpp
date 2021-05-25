@@ -21,7 +21,7 @@ ebpf_result_t
 ebpf_server_verify_and_jit_program(
     /* [ref][in] */ ebpf_program_load_info* info,
     /* [ref][out] */ uint32_t* logs_size,
-    /* [ref][size_is][size_is][out] */ const char** logs)
+    /* [ref][size_is][size_is][out] */ char** logs)
 {
     UNREFERENCED_PARAMETER(info);
     UNREFERENCED_PARAMETER(logs_size);
@@ -34,13 +34,17 @@ ebpf_result_t
 ebpf_server_verify_program(
     /* [ref][in] */ ebpf_program_verify_info* info,
     /* [out] */ uint32_t* logs_size,
-    /* [ref][size_is][size_is][out] */ const char** logs)
+    /* [ref][size_is][size_is][out] */ char** logs)
 {
     if (info->byte_code_size == 0) {
         return EBPF_INVALID_ARGUMENT;
     }
 
     std::scoped_lock lock(_mutex);
+
+    // MIDL generates warnings if any [out] param uses 'const',
+    // since RPC marshaling will copy the data anyway.  So we
+    // can safely cast the 'logs' param below.
 
     return ebpf_verify_program(
         reinterpret_cast<const GUID*>(&info->program_type),
@@ -49,6 +53,6 @@ ebpf_server_verify_program(
         reinterpret_cast<EbpfMapDescriptor*>(info->map_descriptors),
         info->byte_code_size,
         info->byte_code,
-        logs,
+        const_cast<const char**>(logs),
         logs_size);
 }

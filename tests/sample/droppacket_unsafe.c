@@ -33,6 +33,5 @@ DropPacket(xdp_md_t* ctx)
             rc = XDP_DROP;
         }
     }
-Done:
     return rc;
 }
