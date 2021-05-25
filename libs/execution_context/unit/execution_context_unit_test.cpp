@@ -38,7 +38,7 @@ test_crud_operations(ebpf_map_type_t map_type)
     _ebpf_core_initializer core;
 
     ebpf_map_definition_t map_definition{
-        sizeof(ebpf_map_definition_t), map_type, sizeof(uint32_t), sizeof(uint64_t), 10};
+        sizeof(ebpf_map_definition_t), (uint32_t)map_type, sizeof(uint32_t), sizeof(uint64_t), 10};
     map_ptr map;
     {
         ebpf_map_t* local_map;

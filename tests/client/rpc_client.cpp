@@ -26,7 +26,7 @@ ebpf_rpc_verify_program(ebpf_program_verify_info* info, const char** logs, uint3
     unsigned long code;
     int result;
 
-    RpcTryExcept { result = (int)ebpf_client_verify_program(info, logs_size, logs); }
+    RpcTryExcept { result = (int)ebpf_client_verify_program(info, logs_size, const_cast<char**>(logs)); }
     RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
     {
         code = RpcExceptionCode();

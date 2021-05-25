@@ -491,7 +491,7 @@ ebpf_api_load_program(
     byte_code.resize(byte_code_size);
     result = resolve_maps_in_byte_code(program_handle, byte_code);
     if (result != ERROR_SUCCESS) {
-        return result;
+        goto Done;
     }
 
     result = resolve_ec_function(EBPF_EC_FUNCTION_LOG, &log_function_address);
