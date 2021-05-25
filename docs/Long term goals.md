@@ -48,7 +48,7 @@ A core aspiration of this project is for there to be an active ecosystem built
 on top of eBPF for Windows. eBPF for Windows is not intended to offer a complete
 set of helper functions and attach points to meet all customer needs by itself,
 but rather to have an organically grown set of extensions that provide helper
-functionality and attach point owned and maintained by the community at large.
+functionality and attach points owned and maintained by the community at large.
 Developing new scenarios and use cases should be achieved with out the need to
 update the core eBPF for Windows project and likewise updates to the core eBPF
 for Windows project should not break extensions.
