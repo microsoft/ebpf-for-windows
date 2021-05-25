@@ -120,11 +120,17 @@
     <ProjectReference Include="..\..\libs\api\api.vcxproj">
       <Project>{c8bf60c3-40a9-43ad-891a-8aa34f1c3a68}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\..\libs\api_common\api_common.vcxproj">
+      <Project>{e79382b2-fed9-4cd4-9498-dbddd6c46c91}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\..\libs\execution_context\user\execution_context_user.vcxproj">
       <Project>{18127b0d-8381-4afe-9a3a-cf53241992d3}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\libs\platform\user\platform_user.vcxproj">
       <Project>{c26cb6a9-158c-4a9e-a243-755ddd98e5fe}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\libs\service\service.vcxproj">
+      <Project>{af85c549-57cc-40a5-bdfc-dcf1998de80f}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\libs\ubpf\user\ubpf_user.vcxproj">
       <Project>{245f0ec7-1ebc-4d68-8b1f-f758ea9196ae}</Project>

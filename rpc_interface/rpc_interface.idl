@@ -61,12 +61,12 @@ import "wtypes.idl";
             [ size_is(byte_code_size), ref ] uint8_t* byte_code;
         } ebpf_program_verify_info;
 
-        ebpf_result_t ebpf_verify_and_jit_program(
+        ebpf_result_t verify_and_jit_program(
             [ in, ref ] ebpf_program_load_info * info,
             [ out, ref ] uint32_t * logs_size,
             [ out, size_is(, *logs_size), ref ] const char** logs);
 
-        ebpf_result_t ebpf_verify_program(
+        ebpf_result_t verify_program(
             [ in, ref ] ebpf_program_verify_info * info,
             [out] uint32_t * logs_size,
             [ out, size_is(, *logs_size), ref ] const char** logs);

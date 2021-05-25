@@ -1,7 +1,5 @@
-/*
- *  Copyright (c) Microsoft Corporation
- *  SPDX-License-Identifier: MIT
- */
+// Copyright (c) Microsoft Corporation
+// SPDX-License-Identifier: MIT
 
 #include "rpc_util.h"
 #include "svc_common.h"

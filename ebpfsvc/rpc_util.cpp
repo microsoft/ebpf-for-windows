@@ -1,7 +1,5 @@
-/*
- *  Copyright (c) Microsoft Corporation
- *  SPDX-License-Identifier: MIT
- */
+// Copyright (c) Microsoft Corporation
+// SPDX-License-Identifier: MIT
 
 #include <malloc.h>
 #include "rpc_interface_s.c"
@@ -29,7 +27,7 @@ initialize_rpc_server()
         goto Exit;
     }
 
-    status = RpcServerRegisterIf(ebpf_service_interface_v1_0_s_ifspec, nullptr, nullptr);
+    status = RpcServerRegisterIf(ebpf_server_ebpf_service_interface_v1_0_s_ifspec, nullptr, nullptr);
     if (status != RPC_S_OK) {
         goto Exit;
     }

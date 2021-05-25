@@ -9,113 +9,16 @@
                                 // 'type2', possible loss of data
 #include "crab_verifier.hpp"
 #pragma warning(pop)
+#include "api_common.hpp"
 #include "ebpf_api.h"
 #undef VOID
 #include "ebpf_helpers.h"
 #include "helpers.hpp"
+#include "map_descriptors.hpp"
 #include "platform.hpp"
 #include "spec_type_descriptors.hpp"
 #include "windows_platform.hpp"
-
-#define PTYPE(name, descr, native_type, prefixes) \
-    {                                             \
-        name, descr, native_type, prefixes        \
-    }
-
-#define PTYPE_PRIVILEGED(name, descr, native_type, prefixes) \
-    {                                                        \
-        name, descr, native_type, prefixes, true             \
-    }
-
-// Allow for comma as a separator between multiple prefixes, to make
-// the preprocessor treat a prefix list as one macro argument.
-#define COMMA ,
-
-const EbpfContextDescriptor g_xdp_context_descriptor = {
-    24, // Size of ctx struct.
-    0,  // Offset into ctx struct of pointer to data, or -1 if none.
-    8,  // Offset into ctx struct of pointer to end of data, or -1 if none.
-    16, // Offset into ctx struct of pointer to metadata, or -1 if none.
-};
-
-const EbpfProgramType windows_xdp_program_type =
-    PTYPE("xdp", &g_xdp_context_descriptor, (uint64_t)&EBPF_PROGRAM_TYPE_XDP, {"xdp"});
-
-const EbpfContextDescriptor g_bind_context_descriptor = {
-    43, // Size of ctx struct.
-    0,  // Offset into ctx struct of pointer to data, or -1 if none.
-    8,  // Offset into ctx struct of pointer to end of data, or -1 if none.
-    -1, // Offset into ctx struct of pointer to metadata, or -1 if none.
-};
-
-const EbpfProgramType windows_bind_program_type =
-    PTYPE("bind", &g_bind_context_descriptor, (uint64_t)&EBPF_PROGRAM_TYPE_BIND, {"bind"});
-
-const std::vector<EbpfProgramType> windows_program_types = {
-    PTYPE("unspecified", {0}, 0, {}),
-    windows_xdp_program_type,
-    windows_bind_program_type,
-};
-
-EbpfProgramType
-get_program_type_windows(const GUID& program_type)
-{
-    // TODO: (Issue #205) Make an IOCTL call to fetch the program context
-    //       information and then fill the EbpfProgramType struct.
-    for (const EbpfProgramType t : windows_program_types) {
-        if (t.platform_specific_data != 0) {
-            if (IsEqualGUID(*(GUID*)t.platform_specific_data, program_type)) {
-                return t;
-            }
-        }
-    }
-
-    return windows_xdp_program_type;
-}
-
-static EbpfProgramType
-get_program_type_windows(const std::string& section, const std::string&)
-{
-    EbpfProgramType type{};
-
-    for (const EbpfProgramType t : windows_program_types) {
-        for (const std::string prefix : t.section_prefixes) {
-            if (section.find(prefix) == 0)
-                return t;
-        }
-    }
-
-    return windows_xdp_program_type;
-}
-
-#define EBPF_MAP_TYPE(x) EBPF_MAP_TYPE_##x, #x
-
-static const EbpfMapType windows_map_types[] = {
-    {EBPF_MAP_TYPE(UNSPECIFIED)},
-    {EBPF_MAP_TYPE(HASH)},
-    {EBPF_MAP_TYPE(ARRAY), true},
-};
-
-EbpfMapType
-get_map_type_windows(uint32_t platform_specific_type)
-{
-    uint32_t index = platform_specific_type;
-    if ((index == 0) || (index >= sizeof(windows_map_types) / sizeof(windows_map_types[0]))) {
-        return windows_map_types[0];
-    }
-    EbpfMapType type = windows_map_types[index];
-    assert(type.platform_specific_type == platform_specific_type);
-    return type;
-}
-
-struct ebpf_maps_section_record_windows
-{
-    uint32_t size;
-    uint32_t type;
-    uint32_t key_size;
-    uint32_t value_size;
-    uint32_t max_entries;
-};
+#include "windows_platform_common.hpp"
 
 int
 create_map_function(
@@ -144,14 +47,14 @@ parse_maps_section_windows(
     const struct ebpf_platform_t*,
     ebpf_verifier_options_t options)
 {
-    if (size % sizeof(ebpf_maps_section_record_windows) != 0) {
+    if (size % sizeof(ebpf_map_definition_t) != 0) {
         throw std::runtime_error(
             std::string("bad maps section size, must be a multiple of ") +
-            std::to_string(sizeof(ebpf_maps_section_record_windows)));
+            std::to_string(sizeof(ebpf_map_definition_t)));
     }
 
-    auto mapdefs = std::vector<ebpf_maps_section_record_windows>(
-        (ebpf_maps_section_record_windows*)data, (ebpf_maps_section_record_windows*)(data + size));
+    auto mapdefs =
+        std::vector<ebpf_map_definition_t>((ebpf_map_definition_t*)data, (ebpf_map_definition_t*)(data + size));
     for (auto s : mapdefs) {
         map_descriptors.emplace_back(EbpfMapDescriptor{
             .original_fd = create_map_windows(s.type, s.key_size, s.value_size, s.max_entries, options),
@@ -162,26 +65,11 @@ parse_maps_section_windows(
     }
 }
 
-EbpfMapDescriptor&
-get_map_descriptor_internal(int map_fd);
-
-EbpfMapDescriptor&
-get_map_descriptor_windows(int map_fd)
-{
-    // First check if we already have the map descriptor cached.
-    EbpfMapDescriptor* map = find_map_descriptor(map_fd);
-    if (map != nullptr) {
-        return *map;
-    }
-
-    return get_map_descriptor_internal(map_fd);
-}
-
 const ebpf_platform_t g_ebpf_platform_windows = {
     get_program_type_windows,
     get_helper_prototype_windows,
     is_helper_usable_windows,
-    sizeof(ebpf_maps_section_record_windows),
+    sizeof(ebpf_map_definition_t),
     parse_maps_section_windows,
     get_map_descriptor_windows,
     get_map_type_windows,
