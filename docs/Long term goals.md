@@ -93,4 +93,4 @@ a wide variety of contexts, ranging from operating in kernel mode, to running
 within user mode processes or in isolated enclaves (either hardware backed or
 virtualized). This primarily impacts the execution context, which is designed to
 have a bounded set of dependencies that can be satisfied in a wide variety of
-contexts.
+contexts, but also applies to other components such as the verifier and JIT compiler.
