@@ -29,6 +29,9 @@ Coding Conventions
 * **DON'T** use the same C function name with two different prototypes across
   the project where possible.
 
+* **DON'T** use commented-out code, or code in an `#if 0` or equivalent.  Make sure all code is actually
+  built.
+
 Header Files
 ------------
 
