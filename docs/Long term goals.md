@@ -25,7 +25,7 @@ limits on execution time, memory accessed and kernel functionality that can be
 invoked. Within these limits eBPF programs should have the flexibility to
 perform any operations.
 
-## Compatibly
+## Compatibility
 
 eBPF as a technology is available on other platforms (mainly Linux) and our
 customers have an expectation that eBPF programs written for Linux should be
