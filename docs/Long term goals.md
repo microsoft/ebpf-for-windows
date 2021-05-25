@@ -20,7 +20,7 @@ Users should be able to deploy and run eBPF programs on Windows when the
 system is configured for its most secure mode, whether that is a shielded VM,
 Hyper-Visor Code Integrity or other security mitigations.
 
-The BPF ISA and VM clearly define limits as to what an BPF program can do, with
+The BPF ISA and VM clearly define limits as to what an eBPF program can do, with
 limits on execution time, memory accessed and kernel functionality that can be
 invoked. Within these limits eBPF programs should have the flexibility to
 perform any operations.
