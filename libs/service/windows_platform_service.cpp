@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: MIT
 #include <cassert>
 #include <stdexcept>
-#include "api_internal.h"
 #include "api_common.hpp"
+#include "api_internal.h"
 #pragma warning(push)
 #pragma warning(disable : 4100) // 'identifier' : unreferenced formal parameter
 #pragma warning(disable : 4244) // 'conversion' conversion from 'type1' to
@@ -16,8 +16,8 @@
 #include "helpers.hpp"
 #include "platform.hpp"
 #include "spec_type_descriptors.hpp"
-#include "windows_platform_service.hpp"
 #include "windows_platform_common.hpp"
+#include "windows_platform_service.hpp"
 
 const ebpf_platform_t g_ebpf_platform_windows_service = {
     get_program_type_windows,

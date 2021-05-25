@@ -17,16 +17,16 @@
 const char*
 allocate_error_string(const std::string& str, uint32_t* length = nullptr)
 {
-    char* retval;
+    char* error_message;
     size_t error_message_length = str.size() + 1;
-    retval = (char*)malloc(error_message_length);
-    if (retval != nullptr) {
-        strcpy_s(retval, error_message_length, str.c_str());
+    error_message = (char*)malloc(error_message_length);
+    if (error_message != nullptr) {
+        strcpy_s(error_message, error_message_length, str.c_str());
         if (length != nullptr) {
             *length = (uint32_t)error_message_length;
         }
     }
-    return retval; // Error;
+    return error_message; // Error;
 }
 
 std::vector<uint8_t>

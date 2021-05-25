@@ -5,14 +5,8 @@
 
 #pragma once
 
-#include <map>
-#include <stdexcept>
-#include "ebpf_api.h"
 #include "ebpf_execution_context.h"
-extern "C"
-{
-#include "ubpf.h"
-}
+#include "ebpf_result.h"
 
 ebpf_result_t
 ebpf_verify_program(

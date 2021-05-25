@@ -7,7 +7,6 @@
 #include "config.hpp"
 #undef VOID
 #include "platform.hpp"
-#define VOID void
 
 int
 verify_byte_code(

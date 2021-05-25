@@ -48,7 +48,7 @@ int
 cache_map_handle(uint64_t handle, uint32_t type, uint32_t key_size, uint32_t value_size);
 
 size_t
-get_map_descriptor_size();
+get_map_descriptor_size(void);
 
 uintptr_t
 get_map_handle(int map_fd);

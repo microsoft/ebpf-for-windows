@@ -6,10 +6,10 @@
 #include <vector>
 #include "api_common.hpp"
 
-// TODO: this duplicates global_program_info.map_descriptors in ebpfverifier.lib
-// https://github.com/vbpf/ebpf-verifier/issues/113 tracks getting rid of global
-// state in that lib, but won't notice this global state which has the same
-// problem.
+// TODO: This needs to use thread local storage instead of global map
+// descriptors for storing state. The thread-local storage has been fixed
+// in verifier code as a fix for the following issue:
+// https://github.com/vbpf/ebpf-verifier/issues/113
 static std::vector<map_cache_t> _map_file_descriptors;
 
 void

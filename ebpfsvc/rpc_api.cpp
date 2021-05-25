@@ -8,9 +8,9 @@
 #include <stdio.h>
 #include <vector>
 #include "api_internal.h"
+#include "api_service.h"
 #include "ebpf_windows.h"
 #include "rpc_interface_h.h"
-#include "api_service.h"
 #include "svc_common.h"
 #include "Verifier.h"
 
