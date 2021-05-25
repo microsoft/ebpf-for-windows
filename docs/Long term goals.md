@@ -39,7 +39,7 @@ eBPF programs, while also providing extended APIs (hooks and related helpers) fo
 present in other platforms.
 
 Given the fundamental differences between Linux and Windows, attach points are
-unlikely to be the same as those present in Linux, but a best effort should be
+unlikely to be identical to those present in Linux, but a best effort should be
 made to offer similar functionality where it makes sense.
 
 ## Extensibility
