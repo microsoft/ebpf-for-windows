@@ -167,7 +167,7 @@ extern "C"
     ebpf_protect_memory(const ebpf_memory_descriptor_t* memory_descriptor, ebpf_page_protection_t protection);
 
     /**
-     * @brief Given an ebpf_memory_descriptor_t allocate via ebpf_map_memory
+     * @brief Given an ebpf_memory_descriptor_t allocated via ebpf_map_memory
      * obtain the base virtual address.
      *
      * @param[in] memory_descriptor Pointer to an ebpf_memory_descriptor_t
