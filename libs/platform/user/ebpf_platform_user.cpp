@@ -160,13 +160,13 @@ void
 ebpf_unmap_memory(ebpf_memory_descriptor_t* memory_descriptor)
 {
     if (memory_descriptor) {
-        VirtualFree(memory_descriptor->base, memory_descriptor->length, MEM_RELEASE);
+        VirtualFree(memory_descriptor->base, 0, MEM_RELEASE);
         free(memory_descriptor);
     }
 }
 
 ebpf_result_t
-ebpf_protect_memory(ebpf_memory_descriptor_t* memory_descriptor, ebpf_page_protection_t protection)
+ebpf_protect_memory(const ebpf_memory_descriptor_t* memory_descriptor, ebpf_page_protection_t protection)
 {
     ULONG mm_protection_state = 0;
     ULONG old_mm_protection_state = 0;

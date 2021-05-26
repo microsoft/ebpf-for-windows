@@ -137,9 +137,9 @@ extern "C"
      * @brief Allocate pages from physical memory and create a mapping into the
      * system address space.
      *
-     * @param length Size of memory to allocate (internally this gets rounded
+     * @param[in] length Size of memory to allocate (internally this gets rounded
      * up to a page boundary).
-     * @return Pointer to a ebpf_memory_descriptor_t on success, NULL on failure.
+     * @return Pointer to an ebpf_memory_descriptor_t on success, NULL on failure.
      */
     ebpf_memory_descriptor_t*
     ebpf_map_memory(size_t length);
@@ -147,7 +147,7 @@ extern "C"
     /**
      * @brief Release physical memory previously allocated via ebpf_map_memory.
      *
-     * @param memory_descriptor Pointer to ebpf_memory_descriptor_t describing
+     * @param[in] memory_descriptor Pointer to ebpf_memory_descriptor_t describing
      * allocated pages.
      */
     void
@@ -157,22 +157,22 @@ extern "C"
      * @brief Change the page protection on memory allocated via
      * ebpf_map_memory.
      *
-     * @param memory_descriptor Pointer to ebpf_memory_descriptor_t describing
-     * allocated pages.
-     * @param protection The new page protection to apply.
+     * @param[in] memory_descriptor Pointer to an ebpf_memory_descriptor_t
+     * describing allocated pages.
+     * @param[in] protection The new page protection to apply.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_INVALID_ARGUMENT An invalid argument was supplied.
      */
     ebpf_result_t
-    ebpf_protect_memory(ebpf_memory_descriptor_t* memory_descriptor, ebpf_page_protection_t protection);
+    ebpf_protect_memory(const ebpf_memory_descriptor_t* memory_descriptor, ebpf_page_protection_t protection);
 
     /**
-     * @brief Given a ebpf_memory_descriptor_t allocate via ebpf_map_memory
+     * @brief Given an ebpf_memory_descriptor_t allocate via ebpf_map_memory
      * obtain the base virtual address.
      *
-     * @param memory_descriptor Pointer to ebpf_memory_descriptor_t describing
-     * allocated pages.
-     * @return void* Base virtual address of pages that have been allocated.
+     * @param[in] memory_descriptor Pointer to an ebpf_memory_descriptor_t
+     * describing allocated pages.
+     * @return Base virtual address of pages that have been allocated.
      */
     void*
     ebpf_memory_descriptor_get_base_address(ebpf_memory_descriptor_t* memory_descriptor);

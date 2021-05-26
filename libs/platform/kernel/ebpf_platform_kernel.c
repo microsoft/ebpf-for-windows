@@ -72,7 +72,7 @@ ebpf_unmap_memory(ebpf_memory_descriptor_t* memory_descriptor)
 }
 
 ebpf_result_t
-ebpf_protect_memory(ebpf_memory_descriptor_t* memory_descriptor, ebpf_page_protection_t protection)
+ebpf_protect_memory(const ebpf_memory_descriptor_t* memory_descriptor, ebpf_page_protection_t protection)
 {
     NTSTATUS status;
     ULONG mm_protection_state = 0;
