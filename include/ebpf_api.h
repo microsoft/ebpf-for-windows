@@ -160,6 +160,9 @@ extern "C"
     /**
      * @brief Query information about an eBPF program.
      * @param[in] handle Handle to an eBPF program.
+     * @param[out] program_type On success, contains the program type.
+     * @param[out] file_name On success, contains the file name.
+     * @param[out] section_name On success, contains the section name.
      */
     uint32_t
     ebpf_api_program_query_information(
@@ -245,6 +248,7 @@ extern "C"
      * @brief Associate a name with an object handle.
      * @param[in] handle Handle to object.
      * @param[in] name Name to associate with handle.
+     * @param[in] name_length Length in bytes of the name.
      */
     uint32_t
     ebpf_api_pin_object(ebpf_handle_t handle, const uint8_t* name, uint32_t name_length);
@@ -252,6 +256,7 @@ extern "C"
     /**
      * @brief Dissociate a name with an object handle.
      * @param[in] name Name to dissociate.
+     * @param[in] name_length Length in bytes of the name.
      */
     uint32_t
     ebpf_api_unpin_object(const uint8_t* name, uint32_t name_length);
@@ -259,6 +264,8 @@ extern "C"
     /**
      * @brief Find a map given its associated name.
      * @param[in] name Name to find.
+     * @param[in] name_length Length in bytes of name to find.
+     * @param[out] handle Pointer to memory that contains the map handle on success.
      */
     uint32_t
     ebpf_api_get_pinned_map(const uint8_t* name, uint32_t name_length, ebpf_handle_t* handle);
