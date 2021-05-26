@@ -60,11 +60,25 @@ static volatile int64_t _ebpf_current_epoch = 1;
 static ebpf_timer_work_item_t* _ebpf_flush_timer = NULL;
 static volatile int32_t _ebpf_flush_timer_set = 0;
 
+typedef enum _ebpf_epoch_allocation_type
+{
+    EBPF_EPOCH_ALLOCATION_MEMORY,
+    EBPF_EPOCH_ALLOCATION_WORK_ITEM,
+} ebpf_epoch_allocation_type_t;
+
 typedef struct _ebpf_epoch_allocation_header
 {
     ebpf_list_entry_t list_entry;
     int64_t freed_epoch;
+    int64_t entry_type;
 } ebpf_epoch_allocation_header_t;
+
+typedef struct _ebpf_epoch_work_item
+{
+    ebpf_epoch_allocation_header_t header;
+    void* callback_context;
+    void (*callback)(void* context);
+} ebpf_epoch_work_item_t;
 
 static ebpf_lock_t _ebpf_epoch_free_list_lock = {0};
 static ebpf_list_entry_t _ebpf_epoch_free_list = {0};
@@ -269,6 +283,7 @@ ebpf_epoch_free(void* memory)
         return;
 
     header--;
+    header->entry_type = EBPF_EPOCH_ALLOCATION_MEMORY;
 
     // Items are inserted into the free list in increasing epoch order.
     ebpf_lock_lock(&_ebpf_epoch_free_list_lock, &lock_state);
@@ -304,8 +319,18 @@ ebpf_epoch_release_free_list(int64_t released_epoch)
     // Free all the expired items outside of the lock.
     while (!ebpf_list_is_empty(&free_list)) {
         entry = free_list.Flink;
+        header = CONTAINING_RECORD(entry, ebpf_epoch_allocation_header_t, list_entry);
         ebpf_list_remove_entry(entry);
-        ebpf_free(entry);
+        switch (header->entry_type) {
+        case EBPF_EPOCH_ALLOCATION_MEMORY:
+            ebpf_free(header);
+            break;
+        case EBPF_EPOCH_ALLOCATION_WORK_ITEM: {
+            ebpf_epoch_work_item_t* work_item = CONTAINING_RECORD(header, ebpf_epoch_work_item_t, header);
+            work_item->callback(work_item->callback_context);
+            break;
+        }
+        }
     }
 }
 
@@ -371,4 +396,41 @@ _ebpf_flush_worker(void* context)
         return;
     }
     ebpf_epoch_flush();
+}
+
+ebpf_epoch_work_item_t*
+ebpf_epoch_allocate_work_item(void* callback_context, void (*callback)(void* context))
+{
+    ebpf_epoch_work_item_t* work_item = ebpf_allocate(sizeof(ebpf_epoch_work_item_t), EBPF_MEMORY_NO_EXECUTE);
+    if (!work_item) {
+        return NULL;
+    }
+
+    work_item->callback = callback;
+    work_item->callback_context = callback_context;
+    work_item->header.entry_type = EBPF_EPOCH_ALLOCATION_WORK_ITEM;
+
+    return work_item;
+}
+
+void
+ebpf_epoch_schedule_work_item(ebpf_epoch_work_item_t* work_item)
+{
+    ebpf_lock_state_t lock_state;
+
+    // Items are inserted into the free list in increasing epoch order.
+    ebpf_lock_lock(&_ebpf_epoch_free_list_lock, &lock_state);
+    work_item->header.freed_epoch = ebpf_interlocked_increment_int64(&_ebpf_current_epoch) - 1;
+    ebpf_list_insert_tail(&_ebpf_epoch_free_list, &work_item->header.list_entry);
+    ebpf_lock_unlock(&_ebpf_epoch_free_list_lock, &lock_state);
+}
+
+void
+ebpf_epoch_free_work_item(ebpf_epoch_work_item_t* work_item)
+{
+    ebpf_lock_state_t lock_state;
+    ebpf_lock_lock(&_ebpf_epoch_free_list_lock, &lock_state);
+    ebpf_list_remove_entry(&work_item->header.list_entry);
+    ebpf_lock_unlock(&_ebpf_epoch_free_list_lock, &lock_state);
+    ebpf_free(work_item);
 }
