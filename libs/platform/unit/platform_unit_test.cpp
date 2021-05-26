@@ -59,14 +59,14 @@ TEST_CASE("pinning_test", "[pinning_test]")
 
     some_object_t an_object;
     some_object_t another_object;
-    some_object_t* some_object;
+    some_object_t* some_object = nullptr;
     ebpf_utf8_string_t foo = EBPF_UTF8_STRING_FROM_CONST_STRING("foo");
     ebpf_utf8_string_t bar = EBPF_UTF8_STRING_FROM_CONST_STRING("bar");
 
     ebpf_object_initialize(&an_object.object, EBPF_OBJECT_MAP, [](ebpf_object_t*) {});
     ebpf_object_initialize(&another_object.object, EBPF_OBJECT_MAP, [](ebpf_object_t*) {});
 
-    ebpf_pinning_table_t* pinning_table;
+    ebpf_pinning_table_t* pinning_table = nullptr;
     REQUIRE(ebpf_pinning_table_allocate(&pinning_table) == EBPF_SUCCESS);
 
     REQUIRE(ebpf_pinning_table_insert(pinning_table, &foo, &an_object.object) == EBPF_SUCCESS);
@@ -153,9 +153,9 @@ TEST_CASE("extension_test", "[extension_test]")
     const ebpf_extension_dispatch_table_t* returned_provider_dispatch_table;
     const ebpf_extension_data_t* returned_provider_data;
 
-    ebpf_extension_provider_t* provider_context;
-    ebpf_extension_client_t* client_context;
-    void* provider_binding_context;
+    ebpf_extension_provider_t* provider_context = nullptr;
+    ebpf_extension_client_t* client_context = nullptr;
+    void* provider_binding_context = nullptr;
 
     ebpf_guid_create(&interface_id);
 
@@ -237,14 +237,15 @@ TEST_CASE("program_type_info", "[program_type_info]")
          EBPF_RETURN_TYPE_PTR_TO_MAP_VALUE_OR_NULL,
          {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY}},
     };
-    ebpf_context_descriptor_t context_descriptor{sizeof(xdp_md_t),
-                                                 EBPF_OFFSET_OF(xdp_md_t, data),
-                                                 EBPF_OFFSET_OF(xdp_md_t, data_end),
-                                                 EBPF_OFFSET_OF(xdp_md_t, data_meta)};
+    ebpf_context_descriptor_t context_descriptor{
+        sizeof(xdp_md_t),
+        EBPF_OFFSET_OF(xdp_md_t, data),
+        EBPF_OFFSET_OF(xdp_md_t, data_end),
+        EBPF_OFFSET_OF(xdp_md_t, data_meta)};
     ebpf_program_type_descriptor_t program_type{"xdp", &context_descriptor};
     ebpf_program_information_t program_information{program_type, _countof(helper_functions), helper_functions};
     ebpf_program_information_t* new_program_information = nullptr;
-    uint8_t* buffer;
+    uint8_t* buffer = nullptr;
     unsigned long buffer_size;
     REQUIRE(ebpf_program_information_encode(&program_information, &buffer, &buffer_size) == EBPF_SUCCESS);
     REQUIRE(ebpf_program_information_decode(&new_program_information, buffer, buffer_size) == EBPF_SUCCESS);
@@ -297,4 +298,18 @@ TEST_CASE("access_check", "[access_check]")
     REQUIRE(ebpf_validate_security_descriptor(sd, sd_size) == EBPF_SUCCESS);
 
     REQUIRE((result = ebpf_access_check(sd, 1, &generic_mapping), LocalFree(sd), result == EBPF_ERROR_ACCESS_DENIED));
+}
+
+TEST_CASE("memory_map_test", "[memory_map_test]")
+{
+    ebpf_result_t result;
+    ebpf_memory_descriptor_t* memory_descriptor = nullptr;
+    REQUIRE((memory_descriptor = ebpf_map_memory(100)) != nullptr);
+    REQUIRE(
+        (result = ebpf_protect_memory(memory_descriptor, EBPF_PAGE_PROTECT_READ_WRITE),
+         result != EBPF_SUCCESS ? ebpf_unmap_memory(memory_descriptor) : (void)0,
+         result == EBPF_SUCCESS));
+    memset(ebpf_memory_descriptor_get_base_address(memory_descriptor), 0xCC, 100);
+    REQUIRE(ebpf_protect_memory(memory_descriptor, EBPF_PAGE_PROTECT_READ_ONLY) == EBPF_SUCCESS);
+    ebpf_unmap_memory(memory_descriptor);
 }

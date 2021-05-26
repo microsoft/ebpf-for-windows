@@ -131,21 +131,71 @@ ebpf_free(void* memory)
         free(memory);
     }
 }
-
-void*
-ebpf_map_memory(void* preferrred_base_address, size_t length, ebpf_page_protections_t protection)
+struct _ebpf_memory_descriptor
 {
-    return nullptr;
+    void* base;
+    size_t length;
+};
+typedef struct _ebpf_memory_descriptor ebpf_memory_descriptor_t;
+
+ebpf_memory_descriptor_t*
+ebpf_map_memory(size_t length)
+{
+    ebpf_memory_descriptor_t* descriptor = (ebpf_memory_descriptor_t*)malloc(sizeof(ebpf_memory_descriptor_t));
+    if (!descriptor) {
+        return nullptr;
+    }
+
+    descriptor->base = VirtualAlloc(0, length, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+    descriptor->length = length;
+
+    if (!descriptor->base) {
+        free(descriptor);
+        descriptor = nullptr;
+    }
+    return descriptor;
 }
 
 void
-ebpf_unmap_memory(void* base_address, size_t length)
-{}
+ebpf_unmap_memory(ebpf_memory_descriptor_t* memory_descriptor)
+{
+    if (memory_descriptor) {
+        VirtualFree(memory_descriptor->base, memory_descriptor->length, MEM_RELEASE);
+        free(memory_descriptor);
+    }
+}
 
 ebpf_result_t
-ebpf_protect_memory(void* base_address, size_t length, ebpf_page_protections_t protection)
+ebpf_protect_memory(ebpf_memory_descriptor_t* memory_descriptor, ebpf_page_protection_t protection)
 {
-    return ebpf_result_t();
+    ULONG mm_protection_state = 0;
+    ULONG old_mm_protection_state = 0;
+    switch (protection) {
+    case EBPF_PAGE_PROTECT_READ_ONLY:
+        mm_protection_state = PAGE_READONLY;
+        break;
+    case EBPF_PAGE_PROTECT_READ_WRITE:
+        mm_protection_state = PAGE_READWRITE;
+        break;
+    case EBPF_PAGE_PROTECT_READ_EXECUTE:
+        mm_protection_state = PAGE_EXECUTE_READ;
+        break;
+    default:
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    if (!VirtualProtect(
+            memory_descriptor->base, memory_descriptor->length, mm_protection_state, &old_mm_protection_state)) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    return EBPF_SUCCESS;
+}
+
+void*
+ebpf_memory_descriptor_get_base_address(ebpf_memory_descriptor_t* memory_descriptor)
+{
+    return memory_descriptor->base;
 }
 
 ebpf_result_t
