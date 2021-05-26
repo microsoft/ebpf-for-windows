@@ -8,6 +8,7 @@ EXPORTS
 	ebpf_api_initiate
 	ebpf_api_terminate
 	ebpf_api_load_program
+	ebpf_api_create_map
 	ebpf_api_free_string
 	ebpf_api_map_find_element
 	ebpf_api_map_update_element
@@ -25,3 +26,5 @@ EXPORTS
 	ebpf_api_program_query_information
 	ebpf_api_link_program
 	ebpf_api_close_handle
+	ebpf_api_get_pinned_map_info
+	ebpf_api_map_info_free

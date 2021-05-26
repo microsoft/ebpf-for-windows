@@ -21,9 +21,6 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="service_helper.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\ebpfapi\rpc_client.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -34,9 +31,6 @@
   <ItemGroup>
     <ClInclude Include="header.h">
       <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="service_helper.h">
-      <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\libs\api\rpc_client.h">
       <Filter>Header Files</Filter>

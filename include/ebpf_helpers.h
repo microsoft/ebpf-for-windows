@@ -4,24 +4,10 @@
 
 #include <stdint.h>
 
+#include "ebpf_structs.h"
+
 // This file contains APIs for global helpers that are
 // exposed for use by all eBPF programs.
-
-typedef struct _ebpf_map_definition
-{
-    uint32_t size;
-    uint32_t type;
-    uint32_t key_size;
-    uint32_t value_size;
-    uint32_t max_entries;
-} ebpf_map_definition_t;
-
-typedef enum _ebpf_map_type
-{
-    EBPF_MAP_TYPE_UNSPECIFIED = 0,
-    EBPF_MAP_TYPE_HASH = 1,
-    EBPF_MAP_TYPE_ARRAY = 2,
-} ebpf_map_type_t;
 
 typedef void* (*ebpf_map_lookup_element_t)(ebpf_map_definition_t* map, void* key);
 #define ebpf_map_lookup_element ((ebpf_map_lookup_element_t)1)

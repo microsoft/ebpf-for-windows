@@ -58,7 +58,7 @@ parse_maps_section_windows(
     for (auto s : mapdefs) {
         map_descriptors.emplace_back(EbpfMapDescriptor{
             .original_fd = create_map_windows(s.type, s.key_size, s.value_size, s.max_entries, options),
-            .type = s.type,
+            .type = (uint32_t)s.type,
             .key_size = s.key_size,
             .value_size = s.value_size,
         });

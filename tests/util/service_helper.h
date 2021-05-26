@@ -7,9 +7,9 @@
 class service_install_helper
 {
   public:
-    service_install_helper(std::wstring _service_name, std::wstring _binary_name)
-        : service_name(_service_name), binary_name(_binary_name), service_handle(nullptr), scm_handle(nullptr),
-          already_installed(false), initialized(false)
+    service_install_helper(std::wstring _service_name, std::wstring _binary_name, DWORD _service_type)
+        : service_name(_service_name), binary_name(_binary_name), service_type(_service_type), service_handle(nullptr),
+          scm_handle(nullptr), already_installed(false), initialized(false)
     {
         initialize();
     }
@@ -32,6 +32,8 @@ class service_install_helper
     std::wstring binary_name;
     SC_HANDLE service_handle;
     SC_HANDLE scm_handle;
+    DWORD service_type;
     bool already_installed;
     bool initialized;
 };
+

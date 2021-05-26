@@ -56,26 +56,49 @@ _ebpf_driver_io_device_control(
 inline NTSTATUS
 _ebpf_result_to_ntstatus(ebpf_result_t result)
 {
+    NTSTATUS status;
     switch (result) {
-    case EBPF_SUCCESS:
-        return STATUS_SUCCESS;
-    case EBPF_NO_MEMORY:
-        return STATUS_INSUFFICIENT_RESOURCES;
-    case EBPF_ERROR_NOT_FOUND:
-        return STATUS_NOT_FOUND;
-    case EBPF_INVALID_ARGUMENT:
-        return STATUS_INVALID_PARAMETER;
-    case EBPF_ERROR_BLOCKED_BY_POLICY:
-        return STATUS_CONTENT_BLOCKED;
-    case EBPF_ERROR_NO_MORE_KEYS:
-        return STATUS_NO_MORE_MATCHES;
-    case EBPF_ERROR_INVALID_HANDLE:
-        return STATUS_INVALID_HANDLE;
-    case EBPF_ERROR_NOT_SUPPORTED:
-        return STATUS_NOT_SUPPORTED;
-    default:
-        return STATUS_INVALID_PARAMETER;
+    case EBPF_SUCCESS: {
+        status = STATUS_SUCCESS;
+        break;
     }
+    case EBPF_NO_MEMORY: {
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        break;
+    }
+    case EBPF_ERROR_NOT_FOUND: {
+        status = STATUS_NOT_FOUND;
+        break;
+    }
+    case EBPF_INVALID_ARGUMENT: {
+        status = STATUS_INVALID_PARAMETER;
+        break;
+    }
+    case EBPF_ERROR_BLOCKED_BY_POLICY: {
+        status = STATUS_CONTENT_BLOCKED;
+        break;
+    }
+    case EBPF_ERROR_NO_MORE_KEYS: {
+        status = STATUS_NO_MORE_MATCHES;
+        break;
+    }
+    case EBPF_ERROR_INVALID_HANDLE: {
+        status = STATUS_INVALID_HANDLE;
+        break;
+    }
+    case EBPF_ERROR_NOT_SUPPORTED: {
+        status = STATUS_NOT_SUPPORTED;
+        break;
+    }
+    case EBPF_ERROR_INSUFFICIENT_BUFFER: {
+        status = STATUS_BUFFER_OVERFLOW;
+        break;
+    }
+    default:
+        status = STATUS_INVALID_PARAMETER;
+    }
+
+    return status;
 }
 
 static _Function_class_(EVT_WDF_DRIVER_UNLOAD) _IRQL_requires_same_
