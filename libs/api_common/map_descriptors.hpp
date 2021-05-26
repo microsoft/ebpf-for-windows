@@ -21,4 +21,4 @@ EbpfMapDescriptor&
 get_map_descriptor_at_index(int index);
 
 uintptr_t
-get_map_handle_at_index(int index);
+get_map_handle_at_index(size_t index);

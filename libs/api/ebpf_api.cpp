@@ -183,7 +183,7 @@ resolve_maps_in_byte_code(ebpf_handle_t program_handle, ebpf_code_buffer_t& byte
         // Collect set of instructions to patch with the value to replace.
         instruction_offsets_to_map_handles[index - 1] = imm;
 
-        // Collect set if map handles.
+        // Collect set of map handles.
         map_handles_to_map_addresses[imm] = 0;
     }
 
@@ -205,12 +205,12 @@ resolve_maps_in_byte_code(ebpf_handle_t program_handle, ebpf_code_buffer_t& byte
     request->program_handle = reinterpret_cast<uint64_t>(program_handle);
 
     size_t index = 0;
-    for (auto& mapping : map_handles_to_map_addresses) {
+    for (auto& [map_handle, map_address] : map_handles_to_map_addresses) {
 
-        if (mapping.first > get_map_descriptor_size()) {
+        if (map_handle > get_map_descriptor_size()) {
             return ERROR_INVALID_PARAMETER;
         }
-        request->map_handle[index++] = get_map_handle_at_index((int)mapping.first - 1);
+        request->map_handle[index++] = get_map_handle_at_index(map_handle - 1);
     }
 
     uint32_t result = invoke_ioctl(device_handle, request_buffer, reply_buffer);
@@ -219,19 +219,19 @@ resolve_maps_in_byte_code(ebpf_handle_t program_handle, ebpf_code_buffer_t& byte
     }
 
     index = 0;
-    for (auto& mapping : map_handles_to_map_addresses) {
-        mapping.second = reply->address[index++];
+    for (auto& [map_handle, map_address] : map_handles_to_map_addresses) {
+        map_address = reply->address[index++];
     }
 
-    for (auto& mapping : instruction_offsets_to_map_handles) {
-        ebpf_inst& first_instruction = instructions[mapping.first];
-        ebpf_inst& second_instruction = instructions[mapping.first + 1];
+    for (auto& [instruction_offset, map_handle] : instruction_offsets_to_map_handles) {
+        ebpf_inst& first_instruction = instructions[instruction_offset];
+        ebpf_inst& second_instruction = instructions[instruction_offset + 1];
 
         // Clear LD_MAP flag
         first_instruction.src = 0;
 
         // Replace handle with address
-        uint64_t new_imm = map_handles_to_map_addresses[mapping.second];
+        uint64_t new_imm = map_handles_to_map_addresses[map_handle];
         first_instruction.imm = static_cast<uint32_t>(new_imm);
         second_instruction.imm = static_cast<uint32_t>(new_imm >> 32);
     }
