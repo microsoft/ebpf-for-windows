@@ -39,6 +39,31 @@ ebpf_free(void* memory)
         ExFreePool(memory);
 }
 
+void*
+ebpf_map_memory(size_t length, ebpf_page_protections_t protection)
+{
+    MDL* memory_descriptor_list = NULL;
+    PHYSICAL_ADDRESS start_address;
+    PHYSICAL_ADDRESS end_address;
+    PHYSICAL_ADDRESS page_size;
+    start_address.QuadPart = 0;
+    end_address.QuadPart = -1;
+    page_size.QuadPart = PAGE_SIZE;
+    memory_descriptor_list =
+        MmAllocatePagesForMdlEx(start_address, end_address, page_size, length, MmCached, MM_ALLOCATE_FULLY_REQUIRED);
+    return MmGetSystemAddressForMdl(memory_descriptor_list);
+}
+
+void
+ebpf_unmap_memory(void* base_address, size_t length)
+{}
+
+ebpf_result_t
+ebpf_protect_memory(void* base_address, size_t length, ebpf_page_protections_t protection)
+{
+    return EBPF_ERROR_NOT_SUPPORTED;
+}
+
 // There isn't an official API to query this information from kernel.
 // Use NtQuerySystemInformation with struct + header from winternl.h.
 

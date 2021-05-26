@@ -132,6 +132,22 @@ ebpf_free(void* memory)
     }
 }
 
+void*
+ebpf_map_memory(void* preferrred_base_address, size_t length, ebpf_page_protections_t protection)
+{
+    return nullptr;
+}
+
+void
+ebpf_unmap_memory(void* base_address, size_t length)
+{}
+
+ebpf_result_t
+ebpf_protect_memory(void* base_address, size_t length, ebpf_page_protections_t protection)
+{
+    return ebpf_result_t();
+}
+
 ebpf_result_t
 ebpf_safe_size_t_multiply(size_t multiplicand, size_t multiplier, size_t* result)
 {

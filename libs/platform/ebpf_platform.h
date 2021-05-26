@@ -124,6 +124,22 @@ extern "C"
     void
     ebpf_free(void* memory);
 
+    typedef enum _ebpf_page_protections
+    {
+        EBPF_PAGE_PROTECT_READ = 1,
+        EBPF_PAGE_PROTECT_WRITE = 2,
+        EBPF_PAGE_PROTECT_EXECUTE = 4,
+    } ebpf_page_protections_t;
+
+    void*
+    ebpf_map_memory(size_t length, ebpf_page_protections_t protection);
+
+    void
+    ebpf_unmap_memory(void* base_address, size_t length);
+
+    ebpf_result_t
+    ebpf_protect_memory(void* base_address, size_t length, ebpf_page_protections_t protection);
+
     /**
      * @brief Allocate and copy a UTF-8 string.
      *
