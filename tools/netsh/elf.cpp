@@ -151,8 +151,8 @@ handle_ebpf_show_sections(
 
     if (level == VL_NORMAL) {
         std::cout << "\n";
-        std::cout << "             Section    Type  # Maps    Size\n";
-        std::cout << "====================  ======  ======  ======\n";
+        std::cout << "             Section       Type  # Maps    Size\n";
+        std::cout << "====================  =========  ======  ======\n";
     }
     for (auto current_section = tlv_child(section_data); current_section != tlv_next(section_data);
          current_section = tlv_next(current_section)) {
@@ -162,13 +162,13 @@ handle_ebpf_show_sections(
         auto program_bytes = tlv_next(map_count);
         auto stats_section = tlv_next(program_bytes);
         if (level == VL_NORMAL) {
-            std::cout << std::setw(20) << std::right << tlv_value<std::string>(section_name) << "  " << std::setw(6)
-                      << tlv_value<uint64_t>(type) << "  " << std::setw(6) << tlv_value<size_t>(map_count) << "  "
+            std::cout << std::setw(20) << std::right << tlv_value<std::string>(section_name) << "  " << std::setw(9)
+                      << tlv_value<std::string>(type) << "  " << std::setw(6) << tlv_value<size_t>(map_count) << "  "
                       << std::setw(6) << (program_bytes->length - offsetof(tlv_type_length_value_t, value)) / 8 << "\n";
         } else {
             std::cout << "\n";
             std::cout << "Section      : " << tlv_value<std::string>(section_name) << "\n";
-            std::cout << "Program Type : " << tlv_value<uint64_t>(type) << "\n";
+            std::cout << "Program Type : " << tlv_value<std::string>(type) << "\n";
             std::cout << "# Maps       : " << tlv_value<size_t>(map_count) << "\n";
             std::cout << "Size         : " << (program_bytes->length - offsetof(tlv_type_length_value_t, value)) / 8
                       << " instructions\n";

@@ -41,6 +41,7 @@ jobs:
       run: |
         doxygen
         cd docs/html
-        git commit -s -am "Updated documentation"
+        git add .
+        git commit -s -m "Updated documentation"
         git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/microsoft/ebpf-for-windows.git
         git push
