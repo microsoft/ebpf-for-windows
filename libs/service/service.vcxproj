@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <!--
   Copyright (c) Microsoft Corporation
   SPDX-License-Identifier: MIT
@@ -25,14 +25,14 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{ba065b6a-38f8-4197-8f66-87c84afad513}</ProjectGuid>
-    <RootNamespace>eBPFSvc</RootNamespace>
+    <ProjectGuid>{AF85C549-57CC-40A5-BDFC-DCF1998DE80F}</ProjectGuid>
+    <RootNamespace>ebpfapi</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-    <ProjectName>ebpfsvc</ProjectName>
+    <PrevailDir>$(ProjectDir)../../external/ebpf-verifier/</PrevailDir>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
@@ -45,14 +45,13 @@
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
-    <SpectreMitigation>Spectre</SpectreMitigation>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -84,8 +83,6 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
-    <ExecutablePath>$(ExecutablePath)</ExecutablePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
@@ -94,16 +91,16 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;_DEBUG;EBPFSVC_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;EBPFAPI_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
-      <SubSystem>Console</SubSystem>
+      <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <ModuleDefinitionFile>ebpfsvc.def</ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -112,10 +109,11 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;NDEBUG;EBPFSVC_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;EBPFAPI_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -129,23 +127,20 @@
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;EBPFSVC_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
-      <AdditionalIncludeDirectories>$(SolutionDir)libs\api;$(SolutionDir)libs\platform;$(SolutionDir)libs\service;$(SolutionDir)include;$(SolutionDir)rpc_interface;$(SolutionDir)libs\platform\user;$(SolutionDir)external\ubpf\vm;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ebpf-verifier\external;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)libs\api_common;$(SolutionDir)libs\api;$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\user;$(SolutionDir)libs\execution_context;$(SolutionDir)external\ubpf\vm;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ebpf-verifier\external;$(OutDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
-      <SubSystem>Console</SubSystem>
-      <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <AdditionalLibraryDirectories>rpcrt4.lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
-    <Midl>
-      <DefaultCharType>Unsigned</DefaultCharType>
-    </Midl>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -153,65 +148,49 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;EBPFSVC_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)libs\api;$(SolutionDir)libs\platform;$(SolutionDir)libs\service;$(SolutionDir)include;$(SolutionDir)rpc_interface;$(SolutionDir)libs\platform\user;$(SolutionDir)external\ubpf\vm;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ebpf-verifier\external;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)libs\api_common;$(SolutionDir)libs\api;$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\user;$(SolutionDir)libs\execution_context;$(SolutionDir)external\ubpf\vm;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ebpf-verifier\external;$(OutDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
+      <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
-      <SubSystem>Console</SubSystem>
+      <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
     </Link>
-    <Midl>
-      <DefaultCharType>Unsigned</DefaultCharType>
-    </Midl>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClInclude Include="rpc_util.h" />
-    <ClInclude Include="svc_common.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="rpc_api.cpp" />
-    <ClCompile Include="platform.cpp" />
-    <ClCompile Include="rpc_util.cpp" />
-    <ClCompile Include="svcmain.cpp" />
-  </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\external\ebpf-verifier\build\ebpfverifier.vcxproj">
-      <Project>{7d5b4e68-c0fa-3f86-9405-f6400219b440}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\libs\api_common\api_common.vcxproj">
-      <Project>{e79382b2-fed9-4cd4-9498-dbddd6c46c91}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\libs\platform\user\platform_user.vcxproj">
-      <Project>{c26cb6a9-158c-4a9e-a243-755ddd98e5fe}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\libs\service\service.vcxproj">
-      <Project>{af85c549-57cc-40a5-bdfc-dcf1998de80f}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\libs\ubpf\user\ubpf_user.vcxproj">
-      <Project>{245f0ec7-1ebc-4d68-8b1f-f758ea9196ae}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\rpc_interface\rpc_interface.vcxproj">
-      <Project>{1423245d-0249-40fc-a077-ff7780acfe3f}</Project>
+    <ClCompile Include="api_service.cpp" />
+    <ClCompile Include="verifier_service.cpp" />
+    <ClCompile Include="windows_platform_service.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="api_service.h" />
+    <ClInclude Include="tlv.h" />
+    <ClInclude Include="verifier_service.h" />
+    <ClInclude Include="windows_platform_service.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\tools\encode_program_information\encode_program_information.vcxproj">
+      <Project>{fa9bb88d-8259-40c1-9422-bdedf9e9ce68}</Project>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
-    <Import Project="..\packages\boost.1.75.0.0\build\boost.targets" Condition="Exists('..\packages\boost.1.75.0.0\build\boost.targets')" />
+    <Import Project="..\..\packages\boost.1.75.0.0\build\boost.targets" Condition="Exists('..\..\packages\boost.1.75.0.0\build\boost.targets')" />
   </ImportGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
-    <Error Condition="!Exists('..\packages\boost.1.75.0.0\build\boost.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\boost.1.75.0.0\build\boost.targets'))" />
+    <Error Condition="!Exists('..\..\packages\boost.1.75.0.0\build\boost.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\boost.1.75.0.0\build\boost.targets'))" />
   </Target>
 </Project>

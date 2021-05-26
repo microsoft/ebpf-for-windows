@@ -8,15 +8,17 @@
 
 #include <map>
 #include <stdexcept>
-
+#include "api_common.hpp"
 #include "ebpf_protocol.h"
 #include "ebpf_platform.h"
+#include "map_descriptors.hpp"
 #include "platform.h"
 extern "C"
 {
 #include "ubpf.h"
 }
 #include "Verifier.h"
+#include "verifier_service.h"
 
 #define MAX_CODE_SIZE (32 * 1024) // 32 KB
 
@@ -101,7 +103,13 @@ ebpf_api_initiate()
     }
 
     device_handle = Platform::CreateFile(
-        EBPF_DEVICE_WIN32_NAME, GENERIC_READ | GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+        EBPF_DEVICE_WIN32_NAME,
+        GENERIC_READ | GENERIC_WRITE,
+        0,
+        nullptr,
+        CREATE_ALWAYS,
+        FILE_ATTRIBUTE_NORMAL,
+        nullptr);
 
     if (device_handle == INVALID_HANDLE_VALUE) {
         return GetLastError();
@@ -117,41 +125,6 @@ ebpf_api_terminate()
         Platform::CloseHandle(device_handle);
         device_handle = INVALID_HANDLE_VALUE;
     }
-}
-
-typedef struct _map_cache
-{
-    uintptr_t handle;
-    EbpfMapDescriptor ebpf_map_descriptor;
-} map_cache_t;
-
-// TODO: this duplicates global_program_info.map_descriptors in ebpfverifier.lib
-// https://github.com/vbpf/ebpf-verifier/issues/113 tracks getting rid of global
-// state in that lib, but won't notice this global state which has the same
-// problem.
-static std::vector<map_cache_t> _map_file_descriptors;
-
-void
-cache_map_file_descriptor(uint32_t type, uint32_t key_size, uint32_t value_size, int fd)
-{
-    _map_file_descriptors.push_back({(uintptr_t)fd, {fd, type, key_size, value_size, 0}});
-}
-
-void
-cache_map_file_descriptors(const EbpfMapDescriptor* map_descriptors, uint32_t map_descriptors_count)
-{
-    for (uint32_t i = 0; i < map_descriptors_count; i++) {
-        auto descriptor = map_descriptors[i];
-        _map_file_descriptors.push_back(
-            {(uintptr_t)descriptor.original_fd,
-             {descriptor.original_fd, descriptor.type, descriptor.key_size, descriptor.value_size, 0}});
-    }
-}
-
-void
-clear_map_descriptors(void)
-{
-    _map_file_descriptors.resize(0);
 }
 
 int
@@ -174,30 +147,7 @@ create_map_function(
         throw std::runtime_error(std::string("reply.header.id != ebpf_operation_id_t::EBPF_OPERATION_CREATE_MAP"));
     }
 
-    // TODO: Replace this with the CRT helper to create FD from handle once we
-    // have real handles.
-    int fd = static_cast<int>(_map_file_descriptors.size() + 1);
-    _map_file_descriptors.push_back({reply.handle, {fd, type, key_size, value_size, 0}});
-    return static_cast<int>(_map_file_descriptors.size());
-}
-
-static map_cache_t&
-get_map_cache_entry(uint64_t map_fd)
-{
-    size_t size = _map_file_descriptors.size();
-    for (size_t i = 0; i < size; i++) {
-        if (_map_file_descriptors[i].ebpf_map_descriptor.original_fd == map_fd) {
-            return _map_file_descriptors[i];
-        }
-    }
-
-    return _map_file_descriptors[0];
-}
-
-EbpfMapDescriptor&
-get_map_descriptor_internal(int map_fd)
-{
-    return get_map_cache_entry(map_fd).ebpf_map_descriptor;
+    return cache_map_handle(reply.handle, type, key_size, value_size);
 }
 
 static uint32_t
@@ -247,10 +197,10 @@ resolve_maps_in_byte_code(ebpf_handle_t program_handle, ebpf_code_buffer_t& byte
     request->program_handle = reinterpret_cast<uint64_t>(program_handle);
 
     for (size_t index = 0; index < map_handles.size(); index++) {
-        if (map_handles[index] > _map_file_descriptors.size()) {
+        if (map_handles[index] > get_map_descriptor_size()) {
             return ERROR_INVALID_PARAMETER;
         }
-        request->map_handle[index] = _map_file_descriptors[map_handles[index] - 1].handle;
+        request->map_handle[index] = get_map_handle_at_index((int)map_handles[index] - 1);
     }
 
     uint32_t result = invoke_ioctl(device_handle, request_buffer, reply_buffer);
@@ -375,8 +325,8 @@ _create_program(
     return retval;
 }
 
-static uint32_t
-_get_program_information_data(ebpf_program_type_t program_type, ebpf_extension_data_t** program_information_data)
+uint32_t
+get_program_information_data(ebpf_program_type_t program_type, ebpf_extension_data_t** program_information_data)
 {
     ebpf_protocol_buffer_t reply_buffer(1024);
     ebpf_operation_get_program_information_request_t request{
@@ -423,7 +373,7 @@ ebpf_get_program_byte_code(
     size_t byte_code_size = byte_code.size();
     uint32_t result = ERROR_SUCCESS;
 
-    _map_file_descriptors.resize(0);
+    clear_map_descriptors();
     *instructions = nullptr;
     *map_descriptors = nullptr;
 
@@ -442,8 +392,7 @@ ebpf_get_program_byte_code(
 
     // Copy instructions to output buffer.
     *instructions_size = (uint32_t)byte_code_size;
-    if (*instructions_size > 0)
-    {
+    if (*instructions_size > 0) {
         *instructions = new uint8_t[byte_code_size];
         if (*instructions == nullptr) {
             result = ERROR_NOT_ENOUGH_MEMORY;
@@ -453,21 +402,20 @@ ebpf_get_program_byte_code(
     }
 
     // Copy map file descriptors (if any) to output buffer.
-    *map_descriptors_count = (int)_map_file_descriptors.size();
-    if (*map_descriptors_count > 0)
-    {
+    *map_descriptors_count = (int)get_map_descriptor_size();
+    if (*map_descriptors_count > 0) {
         *map_descriptors = new EbpfMapDescriptor[*map_descriptors_count];
         if (*map_descriptors == nullptr) {
             result = ERROR_NOT_ENOUGH_MEMORY;
             goto Done;
         }
         for (int i = 0; i < *map_descriptors_count; i++) {
-            *(*map_descriptors + i) = _map_file_descriptors[i].ebpf_map_descriptor;
+            *(*map_descriptors + i) = get_map_descriptor_at_index(i);
         }
     }
 
 Done:
-    _map_file_descriptors.resize(0);
+    clear_map_descriptors();
     return result;
 }
 
@@ -488,14 +436,15 @@ ebpf_api_load_program(
     ebpf_protocol_buffer_t request_buffer;
     struct ubpf_vm* vm = nullptr;
     uint64_t log_function_address;
-    ebpf_extension_data_t* program_information_data = NULL;
-    ebpf_program_information_t* program_information = NULL;
-    ebpf_operation_load_code_request_t* request = NULL;
-    uint32_t error_message_size;
-
+    ebpf_operation_load_code_request_t* request = nullptr;
+    uint32_t error_message_size = 0;
+    std::vector<uintptr_t> handles;
     uint32_t result;
 
-    _map_file_descriptors.resize(0);
+    *handle = 0;
+    *error_message = nullptr;
+
+    clear_map_descriptors();
 
     ebpf_verifier_options_t verifier_options{false, false, false, false, false};
     if (load_byte_code(
@@ -516,39 +465,28 @@ ebpf_api_load_program(
     if (result != ERROR_SUCCESS)
         goto Done;
 
-    result = _get_program_information_data(program_type, &program_information_data);
-    if (result != ERROR_SUCCESS)
-        goto Done;
-
-    result = ebpf_program_information_decode(
-        &program_information,
-        program_information_data->data,
-        program_information_data->size - EBPF_OFFSET_OF(ebpf_extension_data_t, data));
-    if (result != ERROR_SUCCESS)
-        goto Done;
-
-    // TODO (issue #67): Pass the resulting program information to the verifier.
     // Verify code.
     if (verify_byte_code(&program_type, byte_code.data(), byte_code_size, error_message, &error_message_size) != 0) {
         result = ERROR_INVALID_PARAMETER;
         goto Done;
     }
 
-    if (_map_file_descriptors.size() > *count_of_map_handles) {
+    if (get_map_descriptor_size() > *count_of_map_handles) {
         result = ERROR_INSUFFICIENT_BUFFER;
         goto Done;
     }
 
     *count_of_map_handles = 0;
-    for (const auto& map : _map_file_descriptors) {
-        map_handles[*count_of_map_handles] = reinterpret_cast<HANDLE>(map.handle);
+    handles = get_all_map_handles();
+    for (const auto& map_handle : handles) {
+        map_handles[*count_of_map_handles] = reinterpret_cast<HANDLE>(map_handle);
         (*count_of_map_handles)++;
     }
 
     byte_code.resize(byte_code_size);
     result = resolve_maps_in_byte_code(program_handle, byte_code);
     if (result != ERROR_SUCCESS) {
-        return result;
+        goto Done;
     }
 
     result = resolve_ec_function(EBPF_EC_FUNCTION_LOG, &log_function_address);
@@ -613,17 +551,15 @@ ebpf_api_load_program(
 
 Done:
     if (result != ERROR_SUCCESS) {
-        for (const auto& map : _map_file_descriptors) {
-            ebpf_api_close_handle((ebpf_handle_t)map.handle);
+        handles = get_all_map_handles();
+        for (const auto& map_handle : handles) {
+            ebpf_api_close_handle((ebpf_handle_t)map_handle);
         }
     }
-    _map_file_descriptors.resize(0);
+    clear_map_descriptors();
 
     if (vm)
         ubpf_destroy(vm);
-
-    ebpf_free(program_information_data);
-    ebpf_free(program_information);
 
     if (program_handle != INVALID_HANDLE_VALUE)
         ebpf_api_close_handle(program_handle);

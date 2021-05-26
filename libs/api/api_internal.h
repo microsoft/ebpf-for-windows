@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "ebpf_platform.h"
 #include "ebpf_windows.h"
 #include "spec_type_descriptors.hpp"
 
@@ -20,11 +21,5 @@ ebpf_get_program_byte_code(
     int* map_descriptors_count,
     const char** error_message);
 
-void
-cache_map_file_descriptors(const EbpfMapDescriptor* map_descriptors, uint32_t map_descriptors_count);
-
-void
-cache_map_file_descriptor(uint32_t type, uint32_t key_size, uint32_t value_size, int fd);
-
-void
-clear_map_descriptors(void);
+uint32_t
+get_program_information_data(ebpf_program_type_t program_type, ebpf_extension_data_t** program_information_data);

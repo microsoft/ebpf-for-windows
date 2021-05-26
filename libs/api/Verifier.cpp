@@ -7,11 +7,12 @@
 #include <iostream>
 #include <sstream>
 #include <sys/stat.h>
+#include "api_common.hpp"
+#include "api_internal.h"
 #include "ebpf_api.h"
 #include "ebpf_bind_program_data.h"
 #include "ebpf_platform.h"
-#include "ebpf_xdp_program_data.h"
-
+#include "ebpf_program_types.h"
 #pragma warning(push)
 #pragma warning(disable : 4100) // 'identifier' : unreferenced formal parameter
 #pragma warning(disable : 4244) // 'conversion' conversion from 'type1' to
@@ -19,67 +20,11 @@
 #undef VOID
 #include "ebpf_verifier.hpp"
 #pragma warning(pop)
+#include "ebpf_xdp_program_data.h"
 #include "platform.hpp"
 #include "tlv.h"
 #include "windows_platform.hpp"
 #include "Verifier.h"
-
-int
-get_file_size(const char* filename, size_t* byte_code_size)
-{
-    int result = 0;
-    *byte_code_size = NULL;
-    struct stat st = {0};
-    result = stat(filename, &st);
-    if (!result) {
-        std::cout << "file size " << st.st_size << std::endl;
-        *byte_code_size = st.st_size;
-    }
-
-    return result;
-}
-
-const char*
-allocate_error_string(const std::string& str, uint32_t* length = nullptr)
-{
-    char* retval;
-    size_t error_message_length = str.size() + 1;
-    retval = (char*)malloc(error_message_length);
-    if (retval != nullptr) {
-        strcpy_s(retval, error_message_length, str.c_str());
-        if (length != nullptr) {
-            *length = (uint32_t)error_message_length;
-        }
-    }
-    return retval; // Error;
-}
-
-static int
-analyze(raw_program& raw_prog, const char** error_message, uint32_t* error_message_size = nullptr)
-{
-    std::variant<InstructionSeq, std::string> prog_or_error = unmarshal(raw_prog);
-    if (!std::holds_alternative<InstructionSeq>(prog_or_error)) {
-        *error_message = allocate_error_string(std::get<std::string>(prog_or_error), error_message_size);
-        return 1; // Error;
-    }
-    InstructionSeq& prog = std::get<InstructionSeq>(prog_or_error);
-
-    // First try optimized for the success case.
-    ebpf_verifier_options_t options = ebpf_verifier_default_options;
-    options.check_termination = true;
-    bool res = ebpf_verify_program(std::cout, prog, raw_prog.info, &options);
-    if (!res) {
-        // On failure, retry to get the more detailed error message.
-        std::ostringstream oss;
-        options.no_simplify = true;
-        options.print_failures = true;
-        (void)ebpf_verify_program(oss, prog, raw_prog.info, &options);
-
-        *error_message = allocate_error_string(oss.str(), error_message_size);
-        return 1; // Error;
-    }
-    return 0; // Success.
-}
 
 int
 load_byte_code(
@@ -130,34 +75,6 @@ load_byte_code(
     }
 
     return 0;
-}
-
-int
-verify_byte_code(
-    const GUID* program_type,
-    const uint8_t* byte_code,
-    size_t byte_code_size,
-    const char** error_message,
-    uint32_t* error_message_size)
-{
-    const ebpf_platform_t* platform = &g_ebpf_platform_windows;
-    std::vector<ebpf_inst> instructions{(ebpf_inst*)byte_code,
-                                        (ebpf_inst*)byte_code + byte_code_size / sizeof(ebpf_inst)};
-    program_info info{platform};
-    std::string section;
-    std::string file;
-    info.type = get_program_type_windows(*program_type);
-
-    raw_program raw_prog{file, section, instructions, info};
-
-    return analyze(raw_prog, error_message, error_message_size);
-}
-
-std::vector<uint8_t>
-convert_ebpf_program_to_bytes(const std::vector<ebpf_inst>& instructions)
-{
-    return {reinterpret_cast<const uint8_t*>(instructions.data()),
-            reinterpret_cast<const uint8_t*>(instructions.data()) + instructions.size() * sizeof(ebpf_inst)};
 }
 
 uint32_t
@@ -242,6 +159,64 @@ ebpf_api_elf_disassemble_section(
     return 0;
 }
 
+struct guid_compare
+{
+    bool
+    operator()(const GUID& a, const GUID& b) const
+    {
+        return (memcmp(&a, &b, sizeof(GUID)) < 0);
+    }
+};
+
+thread_local std::map<GUID, ebpf_helper::ebpf_memory_ptr, guid_compare> g_program_information_cache;
+
+ebpf_result_t
+get_program_type_info(const ebpf_program_information_t** info)
+{
+    const GUID* program_type = reinterpret_cast<const GUID*>(global_program_info.type.platform_specific_data);
+    ebpf_result_t result;
+    ebpf_program_information_t* program_information;
+    const uint8_t* encoded_data = nullptr;
+    size_t encoded_data_size = 0;
+
+    // See if we already have the program information cached.
+    auto it = g_program_information_cache.find(*program_type);
+    if (it == g_program_information_cache.end()) {
+        // Try to query the information from the execution context.
+        ebpf_extension_data_t* program_information_data;
+        uint32_t error = get_program_information_data(*program_type, &program_information_data);
+        if (error == ERROR_SUCCESS) {
+            encoded_data = program_information_data->data;
+            encoded_data_size = program_information_data->size;
+        } else {
+            // Fall back to using static data so that verification can be tried
+            // (e.g., from a netsh command) even if the execution context isn't running.
+            // TODO: remove this in the future.
+            if (memcmp(program_type, &EBPF_PROGRAM_TYPE_XDP, sizeof(*program_type)) == 0) {
+                encoded_data = _ebpf_encoded_xdp_program_information_data;
+                encoded_data_size = sizeof(_ebpf_encoded_xdp_program_information_data);
+            } else if (memcmp(program_type, &EBPF_ATTACH_TYPE_BIND, sizeof(*program_type)) == 0) {
+                encoded_data = _ebpf_encoded_bind_program_information_data;
+                encoded_data_size = sizeof(_ebpf_encoded_bind_program_information_data);
+            }
+        }
+        if (encoded_data == nullptr) {
+            return EBPF_INVALID_ARGUMENT;
+        }
+
+        result = ebpf_program_information_decode(&program_information, encoded_data, (unsigned long)encoded_data_size);
+        if (result != EBPF_SUCCESS) {
+            return result;
+        }
+
+        g_program_information_cache[*program_type] = ebpf_helper::ebpf_memory_ptr(program_information);
+    }
+
+    *info = (const ebpf_program_information_t*)g_program_information_cache[*program_type].get();
+
+    return EBPF_SUCCESS;
+}
+
 uint32_t
 ebpf_api_elf_verify_section(
     const char* file, const char* section, bool verbose, const char** report, const char** error_message)
@@ -249,29 +224,6 @@ ebpf_api_elf_verify_section(
     std::ostringstream error;
 
     std::ostringstream output;
-    ebpf_result_t result;
-    ebpf_program_information_t* program_information_xdp = NULL;
-    ebpf_program_information_t* program_information_bind = NULL;
-    ebpf_helper::ebpf_memory_ptr program_information_xdp_ptr;
-    ebpf_helper::ebpf_memory_ptr program_information_bind_ptr;
-
-    result = ebpf_program_information_decode(
-        &program_information_bind,
-        _ebpf_encoded_bind_program_information_data,
-        sizeof(_ebpf_encoded_bind_program_information_data));
-    if (result != ERROR_SUCCESS) {
-        return result;
-    }
-    program_information_bind_ptr.reset(program_information_bind);
-
-    result = ebpf_program_information_decode(
-        &program_information_xdp,
-        _ebpf_encoded_xdp_program_information_data,
-        sizeof(_ebpf_encoded_xdp_program_information_data));
-    if (result != ERROR_SUCCESS) {
-        return result;
-    }
-    program_information_xdp_ptr.reset(program_information_xdp);
 
     try {
         const ebpf_platform_t* platform = &g_ebpf_platform_windows;

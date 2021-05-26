@@ -57,6 +57,7 @@ _get_program_byte_code_helper(const char* file_name, const char* section_name, e
     info->byte_code = instruction_array;
     info->byte_code_size = instruction_array_size;
     info->map_descriptors_count = descriptors_count;
+    info->execution_context = execution_context_kernel_mode;
     if (descriptors != nullptr) {
         info->map_descriptors = reinterpret_cast<ebpf_map_descriptor*>(descriptors);
     }
