@@ -689,6 +689,8 @@ Variables</h2></td></tr>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">name</td><td>Name to find. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">name_length</td><td>Length in bytes of name to find. </td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">handle</td><td>Pointer to memory that contains the map handle on success. </td></tr>
   </table>
   </dd>
 </dl>
@@ -1099,6 +1101,7 @@ Variables</h2></td></tr>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">handle</td><td>Handle to object. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">name</td><td>Name to associate with handle. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">name_length</td><td>Length in bytes of the name. </td></tr>
   </table>
   </dd>
 </dl>
@@ -1147,6 +1150,9 @@ Variables</h2></td></tr>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">handle</td><td>Handle to an eBPF program. </td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">program_type</td><td>On success, contains the program type. </td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">file_name</td><td>On success, contains the file name. </td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">section_name</td><td>On success, contains the section name. </td></tr>
   </table>
   </dd>
 </dl>
@@ -1202,6 +1208,7 @@ Variables</h2></td></tr>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">name</td><td>Name to dissociate. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">name_length</td><td>Length in bytes of the name. </td></tr>
   </table>
   </dd>
 </dl>
