@@ -90,7 +90,7 @@ ebpf_protect_memory(const ebpf_memory_descriptor_t* memory_descriptor, ebpf_page
         return EBPF_INVALID_ARGUMENT;
     }
 
-    status = MmProtectMdlSystemAddress(&memory_descriptor->memory_descriptor_list, mm_protection_state);
+    status = MmProtectMdlSystemAddress((MDL*)&memory_descriptor->memory_descriptor_list, mm_protection_state);
     if (!NT_SUCCESS(status))
         return EBPF_INVALID_ARGUMENT;
 
