@@ -378,7 +378,7 @@ TEST_CASE("enum section", "[enum sections]")
         auto stats_secton = tlv_next(program_bytes);
 
         REQUIRE(static_cast<tlv_type_t>(section_name->type) == tlv_type_t::STRING);
-        REQUIRE(static_cast<tlv_type_t>(type->type) == tlv_type_t::UINT);
+        REQUIRE(static_cast<tlv_type_t>(type->type) == tlv_type_t::STRING);
         REQUIRE(static_cast<tlv_type_t>(map_count->type) == tlv_type_t::UINT);
         REQUIRE(static_cast<tlv_type_t>(program_bytes->type) == tlv_type_t::BLOB);
         REQUIRE(static_cast<tlv_type_t>(stats_secton->type) == tlv_type_t::SEQUENCE);
