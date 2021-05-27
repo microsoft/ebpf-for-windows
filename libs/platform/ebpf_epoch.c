@@ -60,6 +60,9 @@ static volatile int64_t _ebpf_current_epoch = 1;
 static ebpf_timer_work_item_t* _ebpf_flush_timer = NULL;
 static volatile int32_t _ebpf_flush_timer_set = 0;
 
+// There are two possible actions that can be taken at the end of an epoch.
+// 1. Return a block of memory to the memory pool.
+// 2. Invoke a work item, which is used to free custom allocations.
 typedef enum _ebpf_epoch_allocation_type
 {
     EBPF_EPOCH_ALLOCATION_MEMORY,
@@ -70,9 +73,14 @@ typedef struct _ebpf_epoch_allocation_header
 {
     ebpf_list_entry_t list_entry;
     int64_t freed_epoch;
-    int64_t entry_type;
+    ebpf_epoch_allocation_type_t entry_type;
 } ebpf_epoch_allocation_header_t;
 
+/**
+ * @brief This structure is used as a place holder when a custom action needs
+ * to be performed on epoch end. Typically this is releasing memory that can't
+ * be handled by the default allocator.
+ */
 typedef struct _ebpf_epoch_work_item
 {
     ebpf_epoch_allocation_header_t header;
