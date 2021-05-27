@@ -11,6 +11,8 @@ extern "C"
 {
 #endif
 
+    typedef struct _ebpf_epoch_work_item ebpf_epoch_work_item_t;
+
     /**
      * @brief Initialize the eBPF epoch tracking module.
      *
@@ -64,6 +66,34 @@ extern "C"
      */
     void
     ebpf_epoch_flush();
+
+    /**
+     * @brief Allocate an epoch work item; a work item that can be scheduled to
+     * run when the current epoch ends.
+     *
+     * @param[in] callback_context Context to pass to the callback function.
+     * @param[in] callback Callback function to run on epoch end.
+     * @return Pointer to work item that can be scheduled.
+     */
+    ebpf_epoch_work_item_t*
+    ebpf_epoch_allocate_work_item(void* callback_context, void (*callback)(void* context));
+
+    /**
+     * @brief Schedule a previously allocated work-item to run when the current
+     * epoch ends.
+     *
+     * @param[in] work_item Pointer to work item to run on epoch end.
+     */
+    void
+    ebpf_epoch_schedule_work_item(ebpf_epoch_work_item_t* work_item);
+
+    /**
+     * @brief Free an epoch work item.
+     *
+     * @param[in] work_item Pointer to work item to free.
+     */
+    void
+    ebpf_epoch_free_work_item(ebpf_epoch_work_item_t* work_item);
 
 #ifdef __cplusplus
 }
