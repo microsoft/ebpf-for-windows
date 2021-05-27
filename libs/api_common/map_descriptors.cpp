@@ -59,7 +59,7 @@ get_map_handle(int map_fd)
 }
 
 uintptr_t
-get_map_handle_at_index(int index)
+get_map_handle_at_index(size_t index)
 {
     return _map_file_descriptors[index].handle;
 }
