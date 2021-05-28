@@ -157,8 +157,6 @@ ebpf_api_elf_disassemble_section(
     return 0;
 }
 
-// thread_local std::map<GUID, ebpf_helper::ebpf_memory_ptr, guid_compare> g_program_information_cache;
-
 uint32_t
 ebpf_api_elf_verify_section(
     const char* file, const char* section, bool verbose, const char** report, const char** error_message)

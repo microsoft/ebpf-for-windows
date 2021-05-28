@@ -21,8 +21,6 @@ extern "C"
 
 #define MAX_CODE_SIZE (32 * 1024) // 32 KB
 
-// ebpf_handle_t device_handle = INVALID_HANDLE_VALUE;
-
 uint32_t
 ebpf_api_initiate()
 {
