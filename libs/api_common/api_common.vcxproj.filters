@@ -42,5 +42,8 @@
     <ClInclude Include="map_descriptors.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="windows_helpers.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

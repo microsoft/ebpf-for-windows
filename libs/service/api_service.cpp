@@ -17,6 +17,7 @@ extern "C"
 }
 #include "Verifier.h"
 #include "verifier_service.h"
+#include "windows_helpers.hpp"
 
 ebpf_result_t
 ebpf_verify_program(
