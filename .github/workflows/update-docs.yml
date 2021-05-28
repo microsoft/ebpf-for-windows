@@ -42,6 +42,8 @@ jobs:
         doxygen
         cd docs/html
         git add .
+        if [ -n "$(git status --porcelain)" ]; then
         git commit -s -m "Updated documentation"
         git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/microsoft/ebpf-for-windows.git
         git push
+        fi

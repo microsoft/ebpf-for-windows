@@ -79,8 +79,11 @@ create_map_function(
 static uint32_t
 resolve_maps_in_byte_code(ebpf_handle_t program_handle, ebpf_code_buffer_t& byte_code)
 {
-    std::vector<size_t> instruction_offsets;
-    std::vector<uint64_t> map_handles;
+    // Maintain two maps.
+    // First map is instruction offset -> map handle.
+    // Second map is map handle -> map address.
+    std::map<size_t, uint64_t> instruction_offsets_to_map_handles;
+    std::map<uint64_t, uint64_t> map_handles_to_map_addresses;
 
     ebpf_inst* instructions = reinterpret_cast<ebpf_inst*>(byte_code.data());
     ebpf_inst* instruction_end = reinterpret_cast<ebpf_inst*>(byte_code.data() + byte_code.size());
@@ -102,19 +105,24 @@ resolve_maps_in_byte_code(ebpf_handle_t program_handle, ebpf_code_buffer_t& byte
 
         uint64_t imm =
             static_cast<uint64_t>(first_instruction.imm) | (static_cast<uint64_t>(second_instruction.imm) << 32);
-        instruction_offsets.push_back(index - 1);
-        map_handles.push_back(imm);
+
+        // Collect set of instructions to patch with the value to replace.
+        instruction_offsets_to_map_handles[index - 1] = imm;
+
+        // Collect set of map handles.
+        map_handles_to_map_addresses[imm] = 0;
     }
 
-    if (map_handles.size() == 0) {
+    if (instruction_offsets_to_map_handles.size() == 0) {
         return ERROR_SUCCESS;
     }
 
     ebpf_protocol_buffer_t request_buffer(
-        offsetof(ebpf_operation_resolve_map_request_t, map_handle) + sizeof(uint64_t) * map_handles.size());
+        offsetof(ebpf_operation_resolve_map_request_t, map_handle) +
+        sizeof(uint64_t) * map_handles_to_map_addresses.size());
 
     ebpf_protocol_buffer_t reply_buffer(
-        offsetof(ebpf_operation_resolve_map_reply_t, address) + sizeof(uint64_t) * map_handles.size());
+        offsetof(ebpf_operation_resolve_map_reply_t, address) + sizeof(uint64_t) * map_handles_to_map_addresses.size());
 
     auto request = reinterpret_cast<ebpf_operation_resolve_map_request_t*>(request_buffer.data());
     auto reply = reinterpret_cast<ebpf_operation_resolve_map_reply_t*>(reply_buffer.data());
@@ -122,11 +130,13 @@ resolve_maps_in_byte_code(ebpf_handle_t program_handle, ebpf_code_buffer_t& byte
     request->header.length = static_cast<uint16_t>(request_buffer.size());
     request->program_handle = reinterpret_cast<uint64_t>(program_handle);
 
-    for (size_t index = 0; index < map_handles.size(); index++) {
-        if (map_handles[index] > get_map_descriptor_size()) {
+    size_t index = 0;
+    for (auto& [map_handle, map_address] : map_handles_to_map_addresses) {
+
+        if (map_handle > get_map_descriptor_size()) {
             return ERROR_INVALID_PARAMETER;
         }
-        request->map_handle[index] = get_map_handle_at_index((int)map_handles[index] - 1);
+        request->map_handle[index++] = get_map_handle_at_index(map_handle - 1);
     }
 
     uint32_t result = invoke_ioctl(device_handle, request_buffer, reply_buffer);
@@ -134,15 +144,20 @@ resolve_maps_in_byte_code(ebpf_handle_t program_handle, ebpf_code_buffer_t& byte
         return result;
     }
 
-    for (size_t index = 0; index < map_handles.size(); index++) {
-        ebpf_inst& first_instruction = instructions[instruction_offsets[index]];
-        ebpf_inst& second_instruction = instructions[instruction_offsets[index] + 1];
+    index = 0;
+    for (auto& [map_handle, map_address] : map_handles_to_map_addresses) {
+        map_address = reply->address[index++];
+    }
+
+    for (auto& [instruction_offset, map_handle] : instruction_offsets_to_map_handles) {
+        ebpf_inst& first_instruction = instructions[instruction_offset];
+        ebpf_inst& second_instruction = instructions[instruction_offset + 1];
 
         // Clear LD_MAP flag
         first_instruction.src = 0;
 
         // Replace handle with address
-        uint64_t new_imm = reply->address[index];
+        uint64_t new_imm = map_handles_to_map_addresses[map_handle];
         first_instruction.imm = static_cast<uint32_t>(new_imm);
         second_instruction.imm = static_cast<uint32_t>(new_imm >> 32);
     }
@@ -621,9 +636,10 @@ ebpf_api_get_next_map(ebpf_handle_t previous_handle, ebpf_handle_t* next_handle)
 uint32_t
 ebpf_api_get_next_program(ebpf_handle_t previous_handle, ebpf_handle_t* next_handle)
 {
-    _ebpf_operation_get_next_program_request request{sizeof(request),
-                                                     ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_PROGRAM,
-                                                     reinterpret_cast<uint64_t>(previous_handle)};
+    _ebpf_operation_get_next_program_request request{
+        sizeof(request),
+        ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_PROGRAM,
+        reinterpret_cast<uint64_t>(previous_handle)};
 
     _ebpf_operation_get_next_program_reply reply;
 
