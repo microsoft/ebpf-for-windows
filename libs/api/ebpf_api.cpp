@@ -1,7 +1,5 @@
-/*
- *  Copyright (c) Microsoft Corporation
- *  SPDX-License-Identifier: MIT
- */
+// Copyright (c) Microsoft Corporation
+// SPDX-License-Identifier: MIT
 
 #include "pch.h"
 #include "ebpf_api.h"
@@ -19,81 +17,11 @@ extern "C"
 }
 #include "Verifier.h"
 #include "verifier_service.h"
+#include "windows_helpers.hpp"
 
 #define MAX_CODE_SIZE (32 * 1024) // 32 KB
 
-// Device type
-#define EBPF_IOCTL_TYPE FILE_DEVICE_NETWORK
-
-// Function codes from 0x800 to 0xFFF are for customer use.
-#define IOCTL_EBPFCTL_METHOD_BUFFERED CTL_CODE(EBPF_IOCTL_TYPE, 0x900, METHOD_BUFFERED, FILE_ANY_ACCESS)
-
-static ebpf_handle_t device_handle = INVALID_HANDLE_VALUE;
-
-typedef std::vector<uint8_t> ebpf_protocol_buffer_t;
-typedef std::vector<uint8_t> ebpf_code_buffer_t;
-
-struct empty_reply
-{
-} _empty_reply;
-
-template <typename request_t, typename reply_t = empty_reply>
-static uint32_t
-invoke_ioctl(ebpf_handle_t handle, request_t& request, reply_t& reply = _empty_reply)
-{
-    uint32_t actual_reply_size;
-    uint32_t request_size;
-    void* request_ptr;
-    uint32_t reply_size;
-    void* reply_ptr;
-    bool variable_reply_size = false;
-
-    if constexpr (std::is_same<request_t, nullptr_t>::value) {
-        request_size = 0;
-        request_ptr = nullptr;
-    } else if constexpr (std::is_same<request_t, ebpf_protocol_buffer_t>::value) {
-        request_size = static_cast<uint32_t>(request.size());
-        request_ptr = request.data();
-    } else {
-        request_size = sizeof(request);
-        request_ptr = &request;
-    }
-
-    if constexpr (std::is_same<reply_t, nullptr_t>::value) {
-        reply_size = 0;
-        reply_ptr = nullptr;
-    } else if constexpr (std::is_same<reply_t, ebpf_protocol_buffer_t>::value) {
-        reply_size = static_cast<uint32_t>(reply.size());
-        reply_ptr = reply.data();
-        variable_reply_size = true;
-    } else if constexpr (std::is_same<reply_t, empty_reply>::value) {
-        reply_size = 0;
-        reply_ptr = nullptr;
-    } else {
-        reply_size = static_cast<uint32_t>(sizeof(reply));
-        reply_ptr = &reply;
-    }
-
-    auto result = Platform::DeviceIoControl(
-        handle,
-        IOCTL_EBPFCTL_METHOD_BUFFERED,
-        request_ptr,
-        request_size,
-        reply_ptr,
-        reply_size,
-        &actual_reply_size,
-        nullptr);
-
-    if (!result) {
-        return GetLastError();
-    }
-
-    if (actual_reply_size != reply_size && !variable_reply_size) {
-        return ERROR_INVALID_PARAMETER;
-    }
-
-    return ERROR_SUCCESS;
-}
+// ebpf_handle_t device_handle = INVALID_HANDLE_VALUE;
 
 uint32_t
 ebpf_api_initiate()
@@ -322,38 +250,6 @@ _create_program(
         return retval;
     }
     *program_handle = reinterpret_cast<ebpf_handle_t>(reply.program_handle);
-    return retval;
-}
-
-uint32_t
-get_program_information_data(ebpf_program_type_t program_type, ebpf_extension_data_t** program_information_data)
-{
-    ebpf_protocol_buffer_t reply_buffer(1024);
-    ebpf_operation_get_program_information_request_t request{
-        sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_GET_PROGRAM_INFORMATION, program_type};
-
-    auto reply = reinterpret_cast<ebpf_operation_get_program_information_reply_t*>(reply_buffer.data());
-    uint32_t retval = invoke_ioctl(device_handle, request, reply_buffer);
-    if (retval != ERROR_SUCCESS) {
-        return retval;
-    }
-
-    if (reply->header.id != ebpf_operation_id_t::EBPF_OPERATION_GET_PROGRAM_INFORMATION) {
-        return ERROR_INVALID_PARAMETER;
-    }
-
-    size_t allocation_size =
-        reply->header.length - EBPF_OFFSET_OF(ebpf_operation_get_program_information_reply_t, version);
-
-    *program_information_data = (ebpf_extension_data_t*)malloc(allocation_size);
-    if (!*program_information_data)
-        return ERROR_OUTOFMEMORY;
-
-    memcpy(
-        *program_information_data,
-        reply_buffer.data() + EBPF_OFFSET_OF(ebpf_operation_get_program_information_reply_t, version),
-        allocation_size);
-
     return retval;
 }
 

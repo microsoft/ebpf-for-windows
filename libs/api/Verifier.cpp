@@ -1,7 +1,5 @@
-/*
- *  Copyright (c) Microsoft Corporation
- *  SPDX-License-Identifier: MIT
- */
+// Copyright (c) Microsoft Corporation
+// SPDX-License-Identifier: MIT
 
 #include <filesystem>
 #include <iostream>
@@ -159,63 +157,7 @@ ebpf_api_elf_disassemble_section(
     return 0;
 }
 
-struct guid_compare
-{
-    bool
-    operator()(const GUID& a, const GUID& b) const
-    {
-        return (memcmp(&a, &b, sizeof(GUID)) < 0);
-    }
-};
-
-thread_local std::map<GUID, ebpf_helper::ebpf_memory_ptr, guid_compare> g_program_information_cache;
-
-ebpf_result_t
-get_program_type_info(const ebpf_program_information_t** info)
-{
-    const GUID* program_type = reinterpret_cast<const GUID*>(global_program_info.type.platform_specific_data);
-    ebpf_result_t result;
-    ebpf_program_information_t* program_information;
-    const uint8_t* encoded_data = nullptr;
-    size_t encoded_data_size = 0;
-
-    // See if we already have the program information cached.
-    auto it = g_program_information_cache.find(*program_type);
-    if (it == g_program_information_cache.end()) {
-        // Try to query the information from the execution context.
-        ebpf_extension_data_t* program_information_data;
-        uint32_t error = get_program_information_data(*program_type, &program_information_data);
-        if (error == ERROR_SUCCESS) {
-            encoded_data = program_information_data->data;
-            encoded_data_size = program_information_data->size;
-        } else {
-            // Fall back to using static data so that verification can be tried
-            // (e.g., from a netsh command) even if the execution context isn't running.
-            // TODO: remove this in the future.
-            if (memcmp(program_type, &EBPF_PROGRAM_TYPE_XDP, sizeof(*program_type)) == 0) {
-                encoded_data = _ebpf_encoded_xdp_program_information_data;
-                encoded_data_size = sizeof(_ebpf_encoded_xdp_program_information_data);
-            } else if (memcmp(program_type, &EBPF_ATTACH_TYPE_BIND, sizeof(*program_type)) == 0) {
-                encoded_data = _ebpf_encoded_bind_program_information_data;
-                encoded_data_size = sizeof(_ebpf_encoded_bind_program_information_data);
-            }
-        }
-        if (encoded_data == nullptr) {
-            return EBPF_INVALID_ARGUMENT;
-        }
-
-        result = ebpf_program_information_decode(&program_information, encoded_data, (unsigned long)encoded_data_size);
-        if (result != EBPF_SUCCESS) {
-            return result;
-        }
-
-        g_program_information_cache[*program_type] = ebpf_helper::ebpf_memory_ptr(program_information);
-    }
-
-    *info = (const ebpf_program_information_t*)g_program_information_cache[*program_type].get();
-
-    return EBPF_SUCCESS;
-}
+// thread_local std::map<GUID, ebpf_helper::ebpf_memory_ptr, guid_compare> g_program_information_cache;
 
 uint32_t
 ebpf_api_elf_verify_section(
