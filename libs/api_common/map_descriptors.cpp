@@ -4,11 +4,7 @@
 #include <vector>
 #include "api_common.hpp"
 
-// TODO: This needs to use thread local storage instead of global map
-// descriptors for storing state. The thread-local storage has been fixed
-// in verifier code as a fix for the following issue:
-// https://github.com/vbpf/ebpf-verifier/issues/113
-static std::vector<map_cache_t> _map_file_descriptors;
+thread_local static std::vector<map_cache_t> _map_file_descriptors;
 
 void
 cache_map_file_descriptors(const EbpfMapDescriptor* map_descriptors, uint32_t map_descriptors_count)
