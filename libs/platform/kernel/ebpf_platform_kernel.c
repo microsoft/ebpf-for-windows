@@ -58,7 +58,7 @@ ebpf_map_memory(size_t length)
         MmAllocatePagesForMdlEx(start_address, end_address, page_size, length, MmCached, MM_ALLOCATE_FULLY_REQUIRED);
 
     if (memory_descriptor_list) {
-        MmProbeAndLockPages(memory_descriptor_list, KernelMode, IoWriteAccess);
+        MmMapLockedPagesSpecifyCache(memory_descriptor_list, KernelMode, MmCached, NULL, FALSE, NormalPagePriority);
     }
     return (ebpf_memory_descriptor_t*)memory_descriptor_list;
 }
