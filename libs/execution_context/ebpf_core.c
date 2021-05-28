@@ -111,9 +111,10 @@ ebpf_core_terminate()
 
     ebpf_pinning_table_free(_ebpf_core_map_pinning_table);
 
-    ebpf_object_tracking_terminate();
-
+    ebpf_epoch_flush();
     ebpf_epoch_terminate();
+
+    ebpf_object_tracking_terminate();
 
     ebpf_platform_terminate();
 }
