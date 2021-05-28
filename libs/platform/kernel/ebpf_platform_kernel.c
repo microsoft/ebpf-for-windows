@@ -356,22 +356,19 @@ ebpf_free_timer_work_item(ebpf_timer_work_item_t* work_item)
 int32_t
 ebpf_log_function(void* context, const char* format_string, ...)
 {
-     UNREFERENCED_PARAMETER(context);
-    UNREFERENCED_PARAMETER(format_string);
+    UNREFERENCED_PARAMETER(context);
 
-    //NTSTATUS status;
-    //char buffer[80];
-    //va_list arg_start;
-    //va_start(arg_start, format_string);
+    NTSTATUS status;
+    char buffer[80];
+    va_list arg_start;
+    va_start(arg_start, format_string);
 
-    //UNREFERENCED_PARAMETER(context);
+    status = RtlStringCchVPrintfA(buffer, sizeof(buffer), format_string, arg_start);
+    if (NT_SUCCESS(status)) {
+        KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "eBPF: context: %s\n", buffer));
+    }
 
-    //status = RtlStringCchVPrintfA(buffer, sizeof(buffer), format_string, arg_start);
-    //if (!NT_SUCCESS(status)) {
-    //    KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "eBPF: context: %s\n", buffer));
-    //}
-
-    //va_end(arg_start);
+    va_end(arg_start);
     return 0;
 }
 
