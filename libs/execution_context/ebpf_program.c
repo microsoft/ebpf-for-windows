@@ -189,7 +189,7 @@ ebpf_program_create(ebpf_program_t** program)
     memset(local_program, 0, sizeof(ebpf_program_t));
 
     local_program->cleanup_work_item = ebpf_epoch_allocate_work_item(local_program, _ebpf_program_epoch_free);
-    if (!local_program) {
+    if (!local_program->cleanup_work_item) {
         retval = EBPF_NO_MEMORY;
         goto Done;
     }
