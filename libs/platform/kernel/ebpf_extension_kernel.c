@@ -176,6 +176,7 @@ ebpf_extension_load(
 
     if (!local_client_context->provider_is_attached) {
         ebpf_extension_unload(local_client_context);
+        local_client_context = NULL;
         return_value = EBPF_ERROR_EXTENSION_FAILED_TO_LOAD;
         goto Done;
     }

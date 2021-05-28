@@ -85,7 +85,7 @@ _ebpf_program_program_information_provider_changed(
  * @brief Free invoked by ebpf_object_t reference tracking. This schedules the
  * final delete of the ebpf_program_t once the current epoch ends.
  *
- * @param object Pointer to ebpf_object_t whose ref-count reached zero.
+ * @param[in] object Pointer to ebpf_object_t whose ref-count reached zero.
  */
 static void
 _ebpf_program_free(ebpf_object_t* object)
@@ -101,7 +101,7 @@ _ebpf_program_free(ebpf_object_t* object)
  * @brief Free invoked when the current epoch ends. Scheduled by
  * _ebpf_program_free.
  *
- * @param context Pointer to the ebpf_program_t passed as context in the
+ * @param[in] context Pointer to the ebpf_program_t passed as context in the
  * work-item.
  */
 static void
@@ -132,6 +132,7 @@ _ebpf_program_epoch_free(void* context)
 
     ebpf_free(program->maps);
 
+    ebpf_free(program->cleanup_work_item);
     ebpf_free(program);
 }
 

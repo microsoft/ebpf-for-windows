@@ -69,7 +69,8 @@ ebpf_unmap_memory(ebpf_memory_descriptor_t* memory_descriptor)
     if (!memory_descriptor)
         return;
 
-    MmUnlockPages(&memory_descriptor->memory_descriptor_list);
+    MmUnmapLockedPages(
+        ebpf_memory_descriptor_get_base_address(memory_descriptor), &memory_descriptor->memory_descriptor_list);
     MmFreePagesFromMdl(&memory_descriptor->memory_descriptor_list);
     ExFreePool(memory_descriptor);
 }
