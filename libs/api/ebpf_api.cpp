@@ -767,7 +767,7 @@ ebpf_api_map_query_definition(
 
 uint32_t
 ebpf_api_program_query_information(
-    ebpf_handle_t handle, ebpf_execution_type_t* program_type, const char** file_name, const char** section_name)
+    ebpf_handle_t handle, ebpf_execution_type_t* execution_type, const char** file_name, const char** section_name)
 {
     ebpf_protocol_buffer_t reply_buffer(1024);
     _ebpf_operation_query_program_information_request request{
@@ -799,7 +799,7 @@ ebpf_api_program_query_information(
     local_file_name[file_name_length] = '\0';
     local_section_name[section_name_length] = '\0';
 
-    *program_type = reply->code_type == EBPF_CODE_NATIVE ? EBPF_EXECUTION_JIT : EBPF_EXECUTION_INTERPRET;
+    *execution_type = reply->code_type == EBPF_CODE_NATIVE ? EBPF_EXECUTION_JIT : EBPF_EXECUTION_INTERPRET;
     *file_name = local_file_name;
     *section_name = local_section_name;
 
