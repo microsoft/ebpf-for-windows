@@ -124,6 +124,59 @@ extern "C"
     void
     ebpf_free(void* memory);
 
+    typedef enum _ebpf_page_protection
+    {
+        EBPF_PAGE_PROTECT_READ_ONLY,
+        EBPF_PAGE_PROTECT_READ_WRITE,
+        EBPF_PAGE_PROTECT_READ_EXECUTE,
+    } ebpf_page_protection_t;
+
+    typedef struct _ebpf_memory_descriptor ebpf_memory_descriptor_t;
+
+    /**
+     * @brief Allocate pages from physical memory and create a mapping into the
+     * system address space.
+     *
+     * @param[in] length Size of memory to allocate (internally this gets rounded
+     * up to a page boundary).
+     * @return Pointer to an ebpf_memory_descriptor_t on success, NULL on failure.
+     */
+    ebpf_memory_descriptor_t*
+    ebpf_map_memory(size_t length);
+
+    /**
+     * @brief Release physical memory previously allocated via ebpf_map_memory.
+     *
+     * @param[in] memory_descriptor Pointer to ebpf_memory_descriptor_t describing
+     * allocated pages.
+     */
+    void
+    ebpf_unmap_memory(ebpf_memory_descriptor_t* memory_descriptor);
+
+    /**
+     * @brief Change the page protection on memory allocated via
+     * ebpf_map_memory.
+     *
+     * @param[in] memory_descriptor Pointer to an ebpf_memory_descriptor_t
+     * describing allocated pages.
+     * @param[in] protection The new page protection to apply.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INVALID_ARGUMENT An invalid argument was supplied.
+     */
+    ebpf_result_t
+    ebpf_protect_memory(const ebpf_memory_descriptor_t* memory_descriptor, ebpf_page_protection_t protection);
+
+    /**
+     * @brief Given an ebpf_memory_descriptor_t allocated via ebpf_map_memory
+     * obtain the base virtual address.
+     *
+     * @param[in] memory_descriptor Pointer to an ebpf_memory_descriptor_t
+     * describing allocated pages.
+     * @return Base virtual address of pages that have been allocated.
+     */
+    void*
+    ebpf_memory_descriptor_get_base_address(ebpf_memory_descriptor_t* memory_descriptor);
+
     /**
      * @brief Allocate and copy a UTF-8 string.
      *

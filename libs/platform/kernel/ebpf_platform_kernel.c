@@ -10,6 +10,11 @@
 
 #include <ntstrsafe.h>
 
+typedef struct _ebpf_memory_descriptor
+{
+    MDL memory_descriptor_list;
+} ebpf_memory_descriptor_t;
+
 typedef enum _ebpf_pool_tag
 {
     EBPF_POOL_TAG = 'fpbe'
@@ -37,6 +42,69 @@ ebpf_free(void* memory)
 {
     if (memory)
         ExFreePool(memory);
+}
+
+ebpf_memory_descriptor_t*
+ebpf_map_memory(size_t length)
+{
+    MDL* memory_descriptor_list = NULL;
+    PHYSICAL_ADDRESS start_address;
+    PHYSICAL_ADDRESS end_address;
+    PHYSICAL_ADDRESS page_size;
+    start_address.QuadPart = 0;
+    end_address.QuadPart = -1;
+    page_size.QuadPart = PAGE_SIZE;
+    memory_descriptor_list =
+        MmAllocatePagesForMdlEx(start_address, end_address, page_size, length, MmCached, MM_ALLOCATE_FULLY_REQUIRED);
+
+    if (memory_descriptor_list) {
+        MmMapLockedPagesSpecifyCache(memory_descriptor_list, KernelMode, MmCached, NULL, FALSE, NormalPagePriority);
+    }
+    return (ebpf_memory_descriptor_t*)memory_descriptor_list;
+}
+
+void
+ebpf_unmap_memory(ebpf_memory_descriptor_t* memory_descriptor)
+{
+    if (!memory_descriptor)
+        return;
+
+    MmUnmapLockedPages(
+        ebpf_memory_descriptor_get_base_address(memory_descriptor), &memory_descriptor->memory_descriptor_list);
+    MmFreePagesFromMdl(&memory_descriptor->memory_descriptor_list);
+    ExFreePool(memory_descriptor);
+}
+
+ebpf_result_t
+ebpf_protect_memory(const ebpf_memory_descriptor_t* memory_descriptor, ebpf_page_protection_t protection)
+{
+    NTSTATUS status;
+    ULONG mm_protection_state = 0;
+    switch (protection) {
+    case EBPF_PAGE_PROTECT_READ_ONLY:
+        mm_protection_state = PAGE_READONLY;
+        break;
+    case EBPF_PAGE_PROTECT_READ_WRITE:
+        mm_protection_state = PAGE_READWRITE;
+        break;
+    case EBPF_PAGE_PROTECT_READ_EXECUTE:
+        mm_protection_state = PAGE_EXECUTE_READ;
+        break;
+    default:
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    status = MmProtectMdlSystemAddress((MDL*)&memory_descriptor->memory_descriptor_list, mm_protection_state);
+    if (!NT_SUCCESS(status))
+        return EBPF_INVALID_ARGUMENT;
+
+    return EBPF_SUCCESS;
+}
+
+void*
+ebpf_memory_descriptor_get_base_address(ebpf_memory_descriptor_t* memory_descriptor)
+{
+    return MmGetSystemAddressForMdlSafe(&memory_descriptor->memory_descriptor_list, NormalPagePriority);
 }
 
 // There isn't an official API to query this information from kernel.
@@ -289,15 +357,15 @@ ebpf_free_timer_work_item(ebpf_timer_work_item_t* work_item)
 int32_t
 ebpf_log_function(void* context, const char* format_string, ...)
 {
+    UNREFERENCED_PARAMETER(context);
+
     NTSTATUS status;
     char buffer[80];
     va_list arg_start;
     va_start(arg_start, format_string);
 
-    UNREFERENCED_PARAMETER(context);
-
     status = RtlStringCchVPrintfA(buffer, sizeof(buffer), format_string, arg_start);
-    if (!NT_SUCCESS(status)) {
+    if (NT_SUCCESS(status)) {
         KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "eBPF: context: %s\n", buffer));
     }
 

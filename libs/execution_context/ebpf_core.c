@@ -33,10 +33,11 @@ _ebpf_core_map_update_element(ebpf_map_t* map, const uint8_t* key, const uint8_t
 static void
 _ebpf_core_map_delete_element(ebpf_map_t* map, const uint8_t* key);
 
-static const void* _ebpf_program_helpers[] = {NULL,
-                                              (void*)&_ebpf_core_map_find_element,
-                                              (void*)&_ebpf_core_map_update_element,
-                                              (void*)&_ebpf_core_map_delete_element};
+static const void* _ebpf_program_helpers[] = {
+    NULL,
+    (void*)&_ebpf_core_map_find_element,
+    (void*)&_ebpf_core_map_update_element,
+    (void*)&_ebpf_core_map_delete_element};
 
 ebpf_result_t
 ebpf_core_initiate()
@@ -111,9 +112,13 @@ ebpf_core_terminate()
 
     ebpf_pinning_table_free(_ebpf_core_map_pinning_table);
 
-    ebpf_object_tracking_terminate();
-
+    // Shutdown the epoch tracker and free any remaining memory or work items.
+    // Note: Some objects may only be released on epoch termination.
+    ebpf_epoch_flush();
     ebpf_epoch_terminate();
+
+    // Verify that all ebf_object_t objects have been freed.
+    ebpf_object_tracking_terminate();
 
     ebpf_platform_terminate();
 }
@@ -572,9 +577,9 @@ static ebpf_result_t
 _ebpf_core_protocol_update_pinning(_In_ const struct _ebpf_operation_update_map_pinning_request* request)
 {
     ebpf_result_t retval;
-    const ebpf_utf8_string_t name = {(uint8_t*)request->name,
-                                     request->header.length -
-                                         EBPF_OFFSET_OF(ebpf_operation_update_pinning_request_t, name)};
+    const ebpf_utf8_string_t name = {
+        (uint8_t*)request->name,
+        request->header.length - EBPF_OFFSET_OF(ebpf_operation_update_pinning_request_t, name)};
     ebpf_object_t* object = NULL;
 
     if (name.length == 0) {

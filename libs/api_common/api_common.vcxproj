@@ -178,6 +178,7 @@
     <ClInclude Include="map_descriptors.hpp" />
     <ClInclude Include="api_common.hpp" />
     <ClInclude Include="tlv.h" />
+    <ClInclude Include="windows_helpers.hpp" />
     <ClInclude Include="windows_platform_common.hpp" />
   </ItemGroup>
   <ItemGroup>
