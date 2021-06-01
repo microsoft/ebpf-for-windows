@@ -160,13 +160,13 @@ extern "C"
     /**
      * @brief Query information about an eBPF program.
      * @param[in] handle Handle to an eBPF program.
-     * @param[out] program_type On success, contains the program type.
+     * @param[out] execution_type On success, contains the execution type.
      * @param[out] file_name On success, contains the file name.
      * @param[out] section_name On success, contains the section name.
      */
     uint32_t
     ebpf_api_program_query_information(
-        ebpf_handle_t handle, ebpf_execution_type_t* program_type, const char** file_name, const char** section_name);
+        ebpf_handle_t handle, ebpf_execution_type_t* execution_type, const char** file_name, const char** section_name);
 
     /**
      * @brief Get list of programs and stats in an ELF eBPF file.
