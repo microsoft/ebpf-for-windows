@@ -130,9 +130,9 @@ Functions</h2></td></tr>
 <tr class="memitem:ad381b4c9eb7c4487d57b63334561e671"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#ad381b4c9eb7c4487d57b63334561e671">ebpf_api_map_query_definition</a> (<a class="el" href="ebpf__api_8h.html#a730fd530617bad8bccf98e29452b4d55">ebpf_handle_t</a> handle, uint32_t *size, uint32_t *type, uint32_t *key_size, uint32_t *value_size, uint32_t *max_entries)</td></tr>
 <tr class="memdesc:ad381b4c9eb7c4487d57b63334561e671"><td class="mdescLeft">&#160;</td><td class="mdescRight">Query properties of an eBPF map.  <a href="ebpf__api_8h.html#ad381b4c9eb7c4487d57b63334561e671">More...</a><br /></td></tr>
 <tr class="separator:ad381b4c9eb7c4487d57b63334561e671"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a1f1a15c23ec9a76d0ea118d4cb683f60"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a1f1a15c23ec9a76d0ea118d4cb683f60">ebpf_api_program_query_information</a> (<a class="el" href="ebpf__api_8h.html#a730fd530617bad8bccf98e29452b4d55">ebpf_handle_t</a> handle, <a class="el" href="ebpf__api_8h.html#af58bcede64968a095964be4e78998658">ebpf_execution_type_t</a> *program_type, const char **file_name, const char **section_name)</td></tr>
-<tr class="memdesc:a1f1a15c23ec9a76d0ea118d4cb683f60"><td class="mdescLeft">&#160;</td><td class="mdescRight">Query information about an eBPF program.  <a href="ebpf__api_8h.html#a1f1a15c23ec9a76d0ea118d4cb683f60">More...</a><br /></td></tr>
-<tr class="separator:a1f1a15c23ec9a76d0ea118d4cb683f60"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9b7a6c4039e5955bd0ec8e270915e019"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a9b7a6c4039e5955bd0ec8e270915e019">ebpf_api_program_query_information</a> (<a class="el" href="ebpf__api_8h.html#a730fd530617bad8bccf98e29452b4d55">ebpf_handle_t</a> handle, <a class="el" href="ebpf__api_8h.html#af58bcede64968a095964be4e78998658">ebpf_execution_type_t</a> *execution_type, const char **file_name, const char **section_name)</td></tr>
+<tr class="memdesc:a9b7a6c4039e5955bd0ec8e270915e019"><td class="mdescLeft">&#160;</td><td class="mdescRight">Query information about an eBPF program.  <a href="ebpf__api_8h.html#a9b7a6c4039e5955bd0ec8e270915e019">More...</a><br /></td></tr>
+<tr class="separator:a9b7a6c4039e5955bd0ec8e270915e019"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a121da5428db28e72b9cee7f22b94a3df"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a121da5428db28e72b9cee7f22b94a3df">ebpf_api_elf_enumerate_sections</a> (const char *file, const char *section, bool verbose, const <a class="el" href="ebpf__api_8h.html#a2f716f8d7c1f8c5f04be07e15fd421d3">tlv_type_length_value_t</a> **data, const char **error_message)</td></tr>
 <tr class="memdesc:a121da5428db28e72b9cee7f22b94a3df"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get list of programs and stats in an ELF eBPF file.  <a href="ebpf__api_8h.html#a121da5428db28e72b9cee7f22b94a3df">More...</a><br /></td></tr>
 <tr class="separator:a121da5428db28e72b9cee7f22b94a3df"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -1108,8 +1108,8 @@ Variables</h2></td></tr>
 
 </div>
 </div>
-<a id="a1f1a15c23ec9a76d0ea118d4cb683f60"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a1f1a15c23ec9a76d0ea118d4cb683f60">&#9670;&nbsp;</a></span>ebpf_api_program_query_information()</h2>
+<a id="a9b7a6c4039e5955bd0ec8e270915e019"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a9b7a6c4039e5955bd0ec8e270915e019">&#9670;&nbsp;</a></span>ebpf_api_program_query_information()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1124,7 +1124,7 @@ Variables</h2></td></tr>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype"><a class="el" href="ebpf__api_8h.html#af58bcede64968a095964be4e78998658">ebpf_execution_type_t</a> *&#160;</td>
-          <td class="paramname"><em>program_type</em>, </td>
+          <td class="paramname"><em>execution_type</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
@@ -1150,7 +1150,7 @@ Variables</h2></td></tr>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">handle</td><td>Handle to an eBPF program. </td></tr>
-    <tr><td class="paramdir">[out]</td><td class="paramname">program_type</td><td>On success, contains the program type. </td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">execution_type</td><td>On success, contains the execution type. </td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">file_name</td><td>On success, contains the file name. </td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">section_name</td><td>On success, contains the section name. </td></tr>
   </table>
