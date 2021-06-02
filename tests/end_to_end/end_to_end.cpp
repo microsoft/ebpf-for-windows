@@ -401,11 +401,12 @@ TEST_CASE("verify section", "[verify section]")
     const char* report = nullptr;
     uint32_t result;
 
-    REQUIRE(
-        (result = ebpf_api_elf_verify_section(SAMPLE_PATH "droppacket.o", "xdp", false, &report, &error_message),
-         ebpf_api_free_string(error_message),
-         error_message = nullptr,
-         result == 0));
+    ebpf_api_verifier_stats_t stats;
+    REQUIRE((
+        result = ebpf_api_elf_verify_section(SAMPLE_PATH "droppacket.o", "xdp", false, &report, &error_message, &stats),
+        ebpf_api_free_string(error_message),
+        error_message = nullptr,
+        result == 0));
     REQUIRE(report != nullptr);
     ebpf_api_free_string(report);
 }

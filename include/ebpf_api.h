@@ -216,6 +216,13 @@ extern "C"
     ebpf_api_elf_disassemble_section(
         const char* file, const char* section, const char** disassembly, const char** error_message);
 
+    typedef struct
+    {
+        int total_unreachable;
+        int total_warnings;
+        int max_instruction_count;
+    } ebpf_api_verifier_stats_t;
+
     /**
      * @brief Convert an eBPF program to human readable byte code.
      * @param[in] file Name of ELF file containing eBPF program.
@@ -225,10 +232,16 @@ extern "C"
      *  failed verification.
      * @param[out] error_message On failure points to a text description of
      *  the error.
+     * @param[out] stats If non-NULL, returns verification statistics.
      */
     uint32_t
     ebpf_api_elf_verify_section(
-        const char* file, const char* section, bool verbose, const char** report, const char** error_message);
+        const char* file,
+        const char* section,
+        bool verbose,
+        const char** report,
+        const char** error_message,
+        ebpf_api_verifier_stats_t* stats);
 
     /**
      * @brief Free a TLV returned from ebpf_api_elf_enumerate_sections
