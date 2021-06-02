@@ -287,6 +287,7 @@ divide_by_zero_test(ebpf_execution_type_t execution_type)
     xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
 
     REQUIRE(hook.fire(&ctx, &result) == EBPF_SUCCESS);
+    // uBPF returns -1 when the program hits a divide by zero error.
     REQUIRE(result == -1);
 
     hook.detach();
