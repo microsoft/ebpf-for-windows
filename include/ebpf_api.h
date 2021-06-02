@@ -160,13 +160,13 @@ extern "C"
     /**
      * @brief Query information about an eBPF program.
      * @param[in] handle Handle to an eBPF program.
-     * @param[out] program_type On success, contains the program type.
+     * @param[out] execution_type On success, contains the execution type.
      * @param[out] file_name On success, contains the file name.
      * @param[out] section_name On success, contains the section name.
      */
     uint32_t
     ebpf_api_program_query_information(
-        ebpf_handle_t handle, ebpf_execution_type_t* program_type, const char** file_name, const char** section_name);
+        ebpf_handle_t handle, ebpf_execution_type_t* execution_type, const char** file_name, const char** section_name);
 
     /**
      * @brief Get list of programs and stats in an ELF eBPF file.
@@ -216,6 +216,13 @@ extern "C"
     ebpf_api_elf_disassemble_section(
         const char* file, const char* section, const char** disassembly, const char** error_message);
 
+    typedef struct
+    {
+        int total_unreachable;
+        int total_warnings;
+        int max_instruction_count;
+    } ebpf_api_verifier_stats_t;
+
     /**
      * @brief Convert an eBPF program to human readable byte code.
      * @param[in] file Name of ELF file containing eBPF program.
@@ -225,10 +232,16 @@ extern "C"
      *  failed verification.
      * @param[out] error_message On failure points to a text description of
      *  the error.
+     * @param[out] stats If non-NULL, returns verification statistics.
      */
     uint32_t
     ebpf_api_elf_verify_section(
-        const char* file, const char* section, bool verbose, const char** report, const char** error_message);
+        const char* file,
+        const char* section,
+        bool verbose,
+        const char** report,
+        const char** error_message,
+        ebpf_api_verifier_stats_t* stats);
 
     /**
      * @brief Free a TLV returned from ebpf_api_elf_enumerate_sections

@@ -238,11 +238,13 @@ handle_ebpf_show_verification(
 
     const char* report;
     const char* error_message;
+    ebpf_api_verifier_stats_t stats;
 
-    status =
-        ebpf_api_elf_verify_section(filename.c_str(), section.c_str(), level == VL_VERBOSE, &report, &error_message);
+    status = ebpf_api_elf_verify_section(
+        filename.c_str(), section.c_str(), level == VL_VERBOSE, &report, &error_message, &stats);
     if (status == ERROR_SUCCESS) {
         std::cout << report;
+        std::cout << "\nProgram terminates within " << stats.max_instruction_count << " instructions\n";
         return NO_ERROR;
     } else {
         if (error_message) {

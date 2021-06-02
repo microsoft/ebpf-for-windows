@@ -55,9 +55,9 @@ BEGIN
     HLP_EBPF_ADD_PROGRAM    "Loads an eBPF program.\n"
     HLP_EBPF_ADD_PROGRAM_EX "\
 \nUsage: %1!s! [filename=]<string>\
-\n                   [[section=]<string>]\
+\n                   [section=]<string>\
 \n                   [[type=]xdp]\
-\n                   [[pinned=]yes|no]\
+\n                   [[pinned=]<string>]\
 \n                   [[execution=]jit|interpret]\
 \n\
 \nParameters:\
@@ -65,16 +65,12 @@ BEGIN
 \n      Tag         Value\
 \n      filename  - Filename or path to ELF file containing the\
 \n                  program.\
-\n      section   - Optionally the name of the section containing the\
-\n                  program.  If not specified, the default is to use the\
-\n                  first code section.\
+\n      section   - The name of the section containing the program.\
 \n      type      - One of the following values:\
 \n                   xdp: The program is meant to hook into XDP.\
 \n                        This is the default value.\
-\n      pinned    - One of the following values:\
-\n                   yes: Pin the program.\
-\n                        This is the default value.\
-\n                   no: Do not pin the program.\
+\n      pinned    - Optionally the name to pin the program to.  If not\
+\n                  specified, the default is to not pin the program.\
 \n      execution - One of the following values:\
 \n                   jit: Convert the program to machine code.\
 \n                   interpret: Run the program as byte code.\
@@ -109,7 +105,7 @@ BEGIN
     HLP_EBPF_SET_PROGRAM_EX "\
 \nUsage: %1!s! [filename=]<string>\
 \n                   [section=]<string>\
-\n                   [pinned=]yes|no\
+\n                   [[pinned=]<string>]\
 \n\
 \nParameters:\
 \n\
@@ -119,9 +115,8 @@ BEGIN
 \n                  the filename is used as an identifier to match\
 \n                  a pinned program.\
 \n      section   - The name of the section containing the program.\
-\n      pinned    - One of the following values:\
-\n                   yes: Pin the program.\
-\n                   no: Unpin the program.\
+\n      pinned    - The name to pin the program to, or if not\
+\n                  specified or empty, unpin the program.\
 \n\
 \nRemarks: Pins or unpins the specified program which must already\
 \n         be loaded.\

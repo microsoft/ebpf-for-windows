@@ -32,14 +32,15 @@ analyze(raw_program& raw_prog, const char** error_message, uint32_t* error_messa
 
     // First try optimized for the success case.
     ebpf_verifier_options_t options = ebpf_verifier_default_options;
+    ebpf_verifier_stats_t stats;
     options.check_termination = true;
-    bool res = ebpf_verify_program(std::cout, prog, raw_prog.info, &options);
+    bool res = ebpf_verify_program(std::cout, prog, raw_prog.info, &options, &stats);
     if (!res) {
         // On failure, retry to get the more detailed error message.
         std::ostringstream oss;
         options.no_simplify = true;
         options.print_failures = true;
-        (void)ebpf_verify_program(oss, prog, raw_prog.info, &options);
+        (void)ebpf_verify_program(oss, prog, raw_prog.info, &options, &stats);
 
         *error_message = allocate_error_string(oss.str(), error_message_size);
         return 1; // Error;

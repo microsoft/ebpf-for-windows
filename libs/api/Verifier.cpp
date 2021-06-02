@@ -159,7 +159,12 @@ ebpf_api_elf_disassemble_section(
 
 uint32_t
 ebpf_api_elf_verify_section(
-    const char* file, const char* section, bool verbose, const char** report, const char** error_message)
+    const char* file,
+    const char* section,
+    bool verbose,
+    const char** report,
+    const char** error_message,
+    ebpf_api_verifier_stats_t* stats)
 {
     std::ostringstream error;
 
@@ -183,9 +188,9 @@ ebpf_api_elf_verify_section(
         }
         auto& program = std::get<InstructionSeq>(programOrError);
 
-        // Try again without simplifying.
         verifier_options.no_simplify = true;
-        bool res = ebpf_verify_program(output, program, raw_program.info, &verifier_options);
+        bool res =
+            ebpf_verify_program(output, program, raw_program.info, &verifier_options, (ebpf_verifier_stats_t*)stats);
         if (!res) {
             error << "Verification failed";
             *error_message = allocate_error_string(error.str());
