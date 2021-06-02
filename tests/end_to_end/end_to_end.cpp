@@ -297,7 +297,6 @@ typedef struct _process_entry
 {
     uint32_t count;
     uint8_t name[64];
-    uint64_t appid_length;
 } process_entry_t;
 
 uint32_t
@@ -617,7 +616,7 @@ TEST_CASE("enumerate_and_query_maps", "[enumerate_and_query_maps]")
     for (size_t index = 0; index < _countof(map_handles); index++) {
         REQUIRE(
             ebpf_api_map_query_definition(
-                map_handles[0],
+                map_handles[index],
                 &map_definitions[index].size,
                 &map_definitions[index].type,
                 &map_definitions[index].key_size,
