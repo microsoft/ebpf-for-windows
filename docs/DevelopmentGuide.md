@@ -26,6 +26,9 @@ Coding Conventions
   "min", "max", "args").  Examples of bad use would be `num_widgets` instead of
   `widget_count`, and `opt_widgets` instead of `option_widgets` or `optional_widgets`.
 
+* **DON'T** use hard-coded magic numbers for things that have to be consistent
+  between different files.  Instead use a `#define` or an enum or const value, as appropriate.
+
 * **DON'T** use the same C function name with two different prototypes across
   the project where possible.
 

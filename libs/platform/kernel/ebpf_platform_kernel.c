@@ -58,7 +58,7 @@ ebpf_map_memory(size_t length)
         MmAllocatePagesForMdlEx(start_address, end_address, page_size, length, MmCached, MM_ALLOCATE_FULLY_REQUIRED);
 
     if (memory_descriptor_list) {
-        MmProbeAndLockPages(memory_descriptor_list, KernelMode, IoWriteAccess);
+        MmMapLockedPagesSpecifyCache(memory_descriptor_list, KernelMode, MmCached, NULL, FALSE, NormalPagePriority);
     }
     return (ebpf_memory_descriptor_t*)memory_descriptor_list;
 }
@@ -66,7 +66,11 @@ ebpf_map_memory(size_t length)
 void
 ebpf_unmap_memory(ebpf_memory_descriptor_t* memory_descriptor)
 {
-    MmUnlockPages(&memory_descriptor->memory_descriptor_list);
+    if (!memory_descriptor)
+        return;
+
+    MmUnmapLockedPages(
+        ebpf_memory_descriptor_get_base_address(memory_descriptor), &memory_descriptor->memory_descriptor_list);
     MmFreePagesFromMdl(&memory_descriptor->memory_descriptor_list);
     ExFreePool(memory_descriptor);
 }
@@ -353,15 +357,15 @@ ebpf_free_timer_work_item(ebpf_timer_work_item_t* work_item)
 int32_t
 ebpf_log_function(void* context, const char* format_string, ...)
 {
+    UNREFERENCED_PARAMETER(context);
+
     NTSTATUS status;
     char buffer[80];
     va_list arg_start;
     va_start(arg_start, format_string);
 
-    UNREFERENCED_PARAMETER(context);
-
     status = RtlStringCchVPrintfA(buffer, sizeof(buffer), format_string, arg_start);
-    if (!NT_SUCCESS(status)) {
+    if (NT_SUCCESS(status)) {
         KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "eBPF: context: %s\n", buffer));
     }
 

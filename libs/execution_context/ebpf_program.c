@@ -23,7 +23,11 @@ typedef struct _ebpf_program
     union
     {
         // EBPF_CODE_NATIVE
-        uint8_t* code;
+        struct
+        {
+            ebpf_memory_descriptor_t* code_memory_descriptor;
+            uint8_t* code_pointer;
+        } code;
 
         // EBPF_CODE_EBPF
         struct ubpf_vm* vm;
@@ -44,6 +48,8 @@ typedef struct _ebpf_program
 
     size_t trampoline_entry_count;
     ebpf_trampoline_entry_t* trampoline_entries;
+
+    ebpf_epoch_work_item_t* cleanup_work_item;
 } ebpf_program_t;
 
 static void
@@ -75,22 +81,41 @@ _ebpf_program_program_information_provider_changed(
     program->program_information_data = provider_data;
 }
 
+/**
+ * @brief Free invoked by ebpf_object_t reference tracking. This schedules the
+ * final delete of the ebpf_program_t once the current epoch ends.
+ *
+ * @param[in] object Pointer to ebpf_object_t whose ref-count reached zero.
+ */
 static void
 _ebpf_program_free(ebpf_object_t* object)
 {
-    size_t index;
     ebpf_program_t* program = (ebpf_program_t*)object;
     if (!program)
         return;
 
-    ebpf_epoch_free(program->trampoline_entries);
+    ebpf_epoch_schedule_work_item(program->cleanup_work_item);
+}
+
+/**
+ * @brief Free invoked when the current epoch ends. Scheduled by
+ * _ebpf_program_free.
+ *
+ * @param[in] context Pointer to the ebpf_program_t passed as context in the
+ * work-item.
+ */
+static void
+_ebpf_program_epoch_free(void* context)
+{
+    ebpf_program_t* program = (ebpf_program_t*)context;
+    size_t index;
 
     ebpf_extension_unload(program->global_helper_extension_client);
     ebpf_extension_unload(program->program_information_client);
 
     switch (program->parameters.code_type) {
     case EBPF_CODE_NATIVE:
-        ebpf_epoch_free(program->code_or_vm.code);
+        ebpf_unmap_memory(program->code_or_vm.code.code_memory_descriptor);
         break;
     case EBPF_CODE_EBPF:
         ubpf_destroy(program->code_or_vm.vm);
@@ -107,7 +132,8 @@ _ebpf_program_free(ebpf_object_t* object)
 
     ebpf_free(program->maps);
 
-    ebpf_epoch_free(object);
+    ebpf_free(program->cleanup_work_item);
+    ebpf_free(program);
 }
 
 static ebpf_result_t
@@ -154,13 +180,19 @@ ebpf_program_create(ebpf_program_t** program)
     ebpf_result_t retval;
     ebpf_program_t* local_program;
 
-    local_program = (ebpf_program_t*)ebpf_epoch_allocate(sizeof(ebpf_program_t), EBPF_MEMORY_NO_EXECUTE);
+    local_program = (ebpf_program_t*)ebpf_allocate(sizeof(ebpf_program_t), EBPF_MEMORY_NO_EXECUTE);
     if (!local_program) {
         retval = EBPF_NO_MEMORY;
         goto Done;
     }
 
     memset(local_program, 0, sizeof(ebpf_program_t));
+
+    local_program->cleanup_work_item = ebpf_epoch_allocate_work_item(local_program, _ebpf_program_epoch_free);
+    if (!local_program->cleanup_work_item) {
+        retval = EBPF_NO_MEMORY;
+        goto Done;
+    }
 
     ebpf_object_initialize(&local_program->object, EBPF_OBJECT_PROGRAM, _ebpf_program_free);
 
@@ -170,7 +202,7 @@ ebpf_program_create(ebpf_program_t** program)
 
 Done:
     if (local_program)
-        _ebpf_program_free(&local_program->object);
+        _ebpf_program_epoch_free(local_program);
 
     return retval;
 }
@@ -245,28 +277,36 @@ ebpf_program_load_machine_code(ebpf_program_t* program, uint8_t* machine_code, s
 {
     ebpf_result_t return_value;
     uint8_t* local_machine_code = NULL;
+    ebpf_memory_descriptor_t* local_code_memory_descriptor = NULL;
 
     if (program->parameters.code_type != EBPF_CODE_NONE) {
         return_value = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
 
-    local_machine_code = ebpf_epoch_allocate(machine_code_size, EBPF_MEMORY_EXECUTE);
-    if (!local_machine_code) {
+    local_code_memory_descriptor = ebpf_map_memory(machine_code_size);
+    if (!local_code_memory_descriptor) {
         return_value = EBPF_NO_MEMORY;
         goto Done;
     }
+    local_machine_code = ebpf_memory_descriptor_get_base_address(local_code_memory_descriptor);
 
     memcpy(local_machine_code, machine_code, machine_code_size);
 
+    return_value = ebpf_protect_memory(local_code_memory_descriptor, EBPF_PAGE_PROTECT_READ_EXECUTE);
+    if (return_value != EBPF_SUCCESS) {
+        goto Done;
+    }
+
     program->parameters.code_type = EBPF_CODE_NATIVE;
-    program->code_or_vm.code = local_machine_code;
-    local_machine_code = NULL;
+    program->code_or_vm.code.code_memory_descriptor = local_code_memory_descriptor;
+    program->code_or_vm.code.code_pointer = local_machine_code;
+    local_code_memory_descriptor = NULL;
 
     return_value = EBPF_SUCCESS;
 
 Done:
-    ebpf_epoch_free(local_machine_code);
+    ebpf_unmap_memory(local_code_memory_descriptor);
 
     return return_value;
 }
@@ -344,7 +384,7 @@ ebpf_program_invoke(ebpf_program_t* program, void* context, uint32_t* result)
 
     if (program->parameters.code_type == EBPF_CODE_NATIVE) {
         ebpf_program_entry_point_t function_pointer;
-        function_pointer = (ebpf_program_entry_point_t)(program->code_or_vm.code);
+        function_pointer = (ebpf_program_entry_point_t)(program->code_or_vm.code.code_pointer);
         *result = (function_pointer)(context);
     } else {
         *result = (uint32_t)(ubpf_exec(program->code_or_vm.vm, context, 1024));
