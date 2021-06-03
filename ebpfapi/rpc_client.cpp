@@ -26,19 +26,14 @@ static const WCHAR* _protocol_sequence = L"ncalrpc";
 int
 ebpf_rpc_verify_program(ebpf_program_verify_info* info, const char** logs, uint32_t* logs_size)
 {
-    unsigned long code;
     int result;
 
     RpcTryExcept { result = (int)ebpf_client_verify_program(info, logs_size, const_cast<char**>(logs)); }
     RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
     {
-        code = RpcExceptionCode();
-        printf("ebpf_rpc_verify_program: runtime reported exception 0x%lx = %ld\n", code, code);
-        result = (int)EBPF_FAILED;
+        result = RpcExceptionCode();
     }
     RpcEndExcept
-
-        printf("ebpf_rpc_verify_program: got return code %d from the server\n\n", result);
 
     return result;
 }
@@ -46,15 +41,12 @@ ebpf_rpc_verify_program(ebpf_program_verify_info* info, const char** logs, uint3
 int
 ebpf_rpc_load_program(ebpf_program_load_info* info, const char** logs, uint32_t* logs_size)
 {
-    // unsigned long code;
     int result;
 
     RpcTryExcept { result = (int)ebpf_client_verify_and_load_program(info, logs_size, const_cast<char**>(logs)); }
     RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
     {
         result = RpcExceptionCode();
-        // printf("ebpf_rpc_load_program: runtime reported exception 0x%lx = %ld\n", code, code);
-        // result = (int)EBPF_FAILED;
     }
     RpcEndExcept
 
