@@ -130,6 +130,7 @@
       <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)libs\api;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DefaultCharType>Unsigned</DefaultCharType>
       <AdditionalOptions>/prefix server "ebpf_server_" /prefix client "ebpf_client_" %(AdditionalOptions)</AdditionalOptions>
+      <MinimumTargetSystem>NT100</MinimumTargetSystem>
     </Midl>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">

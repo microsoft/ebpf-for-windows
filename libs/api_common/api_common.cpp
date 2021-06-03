@@ -5,6 +5,9 @@
 #include <string>
 #include <vector>
 #include <Windows.h>
+#include "device_helper.hpp"
+#include "ebpf_protocol.h"
+#include "ebpf_result.h"
 #pragma warning(push)
 #pragma warning(disable : 4100) // 'identifier' : unreferenced formal parameter
 #pragma warning(disable : 4244) // 'conversion' conversion from 'type1' to
@@ -48,4 +51,49 @@ get_file_size(const char* filename, size_t* byte_code_size)
     }
 
     return result;
+}
+
+ebpf_result_t
+windows_error_to_ebpf_result(uint32_t error)
+{
+    switch (error) {
+    case ERROR_SUCCESS:
+        return EBPF_SUCCESS;
+
+    case ERROR_INVALID_HANDLE:
+        return EBPF_ERROR_INVALID_HANDLE;
+
+    case ERROR_FILE_NOT_FOUND:
+        return EBPF_FILE_NOT_FOUND;
+
+    case ERROR_NOT_ENOUGH_MEMORY:
+        return EBPF_NO_MEMORY;
+    }
+
+    return EBPF_FAILED;
+}
+
+uint32_t
+query_map_definition(
+    ebpf_handle_t handle,
+    uint32_t* size,
+    uint32_t* type,
+    uint32_t* key_size,
+    uint32_t* value_size,
+    uint32_t* max_entries)
+{
+    _ebpf_operation_query_map_definition_request request{
+        sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_QUERY_MAP_DEFINITION, reinterpret_cast<uint64_t>(handle)};
+
+    _ebpf_operation_query_map_definition_reply reply;
+
+    uint32_t retval = invoke_ioctl(device_handle, request, reply);
+    if (retval == ERROR_SUCCESS) {
+        *size = reply.map_definition.size;
+        *type = reply.map_definition.type;
+        *key_size = reply.map_definition.key_size;
+        *value_size = reply.map_definition.value_size;
+        *max_entries = reply.map_definition.max_entries;
+    }
+    return retval;
 }

@@ -60,14 +60,17 @@ On the defender machine, do the following:
 3. Install Debug VS 2019 VC redist from TBD (or switch everything to Multi-threaded Debug (/MTd) and rebuild)
 4. Copy ebpfcore.sys to %windir%\system32\drivers
 5. Copy netebpfext.sys to %windir%\system32\drivers
-6. Copy ebpfapi.dll and ebpfnetsh.dll to %windir%\system32
-7. Do `sc create EbpfCore type=kernel start=boot binpath=%windir%\system32\drivers\ebpfcore.sys`
-8. Do `sc start EbpfCore`
-9. Do `sc create NetEbpfExt type=kernel start=boot binpath=%windir%\system32\drivers\netebpfext.sys`
-10. Do `sc start NetEbpfExt`
-11. Do `netsh add helper %windir%\system32\ebpfnetsh.dll`
-12. Install [clang](https://github.com/llvm/llvm-project/releases/download/llvmorg-11.0.0/LLVM-11.0.0-win64.exe)
-13. Copy droppacket.c and ebpf.h to a folder (such as c:\test)
+6. Copy ebpfsvc.exe to %windir%\system32
+7. Copy ebpfapi.dll and ebpfnetsh.dll to %windir%\system32
+8. Do `sc create EbpfCore type=kernel start=boot binpath=%windir%\system32\drivers\ebpfcore.sys`
+9. Do `sc start EbpfCore`
+10. Do `sc create NetEbpfExt type=kernel start=boot binpath=%windir%\system32\drivers\netebpfext.sys`
+11. Do `sc start NetEbpfExt`
+12. Do `sc create ebpfsvc start= auto binpath=%windir%\system32\ebpfsvc.exe type=own`
+13. Do `sc start ebpfsvc`
+14. Do `netsh add helper %windir%\system32\ebpfnetsh.dll`
+15. Install [clang](https://github.com/llvm/llvm-project/releases/download/llvmorg-11.0.0/LLVM-11.0.0-win64.exe)
+16. Copy droppacket.c and ebpf.h to a folder (such as c:\test)
 
 On the attacker machine, do the following:
 1. Copy DnsFlood.exe to attacker machine

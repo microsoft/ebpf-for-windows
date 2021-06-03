@@ -7,7 +7,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-
+#include "ebpf_execution_type.h"
 #include "ebpf_windows.h"
 
 #ifdef __cplusplus
@@ -32,12 +32,6 @@ extern "C"
     typedef void* ebpf_handle_t;
     const ebpf_handle_t ebpf_handle_invalid = (ebpf_handle_t)-1;
     typedef struct _tlv_type_length_value tlv_type_length_value_t;
-
-    typedef enum _ebpf_execution_type
-    {
-        EBPF_EXECUTION_JIT,
-        EBPF_EXECUTION_INTERPRET
-    } ebpf_execution_type_t;
 
     /**
      *  @brief Initialize the eBPF user mode library.

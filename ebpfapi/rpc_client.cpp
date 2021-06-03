@@ -1,24 +1,29 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include <ctype.h>
+#include <iostream>
+#include <stdio.h>
+#include <stdlib.h>
+#include <windows.h>
 #include "ebpf_api.h"
 #pragma warning(push)
 #pragma warning(disable : 4100) // 'identifier' : unreferenced formal parameter
 #pragma warning(disable : 4244) // 'conversion' conversion from 'type1' to
                                 // 'type2', possible loss of data
 #undef VOID
-#include "ebpf_verifier.hpp"
+// #include "ebpf_verifier.hpp"
 #pragma warning(pop)
 #include "ebpf_windows.h"
-#include "header.h"
+// #include "header.h"
 #include "rpc_interface_c.c"
 
 #pragma comment(lib, "Rpcrt4.lib")
 
 static RPC_WSTR _string_binding = nullptr;
-static const WCHAR* _protocol_sequence = L"ncacn_np";
+static const WCHAR* _protocol_sequence = L"ncalrpc";
 
-#define RPC_SERVER_ENDPOINT L"\\pipe\\ebpf_service"
+#define RPC_SERVER_ENDPOINT L"ebpfsvc rpc server"
 
 int
 ebpf_rpc_verify_program(ebpf_program_verify_info* info, const char** logs, uint32_t* logs_size)
@@ -38,6 +43,24 @@ ebpf_rpc_verify_program(ebpf_program_verify_info* info, const char** logs, uint3
         printf("ebpf_rpc_verify_program: got return code %d from the server\n\n", result);
 
     return result;
+}
+
+int
+ebpf_rpc_load_program(ebpf_program_load_info* info, const char** logs, uint32_t* logs_size)
+{
+    // unsigned long code;
+    int result;
+
+    RpcTryExcept { result = (int)ebpf_client_verify_and_load_program(info, logs_size, const_cast<char**>(logs)); }
+    RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
+    {
+        result = RpcExceptionCode();
+        // printf("ebpf_rpc_load_program: runtime reported exception 0x%lx = %ld\n", code, code);
+        // result = (int)EBPF_FAILED;
+    }
+    RpcEndExcept
+
+        return result;
 }
 
 RPC_STATUS

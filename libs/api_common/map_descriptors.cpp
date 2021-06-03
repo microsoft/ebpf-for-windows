@@ -33,7 +33,7 @@ get_map_cache_entry(uint64_t map_fd)
         }
     }
 
-    return _map_file_descriptors[0];
+    throw std::runtime_error(std::string("Map cache entry for map fd ") + std::to_string(map_fd) + " not found.");
 }
 
 EbpfMapDescriptor&
@@ -72,10 +72,28 @@ get_all_map_handles()
     return handles;
 }
 
+std::vector<map_cache_t>
+get_all_map_descriptors()
+{
+    std::vector<map_cache_t> descriptors;
+    size_t size = _map_file_descriptors.size();
+    for (size_t i = 0; i < size; i++) {
+        descriptors.push_back(_map_file_descriptors[i]);
+    }
+
+    return descriptors;
+}
+
 void
 cache_map_file_descriptor(uint32_t type, uint32_t key_size, uint32_t value_size, int fd)
 {
     _map_file_descriptors.push_back({(uintptr_t)fd, {fd, type, key_size, value_size, 0}});
+}
+
+void
+cache_map_file_descriptor_with_handle(uint32_t type, uint32_t key_size, uint32_t value_size, int fd, uintptr_t handle)
+{
+    _map_file_descriptors.push_back({handle, {fd, type, key_size, value_size, 0}});
 }
 
 int

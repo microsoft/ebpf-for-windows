@@ -15,6 +15,9 @@ void
 cache_map_file_descriptor(uint32_t type, uint32_t key_size, uint32_t value_size, int fd);
 
 void
+cache_map_file_descriptor_with_handle(uint32_t type, uint32_t key_size, uint32_t value_size, int fd, uintptr_t handle);
+
+void
 clear_map_descriptors(void);
 
 EbpfMapDescriptor&

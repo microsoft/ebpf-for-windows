@@ -134,7 +134,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
-      <AdditionalIncludeDirectories>$(SolutionDir)libs\api;$(SolutionDir)libs\platform;$(SolutionDir)libs\service;$(SolutionDir)include;$(SolutionDir)rpc_interface;$(SolutionDir)libs\platform\user;$(SolutionDir)external\ubpf\vm;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ebpf-verifier\external;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)libs\api_common;$(SolutionDir)libs\execution_context;$(SolutionDir)libs\api;$(SolutionDir)libs\platform;$(SolutionDir)libs\service;$(SolutionDir)include;$(SolutionDir)rpc_interface;$(SolutionDir)libs\platform\user;$(SolutionDir)external\ubpf\vm;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ebpf-verifier\external;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>

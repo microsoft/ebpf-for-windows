@@ -7,14 +7,15 @@
 
 #pragma comment(lib, "Rpcrt4.lib")
 
-#define RPC_SERVER_ENDPOINT L"\\pipe\\ebpf_service"
+#define RPC_SERVER_ENDPOINT L"ebpfsvc rpc server"
+
+static const WCHAR* _protocol_sequence = L"ncalrpc";
 static bool _rpc_server_initialized = false;
 
 DWORD
 initialize_rpc_server()
 {
     RPC_STATUS status;
-    const WCHAR* protocol_sequence = L"ncacn_np";
     unsigned char* security = nullptr;
     const WCHAR* endpoint = RPC_SERVER_ENDPOINT;
     unsigned int minimum_calls = 1;
@@ -22,7 +23,7 @@ initialize_rpc_server()
     bool registered = false;
 
     status = RpcServerUseProtseqEp(
-        (RPC_WSTR)protocol_sequence, RPC_C_LISTEN_MAX_CALLS_DEFAULT, (RPC_WSTR)endpoint, security);
+        (RPC_WSTR)_protocol_sequence, RPC_C_LISTEN_MAX_CALLS_DEFAULT, (RPC_WSTR)endpoint, security);
     if (status != RPC_S_OK) {
         goto Exit;
     }

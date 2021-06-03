@@ -5,12 +5,9 @@
 #include <stdexcept>
 #include <stdio.h>
 #include <vector>
-#include "api_internal.h"
 #include "api_service.h"
-#include "ebpf_windows.h"
 #include "rpc_interface_h.h"
 #include "svc_common.h"
-#include "Verifier.h"
 
 // Critical section to serialize RPC calls.
 // Currently ebpfsvc uses a global context to track verification
@@ -18,16 +15,28 @@
 static std::mutex _mutex;
 
 ebpf_result_t
-ebpf_server_verify_and_jit_program(
+ebpf_server_verify_and_load_program(
     /* [ref][in] */ ebpf_program_load_info* info,
     /* [ref][out] */ uint32_t* logs_size,
     /* [ref][size_is][size_is][out] */ char** logs)
 {
-    UNREFERENCED_PARAMETER(info);
-    UNREFERENCED_PARAMETER(logs_size);
-    UNREFERENCED_PARAMETER(logs);
+    if (info->byte_code_size == 0) {
+        return EBPF_INVALID_ARGUMENT;
+    }
 
-    return EBPF_FAILED;
+    std::scoped_lock lock(_mutex);
+
+    return ebpf_verify_and_load_program(
+        &info->program_type,
+        info->program_handle,
+        info->execution_context,
+        info->execution_type,
+        info->map_count,
+        info->handle_map,
+        info->byte_code_size,
+        info->byte_code,
+        const_cast<const char**>(logs),
+        logs_size);
 }
 
 ebpf_result_t

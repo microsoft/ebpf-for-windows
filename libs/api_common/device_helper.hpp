@@ -3,6 +3,9 @@
 
 #pragma once
 
+#include "ebpf_api.h"
+#include "platform.h"
+
 // Device type
 #define EBPF_IOCTL_TYPE FILE_DEVICE_NETWORK
 
@@ -75,5 +78,11 @@ invoke_ioctl(ebpf_handle_t handle, request_t& request, reply_t& reply = _empty_r
 
     return ERROR_SUCCESS;
 }
+
+uint32_t
+initialize_device_handle();
+
+void
+clean_up_device_handle();
 
 extern ebpf_handle_t device_handle;

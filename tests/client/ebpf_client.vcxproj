@@ -152,9 +152,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\ebpfapi\rpc_client.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="platform.cpp" />
-    <ClCompile Include="rpc_client.cpp" />
     <ClCompile Include="service_helper.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -184,8 +184,8 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\libs\api\rpc_client.h" />
     <ClInclude Include="header.h" />
-    <ClInclude Include="rpc_client.h" />
     <ClInclude Include="service_helper.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

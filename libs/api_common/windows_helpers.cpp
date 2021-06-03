@@ -3,7 +3,9 @@
 
 #include <map>
 #include <stdexcept>
-#include "ebpf_api.h"
+#include <vector>
+#include <Windows.h>
+#include "device_helper.hpp"
 #include "ebpf_bind_program_data.h"
 #include "ebpf_platform.h"
 #include "ebpf_program_types.h"
@@ -13,7 +15,6 @@
 #include "platform.h"
 #undef VOID
 #include "platform.hpp"
-#include "windows_helpers.hpp"
 
 struct guid_compare
 {
@@ -25,8 +26,6 @@ struct guid_compare
 };
 
 thread_local std::map<GUID, ebpf_helper::ebpf_memory_ptr, guid_compare> g_program_information_cache;
-
-ebpf_handle_t device_handle = INVALID_HANDLE_VALUE;
 
 uint32_t
 get_program_information_data(ebpf_program_type_t program_type, ebpf_extension_data_t** program_information_data)

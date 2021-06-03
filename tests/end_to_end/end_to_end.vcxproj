@@ -80,7 +80,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\user;$(SolutionDir)libs\execution_context;$(SolutionDir)libs\api;$(OutDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)libs\service;$(SolutionDir)rpc_interface;$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\user;$(SolutionDir)libs\execution_context;$(SolutionDir)libs\api;$(OutDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <TreatWarningAsError>true</TreatWarningAsError>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -98,7 +98,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\user;$(SolutionDir)libs\execution_context;$(SolutionDir)libs\api;$(OutDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)libs\service;$(SolutionDir)rpc_interface;$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\user;$(SolutionDir)libs\execution_context;$(SolutionDir)libs\api;$(OutDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>

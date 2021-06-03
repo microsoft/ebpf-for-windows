@@ -2,55 +2,46 @@
 // SPDX-License-Identifier: MIT
 
 #include "pch.h"
-#include "ebpf_api.h"
 
-#include <map>
-#include <stdexcept>
 #include "api_common.hpp"
+#include "device_helper.hpp"
+#include "ebpf_api.h"
 #include "ebpf_protocol.h"
-#include "ebpf_platform.h"
 #include "map_descriptors.hpp"
-#include "platform.h"
+#include "rpc_client.h"
 extern "C"
 {
 #include "ubpf.h"
 }
 #include "Verifier.h"
-#include "verifier_service.h"
-#include "windows_helpers.hpp"
 
 #define MAX_CODE_SIZE (32 * 1024) // 32 KB
 
 uint32_t
 ebpf_api_initiate()
 {
-    if (device_handle != INVALID_HANDLE_VALUE) {
-        return ERROR_ALREADY_INITIALIZED;
+    uint32_t result;
+
+    result = initialize_device_handle();
+    if (result != ERROR_SUCCESS) {
+        goto Exit;
     }
 
-    device_handle = Platform::CreateFile(
-        EBPF_DEVICE_WIN32_NAME,
-        GENERIC_READ | GENERIC_WRITE,
-        0,
-        nullptr,
-        CREATE_ALWAYS,
-        FILE_ATTRIBUTE_NORMAL,
-        nullptr);
+    result = initialize_rpc_binding();
 
-    if (device_handle == INVALID_HANDLE_VALUE) {
-        return GetLastError();
+Exit:
+    if (result != ERROR_SUCCESS) {
+        clean_up_device_handle();
+        clean_up_rpc_binding();
     }
-
-    return 0;
+    return result;
 }
 
 void
 ebpf_api_terminate()
 {
-    if (device_handle != INVALID_HANDLE_VALUE) {
-        Platform::CloseHandle(device_handle);
-        device_handle = INVALID_HANDLE_VALUE;
-    }
+    clean_up_device_handle();
+    clean_up_rpc_binding();
 }
 
 int
@@ -74,161 +65,6 @@ create_map_function(
     }
 
     return cache_map_handle(reply.handle, type, key_size, value_size);
-}
-
-static uint32_t
-resolve_maps_in_byte_code(ebpf_handle_t program_handle, ebpf_code_buffer_t& byte_code)
-{
-    // Maintain two maps.
-    // First map is instruction offset -> map handle.
-    // Second map is map handle -> map address.
-    std::map<size_t, uint64_t> instruction_offsets_to_map_handles;
-    std::map<uint64_t, uint64_t> map_handles_to_map_addresses;
-
-    ebpf_inst* instructions = reinterpret_cast<ebpf_inst*>(byte_code.data());
-    ebpf_inst* instruction_end = reinterpret_cast<ebpf_inst*>(byte_code.data() + byte_code.size());
-    for (size_t index = 0; index < byte_code.size() / sizeof(ebpf_inst); index++) {
-        ebpf_inst& first_instruction = instructions[index];
-        ebpf_inst& second_instruction = instructions[index + 1];
-        if (first_instruction.opcode != INST_OP_LDDW_IMM) {
-            continue;
-        }
-        if (&instructions[index + 1] >= instruction_end) {
-            return ERROR_INVALID_PARAMETER;
-        }
-        index++;
-
-        // Check for LD_MAP flag
-        if (first_instruction.src != 1) {
-            continue;
-        }
-
-        uint64_t imm =
-            static_cast<uint64_t>(first_instruction.imm) | (static_cast<uint64_t>(second_instruction.imm) << 32);
-
-        // Collect set of instructions to patch with the value to replace.
-        instruction_offsets_to_map_handles[index - 1] = imm;
-
-        // Collect set of map handles.
-        map_handles_to_map_addresses[imm] = 0;
-    }
-
-    if (instruction_offsets_to_map_handles.size() == 0) {
-        return ERROR_SUCCESS;
-    }
-
-    ebpf_protocol_buffer_t request_buffer(
-        offsetof(ebpf_operation_resolve_map_request_t, map_handle) +
-        sizeof(uint64_t) * map_handles_to_map_addresses.size());
-
-    ebpf_protocol_buffer_t reply_buffer(
-        offsetof(ebpf_operation_resolve_map_reply_t, address) + sizeof(uint64_t) * map_handles_to_map_addresses.size());
-
-    auto request = reinterpret_cast<ebpf_operation_resolve_map_request_t*>(request_buffer.data());
-    auto reply = reinterpret_cast<ebpf_operation_resolve_map_reply_t*>(reply_buffer.data());
-    request->header.id = ebpf_operation_id_t::EBPF_OPERATION_RESOLVE_MAP;
-    request->header.length = static_cast<uint16_t>(request_buffer.size());
-    request->program_handle = reinterpret_cast<uint64_t>(program_handle);
-
-    size_t index = 0;
-    for (auto& [map_handle, map_address] : map_handles_to_map_addresses) {
-
-        if (map_handle > get_map_descriptor_size()) {
-            return ERROR_INVALID_PARAMETER;
-        }
-        request->map_handle[index++] = get_map_handle_at_index(map_handle - 1);
-    }
-
-    uint32_t result = invoke_ioctl(device_handle, request_buffer, reply_buffer);
-    if (result != ERROR_SUCCESS) {
-        return result;
-    }
-
-    index = 0;
-    for (auto& [map_handle, map_address] : map_handles_to_map_addresses) {
-        map_address = reply->address[index++];
-    }
-
-    for (auto& [instruction_offset, map_handle] : instruction_offsets_to_map_handles) {
-        ebpf_inst& first_instruction = instructions[instruction_offset];
-        ebpf_inst& second_instruction = instructions[instruction_offset + 1];
-
-        // Clear LD_MAP flag
-        first_instruction.src = 0;
-
-        // Replace handle with address
-        uint64_t new_imm = map_handles_to_map_addresses[map_handle];
-        first_instruction.imm = static_cast<uint32_t>(new_imm);
-        second_instruction.imm = static_cast<uint32_t>(new_imm >> 32);
-    }
-
-    return ERROR_SUCCESS;
-}
-
-static uint32_t
-build_helper_id_to_address_map(
-    ebpf_handle_t program_handle, ebpf_code_buffer_t& byte_code, std::map<uint32_t, uint64_t>& helper_id_to_adddress)
-{
-    ebpf_inst* instructions = reinterpret_cast<ebpf_inst*>(byte_code.data());
-    for (size_t index = 0; index < byte_code.size() / sizeof(ebpf_inst); index++) {
-        ebpf_inst& instruction = instructions[index];
-        if (instruction.opcode != INST_OP_CALL) {
-            continue;
-        }
-        helper_id_to_adddress[instruction.imm] = 0;
-    }
-
-    if (helper_id_to_adddress.size() == 0)
-        return ERROR_SUCCESS;
-
-    ebpf_protocol_buffer_t request_buffer(
-        offsetof(ebpf_operation_resolve_helper_request_t, helper_id) + sizeof(uint32_t) * helper_id_to_adddress.size());
-
-    ebpf_protocol_buffer_t reply_buffer(
-        offsetof(ebpf_operation_resolve_helper_reply_t, address) + sizeof(uint64_t) * helper_id_to_adddress.size());
-
-    auto request = reinterpret_cast<ebpf_operation_resolve_helper_request_t*>(request_buffer.data());
-    auto reply = reinterpret_cast<ebpf_operation_resolve_helper_reply_t*>(reply_buffer.data());
-    request->header.id = ebpf_operation_id_t::EBPF_OPERATION_RESOLVE_HELPER;
-    request->header.length = static_cast<uint16_t>(request_buffer.size());
-    request->program_handle = reinterpret_cast<uint64_t>(program_handle);
-
-    size_t index = 0;
-    for (const auto& helper : helper_id_to_adddress) {
-        request->helper_id[index++] = helper.first;
-    }
-
-    uint32_t result = invoke_ioctl(device_handle, request_buffer, reply_buffer);
-    if (result != ERROR_SUCCESS) {
-        return result;
-    }
-
-    index = 0;
-    for (auto& helper : helper_id_to_adddress) {
-        helper.second = reply->address[index++];
-    }
-
-    return EBPF_SUCCESS;
-}
-
-static uint32_t
-resolve_ec_function(ebpf_ec_function_t function, uint64_t* address)
-{
-    ebpf_operation_get_ec_function_request_t request = {sizeof(request), EBPF_OPERATION_GET_EC_FUNCTION, function};
-    ebpf_operation_get_ec_function_reply_t reply;
-
-    uint32_t retval = invoke_ioctl(device_handle, request, reply);
-    if (retval != ERROR_SUCCESS) {
-        return retval;
-    }
-
-    if (reply.header.id != ebpf_operation_id_t::EBPF_OPERATION_GET_EC_FUNCTION) {
-        return ERROR_INVALID_PARAMETER;
-    }
-
-    *address = reply.address;
-
-    return retval;
 }
 
 static uint32_t
@@ -343,12 +179,10 @@ ebpf_api_load_program(
     ebpf_code_buffer_t byte_code(MAX_CODE_SIZE);
     size_t byte_code_size = byte_code.size();
     ebpf_protocol_buffer_t request_buffer;
-    struct ubpf_vm* vm = nullptr;
-    uint64_t log_function_address;
-    ebpf_operation_load_code_request_t* request = nullptr;
     uint32_t error_message_size = 0;
     std::vector<uintptr_t> handles;
     uint32_t result;
+    ebpf_program_load_info load_info = {0};
 
     *handle = 0;
     *error_message = nullptr;
@@ -368,15 +202,12 @@ ebpf_api_load_program(
         goto Done;
     }
 
+    byte_code.resize(byte_code_size);
+
     // TODO: (issue #169): Should switch this to more idiomatic C++
     // Note: This leaks the program handle on some errors.
     result = _create_program(program_type, file_name, section_name, &program_handle);
-    if (result != ERROR_SUCCESS)
-        goto Done;
-
-    // Verify code.
-    if (verify_byte_code(&program_type, byte_code.data(), byte_code_size, error_message, &error_message_size) != 0) {
-        result = ERROR_INVALID_PARAMETER;
+    if (result != ERROR_SUCCESS) {
         goto Done;
     }
 
@@ -385,75 +216,46 @@ ebpf_api_load_program(
         goto Done;
     }
 
+    // populate load_info.
+    load_info.file_name = const_cast<char*>(file_name);
+    load_info.section_name = const_cast<char*>(section_name);
+    load_info.program_name = nullptr;
+    load_info.program_type = program_type;
+    load_info.program_handle = program_handle;
+    load_info.execution_type = execution_type;
+    load_info.byte_code = byte_code.data();
+    load_info.byte_code_size = (uint32_t)byte_code_size;
+    load_info.execution_context = execution_context_kernel_mode;
+    load_info.map_count = (uint32_t)get_map_descriptor_size();
+
+    if (load_info.map_count > 0) {
+        load_info.handle_map = (fd_handle_map*)calloc(load_info.map_count, sizeof(fd_handle_map));
+        if (load_info.handle_map == nullptr) {
+            result = EBPF_NO_MEMORY;
+            goto Done;
+        }
+
+        auto descriptors = get_all_map_descriptors();
+        auto index = 0;
+        for (const auto& descriptor : descriptors) {
+            load_info.handle_map[index].file_descriptor = descriptor.ebpf_map_descriptor.original_fd;
+            load_info.handle_map[index].handle = reinterpret_cast<file_handle_t>(descriptor.handle);
+            index++;
+        }
+    }
+
+    result = ebpf_rpc_load_program(&load_info, error_message, &error_message_size);
+    if (result != ERROR_SUCCESS) {
+        goto Done;
+    }
+
+    // Program is verified and loaded.
     *count_of_map_handles = 0;
     handles = get_all_map_handles();
     for (const auto& map_handle : handles) {
         map_handles[*count_of_map_handles] = reinterpret_cast<HANDLE>(map_handle);
         (*count_of_map_handles)++;
     }
-
-    byte_code.resize(byte_code_size);
-    result = resolve_maps_in_byte_code(program_handle, byte_code);
-    if (result != ERROR_SUCCESS) {
-        goto Done;
-    }
-
-    result = resolve_ec_function(EBPF_EC_FUNCTION_LOG, &log_function_address);
-    if (result != ERROR_SUCCESS)
-        goto Done;
-
-    if (execution_type == EBPF_EXECUTION_JIT) {
-        std::map<uint32_t, uint64_t> helper_id_to_adddress;
-        result = build_helper_id_to_address_map(program_handle, byte_code, helper_id_to_adddress);
-        if (result != ERROR_SUCCESS)
-            goto Done;
-
-        ebpf_code_buffer_t machine_code(MAX_CODE_SIZE);
-        size_t machine_code_size = machine_code.size();
-
-        // JIT code.
-        vm = ubpf_create();
-        if (vm == nullptr)
-            goto Done;
-
-        for (const auto& helper : helper_id_to_adddress) {
-            if (ubpf_register(vm, helper.first, nullptr, reinterpret_cast<void*>(helper.second)) < 0)
-                goto Done;
-        }
-
-        ubpf_set_error_print(
-            vm, reinterpret_cast<int (*)(FILE * stream, const char* format, ...)>(log_function_address));
-
-        if (ubpf_load(
-                vm, byte_code.data(), static_cast<uint32_t>(byte_code.size()), const_cast<char**>(error_message)) < 0) {
-            result = ERROR_INVALID_PARAMETER;
-            goto Done;
-        }
-
-        if (ubpf_translate(vm, machine_code.data(), &machine_code_size, const_cast<char**>(error_message))) {
-            result = ERROR_INVALID_PARAMETER;
-            goto Done;
-        }
-        machine_code.resize(machine_code_size);
-        byte_code = machine_code;
-    }
-
-    request_buffer.resize(offsetof(ebpf_operation_load_code_request_t, code) + byte_code.size());
-    request = reinterpret_cast<ebpf_operation_load_code_request_t*>(request_buffer.data());
-    request->header.id = ebpf_operation_id_t::EBPF_OPERATION_LOAD_CODE;
-    request->header.length = static_cast<uint16_t>(request_buffer.size());
-    request->program_handle = reinterpret_cast<uint64_t>(program_handle);
-    request->code_type = execution_type == EBPF_EXECUTION_JIT ? EBPF_CODE_NATIVE : EBPF_CODE_EBPF;
-
-    std::copy(
-        byte_code.begin(),
-        byte_code.end(),
-        request_buffer.begin() + offsetof(ebpf_operation_load_code_request_t, code));
-
-    result = invoke_ioctl(device_handle, request_buffer);
-
-    if (result != ERROR_SUCCESS)
-        goto Done;
 
     *handle = program_handle;
     program_handle = INVALID_HANDLE_VALUE;
@@ -467,11 +269,9 @@ Done:
     }
     clear_map_descriptors();
 
-    if (vm)
-        ubpf_destroy(vm);
-
-    if (program_handle != INVALID_HANDLE_VALUE)
+    if (program_handle != INVALID_HANDLE_VALUE) {
         ebpf_api_close_handle(program_handle);
+    }
 
     return result;
 }
@@ -636,10 +436,9 @@ ebpf_api_get_next_map(ebpf_handle_t previous_handle, ebpf_handle_t* next_handle)
 uint32_t
 ebpf_api_get_next_program(ebpf_handle_t previous_handle, ebpf_handle_t* next_handle)
 {
-    _ebpf_operation_get_next_program_request request{
-        sizeof(request),
-        ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_PROGRAM,
-        reinterpret_cast<uint64_t>(previous_handle)};
+    _ebpf_operation_get_next_program_request request{sizeof(request),
+                                                     ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_PROGRAM,
+                                                     reinterpret_cast<uint64_t>(previous_handle)};
 
     _ebpf_operation_get_next_program_reply reply;
 
@@ -659,20 +458,7 @@ ebpf_api_map_query_definition(
     uint32_t* value_size,
     uint32_t* max_entries)
 {
-    _ebpf_operation_query_map_definition_request request{
-        sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_QUERY_MAP_DEFINITION, reinterpret_cast<uint64_t>(handle)};
-
-    _ebpf_operation_query_map_definition_reply reply;
-
-    uint32_t retval = invoke_ioctl(device_handle, request, reply);
-    if (retval == ERROR_SUCCESS) {
-        *size = reply.map_definition.size;
-        *type = reply.map_definition.type;
-        *key_size = reply.map_definition.key_size;
-        *value_size = reply.map_definition.value_size;
-        *max_entries = reply.map_definition.max_entries;
-    }
-    return retval;
+    return query_map_definition(handle, size, type, key_size, value_size, max_entries);
 }
 
 uint32_t

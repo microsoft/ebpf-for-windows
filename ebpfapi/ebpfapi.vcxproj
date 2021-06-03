@@ -74,7 +74,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\user;$(SolutionDir)libs\execution_context</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)libs\api;$(SolutionDir)rpc_interface;$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\user;$(SolutionDir)libs\execution_context</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
@@ -96,7 +96,7 @@
       <PreprocessorDefinitions>NDEBUG;EBPFAPI_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\user;$(SolutionDir)libs\execution_context</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)libs\api;$(SolutionDir)rpc_interface;$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\user;$(SolutionDir)libs\execution_context</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <TreatWarningAsError>true</TreatWarningAsError>
       <LanguageStandard>stdcpp17</LanguageStandard>
@@ -120,6 +120,7 @@
   <ItemGroup>
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="platform.cpp" />
+    <ClCompile Include="rpc_client.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Source.def" />
@@ -136,9 +137,6 @@
     </ProjectReference>
     <ProjectReference Include="..\libs\platform\user\platform_user.vcxproj">
       <Project>{c26cb6a9-158c-4a9e-a243-755ddd98e5fe}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\libs\service\service.vcxproj">
-      <Project>{af85c549-57cc-40a5-bdfc-dcf1998de80f}</Project>
     </ProjectReference>
     <ProjectReference Include="..\libs\ubpf\user\ubpf_user.vcxproj">
       <Project>{245f0ec7-1ebc-4d68-8b1f-f758ea9196ae}</Project>

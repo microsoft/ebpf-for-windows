@@ -4,6 +4,7 @@
  */
 
 import "ebpf_execution_context.h";
+import "ebpf_execution_type.h";
 import "ebpf_result.h";
 import "stdint.h";
 import "wtypes.idl";
@@ -38,11 +39,14 @@ import "wtypes.idl";
 
         typedef struct _ebpf_program_load_info
         {
-            // Optional file name with full path.
+            // Optional file name.
             [string] char* file_name;
+            // Optional section name.
+            [string] char* section_name;
             // Optional program name.
             [string] char* program_name;
             GUID program_type;
+            ebpf_execution_type_t execution_type;
             file_handle_t program_handle;
             ebpf_execution_context_t execution_context;
             uint32_t map_count;
@@ -61,7 +65,7 @@ import "wtypes.idl";
             [ size_is(byte_code_size), ref ] uint8_t* byte_code;
         } ebpf_program_verify_info;
 
-        ebpf_result_t verify_and_jit_program(
+        ebpf_result_t verify_and_load_program(
             [ in, ref ] ebpf_program_load_info * info,
             [ out, ref ] uint32_t * logs_size,
             [ out, size_is(, *logs_size), ref ] char** logs);

@@ -131,7 +131,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)libs\api_common;$(SolutionDir)libs\api;$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\user;$(SolutionDir)libs\execution_context;$(SolutionDir)external\ubpf\vm;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ebpf-verifier\external;$(OutDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)rpc_interface;$(SolutionDir)libs\api_common;$(SolutionDir)libs\api;$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\user;$(SolutionDir)libs\execution_context;$(SolutionDir)external\ubpf\vm;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ebpf-verifier\external;$(OutDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <TreatWarningAsError>true</TreatWarningAsError>
@@ -152,7 +152,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)libs\api_common;$(SolutionDir)libs\api;$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\user;$(SolutionDir)libs\execution_context;$(SolutionDir)external\ubpf\vm;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ebpf-verifier\external;$(OutDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)rpc_interface;$(SolutionDir)libs\api_common;$(SolutionDir)libs\api;$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\user;$(SolutionDir)libs\execution_context;$(SolutionDir)external\ubpf\vm;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ebpf-verifier\external;$(OutDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
