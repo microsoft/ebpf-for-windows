@@ -87,7 +87,7 @@ query_map_definition(
 
     _ebpf_operation_query_map_definition_reply reply;
 
-    uint32_t result = invoke_ioctl(device_handle, request, reply);
+    uint32_t result = invoke_ioctl(request, reply);
     if (result == ERROR_SUCCESS) {
         *size = reply.map_definition.size;
         *type = reply.map_definition.type;

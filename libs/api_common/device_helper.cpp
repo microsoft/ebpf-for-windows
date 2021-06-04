@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #include <map>
+#include <mutex>
 #include <stdexcept>
 #include "ebpf_api.h"
 #include "ebpf_bind_program_data.h"
@@ -14,16 +15,19 @@
 #undef VOID
 #include "platform.hpp"
 
-ebpf_handle_t device_handle = INVALID_HANDLE_VALUE;
+static ebpf_handle_t _device_handle = INVALID_HANDLE_VALUE;
+static std::mutex _mutex;
 
 uint32_t
 initialize_device_handle()
 {
-    if (device_handle != INVALID_HANDLE_VALUE) {
+    std::scoped_lock lock(_mutex);
+
+    if (_device_handle != INVALID_HANDLE_VALUE) {
         return ERROR_ALREADY_INITIALIZED;
     }
 
-    device_handle = Platform::CreateFile(
+    _device_handle = Platform::CreateFile(
         EBPF_DEVICE_WIN32_NAME,
         GENERIC_READ | GENERIC_WRITE,
         0,
@@ -32,7 +36,7 @@ initialize_device_handle()
         FILE_ATTRIBUTE_NORMAL,
         nullptr);
 
-    if (device_handle == INVALID_HANDLE_VALUE) {
+    if (_device_handle == INVALID_HANDLE_VALUE) {
         return GetLastError();
     }
 
@@ -42,8 +46,20 @@ initialize_device_handle()
 void
 clean_up_device_handle()
 {
-    if (device_handle != INVALID_HANDLE_VALUE) {
-        Platform::CloseHandle(device_handle);
-        device_handle = INVALID_HANDLE_VALUE;
+    std::scoped_lock lock(_mutex);
+
+    if (_device_handle != INVALID_HANDLE_VALUE) {
+        Platform::CloseHandle(_device_handle);
+        _device_handle = INVALID_HANDLE_VALUE;
     }
+}
+
+ebpf_handle_t
+get_device_handle()
+{
+    if (_device_handle == INVALID_HANDLE_VALUE) {
+        initialize_device_handle();
+    }
+
+    return _device_handle;
 }

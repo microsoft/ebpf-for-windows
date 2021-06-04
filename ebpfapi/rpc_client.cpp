@@ -20,6 +20,7 @@
 
 static RPC_WSTR _string_binding = nullptr;
 static const WCHAR* _protocol_sequence = L"ncalrpc";
+static bool _binding_initialized = false;
 
 int
 ebpf_rpc_verify_program(ebpf_program_verify_info* info, const char** logs, uint32_t* logs_size)
@@ -57,7 +58,12 @@ initialize_rpc_binding()
         return status;
     }
 
-    return RpcBindingFromStringBinding(_string_binding, &ebpf_service_interface_handle);
+    status = RpcBindingFromStringBinding(_string_binding, &ebpf_service_interface_handle);
+    if (status == RPC_S_OK) {
+        _binding_initialized = true;
+    }
+
+    return status;
 }
 
 RPC_STATUS
@@ -68,9 +74,11 @@ clean_up_rpc_binding()
         printf("RpcStringFree failed with error %d\n", status);
     }
 
-    status = RpcBindingFree(&ebpf_service_interface_handle);
-    if (status != RPC_S_OK) {
-        printf("RpcBindingFree failed with error %d\n", status);
+    if (_binding_initialized) {
+        status = RpcBindingFree(&ebpf_service_interface_handle);
+        if (status != RPC_S_OK) {
+            printf("RpcBindingFree failed with error %d\n", status);
+        }
     }
 
     return status;

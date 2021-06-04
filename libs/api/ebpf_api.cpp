@@ -55,7 +55,7 @@ create_map_function(
 
     _ebpf_operation_create_map_reply reply{};
 
-    uint32_t retval = invoke_ioctl(device_handle, request, reply);
+    uint32_t retval = invoke_ioctl(request, reply);
     if (retval != ERROR_SUCCESS) {
         throw std::runtime_error(std::string("Error ") + std::to_string(retval) + " trying to create map");
     }
@@ -94,7 +94,7 @@ _create_program(
 
     std::copy(section_name.begin(), section_name.end(), request_buffer.begin() + request->section_name_offset);
 
-    uint32_t retval = invoke_ioctl(device_handle, request_buffer, reply);
+    uint32_t retval = invoke_ioctl(request_buffer, reply);
     if (retval != ERROR_SUCCESS) {
         return retval;
     }
@@ -295,7 +295,7 @@ ebpf_api_pin_object(ebpf_handle_t handle, const uint8_t* name, uint32_t name_len
     request->header.length = static_cast<uint16_t>(request_buffer.size());
     request->handle = reinterpret_cast<uint64_t>(handle);
     std::copy(name, name + name_length, request->name);
-    return invoke_ioctl(device_handle, request_buffer);
+    return invoke_ioctl(request_buffer);
 }
 
 uint32_t
@@ -308,7 +308,7 @@ ebpf_api_unpin_object(const uint8_t* name, uint32_t name_length)
     request->header.length = static_cast<uint16_t>(request_buffer.size());
     request->handle = UINT64_MAX;
     std::copy(name, name + name_length, request->name);
-    return invoke_ioctl(device_handle, request_buffer);
+    return invoke_ioctl(request_buffer);
 }
 
 uint32_t
@@ -321,7 +321,7 @@ ebpf_api_get_pinned_map(const uint8_t* name, uint32_t name_length, ebpf_handle_t
     request->header.id = EBPF_OPERATION_GET_PINNING;
     request->header.length = static_cast<uint16_t>(request_buffer.size());
     std::copy(name, name + name_length, request->name);
-    auto result = invoke_ioctl(device_handle, request_buffer, reply);
+    auto result = invoke_ioctl(request_buffer, reply);
     if (result != ERROR_SUCCESS) {
         return result;
     }
@@ -349,7 +349,7 @@ ebpf_api_map_find_element(
     request->handle = reinterpret_cast<uint64_t>(handle);
     std::copy(key, key + key_size, request->key);
 
-    auto retval = invoke_ioctl(device_handle, request_buffer, reply_buffer);
+    auto retval = invoke_ioctl(request_buffer, reply_buffer);
 
     if (reply->header.id != ebpf_operation_id_t::EBPF_OPERATION_MAP_FIND_ELEMENT) {
         return ERROR_INVALID_PARAMETER;
@@ -375,7 +375,7 @@ ebpf_api_map_update_element(
     std::copy(key, key + key_size, request->data);
     std::copy(value, value + value_size, request->data + key_size);
 
-    return invoke_ioctl(device_handle, request_buffer);
+    return invoke_ioctl(request_buffer);
 }
 
 uint32_t
@@ -389,7 +389,7 @@ ebpf_api_map_delete_element(ebpf_handle_t handle, uint32_t key_size, const uint8
     request->handle = (uint64_t)handle;
     std::copy(key, key + key_size, request->key);
 
-    return invoke_ioctl(device_handle, request_buffer);
+    return invoke_ioctl(request_buffer);
 }
 
 uint32_t
@@ -409,7 +409,7 @@ ebpf_api_get_next_map_key(ebpf_handle_t handle, uint32_t key_size, const uint8_t
         request->header.length = offsetof(ebpf_operation_map_get_next_key_request_t, previous_key);
     }
 
-    auto retval = invoke_ioctl(device_handle, request_buffer, reply_buffer);
+    auto retval = invoke_ioctl(request_buffer, reply_buffer);
 
     if (reply->header.id != ebpf_operation_id_t::EBPF_OPERATION_MAP_GET_NEXT_KEY) {
         return ERROR_INVALID_PARAMETER;
@@ -429,7 +429,7 @@ ebpf_api_get_next_map(ebpf_handle_t previous_handle, ebpf_handle_t* next_handle)
 
     _ebpf_operation_get_next_map_reply reply;
 
-    uint32_t retval = invoke_ioctl(device_handle, request, reply);
+    uint32_t retval = invoke_ioctl(request, reply);
     if (retval == ERROR_SUCCESS) {
         *next_handle = reinterpret_cast<ebpf_handle_t>(reply.next_handle);
     }
@@ -445,7 +445,7 @@ ebpf_api_get_next_program(ebpf_handle_t previous_handle, ebpf_handle_t* next_han
 
     _ebpf_operation_get_next_program_reply reply;
 
-    uint32_t retval = invoke_ioctl(device_handle, request, reply);
+    uint32_t retval = invoke_ioctl(request, reply);
     if (retval == ERROR_SUCCESS) {
         *next_handle = reinterpret_cast<ebpf_handle_t>(reply.next_handle);
     }
@@ -476,7 +476,7 @@ ebpf_api_program_query_information(
 
     auto reply = reinterpret_cast<_ebpf_operation_query_program_information_reply*>(reply_buffer.data());
 
-    uint32_t retval = invoke_ioctl(device_handle, request, reply_buffer);
+    uint32_t retval = invoke_ioctl(request, reply_buffer);
     if (retval != ERROR_SUCCESS) {
         return retval;
     }
@@ -512,7 +512,7 @@ ebpf_api_link_program(ebpf_handle_t program_handle, ebpf_attach_type_t attach_ty
         sizeof(request), EBPF_OPERATION_LINK_PROGRAM, reinterpret_cast<uint64_t>(program_handle), attach_type};
     ebpf_operation_link_program_reply_t reply;
 
-    uint32_t retval = invoke_ioctl(device_handle, request, reply);
+    uint32_t retval = invoke_ioctl(request, reply);
     if (retval != ERROR_SUCCESS) {
         return retval;
     }
@@ -531,5 +531,5 @@ ebpf_api_close_handle(ebpf_handle_t handle)
     ebpf_operation_close_handle_request_t request = {
         sizeof(request), EBPF_OPERATION_CLOSE_HANDLE, reinterpret_cast<uint64_t>(handle)};
 
-    return invoke_ioctl(device_handle, request);
+    return invoke_ioctl(request);
 }

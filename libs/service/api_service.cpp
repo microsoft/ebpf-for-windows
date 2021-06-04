@@ -52,7 +52,7 @@ _build_helper_id_to_address_map(
         request->helper_id[index++] = helper_id;
     }
 
-    uint32_t result = invoke_ioctl(device_handle, request_buffer, reply_buffer);
+    uint32_t result = invoke_ioctl(request_buffer, reply_buffer);
     if (result != ERROR_SUCCESS) {
         return windows_error_to_ebpf_result(result);
     }
@@ -71,7 +71,7 @@ _resolve_ec_function(ebpf_ec_function_t function, uint64_t* address)
     ebpf_operation_get_ec_function_request_t request = {sizeof(request), EBPF_OPERATION_GET_EC_FUNCTION, function};
     ebpf_operation_get_ec_function_reply_t reply;
 
-    uint32_t result = invoke_ioctl(device_handle, request, reply);
+    uint32_t result = invoke_ioctl(request, reply);
     if (result != ERROR_SUCCESS) {
         return windows_error_to_ebpf_result(result);
     }
@@ -138,7 +138,7 @@ _resolve_maps_in_byte_code(ebpf_handle_t program_handle, ebpf_code_buffer_t& byt
         request->map_handle[index] = get_map_handle_at_index((int)map_handles[index] - 1);
     }
 
-    uint32_t result = invoke_ioctl(device_handle, request_buffer, reply_buffer);
+    uint32_t result = invoke_ioctl(request_buffer, reply_buffer);
     if (result != ERROR_SUCCESS) {
         return windows_error_to_ebpf_result(result);
     }
@@ -367,7 +367,7 @@ ebpf_verify_and_load_program(
             byte_code_buffer.end(),
             request_buffer.begin() + offsetof(ebpf_operation_load_code_request_t, code));
 
-        error = invoke_ioctl(device_handle, request_buffer);
+        error = invoke_ioctl(request_buffer);
 
         if (error != ERROR_SUCCESS) {
             result = EBPF_PROGRAM_LOAD_FAILED;
@@ -395,7 +395,13 @@ Exit:
 uint32_t
 ebpf_service_initialize()
 {
-    return initialize_device_handle();
+    // This is best effort. If device handle does not initialize,
+    // it will be re-attempted before an IOCTL call is made.
+    // This is needed to ensure service can successfully start even
+    // if the driver is not installed.
+    initialize_device_handle();
+
+    return ERROR_SUCCESS;
 }
 
 void

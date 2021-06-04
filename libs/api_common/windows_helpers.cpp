@@ -41,7 +41,7 @@ get_program_information_data(ebpf_program_type_t program_type, ebpf_extension_da
         sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_GET_PROGRAM_INFORMATION, program_type};
 
     auto reply = reinterpret_cast<ebpf_operation_get_program_information_reply_t*>(reply_buffer.data());
-    uint32_t retval = invoke_ioctl(device_handle, request, reply_buffer);
+    uint32_t retval = invoke_ioctl(request, reply_buffer);
     if (retval != ERROR_SUCCESS) {
         return retval;
     }

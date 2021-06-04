@@ -21,9 +21,18 @@ typedef struct empty_reply
 
 static empty_reply_t _empty_reply;
 
+uint32_t
+initialize_device_handle();
+
+void
+clean_up_device_handle();
+
+ebpf_handle_t
+get_device_handle();
+
 template <typename request_t, typename reply_t = empty_reply_t>
 uint32_t
-invoke_ioctl(ebpf_handle_t handle, request_t& request, reply_t& reply = _empty_reply)
+invoke_ioctl(request_t& request, reply_t& reply = _empty_reply)
 {
     uint32_t actual_reply_size;
     uint32_t request_size;
@@ -59,7 +68,7 @@ invoke_ioctl(ebpf_handle_t handle, request_t& request, reply_t& reply = _empty_r
     }
 
     auto result = Platform::DeviceIoControl(
-        handle,
+        get_device_handle(),
         IOCTL_EBPFCTL_METHOD_BUFFERED,
         request_ptr,
         request_size,
@@ -78,11 +87,3 @@ invoke_ioctl(ebpf_handle_t handle, request_t& request, reply_t& reply = _empty_r
 
     return ERROR_SUCCESS;
 }
-
-uint32_t
-initialize_device_handle();
-
-void
-clean_up_device_handle();
-
-extern ebpf_handle_t device_handle;
