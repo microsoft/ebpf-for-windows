@@ -74,7 +74,7 @@ get_all_map_descriptors();
 ebpf_result_t
 windows_error_to_ebpf_result(uint32_t error);
 
-uint32_t
+ebpf_result_t
 query_map_definition(
     ebpf_handle_t handle,
     uint32_t* size,

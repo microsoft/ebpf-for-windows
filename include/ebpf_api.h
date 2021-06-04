@@ -8,6 +8,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "ebpf_execution_type.h"
+#include "ebpf_result.h"
 #include "ebpf_windows.h"
 
 #ifdef __cplusplus
@@ -142,7 +143,7 @@ extern "C"
      * @param[out] value_size Size of values in the eBPF map.
      * @param[out] max_entries Maximum number of entries in the map.
      */
-    uint32_t
+    ebpf_result_t
     ebpf_api_map_query_definition(
         ebpf_handle_t handle,
         uint32_t* size,

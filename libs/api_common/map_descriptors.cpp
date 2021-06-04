@@ -73,13 +73,7 @@ get_all_map_handles()
 std::vector<map_cache_t>
 get_all_map_descriptors()
 {
-    std::vector<map_cache_t> descriptors;
-    size_t size = _map_file_descriptors.size();
-    for (size_t i = 0; i < size; i++) {
-        descriptors.push_back(_map_file_descriptors[i]);
-    }
-
-    return descriptors;
+    return _map_file_descriptors;
 }
 
 void

@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+// Contains code to manage device for kernel mode execution context.
+
 #include <map>
 #include <mutex>
 #include <stdexcept>

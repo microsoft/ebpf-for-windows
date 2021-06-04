@@ -22,14 +22,12 @@ ebpf_api_initiate()
 {
     uint32_t result;
 
-    result = initialize_device_handle();
-    if (result != ERROR_SUCCESS) {
-        goto Exit;
-    }
+    // This is best effort. If device handle does not initialize,
+    // it will be re-attempted before an IOCTL call is made.
+    initialize_device_handle();
 
     result = initialize_rpc_binding();
 
-Exit:
     if (result != ERROR_SUCCESS) {
         clean_up_device_handle();
         clean_up_rpc_binding();
@@ -452,7 +450,7 @@ ebpf_api_get_next_program(ebpf_handle_t previous_handle, ebpf_handle_t* next_han
     return retval;
 }
 
-uint32_t
+ebpf_result_t
 ebpf_api_map_query_definition(
     ebpf_handle_t handle,
     uint32_t* size,

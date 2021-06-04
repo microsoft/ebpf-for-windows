@@ -73,7 +73,7 @@ windows_error_to_ebpf_result(uint32_t error)
     return EBPF_FAILED;
 }
 
-uint32_t
+ebpf_result_t
 query_map_definition(
     ebpf_handle_t handle,
     uint32_t* size,
@@ -95,5 +95,6 @@ query_map_definition(
         *value_size = reply.map_definition.value_size;
         *max_entries = reply.map_definition.max_entries;
     }
-    return result;
+
+    return windows_error_to_ebpf_result(result);
 }

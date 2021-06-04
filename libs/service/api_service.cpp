@@ -162,22 +162,22 @@ _resolve_maps_in_byte_code(ebpf_handle_t program_handle, ebpf_code_buffer_t& byt
 static ebpf_result_t
 _query_and_cache_map_descriptors(fd_handle_map* handle_map, uint32_t handle_map_count)
 {
-    int error;
+    ebpf_result_t result;
     EbpfMapDescriptor descriptor;
 
     if (handle_map_count > 0) {
         for (uint32_t i = 0; i < handle_map_count; i++) {
             uint32_t size;
             descriptor = {0};
-            error = query_map_definition(
+            result = query_map_definition(
                 handle_map[i].handle,
                 &size,
                 &descriptor.type,
                 &descriptor.key_size,
                 &descriptor.value_size,
                 &descriptor.max_entries);
-            if (error != ERROR_SUCCESS) {
-                return EBPF_INVALID_ARGUMENT;
+            if (result != EBPF_SUCCESS) {
+                return result;
             }
 
             cache_map_file_descriptor_with_handle(
