@@ -12,10 +12,11 @@ void
 cache_map_file_descriptors(const EbpfMapDescriptor* map_descriptors, uint32_t map_descriptors_count);
 
 void
-cache_map_file_descriptor(uint32_t type, uint32_t key_size, uint32_t value_size, int fd);
+cache_map_file_descriptor(uint32_t type, uint32_t key_size, uint32_t value_size, uint32_t max_entries, int fd);
 
 void
-cache_map_file_descriptor_with_handle(uint32_t type, uint32_t key_size, uint32_t value_size, int fd, uintptr_t handle);
+cache_map_file_descriptor_with_handle(
+    uint32_t type, uint32_t key_size, uint32_t value_size, uint32_t max_entries, int fd, uintptr_t handle);
 
 void
 clear_map_descriptors(void);
@@ -25,3 +26,6 @@ get_map_descriptor_at_index(int index);
 
 uintptr_t
 get_map_handle_at_index(size_t index);
+
+void
+clear_program_information_cache();

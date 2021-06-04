@@ -11,9 +11,7 @@ cache_map_file_descriptors(const EbpfMapDescriptor* map_descriptors, uint32_t ma
 {
     for (uint32_t i = 0; i < map_descriptors_count; i++) {
         auto descriptor = map_descriptors[i];
-        _map_file_descriptors.push_back(
-            {(uintptr_t)descriptor.original_fd,
-             {descriptor.original_fd, descriptor.type, descriptor.key_size, descriptor.value_size, 0}});
+        _map_file_descriptors.emplace_back((uintptr_t)descriptor.original_fd, descriptor);
     }
 }
 
@@ -85,24 +83,25 @@ get_all_map_descriptors()
 }
 
 void
-cache_map_file_descriptor(uint32_t type, uint32_t key_size, uint32_t value_size, int fd)
+cache_map_file_descriptor(uint32_t type, uint32_t key_size, uint32_t value_size, uint32_t max_entries, int fd)
 {
-    _map_file_descriptors.push_back({(uintptr_t)fd, {fd, type, key_size, value_size, 0}});
+    _map_file_descriptors.emplace_back((uintptr_t)fd, fd, type, key_size, value_size, max_entries, 0);
 }
 
 void
-cache_map_file_descriptor_with_handle(uint32_t type, uint32_t key_size, uint32_t value_size, int fd, uintptr_t handle)
+cache_map_file_descriptor_with_handle(
+    uint32_t type, uint32_t key_size, uint32_t value_size, uint32_t max_entries, int fd, uintptr_t handle)
 {
-    _map_file_descriptors.push_back({handle, {fd, type, key_size, value_size, 0}});
+    _map_file_descriptors.emplace_back(handle, fd, type, key_size, value_size, max_entries, 0);
 }
 
 int
-cache_map_handle(uint64_t handle, uint32_t type, uint32_t key_size, uint32_t value_size)
+cache_map_handle(uint64_t handle, uint32_t type, uint32_t key_size, uint32_t value_size, uint32_t max_entries)
 {
     // TODO: Replace this with the CRT helper to create FD from handle once we
     // have real handles.
     int fd = static_cast<int>(_map_file_descriptors.size() + 1);
-    _map_file_descriptors.push_back({handle, {fd, type, key_size, value_size, 0}});
+    _map_file_descriptors.emplace_back(handle, fd, type, key_size, value_size, max_entries, 0);
     return static_cast<int>(_map_file_descriptors.size());
 }
 

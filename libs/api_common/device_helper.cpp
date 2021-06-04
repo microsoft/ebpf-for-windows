@@ -13,7 +13,6 @@
 #include "platform.h"
 #undef VOID
 #include "platform.hpp"
-// #include "device_helper.hpp"
 
 ebpf_handle_t device_handle = INVALID_HANDLE_VALUE;
 

@@ -39,3 +39,6 @@ ebpf_service_initialize();
 
 void
 ebpf_service_cleanup();
+
+void
+ebpf_clear_thread_local_storage();

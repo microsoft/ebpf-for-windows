@@ -21,21 +21,16 @@
 static RPC_WSTR _string_binding = nullptr;
 static const WCHAR* _protocol_sequence = L"ncalrpc";
 
-#define RPC_SERVER_ENDPOINT L"ebpfsvc rpc server"
-
 int
 ebpf_rpc_verify_program(ebpf_program_verify_info* info, const char** logs, uint32_t* logs_size)
 {
     int result;
 
     RpcTryExcept { result = (int)ebpf_client_verify_program(info, logs_size, const_cast<char**>(logs)); }
-    RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
-    {
-        result = RpcExceptionCode();
-    }
+    RpcExcept(RpcExceptionFilter(RpcExceptionCode())) { result = RpcExceptionCode(); }
     RpcEndExcept
 
-    return result;
+        return result;
 }
 
 int
@@ -44,10 +39,7 @@ ebpf_rpc_load_program(ebpf_program_load_info* info, const char** logs, uint32_t*
     int result;
 
     RpcTryExcept { result = (int)ebpf_client_verify_and_load_program(info, logs_size, const_cast<char**>(logs)); }
-    RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
-    {
-        result = RpcExceptionCode();
-    }
+    RpcExcept(RpcExceptionFilter(RpcExceptionCode())) { result = RpcExceptionCode(); }
     RpcEndExcept
 
         return result;
@@ -57,17 +49,9 @@ RPC_STATUS
 initialize_rpc_binding()
 {
     RPC_STATUS status;
-    RPC_WSTR uuid = nullptr;
-    const WCHAR* network_address = nullptr;
-    RPC_WSTR options = nullptr;
 
-    status = RpcStringBindingCompose(
-        uuid,
-        (RPC_WSTR)_protocol_sequence,
-        (RPC_WSTR)network_address,
-        (RPC_WSTR)RPC_SERVER_ENDPOINT,
-        options,
-        &_string_binding);
+    status =
+        RpcStringBindingCompose(nullptr, (RPC_WSTR)_protocol_sequence, nullptr, nullptr, nullptr, &_string_binding);
 
     if (status != RPC_S_OK) {
         return status;

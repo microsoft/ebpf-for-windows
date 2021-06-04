@@ -17,7 +17,7 @@ extern "C"
 #include "Verifier.h"
 #include "verifier_service.h"
 
-#define MAX_CODE_SIZE (32 * 1024) // 32 KB
+#define MAX_CODE_SIZE_IN_BYTES (32 * 1024) // 32 KB
 
 static ebpf_result_t
 _build_helper_id_to_address_map(
@@ -48,8 +48,8 @@ _build_helper_id_to_address_map(
     request->program_handle = reinterpret_cast<uint64_t>(program_handle);
 
     size_t index = 0;
-    for (const auto& helper : helper_id_to_adddress) {
-        request->helper_id[index++] = helper.first;
+    for (const auto& [helper_id, address] : helper_id_to_adddress) {
+        request->helper_id[index++] = helper_id;
     }
 
     uint32_t result = invoke_ioctl(device_handle, request_buffer, reply_buffer);
@@ -58,8 +58,8 @@ _build_helper_id_to_address_map(
     }
 
     index = 0;
-    for (auto& helper : helper_id_to_adddress) {
-        helper.second = reply->address[index++];
+    for (auto& [helper_id, address] : helper_id_to_adddress) {
+        address = reply->address[index++];
     }
 
     return EBPF_SUCCESS;
@@ -115,7 +115,7 @@ _resolve_maps_in_byte_code(ebpf_handle_t program_handle, ebpf_code_buffer_t& byt
         map_handles.push_back(imm);
     }
 
-    if (map_handles.size() == 0) {
+    if (map_handles.empty()) {
         return EBPF_SUCCESS;
     }
 
@@ -184,12 +184,20 @@ _query_and_cache_map_descriptors(fd_handle_map* handle_map, uint32_t handle_map_
                 descriptor.type,
                 descriptor.key_size,
                 descriptor.value_size,
+                descriptor.max_entries,
                 handle_map[i].file_descriptor,
                 (uintptr_t)handle_map[i].handle);
         }
     }
 
     return EBPF_SUCCESS;
+}
+
+void
+ebpf_clear_thread_local_storage()
+{
+    clear_map_descriptors();
+    clear_program_information_cache();
 }
 
 ebpf_result_t
@@ -254,7 +262,6 @@ ebpf_verify_and_load_program(
     ebpf_result_t result = EBPF_SUCCESS;
     int error = 0;
     uint64_t log_function_address;
-    // EbpfMapDescriptor descriptor;
     struct ubpf_vm* vm = nullptr;
     ebpf_protocol_buffer_t request_buffer;
     ebpf_operation_load_code_request_t* request = nullptr;
@@ -284,7 +291,7 @@ ebpf_verify_and_load_program(
             goto Exit;
         }
 
-        if (byte_code_size > MAX_CODE_SIZE) {
+        if (byte_code_size > MAX_CODE_SIZE_IN_BYTES) {
             result = EBPF_PROGRAM_TOO_LARGE;
             goto Exit;
         }
@@ -307,7 +314,7 @@ ebpf_verify_and_load_program(
             if (result != EBPF_SUCCESS)
                 goto Exit;
 
-            ebpf_code_buffer_t machine_code(MAX_CODE_SIZE);
+            ebpf_code_buffer_t machine_code(MAX_CODE_SIZE_IN_BYTES);
             size_t machine_code_size = machine_code.size();
 
             // JIT code.
@@ -317,8 +324,8 @@ ebpf_verify_and_load_program(
                 goto Exit;
             }
 
-            for (const auto& helper : helper_id_to_adddress) {
-                if (ubpf_register(vm, helper.first, nullptr, reinterpret_cast<void*>(helper.second)) < 0) {
+            for (const auto& [helper_id, address] : helper_id_to_adddress) {
+                if (ubpf_register(vm, helper_id, nullptr, reinterpret_cast<void*>(address)) < 0) {
                     result = EBPF_JIT_COMPILATION_FAILED;
                     goto Exit;
                 }

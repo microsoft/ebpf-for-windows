@@ -52,7 +52,7 @@ load_byte_code(
         // copy out the bytecode for the jitter
         size_t ebpf_bytes = raw_prog.prog.size() * sizeof(ebpf_inst);
 
-        // Check if the raw prog can fit in the supplied buffer.
+        // Check if the raw program can fit in the supplied buffer.
         if (ebpf_bytes > *byte_code_size) {
             return ERROR_BUFFER_OVERFLOW;
         }

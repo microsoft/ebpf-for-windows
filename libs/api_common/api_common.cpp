@@ -87,13 +87,13 @@ query_map_definition(
 
     _ebpf_operation_query_map_definition_reply reply;
 
-    uint32_t retval = invoke_ioctl(device_handle, request, reply);
-    if (retval == ERROR_SUCCESS) {
+    uint32_t result = invoke_ioctl(device_handle, request, reply);
+    if (result == ERROR_SUCCESS) {
         *size = reply.map_definition.size;
         *type = reply.map_definition.type;
         *key_size = reply.map_definition.key_size;
         *value_size = reply.map_definition.value_size;
         *max_entries = reply.map_definition.max_entries;
     }
-    return retval;
+    return result;
 }

@@ -64,7 +64,7 @@ create_map_function(
         throw std::runtime_error(std::string("reply.header.id != ebpf_operation_id_t::EBPF_OPERATION_CREATE_MAP"));
     }
 
-    return cache_map_handle(reply.handle, type, key_size, value_size);
+    return cache_map_handle(reply.handle, type, key_size, value_size, max_entries);
 }
 
 static uint32_t
@@ -181,84 +181,87 @@ ebpf_api_load_program(
     ebpf_protocol_buffer_t request_buffer;
     uint32_t error_message_size = 0;
     std::vector<uintptr_t> handles;
-    uint32_t result;
+    uint32_t result = ERROR_SUCCESS;
     ebpf_program_load_info load_info = {0};
+    std::vector<fd_handle_map> handle_map;
 
     *handle = 0;
     *error_message = nullptr;
 
     clear_map_descriptors();
 
-    ebpf_verifier_options_t verifier_options{false, false, false, false, false};
-    if (load_byte_code(
-            file_name,
-            section_name,
-            &verifier_options,
-            byte_code.data(),
-            &byte_code_size,
-            &program_type,
-            error_message) != 0) {
-        result = ERROR_INVALID_PARAMETER;
-        goto Done;
-    }
-
-    byte_code.resize(byte_code_size);
-
-    // TODO: (issue #169): Should switch this to more idiomatic C++
-    // Note: This leaks the program handle on some errors.
-    result = _create_program(program_type, file_name, section_name, &program_handle);
-    if (result != ERROR_SUCCESS) {
-        goto Done;
-    }
-
-    if (get_map_descriptor_size() > *count_of_map_handles) {
-        result = ERROR_INSUFFICIENT_BUFFER;
-        goto Done;
-    }
-
-    // populate load_info.
-    load_info.file_name = const_cast<char*>(file_name);
-    load_info.section_name = const_cast<char*>(section_name);
-    load_info.program_name = nullptr;
-    load_info.program_type = program_type;
-    load_info.program_handle = program_handle;
-    load_info.execution_type = execution_type;
-    load_info.byte_code = byte_code.data();
-    load_info.byte_code_size = (uint32_t)byte_code_size;
-    load_info.execution_context = execution_context_kernel_mode;
-    load_info.map_count = (uint32_t)get_map_descriptor_size();
-
-    if (load_info.map_count > 0) {
-        load_info.handle_map = (fd_handle_map*)calloc(load_info.map_count, sizeof(fd_handle_map));
-        if (load_info.handle_map == nullptr) {
-            result = EBPF_NO_MEMORY;
+    try {
+        ebpf_verifier_options_t verifier_options{false, false, false, false, false};
+        if (load_byte_code(
+                file_name,
+                section_name,
+                &verifier_options,
+                byte_code.data(),
+                &byte_code_size,
+                &program_type,
+                error_message) != 0) {
+            result = ERROR_INVALID_PARAMETER;
             goto Done;
         }
 
-        auto descriptors = get_all_map_descriptors();
-        auto index = 0;
-        for (const auto& descriptor : descriptors) {
-            load_info.handle_map[index].file_descriptor = descriptor.ebpf_map_descriptor.original_fd;
-            load_info.handle_map[index].handle = reinterpret_cast<file_handle_t>(descriptor.handle);
-            index++;
-        }
-    }
+        byte_code.resize(byte_code_size);
 
-    result = ebpf_rpc_load_program(&load_info, error_message, &error_message_size);
-    if (result != ERROR_SUCCESS) {
+        // TODO: (issue #169): Should switch this to more idiomatic C++
+        // Note: This leaks the program handle on some errors.
+        result = _create_program(program_type, file_name, section_name, &program_handle);
+        if (result != ERROR_SUCCESS) {
+            goto Done;
+        }
+
+        if (get_map_descriptor_size() > *count_of_map_handles) {
+            result = ERROR_INSUFFICIENT_BUFFER;
+            goto Done;
+        }
+
+        // populate load_info.
+        load_info.file_name = const_cast<char*>(file_name);
+        load_info.section_name = const_cast<char*>(section_name);
+        load_info.program_name = nullptr;
+        load_info.program_type = program_type;
+        load_info.program_handle = program_handle;
+        load_info.execution_type = execution_type;
+        load_info.byte_code = byte_code.data();
+        load_info.byte_code_size = (uint32_t)byte_code_size;
+        load_info.execution_context = execution_context_kernel_mode;
+        load_info.map_count = (uint32_t)get_map_descriptor_size();
+
+        if (load_info.map_count > 0) {
+            auto descriptors = get_all_map_descriptors();
+            for (const auto& descriptor : descriptors) {
+                handle_map.emplace_back(
+                    descriptor.ebpf_map_descriptor.original_fd, reinterpret_cast<file_handle_t>(descriptor.handle));
+            }
+
+            load_info.handle_map = handle_map.data();
+        }
+
+        result = ebpf_rpc_load_program(&load_info, error_message, &error_message_size);
+        if (result != ERROR_SUCCESS) {
+            goto Done;
+        }
+
+        // Program is verified and loaded.
+        *count_of_map_handles = 0;
+        handles = get_all_map_handles();
+        for (const auto& map_handle : handles) {
+            map_handles[*count_of_map_handles] = reinterpret_cast<HANDLE>(map_handle);
+            (*count_of_map_handles)++;
+        }
+
+        *handle = program_handle;
+        program_handle = INVALID_HANDLE_VALUE;
+    } catch (const std::bad_alloc&) {
+        result = EBPF_NO_MEMORY;
+        goto Done;
+    } catch (...) {
+        result = EBPF_FAILED;
         goto Done;
     }
-
-    // Program is verified and loaded.
-    *count_of_map_handles = 0;
-    handles = get_all_map_handles();
-    for (const auto& map_handle : handles) {
-        map_handles[*count_of_map_handles] = reinterpret_cast<HANDLE>(map_handle);
-        (*count_of_map_handles)++;
-    }
-
-    *handle = program_handle;
-    program_handle = INVALID_HANDLE_VALUE;
 
 Done:
     if (result != ERROR_SUCCESS) {
