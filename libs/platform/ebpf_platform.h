@@ -15,6 +15,7 @@ extern "C"
 #define EBPF_COUNT_OF(arr) (sizeof(arr) / sizeof(arr[0]))
 #define EBPF_OFFSET_OF(s, m) (((size_t) & ((s*)0)->m))
 #define EBPF_FROM_FIELD(s, m, o) (s*)((uint8_t*)o - EBPF_OFFSET_OF(s, m))
+#define EBPF_COUNT_OF(_Array) (sizeof(_Array) / sizeof(_Array[0]))
 
 #define EBPF_DEVICE_NAME L"\\Device\\EbpfIoDevice"
 #define EBPF_SYMBOLIC_DEVICE_NAME L"\\GLOBAL??\\EbpfIoDevice"

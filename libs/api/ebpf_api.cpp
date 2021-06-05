@@ -61,7 +61,7 @@ ebpf_api_create_map(
 
     uint32_t return_value = ERROR_SUCCESS;
 
-    if (handle == NULL) {
+    if (handle == nullptr) {
         return_value = ERROR_INVALID_PARAMETER;
         goto Exit;
     }
@@ -731,15 +731,15 @@ ebpf_api_get_pinned_map_info(
     ebpf_operation_get_map_information_request_t request = {
         sizeof(request), EBPF_OPERATION_GET_MAP_INFORMATION, reinterpret_cast<uint64_t>(INVALID_HANDLE_VALUE)};
     ebpf_protocol_buffer_t reply_buffer;
-    ebpf_operation_get_map_information_reply_t* reply = NULL;
+    ebpf_operation_get_map_information_reply_t* reply = nullptr;
     size_t min_expected_buffer_length = 0;
     size_t serialized_buffer_length = 0;
     uint16_t local_map_count = 0;
-    ebpf_map_information_t* local_map_info = NULL;
+    ebpf_map_information_t* local_map_info = nullptr;
     size_t output_buffer_length = 4 * 1024;
     uint8_t attempt_count = 0;
 
-    if ((map_count == NULL) || (map_info == NULL)) {
+    if ((map_count == nullptr) || (map_info == nullptr)) {
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
@@ -792,8 +792,8 @@ ebpf_api_get_pinned_map_info(
     if (result != EBPF_SUCCESS)
         goto Exit;
 
+    ebpf_assert(serialized_buffer_length >= min_expected_buffer_length);
     if (serialized_buffer_length < min_expected_buffer_length) {
-        ebpf_assert(false);
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
@@ -809,7 +809,7 @@ Exit:
         return_value = _ebpf_result_to_winerror(result);
         ebpf_api_map_info_free(local_map_count, local_map_info);
         local_map_count = 0;
-        local_map_info = NULL;
+        local_map_info = nullptr;
     }
 
     *map_count = local_map_count;

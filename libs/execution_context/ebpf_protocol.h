@@ -29,7 +29,6 @@ typedef enum _ebpf_operation_id
     EBPF_OPERATION_GET_EC_FUNCTION,
     EBPF_OPERATION_GET_PROGRAM_INFORMATION,
     EBPF_OPERATION_GET_MAP_INFORMATION,
-    EBPF_OPERATION_MAX
 } ebpf_operation_id_t;
 
 typedef enum _ebpf_code_type

@@ -1,7 +1,5 @@
-/*
- *  Copyright (c) Microsoft Corporation
- *  SPDX-License-Identifier: MIT
- */
+// Copyright (c) Microsoft Corporation
+// SPDX-License-Identifier: MIT
 
 #define CATCH_CONFIG_MAIN
 
@@ -10,8 +8,8 @@
 #include <thread>
 #include <WinSock2.h>
 
-#include "catch2\catch.hpp"
 #include "api_test.h"
+#include "catch2\catch.hpp"
 #include "service_helper.h"
 
 namespace api_test {
@@ -36,7 +34,7 @@ TEST_CASE("pinned_map_enum", "[pinned_map_enum]")
     const int pinned_map_count = 10;
     std::string pin_path_prefix = "\\ebpf\\map\\";
     uint16_t map_count = 0;
-    ebpf_map_information_t* map_info = NULL;
+    ebpf_map_information_t* map_info = nullptr;
 
     REQUIRE(ebpf_api_initiate() == EBPF_SUCCESS);
 
@@ -89,7 +87,7 @@ Exit:
     ebpf_api_close_handle(map_handle);
     ebpf_api_map_info_free(map_count, map_info);
     map_count = 0;
-    map_info = NULL;
+    map_info = nullptr;
 
     ebpf_api_terminate();
 }

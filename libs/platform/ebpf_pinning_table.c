@@ -224,7 +224,6 @@ ebpf_pinning_table_enumerate_entries(
         goto Exit;
     }
 
-    // Grab lock.
     ebpf_lock_lock(&pinning_table->lock, &state);
 
     // Loop through the entries in the hashtable.

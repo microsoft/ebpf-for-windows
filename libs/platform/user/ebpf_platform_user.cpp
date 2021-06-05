@@ -106,12 +106,11 @@ ebpf_get_code_integrity_state(ebpf_code_integrity_state_t* state)
 }
 
 void*
-<<<<<<< HEAD
 ebpf_allocate(size_t size)
 {
     void* memory;
     memory = calloc(size, 1);
-    if (memory != NULL)
+    if (memory != nullptr)
         memset(memory, 0, size);
 
     return memory;

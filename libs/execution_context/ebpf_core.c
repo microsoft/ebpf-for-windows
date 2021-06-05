@@ -778,7 +778,7 @@ Exit:
     return result;
 }
 
-ebpf_result_t
+static ebpf_result_t
 _ebpf_core_protocol_serialize_map_information_reply(
     _In_ const uint16_t map_count,
     _In_count_(map_count) const ebpf_core_map_information_t* map_info,
@@ -885,7 +885,7 @@ typedef struct _ebpf_protocol_handler
     size_t minimum_reply_size;
 } const ebpf_protocol_handler_t;
 
-static ebpf_protocol_handler_t _ebpf_protocol_handlers[EBPF_OPERATION_MAX] = {
+static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
     // EBPF_OPERATION_RESOLVE_HELPER
     {(ebpf_result_t(__cdecl*)(const void*))_ebpf_core_protocol_resolve_helper,
      EBPF_OFFSET_OF(ebpf_operation_resolve_helper_request_t, helper_id),
@@ -987,7 +987,7 @@ ebpf_core_get_protocol_handler_properties(
     *minimum_request_size = 0;
     *minimum_reply_size = 0;
 
-    if (operation_id >= EBPF_OPERATION_MAX || operation_id < EBPF_OPERATION_RESOLVE_HELPER)
+    if (operation_id >= EBPF_COUNT_OF(_ebpf_protocol_handlers) || operation_id < EBPF_OPERATION_RESOLVE_HELPER)
         return EBPF_ERROR_NOT_SUPPORTED;
 
     if (!_ebpf_protocol_handlers[operation_id].dispatch.protocol_handler_no_reply)
@@ -1007,7 +1007,7 @@ ebpf_core_invoke_protocol_handler(
 {
     ebpf_result_t retval;
 
-    if (operation_id >= EBPF_OPERATION_MAX || operation_id < EBPF_OPERATION_RESOLVE_HELPER) {
+    if (operation_id >= EBPF_COUNT_OF(_ebpf_protocol_handlers) || operation_id < EBPF_OPERATION_RESOLVE_HELPER) {
         return EBPF_ERROR_NOT_SUPPORTED;
     }
 
