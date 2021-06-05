@@ -22,25 +22,33 @@ static RPC_WSTR _string_binding = nullptr;
 static const WCHAR* _protocol_sequence = L"ncalrpc";
 static bool _binding_initialized = false;
 
-int
+ebpf_result_t
 ebpf_rpc_verify_program(ebpf_program_verify_info* info, const char** logs, uint32_t* logs_size)
 {
-    int result;
+    ebpf_result_t result;
 
-    RpcTryExcept { result = (int)ebpf_client_verify_program(info, logs_size, const_cast<char**>(logs)); }
-    RpcExcept(RpcExceptionFilter(RpcExceptionCode())) { result = RpcExceptionCode(); }
+    RpcTryExcept { result = ebpf_client_verify_program(info, logs_size, const_cast<char**>(logs)); }
+    RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
+    {
+        // TODO: (Issue# 247) Add tracing for the RpcExceptionCode() that is returned.
+        result = EBPF_RPC_EXCEPTION;
+    }
     RpcEndExcept
 
         return result;
 }
 
-int
+ebpf_result_t
 ebpf_rpc_load_program(ebpf_program_load_info* info, const char** logs, uint32_t* logs_size)
 {
-    int result;
+    ebpf_result_t result;
 
-    RpcTryExcept { result = (int)ebpf_client_verify_and_load_program(info, logs_size, const_cast<char**>(logs)); }
-    RpcExcept(RpcExceptionFilter(RpcExceptionCode())) { result = RpcExceptionCode(); }
+    RpcTryExcept { result = ebpf_client_verify_and_load_program(info, logs_size, const_cast<char**>(logs)); }
+    RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
+    {
+        // TODO: (Issue# 247) Add tracing for the RpcExceptionCode() that is returned.
+        result = EBPF_RPC_EXCEPTION;
+    }
     RpcEndExcept
 
         return result;

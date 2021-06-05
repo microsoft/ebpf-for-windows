@@ -58,7 +58,7 @@ extern "C"
      * @param[out] map_handles Array of map handles to be filled in.
      * @param[out] error_message Error message describing what failed.
      */
-    uint32_t
+    ebpf_result_t
     ebpf_api_load_program(
         const char* file,
         const char* section_name,

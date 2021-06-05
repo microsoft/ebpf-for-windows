@@ -212,7 +212,6 @@ ebpf_verify_program(
     uint32_t* logs_size)
 {
     ebpf_result_t result = EBPF_SUCCESS;
-    int error = 0;
 
     // Only kernel execution context supported currently.
     if (execution_context == execution_context_user_mode) {
@@ -227,11 +226,7 @@ ebpf_verify_program(
         }
 
         // Verify the program
-        error = verify_byte_code(program_type, byte_code, byte_code_size, logs, logs_size);
-
-        if (error != 0) {
-            result = EBPF_VALIDATION_FAILED;
-        }
+        result = verify_byte_code(program_type, byte_code, byte_code_size, logs, logs_size);
     } catch (const std::bad_alloc&) {
         result = EBPF_NO_MEMORY;
     } catch (std::runtime_error& err) {

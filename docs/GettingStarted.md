@@ -32,6 +32,7 @@ This will build the following binaries:
                loading eBPF programs.
 * ebpfnetsh.dll: A plugin for the Windows netsh.exe command line tool that provides eBPF command line
                  utility functionality.
+* ebpfsvc.exe: A user-mode service which verifies and loads an eBPF program in the execution context.
 * end_to_end.exe: A collection of tests using the Catch framework.  These tests are also run as part
                   of the Github CI/CD so should always pass.
 

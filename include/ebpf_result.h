@@ -54,6 +54,9 @@ extern "C"
         // The program is too large.
         EBPF_PROGRAM_TOO_LARGE,
 
+        // RPC exception.
+        EBPF_RPC_EXCEPTION,
+
         // Generic failure code for all other errors.
         EBPF_FAILED,
 

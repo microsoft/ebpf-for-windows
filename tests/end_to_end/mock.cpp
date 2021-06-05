@@ -71,7 +71,7 @@ initialize_rpc_binding() { return RPC_S_OK; }
 RPC_STATUS
 clean_up_rpc_binding() { return RPC_S_OK; }
 
-int
+ebpf_result_t
 ebpf_rpc_load_program(ebpf_program_load_info* info, const char** logs, uint32_t* logs_size)
 {
     // Short circuit rpc call to service lib.

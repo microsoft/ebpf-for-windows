@@ -65,7 +65,7 @@ create_map_function(
     return cache_map_handle(reply.handle, type, key_size, value_size, max_entries);
 }
 
-static uint32_t
+static ebpf_result_t
 _create_program(
     ebpf_program_type_t program_type,
     const std::string& file_name,
@@ -92,12 +92,14 @@ _create_program(
 
     std::copy(section_name.begin(), section_name.end(), request_buffer.begin() + request->section_name_offset);
 
-    uint32_t retval = invoke_ioctl(request_buffer, reply);
-    if (retval != ERROR_SUCCESS) {
-        return retval;
+    uint32_t error = invoke_ioctl(request_buffer, reply);
+    if (error != ERROR_SUCCESS) {
+        goto Exit;
     }
     *program_handle = reinterpret_cast<ebpf_handle_t>(reply.program_handle);
-    return retval;
+
+Exit:
+    return windows_error_to_ebpf_result(error);
 }
 
 uint32_t
@@ -162,7 +164,7 @@ Done:
     return result;
 }
 
-uint32_t
+ebpf_result_t
 ebpf_api_load_program(
     const char* file_name,
     const char* section_name,
@@ -179,7 +181,7 @@ ebpf_api_load_program(
     ebpf_protocol_buffer_t request_buffer;
     uint32_t error_message_size = 0;
     std::vector<uintptr_t> handles;
-    uint32_t result = ERROR_SUCCESS;
+    ebpf_result_t result = EBPF_SUCCESS;
     ebpf_program_load_info load_info = {0};
     std::vector<fd_handle_map> handle_map;
 
@@ -198,7 +200,7 @@ ebpf_api_load_program(
                 &byte_code_size,
                 &program_type,
                 error_message) != 0) {
-            result = ERROR_INVALID_PARAMETER;
+            result = EBPF_INVALID_ARGUMENT;
             goto Done;
         }
 
@@ -207,12 +209,12 @@ ebpf_api_load_program(
         // TODO: (issue #169): Should switch this to more idiomatic C++
         // Note: This leaks the program handle on some errors.
         result = _create_program(program_type, file_name, section_name, &program_handle);
-        if (result != ERROR_SUCCESS) {
+        if (result != EBPF_SUCCESS) {
             goto Done;
         }
 
         if (get_map_descriptor_size() > *count_of_map_handles) {
-            result = ERROR_INSUFFICIENT_BUFFER;
+            result = EBPF_ERROR_INSUFFICIENT_BUFFER;
             goto Done;
         }
 
@@ -239,7 +241,7 @@ ebpf_api_load_program(
         }
 
         result = ebpf_rpc_load_program(&load_info, error_message, &error_message_size);
-        if (result != ERROR_SUCCESS) {
+        if (result != EBPF_SUCCESS) {
             goto Done;
         }
 
@@ -262,7 +264,7 @@ ebpf_api_load_program(
     }
 
 Done:
-    if (result != ERROR_SUCCESS) {
+    if (result != EBPF_SUCCESS) {
         handles = get_all_map_handles();
         for (const auto& map_handle : handles) {
             ebpf_api_close_handle((ebpf_handle_t)map_handle);
