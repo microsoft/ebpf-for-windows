@@ -744,7 +744,7 @@ ebpf_api_get_pinned_map_info(
         goto Exit;
     }
 
-    while (attempt_count < IOCTL_MAX_ATTEMPT) {
+    while (attempt_count < IOCTL_MAX_ATTEMPTS) {
         size_t reply_length;
         result = ebpf_safe_size_t_add(
             EBPF_OFFSET_OF(ebpf_operation_get_map_information_reply_t, data), output_buffer_length, &reply_length);
@@ -770,7 +770,7 @@ ebpf_api_get_pinned_map_info(
             break;
     }
 
-    if (attempt_count == IOCTL_MAX_ATTEMPT) {
+    if (attempt_count == IOCTL_MAX_ATTEMPTS) {
         // Exceeeded maximum number of attempts.
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;

@@ -1,7 +1,5 @@
-/*
- *  Copyright (c) Microsoft Corporation
- *  SPDX-License-Identifier: MIT
- */
+// Copyright (c) Microsoft Corporation
+// SPDX-License-Identifier: MIT
 
 // This file contains function implementations for serializing and de-serializing
 // various eBPF structures to/from ebpf_operation*_request/response structures.

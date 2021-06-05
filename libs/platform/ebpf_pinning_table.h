@@ -90,14 +90,15 @@ extern "C"
      * @param[in] pinning_table Pinning table to enumerate.
      * @param[in] object_type eBPF object type that will be used to filter pinning entries.
      * @param[out] entry_count Number of pinning entries being returned.
-     * @param[out] pinning_entries Array of pinning entries being returned. Must be freed by caller.
+     * @param[out] pinning_entries Array of pinning entries being returned. Must be freed by caller
+     * using ebpf_pinning_entries_release().
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Output array of entries could not be allocated.
      */
     ebpf_result_t
     ebpf_pinning_table_enumerate_entries(
         _In_ ebpf_pinning_table_t* pinning_table,
-        _In_ ebpf_object_type_t object_type,
+        ebpf_object_type_t object_type,
         _Out_ uint16_t* entry_count,
         _Outptr_result_buffer_maybenull_(*entry_count) ebpf_pinning_entry_t** pinning_entries);
 

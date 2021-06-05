@@ -191,7 +191,7 @@ ebpf_pinning_table_delete(ebpf_pinning_table_t* pinning_table, const ebpf_utf8_s
 ebpf_result_t
 ebpf_pinning_table_enumerate_entries(
     _In_ ebpf_pinning_table_t* pinning_table,
-    _In_ ebpf_object_type_t object_type,
+    ebpf_object_type_t object_type,
     _Out_ uint16_t* entry_count,
     _Outptr_result_buffer_maybenull_(*entry_count) ebpf_pinning_entry_t** pinning_entries)
 {
@@ -248,7 +248,7 @@ ebpf_pinning_table_enumerate_entries(
         if (result != EBPF_SUCCESS)
             goto Exit_Locked;
 
-        // Skip entries that dont match the input object type.
+        // Skip entries that don't match the input object type.
         if (object_type != ebpf_object_get_type((*next_pinning_entry)->object)) {
             continue;
         }
@@ -320,7 +320,7 @@ Exit:
 }
 
 void
-ebpf_pinning_entries_release(_In_ uint16_t entry_count, _In_count_(entry_count) ebpf_pinning_entry_t* pinning_entries)
+ebpf_pinning_entries_release(uint16_t entry_count, _In_count_(entry_count) ebpf_pinning_entry_t* pinning_entries)
 {
     uint16_t index;
 

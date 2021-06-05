@@ -13,7 +13,7 @@
 #define IOCTL_EBPFCTL_METHOD_BUFFERED CTL_CODE(EBPF_IOCTL_TYPE, 0x900, METHOD_BUFFERED, FILE_ANY_ACCESS)
 
 // Maxiumum attempts to invoke an IOCTL.
-#define IOCTL_MAX_ATTEMPT 16
+#define IOCTL_MAX_ATTEMPTS 16
 
 typedef std::vector<uint8_t> ebpf_protocol_buffer_t;
 typedef std::vector<uint8_t> ebpf_code_buffer_t;

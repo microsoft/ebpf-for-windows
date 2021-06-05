@@ -1,10 +1,8 @@
-/*
- *  Copyright (c) Microsoft Corporation
- *  SPDX-License-Identifier: MIT
- */
+// Copyright (c) Microsoft Corporation
+// SPDX-License-Identifier: MIT
 
 // This file contains eBPF definitions common to eBPF core libraries as well as
-// eBPF API library.
+// the eBPF API library.
 
 #pragma once
 

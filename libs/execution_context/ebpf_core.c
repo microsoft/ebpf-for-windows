@@ -756,7 +756,7 @@ _ebpf_core_protocol_convert_pinning_entries_to_map_information_array(
         ebpf_pinning_entry_t* source = &pinning_entries[index];
         ebpf_core_map_information_t* destination = &local_map_info[index];
         ebpf_map_definition_t* map_definition;
-        if (EBPF_OBJECT_MAP != ebpf_object_get_type(source->object)) {
+        if (ebpf_object_get_type(source->object) != EBPF_OBJECT_MAP) {
             // Bad object type.
             result = EBPF_INVALID_ARGUMENT;
             goto Exit;
@@ -812,7 +812,7 @@ static ebpf_result_t
 _ebpf_core_protocol_get_map_information(
     _In_ const ebpf_operation_get_map_information_request_t* request,
     _In_ ebpf_operation_get_map_information_reply_t* reply,
-    _In_ uint16_t reply_length)
+    uint16_t reply_length)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     uint16_t entry_count = 0;

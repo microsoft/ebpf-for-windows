@@ -1,9 +1,7 @@
-/*
- *  Copyright (c) Microsoft Corporation
- *  SPDX-License-Identifier: MIT
- */
+// Copyright (c) Microsoft Corporation
+// SPDX-License-Identifier: MIT
 
-// Data structures and functions for serializing and de-serializing eBPF sructs
+// Data structures and functions for serializing and de-serializing eBPF structs
 // between API and Execution Context.
 
 #pragma once
