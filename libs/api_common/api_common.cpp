@@ -68,6 +68,9 @@ windows_error_to_ebpf_result(uint32_t error)
 
     case ERROR_NOT_ENOUGH_MEMORY:
         return EBPF_NO_MEMORY;
+
+    case ERROR_ALREADY_INITIALIZED:
+        return EBPF_ALREADY_INITIALIZED;
     }
 
     return EBPF_FAILED;

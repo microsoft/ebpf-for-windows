@@ -6,6 +6,7 @@
 #include <map>
 #include <mutex>
 #include <stdexcept>
+#include "api_common.hpp"
 #include "ebpf_api.h"
 #include "ebpf_bind_program_data.h"
 #include "ebpf_platform.h"
@@ -20,13 +21,13 @@
 static ebpf_handle_t _device_handle = INVALID_HANDLE_VALUE;
 static std::mutex _mutex;
 
-uint32_t
+ebpf_result_t
 initialize_device_handle()
 {
     std::scoped_lock lock(_mutex);
 
     if (_device_handle != INVALID_HANDLE_VALUE) {
-        return ERROR_ALREADY_INITIALIZED;
+        return EBPF_ALREADY_INITIALIZED;
     }
 
     _device_handle = Platform::CreateFile(
@@ -39,10 +40,10 @@ initialize_device_handle()
         nullptr);
 
     if (_device_handle == INVALID_HANDLE_VALUE) {
-        return GetLastError();
+        return windows_error_to_ebpf_result(GetLastError());
     }
 
-    return 0;
+    return EBPF_SUCCESS;
 }
 
 void

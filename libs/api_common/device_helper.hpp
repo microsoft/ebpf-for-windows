@@ -21,7 +21,7 @@ typedef struct empty_reply
 
 static empty_reply_t _empty_reply;
 
-uint32_t
+ebpf_result_t
 initialize_device_handle();
 
 void

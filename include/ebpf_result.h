@@ -57,6 +57,9 @@ extern "C"
         // RPC exception.
         EBPF_RPC_EXCEPTION,
 
+        // Handle is already initialized.
+        EBPF_ALREADY_INITIALIZED,
+
         // Generic failure code for all other errors.
         EBPF_FAILED,
 
