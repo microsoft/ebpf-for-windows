@@ -279,10 +279,8 @@ ebpf_verify_and_load_program(
         }
 
         // Verify the program
-        error = verify_byte_code(program_type, byte_code, byte_code_size, error_message, error_message_size);
-
-        if (error != 0) {
-            result = EBPF_VALIDATION_FAILED;
+        result = verify_byte_code(program_type, byte_code, byte_code_size, error_message, error_message_size);
+        if (result != EBPF_SUCCESS) {
             goto Exit;
         }
 
@@ -294,7 +292,7 @@ ebpf_verify_and_load_program(
         ebpf_code_buffer_t byte_code_buffer(byte_code, byte_code + byte_code_size);
 
         result = _resolve_maps_in_byte_code(program_handle, byte_code_buffer);
-        if (error != ERROR_SUCCESS) {
+        if (result != EBPF_SUCCESS) {
             goto Exit;
         }
 
