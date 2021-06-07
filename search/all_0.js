@@ -5,7 +5,7 @@ var searchData=
   ['_5fbind_5fmd_2',['_bind_md',['../struct__bind__md.html',1,'']]],
   ['_5fbind_5foperation_3',['_bind_operation',['../ebpf__nethooks_8h.html#a814187ca47e221594a21bde5324d86fc',1,'ebpf_nethooks.h']]],
   ['_5febpf_5fcontext_5fdescriptor_4',['_ebpf_context_descriptor',['../struct__ebpf__context__descriptor.html',1,'']]],
-  ['_5febpf_5fexecution_5ftype_5',['_ebpf_execution_type',['../ebpf__api_8h.html#a5c71fd3591cdd9c7f91f3908c0099b72',1,'ebpf_api.h']]],
+  ['_5febpf_5fexecution_5ftype_5',['_ebpf_execution_type',['../ebpf__execution__type_8h.html#a5c71fd3591cdd9c7f91f3908c0099b72',1,'ebpf_execution_type.h']]],
   ['_5febpf_5fhelper_5fargument_5ftype_6',['_ebpf_helper_argument_type',['../ebpf__program__types_8h.html#a7c1aae8a5c3cea4f956e148b27031e48',1,'ebpf_program_types.h']]],
   ['_5febpf_5fhelper_5ffunction_7',['_ebpf_helper_function',['../ebpf__windows_8h.html#a653f667ffc6571d5f67b1b81d612a0cd',1,'ebpf_windows.h']]],
   ['_5febpf_5fhelper_5ffunction_5fprototype_8',['_ebpf_helper_function_prototype',['../struct__ebpf__helper__function__prototype.html',1,'']]],

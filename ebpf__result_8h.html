@@ -85,18 +85,23 @@ Enumerations</h2></td></tr>
 <tr class="memitem:a916ce31f9038720787b441792c088372"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__result_8h.html#a916ce31f9038720787b441792c088372">ebpf_result</a> { <br />
 &#160;&#160;<a class="el" href="ebpf__result_8h.html#a916ce31f9038720787b441792c088372a734b14ecdf5504673bd704aef03b1b32">EBPF_SUCCESS</a>, 
 <a class="el" href="ebpf__result_8h.html#a916ce31f9038720787b441792c088372a5036219c0ec36a0ebbc84105d1b48568">EBPF_VALIDATION_FAILED</a>, 
-<a class="el" href="ebpf__result_8h.html#a916ce31f9038720787b441792c088372a1221a0a2fdd4594363eb76f65f2b3b0b">EBPF_LOAD_FAILED</a>, 
-<a class="el" href="ebpf__result_8h.html#a916ce31f9038720787b441792c088372ac8515b4cd743a58717fea12b79abb52d">EBPF_INVALID_FD</a>, 
+<a class="el" href="ebpf__result_8h.html#a916ce31f9038720787b441792c088372a4fab6c7321fbf1a51eae786d8b5c3685">EBPF_JIT_COMPILATION_FAILED</a>, 
+<a class="el" href="ebpf__result_8h.html#a916ce31f9038720787b441792c088372aa5c54219ced3754d31fc419ebb36bdf3">EBPF_PROGRAM_LOAD_FAILED</a>, 
 <br />
-&#160;&#160;<a class="el" href="ebpf__result_8h.html#a916ce31f9038720787b441792c088372a292ca4d7864b385844dc7f37a6e3ff3d">EBPF_INVALID_OBJECT</a>, 
+&#160;&#160;<a class="el" href="ebpf__result_8h.html#a916ce31f9038720787b441792c088372ac8515b4cd743a58717fea12b79abb52d">EBPF_INVALID_FD</a>, 
+<a class="el" href="ebpf__result_8h.html#a916ce31f9038720787b441792c088372a292ca4d7864b385844dc7f37a6e3ff3d">EBPF_INVALID_OBJECT</a>, 
 <a class="el" href="ebpf__result_8h.html#a916ce31f9038720787b441792c088372a9b121bd40b4570b571d61075db87b0b0">EBPF_INVALID_ARGUMENT</a>, 
 <a class="el" href="ebpf__result_8h.html#a916ce31f9038720787b441792c088372a42f8e1cd5eef6d9b15e6f8e0bc0abadb">EBPF_OBJECT_NOT_FOUND</a>, 
-<a class="el" href="ebpf__result_8h.html#a916ce31f9038720787b441792c088372a9ad8ccf11a5f3629c5aa7635ab96a2b6">EBPF_OBJECT_ALREADY_EXISTS</a>, 
 <br />
-&#160;&#160;<a class="el" href="ebpf__result_8h.html#a916ce31f9038720787b441792c088372a6f7690ace3650948a9fa80d7a5b3320d">EBPF_FILE_NOT_FOUND</a>, 
+&#160;&#160;<a class="el" href="ebpf__result_8h.html#a916ce31f9038720787b441792c088372a9ad8ccf11a5f3629c5aa7635ab96a2b6">EBPF_OBJECT_ALREADY_EXISTS</a>, 
+<a class="el" href="ebpf__result_8h.html#a916ce31f9038720787b441792c088372a6f7690ace3650948a9fa80d7a5b3320d">EBPF_FILE_NOT_FOUND</a>, 
 <a class="el" href="ebpf__result_8h.html#a916ce31f9038720787b441792c088372a6e12c2586d08e30bd0c26f5f3c00653e">EBPF_ALREADY_PINNED</a>, 
 <a class="el" href="ebpf__result_8h.html#a916ce31f9038720787b441792c088372af5f347762ec9ccee1d9e9eed23cd6a5d">EBPF_NOT_PINNED</a>, 
-<a class="el" href="ebpf__result_8h.html#a916ce31f9038720787b441792c088372a61d51632302a0c038d54547362cb0b2d">EBPF_NO_MEMORY</a>, 
+<br />
+&#160;&#160;<a class="el" href="ebpf__result_8h.html#a916ce31f9038720787b441792c088372a61d51632302a0c038d54547362cb0b2d">EBPF_NO_MEMORY</a>, 
+<a class="el" href="ebpf__result_8h.html#a916ce31f9038720787b441792c088372a82ccb167c4ae4bdaa6652535b1a5e366">EBPF_PROGRAM_TOO_LARGE</a>, 
+<a class="el" href="ebpf__result_8h.html#a916ce31f9038720787b441792c088372a9ec1ea4f6d473fcf287718daf1204f5f">EBPF_RPC_EXCEPTION</a>, 
+<a class="el" href="ebpf__result_8h.html#a916ce31f9038720787b441792c088372a06a12a62bbc2c95dee5e655bf20b2f86">EBPF_ALREADY_INITIALIZED</a>, 
 <br />
 &#160;&#160;<a class="el" href="ebpf__result_8h.html#a916ce31f9038720787b441792c088372a3d44a71f4b42e5368b78fdef3d2ef4ba">EBPF_FAILED</a>, 
 <a class="el" href="ebpf__result_8h.html#a916ce31f9038720787b441792c088372a3caf50107d4bc9245f43c5d5f9a7d909">EBPF_ERROR_NOT_SUPPORTED</a>, 
@@ -144,7 +149,8 @@ Enumerations</h2></td></tr>
 <table class="fieldtable">
 <tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="a916ce31f9038720787b441792c088372a734b14ecdf5504673bd704aef03b1b32"></a>EBPF_SUCCESS&#160;</td><td class="fielddoc"></td></tr>
 <tr><td class="fieldname"><a id="a916ce31f9038720787b441792c088372a5036219c0ec36a0ebbc84105d1b48568"></a>EBPF_VALIDATION_FAILED&#160;</td><td class="fielddoc"></td></tr>
-<tr><td class="fieldname"><a id="a916ce31f9038720787b441792c088372a1221a0a2fdd4594363eb76f65f2b3b0b"></a>EBPF_LOAD_FAILED&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="a916ce31f9038720787b441792c088372a4fab6c7321fbf1a51eae786d8b5c3685"></a>EBPF_JIT_COMPILATION_FAILED&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="a916ce31f9038720787b441792c088372aa5c54219ced3754d31fc419ebb36bdf3"></a>EBPF_PROGRAM_LOAD_FAILED&#160;</td><td class="fielddoc"></td></tr>
 <tr><td class="fieldname"><a id="a916ce31f9038720787b441792c088372ac8515b4cd743a58717fea12b79abb52d"></a>EBPF_INVALID_FD&#160;</td><td class="fielddoc"></td></tr>
 <tr><td class="fieldname"><a id="a916ce31f9038720787b441792c088372a292ca4d7864b385844dc7f37a6e3ff3d"></a>EBPF_INVALID_OBJECT&#160;</td><td class="fielddoc"></td></tr>
 <tr><td class="fieldname"><a id="a916ce31f9038720787b441792c088372a9b121bd40b4570b571d61075db87b0b0"></a>EBPF_INVALID_ARGUMENT&#160;</td><td class="fielddoc"></td></tr>
@@ -154,6 +160,9 @@ Enumerations</h2></td></tr>
 <tr><td class="fieldname"><a id="a916ce31f9038720787b441792c088372a6e12c2586d08e30bd0c26f5f3c00653e"></a>EBPF_ALREADY_PINNED&#160;</td><td class="fielddoc"></td></tr>
 <tr><td class="fieldname"><a id="a916ce31f9038720787b441792c088372af5f347762ec9ccee1d9e9eed23cd6a5d"></a>EBPF_NOT_PINNED&#160;</td><td class="fielddoc"></td></tr>
 <tr><td class="fieldname"><a id="a916ce31f9038720787b441792c088372a61d51632302a0c038d54547362cb0b2d"></a>EBPF_NO_MEMORY&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="a916ce31f9038720787b441792c088372a82ccb167c4ae4bdaa6652535b1a5e366"></a>EBPF_PROGRAM_TOO_LARGE&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="a916ce31f9038720787b441792c088372a9ec1ea4f6d473fcf287718daf1204f5f"></a>EBPF_RPC_EXCEPTION&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="a916ce31f9038720787b441792c088372a06a12a62bbc2c95dee5e655bf20b2f86"></a>EBPF_ALREADY_INITIALIZED&#160;</td><td class="fielddoc"></td></tr>
 <tr><td class="fieldname"><a id="a916ce31f9038720787b441792c088372a3d44a71f4b42e5368b78fdef3d2ef4ba"></a>EBPF_FAILED&#160;</td><td class="fielddoc"></td></tr>
 <tr><td class="fieldname"><a id="a916ce31f9038720787b441792c088372a3caf50107d4bc9245f43c5d5f9a7d909"></a>EBPF_ERROR_NOT_SUPPORTED&#160;</td><td class="fielddoc"></td></tr>
 <tr><td class="fieldname"><a id="a916ce31f9038720787b441792c088372a0d289e7183d0493003bbf06ecf48596e"></a>EBPF_ERROR_NOT_FOUND&#160;</td><td class="fielddoc"></td></tr>
