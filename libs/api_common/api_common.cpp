@@ -5,6 +5,10 @@
 #include <string>
 #include <vector>
 #include <Windows.h>
+#include "api_common.hpp"
+#include "device_helper.hpp"
+#include "ebpf_protocol.h"
+#include "ebpf_result.h"
 #pragma warning(push)
 #pragma warning(disable : 4100) // 'identifier' : unreferenced formal parameter
 #pragma warning(disable : 4244) // 'conversion' conversion from 'type1' to
@@ -14,7 +18,7 @@
 #pragma warning(pop)
 
 const char*
-allocate_error_string(const std::string& str, uint32_t* length = nullptr)
+allocate_error_string(const std::string& str, uint32_t* length) noexcept
 {
     char* error_message;
     size_t error_message_length = str.size() + 1;
@@ -36,7 +40,7 @@ convert_ebpf_program_to_bytes(const std::vector<ebpf_inst>& instructions)
 }
 
 int
-get_file_size(const char* filename, size_t* byte_code_size)
+get_file_size(const char* filename, size_t* byte_code_size) noexcept
 {
     int result = 0;
     *byte_code_size = NULL;
@@ -48,4 +52,30 @@ get_file_size(const char* filename, size_t* byte_code_size)
     }
 
     return result;
+}
+
+ebpf_result_t
+query_map_definition(
+    ebpf_handle_t handle,
+    uint32_t* size,
+    uint32_t* type,
+    uint32_t* key_size,
+    uint32_t* value_size,
+    uint32_t* max_entries) noexcept
+{
+    _ebpf_operation_query_map_definition_request request{
+        sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_QUERY_MAP_DEFINITION, reinterpret_cast<uint64_t>(handle)};
+
+    _ebpf_operation_query_map_definition_reply reply;
+
+    uint32_t result = invoke_ioctl(request, reply);
+    if (result == ERROR_SUCCESS) {
+        *size = reply.map_definition.size;
+        *type = reply.map_definition.type;
+        *key_size = reply.map_definition.key_size;
+        *value_size = reply.map_definition.value_size;
+        *max_entries = reply.map_definition.max_entries;
+    }
+
+    return windows_error_to_ebpf_result(result);
 }

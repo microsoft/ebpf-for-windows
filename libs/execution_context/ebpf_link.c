@@ -46,7 +46,7 @@ _ebpf_link_free(ebpf_object_t* object)
 ebpf_result_t
 ebpf_link_create(ebpf_link_t** link)
 {
-    *link = ebpf_epoch_allocate(sizeof(ebpf_link_t), EBPF_MEMORY_NO_EXECUTE);
+    *link = ebpf_epoch_allocate(sizeof(ebpf_link_t));
     if (*link == NULL)
         return EBPF_NO_MEMORY;
 
@@ -65,7 +65,7 @@ ebpf_link_initialize(
 
     ebpf_safe_size_t_add(sizeof(ebpf_extension_data_t), context_data_length, &client_data_length);
 
-    link->client_data = ebpf_allocate(client_data_length, EBPF_MEMORY_NO_EXECUTE);
+    link->client_data = ebpf_allocate(client_data_length);
     if (!link->client_data)
         return EBPF_NO_MEMORY;
 

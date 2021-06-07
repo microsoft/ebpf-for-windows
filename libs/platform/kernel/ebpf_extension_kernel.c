@@ -129,7 +129,7 @@ ebpf_extension_load(
     NPI_REGISTRATION_INSTANCE* client_registration_instance;
     NTSTATUS status;
 
-    local_client_context = ebpf_allocate(sizeof(ebpf_extension_client_t), EBPF_MEMORY_NO_EXECUTE);
+    local_client_context = ebpf_allocate(sizeof(ebpf_extension_client_t));
 
     if (!local_client_context) {
         return_value = EBPF_NO_MEMORY;
@@ -231,8 +231,8 @@ _ebpf_extension_provider_attach_client(
         goto Done;
     }
 
-    local_provider_binding_context = (ebpf_extension_provider_binding_context*)ebpf_allocate(
-        sizeof(ebpf_extension_provider_binding_context), EBPF_MEMORY_NO_EXECUTE);
+    local_provider_binding_context =
+        (ebpf_extension_provider_binding_context*)ebpf_allocate(sizeof(ebpf_extension_provider_binding_context));
 
     if (!local_provider_binding_context) {
         status = STATUS_NOINTERFACE;
@@ -303,7 +303,7 @@ ebpf_provider_load(
     NPI_REGISTRATION_INSTANCE* provider_registration_instance;
     NTSTATUS status;
 
-    local_provider_context = ebpf_allocate(sizeof(ebpf_extension_provider_t), EBPF_MEMORY_NO_EXECUTE);
+    local_provider_context = ebpf_allocate(sizeof(ebpf_extension_provider_t));
 
     if (!local_provider_context) {
         return_value = EBPF_NO_MEMORY;

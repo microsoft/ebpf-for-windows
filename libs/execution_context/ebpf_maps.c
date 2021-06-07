@@ -102,7 +102,7 @@ ebpf_create_array_map(_In_ const ebpf_map_definition_t* map_definition)
     }
 
     // allocate
-    map = ebpf_allocate(map_entry_size, EBPF_MEMORY_NO_EXECUTE);
+    map = ebpf_allocate(map_entry_size);
     if (map == NULL) {
         goto Done;
     }
@@ -198,7 +198,7 @@ ebpf_create_hash_map(_In_ const ebpf_map_definition_t* map_definition)
     size_t map_size = sizeof(ebpf_core_map_t);
     ebpf_core_map_t* map = NULL;
 
-    map = ebpf_allocate(map_size, EBPF_MEMORY_NO_EXECUTE);
+    map = ebpf_allocate(map_size);
     if (map == NULL) {
         retval = EBPF_NO_MEMORY;
         goto Done;

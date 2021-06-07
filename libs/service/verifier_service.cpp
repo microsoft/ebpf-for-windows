@@ -20,13 +20,13 @@
 #include "tlv.h"
 #include "windows_platform_service.hpp"
 
-static int
-analyze(raw_program& raw_prog, const char** error_message, uint32_t* error_message_size = nullptr)
+static ebpf_result_t
+_analyze(raw_program& raw_prog, const char** error_message, uint32_t* error_message_size = nullptr)
 {
     std::variant<InstructionSeq, std::string> prog_or_error = unmarshal(raw_prog);
     if (!std::holds_alternative<InstructionSeq>(prog_or_error)) {
         *error_message = allocate_error_string(std::get<std::string>(prog_or_error), error_message_size);
-        return 1; // Error;
+        return EBPF_VALIDATION_FAILED; // Error;
     }
     InstructionSeq& prog = std::get<InstructionSeq>(prog_or_error);
 
@@ -43,12 +43,12 @@ analyze(raw_program& raw_prog, const char** error_message, uint32_t* error_messa
         (void)ebpf_verify_program(oss, prog, raw_prog.info, &options, &stats);
 
         *error_message = allocate_error_string(oss.str(), error_message_size);
-        return 1; // Error;
+        return EBPF_VALIDATION_FAILED; // Error;
     }
-    return 0; // Success.
+    return EBPF_SUCCESS; // Success.
 }
 
-int
+ebpf_result_t
 verify_byte_code(
     const GUID* program_type,
     const uint8_t* byte_code,
@@ -66,5 +66,5 @@ verify_byte_code(
 
     raw_program raw_prog{file, section, instructions, info};
 
-    return analyze(raw_prog, error_message, error_message_size);
+    return _analyze(raw_prog, error_message, error_message_size);
 }

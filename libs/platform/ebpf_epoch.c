@@ -124,8 +124,7 @@ ebpf_epoch_initiate()
     if (ebpf_is_non_preemptible_work_item_supported()) {
         ebpf_get_cpu_count(&_ebpf_epoch_cpu_table_size);
 
-        _ebpf_epoch_cpu_table =
-            ebpf_allocate(_ebpf_epoch_cpu_table_size * sizeof(ebpf_epoch_cpu_entry_t), EBPF_MEMORY_NO_EXECUTE);
+        _ebpf_epoch_cpu_table = ebpf_allocate(_ebpf_epoch_cpu_table_size * sizeof(ebpf_epoch_cpu_entry_t));
         if (!_ebpf_epoch_cpu_table) {
             return_value = EBPF_NO_MEMORY;
             goto Error;
@@ -270,11 +269,11 @@ ebpf_epoch_flush()
 }
 
 void*
-ebpf_epoch_allocate(size_t size, ebpf_memory_type_t type)
+ebpf_epoch_allocate(size_t size)
 {
     ebpf_epoch_allocation_header_t* header;
     size += sizeof(ebpf_epoch_allocation_header_t);
-    header = (ebpf_epoch_allocation_header_t*)ebpf_allocate(size, type);
+    header = (ebpf_epoch_allocation_header_t*)ebpf_allocate(size);
     if (header)
         header++;
 
@@ -409,7 +408,7 @@ _ebpf_flush_worker(void* context)
 ebpf_epoch_work_item_t*
 ebpf_epoch_allocate_work_item(void* callback_context, void (*callback)(void* context))
 {
-    ebpf_epoch_work_item_t* work_item = ebpf_allocate(sizeof(ebpf_epoch_work_item_t), EBPF_MEMORY_NO_EXECUTE);
+    ebpf_epoch_work_item_t* work_item = ebpf_allocate(sizeof(ebpf_epoch_work_item_t));
     if (!work_item) {
         return NULL;
     }

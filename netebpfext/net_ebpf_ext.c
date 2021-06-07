@@ -705,8 +705,8 @@ _net_ebpf_ext_program_information_encode_xdp()
     const uint8_t* buffer = _ebpf_encoded_xdp_program_information_data;
     unsigned long buffer_size = sizeof(_ebpf_encoded_xdp_program_information_data);
 
-    _ebpf_xdp_program_information_provider_data = (ebpf_extension_data_t*)ebpf_allocate(
-        EBPF_OFFSET_OF(ebpf_extension_data_t, data) + buffer_size, EBPF_MEMORY_NO_EXECUTE);
+    _ebpf_xdp_program_information_provider_data =
+        (ebpf_extension_data_t*)ebpf_allocate(EBPF_OFFSET_OF(ebpf_extension_data_t, data) + buffer_size);
 
     if (_ebpf_xdp_program_information_provider_data == NULL) {
         return_value = EBPF_NO_MEMORY;
@@ -732,8 +732,8 @@ _net_ebpf_ext_program_information_encode_bind()
     const uint8_t* buffer = _ebpf_encoded_bind_program_information_data;
     unsigned long buffer_size = sizeof(_ebpf_encoded_bind_program_information_data);
 
-    _ebpf_bind_program_information_provider_data = (ebpf_extension_data_t*)ebpf_allocate(
-        EBPF_OFFSET_OF(ebpf_extension_data_t, data) + buffer_size, EBPF_MEMORY_NO_EXECUTE);
+    _ebpf_bind_program_information_provider_data =
+        (ebpf_extension_data_t*)ebpf_allocate(EBPF_OFFSET_OF(ebpf_extension_data_t, data) + buffer_size);
 
     if (_ebpf_bind_program_information_provider_data == NULL) {
         return_value = EBPF_NO_MEMORY;

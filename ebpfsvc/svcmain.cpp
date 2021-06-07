@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include "api_service.h"
 #include "rpc_util.h"
 #include "svc_common.h"
 
@@ -198,7 +199,13 @@ Initialize()
 {
     DWORD status;
     status = initialize_rpc_server();
+    if (status != ERROR_SUCCESS) {
+        goto Exit;
+    }
 
+    status = ebpf_service_initialize();
+
+Exit:
     return status;
 }
 
@@ -206,6 +213,7 @@ void
 Cleanup()
 {
     shutdown_rpc_server();
+    ebpf_service_cleanup();
     if (ebpf_service_stop_event_handle) {
         CloseHandle(ebpf_service_stop_event_handle);
     }

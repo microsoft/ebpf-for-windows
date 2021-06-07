@@ -55,7 +55,7 @@ ebpf_extension_load(
         goto Done;
     }
 
-    local_extension_client = ebpf_allocate(sizeof(ebpf_extension_client_t), EBPF_MEMORY_NO_EXECUTE);
+    local_extension_client = ebpf_allocate(sizeof(ebpf_extension_client_t));
     if (!local_extension_client) {
         return_value = EBPF_NO_MEMORY;
         goto Done;
@@ -180,7 +180,7 @@ ebpf_provider_load(
         goto Done;
     }
 
-    local_extension_provider = ebpf_allocate(sizeof(ebpf_extension_provider_t), EBPF_MEMORY_NO_EXECUTE);
+    local_extension_provider = ebpf_allocate(sizeof(ebpf_extension_provider_t));
     if (!local_extension_provider) {
         return_value = EBPF_NO_MEMORY;
         goto Done;

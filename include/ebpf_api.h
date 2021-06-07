@@ -7,7 +7,8 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-
+#include "ebpf_execution_type.h"
+#include "ebpf_result.h"
 #include "ebpf_windows.h"
 
 #ifdef __cplusplus
@@ -33,12 +34,6 @@ extern "C"
     const ebpf_handle_t ebpf_handle_invalid = (ebpf_handle_t)-1;
     typedef struct _tlv_type_length_value tlv_type_length_value_t;
 
-    typedef enum _ebpf_execution_type
-    {
-        EBPF_EXECUTION_JIT,
-        EBPF_EXECUTION_INTERPRET
-    } ebpf_execution_type_t;
-
     /**
      *  @brief Initialize the eBPF user mode library.
      */
@@ -63,7 +58,7 @@ extern "C"
      * @param[out] map_handles Array of map handles to be filled in.
      * @param[out] error_message Error message describing what failed.
      */
-    uint32_t
+    ebpf_result_t
     ebpf_api_load_program(
         const char* file,
         const char* section_name,
@@ -148,7 +143,7 @@ extern "C"
      * @param[out] value_size Size of values in the eBPF map.
      * @param[out] max_entries Maximum number of entries in the map.
      */
-    uint32_t
+    ebpf_result_t
     ebpf_api_map_query_definition(
         ebpf_handle_t handle,
         uint32_t* size,
