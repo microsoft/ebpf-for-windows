@@ -609,8 +609,8 @@ extern "C"
     /**
      * @brief Allocate a new empty trampoline table of entry_count size.
      *
-     * @param entry_count Maximum number of functions to build trampolines for.
-     * @param trampoline_table Pointer to memory that holds the trampoline
+     * @param[in] entry_count Maximum number of functions to build trampolines for.
+     * @param[out] trampoline_table Pointer to memory that holds the trampoline
      * table on success.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
@@ -622,7 +622,7 @@ extern "C"
     /**
      * @brief Free a previously allocated trampoline table.
      *
-     * @param trampoline_table Pointer to trampoline table to free.
+     * @param[in] trampoline_table Pointer to trampoline table to free.
      */
     void
     ebpf_free_trampoline_table(ebpf_trampoline_table_t* trampoline_table);
@@ -630,8 +630,8 @@ extern "C"
     /**
      * @brief Populate the function pointers in a trampoline table.
      *
-     * @param trampoline_table Trampoline table to populate.
-     * @param dispatch_table Dispatch table to populate from.
+     * @param[in] trampoline_table Trampoline table to populate.
+     * @param[in] dispatch_table Dispatch table to populate from.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  operation.
@@ -643,9 +643,9 @@ extern "C"
     /**
      * @brief Get the address of a trampoline function.
      *
-     * @param trampoline_table Trampoline table to query.
-     * @param index Index of function to get.
-     * @param function Pointer to memory that contains the function on success.
+     * @param[in] trampoline_table Trampoline table to query.
+     * @param[in] index Index of function to get.
+     * @param[out] function Pointer to memory that contains the function on success.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  operation.
