@@ -7,7 +7,7 @@
 #undef VOID
 #include "platform.hpp"
 
-int
+ebpf_result_t
 verify_byte_code(
     const GUID* program_type,
     const uint8_t* byte_code,

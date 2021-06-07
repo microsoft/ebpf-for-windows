@@ -28,6 +28,9 @@
     <ClCompile Include="map_descriptors.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="device_helper.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="tlv.h">
@@ -42,7 +45,7 @@
     <ClInclude Include="map_descriptors.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="windows_helpers.hpp">
+    <ClInclude Include="device_helper.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -3,7 +3,9 @@
 
 #include <map>
 #include <stdexcept>
-#include "ebpf_api.h"
+#include <vector>
+#include <Windows.h>
+#include "device_helper.hpp"
 #include "ebpf_bind_program_data.h"
 #include "ebpf_platform.h"
 #include "ebpf_program_types.h"
@@ -13,7 +15,6 @@
 #include "platform.h"
 #undef VOID
 #include "platform.hpp"
-#include "windows_helpers.hpp"
 
 struct guid_compare
 {
@@ -24,9 +25,13 @@ struct guid_compare
     }
 };
 
-thread_local std::map<GUID, ebpf_helper::ebpf_memory_ptr, guid_compare> g_program_information_cache;
+static thread_local std::map<GUID, ebpf_helper::ebpf_memory_ptr, guid_compare> _program_information_cache;
 
-ebpf_handle_t device_handle = INVALID_HANDLE_VALUE;
+void
+clear_program_information_cache()
+{
+    _program_information_cache.clear();
+}
 
 uint32_t
 get_program_information_data(ebpf_program_type_t program_type, ebpf_extension_data_t** program_information_data)
@@ -36,7 +41,7 @@ get_program_information_data(ebpf_program_type_t program_type, ebpf_extension_da
         sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_GET_PROGRAM_INFORMATION, program_type};
 
     auto reply = reinterpret_cast<ebpf_operation_get_program_information_reply_t*>(reply_buffer.data());
-    uint32_t retval = invoke_ioctl(device_handle, request, reply_buffer);
+    uint32_t retval = invoke_ioctl(request, reply_buffer);
     if (retval != ERROR_SUCCESS) {
         return retval;
     }
@@ -70,8 +75,8 @@ get_program_type_info(const ebpf_program_information_t** info)
     size_t encoded_data_size = 0;
 
     // See if we already have the program information cached.
-    auto it = g_program_information_cache.find(*program_type);
-    if (it == g_program_information_cache.end()) {
+    auto it = _program_information_cache.find(*program_type);
+    if (it == _program_information_cache.end()) {
         // Try to query the information from the execution context.
         ebpf_extension_data_t* program_information_data;
         uint32_t error = get_program_information_data(*program_type, &program_information_data);
@@ -99,10 +104,10 @@ get_program_type_info(const ebpf_program_information_t** info)
             return result;
         }
 
-        g_program_information_cache[*program_type] = ebpf_helper::ebpf_memory_ptr(program_information);
+        _program_information_cache[*program_type] = ebpf_helper::ebpf_memory_ptr(program_information);
     }
 
-    *info = (const ebpf_program_information_t*)g_program_information_cache[*program_type].get();
+    *info = (const ebpf_program_information_t*)_program_information_cache[*program_type].get();
 
     return EBPF_SUCCESS;
 }

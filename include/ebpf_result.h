@@ -18,8 +18,11 @@ extern "C"
         // Program verification failed.
         EBPF_VALIDATION_FAILED,
 
+        // JIT compilation failed.
+        EBPF_JIT_COMPILATION_FAILED,
+
         // Program load failed.
-        EBPF_LOAD_FAILED,
+        EBPF_PROGRAM_LOAD_FAILED,
 
         // Invalid FD provided.
         EBPF_INVALID_FD,
@@ -47,6 +50,15 @@ extern "C"
 
         // Low memory.
         EBPF_NO_MEMORY,
+
+        // The program is too large.
+        EBPF_PROGRAM_TOO_LARGE,
+
+        // RPC exception.
+        EBPF_RPC_EXCEPTION,
+
+        // Handle is already initialized.
+        EBPF_ALREADY_INITIALIZED,
 
         // Generic failure code for all other errors.
         EBPF_FAILED,

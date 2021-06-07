@@ -32,7 +32,7 @@ create_map_windows(
     if (options.mock_map_fds) {
         EbpfMapType type = get_map_type_windows(map_type);
         fd = create_map_crab(type, key_size, value_size, max_entries, options);
-        cache_map_file_descriptor(map_type, key_size, value_size, fd);
+        cache_map_file_descriptor(map_type, key_size, value_size, max_entries, fd);
         return fd;
     }
 

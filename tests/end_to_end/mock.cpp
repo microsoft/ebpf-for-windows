@@ -3,8 +3,11 @@
  *  SPDX-License-Identifier: MIT
  */
 
-#include "mock.h"
+#include "api_service.h"
 #include "ebpf_api.h"
+#include "mock.h"
+#include "rpc_interface_h.h"
+
 std::function<decltype(CreateFileW)> create_file_handler;
 std::function<decltype(DeviceIoControl)> device_io_control_handler;
 std::function<decltype(CloseHandle)> close_handle_handler;
@@ -59,3 +62,29 @@ CloseHandle(_In_ _Post_ptr_invalid_ ebpf_handle_t handle)
 }
 
 } // namespace Platform
+
+// RPC related mock functions.
+
+RPC_STATUS
+initialize_rpc_binding() { return RPC_S_OK; }
+
+RPC_STATUS
+clean_up_rpc_binding() { return RPC_S_OK; }
+
+ebpf_result_t
+ebpf_rpc_load_program(ebpf_program_load_info* info, const char** logs, uint32_t* logs_size)
+{
+    // Short circuit rpc call to service lib.
+
+    return ebpf_verify_and_load_program(
+        &info->program_type,
+        info->program_handle,
+        info->execution_context,
+        info->execution_type,
+        info->map_count,
+        info->handle_map,
+        info->byte_code_size,
+        info->byte_code,
+        const_cast<const char**>(logs),
+        logs_size);
+}
