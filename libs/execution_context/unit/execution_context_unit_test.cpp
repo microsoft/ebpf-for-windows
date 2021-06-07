@@ -155,14 +155,19 @@ TEST_CASE("program")
     REQUIRE(ebpf_program_associate_maps(program.get(), maps, EBPF_COUNT_OF(maps)) == EBPF_SUCCESS);
     REQUIRE(((ebpf_object_t*)map.get())->reference_count == 2);
 
-    ebpf_trampoline_entry_t machine_code;
-    machine_code.load_rax = 0xa148;
-    machine_code.indirect_address = &machine_code.address;
-    machine_code.jmp_rax = 0xe0ff;
-    machine_code.address = (void*)test_function;
+    ebpf_trampoline_table_t* table = NULL;
+    ebpf_result_t (*test_function)();
+    auto provider_function1 = []() { return (ebpf_result_t)TEST_FUNCTION_RETURN; };
+
+    ebpf_extension_dispatch_table_t provider_dispatch_table1 = {
+        0, sizeof(ebpf_extension_dispatch_table_t), provider_function1};
+
+    REQUIRE(ebpf_allocate_trampoline_table(1, &table) == EBPF_SUCCESS);
+    REQUIRE(ebpf_update_trampoline_table(table, &provider_dispatch_table1) == EBPF_SUCCESS);
+    REQUIRE(ebpf_get_trampoline_function(table, 0, reinterpret_cast<void**>(&test_function)) == EBPF_SUCCESS);
 
     REQUIRE(
-        ebpf_program_load_machine_code(program.get(), (uint8_t*)&machine_code, sizeof(machine_code)) == EBPF_SUCCESS);
+        ebpf_program_load_machine_code(program.get(), reinterpret_cast<uint8_t*>(test_function), 4096) == EBPF_SUCCESS);
     uint32_t result = 0;
     ebpf_program_invoke(program.get(), nullptr, &result);
     REQUIRE(result == TEST_FUNCTION_RETURN);
@@ -174,4 +179,5 @@ TEST_CASE("program")
     REQUIRE(address == 0);
     REQUIRE(ebpf_program_get_helper_function_address(program.get(), 0xFFFF, &address) == EBPF_INVALID_ARGUMENT);
     REQUIRE(address == 0);
+    ebpf_free_trampoline_table(table);
 }

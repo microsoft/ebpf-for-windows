@@ -41,12 +41,6 @@ extern "C"
         size_t length;
     } ebpf_utf8_string_t;
 
-    typedef enum _ebpf_memory_type
-    {
-        EBPF_MEMORY_NO_EXECUTE = 0,
-        EBPF_MEMORY_EXECUTE = 1,
-    } ebpf_memory_type_t;
-
     typedef enum _ebpf_code_integrity_state
     {
         EBPF_CODE_INTEGRITY_DEFAULT = 0,
@@ -72,16 +66,7 @@ extern "C"
         uint8_t data[1];
     } ebpf_extension_data_t;
 
-#pragma pack(push)
-#pragma pack(1)
-    typedef struct _ebpf_trampoline_entry
-    {
-        uint16_t load_rax;
-        void* indirect_address;
-        uint16_t jmp_rax;
-        void* address;
-    } ebpf_trampoline_entry_t;
-#pragma pack(pop)
+    typedef struct _ebpf_trampoline_table ebpf_trampoline_table_t;
 
 #define EBPF_LOCK_SIZE sizeof(uint64_t)
 #define EBPF_LOCK_STATE_SIZE sizeof(uint64_t)
@@ -111,11 +96,10 @@ extern "C"
     /**
      * @brief Allocate memory.
      * @param[in] size Size of memory to allocate
-     * @param[in] type Allocate memory as executable vs non-executable
      * @returns Pointer to memory block allocated, or null on failure.
      */
     void*
-    ebpf_allocate(size_t size, ebpf_memory_type_t type);
+    ebpf_allocate(size_t size);
 
     /**
      * @brief Free memory.
@@ -395,7 +379,7 @@ extern "C"
     ebpf_result_t
     ebpf_hash_table_create(
         ebpf_hash_table_t** hash_table,
-        void* (*allocate)(size_t size, ebpf_memory_type_t type),
+        void* (*allocate)(size_t size),
         void (*free)(void* memory),
         size_t key_size,
         size_t value_size,
@@ -623,26 +607,52 @@ extern "C"
     ebpf_log_function(void* context, const char* format_string, ...);
 
     /**
-     * @brief Create or update a table of ebpf_trampoline_entry_t with
-     * trampoline functions to allow for relocation of functions in the
-     *  dispatch table.
+     * @brief Allocate a new empty trampoline table of entry_count size.
      *
-     * @param[in,out] entry_count Size of the ebpf_trampoline_entry_t table.
-     * @param[in,out] entries Block of memory that contains the trampoline
-     *  functions on success.
-     * @param[in] dispatch_table Dispatch table to build trampoline functions for.
-     * @retval EBPF_SUCCESS ebpf_trampoline_entry_t table successfully
-     *  populated.
-     * @retval EBPF_ERROR_EXTENSION_FAILED_TO_LOAD Unable to populate
-     *  ebpf_trampoline_entry_t table.
+     * @param entry_count Maximum number of functions to build trampolines for.
+     * @param trampoline_table Pointer to memory that holds the trampoline
+     * table on success.
+     * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  operation.
-     * @retval EBPF_NOT_SUPPORTED This operation is not supported on this
-     *  platform.
      */
     ebpf_result_t
-    ebpf_build_trampoline_table(
-        size_t* entry_count, ebpf_trampoline_entry_t** entries, const ebpf_extension_dispatch_table_t* dispatch_table);
+    ebpf_allocate_trampoline_table(size_t entry_count, ebpf_trampoline_table_t** trampoline_table);
+
+    /**
+     * @brief Free a previously allocated trampoline table.
+     *
+     * @param trampoline_table Pointer to trampoline table to free.
+     */
+    void
+    ebpf_free_trampoline_table(ebpf_trampoline_table_t* trampoline_table);
+
+    /**
+     * @brief Populate the function pointers in a trampoline table.
+     *
+     * @param trampoline_table Trampoline table to populate.
+     * @param dispatch_table Dispatch table to populate from.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
+     *  operation.
+     */
+    ebpf_result_t
+    ebpf_update_trampoline_table(
+        ebpf_trampoline_table_t* trampoline_table, const ebpf_extension_dispatch_table_t* dispatch_table);
+
+    /**
+     * @brief Get the address of a trampoline function.
+     *
+     * @param trampoline_table Trampoline table to query.
+     * @param index Index of function to get.
+     * @param function Pointer to memory that contains the function on success.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
+     *  operation.
+     * @retval EBPF_INVALID_ARGUMENT An invalid argument was supplied.
+     */
+    ebpf_result_t
+    ebpf_get_trampoline_function(const ebpf_trampoline_table_t* trampoline_table, size_t index, void** function);
 
     typedef struct _ebpf_program_information ebpf_program_information_t;
 

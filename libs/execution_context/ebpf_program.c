@@ -46,8 +46,7 @@ typedef struct _ebpf_program
     const ebpf_extension_dispatch_table_t* program_information_provider_dispatch_table;
     bool program_invalidated;
 
-    size_t trampoline_entry_count;
-    ebpf_trampoline_entry_t* trampoline_entries;
+    ebpf_trampoline_table_t* trampoline_table;
 
     ebpf_epoch_work_item_t* cleanup_work_item;
 } ebpf_program_t;
@@ -63,13 +62,26 @@ _ebpf_program_program_information_provider_changed(
     ebpf_program_t* program = (ebpf_program_t*)client_binding_context;
 
     if (program->program_information_provider_dispatch_table != NULL) {
+        size_t function_count = (program->program_information_provider_dispatch_table->size -
+                                 EBPF_OFFSET_OF(ebpf_extension_dispatch_table_t, function)) /
+                                sizeof(program->program_information_provider_dispatch_table->function[0]);
+
         if (provider_dispatch_table == NULL) {
             program->program_invalidated = true;
             return;
         }
 
-        return_value = ebpf_build_trampoline_table(
-            &program->trampoline_entry_count, &program->trampoline_entries, provider_dispatch_table);
+        if (!program->trampoline_table) {
+            return_value = ebpf_allocate_trampoline_table(function_count, &program->trampoline_table);
+            if (return_value != EBPF_SUCCESS) {
+                program->program_invalidated = true;
+                return;
+            }
+        }
+
+        return_value = ebpf_update_trampoline_table(
+            program->trampoline_table, program->program_information_provider_dispatch_table);
+
         if (return_value != EBPF_SUCCESS) {
             program->program_invalidated = true;
             return;
@@ -132,6 +144,8 @@ _ebpf_program_epoch_free(void* context)
 
     ebpf_free(program->maps);
 
+    ebpf_free_trampoline_table(program->trampoline_table);
+
     ebpf_free(program->cleanup_work_item);
     ebpf_free(program);
 }
@@ -180,7 +194,7 @@ ebpf_program_create(ebpf_program_t** program)
     ebpf_result_t retval;
     ebpf_program_t* local_program;
 
-    local_program = (ebpf_program_t*)ebpf_allocate(sizeof(ebpf_program_t), EBPF_MEMORY_NO_EXECUTE);
+    local_program = (ebpf_program_t*)ebpf_allocate(sizeof(ebpf_program_t));
     if (!local_program) {
         retval = EBPF_NO_MEMORY;
         goto Done;
@@ -260,7 +274,7 @@ ebpf_result_t
 ebpf_program_associate_maps(ebpf_program_t* program, ebpf_map_t** maps, size_t maps_count)
 {
     size_t index;
-    program->maps = ebpf_allocate(maps_count * sizeof(ebpf_map_t*), EBPF_MEMORY_NO_EXECUTE);
+    program->maps = ebpf_allocate(maps_count * sizeof(ebpf_map_t*));
     if (!program->maps)
         return EBPF_NO_MEMORY;
 
@@ -398,11 +412,14 @@ ebpf_program_get_helper_function_address(const ebpf_program_t* program, uint32_t
                     EBPF_OFFSET_OF(ebpf_extension_dispatch_table_t, function)) /
                    sizeof(program->global_helper_provider_dispatch_table->function);
     if (helper_function_id > EBPF_MAX_GLOBAL_HELPER_FUNCTION) {
+        void* function_address;
+        ebpf_result_t return_value;
         helper_function_id >>= 16;
-        if ((program->trampoline_entries == NULL) || (helper_function_id > program->trampoline_entry_count))
-            return EBPF_INVALID_ARGUMENT;
+        return_value = ebpf_get_trampoline_function(program->trampoline_table, helper_function_id, &function_address);
+        if (return_value != EBPF_SUCCESS)
+            return return_value;
 
-        *address = (uint64_t)(program->trampoline_entries + helper_function_id);
+        *address = (uint64_t)function_address;
     } else {
         if (helper_function_id > count) {
             return EBPF_INVALID_ARGUMENT;

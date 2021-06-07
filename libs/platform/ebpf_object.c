@@ -114,7 +114,7 @@ ebpf_duplicate_utf8_string(ebpf_utf8_string_t* destination, const ebpf_utf8_stri
         destination->length = 0;
         return EBPF_SUCCESS;
     } else {
-        destination->value = ebpf_allocate(source->length, EBPF_MEMORY_NO_EXECUTE);
+        destination->value = ebpf_allocate(source->length);
         if (!destination->value)
             return EBPF_NO_MEMORY;
         memcpy(destination->value, source->value, source->length);

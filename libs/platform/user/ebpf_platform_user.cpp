@@ -13,8 +13,6 @@
 #include <stdint.h>
 #include <vector>
 
-std::set<uint64_t> _executable_segments;
-
 // Global variables used to override behavior for testing.
 // Permit the test to simulate both Hyper-V Code Integrity.
 bool _ebpf_platform_code_integrity_enabled = false;
@@ -108,29 +106,17 @@ ebpf_get_code_integrity_state(ebpf_code_integrity_state_t* state)
 }
 
 void*
-ebpf_allocate(size_t size, ebpf_memory_type_t type)
+ebpf_allocate(size_t size)
 {
-    void* memory;
-    if (type == EBPF_MEMORY_EXECUTE) {
-        memory = VirtualAlloc(nullptr, size, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
-        if (memory) {
-            _executable_segments.insert({reinterpret_cast<uint64_t>(memory)});
-        }
-        return memory;
-    } else {
-        return malloc(size);
-    }
+    return calloc(size, 1);
 }
 
 void
 ebpf_free(void* memory)
 {
-    if (_executable_segments.find(reinterpret_cast<uint64_t>(memory)) != _executable_segments.end()) {
-        VirtualFree(memory, 0, MEM_RELEASE);
-    } else {
-        free(memory);
-    }
+    free(memory);
 }
+
 struct _ebpf_memory_descriptor
 {
     void* base;
@@ -347,7 +333,7 @@ ebpf_result_t
 ebpf_allocate_timer_work_item(
     ebpf_timer_work_item_t** work_item, void (*work_item_routine)(void* work_item_context), void* work_item_context)
 {
-    *work_item = (ebpf_timer_work_item_t*)ebpf_allocate(sizeof(ebpf_timer_work_item_t), EBPF_MEMORY_NO_EXECUTE);
+    *work_item = (ebpf_timer_work_item_t*)ebpf_allocate(sizeof(ebpf_timer_work_item_t));
 
     if (*work_item == NULL)
         goto Error;

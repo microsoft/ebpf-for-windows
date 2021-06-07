@@ -52,7 +52,7 @@ extern "C"
      * @returns Pointer to memory block allocated, or null on failure.
      */
     void*
-    ebpf_epoch_allocate(size_t size, ebpf_memory_type_t type);
+    ebpf_epoch_allocate(size_t size);
 
     /**
      * @brief Free memory under epoch control.
