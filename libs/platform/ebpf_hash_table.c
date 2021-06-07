@@ -10,7 +10,7 @@ struct _ebpf_hash_table
     ebpf_hash_table_compare_result_t (*compare_function)(const uint8_t* key1, const uint8_t* key2);
     size_t key_size;
     size_t value_size;
-    void* (*allocate)(size_t size, ebpf_memory_type_t type);
+    void* (*allocate)(size_t size);
     void (*free)(void* memory);
 };
 
@@ -42,7 +42,7 @@ static void*
 _ebpf_hash_table_allocate(struct _RTL_AVL_TABLE* avl_table, unsigned long byte_size)
 {
     ebpf_hash_table_t* table = (ebpf_hash_table_t*)avl_table;
-    return table->allocate(byte_size, EBPF_MEMORY_NO_EXECUTE);
+    return table->allocate(byte_size);
 }
 
 static void
@@ -55,7 +55,7 @@ _ebpf_hash_table_free(struct _RTL_AVL_TABLE* avl_table, void* buffer)
 ebpf_result_t
 ebpf_hash_table_create(
     ebpf_hash_table_t** hash_table,
-    void* (*allocate)(size_t size, ebpf_memory_type_t type),
+    void* (*allocate)(size_t size),
     void (*free)(void* memory),
     size_t key_size,
     size_t value_size,
@@ -65,7 +65,7 @@ ebpf_hash_table_create(
     ebpf_hash_table_t* table = NULL;
 
     // allocate
-    table = ebpf_allocate(sizeof(ebpf_hash_table_t), EBPF_MEMORY_NO_EXECUTE);
+    table = ebpf_allocate(sizeof(ebpf_hash_table_t));
     if (table == NULL) {
         retval = EBPF_NO_MEMORY;
         goto Done;
@@ -134,7 +134,7 @@ ebpf_hash_table_update(ebpf_hash_table_t* hash_table, const uint8_t* key, const 
         goto Done;
     }
 
-    temp = ebpf_allocate(temp_size, EBPF_MEMORY_NO_EXECUTE);
+    temp = ebpf_allocate(temp_size);
     if (!temp) {
         retval = EBPF_NO_MEMORY;
         goto Done;

@@ -16,8 +16,8 @@
 
 #include <stdlib.h>
 
-#define malloc(X) ebpf_allocate((X), EBPF_MEMORY_NO_EXECUTE)
-#define calloc(X, Y) ebpf_allocate((X) * (Y), EBPF_MEMORY_NO_EXECUTE)
+#define malloc(X) ebpf_allocate((X))
+#define calloc(X, Y) ebpf_allocate((X) * (Y))
 #define free(X) ebpf_free(X)
 
 #include <endian.h>

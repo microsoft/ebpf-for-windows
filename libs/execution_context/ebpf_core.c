@@ -62,9 +62,8 @@ ebpf_core_initiate()
     if (return_value != EBPF_SUCCESS)
         goto Done;
 
-    _ebpf_global_helper_function_dispatch_table = ebpf_allocate(
-        EBPF_OFFSET_OF(ebpf_extension_dispatch_table_t, function) + sizeof(_ebpf_program_helpers),
-        EBPF_MEMORY_NO_EXECUTE);
+    _ebpf_global_helper_function_dispatch_table =
+        ebpf_allocate(EBPF_OFFSET_OF(ebpf_extension_dispatch_table_t, function) + sizeof(_ebpf_program_helpers));
     if (!_ebpf_global_helper_function_dispatch_table) {
         return_value = EBPF_NO_MEMORY;
         goto Done;

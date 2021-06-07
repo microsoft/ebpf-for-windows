@@ -93,7 +93,7 @@ TEST_CASE("epoch_test_single_epoch", "[epoch_test_single_epoch]")
     _test_helper test_helper;
 
     REQUIRE(ebpf_epoch_enter() == EBPF_SUCCESS);
-    void* memory = ebpf_epoch_allocate(10, EBPF_MEMORY_NO_EXECUTE);
+    void* memory = ebpf_epoch_allocate(10);
     ebpf_epoch_free(memory);
     ebpf_epoch_exit();
     ebpf_epoch_flush();
@@ -105,7 +105,7 @@ TEST_CASE("epoch_test_two_threads", "[epoch_test_two_threads]")
 
     auto epoch = []() {
         ebpf_epoch_enter();
-        void* memory = ebpf_epoch_allocate(10, EBPF_MEMORY_NO_EXECUTE);
+        void* memory = ebpf_epoch_allocate(10);
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
         ebpf_epoch_free(memory);
@@ -194,7 +194,7 @@ TEST_CASE("trampoline_test", "[trampoline_test]")
     _test_helper test_helper;
 
     size_t count = 0;
-    ebpf_trampoline_entry_t* table = NULL;
+    ebpf_trampoline_table_t* table = NULL;
     ebpf_result_t (*test_function)();
     auto provider_function1 = []() { return EBPF_SUCCESS; };
     auto provider_function2 = []() { return EBPF_OBJECT_ALREADY_EXISTS; };
@@ -204,19 +204,18 @@ TEST_CASE("trampoline_test", "[trampoline_test]")
     ebpf_extension_dispatch_table_t provider_dispatch_table2 = {
         0, sizeof(ebpf_extension_dispatch_table_t), provider_function2};
 
-    REQUIRE(ebpf_epoch_initiate() == EBPF_SUCCESS);
-    REQUIRE(ebpf_build_trampoline_table(&count, &table, &provider_dispatch_table1) == EBPF_SUCCESS);
-    test_function = reinterpret_cast<decltype(test_function)>(table);
+    REQUIRE(ebpf_allocate_trampoline_table(1, &table) == EBPF_SUCCESS);
+    REQUIRE(ebpf_update_trampoline_table(table, &provider_dispatch_table1) == EBPF_SUCCESS);
+    REQUIRE(ebpf_get_trampoline_function(table, 0, reinterpret_cast<void**>(&test_function)) == EBPF_SUCCESS);
 
     // Verify that the trampoline function invokes the provider function
     REQUIRE(test_function() == EBPF_SUCCESS);
 
-    REQUIRE(ebpf_build_trampoline_table(&count, &table, &provider_dispatch_table2) == EBPF_SUCCESS);
+    REQUIRE(ebpf_update_trampoline_table(table, &provider_dispatch_table2) == EBPF_SUCCESS);
 
     // Verify that the trampoline function now invokes the new provider function
     REQUIRE(test_function() == EBPF_OBJECT_ALREADY_EXISTS);
-    ebpf_epoch_free(table);
-    ebpf_epoch_terminate();
+    ebpf_free_trampoline_table(table);
 }
 
 TEST_CASE("program_type_info", "[program_type_info]")
