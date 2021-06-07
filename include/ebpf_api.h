@@ -10,6 +10,7 @@
 #include "ebpf_execution_type.h"
 #include "ebpf_result.h"
 #include "ebpf_core_structs.h"
+#include "ebpf_result.h"
 #include "ebpf_windows.h"
 
 #ifdef __cplusplus
@@ -76,16 +77,17 @@ extern "C"
      * @param[in] value_size Value size.
      * @param[in] max_entries Maximum number of entries in the map.
      *
-     * @retval ERROR_SUCESS Map created successfully.
-     * @retval ERROR_NOT_SUPPORTED Unsupported map type.
-     * @retval ERROR_INVALID_PARAMETER One or more parameters are incorrect.
+     * @retval EBPF_SUCCESS Map created successfully.
+     * @retval EBPF_ERROR_NOT_SUPPORTED Unsupported map type.
+     * @retval EBPF_INVALID_ARGUMENT One or more parameters are incorrect.
      */
-    uint32_t
+    ebpf_result_t
     ebpf_api_create_map(
-        _In_ const ebpf_map_type_t type,
-        _In_ const uint32_t key_size,
-        _In_ const uint32_t value_size,
-        _In_ const uint32_t max_entries,
+        ebpf_map_type_t type,
+        uint32_t key_size,
+        uint32_t value_size,
+        uint32_t max_entries,
+        uint32_t map_flags,
         _Out_ ebpf_handle_t* handle);
 
     /**
@@ -328,11 +330,11 @@ extern "C"
      * @param[out] map_count Number of pinned maps.
      * @param[out] map_info Array of ebpf_map_information_t for pinned maps.
      *
-     * @retval ERROR_SUCCESS The API suceeded.
-     * @retval ERROR_OUTOFMEMORY Out of memory.
-     * @retval ERROR_INVALID_ARGUMENT One or more parameters are wrong.
+     * @retval EBPF_SUCCESS The API suceeded.
+     * @retval EBPF_NO_MEMORY Out of memory.
+     * @retval EBPF_INVALID_ARGUMENT One or more parameters are wrong.
      */
-    uint32_t
+    ebpf_result_t
     ebpf_api_get_pinned_map_info(
         _Out_ uint16_t* map_count, _Outptr_result_buffer_maybenull_(*map_count) ebpf_map_information_t** map_info);
 
@@ -344,7 +346,7 @@ extern "C"
      * @param[in] map_info Map to be freed.
      */
     void
-    ebpf_api_map_info_free(_In_ const uint16_t map_count, _In_count_(map_count) const ebpf_map_information_t* map_info);
+    ebpf_api_map_info_free(uint16_t map_count, _In_count_(map_count) const ebpf_map_information_t* map_info);
 
 #ifdef __cplusplus
 }

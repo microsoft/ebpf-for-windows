@@ -6,8 +6,7 @@
 #include "ebpf_serialize.h"
 
 void
-ebpf_map_information_array_free(
-    _In_ const uint16_t map_count, _In_count_(map_count) const ebpf_map_information_t* map_info)
+ebpf_map_information_array_free(uint16_t map_count, _In_count_(map_count) const ebpf_map_information_t* map_info)
 {
     uint16_t map_index;
 
@@ -20,10 +19,10 @@ ebpf_map_information_array_free(
 
 ebpf_result_t
 ebpf_serialize_core_map_information_array(
-    _In_ const uint16_t map_count,
+    uint16_t map_count,
     _In_count_(map_count) const ebpf_core_map_information_t* map_info,
     _Out_writes_bytes_to_(output_buffer_length, *serialized_data_length) uint8_t* output_buffer,
-    _In_ const size_t output_buffer_length,
+    size_t output_buffer_length,
     _Out_ size_t* serialized_data_length,
     _Out_ size_t* required_length)
 {
@@ -89,9 +88,9 @@ Exit:
 
 ebpf_result_t
 ebpf_deserialize_map_information_array(
-    _In_ const size_t input_buffer_length,
+    size_t input_buffer_length,
     _In_reads_bytes_(input_buffer_length) const uint8_t* input_buffer,
-    _In_ uint16_t map_count,
+    uint16_t map_count,
     _Outptr_result_buffer_(map_count) ebpf_map_information_t** map_info)
 {
     ebpf_result_t result = EBPF_SUCCESS;

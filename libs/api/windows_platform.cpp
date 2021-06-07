@@ -21,7 +21,7 @@
 #include "windows_platform_common.hpp"
 
 int
-create_map_function(
+create_map_internal(
     uint32_t type, uint32_t key_size, uint32_t value_size, uint32_t max_entries, ebpf_verifier_options_t options);
 
 static int
@@ -36,7 +36,7 @@ create_map_windows(
         return fd;
     }
 
-    return create_map_function(map_type, key_size, value_size, max_entries, options);
+    return create_map_internal(map_type, key_size, value_size, max_entries, options);
 }
 
 void

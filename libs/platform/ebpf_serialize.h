@@ -38,7 +38,7 @@ extern "C"
      *
      * @param[in]  map_count Length of input array of ebpf_core_map_information_t structs.
      * @param[in]  map_info Array of ebpf_map_information_t to serialize.
-     * @param[in]  output_buffer Caller specified output buffer to write serialized data into.
+     * @param[out]  output_buffer Caller specified output buffer to write serialized data into.
      * @param[in]  output_buffer_length Output buffer length.
      * @param[out] serialized_data_length Length of successfully serialized data.
      * @param[out] required_length Length of buffer required to serialize input array.
@@ -48,10 +48,10 @@ extern "C"
      */
     ebpf_result_t
     ebpf_serialize_core_map_information_array(
-        _In_ const uint16_t map_count,
+        uint16_t map_count,
         _In_count_(map_count) const ebpf_core_map_information_t* map_info,
         _Out_writes_bytes_to_(output_buffer_length, *serialized_data_length) uint8_t* output_buffer,
-        _In_ const size_t output_buffer_length,
+        size_t output_buffer_length,
         _Out_ size_t* serialized_data_length,
         _Out_ size_t* required_length);
 
@@ -69,9 +69,9 @@ extern "C"
      */
     ebpf_result_t
     ebpf_deserialize_map_information_array(
-        _In_ const size_t input_buffer_length,
+        size_t input_buffer_length,
         _In_reads_bytes_(input_buffer_length) const uint8_t* input_buffer,
-        _In_ uint16_t map_count,
+        uint16_t map_count,
         _Outptr_result_buffer_(map_count) ebpf_map_information_t** map_info);
 
     /**
@@ -82,8 +82,7 @@ extern "C"
      * @param[in] map_info Map to be freed.
      */
     void
-    ebpf_map_information_array_free(
-        _In_ const uint16_t map_count, _In_count_(map_count) const ebpf_map_information_t* map_info);
+    ebpf_map_information_array_free(uint16_t map_count, _In_count_(map_count) const ebpf_map_information_t* map_info);
 
 #ifdef __cplusplus
 }

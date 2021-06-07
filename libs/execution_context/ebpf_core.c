@@ -729,7 +729,7 @@ Done:
 
 static ebpf_result_t
 _ebpf_core_protocol_convert_pinning_entries_to_map_information_array(
-    _In_ uint16_t entry_count,
+    uint16_t entry_count,
     _In_count_(entry_count) ebpf_pinning_entry_t* pinning_entries,
     _Outptr_result_buffer_maybenull_(entry_count) ebpf_core_map_information_t** map_info)
 {
@@ -780,10 +780,10 @@ Exit:
 
 static ebpf_result_t
 _ebpf_core_protocol_serialize_map_information_reply(
-    _In_ const uint16_t map_count,
+    uint16_t map_count,
     _In_count_(map_count) const ebpf_core_map_information_t* map_info,
-    _In_ ebpf_operation_get_map_information_reply_t* map_info_reply,
-    _In_ const size_t output_buffer_length)
+    size_t output_buffer_length,
+    _In_ ebpf_operation_get_map_information_reply_t* map_info_reply)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     size_t serialization_buffer_size;
@@ -843,7 +843,7 @@ _ebpf_core_protocol_get_map_information(
         goto Exit;
 
     // Serialize map information array onto reply structure.
-    result = _ebpf_core_protocol_serialize_map_information_reply(entry_count, map_info, reply, reply_length);
+    result = _ebpf_core_protocol_serialize_map_information_reply(entry_count, map_info, reply_length, reply);
 
 Exit:
 

@@ -461,7 +461,7 @@ extern "C"
      * @param[in] hash_table Hash-table to query.
      * @param[in] previous_key Previous key or NULL to restart.
      * @param[out] next_key Next key if it exists.
-     * @param[out] next_value Next value if it exists.
+     * @param[out] next_value If non-NULL, returns the next value if it exists.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MORE_KEYS No keys exist in the hash table that
      * are lexicographically after the specified key.
@@ -470,7 +470,7 @@ extern "C"
     ebpf_hash_table_next_key_and_value(
         _In_ ebpf_hash_table_t* hash_table,
         _In_opt_ const uint8_t* previous_key,
-        _Inout_ uint8_t* next_key,
+        _Out_ uint8_t* next_key,
         _Outptr_opt_ uint8_t** next_value);
 
     /**

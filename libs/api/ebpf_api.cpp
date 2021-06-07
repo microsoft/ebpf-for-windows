@@ -44,14 +44,17 @@ ebpf_api_terminate()
     clean_up_rpc_binding();
 }
 
-uint32_t
+ebpf_result_t
 ebpf_api_create_map(
-    _In_ const ebpf_map_type_t type,
-    _In_ const uint32_t key_size,
-    _In_ const uint32_t value_size,
-    _In_ const uint32_t max_entries,
+    ebpf_map_type_t type,
+    uint32_t key_size,
+    uint32_t value_size,
+    uint32_t max_entries,
+    uint32_t map_flags,
     _Out_ handle_t* handle)
 {
+    UNREFERENCED_PARAMETER(map_flags);
+
     _ebpf_operation_create_map_request request{
         sizeof(_ebpf_operation_create_map_request),
         ebpf_operation_id_t::EBPF_OPERATION_CREATE_MAP,
@@ -59,7 +62,7 @@ ebpf_api_create_map(
 
     _ebpf_operation_create_map_reply reply{};
 
-    uint32_t return_value = ERROR_SUCCESS;
+    uint32_t return_value = EBPF_SUCCESS;
 
     if (handle == nullptr) {
         return_value = ERROR_INVALID_PARAMETER;
@@ -72,27 +75,24 @@ ebpf_api_create_map(
     if (return_value != ERROR_SUCCESS)
         goto Exit;
 
-    if (reply.header.id != ebpf_operation_id_t::EBPF_OPERATION_CREATE_MAP) {
-        ebpf_assert(false);
-        return_value = ERROR_INVALID_PARAMETER;
-    }
+    ebpf_assert(reply.header.id == ebpf_operation_id_t::EBPF_OPERATION_CREATE_MAP);
 
     *handle = reinterpret_cast<ebpf_handle_t>(reply.handle);
 
 Exit:
-    return return_value;
+    return windows_error_to_ebpf_result(return_value);
 }
 
 int
-create_map_function(
+create_map_internal(
     uint32_t type, uint32_t key_size, uint32_t value_size, uint32_t max_entries, ebpf_verifier_options_t)
 {
     handle_t map_handle = INVALID_HANDLE_VALUE;
 
-    uint32_t retval =
-        ebpf_api_create_map(static_cast<ebpf_map_type_t>(type), key_size, value_size, max_entries, &map_handle);
-    if (retval != ERROR_SUCCESS) {
-        throw std::runtime_error(std::string("Error ") + std::to_string(retval) + " trying to create map");
+    ebpf_result_t result =
+        ebpf_api_create_map(static_cast<ebpf_map_type_t>(type), key_size, value_size, max_entries, 0, &map_handle);
+    if (result != EBPF_SUCCESS) {
+        throw std::runtime_error(std::string("Error ") + std::to_string(result) + " trying to create map");
     }
 
     return cache_map_handle(reinterpret_cast<uint64_t>(map_handle), type, key_size, value_size);
@@ -722,11 +722,10 @@ ebpf_api_close_handle(ebpf_handle_t handle)
     return invoke_ioctl(request);
 }
 
-uint32_t
+ebpf_result_t
 ebpf_api_get_pinned_map_info(
     _Out_ uint16_t* map_count, _Outptr_result_buffer_maybenull_(*map_count) ebpf_map_information_t** map_info)
 {
-    uint32_t return_value = ERROR_SUCCESS;
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_operation_get_map_information_request_t request = {
         sizeof(request), EBPF_OPERATION_GET_MAP_INFORMATION, reinterpret_cast<uint64_t>(INVALID_HANDLE_VALUE)};
@@ -754,14 +753,14 @@ ebpf_api_get_pinned_map_info(
         reply_buffer.resize(reply_length);
 
         // Invoke IOCTL.
-        return_value = invoke_ioctl(device_handle, request, reply_buffer);
+        result = windows_error_to_ebpf_result(invoke_ioctl(device_handle, request, reply_buffer));
 
-        if ((return_value != ERROR_SUCCESS) && (return_value != ERROR_MORE_DATA))
+        if ((result != EBPF_SUCCESS) && (result != EBPF_ERROR_INSUFFICIENT_BUFFER))
             goto Exit;
 
         reply = reinterpret_cast<ebpf_operation_get_map_information_reply_t*>(reply_buffer.data());
 
-        if (return_value == ERROR_MORE_DATA) {
+        if (result == EBPF_ERROR_INSUFFICIENT_BUFFER) {
             output_buffer_length = reply->size;
             attempt_count++;
             continue;
@@ -770,11 +769,8 @@ ebpf_api_get_pinned_map_info(
             break;
     }
 
-    if (attempt_count == IOCTL_MAX_ATTEMPTS) {
-        // Exceeeded maximum number of attempts.
-        result = EBPF_INVALID_ARGUMENT;
+    if (attempt_count == IOCTL_MAX_ATTEMPTS)
         goto Exit;
-    }
 
     local_map_count = reply->map_count;
     serialized_buffer_length = reply->size;
@@ -806,7 +802,6 @@ ebpf_api_get_pinned_map_info(
 
 Exit:
     if (result != EBPF_SUCCESS) {
-        return_value = _ebpf_result_to_winerror(result);
         ebpf_api_map_info_free(local_map_count, local_map_info);
         local_map_count = 0;
         local_map_info = nullptr;
@@ -815,7 +810,7 @@ Exit:
     *map_count = local_map_count;
     *map_info = local_map_info;
 
-    return return_value;
+    return result;
 }
 
 void

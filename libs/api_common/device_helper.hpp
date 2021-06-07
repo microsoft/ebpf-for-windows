@@ -24,7 +24,6 @@ typedef struct empty_reply
 
 static empty_reply_t _empty_reply;
 
-<<<<<<< HEAD:libs/api_common/device_helper.hpp
 ebpf_result_t
 initialize_device_handle();
 
