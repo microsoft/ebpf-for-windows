@@ -110,7 +110,7 @@ ebpf_get_trampoline_function(const ebpf_trampoline_table_t* trampoline_table, si
     ebpf_trampoline_entry_t* local_entries;
     ebpf_result_t return_value;
 
-    if (index > trampoline_table->entry_count) {
+    if (index >= trampoline_table->entry_count) {
         return_value = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }

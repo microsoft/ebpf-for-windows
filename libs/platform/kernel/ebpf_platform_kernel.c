@@ -33,7 +33,7 @@ ebpf_platform_terminate()
 void*
 ebpf_allocate(size_t size)
 {
-    return ExAllocatePool2(POOL_FLAG_NON_PAGED_EXECUTE, size, EBPF_POOL_TAG);
+    return ExAllocatePool2(POOL_FLAG_NON_PAGED, size, EBPF_POOL_TAG);
 }
 
 void
