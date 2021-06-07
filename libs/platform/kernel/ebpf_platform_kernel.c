@@ -31,10 +31,9 @@ ebpf_platform_terminate()
 {}
 
 void*
-ebpf_allocate(size_t size, ebpf_memory_type_t type)
+ebpf_allocate(size_t size)
 {
-    return ExAllocatePool2(
-        type == EBPF_MEMORY_EXECUTE ? POOL_FLAG_NON_PAGED_EXECUTE : POOL_FLAG_NON_PAGED, size, EBPF_POOL_TAG);
+    return ExAllocatePool2(POOL_FLAG_NON_PAGED, size, EBPF_POOL_TAG);
 }
 
 void
@@ -266,7 +265,7 @@ ebpf_allocate_non_preemptible_work_item(
     void (*work_item_routine)(void* work_item_context, void* parameter_1),
     void* work_item_context)
 {
-    *work_item = ebpf_allocate(sizeof(ebpf_non_preemptible_work_item_t), EBPF_MEMORY_NO_EXECUTE);
+    *work_item = ebpf_allocate(sizeof(ebpf_non_preemptible_work_item_t));
     if (*work_item == NULL) {
         return EBPF_NO_MEMORY;
     }
@@ -318,7 +317,7 @@ ebpf_allocate_timer_work_item(
     void (*work_item_routine)(void* work_item_context),
     void* work_item_context)
 {
-    *timer_work_item = ebpf_allocate(sizeof(ebpf_timer_work_item_t), EBPF_MEMORY_NO_EXECUTE);
+    *timer_work_item = ebpf_allocate(sizeof(ebpf_timer_work_item_t));
     if (*timer_work_item == NULL)
         return EBPF_NO_MEMORY;
 

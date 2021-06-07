@@ -41,7 +41,7 @@ ebpf_program_information_decode(
         goto Done;
     }
 
-    local_buffer = ebpf_allocate(buffer_size, EBPF_MEMORY_NO_EXECUTE);
+    local_buffer = ebpf_allocate(buffer_size);
     if (!local_buffer) {
         return_value = EBPF_NO_MEMORY;
         goto Done;
@@ -77,7 +77,7 @@ Done:
 void* __RPC_USER
 MIDL_user_allocate(size_t size)
 {
-    return ebpf_allocate(size, EBPF_MEMORY_NO_EXECUTE);
+    return ebpf_allocate(size);
 }
 
 void __RPC_USER

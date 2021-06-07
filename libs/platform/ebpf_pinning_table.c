@@ -54,7 +54,7 @@ ebpf_result_t
 ebpf_pinning_table_allocate(ebpf_pinning_table_t** pinning_table)
 {
     ebpf_result_t return_value;
-    *pinning_table = ebpf_allocate(sizeof(ebpf_pinning_table_t), EBPF_MEMORY_NO_EXECUTE);
+    *pinning_table = ebpf_allocate(sizeof(ebpf_pinning_table_t));
     if (*pinning_table == NULL) {
         return_value = EBPF_NO_MEMORY;
         goto Done;
@@ -115,7 +115,7 @@ ebpf_pinning_table_insert(ebpf_pinning_table_t* pinning_table, const ebpf_utf8_s
     const ebpf_utf8_string_t* existing_key = name;
     ebpf_pinning_entry_t** existing_pinning_entry;
 
-    new_pinning_entry = ebpf_allocate(sizeof(ebpf_pinning_entry_t), EBPF_MEMORY_NO_EXECUTE);
+    new_pinning_entry = ebpf_allocate(sizeof(ebpf_pinning_entry_t));
     if (!new_pinning_entry) {
         return_value = EBPF_NO_MEMORY;
         goto Done;
