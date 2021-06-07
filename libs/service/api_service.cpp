@@ -194,7 +194,7 @@ _query_and_cache_map_descriptors(fd_handle_map* handle_map, uint32_t handle_map_
 }
 
 void
-ebpf_clear_thread_local_storage()
+ebpf_clear_thread_local_storage() noexcept
 {
     clear_map_descriptors();
     clear_program_information_cache();
@@ -209,7 +209,7 @@ ebpf_verify_program(
     uint32_t byte_code_size,
     uint8_t* byte_code,
     const char** logs,
-    uint32_t* logs_size)
+    uint32_t* logs_size) noexcept
 {
     ebpf_result_t result = EBPF_SUCCESS;
 
@@ -252,7 +252,7 @@ ebpf_verify_and_load_program(
     uint32_t byte_code_size,
     uint8_t* byte_code,
     const char** error_message,
-    uint32_t* error_message_size)
+    uint32_t* error_message_size) noexcept
 {
     ebpf_result_t result = EBPF_SUCCESS;
     int error = 0;
@@ -386,7 +386,7 @@ Exit:
 }
 
 uint32_t
-ebpf_service_initialize()
+ebpf_service_initialize() noexcept
 {
     // This is best effort. If device handle does not initialize,
     // it will be re-attempted before an IOCTL call is made.
@@ -398,7 +398,7 @@ ebpf_service_initialize()
 }
 
 void
-ebpf_service_cleanup()
+ebpf_service_cleanup() noexcept
 {
     clean_up_device_handle();
 }

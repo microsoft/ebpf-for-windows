@@ -19,7 +19,7 @@ ebpf_verify_program(
     uint32_t byte_code_size,
     uint8_t* byte_code,
     const char** logs,
-    uint32_t* logs_size);
+    uint32_t* logs_size) noexcept;
 
 ebpf_result_t
 ebpf_verify_and_load_program(
@@ -32,13 +32,13 @@ ebpf_verify_and_load_program(
     uint32_t byte_code_size,
     uint8_t* byte_code,
     const char** error_message,
-    uint32_t* error_message_size);
+    uint32_t* error_message_size) noexcept;
 
 uint32_t
-ebpf_service_initialize();
+ebpf_service_initialize() noexcept;
 
 void
-ebpf_service_cleanup();
+ebpf_service_cleanup() noexcept;
 
 void
-ebpf_clear_thread_local_storage();
+ebpf_clear_thread_local_storage() noexcept;

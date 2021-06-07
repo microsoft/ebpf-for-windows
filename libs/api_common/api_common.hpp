@@ -41,13 +41,13 @@ typedef struct _map_cache
 } map_cache_t;
 
 const char*
-allocate_error_string(const std::string& str, uint32_t* length = nullptr);
+allocate_error_string(const std::string& str, uint32_t* length = nullptr) noexcept;
 
 std::vector<uint8_t>
 convert_ebpf_program_to_bytes(const std::vector<ebpf_inst>& instructions);
 
 int
-get_file_size(const char* filename, size_t* byte_code_size);
+get_file_size(const char* filename, size_t* byte_code_size) noexcept;
 
 EbpfHelperPrototype
 get_helper_prototype_windows(unsigned int n);
@@ -129,4 +129,4 @@ query_map_definition(
     uint32_t* type,
     uint32_t* key_size,
     uint32_t* value_size,
-    uint32_t* max_entries);
+    uint32_t* max_entries) noexcept;

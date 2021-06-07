@@ -18,7 +18,7 @@
 #pragma warning(pop)
 
 const char*
-allocate_error_string(const std::string& str, uint32_t* length)
+allocate_error_string(const std::string& str, uint32_t* length) noexcept
 {
     char* error_message;
     size_t error_message_length = str.size() + 1;
@@ -40,7 +40,7 @@ convert_ebpf_program_to_bytes(const std::vector<ebpf_inst>& instructions)
 }
 
 int
-get_file_size(const char* filename, size_t* byte_code_size)
+get_file_size(const char* filename, size_t* byte_code_size) noexcept
 {
     int result = 0;
     *byte_code_size = NULL;
@@ -61,7 +61,7 @@ query_map_definition(
     uint32_t* type,
     uint32_t* key_size,
     uint32_t* value_size,
-    uint32_t* max_entries)
+    uint32_t* max_entries) noexcept
 {
     _ebpf_operation_query_map_definition_request request{
         sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_QUERY_MAP_DEFINITION, reinterpret_cast<uint64_t>(handle)};

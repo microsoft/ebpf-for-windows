@@ -7,12 +7,6 @@
 #include <stdlib.h>
 #include <windows.h>
 #include "ebpf_api.h"
-#pragma warning(push)
-#pragma warning(disable : 4100) // 'identifier' : unreferenced formal parameter
-#pragma warning(disable : 4244) // 'conversion' conversion from 'type1' to
-                                // 'type2', possible loss of data
-#undef VOID
-#pragma warning(pop)
 #include "ebpf_windows.h"
 #include "rpc_interface_c.c"
 
@@ -23,7 +17,7 @@ static const WCHAR* _protocol_sequence = L"ncalrpc";
 static bool _binding_initialized = false;
 
 ebpf_result_t
-ebpf_rpc_verify_program(ebpf_program_verify_info* info, const char** logs, uint32_t* logs_size)
+ebpf_rpc_verify_program(ebpf_program_verify_info* info, const char** logs, uint32_t* logs_size) noexcept
 {
     ebpf_result_t result;
 
@@ -39,7 +33,7 @@ ebpf_rpc_verify_program(ebpf_program_verify_info* info, const char** logs, uint3
 }
 
 ebpf_result_t
-ebpf_rpc_load_program(ebpf_program_load_info* info, const char** logs, uint32_t* logs_size)
+ebpf_rpc_load_program(ebpf_program_load_info* info, const char** logs, uint32_t* logs_size) noexcept
 {
     ebpf_result_t result;
 
