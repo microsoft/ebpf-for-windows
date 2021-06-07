@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <Windows.h>
+#include "api_common.hpp"
 #include "device_helper.hpp"
 #include "ebpf_protocol.h"
 #include "ebpf_result.h"
@@ -17,7 +18,7 @@
 #pragma warning(pop)
 
 const char*
-allocate_error_string(const std::string& str, uint32_t* length = nullptr)
+allocate_error_string(const std::string& str, uint32_t* length)
 {
     char* error_message;
     size_t error_message_length = str.size() + 1;
@@ -51,29 +52,6 @@ get_file_size(const char* filename, size_t* byte_code_size)
     }
 
     return result;
-}
-
-ebpf_result_t
-windows_error_to_ebpf_result(uint32_t error)
-{
-    switch (error) {
-    case ERROR_SUCCESS:
-        return EBPF_SUCCESS;
-
-    case ERROR_INVALID_HANDLE:
-        return EBPF_ERROR_INVALID_HANDLE;
-
-    case ERROR_FILE_NOT_FOUND:
-        return EBPF_FILE_NOT_FOUND;
-
-    case ERROR_NOT_ENOUGH_MEMORY:
-        return EBPF_NO_MEMORY;
-
-    case ERROR_ALREADY_INITIALIZED:
-        return EBPF_ALREADY_INITIALIZED;
-    }
-
-    return EBPF_FAILED;
 }
 
 ebpf_result_t

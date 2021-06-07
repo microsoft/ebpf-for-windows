@@ -225,7 +225,7 @@ ebpf_verify_program(
             cache_map_file_descriptors(map_descriptors, map_descriptors_count);
         }
 
-        // Verify the program
+        // Verify the program.
         result = verify_byte_code(program_type, byte_code, byte_code_size, logs, logs_size);
     } catch (const std::bad_alloc&) {
         result = EBPF_NO_MEMORY;
@@ -390,8 +390,8 @@ ebpf_service_initialize()
 {
     // This is best effort. If device handle does not initialize,
     // it will be re-attempted before an IOCTL call is made.
-    // This is needed to ensure service can successfully start even
-    // if the driver is not installed.
+    // This is needed to ensure the service can successfully start
+    // even if the driver is not installed.
     initialize_device_handle();
 
     return ERROR_SUCCESS;

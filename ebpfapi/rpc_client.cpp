@@ -57,9 +57,7 @@ ebpf_rpc_load_program(ebpf_program_load_info* info, const char** logs, uint32_t*
 RPC_STATUS
 initialize_rpc_binding()
 {
-    RPC_STATUS status;
-
-    status =
+    RPC_STATUS status =
         RpcStringBindingCompose(nullptr, (RPC_WSTR)_protocol_sequence, nullptr, nullptr, nullptr, &_string_binding);
 
     if (status != RPC_S_OK) {

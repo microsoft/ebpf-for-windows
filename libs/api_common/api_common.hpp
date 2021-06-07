@@ -7,14 +7,10 @@
 #include <stdexcept>
 #include "ebpf_api.h"
 #include "ebpf_execution_context.h"
-#undef VOID
-#include "ebpf_helpers.h"
+#include "ebpf_platform.h"
 #include "ebpf_result.h"
+#undef VOID
 #include "platform.hpp"
-extern "C"
-{
-#include "ubpf.h"
-}
 
 typedef struct _map_cache
 {
@@ -71,8 +67,60 @@ get_all_map_handles(void);
 std::vector<map_cache_t>
 get_all_map_descriptors();
 
-ebpf_result_t
-windows_error_to_ebpf_result(uint32_t error);
+__forceinline ebpf_result_t
+windows_error_to_ebpf_result(uint32_t error)
+{
+    ebpf_result_t result;
+
+    switch (error) {
+    case ERROR_SUCCESS:
+        result = EBPF_SUCCESS;
+        break;
+
+    case ERROR_OUTOFMEMORY:
+    case ERROR_NOT_ENOUGH_MEMORY:
+        result = EBPF_NO_MEMORY;
+        break;
+
+    case ERROR_NOT_FOUND:
+        result = EBPF_ERROR_NOT_FOUND;
+        break;
+
+    case ERROR_INVALID_PARAMETER:
+        result = EBPF_INVALID_ARGUMENT;
+        break;
+
+    case ERROR_NO_MORE_ITEMS:
+        result = EBPF_ERROR_NO_MORE_KEYS;
+        break;
+
+    case ERROR_INVALID_HANDLE:
+        result = EBPF_ERROR_INVALID_HANDLE;
+        break;
+
+    case ERROR_NOT_SUPPORTED:
+        result = EBPF_ERROR_NOT_SUPPORTED;
+        break;
+
+    case ERROR_MORE_DATA:
+        result = EBPF_ERROR_INSUFFICIENT_BUFFER;
+        break;
+
+    case ERROR_FILE_NOT_FOUND:
+        result = EBPF_FILE_NOT_FOUND;
+        break;
+
+    case ERROR_ALREADY_INITIALIZED:
+        result = EBPF_ALREADY_INITIALIZED;
+        break;
+
+    default:
+        result = EBPF_FAILED;
+        break;
+    }
+
+    return result;
+}
 
 ebpf_result_t
 query_map_definition(
