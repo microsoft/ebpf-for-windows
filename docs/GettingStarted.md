@@ -34,6 +34,8 @@ This will build the following binaries:
                  utility functionality.
 * end_to_end.exe: A collection of tests using the Catch framework.  These tests are also run as part
                   of the Github CI/CD so should always pass.
+* ebpf_client.exe: A collection of program verification tests that exercises the RPC channel from client to ebpfsvc.
+                   These tests are also run as part of the Github CI/CD so should always pass.
 
 and a few binaries just used for demo'ing eBPF functionality, as in the demo walkthrough discussed below:
 
@@ -115,6 +117,14 @@ This test uses a mocking layer to bind the user mode components to the kernel mo
 components via a Mock IOCTL interface. The tests initialize the user mode and kernel
 mode components, load an eBPF program from an ELF file, and then run the eBPF program
 by having the mocked extensions emit events.
+
+### ebpf_client.exe
+This test does verification for different sample programs by parsing the ELF file and
+sending the verification request to ebpfsvc. For the cases when the verification fails,
+the test receives and prints the verifier failure message.
+If ebpfsvc is not already installed, this test tries to install and start the service before
+executing the tests, hence this test should be run as admin if ebpfsvc is not already installed
+and running.
 
 ### platform_unit_test.exe
 This test invokes APIs exposed by the user-mode implementation of platform
