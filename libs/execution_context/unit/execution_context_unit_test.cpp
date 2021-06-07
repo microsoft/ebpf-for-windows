@@ -12,6 +12,8 @@
 #include "ebpf_program.h"
 #include "helpers.h"
 
+#define PAGE_SIZE 4096
+
 class _ebpf_core_initializer
 {
   public:
@@ -166,8 +168,10 @@ TEST_CASE("program")
     REQUIRE(ebpf_update_trampoline_table(table, &provider_dispatch_table1) == EBPF_SUCCESS);
     REQUIRE(ebpf_get_trampoline_function(table, 0, reinterpret_cast<void**>(&test_function)) == EBPF_SUCCESS);
 
+    // Size of the actual function is unknown, but we know the allocation is on page granularity.
     REQUIRE(
-        ebpf_program_load_machine_code(program.get(), reinterpret_cast<uint8_t*>(test_function), 4096) == EBPF_SUCCESS);
+        ebpf_program_load_machine_code(program.get(), reinterpret_cast<uint8_t*>(test_function), PAGE_SIZE) ==
+        EBPF_SUCCESS);
     uint32_t result = 0;
     ebpf_program_invoke(program.get(), nullptr, &result);
     REQUIRE(result == TEST_FUNCTION_RETURN);
