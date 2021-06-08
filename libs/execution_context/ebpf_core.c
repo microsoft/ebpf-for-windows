@@ -745,8 +745,7 @@ _ebpf_core_protocol_convert_pinning_entries_to_map_information_array(
     if ((entry_count == 0) || (pinning_entries == NULL))
         goto Exit;
 
-    local_map_info = (ebpf_core_map_information_t*)ebpf_allocate(
-        sizeof(ebpf_core_map_information_t) * entry_count, EBPF_MEMORY_NO_EXECUTE);
+    local_map_info = (ebpf_core_map_information_t*)ebpf_allocate(sizeof(ebpf_core_map_information_t) * entry_count);
     if (local_map_info == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;

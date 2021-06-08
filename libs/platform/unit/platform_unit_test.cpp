@@ -20,6 +20,7 @@
 #include "ebpf_platform.h"
 #include "ebpf_pinning_table.h"
 #include "ebpf_program_types.h"
+#include "ebpf_serialize.h"
 #include "ebpf_xdp_program_data.h"
 
 class _test_helper
@@ -310,4 +311,67 @@ TEST_CASE("memory_map_test", "[memory_map_test]")
     memset(ebpf_memory_descriptor_get_base_address(memory_descriptor), 0xCC, 100);
     REQUIRE(ebpf_protect_memory(memory_descriptor, EBPF_PAGE_PROTECT_READ_ONLY) == EBPF_SUCCESS);
     ebpf_unmap_memory(memory_descriptor);
+}
+
+TEST_CASE("serialize_map_test", "[serialize_map_test]")
+{
+    _test_helper test_helper;
+
+    const int map_count = 10;
+    ebpf_core_map_information_t core_map_info_array[map_count] = {};
+    std::string pin_path_prefix = "\\ebpf\\map\\";
+    std::vector<std::string> pin_paths;
+    size_t buffer_length = 0;
+    uint8_t* buffer = nullptr;
+    size_t required_length;
+    size_t serialized_length;
+    ebpf_map_information_t* map_info_array;
+
+    // Construct the array of ebpf_core_map_information_t to be serialized.
+    for (int i = 0; i < map_count; i++) {
+        pin_paths.push_back(pin_path_prefix + std::to_string(i));
+    }
+
+    for (int i = 0; i < map_count; i++) {
+        ebpf_core_map_information_t* map_info = &core_map_info_array[i];
+        map_info->definition.size = (i + 1) * 32;
+        map_info->definition.type = static_cast<ebpf_map_type_t>(i % (EBPF_MAP_TYPE_ARRAY + 1));
+        map_info->definition.key_size = i + 1;
+        map_info->definition.value_size = (i + 1) * (i + 1);
+        map_info->definition.max_entries = (i + 1) * 128;
+
+        map_info->pin_path.length = pin_paths[i].size();
+        map_info->pin_path.value = const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(pin_paths[i].c_str()));
+    }
+
+    // Serialize.
+    ebpf_result_t result = ebpf_serialize_core_map_information_array(
+        map_count, core_map_info_array, buffer, buffer_length, &serialized_length, &required_length);
+    REQUIRE(result == EBPF_ERROR_INSUFFICIENT_BUFFER);
+
+    buffer = static_cast<uint8_t*>(calloc(required_length, 1));
+    buffer_length = required_length;
+
+    result = ebpf_serialize_core_map_information_array(
+        map_count, core_map_info_array, buffer, buffer_length, &serialized_length, &required_length);
+    REQUIRE(result == EBPF_SUCCESS);
+
+    // Deserialize.
+    result = ebpf_deserialize_map_information_array(serialized_length, buffer, map_count, &map_info_array);
+    REQUIRE(result == EBPF_SUCCESS);
+
+    // Verify de-serialized map info array matches input.
+    for (int i = 0; i < map_count; i++) {
+        ebpf_core_map_information_t* input_map_info = &core_map_info_array[i];
+        ebpf_map_information_t* map_info = &map_info_array[i];
+        REQUIRE(memcmp(&map_info->definition, &input_map_info->definition, sizeof(ebpf_map_definition_t)) == 0);
+        REQUIRE(strnlen_s(map_info->pin_path, EBPF_MAX_PIN_PATH_LENGTH) == input_map_info->pin_path.length);
+        REQUIRE(memcmp(map_info->pin_path, input_map_info->pin_path.value, input_map_info->pin_path.length) == 0);
+    }
+
+    // Free de-serialized map info array.
+    ebpf_map_information_array_free(map_count, map_info_array);
+
+    if (buffer != nullptr)
+        free(buffer);
 }

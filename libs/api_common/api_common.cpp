@@ -5,10 +5,12 @@
 #include <string>
 #include <vector>
 #include <Windows.h>
+
 #include "api_common.hpp"
-#include "device_helper.hpp"
 #include "ebpf_protocol.h"
 #include "ebpf_result.h"
+#include "device_helper.hpp"
+
 #pragma warning(push)
 #pragma warning(disable : 4100) // 'identifier' : unreferenced formal parameter
 #pragma warning(disable : 4244) // 'conversion' conversion from 'type1' to

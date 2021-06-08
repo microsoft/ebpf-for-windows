@@ -42,8 +42,6 @@ ebpf_test_pinned_map_enum()
     REQUIRE(map_count == pinned_map_count);
 
     for (int i = 0; i < pinned_map_count; i++) {
-        printf("%s\n", map_info[i].pin_path);
-
         bool matched = false;
         std::string pin_path = pin_path_prefix + std::to_string(i);
         REQUIRE((

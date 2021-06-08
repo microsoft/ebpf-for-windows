@@ -105,7 +105,7 @@ ebpf_deserialize_map_information_array(
     if (result != EBPF_SUCCESS)
         goto Exit;
 
-    out_map_info = (ebpf_map_information_t*)ebpf_allocate(out_map_size, EBPF_MEMORY_NO_EXECUTE);
+    out_map_info = (ebpf_map_information_t*)ebpf_allocate(out_map_size);
     if (out_map_info == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -133,7 +133,7 @@ ebpf_deserialize_map_information_array(
         // Advance the input buffer current pointer.
         current += EBPF_OFFSET_OF(ebpf_serialized_map_information_t, pin_path);
 
-        // Adjust remaining input buffer length
+        // Adjust remaining input buffer length.
         result = ebpf_safe_size_t_subtract(
             buffer_left, EBPF_OFFSET_OF(ebpf_serialized_map_information_t, pin_path), &buffer_left);
         if (result != EBPF_SUCCESS)
@@ -150,7 +150,7 @@ ebpf_deserialize_map_information_array(
             destination_pin_path_length = source->pin_path_length + 1;
             if (result != EBPF_SUCCESS)
                 goto Exit;
-            destination->pin_path = ebpf_allocate(destination_pin_path_length, EBPF_MEMORY_NO_EXECUTE);
+            destination->pin_path = ebpf_allocate(destination_pin_path_length);
             if (destination->pin_path == NULL) {
                 result = EBPF_NO_MEMORY;
                 goto Exit;
@@ -162,7 +162,7 @@ ebpf_deserialize_map_information_array(
             // Advance the input buffer current pointer.
             current += source->pin_path_length;
 
-            // Adjust remaining input buffer length
+            // Adjust remaining input buffer length.
             result = ebpf_safe_size_t_subtract(buffer_left, source->pin_path_length, &buffer_left);
             if (result != EBPF_SUCCESS)
                 goto Exit;
