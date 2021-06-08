@@ -54,12 +54,12 @@ _ebpf_hash_table_free(struct _RTL_AVL_TABLE* avl_table, void* buffer)
 
 ebpf_result_t
 ebpf_hash_table_create(
-    ebpf_hash_table_t** hash_table,
-    void* (*allocate)(size_t size),
-    void (*free)(void* memory),
+    _Out_ ebpf_hash_table_t** hash_table,
+    _In_ void* (*allocate)(size_t size),
+    _In_ void (*free)(void* memory),
     size_t key_size,
     size_t value_size,
-    ebpf_hash_table_compare_result_t (*compare_function)(const uint8_t* key1, const uint8_t* key2))
+    _In_opt_ ebpf_hash_table_compare_result_t (*compare_function)(const uint8_t* key1, const uint8_t* key2))
 {
     ebpf_result_t retval;
     ebpf_hash_table_t* table = NULL;
@@ -73,8 +73,11 @@ ebpf_hash_table_create(
 
     table->compare_function = compare_function;
 
+#pragma warning(push)
+#pragma warning(disable : 28023) // Function not marked with _Function_class_ annotation
     RtlInitializeGenericTableAvl(
         &table->avl_table, _ebpf_hash_map_compare, _ebpf_hash_table_allocate, _ebpf_hash_table_free, NULL);
+#pragma warning(pop)
 
     table->key_size = key_size;
     table->value_size = value_size;
@@ -88,9 +91,13 @@ Done:
 }
 
 void
-ebpf_hash_table_destroy(ebpf_hash_table_t* hash_table)
+ebpf_hash_table_destroy(_Pre_maybenull_ _Post_invalid_ ebpf_hash_table_t* hash_table)
 {
     RTL_AVL_TABLE* table = (RTL_AVL_TABLE*)hash_table;
+    if (!hash_table) {
+        return;
+    }
+
     for (;;) {
         uint8_t* entry;
         entry = RtlEnumerateGenericTableAvl(table, TRUE);
@@ -102,7 +109,10 @@ ebpf_hash_table_destroy(ebpf_hash_table_t* hash_table)
 }
 
 ebpf_result_t
-ebpf_hash_table_find(ebpf_hash_table_t* hash_table, const uint8_t* key, uint8_t** value)
+ebpf_hash_table_find(
+    _In_ ebpf_hash_table_t* hash_table,
+    _In_ _Readable_bytes_(hash_table->key_size) const uint8_t* key,
+    _Out_ _Writable_bytes_(hash_table->value_size) uint8_t** value)
 {
     ebpf_result_t retval;
     RTL_AVL_TABLE* table = (RTL_AVL_TABLE*)hash_table;
@@ -120,7 +130,10 @@ ebpf_hash_table_find(ebpf_hash_table_t* hash_table, const uint8_t* key, uint8_t*
 }
 
 ebpf_result_t
-ebpf_hash_table_update(ebpf_hash_table_t* hash_table, const uint8_t* key, const uint8_t* value)
+ebpf_hash_table_update(
+    _In_ ebpf_hash_table_t* hash_table,
+    _In_ _Readable_bytes_(hash_table->key_size) const uint8_t* key,
+    _In_ _Readable_bytes_(hash_table->value_size) const uint8_t* value)
 {
     ebpf_result_t retval;
     RTL_AVL_TABLE* table = (RTL_AVL_TABLE*)hash_table;
@@ -160,7 +173,8 @@ Done:
 }
 
 ebpf_result_t
-ebpf_hash_table_delete(ebpf_hash_table_t* hash_table, const uint8_t* key)
+ebpf_hash_table_delete(
+    _In_ ebpf_hash_table_t* hash_table, _In_ _Readable_bytes_(hash_table->key_size) const uint8_t* key)
 {
     BOOLEAN result;
     RTL_AVL_TABLE* table = (RTL_AVL_TABLE*)hash_table;
@@ -231,7 +245,7 @@ ebpf_hash_table_next_key(ebpf_hash_table_t* hash_table, const uint8_t* previous_
 }
 
 size_t
-ebpf_hash_table_key_count(ebpf_hash_table_t* hash_table)
+ebpf_hash_table_key_count(_In_ ebpf_hash_table_t* hash_table)
 {
     return hash_table->avl_table.NumberGenericTableElements;
 }

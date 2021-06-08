@@ -5,13 +5,15 @@
 
 #pragma once
 
+#include <sal.h>
+
 #ifdef __cplusplus
 extern "C"
 {
 #endif
 
-    typedef enum ebpf_result
-    {
+#pragma warning(disable : 26812) // Prefer enum class
+    typedef _Return_type_success_(return == EBPF_SUCCESS) enum ebpf_result {
         // The operation was successful.
         EBPF_SUCCESS,
 

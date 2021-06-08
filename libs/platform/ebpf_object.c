@@ -28,7 +28,7 @@ static ebpf_lock_t _ebpf_object_tracking_list_lock = {0};
  * 2) A pinning table entry holds a reference on it.
  *
  */
-static ebpf_list_entry_t _ebpf_object_tracking_list;
+static _Requires_lock_held_(&_ebpf_object_tracking_list_lock) ebpf_list_entry_t _ebpf_object_tracking_list;
 
 static void
 _ebpf_object_tracking_list_insert(ebpf_object_t* object)
@@ -107,7 +107,7 @@ ebpf_object_get_type(ebpf_object_t* object)
 }
 
 ebpf_result_t
-ebpf_duplicate_utf8_string(ebpf_utf8_string_t* destination, const ebpf_utf8_string_t* source)
+ebpf_duplicate_utf8_string(_Out_ ebpf_utf8_string_t* destination, _In_ const ebpf_utf8_string_t* source)
 {
     if (!source->value) {
         destination->value = NULL;

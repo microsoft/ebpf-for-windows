@@ -25,8 +25,8 @@ typedef struct _ebpf_extension_provider
     ebpf_hash_table_t* client_table;
 } ebpf_extension_provider_t;
 
-ebpf_lock_t _ebpf_provider_table_lock = {0};
-ebpf_hash_table_t* _ebpf_provider_table = NULL;
+static ebpf_lock_t _ebpf_provider_table_lock = {0};
+static _Requires_lock_held_(&_ebpf_provider_table_lock) ebpf_hash_table_t* _ebpf_provider_table = NULL;
 
 ebpf_result_t
 ebpf_extension_load(

@@ -10,7 +10,7 @@ typedef ebpf_object_t* ebpf_handle_entry_t;
 // TODO: Replace this with the real Windows object manager handle table code.
 
 static ebpf_lock_t _ebpf_handle_table_lock = {0};
-static ebpf_handle_entry_t _ebpf_handle_table[1024];
+static _Requires_lock_held_(&_ebpf_handle_table_lock) ebpf_handle_entry_t _ebpf_handle_table[1024];
 
 static bool _ebpf_handle_table_initiated = false;
 
@@ -86,7 +86,7 @@ ebpf_reference_object_by_handle(ebpf_handle_t handle, ebpf_object_type_t object_
     ebpf_result_t return_value;
     ebpf_lock_state_t state;
 
-    if (handle > EBPF_COUNT_OF(_ebpf_handle_table))
+    if (handle >= EBPF_COUNT_OF(_ebpf_handle_table))
         return EBPF_INVALID_OBJECT;
 
     ebpf_lock_lock(&_ebpf_handle_table_lock, &state);

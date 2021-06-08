@@ -43,7 +43,7 @@
 static ebpf_lock_t _ebpf_epoch_thread_table_lock = {0};
 
 // Table to track what epoch each thread is on.
-static ebpf_hash_table_t* _ebpf_epoch_thread_table = NULL;
+static _Requires_lock_held_(&_ebpf_epoch_thread_table_lock) ebpf_hash_table_t* _ebpf_epoch_thread_table = NULL;
 
 // Table to track what epoch each CPU is on.
 typedef struct _ebpf_epoch_cpu_entry
