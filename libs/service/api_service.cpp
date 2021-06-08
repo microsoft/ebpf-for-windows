@@ -24,9 +24,9 @@ _build_helper_id_to_address_map(
     ebpf_handle_t program_handle, ebpf_code_buffer_t& byte_code, std::vector<uint64_t>& helper_addresses)
 {
     // Note:
-    // eBPF supports helper IDs in the range [0, MAXUINT32]
+    // eBPF supports helper IDs in the range [1, MAXUINT32]
     // uBPF jitter only supports helper IDs in the range [0,63]
-    // Build a table to map [0, MAXUINT32] -> [0,63]
+    // Build a table to map [1, MAXUINT32] -> [0,63]
     std::map<uint32_t, uint32_t> helper_id_mapping;
 
     ebpf_inst* instructions = reinterpret_cast<ebpf_inst*>(byte_code.data());
@@ -78,7 +78,7 @@ _build_helper_id_to_address_map(
         address = reply->address[index++];
     }
 
-    // Replace old helper_ids in range [0, MAXUINT32] with new helper ids in range [0,63]
+    // Replace old helper_ids in range [1, MAXUINT32] with new helper ids in range [0,63]
     for (index = 0; index < byte_code.size() / sizeof(ebpf_inst); index++) {
         ebpf_inst& instruction = instructions[index];
         if (instruction.opcode != INST_OP_CALL) {
