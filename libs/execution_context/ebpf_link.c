@@ -37,8 +37,8 @@ static void
 _ebpf_link_free(ebpf_object_t* object)
 {
     ebpf_link_t* link = (ebpf_link_t*)object;
-    ebpf_link_detach_program(link);
     ebpf_extension_unload(link->extension_client_context);
+    ebpf_link_detach_program(link);
     ebpf_free(link->client_data);
     ebpf_epoch_free(link);
 }
@@ -134,7 +134,7 @@ ebpf_result_t
 _ebpf_link_instance_invoke(const ebpf_link_t* link, void* program_context, uint32_t* result)
 {
     ebpf_result_t return_value;
-    if (!link)
+    if (!link || !link->program)
         return EBPF_SUCCESS;
 
     return_value = ebpf_epoch_enter();
