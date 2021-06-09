@@ -116,13 +116,13 @@ Fail:
         case EBPF_NO_MEMORY:
             SetLastError(ERROR_OUTOFMEMORY);
             break;
-        case EBPF_ERROR_NOT_FOUND:
+        case EBPF_KEY_NOT_FOUND:
             SetLastError(ERROR_NOT_FOUND);
             break;
         case EBPF_INVALID_ARGUMENT:
             SetLastError(ERROR_INVALID_PARAMETER);
             break;
-        case EBPF_ERROR_NO_MORE_KEYS:
+        case EBPF_NO_MORE_KEYS:
             SetLastError(ERROR_NO_MORE_ITEMS);
             break;
         case EBPF_ERROR_INSUFFICIENT_BUFFER:

@@ -43,7 +43,7 @@ _build_helper_id_to_address_map(
 
     // uBPF jitter supports a maximum of 64 helper functions
     if (helper_id_mapping.size() > 64)
-        return EBPF_ERROR_NOT_SUPPORTED;
+        return EBPF_OPERATION_NOT_SUPPORTED;
 
     ebpf_protocol_buffer_t request_buffer(
         offsetof(ebpf_operation_resolve_helper_request_t, helper_id) + sizeof(uint32_t) * helper_id_mapping.size());
@@ -158,7 +158,7 @@ _resolve_maps_in_byte_code(ebpf_handle_t program_handle, ebpf_code_buffer_t& byt
 
     for (size_t index = 0; index < map_handles.size(); index++) {
         if (map_handles[index] > get_map_descriptor_size()) {
-            return EBPF_ERROR_INVALID_HANDLE;
+            return EBPF_INVALID_OBJECT;
         }
         request->map_handle[index] = get_map_handle_at_index((int)map_handles[index] - 1);
     }
@@ -258,7 +258,7 @@ ebpf_verify_program(
         auto message = err.what();
         *logs = allocate_error_string(message, logs_size);
 
-        result = EBPF_VALIDATION_FAILED;
+        result = EBPF_VERIFICATION_FAILED;
     } catch (...) {
         result = EBPF_FAILED;
     }
@@ -397,7 +397,7 @@ ebpf_verify_and_load_program(
         auto message = err.what();
         *error_message = allocate_error_string(message, error_message_size);
 
-        result = EBPF_VALIDATION_FAILED;
+        result = EBPF_VERIFICATION_FAILED;
     } catch (...) {
         result = EBPF_FAILED;
     }

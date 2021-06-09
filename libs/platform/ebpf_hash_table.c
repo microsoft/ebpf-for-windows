@@ -114,7 +114,7 @@ ebpf_hash_table_find(ebpf_hash_table_t* hash_table, const uint8_t* key, uint8_t*
         *value = entry + hash_table->key_size;
         retval = EBPF_SUCCESS;
     } else {
-        retval = EBPF_ERROR_NOT_FOUND;
+        retval = EBPF_KEY_NOT_FOUND;
     }
     return retval;
 }
@@ -166,7 +166,7 @@ ebpf_hash_table_delete(ebpf_hash_table_t* hash_table, const uint8_t* key)
     RTL_AVL_TABLE* table = (RTL_AVL_TABLE*)hash_table;
 
     result = RtlDeleteElementGenericTableAvl(table, (uint8_t*)key);
-    return result ? EBPF_SUCCESS : EBPF_ERROR_NOT_FOUND;
+    return result ? EBPF_SUCCESS : EBPF_KEY_NOT_FOUND;
 }
 
 ebpf_result_t
@@ -196,7 +196,7 @@ ebpf_hash_table_next_key_and_value(
             // Start at the beginning of the table.
             entry = RtlEnumerateGenericTableAvl(table, TRUE);
             if (entry == NULL) {
-                return EBPF_ERROR_NO_MORE_KEYS;
+                return EBPF_NO_MORE_KEYS;
             }
 
             // Advance the cursor until we reach the first entry that is greater than
@@ -212,7 +212,7 @@ ebpf_hash_table_next_key_and_value(
         }
     }
     if (entry == NULL) {
-        result = EBPF_ERROR_NO_MORE_KEYS;
+        result = EBPF_NO_MORE_KEYS;
         goto Exit;
     } else {
         memcpy(next_key, entry, hash_table->key_size);

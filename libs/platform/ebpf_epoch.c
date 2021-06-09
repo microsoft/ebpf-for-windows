@@ -209,7 +209,7 @@ ebpf_epoch_enter()
     } else {
         uint32_t current_cpu = ebpf_get_current_cpu();
         if (current_cpu >= _ebpf_epoch_cpu_table_size) {
-            return EBPF_ERROR_NOT_SUPPORTED;
+            return EBPF_OPERATION_NOT_SUPPORTED;
         }
 
         _ebpf_epoch_cpu_table[current_cpu].epoch = _ebpf_current_epoch;
@@ -377,7 +377,7 @@ ebpf_epoch_get_release_epoch(int64_t* release_epoch)
         }
     ebpf_lock_unlock(&_ebpf_epoch_thread_table_lock, &lock_state);
 
-    if (return_value != EBPF_ERROR_NO_MORE_KEYS) {
+    if (return_value != EBPF_NO_MORE_KEYS) {
         return return_value;
     }
 

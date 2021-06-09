@@ -26,7 +26,7 @@ _analyze(raw_program& raw_prog, const char** error_message, uint32_t* error_mess
     std::variant<InstructionSeq, std::string> prog_or_error = unmarshal(raw_prog);
     if (!std::holds_alternative<InstructionSeq>(prog_or_error)) {
         *error_message = allocate_error_string(std::get<std::string>(prog_or_error), error_message_size);
-        return EBPF_VALIDATION_FAILED; // Error;
+        return EBPF_VERIFICATION_FAILED; // Error;
     }
     InstructionSeq& prog = std::get<InstructionSeq>(prog_or_error);
 
@@ -43,7 +43,7 @@ _analyze(raw_program& raw_prog, const char** error_message, uint32_t* error_mess
         (void)ebpf_verify_program(oss, prog, raw_prog.info, &options, &stats);
 
         *error_message = allocate_error_string(oss.str(), error_message_size);
-        return EBPF_VALIDATION_FAILED; // Error;
+        return EBPF_VERIFICATION_FAILED; // Error;
     }
     return EBPF_SUCCESS; // Success.
 }

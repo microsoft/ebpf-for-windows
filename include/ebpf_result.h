@@ -16,7 +16,7 @@ extern "C"
         EBPF_SUCCESS,
 
         // Program verification failed.
-        EBPF_VALIDATION_FAILED,
+        EBPF_VERIFICATION_FAILED,
 
         // JIT compilation failed.
         EBPF_JIT_COMPILATION_FAILED,
@@ -42,10 +42,10 @@ extern "C"
         // Invalid ELF file path.
         EBPF_FILE_NOT_FOUND,
 
-        // Program or map already pinned.
+        // The program or map already pinned to a different path.
         EBPF_ALREADY_PINNED,
 
-        // Program or map is not pinned.
+        // The program or map is not pinned.
         EBPF_NOT_PINNED,
 
         // Low memory.
@@ -54,41 +54,38 @@ extern "C"
         // The program is too large.
         EBPF_PROGRAM_TOO_LARGE,
 
-        // RPC exception.
+        // An RPC exception occurred.
         EBPF_RPC_EXCEPTION,
 
-        // Handle is already initialized.
+        // The handle was already initialized.
         EBPF_ALREADY_INITIALIZED,
 
         // Generic failure code for all other errors.
         EBPF_FAILED,
 
         // Operation is not supported.
-        EBPF_ERROR_NOT_SUPPORTED,
+        EBPF_OPERATION_NOT_SUPPORTED,
 
-        // The requested item was not found.
-        EBPF_ERROR_NOT_FOUND,
+        // The requested key was not found.
+        EBPF_KEY_NOT_FOUND,
 
         // Access was denied for the requested operation.
-        EBPF_ERROR_ACCESS_DENIED,
+        EBPF_ACCESS_DENIED,
 
         // The operation was blocked by policy.
-        EBPF_ERROR_BLOCKED_BY_POLICY,
+        EBPF_BLOCKED_BY_POLICY,
 
         // Arithmetic overflow occurred.
-        EBPF_ERROR_ARITHMETIC_OVERFLOW,
+        EBPF_ARITHMETIC_OVERFLOW,
 
         // The eBPF extension failed to load.
-        EBPF_ERROR_EXTENSION_FAILED_TO_LOAD,
+        EBPF_EXTENSION_FAILED_TO_LOAD,
 
         // A buffer of insufficient size was supplied.
-        EBPF_ERROR_INSUFFICIENT_BUFFER,
+        EBPF_INSUFFICIENT_BUFFER,
 
         // The enumeration found no more keys.
-        EBPF_ERROR_NO_MORE_KEYS,
-
-        // The handle was invalid.
-        EBPF_ERROR_INVALID_HANDLE,
+        EBPF_NO_MORE_KEYS,
     } ebpf_result_t;
 
 #ifdef __cplusplus

@@ -75,7 +75,7 @@ ebpf_handle_close(ebpf_handle_t handle)
         _ebpf_handle_table[handle] = NULL;
         return_value = EBPF_SUCCESS;
     } else
-        return_value = EBPF_ERROR_INVALID_HANDLE;
+        return_value = EBPF_INVALID_OBJECT;
     ebpf_lock_unlock(&_ebpf_handle_table_lock, &state);
     return return_value;
 }
@@ -87,7 +87,7 @@ ebpf_reference_object_by_handle(ebpf_handle_t handle, ebpf_object_type_t object_
     ebpf_lock_state_t state;
 
     if (handle > EBPF_COUNT_OF(_ebpf_handle_table))
-        return EBPF_ERROR_INVALID_HANDLE;
+        return EBPF_INVALID_OBJECT;
 
     ebpf_lock_lock(&_ebpf_handle_table_lock, &state);
     if ((_ebpf_handle_table[handle] != NULL) &&
@@ -96,7 +96,7 @@ ebpf_reference_object_by_handle(ebpf_handle_t handle, ebpf_object_type_t object_
         *object = _ebpf_handle_table[handle];
         return_value = EBPF_SUCCESS;
     } else
-        return_value = EBPF_ERROR_INVALID_HANDLE;
+        return_value = EBPF_INVALID_OBJECT;
 
     ebpf_lock_unlock(&_ebpf_handle_table_lock, &state);
     return return_value;
@@ -110,7 +110,7 @@ ebpf_get_next_handle_by_type(ebpf_handle_t previous_handle, ebpf_object_type_t o
     previous_handle++;
 
     if (previous_handle > EBPF_COUNT_OF(_ebpf_handle_table))
-        return EBPF_ERROR_INVALID_HANDLE;
+        return EBPF_INVALID_OBJECT;
 
     ebpf_lock_lock(&_ebpf_handle_table_lock, &state);
     for (*next_handle = previous_handle; *next_handle < EBPF_COUNT_OF(_ebpf_handle_table); (*next_handle)++) {

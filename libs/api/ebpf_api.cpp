@@ -247,7 +247,7 @@ ebpf_api_load_program(
         }
 
         if (get_map_descriptor_size() > *count_of_map_handles) {
-            result = EBPF_ERROR_INSUFFICIENT_BUFFER;
+            result = EBPF_INSUFFICIENT_BUFFER;
             goto Done;
         }
 

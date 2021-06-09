@@ -296,7 +296,7 @@ TEST_CASE("access_check", "[access_check]")
 
     REQUIRE(ebpf_validate_security_descriptor(sd, sd_size) == EBPF_SUCCESS);
 
-    REQUIRE((result = ebpf_access_check(sd, 1, &generic_mapping), LocalFree(sd), result == EBPF_ERROR_ACCESS_DENIED));
+    REQUIRE((result = ebpf_access_check(sd, 1, &generic_mapping), LocalFree(sd), result == EBPF_ACCESS_DENIED));
 }
 
 TEST_CASE("memory_map_test", "[memory_map_test]")
