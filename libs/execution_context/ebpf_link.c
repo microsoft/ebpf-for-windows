@@ -37,8 +37,8 @@ static void
 _ebpf_link_free(ebpf_object_t* object)
 {
     ebpf_link_t* link = (ebpf_link_t*)object;
-    ebpf_link_detach_program(link);
     ebpf_extension_unload(link->extension_client_context);
+    ebpf_link_detach_program(link);
     ebpf_free(link->client_data);
     ebpf_epoch_free(link);
 }
