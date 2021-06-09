@@ -86,7 +86,7 @@ $(function() {
 : <a class="el" href="ebpf__program__types_8h.html#acb71a97405db7287b9190da2361a8a82">ebpf_program_types.h</a>
 </li>
 <li>_ebpf_map_type
-: <a class="el" href="ebpf__helpers_8h.html#af966e054d78d2aaae8956c20c10df140">ebpf_helpers.h</a>
+: <a class="el" href="ebpf__structs_8h.html#af966e054d78d2aaae8956c20c10df140">ebpf_structs.h</a>
 </li>
 <li>_tlv_type
 : <a class="el" href="tlv_8h.html#a50a469b7a3bd57834902b2d2f67a9c94">tlv.h</a>
@@ -159,6 +159,9 @@ $(function() {
 <li>ebpf_api_close_handle()
 : <a class="el" href="ebpf__api_8h.html#a151eb1e8847f02b130ab240097375dc0">ebpf_api.h</a>
 </li>
+<li>ebpf_api_create_map()
+: <a class="el" href="ebpf__api_8h.html#a1c8d919b603eb8c908f09e70dcd68d5a">ebpf_api.h</a>
+</li>
 <li>ebpf_api_elf_disassemble_section()
 : <a class="el" href="ebpf__api_8h.html#ae4fbdf4fbbb9196651fd40fd0640c3c9">ebpf_api.h</a>
 </li>
@@ -186,6 +189,9 @@ $(function() {
 <li>ebpf_api_get_pinned_map()
 : <a class="el" href="ebpf__api_8h.html#af1636518b704a50a14f868545197dca7">ebpf_api.h</a>
 </li>
+<li>ebpf_api_get_pinned_map_info()
+: <a class="el" href="ebpf__api_8h.html#a90c07e43917af3d2ce9d8b78d4209788">ebpf_api.h</a>
+</li>
 <li>ebpf_api_initiate()
 : <a class="el" href="ebpf__api_8h.html#ab01f35f2524536c37711f4efe94efa7d">ebpf_api.h</a>
 </li>
@@ -200,6 +206,9 @@ $(function() {
 </li>
 <li>ebpf_api_map_find_element()
 : <a class="el" href="ebpf__api_8h.html#ad3c59052a4019ccf65ea3ac83d5f7cae">ebpf_api.h</a>
+</li>
+<li>ebpf_api_map_info_free()
+: <a class="el" href="ebpf__api_8h.html#a9d5706e5fc696240f4f6f513586bfe0f">ebpf_api.h</a>
 </li>
 <li>ebpf_api_map_query_definition()
 : <a class="el" href="ebpf__api_8h.html#a69898b03479cff126f89376a2d4fbab0">ebpf_api.h</a>
@@ -337,13 +346,16 @@ $(function() {
 : <a class="el" href="ebpf__windows_8h.html#a653f667ffc6571d5f67b1b81d612a0cda6c1180f3217addc705bd77ffbb8ee103">ebpf_windows.h</a>
 </li>
 <li>ebpf_map_definition_t
-: <a class="el" href="ebpf__helpers_8h.html#aa51d087caeb6b6965122893927824f28">ebpf_helpers.h</a>
+: <a class="el" href="ebpf__structs_8h.html#aa51d087caeb6b6965122893927824f28">ebpf_structs.h</a>
 </li>
 <li>ebpf_map_delete_element
 : <a class="el" href="ebpf__helpers_8h.html#a06cb19a7f8cb68a92fad96dae815685b">ebpf_helpers.h</a>
 </li>
 <li>ebpf_map_delete_element_t
 : <a class="el" href="ebpf__helpers_8h.html#aa145cfe555df15cc56fce7e8aa251f87">ebpf_helpers.h</a>
+</li>
+<li>ebpf_map_information_t
+: <a class="el" href="ebpf__core__structs_8h.html#aec0302723be273f1f09e6f8ec6f973c1">ebpf_core_structs.h</a>
 </li>
 <li>ebpf_map_lookup_element
 : <a class="el" href="ebpf__helpers_8h.html#afea137a9becdf8466a84cb335af6a769">ebpf_helpers.h</a>
@@ -352,22 +364,25 @@ $(function() {
 : <a class="el" href="ebpf__helpers_8h.html#aed55df125f37ca5508ca007049800235">ebpf_helpers.h</a>
 </li>
 <li>EBPF_MAP_TYPE_ARRAY
-: <a class="el" href="ebpf__helpers_8h.html#af966e054d78d2aaae8956c20c10df140ac2a33c6dbe8448248c4cdfbf93ca9a27">ebpf_helpers.h</a>
+: <a class="el" href="ebpf__structs_8h.html#af966e054d78d2aaae8956c20c10df140ac2a33c6dbe8448248c4cdfbf93ca9a27">ebpf_structs.h</a>
 </li>
 <li>EBPF_MAP_TYPE_HASH
-: <a class="el" href="ebpf__helpers_8h.html#af966e054d78d2aaae8956c20c10df140a25cbb775da656da17bca2df4b8c1c4b8">ebpf_helpers.h</a>
+: <a class="el" href="ebpf__structs_8h.html#af966e054d78d2aaae8956c20c10df140a25cbb775da656da17bca2df4b8c1c4b8">ebpf_structs.h</a>
 </li>
 <li>ebpf_map_type_t
-: <a class="el" href="ebpf__helpers_8h.html#a52f02e341469daf391c5b58f114b74f0">ebpf_helpers.h</a>
+: <a class="el" href="ebpf__structs_8h.html#a52f02e341469daf391c5b58f114b74f0">ebpf_structs.h</a>
 </li>
 <li>EBPF_MAP_TYPE_UNSPECIFIED
-: <a class="el" href="ebpf__helpers_8h.html#af966e054d78d2aaae8956c20c10df140aab039a10b605ca4b1087f83d5870a0f0">ebpf_helpers.h</a>
+: <a class="el" href="ebpf__structs_8h.html#af966e054d78d2aaae8956c20c10df140aab039a10b605ca4b1087f83d5870a0f0">ebpf_structs.h</a>
 </li>
 <li>ebpf_map_update_element
 : <a class="el" href="ebpf__helpers_8h.html#aeff271ed91b25cca0c91a160fdcc965a">ebpf_helpers.h</a>
 </li>
 <li>ebpf_map_update_element_t
 : <a class="el" href="ebpf__helpers_8h.html#a95bf13ff6ad6e305bbfb164977d312c2">ebpf_helpers.h</a>
+</li>
+<li>EBPF_MAX_PIN_PATH_LENGTH
+: <a class="el" href="ebpf__core__structs_8h.html#aae1786ca038916d3ec8af469fcdeeaa4">ebpf_core_structs.h</a>
 </li>
 <li>EBPF_NO_MEMORY
 : <a class="el" href="ebpf__result_8h.html#a916ce31f9038720787b441792c088372a61d51632302a0c038d54547362cb0b2d">ebpf_result.h</a>
