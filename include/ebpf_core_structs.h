@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include <sal.h>
 #include <stdint.h>
 #include "ebpf_structs.h"
 

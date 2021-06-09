@@ -731,10 +731,10 @@ static ebpf_result_t
 _ebpf_core_protocol_convert_pinning_entries_to_map_information_array(
     uint16_t entry_count,
     _In_count_(entry_count) ebpf_pinning_entry_t* pinning_entries,
-    _Outptr_result_buffer_maybenull_(entry_count) ebpf_core_map_information_t** map_info)
+    _Outptr_result_buffer_maybenull_(entry_count) ebpf_map_information_internal_t** map_info)
 {
     ebpf_result_t result = EBPF_SUCCESS;
-    ebpf_core_map_information_t* local_map_info = NULL;
+    ebpf_map_information_internal_t* local_map_info = NULL;
     uint16_t index;
 
     if (map_info == NULL) {
@@ -745,7 +745,8 @@ _ebpf_core_protocol_convert_pinning_entries_to_map_information_array(
     if ((entry_count == 0) || (pinning_entries == NULL))
         goto Exit;
 
-    local_map_info = (ebpf_core_map_information_t*)ebpf_allocate(sizeof(ebpf_core_map_information_t) * entry_count);
+    local_map_info =
+        (ebpf_map_information_internal_t*)ebpf_allocate(sizeof(ebpf_map_information_internal_t) * entry_count);
     if (local_map_info == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -753,7 +754,7 @@ _ebpf_core_protocol_convert_pinning_entries_to_map_information_array(
 
     for (index = 0; index < entry_count; index++) {
         ebpf_pinning_entry_t* source = &pinning_entries[index];
-        ebpf_core_map_information_t* destination = &local_map_info[index];
+        ebpf_map_information_internal_t* destination = &local_map_info[index];
         ebpf_map_definition_t* map_definition;
         if (ebpf_object_get_type(source->object) != EBPF_OBJECT_MAP) {
             // Bad object type.
@@ -780,7 +781,7 @@ Exit:
 static ebpf_result_t
 _ebpf_core_protocol_serialize_map_information_reply(
     uint16_t map_count,
-    _In_count_(map_count) const ebpf_core_map_information_t* map_info,
+    _In_count_(map_count) const ebpf_map_information_internal_t* map_info,
     size_t output_buffer_length,
     _In_ ebpf_operation_get_map_information_reply_t* map_info_reply)
 {
@@ -816,7 +817,7 @@ _ebpf_core_protocol_get_map_information(
     ebpf_result_t result = EBPF_SUCCESS;
     uint16_t entry_count = 0;
     ebpf_pinning_entry_t* pinning_entries = NULL;
-    ebpf_core_map_information_t* map_info = NULL;
+    ebpf_map_information_internal_t* map_info = NULL;
 
     UNREFERENCED_PARAMETER(request);
 
