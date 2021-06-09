@@ -415,8 +415,8 @@ extern "C"
     ebpf_result_t
     ebpf_hash_table_find(
         _In_ ebpf_hash_table_t* hash_table,
-        _In_ _Readable_bytes_(hash_table->key_size) const uint8_t* key,
-        _Outptr_ _Writable_bytes_(hash_table->value_size) uint8_t** value);
+        _In_ _Pre_readable_byte_size_(hash_table->key_size) const uint8_t* key,
+        _Outptr_ _Post_readable_size_(hash_table->value_size) uint8_t** value);
 
     /**
      * @brief Insert or update an entry in the hash table.
@@ -431,8 +431,8 @@ extern "C"
     ebpf_result_t
     ebpf_hash_table_update(
         _In_ ebpf_hash_table_t* hash_table,
-        _In_ _Readable_bytes_(hash_table->key_size) const uint8_t* key,
-        _In_ _Readable_bytes_(hash_table->value_size) const uint8_t* value);
+        _In_ _Pre_readable_byte_size_(hash_table->key_size) const uint8_t* key,
+        _In_ _Pre_readable_byte_size_(hash_table->value_size) const uint8_t* value);
 
     /**
      * @brief Remove an entry from the hash table.
@@ -444,7 +444,7 @@ extern "C"
      */
     ebpf_result_t
     ebpf_hash_table_delete(
-        _In_ ebpf_hash_table_t* hash_table, _In_ _Readable_bytes_(hash_table->key_size) const uint8_t* key);
+        _In_ ebpf_hash_table_t* hash_table, _In_ _Pre_readable_byte_size_(hash_table->key_size) const uint8_t* key);
 
     /**
      * @brief Find the next key in the hash table.
@@ -459,8 +459,8 @@ extern "C"
     ebpf_result_t
     ebpf_hash_table_next_key(
         _In_ ebpf_hash_table_t* hash_table,
-        _In_opt_ _Readable_bytes_(hash_table->key_size) const uint8_t* previous_key,
-        _Out_ _Writable_bytes_(hash_table->value_size) uint8_t* next_key);
+        _In_opt_ _Pre_readable_byte_size_(hash_table->key_size) const uint8_t* previous_key,
+        _Out_ _Post_readable_size_(hash_table->value_size) uint8_t* next_key);
 
     /**
      * @brief Returns the next (key, value) pair in the hash table.
@@ -478,7 +478,7 @@ extern "C"
         _In_ ebpf_hash_table_t* hash_table,
         _In_opt_ const uint8_t* previous_key,
         _Out_ _Writable_bytes_(hash_table->key_size) uint8_t* next_key,
-        _Outptr_opt_ _Writable_bytes_(hash_table->value_size) uint8_t** next_value);
+        _Outptr_opt_ _Post_readable_size_(hash_table->value_size) uint8_t** next_value);
 
     /**
      * @brief Get the number of keys in the hash table
