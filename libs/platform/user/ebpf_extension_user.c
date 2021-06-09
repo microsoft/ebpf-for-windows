@@ -48,7 +48,7 @@ ebpf_extension_load(
 
     UNREFERENCED_PARAMETER(extension_changed);
 
-    ebpf_lock_lock(&_ebpf_provider_table_lock, &state);
+    state = ebpf_lock_lock(&_ebpf_provider_table_lock);
 
     if (!_ebpf_provider_table) {
         return_value = EBPF_EXTENSION_FAILED_TO_LOAD;
@@ -110,7 +110,7 @@ Done:
             local_extension_provider->client_table, (const uint8_t*)&local_extension_client->client_id);
     }
 
-    ebpf_lock_unlock(&_ebpf_provider_table_lock, &state);
+    ebpf_lock_unlock(&_ebpf_provider_table_lock, state);
     return return_value;
 }
 
@@ -125,7 +125,7 @@ ebpf_extension_unload(_Pre_maybenull_ _Post_invalid_ ebpf_extension_client_t* cl
     if (!client_context)
         return;
 
-    ebpf_lock_lock(&_ebpf_provider_table_lock, &state);
+    state = ebpf_lock_lock(&_ebpf_provider_table_lock);
 
     if (!_ebpf_provider_table) {
         goto Done;
@@ -146,7 +146,7 @@ ebpf_extension_unload(_Pre_maybenull_ _Post_invalid_ ebpf_extension_client_t* cl
 
 Done:
     ebpf_free(client_context);
-    ebpf_lock_unlock(&_ebpf_provider_table_lock, &state);
+    ebpf_lock_unlock(&_ebpf_provider_table_lock, state);
 }
 
 ebpf_result_t
@@ -163,7 +163,7 @@ ebpf_provider_load(
     ebpf_result_t return_value;
     ebpf_lock_state_t state;
     ebpf_extension_provider_t* local_extension_provider = NULL;
-    ebpf_lock_lock(&_ebpf_provider_table_lock, &state);
+    state = ebpf_lock_lock(&_ebpf_provider_table_lock);
 
     if (!_ebpf_provider_table) {
         return_value =
@@ -210,7 +210,7 @@ ebpf_provider_load(
     local_extension_provider = NULL;
 
 Done:
-    ebpf_lock_unlock(&_ebpf_provider_table_lock, &state);
+    ebpf_lock_unlock(&_ebpf_provider_table_lock, state);
     ebpf_free(local_extension_provider);
     return return_value;
 }
@@ -226,7 +226,7 @@ ebpf_provider_unload(_Pre_maybenull_ _Post_invalid_ ebpf_extension_provider_t* p
     if (!provider_context)
         return;
 
-    ebpf_lock_lock(&_ebpf_provider_table_lock, &state);
+    state = ebpf_lock_lock(&_ebpf_provider_table_lock);
 
     if (!_ebpf_provider_table) {
         goto Done;
@@ -241,6 +241,6 @@ ebpf_provider_unload(_Pre_maybenull_ _Post_invalid_ ebpf_extension_provider_t* p
     }
 
 Done:
-    ebpf_lock_unlock(&_ebpf_provider_table_lock, &state);
+    ebpf_lock_unlock(&_ebpf_provider_table_lock, state);
     ebpf_free(local_extension_provider);
 }

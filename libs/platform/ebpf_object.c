@@ -34,18 +34,18 @@ static void
 _ebpf_object_tracking_list_insert(ebpf_object_t* object)
 {
     ebpf_lock_state_t state;
-    ebpf_lock_lock(&_ebpf_object_tracking_list_lock, &state);
+    state = ebpf_lock_lock(&_ebpf_object_tracking_list_lock);
     ebpf_list_insert_tail(&_ebpf_object_tracking_list, &object->entry);
-    ebpf_lock_unlock(&_ebpf_object_tracking_list_lock, &state);
+    ebpf_lock_unlock(&_ebpf_object_tracking_list_lock, state);
 }
 
 static void
 _ebpf_object_tracking_list_remove(ebpf_object_t* object)
 {
     ebpf_lock_state_t state;
-    ebpf_lock_lock(&_ebpf_object_tracking_list_lock, &state);
+    state = ebpf_lock_lock(&_ebpf_object_tracking_list_lock);
     ebpf_list_remove_entry(&object->entry);
-    ebpf_lock_unlock(&_ebpf_object_tracking_list_lock, &state);
+    ebpf_lock_unlock(&_ebpf_object_tracking_list_lock, state);
 }
 
 void
@@ -130,7 +130,7 @@ ebpf_object_reference_next_object(ebpf_object_t* previous_object, ebpf_object_ty
     ebpf_list_entry_t* entry;
     *next_object = NULL;
 
-    ebpf_lock_lock(&_ebpf_object_tracking_list_lock, &state);
+    state = ebpf_lock_lock(&_ebpf_object_tracking_list_lock);
     if (previous_object == NULL)
         entry = _ebpf_object_tracking_list.Flink;
     else
@@ -144,5 +144,5 @@ ebpf_object_reference_next_object(ebpf_object_t* previous_object, ebpf_object_ty
             break;
         }
     }
-    ebpf_lock_unlock(&_ebpf_object_tracking_list_lock, &state);
+    ebpf_lock_unlock(&_ebpf_object_tracking_list_lock, state);
 }

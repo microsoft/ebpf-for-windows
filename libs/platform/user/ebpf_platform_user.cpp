@@ -218,13 +218,15 @@ ebpf_lock_destroy(_In_ ebpf_lock_t* lock)
     UNREFERENCED_PARAMETER(lock);
 }
 
-_Acquires_lock_(*lock) void ebpf_lock_lock(_In_ ebpf_lock_t* lock, _Out_ ebpf_lock_state_t* state)
+_Requires_lock_not_held_(*lock) _Acquires_lock_(*lock) _IRQL_requires_max_(DISPATCH_LEVEL) _IRQL_saves_
+    _IRQL_raises_(DISPATCH_LEVEL) ebpf_lock_state_t ebpf_lock_lock(_In_ ebpf_lock_t* lock)
 {
-    *state[0] = 0;
     AcquireSRWLockExclusive(reinterpret_cast<PSRWLOCK>(lock));
+    return 0;
 }
 
-_Releases_lock_(*lock) void ebpf_lock_unlock(_In_ ebpf_lock_t* lock, _In_ ebpf_lock_state_t* state)
+_Requires_lock_held_(*lock) _Releases_lock_(*lock) _IRQL_requires_(DISPATCH_LEVEL) void ebpf_lock_unlock(
+    _In_ ebpf_lock_t* lock, _IRQL_restores_ ebpf_lock_state_t state)
 {
     UNREFERENCED_PARAMETER(state);
     ReleaseSRWLockExclusive(reinterpret_cast<PSRWLOCK>(lock));

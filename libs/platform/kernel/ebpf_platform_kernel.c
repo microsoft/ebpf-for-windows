@@ -30,13 +30,14 @@ void
 ebpf_platform_terminate()
 {}
 
-_Must_inspect_result_ _Ret_maybenull_ _Post_writable_byte_size_(size) void* ebpf_allocate(size_t size)
+__drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
+    _Post_writable_byte_size_(size) void* ebpf_allocate(size_t size)
 {
     return ExAllocatePool2(POOL_FLAG_NON_PAGED, size, EBPF_POOL_TAG);
 }
 
 void
-ebpf_free(_Pre_maybenull_ _Post_invalid_ void* memory)
+ebpf_free(_Pre_maybenull_ _Post_invalid_ __drv_freesMem(Mem) void* memory)
 {
     if (memory)
         ExFreePool(memory);
@@ -173,14 +174,16 @@ ebpf_lock_destroy(_In_ ebpf_lock_t* lock)
     UNREFERENCED_PARAMETER(lock);
 }
 
-_Acquires_lock_(*lock) void ebpf_lock_lock(_In_ ebpf_lock_t* lock, _Out_ ebpf_lock_state_t* state)
+_Requires_lock_not_held_(*lock) _Acquires_lock_(*lock) _IRQL_requires_max_(DISPATCH_LEVEL) _IRQL_saves_
+    _IRQL_raises_(DISPATCH_LEVEL) ebpf_lock_state_t ebpf_lock_lock(_In_ ebpf_lock_t* lock)
 {
-    KeAcquireSpinLock((PKSPIN_LOCK)lock, (PUCHAR)state);
+    return KeAcquireSpinLockRaiseToDpc(lock);
 }
 
-_Releases_lock_(*lock) void ebpf_lock_unlock(_In_ ebpf_lock_t* lock, _In_ ebpf_lock_state_t* state)
+_Requires_lock_held_(*lock) _Releases_lock_(*lock) _IRQL_requires_(DISPATCH_LEVEL) void ebpf_lock_unlock(
+    _In_ ebpf_lock_t* lock, _IRQL_restores_ ebpf_lock_state_t state)
 {
-    KeReleaseSpinLock((PKSPIN_LOCK)lock, *(KIRQL*)state);
+    KeReleaseSpinLock(lock, state);
 }
 
 int32_t
@@ -356,7 +359,7 @@ ebpf_free_timer_work_item(_Pre_maybenull_ _Post_invalid_ ebpf_timer_work_item_t*
 }
 
 int32_t
-ebpf_log_function(void* context, const char* format_string, ...)
+ebpf_log_function(_In_ void* context, _In_z_ const char* format_string, ...)
 {
     UNREFERENCED_PARAMETER(context);
 
@@ -376,9 +379,9 @@ ebpf_log_function(void* context, const char* format_string, ...)
 
 ebpf_result_t
 ebpf_access_check(
-    ebpf_security_descriptor_t* security_descriptor,
+    _In_ ebpf_security_descriptor_t* security_descriptor,
     ebpf_security_access_mask_t request_access,
-    ebpf_security_generic_mapping_t* generic_mapping)
+    _In_ ebpf_security_generic_mapping_t* generic_mapping)
 {
     ebpf_result_t result;
     NTSTATUS status;
@@ -408,7 +411,8 @@ ebpf_access_check(
 }
 
 ebpf_result_t
-ebpf_validate_security_descriptor(ebpf_security_descriptor_t* security_descriptor, size_t security_descriptor_length)
+ebpf_validate_security_descriptor(
+    _In_ ebpf_security_descriptor_t* security_descriptor, size_t security_descriptor_length)
 {
     ebpf_result_t result;
     if ((security_descriptor->Control & SE_SELF_RELATIVE) == 0) {

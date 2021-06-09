@@ -68,10 +68,8 @@ extern "C"
 
     typedef struct _ebpf_trampoline_table ebpf_trampoline_table_t;
 
-#define EBPF_LOCK_SIZE sizeof(uint64_t)
-#define EBPF_LOCK_STATE_SIZE sizeof(uint64_t)
-    typedef uint8_t ebpf_lock_t[EBPF_LOCK_SIZE];
-    typedef uint8_t ebpf_lock_state_t[EBPF_LOCK_STATE_SIZE];
+    typedef uintptr_t ebpf_lock_t;
+    typedef uint8_t ebpf_lock_state_t;
 
     // A self-relative security descriptor.
     typedef struct _SECURITY_DESCRIPTOR ebpf_security_descriptor_t;
@@ -98,14 +96,15 @@ extern "C"
      * @param[in] size Size of memory to allocate
      * @returns Pointer to memory block allocated, or null on failure.
      */
-    _Must_inspect_result_ _Ret_maybenull_ _Post_writable_byte_size_(size) void* ebpf_allocate(size_t size);
+    __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
+        _Post_writable_byte_size_(size) void* ebpf_allocate(size_t size);
 
     /**
      * @brief Free memory.
      * @param[in] memory Allocation to be freed.
      */
     void
-    ebpf_free(_Pre_maybenull_ _Post_invalid_ void* memory);
+    ebpf_free(_Pre_maybenull_ _Post_invalid_ __drv_freesMem(Mem) void* memory);
 
     typedef enum _ebpf_page_protection
     {
@@ -238,7 +237,8 @@ extern "C"
      * @param[out] state Pointer to memory location that contains state that
      *    needs to be passed to ebpf_lock_unlock.
      */
-    _Acquires_lock_(*lock) void ebpf_lock_lock(_In_ ebpf_lock_t* lock, _Out_ ebpf_lock_state_t* state);
+    _Requires_lock_not_held_(*lock) _Acquires_lock_(*lock) _IRQL_requires_max_(DISPATCH_LEVEL) _IRQL_saves_
+        _IRQL_raises_(DISPATCH_LEVEL) ebpf_lock_state_t ebpf_lock_lock(_In_ ebpf_lock_t* lock);
 
     /**
      * @brief Release exclusive access to the lock.
@@ -246,7 +246,8 @@ extern "C"
      * @param[in] state Pointer to memory location that contains state that
      *    needs to be passed to ebpf_lock_unlock.
      */
-    _Releases_lock_(*lock) void ebpf_lock_unlock(_In_ ebpf_lock_t* lock, _In_ ebpf_lock_state_t* state);
+    _Requires_lock_held_(*lock) _Releases_lock_(*lock) _IRQL_requires_(DISPATCH_LEVEL) void ebpf_lock_unlock(
+        _In_ ebpf_lock_t* lock, _IRQL_restores_ ebpf_lock_state_t state);
 
     /**
      * @brief Query the platform for the total number of CPUs.
@@ -402,7 +403,7 @@ extern "C"
      * @param[in] hash_table Hash-table to release.
      */
     void
-    ebpf_hash_table_destroy(_Pre_maybenull_ _Post_invalid_ ebpf_hash_table_t* hash_table);
+    ebpf_hash_table_destroy(_In_ _Pre_maybenull_ _Post_invalid_ ebpf_hash_table_t* hash_table);
 
     /**
      * @brief Find an element in the hash table.
@@ -711,7 +712,7 @@ extern "C"
     ebpf_result_t
     ebpf_program_information_encode(
         _In_ const ebpf_program_information_t* program_information,
-        _Outptr_ _Writable_bytes_(*buffer_size) uint8_t** buffer,
+        _Outptr_result_bytebuffer_(*buffer_size) uint8_t** buffer,
         _Out_ unsigned long* buffer_size);
 
     /**

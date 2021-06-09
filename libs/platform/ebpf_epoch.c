@@ -201,10 +201,10 @@ ebpf_epoch_enter()
         ebpf_lock_state_t lock_state;
         uint64_t current_thread_id = ebpf_get_current_thread_id();
         int64_t current_epoch = _ebpf_current_epoch;
-        ebpf_lock_lock(&_ebpf_epoch_thread_table_lock, &lock_state);
+        lock_state = ebpf_lock_lock(&_ebpf_epoch_thread_table_lock);
         return_value = ebpf_hash_table_update(
             _ebpf_epoch_thread_table, (const uint8_t*)&current_thread_id, (const uint8_t*)&current_epoch);
-        ebpf_lock_unlock(&_ebpf_epoch_thread_table_lock, &lock_state);
+        ebpf_lock_unlock(&_ebpf_epoch_thread_table_lock, lock_state);
         return return_value;
     } else {
         uint32_t current_cpu = ebpf_get_current_cpu();
@@ -224,10 +224,10 @@ ebpf_epoch_exit()
         ebpf_lock_state_t lock_state;
         uint64_t current_thread_id = ebpf_get_current_thread_id();
         int64_t current_epoch = 0;
-        ebpf_lock_lock(&_ebpf_epoch_thread_table_lock, &lock_state);
+        lock_state = ebpf_lock_lock(&_ebpf_epoch_thread_table_lock);
         ebpf_hash_table_update(
             _ebpf_epoch_thread_table, (const uint8_t*)&current_thread_id, (const uint8_t*)&current_epoch);
-        ebpf_lock_unlock(&_ebpf_epoch_thread_table_lock, &lock_state);
+        ebpf_lock_unlock(&_ebpf_epoch_thread_table_lock, lock_state);
     } else {
         uint32_t current_cpu = ebpf_get_current_cpu();
         if (current_cpu >= _ebpf_epoch_cpu_table_size) {
@@ -293,10 +293,10 @@ ebpf_epoch_free(void* memory)
     header->entry_type = EBPF_EPOCH_ALLOCATION_MEMORY;
 
     // Items are inserted into the free list in increasing epoch order.
-    ebpf_lock_lock(&_ebpf_epoch_free_list_lock, &lock_state);
+    lock_state = ebpf_lock_lock(&_ebpf_epoch_free_list_lock);
     header->freed_epoch = ebpf_interlocked_increment_int64(&_ebpf_current_epoch) - 1;
     ebpf_list_insert_tail(&_ebpf_epoch_free_list, &header->list_entry);
-    ebpf_lock_unlock(&_ebpf_epoch_free_list_lock, &lock_state);
+    ebpf_lock_unlock(&_ebpf_epoch_free_list_lock, lock_state);
 }
 
 static void
@@ -310,7 +310,7 @@ ebpf_epoch_release_free_list(int64_t released_epoch)
     ebpf_list_initialize(&free_list);
 
     // Move all expired items to the free list.
-    ebpf_lock_lock(&_ebpf_epoch_free_list_lock, &lock_state);
+    lock_state = ebpf_lock_lock(&_ebpf_epoch_free_list_lock);
     while (!ebpf_list_is_empty(&_ebpf_epoch_free_list)) {
         entry = _ebpf_epoch_free_list.Flink;
         header = CONTAINING_RECORD(entry, ebpf_epoch_allocation_header_t, list_entry);
@@ -321,7 +321,7 @@ ebpf_epoch_release_free_list(int64_t released_epoch)
             break;
         }
     }
-    ebpf_lock_unlock(&_ebpf_epoch_free_list_lock, &lock_state);
+    ebpf_lock_unlock(&_ebpf_epoch_free_list_lock, lock_state);
 
     // Free all the expired items outside of the lock.
     while (!ebpf_list_is_empty(&free_list)) {
@@ -358,7 +358,7 @@ ebpf_epoch_get_release_epoch(int64_t* release_epoch)
         }
     }
 
-    ebpf_lock_lock(&_ebpf_epoch_thread_table_lock, &lock_state);
+    lock_state = ebpf_lock_lock(&_ebpf_epoch_thread_table_lock);
     return_value = ebpf_hash_table_next_key(_ebpf_epoch_thread_table, NULL, (uint8_t*)&thread_id);
     if (return_value == EBPF_SUCCESS)
         for (;;) {
@@ -375,7 +375,7 @@ ebpf_epoch_get_release_epoch(int64_t* release_epoch)
             if (return_value != EBPF_SUCCESS)
                 break;
         }
-    ebpf_lock_unlock(&_ebpf_epoch_thread_table_lock, &lock_state);
+    ebpf_lock_unlock(&_ebpf_epoch_thread_table_lock, lock_state);
 
     if (return_value != EBPF_NO_MORE_KEYS) {
         return return_value;
@@ -426,18 +426,18 @@ ebpf_epoch_schedule_work_item(ebpf_epoch_work_item_t* work_item)
     ebpf_lock_state_t lock_state;
 
     // Items are inserted into the free list in increasing epoch order.
-    ebpf_lock_lock(&_ebpf_epoch_free_list_lock, &lock_state);
+    lock_state = ebpf_lock_lock(&_ebpf_epoch_free_list_lock);
     work_item->header.freed_epoch = ebpf_interlocked_increment_int64(&_ebpf_current_epoch) - 1;
     ebpf_list_insert_tail(&_ebpf_epoch_free_list, &work_item->header.list_entry);
-    ebpf_lock_unlock(&_ebpf_epoch_free_list_lock, &lock_state);
+    ebpf_lock_unlock(&_ebpf_epoch_free_list_lock, lock_state);
 }
 
 void
 ebpf_epoch_free_work_item(ebpf_epoch_work_item_t* work_item)
 {
     ebpf_lock_state_t lock_state;
-    ebpf_lock_lock(&_ebpf_epoch_free_list_lock, &lock_state);
+    lock_state = ebpf_lock_lock(&_ebpf_epoch_free_list_lock);
     ebpf_list_remove_entry(&work_item->header.list_entry);
-    ebpf_lock_unlock(&_ebpf_epoch_free_list_lock, &lock_state);
+    ebpf_lock_unlock(&_ebpf_epoch_free_list_lock, lock_state);
     ebpf_free(work_item);
 }

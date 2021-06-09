@@ -11,7 +11,7 @@
 ebpf_result_t
 ebpf_program_information_encode(
     _In_ const ebpf_program_information_t* program_information,
-    _Outptr_ _Writable_bytes_(*buffer_size) uint8_t** buffer,
+    _Outptr_result_bytebuffer_(*buffer_size) uint8_t** buffer,
     _Out_ unsigned long* buffer_size)
 {
     handle_t handle = NULL;
