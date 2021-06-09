@@ -294,6 +294,7 @@ ebpf_pinning_entries_release(uint16_t entry_count, _In_count_(entry_count) ebpf_
     for (index = 0; index < entry_count; index++) {
         ebpf_pinning_entry_t* entry = &pinning_entries[index];
         ebpf_free(entry->name.value);
+        entry->name.value = NULL;
         ebpf_object_release_reference(entry->object);
     }
     ebpf_free(pinning_entries);

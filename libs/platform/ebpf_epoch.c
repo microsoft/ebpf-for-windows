@@ -52,7 +52,7 @@ typedef struct _ebpf_epoch_cpu_entry
     ebpf_non_preemptible_work_item_t* non_preemtable_work_item;
 } ebpf_epoch_cpu_entry_t;
 
-static ebpf_epoch_cpu_entry_t* _ebpf_epoch_cpu_table = NULL;
+static _Writable_elements_(_ebpf_epoch_cpu_table_size) ebpf_epoch_cpu_entry_t* _ebpf_epoch_cpu_table = NULL;
 static uint32_t _ebpf_epoch_cpu_table_size = 0;
 
 static volatile int64_t _ebpf_current_epoch = 1;

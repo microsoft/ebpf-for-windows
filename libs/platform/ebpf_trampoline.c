@@ -34,6 +34,7 @@ ebpf_allocate_trampoline_table(size_t entry_count, _Outptr_ ebpf_trampoline_tabl
         return_value = EBPF_NO_MEMORY;
         goto Exit;
     }
+
     local_trampoline_table->entry_count = entry_count;
     local_trampoline_table->memory_descriptor = ebpf_map_memory(entry_count * sizeof(ebpf_trampoline_entry_t));
     if (!local_trampoline_table->memory_descriptor) {
@@ -46,6 +47,8 @@ ebpf_allocate_trampoline_table(size_t entry_count, _Outptr_ ebpf_trampoline_tabl
     return_value = EBPF_SUCCESS;
 Exit:
     ebpf_free_trampoline_table(local_trampoline_table);
+    // Set local_trampoline_table to satisfy the static analyzer.
+    local_trampoline_table = NULL;
     return return_value;
 }
 

@@ -215,14 +215,14 @@ extern "C"
      * @retval EBPF_ERROR_ARITHMETIC_OVERFLOW Addition overflowed or underflowed.
      */
     ebpf_result_t
-    ebpf_safe_size_t_subtract(size_t minuend, size_t subtrahend, size_t* result);
+    ebpf_safe_size_t_subtract(size_t minuend, size_t subtrahend, _Out_ size_t* result);
 
     /**
      * @brief Create an instance of a lock.
      * @param[out] lock Pointer to memory location that will contain the lock.
      */
     void
-    ebpf_lock_create(_Inout_ ebpf_lock_t* lock);
+    ebpf_lock_create(_Out_ ebpf_lock_t* lock);
 
     /**
      * @brief Destroy an instance of a lock.
@@ -234,8 +234,7 @@ extern "C"
     /**
      * @brief Acquire exclusive access to the lock.
      * @param[in] lock Pointer to memory location that contains the lock.
-     * @param[out] state Pointer to memory location that contains state that
-     *    needs to be passed to ebpf_lock_unlock.
+     * @returns - The previous lock_state required for unlock.
      */
     _Requires_lock_not_held_(*lock) _Acquires_lock_(*lock) _IRQL_requires_max_(DISPATCH_LEVEL) _IRQL_saves_
         _IRQL_raises_(DISPATCH_LEVEL) ebpf_lock_state_t ebpf_lock_lock(_In_ ebpf_lock_t* lock);
@@ -243,8 +242,7 @@ extern "C"
     /**
      * @brief Release exclusive access to the lock.
      * @param[in] lock Pointer to memory location that contains the lock.
-     * @param[in] state Pointer to memory location that contains state that
-     *    needs to be passed to ebpf_lock_unlock.
+     * @param[in] state The state returned from ebpf_lock_lock.
      */
     _Requires_lock_held_(*lock) _Releases_lock_(*lock) _IRQL_requires_(DISPATCH_LEVEL) void ebpf_lock_unlock(
         _In_ ebpf_lock_t* lock, _IRQL_restores_ ebpf_lock_state_t state);
@@ -403,7 +401,7 @@ extern "C"
      * @param[in] hash_table Hash-table to release.
      */
     void
-    ebpf_hash_table_destroy(_In_ _Pre_maybenull_ _Post_invalid_ ebpf_hash_table_t* hash_table);
+    ebpf_hash_table_destroy(_Pre_maybenull_ _Post_invalid_ ebpf_hash_table_t* hash_table);
 
     /**
      * @brief Find an element in the hash table.

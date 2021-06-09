@@ -190,6 +190,7 @@ ebpf_extension_load(
 
 Done:
     ebpf_free(local_client_context);
+    local_client_context = NULL;
     return return_value;
 }
 
@@ -357,6 +358,7 @@ ebpf_provider_load(
 
 Done:
     ebpf_free(local_provider_context);
+    local_provider_context = NULL;
     return return_value;
 }
 

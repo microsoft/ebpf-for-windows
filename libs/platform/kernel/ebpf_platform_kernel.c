@@ -157,13 +157,13 @@ ebpf_safe_size_t_add(size_t augend, size_t addend, _Out_ size_t* result)
 }
 
 ebpf_result_t
-ebpf_safe_size_t_subtract(size_t minuend, size_t subtrahend, size_t* result)
+ebpf_safe_size_t_subtract(size_t minuend, size_t subtrahend, _Out_ size_t* result)
 {
     return RtlSizeTSub(minuend, subtrahend, result) == STATUS_SUCCESS ? EBPF_SUCCESS : EBPF_ARITHMETIC_OVERFLOW;
 }
 
 void
-ebpf_lock_create(_Inout_ ebpf_lock_t* lock)
+ebpf_lock_create(_Out_ ebpf_lock_t* lock)
 {
     KeInitializeSpinLock((PKSPIN_LOCK)lock);
 }
