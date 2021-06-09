@@ -424,7 +424,7 @@ _net_ebpf_ext_layer_2_classify(
     uint8_t* packet_buffer;
     uint32_t result = 0;
 
-    if (!_ebpf_xdp_hook_provider_registration.invoke_hook)
+    if (!_ebpf_xdp_hook_provider_registration.client_binding_context)
         goto done;
 
     if (nbl == NULL) {
@@ -636,36 +636,36 @@ _net_ebpf_ext_provider_client_attach_callback(
 
 static _Function_class_(KDEFERRED_ROUTINE) _IRQL_requires_max_(DISPATCH_LEVEL) _IRQL_requires_min_(DISPATCH_LEVEL)
     _IRQL_requires_(DISPATCH_LEVEL) _IRQL_requires_same_ VOID _net_ebpf_ext_rundown(
-        _In_ struct _KDPC* Dpc,
-        _In_opt_ PVOID DeferredContext,
-        _In_opt_ PVOID SystemArgument1,
-        _In_opt_ PVOID SystemArgument2)
+        _In_ KDPC* dpc,
+        _In_opt_ void* deferred_context,
+        _In_opt_ void* system_argument_1,
+        _In_opt_ void* system_argument_2)
 {
     net_ebpf_ext_hook_provider_registration_t* registration =
-        (net_ebpf_ext_hook_provider_registration_t*)DeferredContext;
+        (net_ebpf_ext_hook_provider_registration_t*)deferred_context;
 
-    UNREFERENCED_PARAMETER(Dpc);
-    UNREFERENCED_PARAMETER(SystemArgument1);
-    UNREFERENCED_PARAMETER(SystemArgument2);
+    UNREFERENCED_PARAMETER(dpc);
+    UNREFERENCED_PARAMETER(system_argument_1);
+    UNREFERENCED_PARAMETER(system_argument_2);
     if (registration)
         KeSetEvent(&registration->rundown_wait, 0, FALSE);
 }
 
 static void
-_net_ebpf_ext_init_rundown(net_ebpf_ext_hook_provider_registration_t* registration)
+_net_ebpf_ext_init_rundown(_In_ net_ebpf_ext_hook_provider_registration_t* registration)
 {
     KeInitializeEvent(&(registration->rundown_wait), NotificationEvent, FALSE);
     KeInitializeDpc(&(registration->rundown_dpc), _net_ebpf_ext_rundown, registration);
 }
 
 static void
-_net_ebpf_ext_wait_for_rundown(net_ebpf_ext_hook_provider_registration_t* registration)
+_net_ebpf_ext_wait_for_rundown(_In_ net_ebpf_ext_hook_provider_registration_t* registration)
 {
     // Queue a DPC to each CPU and wait for it to run.
     // After it has run on each CPU we can be sure that no
     // DPC is busy processing a hook.
-    ULONG maximum_processor = KeQueryMaximumProcessorCount();
-    ULONG processor;
+    uint32_t maximum_processor = KeQueryMaximumProcessorCount();
+    uint32_t processor;
     for (processor = 0; processor < maximum_processor; processor++) {
         KeSetTargetProcessorDpc(&registration->rundown_dpc, (uint8_t)processor);
         if (KeInsertQueueDpc(&registration->rundown_dpc, NULL, NULL)) {
@@ -681,8 +681,8 @@ _net_ebpf_ext_provider_client_detach_callback(void* context, const GUID* client_
     UNREFERENCED_PARAMETER(client_id);
     hook_registration->client_binding_context = NULL;
     hook_registration->client_data = NULL;
-    hook_registration->invoke_hook = NULL;
     _net_ebpf_ext_wait_for_rundown(hook_registration);
+    hook_registration->invoke_hook = NULL;
     return EBPF_SUCCESS;
 }
 

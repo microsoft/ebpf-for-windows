@@ -393,7 +393,7 @@ Done:
 void
 ebpf_program_invoke(ebpf_program_t* program, void* context, uint32_t* result)
 {
-    if (program->program_invalidated)
+    if (!program || program->program_invalidated)
         return;
 
     if (program->parameters.code_type == EBPF_CODE_NATIVE) {
