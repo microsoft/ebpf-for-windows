@@ -35,21 +35,21 @@ QueryService:
             return error;
         }
 
-        // Install the service
+        // Install the service as LocalService.
         service_handle = CreateService(
-            scm_handle,                // SCM database
-            service_name.c_str(),      // name of service
-            service_name.c_str(),      // service name to display
-            SERVICE_ALL_ACCESS,        // desired access
-            SERVICE_WIN32_OWN_PROCESS, // service type
-            SERVICE_AUTO_START,        // start type
-            SERVICE_ERROR_NORMAL,      // error control type
-            file_path,                 // path to service's binary
-            nullptr,                   // no load ordering group
-            nullptr,                   // no tag identifier
-            nullptr,                   // no dependencies
-            nullptr,                   // LocalSystem account
-            nullptr);                  // no password
+            scm_handle,                    // SCM database
+            service_name.c_str(),          // name of service
+            service_name.c_str(),          // service name to display
+            SERVICE_ALL_ACCESS,            // desired access
+            SERVICE_WIN32_OWN_PROCESS,     // service type
+            SERVICE_AUTO_START,            // start type
+            SERVICE_ERROR_NORMAL,          // error control type
+            file_path,                     // path to service's binary
+            nullptr,                       // no load ordering group
+            nullptr,                       // no tag identifier
+            nullptr,                       // no dependencies
+            L"NT AUTHORITY\\LocalService", // LocalService account
+            nullptr);                      // no password
 
         if (service_handle == nullptr) {
             error = GetLastError();
