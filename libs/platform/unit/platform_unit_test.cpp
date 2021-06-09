@@ -347,7 +347,7 @@ TEST_CASE("serialize_map_test", "[serialize_map_test]")
     // Serialize.
     ebpf_result_t result = ebpf_serialize_core_map_information_array(
         map_count, core_map_info_array, buffer, buffer_length, &serialized_length, &required_length);
-    REQUIRE(result == EBPF_ERROR_INSUFFICIENT_BUFFER);
+    REQUIRE(result == EBPF_INSUFFICIENT_BUFFER);
 
     buffer = static_cast<uint8_t*>(calloc(required_length, 1));
     buffer_length = required_length;

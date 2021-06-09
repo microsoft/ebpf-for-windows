@@ -90,7 +90,7 @@ _ebpf_result_to_ntstatus(ebpf_result_t result)
         status = STATUS_NOT_SUPPORTED;
         break;
     }
-    case EBPF_ERROR_INSUFFICIENT_BUFFER: {
+    case EBPF_INSUFFICIENT_BUFFER: {
         status = STATUS_BUFFER_OVERFLOW;
         break;
     }

@@ -125,7 +125,7 @@ Fail:
         case EBPF_NO_MORE_KEYS:
             SetLastError(ERROR_NO_MORE_ITEMS);
             break;
-        case EBPF_ERROR_INSUFFICIENT_BUFFER:
+        case EBPF_INSUFFICIENT_BUFFER:
             SetLastError(ERROR_MORE_DATA);
             break;
         default:

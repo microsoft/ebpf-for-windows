@@ -238,7 +238,7 @@ ebpf_pinning_table_enumerate_entries(
             (uint8_t*)&next_object_name,
             (uint8_t**)&next_pinning_entry);
 
-        if (result == EBPF_ERROR_NO_MORE_KEYS) {
+        if (result == EBPF_NO_MORE_KEYS) {
             // Reached end of hashtable.
             result = EBPF_SUCCESS;
             break;

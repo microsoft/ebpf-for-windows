@@ -608,12 +608,12 @@ ebpf_api_get_pinned_map_info(
         // Invoke IOCTL.
         result = windows_error_to_ebpf_result(invoke_ioctl(request, reply_buffer));
 
-        if ((result != EBPF_SUCCESS) && (result != EBPF_ERROR_INSUFFICIENT_BUFFER))
+        if ((result != EBPF_SUCCESS) && (result != EBPF_INSUFFICIENT_BUFFER))
             goto Exit;
 
         reply = reinterpret_cast<ebpf_operation_get_map_information_reply_t*>(reply_buffer.data());
 
-        if (result == EBPF_ERROR_INSUFFICIENT_BUFFER) {
+        if (result == EBPF_INSUFFICIENT_BUFFER) {
             output_buffer_length = reply->size;
             attempt_count++;
             continue;

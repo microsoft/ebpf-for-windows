@@ -72,7 +72,7 @@ extern "C"
         // Access was denied for the requested operation.
         EBPF_ACCESS_DENIED,
 
-        // The operation was blocked by policy.
+        // The operation was blocked for all requesters by policy.
         EBPF_BLOCKED_BY_POLICY,
 
         // Arithmetic overflow occurred.
