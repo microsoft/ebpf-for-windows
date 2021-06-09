@@ -330,11 +330,11 @@ typedef struct _ebpf_timer_work_item
 } ebpf_timer_work_item_t;
 
 void
-_ebpf_timer_callback(_Inout_ TP_CALLBACK_INSTANCE* instance, _Inout_opt_ void* Context, _Inout_ TP_TIMER* Timer)
+_ebpf_timer_callback(_Inout_ TP_CALLBACK_INSTANCE* instance, _Inout_opt_ void* context, _Inout_ TP_TIMER* timer)
 {
-    ebpf_timer_work_item_t* timer_work_item = reinterpret_cast<ebpf_timer_work_item_t*>(Context);
+    ebpf_timer_work_item_t* timer_work_item = reinterpret_cast<ebpf_timer_work_item_t*>(context);
     UNREFERENCED_PARAMETER(instance);
-    UNREFERENCED_PARAMETER(Timer);
+    UNREFERENCED_PARAMETER(timer);
     if (timer_work_item)
         timer_work_item->work_item_routine(timer_work_item->work_item_context);
 }

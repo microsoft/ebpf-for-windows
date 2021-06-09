@@ -381,7 +381,7 @@ extern "C"
      * @param[in] key_size Size of the keys used in the hash table.
      * @param[in] value_size Size of the values used in the hash table.
      * @param[in] compare_function Function used to lexicographically order
-     * keys.
+     * keys. If NULL, memcmp is used instead.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  hash table.
