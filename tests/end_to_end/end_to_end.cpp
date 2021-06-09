@@ -11,6 +11,7 @@
 #include <WinSock2.h>
 
 #include "catch2\catch.hpp"
+#include "common_tests.h"
 #include "ebpf_api.h"
 #include "ebpf_bind_program_data.h"
 #include "ebpf_core.h"
@@ -123,6 +124,9 @@ Fail:
             break;
         case EBPF_ERROR_NO_MORE_KEYS:
             SetLastError(ERROR_NO_MORE_ITEMS);
+            break;
+        case EBPF_ERROR_INSUFFICIENT_BUFFER:
+            SetLastError(ERROR_MORE_DATA);
             break;
         default:
             SetLastError(ERROR_INVALID_PARAMETER);
@@ -658,4 +662,11 @@ TEST_CASE("enumerate_and_query_programs", "[enumerate_and_query_programs]")
     section_name = nullptr;
     REQUIRE(ebpf_api_get_next_program(program_handle, &program_handle) == EBPF_SUCCESS);
     REQUIRE(program_handle == INVALID_HANDLE_VALUE);
+}
+
+TEST_CASE("pinned_map_enum", "[pinned_map_enum]")
+{
+    _test_helper test_helper;
+
+    ebpf_test_pinned_map_enum();
 }

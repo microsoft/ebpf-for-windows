@@ -108,7 +108,12 @@ ebpf_get_code_integrity_state(ebpf_code_integrity_state_t* state)
 void*
 ebpf_allocate(size_t size)
 {
-    return calloc(size, 1);
+    void* memory;
+    memory = calloc(size, 1);
+    if (memory != nullptr)
+        memset(memory, 0, size);
+
+    return memory;
 }
 
 void
@@ -194,6 +199,12 @@ ebpf_result_t
 ebpf_safe_size_t_add(size_t augend, size_t addend, size_t* result)
 {
     return SUCCEEDED(SizeTAdd(augend, addend, result)) ? EBPF_SUCCESS : EBPF_ERROR_ARITHMETIC_OVERFLOW;
+}
+
+ebpf_result_t
+ebpf_safe_size_t_subtract(size_t minuend, size_t subtrahend, size_t* result)
+{
+    return SUCCEEDED(SizeTSub(minuend, subtrahend, result)) ? EBPF_SUCCESS : EBPF_ERROR_ARITHMETIC_OVERFLOW;
 }
 
 void

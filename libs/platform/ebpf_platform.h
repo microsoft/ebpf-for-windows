@@ -208,6 +208,18 @@ extern "C"
     ebpf_safe_size_t_add(size_t augend, size_t addend, size_t* result);
 
     /**
+     * @brief Subtract one value of type size_t from another and check for
+     *   overflow or underflow.
+     * @param[in] minuend The value from which subtrahend is subtracted.
+     * @param[in] subtrahend The value subtract from minuend.
+     * @param[out] result A pointer to the result.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_ERROR_ARITHMETIC_OVERFLOW Addition overflowed or underflowed.
+     */
+    ebpf_result_t
+    ebpf_safe_size_t_subtract(size_t minuend, size_t subtrahend, size_t* result);
+
+    /**
      * @brief Create an instance of a lock.
      * @param[in] lock Pointer to memory location that will contain the lock.
      */
@@ -441,6 +453,24 @@ extern "C"
      */
     ebpf_result_t
     ebpf_hash_table_next_key(ebpf_hash_table_t* hash_table, const uint8_t* previous_key, uint8_t* next_key);
+
+    /**
+     * @brief Returns the next (key, value) pair in the hash table.
+     *
+     * @param[in] hash_table Hash-table to query.
+     * @param[in] previous_key Previous key or NULL to restart.
+     * @param[out] next_key Next key if it exists.
+     * @param[out] next_value If non-NULL, returns the next value if it exists.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MORE_KEYS No keys exist in the hash table that
+     * are lexicographically after the specified key.
+     */
+    ebpf_result_t
+    ebpf_hash_table_next_key_and_value(
+        _In_ ebpf_hash_table_t* hash_table,
+        _In_opt_ const uint8_t* previous_key,
+        _Out_ uint8_t* next_key,
+        _Outptr_opt_ uint8_t** next_value);
 
     /**
      * @brief Get the number of keys in the hash table

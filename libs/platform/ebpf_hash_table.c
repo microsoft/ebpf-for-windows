@@ -170,11 +170,19 @@ ebpf_hash_table_delete(ebpf_hash_table_t* hash_table, const uint8_t* key)
 }
 
 ebpf_result_t
-ebpf_hash_table_next_key(ebpf_hash_table_t* hash_table, const uint8_t* previous_key, uint8_t* next_key)
+ebpf_hash_table_next_key_and_value(
+    _In_ ebpf_hash_table_t* hash_table,
+    _In_opt_ const uint8_t* previous_key,
+    _Inout_ uint8_t* next_key,
+    _Outptr_opt_ uint8_t** value)
 {
+    ebpf_result_t result = EBPF_SUCCESS;
     RTL_AVL_TABLE* table = (RTL_AVL_TABLE*)hash_table;
     uint8_t* entry;
     void* restart_key;
+
+    if (value != NULL)
+        *value = NULL;
 
     if (!previous_key) {
         entry = RtlEnumerateGenericTableAvl(table, TRUE);
@@ -204,11 +212,22 @@ ebpf_hash_table_next_key(ebpf_hash_table_t* hash_table, const uint8_t* previous_
         }
     }
     if (entry == NULL) {
-        return EBPF_ERROR_NO_MORE_KEYS;
+        result = EBPF_ERROR_NO_MORE_KEYS;
+        goto Exit;
     } else {
         memcpy(next_key, entry, hash_table->key_size);
+        if (value != NULL)
+            *value = entry + hash_table->key_size;
     }
-    return EBPF_SUCCESS;
+
+Exit:
+    return result;
+}
+
+ebpf_result_t
+ebpf_hash_table_next_key(ebpf_hash_table_t* hash_table, const uint8_t* previous_key, uint8_t* next_key)
+{
+    return ebpf_hash_table_next_key_and_value(hash_table, previous_key, next_key, NULL);
 }
 
 size_t

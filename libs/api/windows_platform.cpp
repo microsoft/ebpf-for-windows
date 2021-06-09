@@ -21,7 +21,7 @@
 #include "windows_platform_common.hpp"
 
 int
-create_map_function(
+create_map_internal(
     uint32_t type, uint32_t key_size, uint32_t value_size, uint32_t max_entries, ebpf_verifier_options_t options);
 
 static int
@@ -36,7 +36,7 @@ create_map_windows(
         return fd;
     }
 
-    return create_map_function(map_type, key_size, value_size, max_entries, options);
+    return create_map_internal(map_type, key_size, value_size, max_entries, options);
 }
 
 void
@@ -58,7 +58,7 @@ parse_maps_section_windows(
     for (auto s : mapdefs) {
         map_descriptors.emplace_back(EbpfMapDescriptor{
             .original_fd = create_map_windows(s.type, s.key_size, s.value_size, s.max_entries, options),
-            .type = s.type,
+            .type = (uint32_t)s.type,
             .key_size = s.key_size,
             .value_size = s.value_size,
         });

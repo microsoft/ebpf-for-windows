@@ -56,3 +56,6 @@ docs/html
 pipeline.log
 endortemp/
 artifacts/
+
+# Visual Code.
+**/.vscode/**/*

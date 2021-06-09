@@ -12,6 +12,9 @@
 // Function codes from 0x800 to 0xFFF are for customer use.
 #define IOCTL_EBPFCTL_METHOD_BUFFERED CTL_CODE(EBPF_IOCTL_TYPE, 0x900, METHOD_BUFFERED, FILE_ANY_ACCESS)
 
+// Maxiumum attempts to invoke an IOCTL.
+#define IOCTL_MAX_ATTEMPTS 16
+
 typedef std::vector<uint8_t> ebpf_protocol_buffer_t;
 typedef std::vector<uint8_t> ebpf_code_buffer_t;
 
@@ -34,6 +37,7 @@ template <typename request_t, typename reply_t = empty_reply_t>
 uint32_t
 invoke_ioctl(request_t& request, reply_t& reply = _empty_reply)
 {
+    uint32_t return_value = ERROR_SUCCESS;
     uint32_t actual_reply_size;
     uint32_t request_size;
     void* request_ptr;
@@ -78,12 +82,21 @@ invoke_ioctl(request_t& request, reply_t& reply = _empty_reply)
         nullptr);
 
     if (!result) {
-        return GetLastError();
+        return_value = GetLastError();
+        goto Exit;
+    }
+
+    // Actual reply size cannot be smaller than minimum expected reply size.
+    if (actual_reply_size < reply_size) {
+        return_value = ERROR_INVALID_PARAMETER;
+        goto Exit;
     }
 
     if (actual_reply_size != reply_size && !variable_reply_size) {
-        return ERROR_INVALID_PARAMETER;
+        return_value = ERROR_INVALID_PARAMETER;
+        goto Exit;
     }
 
-    return ERROR_SUCCESS;
+Exit:
+    return return_value;
 }

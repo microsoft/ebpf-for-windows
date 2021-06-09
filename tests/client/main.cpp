@@ -21,7 +21,7 @@
 #define EBPF_SERVICE_BINARY_NAME L"ebpfsvc.exe"
 #define EBPF_SERVICE_NAME L"ebpfsvc"
 
-static service_install_helper _service_helper(EBPF_SERVICE_NAME, EBPF_SERVICE_BINARY_NAME);
+static service_install_helper _service_helper(EBPF_SERVICE_NAME, EBPF_SERVICE_BINARY_NAME, SERVICE_WIN32_OWN_PROCESS);
 
 static void
 _get_program_byte_code_helper(const char* file_name, const char* section_name, ebpf_program_verify_info* info)
