@@ -395,7 +395,7 @@ ebpf_free_timer_work_item(_Pre_maybenull_ _Post_invalid_ ebpf_timer_work_item_t*
 }
 
 ebpf_result_t
-ebpf_guid_create(GUID* new_guid)
+ebpf_guid_create(_Out_ GUID* new_guid)
 {
     if (UuidCreate(new_guid) == RPC_S_OK)
         return EBPF_SUCCESS;
@@ -404,7 +404,7 @@ ebpf_guid_create(GUID* new_guid)
 }
 
 int32_t
-ebpf_log_function(void* context, const char* format_string, ...)
+ebpf_log_function(_In_ void* context, _In_z_ const char* format_string, ...)
 {
     UNREFERENCED_PARAMETER(context);
     UNREFERENCED_PARAMETER(format_string);
@@ -413,9 +413,9 @@ ebpf_log_function(void* context, const char* format_string, ...)
 
 ebpf_result_t
 ebpf_access_check(
-    ebpf_security_descriptor_t* security_descriptor,
+    _In_ ebpf_security_descriptor_t* security_descriptor,
     ebpf_security_access_mask_t request_access,
-    ebpf_security_generic_mapping_t* generic_mapping)
+    _In_ ebpf_security_generic_mapping_t* generic_mapping)
 {
     ebpf_result_t result;
     HANDLE token = INVALID_HANDLE_VALUE;
@@ -461,7 +461,8 @@ Done:
 }
 
 ebpf_result_t
-ebpf_validate_security_descriptor(ebpf_security_descriptor_t* security_descriptor, size_t security_descriptor_length)
+ebpf_validate_security_descriptor(
+    _In_ ebpf_security_descriptor_t* security_descriptor, size_t security_descriptor_length)
 {
     ebpf_result_t result;
     SECURITY_DESCRIPTOR_CONTROL security_descriptor_control;

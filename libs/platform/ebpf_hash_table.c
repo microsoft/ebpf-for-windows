@@ -112,7 +112,7 @@ ebpf_result_t
 ebpf_hash_table_find(
     _In_ ebpf_hash_table_t* hash_table,
     _In_ _Readable_bytes_(hash_table->key_size) const uint8_t* key,
-    _Out_ _Writable_bytes_(hash_table->value_size) uint8_t** value)
+    _Outptr_ _Writable_bytes_(hash_table->value_size) uint8_t** value)
 {
     ebpf_result_t retval;
     RTL_AVL_TABLE* table = (RTL_AVL_TABLE*)hash_table;
@@ -187,8 +187,8 @@ ebpf_result_t
 ebpf_hash_table_next_key_and_value(
     _In_ ebpf_hash_table_t* hash_table,
     _In_opt_ const uint8_t* previous_key,
-    _Inout_ uint8_t* next_key,
-    _Outptr_opt_ uint8_t** value)
+    _Out_ _Writable_bytes_(hash_table->key_size) uint8_t* next_key,
+    _Outptr_opt_ _Writable_bytes_(hash_table->value_size) uint8_t** value)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     RTL_AVL_TABLE* table = (RTL_AVL_TABLE*)hash_table;
@@ -239,7 +239,10 @@ Exit:
 }
 
 ebpf_result_t
-ebpf_hash_table_next_key(ebpf_hash_table_t* hash_table, const uint8_t* previous_key, uint8_t* next_key)
+ebpf_hash_table_next_key(
+    _In_ ebpf_hash_table_t* hash_table,
+    _In_opt_ _Readable_bytes_(hash_table->key_size) const uint8_t* previous_key,
+    _Out_ _Writable_bytes_(hash_table->value_size) uint8_t* next_key)
 {
     return ebpf_hash_table_next_key_and_value(hash_table, previous_key, next_key, NULL);
 }

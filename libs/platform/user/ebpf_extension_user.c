@@ -30,15 +30,15 @@ static _Requires_lock_held_(&_ebpf_provider_table_lock) ebpf_hash_table_t* _ebpf
 
 ebpf_result_t
 ebpf_extension_load(
-    ebpf_extension_client_t** client_context,
-    const GUID* interface_id,
-    void* client_binding_context,
-    const ebpf_extension_data_t* client_data,
-    const ebpf_extension_dispatch_table_t* client_dispatch_table,
-    void** provider_binding_context,
-    const ebpf_extension_data_t** provider_data,
-    const ebpf_extension_dispatch_table_t** provider_dispatch_table,
-    ebpf_extension_change_callback_t extension_changed)
+    _Outptr_ ebpf_extension_client_t** client_context,
+    _In_ const GUID* interface_id,
+    _In_ void* client_binding_context,
+    _In_ const ebpf_extension_data_t* client_data,
+    _In_ const ebpf_extension_dispatch_table_t* client_dispatch_table,
+    _In_ void** provider_binding_context,
+    _Outptr_ const ebpf_extension_data_t** provider_data,
+    _Outptr_ const ebpf_extension_dispatch_table_t** provider_dispatch_table,
+    _In_ ebpf_extension_change_callback_t extension_changed)
 {
     ebpf_result_t return_value;
     ebpf_lock_state_t state;
@@ -115,7 +115,7 @@ Done:
 }
 
 void
-ebpf_extension_unload(ebpf_extension_client_t* client_context)
+ebpf_extension_unload(_Pre_maybenull_ _Post_invalid_ ebpf_extension_client_t* client_context)
 {
     ebpf_result_t return_value;
     ebpf_lock_state_t state;
@@ -151,14 +151,14 @@ Done:
 
 ebpf_result_t
 ebpf_provider_load(
-    ebpf_extension_provider_t** provider_context,
-    const GUID* interface_id,
-    void* provider_binding_context,
-    const ebpf_extension_data_t* provider_data,
-    const ebpf_extension_dispatch_table_t* provider_dispatch_table,
-    void* callback_context,
-    ebpf_provider_client_attach_callback_t client_attach_callback,
-    ebpf_provider_client_detach_callback_t client_detach_callback)
+    _Outptr_ ebpf_extension_provider_t** provider_context,
+    _In_ const GUID* interface_id,
+    _In_ void* provider_binding_context,
+    _In_ const ebpf_extension_data_t* provider_data,
+    _In_ const ebpf_extension_dispatch_table_t* provider_dispatch_table,
+    _In_ void* callback_context,
+    _In_ ebpf_provider_client_attach_callback_t client_attach_callback,
+    _In_ ebpf_provider_client_detach_callback_t client_detach_callback)
 {
     ebpf_result_t return_value;
     ebpf_lock_state_t state;
@@ -216,7 +216,7 @@ Done:
 }
 
 void
-ebpf_provider_unload(ebpf_extension_provider_t* provider_context)
+ebpf_provider_unload(_Pre_maybenull_ _Post_invalid_ ebpf_extension_provider_t* provider_context)
 {
     ebpf_result_t return_value;
     ebpf_lock_state_t state;

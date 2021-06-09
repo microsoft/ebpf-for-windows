@@ -417,7 +417,7 @@ extern "C"
     ebpf_hash_table_find(
         _In_ ebpf_hash_table_t* hash_table,
         _In_ _Readable_bytes_(hash_table->key_size) const uint8_t* key,
-        _Out_ _Writable_bytes_(hash_table->value_size) uint8_t** value);
+        _Outptr_ _Writable_bytes_(hash_table->value_size) uint8_t** value);
 
     /**
      * @brief Insert or update an entry in the hash table.
@@ -478,8 +478,8 @@ extern "C"
     ebpf_hash_table_next_key_and_value(
         _In_ ebpf_hash_table_t* hash_table,
         _In_opt_ const uint8_t* previous_key,
-        _Out_ uint8_t* next_key,
-        _Outptr_opt_ uint8_t** next_value);
+        _Out_ _Writable_bytes_(hash_table->key_size) uint8_t* next_key,
+        _Outptr_opt_ _Writable_bytes_(hash_table->value_size) uint8_t** next_value);
 
     /**
      * @brief Get the number of keys in the hash table
@@ -577,15 +577,15 @@ extern "C"
      */
     ebpf_result_t
     ebpf_extension_load(
-        ebpf_extension_client_t** client_context,
-        const GUID* interface_id,
-        void* client_binding_context,
-        const ebpf_extension_data_t* client_data,
-        const ebpf_extension_dispatch_table_t* client_dispatch_table,
-        void** provider_binding_context,
-        const ebpf_extension_data_t** provider_data,
-        const ebpf_extension_dispatch_table_t** provider_dispatch_table,
-        ebpf_extension_change_callback_t extension_changed);
+        _Outptr_ ebpf_extension_client_t** client_context,
+        _In_ const GUID* interface_id,
+        _In_ void* client_binding_context,
+        _In_ const ebpf_extension_data_t* client_data,
+        _In_ const ebpf_extension_dispatch_table_t* client_dispatch_table,
+        _In_ void** provider_binding_context,
+        _Outptr_ const ebpf_extension_data_t** provider_data,
+        _Outptr_ const ebpf_extension_dispatch_table_t** provider_dispatch_table,
+        _In_ ebpf_extension_change_callback_t extension_changed);
 
     /**
      * @brief Unload an extension.
@@ -593,7 +593,7 @@ extern "C"
      * @param[in] client_context Context of the extension to unload.
      */
     void
-    ebpf_extension_unload(ebpf_extension_client_t* client_context);
+    ebpf_extension_unload(_Pre_maybenull_ _Post_invalid_ ebpf_extension_client_t* client_context);
 
     typedef ebpf_result_t (*ebpf_provider_client_attach_callback_t)(
         void* context,
@@ -622,14 +622,14 @@ extern "C"
      */
     ebpf_result_t
     ebpf_provider_load(
-        ebpf_extension_provider_t** provider_context,
-        const GUID* interface_id,
-        void* provider_binding_context,
-        const ebpf_extension_data_t* provider_data,
-        const ebpf_extension_dispatch_table_t* provider_dispatch_table,
-        void* callback_context,
-        ebpf_provider_client_attach_callback_t client_attach_callback,
-        ebpf_provider_client_detach_callback_t client_detach_callback);
+        _Outptr_ ebpf_extension_provider_t** provider_context,
+        _In_ const GUID* interface_id,
+        _In_ void* provider_binding_context,
+        _In_ const ebpf_extension_data_t* provider_data,
+        _In_ const ebpf_extension_dispatch_table_t* provider_dispatch_table,
+        _In_ void* callback_context,
+        _In_ ebpf_provider_client_attach_callback_t client_attach_callback,
+        _In_ ebpf_provider_client_detach_callback_t client_detach_callback);
 
     /**
      * @brief Unload a provider.
@@ -637,13 +637,13 @@ extern "C"
      * @param[in] provider_context Provider to unload.
      */
     void
-    ebpf_provider_unload(ebpf_extension_provider_t* provider_context);
+    ebpf_provider_unload(_Pre_maybenull_ _Post_invalid_ ebpf_extension_provider_t* provider_context);
 
     ebpf_result_t
-    ebpf_guid_create(GUID* new_guid);
+    ebpf_guid_create(_Out_ GUID* new_guid);
 
     int32_t
-    ebpf_log_function(void* context, const char* format_string, ...);
+    ebpf_log_function(_In_ void* context, _In_z_ const char* format_string, ...);
 
     /**
      * @brief Allocate a new empty trampoline table of entry_count size.
@@ -656,7 +656,7 @@ extern "C"
      *  operation.
      */
     ebpf_result_t
-    ebpf_allocate_trampoline_table(size_t entry_count, ebpf_trampoline_table_t** trampoline_table);
+    ebpf_allocate_trampoline_table(size_t entry_count, _Outptr_ ebpf_trampoline_table_t** trampoline_table);
 
     /**
      * @brief Free a previously allocated trampoline table.
@@ -664,7 +664,7 @@ extern "C"
      * @param[in] trampoline_table Pointer to trampoline table to free.
      */
     void
-    ebpf_free_trampoline_table(ebpf_trampoline_table_t* trampoline_table);
+    ebpf_free_trampoline_table(_Pre_maybenull_ _Post_invalid_ ebpf_trampoline_table_t* trampoline_table);
 
     /**
      * @brief Populate the function pointers in a trampoline table.
@@ -677,7 +677,7 @@ extern "C"
      */
     ebpf_result_t
     ebpf_update_trampoline_table(
-        ebpf_trampoline_table_t* trampoline_table, const ebpf_extension_dispatch_table_t* dispatch_table);
+        _Inout_ ebpf_trampoline_table_t* trampoline_table, _In_ const ebpf_extension_dispatch_table_t* dispatch_table);
 
     /**
      * @brief Get the address of a trampoline function.
@@ -691,7 +691,8 @@ extern "C"
      * @retval EBPF_INVALID_ARGUMENT An invalid argument was supplied.
      */
     ebpf_result_t
-    ebpf_get_trampoline_function(const ebpf_trampoline_table_t* trampoline_table, size_t index, void** function);
+    ebpf_get_trampoline_function(
+        _In_ const ebpf_trampoline_table_t* trampoline_table, size_t index, _Out_ void** function);
 
     typedef struct _ebpf_program_information ebpf_program_information_t;
 
@@ -709,7 +710,9 @@ extern "C"
      */
     ebpf_result_t
     ebpf_program_information_encode(
-        const ebpf_program_information_t* program_information, uint8_t** buffer, unsigned long* buffer_size);
+        _In_ const ebpf_program_information_t* program_information,
+        _Outptr_ _Writable_bytes_(*buffer_size) uint8_t** buffer,
+        _Out_ unsigned long* buffer_size);
 
     /**
      * @brief Deserialize an ebpf_program_information_t structure from a flat
@@ -726,7 +729,9 @@ extern "C"
      */
     ebpf_result_t
     ebpf_program_information_decode(
-        ebpf_program_information_t** program_information, const uint8_t* buffer, size_t buffer_size);
+        _Outptr_ ebpf_program_information_t** program_information,
+        _In_ _Readable_bytes_(buffer_size) const uint8_t* buffer,
+        size_t buffer_size);
 
     /**
      * @brief Check if the user associated with the current thread is granted
@@ -742,9 +747,9 @@ extern "C"
      */
     ebpf_result_t
     ebpf_access_check(
-        ebpf_security_descriptor_t* security_descriptor,
+        _In_ ebpf_security_descriptor_t* security_descriptor,
         ebpf_security_access_mask_t request_access,
-        ebpf_security_generic_mapping_t* generic_mapping);
+        _In_ ebpf_security_generic_mapping_t* generic_mapping);
 
     /**
      * @brief Check the validity of the provided security descriptor.
@@ -756,7 +761,7 @@ extern "C"
      */
     ebpf_result_t
     ebpf_validate_security_descriptor(
-        ebpf_security_descriptor_t* security_descriptor, size_t security_descriptor_length);
+        _In_ ebpf_security_descriptor_t* security_descriptor, size_t security_descriptor_length);
 
 #ifdef __cplusplus
 }
