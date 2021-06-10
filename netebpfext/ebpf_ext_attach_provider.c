@@ -3,14 +3,17 @@
 
 #include "ebpf_ext_attach_provider.h"
 
+typedef ebpf_result_t (*ebpf_ext_attach_hook_function_t)(
+    _In_ void* bind_context, _In_ void* context, _Out_ uint32_t* result);
+
 typedef struct _ebpf_ext_attach_hook_provider_registration
 {
     ebpf_extension_data_t* provider_data;
     ebpf_extension_provider_t* provider;
     GUID client_id;
-    void* client_binding_context;
+    volatile void* client_binding_context;
     const ebpf_extension_data_t* client_data;
-    const ebpf_result_t (*invoke_hook)(_In_ void* bind_context, _In_ void* context, _Out_ uint32_t* result);
+    volatile ebpf_ext_attach_hook_function_t invoke_hook;
     ebpf_ext_hook_execution_t execution_type;
     union
     {
@@ -26,6 +29,18 @@ typedef struct _ebpf_ext_attach_hook_provider_registration
     };
 } ebpf_ext_attach_hook_provider_registration_t;
 
+/**
+ * @brief Callback invoked when a client (an eBPF program) attaches.
+ *
+ * @param[in] context Pointer to the ebpf_ext_attach_hook_provider_registration_t.
+ * @param[in] client_id GUID identifying a eBPF program.
+ * @param[in] client_binding_context Context used when invoking the hook.
+ * @param[in] client_data Data about the client.
+ * @param[in] client_dispatch_table Function table containing function pointer
+ * to invoke eBPF program.
+ * @retval EBPF_SUCCESS The operation succeeded.
+ * @retval EBPF_EXTENSION_FAILED_TO_LOAD A client is already attached.
+ */
 static ebpf_result_t
 _ebpf_ext_attach_provider_client_attach_callback(
     _In_ void* context,
@@ -41,13 +56,12 @@ _ebpf_ext_attach_provider_client_attach_callback(
 
     hook_registration->client_id = *client_id;
     hook_registration->client_data = client_data;
-    hook_registration->invoke_hook =
-        (const ebpf_result_t(__cdecl*)(void*, void*, UINT32*))client_dispatch_table->function[0];
+    hook_registration->invoke_hook = (ebpf_ext_attach_hook_function_t)client_dispatch_table->function[0];
 
-    // client_binding_context signals when the provider can invoke the callback.
-    // Ensure that invoke_hook is first written to memory, followed by client_binding_context.
-    MemoryBarrier();
     hook_registration->client_binding_context = client_binding_context;
+
+    // After invoke_hook and client_binding_context are set, the eBPF program
+    // may be invoked.
 
     return EBPF_SUCCESS;
 }
@@ -69,6 +83,13 @@ static _Function_class_(KDEFERRED_ROUTINE) _IRQL_requires_max_(DISPATCH_LEVEL) _
         KeSetEvent(&registration->dispatch.rundown_wait, 0, FALSE);
 }
 
+/**
+ * @brief Initialize the rundown state in
+ * ebpf_ext_attach_hook_provider_registration_t.
+ *
+ * @param registration Registration object to initialize.
+ * @param execution_type Type of rundown support required.
+ */
 static void
 _ebpf_ext_attach_init_rundown(
     _In_ ebpf_ext_attach_hook_provider_registration_t* registration, ebpf_ext_hook_execution_t execution_type)
@@ -82,6 +103,11 @@ _ebpf_ext_attach_init_rundown(
     }
 }
 
+/**
+ * @brief Block execution of the thread until all invocations are completed.
+ *
+ * @param registration Registration object to wait for.
+ */
 static void
 _ebpf_ext_attach_wait_for_rundown(_In_ ebpf_ext_attach_hook_provider_registration_t* registration)
 {
@@ -103,16 +129,33 @@ _ebpf_ext_attach_wait_for_rundown(_In_ ebpf_ext_attach_hook_provider_registratio
     }
 }
 
+/**
+ * @brief Callback invoked when a client detaches. The client eBPF program
+ * remains valid until this callback returns.
+ *
+ * @param context The ebpf_ext_attach_hook_provider_registration_t.
+ * @param client_id Identity of the eBPF program detaching.
+ * @retval EBPF_SUCCESS The operation succeeded.
+ */
 static ebpf_result_t
 _ebpf_ext_attach_provider_client_detach_callback(_In_ void* context, _In_ const GUID* client_id)
 {
     ebpf_ext_attach_hook_provider_registration_t* hook_registration =
         (ebpf_ext_attach_hook_provider_registration_t*)context;
     UNREFERENCED_PARAMETER(client_id);
+
+    // Prevent new callbacks from starting by setting client_binding_context and
+    // invoke_hook to NULL.
     hook_registration->client_binding_context = NULL;
     hook_registration->client_data = NULL;
-    _ebpf_ext_attach_wait_for_rundown(hook_registration);
     hook_registration->invoke_hook = NULL;
+
+    // Wait for any in progress callbacks to complete.
+    _ebpf_ext_attach_wait_for_rundown(hook_registration);
+
+    // At this point, no new invocations of the eBPF program will occur.
+
+    // Permit the EC to finish unloading the eBPF program.
     return EBPF_SUCCESS;
 }
 
@@ -190,10 +233,17 @@ ebpf_result_t
 ebpf_ext_attach_invoke_hook(
     _In_ ebpf_ext_attach_hook_provider_registration_t* registration, _In_ void* context, _Out_ uint32_t* result)
 {
-    if (!registration->invoke_hook || !registration->client_binding_context) {
+    // Note:
+    // Capture local copies of invoke_hook and client_binding_context.
+    ebpf_ext_attach_hook_function_t invoke_hook = (ebpf_ext_attach_hook_function_t)registration->invoke_hook;
+    void* client_binding_context = (void*)registration->client_binding_context;
+
+    // If either are NULL, then the client has detached already.
+    if (!invoke_hook || !client_binding_context) {
         *result = 0;
         return EBPF_SUCCESS;
     }
 
-    return registration->invoke_hook(registration->client_binding_context, context, result);
+    // Run the eBPF program using cached copies of invoke_hook and client_binding_context.
+    return invoke_hook(client_binding_context, context, result);
 }

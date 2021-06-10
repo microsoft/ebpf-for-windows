@@ -59,7 +59,8 @@ ebpf_ext_attach_unregister_provider(_Pre_maybenull_ _Post_invalid_ __drv_freesMe
                                         ebpf_ext_attach_hook_provider_registration_t* registration);
 
 /**
- * @brief Invoke the eBPF program attached to this hook.
+ * @brief Invoke the eBPF program attached to this hook. This must be called
+ * inside a ebpf_ext_attach_enter_rundown/ebpf_ext_attach_leave_rundown block.
  *
  * @param[in] registration Registration that owns the hook.
  * @param[in] context Context to pass to eBPF program.
