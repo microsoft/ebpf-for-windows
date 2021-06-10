@@ -10,7 +10,7 @@ typedef struct _ebpf_ext_attach_hook_provider_registration
     GUID client_id;
     void* client_binding_context;
     const ebpf_extension_data_t* client_data;
-    const ebpf_result_t (*invoke_hook)(void* bind_context, void* context, uint32_t* result);
+    const ebpf_result_t (*invoke_hook)(_In_ void* bind_context, _In_ void* context, _Out_ uint32_t* result);
     ebpf_ext_hook_execution_t execution_type;
     union
     {

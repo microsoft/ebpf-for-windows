@@ -5,7 +5,7 @@
 
 #include <ntddk.h>
 
-#include <ebpf_platform.h>
+#include "ebpf_platform.h"
 
 typedef enum _ebpf_ext_hook_execution
 {
@@ -19,8 +19,8 @@ typedef struct _ebpf_ext_attach_hook_provider_registration ebpf_ext_attach_hook_
  * @brief Protect the registration from rundown.
  *
  * @param[in] registration Registration to protect.
- * @retval true - The caller should proceed.
- * @retval false - Rundown has occurred.
+ * @retval true The caller should proceed.
+ * @retval false Rundown has occurred.
  */
 bool
 ebpf_ext_attach_enter_rundown(_In_ ebpf_ext_attach_hook_provider_registration_t* registration);
@@ -28,7 +28,7 @@ ebpf_ext_attach_enter_rundown(_In_ ebpf_ext_attach_hook_provider_registration_t*
 /**
  * @brief Unprotect the registration from rundown.
  *
- * @param registration
+ * @param[in] registration Registration to unprotect.
  */
 void
 ebpf_ext_attach_leave_rundown(_In_ ebpf_ext_attach_hook_provider_registration_t* registration);
@@ -37,7 +37,7 @@ ebpf_ext_attach_leave_rundown(_In_ ebpf_ext_attach_hook_provider_registration_t*
  * @brief Register as a attach type provider.
  *
  * @param[in] attach_type Attach type to register for.
- * @param[in,out] registration Registration to complete.
+ * @param[in, out] registration Registration to complete.
  * @param[in] execution_type Execution type for the hook (passive or dispatch).
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval EBPF_NO_MEMORY Unable to allocate resources for this
