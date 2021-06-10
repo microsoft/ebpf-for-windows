@@ -1,7 +1,5 @@
-/*
- *  Copyright (c) Microsoft Corporation
- *  SPDX-License-Identifier: MIT
- */
+// Copyright (c) Microsoft Corporation
+// SPDX-License-Identifier: MIT
 
 #include "ebpf_ext_attach_provider.h"
 
@@ -41,11 +39,13 @@ _ebpf_ext_attach_provider_client_attach_callback(
     if (hook_registration->client_binding_context)
         return EBPF_EXTENSION_FAILED_TO_LOAD;
 
-    hook_registration->client_binding_context = client_binding_context;
     hook_registration->client_id = *client_id;
     hook_registration->client_data = client_data;
     hook_registration->invoke_hook =
         (const ebpf_result_t(__cdecl*)(void*, void*, UINT32*))client_dispatch_table->function[0];
+
+    MemoryBarrier();
+    hook_registration->client_binding_context = client_binding_context;
 
     return EBPF_SUCCESS;
 }
@@ -181,5 +181,9 @@ ebpf_ext_attach_unregister_provider(ebpf_ext_attach_hook_provider_registration_t
 ebpf_result_t
 ebpf_ext_attach_invoke_hook(ebpf_ext_attach_hook_provider_registration_t* registration, void* context, uint32_t* result)
 {
+    if (!registration->invoke_hook || !registration->client_binding_context) {
+        return EBPF_SUCCESS;
+    }
+
     return registration->invoke_hook(registration->client_binding_context, context, result);
 }
