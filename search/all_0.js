@@ -15,7 +15,8 @@ var searchData=
   ['_5febpf_5fmap_5ftype_12',['_ebpf_map_type',['../ebpf__structs_8h.html#af966e054d78d2aaae8956c20c10df140',1,'ebpf_structs.h']]],
   ['_5febpf_5fprogram_5finformation_13',['_ebpf_program_information',['../struct__ebpf__program__information.html',1,'']]],
   ['_5febpf_5fprogram_5ftype_5fdescriptor_14',['_ebpf_program_type_descriptor',['../struct__ebpf__program__type__descriptor.html',1,'']]],
-  ['_5ftlv_5ftype_15',['_tlv_type',['../tlv_8h.html#a50a469b7a3bd57834902b2d2f67a9c94',1,'tlv.h']]],
-  ['_5ftlv_5ftype_5flength_5fvalue_16',['_tlv_type_length_value',['../struct__tlv__type__length__value.html',1,'']]],
-  ['_5fxdp_5faction_17',['_xdp_action',['../ebpf__nethooks_8h.html#a5aff0d5d670941126cebc5687d5e280d',1,'ebpf_nethooks.h']]]
+  ['_5freturn_5ftype_5fsuccess_5f_15',['_Return_type_success_',['../ebpf__result_8h.html#a9aeccad29bc32df45723ea490ae1717a',1,'ebpf_result.h']]],
+  ['_5ftlv_5ftype_16',['_tlv_type',['../tlv_8h.html#a50a469b7a3bd57834902b2d2f67a9c94',1,'tlv.h']]],
+  ['_5ftlv_5ftype_5flength_5fvalue_17',['_tlv_type_length_value',['../struct__tlv__type__length__value.html',1,'']]],
+  ['_5fxdp_5faction_18',['_xdp_action',['../ebpf__nethooks_8h.html#a5aff0d5d670941126cebc5687d5e280d',1,'ebpf_nethooks.h']]]
 ];
