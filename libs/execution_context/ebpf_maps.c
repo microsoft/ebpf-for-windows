@@ -1,7 +1,5 @@
-/*
- *  Copyright (c) Microsoft Corporation
- *  SPDX-License-Identifier: MIT
- */
+// Copyright (c) Microsoft Corporation
+// SPDX-License-Identifier: MIT
 
 #include "ebpf_maps.h"
 #include "ebpf_epoch.h"

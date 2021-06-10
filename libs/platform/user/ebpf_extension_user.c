@@ -1,7 +1,6 @@
-/*
- *  Copyright (c) Microsoft Corporation
- *  SPDX-License-Identifier: MIT
- */
+// Copyright (c) Microsoft Corporation
+// SPDX-License-Identifier: MIT
+
 #include "ebpf_platform.h"
 
 typedef struct _ebpf_extension_client
