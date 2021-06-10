@@ -402,7 +402,7 @@ ebpf_guid_create(_Out_ GUID* new_guid)
     if (UuidCreate(new_guid) == RPC_S_OK)
         return EBPF_SUCCESS;
     else
-        return EBPF_ERROR_NOT_SUPPORTED;
+        return EBPF_OPERATION_NOT_SUPPORTED;
 }
 
 int32_t
