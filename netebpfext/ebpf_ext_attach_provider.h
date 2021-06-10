@@ -45,9 +45,9 @@ ebpf_ext_attach_leave_rundown(_In_ ebpf_ext_attach_hook_provider_registration_t*
  */
 ebpf_result_t
 ebpf_ext_attach_register_provider(
-    const ebpf_attach_type_t* attach_type,
+    _In_ const ebpf_attach_type_t* attach_type,
     ebpf_ext_hook_execution_t execution_type,
-    ebpf_ext_attach_hook_provider_registration_t** registration);
+    _Outptr_ ebpf_ext_attach_hook_provider_registration_t** registration);
 
 /**
  * @brief Unregister as an attach type provider.
@@ -55,7 +55,8 @@ ebpf_ext_attach_register_provider(
  * @param[in] registration Registration to cleanup.
  */
 void
-ebpf_ext_attach_unregister_provider(ebpf_ext_attach_hook_provider_registration_t* registration);
+ebpf_ext_attach_unregister_provider(_Pre_maybenull_ _Post_invalid_ __drv_freesMem(Mem)
+                                        ebpf_ext_attach_hook_provider_registration_t* registration);
 
 /**
  * @brief Invoke the eBPF program attached to this hook.
@@ -69,4 +70,4 @@ ebpf_ext_attach_unregister_provider(ebpf_ext_attach_hook_provider_registration_t
  */
 ebpf_result_t
 ebpf_ext_attach_invoke_hook(
-    ebpf_ext_attach_hook_provider_registration_t* registration, void* context, uint32_t* result);
+    _In_ ebpf_ext_attach_hook_provider_registration_t* registration, _In_ void* context, _Out_ uint32_t* result);

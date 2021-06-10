@@ -136,15 +136,20 @@ ebpf_ext_attach_leave_rundown(_In_ ebpf_ext_attach_hook_provider_registration_t*
 
 ebpf_result_t
 ebpf_ext_attach_register_provider(
-    const ebpf_attach_type_t* attach_type,
+    _In_ const ebpf_attach_type_t* attach_type,
     ebpf_ext_hook_execution_t execution_type,
-    ebpf_ext_attach_hook_provider_registration_t** registration)
+    _Outptr_ ebpf_ext_attach_hook_provider_registration_t** registration)
 {
     ebpf_result_t return_value;
     ebpf_ext_attach_hook_provider_registration_t* local_registration = NULL;
 
     local_registration = ebpf_allocate(sizeof(ebpf_ext_attach_hook_provider_registration_t));
-    memset(local_registration, 0, sizeof(local_registration));
+    if (!local_registration) {
+        return_value = EBPF_NO_MEMORY;
+        goto Done;
+    }
+
+    memset(local_registration, 0, sizeof(ebpf_ext_attach_hook_provider_registration_t));
 
     _ebpf_ext_attach_init_rundown(local_registration, execution_type);
 
@@ -172,7 +177,8 @@ Done:
 }
 
 void
-ebpf_ext_attach_unregister_provider(ebpf_ext_attach_hook_provider_registration_t* registration)
+ebpf_ext_attach_unregister_provider(_Pre_maybenull_ _Post_invalid_ __drv_freesMem(Mem)
+                                        ebpf_ext_attach_hook_provider_registration_t* registration)
 {
     if (registration) {
         ebpf_provider_unload(registration->provider);
@@ -181,9 +187,11 @@ ebpf_ext_attach_unregister_provider(ebpf_ext_attach_hook_provider_registration_t
 }
 
 ebpf_result_t
-ebpf_ext_attach_invoke_hook(ebpf_ext_attach_hook_provider_registration_t* registration, void* context, uint32_t* result)
+ebpf_ext_attach_invoke_hook(
+    _In_ ebpf_ext_attach_hook_provider_registration_t* registration, _In_ void* context, _Out_ uint32_t* result)
 {
     if (!registration->invoke_hook || !registration->client_binding_context) {
+        *result = 0;
         return EBPF_SUCCESS;
     }
 
