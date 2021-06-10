@@ -1,7 +1,5 @@
-/*
- *  Copyright (c) Microsoft Corporation
- *  SPDX-License-Identifier: MIT
- */
+// Copyright (c) Microsoft Corporation
+// SPDX-License-Identifier: MIT
 
 import "ebpf_execution_context.h";
 import "ebpf_execution_type.h";
@@ -13,7 +11,7 @@ import "wtypes.idl";
 // Interface Attributes
 //
 
-[uuid(6bef171d-7205-4b63-a1e5-d00f01e6a0c1), version(1.0), pointer_default(unique)]
+[uuid(6bef171d - 7205 - 4b63 - a1e5 - d00f01e6a0c1), version(1.0), pointer_default(unique)]
 
     interface ebpf_service_interface {
         // TODO: (Issue #208): This is a duplicate of EbpfMapDescriptor
@@ -70,8 +68,9 @@ import "wtypes.idl";
             [ out, ref ] uint32_t * logs_size,
             [ out, size_is(, *logs_size), ref ] char** logs);
 
-        ebpf_result_t verify_program(
-            [ in, ref ] ebpf_program_verify_info * info,
-            [out] uint32_t * logs_size,
-            [ out, size_is(, *logs_size), ref ] char** logs);
+        ebpf_result_t verify_program([ in, ref ] ebpf_program_verify_info * info, [out] uint32_t * logs_size, [
+            out,
+            size_is(, *logs_size),
+            ref
+        ] char** logs);
     }
