@@ -11,7 +11,7 @@ import "wtypes.idl";
 // Interface Attributes
 //
 
-[uuid(6bef171d - 7205 - 4b63 - a1e5 - d00f01e6a0c1), version(1.0), pointer_default(unique)]
+[uuid(6bef171d-7205-4b63-a1e5-d00f01e6a0c1), version(1.0), pointer_default(unique)]
 
     interface ebpf_service_interface {
         // TODO: (Issue #208): This is a duplicate of EbpfMapDescriptor
