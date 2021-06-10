@@ -1,7 +1,6 @@
-/*
- *  Copyright (c) Microsoft Corporation
- *  SPDX-License-Identifier: MIT
- */
+// Copyright (c) Microsoft Corporation
+// SPDX-License-Identifier: MIT
+
 // ntifs.h needs to be included ahead of other headers to satisfy the Windows
 // build system.
 #include <ntifs.h>
