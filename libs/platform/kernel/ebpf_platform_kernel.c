@@ -140,27 +140,26 @@ ebpf_get_code_integrity_state(ebpf_code_integrity_state_t* state)
                      : EBPF_CODE_INTEGRITY_DEFAULT;
         return EBPF_SUCCESS;
     } else {
-        return EBPF_ERROR_NOT_SUPPORTED;
+        return EBPF_OPERATION_NOT_SUPPORTED;
     }
 }
 
 ebpf_result_t
 ebpf_safe_size_t_multiply(size_t multiplicand, size_t multiplier, size_t* result)
 {
-    return RtlSizeTMult(multiplicand, multiplier, result) == STATUS_SUCCESS ? EBPF_SUCCESS
-                                                                            : EBPF_ERROR_ARITHMETIC_OVERFLOW;
+    return RtlSizeTMult(multiplicand, multiplier, result) == STATUS_SUCCESS ? EBPF_SUCCESS : EBPF_ARITHMETIC_OVERFLOW;
 }
 
 ebpf_result_t
 ebpf_safe_size_t_add(size_t augend, size_t addend, size_t* result)
 {
-    return RtlSizeTAdd(augend, addend, result) == STATUS_SUCCESS ? EBPF_SUCCESS : EBPF_ERROR_ARITHMETIC_OVERFLOW;
+    return RtlSizeTAdd(augend, addend, result) == STATUS_SUCCESS ? EBPF_SUCCESS : EBPF_ARITHMETIC_OVERFLOW;
 }
 
 ebpf_result_t
 ebpf_safe_size_t_subtract(size_t minuend, size_t subtrahend, size_t* result)
 {
-    return RtlSizeTSub(minuend, subtrahend, result) == STATUS_SUCCESS ? EBPF_SUCCESS : EBPF_ERROR_ARITHMETIC_OVERFLOW;
+    return RtlSizeTSub(minuend, subtrahend, result) == STATUS_SUCCESS ? EBPF_SUCCESS : EBPF_ARITHMETIC_OVERFLOW;
 }
 
 void
@@ -402,9 +401,9 @@ ebpf_access_check(
             KernelMode,
             &granted_access,
             &status)) {
-        result = EBPF_ERROR_ACCESS_DENIED;
+        result = EBPF_ACCESS_DENIED;
     } else {
-        result = NT_SUCCESS(status) ? EBPF_SUCCESS : EBPF_ERROR_ACCESS_DENIED;
+        result = NT_SUCCESS(status) ? EBPF_SUCCESS : EBPF_ACCESS_DENIED;
     }
 
     SeUnlockSubjectContext(&subject_context);

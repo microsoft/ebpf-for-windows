@@ -83,7 +83,7 @@ windows_error_to_ebpf_result(uint32_t error)
         break;
 
     case ERROR_NOT_FOUND:
-        result = EBPF_ERROR_NOT_FOUND;
+        result = EBPF_KEY_NOT_FOUND;
         break;
 
     case ERROR_INVALID_PARAMETER:
@@ -91,19 +91,19 @@ windows_error_to_ebpf_result(uint32_t error)
         break;
 
     case ERROR_NO_MORE_ITEMS:
-        result = EBPF_ERROR_NO_MORE_KEYS;
+        result = EBPF_NO_MORE_KEYS;
         break;
 
     case ERROR_INVALID_HANDLE:
-        result = EBPF_ERROR_INVALID_HANDLE;
+        result = EBPF_INVALID_OBJECT;
         break;
 
     case ERROR_NOT_SUPPORTED:
-        result = EBPF_ERROR_NOT_SUPPORTED;
+        result = EBPF_OPERATION_NOT_SUPPORTED;
         break;
 
     case ERROR_MORE_DATA:
-        result = EBPF_ERROR_INSUFFICIENT_BUFFER;
+        result = EBPF_INSUFFICIENT_BUFFER;
         break;
 
     case ERROR_FILE_NOT_FOUND:

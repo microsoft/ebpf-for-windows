@@ -148,7 +148,7 @@ ebpf_extension_load(
 
     status = ExUuidCreate(&local_client_context->client_id.Guid);
     if (!NT_SUCCESS(status)) {
-        return_value = EBPF_ERROR_EXTENSION_FAILED_TO_LOAD;
+        return_value = EBPF_EXTENSION_FAILED_TO_LOAD;
         goto Done;
     }
 
@@ -170,14 +170,14 @@ ebpf_extension_load(
 
     status = NmrRegisterClient(client_characteristics, local_client_context, &local_client_context->nmr_client_handle);
     if (!NT_SUCCESS(status)) {
-        return_value = EBPF_ERROR_EXTENSION_FAILED_TO_LOAD;
+        return_value = EBPF_EXTENSION_FAILED_TO_LOAD;
         goto Done;
     }
 
     if (!local_client_context->provider_is_attached) {
         ebpf_extension_unload(local_client_context);
         local_client_context = NULL;
-        return_value = EBPF_ERROR_EXTENSION_FAILED_TO_LOAD;
+        return_value = EBPF_EXTENSION_FAILED_TO_LOAD;
         goto Done;
     }
 
@@ -324,7 +324,7 @@ ebpf_provider_load(
 
     status = ExUuidCreate(&local_provider_context->provider_id.Guid);
     if (!NT_SUCCESS(status)) {
-        return_value = EBPF_ERROR_EXTENSION_FAILED_TO_LOAD;
+        return_value = EBPF_EXTENSION_FAILED_TO_LOAD;
         goto Done;
     }
 
@@ -347,7 +347,7 @@ ebpf_provider_load(
     status = NmrRegisterProvider(
         provider_characteristics, local_provider_context, &local_provider_context->nmr_provider_handle);
     if (!NT_SUCCESS(status)) {
-        return_value = EBPF_ERROR_EXTENSION_FAILED_TO_LOAD;
+        return_value = EBPF_EXTENSION_FAILED_TO_LOAD;
         goto Done;
     }
 

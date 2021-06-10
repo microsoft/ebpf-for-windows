@@ -132,7 +132,7 @@ _ebpf_core_protocol_load_code(_In_ const ebpf_operation_load_code_request_t* req
 
     if (request->code_type == EBPF_CODE_NATIVE) {
         if (_ebpf_core_code_integrity_state == EBPF_CODE_INTEGRITY_HYPER_VISOR_KERNEL_MODE) {
-            retval = EBPF_ERROR_BLOCKED_BY_POLICY;
+            retval = EBPF_BLOCKED_BY_POLICY;
             goto Done;
         }
     }
@@ -351,7 +351,7 @@ _ebpf_core_protocol_map_find_element(
 
     value = ebpf_map_find_entry(map, request->key);
     if (value == NULL) {
-        retval = EBPF_ERROR_NOT_FOUND;
+        retval = EBPF_KEY_NOT_FOUND;
         goto Done;
     }
 
@@ -711,7 +711,7 @@ _ebpf_core_protocol_get_program_information(
     required_length += program_information_data->size;
 
     if (required_length > reply_length) {
-        retval = EBPF_ERROR_INSUFFICIENT_BUFFER;
+        retval = EBPF_INSUFFICIENT_BUFFER;
         goto Done;
     }
 
@@ -988,10 +988,10 @@ ebpf_core_get_protocol_handler_properties(
     *minimum_reply_size = 0;
 
     if (operation_id >= EBPF_COUNT_OF(_ebpf_protocol_handlers) || operation_id < EBPF_OPERATION_RESOLVE_HELPER)
-        return EBPF_ERROR_NOT_SUPPORTED;
+        return EBPF_OPERATION_NOT_SUPPORTED;
 
     if (!_ebpf_protocol_handlers[operation_id].dispatch.protocol_handler_no_reply)
-        return EBPF_ERROR_NOT_SUPPORTED;
+        return EBPF_OPERATION_NOT_SUPPORTED;
 
     *minimum_request_size = _ebpf_protocol_handlers[operation_id].minimum_request_size;
     *minimum_reply_size = _ebpf_protocol_handlers[operation_id].minimum_reply_size;
@@ -1008,7 +1008,7 @@ ebpf_core_invoke_protocol_handler(
     ebpf_result_t retval;
 
     if (operation_id >= EBPF_COUNT_OF(_ebpf_protocol_handlers) || operation_id < EBPF_OPERATION_RESOLVE_HELPER) {
-        return EBPF_ERROR_NOT_SUPPORTED;
+        return EBPF_OPERATION_NOT_SUPPORTED;
     }
 
     retval = ebpf_epoch_enter();

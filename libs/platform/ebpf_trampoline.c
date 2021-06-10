@@ -100,7 +100,7 @@ Exit:
 #elif
     UNREFERENCED_PARAMETER(trampoline_table);
     UNREFERENCED_PARAMETER(dispatch_table);
-    return EBPF_ERROR_NOT_SUPPORTED;
+    return EBPF_OPERATION_NOT_SUPPORTED;
 #endif
 }
 

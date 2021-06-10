@@ -46,13 +46,13 @@ ebpf_handle_create(ebpf_handle_t* handle, ebpf_object_t* object)
         0);
 
     if (!NT_SUCCESS(status)) {
-        return_value = EBPF_ERROR_NOT_SUPPORTED;
+        return_value = EBPF_OPERATION_NOT_SUPPORTED;
         goto Done;
     }
 
     status = ObReferenceObjectByHandle(file_handle, 0, NULL, UserMode, &file_object, NULL);
     if (!NT_SUCCESS(status)) {
-        return_value = EBPF_ERROR_NOT_SUPPORTED;
+        return_value = EBPF_OPERATION_NOT_SUPPORTED;
         goto Done;
     }
 
@@ -76,7 +76,7 @@ ebpf_result_t
 ebpf_handle_close(ebpf_handle_t handle)
 {
     if (!NT_SUCCESS(ObCloseHandle((HANDLE)handle, UserMode)))
-        return EBPF_ERROR_INVALID_HANDLE;
+        return EBPF_INVALID_OBJECT;
     else
         return EBPF_SUCCESS;
 }
@@ -91,23 +91,23 @@ ebpf_reference_object_by_handle(ebpf_handle_t handle, ebpf_object_type_t object_
 
     status = ObReferenceObjectByHandle((HANDLE)handle, 0, NULL, UserMode, &file_object, NULL);
     if (!NT_SUCCESS(status)) {
-        return_value = EBPF_ERROR_INVALID_HANDLE;
+        return_value = EBPF_INVALID_OBJECT;
         goto Done;
     }
 
     if (file_object->DeviceObject != ebpf_driver_get_device_object()) {
-        return_value = EBPF_ERROR_INVALID_HANDLE;
+        return_value = EBPF_INVALID_OBJECT;
         goto Done;
     }
 
     local_object = (ebpf_object_t*)file_object->FsContext2;
     if (local_object == NULL) {
-        return_value = EBPF_ERROR_INVALID_HANDLE;
+        return_value = EBPF_INVALID_OBJECT;
         goto Done;
     }
 
     if ((object_type != EBPF_OBJECT_UNKNOWN) && (ebpf_object_get_type(local_object) != object_type)) {
-        return_value = EBPF_ERROR_INVALID_HANDLE;
+        return_value = EBPF_INVALID_OBJECT;
         goto Done;
     }
 
@@ -127,5 +127,5 @@ ebpf_get_next_handle_by_type(ebpf_handle_t previous_handle, ebpf_object_type_t o
     UNREFERENCED_PARAMETER(previous_handle);
     UNREFERENCED_PARAMETER(object_type);
     UNREFERENCED_PARAMETER(next_handle);
-    return EBPF_ERROR_NOT_SUPPORTED;
+    return EBPF_OPERATION_NOT_SUPPORTED;
 }
