@@ -17,7 +17,7 @@ typedef struct _map_cache
     uintptr_t handle;
     EbpfMapDescriptor ebpf_map_descriptor;
 
-    _map_cache() {}
+    _map_cache() : handle(0), ebpf_map_descriptor() {}
 
     _map_cache(uintptr_t handle, EbpfMapDescriptor descriptor) : handle(handle), ebpf_map_descriptor(descriptor) {}
 

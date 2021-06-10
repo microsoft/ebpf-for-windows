@@ -24,7 +24,7 @@ typedef struct _ebpf_trampoline_table
 } ebpf_trampoline_table_t;
 
 ebpf_result_t
-ebpf_allocate_trampoline_table(size_t entry_count, ebpf_trampoline_table_t** trampoline_table)
+ebpf_allocate_trampoline_table(size_t entry_count, _Outptr_ ebpf_trampoline_table_t** trampoline_table)
 {
     ebpf_result_t return_value;
     ebpf_trampoline_table_t* local_trampoline_table = NULL;
@@ -34,6 +34,7 @@ ebpf_allocate_trampoline_table(size_t entry_count, ebpf_trampoline_table_t** tra
         return_value = EBPF_NO_MEMORY;
         goto Exit;
     }
+
     local_trampoline_table->entry_count = entry_count;
     local_trampoline_table->memory_descriptor = ebpf_map_memory(entry_count * sizeof(ebpf_trampoline_entry_t));
     if (!local_trampoline_table->memory_descriptor) {
@@ -46,11 +47,13 @@ ebpf_allocate_trampoline_table(size_t entry_count, ebpf_trampoline_table_t** tra
     return_value = EBPF_SUCCESS;
 Exit:
     ebpf_free_trampoline_table(local_trampoline_table);
+    // Set local_trampoline_table to satisfy the static analyzer.
+    local_trampoline_table = NULL;
     return return_value;
 }
 
 void
-ebpf_free_trampoline_table(ebpf_trampoline_table_t* trampoline_table)
+ebpf_free_trampoline_table(_Pre_maybenull_ _Post_invalid_ ebpf_trampoline_table_t* trampoline_table)
 {
     if (trampoline_table) {
         ebpf_unmap_memory(trampoline_table->memory_descriptor);
@@ -60,7 +63,7 @@ ebpf_free_trampoline_table(ebpf_trampoline_table_t* trampoline_table)
 
 ebpf_result_t
 ebpf_update_trampoline_table(
-    ebpf_trampoline_table_t* trampoline_table, const ebpf_extension_dispatch_table_t* dispatch_table)
+    _Inout_ ebpf_trampoline_table_t* trampoline_table, _In_ const ebpf_extension_dispatch_table_t* dispatch_table)
 {
 #if defined(_AMD64_)
 
@@ -105,7 +108,7 @@ Exit:
 }
 
 ebpf_result_t
-ebpf_get_trampoline_function(const ebpf_trampoline_table_t* trampoline_table, size_t index, void** function)
+ebpf_get_trampoline_function(_In_ const ebpf_trampoline_table_t* trampoline_table, size_t index, _Out_ void** function)
 {
     ebpf_trampoline_entry_t* local_entries;
     ebpf_result_t return_value;

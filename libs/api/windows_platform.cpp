@@ -55,7 +55,7 @@ parse_maps_section_windows(
 
     auto mapdefs =
         std::vector<ebpf_map_definition_t>((ebpf_map_definition_t*)data, (ebpf_map_definition_t*)(data + size));
-    for (auto s : mapdefs) {
+    for (auto& s : mapdefs) {
         map_descriptors.emplace_back(EbpfMapDescriptor{
             .original_fd = create_map_windows(s.type, s.key_size, s.value_size, s.max_entries, options),
             .type = (uint32_t)s.type,
