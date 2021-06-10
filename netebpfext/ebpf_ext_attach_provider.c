@@ -44,6 +44,8 @@ _ebpf_ext_attach_provider_client_attach_callback(
     hook_registration->invoke_hook =
         (const ebpf_result_t(__cdecl*)(void*, void*, UINT32*))client_dispatch_table->function[0];
 
+    // client_binding_context signals when the provider can invoke the callback.
+    // Ensure that invoke_hook is first written to memory, followed by client_binding_context.
     MemoryBarrier();
     hook_registration->client_binding_context = client_binding_context;
 
