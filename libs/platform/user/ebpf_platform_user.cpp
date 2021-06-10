@@ -95,7 +95,7 @@ ebpf_platform_terminate()
 {}
 
 ebpf_result_t
-ebpf_get_code_integrity_state(ebpf_code_integrity_state_t* state)
+ebpf_get_code_integrity_state(_Out_ ebpf_code_integrity_state_t* state)
 {
     if (_ebpf_platform_code_integrity_enabled) {
         *state = EBPF_CODE_INTEGRITY_HYPER_VISOR_KERNEL_MODE;
@@ -105,8 +105,7 @@ ebpf_get_code_integrity_state(ebpf_code_integrity_state_t* state)
     return EBPF_SUCCESS;
 }
 
-void*
-ebpf_allocate(size_t size)
+_Must_inspect_result_ _Ret_maybenull_ _Post_writable_byte_size_(size) void* ebpf_allocate(size_t size)
 {
     void* memory;
     memory = calloc(size, 1);
@@ -117,7 +116,7 @@ ebpf_allocate(size_t size)
 }
 
 void
-ebpf_free(void* memory)
+ebpf_free(_Pre_maybenull_ _Post_invalid_ void* memory)
 {
     free(memory);
 }
@@ -148,7 +147,7 @@ ebpf_map_memory(size_t length)
 }
 
 void
-ebpf_unmap_memory(ebpf_memory_descriptor_t* memory_descriptor)
+ebpf_unmap_memory(_Pre_maybenull_ _Post_invalid_ ebpf_memory_descriptor_t* memory_descriptor)
 {
     if (memory_descriptor) {
         VirtualFree(memory_descriptor->base, 0, MEM_RELEASE);
@@ -157,7 +156,7 @@ ebpf_unmap_memory(ebpf_memory_descriptor_t* memory_descriptor)
 }
 
 ebpf_result_t
-ebpf_protect_memory(const ebpf_memory_descriptor_t* memory_descriptor, ebpf_page_protection_t protection)
+ebpf_protect_memory(_In_ const ebpf_memory_descriptor_t* memory_descriptor, ebpf_page_protection_t protection)
 {
     ULONG mm_protection_state = 0;
     ULONG old_mm_protection_state = 0;
@@ -190,13 +189,13 @@ ebpf_memory_descriptor_get_base_address(ebpf_memory_descriptor_t* memory_descrip
 }
 
 ebpf_result_t
-ebpf_safe_size_t_multiply(size_t multiplicand, size_t multiplier, size_t* result)
+ebpf_safe_size_t_multiply(size_t multiplicand, size_t multiplier, _Out_ size_t* result)
 {
     return SUCCEEDED(SizeTMult(multiplicand, multiplier, result)) ? EBPF_SUCCESS : EBPF_ARITHMETIC_OVERFLOW;
 }
 
 ebpf_result_t
-ebpf_safe_size_t_add(size_t augend, size_t addend, size_t* result)
+ebpf_safe_size_t_add(size_t augend, size_t addend, _Out_ size_t* result)
 {
     return SUCCEEDED(SizeTAdd(augend, addend, result)) ? EBPF_SUCCESS : EBPF_ARITHMETIC_OVERFLOW;
 }
@@ -208,63 +207,63 @@ ebpf_safe_size_t_subtract(size_t minuend, size_t subtrahend, size_t* result)
 }
 
 void
-ebpf_lock_create(ebpf_lock_t* lock)
+ebpf_lock_create(_Inout_ ebpf_lock_t* lock)
 {
     InitializeSRWLock(reinterpret_cast<PSRWLOCK>(lock));
 }
 
 void
-ebpf_lock_destroy(ebpf_lock_t* lock)
+ebpf_lock_destroy(_In_ ebpf_lock_t* lock)
 {
     UNREFERENCED_PARAMETER(lock);
 }
 
-void
-ebpf_lock_lock(ebpf_lock_t* lock, ebpf_lock_state_t* state)
+_Requires_lock_not_held_(*lock) _Acquires_lock_(*lock) _IRQL_requires_max_(DISPATCH_LEVEL) _IRQL_saves_
+    _IRQL_raises_(DISPATCH_LEVEL) ebpf_lock_state_t ebpf_lock_lock(_In_ ebpf_lock_t* lock)
 {
-    UNREFERENCED_PARAMETER(state);
     AcquireSRWLockExclusive(reinterpret_cast<PSRWLOCK>(lock));
+    return 0;
 }
 
-void
-ebpf_lock_unlock(ebpf_lock_t* lock, ebpf_lock_state_t* state)
+_Requires_lock_held_(*lock) _Releases_lock_(*lock) _IRQL_requires_(DISPATCH_LEVEL) void ebpf_lock_unlock(
+    _In_ ebpf_lock_t* lock, _IRQL_restores_ ebpf_lock_state_t state)
 {
     UNREFERENCED_PARAMETER(state);
     ReleaseSRWLockExclusive(reinterpret_cast<PSRWLOCK>(lock));
 }
 
 int32_t
-ebpf_interlocked_increment_int32(volatile int32_t* addend)
+ebpf_interlocked_increment_int32(_Inout_ volatile int32_t* addend)
 {
     return InterlockedIncrement((volatile long*)addend);
 }
 
 int32_t
-ebpf_interlocked_decrement_int32(volatile int32_t* addend)
+ebpf_interlocked_decrement_int32(_Inout_ volatile int32_t* addend)
 {
     return InterlockedDecrement((volatile long*)addend);
 }
 
 int64_t
-ebpf_interlocked_increment_int64(volatile int64_t* addend)
+ebpf_interlocked_increment_int64(_Inout_ volatile int64_t* addend)
 {
     return InterlockedIncrement64(addend);
 }
 
 int64_t
-ebpf_interlocked_decrement_int64(volatile int64_t* addend)
+ebpf_interlocked_decrement_int64(_Inout_ volatile int64_t* addend)
 {
     return InterlockedDecrement64(addend);
 }
 
 int32_t
-ebpf_interlocked_compare_exchange_int32(volatile int32_t* destination, int32_t exchange, int32_t comperand)
+ebpf_interlocked_compare_exchange_int32(_Inout_ volatile int32_t* destination, int32_t exchange, int32_t comperand)
 {
     return InterlockedCompareExchange((long volatile*)destination, exchange, comperand);
 }
 
 void
-ebpf_get_cpu_count(uint32_t* cpu_count)
+ebpf_get_cpu_count(_Out_ uint32_t* cpu_count)
 {
     SYSTEM_INFO system_information;
     GetNativeSystemInfo(&system_information);
@@ -297,10 +296,10 @@ ebpf_get_current_thread_id()
 
 ebpf_result_t
 ebpf_allocate_non_preemptible_work_item(
-    ebpf_non_preemptible_work_item_t** work_item,
+    _Out_ ebpf_non_preemptible_work_item_t** work_item,
     uint32_t cpu_id,
-    void (*work_item_routine)(void* work_item_context, void* parameter_1),
-    void* work_item_context)
+    _In_ void (*work_item_routine)(void* work_item_context, void* parameter_1),
+    _In_opt_ void* work_item_context)
 {
     UNREFERENCED_PARAMETER(work_item);
     UNREFERENCED_PARAMETER(cpu_id);
@@ -310,13 +309,13 @@ ebpf_allocate_non_preemptible_work_item(
 }
 
 void
-ebpf_free_non_preemptible_work_item(ebpf_non_preemptible_work_item_t* work_item)
+ebpf_free_non_preemptible_work_item(_Pre_maybenull_ _Post_invalid_ ebpf_non_preemptible_work_item_t* work_item)
 {
     UNREFERENCED_PARAMETER(work_item);
 }
 
 bool
-ebpf_queue_non_preemptible_work_item(ebpf_non_preemptible_work_item_t* work_item, void* parameter_1)
+ebpf_queue_non_preemptible_work_item(_In_ ebpf_non_preemptible_work_item_t* work_item, _In_opt_ void* parameter_1)
 {
     UNREFERENCED_PARAMETER(work_item);
     UNREFERENCED_PARAMETER(parameter_1);
@@ -331,18 +330,20 @@ typedef struct _ebpf_timer_work_item
 } ebpf_timer_work_item_t;
 
 void
-_ebpf_timer_callback(_Inout_ TP_CALLBACK_INSTANCE* instance, _Inout_opt_ void* Context, _Inout_ TP_TIMER* Timer)
+_ebpf_timer_callback(_Inout_ TP_CALLBACK_INSTANCE* instance, _Inout_opt_ void* context, _Inout_ TP_TIMER* timer)
 {
-    ebpf_timer_work_item_t* timer_work_item = reinterpret_cast<ebpf_timer_work_item_t*>(Context);
+    ebpf_timer_work_item_t* timer_work_item = reinterpret_cast<ebpf_timer_work_item_t*>(context);
     UNREFERENCED_PARAMETER(instance);
-    UNREFERENCED_PARAMETER(Timer);
-
-    timer_work_item->work_item_routine(timer_work_item->work_item_context);
+    UNREFERENCED_PARAMETER(timer);
+    if (timer_work_item)
+        timer_work_item->work_item_routine(timer_work_item->work_item_context);
 }
 
 ebpf_result_t
 ebpf_allocate_timer_work_item(
-    ebpf_timer_work_item_t** work_item, void (*work_item_routine)(void* work_item_context), void* work_item_context)
+    _Out_ ebpf_timer_work_item_t** work_item,
+    _In_ void (*work_item_routine)(void* work_item_context),
+    _In_opt_ void* work_item_context)
 {
     *work_item = (ebpf_timer_work_item_t*)ebpf_allocate(sizeof(ebpf_timer_work_item_t));
 
@@ -372,35 +373,40 @@ Error:
 #define MICROSECONDS_PER_MILLISECOND 1000
 
 void
-ebpf_schedule_timer_work_item(ebpf_timer_work_item_t* work_item, uint32_t elapsed_microseconds)
+ebpf_schedule_timer_work_item(_In_ ebpf_timer_work_item_t* timer, uint32_t elapsed_microseconds)
 {
     int64_t due_time;
     due_time = -static_cast<int64_t>(elapsed_microseconds) * MICROSECONDS_PER_TICK;
 
     SetThreadpoolTimer(
-        work_item->threadpool_timer,
+        timer->threadpool_timer,
         reinterpret_cast<FILETIME*>(&due_time),
         0,
         elapsed_microseconds / MICROSECONDS_PER_MILLISECOND);
 }
 
 void
-ebpf_free_timer_work_item(ebpf_timer_work_item_t* work_item)
+ebpf_free_timer_work_item(_Pre_maybenull_ _Post_invalid_ ebpf_timer_work_item_t* work_item)
 {
+    if (!work_item)
+        return;
+
     WaitForThreadpoolTimerCallbacks(work_item->threadpool_timer, true);
     CloseThreadpoolTimer(work_item->threadpool_timer);
     ebpf_free(work_item);
 }
 
 ebpf_result_t
-ebpf_guid_create(GUID* new_guid)
+ebpf_guid_create(_Out_ GUID* new_guid)
 {
-    UuidCreate(new_guid);
-    return EBPF_SUCCESS;
+    if (UuidCreate(new_guid) == RPC_S_OK)
+        return EBPF_SUCCESS;
+    else
+        return EBPF_OPERATION_NOT_SUPPORTED;
 }
 
 int32_t
-ebpf_log_function(void* context, const char* format_string, ...)
+ebpf_log_function(_In_ void* context, _In_z_ const char* format_string, ...)
 {
     UNREFERENCED_PARAMETER(context);
     UNREFERENCED_PARAMETER(format_string);
@@ -409,9 +415,9 @@ ebpf_log_function(void* context, const char* format_string, ...)
 
 ebpf_result_t
 ebpf_access_check(
-    ebpf_security_descriptor_t* security_descriptor,
+    _In_ ebpf_security_descriptor_t* security_descriptor,
     ebpf_security_access_mask_t request_access,
-    ebpf_security_generic_mapping_t* generic_mapping)
+    _In_ ebpf_security_generic_mapping_t* generic_mapping)
 {
     ebpf_result_t result;
     HANDLE token = INVALID_HANDLE_VALUE;
@@ -457,7 +463,8 @@ Done:
 }
 
 ebpf_result_t
-ebpf_validate_security_descriptor(ebpf_security_descriptor_t* security_descriptor, size_t security_descriptor_length)
+ebpf_validate_security_descriptor(
+    _In_ ebpf_security_descriptor_t* security_descriptor, size_t security_descriptor_length)
 {
     ebpf_result_t result;
     SECURITY_DESCRIPTOR_CONTROL security_descriptor_control;
