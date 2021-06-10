@@ -623,7 +623,7 @@ _net_ebpf_ext_provider_client_attach_callback(
 {
     net_ebpf_ext_hook_provider_registration_t* hook_registration = (net_ebpf_ext_hook_provider_registration_t*)context;
     if (hook_registration->client_binding_context)
-        return EBPF_ERROR_EXTENSION_FAILED_TO_LOAD;
+        return EBPF_EXTENSION_FAILED_TO_LOAD;
 
     hook_registration->client_binding_context = client_binding_context;
     hook_registration->client_id = *client_id;

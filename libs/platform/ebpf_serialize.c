@@ -49,7 +49,7 @@ ebpf_serialize_core_map_information_array(
 
     // Output buffer too small.
     if (output_buffer_length < *required_length) {
-        result = EBPF_ERROR_INSUFFICIENT_BUFFER;
+        result = EBPF_INSUFFICIENT_BUFFER;
         goto Exit;
     }
 

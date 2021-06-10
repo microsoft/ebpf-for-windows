@@ -66,7 +66,7 @@ _ebpf_result_to_ntstatus(ebpf_result_t result)
         status = STATUS_INSUFFICIENT_RESOURCES;
         break;
     }
-    case EBPF_ERROR_NOT_FOUND: {
+    case EBPF_KEY_NOT_FOUND: {
         status = STATUS_NOT_FOUND;
         break;
     }
@@ -74,28 +74,28 @@ _ebpf_result_to_ntstatus(ebpf_result_t result)
         status = STATUS_INVALID_PARAMETER;
         break;
     }
-    case EBPF_ERROR_BLOCKED_BY_POLICY: {
+    case EBPF_BLOCKED_BY_POLICY: {
         status = STATUS_CONTENT_BLOCKED;
         break;
     }
-    case EBPF_ERROR_NO_MORE_KEYS: {
+    case EBPF_NO_MORE_KEYS: {
         status = STATUS_NO_MORE_MATCHES;
         break;
     }
-    case EBPF_ERROR_INVALID_HANDLE: {
+    case EBPF_INVALID_OBJECT: {
         status = STATUS_INVALID_HANDLE;
         break;
     }
-    case EBPF_ERROR_NOT_SUPPORTED: {
+    case EBPF_OPERATION_NOT_SUPPORTED: {
         status = STATUS_NOT_SUPPORTED;
         break;
     }
-    case EBPF_ERROR_INSUFFICIENT_BUFFER: {
+    case EBPF_INSUFFICIENT_BUFFER: {
         status = STATUS_BUFFER_OVERFLOW;
         break;
     }
     default:
-        status = STATUS_INVALID_PARAMETER;
+        status = STATUS_UNSUCCESSFUL;
     }
 
     return status;

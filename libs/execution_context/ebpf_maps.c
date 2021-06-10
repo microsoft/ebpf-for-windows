@@ -37,7 +37,7 @@ ebpf_map_create(const ebpf_map_definition_t* ebpf_map_definition, ebpf_map_t** e
         return EBPF_INVALID_ARGUMENT;
 
     if (!ebpf_map_function_tables[type].create_map)
-        return EBPF_ERROR_NOT_SUPPORTED;
+        return EBPF_OPERATION_NOT_SUPPORTED;
 
     local_map = ebpf_map_function_tables[type].create_map(ebpf_map_definition);
     if (!local_map)
@@ -163,7 +163,7 @@ ebpf_delete_array_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
     key_value = *(uint32_t*)key;
 
     if (key_value > map->ebpf_map_definition.max_entries)
-        return EBPF_ERROR_NOT_FOUND;
+        return EBPF_KEY_NOT_FOUND;
 
     uint8_t* entry = &map->data[key_value * map->ebpf_map_definition.value_size];
     memset(entry, 0, map->ebpf_map_definition.value_size);
@@ -184,7 +184,7 @@ ebpf_next_array_map_key(_In_ ebpf_core_map_t* map, _In_ const uint8_t* previous_
         key_value = 0;
 
     if (key_value >= map->ebpf_map_definition.max_entries)
-        return EBPF_ERROR_NO_MORE_KEYS;
+        return EBPF_NO_MORE_KEYS;
 
     *(uint32_t*)next_key = key_value;
 

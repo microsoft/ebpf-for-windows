@@ -56,32 +56,32 @@ ebpf_platform_initiate()
 
     ntdll_module = LoadLibrary(L"ntdll.dll");
     if (ntdll_module == nullptr) {
-        return EBPF_ERROR_NOT_SUPPORTED;
+        return EBPF_OPERATION_NOT_SUPPORTED;
     }
 
     if (!resolve_function(ntdll_module, RtlInitializeGenericTableAvl, "RtlInitializeGenericTableAvl")) {
-        return EBPF_ERROR_NOT_SUPPORTED;
+        return EBPF_OPERATION_NOT_SUPPORTED;
     }
     if (!resolve_function(ntdll_module, RtlEnumerateGenericTableAvl, "RtlEnumerateGenericTableAvl")) {
-        return EBPF_ERROR_NOT_SUPPORTED;
+        return EBPF_OPERATION_NOT_SUPPORTED;
     }
     if (!resolve_function(ntdll_module, RtlDeleteElementGenericTableAvl, "RtlDeleteElementGenericTableAvl")) {
-        return EBPF_ERROR_NOT_SUPPORTED;
+        return EBPF_OPERATION_NOT_SUPPORTED;
     }
     if (!resolve_function(ntdll_module, RtlLookupElementGenericTableAvl, "RtlLookupElementGenericTableAvl")) {
-        return EBPF_ERROR_NOT_SUPPORTED;
+        return EBPF_OPERATION_NOT_SUPPORTED;
     }
     if (!resolve_function(ntdll_module, RtlEnumerateGenericTableAvl, "RtlEnumerateGenericTableAvl")) {
-        return EBPF_ERROR_NOT_SUPPORTED;
+        return EBPF_OPERATION_NOT_SUPPORTED;
     }
     if (!resolve_function(
             ntdll_module,
             RtlLookupFirstMatchingElementGenericTableAvl,
             "RtlLookupFirstMatchingElementGenericTableAvl")) {
-        return EBPF_ERROR_NOT_SUPPORTED;
+        return EBPF_OPERATION_NOT_SUPPORTED;
     }
     if (!resolve_function(ntdll_module, RtlInsertElementGenericTableAvl, "RtlInsertElementGenericTableAvl")) {
-        return EBPF_ERROR_NOT_SUPPORTED;
+        return EBPF_OPERATION_NOT_SUPPORTED;
     }
 
     // Note: This is safe because ntdll is never unloaded becuase
@@ -192,19 +192,19 @@ ebpf_memory_descriptor_get_base_address(ebpf_memory_descriptor_t* memory_descrip
 ebpf_result_t
 ebpf_safe_size_t_multiply(size_t multiplicand, size_t multiplier, size_t* result)
 {
-    return SUCCEEDED(SizeTMult(multiplicand, multiplier, result)) ? EBPF_SUCCESS : EBPF_ERROR_ARITHMETIC_OVERFLOW;
+    return SUCCEEDED(SizeTMult(multiplicand, multiplier, result)) ? EBPF_SUCCESS : EBPF_ARITHMETIC_OVERFLOW;
 }
 
 ebpf_result_t
 ebpf_safe_size_t_add(size_t augend, size_t addend, size_t* result)
 {
-    return SUCCEEDED(SizeTAdd(augend, addend, result)) ? EBPF_SUCCESS : EBPF_ERROR_ARITHMETIC_OVERFLOW;
+    return SUCCEEDED(SizeTAdd(augend, addend, result)) ? EBPF_SUCCESS : EBPF_ARITHMETIC_OVERFLOW;
 }
 
 ebpf_result_t
 ebpf_safe_size_t_subtract(size_t minuend, size_t subtrahend, size_t* result)
 {
-    return SUCCEEDED(SizeTSub(minuend, subtrahend, result)) ? EBPF_SUCCESS : EBPF_ERROR_ARITHMETIC_OVERFLOW;
+    return SUCCEEDED(SizeTSub(minuend, subtrahend, result)) ? EBPF_SUCCESS : EBPF_ARITHMETIC_OVERFLOW;
 }
 
 void
@@ -306,7 +306,7 @@ ebpf_allocate_non_preemptible_work_item(
     UNREFERENCED_PARAMETER(cpu_id);
     UNREFERENCED_PARAMETER(work_item_routine);
     UNREFERENCED_PARAMETER(work_item_context);
-    return EBPF_ERROR_NOT_SUPPORTED;
+    return EBPF_OPERATION_NOT_SUPPORTED;
 }
 
 void
@@ -422,12 +422,12 @@ ebpf_access_check(
     bool is_impersonating = false;
 
     if (!ImpersonateSelf(SecurityImpersonation)) {
-        result = EBPF_ERROR_ACCESS_DENIED;
+        result = EBPF_ACCESS_DENIED;
         goto Done;
     }
     is_impersonating = true;
     if (!OpenThreadToken(GetCurrentThread(), TOKEN_QUERY, TRUE, &token)) {
-        result = EBPF_ERROR_ACCESS_DENIED;
+        result = EBPF_ACCESS_DENIED;
         goto Done;
     }
 
@@ -442,9 +442,9 @@ ebpf_access_check(
             &access_status)) {
         DWORD err = GetLastError();
         printf("LastError: %d\n", err);
-        result = EBPF_ERROR_ACCESS_DENIED;
+        result = EBPF_ACCESS_DENIED;
     } else {
-        result = access_status ? EBPF_SUCCESS : EBPF_ERROR_ACCESS_DENIED;
+        result = access_status ? EBPF_SUCCESS : EBPF_ACCESS_DENIED;
     }
 
 Done:

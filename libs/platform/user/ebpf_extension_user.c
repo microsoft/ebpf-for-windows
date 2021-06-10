@@ -51,7 +51,7 @@ ebpf_extension_load(
     ebpf_lock_lock(&_ebpf_provider_table_lock, &state);
 
     if (!_ebpf_provider_table) {
-        return_value = EBPF_ERROR_NOT_FOUND;
+        return_value = EBPF_EXTENSION_FAILED_TO_LOAD;
         goto Done;
     }
 
@@ -72,7 +72,7 @@ ebpf_extension_load(
     return_value =
         ebpf_hash_table_find(_ebpf_provider_table, (const uint8_t*)interface_id, (uint8_t**)&hash_table_find_result);
     if (return_value != EBPF_SUCCESS) {
-        return_value = EBPF_ERROR_NOT_FOUND;
+        return_value = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
     local_extension_provider = *hash_table_find_result;
@@ -93,7 +93,7 @@ ebpf_extension_load(
             client_data,
             client_dispatch_table);
         if (return_value != EBPF_SUCCESS) {
-            return_value = EBPF_ERROR_NOT_FOUND;
+            return_value = EBPF_EXTENSION_FAILED_TO_LOAD;
             goto Done;
         }
     }
@@ -235,7 +235,7 @@ ebpf_provider_unload(ebpf_extension_provider_t* provider_context)
     ebpf_hash_table_delete(_ebpf_provider_table, (const uint8_t*)&provider_context->interface_id);
 
     return_value = ebpf_hash_table_next_key(_ebpf_provider_table, NULL, (uint8_t*)&next_key);
-    if (return_value == EBPF_ERROR_NO_MORE_KEYS) {
+    if (return_value == EBPF_NO_MORE_KEYS) {
         ebpf_hash_table_destroy(_ebpf_provider_table);
         _ebpf_provider_table = NULL;
     }

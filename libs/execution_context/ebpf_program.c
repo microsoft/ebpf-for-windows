@@ -435,10 +435,10 @@ ebpf_program_get_program_information_data(
     const ebpf_program_t* program, const ebpf_extension_data_t** program_information_data)
 {
     if (program->program_invalidated)
-        return EBPF_ERROR_EXTENSION_FAILED_TO_LOAD;
+        return EBPF_EXTENSION_FAILED_TO_LOAD;
 
     if (!program->program_information_data)
-        return EBPF_ERROR_EXTENSION_FAILED_TO_LOAD;
+        return EBPF_EXTENSION_FAILED_TO_LOAD;
 
     *program_information_data = program->program_information_data;
 

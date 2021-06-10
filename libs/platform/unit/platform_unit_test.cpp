@@ -296,7 +296,7 @@ TEST_CASE("access_check", "[access_check]")
 
     REQUIRE(ebpf_validate_security_descriptor(sd, sd_size) == EBPF_SUCCESS);
 
-    REQUIRE((result = ebpf_access_check(sd, 1, &generic_mapping), LocalFree(sd), result == EBPF_ERROR_ACCESS_DENIED));
+    REQUIRE((result = ebpf_access_check(sd, 1, &generic_mapping), LocalFree(sd), result == EBPF_ACCESS_DENIED));
 }
 
 TEST_CASE("memory_map_test", "[memory_map_test]")
@@ -347,7 +347,7 @@ TEST_CASE("serialize_map_test", "[serialize_map_test]")
     // Serialize.
     ebpf_result_t result = ebpf_serialize_core_map_information_array(
         map_count, core_map_info_array, buffer, buffer_length, &serialized_length, &required_length);
-    REQUIRE(result == EBPF_ERROR_INSUFFICIENT_BUFFER);
+    REQUIRE(result == EBPF_INSUFFICIENT_BUFFER);
 
     buffer = static_cast<uint8_t*>(calloc(required_length, 1));
     buffer_length = required_length;

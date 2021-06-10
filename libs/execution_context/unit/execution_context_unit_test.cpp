@@ -63,7 +63,7 @@ test_crud_operations(ebpf_map_type_t map_type)
             map.get(), reinterpret_cast<const uint8_t*>(&bad_key), reinterpret_cast<const uint8_t*>(&bad_value)) ==
         EBPF_INVALID_ARGUMENT);
 
-    REQUIRE(ebpf_map_delete_entry(map.get(), reinterpret_cast<const uint8_t*>(&bad_key)) == EBPF_ERROR_NOT_FOUND);
+    REQUIRE(ebpf_map_delete_entry(map.get(), reinterpret_cast<const uint8_t*>(&bad_key)) == EBPF_KEY_NOT_FOUND);
 
     for (uint32_t key = 0; key < 10; key++) {
         uint64_t* value =
@@ -88,7 +88,7 @@ test_crud_operations(ebpf_map_type_t map_type)
     REQUIRE(
         ebpf_map_next_key(
             map.get(), reinterpret_cast<const uint8_t*>(&previous_key), reinterpret_cast<uint8_t*>(&next_key)) ==
-        EBPF_ERROR_NO_MORE_KEYS);
+        EBPF_NO_MORE_KEYS);
 
     for (uint32_t key = 0; key < 10; key++) {
         REQUIRE(ebpf_map_delete_entry(map.get(), reinterpret_cast<const uint8_t*>(&key)) == EBPF_SUCCESS);

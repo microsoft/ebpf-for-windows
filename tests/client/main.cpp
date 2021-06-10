@@ -155,7 +155,7 @@ TEST_CASE("verify-program-droppacket_unsafe", "[verify-program-droppacket_unsafe
             verifier_message = nullptr;
         }
     }
-    REQUIRE((result == (int)EBPF_VALIDATION_FAILED));
+    REQUIRE((result == (int)EBPF_VERIFICATION_FAILED));
     REQUIRE(verifier_message_size > 0);
 
     ebpf_api_free_string(verifier_message);
