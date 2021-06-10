@@ -29,9 +29,15 @@
     <ClCompile Include="net_ebpf_ext.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ebpf_ext_attach_provider.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="net_ebpf_ext.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ebpf_ext_attach_provider.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

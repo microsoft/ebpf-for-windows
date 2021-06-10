@@ -30,6 +30,8 @@ Environment:
 #include <guiddef.h>
 #include <netiodef.h>
 #include <ntddk.h>
+
+#include "ebpf_ext_attach_provider.h"
 // ebpf_bind_program_data.h and ebpf_xdp_program_data.h are generated
 // headers. encode_program_information generates them from the structs
 // in ebpf_nethooks.h. This workaround exists due to the inability
@@ -42,20 +44,8 @@ Environment:
 #include "ebpf_windows.h"
 #include "ebpf_xdp_program_data.h"
 
-typedef struct _net_ebpf_ext_hook_provider_registration
-{
-    ebpf_extension_data_t* provider_data;
-    ebpf_extension_provider_t* provider;
-    GUID client_id;
-    void* client_binding_context;
-    const ebpf_extension_data_t* client_data;
-    const ebpf_result_t (*invoke_hook)(void* bind_context, void* context, uint32_t* result);
-    KDPC rundown_dpc;
-    KEVENT rundown_wait;
-} net_ebpf_ext_hook_provider_registration_t;
-
-static net_ebpf_ext_hook_provider_registration_t _ebpf_xdp_hook_provider_registration = {0};
-static net_ebpf_ext_hook_provider_registration_t _ebpf_bind_hook_provider_registration = {0};
+static ebpf_ext_attach_hook_provider_registration_t* _ebpf_xdp_hook_provider_registration = NULL;
+static ebpf_ext_attach_hook_provider_registration_t* _ebpf_bind_hook_provider_registration = NULL;
 static ebpf_extension_provider_t* _ebpf_xdp_program_information_provider = NULL;
 static ebpf_extension_provider_t* _ebpf_bind_program_information_provider = NULL;
 static ebpf_extension_data_t* _ebpf_xdp_program_information_provider_data = NULL;
@@ -422,7 +412,7 @@ _net_ebpf_ext_layer_2_classify(
     uint8_t* packet_buffer;
     uint32_t result = 0;
 
-    if (!_ebpf_xdp_hook_provider_registration.client_binding_context)
+    if (!ebpf_ext_attach_enter_rundown(_ebpf_xdp_hook_provider_registration))
         goto done;
 
     if (nbl == NULL) {
@@ -441,8 +431,7 @@ _net_ebpf_ext_layer_2_classify(
 
     xdp_md_t ctx = {packet_buffer, packet_buffer + net_buffer->DataLength};
 
-    if (_ebpf_xdp_hook_provider_registration.invoke_hook(
-            _ebpf_xdp_hook_provider_registration.client_binding_context, &ctx, &result) == EBPF_SUCCESS) {
+    if (ebpf_ext_attach_invoke_hook(_ebpf_xdp_hook_provider_registration, &ctx, &result) == EBPF_SUCCESS) {
         switch (result) {
         case XDP_PASS:
             action = FWP_ACTION_PERMIT;
@@ -454,6 +443,8 @@ _net_ebpf_ext_layer_2_classify(
     }
 done:
     classify_output->actionType = action;
+
+    ebpf_ext_attach_leave_rundown(_ebpf_xdp_hook_provider_registration);
     return;
 }
 
@@ -496,9 +487,9 @@ _net_ebpf_ext_resource_allocation_classify(
     UNREFERENCED_PARAMETER(filter);
     UNREFERENCED_PARAMETER(flow_context);
 
-    if (!_ebpf_bind_hook_provider_registration.invoke_hook) {
+    if (!ebpf_ext_attach_enter_rundown(_ebpf_bind_hook_provider_registration)) {
         classify_output->actionType = FWP_ACTION_PERMIT;
-        return;
+        goto Exit;
     }
 
     addr.sin_port =
@@ -518,8 +509,7 @@ _net_ebpf_ext_resource_allocation_classify(
         incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_ALE_APP_ID].value.byteBlob->size;
 
     _net_ebpf_ext_resource_truncate_appid(&ctx);
-    if (_ebpf_bind_hook_provider_registration.invoke_hook(
-            _ebpf_bind_hook_provider_registration.client_binding_context, &ctx, &result) == EBPF_SUCCESS) {
+    if (ebpf_ext_attach_invoke_hook(_ebpf_bind_hook_provider_registration, &ctx, &result) == EBPF_SUCCESS) {
         switch (result) {
         case BIND_PERMIT:
         case BIND_REDIRECT:
@@ -530,6 +520,8 @@ _net_ebpf_ext_resource_allocation_classify(
         }
     }
 
+Exit:
+    ebpf_ext_attach_leave_rundown(_ebpf_bind_hook_provider_registration);
     return;
 }
 
@@ -557,9 +549,9 @@ _net_ebpf_ext_resource_release_classify(
     UNREFERENCED_PARAMETER(filter);
     UNREFERENCED_PARAMETER(flow_context);
 
-    if (!_ebpf_bind_hook_provider_registration.invoke_hook) {
+    if (!ebpf_ext_attach_enter_rundown(_ebpf_bind_hook_provider_registration)) {
         classify_output->actionType = FWP_ACTION_PERMIT;
-        return;
+        goto Exit;
     }
 
     addr.sin_port = incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_RELEASE_V4_IP_LOCAL_PORT].value.uint16;
@@ -578,11 +570,13 @@ _net_ebpf_ext_resource_release_classify(
         incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_RELEASE_V4_ALE_APP_ID].value.byteBlob->size;
 
     _net_ebpf_ext_resource_truncate_appid(&ctx);
-    _ebpf_bind_hook_provider_registration.invoke_hook(
-        _ebpf_bind_hook_provider_registration.client_binding_context, &ctx, &result);
+
+    ebpf_ext_attach_invoke_hook(_ebpf_bind_hook_provider_registration, &ctx, &result);
 
     classify_output->actionType = FWP_ACTION_PERMIT;
 
+Exit:
+    ebpf_ext_attach_leave_rundown(_ebpf_bind_hook_provider_registration);
     return;
 }
 
@@ -611,123 +605,31 @@ _net_ebpf_ext_no_op_flow_delete(uint16_t layer_id, uint32_t fwpm_callout_id, uin
     return;
 }
 
-ebpf_result_t
-_net_ebpf_ext_provider_client_attach_callback(
-    void* context,
-    const GUID* client_id,
-    void* client_binding_context,
-    const ebpf_extension_data_t* client_data,
-    const ebpf_extension_dispatch_table_t* client_dispatch_table)
-{
-    net_ebpf_ext_hook_provider_registration_t* hook_registration = (net_ebpf_ext_hook_provider_registration_t*)context;
-    if (hook_registration->client_binding_context)
-        return EBPF_EXTENSION_FAILED_TO_LOAD;
-
-    hook_registration->client_binding_context = client_binding_context;
-    hook_registration->client_id = *client_id;
-    hook_registration->client_data = client_data;
-    hook_registration->invoke_hook =
-        (const ebpf_result_t(__cdecl*)(void*, void*, UINT32*))client_dispatch_table->function[0];
-
-    return EBPF_SUCCESS;
-}
-
-static _Function_class_(KDEFERRED_ROUTINE) _IRQL_requires_max_(DISPATCH_LEVEL) _IRQL_requires_min_(DISPATCH_LEVEL)
-    _IRQL_requires_(DISPATCH_LEVEL) _IRQL_requires_same_ VOID _net_ebpf_ext_rundown(
-        _In_ KDPC* dpc,
-        _In_opt_ void* deferred_context,
-        _In_opt_ void* system_argument_1,
-        _In_opt_ void* system_argument_2)
-{
-    net_ebpf_ext_hook_provider_registration_t* registration =
-        (net_ebpf_ext_hook_provider_registration_t*)deferred_context;
-
-    UNREFERENCED_PARAMETER(dpc);
-    UNREFERENCED_PARAMETER(system_argument_1);
-    UNREFERENCED_PARAMETER(system_argument_2);
-    if (registration)
-        KeSetEvent(&registration->rundown_wait, 0, FALSE);
-}
-
-static void
-_net_ebpf_ext_init_rundown(_In_ net_ebpf_ext_hook_provider_registration_t* registration)
-{
-    KeInitializeEvent(&(registration->rundown_wait), SynchronizationEvent, FALSE);
-    KeInitializeDpc(&(registration->rundown_dpc), _net_ebpf_ext_rundown, registration);
-}
-
-static void
-_net_ebpf_ext_wait_for_rundown(_In_ net_ebpf_ext_hook_provider_registration_t* registration)
-{
-    // Queue a DPC to each CPU and wait for it to run.
-    // After it has run on each CPU we can be sure that no
-    // DPC is busy processing a hook.
-    uint32_t maximum_processor = KeQueryMaximumProcessorCount();
-    uint32_t processor;
-    for (processor = 0; processor < maximum_processor; processor++) {
-        KeSetTargetProcessorDpc(&registration->rundown_dpc, (uint8_t)processor);
-        if (KeInsertQueueDpc(&registration->rundown_dpc, NULL, NULL)) {
-            KeWaitForSingleObject(&registration->rundown_wait, Executive, KernelMode, FALSE, NULL);
-        }
-    }
-}
-
-ebpf_result_t
-_net_ebpf_ext_provider_client_detach_callback(void* context, const GUID* client_id)
-{
-    net_ebpf_ext_hook_provider_registration_t* hook_registration = (net_ebpf_ext_hook_provider_registration_t*)context;
-    UNREFERENCED_PARAMETER(client_id);
-    hook_registration->client_binding_context = NULL;
-    hook_registration->client_data = NULL;
-    _net_ebpf_ext_wait_for_rundown(hook_registration);
-    hook_registration->invoke_hook = NULL;
-    return EBPF_SUCCESS;
-}
-
 NTSTATUS
 net_ebpf_ext_register_providers()
 {
     ebpf_result_t return_value;
-    _net_ebpf_ext_init_rundown(&_ebpf_xdp_hook_provider_registration);
-    _net_ebpf_ext_init_rundown(&_ebpf_bind_hook_provider_registration);
-
-    return_value = ebpf_provider_load(
-        &_ebpf_xdp_hook_provider_registration.provider,
-        &EBPF_ATTACH_TYPE_XDP,
-        &_ebpf_xdp_hook_provider_registration,
-        _ebpf_xdp_hook_provider_registration.provider_data,
-        NULL,
-        &_ebpf_xdp_hook_provider_registration,
-        _net_ebpf_ext_provider_client_attach_callback,
-        _net_ebpf_ext_provider_client_detach_callback);
-
+    return_value = ebpf_ext_attach_register_provider(
+        &EBPF_ATTACH_TYPE_XDP, EBPF_EXT_HOOK_EXECUTION_DISPATCH, &_ebpf_xdp_hook_provider_registration);
     if (return_value != EBPF_SUCCESS) {
-        goto Done;
+        return STATUS_UNSUCCESSFUL;
     }
 
-    return_value = ebpf_provider_load(
-        &_ebpf_bind_hook_provider_registration.provider,
-        &EBPF_ATTACH_TYPE_BIND,
-        &_ebpf_bind_hook_provider_registration,
-        _ebpf_bind_hook_provider_registration.provider_data,
-        NULL,
-        &_ebpf_bind_hook_provider_registration,
-        _net_ebpf_ext_provider_client_attach_callback,
-        _net_ebpf_ext_provider_client_detach_callback);
+    return_value = ebpf_ext_attach_register_provider(
+        &EBPF_ATTACH_TYPE_BIND, EBPF_EXT_HOOK_EXECUTION_PASSIVE, &_ebpf_bind_hook_provider_registration);
 
-Done:
     if (return_value != EBPF_SUCCESS) {
-        net_ebpf_ext_unregister_providers();
         return STATUS_UNSUCCESSFUL;
-    } else
-        return STATUS_SUCCESS;
+    }
+
+    return STATUS_SUCCESS;
 }
 
 void
 net_ebpf_ext_unregister_providers()
 {
-    ebpf_provider_unload(_ebpf_xdp_hook_provider_registration.provider);
-    ebpf_provider_unload(_ebpf_bind_hook_provider_registration.provider);
+    ebpf_ext_attach_unregister_provider(_ebpf_xdp_hook_provider_registration);
+    ebpf_ext_attach_unregister_provider(_ebpf_bind_hook_provider_registration);
 }
 
 void
