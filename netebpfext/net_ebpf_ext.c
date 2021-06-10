@@ -654,7 +654,7 @@ static _Function_class_(KDEFERRED_ROUTINE) _IRQL_requires_max_(DISPATCH_LEVEL) _
 static void
 _net_ebpf_ext_init_rundown(_In_ net_ebpf_ext_hook_provider_registration_t* registration)
 {
-    KeInitializeEvent(&(registration->rundown_wait), NotificationEvent, FALSE);
+    KeInitializeEvent(&(registration->rundown_wait), SynchronizationEvent, FALSE);
     KeInitializeDpc(&(registration->rundown_dpc), _net_ebpf_ext_rundown, registration);
 }
 
