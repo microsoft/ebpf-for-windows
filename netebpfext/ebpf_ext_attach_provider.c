@@ -67,7 +67,7 @@ _ebpf_ext_attach_provider_client_attach_callback(
 }
 
 static _Function_class_(KDEFERRED_ROUTINE) _IRQL_requires_max_(DISPATCH_LEVEL) _IRQL_requires_min_(DISPATCH_LEVEL)
-    _IRQL_requires_(DISPATCH_LEVEL) _IRQL_requires_same_ VOID _ebpf_ext_attach_rundown(
+    _IRQL_requires_(DISPATCH_LEVEL) _IRQL_requires_same_ void _ebpf_ext_attach_rundown(
         _In_ KDPC* dpc,
         _In_opt_ void* deferred_context,
         _In_opt_ void* system_argument_1,
@@ -149,6 +149,10 @@ _ebpf_ext_attach_provider_client_detach_callback(_In_ void* context, _In_ const 
     hook_registration->client_binding_context = NULL;
     hook_registration->client_data = NULL;
     hook_registration->invoke_hook = NULL;
+
+    // TODO: Issue https://github.com/microsoft/ebpf-for-windows/issues/270
+    // Client detach should return pending and then callback once invocations
+    // complete.
 
     // Wait for any in progress callbacks to complete.
     _ebpf_ext_attach_wait_for_rundown(hook_registration);
