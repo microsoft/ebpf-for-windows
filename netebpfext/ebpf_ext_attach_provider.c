@@ -28,11 +28,11 @@ typedef struct _ebpf_ext_attach_hook_provider_registration
 
 static ebpf_result_t
 _ebpf_ext_attach_provider_client_attach_callback(
-    void* context,
-    const GUID* client_id,
-    void* client_binding_context,
-    const ebpf_extension_data_t* client_data,
-    const ebpf_extension_dispatch_table_t* client_dispatch_table)
+    _In_ void* context,
+    _In_ const GUID* client_id,
+    _In_ void* client_binding_context,
+    _In_ const ebpf_extension_data_t* client_data,
+    _In_ const ebpf_extension_dispatch_table_t* client_dispatch_table)
 {
     ebpf_ext_attach_hook_provider_registration_t* hook_registration =
         (ebpf_ext_attach_hook_provider_registration_t*)context;
@@ -104,7 +104,7 @@ _ebpf_ext_attach_wait_for_rundown(_In_ ebpf_ext_attach_hook_provider_registratio
 }
 
 static ebpf_result_t
-_ebpf_ext_attach_provider_client_detach_callback(void* context, const GUID* client_id)
+_ebpf_ext_attach_provider_client_detach_callback(_In_ void* context, _In_ const GUID* client_id)
 {
     ebpf_ext_attach_hook_provider_registration_t* hook_registration =
         (ebpf_ext_attach_hook_provider_registration_t*)context;

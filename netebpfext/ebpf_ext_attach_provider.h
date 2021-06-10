@@ -37,8 +37,8 @@ ebpf_ext_attach_leave_rundown(_In_ ebpf_ext_attach_hook_provider_registration_t*
  * @brief Register as a attach type provider.
  *
  * @param[in] attach_type Attach type to register for.
- * @param[in, out] registration Registration to complete.
  * @param[in] execution_type Execution type for the hook (passive or dispatch).
+ * @param[out] registration Registration to complete.
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval EBPF_NO_MEMORY Unable to allocate resources for this
  * operation.
