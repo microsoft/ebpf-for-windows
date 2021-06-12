@@ -23,7 +23,7 @@ extern "C"
      *  map.
      */
     ebpf_result_t
-    ebpf_map_create(const ebpf_map_definition_t* ebpf_map_definition, ebpf_map_t** map);
+    ebpf_map_create(_In_ const ebpf_map_definition_t* ebpf_map_definition, _Outptr_ ebpf_map_t** map);
 
     /**
      * @brief Get a pointer to the map definition.
@@ -31,8 +31,8 @@ extern "C"
      * @param[in] map Map to get definition from.
      * @return Pointer to map definition.
      */
-    ebpf_map_definition_t*
-    ebpf_map_get_definition(ebpf_map_t* map);
+    const ebpf_map_definition_t*
+    ebpf_map_get_definition(_In_ const ebpf_map_t* map);
 
     /**
      * @brief Get a pointer to an entry in the map.
@@ -42,7 +42,7 @@ extern "C"
      * @return Pointer to the value if found or NULL.
      */
     uint8_t*
-    ebpf_map_find_entry(ebpf_map_t* map, const uint8_t* key);
+    ebpf_map_find_entry(_In_ ebpf_map_t* map, _In_ const uint8_t* key);
 
     /**
      * @brief Insert or update an entry in the map.
@@ -55,7 +55,7 @@ extern "C"
      *  entry.
      */
     ebpf_result_t
-    ebpf_map_update_entry(ebpf_map_t* map, const uint8_t* key, const uint8_t* value);
+    ebpf_map_update_entry(_In_ ebpf_map_t* map, _In_ const uint8_t* key, _In_ const uint8_t* value);
 
     /**
      * @brief Remove an entry from the map.
@@ -67,21 +67,22 @@ extern "C"
      *  invalid.
      */
     ebpf_result_t
-    ebpf_map_delete_entry(ebpf_map_t* map, const uint8_t* key);
+    ebpf_map_delete_entry(_In_ ebpf_map_t* map, _In_ const uint8_t* key);
 
     /**
      * @brief Retrieve the next key from the map.
      *
      * @param[in] map Map to search.
      * @param[in] previous_key The previous key need not be present. This will
-     * return the next key lexicographically after the specified key.
-     * @param[in] next_key Next key on success.
+     * return the next key lexicographically after the specified key.  A value of
+     * null indicates that the first key is to be returned.
+     * @param[out] next_key Next key on success.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MORE_KEYS There is no key following the specified
      * key in lexicographically order.
      */
     ebpf_result_t
-    ebpf_map_next_key(ebpf_map_t* map, const uint8_t* previous_key, uint8_t* next_key);
+    ebpf_map_next_key(_In_ ebpf_map_t* map, _In_opt_ const uint8_t* previous_key, _Out_ uint8_t* next_key);
 
 #ifdef __cplusplus
 }

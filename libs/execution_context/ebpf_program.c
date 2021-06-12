@@ -1,12 +1,11 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include "ebpf_program.h"
-
 #include "ebpf_core.h"
 #include "ebpf_epoch.h"
 #include "ebpf_link.h"
 #include "ebpf_object.h"
+#include "ebpf_program.h"
 
 typedef struct _FILE FILE;
 #include "ubpf.h"
@@ -389,7 +388,7 @@ Done:
 }
 
 void
-ebpf_program_invoke(ebpf_program_t* program, void* context, uint32_t* result)
+ebpf_program_invoke(_In_ const ebpf_program_t* program, _In_ void* context, _Out_ uint32_t* result)
 {
     if (!program || program->program_invalidated)
         return;

@@ -18,7 +18,7 @@ struct _ebpf_hash_table
 // Compare can be called with a partial struct only containing the key.
 // Do not access beyond map->ebpf_map_definition.key_size bytes.
 static RTL_GENERIC_COMPARE_RESULTS
-_ebpf_hash_map_compare(struct _RTL_AVL_TABLE* avl_table, void* first_struct, void* second_struct)
+_ebpf_hash_map_compare(_In_ struct _RTL_AVL_TABLE* avl_table, _In_ void* first_struct, _In_ void* second_struct)
 {
     ebpf_hash_table_t* table = (ebpf_hash_table_t*)avl_table;
 
@@ -108,10 +108,7 @@ ebpf_hash_table_destroy(_Pre_maybenull_ _Post_invalid_ ebpf_hash_table_t* hash_t
 }
 
 ebpf_result_t
-ebpf_hash_table_find(
-    _In_ ebpf_hash_table_t* hash_table,
-    _In_ _Pre_readable_byte_size_(hash_table->key_size) const uint8_t* key,
-    _Outptr_ _Post_readable_size_(hash_table->value_size) uint8_t** value)
+ebpf_hash_table_find(_In_ ebpf_hash_table_t* hash_table, _In_ const uint8_t* key, _Outptr_ uint8_t** value)
 {
     ebpf_result_t retval;
     RTL_AVL_TABLE* table = (RTL_AVL_TABLE*)hash_table;
@@ -129,10 +126,7 @@ ebpf_hash_table_find(
 }
 
 ebpf_result_t
-ebpf_hash_table_update(
-    _In_ ebpf_hash_table_t* hash_table,
-    _In_ _Pre_readable_byte_size_(hash_table->key_size) const uint8_t* key,
-    _In_ _Pre_readable_byte_size_(hash_table->value_size) const uint8_t* value)
+ebpf_hash_table_update(_In_ ebpf_hash_table_t* hash_table, _In_ const uint8_t* key, _In_ const uint8_t* value)
 {
     ebpf_result_t retval;
     RTL_AVL_TABLE* table = (RTL_AVL_TABLE*)hash_table;
@@ -172,8 +166,7 @@ Done:
 }
 
 ebpf_result_t
-ebpf_hash_table_delete(
-    _In_ ebpf_hash_table_t* hash_table, _In_ _Pre_readable_byte_size_(hash_table->key_size) const uint8_t* key)
+ebpf_hash_table_delete(_In_ ebpf_hash_table_t* hash_table, _In_ const uint8_t* key)
 {
     BOOLEAN result;
     RTL_AVL_TABLE* table = (RTL_AVL_TABLE*)hash_table;
@@ -186,8 +179,8 @@ ebpf_result_t
 ebpf_hash_table_next_key_and_value(
     _In_ ebpf_hash_table_t* hash_table,
     _In_opt_ const uint8_t* previous_key,
-    _Out_ _Writable_bytes_(hash_table->key_size) uint8_t* next_key,
-    _Outptr_opt_ _Post_readable_size_(hash_table->value_size) uint8_t** value)
+    _Out_ uint8_t* next_key,
+    _Outptr_opt_ uint8_t** value)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     RTL_AVL_TABLE* table = (RTL_AVL_TABLE*)hash_table;
@@ -239,9 +232,7 @@ Exit:
 
 ebpf_result_t
 ebpf_hash_table_next_key(
-    _In_ ebpf_hash_table_t* hash_table,
-    _In_opt_ _Pre_readable_byte_size_(hash_table->key_size) const uint8_t* previous_key,
-    _Out_ _Post_readable_size_(hash_table->value_size) uint8_t* next_key)
+    _In_ ebpf_hash_table_t* hash_table, _In_opt_ const uint8_t* previous_key, _Out_ uint8_t* next_key)
 {
     return ebpf_hash_table_next_key_and_value(hash_table, previous_key, next_key, NULL);
 }
