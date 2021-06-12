@@ -27,7 +27,7 @@ Environment:
 static DEVICE_OBJECT* _ebpf_driver_device_object;
 static BOOLEAN _ebpf_driver_unloading_flag = FALSE;
 
-// SID for ebpfsvc:
+// SID for ebpfsvc (generated using command "sc.exe showsid ebpfsvc"):
 // S-1-5-80-3453964624-2861012444-1105579853-3193141192-1897355174
 //
 // SDDL_DEVOBJ_SYS_ALL_ADM_ALL + SID for ebpfsvc.
@@ -152,7 +152,7 @@ _ebpf_driver_initialize_objects(
 
     device_initialize = WdfControlDeviceInitAllocate(
         *driver,
-        &security_descriptor // only kernel/system, administrators and ebpfsvc.
+        &security_descriptor // only kernel/system, administrators, and ebpfsvc.
     );
     if (!device_initialize) {
         status = STATUS_INSUFFICIENT_RESOURCES;

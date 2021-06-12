@@ -63,8 +63,8 @@ QueryService:
             return error;
         }
 
-        // Set service SID type to unrestricted.
-        sid_information.dwServiceSidType = SERVICE_SID_TYPE_UNRESTRICTED;
+        // Set service SID type to restricted.
+        sid_information.dwServiceSidType = SERVICE_SID_TYPE_RESTRICTED;
         if (!ChangeServiceConfig2(service_handle, SERVICE_CONFIG_SERVICE_SID_INFO, &sid_information)) {
             error = GetLastError();
             printf("ChangeServiceConfig2 for %ws failed, 0x%x.\n", service_name.c_str(), error);

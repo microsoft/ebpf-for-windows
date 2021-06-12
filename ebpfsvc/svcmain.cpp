@@ -101,8 +101,8 @@ service_install()
         goto Exit;
     }
 
-    // Set service SID type to unrestricted.
-    sid_information.dwServiceSidType = SERVICE_SID_TYPE_UNRESTRICTED;
+    // Set service SID type to restricted.
+    sid_information.dwServiceSidType = SERVICE_SID_TYPE_RESTRICTED;
     if (!ChangeServiceConfig2(service, SERVICE_CONFIG_SERVICE_SID_INFO, &sid_information)) {
         result = GetLastError();
         goto Exit;
