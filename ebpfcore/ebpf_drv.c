@@ -1,7 +1,5 @@
-/*
- *  Copyright (c) Microsoft Corporation
- *  SPDX-License-Identifier: MIT
- */
+// Copyright (c) Microsoft Corporation
+// SPDX-License-Identifier: MIT
 
 /*++
 
@@ -28,6 +26,13 @@ Environment:
 // Driver global variables
 static DEVICE_OBJECT* _ebpf_driver_device_object;
 static BOOLEAN _ebpf_driver_unloading_flag = FALSE;
+
+// SID for ebpfsvc (generated using command "sc.exe showsid ebpfsvc"):
+// S-1-5-80-3453964624-2861012444-1105579853-3193141192-1897355174
+//
+// SDDL_DEVOBJ_SYS_ALL_ADM_ALL + SID for ebpfsvc.
+#define EBPF_EXECUTION_CONTEXT_DEVICE_SDDL \
+    L"D:P(A;;GA;;;S-1-5-80-3453964624-2861012444-1105579853-3193141192-1897355174)(A;;GA;;;BA)(A;;GA;;;SY)"
 
 #ifndef CTL_CODE
 #define CTL_CODE(DeviceType, Function, Method, Access) \
@@ -134,6 +139,8 @@ _ebpf_driver_initialize_objects(
 
     WDF_DRIVER_CONFIG_INIT(&driver_configuration, WDF_NO_EVENT_CALLBACK);
 
+    DECLARE_CONST_UNICODE_STRING(security_descriptor, EBPF_EXECUTION_CONTEXT_DEVICE_SDDL);
+
     driver_configuration.DriverInitFlags |= WdfDriverInitNonPnpDriver;
     driver_configuration.EvtDriverUnload = _ebpf_driver_unload;
 
@@ -145,7 +152,7 @@ _ebpf_driver_initialize_objects(
 
     device_initialize = WdfControlDeviceInitAllocate(
         *driver,
-        &SDDL_DEVOBJ_SYS_ALL_ADM_ALL // only kernel/system and administrators.
+        &security_descriptor // only kernel/system, administrators, and ebpfsvc.
     );
     if (!device_initialize) {
         status = STATUS_INSUFFICIENT_RESOURCES;

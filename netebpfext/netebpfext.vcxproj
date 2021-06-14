@@ -124,6 +124,7 @@
   <ItemGroup>
     <ClCompile Include="net_ebpf_ext_drv.c" />
     <ClCompile Include="net_ebpf_ext.c" />
+    <ClCompile Include="ebpf_ext_attach_provider.c" />
   </ItemGroup>
   <ItemGroup>
     <Inf Include="NetEbpfExt.inf" />
@@ -133,6 +134,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="net_ebpf_ext.h" />
+    <ClInclude Include="ebpf_ext_attach_provider.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\libs\platform\kernel\platform_kernel.vcxproj">

@@ -1,7 +1,5 @@
-/*
- *  Copyright (c) Microsoft Corporation
- *  SPDX-License-Identifier: MIT
- */
+// Copyright (c) Microsoft Corporation
+// SPDX-License-Identifier: MIT
 
 #include <string>
 #include <vector>
@@ -114,11 +112,12 @@ handle_ebpf_add_program(
     UNREFERENCED_PARAMETER(data);
     UNREFERENCED_PARAMETER(done);
 
-    TAG_TYPE tags[] = {{TOKEN_FILENAME, NS_REQ_PRESENT, FALSE},
-                       {TOKEN_SECTION, NS_REQ_PRESENT, FALSE},
-                       {TOKEN_TYPE, NS_REQ_ZERO, FALSE},
-                       {TOKEN_PINNED, NS_REQ_ZERO, FALSE},
-                       {TOKEN_EXECUTION, NS_REQ_ZERO, FALSE}};
+    TAG_TYPE tags[] = {
+        {TOKEN_FILENAME, NS_REQ_PRESENT, FALSE},
+        {TOKEN_SECTION, NS_REQ_PRESENT, FALSE},
+        {TOKEN_TYPE, NS_REQ_ZERO, FALSE},
+        {TOKEN_PINNED, NS_REQ_ZERO, FALSE},
+        {TOKEN_EXECUTION, NS_REQ_ZERO, FALSE}};
     ULONG tag_type[_countof(tags)] = {0};
 
     ULONG status =

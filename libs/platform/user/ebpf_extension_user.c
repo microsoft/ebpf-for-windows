@@ -1,7 +1,6 @@
-/*
- *  Copyright (c) Microsoft Corporation
- *  SPDX-License-Identifier: MIT
- */
+// Copyright (c) Microsoft Corporation
+// SPDX-License-Identifier: MIT
+
 #include "ebpf_platform.h"
 
 typedef struct _ebpf_extension_client
@@ -25,20 +24,20 @@ typedef struct _ebpf_extension_provider
     ebpf_hash_table_t* client_table;
 } ebpf_extension_provider_t;
 
-ebpf_lock_t _ebpf_provider_table_lock = {0};
-ebpf_hash_table_t* _ebpf_provider_table = NULL;
+static ebpf_lock_t _ebpf_provider_table_lock = {0};
+static _Requires_lock_held_(&_ebpf_provider_table_lock) ebpf_hash_table_t* _ebpf_provider_table = NULL;
 
 ebpf_result_t
 ebpf_extension_load(
-    ebpf_extension_client_t** client_context,
-    const GUID* interface_id,
-    void* client_binding_context,
-    const ebpf_extension_data_t* client_data,
-    const ebpf_extension_dispatch_table_t* client_dispatch_table,
-    void** provider_binding_context,
-    const ebpf_extension_data_t** provider_data,
-    const ebpf_extension_dispatch_table_t** provider_dispatch_table,
-    ebpf_extension_change_callback_t extension_changed)
+    _Outptr_ ebpf_extension_client_t** client_context,
+    _In_ const GUID* interface_id,
+    _In_ void* client_binding_context,
+    _In_ const ebpf_extension_data_t* client_data,
+    _In_ const ebpf_extension_dispatch_table_t* client_dispatch_table,
+    _In_ void** provider_binding_context,
+    _Outptr_ const ebpf_extension_data_t** provider_data,
+    _Outptr_ const ebpf_extension_dispatch_table_t** provider_dispatch_table,
+    _In_ ebpf_extension_change_callback_t extension_changed)
 {
     ebpf_result_t return_value;
     ebpf_lock_state_t state;
@@ -48,7 +47,7 @@ ebpf_extension_load(
 
     UNREFERENCED_PARAMETER(extension_changed);
 
-    ebpf_lock_lock(&_ebpf_provider_table_lock, &state);
+    state = ebpf_lock_lock(&_ebpf_provider_table_lock);
 
     if (!_ebpf_provider_table) {
         return_value = EBPF_EXTENSION_FAILED_TO_LOAD;
@@ -110,12 +109,12 @@ Done:
             local_extension_provider->client_table, (const uint8_t*)&local_extension_client->client_id);
     }
 
-    ebpf_lock_unlock(&_ebpf_provider_table_lock, &state);
+    ebpf_lock_unlock(&_ebpf_provider_table_lock, state);
     return return_value;
 }
 
 void
-ebpf_extension_unload(ebpf_extension_client_t* client_context)
+ebpf_extension_unload(_Pre_maybenull_ _Post_invalid_ ebpf_extension_client_t* client_context)
 {
     ebpf_result_t return_value;
     ebpf_lock_state_t state;
@@ -125,7 +124,7 @@ ebpf_extension_unload(ebpf_extension_client_t* client_context)
     if (!client_context)
         return;
 
-    ebpf_lock_lock(&_ebpf_provider_table_lock, &state);
+    state = ebpf_lock_lock(&_ebpf_provider_table_lock);
 
     if (!_ebpf_provider_table) {
         goto Done;
@@ -146,24 +145,24 @@ ebpf_extension_unload(ebpf_extension_client_t* client_context)
 
 Done:
     ebpf_free(client_context);
-    ebpf_lock_unlock(&_ebpf_provider_table_lock, &state);
+    ebpf_lock_unlock(&_ebpf_provider_table_lock, state);
 }
 
 ebpf_result_t
 ebpf_provider_load(
-    ebpf_extension_provider_t** provider_context,
-    const GUID* interface_id,
-    void* provider_binding_context,
-    const ebpf_extension_data_t* provider_data,
-    const ebpf_extension_dispatch_table_t* provider_dispatch_table,
-    void* callback_context,
-    ebpf_provider_client_attach_callback_t client_attach_callback,
-    ebpf_provider_client_detach_callback_t client_detach_callback)
+    _Outptr_ ebpf_extension_provider_t** provider_context,
+    _In_ const GUID* interface_id,
+    _In_ void* provider_binding_context,
+    _In_ const ebpf_extension_data_t* provider_data,
+    _In_ const ebpf_extension_dispatch_table_t* provider_dispatch_table,
+    _In_ void* callback_context,
+    _In_ ebpf_provider_client_attach_callback_t client_attach_callback,
+    _In_ ebpf_provider_client_detach_callback_t client_detach_callback)
 {
     ebpf_result_t return_value;
     ebpf_lock_state_t state;
     ebpf_extension_provider_t* local_extension_provider = NULL;
-    ebpf_lock_lock(&_ebpf_provider_table_lock, &state);
+    state = ebpf_lock_lock(&_ebpf_provider_table_lock);
 
     if (!_ebpf_provider_table) {
         return_value =
@@ -210,13 +209,13 @@ ebpf_provider_load(
     local_extension_provider = NULL;
 
 Done:
-    ebpf_lock_unlock(&_ebpf_provider_table_lock, &state);
+    ebpf_lock_unlock(&_ebpf_provider_table_lock, state);
     ebpf_free(local_extension_provider);
     return return_value;
 }
 
 void
-ebpf_provider_unload(ebpf_extension_provider_t* provider_context)
+ebpf_provider_unload(_Pre_maybenull_ _Post_invalid_ ebpf_extension_provider_t* provider_context)
 {
     ebpf_result_t return_value;
     ebpf_lock_state_t state;
@@ -226,7 +225,7 @@ ebpf_provider_unload(ebpf_extension_provider_t* provider_context)
     if (!provider_context)
         return;
 
-    ebpf_lock_lock(&_ebpf_provider_table_lock, &state);
+    state = ebpf_lock_lock(&_ebpf_provider_table_lock);
 
     if (!_ebpf_provider_table) {
         goto Done;
@@ -241,6 +240,6 @@ ebpf_provider_unload(ebpf_extension_provider_t* provider_context)
     }
 
 Done:
-    ebpf_lock_unlock(&_ebpf_provider_table_lock, &state);
+    ebpf_lock_unlock(&_ebpf_provider_table_lock, state);
     ebpf_free(local_extension_provider);
 }

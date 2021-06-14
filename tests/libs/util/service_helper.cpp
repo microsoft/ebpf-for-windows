@@ -12,6 +12,7 @@ service_install_helper::initialize()
 {
     int error;
     int retry_count = 0;
+    SERVICE_SID_INFO sid_information = {0};
 
     if (initialized) {
         return ERROR_SUCCESS;
@@ -35,21 +36,21 @@ QueryService:
             return error;
         }
 
-        // Install the service
+        // Install the service as LocalService.
         service_handle = CreateService(
-            scm_handle,           // SCM database
-            service_name.c_str(), // name of service
-            service_name.c_str(), // service name to display
-            SERVICE_ALL_ACCESS,   // desired access
-            service_type,         // service type
-            SERVICE_AUTO_START,   // start type
-            SERVICE_ERROR_NORMAL, // error control type
-            file_path,            // path to service's binary
-            nullptr,              // no load ordering group
-            nullptr,              // no tag identifier
-            nullptr,              // no dependencies
-            nullptr,              // LocalSystem account
-            nullptr);             // no password
+            scm_handle,                    // SCM database
+            service_name.c_str(),          // name of service
+            service_name.c_str(),          // service name to display
+            SERVICE_ALL_ACCESS,            // desired access
+            service_type,                  // service type
+            SERVICE_AUTO_START,            // start type
+            SERVICE_ERROR_NORMAL,          // error control type
+            file_path,                     // path to service's binary
+            nullptr,                       // no load ordering group
+            nullptr,                       // no tag identifier
+            nullptr,                       // no dependencies
+            L"NT AUTHORITY\\LocalService", // LocalService account
+            nullptr);                      // no password
 
         if (service_handle == nullptr) {
             error = GetLastError();
@@ -59,6 +60,14 @@ QueryService:
                 goto QueryService;
             }
             printf("CreateService for %ws failed, 0x%x.\n", service_name.c_str(), error);
+            return error;
+        }
+
+        // Set service SID type to restricted.
+        sid_information.dwServiceSidType = SERVICE_SID_TYPE_RESTRICTED;
+        if (!ChangeServiceConfig2(service_handle, SERVICE_CONFIG_SERVICE_SID_INFO, &sid_information)) {
+            error = GetLastError();
+            printf("ChangeServiceConfig2 for %ws failed, 0x%x.\n", service_name.c_str(), error);
             return error;
         }
     } else {

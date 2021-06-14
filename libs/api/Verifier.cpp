@@ -111,15 +111,19 @@ ebpf_api_elf_enumerate_sections(
                 }
             }
 
-            sequence.emplace_back(tlv_pack<tlv_sequence>({tlv_pack(raw_program.section.c_str()),
-                                                          tlv_pack(raw_program.info.type.name.c_str()),
-                                                          tlv_pack(raw_program.info.map_descriptors.size()),
-                                                          tlv_pack(convert_ebpf_program_to_bytes(raw_program.prog)),
-                                                          tlv_pack(stats_sequence)}));
+            sequence.emplace_back(tlv_pack<tlv_sequence>(
+                {tlv_pack(raw_program.section.c_str()),
+                 tlv_pack(raw_program.info.type.name.c_str()),
+                 tlv_pack(raw_program.info.map_descriptors.size()),
+                 tlv_pack(convert_ebpf_program_to_bytes(raw_program.prog)),
+                 tlv_pack(stats_sequence)}));
         }
 
         auto retval = tlv_pack(sequence);
         auto local_data = reinterpret_cast<tlv_type_length_value_t*>(malloc(retval.size()));
+        if (!local_data)
+            throw std::runtime_error("Out of memory");
+
         memcpy(local_data, retval.data(), retval.size());
         *data = local_data;
     } catch (std::runtime_error e) {

@@ -1,7 +1,6 @@
-/*
- *  Copyright (c) Microsoft Corporation
- *  SPDX-License-Identifier: MIT
- */
+// Copyright (c) Microsoft Corporation
+// SPDX-License-Identifier: MIT
+
 // ntifs.h needs to be included ahead of other headers to satisfy the Windows
 // build system.
 #include <ntifs.h>
@@ -30,14 +29,14 @@ void
 ebpf_platform_terminate()
 {}
 
-void*
-ebpf_allocate(size_t size)
+__drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
+    _Post_writable_byte_size_(size) void* ebpf_allocate(size_t size)
 {
     return ExAllocatePool2(POOL_FLAG_NON_PAGED, size, EBPF_POOL_TAG);
 }
 
 void
-ebpf_free(void* memory)
+ebpf_free(_Pre_maybenull_ _Post_invalid_ __drv_freesMem(Mem) void* memory)
 {
     if (memory)
         ExFreePool(memory);
@@ -63,7 +62,7 @@ ebpf_map_memory(size_t length)
 }
 
 void
-ebpf_unmap_memory(ebpf_memory_descriptor_t* memory_descriptor)
+ebpf_unmap_memory(_Pre_maybenull_ _Post_invalid_ ebpf_memory_descriptor_t* memory_descriptor)
 {
     if (!memory_descriptor)
         return;
@@ -75,7 +74,7 @@ ebpf_unmap_memory(ebpf_memory_descriptor_t* memory_descriptor)
 }
 
 ebpf_result_t
-ebpf_protect_memory(const ebpf_memory_descriptor_t* memory_descriptor, ebpf_page_protection_t protection)
+ebpf_protect_memory(_In_ const ebpf_memory_descriptor_t* memory_descriptor, ebpf_page_protection_t protection)
 {
     NTSTATUS status;
     ULONG mm_protection_state = 0;
@@ -126,7 +125,7 @@ NtQuerySystemInformation(
 // End code pulled from winternl.h.
 
 ebpf_result_t
-ebpf_get_code_integrity_state(ebpf_code_integrity_state_t* state)
+ebpf_get_code_integrity_state(_Out_ ebpf_code_integrity_state_t* state)
 {
     NTSTATUS status;
     SYSTEM_CODEINTEGRITY_INFORMATION code_integrity_information = {sizeof(SYSTEM_CODEINTEGRITY_INFORMATION), 0};
@@ -145,79 +144,79 @@ ebpf_get_code_integrity_state(ebpf_code_integrity_state_t* state)
 }
 
 ebpf_result_t
-ebpf_safe_size_t_multiply(size_t multiplicand, size_t multiplier, size_t* result)
+ebpf_safe_size_t_multiply(size_t multiplicand, size_t multiplier, _Out_ size_t* result)
 {
     return RtlSizeTMult(multiplicand, multiplier, result) == STATUS_SUCCESS ? EBPF_SUCCESS : EBPF_ARITHMETIC_OVERFLOW;
 }
 
 ebpf_result_t
-ebpf_safe_size_t_add(size_t augend, size_t addend, size_t* result)
+ebpf_safe_size_t_add(size_t augend, size_t addend, _Out_ size_t* result)
 {
     return RtlSizeTAdd(augend, addend, result) == STATUS_SUCCESS ? EBPF_SUCCESS : EBPF_ARITHMETIC_OVERFLOW;
 }
 
 ebpf_result_t
-ebpf_safe_size_t_subtract(size_t minuend, size_t subtrahend, size_t* result)
+ebpf_safe_size_t_subtract(size_t minuend, size_t subtrahend, _Out_ size_t* result)
 {
     return RtlSizeTSub(minuend, subtrahend, result) == STATUS_SUCCESS ? EBPF_SUCCESS : EBPF_ARITHMETIC_OVERFLOW;
 }
 
 void
-ebpf_lock_create(ebpf_lock_t* lock)
+ebpf_lock_create(_Out_ ebpf_lock_t* lock)
 {
     KeInitializeSpinLock((PKSPIN_LOCK)lock);
 }
 
 void
-ebpf_lock_destroy(ebpf_lock_t* lock)
+ebpf_lock_destroy(_In_ ebpf_lock_t* lock)
 {
     UNREFERENCED_PARAMETER(lock);
 }
 
-void
-ebpf_lock_lock(ebpf_lock_t* lock, ebpf_lock_state_t* state)
+_Requires_lock_not_held_(*lock) _Acquires_lock_(*lock) _IRQL_requires_max_(DISPATCH_LEVEL) _IRQL_saves_
+    _IRQL_raises_(DISPATCH_LEVEL) ebpf_lock_state_t ebpf_lock_lock(_In_ ebpf_lock_t* lock)
 {
-    KeAcquireSpinLock((PKSPIN_LOCK)lock, (PUCHAR)state);
+    return KeAcquireSpinLockRaiseToDpc(lock);
 }
 
-void
-ebpf_lock_unlock(ebpf_lock_t* lock, ebpf_lock_state_t* state)
+_Requires_lock_held_(*lock) _Releases_lock_(*lock) _IRQL_requires_(DISPATCH_LEVEL) void ebpf_lock_unlock(
+    _In_ ebpf_lock_t* lock, _IRQL_restores_ ebpf_lock_state_t state)
 {
-    KeReleaseSpinLock((PKSPIN_LOCK)lock, *(KIRQL*)state);
+    KeReleaseSpinLock(lock, state);
 }
 
 int32_t
-ebpf_interlocked_increment_int32(volatile int32_t* addend)
+ebpf_interlocked_increment_int32(_Inout_ volatile int32_t* addend)
 {
     return InterlockedIncrement((volatile long*)addend);
 }
 
 int32_t
-ebpf_interlocked_decrement_int32(volatile int32_t* addend)
+ebpf_interlocked_decrement_int32(_Inout_ volatile int32_t* addend)
 {
     return InterlockedDecrement((volatile long*)addend);
 }
 
 int64_t
-ebpf_interlocked_increment_int64(volatile int64_t* addend)
+ebpf_interlocked_increment_int64(_Inout_ volatile int64_t* addend)
 {
     return InterlockedIncrement64(addend);
 }
 
 int64_t
-ebpf_interlocked_decrement_int64(volatile int64_t* addend)
+ebpf_interlocked_decrement_int64(_Inout_ volatile int64_t* addend)
 {
     return InterlockedDecrement64(addend);
 }
 
 int32_t
-ebpf_interlocked_compare_exchange_int32(volatile int32_t* destination, int32_t exchange, int32_t comperand)
+ebpf_interlocked_compare_exchange_int32(_Inout_ volatile int32_t* destination, int32_t exchange, int32_t comperand)
 {
     return InterlockedCompareExchange((long volatile*)destination, exchange, comperand);
 }
 
 void
-ebpf_get_cpu_count(uint32_t* cpu_count)
+ebpf_get_cpu_count(_Out_ uint32_t* cpu_count)
 {
     *cpu_count = KeQueryMaximumProcessorCount();
 }
@@ -265,10 +264,10 @@ _ebpf_deferred_routine(
 
 ebpf_result_t
 ebpf_allocate_non_preemptible_work_item(
-    ebpf_non_preemptible_work_item_t** work_item,
+    _Out_ ebpf_non_preemptible_work_item_t** work_item,
     uint32_t cpu_id,
-    void (*work_item_routine)(void* work_item_context, void* parameter_1),
-    void* work_item_context)
+    _In_ void (*work_item_routine)(void* work_item_context, void* parameter_1),
+    _In_opt_ void* work_item_context)
 {
     *work_item = ebpf_allocate(sizeof(ebpf_non_preemptible_work_item_t));
     if (*work_item == NULL) {
@@ -283,7 +282,7 @@ ebpf_allocate_non_preemptible_work_item(
 }
 
 void
-ebpf_free_non_preemptible_work_item(ebpf_non_preemptible_work_item_t* work_item)
+ebpf_free_non_preemptible_work_item(_Pre_maybenull_ _Post_invalid_ ebpf_non_preemptible_work_item_t* work_item)
 {
     if (!work_item)
         return;
@@ -293,7 +292,7 @@ ebpf_free_non_preemptible_work_item(ebpf_non_preemptible_work_item_t* work_item)
 }
 
 bool
-ebpf_queue_non_preemptible_work_item(ebpf_non_preemptible_work_item_t* work_item, void* parameter_1)
+ebpf_queue_non_preemptible_work_item(_In_ ebpf_non_preemptible_work_item_t* work_item, _In_opt_ void* parameter_1)
 {
     return KeInsertQueueDpc(&work_item->deferred_procedure_call, parameter_1, NULL);
 }
@@ -318,9 +317,9 @@ _ebpf_timer_routine(
 
 ebpf_result_t
 ebpf_allocate_timer_work_item(
-    ebpf_timer_work_item_t** timer_work_item,
-    void (*work_item_routine)(void* work_item_context),
-    void* work_item_context)
+    _Out_ ebpf_timer_work_item_t** timer_work_item,
+    _In_ void (*work_item_routine)(void* work_item_context),
+    _In_opt_ void* work_item_context)
 {
     *timer_work_item = ebpf_allocate(sizeof(ebpf_timer_work_item_t));
     if (*timer_work_item == NULL)
@@ -339,7 +338,7 @@ ebpf_allocate_timer_work_item(
 #define MICROSECONDS_PER_MILLISECOND 1000
 
 void
-ebpf_schedule_timer_work_item(ebpf_timer_work_item_t* work_item, uint32_t elapsed_microseconds)
+ebpf_schedule_timer_work_item(_In_ ebpf_timer_work_item_t* work_item, uint32_t elapsed_microseconds)
 {
     LARGE_INTEGER due_time;
     due_time.QuadPart = -((int64_t)elapsed_microseconds * MICROSECONDS_PER_TICK);
@@ -348,7 +347,7 @@ ebpf_schedule_timer_work_item(ebpf_timer_work_item_t* work_item, uint32_t elapse
 }
 
 void
-ebpf_free_timer_work_item(ebpf_timer_work_item_t* work_item)
+ebpf_free_timer_work_item(_Pre_maybenull_ _Post_invalid_ ebpf_timer_work_item_t* work_item)
 {
     if (!work_item)
         return;
@@ -359,7 +358,7 @@ ebpf_free_timer_work_item(ebpf_timer_work_item_t* work_item)
 }
 
 int32_t
-ebpf_log_function(void* context, const char* format_string, ...)
+ebpf_log_function(_In_ void* context, _In_z_ const char* format_string, ...)
 {
     UNREFERENCED_PARAMETER(context);
 
@@ -379,9 +378,9 @@ ebpf_log_function(void* context, const char* format_string, ...)
 
 ebpf_result_t
 ebpf_access_check(
-    ebpf_security_descriptor_t* security_descriptor,
+    _In_ ebpf_security_descriptor_t* security_descriptor,
     ebpf_security_access_mask_t request_access,
-    ebpf_security_generic_mapping_t* generic_mapping)
+    _In_ ebpf_security_generic_mapping_t* generic_mapping)
 {
     ebpf_result_t result;
     NTSTATUS status;
@@ -411,7 +410,8 @@ ebpf_access_check(
 }
 
 ebpf_result_t
-ebpf_validate_security_descriptor(ebpf_security_descriptor_t* security_descriptor, size_t security_descriptor_length)
+ebpf_validate_security_descriptor(
+    _In_ ebpf_security_descriptor_t* security_descriptor, size_t security_descriptor_length)
 {
     ebpf_result_t result;
     if ((security_descriptor->Control & SE_SELF_RELATIVE) == 0) {

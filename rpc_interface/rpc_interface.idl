@@ -1,7 +1,5 @@
-/*
- *  Copyright (c) Microsoft Corporation
- *  SPDX-License-Identifier: MIT
- */
+// Copyright (c) Microsoft Corporation
+// SPDX-License-Identifier: MIT
 
 import "ebpf_execution_context.h";
 import "ebpf_execution_type.h";
@@ -72,8 +70,9 @@ import "wtypes.idl";
             [ out, ref ] uint32_t * logs_size,
             [ out, size_is(, *logs_size), ref ] char** logs);
 
-        ebpf_result_t verify_program(
-            [ in, ref ] ebpf_program_verify_info * info,
-            [out] uint32_t * logs_size,
-            [ out, size_is(, *logs_size), ref ] char** logs);
+        ebpf_result_t verify_program([ in, ref ] ebpf_program_verify_info * info, [out] uint32_t * logs_size, [
+            out,
+            size_is(, *logs_size),
+            ref
+        ] char** logs);
     }

@@ -6,12 +6,13 @@
 #include "ebpf_serialize.h"
 
 void
-ebpf_map_information_array_free(uint16_t map_count, _In_count_(map_count) const ebpf_map_information_t* map_info)
+ebpf_map_information_array_free(uint16_t map_count, _In_count_(map_count) ebpf_map_information_t* map_info)
 {
     uint16_t map_index;
 
     for (map_index = 0; map_index < map_count; map_index++) {
         ebpf_free(map_info[map_index].pin_path);
+        map_info[map_index].pin_path = NULL;
     }
 
     ebpf_free((void*)map_info);
@@ -20,7 +21,7 @@ ebpf_map_information_array_free(uint16_t map_count, _In_count_(map_count) const 
 ebpf_result_t
 ebpf_serialize_core_map_information_array(
     uint16_t map_count,
-    _In_count_(map_count) const ebpf_core_map_information_t* map_info,
+    _In_count_(map_count) const ebpf_map_information_internal_t* map_info,
     _Out_writes_bytes_to_(output_buffer_length, *serialized_data_length) uint8_t* output_buffer,
     size_t output_buffer_length,
     _Out_ size_t* serialized_data_length,
@@ -58,7 +59,7 @@ ebpf_serialize_core_map_information_array(
 
     for (map_index = 0; map_index < map_count; map_index++) {
         size_t serialized_map_information_length;
-        const ebpf_core_map_information_t* source = &map_info[map_index];
+        const ebpf_map_information_internal_t* source = &map_info[map_index];
         ebpf_serialized_map_information_t* destination = (ebpf_serialized_map_information_t*)current;
 
         // Compute required length for serialized map information.
@@ -147,7 +148,7 @@ ebpf_deserialize_map_information_array(
 
         if (source->pin_path_length > 0) {
             // Allocate the buffer to hold the pin path in destination map information structure.
-            destination_pin_path_length = source->pin_path_length + 1;
+            destination_pin_path_length = ((size_t)source->pin_path_length) + 1;
             if (result != EBPF_SUCCESS)
                 goto Exit;
             destination->pin_path = ebpf_allocate(destination_pin_path_length);

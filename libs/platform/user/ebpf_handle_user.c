@@ -1,7 +1,6 @@
-/*
- *  Copyright (c) Microsoft Corporation
- *  SPDX-License-Identifier: MIT
- */
+// Copyright (c) Microsoft Corporation
+// SPDX-License-Identifier: MIT
+
 #include "ebpf_handle.h"
 
 typedef ebpf_object_t* ebpf_handle_entry_t;
@@ -10,7 +9,7 @@ typedef ebpf_object_t* ebpf_handle_entry_t;
 // TODO: Replace this with the real Windows object manager handle table code.
 
 static ebpf_lock_t _ebpf_handle_table_lock = {0};
-static ebpf_handle_entry_t _ebpf_handle_table[1024];
+static _Requires_lock_held_(&_ebpf_handle_table_lock) ebpf_handle_entry_t _ebpf_handle_table[1024];
 
 static bool _ebpf_handle_table_initiated = false;
 
@@ -42,7 +41,7 @@ ebpf_handle_create(ebpf_handle_t* handle, ebpf_object_t* object)
     ebpf_handle_t new_handle;
     ebpf_result_t return_value;
     ebpf_lock_state_t state;
-    ebpf_lock_lock(&_ebpf_handle_table_lock, &state);
+    state = ebpf_lock_lock(&_ebpf_handle_table_lock);
     for (new_handle = 1; new_handle < EBPF_COUNT_OF(_ebpf_handle_table); new_handle++) {
         if (_ebpf_handle_table[new_handle] == NULL)
             break;
@@ -59,7 +58,7 @@ ebpf_handle_create(ebpf_handle_t* handle, ebpf_object_t* object)
     return_value = EBPF_SUCCESS;
 
 Done:
-    ebpf_lock_unlock(&_ebpf_handle_table_lock, &state);
+    ebpf_lock_unlock(&_ebpf_handle_table_lock, state);
 
     return EBPF_SUCCESS;
 }
@@ -69,14 +68,14 @@ ebpf_handle_close(ebpf_handle_t handle)
 {
     ebpf_lock_state_t state;
     ebpf_result_t return_value;
-    ebpf_lock_lock(&_ebpf_handle_table_lock, &state);
+    state = ebpf_lock_lock(&_ebpf_handle_table_lock);
     if (_ebpf_handle_table[handle] != NULL) {
         ebpf_object_release_reference(_ebpf_handle_table[handle]);
         _ebpf_handle_table[handle] = NULL;
         return_value = EBPF_SUCCESS;
     } else
         return_value = EBPF_INVALID_OBJECT;
-    ebpf_lock_unlock(&_ebpf_handle_table_lock, &state);
+    ebpf_lock_unlock(&_ebpf_handle_table_lock, state);
     return return_value;
 }
 
@@ -86,10 +85,10 @@ ebpf_reference_object_by_handle(ebpf_handle_t handle, ebpf_object_type_t object_
     ebpf_result_t return_value;
     ebpf_lock_state_t state;
 
-    if (handle > EBPF_COUNT_OF(_ebpf_handle_table))
+    if (handle >= EBPF_COUNT_OF(_ebpf_handle_table))
         return EBPF_INVALID_OBJECT;
 
-    ebpf_lock_lock(&_ebpf_handle_table_lock, &state);
+    state = ebpf_lock_lock(&_ebpf_handle_table_lock);
     if ((_ebpf_handle_table[handle] != NULL) &&
         ((_ebpf_handle_table[handle]->type == object_type) || (object_type == EBPF_OBJECT_UNKNOWN))) {
         ebpf_object_acquire_reference(_ebpf_handle_table[handle]);
@@ -98,7 +97,7 @@ ebpf_reference_object_by_handle(ebpf_handle_t handle, ebpf_object_type_t object_
     } else
         return_value = EBPF_INVALID_OBJECT;
 
-    ebpf_lock_unlock(&_ebpf_handle_table_lock, &state);
+    ebpf_lock_unlock(&_ebpf_handle_table_lock, state);
     return return_value;
 }
 
@@ -112,7 +111,7 @@ ebpf_get_next_handle_by_type(ebpf_handle_t previous_handle, ebpf_object_type_t o
     if (previous_handle > EBPF_COUNT_OF(_ebpf_handle_table))
         return EBPF_INVALID_OBJECT;
 
-    ebpf_lock_lock(&_ebpf_handle_table_lock, &state);
+    state = ebpf_lock_lock(&_ebpf_handle_table_lock);
     for (*next_handle = previous_handle; *next_handle < EBPF_COUNT_OF(_ebpf_handle_table); (*next_handle)++) {
         if (_ebpf_handle_table[*next_handle] != NULL && _ebpf_handle_table[*next_handle]->type == object_type) {
             break;
@@ -121,7 +120,7 @@ ebpf_get_next_handle_by_type(ebpf_handle_t previous_handle, ebpf_object_type_t o
     if (*next_handle == EBPF_COUNT_OF(_ebpf_handle_table)) {
         *next_handle = UINT64_MAX;
     }
-    ebpf_lock_unlock(&_ebpf_handle_table_lock, &state);
+    ebpf_lock_unlock(&_ebpf_handle_table_lock, state);
 
     return EBPF_SUCCESS;
 }

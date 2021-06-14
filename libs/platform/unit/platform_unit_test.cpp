@@ -1,7 +1,5 @@
-/*
- *  Copyright (c) Microsoft Corporation
- *  SPDX-License-Identifier: MIT
- */
+// Copyright (c) Microsoft Corporation
+// SPDX-License-Identifier: MIT
 
 #define CATCH_CONFIG_MAIN
 // Windows build system requires include of Windows.h before other Windows
@@ -237,10 +235,11 @@ TEST_CASE("program_type_info", "[program_type_info]")
          EBPF_RETURN_TYPE_PTR_TO_MAP_VALUE_OR_NULL,
          {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY}},
     };
-    ebpf_context_descriptor_t context_descriptor{sizeof(xdp_md_t),
-                                                 EBPF_OFFSET_OF(xdp_md_t, data),
-                                                 EBPF_OFFSET_OF(xdp_md_t, data_end),
-                                                 EBPF_OFFSET_OF(xdp_md_t, data_meta)};
+    ebpf_context_descriptor_t context_descriptor{
+        sizeof(xdp_md_t),
+        EBPF_OFFSET_OF(xdp_md_t, data),
+        EBPF_OFFSET_OF(xdp_md_t, data_end),
+        EBPF_OFFSET_OF(xdp_md_t, data_meta)};
     ebpf_program_type_descriptor_t program_type{"xdp", &context_descriptor};
     ebpf_program_information_t program_information{program_type, _countof(helper_functions), helper_functions};
     ebpf_program_information_t* new_program_information = nullptr;
@@ -318,7 +317,7 @@ TEST_CASE("serialize_map_test", "[serialize_map_test]")
     _test_helper test_helper;
 
     const int map_count = 10;
-    ebpf_core_map_information_t core_map_info_array[map_count] = {};
+    ebpf_map_information_internal_t core_map_info_array[map_count] = {};
     std::string pin_path_prefix = "\\ebpf\\map\\";
     std::vector<std::string> pin_paths;
     size_t buffer_length = 0;
@@ -327,13 +326,13 @@ TEST_CASE("serialize_map_test", "[serialize_map_test]")
     size_t serialized_length;
     ebpf_map_information_t* map_info_array;
 
-    // Construct the array of ebpf_core_map_information_t to be serialized.
+    // Construct the array of ebpf_map_information_internal_t to be serialized.
     for (int i = 0; i < map_count; i++) {
         pin_paths.push_back(pin_path_prefix + std::to_string(i));
     }
 
     for (int i = 0; i < map_count; i++) {
-        ebpf_core_map_information_t* map_info = &core_map_info_array[i];
+        ebpf_map_information_internal_t* map_info = &core_map_info_array[i];
         map_info->definition.size = (i + 1) * 32;
         map_info->definition.type = static_cast<ebpf_map_type_t>(i % (EBPF_MAP_TYPE_ARRAY + 1));
         map_info->definition.key_size = i + 1;
@@ -362,7 +361,7 @@ TEST_CASE("serialize_map_test", "[serialize_map_test]")
 
     // Verify de-serialized map info array matches input.
     for (int i = 0; i < map_count; i++) {
-        ebpf_core_map_information_t* input_map_info = &core_map_info_array[i];
+        ebpf_map_information_internal_t* input_map_info = &core_map_info_array[i];
         ebpf_map_information_t* map_info = &map_info_array[i];
         REQUIRE(memcmp(&map_info->definition, &input_map_info->definition, sizeof(ebpf_map_definition_t)) == 0);
         REQUIRE(strnlen_s(map_info->pin_path, EBPF_MAX_PIN_PATH_LENGTH) == input_map_info->pin_path.length);

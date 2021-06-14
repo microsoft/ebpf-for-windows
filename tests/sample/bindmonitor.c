@@ -1,7 +1,5 @@
-/*
- *  Copyright (c) Microsoft Corporation
- *  SPDX-License-Identifier: MIT
- */
+// Copyright (c) Microsoft Corporation
+// SPDX-License-Identifier: MIT
 
 // clang -O2 -Wall -c droppacket.c -o dropjit.o
 //
@@ -18,17 +16,19 @@ typedef struct _process_entry
 } process_entry_t;
 
 #pragma clang section data = "maps"
-ebpf_map_definition_t process_map = {.size = sizeof(ebpf_map_definition_t),
-                                     .type = EBPF_MAP_TYPE_HASH,
-                                     .key_size = sizeof(uint64_t),
-                                     .value_size = sizeof(process_entry_t),
-                                     .max_entries = 1024};
+ebpf_map_definition_t process_map = {
+    .size = sizeof(ebpf_map_definition_t),
+    .type = EBPF_MAP_TYPE_HASH,
+    .key_size = sizeof(uint64_t),
+    .value_size = sizeof(process_entry_t),
+    .max_entries = 1024};
 
-ebpf_map_definition_t limits_map = {.size = sizeof(ebpf_map_definition_t),
-                                    .type = EBPF_MAP_TYPE_ARRAY,
-                                    .key_size = sizeof(uint32_t),
-                                    .value_size = sizeof(uint32_t),
-                                    .max_entries = 1};
+ebpf_map_definition_t limits_map = {
+    .size = sizeof(ebpf_map_definition_t),
+    .type = EBPF_MAP_TYPE_ARRAY,
+    .key_size = sizeof(uint32_t),
+    .value_size = sizeof(uint32_t),
+    .max_entries = 1};
 
 inline process_entry_t*
 find_or_create_process_entry(bind_md_t* ctx)

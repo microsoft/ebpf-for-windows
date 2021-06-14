@@ -1,7 +1,6 @@
-/*
- *  Copyright (c) Microsoft Corporation
- *  SPDX-License-Identifier: MIT
- */
+// Copyright (c) Microsoft Corporation
+// SPDX-License-Identifier: MIT
+
 #include "ebpf_object.h"
 
 static const uint32_t _ebpf_object_marker = 0x67453201;
@@ -28,24 +27,24 @@ static ebpf_lock_t _ebpf_object_tracking_list_lock = {0};
  * 2) A pinning table entry holds a reference on it.
  *
  */
-static ebpf_list_entry_t _ebpf_object_tracking_list;
+static _Requires_lock_held_(&_ebpf_object_tracking_list_lock) ebpf_list_entry_t _ebpf_object_tracking_list;
 
 static void
 _ebpf_object_tracking_list_insert(ebpf_object_t* object)
 {
     ebpf_lock_state_t state;
-    ebpf_lock_lock(&_ebpf_object_tracking_list_lock, &state);
+    state = ebpf_lock_lock(&_ebpf_object_tracking_list_lock);
     ebpf_list_insert_tail(&_ebpf_object_tracking_list, &object->entry);
-    ebpf_lock_unlock(&_ebpf_object_tracking_list_lock, &state);
+    ebpf_lock_unlock(&_ebpf_object_tracking_list_lock, state);
 }
 
 static void
 _ebpf_object_tracking_list_remove(ebpf_object_t* object)
 {
     ebpf_lock_state_t state;
-    ebpf_lock_lock(&_ebpf_object_tracking_list_lock, &state);
+    state = ebpf_lock_lock(&_ebpf_object_tracking_list_lock);
     ebpf_list_remove_entry(&object->entry);
-    ebpf_lock_unlock(&_ebpf_object_tracking_list_lock, &state);
+    ebpf_lock_unlock(&_ebpf_object_tracking_list_lock, state);
 }
 
 void
@@ -107,7 +106,7 @@ ebpf_object_get_type(ebpf_object_t* object)
 }
 
 ebpf_result_t
-ebpf_duplicate_utf8_string(ebpf_utf8_string_t* destination, const ebpf_utf8_string_t* source)
+ebpf_duplicate_utf8_string(_Out_ ebpf_utf8_string_t* destination, _In_ const ebpf_utf8_string_t* source)
 {
     if (!source->value) {
         destination->value = NULL;
@@ -130,7 +129,7 @@ ebpf_object_reference_next_object(ebpf_object_t* previous_object, ebpf_object_ty
     ebpf_list_entry_t* entry;
     *next_object = NULL;
 
-    ebpf_lock_lock(&_ebpf_object_tracking_list_lock, &state);
+    state = ebpf_lock_lock(&_ebpf_object_tracking_list_lock);
     if (previous_object == NULL)
         entry = _ebpf_object_tracking_list.Flink;
     else
@@ -144,5 +143,5 @@ ebpf_object_reference_next_object(ebpf_object_t* previous_object, ebpf_object_ty
             break;
         }
     }
-    ebpf_lock_unlock(&_ebpf_object_tracking_list_lock, &state);
+    ebpf_lock_unlock(&_ebpf_object_tracking_list_lock, state);
 }

@@ -1,7 +1,6 @@
-/*
- *  Copyright (c) Microsoft Corporation
- *  SPDX-License-Identifier: MIT
- */
+// Copyright (c) Microsoft Corporation
+// SPDX-License-Identifier: MIT
+
 #pragma once
 #include "ebpf_result.h"
 #include "ebpf_windows.h"
@@ -68,10 +67,8 @@ extern "C"
 
     typedef struct _ebpf_trampoline_table ebpf_trampoline_table_t;
 
-#define EBPF_LOCK_SIZE sizeof(uint64_t)
-#define EBPF_LOCK_STATE_SIZE sizeof(uint64_t)
-    typedef uint8_t ebpf_lock_t[EBPF_LOCK_SIZE];
-    typedef uint8_t ebpf_lock_state_t[EBPF_LOCK_STATE_SIZE];
+    typedef uintptr_t ebpf_lock_t;
+    typedef uint8_t ebpf_lock_state_t;
 
     // A self-relative security descriptor.
     typedef struct _SECURITY_DESCRIPTOR ebpf_security_descriptor_t;
@@ -98,15 +95,15 @@ extern "C"
      * @param[in] size Size of memory to allocate
      * @returns Pointer to memory block allocated, or null on failure.
      */
-    void*
-    ebpf_allocate(size_t size);
+    __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
+        _Post_writable_byte_size_(size) void* ebpf_allocate(size_t size);
 
     /**
      * @brief Free memory.
      * @param[in] memory Allocation to be freed.
      */
     void
-    ebpf_free(void* memory);
+    ebpf_free(_Pre_maybenull_ _Post_invalid_ __drv_freesMem(Mem) void* memory);
 
     typedef enum _ebpf_page_protection
     {
@@ -135,7 +132,7 @@ extern "C"
      * allocated pages.
      */
     void
-    ebpf_unmap_memory(ebpf_memory_descriptor_t* memory_descriptor);
+    ebpf_unmap_memory(_Pre_maybenull_ _Post_invalid_ ebpf_memory_descriptor_t* memory_descriptor);
 
     /**
      * @brief Change the page protection on memory allocated via
@@ -148,7 +145,7 @@ extern "C"
      * @retval EBPF_INVALID_ARGUMENT An invalid argument was supplied.
      */
     ebpf_result_t
-    ebpf_protect_memory(const ebpf_memory_descriptor_t* memory_descriptor, ebpf_page_protection_t protection);
+    ebpf_protect_memory(_In_ const ebpf_memory_descriptor_t* memory_descriptor, ebpf_page_protection_t protection);
 
     /**
      * @brief Given an ebpf_memory_descriptor_t allocated via ebpf_map_memory
@@ -172,7 +169,7 @@ extern "C"
      *  UTF-8 string.
      */
     ebpf_result_t
-    ebpf_duplicate_utf8_string(ebpf_utf8_string_t* destination, const ebpf_utf8_string_t* source);
+    ebpf_duplicate_utf8_string(_Out_ ebpf_utf8_string_t* destination, _In_ const ebpf_utf8_string_t* source);
 
     /**
      * @brief Get the code integrity state from the platform.
@@ -181,7 +178,7 @@ extern "C"
      * @retval EBPF_NOT_SUPPORTED Unable to obtain state from platform.
      */
     ebpf_result_t
-    ebpf_get_code_integrity_state(ebpf_code_integrity_state_t* state);
+    ebpf_get_code_integrity_state(_Out_ ebpf_code_integrity_state_t* state);
 
     /**
      * @brief Multiplies one value of type size_t by another and check for
@@ -193,7 +190,7 @@ extern "C"
      * @retval EBPF_ERROR_ARITHMETIC_OVERFLOW Multiplication overflowed.
      */
     ebpf_result_t
-    ebpf_safe_size_t_multiply(size_t multiplicand, size_t multiplier, size_t* result);
+    ebpf_safe_size_t_multiply(size_t multiplicand, size_t multiplier, _Out_ size_t* result);
 
     /**
      * @brief Add one value of type size_t by another and check for
@@ -205,7 +202,7 @@ extern "C"
      * @retval EBPF_ERROR_ARITHMETIC_OVERFLOW Addition overflowed.
      */
     ebpf_result_t
-    ebpf_safe_size_t_add(size_t augend, size_t addend, size_t* result);
+    ebpf_safe_size_t_add(size_t augend, size_t addend, _Out_ size_t* result);
 
     /**
      * @brief Subtract one value of type size_t from another and check for
@@ -217,39 +214,37 @@ extern "C"
      * @retval EBPF_ERROR_ARITHMETIC_OVERFLOW Addition overflowed or underflowed.
      */
     ebpf_result_t
-    ebpf_safe_size_t_subtract(size_t minuend, size_t subtrahend, size_t* result);
+    ebpf_safe_size_t_subtract(size_t minuend, size_t subtrahend, _Out_ size_t* result);
 
     /**
      * @brief Create an instance of a lock.
-     * @param[in] lock Pointer to memory location that will contain the lock.
+     * @param[out] lock Pointer to memory location that will contain the lock.
      */
     void
-    ebpf_lock_create(ebpf_lock_t* lock);
+    ebpf_lock_create(_Out_ ebpf_lock_t* lock);
 
     /**
      * @brief Destroy an instance of a lock.
      * @param[in] lock Pointer to memory location that contains the lock.
      */
     void
-    ebpf_lock_destroy(ebpf_lock_t* lock);
+    ebpf_lock_destroy(_In_ ebpf_lock_t* lock);
 
     /**
      * @brief Acquire exclusive access to the lock.
      * @param[in] lock Pointer to memory location that contains the lock.
-     * @param[out] state Pointer to memory location that contains state that
-     *    needs to be passed to ebpf_lock_unlock.
+     * @returns - The previous lock_state required for unlock.
      */
-    void
-    ebpf_lock_lock(ebpf_lock_t* lock, ebpf_lock_state_t* state);
+    _Requires_lock_not_held_(*lock) _Acquires_lock_(*lock) _IRQL_requires_max_(DISPATCH_LEVEL) _IRQL_saves_
+        _IRQL_raises_(DISPATCH_LEVEL) ebpf_lock_state_t ebpf_lock_lock(_In_ ebpf_lock_t* lock);
 
     /**
      * @brief Release exclusive access to the lock.
      * @param[in] lock Pointer to memory location that contains the lock.
-     * @param[in] state Pointer to memory location that contains state that
-     *    needs to be passed to ebpf_lock_unlock.
+     * @param[in] state The state returned from ebpf_lock_lock.
      */
-    void
-    ebpf_lock_unlock(ebpf_lock_t* lock, ebpf_lock_state_t* state);
+    _Requires_lock_held_(*lock) _Releases_lock_(*lock) _IRQL_requires_(DISPATCH_LEVEL) void ebpf_lock_unlock(
+        _In_ ebpf_lock_t* lock, _IRQL_restores_ ebpf_lock_state_t state);
 
     /**
      * @brief Query the platform for the total number of CPUs.
@@ -257,7 +252,7 @@ extern "C"
      *    number of CPUs.
      */
     void
-    ebpf_get_cpu_count(uint32_t* cpu_count);
+    ebpf_get_cpu_count(_Out_ uint32_t* cpu_count);
 
     /**
      * @brief Query the platform to determine if the current execution can
@@ -307,10 +302,10 @@ extern "C"
      */
     ebpf_result_t
     ebpf_allocate_non_preemptible_work_item(
-        ebpf_non_preemptible_work_item_t** work_item,
+        _Out_ ebpf_non_preemptible_work_item_t** work_item,
         uint32_t cpu_id,
-        void (*work_item_routine)(void* work_item_context, void* parameter_1),
-        void* work_item_context);
+        _In_ void (*work_item_routine)(void* work_item_context, void* parameter_1),
+        _In_opt_ void* work_item_context);
 
     /**
      * @brief Free a non-preemptible work item.
@@ -318,7 +313,7 @@ extern "C"
      * @param[in] work_item Pointer to the work item to free.
      */
     void
-    ebpf_free_non_preemptible_work_item(ebpf_non_preemptible_work_item_t* work_item);
+    ebpf_free_non_preemptible_work_item(_Pre_maybenull_ _Post_invalid_ ebpf_non_preemptible_work_item_t* work_item);
 
     /**
      * @brief Schedule a non-preemptible work item to run.
@@ -329,7 +324,7 @@ extern "C"
      * @retval false Work item is already queued.
      */
     bool
-    ebpf_queue_non_preemptible_work_item(ebpf_non_preemptible_work_item_t* work_item, void* parameter_1);
+    ebpf_queue_non_preemptible_work_item(_In_ ebpf_non_preemptible_work_item_t* work_item, _In_opt_ void* parameter_1);
 
     /**
      * @brief Allocate a timer to run a non-preemptible work item.
@@ -343,7 +338,9 @@ extern "C"
      */
     ebpf_result_t
     ebpf_allocate_timer_work_item(
-        ebpf_timer_work_item_t** timer, void (*work_item_routine)(void* work_item_context), void* work_item_context);
+        _Out_ ebpf_timer_work_item_t** timer,
+        _In_ void (*work_item_routine)(void* work_item_context),
+        _In_opt_ void* work_item_context);
 
     /**
      * @brief Schedule a work item to be executed after elaped_microseconds.
@@ -353,7 +350,7 @@ extern "C"
      *   work item.
      */
     void
-    ebpf_schedule_timer_work_item(ebpf_timer_work_item_t* timer, uint32_t elapsed_microseconds);
+    ebpf_schedule_timer_work_item(_In_ ebpf_timer_work_item_t* timer, uint32_t elapsed_microseconds);
 
     /**
      * @brief Free a timer.
@@ -361,7 +358,7 @@ extern "C"
      * @param[in] timer Timer to be freed.
      */
     void
-    ebpf_free_timer_work_item(ebpf_timer_work_item_t* timer);
+    ebpf_free_timer_work_item(_Pre_maybenull_ _Post_invalid_ ebpf_timer_work_item_t* timer);
 
     typedef struct _ebpf_hash_table ebpf_hash_table_t;
 
@@ -383,19 +380,19 @@ extern "C"
      * @param[in] key_size Size of the keys used in the hash table.
      * @param[in] value_size Size of the values used in the hash table.
      * @param[in] compare_function Function used to lexicographically order
-     * keys.
+     * keys. If NULL, memcmp is used instead.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  hash table.
      */
     ebpf_result_t
     ebpf_hash_table_create(
-        ebpf_hash_table_t** hash_table,
-        void* (*allocate)(size_t size),
-        void (*free)(void* memory),
+        _Out_ ebpf_hash_table_t** hash_table,
+        _In_ void* (*allocate)(size_t size),
+        _In_ void (*free)(void* memory),
         size_t key_size,
         size_t value_size,
-        ebpf_hash_table_compare_result_t (*compare_function)(const uint8_t* key1, const uint8_t* key2));
+        _In_opt_ ebpf_hash_table_compare_result_t (*compare_function)(const uint8_t* key1, const uint8_t* key2));
 
     /**
      * @brief Remove all items from the hash table and release memory.
@@ -403,7 +400,7 @@ extern "C"
      * @param[in] hash_table Hash-table to release.
      */
     void
-    ebpf_hash_table_destroy(ebpf_hash_table_t* hash_table);
+    ebpf_hash_table_destroy(_Pre_maybenull_ _Post_invalid_ ebpf_hash_table_t* hash_table);
 
     /**
      * @brief Find an element in the hash table.
@@ -415,7 +412,10 @@ extern "C"
      * @retval EBPF_NOT_FOUND Key not found in hash table.
      */
     ebpf_result_t
-    ebpf_hash_table_find(ebpf_hash_table_t* hash_table, const uint8_t* key, uint8_t** value);
+    ebpf_hash_table_find(
+        _In_ ebpf_hash_table_t* hash_table,
+        _In_ _Pre_readable_byte_size_(hash_table->key_size) const uint8_t* key,
+        _Outptr_ _Post_readable_size_(hash_table->value_size) uint8_t** value);
 
     /**
      * @brief Insert or update an entry in the hash table.
@@ -428,7 +428,10 @@ extern "C"
      *  entry in the hash table.
      */
     ebpf_result_t
-    ebpf_hash_table_update(ebpf_hash_table_t* hash_table, const uint8_t* key, const uint8_t* value);
+    ebpf_hash_table_update(
+        _In_ ebpf_hash_table_t* hash_table,
+        _In_ _Pre_readable_byte_size_(hash_table->key_size) const uint8_t* key,
+        _In_ _Pre_readable_byte_size_(hash_table->value_size) const uint8_t* value);
 
     /**
      * @brief Remove an entry from the hash table.
@@ -439,7 +442,8 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      */
     ebpf_result_t
-    ebpf_hash_table_delete(ebpf_hash_table_t* hash_table, const uint8_t* key);
+    ebpf_hash_table_delete(
+        _In_ ebpf_hash_table_t* hash_table, _In_ _Pre_readable_byte_size_(hash_table->key_size) const uint8_t* key);
 
     /**
      * @brief Find the next key in the hash table.
@@ -452,7 +456,10 @@ extern "C"
      * are lexicographically after the specified key.
      */
     ebpf_result_t
-    ebpf_hash_table_next_key(ebpf_hash_table_t* hash_table, const uint8_t* previous_key, uint8_t* next_key);
+    ebpf_hash_table_next_key(
+        _In_ ebpf_hash_table_t* hash_table,
+        _In_opt_ _Pre_readable_byte_size_(hash_table->key_size) const uint8_t* previous_key,
+        _Out_ _Post_readable_size_(hash_table->value_size) uint8_t* next_key);
 
     /**
      * @brief Returns the next (key, value) pair in the hash table.
@@ -469,8 +476,8 @@ extern "C"
     ebpf_hash_table_next_key_and_value(
         _In_ ebpf_hash_table_t* hash_table,
         _In_opt_ const uint8_t* previous_key,
-        _Out_ uint8_t* next_key,
-        _Outptr_opt_ uint8_t** next_value);
+        _Out_ _Writable_bytes_(hash_table->key_size) uint8_t* next_key,
+        _Outptr_opt_ _Post_readable_size_(hash_table->value_size) uint8_t** next_value);
 
     /**
      * @brief Get the number of keys in the hash table
@@ -479,7 +486,7 @@ extern "C"
      * @return Count of entries in the hash table.
      */
     size_t
-    ebpf_hash_table_key_count(ebpf_hash_table_t* hash_table);
+    ebpf_hash_table_key_count(_In_ ebpf_hash_table_t* hash_table);
 
     /**
      * @brief Atomically increase the value of addend by 1 and return the new
@@ -489,7 +496,7 @@ extern "C"
      * @return The new value.
      */
     int32_t
-    ebpf_interlocked_increment_int32(volatile int32_t* addend);
+    ebpf_interlocked_increment_int32(_Inout_ volatile int32_t* addend);
 
     /**
      * @brief Atomically decrease the value of addend by 1 and return the new
@@ -499,7 +506,7 @@ extern "C"
      * @return The new value.
      */
     int32_t
-    ebpf_interlocked_decrement_int32(volatile int32_t* addend);
+    ebpf_interlocked_decrement_int32(_Inout_ volatile int32_t* addend);
 
     /**
      * @brief Atomically increase the value of addend by 1 and return the new
@@ -509,7 +516,7 @@ extern "C"
      * @return The new value.
      */
     int64_t
-    ebpf_interlocked_increment_int64(volatile int64_t* addend);
+    ebpf_interlocked_increment_int64(_Inout_ volatile int64_t* addend);
 
     /**
      * @brief Atomically decrease the value of addend by 1 and return the new
@@ -519,7 +526,7 @@ extern "C"
      * @return The new value.
      */
     int64_t
-    ebpf_interlocked_decrement_int64(volatile int64_t* addend);
+    ebpf_interlocked_decrement_int64(_Inout_ volatile int64_t* addend);
 
     /**
      * @brief Performs an atomic operation that compares the input value pointed
@@ -537,7 +544,7 @@ extern "C"
      *  destination.
      */
     int32_t
-    ebpf_interlocked_compare_exchange_int32(volatile int32_t* destination, int32_t exchange, int32_t comperand);
+    ebpf_interlocked_compare_exchange_int32(_Inout_ volatile int32_t* destination, int32_t exchange, int32_t comperand);
 
     typedef void (*ebpf_extension_change_callback_t)(
         void* client_binding_context,
@@ -568,15 +575,15 @@ extern "C"
      */
     ebpf_result_t
     ebpf_extension_load(
-        ebpf_extension_client_t** client_context,
-        const GUID* interface_id,
-        void* client_binding_context,
-        const ebpf_extension_data_t* client_data,
-        const ebpf_extension_dispatch_table_t* client_dispatch_table,
-        void** provider_binding_context,
-        const ebpf_extension_data_t** provider_data,
-        const ebpf_extension_dispatch_table_t** provider_dispatch_table,
-        ebpf_extension_change_callback_t extension_changed);
+        _Outptr_ ebpf_extension_client_t** client_context,
+        _In_ const GUID* interface_id,
+        _In_ void* client_binding_context,
+        _In_ const ebpf_extension_data_t* client_data,
+        _In_ const ebpf_extension_dispatch_table_t* client_dispatch_table,
+        _In_ void** provider_binding_context,
+        _Outptr_ const ebpf_extension_data_t** provider_data,
+        _Outptr_ const ebpf_extension_dispatch_table_t** provider_dispatch_table,
+        _In_ ebpf_extension_change_callback_t extension_changed);
 
     /**
      * @brief Unload an extension.
@@ -584,7 +591,7 @@ extern "C"
      * @param[in] client_context Context of the extension to unload.
      */
     void
-    ebpf_extension_unload(ebpf_extension_client_t* client_context);
+    ebpf_extension_unload(_Pre_maybenull_ _Post_invalid_ ebpf_extension_client_t* client_context);
 
     typedef ebpf_result_t (*ebpf_provider_client_attach_callback_t)(
         void* context,
@@ -613,14 +620,14 @@ extern "C"
      */
     ebpf_result_t
     ebpf_provider_load(
-        ebpf_extension_provider_t** provider_context,
-        const GUID* interface_id,
-        void* provider_binding_context,
-        const ebpf_extension_data_t* provider_data,
-        const ebpf_extension_dispatch_table_t* provider_dispatch_table,
-        void* callback_context,
-        ebpf_provider_client_attach_callback_t client_attach_callback,
-        ebpf_provider_client_detach_callback_t client_detach_callback);
+        _Outptr_ ebpf_extension_provider_t** provider_context,
+        _In_ const GUID* interface_id,
+        _In_ void* provider_binding_context,
+        _In_ const ebpf_extension_data_t* provider_data,
+        _In_ const ebpf_extension_dispatch_table_t* provider_dispatch_table,
+        _In_ void* callback_context,
+        _In_ ebpf_provider_client_attach_callback_t client_attach_callback,
+        _In_ ebpf_provider_client_detach_callback_t client_detach_callback);
 
     /**
      * @brief Unload a provider.
@@ -628,13 +635,13 @@ extern "C"
      * @param[in] provider_context Provider to unload.
      */
     void
-    ebpf_provider_unload(ebpf_extension_provider_t* provider_context);
+    ebpf_provider_unload(_Pre_maybenull_ _Post_invalid_ ebpf_extension_provider_t* provider_context);
 
     ebpf_result_t
-    ebpf_guid_create(GUID* new_guid);
+    ebpf_guid_create(_Out_ GUID* new_guid);
 
     int32_t
-    ebpf_log_function(void* context, const char* format_string, ...);
+    ebpf_log_function(_In_ void* context, _In_z_ const char* format_string, ...);
 
     /**
      * @brief Allocate a new empty trampoline table of entry_count size.
@@ -647,7 +654,7 @@ extern "C"
      *  operation.
      */
     ebpf_result_t
-    ebpf_allocate_trampoline_table(size_t entry_count, ebpf_trampoline_table_t** trampoline_table);
+    ebpf_allocate_trampoline_table(size_t entry_count, _Outptr_ ebpf_trampoline_table_t** trampoline_table);
 
     /**
      * @brief Free a previously allocated trampoline table.
@@ -655,7 +662,7 @@ extern "C"
      * @param[in] trampoline_table Pointer to trampoline table to free.
      */
     void
-    ebpf_free_trampoline_table(ebpf_trampoline_table_t* trampoline_table);
+    ebpf_free_trampoline_table(_Pre_maybenull_ _Post_invalid_ ebpf_trampoline_table_t* trampoline_table);
 
     /**
      * @brief Populate the function pointers in a trampoline table.
@@ -668,7 +675,7 @@ extern "C"
      */
     ebpf_result_t
     ebpf_update_trampoline_table(
-        ebpf_trampoline_table_t* trampoline_table, const ebpf_extension_dispatch_table_t* dispatch_table);
+        _Inout_ ebpf_trampoline_table_t* trampoline_table, _In_ const ebpf_extension_dispatch_table_t* dispatch_table);
 
     /**
      * @brief Get the address of a trampoline function.
@@ -682,7 +689,8 @@ extern "C"
      * @retval EBPF_INVALID_ARGUMENT An invalid argument was supplied.
      */
     ebpf_result_t
-    ebpf_get_trampoline_function(const ebpf_trampoline_table_t* trampoline_table, size_t index, void** function);
+    ebpf_get_trampoline_function(
+        _In_ const ebpf_trampoline_table_t* trampoline_table, size_t index, _Out_ void** function);
 
     typedef struct _ebpf_program_information ebpf_program_information_t;
 
@@ -700,7 +708,9 @@ extern "C"
      */
     ebpf_result_t
     ebpf_program_information_encode(
-        const ebpf_program_information_t* program_information, uint8_t** buffer, unsigned long* buffer_size);
+        _In_ const ebpf_program_information_t* program_information,
+        _Outptr_result_bytebuffer_(*buffer_size) uint8_t** buffer,
+        _Out_ unsigned long* buffer_size);
 
     /**
      * @brief Deserialize an ebpf_program_information_t structure from a flat
@@ -717,7 +727,9 @@ extern "C"
      */
     ebpf_result_t
     ebpf_program_information_decode(
-        ebpf_program_information_t** program_information, const uint8_t* buffer, size_t buffer_size);
+        _Outptr_ ebpf_program_information_t** program_information,
+        _In_ _Readable_bytes_(buffer_size) const uint8_t* buffer,
+        size_t buffer_size);
 
     /**
      * @brief Check if the user associated with the current thread is granted
@@ -733,9 +745,9 @@ extern "C"
      */
     ebpf_result_t
     ebpf_access_check(
-        ebpf_security_descriptor_t* security_descriptor,
+        _In_ ebpf_security_descriptor_t* security_descriptor,
         ebpf_security_access_mask_t request_access,
-        ebpf_security_generic_mapping_t* generic_mapping);
+        _In_ ebpf_security_generic_mapping_t* generic_mapping);
 
     /**
      * @brief Check the validity of the provided security descriptor.
@@ -747,7 +759,7 @@ extern "C"
      */
     ebpf_result_t
     ebpf_validate_security_descriptor(
-        ebpf_security_descriptor_t* security_descriptor, size_t security_descriptor_length);
+        _In_ ebpf_security_descriptor_t* security_descriptor, size_t security_descriptor_length);
 
 #ifdef __cplusplus
 }

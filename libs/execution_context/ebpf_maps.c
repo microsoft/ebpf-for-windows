@@ -1,7 +1,5 @@
-/*
- *  Copyright (c) Microsoft Corporation
- *  SPDX-License-Identifier: MIT
- */
+// Copyright (c) Microsoft Corporation
+// SPDX-License-Identifier: MIT
 
 #include "ebpf_maps.h"
 #include "ebpf_epoch.h"
@@ -248,11 +246,11 @@ ebpf_find_hash_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
     if (!map || !key)
         return NULL;
 
-    ebpf_lock_lock(&map->lock, &lock_state);
+    lock_state = ebpf_lock_lock(&map->lock);
     if (ebpf_hash_table_find((ebpf_hash_table_t*)map->data, key, &value) != EBPF_SUCCESS) {
         value = NULL;
     }
-    ebpf_lock_unlock(&map->lock, &lock_state);
+    ebpf_lock_unlock(&map->lock, lock_state);
 
     return value;
 }
@@ -267,7 +265,7 @@ ebpf_update_hash_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _
     if (!map || !key || !data)
         return EBPF_INVALID_ARGUMENT;
 
-    ebpf_lock_lock(&map->lock, &lock_state);
+    lock_state = ebpf_lock_lock(&map->lock);
     entry_count = ebpf_hash_table_key_count((ebpf_hash_table_t*)map->data);
 
     if ((entry_count == map->ebpf_map_definition.max_entries) &&
@@ -275,7 +273,7 @@ ebpf_update_hash_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _
         result = EBPF_INVALID_ARGUMENT;
     else
         result = ebpf_hash_table_update((ebpf_hash_table_t*)map->data, key, data);
-    ebpf_lock_unlock(&map->lock, &lock_state);
+    ebpf_lock_unlock(&map->lock, lock_state);
     return result;
 }
 
@@ -287,9 +285,9 @@ ebpf_delete_hash_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
     if (!map || !key)
         return EBPF_INVALID_ARGUMENT;
 
-    ebpf_lock_lock(&map->lock, &lock_state);
+    lock_state = ebpf_lock_lock(&map->lock);
     result = ebpf_hash_table_delete((ebpf_hash_table_t*)map->data, key);
-    ebpf_lock_unlock(&map->lock, &lock_state);
+    ebpf_lock_unlock(&map->lock, lock_state);
     return result;
 }
 
@@ -301,9 +299,9 @@ ebpf_next_hash_map_key(_In_ ebpf_core_map_t* map, _In_ const uint8_t* previous_k
     if (!map || !next_key)
         return EBPF_INVALID_ARGUMENT;
 
-    ebpf_lock_lock(&map->lock, &lock_state);
+    lock_state = ebpf_lock_lock(&map->lock);
     result = ebpf_hash_table_next_key((ebpf_hash_table_t*)map->data, previous_key, next_key);
-    ebpf_lock_unlock(&map->lock, &lock_state);
+    ebpf_lock_unlock(&map->lock, lock_state);
     return result;
 }
 

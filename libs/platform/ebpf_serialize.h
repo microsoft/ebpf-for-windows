@@ -6,8 +6,8 @@
 
 #pragma once
 
-#include "ebpf_platform.h"
 #include "ebpf_core_structs.h"
+#include "ebpf_platform.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -17,11 +17,11 @@ extern "C"
     /**
      * @brief eBPF Core Map Information
      */
-    typedef struct _ebpf_core_map_information
+    typedef struct _ebpf_map_information_internal
     {
         ebpf_map_definition_t definition;
         ebpf_utf8_string_t pin_path;
-    } ebpf_core_map_information_t;
+    } ebpf_map_information_internal_t;
 
     /**
      * @brief Serialized eBPF Map Information.
@@ -36,7 +36,7 @@ extern "C"
     /**
      * @brief Serialize array of ebpf_map_information_t onto output buffer.
      *
-     * @param[in]  map_count Length of input array of ebpf_core_map_information_t structs.
+     * @param[in]  map_count Length of input array of ebpf_map_information_internal_t structs.
      * @param[in]  map_info Array of ebpf_map_information_t to serialize.
      * @param[out]  output_buffer Caller specified output buffer to write serialized data into.
      * @param[in]  output_buffer_length Output buffer length.
@@ -49,7 +49,7 @@ extern "C"
     ebpf_result_t
     ebpf_serialize_core_map_information_array(
         uint16_t map_count,
-        _In_count_(map_count) const ebpf_core_map_information_t* map_info,
+        _In_count_(map_count) const ebpf_map_information_internal_t* map_info,
         _Out_writes_bytes_to_(output_buffer_length, *serialized_data_length) uint8_t* output_buffer,
         size_t output_buffer_length,
         _Out_ size_t* serialized_data_length,
@@ -82,7 +82,7 @@ extern "C"
      * @param[in] map_info Map to be freed.
      */
     void
-    ebpf_map_information_array_free(uint16_t map_count, _In_count_(map_count) const ebpf_map_information_t* map_info);
+    ebpf_map_information_array_free(uint16_t map_count, _In_count_(map_count) ebpf_map_information_t* map_info);
 
 #ifdef __cplusplus
 }
