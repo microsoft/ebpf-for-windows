@@ -69,7 +69,7 @@ On the defender machine, do the following:
 9. Do `sc start EbpfCore`
 10. Do `sc create NetEbpfExt type=kernel start=boot binpath=%windir%\system32\drivers\netebpfext.sys`
 11. Do `sc start NetEbpfExt`
-12. Do `sc create ebpfsvc start= auto binpath=%windir%\system32\ebpfsvc.exe type=own`
+12. Do `%windir%\system32\ebpfsvc.exe install`
 13. Do `sc start ebpfsvc`
 14. Do `netsh add helper %windir%\system32\ebpfnetsh.dll`
 15. Install [clang](https://github.com/llvm/llvm-project/releases/download/llvmorg-11.0.0/LLVM-11.0.0-win64.exe)
