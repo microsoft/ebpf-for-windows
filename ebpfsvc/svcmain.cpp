@@ -34,7 +34,7 @@ int __cdecl wmain(ULONG argc, PWSTR* argv)
     // Otherwise, the service is probably being started by the SCM.
 
     if (argc > 1) {
-        if (wcscmp(argv[1], L"install") == 0) {
+        if (_wcsicmp(argv[1], L"install") == 0) {
             return service_install();
         }
     }
@@ -87,7 +87,7 @@ service_install()
         SERVICE_NAME,                  // service name to display
         SERVICE_ALL_ACCESS,            // desired access
         SERVICE_WIN32_OWN_PROCESS,     // service type
-        SERVICE_AUTO_START,            // start type
+        SERVICE_DEMAND_START,          // start type
         SERVICE_ERROR_NORMAL,          // error control type
         path,                          // path to service's binary
         nullptr,                       // no load ordering group
