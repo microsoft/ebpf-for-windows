@@ -46,6 +46,21 @@ and a few binaries just used for demo'ing eBPF functionality, as in the demo wal
 * port_quota.exe: A sample utility to illustrate using eBPF to manage port quotas to defend against port_leak.exe
                   and similar "buggy" apps.
 
+## Installing eBPF for Windows
+
+Windows requires that one of the following criteria be met prior to loading a driver:
+a. Driver is signed using a certificate that chains up to the Microsoft code signing root (aka a production signed driver).
+b. The OS is booted with a kernel debugger attached.
+c. The OS is running in [test-signing mode](https://docs.microsoft.com/en-us/windows-hardware/drivers/install/the-testsigning-boot-configuration-option), the [driver is test signed](https://docs.microsoft.com/en-us/windows-hardware/drivers/install/test-signing-a-driver-through-an-embedded-signature) and the [test certificate is installed](https://docs.microsoft.com/en-us/windows-hardware/drivers/install/installing-test-certificates).
+
+Since the binaries built above are not signed by Microsoft, they will only work on a machine with
+a kernel debugger (KD) attached and running, or test signing is enabled. (It is expected that official
+releases of eBPF for Windows will eventually be production signed at some point in the future after
+security hardening is completed.)
+
+For basic testing, the simplest way to install eBPF for Windows is into a Windows VM with test signing enabled.
+Follow the [VM Installation Instructions](vm-setup.md) to do so.
+
 ## Using eBPF for Windows
 
 If you're not already familiar with eBPF, or want a detailed walkthrough, see our [eBPF tutorial](tutorial.md).
@@ -55,25 +70,16 @@ For API documentation, see https://microsoft.github.io/ebpf-for-windows/
 This section shows how to use eBPF for Windows in a demo that defends against a 0-byte UDP attack on a DNS server.
 
 ### Prep
-Set up 2 VMs, which we will refer to as the "attacker" machine and the "defender" machine
+Set up 2 VMs, which we will refer to as the "attacker" machine and the "defender" machine.
 
-On the defender machine, do the following:
-1. Install and set up a DNS server
-2. Make sure that either the kernel debugger (KD) is attached and running, or one of the [alternatives to running with kernel debugger attached](#alternatives-to-running-with-kernel-debugger-attached) is in place
-3. Install Debug VS 2019 VC redist from TBD (or switch everything to Multi-threaded Debug (/MTd) and rebuild)
-4. Copy ebpfcore.sys to %windir%\system32\drivers
-5. Copy netebpfext.sys to %windir%\system32\drivers
-6. Copy ebpfsvc.exe to %windir%\system32
-7. Copy ebpfapi.dll and ebpfnetsh.dll to %windir%\system32
-8. Do `sc create EbpfCore type=kernel start=boot binpath=%windir%\system32\drivers\ebpfcore.sys`
-9. Do `sc start EbpfCore`
-10. Do `sc create NetEbpfExt type=kernel start=boot binpath=%windir%\system32\drivers\netebpfext.sys`
-11. Do `sc start NetEbpfExt`
-12. Do `%windir%\system32\ebpfsvc.exe install`
-13. Do `sc start ebpfsvc`
-14. Do `netsh add helper %windir%\system32\ebpfnetsh.dll`
-15. Install [clang](https://github.com/llvm/llvm-project/releases/download/llvmorg-11.0.0/LLVM-11.0.0-win64.exe)
-16. Copy droppacket.c and ebpf.h to a folder (such as c:\test)
+On a defender machine with [eBPF installed](#installing-ebpf-for-windows), do the following:
+
+1. Install and set up a DNS server.
+2. Make sure that either test signing was enabled as discussed in
+   [Installing eBPF for Windows](#installing-ebpf-for-windows), or the kernel debugger (KD) is attached and running.
+3. Install [clang](https://github.com/llvm/llvm-project/releases/download/llvmorg-11.0.0/LLVM-11.0.0-win64.exe)
+   if not already installed on the defender machine.
+4. Copy droppacket.c and ebpf.h to a folder (such as c:\test).
 
 On the attacker machine, do the following:
 1. Copy DnsFlood.exe to attacker machine
@@ -99,14 +105,6 @@ On the attacker machine, do the following:
 14. Compile droppacket.c ```clang -target bpf -O2 -Wall -c droppacket.c -o droppacket.o```
 15. Show that the verifier rejects the code ```netsh ebpf show verification droppacket.o xdp```
 16. Show that loading the program fails ```netsh ebpf add program droppacket.o xdp```
-
-## Alternatives to running with kernel debugger attached
-Windows requires that one of the following criteria be met prior to loading a driver:
-1. Driver is signed using a certificate that chains up to the Microsoft code signing root (aka a production signed driver).
-2. The OS is booted with a kernel debugger attached.
-3. The OS is running in [test-signing mode](https://docs.microsoft.com/en-us/windows-hardware/drivers/install/the-testsigning-boot-configuration-option), the [driver is test signed](https://docs.microsoft.com/en-us/windows-hardware/drivers/install/test-signing-a-driver-through-an-embedded-signature) and the [test certificate is installed](https://docs.microsoft.com/en-us/windows-hardware/drivers/install/installing-test-certificates).
-
-Official releases of eBPF for Windows will be production signed.
 
 ## Tests in Ebpf-For-Windows
 
