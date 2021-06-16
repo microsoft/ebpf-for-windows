@@ -9,6 +9,7 @@
 #pragma once
 
 #include <stdint.h>
+#include "../external/ebpf-verifier/src/ebpf_base.h"
 
 typedef enum _ebpf_map_type
 {
