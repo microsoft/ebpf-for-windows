@@ -115,12 +115,12 @@ ebpf_extension_load(
     _Outptr_ ebpf_extension_client_t** client_context,
     _In_ const GUID* interface_id,
     _In_ void* client_binding_context,
-    _In_ const ebpf_extension_data_t* client_data,
-    _In_ const ebpf_extension_dispatch_table_t* client_dispatch_table,
-    _In_ void** provider_binding_context,
+    _In_opt_ const ebpf_extension_data_t* client_data,
+    _In_opt_ const ebpf_extension_dispatch_table_t* client_dispatch_table,
+    _Outptr_opt_ void** provider_binding_context,
     _Outptr_ const ebpf_extension_data_t** provider_data,
     _Outptr_ const ebpf_extension_dispatch_table_t** provider_dispatch_table,
-    _In_ ebpf_extension_change_callback_t extension_changed)
+    _In_opt_ ebpf_extension_change_callback_t extension_changed)
 {
     ebpf_result_t return_value;
     ebpf_extension_client_t* local_client_context;
@@ -290,8 +290,8 @@ ebpf_result_t
 ebpf_provider_load(
     _Outptr_ ebpf_extension_provider_t** provider_context,
     _In_ const GUID* interface_id,
-    _In_ void* provider_binding_context,
-    _In_ const ebpf_extension_data_t* provider_data,
+    _In_opt_ void* provider_binding_context,
+    _In_opt_ const ebpf_extension_data_t* provider_data,
     _In_ const ebpf_extension_dispatch_table_t* provider_dispatch_table,
     _In_ void* callback_context,
     _In_ ebpf_provider_client_attach_callback_t client_attach_callback,

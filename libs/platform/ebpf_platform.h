@@ -412,10 +412,7 @@ extern "C"
      * @retval EBPF_NOT_FOUND Key not found in hash table.
      */
     ebpf_result_t
-    ebpf_hash_table_find(
-        _In_ ebpf_hash_table_t* hash_table,
-        _In_ _Pre_readable_byte_size_(hash_table->key_size) const uint8_t* key,
-        _Outptr_ _Post_readable_size_(hash_table->value_size) uint8_t** value);
+    ebpf_hash_table_find(_In_ ebpf_hash_table_t* hash_table, _In_ const uint8_t* key, _Outptr_ uint8_t** value);
 
     /**
      * @brief Insert or update an entry in the hash table.
@@ -428,10 +425,7 @@ extern "C"
      *  entry in the hash table.
      */
     ebpf_result_t
-    ebpf_hash_table_update(
-        _In_ ebpf_hash_table_t* hash_table,
-        _In_ _Pre_readable_byte_size_(hash_table->key_size) const uint8_t* key,
-        _In_ _Pre_readable_byte_size_(hash_table->value_size) const uint8_t* value);
+    ebpf_hash_table_update(_In_ ebpf_hash_table_t* hash_table, _In_ const uint8_t* key, _In_ const uint8_t* value);
 
     /**
      * @brief Remove an entry from the hash table.
@@ -442,8 +436,7 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      */
     ebpf_result_t
-    ebpf_hash_table_delete(
-        _In_ ebpf_hash_table_t* hash_table, _In_ _Pre_readable_byte_size_(hash_table->key_size) const uint8_t* key);
+    ebpf_hash_table_delete(_In_ ebpf_hash_table_t* hash_table, _In_ const uint8_t* key);
 
     /**
      * @brief Find the next key in the hash table.
@@ -457,9 +450,7 @@ extern "C"
      */
     ebpf_result_t
     ebpf_hash_table_next_key(
-        _In_ ebpf_hash_table_t* hash_table,
-        _In_opt_ _Pre_readable_byte_size_(hash_table->key_size) const uint8_t* previous_key,
-        _Out_ _Post_readable_size_(hash_table->value_size) uint8_t* next_key);
+        _In_ ebpf_hash_table_t* hash_table, _In_opt_ const uint8_t* previous_key, _Out_ uint8_t* next_key);
 
     /**
      * @brief Returns the next (key, value) pair in the hash table.
@@ -476,8 +467,8 @@ extern "C"
     ebpf_hash_table_next_key_and_value(
         _In_ ebpf_hash_table_t* hash_table,
         _In_opt_ const uint8_t* previous_key,
-        _Out_ _Writable_bytes_(hash_table->key_size) uint8_t* next_key,
-        _Outptr_opt_ _Post_readable_size_(hash_table->value_size) uint8_t** next_value);
+        _Out_ uint8_t* next_key,
+        _Outptr_opt_ uint8_t** next_value);
 
     /**
      * @brief Get the number of keys in the hash table
@@ -562,7 +553,7 @@ extern "C"
      * @param[in] client_data_length Length of the client data.
      * @param[in] client_dispatch_table Table of function pointers the client
      *  exposes.
-     * @param[in] provider_id GUID representing the extension to load.
+     * @param[out] provider_binding_context Provider binding context.
      * @param[out] provider_data Opaque provider data.
      * @param[out] provider_dispatch_table Table of function pointers the
      *  provider exposes.
@@ -578,12 +569,12 @@ extern "C"
         _Outptr_ ebpf_extension_client_t** client_context,
         _In_ const GUID* interface_id,
         _In_ void* client_binding_context,
-        _In_ const ebpf_extension_data_t* client_data,
-        _In_ const ebpf_extension_dispatch_table_t* client_dispatch_table,
-        _In_ void** provider_binding_context,
+        _In_opt_ const ebpf_extension_data_t* client_data,
+        _In_opt_ const ebpf_extension_dispatch_table_t* client_dispatch_table,
+        _Outptr_opt_ void** provider_binding_context,
         _Outptr_ const ebpf_extension_data_t** provider_data,
         _Outptr_ const ebpf_extension_dispatch_table_t** provider_dispatch_table,
-        _In_ ebpf_extension_change_callback_t extension_changed);
+        _In_opt_ ebpf_extension_change_callback_t extension_changed);
 
     /**
      * @brief Unload an extension.
@@ -622,8 +613,8 @@ extern "C"
     ebpf_provider_load(
         _Outptr_ ebpf_extension_provider_t** provider_context,
         _In_ const GUID* interface_id,
-        _In_ void* provider_binding_context,
-        _In_ const ebpf_extension_data_t* provider_data,
+        _In_opt_ void* provider_binding_context,
+        _In_opt_ const ebpf_extension_data_t* provider_data,
         _In_ const ebpf_extension_dispatch_table_t* provider_dispatch_table,
         _In_ void* callback_context,
         _In_ ebpf_provider_client_attach_callback_t client_attach_callback,

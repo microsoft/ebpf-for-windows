@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: MIT
 
 #include "ebpf_core.h"
-
 #include "ebpf_epoch.h"
 #include "ebpf_handle.h"
 #include "ebpf_link.h"
@@ -22,7 +21,7 @@ static ebpf_extension_provider_t* _ebpf_global_helper_function_provider_context 
 
 static ebpf_pinning_table_t* _ebpf_core_map_pinning_table = NULL;
 
-// Assume enabled until we can query it
+// Assume enabled until we can query it.
 static ebpf_code_integrity_state_t _ebpf_core_code_integrity_state = EBPF_CODE_INTEGRITY_HYPER_VISOR_KERNEL_MODE;
 
 static void*
@@ -32,11 +31,10 @@ _ebpf_core_map_update_element(ebpf_map_t* map, const uint8_t* key, const uint8_t
 static void
 _ebpf_core_map_delete_element(ebpf_map_t* map, const uint8_t* key);
 
-static const void* _ebpf_program_helpers[] = {
-    NULL,
-    (void*)&_ebpf_core_map_find_element,
-    (void*)&_ebpf_core_map_update_element,
-    (void*)&_ebpf_core_map_delete_element};
+static const void* _ebpf_program_helpers[] = {NULL,
+                                              (void*)&_ebpf_core_map_find_element,
+                                              (void*)&_ebpf_core_map_update_element,
+                                              (void*)&_ebpf_core_map_delete_element};
 
 ebpf_result_t
 ebpf_core_initiate()
@@ -110,12 +108,12 @@ ebpf_core_terminate()
 
     ebpf_pinning_table_free(_ebpf_core_map_pinning_table);
 
-    // Shutdown the epoch tracker and free any remaining memory or work items.
+    // Shut down the epoch tracker and free any remaining memory or work items.
     // Note: Some objects may only be released on epoch termination.
     ebpf_epoch_flush();
     ebpf_epoch_terminate();
 
-    // Verify that all ebf_object_t objects have been freed.
+    // Verify that all ebpf_object_t objects have been freed.
     ebpf_object_tracking_terminate();
 
     ebpf_platform_terminate();
@@ -329,13 +327,12 @@ _ebpf_core_protocol_map_find_element(
     ebpf_result_t retval;
     ebpf_map_t* map = NULL;
     uint8_t* value = NULL;
-    ebpf_map_definition_t* map_definition;
 
     retval = ebpf_reference_object_by_handle(request->handle, EBPF_OBJECT_MAP, (ebpf_object_t**)&map);
     if (retval != EBPF_SUCCESS)
         goto Done;
 
-    map_definition = ebpf_map_get_definition(map);
+    const ebpf_map_definition_t* map_definition = ebpf_map_get_definition(map);
 
     if (request->header.length <
         (EBPF_OFFSET_OF(ebpf_operation_map_find_element_request_t, key) + map_definition->key_size)) {
@@ -367,13 +364,12 @@ _ebpf_core_protocol_map_update_element(_In_ const epf_operation_map_update_eleme
 {
     ebpf_result_t retval;
     ebpf_map_t* map = NULL;
-    ebpf_map_definition_t* map_definition;
 
     retval = ebpf_reference_object_by_handle(request->handle, EBPF_OBJECT_MAP, (ebpf_object_t**)&map);
     if (retval != EBPF_SUCCESS)
         goto Done;
 
-    map_definition = ebpf_map_get_definition(map);
+    const ebpf_map_definition_t* map_definition = ebpf_map_get_definition(map);
 
     if (request->header.length < (EBPF_OFFSET_OF(epf_operation_map_update_element_request_t, data) +
                                   map_definition->key_size + map_definition->value_size)) {
@@ -393,13 +389,12 @@ _ebpf_core_protocol_map_delete_element(_In_ const ebpf_operation_map_delete_elem
 {
     ebpf_result_t retval;
     ebpf_map_t* map = NULL;
-    ebpf_map_definition_t* map_definition;
 
     retval = ebpf_reference_object_by_handle(request->handle, EBPF_OBJECT_MAP, (ebpf_object_t**)&map);
     if (retval != EBPF_SUCCESS)
         goto Done;
 
-    map_definition = ebpf_map_get_definition(map);
+    const ebpf_map_definition_t* map_definition = ebpf_map_get_definition(map);
 
     if (request->header.length <
         (EBPF_OFFSET_OF(ebpf_operation_map_delete_element_request_t, key) + map_definition->key_size)) {
@@ -422,7 +417,6 @@ _ebpf_core_protocol_map_get_next_key(
 {
     ebpf_result_t retval;
     ebpf_map_t* map = NULL;
-    ebpf_map_definition_t* map_definition;
     const uint8_t* previous_key;
     uint8_t* next_key = NULL;
 
@@ -430,7 +424,7 @@ _ebpf_core_protocol_map_get_next_key(
     if (retval != EBPF_SUCCESS)
         goto Done;
 
-    map_definition = ebpf_map_get_definition(map);
+    const ebpf_map_definition_t* map_definition = ebpf_map_get_definition(map);
 
     // If request length shows zero key, treat as restart.
     if (request->header.length == EBPF_OFFSET_OF(ebpf_operation_map_get_next_key_request_t, previous_key)) {
@@ -575,9 +569,9 @@ static ebpf_result_t
 _ebpf_core_protocol_update_pinning(_In_ const struct _ebpf_operation_update_map_pinning_request* request)
 {
     ebpf_result_t retval;
-    const ebpf_utf8_string_t name = {
-        (uint8_t*)request->name,
-        request->header.length - EBPF_OFFSET_OF(ebpf_operation_update_pinning_request_t, name)};
+    const ebpf_utf8_string_t name = {(uint8_t*)request->name,
+                                     request->header.length -
+                                         EBPF_OFFSET_OF(ebpf_operation_update_pinning_request_t, name)};
     ebpf_object_t* object = NULL;
 
     if (name.length == 0) {
@@ -729,7 +723,7 @@ Done:
 static ebpf_result_t
 _ebpf_core_protocol_convert_pinning_entries_to_map_information_array(
     uint16_t entry_count,
-    _In_count_(entry_count) ebpf_pinning_entry_t* pinning_entries,
+    _In_reads_opt_(entry_count) ebpf_pinning_entry_t* pinning_entries,
     _Outptr_result_buffer_maybenull_(entry_count) ebpf_map_information_internal_t** map_info)
 {
     ebpf_result_t result = EBPF_SUCCESS;
@@ -754,14 +748,15 @@ _ebpf_core_protocol_convert_pinning_entries_to_map_information_array(
     for (index = 0; index < entry_count; index++) {
         ebpf_pinning_entry_t* source = &pinning_entries[index];
         ebpf_map_information_internal_t* destination = &local_map_info[index];
-        ebpf_map_definition_t* map_definition;
+
         if (ebpf_object_get_type(source->object) != EBPF_OBJECT_MAP) {
             // Bad object type.
             result = EBPF_INVALID_ARGUMENT;
             goto Exit;
         }
+
         // Query map defintion.
-        map_definition = ebpf_map_get_definition((ebpf_map_t*)source->object);
+        const ebpf_map_definition_t* map_definition = ebpf_map_get_definition((ebpf_map_t*)source->object);
         destination->definition = *map_definition;
         // Set pin path. No need to duplicate.
         destination->pin_path = source->name;

@@ -1,12 +1,11 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include "ebpf_link.h"
-
-#include "ebpf_object.h"
-#include "ebpf_program.h"
 #include "ebpf_epoch.h"
+#include "ebpf_link.h"
+#include "ebpf_object.h"
 #include "ebpf_platform.h"
+#include "ebpf_program.h"
 
 typedef struct _ebpf_link
 {
@@ -22,8 +21,8 @@ typedef struct _ebpf_link
     ebpf_extension_dispatch_table_t* provider_dispatch_table;
 } ebpf_link_t;
 
-ebpf_result_t
-_ebpf_link_instance_invoke(const ebpf_link_t* link, void* program_context, uint32_t* result);
+static ebpf_result_t
+_ebpf_link_instance_invoke(_In_ const ebpf_link_t* link, _In_ void* program_context, _Out_ uint32_t* result);
 
 static struct
 {
@@ -128,8 +127,8 @@ ebpf_link_detach_program(ebpf_link_t* link)
     link->program = NULL;
 }
 
-ebpf_result_t
-_ebpf_link_instance_invoke(const ebpf_link_t* link, void* program_context, uint32_t* result)
+static ebpf_result_t
+_ebpf_link_instance_invoke(_In_ const ebpf_link_t* link, _In_ void* program_context, _Out_ uint32_t* result)
 {
     ebpf_result_t return_value;
     if (!link)
