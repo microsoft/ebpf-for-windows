@@ -4,7 +4,6 @@
 #pragma once
 
 #include "config.hpp"
-#undef VOID
 #include "platform.hpp"
 
 ebpf_result_t

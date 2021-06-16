@@ -12,7 +12,6 @@
 #include "crab_verifier.hpp"
 #pragma warning(pop)
 #include "ebpf_api.h"
-#undef VOID
 #include "ebpf_helpers.h"
 #include "helpers.hpp"
 #include "map_descriptors.hpp"
@@ -34,7 +33,7 @@
 // the preprocessor treat a prefix list as one macro argument.
 #define COMMA ,
 
-const EbpfContextDescriptor g_xdp_context_descriptor = {
+const ebpf_context_descriptor_t g_xdp_context_descriptor = {
     24, // Size of ctx struct.
     0,  // Offset into ctx struct of pointer to data, or -1 if none.
     8,  // Offset into ctx struct of pointer to end of data, or -1 if none.
@@ -44,7 +43,7 @@ const EbpfContextDescriptor g_xdp_context_descriptor = {
 const EbpfProgramType windows_xdp_program_type =
     PTYPE("xdp", &g_xdp_context_descriptor, (uint64_t)&EBPF_PROGRAM_TYPE_XDP, {"xdp"});
 
-const EbpfContextDescriptor g_bind_context_descriptor = {
+const ebpf_context_descriptor_t g_bind_context_descriptor = {
     43, // Size of ctx struct.
     0,  // Offset into ctx struct of pointer to data, or -1 if none.
     8,  // Offset into ctx struct of pointer to end of data, or -1 if none.

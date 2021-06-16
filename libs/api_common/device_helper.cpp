@@ -15,7 +15,6 @@
 #include "ebpf_result.h"
 #include "ebpf_xdp_program_data.h"
 #include "platform.h"
-#undef VOID
 #include "platform.hpp"
 
 static ebpf_handle_t _device_handle = INVALID_HANDLE_VALUE;

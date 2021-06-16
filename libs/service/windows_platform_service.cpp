@@ -12,7 +12,6 @@
 #include "crab_verifier.hpp"
 #pragma warning(pop)
 #include "ebpf_api.h"
-#undef VOID
 #include "ebpf_helpers.h"
 #include "helpers.hpp"
 #include "platform.hpp"
