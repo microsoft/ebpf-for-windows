@@ -10,7 +10,6 @@
 #pragma warning(disable : 4100) // 'identifier' : unreferenced formal parameter
 #pragma warning(disable : 4244) // 'conversion' conversion from 'type1' to
                                 // 'type2', possible loss of data
-#undef VOID
 #include "ebpf_verifier.hpp"
 #pragma warning(pop)
 #include "header.h"
