@@ -34,7 +34,7 @@ when building the master branch, but the end-to-end functionality can still be t
 while the security hardening is still in progress.*
 
 eBPF programs installed into the kernel-mode execution context can attach to various hooks (currently
-two hooks so far: XDP and a socket bind hook) and call various helper APIs exposed by the eBPF shim,
+two hooks so far: XDP like hook that is based on WFP L2 layer and a socket bind hook) and call various helper APIs exposed by the eBPF shim,
 which internally wraps public Windows kernel APIs, allowing the use of eBPF on existing versions of Windows.
 More hooks and helpers will be added over time.
 
