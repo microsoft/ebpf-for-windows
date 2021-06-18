@@ -28,3 +28,9 @@ EXPORTS
 	ebpf_api_close_handle
 	ebpf_api_get_pinned_map_info
 	ebpf_api_map_info_free
+	ebpf_program_load
+	ebpf_program_next
+	ebpf_program_previous
+	ebpf_map_next
+	ebpf_map_previous
+	ebpf_object_close

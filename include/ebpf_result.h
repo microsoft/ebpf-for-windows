@@ -62,6 +62,9 @@ extern "C"
         // The handle was already initialized.
         EBPF_ALREADY_INITIALIZED,
 
+        // Failure in parsing ELF file.
+        EBPF_ELF_PARSING_FAILED,
+
         // Generic failure code for all other errors.
         EBPF_FAILED,
 

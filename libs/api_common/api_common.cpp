@@ -19,19 +19,34 @@
 #include "ebpf_verifier.hpp"
 #pragma warning(pop)
 
+thread_local static const ebpf_program_type_t* _global_program_type = nullptr;
+thread_local static const ebpf_attach_type_t* _global_attach_type = nullptr;
+
 const char*
-allocate_error_string(const std::string& str, uint32_t* length) noexcept
+allocate_string(const std::string& string, uint32_t* length) noexcept
 {
-    char* error_message;
-    size_t error_message_length = str.size() + 1;
-    error_message = (char*)malloc(error_message_length);
-    if (error_message != nullptr) {
-        strcpy_s(error_message, error_message_length, str.c_str());
+    char* new_string;
+    size_t string_length = string.size() + 1;
+    new_string = (char*)malloc(string_length);
+    if (new_string != nullptr) {
+        strcpy_s(new_string, string_length, string.c_str());
         if (length != nullptr) {
-            *length = (uint32_t)error_message_length;
+            *length = (uint32_t)string_length;
         }
     }
-    return error_message; // Error;
+    return new_string;
+}
+
+char*
+allocate_string(const char* string) noexcept
+{
+    char* new_string;
+    size_t length = strlen(string) + 1;
+    new_string = (char*)malloc(length);
+    if (new_string != nullptr) {
+        strcpy_s(new_string, length, string);
+    }
+    return new_string;
 }
 
 std::vector<uint8_t>
@@ -80,4 +95,23 @@ query_map_definition(
     }
 
     return windows_error_to_ebpf_result(result);
+}
+
+void
+set_global_program_and_attach_type(const ebpf_program_type_t* program_type, const ebpf_attach_type_t* attach_type)
+{
+    _global_program_type = program_type;
+    _global_attach_type = attach_type;
+}
+
+const ebpf_program_type_t*
+get_global_program_type()
+{
+    return _global_program_type;
+}
+
+const ebpf_attach_type_t*
+get_global_attach_type()
+{
+    return _global_attach_type;
 }

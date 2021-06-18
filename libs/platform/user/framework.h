@@ -163,6 +163,19 @@ extern "C"
         return (previous_entry == next_entry);
     }
 
+    inline ebpf_list_entry_t*
+    ebpf_list_remove_head_entry(_Inout_ ebpf_list_entry_t* list_head)
+    {
+        if (list_head->Flink == list_head) {
+            return list_head;
+        }
+        ebpf_list_entry_t* removed = list_head->Flink;
+        list_head->Flink = removed->Flink;
+        removed->Flink->Blink = list_head;
+
+        return removed;
+    }
+
 #ifdef __cplusplus
 }
 #endif

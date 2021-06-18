@@ -26,23 +26,22 @@ static service_install_helper _service_helper(EBPF_SERVICE_NAME, EBPF_SERVICE_BI
 static void
 _get_program_byte_code_helper(const char* file_name, const char* section_name, ebpf_program_verify_info* info)
 {
-    uint8_t* instruction_array;
-    uint32_t instruction_array_size;
     EbpfMapDescriptor* descriptors = nullptr;
     int descriptors_count;
     uint32_t result = ERROR_SUCCESS;
-    ebpf_program_type_t program_type;
     const char* error_message = nullptr;
+    ebpf_list_entry_t programs;
+    ebpf_program_t* program;
+    uint32_t programs_count;
 
     // Get byte code and map descriptors from ELF file.
     REQUIRE(
         (result = ebpf_get_program_byte_code(
              file_name,
              section_name,
-             &program_type,
              true, // mock map fd
-             &instruction_array,
-             &instruction_array_size,
+             &programs,
+             &programs_count,
              &descriptors,
              &descriptors_count,
              &error_message),
@@ -51,18 +50,20 @@ _get_program_byte_code_helper(const char* file_name, const char* section_name, e
          error_message = nullptr,
          result == ERROR_SUCCESS));
 
-    REQUIRE(instruction_array_size != 0);
+    REQUIRE(programs_count == 1);
+    program = CONTAINING_RECORD(programs.Flink, ebpf_program_t, list_entry);
+    REQUIRE(program->byte_code_size != 0);
 
-    info->program_type = program_type;
-    info->byte_code = instruction_array;
-    info->byte_code_size = instruction_array_size;
+    info->program_type = program->program_type;
+    info->byte_code = program->byte_code;
+    info->byte_code_size = program->byte_code_size;
     info->map_descriptors_count = descriptors_count;
     info->execution_context = execution_context_kernel_mode;
     if (descriptors != nullptr) {
         info->map_descriptors = reinterpret_cast<ebpf_map_descriptor*>(descriptors);
     }
 
-    printf("instruction_array_size = %d\n", instruction_array_size);
+    printf("instruction_array_size = %d\n", program->byte_code_size);
     ebpf_api_free_string(error_message);
 }
 
@@ -126,7 +127,7 @@ TEST_CASE("verify-program-divide_by_zero", "[verify-program-divide_by_zero]")
 
     REQUIRE(
         (result = ebpf_rpc_verify_program(&info, &verifier_message, &verifier_message_size),
-         verifier_message ? printf("ebpf_get_program_byte_code failed with %s\n", verifier_message) : 0,
+         verifier_message ? printf("ebpf_rpc_verify_program failed with %s\n", verifier_message) : 0,
          ebpf_api_free_string(verifier_message),
          verifier_message = nullptr,
          result == ERROR_SUCCESS));
