@@ -5,12 +5,14 @@
 #include <stdexcept>
 #include <vector>
 #include <Windows.h>
+#include "api_common.hpp"
 #include "device_helper.hpp"
 #include "ebpf_bind_program_data.h"
 #include "ebpf_platform.h"
 #include "ebpf_program_types.h"
 #include "ebpf_protocol.h"
 #include "ebpf_result.h"
+#include "ebpf_serialize.h"
 #include "ebpf_xdp_program_data.h"
 #include "platform.h"
 #include "platform.hpp"
@@ -24,7 +26,19 @@ struct guid_compare
     }
 };
 
-static thread_local std::map<GUID, ebpf_helper::ebpf_memory_ptr, guid_compare> _program_information_cache;
+struct _ebpf_program_information_deleter
+{
+    void
+    operator()(_Pre_maybenull_ _Post_invalid_ _In_ ebpf_program_information_t* program_info)
+    {
+        ebpf_program_information_free(program_info);
+    }
+};
+
+typedef std::unique_ptr<ebpf_program_information_t, _ebpf_program_information_deleter> ebpf_program_information_ptr;
+static thread_local std::map<GUID, ebpf_program_information_ptr, guid_compare> _program_information_cache;
+
+static thread_local std::map<GUID, ebpf_helper::ebpf_memory_ptr, guid_compare> _static_program_information_cache;
 
 void
 clear_program_information_cache()
@@ -32,36 +46,41 @@ clear_program_information_cache()
     _program_information_cache.clear();
 }
 
-uint32_t
-get_program_information_data(ebpf_program_type_t program_type, ebpf_extension_data_t** program_information_data)
+ebpf_result_t
+get_program_information_data(
+    ebpf_program_type_t program_type, _Outptr_result_maybenull_ ebpf_program_information_t** program_information)
 {
     ebpf_protocol_buffer_t reply_buffer(1024);
+    size_t required_buffer_length;
     ebpf_operation_get_program_information_request_t request{
         sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_GET_PROGRAM_INFORMATION, program_type};
 
+    *program_information = nullptr;
+
     auto reply = reinterpret_cast<ebpf_operation_get_program_information_reply_t*>(reply_buffer.data());
-    uint32_t retval = invoke_ioctl(request, reply_buffer);
-    if (retval != ERROR_SUCCESS) {
-        return retval;
+    ebpf_result_t result = windows_error_to_ebpf_result(invoke_ioctl(request, reply_buffer));
+    if ((result != EBPF_SUCCESS) && (result != EBPF_INSUFFICIENT_BUFFER))
+        goto Exit;
+
+    if (result == EBPF_INSUFFICIENT_BUFFER) {
+        required_buffer_length = reply->header.length;
+        reply_buffer.resize(required_buffer_length);
+        reply = reinterpret_cast<ebpf_operation_get_program_information_reply_t*>(reply_buffer.data());
+        result = windows_error_to_ebpf_result(invoke_ioctl(request, reply_buffer));
+        if (result != EBPF_SUCCESS)
+            goto Exit;
     }
 
     if (reply->header.id != ebpf_operation_id_t::EBPF_OPERATION_GET_PROGRAM_INFORMATION) {
-        return ERROR_INVALID_PARAMETER;
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
     }
 
-    size_t allocation_size =
-        reply->header.length - EBPF_OFFSET_OF(ebpf_operation_get_program_information_reply_t, version);
+    // Deserialize the reply data into program information.
+    result = ebpf_deserialize_program_information(reply->size, reply->data, program_information);
 
-    *program_information_data = (ebpf_extension_data_t*)malloc(allocation_size);
-    if (!*program_information_data)
-        return ERROR_OUTOFMEMORY;
-
-    memcpy(
-        *program_information_data,
-        reply_buffer.data() + EBPF_OFFSET_OF(ebpf_operation_get_program_information_reply_t, version),
-        allocation_size);
-
-    return retval;
+Exit:
+    return result;
 }
 
 ebpf_result_t
@@ -72,20 +91,26 @@ get_program_type_info(const ebpf_program_information_t** info)
     ebpf_program_information_t* program_information;
     const uint8_t* encoded_data = nullptr;
     size_t encoded_data_size = 0;
+    bool fall_back = false;
 
     // See if we already have the program information cached.
     auto it = _program_information_cache.find(*program_type);
     if (it == _program_information_cache.end()) {
         // Try to query the information from the execution context.
-        ebpf_extension_data_t* program_information_data;
-        uint32_t error = get_program_information_data(*program_type, &program_information_data);
-        if (error == ERROR_SUCCESS) {
-            encoded_data = program_information_data->data;
-            encoded_data_size = program_information_data->size;
+        result = get_program_information_data(*program_type, &program_information);
+        if (result != EBPF_SUCCESS) {
+            fall_back = true;
         } else {
-            // Fall back to using static data so that verification can be tried
-            // (e.g., from a netsh command) even if the execution context isn't running.
-            // TODO: remove this in the future.
+            _program_information_cache[*program_type] = ebpf_program_information_ptr(program_information);
+        }
+    }
+
+    if (fall_back) {
+        // Fall back to using static data so that verification can be tried
+        // (e.g., from a netsh command) even if the execution context isn't running.
+        // TODO: remove this in the future.
+        auto iter = _static_program_information_cache.find(*program_type);
+        if (iter == _static_program_information_cache.end()) {
             if (memcmp(program_type, &EBPF_PROGRAM_TYPE_XDP, sizeof(*program_type)) == 0) {
                 encoded_data = _ebpf_encoded_xdp_program_information_data;
                 encoded_data_size = sizeof(_ebpf_encoded_xdp_program_information_data);
@@ -93,20 +118,23 @@ get_program_type_info(const ebpf_program_information_t** info)
                 encoded_data = _ebpf_encoded_bind_program_information_data;
                 encoded_data_size = sizeof(_ebpf_encoded_bind_program_information_data);
             }
-        }
-        if (encoded_data == nullptr) {
-            return EBPF_INVALID_ARGUMENT;
-        }
+            ebpf_assert(encoded_data != nullptr);
 
-        result = ebpf_program_information_decode(&program_information, encoded_data, (unsigned long)encoded_data_size);
-        if (result != EBPF_SUCCESS) {
-            return result;
-        }
+            result =
+                ebpf_program_information_decode(&program_information, encoded_data, (unsigned long)encoded_data_size);
+            if (result != EBPF_SUCCESS) {
+                return result;
+            }
 
-        _program_information_cache[*program_type] = ebpf_helper::ebpf_memory_ptr(program_information);
+            _static_program_information_cache[*program_type] = ebpf_helper::ebpf_memory_ptr(program_information);
+        }
     }
 
-    *info = (const ebpf_program_information_t*)_program_information_cache[*program_type].get();
+    if (!fall_back) {
+        *info = (const ebpf_program_information_t*)_program_information_cache[*program_type].get();
+    } else {
+        *info = (const ebpf_program_information_t*)_static_program_information_cache[*program_type].get();
+    }
 
     return EBPF_SUCCESS;
 }

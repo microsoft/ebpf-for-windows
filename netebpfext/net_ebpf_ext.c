@@ -48,11 +48,64 @@ static ebpf_ext_attach_hook_provider_registration_t* _ebpf_xdp_hook_provider_reg
 static ebpf_ext_attach_hook_provider_registration_t* _ebpf_bind_hook_provider_registration = NULL;
 static ebpf_extension_provider_t* _ebpf_xdp_program_information_provider = NULL;
 static ebpf_extension_provider_t* _ebpf_bind_program_information_provider = NULL;
-static ebpf_extension_data_t* _ebpf_xdp_program_information_provider_data = NULL;
-static ebpf_extension_data_t* _ebpf_bind_program_information_provider_data = NULL;
 
 #define RTL_COUNT_OF(arr) (sizeof(arr) / sizeof(arr[0]))
 
+static ebpf_helper_function_prototype_t _ebpf_map_helper_function_prototype[] = {
+    {1,
+     "ebpf_map_lookup_element",
+     EBPF_RETURN_TYPE_PTR_TO_MAP_VALUE_OR_NULL,
+     {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY}},
+    {2,
+     "ebpf_map_update_element",
+     EBPF_RETURN_TYPE_INTEGER,
+     {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_VALUE}},
+    {3,
+     "ebpf_map_delete_element",
+     EBPF_RETURN_TYPE_INTEGER,
+     {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY}}};
+
+static ebpf_context_descriptor_t _ebpf_xdp_context_descriptor = {sizeof(xdp_md_t),
+                                                                 EBPF_OFFSET_OF(xdp_md_t, data),
+                                                                 EBPF_OFFSET_OF(xdp_md_t, data_end),
+                                                                 EBPF_OFFSET_OF(xdp_md_t, data_meta)};
+static ebpf_program_information_t _ebpf_xdp_program_information = {{"xdp",
+                                                                    &_ebpf_xdp_context_descriptor,
+                                                                    {// EBPF_PROGRAM_TYPE_XDP
+                                                                     0xf1832a85,
+                                                                     0x85d5,
+                                                                     0x45b0,
+                                                                     // clang-format off
+                                                                     0x98, 0xa0, 0x70, 0x69, 0xd6, 0x30, 0x13, 0xb0}},
+                                                                   // clang-format on
+                                                                   EBPF_COUNT_OF(_ebpf_map_helper_function_prototype),
+                                                                   _ebpf_map_helper_function_prototype};
+
+static ebpf_program_data_t _ebpf_xdp_program_data = {&_ebpf_xdp_program_information, NULL};
+
+static ebpf_extension_data_t _ebpf_xdp_program_information_provider_data = {0, // version
+                                                                            sizeof(_ebpf_xdp_program_data),
+                                                                            &_ebpf_xdp_program_data};
+
+static ebpf_context_descriptor_t _ebpf_bind_context_descriptor = {
+    sizeof(bind_md_t), EBPF_OFFSET_OF(bind_md_t, app_id_start), EBPF_OFFSET_OF(bind_md_t, app_id_end), -1};
+static ebpf_program_information_t _ebpf_bind_program_information = {{"bind",
+                                                                     &_ebpf_bind_context_descriptor,
+                                                                     {// EBPF_PROGRAM_TYPE_BIND
+                                                                      0x608c517c,
+                                                                      0x6c52,
+                                                                      0x4a26,
+                                                                      // clang-format off
+                                                                      0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}},
+                                                                    // clang-format on
+                                                                    EBPF_COUNT_OF(_ebpf_map_helper_function_prototype),
+                                                                    _ebpf_map_helper_function_prototype};
+
+static ebpf_program_data_t _ebpf_bind_program_data = {&_ebpf_bind_program_information, NULL};
+
+static ebpf_extension_data_t _ebpf_bind_program_information_provider_data = {0, // version
+                                                                             sizeof(_ebpf_bind_program_data),
+                                                                             &_ebpf_bind_program_data};
 // Callout and sublayer GUIDs
 
 // 7c7b3fb9-3331-436a-98e1-b901df457fff
@@ -637,63 +690,6 @@ net_ebpf_ext_program_information_provider_unregister()
 {
     ebpf_provider_unload(_ebpf_xdp_program_information_provider);
     ebpf_provider_unload(_ebpf_bind_program_information_provider);
-    ebpf_free(_ebpf_xdp_program_information_provider_data);
-    _ebpf_xdp_program_information_provider_data = NULL;
-    ebpf_free(_ebpf_bind_program_information_provider_data);
-    _ebpf_bind_program_information_provider_data = NULL;
-}
-
-static ebpf_result_t
-_net_ebpf_ext_program_information_encode_xdp()
-{
-    ebpf_result_t return_value;
-    const uint8_t* buffer = _ebpf_encoded_xdp_program_information_data;
-    unsigned long buffer_size = sizeof(_ebpf_encoded_xdp_program_information_data);
-
-    _ebpf_xdp_program_information_provider_data =
-        (ebpf_extension_data_t*)ebpf_allocate(EBPF_OFFSET_OF(ebpf_extension_data_t, data) + buffer_size);
-
-    if (_ebpf_xdp_program_information_provider_data == NULL) {
-        return_value = EBPF_NO_MEMORY;
-        goto Done;
-    }
-
-    _ebpf_xdp_program_information_provider_data->size =
-        (uint16_t)(EBPF_OFFSET_OF(ebpf_extension_data_t, data) + buffer_size);
-    _ebpf_xdp_program_information_provider_data->version = 0;
-
-    memcpy(_ebpf_xdp_program_information_provider_data->data, buffer, buffer_size);
-
-    return_value = EBPF_SUCCESS;
-
-Done:
-    return return_value;
-}
-
-static ebpf_result_t
-_net_ebpf_ext_program_information_encode_bind()
-{
-    ebpf_result_t return_value;
-    const uint8_t* buffer = _ebpf_encoded_bind_program_information_data;
-    unsigned long buffer_size = sizeof(_ebpf_encoded_bind_program_information_data);
-
-    _ebpf_bind_program_information_provider_data =
-        (ebpf_extension_data_t*)ebpf_allocate(EBPF_OFFSET_OF(ebpf_extension_data_t, data) + buffer_size);
-
-    if (_ebpf_bind_program_information_provider_data == NULL) {
-        return_value = EBPF_NO_MEMORY;
-        goto Done;
-    }
-
-    _ebpf_bind_program_information_provider_data->size =
-        (uint16_t)(EBPF_OFFSET_OF(ebpf_extension_data_t, data) + buffer_size);
-    _ebpf_bind_program_information_provider_data->version = 0;
-    memcpy(_ebpf_bind_program_information_provider_data->data, buffer, buffer_size);
-
-    return_value = EBPF_SUCCESS;
-
-Done:
-    return return_value;
 }
 
 NTSTATUS
@@ -701,21 +697,11 @@ net_ebpf_ext_program_information_provider_register()
 {
     ebpf_result_t return_value;
 
-    return_value = _net_ebpf_ext_program_information_encode_xdp();
-    if (return_value != EBPF_SUCCESS) {
-        goto Done;
-    }
-
-    return_value = _net_ebpf_ext_program_information_encode_bind();
-    if (return_value != EBPF_SUCCESS) {
-        goto Done;
-    }
-
     return_value = ebpf_provider_load(
         &_ebpf_xdp_program_information_provider,
         &EBPF_PROGRAM_TYPE_XDP,
         NULL,
-        _ebpf_xdp_program_information_provider_data,
+        &_ebpf_xdp_program_information_provider_data,
         NULL,
         NULL,
         NULL,
@@ -728,7 +714,7 @@ net_ebpf_ext_program_information_provider_register()
         &_ebpf_bind_program_information_provider,
         &EBPF_PROGRAM_TYPE_BIND,
         NULL,
-        _ebpf_bind_program_information_provider_data,
+        &_ebpf_bind_program_information_provider_data,
         NULL,
         NULL,
         NULL,
@@ -741,8 +727,6 @@ net_ebpf_ext_program_information_provider_register()
 Done:
     if (return_value != EBPF_SUCCESS) {
         net_ebpf_ext_program_information_provider_unregister();
-        ebpf_free(_ebpf_xdp_program_information_provider_data);
-        ebpf_free(_ebpf_bind_program_information_provider_data);
         return STATUS_UNSUCCESSFUL;
     } else
         return STATUS_SUCCESS;

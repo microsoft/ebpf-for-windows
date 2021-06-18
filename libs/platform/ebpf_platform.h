@@ -62,7 +62,7 @@ extern "C"
     {
         uint16_t version;
         uint16_t size;
-        uint8_t data[1];
+        void* data;
     } ebpf_extension_data_t;
 
     typedef struct _ebpf_trampoline_table ebpf_trampoline_table_t;
@@ -74,6 +74,8 @@ extern "C"
     typedef struct _SECURITY_DESCRIPTOR ebpf_security_descriptor_t;
     typedef struct _GENERIC_MAPPING ebpf_security_generic_mapping_t;
     typedef uint32_t ebpf_security_access_mask_t;
+
+    typedef struct _ebpf_helper_function_addresses ebpf_helper_function_addresses_t;
 
     /**
      *  @brief Initialize the eBPF platform abstraction layer.
@@ -538,10 +540,7 @@ extern "C"
     ebpf_interlocked_compare_exchange_int32(_Inout_ volatile int32_t* destination, int32_t exchange, int32_t comperand);
 
     typedef void (*ebpf_extension_change_callback_t)(
-        void* client_binding_context,
-        const void* provider_binding_context,
-        const ebpf_extension_data_t* provider_data,
-        const ebpf_extension_dispatch_table_t* provider_dispatch_table);
+        void* client_binding_context, const void* provider_binding_context, const ebpf_extension_data_t* provider_data);
 
     /**
      * @brief Load an extension and get its dispatch table.
@@ -666,7 +665,8 @@ extern "C"
      */
     ebpf_result_t
     ebpf_update_trampoline_table(
-        _Inout_ ebpf_trampoline_table_t* trampoline_table, _In_ const ebpf_extension_dispatch_table_t* dispatch_table);
+        _Inout_ ebpf_trampoline_table_t* trampoline_table,
+        _In_ const ebpf_helper_function_addresses_t* helper_function_addresses);
 
     /**
      * @brief Get the address of a trampoline function.

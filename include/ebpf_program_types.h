@@ -16,6 +16,9 @@ typedef unsigned long long uint64_t;
 #endif
 #include "../external/ebpf-verifier/src/ebpf_base.h"
 
+#define EBPF_MAX_PROGRAM_DESCRIPTOR_NAME_LENGTH 256
+#define EBPF_MAX_HELPER_FUNCTION_NAME_LENGTH 256
+
 typedef struct _ebpf_program_type_descriptor
 {
     MIDL([string])
@@ -40,3 +43,15 @@ typedef struct _ebpf_program_information
     uint32_t count_of_helpers;
     MIDL([size_is(count_of_helpers)]) ebpf_helper_function_prototype_t* helper_prototype;
 } ebpf_program_information_t;
+
+typedef struct _ebpf_helper_function_addresses
+{
+    uint32_t helper_function_count;
+    MIDL([size_is(helper_function_count)]) uint64_t* helper_function_address;
+} ebpf_helper_function_addresses_t;
+
+typedef struct _ebpf_program_data
+{
+    ebpf_program_information_t* program_information;
+    ebpf_helper_function_addresses_t* helper_function_addresses;
+} ebpf_program_data_t;

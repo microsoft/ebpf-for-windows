@@ -8,6 +8,7 @@
 #include "ebpf_maps.h"
 #include "ebpf_pinning_table.h"
 #include "ebpf_program.h"
+#include "ebpf_program_types.h"
 #include "ebpf_serialize.h"
 
 GUID ebpf_global_helper_function_interface_id = {/* 8d2a1d3f-9ce6-473d-b48e-17aa5c5581fe */
@@ -15,9 +16,6 @@ GUID ebpf_global_helper_function_interface_id = {/* 8d2a1d3f-9ce6-473d-b48e-17aa
                                                  0x9ce6,
                                                  0x473d,
                                                  {0xb4, 0x8e, 0x17, 0xaa, 0x5c, 0x55, 0x81, 0xfe}};
-
-static ebpf_extension_dispatch_table_t* _ebpf_global_helper_function_dispatch_table = NULL;
-static ebpf_extension_provider_t* _ebpf_global_helper_function_provider_context = NULL;
 
 static ebpf_pinning_table_t* _ebpf_core_map_pinning_table = NULL;
 
@@ -35,6 +33,16 @@ static const void* _ebpf_program_helpers[] = {NULL,
                                               (void*)&_ebpf_core_map_find_element,
                                               (void*)&_ebpf_core_map_update_element,
                                               (void*)&_ebpf_core_map_delete_element};
+
+static ebpf_extension_provider_t* _ebpf_global_helper_function_provider_context = NULL;
+static ebpf_helper_function_addresses_t _ebpf_global_helper_function_dispatch_table = {
+    EBPF_COUNT_OF(_ebpf_program_helpers), (uint64_t*)_ebpf_program_helpers};
+static ebpf_program_data_t _ebpf_global_helper_function_program_data = {NULL,
+                                                                        &_ebpf_global_helper_function_dispatch_table};
+static ebpf_extension_data_t _ebpf_global_helper_function_extension_data = {
+    0, // version
+    sizeof(_ebpf_global_helper_function_program_data),
+    &_ebpf_global_helper_function_program_data};
 
 ebpf_result_t
 ebpf_core_initiate()
@@ -59,25 +67,12 @@ ebpf_core_initiate()
     if (return_value != EBPF_SUCCESS)
         goto Done;
 
-    _ebpf_global_helper_function_dispatch_table =
-        ebpf_allocate(EBPF_OFFSET_OF(ebpf_extension_dispatch_table_t, function) + sizeof(_ebpf_program_helpers));
-    if (!_ebpf_global_helper_function_dispatch_table) {
-        return_value = EBPF_NO_MEMORY;
-        goto Done;
-    }
-
-    _ebpf_global_helper_function_dispatch_table->version = 0;
-    _ebpf_global_helper_function_dispatch_table->size =
-        EBPF_OFFSET_OF(ebpf_extension_dispatch_table_t, function) + sizeof(_ebpf_program_helpers);
-
-    memcpy(_ebpf_global_helper_function_dispatch_table->function, _ebpf_program_helpers, sizeof(_ebpf_program_helpers));
-
     return_value = ebpf_provider_load(
         &_ebpf_global_helper_function_provider_context,
         &ebpf_global_helper_function_interface_id,
         NULL,
+        &_ebpf_global_helper_function_extension_data,
         NULL,
-        _ebpf_global_helper_function_dispatch_table,
         NULL,
         NULL,
         NULL);
@@ -100,9 +95,6 @@ ebpf_core_terminate()
 {
     ebpf_provider_unload(_ebpf_global_helper_function_provider_context);
     _ebpf_global_helper_function_provider_context = NULL;
-
-    ebpf_free(_ebpf_global_helper_function_dispatch_table);
-    _ebpf_global_helper_function_dispatch_table = NULL;
 
     ebpf_handle_table_terminate();
 
@@ -682,9 +674,11 @@ _ebpf_core_protocol_get_program_information(
 {
     ebpf_result_t retval;
     ebpf_program_t* program = NULL;
-    ebpf_extension_data_t* program_information_data;
-    size_t required_length;
     ebpf_program_parameters_t program_parameters = {0};
+    ebpf_extension_data_t* program_information_data;
+    ebpf_program_data_t* program_data;
+    size_t serialization_buffer_size;
+    size_t required_length;
 
     retval = ebpf_program_create(&program);
     if (retval != EBPF_SUCCESS)
@@ -699,21 +693,29 @@ _ebpf_core_protocol_get_program_information(
     retval = ebpf_program_get_program_information_data(program, &program_information_data);
     if (retval != EBPF_SUCCESS)
         goto Done;
+    program_data = (ebpf_program_data_t*)program_information_data->data;
+    if (program_data->program_information == NULL) {
+        retval = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
 
-    required_length = EBPF_OFFSET_OF(ebpf_operation_get_program_information_reply_t, data);
-    required_length += program_information_data->size;
+    serialization_buffer_size = reply_length - EBPF_OFFSET_OF(ebpf_operation_get_program_information_reply_t, data);
 
-    if (required_length > reply_length) {
-        retval = EBPF_INSUFFICIENT_BUFFER;
+    // Serialize program information structure onto reply data buffer.
+    retval = ebpf_serialize_program_information(
+        program_data->program_information,
+        reply->data,
+        serialization_buffer_size,
+        (size_t*)&reply->size,
+        &required_length);
+
+    if (retval != EBPF_SUCCESS) {
+        reply->header.length =
+            (uint16_t)(required_length + EBPF_OFFSET_OF(ebpf_operation_get_program_information_reply_t, data));
         goto Done;
     }
 
     reply->version = program_information_data->version;
-    reply->size = program_information_data->size;
-    memcpy(&reply->data, program_information_data->data, program_information_data->size);
-
-    reply->header.length = (uint16_t)required_length;
-    retval = EBPF_SUCCESS;
 
 Done:
     ebpf_object_release_reference((ebpf_object_t*)program);
@@ -785,7 +787,7 @@ _ebpf_core_protocol_serialize_map_information_reply(
 
     serialization_buffer_size = output_buffer_length - EBPF_OFFSET_OF(ebpf_operation_get_map_information_reply_t, data);
 
-    result = ebpf_serialize_core_map_information_array(
+    result = ebpf_serialize_internal_map_information_array(
         map_count,
         map_info,
         map_info_reply->data,
@@ -814,11 +816,6 @@ _ebpf_core_protocol_get_map_information(
     ebpf_map_information_internal_t* map_info = NULL;
 
     UNREFERENCED_PARAMETER(request);
-
-    if (reply_length < (uint16_t)sizeof(ebpf_operation_get_map_information_reply_t)) {
-        result = EBPF_INVALID_ARGUMENT;
-        goto Exit;
-    }
 
     // Enumerate all the pinning entries for map objects.
     result = ebpf_pinning_table_enumerate_entries(

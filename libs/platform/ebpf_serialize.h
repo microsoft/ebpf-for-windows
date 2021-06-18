@@ -15,7 +15,7 @@ extern "C"
 #endif
 
     /**
-     * @brief eBPF Core Map Information
+     * @brief eBPF Internal Map Information
      */
     typedef struct _ebpf_map_information_internal
     {
@@ -47,7 +47,7 @@ extern "C"
      * @retval EBPF_ERROR_INSUFFICIENT_BUFFER The output buffer is insufficient to store serialized data.
      */
     ebpf_result_t
-    ebpf_serialize_core_map_information_array(
+    ebpf_serialize_internal_map_information_array(
         uint16_t map_count,
         _In_count_(map_count) const ebpf_map_information_internal_t* map_info,
         _Out_writes_bytes_to_(output_buffer_length, *serialized_data_length) uint8_t* output_buffer,
@@ -82,7 +82,55 @@ extern "C"
      * @param[in] map_info Map to be freed.
      */
     void
-    ebpf_map_information_array_free(uint16_t map_count, _In_count_(map_count) ebpf_map_information_t* map_info);
+    ebpf_map_information_array_free(
+        uint16_t map_count, _Pre_maybenull_ _Post_invalid_ _In_count_(map_count) ebpf_map_information_t* map_info);
+
+    /**
+     * @brief Serialize ebpf_program_information_t onto output buffer.
+     *
+     * @param[in]  program_info Pointer to program_map_information_t to serialize.
+     * @param[out]  output_buffer Caller specified output buffer to write serialized data into.
+     * @param[in]  output_buffer_length Output buffer length.
+     * @param[out] serialized_data_length Length of successfully serialized data.
+     * @param[out] required_length Length of buffer required to serialize input array.
+     *
+     * @retval EBPF_SUCCESS The serialization was successful.
+     * @retval EBPF_INVALID_ARGUMENT One or more input parameters are incorrect.
+     * @retval EBPF_ERROR_INSUFFICIENT_BUFFER The output buffer is insufficient to store serialized data.
+     */
+    ebpf_result_t
+    ebpf_serialize_program_information(
+        _In_ const ebpf_program_information_t* program_info,
+        _Out_writes_bytes_to_(output_buffer_length, *serialized_data_length) uint8_t* output_buffer,
+        size_t output_buffer_length,
+        _Out_ size_t* serialized_data_length,
+        _Out_ size_t* required_length);
+
+    /**
+     * @brief Deserialize input buffer to an array of ebpf_map_information_t.
+     *
+     * @param[in] input_buffer_length Input buffer length.
+     * @param[in] input_buffer Input buffer that will be de-serialized.
+     * @param[out] program_info Pointer to ebpf_program_information_t deserialized from input buffer.
+     *
+     * @retval EBPF_SUCCESS The de-serialization was successful.
+     * @retval EBPF_INVALID_ARGUMENT One or more input parameters are incorrect.
+     * @retval EBPF_NO_MEMORY Output array could not be allocated.
+     */
+    ebpf_result_t
+    ebpf_deserialize_program_information(
+        size_t input_buffer_length,
+        _In_reads_bytes_(input_buffer_length) const uint8_t* input_buffer,
+        _Outptr_ ebpf_program_information_t** program_info);
+
+    /**
+     * @brief Helper Function to free ebpf_program_information_t allocated by
+     * ebpf_deserialize_program_information function.
+     *
+     * @param[in] program_info Program information to be freed.
+     */
+    void
+    ebpf_program_information_free(_Pre_maybenull_ _Post_invalid_ _In_ ebpf_program_information_t* program_info);
 
 #ifdef __cplusplus
 }

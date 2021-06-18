@@ -52,7 +52,8 @@ ebpf_get_program_byte_code(
     const char** error_message);
 
 uint32_t
-get_program_information_data(ebpf_program_type_t program_type, ebpf_extension_data_t** program_information_data);
+get_program_information_data(
+    ebpf_program_type_t program_type, _Outptr_result_maybenull_ ebpf_program_information_t** program_information);
 
 void
 clean_up_ebpf_program(_In_ _Post_invalid_ ebpf_program_t* program);

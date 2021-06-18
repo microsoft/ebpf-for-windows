@@ -194,21 +194,25 @@ TEST_CASE("trampoline_test", "[platform]")
     ebpf_trampoline_table_t* table = NULL;
     ebpf_result_t (*test_function)();
     auto provider_function1 = []() { return EBPF_SUCCESS; };
-    auto provider_function2 = []() { return EBPF_OBJECT_ALREADY_EXISTS; };
+    ebpf_result_t (*function_pointer1)() = provider_function1;
+    const void* helper_functions1[] = {(void*)function_pointer1};
+    ebpf_helper_function_addresses_t helper_function_addresses1 = {EBPF_COUNT_OF(helper_functions1),
+                                                                   (uint64_t*)helper_functions1};
 
-    ebpf_extension_dispatch_table_t provider_dispatch_table1 = {
-        0, sizeof(ebpf_extension_dispatch_table_t), provider_function1};
-    ebpf_extension_dispatch_table_t provider_dispatch_table2 = {
-        0, sizeof(ebpf_extension_dispatch_table_t), provider_function2};
+    auto provider_function2 = []() { return EBPF_OBJECT_ALREADY_EXISTS; };
+    ebpf_result_t (*function_pointer2)() = provider_function2;
+    const void* helper_functions2[] = {(void*)function_pointer2};
+    ebpf_helper_function_addresses_t helper_function_addresses2 = {EBPF_COUNT_OF(helper_functions1),
+                                                                   (uint64_t*)helper_functions2};
 
     REQUIRE(ebpf_allocate_trampoline_table(1, &table) == EBPF_SUCCESS);
-    REQUIRE(ebpf_update_trampoline_table(table, &provider_dispatch_table1) == EBPF_SUCCESS);
+    REQUIRE(ebpf_update_trampoline_table(table, &helper_function_addresses1) == EBPF_SUCCESS);
     REQUIRE(ebpf_get_trampoline_function(table, 0, reinterpret_cast<void**>(&test_function)) == EBPF_SUCCESS);
 
     // Verify that the trampoline function invokes the provider function
     REQUIRE(test_function() == EBPF_SUCCESS);
 
-    REQUIRE(ebpf_update_trampoline_table(table, &provider_dispatch_table2) == EBPF_SUCCESS);
+    REQUIRE(ebpf_update_trampoline_table(table, &helper_function_addresses2) == EBPF_SUCCESS);
 
     // Verify that the trampoline function now invokes the new provider function
     REQUIRE(test_function() == EBPF_OBJECT_ALREADY_EXISTS);
@@ -314,7 +318,7 @@ TEST_CASE("serialize_map_test", "[platform]")
     _test_helper test_helper;
 
     const int map_count = 10;
-    ebpf_map_information_internal_t core_map_info_array[map_count] = {};
+    ebpf_map_information_internal_t internal_map_info_array[map_count] = {};
     std::string pin_path_prefix = "\\ebpf\\map\\";
     std::vector<std::string> pin_paths;
     size_t buffer_length = 0;
@@ -329,7 +333,7 @@ TEST_CASE("serialize_map_test", "[platform]")
     }
 
     for (int i = 0; i < map_count; i++) {
-        ebpf_map_information_internal_t* map_info = &core_map_info_array[i];
+        ebpf_map_information_internal_t* map_info = &internal_map_info_array[i];
         map_info->definition.size = (i + 1) * 32;
         map_info->definition.type = static_cast<ebpf_map_type_t>(i % (EBPF_MAP_TYPE_ARRAY + 1));
         map_info->definition.key_size = i + 1;
@@ -341,15 +345,15 @@ TEST_CASE("serialize_map_test", "[platform]")
     }
 
     // Serialize.
-    ebpf_result_t result = ebpf_serialize_core_map_information_array(
-        map_count, core_map_info_array, buffer, buffer_length, &serialized_length, &required_length);
+    ebpf_result_t result = ebpf_serialize_internal_map_information_array(
+        map_count, internal_map_info_array, buffer, buffer_length, &serialized_length, &required_length);
     REQUIRE(result == EBPF_INSUFFICIENT_BUFFER);
 
     buffer = static_cast<uint8_t*>(calloc(required_length, 1));
     buffer_length = required_length;
 
-    result = ebpf_serialize_core_map_information_array(
-        map_count, core_map_info_array, buffer, buffer_length, &serialized_length, &required_length);
+    result = ebpf_serialize_internal_map_information_array(
+        map_count, internal_map_info_array, buffer, buffer_length, &serialized_length, &required_length);
     REQUIRE(result == EBPF_SUCCESS);
 
     // Deserialize.
@@ -358,7 +362,7 @@ TEST_CASE("serialize_map_test", "[platform]")
 
     // Verify de-serialized map info array matches input.
     for (int i = 0; i < map_count; i++) {
-        ebpf_map_information_internal_t* input_map_info = &core_map_info_array[i];
+        ebpf_map_information_internal_t* input_map_info = &internal_map_info_array[i];
         ebpf_map_information_t* map_info = &map_info_array[i];
         REQUIRE(memcmp(&map_info->definition, &input_map_info->definition, sizeof(ebpf_map_definition_t)) == 0);
         REQUIRE(strnlen_s(map_info->pin_path, EBPF_MAX_PIN_PATH_LENGTH) == input_map_info->pin_path.length);
@@ -367,6 +371,85 @@ TEST_CASE("serialize_map_test", "[platform]")
 
     // Free de-serialized map info array.
     ebpf_map_information_array_free(map_count, map_info_array);
+
+    if (buffer != nullptr)
+        free(buffer);
+}
+
+TEST_CASE("serialize_program_information_test", "[platform]")
+{
+    _test_helper test_helper;
+
+    ebpf_helper_function_prototype_t helper_prototype[] = {
+        {1000,
+         "helper_0",
+         EBPF_RETURN_TYPE_PTR_TO_MAP_VALUE_OR_NULL,
+         {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY}},
+        {1001,
+         "helper_1",
+         EBPF_RETURN_TYPE_INTEGER,
+         {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_VALUE}}};
+    ebpf_context_descriptor_t context_descriptor = {32, 0, 8, -1};
+    GUID PROGRAM_TYPE_TEST = {0x7ebe418c, 0x76dd, 0x4c2c, {0x99, 0xbc, 0x5c, 0x48, 0xa2, 0x30, 0x4b, 0x90}};
+    ebpf_program_type_descriptor_t program_type = {"unit_test_program", &context_descriptor, PROGRAM_TYPE_TEST};
+    ebpf_program_information_t in_program_info = {program_type, EBPF_COUNT_OF(helper_prototype), helper_prototype};
+
+    size_t buffer_length = 0;
+    uint8_t* buffer = nullptr;
+    size_t required_length;
+    size_t serialized_length;
+
+    ebpf_program_information_t* out_program_info;
+
+    // Serialize.
+    ebpf_result_t result = ebpf_serialize_program_information(
+        &in_program_info, buffer, buffer_length, &serialized_length, &required_length);
+    REQUIRE(result == EBPF_INSUFFICIENT_BUFFER);
+
+    buffer = static_cast<uint8_t*>(calloc(required_length, 1));
+    buffer_length = required_length;
+
+    result = ebpf_serialize_program_information(
+        &in_program_info, buffer, buffer_length, &serialized_length, &required_length);
+    REQUIRE(result == EBPF_SUCCESS);
+
+    // Deserialize.
+    result = ebpf_deserialize_program_information(serialized_length, buffer, &out_program_info);
+    REQUIRE(result == EBPF_SUCCESS);
+
+    // Verify de-serialized program information matches input.
+    REQUIRE(
+        in_program_info.program_type_descriptor.platform_specific_data ==
+        out_program_info->program_type_descriptor.platform_specific_data);
+    REQUIRE(
+        in_program_info.program_type_descriptor.is_privileged ==
+        out_program_info->program_type_descriptor.is_privileged);
+    REQUIRE(in_program_info.program_type_descriptor.context_descriptor != nullptr);
+    REQUIRE(
+        memcmp(
+            in_program_info.program_type_descriptor.context_descriptor,
+            out_program_info->program_type_descriptor.context_descriptor,
+            sizeof(ebpf_context_descriptor_t)) == 0);
+    REQUIRE(
+        strncmp(
+            in_program_info.program_type_descriptor.name,
+            out_program_info->program_type_descriptor.name,
+            EBPF_MAX_PROGRAM_DESCRIPTOR_NAME_LENGTH) == 0);
+    REQUIRE(in_program_info.count_of_helpers == out_program_info->count_of_helpers);
+    REQUIRE(out_program_info->helper_prototype != nullptr);
+    for (uint32_t i = 0; i < in_program_info.count_of_helpers; i++) {
+        ebpf_helper_function_prototype_t* in_prototype = &in_program_info.helper_prototype[i];
+        ebpf_helper_function_prototype_t* out_prototype = &out_program_info->helper_prototype[i];
+        REQUIRE(in_prototype->helper_id == out_prototype->helper_id);
+        REQUIRE(in_prototype->return_type == out_prototype->return_type);
+        for (int j = 0; j < 5; j++)
+            REQUIRE(in_prototype->arguments[j] == out_prototype->arguments[j]);
+        REQUIRE(out_prototype->name != nullptr);
+        REQUIRE(strncmp(in_prototype->name, out_prototype->name, EBPF_MAX_HELPER_FUNCTION_NAME_LENGTH) == 0);
+    }
+
+    // Free de-serialized program information.
+    ebpf_program_information_free(out_program_info);
 
     if (buffer != nullptr)
         free(buffer);

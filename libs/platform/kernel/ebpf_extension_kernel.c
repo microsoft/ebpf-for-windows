@@ -48,8 +48,7 @@ _ebpf_extension_client_notify_change(ebpf_extension_client_t* client_context)
         client_context->extension_change_callback(
             client_context->client_binding_context,
             client_context->provider_binding_context,
-            client_context->provider_data,
-            client_context->provider_dispatch_table);
+            client_context->provider_data);
 }
 
 NTSTATUS
