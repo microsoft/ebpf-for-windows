@@ -449,7 +449,7 @@ extern "C"
      * @param[in] obj Pointer to ebpf_object.
      */
     void
-    ebpf_object_close(_In_ struct ebpf_object* obj);
+    ebpf_object_close(_In_ struct ebpf_object* object);
 
 #ifdef __cplusplus
 }

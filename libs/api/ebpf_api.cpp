@@ -24,9 +24,13 @@ extern "C"
 static uint64_t _ebpf_file_descriptor_counter = 0;
 static std::map<fd_t, ebpf_program_t*> _ebpf_programs;
 static std::map<fd_t, ebpf_map_t*> _ebpf_maps;
+static std::vector<ebpf_object_t*> _ebpf_objects;
 
 #define for_each_program_in_object(x) for (entry = x->programs.Flink; entry != &x->programs; entry = entry->Flink)
 #define for_each_map_in_object(x) for (entry = x->maps.Flink; entry != &x->maps; entry = entry->Flink)
+
+static void
+_clean_up_ebpf_objects();
 
 uint32_t
 ebpf_api_initiate()
@@ -49,6 +53,7 @@ ebpf_api_initiate()
 void
 ebpf_api_terminate()
 {
+    _clean_up_ebpf_objects();
     clean_up_device_handle();
     clean_up_rpc_binding();
 }
@@ -680,7 +685,7 @@ clean_up_ebpf_program(ebpf_program_t* program)
     if (program->fd != 0) {
         _ebpf_programs.erase(program->fd);
     }
-    if (program->handle != INVALID_HANDLE_VALUE) {
+    if (program->handle != ebpf_handle_invalid) {
         CloseHandle(program->handle);
     }
     free(program->byte_code);
@@ -707,7 +712,7 @@ clean_up_ebpf_map(ebpf_map_t* map)
     if (map->map_fd != 0) {
         _ebpf_maps.erase(map->map_fd);
     }
-    if (map->map_handle != INVALID_HANDLE_VALUE) {
+    if (map->map_handle != ebpf_handle_invalid) {
         CloseHandle(map->map_handle);
     }
 
@@ -726,7 +731,7 @@ clean_up_ebpf_maps(ebpf_list_entry_t& maps)
 }
 
 static void
-_free_ebpf_object(ebpf_object_t* object)
+_clean_up_ebpf_object(ebpf_object_t* object)
 {
     if (object != nullptr) {
         clean_up_ebpf_programs(object->programs);
@@ -734,6 +739,31 @@ _free_ebpf_object(ebpf_object_t* object)
 
         free(object);
     }
+}
+
+static void
+_remove_ebpf_object_from_globals(ebpf_object_t* object)
+{
+    for (int i = 0; i < _ebpf_objects.size(); i++) {
+        if (_ebpf_objects[i] == object) {
+            // _ebpf_objects.erase(_ebpf_objects.begin() + i);
+            _ebpf_objects[i] = nullptr;
+            break;
+        }
+    }
+}
+
+static void
+_clean_up_ebpf_objects()
+{
+    for (auto& object : _ebpf_objects) {
+        _clean_up_ebpf_object(object);
+    }
+
+    _ebpf_objects.resize(0);
+
+    assert(_ebpf_programs.size() == 0);
+    assert(_ebpf_maps.size() == 0);
 }
 
 static void
@@ -909,6 +939,7 @@ _Success_(result == EBPF_SUCCESS) ebpf_result_t ebpf_program_load(
         }
 
         *object = new_object;
+        _ebpf_objects.emplace_back(*object);
         program = CONTAINING_RECORD(new_object->programs.Flink, ebpf_program_t, list_entry);
         *program_fd = program->fd;
     } catch (const std::bad_alloc&) {
@@ -921,7 +952,7 @@ _Success_(result == EBPF_SUCCESS) ebpf_result_t ebpf_program_load(
 
 Done:
     if (result != EBPF_SUCCESS) {
-        _free_ebpf_object(new_object);
+        _clean_up_ebpf_object(new_object);
     }
     clear_map_descriptors();
     return result;
@@ -1034,11 +1065,12 @@ ebpf_map_get_fd(_In_ const struct ebpf_map* map)
 }
 
 void
-ebpf_object_close(_In_ struct ebpf_object* obj)
+ebpf_object_close(_In_ struct ebpf_object* object)
 {
-    if (obj == nullptr) {
+    if (object == nullptr) {
         return;
     }
 
-    _free_ebpf_object(obj);
+    _remove_ebpf_object_from_globals(object);
+    _clean_up_ebpf_object(object);
 }

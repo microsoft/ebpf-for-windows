@@ -168,7 +168,10 @@ load_byte_code(
                 result = EBPF_NO_MEMORY;
                 goto Exit;
             }
+
             ebpf_list_initialize(&program->list_entry);
+            program->handle = ebpf_handle_invalid;
+
             program->program_type = *(const GUID*)raw_prog.info.type.platform_specific_data;
             program->section_name = (char*)allocate_string(raw_prog.section);
             if (program->section_name == nullptr) {
