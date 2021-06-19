@@ -33,4 +33,6 @@ EXPORTS
 	ebpf_program_previous
 	ebpf_map_next
 	ebpf_map_previous
+	ebpf_program_get_fd
+	ebpf_map_get_fd
 	ebpf_object_close

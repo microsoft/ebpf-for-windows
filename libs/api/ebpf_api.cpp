@@ -959,7 +959,7 @@ Done:
 }
 
 _Ret_maybenull_ struct ebpf_program*
-ebpf_program_next(_In_opt_ struct ebpf_program* previous, _In_ const struct ebpf_object* object)
+ebpf_program_next(_In_opt_ const struct ebpf_program* previous, _In_ const struct ebpf_object* object)
 {
     ebpf_program_t* program = nullptr;
     if (object == nullptr) {
@@ -981,7 +981,7 @@ Exit:
 }
 
 _Ret_maybenull_ struct ebpf_program*
-ebpf_program_previous(_In_opt_ struct ebpf_program* next, _In_ const struct ebpf_object* object)
+ebpf_program_previous(_In_opt_ const struct ebpf_program* next, _In_ const struct ebpf_object* object)
 {
     ebpf_program_t* program = nullptr;
     if (object == nullptr) {
@@ -1003,7 +1003,7 @@ Exit:
 }
 
 _Ret_maybenull_ struct ebpf_map*
-ebpf_map_next(_In_opt_ struct ebpf_map* previous, _In_ const struct ebpf_object* object)
+ebpf_map_next(_In_opt_ const struct ebpf_map* previous, _In_ const struct ebpf_object* object)
 {
     ebpf_map_t* map = nullptr;
     if (object == nullptr) {
@@ -1025,7 +1025,7 @@ Exit:
 }
 
 _Ret_maybenull_ struct ebpf_map*
-ebpf_map_previous(_In_opt_ struct ebpf_map* next, _In_ const struct ebpf_object* object)
+ebpf_map_previous(_In_opt_ const struct ebpf_map* next, _In_ const struct ebpf_object* object)
 {
     ebpf_map_t* map = nullptr;
     if (object == nullptr) {
