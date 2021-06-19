@@ -33,6 +33,7 @@ extern "C"
         0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
 
     typedef int32_t fd_t;
+    const fd_t ebpf_fd_invalid = -1;
     typedef void* ebpf_handle_t;
     const ebpf_handle_t ebpf_handle_invalid = (ebpf_handle_t)-1;
     typedef struct _tlv_type_length_value tlv_type_length_value_t;
@@ -427,7 +428,7 @@ extern "C"
      *
      * @param[in] program Pointer to ebpf program.
      *
-     * @return fd for the program on success, -1 on failure.
+     * @return fd for the program on success, ebpf_fd_invalid on failure.
      */
     fd_t
     ebpf_program_get_fd(_In_ const struct ebpf_program* program);
@@ -437,7 +438,7 @@ extern "C"
      *
      * @param[in] program Pointer to ebpf map.
      *
-     * @return fd for the map on success, -1 on failure.
+     * @return fd for the map on success, ebpf_fd_invalid on failure.
      */
     fd_t
     ebpf_map_get_fd(_In_ const struct ebpf_map* map);

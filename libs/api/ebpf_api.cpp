@@ -746,7 +746,6 @@ _remove_ebpf_object_from_globals(ebpf_object_t* object)
 {
     for (int i = 0; i < _ebpf_objects.size(); i++) {
         if (_ebpf_objects[i] == object) {
-            // _ebpf_objects.erase(_ebpf_objects.begin() + i);
             _ebpf_objects[i] = nullptr;
             break;
         }
@@ -856,8 +855,8 @@ _Success_(result == EBPF_SUCCESS) ebpf_result_t ebpf_program_load(
         goto Done;
     }
 
-    // If custom attach type is provided, then custom program
-    // type should also be provided.
+    // If custom attach type is provided, then custom program type should also
+    // be provided.
     if (program_type == nullptr && attach_type != nullptr) {
         result = EBPF_INVALID_ARGUMENT;
         goto Done;
@@ -867,7 +866,6 @@ _Success_(result == EBPF_SUCCESS) ebpf_result_t ebpf_program_load(
     *log_buffer = nullptr;
     *object = nullptr;
 
-    // Allocate ebpf_object.
     try {
         new_object = (ebpf_object_t*)calloc(1, sizeof(ebpf_object_t));
         if (new_object == nullptr) {
@@ -1050,7 +1048,7 @@ fd_t
 ebpf_program_get_fd(_In_ const struct ebpf_program* program)
 {
     if (program == nullptr) {
-        return -1;
+        return ebpf_fd_invalid;
     }
     return program->fd;
 }
@@ -1059,7 +1057,7 @@ fd_t
 ebpf_map_get_fd(_In_ const struct ebpf_map* map)
 {
     if (map == nullptr) {
-        return -1;
+        return ebpf_fd_invalid;
     }
     return map->map_fd;
 }
