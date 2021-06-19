@@ -11,7 +11,6 @@
 #pragma warning(pop)
 #include "api_common.hpp"
 #include "ebpf_api.h"
-#undef VOID
 #include "ebpf_helpers.h"
 #include "helpers.hpp"
 #include "map_descriptors.hpp"

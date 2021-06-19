@@ -22,7 +22,7 @@ service_init(DWORD argc, PTSTR* argv);
 
 void WINAPI
 service_main(DWORD argc, PTSTR* argv);
-void
+int
 service_install();
 
 int __cdecl wmain(ULONG argc, PWSTR* argv)
@@ -34,9 +34,8 @@ int __cdecl wmain(ULONG argc, PWSTR* argv)
     // Otherwise, the service is probably being started by the SCM.
 
     if (argc > 1) {
-        if (wcscmp(argv[1], L"install") == 0) {
-            service_install();
-            return -1;
+        if (_wcsicmp(argv[1], L"install") == 0) {
+            return service_install();
         }
     }
 
@@ -54,15 +53,18 @@ int __cdecl wmain(ULONG argc, PWSTR* argv)
  * @brief Installs a service in the SCM database.
  *
  */
-void
+int
 service_install()
 {
-    SC_HANDLE scmanager;
-    SC_HANDLE service;
+    SC_HANDLE scmanager = nullptr;
+    SC_HANDLE service = nullptr;
     TCHAR path[MAX_PATH];
+    SERVICE_SID_INFO sid_information = {0};
+    int result = ERROR_SUCCESS;
 
     if (!GetModuleFileName(nullptr, path, MAX_PATH)) {
-        return;
+        result = GetLastError();
+        goto Exit;
     }
 
     // Get a handle to the SCM database.
@@ -73,33 +75,48 @@ service_install()
         SC_MANAGER_ALL_ACCESS); // full access rights
 
     if (nullptr == scmanager) {
-        return;
+        result = GetLastError();
+        goto Exit;
     }
 
-    // Create the service
+    // Create the service as LocalService.
 
     service = CreateService(
-        scmanager,                 // SCM database
-        SERVICE_NAME,              // name of service
-        SERVICE_NAME,              // service name to display
-        SERVICE_ALL_ACCESS,        // desired access
-        SERVICE_WIN32_OWN_PROCESS, // service type
-        SERVICE_DEMAND_START,      // start type
-        SERVICE_ERROR_NORMAL,      // error control type
-        path,                      // path to service's binary
-        nullptr,                   // no load ordering group
-        nullptr,                   // no tag identifier
-        nullptr,                   // no dependencies
-        nullptr,                   // LocalSystem account
-        nullptr);                  // no password
+        scmanager,                     // SCM database
+        SERVICE_NAME,                  // name of service
+        SERVICE_NAME,                  // service name to display
+        SERVICE_ALL_ACCESS,            // desired access
+        SERVICE_WIN32_OWN_PROCESS,     // service type
+        SERVICE_DEMAND_START,          // start type
+        SERVICE_ERROR_NORMAL,          // error control type
+        path,                          // path to service's binary
+        nullptr,                       // no load ordering group
+        nullptr,                       // no tag identifier
+        nullptr,                       // no dependencies
+        L"NT AUTHORITY\\LocalService", // LocalService account
+        nullptr);                      // no password
 
     if (service == nullptr) {
-        CloseServiceHandle(scmanager);
-        return;
+        result = GetLastError();
+        goto Exit;
     }
 
-    CloseServiceHandle(service);
-    CloseServiceHandle(scmanager);
+    // Set service SID type to restricted.
+    sid_information.dwServiceSidType = SERVICE_SID_TYPE_RESTRICTED;
+    if (!ChangeServiceConfig2(service, SERVICE_CONFIG_SERVICE_SID_INFO, &sid_information)) {
+        result = GetLastError();
+        goto Exit;
+    }
+
+Exit:
+    if (service != nullptr) {
+        CloseServiceHandle(service);
+    }
+    if (scmanager != nullptr) {
+        CloseServiceHandle(scmanager);
+    }
+
+    return result;
 }
 
 /**

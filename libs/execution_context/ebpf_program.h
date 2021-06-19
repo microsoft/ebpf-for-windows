@@ -132,7 +132,7 @@ extern "C"
      * @param[out] result Output from the program.
      */
     void
-    ebpf_program_invoke(ebpf_program_t* program, void* context, uint32_t* result);
+    ebpf_program_invoke(_In_ const ebpf_program_t* program, _In_ void* context, _Out_ uint32_t* result);
 
     /**
      * @brief Get the address of a helper function.

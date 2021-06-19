@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include "ebpf_maps.h"
 #include "ebpf_epoch.h"
+#include "ebpf_maps.h"
 #include "ebpf_object.h"
 
 typedef struct _ebpf_core_map
@@ -26,7 +26,7 @@ typedef struct _ebpf_map_function_table
 extern ebpf_map_function_table_t ebpf_map_function_tables[EBPF_MAP_TYPE_ARRAY + 1];
 
 ebpf_result_t
-ebpf_map_create(const ebpf_map_definition_t* ebpf_map_definition, ebpf_map_t** ebpf_map)
+ebpf_map_create(_In_ const ebpf_map_definition_t* ebpf_map_definition, _Outptr_ ebpf_map_t** ebpf_map)
 {
     ebpf_map_t* local_map = NULL;
     size_t type = ebpf_map_definition->type;
@@ -51,32 +51,32 @@ ebpf_map_create(const ebpf_map_definition_t* ebpf_map_definition, ebpf_map_t** e
     return EBPF_SUCCESS;
 }
 
-ebpf_map_definition_t*
-ebpf_map_get_definition(ebpf_map_t* map)
+const ebpf_map_definition_t*
+ebpf_map_get_definition(_In_ const ebpf_map_t* map)
 {
     return &map->ebpf_map_definition;
 }
 
 uint8_t*
-ebpf_map_find_entry(ebpf_map_t* map, const uint8_t* key)
+ebpf_map_find_entry(_In_ ebpf_map_t* map, _In_ const uint8_t* key)
 {
     return ebpf_map_function_tables[map->ebpf_map_definition.type].find_entry(map, key);
 }
 
 ebpf_result_t
-ebpf_map_update_entry(ebpf_map_t* map, const uint8_t* key, const uint8_t* value)
+ebpf_map_update_entry(_In_ ebpf_map_t* map, _In_ const uint8_t* key, _In_ const uint8_t* value)
 {
     return ebpf_map_function_tables[map->ebpf_map_definition.type].update_entry(map, key, value);
 }
 
 ebpf_result_t
-ebpf_map_delete_entry(ebpf_map_t* map, const uint8_t* key)
+ebpf_map_delete_entry(_In_ ebpf_map_t* map, _In_ const uint8_t* key)
 {
     return ebpf_map_function_tables[map->ebpf_map_definition.type].delete_entry(map, key);
 }
 
 ebpf_result_t
-ebpf_map_next_key(ebpf_map_t* map, const uint8_t* previous_key, uint8_t* next_key)
+ebpf_map_next_key(_In_ ebpf_map_t* map, _In_opt_ const uint8_t* previous_key, _Out_ uint8_t* next_key)
 {
     return ebpf_map_function_tables[map->ebpf_map_definition.type].next_key(map, previous_key, next_key);
 }

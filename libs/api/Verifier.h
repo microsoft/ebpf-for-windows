@@ -6,9 +6,7 @@
 #include "config.hpp"
 #include "ebpf_program_types.h"
 #include "ebpf_result.h"
-#undef VOID
 #include "platform.hpp"
-#define VOID void
 typedef int (*map_create_fp)(
     uint32_t map_type, uint32_t key_size, uint32_t value_size, uint32_t max_entries, ebpf_verifier_options_t options);
 

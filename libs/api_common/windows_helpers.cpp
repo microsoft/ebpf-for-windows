@@ -13,7 +13,6 @@
 #include "ebpf_result.h"
 #include "ebpf_xdp_program_data.h"
 #include "platform.h"
-#undef VOID
 #include "platform.hpp"
 
 struct guid_compare
@@ -146,8 +145,7 @@ get_helper_prototype_windows(unsigned int n)
     }
     EbpfHelperPrototype verifier_prototype = {0};
 
-    // TODO (issue #153): remove duplicate struct for ebpf_context_descriptor_t so no cast is needed.
-    verifier_prototype.context_descriptor = (EbpfContextDescriptor*)info->program_type_descriptor.context_descriptor;
+    verifier_prototype.context_descriptor = info->program_type_descriptor.context_descriptor;
 
     ebpf_helper_function_prototype_t* raw_prototype = _get_helper_function_prototype(info, n);
     if (raw_prototype == nullptr) {
@@ -155,14 +153,10 @@ get_helper_prototype_windows(unsigned int n)
     }
     verifier_prototype.name = raw_prototype->name;
 
-    // TODO (issue #153): remove duplicate enum for ebpf_helper_return_type_t so no cast is needed.
-    // Today one is a C++ enum class and the other is a C enum, but the values match.
-    verifier_prototype.return_type = (EbpfHelperReturnType)raw_prototype->return_type;
+    verifier_prototype.return_type = raw_prototype->return_type;
 
     for (int i = 0; i < 5; i++) {
-        // TODO (issue #153): remove duplicate enum for ebpf_helper_argument_type_t so no cast is needed.
-        // Today one is a C++ enum class and the other is a C enum, but the values match.
-        verifier_prototype.argument_type[i] = (EbpfHelperArgumentType)raw_prototype->arguments[i];
+        verifier_prototype.argument_type[i] = raw_prototype->arguments[i];
     }
 
     return verifier_prototype;
