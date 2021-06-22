@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "api_internal.h"
 #include "config.hpp"
 #include "ebpf_program_types.h"
 #include "ebpf_result.h"
@@ -12,12 +13,11 @@ typedef int (*map_create_fp)(
 
 ebpf_result_t
 load_byte_code(
-    const char* file_name,
-    const char* section_name,
-    ebpf_verifier_options_t* verifier_options,
-    ebpf_list_entry_t* programs,
-    uint32_t* programs_count,
-    const char** error_message) noexcept;
+    _In_z_ const char* filename,
+    _In_opt_z_ const char* sectionname,
+    _In_ ebpf_verifier_options_t* verifier_options,
+    _Out_ std::vector<ebpf_program_t*>& programs,
+    _Outptr_result_maybenull_z_ const char** error_message) noexcept;
 
 ebpf_result_t
 get_program_type_info(const ebpf_program_information_t** info);

@@ -8,12 +8,11 @@
 #include "ebpf_windows.h"
 #include "spec_type_descriptors.hpp"
 
-struct ebpf_object;
+struct _ebpf_object;
 
-typedef struct ebpf_program
+typedef struct _ebpf_program
 {
-    ebpf_list_entry_t list_entry;
-    struct ebpf_object* object;
+    struct _ebpf_object* object;
     char* section_name;
     char* program_name;
     uint8_t* byte_code;
@@ -24,10 +23,9 @@ typedef struct ebpf_program
     fd_t fd;
 } ebpf_program_t;
 
-typedef struct ebpf_map
+typedef struct _ebpf_map
 {
-    ebpf_list_entry_t list_entry;
-    struct ebpf_object* object;
+    const struct _ebpf_object* object;
     char* name;
     ebpf_handle_t map_handle;
     fd_t map_fd;
@@ -36,13 +34,11 @@ typedef struct ebpf_map
     bool pinned;
 } ebpf_map_t;
 
-typedef struct ebpf_object
+typedef struct _ebpf_object
 {
     char* file_name = nullptr;
-    ebpf_list_entry_t programs;
-    uint32_t programs_count;
-    ebpf_list_entry_t maps;
-    uint32_t maps_count;
+    std::vector<ebpf_program_t*> programs;
+    std::vector<ebpf_map_t*> maps;
 } ebpf_object_t;
 
 uint32_t
@@ -50,8 +46,7 @@ ebpf_get_program_byte_code(
     const char* file_name,
     const char* section_name,
     bool mock_map_fd,
-    ebpf_list_entry_t* programs,
-    uint32_t* programs_count,
+    std::vector<ebpf_program_t*>& programs,
     EbpfMapDescriptor** map_descriptors,
     int* map_descriptors_count,
     const char** error_message);
@@ -60,10 +55,10 @@ uint32_t
 get_program_information_data(ebpf_program_type_t program_type, ebpf_extension_data_t** program_information_data);
 
 void
-clean_up_ebpf_program(ebpf_program_t* program);
+clean_up_ebpf_program(_In_ _Post_invalid_ ebpf_program_t* program);
 
 void
-clean_up_ebpf_programs(ebpf_list_entry_t& programs);
+clean_up_ebpf_programs(_Inout_ std::vector<ebpf_program_t*>& programs);
 
 void
-clean_up_ebpf_maps(ebpf_list_entry_t& maps);
+clean_up_ebpf_maps(_Inout_ std::vector<ebpf_map_t*>& maps);

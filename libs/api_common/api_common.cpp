@@ -36,18 +36,6 @@ allocate_string(const std::string& string, uint32_t* length) noexcept
     return new_string;
 }
 
-char*
-allocate_string(const char* string) noexcept
-{
-    char* new_string;
-    size_t length = strlen(string) + 1;
-    new_string = (char*)malloc(length);
-    if (new_string != nullptr) {
-        strcpy_s(new_string, length, string);
-    }
-    return new_string;
-}
-
 std::vector<uint8_t>
 convert_ebpf_program_to_bytes(const std::vector<ebpf_inst>& instructions)
 {

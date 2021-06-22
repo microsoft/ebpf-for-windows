@@ -112,12 +112,11 @@ handle_ebpf_add_program(
     UNREFERENCED_PARAMETER(data);
     UNREFERENCED_PARAMETER(done);
 
-    TAG_TYPE tags[] = {
-        {TOKEN_FILENAME, NS_REQ_PRESENT, FALSE},
-        {TOKEN_SECTION, NS_REQ_PRESENT, FALSE},
-        {TOKEN_TYPE, NS_REQ_ZERO, FALSE},
-        {TOKEN_PINNED, NS_REQ_ZERO, FALSE},
-        {TOKEN_EXECUTION, NS_REQ_ZERO, FALSE}};
+    TAG_TYPE tags[] = {{TOKEN_FILENAME, NS_REQ_PRESENT, FALSE},
+                       {TOKEN_SECTION, NS_REQ_PRESENT, FALSE},
+                       {TOKEN_TYPE, NS_REQ_ZERO, FALSE},
+                       {TOKEN_PINNED, NS_REQ_ZERO, FALSE},
+                       {TOKEN_EXECUTION, NS_REQ_ZERO, FALSE}};
     ULONG tag_type[_countof(tags)] = {0};
 
     ULONG status =
@@ -193,7 +192,7 @@ handle_ebpf_add_program(
         } else {
             std::cerr << "error " << status << ": could not load program" << std::endl;
         }
-        ebpf_api_free_string(error_message);
+        ebpf_free_string(error_message);
         program.clean();
         return ERROR_SUPPRESS_OUTPUT;
     }
@@ -251,8 +250,8 @@ _find_program_handle(const char* filename, const char* section)
 
         bool found = (strcmp(program_file_name, filename) == 0 && strcmp(program_section_name, section) == 0);
 
-        ebpf_api_free_string(program_file_name);
-        ebpf_api_free_string(program_section_name);
+        ebpf_free_string(program_file_name);
+        ebpf_free_string(program_section_name);
 
         if (found) {
             return program_handle;
@@ -535,8 +534,8 @@ handle_ebpf_show_programs(
             }
         }
 
-        ebpf_api_free_string(program_file_name);
-        ebpf_api_free_string(program_section_name);
+        ebpf_free_string(program_file_name);
+        ebpf_free_string(program_section_name);
     }
     if (program_handle != INVALID_HANDLE_VALUE) {
         ebpf_api_close_handle(program_handle);

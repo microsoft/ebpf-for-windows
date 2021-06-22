@@ -26,9 +26,6 @@ static std::map<fd_t, ebpf_program_t*> _ebpf_programs;
 static std::map<fd_t, ebpf_map_t*> _ebpf_maps;
 static std::vector<ebpf_object_t*> _ebpf_objects;
 
-#define for_each_program_in_object(x) for (entry = x->programs.Flink; entry != &x->programs; entry = entry->Flink)
-#define for_each_map_in_object(x) for (entry = x->maps.Flink; entry != &x->maps; entry = entry->Flink)
-
 static void
 _clean_up_ebpf_objects();
 
@@ -115,14 +112,15 @@ create_map_internal(
 static ebpf_result_t
 _create_program(
     ebpf_program_type_t program_type,
-    const std::string& file_name,
-    const std::string& section_name,
-    const std::string& program_name,
-    ebpf_handle_t* program_handle)
+    _In_ const std::string& file_name,
+    _In_ const std::string& section_name,
+    _In_ const std::string& program_name,
+    _Out_ ebpf_handle_t* program_handle)
 {
     ebpf_protocol_buffer_t request_buffer;
     ebpf_operation_create_program_request_t* request;
     ebpf_operation_create_program_reply_t reply;
+    *program_handle = ebpf_handle_invalid;
 
     request_buffer.resize(
         offsetof(ebpf_operation_create_program_request_t, data) + file_name.size() + section_name.size() +
@@ -158,8 +156,7 @@ ebpf_get_program_byte_code(
     const char* file_name,
     const char* section_name,
     bool mock_map_fd,
-    ebpf_list_entry_t* programs,
-    uint32_t* programs_count,
+    std::vector<ebpf_program_t*>& programs,
     EbpfMapDescriptor** map_descriptors,
     int* map_descriptors_count,
     const char** error_message)
@@ -170,12 +167,12 @@ ebpf_get_program_byte_code(
     *map_descriptors = nullptr;
 
     ebpf_verifier_options_t verifier_options{false, false, false, false, mock_map_fd};
-    result = load_byte_code(file_name, section_name, &verifier_options, programs, programs_count, error_message);
+    result = load_byte_code(file_name, section_name, &verifier_options, programs, error_message);
     if (result != EBPF_SUCCESS) {
         goto Done;
     }
 
-    if (*programs_count != 1) {
+    if (programs.size() != 1) {
         result = EBPF_FAILED;
         goto Done;
     }
@@ -195,8 +192,7 @@ ebpf_get_program_byte_code(
 
 Done:
     if (result != EBPF_SUCCESS) {
-        clean_up_ebpf_programs(*programs);
-        *programs_count = 0;
+        clean_up_ebpf_programs(programs);
     }
     clear_map_descriptors();
     return result;
@@ -219,8 +215,7 @@ ebpf_api_load_program(
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_program_load_info load_info = {0};
     std::vector<fd_handle_map> handle_map;
-    ebpf_list_entry_t programs;
-    uint32_t programs_count;
+    std::vector<ebpf_program_t*> programs;
     ebpf_program_t* program = nullptr;
 
     *handle = 0;
@@ -230,16 +225,16 @@ ebpf_api_load_program(
 
     try {
         ebpf_verifier_options_t verifier_options{false, false, false, false, false};
-        result = load_byte_code(file_name, section_name, &verifier_options, &programs, &programs_count, error_message);
+        result = load_byte_code(file_name, section_name, &verifier_options, programs, error_message);
         if (result != EBPF_SUCCESS) {
             goto Done;
         }
 
-        if (programs_count != 1) {
+        if (programs.size() != 1) {
             result = EBPF_ELF_PARSING_FAILED;
             goto Done;
         }
-        program = CONTAINING_RECORD(programs.Flink, ebpf_program_t, list_entry);
+        program = programs[0];
 
         // TODO: (issue #169): Should switch this to more idiomatic C++
         // Note: This leaks the program handle on some errors.
@@ -317,7 +312,7 @@ Done:
 }
 
 void
-ebpf_api_free_string(const char* error_message)
+ebpf_free_string(_In_ _Post_invalid_ const char* error_message)
 {
     return free(const_cast<char*>(error_message));
 }
@@ -677,7 +672,7 @@ ebpf_api_map_info_free(_In_ const uint16_t map_count, _In_count_(map_count) cons
 }
 
 void
-clean_up_ebpf_program(ebpf_program_t* program)
+clean_up_ebpf_program(_In_ _Post_invalid_ ebpf_program_t* program)
 {
     if (program == nullptr) {
         return;
@@ -696,18 +691,16 @@ clean_up_ebpf_program(ebpf_program_t* program)
 }
 
 void
-clean_up_ebpf_programs(ebpf_list_entry_t& programs)
+clean_up_ebpf_programs(_Inout_ std::vector<ebpf_program_t*>& programs)
 {
-    ebpf_list_entry_t* entry;
-    ebpf_program_t* program;
-    while ((entry = ebpf_list_remove_head_entry(&programs)) != &programs) {
-        program = CONTAINING_RECORD(entry, ebpf_program_t, list_entry);
+    for (auto& program : programs) {
         clean_up_ebpf_program(program);
     }
+    programs.resize(0);
 }
 
 void
-clean_up_ebpf_map(ebpf_map_t* map)
+clean_up_ebpf_map(_In_ _Post_invalid_ ebpf_map_t* map)
 {
     if (map->map_fd != 0) {
         _ebpf_maps.erase(map->map_fd);
@@ -720,29 +713,27 @@ clean_up_ebpf_map(ebpf_map_t* map)
 }
 
 void
-clean_up_ebpf_maps(ebpf_list_entry_t& maps)
+clean_up_ebpf_maps(_Inout_ std::vector<ebpf_map_t*>& maps)
 {
-    ebpf_list_entry_t* entry;
-    ebpf_map_t* map;
-    while ((entry = ebpf_list_remove_head_entry(&maps)) != &maps) {
-        map = CONTAINING_RECORD(entry, ebpf_map_t, list_entry);
+    for (auto& map : maps) {
         clean_up_ebpf_map(map);
     }
+    maps.resize(0);
 }
 
 static void
-_clean_up_ebpf_object(ebpf_object_t* object)
+_clean_up_ebpf_object(_Pre_maybenull_ _Post_invalid_ ebpf_object_t* object)
 {
     if (object != nullptr) {
         clean_up_ebpf_programs(object->programs);
         clean_up_ebpf_maps(object->maps);
 
-        free(object);
+        delete object;
     }
 }
 
 static void
-_remove_ebpf_object_from_globals(ebpf_object_t* object)
+_remove_ebpf_object_from_globals(_In_ const ebpf_object_t* object)
 {
     for (int i = 0; i < _ebpf_objects.size(); i++) {
         if (_ebpf_objects[i] == object) {
@@ -766,7 +757,7 @@ _clean_up_ebpf_objects()
 }
 
 static void
-_initialize_map(ebpf_map_t* map, ebpf_object_t* object, const map_cache_t& map_cache)
+_initialize_map(_Out_ ebpf_map_t* map, _In_ const ebpf_object_t* object, _In_ const map_cache_t& map_cache)
 {
     map->object = object;
     map->map_handle = (ebpf_handle_t)map_cache.handle;
@@ -781,23 +772,22 @@ _initialize_map(ebpf_map_t* map, ebpf_object_t* object, const map_cache_t& map_c
 
 static ebpf_result_t
 _initialize_ebpf_object_from_elf(
-    const char* file_name,
-    const ebpf_program_type_t* expected_program_type,
-    const ebpf_attach_type_t* expected_attach_type,
-    ebpf_object_t& object,
-    const char** error_message) noexcept
+    _In_z_ const char* file_name,
+    _In_opt_ const ebpf_program_type_t* expected_program_type,
+    _In_opt_ const ebpf_attach_type_t* expected_attach_type,
+    _Out_ ebpf_object_t& object,
+    _Outptr_result_maybenull_z_ const char** error_message) noexcept
 {
     ebpf_result_t result = EBPF_SUCCESS;
     set_global_program_and_attach_type(expected_program_type, expected_attach_type);
 
     ebpf_verifier_options_t verifier_options{false, false, false, false, false};
-    result =
-        load_byte_code(file_name, nullptr, &verifier_options, &object.programs, &object.programs_count, error_message);
+    result = load_byte_code(file_name, nullptr, &verifier_options, object.programs, error_message);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
 
-    object.file_name = allocate_string(file_name);
+    object.file_name = _strdup(file_name);
     if (object.file_name == nullptr) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -813,8 +803,7 @@ _initialize_ebpf_object_from_elf(
             }
 
             _initialize_map(map, &object, descriptor);
-            ebpf_list_insert_tail(&object.maps, &map->list_entry);
-            object.maps_count++;
+            object.maps.emplace_back(map);
         }
     } catch (const std::bad_alloc&) {
         result = EBPF_NO_MEMORY;
@@ -835,9 +824,9 @@ _Success_(result == EBPF_SUCCESS) ebpf_result_t ebpf_program_load(
     _In_z_ const char* file_name,
     _In_opt_ const ebpf_program_type_t* program_type,
     _In_opt_ const ebpf_attach_type_t* attach_type,
-    _Outptr_ struct ebpf_object** object,
+    _Outptr_ struct _ebpf_object** object,
     _Out_ fd_t* program_fd,
-    _Outptr_opt_result_z_ const char** log_buffer)
+    _Outptr_result_maybenull_z_ const char** log_buffer)
 {
     ebpf_object_t* new_object = nullptr;
     ebpf_protocol_buffer_t request_buffer;
@@ -846,9 +835,6 @@ _Success_(result == EBPF_SUCCESS) ebpf_result_t ebpf_program_load(
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_program_load_info load_info = {0};
     std::vector<fd_handle_map> handle_map;
-    ebpf_list_entry_t* entry;
-    ebpf_program_t* program;
-    ebpf_map_t* map;
 
     if (file_name == nullptr || object == nullptr || program_fd == nullptr || log_buffer == nullptr) {
         result = EBPF_INVALID_ARGUMENT;
@@ -867,23 +853,18 @@ _Success_(result == EBPF_SUCCESS) ebpf_result_t ebpf_program_load(
     *object = nullptr;
 
     try {
-        new_object = (ebpf_object_t*)calloc(1, sizeof(ebpf_object_t));
+        new_object = new ebpf_object_t();
         if (new_object == nullptr) {
             result = EBPF_NO_MEMORY;
             goto Done;
         }
-
-        ebpf_list_initialize(&new_object->programs);
-        ebpf_list_initialize(&new_object->maps);
 
         result = _initialize_ebpf_object_from_elf(file_name, program_type, attach_type, *new_object, log_buffer);
         if (result != EBPF_SUCCESS) {
             goto Done;
         }
 
-        for_each_program_in_object(new_object)
-        {
-            program = CONTAINING_RECORD(entry, ebpf_program_t, list_entry);
+        for (auto& program : new_object->programs) {
             result = _create_program(
                 program->program_type, file_name, program->section_name, program->program_name, &program->handle);
             if (result != EBPF_SUCCESS) {
@@ -925,21 +906,16 @@ _Success_(result == EBPF_SUCCESS) ebpf_result_t ebpf_program_load(
             }
         }
 
-        for_each_program_in_object(new_object)
-        {
-            program = CONTAINING_RECORD(entry, ebpf_program_t, list_entry);
+        for (auto& program : new_object->programs) {
             _ebpf_programs.insert(std::pair<fd_t, ebpf_program_t*>(program->fd, program));
         }
-        for_each_map_in_object(new_object)
-        {
-            map = CONTAINING_RECORD(entry, ebpf_map_t, list_entry);
+        for (auto& map : new_object->maps) {
             _ebpf_maps.insert(std::pair<fd_t, ebpf_map_t*>(map->map_fd, map));
         }
 
         *object = new_object;
         _ebpf_objects.emplace_back(*object);
-        program = CONTAINING_RECORD(new_object->programs.Flink, ebpf_program_t, list_entry);
-        *program_fd = program->fd;
+        *program_fd = new_object->programs[0]->fd;
     } catch (const std::bad_alloc&) {
         result = EBPF_NO_MEMORY;
         goto Done;
@@ -956,8 +932,8 @@ Done:
     return result;
 }
 
-_Ret_maybenull_ struct ebpf_program*
-ebpf_program_next(_In_opt_ const struct ebpf_program* previous, _In_ const struct ebpf_object* object)
+_Ret_maybenull_ struct _ebpf_program*
+ebpf_program_next(_In_opt_ const struct _ebpf_program* previous, _In_ const struct _ebpf_object* object)
 {
     ebpf_program_t* program = nullptr;
     if (object == nullptr) {
@@ -967,10 +943,14 @@ ebpf_program_next(_In_opt_ const struct ebpf_program* previous, _In_ const struc
         goto Exit;
     }
     if (previous == nullptr) {
-        program = CONTAINING_RECORD(object->programs.Flink, ebpf_program_t, list_entry);
+        program = object->programs[0];
     } else {
-        if (previous->list_entry.Flink != &object->programs) {
-            program = CONTAINING_RECORD(previous->list_entry.Flink, ebpf_program_t, list_entry);
+        size_t programs_count = object->programs.size();
+        for (int i = 0; i < programs_count; i++) {
+            if (object->programs[i] == previous && i < programs_count - 1) {
+                program = object->programs[i + 1];
+                break;
+            }
         }
     }
 
@@ -978,8 +958,8 @@ Exit:
     return program;
 }
 
-_Ret_maybenull_ struct ebpf_program*
-ebpf_program_previous(_In_opt_ const struct ebpf_program* next, _In_ const struct ebpf_object* object)
+_Ret_maybenull_ struct _ebpf_program*
+ebpf_program_previous(_In_opt_ const struct _ebpf_program* next, _In_ const struct _ebpf_object* object)
 {
     ebpf_program_t* program = nullptr;
     if (object == nullptr) {
@@ -989,10 +969,14 @@ ebpf_program_previous(_In_opt_ const struct ebpf_program* next, _In_ const struc
         goto Exit;
     }
     if (next == nullptr) {
-        program = CONTAINING_RECORD(object->programs.Blink, ebpf_program_t, list_entry);
+        program = object->programs[object->programs.size() - 1];
     } else {
-        if (next->list_entry.Blink != &object->programs) {
-            program = CONTAINING_RECORD(next->list_entry.Blink, ebpf_program_t, list_entry);
+        size_t programs_count = object->programs.size();
+        for (auto i = programs_count - 1; i > 0; i--) {
+            if (object->programs[i] == next) {
+                program = object->programs[i - 1];
+                break;
+            }
         }
     }
 
@@ -1000,8 +984,8 @@ Exit:
     return program;
 }
 
-_Ret_maybenull_ struct ebpf_map*
-ebpf_map_next(_In_opt_ const struct ebpf_map* previous, _In_ const struct ebpf_object* object)
+_Ret_maybenull_ struct _ebpf_map*
+ebpf_map_next(_In_opt_ const struct _ebpf_map* previous, _In_ const struct _ebpf_object* object)
 {
     ebpf_map_t* map = nullptr;
     if (object == nullptr) {
@@ -1011,10 +995,14 @@ ebpf_map_next(_In_opt_ const struct ebpf_map* previous, _In_ const struct ebpf_o
         goto Exit;
     }
     if (previous == nullptr) {
-        map = CONTAINING_RECORD(object->maps.Flink, ebpf_map_t, list_entry);
+        map = object->maps[0];
     } else {
-        if (previous->list_entry.Flink != &object->maps) {
-            map = CONTAINING_RECORD(previous->list_entry.Flink, ebpf_map_t, list_entry);
+        size_t maps_count = object->maps.size();
+        for (int i = 0; i < maps_count; i++) {
+            if (object->maps[i] == previous && i < maps_count - 1) {
+                map = object->maps[i + 1];
+                break;
+            }
         }
     }
 
@@ -1022,8 +1010,8 @@ Exit:
     return map;
 }
 
-_Ret_maybenull_ struct ebpf_map*
-ebpf_map_previous(_In_opt_ const struct ebpf_map* next, _In_ const struct ebpf_object* object)
+_Ret_maybenull_ struct _ebpf_map*
+ebpf_map_previous(_In_opt_ const struct _ebpf_map* next, _In_ const struct _ebpf_object* object)
 {
     ebpf_map_t* map = nullptr;
     if (object == nullptr) {
@@ -1033,10 +1021,14 @@ ebpf_map_previous(_In_opt_ const struct ebpf_map* next, _In_ const struct ebpf_o
         goto Exit;
     }
     if (next == nullptr) {
-        map = CONTAINING_RECORD(object->maps.Blink, ebpf_map_t, list_entry);
+        map = object->maps[object->maps.size() - 1];
     } else {
-        if (next->list_entry.Blink != &object->maps) {
-            map = CONTAINING_RECORD(next->list_entry.Blink, ebpf_map_t, list_entry);
+        size_t maps_count = object->maps.size();
+        for (auto i = maps_count - 1; i > 0; i--) {
+            if (object->maps[i] == next) {
+                map = object->maps[i - 1];
+                break;
+            }
         }
     }
 
@@ -1045,7 +1037,7 @@ Exit:
 }
 
 fd_t
-ebpf_program_get_fd(_In_ const struct ebpf_program* program)
+ebpf_program_get_fd(_In_ const struct _ebpf_program* program)
 {
     if (program == nullptr) {
         return ebpf_fd_invalid;
@@ -1054,7 +1046,7 @@ ebpf_program_get_fd(_In_ const struct ebpf_program* program)
 }
 
 fd_t
-ebpf_map_get_fd(_In_ const struct ebpf_map* map)
+ebpf_map_get_fd(_In_ const struct _ebpf_map* map)
 {
     if (map == nullptr) {
         return ebpf_fd_invalid;
@@ -1063,7 +1055,7 @@ ebpf_map_get_fd(_In_ const struct ebpf_map* map)
 }
 
 void
-ebpf_object_close(_In_ struct ebpf_object* object)
+ebpf_object_close(_In_ _Post_invalid_ struct _ebpf_object* object)
 {
     if (object == nullptr) {
         return;

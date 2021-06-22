@@ -71,11 +71,11 @@ handle_ebpf_show_disassembly(
     const char* error_message = nullptr;
     if (ebpf_api_elf_disassemble_section(filename.c_str(), section.c_str(), &disassembly, &error_message) != 0) {
         std::cerr << error_message << std::endl;
-        ebpf_api_free_string(error_message);
+        ebpf_free_string(error_message);
         return ERROR_SUPPRESS_OUTPUT;
     } else {
         std::cout << disassembly << std::endl;
-        ebpf_api_free_string(disassembly);
+        ebpf_free_string(disassembly);
         return NO_ERROR;
     }
 }
@@ -142,7 +142,7 @@ handle_ebpf_show_sections(
     if (ebpf_api_elf_enumerate_sections(
             filename.c_str(), section.c_str(), level == VL_VERBOSE, &section_data, &error_message) != 0) {
         std::cerr << error_message << std::endl;
-        ebpf_api_free_string(error_message);
+        ebpf_free_string(error_message);
         ebpf_api_elf_free(section_data);
         return ERROR_SUPPRESS_OUTPUT;
     }
@@ -251,8 +251,8 @@ handle_ebpf_show_verification(
         if (report) {
             std::cerr << "\nVerification report:\n" << report << std::endl;
         }
-        ebpf_api_free_string(error_message);
-        ebpf_api_free_string(report);
+        ebpf_free_string(error_message);
+        ebpf_free_string(report);
         return ERROR_SUPPRESS_OUTPUT;
     }
 }

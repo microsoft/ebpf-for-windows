@@ -43,9 +43,6 @@ typedef struct _map_cache
 const char*
 allocate_string(const std::string& string, uint32_t* length = nullptr) noexcept;
 
-char*
-allocate_string(const char* string) noexcept;
-
 std::vector<uint8_t>
 convert_ebpf_program_to_bytes(const std::vector<ebpf_inst>& instructions);
 

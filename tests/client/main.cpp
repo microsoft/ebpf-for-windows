@@ -29,9 +29,8 @@ _get_program_byte_code_helper(const char* file_name, const char* section_name, e
     int descriptors_count;
     uint32_t result = ERROR_SUCCESS;
     const char* error_message = nullptr;
-    ebpf_list_entry_t programs;
+    std::vector<ebpf_program_t*> programs;
     ebpf_program_t* program;
-    uint32_t programs_count;
 
     // Get byte code and map descriptors from ELF file.
     REQUIRE(
@@ -39,18 +38,17 @@ _get_program_byte_code_helper(const char* file_name, const char* section_name, e
              file_name,
              section_name,
              true, // mock map fd
-             &programs,
-             &programs_count,
+             programs,
              &descriptors,
              &descriptors_count,
              &error_message),
          error_message ? printf("ebpf_get_program_byte_code failed with %s\n", error_message) : 0,
-         ebpf_api_free_string(error_message),
+         ebpf_free_string(error_message),
          error_message = nullptr,
          result == ERROR_SUCCESS));
 
-    REQUIRE(programs_count == 1);
-    program = CONTAINING_RECORD(programs.Flink, ebpf_program_t, list_entry);
+    REQUIRE(programs.size() == 1);
+    program = programs[0];
     REQUIRE(program->byte_code_size != 0);
 
     info->program_type = program->program_type;
@@ -63,7 +61,7 @@ _get_program_byte_code_helper(const char* file_name, const char* section_name, e
     }
 
     printf("instruction_array_size = %d\n", program->byte_code_size);
-    ebpf_api_free_string(error_message);
+    ebpf_free_string(error_message);
 }
 
 TEST_CASE("verify-program-droppacket", "[verify-program-droppacket]")
@@ -81,11 +79,11 @@ TEST_CASE("verify-program-droppacket", "[verify-program-droppacket]")
     REQUIRE(
         (result = ebpf_rpc_verify_program(&info, &verifier_message, &verifier_message_size),
          verifier_message ? printf("ebpf_rpc_verify_program failed with: %s\n", verifier_message) : 0,
-         ebpf_api_free_string(verifier_message),
+         ebpf_free_string(verifier_message),
          verifier_message = nullptr,
          result == ERROR_SUCCESS));
 
-    ebpf_api_free_string(verifier_message);
+    ebpf_free_string(verifier_message);
     clean_up_rpc_binding();
 }
 
@@ -104,11 +102,11 @@ TEST_CASE("verify-program-bindmonitor", "[verify-program-bindmonitor]")
     REQUIRE(
         (result = ebpf_rpc_verify_program(&info, &verifier_message, &verifier_message_size),
          verifier_message ? printf("ebpf_rpc_verify_program failed with %s\n", verifier_message) : 0,
-         ebpf_api_free_string(verifier_message),
+         ebpf_free_string(verifier_message),
          verifier_message = nullptr,
          result == ERROR_SUCCESS));
 
-    ebpf_api_free_string(verifier_message);
+    ebpf_free_string(verifier_message);
     clean_up_rpc_binding();
 }
 
@@ -127,11 +125,11 @@ TEST_CASE("verify-program-divide_by_zero", "[verify-program-divide_by_zero]")
     REQUIRE(
         (result = ebpf_rpc_verify_program(&info, &verifier_message, &verifier_message_size),
          verifier_message ? printf("ebpf_rpc_verify_program failed with %s\n", verifier_message) : 0,
-         ebpf_api_free_string(verifier_message),
+         ebpf_free_string(verifier_message),
          verifier_message = nullptr,
          result == ERROR_SUCCESS));
 
-    ebpf_api_free_string(verifier_message);
+    ebpf_free_string(verifier_message);
     clean_up_rpc_binding();
 }
 
@@ -151,13 +149,13 @@ TEST_CASE("verify-program-droppacket_unsafe", "[verify-program-droppacket_unsafe
     if (result != ERROR_SUCCESS) {
         if (verifier_message_size > 0) {
             printf("message from verifier:\n %s\n", verifier_message);
-            ebpf_api_free_string(verifier_message);
+            ebpf_free_string(verifier_message);
             verifier_message = nullptr;
         }
     }
     REQUIRE((result == (int)EBPF_VERIFICATION_FAILED));
     REQUIRE(verifier_message_size > 0);
 
-    ebpf_api_free_string(verifier_message);
+    ebpf_free_string(verifier_message);
     clean_up_rpc_binding();
 }

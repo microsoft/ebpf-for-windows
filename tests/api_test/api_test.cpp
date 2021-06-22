@@ -47,13 +47,13 @@ static service_install_helper
 
 static ebpf_result_t
 _program_load_helper(
-    const char* file_name, const ebpf_program_type_t* program_type, struct ebpf_object** object, fd_t* program_fd)
+    const char* file_name, const ebpf_program_type_t* program_type, struct _ebpf_object** object, fd_t* program_fd)
 {
     ebpf_result_t result;
     const char* log_buffer = nullptr;
     result = ebpf_program_load(file_name, program_type, nullptr, object, program_fd, &log_buffer);
 
-    free((void*)log_buffer);
+    ebpf_free_string(log_buffer);
     return result;
 }
 
@@ -61,7 +61,7 @@ static void
 _test_program_load(const char* file_name, ebpf_program_type_t* program_type, bool expected_to_load)
 {
     ebpf_result_t result;
-    struct ebpf_object* object = nullptr;
+    struct _ebpf_object* object = nullptr;
     fd_t program_fd;
     ebpf_handle_t program_handle = INVALID_HANDLE_VALUE;
     ebpf_handle_t next_program_handle = INVALID_HANDLE_VALUE;
@@ -108,11 +108,11 @@ static void
 _test_map_next_previous(const char* file_name, int expected_map_count)
 {
     ebpf_result_t result;
-    struct ebpf_object* object = nullptr;
+    struct _ebpf_object* object = nullptr;
     fd_t program_fd;
     int map_count = 0;
-    struct ebpf_map* previous = nullptr;
-    struct ebpf_map* next = nullptr;
+    struct _ebpf_map* previous = nullptr;
+    struct _ebpf_map* next = nullptr;
     result = _program_load_helper(file_name, nullptr, &object, &program_fd);
     REQUIRE(result == EBPF_SUCCESS);
 
@@ -142,11 +142,11 @@ static void
 _test_program_next_previous(const char* file_name, int expected_program_count)
 {
     ebpf_result_t result;
-    struct ebpf_object* object = nullptr;
+    struct _ebpf_object* object = nullptr;
     fd_t program_fd;
     int program_count = 0;
-    struct ebpf_program* previous = nullptr;
-    struct ebpf_program* next = nullptr;
+    struct _ebpf_program* previous = nullptr;
+    struct _ebpf_program* next = nullptr;
     result = _program_load_helper(file_name, nullptr, &object, &program_fd);
     REQUIRE(result == EBPF_SUCCESS);
 

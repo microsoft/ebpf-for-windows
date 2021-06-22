@@ -19,16 +19,16 @@
 #include "ebpf_verifier.hpp"
 #pragma warning(pop)
 #include "ebpf_xdp_program_data.h"
+#include "elfio/elfio.hpp"
 #include "platform.hpp"
 #include "tlv.h"
 #include "windows_platform.hpp"
 #include "windows_platform_common.hpp"
 #include "Verifier.h"
-#include "elfio/elfio.hpp"
 
 using namespace std;
 
-typedef struct section_program_map
+typedef struct _section_program_map
 {
     string section_name;
     string program_name;
@@ -104,24 +104,18 @@ _get_section_and_program_name(string& path, vector<section_program_map_t>& map) 
 
 ebpf_result_t
 load_byte_code(
-    const char* filename,
-    const char* sectionname,
-    ebpf_verifier_options_t* verifier_options,
-    ebpf_list_entry_t* programs,
-    uint32_t* programs_count,
-    const char** error_message) noexcept
+    _In_z_ const char* filename,
+    _In_opt_z_ const char* sectionname,
+    _In_ ebpf_verifier_options_t* verifier_options,
+    _Out_ std::vector<ebpf_program_t*>& programs,
+    _Outptr_result_maybenull_z_ const char** error_message) noexcept
 {
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_program_t* program = nullptr;
-    ebpf_program_t* iterator = nullptr;
-    vector<section_program_map_t> section_program_map;
-    ebpf_list_entry_t* entry;
+    vector<section_program_map_t> section_to_program_map;
     int count = 0;
     int index = 0;
     try {
-        ebpf_list_initialize(programs);
-        *programs_count = 0;
-
         const ebpf_platform_t* platform = &g_ebpf_platform_windows;
         std::string file_name(filename);
         std::string section_name;
@@ -129,31 +123,31 @@ load_byte_code(
             section_name = std::string(sectionname);
         }
 
-        auto raw_progs = read_elf(file_name, section_name, verifier_options, platform);
-        if (raw_progs.size() == 0) {
+        auto raw_progams = read_elf(file_name, section_name, verifier_options, platform);
+        if (raw_progams.size() == 0) {
             result = EBPF_ELF_PARSING_FAILED;
             goto Exit;
         }
 
         // read_elf() also returns a section with name ".text".
         // Remove that section from the list of programs returned.
-        for (int i = 0; i < raw_progs.size(); i++) {
-            if (raw_progs[i].section == ".text") {
-                raw_progs.erase(raw_progs.begin() + i);
+        for (int i = 0; i < raw_progams.size(); i++) {
+            if (raw_progams[i].section == ".text") {
+                raw_progams.erase(raw_progams.begin() + i);
                 break;
             }
         }
 
         // For each program/section parsed, program type should be same.
         if (get_global_program_type() == nullptr) {
-            ebpf_program_type_t program_type = *(const GUID*)raw_progs[0].info.type.platform_specific_data;
-            for (auto& raw_prog : raw_progs) {
-                if (raw_prog.info.type.platform_specific_data == 0) {
+            ebpf_program_type_t program_type = *(const GUID*)raw_progams[0].info.type.platform_specific_data;
+            for (auto& raw_program : raw_progams) {
+                if (raw_program.info.type.platform_specific_data == 0) {
                     result = EBPF_ELF_PARSING_FAILED;
                     goto Exit;
                 }
 
-                ebpf_program_type_t type = *(const GUID*)raw_prog.info.type.platform_specific_data;
+                ebpf_program_type_t type = *(const GUID*)raw_program.info.type.platform_specific_data;
                 if (!IsEqualGUID(program_type, type)) {
                     result = EBPF_ELF_PARSING_FAILED;
                     goto Exit;
@@ -161,23 +155,21 @@ load_byte_code(
             }
         }
 
-        for (auto& raw_prog : raw_progs) {
+        for (auto& raw_program : raw_progams) {
             program = (ebpf_program_t*)calloc(1, sizeof(ebpf_program_t));
             if (program == nullptr) {
                 result = EBPF_NO_MEMORY;
                 goto Exit;
             }
 
-            ebpf_list_initialize(&program->list_entry);
             program->handle = ebpf_handle_invalid;
-
-            program->program_type = *(const GUID*)raw_prog.info.type.platform_specific_data;
-            program->section_name = (char*)allocate_string(raw_prog.section);
+            program->program_type = *(const GUID*)raw_program.info.type.platform_specific_data;
+            program->section_name = _strdup(raw_program.section.c_str());
             if (program->section_name == nullptr) {
                 result = EBPF_NO_MEMORY;
                 goto Exit;
             }
-            size_t ebpf_bytes = raw_prog.prog.size() * sizeof(ebpf_inst);
+            size_t ebpf_bytes = raw_program.prog.size() * sizeof(ebpf_inst);
             program->byte_code = (uint8_t*)calloc(1, ebpf_bytes);
             if (program->byte_code == nullptr) {
                 result = EBPF_NO_MEMORY;
@@ -195,32 +187,32 @@ load_byte_code(
             }
 
             int i = 0;
-            for (ebpf_inst inst : raw_prog.prog) {
-                char* buf = (char*)&inst;
+            for (ebpf_inst instruction : raw_program.prog) {
+                char* buffer = (char*)&instruction;
                 for (int j = 0; j < sizeof(ebpf_inst) && i < ebpf_bytes; i++, j++) {
-                    program->byte_code[i] = buf[j];
+                    program->byte_code[i] = buffer[j];
                 }
             }
             program->byte_code_size = static_cast<uint32_t>(ebpf_bytes);
-            ebpf_list_insert_tail(programs, &program->list_entry);
+            programs.emplace_back(program);
             count++;
             program = nullptr;
         }
 
         // Get program names for each section.
-        for (entry = programs->Flink; entry != programs; entry = entry->Flink) {
-            iterator = CONTAINING_RECORD(entry, ebpf_program_t, list_entry);
-            section_program_map.emplace_back(iterator->section_name, std::string());
+        for (auto& iterator : programs) {
+            section_to_program_map.emplace_back(iterator->section_name, std::string());
         }
 
-        _get_section_and_program_name(file_name, section_program_map);
+        _get_section_and_program_name(file_name, section_to_program_map);
         index = 0;
-        for (entry = programs->Flink; entry != programs; entry = entry->Flink, index++) {
-            iterator = CONTAINING_RECORD(entry, ebpf_program_t, list_entry);
-            iterator->program_name = (char*)allocate_string(section_program_map[index].program_name);
+        for (auto& iterator : programs) {
+            iterator->program_name = _strdup(section_to_program_map[index].program_name.c_str());
+            if (iterator->program_name == nullptr) {
+                result = EBPF_NO_MEMORY;
+                goto Exit;
+            }
         }
-
-        *programs_count = count;
     } catch (std::runtime_error& err) {
         auto message = err.what();
         auto message_length = strlen(message) + 1;
@@ -244,7 +236,7 @@ Exit:
             program = nullptr;
         }
 
-        clean_up_ebpf_programs(*programs);
+        clean_up_ebpf_programs(programs);
     }
 
     return result;
