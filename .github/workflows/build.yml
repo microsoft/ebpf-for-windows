@@ -64,18 +64,10 @@ jobs:
       # See https://docs.microsoft.com/visualstudio/msbuild/msbuild-command-line-reference
       run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{env.BUILD_PLATFORM}} ${{env.SOLUTION_FILE_PATH}}
 
-    - name: Run E2E Tests
+    - name: Run Unit Tests
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
-      run: ./end_to_end.exe -s
+      run: ./unit_tests.exe -s
 
     - name: Run RPC Client Tests
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
       run: ./ebpf_client.exe -s
-
-    - name: Run Platform Unit Tests
-      working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
-      run: ./platform_unit_test.exe -s
-
-    - name: Run Execution Context Unit Tests
-      working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
-      run: ./execution_context_unit_test.exe -s
