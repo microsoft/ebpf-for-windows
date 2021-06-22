@@ -618,7 +618,7 @@ TEST_CASE("enumerate_and_query_maps", "[enumerate_and_query_maps]")
             ebpf_api_map_query_definition(
                 map_handles[index],
                 &map_definitions[index].size,
-                &map_definitions[index].type,
+                reinterpret_cast<uint32_t*>(&map_definitions[index].type),
                 &map_definitions[index].key_size,
                 &map_definitions[index].value_size,
                 &map_definitions[index].max_entries) == EBPF_SUCCESS);
