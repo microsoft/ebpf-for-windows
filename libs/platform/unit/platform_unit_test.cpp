@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#define CATCH_CONFIG_MAIN
 // Windows build system requires include of Windows.h before other Windows
 // headers.
 #include <Windows.h>
@@ -46,7 +45,7 @@ class _test_helper
     bool epoch_initated = false;
 };
 
-TEST_CASE("pinning_test", "[pinning_test]")
+TEST_CASE("pinning_test", "[platform]")
 {
     _test_helper test_helper;
 
@@ -87,7 +86,7 @@ TEST_CASE("pinning_test", "[pinning_test]")
     ebpf_object_release_reference(&another_object.object);
 }
 
-TEST_CASE("epoch_test_single_epoch", "[epoch_test_single_epoch]")
+TEST_CASE("epoch_test_single_epoch", "[platform]")
 {
     _test_helper test_helper;
 
@@ -98,7 +97,7 @@ TEST_CASE("epoch_test_single_epoch", "[epoch_test_single_epoch]")
     ebpf_epoch_flush();
 }
 
-TEST_CASE("epoch_test_two_threads", "[epoch_test_two_threads]")
+TEST_CASE("epoch_test_two_threads", "[platform]")
 {
     _test_helper test_helper;
 
@@ -118,7 +117,7 @@ TEST_CASE("epoch_test_two_threads", "[epoch_test_two_threads]")
     thread_2.join();
 }
 
-TEST_CASE("extension_test", "[extension_test]")
+TEST_CASE("extension_test", "[platform]")
 {
     _test_helper test_helper;
 
@@ -188,11 +187,10 @@ TEST_CASE("extension_test", "[extension_test]")
     ebpf_provider_unload(provider_context);
 }
 
-TEST_CASE("trampoline_test", "[trampoline_test]")
+TEST_CASE("trampoline_test", "[platform]")
 {
     _test_helper test_helper;
 
-    size_t count = 0;
     ebpf_trampoline_table_t* table = NULL;
     ebpf_result_t (*test_function)();
     auto provider_function1 = []() { return EBPF_SUCCESS; };
@@ -217,7 +215,7 @@ TEST_CASE("trampoline_test", "[trampoline_test]")
     ebpf_free_trampoline_table(table);
 }
 
-TEST_CASE("program_type_info", "[program_type_info]")
+TEST_CASE("program_type_info", "[platform]")
 {
     _test_helper test_helper;
 
@@ -250,7 +248,7 @@ TEST_CASE("program_type_info", "[program_type_info]")
     ebpf_free(new_program_information);
 }
 
-TEST_CASE("program_type_info_stored", "[program_type_info_stored]")
+TEST_CASE("program_type_info_stored", "[platform]")
 {
     _test_helper test_helper;
     ebpf_program_information_t* xdp_program_information = nullptr;
@@ -274,7 +272,7 @@ TEST_CASE("program_type_info_stored", "[program_type_info_stored]")
     ebpf_free(bind_program_information);
 }
 
-TEST_CASE("access_check", "[access_check]")
+TEST_CASE("access_check", "[platform]")
 {
     _test_helper test_helper;
     ebpf_security_descriptor_t* sd = NULL;
@@ -298,7 +296,7 @@ TEST_CASE("access_check", "[access_check]")
     REQUIRE((result = ebpf_access_check(sd, 1, &generic_mapping), LocalFree(sd), result == EBPF_ACCESS_DENIED));
 }
 
-TEST_CASE("memory_map_test", "[memory_map_test]")
+TEST_CASE("memory_map_test", "[platform]")
 {
     ebpf_result_t result;
     ebpf_memory_descriptor_t* memory_descriptor = nullptr;
@@ -312,7 +310,7 @@ TEST_CASE("memory_map_test", "[memory_map_test]")
     ebpf_unmap_memory(memory_descriptor);
 }
 
-TEST_CASE("serialize_map_test", "[serialize_map_test]")
+TEST_CASE("serialize_map_test", "[platform]")
 {
     _test_helper test_helper;
 

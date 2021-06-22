@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#define CATCH_CONFIG_MAIN
-
 #include "catch2\catch.hpp"
 #include "ebpf_core.h"
 #include "ebpf_maps.h"
@@ -97,9 +95,9 @@ test_crud_operations(ebpf_map_type_t map_type)
     REQUIRE(memcmp(retrieved_map_definition, &map_definition, sizeof(map_definition)) == 0);
 }
 
-TEST_CASE("map_crud_operations_array") { test_crud_operations(EBPF_MAP_TYPE_ARRAY); }
+TEST_CASE("map_crud_operations_array", "[execution_context]") { test_crud_operations(EBPF_MAP_TYPE_ARRAY); }
 
-TEST_CASE("map_crud_operations_hash") { test_crud_operations(EBPF_MAP_TYPE_HASH); }
+TEST_CASE("map_crud_operations_hash", "[execution_context]") { test_crud_operations(EBPF_MAP_TYPE_HASH); }
 
 #define TEST_FUNCTION_RETURN 42
 
@@ -109,7 +107,7 @@ test_function()
     return TEST_FUNCTION_RETURN;
 }
 
-TEST_CASE("program")
+TEST_CASE("program", "[execution_context]")
 {
     _ebpf_core_initializer core;
     program_ptr program;
