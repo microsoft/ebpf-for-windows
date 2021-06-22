@@ -113,8 +113,6 @@ load_byte_code(
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_program_t* program = nullptr;
     vector<section_program_map_t> section_to_program_map;
-    int count = 0;
-    int index = 0;
     try {
         const ebpf_platform_t* platform = &g_ebpf_platform_windows;
         std::string file_name(filename);
@@ -195,7 +193,6 @@ load_byte_code(
             }
             program->byte_code_size = static_cast<uint32_t>(ebpf_bytes);
             programs.emplace_back(program);
-            count++;
             program = nullptr;
         }
 
@@ -205,13 +202,14 @@ load_byte_code(
         }
 
         _get_section_and_program_name(file_name, section_to_program_map);
-        index = 0;
+        int index = 0;
         for (auto& iterator : programs) {
             iterator->program_name = _strdup(section_to_program_map[index].program_name.c_str());
             if (iterator->program_name == nullptr) {
                 result = EBPF_NO_MEMORY;
                 goto Exit;
             }
+            index++;
         }
     } catch (std::runtime_error& err) {
         auto message = err.what();

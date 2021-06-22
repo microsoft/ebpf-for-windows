@@ -387,7 +387,8 @@ extern "C"
      * @retval EBPF_ELF_PARSING_FAILED Failure in parsing ELF file.
      * @retval EBPF_FAILED Some other error occured.
      */
-    _Success_(result == EBPF_SUCCESS) ebpf_result_t ebpf_program_load(
+    ebpf_result_t
+    ebpf_program_load(
         _In_z_ const char* file_name,
         _In_opt_ const ebpf_program_type_t* program_type,
         _In_opt_ const ebpf_attach_type_t* attach_type,
