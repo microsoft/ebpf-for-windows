@@ -589,7 +589,7 @@ TEST_CASE("enumerate_and_query_maps", "[enumerate_and_query_maps]")
              map_handles,
              &error_message),
          error_message ? printf("ebpf_api_load_program failed with %s\n", error_message) : 0,
-         ebpf_api_free_string(error_message),
+         ebpf_free_string(error_message),
          error_message = nullptr,
          result == EBPF_SUCCESS));
 
