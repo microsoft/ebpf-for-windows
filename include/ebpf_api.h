@@ -355,7 +355,7 @@ extern "C"
     ebpf_api_map_info_free(uint16_t map_count, _In_count_(map_count) const ebpf_map_information_t* map_info);
 
     /**
-     * @brief Load EBPF programs from an ELF file based on default load
+     * @brief Load eBPF programs from an ELF file based on default load
      * attributes. This API does the following:
      * 1. Read the ELF file.
      * 2. Create maps.
