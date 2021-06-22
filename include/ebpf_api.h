@@ -323,8 +323,8 @@ extern "C"
     /**
      * @brief Close an eBPF handle.
      *
-     * @param handle Handle to close.
-     * @return ERROR_SUCCESS Handle was closed.
+     * @param[in] handle Handle to close.
+     * @retval ERROR_SUCCESS Handle was closed.
      * @retval ERROR_INVALID_HANDLE Handle is not valid.
      */
     uint32_t
@@ -367,19 +367,19 @@ extern "C"
      *
      * @param[in] file_name ELF file name with full path.
      * @param[in] program_type Optionally, the program type to use when loading
-     *                         the eBPF program.
-     * @param[in] attach_type  Optionally, the attach type to use for the loaded
-     *                         eBPF program.
-     * @param[out] ebpf_object Returns pointer to ebpf_object object.
-     *                         The caller is expected to call ebpf_object_close()
-     *                         at the end.
+     *  the eBPF program. If program type is not supplied, it is derived from
+     *  the section prefix in the ELF file.
+     * @param[in] attach_type Optionally, the attach type to use for the loaded
+     *  eBPF program. If attach type is not supplied, it is derived from the
+     *  section prefix in the ELF file.
+     * @param[out] ebpf_object Returns pointer to ebpf_object object. The caller
+        is expected to call ebpf_object_close() at the end.
      * @param[out] program_fd Returns a file descriptor for the first program.
-     *                        The caller should not call _close() on the fd,
-     *                        but should instead use ebpf_object_close() to
-     *                        close this (and other) file descriptors.
+     *  The caller should not call _close() on the fd, but should instead use
+     *  ebpf_object_close() to close this (and other) file descriptors.
      * @param[out] log_buffer Returns a pointer to a null-terminated log buffer.
-     *                        The caller is responsible for freeing the returned
-     *                        log_buffer pointer by calling ebpf_api_free_string().
+     *  The caller is responsible for freeing the returned log_buffer pointer
+     *  by calling ebpf_api_free_string().
      *
      * @retval EBPF_SUCCESS The programs are loaded and maps are created successfully.
      * @retval EBPF_INVALID_ARGUMENT One or more parameters are incorrect.
@@ -398,7 +398,7 @@ extern "C"
     /**
      * @brief Get next program in ebpf_object object.
      *
-     * @param[in] previous Pointer to previous eBPF program.
+     * @param[in] previous Pointer to previous eBPF program, or NULL to get the first one.
      * @param[in] object Pointer to eBPF object.
      * @return Pointer to the next program, or NULL if none.
      */
@@ -408,7 +408,7 @@ extern "C"
     /**
      * @brief Get previous program in ebpf_object object.
      *
-     * @param[in] next Pointer to next eBPF program.
+     * @param[in] next Pointer to next eBPF program, or NULL to get the last one.
      * @param[in] object Pointer to eBPF object.
      * @return Pointer to the previous program, or NULL if none.
      */
@@ -418,7 +418,7 @@ extern "C"
     /**
      * @brief Get next map in ebpf_object object.
      *
-     * @param[in] previous Pointer to previous eBPF map.
+     * @param[in] previous Pointer to previous eBPF map, or NULL to get the first one.
      * @param[in] object Pointer to eBPF object.
      * @return Pointer to the next map, or NULL if none.
      */
@@ -428,7 +428,7 @@ extern "C"
     /**
      * @brief Get previous map in ebpf_object object.
      *
-     * @param[in] next Pointer to next eBPF map.
+     * @param[in] next Pointer to next eBPF map, or NULL to get the last one.
      * @param[in] object Pointer to eBPF object.
      * @return Pointer to the previous map, or NULL if none.
      */
@@ -457,7 +457,7 @@ extern "C"
      * @brief Clean up ebpf_object. Also delete all the sub objects
      * (maps, programs) and close the related file descriptors.
      *
-     * @param[in] obj Pointer to ebpf_object.
+     * @param[in] object Pointer to ebpf_object.
      */
     void
     ebpf_object_close(_In_ _Post_invalid_ struct _ebpf_object* object);
