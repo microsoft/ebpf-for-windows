@@ -149,10 +149,10 @@ prepare_udp_packet(uint16_t udp_length)
     return packet;
 }
 
-class _test_helper
+class _test_helper_end_to_end
 {
   public:
-    _test_helper()
+    _test_helper_end_to_end()
     {
         device_io_control_handler = GlueDeviceIoControl;
         create_file_handler = GlueCreateFileW;
@@ -162,7 +162,7 @@ class _test_helper
         REQUIRE(ebpf_api_initiate() == EBPF_SUCCESS);
         api_initialized = true;
     }
-    ~_test_helper()
+    ~_test_helper_end_to_end()
     {
         if (api_initialized)
             ebpf_api_terminate();
@@ -184,7 +184,7 @@ class _test_helper
 void
 droppacket_test(ebpf_execution_type_t execution_type)
 {
-    _test_helper test_helper;
+    _test_helper_end_to_end test_helper;
 
     ebpf_handle_t program_handle;
     ebpf_handle_t map_handle;
@@ -254,7 +254,7 @@ droppacket_test(ebpf_execution_type_t execution_type)
 void
 divide_by_zero_test(ebpf_execution_type_t execution_type)
 {
-    _test_helper test_helper;
+    _test_helper_end_to_end test_helper;
 
     ebpf_handle_t program_handle;
     ebpf_handle_t map_handle;
@@ -345,7 +345,7 @@ set_bind_limit(ebpf_handle_t handle, uint32_t limit)
 void
 bindmonitor_test(ebpf_execution_type_t execution_type)
 {
-    _test_helper test_helper;
+    _test_helper_end_to_end test_helper;
 
     ebpf_handle_t program_handle;
     const char* error_message = NULL;
@@ -423,16 +423,16 @@ bindmonitor_test(ebpf_execution_type_t execution_type)
     hook.detach();
 }
 
-TEST_CASE("droppacket-jit", "[droppacket_jit]") { droppacket_test(EBPF_EXECUTION_JIT); }
-TEST_CASE("divide_by_zero_jit", "[divide_by_zero_jit]") { divide_by_zero_test(EBPF_EXECUTION_JIT); }
-TEST_CASE("bindmonitor-jit", "[bindmonitor_jit]") { bindmonitor_test(EBPF_EXECUTION_JIT); }
-TEST_CASE("droppacket-interpret", "[droppacket_interpret]") { droppacket_test(EBPF_EXECUTION_INTERPRET); }
-TEST_CASE("divide_by_zero_interpret", "[divide_by_zero_interpret]") { divide_by_zero_test(EBPF_EXECUTION_INTERPRET); }
-TEST_CASE("bindmonitor-interpret", "[bindmonitor_interpret]") { bindmonitor_test(EBPF_EXECUTION_INTERPRET); }
+TEST_CASE("droppacket-jit", "[end_to_end]") { droppacket_test(EBPF_EXECUTION_JIT); }
+TEST_CASE("divide_by_zero_jit", "[end_to_end]") { divide_by_zero_test(EBPF_EXECUTION_JIT); }
+TEST_CASE("bindmonitor-jit", "[end_to_end]") { bindmonitor_test(EBPF_EXECUTION_JIT); }
+TEST_CASE("droppacket-interpret", "[end_to_end]") { droppacket_test(EBPF_EXECUTION_INTERPRET); }
+TEST_CASE("divide_by_zero_interpret", "[end_to_end]") { divide_by_zero_test(EBPF_EXECUTION_INTERPRET); }
+TEST_CASE("bindmonitor-interpret", "[end_to_end]") { bindmonitor_test(EBPF_EXECUTION_INTERPRET); }
 
-TEST_CASE("enum section", "[enum sections]")
+TEST_CASE("enum section", "[end_to_end]")
 {
-    _test_helper test_helper;
+    _test_helper_end_to_end test_helper;
 
     const char* error_message = nullptr;
     const tlv_type_length_value_t* section_data = nullptr;
@@ -468,9 +468,9 @@ TEST_CASE("enum section", "[enum sections]")
     }
 }
 
-TEST_CASE("verify section", "[verify section]")
+TEST_CASE("verify section", "[end_to_end]")
 {
-    _test_helper test_helper;
+    _test_helper_end_to_end test_helper;
 
     const char* error_message = nullptr;
     const char* report = nullptr;
@@ -486,9 +486,9 @@ TEST_CASE("verify section", "[verify section]")
     ebpf_api_free_string(report);
 }
 
-TEST_CASE("map_pinning_test", "[map_pinning_test]")
+TEST_CASE("map_pinning_test", "[end_to_end]")
 {
-    _test_helper test_helper;
+    _test_helper_end_to_end test_helper;
 
     ebpf_handle_t program_handle;
     const char* error_message = NULL;
@@ -567,9 +567,9 @@ TEST_CASE("map_pinning_test", "[map_pinning_test]")
     }
 }
 
-TEST_CASE("enumerate_and_query_maps", "[enumerate_and_query_maps]")
+TEST_CASE("enumerate_and_query_maps", "[end_to_end]")
 {
-    _test_helper test_helper;
+    _test_helper_end_to_end test_helper;
 
     ebpf_handle_t program_handle;
     const char* error_message = NULL;
@@ -630,9 +630,9 @@ TEST_CASE("enumerate_and_query_maps", "[enumerate_and_query_maps]")
     }
 }
 
-TEST_CASE("enumerate_and_query_programs", "[enumerate_and_query_programs]")
+TEST_CASE("enumerate_and_query_programs", "[end_to_end]")
 {
-    _test_helper test_helper;
+    _test_helper_end_to_end test_helper;
 
     ebpf_handle_t program_handle;
     ebpf_handle_t map_handles[3];
@@ -698,9 +698,9 @@ TEST_CASE("enumerate_and_query_programs", "[enumerate_and_query_programs]")
     REQUIRE(program_handle == INVALID_HANDLE_VALUE);
 }
 
-TEST_CASE("pinned_map_enum", "[pinned_map_enum]")
+TEST_CASE("pinned_map_enum", "[end_to_end]")
 {
-    _test_helper test_helper;
+    _test_helper_end_to_end test_helper;
 
     ebpf_test_pinned_map_enum();
 }
