@@ -181,7 +181,8 @@ class _test_helper
 
 #define SAMPLE_PATH ""
 
-TEST_CASE("droppacket-jit", "[droppacket_jit]")
+void
+droppacket_test(ebpf_execution_type_t execution_type)
 {
     _test_helper test_helper;
 
@@ -198,7 +199,7 @@ TEST_CASE("droppacket-jit", "[droppacket_jit]")
         (result = ebpf_api_load_program(
              SAMPLE_PATH "droppacket.o",
              "xdp",
-             EBPF_EXECUTION_JIT,
+             execution_type,
              &program_handle,
              &count_of_map_handle,
              &map_handle,
@@ -250,74 +251,8 @@ TEST_CASE("droppacket-jit", "[droppacket_jit]")
     hook.detach();
 }
 
-TEST_CASE("droppacket-interpret", "[droppacket_interpret]")
-{
-    _test_helper test_helper;
-
-    ebpf_handle_t program_handle;
-    const char* error_message = NULL;
-    ebpf_handle_t map_handle;
-    uint32_t count_of_map_handle = 1;
-    uint32_t result = 0;
-
-    program_information_provider_t xdp_program_information(EBPF_PROGRAM_TYPE_XDP);
-
-    single_instance_hook_t hook;
-
-    REQUIRE(
-        (result = ebpf_api_load_program(
-             SAMPLE_PATH "droppacket.o",
-             "xdp",
-             EBPF_EXECUTION_INTERPRET,
-             &program_handle,
-             &count_of_map_handle,
-             &map_handle,
-             &error_message),
-         error_message ? printf("ebpf_api_load_program failed with %s\n", error_message) : 0,
-         ebpf_api_free_string(error_message),
-         error_message = NULL,
-         result == EBPF_SUCCESS));
-
-    REQUIRE(hook.attach(program_handle) == EBPF_SUCCESS);
-
-    auto packet = prepare_udp_packet(0);
-
-    uint32_t key = 0;
-    uint64_t value = 1000;
-    REQUIRE(
-        ebpf_api_map_update_element((ebpf_handle_t)1, sizeof(key), (uint8_t*)&key, sizeof(value), (uint8_t*)&value) ==
-        EBPF_SUCCESS);
-
-    // Test that we drop the packet and increment the map
-    xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
-    REQUIRE(hook.fire(&ctx, &result) == EBPF_SUCCESS);
-    REQUIRE(result == 2);
-
-    REQUIRE(
-        ebpf_api_map_find_element((ebpf_handle_t)1, sizeof(key), (uint8_t*)&key, sizeof(value), (uint8_t*)&value) ==
-        EBPF_SUCCESS);
-    REQUIRE(value == 1001);
-
-    REQUIRE(ebpf_api_map_delete_element((ebpf_handle_t)1, sizeof(key), (uint8_t*)&key) == EBPF_SUCCESS);
-
-    REQUIRE(
-        ebpf_api_map_find_element((ebpf_handle_t)1, sizeof(key), (uint8_t*)&key, sizeof(value), (uint8_t*)&value) ==
-        EBPF_SUCCESS);
-    REQUIRE(value == 0);
-
-    packet = prepare_udp_packet(10);
-    xdp_md_t ctx2{packet.data(), packet.data() + packet.size()};
-
-    REQUIRE(hook.fire(&ctx2, &result) == EBPF_SUCCESS);
-    REQUIRE(result == 1);
-
-    REQUIRE(
-        ebpf_api_map_find_element((ebpf_handle_t)1, sizeof(key), (uint8_t*)&key, sizeof(value), (uint8_t*)&value) ==
-        EBPF_SUCCESS);
-    REQUIRE(value == 0);
-}
-
-TEST_CASE("divide_by_zero_jit", "[divide_by_zero_jit]")
+void
+divide_by_zero_test(ebpf_execution_type_t execution_type)
 {
     _test_helper test_helper;
 
@@ -334,7 +269,7 @@ TEST_CASE("divide_by_zero_jit", "[divide_by_zero_jit]")
         (result = ebpf_api_load_program(
              SAMPLE_PATH "divide_by_zero.o",
              "xdp",
-             EBPF_EXECUTION_JIT,
+             execution_type,
              &program_handle,
              &count_of_map_handle,
              &map_handle,
@@ -352,10 +287,148 @@ TEST_CASE("divide_by_zero_jit", "[divide_by_zero_jit]")
     xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
 
     REQUIRE(hook.fire(&ctx, &result) == EBPF_SUCCESS);
+    // uBPF returns -1 when the program hits a divide by zero error.
     REQUIRE(result == -1);
 
     hook.detach();
 }
+
+typedef struct _process_entry
+{
+    uint32_t count;
+    uint8_t name[64];
+} process_entry_t;
+
+uint32_t
+get_bind_count_for_pid(ebpf_handle_t handle, uint64_t pid)
+{
+    process_entry_t entry{};
+    ebpf_api_map_find_element(handle, sizeof(pid), (uint8_t*)&pid, sizeof(entry), (uint8_t*)&entry);
+
+    return entry.count;
+}
+
+bind_action_t
+emulate_bind(single_instance_hook_t& hook, uint64_t pid, const char* appid)
+{
+    uint32_t result;
+    std::string app_id = appid;
+    bind_md_t ctx{0};
+    ctx.app_id_start = (uint8_t*)app_id.c_str();
+    ctx.app_id_end = (uint8_t*)(app_id.c_str()) + app_id.size();
+    ctx.process_id = pid;
+    ctx.operation = BIND_OPERATION_BIND;
+    REQUIRE(hook.fire(&ctx, &result) == EBPF_SUCCESS);
+    return static_cast<bind_action_t>(result);
+}
+
+void
+emulate_unbind(single_instance_hook_t& hook, uint64_t pid, const char* appid)
+{
+    uint32_t result;
+    std::string app_id = appid;
+    bind_md_t ctx{0};
+    ctx.process_id = pid;
+    ctx.operation = BIND_OPERATION_UNBIND;
+    REQUIRE(hook.fire(&ctx, &result) == EBPF_SUCCESS);
+}
+
+void
+set_bind_limit(ebpf_handle_t handle, uint32_t limit)
+{
+    uint32_t limit_key = 0;
+    REQUIRE(
+        ebpf_api_map_update_element(handle, sizeof(limit_key), (uint8_t*)&limit_key, sizeof(limit), (uint8_t*)&limit) ==
+        EBPF_SUCCESS);
+}
+
+void
+bindmonitor_test(ebpf_execution_type_t execution_type)
+{
+    _test_helper test_helper;
+
+    ebpf_handle_t program_handle;
+    const char* error_message = NULL;
+    ebpf_handle_t map_handles[2];
+    uint32_t count_of_map_handles = 2;
+    uint64_t fake_pid = 12345;
+    uint32_t result;
+
+    program_information_provider_t bind_program_information(EBPF_PROGRAM_TYPE_BIND);
+
+    REQUIRE(
+        (result = ebpf_api_load_program(
+             SAMPLE_PATH "bindmonitor.o",
+             "bind",
+             execution_type,
+             &program_handle,
+             &count_of_map_handles,
+             map_handles,
+             &error_message),
+         error_message ? printf("ebpf_api_load_program failed with %s\n", error_message) : 0,
+         ebpf_api_free_string(error_message),
+         error_message = nullptr,
+         result == EBPF_SUCCESS));
+
+    single_instance_hook_t hook;
+
+    hook.attach(program_handle);
+
+    // Apply policy of maximum 2 binds per process
+    set_bind_limit(map_handles[1], 2);
+
+    // Bind first port - success
+    REQUIRE(emulate_bind(hook, fake_pid, "fake_app_1") == BIND_PERMIT);
+    REQUIRE(get_bind_count_for_pid(map_handles[0], fake_pid) == 1);
+
+    // Bind second port - success
+    REQUIRE(emulate_bind(hook, fake_pid, "fake_app_1") == BIND_PERMIT);
+    REQUIRE(get_bind_count_for_pid(map_handles[0], fake_pid) == 2);
+
+    // Bind third port - blocked
+    REQUIRE(emulate_bind(hook, fake_pid, "fake_app_1") == BIND_DENY);
+    REQUIRE(get_bind_count_for_pid(map_handles[0], fake_pid) == 2);
+
+    // Unbind second port
+    emulate_unbind(hook, fake_pid, "fake_app_1");
+    REQUIRE(get_bind_count_for_pid(map_handles[0], fake_pid) == 1);
+
+    // Unbind first port
+    emulate_unbind(hook, fake_pid, "fake_app_1");
+    REQUIRE(get_bind_count_for_pid(map_handles[0], fake_pid) == 0);
+
+    // Bind from two apps to test enumeration
+    REQUIRE(emulate_bind(hook, fake_pid, "fake_app_1") == BIND_PERMIT);
+    REQUIRE(get_bind_count_for_pid(map_handles[0], fake_pid) == 1);
+
+    fake_pid = 54321;
+    REQUIRE(emulate_bind(hook, fake_pid, "fake_app_2") == BIND_PERMIT);
+    REQUIRE(get_bind_count_for_pid(map_handles[0], fake_pid) == 1);
+
+    uint64_t pid;
+    REQUIRE(
+        ebpf_api_get_next_map_key(map_handles[0], sizeof(uint64_t), NULL, reinterpret_cast<uint8_t*>(&pid)) ==
+        EBPF_SUCCESS);
+    REQUIRE(pid != 0);
+    REQUIRE(
+        ebpf_api_get_next_map_key(
+            map_handles[0], sizeof(uint64_t), reinterpret_cast<uint8_t*>(&pid), reinterpret_cast<uint8_t*>(&pid)) ==
+        EBPF_SUCCESS);
+    REQUIRE(pid != 0);
+    REQUIRE(
+        ebpf_api_get_next_map_key(
+            map_handles[0], sizeof(uint64_t), reinterpret_cast<uint8_t*>(&pid), reinterpret_cast<uint8_t*>(&pid)) ==
+        ERROR_NO_MORE_ITEMS);
+
+    hook.detach();
+}
+
+TEST_CASE("droppacket-jit", "[droppacket_jit]") { droppacket_test(EBPF_EXECUTION_JIT); }
+TEST_CASE("divide_by_zero_jit", "[divide_by_zero_jit]") { divide_by_zero_test(EBPF_EXECUTION_JIT); }
+TEST_CASE("bindmonitor-jit", "[bindmonitor_jit]") { bindmonitor_test(EBPF_EXECUTION_JIT); }
+TEST_CASE("droppacket-interpret", "[droppacket_interpret]") { droppacket_test(EBPF_EXECUTION_INTERPRET); }
+TEST_CASE("divide_by_zero_interpret", "[divide_by_zero_interpret]") { divide_by_zero_test(EBPF_EXECUTION_INTERPRET); }
+TEST_CASE("bindmonitor-interpret", "[bindmonitor_interpret]") { bindmonitor_test(EBPF_EXECUTION_INTERPRET); }
 
 TEST_CASE("enum section", "[enum sections]")
 {
@@ -413,65 +486,14 @@ TEST_CASE("verify section", "[verify section]")
     ebpf_api_free_string(report);
 }
 
-typedef struct _process_entry
-{
-    uint32_t count;
-    uint8_t name[64];
-    uint64_t appid_length;
-} process_entry_t;
-
-uint32_t
-get_bind_count_for_pid(ebpf_handle_t handle, uint64_t pid)
-{
-    process_entry_t entry{};
-    ebpf_api_map_find_element(handle, sizeof(pid), (uint8_t*)&pid, sizeof(entry), (uint8_t*)&entry);
-
-    return entry.count;
-}
-
-bind_action_t
-emulate_bind(single_instance_hook_t& hook, uint64_t pid, const char* appid)
-{
-    uint32_t result;
-    std::string app_id = appid;
-    bind_md_t ctx{0};
-    ctx.app_id_start = (uint8_t*)app_id.c_str();
-    ctx.app_id_end = (uint8_t*)(app_id.c_str()) + app_id.size();
-    ctx.process_id = pid;
-    ctx.operation = BIND_OPERATION_BIND;
-    REQUIRE(hook.fire(&ctx, &result) == EBPF_SUCCESS);
-    return static_cast<bind_action_t>(result);
-}
-
-void
-emulate_unbind(single_instance_hook_t& hook, uint64_t pid, const char* appid)
-{
-    uint32_t result;
-    std::string app_id = appid;
-    bind_md_t ctx{0};
-    ctx.process_id = pid;
-    ctx.operation = BIND_OPERATION_UNBIND;
-    REQUIRE(hook.fire(&ctx, &result) == EBPF_SUCCESS);
-}
-
-void
-set_bind_limit(ebpf_handle_t handle, uint32_t limit)
-{
-    uint32_t limit_key = 0;
-    REQUIRE(
-        ebpf_api_map_update_element(handle, sizeof(limit_key), (uint8_t*)&limit_key, sizeof(limit), (uint8_t*)&limit) ==
-        EBPF_SUCCESS);
-}
-
-TEST_CASE("bindmonitor-interpret", "[bindmonitor_interpret]")
+TEST_CASE("map_pinning_test", "[map_pinning_test]")
 {
     _test_helper test_helper;
 
     ebpf_handle_t program_handle;
     const char* error_message = NULL;
-    ebpf_handle_t map_handles[4];
+    ebpf_handle_t map_handles[4] = {0};
     uint32_t count_of_map_handles = 2;
-    uint64_t fake_pid = 12345;
     uint32_t result;
 
     program_information_provider_t bind_program_information(EBPF_PROGRAM_TYPE_BIND);
@@ -506,12 +528,12 @@ TEST_CASE("bindmonitor-interpret", "[bindmonitor_interpret]")
             reinterpret_cast<const uint8_t*>(limit_maps_name.c_str()),
             static_cast<uint32_t>(limit_maps_name.size())) == EBPF_SUCCESS);
 
-    ebpf_handle_t test_handle;
     REQUIRE(
         ebpf_api_get_pinned_map(
             reinterpret_cast<const uint8_t*>(process_maps_name.c_str()),
             static_cast<uint32_t>(process_maps_name.size()),
             &map_handles[2]) == EBPF_SUCCESS);
+
     REQUIRE(
         ebpf_api_get_pinned_map(
             reinterpret_cast<const uint8_t*>(limit_maps_name.c_str()),
@@ -526,6 +548,9 @@ TEST_CASE("bindmonitor-interpret", "[bindmonitor_interpret]")
         ebpf_api_unpin_object(
             reinterpret_cast<const uint8_t*>(limit_maps_name.c_str()), static_cast<uint32_t>(limit_maps_name.size())) ==
         EBPF_SUCCESS);
+
+    ebpf_handle_t test_handle;
+
     REQUIRE(
         ebpf_api_get_pinned_map(
             reinterpret_cast<const uint8_t*>(process_maps_name.c_str()),
@@ -537,61 +562,72 @@ TEST_CASE("bindmonitor-interpret", "[bindmonitor_interpret]")
             static_cast<uint32_t>(limit_maps_name.size()),
             &test_handle) == ERROR_NOT_FOUND);
 
+    for (auto handle : map_handles) {
+        ebpf_api_close_handle(handle);
+    }
+}
+
+TEST_CASE("enumerate_and_query_maps", "[enumerate_and_query_maps]")
+{
+    _test_helper test_helper;
+
+    ebpf_handle_t program_handle;
+    const char* error_message = NULL;
+    ebpf_handle_t map_handles[4];
+    uint32_t count_of_map_handles = 2;
+    uint32_t result;
+
+    program_information_provider_t bind_program_information(EBPF_PROGRAM_TYPE_BIND);
+
+    REQUIRE(
+        (result = ebpf_api_load_program(
+             SAMPLE_PATH "bindmonitor.o",
+             "bind",
+             EBPF_EXECUTION_INTERPRET,
+             &program_handle,
+             &count_of_map_handles,
+             map_handles,
+             &error_message),
+         error_message ? printf("ebpf_api_load_program failed with %s\n", error_message) : 0,
+         ebpf_api_free_string(error_message),
+         error_message = nullptr,
+         result == EBPF_SUCCESS));
+
+    single_instance_hook_t hook;
+
+    std::string process_maps_name = "bindmonitor::process_maps";
+    std::string limit_maps_name = "bindmonitor::limits_map";
+
     ebpf_handle_t handle_iterator = INVALID_HANDLE_VALUE;
     REQUIRE(ebpf_api_get_next_map(handle_iterator, &handle_iterator) == EBPF_SUCCESS);
+    map_handles[2] = handle_iterator;
     REQUIRE(ebpf_api_get_next_map(handle_iterator, &handle_iterator) == EBPF_SUCCESS);
+    map_handles[3] = handle_iterator;
     REQUIRE(ebpf_api_get_next_map(handle_iterator, &handle_iterator) == EBPF_SUCCESS);
     REQUIRE(handle_iterator == INVALID_HANDLE_VALUE);
 
-    hook.attach(program_handle);
+    ebpf_map_definition_t map_definitions[_countof(map_handles)];
+    ebpf_map_definition_t process_map = {
+        sizeof(ebpf_map_definition_t), EBPF_MAP_TYPE_HASH, sizeof(uint64_t), sizeof(process_entry_t), 1024};
 
-    // Apply policy of maximum 2 binds per process
-    set_bind_limit(map_handles[1], 2);
+    ebpf_map_definition_t limits_map = {
+        sizeof(ebpf_map_definition_t), EBPF_MAP_TYPE_ARRAY, sizeof(uint32_t), sizeof(uint32_t), 1};
 
-    // Bind first port - success
-    REQUIRE(emulate_bind(hook, fake_pid, "fake_app_1") == BIND_PERMIT);
-    REQUIRE(get_bind_count_for_pid(map_handles[0], fake_pid) == 1);
-
-    // Bind second port - success
-    REQUIRE(emulate_bind(hook, fake_pid, "fake_app_1") == BIND_PERMIT);
-    REQUIRE(get_bind_count_for_pid(map_handles[0], fake_pid) == 2);
-
-    // Bind third port - blocked
-    REQUIRE(emulate_bind(hook, fake_pid, "fake_app_1") == BIND_DENY);
-    REQUIRE(get_bind_count_for_pid(map_handles[0], fake_pid) == 2);
-
-    // Unbind second port
-    emulate_unbind(hook, fake_pid, "fake_app_1");
-    REQUIRE(get_bind_count_for_pid(map_handles[0], fake_pid) == 1);
-
-    // Unbind first port
-    emulate_unbind(hook, fake_pid, "fake_app_1");
-    REQUIRE(get_bind_count_for_pid(map_handles[0], fake_pid) == 0);
-
-    // Bind from two apps to test enumeration
-    REQUIRE(emulate_bind(hook, fake_pid, "fake_app_1") == BIND_PERMIT);
-    REQUIRE(get_bind_count_for_pid(map_handles[0], fake_pid) == 1);
-
-    fake_pid = 54321;
-    REQUIRE(emulate_bind(hook, fake_pid, "fake_app_2") == BIND_PERMIT);
-    REQUIRE(get_bind_count_for_pid(map_handles[0], fake_pid) == 1);
-
-    uint64_t pid;
-    REQUIRE(
-        ebpf_api_get_next_map_key(map_handles[0], sizeof(uint64_t), NULL, reinterpret_cast<uint8_t*>(&pid)) ==
-        EBPF_SUCCESS);
-    REQUIRE(pid != 0);
-    REQUIRE(
-        ebpf_api_get_next_map_key(
-            map_handles[0], sizeof(uint64_t), reinterpret_cast<uint8_t*>(&pid), reinterpret_cast<uint8_t*>(&pid)) ==
-        EBPF_SUCCESS);
-    REQUIRE(pid != 0);
-    REQUIRE(
-        ebpf_api_get_next_map_key(
-            map_handles[0], sizeof(uint64_t), reinterpret_cast<uint8_t*>(&pid), reinterpret_cast<uint8_t*>(&pid)) ==
-        ERROR_NO_MORE_ITEMS);
-
-    hook.detach();
+    for (size_t index = 0; index < _countof(map_handles); index++) {
+        REQUIRE(
+            ebpf_api_map_query_definition(
+                map_handles[index],
+                &map_definitions[index].size,
+                reinterpret_cast<uint32_t*>(&map_definitions[index].type),
+                &map_definitions[index].key_size,
+                &map_definitions[index].value_size,
+                &map_definitions[index].max_entries) == EBPF_SUCCESS);
+        if (index % 2 == 0) {
+            REQUIRE(memcmp(&process_map, &map_definitions[index], sizeof(process_map)) == 0);
+        } else {
+            REQUIRE(memcmp(&limits_map, &map_definitions[index], sizeof(process_map)) == 0);
+        }
+    }
 }
 
 TEST_CASE("enumerate_and_query_programs", "[enumerate_and_query_programs]")
