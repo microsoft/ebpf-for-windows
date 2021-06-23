@@ -825,6 +825,7 @@ ebpf_program_load(
     _In_z_ const char* file_name,
     _In_opt_ const ebpf_program_type_t* program_type,
     _In_opt_ const ebpf_attach_type_t* attach_type,
+    _In_ ebpf_execution_type_t execution_type,
     _Outptr_ struct _ebpf_object** object,
     _Out_ fd_t* program_fd,
     _Outptr_result_maybenull_z_ const char** log_buffer)
@@ -883,9 +884,7 @@ ebpf_program_load(
             load_info.program_name = const_cast<char*>(program->program_name);
             load_info.program_type = program->program_type;
             load_info.program_handle = program->handle;
-            // TODO: (Issue #288) Decide how to pick which execution type to use.
-            // Hardcoding to EBPF_EXECUTION_JIT for now.
-            load_info.execution_type = EBPF_EXECUTION_JIT;
+            load_info.execution_type = execution_type;
             load_info.byte_code = program->byte_code;
             load_info.byte_code_size = program->byte_code_size;
             load_info.execution_context = execution_context_kernel_mode;
