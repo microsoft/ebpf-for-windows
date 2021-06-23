@@ -205,7 +205,7 @@ droppacket_test(ebpf_execution_type_t execution_type)
              &map_handle,
              &error_message),
          error_message ? printf("ebpf_api_load_program failed with %s\n", error_message) : 0,
-         ebpf_api_free_string(error_message),
+         ebpf_free_string(error_message),
          error_message = nullptr,
          result == EBPF_SUCCESS));
 
@@ -275,8 +275,8 @@ divide_by_zero_test(ebpf_execution_type_t execution_type)
              &map_handle,
              &error_message),
          error_message ? printf("ebpf_api_load_program failed with %s\n", error_message) : 0,
-         ebpf_api_free_string(error_message),
-         error_message = nullptr,
+         ebpf_free_string(error_message),
+         error_message = NULL,
          result == EBPF_SUCCESS));
 
     REQUIRE(hook.attach(program_handle) == EBPF_SUCCESS);
@@ -366,7 +366,7 @@ bindmonitor_test(ebpf_execution_type_t execution_type)
              map_handles,
              &error_message),
          error_message ? printf("ebpf_api_load_program failed with %s\n", error_message) : 0,
-         ebpf_api_free_string(error_message),
+         ebpf_free_string(error_message),
          error_message = nullptr,
          result == EBPF_SUCCESS));
 
@@ -441,7 +441,7 @@ TEST_CASE("enum section", "[end_to_end]")
     REQUIRE(
         (result =
              ebpf_api_elf_enumerate_sections(SAMPLE_PATH "droppacket.o", nullptr, true, &section_data, &error_message),
-         ebpf_api_free_string(error_message),
+         ebpf_free_string(error_message),
          error_message = nullptr,
          result == 0));
     for (auto current_section = tlv_child(section_data); current_section != tlv_next(section_data);
@@ -479,11 +479,11 @@ TEST_CASE("verify section", "[end_to_end]")
     ebpf_api_verifier_stats_t stats;
     REQUIRE((
         result = ebpf_api_elf_verify_section(SAMPLE_PATH "droppacket.o", "xdp", false, &report, &error_message, &stats),
-        ebpf_api_free_string(error_message),
+        ebpf_free_string(error_message),
         error_message = nullptr,
         result == 0));
     REQUIRE(report != nullptr);
-    ebpf_api_free_string(report);
+    ebpf_free_string(report);
 }
 
 TEST_CASE("map_pinning_test", "[end_to_end]")
@@ -508,7 +508,7 @@ TEST_CASE("map_pinning_test", "[end_to_end]")
              map_handles,
              &error_message),
          error_message ? printf("ebpf_api_load_program failed with %s\n", error_message) : 0,
-         ebpf_api_free_string(error_message),
+         ebpf_free_string(error_message),
          error_message = nullptr,
          result == EBPF_SUCCESS));
 
@@ -589,7 +589,7 @@ TEST_CASE("enumerate_and_query_maps", "[end_to_end]")
              map_handles,
              &error_message),
          error_message ? printf("ebpf_api_load_program failed with %s\n", error_message) : 0,
-         ebpf_api_free_string(error_message),
+         ebpf_free_string(error_message),
          error_message = nullptr,
          result == EBPF_SUCCESS));
 
@@ -653,7 +653,7 @@ TEST_CASE("enumerate_and_query_programs", "[end_to_end]")
              &count_of_map_handle,
              map_handles,
              &error_message),
-         ebpf_api_free_string(error_message),
+         ebpf_free_string(error_message),
          error_message ? printf("ebpf_api_load_program failed with %s\n", error_message) : 0,
          error_message = nullptr,
          result == EBPF_SUCCESS));
@@ -667,7 +667,7 @@ TEST_CASE("enumerate_and_query_programs", "[end_to_end]")
              &count_of_map_handle,
              map_handles,
              &error_message),
-         ebpf_api_free_string(error_message),
+         ebpf_free_string(error_message),
          error_message ? printf("ebpf_api_load_program failed with %s\n", error_message) : 0,
          error_message = nullptr,
          result == EBPF_SUCCESS));
@@ -678,11 +678,11 @@ TEST_CASE("enumerate_and_query_programs", "[end_to_end]")
     REQUIRE(ebpf_api_program_query_information(program_handle, &type, &file_name, &section_name) == EBPF_SUCCESS);
     REQUIRE(type == EBPF_EXECUTION_JIT);
     REQUIRE(strcmp(file_name, SAMPLE_PATH "droppacket.o") == 0);
-    ebpf_api_free_string(file_name);
+    ebpf_free_string(file_name);
     file_name = nullptr;
     REQUIRE(strcmp(section_name, "xdp") == 0);
     REQUIRE(program_handle != INVALID_HANDLE_VALUE);
-    ebpf_api_free_string(section_name);
+    ebpf_free_string(section_name);
     section_name = nullptr;
     REQUIRE(ebpf_api_get_next_program(program_handle, &program_handle) == EBPF_SUCCESS);
     REQUIRE(program_handle != INVALID_HANDLE_VALUE);
@@ -690,8 +690,8 @@ TEST_CASE("enumerate_and_query_programs", "[end_to_end]")
     REQUIRE(type == EBPF_EXECUTION_INTERPRET);
     REQUIRE(strcmp(file_name, SAMPLE_PATH "droppacket.o") == 0);
     REQUIRE(strcmp(section_name, "xdp") == 0);
-    ebpf_api_free_string(file_name);
-    ebpf_api_free_string(section_name);
+    ebpf_free_string(file_name);
+    ebpf_free_string(section_name);
     file_name = nullptr;
     section_name = nullptr;
     REQUIRE(ebpf_api_get_next_program(program_handle, &program_handle) == EBPF_SUCCESS);

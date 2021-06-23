@@ -23,3 +23,6 @@ get_program_type_windows(const std::string& section, const std::string& path);
 
 EbpfMapDescriptor&
 get_map_descriptor_windows(int map_fd);
+
+const ebpf_attach_type_t*
+get_attach_type_windows(const std::string& section);

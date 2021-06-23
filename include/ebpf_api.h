@@ -32,9 +32,15 @@ extern "C"
     __declspec(selectany) ebpf_program_type_t EBPF_PROGRAM_TYPE_BIND = {
         0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
 
+    typedef int32_t fd_t;
+    const fd_t ebpf_fd_invalid = -1;
     typedef void* ebpf_handle_t;
     const ebpf_handle_t ebpf_handle_invalid = (ebpf_handle_t)-1;
     typedef struct _tlv_type_length_value tlv_type_length_value_t;
+
+    struct _ebpf_object;
+    struct _ebpf_program;
+    struct _ebpf_map;
 
     /**
      *  @brief Initialize the eBPF user mode library.
@@ -272,7 +278,7 @@ extern "C"
      * @param[in] string Memory to free.
      */
     void
-    ebpf_api_free_string(const char* string);
+    ebpf_free_string(_In_ _Post_invalid_ const char* string);
 
     /**
      * @brief Associate a name with an object handle.
@@ -315,10 +321,10 @@ extern "C"
     ebpf_api_link_program(ebpf_handle_t program_handle, ebpf_attach_type_t attach_type, ebpf_handle_t* link_handle);
 
     /**
-     * @brief Close an ebpf handle.
+     * @brief Close an eBPF handle.
      *
-     * @param handle Handle to close.
-     * @return ERROR_SUCCESS Handle was closed.
+     * @param[in] handle Handle to close.
+     * @retval ERROR_SUCCESS Handle was closed.
      * @retval ERROR_INVALID_HANDLE Handle is not valid.
      */
     uint32_t
@@ -347,6 +353,115 @@ extern "C"
      */
     void
     ebpf_api_map_info_free(uint16_t map_count, _In_count_(map_count) const ebpf_map_information_t* map_info);
+
+    /**
+     * @brief Load eBPF programs from an ELF file based on default load
+     * attributes. This API does the following:
+     * 1. Read the ELF file.
+     * 2. Create maps.
+     * 3. Load all programs.
+     * 4. Return fd to the first program.
+     *
+     * If the caller supplies a program type and/or attach type, that
+     * supplied value takes precedence over the derived program/attach type.
+     *
+     * @param[in] file_name ELF file name with full path.
+     * @param[in] program_type Optionally, the program type to use when loading
+     *  the eBPF program. If program type is not supplied, it is derived from
+     *  the section prefix in the ELF file.
+     * @param[in] attach_type Optionally, the attach type to use for the loaded
+     *  eBPF program. If attach type is not supplied, it is derived from the
+     *  section prefix in the ELF file.
+     * @param[out] ebpf_object Returns pointer to ebpf_object object. The caller
+        is expected to call ebpf_object_close() at the end.
+     * @param[out] program_fd Returns a file descriptor for the first program.
+     *  The caller should not call _close() on the fd, but should instead use
+     *  ebpf_object_close() to close this (and other) file descriptors.
+     * @param[out] log_buffer Returns a pointer to a null-terminated log buffer.
+     *  The caller is responsible for freeing the returned log_buffer pointer
+     *  by calling ebpf_api_free_string().
+     *
+     * @retval EBPF_SUCCESS The programs are loaded and maps are created successfully.
+     * @retval EBPF_INVALID_ARGUMENT One or more parameters are incorrect.
+     * @retval EBPF_NO_MEMORY Out of memory.
+     * @retval EBPF_ELF_PARSING_FAILED Failure in parsing ELF file.
+     * @retval EBPF_FAILED Some other error occured.
+     */
+    ebpf_result_t
+    ebpf_program_load(
+        _In_z_ const char* file_name,
+        _In_opt_ const ebpf_program_type_t* program_type,
+        _In_opt_ const ebpf_attach_type_t* attach_type,
+        _Outptr_ struct _ebpf_object** object,
+        _Out_ fd_t* program_fd,
+        _Outptr_result_maybenull_z_ const char** log_buffer);
+
+    /**
+     * @brief Get next program in ebpf_object object.
+     *
+     * @param[in] previous Pointer to previous eBPF program, or NULL to get the first one.
+     * @param[in] object Pointer to eBPF object.
+     * @return Pointer to the next program, or NULL if none.
+     */
+    _Ret_maybenull_ struct _ebpf_program*
+    ebpf_program_next(_In_opt_ const struct _ebpf_program* previous, _In_ const struct _ebpf_object* object);
+
+    /**
+     * @brief Get previous program in ebpf_object object.
+     *
+     * @param[in] next Pointer to next eBPF program, or NULL to get the last one.
+     * @param[in] object Pointer to eBPF object.
+     * @return Pointer to the previous program, or NULL if none.
+     */
+    _Ret_maybenull_ struct _ebpf_program*
+    ebpf_program_previous(_In_opt_ const struct _ebpf_program* next, _In_ const struct _ebpf_object* object);
+
+    /**
+     * @brief Get next map in ebpf_object object.
+     *
+     * @param[in] previous Pointer to previous eBPF map, or NULL to get the first one.
+     * @param[in] object Pointer to eBPF object.
+     * @return Pointer to the next map, or NULL if none.
+     */
+    _Ret_maybenull_ struct _ebpf_map*
+    ebpf_map_next(_In_opt_ const struct _ebpf_map* previous, _In_ const struct _ebpf_object* object);
+
+    /**
+     * @brief Get previous map in ebpf_object object.
+     *
+     * @param[in] next Pointer to next eBPF map, or NULL to get the last one.
+     * @param[in] object Pointer to eBPF object.
+     * @return Pointer to the previous map, or NULL if none.
+     */
+    _Ret_maybenull_ struct _ebpf_map*
+    ebpf_map_previous(_In_opt_ const struct _ebpf_map* next, _In_ const struct _ebpf_object* object);
+
+    /**
+     * @brief Fetch fd for a program object.
+     *
+     * @param[in] program Pointer to eBPF program.
+     * @return fd for the program on success, ebpf_fd_invalid on failure.
+     */
+    fd_t
+    ebpf_program_get_fd(_In_ const struct _ebpf_program* program);
+
+    /**
+     * @brief Fetch fd for a map object.
+     *
+     * @param[in] program Pointer to eBPF map.
+     * @return fd for the map on success, ebpf_fd_invalid on failure.
+     */
+    fd_t
+    ebpf_map_get_fd(_In_ const struct _ebpf_map* map);
+
+    /**
+     * @brief Clean up ebpf_object. Also delete all the sub objects
+     * (maps, programs) and close the related file descriptors.
+     *
+     * @param[in] object Pointer to ebpf_object.
+     */
+    void
+    ebpf_object_close(_In_ _Post_invalid_ struct _ebpf_object* object);
 
 #ifdef __cplusplus
 }

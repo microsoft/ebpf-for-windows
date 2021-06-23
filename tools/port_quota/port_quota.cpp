@@ -32,20 +32,20 @@ load(int argc, char** argv)
     if (result != ERROR_SUCCESS) {
         fprintf(stderr, "Failed to load port quota eBPF program\n");
         fprintf(stderr, "%s", error_message);
-        ebpf_api_free_string(error_message);
+        ebpf_free_string(error_message);
         return 1;
     }
 
     result = ebpf_api_pin_object(maps[0], process_map, sizeof(process_map));
     if (result != ERROR_SUCCESS) {
         fprintf(stderr, "Failed to pin eBPF program: %d\n", result);
-        ebpf_api_free_string(error_message);
+        ebpf_free_string(error_message);
         return 1;
     }
     result = ebpf_api_pin_object(maps[1], limits_map, sizeof(limits_map));
     if (result != ERROR_SUCCESS) {
         fprintf(stderr, "Failed to pin eBPF program: %d\n", result);
-        ebpf_api_free_string(error_message);
+        ebpf_free_string(error_message);
         return 1;
     }
 
@@ -58,7 +58,7 @@ load(int argc, char** argv)
     result = ebpf_api_pin_object(link, program_link, sizeof(program_link));
     if (result != ERROR_SUCCESS) {
         fprintf(stderr, "Failed to pin eBPF program: %d\n", result);
-        ebpf_api_free_string(error_message);
+        ebpf_free_string(error_message);
         return 1;
     }
     return 0;
@@ -149,11 +149,10 @@ struct
     const char* name;
     const char* help;
     operation_t operation;
-} commands[]{
-    {"load", "load\tLoad the port quota eBPF program", load},
-    {"unload", "unload\tUnload the port quota eBPF program", unload},
-    {"stats", "stats\tShow stats from the port quota eBPF program", stats},
-    {"limit", "limit value\tSet the port quota limit", limit}};
+} commands[]{{"load", "load\tLoad the port quota eBPF program", load},
+             {"unload", "unload\tUnload the port quota eBPF program", unload},
+             {"stats", "stats\tShow stats from the port quota eBPF program", stats},
+             {"limit", "limit value\tSet the port quota limit", limit}};
 
 void
 print_usage(char* path)

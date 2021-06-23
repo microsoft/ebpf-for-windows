@@ -256,7 +256,7 @@ ebpf_verify_program(
         result = EBPF_NO_MEMORY;
     } catch (std::runtime_error& err) {
         auto message = err.what();
-        *logs = allocate_error_string(message, logs_size);
+        *logs = allocate_string(message, logs_size);
 
         result = EBPF_VERIFICATION_FAILED;
     } catch (...) {
@@ -395,7 +395,7 @@ ebpf_verify_and_load_program(
         result = EBPF_NO_MEMORY;
     } catch (std::runtime_error& err) {
         auto message = err.what();
-        *error_message = allocate_error_string(message, error_message_size);
+        *error_message = allocate_string(message, error_message_size);
 
         result = EBPF_VERIFICATION_FAILED;
     } catch (...) {

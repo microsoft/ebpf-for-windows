@@ -79,6 +79,7 @@ typedef struct _ebpf_operation_create_program_request
     struct _ebpf_operation_header header;
     ebpf_program_type_t program_type;
     uint16_t section_name_offset;
+    uint16_t program_name_offset;
     uint8_t data[1];
 } ebpf_operation_create_program_request_t;
 

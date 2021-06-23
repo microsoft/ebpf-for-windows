@@ -41,7 +41,7 @@ typedef struct _map_cache
 } map_cache_t;
 
 const char*
-allocate_error_string(const std::string& str, uint32_t* length = nullptr) noexcept;
+allocate_string(const std::string& string, uint32_t* length = nullptr) noexcept;
 
 std::vector<uint8_t>
 convert_ebpf_program_to_bytes(const std::vector<ebpf_inst>& instructions);
@@ -130,3 +130,12 @@ query_map_definition(
     uint32_t* key_size,
     uint32_t* value_size,
     uint32_t* max_entries) noexcept;
+
+void
+set_global_program_and_attach_type(const ebpf_program_type_t* program_type, const ebpf_attach_type_t* attach_type);
+
+const ebpf_program_type_t*
+get_global_program_type();
+
+const ebpf_attach_type_t*
+get_global_attach_type();

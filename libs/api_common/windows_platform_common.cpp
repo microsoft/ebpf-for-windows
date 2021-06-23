@@ -59,6 +59,11 @@ const std::vector<EbpfProgramType> windows_program_types = {
     windows_bind_program_type,
 };
 
+const std::map<ebpf_program_type_t*, ebpf_attach_type_t*> windows_program_type_to_attach_type = {
+    {&EBPF_PROGRAM_TYPE_XDP, &EBPF_ATTACH_TYPE_XDP},
+    {&EBPF_PROGRAM_TYPE_BIND, &EBPF_ATTACH_TYPE_BIND},
+};
+
 EbpfProgramType
 get_program_type_windows(const GUID& program_type)
 {
@@ -78,14 +83,21 @@ get_program_type_windows(const GUID& program_type)
 EbpfProgramType
 get_program_type_windows(const std::string& section, const std::string&)
 {
-    EbpfProgramType type{};
+    // Check if a global program type is set.
+    const ebpf_program_type_t* program_type = get_global_program_type();
 
     // TODO: (Issue #223) Read the registry to fetch all the section
     //       prefixes and corresponding program and attach types.
     for (const EbpfProgramType t : windows_program_types) {
-        for (const std::string prefix : t.section_prefixes) {
-            if (section.find(prefix) == 0)
+        if (program_type != nullptr) {
+            if (t.platform_specific_data != 0 && IsEqualGUID(*(GUID*)t.platform_specific_data, *program_type)) {
                 return t;
+            }
+        } else {
+            for (const std::string prefix : t.section_prefixes) {
+                if (section.find(prefix) == 0)
+                    return t;
+            }
         }
     }
 
@@ -122,4 +134,24 @@ get_map_descriptor_windows(int map_fd)
     }
 
     return get_map_descriptor(map_fd);
+}
+
+const ebpf_attach_type_t*
+get_attach_type_windows(const std::string& section)
+{
+    // TODO: (Issue #223) Read the registry to fetch all the section
+    //       prefixes and corresponding program and attach types.
+    for (const EbpfProgramType t : windows_program_types) {
+        for (const std::string prefix : t.section_prefixes) {
+            if (section.find(prefix) == 0) {
+                for (auto& [program_type, attach_type] : windows_program_type_to_attach_type) {
+                    if (IsEqualGUID(*(GUID*)t.platform_specific_data, *program_type)) {
+                        return attach_type;
+                    }
+                }
+            }
+        }
+    }
+
+    return &EBPF_ATTACH_TYPE_UNSPECIFIED;
 }
