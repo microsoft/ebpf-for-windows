@@ -12,7 +12,7 @@ jobs:
     strategy:
       matrix:
         configurations: [Debug, Release]
-        analysis: [True, False]
+        analysis: ['True', 'False']
     runs-on: windows-latest
     env:
       # Path to the solution file relative to the root of the project.
