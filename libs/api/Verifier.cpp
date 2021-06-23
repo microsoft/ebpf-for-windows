@@ -338,6 +338,9 @@ ebpf_api_elf_verify_section(
 
     std::ostringstream output;
 
+    *report = nullptr;
+    *error_message = nullptr;
+
     try {
         const ebpf_platform_t* platform = &g_ebpf_platform_windows;
         ebpf_verifier_options_t verifier_options = ebpf_verifier_default_options;
@@ -376,6 +379,7 @@ ebpf_api_elf_verify_section(
     } catch (std::exception ex) {
         error << "Failed to load eBPF program from " << file;
         *error_message = allocate_string(error.str());
+        return 1;
     }
 
     return 0;
