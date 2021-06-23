@@ -1,5 +1,4 @@
 var searchData=
 [
-  ['int_105',['INT',['../tlv_8h.html#a50a469b7a3bd57834902b2d2f67a9c94a53f93baa3057821107c750323892fa92',1,'tlv.h']]],
-  ['is_5fprivileged_106',['is_privileged',['../struct__ebpf__program__type__descriptor.html#aafa9c2f4ceef8b382998f6e445c38121',1,'_ebpf_program_type_descriptor']]]
+  ['helper_5fid_114',['helper_id',['../struct__ebpf__helper__function__prototype.html#a69f15009a0fd600af05bfca606b2b894',1,'_ebpf_helper_function_prototype']]]
 ];

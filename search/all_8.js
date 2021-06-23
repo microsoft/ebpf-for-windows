@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['key_5fsize_107',['key_size',['../struct__ebpf__map__definition.html#a62919209182f9c737da1d77c11573902',1,'_ebpf_map_definition']]]
+  ['int_115',['INT',['../tlv_8h.html#a50a469b7a3bd57834902b2d2f67a9c94a53f93baa3057821107c750323892fa92',1,'tlv.h']]],
+  ['is_5fprivileged_116',['is_privileged',['../struct__ebpf__program__type__descriptor.html#aafa9c2f4ceef8b382998f6e445c38121',1,'_ebpf_program_type_descriptor']]]
 ];
