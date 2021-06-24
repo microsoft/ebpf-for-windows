@@ -103,7 +103,7 @@ extern "C"
      * @param[in] memory Allocation to be freed.
      */
     void
-    ebpf_free(_Pre_maybenull_ _Post_invalid_ __drv_freesMem(memory) void* memory);
+    ebpf_free(_Pre_maybenull_ _Post_invalid_ __drv_freesMem(Mem) void* memory);
 
     typedef enum _ebpf_page_protection
     {
