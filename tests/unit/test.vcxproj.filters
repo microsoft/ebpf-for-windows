@@ -48,5 +48,8 @@
     <ClInclude Include="..\end_to_end\mock.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\end_to_end\test_helper.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

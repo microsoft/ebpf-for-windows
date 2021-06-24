@@ -10,12 +10,11 @@
 
 #include "catch2\catch.hpp"
 #include "common_tests.h"
-#include "ebpf_api.h"
 #include "ebpf_bind_program_data.h"
-#include "ebpf_core.h"
 #include "ebpf_xdp_program_data.h"
 #include "helpers.h"
 #include "mock.h"
+#include "test_helper.hpp"
 #include "tlv.h"
 namespace ebpf {
 #pragma warning(push)
@@ -148,36 +147,6 @@ prepare_udp_packet(uint16_t udp_length)
 
     return packet;
 }
-
-class _test_helper_end_to_end
-{
-  public:
-    _test_helper_end_to_end()
-    {
-        device_io_control_handler = GlueDeviceIoControl;
-        create_file_handler = GlueCreateFileW;
-        close_handle_handler = GlueCloseHandle;
-        REQUIRE(ebpf_core_initiate() == EBPF_SUCCESS);
-        ec_initialized = true;
-        REQUIRE(ebpf_api_initiate() == EBPF_SUCCESS);
-        api_initialized = true;
-    }
-    ~_test_helper_end_to_end()
-    {
-        if (api_initialized)
-            ebpf_api_terminate();
-        if (ec_initialized)
-            ebpf_core_terminate();
-
-        device_io_control_handler = nullptr;
-        create_file_handler = nullptr;
-        close_handle_handler = nullptr;
-    }
-
-  private:
-    bool ec_initialized = false;
-    bool api_initialized = false;
-};
 
 #define SAMPLE_PATH ""
 
