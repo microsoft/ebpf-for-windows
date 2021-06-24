@@ -246,7 +246,7 @@ handle_ebpf_show_verification(
         return NO_ERROR;
     } else {
         if (error_message) {
-            std::cerr << "error: " << error_message << std::endl;
+            std::cerr << error_message << std::endl;
         }
         if (report) {
             std::cerr << "\nVerification report:\n" << report << std::endl;
