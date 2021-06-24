@@ -25,7 +25,12 @@ First, **ensure the bug was not already reported** by searching on GitHub under
 If you found a non-security related bug, you can help us by
 [submitting a GitHub Issue](https://github.com/microsoft/ebpf-for-windows/issues/new).
 The best bug reports provide a detailed description of the issue and step-by-step instructions
-for reliably reproducing the issue. Even better, you can submit a Pull Request with a fix.
+for reliably reproducing the issue. 
+
+We will aim to triage issues in weekly triage meetings. In case we are unable to repro the issue, we will request more information from you, the filer.
+There will be a waiting period of 2 weeks for the requested information and if there is no response, the issue will be closed. If this happens, please consider reopening the issue if do get to collecting the requested information. 
+
+However, in the best case, we would love it if you can submit a Pull Request with a fix.
 
 If you found a security issue, please **do not open a GitHub Issue**, and instead follow
 [these instructions](docs/SECURITY.md).
