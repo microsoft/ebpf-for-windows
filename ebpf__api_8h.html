@@ -173,9 +173,9 @@ Functions</h2></td></tr>
 <tr class="memitem:a9d5706e5fc696240f4f6f513586bfe0f"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a9d5706e5fc696240f4f6f513586bfe0f">ebpf_api_map_info_free</a> (uint16_t map_count, _In_count_(map_count) const <a class="el" href="ebpf__core__structs_8h.html#aec0302723be273f1f09e6f8ec6f973c1">ebpf_map_information_t</a> *map_info)</td></tr>
 <tr class="memdesc:a9d5706e5fc696240f4f6f513586bfe0f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Helper Function to free array of ebpf_map_information_t allocated by ebpf_api_get_pinned_map_info function.  <a href="ebpf__api_8h.html#a9d5706e5fc696240f4f6f513586bfe0f">More...</a><br /></td></tr>
 <tr class="separator:a9d5706e5fc696240f4f6f513586bfe0f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a634b80c0f27f91ebe276a46d842cbd2e"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__result_8h.html#a109c82999c520e118d5c227f572d9681">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a634b80c0f27f91ebe276a46d842cbd2e">ebpf_program_load</a> (_In_z_ const char *file_name, _In_opt_ const <a class="el" href="ebpf__windows_8h.html#a7392ed9f9037688cd94f7069c523c251">ebpf_program_type_t</a> *program_type, _In_opt_ const <a class="el" href="ebpf__windows_8h.html#a3f56868552f991b0f9eb6800d8f9a43c">ebpf_attach_type_t</a> *attach_type, _Outptr_ struct _ebpf_object **object, _Out_ <a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> *program_fd, _Outptr_result_maybenull_z_ const char **log_buffer)</td></tr>
-<tr class="memdesc:a634b80c0f27f91ebe276a46d842cbd2e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Load eBPF programs from an ELF file based on default load attributes. This API does the following:  <a href="ebpf__api_8h.html#a634b80c0f27f91ebe276a46d842cbd2e">More...</a><br /></td></tr>
-<tr class="separator:a634b80c0f27f91ebe276a46d842cbd2e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4207c977539b41bab90ca43676b67f1d"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__result_8h.html#a109c82999c520e118d5c227f572d9681">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a4207c977539b41bab90ca43676b67f1d">ebpf_program_load</a> (_In_z_ const char *file_name, _In_opt_ const <a class="el" href="ebpf__windows_8h.html#a7392ed9f9037688cd94f7069c523c251">ebpf_program_type_t</a> *program_type, _In_opt_ const <a class="el" href="ebpf__windows_8h.html#a3f56868552f991b0f9eb6800d8f9a43c">ebpf_attach_type_t</a> *attach_type, _In_ <a class="el" href="ebpf__execution__type_8h.html#af58bcede64968a095964be4e78998658">ebpf_execution_type_t</a> execution_type, _Outptr_ struct _ebpf_object **object, _Out_ <a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> *program_fd, _Outptr_result_maybenull_z_ const char **log_buffer)</td></tr>
+<tr class="memdesc:a4207c977539b41bab90ca43676b67f1d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Load eBPF programs from an ELF file based on default load attributes. This API does the following:  <a href="ebpf__api_8h.html#a4207c977539b41bab90ca43676b67f1d">More...</a><br /></td></tr>
+<tr class="separator:a4207c977539b41bab90ca43676b67f1d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a193087453f5f423b3b59722243aed0c1"><td class="memItemLeft" align="right" valign="top">_Ret_maybenull_ struct _ebpf_program *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a193087453f5f423b3b59722243aed0c1">ebpf_program_next</a> (_In_opt_ const struct _ebpf_program *previous, _In_ const struct _ebpf_object *object)</td></tr>
 <tr class="memdesc:a193087453f5f423b3b59722243aed0c1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get next program in ebpf_object object.  <a href="ebpf__api_8h.html#a193087453f5f423b3b59722243aed0c1">More...</a><br /></td></tr>
 <tr class="separator:a193087453f5f423b3b59722243aed0c1"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -1548,8 +1548,8 @@ Variables</h2></td></tr>
 
 </div>
 </div>
-<a id="a634b80c0f27f91ebe276a46d842cbd2e"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a634b80c0f27f91ebe276a46d842cbd2e">&#9670;&nbsp;</a></span>ebpf_program_load()</h2>
+<a id="a4207c977539b41bab90ca43676b67f1d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4207c977539b41bab90ca43676b67f1d">&#9670;&nbsp;</a></span>ebpf_program_load()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1571,6 +1571,12 @@ Variables</h2></td></tr>
           <td></td>
           <td class="paramtype">_In_opt_ const <a class="el" href="ebpf__windows_8h.html#a3f56868552f991b0f9eb6800d8f9a43c">ebpf_attach_type_t</a> *&#160;</td>
           <td class="paramname"><em>attach_type</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">_In_ <a class="el" href="ebpf__execution__type_8h.html#af58bcede64968a095964be4e78998658">ebpf_execution_type_t</a>&#160;</td>
+          <td class="paramname"><em>execution_type</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
@@ -1611,6 +1617,7 @@ Variables</h2></td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">file_name</td><td>ELF file name with full path. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">program_type</td><td>Optionally, the program type to use when loading the eBPF program. If program type is not supplied, it is derived from the section prefix in the ELF file. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">attach_type</td><td>Optionally, the attach type to use for the loaded eBPF program. If attach type is not supplied, it is derived from the section prefix in the ELF file. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">execution_type</td><td>The execution type to use for this program. If EBPF_EXECUTION_ANY is specified, execution type will be decided by a system-wide policy. </td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">ebpf_object</td><td>Returns pointer to ebpf_object object. The caller is expected to call <a class="el" href="ebpf__api_8h.html#a7c86328a8e9aeb073e32468bff46efed" title="Clean up ebpf_object. Also delete all the sub objects (maps, programs) and close the related file des...">ebpf_object_close()</a> at the end. </td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">program_fd</td><td>Returns a file descriptor for the first program. The caller should not call _close() on the fd, but should instead use <a class="el" href="ebpf__api_8h.html#a7c86328a8e9aeb073e32468bff46efed" title="Clean up ebpf_object. Also delete all the sub objects (maps, programs) and close the related file des...">ebpf_object_close()</a> to close this (and other) file descriptors. </td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">log_buffer</td><td>Returns a pointer to a null-terminated log buffer. The caller is responsible for freeing the returned log_buffer pointer by calling ebpf_api_free_string().</td></tr>
