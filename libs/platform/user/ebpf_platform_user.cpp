@@ -115,7 +115,7 @@ __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
 }
 
 void
-ebpf_free(_Pre_maybenull_ _Post_invalid_ __drv_freesMem(Mem) void* memory)
+ebpf_free(_Pre_maybenull_ _Post_invalid_ __drv_freesMem(memory) void* memory)
 {
     free(memory);
 }
