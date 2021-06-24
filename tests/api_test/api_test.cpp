@@ -47,25 +47,33 @@ static service_install_helper
 
 static ebpf_result_t
 _program_load_helper(
-    const char* file_name, const ebpf_program_type_t* program_type, struct _ebpf_object** object, fd_t* program_fd)
+    const char* file_name,
+    const ebpf_program_type_t* program_type,
+    ebpf_execution_type_t execution_type,
+    struct _ebpf_object** object,
+    fd_t* program_fd)
 {
     ebpf_result_t result;
     const char* log_buffer = nullptr;
-    result = ebpf_program_load(file_name, program_type, nullptr, object, program_fd, &log_buffer);
+    result = ebpf_program_load(file_name, program_type, nullptr, execution_type, object, program_fd, &log_buffer);
 
     ebpf_free_string(log_buffer);
     return result;
 }
 
 static void
-_test_program_load(const char* file_name, ebpf_program_type_t* program_type, bool expected_to_load)
+_test_program_load(
+    const char* file_name,
+    ebpf_program_type_t* program_type,
+    ebpf_execution_type_t execution_type,
+    bool expected_to_load)
 {
     ebpf_result_t result;
     struct _ebpf_object* object = nullptr;
     fd_t program_fd;
     ebpf_handle_t program_handle = INVALID_HANDLE_VALUE;
     ebpf_handle_t next_program_handle = INVALID_HANDLE_VALUE;
-    result = _program_load_helper(file_name, program_type, &object, &program_fd);
+    result = _program_load_helper(file_name, program_type, execution_type, &object, &program_fd);
 
     if (expected_to_load) {
         REQUIRE(result == EBPF_SUCCESS);
@@ -88,7 +96,13 @@ _test_program_load(const char* file_name, ebpf_program_type_t* program_type, boo
         ebpf_api_program_query_information(
             program_handle, &program_execution_type, &program_file_name, &program_section_name) == ERROR_SUCCESS);
 
-    REQUIRE(program_execution_type == EBPF_EXECUTION_JIT);
+    // Set the default execution type to JIT. This will eventually
+    // be decided by a system-wide policy. TODO(Issue #288): Configure
+    // system-wide execution type.
+    if (execution_type == EBPF_EXECUTION_ANY) {
+        execution_type = EBPF_EXECUTION_JIT;
+    }
+    REQUIRE(program_execution_type == execution_type);
     REQUIRE(strcmp(program_file_name, file_name) == 0);
 
     // Next program should not be present.
@@ -113,7 +127,7 @@ _test_map_next_previous(const char* file_name, int expected_map_count)
     int map_count = 0;
     struct _ebpf_map* previous = nullptr;
     struct _ebpf_map* next = nullptr;
-    result = _program_load_helper(file_name, nullptr, &object, &program_fd);
+    result = _program_load_helper(file_name, nullptr, EBPF_EXECUTION_ANY, &object, &program_fd);
     REQUIRE(result == EBPF_SUCCESS);
 
     next = ebpf_map_next(previous, object);
@@ -147,7 +161,7 @@ _test_program_next_previous(const char* file_name, int expected_program_count)
     int program_count = 0;
     struct _ebpf_program* previous = nullptr;
     struct _ebpf_program* next = nullptr;
-    result = _program_load_helper(file_name, nullptr, &object, &program_fd);
+    result = _program_load_helper(file_name, nullptr, EBPF_EXECUTION_ANY, &object, &program_fd);
     REQUIRE(result == EBPF_SUCCESS);
 
     next = ebpf_program_next(previous, object);
@@ -184,23 +198,32 @@ TEST_CASE("test_ebpf_program_load", "[test_ebpf_program_load]")
 {
     REQUIRE(ebpf_api_initiate() == EBPF_SUCCESS);
 
-    // Load droppacket without providing expected program type.
-    _test_program_load("droppacket.o", nullptr, true);
+    // Load droppacket (JIT) without providing expected program type.
+    _test_program_load("droppacket.o", nullptr, EBPF_EXECUTION_JIT, true);
+
+    // Load droppacket (ANY) without providing expected program type.
+    _test_program_load("droppacket.o", nullptr, EBPF_EXECUTION_ANY, true);
+
+    // Load droppacket (INTERPRET) without providing expected program type.
+    _test_program_load("droppacket.o", nullptr, EBPF_EXECUTION_INTERPRET, true);
 
     // Load droppacket with providing expected program type.
-    _test_program_load("droppacket.o", &EBPF_PROGRAM_TYPE_XDP, true);
+    _test_program_load("droppacket.o", &EBPF_PROGRAM_TYPE_XDP, EBPF_EXECUTION_INTERPRET, true);
 
-    // Load bindmonitor without providing expected program type.
-    _test_program_load("bindmonitor.o", nullptr, true);
+    // Load bindmonitor (JIT) without providing expected program type.
+    _test_program_load("bindmonitor.o", nullptr, EBPF_EXECUTION_JIT, true);
+
+    // Load bindmonitor (INTERPRET) without providing expected program type.
+    _test_program_load("bindmonitor.o", nullptr, EBPF_EXECUTION_INTERPRET, true);
 
     // Load bindmonitor with providing expected program type.
-    _test_program_load("bindmonitor.o", &EBPF_PROGRAM_TYPE_BIND, true);
+    _test_program_load("bindmonitor.o", &EBPF_PROGRAM_TYPE_BIND, EBPF_EXECUTION_JIT, true);
 
     // Try to load bindmonitor with providing wrong program type.
-    _test_program_load("bindmonitor.o", &EBPF_PROGRAM_TYPE_XDP, false);
+    _test_program_load("bindmonitor.o", &EBPF_PROGRAM_TYPE_XDP, EBPF_EXECUTION_ANY, false);
 
     // Try to load an unsafe program.
-    _test_program_load("droppacket_unsafe.o", nullptr, false);
+    _test_program_load("droppacket_unsafe.o", nullptr, EBPF_EXECUTION_ANY, false);
 
     ebpf_api_terminate();
 }
