@@ -126,3 +126,13 @@ typedef struct _ebpf_widget
 Above all, if a file happens to differ in style from these guidelines (e.g.,
 private members are named `m_member` rather than `_member`), the existing style
 in that file takes precedence.
+
+### Project files
+
+All project files should include the following line to enable automated code analysis.
+
+```
+<Import Project="$(SolutionDir)\Analyze.default.props" />
+```
+
+Analyze.default.props controls the code analysis settings for all projects.

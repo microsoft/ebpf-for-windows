@@ -67,9 +67,7 @@
     <DriverTargetPlatform>Universal</DriverTargetPlatform>
     <Driver_SpectreMitigation>Spectre</Driver_SpectreMitigation>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Analysis)'=='True'">
-    <RunCodeAnalysis>true</RunCodeAnalysis>
-  </PropertyGroup>
+  <Import Project="$(SolutionDir)\Analyze.default.props" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>

@@ -81,9 +81,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Analysis)'=='True'">
-    <RunCodeAnalysis>true</RunCodeAnalysis>
-  </PropertyGroup>
+  <Import Project="$(SolutionDir)\Analyze.default.props" />
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ResourceCompile>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(DDK_INC_PATH)</AdditionalIncludeDirectories>
