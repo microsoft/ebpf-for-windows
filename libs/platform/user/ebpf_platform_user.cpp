@@ -103,7 +103,8 @@ ebpf_get_code_integrity_state(_Out_ ebpf_code_integrity_state_t* state)
     return EBPF_SUCCESS;
 }
 
-_Must_inspect_result_ _Ret_maybenull_ _Post_writable_byte_size_(size) void* ebpf_allocate(size_t size)
+__drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
+    _Post_writable_byte_size_(size) void* ebpf_allocate(size_t size)
 {
     void* memory;
     memory = calloc(size, 1);
@@ -114,7 +115,7 @@ _Must_inspect_result_ _Ret_maybenull_ _Post_writable_byte_size_(size) void* ebpf
 }
 
 void
-ebpf_free(_Pre_maybenull_ _Post_invalid_ void* memory)
+ebpf_free(_Pre_maybenull_ _Post_invalid_ __drv_freesMem(Mem) void* memory)
 {
     free(memory);
 }
@@ -199,13 +200,13 @@ ebpf_safe_size_t_add(size_t augend, size_t addend, _Out_ size_t* result)
 }
 
 ebpf_result_t
-ebpf_safe_size_t_subtract(size_t minuend, size_t subtrahend, size_t* result)
+ebpf_safe_size_t_subtract(size_t minuend, size_t subtrahend, _Out_ size_t* result)
 {
     return SUCCEEDED(SizeTSub(minuend, subtrahend, result)) ? EBPF_SUCCESS : EBPF_ARITHMETIC_OVERFLOW;
 }
 
 void
-ebpf_lock_create(_Inout_ ebpf_lock_t* lock)
+ebpf_lock_create(_Out_ ebpf_lock_t* lock)
 {
     InitializeSRWLock(reinterpret_cast<PSRWLOCK>(lock));
 }
