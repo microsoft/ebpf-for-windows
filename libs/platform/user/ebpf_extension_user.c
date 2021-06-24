@@ -114,7 +114,7 @@ Done:
 }
 
 void
-ebpf_extension_unload(_Pre_maybenull_ _Post_invalid_ ebpf_extension_client_t* client_context)
+ebpf_extension_unload(_In_opt_ _Post_invalid_ ebpf_extension_client_t* client_context)
 {
     ebpf_result_t return_value;
     ebpf_lock_state_t state;
@@ -215,7 +215,7 @@ Done:
 }
 
 void
-ebpf_provider_unload(_Pre_maybenull_ _Post_invalid_ ebpf_extension_provider_t* provider_context)
+ebpf_provider_unload(_In_opt_ _Post_invalid_ ebpf_extension_provider_t* provider_context)
 {
     ebpf_result_t return_value;
     ebpf_lock_state_t state;

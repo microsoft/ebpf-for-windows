@@ -723,7 +723,7 @@ clean_up_ebpf_maps(_Inout_ std::vector<ebpf_map_t*>& maps)
 }
 
 static void
-_clean_up_ebpf_object(_Pre_maybenull_ _Post_invalid_ ebpf_object_t* object)
+_clean_up_ebpf_object(_In_opt_ _Post_invalid_ ebpf_object_t* object)
 {
     if (object != nullptr) {
         clean_up_ebpf_programs(object->programs);
