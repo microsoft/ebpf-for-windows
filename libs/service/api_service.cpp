@@ -291,6 +291,13 @@ ebpf_verify_and_load_program(
         return EBPF_INVALID_ARGUMENT;
     }
 
+    // Set the default execution type to JIT. This will eventually
+    // be decided by a system-wide policy. TODO(Issue #288): Configure
+    // system-wide execution type.
+    if (execution_type == EBPF_EXECUTION_ANY) {
+        execution_type = EBPF_EXECUTION_JIT;
+    }
+
     *error_message = nullptr;
     *error_message_size = 0;
 

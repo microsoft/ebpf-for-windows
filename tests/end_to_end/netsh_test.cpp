@@ -6,6 +6,8 @@
 #include "capture_helper.hpp"
 #include "catch2\catch.hpp"
 #include "elf.h"
+#include "programs.h"
+#include "test_helper.hpp"
 
 #pragma region
 // Mock Netsh.exe APIs.
@@ -59,6 +61,8 @@ static std::string
 _run_netsh_command(
     _In_ FN_HANDLE_CMD* command, _In_z_ const wchar_t* arg1, _In_z_ const wchar_t* arg2, _Out_ int* result)
 {
+    _test_helper_end_to_end test_helper;
+
     capture_helper_t capture;
     errno_t error = capture.begin_capture();
     if (error != NO_ERROR) {
@@ -160,4 +164,70 @@ TEST_CASE("show sections bpf.o xdp_prog", "[netsh][sections]")
                   "other        : 2\n"
                   "packet_access: 0\n"
                   "store        : 0\n");
+}
+
+TEST_CASE("show verification nosuchfile.o", "[netsh][verification]")
+{
+    int result;
+    std::string output = _run_netsh_command(handle_ebpf_show_verification, L"nosuchfile.o", nullptr, &result);
+    REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
+    REQUIRE(output == "error: No such file or directory opening nosuchfile.o\n");
+}
+
+TEST_CASE("show verification bpf.o", "[netsh][verification]")
+{
+    int result;
+    std::string output = _run_netsh_command(handle_ebpf_show_verification, L"bpf.o", nullptr, &result);
+    REQUIRE(result == NO_ERROR);
+    REQUIRE(
+        output == "\n"
+                  "\n"
+                  "0 errors\n"
+                  "Verification succeeded\n"
+                  "Program terminates within 6 instructions\n");
+}
+
+TEST_CASE("show verification droppacket.o", "[netsh][verification]")
+{
+    int result;
+    std::string output = _run_netsh_command(handle_ebpf_show_verification, L"droppacket.o", L"xdp", &result);
+    REQUIRE(result == NO_ERROR);
+    REQUIRE(
+        output == "\n"
+                  "\n"
+                  "0 errors\n"
+                  "Verification succeeded\n"
+                  "Program terminates within 78 instructions\n");
+}
+
+TEST_CASE("show verification droppacket_unsafe.o", "[netsh][verification]")
+{
+    int result;
+    std::string output = _run_netsh_command(handle_ebpf_show_verification, L"droppacket_unsafe.o", L"xdp", &result);
+    REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
+    REQUIRE(
+        output == "Verification failed\n"
+                  "\n"
+                  "Verification report:\n"
+                  "\n"
+                  "2: r2 = *(u8 *)(r1 + 9)\n"
+                  "  Upper bound must be at most packet_size (valid_access(r1, 9:1))\n"
+                  "4: r1 = *(u16 *)(r1 + 24)\n"
+                  "  Upper bound must be at most packet_size (valid_access(r1, 24:2))\n"
+                  "\n"
+                  "2 errors\n"
+                  "\n");
+}
+
+TEST_CASE("show programs", "[netsh][programs]")
+{
+    int result;
+    std::string output = _run_netsh_command(handle_ebpf_show_programs, nullptr, nullptr, &result);
+    REQUIRE(result == NO_ERROR);
+
+    // Since we mocked the ioctl, there should be no programs shown.
+    REQUIRE(
+        output == "\n"
+                  "           File Name          Section  Requested Execution Type\n"
+                  "====================  ===============  ========================\n");
 }

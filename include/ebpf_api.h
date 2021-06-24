@@ -372,6 +372,9 @@ extern "C"
      * @param[in] attach_type Optionally, the attach type to use for the loaded
      *  eBPF program. If attach type is not supplied, it is derived from the
      *  section prefix in the ELF file.
+     * @param[in] execution_type The execution type to use for this program. If
+     *  EBPF_EXECUTION_ANY is specified, execution type will be decided by a
+     *  system-wide policy.
      * @param[out] ebpf_object Returns pointer to ebpf_object object. The caller
         is expected to call ebpf_object_close() at the end.
      * @param[out] program_fd Returns a file descriptor for the first program.
@@ -392,6 +395,7 @@ extern "C"
         _In_z_ const char* file_name,
         _In_opt_ const ebpf_program_type_t* program_type,
         _In_opt_ const ebpf_attach_type_t* attach_type,
+        _In_ ebpf_execution_type_t execution_type,
         _Outptr_ struct _ebpf_object** object,
         _Out_ fd_t* program_fd,
         _Outptr_result_maybenull_z_ const char** log_buffer);

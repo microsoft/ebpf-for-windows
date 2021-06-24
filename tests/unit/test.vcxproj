@@ -207,6 +207,7 @@
   <ItemGroup>
     <ClInclude Include="..\end_to_end\helpers.h" />
     <ClInclude Include="..\end_to_end\mock.h" />
+    <ClInclude Include="..\end_to_end\test_helper.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />
