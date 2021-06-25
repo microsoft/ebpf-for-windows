@@ -55,7 +55,7 @@ ebpf_ext_attach_register_provider(
  * @param[in] registration Registration to cleanup.
  */
 void
-ebpf_ext_attach_unregister_provider(_Pre_maybenull_ _Post_invalid_ __drv_freesMem(Mem)
+ebpf_ext_attach_unregister_provider(_In_opt_ _Post_invalid_ __drv_freesMem(Mem)
                                         ebpf_ext_attach_hook_provider_registration_t* registration);
 
 /**

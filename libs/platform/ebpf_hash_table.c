@@ -90,7 +90,7 @@ Done:
 }
 
 void
-ebpf_hash_table_destroy(_Pre_maybenull_ _Post_invalid_ ebpf_hash_table_t* hash_table)
+ebpf_hash_table_destroy(_In_opt_ _Post_invalid_ ebpf_hash_table_t* hash_table)
 {
     RTL_AVL_TABLE* table = (RTL_AVL_TABLE*)hash_table;
     if (!hash_table) {

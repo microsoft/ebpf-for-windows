@@ -32,6 +32,10 @@ PreprocessCommand(
         return ERROR_INVALID_SYNTAX;
     }
 
+    if (!pttTags || !pdwTagType) {
+        return ERROR_INVALID_SYNTAX;
+    }
+
     // Simplified algorithm is to assume arguments are supplied in the correct order.
     for (DWORD i = 0; i < dwTagCount; i++) {
         if (dwCurrentIndex + i < dwArgCount) {

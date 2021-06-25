@@ -10,6 +10,9 @@ ebpf_map_information_array_free(uint16_t map_count, _In_count_(map_count) ebpf_m
 {
     uint16_t map_index;
 
+    if (!map_info)
+        return;
+
     for (map_index = 0; map_index < map_count; map_index++) {
         ebpf_free(map_info[map_index].pin_path);
         map_info[map_index].pin_path = NULL;
