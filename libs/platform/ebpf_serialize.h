@@ -83,13 +83,13 @@ extern "C"
      */
     void
     ebpf_map_information_array_free(
-        uint16_t map_count, _Pre_maybenull_ _Post_invalid_ _In_count_(map_count) ebpf_map_information_t* map_info);
+        uint16_t map_count, _In_opt_count_(map_count) _Post_invalid_ ebpf_map_information_t* map_info);
 
     /**
      * @brief Serialize ebpf_program_information_t onto output buffer.
      *
      * @param[in]  program_info Pointer to program_map_information_t to serialize.
-     * @param[out]  output_buffer Caller specified output buffer to write serialized data into.
+     * @param[out] output_buffer Caller specified output buffer to write serialized data into.
      * @param[in]  output_buffer_length Output buffer length.
      * @param[out] serialized_data_length Length of successfully serialized data.
      * @param[out] required_length Length of buffer required to serialize input array.
@@ -130,7 +130,7 @@ extern "C"
      * @param[in] program_info Program information to be freed.
      */
     void
-    ebpf_program_information_free(_Pre_maybenull_ _Post_invalid_ _In_ ebpf_program_information_t* program_info);
+    ebpf_program_information_free(_In_opt_ _Post_invalid_ ebpf_program_information_t* program_info);
 
 #ifdef __cplusplus
 }

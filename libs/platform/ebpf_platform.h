@@ -78,7 +78,7 @@ extern "C"
     typedef struct _ebpf_helper_function_addresses ebpf_helper_function_addresses_t;
 
     /**
-     *  @brief Initialize the eBPF platform abstraction layer.
+     * @brief Initialize the eBPF platform abstraction layer.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  operation.
@@ -87,7 +87,7 @@ extern "C"
     ebpf_platform_initiate();
 
     /**
-     *  @brief Terminate the eBPF platform abstraction layer.
+     * @brief Terminate the eBPF platform abstraction layer.
      */
     void
     ebpf_platform_terminate();
@@ -540,7 +540,9 @@ extern "C"
     ebpf_interlocked_compare_exchange_int32(_Inout_ volatile int32_t* destination, int32_t exchange, int32_t comperand);
 
     typedef void (*ebpf_extension_change_callback_t)(
-        void* client_binding_context, const void* provider_binding_context, const ebpf_extension_data_t* provider_data);
+        _In_ void* client_binding_context,
+        _In_ const void* provider_binding_context,
+        _In_opt_ const ebpf_extension_data_t* provider_data);
 
     /**
      * @brief Load an extension and get its dispatch table.
@@ -614,10 +616,10 @@ extern "C"
         _In_ const GUID* interface_id,
         _In_opt_ void* provider_binding_context,
         _In_opt_ const ebpf_extension_data_t* provider_data,
-        _In_ const ebpf_extension_dispatch_table_t* provider_dispatch_table,
+        _In_opt_ const ebpf_extension_dispatch_table_t* provider_dispatch_table,
         _In_ void* callback_context,
-        _In_ ebpf_provider_client_attach_callback_t client_attach_callback,
-        _In_ ebpf_provider_client_detach_callback_t client_detach_callback);
+        _In_opt_ ebpf_provider_client_attach_callback_t client_attach_callback,
+        _In_opt_ ebpf_provider_client_detach_callback_t client_detach_callback);
 
     /**
      * @brief Unload a provider.

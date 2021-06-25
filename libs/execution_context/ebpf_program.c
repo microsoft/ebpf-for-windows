@@ -51,7 +51,9 @@ typedef struct _ebpf_program
 
 static void
 _ebpf_program_program_information_provider_changed(
-    void* client_binding_context, const void* provider_binding_context, const ebpf_extension_data_t* provider_data)
+    _In_ void* client_binding_context,
+    _In_ const void* provider_binding_context,
+    _In_opt_ const ebpf_extension_data_t* provider_data)
 {
     ebpf_result_t return_value;
     ebpf_program_t* program = (ebpf_program_t*)client_binding_context;
@@ -421,6 +423,7 @@ Done:
 void
 ebpf_program_invoke(_In_ const ebpf_program_t* program, _In_ void* context, _Out_ uint32_t* result)
 {
+    *result = 0;
     if (!program || program->program_invalidated)
         return;
 

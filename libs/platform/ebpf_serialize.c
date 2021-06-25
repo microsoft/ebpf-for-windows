@@ -43,16 +43,18 @@ typedef struct _ebpf_serialized_helper_function_prototype_array
 } ebpf_serialized_helper_function_prototype_array_t;
 
 void
-ebpf_map_information_array_free(uint16_t map_count, _In_count_(map_count) ebpf_map_information_t* map_info)
+ebpf_map_information_array_free(
+    uint16_t map_count, _In_opt_count_(map_count) _Post_invalid_ ebpf_map_information_t* map_info)
 {
     uint16_t map_index;
 
-    for (map_index = 0; map_index < map_count; map_index++) {
-        ebpf_free(map_info[map_index].pin_path);
-        map_info[map_index].pin_path = NULL;
+    if (map_info != NULL) {
+        for (map_index = 0; map_index < map_count; map_index++) {
+            ebpf_free(map_info[map_index].pin_path);
+            map_info[map_index].pin_path = NULL;
+        }
+        ebpf_free(map_info);
     }
-
-    ebpf_free((void*)map_info);
 }
 
 ebpf_result_t
@@ -138,6 +140,9 @@ ebpf_deserialize_map_information_array(
     uint8_t* current;
     size_t buffer_left;
 
+    if (map_count == 0)
+        goto Exit;
+
     // Allocate the output maps.
     result = ebpf_safe_size_t_multiply(sizeof(ebpf_map_information_t), (size_t)map_count, &out_map_size);
     if (result != EBPF_SUCCESS)
@@ -209,14 +214,13 @@ ebpf_deserialize_map_information_array(
     out_map_info = NULL;
 
 Exit:
-    if (out_map_info != NULL)
-        ebpf_map_information_array_free(map_count, out_map_info);
+    ebpf_map_information_array_free(map_count, out_map_info);
 
     return result;
 }
 
 void
-ebpf_program_information_free(_Pre_maybenull_ _Post_invalid_ _In_ ebpf_program_information_t* program_info)
+ebpf_program_information_free(_In_opt_ _Post_invalid_ ebpf_program_information_t* program_info)
 {
     if (program_info != NULL) {
         ebpf_free(program_info->program_type_descriptor.context_descriptor);
@@ -384,7 +388,7 @@ ebpf_serialize_program_information(
                 EBPF_OFFSET_OF(ebpf_serialized_helper_function_prototype_t, name) + helper_function_name_length;
             serialized_helper_prototype->helper_id = helper_prototype->helper_id;
             serialized_helper_prototype->return_type = helper_prototype->return_type;
-            for (uint16_t index = 0; index < 5; index++) {
+            for (uint16_t index = 0; index < EBPF_COUNT_OF(helper_prototype->arguments); index++) {
                 serialized_helper_prototype->arguments[index] = helper_prototype->arguments[index];
             }
             serialized_helper_prototype->name_length = helper_function_name_length;
@@ -443,7 +447,7 @@ ebpf_deserialize_program_information(
     local_program_type_descriptor->platform_specific_data = serialized_program_type_descriptor->platform_specific_data;
     local_program_type_descriptor->is_privileged = serialized_program_type_descriptor->is_privileged;
 
-    // Allocate and desrialize context_descriptor, if present.
+    // Allocate and deserialize context_descriptor, if present.
     if (serialized_program_type_descriptor->context_descriptor.size != 0) {
         local_context_descriptor = (ebpf_context_descriptor_t*)ebpf_allocate(sizeof(ebpf_context_descriptor_t));
         if (local_context_descriptor == NULL) {
@@ -493,7 +497,7 @@ ebpf_deserialize_program_information(
     current += serialized_program_type_descriptor->size;
 
     if (buffer_left == 0) {
-        // No buffer left. This means there are no helper function prototypes information in the input buffer.
+        // No buffer left. This means there are no helper function prototypes in the input buffer.
         goto Exit;
     }
 
@@ -550,7 +554,7 @@ ebpf_deserialize_program_information(
         // Serialize helper prototype.
         helper_prototype->helper_id = serialized_helper_prototype->helper_id;
         helper_prototype->return_type = serialized_helper_prototype->return_type;
-        for (int i = 0; i < 5; i++)
+        for (int i = 0; i < EBPF_COUNT_OF(helper_prototype->arguments); i++)
             helper_prototype->arguments[i] = serialized_helper_prototype->arguments[i];
 
         // Adjust remaining buffer length.
@@ -589,9 +593,7 @@ Exit:
         local_program_info = NULL;
     }
 
-    if (local_program_info != NULL) {
-        ebpf_program_information_free(local_program_info);
-    }
+    ebpf_program_information_free(local_program_info);
 
     return result;
 }

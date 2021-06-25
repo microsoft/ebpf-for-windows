@@ -29,6 +29,8 @@ _ebpf_core_map_update_element(ebpf_map_t* map, const uint8_t* key, const uint8_t
 static void
 _ebpf_core_map_delete_element(ebpf_map_t* map, const uint8_t* key);
 
+#define EBPF_CORE_GLOBAL_HELPER_EXTENSION_VERSION 0
+
 static const void* _ebpf_program_helpers[] = {NULL,
                                               (void*)&_ebpf_core_map_find_element,
                                               (void*)&_ebpf_core_map_update_element,
@@ -39,8 +41,9 @@ static ebpf_helper_function_addresses_t _ebpf_global_helper_function_dispatch_ta
     EBPF_COUNT_OF(_ebpf_program_helpers), (uint64_t*)_ebpf_program_helpers};
 static ebpf_program_data_t _ebpf_global_helper_function_program_data = {NULL,
                                                                         &_ebpf_global_helper_function_dispatch_table};
+
 static ebpf_extension_data_t _ebpf_global_helper_function_extension_data = {
-    0, // version
+    EBPF_CORE_GLOBAL_HELPER_EXTENSION_VERSION,
     sizeof(_ebpf_global_helper_function_program_data),
     &_ebpf_global_helper_function_program_data};
 
@@ -703,11 +706,7 @@ _ebpf_core_protocol_get_program_information(
 
     // Serialize program information structure onto reply data buffer.
     retval = ebpf_serialize_program_information(
-        program_data->program_information,
-        reply->data,
-        serialization_buffer_size,
-        (size_t*)&reply->size,
-        &required_length);
+        program_data->program_information, reply->data, serialization_buffer_size, &reply->size, &required_length);
 
     if (retval != EBPF_SUCCESS) {
         reply->header.length =
@@ -792,7 +791,7 @@ _ebpf_core_protocol_serialize_map_information_reply(
         map_info,
         map_info_reply->data,
         (const size_t)serialization_buffer_size,
-        (size_t*)&map_info_reply->size,
+        &map_info_reply->size,
         &required_serialization_length);
 
     if (result != EBPF_SUCCESS) {
@@ -834,6 +833,7 @@ _ebpf_core_protocol_get_map_information(
         goto Exit;
 
     // Serialize map information array onto reply structure.
+    _Analysis_assume_(map_info != NULL);
     result = _ebpf_core_protocol_serialize_map_information_reply(entry_count, map_info, reply_length, reply);
 
 Exit:

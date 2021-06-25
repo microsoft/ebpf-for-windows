@@ -51,6 +51,8 @@ static ebpf_extension_provider_t* _ebpf_bind_program_information_provider = NULL
 
 #define RTL_COUNT_OF(arr) (sizeof(arr) / sizeof(arr[0]))
 
+#define NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION 0
+
 static ebpf_helper_function_prototype_t _ebpf_map_helper_function_prototype[] = {
     {1,
      "ebpf_map_lookup_element",
@@ -83,9 +85,8 @@ static ebpf_program_information_t _ebpf_xdp_program_information = {{"xdp",
 
 static ebpf_program_data_t _ebpf_xdp_program_data = {&_ebpf_xdp_program_information, NULL};
 
-static ebpf_extension_data_t _ebpf_xdp_program_information_provider_data = {0, // version
-                                                                            sizeof(_ebpf_xdp_program_data),
-                                                                            &_ebpf_xdp_program_data};
+static ebpf_extension_data_t _ebpf_xdp_program_information_provider_data = {
+    NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_ebpf_xdp_program_data), &_ebpf_xdp_program_data};
 
 static ebpf_context_descriptor_t _ebpf_bind_context_descriptor = {
     sizeof(bind_md_t), EBPF_OFFSET_OF(bind_md_t, app_id_start), EBPF_OFFSET_OF(bind_md_t, app_id_end), -1};
@@ -103,9 +104,8 @@ static ebpf_program_information_t _ebpf_bind_program_information = {{"bind",
 
 static ebpf_program_data_t _ebpf_bind_program_data = {&_ebpf_bind_program_information, NULL};
 
-static ebpf_extension_data_t _ebpf_bind_program_information_provider_data = {0, // version
-                                                                             sizeof(_ebpf_bind_program_data),
-                                                                             &_ebpf_bind_program_data};
+static ebpf_extension_data_t _ebpf_bind_program_information_provider_data = {
+    NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_ebpf_bind_program_data), &_ebpf_bind_program_data};
 // Callout and sublayer GUIDs
 
 // 7c7b3fb9-3331-436a-98e1-b901df457fff

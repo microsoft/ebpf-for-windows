@@ -390,8 +390,8 @@ TEST_CASE("serialize_program_information_test", "[platform]")
          EBPF_RETURN_TYPE_INTEGER,
          {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_VALUE}}};
     ebpf_context_descriptor_t context_descriptor = {32, 0, 8, -1};
-    GUID PROGRAM_TYPE_TEST = {0x7ebe418c, 0x76dd, 0x4c2c, {0x99, 0xbc, 0x5c, 0x48, 0xa2, 0x30, 0x4b, 0x90}};
-    ebpf_program_type_descriptor_t program_type = {"unit_test_program", &context_descriptor, PROGRAM_TYPE_TEST};
+    GUID program_type_test = {0x7ebe418c, 0x76dd, 0x4c2c, {0x99, 0xbc, 0x5c, 0x48, 0xa2, 0x30, 0x4b, 0x90}};
+    ebpf_program_type_descriptor_t program_type = {"unit_test_program", &context_descriptor, program_type_test};
     ebpf_program_information_t in_program_info = {program_type, EBPF_COUNT_OF(helper_prototype), helper_prototype};
 
     size_t buffer_length = 0;
@@ -442,7 +442,7 @@ TEST_CASE("serialize_program_information_test", "[platform]")
         ebpf_helper_function_prototype_t* out_prototype = &out_program_info->helper_prototype[i];
         REQUIRE(in_prototype->helper_id == out_prototype->helper_id);
         REQUIRE(in_prototype->return_type == out_prototype->return_type);
-        for (int j = 0; j < 5; j++)
+        for (int j = 0; j < _countof(in_prototype->arguments); j++)
             REQUIRE(in_prototype->arguments[j] == out_prototype->arguments[j]);
         REQUIRE(out_prototype->name != nullptr);
         REQUIRE(strncmp(in_prototype->name, out_prototype->name, EBPF_MAX_HELPER_FUNCTION_NAME_LENGTH) == 0);
@@ -451,6 +451,5 @@ TEST_CASE("serialize_program_information_test", "[platform]")
     // Free de-serialized program information.
     ebpf_program_information_free(out_program_info);
 
-    if (buffer != nullptr)
-        free(buffer);
+    free(buffer);
 }

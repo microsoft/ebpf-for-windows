@@ -125,7 +125,7 @@ static ebpf_program_information_t _ebpf_xdp_program_information = {{"xdp",
                                                                         0x85d5,
                                                                         0x45b0,
                                                                         0x98, 0xa0, 0x70, 0x69, 0xd6, 0x30, 0x13, 0xb0}},
-                                                                     // clang-format om
+                                                                   // clang-format on
                                                                    EBPF_COUNT_OF(_ebpf_map_helper_function_prototype),
                                                                    _ebpf_map_helper_function_prototype};
 
@@ -145,15 +145,15 @@ static ebpf_program_information_t _ebpf_bind_program_information = {{"bind",
                                                                         0x6c52,
                                                                         0x4a26,
                                                                         0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}},
-                                                                      // clang-format om
+                                                                    // clang-format on
                                                                     EBPF_COUNT_OF(_ebpf_map_helper_function_prototype),
                                                                     _ebpf_map_helper_function_prototype};
 
 static ebpf_program_data_t _ebpf_bind_program_data = {&_ebpf_bind_program_information, NULL};
 
 static ebpf_extension_data_t _ebpf_bind_program_information_provider_data = {0, // version
-                                                                            sizeof(_ebpf_bind_program_data),
-                                                                            &_ebpf_bind_program_data};
+                                                                             sizeof(_ebpf_bind_program_data),
+                                                                             &_ebpf_bind_program_data};
 
 typedef class _program_information_provider
 {

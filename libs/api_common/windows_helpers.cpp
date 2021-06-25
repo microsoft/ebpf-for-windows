@@ -29,14 +29,14 @@ struct guid_compare
 struct _ebpf_program_information_deleter
 {
     void
-    operator()(_Pre_maybenull_ _Post_invalid_ _In_ ebpf_program_information_t* program_info)
+    operator()(_In_ _Post_invalid_ ebpf_program_information_t* program_info)
     {
         ebpf_program_information_free(program_info);
     }
 };
 
-typedef std::unique_ptr<ebpf_program_information_t, _ebpf_program_information_deleter> ebpf_program_information_ptr;
-static thread_local std::map<GUID, ebpf_program_information_ptr, guid_compare> _program_information_cache;
+typedef std::unique_ptr<ebpf_program_information_t, _ebpf_program_information_deleter> ebpf_program_information_ptr_t;
+static thread_local std::map<GUID, ebpf_program_information_ptr_t, guid_compare> _program_information_cache;
 
 static thread_local std::map<GUID, ebpf_helper::ebpf_memory_ptr, guid_compare> _static_program_information_cache;
 
@@ -101,7 +101,7 @@ get_program_type_info(const ebpf_program_information_t** info)
         if (result != EBPF_SUCCESS) {
             fall_back = true;
         } else {
-            _program_information_cache[*program_type] = ebpf_program_information_ptr(program_information);
+            _program_information_cache[*program_type] = ebpf_program_information_ptr_t(program_information);
         }
     }
 
