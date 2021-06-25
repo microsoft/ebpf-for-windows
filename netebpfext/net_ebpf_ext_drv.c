@@ -38,6 +38,7 @@ static BOOLEAN _net_ebpf_ext_driver_unloading_flag = FALSE;
 //
 // Pre-Declarations
 //
+DRIVER_INITIALIZE DriverEntry;
 
 static _Function_class_(EVT_WDF_DRIVER_UNLOAD) _IRQL_requires_same_
     _IRQL_requires_max_(PASSIVE_LEVEL) void __net_ebpf_ext_driver_unload(_In_ WDFDRIVER driver_object)
