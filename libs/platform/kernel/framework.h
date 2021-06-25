@@ -4,7 +4,10 @@
 
 #include <ntdef.h>
 #include <ntstatus.h>
+#pragma warning(push)
+#pragma warning(disable : 28253) // Inconsistent annotation for '_umul128'
 #include <ntintsafe.h>
+#pragma warning(pop)
 #include <ntddk.h>
 #include <netioddk.h>
 #include <stdint.h>

@@ -152,7 +152,7 @@ ebpf_result_t
 ebpf_provider_load(
     _Outptr_ ebpf_extension_provider_t** provider_context,
     _In_ const GUID* interface_id,
-    _In_ void* provider_binding_context,
+    _In_opt_ void* provider_binding_context,
     _In_opt_ const ebpf_extension_data_t* provider_data,
     _In_ const ebpf_extension_dispatch_table_t* provider_dispatch_table,
     _In_ void* callback_context,

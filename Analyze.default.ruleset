@@ -112,12 +112,9 @@
     <Rule Id="C28245" Action="Error" />
     <Rule Id="C28246" Action="Error" />
     <Rule Id="C28250" Action="Error" />
-    <!-- warning C28251: Inconsistent annotation for function: this instance has an error -->
-    <Rule Id="C28251" Action="Warning" />
-    <!-- warning C28252: Inconsistent annotation for function: parameter has another annotation on this instance -->
-    <Rule Id="C28252" Action="Warning" />
-    <!-- warning C28253: Inconsistent annotation for function: parameter has another annotations on this instance -->
-    <Rule Id="C28253" Action="Warning" />
+    <Rule Id="C28251" Action="Error" />
+    <Rule Id="C28252" Action="Error" />
+    <Rule Id="C28253" Action="Error" />
     <Rule Id="C28254" Action="Error" />
     <Rule Id="C28262" Action="Error" />
     <Rule Id="C28263" Action="Error" />
