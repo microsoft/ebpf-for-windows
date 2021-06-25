@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include "catch2\catch.hpp"
+#include "catch_wrapper.hpp"
 #include "ebpf_core.h"
 #include "ebpf_maps.h"
 #include "ebpf_object.h"
@@ -44,7 +44,7 @@ test_crud_operations(ebpf_map_type_t map_type)
         map.reset(local_map);
     }
     for (uint32_t key = 0; key < 10; key++) {
-        uint64_t value = key * key;
+        uint64_t value = static_cast<uint64_t>(key) * static_cast<uint64_t>(key);
         REQUIRE(
             ebpf_map_update_entry(
                 map.get(), reinterpret_cast<const uint8_t*>(&key), reinterpret_cast<const uint8_t*>(&value)) ==

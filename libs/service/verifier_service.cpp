@@ -9,9 +9,13 @@
 #include "ebpf_api.h"
 #include "ebpf_platform.h"
 #pragma warning(push)
-#pragma warning(disable : 4100) // 'identifier' : unreferenced formal parameter
-#pragma warning(disable : 4244) // 'conversion' conversion from 'type1' to
-                                // 'type2', possible loss of data
+#pragma warning(disable : 4100)  // 'identifier' : unreferenced formal parameter
+#pragma warning(disable : 4244)  // 'conversion' conversion from 'type1' to
+                                 // 'type2', possible loss of data
+#pragma warning(disable : 26451) // Arithmetic overflow
+#pragma warning(disable : 26450) // Arithmetic overflow
+#pragma warning(disable : 26439) // This kind of function may not throw. Declare it 'noexcept'
+#pragma warning(disable : 26495) // Always initialize a member variable
 #include "ebpf_verifier.hpp"
 #pragma warning(pop)
 #include "platform.hpp"
@@ -56,8 +60,8 @@ verify_byte_code(
     uint32_t* error_message_size)
 {
     const ebpf_platform_t* platform = &g_ebpf_platform_windows_service;
-    std::vector<ebpf_inst> instructions{(ebpf_inst*)byte_code,
-                                        (ebpf_inst*)byte_code + byte_code_size / sizeof(ebpf_inst)};
+    std::vector<ebpf_inst> instructions{
+        (ebpf_inst*)byte_code, (ebpf_inst*)byte_code + byte_code_size / sizeof(ebpf_inst)};
     program_info info{platform};
     std::string section;
     std::string file;

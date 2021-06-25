@@ -3,7 +3,7 @@
 
 // Common test functions used by end to end and component tests.
 
-#include "catch2\catch.hpp"
+#include "catch_wrapper.hpp"
 #include "common_tests.h"
 
 void

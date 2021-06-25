@@ -8,7 +8,7 @@
 #include <thread>
 
 #include "api_test.h"
-#include "catch2\catch.hpp"
+#include "catch_wrapper.hpp"
 #include "common_tests.h"
 #include "service_helper.h"
 
