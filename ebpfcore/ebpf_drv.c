@@ -50,6 +50,8 @@ static BOOLEAN _ebpf_driver_unloading_flag = FALSE;
 static void
 _ebpf_driver_file_close(WDFFILEOBJECT wdf_file_object);
 
+DRIVER_INITIALIZE DriverEntry;
+
 static VOID
 _ebpf_driver_io_device_control(
     _In_ WDFQUEUE queue,
