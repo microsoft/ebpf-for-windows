@@ -1,0 +1,12 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (c) Microsoft Corporation
+  SPDX-License-Identifier: MIT
+-->
+<RuleSet Name="External rules" Description="Override parent ruleset" ToolsVersion="16.0">
+  <Include Path="..\Analyze.default.ruleset" Action="Default" />
+  <Rules AnalyzerId="Microsoft.Analyzers.NativeCodeAnalysis" RuleNamespace="Microsoft.Rules.Native">
+      <!-- Set this to warning due to https://github.com/vbpf/ebpf-verifier/issues/239 -->
+      <Rule Id="C6011" Action="Warning" />
+  </Rules>
+</RuleSet>

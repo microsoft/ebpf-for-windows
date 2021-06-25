@@ -98,8 +98,9 @@ ebpf_extension_load(
     }
     *client_context = local_extension_client;
     local_extension_client = NULL;
+    if (provider_binding_context)
+        *provider_binding_context = local_extension_provider->provider_binding_context;
 
-    *provider_binding_context = local_extension_provider->provider_binding_context;
     *provider_data = local_extension_provider->provider_data;
     *provider_dispatch_table = local_extension_provider->provider_dispatch_table;
 
@@ -114,7 +115,7 @@ Done:
 }
 
 void
-ebpf_extension_unload(_Pre_maybenull_ _Post_invalid_ ebpf_extension_client_t* client_context)
+ebpf_extension_unload(_In_opt_ _Post_invalid_ ebpf_extension_client_t* client_context)
 {
     ebpf_result_t return_value;
     ebpf_lock_state_t state;
@@ -215,7 +216,7 @@ Done:
 }
 
 void
-ebpf_provider_unload(_Pre_maybenull_ _Post_invalid_ ebpf_extension_provider_t* provider_context)
+ebpf_provider_unload(_In_opt_ _Post_invalid_ ebpf_extension_provider_t* provider_context)
 {
     ebpf_result_t return_value;
     ebpf_lock_state_t state;
