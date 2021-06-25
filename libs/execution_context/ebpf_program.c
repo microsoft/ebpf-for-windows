@@ -388,7 +388,7 @@ Done:
 }
 
 void
-ebpf_program_invoke(_In_opt_ const ebpf_program_t* program, _In_ void* context, _Out_ uint32_t* result)
+ebpf_program_invoke(_In_ const ebpf_program_t* program, _In_ void* context, _Out_ uint32_t* result)
 {
     if (!program || program->program_invalidated)
         return;

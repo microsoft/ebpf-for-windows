@@ -152,8 +152,8 @@ Exit:
 }
 
 _Return_type_success_(return == ERROR_SUCCESS) uint32_t ebpf_get_program_byte_code(
-    _In_ const char* file_name,
-    _In_ const char* section_name,
+    _In_z_ const char* file_name,
+    _In_z_ const char* section_name,
     bool mock_map_fd,
     std::vector<ebpf_program_t*>& programs,
     _Outptr_result_maybenull_ EbpfMapDescriptor** map_descriptors,
