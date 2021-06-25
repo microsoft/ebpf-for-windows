@@ -34,7 +34,7 @@ var searchData=
   ['ebpf_5fexecution_5ftype_2eh_73',['ebpf_execution_type.h',['../ebpf__execution__type_8h.html',1,'']]],
   ['ebpf_5fexecution_5ftype_5ft_74',['ebpf_execution_type_t',['../ebpf__execution__type_8h.html#af58bcede64968a095964be4e78998658',1,'ebpf_execution_type.h']]],
   ['ebpf_5ffd_5finvalid_75',['ebpf_fd_invalid',['../ebpf__api_8h.html#acb6a7f4388cfb294444793fb9bbdaf35',1,'ebpf_api.h']]],
-  ['ebpf_5ffree_5fstring_76',['ebpf_free_string',['../ebpf__api_8h.html#a019e16a3004bd889962c904a5bd786ad',1,'ebpf_api.h']]],
+  ['ebpf_5ffree_5fstring_76',['ebpf_free_string',['../ebpf__api_8h.html#a7adf0de191265ab9e7e3dff5859d46d8',1,'ebpf_api.h']]],
   ['ebpf_5fhandle_5finvalid_77',['ebpf_handle_invalid',['../ebpf__api_8h.html#a0584fa3dd32523977315bcbc05af2b97',1,'ebpf_api.h']]],
   ['ebpf_5fhandle_5ft_78',['ebpf_handle_t',['../ebpf__api_8h.html#a730fd530617bad8bccf98e29452b4d55',1,'ebpf_api.h']]],
   ['ebpf_5fhelper_5ffunction_5fprototype_5ft_79',['ebpf_helper_function_prototype_t',['../ebpf__program__types_8h.html#a8cabe38407044d4c213492316d2852fc',1,'ebpf_program_types.h']]],

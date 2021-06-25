@@ -149,9 +149,9 @@ Functions</h2></td></tr>
 <tr class="memitem:afe38ca942567ba2335a2612460576156"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#afe38ca942567ba2335a2612460576156">ebpf_api_elf_free</a> (const <a class="el" href="ebpf__api_8h.html#a2f716f8d7c1f8c5f04be07e15fd421d3">tlv_type_length_value_t</a> *data)</td></tr>
 <tr class="memdesc:afe38ca942567ba2335a2612460576156"><td class="mdescLeft">&#160;</td><td class="mdescRight">Free a TLV returned from ebpf_api_elf_enumerate_sections.  <a href="ebpf__api_8h.html#afe38ca942567ba2335a2612460576156">More...</a><br /></td></tr>
 <tr class="separator:afe38ca942567ba2335a2612460576156"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a019e16a3004bd889962c904a5bd786ad"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a019e16a3004bd889962c904a5bd786ad">ebpf_free_string</a> (_In_ _Post_invalid_ const char *string)</td></tr>
-<tr class="memdesc:a019e16a3004bd889962c904a5bd786ad"><td class="mdescLeft">&#160;</td><td class="mdescRight">Free memory for a string returned from eBPF API.  <a href="ebpf__api_8h.html#a019e16a3004bd889962c904a5bd786ad">More...</a><br /></td></tr>
-<tr class="separator:a019e16a3004bd889962c904a5bd786ad"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7adf0de191265ab9e7e3dff5859d46d8"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a7adf0de191265ab9e7e3dff5859d46d8">ebpf_free_string</a> (_In_opt_ _Post_invalid_ const char *string)</td></tr>
+<tr class="memdesc:a7adf0de191265ab9e7e3dff5859d46d8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Free memory for a string returned from eBPF API.  <a href="ebpf__api_8h.html#a7adf0de191265ab9e7e3dff5859d46d8">More...</a><br /></td></tr>
+<tr class="separator:a7adf0de191265ab9e7e3dff5859d46d8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7ee75d3902b22c4bf7b75b957a4c2922"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a7ee75d3902b22c4bf7b75b957a4c2922">ebpf_api_pin_object</a> (<a class="el" href="ebpf__api_8h.html#a730fd530617bad8bccf98e29452b4d55">ebpf_handle_t</a> handle, const uint8_t *name, uint32_t name_length)</td></tr>
 <tr class="memdesc:a7ee75d3902b22c4bf7b75b957a4c2922"><td class="mdescLeft">&#160;</td><td class="mdescRight">Associate a name with an object handle.  <a href="ebpf__api_8h.html#a7ee75d3902b22c4bf7b75b957a4c2922">More...</a><br /></td></tr>
 <tr class="separator:a7ee75d3902b22c4bf7b75b957a4c2922"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -1366,8 +1366,8 @@ Variables</h2></td></tr>
 
 </div>
 </div>
-<a id="a019e16a3004bd889962c904a5bd786ad"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a019e16a3004bd889962c904a5bd786ad">&#9670;&nbsp;</a></span>ebpf_free_string()</h2>
+<a id="a7adf0de191265ab9e7e3dff5859d46d8"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a7adf0de191265ab9e7e3dff5859d46d8">&#9670;&nbsp;</a></span>ebpf_free_string()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1375,7 +1375,7 @@ Variables</h2></td></tr>
         <tr>
           <td class="memname">void ebpf_free_string </td>
           <td>(</td>
-          <td class="paramtype">_In_ _Post_invalid_ const char *&#160;</td>
+          <td class="paramtype">_In_opt_ _Post_invalid_ const char *&#160;</td>
           <td class="paramname"><em>string</em></td><td>)</td>
           <td></td>
         </tr>
