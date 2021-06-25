@@ -946,7 +946,7 @@ ebpf_program_next(_In_opt_ const struct _ebpf_program* previous, _In_ const stru
         program = object->programs[0];
     } else {
         size_t programs_count = object->programs.size();
-        for (int i = 0; i < programs_count; i++) {
+        for (size_t i = 0; i < programs_count; i++) {
             if (object->programs[i] == previous && i < programs_count - 1) {
                 program = object->programs[i + 1];
                 break;
@@ -998,7 +998,7 @@ ebpf_map_next(_In_opt_ const struct _ebpf_map* previous, _In_ const struct _ebpf
         map = object->maps[0];
     } else {
         size_t maps_count = object->maps.size();
-        for (int i = 0; i < maps_count; i++) {
+        for (size_t i = 0; i < maps_count; i++) {
             if (object->maps[i] == previous && i < maps_count - 1) {
                 map = object->maps[i + 1];
                 break;

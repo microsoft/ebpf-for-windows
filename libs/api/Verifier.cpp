@@ -13,14 +13,16 @@
 #include "ebpf_platform.h"
 #include "ebpf_program_types.h"
 #pragma warning(push)
-#pragma warning(disable : 4100) // 'identifier' : unreferenced formal parameter
-#pragma warning(disable : 4244) // 'conversion' conversion from 'type1' to
-                                // 'type2', possible loss of data
+#pragma warning(disable : 4100)  // 'identifier' : unreferenced formal parameter
+#pragma warning(disable : 4244)  // 'conversion' conversion from 'type1' to
+                                 // 'type2', possible loss of data
+#pragma warning(disable : 26451) // Arithmetic overflow
 #include "ebpf_verifier.hpp"
 #pragma warning(pop)
 #include "ebpf_xdp_program_data.h"
 #pragma warning(push)
-#pragma warning(disable : 6011) // 'Dereferencing NULL pointer - https://github.com/vbpf/ebpf-verifier/issues/239
+#pragma warning(disable : 6011)  // 'Dereferencing NULL pointer - https://github.com/vbpf/ebpf-verifier/issues/239
+#pragma warning(disable : 26451) // Arithmetic overflow
 #include "elfio/elfio.hpp"
 #pragma warning(pop)
 #include "platform.hpp"
@@ -273,11 +275,12 @@ ebpf_api_elf_enumerate_sections(
                 }
             }
 
-            sequence.emplace_back(tlv_pack<tlv_sequence>({tlv_pack(raw_program.section.c_str()),
-                                                          tlv_pack(raw_program.info.type.name.c_str()),
-                                                          tlv_pack(raw_program.info.map_descriptors.size()),
-                                                          tlv_pack(convert_ebpf_program_to_bytes(raw_program.prog)),
-                                                          tlv_pack(stats_sequence)}));
+            sequence.emplace_back(tlv_pack<tlv_sequence>(
+                {tlv_pack(raw_program.section.c_str()),
+                 tlv_pack(raw_program.info.type.name.c_str()),
+                 tlv_pack(raw_program.info.map_descriptors.size()),
+                 tlv_pack(convert_ebpf_program_to_bytes(raw_program.prog)),
+                 tlv_pack(stats_sequence)}));
         }
 
         auto retval = tlv_pack(sequence);

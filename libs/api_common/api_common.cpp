@@ -12,9 +12,10 @@
 #include "device_helper.hpp"
 
 #pragma warning(push)
-#pragma warning(disable : 4100) // 'identifier' : unreferenced formal parameter
-#pragma warning(disable : 4244) // 'conversion' conversion from 'type1' to
-                                // 'type2', possible loss of data
+#pragma warning(disable : 4100)  // 'identifier' : unreferenced formal parameter
+#pragma warning(disable : 4244)  // 'conversion' conversion from 'type1' to
+                                 // 'type2', possible loss of data
+#pragma warning(disable : 26451) // Arithmetic overflow
 #include "ebpf_verifier.hpp"
 #pragma warning(pop)
 
@@ -39,8 +40,9 @@ allocate_string(const std::string& string, uint32_t* length) noexcept
 std::vector<uint8_t>
 convert_ebpf_program_to_bytes(const std::vector<ebpf_inst>& instructions)
 {
-    return {reinterpret_cast<const uint8_t*>(instructions.data()),
-            reinterpret_cast<const uint8_t*>(instructions.data()) + instructions.size() * sizeof(ebpf_inst)};
+    return {
+        reinterpret_cast<const uint8_t*>(instructions.data()),
+        reinterpret_cast<const uint8_t*>(instructions.data()) + instructions.size() * sizeof(ebpf_inst)};
 }
 
 int

@@ -25,8 +25,7 @@
     <Rule Id="C26449" Action="Error" />
     <!-- Arithmetic overflow: '%operator%' operation causes overflow at compile time. Use a wider type to store the operands -->
     <Rule Id="C26450" Action="Warning" />
-    <!-- Arithmetic overflow: Using operator 'operator' on a size-a byte value and then casting the result to a size-b byte value. Cast the value to the wider type before calling operator 'operator' to avoid overflow -->
-    <Rule Id="C26451" Action="Warning" />
+    <Rule Id="C26451" Action="Error" />
     <Rule Id="C26452" Action="Error" />
     <Rule Id="C26453" Action="Error" />
     <Rule Id="C26454" Action="Error" />
