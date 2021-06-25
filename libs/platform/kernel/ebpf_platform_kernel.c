@@ -36,7 +36,7 @@ __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
 }
 
 void
-ebpf_free(_Pre_maybenull_ _Post_invalid_ __drv_freesMem(Mem) void* memory)
+ebpf_free(_In_opt_ _Post_invalid_ __drv_freesMem(Mem) void* memory)
 {
     if (memory)
         ExFreePool(memory);
@@ -62,7 +62,7 @@ ebpf_map_memory(size_t length)
 }
 
 void
-ebpf_unmap_memory(_Pre_maybenull_ _Post_invalid_ ebpf_memory_descriptor_t* memory_descriptor)
+ebpf_unmap_memory(_In_opt_ _Post_invalid_ ebpf_memory_descriptor_t* memory_descriptor)
 {
     if (!memory_descriptor)
         return;
@@ -282,7 +282,7 @@ ebpf_allocate_non_preemptible_work_item(
 }
 
 void
-ebpf_free_non_preemptible_work_item(_Pre_maybenull_ _Post_invalid_ ebpf_non_preemptible_work_item_t* work_item)
+ebpf_free_non_preemptible_work_item(_In_opt_ _Post_invalid_ ebpf_non_preemptible_work_item_t* work_item)
 {
     if (!work_item)
         return;
@@ -347,7 +347,7 @@ ebpf_schedule_timer_work_item(_In_ ebpf_timer_work_item_t* work_item, uint32_t e
 }
 
 void
-ebpf_free_timer_work_item(_Pre_maybenull_ _Post_invalid_ ebpf_timer_work_item_t* work_item)
+ebpf_free_timer_work_item(_In_opt_ _Post_invalid_ ebpf_timer_work_item_t* work_item)
 {
     if (!work_item)
         return;
