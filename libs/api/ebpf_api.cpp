@@ -151,15 +151,14 @@ Exit:
     return windows_error_to_ebpf_result(error);
 }
 
-uint32_t
-ebpf_get_program_byte_code(
-    const char* file_name,
-    const char* section_name,
+_Return_type_success_(return == ERROR_SUCCESS) uint32_t ebpf_get_program_byte_code(
+    _In_ const char* file_name,
+    _In_ const char* section_name,
     bool mock_map_fd,
     std::vector<ebpf_program_t*>& programs,
-    EbpfMapDescriptor** map_descriptors,
-    int* map_descriptors_count,
-    const char** error_message)
+    _Outptr_result_maybenull_ EbpfMapDescriptor** map_descriptors,
+    _Out_ int* map_descriptors_count,
+    _Outptr_result_maybenull_ const char** error_message)
 {
     uint32_t result = ERROR_SUCCESS;
 
@@ -312,7 +311,7 @@ Done:
 }
 
 void
-ebpf_free_string(_In_ _Post_invalid_ const char* error_message)
+ebpf_free_string(_In_opt_ _Post_invalid_ const char* error_message)
 {
     return free(const_cast<char*>(error_message));
 }

@@ -65,7 +65,8 @@ ebpf_test_pinned_map_enum()
 
 Exit:
     ebpf_api_close_handle(map_handle);
-    ebpf_api_map_info_free(map_count, map_info);
+    if (map_info)
+        ebpf_api_map_info_free(map_count, map_info);
     map_count = 0;
     map_info = nullptr;
 }
