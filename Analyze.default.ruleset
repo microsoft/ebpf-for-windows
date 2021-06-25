@@ -152,8 +152,7 @@
     <Rule Id="C33020" Action="Error" />
     <!-- warning C6001: using uninitialized memory <variable> -->
     <Rule Id="C6001" Action="Warning" />
-    <!-- warning C6011: dereferencing NULL pointer <name> -->
-    <Rule Id="C6011" Action="Warning" />
+    <Rule Id="C6011" Action="Error" />
     <Rule Id="C6029" Action="Error" />
     <!-- warning C6031: return value ignored: called-function could return unexpected value -->
     <Rule Id="C6031" Action="Warning" />

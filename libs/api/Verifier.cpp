@@ -19,7 +19,10 @@
 #include "ebpf_verifier.hpp"
 #pragma warning(pop)
 #include "ebpf_xdp_program_data.h"
+#pragma warning(push)
+#pragma warning(disable : 6011) // 'Dereferencing NULL pointer - https://github.com/vbpf/ebpf-verifier/issues/239
 #include "elfio/elfio.hpp"
+#pragma warning(pop)
 #include "platform.hpp"
 #include "tlv.h"
 #include "windows_platform.hpp"

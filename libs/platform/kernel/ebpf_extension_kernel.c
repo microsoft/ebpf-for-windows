@@ -180,7 +180,9 @@ ebpf_extension_load(
         goto Done;
     }
 
-    *provider_binding_context = local_client_context->provider_binding_context;
+    if (provider_binding_context)
+        *provider_binding_context = local_client_context->provider_binding_context;
+
     *provider_data = local_client_context->provider_data;
     *provider_dispatch_table = local_client_context->provider_dispatch_table;
     *client_context = local_client_context;

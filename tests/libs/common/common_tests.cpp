@@ -40,6 +40,9 @@ ebpf_test_pinned_map_enum()
         goto Exit;
 
     REQUIRE(map_count == pinned_map_count);
+    REQUIRE(map_info != nullptr);
+    if (map_info == nullptr)
+        goto Exit;
 
     for (int i = 0; i < pinned_map_count; i++) {
         bool matched = false;
