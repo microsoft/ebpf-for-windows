@@ -17,7 +17,7 @@ var searchData=
   ['ebpf_5fapi_5fload_5fprogram_56',['ebpf_api_load_program',['../ebpf__api_8h.html#a71b58a2b58320461430b90e741c8669a',1,'ebpf_api.h']]],
   ['ebpf_5fapi_5fmap_5fdelete_5felement_57',['ebpf_api_map_delete_element',['../ebpf__api_8h.html#a1b794be5dc5068b27e49a52210adff5a',1,'ebpf_api.h']]],
   ['ebpf_5fapi_5fmap_5ffind_5felement_58',['ebpf_api_map_find_element',['../ebpf__api_8h.html#ad3c59052a4019ccf65ea3ac83d5f7cae',1,'ebpf_api.h']]],
-  ['ebpf_5fapi_5fmap_5finfo_5ffree_59',['ebpf_api_map_info_free',['../ebpf__api_8h.html#a9d5706e5fc696240f4f6f513586bfe0f',1,'ebpf_api.h']]],
+  ['ebpf_5fapi_5fmap_5finfo_5ffree_59',['ebpf_api_map_info_free',['../ebpf__api_8h.html#a959da398e9009737c04527838ee13f20',1,'ebpf_api.h']]],
   ['ebpf_5fapi_5fmap_5fquery_5fdefinition_60',['ebpf_api_map_query_definition',['../ebpf__api_8h.html#a69898b03479cff126f89376a2d4fbab0',1,'ebpf_api.h']]],
   ['ebpf_5fapi_5fmap_5fupdate_5felement_61',['ebpf_api_map_update_element',['../ebpf__api_8h.html#aef36e114e63ff5f5bf9e06888f2618f1',1,'ebpf_api.h']]],
   ['ebpf_5fapi_5fpin_5fobject_62',['ebpf_api_pin_object',['../ebpf__api_8h.html#a7ee75d3902b22c4bf7b75b957a4c2922',1,'ebpf_api.h']]],
