@@ -41,15 +41,14 @@ typedef struct _ebpf_object
     std::vector<ebpf_map_t*> maps;
 } ebpf_object_t;
 
-uint32_t
-ebpf_get_program_byte_code(
-    const char* file_name,
-    const char* section_name,
+_Return_type_success_(return == ERROR_SUCCESS) uint32_t ebpf_get_program_byte_code(
+    _In_z_ const char* file_name,
+    _In_z_ const char* section_name,
     bool mock_map_fd,
     std::vector<ebpf_program_t*>& programs,
-    EbpfMapDescriptor** map_descriptors,
-    int* map_descriptors_count,
-    const char** error_message);
+    _Outptr_result_maybenull_ EbpfMapDescriptor** map_descriptors,
+    _Out_ int* map_descriptors_count,
+    _Outptr_result_maybenull_ const char** error_message);
 
 uint32_t
 get_program_information_data(ebpf_program_type_t program_type, ebpf_extension_data_t** program_information_data);

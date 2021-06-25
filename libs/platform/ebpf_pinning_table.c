@@ -286,9 +286,11 @@ Exit:
 }
 
 void
-ebpf_pinning_entries_release(uint16_t entry_count, _In_count_(entry_count) ebpf_pinning_entry_t* pinning_entries)
+ebpf_pinning_entries_release(uint16_t entry_count, _In_opt_count_(entry_count) ebpf_pinning_entry_t* pinning_entries)
 {
     uint16_t index;
+    if (!pinning_entries)
+        return;
 
     for (index = 0; index < entry_count; index++) {
         ebpf_pinning_entry_t* entry = &pinning_entries[index];

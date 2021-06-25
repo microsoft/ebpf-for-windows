@@ -16,5 +16,8 @@
 #include <endian.h>
 #define UBPF_STACK_SIZE 512
 
+#pragma warning(push)
+#pragma warning(disable : 6387) // ubpf_jit_x86_64.c(649): error C6387: 'buffer' could be '0'
 #include "ubpf_jit_x86_64.c"
+#pragma warning(pop)
 #include "ubpf_vm.c"

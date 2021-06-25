@@ -6,7 +6,7 @@
 #include "ebpf_serialize.h"
 
 void
-ebpf_map_information_array_free(uint16_t map_count, _In_count_(map_count) ebpf_map_information_t* map_info)
+ebpf_map_information_array_free(uint16_t map_count, _In_opt_count_(map_count) ebpf_map_information_t* map_info)
 {
     uint16_t map_index;
 

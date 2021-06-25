@@ -169,7 +169,8 @@ TEST_CASE("program", "[execution_context]")
         ebpf_program_load_machine_code(program.get(), reinterpret_cast<uint8_t*>(test_function), PAGE_SIZE) ==
         EBPF_SUCCESS);
     uint32_t result = 0;
-    ebpf_program_invoke(program.get(), nullptr, &result);
+    bind_md_t ctx{0};
+    ebpf_program_invoke(program.get(), &ctx, &result);
     REQUIRE(result == TEST_FUNCTION_RETURN);
 
     uint64_t address = 0;
