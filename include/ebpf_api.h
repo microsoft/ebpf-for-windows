@@ -278,7 +278,7 @@ extern "C"
      * @param[in] string Memory to free.
      */
     void
-    ebpf_free_string(_In_ _Post_invalid_ const char* string);
+    ebpf_free_string(_In_opt_ _Post_invalid_ const char* string);
 
     /**
      * @brief Associate a name with an object handle.

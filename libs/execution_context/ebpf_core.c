@@ -31,10 +31,11 @@ _ebpf_core_map_delete_element(ebpf_map_t* map, const uint8_t* key);
 
 #define EBPF_CORE_GLOBAL_HELPER_EXTENSION_VERSION 0
 
-static const void* _ebpf_program_helpers[] = {NULL,
-                                              (void*)&_ebpf_core_map_find_element,
-                                              (void*)&_ebpf_core_map_update_element,
-                                              (void*)&_ebpf_core_map_delete_element};
+static const void* _ebpf_program_helpers[] = {
+    NULL,
+    (void*)&_ebpf_core_map_find_element,
+    (void*)&_ebpf_core_map_update_element,
+    (void*)&_ebpf_core_map_delete_element};
 
 static ebpf_extension_provider_t* _ebpf_global_helper_function_provider_context = NULL;
 static ebpf_helper_function_addresses_t _ebpf_global_helper_function_dispatch_table = {
@@ -564,9 +565,9 @@ static ebpf_result_t
 _ebpf_core_protocol_update_pinning(_In_ const struct _ebpf_operation_update_map_pinning_request* request)
 {
     ebpf_result_t retval;
-    const ebpf_utf8_string_t name = {(uint8_t*)request->name,
-                                     request->header.length -
-                                         EBPF_OFFSET_OF(ebpf_operation_update_pinning_request_t, name)};
+    const ebpf_utf8_string_t name = {
+        (uint8_t*)request->name,
+        request->header.length - EBPF_OFFSET_OF(ebpf_operation_update_pinning_request_t, name)};
     ebpf_object_t* object = NULL;
 
     if (name.length == 0) {
@@ -832,6 +833,8 @@ _ebpf_core_protocol_get_map_information(
     if (result != EBPF_SUCCESS)
         goto Exit;
 
+    _Analysis_assume_(map_info != NULL);
+
     // Serialize map information array onto reply structure.
     _Analysis_assume_(map_info != NULL);
     result = _ebpf_core_protocol_serialize_map_information_reply(entry_count, map_info, reply_length, reply);
@@ -993,7 +996,7 @@ ebpf_result_t
 ebpf_core_invoke_protocol_handler(
     ebpf_operation_id_t operation_id,
     _In_ const void* input_buffer,
-    _Out_writes_bytes_(output_buffer_length) void* output_buffer,
+    _Out_writes_bytes_opt_(output_buffer_length) void* output_buffer,
     uint16_t output_buffer_length)
 {
     ebpf_result_t retval;

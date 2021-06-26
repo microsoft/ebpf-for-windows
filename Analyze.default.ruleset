@@ -241,8 +241,7 @@
     <Rule Id="C6385" Action="Warning" />
     <!-- warning C6386: buffer overrun: accessing <buffer name>, the writable size is <size1> bytes, but <size2> bytes may be written: Lines: x, y -->
     <Rule Id="C6386" Action="Warning" />
-    <!-- <argument> may be <value>: this does not adhere to the specification for the function <function name>: Lines: x, y -->
-    <Rule Id="C6387" Action="Warning" />
+    <Rule Id="C6387" Action="Error" />
     <Rule Id="C6388" Action="Error" />
     <Rule Id="C6500" Action="Error" />
     <Rule Id="C6501" Action="Error" />

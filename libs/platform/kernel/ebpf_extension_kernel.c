@@ -300,7 +300,7 @@ ebpf_provider_load(
     _In_opt_ void* provider_binding_context,
     _In_opt_ const ebpf_extension_data_t* provider_data,
     _In_opt_ const ebpf_extension_dispatch_table_t* provider_dispatch_table,
-    _In_ void* callback_context,
+    _In_opt_ void* callback_context,
     _In_opt_ ebpf_provider_client_attach_callback_t client_attach_callback,
     _In_opt_ ebpf_provider_client_detach_callback_t client_detach_callback)
 {

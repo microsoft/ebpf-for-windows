@@ -63,7 +63,7 @@ MatchEnumTag(HANDLE hModule, LPCWSTR pwcArg, DWORD dwNumArg, const TOKEN_VALUE* 
 
 static std::string
 _run_netsh_command(
-    _In_ FN_HANDLE_CMD* command, _In_z_ const wchar_t* arg1, _In_z_ const wchar_t* arg2, _Out_ int* result)
+    _In_ FN_HANDLE_CMD* command, _In_opt_z_ const wchar_t* arg1, _In_opt_z_ const wchar_t* arg2, _Out_ int* result)
 {
     _test_helper_end_to_end test_helper;
 
