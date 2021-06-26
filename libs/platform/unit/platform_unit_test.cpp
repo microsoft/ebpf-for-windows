@@ -372,8 +372,7 @@ TEST_CASE("serialize_map_test", "[platform]")
     // Free de-serialized map info array.
     ebpf_map_information_array_free(map_count, map_info_array);
 
-    if (buffer != nullptr)
-        free(buffer);
+    free(buffer);
 }
 
 TEST_CASE("serialize_program_information_test", "[platform]")
@@ -419,8 +418,7 @@ TEST_CASE("serialize_program_information_test", "[platform]")
 
     // Verify de-serialized program information matches input.
     REQUIRE(
-        in_program_info.program_type_descriptor.platform_specific_data ==
-        out_program_info->program_type_descriptor.platform_specific_data);
+        in_program_info.program_type_descriptor.program_type == out_program_info->program_type_descriptor.program_type);
     REQUIRE(
         in_program_info.program_type_descriptor.is_privileged ==
         out_program_info->program_type_descriptor.is_privileged);

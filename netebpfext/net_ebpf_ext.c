@@ -71,15 +71,7 @@ static ebpf_context_descriptor_t _ebpf_xdp_context_descriptor = {sizeof(xdp_md_t
                                                                  EBPF_OFFSET_OF(xdp_md_t, data),
                                                                  EBPF_OFFSET_OF(xdp_md_t, data_end),
                                                                  EBPF_OFFSET_OF(xdp_md_t, data_meta)};
-static ebpf_program_information_t _ebpf_xdp_program_information = {{"xdp",
-                                                                    &_ebpf_xdp_context_descriptor,
-                                                                    {// EBPF_PROGRAM_TYPE_XDP
-                                                                     0xf1832a85,
-                                                                     0x85d5,
-                                                                     0x45b0,
-                                                                     // clang-format off
-                                                                     0x98, 0xa0, 0x70, 0x69, 0xd6, 0x30, 0x13, 0xb0}},
-                                                                   // clang-format on
+static ebpf_program_information_t _ebpf_xdp_program_information = {{"xdp", &_ebpf_xdp_context_descriptor, {0}},
                                                                    EBPF_COUNT_OF(_ebpf_map_helper_function_prototype),
                                                                    _ebpf_map_helper_function_prototype};
 
@@ -90,15 +82,7 @@ static ebpf_extension_data_t _ebpf_xdp_program_information_provider_data = {
 
 static ebpf_context_descriptor_t _ebpf_bind_context_descriptor = {
     sizeof(bind_md_t), EBPF_OFFSET_OF(bind_md_t, app_id_start), EBPF_OFFSET_OF(bind_md_t, app_id_end), -1};
-static ebpf_program_information_t _ebpf_bind_program_information = {{"bind",
-                                                                     &_ebpf_bind_context_descriptor,
-                                                                     {// EBPF_PROGRAM_TYPE_BIND
-                                                                      0x608c517c,
-                                                                      0x6c52,
-                                                                      0x4a26,
-                                                                      // clang-format off
-                                                                      0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}},
-                                                                    // clang-format on
+static ebpf_program_information_t _ebpf_bind_program_information = {{"bind", &_ebpf_bind_context_descriptor, {0}},
                                                                     EBPF_COUNT_OF(_ebpf_map_helper_function_prototype),
                                                                     _ebpf_map_helper_function_prototype};
 
@@ -696,6 +680,12 @@ NTSTATUS
 net_ebpf_ext_program_information_provider_register()
 {
     ebpf_result_t return_value;
+    ebpf_extension_data_t* provider_data;
+    ebpf_program_data_t* program_data;
+
+    provider_data = &_ebpf_xdp_program_information_provider_data;
+    program_data = (ebpf_program_data_t*)provider_data->data;
+    program_data->program_information->program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_XDP;
 
     return_value = ebpf_provider_load(
         &_ebpf_xdp_program_information_provider,
@@ -710,6 +700,11 @@ net_ebpf_ext_program_information_provider_register()
     if (return_value != EBPF_SUCCESS) {
         goto Done;
     }
+
+    provider_data = &_ebpf_bind_program_information_provider_data;
+    program_data = (ebpf_program_data_t*)provider_data->data;
+    program_data->program_information->program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_BIND;
+
     return_value = ebpf_provider_load(
         &_ebpf_bind_program_information_provider,
         &EBPF_PROGRAM_TYPE_BIND,

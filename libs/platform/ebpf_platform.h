@@ -574,7 +574,7 @@ extern "C"
         _In_opt_ const ebpf_extension_dispatch_table_t* client_dispatch_table,
         _Outptr_opt_ void** provider_binding_context,
         _Outptr_ const ebpf_extension_data_t** provider_data,
-        _Outptr_ const ebpf_extension_dispatch_table_t** provider_dispatch_table,
+        _Outptr_opt_ const ebpf_extension_dispatch_table_t** provider_dispatch_table,
         _In_opt_ ebpf_extension_change_callback_t extension_changed);
 
     /**

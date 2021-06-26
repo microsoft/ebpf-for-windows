@@ -3,8 +3,8 @@
 
 // This file contains function implementations for serializing and de-serializing
 // various eBPF structures to/from ebpf_operation*_request/response structures.
-#include "ebpf_serialize.h"
 #include "ebpf_program_types.h"
+#include "ebpf_serialize.h"
 
 /**
  * @brief Serialized program type descriptor.
@@ -13,7 +13,7 @@ typedef struct _ebpf_serialized_program_type_descriptor
 {
     size_t size;
     ebpf_context_descriptor_t context_descriptor;
-    GUID platform_specific_data;
+    GUID program_type;
     unsigned char is_privileged;
     size_t name_length;
     uint8_t name[1];
@@ -355,7 +355,7 @@ ebpf_serialize_program_information(
     if (program_type_descriptor->context_descriptor != NULL) {
         serialized_program_type_descriptor->context_descriptor = *program_type_descriptor->context_descriptor;
     }
-    serialized_program_type_descriptor->platform_specific_data = program_type_descriptor->platform_specific_data;
+    serialized_program_type_descriptor->program_type = program_type_descriptor->program_type;
     serialized_program_type_descriptor->is_privileged = program_type_descriptor->is_privileged;
     serialized_program_type_descriptor->name_length = program_type_descriptor_name_length;
     // Copy the program type descriptor name buffer.
@@ -412,11 +412,11 @@ ebpf_deserialize_program_information(
 {
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_program_information_t* local_program_info;
-    uint8_t* current;
+    const uint8_t* current;
     size_t buffer_left;
     ebpf_context_descriptor_t* local_context_descriptor;
     ebpf_program_type_descriptor_t* local_program_type_descriptor;
-    ebpf_serialized_program_type_descriptor_t* serialized_program_type_descriptor;
+    const ebpf_serialized_program_type_descriptor_t* serialized_program_type_descriptor;
     char* local_program_type_descriptor_name;
     ebpf_serialized_helper_function_prototype_array_t* serialized_helper_prototype_array;
     uint32_t helper_function_count;
@@ -431,7 +431,7 @@ ebpf_deserialize_program_information(
     }
     local_program_type_descriptor = &local_program_info->program_type_descriptor;
 
-    current = (uint8_t*)input_buffer;
+    current = input_buffer;
     buffer_left = input_buffer_length;
 
     // Deserialize program type descriptor.
@@ -442,9 +442,9 @@ ebpf_deserialize_program_information(
         goto Exit;
     }
 
-    serialized_program_type_descriptor = (ebpf_serialized_program_type_descriptor_t*)current;
+    serialized_program_type_descriptor = (const ebpf_serialized_program_type_descriptor_t*)current;
 
-    local_program_type_descriptor->platform_specific_data = serialized_program_type_descriptor->platform_specific_data;
+    local_program_type_descriptor->program_type = serialized_program_type_descriptor->program_type;
     local_program_type_descriptor->is_privileged = serialized_program_type_descriptor->is_privileged;
 
     // Allocate and deserialize context_descriptor, if present.

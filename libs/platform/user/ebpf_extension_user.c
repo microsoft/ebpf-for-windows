@@ -36,7 +36,7 @@ ebpf_extension_load(
     _In_opt_ const ebpf_extension_dispatch_table_t* client_dispatch_table,
     _Outptr_opt_ void** provider_binding_context,
     _Outptr_ const ebpf_extension_data_t** provider_data,
-    _Outptr_ const ebpf_extension_dispatch_table_t** provider_dispatch_table,
+    _Outptr_opt_ const ebpf_extension_dispatch_table_t** provider_dispatch_table,
     _In_opt_ ebpf_extension_change_callback_t extension_changed)
 {
     ebpf_result_t return_value;
@@ -107,7 +107,8 @@ ebpf_extension_load(
         *provider_binding_context = local_extension_provider->provider_binding_context;
 
     *provider_data = local_extension_provider->provider_data;
-    *provider_dispatch_table = local_extension_provider->provider_dispatch_table;
+    if (provider_dispatch_table != NULL)
+        *provider_dispatch_table = local_extension_provider->provider_dispatch_table;
 
 Done:
     if (local_extension_provider && local_extension_client) {

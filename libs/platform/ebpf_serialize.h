@@ -125,7 +125,7 @@ extern "C"
 
     /**
      * @brief Helper Function to free ebpf_program_information_t allocated by
-     * ebpf_deserialize_program_information function.
+     * ebpf_deserialize_program_information().
      *
      * @param[in] program_info Program information to be freed.
      */

@@ -41,7 +41,7 @@ typedef struct _ebpf_program
     ebpf_extension_client_t* program_information_client;
     const void* program_information_binding_context;
     const ebpf_extension_data_t* program_information_data;
-    const ebpf_extension_dispatch_table_t* program_information_provider_dispatch_table;
+    uint32_t helper_function_count;
     bool program_invalidated;
 
     ebpf_trampoline_table_t* trampoline_table;
@@ -57,56 +57,47 @@ _ebpf_program_program_information_provider_changed(
 {
     ebpf_result_t return_value;
     ebpf_program_t* program = (ebpf_program_t*)client_binding_context;
-    const ebpf_extension_data_t* old_provider_data;
-    ebpf_helper_function_addresses_t* old_helper_function_addresses = NULL;
-    ebpf_helper_function_addresses_t* helper_function_addresses = NULL;
 
-    old_provider_data = program->program_information_data;
-    program->program_information_data = NULL;
-
-    if (old_provider_data != NULL) {
-        ebpf_program_data_t* old_program_data = (ebpf_program_data_t*)old_provider_data->data;
-        if (old_program_data != NULL) {
-            old_helper_function_addresses = old_program_data->helper_function_addresses;
-        }
-    }
-
-    if (provider_data != NULL) {
-        ebpf_program_data_t* program_data = (ebpf_program_data_t*)provider_data->data;
-        if (program_data != NULL) {
-            helper_function_addresses = program_data->helper_function_addresses;
-        }
-    }
-
-    if (helper_function_addresses == NULL) {
-        if (old_helper_function_addresses != NULL)
-            // This happens when the extension is unloading.
-            goto Exit;
+    if (provider_data == NULL) {
+        // Extension is detaching. Program will get invalidated.
+        goto Exit;
     } else {
-        size_t function_count = helper_function_addresses->helper_function_count;
+        ebpf_helper_function_addresses_t* helper_function_addresses = NULL;
 
-        if (old_helper_function_addresses != NULL) {
-            if (old_helper_function_addresses->helper_function_count != function_count)
-                // A program information provider cannot modify helper function count;
-                goto Exit;
+        ebpf_program_data_t* program_data = (ebpf_program_data_t*)provider_data->data;
+        if (program_data == NULL) {
+            // An extension cannot have empty program_data.
+            goto Exit;
         }
 
-        if (!program->trampoline_table) {
-            return_value = ebpf_allocate_trampoline_table(function_count, &program->trampoline_table);
+        helper_function_addresses = program_data->helper_function_addresses;
+
+        if ((program->helper_function_count > 0) &&
+            (helper_function_addresses->helper_function_count != program->helper_function_count))
+            // A program information provider cannot modify helper function count upon reload.
+            goto Exit;
+
+        if (helper_function_addresses != NULL) {
+            if (!program->trampoline_table) {
+                // Program information provider is being loaded for the first time. Allocate trampoline table.
+                program->helper_function_count = helper_function_addresses->helper_function_count;
+                return_value =
+                    ebpf_allocate_trampoline_table(program->helper_function_count, &program->trampoline_table);
+                if (return_value != EBPF_SUCCESS)
+                    goto Exit;
+            }
+
+            // Update trampoline table with new helper function addresses.
+            return_value = ebpf_update_trampoline_table(program->trampoline_table, helper_function_addresses);
             if (return_value != EBPF_SUCCESS)
                 goto Exit;
         }
-
-        return_value = ebpf_update_trampoline_table(program->trampoline_table, helper_function_addresses);
-        if (return_value != EBPF_SUCCESS)
-            goto Exit;
     }
 
     program->program_information_binding_context = provider_binding_context;
     program->program_information_data = provider_data;
 Exit:
     program->program_invalidated = (program->program_information_data == NULL);
-    return;
 }
 
 /**
@@ -208,7 +199,7 @@ ebpf_program_load_providers(ebpf_program_t* program)
         NULL,
         (void**)&program->program_information_binding_context,
         &program->program_information_data,
-        &program->program_information_provider_dispatch_table,
+        NULL,
         _ebpf_program_program_information_provider_changed);
 
     if (return_value != EBPF_SUCCESS)
