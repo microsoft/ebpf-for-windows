@@ -553,12 +553,13 @@ extern "C"
      * @param[in] client_data_length Length of the client data.
      * @param[in] client_dispatch_table Table of function pointers the client
      *  exposes.
-     * @param[out] provider_binding_context Provider binding context.
+     * @param[out] provider_binding_context Provider binding context or NULL if
+        the caller doesn't care.
      * @param[out] provider_data Opaque provider data.
      * @param[out] provider_dispatch_table Table of function pointers the
      *  provider exposes.
      * @param[in] extension_changed Callback invoked when a provider attaches
-     *  or detaches.
+     *  or detaches. NULL if not used.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NOT_FOUND The provider was not found.
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this

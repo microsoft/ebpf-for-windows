@@ -31,7 +31,7 @@ _get_program_byte_code_helper(const char* file_name, const char* section_name, e
 {
     EbpfMapDescriptor* descriptors = nullptr;
     int descriptors_count;
-    uint32_t result = ERROR_SUCCESS;
+    ebpf_result_t result = EBPF_SUCCESS;
     const char* error_message = nullptr;
     std::vector<ebpf_program_t*> programs;
     ebpf_program_t* program;
@@ -49,7 +49,7 @@ _get_program_byte_code_helper(const char* file_name, const char* section_name, e
          error_message ? printf("ebpf_get_program_byte_code failed with %s\n", error_message) : 0,
          ebpf_free_string(error_message),
          error_message = nullptr,
-         result == ERROR_SUCCESS));
+         result == EBPF_SUCCESS));
 
     REQUIRE(programs.size() == 1);
     program = programs[0];

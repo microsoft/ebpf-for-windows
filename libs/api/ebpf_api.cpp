@@ -151,7 +151,8 @@ Exit:
     return windows_error_to_ebpf_result(error);
 }
 
-_Return_type_success_(return == ERROR_SUCCESS) uint32_t ebpf_get_program_byte_code(
+ebpf_result_t
+ebpf_get_program_byte_code(
     _In_z_ const char* file_name,
     _In_z_ const char* section_name,
     bool mock_map_fd,
@@ -160,7 +161,7 @@ _Return_type_success_(return == ERROR_SUCCESS) uint32_t ebpf_get_program_byte_co
     _Out_ int* map_descriptors_count,
     _Outptr_result_maybenull_ const char** error_message)
 {
-    uint32_t result = ERROR_SUCCESS;
+    ebpf_result_t result = EBPF_SUCCESS;
 
     clear_map_descriptors();
     *map_descriptors = nullptr;
@@ -181,7 +182,7 @@ _Return_type_success_(return == ERROR_SUCCESS) uint32_t ebpf_get_program_byte_co
     if (*map_descriptors_count > 0) {
         *map_descriptors = new EbpfMapDescriptor[*map_descriptors_count];
         if (*map_descriptors == nullptr) {
-            result = ERROR_NOT_ENOUGH_MEMORY;
+            result = EBPF_NO_MEMORY;
             goto Done;
         }
         for (int i = 0; i < *map_descriptors_count; i++) {
