@@ -50,9 +50,9 @@ _Return_type_success_(return == ERROR_SUCCESS) uint32_t ebpf_get_program_byte_co
     _Out_ int* map_descriptors_count,
     _Outptr_result_maybenull_ const char** error_message);
 
-uint32_t
+ebpf_result_t
 get_program_information_data(
-    ebpf_program_type_t program_type, _Outptr_result_maybenull_ ebpf_program_information_t** program_information);
+    ebpf_program_type_t program_type, _Outptr_ ebpf_program_information_t** program_information);
 
 void
 clean_up_ebpf_program(_In_ _Post_invalid_ ebpf_program_t* program);

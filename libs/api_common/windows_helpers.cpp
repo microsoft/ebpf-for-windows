@@ -48,7 +48,7 @@ clear_program_information_cache()
 
 ebpf_result_t
 get_program_information_data(
-    ebpf_program_type_t program_type, _Outptr_result_maybenull_ ebpf_program_information_t** program_information)
+    ebpf_program_type_t program_type, _Outptr_ ebpf_program_information_t** program_information)
 {
     ebpf_protocol_buffer_t reply_buffer(1024);
     size_t required_buffer_length;

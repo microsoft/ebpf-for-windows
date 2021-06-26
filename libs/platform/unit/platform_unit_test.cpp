@@ -238,11 +238,10 @@ TEST_CASE("program_type_info", "[platform]")
          EBPF_RETURN_TYPE_PTR_TO_MAP_VALUE_OR_NULL,
          {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY}},
     };
-    ebpf_context_descriptor_t context_descriptor{
-        sizeof(xdp_md_t),
-        EBPF_OFFSET_OF(xdp_md_t, data),
-        EBPF_OFFSET_OF(xdp_md_t, data_end),
-        EBPF_OFFSET_OF(xdp_md_t, data_meta)};
+    ebpf_context_descriptor_t context_descriptor{sizeof(xdp_md_t),
+                                                 EBPF_OFFSET_OF(xdp_md_t, data),
+                                                 EBPF_OFFSET_OF(xdp_md_t, data_end),
+                                                 EBPF_OFFSET_OF(xdp_md_t, data_meta)};
     ebpf_program_type_descriptor_t program_type{"xdp", &context_descriptor};
     ebpf_program_information_t program_information{program_type, _countof(helper_functions), helper_functions};
     ebpf_program_information_t* new_program_information = nullptr;
@@ -412,6 +411,7 @@ TEST_CASE("serialize_program_information_test", "[platform]")
     REQUIRE(result == EBPF_INSUFFICIENT_BUFFER);
 
     buffer = static_cast<uint8_t*>(calloc(required_length, 1));
+    _Analysis_assume_(buffer != nullptr);
     buffer_length = required_length;
 
     result = ebpf_serialize_program_information(
