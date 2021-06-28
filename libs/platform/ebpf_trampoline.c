@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #include "ebpf_platform.h"
+#include "ebpf_program_types.h"
 #include "ebpf_epoch.h"
 
 #pragma pack(push)
@@ -61,12 +62,12 @@ ebpf_free_trampoline_table(_In_opt_ _Post_invalid_ ebpf_trampoline_table_t* tram
 
 ebpf_result_t
 ebpf_update_trampoline_table(
-    _Inout_ ebpf_trampoline_table_t* trampoline_table, _In_ const ebpf_extension_dispatch_table_t* dispatch_table)
+    _Inout_ ebpf_trampoline_table_t* trampoline_table,
+    _In_ const ebpf_helper_function_addresses_t* helper_function_addresses)
 {
 #if defined(_AMD64_)
 
-    size_t function_count = (dispatch_table->size - EBPF_OFFSET_OF(ebpf_extension_dispatch_table_t, function)) /
-                            sizeof(dispatch_table->function[0]);
+    size_t function_count = helper_function_addresses->helper_function_count;
     ebpf_trampoline_entry_t* local_entries;
     ebpf_result_t return_value;
 
@@ -92,7 +93,7 @@ ebpf_update_trampoline_table(
         local_entries[index].load_rax = 0xa148;
         local_entries[index].indirect_address = &local_entries[index].address;
         local_entries[index].jmp_rax = 0xe0ff;
-        local_entries[index].address = (void*)dispatch_table->function[index];
+        local_entries[index].address = (void*)helper_function_addresses->helper_function_address[index];
     }
 
 Exit:

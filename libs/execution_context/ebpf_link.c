@@ -18,7 +18,6 @@ typedef struct _ebpf_link
 
     void* provider_binding_context;
     ebpf_extension_data_t* provider_data;
-    ebpf_extension_dispatch_table_t* provider_dispatch_table;
 } ebpf_link_t;
 
 static ebpf_result_t
@@ -78,7 +77,7 @@ ebpf_link_initialize(
         (ebpf_extension_dispatch_table_t*)&_ebpf_link_dispatch_table,
         &(link->provider_binding_context),
         &(link->provider_data),
-        &(link->provider_dispatch_table),
+        NULL,
         NULL);
 
     return return_value;

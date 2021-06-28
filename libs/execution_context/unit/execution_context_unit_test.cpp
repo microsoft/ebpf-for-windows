@@ -156,12 +156,13 @@ TEST_CASE("program", "[execution_context]")
     ebpf_trampoline_table_t* table = NULL;
     ebpf_result_t (*test_function)();
     auto provider_function1 = []() { return (ebpf_result_t)TEST_FUNCTION_RETURN; };
-
-    ebpf_extension_dispatch_table_t provider_dispatch_table1 = {
-        0, sizeof(ebpf_extension_dispatch_table_t), provider_function1};
+    ebpf_result_t (*function_pointer1)() = provider_function1;
+    const void* helper_functions[] = {(void*)function_pointer1};
+    ebpf_helper_function_addresses_t helper_function_addresses = {EBPF_COUNT_OF(helper_functions),
+                                                                  (uint64_t*)helper_functions};
 
     REQUIRE(ebpf_allocate_trampoline_table(1, &table) == EBPF_SUCCESS);
-    REQUIRE(ebpf_update_trampoline_table(table, &provider_dispatch_table1) == EBPF_SUCCESS);
+    REQUIRE(ebpf_update_trampoline_table(table, &helper_function_addresses) == EBPF_SUCCESS);
     REQUIRE(ebpf_get_trampoline_function(table, 0, reinterpret_cast<void**>(&test_function)) == EBPF_SUCCESS);
 
     // Size of the actual function is unknown, but we know the allocation is on page granularity.

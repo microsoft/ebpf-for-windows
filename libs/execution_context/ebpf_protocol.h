@@ -261,7 +261,7 @@ typedef struct _ebpf_operation_get_program_information_reply
 {
     struct _ebpf_operation_header header;
     uint16_t version;
-    uint16_t size;
+    size_t size;
     uint8_t data[1];
 } ebpf_operation_get_program_information_reply_t;
 
@@ -275,6 +275,6 @@ typedef struct _ebpf_operation_get_map_information_reply
 {
     struct _ebpf_operation_header header;
     uint16_t map_count;
-    uint16_t size;
+    size_t size;
     uint8_t data[1];
 } ebpf_operation_get_map_information_reply_t;

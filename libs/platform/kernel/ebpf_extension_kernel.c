@@ -48,8 +48,7 @@ _ebpf_extension_client_notify_change(ebpf_extension_client_t* client_context)
         client_context->extension_change_callback(
             client_context->client_binding_context,
             client_context->provider_binding_context,
-            client_context->provider_data,
-            client_context->provider_dispatch_table);
+            client_context->provider_data);
 }
 
 NTSTATUS
@@ -119,14 +118,19 @@ ebpf_extension_load(
     _In_opt_ const ebpf_extension_dispatch_table_t* client_dispatch_table,
     _Outptr_opt_ void** provider_binding_context,
     _Outptr_ const ebpf_extension_data_t** provider_data,
-    _Outptr_ const ebpf_extension_dispatch_table_t** provider_dispatch_table,
+    _Outptr_opt_ const ebpf_extension_dispatch_table_t** provider_dispatch_table,
     _In_opt_ ebpf_extension_change_callback_t extension_changed)
 {
     ebpf_result_t return_value;
-    ebpf_extension_client_t* local_client_context;
+    ebpf_extension_client_t* local_client_context = NULL;
     NPI_CLIENT_CHARACTERISTICS* client_characteristics;
     NPI_REGISTRATION_INSTANCE* client_registration_instance;
     NTSTATUS status;
+
+    if (provider_binding_context == NULL) {
+        return_value = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
 
     local_client_context = ebpf_allocate(sizeof(ebpf_extension_client_t));
 
@@ -184,7 +188,8 @@ ebpf_extension_load(
         *provider_binding_context = local_client_context->provider_binding_context;
 
     *provider_data = local_client_context->provider_data;
-    *provider_dispatch_table = local_client_context->provider_dispatch_table;
+    if (provider_dispatch_table != NULL)
+        *provider_dispatch_table = local_client_context->provider_dispatch_table;
     *client_context = local_client_context;
     local_client_context = NULL;
     return_value = EBPF_SUCCESS;
