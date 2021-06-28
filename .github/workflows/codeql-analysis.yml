@@ -46,6 +46,9 @@ jobs:
         # Prefix the list here with "+" to use these queries and those in the config file.
         # queries: ./path/to/local/query, your-org/your-repo/queries@main
 
+    - name: Add MSBuild to PATH
+      uses: microsoft/setup-msbuild@v1
+
     - name: Install LLVM and Clang
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
