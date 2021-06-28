@@ -402,7 +402,7 @@ extern "C"
      * @param[in] hash_table Hash-table to release.
      */
     void
-    ebpf_hash_table_destroy(_In_opt_ _Post_invalid_ ebpf_hash_table_t* hash_table);
+    ebpf_hash_table_destroy(_In_opt_ _Post_ptr_invalid_ ebpf_hash_table_t* hash_table);
 
     /**
      * @brief Find an element in the hash table.
@@ -584,7 +584,7 @@ extern "C"
      * @param[in] client_context Context of the extension to unload.
      */
     void
-    ebpf_extension_unload(_In_opt_ _Post_invalid_ ebpf_extension_client_t* client_context);
+    ebpf_extension_unload(_Frees_ptr_opt_ ebpf_extension_client_t* client_context);
 
     typedef ebpf_result_t (*ebpf_provider_client_attach_callback_t)(
         void* context,
@@ -628,7 +628,7 @@ extern "C"
      * @param[in] provider_context Provider to unload.
      */
     void
-    ebpf_provider_unload(_In_opt_ _Post_invalid_ ebpf_extension_provider_t* provider_context);
+    ebpf_provider_unload(_Frees_ptr_opt_ ebpf_extension_provider_t* provider_context);
 
     ebpf_result_t
     ebpf_guid_create(_Out_ GUID* new_guid);

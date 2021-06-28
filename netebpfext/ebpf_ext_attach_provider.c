@@ -219,14 +219,16 @@ ebpf_ext_attach_register_provider(
     local_registration = NULL;
 
 Done:
-    ebpf_ext_attach_unregister_provider(local_registration);
+    // Wrap in conditional to resolve C6101.
+    if (return_value != EBPF_SUCCESS) {
+        ebpf_ext_attach_unregister_provider(local_registration);
+    }
 
     return return_value;
 }
 
 void
-ebpf_ext_attach_unregister_provider(_In_opt_ _Post_invalid_ __drv_freesMem(Mem)
-                                        ebpf_ext_attach_hook_provider_registration_t* registration)
+ebpf_ext_attach_unregister_provider(_Frees_ptr_opt_ ebpf_ext_attach_hook_provider_registration_t* registration)
 {
     if (registration) {
         ebpf_provider_unload(registration->provider);

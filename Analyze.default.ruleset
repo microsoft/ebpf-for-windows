@@ -7,8 +7,6 @@
   <Rules AnalyzerId="Microsoft.Analyzers.NativeCodeAnalysis" RuleNamespace="Microsoft.Rules.Native">
     <!-- All rules marked as Warning should be switched to Error once all instances are resolved. -->
     <!-- Resolving an instance can be done via either locally suppressing it or fixing the issue. -->
-    <!-- warning C6101: Returning uninitialized memory -->
-    <Rule Id="C6101" Action="Warning" />
     <!-- warning C6385: invalid data: accessing buffer-name, the readable size is size1 bytes, but size2 bytes may be read: Lines: x, y -->
     <Rule Id="C6385" Action="Warning" />
     <!-- warning C6386: buffer overrun: accessing <buffer name>, the writable size is <size1> bytes, but <size2> bytes may be written: Lines: x, y -->
@@ -155,6 +153,7 @@
     <Rule Id="C6064" Action="Error" />
     <Rule Id="C6066" Action="Error" />
     <Rule Id="C6067" Action="Error" />
+    <Rule Id="C6101" Action="Error" />
     <Rule Id="C6200" Action="Error" />
     <Rule Id="C6201" Action="Error" />
     <Rule Id="C6214" Action="Error" />
