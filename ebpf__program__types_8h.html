@@ -87,11 +87,19 @@ Data Structures</h2></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__program__information.html">_ebpf_program_information</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__helper__function__addresses.html">_ebpf_helper_function_addresses</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__program__data.html">_ebpf_program_data</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="define-members"></a>
 Macros</h2></td></tr>
 <tr class="memitem:ac4c5b84afac4c8a0a6c0564c2ff50842"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__program__types_8h.html#ac4c5b84afac4c8a0a6c0564c2ff50842">MIDL</a>(x)</td></tr>
 <tr class="separator:ac4c5b84afac4c8a0a6c0564c2ff50842"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9848135b2a7f061ddeb32204a2ec511f"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__program__types_8h.html#a9848135b2a7f061ddeb32204a2ec511f">EBPF_MAX_PROGRAM_DESCRIPTOR_NAME_LENGTH</a>&#160;&#160;&#160;256</td></tr>
+<tr class="separator:a9848135b2a7f061ddeb32204a2ec511f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:adfa6f94ddf162a37941cbdecd8111c67"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__program__types_8h.html#adfa6f94ddf162a37941cbdecd8111c67">EBPF_MAX_HELPER_FUNCTION_NAME_LENGTH</a>&#160;&#160;&#160;256</td></tr>
+<tr class="separator:adfa6f94ddf162a37941cbdecd8111c67"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="typedef-members"></a>
 Typedefs</h2></td></tr>
@@ -101,8 +109,40 @@ Typedefs</h2></td></tr>
 <tr class="separator:a8cabe38407044d4c213492316d2852fc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1dbd9cae2d79a713d61ebe5d0b50ec4d"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__ebpf__program__information.html">_ebpf_program_information</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__program__types_8h.html#a1dbd9cae2d79a713d61ebe5d0b50ec4d">ebpf_program_information_t</a></td></tr>
 <tr class="separator:a1dbd9cae2d79a713d61ebe5d0b50ec4d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a92fcd0c5efe2b7e5ca59020423fcb8f9"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__ebpf__helper__function__addresses.html">_ebpf_helper_function_addresses</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__program__types_8h.html#a92fcd0c5efe2b7e5ca59020423fcb8f9">ebpf_helper_function_addresses_t</a></td></tr>
+<tr class="separator:a92fcd0c5efe2b7e5ca59020423fcb8f9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a28e774e1c41a3b613b24765200af83e5"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__ebpf__program__data.html">_ebpf_program_data</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__program__types_8h.html#a28e774e1c41a3b613b24765200af83e5">ebpf_program_data_t</a></td></tr>
+<tr class="separator:a28e774e1c41a3b613b24765200af83e5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Macro Definition Documentation</h2>
+<a id="adfa6f94ddf162a37941cbdecd8111c67"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#adfa6f94ddf162a37941cbdecd8111c67">&#9670;&nbsp;</a></span>EBPF_MAX_HELPER_FUNCTION_NAME_LENGTH</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define EBPF_MAX_HELPER_FUNCTION_NAME_LENGTH&#160;&#160;&#160;256</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a9848135b2a7f061ddeb32204a2ec511f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a9848135b2a7f061ddeb32204a2ec511f">&#9670;&nbsp;</a></span>EBPF_MAX_PROGRAM_DESCRIPTOR_NAME_LENGTH</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define EBPF_MAX_PROGRAM_DESCRIPTOR_NAME_LENGTH&#160;&#160;&#160;256</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <a id="ac4c5b84afac4c8a0a6c0564c2ff50842"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ac4c5b84afac4c8a0a6c0564c2ff50842">&#9670;&nbsp;</a></span>MIDL</h2>
 
@@ -122,6 +162,20 @@ Typedefs</h2></td></tr>
 </div>
 </div>
 <h2 class="groupheader">Typedef Documentation</h2>
+<a id="a92fcd0c5efe2b7e5ca59020423fcb8f9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a92fcd0c5efe2b7e5ca59020423fcb8f9">&#9670;&nbsp;</a></span>ebpf_helper_function_addresses_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef struct <a class="el" href="struct__ebpf__helper__function__addresses.html">_ebpf_helper_function_addresses</a> <a class="el" href="ebpf__program__types_8h.html#a92fcd0c5efe2b7e5ca59020423fcb8f9">ebpf_helper_function_addresses_t</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <a id="a8cabe38407044d4c213492316d2852fc"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a8cabe38407044d4c213492316d2852fc">&#9670;&nbsp;</a></span>ebpf_helper_function_prototype_t</h2>
 
@@ -130,6 +184,20 @@ Typedefs</h2></td></tr>
       <table class="memname">
         <tr>
           <td class="memname">typedef struct <a class="el" href="struct__ebpf__helper__function__prototype.html">_ebpf_helper_function_prototype</a> <a class="el" href="ebpf__program__types_8h.html#a8cabe38407044d4c213492316d2852fc">ebpf_helper_function_prototype_t</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a28e774e1c41a3b613b24765200af83e5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a28e774e1c41a3b613b24765200af83e5">&#9670;&nbsp;</a></span>ebpf_program_data_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef struct <a class="el" href="struct__ebpf__program__data.html">_ebpf_program_data</a> <a class="el" href="ebpf__program__types_8h.html#a28e774e1c41a3b613b24765200af83e5">ebpf_program_data_t</a></td>
         </tr>
       </table>
 </div><div class="memdoc">
