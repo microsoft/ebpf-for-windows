@@ -4,14 +4,9 @@
 #define CATCH_CONFIG_MAIN
 
 #include "api_internal.h"
-#include "catch2\catch.hpp"
+#include "catch_wrapper.hpp"
 #include "ebpf_api.h"
-#pragma warning(push)
-#pragma warning(disable : 4100) // 'identifier' : unreferenced formal parameter
-#pragma warning(disable : 4244) // 'conversion' conversion from 'type1' to
-                                // 'type2', possible loss of data
-#include "ebpf_verifier.hpp"
-#pragma warning(pop)
+#include "ebpf_verifier_wrapper.hpp"
 #include "header.h"
 #include "rpc_client.h"
 #include "rpc_interface_h.h"
@@ -27,7 +22,7 @@ _get_program_byte_code_helper(const char* file_name, const char* section_name, e
 {
     EbpfMapDescriptor* descriptors = nullptr;
     int descriptors_count;
-    uint32_t result = ERROR_SUCCESS;
+    ebpf_result_t result = EBPF_SUCCESS;
     const char* error_message = nullptr;
     std::vector<ebpf_program_t*> programs;
     ebpf_program_t* program;
@@ -45,7 +40,7 @@ _get_program_byte_code_helper(const char* file_name, const char* section_name, e
          error_message ? printf("ebpf_get_program_byte_code failed with %s\n", error_message) : 0,
          ebpf_free_string(error_message),
          error_message = nullptr,
-         result == ERROR_SUCCESS));
+         result == EBPF_SUCCESS));
 
     REQUIRE(programs.size() == 1);
     program = programs[0];

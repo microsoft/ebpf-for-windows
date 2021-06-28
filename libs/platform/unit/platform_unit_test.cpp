@@ -10,7 +10,7 @@
 #include <thread>
 #include <sddl.h>
 
-#include "catch2\catch.hpp"
+#include "catch_wrapper.hpp"
 #include "ebpf_bind_program_data.h"
 #include "ebpf_epoch.h"
 #include "ebpf_nethooks.h"
@@ -51,7 +51,7 @@ TEST_CASE("pinning_test", "[platform]")
 
     typedef struct _some_object
     {
-        ebpf_object_t object;
+        ebpf_object_t object{};
         std::string name;
     } some_object_t;
 
