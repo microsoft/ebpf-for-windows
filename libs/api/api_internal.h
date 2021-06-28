@@ -41,7 +41,8 @@ typedef struct _ebpf_object
     std::vector<ebpf_map_t*> maps;
 } ebpf_object_t;
 
-_Return_type_success_(return == ERROR_SUCCESS) uint32_t ebpf_get_program_byte_code(
+ebpf_result_t
+ebpf_get_program_byte_code(
     _In_z_ const char* file_name,
     _In_z_ const char* section_name,
     bool mock_map_fd,

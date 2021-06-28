@@ -5,12 +5,7 @@
 #include <stdexcept>
 #include "api_common.hpp"
 #include "api_internal.h"
-#pragma warning(push)
-#pragma warning(disable : 4100) // 'identifier' : unreferenced formal parameter
-#pragma warning(disable : 4244) // 'conversion' conversion from 'type1' to
-                                // 'type2', possible loss of data
-#include "crab_verifier.hpp"
-#pragma warning(pop)
+#include "crab_verifier_wrapper.hpp"
 #include "ebpf_api.h"
 #include "ebpf_helpers.h"
 #include "helpers.hpp"

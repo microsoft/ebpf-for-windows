@@ -550,16 +550,17 @@ extern "C"
      * @param[out] client_context Context used to unload the extension.
      * @param[in] interface_id GUID representing the identity of the interface.
      * @param[in] client_binding_context Opaque per-instance pointer passed to the extension.
-     * @param[in] client_data Opaque client data passed to the extension.
+     * @param[in] client_data Opaque client data passed to the extension or
+        NULL if there is none.
      * @param[in] client_data_length Length of the client data.
      * @param[in] client_dispatch_table Table of function pointers the client
-     *  exposes.
-     * @param[out] provider_binding_context Provider binding context.
+     *  exposes or NULL if there is none.
+     * @param[out] provider_binding_context Provider binding context. Can be NULL.
      * @param[out] provider_data Opaque provider data.
      * @param[out] provider_dispatch_table Table of function pointers the
      *  provider exposes.
      * @param[in] extension_changed Callback invoked when a provider attaches
-     *  or detaches.
+     *  or detaches. NULL if not used.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NOT_FOUND The provider was not found.
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this

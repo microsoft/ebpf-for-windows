@@ -4,7 +4,7 @@
 #include <windows.h>
 #include <netsh.h> // Must be included after windows.h
 #include "capture_helper.hpp"
-#include "catch2\catch.hpp"
+#include "catch_wrapper.hpp"
 #include "elf.h"
 #include "programs.h"
 #include "test_helper.hpp"

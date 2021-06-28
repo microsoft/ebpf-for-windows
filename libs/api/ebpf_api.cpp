@@ -151,7 +151,8 @@ Exit:
     return windows_error_to_ebpf_result(error);
 }
 
-_Return_type_success_(return == ERROR_SUCCESS) uint32_t ebpf_get_program_byte_code(
+ebpf_result_t
+ebpf_get_program_byte_code(
     _In_z_ const char* file_name,
     _In_z_ const char* section_name,
     bool mock_map_fd,
@@ -160,7 +161,7 @@ _Return_type_success_(return == ERROR_SUCCESS) uint32_t ebpf_get_program_byte_co
     _Out_ int* map_descriptors_count,
     _Outptr_result_maybenull_ const char** error_message)
 {
-    uint32_t result = ERROR_SUCCESS;
+    ebpf_result_t result = EBPF_SUCCESS;
 
     clear_map_descriptors();
     *map_descriptors = nullptr;
@@ -181,7 +182,7 @@ _Return_type_success_(return == ERROR_SUCCESS) uint32_t ebpf_get_program_byte_co
     if (*map_descriptors_count > 0) {
         *map_descriptors = new EbpfMapDescriptor[*map_descriptors_count];
         if (*map_descriptors == nullptr) {
-            result = ERROR_NOT_ENOUGH_MEMORY;
+            result = EBPF_NO_MEMORY;
             goto Done;
         }
         for (int i = 0; i < *map_descriptors_count; i++) {
@@ -946,7 +947,7 @@ ebpf_program_next(_In_opt_ const struct _ebpf_program* previous, _In_ const stru
         program = object->programs[0];
     } else {
         size_t programs_count = object->programs.size();
-        for (int i = 0; i < programs_count; i++) {
+        for (size_t i = 0; i < programs_count; i++) {
             if (object->programs[i] == previous && i < programs_count - 1) {
                 program = object->programs[i + 1];
                 break;
@@ -998,7 +999,7 @@ ebpf_map_next(_In_opt_ const struct _ebpf_map* previous, _In_ const struct _ebpf
         map = object->maps[0];
     } else {
         size_t maps_count = object->maps.size();
-        for (int i = 0; i < maps_count; i++) {
+        for (size_t i = 0; i < maps_count; i++) {
             if (object->maps[i] == previous && i < maps_count - 1) {
                 map = object->maps[i + 1];
                 break;

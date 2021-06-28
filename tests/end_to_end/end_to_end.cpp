@@ -8,7 +8,7 @@
 #include <thread>
 #include <WinSock2.h>
 
-#include "catch2\catch.hpp"
+#include "catch_wrapper.hpp"
 #include "common_tests.h"
 #include "ebpf_bind_program_data.h"
 #include "ebpf_xdp_program_data.h"
