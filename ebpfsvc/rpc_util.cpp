@@ -49,7 +49,10 @@ Exit:
     }
     if (status != RPC_S_OK) {
         if (registered) {
-            RpcServerUnregisterIf(nullptr, nullptr, true);
+            RPC_STATUS unregister_status = RpcServerUnregisterIf(nullptr, nullptr, true);
+            if (unregister_status != RPC_S_OK) {
+                // TODO: Add a trace that something happened.
+            }
         }
     }
     return status;

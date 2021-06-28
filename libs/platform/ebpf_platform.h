@@ -105,7 +105,7 @@ extern "C"
      * @param[in] memory Allocation to be freed.
      */
     void
-    ebpf_free(_In_opt_ _Post_invalid_ __drv_freesMem(Mem) void* memory);
+    ebpf_free(_Frees_ptr_opt_ void* memory);
 
     typedef enum _ebpf_page_protection
     {
@@ -134,7 +134,7 @@ extern "C"
      * allocated pages.
      */
     void
-    ebpf_unmap_memory(_In_opt_ _Post_invalid_ ebpf_memory_descriptor_t* memory_descriptor);
+    ebpf_unmap_memory(_Frees_ptr_opt_ ebpf_memory_descriptor_t* memory_descriptor);
 
     /**
      * @brief Change the page protection on memory allocated via
@@ -315,7 +315,7 @@ extern "C"
      * @param[in] work_item Pointer to the work item to free.
      */
     void
-    ebpf_free_non_preemptible_work_item(_In_opt_ _Post_invalid_ ebpf_non_preemptible_work_item_t* work_item);
+    ebpf_free_non_preemptible_work_item(_Frees_ptr_opt_ ebpf_non_preemptible_work_item_t* work_item);
 
     /**
      * @brief Schedule a non-preemptible work item to run.
@@ -360,7 +360,7 @@ extern "C"
      * @param[in] timer Timer to be freed.
      */
     void
-    ebpf_free_timer_work_item(_In_opt_ _Post_invalid_ ebpf_timer_work_item_t* timer);
+    ebpf_free_timer_work_item(_Frees_ptr_opt_ ebpf_timer_work_item_t* timer);
 
     typedef struct _ebpf_hash_table ebpf_hash_table_t;
 
@@ -655,7 +655,7 @@ extern "C"
      * @param[in] trampoline_table Pointer to trampoline table to free.
      */
     void
-    ebpf_free_trampoline_table(_In_opt_ _Post_invalid_ ebpf_trampoline_table_t* trampoline_table);
+    ebpf_free_trampoline_table(_Frees_ptr_opt_ ebpf_trampoline_table_t* trampoline_table);
 
     /**
      * @brief Populate the function pointers in a trampoline table.

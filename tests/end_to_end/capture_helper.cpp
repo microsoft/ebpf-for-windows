@@ -48,9 +48,12 @@ capture_helper_t::begin_fd_capture(_In_ FILE* fp, _Out_ int* original_fd, _In_z_
     *original_fd = _dup(standard_fileno);
 
     // Redirect fp to the temporary file.
-    _dup2(destination_fd, standard_fileno);
+    if (_dup2(destination_fd, standard_fileno) < 0) {
+        err = errno;
+    }
     _close(destination_fd);
-    return 0;
+
+    return err;
 }
 
 std::string
@@ -64,7 +67,9 @@ capture_helper_t::end_fd_capture(_In_ FILE* fp, _Inout_ int* original_fd, _In_z_
     // Restore standard fd to original.
     int standard_fileno = _fileno(fp);
     fflush(fp);
-    _dup2(*original_fd, standard_fileno);
+    if (_dup2(*original_fd, standard_fileno) < 0) {
+        fprintf(stderr, "Failed to restore stdout\n");
+    }
     _close(*original_fd);
     *original_fd = -1;
 
