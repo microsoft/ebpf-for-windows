@@ -32,6 +32,11 @@ jobs:
     - name: Add MSBuild to PATH
       uses: microsoft/setup-msbuild@v1
 
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v1
+      with:
+        languages: go, javascript
+
     - name: Install LLVM and Clang
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
@@ -71,3 +76,6 @@ jobs:
     - name: Run RPC Client Tests
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
       run: ./ebpf_client.exe -s
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v1
