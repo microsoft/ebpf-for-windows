@@ -47,12 +47,12 @@ ebpf_extension_load(
 
     UNREFERENCED_PARAMETER(extension_changed);
 
+    state = ebpf_lock_lock(&_ebpf_provider_table_lock);
+
     if (provider_binding_context == NULL) {
         return_value = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
-
-    state = ebpf_lock_lock(&_ebpf_provider_table_lock);
 
     if (!_ebpf_provider_table) {
         return_value = EBPF_EXTENSION_FAILED_TO_LOAD;
@@ -217,7 +217,6 @@ ebpf_provider_load(
 
 Done:
     ebpf_lock_unlock(&_ebpf_provider_table_lock, state);
-    // Wrap in conditional to resolve C6101.
     if (return_value != EBPF_SUCCESS) {
         ebpf_free(local_extension_provider);
     }
