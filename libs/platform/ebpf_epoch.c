@@ -122,6 +122,7 @@ ebpf_epoch_initiate()
 
     if (ebpf_is_non_preemptible_work_item_supported()) {
         ebpf_get_cpu_count(&_ebpf_epoch_cpu_table_size);
+        _Analysis_assume_(_ebpf_epoch_cpu_table_size >= 1);
 
         _ebpf_epoch_cpu_table = ebpf_allocate(_ebpf_epoch_cpu_table_size * sizeof(ebpf_epoch_cpu_entry_t));
         if (!_ebpf_epoch_cpu_table) {
@@ -130,17 +131,20 @@ ebpf_epoch_initiate()
         }
 
         memset(_ebpf_epoch_cpu_table, 0, _ebpf_epoch_cpu_table_size * sizeof(ebpf_epoch_cpu_entry_t));
-
         for (cpu_id = 0; cpu_id < _ebpf_epoch_cpu_table_size; cpu_id++) {
+            ebpf_non_preemptible_work_item_t* work_item_context = NULL;
             _ebpf_epoch_cpu_table[cpu_id].epoch = _ebpf_current_epoch;
             return_value = ebpf_allocate_non_preemptible_work_item(
-                &_ebpf_epoch_cpu_table[cpu_id].non_preemtable_work_item,
+                &work_item_context,
                 cpu_id,
                 _ebpf_epoch_update_cpu_entry,
                 &_ebpf_epoch_cpu_table[cpu_id]);
 
-            if (return_value != EBPF_SUCCESS)
+            if (return_value != EBPF_SUCCESS) {
+                _ebpf_epoch_cpu_table_size = cpu_id;
                 break;
+            }
+            _ebpf_epoch_cpu_table[cpu_id].non_preemtable_work_item = work_item_context;
         }
 
         if (return_value != EBPF_SUCCESS) {
