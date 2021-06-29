@@ -279,7 +279,7 @@ TEST_CASE("program_type_info_stored", "[platform]")
 struct ebpf_security_descriptor_t_free
 {
     void
-    operator()(ebpf_security_descriptor_t* p)
+    operator()(_Frees_ptr_opt_ ebpf_security_descriptor_t* p)
     {
         LocalFree(p);
     }
@@ -318,7 +318,7 @@ TEST_CASE("access_check", "[platform]")
 struct ebpf_memory_descriptor_t_free
 {
     void
-    operator()(ebpf_memory_descriptor_t* p)
+    operator()(_Frees_ptr_opt_ ebpf_memory_descriptor_t* p)
     {
         ebpf_unmap_memory(p);
     }
