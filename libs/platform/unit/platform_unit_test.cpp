@@ -385,7 +385,7 @@ TEST_CASE("serialize_map_test", "[platform]")
     // Deserialize.
     result = ebpf_deserialize_map_information_array(serialized_length, buffer, map_count, &map_info_array);
     REQUIRE(result == EBPF_SUCCESS);
-
+    _Analysis_assume_(map_info_array != nullptr);
     // Verify de-serialized map info array matches input.
     for (int i = 0; i < map_count; i++) {
         ebpf_map_information_internal_t* input_map_info = &internal_map_info_array[i];

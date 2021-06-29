@@ -352,7 +352,8 @@ extern "C"
      * @param[in] map_info Map to be freed.
      */
     void
-    ebpf_api_map_info_free(uint16_t map_count, _In_opt_count_(map_count) const ebpf_map_information_t* map_info);
+    ebpf_api_map_info_free(
+        uint16_t map_count, _In_opt_count_(map_count) _Post_ptr_invalid_ const ebpf_map_information_t* map_info);
 
     /**
      * @brief Load eBPF programs from an ELF file based on default load

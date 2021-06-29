@@ -216,6 +216,7 @@ ebpf_deserialize_map_information_array(
     out_map_info = NULL;
 
 Exit:
+    // Wrap in conditional to resolve C6101.
     if (result != EBPF_SUCCESS) {
         ebpf_map_information_array_free(map_count, out_map_info);
     }

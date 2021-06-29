@@ -217,6 +217,7 @@ ebpf_provider_load(
 
 Done:
     ebpf_lock_unlock(&_ebpf_provider_table_lock, state);
+    // Wrap in conditional to resolve C6101.
     if (return_value != EBPF_SUCCESS) {
         ebpf_free(local_extension_provider);
     }
