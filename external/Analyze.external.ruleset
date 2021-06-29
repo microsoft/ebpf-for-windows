@@ -14,13 +14,13 @@
       <Rule Id="C26812" Action="Warning" />
       <!-- "This kind of function may not throw. Declare it 'noexcept'." -->
       <Rule Id="C26439" Action="Warning" />
-    <!-- Arithmetic overflow: '%operator%' operation causes overflow at compile time. Use a wider type to store the operands -->
-    <Rule Id="C26450" Action="Warning" />
-    <!-- Unannotated fallthrough between switch labels (es.78). -->
-    <Rule Id="C26819" Action="Warning" />
-    <!-- Potentially expensive copy of variable name in range-for loop. Consider making it a const reference (es.71). -->
-    <Rule Id="C26817" Action="Warning" />
-    <!-- Assigning by value when a const-reference would suffice, use const auto& instead (p.9). -->
-    <Rule Id="C26820" Action="Warning" />
+      <!-- Arithmetic overflow: '%operator%' operation causes overflow at compile time. Use a wider type to store the operands -->
+      <Rule Id="C26450" Action="Warning" />
+      <!-- Unannotated fallthrough between switch labels (es.78). -->
+      <Rule Id="C26819" Action="Warning" />
+      <!-- Potentially expensive copy of variable name in range-for loop. Consider making it a const reference (es.71). -->
+      <Rule Id="C26817" Action="Warning" />
+      <!-- Assigning by value when a const-reference would suffice, use const auto& instead (p.9). -->
+      <Rule Id="C26820" Action="Warning" />
   </Rules>
 </RuleSet>

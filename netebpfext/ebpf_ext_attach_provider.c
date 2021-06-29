@@ -163,8 +163,8 @@ _ebpf_ext_attach_provider_client_detach_callback(_In_ void* context, _In_ const 
     return EBPF_SUCCESS;
 }
 
-bool
-ebpf_ext_attach_enter_rundown(_In_ ebpf_ext_attach_hook_provider_registration_t* registration)
+_Acquires_lock_(registration) bool ebpf_ext_attach_enter_rundown(
+    _In_ ebpf_ext_attach_hook_provider_registration_t* registration)
 {
     if (registration->execution_type == EBPF_EXT_HOOK_EXECUTION_PASSIVE) {
         ExAcquirePushLockShared(&registration->passive.lock);
@@ -173,10 +173,11 @@ ebpf_ext_attach_enter_rundown(_In_ ebpf_ext_attach_hook_provider_registration_t*
     return (registration->client_binding_context != NULL);
 }
 
-void
-ebpf_ext_attach_leave_rundown(_In_ ebpf_ext_attach_hook_provider_registration_t* registration)
+_Releases_lock_(registration) void ebpf_ext_attach_leave_rundown(
+    _In_ ebpf_ext_attach_hook_provider_registration_t* registration)
 {
     if (registration->execution_type == EBPF_EXT_HOOK_EXECUTION_PASSIVE) {
+        _Analysis_assume_lock_held_(&registration->passive.lock);
         ExReleasePushLockShared(&registration->passive.lock);
     }
 }
@@ -218,14 +219,16 @@ ebpf_ext_attach_register_provider(
     local_registration = NULL;
 
 Done:
-    ebpf_ext_attach_unregister_provider(local_registration);
+    // Wrap in conditional to resolve C6101.
+    if (return_value != EBPF_SUCCESS) {
+        ebpf_ext_attach_unregister_provider(local_registration);
+    }
 
     return return_value;
 }
 
 void
-ebpf_ext_attach_unregister_provider(_In_opt_ _Post_invalid_ __drv_freesMem(Mem)
-                                        ebpf_ext_attach_hook_provider_registration_t* registration)
+ebpf_ext_attach_unregister_provider(_Frees_ptr_opt_ ebpf_ext_attach_hook_provider_registration_t* registration)
 {
     if (registration) {
         ebpf_provider_unload(registration->provider);

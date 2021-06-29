@@ -201,7 +201,7 @@ Done:
 }
 
 void
-ebpf_extension_unload(_In_opt_ _Post_invalid_ ebpf_extension_client_t* client_context)
+ebpf_extension_unload(_Frees_ptr_opt_ ebpf_extension_client_t* client_context)
 {
     NTSTATUS status;
     if (client_context) {
@@ -369,7 +369,7 @@ Done:
 }
 
 void
-ebpf_provider_unload(_In_opt_ _Post_invalid_ ebpf_extension_provider_t* provider_context)
+ebpf_provider_unload(_Frees_ptr_opt_ ebpf_extension_provider_t* provider_context)
 {
     NTSTATUS status;
     if (provider_context) {

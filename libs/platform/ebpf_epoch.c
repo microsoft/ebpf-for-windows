@@ -180,6 +180,7 @@ ebpf_epoch_terminate()
 
     for (cpu_id = 0; cpu_id < _ebpf_epoch_cpu_table_size; cpu_id++) {
         ebpf_free_non_preemptible_work_item(_ebpf_epoch_cpu_table[cpu_id].non_preemtable_work_item);
+        _ebpf_epoch_cpu_table[cpu_id].non_preemtable_work_item = NULL;
     }
     _ebpf_epoch_cpu_table_size = 0;
 
