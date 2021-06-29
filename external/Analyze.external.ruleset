@@ -6,8 +6,6 @@
 <RuleSet Name="External rules" Description="Override parent ruleset" ToolsVersion="16.0">
   <Include Path="..\Analyze.default.ruleset" Action="Default" />
   <Rules AnalyzerId="Microsoft.Analyzers.NativeCodeAnalysis" RuleNamespace="Microsoft.Rules.Native">
-      <!-- Set this to warning due to https://github.com/vbpf/ebpf-verifier/issues/239 -->
-      <Rule Id="C6011" Action="Warning" />
       <!-- Arithmetic overflow: Using operator 'operator' on a size-a byte value and then casting the result to a size-b byte value. Cast the value to the wider type before calling operator 'operator' to avoid overflow -->
       <Rule Id="C26451" Action="Warning" />
       <!-- Variable '%variable%' is uninitialized. Always initialize a member variable (type.6). -->
