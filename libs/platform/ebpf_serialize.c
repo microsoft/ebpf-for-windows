@@ -126,6 +126,8 @@ Exit:
     return result;
 }
 
+#pragma warning(push)
+#pragma warning(disable : 6101) // ebpf_map_information_array_free at exit label
 ebpf_result_t
 ebpf_deserialize_map_information_array(
     size_t input_buffer_length,
@@ -216,13 +218,11 @@ ebpf_deserialize_map_information_array(
     out_map_info = NULL;
 
 Exit:
-    // Wrap in conditional to resolve C6101.
-    if (result != EBPF_SUCCESS) {
-        ebpf_map_information_array_free(map_count, out_map_info);
-    }
+    ebpf_map_information_array_free(map_count, out_map_info);
 
     return result;
 }
+#pragma warning(pop)
 
 void
 ebpf_program_information_free(_In_opt_ _Post_invalid_ ebpf_program_information_t* program_info)

@@ -155,6 +155,8 @@ Done:
     ebpf_lock_unlock(&_ebpf_provider_table_lock, state);
 }
 
+#pragma warning(push)
+#pragma warning(disable : 6101) // ebpf_free at exit
 ebpf_result_t
 ebpf_provider_load(
     _Outptr_ ebpf_extension_provider_t** provider_context,
@@ -217,12 +219,10 @@ ebpf_provider_load(
 
 Done:
     ebpf_lock_unlock(&_ebpf_provider_table_lock, state);
-    // Wrap in conditional to resolve C6101.
-    if (return_value != EBPF_SUCCESS) {
-        ebpf_free(local_extension_provider);
-    }
+    ebpf_free(local_extension_provider);
     return return_value;
 }
+#pragma warning(pop)
 
 void
 ebpf_provider_unload(_Frees_ptr_opt_ ebpf_extension_provider_t* provider_context)
