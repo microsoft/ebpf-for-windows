@@ -47,12 +47,12 @@ ebpf_extension_load(
 
     UNREFERENCED_PARAMETER(extension_changed);
 
+    state = ebpf_lock_lock(&_ebpf_provider_table_lock);
+
     if (provider_binding_context == NULL) {
         return_value = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
-
-    state = ebpf_lock_lock(&_ebpf_provider_table_lock);
 
     if (!_ebpf_provider_table) {
         return_value = EBPF_EXTENSION_FAILED_TO_LOAD;
@@ -121,7 +121,7 @@ Done:
 }
 
 void
-ebpf_extension_unload(_In_opt_ _Post_invalid_ ebpf_extension_client_t* client_context)
+ebpf_extension_unload(_Frees_ptr_opt_ ebpf_extension_client_t* client_context)
 {
     ebpf_result_t return_value;
     ebpf_lock_state_t state;
@@ -155,6 +155,8 @@ Done:
     ebpf_lock_unlock(&_ebpf_provider_table_lock, state);
 }
 
+#pragma warning(push)
+#pragma warning(disable : 6101) // ebpf_free at exit
 ebpf_result_t
 ebpf_provider_load(
     _Outptr_ ebpf_extension_provider_t** provider_context,
@@ -220,9 +222,10 @@ Done:
     ebpf_free(local_extension_provider);
     return return_value;
 }
+#pragma warning(pop)
 
 void
-ebpf_provider_unload(_In_opt_ _Post_invalid_ ebpf_extension_provider_t* provider_context)
+ebpf_provider_unload(_Frees_ptr_opt_ ebpf_extension_provider_t* provider_context)
 {
     ebpf_result_t return_value;
     ebpf_lock_state_t state;

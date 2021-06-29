@@ -44,7 +44,7 @@ typedef struct _ebpf_serialized_helper_function_prototype_array
 
 void
 ebpf_map_information_array_free(
-    uint16_t map_count, _In_opt_count_(map_count) _Post_invalid_ ebpf_map_information_t* map_info)
+    uint16_t map_count, _In_opt_count_(map_count) _Post_ptr_invalid_ ebpf_map_information_t* map_info)
 {
     uint16_t map_index;
 
@@ -126,12 +126,14 @@ Exit:
     return result;
 }
 
+#pragma warning(push)
+#pragma warning(disable : 6101) // ebpf_map_information_array_free at exit label
 ebpf_result_t
 ebpf_deserialize_map_information_array(
     size_t input_buffer_length,
     _In_reads_bytes_(input_buffer_length) const uint8_t* input_buffer,
     uint16_t map_count,
-    _Outptr_result_buffer_(map_count) ebpf_map_information_t** map_info)
+    _Outptr_result_buffer_maybenull_(map_count) ebpf_map_information_t** map_info)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     uint16_t map_index;
@@ -140,8 +142,10 @@ ebpf_deserialize_map_information_array(
     uint8_t* current;
     size_t buffer_left;
 
-    if (map_count == 0)
+    if (map_count == 0) {
+        *map_info = NULL;
         goto Exit;
+    }
 
     // Allocate the output maps.
     result = ebpf_safe_size_t_multiply(sizeof(ebpf_map_information_t), (size_t)map_count, &out_map_size);
@@ -218,6 +222,7 @@ Exit:
 
     return result;
 }
+#pragma warning(pop)
 
 void
 ebpf_program_information_free(_In_opt_ _Post_invalid_ ebpf_program_information_t* program_info)
@@ -228,6 +233,7 @@ ebpf_program_information_free(_In_opt_ _Post_invalid_ ebpf_program_information_t
         for (uint32_t i = 0; i < program_info->count_of_helpers; i++) {
             ebpf_helper_function_prototype_t* helper_prototype = &program_info->helper_prototype[i];
             ebpf_free((void*)helper_prototype->name);
+            helper_prototype->name = NULL;
         }
         ebpf_free(program_info->helper_prototype);
         ebpf_free(program_info);
@@ -591,9 +597,9 @@ Exit:
     if (result == EBPF_SUCCESS) {
         *program_info = local_program_info;
         local_program_info = NULL;
+    } else {
+        ebpf_program_information_free(local_program_info);
     }
-
-    ebpf_program_information_free(local_program_info);
 
     return result;
 }

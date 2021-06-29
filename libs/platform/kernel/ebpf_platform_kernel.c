@@ -19,6 +19,9 @@ typedef enum _ebpf_pool_tag
     EBPF_POOL_TAG = 'fpbe'
 } ebpf_pool_tag_t;
 
+static KDEFERRED_ROUTINE _ebpf_deferred_routine;
+static KDEFERRED_ROUTINE _ebpf_timer_routine;
+
 ebpf_result_t
 ebpf_platform_initiate()
 {
@@ -36,7 +39,7 @@ __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
 }
 
 void
-ebpf_free(_In_opt_ _Post_invalid_ __drv_freesMem(Mem) void* memory)
+ebpf_free(_Frees_ptr_opt_ void* memory)
 {
     if (memory)
         ExFreePool(memory);
@@ -56,13 +59,20 @@ ebpf_map_memory(size_t length)
         MmAllocatePagesForMdlEx(start_address, end_address, page_size, length, MmCached, MM_ALLOCATE_FULLY_REQUIRED);
 
     if (memory_descriptor_list) {
-        MmMapLockedPagesSpecifyCache(memory_descriptor_list, KernelMode, MmCached, NULL, FALSE, NormalPagePriority);
+        void* address =
+            MmMapLockedPagesSpecifyCache(memory_descriptor_list, KernelMode, MmCached, NULL, FALSE, NormalPagePriority);
+        if (!address) {
+            MmFreePagesFromMdl(memory_descriptor_list);
+            ExFreePool(memory_descriptor_list);
+            memory_descriptor_list = NULL;
+        }
     }
+
     return (ebpf_memory_descriptor_t*)memory_descriptor_list;
 }
 
 void
-ebpf_unmap_memory(_In_opt_ _Post_invalid_ ebpf_memory_descriptor_t* memory_descriptor)
+ebpf_unmap_memory(_Frees_ptr_opt_ ebpf_memory_descriptor_t* memory_descriptor)
 {
     if (!memory_descriptor)
         return;
@@ -282,7 +292,7 @@ ebpf_allocate_non_preemptible_work_item(
 }
 
 void
-ebpf_free_non_preemptible_work_item(_In_opt_ _Post_invalid_ ebpf_non_preemptible_work_item_t* work_item)
+ebpf_free_non_preemptible_work_item(_Frees_ptr_opt_ ebpf_non_preemptible_work_item_t* work_item)
 {
     if (!work_item)
         return;
@@ -347,7 +357,7 @@ ebpf_schedule_timer_work_item(_In_ ebpf_timer_work_item_t* work_item, uint32_t e
 }
 
 void
-ebpf_free_timer_work_item(_In_opt_ _Post_invalid_ ebpf_timer_work_item_t* work_item)
+ebpf_free_timer_work_item(_Frees_ptr_opt_ ebpf_timer_work_item_t* work_item)
 {
     if (!work_item)
         return;

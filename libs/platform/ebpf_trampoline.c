@@ -52,7 +52,7 @@ Exit:
 }
 
 void
-ebpf_free_trampoline_table(_In_opt_ _Post_invalid_ ebpf_trampoline_table_t* trampoline_table)
+ebpf_free_trampoline_table(_Frees_ptr_opt_ ebpf_trampoline_table_t* trampoline_table)
 {
     if (trampoline_table) {
         ebpf_unmap_memory(trampoline_table->memory_descriptor);

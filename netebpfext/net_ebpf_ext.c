@@ -465,6 +465,9 @@ _net_ebpf_ext_layer_2_classify(
     }
 
     packet_buffer = NdisGetDataBuffer(net_buffer, net_buffer->DataLength, NULL, sizeof(uint16_t), 0);
+    if (!packet_buffer) {
+        goto done;
+    }
 
     xdp_md_t ctx = {packet_buffer, packet_buffer + net_buffer->DataLength};
 

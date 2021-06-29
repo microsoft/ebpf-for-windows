@@ -667,7 +667,8 @@ Exit:
 }
 
 void
-ebpf_api_map_info_free(const uint16_t map_count, _In_opt_count_(map_count) const ebpf_map_information_t* map_info)
+ebpf_api_map_info_free(
+    const uint16_t map_count, _In_opt_count_(map_count) _Post_ptr_invalid_ const ebpf_map_information_t* map_info)
 {
     ebpf_map_information_array_free(map_count, const_cast<ebpf_map_information_t*>(map_info));
 }
