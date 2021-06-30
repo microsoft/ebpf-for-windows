@@ -10,9 +10,9 @@ extern "C"
 
     typedef enum _ebpf_execution_type
     {
-        EBPF_EXECUTION_ANY,
-        EBPF_EXECUTION_JIT,
-        EBPF_EXECUTION_INTERPRET
+        EBPF_EXECUTION_ANY,      ///< Execute in JIT-compiled or interpreted mode, per system policy.
+        EBPF_EXECUTION_JIT,      ///< Execute in JIT-compiled mode.
+        EBPF_EXECUTION_INTERPRET ///< Execute in interpreted mode.
     } ebpf_execution_type_t;
 
 #ifdef __cplusplus
