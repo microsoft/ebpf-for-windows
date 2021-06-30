@@ -545,7 +545,7 @@ ebpf_deserialize_program_information(
     }
     local_program_info->helper_prototype = local_helper_prototype_array;
 
-    for (uint16_t helper_function_index = 0; helper_function_index < helper_function_count; helper_function_index++) {
+    for (uint32_t helper_function_index = 0; helper_function_index < helper_function_count; helper_function_index++) {
         ebpf_serialized_helper_function_prototype_t* serialized_helper_prototype =
             (ebpf_serialized_helper_function_prototype_t*)current;
         ebpf_helper_function_prototype_t* helper_prototype = &local_helper_prototype_array[helper_function_index];
