@@ -1,7 +1,5 @@
-/*
- *  Copyright (c) Microsoft Corporation
- *  SPDX-License-Identifier: MIT
- */
+// Copyright (c) Microsoft Corporation
+// SPDX-License-Identifier: MIT
 #pragma once
 #include <stdint.h>
 #include <string>
@@ -9,11 +7,11 @@
 
 typedef enum class _tlv_type
 {
-    BLOB,
-    UINT,
-    INT,
-    STRING,
-    SEQUENCE
+    BLOB,    ///< Opaque byte blob.
+    UINT,    ///< Unsigned integer.
+    INT,     ///< Signed integer.
+    STRING,  ///< String.
+    SEQUENCE ///< Sequence of other tlv_type_t values.
 } tlv_type_t;
 
 typedef struct _tlv_type_length_value

@@ -12,7 +12,7 @@ typedef GUID ebpf_attach_type_t;
 
 typedef enum _ebpf_helper_function
 {
-    EBPF_LOOKUP_ELEMENT = 1,
-    EBPF_UPDATE_ELEMENT = 2,
-    EBPF_DELETE_ELEMENT = 3,
+    EBPF_LOOKUP_ELEMENT = 1, ///< Look up a map element.
+    EBPF_UPDATE_ELEMENT = 2, ///< Update map element.
+    EBPF_DELETE_ELEMENT = 3, ///< Delete a map element.
 } ebpf_helper_function_t;

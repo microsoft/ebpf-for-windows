@@ -19,8 +19,8 @@ typedef struct xdp_md
 
 typedef enum _xdp_action
 {
-    XDP_PASS = 1,
-    XDP_DROP = 2
+    XDP_PASS = 1, ///< Allow the packet to pass.
+    XDP_DROP = 2  ///< Drop the packet.
 } xdp_action_t;
 
 // BIND hook
@@ -37,14 +37,14 @@ typedef struct _bind_md
 
 typedef enum _bind_operation
 {
-    BIND_OPERATION_BIND,      // Entry to bind
-    BIND_OPERATION_POST_BIND, // After port allocation
-    BIND_OPERATION_UNBIND,    // Release port
+    BIND_OPERATION_BIND,      ///< Entry to bind.
+    BIND_OPERATION_POST_BIND, ///< After port allocation.
+    BIND_OPERATION_UNBIND,    ///< Release port.
 } bind_operation_t;
 
 typedef enum _bind_action
 {
-    BIND_PERMIT,
-    BIND_DENY,
-    BIND_REDIRECT,
+    BIND_PERMIT,   ///< Permit the bind operation.
+    BIND_DENY,     ///< Deny the bind operation.
+    BIND_REDIRECT, ///< Change the bind endpoint.
 } bind_action_t;

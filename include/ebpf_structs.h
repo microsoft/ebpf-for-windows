@@ -1,7 +1,5 @@
-/*
- *  Copyright (c) Microsoft Corporation
- *  SPDX-License-Identifier: MIT
- */
+// Copyright (c) Microsoft Corporation
+// SPDX-License-Identifier: MIT
 
 // This file contains eBPF definitions common to eBPF programs, core execution engine
 // as well as eBPF API library.
@@ -13,9 +11,9 @@
 
 typedef enum _ebpf_map_type
 {
-    EBPF_MAP_TYPE_UNSPECIFIED = 0,
-    EBPF_MAP_TYPE_HASH = 1,
-    EBPF_MAP_TYPE_ARRAY = 2,
+    EBPF_MAP_TYPE_UNSPECIFIED = 0, ///< Unspecified map type.
+    EBPF_MAP_TYPE_HASH = 1,        ///< Hash table.
+    EBPF_MAP_TYPE_ARRAY = 2,       ///< Array, wehere the map key is the array index.
 } ebpf_map_type_t;
 
 /**
