@@ -22,16 +22,16 @@ typedef struct _ebpf_ext_attach_hook_provider_registration ebpf_ext_attach_hook_
  * @retval true The caller should proceed.
  * @retval false Rundown has occurred.
  */
-bool
-ebpf_ext_attach_enter_rundown(_In_ ebpf_ext_attach_hook_provider_registration_t* registration);
+_Acquires_lock_(registration) bool ebpf_ext_attach_enter_rundown(
+    _In_ ebpf_ext_attach_hook_provider_registration_t* registration);
 
 /**
  * @brief Unprotect the registration from rundown.
  *
  * @param[in] registration Registration to unprotect.
  */
-void
-ebpf_ext_attach_leave_rundown(_In_ ebpf_ext_attach_hook_provider_registration_t* registration);
+_Releases_lock_(registration) void ebpf_ext_attach_leave_rundown(
+    _In_ ebpf_ext_attach_hook_provider_registration_t* registration);
 
 /**
  * @brief Register as a attach type provider.
@@ -55,8 +55,7 @@ ebpf_ext_attach_register_provider(
  * @param[in] registration Registration to cleanup.
  */
 void
-ebpf_ext_attach_unregister_provider(_In_opt_ _Post_invalid_ __drv_freesMem(Mem)
-                                        ebpf_ext_attach_hook_provider_registration_t* registration);
+ebpf_ext_attach_unregister_provider(_Frees_ptr_opt_ ebpf_ext_attach_hook_provider_registration_t* registration);
 
 /**
  * @brief Invoke the eBPF program attached to this hook. This must be called

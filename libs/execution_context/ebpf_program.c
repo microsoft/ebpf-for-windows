@@ -414,9 +414,10 @@ Done:
 void
 ebpf_program_invoke(_In_ const ebpf_program_t* program, _In_ void* context, _Out_ uint32_t* result)
 {
-    *result = 0;
-    if (!program || program->program_invalidated)
+    if (!program || program->program_invalidated) {
+        *result = 0;
         return;
+    }
 
     if (program->parameters.code_type == EBPF_CODE_NATIVE) {
         ebpf_program_entry_point_t function_pointer;

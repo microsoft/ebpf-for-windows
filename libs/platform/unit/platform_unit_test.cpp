@@ -276,42 +276,63 @@ TEST_CASE("program_type_info_stored", "[platform]")
     ebpf_free(bind_program_information);
 }
 
+struct ebpf_security_descriptor_t_free
+{
+    void
+    operator()(_Frees_ptr_opt_ ebpf_security_descriptor_t* p)
+    {
+        LocalFree(p);
+    }
+};
+typedef std::unique_ptr<ebpf_security_descriptor_t, ebpf_security_descriptor_t_free> ebpf_security_generic_mapping_ptr;
+
 TEST_CASE("access_check", "[platform]")
 {
     _test_helper test_helper;
+    ebpf_security_generic_mapping_ptr sd_ptr;
     ebpf_security_descriptor_t* sd = NULL;
     DWORD sd_size = 0;
     ebpf_security_generic_mapping_t generic_mapping{1, 1, 1};
-    ebpf_result_t result;
     auto allow_sddl = L"O:COG:BUD:(A;;FA;;;WD)";
     auto deny_sddl = L"O:COG:BUD:(D;;FA;;;WD)";
     REQUIRE(ConvertStringSecurityDescriptorToSecurityDescriptor(
         allow_sddl, SDDL_REVISION_1, (PSECURITY_DESCRIPTOR*)&sd, &sd_size));
+    sd_ptr.reset(sd);
+    sd = nullptr;
 
-    REQUIRE(ebpf_validate_security_descriptor(sd, sd_size) == EBPF_SUCCESS);
+    REQUIRE(ebpf_validate_security_descriptor(sd_ptr.get(), sd_size) == EBPF_SUCCESS);
 
-    REQUIRE((result = ebpf_access_check(sd, 1, &generic_mapping), LocalFree(sd), result == EBPF_SUCCESS));
+    REQUIRE(ebpf_access_check(sd_ptr.get(), 1, &generic_mapping) == EBPF_SUCCESS);
 
     REQUIRE(ConvertStringSecurityDescriptorToSecurityDescriptor(
         deny_sddl, SDDL_REVISION_1, (PSECURITY_DESCRIPTOR*)&sd, &sd_size));
 
-    REQUIRE(ebpf_validate_security_descriptor(sd, sd_size) == EBPF_SUCCESS);
+    sd_ptr.reset(sd);
+    sd = nullptr;
 
-    REQUIRE((result = ebpf_access_check(sd, 1, &generic_mapping), LocalFree(sd), result == EBPF_ACCESS_DENIED));
+    REQUIRE(ebpf_validate_security_descriptor(sd_ptr.get(), sd_size) == EBPF_SUCCESS);
+
+    REQUIRE(ebpf_access_check(sd_ptr.get(), 1, &generic_mapping) == EBPF_ACCESS_DENIED);
 }
+
+struct ebpf_memory_descriptor_t_free
+{
+    void
+    operator()(_Frees_ptr_opt_ ebpf_memory_descriptor_t* p)
+    {
+        ebpf_unmap_memory(p);
+    }
+};
+typedef std::unique_ptr<ebpf_memory_descriptor_t, ebpf_memory_descriptor_t_free> ebpf_memory_descriptor_ptr;
 
 TEST_CASE("memory_map_test", "[platform]")
 {
-    ebpf_result_t result;
-    ebpf_memory_descriptor_t* memory_descriptor = nullptr;
-    REQUIRE((memory_descriptor = ebpf_map_memory(100)) != nullptr);
-    REQUIRE(
-        (result = ebpf_protect_memory(memory_descriptor, EBPF_PAGE_PROTECT_READ_WRITE),
-         result != EBPF_SUCCESS ? ebpf_unmap_memory(memory_descriptor) : (void)0,
-         result == EBPF_SUCCESS));
-    memset(ebpf_memory_descriptor_get_base_address(memory_descriptor), 0xCC, 100);
-    REQUIRE(ebpf_protect_memory(memory_descriptor, EBPF_PAGE_PROTECT_READ_ONLY) == EBPF_SUCCESS);
-    ebpf_unmap_memory(memory_descriptor);
+    ebpf_memory_descriptor_ptr memory_descriptor;
+    memory_descriptor.reset(ebpf_map_memory(100));
+    REQUIRE(memory_descriptor);
+    REQUIRE(ebpf_protect_memory(memory_descriptor.get(), EBPF_PAGE_PROTECT_READ_WRITE) == EBPF_SUCCESS);
+    memset(ebpf_memory_descriptor_get_base_address(memory_descriptor.get()), 0xCC, 100);
+    REQUIRE(ebpf_protect_memory(memory_descriptor.get(), EBPF_PAGE_PROTECT_READ_ONLY) == EBPF_SUCCESS);
 }
 
 TEST_CASE("serialize_map_test", "[platform]")
@@ -364,7 +385,7 @@ TEST_CASE("serialize_map_test", "[platform]")
     // Deserialize.
     result = ebpf_deserialize_map_information_array(serialized_length, buffer, map_count, &map_info_array);
     REQUIRE(result == EBPF_SUCCESS);
-
+    _Analysis_assume_(map_info_array != nullptr);
     // Verify de-serialized map info array matches input.
     for (int i = 0; i < map_count; i++) {
         ebpf_map_information_internal_t* input_map_info = &internal_map_info_array[i];

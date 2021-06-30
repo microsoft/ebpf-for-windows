@@ -72,7 +72,7 @@ extern "C"
         size_t input_buffer_length,
         _In_reads_bytes_(input_buffer_length) const uint8_t* input_buffer,
         uint16_t map_count,
-        _Outptr_result_buffer_(map_count) ebpf_map_information_t** map_info);
+        _Outptr_result_buffer_maybenull_(map_count) ebpf_map_information_t** map_info);
 
     /**
      * @brief Helper Function to free array of ebpf_map_information_t allocated by
@@ -83,7 +83,7 @@ extern "C"
      */
     void
     ebpf_map_information_array_free(
-        uint16_t map_count, _In_opt_count_(map_count) _Post_invalid_ ebpf_map_information_t* map_info);
+        uint16_t map_count, _In_opt_count_(map_count) _Post_ptr_invalid_ ebpf_map_information_t* map_info);
 
     /**
      * @brief Serialize ebpf_program_information_t onto output buffer.

@@ -108,6 +108,8 @@ load_byte_code(
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_program_t* program = nullptr;
     vector<section_program_map_t> section_to_program_map;
+    *error_message = nullptr;
+
     try {
         const ebpf_platform_t* platform = &g_ebpf_platform_windows;
         std::string file_name(filename);
