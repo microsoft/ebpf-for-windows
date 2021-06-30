@@ -1,7 +1,5 @@
-/*
- *  Copyright (c) Microsoft Corporation
- *  SPDX-License-Identifier: MIT
- */
+// Copyright (c) Microsoft Corporation
+// SPDX-License-Identifier: MIT
 
 #pragma once
 
@@ -129,6 +127,68 @@ extern "C"
         uint32_t max_entries,
         uint32_t map_flags,
         _Out_ ebpf_handle_t* handle);
+
+    /**
+     * @brief Create an eBPF map with input parameters.
+     *
+     * @param[in] type Map type.
+     * @param[in] key_size Key size.
+     * @param[in] value_size Value size.
+     * @param[in] max_entries Maximum number of entries in the map.
+     * @param[in] map_flags This is reserved and should be 0.
+     * @param[out] map_fd fd for the created map. Caller needs to
+     *  call _close() on the returned fd when done.
+     *
+     * @retval EBPF_SUCCESS Map created successfully.
+     * @retval EBPF_ERROR_NOT_SUPPORTED Unsupported map type.
+     * @retval EBPF_INVALID_ARGUMENT One or more parameters are incorrect.
+     */
+    _Success_(return == EBPF_SUCCESS) ebpf_result_t ebpf_create_map(
+        ebpf_map_type_t map_type,
+        int key_size,
+        int value_size,
+        int max_entries,
+        unsigned int map_flags,
+        _Out_ fd_t* map_fd);
+
+    /**
+     * @brief Create an eBPF map with input parameters.
+     *
+     * @param[in] type Map type.
+     * @param[in] name Optionally, the map name.
+     * @param[in] key_size Key size.
+     * @param[in] value_size Value size.
+     * @param[in] max_entries Maximum number of entries in the map.
+     * @param[in] map_flags This is reserved and should be 0.
+     * @param[out] map_fd fd for the created map. Caller needs to
+     *  call _close() on the returned fd when done.
+     *
+     * @retval EBPF_SUCCESS Map created successfully.
+     * @retval EBPF_ERROR_NOT_SUPPORTED Unsupported map type.
+     * @retval EBPF_INVALID_ARGUMENT One or more parameters are incorrect.
+     */
+    _Success_(return == EBPF_SUCCESS) ebpf_result_t ebpf_create_map_name(
+        ebpf_map_type_t type,
+        _In_opt_z_ const char* name,
+        int key_size,
+        int value_size,
+        int max_entries,
+        uint32_t map_flags,
+        _Out_ fd_t* map_fd);
+
+    /**
+     * @brief Lookup an element in an eBPF map.
+     *  For singleton map, return the value for the given key.
+     *  For per-cpu map, return aggregate value across all CPU.
+     *
+     * @param[in] fd File descriptor for the eBPF map.
+     * @param[in] key Pointer to buffer containing key.
+     * @param[out] value Pointer to buffer that contains value on success.
+     *
+     * @retval Status of the operation.
+     */
+    _Success_(return == EBPF_SUCCESS) ebpf_result_t
+        ebpf_map_lookup_element(fd_t map_fd, _In_ const void* key, _Out_ void* value);
 
     /**
      * @brief Find an element in an eBPF map.

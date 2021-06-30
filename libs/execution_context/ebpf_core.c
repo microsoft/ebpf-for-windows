@@ -47,7 +47,6 @@ static ebpf_helper_function_prototype_t _ebpf_map_helper_function_prototype[] = 
 
 static ebpf_program_info_t _ebpf_global_helper_program_info = {{"global_helper", NULL, {0}},
                                                                EBPF_COUNT_OF(_ebpf_map_helper_function_prototype),
-                                                               _ebpf_map_helper_function_prototype};
 
 static const void* _ebpf_program_helpers[] = {NULL,
                                               (void*)&_ebpf_core_map_find_element,
@@ -263,8 +262,14 @@ _ebpf_core_protocol_create_map(
     ebpf_result_t retval;
     ebpf_map_t* map = NULL;
     UNREFERENCED_PARAMETER(reply_length);
+    ebpf_utf8_string_t map_name = {0};
 
-    retval = ebpf_map_create(&request->ebpf_map_definition, &map);
+    if (request->header.length > sizeof(ebpf_operation_create_map_request_t)) {
+        map_name.value = (uint8_t*)request->data;
+        map_name.length = ((uint8_t*)request) + request->header.length - ((uint8_t*)request->data);
+    }
+
+    retval = ebpf_map_create(&map_name, &request->ebpf_map_definition, &map);
     if (retval != EBPF_SUCCESS)
         goto Done;
 

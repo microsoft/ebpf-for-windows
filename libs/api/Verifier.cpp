@@ -29,8 +29,18 @@ typedef struct _section_program_map
     string program_name;
 } section_program_map_t;
 
+typedef struct _section_offset_to_map
+{
+    size_t section_offset;
+    string map_name;
+} section_offset_to_map_t;
+
 static void
-_get_section_and_program_name(string& path, vector<section_program_map_t>& map) noexcept(false)
+_get_program_and_map_names(
+    _In_ string& path,
+    _Inout_ vector<section_program_map_t>& section_to_program_map,
+    _Inout_ vector<section_offset_to_map_t>& map_names,
+    uint32_t expected_map_count) noexcept(false)
 {
     ELFIO::elfio reader;
     size_t symbols_count = 0;
@@ -44,8 +54,8 @@ _get_section_and_program_name(string& path, vector<section_program_map_t>& map) 
         const string name = section->get_name();
         bool found = false;
         int index;
-        for (index = 0; index < map.size(); index++) {
-            if (map[index].section_name == name) {
+        for (index = 0; index < section_to_program_map.size(); index++) {
+            if (section_to_program_map[index].section_name == name) {
                 found = true;
                 break;
             } else {
@@ -81,7 +91,7 @@ _get_section_and_program_name(string& path, vector<section_program_map_t>& map) 
 
             if (!symbol_name.empty() && symbol_section_index == section_index && symbol_value == 0) {
                 symbol_found = true;
-                map[index].program_name = symbol_name;
+                section_to_program_map[index].program_name = symbol_name;
                 symbols_count++;
                 break;
             }
@@ -92,7 +102,40 @@ _get_section_and_program_name(string& path, vector<section_program_map_t>& map) 
         }
     }
 
-    if (symbols_count != map.size()) {
+    ELFIO::section* maps_section = reader.sections["maps"];
+    if (maps_section) {
+        ELFIO::Elf_Half map_section_index = maps_section->get_index();
+
+        for (ELFIO::Elf_Xword i = 0; i < symbols.get_symbols_num(); i++) {
+            string symbol_name;
+            ELFIO::Elf64_Addr symbol_value{};
+            unsigned char symbol_bind{};
+            unsigned char symbol_type{};
+            ELFIO::Elf_Half symbol_section_index{};
+            unsigned char symbol_other{};
+            ELFIO::Elf_Xword symbol_size{};
+
+            symbols.get_symbol(
+                i,
+                symbol_name,
+                symbol_value,
+                symbol_size,
+                symbol_bind,
+                symbol_type,
+                symbol_section_index,
+                symbol_other);
+
+            if (symbol_section_index == map_section_index) {
+                map_names.emplace_back(symbol_value, symbol_name);
+            }
+        }
+    }
+
+    if (expected_map_count != map_names.size()) {
+        throw std::runtime_error(string("Map name not found for some maps."));
+    }
+
+    if (symbols_count != section_to_program_map.size()) {
         throw std::runtime_error(string("Program name not found for some sections."));
     }
 }
@@ -103,11 +146,14 @@ load_byte_code(
     _In_opt_z_ const char* sectionname,
     _In_ ebpf_verifier_options_t* verifier_options,
     _Out_ std::vector<ebpf_program_t*>& programs,
+    _Out_ std::vector<ebpf_map_t*>& maps,
     _Outptr_result_maybenull_z_ const char** error_message) noexcept
 {
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_program_t* program = nullptr;
+    ebpf_map_t* map = nullptr;
     vector<section_program_map_t> section_to_program_map;
+    vector<section_offset_to_map_t> map_names;
     *error_message = nullptr;
 
     try {
@@ -198,7 +244,38 @@ load_byte_code(
             section_to_program_map.emplace_back(iterator->section_name, std::string());
         }
 
-        _get_section_and_program_name(file_name, section_to_program_map);
+        _get_program_and_map_names(file_name, section_to_program_map, map_names, (uint32_t)get_map_descriptor_size());
+
+        auto map_descriptors = get_all_map_descriptors();
+        for (const auto& descriptor : map_descriptors) {
+            bool found = false;
+            int index;
+            for (index = 0; index < map_names.size(); index++) {
+                if (descriptor.section_offset == map_names[index].section_offset) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                result = EBPF_ELF_PARSING_FAILED;
+                goto Exit;
+            }
+
+            map = (ebpf_map_t*)calloc(1, sizeof(ebpf_map_t));
+            if (map == nullptr) {
+                result = EBPF_NO_MEMORY;
+                goto Exit;
+            }
+            initialize_map(map, descriptor);
+            map->name = _strdup(map_names[index].map_name.c_str());
+            if (map->name == nullptr) {
+                result = EBPF_NO_MEMORY;
+                goto Exit;
+            }
+            maps.emplace_back(map);
+            map = nullptr;
+        }
+
         int index = 0;
         for (auto& iterator : programs) {
             iterator->program_name = _strdup(section_to_program_map[index].program_name.c_str());
@@ -227,11 +304,15 @@ Exit:
     if (result != EBPF_SUCCESS) {
         if (program != nullptr) {
             clean_up_ebpf_program(program);
-            free(program);
             program = nullptr;
+        }
+        if (map != nullptr) {
+            clean_up_ebpf_map(map);
+            map = nullptr;
         }
 
         clean_up_ebpf_programs(programs);
+        clean_up_ebpf_maps(maps);
     }
 
     return result;

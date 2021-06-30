@@ -5,7 +5,6 @@
 
 #include <fcntl.h>
 #include <io.h>
-#include "api_common.hpp"
 #include "api_internal.h"
 #include "device_helper.hpp"
 #include "ebpf_api.h"
@@ -29,6 +28,12 @@ static std::vector<ebpf_object_t*> _ebpf_objects;
 
 static void
 _clean_up_ebpf_objects();
+
+static fd_t
+_get_next_file_descriptor()
+{
+    return static_cast<fd_t>(InterlockedIncrement(&_ebpf_file_descriptor_counter));
+}
 
 uint32_t
 ebpf_api_initiate()
@@ -95,19 +100,148 @@ Exit:
     return windows_error_to_ebpf_result(return_value);
 }
 
-int
-create_map_internal(
-    uint32_t type, uint32_t key_size, uint32_t value_size, uint32_t max_entries, ebpf_verifier_options_t)
+static ebpf_result_t
+_create_map(
+    _In_opt_z_ const char* name, _In_ const ebpf_map_definition_t* map_definition, _Out_ ebpf_handle_t* map_handle)
 {
-    handle_t map_handle = INVALID_HANDLE_VALUE;
+    ebpf_result_t result = EBPF_SUCCESS;
+    uint32_t return_value = ERROR_SUCCESS;
+    ebpf_protocol_buffer_t request_buffer;
+    _ebpf_operation_create_map_request* request;
+    ebpf_operation_create_map_reply_t reply;
+    std::string map_name;
 
-    ebpf_result_t result =
-        ebpf_api_create_map(static_cast<ebpf_map_type_t>(type), key_size, value_size, max_entries, 0, &map_handle);
-    if (result != EBPF_SUCCESS) {
-        throw std::runtime_error(std::string("Error ") + std::to_string(result) + " trying to create map");
+    if (name != nullptr) {
+        map_name = std::string(name);
+    }
+    *map_handle = ebpf_handle_invalid;
+
+    request_buffer.resize(offsetof(ebpf_operation_create_map_request_t, data) + map_name.size());
+
+    request = reinterpret_cast<ebpf_operation_create_map_request_t*>(request_buffer.data());
+    request->header.id = EBPF_OPERATION_CREATE_MAP;
+    request->header.length = static_cast<uint16_t>(request_buffer.size());
+    request->ebpf_map_definition.type = map_definition->type;
+    request->ebpf_map_definition.key_size = map_definition->key_size;
+    request->ebpf_map_definition.value_size = map_definition->value_size;
+    request->ebpf_map_definition.max_entries = map_definition->max_entries;
+    std::copy(
+        map_name.begin(), map_name.end(), request_buffer.begin() + offsetof(ebpf_operation_create_map_request_t, data));
+
+    return_value = invoke_ioctl(request_buffer, reply);
+    if (return_value != ERROR_SUCCESS) {
+        result = windows_error_to_ebpf_result(return_value);
+        goto Exit;
+    }
+    ebpf_assert(reply.header.id == ebpf_operation_id_t::EBPF_OPERATION_CREATE_MAP);
+    *map_handle = reinterpret_cast<ebpf_handle_t>(reply.handle);
+
+Exit:
+    return result;
+}
+
+ebpf_result_t
+ebpf_create_map_name(
+    ebpf_map_type_t type,
+    _In_opt_z_ const char* name,
+    uint32_t key_size,
+    uint32_t value_size,
+    uint32_t max_entries,
+    uint32_t map_flags,
+    _Out_ fd_t* map_fd)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_map_t* new_map = nullptr;
+
+    if (map_flags != 0 || map_fd == nullptr) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
+    *map_fd = ebpf_fd_invalid;
+
+    try {
+        new_map = (ebpf_map_t*)calloc(1, sizeof(ebpf_map_t));
+        if (new_map == nullptr) {
+            result = EBPF_NO_MEMORY;
+            goto Exit;
+        }
+
+        if (name != nullptr) {
+            new_map->name = _strdup(name);
+            if (new_map->name == nullptr) {
+                result = EBPF_NO_MEMORY;
+                goto Exit;
+            }
+        }
+
+        new_map->map_defintion.type = type;
+        new_map->map_defintion.key_size = key_size;
+        new_map->map_defintion.value_size = value_size;
+        new_map->map_defintion.max_entries = max_entries;
+
+        result = _create_map(new_map->name, &new_map->map_defintion, &new_map->map_handle);
+        if (result != EBPF_SUCCESS) {
+            goto Exit;
+        }
+        new_map->map_fd = _get_next_file_descriptor();
+
+        // Insert the new created map in the global list.
+        _ebpf_maps.insert(std::pair<fd_t, ebpf_map_t*>(new_map->map_fd, new_map));
+        *map_fd = new_map->map_fd;
+        new_map = nullptr;
+    } catch (const std::bad_alloc&) {
+        result = EBPF_NO_MEMORY;
+        goto Exit;
+    } catch (...) {
+        result = EBPF_FAILED;
+        goto Exit;
     }
 
-    return cache_map_handle(reinterpret_cast<uint64_t>(map_handle), type, key_size, value_size, max_entries);
+Exit:
+    if (result != EBPF_SUCCESS) {
+        if (new_map) {
+            clean_up_ebpf_map(new_map);
+        }
+    }
+    return result;
+}
+
+ebpf_result_t
+ebpf_create_map(
+    ebpf_map_type_t type,
+    uint32_t key_size,
+    uint32_t value_size,
+    uint32_t max_entries,
+    uint32_t map_flags,
+    _Out_ fd_t* map_fd)
+{
+    return ebpf_create_map_name(type, nullptr, key_size, value_size, max_entries, map_flags, map_fd);
+}
+
+/*
+_Success_(return == EBPF_SUCCESS)
+ebpf_result_t ebpf_map_lookup_element(
+    fd_t map_fd,
+    _In_ const void* key,
+    _Out_ void* value)
+{
+
+}
+*/
+
+int
+create_map_internal(
+    uint32_t type,
+    uint32_t key_size,
+    uint32_t value_size,
+    uint32_t max_entries,
+    size_t section_offset,
+    ebpf_verifier_options_t)
+{
+    // Get a mock fd and store the map information in the map descriptor cache.
+    // Actual map creation will happen at a later stage.
+    return cache_map_handle(
+        reinterpret_cast<uint64_t>(INVALID_HANDLE_VALUE), type, key_size, value_size, max_entries, section_offset);
 }
 
 static ebpf_result_t
@@ -163,12 +297,13 @@ ebpf_get_program_byte_code(
     _Outptr_result_maybenull_ const char** error_message)
 {
     ebpf_result_t result = EBPF_SUCCESS;
+    std::vector<ebpf_map_t*> maps;
 
     clear_map_descriptors();
     *map_descriptors = nullptr;
 
     ebpf_verifier_options_t verifier_options{false, false, false, false, mock_map_fd};
-    result = load_byte_code(file_name, section_name, &verifier_options, programs, error_message);
+    result = load_byte_code(file_name, section_name, &verifier_options, programs, maps, error_message);
     if (result != EBPF_SUCCESS) {
         goto Done;
     }
@@ -195,6 +330,7 @@ Done:
     if (result != EBPF_SUCCESS) {
         clean_up_ebpf_programs(programs);
     }
+    clean_up_ebpf_maps(maps);
     clear_map_descriptors();
     return result;
 }
@@ -217,6 +353,7 @@ ebpf_api_load_program(
     ebpf_program_load_info load_info = {0};
     std::vector<fd_handle_map> handle_map;
     std::vector<ebpf_program_t*> programs;
+    std::vector<ebpf_map_t*> maps;
     ebpf_program_t* program = nullptr;
 
     *handle = 0;
@@ -226,7 +363,7 @@ ebpf_api_load_program(
 
     try {
         ebpf_verifier_options_t verifier_options{false, false, false, false, false};
-        result = load_byte_code(file_name, section_name, &verifier_options, programs, error_message);
+        result = load_byte_code(file_name, section_name, &verifier_options, programs, maps, error_message);
         if (result != EBPF_SUCCESS) {
             goto Done;
         }
@@ -472,10 +609,9 @@ ebpf_api_get_next_map(ebpf_handle_t previous_handle, ebpf_handle_t* next_handle)
 uint32_t
 ebpf_api_get_next_program(ebpf_handle_t previous_handle, ebpf_handle_t* next_handle)
 {
-    _ebpf_operation_get_next_program_request request{
-        sizeof(request),
-        ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_PROGRAM,
-        reinterpret_cast<uint64_t>(previous_handle)};
+    _ebpf_operation_get_next_program_request request{sizeof(request),
+                                                     ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_PROGRAM,
+                                                     reinterpret_cast<uint64_t>(previous_handle)};
 
     _ebpf_operation_get_next_program_reply reply;
 
@@ -709,12 +845,16 @@ clean_up_ebpf_programs(_Inout_ std::vector<ebpf_program_t*>& programs)
 void
 clean_up_ebpf_map(_In_ _Post_invalid_ ebpf_map_t* map)
 {
+    if (map == nullptr) {
+        return;
+    }
     if (map->map_fd != 0) {
         _ebpf_maps.erase(map->map_fd);
     }
     if (map->map_handle != ebpf_handle_invalid) {
         Platform::CloseHandle(map->map_handle);
     }
+    free(map->name);
 
     free(map);
 }
@@ -763,12 +903,12 @@ _clean_up_ebpf_objects()
     assert(_ebpf_maps.size() == 0);
 }
 
-static void
-_initialize_map(_Out_ ebpf_map_t* map, _In_ const ebpf_object_t* object, _In_ const map_cache_t& map_cache)
+void
+initialize_map(_Out_ ebpf_map_t* map, _In_ const map_cache_t& map_cache)
 {
-    map->object = object;
-    map->map_handle = (ebpf_handle_t)map_cache.handle;
-    map->map_fd = map_cache.ebpf_map_descriptor.original_fd;
+    // Map cache contains mock fd. Initialize handle to ebpf_handle_invalid.
+    map->map_handle = ebpf_handle_invalid;
+    map->mock_map_fd = map_cache.ebpf_map_descriptor.original_fd;
     map->map_definition.type = (ebpf_map_type_t)map_cache.ebpf_map_descriptor.type;
     map->map_definition.key_size = map_cache.ebpf_map_descriptor.key_size;
     map->map_definition.value_size = map_cache.ebpf_map_descriptor.value_size;
@@ -789,7 +929,7 @@ _initialize_ebpf_object_from_elf(
     set_global_program_and_attach_type(expected_program_type, expected_attach_type);
 
     ebpf_verifier_options_t verifier_options{false, false, false, false, false};
-    result = load_byte_code(file_name, nullptr, &verifier_options, object.programs, error_message);
+    result = load_byte_code(file_name, nullptr, &verifier_options, object.programs, object.maps, error_message);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
@@ -800,29 +940,17 @@ _initialize_ebpf_object_from_elf(
         goto Exit;
     }
 
-    try {
-        auto map_descriptors = get_all_map_descriptors();
-        for (const auto& descriptor : map_descriptors) {
-            ebpf_map_t* map = (ebpf_map_t*)calloc(1, sizeof(ebpf_map_t));
-            if (map == nullptr) {
-                result = EBPF_NO_MEMORY;
-                goto Exit;
-            }
-
-            _initialize_map(map, &object, descriptor);
-            object.maps.emplace_back(map);
-        }
-    } catch (const std::bad_alloc&) {
-        result = EBPF_NO_MEMORY;
-        goto Exit;
-    } catch (...) {
-        result = EBPF_FAILED;
-        goto Exit;
+    for (auto& program : object.programs) {
+        program->object = &object;
+    }
+    for (auto& map : object.maps) {
+        map->object = &object;
     }
 
 Exit:
     if (result != EBPF_SUCCESS) {
         clean_up_ebpf_programs(object.programs);
+        clean_up_ebpf_maps(object.maps);
     }
     return result;
 }
@@ -873,6 +1001,16 @@ ebpf_program_load(
             goto Done;
         }
 
+        // Create all the maps.
+        // TODO: update ebpf_map_definition_t structure so that it contains flag and pinning information.
+        for (auto& map : new_object->maps) {
+            result = _create_map(map->name, &map->map_defintion, &map->map_handle);
+            if (result != EBPF_SUCCESS) {
+                goto Done;
+            }
+            map->map_fd = _get_next_file_descriptor();
+        }
+
         for (auto& program : new_object->programs) {
             result = _create_program(
                 program->program_type, file_name, program->section_name, program->program_name, &program->handle);
@@ -883,7 +1021,7 @@ ebpf_program_load(
             // TODO: (Issue #287) _open_osfhandle() fails for the program handle.
             // Workaround: for now increment a global counter and use that as
             // file descriptor.
-            program->fd = static_cast<fd_t>(InterlockedIncrement(&_ebpf_file_descriptor_counter));
+            program->fd = _get_next_file_descriptor();
 
             // populate load_info.
             load_info.file_name = const_cast<char*>(file_name);
@@ -895,13 +1033,11 @@ ebpf_program_load(
             load_info.byte_code = program->byte_code;
             load_info.byte_code_size = program->byte_code_size;
             load_info.execution_context = execution_context_kernel_mode;
-            load_info.map_count = (uint32_t)get_map_descriptor_size();
+            load_info.map_count = (uint32_t)new_object->maps.size();
 
             if (load_info.map_count > 0) {
-                auto descriptors = get_all_map_descriptors();
-                for (const auto& descriptor : descriptors) {
-                    handle_map.emplace_back(
-                        descriptor.ebpf_map_descriptor.original_fd, reinterpret_cast<file_handle_t>(descriptor.handle));
+                for (auto& map : new_object->maps) {
+                    handle_map.emplace_back(map->mock_map_fd, reinterpret_cast<file_handle_t>(map->map_handle));
                 }
 
                 load_info.handle_map = handle_map.data();

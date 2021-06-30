@@ -6,13 +6,11 @@
 #include <chrono>
 #include <mutex>
 #include <thread>
-
 #include "api_test.h"
 #include "catch_wrapper.hpp"
 #include "common_tests.h"
 #include "service_helper.h"
 #include "libbpf.h"
-
 #define SAMPLE_PATH ""
 
 #define EBPF_CORE_DRIVER_BINARY_NAME L"ebpfcore.sys"
@@ -67,6 +65,13 @@ _test_program_load(
     fd_t program_fd;
     ebpf_handle_t program_handle = INVALID_HANDLE_VALUE;
     ebpf_handle_t next_program_handle = INVALID_HANDLE_VALUE;
+
+    printf(
+        "_test_program_load: file_name=%s, execution_type=%d, expected_to_load=%d\n",
+        file_name,
+        execution_type,
+        expected_to_load);
+
     result = _program_load_helper(file_name, program_type, execution_type, &object, &program_fd);
 
     if (expected_to_load) {

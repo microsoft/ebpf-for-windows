@@ -7,7 +7,6 @@
 #include "api_internal.h"
 #include "crab_verifier_wrapper.hpp"
 #include "ebpf_api.h"
-#include "ebpf_helpers.h"
 #include "helpers.hpp"
 #include "platform.hpp"
 #include "spec_type_descriptors.hpp"

@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "api_common.hpp"
 #include "ebpf_api.h"
 #include "ebpf_platform.h"
 #include "ebpf_windows.h"
@@ -29,6 +30,7 @@ typedef struct bpf_map
     char* name;
     ebpf_handle_t map_handle;
     fd_t map_fd;
+    fd_t mock_map_fd;
     ebpf_map_definition_t map_definition;
     char* pin_path;
     bool pinned;
@@ -59,6 +61,9 @@ clean_up_ebpf_program(_In_ _Post_invalid_ ebpf_program_t* program);
 
 void
 clean_up_ebpf_programs(_Inout_ std::vector<ebpf_program_t*>& programs);
+
+void
+clean_up_ebpf_map(_In_ _Post_invalid_ ebpf_map_t* map);
 
 void
 clean_up_ebpf_maps(_Inout_ std::vector<ebpf_map_t*>& maps);
@@ -129,3 +134,6 @@ ebpf_map_get_fd(_In_ const struct bpf_map* map);
  */
 void
 ebpf_object_close(_In_ _Post_invalid_ struct bpf_object* object);
+
+void
+initialize_map(_Out_ ebpf_map_t* map, _In_ const map_cache_t& map_cache);

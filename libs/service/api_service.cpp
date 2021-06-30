@@ -211,7 +211,8 @@ _query_and_cache_map_descriptors(fd_handle_map* handle_map, uint32_t handle_map_
                 descriptor.value_size,
                 descriptor.max_entries,
                 handle_map[i].file_descriptor,
-                (uintptr_t)handle_map[i].handle);
+                (uintptr_t)handle_map[i].handle,
+                0);
         }
     }
 

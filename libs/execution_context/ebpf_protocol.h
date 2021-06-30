@@ -104,6 +104,7 @@ typedef struct _ebpf_operation_create_map_request
 {
     struct _ebpf_operation_header header;
     struct _ebpf_map_definition ebpf_map_definition;
+    uint8_t data[1];
 } ebpf_operation_create_map_request_t;
 
 typedef struct _ebpf_operation_create_map_reply

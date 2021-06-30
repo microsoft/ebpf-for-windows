@@ -15,11 +15,14 @@
 typedef struct _map_cache
 {
     uintptr_t handle;
+    size_t section_offset;
     EbpfMapDescriptor ebpf_map_descriptor;
 
-    _map_cache() : handle(0), ebpf_map_descriptor() {}
+    _map_cache() : handle(0), section_offset(0), ebpf_map_descriptor() {}
 
-    _map_cache(uintptr_t handle, EbpfMapDescriptor descriptor) : handle(handle), ebpf_map_descriptor(descriptor) {}
+    _map_cache(uintptr_t handle, size_t section_offset, EbpfMapDescriptor descriptor)
+        : handle(handle), section_offset(section_offset), ebpf_map_descriptor(descriptor)
+    {}
 
     _map_cache(
         uintptr_t handle,
@@ -28,8 +31,9 @@ typedef struct _map_cache
         unsigned int key_size,
         unsigned int value_size,
         unsigned int max_entries,
-        unsigned int inner_map_fd)
-        : handle(handle)
+        unsigned int inner_map_fd,
+        size_t section_offset)
+        : handle(handle), section_offset(section_offset)
     {
         ebpf_map_descriptor.original_fd = original_fd;
         ebpf_map_descriptor.type = type;
@@ -53,7 +57,13 @@ EbpfHelperPrototype
 get_helper_prototype_windows(unsigned int n);
 
 int
-cache_map_handle(uint64_t handle, uint32_t type, uint32_t key_size, uint32_t value_size, uint32_t max_entries);
+cache_map_handle(
+    uint64_t handle,
+    uint32_t type,
+    uint32_t key_size,
+    uint32_t value_size,
+    uint32_t max_entries,
+    size_t section_offset);
 
 size_t
 get_map_descriptor_size(void);
