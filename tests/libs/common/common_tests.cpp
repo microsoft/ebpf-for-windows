@@ -44,6 +44,7 @@ ebpf_test_pinned_map_enum()
     if (map_info == nullptr)
         goto Exit;
 
+    _Analysis_assume_(pinned_map_count == map_count);
     for (int i = 0; i < pinned_map_count; i++) {
         bool matched = false;
         std::string pin_path = pin_path_prefix + std::to_string(i);
