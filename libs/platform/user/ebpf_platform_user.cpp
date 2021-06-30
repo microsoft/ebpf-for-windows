@@ -187,20 +187,22 @@ ebpf_memory_descriptor_get_base_address(ebpf_memory_descriptor_t* memory_descrip
     return memory_descriptor->base;
 }
 
-ebpf_result_t
-ebpf_safe_size_t_multiply(size_t multiplicand, size_t multiplier, _Out_ size_t* result)
+_Must_inspect_result_ ebpf_result_t
+ebpf_safe_size_t_multiply(
+    size_t multiplicand, size_t multiplier, _Out_ _Deref_out_range_(==, multiplicand* multiplier) size_t* result)
 {
     return SUCCEEDED(SizeTMult(multiplicand, multiplier, result)) ? EBPF_SUCCESS : EBPF_ARITHMETIC_OVERFLOW;
 }
 
-ebpf_result_t
-ebpf_safe_size_t_add(size_t augend, size_t addend, _Out_ size_t* result)
+_Must_inspect_result_ ebpf_result_t
+ebpf_safe_size_t_add(size_t augend, size_t addend, _Out_ _Deref_out_range_(==, augend + addend) size_t* result)
 {
     return SUCCEEDED(SizeTAdd(augend, addend, result)) ? EBPF_SUCCESS : EBPF_ARITHMETIC_OVERFLOW;
 }
 
-ebpf_result_t
-ebpf_safe_size_t_subtract(size_t minuend, size_t subtrahend, _Out_ size_t* result)
+_Must_inspect_result_ ebpf_result_t
+ebpf_safe_size_t_subtract(
+    size_t minuend, size_t subtrahend, _Out_ _Deref_out_range_(==, minuend - subtrahend) size_t* result)
 {
     return SUCCEEDED(SizeTSub(minuend, subtrahend, result)) ? EBPF_SUCCESS : EBPF_ARITHMETIC_OVERFLOW;
 }

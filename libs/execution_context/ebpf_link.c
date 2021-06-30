@@ -59,11 +59,15 @@ ebpf_link_initialize(
     ebpf_result_t return_value;
     size_t client_data_length;
 
-    ebpf_safe_size_t_add(sizeof(ebpf_extension_data_t), context_data_length, &client_data_length);
+    return_value = ebpf_safe_size_t_add(sizeof(ebpf_extension_data_t), context_data_length, &client_data_length);
+    if (return_value != EBPF_SUCCESS)
+        goto Exit;
 
     link->client_data = ebpf_allocate(client_data_length);
-    if (!link->client_data)
-        return EBPF_NO_MEMORY;
+    if (!link->client_data) {
+        return_value = EBPF_NO_MEMORY;
+        goto Exit;
+    }
 
     link->client_data->version = 0;
     link->client_data->size = (uint16_t)client_data_length;
@@ -80,6 +84,7 @@ ebpf_link_initialize(
         NULL,
         NULL);
 
+Exit:
     return return_value;
 }
 

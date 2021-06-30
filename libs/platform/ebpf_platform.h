@@ -191,8 +191,9 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_ERROR_ARITHMETIC_OVERFLOW Multiplication overflowed.
      */
-    ebpf_result_t
-    ebpf_safe_size_t_multiply(size_t multiplicand, size_t multiplier, _Out_ size_t* result);
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_safe_size_t_multiply(
+        size_t multiplicand, size_t multiplier, _Out_ _Deref_out_range_(==, multiplicand* multiplier) size_t* result);
 
     /**
      * @brief Add one value of type size_t by another and check for
@@ -203,8 +204,8 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_ERROR_ARITHMETIC_OVERFLOW Addition overflowed.
      */
-    ebpf_result_t
-    ebpf_safe_size_t_add(size_t augend, size_t addend, _Out_ size_t* result);
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_safe_size_t_add(size_t augend, size_t addend, _Out_ _Deref_out_range_(==, augend + addend) size_t* result);
 
     /**
      * @brief Subtract one value of type size_t from another and check for
@@ -215,8 +216,9 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_ERROR_ARITHMETIC_OVERFLOW Addition overflowed or underflowed.
      */
-    ebpf_result_t
-    ebpf_safe_size_t_subtract(size_t minuend, size_t subtrahend, _Out_ size_t* result);
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_safe_size_t_subtract(
+        size_t minuend, size_t subtrahend, _Out_ _Deref_out_range_(==, minuend - subtrahend) size_t* result);
 
     /**
      * @brief Create an instance of a lock.

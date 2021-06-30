@@ -153,20 +153,22 @@ ebpf_get_code_integrity_state(_Out_ ebpf_code_integrity_state_t* state)
     }
 }
 
-ebpf_result_t
-ebpf_safe_size_t_multiply(size_t multiplicand, size_t multiplier, _Out_ size_t* result)
+_Must_inspect_result_ ebpf_result_t
+ebpf_safe_size_t_multiply(
+    size_t multiplicand, size_t multiplier, _Out_ _Deref_out_range_(==, multiplicand* multiplier) size_t* result)
 {
     return RtlSizeTMult(multiplicand, multiplier, result) == STATUS_SUCCESS ? EBPF_SUCCESS : EBPF_ARITHMETIC_OVERFLOW;
 }
 
-ebpf_result_t
-ebpf_safe_size_t_add(size_t augend, size_t addend, _Out_ size_t* result)
+_Must_inspect_result_ ebpf_result_t
+ebpf_safe_size_t_add(size_t augend, size_t addend, _Out_ _Deref_out_range_(==, augend + addend) size_t* result)
 {
     return RtlSizeTAdd(augend, addend, result) == STATUS_SUCCESS ? EBPF_SUCCESS : EBPF_ARITHMETIC_OVERFLOW;
 }
 
-ebpf_result_t
-ebpf_safe_size_t_subtract(size_t minuend, size_t subtrahend, _Out_ size_t* result)
+_Must_inspect_result_ ebpf_result_t
+ebpf_safe_size_t_subtract(
+    size_t minuend, size_t subtrahend, _Out_ _Deref_out_range_(==, minuend - subtrahend) size_t* result)
 {
     return RtlSizeTSub(minuend, subtrahend, result) == STATUS_SUCCESS ? EBPF_SUCCESS : EBPF_ARITHMETIC_OVERFLOW;
 }
