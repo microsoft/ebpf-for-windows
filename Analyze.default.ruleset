@@ -5,12 +5,6 @@
 -->
 <RuleSet Name="Copy of Microsoft Native Recommended Rules" Description="These rules focus on the most critical and common problems in your native code, including potential security holes and application crashes.  You should include this rule set in any custom rule set you create for your native projects.  This ruleset is designed to work with Visual Studio Professional edition and higher." ToolsVersion="16.0">
   <Rules AnalyzerId="Microsoft.Analyzers.NativeCodeAnalysis" RuleNamespace="Microsoft.Rules.Native">
-    <!-- All rules marked as Warning should be switched to Error once all instances are resolved. -->
-    <!-- Resolving an instance can be done via either locally suppressing it or fixing the issue. -->
-    <!-- warning C6385: invalid data: accessing buffer-name, the readable size is size1 bytes, but size2 bytes may be read: Lines: x, y -->
-    <Rule Id="C6385" Action="Warning" />
-    <!-- warning C6386: buffer overrun: accessing <buffer name>, the writable size is <size1> bytes, but <size2> bytes may be written: Lines: x, y -->
-    <Rule Id="C6386" Action="Warning" />
     <Rule Id="C26100" Action="Error" />
     <Rule Id="C26101" Action="Error" />
     <Rule Id="C26110" Action="Error" />
@@ -225,6 +219,8 @@
     <Rule Id="C6381" Action="Error" />
     <Rule Id="C6383" Action="Error" />
     <Rule Id="C6384" Action="Error" />
+    <Rule Id="C6385" Action="Error" />
+    <Rule Id="C6386" Action="Error" />
     <Rule Id="C6387" Action="Error" />
     <Rule Id="C6388" Action="Error" />
     <Rule Id="C6500" Action="Error" />
