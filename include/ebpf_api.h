@@ -34,6 +34,9 @@ extern "C"
     __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_BIND = {
         0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
 
+    __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_TEST = {
+        0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
+
     __declspec(selectany) ebpf_attach_type_t EBPF_PROGRAM_TYPE_UNSPECIFIED = {0};
 
     /** @brief Program type for handling incoming packets as early as possible.
@@ -57,6 +60,9 @@ extern "C"
      */
     __declspec(selectany) ebpf_program_type_t EBPF_PROGRAM_TYPE_BIND = {
         0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
+
+    __declspec(selectany) ebpf_program_type_t EBPF_PROGRAM_TYPE_TEST = {
+        0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 
     typedef int32_t fd_t;
     const fd_t ebpf_fd_invalid = -1;

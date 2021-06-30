@@ -5,8 +5,8 @@
 
 Abstract:
 WDF based driver that does the following:
-1. Initializes the eBPF execution context.
-2. Opens an IOCTL surface that forwards commands to ebfp_core.
+
+Registers as an eBPF program information provider and hook provider.
 
 Environment:
 
@@ -17,112 +17,54 @@ Environment:
 // ntddk.h needs to be included first due to inter header dependencies on Windows.
 #include <ntddk.h>
 
-#include <netiodef.h>
+#pragma warning(push)
 #include <wdf.h>
 
-#include "ebpf_core.h"
-#include "ebpf_object.h"
+#include "ebpf_platform.h"
+
+#include "test_ext.h"
+#include "test_ext_helpers.h"
+#include "test_ext_ioctls.h"
+
+#define TEST_EBPF_EXT_DEVICE_NAME L"\\Device\\TestEbpfExt"
+#define TEST_EBPF_EXT_SYMBOLIC_DEVICE_NAME L"\\GLOBAL??\\TestEbpfExtIoDevice"
 
 // Driver global variables
-static DEVICE_OBJECT* _ebpf_driver_device_object;
-static BOOLEAN _ebpf_driver_unloading_flag = FALSE;
-
-// SID for ebpfsvc (generated using command "sc.exe showsid ebpfsvc"):
-// S-1-5-80-3453964624-2861012444-1105579853-3193141192-1897355174
-//
-// SDDL_DEVOBJ_SYS_ALL_ADM_ALL + SID for ebpfsvc.
-#define EBPF_EXECUTION_CONTEXT_DEVICE_SDDL \
-    L"D:P(A;;GA;;;S-1-5-80-3453964624-2861012444-1105579853-3193141192-1897355174)(A;;GA;;;BA)(A;;GA;;;SY)"
-
-#ifndef CTL_CODE
-#define CTL_CODE(DeviceType, Function, Method, Access) \
-    (((DeviceType) << 16) | ((Access) << 14) | ((Function) << 2) | (Method))
-#endif
-// Device type
-#define EBPF_IOCTL_TYPE FILE_DEVICE_NETWORK
-
-// Function codes from 0x800 to 0xFFF are for customer use.
-#define IOCTL_EBPFCTL_METHOD_BUFFERED CTL_CODE(EBPF_IOCTL_TYPE, 0x900, METHOD_BUFFERED, FILE_ANY_ACCESS)
+static DEVICE_OBJECT* _test_ebpf_ext_driver_device_object;
+static BOOLEAN _test_ebpf_ext_driver_unloading_flag = FALSE;
 
 //
 // Pre-Declarations
 //
-static EVT_WDF_FILE_CLOSE _ebpf_driver_file_close;
-static EVT_WDF_IO_QUEUE_IO_DEVICE_CONTROL _ebpf_driver_io_device_control;
+static EVT_WDF_IO_QUEUE_IO_DEVICE_CONTROL _test_ebpf_ext_driver_io_device_control;
 DRIVER_INITIALIZE DriverEntry;
 
 static VOID
-_ebpf_driver_io_device_control(
+_test_ebpf_ext_driver_io_device_control(
     _In_ WDFQUEUE queue,
     _In_ WDFREQUEST request,
     size_t output_buffer_length,
     size_t input_buffer_length,
     ULONG io_control_code);
 
-inline NTSTATUS
-_ebpf_result_to_ntstatus(ebpf_result_t result)
-{
-    NTSTATUS status;
-    switch (result) {
-    case EBPF_SUCCESS: {
-        status = STATUS_SUCCESS;
-        break;
-    }
-    case EBPF_NO_MEMORY: {
-        status = STATUS_INSUFFICIENT_RESOURCES;
-        break;
-    }
-    case EBPF_KEY_NOT_FOUND: {
-        status = STATUS_NOT_FOUND;
-        break;
-    }
-    case EBPF_INVALID_ARGUMENT: {
-        status = STATUS_INVALID_PARAMETER;
-        break;
-    }
-    case EBPF_BLOCKED_BY_POLICY: {
-        status = STATUS_CONTENT_BLOCKED;
-        break;
-    }
-    case EBPF_NO_MORE_KEYS: {
-        status = STATUS_NO_MORE_MATCHES;
-        break;
-    }
-    case EBPF_INVALID_OBJECT: {
-        status = STATUS_INVALID_HANDLE;
-        break;
-    }
-    case EBPF_OPERATION_NOT_SUPPORTED: {
-        status = STATUS_NOT_SUPPORTED;
-        break;
-    }
-    case EBPF_INSUFFICIENT_BUFFER: {
-        status = STATUS_BUFFER_OVERFLOW;
-        break;
-    }
-    default:
-        status = STATUS_UNSUCCESSFUL;
-    }
-
-    return status;
-}
-
 static _Function_class_(EVT_WDF_DRIVER_UNLOAD) _IRQL_requires_same_
-    _IRQL_requires_max_(PASSIVE_LEVEL) void _ebpf_driver_unload(_In_ WDFDRIVER driver_object)
+    _IRQL_requires_max_(PASSIVE_LEVEL) void _test_ebpf_ext_driver_unload(_In_ WDFDRIVER driver_object)
 {
     UNREFERENCED_PARAMETER(driver_object);
 
-    _ebpf_driver_unloading_flag = TRUE;
+    _test_ebpf_ext_driver_unloading_flag = TRUE;
 
-    ebpf_core_terminate();
+    test_ebpf_extension_program_info_provider_unregister();
+
+    test_ebpf_extension_hook_provider_unregister();
 }
 
 //
 // Create a basic WDF driver, set up the device object
-// for a callout driver and setup the ioctl surface
+// for a callout driver and register with NMR.
 //
 static NTSTATUS
-_ebpf_driver_initialize_objects(
+_test_ebpf_ext_driver_initialize_objects(
     _Inout_ DRIVER_OBJECT* driver_object,
     _In_ const UNICODE_STRING* registry_path,
     _Out_ WDFDRIVER* driver,
@@ -132,18 +74,16 @@ _ebpf_driver_initialize_objects(
     WDF_DRIVER_CONFIG driver_configuration;
     PWDFDEVICE_INIT device_initialize = NULL;
     WDF_IO_QUEUE_CONFIG io_queue_configuration;
-    UNICODE_STRING ebpf_device_name;
-    UNICODE_STRING ebpf_symbolic_device_name;
+    UNICODE_STRING test_ebpf_ext_device_name;
+    UNICODE_STRING test_ebpf_ext_symbolic_device_name;
     BOOLEAN device_create_flag = FALSE;
     WDF_OBJECT_ATTRIBUTES attributes;
     WDF_FILEOBJECT_CONFIG file_object_config;
 
     WDF_DRIVER_CONFIG_INIT(&driver_configuration, WDF_NO_EVENT_CALLBACK);
 
-    DECLARE_CONST_UNICODE_STRING(security_descriptor, EBPF_EXECUTION_CONTEXT_DEVICE_SDDL);
-
     driver_configuration.DriverInitFlags |= WdfDriverInitNonPnpDriver;
-    driver_configuration.EvtDriverUnload = _ebpf_driver_unload;
+    driver_configuration.EvtDriverUnload = _test_ebpf_ext_driver_unload;
 
     status = WdfDriverCreate(driver_object, registry_path, WDF_NO_OBJECT_ATTRIBUTES, &driver_configuration, driver);
 
@@ -153,7 +93,7 @@ _ebpf_driver_initialize_objects(
 
     device_initialize = WdfControlDeviceInitAllocate(
         *driver,
-        &security_descriptor // only kernel/system, administrators, and ebpfsvc.
+        &SDDL_DEVOBJ_SYS_ALL_ADM_ALL // only kernel/system and administrators.
     );
     if (!device_initialize) {
         status = STATUS_INSUFFICIENT_RESOURCES;
@@ -166,8 +106,8 @@ _ebpf_driver_initialize_objects(
 
     WdfDeviceInitSetCharacteristics(device_initialize, FILE_AUTOGENERATED_DEVICE_NAME, TRUE);
 
-    RtlInitUnicodeString(&ebpf_device_name, EBPF_DEVICE_NAME);
-    status = WdfDeviceInitAssignName(device_initialize, &ebpf_device_name);
+    RtlInitUnicodeString(&test_ebpf_ext_device_name, TEST_EBPF_EXT_DEVICE_NAME);
+    status = WdfDeviceInitAssignName(device_initialize, &test_ebpf_ext_device_name);
     if (!NT_SUCCESS(status)) {
         goto Exit;
     }
@@ -177,7 +117,7 @@ _ebpf_driver_initialize_objects(
     WDF_FILEOBJECT_CONFIG_INIT(
         &file_object_config,
         NULL,
-        _ebpf_driver_file_close,
+        NULL,
         WDF_NO_EVENT_CALLBACK // No cleanup callback function
     );
     WdfDeviceInitSetFileObjectConfig(device_initialize, &file_object_config, &attributes);
@@ -195,8 +135,8 @@ _ebpf_driver_initialize_objects(
     device_create_flag = TRUE;
 
     // Create symbolic link for control object for user mode.
-    RtlInitUnicodeString(&ebpf_symbolic_device_name, EBPF_SYMBOLIC_DEVICE_NAME);
-    status = WdfDeviceCreateSymbolicLink(*device, &ebpf_symbolic_device_name);
+    RtlInitUnicodeString(&test_ebpf_ext_symbolic_device_name, TEST_EBPF_EXT_SYMBOLIC_DEVICE_NAME);
+    status = WdfDeviceCreateSymbolicLink(*device, &test_ebpf_ext_symbolic_device_name);
 
     if (!NT_SUCCESS(status)) {
         goto Exit;
@@ -205,7 +145,7 @@ _ebpf_driver_initialize_objects(
     // parallel default queue
     WDF_IO_QUEUE_CONFIG_INIT_DEFAULT_QUEUE(&io_queue_configuration, WdfIoQueueDispatchParallel);
 
-    io_queue_configuration.EvtIoDeviceControl = _ebpf_driver_io_device_control;
+    io_queue_configuration.EvtIoDeviceControl = _test_ebpf_ext_driver_io_device_control;
 
     status = WdfIoQueueCreate(
         *device,
@@ -217,7 +157,12 @@ _ebpf_driver_initialize_objects(
         goto Exit;
     }
 
-    status = _ebpf_result_to_ntstatus(ebpf_core_initiate());
+    status = test_ebpf_extension_program_info_provider_register();
+    if (!NT_SUCCESS(status)) {
+        goto Exit;
+    }
+
+    status = test_ebpf_extension_hook_provider_register();
     if (!NT_SUCCESS(status)) {
         goto Exit;
     }
@@ -237,15 +182,33 @@ Exit:
     return status;
 }
 
-static void
-_ebpf_driver_file_close(WDFFILEOBJECT wdf_file_object)
+NTSTATUS
+DriverEntry(_In_ DRIVER_OBJECT* driver_object, _In_ UNICODE_STRING* registry_path)
 {
-    FILE_OBJECT* file_object = WdfFileObjectWdmGetFileObject(wdf_file_object);
-    ebpf_object_release_reference(file_object->FsContext2);
+    NTSTATUS status;
+    WDFDRIVER driver;
+    WDFDEVICE device;
+
+    // Request NX Non-Paged Pool when available
+    ExInitializeDriverRuntime(DrvRtPoolNxOptIn);
+
+    KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "test_ebpf_ext: DriverEntry\n"));
+
+    status = _test_ebpf_ext_driver_initialize_objects(driver_object, registry_path, &driver, &device);
+
+    if (!NT_SUCCESS(status)) {
+        goto Exit;
+    }
+
+    _test_ebpf_ext_driver_device_object = WdfDeviceWdmGetDeviceObject(device);
+
+Exit:
+
+    return status;
 }
 
 static VOID
-_ebpf_driver_io_device_control(
+_test_ebpf_ext_driver_io_device_control(
     _In_ WDFQUEUE queue,
     _In_ WDFREQUEST request,
     size_t output_buffer_length,
@@ -258,15 +221,14 @@ _ebpf_driver_io_device_control(
     void* output_buffer = NULL;
     size_t actual_input_length = 0;
     size_t actual_output_length = 0;
-    const struct _ebpf_operation_header* user_request = NULL;
-    struct _ebpf_operation_header* user_reply = NULL;
+    test_program_context_t program_context = {0};
+    uint32_t program_result = 0;
+    ebpf_result_t result;
 
     device = WdfIoQueueGetDevice(queue);
 
     switch (io_control_code) {
-    case IOCTL_EBPFCTL_METHOD_BUFFERED:
-        // Verify that length of the input buffer supplied to the request object
-        // is not zero
+    case IOCTL_TEST_EBPF_EXT_CTL:
         if (input_buffer_length != 0) {
             // Retrieve the input buffer associated with the request object
             status = WdfRequestRetrieveInputBuffer(
@@ -277,7 +239,7 @@ _ebpf_driver_io_device_control(
             );
 
             if (!NT_SUCCESS(status)) {
-                KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "EbpfCore: Input buffer failure %d\n", status));
+                KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "TestEbpfExt: Input buffer failure %d\n", status));
                 goto Done;
             }
 
@@ -290,16 +252,10 @@ _ebpf_driver_io_device_control(
                 size_t minimum_request_size = 0;
                 size_t minimum_reply_size = 0;
 
-                user_request = input_buffer;
-                if (actual_input_length < sizeof(struct _ebpf_operation_header)) {
+                if (actual_input_length < minimum_request_size) {
                     status = STATUS_INVALID_PARAMETER;
                     goto Done;
                 }
-
-                status = _ebpf_result_to_ntstatus(ebpf_core_get_protocol_handler_properties(
-                    user_request->id, &minimum_request_size, &minimum_reply_size));
-                if (status != STATUS_SUCCESS)
-                    goto Done;
 
                 // Be aware: Input and output buffer point to the same memory.
                 if (minimum_reply_size > 0) {
@@ -307,8 +263,8 @@ _ebpf_driver_io_device_control(
                     status = WdfRequestRetrieveOutputBuffer(
                         request, output_buffer_length, &output_buffer, &actual_output_length);
                     if (!NT_SUCCESS(status)) {
-                        KdPrintEx(
-                            (DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "EbpfCore: Output buffer failure %d\n", status));
+                        KdPrintEx((
+                            DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "TestEbpfExt: Output buffer failure %d\n", status));
                         goto Done;
                     }
                     if (output_buffer == NULL) {
@@ -320,19 +276,12 @@ _ebpf_driver_io_device_control(
                         status = STATUS_BUFFER_TOO_SMALL;
                         goto Done;
                     }
-                    user_reply = output_buffer;
                 }
 
-                status = _ebpf_result_to_ntstatus(ebpf_core_invoke_protocol_handler(
-                    user_request->id, user_request, user_reply, (uint16_t)actual_output_length));
-
-                // Fill out the rest of the out buffer after processing the input
-                // buffer.
-                if (status == STATUS_SUCCESS && user_reply) {
-                    user_reply->id = user_request->id;
-                    user_reply->length = (uint16_t)actual_output_length;
-                }
-                goto Done;
+                // Invoke the eBPF program
+                program_context.data_start = input_buffer;
+                program_context.data_end = (uint8_t*)input_buffer + input_buffer_length;
+                result = test_ebpf_extension_invoke_program(&program_context, &program_result);
             }
         } else {
             status = STATUS_INVALID_PARAMETER;
@@ -346,34 +295,4 @@ _ebpf_driver_io_device_control(
 Done:
     WdfRequestCompleteWithInformation(request, status, output_buffer_length);
     return;
-}
-
-NTSTATUS
-DriverEntry(_In_ DRIVER_OBJECT* driver_object, _In_ UNICODE_STRING* registry_path)
-{
-    NTSTATUS status;
-    WDFDRIVER driver;
-    WDFDEVICE device;
-
-    // Request NX Non-Paged Pool when available
-    ExInitializeDriverRuntime(DrvRtPoolNxOptIn);
-
-    KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "EbpfCore: DriverEntry\n"));
-
-    status = _ebpf_driver_initialize_objects(driver_object, registry_path, &driver, &device);
-
-    if (!NT_SUCCESS(status)) {
-        goto Exit;
-    }
-
-    _ebpf_driver_device_object = WdfDeviceWdmGetDeviceObject(device);
-
-Exit:
-    return status;
-}
-
-DEVICE_OBJECT*
-ebpf_driver_get_device_object()
-{
-    return _ebpf_driver_device_object;
 }

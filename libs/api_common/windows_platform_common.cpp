@@ -43,15 +43,25 @@ const ebpf_context_descriptor_t g_bind_context_descriptor = {
 const EbpfProgramType windows_bind_program_type =
     PTYPE("bind", &g_bind_context_descriptor, (uint64_t)&EBPF_PROGRAM_TYPE_BIND, {"bind"});
 
-const std::vector<EbpfProgramType> windows_program_types = {
-    PTYPE("unspecified", {0}, 0, {}),
-    windows_xdp_program_type,
-    windows_bind_program_type,
+const ebpf_context_descriptor_t g_test_ext_context_descriptor = {
+    24, // Size of ctx struct.
+    0,  // Offset into ctx struct of pointer to data, or -1 if none.
+    8,  // Offset into ctx struct of pointer to end of data, or -1 if none.
+    -1, // Offset into ctx struct of pointer to metadata, or -1 if none.
 };
+
+const EbpfProgramType windows_test_ext_program_type =
+    PTYPE("test_ext", &g_test_ext_context_descriptor, (uint64_t)&EBPF_PROGRAM_TYPE_TEST, {"test_ext"});
+
+const std::vector<EbpfProgramType> windows_program_types = {PTYPE("unspecified", {0}, 0, {}),
+                                                            windows_xdp_program_type,
+                                                            windows_bind_program_type,
+                                                            windows_test_ext_program_type};
 
 const std::map<ebpf_program_type_t*, ebpf_attach_type_t*> windows_program_type_to_attach_type = {
     {&EBPF_PROGRAM_TYPE_XDP, &EBPF_ATTACH_TYPE_XDP},
     {&EBPF_PROGRAM_TYPE_BIND, &EBPF_ATTACH_TYPE_BIND},
+    {&EBPF_PROGRAM_TYPE_TEST, &EBPF_ATTACH_TYPE_TEST},
 };
 
 EbpfProgramType
