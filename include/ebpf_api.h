@@ -19,16 +19,42 @@ extern "C"
 #endif
 
     __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_UNSPECIFIED = {0};
+
+    /** @brief Attach type for handling incoming packets as early as possible.
+     *
+     * Program type: \ref EBPF_PROGRAM_TYPE_XDP
+     */
     __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_XDP = {
         0x85e0d8ef, 0x579e, 0x4931, {0xb0, 0x72, 0x8e, 0xe2, 0x26, 0xbb, 0x2e, 0x9d}};
+
+    /** @brief Attach type for handling socket bind() requests.
+     *
+     * Program type: \ref EBPF_PROGRAM_TYPE_BIND
+     */
     __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_BIND = {
         0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
 
     __declspec(selectany) ebpf_attach_type_t EBPF_PROGRAM_TYPE_UNSPECIFIED = {0};
 
+    /** @brief Program type for handling incoming packets as early as possible.
+     *
+     * eBPF program prototype: \ref xdp_hook_t
+     *
+     * Attach type(s): \ref EBPF_ATTACH_TYPE_XDP
+     *
+     * Helpers available: see ebpf_helpers.h
+     */
     __declspec(selectany) ebpf_program_type_t EBPF_PROGRAM_TYPE_XDP = {
         0xf1832a85, 0x85d5, 0x45b0, {0x98, 0xa0, 0x70, 0x69, 0xd6, 0x30, 0x13, 0xb0}};
 
+    /** @brief Program type for handling socket bind() requests.
+     *
+     * eBPF program prototype: \ref bind_hook_t
+     *
+     * Attach type(s): \ref EBPF_ATTACH_TYPE_BIND
+     *
+     * Helpers available: see ebpf_helpers.h
+     */
     __declspec(selectany) ebpf_program_type_t EBPF_PROGRAM_TYPE_BIND = {
         0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
 
@@ -267,14 +293,14 @@ extern "C"
         ebpf_api_verifier_stats_t* stats);
 
     /**
-     * @brief Free a TLV returned from ebpf_api_elf_enumerate_sections
+     * @brief Free a TLV returned from \ref ebpf_api_elf_enumerate_sections
      * @param[in] data Memory to free.
      */
     void
     ebpf_api_elf_free(const tlv_type_length_value_t* data);
 
     /**
-     * @brief Free memory for a string returned from eBPF API.
+     * @brief Free memory for a string returned from an eBPF API.
      * @param[in] string Memory to free.
      */
     void
@@ -331,7 +357,7 @@ extern "C"
     ebpf_api_close_handle(ebpf_handle_t handle);
 
     /**
-     * @brief Returns an array of ebpf_map_information_t for all pinned maps.
+     * @brief Returns an array of \ref ebpf_map_information_t for all pinned maps.
      *
      * @param[out] map_count Number of pinned maps.
      * @param[out] map_info Array of ebpf_map_information_t for pinned maps.
@@ -345,8 +371,8 @@ extern "C"
         _Out_ uint16_t* map_count, _Outptr_result_buffer_maybenull_(*map_count) ebpf_map_information_t** map_info);
 
     /**
-     * @brief Helper Function to free array of ebpf_map_information_t allocated by
-     * ebpf_api_get_pinned_map_info function.
+     * @brief Helper Function to free array of \ref ebpf_map_information_t allocated by
+     * \ref ebpf_api_get_pinned_map_info function.
      *
      * @param[in] map_count Length of array to be freed.
      * @param[in] map_info Map to be freed.

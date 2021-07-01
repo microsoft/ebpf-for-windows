@@ -23,6 +23,17 @@ typedef enum _xdp_action
     XDP_DROP = 2  ///< Drop the packet.
 } xdp_action_t;
 
+/**
+ * @brief Handle an incoming packet as early as possible.
+ *
+ * Program type: \ref EBPF_PROGRAM_TYPE_XDP
+ *
+ * @param[in] context Packet metadata.
+ * @retval XDP_PASS Allow the packet to pass.
+ * @retval XDP_DROP Drop the packet.
+ */
+typedef xdp_action_t (*xdp_hook_t)(xdp_md_t* context);
+
 // BIND hook
 typedef struct _bind_md
 {
@@ -48,3 +59,15 @@ typedef enum _bind_action
     BIND_DENY,     ///< Deny the bind operation.
     BIND_REDIRECT, ///< Change the bind endpoint.
 } bind_action_t;
+
+/**
+ * @brief Handle a socket bind() request.
+ *
+ * Program type: \ref EBPF_PROGRAM_TYPE_BIND
+ *
+ * @param[in] context Socket metadata.
+ * @retval BIND_PERMIT Permit the bind operation.
+ * @retval BIND_DENY Deny the bind operation.
+ * @retval BIND_REDIRECT Change the bind endpoint.
+ */
+typedef bind_action_t (*bind_hook_t)(bind_md_t* context);
