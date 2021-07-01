@@ -90,12 +90,18 @@ Typedefs</h2></td></tr>
 <tr class="separator:ad23ae5164c0bc1b25cfc3c60ab24a781"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8e725c81ff0e90836d9dfcec34fb5aa3"><td class="memItemLeft" align="right" valign="top">typedef enum <a class="el" href="ebpf__nethooks_8h.html#a5aff0d5d670941126cebc5687d5e280d">_xdp_action</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#a8e725c81ff0e90836d9dfcec34fb5aa3">xdp_action_t</a></td></tr>
 <tr class="separator:a8e725c81ff0e90836d9dfcec34fb5aa3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1be55119cc118811f50dc304d193a944"><td class="memItemLeft" align="right" valign="top">typedef <a class="el" href="ebpf__nethooks_8h.html#a8e725c81ff0e90836d9dfcec34fb5aa3">xdp_action_t</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#a1be55119cc118811f50dc304d193a944">xdp_hook_t</a>) (<a class="el" href="ebpf__nethooks_8h.html#ad23ae5164c0bc1b25cfc3c60ab24a781">xdp_md_t</a> *context)</td></tr>
+<tr class="memdesc:a1be55119cc118811f50dc304d193a944"><td class="mdescLeft">&#160;</td><td class="mdescRight">Handle an incoming packet as early as possible.  <a href="ebpf__nethooks_8h.html#a1be55119cc118811f50dc304d193a944">More...</a><br /></td></tr>
+<tr class="separator:a1be55119cc118811f50dc304d193a944"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad95b98d2e80f69aeb949bbd2f76197c2"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__bind__md.html">_bind_md</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#ad95b98d2e80f69aeb949bbd2f76197c2">bind_md_t</a></td></tr>
 <tr class="separator:ad95b98d2e80f69aeb949bbd2f76197c2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a02ae42f0379561fed4edf984bebd5649"><td class="memItemLeft" align="right" valign="top">typedef enum <a class="el" href="ebpf__nethooks_8h.html#a814187ca47e221594a21bde5324d86fc">_bind_operation</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#a02ae42f0379561fed4edf984bebd5649">bind_operation_t</a></td></tr>
 <tr class="separator:a02ae42f0379561fed4edf984bebd5649"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad76a0927c7e31a4b67e34a7d34d278a2"><td class="memItemLeft" align="right" valign="top">typedef enum <a class="el" href="ebpf__nethooks_8h.html#a9e5d69be705b1f7503ab2fd752c41d02">_bind_action</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#ad76a0927c7e31a4b67e34a7d34d278a2">bind_action_t</a></td></tr>
 <tr class="separator:ad76a0927c7e31a4b67e34a7d34d278a2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9da4ebb7aa131243caa632e2859624b0"><td class="memItemLeft" align="right" valign="top">typedef <a class="el" href="ebpf__nethooks_8h.html#ad76a0927c7e31a4b67e34a7d34d278a2">bind_action_t</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#a9da4ebb7aa131243caa632e2859624b0">bind_hook_t</a>) (<a class="el" href="ebpf__nethooks_8h.html#ad95b98d2e80f69aeb949bbd2f76197c2">bind_md_t</a> *context)</td></tr>
+<tr class="memdesc:a9da4ebb7aa131243caa632e2859624b0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Handle a socket bind() request.  <a href="ebpf__nethooks_8h.html#a9da4ebb7aa131243caa632e2859624b0">More...</a><br /></td></tr>
+<tr class="separator:a9da4ebb7aa131243caa632e2859624b0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="enum-members"></a>
 Enumerations</h2></td></tr>
@@ -126,6 +132,37 @@ Enumerations</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+
+</div>
+</div>
+<a id="a9da4ebb7aa131243caa632e2859624b0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a9da4ebb7aa131243caa632e2859624b0">&#9670;&nbsp;</a></span>bind_hook_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef <a class="el" href="ebpf__nethooks_8h.html#ad76a0927c7e31a4b67e34a7d34d278a2">bind_action_t</a>(* bind_hook_t) (<a class="el" href="ebpf__nethooks_8h.html#ad95b98d2e80f69aeb949bbd2f76197c2">bind_md_t</a> *context)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Handle a socket bind() request. </p>
+<p>Program type: <a class="el" href="ebpf__api_8h.html#ab3f482055c69dbcf858e5aac2ab042ec">EBPF_PROGRAM_TYPE_BIND</a></p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">context</td><td>Socket metadata. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">BIND_PERMIT</td><td>Permit the bind operation. </td></tr>
+    <tr><td class="paramname">BIND_DENY</td><td>Deny the bind operation. </td></tr>
+    <tr><td class="paramname">BIND_REDIRECT</td><td>Change the bind endpoint. </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>
@@ -168,6 +205,36 @@ Enumerations</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+
+</div>
+</div>
+<a id="a1be55119cc118811f50dc304d193a944"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1be55119cc118811f50dc304d193a944">&#9670;&nbsp;</a></span>xdp_hook_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef <a class="el" href="ebpf__nethooks_8h.html#a8e725c81ff0e90836d9dfcec34fb5aa3">xdp_action_t</a>(* xdp_hook_t) (<a class="el" href="ebpf__nethooks_8h.html#ad23ae5164c0bc1b25cfc3c60ab24a781">xdp_md_t</a> *context)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Handle an incoming packet as early as possible. </p>
+<p>Program type: <a class="el" href="ebpf__api_8h.html#a2f642bba5fbe57aa899d778e9f650303">EBPF_PROGRAM_TYPE_XDP</a></p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">context</td><td>Packet metadata. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">XDP_PASS</td><td>Allow the packet to pass. </td></tr>
+    <tr><td class="paramname">XDP_DROP</td><td>Drop the packet. </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>
