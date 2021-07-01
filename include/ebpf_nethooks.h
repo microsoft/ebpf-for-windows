@@ -32,7 +32,8 @@ typedef enum _xdp_action
  * @retval XDP_PASS Allow the packet to pass.
  * @retval XDP_DROP Drop the packet.
  */
-typedef xdp_action_t (*xdp_hook_t)(xdp_md_t* context);
+typedef xdp_action_t
+xdp_hook_t(xdp_md_t* context);
 
 // BIND hook
 typedef struct _bind_md
@@ -70,4 +71,5 @@ typedef enum _bind_action
  * @retval BIND_DENY Deny the bind operation.
  * @retval BIND_REDIRECT Change the bind endpoint.
  */
-typedef bind_action_t (*bind_hook_t)(bind_md_t* context);
+typedef bind_action_t
+bind_hook_t(bind_md_t* context);
