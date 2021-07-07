@@ -12,7 +12,7 @@ service_install_helper::initialize()
 {
     int error;
     int retry_count = 0;
-    SERVICE_SID_INFO sid_information = {0};
+    SERVICE_SID_INFO sid_info = {0};
 
     if (initialized) {
         return ERROR_SUCCESS;
@@ -64,8 +64,8 @@ QueryService:
         }
 
         // Set service SID type to restricted.
-        sid_information.dwServiceSidType = SERVICE_SID_TYPE_RESTRICTED;
-        if (!ChangeServiceConfig2(service_handle, SERVICE_CONFIG_SERVICE_SID_INFO, &sid_information)) {
+        sid_info.dwServiceSidType = SERVICE_SID_TYPE_RESTRICTED;
+        if (!ChangeServiceConfig2(service_handle, SERVICE_CONFIG_SERVICE_SID_INFO, &sid_info)) {
             error = GetLastError();
             printf("ChangeServiceConfig2 for %ws failed, 0x%x.\n", service_name.c_str(), error);
             return error;

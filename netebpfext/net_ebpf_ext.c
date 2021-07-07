@@ -33,7 +33,7 @@ Environment:
 
 #include "ebpf_ext_attach_provider.h"
 // ebpf_bind_program_data.h and ebpf_xdp_program_data.h are generated
-// headers. encode_program_information generates them from the structs
+// headers. encode_program_info generates them from the structs
 // in ebpf_nethooks.h. This workaround exists due to the inability
 // to call RPC serialization services from kernel mode. Once we switch
 // to a different serializer, we can get rid of this workaround.
@@ -46,8 +46,8 @@ Environment:
 
 static ebpf_ext_attach_hook_provider_registration_t* _ebpf_xdp_hook_provider_registration = NULL;
 static ebpf_ext_attach_hook_provider_registration_t* _ebpf_bind_hook_provider_registration = NULL;
-static ebpf_extension_provider_t* _ebpf_xdp_program_information_provider = NULL;
-static ebpf_extension_provider_t* _ebpf_bind_program_information_provider = NULL;
+static ebpf_extension_provider_t* _ebpf_xdp_program_info_provider = NULL;
+static ebpf_extension_provider_t* _ebpf_bind_program_info_provider = NULL;
 
 #define RTL_COUNT_OF(arr) (sizeof(arr) / sizeof(arr[0]))
 
@@ -71,24 +71,24 @@ static ebpf_context_descriptor_t _ebpf_xdp_context_descriptor = {sizeof(xdp_md_t
                                                                  EBPF_OFFSET_OF(xdp_md_t, data),
                                                                  EBPF_OFFSET_OF(xdp_md_t, data_end),
                                                                  EBPF_OFFSET_OF(xdp_md_t, data_meta)};
-static ebpf_program_information_t _ebpf_xdp_program_information = {{"xdp", &_ebpf_xdp_context_descriptor, {0}},
-                                                                   EBPF_COUNT_OF(_ebpf_map_helper_function_prototype),
-                                                                   _ebpf_map_helper_function_prototype};
+static ebpf_program_info_t _ebpf_xdp_program_info = {{"xdp", &_ebpf_xdp_context_descriptor, {0}},
+                                                     EBPF_COUNT_OF(_ebpf_map_helper_function_prototype),
+                                                     _ebpf_map_helper_function_prototype};
 
-static ebpf_program_data_t _ebpf_xdp_program_data = {&_ebpf_xdp_program_information, NULL};
+static ebpf_program_data_t _ebpf_xdp_program_data = {&_ebpf_xdp_program_info, NULL};
 
-static ebpf_extension_data_t _ebpf_xdp_program_information_provider_data = {
+static ebpf_extension_data_t _ebpf_xdp_program_info_provider_data = {
     NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_ebpf_xdp_program_data), &_ebpf_xdp_program_data};
 
 static ebpf_context_descriptor_t _ebpf_bind_context_descriptor = {
     sizeof(bind_md_t), EBPF_OFFSET_OF(bind_md_t, app_id_start), EBPF_OFFSET_OF(bind_md_t, app_id_end), -1};
-static ebpf_program_information_t _ebpf_bind_program_information = {{"bind", &_ebpf_bind_context_descriptor, {0}},
-                                                                    EBPF_COUNT_OF(_ebpf_map_helper_function_prototype),
-                                                                    _ebpf_map_helper_function_prototype};
+static ebpf_program_info_t _ebpf_bind_program_info = {{"bind", &_ebpf_bind_context_descriptor, {0}},
+                                                      EBPF_COUNT_OF(_ebpf_map_helper_function_prototype),
+                                                      _ebpf_map_helper_function_prototype};
 
-static ebpf_program_data_t _ebpf_bind_program_data = {&_ebpf_bind_program_information, NULL};
+static ebpf_program_data_t _ebpf_bind_program_data = {&_ebpf_bind_program_info, NULL};
 
-static ebpf_extension_data_t _ebpf_bind_program_information_provider_data = {
+static ebpf_extension_data_t _ebpf_bind_program_info_provider_data = {
     NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_ebpf_bind_program_data), &_ebpf_bind_program_data};
 // Callout and sublayer GUIDs
 
@@ -673,28 +673,28 @@ net_ebpf_ext_unregister_providers()
 }
 
 void
-net_ebpf_ext_program_information_provider_unregister()
+net_ebpf_ext_program_info_provider_unregister()
 {
-    ebpf_provider_unload(_ebpf_xdp_program_information_provider);
-    ebpf_provider_unload(_ebpf_bind_program_information_provider);
+    ebpf_provider_unload(_ebpf_xdp_program_info_provider);
+    ebpf_provider_unload(_ebpf_bind_program_info_provider);
 }
 
 NTSTATUS
-net_ebpf_ext_program_information_provider_register()
+net_ebpf_ext_program_info_provider_register()
 {
     ebpf_result_t return_value;
     ebpf_extension_data_t* provider_data;
     ebpf_program_data_t* program_data;
 
-    provider_data = &_ebpf_xdp_program_information_provider_data;
+    provider_data = &_ebpf_xdp_program_info_provider_data;
     program_data = (ebpf_program_data_t*)provider_data->data;
-    program_data->program_information->program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_XDP;
+    program_data->program_info->program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_XDP;
 
     return_value = ebpf_provider_load(
-        &_ebpf_xdp_program_information_provider,
+        &_ebpf_xdp_program_info_provider,
         &EBPF_PROGRAM_TYPE_XDP,
         NULL,
-        &_ebpf_xdp_program_information_provider_data,
+        &_ebpf_xdp_program_info_provider_data,
         NULL,
         NULL,
         NULL,
@@ -704,15 +704,15 @@ net_ebpf_ext_program_information_provider_register()
         goto Done;
     }
 
-    provider_data = &_ebpf_bind_program_information_provider_data;
+    provider_data = &_ebpf_bind_program_info_provider_data;
     program_data = (ebpf_program_data_t*)provider_data->data;
-    program_data->program_information->program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_BIND;
+    program_data->program_info->program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_BIND;
 
     return_value = ebpf_provider_load(
-        &_ebpf_bind_program_information_provider,
+        &_ebpf_bind_program_info_provider,
         &EBPF_PROGRAM_TYPE_BIND,
         NULL,
-        &_ebpf_bind_program_information_provider_data,
+        &_ebpf_bind_program_info_provider_data,
         NULL,
         NULL,
         NULL,
@@ -724,7 +724,7 @@ net_ebpf_ext_program_information_provider_register()
 
 Done:
     if (return_value != EBPF_SUCCESS) {
-        net_ebpf_ext_program_information_provider_unregister();
+        net_ebpf_ext_program_info_provider_unregister();
         return STATUS_UNSUCCESSFUL;
     } else
         return STATUS_SUCCESS;

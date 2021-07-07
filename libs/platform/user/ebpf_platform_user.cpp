@@ -266,9 +266,9 @@ ebpf_interlocked_compare_exchange_int32(_Inout_ volatile int32_t* destination, i
 void
 ebpf_get_cpu_count(_Out_ uint32_t* cpu_count)
 {
-    SYSTEM_INFO system_information;
-    GetNativeSystemInfo(&system_information);
-    *cpu_count = system_information.dwNumberOfProcessors;
+    SYSTEM_INFO system_info;
+    GetNativeSystemInfo(&system_info);
+    *cpu_count = system_info.dwNumberOfProcessors;
 }
 
 bool

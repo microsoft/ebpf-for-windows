@@ -149,11 +149,10 @@ struct
     const char* name;
     const char* help;
     operation_t operation;
-} commands[]{
-    {"load", "load\tLoad the port quota eBPF program", load},
-    {"unload", "unload\tUnload the port quota eBPF program", unload},
-    {"stats", "stats\tShow stats from the port quota eBPF program", stats},
-    {"limit", "limit value\tSet the port quota limit", limit}};
+} commands[]{{"load", "load\tLoad the port quota eBPF program", load},
+             {"unload", "unload\tUnload the port quota eBPF program", unload},
+             {"stats", "stats\tShow stats from the port quota eBPF program", stats},
+             {"limit", "limit value\tSet the port quota limit", limit}};
 
 void
 print_usage(char* path)

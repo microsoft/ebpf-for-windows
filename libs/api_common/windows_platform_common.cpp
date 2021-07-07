@@ -58,7 +58,7 @@ EbpfProgramType
 get_program_type_windows(const GUID& program_type)
 {
     // TODO: (Issue #67) Make an IOCTL call to fetch the program context
-    //       information and then fill the EbpfProgramType struct.
+    //       info and then fill the EbpfProgramType struct.
     for (const EbpfProgramType t : windows_program_types) {
         if (t.platform_specific_data != 0) {
             if (IsEqualGUID(*(GUID*)t.platform_specific_data, program_type)) {

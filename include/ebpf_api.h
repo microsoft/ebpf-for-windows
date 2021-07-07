@@ -207,21 +207,21 @@ extern "C"
         uint32_t* max_entries);
 
     /**
-     * @brief Query information about an eBPF program.
+     * @brief Query info about an eBPF program.
      * @param[in] handle Handle to an eBPF program.
      * @param[out] execution_type On success, contains the execution type.
      * @param[out] file_name On success, contains the file name.
      * @param[out] section_name On success, contains the section name.
      */
     uint32_t
-    ebpf_api_program_query_information(
+    ebpf_api_program_query_info(
         ebpf_handle_t handle, ebpf_execution_type_t* execution_type, const char** file_name, const char** section_name);
 
     /**
      * @brief Get list of programs and stats in an ELF eBPF file.
      * @param[in] file Name of ELF file containing eBPF program.
      * @param[in] section Optionally, the name of the section to query.
-     * @param[in] verbose Obtain additional information about the programs.
+     * @param[in] verbose Obtain additional info about the programs.
      * @param[out] data On success points to a list of eBPF programs.
      * @param[out] error_message On failure points to a text description of
      *  the error.
@@ -276,7 +276,7 @@ extern "C"
      * @brief Convert an eBPF program to human readable byte code.
      * @param[in] file Name of ELF file containing eBPF program.
      * @param[in] section The name of the section to query.
-     * @param[in] verbose Obtain additional information about the programs.
+     * @param[in] verbose Obtain additional info about the programs.
      * @param[out] report Points to a text section describing why the program
      *  failed verification.
      * @param[out] error_message On failure points to a text description of
@@ -357,10 +357,10 @@ extern "C"
     ebpf_api_close_handle(ebpf_handle_t handle);
 
     /**
-     * @brief Returns an array of \ref ebpf_map_information_t for all pinned maps.
+     * @brief Returns an array of \ref ebpf_map_info_t for all pinned maps.
      *
      * @param[out] map_count Number of pinned maps.
-     * @param[out] map_info Array of ebpf_map_information_t for pinned maps.
+     * @param[out] map_info Array of ebpf_map_info_t for pinned maps.
      *
      * @retval EBPF_SUCCESS The API suceeded.
      * @retval EBPF_NO_MEMORY Out of memory.
@@ -368,10 +368,10 @@ extern "C"
      */
     ebpf_result_t
     ebpf_api_get_pinned_map_info(
-        _Out_ uint16_t* map_count, _Outptr_result_buffer_maybenull_(*map_count) ebpf_map_information_t** map_info);
+        _Out_ uint16_t* map_count, _Outptr_result_buffer_maybenull_(*map_count) ebpf_map_info_t** map_info);
 
     /**
-     * @brief Helper Function to free array of \ref ebpf_map_information_t allocated by
+     * @brief Helper Function to free array of \ref ebpf_map_info_t allocated by
      * \ref ebpf_api_get_pinned_map_info function.
      *
      * @param[in] map_count Length of array to be freed.
@@ -379,7 +379,7 @@ extern "C"
      */
     void
     ebpf_api_map_info_free(
-        uint16_t map_count, _In_opt_count_(map_count) _Post_ptr_invalid_ const ebpf_map_information_t* map_info);
+        uint16_t map_count, _In_opt_count_(map_count) _Post_ptr_invalid_ const ebpf_map_info_t* map_info);
 
     /**
      * @brief Load eBPF programs from an ELF file based on default load

@@ -6,5 +6,5 @@ import "wtypes.idl";
 interface ebpf_program_types
 {
 #include "ebpf_program_types.h"
-    typedef ebpf_program_information_t* ebpf_program_information_pointer_t;
+    typedef ebpf_program_info_t* ebpf_program_info_pointer_t;
 }

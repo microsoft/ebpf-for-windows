@@ -47,7 +47,7 @@ static _Function_class_(EVT_WDF_DRIVER_UNLOAD) _IRQL_requires_same_
 
     _net_ebpf_ext_driver_unloading_flag = TRUE;
 
-    net_ebpf_ext_program_information_provider_unregister();
+    net_ebpf_ext_program_info_provider_unregister();
 
     net_ebpf_ext_unregister_providers();
 
@@ -120,7 +120,7 @@ __net_ebpf_ext_driver_initialize_objects(
         goto Exit;
     }
 
-    status = net_ebpf_ext_program_information_provider_register();
+    status = net_ebpf_ext_program_info_provider_register();
     if (!NT_SUCCESS(status)) {
         goto Exit;
     }

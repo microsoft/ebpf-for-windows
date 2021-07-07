@@ -37,12 +37,12 @@ typedef struct _ebpf_helper_function_prototype
     ebpf_argument_type_t arguments[5];
 } ebpf_helper_function_prototype_t;
 
-typedef struct _ebpf_program_information
+typedef struct _ebpf_program_info
 {
     ebpf_program_type_descriptor_t program_type_descriptor;
     uint32_t count_of_helpers;
     MIDL([size_is(count_of_helpers)]) ebpf_helper_function_prototype_t* helper_prototype;
-} ebpf_program_information_t;
+} ebpf_program_info_t;
 
 typedef struct _ebpf_helper_function_addresses
 {
@@ -52,6 +52,6 @@ typedef struct _ebpf_helper_function_addresses
 
 typedef struct _ebpf_program_data
 {
-    ebpf_program_information_t* program_information;
+    ebpf_program_info_t* program_info;
     ebpf_helper_function_addresses_t* helper_function_addresses;
 } ebpf_program_data_t;
