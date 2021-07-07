@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.17"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>eBPF for Windows: Main Page</title>
+<title>eBPF for Windows: mainpage.dox File Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -45,7 +45,6 @@ $(function() {
 });
 /* @license-end */</script>
 <div id="main-nav"></div>
-</div><!-- top -->
 <!-- window showing the filter options -->
 <div id="MSearchSelectWindow"
      onmouseover="return searchBox.OnSearchSelectShow()"
@@ -60,32 +59,12 @@ $(function() {
 </iframe>
 </div>
 
-<div class="PageDoc"><div class="header">
+</div><!-- top -->
+<div class="header">
   <div class="headertitle">
-<div class="title">eBPF for Windows Documentation</div>  </div>
+<div class="title">mainpage.dox File Reference</div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><h1><a class="anchor" id="intro"></a>
-Introduction</h1>
-<p>eBPF is a well-known technology for providing programmability and agility, especially for extending an OS kernel, for use cases such as DoS protection and observability. This project is a work-in-progress that allows using existing eBPF toolchains and APIs familiar in the Linux ecosystem to be used on top of Windows. That is, this project takes existing eBPF projects as submodules and adds the layer in between to make them run on top of Windows.</p>
-<p>For more info, see the <a href="https://github.com/microsoft/ebpf-for-windows#architectural-overview">Architectural Overview</a>.</p>
-<h1><a class="anchor" id="hooks"></a>
-eBPF Program Reference</h1>
-<p>The following hooks are currently exposed to eBPF programs: </p><ul>
-<li>
-<a class="el" href="ebpf__api_8h.html#ab3f482055c69dbcf858e5aac2ab042ec">EBPF_PROGRAM_TYPE_BIND</a> : Program type for handling socket bind() requests. </li>
-<li>
-<a class="el" href="ebpf__api_8h.html#a2f642bba5fbe57aa899d778e9f650303">EBPF_PROGRAM_TYPE_XDP</a> : Program type for handling incoming packets as early as possible. </li>
-</ul>
-<p>More hooks will be added over time.</p>
-<p>eBPF programs can also call helper APIs to do additional processing. There are two types of helpers: </p><ul>
-<li>
-Helpers defined in <a class="el" href="ebpf__helpers_8h.html">ebpf_helpers.h</a> which are accessible to all program types. </li>
-<li>
-Helpers specific to a given program type and declared in other headers. </li>
-</ul>
-<p>The documentation for each program type will list which helper header files can be used for that program type. Similarly such documentation for each program type will give the API prototype to implement, and the list of supported attach types that can be used when attaching an eBPF program. Most program types have only a single attach type, but some may support multiple places to which the same type of program can be attached. </p>
-</div></div><!-- PageDoc -->
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
