@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.17"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>eBPF for Windows: _ebpf_program_data Struct Reference</title>
+<title>eBPF for Windows: _ebpf_map_info Struct Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -64,42 +64,47 @@ $(function() {
   <div class="summary">
 <a href="#pub-attribs">Data Fields</a>  </div>
   <div class="headertitle">
-<div class="title">_ebpf_program_data Struct Reference</div>  </div>
+<div class="title">_ebpf_map_info Struct Reference</div>  </div>
 </div><!--header-->
 <div class="contents">
 
-<p><code>#include &lt;<a class="el" href="ebpf__program__types_8h_source.html">ebpf_program_types.h</a>&gt;</code></p>
+<p>eBPF Map Information  
+ <a href="struct__ebpf__map__info.html#details">More...</a></p>
+
+<p><code>#include &lt;<a class="el" href="ebpf__core__structs_8h_source.html">ebpf_core_structs.h</a>&gt;</code></p>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Data Fields</h2></td></tr>
-<tr class="memitem:a32f4c9c6ad7e04e40a973ec6eb232a2b"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__program__types_8h.html#af4c03ef813e8625b8c4c869eea6e7a43">ebpf_program_info_t</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__program__data.html#a32f4c9c6ad7e04e40a973ec6eb232a2b">program_info</a></td></tr>
-<tr class="separator:a32f4c9c6ad7e04e40a973ec6eb232a2b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a00f714762e415357b4199ce3d09787e3"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__program__types_8h.html#a92fcd0c5efe2b7e5ca59020423fcb8f9">ebpf_helper_function_addresses_t</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__program__data.html#a00f714762e415357b4199ce3d09787e3">helper_function_addresses</a></td></tr>
-<tr class="separator:a00f714762e415357b4199ce3d09787e3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a198cd15741da97a21b68477676733f35"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__structs_8h.html#aa51d087caeb6b6965122893927824f28">ebpf_map_definition_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__map__info.html#a198cd15741da97a21b68477676733f35">definition</a></td></tr>
+<tr class="separator:a198cd15741da97a21b68477676733f35"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac63b0cf653937f3dd861cdd6f1e16721"><td class="memItemLeft" align="right" valign="top">_Field_z_ char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__map__info.html#ac63b0cf653937f3dd861cdd6f1e16721">pin_path</a></td></tr>
+<tr class="separator:ac63b0cf653937f3dd861cdd6f1e16721"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
-<h2 class="groupheader">Field Documentation</h2>
-<a id="a00f714762e415357b4199ce3d09787e3"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a00f714762e415357b4199ce3d09787e3">&#9670;&nbsp;</a></span>helper_function_addresses</h2>
+<a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
+<div class="textblock"><p>eBPF Map Information </p>
+</div><h2 class="groupheader">Field Documentation</h2>
+<a id="a198cd15741da97a21b68477676733f35"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a198cd15741da97a21b68477676733f35">&#9670;&nbsp;</a></span>definition</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="ebpf__program__types_8h.html#a92fcd0c5efe2b7e5ca59020423fcb8f9">ebpf_helper_function_addresses_t</a>* _ebpf_program_data::helper_function_addresses</td>
+          <td class="memname"><a class="el" href="ebpf__structs_8h.html#aa51d087caeb6b6965122893927824f28">ebpf_map_definition_t</a> _ebpf_map_info::definition</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
 </div>
 </div>
-<a id="a32f4c9c6ad7e04e40a973ec6eb232a2b"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a32f4c9c6ad7e04e40a973ec6eb232a2b">&#9670;&nbsp;</a></span>program_info</h2>
+<a id="ac63b0cf653937f3dd861cdd6f1e16721"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac63b0cf653937f3dd861cdd6f1e16721">&#9670;&nbsp;</a></span>pin_path</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="ebpf__program__types_8h.html#af4c03ef813e8625b8c4c869eea6e7a43">ebpf_program_info_t</a>* _ebpf_program_data::program_info</td>
+          <td class="memname">_Field_z_ char* _ebpf_map_info::pin_path</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -107,7 +112,7 @@ Data Fields</h2></td></tr>
 </div>
 </div>
 <hr/>The documentation for this struct was generated from the following file:<ul>
-<li>include/<a class="el" href="ebpf__program__types_8h_source.html">ebpf_program_types.h</a></li>
+<li>include/<a class="el" href="ebpf__core__structs_8h_source.html">ebpf_core_structs.h</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->
