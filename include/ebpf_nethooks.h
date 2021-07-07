@@ -9,9 +9,9 @@
 // XDP hook.  We use "struct xdp_md" for cross-platform compatibility.
 typedef struct xdp_md
 {
-    void* data;         /*     0     8 */
-    void* data_end;     /*     8     8 */
-    uint64_t data_meta; /*     16    8 */
+    void* data;         ///< Pointer to start of packet data.
+    void* data_end;     ///< Pointer to end of packet data.
+    uint64_t data_meta; ///< Packet metadata.
 
     /* size: 12, cachelines: 1, members: 3 */
     /* last cacheline: 12 bytes */
@@ -36,16 +36,6 @@ typedef xdp_action_t
 xdp_hook_t(xdp_md_t* context);
 
 // BIND hook
-typedef struct _bind_md
-{
-    uint8_t* app_id_start;         // 0,8
-    uint8_t* app_id_end;           // 8,8
-    uint64_t process_id;           // 16,8
-    uint8_t socket_address[16];    // 24,16
-    uint8_t socket_address_length; // 40,1
-    uint8_t operation;             // 41,1
-    uint8_t protocol;              // 42,1
-} bind_md_t;
 
 typedef enum _bind_operation
 {
@@ -53,6 +43,17 @@ typedef enum _bind_operation
     BIND_OPERATION_POST_BIND, ///< After port allocation.
     BIND_OPERATION_UNBIND,    ///< Release port.
 } bind_operation_t;
+
+typedef struct _bind_md
+{
+    uint8_t* app_id_start;         ///< Pointer to start of App ID.
+    uint8_t* app_id_end;           ///< Pointer to end of App ID.
+    uint64_t process_id;           ///< Process ID.
+    uint8_t socket_address[16];    ///< Socket address to bind to.
+    uint8_t socket_address_length; ///< Length in bytes of the socket address.
+    bind_operation_t operation;    ///< Operation to do.
+    uint8_t protocol;              ///< Protocol number (e.g., IPPROTO_TCP).
+} bind_md_t;
 
 typedef enum _bind_action
 {
