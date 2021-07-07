@@ -8,6 +8,7 @@
 #include "crab_verifier_wrapper.hpp"
 #include "ebpf_api.h"
 #include "ebpf_helpers.h"
+#include "ebpf_nethooks.h"
 #include "helpers.hpp"
 #include "map_descriptors.hpp"
 #include "platform.hpp"
@@ -28,22 +29,16 @@
 // the preprocessor treat a prefix list as one macro argument.
 #define COMMA ,
 
-const ebpf_context_descriptor_t g_xdp_context_descriptor = {
-    24, // Size of ctx struct.
-    0,  // Offset into ctx struct of pointer to data, or -1 if none.
-    8,  // Offset into ctx struct of pointer to end of data, or -1 if none.
-    16, // Offset into ctx struct of pointer to metadata, or -1 if none.
-};
+const ebpf_context_descriptor_t g_xdp_context_descriptor = {sizeof(xdp_md_t),
+                                                            EBPF_OFFSET_OF(xdp_md_t, data),
+                                                            EBPF_OFFSET_OF(xdp_md_t, data_end),
+                                                            EBPF_OFFSET_OF(xdp_md_t, data_meta)};
 
 const EbpfProgramType windows_xdp_program_type =
     PTYPE("xdp", &g_xdp_context_descriptor, (uint64_t)&EBPF_PROGRAM_TYPE_XDP, {"xdp"});
 
 const ebpf_context_descriptor_t g_bind_context_descriptor = {
-    43, // Size of ctx struct.
-    0,  // Offset into ctx struct of pointer to data, or -1 if none.
-    8,  // Offset into ctx struct of pointer to end of data, or -1 if none.
-    -1, // Offset into ctx struct of pointer to metadata, or -1 if none.
-};
+    sizeof(bind_md_t), EBPF_OFFSET_OF(bind_md_t, app_id_start), EBPF_OFFSET_OF(bind_md_t, app_id_end), -1};
 
 const EbpfProgramType windows_bind_program_type =
     PTYPE("bind", &g_bind_context_descriptor, (uint64_t)&EBPF_PROGRAM_TYPE_BIND, {"bind"});
