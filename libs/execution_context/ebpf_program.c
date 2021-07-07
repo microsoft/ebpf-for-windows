@@ -38,9 +38,9 @@ typedef struct _ebpf_program
     ebpf_map_t** maps;
     size_t count_of_maps;
 
-    ebpf_extension_client_t* program_information_client;
-    const void* program_information_binding_context;
-    const ebpf_extension_data_t* program_information_data;
+    ebpf_extension_client_t* program_info_client;
+    const void* program_info_binding_context;
+    const ebpf_extension_data_t* program_info_data;
     uint32_t helper_function_count;
     bool program_invalidated;
 
@@ -50,7 +50,7 @@ typedef struct _ebpf_program
 } ebpf_program_t;
 
 static void
-_ebpf_program_program_information_provider_changed(
+_ebpf_program_program_info_provider_changed(
     _In_ void* client_binding_context,
     _In_ const void* provider_binding_context,
     _In_opt_ const ebpf_extension_data_t* provider_data)
@@ -74,12 +74,12 @@ _ebpf_program_program_information_provider_changed(
 
         if ((program->helper_function_count > 0) &&
             (helper_function_addresses->helper_function_count != program->helper_function_count))
-            // A program information provider cannot modify helper function count upon reload.
+            // A program info provider cannot modify helper function count upon reload.
             goto Exit;
 
         if (helper_function_addresses != NULL) {
             if (!program->trampoline_table) {
-                // Program information provider is being loaded for the first time. Allocate trampoline table.
+                // Program info provider is being loaded for the first time. Allocate trampoline table.
                 program->helper_function_count = helper_function_addresses->helper_function_count;
                 return_value =
                     ebpf_allocate_trampoline_table(program->helper_function_count, &program->trampoline_table);
@@ -94,10 +94,10 @@ _ebpf_program_program_information_provider_changed(
         }
     }
 
-    program->program_information_binding_context = provider_binding_context;
-    program->program_information_data = provider_data;
+    program->program_info_binding_context = provider_binding_context;
+    program->program_info_data = provider_data;
 Exit:
-    program->program_invalidated = (program->program_information_data == NULL);
+    program->program_invalidated = (program->program_info_data == NULL);
 }
 
 /**
@@ -130,7 +130,7 @@ _ebpf_program_epoch_free(void* context)
     size_t index;
 
     ebpf_extension_unload(program->global_helper_extension_client);
-    ebpf_extension_unload(program->program_information_client);
+    ebpf_extension_unload(program->program_info_client);
 
     switch (program->parameters.code_type) {
     case EBPF_CODE_NATIVE:
@@ -192,15 +192,15 @@ ebpf_program_load_providers(ebpf_program_t* program)
     }
 
     return_value = ebpf_extension_load(
-        &program->program_information_client,
+        &program->program_info_client,
         &program->parameters.program_type,
         program,
         NULL,
         NULL,
-        (void**)&program->program_information_binding_context,
-        &program->program_information_data,
+        (void**)&program->program_info_binding_context,
+        &program->program_info_data,
         NULL,
-        _ebpf_program_program_information_provider_changed);
+        _ebpf_program_program_info_provider_changed);
 
     if (return_value != EBPF_SUCCESS)
         goto Done;
@@ -459,16 +459,15 @@ ebpf_program_get_helper_function_address(const ebpf_program_t* program, uint32_t
 }
 
 ebpf_result_t
-ebpf_program_get_program_information_data(
-    const ebpf_program_t* program, const ebpf_extension_data_t** program_information_data)
+ebpf_program_get_program_info_data(const ebpf_program_t* program, const ebpf_extension_data_t** program_info_data)
 {
     if (program->program_invalidated)
         return EBPF_EXTENSION_FAILED_TO_LOAD;
 
-    if (!program->program_information_data)
+    if (!program->program_info_data)
         return EBPF_EXTENSION_FAILED_TO_LOAD;
 
-    *program_information_data = program->program_information_data;
+    *program_info_data = program->program_info_data;
 
     return EBPF_SUCCESS;
 }

@@ -56,17 +56,17 @@ void
 net_ebpf_ext_unregister_providers();
 
 /**
- * @brief Register program information providers with eBPF core.
+ * @brief Register program info providers with eBPF core.
  *
  * @retval STATUS_SUCCESS Operation succeeded.
  * @retval STATUS_UNSUCCESSFUL Operation failed.
  */
 NTSTATUS
-net_ebpf_ext_program_information_provider_register();
+net_ebpf_ext_program_info_provider_register();
 
 /**
- * @brief Unregister program information providers from eBPF core.
+ * @brief Unregister program info providers from eBPF core.
  *
  */
 void
-net_ebpf_ext_program_information_provider_unregister();
+net_ebpf_ext_program_info_provider_unregister();

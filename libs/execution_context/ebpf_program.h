@@ -71,18 +71,17 @@ extern "C"
     ebpf_program_get_properties(ebpf_program_t* program, ebpf_program_parameters_t* program_parameters);
 
     /**
-     * @brief Get the program information data from the program information
+     * @brief Get the program info data from the program info
      *  extension.
      *
      * @param[in] program Program that loaded the extension.
-     * @param[out] program_information_data Pointer to the program information.
+     * @param[out] program_info_data Pointer to the program info.
      * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_ERROR_EXTENSION_FAILED_TO_LOAD The program information isn't
+     * @retval EBPF_ERROR_EXTENSION_FAILED_TO_LOAD The program info isn't
      *  available.
      */
     ebpf_result_t
-    ebpf_program_get_program_information_data(
-        const ebpf_program_t* program, const ebpf_extension_data_t** program_information_data);
+    ebpf_program_get_program_info_data(const ebpf_program_t* program, const ebpf_extension_data_t** program_info_data);
 
     /**
      * @brief Associate a set of maps with this program instance.

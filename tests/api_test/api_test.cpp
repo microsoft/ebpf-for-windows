@@ -93,7 +93,7 @@ _test_program_load(
     const char* program_section_name;
     ebpf_execution_type_t program_execution_type;
     REQUIRE(
-        ebpf_api_program_query_information(
+        ebpf_api_program_query_info(
             program_handle, &program_execution_type, &program_file_name, &program_section_name) == ERROR_SUCCESS);
 
     // Set the default execution type to JIT. This will eventually

@@ -15,8 +15,8 @@
 /**
  * @brief eBPF Map Information
  */
-typedef struct _ebpf_map_information
+typedef struct _ebpf_map_info
 {
     ebpf_map_definition_t definition;
     _Field_z_ char* pin_path;
-} ebpf_map_information_t;
+} ebpf_map_info_t;

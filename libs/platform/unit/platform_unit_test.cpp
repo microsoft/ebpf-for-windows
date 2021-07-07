@@ -243,37 +243,35 @@ TEST_CASE("program_type_info", "[platform]")
                                                  EBPF_OFFSET_OF(xdp_md_t, data_end),
                                                  EBPF_OFFSET_OF(xdp_md_t, data_meta)};
     ebpf_program_type_descriptor_t program_type{"xdp", &context_descriptor};
-    ebpf_program_information_t program_information{program_type, _countof(helper_functions), helper_functions};
-    ebpf_program_information_t* new_program_information = nullptr;
+    ebpf_program_info_t program_info{program_type, _countof(helper_functions), helper_functions};
+    ebpf_program_info_t* new_program_info = nullptr;
     uint8_t* buffer = nullptr;
     unsigned long buffer_size;
-    REQUIRE(ebpf_program_information_encode(&program_information, &buffer, &buffer_size) == EBPF_SUCCESS);
-    REQUIRE(ebpf_program_information_decode(&new_program_information, buffer, buffer_size) == EBPF_SUCCESS);
-    ebpf_free(new_program_information);
+    REQUIRE(ebpf_program_info_encode(&program_info, &buffer, &buffer_size) == EBPF_SUCCESS);
+    REQUIRE(ebpf_program_info_decode(&new_program_info, buffer, buffer_size) == EBPF_SUCCESS);
+    ebpf_free(new_program_info);
 }
 
 TEST_CASE("program_type_info_stored", "[platform]")
 {
     _test_helper test_helper;
-    ebpf_program_information_t* xdp_program_information = nullptr;
-    ebpf_program_information_t* bind_program_information = nullptr;
+    ebpf_program_info_t* xdp_program_info = nullptr;
+    ebpf_program_info_t* bind_program_info = nullptr;
     REQUIRE(
-        ebpf_program_information_decode(
-            &xdp_program_information,
-            _ebpf_encoded_xdp_program_information_data,
-            sizeof(_ebpf_encoded_xdp_program_information_data)) == EBPF_SUCCESS);
-    REQUIRE(xdp_program_information->count_of_helpers == 3);
-    REQUIRE(strcmp(xdp_program_information->program_type_descriptor.name, "xdp") == 0);
-    ebpf_free(xdp_program_information);
+        ebpf_program_info_decode(
+            &xdp_program_info, _ebpf_encoded_xdp_program_info_data, sizeof(_ebpf_encoded_xdp_program_info_data)) ==
+        EBPF_SUCCESS);
+    REQUIRE(xdp_program_info->count_of_helpers == 3);
+    REQUIRE(strcmp(xdp_program_info->program_type_descriptor.name, "xdp") == 0);
+    ebpf_free(xdp_program_info);
 
     REQUIRE(
-        ebpf_program_information_decode(
-            &bind_program_information,
-            _ebpf_encoded_bind_program_information_data,
-            sizeof(_ebpf_encoded_bind_program_information_data)) == EBPF_SUCCESS);
-    REQUIRE(strcmp(bind_program_information->program_type_descriptor.name, "bind") == 0);
-    REQUIRE(bind_program_information->count_of_helpers == 3);
-    ebpf_free(bind_program_information);
+        ebpf_program_info_decode(
+            &bind_program_info, _ebpf_encoded_bind_program_info_data, sizeof(_ebpf_encoded_bind_program_info_data)) ==
+        EBPF_SUCCESS);
+    REQUIRE(strcmp(bind_program_info->program_type_descriptor.name, "bind") == 0);
+    REQUIRE(bind_program_info->count_of_helpers == 3);
+    ebpf_free(bind_program_info);
 }
 
 struct ebpf_security_descriptor_t_free
@@ -340,22 +338,22 @@ TEST_CASE("serialize_map_test", "[platform]")
     _test_helper test_helper;
 
     const int map_count = 10;
-    ebpf_map_information_internal_t internal_map_info_array[map_count] = {};
+    ebpf_map_info_internal_t internal_map_info_array[map_count] = {};
     std::string pin_path_prefix = "\\ebpf\\map\\";
     std::vector<std::string> pin_paths;
     size_t buffer_length = 0;
     uint8_t* buffer = nullptr;
     size_t required_length;
     size_t serialized_length;
-    ebpf_map_information_t* map_info_array;
+    ebpf_map_info_t* map_info_array;
 
-    // Construct the array of ebpf_map_information_internal_t to be serialized.
+    // Construct the array of ebpf_map_info_internal_t to be serialized.
     for (int i = 0; i < map_count; i++) {
         pin_paths.push_back(pin_path_prefix + std::to_string(i));
     }
 
     for (int i = 0; i < map_count; i++) {
-        ebpf_map_information_internal_t* map_info = &internal_map_info_array[i];
+        ebpf_map_info_internal_t* map_info = &internal_map_info_array[i];
         map_info->definition.size = (i + 1) * 32;
         map_info->definition.type = static_cast<ebpf_map_type_t>(i % (EBPF_MAP_TYPE_ARRAY + 1));
         map_info->definition.key_size = i + 1;
@@ -367,7 +365,7 @@ TEST_CASE("serialize_map_test", "[platform]")
     }
 
     // Serialize.
-    ebpf_result_t result = ebpf_serialize_internal_map_information_array(
+    ebpf_result_t result = ebpf_serialize_internal_map_info_array(
         map_count, internal_map_info_array, buffer, buffer_length, &serialized_length, &required_length);
     REQUIRE(result == EBPF_INSUFFICIENT_BUFFER);
 
@@ -378,30 +376,30 @@ TEST_CASE("serialize_map_test", "[platform]")
     }
     buffer_length = required_length;
 
-    result = ebpf_serialize_internal_map_information_array(
+    result = ebpf_serialize_internal_map_info_array(
         map_count, internal_map_info_array, buffer, buffer_length, &serialized_length, &required_length);
     REQUIRE(result == EBPF_SUCCESS);
 
     // Deserialize.
-    result = ebpf_deserialize_map_information_array(serialized_length, buffer, map_count, &map_info_array);
+    result = ebpf_deserialize_map_info_array(serialized_length, buffer, map_count, &map_info_array);
     REQUIRE(result == EBPF_SUCCESS);
     _Analysis_assume_(map_info_array != nullptr);
     // Verify de-serialized map info array matches input.
     for (int i = 0; i < map_count; i++) {
-        ebpf_map_information_internal_t* input_map_info = &internal_map_info_array[i];
-        ebpf_map_information_t* map_info = &map_info_array[i];
+        ebpf_map_info_internal_t* input_map_info = &internal_map_info_array[i];
+        ebpf_map_info_t* map_info = &map_info_array[i];
         REQUIRE(memcmp(&map_info->definition, &input_map_info->definition, sizeof(ebpf_map_definition_t)) == 0);
         REQUIRE(strnlen_s(map_info->pin_path, EBPF_MAX_PIN_PATH_LENGTH) == input_map_info->pin_path.length);
         REQUIRE(memcmp(map_info->pin_path, input_map_info->pin_path.value, input_map_info->pin_path.length) == 0);
     }
 
     // Free de-serialized map info array.
-    ebpf_map_information_array_free(map_count, map_info_array);
+    ebpf_map_info_array_free(map_count, map_info_array);
 
     free(buffer);
 }
 
-TEST_CASE("serialize_program_information_test", "[platform]")
+TEST_CASE("serialize_program_info_test", "[platform]")
 {
     _test_helper test_helper;
 
@@ -419,33 +417,32 @@ TEST_CASE("serialize_program_information_test", "[platform]")
     ebpf_context_descriptor_t context_descriptor = {32, 0, 8, -1};
     GUID program_type_test = {0x7ebe418c, 0x76dd, 0x4c2c, {0x99, 0xbc, 0x5c, 0x48, 0xa2, 0x30, 0x4b, 0x90}};
     ebpf_program_type_descriptor_t program_type = {"unit_test_program", &context_descriptor, program_type_test};
-    ebpf_program_information_t in_program_info = {program_type, EBPF_COUNT_OF(helper_prototype), helper_prototype};
+    ebpf_program_info_t in_program_info = {program_type, EBPF_COUNT_OF(helper_prototype), helper_prototype};
 
     size_t buffer_length = 0;
     uint8_t* buffer = nullptr;
     size_t required_length;
     size_t serialized_length;
 
-    ebpf_program_information_t* out_program_info;
+    ebpf_program_info_t* out_program_info;
 
     // Serialize.
-    ebpf_result_t result = ebpf_serialize_program_information(
-        &in_program_info, buffer, buffer_length, &serialized_length, &required_length);
+    ebpf_result_t result =
+        ebpf_serialize_program_info(&in_program_info, buffer, buffer_length, &serialized_length, &required_length);
     REQUIRE(result == EBPF_INSUFFICIENT_BUFFER);
 
     buffer = static_cast<uint8_t*>(calloc(required_length, 1));
     _Analysis_assume_(buffer != nullptr);
     buffer_length = required_length;
 
-    result = ebpf_serialize_program_information(
-        &in_program_info, buffer, buffer_length, &serialized_length, &required_length);
+    result = ebpf_serialize_program_info(&in_program_info, buffer, buffer_length, &serialized_length, &required_length);
     REQUIRE(result == EBPF_SUCCESS);
 
     // Deserialize.
-    result = ebpf_deserialize_program_information(serialized_length, buffer, &out_program_info);
+    result = ebpf_deserialize_program_info(serialized_length, buffer, &out_program_info);
     REQUIRE(result == EBPF_SUCCESS);
 
-    // Verify de-serialized program information matches input.
+    // Verify de-serialized program info matches input.
     REQUIRE(
         in_program_info.program_type_descriptor.program_type == out_program_info->program_type_descriptor.program_type);
     REQUIRE(
@@ -475,8 +472,8 @@ TEST_CASE("serialize_program_information_test", "[platform]")
         REQUIRE(strncmp(in_prototype->name, out_prototype->name, EBPF_MAX_HELPER_FUNCTION_NAME_LENGTH) == 0);
     }
 
-    // Free de-serialized program information.
-    ebpf_program_information_free(out_program_info);
+    // Free de-serialized program info.
+    ebpf_program_info_free(out_program_info);
 
     free(buffer);
 }

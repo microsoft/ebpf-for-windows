@@ -15,7 +15,7 @@ ebpf_test_pinned_map_enum()
     const int pinned_map_count = 10;
     std::string pin_path_prefix = "\\ebpf\\map\\";
     uint16_t map_count = 0;
-    ebpf_map_information_t* map_info = nullptr;
+    ebpf_map_info_t* map_info = nullptr;
 
     REQUIRE(
         (result = ebpf_api_create_map(EBPF_MAP_TYPE_ARRAY, sizeof(uint32_t), sizeof(uint64_t), 1024, 0, &map_handle)) ==

@@ -267,12 +267,11 @@ ebpf_api_elf_enumerate_sections(
                 }
             }
 
-            sequence.emplace_back(tlv_pack<tlv_sequence>(
-                {tlv_pack(raw_program.section.c_str()),
-                 tlv_pack(raw_program.info.type.name.c_str()),
-                 tlv_pack(raw_program.info.map_descriptors.size()),
-                 tlv_pack(convert_ebpf_program_to_bytes(raw_program.prog)),
-                 tlv_pack(stats_sequence)}));
+            sequence.emplace_back(tlv_pack<tlv_sequence>({tlv_pack(raw_program.section.c_str()),
+                                                          tlv_pack(raw_program.info.type.name.c_str()),
+                                                          tlv_pack(raw_program.info.map_descriptors.size()),
+                                                          tlv_pack(convert_ebpf_program_to_bytes(raw_program.prog)),
+                                                          tlv_pack(stats_sequence)}));
         }
 
         auto retval = tlv_pack(sequence);
