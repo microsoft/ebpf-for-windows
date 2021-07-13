@@ -59,7 +59,7 @@ ebpf_link_initialize(
     ebpf_result_t return_value;
 
     link->client_data.version = 0;
-    link->client_data.size = (uint16_t)context_data_length;
+    link->client_data.size = context_data_length;
 
     if (context_data_length > 0) {
         link->client_data.data = ebpf_allocate(context_data_length);

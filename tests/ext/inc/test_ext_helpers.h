@@ -18,9 +18,9 @@ typedef struct _test_program_context
 
 #define TEST_EXT_HELPER_FN_BASE 0xFFFF
 
-typedef int (*test_ebpf_extension_helper_func1_t)(test_program_context_t* context);
-#define test_ebpf_extension_helper_func1 ((test_ebpf_extension_helper_func1_t)TEST_EXT_HELPER_FN_BASE + 1)
-typedef void (*test_ebpf_extension_helper_func2_t)(void* mem_pointer, uint32_t size);
-#define test_ebpf_extension_helper_func2 ((test_ebpf_extension_helper_func2_t)TEST_EXT_HELPER_FN_BASE + 2)
-typedef void (*test_ebpf_extension_helper_func3_t)(uint8_t param);
-#define test_ebpf_extension_helper_func3 ((test_ebpf_extension_helper_func3_t)TEST_EXT_HELPER_FN_BASE + 3)
+typedef int (*test_ebpf_extension_helper_function1_t)(test_program_context_t* context);
+#define test_ebpf_extension_helper_function1 ((test_ebpf_extension_helper_function1_t)TEST_EXT_HELPER_FN_BASE + 1)
+typedef void (*test_ebpf_extension_helper_function2_t)(void* memory_pointer, uint32_t size);
+#define test_ebpf_extension_helper_function2 ((test_ebpf_extension_helper_function2_t)TEST_EXT_HELPER_FN_BASE + 2)
+typedef void (*test_ebpf_extension_helper_function3_t)(uint8_t arg);
+#define test_ebpf_extension_helper_function3 ((test_ebpf_extension_helper_function3_t)TEST_EXT_HELPER_FN_BASE + 3)

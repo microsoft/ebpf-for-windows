@@ -18,11 +18,13 @@ ebpf_map_definition_t test_map = {.size = sizeof(ebpf_map_definition_t),
 int
 test_program_entry(test_program_context_t* context)
 {
-    test_ebpf_extension_helper_func3(0);
+    test_ebpf_extension_helper_function3(0);
     if (context->data_end > context->data_start) {
-        test_ebpf_extension_helper_func2(context->data_start, context->data_end - context->data_start);
+        test_ebpf_extension_helper_function2(context->data_start, context->data_end - context->data_start);
     }
-    test_ebpf_extension_helper_func1(context);
+    test_ebpf_extension_helper_function1(context);
 
+    // "The answer to the question of life, the universe and everything".
+    //          - Douglas Adams (The Hitchhiker’s Guide to the Galaxy).
     return 42;
 }

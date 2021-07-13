@@ -1,17 +1,9 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-/*++
-
-Abstract:
-
-   Header file for test eBPF extension driver's device IOCTLs.
-
-Environment:
-
-    Kernel mode
-
---*/
+/**
+ * @brief Header file for test eBPF extension driver's device IOCTLs.
+ */
 
 #pragma once
 

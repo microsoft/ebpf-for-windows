@@ -61,7 +61,7 @@ extern "C"
     typedef struct _ebpf_extension_data
     {
         uint16_t version;
-        uint16_t size;
+        size_t size;
         void* data;
     } ebpf_extension_data_t;
 
@@ -558,9 +558,9 @@ extern "C"
      * @param[in] client_dispatch_table Table of function pointers the client
      *  exposes or NULL if there is none.
      * @param[out] provider_binding_context Provider binding context. Can be NULL.
-     * @param[out] provider_data Opaque provider data.
+     * @param[out] provider_data Opaque provider data. Can be NULL.
      * @param[out] provider_dispatch_table Table of function pointers the
-     *  provider exposes.
+     *  provider exposes. Can be NULL.
      * @param[in] extension_changed Callback invoked when a provider attaches
      *  or detaches. NULL if not used.
      * @retval EBPF_SUCCESS The operation was successful.
@@ -583,12 +583,12 @@ extern "C"
     /**
      * @brief Helper function that returns opaque client context from an extension client.
      *
-     * @param[in] extension_client_binding_context Opauqe pointer to an extension client binding context. This is same
-     * as the extension_client_binding_context input parameter obrained in _ebpf_extension_dispatch_function callback
-     * function.
+     * @param[in] extension_client_binding_context Opaque pointer to an extension client binding context. This is the
+     * same as the extension_client_binding_context input parameter obtained in the _ebpf_extension_dispatch_function
+     * callback function.
      *
-     * @retval Pointer to opauque per-instance context that was passed in call to ebpf_extension_load.
-     * @retval NULL on failure.
+     * @returns Pointer to opaque per-instance context that was passed in call to ebpf_extension_load, or NULL on
+     * failure.
      */
     void*
     ebpf_extension_get_client_context(_In_ const void* extension_client_binding_context);

@@ -12,12 +12,7 @@
 #include "service_helper.h"
 #include "test_ext_app.h"
 
-namespace api_test {
-#pragma warning(push)
-#pragma warning(disable : 4201) // nonstandard extension used : nameless struct/union
 #include "../../sample/ebpf.h"
-#pragma warning(pop)
-}; // namespace api_test
 
 #define SAMPLE_PATH ""
 
@@ -41,11 +36,11 @@ static service_install_helper
 
 static ebpf_result_t
 _program_load_helper(
-    const char* file_name,
-    const ebpf_program_type_t* program_type,
+    _In_ const char* file_name,
+    _In_ const ebpf_program_type_t* program_type,
     ebpf_execution_type_t execution_type,
-    struct _ebpf_object** object,
-    fd_t* program_fd)
+    _Outptr_ struct _ebpf_object** object,
+    _Out_ fd_t* program_fd)
 {
     ebpf_result_t result;
     const char* log_buffer = nullptr;
@@ -97,7 +92,7 @@ TEST_CASE("test_test", "[test_test]")
              FILE_ATTRIBUTE_NORMAL,
              nullptr)) != INVALID_HANDLE_VALUE);
 
-    // Issue IOCTL
+    // Issue IOCTL.
     REQUIRE(
         ::DeviceIoControl(
             device_handle,

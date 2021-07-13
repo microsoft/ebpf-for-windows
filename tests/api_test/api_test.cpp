@@ -56,7 +56,8 @@ _program_load_helper(
     ebpf_result_t result;
     const char* log_buffer = nullptr;
     result = ebpf_program_load(file_name, program_type, nullptr, execution_type, object, program_fd, &log_buffer);
-    printf("Logbuffer: %s\n", log_buffer);
+    if (result != EBPF_SUCCESS)
+        printf("Logbuffer: %s\n", log_buffer);
 
     ebpf_free_string(log_buffer);
     return result;

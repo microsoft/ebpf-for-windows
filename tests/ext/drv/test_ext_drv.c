@@ -1,23 +1,12 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-/*++
+/**
+ * @brief WDF based driver that does the following:
+ * Registers as an eBPF extension program information provider and hook provider.
+ */
 
-Abstract:
-WDF based driver that does the following:
-
-Registers as an eBPF program information provider and hook provider.
-
-Environment:
-
-    Kernel mode
-
---*/
-
-// ntddk.h needs to be included first due to inter header dependencies on Windows.
 #include <ntddk.h>
-
-#pragma warning(push)
 #include <wdf.h>
 
 #include "ebpf_platform.h"
@@ -39,7 +28,7 @@ static BOOLEAN _test_ebpf_ext_driver_unloading_flag = FALSE;
 static EVT_WDF_IO_QUEUE_IO_DEVICE_CONTROL _test_ebpf_ext_driver_io_device_control;
 DRIVER_INITIALIZE DriverEntry;
 
-static VOID
+static void
 _test_ebpf_ext_driver_io_device_control(
     _In_ WDFQUEUE queue,
     _In_ WDFREQUEST request,
@@ -118,7 +107,7 @@ _test_ebpf_ext_driver_initialize_objects(
         &file_object_config,
         NULL,
         NULL,
-        WDF_NO_EVENT_CALLBACK // No cleanup callback function
+        WDF_NO_EVENT_CALLBACK // No cleanup callback function.
     );
     WdfDeviceInitSetFileObjectConfig(device_initialize, &file_object_config, &attributes);
 
@@ -142,7 +131,7 @@ _test_ebpf_ext_driver_initialize_objects(
         goto Exit;
     }
 
-    // parallel default queue
+    // Parallel default queue.
     WDF_IO_QUEUE_CONFIG_INIT_DEFAULT_QUEUE(&io_queue_configuration, WdfIoQueueDispatchParallel);
 
     io_queue_configuration.EvtIoDeviceControl = _test_ebpf_ext_driver_io_device_control;
@@ -151,7 +140,7 @@ _test_ebpf_ext_driver_initialize_objects(
         *device,
         &io_queue_configuration,
         WDF_NO_OBJECT_ATTRIBUTES,
-        WDF_NO_HANDLE // pointer to default queue
+        WDF_NO_HANDLE // Pointer to default queue.
     );
     if (!NT_SUCCESS(status)) {
         goto Exit;
@@ -189,7 +178,7 @@ DriverEntry(_In_ DRIVER_OBJECT* driver_object, _In_ UNICODE_STRING* registry_pat
     WDFDRIVER driver;
     WDFDEVICE device;
 
-    // Request NX Non-Paged Pool when available
+    // Request NX Non-Paged Pool when available.
     ExInitializeDriverRuntime(DrvRtPoolNxOptIn);
 
     KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "test_ebpf_ext: DriverEntry\n"));
@@ -230,12 +219,12 @@ _test_ebpf_ext_driver_io_device_control(
     switch (io_control_code) {
     case IOCTL_TEST_EBPF_EXT_CTL:
         if (input_buffer_length != 0) {
-            // Retrieve the input buffer associated with the request object
+            // Retrieve the input buffer associated with the request object.
             status = WdfRequestRetrieveInputBuffer(
-                request,             // Request object
-                input_buffer_length, // Length of input buffer
-                &input_buffer,       // Pointer to buffer
-                &actual_input_length // Length of buffer
+                request,             // Request object.
+                input_buffer_length, // Length of input buffer.
+                &input_buffer,       // Pointer to buffer.
+                &actual_input_length // Length of buffer.
             );
 
             if (!NT_SUCCESS(status)) {
@@ -259,7 +248,7 @@ _test_ebpf_ext_driver_io_device_control(
 
                 // Be aware: Input and output buffer point to the same memory.
                 if (minimum_reply_size > 0) {
-                    // Retrieve output buffer associated with the request object
+                    // Retrieve output buffer associated with the request object.
                     status = WdfRequestRetrieveOutputBuffer(
                         request, output_buffer_length, &output_buffer, &actual_output_length);
                     if (!NT_SUCCESS(status)) {
@@ -278,7 +267,7 @@ _test_ebpf_ext_driver_io_device_control(
                     }
                 }
 
-                // Invoke the eBPF program
+                // Invoke the eBPF program.
                 program_context.data_start = input_buffer;
                 program_context.data_end = (uint8_t*)input_buffer + input_buffer_length;
                 result = test_ebpf_extension_invoke_program(&program_context, &program_result);
