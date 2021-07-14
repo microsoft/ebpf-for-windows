@@ -261,9 +261,6 @@ _ebpf_driver_io_device_control(
     const struct _ebpf_operation_header* user_request = NULL;
     struct _ebpf_operation_header* user_reply = NULL;
 
-    UNREFERENCED_PARAMETER(output_buffer_length);
-    UNREFERENCED_PARAMETER(input_buffer_length);
-
     device = WdfIoQueueGetDevice(queue);
 
     switch (io_control_code) {

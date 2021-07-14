@@ -61,7 +61,7 @@ extern "C"
     typedef struct _ebpf_extension_data
     {
         uint16_t version;
-        uint16_t size;
+        size_t size;
         void* data;
     } ebpf_extension_data_t;
 
@@ -551,16 +551,16 @@ extern "C"
      *
      * @param[out] client_context Context used to unload the extension.
      * @param[in] interface_id GUID representing the identity of the interface.
-     * @param[in] client_binding_context Opaque per-instance pointer passed to the extension.
+     * @param[in] extension_client_context Opaque per-instance pointer passed to the extension.
      * @param[in] client_data Opaque client data passed to the extension or
         NULL if there is none.
      * @param[in] client_data_length Length of the client data.
      * @param[in] client_dispatch_table Table of function pointers the client
      *  exposes or NULL if there is none.
      * @param[out] provider_binding_context Provider binding context. Can be NULL.
-     * @param[out] provider_data Opaque provider data.
+     * @param[out] provider_data Opaque provider data. Can be NULL.
      * @param[out] provider_dispatch_table Table of function pointers the
-     *  provider exposes.
+     *  provider exposes. Can be NULL.
      * @param[in] extension_changed Callback invoked when a provider attaches
      *  or detaches. NULL if not used.
      * @retval EBPF_SUCCESS The operation was successful.
@@ -572,13 +572,26 @@ extern "C"
     ebpf_extension_load(
         _Outptr_ ebpf_extension_client_t** client_context,
         _In_ const GUID* interface_id,
-        _In_ void* client_binding_context,
+        _In_ void* extension_client_context,
         _In_opt_ const ebpf_extension_data_t* client_data,
         _In_opt_ const ebpf_extension_dispatch_table_t* client_dispatch_table,
         _Outptr_opt_ void** provider_binding_context,
-        _Outptr_ const ebpf_extension_data_t** provider_data,
+        _Outptr_opt_ const ebpf_extension_data_t** provider_data,
         _Outptr_opt_ const ebpf_extension_dispatch_table_t** provider_dispatch_table,
         _In_opt_ ebpf_extension_change_callback_t extension_changed);
+
+    /**
+     * @brief Helper function that returns an opaque client context from an extension client.
+     *
+     * @param[in] extension_client_binding_context Opaque pointer to an extension client binding context. This is the
+     * same as the extension_client_binding_context input parameter obtained in the _ebpf_extension_dispatch_function
+     * callback function.
+     *
+     * @returns Pointer to opaque per-instance context that was passed in call to ebpf_extension_load, or NULL on
+     * failure.
+     */
+    void*
+    ebpf_extension_get_client_context(_In_ const void* extension_client_binding_context);
 
     /**
      * @brief Unload an extension.
