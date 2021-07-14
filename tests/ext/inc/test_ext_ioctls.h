@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 /**
- * @brief Header file for test eBPF extension driver's device IOCTLs.
+ * @brief Header file for the test eBPF extension driver's device IOCTLs.
  */
 
 #pragma once

@@ -13,8 +13,8 @@ typedef struct _test_program_context
     uint16_t uint16_data;
 } test_program_context_t;
 
-// This file contains APIs for helper functionss that are
-// exposed by test extension.
+// This file contains APIs for helper functions that are
+// exposed by the test extension.
 
 #define TEST_EXT_HELPER_FN_BASE 0xFFFF
 

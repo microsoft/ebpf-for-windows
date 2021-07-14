@@ -581,7 +581,7 @@ extern "C"
         _In_opt_ ebpf_extension_change_callback_t extension_changed);
 
     /**
-     * @brief Helper function that returns opaque client context from an extension client.
+     * @brief Helper function that returns an opaque client context from an extension client.
      *
      * @param[in] extension_client_binding_context Opaque pointer to an extension client binding context. This is the
      * same as the extension_client_binding_context input parameter obtained in the _ebpf_extension_dispatch_function

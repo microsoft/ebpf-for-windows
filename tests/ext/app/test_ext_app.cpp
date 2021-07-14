@@ -36,7 +36,7 @@ static service_install_helper
 
 static ebpf_result_t
 _program_load_helper(
-    _In_ const char* file_name,
+    _In_z_ const char* file_name,
     _In_ const ebpf_program_type_t* program_type,
     ebpf_execution_type_t execution_type,
     _Outptr_ struct _ebpf_object** object,
@@ -45,7 +45,6 @@ _program_load_helper(
     ebpf_result_t result;
     const char* log_buffer = nullptr;
     result = ebpf_program_load(file_name, program_type, nullptr, execution_type, object, program_fd, &log_buffer);
-    printf("Logbuffer: %s\n", log_buffer);
 
     ebpf_free_string(log_buffer);
     return result;

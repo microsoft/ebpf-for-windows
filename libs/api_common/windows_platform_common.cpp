@@ -9,6 +9,7 @@
 #include "ebpf_api.h"
 #include "ebpf_helpers.h"
 #include "ebpf_nethooks.h"
+#include "test_ext_helpers.h"
 #include "helpers.hpp"
 #include "map_descriptors.hpp"
 #include "platform.hpp"
@@ -44,10 +45,10 @@ const EbpfProgramType windows_bind_program_type =
     PTYPE("bind", &g_bind_context_descriptor, (uint64_t)&EBPF_PROGRAM_TYPE_BIND, {"bind"});
 
 const ebpf_context_descriptor_t g_test_ext_context_descriptor = {
-    24, // Size of ctx struct.
-    0,  // Offset into ctx struct of pointer to data, or -1 if none.
-    8,  // Offset into ctx struct of pointer to end of data, or -1 if none.
-    -1, // Offset into ctx struct of pointer to metadata, or -1 if none.
+    sizeof(test_program_context_t),
+    EBPF_OFFSET_OF(test_program_context_t, data_start),
+    EBPF_OFFSET_OF(test_program_context_t, data_end),
+    -1, // Offset into ctx struct for pointer to metadata, or -1 if none.
 };
 
 const EbpfProgramType windows_test_ext_program_type =
