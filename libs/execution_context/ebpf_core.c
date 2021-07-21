@@ -31,6 +31,24 @@ _ebpf_core_map_delete_element(ebpf_map_t* map, const uint8_t* key);
 
 #define EBPF_CORE_GLOBAL_HELPER_EXTENSION_VERSION 0
 
+static ebpf_helper_function_prototype_t _ebpf_map_helper_function_prototype[] = {
+    {1,
+     "ebpf_map_lookup_element",
+     EBPF_RETURN_TYPE_PTR_TO_MAP_VALUE_OR_NULL,
+     {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY}},
+    {2,
+     "ebpf_map_update_element",
+     EBPF_RETURN_TYPE_INTEGER,
+     {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_VALUE}},
+    {3,
+     "ebpf_map_delete_element",
+     EBPF_RETURN_TYPE_INTEGER,
+     {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY}}};
+
+static ebpf_program_info_t _ebpf_global_helper_program_info = {{"global_helper", NULL, {0}},
+                                                               EBPF_COUNT_OF(_ebpf_map_helper_function_prototype),
+                                                               _ebpf_map_helper_function_prototype};
+
 static const void* _ebpf_program_helpers[] = {NULL,
                                               (void*)&_ebpf_core_map_find_element,
                                               (void*)&_ebpf_core_map_update_element,
@@ -39,7 +57,7 @@ static const void* _ebpf_program_helpers[] = {NULL,
 static ebpf_extension_provider_t* _ebpf_global_helper_function_provider_context = NULL;
 static ebpf_helper_function_addresses_t _ebpf_global_helper_function_dispatch_table = {
     EBPF_COUNT_OF(_ebpf_program_helpers), (uint64_t*)_ebpf_program_helpers};
-static ebpf_program_data_t _ebpf_global_helper_function_program_data = {NULL,
+static ebpf_program_data_t _ebpf_global_helper_function_program_data = {&_ebpf_global_helper_program_info,
                                                                         &_ebpf_global_helper_function_dispatch_table};
 
 static ebpf_extension_data_t _ebpf_global_helper_function_extension_data = {
@@ -678,8 +696,7 @@ _ebpf_core_protocol_get_program_info(
     ebpf_result_t retval;
     ebpf_program_t* program = NULL;
     ebpf_program_parameters_t program_parameters = {0};
-    ebpf_extension_data_t* program_info_data;
-    ebpf_program_data_t* program_data;
+    ebpf_program_info_t* program_info = NULL;
     size_t serialization_buffer_size;
     size_t required_length;
 
@@ -693,11 +710,10 @@ _ebpf_core_protocol_get_program_info(
     if (retval != EBPF_SUCCESS)
         goto Done;
 
-    retval = ebpf_program_get_program_info_data(program, &program_info_data);
+    retval = ebpf_program_get_program_info_data(program, &program_info);
     if (retval != EBPF_SUCCESS)
         goto Done;
-    program_data = (ebpf_program_data_t*)program_info_data->data;
-    if (program_data->program_info == NULL) {
+    if (program_info == NULL) {
         retval = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
@@ -706,7 +722,7 @@ _ebpf_core_protocol_get_program_info(
 
     // Serialize program info structure onto reply data buffer.
     retval = ebpf_serialize_program_info(
-        program_data->program_info, reply->data, serialization_buffer_size, &reply->size, &required_length);
+        program_info, reply->data, serialization_buffer_size, &reply->size, &required_length);
 
     if (retval != EBPF_SUCCESS) {
         reply->header.length =
@@ -714,9 +730,8 @@ _ebpf_core_protocol_get_program_info(
         goto Done;
     }
 
-    reply->version = program_info_data->version;
-
 Done:
+    ebpf_program_free_program_info_data(program_info);
     ebpf_object_release_reference((ebpf_object_t*)program);
     return retval;
 }
