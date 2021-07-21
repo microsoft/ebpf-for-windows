@@ -11,11 +11,11 @@
 #include "ebpf_program_types.h"
 #include "ebpf_serialize.h"
 
-GUID ebpf_global_helper_function_interface_id = {/* 8d2a1d3f-9ce6-473d-b48e-17aa5c5581fe */
-                                                 0x8d2a1d3f,
-                                                 0x9ce6,
-                                                 0x473d,
-                                                 {0xb4, 0x8e, 0x17, 0xaa, 0x5c, 0x55, 0x81, 0xfe}};
+GUID ebpf_generic_helper_function_interface_id = {/* 8d2a1d3f-9ce6-473d-b48e-17aa5c5581fe */
+                                                  0x8d2a1d3f,
+                                                  0x9ce6,
+                                                  0x473d,
+                                                  {0xb4, 0x8e, 0x17, 0xaa, 0x5c, 0x55, 0x81, 0xfe}};
 
 static ebpf_pinning_table_t* _ebpf_core_map_pinning_table = NULL;
 
@@ -32,15 +32,15 @@ _ebpf_core_map_delete_element(ebpf_map_t* map, const uint8_t* key);
 #define EBPF_CORE_GLOBAL_HELPER_EXTENSION_VERSION 0
 
 static ebpf_helper_function_prototype_t _ebpf_map_helper_function_prototype[] = {
-    {1,
+    {(uint32_t)(intptr_t)ebpf_map_lookup_element,
      "ebpf_map_lookup_element",
      EBPF_RETURN_TYPE_PTR_TO_MAP_VALUE_OR_NULL,
      {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY}},
-    {2,
+    {(uint32_t)(intptr_t)ebpf_map_update_element,
      "ebpf_map_update_element",
      EBPF_RETURN_TYPE_INTEGER,
      {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_VALUE}},
-    {3,
+    {(uint32_t)(intptr_t)ebpf_map_delete_element,
      "ebpf_map_delete_element",
      EBPF_RETURN_TYPE_INTEGER,
      {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY}}};
@@ -90,7 +90,7 @@ ebpf_core_initiate()
 
     return_value = ebpf_provider_load(
         &_ebpf_global_helper_function_provider_context,
-        &ebpf_global_helper_function_interface_id,
+        &ebpf_generic_helper_function_interface_id,
         NULL,
         &_ebpf_global_helper_function_extension_data,
         NULL,
@@ -710,7 +710,7 @@ _ebpf_core_protocol_get_program_info(
     if (retval != EBPF_SUCCESS)
         goto Done;
 
-    retval = ebpf_program_get_program_info_data(program, &program_info);
+    retval = ebpf_program_get_program_info(program, &program_info);
     if (retval != EBPF_SUCCESS)
         goto Done;
     if (program_info == NULL) {
@@ -731,7 +731,7 @@ _ebpf_core_protocol_get_program_info(
     }
 
 Done:
-    ebpf_program_free_program_info_data(program_info);
+    ebpf_program_free_program_info(program_info);
     ebpf_object_release_reference((ebpf_object_t*)program);
     return retval;
 }

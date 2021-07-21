@@ -19,7 +19,7 @@ extern "C"
 #define EBPF_SYMBOLIC_DEVICE_NAME L"\\GLOBAL??\\EbpfIoDevice"
 #define EBPF_DEVICE_WIN32_NAME L"\\\\.\\EbpfIoDevice"
 
-#define EBPF_MAX_GLOBAL_HELPER_FUNCTION 0xFFFF
+#define EBPF_MAX_GENERIC_HELPER_FUNCTION 0xFFFF
 
 #define EBPF_UTF8_STRING_FROM_CONST_STRING(x) \
     {                                         \

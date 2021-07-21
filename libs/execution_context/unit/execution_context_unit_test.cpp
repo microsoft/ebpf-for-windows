@@ -143,9 +143,9 @@ TEST_CASE("program", "[execution_context]")
             &returned_program_parameters.program_type,
             sizeof(program_parameters.program_type)) == 0);
 
-    REQUIRE(ebpf_program_get_program_info_data(program.get(), &program_info) == EBPF_SUCCESS);
+    REQUIRE(ebpf_program_get_program_info(program.get(), &program_info) == EBPF_SUCCESS);
     REQUIRE(program_info != nullptr);
-    ebpf_program_free_program_info_data(program_info);
+    ebpf_program_free_program_info(program_info);
 
     ebpf_map_t* maps[] = {map.get()};
 

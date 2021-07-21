@@ -31,16 +31,16 @@ typedef struct _ebpf_program
         struct ubpf_vm* vm;
     } code_or_vm;
 
-    ebpf_extension_client_t* global_helper_extension_client;
-    ebpf_extension_data_t* global_helper_provider_data;
-    ebpf_extension_dispatch_table_t* global_helper_provider_dispatch_table;
+    ebpf_extension_client_t* generic_helper_extension_client;
+    ebpf_extension_data_t* generic_helper_provider_data;
+    ebpf_extension_dispatch_table_t* generic_helper_provider_dispatch_table;
 
     ebpf_map_t** maps;
     size_t count_of_maps;
 
     ebpf_extension_client_t* program_info_client;
     const void* program_info_binding_context;
-    const ebpf_extension_data_t* program_info_data;
+    const ebpf_extension_data_t* program_info_provider_data;
     uint32_t helper_function_count;
     bool program_invalidated;
 
@@ -95,9 +95,9 @@ _ebpf_program_program_info_provider_changed(
     }
 
     program->program_info_binding_context = provider_binding_context;
-    program->program_info_data = provider_data;
+    program->program_info_provider_data = provider_data;
 Exit:
-    program->program_invalidated = (program->program_info_data == NULL);
+    program->program_invalidated = (program->program_info_provider_data == NULL);
 }
 
 /**
@@ -129,7 +129,7 @@ _ebpf_program_epoch_free(void* context)
     ebpf_program_t* program = (ebpf_program_t*)context;
     size_t index;
 
-    ebpf_extension_unload(program->global_helper_extension_client);
+    ebpf_extension_unload(program->generic_helper_extension_client);
     ebpf_extension_unload(program->program_info_client);
 
     switch (program->parameters.code_type) {
@@ -162,31 +162,31 @@ ebpf_program_load_providers(ebpf_program_t* program)
 {
     ebpf_result_t return_value;
     void* provider_binding_context;
-    ebpf_program_data_t* global_helper_program_data = NULL;
+    ebpf_program_data_t* generic_helper_program_data = NULL;
 
     program->program_invalidated = false;
 
     return_value = ebpf_extension_load(
-        &program->global_helper_extension_client,
-        &ebpf_global_helper_function_interface_id,
+        &program->generic_helper_extension_client,
+        &ebpf_generic_helper_function_interface_id,
         program,
         NULL,
         NULL,
         &provider_binding_context,
-        &program->global_helper_provider_data,
-        &program->global_helper_provider_dispatch_table,
+        &program->generic_helper_provider_data,
+        &program->generic_helper_provider_dispatch_table,
         NULL);
 
     if (return_value != EBPF_SUCCESS)
         goto Done;
 
-    if (program->global_helper_provider_data == NULL) {
+    if (program->generic_helper_provider_data == NULL) {
         return_value = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
 
-    global_helper_program_data = (ebpf_program_data_t*)program->global_helper_provider_data->data;
-    if (global_helper_program_data->helper_function_addresses == NULL) {
+    generic_helper_program_data = (ebpf_program_data_t*)program->generic_helper_provider_data->data;
+    if (generic_helper_program_data->helper_function_addresses == NULL) {
         return_value = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
@@ -198,7 +198,7 @@ ebpf_program_load_providers(ebpf_program_t* program)
         NULL,
         NULL,
         (void**)&program->program_info_binding_context,
-        &program->program_info_data,
+        &program->program_info_provider_data,
         NULL,
         _ebpf_program_program_info_provider_changed);
 
@@ -349,13 +349,14 @@ static ebpf_result_t
 _ebpf_program_register_helpers(ebpf_program_t* program)
 {
     size_t index = 0;
-    ebpf_program_data_t* global_helper_program_data = (ebpf_program_data_t*)program->global_helper_provider_data->data;
-    ebpf_helper_function_addresses_t* global_helper_function_addresses =
-        global_helper_program_data->helper_function_addresses;
-    size_t count = global_helper_function_addresses->helper_function_count;
+    ebpf_program_data_t* generic_helper_program_data =
+        (ebpf_program_data_t*)program->generic_helper_provider_data->data;
+    ebpf_helper_function_addresses_t* generic_helper_function_addresses =
+        generic_helper_program_data->helper_function_addresses;
+    size_t count = generic_helper_function_addresses->helper_function_count;
 
     for (index = 0; index < count; index++) {
-        const void* helper = (void*)global_helper_function_addresses->helper_function_address[index];
+        const void* helper = (void*)generic_helper_function_addresses->helper_function_address[index];
         if (helper == NULL)
             continue;
 
@@ -431,7 +432,7 @@ ebpf_program_invoke(_In_ const ebpf_program_t* program, _In_ void* context, _Out
 ebpf_result_t
 ebpf_program_get_helper_function_address(const ebpf_program_t* program, uint32_t helper_function_id, uint64_t* address)
 {
-    if (helper_function_id > EBPF_MAX_GLOBAL_HELPER_FUNCTION) {
+    if (helper_function_id > EBPF_MAX_GENERIC_HELPER_FUNCTION) {
         void* function_address;
         ebpf_result_t return_value;
         helper_function_id >>= 16;
@@ -441,29 +442,29 @@ ebpf_program_get_helper_function_address(const ebpf_program_t* program, uint32_t
 
         *address = (uint64_t)function_address;
     } else {
-        ebpf_assert(program->global_helper_provider_data != NULL);
-        ebpf_program_data_t* global_helper_program_data =
-            (ebpf_program_data_t*)program->global_helper_provider_data->data;
+        ebpf_assert(program->generic_helper_provider_data != NULL);
+        ebpf_program_data_t* generic_helper_program_data =
+            (ebpf_program_data_t*)program->generic_helper_provider_data->data;
 
-        ebpf_helper_function_addresses_t* global_helper_function_addresses =
-            global_helper_program_data->helper_function_addresses;
+        ebpf_helper_function_addresses_t* generic_helper_function_addresses =
+            generic_helper_program_data->helper_function_addresses;
 
-        ebpf_assert(global_helper_function_addresses != NULL);
-        if (helper_function_id > global_helper_function_addresses->helper_function_count) {
+        ebpf_assert(generic_helper_function_addresses != NULL);
+        if (helper_function_id > generic_helper_function_addresses->helper_function_count) {
             return EBPF_INVALID_ARGUMENT;
         }
-        *address = global_helper_function_addresses->helper_function_address[helper_function_id];
+        *address = generic_helper_function_addresses->helper_function_address[helper_function_id];
     }
 
     return EBPF_SUCCESS;
 }
 
 ebpf_result_t
-ebpf_program_get_program_info_data(_In_ const ebpf_program_t* program, _Outptr_ ebpf_program_info_t** program_info)
+ebpf_program_get_program_info(_In_ const ebpf_program_t* program, _Outptr_ ebpf_program_info_t** program_info)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_program_data_t* program_data = NULL;
-    ebpf_program_data_t* global_helper_program_data = NULL;
+    ebpf_program_data_t* generic_helper_program_data = NULL;
     ebpf_program_info_t* local_program_info = NULL;
     uint32_t total_count_of_helpers = 0;
     uint32_t helper_index = 0;
@@ -479,22 +480,22 @@ ebpf_program_get_program_info_data(_In_ const ebpf_program_t* program, _Outptr_ 
         goto Exit;
     }
 
-    if (!program->program_info_data) {
+    if (!program->program_info_provider_data) {
         result = EBPF_EXTENSION_FAILED_TO_LOAD;
         goto Exit;
     }
-    program_data = (ebpf_program_data_t*)program->program_info_data->data;
+    program_data = (ebpf_program_data_t*)program->program_info_provider_data->data;
 
-    if (!program->global_helper_provider_data) {
+    if (!program->generic_helper_provider_data) {
         result = EBPF_EXTENSION_FAILED_TO_LOAD;
         goto Exit;
     }
-    global_helper_program_data = (ebpf_program_data_t*)program->global_helper_provider_data->data;
+    generic_helper_program_data = (ebpf_program_data_t*)program->generic_helper_provider_data->data;
 
     total_count_of_helpers =
-        program_data->program_info->count_of_helpers + global_helper_program_data->program_info->count_of_helpers;
+        program_data->program_info->count_of_helpers + generic_helper_program_data->program_info->count_of_helpers;
     if ((total_count_of_helpers < program_data->program_info->count_of_helpers) ||
-        (total_count_of_helpers < global_helper_program_data->program_info->count_of_helpers)) {
+        (total_count_of_helpers < generic_helper_program_data->program_info->count_of_helpers)) {
         result = EBPF_ARITHMETIC_OVERFLOW;
         goto Exit;
     }
@@ -523,10 +524,10 @@ ebpf_program_get_program_info_data(_In_ const ebpf_program_t* program, _Outptr_ 
             local_program_info->helper_prototype[helper_index++] = program_data->program_info->helper_prototype[index];
         }
 
-        for (uint32_t index = 0; index < global_helper_program_data->program_info->count_of_helpers; index++) {
+        for (uint32_t index = 0; index < generic_helper_program_data->program_info->count_of_helpers; index++) {
             __analysis_assume(helper_index < total_count_of_helpers);
             local_program_info->helper_prototype[helper_index++] =
-                global_helper_program_data->program_info->helper_prototype[index];
+                generic_helper_program_data->program_info->helper_prototype[index];
         }
     }
 
@@ -535,14 +536,14 @@ Exit:
         *program_info = local_program_info;
         local_program_info = NULL;
     } else {
-        ebpf_program_free_program_info_data(local_program_info);
+        ebpf_program_free_program_info(local_program_info);
     }
 
     return result;
 }
 
 void
-ebpf_program_free_program_info_data(_In_opt_ _Post_invalid_ ebpf_program_info_t* program_info)
+ebpf_program_free_program_info(_In_opt_ _Post_invalid_ ebpf_program_info_t* program_info)
 {
     if (program_info != NULL) {
         ebpf_free(program_info->helper_prototype);
