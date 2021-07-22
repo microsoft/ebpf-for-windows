@@ -31,6 +31,7 @@ EBPF_HELPER(void*, ebpf_map_lookup_element, (ebpf_map_definition_t * map, void* 
  * @param[in] map Map to update.
  * @param[in] key Key to use when searching and updating the map.
  * @param[in] value Value to insert into the map.
+ * @param[in] flags Map flags.
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval EBPF_NO_MEMORY Unable to allocate resources for this
  *  entry.
