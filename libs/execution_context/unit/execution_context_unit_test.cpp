@@ -132,7 +132,7 @@ TEST_CASE("program", "[execution_context]")
 
     const ebpf_program_parameters_t program_parameters{EBPF_PROGRAM_TYPE_BIND, program_name, section_name};
     ebpf_program_parameters_t returned_program_parameters{};
-    const ebpf_extension_data_t* program_info_data;
+    ebpf_program_info_t* program_info;
 
     REQUIRE(ebpf_program_initialize(program.get(), &program_parameters) == EBPF_SUCCESS);
 
@@ -143,9 +143,9 @@ TEST_CASE("program", "[execution_context]")
             &returned_program_parameters.program_type,
             sizeof(program_parameters.program_type)) == 0);
 
-    REQUIRE(ebpf_program_get_program_info_data(program.get(), &program_info_data) == EBPF_SUCCESS);
-
-    REQUIRE(program_info_data != nullptr);
+    REQUIRE(ebpf_program_get_program_info(program.get(), &program_info) == EBPF_SUCCESS);
+    REQUIRE(program_info != nullptr);
+    ebpf_program_free_program_info(program_info);
 
     ebpf_map_t* maps[] = {map.get()};
 

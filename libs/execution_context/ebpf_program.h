@@ -6,6 +6,7 @@
 #include "ebpf_link.h"
 #include "ebpf_maps.h"
 #include "ebpf_platform.h"
+#include "ebpf_program_types.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -71,17 +72,28 @@ extern "C"
     ebpf_program_get_properties(ebpf_program_t* program, ebpf_program_parameters_t* program_parameters);
 
     /**
-     * @brief Get the program info data from the program info
-     *  extension.
+     * @brief Get the program info from the program info extension.
      *
      * @param[in] program Program that loaded the extension.
-     * @param[out] program_info_data Pointer to the program info.
+     * @param[out] program_info Pointer to the output allocated program info. Must be freed by caller by calling
+     * ebpf_program_free_program_info().
      * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INVALID_ARGUMENT One or more arguments are invalid.
+     * @retval EBPF_ARITHMETIC_OVERFLOW An arithmetic overflow has occurred.
+     * @retval EBPF_NO_MEMORY Output program info could not be allocated.
      * @retval EBPF_ERROR_EXTENSION_FAILED_TO_LOAD The program info isn't
      *  available.
      */
     ebpf_result_t
-    ebpf_program_get_program_info_data(const ebpf_program_t* program, const ebpf_extension_data_t** program_info_data);
+    ebpf_program_get_program_info(_In_ const ebpf_program_t* program, _Outptr_ ebpf_program_info_t** program_info);
+
+    /**
+     * @brief Free the program info allocated by ebpf_program_get_program_info().
+     *
+     * @param[in] program_info Program info to be freed.
+     */
+    void
+    ebpf_program_free_program_info(_In_opt_ _Post_invalid_ ebpf_program_info_t* program_info);
 
     /**
      * @brief Associate a set of maps with this program instance.

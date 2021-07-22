@@ -29,15 +29,15 @@ static ebpf_context_descriptor_t _test_ebpf_context_descriptor = {sizeof(test_pr
 
 // Test Extension Helper function prototype descriptors.
 static ebpf_helper_function_prototype_t _test_ebpf_extension_helper_function_prototype[] = {
-    {EBPF_MAX_GLOBAL_HELPER_FUNCTION + 1,
+    {EBPF_MAX_GENERAL_HELPER_FUNCTION + 1,
      "test_ebpf_extension_helper_function1",
      EBPF_RETURN_TYPE_INTEGER,
      {EBPF_ARGUMENT_TYPE_PTR_TO_CTX}},
-    {EBPF_MAX_GLOBAL_HELPER_FUNCTION + 2,
+    {EBPF_MAX_GENERAL_HELPER_FUNCTION + 2,
      "test_ebpf_extension_helper_function2",
      EBPF_RETURN_TYPE_VOID,
      {EBPF_ARGUMENT_TYPE_PTR_TO_MEM, EBPF_ARGUMENT_TYPE_CONST_SIZE}},
-    {EBPF_MAX_GLOBAL_HELPER_FUNCTION + 3,
+    {EBPF_MAX_GENERAL_HELPER_FUNCTION + 3,
      "test_ebpf_extension_helper_function3",
      EBPF_RETURN_TYPE_VOID,
      {EBPF_ARGUMENT_TYPE_ANYTHING}}};
