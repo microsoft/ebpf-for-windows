@@ -11,7 +11,7 @@
 #include "ebpf_program_types.h"
 #include "ebpf_serialize.h"
 
-GUID ebpf_generic_helper_function_interface_id = {/* 8d2a1d3f-9ce6-473d-b48e-17aa5c5581fe */
+GUID ebpf_general_helper_function_interface_id = {/* 8d2a1d3f-9ce6-473d-b48e-17aa5c5581fe */
                                                   0x8d2a1d3f,
                                                   0x9ce6,
                                                   0x473d,
@@ -90,7 +90,7 @@ ebpf_core_initiate()
 
     return_value = ebpf_provider_load(
         &_ebpf_global_helper_function_provider_context,
-        &ebpf_generic_helper_function_interface_id,
+        &ebpf_general_helper_function_interface_id,
         NULL,
         &_ebpf_global_helper_function_extension_data,
         NULL,

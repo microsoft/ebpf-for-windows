@@ -12,7 +12,7 @@ extern "C"
 #endif
 #include "ebpf_protocol.h"
 
-    extern GUID ebpf_generic_helper_function_interface_id;
+    extern GUID ebpf_general_helper_function_interface_id;
 
     typedef uint32_t(__stdcall* ebpf_hook_function)(uint8_t*);
 
