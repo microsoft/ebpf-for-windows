@@ -114,6 +114,8 @@ extern "C"
      * @param[in] key_size Key size.
      * @param[in] value_size Value size.
      * @param[in] max_entries Maximum number of entries in the map.
+     * @param[in] map_flags Map flags.
+     * @param[out] handle Pointer to map handle.
      *
      * @retval EBPF_SUCCESS Map created successfully.
      * @retval EBPF_ERROR_NOT_SUPPORTED Unsupported map type.
@@ -408,7 +410,7 @@ extern "C"
      * @param[in] execution_type The execution type to use for this program. If
      *  EBPF_EXECUTION_ANY is specified, execution type will be decided by a
      *  system-wide policy.
-     * @param[out] ebpf_object Returns pointer to ebpf_object object. The caller
+     * @param[out] object Returns pointer to ebpf_object object. The caller
         is expected to call ebpf_object_close() at the end.
      * @param[out] program_fd Returns a file descriptor for the first program.
      *  The caller should not call _close() on the fd, but should instead use
@@ -485,7 +487,7 @@ extern "C"
     /**
      * @brief Fetch fd for a map object.
      *
-     * @param[in] program Pointer to eBPF map.
+     * @param[in] map Pointer to eBPF map.
      * @return fd for the map on success, ebpf_fd_invalid on failure.
      */
     fd_t
