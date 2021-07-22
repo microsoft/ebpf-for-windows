@@ -356,7 +356,9 @@ Variables</h2></td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">type</td><td>Map type. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">key_size</td><td>Key size. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">value_size</td><td>Value size. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">max_entries</td><td>Maximum number of entries in the map.</td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">max_entries</td><td>Maximum number of entries in the map. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">map_flags</td><td>Map flags. </td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">handle</td><td>Pointer to map handle.</td></tr>
   </table>
   </dd>
 </dl>
@@ -1409,7 +1411,7 @@ Variables</h2></td></tr>
 <p>Fetch fd for a map object. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">program</td><td>Pointer to eBPF map. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">map</td><td>Pointer to eBPF map. </td></tr>
   </table>
   </dd>
 </dl>
@@ -1616,7 +1618,7 @@ Variables</h2></td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">program_type</td><td>Optionally, the program type to use when loading the eBPF program. If program type is not supplied, it is derived from the section prefix in the ELF file. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">attach_type</td><td>Optionally, the attach type to use for the loaded eBPF program. If attach type is not supplied, it is derived from the section prefix in the ELF file. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">execution_type</td><td>The execution type to use for this program. If EBPF_EXECUTION_ANY is specified, execution type will be decided by a system-wide policy. </td></tr>
-    <tr><td class="paramdir">[out]</td><td class="paramname">ebpf_object</td><td>Returns pointer to ebpf_object object. The caller is expected to call <a class="el" href="ebpf__api_8h.html#a04463430fbd7e084182d3aa9461ad800" title="Clean up ebpf_object. Also delete all the sub objects (maps, programs) and close the related file des...">ebpf_object_close()</a> at the end. </td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">object</td><td>Returns pointer to ebpf_object object. The caller is expected to call <a class="el" href="ebpf__api_8h.html#a04463430fbd7e084182d3aa9461ad800" title="Clean up ebpf_object. Also delete all the sub objects (maps, programs) and close the related file des...">ebpf_object_close()</a> at the end. </td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">program_fd</td><td>Returns a file descriptor for the first program. The caller should not call _close() on the fd, but should instead use <a class="el" href="ebpf__api_8h.html#a04463430fbd7e084182d3aa9461ad800" title="Clean up ebpf_object. Also delete all the sub objects (maps, programs) and close the related file des...">ebpf_object_close()</a> to close this (and other) file descriptors. </td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">log_buffer</td><td>Returns a pointer to a null-terminated log buffer. The caller is responsible for freeing the returned log_buffer pointer by calling ebpf_api_free_string().</td></tr>
   </table>

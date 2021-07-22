@@ -89,28 +89,28 @@ $(function() {
 <div class="line"><a name="l00025"></a><span class="lineno">   25</span>&#160;<span class="preprocessor">#define ebpf_map_lookup_element ((ebpf_map_lookup_element_t)1)</span></div>
 <div class="line"><a name="l00026"></a><span class="lineno">   26</span>&#160;<span class="preprocessor">#endif</span></div>
 <div class="line"><a name="l00027"></a><span class="lineno">   27</span>&#160; </div>
-<div class="line"><a name="l00038"></a><span class="lineno">   38</span>&#160;EBPF_HELPER(int64_t, <a class="code" href="ebpf__helpers_8h.html#a4518a62613b1811b15089b86fc41cc4c">ebpf_map_update_element</a>, (<a class="code" href="struct__ebpf__map__definition.html">ebpf_map_definition_t</a> * map, <span class="keywordtype">void</span>* key, <span class="keywordtype">void</span>* value, uint64_t flags));</div>
-<div class="line"><a name="l00039"></a><span class="lineno">   39</span>&#160;<span class="preprocessor">#ifndef __doxygen</span></div>
-<div class="line"><a name="l00040"></a><span class="lineno">   40</span>&#160;<span class="preprocessor">#define ebpf_map_update_element ((ebpf_map_update_element_t)2)</span></div>
-<div class="line"><a name="l00041"></a><span class="lineno">   41</span>&#160;<span class="preprocessor">#endif</span></div>
-<div class="line"><a name="l00042"></a><span class="lineno">   42</span>&#160; </div>
-<div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160;EBPF_HELPER(int64_t, <a class="code" href="ebpf__helpers_8h.html#a666852bf11ab3f7e4c72720ab7177101">ebpf_map_delete_element</a>, (<a class="code" href="struct__ebpf__map__definition.html">ebpf_map_definition_t</a> * map, <span class="keywordtype">void</span>* key));</div>
-<div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160;<span class="preprocessor">#ifndef __doxygen</span></div>
-<div class="line"><a name="l00054"></a><span class="lineno">   54</span>&#160;<span class="preprocessor">#define ebpf_map_delete_element ((ebpf_map_delete_element_t)3)</span></div>
-<div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160;<span class="preprocessor">#endif</span></div>
-<div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160; </div>
-<div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160;<span class="comment">//</span></div>
-<div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160;<span class="comment">// Defines for cross-platform compatibility.</span></div>
-<div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160;<span class="comment">//</span></div>
-<div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160; </div>
-<div class="line"><a name="l00061"></a><span class="lineno"><a class="line" href="ebpf__helpers_8h.html#a1d98f863fc6ebf789b378348438181ca">   61</a></span>&#160;<span class="preprocessor">#define bpf_map _ebpf_map_definition</span></div>
-<div class="line"><a name="l00062"></a><span class="lineno"><a class="line" href="ebpf__helpers_8h.html#a5815f445df279807a5014b66e13878b9">   62</a></span>&#160;<span class="preprocessor">#define bpf_map_lookup_elem ebpf_map_lookup_element</span></div>
-<div class="line"><a name="l00063"></a><span class="lineno"><a class="line" href="ebpf__helpers_8h.html#a937461a2e71dafd83423dba84eb0e35b">   63</a></span>&#160;<span class="preprocessor">#define bpf_map_update_elem ebpf_map_update_element</span></div>
-<div class="line"><a name="l00064"></a><span class="lineno"><a class="line" href="ebpf__helpers_8h.html#a306eb2897e52dbbadba15f736f99f1ff">   64</a></span>&#160;<span class="preprocessor">#define bpf_map_delete_elem ebpf_map_delete_element</span></div>
-<div class="line"><a name="l00065"></a><span class="lineno">   65</span>&#160; </div>
-<div class="line"><a name="l00066"></a><span class="lineno"><a class="line" href="ebpf__helpers_8h.html#a523e13ce6fd8c9745d54253197d2ce51">   66</a></span>&#160;<span class="preprocessor">#define BPF_MAP_TYPE_UNSPECIFIED EBPF_MAP_TYPE_UNSPECIFIED</span></div>
-<div class="line"><a name="l00067"></a><span class="lineno"><a class="line" href="ebpf__helpers_8h.html#a1cefd979a5444f66f876929863c3107d">   67</a></span>&#160;<span class="preprocessor">#define BPF_MAP_TYPE_HASH EBPF_MAP_TYPE_HASH</span></div>
-<div class="line"><a name="l00068"></a><span class="lineno"><a class="line" href="ebpf__helpers_8h.html#a85ffd0a51749d35d199882cc41769182">   68</a></span>&#160;<span class="preprocessor">#define BPF_MAP_TYPE_ARRAY EBPF_MAP_TYPE_ARRAY</span></div>
+<div class="line"><a name="l00039"></a><span class="lineno">   39</span>&#160;EBPF_HELPER(int64_t, <a class="code" href="ebpf__helpers_8h.html#a4518a62613b1811b15089b86fc41cc4c">ebpf_map_update_element</a>, (<a class="code" href="struct__ebpf__map__definition.html">ebpf_map_definition_t</a> * map, <span class="keywordtype">void</span>* key, <span class="keywordtype">void</span>* value, uint64_t flags));</div>
+<div class="line"><a name="l00040"></a><span class="lineno">   40</span>&#160;<span class="preprocessor">#ifndef __doxygen</span></div>
+<div class="line"><a name="l00041"></a><span class="lineno">   41</span>&#160;<span class="preprocessor">#define ebpf_map_update_element ((ebpf_map_update_element_t)2)</span></div>
+<div class="line"><a name="l00042"></a><span class="lineno">   42</span>&#160;<span class="preprocessor">#endif</span></div>
+<div class="line"><a name="l00043"></a><span class="lineno">   43</span>&#160; </div>
+<div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160;EBPF_HELPER(int64_t, <a class="code" href="ebpf__helpers_8h.html#a666852bf11ab3f7e4c72720ab7177101">ebpf_map_delete_element</a>, (<a class="code" href="struct__ebpf__map__definition.html">ebpf_map_definition_t</a> * map, <span class="keywordtype">void</span>* key));</div>
+<div class="line"><a name="l00054"></a><span class="lineno">   54</span>&#160;<span class="preprocessor">#ifndef __doxygen</span></div>
+<div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160;<span class="preprocessor">#define ebpf_map_delete_element ((ebpf_map_delete_element_t)3)</span></div>
+<div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160;<span class="preprocessor">#endif</span></div>
+<div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160; </div>
+<div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160;<span class="comment">//</span></div>
+<div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160;<span class="comment">// Defines for cross-platform compatibility.</span></div>
+<div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160;<span class="comment">//</span></div>
+<div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160; </div>
+<div class="line"><a name="l00062"></a><span class="lineno"><a class="line" href="ebpf__helpers_8h.html#a1d98f863fc6ebf789b378348438181ca">   62</a></span>&#160;<span class="preprocessor">#define bpf_map _ebpf_map_definition</span></div>
+<div class="line"><a name="l00063"></a><span class="lineno"><a class="line" href="ebpf__helpers_8h.html#a5815f445df279807a5014b66e13878b9">   63</a></span>&#160;<span class="preprocessor">#define bpf_map_lookup_elem ebpf_map_lookup_element</span></div>
+<div class="line"><a name="l00064"></a><span class="lineno"><a class="line" href="ebpf__helpers_8h.html#a937461a2e71dafd83423dba84eb0e35b">   64</a></span>&#160;<span class="preprocessor">#define bpf_map_update_elem ebpf_map_update_element</span></div>
+<div class="line"><a name="l00065"></a><span class="lineno"><a class="line" href="ebpf__helpers_8h.html#a306eb2897e52dbbadba15f736f99f1ff">   65</a></span>&#160;<span class="preprocessor">#define bpf_map_delete_elem ebpf_map_delete_element</span></div>
+<div class="line"><a name="l00066"></a><span class="lineno">   66</span>&#160; </div>
+<div class="line"><a name="l00067"></a><span class="lineno"><a class="line" href="ebpf__helpers_8h.html#a523e13ce6fd8c9745d54253197d2ce51">   67</a></span>&#160;<span class="preprocessor">#define BPF_MAP_TYPE_UNSPECIFIED EBPF_MAP_TYPE_UNSPECIFIED</span></div>
+<div class="line"><a name="l00068"></a><span class="lineno"><a class="line" href="ebpf__helpers_8h.html#a1cefd979a5444f66f876929863c3107d">   68</a></span>&#160;<span class="preprocessor">#define BPF_MAP_TYPE_HASH EBPF_MAP_TYPE_HASH</span></div>
+<div class="line"><a name="l00069"></a><span class="lineno"><a class="line" href="ebpf__helpers_8h.html#a85ffd0a51749d35d199882cc41769182">   69</a></span>&#160;<span class="preprocessor">#define BPF_MAP_TYPE_ARRAY EBPF_MAP_TYPE_ARRAY</span></div>
 </div><!-- fragment --></div><!-- contents -->
 <div class="ttc" id="aebpf__helpers_8h_html_a7a4bc40bd0a14be74e1adeaeae6ded7b"><div class="ttname"><a href="ebpf__helpers_8h.html#a7a4bc40bd0a14be74e1adeaeae6ded7b">ebpf_map_lookup_element</a></div><div class="ttdeci">void * ebpf_map_lookup_element(ebpf_map_definition_t *map, void *key)</div><div class="ttdoc">Get a pointer to an entry in the map.</div></div>
 <div class="ttc" id="astruct__ebpf__map__definition_html"><div class="ttname"><a href="struct__ebpf__map__definition.html">_ebpf_map_definition</a></div><div class="ttdoc">eBPF Map Definition</div><div class="ttdef"><b>Definition:</b> ebpf_structs.h:22</div></div>
