@@ -183,6 +183,8 @@ _ebpf_driver_initialize_objects(
     );
     WdfDeviceInitSetFileObjectConfig(device_initialize, &file_object_config, &attributes);
 
+    // WDF framework doesn't handle IRP_MJ_QUERY_VOLUME_INFORMATION.
+    // Register a handler for this IRP.
     status = WdfDeviceInitAssignWdmIrpPreprocessCallback(
         device_initialize, _ebpf_driver_query_volume_information, IRP_MJ_QUERY_VOLUME_INFORMATION, NULL, 0);
     if (!NT_SUCCESS(status)) {
@@ -388,11 +390,14 @@ ebpf_driver_get_device_object()
     return _ebpf_driver_device_object;
 }
 
+// The C runtime queries the file type via GetFileType when creating a file
+// descriptor. GetFileType queries volume information to get device type via
+// FileFsDeviceInformation information class.
 NTSTATUS
-_ebpf_driver_query_volume_information(_In_ WDFDEVICE device, _Inout_ PIRP irp)
+_ebpf_driver_query_volume_information(_In_ WDFDEVICE device, _Inout_ IRP* irp)
 {
     NTSTATUS status;
-    PIO_STACK_LOCATION irp_stack_location;
+    IO_STACK_LOCATION* irp_stack_location;
     UNREFERENCED_PARAMETER(device);
     irp_stack_location = IoGetCurrentIrpStackLocation(irp);
 
