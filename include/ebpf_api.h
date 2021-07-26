@@ -19,18 +19,50 @@ extern "C"
 #endif
 
     __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_UNSPECIFIED = {0};
+
+    /** @brief Attach type for handling incoming packets as early as possible.
+     *
+     * Program type: \ref EBPF_PROGRAM_TYPE_XDP
+     */
     __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_XDP = {
         0x85e0d8ef, 0x579e, 0x4931, {0xb0, 0x72, 0x8e, 0xe2, 0x26, 0xbb, 0x2e, 0x9d}};
+
+    /** @brief Attach type for handling socket bind() requests.
+     *
+     * Program type: \ref EBPF_PROGRAM_TYPE_BIND
+     */
     __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_BIND = {
         0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
 
+    __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_TEST = {
+        0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
+
     __declspec(selectany) ebpf_attach_type_t EBPF_PROGRAM_TYPE_UNSPECIFIED = {0};
 
+    /** @brief Program type for handling incoming packets as early as possible.
+     *
+     * eBPF program prototype: \ref xdp_hook_t
+     *
+     * Attach type(s): \ref EBPF_ATTACH_TYPE_XDP
+     *
+     * Helpers available: see ebpf_helpers.h
+     */
     __declspec(selectany) ebpf_program_type_t EBPF_PROGRAM_TYPE_XDP = {
         0xf1832a85, 0x85d5, 0x45b0, {0x98, 0xa0, 0x70, 0x69, 0xd6, 0x30, 0x13, 0xb0}};
 
+    /** @brief Program type for handling socket bind() requests.
+     *
+     * eBPF program prototype: \ref bind_hook_t
+     *
+     * Attach type(s): \ref EBPF_ATTACH_TYPE_BIND
+     *
+     * Helpers available: see ebpf_helpers.h
+     */
     __declspec(selectany) ebpf_program_type_t EBPF_PROGRAM_TYPE_BIND = {
         0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
+
+    __declspec(selectany) ebpf_program_type_t EBPF_PROGRAM_TYPE_TEST = {
+        0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 
     typedef int32_t fd_t;
     const fd_t ebpf_fd_invalid = -1;
@@ -82,6 +114,8 @@ extern "C"
      * @param[in] key_size Key size.
      * @param[in] value_size Value size.
      * @param[in] max_entries Maximum number of entries in the map.
+     * @param[in] map_flags Map flags.
+     * @param[out] handle Pointer to map handle.
      *
      * @retval EBPF_SUCCESS Map created successfully.
      * @retval EBPF_ERROR_NOT_SUPPORTED Unsupported map type.
@@ -181,21 +215,21 @@ extern "C"
         uint32_t* max_entries);
 
     /**
-     * @brief Query information about an eBPF program.
+     * @brief Query info about an eBPF program.
      * @param[in] handle Handle to an eBPF program.
      * @param[out] execution_type On success, contains the execution type.
      * @param[out] file_name On success, contains the file name.
      * @param[out] section_name On success, contains the section name.
      */
     uint32_t
-    ebpf_api_program_query_information(
+    ebpf_api_program_query_info(
         ebpf_handle_t handle, ebpf_execution_type_t* execution_type, const char** file_name, const char** section_name);
 
     /**
      * @brief Get list of programs and stats in an ELF eBPF file.
      * @param[in] file Name of ELF file containing eBPF program.
      * @param[in] section Optionally, the name of the section to query.
-     * @param[in] verbose Obtain additional information about the programs.
+     * @param[in] verbose Obtain additional info about the programs.
      * @param[out] data On success points to a list of eBPF programs.
      * @param[out] error_message On failure points to a text description of
      *  the error.
@@ -250,7 +284,7 @@ extern "C"
      * @brief Convert an eBPF program to human readable byte code.
      * @param[in] file Name of ELF file containing eBPF program.
      * @param[in] section The name of the section to query.
-     * @param[in] verbose Obtain additional information about the programs.
+     * @param[in] verbose Obtain additional info about the programs.
      * @param[out] report Points to a text section describing why the program
      *  failed verification.
      * @param[out] error_message On failure points to a text description of
@@ -267,14 +301,14 @@ extern "C"
         ebpf_api_verifier_stats_t* stats);
 
     /**
-     * @brief Free a TLV returned from ebpf_api_elf_enumerate_sections
+     * @brief Free a TLV returned from \ref ebpf_api_elf_enumerate_sections
      * @param[in] data Memory to free.
      */
     void
     ebpf_api_elf_free(const tlv_type_length_value_t* data);
 
     /**
-     * @brief Free memory for a string returned from eBPF API.
+     * @brief Free memory for a string returned from an eBPF API.
      * @param[in] string Memory to free.
      */
     void
@@ -331,10 +365,10 @@ extern "C"
     ebpf_api_close_handle(ebpf_handle_t handle);
 
     /**
-     * @brief Returns an array of ebpf_map_information_t for all pinned maps.
+     * @brief Returns an array of \ref ebpf_map_info_t for all pinned maps.
      *
      * @param[out] map_count Number of pinned maps.
-     * @param[out] map_info Array of ebpf_map_information_t for pinned maps.
+     * @param[out] map_info Array of ebpf_map_info_t for pinned maps.
      *
      * @retval EBPF_SUCCESS The API suceeded.
      * @retval EBPF_NO_MEMORY Out of memory.
@@ -342,18 +376,18 @@ extern "C"
      */
     ebpf_result_t
     ebpf_api_get_pinned_map_info(
-        _Out_ uint16_t* map_count, _Outptr_result_buffer_maybenull_(*map_count) ebpf_map_information_t** map_info);
+        _Out_ uint16_t* map_count, _Outptr_result_buffer_maybenull_(*map_count) ebpf_map_info_t** map_info);
 
     /**
-     * @brief Helper Function to free array of ebpf_map_information_t allocated by
-     * ebpf_api_get_pinned_map_info function.
+     * @brief Helper Function to free array of \ref ebpf_map_info_t allocated by
+     * \ref ebpf_api_get_pinned_map_info function.
      *
      * @param[in] map_count Length of array to be freed.
      * @param[in] map_info Map to be freed.
      */
     void
     ebpf_api_map_info_free(
-        uint16_t map_count, _In_opt_count_(map_count) _Post_ptr_invalid_ const ebpf_map_information_t* map_info);
+        uint16_t map_count, _In_opt_count_(map_count) _Post_ptr_invalid_ const ebpf_map_info_t* map_info);
 
     /**
      * @brief Load eBPF programs from an ELF file based on default load
@@ -376,7 +410,7 @@ extern "C"
      * @param[in] execution_type The execution type to use for this program. If
      *  EBPF_EXECUTION_ANY is specified, execution type will be decided by a
      *  system-wide policy.
-     * @param[out] ebpf_object Returns pointer to ebpf_object object. The caller
+     * @param[out] object Returns pointer to ebpf_object object. The caller
         is expected to call ebpf_object_close() at the end.
      * @param[out] program_fd Returns a file descriptor for the first program.
      *  The caller should not call _close() on the fd, but should instead use
@@ -453,7 +487,7 @@ extern "C"
     /**
      * @brief Fetch fd for a map object.
      *
-     * @param[in] program Pointer to eBPF map.
+     * @param[in] map Pointer to eBPF map.
      * @return fd for the map on success, ebpf_fd_invalid on failure.
      */
     fd_t

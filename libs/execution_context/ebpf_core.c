@@ -11,11 +11,11 @@
 #include "ebpf_program_types.h"
 #include "ebpf_serialize.h"
 
-GUID ebpf_global_helper_function_interface_id = {/* 8d2a1d3f-9ce6-473d-b48e-17aa5c5581fe */
-                                                 0x8d2a1d3f,
-                                                 0x9ce6,
-                                                 0x473d,
-                                                 {0xb4, 0x8e, 0x17, 0xaa, 0x5c, 0x55, 0x81, 0xfe}};
+GUID ebpf_general_helper_function_interface_id = {/* 8d2a1d3f-9ce6-473d-b48e-17aa5c5581fe */
+                                                  0x8d2a1d3f,
+                                                  0x9ce6,
+                                                  0x473d,
+                                                  {0xb4, 0x8e, 0x17, 0xaa, 0x5c, 0x55, 0x81, 0xfe}};
 
 static ebpf_pinning_table_t* _ebpf_core_map_pinning_table = NULL;
 
@@ -31,16 +31,33 @@ _ebpf_core_map_delete_element(ebpf_map_t* map, const uint8_t* key);
 
 #define EBPF_CORE_GLOBAL_HELPER_EXTENSION_VERSION 0
 
-static const void* _ebpf_program_helpers[] = {
-    NULL,
-    (void*)&_ebpf_core_map_find_element,
-    (void*)&_ebpf_core_map_update_element,
-    (void*)&_ebpf_core_map_delete_element};
+static ebpf_helper_function_prototype_t _ebpf_map_helper_function_prototype[] = {
+    {(uint32_t)(intptr_t)ebpf_map_lookup_element,
+     "ebpf_map_lookup_element",
+     EBPF_RETURN_TYPE_PTR_TO_MAP_VALUE_OR_NULL,
+     {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY}},
+    {(uint32_t)(intptr_t)ebpf_map_update_element,
+     "ebpf_map_update_element",
+     EBPF_RETURN_TYPE_INTEGER,
+     {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_VALUE}},
+    {(uint32_t)(intptr_t)ebpf_map_delete_element,
+     "ebpf_map_delete_element",
+     EBPF_RETURN_TYPE_INTEGER,
+     {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY}}};
+
+static ebpf_program_info_t _ebpf_global_helper_program_info = {{"global_helper", NULL, {0}},
+                                                               EBPF_COUNT_OF(_ebpf_map_helper_function_prototype),
+                                                               _ebpf_map_helper_function_prototype};
+
+static const void* _ebpf_program_helpers[] = {NULL,
+                                              (void*)&_ebpf_core_map_find_element,
+                                              (void*)&_ebpf_core_map_update_element,
+                                              (void*)&_ebpf_core_map_delete_element};
 
 static ebpf_extension_provider_t* _ebpf_global_helper_function_provider_context = NULL;
 static ebpf_helper_function_addresses_t _ebpf_global_helper_function_dispatch_table = {
     EBPF_COUNT_OF(_ebpf_program_helpers), (uint64_t*)_ebpf_program_helpers};
-static ebpf_program_data_t _ebpf_global_helper_function_program_data = {NULL,
+static ebpf_program_data_t _ebpf_global_helper_function_program_data = {&_ebpf_global_helper_program_info,
                                                                         &_ebpf_global_helper_function_dispatch_table};
 
 static ebpf_extension_data_t _ebpf_global_helper_function_extension_data = {
@@ -73,7 +90,7 @@ ebpf_core_initiate()
 
     return_value = ebpf_provider_load(
         &_ebpf_global_helper_function_provider_context,
-        &ebpf_global_helper_function_interface_id,
+        &ebpf_general_helper_function_interface_id,
         NULL,
         &_ebpf_global_helper_function_extension_data,
         NULL,
@@ -521,9 +538,9 @@ Done:
 }
 
 static ebpf_result_t
-_ebpf_core_protocol_query_program_information(
-    _In_ const struct _ebpf_operation_query_program_information_request* request,
-    _Inout_ struct _ebpf_operation_query_program_information_reply* reply,
+_ebpf_core_protocol_query_program_info(
+    _In_ const struct _ebpf_operation_query_program_info_request* request,
+    _Inout_ struct _ebpf_operation_query_program_info_reply* reply,
     uint16_t reply_length)
 {
     ebpf_result_t retval;
@@ -539,14 +556,14 @@ _ebpf_core_protocol_query_program_information(
     if (retval != EBPF_SUCCESS)
         goto Done;
 
-    required_reply_length = EBPF_OFFSET_OF(struct _ebpf_operation_query_program_information_reply, data) +
+    required_reply_length = EBPF_OFFSET_OF(struct _ebpf_operation_query_program_info_reply, data) +
                             parameters.program_name.length + parameters.section_name.length;
 
     if (reply_length < required_reply_length) {
         return EBPF_INVALID_ARGUMENT;
     }
 
-    reply->file_name_offset = EBPF_OFFSET_OF(struct _ebpf_operation_query_program_information_reply, data);
+    reply->file_name_offset = EBPF_OFFSET_OF(struct _ebpf_operation_query_program_info_reply, data);
     reply->section_name_offset = reply->file_name_offset + (uint16_t)parameters.program_name.length;
 
     memcpy(reply->data, parameters.program_name.value, parameters.program_name.length);
@@ -565,9 +582,9 @@ static ebpf_result_t
 _ebpf_core_protocol_update_pinning(_In_ const struct _ebpf_operation_update_map_pinning_request* request)
 {
     ebpf_result_t retval;
-    const ebpf_utf8_string_t name = {
-        (uint8_t*)request->name,
-        request->header.length - EBPF_OFFSET_OF(ebpf_operation_update_pinning_request_t, name)};
+    const ebpf_utf8_string_t name = {(uint8_t*)request->name,
+                                     request->header.length -
+                                         EBPF_OFFSET_OF(ebpf_operation_update_pinning_request_t, name)};
     ebpf_object_t* object = NULL;
 
     if (name.length == 0) {
@@ -671,16 +688,15 @@ _ebpf_core_protocol_get_ec_function(
 }
 
 static ebpf_result_t
-_ebpf_core_protocol_get_program_information(
-    _In_ const ebpf_operation_get_program_information_request_t* request,
-    _Inout_ ebpf_operation_get_program_information_reply_t* reply,
+_ebpf_core_protocol_get_program_info(
+    _In_ const ebpf_operation_get_program_info_request_t* request,
+    _Inout_ ebpf_operation_get_program_info_reply_t* reply,
     uint16_t reply_length)
 {
     ebpf_result_t retval;
     ebpf_program_t* program = NULL;
     ebpf_program_parameters_t program_parameters = {0};
-    ebpf_extension_data_t* program_information_data;
-    ebpf_program_data_t* program_data;
+    ebpf_program_info_t* program_info = NULL;
     size_t serialization_buffer_size;
     size_t required_length;
 
@@ -694,42 +710,40 @@ _ebpf_core_protocol_get_program_information(
     if (retval != EBPF_SUCCESS)
         goto Done;
 
-    retval = ebpf_program_get_program_information_data(program, &program_information_data);
+    retval = ebpf_program_get_program_info(program, &program_info);
     if (retval != EBPF_SUCCESS)
         goto Done;
-    program_data = (ebpf_program_data_t*)program_information_data->data;
-    if (program_data->program_information == NULL) {
+    if (program_info == NULL) {
         retval = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
 
-    serialization_buffer_size = reply_length - EBPF_OFFSET_OF(ebpf_operation_get_program_information_reply_t, data);
+    serialization_buffer_size = reply_length - EBPF_OFFSET_OF(ebpf_operation_get_program_info_reply_t, data);
 
-    // Serialize program information structure onto reply data buffer.
-    retval = ebpf_serialize_program_information(
-        program_data->program_information, reply->data, serialization_buffer_size, &reply->size, &required_length);
+    // Serialize program info structure onto reply data buffer.
+    retval = ebpf_serialize_program_info(
+        program_info, reply->data, serialization_buffer_size, &reply->size, &required_length);
 
     if (retval != EBPF_SUCCESS) {
         reply->header.length =
-            (uint16_t)(required_length + EBPF_OFFSET_OF(ebpf_operation_get_program_information_reply_t, data));
+            (uint16_t)(required_length + EBPF_OFFSET_OF(ebpf_operation_get_program_info_reply_t, data));
         goto Done;
     }
 
-    reply->version = program_information_data->version;
-
 Done:
+    ebpf_program_free_program_info(program_info);
     ebpf_object_release_reference((ebpf_object_t*)program);
     return retval;
 }
 
 static ebpf_result_t
-_ebpf_core_protocol_convert_pinning_entries_to_map_information_array(
+_ebpf_core_protocol_convert_pinning_entries_to_map_info_array(
     uint16_t entry_count,
     _In_reads_opt_(entry_count) ebpf_pinning_entry_t* pinning_entries,
-    _Outptr_result_buffer_maybenull_(entry_count) ebpf_map_information_internal_t** map_info)
+    _Outptr_result_buffer_maybenull_(entry_count) ebpf_map_info_internal_t** map_info)
 {
     ebpf_result_t result = EBPF_SUCCESS;
-    ebpf_map_information_internal_t* local_map_info = NULL;
+    ebpf_map_info_internal_t* local_map_info = NULL;
     uint16_t index;
 
     if (map_info == NULL) {
@@ -740,8 +754,7 @@ _ebpf_core_protocol_convert_pinning_entries_to_map_information_array(
     if ((entry_count == 0) || (pinning_entries == NULL))
         goto Exit;
 
-    local_map_info =
-        (ebpf_map_information_internal_t*)ebpf_allocate(sizeof(ebpf_map_information_internal_t) * entry_count);
+    local_map_info = (ebpf_map_info_internal_t*)ebpf_allocate(sizeof(ebpf_map_info_internal_t) * entry_count);
     if (local_map_info == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -749,7 +762,7 @@ _ebpf_core_protocol_convert_pinning_entries_to_map_information_array(
 
     for (index = 0; index < entry_count; index++) {
         ebpf_pinning_entry_t* source = &pinning_entries[index];
-        ebpf_map_information_internal_t* destination = &local_map_info[index];
+        ebpf_map_info_internal_t* destination = &local_map_info[index];
 
         if (ebpf_object_get_type(source->object) != EBPF_OBJECT_MAP) {
             // Bad object type.
@@ -775,19 +788,19 @@ Exit:
 }
 
 static ebpf_result_t
-_ebpf_core_protocol_serialize_map_information_reply(
+_ebpf_core_protocol_serialize_map_info_reply(
     uint16_t map_count,
-    _In_count_(map_count) const ebpf_map_information_internal_t* map_info,
+    _In_count_(map_count) const ebpf_map_info_internal_t* map_info,
     size_t output_buffer_length,
-    _In_ ebpf_operation_get_map_information_reply_t* map_info_reply)
+    _In_ ebpf_operation_get_map_info_reply_t* map_info_reply)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     size_t serialization_buffer_size;
     size_t required_serialization_length;
 
-    serialization_buffer_size = output_buffer_length - EBPF_OFFSET_OF(ebpf_operation_get_map_information_reply_t, data);
+    serialization_buffer_size = output_buffer_length - EBPF_OFFSET_OF(ebpf_operation_get_map_info_reply_t, data);
 
-    result = ebpf_serialize_internal_map_information_array(
+    result = ebpf_serialize_internal_map_info_array(
         map_count,
         map_info,
         map_info_reply->data,
@@ -796,8 +809,8 @@ _ebpf_core_protocol_serialize_map_information_reply(
         &required_serialization_length);
 
     if (result != EBPF_SUCCESS) {
-        map_info_reply->header.length = (uint16_t)(
-            required_serialization_length + EBPF_OFFSET_OF(ebpf_operation_get_map_information_reply_t, data));
+        map_info_reply->header.length =
+            (uint16_t)(required_serialization_length + EBPF_OFFSET_OF(ebpf_operation_get_map_info_reply_t, data));
     } else
         map_info_reply->map_count = map_count;
 
@@ -805,15 +818,15 @@ _ebpf_core_protocol_serialize_map_information_reply(
 }
 
 static ebpf_result_t
-_ebpf_core_protocol_get_map_information(
-    _In_ const ebpf_operation_get_map_information_request_t* request,
-    _In_ ebpf_operation_get_map_information_reply_t* reply,
+_ebpf_core_protocol_get_map_info(
+    _In_ const ebpf_operation_get_map_info_request_t* request,
+    _In_ ebpf_operation_get_map_info_reply_t* reply,
     uint16_t reply_length)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     uint16_t entry_count = 0;
     ebpf_pinning_entry_t* pinning_entries = NULL;
-    ebpf_map_information_internal_t* map_info = NULL;
+    ebpf_map_info_internal_t* map_info = NULL;
 
     UNREFERENCED_PARAMETER(request);
 
@@ -827,17 +840,16 @@ _ebpf_core_protocol_get_map_information(
         // No pinned map entries to return.
         goto Exit;
 
-    // Convert pinning entries to map_information_t array.
-    result =
-        _ebpf_core_protocol_convert_pinning_entries_to_map_information_array(entry_count, pinning_entries, &map_info);
+    // Convert pinning entries to map_info_t array.
+    result = _ebpf_core_protocol_convert_pinning_entries_to_map_info_array(entry_count, pinning_entries, &map_info);
     if (result != EBPF_SUCCESS)
         goto Exit;
 
     _Analysis_assume_(map_info != NULL);
 
-    // Serialize map information array onto reply structure.
+    // Serialize map info array onto reply structure.
     _Analysis_assume_(map_info != NULL);
-    result = _ebpf_core_protocol_serialize_map_information_reply(entry_count, map_info, reply_length, reply);
+    result = _ebpf_core_protocol_serialize_map_info_reply(entry_count, map_info, reply_length, reply);
 
 Exit:
 
@@ -936,10 +948,10 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
      sizeof(struct _ebpf_operation_query_map_definition_request),
      sizeof(struct _ebpf_operation_query_map_definition_reply)},
 
-    // EBPF_OPERATION_QUERY_PROGRAM_INFORMATION
-    {(ebpf_result_t(__cdecl*)(const void*))_ebpf_core_protocol_query_program_information,
-     sizeof(struct _ebpf_operation_query_program_information_request),
-     sizeof(struct _ebpf_operation_query_program_information_reply)},
+    // EBPF_OPERATION_QUERY_PROGRAM_INFO
+    {(ebpf_result_t(__cdecl*)(const void*))_ebpf_core_protocol_query_program_info,
+     sizeof(struct _ebpf_operation_query_program_info_request),
+     sizeof(struct _ebpf_operation_query_program_info_reply)},
 
     // EBPF_OPERATION_UPDATE_PINNING
     {_ebpf_core_protocol_update_pinning, sizeof(struct _ebpf_operation_update_map_pinning_request), 0},
@@ -964,15 +976,15 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
      sizeof(ebpf_operation_get_ec_function_request_t),
      sizeof(ebpf_operation_get_ec_function_reply_t)},
 
-    // EBPF_OPERATION_GET_PROGRAM_INFORMATION
-    {(ebpf_result_t(__cdecl*)(const void*))_ebpf_core_protocol_get_program_information,
-     sizeof(ebpf_operation_get_program_information_request_t),
-     sizeof(ebpf_operation_get_program_information_reply_t)},
+    // EBPF_OPERATION_GET_PROGRAM_INFO
+    {(ebpf_result_t(__cdecl*)(const void*))_ebpf_core_protocol_get_program_info,
+     sizeof(ebpf_operation_get_program_info_request_t),
+     sizeof(ebpf_operation_get_program_info_reply_t)},
 
-    // EBPF_OPERATION_GET_MAP_INFORMATION
-    {(ebpf_result_t(__cdecl*)(const void*))_ebpf_core_protocol_get_map_information,
-     sizeof(ebpf_operation_get_map_information_request_t),
-     sizeof(ebpf_operation_get_map_information_reply_t)}};
+    // EBPF_OPERATION_GET_MAP_INFO
+    {(ebpf_result_t(__cdecl*)(const void*))_ebpf_core_protocol_get_map_info,
+     sizeof(ebpf_operation_get_map_info_request_t),
+     sizeof(ebpf_operation_get_map_info_reply_t)}};
 
 ebpf_result_t
 ebpf_core_get_protocol_handler_properties(

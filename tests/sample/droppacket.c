@@ -9,12 +9,11 @@
 #include "ebpf.h"
 
 #pragma clang section data = "maps"
-ebpf_map_definition_t port_map = {
-    .size = sizeof(ebpf_map_definition_t),
-    .type = EBPF_MAP_TYPE_ARRAY,
-    .key_size = sizeof(uint32_t),
-    .value_size = sizeof(uint64_t),
-    .max_entries = 1};
+ebpf_map_definition_t port_map = {.size = sizeof(ebpf_map_definition_t),
+                                  .type = EBPF_MAP_TYPE_ARRAY,
+                                  .key_size = sizeof(uint32_t),
+                                  .value_size = sizeof(uint64_t),
+                                  .max_entries = 1};
 
 #pragma clang section text = "xdp"
 int

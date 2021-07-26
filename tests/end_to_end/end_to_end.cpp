@@ -162,7 +162,7 @@ droppacket_test(ebpf_execution_type_t execution_type)
     const char* error_message = NULL;
 
     single_instance_hook_t hook;
-    program_information_provider_t xdp_program_information(EBPF_PROGRAM_TYPE_XDP);
+    program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
     REQUIRE(
         (result = ebpf_api_load_program(
@@ -232,7 +232,7 @@ divide_by_zero_test(ebpf_execution_type_t execution_type)
     const char* error_message = NULL;
 
     single_instance_hook_t hook;
-    program_information_provider_t xdp_program_information(EBPF_PROGRAM_TYPE_XDP);
+    program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
     REQUIRE(
         (result = ebpf_api_load_program(
@@ -323,7 +323,7 @@ bindmonitor_test(ebpf_execution_type_t execution_type)
     uint64_t fake_pid = 12345;
     uint32_t result;
 
-    program_information_provider_t bind_program_information(EBPF_PROGRAM_TYPE_BIND);
+    program_info_provider_t bind_program_info(EBPF_PROGRAM_TYPE_BIND);
 
     REQUIRE(
         (result = ebpf_api_load_program(
@@ -465,7 +465,7 @@ TEST_CASE("map_pinning_test", "[end_to_end]")
     uint32_t count_of_map_handles = 2;
     uint32_t result;
 
-    program_information_provider_t bind_program_information(EBPF_PROGRAM_TYPE_BIND);
+    program_info_provider_t bind_program_info(EBPF_PROGRAM_TYPE_BIND);
 
     REQUIRE(
         (result = ebpf_api_load_program(
@@ -546,7 +546,7 @@ TEST_CASE("enumerate_and_query_maps", "[end_to_end]")
     uint32_t count_of_map_handles = 2;
     uint32_t result;
 
-    program_information_provider_t bind_program_information(EBPF_PROGRAM_TYPE_BIND);
+    program_info_provider_t bind_program_info(EBPF_PROGRAM_TYPE_BIND);
 
     REQUIRE(
         (result = ebpf_api_load_program(
@@ -611,7 +611,7 @@ TEST_CASE("enumerate_and_query_programs", "[end_to_end]")
     const char* file_name = nullptr;
     const char* section_name = nullptr;
 
-    program_information_provider_t xdp_program_information(EBPF_PROGRAM_TYPE_XDP);
+    program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
     REQUIRE(
         (result = ebpf_api_load_program(
@@ -644,7 +644,7 @@ TEST_CASE("enumerate_and_query_programs", "[end_to_end]")
     ebpf_execution_type_t type;
     program_handle = INVALID_HANDLE_VALUE;
     REQUIRE(ebpf_api_get_next_program(program_handle, &program_handle) == EBPF_SUCCESS);
-    REQUIRE(ebpf_api_program_query_information(program_handle, &type, &file_name, &section_name) == EBPF_SUCCESS);
+    REQUIRE(ebpf_api_program_query_info(program_handle, &type, &file_name, &section_name) == EBPF_SUCCESS);
     REQUIRE(type == EBPF_EXECUTION_JIT);
     REQUIRE(strcmp(file_name, SAMPLE_PATH "droppacket.o") == 0);
     ebpf_free_string(file_name);
@@ -655,7 +655,7 @@ TEST_CASE("enumerate_and_query_programs", "[end_to_end]")
     section_name = nullptr;
     REQUIRE(ebpf_api_get_next_program(program_handle, &program_handle) == EBPF_SUCCESS);
     REQUIRE(program_handle != INVALID_HANDLE_VALUE);
-    REQUIRE(ebpf_api_program_query_information(program_handle, &type, &file_name, &section_name) == EBPF_SUCCESS);
+    REQUIRE(ebpf_api_program_query_info(program_handle, &type, &file_name, &section_name) == EBPF_SUCCESS);
     REQUIRE(type == EBPF_EXECUTION_INTERPRET);
     REQUIRE(strcmp(file_name, SAMPLE_PATH "droppacket.o") == 0);
     REQUIRE(strcmp(section_name, "xdp") == 0);

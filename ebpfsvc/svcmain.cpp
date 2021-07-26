@@ -59,7 +59,7 @@ service_install()
     SC_HANDLE scmanager = nullptr;
     SC_HANDLE service = nullptr;
     TCHAR path[MAX_PATH];
-    SERVICE_SID_INFO sid_information = {0};
+    SERVICE_SID_INFO sid_info = {0};
     int result = ERROR_SUCCESS;
 
     if (!GetModuleFileName(nullptr, path, MAX_PATH)) {
@@ -102,8 +102,8 @@ service_install()
     }
 
     // Set service SID type to restricted.
-    sid_information.dwServiceSidType = SERVICE_SID_TYPE_RESTRICTED;
-    if (!ChangeServiceConfig2(service, SERVICE_CONFIG_SERVICE_SID_INFO, &sid_information)) {
+    sid_info.dwServiceSidType = SERVICE_SID_TYPE_RESTRICTED;
+    if (!ChangeServiceConfig2(service, SERVICE_CONFIG_SERVICE_SID_INFO, &sid_info)) {
         result = GetLastError();
         goto Exit;
     }

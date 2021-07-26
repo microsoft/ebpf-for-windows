@@ -42,21 +42,6 @@ extern "C"
         ebpf_link_t* link, ebpf_attach_type_t attach_type, const uint8_t* context_data, size_t context_data_length);
 
     /**
-     * @brief Get the properties from the hook provider.
-     *
-     * @param[in] link The link object to get properties from.
-     * @param[out] hook_properties Pointer to buffer that contains the hook
-     *  provider properties on success.
-     * @param[out] hook_properties_length Pointer to size that contains the size
-     *  of the hook provider properties.
-     * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_INVALID_ARGUMENT Hook instance has not been
-     *  initialized.
-     */
-    ebpf_result_t
-    ebpf_link_get_properties(ebpf_link_t* link, uint8_t** hook_properties, size_t* hook_properties_length);
-
-    /**
      * @brief Attach a program to this link object.
      *
      * @param[in] link The link object to attach the program to.

@@ -8,6 +8,8 @@
 #include "crab_verifier_wrapper.hpp"
 #include "ebpf_api.h"
 #include "ebpf_helpers.h"
+#include "ebpf_nethooks.h"
+#include "test_ext_helpers.h"
 #include "helpers.hpp"
 #include "map_descriptors.hpp"
 #include "platform.hpp"
@@ -28,42 +30,46 @@
 // the preprocessor treat a prefix list as one macro argument.
 #define COMMA ,
 
-const ebpf_context_descriptor_t g_xdp_context_descriptor = {
-    24, // Size of ctx struct.
-    0,  // Offset into ctx struct of pointer to data, or -1 if none.
-    8,  // Offset into ctx struct of pointer to end of data, or -1 if none.
-    16, // Offset into ctx struct of pointer to metadata, or -1 if none.
-};
+const ebpf_context_descriptor_t g_xdp_context_descriptor = {sizeof(xdp_md_t),
+                                                            EBPF_OFFSET_OF(xdp_md_t, data),
+                                                            EBPF_OFFSET_OF(xdp_md_t, data_end),
+                                                            EBPF_OFFSET_OF(xdp_md_t, data_meta)};
 
 const EbpfProgramType windows_xdp_program_type =
     PTYPE("xdp", &g_xdp_context_descriptor, (uint64_t)&EBPF_PROGRAM_TYPE_XDP, {"xdp"});
 
 const ebpf_context_descriptor_t g_bind_context_descriptor = {
-    43, // Size of ctx struct.
-    0,  // Offset into ctx struct of pointer to data, or -1 if none.
-    8,  // Offset into ctx struct of pointer to end of data, or -1 if none.
-    -1, // Offset into ctx struct of pointer to metadata, or -1 if none.
-};
+    sizeof(bind_md_t), EBPF_OFFSET_OF(bind_md_t, app_id_start), EBPF_OFFSET_OF(bind_md_t, app_id_end), -1};
 
 const EbpfProgramType windows_bind_program_type =
     PTYPE("bind", &g_bind_context_descriptor, (uint64_t)&EBPF_PROGRAM_TYPE_BIND, {"bind"});
 
-const std::vector<EbpfProgramType> windows_program_types = {
-    PTYPE("unspecified", {0}, 0, {}),
-    windows_xdp_program_type,
-    windows_bind_program_type,
+const ebpf_context_descriptor_t g_test_ext_context_descriptor = {
+    sizeof(test_program_context_t),
+    EBPF_OFFSET_OF(test_program_context_t, data_start),
+    EBPF_OFFSET_OF(test_program_context_t, data_end),
+    -1, // Offset into ctx struct for pointer to metadata, or -1 if none.
 };
+
+const EbpfProgramType windows_test_ext_program_type =
+    PTYPE("test_ext", &g_test_ext_context_descriptor, (uint64_t)&EBPF_PROGRAM_TYPE_TEST, {"test_ext"});
+
+const std::vector<EbpfProgramType> windows_program_types = {PTYPE("unspecified", {0}, 0, {}),
+                                                            windows_xdp_program_type,
+                                                            windows_bind_program_type,
+                                                            windows_test_ext_program_type};
 
 const std::map<ebpf_program_type_t*, ebpf_attach_type_t*> windows_program_type_to_attach_type = {
     {&EBPF_PROGRAM_TYPE_XDP, &EBPF_ATTACH_TYPE_XDP},
     {&EBPF_PROGRAM_TYPE_BIND, &EBPF_ATTACH_TYPE_BIND},
+    {&EBPF_PROGRAM_TYPE_TEST, &EBPF_ATTACH_TYPE_TEST},
 };
 
 EbpfProgramType
 get_program_type_windows(const GUID& program_type)
 {
     // TODO: (Issue #67) Make an IOCTL call to fetch the program context
-    //       information and then fill the EbpfProgramType struct.
+    //       info and then fill the EbpfProgramType struct.
     for (const EbpfProgramType t : windows_program_types) {
         if (t.platform_specific_data != 0) {
             if (IsEqualGUID(*(GUID*)t.platform_specific_data, program_type)) {

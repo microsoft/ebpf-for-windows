@@ -43,8 +43,7 @@ typedef struct _ebpf_serialized_helper_function_prototype_array
 } ebpf_serialized_helper_function_prototype_array_t;
 
 void
-ebpf_map_information_array_free(
-    uint16_t map_count, _In_opt_count_(map_count) _Post_ptr_invalid_ ebpf_map_information_t* map_info)
+ebpf_map_info_array_free(uint16_t map_count, _In_opt_count_(map_count) _Post_ptr_invalid_ ebpf_map_info_t* map_info)
 {
     uint16_t map_index;
 
@@ -58,9 +57,9 @@ ebpf_map_information_array_free(
 }
 
 ebpf_result_t
-ebpf_serialize_internal_map_information_array(
+ebpf_serialize_internal_map_info_array(
     uint16_t map_count,
-    _In_count_(map_count) const ebpf_map_information_internal_t* map_info,
+    _In_count_(map_count) const ebpf_map_info_internal_t* map_info,
     _Out_writes_bytes_to_(output_buffer_length, *serialized_data_length) uint8_t* output_buffer,
     size_t output_buffer_length,
     _Out_ size_t* serialized_data_length,
@@ -72,12 +71,12 @@ ebpf_serialize_internal_map_information_array(
 
     *serialized_data_length = 0;
 
-    // Compute required length for serialized array of map information objects.
+    // Compute required length for serialized array of map info objects.
     *required_length = 0;
     for (map_index = 0; map_index < map_count; map_index++) {
-        // Increment required_length by EBPF_OFFSET_OF(ebpf_serialized_map_information_t, pin_path).
+        // Increment required_length by EBPF_OFFSET_OF(ebpf_serialized_map_info_t, pin_path).
         result = ebpf_safe_size_t_add(
-            *required_length, EBPF_OFFSET_OF(ebpf_serialized_map_information_t, pin_path), required_length);
+            *required_length, EBPF_OFFSET_OF(ebpf_serialized_map_info_t, pin_path), required_length);
         if (result != EBPF_SUCCESS)
             goto Exit;
 
@@ -97,15 +96,13 @@ ebpf_serialize_internal_map_information_array(
     current = output_buffer;
 
     for (map_index = 0; map_index < map_count; map_index++) {
-        size_t serialized_map_information_length;
-        const ebpf_map_information_internal_t* source = &map_info[map_index];
-        ebpf_serialized_map_information_t* destination = (ebpf_serialized_map_information_t*)current;
+        size_t serialized_map_info_length;
+        const ebpf_map_info_internal_t* source = &map_info[map_index];
+        ebpf_serialized_map_info_t* destination = (ebpf_serialized_map_info_t*)current;
 
-        // Compute required length for serialized map information.
+        // Compute required length for serialized map info.
         result = ebpf_safe_size_t_add(
-            EBPF_OFFSET_OF(ebpf_serialized_map_information_t, pin_path),
-            source->pin_path.length,
-            &serialized_map_information_length);
+            EBPF_OFFSET_OF(ebpf_serialized_map_info_t, pin_path), source->pin_path.length, &serialized_map_info_length);
         if (result != EBPF_SUCCESS)
             goto Exit;
 
@@ -119,7 +116,7 @@ ebpf_serialize_internal_map_information_array(
         memcpy(destination->pin_path, source->pin_path.value, source->pin_path.length);
 
         // Move the output buffer current pointer.
-        current += serialized_map_information_length;
+        current += serialized_map_info_length;
     }
 
 Exit:
@@ -127,18 +124,18 @@ Exit:
 }
 
 #pragma warning(push)
-#pragma warning(disable : 6101) // ebpf_map_information_array_free at exit label
+#pragma warning(disable : 6101) // ebpf_map_info_array_free at exit label
 ebpf_result_t
-ebpf_deserialize_map_information_array(
+ebpf_deserialize_map_info_array(
     size_t input_buffer_length,
     _In_reads_bytes_(input_buffer_length) const uint8_t* input_buffer,
     uint16_t map_count,
-    _Outptr_result_buffer_maybenull_(map_count) ebpf_map_information_t** map_info)
+    _Outptr_result_buffer_maybenull_(map_count) ebpf_map_info_t** map_info)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     uint16_t map_index;
     size_t out_map_size;
-    ebpf_map_information_t* out_map_info = NULL;
+    ebpf_map_info_t* out_map_info = NULL;
     uint8_t* current;
     size_t buffer_left;
 
@@ -148,11 +145,11 @@ ebpf_deserialize_map_information_array(
     }
 
     // Allocate the output maps.
-    result = ebpf_safe_size_t_multiply(sizeof(ebpf_map_information_t), (size_t)map_count, &out_map_size);
+    result = ebpf_safe_size_t_multiply(sizeof(ebpf_map_info_t), (size_t)map_count, &out_map_size);
     if (result != EBPF_SUCCESS)
         goto Exit;
 
-    out_map_info = (ebpf_map_information_t*)ebpf_allocate(out_map_size);
+    out_map_info = (ebpf_map_info_t*)ebpf_allocate(out_map_size);
     if (out_map_info == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -161,28 +158,28 @@ ebpf_deserialize_map_information_array(
     current = (uint8_t*)input_buffer;
     buffer_left = input_buffer_length;
     for (map_index = 0; map_index < map_count; map_index++) {
-        ebpf_serialized_map_information_t* source;
-        ebpf_map_information_t* destination;
+        ebpf_serialized_map_info_t* source;
+        ebpf_map_info_t* destination;
         size_t destination_pin_path_length;
 
         // Check if sufficient input buffer remaining.
-        if (buffer_left < sizeof(ebpf_serialized_map_information_t)) {
+        if (buffer_left < sizeof(ebpf_serialized_map_info_t)) {
             result = EBPF_INVALID_ARGUMENT;
             goto Exit;
         }
 
-        source = (ebpf_serialized_map_information_t*)current;
+        source = (ebpf_serialized_map_info_t*)current;
         destination = &out_map_info[map_index];
 
         // Copy the map definition part.
         destination->definition = source->definition;
 
         // Advance the input buffer current pointer.
-        current += EBPF_OFFSET_OF(ebpf_serialized_map_information_t, pin_path);
+        current += EBPF_OFFSET_OF(ebpf_serialized_map_info_t, pin_path);
 
         // Adjust remaining input buffer length.
-        result = ebpf_safe_size_t_subtract(
-            buffer_left, EBPF_OFFSET_OF(ebpf_serialized_map_information_t, pin_path), &buffer_left);
+        result =
+            ebpf_safe_size_t_subtract(buffer_left, EBPF_OFFSET_OF(ebpf_serialized_map_info_t, pin_path), &buffer_left);
         if (result != EBPF_SUCCESS)
             goto Exit;
 
@@ -193,7 +190,7 @@ ebpf_deserialize_map_information_array(
         }
 
         if (source->pin_path_length > 0) {
-            // Allocate the buffer to hold the pin path in destination map information structure.
+            // Allocate the buffer to hold the pin path in destination map info structure.
             destination_pin_path_length = ((size_t)source->pin_path_length) + 1;
             destination->pin_path = ebpf_allocate(destination_pin_path_length);
             if (destination->pin_path == NULL) {
@@ -218,14 +215,14 @@ ebpf_deserialize_map_information_array(
     out_map_info = NULL;
 
 Exit:
-    ebpf_map_information_array_free(map_count, out_map_info);
+    ebpf_map_info_array_free(map_count, out_map_info);
 
     return result;
 }
 #pragma warning(pop)
 
 void
-ebpf_program_information_free(_In_opt_ _Post_invalid_ ebpf_program_information_t* program_info)
+ebpf_program_info_free(_In_opt_ _Post_invalid_ ebpf_program_info_t* program_info)
 {
     if (program_info != NULL) {
         ebpf_free(program_info->program_type_descriptor.context_descriptor);
@@ -241,8 +238,8 @@ ebpf_program_information_free(_In_opt_ _Post_invalid_ ebpf_program_information_t
 }
 
 ebpf_result_t
-ebpf_serialize_program_information(
-    _In_ const ebpf_program_information_t* program_info,
+ebpf_serialize_program_info(
+    _In_ const ebpf_program_info_t* program_info,
     _Out_writes_bytes_to_(output_buffer_length, *serialized_data_length) uint8_t* output_buffer,
     size_t output_buffer_length,
     _Out_ size_t* serialized_data_length,
@@ -260,7 +257,7 @@ ebpf_serialize_program_information(
 
     *serialized_data_length = 0;
 
-    // Peform sanity check on input program information.
+    // Peform sanity check on input program info.
     program_type_descriptor = &program_info->program_type_descriptor;
 
     if (program_type_descriptor->name == NULL) {
@@ -283,7 +280,7 @@ ebpf_serialize_program_information(
         }
     }
 
-    // Compute required length for serialized program information object.
+    // Compute required length for serialized program info object.
     *required_length = 0;
 
     // Compute length for serialized program type descriptor.
@@ -411,13 +408,13 @@ Exit:
 }
 
 ebpf_result_t
-ebpf_deserialize_program_information(
+ebpf_deserialize_program_info(
     size_t input_buffer_length,
     _In_reads_bytes_(input_buffer_length) const uint8_t* input_buffer,
-    _Outptr_ ebpf_program_information_t** program_info)
+    _Outptr_ ebpf_program_info_t** program_info)
 {
     ebpf_result_t result = EBPF_SUCCESS;
-    ebpf_program_information_t* local_program_info;
+    ebpf_program_info_t* local_program_info;
     const uint8_t* current;
     size_t buffer_left;
     ebpf_context_descriptor_t* local_context_descriptor;
@@ -429,8 +426,8 @@ ebpf_deserialize_program_information(
     size_t helper_prototype_array_size;
     ebpf_helper_function_prototype_t* local_helper_prototype_array;
 
-    // Allocate output program information.
-    local_program_info = (ebpf_program_information_t*)ebpf_allocate(sizeof(ebpf_program_information_t));
+    // Allocate output program info.
+    local_program_info = (ebpf_program_info_t*)ebpf_allocate(sizeof(ebpf_program_info_t));
     if (local_program_info == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -598,7 +595,7 @@ Exit:
         *program_info = local_program_info;
         local_program_info = NULL;
     } else {
-        ebpf_program_information_free(local_program_info);
+        ebpf_program_info_free(local_program_info);
     }
 
     return result;
