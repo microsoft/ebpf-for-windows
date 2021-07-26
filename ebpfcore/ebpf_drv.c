@@ -49,6 +49,7 @@ static BOOLEAN _ebpf_driver_unloading_flag = FALSE;
 //
 static EVT_WDF_FILE_CLOSE _ebpf_driver_file_close;
 static EVT_WDF_IO_QUEUE_IO_DEVICE_CONTROL _ebpf_driver_io_device_control;
+static EVT_WDFDEVICE_WDM_IRP_PREPROCESS _ebpf_driver_query_volume_information;
 DRIVER_INITIALIZE DriverEntry;
 
 static VOID
@@ -160,7 +161,7 @@ _ebpf_driver_initialize_objects(
         goto Exit;
     }
 
-    WdfDeviceInitSetDeviceType(device_initialize, FILE_DEVICE_NETWORK);
+    WdfDeviceInitSetDeviceType(device_initialize, FILE_DEVICE_NULL);
 
     WdfDeviceInitSetCharacteristics(device_initialize, FILE_DEVICE_SECURE_OPEN, FALSE);
 
@@ -181,6 +182,12 @@ _ebpf_driver_initialize_objects(
         WDF_NO_EVENT_CALLBACK // No cleanup callback function
     );
     WdfDeviceInitSetFileObjectConfig(device_initialize, &file_object_config, &attributes);
+
+    status = WdfDeviceInitAssignWdmIrpPreprocessCallback(
+        device_initialize, _ebpf_driver_query_volume_information, IRP_MJ_QUERY_VOLUME_INFORMATION, NULL, 0);
+    if (!NT_SUCCESS(status)) {
+        goto Exit;
+    }
 
     status = WdfDeviceCreate(&device_initialize, WDF_NO_OBJECT_ATTRIBUTES, device);
 
@@ -379,4 +386,33 @@ DEVICE_OBJECT*
 ebpf_driver_get_device_object()
 {
     return _ebpf_driver_device_object;
+}
+
+NTSTATUS
+_ebpf_driver_query_volume_information(_In_ WDFDEVICE device, _Inout_ PIRP irp)
+{
+    NTSTATUS status;
+    PIO_STACK_LOCATION irp_stack_location;
+    UNREFERENCED_PARAMETER(device);
+    irp_stack_location = IoGetCurrentIrpStackLocation(irp);
+
+    switch (irp_stack_location->Parameters.QueryVolume.FsInformationClass) {
+    case FileFsDeviceInformation:
+        if (irp_stack_location->Parameters.DeviceIoControl.OutputBufferLength < sizeof(FILE_FS_DEVICE_INFORMATION)) {
+            status = STATUS_BUFFER_TOO_SMALL;
+        } else {
+            FILE_FS_DEVICE_INFORMATION* device_info = (FILE_FS_DEVICE_INFORMATION*)irp->AssociatedIrp.SystemBuffer;
+            device_info->DeviceType = FILE_DEVICE_NULL;
+            device_info->Characteristics = 0;
+            status = STATUS_SUCCESS;
+        }
+        break;
+    default:
+        status = STATUS_NOT_SUPPORTED;
+        break;
+    }
+
+    irp->IoStatus.Status = status;
+    IoCompleteRequest(irp, 0);
+    return status;
 }
