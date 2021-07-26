@@ -14,7 +14,7 @@
  *  <a href="https://github.com/microsoft/ebpf-for-windows#architectural-overview">Architectural Overview</a>.
  *
  *  @section hooks eBPF Program Reference
- *  The following hooks are currently exposed to eBPF programs:
+ *  The following hooks are currently exposed to eBPF programs that include ebpf_nethooks.h:
  *  <ul>
  *   <li>\ref EBPF_PROGRAM_TYPE_BIND : Program type for handling socket bind() requests.</li>
  *   <li>\ref EBPF_PROGRAM_TYPE_XDP : Program type for handling incoming packets as early as possible.</li>
@@ -30,4 +30,9 @@
  *  Similarly such documentation for each program type will give the API prototype to implement, and the list
  *  of supported attach types that can be used when attaching an eBPF program.  Most program types have only
  *  a single attach type, but some may support multiple places to which the same type of program can be attached.
+ *
+ *  @section api eBPF User-Mode API Reference
+ *
+ *  Eventually the libbpf API will be supported but this is still a work in progress.
+ *  In the meantime, ebpf_api.h defines the temporary user-mode API.
  */
