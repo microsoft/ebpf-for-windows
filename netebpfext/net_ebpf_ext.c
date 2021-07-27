@@ -53,10 +53,11 @@ static ebpf_extension_provider_t* _ebpf_bind_program_info_provider = NULL;
 
 #define NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION 0
 
-static ebpf_context_descriptor_t _ebpf_xdp_context_descriptor = {sizeof(xdp_md_t),
-                                                                 EBPF_OFFSET_OF(xdp_md_t, data),
-                                                                 EBPF_OFFSET_OF(xdp_md_t, data_end),
-                                                                 EBPF_OFFSET_OF(xdp_md_t, data_meta)};
+static ebpf_context_descriptor_t _ebpf_xdp_context_descriptor = {
+    sizeof(xdp_md_t),
+    EBPF_OFFSET_OF(xdp_md_t, data),
+    EBPF_OFFSET_OF(xdp_md_t, data_end),
+    EBPF_OFFSET_OF(xdp_md_t, data_meta)};
 static ebpf_program_info_t _ebpf_xdp_program_info = {{"xdp", &_ebpf_xdp_context_descriptor, {0}}, 0, NULL};
 
 static ebpf_program_data_t _ebpf_xdp_program_data = {&_ebpf_xdp_program_info, NULL};
@@ -632,13 +633,19 @@ net_ebpf_ext_register_providers()
 {
     ebpf_result_t return_value;
     return_value = ebpf_ext_attach_register_provider(
-        &EBPF_ATTACH_TYPE_XDP, EBPF_EXT_HOOK_EXECUTION_DISPATCH, &_ebpf_xdp_hook_provider_registration);
+        &EBPF_PROGRAM_TYPE_XDP,
+        &EBPF_ATTACH_TYPE_XDP,
+        EBPF_EXT_HOOK_EXECUTION_DISPATCH,
+        &_ebpf_xdp_hook_provider_registration);
     if (return_value != EBPF_SUCCESS) {
         return STATUS_UNSUCCESSFUL;
     }
 
     return_value = ebpf_ext_attach_register_provider(
-        &EBPF_ATTACH_TYPE_BIND, EBPF_EXT_HOOK_EXECUTION_PASSIVE, &_ebpf_bind_hook_provider_registration);
+        &EBPF_PROGRAM_TYPE_BIND,
+        &EBPF_ATTACH_TYPE_BIND,
+        EBPF_EXT_HOOK_EXECUTION_PASSIVE,
+        &_ebpf_bind_hook_provider_registration);
 
     if (return_value != EBPF_SUCCESS) {
         return STATUS_UNSUCCESSFUL;

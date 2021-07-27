@@ -13,6 +13,7 @@ typedef struct _ebpf_link
     ebpf_program_t* program;
 
     ebpf_attach_type_t attach_type;
+    ebpf_program_type_t program_type;
     ebpf_extension_data_t client_data;
     ebpf_extension_client_t* extension_client_context;
 
@@ -57,6 +58,8 @@ ebpf_link_initialize(
     ebpf_link_t* link, ebpf_attach_type_t attach_type, const uint8_t* context_data, size_t context_data_length)
 {
     ebpf_result_t return_value;
+    ebpf_extension_data_t* provider_data;
+    ebpf_attach_provider_data_t* attach_provider_data;
 
     link->client_data.version = 0;
     link->client_data.size = context_data_length;
@@ -77,9 +80,22 @@ ebpf_link_initialize(
         &link->client_data,
         (ebpf_extension_dispatch_table_t*)&_ebpf_link_dispatch_table,
         &(link->provider_binding_context),
-        NULL,
+        &provider_data,
         NULL,
         NULL);
+
+    if (!provider_data) {
+        return_value = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
+    if ((provider_data->version != EBPF_ATTACH_PROVIDER_DATA_VERSION) || (!provider_data->data) ||
+        (provider_data->size != sizeof(ebpf_attach_provider_data_t))) {
+        return_value = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
+
+    attach_provider_data = (ebpf_attach_provider_data_t*)provider_data->data;
+    link->program_type = attach_provider_data->supported_program_type;
 
 Exit:
     return return_value;
@@ -89,6 +105,7 @@ ebpf_result_t
 ebpf_link_attach_program(ebpf_link_t* link, ebpf_program_t* program)
 {
     ebpf_result_t return_value = EBPF_SUCCESS;
+    ebpf_program_parameters_t program_parameters;
     if (link->program) {
         return_value = EBPF_INVALID_ARGUMENT;
         goto Done;
@@ -96,6 +113,16 @@ ebpf_link_attach_program(ebpf_link_t* link, ebpf_program_t* program)
 
     link->program = program;
     ebpf_object_acquire_reference((ebpf_object_t*)program);
+
+    return_value = ebpf_program_get_properties(program, &program_parameters);
+    if (return_value != EBPF_SUCCESS) {
+        goto Done;
+    }
+
+    if (memcmp(&program_parameters.program_type, &link->program_type, sizeof(link->program_type)) != 0) {
+        return_value = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
 
 Done:
     if (return_value != EBPF_SUCCESS) {
