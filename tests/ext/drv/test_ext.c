@@ -193,8 +193,7 @@ NTSTATUS
 _test_ebpf_extension_hook_provider_detach_client(_In_ void* provider_binding_context);
 
 // Test eBPF extension Hook NPI provider characteristics
-ebpf_attach_provider_data_t _test_ebpf_extension_attach_provider_data = {
-    {0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}}};
+ebpf_attach_provider_data_t _test_ebpf_extension_attach_provider_data;
 
 ebpf_extension_data_t _test_ebpf_extension_hook_provider_data = {
     EBPF_ATTACH_PROVIDER_DATA_VERSION,
@@ -319,6 +318,7 @@ test_ebpf_extension_program_info_provider_register()
     ebpf_program_data_t* program_data;
 
     NTSTATUS status = STATUS_SUCCESS;
+    _test_ebpf_extension_attach_provider_data.supported_program_type = EBPF_PROGRAM_TYPE_TEST;
 
     extension_data = (ebpf_extension_data_t*)_test_ebpf_extension_program_info_provider_characteristics
                          .ProviderRegistrationInstance.NpiSpecificCharacteristics;
