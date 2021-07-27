@@ -24,6 +24,8 @@ typedef class _single_instance_hook
 {
   public:
     _single_instance_hook(ebpf_program_type_t program_type)
+        : provider(nullptr), client_binding_context(nullptr), client_data(nullptr), client_dispatch_table(nullptr),
+          link_handle(nullptr)
     {
         ebpf_guid_create(&attach_type);
         ebpf_guid_create(&client_id);
