@@ -59,4 +59,13 @@ EXPORTS
     ebpf_api_get_pinned_map_info
     ebpf_api_map_info_free
     ebpf_free_string
+	ebpf_map_delete_element
+	ebpf_map_get_next_key
+	ebpf_map_lookup_element
+	ebpf_map_pin
+	ebpf_map_set_pin_path
+	ebpf_map_update_element
+	ebpf_object_pin
+	ebpf_object_unpin
     ebpf_program_load
+	ebpf_program_pin

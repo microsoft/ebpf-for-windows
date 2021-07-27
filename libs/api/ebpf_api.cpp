@@ -19,6 +19,10 @@ extern "C"
 }
 #include "Verifier.h"
 
+#ifndef GUID_NULL
+const GUID GUID_NULL = {0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0}};
+#endif
+
 #define MAX_CODE_SIZE (32 * 1024) // 32 KB
 
 static uint64_t _ebpf_file_descriptor_counter = 0;
@@ -33,6 +37,46 @@ static fd_t
 _get_next_file_descriptor()
 {
     return static_cast<fd_t>(InterlockedIncrement(&_ebpf_file_descriptor_counter));
+}
+
+inline static ebpf_map_t*
+_get_ebpf_map_from_file_descriptor(fd_t map_fd)
+{
+    ebpf_map_t* map = nullptr;
+    std::map<fd_t, ebpf_map_t*>::iterator it = _ebpf_maps.find(map_fd);
+    if (it != _ebpf_maps.end()) {
+        map = it->second;
+    }
+
+    return map;
+}
+
+inline static ebpf_program_t*
+_get_ebpf_program_from_file_descriptor(fd_t program_fd)
+{
+    ebpf_program_t* program = nullptr;
+    std::map<fd_t, ebpf_program_t*>::iterator it = _ebpf_programs.find(program_fd);
+    if (it != _ebpf_programs.end()) {
+        program = it->second;
+    }
+
+    return program;
+}
+
+inline static ebpf_handle_t
+_get_handle_from_fd(fd_t fd)
+{
+    auto map = _get_ebpf_map_from_file_descriptor(fd);
+    if (map != nullptr) {
+        return map->map_handle;
+    } else {
+        auto program = _get_ebpf_program_from_file_descriptor(fd);
+        if (program != nullptr) {
+            return program->handle;
+        }
+    }
+
+    return ebpf_handle_invalid;
 }
 
 uint32_t
@@ -121,6 +165,7 @@ _create_map(
     request = reinterpret_cast<ebpf_operation_create_map_request_t*>(request_buffer.data());
     request->header.id = EBPF_OPERATION_CREATE_MAP;
     request->header.length = static_cast<uint16_t>(request_buffer.size());
+    request->ebpf_map_definition.size = sizeof(ebpf_map_definition_t);
     request->ebpf_map_definition.type = map_definition->type;
     request->ebpf_map_definition.key_size = map_definition->key_size;
     request->ebpf_map_definition.value_size = map_definition->value_size;
@@ -218,16 +263,233 @@ ebpf_create_map(
     return ebpf_create_map_name(type, nullptr, key_size, value_size, max_entries, map_flags, map_fd);
 }
 
-/*
-_Success_(return == EBPF_SUCCESS)
-ebpf_result_t ebpf_map_lookup_element(
-    fd_t map_fd,
-    _In_ const void* key,
-    _Out_ void* value)
+static ebpf_result_t
+_map_lookup_element(
+    ebpf_handle_t handle,
+    uint32_t key_size,
+    _In_ const uint8_t* key,
+    uint32_t value_size,
+    _Out_ uint8_t* value) noexcept
 {
+    ebpf_result_t result = EBPF_SUCCESS;
+    try {
+        ebpf_protocol_buffer_t request_buffer(sizeof(_ebpf_operation_map_find_element_request) + key_size - 1);
+        ebpf_protocol_buffer_t reply_buffer(sizeof(_ebpf_operation_map_find_element_reply) + value_size - 1);
+        auto request = reinterpret_cast<_ebpf_operation_map_find_element_request*>(request_buffer.data());
+        auto reply = reinterpret_cast<_ebpf_operation_map_find_element_reply*>(reply_buffer.data());
 
+        request->header.length = static_cast<uint16_t>(request_buffer.size());
+        request->header.id = ebpf_operation_id_t::EBPF_OPERATION_MAP_FIND_ELEMENT;
+        request->handle = reinterpret_cast<uint64_t>(handle);
+        std::copy(key, key + key_size, request->key);
+
+        result = windows_error_to_ebpf_result(invoke_ioctl(request_buffer, reply_buffer));
+
+        if (reply->header.id != ebpf_operation_id_t::EBPF_OPERATION_MAP_FIND_ELEMENT) {
+            result = EBPF_INVALID_ARGUMENT;
+            goto Exit;
+        }
+
+        if (result == EBPF_SUCCESS) {
+            std::copy(reply->value, reply->value + value_size, value);
+        }
+    } catch (const std::bad_alloc&) {
+        result = EBPF_NO_MEMORY;
+        goto Exit;
+    } catch (...) {
+        result = EBPF_FAILED;
+        goto Exit;
+    }
+
+Exit:
+    return result;
 }
-*/
+
+_Success_(return == EBPF_SUCCESS) ebpf_result_t
+    ebpf_map_lookup_element(fd_t map_fd, _In_ const void* key, _Out_ void* value)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_map_t* map = nullptr;
+
+    if (map_fd <= 0 || key == nullptr || value == nullptr) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
+    *((uint8_t*)value) = 0;
+
+    // Find the map using the fd from the global table.
+    map = _get_ebpf_map_from_file_descriptor(map_fd);
+    if (map == nullptr) {
+        result = EBPF_INVALID_FD;
+        goto Exit;
+    }
+    assert(map->map_handle != ebpf_handle_invalid);
+
+    result = _map_lookup_element(
+        map->map_handle, map->map_defintion.key_size, (uint8_t*)key, map->map_defintion.value_size, (uint8_t*)value);
+
+Exit:
+    return result;
+}
+
+ebpf_result_t
+ebpf_map_update_element(fd_t map_fd, _In_ const void* key, _In_ const void* value, uint64_t flags)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_map_t* map = nullptr;
+    ebpf_protocol_buffer_t request_buffer;
+    epf_operation_map_update_element_request_t* request;
+
+    if (map_fd <= 0 || key == nullptr || value == nullptr || flags != 0) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
+
+    // Find the map using the fd from the global table.
+    map = _get_ebpf_map_from_file_descriptor(map_fd);
+    if (map == nullptr) {
+        result = EBPF_INVALID_FD;
+        goto Exit;
+    }
+    assert(map->map_handle != ebpf_handle_invalid);
+
+    try {
+        request_buffer.resize(
+            sizeof(_ebpf_operation_map_update_element_request) - 1 + map->map_defintion.key_size +
+            map->map_defintion.value_size);
+        request = reinterpret_cast<_ebpf_operation_map_update_element_request*>(request_buffer.data());
+
+        request->header.length = static_cast<uint16_t>(request_buffer.size());
+        request->header.id = ebpf_operation_id_t::EBPF_OPERATION_MAP_UPDATE_ELEMENT;
+        request->handle = (uint64_t)map->map_handle;
+        std::copy((uint8_t*)key, (uint8_t*)key + map->map_defintion.key_size, request->data);
+        std::copy(
+            (uint8_t*)value,
+            (uint8_t*)value + map->map_defintion.value_size,
+            request->data + map->map_defintion.key_size);
+
+        result = windows_error_to_ebpf_result(invoke_ioctl(request_buffer));
+    } catch (const std::bad_alloc&) {
+        result = EBPF_NO_MEMORY;
+        goto Exit;
+    } catch (...) {
+        result = EBPF_FAILED;
+        goto Exit;
+    }
+
+Exit:
+    return result;
+}
+
+ebpf_result_t
+ebpf_map_delete_element(fd_t map_fd, _In_ const void* key)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_map_t* map = nullptr;
+    ebpf_protocol_buffer_t request_buffer;
+    ebpf_operation_map_delete_element_request_t* request;
+
+    if (map_fd <= 0 || key == nullptr) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
+
+    // Find the map using the fd from the global table.
+    map = _get_ebpf_map_from_file_descriptor(map_fd);
+    if (map == nullptr) {
+        result = EBPF_INVALID_FD;
+        goto Exit;
+    }
+    assert(map->map_handle != ebpf_handle_invalid);
+
+    try {
+        request_buffer.resize(sizeof(_ebpf_operation_map_delete_element_request) - 1 + map->map_defintion.key_size);
+        request = reinterpret_cast<_ebpf_operation_map_delete_element_request*>(request_buffer.data());
+
+        request->header.length = static_cast<uint16_t>(request_buffer.size());
+        request->header.id = ebpf_operation_id_t::EBPF_OPERATION_MAP_DELETE_ELEMENT;
+        request->handle = (uint64_t)map->map_handle;
+        std::copy((uint8_t*)key, (uint8_t*)key + map->map_defintion.key_size, request->key);
+
+        result = windows_error_to_ebpf_result(invoke_ioctl(request_buffer));
+        if (result == EBPF_INVALID_OBJECT) {
+            result = EBPF_INVALID_FD;
+        }
+    } catch (const std::bad_alloc&) {
+        result = EBPF_NO_MEMORY;
+        goto Exit;
+    } catch (...) {
+        result = EBPF_FAILED;
+        goto Exit;
+    }
+
+Exit:
+    return result;
+}
+
+_Success_(return == EBPF_SUCCESS) ebpf_result_t
+    ebpf_map_get_next_key(fd_t map_fd, _In_opt_ const void* previous_key, _Out_ void* next_key)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_map_t* map = nullptr;
+    ebpf_protocol_buffer_t request_buffer;
+    ebpf_protocol_buffer_t reply_buffer;
+    ebpf_operation_map_get_next_key_request_t* request;
+    ebpf_operation_map_get_next_key_reply_t* reply;
+
+    if (map_fd <= 0 || next_key == nullptr) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
+    *((uint8_t*)next_key) = 0;
+
+    // Find the map using the fd from the global table.
+    map = _get_ebpf_map_from_file_descriptor(map_fd);
+    if (map == nullptr) {
+        result = EBPF_INVALID_FD;
+        goto Exit;
+    }
+    assert(map->map_handle != ebpf_handle_invalid);
+
+    try {
+        request_buffer.resize(
+            (offsetof(ebpf_operation_map_get_next_key_request_t, previous_key) + map->map_defintion.key_size));
+        reply_buffer.resize(
+            (offsetof(ebpf_operation_map_get_next_key_reply_t, next_key) + map->map_defintion.key_size));
+        request = reinterpret_cast<ebpf_operation_map_get_next_key_request_t*>(request_buffer.data());
+        reply = reinterpret_cast<ebpf_operation_map_get_next_key_reply_t*>(reply_buffer.data());
+
+        request->header.length = static_cast<uint16_t>(request_buffer.size());
+        request->header.id = ebpf_operation_id_t::EBPF_OPERATION_MAP_GET_NEXT_KEY;
+        request->handle = reinterpret_cast<uint64_t>(map->map_handle);
+        if (previous_key) {
+            std::copy(
+                (uint8_t*)previous_key, (uint8_t*)previous_key + map->map_defintion.key_size, request->previous_key);
+        } else {
+            request->header.length = offsetof(ebpf_operation_map_get_next_key_request_t, previous_key);
+        }
+
+        result = windows_error_to_ebpf_result(invoke_ioctl(request_buffer, reply_buffer));
+
+        if (reply->header.id != ebpf_operation_id_t::EBPF_OPERATION_MAP_GET_NEXT_KEY) {
+            result = EBPF_INVALID_ARGUMENT;
+            goto Exit;
+        }
+
+        if (result == EBPF_SUCCESS) {
+            std::copy(reply->next_key, reply->next_key + map->map_defintion.key_size, (uint8_t*)next_key);
+        }
+    } catch (const std::bad_alloc&) {
+        result = EBPF_NO_MEMORY;
+        goto Exit;
+    } catch (...) {
+        result = EBPF_FAILED;
+        goto Exit;
+    }
+
+Exit:
+    return result;
+}
 
 int
 create_map_internal(
@@ -374,6 +636,15 @@ ebpf_api_load_program(
         }
         program = programs[0];
 
+        // Create all the maps.
+        for (auto& map : maps) {
+            result = _create_map(map->name, &map->map_defintion, &map->map_handle);
+            if (result != EBPF_SUCCESS) {
+                goto Done;
+            }
+            map->map_fd = _get_next_file_descriptor();
+        }
+
         // TODO: (issue #169): Should switch this to more idiomatic C++
         // Note: This leaks the program handle on some errors.
         result = _create_program(program->program_type, file_name, section_name, std::string(), &program_handle);
@@ -398,11 +669,21 @@ ebpf_api_load_program(
         load_info.execution_context = execution_context_kernel_mode;
         load_info.map_count = (uint32_t)get_map_descriptor_size();
 
+        /*
         if (load_info.map_count > 0) {
             auto descriptors = get_all_map_descriptors();
             for (const auto& descriptor : descriptors) {
                 handle_map.emplace_back(
                     descriptor.ebpf_map_descriptor.original_fd, reinterpret_cast<file_handle_t>(descriptor.handle));
+            }
+
+            load_info.handle_map = handle_map.data();
+        }
+        */
+
+        if (load_info.map_count > 0) {
+            for (auto& map : maps) {
+                handle_map.emplace_back(map->mock_map_fd, reinterpret_cast<file_handle_t>(map->map_handle));
             }
 
             load_info.handle_map = handle_map.data();
@@ -415,9 +696,8 @@ ebpf_api_load_program(
 
         // Program is verified and loaded.
         *count_of_map_handles = 0;
-        handles = get_all_map_handles();
-        for (const auto& map_handle : handles) {
-            map_handles[*count_of_map_handles] = reinterpret_cast<HANDLE>(map_handle);
+        for (auto& map : maps) {
+            map_handles[*count_of_map_handles] = reinterpret_cast<HANDLE>(map->map_handle);
             (*count_of_map_handles)++;
         }
 
@@ -439,8 +719,20 @@ Done:
         }
 
         clean_up_ebpf_programs(programs);
+    } else {
+        // Clean up ebpf_program_t structures without closing the handle.
+        for (auto& program_it : programs) {
+            program_it->handle = ebpf_handle_invalid;
+            clean_up_ebpf_program(program_it);
+        }
     }
     clear_map_descriptors();
+
+    // Clean up ebpf_map_t structures without closing the handle.
+    for (auto& map : maps) {
+        map->map_handle = ebpf_handle_invalid;
+        clean_up_ebpf_map(map);
+    }
 
     if (program_handle != INVALID_HANDLE_VALUE) {
         ebpf_api_close_handle(program_handle);
@@ -479,6 +771,127 @@ ebpf_api_unpin_object(const uint8_t* name, uint32_t name_length)
     request->handle = UINT64_MAX;
     std::copy(name, name + name_length, request->name);
     return invoke_ioctl(request_buffer);
+}
+
+ebpf_result_t
+ebpf_object_pin(fd_t fd, _In_z_ const char* path)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+    // size_t path_length;
+    ebpf_handle_t handle;
+    // ebpf_operation_update_pinning_request_t* request;
+    if (fd <= 0 || path == nullptr) {
+        return EBPF_INVALID_ARGUMENT;
+        // goto Exit;
+    }
+
+    // To get the corresponding handle, first search for the fd in the cached
+    // maps, then in cached programs. This is a workaround till we start using
+    // _open_osfhandle() to generate fds for the handles (issue tracked by
+    // TODO: Issue# 287). Once this is fixed, _get_osfhandle() can be directly
+    // used to fetch the corresponding handle.
+    handle = _get_handle_from_fd(fd);
+    if (handle == ebpf_handle_invalid) {
+        return EBPF_INVALID_FD;
+        // goto Exit;
+    }
+
+    auto path_length = strlen(path);
+    ebpf_protocol_buffer_t request_buffer(offsetof(ebpf_operation_update_pinning_request_t, name) + path_length);
+    auto request = reinterpret_cast<ebpf_operation_update_pinning_request_t*>(request_buffer.data());
+
+    request->header.id = EBPF_OPERATION_UPDATE_PINNING;
+    request->header.length = static_cast<uint16_t>(request_buffer.size());
+    request->handle = reinterpret_cast<uint64_t>(handle);
+    std::copy(path, path + path_length, request->name);
+    result = windows_error_to_ebpf_result(invoke_ioctl(request_buffer));
+
+    // Exit:
+    return result;
+}
+
+ebpf_result_t
+ebpf_object_unpin(_In_z_ const char* path)
+{
+    if (path == nullptr) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+    auto path_length = strlen(path);
+    ebpf_protocol_buffer_t request_buffer(offsetof(ebpf_operation_update_pinning_request_t, name) + path_length);
+    auto request = reinterpret_cast<ebpf_operation_update_pinning_request_t*>(request_buffer.data());
+
+    request->header.id = EBPF_OPERATION_UPDATE_PINNING;
+    request->header.length = static_cast<uint16_t>(request_buffer.size());
+    request->handle = UINT64_MAX;
+    std::copy(path, path + path_length, request->name);
+    return windows_error_to_ebpf_result(invoke_ioctl(request_buffer));
+}
+
+ebpf_result_t
+ebpf_program_pin(_In_ struct _ebpf_program* program, _In_z_ const char* path)
+{
+    if (program == nullptr || path == nullptr) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+    if (program->pinned) {
+        return EBPF_ALREADY_PINNED;
+    }
+    assert(program->handle != ebpf_handle_invalid);
+    assert(program->fd > 0);
+    ebpf_result_t result = ebpf_object_pin(program->fd, path);
+    if (result == EBPF_SUCCESS) {
+        program->pinned = true;
+    }
+
+    return result;
+}
+
+ebpf_result_t
+ebpf_map_pin(_In_ struct _ebpf_map* map, _In_opt_z_ const char* path)
+{
+    if (map == nullptr || (map->pin_path == nullptr && path == nullptr)) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+    if (map->pinned) {
+        return EBPF_ALREADY_PINNED;
+    }
+    if (path != nullptr) {
+        // If pin path is already set, the pin path provided now should be same
+        // as the one previously set.
+        if (map->pin_path != nullptr && strcmp(path, map->pin_path) != 0) {
+            return EBPF_INVALID_ARGUMENT;
+        }
+        free(map->pin_path);
+        map->pin_path = _strdup(path);
+        if (map->pin_path == nullptr) {
+            return EBPF_NO_MEMORY;
+        }
+    }
+    assert(map->map_handle != ebpf_handle_invalid);
+    assert(map->map_fd > 0);
+    ebpf_result_t result = ebpf_object_pin(map->map_fd, map->pin_path);
+    if (result == EBPF_SUCCESS) {
+        map->pinned = true;
+    }
+
+    return result;
+}
+
+ebpf_result_t
+ebpf_map_set_pin_path(_In_ struct _ebpf_map* map, _In_ const char* path)
+{
+    if (map == nullptr || path == nullptr) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+    char* old_path = map->pin_path;
+    map->pin_path = _strdup(path);
+    if (map->pin_path == nullptr) {
+        map->pin_path = old_path;
+        return EBPF_NO_MEMORY;
+    }
+    free(old_path);
+
+    return EBPF_SUCCESS;
 }
 
 uint32_t
@@ -691,6 +1104,139 @@ ebpf_api_link_program(ebpf_handle_t program_handle, ebpf_attach_type_t attach_ty
 
     *link_handle = reinterpret_cast<ebpf_handle_t>(reply.link_handle);
     return retval;
+}
+
+static ebpf_result_t
+_link_ebpf_program(
+    ebpf_handle_t program_handle,
+    _In_ const ebpf_attach_type_t* attach_type,
+    _Out_ ebpf_handle_t* link_handle,
+    _In_reads_bytes_opt_(attach_parameter_size) uint8_t* attach_parameter,
+    size_t attach_parameter_size) noexcept
+{
+    ebpf_protocol_buffer_t request_buffer;
+    ebpf_operation_link_program_request_t* request;
+    ebpf_operation_link_program_reply_t reply;
+    ebpf_result_t result = EBPF_SUCCESS;
+    *link_handle = ebpf_handle_invalid;
+
+    try {
+        request_buffer.resize(offsetof(ebpf_operation_link_program_request_t, data) + attach_parameter_size);
+
+        request = reinterpret_cast<ebpf_operation_link_program_request_t*>(request_buffer.data());
+        request->header.id = EBPF_OPERATION_LINK_PROGRAM;
+        request->header.length = static_cast<uint16_t>(request_buffer.size());
+        request->program_handle = reinterpret_cast<uint64_t>(program_handle);
+        request->attach_type = *attach_type;
+
+        if (attach_parameter_size > 0) {
+            memcpy_s(request->data, attach_parameter_size, attach_parameter, attach_parameter_size);
+        }
+
+        result = windows_error_to_ebpf_result(invoke_ioctl(request, reply));
+        if (result != EBPF_SUCCESS) {
+            goto Exit;
+        }
+
+        if (reply.header.id != ebpf_operation_id_t::EBPF_OPERATION_LINK_PROGRAM) {
+            result = EBPF_INVALID_ARGUMENT;
+            goto Exit;
+        }
+
+        *link_handle = reinterpret_cast<ebpf_handle_t>(reply.link_handle);
+    } catch (const std::bad_alloc&) {
+        result = EBPF_NO_MEMORY;
+        goto Exit;
+    } catch (...) {
+        result = EBPF_FAILED;
+        goto Exit;
+    }
+
+Exit:
+    return result;
+}
+
+static void
+_clean_up_ebpf_link(_In_opt_ _Post_invalid_ ebpf_link_t* link)
+{
+    if (link == nullptr) {
+        return;
+    }
+    if (link->link_handle != ebpf_handle_invalid) {
+        CloseHandle(link->link_handle);
+    }
+    free(link->pin_path);
+
+    free(link);
+}
+
+/**
+ * @brief Attach an eBPF program.
+ *
+ * @param[in] program Pointer to the eBPF program.
+ * @param[in] Optionally, the attach type for attaching the program.
+ *  If attach type is not specified, then the earlier provided attach type
+ *  or attach type derived from section prefix will be used to attach the
+ *  program.
+ * @param[in] attach_params_size Size of the attach parameters.
+ * @param[in] attach_parameters Optionally, attach parameters. This is an
+ *  opaque flat buffer containing the attach parameters which is interpreted
+ *  by the extension provider.
+ * @param[out] link Pointer to ebpf_link structure.
+ *
+ * @retval Result of attach operation.
+ *
+ */
+_Success_(return == EBPF_SUCCESS) ebpf_result_t ebpf_program_attach(
+    _In_ struct _ebpf_program* program,
+    _In_opt_ const ebpf_attach_type_t* attach_type,
+    _In_ size_t attach_params_size,
+    _In_reads_bytes_opt_(attach_params_size) void* attach_parameters,
+    _Outptr_ struct _ebpf_link** link)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+    const ebpf_attach_type_t* program_attach_type;
+    ebpf_link_t* new_link = nullptr;
+
+    UNREFERENCED_PARAMETER(attach_parameters);
+    UNREFERENCED_PARAMETER(attach_params_size);
+
+    if (program == nullptr || link == nullptr || (attach_params_size != 0 && attach_parameters == nullptr) ||
+        (attach_parameters != nullptr && attach_params_size == 0)) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
+    if (IsEqualGUID(program->attach_type, GUID_NULL)) {
+        if (attach_type == nullptr) {
+            result = EBPF_INVALID_ARGUMENT;
+            goto Exit;
+        } else {
+            program_attach_type = attach_type;
+        }
+    } else {
+        program_attach_type = &program->attach_type;
+    }
+    assert(program->handle != ebpf_handle_invalid);
+
+    *link = nullptr;
+    new_link = (ebpf_link_t*)calloc(1, sizeof(ebpf_link_t));
+    if (new_link == nullptr) {
+        result = EBPF_NO_MEMORY;
+        goto Exit;
+    }
+
+    result = _link_ebpf_program(
+        program->handle, program_attach_type, &new_link->link_handle, (uint8_t*)attach_parameters, attach_params_size);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+    *link = new_link;
+
+Exit:
+    if (result != EBPF_SUCCESS) {
+        _clean_up_ebpf_link(new_link);
+    }
+    return result;
 }
 
 uint32_t

@@ -229,6 +229,7 @@ typedef struct _ebpf_operation_link_program_request
     struct _ebpf_operation_header header;
     uint64_t program_handle;
     ebpf_attach_type_t attach_type;
+    uint8_t data[1];
 } ebpf_operation_link_program_request_t;
 
 typedef struct _ebpf_operation_link_program_reply

@@ -22,6 +22,7 @@ typedef struct bpf_program
     ebpf_attach_type_t attach_type;
     ebpf_handle_t handle;
     fd_t fd;
+    bool pinned;
 } ebpf_program_t;
 
 typedef struct bpf_map
@@ -35,6 +36,13 @@ typedef struct bpf_map
     char* pin_path;
     bool pinned;
 } ebpf_map_t;
+
+typedef struct _ebpf_link
+{
+    char* pin_path;
+    ebpf_handle_t link_handle;
+    bool disconnected;
+} ebpf_link_t;
 
 typedef struct bpf_object
 {
