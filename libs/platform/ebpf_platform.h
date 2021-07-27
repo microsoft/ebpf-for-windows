@@ -65,6 +65,12 @@ extern "C"
         void* data;
     } ebpf_extension_data_t;
 
+    typedef struct _ebpf_attach_provider_data
+    {
+        ebpf_program_type_t supported_program_type;
+    } ebpf_attach_provider_data_t;
+#define EBPF_ATTACH_PROVIDER_DATA_VERSION 1
+
     typedef struct _ebpf_trampoline_table ebpf_trampoline_table_t;
 
     typedef uintptr_t ebpf_lock_t;
