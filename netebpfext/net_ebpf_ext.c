@@ -633,8 +633,8 @@ net_ebpf_ext_register_providers()
 {
     ebpf_result_t return_value;
     return_value = ebpf_ext_attach_register_provider(
-        &EBPF_ATTACH_TYPE_XDP,
         &EBPF_PROGRAM_TYPE_XDP,
+        &EBPF_ATTACH_TYPE_XDP,
         EBPF_EXT_HOOK_EXECUTION_DISPATCH,
         &_ebpf_xdp_hook_provider_registration);
     if (return_value != EBPF_SUCCESS) {
@@ -642,8 +642,8 @@ net_ebpf_ext_register_providers()
     }
 
     return_value = ebpf_ext_attach_register_provider(
-        &EBPF_ATTACH_TYPE_BIND,
         &EBPF_PROGRAM_TYPE_BIND,
+        &EBPF_ATTACH_TYPE_BIND,
         EBPF_EXT_HOOK_EXECUTION_PASSIVE,
         &_ebpf_bind_hook_provider_registration);
 
