@@ -22,10 +22,11 @@
 // f788ef4a-207d-4dc3-85cf-0f2ea107213c
 DEFINE_GUID(EBPF_PROGRAM_TYPE_TEST, 0xf788ef4a, 0x207d, 0x4dc3, 0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c);
 
-static ebpf_context_descriptor_t _test_ebpf_context_descriptor = {sizeof(test_program_context_t),
-                                                                  EBPF_OFFSET_OF(test_program_context_t, data_start),
-                                                                  EBPF_OFFSET_OF(test_program_context_t, data_end),
-                                                                  -1};
+static ebpf_context_descriptor_t _test_ebpf_context_descriptor = {
+    sizeof(test_program_context_t),
+    EBPF_OFFSET_OF(test_program_context_t, data_start),
+    EBPF_OFFSET_OF(test_program_context_t, data_end),
+    -1};
 
 // Test Extension Helper function prototype descriptors.
 static ebpf_helper_function_prototype_t _test_ebpf_extension_helper_function_prototype[] = {
@@ -55,15 +56,16 @@ _test_ebpf_extension_helper_function2(_In_ const void* memory_pointer, uint32_t 
 static void
 _test_ebpf_extension_helper_function3(_In_ uint8_t arg);
 
-static const void* _test_ebpf_extension_helpers[] = {(void*)&_test_ebpf_extension_helper_function1,
-                                                     (void*)&_test_ebpf_extension_helper_function2,
-                                                     (void*)&_test_ebpf_extension_helper_function3};
+static const void* _test_ebpf_extension_helpers[] = {
+    (void*)&_test_ebpf_extension_helper_function1,
+    (void*)&_test_ebpf_extension_helper_function2,
+    (void*)&_test_ebpf_extension_helper_function3};
 
 static ebpf_helper_function_addresses_t _test_ebpf_extension_helper_function_address_table = {
     EBPF_COUNT_OF(_test_ebpf_extension_helpers), (uint64_t*)_test_ebpf_extension_helpers};
 
-static ebpf_program_data_t _test_ebpf_extension_program_data = {&_test_ebpf_extension_program_info,
-                                                                &_test_ebpf_extension_helper_function_address_table};
+static ebpf_program_data_t _test_ebpf_extension_program_data = {
+    &_test_ebpf_extension_program_info, &_test_ebpf_extension_helper_function_address_table};
 
 static ebpf_extension_data_t _test_ebpf_extension_program_info_provider_data = {
     TEST_EBPF_EXTENSION_NPI_PROVIDER_VERSION,
@@ -191,6 +193,13 @@ NTSTATUS
 _test_ebpf_extension_hook_provider_detach_client(_In_ void* provider_binding_context);
 
 // Test eBPF extension Hook NPI provider characteristics
+ebpf_attach_provider_data_t _test_ebpf_extension_attach_provider_data = {
+    {0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}}};
+
+ebpf_extension_data_t _test_ebpf_extension_hook_provider_data = {
+    EBPF_ATTACH_PROVIDER_DATA_VERSION,
+    sizeof(_test_ebpf_extension_attach_provider_data),
+    &_test_ebpf_extension_attach_provider_data};
 
 const NPI_PROVIDER_CHARACTERISTICS _test_ebpf_extension_hook_provider_characteristics = {
     0,
@@ -203,7 +212,7 @@ const NPI_PROVIDER_CHARACTERISTICS _test_ebpf_extension_hook_provider_characteri
      &EBPF_ATTACH_TYPE_TEST,
      &_test_ebpf_extension_program_info_provider_moduleid,
      0,
-     NULL},
+     &_test_ebpf_extension_hook_provider_data},
 };
 
 /**

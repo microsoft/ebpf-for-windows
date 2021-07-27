@@ -26,6 +26,7 @@ typedef class _single_instance_hook
     _single_instance_hook(ebpf_program_type_t program_type)
     {
         ebpf_guid_create(&attach_type);
+        ebpf_guid_create(&client_id);
         attach_provider_data.supported_program_type = program_type;
         REQUIRE(
             ebpf_provider_load(
