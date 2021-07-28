@@ -78,14 +78,15 @@ bind_hook_t(bind_md_t* context);
 
 
 // Five-tuple Struct
-typedef struct five_tuple {
+typedef struct five_tuple
+{
     bool v4;
     uint8_t source_ip[16];
     uint8_t dest_ip[16];
     uint16_t source_port; 
     uint16_t dest_port;
     uint8_t protocol;
-} five_tuple_t ;
+} five_tuple_t;
 
 //Flow Established Hook
 typedef struct _flow_md

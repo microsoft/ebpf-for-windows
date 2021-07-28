@@ -22,4 +22,5 @@ AssociateFlowToContext(flow_md_t* ctx)
     else { //flow deletion
         ebpf_map_delete_element(&app_map, &ctx->five_tuple);
     }
+    return;
 }

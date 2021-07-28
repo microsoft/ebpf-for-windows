@@ -23,4 +23,5 @@ CountBytes(mac_md_t* ctx)
     else {
         ebpf_map_update_element(&byte_map, &ctx->five_tuple, *byte_count + ctx->packet_length, 0);
     }
+    return;
 }
