@@ -6,7 +6,7 @@
 #pragma clang section data = "maps"
 ebpf_map_definition_t app_map = {
     .size = sizeof(ebpf_map_definition_t),
-    .type = EBPF_MAP_TYPE_HASH,
+    .type = EBPF_MAP_TYPE_ARRAY,
     .key_size = sizeof(five_tuple_t),
     .value_size = sizeof(uint64_t),
     .max_entries = 500};
@@ -22,6 +22,4 @@ AssociateFlowToContext(flow_md_t* ctx)
     else { //flow deletion
         ebpf_map_delete_element(&app_map, &ctx->five_tuple);
     }
-Done:
-    return;
 }
