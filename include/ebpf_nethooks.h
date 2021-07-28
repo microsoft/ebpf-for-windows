@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 #include <stdint.h>
+#include <stdbool.h>
 
 // This file contains APIs for hooks and helpers that are
 // exposed by netebpfext.sys for use by eBPF programs.
@@ -74,3 +75,29 @@ typedef enum _bind_action
  */
 typedef bind_action_t
 bind_hook_t(bind_md_t* context);
+
+
+// Five-tuple Struct
+typedef struct five_tuple {
+    bool v4;
+    uint8_t source_ip[16];
+    uint8_t dest_ip[16];
+    uint16_t source_port; 
+    uint16_t dest_port;
+    uint8_t protocol;
+} five_tuple_t ;
+
+//Flow Established Hook
+typedef struct _flow_md
+{
+    bool flow_established_flag;
+    five_tuple_t five_tuple;
+    uint64_t app_id;
+} flow_md_t;
+
+//MAC Hook
+typedef struct _mac_md
+{
+    five_tuple_t five_tuple;
+    uint64_t packet_length;
+} mac_md_t;
