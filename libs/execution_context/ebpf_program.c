@@ -61,6 +61,7 @@ _ebpf_program_detach_links(_Inout_ ebpf_program_t* program)
     }
 }
 
+static void
 _ebpf_program_program_info_provider_changed(
     _In_ void* client_binding_context,
     _In_ const void* provider_binding_context,

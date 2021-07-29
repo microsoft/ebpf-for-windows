@@ -692,8 +692,8 @@ TEST_CASE("implicit_explicit_detach", "[end_to_end]")
     const char* error_message = NULL;
     ebpf_handle_t link_handle;
 
-    single_instance_hook_t hook;
-    program_information_provider_t xdp_program_information(EBPF_PROGRAM_TYPE_XDP);
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP);
+    program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
     REQUIRE(
         (result = ebpf_api_load_program(
