@@ -31,11 +31,10 @@ _ebpf_core_map_delete_element(ebpf_map_t* map, const uint8_t* key);
 
 #define EBPF_CORE_GLOBAL_HELPER_EXTENSION_VERSION 0
 
-static const void* _ebpf_program_helpers[] = {
-    NULL,
-    (void*)&_ebpf_core_map_find_element,
-    (void*)&_ebpf_core_map_update_element,
-    (void*)&_ebpf_core_map_delete_element};
+static const void* _ebpf_program_helpers[] = {NULL,
+                                              (void*)&_ebpf_core_map_find_element,
+                                              (void*)&_ebpf_core_map_update_element,
+                                              (void*)&_ebpf_core_map_delete_element};
 
 static ebpf_extension_provider_t* _ebpf_global_helper_function_provider_context = NULL;
 static ebpf_helper_function_addresses_t _ebpf_global_helper_function_dispatch_table = {
@@ -448,8 +447,8 @@ Done:
     return retval;
 }
 
-static ebpf_result_t
-_ebpf_core_get_next_handle(ebpf_handle_t previous_handle, ebpf_object_type_t type, ebpf_handle_t* next_handle)
+ebpf_result_t
+ebpf_core_get_next_handle(ebpf_handle_t previous_handle, ebpf_object_type_t type, ebpf_handle_t* next_handle)
 {
     ebpf_result_t retval;
     ebpf_object_t* previous_object = NULL;
@@ -484,7 +483,7 @@ _ebpf_core_protocol_get_next_map(
     uint16_t reply_length)
 {
     UNREFERENCED_PARAMETER(reply_length);
-    return _ebpf_core_get_next_handle(request->previous_handle, EBPF_OBJECT_MAP, &reply->next_handle);
+    return ebpf_core_get_next_handle(request->previous_handle, EBPF_OBJECT_MAP, &reply->next_handle);
 }
 
 static ebpf_result_t
@@ -494,7 +493,7 @@ _ebpf_core_protocol_get_next_program(
     uint16_t reply_length)
 {
     UNREFERENCED_PARAMETER(reply_length);
-    return _ebpf_core_get_next_handle(request->previous_handle, EBPF_OBJECT_PROGRAM, &reply->next_handle);
+    return ebpf_core_get_next_handle(request->previous_handle, EBPF_OBJECT_PROGRAM, &reply->next_handle);
 }
 
 static ebpf_result_t
@@ -565,9 +564,9 @@ static ebpf_result_t
 _ebpf_core_protocol_update_pinning(_In_ const struct _ebpf_operation_update_map_pinning_request* request)
 {
     ebpf_result_t retval;
-    const ebpf_utf8_string_t name = {
-        (uint8_t*)request->name,
-        request->header.length - EBPF_OFFSET_OF(ebpf_operation_update_pinning_request_t, name)};
+    const ebpf_utf8_string_t name = {(uint8_t*)request->name,
+                                     request->header.length -
+                                         EBPF_OFFSET_OF(ebpf_operation_update_pinning_request_t, name)};
     ebpf_object_t* object = NULL;
 
     if (name.length == 0) {
@@ -648,7 +647,28 @@ _ebpf_core_protocol_link_program(
         goto Done;
 
 Done:
+    if (retval != EBPF_SUCCESS) {
+        ebpf_link_detach_program(link);
+    }
     ebpf_object_release_reference((ebpf_object_t*)program);
+    ebpf_object_release_reference((ebpf_object_t*)link);
+    return retval;
+}
+
+static ebpf_result_t
+_ebpf_core_protocol_unlink_program(_In_ const ebpf_operation_unlink_program_request_t* request)
+{
+    ebpf_result_t retval;
+    ebpf_link_t* link = NULL;
+
+    retval = ebpf_reference_object_by_handle(request->link_handle, EBPF_OBJECT_LINK, (ebpf_object_t**)&link);
+    if (retval != EBPF_SUCCESS) {
+        goto Done;
+    }
+
+    ebpf_link_detach_program(link);
+
+Done:
     ebpf_object_release_reference((ebpf_object_t*)link);
     return retval;
 }
@@ -953,6 +973,11 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
     {(ebpf_result_t(__cdecl*)(const void*))_ebpf_core_protocol_link_program,
      sizeof(ebpf_operation_link_program_request_t),
      sizeof(ebpf_operation_link_program_reply_t)},
+
+    // EBPF_OPERATION_UNLINK_PROGRAM
+    {(ebpf_result_t(__cdecl*)(const void*))_ebpf_core_protocol_unlink_program,
+     sizeof(ebpf_operation_unlink_program_request_t),
+     0},
 
     // EBPF_OPERATION_CLOSE_HANDLE
     {(ebpf_result_t(__cdecl*)(const void*))_ebpf_core_protocol_close_handle,

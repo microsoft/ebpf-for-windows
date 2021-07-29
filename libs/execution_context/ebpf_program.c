@@ -47,7 +47,19 @@ typedef struct _ebpf_program
     ebpf_trampoline_table_t* trampoline_table;
 
     ebpf_epoch_work_item_t* cleanup_work_item;
+
+    ebpf_list_entry_t links;
+    ebpf_lock_t links_lock;
 } ebpf_program_t;
+
+static void
+_ebpf_program_detach_links(_Inout_ ebpf_program_t* program)
+{
+    while (!ebpf_list_is_empty(&program->links)) {
+        ebpf_list_entry_t* entry = program->links.Flink;
+        ebpf_link_entry_detach_program(entry);
+    }
+}
 
 static void
 _ebpf_program_program_information_provider_changed(
@@ -110,8 +122,13 @@ static void
 _ebpf_program_free(ebpf_object_t* object)
 {
     ebpf_program_t* program = (ebpf_program_t*)object;
-    if (!program)
+    if (!program) {
         return;
+    }
+
+    // Detach from all the attach points.
+    _ebpf_program_detach_links(program);
+    ebpf_assert(ebpf_list_is_empty(&program->links));
 
     ebpf_epoch_schedule_work_item(program->cleanup_work_item);
 }
@@ -128,6 +145,8 @@ _ebpf_program_epoch_free(void* context)
 {
     ebpf_program_t* program = (ebpf_program_t*)context;
     size_t index;
+
+    ebpf_lock_destroy(&program->links_lock);
 
     ebpf_extension_unload(program->global_helper_extension_client);
     ebpf_extension_unload(program->program_information_client);
@@ -274,6 +293,9 @@ ebpf_program_initialize(ebpf_program_t* program, const ebpf_program_parameters_t
     if (return_value != EBPF_SUCCESS) {
         goto Done;
     }
+
+    ebpf_list_initialize(&program->links);
+    ebpf_lock_create(&program->links_lock);
 
     return_value = EBPF_SUCCESS;
 
@@ -471,4 +493,22 @@ ebpf_program_get_program_information_data(
     *program_information_data = program->program_information_data;
 
     return EBPF_SUCCESS;
+}
+
+void
+ebpf_program_add_link_to_list(_Inout_ ebpf_program_t* program, _Inout_ ebpf_link_t* link)
+{
+    ebpf_lock_state_t state;
+    state = ebpf_lock_lock(&program->links_lock);
+    ebpf_link_insert_to_attach_list(&program->links, link);
+    ebpf_lock_unlock(&program->links_lock, state);
+}
+
+void
+ebpf_program_remove_link_from_list(_Inout_ ebpf_program_t* program, _Inout_ ebpf_link_t* link)
+{
+    ebpf_lock_state_t state;
+    state = ebpf_lock_lock(&program->links_lock);
+    ebpf_link_remove_from_attach_list(link);
+    ebpf_lock_unlock(&program->links_lock, state);
 }

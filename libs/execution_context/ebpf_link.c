@@ -11,6 +11,7 @@ typedef struct _ebpf_link
 {
     ebpf_object_t object;
     ebpf_program_t* program;
+    ebpf_list_entry_t attach_list_entry;
 
     ebpf_attach_type_t attach_type;
     ebpf_extension_data_t* client_data;
@@ -34,7 +35,6 @@ _ebpf_link_free(ebpf_object_t* object)
 {
     ebpf_link_t* link = (ebpf_link_t*)object;
     ebpf_extension_unload(link->extension_client_context);
-    ebpf_link_detach_program(link);
     ebpf_free(link->client_data);
     ebpf_epoch_free(link);
 }
@@ -73,6 +73,8 @@ ebpf_link_initialize(
     link->client_data->size = (uint16_t)client_data_length;
     memcpy(link->client_data->data, context_data, context_data_length);
 
+    ebpf_list_initialize(&link->attach_list_entry);
+
     return_value = ebpf_extension_load(
         &(link->extension_client_context),
         &attach_type,
@@ -109,15 +111,12 @@ ebpf_link_attach_program(ebpf_link_t* link, ebpf_program_t* program)
     }
 
     link->program = program;
-    ebpf_object_acquire_reference((ebpf_object_t*)program);
+    ebpf_program_add_link_to_list(program, link);
+
+    // Take "attach" reference which will be released when detach is called.
+    ebpf_object_acquire_reference((ebpf_object_t*)link);
 
 Done:
-    if (return_value != EBPF_SUCCESS) {
-        if (link->program == program) {
-            ebpf_object_release_reference((ebpf_object_t*)program);
-            link->program = NULL;
-        }
-    }
     return return_value;
 }
 
@@ -127,8 +126,29 @@ ebpf_link_detach_program(ebpf_link_t* link)
     if (!link->program)
         return;
 
-    ebpf_object_release_reference((ebpf_object_t*)link->program);
+    ebpf_program_remove_link_from_list(link->program, link);
     link->program = NULL;
+    // Release the "attach" reference.
+    ebpf_object_release_reference((ebpf_object_t*)link);
+}
+
+void
+ebpf_link_entry_detach_program(_Inout_ ebpf_list_entry_t* entry)
+{
+    ebpf_link_t* link = CONTAINING_RECORD(entry, ebpf_link_t, attach_list_entry);
+    ebpf_link_detach_program(link);
+}
+
+void
+ebpf_link_insert_to_attach_list(_Inout_ ebpf_list_entry_t* head, _Inout_ ebpf_link_t* link)
+{
+    ebpf_list_insert_tail(head, &link->attach_list_entry);
+}
+
+void
+ebpf_link_remove_from_attach_list(_Inout_ ebpf_link_t* link)
+{
+    ebpf_list_remove_entry(&link->attach_list_entry);
 }
 
 static ebpf_result_t

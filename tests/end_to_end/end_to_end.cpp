@@ -11,6 +11,7 @@
 #include "catch_wrapper.hpp"
 #include "common_tests.h"
 #include "ebpf_bind_program_data.h"
+#include "ebpf_object.h"
 #include "ebpf_xdp_program_data.h"
 #include "helpers.h"
 #include "mock.h"
@@ -22,6 +23,12 @@ namespace ebpf {
 #include "../sample/ebpf.h"
 #pragma warning(pop)
 }; // namespace ebpf
+
+extern "C"
+{
+    ebpf_result_t
+    ebpf_core_get_next_handle(ebpf_handle_t previous_handle, ebpf_object_type_t type, ebpf_handle_t* next_handle);
+}
 
 ebpf_handle_t
 GlueCreateFileW(
@@ -672,4 +679,107 @@ TEST_CASE("pinned_map_enum", "[end_to_end]")
     _test_helper_end_to_end test_helper;
 
     ebpf_test_pinned_map_enum();
+}
+
+TEST_CASE("implicit_explicit_detach", "[end_to_end]")
+{
+    _test_helper_end_to_end test_helper;
+
+    ebpf_handle_t program_handle;
+    ebpf_handle_t map_handle;
+    uint32_t count_of_map_handle = 1;
+    uint32_t result = 0;
+    const char* error_message = NULL;
+    ebpf_handle_t link_handle;
+
+    single_instance_hook_t hook;
+    program_information_provider_t xdp_program_information(EBPF_PROGRAM_TYPE_XDP);
+
+    REQUIRE(
+        (result = ebpf_api_load_program(
+             SAMPLE_PATH "droppacket.o",
+             "xdp",
+             EBPF_EXECUTION_INTERPRET,
+             &program_handle,
+             &count_of_map_handle,
+             &map_handle,
+             &error_message),
+         error_message ? printf("ebpf_api_load_program failed with %s\n", error_message) : 0,
+         ebpf_free_string(error_message),
+         error_message = nullptr,
+         result == EBPF_SUCCESS));
+
+    REQUIRE(hook.attach(program_handle) == EBPF_SUCCESS);
+
+    // Close program handle. That should detach the program from the hook
+    // and unload the program.
+    ebpf_api_close_handle(program_handle);
+    program_handle = INVALID_HANDLE_VALUE;
+    REQUIRE(ebpf_api_get_next_program(program_handle, &program_handle) == EBPF_SUCCESS);
+    REQUIRE(program_handle == INVALID_HANDLE_VALUE);
+
+    // Close link handle. This should delete the link object.
+    hook.close_handle();
+
+    link_handle = INVALID_HANDLE_VALUE;
+    REQUIRE(ebpf_core_get_next_handle(link_handle, EBPF_OBJECT_LINK, &link_handle) == EBPF_SUCCESS);
+    REQUIRE(link_handle == INVALID_HANDLE_VALUE);
+
+    REQUIRE(
+        (result = ebpf_api_load_program(
+             SAMPLE_PATH "droppacket.o",
+             "xdp",
+             EBPF_EXECUTION_INTERPRET,
+             &program_handle,
+             &count_of_map_handle,
+             &map_handle,
+             &error_message),
+         error_message ? printf("ebpf_api_load_program failed with %s\n", error_message) : 0,
+         ebpf_free_string(error_message),
+         error_message = nullptr,
+         result == EBPF_SUCCESS));
+
+    REQUIRE(hook.attach(program_handle) == EBPF_SUCCESS);
+    // Close program handle. That should detach the program from the hook
+    // and unload the program.
+    ebpf_api_close_handle(program_handle);
+    program_handle = INVALID_HANDLE_VALUE;
+    REQUIRE(ebpf_api_get_next_program(program_handle, &program_handle) == EBPF_SUCCESS);
+    REQUIRE(program_handle == INVALID_HANDLE_VALUE);
+
+    // Detach and close link handle.
+    hook.detach();
+
+    link_handle = INVALID_HANDLE_VALUE;
+    REQUIRE(ebpf_core_get_next_handle(link_handle, EBPF_OBJECT_LINK, &link_handle) == EBPF_SUCCESS);
+    REQUIRE(link_handle == INVALID_HANDLE_VALUE);
+
+    REQUIRE(
+        (result = ebpf_api_load_program(
+             SAMPLE_PATH "droppacket.o",
+             "xdp",
+             EBPF_EXECUTION_INTERPRET,
+             &program_handle,
+             &count_of_map_handle,
+             &map_handle,
+             &error_message),
+         error_message ? printf("ebpf_api_load_program failed with %s\n", error_message) : 0,
+         ebpf_free_string(error_message),
+         error_message = nullptr,
+         result == EBPF_SUCCESS));
+
+    REQUIRE(hook.attach(program_handle) == EBPF_SUCCESS);
+
+    // Detach and close link handle.
+    hook.detach();
+
+    link_handle = INVALID_HANDLE_VALUE;
+    REQUIRE(ebpf_core_get_next_handle(link_handle, EBPF_OBJECT_LINK, &link_handle) == EBPF_SUCCESS);
+    REQUIRE(link_handle == INVALID_HANDLE_VALUE);
+
+    // Close program handle.
+    ebpf_api_close_handle(program_handle);
+    program_handle = INVALID_HANDLE_VALUE;
+    REQUIRE(ebpf_api_get_next_program(program_handle, &program_handle) == EBPF_SUCCESS);
+    REQUIRE(program_handle == INVALID_HANDLE_VALUE);
 }
