@@ -75,6 +75,12 @@ bpf_program__section_name(const struct bpf_program* program)
     return program->section_name;
 }
 
+size_t
+bpf_program__size(const struct bpf_program* program)
+{
+    return program->byte_code_size;
+}
+
 struct bpf_link*
 bpf_program__attach(struct bpf_program* program)
 {

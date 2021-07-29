@@ -39,6 +39,9 @@ TEST_CASE("libbpf program", "[libbpf]")
     int fd2 = bpf_program__fd(program);
     REQUIRE(fd2 == program_fd);
 
+    size_t size = bpf_program__size(program);
+    REQUIRE(size == 192);
+
     REQUIRE(bpf_program__next(program, object) == nullptr);
     REQUIRE(bpf_program__prev(program, object) == nullptr);
     REQUIRE(bpf_program__next(nullptr, object) == program);
