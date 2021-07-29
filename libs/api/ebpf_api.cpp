@@ -497,16 +497,14 @@ ebpf_api_map_query_definition(
 }
 
 uint32_t
-ebpf_api_program_query_information(
+ebpf_api_program_query_info(
     ebpf_handle_t handle, ebpf_execution_type_t* execution_type, const char** file_name, const char** section_name)
 {
     ebpf_protocol_buffer_t reply_buffer(1024);
-    _ebpf_operation_query_program_information_request request{
-        sizeof(request),
-        ebpf_operation_id_t::EBPF_OPERATION_QUERY_PROGRAM_INFORMATION,
-        reinterpret_cast<uint64_t>(handle)};
+    _ebpf_operation_query_program_info_request request{
+        sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_QUERY_PROGRAM_INFO, reinterpret_cast<uint64_t>(handle)};
 
-    auto reply = reinterpret_cast<_ebpf_operation_query_program_information_reply*>(reply_buffer.data());
+    auto reply = reinterpret_cast<_ebpf_operation_query_program_info_reply*>(reply_buffer.data());
 
     uint32_t retval = invoke_ioctl(request, reply_buffer);
     if (retval != ERROR_SUCCESS) {
@@ -577,17 +575,17 @@ ebpf_api_close_handle(ebpf_handle_t handle)
 
 ebpf_result_t
 ebpf_api_get_pinned_map_info(
-    _Out_ uint16_t* map_count, _Outptr_result_buffer_maybenull_(*map_count) ebpf_map_information_t** map_info)
+    _Out_ uint16_t* map_count, _Outptr_result_buffer_maybenull_(*map_count) ebpf_map_info_t** map_info)
 {
     ebpf_result_t result = EBPF_SUCCESS;
-    ebpf_operation_get_map_information_request_t request = {
-        sizeof(request), EBPF_OPERATION_GET_MAP_INFORMATION, reinterpret_cast<uint64_t>(INVALID_HANDLE_VALUE)};
+    ebpf_operation_get_map_info_request_t request = {
+        sizeof(request), EBPF_OPERATION_GET_MAP_INFO, reinterpret_cast<uint64_t>(INVALID_HANDLE_VALUE)};
     ebpf_protocol_buffer_t reply_buffer;
-    ebpf_operation_get_map_information_reply_t* reply = nullptr;
+    ebpf_operation_get_map_info_reply_t* reply = nullptr;
     size_t min_expected_buffer_length = 0;
     size_t serialized_buffer_length = 0;
     uint16_t local_map_count = 0;
-    ebpf_map_information_t* local_map_info = nullptr;
+    ebpf_map_info_t* local_map_info = nullptr;
     size_t output_buffer_length = 4 * 1024;
     uint8_t attempt_count = 0;
 
@@ -599,7 +597,7 @@ ebpf_api_get_pinned_map_info(
     while (attempt_count < IOCTL_MAX_ATTEMPTS) {
         size_t reply_length;
         result = ebpf_safe_size_t_add(
-            EBPF_OFFSET_OF(ebpf_operation_get_map_information_reply_t, data), output_buffer_length, &reply_length);
+            EBPF_OFFSET_OF(ebpf_operation_get_map_info_reply_t, data), output_buffer_length, &reply_length);
         if (result != EBPF_SUCCESS)
             goto Exit;
 
@@ -619,7 +617,7 @@ ebpf_api_get_pinned_map_info(
         if ((result != EBPF_SUCCESS) && (result != EBPF_INSUFFICIENT_BUFFER))
             goto Exit;
 
-        reply = reinterpret_cast<ebpf_operation_get_map_information_reply_t*>(reply_buffer.data());
+        reply = reinterpret_cast<ebpf_operation_get_map_info_reply_t*>(reply_buffer.data());
 
         if (result == EBPF_INSUFFICIENT_BUFFER) {
             output_buffer_length = reply->size;
@@ -641,11 +639,9 @@ ebpf_api_get_pinned_map_info(
         goto Exit;
 
     // Check if the data buffer in IOCTL reply is at least as long as the
-    // minimum expected length needed to hold the array of ebpf map information objects.
+    // minimum expected length needed to hold the array of ebpf map info objects.
     result = ebpf_safe_size_t_multiply(
-        EBPF_OFFSET_OF(ebpf_serialized_map_information_t, pin_path),
-        (size_t)local_map_count,
-        &min_expected_buffer_length);
+        EBPF_OFFSET_OF(ebpf_serialized_map_info_t, pin_path), (size_t)local_map_count, &min_expected_buffer_length);
     if (result != EBPF_SUCCESS)
         goto Exit;
 
@@ -656,8 +652,7 @@ ebpf_api_get_pinned_map_info(
     }
 
     // Deserialize reply buffer.
-    result =
-        ebpf_deserialize_map_information_array(serialized_buffer_length, reply->data, local_map_count, &local_map_info);
+    result = ebpf_deserialize_map_info_array(serialized_buffer_length, reply->data, local_map_count, &local_map_info);
     if (result != EBPF_SUCCESS)
         goto Exit;
 
@@ -676,9 +671,9 @@ Exit:
 
 void
 ebpf_api_map_info_free(
-    const uint16_t map_count, _In_opt_count_(map_count) _Post_ptr_invalid_ const ebpf_map_information_t* map_info)
+    const uint16_t map_count, _In_opt_count_(map_count) _Post_ptr_invalid_ const ebpf_map_info_t* map_info)
 {
-    ebpf_map_information_array_free(map_count, const_cast<ebpf_map_information_t*>(map_info));
+    ebpf_map_info_array_free(map_count, const_cast<ebpf_map_info_t*>(map_info));
 }
 
 void

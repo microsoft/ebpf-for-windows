@@ -128,11 +128,11 @@ TEST_CASE("program", "[execution_context]")
 
     const ebpf_utf8_string_t program_name{(uint8_t*)("foo"), 3};
     const ebpf_utf8_string_t section_name{(uint8_t*)("bar"), 3};
-    program_information_provider_t program_information_provider(EBPF_PROGRAM_TYPE_BIND);
+    program_info_provider_t program_info_provider(EBPF_PROGRAM_TYPE_BIND);
 
     const ebpf_program_parameters_t program_parameters{EBPF_PROGRAM_TYPE_BIND, program_name, section_name};
     ebpf_program_parameters_t returned_program_parameters{};
-    const ebpf_extension_data_t* program_information_data;
+    ebpf_program_info_t* program_info;
 
     REQUIRE(ebpf_program_initialize(program.get(), &program_parameters) == EBPF_SUCCESS);
 
@@ -143,9 +143,9 @@ TEST_CASE("program", "[execution_context]")
             &returned_program_parameters.program_type,
             sizeof(program_parameters.program_type)) == 0);
 
-    REQUIRE(ebpf_program_get_program_information_data(program.get(), &program_information_data) == EBPF_SUCCESS);
-
-    REQUIRE(program_information_data != nullptr);
+    REQUIRE(ebpf_program_get_program_info(program.get(), &program_info) == EBPF_SUCCESS);
+    REQUIRE(program_info != nullptr);
+    ebpf_program_free_program_info(program_info);
 
     ebpf_map_t* maps[] = {map.get()};
 

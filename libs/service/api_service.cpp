@@ -222,7 +222,7 @@ void
 ebpf_clear_thread_local_storage() noexcept
 {
     clear_map_descriptors();
-    clear_program_information_cache();
+    clear_program_info_cache();
 }
 
 ebpf_result_t

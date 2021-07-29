@@ -13,7 +13,7 @@ const unsigned char program_link[] = "port_quota::program_link";
 typedef struct _process_entry
 {
     uint32_t count;
-    uint8_t name[64];
+    wchar_t name[32];
 } process_entry_t;
 
 int
@@ -106,7 +106,7 @@ stats(int argc, char** argv)
             fprintf(stderr, "Failed to look up eBPF map entry: %d\n", result);
             return 1;
         }
-        printf("%lld\t%d\t%S\n", pid, process_entry.count, reinterpret_cast<wchar_t*>(process_entry.name));
+        printf("%lld\t%d\t%S\n", pid, process_entry.count, process_entry.name);
         result = ebpf_api_get_next_map_key(
             map, sizeof(uint64_t), reinterpret_cast<uint8_t*>(&pid), reinterpret_cast<uint8_t*>(&pid));
     };

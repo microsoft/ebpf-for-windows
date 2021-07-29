@@ -26,38 +26,37 @@ struct guid_compare
     }
 };
 
-struct _ebpf_program_information_deleter
+struct _ebpf_program_info_deleter
 {
     void
-    operator()(_In_ _Post_invalid_ ebpf_program_information_t* program_info)
+    operator()(_In_ _Post_invalid_ ebpf_program_info_t* program_info)
     {
-        ebpf_program_information_free(program_info);
+        ebpf_program_info_free(program_info);
     }
 };
 
-typedef std::unique_ptr<ebpf_program_information_t, _ebpf_program_information_deleter> ebpf_program_information_ptr_t;
-static thread_local std::map<GUID, ebpf_program_information_ptr_t, guid_compare> _program_information_cache;
+typedef std::unique_ptr<ebpf_program_info_t, _ebpf_program_info_deleter> ebpf_program_info_ptr_t;
+static thread_local std::map<GUID, ebpf_program_info_ptr_t, guid_compare> _program_info_cache;
 
-static thread_local std::map<GUID, ebpf_helper::ebpf_memory_ptr, guid_compare> _static_program_information_cache;
+static thread_local std::map<GUID, ebpf_helper::ebpf_memory_ptr, guid_compare> _static_program_info_cache;
 
 void
-clear_program_information_cache()
+clear_program_info_cache()
 {
-    _program_information_cache.clear();
+    _program_info_cache.clear();
 }
 
 ebpf_result_t
-get_program_information_data(
-    ebpf_program_type_t program_type, _Outptr_ ebpf_program_information_t** program_information)
+get_program_info_data(ebpf_program_type_t program_type, _Outptr_ ebpf_program_info_t** program_info)
 {
     ebpf_protocol_buffer_t reply_buffer(1024);
     size_t required_buffer_length;
-    ebpf_operation_get_program_information_request_t request{
-        sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_GET_PROGRAM_INFORMATION, program_type};
+    ebpf_operation_get_program_info_request_t request{
+        sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_GET_PROGRAM_INFO, program_type};
 
-    *program_information = nullptr;
+    *program_info = nullptr;
 
-    auto reply = reinterpret_cast<ebpf_operation_get_program_information_reply_t*>(reply_buffer.data());
+    auto reply = reinterpret_cast<ebpf_operation_get_program_info_reply_t*>(reply_buffer.data());
     ebpf_result_t result = windows_error_to_ebpf_result(invoke_ioctl(request, reply_buffer));
     if ((result != EBPF_SUCCESS) && (result != EBPF_INSUFFICIENT_BUFFER))
         goto Exit;
@@ -65,43 +64,43 @@ get_program_information_data(
     if (result == EBPF_INSUFFICIENT_BUFFER) {
         required_buffer_length = reply->header.length;
         reply_buffer.resize(required_buffer_length);
-        reply = reinterpret_cast<ebpf_operation_get_program_information_reply_t*>(reply_buffer.data());
+        reply = reinterpret_cast<ebpf_operation_get_program_info_reply_t*>(reply_buffer.data());
         result = windows_error_to_ebpf_result(invoke_ioctl(request, reply_buffer));
         if (result != EBPF_SUCCESS)
             goto Exit;
     }
 
-    if (reply->header.id != ebpf_operation_id_t::EBPF_OPERATION_GET_PROGRAM_INFORMATION) {
+    if (reply->header.id != ebpf_operation_id_t::EBPF_OPERATION_GET_PROGRAM_INFO) {
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
 
-    // Deserialize the reply data into program information.
-    result = ebpf_deserialize_program_information(reply->size, reply->data, program_information);
+    // Deserialize the reply data into program info.
+    result = ebpf_deserialize_program_info(reply->size, reply->data, program_info);
 
 Exit:
     return result;
 }
 
 ebpf_result_t
-get_program_type_info(const ebpf_program_information_t** info)
+get_program_type_info(const ebpf_program_info_t** info)
 {
     const GUID* program_type = reinterpret_cast<const GUID*>(global_program_info.type.platform_specific_data);
     ebpf_result_t result;
-    ebpf_program_information_t* program_information;
+    ebpf_program_info_t* program_info;
     const uint8_t* encoded_data = nullptr;
     size_t encoded_data_size = 0;
     bool fall_back = false;
 
-    // See if we already have the program information cached.
-    auto it = _program_information_cache.find(*program_type);
-    if (it == _program_information_cache.end()) {
-        // Try to query the information from the execution context.
-        result = get_program_information_data(*program_type, &program_information);
+    // See if we already have the program info cached.
+    auto it = _program_info_cache.find(*program_type);
+    if (it == _program_info_cache.end()) {
+        // Try to query the info from the execution context.
+        result = get_program_info_data(*program_type, &program_info);
         if (result != EBPF_SUCCESS) {
             fall_back = true;
         } else {
-            _program_information_cache[*program_type] = ebpf_program_information_ptr_t(program_information);
+            _program_info_cache[*program_type] = ebpf_program_info_ptr_t(program_info);
         }
     }
 
@@ -109,38 +108,37 @@ get_program_type_info(const ebpf_program_information_t** info)
         // Fall back to using static data so that verification can be tried
         // (e.g., from a netsh command) even if the execution context isn't running.
         // TODO: remove this in the future.
-        auto iter = _static_program_information_cache.find(*program_type);
-        if (iter == _static_program_information_cache.end()) {
+        auto iter = _static_program_info_cache.find(*program_type);
+        if (iter == _static_program_info_cache.end()) {
             if (memcmp(program_type, &EBPF_PROGRAM_TYPE_XDP, sizeof(*program_type)) == 0) {
-                encoded_data = _ebpf_encoded_xdp_program_information_data;
-                encoded_data_size = sizeof(_ebpf_encoded_xdp_program_information_data);
+                encoded_data = _ebpf_encoded_xdp_program_info_data;
+                encoded_data_size = sizeof(_ebpf_encoded_xdp_program_info_data);
             } else if (memcmp(program_type, &EBPF_PROGRAM_TYPE_BIND, sizeof(*program_type)) == 0) {
-                encoded_data = _ebpf_encoded_bind_program_information_data;
-                encoded_data_size = sizeof(_ebpf_encoded_bind_program_information_data);
+                encoded_data = _ebpf_encoded_bind_program_info_data;
+                encoded_data_size = sizeof(_ebpf_encoded_bind_program_info_data);
             }
             ebpf_assert(encoded_data != nullptr);
 
-            result =
-                ebpf_program_information_decode(&program_information, encoded_data, (unsigned long)encoded_data_size);
+            result = ebpf_program_info_decode(&program_info, encoded_data, (unsigned long)encoded_data_size);
             if (result != EBPF_SUCCESS) {
                 return result;
             }
 
-            _static_program_information_cache[*program_type] = ebpf_helper::ebpf_memory_ptr(program_information);
+            _static_program_info_cache[*program_type] = ebpf_helper::ebpf_memory_ptr(program_info);
         }
     }
 
     if (!fall_back) {
-        *info = (const ebpf_program_information_t*)_program_information_cache[*program_type].get();
+        *info = (const ebpf_program_info_t*)_program_info_cache[*program_type].get();
     } else {
-        *info = (const ebpf_program_information_t*)_static_program_information_cache[*program_type].get();
+        *info = (const ebpf_program_info_t*)_static_program_info_cache[*program_type].get();
     }
 
     return EBPF_SUCCESS;
 }
 
 static ebpf_helper_function_prototype_t*
-_get_helper_function_prototype(const ebpf_program_information_t* info, unsigned int n)
+_get_helper_function_prototype(const ebpf_program_info_t* info, unsigned int n)
 {
     for (uint32_t i = 0; i < info->count_of_helpers; i++) {
         if (n == info->helper_prototype[i].helper_id) {
@@ -154,7 +152,7 @@ _get_helper_function_prototype(const ebpf_program_information_t* info, unsigned 
 bool
 is_helper_usable_windows(unsigned int n)
 {
-    const ebpf_program_information_t* info;
+    const ebpf_program_info_t* info;
     ebpf_result_t result = get_program_type_info(&info);
     if (result != EBPF_SUCCESS) {
         throw std::runtime_error(std::string("helper not usable: ") + std::to_string(n));
@@ -166,10 +164,10 @@ is_helper_usable_windows(unsigned int n)
 EbpfHelperPrototype
 get_helper_prototype_windows(unsigned int n)
 {
-    const ebpf_program_information_t* info;
+    const ebpf_program_info_t* info;
     ebpf_result_t result = get_program_type_info(&info);
     if (result != EBPF_SUCCESS) {
-        throw std::runtime_error(std::string("program type information not found."));
+        throw std::runtime_error(std::string("program type info not found."));
     }
     EbpfHelperPrototype verifier_prototype = {0};
 

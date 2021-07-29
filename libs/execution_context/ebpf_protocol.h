@@ -20,15 +20,15 @@ typedef enum _ebpf_operation_id
     EBPF_OPERATION_GET_NEXT_MAP,
     EBPF_OPERATION_GET_NEXT_PROGRAM,
     EBPF_OPERATION_QUERY_MAP_DEFINITION,
-    EBPF_OPERATION_QUERY_PROGRAM_INFORMATION,
+    EBPF_OPERATION_QUERY_PROGRAM_INFO,
     EBPF_OPERATION_UPDATE_PINNING,
     EBPF_OPERATION_GET_PINNING,
     EBPF_OPERATION_LINK_PROGRAM,
     EBPF_OPERATION_UNLINK_PROGRAM,
     EBPF_OPERATION_CLOSE_HANDLE,
     EBPF_OPERATION_GET_EC_FUNCTION,
-    EBPF_OPERATION_GET_PROGRAM_INFORMATION,
-    EBPF_OPERATION_GET_MAP_INFORMATION,
+    EBPF_OPERATION_GET_PROGRAM_INFO,
+    EBPF_OPERATION_GET_MAP_INFO,
 } ebpf_operation_id_t;
 
 typedef enum _ebpf_code_type
@@ -173,20 +173,20 @@ typedef struct _ebpf_operation_query_map_definition_reply
     struct _ebpf_map_definition map_definition;
 } ebpf_operation_query_map_definition_reply;
 
-typedef struct _ebpf_operation_query_program_information_request
+typedef struct _ebpf_operation_query_program_info_request
 {
     struct _ebpf_operation_header header;
     uint64_t handle;
-} ebpf_operation_query_program_information_request;
+} ebpf_operation_query_program_info_request;
 
-typedef struct _ebpf_operation_query_program_information_reply
+typedef struct _ebpf_operation_query_program_info_reply
 {
     struct _ebpf_operation_header header;
     ebpf_code_type_t code_type;
     uint16_t file_name_offset;
     uint16_t section_name_offset;
     uint8_t data[1];
-} ebpf_operation_query_program_information_reply;
+} ebpf_operation_query_program_info_reply;
 
 typedef struct _ebpf_operation_map_get_next_key_request
 {
@@ -258,30 +258,30 @@ typedef struct _ebpf_operation_get_ec_function_reply
     uint64_t address;
 } ebpf_operation_get_ec_function_reply_t;
 
-typedef struct _ebpf_operation_get_program_information_request
+typedef struct _ebpf_operation_get_program_info_request
 {
     struct _ebpf_operation_header header;
     ebpf_program_type_t program_type;
-} ebpf_operation_get_program_information_request_t;
+} ebpf_operation_get_program_info_request_t;
 
-typedef struct _ebpf_operation_get_program_information_reply
+typedef struct _ebpf_operation_get_program_info_reply
 {
     struct _ebpf_operation_header header;
     uint16_t version;
     size_t size;
     uint8_t data[1];
-} ebpf_operation_get_program_information_reply_t;
+} ebpf_operation_get_program_info_reply_t;
 
-typedef struct _ebpf_operation_get_map_information_request
+typedef struct _ebpf_operation_get_map_info_request
 {
     struct _ebpf_operation_header header;
     uint64_t handle;
-} ebpf_operation_get_map_information_request_t;
+} ebpf_operation_get_map_info_request_t;
 
-typedef struct _ebpf_operation_get_map_information_reply
+typedef struct _ebpf_operation_get_map_info_reply
 {
     struct _ebpf_operation_header header;
     uint16_t map_count;
     size_t size;
     uint8_t data[1];
-} ebpf_operation_get_map_information_reply_t;
+} ebpf_operation_get_map_info_reply_t;

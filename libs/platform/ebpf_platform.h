@@ -19,7 +19,7 @@ extern "C"
 #define EBPF_SYMBOLIC_DEVICE_NAME L"\\GLOBAL??\\EbpfIoDevice"
 #define EBPF_DEVICE_WIN32_NAME L"\\\\.\\EbpfIoDevice"
 
-#define EBPF_MAX_GLOBAL_HELPER_FUNCTION 0xFFFF
+#define EBPF_MAX_GENERAL_HELPER_FUNCTION 0xFFFF
 
 #define EBPF_UTF8_STRING_FROM_CONST_STRING(x) \
     {                                         \
@@ -61,9 +61,15 @@ extern "C"
     typedef struct _ebpf_extension_data
     {
         uint16_t version;
-        uint16_t size;
+        size_t size;
         void* data;
     } ebpf_extension_data_t;
+
+    typedef struct _ebpf_attach_provider_data
+    {
+        ebpf_program_type_t supported_program_type;
+    } ebpf_attach_provider_data_t;
+#define EBPF_ATTACH_PROVIDER_DATA_VERSION 1
 
     typedef struct _ebpf_trampoline_table ebpf_trampoline_table_t;
 
@@ -551,16 +557,16 @@ extern "C"
      *
      * @param[out] client_context Context used to unload the extension.
      * @param[in] interface_id GUID representing the identity of the interface.
-     * @param[in] client_binding_context Opaque per-instance pointer passed to the extension.
+     * @param[in] extension_client_context Opaque per-instance pointer passed to the extension.
      * @param[in] client_data Opaque client data passed to the extension or
         NULL if there is none.
      * @param[in] client_data_length Length of the client data.
      * @param[in] client_dispatch_table Table of function pointers the client
      *  exposes or NULL if there is none.
      * @param[out] provider_binding_context Provider binding context. Can be NULL.
-     * @param[out] provider_data Opaque provider data.
+     * @param[out] provider_data Opaque provider data. Can be NULL.
      * @param[out] provider_dispatch_table Table of function pointers the
-     *  provider exposes.
+     *  provider exposes. Can be NULL.
      * @param[in] extension_changed Callback invoked when a provider attaches
      *  or detaches. NULL if not used.
      * @retval EBPF_SUCCESS The operation was successful.
@@ -572,13 +578,26 @@ extern "C"
     ebpf_extension_load(
         _Outptr_ ebpf_extension_client_t** client_context,
         _In_ const GUID* interface_id,
-        _In_ void* client_binding_context,
+        _In_ void* extension_client_context,
         _In_opt_ const ebpf_extension_data_t* client_data,
         _In_opt_ const ebpf_extension_dispatch_table_t* client_dispatch_table,
         _Outptr_opt_ void** provider_binding_context,
-        _Outptr_ const ebpf_extension_data_t** provider_data,
+        _Outptr_opt_ const ebpf_extension_data_t** provider_data,
         _Outptr_opt_ const ebpf_extension_dispatch_table_t** provider_dispatch_table,
         _In_opt_ ebpf_extension_change_callback_t extension_changed);
+
+    /**
+     * @brief Helper function that returns an opaque client context from an extension client.
+     *
+     * @param[in] extension_client_binding_context Opaque pointer to an extension client binding context. This is the
+     * same as the extension_client_binding_context input parameter obtained in the _ebpf_extension_dispatch_function
+     * callback function.
+     *
+     * @returns Pointer to opaque per-instance context that was passed in call to ebpf_extension_load, or NULL on
+     * failure.
+     */
+    void*
+    ebpf_extension_get_client_context(_In_ const void* extension_client_binding_context);
 
     /**
      * @brief Unload an extension.
@@ -688,13 +707,13 @@ extern "C"
     ebpf_get_trampoline_function(
         _In_ const ebpf_trampoline_table_t* trampoline_table, size_t index, _Out_ void** function);
 
-    typedef struct _ebpf_program_information ebpf_program_information_t;
+    typedef struct _ebpf_program_info ebpf_program_info_t;
 
     /**
-     * @brief Serialize an ebpf_program_information_t structure into a flat
+     * @brief Serialize an ebpf_program_info_t structure into a flat
      *  buffer.
      *
-     * @param[in] program_information ebpf_program_information_t to be serialized.
+     * @param[in] program_info ebpf_program_info_t to be serialized.
      * @param[out] buffer On success, the buffer that contains the serialized
      *  structure. Must be freed by caller using ebpf_free.
      * @param[out] buffer_size On success, the size of the serialized buffer.
@@ -703,17 +722,17 @@ extern "C"
      *  operation.
      */
     ebpf_result_t
-    ebpf_program_information_encode(
-        _In_ const ebpf_program_information_t* program_information,
+    ebpf_program_info_encode(
+        _In_ const ebpf_program_info_t* program_info,
         _Outptr_result_bytebuffer_(*buffer_size) uint8_t** buffer,
         _Out_ unsigned long* buffer_size);
 
     /**
-     * @brief Deserialize an ebpf_program_information_t structure from a flat
+     * @brief Deserialize an ebpf_program_info_t structure from a flat
      *  buffer.
      *
-     * @param[out] program_information On success, a newly allocated
-     *  ebpf_program_information_t with the data from the flat buffer. Must be
+     * @param[out] program_info On success, a newly allocated
+     *  ebpf_program_info_t with the data from the flat buffer. Must be
      *  freed by the caller using ebpf_free.
      * @param[in] buffer Buffer containing the serialized structure.
      * @param[in] buffer_size Size of the buffer.
@@ -722,8 +741,8 @@ extern "C"
      *  operation.
      */
     ebpf_result_t
-    ebpf_program_information_decode(
-        _Outptr_ ebpf_program_information_t** program_information,
+    ebpf_program_info_decode(
+        _Outptr_ ebpf_program_info_t** program_info,
         _In_ _Readable_bytes_(buffer_size) const uint8_t* buffer,
         size_t buffer_size);
 

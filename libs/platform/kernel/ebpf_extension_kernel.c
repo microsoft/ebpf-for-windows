@@ -3,22 +3,32 @@
 
 #include "ebpf_platform.h"
 
+struct _ebpf_extension_client_binding_context;
+
 typedef struct _ebpf_extension_client
 {
     NPIID npi_id;
     NPI_CLIENT_CHARACTERISTICS client_characteristics;
     NPI_MODULEID client_id;
-    void* client_binding_context;
+    // Opaque pointer to extension client context, such as eBPF program or eBPF Link.
+    void* extension_client_context;
+    // Per-provider binding context with client.
+    struct _ebpf_extension_client_binding_context* client_binding_context;
     const ebpf_extension_data_t* client_data;
     const ebpf_extension_dispatch_table_t* client_dispatch_table;
+    HANDLE nmr_client_handle;
+    ebpf_extension_change_callback_t extension_change_callback;
+} ebpf_extension_client_t;
+
+typedef struct _ebpf_extension_client_binding_context
+{
     NPI_MODULEID provider_id;
     void* provider_binding_context;
     ebpf_extension_data_t* provider_data;
     ebpf_extension_dispatch_table_t* provider_dispatch_table;
-    HANDLE nmr_client_handle;
     bool provider_is_attached;
-    ebpf_extension_change_callback_t extension_change_callback;
-} ebpf_extension_client_t;
+    ebpf_extension_client_t* extension_client;
+} ebpf_extension_client_binding_context_t;
 
 typedef struct _ebpf_extension_provider
 {
@@ -42,13 +52,14 @@ typedef struct _ebpf_extension_provider_binding_context
 } ebpf_extension_provider_binding_context;
 
 static void
-_ebpf_extension_client_notify_change(ebpf_extension_client_t* client_context)
+_ebpf_extension_client_notify_change(
+    ebpf_extension_client_t* client_context, ebpf_extension_client_binding_context_t* client_binding_context)
 {
     if (client_context->extension_change_callback)
         client_context->extension_change_callback(
-            client_context->client_binding_context,
-            client_context->provider_binding_context,
-            client_context->provider_data);
+            client_context->extension_client_context,
+            client_binding_context->provider_binding_context,
+            client_binding_context->provider_data);
 }
 
 NTSTATUS
@@ -57,9 +68,10 @@ _ebpf_extension_client_attach_provider(
 {
     NTSTATUS status;
     ebpf_extension_client_t* local_client_context = (ebpf_extension_client_t*)client_context;
+    ebpf_extension_client_binding_context_t* local_client_binding_context = NULL;
 
     // Only permit one provider to attach.
-    if (local_client_context->provider_data != NULL) {
+    if (local_client_context->client_binding_context != NULL) {
         return STATUS_NOINTERFACE;
     }
 
@@ -71,34 +83,52 @@ _ebpf_extension_client_attach_provider(
         return STATUS_NOINTERFACE;
     }
 
-    local_client_context->provider_id = *provider_registration_instance->ModuleId;
-    local_client_context->provider_data =
+    local_client_binding_context =
+        (ebpf_extension_client_binding_context_t*)ebpf_allocate(sizeof(ebpf_extension_client_binding_context_t));
+
+    if (!local_client_binding_context) {
+        status = STATUS_NOINTERFACE;
+        goto Done;
+    }
+
+    local_client_binding_context->provider_id = *provider_registration_instance->ModuleId;
+    local_client_binding_context->provider_data =
         (ebpf_extension_data_t*)provider_registration_instance->NpiSpecificCharacteristics;
+    local_client_binding_context->extension_client = local_client_context;
+
+    local_client_context->client_binding_context = local_client_binding_context;
 
     status = NmrClientAttachProvider(
         nmr_binding_handle,
-        local_client_context,
+        local_client_context->client_binding_context,
         local_client_context->client_dispatch_table,
-        &local_client_context->provider_binding_context,
-        &local_client_context->provider_dispatch_table);
+        &local_client_binding_context->provider_binding_context,
+        &local_client_binding_context->provider_dispatch_table);
 
-    local_client_context->provider_is_attached = NT_SUCCESS(status);
+    local_client_binding_context->provider_is_attached = NT_SUCCESS(status);
 
-    _ebpf_extension_client_notify_change(local_client_context);
+    if (NT_SUCCESS(status))
+        _ebpf_extension_client_notify_change(local_client_context, local_client_binding_context);
 
+Done:
     return status;
 }
 
 NTSTATUS
 _ebpf_extension_client_detach_provider(void* client_binding_context)
 {
-    ebpf_extension_client_t* local_client_context = (ebpf_extension_client_t*)client_binding_context;
+    ebpf_extension_client_binding_context_t* local_client_binding_context =
+        (ebpf_extension_client_binding_context_t*)client_binding_context;
+    ebpf_extension_client_t* local_client_context = local_client_binding_context->extension_client;
 
-    local_client_context->provider_binding_context = NULL;
-    local_client_context->provider_dispatch_table = NULL;
-    local_client_context->provider_data = NULL;
+    local_client_binding_context->provider_binding_context = NULL;
+    local_client_binding_context->provider_dispatch_table = NULL;
+    local_client_binding_context->provider_data = NULL;
 
-    _ebpf_extension_client_notify_change(local_client_context);
+    _ebpf_extension_client_notify_change(local_client_context, local_client_binding_context);
+
+    ebpf_free(local_client_binding_context);
+    local_client_context->client_binding_context = NULL;
 
     return STATUS_SUCCESS;
 }
@@ -113,16 +143,17 @@ ebpf_result_t
 ebpf_extension_load(
     _Outptr_ ebpf_extension_client_t** client_context,
     _In_ const GUID* interface_id,
-    _In_ void* client_binding_context,
+    _In_ void* extension_client_context,
     _In_opt_ const ebpf_extension_data_t* client_data,
     _In_opt_ const ebpf_extension_dispatch_table_t* client_dispatch_table,
     _Outptr_opt_ void** provider_binding_context,
-    _Outptr_ const ebpf_extension_data_t** provider_data,
+    _Outptr_opt_ const ebpf_extension_data_t** provider_data,
     _Outptr_opt_ const ebpf_extension_dispatch_table_t** provider_dispatch_table,
     _In_opt_ ebpf_extension_change_callback_t extension_changed)
 {
     ebpf_result_t return_value;
     ebpf_extension_client_t* local_client_context = NULL;
+    ebpf_extension_client_binding_context_t* local_client_binding_context = NULL;
     NPI_CLIENT_CHARACTERISTICS* client_characteristics;
     NPI_REGISTRATION_INSTANCE* client_registration_instance;
     NTSTATUS status;
@@ -139,11 +170,9 @@ ebpf_extension_load(
         goto Done;
     }
 
-    memset(local_client_context, 0, sizeof(ebpf_extension_client_t));
-
     local_client_context->client_data = client_data;
     local_client_context->npi_id = *interface_id;
-    local_client_context->client_binding_context = client_binding_context;
+    local_client_context->extension_client_context = extension_client_context;
     local_client_context->client_id.Length = sizeof(local_client_context->client_id);
     local_client_context->client_id.Type = MIT_GUID;
     local_client_context->client_dispatch_table = client_dispatch_table;
@@ -169,7 +198,7 @@ ebpf_extension_load(
     client_registration_instance->NpiId = &local_client_context->npi_id;
     client_registration_instance->ModuleId = &local_client_context->client_id;
 
-    client_registration_instance->NpiSpecificCharacteristics = &local_client_context->client_data;
+    client_registration_instance->NpiSpecificCharacteristics = local_client_context->client_data;
 
     status = NmrRegisterClient(client_characteristics, local_client_context, &local_client_context->nmr_client_handle);
     if (!NT_SUCCESS(status)) {
@@ -177,7 +206,16 @@ ebpf_extension_load(
         goto Done;
     }
 
-    if (!local_client_context->provider_is_attached) {
+    local_client_binding_context = local_client_context->client_binding_context;
+
+    if (local_client_binding_context == NULL) {
+        ebpf_extension_unload(local_client_context);
+        local_client_context = NULL;
+        return_value = EBPF_EXTENSION_FAILED_TO_LOAD;
+        goto Done;
+    }
+
+    if (!local_client_binding_context->provider_is_attached) {
         ebpf_extension_unload(local_client_context);
         local_client_context = NULL;
         return_value = EBPF_EXTENSION_FAILED_TO_LOAD;
@@ -185,16 +223,19 @@ ebpf_extension_load(
     }
 
     if (provider_binding_context)
-        *provider_binding_context = local_client_context->provider_binding_context;
+        *provider_binding_context = local_client_binding_context->provider_binding_context;
 
-    *provider_data = local_client_context->provider_data;
+    if (provider_data != NULL)
+        *provider_data = local_client_binding_context->provider_data;
     if (provider_dispatch_table != NULL)
-        *provider_dispatch_table = local_client_context->provider_dispatch_table;
+        *provider_dispatch_table = local_client_binding_context->provider_dispatch_table;
     *client_context = local_client_context;
     local_client_context = NULL;
     return_value = EBPF_SUCCESS;
 
 Done:
+    if (local_client_context != NULL)
+        ebpf_free(local_client_context->client_binding_context);
     ebpf_free(local_client_context);
     local_client_context = NULL;
     return return_value;
@@ -209,8 +250,22 @@ ebpf_extension_unload(_Frees_ptr_opt_ ebpf_extension_client_t* client_context)
         if (status == STATUS_PENDING)
             NmrWaitForClientDeregisterComplete(client_context->nmr_client_handle);
     }
-
+    if (client_context != NULL)
+        ebpf_free(client_context->client_binding_context);
     ebpf_free(client_context);
+}
+
+void*
+ebpf_extension_get_client_context(_In_ const void* extension_client_binding_context)
+{
+    void* local_extension_client_context = NULL;
+    ebpf_extension_client_binding_context_t* local_client_binding_context =
+        (ebpf_extension_client_binding_context_t*)extension_client_binding_context;
+    ebpf_extension_client_t* local_client_context = local_client_binding_context->extension_client;
+    if (local_client_context != NULL)
+        local_extension_client_context = local_client_context->extension_client_context;
+
+    return local_extension_client_context;
 }
 
 NTSTATUS
@@ -228,7 +283,6 @@ _ebpf_extension_provider_attach_client(
     ebpf_extension_provider_t* local_provider_context = (ebpf_extension_provider_t*)provider_context;
     ebpf_extension_provider_binding_context* local_provider_binding_context = NULL;
     UNREFERENCED_PARAMETER(nmr_binding_handle);
-    ebpf_extension_client_t* local_extension_client = (ebpf_extension_client_t*)client_binding_context;
     // Check that the interface matches.
     if (memcmp(
             client_registration_instance->NpiId,
@@ -254,7 +308,7 @@ _ebpf_extension_provider_attach_client(
         return_value = local_provider_context->client_attach_callback(
             local_provider_context->callback_context,
             &local_provider_binding_context->client_id,
-            local_extension_client->client_binding_context,
+            client_binding_context,
             (const ebpf_extension_data_t*)client_registration_instance->NpiSpecificCharacteristics,
             (const ebpf_extension_dispatch_table_t*)client_dispatch);
 

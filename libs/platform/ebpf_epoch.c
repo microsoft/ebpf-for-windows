@@ -135,10 +135,7 @@ ebpf_epoch_initiate()
             ebpf_non_preemptible_work_item_t* work_item_context = NULL;
             _ebpf_epoch_cpu_table[cpu_id].epoch = _ebpf_current_epoch;
             return_value = ebpf_allocate_non_preemptible_work_item(
-                &work_item_context,
-                cpu_id,
-                _ebpf_epoch_update_cpu_entry,
-                &_ebpf_epoch_cpu_table[cpu_id]);
+                &work_item_context, cpu_id, _ebpf_epoch_update_cpu_entry, &_ebpf_epoch_cpu_table[cpu_id]);
 
             if (return_value != EBPF_SUCCESS) {
                 _ebpf_epoch_cpu_table_size = cpu_id;

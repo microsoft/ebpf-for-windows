@@ -28,4 +28,4 @@ uintptr_t
 get_map_handle_at_index(size_t index);
 
 void
-clear_program_information_cache();
+clear_program_info_cache();
