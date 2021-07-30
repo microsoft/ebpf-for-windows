@@ -690,7 +690,7 @@ TEST_CASE("implicit_detach", "[end_to_end]")
     uint32_t result = 0;
     const char* error_message = nullptr;
 
-    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP);
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
     result = ebpf_api_load_program(
@@ -739,7 +739,7 @@ TEST_CASE("explicit_detach", "[end_to_end]")
     uint32_t result = 0;
     const char* error_message = nullptr;
 
-    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP);
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
     result = ebpf_api_load_program(
@@ -787,7 +787,7 @@ TEST_CASE("implicit_explicit_detach", "[end_to_end]")
     uint32_t result = 0;
     const char* error_message = nullptr;
 
-    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP);
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
     result = ebpf_api_load_program(
