@@ -28,8 +28,10 @@ extern "C"
         volatile int32_t reference_count;
         ebpf_object_type_t type;
         ebpf_free_object_t free_function;
-        ebpf_list_entry_t entry;
-        ebpf_list_entry_t list_entry;
+        // Used to insert object in the global tracking list.
+        ebpf_list_entry_t global_list_entry;
+        // Used to insert object in an object specific list.
+        ebpf_list_entry_t object_list_entry;
     } ebpf_object_t;
 
     /**

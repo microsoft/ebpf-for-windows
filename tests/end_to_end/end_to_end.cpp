@@ -24,12 +24,6 @@ namespace ebpf {
 #pragma warning(pop)
 }; // namespace ebpf
 
-extern "C"
-{
-    ebpf_result_t
-    ebpf_core_get_next_handle(ebpf_handle_t previous_handle, ebpf_object_type_t type, ebpf_handle_t* next_handle);
-}
-
 ebpf_handle_t
 GlueCreateFileW(
     PCWSTR lpFileName,
@@ -695,7 +689,6 @@ TEST_CASE("implicit_detach", "[end_to_end]")
     uint32_t count_of_map_handle = 1;
     uint32_t result = 0;
     const char* error_message = nullptr;
-    ebpf_handle_t link_handle;
 
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
@@ -726,11 +719,9 @@ TEST_CASE("implicit_detach", "[end_to_end]")
     REQUIRE(program_handle == INVALID_HANDLE_VALUE);
 
     // Close link handle. This should delete the link object.
+    // ebpf_object_tracking_terminate() which is called when the test
+    // exits checks if all the objects in EC have been deleted.
     hook.close_handle();
-
-    link_handle = INVALID_HANDLE_VALUE;
-    REQUIRE(ebpf_core_get_next_handle(link_handle, EBPF_OBJECT_LINK, &link_handle) == EBPF_SUCCESS);
-    REQUIRE(link_handle == INVALID_HANDLE_VALUE);
 }
 
 TEST_CASE("explicit_detach", "[end_to_end]")
@@ -747,7 +738,6 @@ TEST_CASE("explicit_detach", "[end_to_end]")
     uint32_t count_of_map_handle = 1;
     uint32_t result = 0;
     const char* error_message = nullptr;
-    ebpf_handle_t link_handle;
 
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
@@ -771,11 +761,9 @@ TEST_CASE("explicit_detach", "[end_to_end]")
     REQUIRE(hook.attach(program_handle) == EBPF_SUCCESS);
 
     // Detach and close link handle.
+    // ebpf_object_tracking_terminate() which is called when the test
+    // exits checks if all the objects in EC have been deleted.
     hook.detach();
-
-    link_handle = INVALID_HANDLE_VALUE;
-    REQUIRE(ebpf_core_get_next_handle(link_handle, EBPF_OBJECT_LINK, &link_handle) == EBPF_SUCCESS);
-    REQUIRE(link_handle == INVALID_HANDLE_VALUE);
 
     // Close program handle.
     ebpf_api_close_handle(program_handle);
@@ -798,7 +786,6 @@ TEST_CASE("implicit_explicit_detach", "[end_to_end]")
     uint32_t count_of_map_handle = 1;
     uint32_t result = 0;
     const char* error_message = nullptr;
-    ebpf_handle_t link_handle;
 
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
@@ -828,9 +815,7 @@ TEST_CASE("implicit_explicit_detach", "[end_to_end]")
     REQUIRE(program_handle == INVALID_HANDLE_VALUE);
 
     // Detach and close link handle.
+    // ebpf_object_tracking_terminate() which is called when the test
+    // exits checks if all the objects in EC have been deleted.
     hook.detach();
-
-    link_handle = INVALID_HANDLE_VALUE;
-    REQUIRE(ebpf_core_get_next_handle(link_handle, EBPF_OBJECT_LINK, &link_handle) == EBPF_SUCCESS);
-    REQUIRE(link_handle == INVALID_HANDLE_VALUE);
 }

@@ -465,8 +465,8 @@ Done:
     return retval;
 }
 
-ebpf_result_t
-ebpf_core_get_next_handle(ebpf_handle_t previous_handle, ebpf_object_type_t type, ebpf_handle_t* next_handle)
+static ebpf_result_t
+_ebpf_core_get_next_handle(ebpf_handle_t previous_handle, ebpf_object_type_t type, ebpf_handle_t* next_handle)
 {
     ebpf_result_t retval;
     ebpf_object_t* previous_object = NULL;
@@ -501,7 +501,7 @@ _ebpf_core_protocol_get_next_map(
     uint16_t reply_length)
 {
     UNREFERENCED_PARAMETER(reply_length);
-    return ebpf_core_get_next_handle(request->previous_handle, EBPF_OBJECT_MAP, &reply->next_handle);
+    return _ebpf_core_get_next_handle(request->previous_handle, EBPF_OBJECT_MAP, &reply->next_handle);
 }
 
 static ebpf_result_t
@@ -511,7 +511,7 @@ _ebpf_core_protocol_get_next_program(
     uint16_t reply_length)
 {
     UNREFERENCED_PARAMETER(reply_length);
-    return ebpf_core_get_next_handle(request->previous_handle, EBPF_OBJECT_PROGRAM, &reply->next_handle);
+    return _ebpf_core_get_next_handle(request->previous_handle, EBPF_OBJECT_PROGRAM, &reply->next_handle);
 }
 
 static ebpf_result_t

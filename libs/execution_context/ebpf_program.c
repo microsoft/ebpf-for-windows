@@ -57,7 +57,7 @@ _ebpf_program_detach_links(_Inout_ ebpf_program_t* program)
 {
     while (!ebpf_list_is_empty(&program->links)) {
         ebpf_list_entry_t* entry = program->links.Flink;
-        ebpf_object_t* object = CONTAINING_RECORD(entry, ebpf_object_t, list_entry);
+        ebpf_object_t* object = CONTAINING_RECORD(entry, ebpf_object_t, object_list_entry);
         ebpf_link_detach_program((ebpf_link_t*)object);
     }
 }
@@ -582,7 +582,7 @@ ebpf_program_attach_link(_Inout_ ebpf_program_t* program, _Inout_ ebpf_link_t* l
     // Insert the link in the attach list.
     ebpf_lock_state_t state;
     state = ebpf_lock_lock(&program->links_lock);
-    ebpf_list_insert_tail(&program->links, &((ebpf_object_t*)link)->list_entry);
+    ebpf_list_insert_tail(&program->links, &((ebpf_object_t*)link)->object_list_entry);
     ebpf_lock_unlock(&program->links_lock, state);
 }
 
@@ -592,7 +592,7 @@ ebpf_program_detach_link(_Inout_ ebpf_program_t* program, _Inout_ ebpf_link_t* l
     // Remove the link from attach list.
     ebpf_lock_state_t state;
     state = ebpf_lock_lock(&program->links_lock);
-    ebpf_list_remove_entry(&((ebpf_object_t*)link)->list_entry);
+    ebpf_list_remove_entry(&((ebpf_object_t*)link)->object_list_entry);
     ebpf_lock_unlock(&program->links_lock, state);
 
     // Release the "attach" reference.

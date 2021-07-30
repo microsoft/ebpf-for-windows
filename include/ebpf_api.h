@@ -360,7 +360,7 @@ extern "C"
      * @param[in] link_handle Handle to the link.
      *
      * @retval ERROR_SUCCESS The operations succeeded.
-     * @retval ERROR_INVALID_PARAMETER One or more parameters are incorrect.
+     * @retval ERROR_INVALID_PARAMETER The link handle is invalid.
      */
     uint32_t
     ebpf_api_unlink_program(ebpf_handle_t link_handle);
