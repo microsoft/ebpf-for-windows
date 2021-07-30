@@ -9,7 +9,10 @@
 #include "libbpf_internal.h"
 
 // This file implements APIs in LibBPF's bpf.h
-// and is based on code in libbpf.c.
+// and is based on code in libbpf.c, so the
+// coding style tries to match the libbpf.c
+// style to minimize diffs until libbpf becomes
+// cross-platform capable.
 
 struct bpf_map*
 bpf_map__next(const struct bpf_map* previous, const struct bpf_object* object)
@@ -26,13 +29,15 @@ bpf_map__prev(const struct bpf_map* next, const struct bpf_object* object)
 int
 bpf_map__unpin(struct bpf_map* map, const char* path)
 {
+    int err;
+
     if (map == NULL) {
         return libbpf_err(-EINVAL);
     }
 
-    uint32_t result = ebpf_api_unpin_object((const uint8_t*)path, (uint32_t)strlen(path));
-    if (result) {
-        return libbpf_err(result);
+    err = ebpf_api_unpin_object((const uint8_t*)path, (uint32_t)strlen(path));
+    if (err) {
+        return libbpf_err(err);
     }
 
     map->pinned = false;
@@ -40,25 +45,18 @@ bpf_map__unpin(struct bpf_map* map, const char* path)
     return 0;
 }
 
-static void
-_unpin_previous_maps(_In_ ebpf_map_t* map, _In_ struct bpf_object* object, const char* path)
-{
-    for (map = bpf_map__prev(map, object); map; map = bpf_map__prev(map, object)) {
-        bpf_map__unpin(map, path);
-    }
-}
-
 int
 bpf_map__pin(struct bpf_map* map, const char* path)
 {
+    int err;
+
     if (map == NULL) {
         return libbpf_err(-EINVAL);
     }
 
-    int result = ebpf_api_pin_object(map->map_handle, (const uint8_t*)path, (uint32_t)strlen(path));
-    if (result) {
-        return libbpf_err(result);
-    }
+    err = ebpf_api_pin_object(map->map_handle, (const uint8_t*)path, (uint32_t)strlen(path));
+    if (err)
+        return libbpf_err(-err);
 
     map->pinned = true;
 
@@ -66,44 +64,88 @@ bpf_map__pin(struct bpf_map* map, const char* path)
 }
 
 int
-bpf_object__pin_maps(struct bpf_object* object, const char* path)
+bpf_object__pin_maps(struct bpf_object* obj, const char* path)
 {
     struct bpf_map* map;
+    int err;
 
-    if (!object) {
+    if (!obj)
         return libbpf_err(-ENOENT);
+
+    bpf_object__for_each_map(map, obj)
+    {
+        char* pin_path = NULL;
+        char buf[PATH_MAX];
+
+        if (path) {
+            int len;
+
+            len = snprintf(buf, PATH_MAX, "%s/%s", path, bpf_map__name(map));
+            if (len < 0) {
+                err = -EINVAL;
+                goto err_unpin_maps;
+            } else if (len >= PATH_MAX) {
+                err = -ENAMETOOLONG;
+                goto err_unpin_maps;
+            }
+            pin_path = buf;
+        } else {
+            continue;
+        }
+
+        err = bpf_map__pin(map, pin_path);
+        if (err)
+            goto err_unpin_maps;
     }
 
-    bpf_object__for_each_map(map, object)
+    return 0;
+
+err_unpin_maps:
+    while ((map = bpf_map__prev(map, obj)) != NULL) {
+        bpf_map__unpin(map, NULL);
+    }
+    return libbpf_err(err);
+}
+
+int
+bpf_object__unpin_maps(struct bpf_object* obj, const char* path)
+{
+    struct bpf_map* map;
+    int err;
+
+    if (!obj)
+        return libbpf_err(-ENOENT);
+
+    bpf_object__for_each_map(map, obj)
     {
-        int result = bpf_map__pin(map, path);
-        if (result) {
-            _unpin_previous_maps(map, object, path);
-            return result;
+        char* pin_path = NULL;
+        char buf[PATH_MAX];
+
+        if (path) {
+            int len;
+
+            len = snprintf(buf, PATH_MAX, "%s/%s", path, bpf_map__name(map));
+            if (len < 0)
+                return libbpf_err(-EINVAL);
+            else if (len >= PATH_MAX)
+                return libbpf_err(-ENAMETOOLONG);
+            pin_path = buf;
+        } else {
+            continue;
         }
+
+        err = bpf_map__unpin(map, pin_path);
+        if (err)
+            return libbpf_err(err);
     }
 
     return 0;
 }
 
-int
-bpf_object__unpin_maps(struct bpf_object* object, const char* path)
+const char*
+bpf_map__name(const struct bpf_map* map)
 {
-    struct bpf_map* map;
-
-    if (!object) {
-        return libbpf_err(-ENOENT);
-    }
-
-    bpf_object__for_each_map(map, object)
-    {
-        int result = bpf_map__unpin(map, path);
-        if (result) {
-            return libbpf_err(result);
-        }
-    }
-
-    return 0;
+    return map ? map->name : NULL;
 }
 
 enum bpf_map_type

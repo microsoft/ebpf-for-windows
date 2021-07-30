@@ -9,7 +9,10 @@
 #include "libbpf_internal.h"
 
 // This file implements APIs in LibBPF's bpf.h
-// and is based on code in libbpf.c.
+// and is based on code in libbpf.c, so the
+// coding style tries to match the libbpf.c
+// style to minimize diffs until libbpf becomes
+// cross-platform capable.
 
 const char*
 bpf_object__name(const struct bpf_object* object)
@@ -42,14 +45,14 @@ bpf_object__close(struct bpf_object* object)
 }
 
 struct bpf_program*
-bpf_object__find_program_by_name(const struct bpf_object* object, const char* name)
+bpf_object__find_program_by_name(const struct bpf_object* obj, const char* name)
 {
-    struct bpf_program* program;
+    struct bpf_program* prog;
 
-    bpf_object__for_each_program(program, object)
+    bpf_object__for_each_program(prog, obj)
     {
-        if (!strcmp(program->program_name, name))
-            return program;
+        if (!strcmp(prog->program_name, name))
+            return prog;
     }
     errno = ENOENT;
     return nullptr;

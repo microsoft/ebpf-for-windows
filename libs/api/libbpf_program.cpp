@@ -9,7 +9,12 @@
 #include "libbpf_internal.h"
 
 // This file implements APIs in LibBPF's bpf.h
-// and is based on code in libbpf.c.
+// and is based on code in libbpf.c, so the
+// coding style tries to match the libbpf.c
+// style to minimize diffs until libbpf becomes
+// cross-platform capable.
+
+#define pin_name program_name
 
 static const ebpf_program_type_t*
 _get_ebpf_program_type(enum bpf_prog_type type)
@@ -134,84 +139,108 @@ bpf_program__prev(struct bpf_program* next, const struct bpf_object* object)
 }
 
 int
-bpf_program__unpin(struct bpf_program* program, const char* path)
+bpf_program__unpin(struct bpf_program* prog, const char* path)
 {
-    char fullpath[MAX_PATH];
-    int length = snprintf(fullpath, sizeof(fullpath), "%s/%s", path, program->program_name);
-    if (length < 0) {
-        return -EINVAL;
-    } else if (length > sizeof(fullpath)) {
-        return -ENAMETOOLONG;
-    }
+    int err;
 
-    uint32_t result = ebpf_api_unpin_object((const uint8_t*)fullpath, (uint32_t)strlen(fullpath));
-    return (int)result;
-}
-
-static void
-_unpin_previous_programs(_In_ ebpf_program_t* program, _In_ struct bpf_object* object, const char* path)
-{
-    for (program = bpf_program__prev(program, object); program; program = bpf_program__prev(program, object)) {
-        bpf_program__unpin(program, path);
-    }
-}
-
-int
-bpf_program__pin(struct bpf_program* program, const char* path)
-{
-    char fullpath[MAX_PATH];
-    int result;
-
-    int length = snprintf(fullpath, sizeof(fullpath), "%s/%s", path, program->program_name);
-    if (length < 0) {
+    if (prog == NULL) {
         return libbpf_err(-EINVAL);
     }
 
-    result = ebpf_api_pin_object(program->handle, (const uint8_t*)fullpath, (uint32_t)strlen(fullpath));
-    if (result) {
-        return libbpf_err(result);
+    err = ebpf_api_unpin_object((const uint8_t*)path, (uint32_t)strlen(path));
+    if (err)
+        return libbpf_err(-err);
+
+    return 0;
+}
+
+int
+bpf_program__pin(struct bpf_program* prog, const char* path)
+{
+    int err;
+
+    if (prog == NULL) {
+        return libbpf_err(-EINVAL);
+    }
+
+    err = ebpf_api_pin_object(prog->handle, (const uint8_t*)path, (uint32_t)strlen(path));
+    if (err) {
+        return libbpf_err(err);
     }
 
     return 0;
 }
 
 int
-bpf_object__pin_programs(struct bpf_object* object, const char* path)
+bpf_object__pin_programs(struct bpf_object* obj, const char* path)
 {
-    struct bpf_program* program;
+    struct bpf_program* prog;
+    int err;
 
-    if (!object) {
+    if (!obj)
         return libbpf_err(-ENOENT);
-    }
 
-    bpf_object__for_each_program(program, object)
+    bpf_object__for_each_program(prog, obj)
     {
-        int result = bpf_program__pin(program, path);
-        if (result) {
-            _unpin_previous_programs(program, object, path);
-            return result;
-            ;
+        char buf[PATH_MAX];
+        int len;
+
+        len = snprintf(buf, PATH_MAX, "%s/%s", path, prog->pin_name);
+        if (len < 0) {
+            err = -EINVAL;
+            goto err_unpin_programs;
+        } else if (len >= PATH_MAX) {
+            err = -ENAMETOOLONG;
+            goto err_unpin_programs;
+        }
+
+        err = bpf_program__pin(prog, buf);
+        if (err) {
+            goto err_unpin_programs;
         }
     }
 
     return 0;
+
+err_unpin_programs:
+    while ((prog = bpf_program__prev(prog, obj)) != NULL) {
+        char buf[PATH_MAX];
+        int len;
+
+        len = snprintf(buf, PATH_MAX, "%s/%s", path, prog->pin_name);
+        if (len < 0)
+            continue;
+        else if (len >= PATH_MAX)
+            continue;
+
+        bpf_program__unpin(prog, path);
+    }
+    return err;
 }
 
 int
-bpf_object__unpin_programs(struct bpf_object* object, const char* path)
+bpf_object__unpin_programs(struct bpf_object* obj, const char* path)
 {
-    struct bpf_program* program;
+    struct bpf_program* prog;
+    int err;
 
-    if (!object) {
+    if (!obj)
         return libbpf_err(-ENOENT);
-    }
 
-    bpf_object__for_each_program(program, object)
+    bpf_object__for_each_program(prog, obj)
     {
-        int result = bpf_program__unpin(program, path);
-        if (result) {
-            return libbpf_err(result);
-        }
+        char buf[PATH_MAX];
+        int len;
+
+        len = snprintf(buf, PATH_MAX, "%s/%s", path, prog->pin_name);
+        if (len < 0)
+            return libbpf_err(-EINVAL);
+        else if (len >= PATH_MAX)
+            return libbpf_err(-ENAMETOOLONG);
+
+        err = bpf_program__unpin(prog, buf);
+        if (err)
+            return libbpf_err(err);
     }
 
     return 0;

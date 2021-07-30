@@ -53,7 +53,7 @@ TEST_CASE("libbpf program", "[libbpf]")
 TEST_CASE("libbpf program pinning", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
-    const char* pin_path = "\\temp";
+    const char* pin_path = "\\temp\\test";
 
     struct bpf_object* object;
     int program_fd;
@@ -84,7 +84,7 @@ TEST_CASE("libbpf program pinning", "[libbpf]")
     REQUIRE(result == 0);
 
     // Make sure a duplicate pin fails.
-    result = bpf_program__pin(program, pin_path);
+    result = bpf_object__pin_programs(object, pin_path);
     REQUIRE(result != 0);
 
     result = bpf_object__unpin_programs(object, pin_path);
@@ -95,7 +95,7 @@ TEST_CASE("libbpf program pinning", "[libbpf]")
     REQUIRE(result == 0);
 
     // Make sure a duplicate pin fails.
-    result = bpf_program__pin(program, pin_path);
+    result = bpf_object__pin_programs(object, pin_path);
     REQUIRE(result != 0);
 
     // There is no bpf_object__unpin API, so
@@ -166,6 +166,8 @@ TEST_CASE("libbpf map", "[libbpf]")
     REQUIRE(bpf_map__prev(map, object) == nullptr);
     REQUIRE(bpf_map__prev(nullptr, object) == map);
 
+    const char* name = bpf_map__name(map);
+    REQUIRE(name == nullptr); // droppacket.o has no map name.
     REQUIRE(bpf_map__type(map) == BPF_MAP_TYPE_ARRAY);
     REQUIRE(bpf_map__key_size(map) == 4);
     REQUIRE(bpf_map__value_size(map) == 8);
@@ -178,7 +180,7 @@ TEST_CASE("libbpf map", "[libbpf]")
 TEST_CASE("libbpf map pinning", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
-    const char* pin_path = "\\temp";
+    const char* pin_path = "\\temp\\test";
 
     struct bpf_object* object;
     int program_fd;
@@ -217,7 +219,7 @@ TEST_CASE("libbpf map pinning", "[libbpf]")
     REQUIRE(bpf_map__is_pinned(map) == true);
 
     // Make sure a duplicate pin fails.
-    result = bpf_map__pin(map, pin_path);
+    result = bpf_object__pin_maps(object, pin_path);
     REQUIRE(result != 0);
 
     result = bpf_object__unpin_maps(object, pin_path);
@@ -232,7 +234,7 @@ TEST_CASE("libbpf map pinning", "[libbpf]")
     REQUIRE(bpf_map__is_pinned(map) == true);
 
     // Make sure a duplicate pin fails.
-    result = bpf_map__pin(map, pin_path);
+    result = bpf_object__pin_maps(object, pin_path);
     REQUIRE(result != 0);
 
     // There is no bpf_object__unpin API, so
