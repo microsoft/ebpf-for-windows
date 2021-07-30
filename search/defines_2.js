@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['midl_394',['MIDL',['../ebpf__program__types_8h.html#ac4c5b84afac4c8a0a6c0564c2ff50842',1,'ebpf_program_types.h']]]
+  ['libbpf_5fapi_434',['LIBBPF_API',['../bpf_8h.html#abf2e376a832317e2b685e430a6fdb8a7',1,'bpf.h']]],
+  ['libbpf_5fdeprecated_435',['LIBBPF_DEPRECATED',['../bpf_8h.html#aa54db9e919a5587064e975ca181cb8ca',1,'bpf.h']]]
 ];

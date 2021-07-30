@@ -1,6 +1,4 @@
 var searchData=
 [
-  ['xdp_5faction_5ft_325',['xdp_action_t',['../ebpf__nethooks_8h.html#a8e725c81ff0e90836d9dfcec34fb5aa3',1,'ebpf_nethooks.h']]],
-  ['xdp_5fhook_5ft_326',['xdp_hook_t',['../ebpf__nethooks_8h.html#a8d57424dbe0e0cab6cb166f25557d6d6',1,'ebpf_nethooks.h']]],
-  ['xdp_5fmd_5ft_327',['xdp_md_t',['../ebpf__nethooks_8h.html#ad23ae5164c0bc1b25cfc3c60ab24a781',1,'ebpf_nethooks.h']]]
+  ['pid_5ft_347',['pid_t',['../bpf_8h.html#a7a26cb7f5678736cec66712d6df1d4ed',1,'bpf.h']]]
 ];
