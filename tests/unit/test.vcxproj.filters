@@ -40,6 +40,12 @@
     <ClCompile Include="..\end_to_end\netsh_test.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="libbpf_test.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\end_to_end\test_helper.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\end_to_end\helpers.h">
