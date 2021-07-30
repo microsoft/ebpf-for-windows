@@ -589,7 +589,7 @@ ebpf_program_attach_link(_Inout_ ebpf_program_t* program, _Inout_ ebpf_link_t* l
 void
 ebpf_program_detach_link(_Inout_ ebpf_program_t* program, _Inout_ ebpf_link_t* link)
 {
-    // Remove the link from attach list.
+    // Remove the link from the attach list.
     ebpf_lock_state_t state;
     state = ebpf_lock_lock(&program->links_lock);
     ebpf_list_remove_entry(&((ebpf_object_t*)link)->object_list_entry);
