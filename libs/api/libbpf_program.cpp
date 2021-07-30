@@ -96,6 +96,7 @@ bpf_program__attach(struct bpf_program* program)
     }
 
     // The bpf_link structure is opaque so we can use the link handle directly.
+    // TODO(issue #81): return pointer to ebpf_link_t.
     return (struct bpf_link*)link_handle;
 }
 
@@ -116,6 +117,7 @@ bpf_program__attach_xdp(struct bpf_program* program, int ifindex)
     }
 
     // The bpf_link structure is opaque so we can use the link handle directly.
+    // TODO(issue #81): return pointer to ebpf_link_t.
     return (struct bpf_link*)link_handle;
 }
 
@@ -218,6 +220,7 @@ bpf_object__unpin_programs(struct bpf_object* object, const char* path)
 int
 bpf_link__destroy(struct bpf_link* link)
 {
+    // TODO(issue #81): get handle from ebpf_link_t.
     ebpf_handle_t link_handle = (ebpf_handle_t)link;
     uint32_t result = ebpf_api_close_handle(link_handle);
     return (int)result;
