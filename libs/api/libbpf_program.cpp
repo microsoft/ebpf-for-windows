@@ -8,11 +8,10 @@
 #pragma warning(pop)
 #include "libbpf_internal.h"
 
-// This file implements APIs in LibBPF's bpf.h
-// and is based on code in libbpf.c, so the
-// coding style tries to match the libbpf.c
-// style to minimize diffs until libbpf becomes
-// cross-platform capable.
+// This file implements APIs in LibBPF's libbpf.h and is based on code in external/libbpf/src/libbpf.c
+// used under the BSD-2-Clause license , so the coding style tries to match the libbpf.c style to
+// minimize diffs until libbpf becomes cross-platform capable.  This is a temporary workaround for
+// issue #351 until we can compile and use libbpf.c directly.
 
 static const ebpf_program_type_t*
 _get_ebpf_program_type(enum bpf_prog_type type)
