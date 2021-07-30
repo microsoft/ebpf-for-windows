@@ -29,7 +29,7 @@ typedef struct _ebpf_map
     char* name;
     ebpf_handle_t map_handle;
     fd_t map_fd;
-    ebpf_map_definition_t map_defintion;
+    ebpf_map_definition_t map_definition;
     char* pin_path;
     bool pinned;
 } ebpf_map_t;

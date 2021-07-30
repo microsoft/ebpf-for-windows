@@ -3,6 +3,7 @@
 
 #include "pch.h"
 
+#include <fcntl.h>
 #include <io.h>
 #include "api_common.hpp"
 #include "api_internal.h"
@@ -686,7 +687,7 @@ clean_up_ebpf_program(_In_ _Post_invalid_ ebpf_program_t* program)
         _ebpf_programs.erase(program->fd);
     }
     if (program->handle != ebpf_handle_invalid) {
-        CloseHandle(program->handle);
+        Platform::CloseHandle(program->handle);
     }
     free(program->byte_code);
     free(program->program_name);
@@ -711,7 +712,7 @@ clean_up_ebpf_map(_In_ _Post_invalid_ ebpf_map_t* map)
         _ebpf_maps.erase(map->map_fd);
     }
     if (map->map_handle != ebpf_handle_invalid) {
-        CloseHandle(map->map_handle);
+        Platform::CloseHandle(map->map_handle);
     }
 
     free(map);
@@ -767,10 +768,10 @@ _initialize_map(_Out_ ebpf_map_t* map, _In_ const ebpf_object_t* object, _In_ co
     map->object = object;
     map->map_handle = (ebpf_handle_t)map_cache.handle;
     map->map_fd = map_cache.ebpf_map_descriptor.original_fd;
-    map->map_defintion.type = (ebpf_map_type_t)map_cache.ebpf_map_descriptor.type;
-    map->map_defintion.key_size = map_cache.ebpf_map_descriptor.key_size;
-    map->map_defintion.value_size = map_cache.ebpf_map_descriptor.value_size;
-    map->map_defintion.max_entries = map_cache.ebpf_map_descriptor.max_entries;
+    map->map_definition.type = (ebpf_map_type_t)map_cache.ebpf_map_descriptor.type;
+    map->map_definition.key_size = map_cache.ebpf_map_descriptor.key_size;
+    map->map_definition.value_size = map_cache.ebpf_map_descriptor.value_size;
+    map->map_definition.max_entries = map_cache.ebpf_map_descriptor.max_entries;
     map->pinned = false;
     map->pin_path = nullptr;
 }

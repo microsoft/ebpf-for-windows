@@ -6,3 +6,6 @@
 	path = external/ubpf
 	url = https://github.com/iovisor/ubpf.git
 	branch = master
+[submodule "external/libbpf"]
+	path = external/libbpf
+	url = https://github.com/libbpf/libbpf.git

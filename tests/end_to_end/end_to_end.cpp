@@ -11,7 +11,7 @@
 #include "catch_wrapper.hpp"
 #include "common_tests.h"
 #include "ebpf_bind_program_data.h"
-#include "ebpf_object.h"
+#include "ebpf_core.h"
 #include "ebpf_xdp_program_data.h"
 #include "helpers.h"
 #include "mock.h"
@@ -162,7 +162,7 @@ droppacket_test(ebpf_execution_type_t execution_type)
     uint32_t result = 0;
     const char* error_message = nullptr;
 
-    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP);
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
     REQUIRE(
@@ -232,7 +232,7 @@ divide_by_zero_test(ebpf_execution_type_t execution_type)
     uint32_t result = 0;
     const char* error_message = nullptr;
 
-    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP);
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
     REQUIRE(
@@ -340,7 +340,7 @@ bindmonitor_test(ebpf_execution_type_t execution_type)
          error_message = nullptr,
          result == EBPF_SUCCESS));
 
-    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND);
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
 
     REQUIRE(hook.attach(program_handle) == EBPF_SUCCESS);
 
@@ -482,7 +482,7 @@ TEST_CASE("map_pinning_test", "[end_to_end]")
          error_message = nullptr,
          result == EBPF_SUCCESS));
 
-    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND);
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
 
     std::string process_maps_name = "bindmonitor::process_maps";
     std::string limit_maps_name = "bindmonitor::limits_map";
@@ -563,7 +563,7 @@ TEST_CASE("enumerate_and_query_maps", "[end_to_end]")
          error_message = nullptr,
          result == EBPF_SUCCESS));
 
-    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND);
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
 
     std::string process_maps_name = "bindmonitor::process_maps";
     std::string limit_maps_name = "bindmonitor::limits_map";
