@@ -14,8 +14,6 @@
 // style to minimize diffs until libbpf becomes
 // cross-platform capable.
 
-#define pin_name program_name
-
 static const ebpf_program_type_t*
 _get_ebpf_program_type(enum bpf_prog_type type)
 {
@@ -171,6 +169,18 @@ bpf_program__pin(struct bpf_program* prog, const char* path)
     return 0;
 }
 
+static char*
+__bpf_program__pin_name(struct bpf_program* prog)
+{
+    char *name, *p;
+
+    name = p = strdup(prog->section_name);
+    while ((p = strchr(p, '/')) != NULL)
+        *p = '_';
+
+    return name;
+}
+
 int
 bpf_object__pin_programs(struct bpf_object* obj, const char* path)
 {
@@ -185,7 +195,7 @@ bpf_object__pin_programs(struct bpf_object* obj, const char* path)
         char buf[PATH_MAX];
         int len;
 
-        len = snprintf(buf, PATH_MAX, "%s/%s", path, prog->pin_name);
+        len = snprintf(buf, PATH_MAX, "%s/%s", path, __bpf_program__pin_name(prog));
         if (len < 0) {
             err = -EINVAL;
             goto err_unpin_programs;
@@ -207,7 +217,7 @@ err_unpin_programs:
         char buf[PATH_MAX];
         int len;
 
-        len = snprintf(buf, PATH_MAX, "%s/%s", path, prog->pin_name);
+        len = snprintf(buf, PATH_MAX, "%s/%s", path, __bpf_program__pin_name(prog));
         if (len < 0)
             continue;
         else if (len >= PATH_MAX)
@@ -232,7 +242,7 @@ bpf_object__unpin_programs(struct bpf_object* obj, const char* path)
         char buf[PATH_MAX];
         int len;
 
-        len = snprintf(buf, PATH_MAX, "%s/%s", path, prog->pin_name);
+        len = snprintf(buf, PATH_MAX, "%s/%s", path, __bpf_program__pin_name(prog));
         if (len < 0)
             return libbpf_err(-EINVAL);
         else if (len >= PATH_MAX)
@@ -249,7 +259,8 @@ bpf_object__unpin_programs(struct bpf_object* obj, const char* path)
 int
 bpf_link__destroy(struct bpf_link* link)
 {
-    // TODO(issue #81): get handle from ebpf_link_t.
+    // TODO(issue #81): get handle from ebpf_link_t, and
+    // detach before closing the handle.
     ebpf_handle_t link_handle = (ebpf_handle_t)link;
     uint32_t result = ebpf_api_close_handle(link_handle);
     return (int)result;
