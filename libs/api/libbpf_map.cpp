@@ -26,20 +26,15 @@ bpf_map__prev(const struct bpf_map* next, const struct bpf_object* object)
 int
 bpf_map__unpin(struct bpf_map* map, const char* path)
 {
-    char fullpath[MAX_PATH];
-    int length = snprintf(fullpath, sizeof(fullpath), "%s/%s", path, map->name);
-    if (length < 0) {
-        return -EINVAL;
-    } else if (length > sizeof(fullpath)) {
-        return -ENAMETOOLONG;
+    if (map == NULL) {
+        return libbpf_err(-EINVAL);
     }
 
-    uint32_t result = ebpf_api_unpin_object((const uint8_t*)fullpath, (uint32_t)strlen(fullpath));
+    uint32_t result = ebpf_api_unpin_object((const uint8_t*)path, (uint32_t)strlen(path));
     if (result) {
         return libbpf_err(result);
     }
 
-    // TODO(issue #81): ebpf_api_unpin_object should set this.
     map->pinned = false;
 
     return 0;
@@ -56,19 +51,15 @@ _unpin_previous_maps(_In_ ebpf_map_t* map, _In_ struct bpf_object* object, const
 int
 bpf_map__pin(struct bpf_map* map, const char* path)
 {
-    char fullpath[MAX_PATH];
-
-    int length = snprintf(fullpath, sizeof(fullpath), "%s/%s", path, map->name);
-    if (length < 0) {
+    if (map == NULL) {
         return libbpf_err(-EINVAL);
     }
 
-    int result = ebpf_api_pin_object(map->map_handle, (const uint8_t*)fullpath, (uint32_t)strlen(fullpath));
+    int result = ebpf_api_pin_object(map->map_handle, (const uint8_t*)path, (uint32_t)strlen(path));
     if (result) {
         return libbpf_err(result);
     }
 
-    // TODO(issue #81): ebpf_api_pin_object should set this.
     map->pinned = true;
 
     return 0;
