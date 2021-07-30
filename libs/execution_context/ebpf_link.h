@@ -61,31 +61,6 @@ extern "C"
     void
     ebpf_link_detach_program(ebpf_link_t* link);
 
-    /**
-     * @brief Detach a program from this link object.
-     *
-     * @param[in] entry List entry corresponding to the link object.
-     */
-    void
-    ebpf_link_entry_detach_program(_Inout_ ebpf_list_entry_t* entry);
-
-    /**
-     * @brief Insert link object to the tail of provided attach list head.
-     *
-     * @param[in] head Head of the attach list.
-     * @param[in] link Link to be inserted in the list.
-     */
-    void
-    ebpf_link_insert_to_attach_list(_Inout_ ebpf_list_entry_t* head, _Inout_ ebpf_link_t* link);
-
-    /**
-     * @brief Remove link object from the attach list.
-     *
-     * @param[in] link Link to be removed from the attach list.
-     */
-    void
-    ebpf_link_remove_from_attach_list(_Inout_ ebpf_link_t* link);
-
 #ifdef __cplusplus
 }
 #endif

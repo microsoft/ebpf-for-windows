@@ -159,24 +159,22 @@ extern "C"
         const ebpf_program_t* program, uint32_t helper_function_id, uint64_t* address);
 
     /**
-     * @brief Add a link object to the list of hooks eBPF program
-     *  is attached to.
+     * @brief Attach a link object to an eBPF program.
      *
      * @param[in] program Program to attach to the link object.
      * @param[in] link The link object.
      */
     void
-    ebpf_program_add_link_to_list(_Inout_ ebpf_program_t* program, _Inout_ ebpf_link_t* link);
+    ebpf_program_attach_link(_Inout_ ebpf_program_t* program, _Inout_ ebpf_link_t* link);
 
     /**
-     * @brief Remove a link object from the list of hooks eBPF program
-     * is attached to.
+     * @brief Detach a link object from the eBPF program it is attached to.
      *
      * @param[in] program Program to detach to the link object from.
      * @param[in] link The link object.
      */
     void
-    ebpf_program_remove_link_from_list(_Inout_ ebpf_program_t* program, _Inout_ ebpf_link_t* link);
+    ebpf_program_detach_link(_Inout_ ebpf_program_t* program, _Inout_ ebpf_link_t* link);
 
 #ifdef __cplusplus
 }

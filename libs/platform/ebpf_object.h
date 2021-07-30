@@ -29,6 +29,7 @@ extern "C"
         ebpf_object_type_t type;
         ebpf_free_object_t free_function;
         ebpf_list_entry_t entry;
+        ebpf_list_entry_t list_entry;
     } ebpf_object_t;
 
     /**

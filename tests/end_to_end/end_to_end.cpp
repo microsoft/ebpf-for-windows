@@ -166,7 +166,7 @@ droppacket_test(ebpf_execution_type_t execution_type)
     ebpf_handle_t map_handle;
     uint32_t count_of_map_handle = 1;
     uint32_t result = 0;
-    const char* error_message = NULL;
+    const char* error_message = nullptr;
 
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
@@ -236,7 +236,7 @@ divide_by_zero_test(ebpf_execution_type_t execution_type)
     ebpf_handle_t map_handle;
     uint32_t count_of_map_handle = 1;
     uint32_t result = 0;
-    const char* error_message = NULL;
+    const char* error_message = nullptr;
 
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
@@ -324,7 +324,7 @@ bindmonitor_test(ebpf_execution_type_t execution_type)
     _test_helper_end_to_end test_helper;
 
     ebpf_handle_t program_handle;
-    const char* error_message = NULL;
+    const char* error_message = nullptr;
     ebpf_handle_t map_handles[2];
     uint32_t count_of_map_handles = 2;
     uint64_t fake_pid = 12345;
@@ -467,7 +467,7 @@ TEST_CASE("map_pinning_test", "[end_to_end]")
     _test_helper_end_to_end test_helper;
 
     ebpf_handle_t program_handle;
-    const char* error_message = NULL;
+    const char* error_message = nullptr;
     ebpf_handle_t map_handles[4] = {0};
     uint32_t count_of_map_handles = 2;
     uint32_t result;
@@ -548,7 +548,7 @@ TEST_CASE("enumerate_and_query_maps", "[end_to_end]")
     _test_helper_end_to_end test_helper;
 
     ebpf_handle_t program_handle;
-    const char* error_message = NULL;
+    const char* error_message = nullptr;
     ebpf_handle_t map_handles[4];
     uint32_t count_of_map_handles = 2;
     uint32_t result;
@@ -613,7 +613,7 @@ TEST_CASE("enumerate_and_query_programs", "[end_to_end]")
     ebpf_handle_t program_handle;
     ebpf_handle_t map_handles[3];
     uint32_t count_of_map_handle = 1;
-    const char* error_message = NULL;
+    const char* error_message = nullptr;
     uint32_t result;
     const char* file_name = nullptr;
     const char* section_name = nullptr;
@@ -681,33 +681,40 @@ TEST_CASE("pinned_map_enum", "[end_to_end]")
     ebpf_test_pinned_map_enum();
 }
 
-TEST_CASE("implicit_explicit_detach", "[end_to_end]")
+TEST_CASE("implicit_detach", "[end_to_end]")
 {
+    // This test case does the following:
+    // 1. Close program handle. An implicit detach should happen and program
+    //    object should be deleted.
+    // 2. Close link handle. The link object should be deleted.
+
     _test_helper_end_to_end test_helper;
 
     ebpf_handle_t program_handle;
     ebpf_handle_t map_handle;
     uint32_t count_of_map_handle = 1;
     uint32_t result = 0;
-    const char* error_message = NULL;
+    const char* error_message = nullptr;
     ebpf_handle_t link_handle;
 
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
-    REQUIRE(
-        (result = ebpf_api_load_program(
-             SAMPLE_PATH "droppacket.o",
-             "xdp",
-             EBPF_EXECUTION_INTERPRET,
-             &program_handle,
-             &count_of_map_handle,
-             &map_handle,
-             &error_message),
-         error_message ? printf("ebpf_api_load_program failed with %s\n", error_message) : 0,
-         ebpf_free_string(error_message),
-         error_message = nullptr,
-         result == EBPF_SUCCESS));
+    result = ebpf_api_load_program(
+        SAMPLE_PATH "droppacket.o",
+        "xdp",
+        EBPF_EXECUTION_INTERPRET,
+        &program_handle,
+        &count_of_map_handle,
+        &map_handle,
+        &error_message);
+
+    if (error_message) {
+        printf("ebpf_api_load_program failed with %s\n", error_message);
+        ebpf_free_string(error_message);
+        error_message = nullptr;
+    }
+    REQUIRE(result == EBPF_SUCCESS);
 
     REQUIRE(hook.attach(program_handle) == EBPF_SUCCESS);
 
@@ -724,49 +731,42 @@ TEST_CASE("implicit_explicit_detach", "[end_to_end]")
     link_handle = INVALID_HANDLE_VALUE;
     REQUIRE(ebpf_core_get_next_handle(link_handle, EBPF_OBJECT_LINK, &link_handle) == EBPF_SUCCESS);
     REQUIRE(link_handle == INVALID_HANDLE_VALUE);
+}
 
-    REQUIRE(
-        (result = ebpf_api_load_program(
-             SAMPLE_PATH "droppacket.o",
-             "xdp",
-             EBPF_EXECUTION_INTERPRET,
-             &program_handle,
-             &count_of_map_handle,
-             &map_handle,
-             &error_message),
-         error_message ? printf("ebpf_api_load_program failed with %s\n", error_message) : 0,
-         ebpf_free_string(error_message),
-         error_message = nullptr,
-         result == EBPF_SUCCESS));
+TEST_CASE("explicit_detach", "[end_to_end]")
+{
+    // This test case does the following:
+    // 1. Call detach API and then close the link handle. The link onject
+    //    should be deleted.
+    // 2. Close program handle. The program object should be deleted.
 
-    REQUIRE(hook.attach(program_handle) == EBPF_SUCCESS);
-    // Close program handle. That should detach the program from the hook
-    // and unload the program.
-    ebpf_api_close_handle(program_handle);
-    program_handle = INVALID_HANDLE_VALUE;
-    REQUIRE(ebpf_api_get_next_program(program_handle, &program_handle) == EBPF_SUCCESS);
-    REQUIRE(program_handle == INVALID_HANDLE_VALUE);
+    _test_helper_end_to_end test_helper;
 
-    // Detach and close link handle.
-    hook.detach();
+    ebpf_handle_t program_handle;
+    ebpf_handle_t map_handle;
+    uint32_t count_of_map_handle = 1;
+    uint32_t result = 0;
+    const char* error_message = nullptr;
+    ebpf_handle_t link_handle;
 
-    link_handle = INVALID_HANDLE_VALUE;
-    REQUIRE(ebpf_core_get_next_handle(link_handle, EBPF_OBJECT_LINK, &link_handle) == EBPF_SUCCESS);
-    REQUIRE(link_handle == INVALID_HANDLE_VALUE);
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP);
+    program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
-    REQUIRE(
-        (result = ebpf_api_load_program(
-             SAMPLE_PATH "droppacket.o",
-             "xdp",
-             EBPF_EXECUTION_INTERPRET,
-             &program_handle,
-             &count_of_map_handle,
-             &map_handle,
-             &error_message),
-         error_message ? printf("ebpf_api_load_program failed with %s\n", error_message) : 0,
-         ebpf_free_string(error_message),
-         error_message = nullptr,
-         result == EBPF_SUCCESS));
+    result = ebpf_api_load_program(
+        SAMPLE_PATH "droppacket.o",
+        "xdp",
+        EBPF_EXECUTION_INTERPRET,
+        &program_handle,
+        &count_of_map_handle,
+        &map_handle,
+        &error_message);
+
+    if (error_message) {
+        printf("ebpf_api_load_program failed with %s\n", error_message);
+        ebpf_free_string(error_message);
+        error_message = nullptr;
+    }
+    REQUIRE(result == EBPF_SUCCESS);
 
     REQUIRE(hook.attach(program_handle) == EBPF_SUCCESS);
 
@@ -782,4 +782,55 @@ TEST_CASE("implicit_explicit_detach", "[end_to_end]")
     program_handle = INVALID_HANDLE_VALUE;
     REQUIRE(ebpf_api_get_next_program(program_handle, &program_handle) == EBPF_SUCCESS);
     REQUIRE(program_handle == INVALID_HANDLE_VALUE);
+}
+
+TEST_CASE("implicit_explicit_detach", "[end_to_end]")
+{
+    // This test case does the following:
+    // 1. Close the program handle so that an implicit detach happens.
+    // 2. Explicitly call detach and then close the link handle. Explicit
+    //    detach in this step should be a no-op.
+
+    _test_helper_end_to_end test_helper;
+
+    ebpf_handle_t program_handle;
+    ebpf_handle_t map_handle;
+    uint32_t count_of_map_handle = 1;
+    uint32_t result = 0;
+    const char* error_message = nullptr;
+    ebpf_handle_t link_handle;
+
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP);
+    program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
+
+    result = ebpf_api_load_program(
+        SAMPLE_PATH "droppacket.o",
+        "xdp",
+        EBPF_EXECUTION_INTERPRET,
+        &program_handle,
+        &count_of_map_handle,
+        &map_handle,
+        &error_message);
+
+    if (error_message) {
+        printf("ebpf_api_load_program failed with %s\n", error_message);
+        ebpf_free_string(error_message);
+        error_message = nullptr;
+    }
+    REQUIRE(result == EBPF_SUCCESS);
+
+    REQUIRE(hook.attach(program_handle) == EBPF_SUCCESS);
+    // Close program handle. That should detach the program from the hook
+    // and unload the program.
+    ebpf_api_close_handle(program_handle);
+    program_handle = INVALID_HANDLE_VALUE;
+    REQUIRE(ebpf_api_get_next_program(program_handle, &program_handle) == EBPF_SUCCESS);
+    REQUIRE(program_handle == INVALID_HANDLE_VALUE);
+
+    // Detach and close link handle.
+    hook.detach();
+
+    link_handle = INVALID_HANDLE_VALUE;
+    REQUIRE(ebpf_core_get_next_handle(link_handle, EBPF_OBJECT_LINK, &link_handle) == EBPF_SUCCESS);
+    REQUIRE(link_handle == INVALID_HANDLE_VALUE);
 }
