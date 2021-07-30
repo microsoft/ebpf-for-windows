@@ -64,11 +64,8 @@ extern "C"
      *
      * @param[in] program Program instance to query.
      * @param[in] program_parameters Parameters of the program.
-     * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
-     *  program instance.
      */
-    ebpf_result_t
+    void
     ebpf_program_get_properties(ebpf_program_t* program, ebpf_program_parameters_t* program_parameters);
 
     /**

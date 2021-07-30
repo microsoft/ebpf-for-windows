@@ -306,11 +306,10 @@ Done:
     return return_value;
 }
 
-ebpf_result_t
+void
 ebpf_program_get_properties(ebpf_program_t* program, ebpf_program_parameters_t* program_parameters)
 {
     *program_parameters = program->parameters;
-    return EBPF_SUCCESS;
 }
 
 ebpf_result_t

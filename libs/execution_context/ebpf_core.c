@@ -552,9 +552,7 @@ _ebpf_core_protocol_query_program_info(
     if (retval != EBPF_SUCCESS)
         goto Done;
 
-    retval = ebpf_program_get_properties(program, &parameters);
-    if (retval != EBPF_SUCCESS)
-        goto Done;
+    ebpf_program_get_properties(program, &parameters);
 
     required_reply_length = EBPF_OFFSET_OF(struct _ebpf_operation_query_program_info_reply, data) +
                             parameters.program_name.length + parameters.section_name.length;

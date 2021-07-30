@@ -136,7 +136,7 @@ TEST_CASE("program", "[execution_context]")
 
     REQUIRE(ebpf_program_initialize(program.get(), &program_parameters) == EBPF_SUCCESS);
 
-    REQUIRE(ebpf_program_get_properties(program.get(), &returned_program_parameters) == EBPF_SUCCESS);
+    ebpf_program_get_properties(program.get(), &returned_program_parameters);
     REQUIRE(
         memcmp(
             &program_parameters.program_type,

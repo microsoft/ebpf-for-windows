@@ -16,6 +16,7 @@ typedef struct _ebpf_link
     ebpf_program_type_t program_type;
     ebpf_extension_data_t client_data;
     ebpf_extension_client_t* extension_client_context;
+    ebpf_lock_t attach_lock;
 
     void* provider_binding_context;
 } ebpf_link_t;
@@ -34,8 +35,7 @@ static void
 _ebpf_link_free(ebpf_object_t* object)
 {
     ebpf_link_t* link = (ebpf_link_t*)object;
-    ebpf_extension_unload(link->extension_client_context);
-    ebpf_free(link->client_data.data);
+    ebpf_lock_destroy(&link->attach_lock);
     ebpf_epoch_free(link);
 }
 
@@ -49,6 +49,7 @@ ebpf_link_create(ebpf_link_t** link)
     memset(*link, 0, sizeof(ebpf_link_t));
 
     ebpf_object_initialize(&(*link)->object, EBPF_OBJECT_LINK, _ebpf_link_free);
+    ebpf_lock_create(&(*link)->attach_lock);
     return EBPF_SUCCESS;
 }
 
@@ -105,7 +106,15 @@ ebpf_link_attach_program(ebpf_link_t* link, ebpf_program_t* program)
 {
     ebpf_result_t return_value = EBPF_SUCCESS;
     ebpf_program_parameters_t program_parameters;
+    ebpf_lock_state_t state;
+    state = ebpf_lock_lock(&link->attach_lock);
     if (link->program) {
+        return_value = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
+
+    ebpf_program_get_properties(program, &program_parameters);
+    if (memcmp(&program_parameters.program_type, &link->program_type, sizeof(link->program_type)) != 0) {
         return_value = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
@@ -113,28 +122,30 @@ ebpf_link_attach_program(ebpf_link_t* link, ebpf_program_t* program)
     link->program = program;
     ebpf_program_attach_link(program, link);
 
-    return_value = ebpf_program_get_properties(program, &program_parameters);
-    if (return_value != EBPF_SUCCESS) {
-        goto Done;
-    }
-
-    if (memcmp(&program_parameters.program_type, &link->program_type, sizeof(link->program_type)) != 0) {
-        return_value = EBPF_INVALID_ARGUMENT;
-        goto Done;
-    }
-
 Done:
+    ebpf_lock_unlock(&link->attach_lock, state);
     return return_value;
 }
 
 void
 ebpf_link_detach_program(ebpf_link_t* link)
 {
-    if (!link->program)
+    ebpf_lock_state_t state;
+    ebpf_program_t* program;
+    state = ebpf_lock_lock(&link->attach_lock);
+    if (!link->program) {
+        ebpf_lock_unlock(&link->attach_lock, state);
         return;
+    }
 
-    ebpf_program_detach_link(link->program, link);
+    program = link->program;
     link->program = NULL;
+    ebpf_lock_unlock(&link->attach_lock, state);
+
+    ebpf_program_detach_link(program, link);
+
+    ebpf_extension_unload(link->extension_client_context);
+    ebpf_free(link->client_data.data);
 }
 
 static ebpf_result_t
