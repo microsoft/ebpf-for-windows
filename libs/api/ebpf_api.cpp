@@ -557,6 +557,15 @@ ebpf_api_link_program(ebpf_handle_t program_handle, ebpf_attach_type_t attach_ty
 }
 
 uint32_t
+ebpf_api_unlink_program(ebpf_handle_t link_handle)
+{
+    ebpf_operation_unlink_program_request_t request = {
+        sizeof(request), EBPF_OPERATION_UNLINK_PROGRAM, reinterpret_cast<uint64_t>(link_handle)};
+
+    return invoke_ioctl(request);
+}
+
+uint32_t
 ebpf_api_close_handle(ebpf_handle_t handle)
 {
     ebpf_operation_close_handle_request_t request = {

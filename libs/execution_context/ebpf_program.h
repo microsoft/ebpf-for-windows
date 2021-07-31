@@ -64,11 +64,8 @@ extern "C"
      *
      * @param[in] program Program instance to query.
      * @param[in] program_parameters Parameters of the program.
-     * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
-     *  program instance.
      */
-    ebpf_result_t
+    void
     ebpf_program_get_properties(ebpf_program_t* program, ebpf_program_parameters_t* program_parameters);
 
     /**
@@ -157,6 +154,24 @@ extern "C"
     ebpf_result_t
     ebpf_program_get_helper_function_address(
         const ebpf_program_t* program, uint32_t helper_function_id, uint64_t* address);
+
+    /**
+     * @brief Attach a link object to an eBPF program.
+     *
+     * @param[in] program Program to attach to the link object.
+     * @param[in] link The link object.
+     */
+    void
+    ebpf_program_attach_link(_Inout_ ebpf_program_t* program, _Inout_ ebpf_link_t* link);
+
+    /**
+     * @brief Detach a link object from the eBPF program it is attached to.
+     *
+     * @param[in] program Program to detach to the link object from.
+     * @param[in] link The link object.
+     */
+    void
+    ebpf_program_detach_link(_Inout_ ebpf_program_t* program, _Inout_ ebpf_link_t* link);
 
 #ifdef __cplusplus
 }

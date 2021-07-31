@@ -47,7 +47,20 @@ typedef struct _ebpf_program
     ebpf_trampoline_table_t* trampoline_table;
 
     ebpf_epoch_work_item_t* cleanup_work_item;
+
+    ebpf_list_entry_t links;
+    ebpf_lock_t links_lock;
 } ebpf_program_t;
+
+static void
+_ebpf_program_detach_links(_Inout_ ebpf_program_t* program)
+{
+    while (!ebpf_list_is_empty(&program->links)) {
+        ebpf_list_entry_t* entry = program->links.Flink;
+        ebpf_object_t* object = CONTAINING_RECORD(entry, ebpf_object_t, object_list_entry);
+        ebpf_link_detach_program((ebpf_link_t*)object);
+    }
+}
 
 static void
 _ebpf_program_program_info_provider_changed(
@@ -110,8 +123,13 @@ static void
 _ebpf_program_free(ebpf_object_t* object)
 {
     ebpf_program_t* program = (ebpf_program_t*)object;
-    if (!program)
+    if (!program) {
         return;
+    }
+
+    // Detach from all the attach points.
+    _ebpf_program_detach_links(program);
+    ebpf_assert(ebpf_list_is_empty(&program->links));
 
     ebpf_epoch_schedule_work_item(program->cleanup_work_item);
 }
@@ -128,6 +146,8 @@ _ebpf_program_epoch_free(void* context)
 {
     ebpf_program_t* program = (ebpf_program_t*)context;
     size_t index;
+
+    ebpf_lock_destroy(&program->links_lock);
 
     ebpf_extension_unload(program->general_helper_extension_client);
     ebpf_extension_unload(program->program_info_client);
@@ -275,6 +295,9 @@ ebpf_program_initialize(ebpf_program_t* program, const ebpf_program_parameters_t
         goto Done;
     }
 
+    ebpf_list_initialize(&program->links);
+    ebpf_lock_create(&program->links_lock);
+
     return_value = EBPF_SUCCESS;
 
 Done:
@@ -283,11 +306,10 @@ Done:
     return return_value;
 }
 
-ebpf_result_t
+void
 ebpf_program_get_properties(ebpf_program_t* program, ebpf_program_parameters_t* program_parameters)
 {
     *program_parameters = program->parameters;
-    return EBPF_SUCCESS;
 }
 
 ebpf_result_t
@@ -549,4 +571,30 @@ ebpf_program_free_program_info(_In_opt_ _Post_invalid_ ebpf_program_info_t* prog
         ebpf_free(program_info->helper_prototype);
         ebpf_free(program_info);
     }
+}
+
+void
+ebpf_program_attach_link(_Inout_ ebpf_program_t* program, _Inout_ ebpf_link_t* link)
+{
+    // Acquire "attach" reference on the link object.
+    ebpf_object_acquire_reference((ebpf_object_t*)link);
+
+    // Insert the link in the attach list.
+    ebpf_lock_state_t state;
+    state = ebpf_lock_lock(&program->links_lock);
+    ebpf_list_insert_tail(&program->links, &((ebpf_object_t*)link)->object_list_entry);
+    ebpf_lock_unlock(&program->links_lock, state);
+}
+
+void
+ebpf_program_detach_link(_Inout_ ebpf_program_t* program, _Inout_ ebpf_link_t* link)
+{
+    // Remove the link from the attach list.
+    ebpf_lock_state_t state;
+    state = ebpf_lock_lock(&program->links_lock);
+    ebpf_list_remove_entry(&((ebpf_object_t*)link)->object_list_entry);
+    ebpf_lock_unlock(&program->links_lock, state);
+
+    // Release the "attach" reference.
+    ebpf_object_release_reference((ebpf_object_t*)link);
 }

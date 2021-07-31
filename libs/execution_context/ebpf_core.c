@@ -552,9 +552,7 @@ _ebpf_core_protocol_query_program_info(
     if (retval != EBPF_SUCCESS)
         goto Done;
 
-    retval = ebpf_program_get_properties(program, &parameters);
-    if (retval != EBPF_SUCCESS)
-        goto Done;
+    ebpf_program_get_properties(program, &parameters);
 
     required_reply_length = EBPF_OFFSET_OF(struct _ebpf_operation_query_program_info_reply, data) +
                             parameters.program_name.length + parameters.section_name.length;
@@ -665,7 +663,28 @@ _ebpf_core_protocol_link_program(
         goto Done;
 
 Done:
+    if (retval != EBPF_SUCCESS) {
+        ebpf_link_detach_program(link);
+    }
     ebpf_object_release_reference((ebpf_object_t*)program);
+    ebpf_object_release_reference((ebpf_object_t*)link);
+    return retval;
+}
+
+static ebpf_result_t
+_ebpf_core_protocol_unlink_program(_In_ const ebpf_operation_unlink_program_request_t* request)
+{
+    ebpf_result_t retval;
+    ebpf_link_t* link = NULL;
+
+    retval = ebpf_reference_object_by_handle(request->link_handle, EBPF_OBJECT_LINK, (ebpf_object_t**)&link);
+    if (retval != EBPF_SUCCESS) {
+        goto Done;
+    }
+
+    ebpf_link_detach_program(link);
+
+Done:
     ebpf_object_release_reference((ebpf_object_t*)link);
     return retval;
 }
@@ -965,6 +984,11 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
     {(ebpf_result_t(__cdecl*)(const void*))_ebpf_core_protocol_link_program,
      sizeof(ebpf_operation_link_program_request_t),
      sizeof(ebpf_operation_link_program_reply_t)},
+
+    // EBPF_OPERATION_UNLINK_PROGRAM
+    {(ebpf_result_t(__cdecl*)(const void*))_ebpf_core_protocol_unlink_program,
+     sizeof(ebpf_operation_unlink_program_request_t),
+     0},
 
     // EBPF_OPERATION_CLOSE_HANDLE
     {(ebpf_result_t(__cdecl*)(const void*))_ebpf_core_protocol_close_handle,

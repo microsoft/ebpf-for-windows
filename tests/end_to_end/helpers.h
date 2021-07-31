@@ -52,6 +52,13 @@ typedef class _single_instance_hook
     void
     detach()
     {
+        ebpf_api_unlink_program(link_handle);
+        ebpf_api_close_handle(link_handle);
+    }
+
+    void
+    close_handle()
+    {
         ebpf_api_close_handle(link_handle);
     }
 
