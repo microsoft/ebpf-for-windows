@@ -11,7 +11,7 @@
 typedef struct _FILE FILE;
 #include "ubpf.h"
 
-typedef struct bpf_program
+typedef struct _ebpf_program
 {
     ebpf_object_t object;
 
