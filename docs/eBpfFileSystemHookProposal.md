@@ -13,7 +13,9 @@ operations on Windows without the need for writing a new mini-filter.
 ### Monitor file access for an executable
 
 Permit a user to monitor which files are opened/read/written by an executable. A hook would need to call out at
-the start of I/O operations and provide a helper to query information about the calling process.
+the start of I/O operations and provide a helper to query information about the calling process. This would for
+example allow for the classic antivirus software use case where file open calls are hooked and the file is
+then compared with known malicious signatures, while making use of all the benefits of eBPF.
 
 ### I/O Latency
 
