@@ -17,6 +17,7 @@ typedef enum _ebpf_operation_id
     EBPF_OPERATION_LOAD_CODE,
     EBPF_OPERATION_MAP_FIND_ELEMENT,
     EBPF_OPERATION_MAP_UPDATE_ELEMENT,
+    EBPF_OPERATION_MAP_UPDATE_ELEMENT_WITH_HANDLE,
     EBPF_OPERATION_MAP_DELETE_ELEMENT,
     EBPF_OPERATION_MAP_GET_NEXT_KEY,
     EBPF_OPERATION_GET_NEXT_MAP,
@@ -131,6 +132,14 @@ typedef struct _ebpf_operation_map_update_element_request
     uint64_t handle;
     uint8_t data[1]; // data is key+value
 } epf_operation_map_update_element_request_t;
+
+typedef struct _ebpf_operation_map_update_element_with_handle_request
+{
+    struct _ebpf_operation_header header;
+    uintptr_t map_handle;
+    uintptr_t value_handle;
+    uint8_t data[1]; // data is key+value
+} epf_operation_map_update_element_with_handle_request_t;
 
 typedef struct _ebpf_operation_map_delete_element_request
 {

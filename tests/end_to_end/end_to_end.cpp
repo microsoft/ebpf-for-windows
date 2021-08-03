@@ -8,12 +8,14 @@
 #include <thread>
 #include <WinSock2.h>
 
+#include "bpf.h"
 #include "catch_wrapper.hpp"
 #include "common_tests.h"
 #include "ebpf_bind_program_data.h"
 #include "ebpf_core.h"
 #include "ebpf_xdp_program_data.h"
 #include "helpers.h"
+#include "libbpf.h"
 #include "mock.h"
 #include "test_helper.hpp"
 #include "tlv.h"
@@ -192,8 +194,9 @@ droppacket_test(ebpf_execution_type_t execution_type)
     // Test that we drop the packet and increment the map
     xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
 
-    REQUIRE(hook.fire(&ctx, &result) == EBPF_SUCCESS);
-    REQUIRE(result == 2);
+    int hook_result;
+    REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
+    REQUIRE(hook_result == 2);
 
     REQUIRE(
         ebpf_api_map_find_element(map_handle, sizeof(key), (uint8_t*)&key, sizeof(value), (uint8_t*)&value) ==
@@ -210,8 +213,8 @@ droppacket_test(ebpf_execution_type_t execution_type)
     packet = prepare_udp_packet(10);
     xdp_md_t ctx2{packet.data(), packet.data() + packet.size()};
 
-    REQUIRE(hook.fire(&ctx2, &result) == EBPF_SUCCESS);
-    REQUIRE(result == 1);
+    REQUIRE(hook.fire(&ctx2, &hook_result) == EBPF_SUCCESS);
+    REQUIRE(hook_result == 1);
 
     REQUIRE(
         ebpf_api_map_find_element(map_handle, sizeof(key), (uint8_t*)&key, sizeof(value), (uint8_t*)&value) ==
@@ -256,9 +259,10 @@ divide_by_zero_test(ebpf_execution_type_t execution_type)
     // Test that we drop the packet and increment the map
     xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
 
-    REQUIRE(hook.fire(&ctx, &result) == EBPF_SUCCESS);
+    int hook_result;
+    REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
     // uBPF returns -1 when the program hits a divide by zero error.
-    REQUIRE(result == -1);
+    REQUIRE(hook_result == -1);
 
     hook.detach();
 }
@@ -281,7 +285,7 @@ get_bind_count_for_pid(ebpf_handle_t handle, uint64_t pid)
 bind_action_t
 emulate_bind(single_instance_hook_t& hook, uint64_t pid, const char* appid)
 {
-    uint32_t result;
+    int result;
     std::string app_id = appid;
     bind_md_t ctx{0};
     ctx.app_id_start = (uint8_t*)app_id.c_str();
@@ -295,7 +299,7 @@ emulate_bind(single_instance_hook_t& hook, uint64_t pid, const char* appid)
 void
 emulate_unbind(single_instance_hook_t& hook, uint64_t pid, const char* appid)
 {
-    uint32_t result;
+    int result;
     std::string app_id = appid;
     bind_md_t ctx{0};
     ctx.process_id = pid;

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #include "api_internal.h"
+#include "bpf.h"
 #pragma warning(push)
 #pragma warning(disable : 4200)
 #include "libbpf.h"
@@ -181,4 +182,46 @@ int
 bpf_map__fd(const struct bpf_map* map)
 {
     return map ? map->map_fd : libbpf_err(-EINVAL);
+}
+
+int
+bpf_map_update_elem(int fd, const void* key, const void* value, uint64_t flags)
+{
+    if (flags != 0) {
+        return libbpf_err(EBPF_INVALID_ARGUMENT);
+    }
+
+    ebpf_map_t* map = ebpf_map_lookup(fd);
+    if (map == nullptr) {
+        return libbpf_err(EBPF_INVALID_FD);
+    }
+
+    uint32_t result = 0;
+    switch (map->map_definition.type) {
+    case BPF_MAP_TYPE_PROG_ARRAY: {
+        fd_t program_fd = *(fd_t*)value;
+        ebpf_program_t* program = ebpf_program_lookup(program_fd);
+        if (program == nullptr) {
+            return libbpf_err(EBPF_INVALID_FD);
+        }
+        result = ebpf_api_map_update_element_with_handle(
+            map->map_handle,
+            map->map_definition.key_size,
+            (const uint8_t*)key,
+            map->map_definition.value_size,
+            (const uint8_t*)value,
+            program->handle);
+        break;
+    }
+    default:
+        result = ebpf_api_map_update_element(
+            map->map_handle,
+            map->map_definition.key_size,
+            (const uint8_t*)key,
+            map->map_definition.value_size,
+            (const uint8_t*)value);
+        break;
+    }
+
+    return libbpf_err(result);
 }
