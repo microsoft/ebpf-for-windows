@@ -2,8 +2,10 @@
 // SPDX-License-Identifier: MIT
 
 #pragma once
+
+// This file must only include headers that are safe
+// to include in both user mode and kernel mode.
 #include "ebpf_core_structs.h"
-#include "ebpf_helpers.h"
 #include "ebpf_windows.h"
 
 typedef enum _ebpf_operation_id

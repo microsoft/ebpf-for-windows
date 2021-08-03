@@ -22,7 +22,7 @@ typedef unsigned char uint8_t;
 
 #pragma clang section data = "maps"
 ebpf_map_definition_t test_map = {.size = sizeof(ebpf_map_definition_t),
-                                  .type = EBPF_MAP_TYPE_HASH,
+                                  .type = BPF_MAP_TYPE_HASH,
                                   .key_size = sizeof(uint64_t),
                                   .value_size = sizeof(uint64_t),
                                   .max_entries = 1};
@@ -33,7 +33,7 @@ BindMonitor(bind_md_t* ctx)
 {
     uint64_t key = ctx->process_id;
 
-    uint64_t* value = ebpf_map_lookup_element(&test_map, &key);
+    uint64_t* value = bpf_map_lookup_elem(&test_map, &key);
 
     *value = 1;
 

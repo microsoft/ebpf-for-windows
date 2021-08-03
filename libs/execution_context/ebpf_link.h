@@ -12,7 +12,7 @@ extern "C"
 
     typedef GUID ebpf_attach_type_t;
     typedef struct _ebpf_link ebpf_link_t;
-    typedef struct _ebpf_program ebpf_program_t;
+    typedef struct bpf_program ebpf_program_t;
 
     /**
      * @brief Create a new link object.

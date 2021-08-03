@@ -37,7 +37,7 @@ typedef struct _ebpf_helper_function_prototype
     ebpf_argument_type_t arguments[5];
 } ebpf_helper_function_prototype_t;
 
-typedef struct _ebpf_program_info
+typedef struct bpf_prog_info
 {
     ebpf_program_type_descriptor_t program_type_descriptor;
     uint32_t count_of_helpers;

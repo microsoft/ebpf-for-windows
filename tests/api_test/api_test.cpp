@@ -11,13 +11,7 @@
 #include "catch_wrapper.hpp"
 #include "common_tests.h"
 #include "service_helper.h"
-
-namespace api_test {
-#pragma warning(push)
-#pragma warning(disable : 4201) // nonstandard extension used : nameless struct/union
-#include "../sample/ebpf.h"
-#pragma warning(pop)
-}; // namespace api_test
+#include "libbpf.h"
 
 #define SAMPLE_PATH ""
 
@@ -50,7 +44,7 @@ _program_load_helper(
     const char* file_name,
     const ebpf_program_type_t* program_type,
     ebpf_execution_type_t execution_type,
-    struct _ebpf_object** object,
+    struct bpf_object** object,
     fd_t* program_fd)
 {
     ebpf_result_t result;
@@ -69,7 +63,7 @@ _test_program_load(
     bool expected_to_load)
 {
     ebpf_result_t result;
-    struct _ebpf_object* object = nullptr;
+    struct bpf_object* object = nullptr;
     fd_t program_fd;
     ebpf_handle_t program_handle = INVALID_HANDLE_VALUE;
     ebpf_handle_t next_program_handle = INVALID_HANDLE_VALUE;
@@ -111,7 +105,7 @@ _test_program_load(
 
     ebpf_api_close_handle(program_handle);
     program_handle = INVALID_HANDLE_VALUE;
-    ebpf_object_close(object);
+    bpf_object__close(object);
 
     // We have closed both handles to the program. Program should be unloaded now.
     REQUIRE(ebpf_api_get_next_program(program_handle, &next_program_handle) == ERROR_SUCCESS);
@@ -122,68 +116,68 @@ static void
 _test_map_next_previous(const char* file_name, int expected_map_count)
 {
     ebpf_result_t result;
-    struct _ebpf_object* object = nullptr;
+    struct bpf_object* object = nullptr;
     fd_t program_fd;
     int map_count = 0;
-    struct _ebpf_map* previous = nullptr;
-    struct _ebpf_map* next = nullptr;
+    struct bpf_map* previous = nullptr;
+    struct bpf_map* next = nullptr;
     result = _program_load_helper(file_name, nullptr, EBPF_EXECUTION_ANY, &object, &program_fd);
     REQUIRE(result == EBPF_SUCCESS);
 
-    next = ebpf_map_next(previous, object);
+    next = bpf_map__next(previous, object);
     while (next != nullptr) {
         map_count++;
         previous = next;
-        next = ebpf_map_next(previous, object);
+        next = bpf_map__next(previous, object);
     }
     REQUIRE(map_count == expected_map_count);
 
     map_count = 0;
     previous = next = nullptr;
 
-    previous = ebpf_map_previous(next, object);
+    previous = bpf_map__prev(next, object);
     while (previous != nullptr) {
         map_count++;
         next = previous;
-        previous = ebpf_map_previous(next, object);
+        previous = bpf_map__prev(next, object);
     }
     REQUIRE(map_count == expected_map_count);
 
-    ebpf_object_close(object);
+    bpf_object__close(object);
 }
 
 static void
 _test_program_next_previous(const char* file_name, int expected_program_count)
 {
     ebpf_result_t result;
-    struct _ebpf_object* object = nullptr;
+    struct bpf_object* object = nullptr;
     fd_t program_fd;
     int program_count = 0;
-    struct _ebpf_program* previous = nullptr;
-    struct _ebpf_program* next = nullptr;
+    struct bpf_program* previous = nullptr;
+    struct bpf_program* next = nullptr;
     result = _program_load_helper(file_name, nullptr, EBPF_EXECUTION_ANY, &object, &program_fd);
     REQUIRE(result == EBPF_SUCCESS);
 
-    next = ebpf_program_next(previous, object);
+    next = bpf_program__next(previous, object);
     while (next != nullptr) {
         program_count++;
         previous = next;
-        next = ebpf_program_next(previous, object);
+        next = bpf_program__next(previous, object);
     }
     REQUIRE(program_count == expected_program_count);
 
     program_count = 0;
     previous = next = nullptr;
 
-    previous = ebpf_program_previous(next, object);
+    previous = bpf_program__prev(next, object);
     while (previous != nullptr) {
         program_count++;
         next = previous;
-        previous = ebpf_program_previous(next, object);
+        previous = bpf_program__prev(next, object);
     }
     REQUIRE(program_count == expected_program_count);
 
-    ebpf_object_close(object);
+    bpf_object__close(object);
 }
 
 TEST_CASE("pinned_map_enum", "[pinned_map_enum]")

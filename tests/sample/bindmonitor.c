@@ -17,13 +17,13 @@ typedef struct _process_entry
 
 #pragma clang section data = "maps"
 ebpf_map_definition_t process_map = {.size = sizeof(ebpf_map_definition_t),
-                                     .type = EBPF_MAP_TYPE_HASH,
+                                     .type = BPF_MAP_TYPE_HASH,
                                      .key_size = sizeof(uint64_t),
                                      .value_size = sizeof(process_entry_t),
                                      .max_entries = 1024};
 
 ebpf_map_definition_t limits_map = {.size = sizeof(ebpf_map_definition_t),
-                                    .type = EBPF_MAP_TYPE_ARRAY,
+                                    .type = BPF_MAP_TYPE_ARRAY,
                                     .key_size = sizeof(uint32_t),
                                     .value_size = sizeof(uint32_t),
                                     .max_entries = 1};
@@ -36,7 +36,7 @@ find_or_create_process_entry(bind_md_t* ctx)
     process_entry_t value = {0};
     int index;
 
-    entry = ebpf_map_lookup_element(&process_map, &key);
+    entry = bpf_map_lookup_elem(&process_map, &key);
     if (entry)
         return entry;
 
@@ -46,8 +46,8 @@ find_or_create_process_entry(bind_md_t* ctx)
     if (!ctx->app_id_start || !ctx->app_id_end)
         return entry;
 
-    ebpf_map_update_element(&process_map, &key, &value, 0);
-    entry = ebpf_map_lookup_element(&process_map, &key);
+    bpf_map_update_elem(&process_map, &key, &value, 0);
+    entry = bpf_map_lookup_elem(&process_map, &key);
     if (!entry)
         return entry;
 
@@ -71,7 +71,7 @@ BindMonitor(bind_md_t* ctx)
 {
     uint32_t limit_key = 0;
     process_entry_t* entry;
-    uint32_t* limit = ebpf_map_lookup_element(&limits_map, &limit_key);
+    uint32_t* limit = bpf_map_lookup_elem(&limits_map, &limit_key);
     if (!limit || *limit == 0)
         return BIND_PERMIT;
 
@@ -99,7 +99,7 @@ BindMonitor(bind_md_t* ctx)
 
     if (entry->count == 0) {
         uint64_t key = ctx->process_id;
-        ebpf_map_delete_element(&process_map, &key);
+        bpf_map_delete_elem(&process_map, &key);
     }
 
     return BIND_PERMIT;

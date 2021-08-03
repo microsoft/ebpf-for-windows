@@ -578,10 +578,10 @@ TEST_CASE("enumerate_and_query_maps", "[end_to_end]")
 
     ebpf_map_definition_t map_definitions[_countof(map_handles)];
     ebpf_map_definition_t process_map = {
-        sizeof(ebpf_map_definition_t), EBPF_MAP_TYPE_HASH, sizeof(uint64_t), sizeof(process_entry_t), 1024};
+        sizeof(ebpf_map_definition_t), BPF_MAP_TYPE_HASH, sizeof(uint64_t), sizeof(process_entry_t), 1024};
 
     ebpf_map_definition_t limits_map = {
-        sizeof(ebpf_map_definition_t), EBPF_MAP_TYPE_ARRAY, sizeof(uint32_t), sizeof(uint32_t), 1};
+        sizeof(ebpf_map_definition_t), BPF_MAP_TYPE_ARRAY, sizeof(uint32_t), sizeof(uint32_t), 1};
 
     for (size_t index = 0; index < _countof(map_handles); index++) {
         REQUIRE(

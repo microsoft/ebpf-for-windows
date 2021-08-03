@@ -14,16 +14,15 @@ extern "C"
 #endif
     typedef enum _ebpf_code_type ebpf_code_type_t;
 
-    typedef struct _ebpf_instuction
+    typedef struct _ebpf_instruction
     {
         uint8_t opcode;
         uint8_t dst : 4; //< Destination register
         uint8_t src : 4; //< Source register
         int16_t offset;
         int32_t imm; //< Immediate constant
-    } ebpf_instuction_t;
+    } ebpf_instruction_t;
 
-    typedef struct _ebpf_program ebpf_program_t;
     typedef struct _ebpf_program_parameters
     {
         ebpf_program_type_t program_type;
@@ -130,7 +129,7 @@ extern "C"
      *  program instance.
      */
     ebpf_result_t
-    ebpf_program_load_byte_code(ebpf_program_t* program, ebpf_instuction_t* instructions, size_t instruction_count);
+    ebpf_program_load_byte_code(ebpf_program_t* program, ebpf_instruction_t* instructions, size_t instruction_count);
 
     /**
      * @brief Invoke an ebpf_program_t instance.

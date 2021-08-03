@@ -19,10 +19,10 @@ extern "C"
         EBPF_OBJECT_PROGRAM,
     } ebpf_object_type_t;
 
-    typedef struct _ebpf_object ebpf_object_t;
+    typedef struct bpf_object ebpf_object_t;
     typedef void (*ebpf_free_object_t)(ebpf_object_t* object);
 
-    typedef struct _ebpf_object
+    typedef struct bpf_object
     {
         uint32_t marker;
         volatile int32_t reference_count;

@@ -9,6 +9,7 @@
 
 #include "catch_wrapper.hpp"
 #include "common_tests.h"
+#include "libbpf.h"
 #include "service_helper.h"
 #include "test_ext_app.h"
 
@@ -39,7 +40,7 @@ _program_load_helper(
     _In_z_ const char* file_name,
     _In_ const ebpf_program_type_t* program_type,
     ebpf_execution_type_t execution_type,
-    _Outptr_ struct _ebpf_object** object,
+    _Outptr_ struct bpf_object** object,
     _Out_ fd_t* program_fd)
 {
     ebpf_result_t result;
@@ -53,7 +54,7 @@ _program_load_helper(
 TEST_CASE("test_test", "[test_test]")
 {
     ebpf_result_t result;
-    struct _ebpf_object* object = nullptr;
+    struct bpf_object* object = nullptr;
     fd_t program_fd;
     ebpf_handle_t program_handle = INVALID_HANDLE_VALUE;
     ebpf_handle_t next_program_handle = INVALID_HANDLE_VALUE;
@@ -104,7 +105,7 @@ TEST_CASE("test_test", "[test_test]")
             nullptr) == TRUE);
 
     ebpf_api_close_handle(program_handle);
-    ebpf_object_close(object);
+    bpf_object__close(object);
     if (device_handle != INVALID_HANDLE_VALUE)
         ::CloseHandle(device_handle);
 

@@ -23,7 +23,7 @@ typedef struct _ebpf_map_function_table
     ebpf_result_t (*next_key)(_In_ ebpf_core_map_t* map, _In_ const uint8_t* previous_key, _Out_ uint8_t* next_key);
 } ebpf_map_function_table_t;
 
-extern ebpf_map_function_table_t ebpf_map_function_tables[EBPF_MAP_TYPE_ARRAY + 1];
+extern ebpf_map_function_table_t ebpf_map_function_tables[BPF_MAP_TYPE_ARRAY + 1];
 
 ebpf_result_t
 ebpf_map_create(_In_ const ebpf_map_definition_t* ebpf_map_definition, _Outptr_ ebpf_map_t** ebpf_map)
@@ -31,7 +31,7 @@ ebpf_map_create(_In_ const ebpf_map_definition_t* ebpf_map_definition, _Outptr_ 
     ebpf_map_t* local_map = NULL;
     size_t type = ebpf_map_definition->type;
 
-    if (ebpf_map_definition->type > EBPF_MAP_TYPE_ARRAY)
+    if (ebpf_map_definition->type > BPF_MAP_TYPE_ARRAY)
         return EBPF_INVALID_ARGUMENT;
 
     if (!ebpf_map_function_tables[type].create_map)
@@ -306,16 +306,16 @@ ebpf_next_hash_map_key(_In_ ebpf_core_map_t* map, _In_ const uint8_t* previous_k
 }
 
 ebpf_map_function_table_t ebpf_map_function_tables[] = {
-    {// EBPF_MAP_TYPE_UNSPECIFIED
+    {// BPF_MAP_TYPE_UNSPECIFIED
      NULL},
-    {// EBPF_MAP_TYPE_HASH
+    {// BPF_MAP_TYPE_HASH
      ebpf_create_hash_map,
      ebpf_delete_hash_map,
      ebpf_find_hash_map_entry,
      ebpf_update_hash_map_entry,
      ebpf_delete_hash_map_entry,
      ebpf_next_hash_map_key},
-    {// EBPF_MAP_TYPE_ARRAY
+    {// BPF_MAP_TYPE_ARRAY
      ebpf_create_array_map,
      ebpf_delete_array_map,
      ebpf_find_array_map_entry,

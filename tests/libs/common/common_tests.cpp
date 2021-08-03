@@ -18,7 +18,7 @@ ebpf_test_pinned_map_enum()
     ebpf_map_info_t* map_info = nullptr;
 
     REQUIRE(
-        (result = ebpf_api_create_map(EBPF_MAP_TYPE_ARRAY, sizeof(uint32_t), sizeof(uint64_t), 1024, 0, &map_handle)) ==
+        (result = ebpf_api_create_map(BPF_MAP_TYPE_ARRAY, sizeof(uint32_t), sizeof(uint64_t), 1024, 0, &map_handle)) ==
         EBPF_SUCCESS);
 
     if (result != EBPF_SUCCESS)

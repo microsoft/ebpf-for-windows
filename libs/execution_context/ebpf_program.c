@@ -11,7 +11,7 @@
 typedef struct _FILE FILE;
 #include "ubpf.h"
 
-typedef struct _ebpf_program
+typedef struct bpf_program
 {
     ebpf_object_t object;
 
@@ -389,7 +389,7 @@ _ebpf_program_register_helpers(ebpf_program_t* program)
 }
 
 ebpf_result_t
-ebpf_program_load_byte_code(ebpf_program_t* program, ebpf_instuction_t* instructions, size_t instruction_count)
+ebpf_program_load_byte_code(ebpf_program_t* program, ebpf_instruction_t* instructions, size_t instruction_count)
 {
     ebpf_result_t return_value;
     char* error_message = NULL;
@@ -418,7 +418,7 @@ ebpf_program_load_byte_code(ebpf_program_t* program, ebpf_instuction_t* instruct
     if (ubpf_load(
             program->code_or_vm.vm,
             instructions,
-            (uint32_t)(instruction_count * sizeof(ebpf_instuction_t)),
+            (uint32_t)(instruction_count * sizeof(ebpf_instruction_t)),
             &error_message) != 0) {
         ebpf_free(error_message);
         return_value = EBPF_INVALID_ARGUMENT;

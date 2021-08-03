@@ -67,10 +67,9 @@ ebpf_api_create_map(
 {
     UNREFERENCED_PARAMETER(map_flags);
 
-    _ebpf_operation_create_map_request request{
-        sizeof(_ebpf_operation_create_map_request),
-        ebpf_operation_id_t::EBPF_OPERATION_CREATE_MAP,
-        {sizeof(struct _ebpf_map_definition), type, key_size, value_size, max_entries}};
+    _ebpf_operation_create_map_request request{sizeof(_ebpf_operation_create_map_request),
+                                               ebpf_operation_id_t::EBPF_OPERATION_CREATE_MAP,
+                                               {sizeof(struct bpf_map), type, key_size, value_size, max_entries}};
 
     _ebpf_operation_create_map_reply reply{};
 
@@ -832,7 +831,7 @@ ebpf_program_load(
     _In_opt_ const ebpf_program_type_t* program_type,
     _In_opt_ const ebpf_attach_type_t* attach_type,
     _In_ ebpf_execution_type_t execution_type,
-    _Outptr_ struct _ebpf_object** object,
+    _Outptr_ struct bpf_object** object,
     _Out_ fd_t* program_fd,
     _Outptr_result_maybenull_z_ const char** log_buffer)
 {
@@ -938,8 +937,8 @@ Done:
     return result;
 }
 
-_Ret_maybenull_ struct _ebpf_program*
-ebpf_program_next(_In_opt_ const struct _ebpf_program* previous, _In_ const struct _ebpf_object* object)
+_Ret_maybenull_ struct bpf_program*
+ebpf_program_next(_In_opt_ const struct bpf_program* previous, _In_ const struct bpf_object* object)
 {
     ebpf_program_t* program = nullptr;
     if (object == nullptr) {
@@ -964,8 +963,8 @@ Exit:
     return program;
 }
 
-_Ret_maybenull_ struct _ebpf_program*
-ebpf_program_previous(_In_opt_ const struct _ebpf_program* next, _In_ const struct _ebpf_object* object)
+_Ret_maybenull_ struct bpf_program*
+ebpf_program_previous(_In_opt_ const struct bpf_program* next, _In_ const struct bpf_object* object)
 {
     ebpf_program_t* program = nullptr;
     if (object == nullptr) {
@@ -990,8 +989,8 @@ Exit:
     return program;
 }
 
-_Ret_maybenull_ struct _ebpf_map*
-ebpf_map_next(_In_opt_ const struct _ebpf_map* previous, _In_ const struct _ebpf_object* object)
+_Ret_maybenull_ struct bpf_map*
+ebpf_map_next(_In_opt_ const struct bpf_map* previous, _In_ const struct bpf_object* object)
 {
     ebpf_map_t* map = nullptr;
     if (object == nullptr) {
@@ -1016,8 +1015,8 @@ Exit:
     return map;
 }
 
-_Ret_maybenull_ struct _ebpf_map*
-ebpf_map_previous(_In_opt_ const struct _ebpf_map* next, _In_ const struct _ebpf_object* object)
+_Ret_maybenull_ struct bpf_map*
+ebpf_map_previous(_In_opt_ const struct bpf_map* next, _In_ const struct bpf_object* object)
 {
     ebpf_map_t* map = nullptr;
     if (object == nullptr) {
@@ -1043,7 +1042,7 @@ Exit:
 }
 
 fd_t
-ebpf_program_get_fd(_In_ const struct _ebpf_program* program)
+ebpf_program_get_fd(_In_ const struct bpf_program* program)
 {
     if (program == nullptr) {
         return ebpf_fd_invalid;
@@ -1052,7 +1051,7 @@ ebpf_program_get_fd(_In_ const struct _ebpf_program* program)
 }
 
 fd_t
-ebpf_map_get_fd(_In_ const struct _ebpf_map* map)
+ebpf_map_get_fd(_In_ const struct bpf_map* map)
 {
     if (map == nullptr) {
         return ebpf_fd_invalid;
@@ -1061,7 +1060,7 @@ ebpf_map_get_fd(_In_ const struct _ebpf_map* map)
 }
 
 void
-ebpf_object_close(_In_ _Post_invalid_ struct _ebpf_object* object)
+ebpf_object_close(_In_ _Post_invalid_ struct bpf_object* object)
 {
     if (object == nullptr) {
         return;
