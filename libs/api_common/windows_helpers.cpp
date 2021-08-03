@@ -14,6 +14,8 @@
 #include "ebpf_result.h"
 #include "ebpf_serialize.h"
 #include "ebpf_xdp_program_data.h"
+#include "ebpf_flow_program_data.h"
+#include "ebpf_mac_program_data.h"
 #include "platform.h"
 #include "platform.hpp"
 

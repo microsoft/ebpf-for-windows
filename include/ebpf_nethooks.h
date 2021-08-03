@@ -78,7 +78,7 @@ bind_hook_t(bind_md_t* context);
 
 
 // Five-tuple Struct
-typedef struct five_tuple
+typedef struct _five_tuple
 {
     bool v4;
     uint8_t source_ip[16];

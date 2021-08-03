@@ -44,6 +44,18 @@ const ebpf_context_descriptor_t g_bind_context_descriptor = {
 const EbpfProgramType windows_bind_program_type =
     PTYPE("bind", &g_bind_context_descriptor, (uint64_t)&EBPF_PROGRAM_TYPE_BIND, {"bind"});
 
+const ebpf_context_descriptor_t g_flow_context_descriptor = {
+    sizeof(flow_md_t), 0, EBPF_OFFSET_OF(flow_md_t, app_id) + sizeof(uint64_t), -1};
+
+const EbpfProgramType windows_flow_program_type =
+    PTYPE("flow", &g_flow_context_descriptor, (uint64_t)&EBPF_PROGRAM_TYPE_FLOW, {"flow"});
+
+const ebpf_context_descriptor_t g_mac_context_descriptor = {
+    sizeof(mac_md_t), 0, EBPF_OFFSET_OF(mac_md_t, packet_length) + sizeof(uint64_t), -1};
+
+const EbpfProgramType windows_mac_program_type =
+    PTYPE("mac", &g_mac_context_descriptor, (uint64_t)&EBPF_PROGRAM_TYPE_MAC, {"mac"});
+
 const ebpf_context_descriptor_t g_test_ext_context_descriptor = {
     sizeof(test_program_context_t),
     EBPF_OFFSET_OF(test_program_context_t, data_start),
@@ -57,12 +69,16 @@ const EbpfProgramType windows_test_ext_program_type =
 const std::vector<EbpfProgramType> windows_program_types = {PTYPE("unspecified", {0}, 0, {}),
                                                             windows_xdp_program_type,
                                                             windows_bind_program_type,
-                                                            windows_test_ext_program_type};
+                                                            windows_test_ext_program_type,
+                                                            windows_flow_program_type,
+                                                            windows_mac_program_type};
 
 const std::map<ebpf_program_type_t*, ebpf_attach_type_t*> windows_program_type_to_attach_type = {
     {&EBPF_PROGRAM_TYPE_XDP, &EBPF_ATTACH_TYPE_XDP},
     {&EBPF_PROGRAM_TYPE_BIND, &EBPF_ATTACH_TYPE_BIND},
     {&EBPF_PROGRAM_TYPE_TEST, &EBPF_ATTACH_TYPE_TEST},
+    {&EBPF_PROGRAM_TYPE_FLOW, &EBPF_ATTACH_TYPE_FLOW},
+    {&EBPF_PROGRAM_TYPE_MAC, &EBPF_ATTACH_TYPE_MAC},
 };
 
 EbpfProgramType
