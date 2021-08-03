@@ -67,9 +67,10 @@ ebpf_api_create_map(
 {
     UNREFERENCED_PARAMETER(map_flags);
 
-    _ebpf_operation_create_map_request request{sizeof(_ebpf_operation_create_map_request),
-                                               ebpf_operation_id_t::EBPF_OPERATION_CREATE_MAP,
-                                               {sizeof(struct bpf_map), type, key_size, value_size, max_entries}};
+    _ebpf_operation_create_map_request request{
+        sizeof(_ebpf_operation_create_map_request),
+        ebpf_operation_id_t::EBPF_OPERATION_CREATE_MAP,
+        {sizeof(struct _ebpf_map_definition), type, key_size, value_size, max_entries}};
 
     _ebpf_operation_create_map_reply reply{};
 
@@ -471,9 +472,10 @@ ebpf_api_get_next_map(ebpf_handle_t previous_handle, ebpf_handle_t* next_handle)
 uint32_t
 ebpf_api_get_next_program(ebpf_handle_t previous_handle, ebpf_handle_t* next_handle)
 {
-    _ebpf_operation_get_next_program_request request{sizeof(request),
-                                                     ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_PROGRAM,
-                                                     reinterpret_cast<uint64_t>(previous_handle)};
+    _ebpf_operation_get_next_program_request request{
+        sizeof(request),
+        ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_PROGRAM,
+        reinterpret_cast<uint64_t>(previous_handle)};
 
     _ebpf_operation_get_next_program_reply reply;
 
