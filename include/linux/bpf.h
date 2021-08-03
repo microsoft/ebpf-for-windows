@@ -38,3 +38,8 @@ enum bpf_stats_type
 {
     BPF_STATS_TYPE_UNKNOWN
 };
+
+struct bpf_prog_info
+{
+    int data;
+};

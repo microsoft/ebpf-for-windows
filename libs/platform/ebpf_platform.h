@@ -707,7 +707,7 @@ extern "C"
     ebpf_get_trampoline_function(
         _In_ const ebpf_trampoline_table_t* trampoline_table, size_t index, _Out_ void** function);
 
-    typedef struct bpf_prog_info ebpf_program_info_t;
+    typedef struct _ebpf_program_info ebpf_program_info_t;
 
     /**
      * @brief Serialize an ebpf_program_info_t structure into a flat
