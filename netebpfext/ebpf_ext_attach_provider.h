@@ -36,6 +36,7 @@ _Releases_lock_(registration) void ebpf_ext_attach_leave_rundown(
 /**
  * @brief Register as a attach type provider.
  *
+ * @param[in] program_type Permitted program type.
  * @param[in] attach_type Attach type to register for.
  * @param[in] execution_type Execution type for the hook (passive or dispatch).
  * @param[out] registration Registration to complete.
@@ -45,6 +46,7 @@ _Releases_lock_(registration) void ebpf_ext_attach_leave_rundown(
  */
 ebpf_result_t
 ebpf_ext_attach_register_provider(
+    _In_ const ebpf_program_type_t* program_type,
     _In_ const ebpf_attach_type_t* attach_type,
     ebpf_ext_hook_execution_t execution_type,
     _Outptr_ ebpf_ext_attach_hook_provider_registration_t** registration);

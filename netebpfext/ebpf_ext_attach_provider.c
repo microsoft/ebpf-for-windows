@@ -8,7 +8,8 @@ typedef ebpf_result_t (*ebpf_ext_attach_hook_function_t)(
 
 typedef struct _ebpf_ext_attach_hook_provider_registration
 {
-    ebpf_extension_data_t* provider_data;
+    ebpf_extension_data_t provider_data;
+    ebpf_attach_provider_data_t attach_provider_data;
     ebpf_extension_provider_t* provider;
     GUID client_id;
     volatile void* client_binding_context;
@@ -184,6 +185,7 @@ _Releases_lock_(registration) void ebpf_ext_attach_leave_rundown(
 
 ebpf_result_t
 ebpf_ext_attach_register_provider(
+    _In_ const ebpf_program_type_t* program_type,
     _In_ const ebpf_attach_type_t* attach_type,
     ebpf_ext_hook_execution_t execution_type,
     _Outptr_ ebpf_ext_attach_hook_provider_registration_t** registration)
@@ -198,6 +200,10 @@ ebpf_ext_attach_register_provider(
     }
 
     memset(local_registration, 0, sizeof(ebpf_ext_attach_hook_provider_registration_t));
+    local_registration->attach_provider_data.supported_program_type = *program_type;
+    local_registration->provider_data.version = EBPF_ATTACH_PROVIDER_DATA_VERSION;
+    local_registration->provider_data.size = sizeof(local_registration->attach_provider_data);
+    local_registration->provider_data.data = &local_registration->attach_provider_data;
 
     _ebpf_ext_attach_init_rundown(local_registration, execution_type);
 
@@ -205,7 +211,7 @@ ebpf_ext_attach_register_provider(
         &local_registration->provider,
         attach_type,
         local_registration,
-        local_registration->provider_data,
+        &local_registration->provider_data,
         NULL,
         local_registration,
         _ebpf_ext_attach_provider_client_attach_callback,
