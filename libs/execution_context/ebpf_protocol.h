@@ -2,8 +2,10 @@
 // SPDX-License-Identifier: MIT
 
 #pragma once
+
+// This file must only include headers that are safe
+// to include in both user mode and kernel mode.
 #include "ebpf_core_structs.h"
-#include "ebpf_helpers.h"
 #include "ebpf_windows.h"
 
 typedef enum _ebpf_operation_id
@@ -24,6 +26,7 @@ typedef enum _ebpf_operation_id
     EBPF_OPERATION_UPDATE_PINNING,
     EBPF_OPERATION_GET_PINNING,
     EBPF_OPERATION_LINK_PROGRAM,
+    EBPF_OPERATION_UNLINK_PROGRAM,
     EBPF_OPERATION_CLOSE_HANDLE,
     EBPF_OPERATION_GET_EC_FUNCTION,
     EBPF_OPERATION_GET_PROGRAM_INFO,
@@ -232,6 +235,12 @@ typedef struct _ebpf_operation_link_program_reply
     struct _ebpf_operation_header header;
     uint64_t link_handle;
 } ebpf_operation_link_program_reply_t;
+
+typedef struct _ebpf_operation_unlink_program_request
+{
+    struct _ebpf_operation_header header;
+    uint64_t link_handle;
+} ebpf_operation_unlink_program_request_t;
 
 typedef struct _ebpf_operation_close_handle_request
 {

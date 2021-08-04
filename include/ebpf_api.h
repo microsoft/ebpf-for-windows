@@ -70,9 +70,9 @@ extern "C"
     const ebpf_handle_t ebpf_handle_invalid = (ebpf_handle_t)-1;
     typedef struct _tlv_type_length_value tlv_type_length_value_t;
 
-    struct _ebpf_object;
-    struct _ebpf_program;
-    struct _ebpf_map;
+    struct bpf_object;
+    struct bpf_program;
+    struct bpf_map;
 
     /**
      *  @brief Initialize the eBPF user mode library.
@@ -355,6 +355,17 @@ extern "C"
     ebpf_api_link_program(ebpf_handle_t program_handle, ebpf_attach_type_t attach_type, ebpf_handle_t* link_handle);
 
     /**
+     * @brief Detach the eBPF program from the link.
+     *
+     * @param[in] link_handle Handle to the link.
+     *
+     * @retval ERROR_SUCCESS The operations succeeded.
+     * @retval ERROR_INVALID_PARAMETER The link handle is invalid.
+     */
+    uint32_t
+    ebpf_api_unlink_program(ebpf_handle_t link_handle);
+
+    /**
      * @brief Close an eBPF handle.
      *
      * @param[in] handle Handle to close.
@@ -431,76 +442,9 @@ extern "C"
         _In_opt_ const ebpf_program_type_t* program_type,
         _In_opt_ const ebpf_attach_type_t* attach_type,
         _In_ ebpf_execution_type_t execution_type,
-        _Outptr_ struct _ebpf_object** object,
+        _Outptr_ struct bpf_object** object,
         _Out_ fd_t* program_fd,
         _Outptr_result_maybenull_z_ const char** log_buffer);
-
-    /**
-     * @brief Get next program in ebpf_object object.
-     *
-     * @param[in] previous Pointer to previous eBPF program, or NULL to get the first one.
-     * @param[in] object Pointer to eBPF object.
-     * @return Pointer to the next program, or NULL if none.
-     */
-    _Ret_maybenull_ struct _ebpf_program*
-    ebpf_program_next(_In_opt_ const struct _ebpf_program* previous, _In_ const struct _ebpf_object* object);
-
-    /**
-     * @brief Get previous program in ebpf_object object.
-     *
-     * @param[in] next Pointer to next eBPF program, or NULL to get the last one.
-     * @param[in] object Pointer to eBPF object.
-     * @return Pointer to the previous program, or NULL if none.
-     */
-    _Ret_maybenull_ struct _ebpf_program*
-    ebpf_program_previous(_In_opt_ const struct _ebpf_program* next, _In_ const struct _ebpf_object* object);
-
-    /**
-     * @brief Get next map in ebpf_object object.
-     *
-     * @param[in] previous Pointer to previous eBPF map, or NULL to get the first one.
-     * @param[in] object Pointer to eBPF object.
-     * @return Pointer to the next map, or NULL if none.
-     */
-    _Ret_maybenull_ struct _ebpf_map*
-    ebpf_map_next(_In_opt_ const struct _ebpf_map* previous, _In_ const struct _ebpf_object* object);
-
-    /**
-     * @brief Get previous map in ebpf_object object.
-     *
-     * @param[in] next Pointer to next eBPF map, or NULL to get the last one.
-     * @param[in] object Pointer to eBPF object.
-     * @return Pointer to the previous map, or NULL if none.
-     */
-    _Ret_maybenull_ struct _ebpf_map*
-    ebpf_map_previous(_In_opt_ const struct _ebpf_map* next, _In_ const struct _ebpf_object* object);
-
-    /**
-     * @brief Fetch fd for a program object.
-     *
-     * @param[in] program Pointer to eBPF program.
-     * @return fd for the program on success, ebpf_fd_invalid on failure.
-     */
-    fd_t
-    ebpf_program_get_fd(_In_ const struct _ebpf_program* program);
-
-    /**
-     * @brief Fetch fd for a map object.
-     *
-     * @param[in] map Pointer to eBPF map.
-     * @return fd for the map on success, ebpf_fd_invalid on failure.
-     */
-    fd_t
-    ebpf_map_get_fd(_In_ const struct _ebpf_map* map);
-
-    /**
-     * @brief Clean up ebpf_object. Also delete all the sub objects
-     * (maps, programs) and close the related file descriptors.
-     *
-     * @param[in] object Pointer to ebpf_object.
-     */
-    void
-    ebpf_object_close(_In_ _Post_invalid_ struct _ebpf_object* object);
 
 #ifdef __cplusplus
 }

@@ -3,6 +3,7 @@
 
 #include "pch.h"
 
+#include <fcntl.h>
 #include <io.h>
 #include "api_common.hpp"
 #include "api_internal.h"
@@ -471,9 +472,10 @@ ebpf_api_get_next_map(ebpf_handle_t previous_handle, ebpf_handle_t* next_handle)
 uint32_t
 ebpf_api_get_next_program(ebpf_handle_t previous_handle, ebpf_handle_t* next_handle)
 {
-    _ebpf_operation_get_next_program_request request{sizeof(request),
-                                                     ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_PROGRAM,
-                                                     reinterpret_cast<uint64_t>(previous_handle)};
+    _ebpf_operation_get_next_program_request request{
+        sizeof(request),
+        ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_PROGRAM,
+        reinterpret_cast<uint64_t>(previous_handle)};
 
     _ebpf_operation_get_next_program_reply reply;
 
@@ -553,6 +555,15 @@ ebpf_api_link_program(ebpf_handle_t program_handle, ebpf_attach_type_t attach_ty
 
     *link_handle = reinterpret_cast<ebpf_handle_t>(reply.link_handle);
     return retval;
+}
+
+uint32_t
+ebpf_api_unlink_program(ebpf_handle_t link_handle)
+{
+    ebpf_operation_unlink_program_request_t request = {
+        sizeof(request), EBPF_OPERATION_UNLINK_PROGRAM, reinterpret_cast<uint64_t>(link_handle)};
+
+    return invoke_ioctl(request);
 }
 
 uint32_t
@@ -677,7 +688,7 @@ clean_up_ebpf_program(_In_ _Post_invalid_ ebpf_program_t* program)
         _ebpf_programs.erase(program->fd);
     }
     if (program->handle != ebpf_handle_invalid) {
-        CloseHandle(program->handle);
+        Platform::CloseHandle(program->handle);
     }
     free(program->byte_code);
     free(program->program_name);
@@ -702,7 +713,7 @@ clean_up_ebpf_map(_In_ _Post_invalid_ ebpf_map_t* map)
         _ebpf_maps.erase(map->map_fd);
     }
     if (map->map_handle != ebpf_handle_invalid) {
-        CloseHandle(map->map_handle);
+        Platform::CloseHandle(map->map_handle);
     }
 
     free(map);
@@ -758,10 +769,10 @@ _initialize_map(_Out_ ebpf_map_t* map, _In_ const ebpf_object_t* object, _In_ co
     map->object = object;
     map->map_handle = (ebpf_handle_t)map_cache.handle;
     map->map_fd = map_cache.ebpf_map_descriptor.original_fd;
-    map->map_defintion.type = (ebpf_map_type_t)map_cache.ebpf_map_descriptor.type;
-    map->map_defintion.key_size = map_cache.ebpf_map_descriptor.key_size;
-    map->map_defintion.value_size = map_cache.ebpf_map_descriptor.value_size;
-    map->map_defintion.max_entries = map_cache.ebpf_map_descriptor.max_entries;
+    map->map_definition.type = (ebpf_map_type_t)map_cache.ebpf_map_descriptor.type;
+    map->map_definition.key_size = map_cache.ebpf_map_descriptor.key_size;
+    map->map_definition.value_size = map_cache.ebpf_map_descriptor.value_size;
+    map->map_definition.max_entries = map_cache.ebpf_map_descriptor.max_entries;
     map->pinned = false;
     map->pin_path = nullptr;
 }
@@ -822,7 +833,7 @@ ebpf_program_load(
     _In_opt_ const ebpf_program_type_t* program_type,
     _In_opt_ const ebpf_attach_type_t* attach_type,
     _In_ ebpf_execution_type_t execution_type,
-    _Outptr_ struct _ebpf_object** object,
+    _Outptr_ struct bpf_object** object,
     _Out_ fd_t* program_fd,
     _Outptr_result_maybenull_z_ const char** log_buffer)
 {
@@ -928,8 +939,8 @@ Done:
     return result;
 }
 
-_Ret_maybenull_ struct _ebpf_program*
-ebpf_program_next(_In_opt_ const struct _ebpf_program* previous, _In_ const struct _ebpf_object* object)
+_Ret_maybenull_ struct bpf_program*
+ebpf_program_next(_In_opt_ const struct bpf_program* previous, _In_ const struct bpf_object* object)
 {
     ebpf_program_t* program = nullptr;
     if (object == nullptr) {
@@ -954,8 +965,8 @@ Exit:
     return program;
 }
 
-_Ret_maybenull_ struct _ebpf_program*
-ebpf_program_previous(_In_opt_ const struct _ebpf_program* next, _In_ const struct _ebpf_object* object)
+_Ret_maybenull_ struct bpf_program*
+ebpf_program_previous(_In_opt_ const struct bpf_program* next, _In_ const struct bpf_object* object)
 {
     ebpf_program_t* program = nullptr;
     if (object == nullptr) {
@@ -980,8 +991,8 @@ Exit:
     return program;
 }
 
-_Ret_maybenull_ struct _ebpf_map*
-ebpf_map_next(_In_opt_ const struct _ebpf_map* previous, _In_ const struct _ebpf_object* object)
+_Ret_maybenull_ struct bpf_map*
+ebpf_map_next(_In_opt_ const struct bpf_map* previous, _In_ const struct bpf_object* object)
 {
     ebpf_map_t* map = nullptr;
     if (object == nullptr) {
@@ -1006,8 +1017,8 @@ Exit:
     return map;
 }
 
-_Ret_maybenull_ struct _ebpf_map*
-ebpf_map_previous(_In_opt_ const struct _ebpf_map* next, _In_ const struct _ebpf_object* object)
+_Ret_maybenull_ struct bpf_map*
+ebpf_map_previous(_In_opt_ const struct bpf_map* next, _In_ const struct bpf_object* object)
 {
     ebpf_map_t* map = nullptr;
     if (object == nullptr) {
@@ -1033,7 +1044,7 @@ Exit:
 }
 
 fd_t
-ebpf_program_get_fd(_In_ const struct _ebpf_program* program)
+ebpf_program_get_fd(_In_ const struct bpf_program* program)
 {
     if (program == nullptr) {
         return ebpf_fd_invalid;
@@ -1042,7 +1053,7 @@ ebpf_program_get_fd(_In_ const struct _ebpf_program* program)
 }
 
 fd_t
-ebpf_map_get_fd(_In_ const struct _ebpf_map* map)
+ebpf_map_get_fd(_In_ const struct bpf_map* map)
 {
     if (map == nullptr) {
         return ebpf_fd_invalid;
@@ -1051,7 +1062,7 @@ ebpf_map_get_fd(_In_ const struct _ebpf_map* map)
 }
 
 void
-ebpf_object_close(_In_ _Post_invalid_ struct _ebpf_object* object)
+ebpf_object_close(_In_ _Post_invalid_ struct bpf_object* object)
 {
     if (object == nullptr) {
         return;

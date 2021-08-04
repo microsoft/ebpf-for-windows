@@ -23,13 +23,13 @@ typedef std::unique_ptr<uint8_t, ebpf_free_memory_t> ebpf_memory_t;
 typedef class _single_instance_hook
 {
   public:
-    _single_instance_hook(ebpf_program_type_t program_type)
+    _single_instance_hook(ebpf_program_type_t program_type, ebpf_attach_type_t attach_type)
         : provider(nullptr), client_binding_context(nullptr), client_data(nullptr), client_dispatch_table(nullptr),
           link_handle(nullptr)
     {
-        ebpf_guid_create(&attach_type);
         ebpf_guid_create(&client_id);
         attach_provider_data.supported_program_type = program_type;
+        this->attach_type = attach_type;
         REQUIRE(
             ebpf_provider_load(
                 &provider,
@@ -51,6 +51,13 @@ typedef class _single_instance_hook
 
     void
     detach()
+    {
+        ebpf_api_unlink_program(link_handle);
+        ebpf_api_close_handle(link_handle);
+    }
+
+    void
+    close_handle()
     {
         ebpf_api_close_handle(link_handle);
     }
@@ -120,15 +127,13 @@ static ebpf_helper_function_prototype_t _ebpf_map_helper_function_prototype[] = 
      EBPF_RETURN_TYPE_INTEGER,
      {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY}}};
 
-static ebpf_context_descriptor_t _ebpf_xdp_context_descriptor = {
-    sizeof(xdp_md_t),
-    EBPF_OFFSET_OF(xdp_md_t, data),
-    EBPF_OFFSET_OF(xdp_md_t, data_end),
-    EBPF_OFFSET_OF(xdp_md_t, data_meta)};
-static ebpf_program_info_t _ebpf_xdp_program_info = {
-    {"xdp", &_ebpf_xdp_context_descriptor, {0}},
-    EBPF_COUNT_OF(_ebpf_map_helper_function_prototype),
-    _ebpf_map_helper_function_prototype};
+static ebpf_context_descriptor_t _ebpf_xdp_context_descriptor = {sizeof(xdp_md_t),
+                                                                 EBPF_OFFSET_OF(xdp_md_t, data),
+                                                                 EBPF_OFFSET_OF(xdp_md_t, data_end),
+                                                                 EBPF_OFFSET_OF(xdp_md_t, data_meta)};
+static ebpf_program_info_t _ebpf_xdp_program_info = {{"xdp", &_ebpf_xdp_context_descriptor, {0}},
+                                                     EBPF_COUNT_OF(_ebpf_map_helper_function_prototype),
+                                                     _ebpf_map_helper_function_prototype};
 
 static ebpf_program_data_t _ebpf_xdp_program_data = {&_ebpf_xdp_program_info, NULL};
 
@@ -137,10 +142,9 @@ static ebpf_extension_data_t _ebpf_xdp_program_info_provider_data = {
 
 static ebpf_context_descriptor_t _ebpf_bind_context_descriptor = {
     sizeof(bind_md_t), EBPF_OFFSET_OF(bind_md_t, app_id_start), EBPF_OFFSET_OF(bind_md_t, app_id_end), -1};
-static ebpf_program_info_t _ebpf_bind_program_info = {
-    {"bind", &_ebpf_bind_context_descriptor, {0}},
-    EBPF_COUNT_OF(_ebpf_map_helper_function_prototype),
-    _ebpf_map_helper_function_prototype};
+static ebpf_program_info_t _ebpf_bind_program_info = {{"bind", &_ebpf_bind_context_descriptor, {0}},
+                                                      EBPF_COUNT_OF(_ebpf_map_helper_function_prototype),
+                                                      _ebpf_map_helper_function_prototype};
 
 static ebpf_program_data_t _ebpf_bind_program_data = {&_ebpf_bind_program_info, NULL};
 

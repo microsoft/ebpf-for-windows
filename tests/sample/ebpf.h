@@ -14,8 +14,10 @@ typedef unsigned char uint8_t;
 #include "ebpf_helpers.h"
 #include "ebpf_nethooks.h"
 
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4201) // nonstandard extension used : nameless struct/union
+#endif
 
 uint16_t
 ntohs(uint16_t us)
@@ -72,4 +74,6 @@ typedef struct UDP_HEADER_
     uint16_t checksum;
 } UDP_HEADER;
 
+#if defined(_MSC_VER)
 #pragma warning(pop)
+#endif

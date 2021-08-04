@@ -105,12 +105,12 @@ get_program_type_windows(const std::string& section, const std::string&)
     return windows_xdp_program_type;
 }
 
-#define EBPF_MAP_TYPE(x) EBPF_MAP_TYPE_##x, #x
+#define BPF_MAP_TYPE(x) BPF_MAP_TYPE_##x, #x
 
 static const EbpfMapType windows_map_types[] = {
-    {EBPF_MAP_TYPE(UNSPECIFIED)},
-    {EBPF_MAP_TYPE(HASH)},
-    {EBPF_MAP_TYPE(ARRAY), true},
+    {BPF_MAP_TYPE(UNSPECIFIED)},
+    {BPF_MAP_TYPE(HASH)},
+    {BPF_MAP_TYPE(ARRAY), true},
 };
 
 EbpfMapType
