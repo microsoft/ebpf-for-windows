@@ -36,7 +36,7 @@ ebpf_map_create(
     size_t type = ebpf_map_definition->type;
     ebpf_result_t result = EBPF_SUCCESS;
 
-    if (ebpf_map_definition->type > EBPF_MAP_TYPE_ARRAY) {
+    if (ebpf_map_definition->type > BPF_MAP_TYPE_ARRAY) {
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }

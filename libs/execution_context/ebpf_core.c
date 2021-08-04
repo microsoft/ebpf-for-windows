@@ -47,6 +47,7 @@ static ebpf_helper_function_prototype_t _ebpf_map_helper_function_prototype[] = 
 
 static ebpf_program_info_t _ebpf_global_helper_program_info = {{"global_helper", NULL, {0}},
                                                                EBPF_COUNT_OF(_ebpf_map_helper_function_prototype),
+                                                               _ebpf_map_helper_function_prototype};
 
 static const void* _ebpf_program_helpers[] = {NULL,
                                               (void*)&_ebpf_core_map_find_element,

@@ -457,7 +457,7 @@ extern "C"
      * @retval Result of the pinning operation.
      */
     ebpf_result_t
-    ebpf_program_pin(_In_ struct _ebpf_program* program, _In_z_ const char* path);
+    ebpf_program_pin(_In_ struct bpf_program* program, _In_z_ const char* path);
 
     /**
      * @brief Unpin an eBPF program from the specified path.
@@ -467,7 +467,7 @@ extern "C"
      * @retval Result of the unpin operation.
      */
     ebpf_result_t
-    ebpf_program_unpin(_In_ struct _ebpf_program* program, _In_z_ const char* path);
+    ebpf_program_unpin(_In_ struct bpf_program* program, _In_z_ const char* path);
 
     /**
      * @brief Pin an eBPF map to specified path.
@@ -477,7 +477,7 @@ extern "C"
      * @retval Result of the pinning operation.
      */
     ebpf_result_t
-    ebpf_map_pin(_In_ struct _ebpf_map* map, _In_opt_z_ const char* path);
+    ebpf_map_pin(_In_ struct bpf_map* map, _In_opt_z_ const char* path);
 
     /**
      * @brief Unpin an eBPF map from the specified path.
@@ -487,7 +487,7 @@ extern "C"
      * @retval Result of the unpin operation.
      */
     ebpf_result_t
-    ebpf_map_unpin(_In_ struct _ebpf_map* map, _In_z_ const char* path);
+    ebpf_map_unpin(_In_ struct bpf_map* map, _In_z_ const char* path);
 
     /**
      * @brief Set pin path for an eBPF map.
@@ -499,7 +499,7 @@ extern "C"
      * @retval EBPF_INVALID_ARGUMENT One or more parameters are wrong.
      */
     ebpf_result_t
-    ebpf_map_set_pin_path(_In_ struct _ebpf_map* map, _In_ const char* path);
+    ebpf_map_set_pin_path(_In_ struct bpf_map* map, _In_ const char* path);
 
     /**
      * @brief Find a map given its associated name.

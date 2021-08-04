@@ -3,8 +3,9 @@
 
 #pragma once
 
+#include "ebpf_helpers.h"
 #include "ebpf_platform.h"
-#include "ebpf_structs.h"
+// #include "ebpf_structs.h"
 
 #ifdef __cplusplus
 extern "C"
