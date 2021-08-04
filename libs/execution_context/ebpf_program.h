@@ -14,16 +14,15 @@ extern "C"
 #endif
     typedef enum _ebpf_code_type ebpf_code_type_t;
 
-    typedef struct _ebpf_instuction
+    typedef struct _ebpf_instruction
     {
         uint8_t opcode;
         uint8_t dst : 4; //< Destination register
         uint8_t src : 4; //< Source register
         int16_t offset;
         int32_t imm; //< Immediate constant
-    } ebpf_instuction_t;
+    } ebpf_instruction_t;
 
-    typedef struct _ebpf_program ebpf_program_t;
     typedef struct _ebpf_program_parameters
     {
         ebpf_program_type_t program_type;
@@ -64,11 +63,8 @@ extern "C"
      *
      * @param[in] program Program instance to query.
      * @param[in] program_parameters Parameters of the program.
-     * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
-     *  program instance.
      */
-    ebpf_result_t
+    void
     ebpf_program_get_properties(ebpf_program_t* program, ebpf_program_parameters_t* program_parameters);
 
     /**
@@ -133,7 +129,7 @@ extern "C"
      *  program instance.
      */
     ebpf_result_t
-    ebpf_program_load_byte_code(ebpf_program_t* program, ebpf_instuction_t* instructions, size_t instruction_count);
+    ebpf_program_load_byte_code(ebpf_program_t* program, ebpf_instruction_t* instructions, size_t instruction_count);
 
     /**
      * @brief Invoke an ebpf_program_t instance.
@@ -157,6 +153,24 @@ extern "C"
     ebpf_result_t
     ebpf_program_get_helper_function_address(
         const ebpf_program_t* program, uint32_t helper_function_id, uint64_t* address);
+
+    /**
+     * @brief Attach a link object to an eBPF program.
+     *
+     * @param[in] program Program to attach to the link object.
+     * @param[in] link The link object.
+     */
+    void
+    ebpf_program_attach_link(_Inout_ ebpf_program_t* program, _Inout_ ebpf_link_t* link);
+
+    /**
+     * @brief Detach a link object from the eBPF program it is attached to.
+     *
+     * @param[in] program Program to detach to the link object from.
+     * @param[in] link The link object.
+     */
+    void
+    ebpf_program_detach_link(_Inout_ ebpf_program_t* program, _Inout_ ebpf_link_t* link);
 
 #ifdef __cplusplus
 }

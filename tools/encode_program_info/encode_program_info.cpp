@@ -33,15 +33,15 @@ _emit_program_info_file(const char* file_name, const char* symbol_name, uint8_t*
 
 static ebpf_helper_function_prototype_t _ebpf_helper_function_prototype[] = {
     {1,
-     "ebpf_map_lookup_element",
+     "bpf_map_lookup_elem",
      EBPF_RETURN_TYPE_PTR_TO_MAP_VALUE_OR_NULL,
      {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY}},
     {2,
-     "ebpf_map_update_element",
+     "bpf_map_update_elem",
      EBPF_RETURN_TYPE_INTEGER,
      {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_VALUE}},
     {3,
-     "ebpf_map_delete_element",
+     "bpf_map_delete_elem",
      EBPF_RETURN_TYPE_INTEGER,
      {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY}}};
 

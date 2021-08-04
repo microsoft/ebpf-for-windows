@@ -6,6 +6,11 @@
 
 #include "ebpf_structs.h"
 
+// In an execution context, struct bpf_map means struct _ebpf_map_definition,
+// as opposed to for user mode apps, so define the alias here where the execution
+// context and eBPF programs will get it.
+#define bpf_map _ebpf_map_definition
+
 #ifndef __doxygen
 #define EBPF_HELPER(return_type, name, args) typedef return_type(*name##_t) args
 #endif
@@ -20,9 +25,9 @@
  * @param[in] key Key to use when searching map.
  * @return Pointer to the value if found or NULL.
  */
-EBPF_HELPER(void*, ebpf_map_lookup_element, (ebpf_map_definition_t * map, void* key));
+EBPF_HELPER(void*, bpf_map_lookup_elem, (struct bpf_map * map, void* key));
 #ifndef __doxygen
-#define ebpf_map_lookup_element ((ebpf_map_lookup_element_t)1)
+#define bpf_map_lookup_elem ((bpf_map_lookup_elem_t)1)
 #endif
 
 /**
@@ -36,9 +41,9 @@ EBPF_HELPER(void*, ebpf_map_lookup_element, (ebpf_map_definition_t * map, void* 
  * @retval EBPF_NO_MEMORY Unable to allocate resources for this
  *  entry.
  */
-EBPF_HELPER(int64_t, ebpf_map_update_element, (ebpf_map_definition_t * map, void* key, void* value, uint64_t flags));
+EBPF_HELPER(int64_t, bpf_map_update_elem, (struct bpf_map * map, void* key, void* value, uint64_t flags));
 #ifndef __doxygen
-#define ebpf_map_update_element ((ebpf_map_update_element_t)2)
+#define bpf_map_update_elem ((bpf_map_update_elem_t)2)
 #endif
 
 /**
@@ -50,20 +55,7 @@ EBPF_HELPER(int64_t, ebpf_map_update_element, (ebpf_map_definition_t * map, void
  * @retval EBPF_INVALID_ARGUMENT One or more parameters are
  *  invalid.
  */
-EBPF_HELPER(int64_t, ebpf_map_delete_element, (ebpf_map_definition_t * map, void* key));
+EBPF_HELPER(int64_t, bpf_map_delete_elem, (struct bpf_map * map, void* key));
 #ifndef __doxygen
-#define ebpf_map_delete_element ((ebpf_map_delete_element_t)3)
+#define bpf_map_delete_elem ((bpf_map_delete_elem_t)3)
 #endif
-
-//
-// Defines for cross-platform compatibility.
-//
-
-#define bpf_map _ebpf_map_definition
-#define bpf_map_lookup_elem ebpf_map_lookup_element
-#define bpf_map_update_elem ebpf_map_update_element
-#define bpf_map_delete_elem ebpf_map_delete_element
-
-#define BPF_MAP_TYPE_UNSPECIFIED EBPF_MAP_TYPE_UNSPECIFIED
-#define BPF_MAP_TYPE_HASH EBPF_MAP_TYPE_HASH
-#define BPF_MAP_TYPE_ARRAY EBPF_MAP_TYPE_ARRAY

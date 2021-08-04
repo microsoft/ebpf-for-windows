@@ -22,13 +22,18 @@ extern "C"
     typedef struct _ebpf_object ebpf_object_t;
     typedef void (*ebpf_free_object_t)(ebpf_object_t* object);
 
+    // This type probably ought to be renamed to avoid confusion with
+    // ebpf_object_t in libs\api\api_internal.h
     typedef struct _ebpf_object
     {
         uint32_t marker;
         volatile int32_t reference_count;
         ebpf_object_type_t type;
         ebpf_free_object_t free_function;
-        ebpf_list_entry_t entry;
+        // Used to insert object in the global tracking list.
+        ebpf_list_entry_t global_list_entry;
+        // Used to insert object in an object specific list.
+        ebpf_list_entry_t object_list_entry;
     } ebpf_object_t;
 
     /**

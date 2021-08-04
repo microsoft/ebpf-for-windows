@@ -226,15 +226,15 @@ TEST_CASE("program_type_info", "[platform]")
 
     ebpf_helper_function_prototype_t helper_functions[] = {
         {1,
-         "ebpf_map_lookup_element",
+         "bpf_map_lookup_elem",
          EBPF_RETURN_TYPE_PTR_TO_MAP_VALUE_OR_NULL,
          {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY}},
         {2,
-         "ebpf_map_update_element",
+         "bpf_map_update_elem",
          EBPF_RETURN_TYPE_INTEGER,
          {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_VALUE}},
         {3,
-         "ebpf_map_delete_element",
+         "bpf_map_delete_elem",
          EBPF_RETURN_TYPE_PTR_TO_MAP_VALUE_OR_NULL,
          {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY}},
     };
@@ -355,7 +355,7 @@ TEST_CASE("serialize_map_test", "[platform]")
     for (int i = 0; i < map_count; i++) {
         ebpf_map_info_internal_t* map_info = &internal_map_info_array[i];
         map_info->definition.size = (i + 1) * 32;
-        map_info->definition.type = static_cast<ebpf_map_type_t>(i % (EBPF_MAP_TYPE_ARRAY + 1));
+        map_info->definition.type = static_cast<ebpf_map_type_t>(i % (BPF_MAP_TYPE_ARRAY + 1));
         map_info->definition.key_size = i + 1;
         map_info->definition.value_size = (i + 1) * (i + 1);
         map_info->definition.max_entries = (i + 1) * 128;
