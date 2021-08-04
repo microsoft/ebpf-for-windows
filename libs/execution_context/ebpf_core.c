@@ -32,16 +32,16 @@ _ebpf_core_map_delete_element(ebpf_map_t* map, const uint8_t* key);
 #define EBPF_CORE_GLOBAL_HELPER_EXTENSION_VERSION 0
 
 static ebpf_helper_function_prototype_t _ebpf_map_helper_function_prototype[] = {
-    {(uint32_t)(intptr_t)ebpf_map_lookup_element,
-     "ebpf_map_lookup_element",
+    {(uint32_t)(intptr_t)bpf_map_lookup_elem,
+     "bpf_map_lookup_elem",
      EBPF_RETURN_TYPE_PTR_TO_MAP_VALUE_OR_NULL,
      {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY}},
-    {(uint32_t)(intptr_t)ebpf_map_update_element,
-     "ebpf_map_update_element",
+    {(uint32_t)(intptr_t)bpf_map_update_elem,
+     "bpf_map_update_elem",
      EBPF_RETURN_TYPE_INTEGER,
      {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_VALUE}},
-    {(uint32_t)(intptr_t)ebpf_map_delete_element,
-     "ebpf_map_delete_element",
+    {(uint32_t)(intptr_t)bpf_map_delete_elem,
+     "bpf_map_delete_elem",
      EBPF_RETURN_TYPE_INTEGER,
      {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY}}};
 
@@ -158,7 +158,7 @@ _ebpf_core_protocol_load_code(_In_ const ebpf_operation_load_code_request_t* req
         retval = ebpf_program_load_machine_code(program, code, code_length);
     } else {
         retval =
-            ebpf_program_load_byte_code(program, (ebpf_instuction_t*)code, code_length / sizeof(ebpf_instuction_t));
+            ebpf_program_load_byte_code(program, (ebpf_instruction_t*)code, code_length / sizeof(ebpf_instruction_t));
     }
 
     if (retval != EBPF_SUCCESS)

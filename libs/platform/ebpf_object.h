@@ -22,6 +22,8 @@ extern "C"
     typedef struct _ebpf_object ebpf_object_t;
     typedef void (*ebpf_free_object_t)(ebpf_object_t* object);
 
+    // This type probably ought to be renamed to avoid confusion with
+    // ebpf_object_t in libs\api\api_internal.h
     typedef struct _ebpf_object
     {
         uint32_t marker;

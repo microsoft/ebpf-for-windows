@@ -8,11 +8,11 @@
 #include "ebpf_windows.h"
 #include "spec_type_descriptors.hpp"
 
-struct _ebpf_object;
+struct bpf_object;
 
-typedef struct _ebpf_program
+typedef struct bpf_program
 {
-    struct _ebpf_object* object;
+    struct bpf_object* object;
     char* section_name;
     char* program_name;
     uint8_t* byte_code;
@@ -23,9 +23,9 @@ typedef struct _ebpf_program
     fd_t fd;
 } ebpf_program_t;
 
-typedef struct _ebpf_map
+typedef struct bpf_map
 {
-    const struct _ebpf_object* object;
+    const struct bpf_object* object;
     char* name;
     ebpf_handle_t map_handle;
     fd_t map_fd;
@@ -34,7 +34,7 @@ typedef struct _ebpf_map
     bool pinned;
 } ebpf_map_t;
 
-typedef struct _ebpf_object
+typedef struct bpf_object
 {
     char* file_name = nullptr;
     std::vector<ebpf_program_t*> programs;
@@ -62,3 +62,70 @@ clean_up_ebpf_programs(_Inout_ std::vector<ebpf_program_t*>& programs);
 
 void
 clean_up_ebpf_maps(_Inout_ std::vector<ebpf_map_t*>& maps);
+
+/**
+ * @brief Get next program in ebpf_object object.
+ *
+ * @param[in] previous Pointer to previous eBPF program, or NULL to get the first one.
+ * @param[in] object Pointer to eBPF object.
+ * @return Pointer to the next program, or NULL if none.
+ */
+_Ret_maybenull_ struct bpf_program*
+ebpf_program_next(_In_opt_ const struct bpf_program* previous, _In_ const struct bpf_object* object);
+
+/**
+ * @brief Get previous program in ebpf_object object.
+ *
+ * @param[in] next Pointer to next eBPF program, or NULL to get the last one.
+ * @param[in] object Pointer to eBPF object.
+ * @return Pointer to the previous program, or NULL if none.
+ */
+_Ret_maybenull_ struct bpf_program*
+ebpf_program_previous(_In_opt_ const struct bpf_program* next, _In_ const struct bpf_object* object);
+
+/**
+ * @brief Get next map in ebpf_object object.
+ *
+ * @param[in] previous Pointer to previous eBPF map, or NULL to get the first one.
+ * @param[in] object Pointer to eBPF object.
+ * @return Pointer to the next map, or NULL if none.
+ */
+_Ret_maybenull_ struct bpf_map*
+ebpf_map_next(_In_opt_ const struct bpf_map* previous, _In_ const struct bpf_object* object);
+
+/**
+ * @brief Get previous map in ebpf_object object.
+ *
+ * @param[in] next Pointer to next eBPF map, or NULL to get the last one.
+ * @param[in] object Pointer to eBPF object.
+ * @return Pointer to the previous map, or NULL if none.
+ */
+_Ret_maybenull_ struct bpf_map*
+ebpf_map_previous(_In_opt_ const struct bpf_map* next, _In_ const struct bpf_object* object);
+
+/**
+ * @brief Fetch fd for a program object.
+ *
+ * @param[in] program Pointer to eBPF program.
+ * @return fd for the program on success, ebpf_fd_invalid on failure.
+ */
+fd_t
+ebpf_program_get_fd(_In_ const struct bpf_program* program);
+
+/**
+ * @brief Fetch fd for a map object.
+ *
+ * @param[in] map Pointer to eBPF map.
+ * @return fd for the map on success, ebpf_fd_invalid on failure.
+ */
+fd_t
+ebpf_map_get_fd(_In_ const struct bpf_map* map);
+
+/**
+ * @brief Clean up ebpf_object. Also delete all the sub objects
+ * (maps, programs) and close the related file descriptors.
+ *
+ * @param[in] object Pointer to ebpf_object.
+ */
+void
+ebpf_object_close(_In_ _Post_invalid_ struct bpf_object* object);
