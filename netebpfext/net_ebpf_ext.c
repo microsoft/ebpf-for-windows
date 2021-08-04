@@ -59,39 +59,42 @@ static ebpf_extension_provider_t* _ebpf_mac_program_info_provider = NULL;
 
 #define NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION 0
 
-
-// XDP Hook
 static ebpf_context_descriptor_t _ebpf_xdp_context_descriptor = {
     sizeof(xdp_md_t),
     EBPF_OFFSET_OF(xdp_md_t, data),
     EBPF_OFFSET_OF(xdp_md_t, data_end),
     EBPF_OFFSET_OF(xdp_md_t, data_meta)};
 static ebpf_program_info_t _ebpf_xdp_program_info = {{"xdp", &_ebpf_xdp_context_descriptor, {0}}, 0, NULL};
+
 static ebpf_program_data_t _ebpf_xdp_program_data = {&_ebpf_xdp_program_info, NULL};
+
 static ebpf_extension_data_t _ebpf_xdp_program_info_provider_data = {
     NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_ebpf_xdp_program_data), &_ebpf_xdp_program_data};
 
-// Bind Hook
 static ebpf_context_descriptor_t _ebpf_bind_context_descriptor = {
     sizeof(bind_md_t), EBPF_OFFSET_OF(bind_md_t, app_id_start), EBPF_OFFSET_OF(bind_md_t, app_id_end), -1};
 static ebpf_program_info_t _ebpf_bind_program_info = {{"bind", &_ebpf_bind_context_descriptor, {0}}, 0, NULL};
+
 static ebpf_program_data_t _ebpf_bind_program_data = {&_ebpf_bind_program_info, NULL};
+
 static ebpf_extension_data_t _ebpf_bind_program_info_provider_data = {
     NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_ebpf_bind_program_data), &_ebpf_bind_program_data};
 
-// Flow Hook
 static ebpf_context_descriptor_t _ebpf_flow_context_descriptor = {
     sizeof(flow_md_t), 0, EBPF_OFFSET_OF(flow_md_t, app_id) + sizeof(uint64_t), -1};
 static ebpf_program_info_t _ebpf_flow_program_info = {{"flow", &_ebpf_flow_context_descriptor, {0}}, 0, NULL};
+
 static ebpf_program_data_t _ebpf_flow_program_data = {&_ebpf_flow_program_info, NULL};
+
 static ebpf_extension_data_t _ebpf_flow_program_info_provider_data = {
     NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_ebpf_flow_program_data), &_ebpf_flow_program_data};
 
-//MAC Hook
 static ebpf_context_descriptor_t _ebpf_mac_context_descriptor = {
     sizeof(mac_md_t), 0, EBPF_OFFSET_OF(mac_md_t, packet_length) + sizeof(uint64_t), -1};
 static ebpf_program_info_t _ebpf_mac_program_info = {{"mac", &_ebpf_mac_context_descriptor, {0}}, 0, NULL};
+
 static ebpf_program_data_t _ebpf_mac_program_data = {&_ebpf_mac_program_info, NULL};
+
 static ebpf_extension_data_t _ebpf_mac_program_info_provider_data = {
     NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_ebpf_mac_program_data), &_ebpf_mac_program_data};
 
@@ -701,6 +704,56 @@ Exit:
     return;
 }
 
+static void
+_net_ebpf_ext_flow_established_classify(
+    _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values,
+    _In_ const FWPS_INCOMING_METADATA_VALUES* incoming_metadata_values,
+    _Inout_opt_ void* layer_data,
+    _In_opt_ const void* classify_context,
+    _In_ const FWPS_FILTER* filter,
+    uint64_t flow_context,
+    _Inout_ FWPS_CLASSIFY_OUT* classify_output)
+/* ++
+
+   A simple classify function at the WFP Flow Established layer.
+
+-- */    
+{
+    UNREFERENCED_PARAMETER(incoming_fixed_values);
+    UNREFERENCED_PARAMETER(incoming_metadata_values);
+    UNREFERENCED_PARAMETER(layer_data);
+    UNREFERENCED_PARAMETER(classify_context);
+    UNREFERENCED_PARAMETER(filter);
+    UNREFERENCED_PARAMETER(flow_context);
+    UNREFERENCED_PARAMETER(classify_output);
+    return;
+}
+
+static void
+_net_ebpf_ext_mac_ethernet_classify(
+    _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values,
+    _In_ const FWPS_INCOMING_METADATA_VALUES* incoming_metadata_values,
+    _Inout_opt_ void* layer_data,
+    _In_opt_ const void* classify_context,
+    _In_ const FWPS_FILTER* filter,
+    uint64_t flow_context,
+    _Inout_ FWPS_CLASSIFY_OUT* classify_output)
+/* ++
+
+   A simple classify function at the WFP L2 MAC layer.
+
+-- */
+{
+    UNREFERENCED_PARAMETER(incoming_fixed_values);
+    UNREFERENCED_PARAMETER(incoming_metadata_values);
+    UNREFERENCED_PARAMETER(layer_data);
+    UNREFERENCED_PARAMETER(classify_context);
+    UNREFERENCED_PARAMETER(filter);
+    UNREFERENCED_PARAMETER(flow_context);
+    UNREFERENCED_PARAMETER(classify_output);
+    return;
+}
+
 static NTSTATUS
 _net_ebpf_ext_no_op_notify(
     FWPS_CALLOUT_NOTIFY_TYPE callout_notification_type, _In_ const GUID* filter_key, _Inout_ const FWPS_FILTER* filter)
@@ -717,6 +770,20 @@ _net_ebpf_ext_no_op_flow_delete(uint16_t layer_id, uint32_t fwpm_callout_id, uin
 /* ++
 
    This is the flowDeleteFn function of the L2 callout.
+
+-- */
+{
+    UNREFERENCED_PARAMETER(layer_id);
+    UNREFERENCED_PARAMETER(fwpm_callout_id);
+    UNREFERENCED_PARAMETER(flow_context);
+    return;
+}
+
+static void
+_net_ebpf_ext_flow_delete(uint16_t layer_id, uint32_t fwpm_callout_id, uint64_t flow_context)
+/* ++
+
+   This is the flowDeleteFn function of the flow established callout.
 
 -- */
 {
@@ -750,14 +817,20 @@ net_ebpf_ext_register_providers()
     }
 
     return_value = ebpf_ext_attach_register_provider(
-        &EBPF_ATTACH_TYPE_FLOW, EBPF_EXT_HOOK_EXECUTION_PASSIVE, &_ebpf_flow_hook_provider_registration);
+        &EBPF_PROGRAM_TYPE_FLOW,
+        &EBPF_ATTACH_TYPE_FLOW,
+        EBPF_EXT_HOOK_EXECUTION_PASSIVE,
+        &_ebpf_flow_hook_provider_registration);
 
     if (return_value != EBPF_SUCCESS) {
         return STATUS_UNSUCCESSFUL;
     }
 
     return_value = ebpf_ext_attach_register_provider(
-        &EBPF_ATTACH_TYPE_MAC, EBPF_EXT_HOOK_EXECUTION_PASSIVE, &_ebpf_mac_hook_provider_registration);
+        &EBPF_PROGRAM_TYPE_MAC,
+        &EBPF_ATTACH_TYPE_MAC,
+        EBPF_EXT_HOOK_EXECUTION_PASSIVE,
+        &_ebpf_mac_hook_provider_registration);
 
     if (return_value != EBPF_SUCCESS) {
         return STATUS_UNSUCCESSFUL;
