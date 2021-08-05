@@ -24,8 +24,8 @@ static ebpf_code_integrity_state_t _ebpf_core_code_integrity_state = EBPF_CODE_I
 
 static void*
 _ebpf_core_map_find_element(ebpf_map_t* map, const uint8_t* key);
-static void
-_ebpf_core_map_update_element(ebpf_map_t* map, const uint8_t* key, const uint8_t* data);
+static int64_t
+_ebpf_core_map_update_element(ebpf_map_t* map, const uint8_t* key, const uint8_t* data, uint64_t flags);
 static void
 _ebpf_core_map_delete_element(ebpf_map_t* map, const uint8_t* key);
 
@@ -45,20 +45,22 @@ static ebpf_helper_function_prototype_t _ebpf_map_helper_function_prototype[] = 
      EBPF_RETURN_TYPE_INTEGER,
      {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY}}};
 
-static ebpf_program_info_t _ebpf_global_helper_program_info = {{"global_helper", NULL, {0}},
-                                                               EBPF_COUNT_OF(_ebpf_map_helper_function_prototype),
-                                                               _ebpf_map_helper_function_prototype};
+static ebpf_program_info_t _ebpf_global_helper_program_info = {
+    {"global_helper", NULL, {0}},
+    EBPF_COUNT_OF(_ebpf_map_helper_function_prototype),
+    _ebpf_map_helper_function_prototype};
 
-static const void* _ebpf_program_helpers[] = {NULL,
-                                              (void*)&_ebpf_core_map_find_element,
-                                              (void*)&_ebpf_core_map_update_element,
-                                              (void*)&_ebpf_core_map_delete_element};
+static const void* _ebpf_program_helpers[] = {
+    NULL,
+    (void*)&_ebpf_core_map_find_element,
+    (void*)&_ebpf_core_map_update_element,
+    (void*)&_ebpf_core_map_delete_element};
 
 static ebpf_extension_provider_t* _ebpf_global_helper_function_provider_context = NULL;
 static ebpf_helper_function_addresses_t _ebpf_global_helper_function_dispatch_table = {
     EBPF_COUNT_OF(_ebpf_program_helpers), (uint64_t*)_ebpf_program_helpers};
-static ebpf_program_data_t _ebpf_global_helper_function_program_data = {&_ebpf_global_helper_program_info,
-                                                                        &_ebpf_global_helper_function_dispatch_table};
+static ebpf_program_data_t _ebpf_global_helper_function_program_data = {
+    &_ebpf_global_helper_program_info, &_ebpf_global_helper_function_dispatch_table};
 
 static ebpf_extension_data_t _ebpf_global_helper_function_extension_data = {
     EBPF_CORE_GLOBAL_HELPER_EXTENSION_VERSION,
@@ -580,9 +582,9 @@ static ebpf_result_t
 _ebpf_core_protocol_update_pinning(_In_ const struct _ebpf_operation_update_map_pinning_request* request)
 {
     ebpf_result_t retval;
-    const ebpf_utf8_string_t name = {(uint8_t*)request->name,
-                                     request->header.length -
-                                         EBPF_OFFSET_OF(ebpf_operation_update_pinning_request_t, name)};
+    const ebpf_utf8_string_t name = {
+        (uint8_t*)request->name,
+        request->header.length - EBPF_OFFSET_OF(ebpf_operation_update_pinning_request_t, name)};
     ebpf_object_t* object = NULL;
 
     if (name.length == 0) {
@@ -884,10 +886,11 @@ _ebpf_core_map_find_element(ebpf_map_t* map, const uint8_t* key)
     return ebpf_map_find_entry(map, key);
 }
 
-static void
-_ebpf_core_map_update_element(ebpf_map_t* map, const uint8_t* key, const uint8_t* value)
+static int64_t
+_ebpf_core_map_update_element(ebpf_map_t* map, const uint8_t* key, const uint8_t* value, uint64_t flags)
 {
-    ebpf_map_update_entry(map, key, value);
+    UNREFERENCED_PARAMETER(flags);
+    return ebpf_map_update_entry(map, key, value) == EBPF_SUCCESS ? 0 : -1;
 }
 
 static void
