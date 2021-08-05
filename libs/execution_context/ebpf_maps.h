@@ -101,16 +101,17 @@ extern "C"
     ebpf_map_next_key(_In_ ebpf_map_t* map, _In_opt_ const uint8_t* previous_key, _Out_ uint8_t* next_key);
 
     /**
-     * @brief Get an object from a map entry that holds objects, such
-     * as a program array or map of maps.  The object returned holds a
-     * reference that the caller is responsible for releasing.
+     * @brief Get a program from an entry in a map that holds programs.  The
+     * program returned holds a reference that the caller is responsible for
+     * releasing.
      *
-     * @param[in] map Array map to search.
-     * @param[in] index The index into the array.
-     * @returns Object pointer, or NULL if none.
+     * @param[in] map Map to search.
+     * @param[in] key Pointer to key to search for.
+     * @param[in] key_size Size of value to search for.
+     * @returns Program pointer, or NULL if none.
      */
-    _Ret_maybenull_ struct _ebpf_object*
-    ebpf_get_object_from_array_map(_In_ ebpf_map_t* map, uint32_t index);
+    _Ret_maybenull_ struct _ebpf_program*
+    ebpf_map_get_program_from_entry(_In_ ebpf_map_t* map, _In_ const uint8_t* key, size_t key_size);
 
 #ifdef __cplusplus
 }

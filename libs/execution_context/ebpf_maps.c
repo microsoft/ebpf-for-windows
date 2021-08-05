@@ -20,6 +20,7 @@ typedef struct _ebpf_map_function_table
     ebpf_core_map_t* (*create_map)(_In_ const ebpf_map_definition_t* map_definition);
     void (*delete_map)(_In_ ebpf_core_map_t* map);
     uint8_t* (*find_entry)(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key);
+    ebpf_object_t* (*get_object_from_entry)(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key);
     ebpf_result_t (*update_entry)(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_ const uint8_t* value);
     ebpf_result_t (*update_entry_with_handle)(
         _In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_ const uint8_t* value, uintptr_t value_handle);
@@ -34,7 +35,7 @@ ebpf_map_get_definition(_In_ const ebpf_map_t* map)
 }
 
 static ebpf_core_map_t*
-_create_array_map2(_In_ const ebpf_map_definition_t* map_definition, size_t extra_value_size)
+_create_array_map_with_extra_value_size(_In_ const ebpf_map_definition_t* map_definition, size_t extra_value_size)
 {
     ebpf_result_t retval;
     size_t map_entry_size = sizeof(ebpf_core_map_t);
@@ -74,7 +75,7 @@ Done:
 static ebpf_core_map_t*
 _create_array_map(_In_ const ebpf_map_definition_t* map_definition)
 {
-    return _create_array_map2(map_definition, 0);
+    return _create_array_map_with_extra_value_size(map_definition, 0);
 }
 
 static void
@@ -84,7 +85,7 @@ _delete_array_map(_In_ ebpf_core_map_t* map)
 }
 
 static uint8_t*
-_find_array_map_entry2(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key, int extra_value_size)
+_find_array_map_entry_with_extra_value_size(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key, int extra_value_size)
 {
     uint32_t key_value;
     if (!map || !key)
@@ -104,7 +105,7 @@ _find_array_map_entry2(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key, int e
 static uint8_t*
 _find_array_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
 {
-    return _find_array_map_entry2(map, key, 0);
+    return _find_array_map_entry_with_extra_value_size(map, key, 0);
 }
 
 static ebpf_result_t
@@ -125,7 +126,7 @@ _update_array_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_
 }
 
 static ebpf_result_t
-_delete_array_map_entry2(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key, bool with_reference)
+_delete_array_map_entry_with_reference(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key, bool with_reference)
 {
     uint32_t key_value;
     if (!map || !key)
@@ -149,7 +150,7 @@ _delete_array_map_entry2(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key, boo
 static ebpf_result_t
 _delete_array_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
 {
-    return _delete_array_map_entry2(map, key, FALSE);
+    return _delete_array_map_entry_with_reference(map, key, FALSE);
 }
 
 static ebpf_result_t
@@ -176,7 +177,7 @@ _next_array_map_key(_In_ ebpf_core_map_t* map, _In_ const uint8_t* previous_key,
 static ebpf_core_map_t*
 _create_prog_array_map(_In_ const ebpf_map_definition_t* map_definition)
 {
-    return _create_array_map2(map_definition, sizeof(struct _ebpf_program*));
+    return _create_array_map_with_extra_value_size(map_definition, sizeof(struct _ebpf_program*));
 }
 
 static void
@@ -232,19 +233,30 @@ _update_prog_array_map_entry_with_handle(
 static ebpf_result_t
 _delete_prog_array_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
 {
-    return _delete_array_map_entry2(map, key, TRUE);
+    return _delete_array_map_entry_with_reference(map, key, TRUE);
 }
 
-_Ret_maybenull_ ebpf_object_t*
-ebpf_get_object_from_array_map(_In_ ebpf_core_map_t* map, uint32_t index)
+/**
+ * @brief Get an object from a map entry that holds objects, such
+ * as a program array or map of maps.  The object returned holds a
+ * reference that the caller is responsible for releasing.
+ *
+ * @param[in] map Array map to search.
+ * @param[in] key Pointer to the key to search for.
+ * @returns Object pointer, or NULL if none.
+ */
+static _Ret_maybenull_ ebpf_object_t*
+_get_object_from_array_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
 {
+    uint32_t index = *(uint32_t*)key;
+
     // We need to take a lock here to make sure we can
     // safely reference the object when another thread
     // might be trying to delete the entry we find.
     ebpf_lock_state_t lock_state = ebpf_lock_lock(&map->lock);
 
     ebpf_object_t* object = NULL;
-    uint8_t* value = _find_array_map_entry2(map, (uint8_t*)&index, sizeof(ebpf_object_t*));
+    uint8_t* value = _find_array_map_entry_with_extra_value_size(map, (uint8_t*)&index, sizeof(ebpf_object_t*));
     if (value != NULL) {
         // The object pointer is stored after the fd integer value.
         object = *(ebpf_object_t**)(value + sizeof(uint32_t));
@@ -381,6 +393,7 @@ ebpf_map_function_table_t ebpf_map_function_tables[] = {
      _create_hash_map,
      _delete_hash_map,
      _find_hash_map_entry,
+     NULL,
      _update_hash_map_entry,
      NULL,
      _delete_hash_map_entry,
@@ -389,6 +402,7 @@ ebpf_map_function_table_t ebpf_map_function_tables[] = {
      _create_array_map,
      _delete_array_map,
      _find_array_map_entry,
+     NULL,
      _update_array_map_entry,
      NULL,
      _delete_array_map_entry,
@@ -397,6 +411,7 @@ ebpf_map_function_table_t ebpf_map_function_tables[] = {
      _create_prog_array_map,
      _delete_array_map_with_references,
      _find_array_map_entry,
+     _get_object_from_array_map_entry,
      NULL,
      _update_prog_array_map_entry_with_handle,
      _delete_prog_array_map_entry,
@@ -440,6 +455,23 @@ ebpf_map_find_entry(_In_ ebpf_map_t* map, _In_ const uint8_t* key, int is_helper
     return ebpf_map_function_tables[map->ebpf_map_definition.type].find_entry(map, key);
 }
 
+_Ret_maybenull_ ebpf_program_t*
+ebpf_map_get_program_from_entry(_In_ ebpf_map_t* map, _In_ const uint8_t* key, size_t key_size)
+{
+    if (key_size != map->ebpf_map_definition.key_size) {
+        return NULL;
+    }
+    ebpf_map_type_t type = map->ebpf_map_definition.type;
+    if (type != BPF_MAP_TYPE_PROG_ARRAY) {
+        return NULL;
+    }
+
+    if (ebpf_map_function_tables[type].get_object_from_entry == NULL) {
+        return NULL;
+    }
+    return (ebpf_program_t*)ebpf_map_function_tables[type].get_object_from_entry(map, key);
+}
+
 ebpf_result_t
 ebpf_map_update_entry(_In_ ebpf_map_t* map, _In_ const uint8_t* key, _In_ const uint8_t* value)
 {
@@ -454,7 +486,7 @@ ebpf_map_update_entry_with_handle(
     _In_ ebpf_map_t* map, _In_ const uint8_t* key, _In_ const uint8_t* value, uintptr_t value_handle)
 {
     if (ebpf_map_function_tables[map->ebpf_map_definition.type].update_entry_with_handle == NULL) {
-        return EBPF_INVALID_ARGUMENT;
+        return EBPF_OPERATION_NOT_SUPPORTED;
     }
     return ebpf_map_function_tables[map->ebpf_map_definition.type].update_entry_with_handle(
         map, key, value, value_handle);

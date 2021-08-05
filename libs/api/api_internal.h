@@ -149,7 +149,7 @@ _Ret_maybenull_ ebpf_program_t*
 ebpf_program_lookup(fd_t fd);
 
 /**
- * @brief Update an element in an eBPF map.
+ * @brief Update an element in an eBPF map that uses handles with values.
  * @param[in] handle Handle to eBPF map.
  * @param[in] key_size Size of the key buffer.
  * @param[in] key Pointer to buffer containing key.
