@@ -134,8 +134,8 @@
       <TreatOutputAsContent>true</TreatOutputAsContent>
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">clang -g -target bpf -O2 -Wall -I../../include -I../ext/inc -c %(Filename).c -o $(OutputPath)%(Filename).o</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">clang -g -target bpf -O2 -Wall -I../../include -I../ext/inc -c %(Filename).c -o $(OutputPath)%(Filename).o</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">clang -g -target bpf -O2 -Wall -I../../include -I./ext/inc -c %(Filename).c -o $(OutputPath)%(Filename).o</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">clang -g -target bpf -O2 -Wall -I../../include -I./ext/inc -c %(Filename).c -o $(OutputPath)%(Filename).o</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutputPath)%(Filename).o</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutputPath)%(Filename).o</Outputs>
     </CustomBuild>

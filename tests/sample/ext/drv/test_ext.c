@@ -22,11 +22,10 @@
 // f788ef4a-207d-4dc3-85cf-0f2ea107213c
 DEFINE_GUID(EBPF_PROGRAM_TYPE_TEST, 0xf788ef4a, 0x207d, 0x4dc3, 0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c);
 
-static ebpf_context_descriptor_t _test_ebpf_context_descriptor = {
-    sizeof(test_program_context_t),
-    EBPF_OFFSET_OF(test_program_context_t, data_start),
-    EBPF_OFFSET_OF(test_program_context_t, data_end),
-    -1};
+static ebpf_context_descriptor_t _test_ebpf_context_descriptor = {sizeof(test_program_context_t),
+                                                                  EBPF_OFFSET_OF(test_program_context_t, data_start),
+                                                                  EBPF_OFFSET_OF(test_program_context_t, data_end),
+                                                                  -1};
 
 // Test Extension Helper function prototype descriptors.
 static ebpf_helper_function_prototype_t _test_ebpf_extension_helper_function_prototype[] = {
@@ -41,7 +40,22 @@ static ebpf_helper_function_prototype_t _test_ebpf_extension_helper_function_pro
     {EBPF_MAX_GENERAL_HELPER_FUNCTION + 3,
      "test_ebpf_extension_helper_function3",
      EBPF_RETURN_TYPE_VOID,
-     {EBPF_ARGUMENT_TYPE_ANYTHING}}};
+     {EBPF_ARGUMENT_TYPE_ANYTHING}},
+    {EBPF_MAX_GENERAL_HELPER_FUNCTION + 4,
+     "test_ebpf_extension_find",
+     EBPF_RETURN_TYPE_INTEGER,
+     {EBPF_ARGUMENT_TYPE_PTR_TO_MEM,
+      EBPF_ARGUMENT_TYPE_CONST_SIZE,
+      EBPF_ARGUMENT_TYPE_PTR_TO_MEM,
+      EBPF_ARGUMENT_TYPE_CONST_SIZE}},
+    {EBPF_MAX_GENERAL_HELPER_FUNCTION + 5,
+     "test_ebpf_extension_replace",
+     EBPF_RETURN_TYPE_INTEGER,
+     {EBPF_ARGUMENT_TYPE_PTR_TO_MEM,
+      EBPF_ARGUMENT_TYPE_CONST_SIZE,
+      EBPF_ARGUMENT_TYPE_ANYTHING,
+      EBPF_ARGUMENT_TYPE_PTR_TO_MEM,
+      EBPF_ARGUMENT_TYPE_CONST_SIZE}}};
 
 static ebpf_program_info_t _test_ebpf_extension_program_info = {
     {"test", &_test_ebpf_context_descriptor, {0}},
@@ -55,17 +69,23 @@ static void
 _test_ebpf_extension_helper_function2(_In_ const void* memory_pointer, uint32_t size);
 static void
 _test_ebpf_extension_helper_function3(_In_ uint8_t arg);
+static int
+_test_ebpf_extension_find(_In_ const void* buffer, uint32_t size, _In_ const void* find, uint32_t arg_size);
+static int
+_test_ebpf_extension_replace(
+    _In_ const void* buffer, uint32_t size, uint8_t position, _In_ const void* replace, uint32_t arg_size);
 
-static const void* _test_ebpf_extension_helpers[] = {
-    (void*)&_test_ebpf_extension_helper_function1,
-    (void*)&_test_ebpf_extension_helper_function2,
-    (void*)&_test_ebpf_extension_helper_function3};
+static const void* _test_ebpf_extension_helpers[] = {(void*)&_test_ebpf_extension_helper_function1,
+                                                     (void*)&_test_ebpf_extension_helper_function2,
+                                                     (void*)&_test_ebpf_extension_helper_function3,
+                                                     (void*)&_test_ebpf_extension_find,
+                                                     (void*)&_test_ebpf_extension_replace};
 
 static ebpf_helper_function_addresses_t _test_ebpf_extension_helper_function_address_table = {
     EBPF_COUNT_OF(_test_ebpf_extension_helpers), (uint64_t*)_test_ebpf_extension_helpers};
 
-static ebpf_program_data_t _test_ebpf_extension_program_data = {
-    &_test_ebpf_extension_program_info, &_test_ebpf_extension_helper_function_address_table};
+static ebpf_program_data_t _test_ebpf_extension_program_data = {&_test_ebpf_extension_program_info,
+                                                                &_test_ebpf_extension_helper_function_address_table};
 
 static ebpf_extension_data_t _test_ebpf_extension_program_info_provider_data = {
     TEST_EBPF_EXTENSION_NPI_PROVIDER_VERSION,
@@ -195,10 +215,9 @@ _test_ebpf_extension_hook_provider_detach_client(_In_ void* provider_binding_con
 // Test eBPF extension Hook NPI provider characteristics
 ebpf_attach_provider_data_t _test_ebpf_extension_attach_provider_data;
 
-ebpf_extension_data_t _test_ebpf_extension_hook_provider_data = {
-    EBPF_ATTACH_PROVIDER_DATA_VERSION,
-    sizeof(_test_ebpf_extension_attach_provider_data),
-    &_test_ebpf_extension_attach_provider_data};
+ebpf_extension_data_t _test_ebpf_extension_hook_provider_data = {EBPF_ATTACH_PROVIDER_DATA_VERSION,
+                                                                 sizeof(_test_ebpf_extension_attach_provider_data),
+                                                                 &_test_ebpf_extension_attach_provider_data};
 
 const NPI_PROVIDER_CHARACTERISTICS _test_ebpf_extension_hook_provider_characteristics = {
     0,
@@ -318,7 +337,6 @@ test_ebpf_extension_program_info_provider_register()
     ebpf_program_data_t* program_data;
 
     NTSTATUS status = STATUS_SUCCESS;
-    _test_ebpf_extension_attach_provider_data.supported_program_type = EBPF_PROGRAM_TYPE_TEST;
 
     extension_data = (ebpf_extension_data_t*)_test_ebpf_extension_program_info_provider_characteristics
                          .ProviderRegistrationInstance.NpiSpecificCharacteristics;
@@ -440,6 +458,8 @@ test_ebpf_extension_hook_provider_register()
     test_ebpf_extension_hook_provider_t* local_provider_context;
     NTSTATUS status = STATUS_SUCCESS;
 
+    _test_ebpf_extension_attach_provider_data.supported_program_type = EBPF_PROGRAM_TYPE_TEST;
+
     local_provider_context = &_test_ebpf_extension_hook_provider_context;
 
     status = NmrRegisterProvider(
@@ -490,4 +510,37 @@ static void
 _test_ebpf_extension_helper_function3(_In_ uint8_t arg)
 {
     UNREFERENCED_PARAMETER(arg);
+}
+
+static int
+_test_ebpf_extension_find(_In_ const void* buffer, uint32_t size, _In_ const void* find, uint32_t arg_size)
+{
+    UNREFERENCED_PARAMETER(size);
+    UNREFERENCED_PARAMETER(arg_size);
+    return (int)(strstr((char*)buffer, (char*)find) - (char*)buffer);
+}
+
+static int
+_test_ebpf_extension_replace(
+    _In_ const void* buffer, uint32_t size, uint8_t position, _In_ const void* replace, uint32_t arg_size)
+{
+    int result = 0;
+    char* dest = (char*)buffer + position;
+    char* end = (char*)buffer + size - 1;
+    char* source = (char*)replace;
+    UNREFERENCED_PARAMETER(arg_size);
+
+    if (position >= size) {
+        result = -1;
+        goto Exit;
+    }
+
+    while (dest != end) {
+        if (*source == '\0')
+            break;
+        *dest++ = *source++;
+    }
+
+Exit:
+    return result;
 }

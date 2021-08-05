@@ -24,3 +24,8 @@ typedef void (*test_ebpf_extension_helper_function2_t)(void* memory_pointer, uin
 #define test_ebpf_extension_helper_function2 ((test_ebpf_extension_helper_function2_t)TEST_EXT_HELPER_FN_BASE + 2)
 typedef void (*test_ebpf_extension_helper_function3_t)(uint8_t arg);
 #define test_ebpf_extension_helper_function3 ((test_ebpf_extension_helper_function3_t)TEST_EXT_HELPER_FN_BASE + 3)
+typedef int (*test_ebpf_extension_find_t)(void* buffer, uint32_t size, void* find, uint32_t arg_size);
+#define test_ebpf_extension_find ((test_ebpf_extension_find_t)TEST_EXT_HELPER_FN_BASE + 4)
+typedef int (*test_ebpf_extension_replace_t)(
+    void* buffer, uint32_t size, uint8_t position, void* replace, uint32_t arg_size);
+#define test_ebpf_extension_replace ((test_ebpf_extension_replace_t)TEST_EXT_HELPER_FN_BASE + 5)

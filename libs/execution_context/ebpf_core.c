@@ -191,11 +191,20 @@ _ebpf_core_protocol_resolve_helper(
     size_t required_reply_length =
         EBPF_OFFSET_OF(ebpf_operation_resolve_helper_reply_t, address) + count_of_helpers * sizeof(reply->address[0]);
     size_t helper_index;
+    uint32_t* request_helper_ids = NULL;
 
     if (reply_length < required_reply_length) {
         return_value = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
+
+    request_helper_ids = (uint32_t*)ebpf_allocate(count_of_helpers * sizeof(uint32_t));
+    if (request_helper_ids == NULL) {
+        return_value = EBPF_NO_MEMORY;
+        goto Done;
+    }
+    for (helper_index = 0; helper_index < count_of_helpers; helper_index++)
+        request_helper_ids[helper_index] = request->helper_id[helper_index];
 
     return_value =
         ebpf_reference_object_by_handle(request->program_handle, EBPF_OBJECT_PROGRAM, (ebpf_object_t**)&program);
@@ -204,7 +213,7 @@ _ebpf_core_protocol_resolve_helper(
 
     for (helper_index = 0; helper_index < count_of_helpers; helper_index++) {
         return_value = ebpf_program_get_helper_function_address(
-            program, request->helper_id[helper_index], &reply->address[helper_index]);
+            program, request_helper_ids[helper_index], &reply->address[helper_index]);
         if (return_value != EBPF_SUCCESS)
             goto Done;
     }
@@ -212,7 +221,7 @@ _ebpf_core_protocol_resolve_helper(
 
 Done:
     ebpf_object_release_reference((ebpf_object_t*)program);
-
+    ebpf_free(request_helper_ids);
     return return_value;
 }
 

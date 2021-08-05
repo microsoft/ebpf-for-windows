@@ -239,7 +239,7 @@ _test_ebpf_ext_driver_io_device_control(
 
             if (input_buffer != NULL) {
                 size_t minimum_request_size = 0;
-                size_t minimum_reply_size = 0;
+                size_t minimum_reply_size = actual_input_length;
 
                 if (actual_input_length < minimum_request_size) {
                     status = STATUS_INVALID_PARAMETER;
@@ -267,9 +267,9 @@ _test_ebpf_ext_driver_io_device_control(
                     }
                 }
 
-                // Invoke the eBPF program.
-                program_context.data_start = input_buffer;
-                program_context.data_end = (uint8_t*)input_buffer + input_buffer_length;
+                // Invoke the eBPF program. Pass the output buffer as program context data.
+                program_context.data_start = output_buffer;
+                program_context.data_end = (uint8_t*)output_buffer + output_buffer_length;
                 result = test_ebpf_extension_invoke_program(&program_context, &program_result);
             }
         } else {

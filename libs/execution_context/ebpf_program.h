@@ -152,7 +152,7 @@ extern "C"
      */
     ebpf_result_t
     ebpf_program_get_helper_function_address(
-        const ebpf_program_t* program, uint32_t helper_function_id, uint64_t* address);
+        _In_ const ebpf_program_t* program, const uint32_t helper_function_id, uint64_t* address);
 
     /**
      * @brief Attach a link object to an eBPF program.
