@@ -366,7 +366,7 @@ _ebpf_core_protocol_map_find_element(
         goto Done;
     }
 
-    value = ebpf_map_find_entry(map, request->key, FALSE);
+    value = ebpf_map_find_entry(map, request->key, 0);
     if (value == NULL) {
         retval = EBPF_KEY_NOT_FOUND;
         goto Done;
@@ -916,7 +916,7 @@ Exit:
 static void*
 _ebpf_core_map_find_element(ebpf_map_t* map, const uint8_t* key)
 {
-    return ebpf_map_find_entry(map, key, TRUE);
+    return ebpf_map_find_entry(map, key, EBPF_MAP_FIND_ENTRY_FLAG_HELPER);
 }
 
 static int64_t

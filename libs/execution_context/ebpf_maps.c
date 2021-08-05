@@ -97,7 +97,7 @@ _find_array_map_entry_with_extra_value_size(_In_ ebpf_core_map_t* map, _In_ cons
         return NULL;
 
     // The following addition is safe since it was checked during map creation.
-    size_t actual_value_size = map->ebpf_map_definition.value_size + extra_value_size;
+    size_t actual_value_size = ((size_t)map->ebpf_map_definition.value_size) + extra_value_size;
 
     return &map->data[key_value * actual_value_size];
 }
@@ -184,7 +184,7 @@ static void
 _delete_array_map_with_references(_In_ ebpf_core_map_t* map)
 {
     // The following addition is safe since it was checked during map creation.
-    size_t actual_value_size = map->ebpf_map_definition.value_size + sizeof(ebpf_object_t*);
+    size_t actual_value_size = ((size_t)map->ebpf_map_definition.value_size) + sizeof(ebpf_object_t*);
 
     // Release all entry references.
     for (uint32_t i = 0; i < map->ebpf_map_definition.max_entries; i++) {
@@ -215,7 +215,7 @@ _update_prog_array_map_entry_with_handle(
         return return_value;
 
     // The following addition is safe since it was checked during map creation.
-    size_t actual_value_size = map->ebpf_map_definition.value_size + sizeof(struct _ebpf_program*);
+    size_t actual_value_size = ((size_t)map->ebpf_map_definition.value_size) + sizeof(struct _ebpf_program*);
 
     // TODO(issue #344): validate that the program type is
     // not in conflict with the map's program type.
@@ -225,7 +225,7 @@ _update_prog_array_map_entry_with_handle(
     memcpy(entry, value, map->ebpf_map_definition.value_size);
 
     // Store program pointer after the value.
-    memcpy(entry + map->ebpf_map_definition.value_size, &program, sizeof(program));
+    memcpy(entry + map->ebpf_map_definition.value_size, &program, sizeof(void*));
 
     return EBPF_SUCCESS;
 }
@@ -445,10 +445,10 @@ ebpf_map_create(_In_ const ebpf_map_definition_t* ebpf_map_definition, _Outptr_ 
 }
 
 uint8_t*
-ebpf_map_find_entry(_In_ ebpf_map_t* map, _In_ const uint8_t* key, int is_helper)
+ebpf_map_find_entry(_In_ ebpf_map_t* map, _In_ const uint8_t* key, int flags)
 {
     // Disallow reads to prog array maps from this helper call for now.
-    if (is_helper && map->ebpf_map_definition.type == BPF_MAP_TYPE_PROG_ARRAY) {
+    if ((flags & EBPF_MAP_FIND_ENTRY_FLAG_HELPER) && map->ebpf_map_definition.type == BPF_MAP_TYPE_PROG_ARRAY) {
         return NULL;
     }
 

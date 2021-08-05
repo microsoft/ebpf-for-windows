@@ -34,16 +34,17 @@ extern "C"
     const ebpf_map_definition_t*
     ebpf_map_get_definition(_In_ const ebpf_map_t* map);
 
+#define EBPF_MAP_FIND_ENTRY_FLAG_HELPER 0x01 /* Called by an eBPF program */
     /**
      * @brief Get a pointer to an entry in the map.
      *
      * @param[in] map Map to search.
      * @param[in] key Key to use when searching map.
-     * @param[in] is_helper True if called by an eBPF program.
+     * @param[in] flags Zero or more EBPF_MAP_FIND_ENTRY_FLAG_* flags.
      * @return Pointer to the value if found or NULL.
      */
     uint8_t*
-    ebpf_map_find_entry(_In_ ebpf_map_t* map, _In_ const uint8_t* key, int is_helper);
+    ebpf_map_find_entry(_In_ ebpf_map_t* map, _In_ const uint8_t* key, int flags);
 
     /**
      * @brief Insert or update an entry in the map.
