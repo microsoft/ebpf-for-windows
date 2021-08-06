@@ -42,5 +42,14 @@
     <CustomBuild Include="droppacket_unsafe.c">
       <Filter>Source Files</Filter>
     </CustomBuild>
+    <CustomBuild Include="test_ebpf.c">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="associatetoflow.c">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="countbytes.c">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
   </ItemGroup>
 </Project>

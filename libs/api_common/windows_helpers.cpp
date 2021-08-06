@@ -118,6 +118,12 @@ get_program_type_info(const ebpf_program_info_t** info)
             } else if (memcmp(program_type, &EBPF_PROGRAM_TYPE_BIND, sizeof(*program_type)) == 0) {
                 encoded_data = _ebpf_encoded_bind_program_info_data;
                 encoded_data_size = sizeof(_ebpf_encoded_bind_program_info_data);
+            } else if (memcmp(program_type, &EBPF_PROGRAM_TYPE_FLOW, sizeof(*program_type)) == 0) {
+                encoded_data = _ebpf_encoded_flow_program_info_data;
+                encoded_data_size = sizeof(_ebpf_encoded_flow_program_info_data);
+            } else if (memcmp(program_type, &EBPF_PROGRAM_TYPE_MAC, sizeof(*program_type)) == 0) {
+                encoded_data = _ebpf_encoded_mac_program_info_data;
+                encoded_data_size = sizeof(_ebpf_encoded_mac_program_info_data);
             }
             ebpf_assert(encoded_data != nullptr);
 
