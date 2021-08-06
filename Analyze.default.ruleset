@@ -30,7 +30,11 @@
     <Rule Id="C26498" Action="Error" />
     <Rule Id="C26810" Action="Error" />
     <Rule Id="C26811" Action="Error" />
-    <Rule Id="C26812" Action="Error" />
+    <!-- C++ uses C enums (not C++ enum classes) which generates C26812.  This
+         is intentional so that the same enums can be used by both C and C++ code.
+         so should not be treated as an error.
+      -->
+    <Rule Id="C26812" Action="Warning" />
     <Rule Id="C26815" Action="Error" />
     <Rule Id="C26816" Action="Error" />
     <Rule Id="C26817" Action="Error" />
