@@ -52,10 +52,23 @@ EBPF_HELPER(int64_t, bpf_map_update_elem, (struct bpf_map * map, void* key, void
  * @param[in] map Map to update.
  * @param[in] key Key to use when searching and updating the map.
  * @retval EBPF_SUCCESS The operation was successful.
- * @retval EBPF_INVALID_ARGUMENT One or more parameters are
- *  invalid.
+ * @retval EBPF_INVALID_ARGUMENT One or more parameters are invalid.
  */
 EBPF_HELPER(int64_t, bpf_map_delete_elem, (struct bpf_map * map, void* key));
 #ifndef __doxygen
 #define bpf_map_delete_elem ((bpf_map_delete_elem_t)3)
+#endif
+
+/**
+ * @brief Perform a tail call into another eBPF program.
+ *
+ * @param[in] ctx Context to pass to the called program.
+ * @param[in] prog_array_map Map of program fds.
+ * @param[in] index Index in map of program to call.
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_INVALID_ARGUMENT One or more parameters are invalid.
+ */
+EBPF_HELPER(int, bpf_tail_call, (void* ctx, struct bpf_map* prog_array_map, uint32_t index));
+#ifndef __doxygen
+#define bpf_tail_call ((bpf_tail_call_t)4)
 #endif

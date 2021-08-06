@@ -62,7 +62,7 @@ extern "C"
      * @brief Get properties describing the program instance.
      *
      * @param[in] program Program instance to query.
-     * @param[in] program_parameters Parameters of the program.
+     * @param[out] program_parameters Parameters of the program.
      */
     void
     ebpf_program_get_properties(ebpf_program_t* program, ebpf_program_parameters_t* program_parameters);
