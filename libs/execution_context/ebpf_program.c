@@ -447,7 +447,13 @@ ebpf_program_invoke(_In_ const ebpf_program_t* program, _In_ void* context, _Out
         function_pointer = (ebpf_program_entry_point_t)(program->code_or_vm.code.code_pointer);
         *result = (function_pointer)(context);
     } else {
-        *result = (uint32_t)(ubpf_exec(program->code_or_vm.vm, context, 1024));
+        uint64_t out_value;
+        int ret = (uint32_t)(ubpf_exec(program->code_or_vm.vm, context, 1024, &out_value));
+        if (ret < 0) {
+            *result = ret;
+        } else {
+            *result = (uint32_t)(out_value);
+        }
     }
 }
 
