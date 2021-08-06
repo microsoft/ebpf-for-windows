@@ -1,8 +1,8 @@
 var searchData=
 [
-  ['_5f_5fu32_0',['__u32',['../bpf_8h.html#a3acae9310e2c2e411e800a8a369171c6',1,'bpf.h']]],
-  ['_5f_5fu64_1',['__u64',['../bpf_8h.html#ac2a2bfb32105ffe8e74b67670b7ec440',1,'bpf.h']]],
-  ['_5f_5fu8_2',['__u8',['../bpf_8h.html#a77f8102529baef48621b98012524115d',1,'bpf.h']]],
+  ['_5f_5fu32_0',['__u32',['../linux_2bpf_8h.html#a3acae9310e2c2e411e800a8a369171c6',1,'bpf.h']]],
+  ['_5f_5fu64_1',['__u64',['../linux_2bpf_8h.html#ac2a2bfb32105ffe8e74b67670b7ec440',1,'bpf.h']]],
+  ['_5f_5fu8_2',['__u8',['../linux_2bpf_8h.html#a77f8102529baef48621b98012524115d',1,'bpf.h']]],
   ['_5fbind_5faction_3',['_bind_action',['../ebpf__nethooks_8h.html#a9e5d69be705b1f7503ab2fd752c41d02',1,'ebpf_nethooks.h']]],
   ['_5fbind_5fmd_4',['_bind_md',['../struct__bind__md.html',1,'']]],
   ['_5fbind_5foperation_5',['_bind_operation',['../ebpf__nethooks_8h.html#a814187ca47e221594a21bde5324d86fc',1,'ebpf_nethooks.h']]],

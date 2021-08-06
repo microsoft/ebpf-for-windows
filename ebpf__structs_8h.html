@@ -96,7 +96,8 @@ Typedefs</h2></td></tr>
 Enumerations</h2></td></tr>
 <tr class="memitem:afd97ad5450067d01ec6b6cd3c30761a1"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__structs_8h.html#afd97ad5450067d01ec6b6cd3c30761a1">bpf_map_type</a> { <a class="el" href="ebpf__structs_8h.html#afd97ad5450067d01ec6b6cd3c30761a1a4aa183ff27ce9e1271dd3939e722f407">BPF_MAP_TYPE_UNSPECIFIED</a> = 0, 
 <a class="el" href="ebpf__structs_8h.html#afd97ad5450067d01ec6b6cd3c30761a1ae21084f25e9cb0889604d7e8b3c58575">BPF_MAP_TYPE_HASH</a> = 1, 
-<a class="el" href="ebpf__structs_8h.html#afd97ad5450067d01ec6b6cd3c30761a1ad992c770dd3affefa8d83220d99319e0">BPF_MAP_TYPE_ARRAY</a> = 2
+<a class="el" href="ebpf__structs_8h.html#afd97ad5450067d01ec6b6cd3c30761a1ad992c770dd3affefa8d83220d99319e0">BPF_MAP_TYPE_ARRAY</a> = 2, 
+<a class="el" href="ebpf__structs_8h.html#afd97ad5450067d01ec6b6cd3c30761a1ae1ec5cf07509595615d558884ba109b2">BPF_MAP_TYPE_PROG_ARRAY</a>
  }</td></tr>
 <tr class="separator:afd97ad5450067d01ec6b6cd3c30761a1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
@@ -148,7 +149,9 @@ Enumerations</h2></td></tr>
 </td></tr>
 <tr><td class="fieldname"><a id="afd97ad5450067d01ec6b6cd3c30761a1ae21084f25e9cb0889604d7e8b3c58575"></a>BPF_MAP_TYPE_HASH&#160;</td><td class="fielddoc"><p>Hash table. </p>
 </td></tr>
-<tr><td class="fieldname"><a id="afd97ad5450067d01ec6b6cd3c30761a1ad992c770dd3affefa8d83220d99319e0"></a>BPF_MAP_TYPE_ARRAY&#160;</td><td class="fielddoc"><p>Array, wehere the map key is the array index. </p>
+<tr><td class="fieldname"><a id="afd97ad5450067d01ec6b6cd3c30761a1ad992c770dd3affefa8d83220d99319e0"></a>BPF_MAP_TYPE_ARRAY&#160;</td><td class="fielddoc"><p>Array, where the map key is the array index. </p>
+</td></tr>
+<tr><td class="fieldname"><a id="afd97ad5450067d01ec6b6cd3c30761a1ae1ec5cf07509595615d558884ba109b2"></a>BPF_MAP_TYPE_PROG_ARRAY&#160;</td><td class="fielddoc"><p>Array of program fds usable with bpf_tail_call, where the map key is the array index. </p>
 </td></tr>
 </table>
 
