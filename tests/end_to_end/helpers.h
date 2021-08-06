@@ -63,9 +63,9 @@ typedef class _single_instance_hook
     }
 
     ebpf_result_t
-    fire(void* context, uint32_t* result)
+    fire(void* context, int* result)
     {
-        ebpf_result_t (*invoke_program)(void* link, void* context, uint32_t* result) =
+        ebpf_result_t (*invoke_program)(void* link, void* context, int* result) =
             reinterpret_cast<decltype(invoke_program)>(client_dispatch_table->function[0]);
 
         return invoke_program(client_binding_context, context, result);
@@ -115,17 +115,22 @@ typedef class _single_instance_hook
 
 static ebpf_helper_function_prototype_t _ebpf_map_helper_function_prototype[] = {
     {1,
-     "ebpf_map_lookup_element",
+     "bpf_map_lookup_elem",
      EBPF_RETURN_TYPE_PTR_TO_MAP_VALUE_OR_NULL,
      {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY}},
     {2,
-     "ebpf_map_update_element",
+     "bpf_map_update_elem",
      EBPF_RETURN_TYPE_INTEGER,
      {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_VALUE}},
     {3,
-     "ebpf_map_delete_element",
+     "bpf_map_delete_elem",
      EBPF_RETURN_TYPE_INTEGER,
-     {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY}}};
+     {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY}},
+    {4,
+     "bpf_tail_call",
+     EBPF_RETURN_TYPE_INTEGER,
+     {EBPF_ARGUMENT_TYPE_PTR_TO_CTX, EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_ANYTHING}},
+};
 
 static ebpf_context_descriptor_t _ebpf_xdp_context_descriptor = {sizeof(xdp_md_t),
                                                                  EBPF_OFFSET_OF(xdp_md_t, data),
@@ -179,3 +184,6 @@ typedef class _program_info_provider
     ebpf_extension_data_t* provider_data;
     ebpf_extension_provider_t* provider;
 } program_info_provider_t;
+
+std::vector<uint8_t>
+prepare_udp_packet(uint16_t udp_length);

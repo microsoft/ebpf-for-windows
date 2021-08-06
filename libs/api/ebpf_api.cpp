@@ -157,7 +157,7 @@ ebpf_get_program_byte_code(
     _In_z_ const char* file_name,
     _In_z_ const char* section_name,
     bool mock_map_fd,
-    std::vector<ebpf_program_t*>& programs,
+    _Out_ ebpf_object_t& object,
     _Outptr_result_maybenull_ EbpfMapDescriptor** map_descriptors,
     _Out_ int* map_descriptors_count,
     _Outptr_result_maybenull_ const char** error_message)
@@ -168,12 +168,12 @@ ebpf_get_program_byte_code(
     *map_descriptors = nullptr;
 
     ebpf_verifier_options_t verifier_options{false, false, false, false, mock_map_fd};
-    result = load_byte_code(file_name, section_name, &verifier_options, programs, error_message);
+    result = load_byte_code(file_name, section_name, &verifier_options, object, error_message);
     if (result != EBPF_SUCCESS) {
         goto Done;
     }
 
-    if (programs.size() != 1) {
+    if (object.programs.size() != 1) {
         result = EBPF_FAILED;
         goto Done;
     }
@@ -193,7 +193,7 @@ ebpf_get_program_byte_code(
 
 Done:
     if (result != EBPF_SUCCESS) {
-        clean_up_ebpf_programs(programs);
+        clean_up_ebpf_programs(object.programs);
     }
     clear_map_descriptors();
     return result;
@@ -216,7 +216,7 @@ ebpf_api_load_program(
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_program_load_info load_info = {0};
     std::vector<fd_handle_map> handle_map;
-    std::vector<ebpf_program_t*> programs;
+    ebpf_object_t object;
     ebpf_program_t* program = nullptr;
 
     *handle = 0;
@@ -226,16 +226,16 @@ ebpf_api_load_program(
 
     try {
         ebpf_verifier_options_t verifier_options{false, false, false, false, false};
-        result = load_byte_code(file_name, section_name, &verifier_options, programs, error_message);
+        result = load_byte_code(file_name, section_name, &verifier_options, object, error_message);
         if (result != EBPF_SUCCESS) {
             goto Done;
         }
 
-        if (programs.size() != 1) {
+        if (object.programs.size() != 1) {
             result = EBPF_ELF_PARSING_FAILED;
             goto Done;
         }
-        program = programs[0];
+        program = object.programs[0];
 
         // TODO: (issue #169): Should switch this to more idiomatic C++
         // Note: This leaks the program handle on some errors.
@@ -301,7 +301,7 @@ Done:
             ebpf_api_close_handle((ebpf_handle_t)map_handle);
         }
 
-        clean_up_ebpf_programs(programs);
+        clean_up_ebpf_programs(object.programs);
     }
     clear_map_descriptors();
 
@@ -412,6 +412,29 @@ ebpf_api_map_update_element(
 }
 
 uint32_t
+ebpf_api_map_update_element_with_handle(
+    ebpf_handle_t map_handle,
+    uint32_t key_size,
+    _In_ const uint8_t* key,
+    uint32_t value_size,
+    _In_ const uint8_t* value,
+    ebpf_handle_t value_handle)
+{
+    ebpf_protocol_buffer_t request_buffer(
+        sizeof(_ebpf_operation_map_update_element_with_handle_request) - 1 + key_size + value_size);
+    auto request = reinterpret_cast<_ebpf_operation_map_update_element_with_handle_request*>(request_buffer.data());
+
+    request->header.length = static_cast<uint16_t>(request_buffer.size());
+    request->header.id = ebpf_operation_id_t::EBPF_OPERATION_MAP_UPDATE_ELEMENT_WITH_HANDLE;
+    request->map_handle = (uintptr_t)map_handle;
+    request->value_handle = (uintptr_t)value_handle;
+    std::copy(key, key + key_size, request->data);
+    std::copy(value, value + value_size, request->data + key_size);
+
+    return invoke_ioctl(request_buffer);
+}
+
+uint32_t
 ebpf_api_map_delete_element(ebpf_handle_t handle, uint32_t key_size, const uint8_t* key)
 {
     ebpf_protocol_buffer_t request_buffer(sizeof(_ebpf_operation_map_delete_element_request) - 1 + key_size);
@@ -472,10 +495,9 @@ ebpf_api_get_next_map(ebpf_handle_t previous_handle, ebpf_handle_t* next_handle)
 uint32_t
 ebpf_api_get_next_program(ebpf_handle_t previous_handle, ebpf_handle_t* next_handle)
 {
-    _ebpf_operation_get_next_program_request request{
-        sizeof(request),
-        ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_PROGRAM,
-        reinterpret_cast<uint64_t>(previous_handle)};
+    _ebpf_operation_get_next_program_request request{sizeof(request),
+                                                     ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_PROGRAM,
+                                                     reinterpret_cast<uint64_t>(previous_handle)};
 
     _ebpf_operation_get_next_program_reply reply;
 
@@ -706,6 +728,18 @@ clean_up_ebpf_programs(_Inout_ std::vector<ebpf_program_t*>& programs)
     programs.resize(0);
 }
 
+_Ret_maybenull_ ebpf_program_t*
+ebpf_program_lookup(fd_t fd)
+{
+    return (_ebpf_programs.contains(fd)) ? _ebpf_programs[fd] : nullptr;
+}
+
+_Ret_maybenull_ ebpf_map_t*
+ebpf_map_lookup(fd_t fd)
+{
+    return (_ebpf_maps.contains(fd)) ? _ebpf_maps[fd] : nullptr;
+}
+
 void
 clean_up_ebpf_map(_In_ _Post_invalid_ ebpf_map_t* map)
 {
@@ -789,7 +823,7 @@ _initialize_ebpf_object_from_elf(
     set_global_program_and_attach_type(expected_program_type, expected_attach_type);
 
     ebpf_verifier_options_t verifier_options{false, false, false, false, false};
-    result = load_byte_code(file_name, nullptr, &verifier_options, object.programs, error_message);
+    result = load_byte_code(file_name, nullptr, &verifier_options, object, error_message);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }

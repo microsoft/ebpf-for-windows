@@ -102,7 +102,7 @@ load_byte_code(
     _In_z_ const char* filename,
     _In_opt_z_ const char* sectionname,
     _In_ ebpf_verifier_options_t* verifier_options,
-    _Out_ std::vector<ebpf_program_t*>& programs,
+    _Inout_ ebpf_object_t& object,
     _Outptr_result_maybenull_z_ const char** error_message) noexcept
 {
     ebpf_result_t result = EBPF_SUCCESS;
@@ -118,25 +118,25 @@ load_byte_code(
             section_name = std::string(sectionname);
         }
 
-        auto raw_progams = read_elf(file_name, section_name, verifier_options, platform);
-        if (raw_progams.size() == 0) {
+        auto raw_programs = read_elf(file_name, section_name, verifier_options, platform);
+        if (raw_programs.size() == 0) {
             result = EBPF_ELF_PARSING_FAILED;
             goto Exit;
         }
 
         // read_elf() also returns a section with name ".text".
         // Remove that section from the list of programs returned.
-        for (int i = 0; i < raw_progams.size(); i++) {
-            if (raw_progams[i].section == ".text") {
-                raw_progams.erase(raw_progams.begin() + i);
+        for (int i = 0; i < raw_programs.size(); i++) {
+            if (raw_programs[i].section == ".text") {
+                raw_programs.erase(raw_programs.begin() + i);
                 break;
             }
         }
 
         // For each program/section parsed, program type should be same.
         if (get_global_program_type() == nullptr) {
-            ebpf_program_type_t program_type = *(const GUID*)raw_progams[0].info.type.platform_specific_data;
-            for (auto& raw_program : raw_progams) {
+            ebpf_program_type_t program_type = *(const GUID*)raw_programs[0].info.type.platform_specific_data;
+            for (auto& raw_program : raw_programs) {
                 if (raw_program.info.type.platform_specific_data == 0) {
                     result = EBPF_ELF_PARSING_FAILED;
                     goto Exit;
@@ -150,7 +150,7 @@ load_byte_code(
             }
         }
 
-        for (auto& raw_program : raw_progams) {
+        for (auto& raw_program : raw_programs) {
             program = (ebpf_program_t*)calloc(1, sizeof(ebpf_program_t));
             if (program == nullptr) {
                 result = EBPF_NO_MEMORY;
@@ -189,18 +189,19 @@ load_byte_code(
                 }
             }
             program->byte_code_size = static_cast<uint32_t>(ebpf_bytes);
-            programs.emplace_back(program);
+            program->object = &object;
+            object.programs.emplace_back(program);
             program = nullptr;
         }
 
         // Get program names for each section.
-        for (auto& iterator : programs) {
+        for (auto& iterator : object.programs) {
             section_to_program_map.emplace_back(iterator->section_name, std::string());
         }
 
         _get_section_and_program_name(file_name, section_to_program_map);
         int index = 0;
-        for (auto& iterator : programs) {
+        for (auto& iterator : object.programs) {
             iterator->program_name = _strdup(section_to_program_map[index].program_name.c_str());
             if (iterator->program_name == nullptr) {
                 result = EBPF_NO_MEMORY;
@@ -231,7 +232,7 @@ Exit:
             program = nullptr;
         }
 
-        clean_up_ebpf_programs(programs);
+        clean_up_ebpf_programs(object.programs);
     }
 
     return result;

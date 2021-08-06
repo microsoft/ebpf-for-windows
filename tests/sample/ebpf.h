@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+// This file is included by sample eBPF programs.
+
 #if defined(_MSC_VER)
 typedef unsigned long long uint64_t;
 #else
