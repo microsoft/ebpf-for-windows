@@ -184,7 +184,7 @@ _ebpf_core_protocol_resolve_helper(
     uint16_t reply_length)
 {
     ebpf_program_t* program = NULL;
-    ebpf_result_t return_value;
+    ebpf_result_t return_value = EBPF_SUCCESS;
     size_t count_of_helpers =
         (request->header.length - EBPF_OFFSET_OF(ebpf_operation_resolve_helper_request_t, helper_id)) /
         sizeof(request->helper_id[0]);
@@ -197,6 +197,9 @@ _ebpf_core_protocol_resolve_helper(
         return_value = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
+
+    if (count_of_helpers == 0)
+        goto Done;
 
     request_helper_ids = (uint32_t*)ebpf_allocate(count_of_helpers * sizeof(uint32_t));
     if (request_helper_ids == NULL) {
@@ -217,9 +220,11 @@ _ebpf_core_protocol_resolve_helper(
         if (return_value != EBPF_SUCCESS)
             goto Done;
     }
-    reply->header.length = (uint16_t)required_reply_length;
 
 Done:
+    if (return_value == EBPF_SUCCESS)
+        reply->header.length = (uint16_t)required_reply_length;
+
     ebpf_object_release_reference((ebpf_object_t*)program);
     ebpf_free(request_helper_ids);
     return return_value;
