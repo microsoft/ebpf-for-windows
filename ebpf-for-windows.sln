@@ -114,9 +114,9 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "unit_tests", "tests\unit\te
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "netsh_static", "libs\ebpfnetsh\ebpfnetsh.vcxproj", "{370E7D53-C97F-4077-A3D5-620C4FD87EED}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test_ebpf_ext", "tests\sample\ext\drv\test_ext.vcxproj", "{C8D46543-5AE5-4E66-B9CE-8B84588B1C9E}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sample_ebpf_ext", "tests\sample\ext\drv\sample_ext.vcxproj", "{C8D46543-5AE5-4E66-B9CE-8B84588B1C9E}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test_ext_app", "tests\sample\ext\app\test_ext_app.vcxproj", "{7358D8BD-4123-4B2D-86C0-87F6BA6CED76}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sample_ext_app", "tests\sample\ext\app\sample_ext_app.vcxproj", "{7358D8BD-4123-4B2D-86C0-87F6BA6CED76}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

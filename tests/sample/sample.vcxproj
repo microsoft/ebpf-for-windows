@@ -127,7 +127,7 @@
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutputPath)%(Filename).o</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutputPath)%(Filename).o</Outputs>
     </CustomBuild>
-    <CustomBuild Include="test_ebpf.c">
+    <CustomBuild Include="test_sample_ebpf.c">
       <FileType>CppCode</FileType>
       <Command>clang -target bpf -O2 -Wall -c %(Filename).c -o %(Filename).o</Command>
       <Outputs>%(Filename).o;%(Outputs)</Outputs>

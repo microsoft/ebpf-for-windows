@@ -27,7 +27,7 @@
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
     <ProjectGuid>{7358d8bd-4123-4b2d-86c0-87f6ba6ced76}</ProjectGuid>
-    <RootNamespace>test_ebpf_ext_app</RootNamespace>
+    <RootNamespace>sample_ebpf_ext_app</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -155,7 +155,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="test_ext_app.cpp" />
+    <ClCompile Include="sample_ext_app.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="$(SolutionDir)ebpfapi\ebpfapi.vcxproj">

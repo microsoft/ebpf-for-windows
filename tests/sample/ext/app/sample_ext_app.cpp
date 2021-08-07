@@ -10,15 +10,15 @@
 #include "catch_wrapper.hpp"
 #include "libbpf.h"
 #include "service_helper.h"
-#include "test_ext_app.h"
+#include "sample_ext_app.h"
 
 #define SAMPLE_PATH ""
 
 #define EBPF_CORE_DRIVER_BINARY_NAME L"ebpfcore.sys"
 #define EBPF_CORE_DRIVER_NAME L"ebpfcore"
 
-#define EBPF_EXTENSION_DRIVER_BINARY_NAME L"test_ebpf_ext.sys"
-#define EBPF_EXTENSION_DRIVER_NAME L"testebpfext"
+#define EBPF_EXTENSION_DRIVER_BINARY_NAME L"sample_ebpf_ext.sys"
+#define EBPF_EXTENSION_DRIVER_NAME L"SampleEbpfExt"
 
 #define EBPF_SERVICE_BINARY_NAME L"ebpfsvc.exe"
 #define EBPF_SERVICE_NAME L"ebpfsvc"
@@ -68,7 +68,8 @@ TEST_CASE("test_test", "[test_test]")
 
     REQUIRE(ebpf_api_initiate() == EBPF_SUCCESS);
 
-    result = _program_load_helper("test_ebpf.o", &EBPF_PROGRAM_TYPE_TEST, EBPF_EXECUTION_JIT, &object, &program_fd);
+    result =
+        _program_load_helper("test_sample_ebpf.o", &EBPF_PROGRAM_TYPE_SAMPLE, EBPF_EXECUTION_JIT, &object, &program_fd);
 
     REQUIRE(result == EBPF_SUCCESS);
     REQUIRE(program_fd > 0);
@@ -97,12 +98,12 @@ TEST_CASE("test_test", "[test_test]")
 
     // Attach to link.
     ebpf_handle_t link_handle = INVALID_HANDLE_VALUE;
-    REQUIRE(ebpf_api_link_program(program_handle, EBPF_ATTACH_TYPE_TEST, &link_handle) == ERROR_SUCCESS);
+    REQUIRE(ebpf_api_link_program(program_handle, EBPF_ATTACH_TYPE_SAMPLE, &link_handle) == ERROR_SUCCESS);
 
     // Open handle to test eBPF extension device.
     REQUIRE(
         (device_handle = ::CreateFileW(
-             TEST_EBPF_EXT_DEVICE_WIN32_NAME,
+             SAMPLE_EBPF_EXT_DEVICE_WIN32_NAME,
              GENERIC_READ | GENERIC_WRITE,
              0,
              nullptr,
@@ -114,7 +115,7 @@ TEST_CASE("test_test", "[test_test]")
     REQUIRE(
         ::DeviceIoControl(
             device_handle,
-            IOCTL_TEST_EBPF_EXT_CTL,
+            IOCTL_SAMPLE_EBPF_EXT_CTL,
             input_buffer.data(),
             static_cast<uint32_t>(input_buffer.size()),
             output_buffer.data(),

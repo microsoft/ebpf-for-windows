@@ -45,7 +45,7 @@
     <MinimumVisualStudioVersion>12.0</MinimumVisualStudioVersion>
     <Configuration>Debug</Configuration>
     <Platform Condition="'$(Platform)' == ''">Win32</Platform>
-    <ProjectName>test_ebpf_ext</ProjectName>
+    <ProjectName>sample_ebpf_ext</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
@@ -113,15 +113,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="test_ext_drv.c" />
-    <ClCompile Include="test_ext.c" />
+    <ClCompile Include="sample_ext_drv.c" />
+    <ClCompile Include="sample_ext.c" />
   </ItemGroup>
   <ItemGroup>
     <FilesToPackage Include="$(TargetPath)" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="test_ext.h" />
-    <ClInclude Include="..\inc\test_ext_helpers.h" />
+    <ClInclude Include="sample_ext.h" />
+    <ClInclude Include="..\inc\sample_ext_helpers.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="$(SolutionDir)libs\platform\kernel\platform_kernel.vcxproj">

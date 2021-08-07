@@ -15,41 +15,41 @@
 #include "ebpf_program_types.h"
 #include "ebpf_windows.h"
 
-#include "test_ext_helpers.h"
+#include "sample_ext_helpers.h"
 
-#define TEST_EBPF_EXTENSION_NPI_PROVIDER_VERSION 0
+#define SAMPLE_EBPF_EXTENSION_NPI_PROVIDER_VERSION 0
 
 // f788ef4a-207d-4dc3-85cf-0f2ea107213c
-DEFINE_GUID(EBPF_PROGRAM_TYPE_TEST, 0xf788ef4a, 0x207d, 0x4dc3, 0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c);
+DEFINE_GUID(EBPF_PROGRAM_TYPE_SAMPLE, 0xf788ef4a, 0x207d, 0x4dc3, 0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c);
 
-static ebpf_context_descriptor_t _test_ebpf_context_descriptor = {sizeof(test_program_context_t),
-                                                                  EBPF_OFFSET_OF(test_program_context_t, data_start),
-                                                                  EBPF_OFFSET_OF(test_program_context_t, data_end),
-                                                                  -1};
+static ebpf_context_descriptor_t _sample_ebpf_context_descriptor = {sizeof(test_program_context_t),
+                                                                    EBPF_OFFSET_OF(test_program_context_t, data_start),
+                                                                    EBPF_OFFSET_OF(test_program_context_t, data_end),
+                                                                    -1};
 
 // Test Extension Helper function prototype descriptors.
-static ebpf_helper_function_prototype_t _test_ebpf_extension_helper_function_prototype[] = {
+static ebpf_helper_function_prototype_t _sample_ebpf_extension_helper_function_prototype[] = {
     {EBPF_MAX_GENERAL_HELPER_FUNCTION + 1,
-     "test_ebpf_extension_helper_function1",
+     "sample_ebpf_extension_helper_function1",
      EBPF_RETURN_TYPE_INTEGER,
      {EBPF_ARGUMENT_TYPE_PTR_TO_CTX}},
     {EBPF_MAX_GENERAL_HELPER_FUNCTION + 2,
-     "test_ebpf_extension_helper_function2",
+     "sample_ebpf_extension_helper_function2",
      EBPF_RETURN_TYPE_VOID,
      {EBPF_ARGUMENT_TYPE_PTR_TO_MEM, EBPF_ARGUMENT_TYPE_CONST_SIZE}},
     {EBPF_MAX_GENERAL_HELPER_FUNCTION + 3,
-     "test_ebpf_extension_helper_function3",
+     "sample_ebpf_extension_helper_function3",
      EBPF_RETURN_TYPE_VOID,
      {EBPF_ARGUMENT_TYPE_ANYTHING}},
     {EBPF_MAX_GENERAL_HELPER_FUNCTION + 4,
-     "test_ebpf_extension_find",
+     "sample_ebpf_extension_find",
      EBPF_RETURN_TYPE_INTEGER,
      {EBPF_ARGUMENT_TYPE_PTR_TO_MEM,
       EBPF_ARGUMENT_TYPE_CONST_SIZE,
       EBPF_ARGUMENT_TYPE_PTR_TO_MEM,
       EBPF_ARGUMENT_TYPE_CONST_SIZE}},
     {EBPF_MAX_GENERAL_HELPER_FUNCTION + 5,
-     "test_ebpf_extension_replace",
+     "sample_ebpf_extension_replace",
      EBPF_RETURN_TYPE_INTEGER,
      {EBPF_ARGUMENT_TYPE_PTR_TO_MEM,
       EBPF_ARGUMENT_TYPE_CONST_SIZE,
@@ -57,43 +57,43 @@ static ebpf_helper_function_prototype_t _test_ebpf_extension_helper_function_pro
       EBPF_ARGUMENT_TYPE_PTR_TO_MEM,
       EBPF_ARGUMENT_TYPE_CONST_SIZE}}};
 
-static ebpf_program_info_t _test_ebpf_extension_program_info = {
-    {"test", &_test_ebpf_context_descriptor, {0}},
-    EBPF_COUNT_OF(_test_ebpf_extension_helper_function_prototype),
-    _test_ebpf_extension_helper_function_prototype};
+static ebpf_program_info_t _sample_ebpf_extension_program_info = {
+    {"sample", &_sample_ebpf_context_descriptor, {0}},
+    EBPF_COUNT_OF(_sample_ebpf_extension_helper_function_prototype),
+    _sample_ebpf_extension_helper_function_prototype};
 
 // Test Extension helper function addresses table.
 static int
-_test_ebpf_extension_helper_function1(_In_ const test_program_context_t* context);
+_sample_ebpf_extension_helper_function1(_In_ const test_program_context_t* context);
 static void
-_test_ebpf_extension_helper_function2(_In_ const void* memory_pointer, uint32_t size);
+_sample_ebpf_extension_helper_function2(_In_ const void* memory_pointer, uint32_t size);
 static void
-_test_ebpf_extension_helper_function3(_In_ uint8_t arg);
+_sample_ebpf_extension_helper_function3(_In_ uint8_t arg);
 static int
-_test_ebpf_extension_find(_In_ const void* buffer, uint32_t size, _In_ const void* find, uint32_t arg_size);
+_sample_ebpf_extension_find(_In_ const void* buffer, uint32_t size, _In_ const void* find, uint32_t arg_size);
 static int
-_test_ebpf_extension_replace(
+_sample_ebpf_extension_replace(
     _In_ const void* buffer, uint32_t size, uint8_t position, _In_ const void* replace, uint32_t arg_size);
 
-static const void* _test_ebpf_extension_helpers[] = {(void*)&_test_ebpf_extension_helper_function1,
-                                                     (void*)&_test_ebpf_extension_helper_function2,
-                                                     (void*)&_test_ebpf_extension_helper_function3,
-                                                     (void*)&_test_ebpf_extension_find,
-                                                     (void*)&_test_ebpf_extension_replace};
+static const void* _sample_ebpf_extension_helpers[] = {(void*)&_sample_ebpf_extension_helper_function1,
+                                                       (void*)&_sample_ebpf_extension_helper_function2,
+                                                       (void*)&_sample_ebpf_extension_helper_function3,
+                                                       (void*)&_sample_ebpf_extension_find,
+                                                       (void*)&_sample_ebpf_extension_replace};
 
-static ebpf_helper_function_addresses_t _test_ebpf_extension_helper_function_address_table = {
-    EBPF_COUNT_OF(_test_ebpf_extension_helpers), (uint64_t*)_test_ebpf_extension_helpers};
+static ebpf_helper_function_addresses_t _sample_ebpf_extension_helper_function_address_table = {
+    EBPF_COUNT_OF(_sample_ebpf_extension_helpers), (uint64_t*)_sample_ebpf_extension_helpers};
 
-static ebpf_program_data_t _test_ebpf_extension_program_data = {&_test_ebpf_extension_program_info,
-                                                                &_test_ebpf_extension_helper_function_address_table};
+static ebpf_program_data_t _sample_ebpf_extension_program_data = {
+    &_sample_ebpf_extension_program_info, &_sample_ebpf_extension_helper_function_address_table};
 
-static ebpf_extension_data_t _test_ebpf_extension_program_info_provider_data = {
-    TEST_EBPF_EXTENSION_NPI_PROVIDER_VERSION,
-    sizeof(_test_ebpf_extension_program_data),
-    &_test_ebpf_extension_program_data};
+static ebpf_extension_data_t _sample_ebpf_extension_program_info_provider_data = {
+    SAMPLE_EBPF_EXTENSION_NPI_PROVIDER_VERSION,
+    sizeof(_sample_ebpf_extension_program_data),
+    &_sample_ebpf_extension_program_data};
 
 // Test eBPF Extension Program Information NPI Provider Module GUID: ab3a3a18-b901-4a7e-96ad-034b8ddb24e5
-const NPI_MODULEID DECLSPEC_SELECTANY _test_ebpf_extension_program_info_provider_moduleid = {
+const NPI_MODULEID DECLSPEC_SELECTANY _sample_ebpf_extension_program_info_provider_moduleid = {
     sizeof(NPI_MODULEID), MIT_GUID, {0xab3a3a18, 0xb901, 0x4a7e, {0x96, 0xad, 0x03, 0x4b, 0x8d, 0xdb, 0x24, 0xe5}}};
 
 /**
@@ -112,7 +112,7 @@ const NPI_MODULEID DECLSPEC_SELECTANY _test_ebpf_extension_program_info_provider
  * @retval STATUS_INVALID_PARAMETER One or more arguments are incorrect.
  */
 NTSTATUS
-_test_ebpf_extension_program_info_provider_attach_client(
+_sample_ebpf_extension_program_info_provider_attach_client(
     _In_ HANDLE nmr_binding_handle,
     _In_ void* provider_context,
     _In_ const NPI_REGISTRATION_INSTANCE* client_registration_instance,
@@ -129,52 +129,52 @@ _test_ebpf_extension_program_info_provider_attach_client(
  * @retval STATUS_INVALID_PARAMETER One or more parameters are invalid.
  */
 NTSTATUS
-_test_ebpf_extension_program_info_provider_detach_client(_In_ void* provider_binding_context);
+_sample_ebpf_extension_program_info_provider_detach_client(_In_ void* provider_binding_context);
 
 // Test eBPF extension Program Information NPI provider characteristics
 
-const NPI_PROVIDER_CHARACTERISTICS _test_ebpf_extension_program_info_provider_characteristics = {
+const NPI_PROVIDER_CHARACTERISTICS _sample_ebpf_extension_program_info_provider_characteristics = {
     0,
     sizeof(NPI_PROVIDER_CHARACTERISTICS),
-    _test_ebpf_extension_program_info_provider_attach_client,
-    _test_ebpf_extension_program_info_provider_detach_client,
+    _sample_ebpf_extension_program_info_provider_attach_client,
+    _sample_ebpf_extension_program_info_provider_detach_client,
     NULL,
     {0,
      sizeof(NPI_REGISTRATION_INSTANCE),
-     &EBPF_PROGRAM_TYPE_TEST,
-     &_test_ebpf_extension_program_info_provider_moduleid,
+     &EBPF_PROGRAM_TYPE_SAMPLE,
+     &_sample_ebpf_extension_program_info_provider_moduleid,
      0,
-     &_test_ebpf_extension_program_info_provider_data},
+     &_sample_ebpf_extension_program_info_provider_data},
 };
 
-typedef struct _test_ebpf_extension_program_info_provider_t test_ebpf_extension_program_info_provider;
+typedef struct _sample_ebpf_extension_program_info_provider_t sample_ebpf_extension_program_info_provider;
 
 /**
  *  @brief This is the per client binding context for program information
  *         NPI provider.
  */
-typedef struct _test_ebpf_extension_program_info_client
+typedef struct _sample_ebpf_extension_program_info_client
 {
     HANDLE nmr_binding_handle;
     GUID client_module_id;
-} test_ebpf_extension_program_info_client_t;
+} sample_ebpf_extension_program_info_client_t;
 
-typedef struct _test_ebpf_extension_program_info_provider
+typedef struct _sample_ebpf_extension_program_info_provider
 {
     HANDLE nmr_provider_handle;
-} test_ebpf_extension_program_info_provider_t;
+} sample_ebpf_extension_program_info_provider_t;
 
-static test_ebpf_extension_program_info_provider_t _test_ebpf_extension_program_info_provider_context = {0};
+static sample_ebpf_extension_program_info_provider_t _sample_ebpf_extension_program_info_provider_context = {0};
 
 //
 // Hook Provider.
 //
 
 // f788ef4b-207d-4dc3-85cf-0f2ea107213c
-DEFINE_GUID(EBPF_ATTACH_TYPE_TEST, 0xf788ef4b, 0x207d, 0x4dc3, 0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c);
+DEFINE_GUID(EBPF_ATTACH_TYPE_SAMPLE, 0xf788ef4b, 0x207d, 0x4dc3, 0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c);
 
 // Test eBPF Extension Hook NPI Provider Module GUID: ab3a3a19-b901-4a7e-96ad-034b8ddb24e5
-const NPI_MODULEID DECLSPEC_SELECTANY _test_ebpf_extension_hook_provider_moduleid = {
+const NPI_MODULEID DECLSPEC_SELECTANY _sample_ebpf_extension_hook_provider_moduleid = {
     sizeof(NPI_MODULEID), MIT_GUID, {0xab3a3a19, 0xb901, 0x4a7e, {0x96, 0xad, 0x03, 0x4b, 0x8d, 0xdb, 0x24, 0xe5}}};
 
 /**
@@ -193,7 +193,7 @@ const NPI_MODULEID DECLSPEC_SELECTANY _test_ebpf_extension_hook_provider_modulei
  * @retval STATUS_INVALID_PARAMETER One or more arguments are incorrect.
  */
 NTSTATUS
-_test_ebpf_extension_hook_provider_attach_client(
+_sample_ebpf_extension_hook_provider_attach_client(
     _In_ HANDLE nmr_binding_handle,
     _In_ void* provider_context,
     _In_ const NPI_REGISTRATION_INSTANCE* client_registration_instance,
@@ -210,27 +210,27 @@ _test_ebpf_extension_hook_provider_attach_client(
  * @retval STATUS_INVALID_PARAMETER One or more parameters are invalid.
  */
 NTSTATUS
-_test_ebpf_extension_hook_provider_detach_client(_In_ void* provider_binding_context);
+_sample_ebpf_extension_hook_provider_detach_client(_In_ void* provider_binding_context);
 
 // Test eBPF extension Hook NPI provider characteristics
-ebpf_attach_provider_data_t _test_ebpf_extension_attach_provider_data;
+ebpf_attach_provider_data_t _sample_ebpf_extension_attach_provider_data;
 
-ebpf_extension_data_t _test_ebpf_extension_hook_provider_data = {EBPF_ATTACH_PROVIDER_DATA_VERSION,
-                                                                 sizeof(_test_ebpf_extension_attach_provider_data),
-                                                                 &_test_ebpf_extension_attach_provider_data};
+ebpf_extension_data_t _sample_ebpf_extension_hook_provider_data = {EBPF_ATTACH_PROVIDER_DATA_VERSION,
+                                                                   sizeof(_sample_ebpf_extension_attach_provider_data),
+                                                                   &_sample_ebpf_extension_attach_provider_data};
 
-const NPI_PROVIDER_CHARACTERISTICS _test_ebpf_extension_hook_provider_characteristics = {
+const NPI_PROVIDER_CHARACTERISTICS _sample_ebpf_extension_hook_provider_characteristics = {
     0,
     sizeof(NPI_PROVIDER_CHARACTERISTICS),
-    _test_ebpf_extension_hook_provider_attach_client,
-    _test_ebpf_extension_hook_provider_detach_client,
+    _sample_ebpf_extension_hook_provider_attach_client,
+    _sample_ebpf_extension_hook_provider_detach_client,
     NULL,
     {0,
      sizeof(NPI_REGISTRATION_INSTANCE),
-     &EBPF_ATTACH_TYPE_TEST,
-     &_test_ebpf_extension_program_info_provider_moduleid,
+     &EBPF_ATTACH_TYPE_SAMPLE,
+     &_sample_ebpf_extension_program_info_provider_moduleid,
      0,
-     &_test_ebpf_extension_hook_provider_data},
+     &_sample_ebpf_extension_hook_provider_data},
 };
 
 /**
@@ -239,34 +239,34 @@ const NPI_PROVIDER_CHARACTERISTICS _test_ebpf_extension_hook_provider_characteri
 typedef ebpf_result_t (*ebpf_invoke_program_function_t)(
     _In_ const void* client_binding_context, _In_ const void* context, _Out_ uint32_t* result);
 
-typedef struct _test_ebpf_extension_hook_provider test_ebpf_extension_hook_provider_t;
+typedef struct _sample_ebpf_extension_hook_provider sample_ebpf_extension_hook_provider_t;
 /**
  *  @brief This is the per client binding context for the eBPF Hook
  *         NPI provider.
  */
-typedef struct _test_ebpf_extension_hook_client
+typedef struct _sample_ebpf_extension_hook_client
 {
     HANDLE nmr_binding_handle;
     GUID client_module_id;
     const void* client_binding_context;
     const ebpf_extension_data_t* client_data;
     ebpf_invoke_program_function_t invoke_program;
-} test_ebpf_extension_hook_client_t;
+} sample_ebpf_extension_hook_client_t;
 
 /**
  *  @brief This is the provider context of eBPF Hook NPI provider that
  *         maintains the provider registration state.
  */
-typedef struct _test_ebpf_extension_hook_provider
+typedef struct _sample_ebpf_extension_hook_provider
 {
     HANDLE nmr_provider_handle;
-    test_ebpf_extension_hook_client_t* attached_client;
-} test_ebpf_extension_hook_provider_t;
+    sample_ebpf_extension_hook_client_t* attached_client;
+} sample_ebpf_extension_hook_provider_t;
 
-static test_ebpf_extension_hook_provider_t _test_ebpf_extension_hook_provider_context = {0};
+static sample_ebpf_extension_hook_provider_t _sample_ebpf_extension_hook_provider_context = {0};
 
 NTSTATUS
-_test_ebpf_extension_program_info_provider_attach_client(
+_sample_ebpf_extension_program_info_provider_attach_client(
     _In_ HANDLE nmr_binding_handle,
     _In_ void* provider_context,
     _In_ const NPI_REGISTRATION_INSTANCE* client_registration_instance,
@@ -276,7 +276,7 @@ _test_ebpf_extension_program_info_provider_attach_client(
     _Outptr_result_maybenull_ const void** provider_dispatch)
 {
     NTSTATUS status = STATUS_SUCCESS;
-    test_ebpf_extension_program_info_client_t* program_info_client = NULL;
+    sample_ebpf_extension_program_info_client_t* program_info_client = NULL;
 
     UNREFERENCED_PARAMETER(provider_context);
     UNREFERENCED_PARAMETER(client_dispatch);
@@ -290,8 +290,8 @@ _test_ebpf_extension_program_info_provider_attach_client(
     *provider_binding_context = NULL;
     *provider_dispatch = NULL;
 
-    program_info_client =
-        (test_ebpf_extension_program_info_client_t*)ebpf_allocate(sizeof(test_ebpf_extension_program_info_client_t));
+    program_info_client = (sample_ebpf_extension_program_info_client_t*)ebpf_allocate(
+        sizeof(sample_ebpf_extension_program_info_client_t));
 
     if (program_info_client == NULL) {
         status = STATUS_NO_MEMORY;
@@ -311,7 +311,7 @@ Exit:
 }
 
 NTSTATUS
-_test_ebpf_extension_program_info_provider_detach_client(_In_ void* provider_binding_context)
+_sample_ebpf_extension_program_info_provider_detach_client(_In_ void* provider_binding_context)
 {
     NTSTATUS status = STATUS_SUCCESS;
 
@@ -321,32 +321,33 @@ _test_ebpf_extension_program_info_provider_detach_client(_In_ void* provider_bin
 }
 
 void
-test_ebpf_extension_program_info_provider_unregister()
+sample_ebpf_extension_program_info_provider_unregister()
 {
-    test_ebpf_extension_program_info_provider_t* provider_context = &_test_ebpf_extension_program_info_provider_context;
+    sample_ebpf_extension_program_info_provider_t* provider_context =
+        &_sample_ebpf_extension_program_info_provider_context;
     NTSTATUS status = NmrDeregisterProvider(provider_context->nmr_provider_handle);
     if (status == STATUS_PENDING)
         NmrWaitForProviderDeregisterComplete(provider_context->nmr_provider_handle);
 }
 
 NTSTATUS
-test_ebpf_extension_program_info_provider_register()
+sample_ebpf_extension_program_info_provider_register()
 {
-    test_ebpf_extension_program_info_provider_t* local_provider_context;
+    sample_ebpf_extension_program_info_provider_t* local_provider_context;
     ebpf_extension_data_t* extension_data;
     ebpf_program_data_t* program_data;
 
     NTSTATUS status = STATUS_SUCCESS;
 
-    extension_data = (ebpf_extension_data_t*)_test_ebpf_extension_program_info_provider_characteristics
+    extension_data = (ebpf_extension_data_t*)_sample_ebpf_extension_program_info_provider_characteristics
                          .ProviderRegistrationInstance.NpiSpecificCharacteristics;
     program_data = (ebpf_program_data_t*)extension_data->data;
-    program_data->program_info->program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_TEST;
+    program_data->program_info->program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_SAMPLE;
 
-    local_provider_context = &_test_ebpf_extension_program_info_provider_context;
+    local_provider_context = &_sample_ebpf_extension_program_info_provider_context;
 
     status = NmrRegisterProvider(
-        &_test_ebpf_extension_program_info_provider_characteristics,
+        &_sample_ebpf_extension_program_info_provider_characteristics,
         local_provider_context,
         &local_provider_context->nmr_provider_handle);
     if (!NT_SUCCESS(status))
@@ -354,7 +355,7 @@ test_ebpf_extension_program_info_provider_register()
 
 Exit:
     if (!NT_SUCCESS(status))
-        test_ebpf_extension_program_info_provider_unregister();
+        sample_ebpf_extension_program_info_provider_unregister();
 
     return status;
 }
@@ -364,7 +365,7 @@ Exit:
 //
 
 NTSTATUS
-_test_ebpf_extension_hook_provider_attach_client(
+_sample_ebpf_extension_hook_provider_attach_client(
     _In_ HANDLE nmr_binding_handle,
     _In_ void* provider_context,
     _In_ const NPI_REGISTRATION_INSTANCE* client_registration_instance,
@@ -374,9 +375,9 @@ _test_ebpf_extension_hook_provider_attach_client(
     _Outptr_result_maybenull_ const void** provider_dispatch)
 {
     NTSTATUS status = STATUS_SUCCESS;
-    test_ebpf_extension_hook_provider_t* local_provider_context =
-        (test_ebpf_extension_hook_provider_t*)provider_context;
-    test_ebpf_extension_hook_client_t* hook_client = NULL;
+    sample_ebpf_extension_hook_provider_t* local_provider_context =
+        (sample_ebpf_extension_hook_provider_t*)provider_context;
+    sample_ebpf_extension_hook_client_t* hook_client = NULL;
     ebpf_extension_dispatch_table_t* client_dispatch_table;
 
     if ((provider_binding_context == NULL) || (provider_dispatch == NULL)) {
@@ -387,7 +388,7 @@ _test_ebpf_extension_hook_provider_attach_client(
     *provider_binding_context = NULL;
     *provider_dispatch = NULL;
 
-    hook_client = (test_ebpf_extension_hook_client_t*)ebpf_allocate(sizeof(test_ebpf_extension_hook_client_t));
+    hook_client = (sample_ebpf_extension_hook_client_t*)ebpf_allocate(sizeof(sample_ebpf_extension_hook_client_t));
 
     if (hook_client == NULL) {
         status = STATUS_NO_MEMORY;
@@ -419,20 +420,20 @@ Exit:
 }
 
 NTSTATUS
-_test_ebpf_extension_hook_provider_detach_client(_In_ void* provider_binding_context)
+_sample_ebpf_extension_hook_provider_detach_client(_In_ void* provider_binding_context)
 {
     NTSTATUS status = STATUS_SUCCESS;
 
-    test_ebpf_extension_hook_client_t* local_client_context =
-        (test_ebpf_extension_hook_client_t*)provider_binding_context;
-    test_ebpf_extension_hook_provider_t* provider_context = NULL;
+    sample_ebpf_extension_hook_client_t* local_client_context =
+        (sample_ebpf_extension_hook_client_t*)provider_binding_context;
+    sample_ebpf_extension_hook_provider_t* provider_context = NULL;
 
     if (local_client_context == NULL) {
         status = STATUS_INVALID_PARAMETER;
         goto Exit;
     }
 
-    provider_context = &_test_ebpf_extension_hook_provider_context;
+    provider_context = &_sample_ebpf_extension_hook_provider_context;
     provider_context->attached_client = NULL;
 
     ebpf_free(local_client_context);
@@ -442,9 +443,9 @@ Exit:
 }
 
 void
-test_ebpf_extension_hook_provider_unregister()
+sample_ebpf_extension_hook_provider_unregister()
 {
-    test_ebpf_extension_hook_provider_t* provider_context = &_test_ebpf_extension_hook_provider_context;
+    sample_ebpf_extension_hook_provider_t* provider_context = &_sample_ebpf_extension_hook_provider_context;
 
     NTSTATUS status = NmrDeregisterProvider(provider_context->nmr_provider_handle);
     if (status == STATUS_PENDING)
@@ -453,17 +454,17 @@ test_ebpf_extension_hook_provider_unregister()
 }
 
 NTSTATUS
-test_ebpf_extension_hook_provider_register()
+sample_ebpf_extension_hook_provider_register()
 {
-    test_ebpf_extension_hook_provider_t* local_provider_context;
+    sample_ebpf_extension_hook_provider_t* local_provider_context;
     NTSTATUS status = STATUS_SUCCESS;
 
-    _test_ebpf_extension_attach_provider_data.supported_program_type = EBPF_PROGRAM_TYPE_TEST;
+    _sample_ebpf_extension_attach_provider_data.supported_program_type = EBPF_PROGRAM_TYPE_SAMPLE;
 
-    local_provider_context = &_test_ebpf_extension_hook_provider_context;
+    local_provider_context = &_sample_ebpf_extension_hook_provider_context;
 
     status = NmrRegisterProvider(
-        &_test_ebpf_extension_hook_provider_characteristics,
+        &_sample_ebpf_extension_hook_provider_characteristics,
         local_provider_context,
         &local_provider_context->nmr_provider_handle);
     if (!NT_SUCCESS(status))
@@ -471,49 +472,58 @@ test_ebpf_extension_hook_provider_register()
 
 Exit:
     if (!NT_SUCCESS(status))
-        test_ebpf_extension_hook_provider_unregister();
+        sample_ebpf_extension_hook_provider_unregister();
 
     return status;
 }
 
 ebpf_result_t
-test_ebpf_extension_invoke_program(_In_ const test_program_context_t* context, _Out_ uint32_t* result)
+sample_ebpf_extension_invoke_program(_In_ const test_program_context_t* context, _Out_ uint32_t* result)
 {
-    test_ebpf_extension_hook_provider_t* hook_provider_context = &_test_ebpf_extension_hook_provider_context;
+    ebpf_result_t return_value = EBPF_SUCCESS;
 
-    test_ebpf_extension_hook_client_t* hook_client = hook_provider_context->attached_client;
+    sample_ebpf_extension_hook_provider_t* hook_provider_context = &_sample_ebpf_extension_hook_provider_context;
 
+    sample_ebpf_extension_hook_client_t* hook_client = hook_provider_context->attached_client;
+
+    if (hook_client == NULL) {
+        return_value = EBPF_FAILED;
+        goto Exit;
+    }
     ebpf_invoke_program_function_t invoke_program = hook_client->invoke_program;
     const void* client_binding_context = hook_client->client_binding_context;
 
     // Run the eBPF program using cached copies of invoke_program and client_binding_context.
-    return invoke_program(client_binding_context, context, result);
+    return_value = invoke_program(client_binding_context, context, result);
+
+Exit:
+    return return_value;
 }
 
 // Helper Function Definitions.
 
 static int
-_test_ebpf_extension_helper_function1(_In_ const test_program_context_t* context)
+_sample_ebpf_extension_helper_function1(_In_ const test_program_context_t* context)
 {
     UNREFERENCED_PARAMETER(context);
     return 0;
 }
 
 static void
-_test_ebpf_extension_helper_function2(_In_ const void* memory_pointer, uint32_t size)
+_sample_ebpf_extension_helper_function2(_In_ const void* memory_pointer, uint32_t size)
 {
     UNREFERENCED_PARAMETER(memory_pointer);
     UNREFERENCED_PARAMETER(size);
 }
 
 static void
-_test_ebpf_extension_helper_function3(_In_ uint8_t arg)
+_sample_ebpf_extension_helper_function3(_In_ uint8_t arg)
 {
     UNREFERENCED_PARAMETER(arg);
 }
 
 static int
-_test_ebpf_extension_find(_In_ const void* buffer, uint32_t size, _In_ const void* find, uint32_t arg_size)
+_sample_ebpf_extension_find(_In_ const void* buffer, uint32_t size, _In_ const void* find, uint32_t arg_size)
 {
     UNREFERENCED_PARAMETER(size);
     UNREFERENCED_PARAMETER(arg_size);
@@ -521,7 +531,7 @@ _test_ebpf_extension_find(_In_ const void* buffer, uint32_t size, _In_ const voi
 }
 
 static int
-_test_ebpf_extension_replace(
+_sample_ebpf_extension_replace(
     _In_ const void* buffer, uint32_t size, uint8_t position, _In_ const void* replace, uint32_t arg_size)
 {
     int result = 0;
