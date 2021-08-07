@@ -7,11 +7,13 @@
 #include "ebpf_helpers.h"
 #include "test_ext_helpers.h"
 
+#define VALUE_SIZE 32
+
 #pragma clang section data = "maps"
 ebpf_map_definition_t test_map = {.size = sizeof(ebpf_map_definition_t),
                                   .type = BPF_MAP_TYPE_ARRAY,
                                   .key_size = sizeof(uint32_t),
-                                  .value_size = 32,
+                                  .value_size = VALUE_SIZE,
                                   .max_entries = 2};
 
 #pragma clang section text = "test_ext"
@@ -28,11 +30,11 @@ test_program_entry(test_program_context_t* context)
         int result;
         test_ebpf_extension_helper_function2(context->data_start, context->data_end - context->data_start);
         if (values[0])
-            position =
-                test_ebpf_extension_find(context->data_start, context->data_end - context->data_start, values[0], 32);
+            position = test_ebpf_extension_find(
+                context->data_start, context->data_end - context->data_start, values[0], VALUE_SIZE);
         if (values[1])
             result = test_ebpf_extension_replace(
-                context->data_start, context->data_end - context->data_start, position, values[1], 32);
+                context->data_start, context->data_end - context->data_start, position, values[1], VALUE_SIZE);
     }
     test_ebpf_extension_helper_function1(context);
 
