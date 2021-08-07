@@ -15,14 +15,18 @@ ebpf_map_definition_t byte_map = {
 #pragma clang section text = "mac"
 void CountBytes(mac_md_t* context)
 {
-    uint64_t* byte_count = bpf_map_lookup_elem(&byte_map, &context->five_tuple);
+    five_tuple_t key = context->five_tuple;
+    uint64_t value = context->packet_length;
+    uint64_t* byte_count = bpf_map_lookup_elem(&byte_map, &key);
+
     if (!byte_count)
     {
-        bpf_map_update_elem(&byte_map, &context->five_tuple, context->packet_length, NO_FLAGS);
+        bpf_map_update_elem(&byte_map, &key, &value, NO_FLAGS);
     }
     else
     {
-        bpf_map_update_elem(&byte_map, &context->five_tuple, *byte_count + context->packet_length, NO_FLAGS);
+        value = *byte_count + value;
+        bpf_map_update_elem(&byte_map, &key, &value, NO_FLAGS);
     }
     return;
 }

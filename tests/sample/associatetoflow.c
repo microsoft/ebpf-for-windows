@@ -15,13 +15,16 @@ ebpf_map_definition_t app_map = {
 #pragma clang section text = "flow"
 void AssociateFlowToContext(flow_md_t* context)
 {
+    five_tuple_t key = context->five_tuple;
+    uint64_t value = context->app_id;
+    
     if (context->flow_established_flag)
     {
-        bpf_map_update_elem(&app_map, &context->five_tuple, &context->app_id, NO_FLAGS);
+        bpf_map_update_elem(&app_map, &key, &value, NO_FLAGS);
     }
     else
     { // flow deletion
-        bpf_map_delete_elem(&app_map, &context->five_tuple);
+        bpf_map_delete_elem(&app_map, &key);
     }
     return;
 }
