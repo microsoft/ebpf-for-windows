@@ -26,9 +26,9 @@ static void*
 _ebpf_core_map_find_element(ebpf_map_t* map, const uint8_t* key);
 static int64_t
 _ebpf_core_map_update_element(ebpf_map_t* map, const uint8_t* key, const uint8_t* data, uint64_t flags);
-static void
+static int64_t
 _ebpf_core_map_delete_element(ebpf_map_t* map, const uint8_t* key);
-static long
+static int64_t
 _ebpf_core_tail_call(void* ctx, ebpf_map_t* map, uint32_t index);
 
 #define EBPF_CORE_GLOBAL_HELPER_EXTENSION_VERSION 0
@@ -923,22 +923,22 @@ static int64_t
 _ebpf_core_map_update_element(ebpf_map_t* map, const uint8_t* key, const uint8_t* value, uint64_t flags)
 {
     UNREFERENCED_PARAMETER(flags);
-    return ebpf_map_update_entry(map, key, value) == EBPF_SUCCESS ? 0 : -1;
+    return -ebpf_map_update_entry(map, key, value);
 }
 
-static void
+static int64_t
 _ebpf_core_map_delete_element(ebpf_map_t* map, const uint8_t* key)
 {
-    ebpf_map_delete_entry(map, key);
+    return -ebpf_map_delete_entry(map, key);
 }
 
-static long
+static int64_t
 _ebpf_core_tail_call(void* context, ebpf_map_t* map, uint32_t index)
 {
     // Get program from map[index].
     ebpf_program_t* callee = ebpf_map_get_program_from_entry(map, (uint8_t*)&index, sizeof(index));
     if (callee == NULL) {
-        return -1;
+        return -EBPF_INVALID_ARGUMENT;
     }
 
     // TODO(issue #344): Jump to (not call) the callee.

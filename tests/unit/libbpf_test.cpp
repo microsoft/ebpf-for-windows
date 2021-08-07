@@ -314,4 +314,4 @@ TEST_CASE("good tail_call", "[libbpf]")
     _ebpf_test_tail_call("tail_call.o", 6);
 }
 
-TEST_CASE("bad tail_call", "[libbpf]") { _ebpf_test_tail_call("tail_call_bad.o", -1); }
+TEST_CASE("bad tail_call", "[libbpf]") { _ebpf_test_tail_call("tail_call_bad.o", -EBPF_INVALID_ARGUMENT); }
