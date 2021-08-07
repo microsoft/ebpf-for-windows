@@ -20,25 +20,34 @@ ebpf_map_definition_t test_map = {.size = sizeof(ebpf_map_definition_t),
 int
 test_program_entry(test_program_context_t* context)
 {
+    int64_t result;
     uint32_t keys[2] = {0, 1};
     uint8_t* values[2] = {0};
+
+    result = sample_ebpf_extension_helper_function1(context);
+    if (result < 0)
+        goto Exit;
+
     values[0] = bpf_map_lookup_elem(&test_map, &keys[0]);
     values[1] = bpf_map_lookup_elem(&test_map, &keys[1]);
-    sample_ebpf_extension_helper_function3(0);
+
     if (context->data_end > context->data_start) {
-        int position;
-        int result;
-        sample_ebpf_extension_helper_function2(context->data_start, context->data_end - context->data_start);
+        int64_t position;
+
         if (values[0])
             position = sample_ebpf_extension_find(
                 context->data_start, context->data_end - context->data_start, values[0], VALUE_SIZE);
-        if (values[1])
+        if (values[1]) {
             result = sample_ebpf_extension_replace(
                 context->data_start, context->data_end - context->data_start, position, values[1], VALUE_SIZE);
+            if (result < 0)
+                goto Exit;
+        }
     }
-    sample_ebpf_extension_helper_function1(context);
 
     // "The answer to the question of life, the universe and everything".
     //          - Douglas Adams (The Hitchhiker’s Guide to the Galaxy).
-    return 42;
+    result = 42;
+Exit:
+    return result;
 }

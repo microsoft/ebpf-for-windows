@@ -34,21 +34,13 @@ static ebpf_helper_function_prototype_t _sample_ebpf_extension_helper_function_p
      EBPF_RETURN_TYPE_INTEGER,
      {EBPF_ARGUMENT_TYPE_PTR_TO_CTX}},
     {EBPF_MAX_GENERAL_HELPER_FUNCTION + 2,
-     "sample_ebpf_extension_helper_function2",
-     EBPF_RETURN_TYPE_VOID,
-     {EBPF_ARGUMENT_TYPE_PTR_TO_MEM, EBPF_ARGUMENT_TYPE_CONST_SIZE}},
-    {EBPF_MAX_GENERAL_HELPER_FUNCTION + 3,
-     "sample_ebpf_extension_helper_function3",
-     EBPF_RETURN_TYPE_VOID,
-     {EBPF_ARGUMENT_TYPE_ANYTHING}},
-    {EBPF_MAX_GENERAL_HELPER_FUNCTION + 4,
      "sample_ebpf_extension_find",
      EBPF_RETURN_TYPE_INTEGER,
      {EBPF_ARGUMENT_TYPE_PTR_TO_MEM,
       EBPF_ARGUMENT_TYPE_CONST_SIZE,
       EBPF_ARGUMENT_TYPE_PTR_TO_MEM,
       EBPF_ARGUMENT_TYPE_CONST_SIZE}},
-    {EBPF_MAX_GENERAL_HELPER_FUNCTION + 5,
+    {EBPF_MAX_GENERAL_HELPER_FUNCTION + 3,
      "sample_ebpf_extension_replace",
      EBPF_RETURN_TYPE_INTEGER,
      {EBPF_ARGUMENT_TYPE_PTR_TO_MEM,
@@ -63,21 +55,15 @@ static ebpf_program_info_t _sample_ebpf_extension_program_info = {
     _sample_ebpf_extension_helper_function_prototype};
 
 // Test Extension helper function addresses table.
-static int
+static int64_t
 _sample_ebpf_extension_helper_function1(_In_ const test_program_context_t* context);
-static void
-_sample_ebpf_extension_helper_function2(_In_ const void* memory_pointer, uint32_t size);
-static void
-_sample_ebpf_extension_helper_function3(_In_ uint8_t arg);
-static int
+static int64_t
 _sample_ebpf_extension_find(_In_ const void* buffer, uint32_t size, _In_ const void* find, uint32_t arg_size);
-static int
+static int64_t
 _sample_ebpf_extension_replace(
-    _In_ const void* buffer, uint32_t size, uint8_t position, _In_ const void* replace, uint32_t arg_size);
+    _In_ const void* buffer, uint32_t size, int64_t position, _In_ const void* replace, uint32_t arg_size);
 
 static const void* _sample_ebpf_extension_helpers[] = {(void*)&_sample_ebpf_extension_helper_function1,
-                                                       (void*)&_sample_ebpf_extension_helper_function2,
-                                                       (void*)&_sample_ebpf_extension_helper_function3,
                                                        (void*)&_sample_ebpf_extension_find,
                                                        (void*)&_sample_ebpf_extension_replace};
 
@@ -502,49 +488,42 @@ Exit:
 
 // Helper Function Definitions.
 
-static int
+static int64_t
 _sample_ebpf_extension_helper_function1(_In_ const test_program_context_t* context)
 {
     UNREFERENCED_PARAMETER(context);
     return 0;
 }
 
-static void
-_sample_ebpf_extension_helper_function2(_In_ const void* memory_pointer, uint32_t size)
-{
-    UNREFERENCED_PARAMETER(memory_pointer);
-    UNREFERENCED_PARAMETER(size);
-}
-
-static void
-_sample_ebpf_extension_helper_function3(_In_ uint8_t arg)
-{
-    UNREFERENCED_PARAMETER(arg);
-}
-
-static int
+static int64_t
 _sample_ebpf_extension_find(_In_ const void* buffer, uint32_t size, _In_ const void* find, uint32_t arg_size)
 {
     UNREFERENCED_PARAMETER(size);
     UNREFERENCED_PARAMETER(arg_size);
-    return (int)(strstr((char*)buffer, (char*)find) - (char*)buffer);
+    return strstr((char*)buffer, (char*)find) - (char*)buffer;
 }
 
-static int
+static int64_t
 _sample_ebpf_extension_replace(
-    _In_ const void* buffer, uint32_t size, uint8_t position, _In_ const void* replace, uint32_t arg_size)
+    _In_ const void* buffer, uint32_t size, int64_t position, _In_ const void* replace, uint32_t arg_size)
 {
-    int result = 0;
-    char* dest = (char*)buffer + position;
+    int64_t result = 0;
+    char* dest;
     char* end = (char*)buffer + size - 1;
     char* source = (char*)replace;
     UNREFERENCED_PARAMETER(arg_size);
+
+    if (position < 0) {
+        result = -1;
+        goto Exit;
+    }
 
     if (position >= size) {
         result = -1;
         goto Exit;
     }
 
+    dest = (char*)buffer + position;
     while (dest != end) {
         if (*source == '\0')
             break;

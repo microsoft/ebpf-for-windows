@@ -37,10 +37,10 @@ This will build the following binaries:
                   of the Github CI/CD so should always pass.
 * ebpf_client.exe: A collection of program verification tests that exercises the RPC channel from client to ebpfsvc.
                    These tests are also run as part of the Github CI/CD so should always pass.
-* api_test.exe: A collection of tests that exercises eBPF user mode APIs. This requires EbpSvc service running,
+* api_test.exe: A collection of tests that exercises eBPF user mode APIs. This requires EbpSvc service to be running,
                 and EbpCore and NetEbpfExt drivers to be loaded.
 * sample_ebpf_ext.sys: A sample eBPF extension driver that implements a test hook (for a test program type) and test helper functions.
-* sample_ext_app.exe : An application for testing the sample extension driver.
+* sample_ext_app.exe : A sample application for testing the sample extension driver.
 
 and a few binaries just used for demo'ing eBPF functionality, as in the demo walkthrough discussed below:
 
@@ -137,7 +137,7 @@ checking in changes.
 
 ### sample_ext_app.exe
 This is a test application for the sample eBPF extension. This application loads a test eBPF program
-and attaches is to the test hook implemented by the sample extension and validates if the eBPF program
+and attaches it to the test hook implemented by the sample extension and validates if the eBPF program
 executed as expected.
 
 ### Running the tests
