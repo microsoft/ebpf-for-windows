@@ -33,10 +33,14 @@ This will build the following binaries:
 * ebpfnetsh.dll: A plugin for the Windows netsh.exe command line tool that provides eBPF command line
                  utility functionality.
 * ebpfsvc.exe: A user-mode service that verifies and loads an eBPF program in the execution context.
-* end_to_end.exe: A collection of tests using the Catch framework.  These tests are also run as part
+* unit_tests.exe: A collection of tests using the Catch framework.  These tests are also run as part
                   of the Github CI/CD so should always pass.
 * ebpf_client.exe: A collection of program verification tests that exercises the RPC channel from client to ebpfsvc.
                    These tests are also run as part of the Github CI/CD so should always pass.
+* api_test.exe: A collection of tests that exercises eBPF user mode APIs. This requires EbpSvc service to be running,
+                and EbpCore and NetEbpfExt drivers to be loaded.
+* sample_ebpf_ext.sys: A sample eBPF extension driver that implements a test hook (for a test program type) and test helper functions.
+* sample_ext_app.exe : A sample application for testing the sample extension driver.
 
 and a few binaries just used for demo'ing eBPF functionality, as in the demo walkthrough discussed below:
 
@@ -110,11 +114,7 @@ On the attacker machine, do the following:
 
 The tests in Ebpf-For-Windows are written using the [Catch2](https://github.com/catchorg/Catch2) test framework.
 
-There are 2 types of tests present:
-1.	End-to-End tests - These exercise the entire path: User API, verifier, jitter, execution context, and mock extensions.
-2.	Unit tests – These exercise a specific component in isolation.
-
-### end_to_end.exe
+### unit_tests.exe
 This test uses a mocking layer to bind the user mode components to the kernel mode
 components via a Mock IOCTL interface. The tests initialize the user mode and kernel
 mode components, load an eBPF program from an ELF file, and then run the eBPF program
@@ -128,13 +128,17 @@ If ebpfsvc is not already installed, this test tries to install and start the se
 executing the tests, hence this test should be run as admin if ebpfsvc is not already installed
 and running.
 
-### platform_unit_test.exe
-This test invokes APIs exposed by the user-mode implementation of platform
-abstraction layer.
+### api_test.exe
+This test exercises various eBPF user mode eBPF APIs, including those to load programs,
+enumerate maps and programs etc. This test requires the eBPF user mode service (EbpfSvc), and the
+kernel execution context (EbpfCore.sys) and the Network Extension (NetEbpfExt.sys) to be running.
+This test is currently *not* part of the CI pipeline. Developers must run this test manually before
+checking in changes.
 
-### execution_context_unit_test.exe
-This test invokes the APIs exposed by the execution context, including map
-operations and program operations (link operations aren’t present yet in the test).
+### sample_ext_app.exe
+This is a test application for the sample eBPF extension. This application loads a test eBPF program
+and attaches it to the test hook implemented by the sample extension and validates if the eBPF program
+executed as expected.
 
 ### Running the tests
 1.	Set the build output folder as the current working directory.
