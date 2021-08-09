@@ -118,6 +118,19 @@ extern "C"
     _Ret_maybenull_ struct _ebpf_program*
     ebpf_map_get_program_from_entry(_In_ ebpf_map_t* map, _In_ const uint8_t* key, size_t key_size);
 
+    /**
+     * @brief Let a map take any actions when first
+     * associated with a program.
+     *
+     * @param[in] map Map to update.
+     * @param[in] program Program being associated with.
+     *
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INVALID_FD The program is incompatible with this map.
+     */
+    ebpf_result_t
+    ebpf_map_associate_program(_In_ ebpf_map_t* map, _In_ const struct _ebpf_program* program);
+
 #ifdef __cplusplus
 }
 #endif

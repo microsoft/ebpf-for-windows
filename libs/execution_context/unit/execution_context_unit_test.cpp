@@ -133,17 +133,13 @@ TEST_CASE("program", "[execution_context]")
     program_info_provider_t program_info_provider(EBPF_PROGRAM_TYPE_BIND);
 
     const ebpf_program_parameters_t program_parameters{EBPF_PROGRAM_TYPE_BIND, program_name, section_name};
-    ebpf_program_parameters_t returned_program_parameters{};
     ebpf_program_info_t* program_info;
 
     REQUIRE(ebpf_program_initialize(program.get(), &program_parameters) == EBPF_SUCCESS);
 
-    ebpf_program_get_properties(program.get(), &returned_program_parameters);
+    const ebpf_program_type_t* returned_program_type = ebpf_program_type(program.get());
     REQUIRE(
-        memcmp(
-            &program_parameters.program_type,
-            &returned_program_parameters.program_type,
-            sizeof(program_parameters.program_type)) == 0);
+        memcmp(&program_parameters.program_type, returned_program_type, sizeof(program_parameters.program_type)) == 0);
 
     REQUIRE(ebpf_program_get_program_info(program.get(), &program_info) == EBPF_SUCCESS);
     REQUIRE(program_info != nullptr);

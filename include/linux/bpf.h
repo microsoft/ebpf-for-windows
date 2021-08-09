@@ -21,6 +21,7 @@ enum bpf_prog_type
 {
     BPF_PROG_TYPE_UNKNOWN,
     BPF_PROG_TYPE_XDP,
+    BPF_PROG_TYPE_BIND, // TODO: replace with cross-platform program type
 };
 
 enum bpf_attach_type

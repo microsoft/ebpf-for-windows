@@ -14,6 +14,21 @@
 // minimize diffs until libbpf becomes cross-platform capable.  This is a temporary workaround for
 // issue #351 until we can compile and use libbpf.c directly.
 
+int
+bpf_create_map(enum bpf_map_type map_type, int key_size, int value_size, int max_entries, uint32_t map_flags)
+{
+    if (key_size <= 0 || value_size <= 0 || max_entries <= 0) {
+        return libbpf_err(-EINVAL);
+    }
+
+    fd_t map_fd;
+    ebpf_result_t result = ebpf_create_map(map_type, key_size, value_size, max_entries, map_flags, &map_fd);
+    if (result != EBPF_SUCCESS) {
+        return libbpf_err(-result);
+    }
+    return map_fd;
+}
+
 struct bpf_map*
 bpf_map__next(const struct bpf_map* previous, const struct bpf_object* object)
 {
@@ -181,11 +196,11 @@ bpf_object__find_map_fd_by_name(const struct bpf_object* obj, const char* name)
 int
 bpf_map__set_pin_path(struct bpf_map* map, const char* path)
 {
-    return libbpf_err(ebpf_map_set_pin_path(map, path));
+    return libbpf_err(-ebpf_map_set_pin_path(map, path));
 }
 
 int
 bpf_map_update_elem(int fd, const void* key, const void* value, uint64_t flags)
 {
-    return libbpf_err(ebpf_map_update_element(fd, key, value, flags));
+    return libbpf_err(-ebpf_map_update_element(fd, key, value, flags));
 }
