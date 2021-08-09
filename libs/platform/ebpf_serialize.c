@@ -27,6 +27,7 @@ typedef struct _ebpf_serialized_helper_function_prototype
     size_t size;
     uint32_t helper_id;
     ebpf_return_type_t return_type;
+    uint64_t flags;
     ebpf_argument_type_t arguments[5];
     size_t name_length;
     uint8_t name[1];
@@ -391,6 +392,7 @@ ebpf_serialize_program_info(
                 EBPF_OFFSET_OF(ebpf_serialized_helper_function_prototype_t, name) + helper_function_name_length;
             serialized_helper_prototype->helper_id = helper_prototype->helper_id;
             serialized_helper_prototype->return_type = helper_prototype->return_type;
+            serialized_helper_prototype->flags = helper_prototype->flags;
             for (uint16_t index = 0; index < EBPF_COUNT_OF(helper_prototype->arguments); index++) {
                 serialized_helper_prototype->arguments[index] = helper_prototype->arguments[index];
             }
@@ -557,6 +559,7 @@ ebpf_deserialize_program_info(
         // Serialize helper prototype.
         helper_prototype->helper_id = serialized_helper_prototype->helper_id;
         helper_prototype->return_type = serialized_helper_prototype->return_type;
+        helper_prototype->flags = serialized_helper_prototype->flags;
         for (int i = 0; i < EBPF_COUNT_OF(helper_prototype->arguments); i++)
             helper_prototype->arguments[i] = serialized_helper_prototype->arguments[i];
 

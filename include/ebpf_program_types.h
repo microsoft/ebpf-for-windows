@@ -28,6 +28,11 @@ typedef struct _ebpf_program_type_descriptor
     char is_privileged;
 } ebpf_program_type_descriptor_t;
 
+typedef enum _ebpf_helper_function_flags
+{
+    EBPF_HEPER_FUNCTION_FLAGS_UNWIND_ON_SUCCESS = 1,
+} ebpf_helper_function_flags;
+
 typedef struct _ebpf_helper_function_prototype
 {
     uint32_t helper_id;
@@ -35,6 +40,7 @@ typedef struct _ebpf_helper_function_prototype
     const char* name;
     ebpf_return_type_t return_type;
     ebpf_argument_type_t arguments[5];
+    uint64_t flags;
 } ebpf_helper_function_prototype_t;
 
 typedef struct _ebpf_program_info

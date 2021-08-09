@@ -197,14 +197,14 @@ TEST_CASE("trampoline_test", "[platform]")
     auto provider_function1 = []() { return EBPF_SUCCESS; };
     ebpf_result_t (*function_pointer1)() = provider_function1;
     const void* helper_functions1[] = {(void*)function_pointer1};
-    ebpf_helper_function_addresses_t helper_function_addresses1 = {EBPF_COUNT_OF(helper_functions1),
-                                                                   (uint64_t*)helper_functions1};
+    ebpf_helper_function_addresses_t helper_function_addresses1 = {
+        EBPF_COUNT_OF(helper_functions1), (uint64_t*)helper_functions1};
 
     auto provider_function2 = []() { return EBPF_OBJECT_ALREADY_EXISTS; };
     ebpf_result_t (*function_pointer2)() = provider_function2;
     const void* helper_functions2[] = {(void*)function_pointer2};
-    ebpf_helper_function_addresses_t helper_function_addresses2 = {EBPF_COUNT_OF(helper_functions1),
-                                                                   (uint64_t*)helper_functions2};
+    ebpf_helper_function_addresses_t helper_function_addresses2 = {
+        EBPF_COUNT_OF(helper_functions1), (uint64_t*)helper_functions2};
 
     REQUIRE(ebpf_allocate_trampoline_table(1, &table) == EBPF_SUCCESS);
     REQUIRE(ebpf_update_trampoline_table(table, &helper_function_addresses1) == EBPF_SUCCESS);
@@ -221,32 +221,43 @@ TEST_CASE("trampoline_test", "[platform]")
 }
 
 static ebpf_helper_function_prototype_t _helper_functions[] = {
-    {1,
-     "bpf_map_lookup_elem",
-     EBPF_RETURN_TYPE_PTR_TO_MAP_VALUE_OR_NULL,
-     {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY}},
-    {2,
-     "bpf_map_update_elem",
-     EBPF_RETURN_TYPE_INTEGER,
-     {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_VALUE}},
-    {3,
-     "bpf_map_delete_elem",
-     EBPF_RETURN_TYPE_PTR_TO_MAP_VALUE_OR_NULL,
-     {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY}},
+    {
+        1,
+        "bpf_map_lookup_elem",
+        EBPF_RETURN_TYPE_PTR_TO_MAP_VALUE_OR_NULL,
+        {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY},
+        0,
+    },
+    {
+        2,
+        "bpf_map_update_elem",
+        EBPF_RETURN_TYPE_INTEGER,
+        {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_VALUE},
+        0,
+    },
+    {
+        3,
+        "bpf_map_delete_elem",
+        EBPF_RETURN_TYPE_PTR_TO_MAP_VALUE_OR_NULL,
+        {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY},
+        0,
+    },
     {4,
      "bpf_tail_call",
      EBPF_RETURN_TYPE_INTEGER,
-     {EBPF_ARGUMENT_TYPE_PTR_TO_CTX, EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_ANYTHING}},
+     {EBPF_ARGUMENT_TYPE_PTR_TO_CTX, EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_ANYTHING},
+     EBPF_HEPER_FUNCTION_FLAGS_UNWIND_ON_SUCCESS},
 };
 
 TEST_CASE("program_type_info", "[platform]")
 {
     _test_helper test_helper;
 
-    ebpf_context_descriptor_t context_descriptor{sizeof(xdp_md_t),
-                                                 EBPF_OFFSET_OF(xdp_md_t, data),
-                                                 EBPF_OFFSET_OF(xdp_md_t, data_end),
-                                                 EBPF_OFFSET_OF(xdp_md_t, data_meta)};
+    ebpf_context_descriptor_t context_descriptor{
+        sizeof(xdp_md_t),
+        EBPF_OFFSET_OF(xdp_md_t, data),
+        EBPF_OFFSET_OF(xdp_md_t, data_end),
+        EBPF_OFFSET_OF(xdp_md_t, data_meta)};
     ebpf_program_type_descriptor_t program_type{"xdp", &context_descriptor};
     ebpf_program_info_t program_info{program_type, _countof(_helper_functions), _helper_functions};
     ebpf_program_info_t* new_program_info = nullptr;
@@ -409,14 +420,20 @@ TEST_CASE("serialize_program_info_test", "[platform]")
     _test_helper test_helper;
 
     ebpf_helper_function_prototype_t helper_prototype[] = {
-        {1000,
-         "helper_0",
-         EBPF_RETURN_TYPE_PTR_TO_MAP_VALUE_OR_NULL,
-         {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY}},
-        {1001,
-         "helper_1",
-         EBPF_RETURN_TYPE_INTEGER,
-         {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_VALUE}}};
+        {
+            1000,
+            "helper_0",
+            EBPF_RETURN_TYPE_PTR_TO_MAP_VALUE_OR_NULL,
+            {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY},
+            1234,
+        },
+        {
+            1001,
+            "helper_1",
+            EBPF_RETURN_TYPE_INTEGER,
+            {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_VALUE},
+            5678,
+        }};
     // The values of the fields in the context_descriptor variable are completely arbitrary
     // and have no effect on the test.
     ebpf_context_descriptor_t context_descriptor = {32, 0, 8, -1};
@@ -471,6 +488,7 @@ TEST_CASE("serialize_program_info_test", "[platform]")
         ebpf_helper_function_prototype_t* out_prototype = &out_program_info->helper_prototype[i];
         REQUIRE(in_prototype->helper_id == out_prototype->helper_id);
         REQUIRE(in_prototype->return_type == out_prototype->return_type);
+        REQUIRE(in_prototype->flags == out_prototype->flags);
         for (int j = 0; j < _countof(in_prototype->arguments); j++)
             REQUIRE(in_prototype->arguments[j] == out_prototype->arguments[j]);
         REQUIRE(out_prototype->name != nullptr);

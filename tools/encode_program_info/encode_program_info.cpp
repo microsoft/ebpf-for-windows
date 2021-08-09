@@ -32,22 +32,34 @@ _emit_program_info_file(const char* file_name, const char* symbol_name, uint8_t*
 }
 
 static ebpf_helper_function_prototype_t _ebpf_helper_function_prototype[] = {
-    {1,
-     "bpf_map_lookup_elem",
-     EBPF_RETURN_TYPE_PTR_TO_MAP_VALUE_OR_NULL,
-     {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY}},
-    {2,
-     "bpf_map_update_elem",
-     EBPF_RETURN_TYPE_INTEGER,
-     {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_VALUE}},
-    {3,
-     "bpf_map_delete_elem",
-     EBPF_RETURN_TYPE_INTEGER,
-     {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY}},
-    {4,
-     "bpf_tail_call",
-     EBPF_RETURN_TYPE_INTEGER,
-     {EBPF_ARGUMENT_TYPE_PTR_TO_CTX, EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_ANYTHING}}};
+    {
+        1,
+        "bpf_map_lookup_elem",
+        EBPF_RETURN_TYPE_PTR_TO_MAP_VALUE_OR_NULL,
+        {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY},
+        0, // flags
+    },
+    {
+        2,
+        "bpf_map_update_elem",
+        EBPF_RETURN_TYPE_INTEGER,
+        {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_VALUE},
+        0, // flags
+    },
+    {
+        3,
+        "bpf_map_delete_elem",
+        EBPF_RETURN_TYPE_INTEGER,
+        {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY},
+        0, // flags
+    },
+    {
+        4,
+        "bpf_tail_call",
+        EBPF_RETURN_TYPE_INTEGER,
+        {EBPF_ARGUMENT_TYPE_PTR_TO_CTX, EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_ANYTHING},
+        EBPF_HEPER_FUNCTION_FLAGS_UNWIND_ON_SUCCESS, // flags
+    }};
 
 static ebpf_result_t
 _encode_bind()
@@ -84,10 +96,11 @@ _encode_xdp()
     ebpf_result_t return_value;
     uint8_t* buffer = NULL;
     unsigned long buffer_size = 0;
-    ebpf_context_descriptor_t xdp_context_descriptor = {sizeof(xdp_md_t),
-                                                        EBPF_OFFSET_OF(xdp_md_t, data),
-                                                        EBPF_OFFSET_OF(xdp_md_t, data_end),
-                                                        EBPF_OFFSET_OF(xdp_md_t, data_meta)};
+    ebpf_context_descriptor_t xdp_context_descriptor = {
+        sizeof(xdp_md_t),
+        EBPF_OFFSET_OF(xdp_md_t, data),
+        EBPF_OFFSET_OF(xdp_md_t, data_end),
+        EBPF_OFFSET_OF(xdp_md_t, data_meta)};
     ebpf_program_type_descriptor_t xdp_program_type = {"xdp", &xdp_context_descriptor, EBPF_PROGRAM_TYPE_XDP};
     ebpf_program_info_t xdp_program_info = {
         xdp_program_type, EBPF_COUNT_OF(_ebpf_helper_function_prototype), _ebpf_helper_function_prototype};
