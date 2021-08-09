@@ -1,4 +1,6 @@
 var searchData=
 [
-  ['return_5ftype_304',['return_type',['../struct__ebpf__helper__function__prototype.html#a0ea99651ae0c2156811e30b551d92e43',1,'_ebpf_helper_function_prototype']]]
+  ['size_302',['size',['../struct__ebpf__map__definition.html#ac04697ffbc05b592a292c1023a142c38',1,'_ebpf_map_definition']]],
+  ['socket_5faddress_303',['socket_address',['../struct__bind__md.html#a4e6ab6ab7b7b7e88e0c73ba99caa2e90',1,'_bind_md']]],
+  ['socket_5faddress_5flength_304',['socket_address_length',['../struct__bind__md.html#afe6ac1515f579d5f1b8667946ddac668',1,'_bind_md']]]
 ];

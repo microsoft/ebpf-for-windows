@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['is_5fprivileged_291',['is_privileged',['../struct__ebpf__program__type__descriptor.html#aafa9c2f4ceef8b382998f6e445c38121',1,'_ebpf_program_type_descriptor']]]
+  ['key_5fsize_289',['key_size',['../struct__ebpf__map__definition.html#a62919209182f9c737da1d77c11573902',1,'_ebpf_map_definition']]]
 ];

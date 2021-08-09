@@ -1,5 +1,4 @@
 var searchData=
 [
-  ['max_5fentries_294',['max_entries',['../struct__ebpf__map__definition.html#a2ccd757083d1ef9ba65ee652b5f89b5a',1,'_ebpf_map_definition']]],
-  ['max_5finstruction_5fcount_295',['max_instruction_count',['../structebpf__api__verifier__stats__t.html#ac0b14f4498797ed6aebffb06f19c0f20',1,'ebpf_api_verifier_stats_t']]]
+  ['name_293',['name',['../struct__ebpf__program__type__descriptor.html#aa8eadff23c7b5afbed237afb25b1d786',1,'_ebpf_program_type_descriptor::name()'],['../struct__ebpf__helper__function__prototype.html#a1a6d70e24351bd63a00eca803ad4ccd8',1,'_ebpf_helper_function_prototype::name()']]]
 ];
