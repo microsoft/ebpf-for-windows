@@ -28,42 +28,13 @@ bpf_map__prev(const struct bpf_map* next, const struct bpf_object* object)
 int
 bpf_map__unpin(struct bpf_map* map, const char* path)
 {
-    int err;
-
-    if (map == NULL) {
-        return libbpf_err(-EINVAL);
-    }
-
-    if (map->pin_path) {
-        if (path && strcmp(path, map->pin_path)) {
-            return -EINVAL;
-        }
-        path = map->pin_path;
-    } else if (!path) {
-        return -EINVAL;
-    }
-    assert(map->map_handle != ebpf_handle_invalid);
-    assert(map->map_fd > 0);
-
-    err = ebpf_object_unpin(path);
-    if (err) {
-        return libbpf_err(err);
-    }
-
-    map->pinned = false;
-    return 0;
+    return libbpf_err(ebpf_map_unpin(map, path));
 }
 
 int
 bpf_map__pin(struct bpf_map* map, const char* path)
 {
-    int err;
-
-    err = ebpf_map_pin(map, path);
-    if (err)
-        return libbpf_err(-err);
-
-    return 0;
+    return libbpf_err(ebpf_map_pin(map, path));
 }
 
 int

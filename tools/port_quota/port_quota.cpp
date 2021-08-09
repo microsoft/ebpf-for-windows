@@ -20,10 +20,6 @@ typedef struct _process_entry
 int
 load(int argc, char** argv)
 {
-    // ebpf_handle_t program;
-    // ebpf_handle_t link;
-    // ebpf_handle_t maps[2];
-    // uint32_t map_count = _countof(maps);
     const char* error_message = NULL;
     ebpf_result_t result;
     int error;
@@ -33,10 +29,7 @@ load(int argc, char** argv)
     fd_t program_fd;
     UNREFERENCED_PARAMETER(argc);
     UNREFERENCED_PARAMETER(argv);
-    /*
-    result = ebpf_api_load_program(
-        "bindmonitor.o", "bind", EBPF_EXECUTION_INTERPRET, &program, &map_count, maps, &error_message);
-    */
+
     result = ebpf_program_load(
         "bindmonitor.o", nullptr, nullptr, EBPF_EXECUTION_INTERPRET, &object, &program_fd, &error_message);
     if (result != EBPF_SUCCESS) {

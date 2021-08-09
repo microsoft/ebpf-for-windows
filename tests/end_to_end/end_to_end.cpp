@@ -25,9 +25,6 @@ namespace ebpf {
 #pragma warning(pop)
 }; // namespace ebpf
 
-// std::vector<uint8_t>
-// prepare_udp_packet(uint16_t udp_length);
-
 ebpf_handle_t
 GlueCreateFileW(
     PCWSTR lpFileName,
@@ -214,6 +211,8 @@ droppacket_test(ebpf_execution_type_t execution_type)
 
     hook.detach_link(link);
     hook.close_link(link);
+
+    bpf_object__close(object);
 }
 
 void
@@ -254,6 +253,8 @@ divide_by_zero_test(ebpf_execution_type_t execution_type)
 
     hook.detach_link(link);
     hook.close_link(link);
+
+    bpf_object__close(object);
 }
 
 typedef struct _process_entry
@@ -373,6 +374,8 @@ bindmonitor_test(ebpf_execution_type_t execution_type)
 
     hook.detach_link(link);
     hook.close_link(link);
+
+    bpf_object__close(object);
 }
 
 TEST_CASE("droppacket-jit", "[end_to_end]") { droppacket_test(EBPF_EXECUTION_JIT); }
@@ -548,6 +551,8 @@ TEST_CASE("enumerate_and_query_maps", "[end_to_end]")
             REQUIRE(memcmp(&limits_map, &map_definitions[index], sizeof(process_map)) == 0);
         }
     }
+
+    bpf_object__close(object);
 }
 
 TEST_CASE("enumerate_and_query_programs", "[end_to_end]")
@@ -768,4 +773,71 @@ TEST_CASE("implicit_explicit_detach", "[end_to_end]")
     // ebpf_object_tracking_terminate() which is called when the test
     // exits checks if all the objects in EC have been deleted.
     hook.detach();
+}
+
+TEST_CASE("create_map", "[end_to_end]")
+{
+    _test_helper_end_to_end test_helper;
+
+    ebpf_result_t result;
+    fd_t map_fd;
+    uint32_t key = 0;
+    uint64_t value = 10;
+    int element_count = 2;
+
+    result = ebpf_create_map(BPF_MAP_TYPE_ARRAY, sizeof(uint32_t), sizeof(uint64_t), 5, 0, &map_fd);
+    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(map_fd > 0);
+
+    for (int i = 0; i < element_count; i++) {
+        result = ebpf_map_update_element(map_fd, &key, &value, EBPF_ANY);
+        REQUIRE(result == EBPF_SUCCESS);
+        key++;
+        value++;
+    }
+
+    key = 0;
+    value = 10;
+    for (int i = 0; i < element_count; i++) {
+        uint64_t read_value;
+        result = ebpf_map_lookup_element(map_fd, &key, &read_value);
+        REQUIRE(result == EBPF_SUCCESS);
+        REQUIRE(read_value == value);
+        key++;
+        value++;
+    }
+}
+
+TEST_CASE("create_map_name", "[end_to_end]")
+{
+    _test_helper_end_to_end test_helper;
+
+    ebpf_result_t result;
+    fd_t map_fd;
+    uint32_t key = 0;
+    uint64_t value = 10;
+    int element_count = 2;
+    const char* map_name = "array_map";
+
+    result = ebpf_create_map_name(BPF_MAP_TYPE_ARRAY, map_name, sizeof(uint32_t), sizeof(uint64_t), 5, 0, &map_fd);
+    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(map_fd > 0);
+
+    for (int i = 0; i < element_count; i++) {
+        result = ebpf_map_update_element(map_fd, &key, &value, EBPF_ANY);
+        REQUIRE(result == EBPF_SUCCESS);
+        key++;
+        value++;
+    }
+
+    key = 0;
+    value = 10;
+    for (int i = 0; i < element_count; i++) {
+        uint64_t read_value;
+        result = ebpf_map_lookup_element(map_fd, &key, &read_value);
+        REQUIRE(result == EBPF_SUCCESS);
+        REQUIRE(read_value == value);
+        key++;
+        value++;
+    }
 }

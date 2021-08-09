@@ -156,10 +156,10 @@ extern "C"
      */
     _Success_(return == EBPF_SUCCESS) ebpf_result_t ebpf_create_map(
         ebpf_map_type_t map_type,
-        int key_size,
-        int value_size,
-        int max_entries,
-        unsigned int map_flags,
+        uint32_t key_size,
+        uint32_t value_size,
+        uint32_t max_entries,
+        uint32_t map_flags,
         _Out_ fd_t* map_fd);
 
     /**
@@ -181,9 +181,9 @@ extern "C"
     _Success_(return == EBPF_SUCCESS) ebpf_result_t ebpf_create_map_name(
         ebpf_map_type_t type,
         _In_opt_z_ const char* name,
-        int key_size,
-        int value_size,
-        int max_entries,
+        uint32_t key_size,
+        uint32_t value_size,
+        uint32_t max_entries,
         uint32_t map_flags,
         _Out_ fd_t* map_fd);
 
@@ -455,58 +455,6 @@ extern "C"
     ebpf_object_unpin(_In_z_ const char* path);
 
     /**
-     * @brief Pin an eBPF program to specified path.
-     * @param[in] program Pointer to eBPF program.
-     * @param[in] path Pin path for the program.
-     *
-     * @retval Result of the pinning operation.
-     */
-    ebpf_result_t
-    ebpf_program_pin(_In_ struct bpf_program* program, _In_z_ const char* path);
-
-    /**
-     * @brief Unpin an eBPF program from the specified path.
-     * @param[in] program Pointer to eBPF program.
-     * @param[in] path Pin path for the program.
-     *
-     * @retval Result of the unpin operation.
-     */
-    ebpf_result_t
-    ebpf_program_unpin(_In_ struct bpf_program* program, _In_z_ const char* path);
-
-    /**
-     * @brief Pin an eBPF map to specified path.
-     * @param[in] program Pointer to eBPF map.
-     * @param[in] path Pin path for the map.
-     *
-     * @retval Result of the pinning operation.
-     */
-    ebpf_result_t
-    ebpf_map_pin(_In_ struct bpf_map* map, _In_opt_z_ const char* path);
-
-    /**
-     * @brief Unpin an eBPF map from the specified path.
-     * @param[in] map Pointer to eBPF map.
-     * @param[in] path Pin path for the map.
-     *
-     * @retval Result of the unpin operation.
-     */
-    ebpf_result_t
-    ebpf_map_unpin(_In_ struct bpf_map* map, _In_opt_z_ const char* path);
-
-    /**
-     * @brief Set pin path for an eBPF map.
-     * @param[in] map Pointer to eBPF map.
-     * @param[in] path Pin path for the map.
-     *
-     * @retval EBPF_SUCCESS The API suceeded.
-     * @retval EBPF_NO_MEMORY Out of memory.
-     * @retval EBPF_INVALID_ARGUMENT One or more parameters are wrong.
-     */
-    ebpf_result_t
-    ebpf_map_set_pin_path(_In_ struct bpf_map* map, _In_ const char* path);
-
-    /**
      * @brief Find a map given its associated name.
      * @param[in] name Name to find.
      * @param[in] name_length Length in bytes of name to find.
@@ -673,7 +621,8 @@ extern "C"
      *
      * @param[in] link Pointer to bpf_link structure.
      *
-     * @retval
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INVALID_OBJECT Invalid object was passed.
      */
     ebpf_result_t
     ebpf_link_detach(_In_ struct bpf_link* link);

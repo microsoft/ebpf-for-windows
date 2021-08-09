@@ -146,3 +146,35 @@ ebpf_object_close(_In_ _Post_invalid_ struct bpf_object* object);
 
 void
 initialize_map(_Out_ ebpf_map_t* map, _In_ const map_cache_t& map_cache);
+
+/**
+ * @brief Pin an eBPF map to specified path.
+ * @param[in] program Pointer to eBPF map.
+ * @param[in] path Pin path for the map.
+ *
+ * @retval Result of the pinning operation.
+ */
+ebpf_result_t
+ebpf_map_pin(_In_ struct bpf_map* map, _In_opt_z_ const char* path);
+
+/**
+ * @brief Unpin an eBPF map from the specified path.
+ * @param[in] map Pointer to eBPF map.
+ * @param[in] path Pin path for the map.
+ *
+ * @retval Result of the unpin operation.
+ */
+ebpf_result_t
+ebpf_map_unpin(_In_ struct bpf_map* map, _In_opt_z_ const char* path);
+
+/**
+ * @brief Set pin path for an eBPF map.
+ * @param[in] map Pointer to eBPF map.
+ * @param[in] path Pin path for the map.
+ *
+ * @retval EBPF_SUCCESS The API suceeded.
+ * @retval EBPF_NO_MEMORY Out of memory.
+ * @retval EBPF_INVALID_ARGUMENT One or more parameters are wrong.
+ */
+ebpf_result_t
+ebpf_map_set_pin_path(_In_ struct bpf_map* map, _In_ const char* path);
