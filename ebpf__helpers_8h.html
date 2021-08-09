@@ -93,9 +93,9 @@ Functions</h2></td></tr>
 <tr class="memitem:a8a2409fe484651ce89c8499097811363"><td class="memItemLeft" align="right" valign="top">int64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__helpers_8h.html#a8a2409fe484651ce89c8499097811363">bpf_map_delete_elem</a> (struct <a class="el" href="struct__ebpf__map__definition.html">_ebpf_map_definition</a> *map, void *key)</td></tr>
 <tr class="memdesc:a8a2409fe484651ce89c8499097811363"><td class="mdescLeft">&#160;</td><td class="mdescRight">Remove an entry from the map.  <a href="ebpf__helpers_8h.html#a8a2409fe484651ce89c8499097811363">More...</a><br /></td></tr>
 <tr class="separator:a8a2409fe484651ce89c8499097811363"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a535df283e5fdb4858d38400b197a09f1"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__helpers_8h.html#a535df283e5fdb4858d38400b197a09f1">bpf_tail_call</a> (void *ctx, struct <a class="el" href="struct__ebpf__map__definition.html">_ebpf_map_definition</a> *prog_array_map, uint32_t index)</td></tr>
-<tr class="memdesc:a535df283e5fdb4858d38400b197a09f1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Perform a tail call into another eBPF program.  <a href="ebpf__helpers_8h.html#a535df283e5fdb4858d38400b197a09f1">More...</a><br /></td></tr>
-<tr class="separator:a535df283e5fdb4858d38400b197a09f1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0d07b7cc653296766e600371ecc326a6"><td class="memItemLeft" align="right" valign="top">int64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__helpers_8h.html#a0d07b7cc653296766e600371ecc326a6">bpf_tail_call</a> (void *ctx, struct <a class="el" href="struct__ebpf__map__definition.html">_ebpf_map_definition</a> *prog_array_map, uint32_t index)</td></tr>
+<tr class="memdesc:a0d07b7cc653296766e600371ecc326a6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Perform a tail call into another eBPF program.  <a href="ebpf__helpers_8h.html#a0d07b7cc653296766e600371ecc326a6">More...</a><br /></td></tr>
+<tr class="separator:a0d07b7cc653296766e600371ecc326a6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Macro Definition Documentation</h2>
 <a id="a1d98f863fc6ebf789b378348438181ca"></a>
@@ -150,7 +150,7 @@ Functions</h2></td></tr>
 <dl class="retval"><dt>Return values</dt><dd>
   <table class="retval">
     <tr><td class="paramname">EBPF_SUCCESS</td><td>The operation was successful. </td></tr>
-    <tr><td class="paramname">EBPF_INVALID_ARGUMENT</td><td>One or more parameters are invalid. </td></tr>
+    <tr><td class="paramname">-EBPF_INVALID_ARGUMENT</td><td>One or more parameters are invalid. </td></tr>
   </table>
   </dd>
 </dl>
@@ -246,21 +246,21 @@ Functions</h2></td></tr>
 <dl class="retval"><dt>Return values</dt><dd>
   <table class="retval">
     <tr><td class="paramname">EBPF_SUCCESS</td><td>The operation was successful. </td></tr>
-    <tr><td class="paramname">EBPF_NO_MEMORY</td><td>Unable to allocate resources for this entry. </td></tr>
+    <tr><td class="paramname">-EBPF_NO_MEMORY</td><td>Unable to allocate resources for this entry. </td></tr>
   </table>
   </dd>
 </dl>
 
 </div>
 </div>
-<a id="a535df283e5fdb4858d38400b197a09f1"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a535df283e5fdb4858d38400b197a09f1">&#9670;&nbsp;</a></span>bpf_tail_call()</h2>
+<a id="a0d07b7cc653296766e600371ecc326a6"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a0d07b7cc653296766e600371ecc326a6">&#9670;&nbsp;</a></span>bpf_tail_call()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">int bpf_tail_call </td>
+          <td class="memname">int64_t bpf_tail_call </td>
           <td>(</td>
           <td class="paramtype">void *&#160;</td>
           <td class="paramname"><em>ctx</em>, </td>
@@ -297,7 +297,7 @@ Functions</h2></td></tr>
 <dl class="retval"><dt>Return values</dt><dd>
   <table class="retval">
     <tr><td class="paramname">EBPF_SUCCESS</td><td>The operation was successful. </td></tr>
-    <tr><td class="paramname">EBPF_INVALID_ARGUMENT</td><td>One or more parameters are invalid. </td></tr>
+    <tr><td class="paramname">-EBPF_INVALID_ARGUMENT</td><td>One or more parameters are invalid. </td></tr>
   </table>
   </dd>
 </dl>
