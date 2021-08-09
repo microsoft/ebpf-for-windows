@@ -17,6 +17,8 @@ EXPORTS
     bpf_map__unpin
     bpf_map__value_size
     bpf_object__close
+    bpf_object__find_map_by_name
+    bpf_object__find_map_fd_by_name
     bpf_object__find_program_by_name
     bpf_object__name
     bpf_object__pin
@@ -51,7 +53,6 @@ EXPORTS
     ebpf_api_pin_object
     ebpf_api_unpin_object
     ebpf_api_get_next_map
-    ebpf_api_get_pinned_map
     ebpf_api_get_next_program
     ebpf_api_program_query_info
     ebpf_api_link_program
@@ -59,13 +60,13 @@ EXPORTS
     ebpf_api_get_pinned_map_info
     ebpf_api_map_info_free
     ebpf_free_string
-	ebpf_map_delete_element
-	ebpf_map_get_next_key
-	ebpf_map_lookup_element
-	ebpf_map_pin
-	ebpf_map_set_pin_path
-	ebpf_map_update_element
-	ebpf_object_pin
-	ebpf_object_unpin
+    ebpf_map_delete_element
+    ebpf_map_get_next_key
+    ebpf_map_lookup_element
+    ebpf_map_pin
+    ebpf_map_update_element
+    ebpf_object_get
+    ebpf_object_pin
+    ebpf_object_unpin
     ebpf_program_load
-	ebpf_program_pin
+    ebpf_program_pin

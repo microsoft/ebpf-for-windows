@@ -167,7 +167,7 @@ TEST_CASE("libbpf map", "[libbpf]")
     REQUIRE(bpf_map__prev(nullptr, object) == map);
 
     const char* name = bpf_map__name(map);
-    REQUIRE(name == nullptr); // droppacket.o has no map name.
+    REQUIRE(strcmp(name, "port_map") == 0);
     REQUIRE(bpf_map__type(map) == BPF_MAP_TYPE_ARRAY);
     REQUIRE(bpf_map__key_size(map) == 4);
     REQUIRE(bpf_map__value_size(map) == 8);
@@ -211,6 +211,10 @@ TEST_CASE("libbpf map pinning", "[libbpf]")
     // Make sure a duplicate unpin fails.
     result = bpf_map__unpin(map, pin_path);
     REQUIRE(result != 0);
+
+    // Clear pin path for the map.
+    result = bpf_map__set_pin_path(map, nullptr);
+    REQUIRE(result == 0);
 
     // Try to pin all (1) maps in the object.
     result = bpf_object__pin_maps(object, pin_path);

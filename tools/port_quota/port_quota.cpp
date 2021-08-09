@@ -79,36 +79,30 @@ unload(int argc, char** argv)
 int
 stats(int argc, char** argv)
 {
-    ebpf_handle_t map;
-    uint32_t result;
+    fd_t map_fd;
+    ebpf_result_t result;
     uint64_t pid;
     process_entry_t process_entry;
 
     UNREFERENCED_PARAMETER(argc);
     UNREFERENCED_PARAMETER(argv);
-    result = ebpf_api_get_pinned_map(process_map, sizeof(process_map), &map);
-    if (result != ERROR_SUCCESS) {
-        fprintf(stderr, "Failed to look up eBPF map: %d\n", result);
+    map_fd = ebpf_object_get((char*)process_map);
+    if (map_fd == ebpf_fd_invalid) {
+        fprintf(stderr, "Failed to look up eBPF map\n");
         return 1;
     }
 
     printf("Pid\tCount\tAppId\n");
-    result = ebpf_api_get_next_map_key(map, sizeof(uint64_t), nullptr, reinterpret_cast<uint8_t*>(&pid));
-    while (result == ERROR_SUCCESS) {
+    result = ebpf_map_get_next_key(map_fd, nullptr, &pid);
+    while (result == EBPF_SUCCESS) {
         memset(&process_entry, 0, sizeof(process_entry));
-        result = ebpf_api_map_find_element(
-            map,
-            sizeof(uint64_t),
-            reinterpret_cast<uint8_t*>(&pid),
-            sizeof(process_entry),
-            reinterpret_cast<uint8_t*>(&process_entry));
-        if (result != ERROR_SUCCESS) {
+        result = ebpf_map_lookup_element(map_fd, &pid, &process_entry);
+        if (result != EBPF_SUCCESS) {
             fprintf(stderr, "Failed to look up eBPF map entry: %d\n", result);
             return 1;
         }
         printf("%lld\t%d\t%S\n", pid, process_entry.count, process_entry.name);
-        result = ebpf_api_get_next_map_key(
-            map, sizeof(uint64_t), reinterpret_cast<uint8_t*>(&pid), reinterpret_cast<uint8_t*>(&pid));
+        result = ebpf_map_get_next_key(map_fd, &pid, &pid);
     };
     return 0;
 }
@@ -123,19 +117,18 @@ limit(int argc, char** argv)
     }
     value = atoi(argv[0]);
 
-    ebpf_handle_t map;
+    fd_t map_fd;
     uint32_t result;
     uint32_t key = 0;
 
-    result = ebpf_api_get_pinned_map(limits_map, sizeof(limits_map), &map);
-    if (result != ERROR_SUCCESS) {
-        fprintf(stderr, "Failed to look up eBPF map: %d\n", result);
+    map_fd = ebpf_object_get((char*)limits_map);
+    if (map_fd == ebpf_fd_invalid) {
+        fprintf(stderr, "Failed to look up eBPF map.\n");
         return 1;
     }
 
-    result = ebpf_api_map_update_element(
-        map, sizeof(key), reinterpret_cast<uint8_t*>(&key), sizeof(value), reinterpret_cast<uint8_t*>(&value));
-    if (result != ERROR_SUCCESS) {
+    result = ebpf_map_update_element(map_fd, &key, &value, EBPF_ANY);
+    if (result != EBPF_SUCCESS) {
         fprintf(stderr, "Failed to update eBPF map element: %d\n", result);
         return 1;
     }

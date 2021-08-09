@@ -37,7 +37,7 @@ typedef struct bpf_map
     bool pinned;
 } ebpf_map_t;
 
-typedef struct _ebpf_link
+typedef struct bpf_link
 {
     char* pin_path;
     ebpf_handle_t link_handle;

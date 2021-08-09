@@ -130,6 +130,7 @@ typedef struct _ebpf_operation_map_update_element_request
 {
     struct _ebpf_operation_header header;
     uint64_t handle;
+    uint64_t flags;
     uint8_t data[1]; // data is key+value
 } epf_operation_map_update_element_request_t;
 

@@ -71,7 +71,17 @@ extern "C"
     struct bpf_object;
     struct bpf_program;
     struct bpf_map;
-    struct _ebpf_link;
+    struct bpf_link;
+
+    typedef enum ebpf_map_option
+    {
+        // Create a new element or update an existing element.
+        EBPF_ANY,
+        // Create a new element only when it does not exist.
+        EBPF_NOEXIST,
+        // Update an existing element.
+        EBPF_EXIST
+    } ebpf_map_option_t;
 
     /**
      *  @brief Initialize the eBPF user mode library.
@@ -487,7 +497,7 @@ extern "C"
      * @retval Result of the unpin operation.
      */
     ebpf_result_t
-    ebpf_map_unpin(_In_ struct bpf_map* map, _In_z_ const char* path);
+    ebpf_map_unpin(_In_ struct bpf_map* map, _In_opt_z_ const char* path);
 
     /**
      * @brief Set pin path for an eBPF map.
@@ -615,6 +625,84 @@ extern "C"
         _Outptr_ struct bpf_object** object,
         _Out_ fd_t* program_fd,
         _Outptr_result_maybenull_z_ const char** log_buffer);
+
+    /**
+     * @brief Attach an eBPF program.
+     *
+     * @param[in] program Pointer to the eBPF program.
+     * @param[in] Optionally, the attach type for attaching the program.
+     *  If attach type is not specified, then the earlier provided attach type
+     *  or attach type derived from section prefix will be used to attach the
+     *  program.
+     * @param[in] attach_params_size Size of the attach parameters.
+     * @param[in] attach_parameters Optionally, attach parameters. This is an
+     *  opaque flat buffer containing the attach parameters which is interpreted
+     *  by the extension provider.
+     * @param[out] link Pointer to ebpf_link structure.
+     *
+     * @retval Result of attach operation.
+     */
+    _Success_(return == EBPF_SUCCESS) ebpf_result_t ebpf_program_attach(
+        _In_ struct bpf_program* program,
+        _In_opt_ const ebpf_attach_type_t* attach_type,
+        _In_reads_bytes_opt_(attach_params_size) void* attach_parameters,
+        _In_ size_t attach_params_size,
+        _Outptr_ struct bpf_link** link);
+
+    /**
+     * @brief Attach an eBPF program by program FD.
+     *
+     * @param[in] program_fd eBPF program fd.
+     * @param[in] Optionally, the attach type for attaching the program.
+     *  If attach type is not specified, then the earlier provided attach type
+     *  or attach type derived from section prefix will be used to attach the
+     *  program.
+     * @param[in] attach_params_size Size of the attach parameters.
+     * @param[in] attach_parameters Optionally, attach parameters. This is an
+     *  opaque flat buffer containing the attach parameters which is interpreted
+     *  by the extension provider.
+     * @param[out] link Pointer to ebpf_link structure.
+     *
+     * @retval Result of attach operation.
+     */
+    _Success_(return == EBPF_SUCCESS) ebpf_result_t ebpf_program_attach_by_fd(
+        fd_t program_fd,
+        _In_opt_ const ebpf_attach_type_t* attach_type,
+        _In_reads_bytes_opt_(attach_params_size) void* attach_parameters,
+        _In_ size_t attach_params_size,
+        _Outptr_ struct bpf_link** link);
+
+    /**
+     * @brief Detach an eBPF program from an attach point represented by
+     *  the bpf_link structure.
+     *
+     * @param[in] link Pointer to bpf_link structure.
+     *
+     * @retval
+     */
+    ebpf_result_t
+    ebpf_link_detach(_In_ struct bpf_link* link);
+
+    /**
+     * Cleanup and free bpf_link structure. Also close the
+     * underlying link fd.
+     *
+     * @param[in] link Pointer to the bpf_link structure.
+     *
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INVALID_ARGUMENT Invalid argument was provided.
+     */
+    ebpf_result_t
+    ebpf_link_close(_In_ struct bpf_link* link);
+
+    /**
+     * @brief Get fd for a pinned object by pin path.
+     * @param[in] path Pin path for the object.
+     *
+     * @return file descriptor for the pinned object, -1 if not found.
+     */
+    fd_t
+    ebpf_object_get(_In_z_ const char* path);
 
 #ifdef __cplusplus
 }

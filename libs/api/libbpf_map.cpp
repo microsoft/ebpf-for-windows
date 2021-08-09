@@ -34,13 +34,23 @@ bpf_map__unpin(struct bpf_map* map, const char* path)
         return libbpf_err(-EINVAL);
     }
 
-    err = ebpf_api_unpin_object((const uint8_t*)path, (uint32_t)strlen(path));
+    if (map->pin_path) {
+        if (path && strcmp(path, map->pin_path)) {
+            return -EINVAL;
+        }
+        path = map->pin_path;
+    } else if (!path) {
+        return -EINVAL;
+    }
+    assert(map->map_handle != ebpf_handle_invalid);
+    assert(map->map_fd > 0);
+
+    err = ebpf_object_unpin(path);
     if (err) {
         return libbpf_err(err);
     }
 
     map->pinned = false;
-
     return 0;
 }
 
@@ -49,15 +59,9 @@ bpf_map__pin(struct bpf_map* map, const char* path)
 {
     int err;
 
-    if (map == NULL) {
-        return libbpf_err(-EINVAL);
-    }
-
-    err = ebpf_api_pin_object(map->map_handle, (const uint8_t*)path, (uint32_t)strlen(path));
+    err = ebpf_map_pin(map, path);
     if (err)
         return libbpf_err(-err);
-
-    map->pinned = true;
 
     return 0;
 }
@@ -181,4 +185,29 @@ int
 bpf_map__fd(const struct bpf_map* map)
 {
     return map ? map->map_fd : libbpf_err(-EINVAL);
+}
+
+struct bpf_map*
+bpf_object__find_map_by_name(const struct bpf_object* obj, const char* name)
+{
+    struct bpf_map* pos;
+
+    bpf_object__for_each_map(pos, obj)
+    {
+        if (pos->name && !strcmp(pos->name, name))
+            return pos;
+    }
+    return NULL;
+}
+
+int
+bpf_object__find_map_fd_by_name(const struct bpf_object* obj, const char* name)
+{
+    return bpf_map__fd(bpf_object__find_map_by_name(obj, name));
+}
+
+int
+bpf_map__set_pin_path(struct bpf_map* map, const char* path)
+{
+    return libbpf_err(ebpf_map_set_pin_path(map, path));
 }
