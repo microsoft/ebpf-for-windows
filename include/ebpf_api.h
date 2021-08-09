@@ -34,6 +34,20 @@ extern "C"
     __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_BIND = {
         0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
 
+    /** @brief Attach type for flow established layer.
+     *
+     * Program type: \ref EBPF_PROGRAM_TYPE_FLOW
+     */
+    __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_FLOW = {
+        0x8606fa87, 0x72aa, 0x4c31, {0x88, 0x9e, 0x04, 0xbb, 0xb2, 0xdc, 0xa8, 0x9a}};
+        
+    /** @brief Attach type for MAC layer.
+     *
+     * Program type: \ref EBPF_PROGRAM_TYPE_MAC
+     */
+    __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_MAC = {
+        0x6f9676f8, 0xaa95, 0x4f80, {0xa4, 0xb7, 0x48, 0x10, 0xbd, 0xb3, 0xfd, 0x61}};
+
     __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_TEST = {
         0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 
@@ -60,6 +74,24 @@ extern "C"
      */
     __declspec(selectany) ebpf_program_type_t EBPF_PROGRAM_TYPE_BIND = {
         0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
+
+    /** @brief Program type for flow established layer.
+     *
+     * Attach type(s): \ref EBPF_ATTACH_TYPE_FLOW
+     *
+     * Helpers available: see ebpf_helpers.h
+     */
+    __declspec(selectany) ebpf_program_type_t EBPF_PROGRAM_TYPE_FLOW = {
+        0x75fa0380, 0x999c, 0x461d, {0xa1, 0x84, 0x07, 0x54, 0xf0, 0x53, 0xab, 0x1d}};
+
+    /** @brief Program type for MAC layer.
+     *
+     * Attach type(s): \ref EBPF_ATTACH_TYPE_MAC
+     *
+     * Helpers available: see ebpf_helpers.h
+     */
+    __declspec(selectany) ebpf_program_type_t EBPF_PROGRAM_TYPE_MAC = {
+        0x930232df, 0x0699, 0x4f41, {0x92, 0x24, 0x4a, 0xc1, 0xb7, 0x4c, 0xea, 0x4d}};
 
     __declspec(selectany) ebpf_program_type_t EBPF_PROGRAM_TYPE_TEST = {
         0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};

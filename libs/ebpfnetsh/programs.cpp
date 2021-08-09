@@ -78,20 +78,25 @@ typedef enum _ebpf_attach_type_index
 {
     EBPF_ATTACH_TYPE_UNSPECIFIED_INDEX = 0,
     EBPF_ATTACH_TYPE_XDP_INDEX = 1,
-    EBPF_ATTACH_TYPE_BIND_INDEX = 2
+    EBPF_ATTACH_TYPE_BIND_INDEX = 2,
+    EBPF_ATTACH_TYPE_FLOW_INDEX = 3,
+    EBPF_ATTACH_TYPE_MAC_INDEX = 4
 } ebpf_attach_type_index_t;
 
 static TOKEN_VALUE _ebpf_attach_type_enum[] = {
     {L"unknown", EBPF_ATTACH_TYPE_UNSPECIFIED_INDEX},
     {L"xdp", EBPF_ATTACH_TYPE_XDP_INDEX},
     {L"bind", EBPF_ATTACH_TYPE_BIND_INDEX},
-
+    {L"flow", EBPF_ATTACH_TYPE_FLOW_INDEX},
+    {L"mac", EBPF_ATTACH_TYPE_MAC_INDEX}
 };
 
 GUID _ebpf_attach_type_guids[] = {
     EBPF_ATTACH_TYPE_UNSPECIFIED,
     EBPF_ATTACH_TYPE_XDP,
     EBPF_ATTACH_TYPE_BIND,
+    EBPF_ATTACH_TYPE_FLOW,
+    EBPF_ATTACH_TYPE_MAC
 };
 
 static TOKEN_VALUE _ebpf_execution_type_enum[] = {

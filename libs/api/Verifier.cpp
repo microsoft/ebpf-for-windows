@@ -14,6 +14,8 @@
 #include "ebpf_program_types.h"
 #include "ebpf_verifier_wrapper.hpp"
 #include "ebpf_xdp_program_data.h"
+#include "ebpf_flow_program_data.h"
+#include "ebpf_mac_program_data.h"
 #include "elfio_wrapper.hpp"
 #include "platform.hpp"
 #include "tlv.h"
