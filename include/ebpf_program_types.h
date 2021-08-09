@@ -28,10 +28,7 @@ typedef struct _ebpf_program_type_descriptor
     char is_privileged;
 } ebpf_program_type_descriptor_t;
 
-typedef enum _ebpf_helper_function_flags
-{
-    EBPF_HEPER_FUNCTION_FLAGS_UNWIND_ON_SUCCESS = 1,
-} ebpf_helper_function_flags;
+#define EBPF_HELPER_FUNCTION_FLAGS_UNWIND_ON_SUCCESS 0x2
 
 typedef struct _ebpf_helper_function_prototype
 {

@@ -60,7 +60,7 @@ static ebpf_helper_function_prototype_t _ebpf_map_helper_function_prototype[] = 
         "bpf_tail_call",
         EBPF_RETURN_TYPE_INTEGER,
         {EBPF_ARGUMENT_TYPE_PTR_TO_CTX, EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_ANYTHING},
-        EBPF_HEPER_FUNCTION_FLAGS_UNWIND_ON_SUCCESS,
+        EBPF_HELPER_FUNCTION_FLAGS_UNWIND_ON_SUCCESS,
     },
 };
 

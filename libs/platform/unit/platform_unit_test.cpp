@@ -242,11 +242,13 @@ static ebpf_helper_function_prototype_t _helper_functions[] = {
         {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY},
         0,
     },
-    {4,
-     "bpf_tail_call",
-     EBPF_RETURN_TYPE_INTEGER,
-     {EBPF_ARGUMENT_TYPE_PTR_TO_CTX, EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_ANYTHING},
-     EBPF_HEPER_FUNCTION_FLAGS_UNWIND_ON_SUCCESS},
+    {
+        4,
+        "bpf_tail_call",
+        EBPF_RETURN_TYPE_INTEGER,
+        {EBPF_ARGUMENT_TYPE_PTR_TO_CTX, EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_ANYTHING},
+        EBPF_HELPER_FUNCTION_FLAGS_UNWIND_ON_SUCCESS,
+    },
 };
 
 TEST_CASE("program_type_info", "[platform]")

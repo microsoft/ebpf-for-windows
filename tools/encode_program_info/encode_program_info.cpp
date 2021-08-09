@@ -37,28 +37,28 @@ static ebpf_helper_function_prototype_t _ebpf_helper_function_prototype[] = {
         "bpf_map_lookup_elem",
         EBPF_RETURN_TYPE_PTR_TO_MAP_VALUE_OR_NULL,
         {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY},
-        0, // flags
+        0,
     },
     {
         2,
         "bpf_map_update_elem",
         EBPF_RETURN_TYPE_INTEGER,
         {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_VALUE},
-        0, // flags
+        0,
     },
     {
         3,
         "bpf_map_delete_elem",
         EBPF_RETURN_TYPE_INTEGER,
         {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY},
-        0, // flags
+        0,
     },
     {
         4,
         "bpf_tail_call",
         EBPF_RETURN_TYPE_INTEGER,
         {EBPF_ARGUMENT_TYPE_PTR_TO_CTX, EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_ANYTHING},
-        EBPF_HEPER_FUNCTION_FLAGS_UNWIND_ON_SUCCESS, // flags
+        EBPF_HELPER_FUNCTION_FLAGS_UNWIND_ON_SUCCESS,
     }};
 
 static ebpf_result_t
