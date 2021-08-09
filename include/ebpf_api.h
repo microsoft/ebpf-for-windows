@@ -286,14 +286,14 @@ extern "C"
     ebpf_api_get_next_map_key(ebpf_handle_t handle, uint32_t key_size, const uint8_t* previous_key, uint8_t* next_key);
 
     /**
-     * @brief Get the next eBPF map.
-     * @param[in] previous_handle Handle to previous eBPF map or
-     *  ebpf_handle_invalid to start enumeration.
-     * @param[out] next_handle The next eBPF map or ebpf_handle_invalid if this
+     * @brief Get fd to the next eBPF map.
+     * @param[in] previous_fd FD to previous eBPF map or
+     *  ebpf_fd_invalid to start enumeration.
+     * @param[out] next_fd FD to the next eBPF map or ebpf_fd_invalid if this
      *  is the last map.
      */
-    uint32_t
-    ebpf_api_get_next_map(ebpf_handle_t previous_handle, ebpf_handle_t* next_handle);
+    ebpf_result_t
+    ebpf_api_get_next_map(fd_t previous_fd, fd_t* next_fd);
 
     /**
      * @brief Get the next eBPF program.
@@ -307,7 +307,7 @@ extern "C"
 
     /**
      * @brief Query properties of an eBPF map.
-     * @param[in] handle Handle to an eBPF map.
+     * @param[in] fd file descriptor for an eBPF map.
      * @param[out] size Size of the eBPF map definition.
      * @param[out] type Type of the eBPF map.
      * @param[out] key_size Size of keys in the eBPF map.
@@ -316,12 +316,7 @@ extern "C"
      */
     ebpf_result_t
     ebpf_api_map_query_definition(
-        ebpf_handle_t handle,
-        uint32_t* size,
-        uint32_t* type,
-        uint32_t* key_size,
-        uint32_t* value_size,
-        uint32_t* max_entries);
+        fd_t fd, uint32_t* size, uint32_t* type, uint32_t* key_size, uint32_t* value_size, uint32_t* max_entries);
 
     /**
      * @brief Query info about an eBPF program.

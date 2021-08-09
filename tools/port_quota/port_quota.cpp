@@ -5,10 +5,11 @@
 #include <string>
 #include <windows.h>
 #include "ebpf_api.h"
+#include "libbpf.h"
 
-const unsigned char process_map[] = "port_quota::process_map";
-const unsigned char limits_map[] = "port_quota::limits_map";
-const unsigned char program_link[] = "port_quota::program_link";
+const char* process_map = "port_quota::process_map";
+const char* limits_map = "port_quota::limits_map";
+const char* program_link = "port_quota::program_link";
 
 typedef struct _process_entry
 {
@@ -19,46 +20,67 @@ typedef struct _process_entry
 int
 load(int argc, char** argv)
 {
-    ebpf_handle_t program;
-    ebpf_handle_t link;
-    ebpf_handle_t maps[2];
-    uint32_t map_count = _countof(maps);
+    // ebpf_handle_t program;
+    // ebpf_handle_t link;
+    // ebpf_handle_t maps[2];
+    // uint32_t map_count = _countof(maps);
     const char* error_message = NULL;
-    uint32_t result;
+    ebpf_result_t result;
+    int error;
+    bpf_object* object = nullptr;
+    bpf_program* program = nullptr;
+    bpf_link* link = nullptr;
+    fd_t program_fd;
     UNREFERENCED_PARAMETER(argc);
     UNREFERENCED_PARAMETER(argv);
+    /*
     result = ebpf_api_load_program(
         "bindmonitor.o", "bind", EBPF_EXECUTION_INTERPRET, &program, &map_count, maps, &error_message);
-    if (result != ERROR_SUCCESS) {
+    */
+    result = ebpf_program_load(
+        "bindmonitor.o", nullptr, nullptr, EBPF_EXECUTION_INTERPRET, &object, &program_fd, &error_message);
+    if (result != EBPF_SUCCESS) {
         fprintf(stderr, "Failed to load port quota eBPF program\n");
         fprintf(stderr, "%s", error_message);
         ebpf_free_string(error_message);
         return 1;
     }
 
-    result = ebpf_api_pin_object(maps[0], process_map, sizeof(process_map));
-    if (result != ERROR_SUCCESS) {
-        fprintf(stderr, "Failed to pin eBPF program: %d\n", result);
-        ebpf_free_string(error_message);
+    fd_t process_map_fd = bpf_object__find_map_fd_by_name(object, "process_map");
+    if (process_map_fd <= 0) {
+        fprintf(stderr, "Failed to find eBPF map : %s\n", process_map);
         return 1;
     }
-    result = ebpf_api_pin_object(maps[1], limits_map, sizeof(limits_map));
-    if (result != ERROR_SUCCESS) {
+    fd_t limits_map_fd = bpf_object__find_map_fd_by_name(object, "limits_map");
+    if (limits_map_fd <= 0) {
+        fprintf(stderr, "Failed to find eBPF map : %s\n", limits_map);
+        return 1;
+    }
+    result = ebpf_object_pin(process_map_fd, process_map);
+    if (result != EBPF_SUCCESS) {
         fprintf(stderr, "Failed to pin eBPF program: %d\n", result);
-        ebpf_free_string(error_message);
+        return 1;
+    }
+    result = ebpf_object_pin(limits_map_fd, limits_map);
+    if (result != EBPF_SUCCESS) {
+        fprintf(stderr, "Failed to pin eBPF program: %d\n", result);
         return 1;
     }
 
-    result = ebpf_api_link_program(program, EBPF_ATTACH_TYPE_BIND, &link);
+    program = bpf_program__next(nullptr, object);
+    if (program == nullptr) {
+        fprintf(stderr, "Failed to find eBPF program from object.\n");
+        return 1;
+    }
+    result = ebpf_program_attach(program, &EBPF_ATTACH_TYPE_BIND, nullptr, 0, &link);
     if (result != ERROR_SUCCESS) {
         fprintf(stderr, "Failed to attach eBPF program\n");
         return 1;
     }
 
-    result = ebpf_api_pin_object(link, program_link, sizeof(program_link));
-    if (result != ERROR_SUCCESS) {
+    error = bpf_link__pin(link, program_link);
+    if (error != ERROR_SUCCESS) {
         fprintf(stderr, "Failed to pin eBPF program: %d\n", result);
-        ebpf_free_string(error_message);
         return 1;
     }
     return 0;
@@ -70,9 +92,9 @@ unload(int argc, char** argv)
     UNREFERENCED_PARAMETER(argc);
     UNREFERENCED_PARAMETER(argv);
 
-    ebpf_api_unpin_object(program_link, sizeof(program_link));
-    ebpf_api_unpin_object(limits_map, sizeof(limits_map));
-    ebpf_api_unpin_object(process_map, sizeof(process_map));
+    ebpf_object_unpin(program_link);
+    ebpf_object_unpin(limits_map);
+    ebpf_object_unpin(process_map);
     return 1;
 }
 

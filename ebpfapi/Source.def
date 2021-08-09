@@ -6,6 +6,9 @@
 LIBRARY
 EXPORTS
     bpf_link__destroy
+    bpf_link__fd
+    bpf_link__pin
+    bpf_link__unpin
     bpf_map__fd
     bpf_map__is_pinned
     bpf_map__key_size
@@ -51,7 +54,6 @@ EXPORTS
     ebpf_api_elf_verify_section
     ebpf_api_elf_free
     ebpf_api_pin_object
-    ebpf_api_unpin_object
     ebpf_api_get_next_map
     ebpf_api_get_next_program
     ebpf_api_program_query_info
@@ -68,5 +70,7 @@ EXPORTS
     ebpf_object_get
     ebpf_object_pin
     ebpf_object_unpin
+    ebpf_program_attach
+    ebpf_program_attach_by_fd
     ebpf_program_load
     ebpf_program_pin

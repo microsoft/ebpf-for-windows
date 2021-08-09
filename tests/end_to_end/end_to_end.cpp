@@ -490,52 +490,53 @@ TEST_CASE("enumerate_and_query_maps", "[end_to_end]")
 {
     _test_helper_end_to_end test_helper;
 
-    ebpf_handle_t program_handle;
     const char* error_message = nullptr;
-    ebpf_handle_t map_handles[4];
-    uint32_t count_of_map_handles = 2;
+    fd_t map_fds[4] = {0};
+    bpf_object* object;
+    fd_t program_fd;
     uint32_t result;
 
     program_info_provider_t bind_program_info(EBPF_PROGRAM_TYPE_BIND);
 
-    REQUIRE(
-        (result = ebpf_api_load_program(
-             SAMPLE_PATH "bindmonitor.o",
-             "bind",
-             EBPF_EXECUTION_INTERPRET,
-             &program_handle,
-             &count_of_map_handles,
-             map_handles,
-             &error_message),
-         error_message ? printf("ebpf_api_load_program failed with %s\n", error_message) : 0,
-         ebpf_free_string(error_message),
-         error_message = nullptr,
-         result == EBPF_SUCCESS));
+    result = ebpf_program_load(
+        SAMPLE_PATH "bindmonitor.o", nullptr, nullptr, EBPF_EXECUTION_INTERPRET, &object, &program_fd, &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free_string(error_message);
+        error_message = nullptr;
+    }
+    REQUIRE(result == EBPF_SUCCESS);
 
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
 
-    std::string process_maps_name = "bindmonitor::process_maps";
-    std::string limit_maps_name = "bindmonitor::limits_map";
+    std::string process_maps_name = "process_map";
+    std::string limit_maps_name = "limits_map";
 
-    ebpf_handle_t handle_iterator = INVALID_HANDLE_VALUE;
-    REQUIRE(ebpf_api_get_next_map(handle_iterator, &handle_iterator) == EBPF_SUCCESS);
-    map_handles[2] = handle_iterator;
-    REQUIRE(ebpf_api_get_next_map(handle_iterator, &handle_iterator) == EBPF_SUCCESS);
-    map_handles[3] = handle_iterator;
-    REQUIRE(ebpf_api_get_next_map(handle_iterator, &handle_iterator) == EBPF_SUCCESS);
-    REQUIRE(handle_iterator == INVALID_HANDLE_VALUE);
+    map_fds[0] = bpf_object__find_map_fd_by_name(object, process_maps_name.c_str());
+    REQUIRE(map_fds[0] > 0);
+    map_fds[1] = bpf_object__find_map_fd_by_name(object, limit_maps_name.c_str());
+    REQUIRE(map_fds[1] > 0);
 
-    ebpf_map_definition_t map_definitions[_countof(map_handles)];
+    fd_t fd_iterator = ebpf_fd_invalid;
+    REQUIRE(ebpf_api_get_next_map(fd_iterator, &fd_iterator) == EBPF_SUCCESS);
+    map_fds[2] = fd_iterator;
+    REQUIRE(ebpf_api_get_next_map(fd_iterator, &fd_iterator) == EBPF_SUCCESS);
+    map_fds[3] = fd_iterator;
+    REQUIRE(ebpf_api_get_next_map(fd_iterator, &fd_iterator) == EBPF_SUCCESS);
+    REQUIRE(fd_iterator == ebpf_fd_invalid);
+
+    ebpf_map_definition_t map_definitions[_countof(map_fds)];
     ebpf_map_definition_t process_map = {
         sizeof(ebpf_map_definition_t), BPF_MAP_TYPE_HASH, sizeof(uint64_t), sizeof(process_entry_t), 1024};
 
     ebpf_map_definition_t limits_map = {
         sizeof(ebpf_map_definition_t), BPF_MAP_TYPE_ARRAY, sizeof(uint32_t), sizeof(uint32_t), 1};
 
-    for (size_t index = 0; index < _countof(map_handles); index++) {
+    for (size_t index = 0; index < _countof(map_fds); index++) {
         REQUIRE(
             ebpf_api_map_query_definition(
-                map_handles[index],
+                map_fds[index],
                 &map_definitions[index].size,
                 reinterpret_cast<uint32_t*>(&map_definitions[index].type),
                 &map_definitions[index].key_size,

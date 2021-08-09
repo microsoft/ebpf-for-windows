@@ -41,6 +41,7 @@ typedef struct bpf_link
 {
     char* pin_path;
     ebpf_handle_t link_handle;
+    fd_t link_fd;
     bool disconnected;
 } ebpf_link_t;
 

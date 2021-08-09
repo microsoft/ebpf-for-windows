@@ -831,6 +831,7 @@ ebpf_api_pin_object(ebpf_handle_t handle, const uint8_t* name, uint32_t name_len
     return invoke_ioctl(request_buffer);
 }
 
+/*
 uint32_t
 ebpf_api_unpin_object(const uint8_t* name, uint32_t name_length)
 {
@@ -843,6 +844,7 @@ ebpf_api_unpin_object(const uint8_t* name, uint32_t name_length)
     std::copy(name, name + name_length, request->name);
     return invoke_ioctl(request_buffer);
 }
+*/
 
 ebpf_result_t
 ebpf_object_pin(fd_t fd, _In_z_ const char* path)
@@ -1112,9 +1114,14 @@ ebpf_api_get_next_map_key(ebpf_handle_t handle, uint32_t key_size, const uint8_t
     return retval;
 }
 
-uint32_t
-ebpf_api_get_next_map(ebpf_handle_t previous_handle, ebpf_handle_t* next_handle)
+ebpf_result_t
+ebpf_api_get_next_map(fd_t previous_fd, fd_t* next_fd)
 {
+    if (next_fd == nullptr) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    ebpf_handle_t previous_handle = _get_handle_from_fd(previous_fd);
     _ebpf_operation_get_next_map_request request{
         sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_MAP, reinterpret_cast<uint64_t>(previous_handle)};
 
@@ -1122,9 +1129,14 @@ ebpf_api_get_next_map(ebpf_handle_t previous_handle, ebpf_handle_t* next_handle)
 
     uint32_t retval = invoke_ioctl(request, reply);
     if (retval == ERROR_SUCCESS) {
-        *next_handle = reinterpret_cast<ebpf_handle_t>(reply.next_handle);
+        ebpf_handle_t next_handle = reinterpret_cast<ebpf_handle_t>(reply.next_handle);
+        if (next_handle != ebpf_handle_invalid) {
+            *next_fd = _get_next_file_descriptor(next_handle);
+        } else {
+            *next_fd = ebpf_fd_invalid;
+        }
     }
-    return retval;
+    return windows_error_to_ebpf_result(retval);
 }
 
 uint32_t
@@ -1140,19 +1152,18 @@ ebpf_api_get_next_program(ebpf_handle_t previous_handle, ebpf_handle_t* next_han
     if (retval == ERROR_SUCCESS) {
         *next_handle = reinterpret_cast<ebpf_handle_t>(reply.next_handle);
     }
-    return retval;
+    return windows_error_to_ebpf_result(retval);
 }
 
 ebpf_result_t
 ebpf_api_map_query_definition(
-    ebpf_handle_t handle,
-    uint32_t* size,
-    uint32_t* type,
-    uint32_t* key_size,
-    uint32_t* value_size,
-    uint32_t* max_entries)
+    fd_t fd, uint32_t* size, uint32_t* type, uint32_t* key_size, uint32_t* value_size, uint32_t* max_entries)
 {
-    return query_map_definition(handle, size, type, key_size, value_size, max_entries);
+    ebpf_handle_t map_handle = _get_handle_from_fd(fd);
+    if (map_handle == ebpf_handle_invalid) {
+        return EBPF_INVALID_FD;
+    }
+    return query_map_definition(map_handle, size, type, key_size, value_size, max_entries);
 }
 
 uint32_t
@@ -1321,10 +1332,18 @@ _Success_(return == EBPF_SUCCESS) ebpf_result_t ebpf_program_attach(
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
+    new_link->link_fd = _get_next_file_descriptor(new_link->link_handle);
+    if (new_link->link_fd == ebpf_fd_invalid) {
+        result = EBPF_NO_MEMORY;
+        goto Exit;
+    }
     *link = new_link;
 
 Exit:
     if (result != EBPF_SUCCESS) {
+        if (new_link != nullptr && new_link->link_handle != ebpf_handle_invalid) {
+            ebpf_link_detach(new_link);
+        }
         _clean_up_ebpf_link(new_link);
     }
     return result;
