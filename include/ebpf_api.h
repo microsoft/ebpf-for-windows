@@ -219,7 +219,7 @@ extern "C"
      * @param[in] map_fd File descriptor for the eBPF map.
      * @param[in] key Pointer to buffer containing key.
      *
-     * @retval Status of delete operation.
+     * @retval EBPF_SUCCESS The operation was successful.
      */
     ebpf_result_t
     ebpf_map_delete_element(fd_t map_fd, _In_ const void* key);
@@ -288,6 +288,7 @@ extern "C"
      * @param[out] execution_type On success, contains the execution type.
      * @param[out] file_name On success, contains the file name.
      * @param[out] section_name On success, contains the section name.
+     * @retval EBPF_SUCCESS The operation was successful.
      */
     ebpf_result_t
     ebpf_program_query_info(

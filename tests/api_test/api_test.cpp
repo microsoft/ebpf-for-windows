@@ -66,12 +66,6 @@ _test_program_load(
     fd_t previous_fd = ebpf_fd_invalid;
     fd_t next_fd = ebpf_fd_invalid;
 
-    printf(
-        "_test_program_load: file_name=%s, execution_type=%d, expected_to_load=%d\n",
-        file_name,
-        execution_type,
-        expected_to_load);
-
     result = _program_load_helper(file_name, program_type, execution_type, &object, &program_fd);
 
     if (expected_to_load) {
