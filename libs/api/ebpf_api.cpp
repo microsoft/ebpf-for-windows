@@ -199,7 +199,7 @@ Exit:
     return result;
 }
 
-_Success_(return == EBPF_SUCCESS) ebpf_result_t ebpf_create_map_name(
+ebpf_result_t ebpf_create_map_name(
     ebpf_map_type_t type,
     _In_opt_z_ const char* name,
     uint32_t key_size,
@@ -250,7 +250,7 @@ Exit:
     return result;
 }
 
-_Success_(return == EBPF_SUCCESS) ebpf_result_t ebpf_create_map(
+ebpf_result_t ebpf_create_map(
     ebpf_map_type_t type,
     uint32_t key_size,
     uint32_t value_size,
