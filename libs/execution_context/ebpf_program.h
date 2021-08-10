@@ -63,7 +63,7 @@ extern "C"
      * @brief Get properties describing the program instance.
      *
      * @param[in] program Program instance to query.
-     * @param[in] program_parameters Parameters of the program.
+     * @param[out] program_parameters Parameters of the program.
      */
     void
     ebpf_program_get_properties(ebpf_program_t* program, ebpf_program_parameters_t* program_parameters);
@@ -153,7 +153,7 @@ extern "C"
      */
     ebpf_result_t
     ebpf_program_get_helper_function_address(
-        const ebpf_program_t* program, uint32_t helper_function_id, uint64_t* address);
+        _In_ const ebpf_program_t* program, const uint32_t helper_function_id, uint64_t* address);
 
     /**
      * @brief Attach a link object to an eBPF program.

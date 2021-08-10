@@ -164,25 +164,25 @@ load_byte_code(
             section_name = std::string(sectionname);
         }
 
-        auto raw_progams = read_elf(file_name, section_name, verifier_options, platform);
-        if (raw_progams.size() == 0) {
+        auto raw_programs = read_elf(file_name, section_name, verifier_options, platform);
+        if (raw_programs.size() == 0) {
             result = EBPF_ELF_PARSING_FAILED;
             goto Exit;
         }
 
         // read_elf() also returns a section with name ".text".
         // Remove that section from the list of programs returned.
-        for (int i = 0; i < raw_progams.size(); i++) {
-            if (raw_progams[i].section == ".text") {
-                raw_progams.erase(raw_progams.begin() + i);
+        for (int i = 0; i < raw_programs.size(); i++) {
+            if (raw_programs[i].section == ".text") {
+                raw_programs.erase(raw_programs.begin() + i);
                 break;
             }
         }
 
         // For each program/section parsed, program type should be same.
         if (get_global_program_type() == nullptr) {
-            ebpf_program_type_t program_type = *(const GUID*)raw_progams[0].info.type.platform_specific_data;
-            for (auto& raw_program : raw_progams) {
+            ebpf_program_type_t program_type = *(const GUID*)raw_programs[0].info.type.platform_specific_data;
+            for (auto& raw_program : raw_programs) {
                 if (raw_program.info.type.platform_specific_data == 0) {
                     result = EBPF_ELF_PARSING_FAILED;
                     goto Exit;
@@ -196,7 +196,7 @@ load_byte_code(
             }
         }
 
-        for (auto& raw_program : raw_progams) {
+        for (auto& raw_program : raw_programs) {
             program = (ebpf_program_t*)calloc(1, sizeof(ebpf_program_t));
             if (program == nullptr) {
                 result = EBPF_NO_MEMORY;

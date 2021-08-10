@@ -456,18 +456,26 @@ ebpf_program_invoke(_In_ const ebpf_program_t* program, _In_ void* context, _Out
         function_pointer = (ebpf_program_entry_point_t)(program->code_or_vm.code.code_pointer);
         *result = (function_pointer)(context);
     } else {
-        *result = (uint32_t)(ubpf_exec(program->code_or_vm.vm, context, 1024));
+        uint64_t out_value;
+        int ret = (uint32_t)(ubpf_exec(program->code_or_vm.vm, context, 1024, &out_value));
+        if (ret < 0) {
+            *result = ret;
+        } else {
+            *result = (uint32_t)(out_value);
+        }
     }
 }
 
 ebpf_result_t
-ebpf_program_get_helper_function_address(const ebpf_program_t* program, uint32_t helper_function_id, uint64_t* address)
+ebpf_program_get_helper_function_address(
+    _In_ const ebpf_program_t* program, const uint32_t helper_function_id, uint64_t* address)
 {
     if (helper_function_id > EBPF_MAX_GENERAL_HELPER_FUNCTION) {
         void* function_address;
         ebpf_result_t return_value;
-        helper_function_id >>= 16;
-        return_value = ebpf_get_trampoline_function(program->trampoline_table, helper_function_id, &function_address);
+        uint32_t trampoline_table_index = helper_function_id - (EBPF_MAX_GENERAL_HELPER_FUNCTION + 1);
+        return_value =
+            ebpf_get_trampoline_function(program->trampoline_table, trampoline_table_index, &function_address);
         if (return_value != EBPF_SUCCESS)
             return return_value;
 

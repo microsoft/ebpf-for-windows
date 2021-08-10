@@ -127,15 +127,15 @@
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutputPath)%(Filename).o</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutputPath)%(Filename).o</Outputs>
     </CustomBuild>
-    <CustomBuild Include="test_ebpf.c">
+    <CustomBuild Include="test_sample_ebpf.c">
       <FileType>CppCode</FileType>
       <Command>clang -target bpf -O2 -Wall -c %(Filename).c -o %(Filename).o</Command>
       <Outputs>%(Filename).o;%(Outputs)</Outputs>
       <TreatOutputAsContent>true</TreatOutputAsContent>
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">clang -g -target bpf -O2 -Wall -I../../include -I../ext/inc -c %(Filename).c -o $(OutputPath)%(Filename).o</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">clang -g -target bpf -O2 -Wall -I../../include -I../ext/inc -c %(Filename).c -o $(OutputPath)%(Filename).o</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">clang -g -target bpf -O2 -Wall -I../../include -I./ext/inc -c %(Filename).c -o $(OutputPath)%(Filename).o</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">clang -g -target bpf -O2 -Wall -I../../include -I./ext/inc -c %(Filename).c -o $(OutputPath)%(Filename).o</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutputPath)%(Filename).o</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutputPath)%(Filename).o</Outputs>
     </CustomBuild>
@@ -176,6 +176,28 @@
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">clang -g -target bpf -O2 -Wall -I../../include -c %(Filename).c -o $(OutputPath)%(Filename).o</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutputPath)%(Filename).o</Outputs>
       <TreatOutputAsContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</TreatOutputAsContent>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="tail_call.c">
+      <FileType>CppCode</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">clang -g -target bpf -O2 -Wall -I../../include -c %(Filename).c -o $(OutputPath)%(Filename).o</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">clang -g -target bpf -O2 -Wall -I../../include -c %(Filename).c -o $(OutputPath)%(Filename).o</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutputPath)%(Filename).o</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutputPath)%(Filename).o</Outputs>
+      <TreatOutputAsContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</TreatOutputAsContent>
+      <TreatOutputAsContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</TreatOutputAsContent>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="tail_call_bad.c">
+      <FileType>CppCode</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">clang -g -target bpf -O2 -Wall -I../../include -c %(Filename).c -o $(OutputPath)%(Filename).o</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">clang -g -target bpf -O2 -Wall -I../../include -c %(Filename).c -o $(OutputPath)%(Filename).o</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutputPath)%(Filename).o</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutputPath)%(Filename).o</Outputs>
+      <TreatOutputAsContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</TreatOutputAsContent>
+      <TreatOutputAsContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</TreatOutputAsContent>
     </CustomBuild>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

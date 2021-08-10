@@ -64,7 +64,7 @@ test_crud_operations(ebpf_map_type_t map_type)
 
     for (uint32_t key = 0; key < 10; key++) {
         uint64_t* value =
-            reinterpret_cast<uint64_t*>(ebpf_map_find_entry(map.get(), reinterpret_cast<const uint8_t*>(&key)));
+            reinterpret_cast<uint64_t*>(ebpf_map_find_entry(map.get(), reinterpret_cast<const uint8_t*>(&key), FALSE));
 
         REQUIRE(value != nullptr);
         REQUIRE(*value == key * key);

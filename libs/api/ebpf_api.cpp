@@ -681,11 +681,11 @@ ebpf_api_load_program(
             goto Done;
         }
 
-        if (programs.size() != 1) {
+        if (object.programs.size() != 1) {
             result = EBPF_ELF_PARSING_FAILED;
             goto Done;
         }
-        program = programs[0];
+        program = object.programs[0];
 
         // Create all the maps.
         for (auto& map : maps) {
@@ -927,6 +927,29 @@ ebpf_map_unpin(_In_ struct bpf_map* map, _In_opt_z_ const char* path)
     }
 
     return result;
+}
+
+uint32_t
+ebpf_api_map_update_element_with_handle(
+    ebpf_handle_t map_handle,
+    uint32_t key_size,
+    _In_ const uint8_t* key,
+    uint32_t value_size,
+    _In_ const uint8_t* value,
+    ebpf_handle_t value_handle)
+{
+    ebpf_protocol_buffer_t request_buffer(
+        sizeof(_ebpf_operation_map_update_element_with_handle_request) - 1 + key_size + value_size);
+    auto request = reinterpret_cast<_ebpf_operation_map_update_element_with_handle_request*>(request_buffer.data());
+
+    request->header.length = static_cast<uint16_t>(request_buffer.size());
+    request->header.id = ebpf_operation_id_t::EBPF_OPERATION_MAP_UPDATE_ELEMENT_WITH_HANDLE;
+    request->map_handle = (uintptr_t)map_handle;
+    request->value_handle = (uintptr_t)value_handle;
+    std::copy(key, key + key_size, request->data);
+    std::copy(value, value + value_size, request->data + key_size);
+
+    return invoke_ioctl(request_buffer);
 }
 
 fd_t
@@ -1439,6 +1462,18 @@ clean_up_ebpf_programs(_Inout_ std::vector<ebpf_program_t*>& programs)
         clean_up_ebpf_program(program);
     }
     programs.resize(0);
+}
+
+_Ret_maybenull_ ebpf_program_t*
+ebpf_program_lookup(fd_t fd)
+{
+    return (_ebpf_programs.contains(fd)) ? _ebpf_programs[fd] : nullptr;
+}
+
+_Ret_maybenull_ ebpf_map_t*
+ebpf_map_lookup(fd_t fd)
+{
+    return (_ebpf_maps.contains(fd)) ? _ebpf_maps[fd] : nullptr;
 }
 
 void

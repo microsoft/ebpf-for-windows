@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
+#include "bpf.h"
 #include "catch_wrapper.hpp"
+#include "helpers.h"
 #pragma warning(push)
 #pragma warning(disable : 4200)
 #include "libbpf.h"
@@ -253,3 +255,67 @@ TEST_CASE("libbpf map pinning", "[libbpf]")
 
     bpf_object__close(object);
 }
+
+static void
+_ebpf_test_tail_call(_In_z_ const char* filename, int expected_result)
+{
+    _test_helper_end_to_end test_helper;
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
+    program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
+
+    struct bpf_object* object;
+    int program_fd;
+    int error = bpf_prog_load(filename, BPF_PROG_TYPE_XDP, &object, &program_fd);
+    REQUIRE(error == 0);
+    REQUIRE(object != nullptr);
+
+    struct bpf_program* caller = bpf_object__find_program_by_name(object, "caller");
+    REQUIRE(caller != nullptr);
+
+    struct bpf_program* callee = bpf_object__find_program_by_name(object, "callee");
+    REQUIRE(callee != nullptr);
+
+    struct bpf_map* map = bpf_map__next(nullptr, object);
+    REQUIRE(map != nullptr);
+
+    int callee_fd = bpf_program__fd(callee);
+    REQUIRE(callee_fd >= 0);
+
+    int map_fd = bpf_map__fd(map);
+    REQUIRE(map_fd >= 0);
+
+    // First do some negative tests.
+    int index = 1;
+    int err = bpf_map_update_elem(map_fd, (uint8_t*)&index, (uint8_t*)&callee_fd, 0);
+    REQUIRE(err != 0);
+    index = 0;
+    int bad_fd = 0;
+    err = bpf_map_update_elem(map_fd, (uint8_t*)&index, (uint8_t*)&bad_fd, 0);
+    REQUIRE(err != 0);
+
+    // Finally store the correct program fd.
+    err = bpf_map_update_elem(map_fd, (uint8_t*)&index, (uint8_t*)&callee_fd, 0);
+    REQUIRE(err == 0);
+
+    bpf_link* link = bpf_program__attach_xdp(caller, 1);
+    REQUIRE(link != nullptr);
+
+    auto packet = prepare_udp_packet(0);
+    xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
+    int result;
+    REQUIRE(hook.fire(&ctx, &result) == EBPF_SUCCESS);
+    REQUIRE(result == expected_result);
+
+    result = bpf_link__destroy(link);
+    REQUIRE(result == 0);
+    bpf_object__close(object);
+}
+
+TEST_CASE("good tail_call", "[libbpf]")
+{
+    // Verify that 42 is returned, which is done by the callee.
+    // TODO(issue #344): change the 6 below to 42 once tail call is done correctly.
+    _ebpf_test_tail_call("tail_call.o", 6);
+}
+
+TEST_CASE("bad tail_call", "[libbpf]") { _ebpf_test_tail_call("tail_call_bad.o", -EBPF_INVALID_ARGUMENT); }

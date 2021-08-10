@@ -220,30 +220,35 @@ TEST_CASE("trampoline_test", "[platform]")
     ebpf_free_trampoline_table(table);
 }
 
+static ebpf_helper_function_prototype_t _helper_functions[] = {
+    {1,
+     "bpf_map_lookup_elem",
+     EBPF_RETURN_TYPE_PTR_TO_MAP_VALUE_OR_NULL,
+     {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY}},
+    {2,
+     "bpf_map_update_elem",
+     EBPF_RETURN_TYPE_INTEGER,
+     {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_VALUE}},
+    {3,
+     "bpf_map_delete_elem",
+     EBPF_RETURN_TYPE_PTR_TO_MAP_VALUE_OR_NULL,
+     {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY}},
+    {4,
+     "bpf_tail_call",
+     EBPF_RETURN_TYPE_INTEGER,
+     {EBPF_ARGUMENT_TYPE_PTR_TO_CTX, EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_ANYTHING}},
+};
+
 TEST_CASE("program_type_info", "[platform]")
 {
     _test_helper test_helper;
 
-    ebpf_helper_function_prototype_t helper_functions[] = {
-        {1,
-         "bpf_map_lookup_elem",
-         EBPF_RETURN_TYPE_PTR_TO_MAP_VALUE_OR_NULL,
-         {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY}},
-        {2,
-         "bpf_map_update_elem",
-         EBPF_RETURN_TYPE_INTEGER,
-         {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_VALUE}},
-        {3,
-         "bpf_map_delete_elem",
-         EBPF_RETURN_TYPE_PTR_TO_MAP_VALUE_OR_NULL,
-         {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY}},
-    };
     ebpf_context_descriptor_t context_descriptor{sizeof(xdp_md_t),
                                                  EBPF_OFFSET_OF(xdp_md_t, data),
                                                  EBPF_OFFSET_OF(xdp_md_t, data_end),
                                                  EBPF_OFFSET_OF(xdp_md_t, data_meta)};
     ebpf_program_type_descriptor_t program_type{"xdp", &context_descriptor};
-    ebpf_program_info_t program_info{program_type, _countof(helper_functions), helper_functions};
+    ebpf_program_info_t program_info{program_type, _countof(_helper_functions), _helper_functions};
     ebpf_program_info_t* new_program_info = nullptr;
     uint8_t* buffer = nullptr;
     unsigned long buffer_size;
@@ -261,7 +266,7 @@ TEST_CASE("program_type_info_stored", "[platform]")
         ebpf_program_info_decode(
             &xdp_program_info, _ebpf_encoded_xdp_program_info_data, sizeof(_ebpf_encoded_xdp_program_info_data)) ==
         EBPF_SUCCESS);
-    REQUIRE(xdp_program_info->count_of_helpers == 3);
+    REQUIRE(xdp_program_info->count_of_helpers == _countof(_helper_functions));
     REQUIRE(strcmp(xdp_program_info->program_type_descriptor.name, "xdp") == 0);
     ebpf_free(xdp_program_info);
 
@@ -270,7 +275,7 @@ TEST_CASE("program_type_info_stored", "[platform]")
             &bind_program_info, _ebpf_encoded_bind_program_info_data, sizeof(_ebpf_encoded_bind_program_info_data)) ==
         EBPF_SUCCESS);
     REQUIRE(strcmp(bind_program_info->program_type_descriptor.name, "bind") == 0);
-    REQUIRE(bind_program_info->count_of_helpers == 3);
+    REQUIRE(bind_program_info->count_of_helpers == _countof(_helper_functions));
     ebpf_free(bind_program_info);
 }
 

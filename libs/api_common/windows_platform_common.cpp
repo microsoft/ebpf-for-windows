@@ -8,7 +8,7 @@
 #include "crab_verifier_wrapper.hpp"
 #include "ebpf_api.h"
 #include "ebpf_nethooks.h"
-#include "test_ext_helpers.h"
+#include "sample_ext_helpers.h"
 #include "helpers.hpp"
 #include "map_descriptors.hpp"
 #include "platform.hpp"
@@ -43,25 +43,25 @@ const ebpf_context_descriptor_t g_bind_context_descriptor = {
 const EbpfProgramType windows_bind_program_type =
     PTYPE("bind", &g_bind_context_descriptor, (uint64_t)&EBPF_PROGRAM_TYPE_BIND, {"bind"});
 
-const ebpf_context_descriptor_t g_test_ext_context_descriptor = {
+const ebpf_context_descriptor_t g_sample_ext_context_descriptor = {
     sizeof(test_program_context_t),
     EBPF_OFFSET_OF(test_program_context_t, data_start),
     EBPF_OFFSET_OF(test_program_context_t, data_end),
     -1, // Offset into ctx struct for pointer to metadata, or -1 if none.
 };
 
-const EbpfProgramType windows_test_ext_program_type =
-    PTYPE("test_ext", &g_test_ext_context_descriptor, (uint64_t)&EBPF_PROGRAM_TYPE_TEST, {"test_ext"});
+const EbpfProgramType windows_sample_ext_program_type =
+    PTYPE("sample_ext", &g_sample_ext_context_descriptor, (uint64_t)&EBPF_PROGRAM_TYPE_SAMPLE, {"sample_ext"});
 
 const std::vector<EbpfProgramType> windows_program_types = {PTYPE("unspecified", {0}, 0, {}),
                                                             windows_xdp_program_type,
                                                             windows_bind_program_type,
-                                                            windows_test_ext_program_type};
+                                                            windows_sample_ext_program_type};
 
 const std::map<ebpf_program_type_t*, ebpf_attach_type_t*> windows_program_type_to_attach_type = {
     {&EBPF_PROGRAM_TYPE_XDP, &EBPF_ATTACH_TYPE_XDP},
     {&EBPF_PROGRAM_TYPE_BIND, &EBPF_ATTACH_TYPE_BIND},
-    {&EBPF_PROGRAM_TYPE_TEST, &EBPF_ATTACH_TYPE_TEST},
+    {&EBPF_PROGRAM_TYPE_SAMPLE, &EBPF_ATTACH_TYPE_SAMPLE},
 };
 
 EbpfProgramType
