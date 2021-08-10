@@ -334,8 +334,8 @@ Exit:
     return result;
 }
 
-_Success_(return == EBPF_SUCCESS) ebpf_result_t
-    ebpf_map_lookup_element(fd_t map_fd, _In_ const void* key, _Out_ void* value)
+ebpf_result_t
+ebpf_map_lookup_element(fd_t map_fd, _In_ const void* key, _Out_ void* value)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_handle_t map_handle;
@@ -1011,13 +1011,15 @@ ebpf_object_get(_In_z_ const char* path)
 }
 
 ebpf_result_t
-ebpf_get_next_map(fd_t previous_fd, fd_t* next_fd)
+ebpf_get_next_map(fd_t previous_fd, _Out_ fd_t* next_fd)
 {
     if (next_fd == nullptr) {
         return EBPF_INVALID_ARGUMENT;
     }
+    fd_t local_fd = previous_fd;
+    *next_fd = ebpf_fd_invalid;
 
-    ebpf_handle_t previous_handle = _get_handle_from_fd(previous_fd);
+    ebpf_handle_t previous_handle = _get_handle_from_fd(local_fd);
     _ebpf_operation_get_next_map_request request{
         sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_MAP, reinterpret_cast<uint64_t>(previous_handle)};
 
@@ -1043,13 +1045,15 @@ ebpf_get_next_map(fd_t previous_fd, fd_t* next_fd)
 }
 
 ebpf_result_t
-ebpf_get_next_program(fd_t previous_fd, fd_t* next_fd)
+ebpf_get_next_program(fd_t previous_fd, _Out_ fd_t* next_fd)
 {
     if (next_fd == nullptr) {
         return EBPF_INVALID_ARGUMENT;
     }
+    fd_t local_fd = previous_fd;
+    *next_fd = ebpf_fd_invalid;
 
-    ebpf_handle_t previous_handle = _get_handle_from_fd(previous_fd);
+    ebpf_handle_t previous_handle = _get_handle_from_fd(local_fd);
     _ebpf_operation_get_next_program_request request{sizeof(request),
                                                      ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_PROGRAM,
                                                      reinterpret_cast<uint64_t>(previous_handle)};
@@ -1077,7 +1081,12 @@ ebpf_get_next_program(fd_t previous_fd, fd_t* next_fd)
 
 ebpf_result_t
 ebpf_map_query_definition(
-    fd_t fd, uint32_t* size, uint32_t* type, uint32_t* key_size, uint32_t* value_size, uint32_t* max_entries)
+    fd_t fd,
+    _Out_ uint32_t* size,
+    _Out_ uint32_t* type,
+    _Out_ uint32_t* key_size,
+    _Out_ uint32_t* value_size,
+    _Out_ uint32_t* max_entries)
 {
     ebpf_handle_t map_handle = _get_handle_from_fd(fd);
     if (map_handle == ebpf_handle_invalid) {
@@ -1088,12 +1097,22 @@ ebpf_map_query_definition(
 
 ebpf_result_t
 ebpf_program_query_info(
-    fd_t fd, ebpf_execution_type_t* execution_type, const char** file_name, const char** section_name)
+    fd_t fd,
+    _Out_ ebpf_execution_type_t* execution_type,
+    _Outptr_result_z_ const char** file_name,
+    _Outptr_result_z_ const char** section_name)
 {
     ebpf_handle_t handle = _get_handle_from_fd(fd);
     if (handle == ebpf_handle_invalid) {
         return EBPF_INVALID_FD;
     }
+
+    if (execution_type == nullptr || file_name == nullptr || section_name == nullptr) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+    *execution_type = EBPF_EXECUTION_ANY;
+    *file_name = nullptr;
+    *section_name = nullptr;
 
     ebpf_protocol_buffer_t reply_buffer(1024);
     _ebpf_operation_query_program_info_request request{
@@ -1217,7 +1236,8 @@ _clean_up_ebpf_link(_In_opt_ _Post_invalid_ ebpf_link_t* link)
     free(link);
 }
 
-_Success_(return == EBPF_SUCCESS) ebpf_result_t ebpf_program_attach(
+ebpf_result_t
+ebpf_program_attach(
     _In_ struct bpf_program* program,
     _In_opt_ const ebpf_attach_type_t* attach_type,
     _In_reads_bytes_opt_(attach_params_size) void* attach_parameters,
@@ -1274,7 +1294,8 @@ Exit:
     return result;
 }
 
-_Success_(return == EBPF_SUCCESS) ebpf_result_t ebpf_program_attach_by_fd(
+ebpf_result_t
+ebpf_program_attach_by_fd(
     fd_t program_fd,
     _In_opt_ const ebpf_attach_type_t* attach_type,
     _In_reads_bytes_opt_(attach_params_size) void* attach_parameters,

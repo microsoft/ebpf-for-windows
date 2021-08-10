@@ -221,7 +221,7 @@ handle_ebpf_add_program(
 }
 
 static fd_t
-_find_program_handle(const char* filename, const char* section)
+_find_program_fd(const char* filename, const char* section)
 {
     fd_t program_fd = ebpf_fd_invalid;
     for (;;) {
@@ -390,7 +390,7 @@ handle_ebpf_set_program(
         return ERROR_CALL_NOT_IMPLEMENTED;
     } else {
         // Try to find the program with the specified filename and section.
-        fd_t program_fd = _find_program_handle(filename.c_str(), section.c_str());
+        fd_t program_fd = _find_program_fd(filename.c_str(), section.c_str());
         if (program_fd == ebpf_fd_invalid) {
             std::cerr << "Program not found." << std::endl;
             return ERROR_SUPPRESS_OUTPUT;
