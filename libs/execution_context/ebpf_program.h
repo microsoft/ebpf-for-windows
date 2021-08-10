@@ -28,6 +28,7 @@ extern "C"
         ebpf_program_type_t program_type;
         ebpf_utf8_string_t program_name;
         ebpf_utf8_string_t section_name;
+        ebpf_utf8_string_t file_name;
         ebpf_code_type_t code_type;
     } ebpf_program_parameters_t;
 

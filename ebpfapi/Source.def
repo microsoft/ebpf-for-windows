@@ -6,7 +6,6 @@
 LIBRARY
 EXPORTS
     bpf_link__destroy
-    bpf_link__fd
     bpf_link__pin
     bpf_link__unpin
     bpf_map__fd
@@ -45,25 +44,23 @@ EXPORTS
     ebpf_api_terminate
     ebpf_api_load_program
     ebpf_api_create_map
-    ebpf_api_map_find_element
-    ebpf_api_map_update_element
-    ebpf_api_map_delete_element
-    ebpf_api_get_next_map_key
     ebpf_api_elf_enumerate_sections
     ebpf_api_elf_disassemble_section
     ebpf_api_elf_verify_section
     ebpf_api_elf_free
     ebpf_api_pin_object
-    ebpf_api_get_next_map
     ebpf_api_get_next_program
     ebpf_api_program_query_info
     ebpf_api_link_program
     ebpf_api_close_handle
     ebpf_api_get_pinned_map_info
     ebpf_api_map_info_free
+    ebpf_close_fd
     ebpf_create_map
     ebpf_create_map_name
     ebpf_free_string
+    ebpf_get_next_map
+    ebpf_get_next_program
     ebpf_map_delete_element
     ebpf_map_get_next_key
     ebpf_map_lookup_element

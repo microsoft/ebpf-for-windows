@@ -240,60 +240,24 @@ extern "C"
         ebpf_map_get_next_key(fd_t map_fd, _In_opt_ const void* previous_key, _Out_ void* next_key);
 
     /**
-     * @brief Find an element in an eBPF map.
-     * @param[in] handle Handle to eBPF map.
-     * @param[in] key_size Size of the key buffer.
-     * @param[in] key Pointer to buffer containing key.
-     * @param[in] value_size Size of the value buffer.
-     * @param[out] value Pointer to buffer that contains value on success.
-     */
-    uint32_t
-    ebpf_api_map_find_element(
-        ebpf_handle_t handle, uint32_t key_size, const uint8_t* key, uint32_t value_size, uint8_t* value);
-
-    /**
-     * @brief Update an element in an eBPF map.
-     * @param[in] handle Handle to eBPF map.
-     * @param[in] key_size Size of the key buffer.
-     * @param[in] key Pointer to buffer containing key.
-     * @param[in] value_size Size of the value buffer.
-     * @param[out] value Pointer to buffer containing value.
-     */
-    uint32_t
-    ebpf_api_map_update_element(
-        ebpf_handle_t handle, uint32_t key_size, const uint8_t* key, uint32_t value_size, const uint8_t* value);
-
-    /**
-     * @brief Delete an element in an eBPF map.
-     * @param[in] handle Handle to eBPF map.
-     * @param[in] key_size Size of the key buffer.
-     * @param[in] key Pointer to buffer containing key.
-     */
-    uint32_t
-    ebpf_api_map_delete_element(ebpf_handle_t handle, uint32_t key_size, const uint8_t* key);
-
-    /**
-     * @brief Return the next key in an eBPF map.
-     * @param[in] handle Handle to eBPF map.
-     * @param[in] key_size Size of the key buffer.
-     * @param[in] previous_key Pointer to buffer containing
-     previous key or NULL to restart enumeration.
-     * @param[out] next_key Pointer to buffer that contains next
-     * key on success.
-     * @retval ERROR_NO_MORE_ITEMS previous_key was the last key.
-     */
-    uint32_t
-    ebpf_api_get_next_map_key(ebpf_handle_t handle, uint32_t key_size, const uint8_t* previous_key, uint8_t* next_key);
-
-    /**
-     * @brief Get fd to the next eBPF map.
-     * @param[in] previous_fd FD to previous eBPF map or
-     *  ebpf_fd_invalid to start enumeration.
+     * @brief Get file descriptor to the next eBPF map.
+     * @param[in] previous_fd FD to previous eBPF map or ebpf_fd_invalid to
+     *  start enumeration.
      * @param[out] next_fd FD to the next eBPF map or ebpf_fd_invalid if this
      *  is the last map.
      */
     ebpf_result_t
-    ebpf_api_get_next_map(fd_t previous_fd, fd_t* next_fd);
+    ebpf_get_next_map(fd_t previous_fd, fd_t* next_fd);
+
+    /**
+     * @brief Get file descriptor to the next eBPF program.
+     * @param[in] previous_fd FD to previous eBPF program or ebpf_fd_invalid to
+     *  start enumeration.
+     * @param[out] next_fd FD to the next eBPF program or ebpf_fd_invalid if
+     *  this is the last program.
+     */
+    ebpf_result_t
+    ebpf_get_next_program(fd_t previous_fd, fd_t* next_fd);
 
     /**
      * @brief Get the next eBPF program.
@@ -315,19 +279,19 @@ extern "C"
      * @param[out] max_entries Maximum number of entries in the map.
      */
     ebpf_result_t
-    ebpf_api_map_query_definition(
+    ebpf_map_query_definition(
         fd_t fd, uint32_t* size, uint32_t* type, uint32_t* key_size, uint32_t* value_size, uint32_t* max_entries);
 
     /**
      * @brief Query info about an eBPF program.
-     * @param[in] handle Handle to an eBPF program.
+     * @param[in] fd FD to an eBPF program.
      * @param[out] execution_type On success, contains the execution type.
      * @param[out] file_name On success, contains the file name.
      * @param[out] section_name On success, contains the section name.
      */
-    uint32_t
+    ebpf_result_t
     ebpf_api_program_query_info(
-        ebpf_handle_t handle, ebpf_execution_type_t* execution_type, const char** file_name, const char** section_name);
+        fd_t fd, ebpf_execution_type_t* execution_type, const char** file_name, const char** section_name);
 
     /**
      * @brief Get list of programs and stats in an ELF eBPF file.
@@ -647,6 +611,16 @@ extern "C"
      */
     fd_t
     ebpf_object_get(_In_z_ const char* path);
+
+    /**
+     * @brief Close a file descriptor. Also close the underlying handle.
+     * @param [in] fd File descriptor to be closed.
+     *
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INVALID_FD Invalid fd was provided.
+     */
+    ebpf_result_t
+    ebpf_close_fd(fd_t fd);
 
 #ifdef __cplusplus
 }

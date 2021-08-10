@@ -522,11 +522,11 @@ TEST_CASE("enumerate_and_query_maps", "[end_to_end]")
     REQUIRE(map_fds[1] > 0);
 
     fd_t fd_iterator = ebpf_fd_invalid;
-    REQUIRE(ebpf_api_get_next_map(fd_iterator, &fd_iterator) == EBPF_SUCCESS);
+    REQUIRE(ebpf_get_next_map(fd_iterator, &fd_iterator) == EBPF_SUCCESS);
     map_fds[2] = fd_iterator;
-    REQUIRE(ebpf_api_get_next_map(fd_iterator, &fd_iterator) == EBPF_SUCCESS);
+    REQUIRE(ebpf_get_next_map(fd_iterator, &fd_iterator) == EBPF_SUCCESS);
     map_fds[3] = fd_iterator;
-    REQUIRE(ebpf_api_get_next_map(fd_iterator, &fd_iterator) == EBPF_SUCCESS);
+    REQUIRE(ebpf_get_next_map(fd_iterator, &fd_iterator) == EBPF_SUCCESS);
     REQUIRE(fd_iterator == ebpf_fd_invalid);
 
     ebpf_map_definition_t map_definitions[_countof(map_fds)];
@@ -538,7 +538,7 @@ TEST_CASE("enumerate_and_query_maps", "[end_to_end]")
 
     for (size_t index = 0; index < _countof(map_fds); index++) {
         REQUIRE(
-            ebpf_api_map_query_definition(
+            ebpf_map_query_definition(
                 map_fds[index],
                 &map_definitions[index].size,
                 reinterpret_cast<uint32_t*>(&map_definitions[index].type),
@@ -559,59 +559,62 @@ TEST_CASE("enumerate_and_query_programs", "[end_to_end]")
 {
     _test_helper_end_to_end test_helper;
 
-    ebpf_handle_t program_handle;
-    ebpf_handle_t map_handles[3];
-    uint32_t count_of_map_handle = 1;
+    fd_t program_fd;
+    fd_t next_program_fd;
     const char* error_message = nullptr;
-    uint32_t result;
+    ebpf_result_t result;
     const char* file_name = nullptr;
     const char* section_name = nullptr;
+    bpf_object* object[2] = {0};
+    fd_t program_fds[2] = {0};
 
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
-    REQUIRE(
-        (result = ebpf_api_load_program(
-             SAMPLE_PATH "droppacket.o",
-             "xdp",
-             EBPF_EXECUTION_JIT,
-             &program_handle,
-             &count_of_map_handle,
-             map_handles,
-             &error_message),
-         ebpf_free_string(error_message),
-         error_message ? printf("ebpf_api_load_program failed with %s\n", error_message) : 0,
-         error_message = nullptr,
-         result == EBPF_SUCCESS));
+    result = ebpf_program_load(
+        SAMPLE_PATH "droppacket.o", nullptr, nullptr, EBPF_EXECUTION_JIT, &object[0], &program_fds[0], &error_message);
 
-    REQUIRE(
-        (result = ebpf_api_load_program(
-             SAMPLE_PATH "droppacket.o",
-             "xdp",
-             EBPF_EXECUTION_INTERPRET,
-             &program_handle,
-             &count_of_map_handle,
-             map_handles,
-             &error_message),
-         ebpf_free_string(error_message),
-         error_message ? printf("ebpf_api_load_program failed with %s\n", error_message) : 0,
-         error_message = nullptr,
-         result == EBPF_SUCCESS));
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free_string(error_message);
+        error_message = nullptr;
+    }
+    REQUIRE(result == EBPF_SUCCESS);
+
+    result = ebpf_program_load(
+        SAMPLE_PATH "droppacket.o",
+        nullptr,
+        nullptr,
+        EBPF_EXECUTION_INTERPRET,
+        &object[1],
+        &program_fds[1],
+        &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free_string(error_message);
+        error_message = nullptr;
+    }
+    REQUIRE(result == EBPF_SUCCESS);
 
     ebpf_execution_type_t type;
-    program_handle = INVALID_HANDLE_VALUE;
-    REQUIRE(ebpf_api_get_next_program(program_handle, &program_handle) == EBPF_SUCCESS);
-    REQUIRE(ebpf_api_program_query_info(program_handle, &type, &file_name, &section_name) == EBPF_SUCCESS);
+    program_fd = ebpf_fd_invalid;
+    REQUIRE(ebpf_get_next_program(program_fd, &next_program_fd) == EBPF_SUCCESS);
+    REQUIRE(next_program_fd != ebpf_fd_invalid);
+    program_fd = next_program_fd;
+    REQUIRE(ebpf_api_program_query_info(program_fd, &type, &file_name, &section_name) == EBPF_SUCCESS);
     REQUIRE(type == EBPF_EXECUTION_JIT);
     REQUIRE(strcmp(file_name, SAMPLE_PATH "droppacket.o") == 0);
     ebpf_free_string(file_name);
     file_name = nullptr;
     REQUIRE(strcmp(section_name, "xdp") == 0);
-    REQUIRE(program_handle != INVALID_HANDLE_VALUE);
     ebpf_free_string(section_name);
     section_name = nullptr;
-    REQUIRE(ebpf_api_get_next_program(program_handle, &program_handle) == EBPF_SUCCESS);
-    REQUIRE(program_handle != INVALID_HANDLE_VALUE);
-    REQUIRE(ebpf_api_program_query_info(program_handle, &type, &file_name, &section_name) == EBPF_SUCCESS);
+
+    REQUIRE(ebpf_get_next_program(program_fd, &next_program_fd) == EBPF_SUCCESS);
+    REQUIRE(next_program_fd != ebpf_fd_invalid);
+    ebpf_close_fd(program_fd);
+    program_fd = next_program_fd;
+    REQUIRE(ebpf_api_program_query_info(program_fd, &type, &file_name, &section_name) == EBPF_SUCCESS);
     REQUIRE(type == EBPF_EXECUTION_INTERPRET);
     REQUIRE(strcmp(file_name, SAMPLE_PATH "droppacket.o") == 0);
     REQUIRE(strcmp(section_name, "xdp") == 0);
@@ -619,8 +622,14 @@ TEST_CASE("enumerate_and_query_programs", "[end_to_end]")
     ebpf_free_string(section_name);
     file_name = nullptr;
     section_name = nullptr;
-    REQUIRE(ebpf_api_get_next_program(program_handle, &program_handle) == EBPF_SUCCESS);
-    REQUIRE(program_handle == INVALID_HANDLE_VALUE);
+
+    REQUIRE(ebpf_get_next_program(program_fd, &next_program_fd) == EBPF_SUCCESS);
+    REQUIRE(next_program_fd == ebpf_fd_invalid);
+    ebpf_close_fd(program_fd);
+
+    for (int i = 0; i < _countof(object); i++) {
+        bpf_object__close(object[i]);
+    }
 }
 
 TEST_CASE("pinned_map_enum", "[end_to_end]")
@@ -639,44 +648,39 @@ TEST_CASE("implicit_detach", "[end_to_end]")
 
     _test_helper_end_to_end test_helper;
 
-    ebpf_handle_t program_handle;
-    ebpf_handle_t map_handle;
-    uint32_t count_of_map_handle = 1;
     uint32_t result = 0;
+    bpf_object* object = nullptr;
+    fd_t program_fd;
     const char* error_message = nullptr;
+    bpf_link* link = nullptr;
 
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
-    result = ebpf_api_load_program(
-        SAMPLE_PATH "droppacket.o",
-        "xdp",
-        EBPF_EXECUTION_INTERPRET,
-        &program_handle,
-        &count_of_map_handle,
-        &map_handle,
-        &error_message);
+    result = ebpf_program_load(
+        SAMPLE_PATH "droppacket.o", nullptr, nullptr, EBPF_EXECUTION_JIT, &object, &program_fd, &error_message);
 
     if (error_message) {
-        printf("ebpf_api_load_program failed with %s\n", error_message);
+        printf("ebpf_program_load failed with %s\n", error_message);
         ebpf_free_string(error_message);
         error_message = nullptr;
     }
     REQUIRE(result == EBPF_SUCCESS);
 
-    REQUIRE(hook.attach(program_handle) == EBPF_SUCCESS);
+    REQUIRE(hook.attach_link(program_fd, &link) == EBPF_SUCCESS);
 
-    // Close program handle. That should detach the program from the hook
-    // and unload the program.
-    ebpf_api_close_handle(program_handle);
-    program_handle = INVALID_HANDLE_VALUE;
-    REQUIRE(ebpf_api_get_next_program(program_handle, &program_handle) == EBPF_SUCCESS);
-    REQUIRE(program_handle == INVALID_HANDLE_VALUE);
+    // Call bpf_object__close() which will close the program fd. That should
+    // detach the program from the hook and unload the program.
+    bpf_object__close(object);
 
-    // Close link handle. This should delete the link object.
-    // ebpf_object_tracking_terminate() which is called when the test
+    program_fd = ebpf_fd_invalid;
+    REQUIRE(ebpf_get_next_program(program_fd, &program_fd) == EBPF_SUCCESS);
+    REQUIRE(program_fd == ebpf_fd_invalid);
+
+    // Close link handle (without detaching). This should delete the link
+    // object. ebpf_object_tracking_terminate() which is called when the test
     // exits checks if all the objects in EC have been deleted.
-    hook.close_handle();
+    hook.close_link(link);
 }
 
 TEST_CASE("explicit_detach", "[end_to_end]")
@@ -688,43 +692,38 @@ TEST_CASE("explicit_detach", "[end_to_end]")
 
     _test_helper_end_to_end test_helper;
 
-    ebpf_handle_t program_handle;
-    ebpf_handle_t map_handle;
-    uint32_t count_of_map_handle = 1;
-    uint32_t result = 0;
+    bpf_object* object = nullptr;
+    fd_t program_fd;
+    bpf_link* link = nullptr;
+    ebpf_result_t result;
     const char* error_message = nullptr;
 
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
-    result = ebpf_api_load_program(
-        SAMPLE_PATH "droppacket.o",
-        "xdp",
-        EBPF_EXECUTION_INTERPRET,
-        &program_handle,
-        &count_of_map_handle,
-        &map_handle,
-        &error_message);
+    result = ebpf_program_load(
+        SAMPLE_PATH "droppacket.o", nullptr, nullptr, EBPF_EXECUTION_INTERPRET, &object, &program_fd, &error_message);
 
     if (error_message) {
-        printf("ebpf_api_load_program failed with %s\n", error_message);
+        printf("ebpf_program_load failed with %s\n", error_message);
         ebpf_free_string(error_message);
         error_message = nullptr;
     }
     REQUIRE(result == EBPF_SUCCESS);
 
-    REQUIRE(hook.attach(program_handle) == EBPF_SUCCESS);
+    REQUIRE(hook.attach_link(program_fd, &link) == EBPF_SUCCESS);
 
     // Detach and close link handle.
     // ebpf_object_tracking_terminate() which is called when the test
     // exits checks if all the objects in EC have been deleted.
-    hook.detach();
+    hook.detach_link(link);
+    hook.close_link(link);
 
     // Close program handle.
-    ebpf_api_close_handle(program_handle);
-    program_handle = INVALID_HANDLE_VALUE;
-    REQUIRE(ebpf_api_get_next_program(program_handle, &program_handle) == EBPF_SUCCESS);
-    REQUIRE(program_handle == INVALID_HANDLE_VALUE);
+    bpf_object__close(object);
+    program_fd = ebpf_fd_invalid;
+    REQUIRE(ebpf_get_next_program(program_fd, &program_fd) == EBPF_SUCCESS);
+    REQUIRE(program_fd == ebpf_fd_invalid);
 }
 
 TEST_CASE("implicit_explicit_detach", "[end_to_end]")
@@ -736,43 +735,39 @@ TEST_CASE("implicit_explicit_detach", "[end_to_end]")
 
     _test_helper_end_to_end test_helper;
 
-    ebpf_handle_t program_handle;
-    ebpf_handle_t map_handle;
-    uint32_t count_of_map_handle = 1;
-    uint32_t result = 0;
+    bpf_object* object = nullptr;
+    fd_t program_fd;
+    bpf_link* link = nullptr;
+    ebpf_result_t result;
     const char* error_message = nullptr;
 
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
-    result = ebpf_api_load_program(
-        SAMPLE_PATH "droppacket.o",
-        "xdp",
-        EBPF_EXECUTION_INTERPRET,
-        &program_handle,
-        &count_of_map_handle,
-        &map_handle,
-        &error_message);
+    result = ebpf_program_load(
+        SAMPLE_PATH "droppacket.o", nullptr, nullptr, EBPF_EXECUTION_INTERPRET, &object, &program_fd, &error_message);
 
     if (error_message) {
-        printf("ebpf_api_load_program failed with %s\n", error_message);
+        printf("ebpf_program_load failed with %s\n", error_message);
         ebpf_free_string(error_message);
         error_message = nullptr;
     }
     REQUIRE(result == EBPF_SUCCESS);
 
-    REQUIRE(hook.attach(program_handle) == EBPF_SUCCESS);
+    REQUIRE(hook.attach_link(program_fd, &link) == EBPF_SUCCESS);
+
     // Close program handle. That should detach the program from the hook
     // and unload the program.
-    ebpf_api_close_handle(program_handle);
-    program_handle = INVALID_HANDLE_VALUE;
-    REQUIRE(ebpf_api_get_next_program(program_handle, &program_handle) == EBPF_SUCCESS);
-    REQUIRE(program_handle == INVALID_HANDLE_VALUE);
+    bpf_object__close(object);
+    program_fd = ebpf_fd_invalid;
+    REQUIRE(ebpf_get_next_program(program_fd, &program_fd) == EBPF_SUCCESS);
+    REQUIRE(program_fd == ebpf_fd_invalid);
 
     // Detach and close link handle.
     // ebpf_object_tracking_terminate() which is called when the test
     // exits checks if all the objects in EC have been deleted.
-    hook.detach();
+    hook.detach_link(link);
+    hook.close_link(link);
 }
 
 TEST_CASE("create_map", "[end_to_end]")

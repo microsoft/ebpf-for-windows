@@ -63,8 +63,8 @@ _test_program_load(
     ebpf_result_t result;
     struct bpf_object* object = nullptr;
     fd_t program_fd;
-    ebpf_handle_t program_handle = INVALID_HANDLE_VALUE;
-    ebpf_handle_t next_program_handle = INVALID_HANDLE_VALUE;
+    fd_t previous_fd = ebpf_fd_invalid;
+    fd_t next_fd = ebpf_fd_invalid;
 
     printf(
         "_test_program_load: file_name=%s, execution_type=%d, expected_to_load=%d\n",
@@ -83,17 +83,15 @@ _test_program_load(
     }
 
     // Query loaded programs to verify this program is loaded.
-    REQUIRE(ebpf_api_get_next_program(program_handle, &next_program_handle) == ERROR_SUCCESS);
-    REQUIRE(next_program_handle != INVALID_HANDLE_VALUE);
-
-    program_handle = next_program_handle;
+    REQUIRE(ebpf_get_next_program(previous_fd, &next_fd) == EBPF_SUCCESS);
+    REQUIRE(next_fd != ebpf_fd_invalid);
 
     const char* program_file_name;
     const char* program_section_name;
     ebpf_execution_type_t program_execution_type;
     REQUIRE(
-        ebpf_api_program_query_info(
-            program_handle, &program_execution_type, &program_file_name, &program_section_name) == ERROR_SUCCESS);
+        ebpf_api_program_query_info(program_fd, &program_execution_type, &program_file_name, &program_section_name) ==
+        EBPF_SUCCESS);
 
     // Set the default execution type to JIT. This will eventually
     // be decided by a system-wide policy. TODO(Issue #288): Configure
@@ -105,16 +103,17 @@ _test_program_load(
     REQUIRE(strcmp(program_file_name, file_name) == 0);
 
     // Next program should not be present.
-    REQUIRE(ebpf_api_get_next_program(program_handle, &next_program_handle) == ERROR_SUCCESS);
-    REQUIRE(next_program_handle == INVALID_HANDLE_VALUE);
+    previous_fd = next_fd;
+    REQUIRE(ebpf_get_next_program(previous_fd, &next_fd) == EBPF_SUCCESS);
+    REQUIRE(next_fd == ebpf_fd_invalid);
 
-    ebpf_api_close_handle(program_handle);
-    program_handle = INVALID_HANDLE_VALUE;
+    ebpf_close_fd(previous_fd);
+    previous_fd = ebpf_fd_invalid;
     bpf_object__close(object);
 
     // We have closed both handles to the program. Program should be unloaded now.
-    REQUIRE(ebpf_api_get_next_program(program_handle, &next_program_handle) == ERROR_SUCCESS);
-    REQUIRE(next_program_handle == INVALID_HANDLE_VALUE);
+    REQUIRE(ebpf_get_next_program(previous_fd, &next_fd) == ERROR_SUCCESS);
+    REQUIRE(next_fd == ebpf_fd_invalid);
 }
 
 static void
