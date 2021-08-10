@@ -24,7 +24,7 @@ _get_program_byte_code_helper(const char* file_name, const char* section_name, e
     int descriptors_count;
     ebpf_result_t result = EBPF_SUCCESS;
     const char* error_message = nullptr;
-    ebpf_object_t object;
+    std::vector<ebpf_program_t*> programs;
     ebpf_program_t* program;
 
     // Get byte code and map descriptors from ELF file.
@@ -33,7 +33,7 @@ _get_program_byte_code_helper(const char* file_name, const char* section_name, e
              file_name,
              section_name,
              true, // mock map fd
-             object,
+             programs,
              &descriptors,
              &descriptors_count,
              &error_message),
@@ -42,8 +42,8 @@ _get_program_byte_code_helper(const char* file_name, const char* section_name, e
          error_message = nullptr,
          result == EBPF_SUCCESS));
 
-    REQUIRE(object.programs.size() == 1);
-    program = object.programs[0];
+    REQUIRE(programs.size() == 1);
+    program = programs[0];
     REQUIRE(program->byte_code_size != 0);
 
     info->program_type = program->program_type;

@@ -304,11 +304,13 @@ Exit:
 }
 
 static inline ebpf_result_t
-_get_map_descriptor_properties(ebpf_handle_t handle, _Out_ uint32_t* key_size, _Out_ uint32_t* value_size)
+_get_map_descriptor_properties(
+    ebpf_handle_t handle, _Out_ uint32_t* type, _Out_ uint32_t* key_size, _Out_ uint32_t* value_size)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_map_t* map;
 
+    *type = BPF_MAP_TYPE_UNSPECIFIED;
     *key_size = 0;
     *value_size = 0;
 
@@ -317,13 +319,13 @@ _get_map_descriptor_properties(ebpf_handle_t handle, _Out_ uint32_t* key_size, _
     if (map == nullptr) {
         // Map is not present in the local cache. Query map descriptor from EC.
         uint32_t size;
-        uint32_t type;
         uint32_t max_entries;
-        result = query_map_definition(handle, &size, &type, key_size, value_size, &max_entries);
+        result = query_map_definition(handle, &size, type, key_size, value_size, &max_entries);
         if (result != EBPF_SUCCESS) {
             goto Exit;
         }
     } else {
+        *type = map->map_definition.type;
         *key_size = map->map_definition.key_size;
         *value_size = map->map_definition.value_size;
     }
@@ -339,6 +341,7 @@ _Success_(return == EBPF_SUCCESS) ebpf_result_t
     ebpf_handle_t map_handle;
     uint32_t key_size = 0;
     uint32_t value_size = 0;
+    uint32_t type;
 
     if (map_fd <= 0 || key == nullptr || value == nullptr) {
         result = EBPF_INVALID_ARGUMENT;
@@ -353,7 +356,7 @@ _Success_(return == EBPF_SUCCESS) ebpf_result_t
     }
 
     // Get map properties, either from local cache or from EC.
-    result = _get_map_descriptor_properties(map_handle, &key_size, &value_size);
+    result = _get_map_descriptor_properties(map_handle, &type, &key_size, &value_size);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
@@ -366,34 +369,18 @@ Exit:
     return result;
 }
 
-ebpf_result_t
-ebpf_map_update_element(fd_t map_fd, _In_ const void* key, _In_ const void* value, uint64_t flags)
+static ebpf_result_t
+_update_map_element(
+    ebpf_handle_t map_handle,
+    _In_ const void* key,
+    uint32_t key_size,
+    _In_ const void* value,
+    uint32_t value_size,
+    uint64_t flags) noexcept
 {
-    ebpf_result_t result = EBPF_SUCCESS;
-    ebpf_handle_t map_handle;
-    uint32_t key_size = 0;
-    uint32_t value_size = 0;
+    ebpf_result_t result;
     ebpf_protocol_buffer_t request_buffer;
     epf_operation_map_update_element_request_t* request;
-
-    if (map_fd <= 0 || key == nullptr || value == nullptr || flags != 0) {
-        result = EBPF_INVALID_ARGUMENT;
-        goto Exit;
-    }
-
-    map_handle = _get_handle_from_fd(map_fd);
-    if (map_handle == ebpf_handle_invalid) {
-        result = EBPF_INVALID_FD;
-        goto Exit;
-    }
-
-    // Get map properties, either from local cache or from EC.
-    result = _get_map_descriptor_properties(map_handle, &key_size, &value_size);
-    if (result != EBPF_SUCCESS) {
-        goto Exit;
-    }
-    assert(key_size != 0);
-    assert(value_size != 0);
 
     try {
         request_buffer.resize(sizeof(_ebpf_operation_map_update_element_request) - 1 + key_size + value_size);
@@ -419,6 +406,70 @@ Exit:
     return result;
 }
 
+static ebpf_result_t
+_update_map_element_with_handle(
+    ebpf_handle_t map_handle,
+    uint32_t key_size,
+    _In_ const uint8_t* key,
+    uint32_t value_size,
+    _In_ const uint8_t* value,
+    ebpf_handle_t value_handle) noexcept
+{
+    ebpf_protocol_buffer_t request_buffer(
+        sizeof(_ebpf_operation_map_update_element_with_handle_request) - 1 + key_size + value_size);
+    auto request = reinterpret_cast<_ebpf_operation_map_update_element_with_handle_request*>(request_buffer.data());
+
+    request->header.length = static_cast<uint16_t>(request_buffer.size());
+    request->header.id = ebpf_operation_id_t::EBPF_OPERATION_MAP_UPDATE_ELEMENT_WITH_HANDLE;
+    request->map_handle = (uintptr_t)map_handle;
+    request->value_handle = (uintptr_t)value_handle;
+    std::copy(key, key + key_size, request->data);
+    std::copy(value, value + value_size, request->data + key_size);
+
+    return windows_error_to_ebpf_result(invoke_ioctl(request_buffer));
+}
+
+ebpf_result_t
+ebpf_map_update_element(fd_t map_fd, _In_ const void* key, _In_ const void* value, uint64_t flags)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_handle_t map_handle;
+    uint32_t key_size = 0;
+    uint32_t value_size = 0;
+    uint32_t type;
+
+    if (map_fd <= 0 || key == nullptr || value == nullptr || flags != 0) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    map_handle = _get_handle_from_fd(map_fd);
+    if (map_handle == ebpf_handle_invalid) {
+        return EBPF_INVALID_FD;
+    }
+
+    // Get map properties, either from local cache or from EC.
+    result = _get_map_descriptor_properties(map_handle, &type, &key_size, &value_size);
+    if (result != EBPF_SUCCESS) {
+        return result;
+    }
+    assert(key_size != 0);
+    assert(value_size != 0);
+    assert(type != 0);
+
+    if (type == BPF_MAP_TYPE_PROG_ARRAY) {
+        fd_t program_fd = *(fd_t*)value;
+        ebpf_handle_t program_handle = _get_handle_from_fd(program_fd);
+        if (program_handle == ebpf_handle_invalid) {
+            return EBPF_INVALID_FD;
+        }
+
+        return _update_map_element_with_handle(
+            map_handle, key_size, (const uint8_t*)key, value_size, (const uint8_t*)value, program_handle);
+    } else {
+        return _update_map_element(map_handle, key, key_size, value, value_size, flags);
+    }
+}
+
 ebpf_result_t
 ebpf_map_delete_element(fd_t map_fd, _In_ const void* key)
 {
@@ -426,6 +477,7 @@ ebpf_map_delete_element(fd_t map_fd, _In_ const void* key)
     ebpf_handle_t map_handle;
     uint32_t key_size = 0;
     uint32_t value_size = 0;
+    uint32_t type;
     ebpf_protocol_buffer_t request_buffer;
     ebpf_operation_map_delete_element_request_t* request;
 
@@ -441,7 +493,7 @@ ebpf_map_delete_element(fd_t map_fd, _In_ const void* key)
     }
 
     // Get map properties, either from local cache or from EC.
-    result = _get_map_descriptor_properties(map_handle, &key_size, &value_size);
+    result = _get_map_descriptor_properties(map_handle, &type, &key_size, &value_size);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
@@ -483,6 +535,7 @@ _Success_(return == EBPF_SUCCESS) ebpf_result_t
     ebpf_operation_map_get_next_key_reply_t* reply;
     uint32_t key_size = 0;
     uint32_t value_size = 0;
+    uint32_t type;
     ebpf_handle_t map_handle = ebpf_handle_invalid;
 
     if (map_fd <= 0 || next_key == nullptr) {
@@ -497,7 +550,7 @@ _Success_(return == EBPF_SUCCESS) ebpf_result_t
     }
 
     // Get map properties, either from local cache or from EC.
-    result = _get_map_descriptor_properties(map_handle, &key_size, &value_size);
+    result = _get_map_descriptor_properties(map_handle, &type, &key_size, &value_size);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
@@ -681,11 +734,11 @@ ebpf_api_load_program(
             goto Done;
         }
 
-        if (object.programs.size() != 1) {
+        if (programs.size() != 1) {
             result = EBPF_ELF_PARSING_FAILED;
             goto Done;
         }
-        program = object.programs[0];
+        program = programs[0];
 
         // Create all the maps.
         for (auto& map : maps) {
@@ -929,29 +982,6 @@ ebpf_map_unpin(_In_ struct bpf_map* map, _In_opt_z_ const char* path)
     return result;
 }
 
-uint32_t
-ebpf_api_map_update_element_with_handle(
-    ebpf_handle_t map_handle,
-    uint32_t key_size,
-    _In_ const uint8_t* key,
-    uint32_t value_size,
-    _In_ const uint8_t* value,
-    ebpf_handle_t value_handle)
-{
-    ebpf_protocol_buffer_t request_buffer(
-        sizeof(_ebpf_operation_map_update_element_with_handle_request) - 1 + key_size + value_size);
-    auto request = reinterpret_cast<_ebpf_operation_map_update_element_with_handle_request*>(request_buffer.data());
-
-    request->header.length = static_cast<uint16_t>(request_buffer.size());
-    request->header.id = ebpf_operation_id_t::EBPF_OPERATION_MAP_UPDATE_ELEMENT_WITH_HANDLE;
-    request->map_handle = (uintptr_t)map_handle;
-    request->value_handle = (uintptr_t)value_handle;
-    std::copy(key, key + key_size, request->data);
-    std::copy(value, value + value_size, request->data + key_size);
-
-    return invoke_ioctl(request_buffer);
-}
-
 fd_t
 ebpf_object_get(_In_z_ const char* path)
 {
@@ -1010,22 +1040,6 @@ ebpf_get_next_map(fd_t previous_fd, fd_t* next_fd)
         }
     }
     return windows_error_to_ebpf_result(retval);
-}
-
-uint32_t
-ebpf_api_get_next_program(ebpf_handle_t previous_handle, ebpf_handle_t* next_handle)
-{
-    _ebpf_operation_get_next_program_request request{sizeof(request),
-                                                     ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_PROGRAM,
-                                                     reinterpret_cast<uint64_t>(previous_handle)};
-
-    _ebpf_operation_get_next_program_reply reply;
-
-    uint32_t retval = invoke_ioctl(request, reply);
-    if (retval == ERROR_SUCCESS) {
-        *next_handle = reinterpret_cast<ebpf_handle_t>(reply.next_handle);
-    }
-    return retval;
 }
 
 ebpf_result_t
@@ -1462,18 +1476,6 @@ clean_up_ebpf_programs(_Inout_ std::vector<ebpf_program_t*>& programs)
         clean_up_ebpf_program(program);
     }
     programs.resize(0);
-}
-
-_Ret_maybenull_ ebpf_program_t*
-ebpf_program_lookup(fd_t fd)
-{
-    return (_ebpf_programs.contains(fd)) ? _ebpf_programs[fd] : nullptr;
-}
-
-_Ret_maybenull_ ebpf_map_t*
-ebpf_map_lookup(fd_t fd)
-{
-    return (_ebpf_maps.contains(fd)) ? _ebpf_maps[fd] : nullptr;
 }
 
 void

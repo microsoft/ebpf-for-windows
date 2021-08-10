@@ -159,7 +159,6 @@ droppacket_test(ebpf_execution_type_t execution_type)
     _test_helper_end_to_end test_helper;
 
     ebpf_result_t result;
-    uint32_t error;
     const char* error_message = nullptr;
     bpf_object* object = nullptr;
     fd_t program_fd;
@@ -223,7 +222,6 @@ divide_by_zero_test(ebpf_execution_type_t execution_type)
     _test_helper_end_to_end test_helper;
 
     ebpf_result_t result;
-    uint32_t error = 0;
     const char* error_message = nullptr;
     bpf_object* object = nullptr;
     fd_t program_fd;

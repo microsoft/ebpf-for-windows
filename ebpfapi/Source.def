@@ -49,7 +49,6 @@ EXPORTS
     ebpf_api_elf_verify_section
     ebpf_api_elf_free
     ebpf_api_pin_object
-    ebpf_api_get_next_program
     ebpf_api_link_program
     ebpf_api_close_handle
     ebpf_api_get_pinned_map_info

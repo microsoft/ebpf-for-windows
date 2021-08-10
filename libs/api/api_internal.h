@@ -57,7 +57,7 @@ ebpf_get_program_byte_code(
     _In_z_ const char* file_name,
     _In_z_ const char* section_name,
     bool mock_map_fd,
-    _Out_ ebpf_object_t& object,
+    std::vector<ebpf_program_t*>& programs,
     _Outptr_result_maybenull_ EbpfMapDescriptor** map_descriptors,
     _Out_ int* map_descriptors_count,
     _Outptr_result_maybenull_ const char** error_message);
@@ -178,42 +178,3 @@ ebpf_map_unpin(_In_ struct bpf_map* map, _In_opt_z_ const char* path);
  */
 ebpf_result_t
 ebpf_map_set_pin_path(_In_ struct bpf_map* map, _In_ const char* path);
-
-/**
- * @brief Get the map with a given fd.
- *
- * @param[in] fd File descriptor to resolve.
- * @returns Pointer to map, or NULL if not found.
- */
-_Ret_maybenull_ ebpf_map_t*
-ebpf_map_lookup(fd_t fd);
-
-/**
- * @brief Get the program with a given fd.
- *
- * @param[in] fd File descriptor to resolve.
- * @returns Pointer to program, or NULL if not found.
- */
-_Ret_maybenull_ ebpf_program_t*
-ebpf_program_lookup(fd_t fd);
-
-/**
- * @brief Update an element in an eBPF map that uses handles with values.
- * @param[in] handle Handle to eBPF map.
- * @param[in] key_size Size of the key buffer.
- * @param[in] key Pointer to buffer containing key.
- * @param[in] value_size Size of the value buffer.
- * @param[in] value Pointer to buffer containing value.
- * @param[in] value_handle Handle associated with value.
- * @retval 0 The operation was successful.
- * @retval other The operation failed.
- */
-uint32_t
-ebpf_api_map_update_element_with_handle(
-    ebpf_handle_t handle,
-    uint32_t key_size,
-    _In_ const uint8_t* key,
-    uint32_t value_size,
-    _In_ const uint8_t* value,
-    ebpf_handle_t value_handle);
-

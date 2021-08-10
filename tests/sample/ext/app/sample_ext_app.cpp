@@ -53,10 +53,9 @@ TEST_CASE("test_test", "[test_test]")
     ebpf_result_t result;
     struct bpf_object* object = nullptr;
     fd_t program_fd;
-    ebpf_handle_t program_handle = INVALID_HANDLE_VALUE;
-    ebpf_handle_t next_program_handle = INVALID_HANDLE_VALUE;
+    fd_t previous_program_fd = ebpf_fd_invalid;
+    fd_t next_program_fd = ebpf_fd_invalid;
     struct bpf_map* map = nullptr;
-    ebpf_handle_t map_handle = INVALID_HANDLE_VALUE;
     const char* strings[2] = {"rainy", "sunny"};
     std::vector<std::vector<char>> map_entry_buffers(2, std::vector<char>(32));
     HANDLE device_handle = INVALID_HANDLE_VALUE;
@@ -65,6 +64,7 @@ TEST_CASE("test_test", "[test_test]")
     const char* expected_output = "Seattle is a sunny city";
     std::vector<char> output_buffer(256);
     uint32_t count_of_bytes_returned;
+    fd_t map_fd;
 
     REQUIRE(ebpf_api_initiate() == EBPF_SUCCESS);
 
@@ -75,30 +75,26 @@ TEST_CASE("test_test", "[test_test]")
     REQUIRE(program_fd > 0);
 
     // Query loaded programs to verify this program is loaded.
-    REQUIRE(ebpf_api_get_next_program(program_handle, &next_program_handle) == ERROR_SUCCESS);
-    REQUIRE(next_program_handle != INVALID_HANDLE_VALUE);
+    REQUIRE(ebpf_get_next_program(previous_program_fd, &next_program_fd) == EBPF_SUCCESS);
+    REQUIRE(next_program_fd != ebpf_fd_invalid);
 
-    program_handle = next_program_handle;
+    previous_program_fd = next_program_fd;
 
     // Get map and insert data.
     map = bpf_map__next(nullptr, object);
     REQUIRE(map != nullptr);
-    // TODO: Change to APIs using FD once #81 is resolved.
-    map_handle = map->map_handle;
+    map_fd = bpf_map__fd(map);
+    REQUIRE(map_fd > 0);
+
     for (uint32_t key = 0; key < map_entry_buffers.size(); key++) {
         std::copy(strings[key], strings[key] + strlen(strings[key]), map_entry_buffers[key].begin());
-        REQUIRE(
-            ebpf_api_map_update_element(
-                map_handle,
-                sizeof(key),
-                reinterpret_cast<uint8_t*>(&key),
-                static_cast<uint32_t>(map_entry_buffers[key].size()),
-                reinterpret_cast<uint8_t*>(map_entry_buffers[key].data())) == EBPF_SUCCESS);
+        REQUIRE(ebpf_map_update_element(map_fd, &key, map_entry_buffers[key].data(), EBPF_ANY) == EBPF_SUCCESS);
     }
 
     // Attach to link.
-    ebpf_handle_t link_handle = INVALID_HANDLE_VALUE;
-    REQUIRE(ebpf_api_link_program(program_handle, EBPF_ATTACH_TYPE_SAMPLE, &link_handle) == ERROR_SUCCESS);
+    bpf_link* link = nullptr;
+    bpf_program* program = bpf_program__next(nullptr, object);
+    REQUIRE(ebpf_program_attach(program, &EBPF_ATTACH_TYPE_SAMPLE, nullptr, 0, &link) == EBPF_SUCCESS);
 
     // Open handle to test eBPF extension device.
     REQUIRE(
@@ -125,7 +121,7 @@ TEST_CASE("test_test", "[test_test]")
 
     REQUIRE(memcmp(output_buffer.data(), expected_output, strlen(expected_output)) == 0);
 
-    ebpf_api_close_handle(program_handle);
+    ebpf_close_fd(previous_program_fd);
     bpf_object__close(object);
     if (device_handle != INVALID_HANDLE_VALUE)
         ::CloseHandle(device_handle);
