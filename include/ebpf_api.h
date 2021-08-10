@@ -154,7 +154,8 @@ extern "C"
      * @retval EBPF_ERROR_NOT_SUPPORTED Unsupported map type.
      * @retval EBPF_INVALID_ARGUMENT One or more parameters are incorrect.
      */
-    _Success_(return == EBPF_SUCCESS) ebpf_result_t ebpf_create_map(
+    ebpf_result_t
+    ebpf_create_map(
         ebpf_map_type_t map_type,
         uint32_t key_size,
         uint32_t value_size,
@@ -178,7 +179,8 @@ extern "C"
      * @retval EBPF_ERROR_NOT_SUPPORTED Unsupported map type.
      * @retval EBPF_INVALID_ARGUMENT One or more parameters are incorrect.
      */
-    ebpf_result_t ebpf_create_map_name(
+    ebpf_result_t
+    ebpf_create_map_name(
         ebpf_map_type_t type,
         _In_opt_z_ const char* name,
         uint32_t key_size,
@@ -199,7 +201,7 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      */
     ebpf_result_t
-        ebpf_map_lookup_element(fd_t map_fd, _In_ const void* key, _Out_ void* value);
+    ebpf_map_lookup_element(fd_t map_fd, _In_ const void* key, _Out_ void* value);
 
     /**
      * @brief Update value for the specified key in an eBPF map.
@@ -237,7 +239,7 @@ extern "C"
      * @retval EBPF_NO_MORE_KEYS previous_key was the last key.
      */
     ebpf_result_t
-        ebpf_map_get_next_key(fd_t map_fd, _In_opt_ const void* previous_key, _Out_ void* next_key);
+    ebpf_map_get_next_key(fd_t map_fd, _In_opt_ const void* previous_key, _Out_ void* next_key);
 
     /**
      * @brief Get file descriptor to the next eBPF map.
@@ -283,7 +285,12 @@ extern "C"
      */
     ebpf_result_t
     ebpf_map_query_definition(
-        fd_t fd, _Out_ uint32_t* size, _Out_ uint32_t* type, _Out_ uint32_t* key_size, _Out_ uint32_t* value_size, _Out_ uint32_t* max_entries);
+        fd_t fd,
+        _Out_ uint32_t* size,
+        _Out_ uint32_t* type,
+        _Out_ uint32_t* key_size,
+        _Out_ uint32_t* value_size,
+        _Out_ uint32_t* max_entries);
 
     /**
      * @brief Query info about an eBPF program.
@@ -295,7 +302,10 @@ extern "C"
      */
     ebpf_result_t
     ebpf_program_query_info(
-        fd_t fd, _Out_ ebpf_execution_type_t* execution_type, _Outptr_result_z_ const char** file_name, _Outptr_result_z_ const char** section_name);
+        fd_t fd,
+        _Out_ ebpf_execution_type_t* execution_type,
+        _Outptr_result_maybenull_z_ const char** file_name,
+        _Outptr_result_maybenull_z_ const char** section_name);
 
     /**
      * @brief Get list of programs and stats in an ELF eBPF file.
@@ -553,7 +563,8 @@ extern "C"
      *
      * @retval EBPF_SUCCESS The operation was successful.
      */
-    ebpf_result_t ebpf_program_attach(
+    ebpf_result_t
+    ebpf_program_attach(
         _In_ struct bpf_program* program,
         _In_opt_ const ebpf_attach_type_t* attach_type,
         _In_reads_bytes_opt_(attach_params_size) void* attach_parameters,
@@ -576,7 +587,8 @@ extern "C"
      *
      * @retval EBPF_SUCCESS The operation was successful.
      */
-    ebpf_result_t ebpf_program_attach_by_fd(
+    ebpf_result_t
+    ebpf_program_attach_by_fd(
         fd_t program_fd,
         _In_opt_ const ebpf_attach_type_t* attach_type,
         _In_reads_bytes_opt_(attach_params_size) void* attach_parameters,
