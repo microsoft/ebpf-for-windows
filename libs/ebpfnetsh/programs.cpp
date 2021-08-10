@@ -243,7 +243,7 @@ _find_program_handle(const char* filename, const char* section)
         const char* program_section_name;
         ebpf_execution_type_t program_execution_type;
         status =
-            ebpf_api_program_query_info(program_fd, &program_execution_type, &program_file_name, &program_section_name);
+            ebpf_program_query_info(program_fd, &program_execution_type, &program_file_name, &program_section_name);
         if (status != ERROR_SUCCESS) {
             break;
         }
@@ -519,7 +519,7 @@ handle_ebpf_show_programs(
 
         // TODO(issue #83): we also need the program type so we can filter on it.
         status =
-            ebpf_api_program_query_info(program_fd, &program_execution_type, &program_file_name, &program_section_name);
+            ebpf_program_query_info(program_fd, &program_execution_type, &program_file_name, &program_section_name);
 
         if (status != ERROR_SUCCESS) {
             break;

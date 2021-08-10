@@ -601,7 +601,7 @@ TEST_CASE("enumerate_and_query_programs", "[end_to_end]")
     REQUIRE(ebpf_get_next_program(program_fd, &next_program_fd) == EBPF_SUCCESS);
     REQUIRE(next_program_fd != ebpf_fd_invalid);
     program_fd = next_program_fd;
-    REQUIRE(ebpf_api_program_query_info(program_fd, &type, &file_name, &section_name) == EBPF_SUCCESS);
+    REQUIRE(ebpf_program_query_info(program_fd, &type, &file_name, &section_name) == EBPF_SUCCESS);
     REQUIRE(type == EBPF_EXECUTION_JIT);
     REQUIRE(strcmp(file_name, SAMPLE_PATH "droppacket.o") == 0);
     ebpf_free_string(file_name);
@@ -614,7 +614,7 @@ TEST_CASE("enumerate_and_query_programs", "[end_to_end]")
     REQUIRE(next_program_fd != ebpf_fd_invalid);
     ebpf_close_fd(program_fd);
     program_fd = next_program_fd;
-    REQUIRE(ebpf_api_program_query_info(program_fd, &type, &file_name, &section_name) == EBPF_SUCCESS);
+    REQUIRE(ebpf_program_query_info(program_fd, &type, &file_name, &section_name) == EBPF_SUCCESS);
     REQUIRE(type == EBPF_EXECUTION_INTERPRET);
     REQUIRE(strcmp(file_name, SAMPLE_PATH "droppacket.o") == 0);
     REQUIRE(strcmp(section_name, "xdp") == 0);

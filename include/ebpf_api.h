@@ -290,7 +290,7 @@ extern "C"
      * @param[out] section_name On success, contains the section name.
      */
     ebpf_result_t
-    ebpf_api_program_query_info(
+    ebpf_program_query_info(
         fd_t fd, ebpf_execution_type_t* execution_type, const char** file_name, const char** section_name);
 
     /**

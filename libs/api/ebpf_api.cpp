@@ -1050,7 +1050,7 @@ ebpf_map_query_definition(
 }
 
 ebpf_result_t
-ebpf_api_program_query_info(
+ebpf_program_query_info(
     fd_t fd, ebpf_execution_type_t* execution_type, const char** file_name, const char** section_name)
 {
     ebpf_handle_t handle = _get_handle_from_fd(fd);
