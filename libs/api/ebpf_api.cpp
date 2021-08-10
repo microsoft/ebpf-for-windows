@@ -1101,9 +1101,10 @@ ebpf_result_t
 ebpf_program_query_info(
     fd_t fd,
     _Out_ ebpf_execution_type_t* execution_type,
-    _Outptr_result_maybenull_z_ const char** file_name,
-    _Outptr_result_maybenull_z_ const char** section_name)
+    _Outptr_result_z_ const char** file_name,
+    _Outptr_result_z_ const char** section_name)
 {
+    ebpf_result_t result;
     ebpf_handle_t handle = _get_handle_from_fd(fd);
     if (handle == ebpf_handle_invalid) {
         return EBPF_INVALID_FD;
@@ -1112,9 +1113,6 @@ ebpf_program_query_info(
     if (execution_type == nullptr || file_name == nullptr || section_name == nullptr) {
         return EBPF_INVALID_ARGUMENT;
     }
-    *execution_type = EBPF_EXECUTION_ANY;
-    *file_name = nullptr;
-    *section_name = nullptr;
 
     ebpf_protocol_buffer_t reply_buffer(1024);
     _ebpf_operation_query_program_info_request request{
@@ -1124,7 +1122,9 @@ ebpf_program_query_info(
 
     uint32_t retval = invoke_ioctl(request, reply_buffer);
     if (retval != ERROR_SUCCESS) {
-        return windows_error_to_ebpf_result(retval);
+        result = windows_error_to_ebpf_result(retval);
+        __analysis_assume(result != EBPF_SUCCESS);
+        return result;
     }
 
     size_t file_name_length = reply->section_name_offset - reply->file_name_offset;

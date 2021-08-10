@@ -304,8 +304,8 @@ extern "C"
     ebpf_program_query_info(
         fd_t fd,
         _Out_ ebpf_execution_type_t* execution_type,
-        _Outptr_result_maybenull_z_ const char** file_name,
-        _Outptr_result_maybenull_z_ const char** section_name);
+        _Outptr_result_z_ const char** file_name,
+        _Outptr_result_z_ const char** section_name);
 
     /**
      * @brief Get list of programs and stats in an ELF eBPF file.
