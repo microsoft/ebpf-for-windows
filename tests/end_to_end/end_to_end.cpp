@@ -329,7 +329,9 @@ bindmonitor_test(ebpf_execution_type_t execution_type)
     }
     REQUIRE(result == EBPF_SUCCESS);
     fd_t limit_map_fd = bpf_object__find_map_fd_by_name(object, "limits_map");
+    REQUIRE(limit_map_fd > 0);
     fd_t process_map_fd = bpf_object__find_map_fd_by_name(object, "process_map");
+    REQUIRE(process_map_fd > 0);
 
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
 

@@ -178,7 +178,7 @@ extern "C"
      * @retval EBPF_ERROR_NOT_SUPPORTED Unsupported map type.
      * @retval EBPF_INVALID_ARGUMENT One or more parameters are incorrect.
      */
-    _Success_(return == EBPF_SUCCESS) ebpf_result_t ebpf_create_map_name(
+    ebpf_result_t ebpf_create_map_name(
         ebpf_map_type_t type,
         _In_opt_z_ const char* name,
         uint32_t key_size,
@@ -196,7 +196,7 @@ extern "C"
      * @param[in] key Pointer to buffer containing key.
      * @param[out] value Pointer to buffer that contains value on success.
      *
-     * @retval Status of the operation.
+     * @retval EBPF_SUCCESS The operation was successful.
      */
     ebpf_result_t
         ebpf_map_lookup_element(fd_t map_fd, _In_ const void* key, _Out_ void* value);
@@ -208,7 +208,7 @@ extern "C"
      * @param[in] key Pointer to buffer containing key.
      * @param[out] value Pointer to buffer containing value.
      *
-     * @retval Status of update operation.
+     * @retval EBPF_SUCCESS The operation was successful.
      */
     ebpf_result_t
     ebpf_map_update_element(fd_t map_fd, _In_ const void* key, _In_ const void* value, uint64_t flags);
@@ -236,7 +236,7 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MORE_KEYS previous_key was the last key.
      */
-    _Success_(return == EBPF_SUCCESS) ebpf_result_t
+    ebpf_result_t
         ebpf_map_get_next_key(fd_t map_fd, _In_opt_ const void* previous_key, _Out_ void* next_key);
 
     /**
@@ -245,6 +245,7 @@ extern "C"
      *  start enumeration.
      * @param[out] next_fd FD to the next eBPF map or ebpf_fd_invalid if this
      *  is the last map.
+     * @retval EBPF_SUCCESS The operation was successful.
      */
     ebpf_result_t
     ebpf_get_next_map(fd_t previous_fd, _Out_ fd_t* next_fd);
@@ -255,6 +256,7 @@ extern "C"
      *  start enumeration.
      * @param[out] next_fd File descriptor of the next eBPF program or ebpf_fd_invalid if
      *  this is the last program.
+     * @retval EBPF_SUCCESS The operation was successful.
      */
     ebpf_result_t
     ebpf_get_next_program(fd_t previous_fd, _Out_ fd_t* next_fd);
@@ -277,6 +279,7 @@ extern "C"
      * @param[out] key_size Size of keys in the eBPF map.
      * @param[out] value_size Size of values in the eBPF map.
      * @param[out] max_entries Maximum number of entries in the map.
+     * @retval EBPF_SUCCESS The operation was successful.
      */
     ebpf_result_t
     ebpf_map_query_definition(
