@@ -14,11 +14,11 @@ bpf_link__pin(struct bpf_link* link, const char* path)
     int err;
 
     if (link->pin_path)
-        return -EBUSY;
+        return libbpf_err(-EBUSY);
 
     link->pin_path = strdup(path);
     if (!link->pin_path)
-        return -ENOMEM;
+        return libbpf_err(-ENOMEM);
 
     if (ebpf_object_pin(link->link_fd, link->pin_path)) {
         err = -errno;
@@ -36,11 +36,11 @@ bpf_link__unpin(struct bpf_link* link)
     ebpf_result_t result;
 
     if (!link->pin_path)
-        return -EINVAL;
+        return libbpf_err(-EINVAL);
 
     result = ebpf_object_unpin(link->pin_path);
     if (result != EBPF_SUCCESS) {
-        return libbpf_err(result);
+        return libbpf_err(-result);
     }
 
     free(link->pin_path);

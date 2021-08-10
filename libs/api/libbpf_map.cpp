@@ -29,13 +29,13 @@ bpf_map__prev(const struct bpf_map* next, const struct bpf_object* object)
 int
 bpf_map__unpin(struct bpf_map* map, const char* path)
 {
-    return libbpf_err(ebpf_map_unpin(map, path));
+    return libbpf_err(-ebpf_map_unpin(map, path));
 }
 
 int
 bpf_map__pin(struct bpf_map* map, const char* path)
 {
-    return libbpf_err(ebpf_map_pin(map, path));
+    return libbpf_err(-ebpf_map_pin(map, path));
 }
 
 int

@@ -147,7 +147,7 @@ extern "C"
      * @param[in] value_size Value size.
      * @param[in] max_entries Maximum number of entries in the map.
      * @param[in] map_flags This is reserved and should be 0.
-     * @param[out] map_fd fd for the created map. Caller needs to
+     * @param[out] map_fd File descriptor for the created map. The caller needs to
      *  call _close() on the returned fd when done.
      *
      * @retval EBPF_SUCCESS Map created successfully.
@@ -171,7 +171,7 @@ extern "C"
      * @param[in] value_size Value size.
      * @param[in] max_entries Maximum number of entries in the map.
      * @param[in] map_flags This is reserved and should be 0.
-     * @param[out] map_fd fd for the created map. Caller needs to
+     * @param[out] map_fd File descriptor for the created map. The caller needs to
      *  call _close() on the returned fd when done.
      *
      * @retval EBPF_SUCCESS Map created successfully.
@@ -188,9 +188,9 @@ extern "C"
         _Out_ fd_t* map_fd);
 
     /**
-     * @brief Lookup an element in an eBPF map.
-     *  For singleton map, return the value for the given key.
-     *  For per-cpu map, return aggregate value across all CPU.
+     * @brief Look up an element in an eBPF map.
+     *  For a singleton map, return the value for the given key.
+     *  For a per-cpu map, return aggregate value across all CPUs.
      *
      * @param[in] map_fd File descriptor for the eBPF map.
      * @param[in] key Pointer to buffer containing key.
@@ -198,7 +198,7 @@ extern "C"
      *
      * @retval Status of the operation.
      */
-    _Success_(return == EBPF_SUCCESS) ebpf_result_t
+    ebpf_result_t
         ebpf_map_lookup_element(fd_t map_fd, _In_ const void* key, _Out_ void* value);
 
     /**
@@ -247,17 +247,17 @@ extern "C"
      *  is the last map.
      */
     ebpf_result_t
-    ebpf_get_next_map(fd_t previous_fd, fd_t* next_fd);
+    ebpf_get_next_map(fd_t previous_fd, _Out_ fd_t* next_fd);
 
     /**
      * @brief Get file descriptor to the next eBPF program.
-     * @param[in] previous_fd FD to previous eBPF program or ebpf_fd_invalid to
+     * @param[in] previous_fd File descriptor of the previous eBPF program or ebpf_fd_invalid to
      *  start enumeration.
-     * @param[out] next_fd FD to the next eBPF program or ebpf_fd_invalid if
+     * @param[out] next_fd File descriptor of the next eBPF program or ebpf_fd_invalid if
      *  this is the last program.
      */
     ebpf_result_t
-    ebpf_get_next_program(fd_t previous_fd, fd_t* next_fd);
+    ebpf_get_next_program(fd_t previous_fd, _Out_ fd_t* next_fd);
 
     /**
      * @brief Get the next eBPF program.
@@ -271,7 +271,7 @@ extern "C"
 
     /**
      * @brief Query properties of an eBPF map.
-     * @param[in] fd file descriptor for an eBPF map.
+     * @param[in] fd File descriptor for an eBPF map.
      * @param[out] size Size of the eBPF map definition.
      * @param[out] type Type of the eBPF map.
      * @param[out] key_size Size of keys in the eBPF map.
@@ -280,18 +280,18 @@ extern "C"
      */
     ebpf_result_t
     ebpf_map_query_definition(
-        fd_t fd, uint32_t* size, uint32_t* type, uint32_t* key_size, uint32_t* value_size, uint32_t* max_entries);
+        fd_t fd, _Out_ uint32_t* size, _Out_ uint32_t* type, _Out_ uint32_t* key_size, _Out_ uint32_t* value_size, _Out_ uint32_t* max_entries);
 
     /**
      * @brief Query info about an eBPF program.
-     * @param[in] fd FD to an eBPF program.
+     * @param[in] fd File descriptor of an eBPF program.
      * @param[out] execution_type On success, contains the execution type.
      * @param[out] file_name On success, contains the file name.
      * @param[out] section_name On success, contains the section name.
      */
     ebpf_result_t
     ebpf_program_query_info(
-        fd_t fd, ebpf_execution_type_t* execution_type, const char** file_name, const char** section_name);
+        fd_t fd, _Out_ ebpf_execution_type_t* execution_type, _Outptr_result_z_ const char** file_name, _Outptr_result_z_ const char** section_name);
 
     /**
      * @brief Get list of programs and stats in an ELF eBPF file.
@@ -404,16 +404,16 @@ extern "C"
      * @param[in] fd File descriptor to the object.
      * @param[in] path Path to pin the object to.
      *
-     * @retval Result of the pinning operation.
+     * @retval EBPF_SUCCESS The operation was successful.
      */
     ebpf_result_t
     ebpf_object_pin(fd_t fd, _In_z_ const char* path);
 
     /**
      * @brief Unpin the object from the specified path.
-     * @param[in] path Path from which to unpin from.
+     * @param[in] path Path from which to unpin.
      *
-     * @retval Result of unpin operation.
+     * @retval EBPF_SUCCESS The operation was successful.
      */
     ebpf_result_t
     ebpf_object_unpin(_In_z_ const char* path);
@@ -537,7 +537,7 @@ extern "C"
      * @brief Attach an eBPF program.
      *
      * @param[in] program Pointer to the eBPF program.
-     * @param[in] Optionally, the attach type for attaching the program.
+     * @param[in] attach_type Optionally, the attach type for attaching the program.
      *  If attach type is not specified, then the earlier provided attach type
      *  or attach type derived from section prefix will be used to attach the
      *  program.
@@ -547,9 +547,9 @@ extern "C"
      *  by the extension provider.
      * @param[out] link Pointer to ebpf_link structure.
      *
-     * @retval Result of attach operation.
+     * @retval EBPF_SUCCESS The operation was successful.
      */
-    _Success_(return == EBPF_SUCCESS) ebpf_result_t ebpf_program_attach(
+    ebpf_result_t ebpf_program_attach(
         _In_ struct bpf_program* program,
         _In_opt_ const ebpf_attach_type_t* attach_type,
         _In_reads_bytes_opt_(attach_params_size) void* attach_parameters,
@@ -557,10 +557,10 @@ extern "C"
         _Outptr_ struct bpf_link** link);
 
     /**
-     * @brief Attach an eBPF program by program FD.
+     * @brief Attach an eBPF program by program file descriptor.
      *
-     * @param[in] program_fd eBPF program fd.
-     * @param[in] Optionally, the attach type for attaching the program.
+     * @param[in] program_fd An eBPF program file descriptor.
+     * @param[in] attach_type Optionally, the attach type for attaching the program.
      *  If attach type is not specified, then the earlier provided attach type
      *  or attach type derived from section prefix will be used to attach the
      *  program.
@@ -570,9 +570,9 @@ extern "C"
      *  by the extension provider.
      * @param[out] link Pointer to ebpf_link structure.
      *
-     * @retval Result of attach operation.
+     * @retval EBPF_SUCCESS The operation was successful.
      */
-    _Success_(return == EBPF_SUCCESS) ebpf_result_t ebpf_program_attach_by_fd(
+    ebpf_result_t ebpf_program_attach_by_fd(
         fd_t program_fd,
         _In_opt_ const ebpf_attach_type_t* attach_type,
         _In_reads_bytes_opt_(attach_params_size) void* attach_parameters,
@@ -592,7 +592,7 @@ extern "C"
     ebpf_link_detach(_In_ struct bpf_link* link);
 
     /**
-     * Cleanup and free bpf_link structure. Also close the
+     * Clean up and free bpf_link structure. Also close the
      * underlying link fd.
      *
      * @param[in] link Pointer to the bpf_link structure.

@@ -152,7 +152,7 @@ initialize_map(_Out_ ebpf_map_t* map, _In_ const map_cache_t& map_cache);
  * @param[in] program Pointer to eBPF map.
  * @param[in] path Pin path for the map.
  *
- * @retval Result of the pinning operation.
+ * @retval EBPF_SUCCESS The operation was successful.
  */
 ebpf_result_t
 ebpf_map_pin(_In_ struct bpf_map* map, _In_opt_z_ const char* path);
@@ -162,7 +162,7 @@ ebpf_map_pin(_In_ struct bpf_map* map, _In_opt_z_ const char* path);
  * @param[in] map Pointer to eBPF map.
  * @param[in] path Pin path for the map.
  *
- * @retval Result of the unpin operation.
+ * @retval EBPF_SUCCESS The operation was successful.
  */
 ebpf_result_t
 ebpf_map_unpin(_In_ struct bpf_map* map, _In_opt_z_ const char* path);
