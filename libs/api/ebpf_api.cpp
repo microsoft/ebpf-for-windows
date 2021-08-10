@@ -1110,7 +1110,6 @@ ebpf_program_query_info(
         return EBPF_INVALID_FD;
     }
 
-
     if (execution_type == nullptr || file_name == nullptr || section_name == nullptr) {
         return EBPF_INVALID_ARGUMENT;
     }
