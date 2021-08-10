@@ -11,7 +11,7 @@
 int
 bpf_link__pin(struct bpf_link* link, const char* path)
 {
-    int err;
+    ebpf_result_t result;
 
     if (link->pin_path)
         return libbpf_err(-EBUSY);
@@ -20,14 +20,13 @@ bpf_link__pin(struct bpf_link* link, const char* path)
     if (!link->pin_path)
         return libbpf_err(-ENOMEM);
 
-    if (ebpf_object_pin(link->link_fd, link->pin_path)) {
-        err = -errno;
+    result = ebpf_object_pin(link->link_fd, link->pin_path);
+    if (result != EBPF_SUCCESS) {
         free(link->pin_path);
         link->pin_path = nullptr;
-        return err;
     }
 
-    return 0;
+    return libbpf_err(-result);
 }
 
 int

@@ -615,8 +615,17 @@ _ebpf_core_protocol_query_program_info(
 
     ebpf_program_get_properties(program, &parameters);
 
-    required_reply_length = EBPF_OFFSET_OF(struct _ebpf_operation_query_program_info_reply, data) +
-                            parameters.file_name.length + parameters.section_name.length;
+    retval = ebpf_safe_size_t_add(parameters.section_name.length, parameters.file_name.length, &required_reply_length);
+    if (retval != EBPF_SUCCESS) {
+        goto Done;
+    }
+    retval = ebpf_safe_size_t_add(
+        EBPF_OFFSET_OF(struct _ebpf_operation_query_program_info_reply, data),
+        required_reply_length,
+        &required_reply_length);
+    if (retval != EBPF_SUCCESS) {
+        goto Done;
+    }
 
     if (reply_length < required_reply_length) {
         return EBPF_INVALID_ARGUMENT;
