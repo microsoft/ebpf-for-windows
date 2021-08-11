@@ -48,8 +48,8 @@ static ebpf_helper_function_prototype_t _ebpf_map_helper_function_prototype[] = 
      {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY}},
     {(uint32_t)(intptr_t)bpf_tail_call,
      "bpf_tail_call",
-     EBPF_RETURN_TYPE_INTEGER,
-     {EBPF_ARGUMENT_TYPE_PTR_TO_CTX, EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_ANYTHING}},
+     EBPF_RETURN_TYPE_INTEGER_OR_NO_RETURN_IF_SUCCEED,
+     {EBPF_ARGUMENT_TYPE_PTR_TO_CTX, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_OF_PROGRAMS, EBPF_ARGUMENT_TYPE_ANYTHING}},
 };
 
 static ebpf_program_info_t _ebpf_global_helper_program_info = {{"global_helper", NULL, {0}},
@@ -607,15 +607,16 @@ _ebpf_core_protocol_query_program_info(
     ebpf_result_t retval;
     ebpf_program_t* program = NULL;
     size_t required_reply_length;
-    ebpf_program_parameters_t parameters;
+    const ebpf_program_parameters_t* parameters;
 
     retval = ebpf_reference_object_by_handle(request->handle, EBPF_OBJECT_PROGRAM, (ebpf_object_t**)&program);
     if (retval != EBPF_SUCCESS)
         goto Done;
 
-    ebpf_program_get_properties(program, &parameters);
+    parameters = ebpf_program_get_parameters(program);
 
-    retval = ebpf_safe_size_t_add(parameters.section_name.length, parameters.file_name.length, &required_reply_length);
+    retval =
+        ebpf_safe_size_t_add(parameters->section_name.length, parameters->file_name.length, &required_reply_length);
     if (retval != EBPF_SUCCESS) {
         goto Done;
     }
@@ -632,11 +633,11 @@ _ebpf_core_protocol_query_program_info(
     }
 
     reply->file_name_offset = EBPF_OFFSET_OF(struct _ebpf_operation_query_program_info_reply, data);
-    reply->section_name_offset = reply->file_name_offset + (uint16_t)parameters.file_name.length;
+    reply->section_name_offset = reply->file_name_offset + (uint16_t)parameters->file_name.length;
 
-    memcpy(reply->data, parameters.file_name.value, parameters.file_name.length);
-    memcpy(reply->data + parameters.file_name.length, parameters.section_name.value, parameters.section_name.length);
-    reply->code_type = parameters.code_type;
+    memcpy(reply->data, parameters->file_name.value, parameters->file_name.length);
+    memcpy(reply->data + parameters->file_name.length, parameters->section_name.value, parameters->section_name.length);
+    reply->code_type = parameters->code_type;
 
     reply->header.length = (uint16_t)required_reply_length;
 

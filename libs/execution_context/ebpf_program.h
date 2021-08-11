@@ -60,13 +60,16 @@ extern "C"
     ebpf_program_initialize(ebpf_program_t* program, const ebpf_program_parameters_t* program_parameters);
 
     /**
-     * @brief Get properties describing the program instance.
+     * @brief Get parameters describing the program instance.
      *
      * @param[in] program Program instance to query.
-     * @param[out] program_parameters Parameters of the program.
+     * @returns Pointer to parameters of the program.
      */
-    void
-    ebpf_program_get_properties(ebpf_program_t* program, ebpf_program_parameters_t* program_parameters);
+    _Ret_notnull_ const ebpf_program_parameters_t*
+    ebpf_program_get_parameters(_In_ const ebpf_program_t* program);
+
+    _Ret_notnull_ const ebpf_program_type_t*
+    ebpf_program_type(_In_ const ebpf_program_t* program);
 
     /**
      * @brief Get the program info from the program info extension.

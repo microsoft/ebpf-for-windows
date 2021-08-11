@@ -105,7 +105,6 @@ ebpf_result_t
 ebpf_link_attach_program(ebpf_link_t* link, ebpf_program_t* program)
 {
     ebpf_result_t return_value = EBPF_SUCCESS;
-    ebpf_program_parameters_t program_parameters;
     ebpf_lock_state_t state;
     state = ebpf_lock_lock(&link->attach_lock);
     if (link->program) {
@@ -113,8 +112,8 @@ ebpf_link_attach_program(ebpf_link_t* link, ebpf_program_t* program)
         goto Done;
     }
 
-    ebpf_program_get_properties(program, &program_parameters);
-    if (memcmp(&program_parameters.program_type, &link->program_type, sizeof(link->program_type)) != 0) {
+    const ebpf_program_type_t* program_type = ebpf_program_type(program);
+    if (memcmp(program_type, &link->program_type, sizeof(link->program_type)) != 0) {
         return_value = EBPF_INVALID_ARGUMENT;
         goto Done;
     }

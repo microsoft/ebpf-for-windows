@@ -315,24 +315,46 @@ Done:
     return return_value;
 }
 
-void
-ebpf_program_get_properties(ebpf_program_t* program, ebpf_program_parameters_t* program_parameters)
+_Ret_notnull_ const ebpf_program_parameters_t*
+ebpf_program_get_parameters(_In_ const ebpf_program_t* program)
 {
-    *program_parameters = program->parameters;
+    return &program->parameters;
+}
+
+_Ret_notnull_ const ebpf_program_type_t*
+ebpf_program_type(_In_ const ebpf_program_t* program)
+{
+    return &ebpf_program_get_parameters(program)->program_type;
 }
 
 ebpf_result_t
 ebpf_program_associate_maps(ebpf_program_t* program, ebpf_map_t** maps, size_t maps_count)
 {
     size_t index;
-    program->maps = ebpf_allocate(maps_count * sizeof(ebpf_map_t*));
-    if (!program->maps)
+    ebpf_map_t** program_maps = ebpf_allocate(maps_count * sizeof(ebpf_map_t*));
+    if (!program_maps)
         return EBPF_NO_MEMORY;
 
-    memcpy(program->maps, maps, sizeof(ebpf_map_t*) * maps_count);
+    memcpy(program_maps, maps, sizeof(ebpf_map_t*) * maps_count);
+
+    // Before we acquire any references, map sure
+    // all maps can be associated.
+    ebpf_result_t result = EBPF_SUCCESS;
+    for (index = 0; index < maps_count; index++) {
+        ebpf_map_t* map = program_maps[index];
+        result = ebpf_map_associate_program(map, program);
+        if (result != EBPF_SUCCESS) {
+            ebpf_free(program_maps);
+            return result;
+        }
+    }
+
+    // Now go through again and acquire references.
+    program->maps = program_maps;
     program->count_of_maps = maps_count;
-    for (index = 0; index < program->count_of_maps; index++)
-        ebpf_object_acquire_reference((ebpf_object_t*)program->maps[index]);
+    for (index = 0; index < maps_count; index++) {
+        ebpf_object_acquire_reference((ebpf_object_t*)program_maps[index]);
+    }
 
     return EBPF_SUCCESS;
 }
