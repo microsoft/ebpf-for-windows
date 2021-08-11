@@ -29,38 +29,13 @@ bpf_map__prev(const struct bpf_map* next, const struct bpf_object* object)
 int
 bpf_map__unpin(struct bpf_map* map, const char* path)
 {
-    int err;
-
-    if (map == NULL) {
-        return libbpf_err(-EINVAL);
-    }
-
-    err = ebpf_api_unpin_object((const uint8_t*)path, (uint32_t)strlen(path));
-    if (err) {
-        return libbpf_err(err);
-    }
-
-    map->pinned = false;
-
-    return 0;
+    return libbpf_err(-ebpf_map_unpin(map, path));
 }
 
 int
 bpf_map__pin(struct bpf_map* map, const char* path)
 {
-    int err;
-
-    if (map == NULL) {
-        return libbpf_err(-EINVAL);
-    }
-
-    err = ebpf_api_pin_object(map->map_handle, (const uint8_t*)path, (uint32_t)strlen(path));
-    if (err)
-        return libbpf_err(-err);
-
-    map->pinned = true;
-
-    return 0;
+    return libbpf_err(-ebpf_map_pin(map, path));
 }
 
 int
@@ -184,44 +159,33 @@ bpf_map__fd(const struct bpf_map* map)
     return map ? map->map_fd : libbpf_err(-EINVAL);
 }
 
+struct bpf_map*
+bpf_object__find_map_by_name(const struct bpf_object* obj, const char* name)
+{
+    struct bpf_map* pos;
+
+    bpf_object__for_each_map(pos, obj)
+    {
+        if (pos->name && !strcmp(pos->name, name))
+            return pos;
+    }
+    return NULL;
+}
+
+int
+bpf_object__find_map_fd_by_name(const struct bpf_object* obj, const char* name)
+{
+    return bpf_map__fd(bpf_object__find_map_by_name(obj, name));
+}
+
+int
+bpf_map__set_pin_path(struct bpf_map* map, const char* path)
+{
+    return libbpf_err(ebpf_map_set_pin_path(map, path));
+}
+
 int
 bpf_map_update_elem(int fd, const void* key, const void* value, uint64_t flags)
 {
-    if (flags != 0) {
-        return libbpf_err(EBPF_INVALID_ARGUMENT);
-    }
-
-    ebpf_map_t* map = ebpf_map_lookup(fd);
-    if (map == nullptr) {
-        return libbpf_err(EBPF_INVALID_FD);
-    }
-
-    uint32_t result = 0;
-    switch (map->map_definition.type) {
-    case BPF_MAP_TYPE_PROG_ARRAY: {
-        fd_t program_fd = *(fd_t*)value;
-        ebpf_program_t* program = ebpf_program_lookup(program_fd);
-        if (program == nullptr) {
-            return libbpf_err(EBPF_INVALID_FD);
-        }
-        result = ebpf_api_map_update_element_with_handle(
-            map->map_handle,
-            map->map_definition.key_size,
-            (const uint8_t*)key,
-            map->map_definition.value_size,
-            (const uint8_t*)value,
-            program->handle);
-        break;
-    }
-    default:
-        result = ebpf_api_map_update_element(
-            map->map_handle,
-            map->map_definition.key_size,
-            (const uint8_t*)key,
-            map->map_definition.value_size,
-            (const uint8_t*)value);
-        break;
-    }
-
-    return libbpf_err(result);
+    return libbpf_err(ebpf_map_update_element(fd, key, value, flags));
 }

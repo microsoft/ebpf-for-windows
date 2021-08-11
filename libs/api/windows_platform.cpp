@@ -6,7 +6,6 @@
 #include "crab_verifier_wrapper.hpp"
 #include "api_common.hpp"
 #include "ebpf_api.h"
-#include "ebpf_helpers.h"
 #include "helpers.hpp"
 #include "map_descriptors.hpp"
 #include "platform.hpp"
@@ -16,11 +15,21 @@
 
 int
 create_map_internal(
-    uint32_t type, uint32_t key_size, uint32_t value_size, uint32_t max_entries, ebpf_verifier_options_t options);
+    uint32_t type,
+    uint32_t key_size,
+    uint32_t value_size,
+    uint32_t max_entries,
+    size_t section_offset,
+    ebpf_verifier_options_t options);
 
 static int
 create_map_windows(
-    uint32_t map_type, uint32_t key_size, uint32_t value_size, uint32_t max_entries, ebpf_verifier_options_t options)
+    uint32_t map_type,
+    uint32_t key_size,
+    uint32_t value_size,
+    uint32_t max_entries,
+    size_t section_offset,
+    ebpf_verifier_options_t options)
 {
     int fd;
     if (options.mock_map_fds) {
@@ -30,7 +39,7 @@ create_map_windows(
         return fd;
     }
 
-    return create_map_internal(map_type, key_size, value_size, max_entries, options);
+    return create_map_internal(map_type, key_size, value_size, max_entries, section_offset, options);
 }
 
 void
@@ -49,9 +58,11 @@ parse_maps_section_windows(
 
     auto mapdefs =
         std::vector<ebpf_map_definition_t>((ebpf_map_definition_t*)data, (ebpf_map_definition_t*)(data + size));
-    for (auto& s : mapdefs) {
+    for (int i = 0; i < mapdefs.size(); i++) {
+        auto& s = mapdefs[i];
         map_descriptors.emplace_back(EbpfMapDescriptor{
-            .original_fd = create_map_windows(s.type, s.key_size, s.value_size, s.max_entries, options),
+            .original_fd = create_map_windows(
+                s.type, s.key_size, s.value_size, s.max_entries, (i * sizeof(ebpf_map_definition_t)), options),
             .type = (uint32_t)s.type,
             .key_size = s.key_size,
             .value_size = s.value_size,

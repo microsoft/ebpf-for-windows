@@ -16,6 +16,7 @@ extern "C"
     /**
      * @brief Allocate a new map.
      *
+     * @param[in] map_name Name of the map.
      * @param[in] ebpf_map_definition Definition of the new map.
      * @param[out] map Pointer to memory that will contain the map on success.
      * @retval EBPF_SUCCESS The operation was successful.
@@ -23,7 +24,10 @@ extern "C"
      *  map.
      */
     ebpf_result_t
-    ebpf_map_create(_In_ const ebpf_map_definition_t* ebpf_map_definition, _Outptr_ ebpf_map_t** map);
+    ebpf_map_create(
+        _In_ const ebpf_utf8_string_t* map_name,
+        _In_ const ebpf_map_definition_t* ebpf_map_definition,
+        _Outptr_ ebpf_map_t** map);
 
     /**
      * @brief Get a pointer to the map definition.

@@ -144,7 +144,7 @@ bpf_program__unpin(struct bpf_program* prog, const char* path)
         return libbpf_err(-EINVAL);
     }
 
-    err = ebpf_api_unpin_object((const uint8_t*)path, (uint32_t)strlen(path));
+    err = ebpf_object_unpin(path);
     if (err)
         return libbpf_err(-err);
 
@@ -160,7 +160,7 @@ bpf_program__pin(struct bpf_program* prog, const char* path)
         return libbpf_err(-EINVAL);
     }
 
-    err = ebpf_api_pin_object(prog->handle, (const uint8_t*)path, (uint32_t)strlen(path));
+    err = ebpf_object_pin(prog->fd, path);
     if (err) {
         return libbpf_err(err);
     }

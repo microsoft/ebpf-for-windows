@@ -285,8 +285,14 @@ _ebpf_core_protocol_create_map(
     ebpf_result_t retval;
     ebpf_map_t* map = NULL;
     UNREFERENCED_PARAMETER(reply_length);
+    ebpf_utf8_string_t map_name = {0};
 
-    retval = ebpf_map_create(&request->ebpf_map_definition, &map);
+    if (request->header.length > sizeof(ebpf_operation_create_map_request_t)) {
+        map_name.value = (uint8_t*)request->data;
+        map_name.length = ((uint8_t*)request) + request->header.length - ((uint8_t*)request->data);
+    }
+
+    retval = ebpf_map_create(&map_name, &request->ebpf_map_definition, &map);
     if (retval != EBPF_SUCCESS)
         goto Done;
 
@@ -315,27 +321,33 @@ _ebpf_core_protocol_create_program(
     size_t file_name_length = 0;
     uint8_t* section_name = NULL;
     size_t section_name_length = 0;
+    uint8_t* program_name = NULL;
+    size_t program_name_length = 0;
 
     UNREFERENCED_PARAMETER(reply_length);
 
-    if (request->section_name_offset > request->header.length) {
+    if (request->program_name_offset > request->header.length) {
         retval = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
     file_name = (uint8_t*)request->data;
     section_name = ((uint8_t*)request) + request->section_name_offset;
+    program_name = ((uint8_t*)request) + request->program_name_offset;
     file_name_length = section_name - file_name;
-    section_name_length = ((uint8_t*)request) + request->header.length - section_name;
+    section_name_length = program_name - section_name;
+    program_name_length = ((uint8_t*)request) + request->header.length - program_name;
 
     retval = ebpf_program_create(&program);
     if (retval != EBPF_SUCCESS)
         goto Done;
 
     parameters.program_type = request->program_type;
-    parameters.program_name.value = file_name;
-    parameters.program_name.length = file_name_length;
+    parameters.program_name.value = program_name;
+    parameters.program_name.length = program_name_length;
     parameters.section_name.value = section_name;
     parameters.section_name.length = section_name_length;
+    parameters.file_name.value = file_name;
+    parameters.file_name.length = file_name_length;
 
     retval = ebpf_program_initialize(program, &parameters);
     if (retval != EBPF_SUCCESS)
@@ -603,18 +615,27 @@ _ebpf_core_protocol_query_program_info(
 
     ebpf_program_get_properties(program, &parameters);
 
-    required_reply_length = EBPF_OFFSET_OF(struct _ebpf_operation_query_program_info_reply, data) +
-                            parameters.program_name.length + parameters.section_name.length;
+    retval = ebpf_safe_size_t_add(parameters.section_name.length, parameters.file_name.length, &required_reply_length);
+    if (retval != EBPF_SUCCESS) {
+        goto Done;
+    }
+    retval = ebpf_safe_size_t_add(
+        EBPF_OFFSET_OF(struct _ebpf_operation_query_program_info_reply, data),
+        required_reply_length,
+        &required_reply_length);
+    if (retval != EBPF_SUCCESS) {
+        goto Done;
+    }
 
     if (reply_length < required_reply_length) {
         return EBPF_INVALID_ARGUMENT;
     }
 
     reply->file_name_offset = EBPF_OFFSET_OF(struct _ebpf_operation_query_program_info_reply, data);
-    reply->section_name_offset = reply->file_name_offset + (uint16_t)parameters.program_name.length;
+    reply->section_name_offset = reply->file_name_offset + (uint16_t)parameters.file_name.length;
 
-    memcpy(reply->data, parameters.program_name.value, parameters.program_name.length);
-    memcpy(reply->data + parameters.program_name.length, parameters.section_name.value, parameters.section_name.length);
+    memcpy(reply->data, parameters.file_name.value, parameters.file_name.length);
+    memcpy(reply->data + parameters.file_name.length, parameters.section_name.value, parameters.section_name.length);
     reply->code_type = parameters.code_type;
 
     reply->header.length = (uint16_t)required_reply_length;

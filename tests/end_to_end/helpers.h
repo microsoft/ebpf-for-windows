@@ -49,11 +49,29 @@ typedef class _single_instance_hook
         return ebpf_api_link_program(program_handle, attach_type, &link_handle);
     }
 
+    ebpf_result_t
+    attach_link(fd_t program_fd, bpf_link** link)
+    {
+        return ebpf_program_attach_by_fd(program_fd, &attach_type, nullptr, 0, link);
+    }
+
     void
     detach()
     {
         ebpf_api_unlink_program(link_handle);
         ebpf_api_close_handle(link_handle);
+    }
+
+    void
+    detach_link(bpf_link* link)
+    {
+        ebpf_link_detach(link);
+    }
+
+    void
+    close_link(bpf_link* link)
+    {
+        ebpf_link_close(link);
     }
 
     void

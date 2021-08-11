@@ -40,7 +40,8 @@ test_crud_operations(ebpf_map_type_t map_type)
     map_ptr map;
     {
         ebpf_map_t* local_map;
-        REQUIRE(ebpf_map_create(&map_definition, &local_map) == EBPF_SUCCESS);
+        ebpf_utf8_string_t map_name = {0};
+        REQUIRE(ebpf_map_create(&map_name, &map_definition, &local_map) == EBPF_SUCCESS);
         map.reset(local_map);
     }
     for (uint32_t key = 0; key < 10; key++) {
@@ -122,7 +123,8 @@ TEST_CASE("program", "[execution_context]")
     map_ptr map;
     {
         ebpf_map_t* local_map;
-        REQUIRE(ebpf_map_create(&map_definition, &local_map) == EBPF_SUCCESS);
+        ebpf_utf8_string_t map_name = {0};
+        REQUIRE(ebpf_map_create(&map_name, &map_definition, &local_map) == EBPF_SUCCESS);
         map.reset(local_map);
     }
 

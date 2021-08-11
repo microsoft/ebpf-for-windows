@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "api_common.hpp"
 #include "ebpf_api.h"
 #include "ebpf_platform.h"
 #include "ebpf_windows.h"
@@ -21,6 +22,7 @@ typedef struct bpf_program
     ebpf_attach_type_t attach_type;
     ebpf_handle_t handle;
     fd_t fd;
+    bool pinned;
 } ebpf_program_t;
 
 typedef struct bpf_map
@@ -29,10 +31,19 @@ typedef struct bpf_map
     char* name;
     ebpf_handle_t map_handle;
     fd_t map_fd;
+    fd_t mock_map_fd;
     ebpf_map_definition_t map_definition;
     char* pin_path;
     bool pinned;
 } ebpf_map_t;
+
+typedef struct bpf_link
+{
+    char* pin_path;
+    ebpf_handle_t link_handle;
+    fd_t link_fd;
+    bool disconnected;
+} ebpf_link_t;
 
 typedef struct bpf_object
 {
@@ -46,7 +57,7 @@ ebpf_get_program_byte_code(
     _In_z_ const char* file_name,
     _In_z_ const char* section_name,
     bool mock_map_fd,
-    _Out_ ebpf_object_t& object,
+    std::vector<ebpf_program_t*>& programs,
     _Outptr_result_maybenull_ EbpfMapDescriptor** map_descriptors,
     _Out_ int* map_descriptors_count,
     _Outptr_result_maybenull_ const char** error_message);
@@ -59,6 +70,9 @@ clean_up_ebpf_program(_In_ _Post_invalid_ ebpf_program_t* program);
 
 void
 clean_up_ebpf_programs(_Inout_ std::vector<ebpf_program_t*>& programs);
+
+void
+clean_up_ebpf_map(_In_ _Post_invalid_ ebpf_map_t* map);
 
 void
 clean_up_ebpf_maps(_Inout_ std::vector<ebpf_map_t*>& maps);
@@ -130,40 +144,37 @@ ebpf_map_get_fd(_In_ const struct bpf_map* map);
 void
 ebpf_object_close(_In_ _Post_invalid_ struct bpf_object* object);
 
-/**
- * @brief Get the map with a given fd.
- *
- * @param[in] fd File descriptor to resolve.
- * @returns Pointer to map, or NULL if not found.
- */
-_Ret_maybenull_ ebpf_map_t*
-ebpf_map_lookup(fd_t fd);
+void
+initialize_map(_Out_ ebpf_map_t* map, _In_ const map_cache_t& map_cache);
 
 /**
- * @brief Get the program with a given fd.
+ * @brief Pin an eBPF map to specified path.
+ * @param[in] program Pointer to eBPF map.
+ * @param[in] path Pin path for the map.
  *
- * @param[in] fd File descriptor to resolve.
- * @returns Pointer to program, or NULL if not found.
+ * @retval EBPF_SUCCESS The operation was successful.
  */
-_Ret_maybenull_ ebpf_program_t*
-ebpf_program_lookup(fd_t fd);
+ebpf_result_t
+ebpf_map_pin(_In_ struct bpf_map* map, _In_opt_z_ const char* path);
 
 /**
- * @brief Update an element in an eBPF map that uses handles with values.
- * @param[in] handle Handle to eBPF map.
- * @param[in] key_size Size of the key buffer.
- * @param[in] key Pointer to buffer containing key.
- * @param[in] value_size Size of the value buffer.
- * @param[in] value Pointer to buffer containing value.
- * @param[in] value_handle Handle associated with value.
- * @retval 0 The operation was successful.
- * @retval other The operation failed.
+ * @brief Unpin an eBPF map from the specified path.
+ * @param[in] map Pointer to eBPF map.
+ * @param[in] path Pin path for the map.
+ *
+ * @retval EBPF_SUCCESS The operation was successful.
  */
-uint32_t
-ebpf_api_map_update_element_with_handle(
-    ebpf_handle_t handle,
-    uint32_t key_size,
-    _In_ const uint8_t* key,
-    uint32_t value_size,
-    _In_ const uint8_t* value,
-    ebpf_handle_t value_handle);
+ebpf_result_t
+ebpf_map_unpin(_In_ struct bpf_map* map, _In_opt_z_ const char* path);
+
+/**
+ * @brief Set pin path for an eBPF map.
+ * @param[in] map Pointer to eBPF map.
+ * @param[in] path Pin path for the map.
+ *
+ * @retval EBPF_SUCCESS The API suceeded.
+ * @retval EBPF_NO_MEMORY Out of memory.
+ * @retval EBPF_INVALID_ARGUMENT One or more parameters are wrong.
+ */
+ebpf_result_t
+ebpf_map_set_pin_path(_In_ struct bpf_map* map, _In_ const char* path);

@@ -220,30 +220,30 @@ handle_ebpf_add_program(
     return ERROR_SUCCESS;
 }
 
-static ebpf_handle_t
-_find_program_handle(const char* filename, const char* section)
+static fd_t
+_find_program_fd(const char* filename, const char* section)
 {
-    ebpf_handle_t program_handle = INVALID_HANDLE_VALUE;
+    fd_t program_fd = ebpf_fd_invalid;
     for (;;) {
-        ebpf_handle_t next_program_handle;
-        uint32_t status = ebpf_api_get_next_program(program_handle, &next_program_handle);
-        if (status != ERROR_SUCCESS) {
+        fd_t next_program_fd;
+        ebpf_result_t status = ebpf_get_next_program(program_fd, &next_program_fd);
+        if (status != EBPF_SUCCESS) {
             break;
         }
-        if (program_handle != INVALID_HANDLE_VALUE) {
-            ebpf_api_close_handle(program_handle);
+        if (program_fd != ebpf_fd_invalid) {
+            ebpf_close_fd(program_fd);
         }
 
-        program_handle = next_program_handle;
-        if (program_handle == INVALID_HANDLE_VALUE) {
+        program_fd = next_program_fd;
+        if (program_fd == ebpf_fd_invalid) {
             break;
         }
 
         const char* program_file_name;
         const char* program_section_name;
         ebpf_execution_type_t program_execution_type;
-        status = ebpf_api_program_query_info(
-            program_handle, &program_execution_type, &program_file_name, &program_section_name);
+        status =
+            ebpf_program_query_info(program_fd, &program_execution_type, &program_file_name, &program_section_name);
         if (status != ERROR_SUCCESS) {
             break;
         }
@@ -254,14 +254,14 @@ _find_program_handle(const char* filename, const char* section)
         ebpf_free_string(program_section_name);
 
         if (found) {
-            return program_handle;
+            return program_fd;
         }
     }
 
-    if (program_handle != INVALID_HANDLE_VALUE) {
-        ebpf_api_close_handle(program_handle);
+    if (program_fd != ebpf_fd_invalid) {
+        ebpf_close_fd(program_fd);
     }
-    return INVALID_HANDLE_VALUE;
+    return ebpf_fd_invalid;
 }
 
 DWORD
@@ -390,22 +390,21 @@ handle_ebpf_set_program(
         return ERROR_CALL_NOT_IMPLEMENTED;
     } else {
         // Try to find the program with the specified filename and section.
-        ebpf_handle_t program_handle = _find_program_handle(filename.c_str(), section.c_str());
-        if (program_handle == INVALID_HANDLE_VALUE) {
+        fd_t program_fd = _find_program_fd(filename.c_str(), section.c_str());
+        if (program_fd == ebpf_fd_invalid) {
             std::cerr << "Program not found." << std::endl;
             return ERROR_SUPPRESS_OUTPUT;
         }
 
         // TODO (issue #83) replace ebpf_api_pin_object with ebpf_program_pin (aka bpf_program__pin)
         // once it exists.
-        status = ebpf_api_pin_object(
-            program_handle, reinterpret_cast<const uint8_t*>(pinned.c_str()), (uint32_t)pinned.length());
-        if (status != ERROR_SUCCESS) {
+        status = ebpf_object_pin(program_fd, pinned.c_str());
+        if (status != EBPF_SUCCESS) {
             std::cerr << "error " << status << ": could not pin program" << std::endl;
             return ERROR_SUPPRESS_OUTPUT;
         }
 
-        ebpf_api_close_handle(program_handle);
+        ebpf_close_fd(program_fd);
     }
 
     return ERROR_CALL_NOT_IMPLEMENTED;
@@ -497,30 +496,30 @@ handle_ebpf_show_programs(
     std::cout << "           File Name          Section  Requested Execution Type\n";
     std::cout << "====================  ===============  ========================\n";
 
-    ebpf_handle_t program_handle = INVALID_HANDLE_VALUE;
+    fd_t program_fd = ebpf_fd_invalid;
     for (;;) {
         const char* program_file_name;
         const char* program_section_name;
         const char* program_type_name;
         ebpf_execution_type_t program_execution_type;
-        ebpf_handle_t next_program_handle;
-        status = ebpf_api_get_next_program(program_handle, &next_program_handle);
+        fd_t next_program_fd;
+        status = ebpf_get_next_program(program_fd, &next_program_fd);
         if (status != ERROR_SUCCESS) {
             break;
         }
 
-        if (program_handle != INVALID_HANDLE_VALUE) {
-            ebpf_api_close_handle(program_handle);
+        if (program_fd != ebpf_fd_invalid) {
+            ebpf_close_fd(program_fd);
         }
-        program_handle = next_program_handle;
+        program_fd = next_program_fd;
 
-        if (program_handle == INVALID_HANDLE_VALUE) {
+        if (program_fd == ebpf_fd_invalid) {
             break;
         }
 
         // TODO(issue #83): we also need the program type so we can filter on it.
-        status = ebpf_api_program_query_info(
-            program_handle, &program_execution_type, &program_file_name, &program_section_name);
+        status =
+            ebpf_program_query_info(program_fd, &program_execution_type, &program_file_name, &program_section_name);
 
         if (status != ERROR_SUCCESS) {
             break;
@@ -537,8 +536,8 @@ handle_ebpf_show_programs(
         ebpf_free_string(program_file_name);
         ebpf_free_string(program_section_name);
     }
-    if (program_handle != INVALID_HANDLE_VALUE) {
-        ebpf_api_close_handle(program_handle);
+    if (program_fd != ebpf_fd_invalid) {
+        ebpf_close_fd(program_fd);
     }
     return status;
 }

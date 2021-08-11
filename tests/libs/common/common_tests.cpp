@@ -58,10 +58,7 @@ ebpf_test_pinned_map_enum()
             goto Exit;
 
         // Unpin the object.
-        REQUIRE(
-            (return_value = ebpf_api_unpin_object(
-                 reinterpret_cast<const uint8_t*>(pin_path.c_str()), static_cast<uint16_t>(pin_path.size()))) ==
-            ERROR_SUCCESS);
+        REQUIRE((return_value = ebpf_object_unpin(pin_path.c_str())) == EBPF_SUCCESS);
     }
 
 Exit:

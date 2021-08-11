@@ -105,6 +105,7 @@ typedef struct _ebpf_operation_create_map_request
 {
     struct _ebpf_operation_header header;
     struct _ebpf_map_definition ebpf_map_definition;
+    uint8_t data[1];
 } ebpf_operation_create_map_request_t;
 
 typedef struct _ebpf_operation_create_map_reply
@@ -130,6 +131,7 @@ typedef struct _ebpf_operation_map_update_element_request
 {
     struct _ebpf_operation_header header;
     uint64_t handle;
+    uint64_t flags;
     uint8_t data[1]; // data is key+value
 } epf_operation_map_update_element_request_t;
 
@@ -237,6 +239,7 @@ typedef struct _ebpf_operation_link_program_request
     struct _ebpf_operation_header header;
     uint64_t program_handle;
     ebpf_attach_type_t attach_type;
+    uint8_t data[1];
 } ebpf_operation_link_program_request_t;
 
 typedef struct _ebpf_operation_link_program_reply

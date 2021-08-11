@@ -16,7 +16,13 @@ cache_map_file_descriptor(uint32_t type, uint32_t key_size, uint32_t value_size,
 
 void
 cache_map_file_descriptor_with_handle(
-    uint32_t type, uint32_t key_size, uint32_t value_size, uint32_t max_entries, int fd, uintptr_t handle);
+    uint32_t type,
+    uint32_t key_size,
+    uint32_t value_size,
+    uint32_t max_entries,
+    int fd,
+    uintptr_t handle,
+    size_t section_offset);
 
 void
 clear_map_descriptors(void);

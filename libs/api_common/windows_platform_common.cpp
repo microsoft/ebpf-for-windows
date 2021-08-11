@@ -7,7 +7,6 @@
 #include "api_common.hpp"
 #include "crab_verifier_wrapper.hpp"
 #include "ebpf_api.h"
-#include "ebpf_helpers.h"
 #include "ebpf_nethooks.h"
 #include "sample_ext_helpers.h"
 #include "helpers.hpp"

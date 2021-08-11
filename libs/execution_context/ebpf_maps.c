@@ -10,6 +10,7 @@
 typedef struct _ebpf_core_map
 {
     ebpf_object_t object;
+    ebpf_utf8_string_t name;
     struct _ebpf_map_definition ebpf_map_definition;
     ebpf_lock_t lock;
     uint8_t* data;
@@ -419,20 +420,35 @@ ebpf_map_function_table_t ebpf_map_function_tables[] = {
 };
 
 ebpf_result_t
-ebpf_map_create(_In_ const ebpf_map_definition_t* ebpf_map_definition, _Outptr_ ebpf_map_t** ebpf_map)
+ebpf_map_create(
+    _In_ const ebpf_utf8_string_t* map_name,
+    _In_ const ebpf_map_definition_t* ebpf_map_definition,
+    _Outptr_ ebpf_map_t** ebpf_map)
 {
     ebpf_map_t* local_map = NULL;
     size_t type = ebpf_map_definition->type;
+    ebpf_result_t result = EBPF_SUCCESS;
 
-    if (ebpf_map_definition->type >= EBPF_COUNT_OF(ebpf_map_function_tables))
-        return EBPF_INVALID_ARGUMENT;
+    if (ebpf_map_definition->type >= EBPF_COUNT_OF(ebpf_map_function_tables)) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
 
-    if (!ebpf_map_function_tables[type].create_map)
-        return EBPF_OPERATION_NOT_SUPPORTED;
+    if (!ebpf_map_function_tables[type].create_map) {
+        result = EBPF_OPERATION_NOT_SUPPORTED;
+        goto Exit;
+    }
 
     local_map = ebpf_map_function_tables[type].create_map(ebpf_map_definition);
-    if (!local_map)
-        return EBPF_NO_MEMORY;
+    if (!local_map) {
+        result = EBPF_NO_MEMORY;
+        goto Exit;
+    }
+
+    result = ebpf_duplicate_utf8_string(&local_map->name, map_name);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
 
     ebpf_object_initialize(
         &local_map->object,
@@ -441,7 +457,14 @@ ebpf_map_create(_In_ const ebpf_map_definition_t* ebpf_map_definition, _Outptr_ 
 
     *ebpf_map = local_map;
 
-    return EBPF_SUCCESS;
+Exit:
+    if (result != EBPF_SUCCESS) {
+        if (local_map) {
+            ebpf_free(local_map->name.value);
+            ebpf_free(local_map);
+        }
+    }
+    return result;
 }
 
 uint8_t*

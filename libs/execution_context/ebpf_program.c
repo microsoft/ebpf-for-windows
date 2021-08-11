@@ -165,6 +165,7 @@ _ebpf_program_epoch_free(void* context)
 
     ebpf_free(program->parameters.program_name.value);
     ebpf_free(program->parameters.section_name.value);
+    ebpf_free(program->parameters.file_name.value);
 
     for (index = 0; index < program->count_of_maps; index++)
         ebpf_object_release_reference((ebpf_object_t*)program->maps[index]);
@@ -267,6 +268,7 @@ ebpf_program_initialize(ebpf_program_t* program, const ebpf_program_parameters_t
     ebpf_result_t return_value;
     ebpf_utf8_string_t local_program_name = {NULL, 0};
     ebpf_utf8_string_t local_section_name = {NULL, 0};
+    ebpf_utf8_string_t local_file_name = {NULL, 0};
 
     if (program->parameters.code_type != EBPF_CODE_NONE) {
         return_value = EBPF_INVALID_ARGUMENT;
@@ -281,12 +283,18 @@ ebpf_program_initialize(ebpf_program_t* program, const ebpf_program_parameters_t
     if (return_value != EBPF_SUCCESS)
         goto Done;
 
+    return_value = ebpf_duplicate_utf8_string(&local_file_name, &program_parameters->file_name);
+    if (return_value != EBPF_SUCCESS)
+        goto Done;
+
     program->parameters = *program_parameters;
 
     program->parameters.program_name = local_program_name;
     local_program_name.value = NULL;
     program->parameters.section_name = local_section_name;
     local_section_name.value = NULL;
+    program->parameters.file_name = local_file_name;
+    local_file_name.value = NULL;
 
     program->parameters.code_type = EBPF_CODE_NONE;
 
@@ -303,6 +311,7 @@ ebpf_program_initialize(ebpf_program_t* program, const ebpf_program_parameters_t
 Done:
     ebpf_free(local_program_name.value);
     ebpf_free(local_section_name.value);
+    ebpf_free(local_file_name.value);
     return return_value;
 }
 
