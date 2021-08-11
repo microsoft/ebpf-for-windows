@@ -100,6 +100,18 @@ TEST_CASE("map_crud_operations_array", "[execution_context]") { test_crud_operat
 
 TEST_CASE("map_crud_operations_hash", "[execution_context]") { test_crud_operations(BPF_MAP_TYPE_HASH); }
 
+TEST_CASE("map_crud_operations_array_per_cpu", "[execution_context]")
+{
+    thread_affinity_helper_t tah(0);
+    test_crud_operations(BPF_MAP_TYPE_PERCPU_ARRAY);
+}
+
+TEST_CASE("map_crud_operations_hash_per_cpu", "[execution_context]")
+{
+    thread_affinity_helper_t tah(0);
+    test_crud_operations(BPF_MAP_TYPE_PERCPU_HASH);
+}
+
 #define TEST_FUNCTION_RETURN 42
 
 uint32_t
@@ -156,8 +168,8 @@ TEST_CASE("program", "[execution_context]")
     auto provider_function1 = []() { return (ebpf_result_t)TEST_FUNCTION_RETURN; };
     ebpf_result_t (*function_pointer1)() = provider_function1;
     const void* helper_functions[] = {(void*)function_pointer1};
-    ebpf_helper_function_addresses_t helper_function_addresses = {EBPF_COUNT_OF(helper_functions),
-                                                                  (uint64_t*)helper_functions};
+    ebpf_helper_function_addresses_t helper_function_addresses = {
+        EBPF_COUNT_OF(helper_functions), (uint64_t*)helper_functions};
 
     REQUIRE(ebpf_allocate_trampoline_table(1, &table) == EBPF_SUCCESS);
     REQUIRE(ebpf_update_trampoline_table(table, &helper_function_addresses) == EBPF_SUCCESS);

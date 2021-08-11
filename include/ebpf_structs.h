@@ -16,6 +16,8 @@ typedef enum bpf_map_type
     BPF_MAP_TYPE_ARRAY = 2,       ///< Array, where the map key is the array index.
     BPF_MAP_TYPE_PROG_ARRAY =
         3, ///< Array of program fds usable with bpf_tail_call, where the map key is the array index.
+    BPF_MAP_TYPE_PERCPU_HASH = 4,
+    BPF_MAP_TYPE_PERCPU_ARRAY = 5,
 } ebpf_map_type_t;
 
 /**

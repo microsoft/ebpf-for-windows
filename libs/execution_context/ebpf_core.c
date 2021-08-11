@@ -52,21 +52,23 @@ static ebpf_helper_function_prototype_t _ebpf_map_helper_function_prototype[] = 
      {EBPF_ARGUMENT_TYPE_PTR_TO_CTX, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_OF_PROGRAMS, EBPF_ARGUMENT_TYPE_ANYTHING}},
 };
 
-static ebpf_program_info_t _ebpf_global_helper_program_info = {{"global_helper", NULL, {0}},
-                                                               EBPF_COUNT_OF(_ebpf_map_helper_function_prototype),
-                                                               _ebpf_map_helper_function_prototype};
+static ebpf_program_info_t _ebpf_global_helper_program_info = {
+    {"global_helper", NULL, {0}},
+    EBPF_COUNT_OF(_ebpf_map_helper_function_prototype),
+    _ebpf_map_helper_function_prototype};
 
-static const void* _ebpf_general_helpers[] = {NULL,
-                                              (void*)&_ebpf_core_map_find_element,
-                                              (void*)&_ebpf_core_map_update_element,
-                                              (void*)&_ebpf_core_map_delete_element,
-                                              (void*)&_ebpf_core_tail_call};
+static const void* _ebpf_general_helpers[] = {
+    NULL,
+    (void*)&_ebpf_core_map_find_element,
+    (void*)&_ebpf_core_map_update_element,
+    (void*)&_ebpf_core_map_delete_element,
+    (void*)&_ebpf_core_tail_call};
 
 static ebpf_extension_provider_t* _ebpf_global_helper_function_provider_context = NULL;
 static ebpf_helper_function_addresses_t _ebpf_global_helper_function_dispatch_table = {
     EBPF_COUNT_OF(_ebpf_general_helpers), (uint64_t*)_ebpf_general_helpers};
-static ebpf_program_data_t _ebpf_global_helper_function_program_data = {&_ebpf_global_helper_program_info,
-                                                                        &_ebpf_global_helper_function_dispatch_table};
+static ebpf_program_data_t _ebpf_global_helper_function_program_data = {
+    &_ebpf_global_helper_program_info, &_ebpf_global_helper_function_dispatch_table};
 
 static ebpf_extension_data_t _ebpf_global_helper_function_extension_data = {
     EBPF_CORE_GLOBAL_HELPER_EXTENSION_VERSION,
@@ -365,6 +367,27 @@ Done:
     return retval;
 }
 
+static bool
+_ebpf_is_find_update_delete_operation_permitted_on_map(_In_ const ebpf_map_definition_t* map_definition)
+{
+    switch (map_definition->type) {
+    case BPF_MAP_TYPE_UNSPECIFIED:
+        return false;
+    case BPF_MAP_TYPE_HASH:
+        return true;
+    case BPF_MAP_TYPE_ARRAY:
+        return true;
+    case BPF_MAP_TYPE_PROG_ARRAY:
+        return true;
+    case BPF_MAP_TYPE_PERCPU_HASH:
+        return false;
+    case BPF_MAP_TYPE_PERCPU_ARRAY:
+        return false;
+    default:
+        return false;
+    }
+}
+
 static ebpf_result_t
 _ebpf_core_protocol_map_find_element(
     _In_ const ebpf_operation_map_find_element_request_t* request,
@@ -380,6 +403,11 @@ _ebpf_core_protocol_map_find_element(
         goto Done;
 
     const ebpf_map_definition_t* map_definition = ebpf_map_get_definition(map);
+
+    if (!_ebpf_is_find_update_delete_operation_permitted_on_map(map_definition)) {
+        retval = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
 
     if (request->header.length <
         (EBPF_OFFSET_OF(ebpf_operation_map_find_element_request_t, key) + map_definition->key_size)) {
@@ -418,6 +446,11 @@ _ebpf_core_protocol_map_update_element(_In_ const epf_operation_map_update_eleme
 
     const ebpf_map_definition_t* map_definition = ebpf_map_get_definition(map);
 
+    if (!_ebpf_is_find_update_delete_operation_permitted_on_map(map_definition)) {
+        retval = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
+
     if (request->header.length < (EBPF_OFFSET_OF(epf_operation_map_update_element_request_t, data) +
                                   map_definition->key_size + map_definition->value_size)) {
         retval = EBPF_INVALID_ARGUMENT;
@@ -444,6 +477,11 @@ _ebpf_core_protocol_map_update_element_with_handle(
 
     const ebpf_map_definition_t* map_definition = ebpf_map_get_definition(map);
 
+    if (!_ebpf_is_find_update_delete_operation_permitted_on_map(map_definition)) {
+        retval = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
+
     if (request->header.length < (EBPF_OFFSET_OF(epf_operation_map_update_element_with_handle_request_t, data) +
                                   map_definition->key_size + map_definition->value_size)) {
         retval = EBPF_INVALID_ARGUMENT;
@@ -469,6 +507,11 @@ _ebpf_core_protocol_map_delete_element(_In_ const ebpf_operation_map_delete_elem
         goto Done;
 
     const ebpf_map_definition_t* map_definition = ebpf_map_get_definition(map);
+
+    if (!_ebpf_is_find_update_delete_operation_permitted_on_map(map_definition)) {
+        retval = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
 
     if (request->header.length <
         (EBPF_OFFSET_OF(ebpf_operation_map_delete_element_request_t, key) + map_definition->key_size)) {
@@ -499,6 +542,11 @@ _ebpf_core_protocol_map_get_next_key(
         goto Done;
 
     const ebpf_map_definition_t* map_definition = ebpf_map_get_definition(map);
+
+    if (!_ebpf_is_find_update_delete_operation_permitted_on_map(map_definition)) {
+        retval = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
 
     // If request length shows zero key, treat as restart.
     if (request->header.length == EBPF_OFFSET_OF(ebpf_operation_map_get_next_key_request_t, previous_key)) {
@@ -651,9 +699,9 @@ static ebpf_result_t
 _ebpf_core_protocol_update_pinning(_In_ const struct _ebpf_operation_update_map_pinning_request* request)
 {
     ebpf_result_t retval;
-    const ebpf_utf8_string_t name = {(uint8_t*)request->name,
-                                     request->header.length -
-                                         EBPF_OFFSET_OF(ebpf_operation_update_pinning_request_t, name)};
+    const ebpf_utf8_string_t name = {
+        (uint8_t*)request->name,
+        request->header.length - EBPF_OFFSET_OF(ebpf_operation_update_pinning_request_t, name)};
     ebpf_object_t* object = NULL;
 
     if (name.length == 0) {
