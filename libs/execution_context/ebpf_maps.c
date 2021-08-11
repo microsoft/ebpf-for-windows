@@ -23,6 +23,12 @@ typedef struct _ebpf_program_array_map
     ebpf_program_type_t program_type;
 } ebpf_program_array_map_t;
 
+typedef struct _ebpf_core_map_per_cpu
+{
+    uint32_t count;
+    uint8_t data[1];
+} ebpf_core_map_per_cpu_t;
+
 typedef struct _ebpf_map_function_table
 {
     ebpf_core_map_t* (*create_map)(_In_ const ebpf_map_definition_t* map_definition);
@@ -36,12 +42,6 @@ typedef struct _ebpf_map_function_table
     ebpf_result_t (*delete_entry)(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key);
     ebpf_result_t (*next_key)(_In_ ebpf_core_map_t* map, _In_ const uint8_t* previous_key, _Out_ uint8_t* next_key);
 } ebpf_map_function_table_t;
-
-typedef struct _ebpf_core_map_per_cpu
-{
-    uint32_t count;
-    uint8_t data[1];
-} ebpf_core_map_per_cpu_t;
 
 const ebpf_map_definition_t*
 ebpf_map_get_definition(_In_ const ebpf_map_t* map)
@@ -446,7 +446,7 @@ _next_hash_map_key(_In_ ebpf_core_map_t* map, _In_ const uint8_t* previous_key, 
 }
 
 static ebpf_core_map_t*
-_create_hash_map_per_cpu(_In_ const ebpf_map_definition_t* map_definition)
+_create_per_cpu_hash_map(_In_ const ebpf_map_definition_t* map_definition)
 {
     ebpf_result_t retval;
     size_t map_size = sizeof(ebpf_core_map_t);
@@ -518,7 +518,7 @@ Done:
 }
 
 static void
-_delete_hash_map_per_cpu(_In_ ebpf_core_map_t* map)
+_delete_per_cpu_hash_map(_In_ ebpf_core_map_t* map)
 {
     uint32_t index;
     ebpf_core_map_per_cpu_t* per_cpu = NULL;
@@ -552,7 +552,7 @@ _get_hash_table_for_cpu(_In_ ebpf_core_map_t* map)
 }
 
 static uint8_t*
-_find_hash_map_entry_per_cpu(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
+_find_per_cpu_hash_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
 {
     uint8_t* value = NULL;
     ebpf_hash_table_t* table;
@@ -571,7 +571,7 @@ _find_hash_map_entry_per_cpu(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
 }
 
 static ebpf_result_t
-_update_hash_map_entry_per_cpu(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_ const uint8_t* data)
+_update_per_cpu_hash_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_ const uint8_t* data)
 {
     ebpf_result_t result;
     ebpf_hash_table_t* table;
@@ -596,7 +596,7 @@ _update_hash_map_entry_per_cpu(_In_ ebpf_core_map_t* map, _In_ const uint8_t* ke
 }
 
 static ebpf_result_t
-_delete_hash_map_entry_per_cpu(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
+_delete_per_cpu_hash_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
 {
     ebpf_result_t result;
     ebpf_hash_table_t* table;
@@ -612,7 +612,7 @@ _delete_hash_map_entry_per_cpu(_In_ ebpf_core_map_t* map, _In_ const uint8_t* ke
 }
 
 static ebpf_result_t
-_next_hash_map_key_per_cpu(_In_ ebpf_core_map_t* map, _In_ const uint8_t* previous_key, _Out_ uint8_t* next_key)
+_next_per_cpu_hash_map_key(_In_ ebpf_core_map_t* map, _In_ const uint8_t* previous_key, _Out_ uint8_t* next_key)
 {
     ebpf_result_t result;
     if (!map || !next_key)
@@ -792,15 +792,15 @@ ebpf_map_function_table_t ebpf_map_function_tables[] = {
      _delete_prog_array_map_entry,
      _next_array_map_key},
     {// BPF_MAP_TYPE_HASH
-     _create_hash_map_per_cpu,
-     _delete_hash_map_per_cpu,
+     _create_per_cpu_hash_map,
+     _delete_per_cpu_hash_map,
      NULL,
-     _find_hash_map_entry_per_cpu,
+     _find_per_cpu_hash_map_entry,
      NULL,
-     _update_hash_map_entry_per_cpu,
+     _update_per_cpu_hash_map_entry,
      NULL,
-     _delete_hash_map_entry_per_cpu,
-     _next_hash_map_key_per_cpu},
+     _delete_per_cpu_hash_map_entry,
+     _next_per_cpu_hash_map_key},
     {// BPF_MAP_TYPE_ARRAY
      _create_array_map_per_cpu,
      _delete_array_map_per_cpu,
