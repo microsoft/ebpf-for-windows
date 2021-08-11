@@ -110,6 +110,7 @@ static const EbpfMapType windows_map_types[] = {
     {BPF_MAP_TYPE(UNSPECIFIED)},
     {BPF_MAP_TYPE(HASH)},
     {BPF_MAP_TYPE(ARRAY), true},
+    {BPF_MAP_TYPE(PROG_ARRAY), true, EbpfMapValueType::PROGRAM},
 };
 
 EbpfMapType
