@@ -537,6 +537,10 @@ _get_hash_table_for_cpu(_In_ ebpf_core_map_t* map)
     uint32_t current_cpu;
     ebpf_core_map_per_cpu_t* per_cpu = NULL;
     ebpf_hash_table_t** tables;
+    if (ebpf_is_preemptible()) {
+        return NULL;
+    }
+
     current_cpu = ebpf_get_current_cpu();
     per_cpu = (ebpf_core_map_per_cpu_t*)map->data;
     tables = (ebpf_hash_table_t**)&per_cpu->data;
@@ -677,6 +681,10 @@ _get_array_table_for_cpu(_In_ ebpf_core_map_t* map)
     size_t offset = (size_t)map->ebpf_map_definition.max_entries * (size_t)map->ebpf_map_definition.value_size;
     uint32_t current_cpu;
     ebpf_core_map_per_cpu_t* per_cpu = NULL;
+    if (ebpf_is_preemptible()) {
+        return NULL;
+    }
+
     current_cpu = ebpf_get_current_cpu();
     per_cpu = (ebpf_core_map_per_cpu_t*)map->data;
     if (current_cpu < per_cpu->count) {
@@ -786,6 +794,7 @@ ebpf_map_function_table_t ebpf_map_function_tables[] = {
     {// BPF_MAP_TYPE_HASH
      _create_hash_map_per_cpu,
      _delete_hash_map_per_cpu,
+     NULL,
      _find_hash_map_entry_per_cpu,
      NULL,
      _update_hash_map_entry_per_cpu,
@@ -795,6 +804,7 @@ ebpf_map_function_table_t ebpf_map_function_tables[] = {
     {// BPF_MAP_TYPE_ARRAY
      _create_array_map_per_cpu,
      _delete_array_map_per_cpu,
+     NULL,
      _find_array_map_entry_per_cpu,
      NULL,
      _update_array_map_entry_per_cpu,

@@ -102,13 +102,13 @@ TEST_CASE("map_crud_operations_hash", "[execution_context]") { test_crud_operati
 
 TEST_CASE("map_crud_operations_array_per_cpu", "[execution_context]")
 {
-    thread_affinity_helper_t tah(0);
+    emulate_dpc_t dpc(0);
     test_crud_operations(BPF_MAP_TYPE_PERCPU_ARRAY);
 }
 
 TEST_CASE("map_crud_operations_hash_per_cpu", "[execution_context]")
 {
-    thread_affinity_helper_t tah(0);
+    emulate_dpc_t dpc(0);
     test_crud_operations(BPF_MAP_TYPE_PERCPU_HASH);
 }
 

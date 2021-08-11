@@ -20,10 +20,12 @@ typedef struct _ebpf_free_memory
 
 typedef std::unique_ptr<uint8_t, ebpf_free_memory_t> ebpf_memory_t;
 
-typedef class _thread_affinity_helper
+extern bool _ebpf_platform_is_preemptible;
+
+typedef class _emulate_dpc
 {
   public:
-    _thread_affinity_helper(uint32_t cpu_id)
+    _emulate_dpc(uint32_t cpu_id)
     {
         uintptr_t new_process_affinity_mask = 1ull << cpu_id;
         if (!GetProcessAffinityMask(GetCurrentProcess(), &old_process_affinity_mask, &old_system_affinity_mask)) {
@@ -32,9 +34,12 @@ typedef class _thread_affinity_helper
         if (!SetProcessAffinityMask(GetCurrentProcess(), new_process_affinity_mask)) {
             throw new std::runtime_error("SetProcessAffinityMask failed");
         }
+        _ebpf_platform_is_preemptible = false;
     }
-    ~_thread_affinity_helper()
+    ~_emulate_dpc()
     {
+        _ebpf_platform_is_preemptible = true;
+
         if (!SetProcessAffinityMask(GetCurrentProcess(), old_process_affinity_mask)) {
             std::abort();
         }
@@ -44,7 +49,7 @@ typedef class _thread_affinity_helper
     uintptr_t old_process_affinity_mask;
     uintptr_t old_system_affinity_mask;
 
-} thread_affinity_helper_t;
+} emulate_dpc_t;
 
 typedef class _single_instance_hook
 {
