@@ -216,14 +216,20 @@ _associate_program_with_prog_array_map(_In_ ebpf_core_map_t* map, _In_ const ebp
     // Validate that the program type is
     // not in conflict with the map's program type.
     const ebpf_program_type_t* program_type = ebpf_program_type(program);
+    ebpf_result_t result = EBPF_SUCCESS;
+
+    ebpf_lock_state_t lock_state = ebpf_lock_lock(&map->lock);
+
     if (!program_array->is_program_type_set) {
         program_array->is_program_type_set = TRUE;
         program_array->program_type = *program_type;
     } else if (memcmp(&program_array->program_type, program_type, sizeof(*program_type)) != 0) {
-        return EBPF_INVALID_FD;
+        result = EBPF_INVALID_FD;
     }
 
-    return EBPF_SUCCESS;
+    ebpf_lock_unlock(&map->lock, lock_state);
+
+    return result;
 }
 
 static ebpf_result_t
@@ -251,12 +257,17 @@ _update_prog_array_map_entry_with_handle(
     // not in conflict with the map's program type.
     const ebpf_program_type_t* program_type = ebpf_program_type(program);
     ebpf_program_array_map_t* program_array = (ebpf_program_array_map_t*)map;
+    ebpf_result_t result = EBPF_SUCCESS;
+
+    ebpf_lock_state_t lock_state = ebpf_lock_lock(&map->lock);
+
     if (!program_array->is_program_type_set) {
         program_array->is_program_type_set = TRUE;
         program_array->program_type = *program_type;
     } else if (memcmp(&program_array->program_type, program_type, sizeof(*program_type)) != 0) {
         ebpf_object_release_reference((ebpf_object_t*)program);
-        return EBPF_INVALID_FD;
+        result = EBPF_INVALID_FD;
+        goto Done;
     }
 
     // Store the literal value.
@@ -266,7 +277,10 @@ _update_prog_array_map_entry_with_handle(
     // Store program pointer after the value.
     memcpy(entry + map->ebpf_map_definition.value_size, &program, sizeof(void*));
 
-    return EBPF_SUCCESS;
+Done:
+    ebpf_lock_unlock(&map->lock, lock_state);
+
+    return result;
 }
 
 static ebpf_result_t
