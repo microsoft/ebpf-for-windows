@@ -19,7 +19,8 @@ typedef struct _ebpf_core_map
 typedef struct _ebpf_program_array_map
 {
     ebpf_core_map_t core_map;
-    const ebpf_program_type_t* program_type;
+    bool is_program_type_set;
+    ebpf_program_type_t program_type;
 } ebpf_program_array_map_t;
 
 typedef struct _ebpf_map_function_table
@@ -215,9 +216,10 @@ _associate_program_with_prog_array_map(_In_ ebpf_core_map_t* map, _In_ const ebp
     // Validate that the program type is
     // not in conflict with the map's program type.
     const ebpf_program_type_t* program_type = ebpf_program_type(program);
-    if (program_array->program_type == NULL) {
-        program_array->program_type = program_type;
-    } else if (program_array->program_type != program_type) {
+    if (!program_array->is_program_type_set) {
+        program_array->is_program_type_set = TRUE;
+        program_array->program_type = *program_type;
+    } else if (memcmp(&program_array->program_type, program_type, sizeof(*program_type)) != 0) {
         return EBPF_INVALID_FD;
     }
 
@@ -249,9 +251,10 @@ _update_prog_array_map_entry_with_handle(
     // not in conflict with the map's program type.
     const ebpf_program_type_t* program_type = ebpf_program_type(program);
     ebpf_program_array_map_t* program_array = (ebpf_program_array_map_t*)map;
-    if (program_array->program_type == NULL) {
-        program_array->program_type = program_type;
-    } else if (memcmp(program_array->program_type, program_type, sizeof(*program_type)) != 0) {
+    if (!program_array->is_program_type_set) {
+        program_array->is_program_type_set = TRUE;
+        program_array->program_type = *program_type;
+    } else if (memcmp(&program_array->program_type, program_type, sizeof(*program_type)) != 0) {
         ebpf_object_release_reference((ebpf_object_t*)program);
         return EBPF_INVALID_FD;
     }
