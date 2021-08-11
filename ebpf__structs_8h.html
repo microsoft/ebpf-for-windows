@@ -94,10 +94,15 @@ Typedefs</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="enum-members"></a>
 Enumerations</h2></td></tr>
-<tr class="memitem:afd97ad5450067d01ec6b6cd3c30761a1"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__structs_8h.html#afd97ad5450067d01ec6b6cd3c30761a1">bpf_map_type</a> { <a class="el" href="ebpf__structs_8h.html#afd97ad5450067d01ec6b6cd3c30761a1a4aa183ff27ce9e1271dd3939e722f407">BPF_MAP_TYPE_UNSPECIFIED</a> = 0, 
+<tr class="memitem:afd97ad5450067d01ec6b6cd3c30761a1"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__structs_8h.html#afd97ad5450067d01ec6b6cd3c30761a1">bpf_map_type</a> { <br />
+&#160;&#160;<a class="el" href="ebpf__structs_8h.html#afd97ad5450067d01ec6b6cd3c30761a1a4aa183ff27ce9e1271dd3939e722f407">BPF_MAP_TYPE_UNSPECIFIED</a> = 0, 
 <a class="el" href="ebpf__structs_8h.html#afd97ad5450067d01ec6b6cd3c30761a1ae21084f25e9cb0889604d7e8b3c58575">BPF_MAP_TYPE_HASH</a> = 1, 
 <a class="el" href="ebpf__structs_8h.html#afd97ad5450067d01ec6b6cd3c30761a1ad992c770dd3affefa8d83220d99319e0">BPF_MAP_TYPE_ARRAY</a> = 2, 
-<a class="el" href="ebpf__structs_8h.html#afd97ad5450067d01ec6b6cd3c30761a1ae1ec5cf07509595615d558884ba109b2">BPF_MAP_TYPE_PROG_ARRAY</a>
+<a class="el" href="ebpf__structs_8h.html#afd97ad5450067d01ec6b6cd3c30761a1ae1ec5cf07509595615d558884ba109b2">BPF_MAP_TYPE_PROG_ARRAY</a>, 
+<br />
+&#160;&#160;<a class="el" href="ebpf__structs_8h.html#afd97ad5450067d01ec6b6cd3c30761a1aac824ca248203aa188381267bca59cc9">BPF_MAP_TYPE_PERCPU_HASH</a> = 4, 
+<a class="el" href="ebpf__structs_8h.html#afd97ad5450067d01ec6b6cd3c30761a1a2d7ebe3c4a82861bcd69b500d7f67de2">BPF_MAP_TYPE_PERCPU_ARRAY</a> = 5
+<br />
  }</td></tr>
 <tr class="separator:afd97ad5450067d01ec6b6cd3c30761a1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
@@ -153,6 +158,8 @@ Enumerations</h2></td></tr>
 </td></tr>
 <tr><td class="fieldname"><a id="afd97ad5450067d01ec6b6cd3c30761a1ae1ec5cf07509595615d558884ba109b2"></a>BPF_MAP_TYPE_PROG_ARRAY&#160;</td><td class="fielddoc"><p>Array of program fds usable with bpf_tail_call, where the map key is the array index. </p>
 </td></tr>
+<tr><td class="fieldname"><a id="afd97ad5450067d01ec6b6cd3c30761a1aac824ca248203aa188381267bca59cc9"></a>BPF_MAP_TYPE_PERCPU_HASH&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="afd97ad5450067d01ec6b6cd3c30761a1a2d7ebe3c4a82861bcd69b500d7f67de2"></a>BPF_MAP_TYPE_PERCPU_ARRAY&#160;</td><td class="fielddoc"></td></tr>
 </table>
 
 </div>
