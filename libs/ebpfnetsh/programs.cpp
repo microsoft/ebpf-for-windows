@@ -201,7 +201,10 @@ handle_ebpf_add_program(
         program.clean();
         return ERROR_SUPPRESS_OUTPUT;
     }
-
+    bool boolean = attach_type == EBPF_ATTACH_TYPE_BIND;
+    fprintf(stderr, "attach_type == EBPF_ATTACH_TYPE_BIND %d", boolean);
+    bool boolean2 = attach_type == EBPF_ATTACH_TYPE_XDP;
+    fprintf(stderr, "attach_type == EBPF_ATTACH_TYPE_XDP %d", boolean2);
     status = ebpf_api_link_program(program.program_handle, attach_type, &program.link_handle);
     if (status != ERROR_SUCCESS) {
         std::cerr << "error " << status << ": could not attach program, unloading it" << std::endl;

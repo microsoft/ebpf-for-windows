@@ -93,7 +93,8 @@ typedef struct _flow_md
 {
     bool flow_established_flag;
     five_tuple_t five_tuple;
-    uint64_t app_id;
+    uint8_t* app_id_start;
+    uint8_t* app_id_end;
 } flow_md_t;
 
 //MAC Hook

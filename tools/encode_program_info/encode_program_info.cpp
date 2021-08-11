@@ -112,7 +112,7 @@ _encode_flow()
     uint8_t* buffer = NULL;
     unsigned long buffer_size = 0;
     ebpf_context_descriptor_t flow_context_descriptor = {
-        sizeof(flow_md_t), 0, EBPF_OFFSET_OF(flow_md_t, app_id) + sizeof(uint64_t), -1};
+        sizeof(flow_md_t), 0, EBPF_OFFSET_OF(flow_md_t, app_id_end), -1};
     ebpf_program_type_descriptor_t flow_program_type = {"flow", &flow_context_descriptor, EBPF_PROGRAM_TYPE_FLOW};
     ebpf_program_info_t flow_program_info = {
         flow_program_type, EBPF_COUNT_OF(_ebpf_helper_function_prototype), _ebpf_helper_function_prototype};

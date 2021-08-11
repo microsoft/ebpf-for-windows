@@ -69,7 +69,7 @@ int main(int argc, const char** argv)
     }
 
     five_tuple_t key;
-    uint64_t app_id;
+    uint8_t app_id[64];
     uint64_t byte_count;
 
     // Loop every 10 seconds to query data from both maps
@@ -85,7 +85,7 @@ int main(int argc, const char** argv)
             // Find application id value using the key
             memset(&app_id, 0, sizeof(app_id));
             result = ebpf_api_map_find_element(
-                flow_map_handle[0], sizeof(five_tuple_t), reinterpret_cast<uint8_t*>(&key), sizeof(uint64_t), reinterpret_cast<uint8_t*>(&app_id));
+                flow_map_handle[0], sizeof(five_tuple_t), reinterpret_cast<uint8_t*>(&key), sizeof(uint8_t[64]), reinterpret_cast<uint8_t*>(&app_id));
             if (result != ERROR_SUCCESS)
             {
                 fprintf(stderr, "Failed to look up eBPF map app_id entry: %d\n", result);

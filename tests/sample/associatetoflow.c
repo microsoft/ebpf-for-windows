@@ -10,13 +10,22 @@
 
 #pragma clang section data = "maps"
 ebpf_map_definition_t app_map = {
-    .size = sizeof(ebpf_map_definition_t), .type = BPF_MAP_TYPE_HASH, .key_size = sizeof(five_tuple_t), .value_size = sizeof(uint64_t), .max_entries = 500};
+    .size = sizeof(ebpf_map_definition_t), .type = BPF_MAP_TYPE_HASH, .key_size = sizeof(five_tuple_t), .value_size = sizeof(uint8_t[64]), .max_entries = 500};
 
 #pragma clang section text = "flow"
 void AssociateFlowToContext(flow_md_t* context)
 {
     five_tuple_t key = context->five_tuple;
-    uint64_t value = context->app_id;
+    uint8_t value[64];
+    int index;
+
+    for (index = 0; index < 64; index++) {
+        if ((context->app_id_start + index) >= context->app_id_end)
+        {
+            break;
+        }
+        value[index] = context->app_id_start[index];
+    }
     
     if (context->flow_established_flag)
     {
