@@ -864,14 +864,14 @@ Exit:
 ebpf_result_t
 ebpf_map_find_entry(
     _In_ ebpf_map_t* map,
-    size_t key_length,
-    _In_reads_(key_length) const uint8_t* key,
+    size_t key_size,
+    _In_reads_(key_size) const uint8_t* key,
     size_t value_size,
     _Out_writes_(value_size) uint8_t* value,
     int flags)
 {
     uint8_t* return_value;
-    if (!(flags & EBPF_MAP_FLAG_HELPER) && (key_length != map->ebpf_map_definition.key_size)) {
+    if (!(flags & EBPF_MAP_FLAG_HELPER) && (key_size != map->ebpf_map_definition.key_size)) {
         return EBPF_INVALID_ARGUMENT;
     }
 
@@ -906,9 +906,9 @@ ebpf_map_associate_program(_In_ ebpf_map_t* map, _In_ const ebpf_program_t* prog
 }
 
 _Ret_maybenull_ ebpf_program_t*
-ebpf_map_get_program_from_entry(_In_ ebpf_map_t* map, size_t key_length, _In_reads_(key_length) const uint8_t* key)
+ebpf_map_get_program_from_entry(_In_ ebpf_map_t* map, size_t key_size, _In_reads_(key_size) const uint8_t* key)
 {
-    if (key_length != map->ebpf_map_definition.key_size) {
+    if (key_size != map->ebpf_map_definition.key_size) {
         return NULL;
     }
     ebpf_map_type_t type = map->ebpf_map_definition.type;
@@ -925,17 +925,17 @@ ebpf_map_get_program_from_entry(_In_ ebpf_map_t* map, size_t key_length, _In_rea
 ebpf_result_t
 ebpf_map_update_entry(
     _In_ ebpf_map_t* map,
-    size_t key_length,
-    _In_reads_(key_length) const uint8_t* key,
-    size_t value_length,
-    _In_reads_(value_length) const uint8_t* value,
+    size_t key_size,
+    _In_reads_(key_size) const uint8_t* key,
+    size_t value_size,
+    _In_reads_(value_size) const uint8_t* value,
     int flags)
 {
-    if (!(flags & EBPF_MAP_FLAG_HELPER) && (key_length != map->ebpf_map_definition.key_size)) {
+    if (!(flags & EBPF_MAP_FLAG_HELPER) && (key_size != map->ebpf_map_definition.key_size)) {
         return EBPF_INVALID_ARGUMENT;
     }
 
-    if (!(flags & EBPF_MAP_FLAG_HELPER) && (value_length != map->ebpf_map_definition.value_size)) {
+    if (!(flags & EBPF_MAP_FLAG_HELPER) && (value_size != map->ebpf_map_definition.value_size)) {
         return EBPF_INVALID_ARGUMENT;
     }
 
@@ -948,17 +948,17 @@ ebpf_map_update_entry(
 ebpf_result_t
 ebpf_map_update_entry_with_handle(
     _In_ ebpf_map_t* map,
-    size_t key_length,
-    _In_reads_(key_length) const uint8_t* key,
-    size_t value_length,
-    _In_reads_(value_length) const uint8_t* value,
+    size_t key_size,
+    _In_reads_(key_size) const uint8_t* key,
+    size_t value_size,
+    _In_reads_(value_size) const uint8_t* value,
     uintptr_t value_handle)
 {
-    if (key_length != map->ebpf_map_definition.key_size) {
+    if (key_size != map->ebpf_map_definition.key_size) {
         return EBPF_INVALID_ARGUMENT;
     }
 
-    if (value_length != map->ebpf_map_definition.value_size) {
+    if (value_size != map->ebpf_map_definition.value_size) {
         return EBPF_INVALID_ARGUMENT;
     }
 
@@ -970,9 +970,9 @@ ebpf_map_update_entry_with_handle(
 }
 
 ebpf_result_t
-ebpf_map_delete_entry(_In_ ebpf_map_t* map, size_t key_length, _In_reads_(key_length) const uint8_t* key, int flags)
+ebpf_map_delete_entry(_In_ ebpf_map_t* map, size_t key_size, _In_reads_(key_size) const uint8_t* key, int flags)
 {
-    if (!(flags & EBPF_MAP_FLAG_HELPER) && (key_length != map->ebpf_map_definition.key_size)) {
+    if (!(flags & EBPF_MAP_FLAG_HELPER) && (key_size != map->ebpf_map_definition.key_size)) {
         return EBPF_INVALID_ARGUMENT;
     }
     return ebpf_map_function_tables[map->ebpf_map_definition.type].delete_entry(map, key);
@@ -981,11 +981,11 @@ ebpf_map_delete_entry(_In_ ebpf_map_t* map, size_t key_length, _In_reads_(key_le
 ebpf_result_t
 ebpf_map_next_key(
     _In_ ebpf_map_t* map,
-    size_t key_length,
-    _In_reads_opt_(key_length) const uint8_t* previous_key,
-    _Out_writes_(key_length) uint8_t* next_key)
+    size_t key_size,
+    _In_reads_opt_(key_size) const uint8_t* previous_key,
+    _Out_writes_(key_size) uint8_t* next_key)
 {
-    if (key_length != map->ebpf_map_definition.key_size) {
+    if (key_size != map->ebpf_map_definition.key_size) {
         return EBPF_INVALID_ARGUMENT;
     }
     return ebpf_map_function_tables[map->ebpf_map_definition.type].next_key(map, previous_key, next_key);

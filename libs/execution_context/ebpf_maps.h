@@ -51,8 +51,8 @@ extern "C"
     ebpf_result_t
     ebpf_map_find_entry(
         _In_ ebpf_map_t* map,
-        size_t key_length,
-        _In_reads_(key_length) const uint8_t* key,
+        size_t key_size,
+        _In_reads_(key_size) const uint8_t* key,
         size_t value_size,
         _Out_writes_(value_size) uint8_t* value,
         int flags);
@@ -70,10 +70,10 @@ extern "C"
     ebpf_result_t
     ebpf_map_update_entry(
         _In_ ebpf_map_t* map,
-        size_t key_length,
-        _In_reads_(key_length) const uint8_t* key,
-        size_t value_length,
-        _In_reads_(value_length) const uint8_t* value,
+        size_t key_size,
+        _In_reads_(key_size) const uint8_t* key,
+        size_t value_size,
+        _In_reads_(value_size) const uint8_t* value,
         int flags);
 
     /**
@@ -90,10 +90,10 @@ extern "C"
     ebpf_result_t
     ebpf_map_update_entry_with_handle(
         _In_ ebpf_map_t* map,
-        size_t key_length,
-        _In_reads_(key_length) const uint8_t* key,
-        size_t value_length,
-        _In_reads_(value_length) const uint8_t* value,
+        size_t key_size,
+        _In_reads_(key_size) const uint8_t* key,
+        size_t value_size,
+        _In_reads_(value_size) const uint8_t* value,
         uintptr_t value_handle);
 
     /**
@@ -107,7 +107,7 @@ extern "C"
      */
     ebpf_result_t
     ebpf_map_delete_entry(
-        _In_ ebpf_map_t* map, size_t key_length, _In_reads_(key_length) const uint8_t* key, int flags);
+        _In_ ebpf_map_t* map, size_t key_size, _In_reads_(key_size) const uint8_t* key, int flags);
 
     /**
      * @brief Retrieve the next key from the map.
@@ -124,9 +124,9 @@ extern "C"
     ebpf_result_t
     ebpf_map_next_key(
         _In_ ebpf_map_t* map,
-        size_t key_length,
-        _In_reads_opt_(key_length) const uint8_t* previous_key,
-        _Out_writes_(key_length) uint8_t* next_key);
+        size_t key_size,
+        _In_reads_opt_(key_size) const uint8_t* previous_key,
+        _Out_writes_(key_size) uint8_t* next_key);
 
     /**
      * @brief Get a program from an entry in a map that holds programs.  The
@@ -139,7 +139,7 @@ extern "C"
      * @returns Program pointer, or NULL if none.
      */
     _Ret_maybenull_ struct _ebpf_program*
-    ebpf_map_get_program_from_entry(_In_ ebpf_map_t* map, size_t key_length, _In_reads_(key_length) const uint8_t* key);
+    ebpf_map_get_program_from_entry(_In_ ebpf_map_t* map, size_t key_size, _In_reads_(key_size) const uint8_t* key);
 
     /**
      * @brief Let a map take any actions when first
