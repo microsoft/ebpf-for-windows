@@ -81,7 +81,7 @@ static ebpf_extension_data_t _ebpf_bind_program_info_provider_data = {
     NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_ebpf_bind_program_data), &_ebpf_bind_program_data};
 
 static ebpf_context_descriptor_t _ebpf_flow_context_descriptor = {
-    sizeof(flow_md_t), 0, EBPF_OFFSET_OF(flow_md_t, app_id_end), -1};
+    sizeof(flow_md_t), EBPF_OFFSET_OF(flow_md_t, app_id_start), EBPF_OFFSET_OF(flow_md_t, app_id_end), -1};
 static ebpf_program_info_t _ebpf_flow_program_info = {{"flow", &_ebpf_flow_context_descriptor, {0}}, 0, NULL};
 
 static ebpf_program_data_t _ebpf_flow_program_data = {&_ebpf_flow_program_info, NULL};
@@ -90,7 +90,7 @@ static ebpf_extension_data_t _ebpf_flow_program_info_provider_data = {
     NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_ebpf_flow_program_data), &_ebpf_flow_program_data};
 
 static ebpf_context_descriptor_t _ebpf_mac_context_descriptor = {
-    sizeof(mac_md_t), 0, EBPF_OFFSET_OF(mac_md_t, packet_length) + sizeof(uint64_t), -1};
+    sizeof(mac_md_t), -1, -1, -1};
 static ebpf_program_info_t _ebpf_mac_program_info = {{"mac", &_ebpf_mac_context_descriptor, {0}}, 0, NULL};
 
 static ebpf_program_data_t _ebpf_mac_program_data = {&_ebpf_mac_program_info, NULL};

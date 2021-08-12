@@ -45,13 +45,13 @@ const EbpfProgramType windows_bind_program_type =
     PTYPE("bind", &g_bind_context_descriptor, (uint64_t)&EBPF_PROGRAM_TYPE_BIND, {"bind"});
 
 const ebpf_context_descriptor_t g_flow_context_descriptor = {
-    sizeof(flow_md_t), 0, EBPF_OFFSET_OF(flow_md_t, app_id_end), -1};
+    sizeof(flow_md_t), EBPF_OFFSET_OF(flow_md_t, app_id_start), EBPF_OFFSET_OF(flow_md_t, app_id_end), -1};
 
 const EbpfProgramType windows_flow_program_type =
     PTYPE("flow", &g_flow_context_descriptor, (uint64_t)&EBPF_PROGRAM_TYPE_FLOW, {"flow"});
 
 const ebpf_context_descriptor_t g_mac_context_descriptor = {
-    sizeof(mac_md_t), 0, EBPF_OFFSET_OF(mac_md_t, packet_length) + sizeof(uint64_t), -1};
+    sizeof(mac_md_t), -1, -1, -1};
 
 const EbpfProgramType windows_mac_program_type =
     PTYPE("mac", &g_mac_context_descriptor, (uint64_t)&EBPF_PROGRAM_TYPE_MAC, {"mac"});
