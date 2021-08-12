@@ -48,8 +48,12 @@ test_crud_operations(ebpf_map_type_t map_type)
         uint64_t value = static_cast<uint64_t>(key) * static_cast<uint64_t>(key);
         REQUIRE(
             ebpf_map_update_entry(
-                map.get(), reinterpret_cast<const uint8_t*>(&key), reinterpret_cast<const uint8_t*>(&value)) ==
-            EBPF_SUCCESS);
+                map.get(),
+                sizeof(key),
+                reinterpret_cast<const uint8_t*>(&key),
+                sizeof(value),
+                reinterpret_cast<const uint8_t*>(&value),
+                0) == EBPF_SUCCESS);
     }
 
     // Test for inserting max_entries + 1
@@ -57,17 +61,29 @@ test_crud_operations(ebpf_map_type_t map_type)
     uint64_t bad_value = 11 * 11;
     REQUIRE(
         ebpf_map_update_entry(
-            map.get(), reinterpret_cast<const uint8_t*>(&bad_key), reinterpret_cast<const uint8_t*>(&bad_value)) ==
-        EBPF_INVALID_ARGUMENT);
+            map.get(),
+            sizeof(bad_key),
+            reinterpret_cast<const uint8_t*>(&bad_key),
+            sizeof(bad_value),
+            reinterpret_cast<const uint8_t*>(&bad_value),
+            0) == EBPF_INVALID_ARGUMENT);
 
-    REQUIRE(ebpf_map_delete_entry(map.get(), reinterpret_cast<const uint8_t*>(&bad_key)) == EBPF_KEY_NOT_FOUND);
+    REQUIRE(
+        ebpf_map_delete_entry(map.get(), sizeof(bad_key), reinterpret_cast<const uint8_t*>(&bad_key), 0) ==
+        EBPF_KEY_NOT_FOUND);
 
     for (uint32_t key = 0; key < 10; key++) {
-        uint64_t* value =
-            reinterpret_cast<uint64_t*>(ebpf_map_find_entry(map.get(), reinterpret_cast<const uint8_t*>(&key), FALSE));
+        uint64_t value;
+        REQUIRE(
+            ebpf_map_find_entry(
+                map.get(),
+                sizeof(key),
+                reinterpret_cast<const uint8_t*>(&key),
+                sizeof(value),
+                reinterpret_cast<uint8_t*>(&value),
+                0) == EBPF_SUCCESS);
 
-        REQUIRE(value != nullptr);
-        REQUIRE(*value == key * key);
+        REQUIRE(value == key * key);
     }
 
     uint32_t previous_key;
@@ -76,6 +92,7 @@ test_crud_operations(ebpf_map_type_t map_type)
         REQUIRE(
             ebpf_map_next_key(
                 map.get(),
+                sizeof(key),
                 key == 0 ? nullptr : reinterpret_cast<const uint8_t*>(&previous_key),
                 reinterpret_cast<uint8_t*>(&next_key)) == EBPF_SUCCESS);
 
@@ -84,11 +101,14 @@ test_crud_operations(ebpf_map_type_t map_type)
     }
     REQUIRE(
         ebpf_map_next_key(
-            map.get(), reinterpret_cast<const uint8_t*>(&previous_key), reinterpret_cast<uint8_t*>(&next_key)) ==
-        EBPF_NO_MORE_KEYS);
+            map.get(),
+            sizeof(previous_key),
+            reinterpret_cast<const uint8_t*>(&previous_key),
+            reinterpret_cast<uint8_t*>(&next_key)) == EBPF_NO_MORE_KEYS);
 
     for (uint32_t key = 0; key < 10; key++) {
-        REQUIRE(ebpf_map_delete_entry(map.get(), reinterpret_cast<const uint8_t*>(&key)) == EBPF_SUCCESS);
+        REQUIRE(
+            ebpf_map_delete_entry(map.get(), sizeof(key), reinterpret_cast<const uint8_t*>(&key), 0) == EBPF_SUCCESS);
     }
 
     auto retrieved_map_definition = ebpf_map_get_definition(map.get());
