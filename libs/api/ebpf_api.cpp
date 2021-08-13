@@ -125,7 +125,7 @@ ebpf_api_create_map(
     UNREFERENCED_PARAMETER(map_flags);
 
     _ebpf_operation_create_map_request request{
-        sizeof(_ebpf_operation_create_map_request),
+        EBPF_OFFSET_OF(ebpf_operation_create_map_request_t, data),
         ebpf_operation_id_t::EBPF_OPERATION_CREATE_MAP,
         {sizeof(struct _ebpf_map_definition), type, key_size, value_size, max_entries}};
 
@@ -171,9 +171,6 @@ _create_map(
     map_name_size = map_name.size();
 
     size_t buffer_size = offsetof(ebpf_operation_create_map_request_t, data) + map_name_size;
-    if (buffer_size < sizeof(ebpf_operation_create_map_request_t)) {
-        buffer_size = sizeof(ebpf_operation_create_map_request_t);
-    }
     request_buffer.resize(buffer_size);
 
     request = reinterpret_cast<ebpf_operation_create_map_request_t*>(request_buffer.data());
@@ -273,10 +270,12 @@ _map_lookup_element(
 {
     ebpf_result_t result = EBPF_SUCCESS;
     try {
-        ebpf_protocol_buffer_t request_buffer(sizeof(_ebpf_operation_map_find_element_request) + key_size - 1);
-        ebpf_protocol_buffer_t reply_buffer(sizeof(_ebpf_operation_map_find_element_reply) + value_size - 1);
-        auto request = reinterpret_cast<_ebpf_operation_map_find_element_request*>(request_buffer.data());
-        auto reply = reinterpret_cast<_ebpf_operation_map_find_element_reply*>(reply_buffer.data());
+        ebpf_protocol_buffer_t request_buffer(
+            EBPF_OFFSET_OF(ebpf_operation_map_find_element_request_t, key) + key_size);
+        ebpf_protocol_buffer_t reply_buffer(
+            EBPF_OFFSET_OF(ebpf_operation_map_find_element_reply_t, value) + value_size);
+        auto request = reinterpret_cast<ebpf_operation_map_find_element_request_t*>(request_buffer.data());
+        auto reply = reinterpret_cast<ebpf_operation_map_find_element_reply_t*>(reply_buffer.data());
 
         request->header.length = static_cast<uint16_t>(request_buffer.size());
         request->header.id = ebpf_operation_id_t::EBPF_OPERATION_MAP_FIND_ELEMENT;
@@ -385,7 +384,7 @@ _update_map_element(
     epf_operation_map_update_element_request_t* request;
 
     try {
-        request_buffer.resize(sizeof(_ebpf_operation_map_update_element_request) - 1 + key_size + value_size);
+        request_buffer.resize(EBPF_OFFSET_OF(epf_operation_map_update_element_request_t, data) + key_size + value_size);
         request = reinterpret_cast<_ebpf_operation_map_update_element_request*>(request_buffer.data());
 
         request->header.length = static_cast<uint16_t>(request_buffer.size());
@@ -418,8 +417,8 @@ _update_map_element_with_handle(
     ebpf_handle_t value_handle) noexcept
 {
     ebpf_protocol_buffer_t request_buffer(
-        sizeof(_ebpf_operation_map_update_element_with_handle_request) - 1 + key_size + value_size);
-    auto request = reinterpret_cast<_ebpf_operation_map_update_element_with_handle_request*>(request_buffer.data());
+        EBPF_OFFSET_OF(ebpf_operation_map_update_element_with_handle_request_t, data) + key_size + value_size);
+    auto request = reinterpret_cast<ebpf_operation_map_update_element_with_handle_request_t*>(request_buffer.data());
 
     request->header.length = static_cast<uint16_t>(request_buffer.size());
     request->header.id = ebpf_operation_id_t::EBPF_OPERATION_MAP_UPDATE_ELEMENT_WITH_HANDLE;
@@ -503,8 +502,8 @@ ebpf_map_delete_element(fd_t map_fd, _In_ const void* key)
     assert(value_size != 0);
 
     try {
-        request_buffer.resize(sizeof(_ebpf_operation_map_delete_element_request) - 1 + key_size);
-        request = reinterpret_cast<_ebpf_operation_map_delete_element_request*>(request_buffer.data());
+        request_buffer.resize(EBPF_OFFSET_OF(ebpf_operation_map_delete_element_request_t, key) + key_size);
+        request = reinterpret_cast<ebpf_operation_map_delete_element_request_t*>(request_buffer.data());
 
         request->header.length = static_cast<uint16_t>(request_buffer.size());
         request->header.id = ebpf_operation_id_t::EBPF_OPERATION_MAP_DELETE_ELEMENT;
@@ -1022,10 +1021,10 @@ ebpf_get_next_map(fd_t previous_fd, _Out_ fd_t* next_fd)
     *next_fd = ebpf_fd_invalid;
 
     ebpf_handle_t previous_handle = _get_handle_from_fd(local_fd);
-    _ebpf_operation_get_next_map_request request{
+    ebpf_operation_get_next_map_request_t request{
         sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_MAP, reinterpret_cast<uint64_t>(previous_handle)};
 
-    _ebpf_operation_get_next_map_reply reply;
+    ebpf_operation_get_next_map_reply_t reply;
 
     uint32_t retval = invoke_ioctl(request, reply);
     if (retval == ERROR_SUCCESS) {
@@ -1056,11 +1055,12 @@ ebpf_get_next_program(fd_t previous_fd, _Out_ fd_t* next_fd)
     *next_fd = ebpf_fd_invalid;
 
     ebpf_handle_t previous_handle = _get_handle_from_fd(local_fd);
-    _ebpf_operation_get_next_program_request request{sizeof(request),
-                                                     ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_PROGRAM,
-                                                     reinterpret_cast<uint64_t>(previous_handle)};
+    ebpf_operation_get_next_program_request_t request{
+        sizeof(request),
+        ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_PROGRAM,
+        reinterpret_cast<uint64_t>(previous_handle)};
 
-    _ebpf_operation_get_next_program_reply reply;
+    ebpf_operation_get_next_program_reply_t reply;
 
     uint32_t retval = invoke_ioctl(request, reply);
     if (retval == ERROR_SUCCESS) {
@@ -1115,10 +1115,10 @@ ebpf_program_query_info(
     }
 
     ebpf_protocol_buffer_t reply_buffer(1024);
-    _ebpf_operation_query_program_info_request request{
+    ebpf_operation_query_program_info_request_t request{
         sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_QUERY_PROGRAM_INFO, reinterpret_cast<uint64_t>(handle)};
 
-    auto reply = reinterpret_cast<_ebpf_operation_query_program_info_reply*>(reply_buffer.data());
+    auto reply = reinterpret_cast<ebpf_operation_query_program_info_reply_t*>(reply_buffer.data());
 
     uint32_t retval = invoke_ioctl(request, reply_buffer);
     if (retval != ERROR_SUCCESS) {
@@ -1155,7 +1155,10 @@ uint32_t
 ebpf_api_link_program(ebpf_handle_t program_handle, ebpf_attach_type_t attach_type, ebpf_handle_t* link_handle)
 {
     ebpf_operation_link_program_request_t request = {
-        sizeof(request), EBPF_OPERATION_LINK_PROGRAM, reinterpret_cast<uint64_t>(program_handle), attach_type};
+        EBPF_OFFSET_OF(ebpf_operation_link_program_request_t, data),
+        EBPF_OPERATION_LINK_PROGRAM,
+        reinterpret_cast<uint64_t>(program_handle),
+        attach_type};
     ebpf_operation_link_program_reply_t reply;
 
     uint32_t retval = invoke_ioctl(request, reply);
@@ -1187,9 +1190,6 @@ _link_ebpf_program(
 
     try {
         size_t buffer_size = offsetof(ebpf_operation_link_program_request_t, data) + attach_parameter_size;
-        if (buffer_size < sizeof(ebpf_operation_link_program_request_t)) {
-            buffer_size = sizeof(ebpf_operation_link_program_request_t);
-        }
         request_buffer.resize(buffer_size);
         request = reinterpret_cast<ebpf_operation_link_program_request_t*>(request_buffer.data());
         request->header.id = EBPF_OPERATION_LINK_PROGRAM;
