@@ -141,7 +141,7 @@ This is a test application for the sample eBPF extension. This application loads
 and attaches it to the test hook implemented by the sample extension and validates if the eBPF program
 executed as expected.
 
-### Running the tests on Developer Machine
+### Running the tests on a Developer Machine
 1.	Set the build output folder as the current working directory.
 2.	Run unit_tests.exe.
 
