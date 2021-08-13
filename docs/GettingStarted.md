@@ -36,7 +36,7 @@ This will build the following binaries:
 * unit_tests.exe: A collection of tests using the Catch framework.  These tests are also run as part
                   of the Github CI/CD so should always pass.
 * ebpf_client.exe: A collection of program verification tests that exercises the RPC channel from client to ebpfsvc.
-                   These tests are also run as part of the Github CI/CD so should always pass.
+                   This requires EbpSvc service to be running, and EbpCore and NetEbpfExt drivers to be loaded.
 * api_test.exe: A collection of tests that exercises eBPF user mode APIs. This requires EbpSvc service to be running,
                 and EbpCore and NetEbpfExt drivers to be loaded.
 * sample_ebpf_ext.sys: A sample eBPF extension driver that implements a test hook (for a test program type) and test helper functions.
@@ -124,9 +124,10 @@ by having the mocked extensions emit events.
 This test does verification for different sample programs by parsing the ELF file and
 sending the verification request to ebpfsvc. For the cases when the verification fails,
 the test receives and prints the verifier failure message.
-If ebpfsvc is not already installed, this test tries to install and start the service before
-executing the tests, hence this test should be run as admin if ebpfsvc is not already installed
-and running.
+This test requires the eBPF user mode service (EbpfSvc), and the
+kernel execution context (EbpfCore.sys) and the Network Extension (NetEbpfExt.sys) to be running.
+This test is currently *not* part of the CI pipeline. Developers must run this test manually before
+checking in changes.
 
 ### api_test.exe
 This test exercises various eBPF user mode eBPF APIs, including those to load programs,
@@ -140,9 +141,15 @@ This is a test application for the sample eBPF extension. This application loads
 and attaches it to the test hook implemented by the sample extension and validates if the eBPF program
 executed as expected.
 
-### Running the tests
+### Running the tests on a Developer Machine
 1.	Set the build output folder as the current working directory.
-2.	Invoke the appropriate exe.
+2.	Run unit_tests.exe.
+
+### Running the tests on a Test Machine or VM
+1. Read the [instructions](https://github.com/microsoft/ebpf-for-windows/blob/master/docs/vm-setup.md) to prepare your test machine or VM.
+2. Run install-ebpf.bat
+3. Run run_tests.bat
+
 
 The Catch2 exes have various command line options to control behavior. Default
 behavior is to run all the tests and only print information about failing test

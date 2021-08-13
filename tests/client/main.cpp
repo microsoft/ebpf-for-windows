@@ -12,10 +12,23 @@
 #include "rpc_interface_h.h"
 #include "service_helper.h"
 
+#define EBPF_CORE_DRIVER_BINARY_NAME L"ebpfcore.sys"
+#define EBPF_CORE_DRIVER_NAME L"ebpfcore"
+
+#define EBPF_EXTENSION_DRIVER_BINARY_NAME L"netebpfext.sys"
+#define EBPF_EXTENSION_DRIVER_NAME L"netebpfext"
+
 #define EBPF_SERVICE_BINARY_NAME L"ebpfsvc.exe"
 #define EBPF_SERVICE_NAME L"ebpfsvc"
 
-static service_install_helper _service_helper(EBPF_SERVICE_NAME, EBPF_SERVICE_BINARY_NAME, SERVICE_WIN32_OWN_PROCESS);
+static service_install_helper
+    _ebpf_core_driver_helper(EBPF_CORE_DRIVER_NAME, EBPF_CORE_DRIVER_BINARY_NAME, SERVICE_KERNEL_DRIVER);
+
+static service_install_helper
+    _ebpf_extension_driver_helper(EBPF_EXTENSION_DRIVER_NAME, EBPF_EXTENSION_DRIVER_BINARY_NAME, SERVICE_KERNEL_DRIVER);
+
+static service_install_helper
+    _ebpf_service_helper(EBPF_SERVICE_NAME, EBPF_SERVICE_BINARY_NAME, SERVICE_WIN32_OWN_PROCESS);
 
 static void
 _get_program_byte_code_helper(const char* file_name, const char* section_name, ebpf_program_verify_info* info)
