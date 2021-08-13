@@ -44,7 +44,9 @@ int AssociateFlowToContext(flow_md_t* context)
         for (index = 0; index < 64; index++)
         {
             if ((context->app_name_start + index) >= context->app_name_end)
+            {
                 break;
+            }
             entry->name[index] = context->app_name_start[index];
         }
     }
