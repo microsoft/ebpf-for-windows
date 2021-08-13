@@ -66,9 +66,9 @@ int main(int argc, const char** argv)
         return 1;
     }
 
-    five_tuple_t key = {0};
-    app_name_t app_name = {0};
-    uint64_t byte_count = 0;
+    five_tuple_t key = {};
+    app_name_t app_name = {};
+    uint64_t byte_count = {};
 
     // Loop every 10 seconds to query data from both maps
     while (true)
