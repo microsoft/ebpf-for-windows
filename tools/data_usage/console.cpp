@@ -66,9 +66,9 @@ int main(int argc, const char** argv)
         return 1;
     }
 
-    five_tuple_t key;
-    app_id_t app_id;
-    uint64_t byte_count;
+    five_tuple_t key = {0};
+    app_name_t app_name = {0};
+    uint64_t byte_count = 0;
 
     // Loop every 10 seconds to query data from both maps
     while (true)
@@ -80,15 +80,15 @@ int main(int argc, const char** argv)
         while (result == ERROR_SUCCESS)
         {
             // Find application id value using the key
-            memset(&app_id, 0, sizeof(app_id));
+            memset(&app_name, 0, sizeof(app_name));
             result = ebpf_api_map_find_element(
-                flow_map_handle[0], sizeof(five_tuple_t), reinterpret_cast<uint8_t*>(&key), sizeof(app_id_t), reinterpret_cast<uint8_t*>(&app_id));
+                flow_map_handle[0], sizeof(five_tuple_t), reinterpret_cast<uint8_t*>(&key), sizeof(app_name_t), reinterpret_cast<uint8_t*>(&app_name));
             if (result != ERROR_SUCCESS)
             {
-                std::cerr << "Failed to look up eBPF map app_id entry: " << result << std::endl;
+                std::cerr << "Failed to look up eBPF map app_name entry: " << result << std::endl;
                 return 1;
             }
-            std::cout << "Application: " << app_id.name << std::endl;
+            std::cout << "Application: " << app_name.name << std::endl;
 
             // Find byte count value using the key
             memset(&byte_count, 0, sizeof(byte_count));

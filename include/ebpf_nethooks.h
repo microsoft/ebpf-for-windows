@@ -89,17 +89,17 @@ typedef struct _five_tuple
 } five_tuple_t;
 
 // App Id Struct
-typedef struct _app_id
+typedef struct _app_name
 {
     uint8_t name[64];
-} app_id_t;
+} app_name_t;
 
 
 //Flow Established Hook
 typedef struct _flow_md
 {
-    uint8_t* app_id_start;
-    uint8_t* app_id_end;
+    uint8_t* app_name_start;
+    uint8_t* app_name_end;
     bool flow_established_flag;
     five_tuple_t five_tuple;
 } flow_md_t;
