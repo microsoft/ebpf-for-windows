@@ -454,7 +454,7 @@ _create_per_cpu_hash_map(_In_ const ebpf_map_definition_t* map_definition)
     uint32_t cpu_count;
     uint32_t index;
     size_t per_cpu_size = 0;
-    ebpf_core_per_cpu_data_t* per_cpu = NULL;
+    ebpf_core_per_cpu_data_t* per_cpu_data = NULL;
 
     ebpf_get_cpu_count(&cpu_count);
 
@@ -481,10 +481,10 @@ _create_per_cpu_hash_map(_In_ const ebpf_map_definition_t* map_definition)
 
     map->ebpf_map_definition = *map_definition;
     map->data = (uint8_t*)(map + 1);
-    per_cpu = (ebpf_core_per_cpu_data_t*)map->data;
+    per_cpu_data = (ebpf_core_per_cpu_data_t*)map->data;
 
     for (index = 0; index < cpu_count; index++) {
-        ebpf_hash_table_t** tables = (ebpf_hash_table_t**)&per_cpu->data;
+        ebpf_hash_table_t** tables = (ebpf_hash_table_t**)&per_cpu_data->data;
         retval = ebpf_hash_table_create(
             tables + index,
             ebpf_epoch_allocate,
@@ -497,17 +497,17 @@ _create_per_cpu_hash_map(_In_ const ebpf_map_definition_t* map_definition)
         }
     }
 
-    map->data = (uint8_t*)per_cpu;
-    per_cpu->count = cpu_count;
+    map->data = (uint8_t*)per_cpu_data;
+    per_cpu_data->count = cpu_count;
 
     ebpf_lock_create(&map->lock);
     retval = EBPF_SUCCESS;
 
 Done:
     if (retval != EBPF_SUCCESS) {
-        if (per_cpu) {
-            for (index = 0; index < per_cpu->count; index++) {
-                ebpf_hash_table_t** tables = (ebpf_hash_table_t**)&per_cpu->data;
+        if (per_cpu_data) {
+            for (index = 0; index < per_cpu_data->count; index++) {
+                ebpf_hash_table_t** tables = (ebpf_hash_table_t**)&per_cpu_data->data;
                 ebpf_hash_table_destroy(tables[index]);
             }
         }
@@ -521,11 +521,11 @@ static void
 _delete_per_cpu_hash_map(_In_ ebpf_core_map_t* map)
 {
     uint32_t index;
-    ebpf_core_per_cpu_data_t* per_cpu = NULL;
+    ebpf_core_per_cpu_data_t* per_cpu_data = NULL;
     ebpf_lock_destroy(&map->lock);
-    per_cpu = (ebpf_core_per_cpu_data_t*)map->data;
-    for (index = 0; index < per_cpu->count; index++) {
-        ebpf_hash_table_t** tables = (ebpf_hash_table_t**)&per_cpu->data;
+    per_cpu_data = (ebpf_core_per_cpu_data_t*)map->data;
+    for (index = 0; index < per_cpu_data->count; index++) {
+        ebpf_hash_table_t** tables = (ebpf_hash_table_t**)&per_cpu_data->data;
         ebpf_hash_table_destroy(tables[index]);
     }
     ebpf_free(map);
@@ -535,16 +535,16 @@ static ebpf_hash_table_t*
 _get_hash_table_for_cpu(_In_ ebpf_core_map_t* map)
 {
     uint32_t current_cpu;
-    ebpf_core_per_cpu_data_t* per_cpu = NULL;
+    ebpf_core_per_cpu_data_t* per_cpu_data = NULL;
     ebpf_hash_table_t** tables;
     if (ebpf_is_preemptible()) {
         return NULL;
     }
 
     current_cpu = ebpf_get_current_cpu();
-    per_cpu = (ebpf_core_per_cpu_data_t*)map->data;
-    tables = (ebpf_hash_table_t**)&per_cpu->data;
-    if (current_cpu < per_cpu->count) {
+    per_cpu_data = (ebpf_core_per_cpu_data_t*)map->data;
+    tables = (ebpf_hash_table_t**)&per_cpu_data->data;
+    if (current_cpu < per_cpu_data->count) {
         return tables[current_cpu];
     } else {
         return NULL;
@@ -630,7 +630,7 @@ _create_per_cpu_array_map(_In_ const ebpf_map_definition_t* map_definition)
     size_t map_entry_size = sizeof(ebpf_core_map_t);
     size_t map_data_size = 0;
     ebpf_core_map_t* map = NULL;
-    ebpf_core_per_cpu_data_t* per_cpu = NULL;
+    ebpf_core_per_cpu_data_t* per_cpu_data = NULL;
     ebpf_get_cpu_count(&cpu_count);
 
     retval = ebpf_safe_size_t_multiply(map_definition->max_entries, map_definition->value_size, &map_data_size);
@@ -662,8 +662,8 @@ _create_per_cpu_array_map(_In_ const ebpf_map_definition_t* map_definition)
     map->ebpf_map_definition = *map_definition;
     map->data = (uint8_t*)(map + 1);
 
-    per_cpu = (ebpf_core_per_cpu_data_t*)map->data;
-    per_cpu->count = cpu_count;
+    per_cpu_data = (ebpf_core_per_cpu_data_t*)map->data;
+    per_cpu_data->count = cpu_count;
 
 Done:
     return map;
@@ -680,15 +680,15 @@ _get_array_table_for_cpu(_In_ ebpf_core_map_t* map)
 {
     size_t offset = (size_t)map->ebpf_map_definition.max_entries * (size_t)map->ebpf_map_definition.value_size;
     uint32_t current_cpu;
-    ebpf_core_per_cpu_data_t* per_cpu = NULL;
+    ebpf_core_per_cpu_data_t* per_cpu_data = NULL;
     if (ebpf_is_preemptible()) {
         return NULL;
     }
 
     current_cpu = ebpf_get_current_cpu();
-    per_cpu = (ebpf_core_per_cpu_data_t*)map->data;
-    if (current_cpu < per_cpu->count) {
-        return per_cpu->data + current_cpu * offset;
+    per_cpu_data = (ebpf_core_per_cpu_data_t*)map->data;
+    if (current_cpu < per_cpu_data->count) {
+        return per_cpu_data->data + current_cpu * offset;
     } else {
         return NULL;
     }
