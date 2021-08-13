@@ -112,7 +112,7 @@ _encode_flow()
     uint8_t* buffer = NULL;
     unsigned long buffer_size = 0;
     ebpf_context_descriptor_t flow_context_descriptor = {
-        sizeof(flow_md_t), 0, EBPF_OFFSET_OF(flow_md_t, app_id) + sizeof(uint64_t), -1};
+        sizeof(flow_md_t), EBPF_OFFSET_OF(flow_md_t, app_name_start), EBPF_OFFSET_OF(flow_md_t, app_name_end), -1};
     ebpf_program_type_descriptor_t flow_program_type = {"flow", &flow_context_descriptor, EBPF_PROGRAM_TYPE_FLOW};
     ebpf_program_info_t flow_program_info = {
         flow_program_type, EBPF_COUNT_OF(_ebpf_helper_function_prototype), _ebpf_helper_function_prototype};
@@ -141,7 +141,7 @@ _encode_mac()
     uint8_t* buffer = NULL;
     unsigned long buffer_size = 0;
     ebpf_context_descriptor_t mac_context_descriptor = {
-        sizeof(mac_md_t), 0, EBPF_OFFSET_OF(mac_md_t, packet_length) + sizeof(uint64_t), -1};
+        sizeof(mac_md_t), -1, -1, -1};
     ebpf_program_type_descriptor_t mac_program_type = {"mac", &mac_context_descriptor, EBPF_PROGRAM_TYPE_MAC};
     ebpf_program_info_t mac_program_info = {
         mac_program_type, EBPF_COUNT_OF(_ebpf_helper_function_prototype), _ebpf_helper_function_prototype};

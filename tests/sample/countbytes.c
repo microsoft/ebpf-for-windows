@@ -12,8 +12,10 @@
 ebpf_map_definition_t byte_map = {
     .size = sizeof(ebpf_map_definition_t), .type = BPF_MAP_TYPE_HASH, .key_size = sizeof(five_tuple_t), .value_size = sizeof(uint64_t), .max_entries = 500};
 
+mac_hook_t CountBytes;
+
 #pragma clang section text = "mac"
-void CountBytes(mac_md_t* context)
+int CountBytes(mac_md_t* context)
 {
     five_tuple_t key = context->five_tuple;
     uint64_t value = context->packet_length;
@@ -28,5 +30,5 @@ void CountBytes(mac_md_t* context)
         value = *byte_count + value;
         bpf_map_update_elem(&byte_map, &key, &value, NO_FLAGS);
     }
-    return;
+    return 0;
 }

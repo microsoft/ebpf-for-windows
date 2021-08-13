@@ -88,13 +88,24 @@ typedef struct _five_tuple
     uint8_t protocol;
 } five_tuple_t;
 
+// App Id Struct
+typedef struct _app_name
+{
+    uint8_t name[64];
+} app_name_t;
+
+
 //Flow Established Hook
 typedef struct _flow_md
 {
+    uint8_t* app_name_start;
+    uint8_t* app_name_end;
     bool flow_established_flag;
     five_tuple_t five_tuple;
-    uint64_t app_id;
 } flow_md_t;
+
+typedef int
+flow_hook_t(flow_md_t* context);
 
 //MAC Hook
 typedef struct _mac_md
@@ -102,3 +113,6 @@ typedef struct _mac_md
     five_tuple_t five_tuple;
     uint64_t packet_length;
 } mac_md_t;
+
+typedef int
+mac_hook_t(mac_md_t* context);
