@@ -28,6 +28,9 @@
     <ClCompile Include="map_descriptors.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="midl_alloc.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="device_helper.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
