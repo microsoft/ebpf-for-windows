@@ -7,12 +7,15 @@
 #include "ebpf_object.h"
 #include "ebpf_program.h"
 
+#define PAD16(X) ((X + 15) & ~15)
+
 typedef struct _ebpf_core_map
 {
     ebpf_object_t object;
     ebpf_utf8_string_t name;
     struct _ebpf_map_definition ebpf_map_definition;
     ebpf_lock_t lock;
+    uint32_t original_value_size;
     uint8_t* data;
 } ebpf_core_map_t;
 
@@ -22,12 +25,6 @@ typedef struct _ebpf_program_array_map
     bool is_program_type_set;
     ebpf_program_type_t program_type;
 } ebpf_program_array_map_t;
-
-typedef struct _ebpf_core_per_cpu_data
-{
-    uint32_t count;
-    uint8_t data[1];
-} ebpf_core_per_cpu_data_t;
 
 typedef struct _ebpf_map_function_table
 {
@@ -39,14 +36,24 @@ typedef struct _ebpf_map_function_table
     ebpf_result_t (*update_entry)(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_ const uint8_t* value);
     ebpf_result_t (*update_entry_with_handle)(
         _In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_ const uint8_t* value, uintptr_t value_handle);
+    ebpf_result_t (*update_entry_per_cpu)(
+        _In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_ const uint8_t* value);
     ebpf_result_t (*delete_entry)(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key);
     ebpf_result_t (*next_key)(_In_ ebpf_core_map_t* map, _In_ const uint8_t* previous_key, _Out_ uint8_t* next_key);
 } ebpf_map_function_table_t;
+
+ebpf_map_function_table_t ebpf_map_function_tables[];
 
 const ebpf_map_definition_t*
 ebpf_map_get_definition(_In_ const ebpf_map_t* map)
 {
     return &map->ebpf_map_definition;
+}
+
+uint32_t
+ebpf_map_get_effective_value_size(_In_ const ebpf_map_t* map)
+{
+    return map->original_value_size;
 }
 
 static ebpf_core_map_t*
@@ -125,9 +132,10 @@ _find_array_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
 }
 
 static ebpf_result_t
-_update_array_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_ const uint8_t* data)
+_update_array_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_opt_ const uint8_t* data)
 {
     uint32_t key_value;
+
     if (!map || !key)
         return EBPF_INVALID_ARGUMENT;
 
@@ -137,7 +145,11 @@ _update_array_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_
         return EBPF_INVALID_ARGUMENT;
 
     uint8_t* entry = &map->data[*key * map->ebpf_map_definition.value_size];
-    memcpy(entry, data, map->ebpf_map_definition.value_size);
+    if (data) {
+        memcpy(entry, data, map->ebpf_map_definition.value_size);
+    } else {
+        memset(entry, 0, map->ebpf_map_definition.value_size);
+    }
     return EBPF_SUCCESS;
 }
 
@@ -240,9 +252,9 @@ _associate_program_with_prog_array_map(_In_ ebpf_core_map_t* map, _In_ const ebp
 
 static ebpf_result_t
 _update_prog_array_map_entry_with_handle(
-    _In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_ const uint8_t* value, uintptr_t value_handle)
+    _In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_opt_ const uint8_t* value, uintptr_t value_handle)
 {
-    if (!map || !key)
+    if (!map || !key || !value)
         return EBPF_INVALID_ARGUMENT;
 
     uint32_t index = *(uint32_t*)key;
@@ -278,7 +290,11 @@ _update_prog_array_map_entry_with_handle(
 
     // Store the literal value.
     uint8_t* entry = &map->data[*key * actual_value_size];
-    memcpy(entry, value, map->ebpf_map_definition.value_size);
+    if (value) {
+        memcpy(entry, value, map->ebpf_map_definition.value_size);
+    } else {
+        memset(entry, 0, map->ebpf_map_definition.value_size);
+    }
 
     // Store program pointer after the value.
     memcpy(entry + map->ebpf_map_definition.value_size, &program, sizeof(void*));
@@ -396,13 +412,13 @@ _find_hash_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
 }
 
 static ebpf_result_t
-_update_hash_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_ const uint8_t* data)
+_update_hash_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_opt_ const uint8_t* data)
 {
     ebpf_result_t result;
     ebpf_lock_state_t lock_state;
     size_t entry_count = 0;
     uint8_t* value;
-    if (!map || !key || !data)
+    if (!map || !key)
         return EBPF_INVALID_ARGUMENT;
 
     lock_state = ebpf_lock_lock(&map->lock);
@@ -445,316 +461,62 @@ _next_hash_map_key(_In_ ebpf_core_map_t* map, _In_ const uint8_t* previous_key, 
     return result;
 }
 
-static ebpf_core_map_t*
-_create_per_cpu_hash_map(_In_ const ebpf_map_definition_t* map_definition)
-{
-    ebpf_result_t retval;
-    size_t map_size = sizeof(ebpf_core_map_t);
-    ebpf_core_map_t* map = NULL;
-    uint32_t cpu_count;
-    uint32_t index;
-    size_t per_cpu_size = 0;
-    ebpf_core_per_cpu_data_t* per_cpu_data = NULL;
-
-    ebpf_get_cpu_count(&cpu_count);
-
-    retval = ebpf_safe_size_t_multiply(sizeof(ebpf_hash_table_t*), cpu_count, &per_cpu_size);
-    if (retval != EBPF_SUCCESS) {
-        goto Done;
-    }
-
-    retval = ebpf_safe_size_t_add(EBPF_OFFSET_OF(ebpf_core_per_cpu_data_t, data), per_cpu_size, &per_cpu_size);
-    if (retval != EBPF_SUCCESS) {
-        goto Done;
-    }
-
-    retval = ebpf_safe_size_t_add(per_cpu_size, map_size, &map_size);
-    if (retval != EBPF_SUCCESS) {
-        goto Done;
-    }
-
-    map = ebpf_allocate(map_size);
-    if (map == NULL) {
-        retval = EBPF_NO_MEMORY;
-        goto Done;
-    }
-
-    map->ebpf_map_definition = *map_definition;
-    map->data = (uint8_t*)(map + 1);
-    per_cpu_data = (ebpf_core_per_cpu_data_t*)map->data;
-
-    for (index = 0; index < cpu_count; index++) {
-        ebpf_hash_table_t** tables = (ebpf_hash_table_t**)&per_cpu_data->data;
-        retval = ebpf_hash_table_create(
-            tables + index,
-            ebpf_epoch_allocate,
-            ebpf_epoch_free,
-            map->ebpf_map_definition.key_size,
-            map->ebpf_map_definition.value_size,
-            NULL);
-        if (retval != EBPF_SUCCESS) {
-            goto Done;
-        }
-    }
-
-    map->data = (uint8_t*)per_cpu_data;
-    per_cpu_data->count = cpu_count;
-
-    ebpf_lock_create(&map->lock);
-    retval = EBPF_SUCCESS;
-
-Done:
-    if (retval != EBPF_SUCCESS) {
-        if (per_cpu_data) {
-            for (index = 0; index < per_cpu_data->count; index++) {
-                ebpf_hash_table_t** tables = (ebpf_hash_table_t**)&per_cpu_data->data;
-                ebpf_hash_table_destroy(tables[index]);
-            }
-        }
-        ebpf_free(map);
-        map = NULL;
-    }
-    return map;
-}
-
-static void
-_delete_per_cpu_hash_map(_In_ ebpf_core_map_t* map)
-{
-    uint32_t index;
-    ebpf_core_per_cpu_data_t* per_cpu_data = NULL;
-    ebpf_lock_destroy(&map->lock);
-    per_cpu_data = (ebpf_core_per_cpu_data_t*)map->data;
-    for (index = 0; index < per_cpu_data->count; index++) {
-        ebpf_hash_table_t** tables = (ebpf_hash_table_t**)&per_cpu_data->data;
-        ebpf_hash_table_destroy(tables[index]);
-    }
-    ebpf_free(map);
-}
-
-static ebpf_hash_table_t*
-_get_hash_table_for_cpu(_In_ ebpf_core_map_t* map)
+static ebpf_result_t
+_ebpf_adjust_value_pointer(_In_ ebpf_map_t* map, _Inout_ uint8_t** value)
 {
     uint32_t current_cpu;
-    ebpf_core_per_cpu_data_t* per_cpu_data = NULL;
-    ebpf_hash_table_t** tables;
-    if (ebpf_is_preemptible()) {
-        return NULL;
+    uint32_t max_cpu = map->ebpf_map_definition.value_size / PAD16(map->original_value_size);
+    switch (map->ebpf_map_definition.type) {
+    case BPF_MAP_TYPE_PERCPU_ARRAY:
+    case BPF_MAP_TYPE_PERCPU_HASH:
+        break;
+    default:
+        return EBPF_SUCCESS;
     }
-
     current_cpu = ebpf_get_current_cpu();
-    per_cpu_data = (ebpf_core_per_cpu_data_t*)map->data;
-    tables = (ebpf_hash_table_t**)&per_cpu_data->data;
-    if (current_cpu < per_cpu_data->count) {
-        return tables[current_cpu];
-    } else {
-        return NULL;
-    }
-}
 
-static uint8_t*
-_find_per_cpu_hash_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
-{
-    uint8_t* value = NULL;
-    ebpf_hash_table_t* table;
-    if (!map || !key)
-        return NULL;
-
-    table = _get_hash_table_for_cpu(map);
-    if (!table)
-        return NULL;
-
-    if (ebpf_hash_table_find(table, key, &value) != EBPF_SUCCESS) {
-        value = NULL;
-    }
-
-    return value;
-}
-
-static ebpf_result_t
-_update_per_cpu_hash_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_ const uint8_t* data)
-{
-    ebpf_result_t result;
-    ebpf_hash_table_t* table;
-    size_t entry_count = 0;
-    uint8_t* value;
-    if (!map || !key || !data)
+    if (current_cpu > max_cpu) {
         return EBPF_INVALID_ARGUMENT;
-
-    table = _get_hash_table_for_cpu(map);
-    if (!table)
-        return EBPF_INVALID_ARGUMENT;
-
-    entry_count = ebpf_hash_table_key_count(table);
-
-    if ((entry_count == map->ebpf_map_definition.max_entries) &&
-        (ebpf_hash_table_find(table, key, &value) != EBPF_SUCCESS))
-        result = EBPF_INVALID_ARGUMENT;
-    else
-        result = ebpf_hash_table_update(table, key, data);
-
-    return result;
-}
-
-static ebpf_result_t
-_delete_per_cpu_hash_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
-{
-    ebpf_result_t result;
-    ebpf_hash_table_t* table;
-    if (!map || !key)
-        return EBPF_INVALID_ARGUMENT;
-
-    table = _get_hash_table_for_cpu(map);
-    if (!table)
-        return EBPF_INVALID_ARGUMENT;
-
-    result = ebpf_hash_table_delete(_get_hash_table_for_cpu(map), key);
-    return result;
-}
-
-static ebpf_result_t
-_next_per_cpu_hash_map_key(_In_ ebpf_core_map_t* map, _In_ const uint8_t* previous_key, _Out_ uint8_t* next_key)
-{
-    ebpf_result_t result;
-    if (!map || !next_key)
-        return EBPF_INVALID_ARGUMENT;
-
-    result = ebpf_hash_table_next_key(_get_hash_table_for_cpu(map), previous_key, next_key);
-    return result;
-}
-
-static ebpf_core_map_t*
-_create_per_cpu_array_map(_In_ const ebpf_map_definition_t* map_definition)
-{
-    ebpf_result_t retval;
-    uint32_t cpu_count;
-    size_t map_entry_size = sizeof(ebpf_core_map_t);
-    size_t map_data_size = 0;
-    ebpf_core_map_t* map = NULL;
-    ebpf_core_per_cpu_data_t* per_cpu_data = NULL;
-    ebpf_get_cpu_count(&cpu_count);
-
-    retval = ebpf_safe_size_t_multiply(map_definition->max_entries, map_definition->value_size, &map_data_size);
-    if (retval != EBPF_SUCCESS) {
-        goto Done;
     }
-
-    retval = ebpf_safe_size_t_multiply(map_data_size, cpu_count, &map_data_size);
-    if (retval != EBPF_SUCCESS) {
-        goto Done;
-    }
-
-    retval = ebpf_safe_size_t_add(map_data_size, EBPF_OFFSET_OF(ebpf_core_per_cpu_data_t, data), &map_data_size);
-    if (retval != EBPF_SUCCESS) {
-        goto Done;
-    }
-
-    retval = ebpf_safe_size_t_add(map_data_size, map_entry_size, &map_entry_size);
-    if (retval != EBPF_SUCCESS) {
-        goto Done;
-    }
-
-    // allocate
-    map = ebpf_allocate(map_entry_size);
-    if (map == NULL) {
-        goto Done;
-    }
-
-    map->ebpf_map_definition = *map_definition;
-    map->data = (uint8_t*)(map + 1);
-
-    per_cpu_data = (ebpf_core_per_cpu_data_t*)map->data;
-    per_cpu_data->count = cpu_count;
-
-Done:
-    return map;
-}
-
-static void
-_delete_per_cpu_array_map(_In_ ebpf_core_map_t* map)
-{
-    ebpf_free(map);
-}
-
-static uint8_t*
-_get_array_table_for_cpu(_In_ ebpf_core_map_t* map)
-{
-    size_t offset = (size_t)map->ebpf_map_definition.max_entries * (size_t)map->ebpf_map_definition.value_size;
-    uint32_t current_cpu;
-    ebpf_core_per_cpu_data_t* per_cpu_data = NULL;
-    if (ebpf_is_preemptible()) {
-        return NULL;
-    }
-
-    current_cpu = ebpf_get_current_cpu();
-    per_cpu_data = (ebpf_core_per_cpu_data_t*)map->data;
-    if (current_cpu < per_cpu_data->count) {
-        return per_cpu_data->data + current_cpu * offset;
-    } else {
-        return NULL;
-    }
-}
-
-static uint8_t*
-_find_per_cpu_array_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
-{
-    uint8_t* data;
-    uint32_t key_value;
-    if (!map || !key)
-        return NULL;
-
-    key_value = *(uint32_t*)key;
-
-    if (key_value > map->ebpf_map_definition.max_entries)
-        return NULL;
-
-    data = _get_array_table_for_cpu(map);
-    if (!data) {
-        return NULL;
-    }
-
-    return &data[map->ebpf_map_definition.value_size * key_value];
-}
-
-static ebpf_result_t
-_update_per_cpu_array_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_ const uint8_t* data)
-{
-    uint8_t* entry = _find_per_cpu_array_map_entry(map, key);
-    if (!entry)
-        return EBPF_INVALID_ARGUMENT;
-
-    memcpy(entry, data, map->ebpf_map_definition.value_size);
+    (*value) += PAD16((size_t)map->original_value_size) * current_cpu;
     return EBPF_SUCCESS;
 }
 
-static ebpf_result_t
-_delete_per_cpu_array_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
+/**
+ * @brief Insert the supplied value into the per-cpu value buffer of the map.
+ * If the map doesn't contain an existing value, create a new all-zero value,
+ * insert it, then set the per-cpu value. Note: This races with updates to the
+ * value buffer from user mode.
+ *
+ * @param[in] map Map to update.
+ * @param[in] key Key to search for.
+ * @param[in] value Value to insert.
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_NO_MEMORY Unable to allocate resources for this
+ *  entry.
+ * @retval EBPF_INVALID_ARGUMENT Unable to perform this operation due to
+ * current CPU > allocated value buffer size.
+ */
+ebpf_result_t
+_update_entry_per_cpu(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_ const uint8_t* value)
 {
-    uint8_t* entry = _find_per_cpu_array_map_entry(map, key);
-    if (!entry)
-        return EBPF_KEY_NOT_FOUND;
-
-    memset(entry, 0, map->ebpf_map_definition.value_size);
-    return EBPF_SUCCESS;
-}
-
-static ebpf_result_t
-_next_array_map_key_per_cpu(_In_ ebpf_core_map_t* map, _In_ const uint8_t* previous_key, _Out_ uint8_t* next_key)
-{
-    uint32_t key_value;
-    if (!map || !next_key)
+    uint8_t* target = ebpf_map_function_tables[map->ebpf_map_definition.type].find_entry(map, key);
+    if (!target) {
+        ebpf_result_t return_value =
+            ebpf_map_function_tables[map->ebpf_map_definition.type].update_entry(map, key, NULL);
+        if (return_value != EBPF_SUCCESS) {
+            return return_value;
+        }
+        target = ebpf_map_function_tables[map->ebpf_map_definition.type].find_entry(map, key);
+        if (!target) {
+            return EBPF_NO_MEMORY;
+        }
+    }
+    if (_ebpf_adjust_value_pointer(map, &target) != EBPF_SUCCESS) {
         return EBPF_INVALID_ARGUMENT;
+    }
 
-    if (previous_key) {
-        key_value = *(uint32_t*)previous_key;
-        key_value++;
-    } else
-        key_value = 0;
-
-    if (key_value >= map->ebpf_map_definition.max_entries)
-        return EBPF_NO_MORE_KEYS;
-
-    *(uint32_t*)next_key = key_value;
-
+    memcpy(target, value, ebpf_map_get_effective_value_size(map));
     return EBPF_SUCCESS;
 }
 
@@ -769,6 +531,7 @@ ebpf_map_function_table_t ebpf_map_function_tables[] = {
      NULL,
      _update_hash_map_entry,
      NULL,
+     NULL,
      _delete_hash_map_entry,
      _next_hash_map_key},
     {// BPF_MAP_TYPE_ARRAY
@@ -778,6 +541,7 @@ ebpf_map_function_table_t ebpf_map_function_tables[] = {
      _find_array_map_entry,
      NULL,
      _update_array_map_entry,
+     NULL,
      NULL,
      _delete_array_map_entry,
      _next_array_map_key},
@@ -789,28 +553,31 @@ ebpf_map_function_table_t ebpf_map_function_tables[] = {
      _get_object_from_array_map_entry,
      NULL,
      _update_prog_array_map_entry_with_handle,
+     NULL,
      _delete_prog_array_map_entry,
      _next_array_map_key},
     {// BPF_MAP_TYPE_PERCPU_HASH
-     _create_per_cpu_hash_map,
-     _delete_per_cpu_hash_map,
+     _create_hash_map,
+     _delete_hash_map,
      NULL,
-     _find_per_cpu_hash_map_entry,
+     _find_hash_map_entry,
      NULL,
-     _update_per_cpu_hash_map_entry,
+     _update_hash_map_entry,
      NULL,
-     _delete_per_cpu_hash_map_entry,
-     _next_per_cpu_hash_map_key},
+     _update_entry_per_cpu,
+     _delete_hash_map_entry,
+     _next_hash_map_key},
     {// BPF_MAP_TYPE_PERCPU_ARRAY
-     _create_per_cpu_array_map,
-     _delete_per_cpu_array_map,
+     _create_array_map,
+     _delete_array_map,
      NULL,
-     _find_per_cpu_array_map_entry,
+     _find_array_map_entry,
      NULL,
-     _update_per_cpu_array_map_entry,
+     _update_array_map_entry,
      NULL,
-     _delete_per_cpu_array_map_entry,
-     _next_array_map_key_per_cpu},
+     _update_entry_per_cpu,
+     _delete_array_map_entry,
+     _next_array_map_key},
 };
 
 ebpf_result_t
@@ -822,6 +589,17 @@ ebpf_map_create(
     ebpf_map_t* local_map = NULL;
     ebpf_map_type_t type = ebpf_map_definition->type;
     ebpf_result_t result = EBPF_SUCCESS;
+    uint32_t cpu_count;
+    ebpf_get_cpu_count(&cpu_count);
+    ebpf_map_definition_t local_map_definition = *ebpf_map_definition;
+    switch (local_map_definition.type) {
+    case BPF_MAP_TYPE_PERCPU_HASH:
+    case BPF_MAP_TYPE_PERCPU_ARRAY:
+        local_map_definition.value_size = cpu_count * PAD16(local_map_definition.value_size);
+        break;
+    default:
+        break;
+    }
 
     if (type >= EBPF_COUNT_OF(ebpf_map_function_tables)) {
         result = EBPF_INVALID_ARGUMENT;
@@ -833,11 +611,13 @@ ebpf_map_create(
         goto Exit;
     }
 
-    local_map = ebpf_map_function_tables[type].create_map(ebpf_map_definition);
+    local_map = ebpf_map_function_tables[type].create_map(&local_map_definition);
     if (!local_map) {
         result = EBPF_NO_MEMORY;
         goto Exit;
     }
+
+    local_map->original_value_size = ebpf_map_definition->value_size;
 
     result = ebpf_duplicate_utf8_string(&local_map->name, map_name);
     if (result != EBPF_SUCCESS) {
@@ -883,16 +663,19 @@ ebpf_map_find_entry(
     if ((flags & EBPF_MAP_FLAG_HELPER) && map->ebpf_map_definition.type == BPF_MAP_TYPE_PROG_ARRAY) {
         return EBPF_INVALID_ARGUMENT;
     }
-
     return_value = ebpf_map_function_tables[map->ebpf_map_definition.type].find_entry(map, key);
     if (return_value == NULL) {
         return EBPF_OBJECT_NOT_FOUND;
     }
 
     if (flags & EBPF_MAP_FLAG_HELPER) {
+        if (_ebpf_adjust_value_pointer(map, &return_value) != EBPF_SUCCESS) {
+            return EBPF_INVALID_ARGUMENT;
+        }
+
         *(uint8_t**)value = return_value;
     } else {
-        memcpy(value, return_value, value_size);
+        memcpy(value, return_value, map->ebpf_map_definition.value_size);
     }
     return EBPF_SUCCESS;
 }
@@ -939,10 +722,17 @@ ebpf_map_update_entry(
         return EBPF_INVALID_ARGUMENT;
     }
 
-    if (ebpf_map_function_tables[map->ebpf_map_definition.type].update_entry == NULL) {
+    if ((ebpf_map_function_tables[map->ebpf_map_definition.type].update_entry == NULL) ||
+        (ebpf_map_function_tables[map->ebpf_map_definition.type].find_entry == NULL)) {
         return EBPF_INVALID_ARGUMENT;
     }
-    return ebpf_map_function_tables[map->ebpf_map_definition.type].update_entry(map, key, value);
+
+    if ((flags & EBPF_MAP_FLAG_HELPER) &&
+        ebpf_map_function_tables[map->ebpf_map_definition.type].update_entry_per_cpu) {
+        return ebpf_map_function_tables[map->ebpf_map_definition.type].update_entry_per_cpu(map, key, value);
+    } else {
+        return ebpf_map_function_tables[map->ebpf_map_definition.type].update_entry(map, key, value);
+    }
 }
 
 ebpf_result_t

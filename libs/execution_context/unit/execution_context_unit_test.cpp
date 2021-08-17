@@ -44,46 +44,34 @@ test_crud_operations(ebpf_map_type_t map_type)
         REQUIRE(ebpf_map_create(&map_name, &map_definition, &local_map) == EBPF_SUCCESS);
         map.reset(local_map);
     }
+    std::vector<uint8_t> value(ebpf_map_get_definition(map.get())->value_size);
     for (uint32_t key = 0; key < 10; key++) {
-        uint64_t value = static_cast<uint64_t>(key) * static_cast<uint64_t>(key);
+        *reinterpret_cast<uint64_t*>(value.data()) = static_cast<uint64_t>(key) * static_cast<uint64_t>(key);
         REQUIRE(
             ebpf_map_update_entry(
-                map.get(),
-                sizeof(key),
-                reinterpret_cast<const uint8_t*>(&key),
-                sizeof(value),
-                reinterpret_cast<const uint8_t*>(&value),
-                0) == EBPF_SUCCESS);
+                map.get(), sizeof(key), reinterpret_cast<const uint8_t*>(&key), value.size(), value.data(), 0) ==
+            EBPF_SUCCESS);
     }
 
     // Test for inserting max_entries + 1
     uint32_t bad_key = 11;
-    uint64_t bad_value = 11 * 11;
+    *reinterpret_cast<uint64_t*>(value.data()) = 11 * 11;
     REQUIRE(
         ebpf_map_update_entry(
-            map.get(),
-            sizeof(bad_key),
-            reinterpret_cast<const uint8_t*>(&bad_key),
-            sizeof(bad_value),
-            reinterpret_cast<const uint8_t*>(&bad_value),
-            0) == EBPF_INVALID_ARGUMENT);
+            map.get(), sizeof(bad_key), reinterpret_cast<const uint8_t*>(&bad_key), value.size(), value.data(), 0) ==
+        EBPF_INVALID_ARGUMENT);
 
     REQUIRE(
         ebpf_map_delete_entry(map.get(), sizeof(bad_key), reinterpret_cast<const uint8_t*>(&bad_key), 0) ==
         EBPF_KEY_NOT_FOUND);
 
     for (uint32_t key = 0; key < 10; key++) {
-        uint64_t value;
         REQUIRE(
             ebpf_map_find_entry(
-                map.get(),
-                sizeof(key),
-                reinterpret_cast<const uint8_t*>(&key),
-                sizeof(value),
-                reinterpret_cast<uint8_t*>(&value),
-                0) == EBPF_SUCCESS);
+                map.get(), sizeof(key), reinterpret_cast<const uint8_t*>(&key), value.size(), value.data(), 0) ==
+            EBPF_SUCCESS);
 
-        REQUIRE(value == key * key);
+        REQUIRE(*reinterpret_cast<uint64_t*>(value.data()) == key * key);
     }
 
     uint32_t previous_key;
@@ -111,9 +99,9 @@ test_crud_operations(ebpf_map_type_t map_type)
             ebpf_map_delete_entry(map.get(), sizeof(key), reinterpret_cast<const uint8_t*>(&key), 0) == EBPF_SUCCESS);
     }
 
-    auto retrieved_map_definition = ebpf_map_get_definition(map.get());
-    REQUIRE(retrieved_map_definition != nullptr);
-    REQUIRE(memcmp(retrieved_map_definition, &map_definition, sizeof(map_definition)) == 0);
+    auto retrieved_map_definition = *ebpf_map_get_definition(map.get());
+    retrieved_map_definition.value_size = ebpf_map_get_effective_value_size(map.get());
+    REQUIRE(memcmp(&retrieved_map_definition, &map_definition, sizeof(map_definition)) == 0);
 }
 
 TEST_CASE("map_crud_operations_array", "[execution_context]") { test_crud_operations(BPF_MAP_TYPE_ARRAY); }
