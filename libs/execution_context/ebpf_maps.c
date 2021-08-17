@@ -42,6 +42,8 @@ typedef struct _ebpf_map_function_table
     ebpf_result_t (*next_key)(_In_ ebpf_core_map_t* map, _In_ const uint8_t* previous_key, _Out_ uint8_t* next_key);
 } ebpf_map_function_table_t;
 
+ebpf_map_function_table_t ebpf_map_function_tables[];
+
 const ebpf_map_definition_t*
 ebpf_map_get_definition(_In_ const ebpf_map_t* map)
 {
@@ -515,6 +517,7 @@ _update_entry_per_cpu(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_ c
     }
 
     memcpy(target, value, ebpf_map_get_effective_value_size(map));
+    return EBPF_SUCCESS;
 }
 
 ebpf_map_function_table_t ebpf_map_function_tables[] = {
