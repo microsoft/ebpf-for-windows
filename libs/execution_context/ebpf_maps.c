@@ -36,6 +36,8 @@ typedef struct _ebpf_map_function_table
     ebpf_result_t (*update_entry)(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_ const uint8_t* value);
     ebpf_result_t (*update_entry_with_handle)(
         _In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_ const uint8_t* value, uintptr_t value_handle);
+    ebpf_result_t (*update_entry_per_cpu)(
+        _In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_ const uint8_t* value);
     ebpf_result_t (*delete_entry)(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key);
     ebpf_result_t (*next_key)(_In_ ebpf_core_map_t* map, _In_ const uint8_t* previous_key, _Out_ uint8_t* next_key);
 } ebpf_map_function_table_t;
@@ -457,6 +459,49 @@ _next_hash_map_key(_In_ ebpf_core_map_t* map, _In_ const uint8_t* previous_key, 
     return result;
 }
 
+static ebpf_result_t
+_ebpf_adjust_value_pointer(_In_ ebpf_map_t* map, _Inout_ uint8_t** value)
+{
+    uint32_t current_cpu;
+    uint32_t max_cpu = map->ebpf_map_definition.value_size / PAD16(map->original_value_size);
+    switch (map->ebpf_map_definition.type) {
+    case BPF_MAP_TYPE_PERCPU_ARRAY:
+    case BPF_MAP_TYPE_PERCPU_HASH:
+        break;
+    default:
+        return EBPF_SUCCESS;
+    }
+    current_cpu = ebpf_get_current_cpu();
+
+    if (current_cpu > max_cpu) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+    (*value) += PAD16((size_t)map->original_value_size) * current_cpu;
+    return EBPF_SUCCESS;
+}
+
+ebpf_result_t
+_update_entry_per_cpu(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_ const uint8_t* value)
+{
+    uint8_t* target = ebpf_map_function_tables[map->ebpf_map_definition.type].find_entry(map, key);
+    if (!target) {
+        ebpf_result_t return_value =
+            ebpf_map_function_tables[map->ebpf_map_definition.type].update_entry(map, key, NULL);
+        if (return_value != EBPF_SUCCESS) {
+            return return_value;
+        }
+        target = ebpf_map_function_tables[map->ebpf_map_definition.type].find_entry(map, key);
+        if (!target) {
+            return EBPF_NO_MEMORY;
+        }
+    }
+    if (_ebpf_adjust_value_pointer(map, &target) != EBPF_SUCCESS) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    memcpy(target, value, ebpf_map_get_effective_value_size(map));
+}
+
 ebpf_map_function_table_t ebpf_map_function_tables[] = {
     {// BPF_MAP_TYPE_UNSPECIFIED
      NULL},
@@ -468,6 +513,7 @@ ebpf_map_function_table_t ebpf_map_function_tables[] = {
      NULL,
      _update_hash_map_entry,
      NULL,
+     NULL,
      _delete_hash_map_entry,
      _next_hash_map_key},
     {// BPF_MAP_TYPE_ARRAY
@@ -477,6 +523,7 @@ ebpf_map_function_table_t ebpf_map_function_tables[] = {
      _find_array_map_entry,
      NULL,
      _update_array_map_entry,
+     NULL,
      NULL,
      _delete_array_map_entry,
      _next_array_map_key},
@@ -488,6 +535,7 @@ ebpf_map_function_table_t ebpf_map_function_tables[] = {
      _get_object_from_array_map_entry,
      NULL,
      _update_prog_array_map_entry_with_handle,
+     NULL,
      _delete_prog_array_map_entry,
      _next_array_map_key},
     {// BPF_MAP_TYPE_PERCPU_HASH
@@ -498,6 +546,7 @@ ebpf_map_function_table_t ebpf_map_function_tables[] = {
      NULL,
      _update_hash_map_entry,
      NULL,
+     _update_entry_per_cpu,
      _delete_hash_map_entry,
      _next_hash_map_key},
     {// BPF_MAP_TYPE_PERCPU_ARRAY
@@ -508,6 +557,7 @@ ebpf_map_function_table_t ebpf_map_function_tables[] = {
      NULL,
      _update_array_map_entry,
      NULL,
+     _update_entry_per_cpu,
      _delete_array_map_entry,
      _next_array_map_key},
 };
@@ -573,27 +623,6 @@ Exit:
     return result;
 }
 
-static ebpf_result_t
-_ebpf_adjust_value_pointer(_In_ ebpf_map_t* map, _Inout_ uint8_t** value)
-{
-    uint32_t current_cpu;
-    uint32_t max_cpu = map->ebpf_map_definition.value_size / PAD16(map->original_value_size);
-    switch (map->ebpf_map_definition.type) {
-    case BPF_MAP_TYPE_PERCPU_ARRAY:
-    case BPF_MAP_TYPE_PERCPU_HASH:
-        break;
-    default:
-        return EBPF_SUCCESS;
-    }
-    current_cpu = ebpf_get_current_cpu();
-
-    if (current_cpu > max_cpu) {
-        return EBPF_INVALID_ARGUMENT;
-    }
-    (*value) += PAD16((size_t)map->original_value_size) * current_cpu;
-    return EBPF_SUCCESS;
-}
-
 ebpf_result_t
 ebpf_map_find_entry(
     _In_ ebpf_map_t* map,
@@ -616,7 +645,6 @@ ebpf_map_find_entry(
     if ((flags & EBPF_MAP_FLAG_HELPER) && map->ebpf_map_definition.type == BPF_MAP_TYPE_PROG_ARRAY) {
         return EBPF_INVALID_ARGUMENT;
     }
-
     return_value = ebpf_map_function_tables[map->ebpf_map_definition.type].find_entry(map, key);
     if (return_value == NULL) {
         return EBPF_OBJECT_NOT_FOUND;
@@ -681,25 +709,9 @@ ebpf_map_update_entry(
         return EBPF_INVALID_ARGUMENT;
     }
 
-    if (flags & EBPF_MAP_FLAG_HELPER) {
-        uint8_t* target = ebpf_map_function_tables[map->ebpf_map_definition.type].find_entry(map, key);
-        if (!target) {
-            ebpf_result_t return_value =
-                ebpf_map_function_tables[map->ebpf_map_definition.type].update_entry(map, key, NULL);
-            if (return_value != EBPF_SUCCESS) {
-                return return_value;
-            }
-            target = ebpf_map_function_tables[map->ebpf_map_definition.type].find_entry(map, key);
-            if (!target) {
-                return EBPF_NO_MEMORY;
-            }
-        }
-        if (_ebpf_adjust_value_pointer(map, &target) != EBPF_SUCCESS) {
-            return EBPF_INVALID_ARGUMENT;
-        }
-
-        memcpy(target, value, ebpf_map_get_effective_value_size(map));
-        return EBPF_SUCCESS;
+    if ((flags & EBPF_MAP_FLAG_HELPER) &&
+        ebpf_map_function_tables[map->ebpf_map_definition.type].update_entry_per_cpu) {
+        return ebpf_map_function_tables[map->ebpf_map_definition.type].update_entry_per_cpu(map, key, value);
     } else {
         return ebpf_map_function_tables[map->ebpf_map_definition.type].update_entry(map, key, value);
     }
