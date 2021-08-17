@@ -429,13 +429,13 @@ extern "C"
      *
      * @param[in] hash_table Hash-table to update.
      * @param[in] key Key to find and insert or update.
-     * @param[in] value Value to insert into hash table.
+     * @param[in] value Value to insert into hash table or NULL to insert zero entry.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Unable to allocate memory for this
      *  entry in the hash table.
      */
     ebpf_result_t
-    ebpf_hash_table_update(_In_ ebpf_hash_table_t* hash_table, _In_ const uint8_t* key, _In_ const uint8_t* value);
+    ebpf_hash_table_update(_In_ ebpf_hash_table_t* hash_table, _In_ const uint8_t* key, _In_opt_ const uint8_t* value);
 
     /**
      * @brief Remove an entry from the hash table.
