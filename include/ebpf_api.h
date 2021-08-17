@@ -219,6 +219,7 @@ extern "C"
      * @param[out] key_size Size of keys in the eBPF map.
      * @param[out] value_size Size of values in the eBPF map.
      * @param[out] max_entries Maximum number of entries in the map.
+     * @param[out] inner_map_idx Index in the object of an inner map template.
      * @retval EBPF_SUCCESS The operation was successful.
      */
     ebpf_result_t
@@ -228,7 +229,8 @@ extern "C"
         _Out_ uint32_t* type,
         _Out_ uint32_t* key_size,
         _Out_ uint32_t* value_size,
-        _Out_ uint32_t* max_entries);
+        _Out_ uint32_t* max_entries,
+        _Out_ uint32_t* inner_map_idx);
 
     /**
      * @brief Query info about an eBPF program.

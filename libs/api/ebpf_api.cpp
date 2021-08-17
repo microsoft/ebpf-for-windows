@@ -176,11 +176,7 @@ _create_map(
     request = reinterpret_cast<ebpf_operation_create_map_request_t*>(request_buffer.data());
     request->header.id = EBPF_OPERATION_CREATE_MAP;
     request->header.length = static_cast<uint16_t>(request_buffer.size());
-    request->ebpf_map_definition.size = sizeof(ebpf_map_definition_t);
-    request->ebpf_map_definition.type = map_definition->type;
-    request->ebpf_map_definition.key_size = map_definition->key_size;
-    request->ebpf_map_definition.value_size = map_definition->value_size;
-    request->ebpf_map_definition.max_entries = map_definition->max_entries;
+    request->ebpf_map_definition = *map_definition;
     std::copy(
         map_name.begin(), map_name.end(), request_buffer.begin() + offsetof(ebpf_operation_create_map_request_t, data));
 
@@ -208,7 +204,7 @@ ebpf_create_map_name(
 {
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_handle_t map_handle = ebpf_handle_invalid;
-    ebpf_map_definition_t map_definition;
+    ebpf_map_definition_t map_definition = {0};
 
     if (map_flags != 0 || map_fd == nullptr) {
         result = EBPF_INVALID_ARGUMENT;
@@ -217,6 +213,7 @@ ebpf_create_map_name(
     *map_fd = ebpf_fd_invalid;
 
     try {
+        map_definition.size = sizeof(map_definition);
         map_definition.type = type;
         map_definition.key_size = key_size;
         map_definition.value_size = value_size;
@@ -321,7 +318,8 @@ _get_map_descriptor_properties(
         // Map is not present in the local cache. Query map descriptor from EC.
         uint32_t size;
         uint32_t max_entries;
-        result = query_map_definition(handle, &size, type, key_size, value_size, &max_entries);
+        uint32_t inner_map_idx;
+        result = query_map_definition(handle, &size, type, key_size, value_size, &max_entries, &inner_map_idx);
         if (result != EBPF_SUCCESS) {
             goto Exit;
         }
@@ -466,15 +464,16 @@ ebpf_map_update_element(fd_t map_fd, _In_ const void* key, _In_ const void* valu
     assert(value_size != 0);
     assert(type != 0);
 
-    if (type == BPF_MAP_TYPE_PROG_ARRAY) {
-        fd_t program_fd = *(fd_t*)value;
-        ebpf_handle_t program_handle = _get_handle_from_fd(program_fd);
-        if (program_handle == ebpf_handle_invalid) {
+    if ((type == BPF_MAP_TYPE_PROG_ARRAY) || (type == BPF_MAP_TYPE_HASH_OF_MAPS) ||
+        (type == BPF_MAP_TYPE_ARRAY_OF_MAPS)) {
+        fd_t fd = *(fd_t*)value;
+        ebpf_handle_t handle = _get_handle_from_fd(fd);
+        if (handle == ebpf_handle_invalid) {
             return EBPF_INVALID_FD;
         }
 
         return _update_map_element_with_handle(
-            map_handle, key_size, (const uint8_t*)key, value_size, (const uint8_t*)value, program_handle);
+            map_handle, key_size, (const uint8_t*)key, value_size, (const uint8_t*)value, handle);
     } else {
         return _update_map_element(map_handle, key, key_size, value, value_size, flags);
     }
@@ -611,13 +610,20 @@ create_map_internal(
     uint32_t key_size,
     uint32_t value_size,
     uint32_t max_entries,
+    uint32_t inner_map_fd,
     size_t section_offset,
     ebpf_verifier_options_t)
 {
     // Get a mock fd and store the map information in the map descriptor cache.
     // Actual map creation will happen at a later stage.
     return cache_map_handle(
-        reinterpret_cast<uint64_t>(INVALID_HANDLE_VALUE), type, key_size, value_size, max_entries, section_offset);
+        reinterpret_cast<uint64_t>(INVALID_HANDLE_VALUE),
+        type,
+        key_size,
+        value_size,
+        max_entries,
+        inner_map_fd,
+        section_offset);
 }
 
 static ebpf_result_t
@@ -1064,10 +1070,9 @@ ebpf_get_next_program(fd_t previous_fd, _Out_ fd_t* next_fd)
     *next_fd = ebpf_fd_invalid;
 
     ebpf_handle_t previous_handle = _get_handle_from_fd(local_fd);
-    ebpf_operation_get_next_program_request_t request{
-        sizeof(request),
-        ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_PROGRAM,
-        reinterpret_cast<uint64_t>(previous_handle)};
+    ebpf_operation_get_next_program_request_t request{sizeof(request),
+                                                      ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_PROGRAM,
+                                                      reinterpret_cast<uint64_t>(previous_handle)};
 
     ebpf_operation_get_next_program_reply_t reply;
 
@@ -1097,13 +1102,14 @@ ebpf_map_query_definition(
     _Out_ uint32_t* type,
     _Out_ uint32_t* key_size,
     _Out_ uint32_t* value_size,
-    _Out_ uint32_t* max_entries)
+    _Out_ uint32_t* max_entries,
+    _Out_ uint32_t* inner_map_idx)
 {
     ebpf_handle_t map_handle = _get_handle_from_fd(fd);
     if (map_handle == ebpf_handle_invalid) {
         return EBPF_INVALID_FD;
     }
-    return query_map_definition(map_handle, size, type, key_size, value_size, max_entries);
+    return query_map_definition(map_handle, size, type, key_size, value_size, max_entries, inner_map_idx);
 }
 
 ebpf_result_t
@@ -1163,11 +1169,10 @@ ebpf_program_query_info(
 uint32_t
 ebpf_api_link_program(ebpf_handle_t program_handle, ebpf_attach_type_t attach_type, ebpf_handle_t* link_handle)
 {
-    ebpf_operation_link_program_request_t request = {
-        EBPF_OFFSET_OF(ebpf_operation_link_program_request_t, data),
-        EBPF_OPERATION_LINK_PROGRAM,
-        reinterpret_cast<uint64_t>(program_handle),
-        attach_type};
+    ebpf_operation_link_program_request_t request = {EBPF_OFFSET_OF(ebpf_operation_link_program_request_t, data),
+                                                     EBPF_OPERATION_LINK_PROGRAM,
+                                                     reinterpret_cast<uint64_t>(program_handle),
+                                                     attach_type};
     ebpf_operation_link_program_reply_t reply;
 
     uint32_t retval = invoke_ioctl(request, reply);
@@ -1578,10 +1583,18 @@ initialize_map(_Out_ ebpf_map_t* map, _In_ const map_cache_t& map_cache)
     // Map cache contains mock fd. Initialize handle to ebpf_handle_invalid.
     map->map_handle = ebpf_handle_invalid;
     map->mock_map_fd = map_cache.ebpf_map_descriptor.original_fd;
+    map->map_definition.size = sizeof(map->map_definition);
     map->map_definition.type = (ebpf_map_type_t)map_cache.ebpf_map_descriptor.type;
     map->map_definition.key_size = map_cache.ebpf_map_descriptor.key_size;
     map->map_definition.value_size = map_cache.ebpf_map_descriptor.value_size;
     map->map_definition.max_entries = map_cache.ebpf_map_descriptor.max_entries;
+
+    // The PREVAIL code calls the field inner_map_fd, which is what user-mode
+    // apps would write into map values, but what is stored and read from map
+    // values is instead an inner_map_idx which is what the field is called on
+    // Linux.
+    map->map_definition.inner_map_idx = map_cache.ebpf_map_descriptor.inner_map_fd;
+
     map->pinned = false;
     map->pin_path = nullptr;
 }

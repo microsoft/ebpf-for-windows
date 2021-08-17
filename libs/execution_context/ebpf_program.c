@@ -189,6 +189,12 @@ _ebpf_program_free(ebpf_object_t* object)
     ebpf_epoch_schedule_work_item(program->cleanup_work_item);
 }
 
+static const ebpf_program_type_t*
+_ebpf_program_get_program_type(_In_ const ebpf_object_t* object)
+{
+    return ebpf_program_type((const ebpf_program_t*)object);
+}
+
 /**
  * @brief Free invoked when the current epoch ends. Scheduled by
  * _ebpf_program_free.
@@ -309,7 +315,8 @@ ebpf_program_create(ebpf_program_t** program)
     ebpf_list_initialize(&local_program->links);
     ebpf_lock_create(&local_program->links_lock);
 
-    ebpf_object_initialize(&local_program->object, EBPF_OBJECT_PROGRAM, _ebpf_program_free);
+    ebpf_object_initialize(
+        &local_program->object, EBPF_OBJECT_PROGRAM, _ebpf_program_free, _ebpf_program_get_program_type);
 
     *program = local_program;
     local_program = NULL;

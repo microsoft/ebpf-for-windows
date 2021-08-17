@@ -74,3 +74,5 @@ EBPF_HELPER(int64_t, bpf_tail_call, (void* ctx, struct bpf_map* prog_array_map, 
 #ifndef __doxygen
 #define bpf_tail_call ((bpf_tail_call_t)4)
 #endif
+
+#define SEC(name) __attribute__((section(name), used))

@@ -56,27 +56,29 @@ get_file_size(const char* filename, size_t* byte_code_size) noexcept
 ebpf_result_t
 query_map_definition(
     ebpf_handle_t handle,
-    uint32_t* size,
-    uint32_t* type,
-    uint32_t* key_size,
-    uint32_t* value_size,
-    uint32_t* max_entries) noexcept
+    _Out_ uint32_t* size,
+    _Out_ uint32_t* type,
+    _Out_ uint32_t* key_size,
+    _Out_ uint32_t* value_size,
+    _Out_ uint32_t* max_entries,
+    _Out_ uint32_t* inner_map_idx) noexcept
 {
     _ebpf_operation_query_map_definition_request request{
         sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_QUERY_MAP_DEFINITION, reinterpret_cast<uint64_t>(handle)};
 
     _ebpf_operation_query_map_definition_reply reply;
 
-    uint32_t result = invoke_ioctl(request, reply);
-    if (result == ERROR_SUCCESS) {
+    uint32_t error = invoke_ioctl(request, reply);
+    ebpf_result_t result = windows_error_to_ebpf_result(error);
+    if (result == EBPF_SUCCESS) {
         *size = reply.map_definition.size;
         *type = reply.map_definition.type;
         *key_size = reply.map_definition.key_size;
         *value_size = reply.map_definition.value_size;
         *max_entries = reply.map_definition.max_entries;
+        *inner_map_idx = reply.map_definition.inner_map_idx;
     }
-
-    return windows_error_to_ebpf_result(result);
+    return result;
 }
 
 void
