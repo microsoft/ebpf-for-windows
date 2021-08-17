@@ -480,6 +480,21 @@ _ebpf_adjust_value_pointer(_In_ ebpf_map_t* map, _Inout_ uint8_t** value)
     return EBPF_SUCCESS;
 }
 
+/**
+ * @brief Insert the supplied value into the per-cpu value buffer of the map.
+ * If the map doesn't contain an existing value, create a new all-zero value,
+ * insert it, then set the per-cpu value. Note: This races with updates to the
+ * value buffer from user mode.
+ *
+ * @param[in] map Map to update.
+ * @param[in] key Key to search for.
+ * @param[in] value Value to insert.
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_NO_MEMORY Unable to allocate resources for this
+ *  entry.
+ * @retval EBPF_INVALID_ARGUMENT Unable to perform this operation due to
+ * current CPU > allocated value buffer size.
+ */
 ebpf_result_t
 _update_entry_per_cpu(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_ const uint8_t* value)
 {
