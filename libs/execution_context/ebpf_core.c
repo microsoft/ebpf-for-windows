@@ -600,6 +600,7 @@ _ebpf_core_protocol_query_map_definition(
         goto Done;
 
     reply->map_definition = *ebpf_map_get_definition(map);
+    reply->map_definition.value_size = ebpf_map_get_effective_value_size(map);
     retval = EBPF_SUCCESS;
 
 Done:
@@ -873,6 +874,7 @@ _ebpf_core_protocol_convert_pinning_entries_to_map_info_array(
         // Query map defintion.
         const ebpf_map_definition_t* map_definition = ebpf_map_get_definition((ebpf_map_t*)source->object);
         destination->definition = *map_definition;
+        destination->definition.value_size = ebpf_map_get_effective_value_size((ebpf_map_t*)source->object);
         // Set pin path. No need to duplicate.
         destination->pin_path = source->name;
     }

@@ -38,6 +38,17 @@ extern "C"
     const ebpf_map_definition_t*
     ebpf_map_get_definition(_In_ const ebpf_map_t* map);
 
+    /**
+     * @brief Get the map value size specified when the map was originally
+     * created. For per-cpu maps this will be different from the value in the
+     * returned ebpf_map_definition_t.
+     *
+     * @param[in] map Map to query
+     * @return uint32_t effective value size of the entry.
+     */
+    uint32_t
+    ebpf_map_get_effective_value_size(_In_ const ebpf_map_t* map);
+
 #define EBPF_MAP_FLAG_HELPER 0x01 /* Called by an eBPF program */
 
     /**

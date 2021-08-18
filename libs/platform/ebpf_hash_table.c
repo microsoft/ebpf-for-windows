@@ -126,7 +126,7 @@ ebpf_hash_table_find(_In_ ebpf_hash_table_t* hash_table, _In_ const uint8_t* key
 }
 
 ebpf_result_t
-ebpf_hash_table_update(_In_ ebpf_hash_table_t* hash_table, _In_ const uint8_t* key, _In_ const uint8_t* value)
+ebpf_hash_table_update(_In_ ebpf_hash_table_t* hash_table, _In_ const uint8_t* key, _In_opt_ const uint8_t* value)
 {
     ebpf_result_t retval;
     RTL_AVL_TABLE* table = (RTL_AVL_TABLE*)hash_table;
@@ -135,7 +135,7 @@ ebpf_hash_table_update(_In_ ebpf_hash_table_t* hash_table, _In_ const uint8_t* k
     size_t temp_size = hash_table->key_size + hash_table->value_size;
     BOOLEAN new_entry;
 
-    if (!hash_table || !key || !value) {
+    if (!hash_table || !key) {
         retval = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
@@ -147,7 +147,8 @@ ebpf_hash_table_update(_In_ ebpf_hash_table_t* hash_table, _In_ const uint8_t* k
     }
 
     memcpy(temp, key, hash_table->key_size);
-    memcpy(temp + hash_table->key_size, value, hash_table->value_size);
+    if (value)
+        memcpy(temp + hash_table->key_size, value, hash_table->value_size);
 
     entry = RtlInsertElementGenericTableAvl(table, temp, (uint32_t)temp_size, &new_entry);
     if (!entry) {
@@ -156,7 +157,9 @@ ebpf_hash_table_update(_In_ ebpf_hash_table_t* hash_table, _In_ const uint8_t* k
     }
 
     // Update existing entry
-    memcpy(entry + hash_table->key_size, value, hash_table->value_size);
+    if (value)
+        memcpy(entry + hash_table->key_size, value, hash_table->value_size);
+
     retval = EBPF_SUCCESS;
 
 Done:
