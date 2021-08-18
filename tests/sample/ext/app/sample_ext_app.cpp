@@ -7,6 +7,7 @@
 #include <mutex>
 #include <thread>
 
+#include "bpf.h"
 #include "catch_wrapper.hpp"
 #include "libbpf.h"
 #include "service_helper.h"
@@ -88,7 +89,7 @@ TEST_CASE("test_test", "[test_test]")
 
     for (uint32_t key = 0; key < map_entry_buffers.size(); key++) {
         std::copy(strings[key], strings[key] + strlen(strings[key]), map_entry_buffers[key].begin());
-        REQUIRE(ebpf_map_update_element(map_fd, &key, map_entry_buffers[key].data(), EBPF_ANY) == EBPF_SUCCESS);
+        REQUIRE(bpf_map_update_elem(map_fd, &key, map_entry_buffers[key].data(), EBPF_ANY) == EBPF_SUCCESS);
     }
 
     // Attach to link.

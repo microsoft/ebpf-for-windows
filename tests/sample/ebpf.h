@@ -13,7 +13,6 @@ typedef unsigned int uint32_t;
 typedef unsigned short uint16_t;
 typedef unsigned char uint8_t;
 
-#include "ebpf_helpers.h"
 #include "ebpf_nethooks.h"
 
 #if defined(_MSC_VER)

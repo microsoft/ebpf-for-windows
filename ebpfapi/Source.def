@@ -19,6 +19,10 @@ EXPORTS
     bpf_map__type
     bpf_map__unpin
     bpf_map__value_size
+    bpf_map_delete_elem
+    bpf_map_get_next_key
+    bpf_map_lookup_elem
+    bpf_map_update_elem
     bpf_object__close
     bpf_object__find_map_by_name
     bpf_object__find_map_fd_by_name
@@ -60,11 +64,7 @@ EXPORTS
     ebpf_free_string
     ebpf_get_next_map
     ebpf_get_next_program
-    ebpf_map_delete_element
-    ebpf_map_get_next_key
-    ebpf_map_lookup_element
     ebpf_map_pin
-    ebpf_map_update_element
     ebpf_object_get
     ebpf_object_pin
     ebpf_object_unpin

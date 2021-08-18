@@ -7,6 +7,7 @@
 // this passes the checker
 
 #include "ebpf.h"
+#include "ebpf_helpers.h"
 
 #pragma clang section data = "maps"
 ebpf_map_definition_t port_map = {.size = sizeof(ebpf_map_definition_t),

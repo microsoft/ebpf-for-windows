@@ -366,7 +366,7 @@ TEST_CASE("disallow setting bind fd in xdp prog array", "[libbpf]")
     // associated with an XDP program.
     int index = 0;
     error = bpf_map_update_elem(map_fd, (uint8_t*)&index, (uint8_t*)&callee_fd, 0);
-    REQUIRE(error < 0);
+    REQUIRE(error == -EBPF_INVALID_ARGUMENT);
     REQUIRE(errno == -error);
 
     bpf_object__close(bind_object);
@@ -403,7 +403,7 @@ TEST_CASE("disallow prog_array mixed program type values", "[libbpf]")
 
     // Adding an entry with a different program type should fail.
     error = bpf_map_update_elem(map_fd, (uint8_t*)&index, (uint8_t*)&bind_object_fd, 0);
-    REQUIRE(error < 0);
+    REQUIRE(error == -EBPF_INVALID_ARGUMENT);
     REQUIRE(errno == -error);
 
     bpf_object__close(bind_object);

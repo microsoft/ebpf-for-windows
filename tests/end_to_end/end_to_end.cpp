@@ -182,7 +182,7 @@ droppacket_test(ebpf_execution_type_t execution_type)
 
     uint32_t key = 0;
     uint64_t value = 1000;
-    REQUIRE(ebpf_map_update_element(port_map_fd, &key, &value, EBPF_ANY) == EBPF_SUCCESS);
+    REQUIRE(bpf_map_update_elem(port_map_fd, &key, &value, EBPF_ANY) == EBPF_SUCCESS);
 
     // Test that we drop the packet and increment the map
     xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
@@ -191,12 +191,12 @@ droppacket_test(ebpf_execution_type_t execution_type)
     REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == 2);
 
-    REQUIRE(ebpf_map_lookup_element(port_map_fd, &key, &value) == EBPF_SUCCESS);
+    REQUIRE(bpf_map_lookup_elem(port_map_fd, &key, &value) == EBPF_SUCCESS);
     REQUIRE(value == 1001);
 
-    REQUIRE(ebpf_map_delete_element(port_map_fd, &key) == EBPF_SUCCESS);
+    REQUIRE(bpf_map_delete_elem(port_map_fd, &key) == EBPF_SUCCESS);
 
-    REQUIRE(ebpf_map_lookup_element(port_map_fd, &key, &value) == EBPF_SUCCESS);
+    REQUIRE(bpf_map_lookup_elem(port_map_fd, &key, &value) == EBPF_SUCCESS);
     REQUIRE(value == 0);
 
     packet = prepare_udp_packet(10);
@@ -205,7 +205,7 @@ droppacket_test(ebpf_execution_type_t execution_type)
     REQUIRE(hook.fire(&ctx2, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == 1);
 
-    REQUIRE(ebpf_map_lookup_element(port_map_fd, &key, &value) == EBPF_SUCCESS);
+    REQUIRE(bpf_map_lookup_elem(port_map_fd, &key, &value) == EBPF_SUCCESS);
     REQUIRE(value == 0);
 
     hook.detach_link(link);
@@ -266,7 +266,7 @@ uint32_t
 get_bind_count_for_pid(fd_t map_fd, uint64_t pid)
 {
     process_entry_t entry{};
-    ebpf_map_lookup_element(map_fd, &pid, &entry);
+    bpf_map_lookup_elem(map_fd, &pid, &entry);
 
     return entry.count;
 }
@@ -300,7 +300,7 @@ void
 set_bind_limit(fd_t map_fd, uint32_t limit)
 {
     uint32_t limit_key = 0;
-    REQUIRE(ebpf_map_update_element(map_fd, &limit_key, &limit, EBPF_ANY) == EBPF_SUCCESS);
+    REQUIRE(bpf_map_update_elem(map_fd, &limit_key, &limit, EBPF_ANY) == EBPF_SUCCESS);
 }
 
 void
@@ -367,11 +367,11 @@ bindmonitor_test(ebpf_execution_type_t execution_type)
     REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
 
     uint64_t pid;
-    REQUIRE(ebpf_map_get_next_key(process_map_fd, NULL, &pid) == EBPF_SUCCESS);
+    REQUIRE(bpf_map_get_next_key(process_map_fd, NULL, &pid) == EBPF_SUCCESS);
     REQUIRE(pid != 0);
-    REQUIRE(ebpf_map_get_next_key(process_map_fd, &pid, &pid) == EBPF_SUCCESS);
+    REQUIRE(bpf_map_get_next_key(process_map_fd, &pid, &pid) == EBPF_SUCCESS);
     REQUIRE(pid != 0);
-    REQUIRE(ebpf_map_get_next_key(process_map_fd, &pid, &pid) == EBPF_NO_MORE_KEYS);
+    REQUIRE(bpf_map_get_next_key(process_map_fd, &pid, &pid) == -EBPF_NO_MORE_KEYS);
 
     hook.detach_link(link);
     hook.close_link(link);
@@ -786,8 +786,7 @@ TEST_CASE("create_map", "[end_to_end]")
     REQUIRE(map_fd > 0);
 
     for (int i = 0; i < element_count; i++) {
-        result = ebpf_map_update_element(map_fd, &key, &value, EBPF_ANY);
-        REQUIRE(result == EBPF_SUCCESS);
+        REQUIRE(bpf_map_update_elem(map_fd, &key, &value, EBPF_ANY) == EBPF_SUCCESS);
         key++;
         value++;
     }
@@ -796,8 +795,7 @@ TEST_CASE("create_map", "[end_to_end]")
     value = 10;
     for (int i = 0; i < element_count; i++) {
         uint64_t read_value;
-        result = ebpf_map_lookup_element(map_fd, &key, &read_value);
-        REQUIRE(result == EBPF_SUCCESS);
+        REQUIRE(bpf_map_lookup_elem(map_fd, &key, &read_value) == EBPF_SUCCESS);
         REQUIRE(read_value == value);
         key++;
         value++;
@@ -820,8 +818,7 @@ TEST_CASE("create_map_name", "[end_to_end]")
     REQUIRE(map_fd > 0);
 
     for (int i = 0; i < element_count; i++) {
-        result = ebpf_map_update_element(map_fd, &key, &value, EBPF_ANY);
-        REQUIRE(result == EBPF_SUCCESS);
+        REQUIRE(bpf_map_update_elem(map_fd, &key, &value, EBPF_ANY) == EBPF_SUCCESS);
         key++;
         value++;
     }
@@ -830,8 +827,7 @@ TEST_CASE("create_map_name", "[end_to_end]")
     value = 10;
     for (int i = 0; i < element_count; i++) {
         uint64_t read_value;
-        result = ebpf_map_lookup_element(map_fd, &key, &read_value);
-        REQUIRE(result == EBPF_SUCCESS);
+        REQUIRE(bpf_map_lookup_elem(map_fd, &key, &read_value) == EBPF_SUCCESS);
         REQUIRE(read_value == value);
         key++;
         value++;
