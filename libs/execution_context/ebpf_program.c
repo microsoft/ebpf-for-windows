@@ -249,6 +249,9 @@ ebpf_program_create(ebpf_program_t** program)
         goto Done;
     }
 
+    ebpf_list_initialize(&local_program->links);
+    ebpf_lock_create(&local_program->links_lock);
+
     ebpf_object_initialize(&local_program->object, EBPF_OBJECT_PROGRAM, _ebpf_program_free);
 
     *program = local_program;
