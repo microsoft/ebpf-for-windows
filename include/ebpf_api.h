@@ -190,58 +190,6 @@ extern "C"
         _Out_ fd_t* map_fd);
 
     /**
-     * @brief Look up an element in an eBPF map.
-     *  For a singleton map, return the value for the given key.
-     *  For a per-cpu map, return aggregate value across all CPUs.
-     *
-     * @param[in] map_fd File descriptor for the eBPF map.
-     * @param[in] key Pointer to buffer containing key.
-     * @param[out] value Pointer to buffer that contains value on success.
-     *
-     * @retval EBPF_SUCCESS The operation was successful.
-     */
-    ebpf_result_t
-    ebpf_map_lookup_element(fd_t map_fd, _In_ const void* key, _Out_ void* value);
-
-    /**
-     * @brief Update value for the specified key in an eBPF map.
-     *
-     * @param[in] map_fd File descriptor for the eBPF map.
-     * @param[in] key Pointer to buffer containing key.
-     * @param[out] value Pointer to buffer containing value.
-     *
-     * @retval EBPF_SUCCESS The operation was successful.
-     */
-    ebpf_result_t
-    ebpf_map_update_element(fd_t map_fd, _In_ const void* key, _In_ const void* value, uint64_t flags);
-
-    /**
-     * @brief Delete an element in an eBPF map.
-     *
-     * @param[in] map_fd File descriptor for the eBPF map.
-     * @param[in] key Pointer to buffer containing key.
-     *
-     * @retval EBPF_SUCCESS The operation was successful.
-     */
-    ebpf_result_t
-    ebpf_map_delete_element(fd_t map_fd, _In_ const void* key);
-
-    /**
-     * @brief Return the next key in an eBPF map.
-     *
-     * @param[in] map_fd File descriptor for the eBPF map.
-     * @param[in] previous_key Pointer to buffer containing
-        previous key or NULL to restart enumeration.
-     * @param[out] next_key Pointer to buffer that contains next
-     *  key on success.
-     *
-     * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_NO_MORE_KEYS previous_key was the last key.
-     */
-    ebpf_result_t
-    ebpf_map_get_next_key(fd_t map_fd, _In_opt_ const void* previous_key, _Out_ void* next_key);
-
-    /**
      * @brief Get file descriptor to the next eBPF map.
      * @param[in] previous_fd FD to previous eBPF map or ebpf_fd_invalid to
      *  start enumeration.

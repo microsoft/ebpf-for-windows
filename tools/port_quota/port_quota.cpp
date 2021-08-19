@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 #include <windows.h>
+#include "bpf.h"
 #include "ebpf_api.h"
 #include "libbpf.h"
 
@@ -95,7 +96,7 @@ int
 stats(int argc, char** argv)
 {
     fd_t map_fd;
-    ebpf_result_t result;
+    int result;
     uint64_t pid;
     process_entry_t process_entry;
 
@@ -108,16 +109,16 @@ stats(int argc, char** argv)
     }
 
     printf("Pid\tCount\tAppId\n");
-    result = ebpf_map_get_next_key(map_fd, nullptr, &pid);
+    result = bpf_map_get_next_key(map_fd, nullptr, &pid);
     while (result == EBPF_SUCCESS) {
         memset(&process_entry, 0, sizeof(process_entry));
-        result = ebpf_map_lookup_element(map_fd, &pid, &process_entry);
+        result = bpf_map_lookup_elem(map_fd, &pid, &process_entry);
         if (result != EBPF_SUCCESS) {
             fprintf(stderr, "Failed to look up eBPF map entry: %d\n", result);
             return 1;
         }
         printf("%lld\t%d\t%S\n", pid, process_entry.count, process_entry.name);
-        result = ebpf_map_get_next_key(map_fd, &pid, &pid);
+        result = bpf_map_get_next_key(map_fd, &pid, &pid);
     };
     return 0;
 }
@@ -142,7 +143,7 @@ limit(int argc, char** argv)
         return 1;
     }
 
-    result = ebpf_map_update_element(map_fd, &key, &value, EBPF_ANY);
+    result = bpf_map_update_elem(map_fd, &key, &value, EBPF_ANY);
     if (result != EBPF_SUCCESS) {
         fprintf(stderr, "Failed to update eBPF map element: %d\n", result);
         return 1;
