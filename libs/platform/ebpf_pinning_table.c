@@ -5,31 +5,20 @@
 
 #include "ebpf_object.h"
 
+#define EBPF_PINNING_TABLE_BUCKET_COUNT 64
+
 typedef struct _ebpf_pinning_table
 {
     _Requires_lock_held_(&lock) ebpf_hash_table_t* hash_table;
     ebpf_lock_t lock;
 } ebpf_pinning_table_t;
 
-static ebpf_hash_table_compare_result_t
-_ebpf_pining_table_compare_function(const uint8_t* key1, const uint8_t* key2)
+static void
+_ebpf_pining_table_extract(const uint8_t* value, const uint8_t** data, size_t* length)
 {
-    const ebpf_utf8_string_t* first_key = *(ebpf_utf8_string_t**)key1;
-    const ebpf_utf8_string_t* second_key = *(ebpf_utf8_string_t**)key2;
-    size_t min_length = min(first_key->length, second_key->length);
-
-    // Note: This is not a lexicographical sort order.
-    int compare_result = memcmp(first_key->value, second_key->value, min_length);
-    if (compare_result < 0)
-        return EBPF_HASH_TABLE_LESS_THAN;
-    else if (compare_result > 0)
-        return EBPF_HASH_TABLE_GREATER_THAN;
-    else if (first_key->length < second_key->length)
-        return EBPF_HASH_TABLE_LESS_THAN;
-    else if (first_key->length > second_key->length)
-        return EBPF_HASH_TABLE_GREATER_THAN;
-    else
-        return EBPF_HASH_TABLE_EQUAL;
+    const ebpf_utf8_string_t* key = *(ebpf_utf8_string_t**)value;
+    *data = key->value;
+    *length = key->length;
 }
 
 static void
@@ -63,7 +52,8 @@ ebpf_pinning_table_allocate(ebpf_pinning_table_t** pinning_table)
         ebpf_free,
         sizeof(ebpf_utf8_string_t*),
         sizeof(ebpf_pinning_entry_t*),
-        _ebpf_pining_table_compare_function);
+        EBPF_PINNING_TABLE_BUCKET_COUNT,
+        _ebpf_pining_table_extract);
 
     if (return_value != EBPF_SUCCESS)
         goto Done;
@@ -84,7 +74,7 @@ void
 ebpf_pinning_table_free(ebpf_pinning_table_t* pinning_table)
 {
     ebpf_result_t return_value;
-    ebpf_utf8_string_t* key;
+    ebpf_utf8_string_t* key = NULL;
 
     for (;;) {
         return_value = ebpf_hash_table_next_key(pinning_table->hash_table, NULL, (uint8_t*)&key);
@@ -178,9 +168,9 @@ ebpf_pinning_table_delete(ebpf_pinning_table_t* pinning_table, const ebpf_utf8_s
         pinning_table->hash_table, (const uint8_t*)&existing_key, (uint8_t**)&existing_pinning_entry);
     if (return_value == EBPF_SUCCESS) {
         ebpf_pinning_entry_t* entry = *existing_pinning_entry;
-        // Note: Can't fail because we first checked the entry exists.
-        ebpf_hash_table_delete(pinning_table->hash_table, (const uint8_t*)&existing_key);
-        _ebpf_pinning_entry_free(entry);
+        return_value = ebpf_hash_table_delete(pinning_table->hash_table, (const uint8_t*)&existing_key);
+        if (return_value == EBPF_SUCCESS)
+            _ebpf_pinning_entry_free(entry);
     }
     ebpf_lock_unlock(&pinning_table->lock, state);
 
