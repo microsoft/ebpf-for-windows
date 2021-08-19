@@ -125,6 +125,7 @@ TEST_CASE("map_crud_operations_hash_per_cpu", "[execution_context]")
 }
 
 #define TEST_FUNCTION_RETURN 42
+#define TOTAL_HELPER_COUNT 3
 
 uint32_t
 test_function()
@@ -179,29 +180,35 @@ TEST_CASE("program", "[execution_context]")
     ebpf_result_t (*test_function)();
     auto provider_function1 = []() { return (ebpf_result_t)TEST_FUNCTION_RETURN; };
     ebpf_result_t (*function_pointer1)() = provider_function1;
+    uint32_t test_function_ids[] = {(EBPF_MAX_GENERAL_HELPER_FUNCTION + 1)};
     const void* helper_functions[] = {(void*)function_pointer1};
-    ebpf_helper_function_addresses_t helper_function_addresses = {
-        EBPF_COUNT_OF(helper_functions), (uint64_t*)helper_functions};
+    ebpf_helper_function_addresses_t helper_function_addresses = {EBPF_COUNT_OF(helper_functions),
+                                                                  (uint64_t*)helper_functions};
 
     REQUIRE(ebpf_allocate_trampoline_table(1, &table) == EBPF_SUCCESS);
-    REQUIRE(ebpf_update_trampoline_table(table, &helper_function_addresses) == EBPF_SUCCESS);
+    REQUIRE(
+        ebpf_update_trampoline_table(
+            table, EBPF_COUNT_OF(test_function_ids), test_function_ids, &helper_function_addresses) == EBPF_SUCCESS);
     REQUIRE(ebpf_get_trampoline_function(table, 0, reinterpret_cast<void**>(&test_function)) == EBPF_SUCCESS);
 
     // Size of the actual function is unknown, but we know the allocation is on page granularity.
     REQUIRE(
-        ebpf_program_load_machine_code(program.get(), reinterpret_cast<uint8_t*>(test_function), PAGE_SIZE) ==
+        ebpf_program_load_code(program.get(), EBPF_CODE_NATIVE, reinterpret_cast<uint8_t*>(test_function), PAGE_SIZE) ==
         EBPF_SUCCESS);
     uint32_t result = 0;
     bind_md_t ctx{0};
     ebpf_program_invoke(program.get(), &ctx, &result);
     REQUIRE(result == TEST_FUNCTION_RETURN);
 
-    uint64_t address = 0;
-    REQUIRE(ebpf_program_get_helper_function_address(program.get(), 1, &address) == EBPF_SUCCESS);
-    REQUIRE(address != 0);
-    REQUIRE(ebpf_program_get_helper_function_address(program.get(), 0, &address) == EBPF_SUCCESS);
-    REQUIRE(address == 0);
-    REQUIRE(ebpf_program_get_helper_function_address(program.get(), 0xFFFF, &address) == EBPF_INVALID_ARGUMENT);
-    REQUIRE(address == 0);
-    ebpf_free_trampoline_table(table);
+    uint64_t addresses[TOTAL_HELPER_COUNT] = {};
+    uint32_t helper_function_ids[] = {1, 0, 2};
+    REQUIRE(
+        ebpf_program_set_helper_function_ids(program.get(), EBPF_COUNT_OF(helper_function_ids), helper_function_ids) ==
+        EBPF_SUCCESS);
+    REQUIRE(
+        ebpf_program_get_helper_function_addresses(program.get(), EBPF_COUNT_OF(helper_function_ids), addresses) ==
+        EBPF_SUCCESS);
+    REQUIRE(addresses[0] != 0);
+    REQUIRE(addresses[1] == 0);
+    REQUIRE(addresses[2] != 0);
 }
