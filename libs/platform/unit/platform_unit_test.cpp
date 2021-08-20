@@ -11,12 +11,14 @@
 #include <sddl.h>
 
 #include "catch_wrapper.hpp"
+#include "ebpf_bind_program_data.h"
 #include "ebpf_epoch.h"
 #include "ebpf_nethooks.h"
 #include "ebpf_platform.h"
 #include "ebpf_pinning_table.h"
 #include "ebpf_program_types.h"
 #include "ebpf_serialize.h"
+#include "ebpf_xdp_program_data.h"
 
 class _test_helper
 {
@@ -236,6 +238,46 @@ static ebpf_helper_function_prototype_t _helper_functions[] = {
      EBPF_RETURN_TYPE_INTEGER_OR_NO_RETURN_IF_SUCCEED,
      {EBPF_ARGUMENT_TYPE_PTR_TO_CTX, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_OF_PROGRAMS, EBPF_ARGUMENT_TYPE_ANYTHING}},
 };
+
+TEST_CASE("program_type_info", "[platform]")
+{
+    _test_helper test_helper;
+
+    ebpf_context_descriptor_t context_descriptor{sizeof(xdp_md_t),
+                                                 EBPF_OFFSET_OF(xdp_md_t, data),
+                                                 EBPF_OFFSET_OF(xdp_md_t, data_end),
+                                                 EBPF_OFFSET_OF(xdp_md_t, data_meta)};
+    ebpf_program_type_descriptor_t program_type{"xdp", &context_descriptor};
+    ebpf_program_info_t program_info{program_type, _countof(_helper_functions), _helper_functions};
+    ebpf_program_info_t* new_program_info = nullptr;
+    uint8_t* buffer = nullptr;
+    unsigned long buffer_size;
+    REQUIRE(ebpf_program_info_encode(&program_info, &buffer, &buffer_size) == EBPF_SUCCESS);
+    REQUIRE(ebpf_program_info_decode(&new_program_info, buffer, buffer_size) == EBPF_SUCCESS);
+    ebpf_free(new_program_info);
+}
+
+TEST_CASE("program_type_info_stored", "[platform]")
+{
+    _test_helper test_helper;
+    ebpf_program_info_t* xdp_program_info = nullptr;
+    ebpf_program_info_t* bind_program_info = nullptr;
+    REQUIRE(
+        ebpf_program_info_decode(
+            &xdp_program_info, _ebpf_encoded_xdp_program_info_data, sizeof(_ebpf_encoded_xdp_program_info_data)) ==
+        EBPF_SUCCESS);
+    REQUIRE(xdp_program_info->count_of_helpers == _countof(_helper_functions));
+    REQUIRE(strcmp(xdp_program_info->program_type_descriptor.name, "xdp") == 0);
+    ebpf_free(xdp_program_info);
+
+    REQUIRE(
+        ebpf_program_info_decode(
+            &bind_program_info, _ebpf_encoded_bind_program_info_data, sizeof(_ebpf_encoded_bind_program_info_data)) ==
+        EBPF_SUCCESS);
+    REQUIRE(strcmp(bind_program_info->program_type_descriptor.name, "bind") == 0);
+    REQUIRE(bind_program_info->count_of_helpers == _countof(_helper_functions));
+    ebpf_free(bind_program_info);
+}
 
 struct ebpf_security_descriptor_t_free
 {
