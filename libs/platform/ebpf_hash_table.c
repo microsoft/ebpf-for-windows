@@ -351,7 +351,7 @@ ebpf_hash_table_create(
     size_t key_size,
     size_t value_size,
     size_t bucket_count,
-    _In_ void (*extract)(_In_ const uint8_t* value, _Outptr_ const uint8_t** data, _Out_ size_t* num))
+    _In_opt_ void (*extract)(_In_ const uint8_t* value, _Outptr_ const uint8_t** data, _Out_ size_t* num))
 {
     ebpf_result_t retval;
     ebpf_hash_table_t* table = NULL;

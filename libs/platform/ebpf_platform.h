@@ -398,7 +398,8 @@ extern "C"
         size_t key_size,
         size_t value_size,
         size_t bucket_count,
-        _In_ void (*extract_function)(_In_ const uint8_t* value, _Outptr_ const uint8_t** data, _Out_ size_t* length));
+        _In_opt_ void (*extract_function)(
+            _In_ const uint8_t* value, _Outptr_ const uint8_t** data, _Out_ size_t* length));
 
     /**
      * @brief Remove all items from the hash table and release memory.
@@ -560,7 +561,7 @@ extern "C"
      */
     void*
     ebpf_interlocked_compare_exchange_pointer(
-        _Inout_ void* volatile* destination, _In_ const void* exchange, _In_ const void* comperand);
+        _Inout_ void* volatile* destination, _In_opt_ const void* exchange, _In_opt_ const void* comperand);
 
     typedef void (*ebpf_extension_change_callback_t)(
         _In_ void* client_binding_context,

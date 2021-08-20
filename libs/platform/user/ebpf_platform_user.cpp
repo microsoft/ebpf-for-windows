@@ -200,7 +200,7 @@ ebpf_interlocked_compare_exchange_int32(_Inout_ volatile int32_t* destination, i
 
 void*
 ebpf_interlocked_compare_exchange_pointer(
-    _Inout_ void* volatile* destination, _In_ const void* exchange, _In_ const void* comperand)
+    _Inout_ void* volatile* destination, _In_opt_ const void* exchange, _In_opt_ const void* comperand)
 {
     return InterlockedCompareExchangePointer((void* volatile*)destination, (void*)exchange, (void*)comperand);
 }
