@@ -6,6 +6,7 @@
 #include "capture_helper.hpp"
 #include "catch_wrapper.hpp"
 #include "elf.h"
+#include "helpers.h"
 #include "programs.h"
 #include "test_helper.hpp"
 
@@ -194,6 +195,7 @@ TEST_CASE("show verification bpf.o", "[netsh][verification]")
 TEST_CASE("show verification droppacket.o", "[netsh][verification]")
 {
     int result;
+    program_info_provider_t program_info_provider(EBPF_PROGRAM_TYPE_XDP);
     std::string output = _run_netsh_command(handle_ebpf_show_verification, L"droppacket.o", L"xdp", &result);
     REQUIRE(result == NO_ERROR);
     REQUIRE(
@@ -207,6 +209,7 @@ TEST_CASE("show verification droppacket.o", "[netsh][verification]")
 TEST_CASE("show verification droppacket_unsafe.o", "[netsh][verification]")
 {
     int result;
+    program_info_provider_t program_info_provider(EBPF_PROGRAM_TYPE_XDP);
     std::string output = _run_netsh_command(handle_ebpf_show_verification, L"droppacket_unsafe.o", L"xdp", &result);
     REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
     REQUIRE(
