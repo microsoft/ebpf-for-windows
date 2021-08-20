@@ -398,7 +398,7 @@ extern "C"
         size_t key_size,
         size_t value_size,
         size_t bucket_count,
-        void (*extract_function)(_In_ const uint8_t* value, _Outptr_ const uint8_t** data, _Out_ size_t* length));
+        _In_ void (*extract_function)(_In_ const uint8_t* value, _Outptr_ const uint8_t** data, _Out_ size_t* length));
 
     /**
      * @brief Remove all items from the hash table and release memory.
