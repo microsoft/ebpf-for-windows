@@ -402,7 +402,7 @@ ebpf_program_associate_maps(ebpf_program_t* program, ebpf_map_t** maps, size_t m
     return EBPF_SUCCESS;
 }
 
-ebpf_result_t
+static ebpf_result_t
 _ebpf_program_load_machine_code(
     _Inout_ ebpf_program_t* program, _In_ const uint8_t* machine_code, size_t machine_code_size)
 {
@@ -485,7 +485,7 @@ Exit:
     return result;
 }
 
-ebpf_result_t
+static ebpf_result_t
 _ebpf_program_load_byte_code(
     _Inout_ ebpf_program_t* program, _In_ const ebpf_instruction_t* instructions, size_t instruction_count)
 {
