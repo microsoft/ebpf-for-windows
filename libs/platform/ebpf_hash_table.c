@@ -10,8 +10,8 @@
 // Layout is:
 // ebpf_hash_table_t.buckets->ebpf_hash_bucket_header_t.entries->data
 // Keys are stored contiguously in ebpf_hash_bucket_header_t for fast
-// searching, data is stored separately to prevent RCU from causing loss of
-// updates.
+// searching, data is stored separately to prevent read-copy-update semantics
+// from causing loss of updates.
 
 typedef struct _ebpf_hash_bucket_entry
 {
@@ -22,7 +22,7 @@ typedef struct _ebpf_hash_bucket_entry
 typedef struct _ebpf_hash_bucket_header
 {
     size_t count;
-    ebpf_hash_bucket_entry_t entries[1];
+    _Field_size_(count) ebpf_hash_bucket_entry_t entries[1];
 } ebpf_hash_bucket_header_t;
 
 struct _ebpf_hash_table
@@ -34,8 +34,8 @@ struct _ebpf_hash_table
     size_t value_size;
     void* (*allocate)(size_t size);
     void (*free)(void* memory);
-    void (*extract)(const uint8_t* value, const uint8_t** data, size_t* num);
-    ebpf_hash_bucket_header_t* volatile buckets[1];
+    void (*extract)(_In_ const uint8_t* value, _Outptr_ const uint8_t** data, _Out_ size_t* num);
+    _Field_size_(bucket_count) ebpf_hash_bucket_header_t* volatile buckets[1];
 };
 
 typedef enum _ebpf_hash_bucket_operation
@@ -115,14 +115,14 @@ _ebpf_murmur3_32(_In_ const uint8_t* key, size_t length, uint32_t seed)
  * compare them.
  *
  * @param[in] hash_table Hash table the keys belong to.
- * @param[in] key_a First key
- * @param[in] key_b Second key
+ * @param[in] key_a First key.
+ * @param[in] key_b Second key.
  * @retval -1 if key_a < key_b
  * @retval 0 if key_a == key_b
  * @retval 1 if key_a > key_b
  */
 static int
-_ebpf_hash_table_compare(ebpf_hash_table_t* hash_table, _In_ const uint8_t* key_a, _In_ const uint8_t* key_b)
+_ebpf_hash_table_compare(_In_ const ebpf_hash_table_t* hash_table, _In_ const uint8_t* key_a, _In_ const uint8_t* key_b)
 {
     size_t length_a;
     size_t length_b;
@@ -151,11 +151,11 @@ _ebpf_hash_table_compare(ebpf_hash_table_t* hash_table, _In_ const uint8_t* key_
  * compute the hash.
  *
  * @param[in] hash_table Hash table the keys belong to.
- * @param[in] key_a First key
- * @retval Hash of key
+ * @param[in] key Key to hash.
+ * @return Hash of key.
  */
 static uint32_t
-_ebpf_hash_table_compute_hash(ebpf_hash_table_t* hash_table, _In_ const uint8_t* key)
+_ebpf_hash_table_compute_hash(_In_ const ebpf_hash_table_t* hash_table, _In_ const uint8_t* key)
 {
     size_t length;
     const uint8_t* data;
@@ -171,10 +171,10 @@ _ebpf_hash_table_compute_hash(ebpf_hash_table_t* hash_table, _In_ const uint8_t*
 /**
  * @brief Given a pointer to a bucket, compute the offset of a bucket entry.
  *
- * @param [in] key_size Size
+ * @param [in] key_size Size of key.
  * @param [in] bucket Pointer to start of the bucket.
- * @param [in] index Index into the bucket
- * @return Pointer to the ebpf_hash_bucket_entry_t
+ * @param [in] index Index into the bucket.
+ * @return Pointer to the ebpf_hash_bucket_entry_t.
  */
 ebpf_hash_bucket_entry_t*
 _ebpf_hash_table_bucket_entry(size_t key_size, _In_ ebpf_hash_bucket_header_t* bucket, size_t index)
@@ -192,7 +192,7 @@ _ebpf_hash_table_bucket_entry(size_t key_size, _In_ ebpf_hash_bucket_header_t* b
  * @param[in] hash_table Hash table to update.
  * @param[in] key Key to operate on.
  * @param[in] data Value to be inserted or NULL.
- * @param[in] operation Operation to perform
+ * @param[in] operation Operation to perform.
  * @retval EBPF_SUCCESS The operation succeeded.
  * @retval EBPF_KEY_NOT_FOUND The specified key is not present in the bucket.
  * @retval EBPF_NO_MEMORY Insufficient memory to construct new bucket or value.
@@ -238,10 +238,10 @@ _ebpf_hash_table_replace_bucket(
         delete_bucket = new_bucket;
         delete_data = new_data;
 
-        // Capture current bucket pointer
+        // Capture current bucket pointer.
         old_bucket = hash_table->buckets[hash % hash_table->bucket_count];
 
-        // If the old_bucket exists, capture it's count.
+        // If the old_bucket exists, capture its count.
         if (old_bucket) {
             old_bucket_count = old_bucket->count;
         }
@@ -351,7 +351,7 @@ ebpf_hash_table_create(
     size_t key_size,
     size_t value_size,
     size_t bucket_count,
-    void (*extract)(const uint8_t* value, const uint8_t** data, size_t* num))
+    void (*extract)(_In_ const uint8_t* value, _Outptr_ const uint8_t** data, _Out_ size_t* num))
 {
     ebpf_result_t retval;
     ebpf_hash_table_t* table = NULL;
@@ -365,7 +365,6 @@ ebpf_hash_table_create(
         goto Done;
     }
 
-    // allocate
     table = allocate(table_size);
     if (table == NULL) {
         retval = EBPF_NO_MEMORY;
@@ -530,7 +529,7 @@ ebpf_hash_table_next_key_and_value(
 
             // Is this the previous key?
             if (_ebpf_hash_table_compare(hash_table, previous_key, entry->key) == 0) {
-                // Yes, record it's location.
+                // Yes, record its location.
                 found_entry = true;
             }
         }

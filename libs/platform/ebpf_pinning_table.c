@@ -14,7 +14,7 @@ typedef struct _ebpf_pinning_table
 } ebpf_pinning_table_t;
 
 static void
-_ebpf_pining_table_extract(const uint8_t* value, const uint8_t** data, size_t* length)
+_ebpf_pinning_table_extract(_In_ const uint8_t* value, _Outptr_ const uint8_t** data, _Out_ size_t* length)
 {
     const ebpf_utf8_string_t* key = *(ebpf_utf8_string_t**)value;
     *data = key->value;
@@ -53,7 +53,7 @@ ebpf_pinning_table_allocate(ebpf_pinning_table_t** pinning_table)
         sizeof(ebpf_utf8_string_t*),
         sizeof(ebpf_pinning_entry_t*),
         EBPF_PINNING_TABLE_BUCKET_COUNT,
-        _ebpf_pining_table_extract);
+        _ebpf_pinning_table_extract);
 
     if (return_value != EBPF_SUCCESS)
         goto Done;
