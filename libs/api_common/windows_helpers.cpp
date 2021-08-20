@@ -7,11 +7,13 @@
 #include <Windows.h>
 #include "api_common.hpp"
 #include "device_helper.hpp"
+#include "ebpf_bind_program_data.h"
 #include "ebpf_platform.h"
 #include "ebpf_program_types.h"
 #include "ebpf_protocol.h"
 #include "ebpf_result.h"
 #include "ebpf_serialize.h"
+#include "ebpf_xdp_program_data.h"
 #include "platform.h"
 #include "platform.hpp"
 
@@ -84,23 +86,55 @@ ebpf_result_t
 get_program_type_info(const ebpf_program_info_t** info)
 {
     const GUID* program_type = reinterpret_cast<const GUID*>(global_program_info.type.platform_specific_data);
-    ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_result_t result;
     ebpf_program_info_t* program_info;
+    const uint8_t* encoded_data = nullptr;
+    size_t encoded_data_size = 0;
+    bool fall_back = false;
 
     // See if we already have the program info cached.
     auto it = _program_info_cache.find(*program_type);
     if (it == _program_info_cache.end()) {
         // Try to query the info from the execution context.
         result = get_program_info_data(*program_type, &program_info);
-        if (result != EBPF_SUCCESS)
-            goto Exit;
-        _program_info_cache[*program_type] = ebpf_program_info_ptr_t(program_info);
+        if (result != EBPF_SUCCESS) {
+            fall_back = true;
+        } else {
+            _program_info_cache[*program_type] = ebpf_program_info_ptr_t(program_info);
+        }
     }
 
-    *info = (const ebpf_program_info_t*)_program_info_cache[*program_type].get();
+    if (fall_back) {
+        // Fall back to using static data so that verification can be tried
+        // (e.g., from a netsh command) even if the execution context isn't running.
+        // TODO: remove this in the future.
+        auto iter = _static_program_info_cache.find(*program_type);
+        if (iter == _static_program_info_cache.end()) {
+            if (memcmp(program_type, &EBPF_PROGRAM_TYPE_XDP, sizeof(*program_type)) == 0) {
+                encoded_data = _ebpf_encoded_xdp_program_info_data;
+                encoded_data_size = sizeof(_ebpf_encoded_xdp_program_info_data);
+            } else if (memcmp(program_type, &EBPF_PROGRAM_TYPE_BIND, sizeof(*program_type)) == 0) {
+                encoded_data = _ebpf_encoded_bind_program_info_data;
+                encoded_data_size = sizeof(_ebpf_encoded_bind_program_info_data);
+            }
+            ebpf_assert(encoded_data != nullptr);
 
-Exit:
-    return result;
+            result = ebpf_program_info_decode(&program_info, encoded_data, (unsigned long)encoded_data_size);
+            if (result != EBPF_SUCCESS) {
+                return result;
+            }
+
+            _static_program_info_cache[*program_type] = ebpf_helper::ebpf_memory_ptr(program_info);
+        }
+    }
+
+    if (!fall_back) {
+        *info = (const ebpf_program_info_t*)_program_info_cache[*program_type].get();
+    } else {
+        *info = (const ebpf_program_info_t*)_static_program_info_cache[*program_type].get();
+    }
+
+    return EBPF_SUCCESS;
 }
 
 static ebpf_helper_function_prototype_t*

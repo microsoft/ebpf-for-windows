@@ -67,3 +67,7 @@ jobs:
     - name: Run Unit Tests
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
       run: ./unit_tests.exe -s
+
+    - name: Run RPC Client Tests
+      working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+      run: ./ebpf_client.exe -s

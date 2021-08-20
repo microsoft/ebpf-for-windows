@@ -21,6 +21,14 @@ program as well as the list of specific helper functions that are available to s
 should not unload until the last NMR client detaches, signifying that no eBPF programs are using helper functions
 it provides.
 
+Currently the information is exposed as an opaque blob of
+[MS-RPCE](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-rpce/290c38b1-92fe-4229-91e6-4fc376610c15)
+serialized data with the schema defined by
+[ebpf_program_types](https://github.com/microsoft/ebpf-for-windows/blob/master/libs/platform/ebpf_program_types.idl).
+Due to current limitations on Windows, it's not possible to serialize the contract from kernel mode. Proposals are
+underway to switch the serialization to use [Google FlatBuffers](https://google.github.io/flatbuffers/) as that is
+more easily serialized from kernel mode.
+
 ## NPI Contract for Attach Type
 
 Attach type NPI contracts are the mechanism that extensions use to invoke eBPF programs when events occur. The
