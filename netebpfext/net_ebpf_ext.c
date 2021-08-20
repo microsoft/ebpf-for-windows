@@ -32,10 +32,17 @@ Environment:
 #include <ntddk.h>
 
 #include "ebpf_ext_attach_provider.h"
+// ebpf_bind_program_data.h and ebpf_xdp_program_data.h are generated
+// headers. encode_program_info generates them from the structs
+// in ebpf_nethooks.h. This workaround exists due to the inability
+// to call RPC serialization services from kernel mode. Once we switch
+// to a different serializer, we can get rid of this workaround.
+#include "ebpf_bind_program_data.h"
 #include "ebpf_nethooks.h"
 #include "ebpf_platform.h"
 #include "ebpf_program_types.h"
 #include "ebpf_windows.h"
+#include "ebpf_xdp_program_data.h"
 
 static ebpf_ext_attach_hook_provider_registration_t* _ebpf_xdp_hook_provider_registration = NULL;
 static ebpf_ext_attach_hook_provider_registration_t* _ebpf_bind_hook_provider_registration = NULL;
@@ -46,10 +53,11 @@ static ebpf_extension_provider_t* _ebpf_bind_program_info_provider = NULL;
 
 #define NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION 0
 
-static ebpf_context_descriptor_t _ebpf_xdp_context_descriptor = {sizeof(xdp_md_t),
-                                                                 EBPF_OFFSET_OF(xdp_md_t, data),
-                                                                 EBPF_OFFSET_OF(xdp_md_t, data_end),
-                                                                 EBPF_OFFSET_OF(xdp_md_t, data_meta)};
+static ebpf_context_descriptor_t _ebpf_xdp_context_descriptor = {
+    sizeof(xdp_md_t),
+    EBPF_OFFSET_OF(xdp_md_t, data),
+    EBPF_OFFSET_OF(xdp_md_t, data_end),
+    EBPF_OFFSET_OF(xdp_md_t, data_meta)};
 static ebpf_program_info_t _ebpf_xdp_program_info = {{"xdp", &_ebpf_xdp_context_descriptor, {0}}, 0, NULL};
 
 static ebpf_program_data_t _ebpf_xdp_program_data = {&_ebpf_xdp_program_info, NULL};
