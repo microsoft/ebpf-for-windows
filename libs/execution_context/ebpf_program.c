@@ -306,9 +306,6 @@ ebpf_program_initialize(ebpf_program_t* program, const ebpf_program_parameters_t
         goto Done;
     }
 
-    ebpf_list_initialize(&program->links);
-    ebpf_lock_create(&program->links_lock);
-
     return_value = EBPF_SUCCESS;
 
 Done:
