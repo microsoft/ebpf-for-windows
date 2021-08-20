@@ -580,6 +580,15 @@ ebpf_map_function_table_t ebpf_map_function_tables[] = {
      _next_array_map_key},
 };
 
+static void
+_ebpf_map_delete(_In_ ebpf_object_t* object)
+{
+    ebpf_map_t* map = (ebpf_map_t*)object;
+
+    ebpf_free(map->name.value);
+    ebpf_map_function_tables[map->ebpf_map_definition.type].delete_map(map);
+}
+
 ebpf_result_t
 ebpf_map_create(
     _In_ const ebpf_utf8_string_t* map_name,
@@ -624,10 +633,7 @@ ebpf_map_create(
         goto Exit;
     }
 
-    ebpf_object_initialize(
-        &local_map->object,
-        EBPF_OBJECT_MAP,
-        (ebpf_free_object_t)ebpf_map_function_tables[local_map->ebpf_map_definition.type].delete_map);
+    ebpf_object_initialize(&local_map->object, EBPF_OBJECT_MAP, _ebpf_map_delete);
 
     *ebpf_map = local_map;
 
