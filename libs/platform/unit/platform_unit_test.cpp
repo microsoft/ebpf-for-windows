@@ -55,6 +55,9 @@ TEST_CASE("hash_table_test", "[platform]")
     uint8_t* returned_value = nullptr;
     std::vector<uint8_t> returned_key(13);
 
+    uint8_t* bug = (uint8_t*)1;
+    *bug = 2;
+
     for (auto& v : key_1) {
         v = static_cast<uint8_t>(ebpf_random_uint32());
     }
