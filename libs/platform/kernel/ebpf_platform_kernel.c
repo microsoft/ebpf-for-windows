@@ -311,8 +311,8 @@ ebpf_queue_non_preemptible_work_item(_In_ ebpf_non_preemptible_work_item_t* work
 
 typedef struct _ebpf_timer_work_item
 {
-    KTIMER timer;
     KDPC deferred_procedure_call;
+    KTIMER timer;
     void (*work_item_routine)(void* work_item_context);
     void* work_item_context;
 } ebpf_timer_work_item_t;

@@ -239,7 +239,7 @@ ebpf_epoch_exit()
     }
 
     if (!ebpf_list_is_empty(&_ebpf_epoch_free_list) &&
-        (ebpf_interlocked_compare_exchange_int32(&_ebpf_flush_timer_set, 0, 1) != 0)) {
+        (ebpf_interlocked_compare_exchange_int32(&_ebpf_flush_timer_set, 1, 0) != 0)) {
         ebpf_schedule_timer_work_item(_ebpf_flush_timer, EBPF_EPOCH_FLUSH_DELAY_IN_MICROSECONDS);
     }
 }
