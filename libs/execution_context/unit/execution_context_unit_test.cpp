@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include <set>
+
 #include "catch_wrapper.hpp"
 #include "ebpf_core.h"
 #include "ebpf_maps.h"
@@ -76,6 +78,7 @@ test_crud_operations(ebpf_map_type_t map_type)
 
     uint32_t previous_key;
     uint32_t next_key;
+    std::set<uint32_t> keys;
     for (uint32_t key = 0; key < 10; key++) {
         REQUIRE(
             ebpf_map_next_key(
@@ -85,8 +88,9 @@ test_crud_operations(ebpf_map_type_t map_type)
                 reinterpret_cast<uint8_t*>(&next_key)) == EBPF_SUCCESS);
 
         previous_key = next_key;
-        REQUIRE(previous_key == key);
+        keys.insert(previous_key);
     }
+    REQUIRE(keys.size() == 10);
     REQUIRE(
         ebpf_map_next_key(
             map.get(),

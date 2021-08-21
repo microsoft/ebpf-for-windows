@@ -361,18 +361,21 @@ _create_hash_map(_In_ const ebpf_map_definition_t* map_definition)
     map->ebpf_map_definition = *map_definition;
     map->data = NULL;
 
+    // Note:
+    // ebpf_hash_table_t doesn't require synchronization as long as allocations
+    // are performed using the epoch allocator.
     retval = ebpf_hash_table_create(
         (ebpf_hash_table_t**)&map->data,
         ebpf_epoch_allocate,
         ebpf_epoch_free,
         map->ebpf_map_definition.key_size,
         map->ebpf_map_definition.value_size,
+        map->ebpf_map_definition.max_entries,
         NULL);
     if (retval != EBPF_SUCCESS) {
         goto Done;
     }
 
-    ebpf_lock_create(&map->lock);
     retval = EBPF_SUCCESS;
 
 Done:
@@ -389,7 +392,6 @@ Done:
 static void
 _delete_hash_map(_In_ ebpf_core_map_t* map)
 {
-    ebpf_lock_destroy(&map->lock);
     ebpf_hash_table_destroy((ebpf_hash_table_t*)map->data);
     ebpf_free(map);
 }
@@ -397,16 +399,13 @@ _delete_hash_map(_In_ ebpf_core_map_t* map)
 static uint8_t*
 _find_hash_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
 {
-    ebpf_lock_state_t lock_state;
     uint8_t* value = NULL;
     if (!map || !key)
         return NULL;
 
-    lock_state = ebpf_lock_lock(&map->lock);
     if (ebpf_hash_table_find((ebpf_hash_table_t*)map->data, key, &value) != EBPF_SUCCESS) {
         value = NULL;
     }
-    ebpf_lock_unlock(&map->lock, lock_state);
 
     return value;
 }
@@ -415,13 +414,11 @@ static ebpf_result_t
 _update_hash_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_opt_ const uint8_t* data)
 {
     ebpf_result_t result;
-    ebpf_lock_state_t lock_state;
     size_t entry_count = 0;
     uint8_t* value;
     if (!map || !key)
         return EBPF_INVALID_ARGUMENT;
 
-    lock_state = ebpf_lock_lock(&map->lock);
     entry_count = ebpf_hash_table_key_count((ebpf_hash_table_t*)map->data);
 
     if ((entry_count == map->ebpf_map_definition.max_entries) &&
@@ -429,7 +426,7 @@ _update_hash_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_o
         result = EBPF_INVALID_ARGUMENT;
     else
         result = ebpf_hash_table_update((ebpf_hash_table_t*)map->data, key, data);
-    ebpf_lock_unlock(&map->lock, lock_state);
+
     return result;
 }
 
@@ -437,13 +434,10 @@ static ebpf_result_t
 _delete_hash_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
 {
     ebpf_result_t result;
-    ebpf_lock_state_t lock_state;
     if (!map || !key)
         return EBPF_INVALID_ARGUMENT;
 
-    lock_state = ebpf_lock_lock(&map->lock);
     result = ebpf_hash_table_delete((ebpf_hash_table_t*)map->data, key);
-    ebpf_lock_unlock(&map->lock, lock_state);
     return result;
 }
 
@@ -451,13 +445,10 @@ static ebpf_result_t
 _next_hash_map_key(_In_ ebpf_core_map_t* map, _In_ const uint8_t* previous_key, _Out_ uint8_t* next_key)
 {
     ebpf_result_t result;
-    ebpf_lock_state_t lock_state;
     if (!map || !next_key)
         return EBPF_INVALID_ARGUMENT;
 
-    lock_state = ebpf_lock_lock(&map->lock);
     result = ebpf_hash_table_next_key((ebpf_hash_table_t*)map->data, previous_key, next_key);
-    ebpf_lock_unlock(&map->lock, lock_state);
     return result;
 }
 

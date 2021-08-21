@@ -3,6 +3,8 @@
 
 #include "ebpf_platform.h"
 
+#define EBPF_EXTENSION_TABLE_BUCKET_COUNT 64
+
 typedef struct _ebpf_extension_client
 {
     GUID client_id;
@@ -185,8 +187,14 @@ ebpf_provider_load(
     state = ebpf_lock_lock(&_ebpf_provider_table_lock);
 
     if (!_ebpf_provider_table) {
-        return_value =
-            ebpf_hash_table_create(&_ebpf_provider_table, ebpf_allocate, ebpf_free, sizeof(GUID), sizeof(void*), NULL);
+        return_value = ebpf_hash_table_create(
+            &_ebpf_provider_table,
+            ebpf_allocate,
+            ebpf_free,
+            sizeof(GUID),
+            sizeof(void*),
+            EBPF_EXTENSION_TABLE_BUCKET_COUNT,
+            NULL);
         if (return_value != EBPF_SUCCESS)
             goto Done;
     }
@@ -215,7 +223,13 @@ ebpf_provider_load(
     local_extension_provider->client_detach_callback = client_detach_callback;
 
     return_value = ebpf_hash_table_create(
-        &local_extension_provider->client_table, ebpf_allocate, ebpf_free, sizeof(GUID), sizeof(void*), NULL);
+        &local_extension_provider->client_table,
+        ebpf_allocate,
+        ebpf_free,
+        sizeof(GUID),
+        sizeof(void*),
+        EBPF_EXTENSION_TABLE_BUCKET_COUNT,
+        NULL);
     if (return_value != EBPF_SUCCESS) {
         goto Done;
     }

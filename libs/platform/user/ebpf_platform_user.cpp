@@ -17,74 +17,9 @@ bool _ebpf_platform_code_integrity_enabled = false;
 // Permit the test to simulate non-preemptible execution.
 bool _ebpf_platform_is_preemptible = true;
 
-void (*RtlInitializeGenericTableAvl)(
-    _Out_ PRTL_AVL_TABLE Table,
-    _In_ PRTL_AVL_COMPARE_ROUTINE CompareRoutine,
-    _In_ PRTL_AVL_ALLOCATE_ROUTINE AllocateRoutine,
-    _In_ PRTL_AVL_FREE_ROUTINE FreeRoutine,
-    _In_opt_ PVOID TableContext);
-
-void* (*RtlEnumerateGenericTableAvl)(_In_ PRTL_AVL_TABLE Table, _In_ BOOLEAN Restart);
-
-BOOLEAN (*RtlDeleteElementGenericTableAvl)(_In_ PRTL_AVL_TABLE Table, _In_ PVOID Buffer);
-
-void* (*RtlLookupElementGenericTableAvl)(_In_ PRTL_AVL_TABLE Table, _In_ PVOID Buffer);
-
-void* (*RtlInsertElementGenericTableAvl)(
-    _In_ PRTL_AVL_TABLE Table,
-    _In_reads_bytes_(BufferSize) PVOID Buffer,
-    _In_ const uint32_t BufferSize,
-    _Out_opt_ PBOOLEAN NewElement);
-
-PVOID(*RtlLookupFirstMatchingElementGenericTableAvl)
-(_In_ PRTL_AVL_TABLE Table, _In_ PVOID Buffer, _Out_ PVOID* RestartKey);
-
-template <typename fn>
-bool
-resolve_function(HMODULE module_handle, fn& function, const char* function_name)
-{
-    function = reinterpret_cast<fn>(GetProcAddress(module_handle, function_name));
-    return (function != nullptr);
-}
-
 ebpf_result_t
 ebpf_platform_initiate()
 {
-    HMODULE ntdll_module = nullptr;
-
-    ntdll_module = LoadLibrary(L"ntdll.dll");
-    if (ntdll_module == nullptr) {
-        return EBPF_OPERATION_NOT_SUPPORTED;
-    }
-
-    if (!resolve_function(ntdll_module, RtlInitializeGenericTableAvl, "RtlInitializeGenericTableAvl")) {
-        return EBPF_OPERATION_NOT_SUPPORTED;
-    }
-    if (!resolve_function(ntdll_module, RtlEnumerateGenericTableAvl, "RtlEnumerateGenericTableAvl")) {
-        return EBPF_OPERATION_NOT_SUPPORTED;
-    }
-    if (!resolve_function(ntdll_module, RtlDeleteElementGenericTableAvl, "RtlDeleteElementGenericTableAvl")) {
-        return EBPF_OPERATION_NOT_SUPPORTED;
-    }
-    if (!resolve_function(ntdll_module, RtlLookupElementGenericTableAvl, "RtlLookupElementGenericTableAvl")) {
-        return EBPF_OPERATION_NOT_SUPPORTED;
-    }
-    if (!resolve_function(ntdll_module, RtlEnumerateGenericTableAvl, "RtlEnumerateGenericTableAvl")) {
-        return EBPF_OPERATION_NOT_SUPPORTED;
-    }
-    if (!resolve_function(
-            ntdll_module,
-            RtlLookupFirstMatchingElementGenericTableAvl,
-            "RtlLookupFirstMatchingElementGenericTableAvl")) {
-        return EBPF_OPERATION_NOT_SUPPORTED;
-    }
-    if (!resolve_function(ntdll_module, RtlInsertElementGenericTableAvl, "RtlInsertElementGenericTableAvl")) {
-        return EBPF_OPERATION_NOT_SUPPORTED;
-    }
-
-    // Note: This is safe because ntdll is never unloaded becuase
-    // ntdll.dll houses the module loader, which cannot unload itself.
-    FreeLibrary(ntdll_module);
     return EBPF_SUCCESS;
 }
 
@@ -261,6 +196,21 @@ int32_t
 ebpf_interlocked_compare_exchange_int32(_Inout_ volatile int32_t* destination, int32_t exchange, int32_t comperand)
 {
     return InterlockedCompareExchange((long volatile*)destination, exchange, comperand);
+}
+
+void*
+ebpf_interlocked_compare_exchange_pointer(
+    _Inout_ void* volatile* destination, _In_opt_ const void* exchange, _In_opt_ const void* comperand)
+{
+    return InterlockedCompareExchangePointer((void* volatile*)destination, (void*)exchange, (void*)comperand);
+}
+
+uint32_t
+ebpf_random_uint32()
+{
+    std::random_device rd;
+    std::mt19937 mt(rd());
+    return mt();
 }
 
 void

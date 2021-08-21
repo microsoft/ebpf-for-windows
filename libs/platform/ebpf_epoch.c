@@ -112,7 +112,9 @@ ebpf_epoch_initiate()
 {
     ebpf_result_t return_value = EBPF_SUCCESS;
     uint32_t cpu_id;
+    uint32_t cpu_count;
 
+    ebpf_get_cpu_count(&cpu_count);
     _ebpf_epoch_initiated = true;
     _ebpf_epoch_rundown = false;
 
@@ -123,7 +125,7 @@ ebpf_epoch_initiate()
     ebpf_lock_create(&_ebpf_epoch_free_list_lock);
 
     if (ebpf_is_non_preemptible_work_item_supported()) {
-        ebpf_get_cpu_count(&_ebpf_epoch_cpu_table_size);
+        _ebpf_epoch_cpu_table_size = cpu_count;
         _Analysis_assume_(_ebpf_epoch_cpu_table_size >= 1);
 
         _ebpf_epoch_cpu_table = ebpf_allocate(_ebpf_epoch_cpu_table_size * sizeof(ebpf_epoch_cpu_entry_t));
@@ -156,7 +158,7 @@ ebpf_epoch_initiate()
     }
 
     return_value = ebpf_hash_table_create(
-        &_ebpf_epoch_thread_table, ebpf_allocate, ebpf_free, sizeof(uint64_t), sizeof(int64_t), NULL);
+        &_ebpf_epoch_thread_table, ebpf_allocate, ebpf_free, sizeof(uint64_t), sizeof(int64_t), cpu_count, NULL);
     if (return_value != EBPF_SUCCESS) {
         goto Error;
     }
@@ -411,7 +413,7 @@ _ebpf_flush_worker(void* context)
 {
     UNREFERENCED_PARAMETER(context);
 
-    if (ebpf_interlocked_compare_exchange_int32(&_ebpf_flush_timer_set, 1, 0) != 1) {
+    if (ebpf_interlocked_compare_exchange_int32(&_ebpf_flush_timer_set, 0, 1) != 1) {
         return;
     }
     ebpf_epoch_flush();
