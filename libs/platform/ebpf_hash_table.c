@@ -256,6 +256,7 @@ _ebpf_hash_table_replace_bucket(
                     // If old_data exists, remove it.
                     old_data = entry->data;
                     old_data_index = index;
+                    break;
                 }
             }
         }
@@ -435,6 +436,7 @@ ebpf_hash_table_find(_In_ ebpf_hash_table_t* hash_table, _In_ const uint8_t* key
         ebpf_hash_bucket_entry_t* entry = _ebpf_hash_table_bucket_entry(hash_table->key_size, bucket, index);
         if (_ebpf_hash_table_compare(hash_table, key, entry->key) == 0) {
             data = entry->data;
+            break;
         }
     }
 
