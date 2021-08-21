@@ -76,8 +76,9 @@ jobs:
     - name: Upload Build Output
       uses: actions/upload-artifact@v2
       with:
-        name: Build-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}
-        path: ${{env.GITHUB_WORKSPACE}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+        name: Build x64 ${{ matrix.configurations }}
+        path: ${{ github.workspace }}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+        retention-days: 5
 
     - name: Run Unit Tests
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
@@ -93,3 +94,4 @@ jobs:
       with:
         name: Crash-Dumps-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}
         path: c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+        retention-days: 5
