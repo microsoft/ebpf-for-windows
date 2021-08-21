@@ -135,8 +135,9 @@ extern "C"
     ebpf_program_invoke(_In_ const ebpf_program_t* program, _In_ void* context, _Out_ uint32_t* result);
 
     /**
-     * @brief Store the helper function IDs that are used by the eBPF program in an array inside the program object. The
-     array index is the helper function ID to be used by uBPF whereas the array value is the actual helper ID.
+     * @brief Store the helper function IDs that are used by the eBPF program in an array
+     *  inside the program object. The array index is the helper function ID to be used by
+     *  uBPF whereas the array value is the actual helper ID.
      *
      * @param[in, out] program Program object to query this on.
      * @param[in] helper_function_count Count of helper functions.

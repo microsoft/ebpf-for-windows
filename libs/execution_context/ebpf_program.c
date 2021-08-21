@@ -47,7 +47,7 @@ typedef struct _ebpf_program
 
     ebpf_trampoline_table_t* trampoline_table;
 
-    // Array of helper function Id referred by this program.
+    // Array of helper function ids referred by this program.
     size_t helper_function_count;
     uint32_t* helper_function_ids;
 
@@ -139,7 +139,7 @@ _ebpf_program_program_info_provider_changed(
                 goto Exit;
 
             if (program->code_or_vm.vm != NULL) {
-                // Register with UBPF for interpreted mode.
+                // Register with uBPF for interpreted mode.
                 return_value = _ebpf_program_register_helpers(program);
                 if (return_value != EBPF_SUCCESS)
                     goto Exit;
