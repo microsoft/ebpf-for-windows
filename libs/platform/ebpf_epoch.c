@@ -55,6 +55,7 @@ static _Writable_elements_(_ebpf_epoch_cpu_table_size) ebpf_epoch_cpu_entry_t* _
 static uint32_t _ebpf_epoch_cpu_table_size = 0;
 
 static volatile int64_t _ebpf_current_epoch = 1;
+static bool _ebpf_epoch_rundown = false;
 
 static ebpf_timer_work_item_t* _ebpf_flush_timer = NULL;
 static volatile int32_t _ebpf_flush_timer_set = 0;
@@ -115,6 +116,7 @@ ebpf_epoch_initiate()
 
     ebpf_get_cpu_count(&cpu_count);
     _ebpf_epoch_initiated = true;
+    _ebpf_epoch_rundown = false;
 
     _ebpf_current_epoch = 1;
     ebpf_list_initialize(&_ebpf_epoch_free_list);
@@ -191,6 +193,7 @@ ebpf_epoch_terminate()
     ebpf_hash_table_destroy(_ebpf_epoch_thread_table);
     ebpf_free(_ebpf_epoch_cpu_table);
     ebpf_lock_destroy(&_ebpf_epoch_thread_table_lock);
+    _ebpf_epoch_rundown = true;
     ebpf_epoch_release_free_list(INT64_MAX);
     ebpf_lock_destroy(&_ebpf_epoch_free_list_lock);
     _ebpf_epoch_initiated = false;
@@ -289,10 +292,17 @@ ebpf_epoch_free(void* memory)
     ebpf_epoch_allocation_header_t* header = (ebpf_epoch_allocation_header_t*)memory;
     ebpf_lock_state_t lock_state;
 
+    ebpf_assert(_ebpf_epoch_initiated);
+
     if (!memory)
         return;
 
     header--;
+    if (_ebpf_epoch_rundown) {
+        ebpf_free(header);
+        return;
+    }
+
     ebpf_assert(header->freed_epoch == 0);
     header->entry_type = EBPF_EPOCH_ALLOCATION_MEMORY;
 
