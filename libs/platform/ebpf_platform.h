@@ -372,13 +372,6 @@ extern "C"
 
     typedef struct _ebpf_hash_table ebpf_hash_table_t;
 
-    typedef enum _ebpf_hash_table_compare_result
-    {
-        EBPF_HASH_TABLE_LESS_THAN = 0,
-        EBPF_HASH_TABLE_GREATER_THAN = 1,
-        EBPF_HASH_TABLE_EQUAL = 2,
-    } ebpf_hash_table_compare_result_t;
-
     /**
      * @brief Allocate and initialize a hash table.
      *
@@ -389,8 +382,10 @@ extern "C"
      * @param[in] free Function to use when freeing elements in the hash table.
      * @param[in] key_size Size of the keys used in the hash table.
      * @param[in] value_size Size of the values used in the hash table.
-     * @param[in] compare_function Function used to lexicographically order
-     * keys. If NULL, memcmp is used instead.
+     * @param[in] bucket_count Count of buckets to use.
+     * @param[in] extract_function Function used to convert a key into a value
+     * that can be hashed and compared. If NULL, key is assumes to be
+     * comparable.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  hash table.
@@ -402,7 +397,9 @@ extern "C"
         _In_ void (*free)(void* memory),
         size_t key_size,
         size_t value_size,
-        _In_opt_ ebpf_hash_table_compare_result_t (*compare_function)(const uint8_t* key1, const uint8_t* key2));
+        size_t bucket_count,
+        _In_opt_ void (*extract_function)(
+            _In_ const uint8_t* value, _Outptr_ const uint8_t** data, _Out_ size_t* length));
 
     /**
      * @brief Remove all items from the hash table and release memory.
@@ -478,7 +475,7 @@ extern "C"
         _In_ ebpf_hash_table_t* hash_table,
         _In_opt_ const uint8_t* previous_key,
         _Out_ uint8_t* next_key,
-        _Outptr_opt_ uint8_t** next_value);
+        _Inout_opt_ uint8_t** next_value);
 
     /**
      * @brief Get the number of keys in the hash table
@@ -546,6 +543,25 @@ extern "C"
      */
     int32_t
     ebpf_interlocked_compare_exchange_int32(_Inout_ volatile int32_t* destination, int32_t exchange, int32_t comperand);
+
+    /**
+     * @brief Performs an atomic operation that compares the input value pointed
+     *  to by destination with the value of comperand and replaces it with
+     *  exchange.
+     *
+     * @param[in,out] destination A pointer to the input value that is compared
+     *  with the value of comperand.
+     * @param[in] exchange Specifies the output value pointed to by destination
+     *  if the input value pointed to by destination equals the value of
+     *  comperand.
+     * @param[in] comperand Specifies the value that is compared with the input
+     *  value pointed to by destination.
+     * @return Returns the original value of memory pointed to by
+     *  destination.
+     */
+    void*
+    ebpf_interlocked_compare_exchange_pointer(
+        _Inout_ void* volatile* destination, _In_opt_ const void* exchange, _In_opt_ const void* comperand);
 
     typedef void (*ebpf_extension_change_callback_t)(
         _In_ void* client_binding_context,
@@ -775,6 +791,14 @@ extern "C"
     ebpf_result_t
     ebpf_validate_security_descriptor(
         _In_ ebpf_security_descriptor_t* security_descriptor, size_t security_descriptor_length);
+
+    /**
+     * @brief Return a pseudorandom number.
+     *
+     * @return A pseudorandom number.
+     */
+    uint32_t
+    ebpf_random_uint32();
 
 #ifdef __cplusplus
 }

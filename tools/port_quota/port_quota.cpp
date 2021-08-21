@@ -10,6 +10,7 @@
 
 const char* process_map = "port_quota::process_map";
 const char* limits_map = "port_quota::limits_map";
+const char* program_path = "port_quota::program";
 const char* program_link = "port_quota::program_link";
 
 typedef struct _process_entry
@@ -74,9 +75,16 @@ load(int argc, char** argv)
 
     error = bpf_link__pin(link, program_link);
     if (error != ERROR_SUCCESS) {
-        fprintf(stderr, "Failed to pin eBPF program: %d\n", result);
+        fprintf(stderr, "Failed to pin eBPF link: %d\n", error);
         return 1;
     }
+
+    error = bpf_program__pin(program, program_path);
+    if (error != ERROR_SUCCESS) {
+        fprintf(stderr, "Failed to pin eBPF program: %d\n", error);
+        return 1;
+    }
+
     return 0;
 }
 
@@ -86,6 +94,7 @@ unload(int argc, char** argv)
     UNREFERENCED_PARAMETER(argc);
     UNREFERENCED_PARAMETER(argv);
 
+    ebpf_object_unpin(program_path);
     ebpf_object_unpin(program_link);
     ebpf_object_unpin(limits_map);
     ebpf_object_unpin(process_map);
@@ -158,10 +167,11 @@ struct
     const char* name;
     const char* help;
     operation_t operation;
-} commands[]{{"load", "load\tLoad the port quota eBPF program", load},
-             {"unload", "unload\tUnload the port quota eBPF program", unload},
-             {"stats", "stats\tShow stats from the port quota eBPF program", stats},
-             {"limit", "limit value\tSet the port quota limit", limit}};
+} commands[]{
+    {"load", "load\tLoad the port quota eBPF program", load},
+    {"unload", "unload\tUnload the port quota eBPF program", unload},
+    {"stats", "stats\tShow stats from the port quota eBPF program", stats},
+    {"limit", "limit value\tSet the port quota limit", limit}};
 
 void
 print_usage(char* path)

@@ -45,6 +45,140 @@ class _test_helper
     bool epoch_initated = false;
 };
 
+TEST_CASE("hash_table_test", "[platform]")
+{
+    ebpf_hash_table_t* table = nullptr;
+    std::vector<uint8_t> key_1(13);
+    std::vector<uint8_t> key_2(13);
+    std::vector<uint8_t> data_1(37);
+    std::vector<uint8_t> data_2(37);
+    uint8_t* returned_value = nullptr;
+    std::vector<uint8_t> returned_key(13);
+
+    for (auto& v : key_1) {
+        v = static_cast<uint8_t>(ebpf_random_uint32());
+    }
+    for (auto& v : key_2) {
+        v = static_cast<uint8_t>(ebpf_random_uint32());
+    }
+    for (auto& v : data_1) {
+        v = static_cast<uint8_t>(ebpf_random_uint32());
+    }
+    for (auto& v : data_2) {
+        v = static_cast<uint8_t>(ebpf_random_uint32());
+    }
+
+    REQUIRE(
+        ebpf_hash_table_create(&table, ebpf_allocate, ebpf_free, key_1.size(), data_1.size(), 1, NULL) == EBPF_SUCCESS);
+
+    // Insert first
+    REQUIRE(ebpf_hash_table_update(table, key_1.data(), data_1.data()) == EBPF_SUCCESS);
+
+    // Insert second
+    REQUIRE(ebpf_hash_table_update(table, key_2.data(), data_2.data()) == EBPF_SUCCESS);
+
+    // Find the first
+    REQUIRE(ebpf_hash_table_find(table, key_1.data(), &returned_value) == EBPF_SUCCESS);
+    REQUIRE(memcmp(returned_value, data_1.data(), data_1.size()) == 0);
+
+    // Find the second
+    REQUIRE(ebpf_hash_table_find(table, key_2.data(), &returned_value) == EBPF_SUCCESS);
+    REQUIRE(memcmp(returned_value, data_2.data(), data_2.size()) == 0);
+
+    // Replace
+    memset(data_1.data(), '0x55', data_1.size());
+    REQUIRE(ebpf_hash_table_update(table, key_1.data(), data_1.data()) == EBPF_SUCCESS);
+
+    // Find the first
+    REQUIRE(ebpf_hash_table_find(table, key_1.data(), &returned_value) == EBPF_SUCCESS);
+    REQUIRE(memcmp(returned_value, data_1.data(), data_1.size()) == 0);
+
+    // Next key
+    REQUIRE(ebpf_hash_table_next_key(table, nullptr, returned_key.data()) == EBPF_SUCCESS);
+    REQUIRE((returned_key == key_1 || returned_key == key_2));
+
+    REQUIRE(ebpf_hash_table_next_key(table, returned_key.data(), returned_key.data()) == EBPF_SUCCESS);
+    REQUIRE((returned_key == key_1 || returned_key == key_2));
+
+    REQUIRE(ebpf_hash_table_next_key(table, returned_key.data(), returned_key.data()) == EBPF_NO_MORE_KEYS);
+    REQUIRE((returned_key == key_1 || returned_key == key_2));
+
+    // Delete found
+    REQUIRE(ebpf_hash_table_delete(table, key_1.data()) == EBPF_SUCCESS);
+
+    // Delete not found
+    REQUIRE(ebpf_hash_table_delete(table, key_1.data()) == EBPF_KEY_NOT_FOUND);
+
+    // Find not found
+    REQUIRE(ebpf_hash_table_find(table, key_1.data(), &returned_value) == EBPF_KEY_NOT_FOUND);
+
+    ebpf_hash_table_destroy(table);
+}
+
+void
+run_in_epoch(std::function<void()> function)
+{
+    if (ebpf_epoch_enter() == EBPF_SUCCESS) {
+        function();
+        ebpf_epoch_exit();
+    }
+}
+
+TEST_CASE("hash_table_stress_test", "[platform]")
+{
+    _test_helper test_helper;
+
+    ebpf_hash_table_t* table = nullptr;
+    const size_t iterations = 1000;
+    uint32_t worker_threads;
+    ebpf_get_cpu_count(&worker_threads);
+    REQUIRE(
+        ebpf_hash_table_create(
+            &table, ebpf_epoch_allocate, ebpf_epoch_free, sizeof(uint32_t), sizeof(uint64_t), worker_threads, NULL) ==
+        EBPF_SUCCESS);
+    auto worker = [table, iterations]() {
+        uint32_t next_key = 0;
+        uint64_t value = 11;
+        uint64_t** returned_value = nullptr;
+        std::vector<uint32_t> keys(32);
+        for (auto& key : keys) {
+            key = ebpf_random_uint32();
+        }
+        for (size_t i = 0; i < iterations; i++) {
+            for (auto& key : keys) {
+                run_in_epoch([&]() {
+                    ebpf_hash_table_update(
+                        table, reinterpret_cast<const uint8_t*>(&key), reinterpret_cast<const uint8_t*>(&value));
+                });
+            }
+            for (auto& key : keys)
+                run_in_epoch([&]() {
+                    ebpf_hash_table_find(
+                        table, reinterpret_cast<const uint8_t*>(&key), reinterpret_cast<uint8_t**>(&returned_value));
+                });
+            for (auto& key : keys)
+                run_in_epoch([&]() {
+                    ebpf_hash_table_next_key(
+                        table, reinterpret_cast<const uint8_t*>(&key), reinterpret_cast<uint8_t*>(&next_key));
+                });
+
+            for (auto& key : keys)
+                run_in_epoch([&]() { ebpf_hash_table_delete(table, reinterpret_cast<const uint8_t*>(&key)); });
+        }
+    };
+
+    std::vector<std::thread> threads;
+    for (size_t i = 0; i < worker_threads; i++) {
+        threads.emplace_back(std::thread(worker));
+    }
+
+    for (auto& thread : threads) {
+        thread.join();
+    }
+
+    ebpf_hash_table_destroy(table);
+}
+
 TEST_CASE("pinning_test", "[platform]")
 {
     _test_helper test_helper;
@@ -197,14 +331,14 @@ TEST_CASE("trampoline_test", "[platform]")
     auto provider_function1 = []() { return EBPF_SUCCESS; };
     ebpf_result_t (*function_pointer1)() = provider_function1;
     const void* helper_functions1[] = {(void*)function_pointer1};
-    ebpf_helper_function_addresses_t helper_function_addresses1 = {EBPF_COUNT_OF(helper_functions1),
-                                                                   (uint64_t*)helper_functions1};
+    ebpf_helper_function_addresses_t helper_function_addresses1 = {
+        EBPF_COUNT_OF(helper_functions1), (uint64_t*)helper_functions1};
 
     auto provider_function2 = []() { return EBPF_OBJECT_ALREADY_EXISTS; };
     ebpf_result_t (*function_pointer2)() = provider_function2;
     const void* helper_functions2[] = {(void*)function_pointer2};
-    ebpf_helper_function_addresses_t helper_function_addresses2 = {EBPF_COUNT_OF(helper_functions1),
-                                                                   (uint64_t*)helper_functions2};
+    ebpf_helper_function_addresses_t helper_function_addresses2 = {
+        EBPF_COUNT_OF(helper_functions1), (uint64_t*)helper_functions2};
 
     REQUIRE(ebpf_allocate_trampoline_table(1, &table) == EBPF_SUCCESS);
     REQUIRE(ebpf_update_trampoline_table(table, &helper_function_addresses1) == EBPF_SUCCESS);

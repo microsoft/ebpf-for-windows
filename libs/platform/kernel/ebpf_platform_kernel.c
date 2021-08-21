@@ -30,7 +30,9 @@ ebpf_platform_initiate()
 
 void
 ebpf_platform_terminate()
-{}
+{
+    KeFlushQueuedDpcs();
+}
 
 __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
     _Post_writable_byte_size_(size) void* ebpf_allocate(size_t size)
@@ -225,6 +227,13 @@ int32_t
 ebpf_interlocked_compare_exchange_int32(_Inout_ volatile int32_t* destination, int32_t exchange, int32_t comperand)
 {
     return InterlockedCompareExchange((long volatile*)destination, exchange, comperand);
+}
+
+void*
+ebpf_interlocked_compare_exchange_pointer(
+    _Inout_ void* volatile* destination, _In_opt_ const void* exchange, _In_opt_ const void* comperand)
+{
+    return InterlockedCompareExchangePointer((void* volatile*)destination, (void*)exchange, (void*)comperand);
 }
 
 void
@@ -443,4 +452,12 @@ ebpf_validate_security_descriptor(
 
 Done:
     return result;
+}
+
+uint32_t
+ebpf_random_uint32()
+{
+    LARGE_INTEGER p = KeQueryPerformanceCounter(NULL);
+    ULONG seed = p.LowPart ^ (DWORD)p.HighPart;
+    return RtlRandomEx(&seed);
 }

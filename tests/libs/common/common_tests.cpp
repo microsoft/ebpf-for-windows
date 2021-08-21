@@ -3,6 +3,7 @@
 
 // Common test functions used by end to end and component tests.
 
+#include <map>
 #include "catch_wrapper.hpp"
 #include "common_tests.h"
 
@@ -16,6 +17,7 @@ ebpf_test_pinned_map_enum()
     std::string pin_path_prefix = "\\ebpf\\map\\";
     uint16_t map_count = 0;
     ebpf_map_info_t* map_info = nullptr;
+    std::map<std::string, std::string> results;
 
     REQUIRE(
         (result = ebpf_api_create_map(BPF_MAP_TYPE_ARRAY, sizeof(uint32_t), sizeof(uint64_t), 1024, 0, &map_handle)) ==
@@ -52,13 +54,16 @@ ebpf_test_pinned_map_enum()
             matched =
                 (static_cast<uint16_t>(pin_path.size()) == strnlen_s(map_info[i].pin_path, EBPF_MAX_PIN_PATH_LENGTH))));
         std::string temp(map_info[i].pin_path);
-        REQUIRE((matched = (temp == pin_path)));
-
-        if (!matched)
-            goto Exit;
+        results[pin_path] = temp;
 
         // Unpin the object.
         REQUIRE((return_value = ebpf_object_unpin(pin_path.c_str())) == EBPF_SUCCESS);
+    }
+
+    REQUIRE(results.size() == pinned_map_count);
+    for (int i = 0; i < pinned_map_count; i++) {
+        std::string pin_path = pin_path_prefix + std::to_string(i);
+        REQUIRE(results.find(pin_path) != results.end());
     }
 
 Exit:
