@@ -258,11 +258,9 @@ extern "C"
 
     /**
      * @brief Query the platform for the total number of CPUs.
-     * @param[out] cpu_count Pointer to memory location that contains the
-     *    number of CPUs.
+     * @return The count of logical cores in the system.
      */
-    void
-    ebpf_get_cpu_count(_Out_ uint32_t* cpu_count);
+    _Ret_range_(>, 0) uint32_t ebpf_get_cpu_count();
 
     /**
      * @brief Query the platform to determine if the current execution can

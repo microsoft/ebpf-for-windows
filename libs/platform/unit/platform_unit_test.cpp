@@ -130,8 +130,7 @@ TEST_CASE("hash_table_stress_test", "[platform]")
 
     ebpf_hash_table_t* table = nullptr;
     const size_t iterations = 1000;
-    uint32_t worker_threads;
-    ebpf_get_cpu_count(&worker_threads);
+    uint32_t worker_threads = ebpf_get_cpu_count();
     REQUIRE(
         ebpf_hash_table_create(
             &table, ebpf_epoch_allocate, ebpf_epoch_free, sizeof(uint32_t), sizeof(uint64_t), worker_threads, NULL) ==
