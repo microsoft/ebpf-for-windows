@@ -77,44 +77,46 @@ $(function() {
 <div class="line"><a name="l00006"></a><span class="lineno">    6</span>&#160; </div>
 <div class="line"><a name="l00007"></a><span class="lineno">    7</span>&#160;<span class="preprocessor">#include &quot;<a class="code" href="ebpf__structs_8h.html">ebpf_structs.h</a>&quot;</span></div>
 <div class="line"><a name="l00008"></a><span class="lineno">    8</span>&#160; </div>
-<div class="line"><a name="l00009"></a><span class="lineno">    9</span>&#160;<span class="comment">// In an execution context, struct bpf_map means struct _ebpf_map_definition,</span></div>
-<div class="line"><a name="l00010"></a><span class="lineno">   10</span>&#160;<span class="comment">// as opposed to for user mode apps, so define the alias here where the execution</span></div>
-<div class="line"><a name="l00011"></a><span class="lineno">   11</span>&#160;<span class="comment">// context and eBPF programs will get it.</span></div>
-<div class="line"><a name="l00012"></a><span class="lineno"><a class="line" href="ebpf__helpers_8h.html#a1d98f863fc6ebf789b378348438181ca">   12</a></span>&#160;<span class="preprocessor">#define bpf_map _ebpf_map_definition</span></div>
-<div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160; </div>
-<div class="line"><a name="l00014"></a><span class="lineno">   14</span>&#160;<span class="preprocessor">#ifndef __doxygen</span></div>
-<div class="line"><a name="l00015"></a><span class="lineno">   15</span>&#160;<span class="preprocessor">#define EBPF_HELPER(return_type, name, args) typedef return_type(*name##_t) args</span></div>
-<div class="line"><a name="l00016"></a><span class="lineno">   16</span>&#160;<span class="preprocessor">#endif</span></div>
-<div class="line"><a name="l00017"></a><span class="lineno">   17</span>&#160; </div>
-<div class="line"><a name="l00018"></a><span class="lineno">   18</span>&#160;<span class="comment">// This file contains APIs for global helpers that are</span></div>
-<div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160;<span class="comment">// exposed for use by all eBPF programs.</span></div>
-<div class="line"><a name="l00020"></a><span class="lineno">   20</span>&#160; </div>
-<div class="line"><a name="l00028"></a><span class="lineno">   28</span>&#160;EBPF_HELPER(<span class="keywordtype">void</span>*, <a class="code" href="ebpf__helpers_8h.html#a7a4df6874a63623e856735911b0a7c95">bpf_map_lookup_elem</a>, (<span class="keyword">struct</span> <a class="code" href="ebpf__helpers_8h.html#a1d98f863fc6ebf789b378348438181ca">bpf_map</a> * map, <span class="keywordtype">void</span>* key));</div>
-<div class="line"><a name="l00029"></a><span class="lineno">   29</span>&#160;<span class="preprocessor">#ifndef __doxygen</span></div>
-<div class="line"><a name="l00030"></a><span class="lineno">   30</span>&#160;<span class="preprocessor">#define bpf_map_lookup_elem ((bpf_map_lookup_elem_t)1)</span></div>
-<div class="line"><a name="l00031"></a><span class="lineno">   31</span>&#160;<span class="preprocessor">#endif</span></div>
-<div class="line"><a name="l00032"></a><span class="lineno">   32</span>&#160; </div>
-<div class="line"><a name="l00044"></a><span class="lineno">   44</span>&#160;EBPF_HELPER(int64_t, <a class="code" href="ebpf__helpers_8h.html#ac1b8f1a4da92b8e18987b7751dd75d07">bpf_map_update_elem</a>, (<span class="keyword">struct</span> <a class="code" href="ebpf__helpers_8h.html#a1d98f863fc6ebf789b378348438181ca">bpf_map</a> * map, <span class="keywordtype">void</span>* key, <span class="keywordtype">void</span>* value, uint64_t flags));</div>
-<div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160;<span class="preprocessor">#ifndef __doxygen</span></div>
-<div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160;<span class="preprocessor">#define bpf_map_update_elem ((bpf_map_update_elem_t)2)</span></div>
-<div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160;<span class="preprocessor">#endif</span></div>
-<div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160; </div>
-<div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160;EBPF_HELPER(int64_t, <a class="code" href="ebpf__helpers_8h.html#a8a2409fe484651ce89c8499097811363">bpf_map_delete_elem</a>, (<span class="keyword">struct</span> <a class="code" href="ebpf__helpers_8h.html#a1d98f863fc6ebf789b378348438181ca">bpf_map</a> * map, <span class="keywordtype">void</span>* key));</div>
-<div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160;<span class="preprocessor">#ifndef __doxygen</span></div>
-<div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160;<span class="preprocessor">#define bpf_map_delete_elem ((bpf_map_delete_elem_t)3)</span></div>
-<div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160;<span class="preprocessor">#endif</span></div>
-<div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160; </div>
-<div class="line"><a name="l00071"></a><span class="lineno">   71</span>&#160;EBPF_HELPER(int64_t, <a class="code" href="ebpf__helpers_8h.html#a0d07b7cc653296766e600371ecc326a6">bpf_tail_call</a>, (<span class="keywordtype">void</span>* ctx, <span class="keyword">struct</span> <a class="code" href="ebpf__helpers_8h.html#a1d98f863fc6ebf789b378348438181ca">bpf_map</a>* prog_array_map, uint32_t index));</div>
-<div class="line"><a name="l00072"></a><span class="lineno">   72</span>&#160;<span class="preprocessor">#ifndef __doxygen</span></div>
-<div class="line"><a name="l00073"></a><span class="lineno">   73</span>&#160;<span class="preprocessor">#define bpf_tail_call ((bpf_tail_call_t)4)</span></div>
-<div class="line"><a name="l00074"></a><span class="lineno">   74</span>&#160;<span class="preprocessor">#endif</span></div>
+<div class="line"><a name="l00009"></a><span class="lineno"><a class="line" href="ebpf__helpers_8h.html#a4f6cc1f7a616eb436d2557c23229f3b9">    9</a></span>&#160;<span class="preprocessor">#define MAX_TAIL_CALL_CNT 32</span></div>
+<div class="line"><a name="l00010"></a><span class="lineno">   10</span>&#160; </div>
+<div class="line"><a name="l00011"></a><span class="lineno">   11</span>&#160;<span class="comment">// In an execution context, struct bpf_map means struct _ebpf_map_definition,</span></div>
+<div class="line"><a name="l00012"></a><span class="lineno">   12</span>&#160;<span class="comment">// as opposed to for user mode apps, so define the alias here where the execution</span></div>
+<div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160;<span class="comment">// context and eBPF programs will get it.</span></div>
+<div class="line"><a name="l00014"></a><span class="lineno"><a class="line" href="ebpf__helpers_8h.html#a1d98f863fc6ebf789b378348438181ca">   14</a></span>&#160;<span class="preprocessor">#define bpf_map _ebpf_map_definition</span></div>
+<div class="line"><a name="l00015"></a><span class="lineno">   15</span>&#160; </div>
+<div class="line"><a name="l00016"></a><span class="lineno">   16</span>&#160;<span class="preprocessor">#ifndef __doxygen</span></div>
+<div class="line"><a name="l00017"></a><span class="lineno">   17</span>&#160;<span class="preprocessor">#define EBPF_HELPER(return_type, name, args) typedef return_type(*name##_t) args</span></div>
+<div class="line"><a name="l00018"></a><span class="lineno">   18</span>&#160;<span class="preprocessor">#endif</span></div>
+<div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160; </div>
+<div class="line"><a name="l00020"></a><span class="lineno">   20</span>&#160;<span class="comment">// This file contains APIs for global helpers that are</span></div>
+<div class="line"><a name="l00021"></a><span class="lineno">   21</span>&#160;<span class="comment">// exposed for use by all eBPF programs.</span></div>
+<div class="line"><a name="l00022"></a><span class="lineno">   22</span>&#160; </div>
+<div class="line"><a name="l00030"></a><span class="lineno">   30</span>&#160;EBPF_HELPER(<span class="keywordtype">void</span>*, <a class="code" href="ebpf__helpers_8h.html#a7a4df6874a63623e856735911b0a7c95">bpf_map_lookup_elem</a>, (<span class="keyword">struct</span> <a class="code" href="ebpf__helpers_8h.html#a1d98f863fc6ebf789b378348438181ca">bpf_map</a> * map, <span class="keywordtype">void</span>* key));</div>
+<div class="line"><a name="l00031"></a><span class="lineno">   31</span>&#160;<span class="preprocessor">#ifndef __doxygen</span></div>
+<div class="line"><a name="l00032"></a><span class="lineno">   32</span>&#160;<span class="preprocessor">#define bpf_map_lookup_elem ((bpf_map_lookup_elem_t)1)</span></div>
+<div class="line"><a name="l00033"></a><span class="lineno">   33</span>&#160;<span class="preprocessor">#endif</span></div>
+<div class="line"><a name="l00034"></a><span class="lineno">   34</span>&#160; </div>
+<div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160;EBPF_HELPER(int64_t, <a class="code" href="ebpf__helpers_8h.html#ac1b8f1a4da92b8e18987b7751dd75d07">bpf_map_update_elem</a>, (<span class="keyword">struct</span> <a class="code" href="ebpf__helpers_8h.html#a1d98f863fc6ebf789b378348438181ca">bpf_map</a> * map, <span class="keywordtype">void</span>* key, <span class="keywordtype">void</span>* value, uint64_t flags));</div>
+<div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160;<span class="preprocessor">#ifndef __doxygen</span></div>
+<div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160;<span class="preprocessor">#define bpf_map_update_elem ((bpf_map_update_elem_t)2)</span></div>
+<div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160;<span class="preprocessor">#endif</span></div>
+<div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160; </div>
+<div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160;EBPF_HELPER(int64_t, <a class="code" href="ebpf__helpers_8h.html#a8a2409fe484651ce89c8499097811363">bpf_map_delete_elem</a>, (<span class="keyword">struct</span> <a class="code" href="ebpf__helpers_8h.html#a1d98f863fc6ebf789b378348438181ca">bpf_map</a> * map, <span class="keywordtype">void</span>* key));</div>
+<div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160;<span class="preprocessor">#ifndef __doxygen</span></div>
+<div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160;<span class="preprocessor">#define bpf_map_delete_elem ((bpf_map_delete_elem_t)3)</span></div>
+<div class="line"><a name="l00062"></a><span class="lineno">   62</span>&#160;<span class="preprocessor">#endif</span></div>
+<div class="line"><a name="l00063"></a><span class="lineno">   63</span>&#160; </div>
+<div class="line"><a name="l00073"></a><span class="lineno">   73</span>&#160;EBPF_HELPER(int64_t, <a class="code" href="ebpf__helpers_8h.html#a0d07b7cc653296766e600371ecc326a6">bpf_tail_call</a>, (<span class="keywordtype">void</span>* ctx, <span class="keyword">struct</span> <a class="code" href="ebpf__helpers_8h.html#a1d98f863fc6ebf789b378348438181ca">bpf_map</a>* prog_array_map, uint32_t index));</div>
+<div class="line"><a name="l00074"></a><span class="lineno">   74</span>&#160;<span class="preprocessor">#ifndef __doxygen</span></div>
+<div class="line"><a name="l00075"></a><span class="lineno">   75</span>&#160;<span class="preprocessor">#define bpf_tail_call ((bpf_tail_call_t)4)</span></div>
+<div class="line"><a name="l00076"></a><span class="lineno">   76</span>&#160;<span class="preprocessor">#endif</span></div>
 </div><!-- fragment --></div><!-- contents -->
 <div class="ttc" id="aebpf__helpers_8h_html_a7a4df6874a63623e856735911b0a7c95"><div class="ttname"><a href="ebpf__helpers_8h.html#a7a4df6874a63623e856735911b0a7c95">bpf_map_lookup_elem</a></div><div class="ttdeci">void * bpf_map_lookup_elem(struct _ebpf_map_definition *map, void *key)</div><div class="ttdoc">Get a pointer to an entry in the map.</div></div>
 <div class="ttc" id="aebpf__helpers_8h_html_a8a2409fe484651ce89c8499097811363"><div class="ttname"><a href="ebpf__helpers_8h.html#a8a2409fe484651ce89c8499097811363">bpf_map_delete_elem</a></div><div class="ttdeci">int64_t bpf_map_delete_elem(struct _ebpf_map_definition *map, void *key)</div><div class="ttdoc">Remove an entry from the map.</div></div>
 <div class="ttc" id="aebpf__helpers_8h_html_a0d07b7cc653296766e600371ecc326a6"><div class="ttname"><a href="ebpf__helpers_8h.html#a0d07b7cc653296766e600371ecc326a6">bpf_tail_call</a></div><div class="ttdeci">int64_t bpf_tail_call(void *ctx, struct _ebpf_map_definition *prog_array_map, uint32_t index)</div><div class="ttdoc">Perform a tail call into another eBPF program.</div></div>
 <div class="ttc" id="aebpf__structs_8h_html"><div class="ttname"><a href="ebpf__structs_8h.html">ebpf_structs.h</a></div></div>
 <div class="ttc" id="aebpf__helpers_8h_html_ac1b8f1a4da92b8e18987b7751dd75d07"><div class="ttname"><a href="ebpf__helpers_8h.html#ac1b8f1a4da92b8e18987b7751dd75d07">bpf_map_update_elem</a></div><div class="ttdeci">int64_t bpf_map_update_elem(struct _ebpf_map_definition *map, void *key, void *value, uint64_t flags)</div><div class="ttdoc">Insert or update an entry in the map.</div></div>
-<div class="ttc" id="aebpf__helpers_8h_html_a1d98f863fc6ebf789b378348438181ca"><div class="ttname"><a href="ebpf__helpers_8h.html#a1d98f863fc6ebf789b378348438181ca">bpf_map</a></div><div class="ttdeci">#define bpf_map</div><div class="ttdef"><b>Definition:</b> ebpf_helpers.h:12</div></div>
+<div class="ttc" id="aebpf__helpers_8h_html_a1d98f863fc6ebf789b378348438181ca"><div class="ttname"><a href="ebpf__helpers_8h.html#a1d98f863fc6ebf789b378348438181ca">bpf_map</a></div><div class="ttdeci">#define bpf_map</div><div class="ttdef"><b>Definition:</b> ebpf_helpers.h:14</div></div>
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
 Generated by &#160;<a href="http://www.doxygen.org/index.html">
