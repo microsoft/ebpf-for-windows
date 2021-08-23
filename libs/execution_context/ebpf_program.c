@@ -543,11 +543,8 @@ ebpf_program_load_code(
     else if (program->parameters.code_type == EBPF_CODE_EBPF)
         result = _ebpf_program_load_byte_code(
             program, (const ebpf_instruction_t*)code, code_size / sizeof(ebpf_instruction_t));
-    else {
+    else
         result = EBPF_INVALID_ARGUMENT;
-        goto Exit;
-    }
-Exit:
     return result;
 }
 
