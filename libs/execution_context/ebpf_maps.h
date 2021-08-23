@@ -115,14 +115,12 @@ extern "C"
      *
      * @param[in] map Map to update.
      * @param[in] key Key to use when searching and updating the map.
-     * @param[in] flags Must be zero.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_INVALID_ARGUMENT One or more parameters are
      *  invalid.
      */
     ebpf_result_t
-    ebpf_map_delete_entry(
-        _In_ ebpf_map_t* map, size_t key_size, _In_reads_(key_size) const uint8_t* key, int flags);
+    ebpf_map_delete_entry(_In_ ebpf_map_t* map, size_t key_size, _In_reads_(key_size) const uint8_t* key, int flags);
 
     /**
      * @brief Retrieve the next key from the map.
