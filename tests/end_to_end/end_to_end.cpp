@@ -483,18 +483,18 @@ associatetoflow_test(ebpf_execution_type_t execution_type)
     REQUIRE(emulate_flow(hook, fake_protocol_2, "2_fake_app") == 0);
     REQUIRE(get_app_name(map_handles[0], five_tuple_2) == '2');
 
-    five_tuple_t key = {};
+    five_tuple_t key;
     app_name_t app_name = {};
 
     REQUIRE(
-        ebpf_api_get_next_map_key(map_handles[0], sizeof(five_tuple_t), reinterpret_cast<uint8_t*>(&key), reinterpret_cast<uint8_t*>(&key)) ==
+        ebpf_api_get_next_map_key(map_handles[0], sizeof(five_tuple_t), NULL, reinterpret_cast<uint8_t*>(&key)) ==
         EBPF_SUCCESS);
-    REQUIRE(key.protocol == 0x11);
+    REQUIRE(key.protocol == 0x06);
     REQUIRE(
         ebpf_api_get_next_map_key(
             map_handles[0], sizeof(five_tuple_t), reinterpret_cast<uint8_t*>(&key), reinterpret_cast<uint8_t*>(&key)) ==
         EBPF_SUCCESS);
-    REQUIRE(key.protocol == 0x06);
+    REQUIRE(key.protocol == 0x11);
     REQUIRE(
         ebpf_api_get_next_map_key(
             map_handles[0], sizeof(five_tuple_t), reinterpret_cast<uint8_t*>(&key), reinterpret_cast<uint8_t*>(&key)) ==
