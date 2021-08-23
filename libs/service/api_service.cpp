@@ -334,11 +334,12 @@ ebpf_verify_and_load_program(
             goto Exit;
         }
 
+        std::vector<uint64_t> helper_id_adddress;
+        result = _build_helper_id_to_address_map(program_handle, byte_code_buffer, helper_id_adddress);
+        if (result != EBPF_SUCCESS)
+            goto Exit;
+
         if (execution_type == EBPF_EXECUTION_JIT) {
-            std::vector<uint64_t> helper_id_adddress;
-            result = _build_helper_id_to_address_map(program_handle, byte_code_buffer, helper_id_adddress);
-            if (result != EBPF_SUCCESS)
-                goto Exit;
 
             ebpf_code_buffer_t machine_code(MAX_CODE_SIZE_IN_BYTES);
             size_t machine_code_size = machine_code.size();

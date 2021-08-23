@@ -10,15 +10,15 @@
 // Each block of code that accesses epoch freed memory wraps access in calls to
 // ebpf_epoch_enter/ebpf_epoch_exit.
 //
-// Epoch tracking is handled differently for pre-emptable vs non-pre-emptable
+// Epoch tracking is handled differently for pre-emptible vs non-pre-emptible
 // invocations.
 //
-// Non-pre-emptable invocations are:
+// Non-pre-emptible invocations are:
 // 1) Tracked by the CPU they are running on as they don't switch CPUs.
 // 2) Accessed without synchronization.
 // 3) Set to the current epoch on entry.
 //
-// Pre-emptable invocations are:
+// Pre-emptible invocations are:
 // 1) Tracked by thread ID.
 // 2) Accessed under a lock.
 // 3) Set to the current epoch on entry.
@@ -49,7 +49,7 @@ static _Requires_lock_held_(&_ebpf_epoch_thread_table_lock) ebpf_hash_table_t* _
 typedef struct _ebpf_epoch_cpu_entry
 {
     int64_t epoch;
-    ebpf_non_preemptible_work_item_t* non_preemtable_work_item;
+    ebpf_non_preemptible_work_item_t* non_preemptible_work_item;
     ebpf_lock_t free_list_lock;
     ebpf_list_entry_t free_list;
 } ebpf_epoch_cpu_entry_t;
@@ -99,7 +99,7 @@ _ebpf_epoch_release_free_list(uint32_t cpu_id, int64_t released_epoch);
 
 // Get the highest epoch that is no longer in use.
 static ebpf_result_t
-_ebpf_epoch_get_release_epoch(int64_t* released_epoch);
+_ebpf_epoch_get_release_epoch(_Out_ int64_t* released_epoch);
 
 static void
 _ebpf_epoch_update_cpu_entry(void* context, void* parameter_1);
@@ -114,13 +114,12 @@ ebpf_epoch_initiate()
     uint32_t cpu_id;
     uint32_t cpu_count;
 
-    ebpf_get_cpu_count(&cpu_count);
+    cpu_count = ebpf_get_cpu_count();
     _ebpf_epoch_initiated = true;
     _ebpf_epoch_rundown = false;
 
     _ebpf_current_epoch = 1;
     _ebpf_epoch_cpu_count = cpu_count;
-    _Analysis_assume_(_ebpf_epoch_cpu_count >= 1);
 
     ebpf_lock_create(&_ebpf_epoch_thread_table_lock);
 
@@ -144,7 +143,7 @@ ebpf_epoch_initiate()
             if (return_value != EBPF_SUCCESS) {
                 goto Error;
             }
-            _ebpf_epoch_cpu_table[cpu_id].non_preemtable_work_item = work_item_context;
+            _ebpf_epoch_cpu_table[cpu_id].non_preemptible_work_item = work_item_context;
         }
     }
 
@@ -176,8 +175,8 @@ ebpf_epoch_terminate()
 
     if (ebpf_is_non_preemptible_work_item_supported()) {
         for (cpu_id = 0; cpu_id < _ebpf_epoch_cpu_count; cpu_id++) {
-            ebpf_free_non_preemptible_work_item(_ebpf_epoch_cpu_table[cpu_id].non_preemtable_work_item);
-            _ebpf_epoch_cpu_table[cpu_id].non_preemtable_work_item = NULL;
+            ebpf_free_non_preemptible_work_item(_ebpf_epoch_cpu_table[cpu_id].non_preemptible_work_item);
+            _ebpf_epoch_cpu_table[cpu_id].non_preemptible_work_item = NULL;
         }
     }
     _ebpf_epoch_cpu_count = 0;
@@ -270,7 +269,7 @@ ebpf_epoch_flush()
             // Note: Either the per-cpu epoch or the global epoch could be out of date.
             // That is acceptable as it may schedule an extra work item.
             if (_ebpf_epoch_cpu_table[cpu_id].epoch != _ebpf_current_epoch)
-                ebpf_queue_non_preemptible_work_item(_ebpf_epoch_cpu_table[cpu_id].non_preemtable_work_item, NULL);
+                ebpf_queue_non_preemptible_work_item(_ebpf_epoch_cpu_table[cpu_id].non_preemptible_work_item, NULL);
         }
     }
 
@@ -369,7 +368,7 @@ _ebpf_epoch_release_free_list(uint32_t cpu_id, int64_t released_epoch)
 }
 
 static ebpf_result_t
-_ebpf_epoch_get_release_epoch(int64_t* release_epoch)
+_ebpf_epoch_get_release_epoch(_Out_ int64_t* release_epoch)
 {
     int64_t lowest_epoch = INT64_MAX;
     int64_t* thread_epoch;

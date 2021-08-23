@@ -236,11 +236,7 @@ ebpf_interlocked_compare_exchange_pointer(
     return InterlockedCompareExchangePointer((void* volatile*)destination, (void*)exchange, (void*)comperand);
 }
 
-void
-ebpf_get_cpu_count(_Out_ uint32_t* cpu_count)
-{
-    *cpu_count = KeQueryMaximumProcessorCount();
-}
+_Ret_range_(>, 0) uint32_t ebpf_get_cpu_count() { return KeQueryMaximumProcessorCount(); }
 
 bool
 ebpf_is_preemptible()

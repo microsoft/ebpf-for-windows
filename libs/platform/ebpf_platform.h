@@ -265,11 +265,9 @@ extern "C"
 
     /**
      * @brief Query the platform for the total number of CPUs.
-     * @param[out] cpu_count Pointer to memory location that contains the
-     *    number of CPUs.
+     * @return The count of logical cores in the system.
      */
-    void
-    ebpf_get_cpu_count(_Out_ uint32_t* cpu_count);
+    _Ret_range_(>, 0) uint32_t ebpf_get_cpu_count();
 
     /**
      * @brief Query the platform to determine if the current execution can
@@ -710,14 +708,19 @@ extern "C"
      * @brief Populate the function pointers in a trampoline table.
      *
      * @param[in] trampoline_table Trampoline table to populate.
+     * @param[in] helper_function_count Count of helper functions.
+     * @param[in] helper_function_ids Array of helper function IDs.
      * @param[in] dispatch_table Dispatch table to populate from.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  operation.
+     * @retval EBPF_INVALID_ARGUMENT An invalid argument was supplied.
      */
     ebpf_result_t
     ebpf_update_trampoline_table(
         _Inout_ ebpf_trampoline_table_t* trampoline_table,
+        uint32_t helper_function_count,
+        _In_reads_(helper_function_count) const uint32_t* helper_function_ids,
         _In_ const ebpf_helper_function_addresses_t* helper_function_addresses);
 
     /**
@@ -734,6 +737,21 @@ extern "C"
     ebpf_result_t
     ebpf_get_trampoline_function(
         _In_ const ebpf_trampoline_table_t* trampoline_table, size_t index, _Out_ void** function);
+
+    /**
+     * @brief Get the address of the helper function from the trampoline table entry.
+     *
+     * @param[in] trampoline_table Trampoline table to query.
+     * @param[in] index Index of trampoline table entry.
+     * @param[out] helper_address Pointer to memory that contains the address to helper function on success.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
+     *  operation.
+     * @retval EBPF_INVALID_ARGUMENT An invalid argument was supplied.
+     */
+    ebpf_result_t
+    ebpf_get_trampoline_helper_address(
+        _In_ const ebpf_trampoline_table_t* trampoline_table, size_t index, _Out_ void** helper_address);
 
     typedef struct _ebpf_program_info ebpf_program_info_t;
 
