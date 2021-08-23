@@ -88,6 +88,8 @@ Data Structures</h2></td></tr>
 Typedefs</h2></td></tr>
 <tr class="memitem:a4834bac82ca5ec846765b1a43f086a11"><td class="memItemLeft" align="right" valign="top">typedef enum <a class="el" href="ebpf__structs_8h.html#afd97ad5450067d01ec6b6cd3c30761a1">bpf_map_type</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__structs_8h.html#a4834bac82ca5ec846765b1a43f086a11">ebpf_map_type_t</a></td></tr>
 <tr class="separator:a4834bac82ca5ec846765b1a43f086a11"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2570d5b1e2c808efd04dfde574e29f23"><td class="memItemLeft" align="right" valign="top">typedef enum <a class="el" href="ebpf__structs_8h.html#ad2aa050648c308e0be8329a2ade170fc">ebpf_map_option</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__structs_8h.html#a2570d5b1e2c808efd04dfde574e29f23">ebpf_map_option_t</a></td></tr>
+<tr class="separator:a2570d5b1e2c808efd04dfde574e29f23"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa51d087caeb6b6965122893927824f28"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__ebpf__map__definition.html">_ebpf_map_definition</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__structs_8h.html#aa51d087caeb6b6965122893927824f28">ebpf_map_definition_t</a></td></tr>
 <tr class="memdesc:aa51d087caeb6b6965122893927824f28"><td class="mdescLeft">&#160;</td><td class="mdescRight">eBPF Map Definition.  <a href="ebpf__structs_8h.html#aa51d087caeb6b6965122893927824f28">More...</a><br /></td></tr>
 <tr class="separator:aa51d087caeb6b6965122893927824f28"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -105,6 +107,11 @@ Enumerations</h2></td></tr>
 <br />
  }</td></tr>
 <tr class="separator:afd97ad5450067d01ec6b6cd3c30761a1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad2aa050648c308e0be8329a2ade170fc"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__structs_8h.html#ad2aa050648c308e0be8329a2ade170fc">ebpf_map_option</a> { <a class="el" href="ebpf__structs_8h.html#ad2aa050648c308e0be8329a2ade170fca81b09e155b84d31bab635410874a4835">EBPF_ANY</a>, 
+<a class="el" href="ebpf__structs_8h.html#ad2aa050648c308e0be8329a2ade170fcafa5bcd34b76d7df6013bd9e972a2db45">EBPF_NOEXIST</a>, 
+<a class="el" href="ebpf__structs_8h.html#ad2aa050648c308e0be8329a2ade170fca9ce0edc2520ca685ab2da7cf4eea5f70">EBPF_EXIST</a>
+ }</td></tr>
+<tr class="separator:ad2aa050648c308e0be8329a2ade170fc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Typedef Documentation</h2>
 <a id="aa51d087caeb6b6965122893927824f28"></a>
@@ -120,6 +127,20 @@ Enumerations</h2></td></tr>
 </div><div class="memdoc">
 
 <p>eBPF Map Definition. </p>
+
+</div>
+</div>
+<a id="a2570d5b1e2c808efd04dfde574e29f23"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a2570d5b1e2c808efd04dfde574e29f23">&#9670;&nbsp;</a></span>ebpf_map_option_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef enum <a class="el" href="ebpf__structs_8h.html#ad2aa050648c308e0be8329a2ade170fc">ebpf_map_option</a> <a class="el" href="ebpf__structs_8h.html#a2570d5b1e2c808efd04dfde574e29f23">ebpf_map_option_t</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
 
 </div>
 </div>
@@ -160,6 +181,25 @@ Enumerations</h2></td></tr>
 </td></tr>
 <tr><td class="fieldname"><a id="afd97ad5450067d01ec6b6cd3c30761a1aac824ca248203aa188381267bca59cc9"></a>BPF_MAP_TYPE_PERCPU_HASH&#160;</td><td class="fielddoc"></td></tr>
 <tr><td class="fieldname"><a id="afd97ad5450067d01ec6b6cd3c30761a1a2d7ebe3c4a82861bcd69b500d7f67de2"></a>BPF_MAP_TYPE_PERCPU_ARRAY&#160;</td><td class="fielddoc"></td></tr>
+</table>
+
+</div>
+</div>
+<a id="ad2aa050648c308e0be8329a2ade170fc"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad2aa050648c308e0be8329a2ade170fc">&#9670;&nbsp;</a></span>ebpf_map_option</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">enum <a class="el" href="ebpf__structs_8h.html#ad2aa050648c308e0be8329a2ade170fc">ebpf_map_option</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<table class="fieldtable">
+<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="ad2aa050648c308e0be8329a2ade170fca81b09e155b84d31bab635410874a4835"></a>EBPF_ANY&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="ad2aa050648c308e0be8329a2ade170fcafa5bcd34b76d7df6013bd9e972a2db45"></a>EBPF_NOEXIST&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="ad2aa050648c308e0be8329a2ade170fca9ce0edc2520ca685ab2da7cf4eea5f70"></a>EBPF_EXIST&#160;</td><td class="fielddoc"></td></tr>
 </table>
 
 </div>
