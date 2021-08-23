@@ -86,7 +86,8 @@ ebpf_extension_load(
     return_value = ebpf_hash_table_update(
         local_extension_provider->client_table,
         (const uint8_t*)&local_extension_client->client_id,
-        (const uint8_t*)&local_extension_client);
+        (const uint8_t*)&local_extension_client,
+        EBPF_HASH_TABLE_OPERATION_INSERT);
     if (return_value != EBPF_SUCCESS) {
         goto Done;
     }
@@ -235,7 +236,10 @@ ebpf_provider_load(
     }
 
     return_value = ebpf_hash_table_update(
-        _ebpf_provider_table, (const uint8_t*)interface_id, (const uint8_t*)&local_extension_provider);
+        _ebpf_provider_table,
+        (const uint8_t*)interface_id,
+        (const uint8_t*)&local_extension_provider,
+        EBPF_HASH_TABLE_OPERATION_INSERT);
     if (return_value != EBPF_SUCCESS)
         goto Done;
 

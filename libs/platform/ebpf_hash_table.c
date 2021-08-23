@@ -40,7 +40,9 @@ struct _ebpf_hash_table
 
 typedef enum _ebpf_hash_bucket_operation
 {
+    EBPF_HASH_BUCKET_OPERATION_INSERT_OR_UPDATE,
     EBPF_HASH_BUCKET_OPERATION_INSERT,
+    EBPF_HASH_BUCKET_OPERATION_UPDATE,
     EBPF_HASH_BUCKET_OPERATION_DELETE,
 } ebpf_hash_bucket_operation_t;
 
@@ -217,7 +219,10 @@ _ebpf_hash_table_replace_bucket(
     ebpf_hash_bucket_header_t* delete_bucket = NULL;
     hash = _ebpf_hash_table_compute_hash(hash_table, key);
 
-    if (operation == EBPF_HASH_BUCKET_OPERATION_INSERT) {
+    switch (operation) {
+    case EBPF_HASH_BUCKET_OPERATION_INSERT_OR_UPDATE:
+    case EBPF_HASH_BUCKET_OPERATION_INSERT:
+    case EBPF_HASH_BUCKET_OPERATION_UPDATE:
         new_data = hash_table->allocate(hash_table->value_size);
         if (!new_data) {
             result = EBPF_NO_MEMORY;
@@ -227,6 +232,9 @@ _ebpf_hash_table_replace_bucket(
         if (data) {
             memcpy(new_data, data, hash_table->value_size);
         }
+        break;
+    case EBPF_HASH_BUCKET_OPERATION_DELETE:
+        break;
     }
 
     for (;;) {
@@ -261,21 +269,39 @@ _ebpf_hash_table_replace_bucket(
             }
         }
 
-        // If this is a delete, but the key isn't present, return key not found.
-        if (operation == EBPF_HASH_BUCKET_OPERATION_DELETE && old_data_index == MAXSIZE_T) {
-            result = EBPF_KEY_NOT_FOUND;
-            goto Done;
-        }
-
         // new_bucket_count is either old_bucket_count +1 or -1.
         new_bucket_count = old_bucket_count;
 
-        if (operation == EBPF_HASH_BUCKET_OPERATION_INSERT && old_data_index == MAXSIZE_T) {
-            new_bucket_count++;
-        }
-
-        if (operation == EBPF_HASH_BUCKET_OPERATION_DELETE) {
-            new_bucket_count--;
+        switch (operation) {
+        // Fail if the key is not found and this is a update or delete.
+        case EBPF_HASH_BUCKET_OPERATION_UPDATE:
+            if (old_data_index == MAXSIZE_T) {
+                result = EBPF_KEY_NOT_FOUND;
+                goto Done;
+            }
+            break;
+        case EBPF_HASH_BUCKET_OPERATION_DELETE:
+            if (old_data_index == MAXSIZE_T) {
+                result = EBPF_KEY_NOT_FOUND;
+                goto Done;
+            } else {
+                new_bucket_count--;
+            }
+            break;
+        // Permit it if this is an insert or insert_or_update.
+        case EBPF_HASH_BUCKET_OPERATION_INSERT:
+            if (old_data_index != MAXSIZE_T) {
+                result = EBPF_KEY_NOT_FOUND;
+                goto Done;
+            } else {
+                new_bucket_count++;
+            }
+            break;
+        case EBPF_HASH_BUCKET_OPERATION_INSERT_OR_UPDATE:
+            if (old_data_index == MAXSIZE_T) {
+                new_bucket_count++;
+            }
+            break;
         }
 
         ebpf_assert(new_bucket_count < MAXUINT32);
@@ -329,11 +355,19 @@ _ebpf_hash_table_replace_bucket(
         }
     }
 
-    if (operation == EBPF_HASH_BUCKET_OPERATION_INSERT) {
+    switch (operation) {
+    case EBPF_HASH_BUCKET_OPERATION_INSERT:
+        ebpf_interlocked_increment_int32(&hash_table->entry_count);
+        break;
+    case EBPF_HASH_BUCKET_OPERATION_INSERT_OR_UPDATE:
         if (!old_data)
             ebpf_interlocked_increment_int32(&hash_table->entry_count);
-    } else {
+        break;
+    case EBPF_HASH_BUCKET_OPERATION_UPDATE:
+        break;
+    case EBPF_HASH_BUCKET_OPERATION_DELETE:
         ebpf_interlocked_decrement_int32(&hash_table->entry_count);
+        break;
     }
 
     result = EBPF_SUCCESS;
@@ -452,16 +486,36 @@ Done:
 }
 
 ebpf_result_t
-ebpf_hash_table_update(_In_ ebpf_hash_table_t* hash_table, _In_ const uint8_t* key, _In_opt_ const uint8_t* value)
+ebpf_hash_table_update(
+    _In_ ebpf_hash_table_t* hash_table,
+    _In_ const uint8_t* key,
+    _In_opt_ const uint8_t* value,
+    ebpf_hash_table_operations_t operation)
 {
     ebpf_result_t retval;
+    ebpf_hash_bucket_operation_t bucket_operation;
 
     if (!hash_table || !key) {
         retval = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
 
-    retval = _ebpf_hash_table_replace_bucket(hash_table, key, value, EBPF_HASH_BUCKET_OPERATION_INSERT);
+    switch (operation) {
+    case EBPF_HASH_TABLE_OPERATION_ANY:
+        bucket_operation = EBPF_HASH_BUCKET_OPERATION_INSERT_OR_UPDATE;
+        break;
+    case EBPF_HASH_TABLE_OPERATION_INSERT:
+        bucket_operation = EBPF_HASH_BUCKET_OPERATION_INSERT;
+        break;
+    case EBPF_HASH_TABLE_OPERATION_REPLACE:
+        bucket_operation = EBPF_HASH_BUCKET_OPERATION_UPDATE;
+        break;
+    default:
+        retval = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
+
+    retval = _ebpf_hash_table_replace_bucket(hash_table, key, value, bucket_operation);
 Done:
     return retval;
 }

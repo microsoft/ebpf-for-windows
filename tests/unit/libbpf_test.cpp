@@ -286,12 +286,17 @@ _ebpf_test_tail_call(_In_z_ const char* filename, int expected_result)
 
     struct bpf_map* map = bpf_map__next(nullptr, object);
     REQUIRE(map != nullptr);
+    struct bpf_map* canary_map = bpf_map__next(map, object);
+    REQUIRE(canary_map != nullptr);
 
     int callee_fd = bpf_program__fd(callee);
     REQUIRE(callee_fd >= 0);
 
     int map_fd = bpf_map__fd(map);
     REQUIRE(map_fd >= 0);
+
+    int canary_map_fd = bpf_map__fd(canary_map);
+    REQUIRE(canary_map_fd >= 0);
 
     // First do some negative tests.
     int index = 1;
@@ -317,6 +322,19 @@ _ebpf_test_tail_call(_In_z_ const char* filename, int expected_result)
     REQUIRE(hook.fire(&ctx, &result) == EBPF_SUCCESS);
     REQUIRE(result == expected_result);
 
+    uint32_t key = 0;
+    uint32_t value = 0;
+    error = bpf_map_lookup_elem(canary_map_fd, &key, &value);
+    REQUIRE(error == 0);
+
+    // Is bpf_tail_call expected to work?
+    // Verify stack unwind occured.
+    if (expected_result >= 0) {
+        REQUIRE(value == 0);
+    } else {
+        REQUIRE(value != 0);
+    }
+
     result = bpf_link__destroy(link);
     REQUIRE(result == 0);
     bpf_object__close(object);
@@ -325,8 +343,7 @@ _ebpf_test_tail_call(_In_z_ const char* filename, int expected_result)
 TEST_CASE("good tail_call", "[libbpf]")
 {
     // Verify that 42 is returned, which is done by the callee.
-    // TODO(issue #344): change the 6 below to 42 once tail call is done correctly.
-    _ebpf_test_tail_call("tail_call.o", 6);
+    _ebpf_test_tail_call("tail_call.o", 42);
 }
 
 TEST_CASE("bad tail_call", "[libbpf]") { _ebpf_test_tail_call("tail_call_bad.o", -EBPF_INVALID_ARGUMENT); }

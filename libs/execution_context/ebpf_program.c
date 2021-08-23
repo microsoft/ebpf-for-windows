@@ -3,13 +3,17 @@
 
 #include "ebpf_core.h"
 #include "ebpf_epoch.h"
+#include "ebpf_helpers.h"
 #include "ebpf_link.h"
 #include "ebpf_object.h"
 #include "ebpf_program.h"
 #include "ebpf_program_types.h"
+#include "ebpf_state.h"
 
 typedef struct _FILE FILE;
 #include "ubpf.h"
+
+static size_t _ebpf_program_state_index = MAXUINT64;
 
 typedef struct _ebpf_program
 {
@@ -59,6 +63,16 @@ typedef struct _ebpf_program
 
 static ebpf_result_t
 _ebpf_program_register_helpers(ebpf_program_t* program);
+
+ebpf_result_t
+ebpf_program_initiate()
+{
+    return ebpf_state_allocate_index(&_ebpf_program_state_index);
+}
+
+void
+ebpf_program_terminate()
+{}
 
 static void
 _ebpf_program_detach_links(_Inout_ ebpf_program_t* program)
@@ -548,27 +562,78 @@ ebpf_program_load_code(
     return result;
 }
 
+typedef struct _ebpf_program_tail_call_state
+{
+    const ebpf_program_t* next_program;
+    uint32_t count;
+} ebpf_program_tail_call_state_t;
+
+ebpf_result_t
+ebpf_program_set_tail_call(_In_ const ebpf_program_t* next_program)
+{
+    ebpf_result_t result;
+    ebpf_program_tail_call_state_t* state = NULL;
+    result = ebpf_state_load(_ebpf_program_state_index, (uintptr_t*)&state);
+    if (result != EBPF_SUCCESS)
+        return result;
+
+    if (state == NULL)
+        return EBPF_INVALID_ARGUMENT;
+
+    if (state->count == MAX_TAIL_CALL_CNT) {
+        return EBPF_NO_MORE_TAIL_CALLS;
+    }
+
+    state->next_program = next_program;
+
+    return EBPF_SUCCESS;
+}
+
 void
 ebpf_program_invoke(_In_ const ebpf_program_t* program, _In_ void* context, _Out_ uint32_t* result)
 {
+    ebpf_program_tail_call_state_t state = {0};
+    const ebpf_program_t* current_program = program;
+
     if (!program || program->program_invalidated) {
         *result = 0;
         return;
     }
 
-    if (program->parameters.code_type == EBPF_CODE_NATIVE) {
-        ebpf_program_entry_point_t function_pointer;
-        function_pointer = (ebpf_program_entry_point_t)(program->code_or_vm.code.code_pointer);
-        *result = (function_pointer)(context);
-    } else {
-        uint64_t out_value;
-        int ret = (uint32_t)(ubpf_exec(program->code_or_vm.vm, context, 1024, &out_value));
-        if (ret < 0) {
-            *result = ret;
+    if (!ebpf_state_store(_ebpf_program_state_index, (uintptr_t)&state) == EBPF_SUCCESS) {
+        *result = 0;
+        return;
+    }
+
+    for (state.count = 0; state.count < MAX_TAIL_CALL_CNT; state.count++) {
+        if (current_program->parameters.code_type == EBPF_CODE_NATIVE) {
+            ebpf_program_entry_point_t function_pointer;
+            function_pointer = (ebpf_program_entry_point_t)(current_program->code_or_vm.code.code_pointer);
+            *result = (function_pointer)(context);
         } else {
-            *result = (uint32_t)(out_value);
+            uint64_t out_value;
+            int ret = (uint32_t)(ubpf_exec(current_program->code_or_vm.vm, context, 1024, &out_value));
+            if (ret < 0) {
+                *result = ret;
+            } else {
+                *result = (uint32_t)(out_value);
+            }
+        }
+
+        if (state.count != 0) {
+            ebpf_object_release_reference((ebpf_object_t*)current_program);
+            current_program = NULL;
+        }
+
+        if (state.next_program == NULL) {
+            break;
+        } else {
+            current_program = state.next_program;
+            state.next_program = NULL;
         }
     }
+
+    ebpf_state_store(_ebpf_program_state_index, 0);
 }
 
 static ebpf_result_t
