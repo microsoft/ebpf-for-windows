@@ -39,6 +39,7 @@
 
 // TODO: This lock may become a contention point.
 // Investigate partitioning the table.
+// https://github.com/microsoft/ebpf-for-windows/issues/417
 static ebpf_lock_t _ebpf_epoch_thread_table_lock = {0};
 
 // Table to track what epoch each thread is on.
@@ -49,10 +50,12 @@ typedef struct _ebpf_epoch_cpu_entry
 {
     int64_t epoch;
     ebpf_non_preemptible_work_item_t* non_preemtable_work_item;
+    ebpf_lock_t free_list_lock;
+    ebpf_list_entry_t free_list;
 } ebpf_epoch_cpu_entry_t;
 
-static _Writable_elements_(_ebpf_epoch_cpu_table_size) ebpf_epoch_cpu_entry_t* _ebpf_epoch_cpu_table = NULL;
-static uint32_t _ebpf_epoch_cpu_table_size = 0;
+static _Writable_elements_(_ebpf_epoch_cpu_count) ebpf_epoch_cpu_entry_t* _ebpf_epoch_cpu_table = NULL;
+static uint32_t _ebpf_epoch_cpu_count = 0;
 
 static volatile int64_t _ebpf_current_epoch = 1;
 static bool _ebpf_epoch_rundown = false;
@@ -88,18 +91,15 @@ typedef struct _ebpf_epoch_work_item
     void (*callback)(void* context);
 } ebpf_epoch_work_item_t;
 
-static ebpf_lock_t _ebpf_epoch_free_list_lock = {0};
-static ebpf_list_entry_t _ebpf_epoch_free_list = {0};
-
 static bool _ebpf_epoch_initiated = false;
 
 // Release memory that was freed during this epoch or a prior epoch.
 static void
-ebpf_epoch_release_free_list(int64_t released_epoch);
+_ebpf_epoch_release_free_list(uint32_t cpu_id, int64_t released_epoch);
 
 // Get the highest epoch that is no longer in use.
 static ebpf_result_t
-ebpf_epoch_get_release_epoch(int64_t* released_epoch);
+_ebpf_epoch_get_release_epoch(int64_t* released_epoch);
 
 static void
 _ebpf_epoch_update_cpu_entry(void* context, void* parameter_1);
@@ -119,42 +119,33 @@ ebpf_epoch_initiate()
     _ebpf_epoch_rundown = false;
 
     _ebpf_current_epoch = 1;
-    ebpf_list_initialize(&_ebpf_epoch_free_list);
+    _ebpf_epoch_cpu_count = cpu_count;
+    _Analysis_assume_(_ebpf_epoch_cpu_count >= 1);
 
     ebpf_lock_create(&_ebpf_epoch_thread_table_lock);
-    ebpf_lock_create(&_ebpf_epoch_free_list_lock);
 
-    if (ebpf_is_non_preemptible_work_item_supported()) {
-        _ebpf_epoch_cpu_table_size = cpu_count;
-        _Analysis_assume_(_ebpf_epoch_cpu_table_size >= 1);
+    _ebpf_epoch_cpu_table = ebpf_allocate(_ebpf_epoch_cpu_count * sizeof(ebpf_epoch_cpu_entry_t));
+    if (!_ebpf_epoch_cpu_table) {
+        return_value = EBPF_NO_MEMORY;
+        goto Error;
+    }
 
-        _ebpf_epoch_cpu_table = ebpf_allocate(_ebpf_epoch_cpu_table_size * sizeof(ebpf_epoch_cpu_entry_t));
-        if (!_ebpf_epoch_cpu_table) {
-            return_value = EBPF_NO_MEMORY;
-            goto Error;
-        }
+    for (cpu_id = 0; cpu_id < _ebpf_epoch_cpu_count; cpu_id++) {
+        _ebpf_epoch_cpu_table[cpu_id].epoch = _ebpf_current_epoch;
 
-        memset(_ebpf_epoch_cpu_table, 0, _ebpf_epoch_cpu_table_size * sizeof(ebpf_epoch_cpu_entry_t));
-        for (cpu_id = 0; cpu_id < _ebpf_epoch_cpu_table_size; cpu_id++) {
+        ebpf_list_initialize(&_ebpf_epoch_cpu_table[cpu_id].free_list);
+        ebpf_lock_create(&_ebpf_epoch_cpu_table[cpu_id].free_list_lock);
+
+        if (ebpf_is_non_preemptible_work_item_supported()) {
             ebpf_non_preemptible_work_item_t* work_item_context = NULL;
-            _ebpf_epoch_cpu_table[cpu_id].epoch = _ebpf_current_epoch;
             return_value = ebpf_allocate_non_preemptible_work_item(
                 &work_item_context, cpu_id, _ebpf_epoch_update_cpu_entry, &_ebpf_epoch_cpu_table[cpu_id]);
 
             if (return_value != EBPF_SUCCESS) {
-                _ebpf_epoch_cpu_table_size = cpu_id;
-                break;
+                goto Error;
             }
             _ebpf_epoch_cpu_table[cpu_id].non_preemtable_work_item = work_item_context;
         }
-
-        if (return_value != EBPF_SUCCESS) {
-            for (cpu_id = 0; cpu_id < _ebpf_epoch_cpu_table_size; cpu_id++) {
-                ebpf_free_non_preemptible_work_item(_ebpf_epoch_cpu_table[cpu_id].non_preemtable_work_item);
-            }
-        }
-        if (return_value != EBPF_SUCCESS)
-            goto Error;
     }
 
     return_value = ebpf_hash_table_create(
@@ -183,26 +174,38 @@ ebpf_epoch_terminate()
     if (!_ebpf_epoch_initiated)
         return;
 
-    for (cpu_id = 0; cpu_id < _ebpf_epoch_cpu_table_size; cpu_id++) {
-        ebpf_free_non_preemptible_work_item(_ebpf_epoch_cpu_table[cpu_id].non_preemtable_work_item);
-        _ebpf_epoch_cpu_table[cpu_id].non_preemtable_work_item = NULL;
+    if (ebpf_is_non_preemptible_work_item_supported()) {
+        for (cpu_id = 0; cpu_id < _ebpf_epoch_cpu_count; cpu_id++) {
+            ebpf_free_non_preemptible_work_item(_ebpf_epoch_cpu_table[cpu_id].non_preemtable_work_item);
+            _ebpf_epoch_cpu_table[cpu_id].non_preemtable_work_item = NULL;
+        }
     }
-    _ebpf_epoch_cpu_table_size = 0;
+    _ebpf_epoch_cpu_count = 0;
 
     ebpf_free_timer_work_item(_ebpf_flush_timer);
     ebpf_hash_table_destroy(_ebpf_epoch_thread_table);
-    ebpf_free(_ebpf_epoch_cpu_table);
     ebpf_lock_destroy(&_ebpf_epoch_thread_table_lock);
     _ebpf_epoch_rundown = true;
-    ebpf_epoch_release_free_list(INT64_MAX);
-    ebpf_lock_destroy(&_ebpf_epoch_free_list_lock);
+    for (cpu_id = 0; cpu_id < _ebpf_epoch_cpu_count; cpu_id++) {
+        _ebpf_epoch_release_free_list(cpu_id, MAXUINT64);
+        ebpf_assert(ebpf_list_is_empty(&_ebpf_epoch_cpu_table[cpu_id].free_list));
+        ebpf_lock_destroy(&_ebpf_epoch_cpu_table[cpu_id].free_list_lock);
+    }
+
+    ebpf_free(_ebpf_epoch_cpu_table);
     _ebpf_epoch_initiated = false;
 }
 
 ebpf_result_t
 ebpf_epoch_enter()
 {
-    if (!ebpf_is_non_preemptible_work_item_supported() || ebpf_is_preemptible()) {
+    uint32_t current_cpu;
+    current_cpu = ebpf_get_current_cpu();
+    if (current_cpu >= _ebpf_epoch_cpu_count) {
+        return EBPF_OPERATION_NOT_SUPPORTED;
+    }
+
+    if (!ebpf_is_non_preemptible_work_item_supported()) {
         ebpf_result_t return_value;
         ebpf_lock_state_t lock_state;
         uint64_t current_thread_id = ebpf_get_current_thread_id();
@@ -213,11 +216,6 @@ ebpf_epoch_enter()
         ebpf_lock_unlock(&_ebpf_epoch_thread_table_lock, lock_state);
         return return_value;
     } else {
-        uint32_t current_cpu = ebpf_get_current_cpu();
-        if (current_cpu >= _ebpf_epoch_cpu_table_size) {
-            return EBPF_OPERATION_NOT_SUPPORTED;
-        }
-
         _ebpf_epoch_cpu_table[current_cpu].epoch = _ebpf_current_epoch;
         return EBPF_SUCCESS;
     }
@@ -226,6 +224,11 @@ ebpf_epoch_enter()
 void
 ebpf_epoch_exit()
 {
+    uint32_t current_cpu = ebpf_get_current_cpu();
+    if (current_cpu >= _ebpf_epoch_cpu_count) {
+        return;
+    }
+
     if (ebpf_is_preemptible()) {
         ebpf_lock_state_t lock_state;
         uint64_t current_thread_id = ebpf_get_current_thread_id();
@@ -235,15 +238,10 @@ ebpf_epoch_exit()
             _ebpf_epoch_thread_table, (const uint8_t*)&current_thread_id, (const uint8_t*)&current_epoch);
         ebpf_lock_unlock(&_ebpf_epoch_thread_table_lock, lock_state);
     } else {
-        uint32_t current_cpu = ebpf_get_current_cpu();
-        if (current_cpu >= _ebpf_epoch_cpu_table_size) {
-            return;
-        }
 
         _ebpf_epoch_cpu_table[current_cpu].epoch = _ebpf_current_epoch;
     }
-
-    if (!ebpf_list_is_empty(&_ebpf_epoch_free_list) &&
+    if (!ebpf_list_is_empty(&_ebpf_epoch_cpu_table[current_cpu].free_list) &&
         (ebpf_interlocked_compare_exchange_int32(&_ebpf_flush_timer_set, 1, 0) != 0)) {
         ebpf_schedule_timer_work_item(_ebpf_flush_timer, EBPF_EPOCH_FLUSH_DELAY_IN_MICROSECONDS);
     }
@@ -260,7 +258,7 @@ ebpf_epoch_flush()
         // Schedule a non-preemptible work item to bring the CPU up to the current
         // epoch.
         // Note: May not affect the current flush.
-        for (cpu_id = 0; cpu_id < _ebpf_epoch_cpu_table_size; cpu_id++) {
+        for (cpu_id = 0; cpu_id < _ebpf_epoch_cpu_count; cpu_id++) {
             // Note: Either the per-cpu epoch or the global epoch could be out of date.
             // That is acceptable as it may schedule an extra work item.
             if (_ebpf_epoch_cpu_table[cpu_id].epoch != _ebpf_current_epoch)
@@ -268,9 +266,11 @@ ebpf_epoch_flush()
         }
     }
 
-    return_value = ebpf_epoch_get_release_epoch(&released_epoch);
+    return_value = _ebpf_epoch_get_release_epoch(&released_epoch);
     if (return_value == EBPF_SUCCESS) {
-        ebpf_epoch_release_free_list(released_epoch);
+        for (cpu_id = 0; cpu_id < _ebpf_epoch_cpu_count; cpu_id++) {
+            _ebpf_epoch_release_free_list(cpu_id, released_epoch);
+        }
     }
 }
 
@@ -291,6 +291,11 @@ ebpf_epoch_free(void* memory)
 {
     ebpf_epoch_allocation_header_t* header = (ebpf_epoch_allocation_header_t*)memory;
     ebpf_lock_state_t lock_state;
+    uint32_t current_cpu;
+    current_cpu = ebpf_get_current_cpu();
+    if (current_cpu >= _ebpf_epoch_cpu_count) {
+        return;
+    }
 
     ebpf_assert(_ebpf_epoch_initiated);
 
@@ -307,14 +312,14 @@ ebpf_epoch_free(void* memory)
     header->entry_type = EBPF_EPOCH_ALLOCATION_MEMORY;
 
     // Items are inserted into the free list in increasing epoch order.
-    lock_state = ebpf_lock_lock(&_ebpf_epoch_free_list_lock);
+    lock_state = ebpf_lock_lock(&_ebpf_epoch_cpu_table[current_cpu].free_list_lock);
     header->freed_epoch = ebpf_interlocked_increment_int64(&_ebpf_current_epoch) - 1;
-    ebpf_list_insert_tail(&_ebpf_epoch_free_list, &header->list_entry);
-    ebpf_lock_unlock(&_ebpf_epoch_free_list_lock, lock_state);
+    ebpf_list_insert_tail(&_ebpf_epoch_cpu_table[current_cpu].free_list, &header->list_entry);
+    ebpf_lock_unlock(&_ebpf_epoch_cpu_table[current_cpu].free_list_lock, lock_state);
 }
 
 static void
-ebpf_epoch_release_free_list(int64_t released_epoch)
+_ebpf_epoch_release_free_list(uint32_t cpu_id, int64_t released_epoch)
 {
     ebpf_lock_state_t lock_state;
     ebpf_list_entry_t* entry;
@@ -324,9 +329,9 @@ ebpf_epoch_release_free_list(int64_t released_epoch)
     ebpf_list_initialize(&free_list);
 
     // Move all expired items to the free list.
-    lock_state = ebpf_lock_lock(&_ebpf_epoch_free_list_lock);
-    while (!ebpf_list_is_empty(&_ebpf_epoch_free_list)) {
-        entry = _ebpf_epoch_free_list.Flink;
+    lock_state = ebpf_lock_lock(&_ebpf_epoch_cpu_table[cpu_id].free_list_lock);
+    while (!ebpf_list_is_empty(&_ebpf_epoch_cpu_table[cpu_id].free_list)) {
+        entry = _ebpf_epoch_cpu_table[cpu_id].free_list.Flink;
         header = CONTAINING_RECORD(entry, ebpf_epoch_allocation_header_t, list_entry);
         if (header->freed_epoch <= released_epoch) {
             ebpf_list_remove_entry(entry);
@@ -335,7 +340,7 @@ ebpf_epoch_release_free_list(int64_t released_epoch)
             break;
         }
     }
-    ebpf_lock_unlock(&_ebpf_epoch_free_list_lock, lock_state);
+    ebpf_lock_unlock(&_ebpf_epoch_cpu_table[cpu_id].free_list_lock, lock_state);
 
     // Free all the expired items outside of the lock.
     while (!ebpf_list_is_empty(&free_list)) {
@@ -356,7 +361,7 @@ ebpf_epoch_release_free_list(int64_t released_epoch)
 }
 
 static ebpf_result_t
-ebpf_epoch_get_release_epoch(int64_t* release_epoch)
+_ebpf_epoch_get_release_epoch(int64_t* release_epoch)
 {
     int64_t lowest_epoch = INT64_MAX;
     int64_t* thread_epoch;
@@ -366,7 +371,7 @@ ebpf_epoch_get_release_epoch(int64_t* release_epoch)
     ebpf_result_t return_value;
 
     if (ebpf_is_non_preemptible_work_item_supported()) {
-        for (cpu_id = 0; cpu_id < _ebpf_epoch_cpu_table_size; cpu_id++) {
+        for (cpu_id = 0; cpu_id < _ebpf_epoch_cpu_count; cpu_id++) {
             if (_ebpf_epoch_cpu_table[cpu_id].epoch < lowest_epoch)
                 lowest_epoch = _ebpf_epoch_cpu_table[cpu_id].epoch;
         }
@@ -413,10 +418,8 @@ _ebpf_flush_worker(void* context)
 {
     UNREFERENCED_PARAMETER(context);
 
-    if (ebpf_interlocked_compare_exchange_int32(&_ebpf_flush_timer_set, 0, 1) != 1) {
-        return;
-    }
     ebpf_epoch_flush();
+    _ebpf_flush_timer_set = 0;
 }
 
 ebpf_epoch_work_item_t*
@@ -438,20 +441,36 @@ void
 ebpf_epoch_schedule_work_item(ebpf_epoch_work_item_t* work_item)
 {
     ebpf_lock_state_t lock_state;
+    uint32_t current_cpu;
+    current_cpu = ebpf_get_current_cpu();
+    if (current_cpu >= _ebpf_epoch_cpu_count) {
+        return;
+    }
+
+    if (_ebpf_epoch_rundown) {
+        work_item->callback(work_item->callback_context);
+        return;
+    }
 
     // Items are inserted into the free list in increasing epoch order.
-    lock_state = ebpf_lock_lock(&_ebpf_epoch_free_list_lock);
+    lock_state = ebpf_lock_lock(&_ebpf_epoch_cpu_table[current_cpu].free_list_lock);
     work_item->header.freed_epoch = ebpf_interlocked_increment_int64(&_ebpf_current_epoch) - 1;
-    ebpf_list_insert_tail(&_ebpf_epoch_free_list, &work_item->header.list_entry);
-    ebpf_lock_unlock(&_ebpf_epoch_free_list_lock, lock_state);
+    ebpf_list_insert_tail(&_ebpf_epoch_cpu_table[current_cpu].free_list, &work_item->header.list_entry);
+    ebpf_lock_unlock(&_ebpf_epoch_cpu_table[current_cpu].free_list_lock, lock_state);
 }
 
 void
 ebpf_epoch_free_work_item(ebpf_epoch_work_item_t* work_item)
 {
     ebpf_lock_state_t lock_state;
-    lock_state = ebpf_lock_lock(&_ebpf_epoch_free_list_lock);
+    uint32_t current_cpu;
+    current_cpu = ebpf_get_current_cpu();
+    if (current_cpu >= _ebpf_epoch_cpu_count) {
+        return;
+    }
+
+    lock_state = ebpf_lock_lock(&_ebpf_epoch_cpu_table[current_cpu].free_list_lock);
     ebpf_list_remove_entry(&work_item->header.list_entry);
-    ebpf_lock_unlock(&_ebpf_epoch_free_list_lock, lock_state);
+    ebpf_lock_unlock(&_ebpf_epoch_cpu_table[current_cpu].free_list_lock, lock_state);
     ebpf_free(work_item);
 }
