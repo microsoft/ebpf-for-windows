@@ -6,6 +6,8 @@
 
 #include "ebpf_structs.h"
 
+#define MAX_TAIL_CALL_CNT 32
+
 // In an execution context, struct bpf_map means struct _ebpf_map_definition,
 // as opposed to for user mode apps, so define the alias here where the execution
 // context and eBPF programs will get it.

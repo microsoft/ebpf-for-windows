@@ -35,6 +35,23 @@ extern "C"
     typedef ebpf_result_t (*ebpf_program_entry_point_t)(void* context);
 
     /**
+     * @brief Initialize global state for the ebpf program module.
+     *
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
+     *  operation.
+     */
+    ebpf_result_t
+    ebpf_program_initiate();
+
+    /**
+     * @brief Uninitialize the eBPF state tracking module.
+     *
+     */
+    void
+    ebpf_program_terminate();
+
+    /**
      * @brief Create a new program instance.
      *
      * @param[out] program Pointer to memory that will contain the program instance.
@@ -186,6 +203,17 @@ extern "C"
      */
     void
     ebpf_program_detach_link(_Inout_ ebpf_program_t* program, _Inout_ ebpf_link_t* link);
+
+    /**
+     * @brief Store the pointer to the program to execute on tail call.
+     *
+     * @param[in] next_program Next program to execute.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INVALID_ARGUMENT Internal error.
+     * @retval EBPF_NO_MORE_TAIL_CALLS Program has executed to many tail calls.
+     */
+    ebpf_result_t
+    ebpf_program_set_tail_call(_In_ const ebpf_program_t* next_program);
 
 #ifdef __cplusplus
 }
