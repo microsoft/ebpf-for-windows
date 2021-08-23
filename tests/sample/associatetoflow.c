@@ -37,7 +37,7 @@ int AssociateFlowToContext(flow_md_t* context)
         }
         if (!context->app_name_start || !context->app_name_end)
         {
-            return 1;
+            return 0;
         }
         // Iterate through app Id bytes to parse app name and add into map entry
         for (index = 0; index < 64; index++)

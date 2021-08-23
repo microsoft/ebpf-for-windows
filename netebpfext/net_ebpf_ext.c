@@ -1206,7 +1206,7 @@ net_ebpf_ext_register_providers()
     return_value = ebpf_ext_attach_register_provider(
         &EBPF_PROGRAM_TYPE_MAC,
         &EBPF_ATTACH_TYPE_MAC,
-        EBPF_EXT_HOOK_EXECUTION_PASSIVE,
+        EBPF_EXT_HOOK_EXECUTION_DISPATCH,
         &_ebpf_mac_hook_provider_registration);
 
     if (return_value != EBPF_SUCCESS) {
