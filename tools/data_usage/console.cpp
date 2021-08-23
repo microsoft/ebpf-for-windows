@@ -73,6 +73,8 @@ int main(int argc, const char** argv)
     // Loop every 10 seconds to query data from both maps
     while (true)
     {
+        std::cout << "Querying..." << std::endl;
+
         // Get the first key of the map
         result = ebpf_api_get_next_map_key(mac_map_handle[0], sizeof(five_tuple_t), NULL, reinterpret_cast<uint8_t*>(&key));
 
@@ -88,7 +90,7 @@ int main(int argc, const char** argv)
                 std::cerr << "Failed to look up eBPF map app_name entry: " << result << std::endl;
                 return 1;
             }
-            std::cout << "Application: " << app_name.name << std::endl;
+            std::cout << "- Application: " << app_name.name << std::endl;
 
             // Find byte count value using the key
             memset(&byte_count, 0, sizeof(byte_count));
@@ -99,7 +101,8 @@ int main(int argc, const char** argv)
                 std::cerr << "Failed to look up eBPF map byte_count entry: " << result << std::endl;
                 return 1;
             }
-            std::cout << "Byte Count: " << byte_count << std::endl;
+            std::cout << "- Byte Count: " << byte_count << std::endl;
+            std::cout << std::endl;
 
             // Get the next key and loop again
             result = ebpf_api_get_next_map_key(

@@ -13,6 +13,8 @@
 #include "ebpf_bind_program_data.h"
 #include "ebpf_core.h"
 #include "ebpf_xdp_program_data.h"
+#include "ebpf_flow_program_data.h"
+#include "ebpf_mac_program_data.h"
 #include "helpers.h"
 #include "mock.h"
 #include "test_helper.hpp"
@@ -393,12 +395,142 @@ bindmonitor_test(ebpf_execution_type_t execution_type)
     hook.detach();
 }
 
+//Associate to Flow
+
+int
+emulate_flow(single_instance_hook_t& hook, uint8_t protocol, const char* appid)
+{
+    uint32_t result;
+    std::string app_id = appid;
+    flow_md_t context{0};
+    context.app_name_start = (uint8_t*)app_id.c_str();
+    context.app_name_end = (uint8_t*)(app_id.c_str()) + app_id.size();
+    context.five_tuple = {};
+    context.five_tuple.protocol = protocol;
+    context.flow_established_flag = true;
+    REQUIRE(hook.fire(&context, &result) == EBPF_SUCCESS);
+    return static_cast<int>(result);
+}
+
+int
+emulate_flow_delete(single_instance_hook_t& hook, five_tuple_t five_tuple)
+{
+    uint32_t result;
+    flow_md_t context{0};
+    context.five_tuple = five_tuple;
+    context.flow_established_flag = false;
+    REQUIRE(hook.fire(&context, &result) == EBPF_SUCCESS);
+    return static_cast<int>(result);
+}
+
+uint8_t
+get_app_name(ebpf_handle_t handle, five_tuple_t key)
+{
+    app_name_t value{};
+    uint32_t result = ebpf_api_map_find_element(handle, sizeof(five_tuple_t), (uint8_t*)&key, sizeof(value), (uint8_t*)&value);
+    if (result != ERROR_SUCCESS) {
+        return 0;
+    }
+    return value.name[0];
+}
+
+
+void
+associatetoflow_test(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+
+    ebpf_handle_t program_handle;
+    const char* error_message = nullptr;
+    ebpf_handle_t map_handles[1];
+    uint32_t count_of_map_handles = 1;
+    uint32_t result;
+
+    uint8_t fake_protocol_1 = 0x11;
+    uint8_t fake_protocol_2 = 0x06;
+    // uint8_t fake_protocol_3 = 0xff;
+
+    five_tuple_t five_tuple_1 = {};
+    five_tuple_1.protocol = fake_protocol_1;
+    five_tuple_t five_tuple_2 = {};
+    five_tuple_2.protocol = fake_protocol_2;
+
+    program_info_provider_t flow_program_info(EBPF_PROGRAM_TYPE_FLOW);
+
+    REQUIRE(
+        (result = ebpf_api_load_program(
+             SAMPLE_PATH "associatetoflow.o",
+             "flow",
+             execution_type,
+             &program_handle,
+             &count_of_map_handles,
+             map_handles,
+             &error_message),
+         error_message ? printf("ebpf_api_load_program failed with %s\n", error_message) : 0,
+         ebpf_free_string(error_message),
+         error_message = nullptr,
+         result == EBPF_SUCCESS));
+
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_FLOW, EBPF_ATTACH_TYPE_FLOW);
+
+    REQUIRE(hook.attach(program_handle) == EBPF_SUCCESS);
+
+    // Establish first flow - success
+    REQUIRE(emulate_flow(hook, fake_protocol_1, "1_fake_app") == 0);
+    REQUIRE(get_app_name(map_handles[0], five_tuple_1) == '1');
+
+    // Establish second flow - success
+    REQUIRE(emulate_flow(hook, fake_protocol_2, "2_fake_app") == 0);
+    REQUIRE(get_app_name(map_handles[0], five_tuple_2) == '2');
+
+    five_tuple_t key = {};
+    app_name_t app_name = {};
+
+    REQUIRE(
+        ebpf_api_get_next_map_key(map_handles[0], sizeof(five_tuple_t), reinterpret_cast<uint8_t*>(&key), reinterpret_cast<uint8_t*>(&key)) ==
+        EBPF_SUCCESS);
+    REQUIRE(key.protocol == 0x11);
+    REQUIRE(
+        ebpf_api_get_next_map_key(
+            map_handles[0], sizeof(five_tuple_t), reinterpret_cast<uint8_t*>(&key), reinterpret_cast<uint8_t*>(&key)) ==
+        EBPF_SUCCESS);
+    REQUIRE(key.protocol == 0x06);
+    REQUIRE(
+        ebpf_api_get_next_map_key(
+            map_handles[0], sizeof(five_tuple_t), reinterpret_cast<uint8_t*>(&key), reinterpret_cast<uint8_t*>(&key)) ==
+        ERROR_NO_MORE_ITEMS);
+
+    // Establish third flow - fail
+    // TODO
+
+    // Delete second flow
+    emulate_flow_delete(hook, five_tuple_2);
+    REQUIRE(get_app_name(map_handles[0], five_tuple_2) == 0);
+
+    // Delete first flow
+    emulate_flow_delete(hook, five_tuple_1);
+    REQUIRE(get_app_name(map_handles[0], five_tuple_1) == 0);
+
+    // All elements deleted from map
+    REQUIRE(
+        ebpf_api_get_next_map_key(
+            map_handles[0], sizeof(five_tuple_t), reinterpret_cast<uint8_t*>(&key), reinterpret_cast<uint8_t*>(&key)) ==
+        ERROR_NO_MORE_ITEMS);
+
+    hook.detach();
+}
+
 TEST_CASE("droppacket-jit", "[end_to_end]") { droppacket_test(EBPF_EXECUTION_JIT); }
 TEST_CASE("divide_by_zero_jit", "[end_to_end]") { divide_by_zero_test(EBPF_EXECUTION_JIT); }
 TEST_CASE("bindmonitor-jit", "[end_to_end]") { bindmonitor_test(EBPF_EXECUTION_JIT); }
 TEST_CASE("droppacket-interpret", "[end_to_end]") { droppacket_test(EBPF_EXECUTION_INTERPRET); }
 TEST_CASE("divide_by_zero_interpret", "[end_to_end]") { divide_by_zero_test(EBPF_EXECUTION_INTERPRET); }
 TEST_CASE("bindmonitor-interpret", "[end_to_end]") { bindmonitor_test(EBPF_EXECUTION_INTERPRET); }
+
+TEST_CASE("associatetoflow-jit", "[end_to_end]") { associatetoflow_test(EBPF_EXECUTION_JIT); }
+// TEST_CASE("countbytes-jit", "[end_to_end]") { countbytes_test(EBPF_EXECUTION_JIT); }
+TEST_CASE("associatetoflow-interpret", "[end_to_end]") { associatetoflow_test(EBPF_EXECUTION_INTERPRET); }
+// TEST_CASE("countbytes-interpret", "[end_to_end]") { countbytes_test(EBPF_EXECUTION_INTERPRET); }
 
 TEST_CASE("enum section", "[end_to_end]")
 {

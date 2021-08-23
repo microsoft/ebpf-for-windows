@@ -151,6 +151,24 @@ static ebpf_program_data_t _ebpf_bind_program_data = {&_ebpf_bind_program_info, 
 static ebpf_extension_data_t _ebpf_bind_program_info_provider_data = {
     TEST_NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_ebpf_bind_program_data), &_ebpf_bind_program_data};
 
+static ebpf_context_descriptor_t _ebpf_flow_context_descriptor = {
+    sizeof(flow_md_t), EBPF_OFFSET_OF(flow_md_t, app_name_start), EBPF_OFFSET_OF(flow_md_t, app_name_end), -1};
+static ebpf_program_info_t _ebpf_flow_program_info = {{"flow", &_ebpf_flow_context_descriptor, {0}}, EBPF_COUNT_OF(_ebpf_map_helper_function_prototype), _ebpf_map_helper_function_prototype};
+
+static ebpf_program_data_t _ebpf_flow_program_data = {&_ebpf_flow_program_info, NULL};
+
+static ebpf_extension_data_t _ebpf_flow_program_info_provider_data = {
+    TEST_NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_ebpf_flow_program_data), &_ebpf_flow_program_data};
+
+static ebpf_context_descriptor_t _ebpf_mac_context_descriptor = {
+    sizeof(mac_md_t), EBPF_OFFSET_OF(mac_md_t, data), EBPF_OFFSET_OF(mac_md_t, data_end), -1};
+static ebpf_program_info_t _ebpf_mac_program_info = {{"mac", &_ebpf_mac_context_descriptor, {0}}, EBPF_COUNT_OF(_ebpf_map_helper_function_prototype), _ebpf_map_helper_function_prototype};
+
+static ebpf_program_data_t _ebpf_mac_program_data = {&_ebpf_mac_program_info, NULL};
+
+static ebpf_extension_data_t _ebpf_mac_program_info_provider_data = {
+    TEST_NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_ebpf_mac_program_data), &_ebpf_mac_program_data};
+
 typedef class _program_info_provider
 {
   public:
@@ -165,6 +183,14 @@ typedef class _program_info_provider
             provider_data = &_ebpf_bind_program_info_provider_data;
             program_data = (ebpf_program_data_t*)provider_data->data;
             program_data->program_info->program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_BIND;
+        } else if (program_type == EBPF_PROGRAM_TYPE_FLOW) {
+            provider_data = &_ebpf_flow_program_info_provider_data;
+            program_data = (ebpf_program_data_t*)provider_data->data;
+            program_data->program_info->program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_FLOW;
+        } else if (program_type == EBPF_PROGRAM_TYPE_MAC) {
+            provider_data = &_ebpf_mac_program_info_provider_data;
+            program_data = (ebpf_program_data_t*)provider_data->data;
+            program_data->program_info->program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_MAC;
         }
 
         REQUIRE(

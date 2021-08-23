@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "ebpf_helpers.h"
-#include "ebpf_nethooks.h"
+#include "ebpf.h"
 
 #define NO_FLAGS 0
 
@@ -29,17 +29,16 @@ int AssociateFlowToContext(flow_md_t* context)
     }
     else // Flow Established
     {
-        if (!context->app_name_start || !context->app_name_end)
-        {
-            return 1;
-        }
         bpf_map_update_elem(&app_map, &key, &value, NO_FLAGS);
         entry = bpf_map_lookup_elem(&app_map, &key);
         if (!entry)
         {
             return 1;
         }
-
+        if (!context->app_name_start || !context->app_name_end)
+        {
+            return 1;
+        }
         // Iterate through app Id bytes to parse app name and add into map entry
         for (index = 0; index < 64; index++)
         {

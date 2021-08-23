@@ -110,8 +110,10 @@ flow_hook_t(flow_md_t* context);
 //MAC Hook
 typedef struct _mac_md
 {
-    five_tuple_t five_tuple;
+    void* data;             ///< Pointer to start of packet data.
+    void* data_end;         ///< Pointer to end of packet data.
     uint64_t packet_length;
+    bool v4;
 } mac_md_t;
 
 typedef int
