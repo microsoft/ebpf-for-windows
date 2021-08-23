@@ -439,7 +439,16 @@ ebpf_map_update_element(fd_t map_fd, _In_ const void* key, _In_ const void* valu
     uint32_t value_size = 0;
     uint32_t type;
 
-    if (map_fd <= 0 || key == nullptr || value == nullptr || flags != 0) {
+    if (map_fd <= 0 || key == nullptr || value == nullptr) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    switch (flags) {
+    case EBPF_ANY:
+    case EBPF_NOEXIST:
+    case EBPF_EXIST:
+        break;
+    default:
         return EBPF_INVALID_ARGUMENT;
     }
 

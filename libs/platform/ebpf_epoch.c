@@ -212,7 +212,10 @@ ebpf_epoch_enter()
         int64_t current_epoch = _ebpf_current_epoch;
         lock_state = ebpf_lock_lock(&_ebpf_epoch_thread_table_lock);
         return_value = ebpf_hash_table_update(
-            _ebpf_epoch_thread_table, (const uint8_t*)&current_thread_id, (const uint8_t*)&current_epoch);
+            _ebpf_epoch_thread_table,
+            (const uint8_t*)&current_thread_id,
+            (const uint8_t*)&current_epoch,
+            EBPF_HASH_TABLE_OPERATION_ANY);
         ebpf_lock_unlock(&_ebpf_epoch_thread_table_lock, lock_state);
         return return_value;
     } else {
@@ -231,11 +234,16 @@ ebpf_epoch_exit()
 
     if (ebpf_is_preemptible()) {
         ebpf_lock_state_t lock_state;
+        ebpf_result_t result;
         uint64_t current_thread_id = ebpf_get_current_thread_id();
         int64_t current_epoch = 0;
         lock_state = ebpf_lock_lock(&_ebpf_epoch_thread_table_lock);
-        ebpf_hash_table_update(
-            _ebpf_epoch_thread_table, (const uint8_t*)&current_thread_id, (const uint8_t*)&current_epoch);
+        result = ebpf_hash_table_update(
+            _ebpf_epoch_thread_table,
+            (const uint8_t*)&current_thread_id,
+            (const uint8_t*)&current_epoch,
+            EBPF_HASH_TABLE_OPERATION_REPLACE);
+        ebpf_assert(result == EBPF_SUCCESS);
         ebpf_lock_unlock(&_ebpf_epoch_thread_table_lock, lock_state);
     } else {
 

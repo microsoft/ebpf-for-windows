@@ -49,7 +49,7 @@ extern "C"
     uint32_t
     ebpf_map_get_effective_value_size(_In_ const ebpf_map_t* map);
 
-#define EBPF_MAP_FLAG_HELPER 0x01 /* Called by an eBPF program */
+#define EBPF_MAP_FLAG_HELPER (((uint64_t)0x1) << 63) /* Called by an eBPF program */
 
     /**
      * @brief Get a pointer to an entry in the map.
@@ -66,7 +66,7 @@ extern "C"
         _In_reads_(key_size) const uint8_t* key,
         size_t value_size,
         _Out_writes_(value_size) uint8_t* value,
-        int flags);
+        uint64_t flags);
 
     /**
      * @brief Insert or update an entry in the map.
@@ -74,6 +74,7 @@ extern "C"
      * @param[in] map Map to update.
      * @param[in] key Key to use when searching and updating the map.
      * @param[in] value Value to insert into the map.
+     * @param[in] flags One of ebpf_map_option_t flags.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  entry.
@@ -85,7 +86,7 @@ extern "C"
         _In_reads_(key_size) const uint8_t* key,
         size_t value_size,
         _In_reads_(value_size) const uint8_t* value,
-        int flags);
+        uint64_t flags);
 
     /**
      * @brief Insert or update an entry in the map.
@@ -112,13 +113,14 @@ extern "C"
      *
      * @param[in] map Map to update.
      * @param[in] key Key to use when searching and updating the map.
+     * @param[in] flags Must be zero.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_INVALID_ARGUMENT One or more parameters are
      *  invalid.
      */
     ebpf_result_t
     ebpf_map_delete_entry(
-        _In_ ebpf_map_t* map, size_t key_size, _In_reads_(key_size) const uint8_t* key, int flags);
+        _In_ ebpf_map_t* map, size_t key_size, _In_reads_(key_size) const uint8_t* key, uint64_t flags);
 
     /**
      * @brief Retrieve the next key from the map.

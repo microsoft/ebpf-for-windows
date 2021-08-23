@@ -429,7 +429,8 @@ _ebpf_core_protocol_map_update_element(_In_ const epf_operation_map_update_eleme
 
     key_length = map_definition->key_size;
 
-    retval = ebpf_map_update_entry(map, key_length, request->data, value_length, request->data + key_length, 0);
+    retval =
+        ebpf_map_update_entry(map, key_length, request->data, value_length, request->data + key_length, request->flags);
 
 Done:
     ebpf_object_release_reference((ebpf_object_t*)map);
