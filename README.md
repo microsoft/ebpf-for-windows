@@ -44,10 +44,17 @@ This project supports eBPF on Windows 10, and on Windows Server 2016 or later.
 To try out this project, see our [Getting Started Guide](docs/GettingStarted.md).
 
 Want to help?  We welcome contributions!  See our [Contributing guidelines](CONTRIBUTING.md).
+Feel free to take a look at our [Good First Issues](https://github.com/microsoft/ebpf-for-windows/labels/good%20first%20issue)
+list if you're looking for somewhere to start.
 
 Want to chat with us?  We have a:
 * [Slack channel](https://slack.com/app_redirect?channel=ebpf-for-windows)
-* Zoom meeting for github issue triage: see [meeting info](https://github.com/microsoft/ebpf-for-windows/issues/162)
+* Zoom meeting for github issue triage: see [meeting info](https://github.com/microsoft/ebpf-for-windows/discussions/427)
+
+For tracking Q&A and general discussion, we use [Discussions](https://github.com/microsoft/ebpf-for-windows/discussions)
+in github.  This can also function similar to a mailing list if you subscribe to discussion notifications by
+clicking "Watch" (or "Unwatch") and selecting "Custom" -> "Discussions" (or by selecting "All Activity" if
+you want to receive notifications about everything else too).
 
 ## Frequently Asked Questions
 
