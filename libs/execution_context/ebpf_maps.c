@@ -590,7 +590,7 @@ ebpf_map_create(
     ebpf_map_type_t type = ebpf_map_definition->type;
     ebpf_result_t result = EBPF_SUCCESS;
     uint32_t cpu_count;
-    ebpf_get_cpu_count(&cpu_count);
+    cpu_count = ebpf_get_cpu_count();
     ebpf_map_definition_t local_map_definition = *ebpf_map_definition;
     switch (local_map_definition.type) {
     case BPF_MAP_TYPE_PERCPU_HASH:
