@@ -49,7 +49,7 @@ extern "C"
     uint32_t
     ebpf_map_get_effective_value_size(_In_ const ebpf_map_t* map);
 
-#define EBPF_MAP_FLAG_HELPER (((uint64_t)0x1) << 63) /* Called by an eBPF program */
+#define EBPF_MAP_FLAG_HELPER 0x01 /* Called by an eBPF program */
 
     /**
      * @brief Get a pointer to an entry in the map.
@@ -74,7 +74,8 @@ extern "C"
      * @param[in] map Map to update.
      * @param[in] key Key to use when searching and updating the map.
      * @param[in] value Value to insert into the map.
-     * @param[in] flags One of ebpf_map_option_t flags.
+     * @param[in] option One of ebpf_map_option_t options.
+     * @param[in] flags EBPF_MAP_FLAG_HELPER if called from helper function.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  entry.
@@ -86,7 +87,8 @@ extern "C"
         _In_reads_(key_size) const uint8_t* key,
         size_t value_size,
         _In_reads_(value_size) const uint8_t* value,
-        uint64_t flags);
+        ebpf_map_option_t option,
+        int flags);
 
     /**
      * @brief Insert or update an entry in the map.

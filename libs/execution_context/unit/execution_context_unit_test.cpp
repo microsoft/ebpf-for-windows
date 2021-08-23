@@ -51,8 +51,13 @@ test_crud_operations(ebpf_map_type_t map_type)
         *reinterpret_cast<uint64_t*>(value.data()) = static_cast<uint64_t>(key) * static_cast<uint64_t>(key);
         REQUIRE(
             ebpf_map_update_entry(
-                map.get(), sizeof(key), reinterpret_cast<const uint8_t*>(&key), value.size(), value.data(), 0) ==
-            EBPF_SUCCESS);
+                map.get(),
+                sizeof(key),
+                reinterpret_cast<const uint8_t*>(&key),
+                value.size(),
+                value.data(),
+                EBPF_ANY,
+                0) == EBPF_SUCCESS);
     }
 
     // Test for inserting max_entries + 1
@@ -60,8 +65,13 @@ test_crud_operations(ebpf_map_type_t map_type)
     *reinterpret_cast<uint64_t*>(value.data()) = 11 * 11;
     REQUIRE(
         ebpf_map_update_entry(
-            map.get(), sizeof(bad_key), reinterpret_cast<const uint8_t*>(&bad_key), value.size(), value.data(), 0) ==
-        EBPF_INVALID_ARGUMENT);
+            map.get(),
+            sizeof(bad_key),
+            reinterpret_cast<const uint8_t*>(&bad_key),
+            value.size(),
+            value.data(),
+            EBPF_ANY,
+            0) == EBPF_INVALID_ARGUMENT);
 
     REQUIRE(
         ebpf_map_delete_entry(map.get(), sizeof(bad_key), reinterpret_cast<const uint8_t*>(&bad_key), 0) ==

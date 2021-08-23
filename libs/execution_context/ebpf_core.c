@@ -429,8 +429,8 @@ _ebpf_core_protocol_map_update_element(_In_ const epf_operation_map_update_eleme
 
     key_length = map_definition->key_size;
 
-    retval =
-        ebpf_map_update_entry(map, key_length, request->data, value_length, request->data + key_length, request->flags);
+    retval = ebpf_map_update_entry(
+        map, key_length, request->data, value_length, request->data + key_length, request->option, 0);
 
 Done:
     ebpf_object_release_reference((ebpf_object_t*)map);
@@ -977,8 +977,7 @@ _ebpf_core_map_find_element(ebpf_map_t* map, const uint8_t* key)
 static int64_t
 _ebpf_core_map_update_element(ebpf_map_t* map, const uint8_t* key, const uint8_t* value, uint64_t flags)
 {
-    UNREFERENCED_PARAMETER(flags);
-    return -ebpf_map_update_entry(map, 0, key, 0, value, EBPF_MAP_FLAG_HELPER);
+    return -ebpf_map_update_entry(map, 0, key, 0, value, flags, EBPF_MAP_FLAG_HELPER);
 }
 
 static int64_t

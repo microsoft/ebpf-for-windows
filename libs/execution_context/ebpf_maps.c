@@ -19,18 +19,6 @@ typedef struct _ebpf_core_map
     uint8_t* data;
 } ebpf_core_map_t;
 
-// Issue - This code path should include ebpf_api.h for ebpf_map_option_t, but
-// can't due to name conflicts.
-typedef enum ebpf_map_option
-{
-    // Create a new element or update an existing element.
-    EBPF_ANY,
-    // Create a new element only when it does not exist.
-    EBPF_NOEXIST,
-    // Update an existing element.
-    EBPF_EXIST,
-} ebpf_map_option_t;
-
 typedef struct _ebpf_program_array_map
 {
     ebpf_core_map_t core_map;
@@ -46,11 +34,11 @@ typedef struct _ebpf_map_function_table
     uint8_t* (*find_entry)(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key);
     ebpf_object_t* (*get_object_from_entry)(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key);
     ebpf_result_t (*update_entry)(
-        _In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_ const uint8_t* value, uint64_t flags);
+        _In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_ const uint8_t* value, ebpf_map_option_t option);
     ebpf_result_t (*update_entry_with_handle)(
         _In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_ const uint8_t* value, uintptr_t value_handle);
     ebpf_result_t (*update_entry_per_cpu)(
-        _In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_ const uint8_t* value, uint64_t flags);
+        _In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_ const uint8_t* value, ebpf_map_option_t option);
     ebpf_result_t (*delete_entry)(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key);
     ebpf_result_t (*next_key)(_In_ ebpf_core_map_t* map, _In_ const uint8_t* previous_key, _Out_ uint8_t* next_key);
 } ebpf_map_function_table_t;
@@ -146,11 +134,11 @@ _find_array_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
 
 static ebpf_result_t
 _update_array_map_entry(
-    _In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_opt_ const uint8_t* data, uint64_t flags)
+    _In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_opt_ const uint8_t* data, ebpf_map_option_t option)
 {
     uint32_t key_value;
 
-    if (!map || !key || (flags & EBPF_NOEXIST))
+    if (!map || !key || (option == EBPF_NOEXIST))
         return EBPF_INVALID_ARGUMENT;
 
     key_value = *(uint32_t*)key;
@@ -425,7 +413,8 @@ _find_hash_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
 }
 
 static ebpf_result_t
-_update_hash_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_opt_ const uint8_t* data, uint64_t flags)
+_update_hash_map_entry(
+    _In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_opt_ const uint8_t* data, ebpf_map_option_t option)
 {
     ebpf_result_t result;
     size_t entry_count = 0;
@@ -435,7 +424,7 @@ _update_hash_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_o
     if (!map || !key)
         return EBPF_INVALID_ARGUMENT;
 
-    switch (flags) {
+    switch (option) {
     case EBPF_ANY:
         hash_table_operation = EBPF_HASH_TABLE_OPERATION_ANY;
         break;
@@ -519,12 +508,13 @@ _ebpf_adjust_value_pointer(_In_ ebpf_map_t* map, _Inout_ uint8_t** value)
  * current CPU > allocated value buffer size.
  */
 ebpf_result_t
-_update_entry_per_cpu(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_ const uint8_t* value, uint64_t flags)
+_update_entry_per_cpu(
+    _In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_ const uint8_t* value, ebpf_map_option_t option)
 {
     uint8_t* target = ebpf_map_function_tables[map->ebpf_map_definition.type].find_entry(map, key);
     if (!target) {
         ebpf_result_t return_value =
-            ebpf_map_function_tables[map->ebpf_map_definition.type].update_entry(map, key, NULL, flags);
+            ebpf_map_function_tables[map->ebpf_map_definition.type].update_entry(map, key, NULL, option);
         if (return_value != EBPF_SUCCESS) {
             return return_value;
         }
@@ -739,7 +729,8 @@ ebpf_map_update_entry(
     _In_reads_(key_size) const uint8_t* key,
     size_t value_size,
     _In_reads_(value_size) const uint8_t* value,
-    uint64_t flags)
+    ebpf_map_option_t option,
+    int flags)
 {
     if (!(flags & EBPF_MAP_FLAG_HELPER) && (key_size != map->ebpf_map_definition.key_size)) {
         return EBPF_INVALID_ARGUMENT;
@@ -756,11 +747,9 @@ ebpf_map_update_entry(
 
     if ((flags & EBPF_MAP_FLAG_HELPER) &&
         ebpf_map_function_tables[map->ebpf_map_definition.type].update_entry_per_cpu) {
-        return ebpf_map_function_tables[map->ebpf_map_definition.type].update_entry_per_cpu(
-            map, key, value, flags & ~EBPF_MAP_FLAG_HELPER);
+        return ebpf_map_function_tables[map->ebpf_map_definition.type].update_entry_per_cpu(map, key, value, option);
     } else {
-        return ebpf_map_function_tables[map->ebpf_map_definition.type].update_entry(
-            map, key, value, flags & ~EBPF_MAP_FLAG_HELPER);
+        return ebpf_map_function_tables[map->ebpf_map_definition.type].update_entry(map, key, value, option);
     }
 }
 

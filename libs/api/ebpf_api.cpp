@@ -390,7 +390,7 @@ _update_map_element(
         request->header.length = static_cast<uint16_t>(request_buffer.size());
         request->header.id = ebpf_operation_id_t::EBPF_OPERATION_MAP_UPDATE_ELEMENT;
         request->handle = (uint64_t)map_handle;
-        request->flags = flags;
+        request->option = static_cast<ebpf_map_option_t>(flags);
         std::copy((uint8_t*)key, (uint8_t*)key + key_size, request->data);
         std::copy((uint8_t*)value, (uint8_t*)value + value_size, request->data + key_size);
 
