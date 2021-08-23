@@ -32,8 +32,8 @@ template <typename T> class ebpf_object_deleter
 typedef std::unique_ptr<ebpf_map_t, ebpf_object_deleter<ebpf_map_t>> map_ptr;
 typedef std::unique_ptr<ebpf_program_t, ebpf_object_deleter<ebpf_program_t>> program_ptr;
 
-void
-test_crud_operations(ebpf_map_type_t map_type)
+static void
+_test_crud_operations(ebpf_map_type_t map_type, bool is_array)
 {
     _ebpf_core_initializer core;
 
@@ -73,9 +73,10 @@ test_crud_operations(ebpf_map_type_t map_type)
             EBPF_ANY,
             0) == EBPF_INVALID_ARGUMENT);
 
+    ebpf_result_t expected_result = is_array ? EBPF_INVALID_ARGUMENT : EBPF_KEY_NOT_FOUND;
     REQUIRE(
         ebpf_map_delete_entry(map.get(), sizeof(bad_key), reinterpret_cast<const uint8_t*>(&bad_key), 0) ==
-        EBPF_KEY_NOT_FOUND);
+        expected_result);
 
     for (uint32_t key = 0; key < 10; key++) {
         REQUIRE(
@@ -118,20 +119,20 @@ test_crud_operations(ebpf_map_type_t map_type)
     REQUIRE(memcmp(&retrieved_map_definition, &map_definition, sizeof(map_definition)) == 0);
 }
 
-TEST_CASE("map_crud_operations_array", "[execution_context]") { test_crud_operations(BPF_MAP_TYPE_ARRAY); }
+TEST_CASE("map_crud_operations_array", "[execution_context]") { _test_crud_operations(BPF_MAP_TYPE_ARRAY, true); }
 
-TEST_CASE("map_crud_operations_hash", "[execution_context]") { test_crud_operations(BPF_MAP_TYPE_HASH); }
+TEST_CASE("map_crud_operations_hash", "[execution_context]") { _test_crud_operations(BPF_MAP_TYPE_HASH, false); }
 
 TEST_CASE("map_crud_operations_array_per_cpu", "[execution_context]")
 {
     emulate_dpc_t dpc(0);
-    test_crud_operations(BPF_MAP_TYPE_PERCPU_ARRAY);
+    _test_crud_operations(BPF_MAP_TYPE_PERCPU_ARRAY, true);
 }
 
 TEST_CASE("map_crud_operations_hash_per_cpu", "[execution_context]")
 {
     emulate_dpc_t dpc(0);
-    test_crud_operations(BPF_MAP_TYPE_PERCPU_HASH);
+    _test_crud_operations(BPF_MAP_TYPE_PERCPU_HASH, false);
 }
 
 #define TEST_FUNCTION_RETURN 42

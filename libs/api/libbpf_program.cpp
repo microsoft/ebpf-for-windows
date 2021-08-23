@@ -267,7 +267,7 @@ bpf_link__destroy(struct bpf_link* link)
     // TODO(issue #81): get handle from ebpf_link_t, and
     // detach before closing the handle.
     ebpf_handle_t link_handle = (ebpf_handle_t)link;
-    uint32_t result = ebpf_api_close_handle(link_handle);
+    ebpf_result_t result = ebpf_api_close_handle(link_handle);
     return libbpf_err(-(int)result);
 }
 
