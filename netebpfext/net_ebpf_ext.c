@@ -779,12 +779,13 @@ _net_ebpf_ext_flow_established_v4_classify(
     five_tuple.protocol =
         incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V4_IP_PROTOCOL].value.uint8;
     if (five_tuple.protocol != 0x11 && five_tuple.protocol != 0x06) {
-        // Create five_tuple with only protocol so we can bucket and attribute non-TCP/UDP protocols (ICMP, etc.)
-        context.five_tuple = five_tuple;
-        context.app_name_start = NULL;
-        context.app_name_end = NULL;
-        context.flow_established_flag = true;
-        goto Invoke;
+        // TODO Create five_tuple with only protocol so we can bucket and attribute non-TCP/UDP protocols (ICMP, etc.)
+        // context.five_tuple = five_tuple;
+        // context.app_name_start = NULL;
+        // context.app_name_end = NULL;
+        // context.flow_established_flag = true;
+        // goto Invoke;
+        goto Exit;
     }
     five_tuple.v4 = true;
     five_tuple.source_port =
@@ -849,7 +850,7 @@ _net_ebpf_ext_flow_established_v4_classify(
     context.flow_established_flag = true;
     _net_ebpf_ext_flow_established_truncate_appid(&context);
 
-Invoke:
+// Invoke:
     ebpf_ext_attach_invoke_hook(_ebpf_flow_hook_provider_registration, &context, &result);
     
 Exit:
@@ -894,12 +895,13 @@ _net_ebpf_ext_flow_established_v6_classify(
     five_tuple.protocol =
         incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V6_IP_PROTOCOL].value.uint8;
     if (five_tuple.protocol != 0x11 && five_tuple.protocol != 0x06) {
-        // Create five_tuple with only protocol so we can bucket and attribute non-TCP/UDP protocols (ICMP, etc.)
-        context.five_tuple = five_tuple;
-        context.app_name_start = NULL;
-        context.app_name_end = NULL;
-        context.flow_established_flag = true;
-        goto Invoke;
+        // TODO Create five_tuple with only protocol so we can bucket and attribute non-TCP/UDP protocols (ICMP, etc.)
+        // context.five_tuple = five_tuple;
+        // context.app_name_start = NULL;
+        // context.app_name_end = NULL;
+        // context.flow_established_flag = true;
+        // goto Invoke;
+        goto Exit;
     }
     five_tuple.v4 = false;
     five_tuple.source_port =
@@ -965,7 +967,7 @@ _net_ebpf_ext_flow_established_v6_classify(
     context.flow_established_flag = true;
     _net_ebpf_ext_flow_established_truncate_appid(&context);
     
-Invoke:
+// Invoke:
     ebpf_ext_attach_invoke_hook(_ebpf_flow_hook_provider_registration, &context, &result);
 
 Exit:
