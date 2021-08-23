@@ -331,6 +331,7 @@ TEST_CASE("trampoline_test", "[platform]")
     auto provider_function1 = []() { return EBPF_SUCCESS; };
     ebpf_result_t (*function_pointer1)() = provider_function1;
     const void* helper_functions1[] = {(void*)function_pointer1};
+    const uint32_t provider_helper_function_ids[] = {(uint32_t)(EBPF_MAX_GENERAL_HELPER_FUNCTION + 1)};
     ebpf_helper_function_addresses_t helper_function_addresses1 = {
         EBPF_COUNT_OF(helper_functions1), (uint64_t*)helper_functions1};
 
@@ -341,13 +342,23 @@ TEST_CASE("trampoline_test", "[platform]")
         EBPF_COUNT_OF(helper_functions1), (uint64_t*)helper_functions2};
 
     REQUIRE(ebpf_allocate_trampoline_table(1, &table) == EBPF_SUCCESS);
-    REQUIRE(ebpf_update_trampoline_table(table, &helper_function_addresses1) == EBPF_SUCCESS);
+    REQUIRE(
+        ebpf_update_trampoline_table(
+            table,
+            EBPF_COUNT_OF(provider_helper_function_ids),
+            provider_helper_function_ids,
+            &helper_function_addresses1) == EBPF_SUCCESS);
     REQUIRE(ebpf_get_trampoline_function(table, 0, reinterpret_cast<void**>(&test_function)) == EBPF_SUCCESS);
 
     // Verify that the trampoline function invokes the provider function
     REQUIRE(test_function() == EBPF_SUCCESS);
 
-    REQUIRE(ebpf_update_trampoline_table(table, &helper_function_addresses2) == EBPF_SUCCESS);
+    REQUIRE(
+        ebpf_update_trampoline_table(
+            table,
+            EBPF_COUNT_OF(provider_helper_function_ids),
+            provider_helper_function_ids,
+            &helper_function_addresses2) == EBPF_SUCCESS);
 
     // Verify that the trampoline function now invokes the new provider function
     REQUIRE(test_function() == EBPF_OBJECT_ALREADY_EXISTS);

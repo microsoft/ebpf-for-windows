@@ -49,7 +49,8 @@ _program_load_helper(
     return result;
 }
 
-TEST_CASE("test_test", "[test_test]")
+void
+sample_ebpf_ext_test(ebpf_execution_type_t execution_type)
 {
     ebpf_result_t result;
     struct bpf_object* object = nullptr;
@@ -70,7 +71,7 @@ TEST_CASE("test_test", "[test_test]")
     REQUIRE(ebpf_api_initiate() == EBPF_SUCCESS);
 
     result =
-        _program_load_helper("test_sample_ebpf.o", &EBPF_PROGRAM_TYPE_SAMPLE, EBPF_EXECUTION_JIT, &object, &program_fd);
+        _program_load_helper("test_sample_ebpf.o", &EBPF_PROGRAM_TYPE_SAMPLE, execution_type, &object, &program_fd);
 
     REQUIRE(result == EBPF_SUCCESS);
     REQUIRE(program_fd > 0);
@@ -129,3 +130,7 @@ TEST_CASE("test_test", "[test_test]")
 
     ebpf_api_terminate();
 }
+
+TEST_CASE("jit_test", "[test_test]") { sample_ebpf_ext_test(EBPF_EXECUTION_JIT); }
+
+TEST_CASE("interpret_test", "[test_test]") { sample_ebpf_ext_test(EBPF_EXECUTION_INTERPRET); }
