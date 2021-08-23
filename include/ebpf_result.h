@@ -91,6 +91,9 @@ extern "C"
 
         /// The enumeration found no more keys.
         EBPF_NO_MORE_KEYS, // = 25
+
+        // The requested key is already present.
+        EBPF_KEY_ALREADY_EXISTS,
     } ebpf_result_t;
 
 #ifdef __cplusplus

@@ -390,7 +390,7 @@ _update_map_element(
         request->header.length = static_cast<uint16_t>(request_buffer.size());
         request->header.id = ebpf_operation_id_t::EBPF_OPERATION_MAP_UPDATE_ELEMENT;
         request->handle = (uint64_t)map_handle;
-        request->flags = flags;
+        request->option = static_cast<ebpf_map_option_t>(flags);
         std::copy((uint8_t*)key, (uint8_t*)key + key_size, request->data);
         std::copy((uint8_t*)value, (uint8_t*)value + value_size, request->data + key_size);
 
@@ -439,7 +439,16 @@ ebpf_map_update_element(fd_t map_fd, _In_ const void* key, _In_ const void* valu
     uint32_t value_size = 0;
     uint32_t type;
 
-    if (map_fd <= 0 || key == nullptr || value == nullptr || flags != 0) {
+    if (map_fd <= 0 || key == nullptr || value == nullptr) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    switch (flags) {
+    case EBPF_ANY:
+    case EBPF_NOEXIST:
+    case EBPF_EXIST:
+        break;
+    default:
         return EBPF_INVALID_ARGUMENT;
     }
 

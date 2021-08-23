@@ -72,10 +72,11 @@ TEST_CASE("hash_table_test", "[platform]")
         ebpf_hash_table_create(&table, ebpf_allocate, ebpf_free, key_1.size(), data_1.size(), 1, NULL) == EBPF_SUCCESS);
 
     // Insert first
-    REQUIRE(ebpf_hash_table_update(table, key_1.data(), data_1.data()) == EBPF_SUCCESS);
+    REQUIRE(
+        ebpf_hash_table_update(table, key_1.data(), data_1.data(), EBPF_HASH_TABLE_OPERATION_INSERT) == EBPF_SUCCESS);
 
     // Insert second
-    REQUIRE(ebpf_hash_table_update(table, key_2.data(), data_2.data()) == EBPF_SUCCESS);
+    REQUIRE(ebpf_hash_table_update(table, key_2.data(), data_2.data(), EBPF_HASH_TABLE_OPERATION_ANY) == EBPF_SUCCESS);
 
     // Find the first
     REQUIRE(ebpf_hash_table_find(table, key_1.data(), &returned_value) == EBPF_SUCCESS);
@@ -87,7 +88,8 @@ TEST_CASE("hash_table_test", "[platform]")
 
     // Replace
     memset(data_1.data(), '0x55', data_1.size());
-    REQUIRE(ebpf_hash_table_update(table, key_1.data(), data_1.data()) == EBPF_SUCCESS);
+    REQUIRE(
+        ebpf_hash_table_update(table, key_1.data(), data_1.data(), EBPF_HASH_TABLE_OPERATION_REPLACE) == EBPF_SUCCESS);
 
     // Find the first
     REQUIRE(ebpf_hash_table_find(table, key_1.data(), &returned_value) == EBPF_SUCCESS);
@@ -147,7 +149,10 @@ TEST_CASE("hash_table_stress_test", "[platform]")
             for (auto& key : keys) {
                 run_in_epoch([&]() {
                     ebpf_hash_table_update(
-                        table, reinterpret_cast<const uint8_t*>(&key), reinterpret_cast<const uint8_t*>(&value));
+                        table,
+                        reinterpret_cast<const uint8_t*>(&key),
+                        reinterpret_cast<const uint8_t*>(&value),
+                        EBPF_HASH_TABLE_OPERATION_ANY);
                 });
             }
             for (auto& key : keys)

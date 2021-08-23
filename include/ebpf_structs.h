@@ -20,6 +20,16 @@ typedef enum bpf_map_type
     BPF_MAP_TYPE_PERCPU_ARRAY = 5,
 } ebpf_map_type_t;
 
+typedef enum ebpf_map_option
+{
+    // Create a new element or update an existing element.
+    EBPF_ANY,
+    // Create a new element only when it does not exist.
+    EBPF_NOEXIST,
+    // Update an existing element.
+    EBPF_EXIST
+} ebpf_map_option_t;
+
 /**
  * @brief eBPF Map Definition.
  */

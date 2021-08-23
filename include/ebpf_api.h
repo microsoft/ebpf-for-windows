@@ -73,16 +73,6 @@ extern "C"
     struct bpf_map;
     struct bpf_link;
 
-    typedef enum ebpf_map_option
-    {
-        // Create a new element or update an existing element.
-        EBPF_ANY,
-        // Create a new element only when it does not exist.
-        EBPF_NOEXIST,
-        // Update an existing element.
-        EBPF_EXIST
-    } ebpf_map_option_t;
-
     /**
      *  @brief Initialize the eBPF user mode library.
      */
