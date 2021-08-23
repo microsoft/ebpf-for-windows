@@ -213,12 +213,11 @@ ebpf_random_uint32()
     return mt();
 }
 
-void
-ebpf_get_cpu_count(_Out_ uint32_t* cpu_count)
+_Ret_range_(>, 0) uint32_t ebpf_get_cpu_count()
 {
     SYSTEM_INFO system_info;
     GetNativeSystemInfo(&system_info);
-    *cpu_count = system_info.dwNumberOfProcessors;
+    return system_info.dwNumberOfProcessors;
 }
 
 bool
