@@ -108,8 +108,6 @@ cache_map_handle(
     uint32_t inner_map_fd,
     size_t section_offset)
 {
-    // TODO(issue #287): Replace this with the CRT helper to create FD from handle once we
-    // have real handles.
     int fd = static_cast<int>(_map_file_descriptors.size() + 1);
     _map_file_descriptors.emplace_back(
         handle, fd, type, key_size, value_size, max_entries, inner_map_fd, section_offset);
