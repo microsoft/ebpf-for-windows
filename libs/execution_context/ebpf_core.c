@@ -10,6 +10,7 @@
 #include "ebpf_program.h"
 #include "ebpf_program_types.h"
 #include "ebpf_serialize.h"
+#include "ebpf_state.h"
 
 GUID ebpf_general_helper_function_interface_id = {/* 8d2a1d3f-9ce6-473d-b48e-17aa5c5581fe */
                                                   0x8d2a1d3f,
@@ -52,21 +53,23 @@ static ebpf_helper_function_prototype_t _ebpf_map_helper_function_prototype[] = 
      {EBPF_ARGUMENT_TYPE_PTR_TO_CTX, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_OF_PROGRAMS, EBPF_ARGUMENT_TYPE_ANYTHING}},
 };
 
-static ebpf_program_info_t _ebpf_global_helper_program_info = {{"global_helper", NULL, {0}},
-                                                               EBPF_COUNT_OF(_ebpf_map_helper_function_prototype),
-                                                               _ebpf_map_helper_function_prototype};
+static ebpf_program_info_t _ebpf_global_helper_program_info = {
+    {"global_helper", NULL, {0}},
+    EBPF_COUNT_OF(_ebpf_map_helper_function_prototype),
+    _ebpf_map_helper_function_prototype};
 
-static const void* _ebpf_general_helpers[] = {NULL,
-                                              (void*)&_ebpf_core_map_find_element,
-                                              (void*)&_ebpf_core_map_update_element,
-                                              (void*)&_ebpf_core_map_delete_element,
-                                              (void*)&_ebpf_core_tail_call};
+static const void* _ebpf_general_helpers[] = {
+    NULL,
+    (void*)&_ebpf_core_map_find_element,
+    (void*)&_ebpf_core_map_update_element,
+    (void*)&_ebpf_core_map_delete_element,
+    (void*)&_ebpf_core_tail_call};
 
 static ebpf_extension_provider_t* _ebpf_global_helper_function_provider_context = NULL;
 static ebpf_helper_function_addresses_t _ebpf_global_helper_function_dispatch_table = {
     EBPF_COUNT_OF(_ebpf_general_helpers), (uint64_t*)_ebpf_general_helpers};
-static ebpf_program_data_t _ebpf_global_helper_function_program_data = {&_ebpf_global_helper_program_info,
-                                                                        &_ebpf_global_helper_function_dispatch_table};
+static ebpf_program_data_t _ebpf_global_helper_function_program_data = {
+    &_ebpf_global_helper_program_info, &_ebpf_global_helper_function_dispatch_table};
 
 static ebpf_extension_data_t _ebpf_global_helper_function_extension_data = {
     EBPF_CORE_GLOBAL_HELPER_EXTENSION_VERSION,
@@ -86,6 +89,10 @@ ebpf_core_initiate()
     if (return_value != EBPF_SUCCESS)
         goto Done;
 
+    return_value = ebpf_state_initiate();
+    if (return_value != EBPF_SUCCESS)
+        goto Done;
+
     ebpf_object_tracking_initiate();
 
     return_value = ebpf_pinning_table_allocate(&_ebpf_core_map_pinning_table);
@@ -93,6 +100,10 @@ ebpf_core_initiate()
         goto Done;
 
     return_value = ebpf_handle_table_initiate();
+    if (return_value != EBPF_SUCCESS)
+        goto Done;
+
+    return_value = ebpf_program_initiate();
     if (return_value != EBPF_SUCCESS)
         goto Done;
 
@@ -125,9 +136,13 @@ ebpf_core_terminate()
     ebpf_provider_unload(_ebpf_global_helper_function_provider_context);
     _ebpf_global_helper_function_provider_context = NULL;
 
+    ebpf_program_terminate();
+
     ebpf_handle_table_terminate();
 
     ebpf_pinning_table_free(_ebpf_core_map_pinning_table);
+
+    ebpf_state_terminate();
 
     // Shut down the epoch tracker and free any remaining memory or work items.
     // Note: Some objects may only be released on epoch termination.
@@ -656,9 +671,9 @@ static ebpf_result_t
 _ebpf_core_protocol_update_pinning(_In_ const struct _ebpf_operation_update_map_pinning_request* request)
 {
     ebpf_result_t retval;
-    const ebpf_utf8_string_t name = {(uint8_t*)request->name,
-                                     request->header.length -
-                                         EBPF_OFFSET_OF(ebpf_operation_update_pinning_request_t, name)};
+    const ebpf_utf8_string_t name = {
+        (uint8_t*)request->name,
+        request->header.length - EBPF_OFFSET_OF(ebpf_operation_update_pinning_request_t, name)};
     ebpf_object_t* object = NULL;
 
     if (name.length == 0) {
@@ -982,19 +997,14 @@ _ebpf_core_map_delete_element(ebpf_map_t* map, const uint8_t* key)
 static int64_t
 _ebpf_core_tail_call(void* context, ebpf_map_t* map, uint32_t index)
 {
+    UNREFERENCED_PARAMETER(context);
+
     // Get program from map[index].
     ebpf_program_t* callee = ebpf_map_get_program_from_entry(map, sizeof(index), (uint8_t*)&index);
     if (callee == NULL) {
         return -EBPF_INVALID_ARGUMENT;
     }
-
-    // TODO(issue #344): Jump to (not call) the callee.
-    uint32_t result;
-    ebpf_program_invoke(callee, context, &result);
-
-    ebpf_object_release_reference((ebpf_object_t*)callee);
-
-    return result;
+    return -ebpf_program_set_tail_call(callee);
 }
 
 typedef struct _ebpf_protocol_handler

@@ -16,18 +16,23 @@ extern "C"
 }
 #include "Verifier.h"
 #include "verifier_service.h"
+#include "windows_platform.hpp"
 
 #define MAX_CODE_SIZE_IN_BYTES (32 * 1024) // 32 KB
 
 static ebpf_result_t
 _build_helper_id_to_address_map(
-    ebpf_handle_t program_handle, ebpf_code_buffer_t& byte_code, std::vector<uint64_t>& helper_addresses)
+    ebpf_handle_t program_handle,
+    ebpf_code_buffer_t& byte_code,
+    std::vector<uint64_t>& helper_addresses,
+    uint32_t& unwind_index)
 {
     // Note:
     // eBPF supports helper IDs in the range [1, MAXUINT32]
     // uBPF jitter only supports helper IDs in the range [0,63]
     // Build a table to map [1, MAXUINT32] -> [0,63]
     std::map<uint32_t, uint32_t> helper_id_mapping;
+    unwind_index = MAXUINT32;
 
     ebpf_inst* instructions = reinterpret_cast<ebpf_inst*>(byte_code.data());
     for (size_t index = 0; index < byte_code.size() / sizeof(ebpf_inst); index++) {
@@ -85,6 +90,12 @@ _build_helper_id_to_address_map(
             continue;
         }
         instruction.imm = helper_id_mapping[instruction.imm];
+    }
+    for (auto& [old_helper_id, new_helper_id] : helper_id_mapping) {
+        if (get_helper_prototype_windows(old_helper_id).return_type != EBPF_RETURN_TYPE_INTEGER_OR_NO_RETURN_IF_SUCCEED)
+            continue;
+        unwind_index = new_helper_id;
+        break;
     }
 
     return EBPF_SUCCESS;
@@ -335,7 +346,8 @@ ebpf_verify_and_load_program(
         }
 
         std::vector<uint64_t> helper_id_adddress;
-        result = _build_helper_id_to_address_map(program_handle, byte_code_buffer, helper_id_adddress);
+        uint32_t unwind_index;
+        result = _build_helper_id_to_address_map(program_handle, byte_code_buffer, helper_id_adddress, unwind_index);
         if (result != EBPF_SUCCESS)
             goto Exit;
 
@@ -357,6 +369,9 @@ ebpf_verify_and_load_program(
                     goto Exit;
                 }
             }
+
+            if (unwind_index != MAXUINT32)
+                ubpf_set_unwind_function_index(vm, unwind_index);
 
             ubpf_set_error_print(
                 vm, reinterpret_cast<int (*)(FILE * stream, const char* format, ...)>(log_function_address));

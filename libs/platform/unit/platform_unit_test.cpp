@@ -19,6 +19,7 @@
 #include "ebpf_program_types.h"
 #include "ebpf_serialize.h"
 #include "ebpf_xdp_program_data.h"
+#include "ebpf_state.h"
 
 class _test_helper
 {
@@ -630,4 +631,23 @@ TEST_CASE("serialize_program_info_test", "[platform]")
     ebpf_program_info_free(out_program_info);
 
     free(buffer);
+}
+
+TEST_CASE("state_test", "[state]")
+{
+    size_t allocated_index_1 = 0;
+    size_t allocated_index_2 = 0;
+    struct
+    {
+        uint32_t some_value;
+    } foo;
+    uintptr_t retreived_value = 0;
+    REQUIRE(ebpf_state_initiate() == EBPF_SUCCESS);
+    REQUIRE(ebpf_state_allocate_index(&allocated_index_1) == EBPF_SUCCESS);
+    REQUIRE(ebpf_state_allocate_index(&allocated_index_2) == EBPF_SUCCESS);
+    REQUIRE(allocated_index_2 != allocated_index_1);
+    REQUIRE(ebpf_state_store(allocated_index_1, reinterpret_cast<uintptr_t>(&foo)) == EBPF_SUCCESS);
+    REQUIRE(ebpf_state_load(allocated_index_1, &retreived_value) == EBPF_SUCCESS);
+    REQUIRE(retreived_value == reinterpret_cast<uintptr_t>(&foo));
+    ebpf_state_terminate();
 }
