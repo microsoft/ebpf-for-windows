@@ -43,7 +43,11 @@ typedef struct _ebpf_map_function_table
     ebpf_result_t (*update_entry)(
         _In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_ const uint8_t* value, ebpf_map_option_t option);
     ebpf_result_t (*update_entry_with_handle)(
-        _In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_ const uint8_t* value, uintptr_t value_handle);
+        _In_ ebpf_core_map_t* map,
+        _In_ const uint8_t* key,
+        _In_ const uint8_t* value,
+        uintptr_t value_handle,
+        ebpf_map_option_t option);
     ebpf_result_t (*update_entry_per_cpu)(
         _In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_ const uint8_t* value, ebpf_map_option_t option);
     ebpf_result_t (*delete_entry)(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key);
@@ -266,9 +270,15 @@ _update_array_map_entry_with_handle(
     _In_ const uint8_t* key,
     ebpf_object_type_t value_type,
     _In_ const uint8_t* value,
-    uintptr_t value_handle)
+    uintptr_t value_handle,
+    ebpf_map_option_t option)
 {
     if (!map || !key || !value)
+        return EBPF_INVALID_ARGUMENT;
+
+    // TODO(issue #396): support option.  This should be easy
+    // once this function is removed.
+    if (option != EBPF_ANY)
         return EBPF_INVALID_ARGUMENT;
 
     uint32_t index = *(uint32_t*)key;
@@ -324,16 +334,24 @@ Done:
 
 static ebpf_result_t
 _update_prog_array_map_entry_with_handle(
-    _In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_ const uint8_t* value, uintptr_t value_handle)
+    _In_ ebpf_core_map_t* map,
+    _In_ const uint8_t* key,
+    _In_ const uint8_t* value,
+    uintptr_t value_handle,
+    ebpf_map_option_t option)
 {
-    return _update_array_map_entry_with_handle(map, key, EBPF_OBJECT_PROGRAM, value, value_handle);
+    return _update_array_map_entry_with_handle(map, key, EBPF_OBJECT_PROGRAM, value, value_handle, option);
 }
 
 static ebpf_result_t
 _update_map_array_map_entry_with_handle(
-    _In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_ const uint8_t* value, uintptr_t value_handle)
+    _In_ ebpf_core_map_t* map,
+    _In_ const uint8_t* key,
+    _In_ const uint8_t* value,
+    uintptr_t value_handle,
+    ebpf_map_option_t option)
 {
-    return _update_array_map_entry_with_handle(map, key, EBPF_OBJECT_MAP, value, value_handle);
+    return _update_array_map_entry_with_handle(map, key, EBPF_OBJECT_MAP, value, value_handle, option);
 }
 
 static ebpf_result_t
@@ -553,13 +571,29 @@ _update_hash_map_entry_with_handle(
     _In_ const uint8_t* key,
     ebpf_object_type_t value_type,
     _In_ const uint8_t* new_value,
-    uintptr_t value_handle)
+    uintptr_t value_handle,
+    ebpf_map_option_t option)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_lock_state_t lock_state;
     size_t entry_count = 0;
     if (!map || !key || !new_value)
         return EBPF_INVALID_ARGUMENT;
+
+    ebpf_hash_table_operations_t hash_table_operation;
+    switch (option) {
+    case EBPF_ANY:
+        hash_table_operation = EBPF_HASH_TABLE_OPERATION_ANY;
+        break;
+    case EBPF_NOEXIST:
+        hash_table_operation = EBPF_HASH_TABLE_OPERATION_INSERT;
+        break;
+    case EBPF_EXIST:
+        hash_table_operation = EBPF_HASH_TABLE_OPERATION_REPLACE;
+        break;
+    default:
+        return EBPF_INVALID_ARGUMENT;
+    }
 
     // Convert value handle to an object pointer.
     struct _ebpf_object* object;
@@ -592,7 +626,8 @@ _update_hash_map_entry_with_handle(
         }
 
         // Store the literal value and the object pointer.
-        result = ebpf_hash_table_update((ebpf_hash_table_t*)map->data, key, new_value, (uint8_t*)&object);
+        result = ebpf_hash_table_update(
+            (ebpf_hash_table_t*)map->data, key, new_value, (uint8_t*)&object, hash_table_operation);
     }
 
 Done:
@@ -602,9 +637,13 @@ Done:
 
 static ebpf_result_t
 _update_map_hash_map_entry_with_handle(
-    _In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_ const uint8_t* value, uintptr_t value_handle)
+    _In_ ebpf_core_map_t* map,
+    _In_ const uint8_t* key,
+    _In_ const uint8_t* value,
+    uintptr_t value_handle,
+    ebpf_map_option_t option)
 {
-    return _update_hash_map_entry_with_handle(map, key, EBPF_OBJECT_MAP, value, value_handle);
+    return _update_hash_map_entry_with_handle(map, key, EBPF_OBJECT_MAP, value, value_handle, option);
 }
 
 static ebpf_result_t
@@ -981,7 +1020,8 @@ ebpf_map_update_entry_with_handle(
     _In_reads_(key_size) const uint8_t* key,
     size_t value_size,
     _In_reads_(value_size) const uint8_t* value,
-    uintptr_t value_handle)
+    uintptr_t value_handle,
+    ebpf_map_option_t option)
 {
     if (key_size != map->ebpf_map_definition.key_size) {
         return EBPF_INVALID_ARGUMENT;
@@ -995,7 +1035,7 @@ ebpf_map_update_entry_with_handle(
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
     return ebpf_map_function_tables[map->ebpf_map_definition.type].update_entry_with_handle(
-        map, key, value, value_handle);
+        map, key, value, value_handle, option);
 }
 
 ebpf_result_t

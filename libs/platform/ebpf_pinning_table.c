@@ -122,7 +122,6 @@ ebpf_pinning_table_insert(ebpf_pinning_table_t* pinning_table, const ebpf_utf8_s
         return_value = EBPF_OBJECT_ALREADY_EXISTS;
     } else if (return_value == EBPF_SUCCESS)
         new_pinning_entry = NULL;
-    }
 
     ebpf_lock_unlock(&pinning_table->lock, state);
 

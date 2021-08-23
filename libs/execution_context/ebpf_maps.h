@@ -97,6 +97,7 @@ extern "C"
      * @param[in] key Key to use when searching and updating the map.
      * @param[in] value Value to insert into the map.
      * @param[in] value_handle Handle associated with the value.
+     * @param[in] option One of ebpf_map_option_t options.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  entry.
@@ -108,7 +109,8 @@ extern "C"
         _In_reads_(key_size) const uint8_t* key,
         size_t value_size,
         _In_reads_(value_size) const uint8_t* value,
-        uintptr_t value_handle);
+        uintptr_t value_handle,
+        ebpf_map_option_t option);
 
     /**
      * @brief Remove an entry from the map.
