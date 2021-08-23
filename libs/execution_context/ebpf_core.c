@@ -52,23 +52,21 @@ static ebpf_helper_function_prototype_t _ebpf_map_helper_function_prototype[] = 
      {EBPF_ARGUMENT_TYPE_PTR_TO_CTX, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_OF_PROGRAMS, EBPF_ARGUMENT_TYPE_ANYTHING}},
 };
 
-static ebpf_program_info_t _ebpf_global_helper_program_info = {
-    {"global_helper", NULL, {0}},
-    EBPF_COUNT_OF(_ebpf_map_helper_function_prototype),
-    _ebpf_map_helper_function_prototype};
+static ebpf_program_info_t _ebpf_global_helper_program_info = {{"global_helper", NULL, {0}},
+                                                               EBPF_COUNT_OF(_ebpf_map_helper_function_prototype),
+                                                               _ebpf_map_helper_function_prototype};
 
-static const void* _ebpf_general_helpers[] = {
-    NULL,
-    (void*)&_ebpf_core_map_find_element,
-    (void*)&_ebpf_core_map_update_element,
-    (void*)&_ebpf_core_map_delete_element,
-    (void*)&_ebpf_core_tail_call};
+static const void* _ebpf_general_helpers[] = {NULL,
+                                              (void*)&_ebpf_core_map_find_element,
+                                              (void*)&_ebpf_core_map_update_element,
+                                              (void*)&_ebpf_core_map_delete_element,
+                                              (void*)&_ebpf_core_tail_call};
 
 static ebpf_extension_provider_t* _ebpf_global_helper_function_provider_context = NULL;
 static ebpf_helper_function_addresses_t _ebpf_global_helper_function_dispatch_table = {
     EBPF_COUNT_OF(_ebpf_general_helpers), (uint64_t*)_ebpf_general_helpers};
-static ebpf_program_data_t _ebpf_global_helper_function_program_data = {
-    &_ebpf_global_helper_program_info, &_ebpf_global_helper_function_dispatch_table};
+static ebpf_program_data_t _ebpf_global_helper_function_program_data = {&_ebpf_global_helper_program_info,
+                                                                        &_ebpf_global_helper_function_dispatch_table};
 
 static ebpf_extension_data_t _ebpf_global_helper_function_extension_data = {
     EBPF_CORE_GLOBAL_HELPER_EXTENSION_VERSION,
@@ -164,13 +162,7 @@ _ebpf_core_protocol_load_code(_In_ const ebpf_operation_load_code_request_t* req
     code = (uint8_t*)request->code;
     code_length = request->header.length - EBPF_OFFSET_OF(ebpf_operation_load_code_request_t, code);
 
-    if (request->code_type == EBPF_CODE_NATIVE) {
-        retval = ebpf_program_load_machine_code(program, code, code_length);
-    } else {
-        retval =
-            ebpf_program_load_byte_code(program, (ebpf_instruction_t*)code, code_length / sizeof(ebpf_instruction_t));
-    }
-
+    retval = ebpf_program_load_code(program, request->code_type, code, code_length);
     if (retval != EBPF_SUCCESS)
         goto Done;
 
@@ -216,12 +208,13 @@ _ebpf_core_protocol_resolve_helper(
     if (return_value != EBPF_SUCCESS)
         goto Done;
 
-    for (helper_index = 0; helper_index < count_of_helpers; helper_index++) {
-        return_value = ebpf_program_get_helper_function_address(
-            program, request_helper_ids[helper_index], &reply->address[helper_index]);
-        if (return_value != EBPF_SUCCESS)
-            goto Done;
-    }
+    return_value = ebpf_program_set_helper_function_ids(program, count_of_helpers, request_helper_ids);
+    if (return_value != EBPF_SUCCESS)
+        goto Done;
+
+    return_value = ebpf_program_get_helper_function_addresses(program, count_of_helpers, reply->address);
+    if (return_value != EBPF_SUCCESS)
+        goto Done;
 
 Done:
     if (return_value == EBPF_SUCCESS)
@@ -662,9 +655,9 @@ static ebpf_result_t
 _ebpf_core_protocol_update_pinning(_In_ const struct _ebpf_operation_update_map_pinning_request* request)
 {
     ebpf_result_t retval;
-    const ebpf_utf8_string_t name = {
-        (uint8_t*)request->name,
-        request->header.length - EBPF_OFFSET_OF(ebpf_operation_update_pinning_request_t, name)};
+    const ebpf_utf8_string_t name = {(uint8_t*)request->name,
+                                     request->header.length -
+                                         EBPF_OFFSET_OF(ebpf_operation_update_pinning_request_t, name)};
     ebpf_object_t* object = NULL;
 
     if (name.length == 0) {

@@ -63,6 +63,8 @@ ebpf_free_trampoline_table(_Frees_ptr_opt_ ebpf_trampoline_table_t* trampoline_t
 ebpf_result_t
 ebpf_update_trampoline_table(
     _Inout_ ebpf_trampoline_table_t* trampoline_table,
+    uint32_t helper_function_count,
+    _In_reads_(helper_function_count) const uint32_t* helper_function_ids,
     _In_ const ebpf_helper_function_addresses_t* helper_function_addresses)
 {
 #if defined(_AMD64_)
@@ -70,6 +72,8 @@ ebpf_update_trampoline_table(
     size_t function_count = helper_function_addresses->helper_function_count;
     ebpf_trampoline_entry_t* local_entries;
     ebpf_result_t return_value;
+    size_t index;
+    uint32_t helper_index;
 
     if (function_count != trampoline_table->entry_count) {
         return_value = EBPF_INVALID_ARGUMENT;
@@ -88,12 +92,18 @@ ebpf_update_trampoline_table(
         goto Exit;
     }
 
-    size_t index;
-    for (index = 0; index < trampoline_table->entry_count; index++) {
+    for (helper_index = 0; helper_index < helper_function_count; helper_index++) {
+        ebpf_assert(helper_function_ids[helper_index] > EBPF_MAX_GENERAL_HELPER_FUNCTION);
+        _Analysis_assume_(helper_function_ids[helper_index] > EBPF_MAX_GENERAL_HELPER_FUNCTION);
+        index = helper_function_ids[helper_index] - (EBPF_MAX_GENERAL_HELPER_FUNCTION + 1);
+        if (index > trampoline_table->entry_count) {
+            return_value = EBPF_INVALID_ARGUMENT;
+            goto Exit;
+        }
         local_entries[index].load_rax = 0xa148;
         local_entries[index].indirect_address = &local_entries[index].address;
         local_entries[index].jmp_rax = 0xe0ff;
-        local_entries[index].address = (void*)helper_function_addresses->helper_function_address[index];
+        local_entries[index].address = (void*)helper_function_addresses->helper_function_address[helper_index];
     }
 
 Exit:
@@ -125,6 +135,32 @@ ebpf_get_trampoline_function(_In_ const ebpf_trampoline_table_t* trampoline_tabl
     }
 
     *function = &(local_entries[index]);
+
+    return_value = EBPF_SUCCESS;
+Exit:
+    return return_value;
+}
+
+ebpf_result_t
+ebpf_get_trampoline_helper_address(
+    _In_ const ebpf_trampoline_table_t* trampoline_table, size_t index, _Out_ void** helper_address)
+{
+    ebpf_trampoline_entry_t* local_entries;
+    ebpf_result_t return_value;
+
+    if (index >= trampoline_table->entry_count) {
+        return_value = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
+
+    local_entries =
+        (ebpf_trampoline_entry_t*)ebpf_memory_descriptor_get_base_address(trampoline_table->memory_descriptor);
+    if (!local_entries) {
+        return_value = EBPF_NO_MEMORY;
+        goto Exit;
+    }
+
+    *helper_address = local_entries[index].address;
 
     return_value = EBPF_SUCCESS;
 Exit:
