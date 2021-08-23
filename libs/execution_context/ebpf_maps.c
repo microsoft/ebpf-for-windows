@@ -665,7 +665,7 @@ ebpf_map_find_entry(
     _In_reads_(key_size) const uint8_t* key,
     size_t value_size,
     _Out_writes_(value_size) uint8_t* value,
-    uint64_t flags)
+    int flags)
 {
     uint8_t* return_value;
     if (!(flags & EBPF_MAP_FLAG_HELPER) && (key_size != map->ebpf_map_definition.key_size)) {
@@ -778,7 +778,7 @@ ebpf_map_update_entry_with_handle(
 }
 
 ebpf_result_t
-ebpf_map_delete_entry(_In_ ebpf_map_t* map, size_t key_size, _In_reads_(key_size) const uint8_t* key, uint64_t flags)
+ebpf_map_delete_entry(_In_ ebpf_map_t* map, size_t key_size, _In_reads_(key_size) const uint8_t* key, int flags)
 {
     if (!(flags & EBPF_MAP_FLAG_HELPER) && (key_size != map->ebpf_map_definition.key_size)) {
         return EBPF_INVALID_ARGUMENT;

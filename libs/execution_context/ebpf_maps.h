@@ -66,7 +66,7 @@ extern "C"
         _In_reads_(key_size) const uint8_t* key,
         size_t value_size,
         _Out_writes_(value_size) uint8_t* value,
-        uint64_t flags);
+        int flags);
 
     /**
      * @brief Insert or update an entry in the map.
@@ -122,7 +122,7 @@ extern "C"
      */
     ebpf_result_t
     ebpf_map_delete_entry(
-        _In_ ebpf_map_t* map, size_t key_size, _In_reads_(key_size) const uint8_t* key, uint64_t flags);
+        _In_ ebpf_map_t* map, size_t key_size, _In_reads_(key_size) const uint8_t* key, int flags);
 
     /**
      * @brief Retrieve the next key from the map.
