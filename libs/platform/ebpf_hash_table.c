@@ -232,6 +232,7 @@ _ebpf_hash_table_replace_bucket(
         }
         delete_data = new_data;
         if (value) {
+            // TODO(issue #396): remove extra_value logic once we store ids in the value.
             if (extra_value) {
                 // The value is in two input buffers: value and extra_value,
                 // which is always of size sizeof(void*).
