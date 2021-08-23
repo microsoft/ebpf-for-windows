@@ -849,6 +849,14 @@ _net_ebpf_ext_flow_established_v4_classify(
     context.app_name_end = app_name_end;
     context.flow_established_flag = true;
     _net_ebpf_ext_flow_established_truncate_appid(&context);
+    KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "context.app_name_start. %c\n", context.app_name_start));
+    KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "context.app_name_end. %c\n", context.app_name_end));
+    KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "context.flow_established_flag. %d\n", context.flow_established_flag));
+    KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "context.five_tuple.dest_port. %ld\n", context.five_tuple.dest_port));
+    KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "context.five_tuple.source_port. %ld\n", context.five_tuple.source_port));
+    KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "context.five_tuple.dest_ip. %ld\n", context.five_tuple.dest_ip));
+    KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "context.five_tuple.source_ip. %ld\n", context.five_tuple.source_ip));
+    KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "context.five_tuple.v4. %d\n", context.five_tuple.v4));
 
 // Invoke:
     ebpf_ext_attach_invoke_hook(_ebpf_flow_hook_provider_registration, &context, &result);
@@ -966,6 +974,20 @@ _net_ebpf_ext_flow_established_v6_classify(
     context.app_name_end = app_name_end;
     context.flow_established_flag = true;
     _net_ebpf_ext_flow_established_truncate_appid(&context);
+    KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "context.app_name_start. %c\n", context.app_name_start));
+    KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "context.app_name_end. %c\n", context.app_name_end));
+    KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "context.flow_established_flag. %d\n", context.flow_established_flag));
+    KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "context.five_tuple.dest_port. %ld\n", context.five_tuple.dest_port));
+    KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "context.five_tuple.source_port. %ld\n", context.five_tuple.source_port));
+    KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "context.five_tuple.dest_ip.\n"));
+    for (index = 0; index < 16; index++) {
+        KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "%d", context.five_tuple.dest_ip[index]));
+    }
+    KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "context.five_tuple.source_ip.\n"));
+    for (index = 0; index < 16; index++) {
+        KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "%d", context.five_tuple.source_ip[index]));
+    }
+    KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "context.five_tuple.v4. %d\n", context.five_tuple.v4));
     
 // Invoke:
     ebpf_ext_attach_invoke_hook(_ebpf_flow_hook_provider_registration, &context, &result);
