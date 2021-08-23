@@ -291,7 +291,7 @@ _ebpf_hash_table_replace_bucket(
         // Permit it if this is an insert or insert_or_update.
         case EBPF_HASH_BUCKET_OPERATION_INSERT:
             if (old_data_index != MAXSIZE_T) {
-                result = EBPF_KEY_NOT_FOUND;
+                result = EBPF_OBJECT_ALREADY_EXISTS;
                 goto Done;
             } else {
                 new_bucket_count++;
