@@ -927,7 +927,9 @@ ebpf_map_pin(_In_ struct bpf_map* map, _In_opt_z_ const char* path)
         return EBPF_INVALID_ARGUMENT;
     }
     if (map->pinned) {
-        return EBPF_ALREADY_PINNED;
+        return (map->pin_path != nullptr && path != nullptr && strcmp(path, map->pin_path) == 0)
+                   ? EBPF_OBJECT_ALREADY_EXISTS
+                   : EBPF_ALREADY_PINNED;
     }
     if (path != nullptr) {
         // If pin path is already set, the pin path provided now should be same
@@ -1361,13 +1363,13 @@ ebpf_link_close(_In_ struct bpf_link* link)
     return EBPF_SUCCESS;
 }
 
-uint32_t
+ebpf_result_t
 ebpf_api_close_handle(ebpf_handle_t handle)
 {
     ebpf_operation_close_handle_request_t request = {
         sizeof(request), EBPF_OPERATION_CLOSE_HANDLE, reinterpret_cast<uint64_t>(handle)};
 
-    return invoke_ioctl(request);
+    return windows_error_to_ebpf_result(invoke_ioctl(request));
 }
 
 ebpf_result_t

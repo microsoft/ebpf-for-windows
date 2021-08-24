@@ -176,7 +176,7 @@ _delete_array_map_entry_with_reference(_In_ ebpf_core_map_t* map, _In_ const uin
     key_value = *(uint32_t*)key;
 
     if (key_value > map->ebpf_map_definition.max_entries)
-        return EBPF_KEY_NOT_FOUND;
+        return EBPF_INVALID_ARGUMENT;
 
     uint8_t* entry = &map->data[key_value * map->ebpf_map_definition.value_size];
     ebpf_lock_state_t lock_state = ebpf_lock_lock(&map->lock);

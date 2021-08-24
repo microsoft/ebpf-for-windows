@@ -125,6 +125,10 @@ windows_error_to_ebpf_result(uint32_t error)
         result = EBPF_ALREADY_INITIALIZED;
         break;
 
+    case ERROR_OBJECT_ALREADY_EXISTS:
+        result = EBPF_OBJECT_ALREADY_EXISTS;
+        break;
+
     default:
         result = EBPF_FAILED;
         break;

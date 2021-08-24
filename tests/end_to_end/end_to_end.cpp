@@ -128,6 +128,9 @@ Fail:
         case EBPF_INSUFFICIENT_BUFFER:
             SetLastError(ERROR_MORE_DATA);
             break;
+        case EBPF_OBJECT_ALREADY_EXISTS:
+            SetLastError(ERROR_OBJECT_ALREADY_EXISTS);
+            break;
         default:
             SetLastError(ERROR_INVALID_PARAMETER);
             break;

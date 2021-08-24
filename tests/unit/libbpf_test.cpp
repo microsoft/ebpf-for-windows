@@ -73,7 +73,7 @@ TEST_CASE("libbpf program pinning", "[libbpf]")
 
     // Make sure a duplicate pin fails.
     result = bpf_program__pin(program, pin_path);
-    REQUIRE(result < 0);
+    REQUIRE(result == -EBPF_OBJECT_ALREADY_EXISTS);
     REQUIRE(errno == -result);
 
     result = bpf_program__unpin(program, pin_path);
@@ -81,7 +81,7 @@ TEST_CASE("libbpf program pinning", "[libbpf]")
 
     // Make sure a duplicate unpin fails.
     result = bpf_program__unpin(program, pin_path);
-    REQUIRE(result < 0);
+    REQUIRE(result == -EBPF_KEY_NOT_FOUND);
     REQUIRE(errno == -result);
 
     // Try to pin all (1) programs in the object.
@@ -90,7 +90,7 @@ TEST_CASE("libbpf program pinning", "[libbpf]")
 
     // Make sure a duplicate pin fails.
     result = bpf_object__pin_programs(object, pin_path);
-    REQUIRE(result < 0);
+    REQUIRE(result == -EBPF_OBJECT_ALREADY_EXISTS);
     REQUIRE(errno == -result);
 
     result = bpf_object__unpin_programs(object, pin_path);
@@ -102,7 +102,7 @@ TEST_CASE("libbpf program pinning", "[libbpf]")
 
     // Make sure a duplicate pin fails.
     result = bpf_object__pin_programs(object, pin_path);
-    REQUIRE(result < 0);
+    REQUIRE(result == -EBPF_OBJECT_ALREADY_EXISTS);
     REQUIRE(errno == -result);
 
     // There is no bpf_object__unpin API, so
@@ -149,7 +149,7 @@ TEST_CASE("libbpf program attach", "[libbpf]")
 
     // Verify that a duplicate link destroy fails.
     result = bpf_link__destroy(link);
-    REQUIRE(result < 0);
+    REQUIRE(result == -EBPF_INVALID_ARGUMENT);
     REQUIRE(errno == -result);
 
     bpf_object__close(object);
@@ -180,7 +180,53 @@ TEST_CASE("libbpf map", "[libbpf]")
     REQUIRE(bpf_map__key_size(map) == 4);
     REQUIRE(bpf_map__value_size(map) == 8);
     REQUIRE(bpf_map__max_entries(map) == 1);
-    REQUIRE(bpf_map__fd(map) > 0);
+    int map_fd = bpf_map__fd(map);
+    REQUIRE(map_fd > 0);
+
+    uint64_t value;
+    uint32_t index = 2; // Past end of array.
+
+    result = bpf_map_lookup_elem(map_fd, NULL, NULL);
+    REQUIRE(result == -EBPF_INVALID_ARGUMENT);
+    REQUIRE(errno == -result);
+
+    result = bpf_map_lookup_elem(map_fd, &index, &value);
+    REQUIRE(result == -EBPF_INVALID_ARGUMENT);
+    REQUIRE(errno == -result);
+
+    result = bpf_map_delete_elem(map_fd, NULL);
+    REQUIRE(result == -EBPF_INVALID_ARGUMENT);
+    REQUIRE(errno == -result);
+
+    result = bpf_map_delete_elem(map_fd, &index);
+    REQUIRE(result == -EBPF_INVALID_ARGUMENT);
+    REQUIRE(errno == -result);
+
+    result = bpf_map_update_elem(map_fd, NULL, NULL, 0);
+    REQUIRE(result == -EBPF_INVALID_ARGUMENT);
+    REQUIRE(errno == -result);
+
+    result = bpf_map_update_elem(map_fd, &index, &value, 0);
+    REQUIRE(result == -EBPF_INVALID_ARGUMENT);
+    REQUIRE(errno == -result);
+
+    index = 0;
+    REQUIRE(bpf_map_lookup_elem(map_fd, &index, &value) == EBPF_SUCCESS);
+    REQUIRE(value == 0);
+
+    REQUIRE(bpf_map_delete_elem(map_fd, &index) == EBPF_SUCCESS);
+
+    value = 12345;
+    REQUIRE(bpf_map_update_elem(map_fd, &index, &value, 0) == EBPF_SUCCESS);
+
+    value = 0;
+    REQUIRE(bpf_map_lookup_elem(map_fd, &index, &value) == EBPF_SUCCESS);
+    REQUIRE(value == 12345);
+
+    REQUIRE(bpf_map_delete_elem(map_fd, &index) == EBPF_SUCCESS);
+
+    REQUIRE(bpf_map_lookup_elem(map_fd, &index, &value) == EBPF_SUCCESS);
+    REQUIRE(value == 0);
 
     bpf_object__close(object);
 }
@@ -209,7 +255,7 @@ TEST_CASE("libbpf map pinning", "[libbpf]")
 
     // Make sure a duplicate pin fails.
     result = bpf_map__pin(map, pin_path);
-    REQUIRE(result < 0);
+    REQUIRE(result == -EBPF_OBJECT_ALREADY_EXISTS);
     REQUIRE(errno == -result);
 
     result = bpf_map__unpin(map, pin_path);
@@ -219,7 +265,7 @@ TEST_CASE("libbpf map pinning", "[libbpf]")
 
     // Make sure a duplicate unpin fails.
     result = bpf_map__unpin(map, pin_path);
-    REQUIRE(result < 0);
+    REQUIRE(result == -EBPF_KEY_NOT_FOUND);
     REQUIRE(errno == -result);
 
     // Clear pin path for the map.
@@ -234,7 +280,7 @@ TEST_CASE("libbpf map pinning", "[libbpf]")
 
     // Make sure a duplicate pin fails.
     result = bpf_object__pin_maps(object, pin_path);
-    REQUIRE(result < 0);
+    REQUIRE(result == -EBPF_OBJECT_ALREADY_EXISTS);
     REQUIRE(errno == -result);
 
     result = bpf_object__unpin_maps(object, pin_path);
@@ -250,7 +296,7 @@ TEST_CASE("libbpf map pinning", "[libbpf]")
 
     // Make sure a duplicate pin fails.
     result = bpf_object__pin_maps(object, pin_path);
-    REQUIRE(result < 0);
+    REQUIRE(result == -EBPF_OBJECT_ALREADY_EXISTS);
     REQUIRE(errno == -result);
 
     // There is no bpf_object__unpin API, so

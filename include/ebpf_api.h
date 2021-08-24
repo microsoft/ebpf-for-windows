@@ -412,10 +412,10 @@ extern "C"
      * @brief Close an eBPF handle.
      *
      * @param[in] handle Handle to close.
-     * @retval ERROR_SUCCESS Handle was closed.
-     * @retval ERROR_INVALID_HANDLE Handle is not valid.
+     * @retval EBPF_SUCCESS Handle was closed.
+     * @retval EBPF_INVALID_OBJECT Handle is not valid.
      */
-    uint32_t
+    ebpf_result_t
     ebpf_api_close_handle(ebpf_handle_t handle);
 
     /**
