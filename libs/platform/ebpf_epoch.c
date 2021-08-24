@@ -214,6 +214,7 @@ ebpf_epoch_enter()
             _ebpf_epoch_thread_table,
             (const uint8_t*)&current_thread_id,
             (const uint8_t*)&current_epoch,
+            NULL,
             EBPF_HASH_TABLE_OPERATION_ANY);
         ebpf_lock_unlock(&_ebpf_epoch_thread_table_lock, lock_state);
         return return_value;
@@ -241,6 +242,7 @@ ebpf_epoch_exit()
             _ebpf_epoch_thread_table,
             (const uint8_t*)&current_thread_id,
             (const uint8_t*)&current_epoch,
+            NULL,
             EBPF_HASH_TABLE_OPERATION_REPLACE);
         ebpf_assert(result == EBPF_SUCCESS);
         ebpf_lock_unlock(&_ebpf_epoch_thread_table_lock, lock_state);

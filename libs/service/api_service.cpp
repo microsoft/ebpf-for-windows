@@ -196,7 +196,7 @@ _resolve_maps_in_byte_code(ebpf_handle_t program_handle, ebpf_code_buffer_t& byt
 }
 
 static ebpf_result_t
-_query_and_cache_map_descriptors(fd_handle_map* handle_map, uint32_t handle_map_count)
+_query_and_cache_map_descriptors(_In_reads_(handle_map_count) fd_handle_map* handle_map, uint32_t handle_map_count)
 {
     ebpf_result_t result;
     EbpfMapDescriptor descriptor;
@@ -205,15 +205,22 @@ _query_and_cache_map_descriptors(fd_handle_map* handle_map, uint32_t handle_map_
         for (uint32_t i = 0; i < handle_map_count; i++) {
             uint32_t size;
             descriptor = {0};
+            uint32_t inner_map_idx;
             result = query_map_definition(
                 handle_map[i].handle,
                 &size,
                 &descriptor.type,
                 &descriptor.key_size,
                 &descriptor.value_size,
-                &descriptor.max_entries);
+                &descriptor.max_entries,
+                &inner_map_idx);
             if (result != EBPF_SUCCESS) {
                 return result;
+            }
+
+            if (descriptor.type == BPF_MAP_TYPE_ARRAY_OF_MAPS || descriptor.type == BPF_MAP_TYPE_HASH_OF_MAPS) {
+                // Convert inner_map_idx to descriptor.inner_map_fd.
+                descriptor.inner_map_fd = handle_map[inner_map_idx].file_descriptor;
             }
 
             cache_map_file_descriptor_with_handle(
@@ -221,6 +228,7 @@ _query_and_cache_map_descriptors(fd_handle_map* handle_map, uint32_t handle_map_
                 descriptor.key_size,
                 descriptor.value_size,
                 descriptor.max_entries,
+                descriptor.inner_map_fd,
                 handle_map[i].file_descriptor,
                 (uintptr_t)handle_map[i].handle,
                 0);

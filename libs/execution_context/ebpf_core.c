@@ -474,7 +474,13 @@ _ebpf_core_protocol_map_update_element_with_handle(
     key_length = map_definition->key_size;
 
     retval = ebpf_map_update_entry_with_handle(
-        map, key_length, request->data, value_length, request->data + map_definition->key_size, request->value_handle);
+        map,
+        key_length,
+        request->data,
+        value_length,
+        request->data + map_definition->key_size,
+        request->value_handle,
+        request->option);
 
 Done:
     ebpf_object_release_reference((ebpf_object_t*)map);

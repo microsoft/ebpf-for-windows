@@ -219,6 +219,9 @@ extern "C"
      * @param[out] key_size Size of keys in the eBPF map.
      * @param[out] value_size Size of values in the eBPF map.
      * @param[out] max_entries Maximum number of entries in the map.
+     * @param[out] inner_map_idx For maps of type BPF_TYPE_ARRAY_OF_MAPS or BPF_TYPE_HASH_OF_MAPS created from an ELF
+     * file, this is the index in the maps section of another map that any inner maps must match.  Otherwise, the value
+     * is 0.
      * @retval EBPF_SUCCESS The operation was successful.
      */
     ebpf_result_t
@@ -228,7 +231,8 @@ extern "C"
         _Out_ uint32_t* type,
         _Out_ uint32_t* key_size,
         _Out_ uint32_t* value_size,
-        _Out_ uint32_t* max_entries);
+        _Out_ uint32_t* max_entries,
+        _Out_ uint32_t* inner_map_idx);
 
     /**
      * @brief Query info about an eBPF program.

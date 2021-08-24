@@ -550,7 +550,8 @@ TEST_CASE("enumerate_and_query_maps", "[end_to_end]")
                 reinterpret_cast<uint32_t*>(&map_definitions[index].type),
                 &map_definitions[index].key_size,
                 &map_definitions[index].value_size,
-                &map_definitions[index].max_entries) == EBPF_SUCCESS);
+                &map_definitions[index].max_entries,
+                &map_definitions[index].inner_map_idx) == EBPF_SUCCESS);
         if (index % 2 == 0) {
             REQUIRE(memcmp(&process_map, &map_definitions[index], sizeof(process_map)) == 0);
         } else {
