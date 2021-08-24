@@ -138,15 +138,29 @@ TEST_CASE("hash_table_stress_test", "[platform]")
     ebpf_hash_table_t* table = nullptr;
     const size_t iterations = 1000;
     uint32_t worker_threads = ebpf_get_cpu_count();
+    uint32_t key_count = 4;
+    uint32_t load_factor = 4;
+    int32_t cpu_id = 0;
     REQUIRE(
         ebpf_hash_table_create(
-            &table, ebpf_epoch_allocate, ebpf_epoch_free, sizeof(uint32_t), sizeof(uint64_t), worker_threads, NULL) ==
-        EBPF_SUCCESS);
-    auto worker = [table, iterations]() {
+            &table,
+            ebpf_epoch_allocate,
+            ebpf_epoch_free,
+            sizeof(uint32_t),
+            sizeof(uint64_t),
+            static_cast<size_t>(worker_threads) * static_cast<size_t>(key_count),
+            NULL) == EBPF_SUCCESS);
+    auto worker = [table, iterations, key_count, load_factor, &cpu_id]() {
         uint32_t next_key = 0;
         uint64_t value = 11;
         uint64_t** returned_value = nullptr;
-        std::vector<uint32_t> keys(32);
+        std::vector<uint32_t> keys(static_cast<size_t>(key_count) * static_cast<size_t>(load_factor));
+
+        uint32_t local_cpu_id = ebpf_interlocked_increment_int32(&cpu_id) - 1;
+        uintptr_t thread_mask = local_cpu_id;
+        thread_mask = static_cast<uintptr_t>(1) << thread_mask;
+        SetThreadAffinityMask(GetCurrentThread(), thread_mask);
+
         for (auto& key : keys) {
             key = ebpf_random_uint32();
         }
