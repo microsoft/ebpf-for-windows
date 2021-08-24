@@ -2,14 +2,14 @@
 
 ## 1 Overview
 An "eBPF extension" is a Windows kernel driver or component that implements eBPF hooks or helper functions. The design of eBPF for Windows is
-such that an extension providing implementation for hooks and helper functions can be developed and deployed
+such that an extension providing an implementation for hooks and helper functions can be developed and deployed
 without the need to modify either the eBPF execution context or the eBPF verifier.
 
 ## 1.1 Windows Network Module Registrar
 The eBPF for Windows project uses the
 [Network Module Registrar (NMR)](https://docs.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-the-network-module-registrar)
-feature in Windows to develop eBPF extensions that are decoupled from the core eBPF for Windows framework.  NMR facilitates software
-modules to be attached to each other. The
+feature in Windows to develop eBPF extensions that are decoupled from the core eBPF for Windows framework.  NMR facilitates attaching software
+modules to each other. The
 [Network Programming Interface (NPI)](https://docs.microsoft.com/en-us/windows-hardware/drivers/network/network-programming-interface)
 defines the contract between the modules.  The eBPF extensions would implement the
 [Provider Modules](https://docs.microsoft.com/en-us/windows-hardware/drivers/network/provider-module) for two types of NPIs as discussed in detail below.
@@ -18,7 +18,7 @@ are completely agnostic of Windows Networking stack and non-networking eBPF exte
 
 ## 1.2 Prerequisites
 The audience is assumed to be familiar with [NMR Architecture](https://docs.microsoft.com/en-us/windows-hardware/drivers/network/architecture-overview) and
-the various aspects of developing NMR modules as documented [here](https://docs.microsoft.com/en-us/windows-hardware/drivers/network/network-module-registrar2).
+the various aspects of developing NMR modules as described in [NMR documentation](https://docs.microsoft.com/en-us/windows-hardware/drivers/network/network-module-registrar2).
 
 ## 1.3 NPI Contracts for eBPF Extensions
 eBPF Extensions need to implement *provider modules* for two types of NPIs. They are the **Program Information NPI** provider and the **Hook NPI** provider.
@@ -30,7 +30,7 @@ This information is consumed by the eBPF verifier to ensure that any eBPF progra
 and execute. The ABI contract includes both a description of the &quot;context&quot; parameter passed to the eBPF
 program as well as the list of specific helper functions that are available to such eBPF programs.
 
-eBPF extensions must implement a different Program Information provider module for each program type for which it provides
+eBPF extensions must implement a different Program Information NPI provider module for each program type for which it provides
 implementation of hooks or helper functions specific to that program type.
 
 ### 1.3.2 eBPF Hook NPI Provider
@@ -39,16 +39,16 @@ interchangeably along with *Hook NPI* in the code and documentations in this pro
 
 ## 2 Authoring an eBPF Extension
 The steps for authoring an eBPF extension are:
-1. Registering the NPI providers.
-2. Authoring Helper Functions.
-3. Invoking eBPF programs from hook(s).
-4. Registering program and attach types.
+1. Register the NPI provider.
+2. Author any program type specific Helper Functions.
+3. Invoke eBPF programs from hook(s).
+4. Register program and attach types.
 
 The following sections describe these steps in detail.
 
 ### 2.1 Program Information NPI Provider Registration
 When registering itself to the NMR, the Program Information NPI Provider should have the [`NPI_REGISTRATION_INSTANCE`](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/netioddk/ns-netioddk-_npi_registration_instance) initialized as follows:
-* `NpiId`: This should be set the GUID corresponding to the eBPF program type.
+* `NpiId`: This should be set to a GUID that uniquely identifies the eBPF program type.
 * `ModuleId`: This should be a unique GUID identifying the provider module.
 * `NpiSpecificCharacteristics`: Pointer to structure of type `ebpf_extension_data_t`.
   * The `data` field of this structure should point to a structure of type `ebpf_program_data_t`.
@@ -61,23 +61,23 @@ The various fields of this structure should be set as follows:
 #### `ebpf_program_info_t` Struct
 The various fields of this structure should be set as follows:
 * `program_type_descriptor`: Field of type `ebpf_program_type_descriptor_t`.
-* `count_of_helpers`: The number of helper function that are implemented by this extension for the given program type.
+* `count_of_helpers`: The number of helper functions that are implemented by this extension for the given program type.
 * `helper_prototype`: Pointer to array of `ebpf_helper_function_prototype_t`.
 
 #### `ebpf_program_type_descriptor_t` Struct
 The various fields of this structure should be set as follows:
 * `name`: Friendly name of the program type.
 * `context_descriptor`: Pointer of type `ebpf_context_descriptor_t`.
-* `program_type`: GUID for the program type. This should also be the NPI ID.
+* `program_type`: GUID for the program type. This should be the same as the `NpiId` in `NPI_REGISTRATION_INSTANCE` as noted above.
 * `is_privileged`: This Boolean field should be set to `TRUE` if this is a privileged program type, `FALSE` otherwise.
 
 #### `ebpf_context_descriptor_t` Struct
 This structure (as the name signifies) provides a description of the context parameter that a hook passes when
 invoking an eBPF program. The various fields of this struct are as follows.
 * `size`: Size of the context structure.
-* `data`: Offset to the field in context structure that is pointing to the beginning of context data.
-* `end`: Offset to the field in context structure that is pointing to the end of context data.
-* `meta`: Offset to the field in context structure that is pointing to the beginning of context metadata.
+* `data`: Offset (in bytes) to the field in the context structure that is pointing to the beginning of context data.
+* `end`: Offset (in bytes) to the field in the context structure that is pointing to the end of context data.
+* `meta`: Offset (in bytes) to the field in the context structure that is pointing to the beginning of context metadata.
 
 For example, for the XDP program types, the context data structure is as follows:
 ```
@@ -103,14 +103,14 @@ If any of the data or metadata pointer fields are not present on the context str
 
 #### `ebpf_helper_function_prototype_t` Struct
 This structure is used to describe the prototypes of the various helper functions implemented by the extension.
-* `helper_id`: Integer signifying the helper function Id. (See section 3.3).
-Helper function IDs for different program types may not be unique.
+* `helper_id`: Integer signifying the helper function ID. (See section 3.3).
+Helper function IDs for different program types need not be unique.
 * `name`: Helper function name.
-* `return_type`: Set the appropriate value for `ebpf_return_type_t` enum that represents the return type of the helper function.
+* `return_type`: Set the appropriate value for the `ebpf_return_type_t` enum that represents the return type of the helper function.
 * `arguments`: Array of (at most) five helper function arguments of type `ebpf_argument_type_t`.
 
 #### `ebpf_argument_type_t` Enum
-This enum describes the various argument types that can be passed to an eBPF helper function. This is defined in [Prevail Verifier](https://github.com/vbpf/ebpf-verifier) project.
+This enum describes the various argument types that can be passed to an eBPF helper function. This is defined in the [PREVAIL Verifier](https://github.com/vbpf/ebpf-verifier) project.
 ```
 typedef enum _ebpf_argument_type {
     EBPF_ARGUMENT_TYPE_DONTCARE = 0,
@@ -129,7 +129,7 @@ typedef enum _ebpf_argument_type {
 ```
 
 #### `ebpf_return_type` Enum
-This enum describes the various return types from an eBPF helper function. This is defined in [Prevail Verifier](https://github.com/vbpf/ebpf-verifier) project.
+This enum describes the various return types from an eBPF helper function. This is defined in the [PREVAIL Verifier](https://github.com/vbpf/ebpf-verifier) project.
 ```
 typedef enum _ebpf_return_type {
     EBPF_RETURN_TYPE_INTEGER = 0,
@@ -139,16 +139,16 @@ typedef enum _ebpf_return_type {
 ```
 
 #### `ebpf_helper_function_addresses_t` Struct
-This structure is used to specify the address at which the various helper function implemented by the extension resides. If an eBPF program is JIT compiled, then the generated machine code will have `call` instructions to these addresses. For interpreted mode, the eBPF Execution Engine will invoke the functions at these addresses. The fields of this struct should be set as follows:
+This structure is used to specify the address at which the various helper functions implemented by the extension reside. If an eBPF program is JIT compiled, then the generated machine code will have `call` instructions to these addresses. For interpreted mode, the eBPF Execution Engine will invoke the functions at these addresses. The fields of this struct should be set as follows:
 * `helper_function_count`: Number of helper functions implemented by the extension for the given program type.
-* `helper_function_address`: Array of addresses (64-bit unsigned integer) for the helper functions. The addresses must be arranged in the array in the *same order* as the array of helper function prototypes denoted by the `helper_prototype` field in `ebpf_program_info_t` struct.  For the correct execution of eBPF program, the helper function addresses cannot change while a loaded eBPF program is executing.
+* `helper_function_address`: Array of addresses (64-bit unsigned integer) for the helper functions. The addresses must be arranged in the array in the *same order* as the array of helper function prototypes denoted by the `helper_prototype` field in `ebpf_program_info_t` struct.  For the correct execution of eBPF programs, the helper function addresses cannot change while a loaded eBPF program is executing.
 
 ### 2.2 Program Information NPI Client Attach and Detach Callbacks
 The eBPF Execution Context registers a program information NPI client module with the NMR for every eBPF program that gets loaded. The Execution Context will use the program type GUID of the program as the NPI ID of the client module. And as a result, upon eBPF program load, the associated program information NPI client module will attach with the corresponding program information NPI provider module in the extension. The program information NPI does not have any client or provider dispatch tables. Neither does the `NpiSpecificCharacteristics` from client has any data. So, no special processing is required in the client attach and detach callback handler on the provider module. may decrement the client count. An extension must not unload until there are attached program information NPI clients.
 
 ### 2.3 Hook NPI Provider Registration
-When registering itself to the NMR, the Program Information NPI Provider should have the [`NPI_REGISTRATION_INSTANCE`](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/netioddk/ns-netioddk-_npi_registration_instance) initialized as follows:
-* `NpiId`: This should be set the GUID corresponding to the eBPF attach type.
+When registering itself to the NMR, the hook NPI Provider should have the [`NPI_REGISTRATION_INSTANCE`](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/netioddk/ns-netioddk-_npi_registration_instance) initialized as follows:
+* `NpiId`: This should be set to a unique GUID identifying the eBPF attach type.
 * `ModuleId`: This should be a unique GUID identifying the provider module.
 * `NpiSpecificCharacteristics`: Pointer to structure of type `ebpf_extension_data_t`.
   * The `data` field of this structure should point to a structure of type `ebpf_attach_provider_data_t`.
@@ -157,17 +157,17 @@ When registering itself to the NMR, the Program Information NPI Provider should 
 This structure is used to specify the attach type supported by the extension for the given hook NPI provider. The `supported_program_type` field of the struct should be filled with the `ebpf_program_type_t` (GUID) of the supported program type. While attaching an eBPF program to a hook instance, the Execution Context enforces that the requested attach type is supported by the hook NPI provider. If not, the eBPF program fails to attach to the hook.
 
 ### 2.4 Hook NPI Client Attach and Detach Callbacks
-The eBPF Execution Context registers a hook NPI client module with the NMR for each program that is attached to a hook. The attach type GUID is used as the NPI of the client module. And as a result, when an eBPF program gets attached to a hook, the associated hook NPI client module will attach with the corresponding hook NPI provider module in the extension. The [client attach callback](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/netioddk/nc-netioddk-npi_provider_attach_client_fn) function is invoked when the NPI client is being attached. The provider must store the following in a per-client data structure from the passed in parameters:
+The eBPF Execution Context registers a hook NPI client module with the NMR for each program that is attached to a hook. The attach type GUID is used as the NPI of the client module. And as a result, when an eBPF program gets attached to a hook, the associated hook NPI client module will attach to the corresponding hook NPI provider module in the extension. The [client attach callback](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/netioddk/nc-netioddk-npi_provider_attach_client_fn) function is invoked when the NPI client is being attached. The provider must store the following in a per-client data structure from the passed in parameters:
 * `ClientBindingContext`: Client binding context.
 * `ClientDispatch`: Client dispatch table (see section 2.5 below).
-* `NpiSpecificCharacteristics`: Obtained from `ClientRegistrationInstance` parameter. This contains attach-type specific data that may be used by an extension for attaching an eBPF program. For example, when an eBPF program is being attached to an XDP hook, the network interface Id can be passed as attach parameter via this parameter. This tells the extension to invoke the eBPF program whenever there are any inbound packets on that network interface.
+* `NpiSpecificCharacteristics`: Obtained from `ClientRegistrationInstance` parameter. This contains attach-type specific data that may be used by an extension for attaching an eBPF program. For example, when an eBPF program is being attached to an XDP hook, the network interface index can be passed via this parameter. This tells the extension to invoke the eBPF program whenever there are any inbound packets on that network interface.
 
 The per-client data structure should be returned as the `ProviderBindingContext` output parameter.
 
 Upon [client detach callback](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/netioddk/nc-netioddk-npi_provider_detach_client_fn) the provider must free the per-client context passed in via `ProviderBindingContext` parameter.
 
 ### 2.5 Invoking an eBPF program from Hook NPI Provider
-To invoke an eBPF program, the extension uses the dispatch table supplied by the hook NPI client during attaching. There is only one function in the client dispatch table, that is of the following type:
+To invoke an eBPF program, the extension uses the dispatch table supplied by the hook NPI client during attaching. There is only one function in the client dispatch table, which is of the following type:
 
 ```
 /**
@@ -182,10 +182,10 @@ The function pointer can be obtained from the client dispatch table as follows:
 invoke_program = (ebpf_invoke_program_function_t)client_dispatch_table->function[0];
 ```
 When an extension invokes this function pointer, then the call flows through the eBPF Execution Context and eventually invokes the eBPF program.
-When invoking an eBPF program, the extension must supply the client binding context it obtained from the hook NPI client as the `client_binding_context` parameter. For the second parameter `context`, it must pass the program type specific context data structure. Note that the program information NPI provider supplies information the context descriptor using `ebpf_context_descriptor_t` type to the eBPF verifier and JIT-compiler via the NPI client hosted by Execution Context. The `result` output parameter holds the return value from the eBPF program post execution.
+When invoking an eBPF program, the extension must supply the client binding context it obtained from the hook NPI client as the `client_binding_context` parameter. For the second parameter `context`, it must pass the program type specific context data structure. Note that the program information NPI provider supplies the context descriptor (using the `ebpf_context_descriptor_t` type) to the eBPF verifier and JIT-compiler via the NPI client hosted by the Execution Context. The `result` output parameter holds the return value from the eBPF program post execution.
 
 ### 3.3 Authoring Helper Functions
-An extension can provide implementation of helper functions that can be invoked by the eBPF programs. The helper functions can be of two types:
+An extension can provide an implementation of helper functions that can be invoked by the eBPF programs. The helper functions can be of two types:
 1. Program-Type specific: These helper functions can only be invoked by eBPF programs of a given program type. Usually, an extension may provide implementations for hooks of certain program types and provide helper functions that are associated with those helper functions. The program information NPI provider must then provide the prototypes and addresses for those functions. For these type of helpers, the helper function Id must be greater that 65535 (0xFFFF) for program type specific helper functions.
 2. General: The general helper functions can be invoked by eBPF programs of all types. Examples of this type of helper functions are the eBPF Map helper functions. These helper functions are implemented by the eBPF Execution Context itself. However, if a program type so chooses, it may provide implementations for general helper functions. For that the extension would have to provide another program information NPI provider, which *does not* provide any program context descriptor. Instead, it only supplies the prototypes and addresses of the general helper functions. The NPI ID of this module defined as:
 ```
@@ -195,13 +195,13 @@ GUID ebpf_general_helper_function_interface_id = {/* 8d2a1d3f-9ce6-473d-b48e-17a
                                                   0x473d,
                                                   {0xb4, 0x8e, 0x17, 0xaa, 0x5c, 0x55, 0x81, 0xfe}};
 ```
-The helper function Id for a general helper function must be in the range 0 - 65535 and must be globally unique.
+The helper function ID for a general helper function must be in the range 0 - 65535 and must be globally unique.
 
 The parameter and return types for these helper functions must adhere to the `ebpf_argument_type_t` and `ebpf_return_type_t` enums.
 
 ### 3.4 Registering Program Types and Attach Types
-The eBPF Execution Context loads an eBPF program from an ELF file that has program section(s) with section names. The prefix to these names determines the program type. For example, section name `"xdp"` implies that the corresponding program type is `EBPF_PROGRAM_TYPE_XDP`. The Execution Context discovers the program type associated with a section prefix by reading the data from Windows registry. When an eBPF extension is installed, it must update the registry with the program types it implements along with the associated section prefixes.
-Note: The registry location and data format are TBD. This is currently tracked by this GitHub [issue](https://github.com/microsoft/ebpf-for-windows/issues/223).
+The eBPF Execution Context loads an eBPF program from an ELF file that has program section(s) with section names. The prefix to these names determines the program type. For example, the section name `"xdp"` implies that the corresponding program type is `EBPF_PROGRAM_TYPE_XDP`. The Execution Context discovers the program type associated with a section prefix by reading the data from Windows registry. When an eBPF extension is installed, it must update the registry with the program types it implements along with the associated section prefixes.
+Note: The registry location and data format are TBD. This is currently tracked by issue #223.
 
 ### 3.5 eBPF Sample Driver
 The eBPF project provides a [sample extension driver](https://github.com/microsoft/ebpf-for-windows/tree/8f46b4020f79c32f994d3a59671ce8782e4b4cf0/tests/sample/ext) as an example for how to implement an extension. This simple extension implements a single hook for a program type with a single attach type. It implements simple NPI provider modules for the two NPIs. It also implements three program-type specific helper functions.
