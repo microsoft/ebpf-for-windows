@@ -432,6 +432,7 @@ extern "C"
      * @param[in] hash_table Hash-table to update.
      * @param[in] key Key to find and insert or update.
      * @param[in] value Value to insert into hash table or NULL to insert zero entry.
+     * @param[in] extra_value Extra value to insert into hash table.
      * @param[in] operation One of ebpf_hash_table_operations_t operations.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Unable to allocate memory for this
@@ -442,6 +443,7 @@ extern "C"
         _In_ ebpf_hash_table_t* hash_table,
         _In_ const uint8_t* key,
         _In_opt_ const uint8_t* value,
+        _In_opt_ const uint8_t* extra_value,
         ebpf_hash_table_operations_t operation);
 
     /**
@@ -486,6 +488,24 @@ extern "C"
         _In_opt_ const uint8_t* previous_key,
         _Out_ uint8_t* next_key,
         _Inout_opt_ uint8_t** next_value);
+
+    /**
+     * @brief Returns the next (key, value) pair in the hash table.
+     *
+     * @param[in] hash_table Hash-table to query.
+     * @param[in] previous_key Previous key or NULL to restart.
+     * @param[out] next_key_pointer Pointer to next key if one exists.
+     * @param[out] next_value If non-NULL, returns the next value if it exists.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MORE_KEYS No keys exist in the hash table that
+     * are lexicographically after the specified key.
+     */
+    ebpf_result_t
+    ebpf_hash_table_next_key_pointer_and_value(
+        _In_ ebpf_hash_table_t* hash_table,
+        _In_opt_ const uint8_t* previous_key,
+        _Outptr_ uint8_t** next_key_pointer,
+        _Outptr_opt_ uint8_t** next_value);
 
     /**
      * @brief Get the number of keys in the hash table

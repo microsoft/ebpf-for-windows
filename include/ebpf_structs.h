@@ -18,6 +18,8 @@ typedef enum bpf_map_type
         3, ///< Array of program fds usable with bpf_tail_call, where the map key is the array index.
     BPF_MAP_TYPE_PERCPU_HASH = 4,
     BPF_MAP_TYPE_PERCPU_ARRAY = 5,
+    BPF_MAP_TYPE_HASH_OF_MAPS = 6,
+    BPF_MAP_TYPE_ARRAY_OF_MAPS = 7,
 } ebpf_map_type_t;
 
 typedef enum ebpf_map_option
@@ -40,4 +42,5 @@ typedef struct _ebpf_map_definition
     uint32_t key_size;
     uint32_t value_size;
     uint32_t max_entries;
+    uint32_t inner_map_idx;
 } ebpf_map_definition_t;

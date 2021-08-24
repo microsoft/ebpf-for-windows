@@ -61,12 +61,17 @@ ebpf_object_tracking_terminate()
 }
 
 void
-ebpf_object_initialize(ebpf_object_t* object, ebpf_object_type_t object_type, ebpf_free_object_t free_function)
+ebpf_object_initialize(
+    ebpf_object_t* object,
+    ebpf_object_type_t object_type,
+    ebpf_free_object_t free_function,
+    ebpf_object_get_program_type_t get_program_type_function)
 {
     object->marker = _ebpf_object_marker;
     object->reference_count = 1;
     object->type = object_type;
     object->free_function = free_function;
+    object->get_program_type = get_program_type_function;
     ebpf_list_initialize(&object->global_list_entry);
     ebpf_list_initialize(&object->object_list_entry);
     _ebpf_object_tracking_list_insert(object);

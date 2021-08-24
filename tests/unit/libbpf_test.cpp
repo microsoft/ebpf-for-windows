@@ -1,5 +1,6 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
+#include <io.h>
 #include "bpf.h"
 #include "catch_wrapper.hpp"
 #include "helpers.h"
@@ -423,6 +424,97 @@ TEST_CASE("disallow prog_array mixed program type values", "[libbpf]")
     REQUIRE(error == -EBPF_INVALID_ARGUMENT);
     REQUIRE(errno == -error);
 
+    ebpf_close_fd(map_fd); // TODO(issue #287): change to _close(map_fd);
     bpf_object__close(bind_object);
+    bpf_object__close(xdp_object);
+}
+
+// Verify libbpf can create and update arrays of maps.
+TEST_CASE("simple hash of maps", "[libbpf]")
+{
+    _test_helper_end_to_end test_helper;
+
+    int outer_map_fd = bpf_create_map(BPF_MAP_TYPE_HASH_OF_MAPS, sizeof(__u32), sizeof(__u32), 2, 0);
+    REQUIRE(outer_map_fd > 0);
+
+    int inner_map_fd = bpf_create_map(BPF_MAP_TYPE_ARRAY, sizeof(__u32), sizeof(__u32), 1, 0);
+    REQUIRE(inner_map_fd > 0);
+
+    // Verify we can insert the inner map into the outer map.
+    __u32 outer_key = 0;
+    int error = bpf_map_update_elem(outer_map_fd, &outer_key, &inner_map_fd, 0);
+    REQUIRE(error == 0);
+
+    // Verify we can't insert an integer into the outer map.
+    __u32 bad_value = 12345678;
+    outer_key = 1;
+    error = bpf_map_update_elem(outer_map_fd, &outer_key, &bad_value, 0);
+    REQUIRE(error == -EBPF_INVALID_FD);
+    REQUIRE(errno == -error);
+
+    // Try deleting outer key that doesn't exist
+    error = bpf_map_delete_elem(outer_map_fd, &outer_key);
+    REQUIRE(error == -EBPF_KEY_NOT_FOUND);
+    REQUIRE(errno == -error);
+
+    // Try deleting outer key that does exist.
+    outer_key = 0;
+    error = bpf_map_delete_elem(outer_map_fd, &outer_key);
+    REQUIRE(error == 0);
+
+    ebpf_close_fd(inner_map_fd); // TODO(issue #287): change to _close(inner_map_fd);
+    ebpf_close_fd(outer_map_fd); // TODO(issue #287): change to _close(outer_map_fd);
+}
+
+// Verify an app can communicate with an eBPF program via an array of maps.
+TEST_CASE("array of maps", "[libbpf]")
+{
+    _test_helper_end_to_end test_helper;
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
+    program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
+
+    struct bpf_object* xdp_object;
+    int xdp_object_fd;
+    int error = bpf_prog_load("map_in_map.o", BPF_PROG_TYPE_XDP, &xdp_object, &xdp_object_fd);
+    REQUIRE(error == 0);
+    REQUIRE(xdp_object != nullptr);
+
+    struct bpf_program* caller = bpf_object__find_program_by_name(xdp_object, "caller");
+    REQUIRE(caller != nullptr);
+
+    struct bpf_map* outer_map = bpf_object__find_map_by_name(xdp_object, "outer_map");
+    REQUIRE(outer_map != nullptr);
+
+    int outer_map_fd = bpf_map__fd(outer_map);
+    REQUIRE(outer_map_fd > 0);
+
+    // Create an inner map.
+    int inner_map_fd = bpf_create_map(BPF_MAP_TYPE_ARRAY, sizeof(__u32), sizeof(__u32), 1, 0);
+    REQUIRE(inner_map_fd > 0);
+
+    // Add a value to the inner map.
+    int inner_value = 42;
+    uint32_t inner_key = 0;
+    error = bpf_map_update_elem(inner_map_fd, &inner_key, &inner_value, 0);
+    REQUIRE(error == 0);
+
+    // Add inner map to outer map.
+    __u32 outer_key = 0;
+    error = bpf_map_update_elem(outer_map_fd, &outer_key, &inner_map_fd, 0);
+    REQUIRE(error == 0);
+
+    bpf_link* link = bpf_program__attach_xdp(caller, 1);
+    REQUIRE(link != nullptr);
+
+    // Now run the ebpf program.
+    auto packet = prepare_udp_packet(0);
+    xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
+    int result;
+    REQUIRE(hook.fire(&ctx, &result) == EBPF_SUCCESS);
+
+    // Verify the return value is what we saved in the inner map.
+    REQUIRE(result == inner_value);
+
+    ebpf_close_fd(inner_map_fd); // TODO(issue #287): change to _close(inner_map_fd);
     bpf_object__close(xdp_object);
 }

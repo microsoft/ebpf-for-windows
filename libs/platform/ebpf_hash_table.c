@@ -193,17 +193,19 @@ _ebpf_hash_table_bucket_entry(size_t key_size, _In_ ebpf_hash_bucket_header_t* b
  *
  * @param[in] hash_table Hash table to update.
  * @param[in] key Key to operate on.
- * @param[in] data Value to be inserted or NULL.
+ * @param[in] value Value to be inserted or NULL.
+ * @param[in] extra_value Extra value to be associated, or NULL.
  * @param[in] operation Operation to perform.
  * @retval EBPF_SUCCESS The operation succeeded.
  * @retval EBPF_KEY_NOT_FOUND The specified key is not present in the bucket.
  * @retval EBPF_NO_MEMORY Insufficient memory to construct new bucket or value.
  */
-ebpf_result_t
+static ebpf_result_t
 _ebpf_hash_table_replace_bucket(
     _In_ ebpf_hash_table_t* hash_table,
     _In_ const uint8_t* key,
-    _In_opt_ const uint8_t* data,
+    _In_opt_ const uint8_t* value,
+    _In_opt_ const uint8_t* extra_value,
     ebpf_hash_bucket_operation_t operation)
 {
     ebpf_result_t result;
@@ -229,8 +231,18 @@ _ebpf_hash_table_replace_bucket(
             goto Done;
         }
         delete_data = new_data;
-        if (data) {
-            memcpy(new_data, data, hash_table->value_size);
+        if (value) {
+            // TODO(issue #396): remove extra_value logic once we store ids in the value.
+            if (extra_value) {
+                // The value is in two input buffers: value and extra_value,
+                // which is always of size sizeof(void*).
+                size_t extra_value_offset = hash_table->value_size - sizeof(void*);
+                memcpy(new_data, value, extra_value_offset);
+                memcpy(new_data + extra_value_offset, extra_value, sizeof(void*));
+            } else {
+                // The full value is contiguous.
+                memcpy(new_data, value, hash_table->value_size);
+            }
         }
         break;
     case EBPF_HASH_BUCKET_OPERATION_DELETE:
@@ -490,6 +502,7 @@ ebpf_hash_table_update(
     _In_ ebpf_hash_table_t* hash_table,
     _In_ const uint8_t* key,
     _In_opt_ const uint8_t* value,
+    _In_opt_ const uint8_t* extra_value,
     ebpf_hash_table_operations_t operation)
 {
     ebpf_result_t retval;
@@ -515,7 +528,7 @@ ebpf_hash_table_update(
         goto Done;
     }
 
-    retval = _ebpf_hash_table_replace_bucket(hash_table, key, value, bucket_operation);
+    retval = _ebpf_hash_table_replace_bucket(hash_table, key, value, extra_value, bucket_operation);
 Done:
     return retval;
 }
@@ -530,18 +543,18 @@ ebpf_hash_table_delete(_In_ ebpf_hash_table_t* hash_table, _In_ const uint8_t* k
         goto Done;
     }
 
-    retval = _ebpf_hash_table_replace_bucket(hash_table, key, NULL, EBPF_HASH_BUCKET_OPERATION_DELETE);
+    retval = _ebpf_hash_table_replace_bucket(hash_table, key, NULL, NULL, EBPF_HASH_BUCKET_OPERATION_DELETE);
 
 Done:
     return retval;
 }
 
 ebpf_result_t
-ebpf_hash_table_next_key_and_value(
+ebpf_hash_table_next_key_pointer_and_value(
     _In_ ebpf_hash_table_t* hash_table,
     _In_opt_ const uint8_t* previous_key,
-    _Out_ uint8_t* next_key,
-    _Inout_opt_ uint8_t** value)
+    _Outptr_ uint8_t** next_key_pointer,
+    _Outptr_opt_ uint8_t** value)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     uint32_t hash;
@@ -550,7 +563,7 @@ ebpf_hash_table_next_key_and_value(
     size_t data_index;
     bool found_entry = false;
 
-    if (!hash_table || !next_key) {
+    if (!hash_table || !next_key_pointer) {
         result = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
@@ -603,10 +616,26 @@ ebpf_hash_table_next_key_and_value(
     if (value)
         *value = next_entry->data;
 
-    memcpy(next_key, next_entry->key, hash_table->key_size);
+    *next_key_pointer = next_entry->key;
 
 Done:
 
+    return result;
+}
+
+ebpf_result_t
+ebpf_hash_table_next_key_and_value(
+    _In_ ebpf_hash_table_t* hash_table,
+    _In_opt_ const uint8_t* previous_key,
+    _Out_ uint8_t* next_key,
+    _Inout_opt_ uint8_t** next_value)
+{
+    uint8_t* next_key_pointer;
+    ebpf_result_t result =
+        ebpf_hash_table_next_key_pointer_and_value(hash_table, previous_key, &next_key_pointer, next_value);
+    if (result == EBPF_SUCCESS) {
+        memcpy(next_key, next_key_pointer, hash_table->key_size);
+    }
     return result;
 }
 

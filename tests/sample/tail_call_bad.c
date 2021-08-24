@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 // All of this file is cross-platform except the following
-// two includes.  TODO: make the include filename(s) also be
+// two includes.  TODO(issue #426): make the include filename(s) also be
 // cross-platform for eBPF program portability.
 #include "ebpf_helpers.h"
 #include "ebpf_nethooks.h"

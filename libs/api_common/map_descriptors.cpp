@@ -77,9 +77,10 @@ get_all_map_descriptors()
 }
 
 void
-cache_map_file_descriptor(uint32_t type, uint32_t key_size, uint32_t value_size, uint32_t max_entries, int fd)
+cache_map_file_descriptor(
+    uint32_t type, uint32_t key_size, uint32_t value_size, uint32_t max_entries, uint32_t inner_map_fd, int fd)
 {
-    _map_file_descriptors.emplace_back((uintptr_t)fd, fd, type, key_size, value_size, max_entries, 0, 0);
+    _map_file_descriptors.emplace_back((uintptr_t)fd, fd, type, key_size, value_size, max_entries, inner_map_fd, 0);
 }
 
 void
@@ -88,21 +89,28 @@ cache_map_file_descriptor_with_handle(
     uint32_t key_size,
     uint32_t value_size,
     uint32_t max_entries,
+    uint32_t inner_map_fd,
     int fd,
     uintptr_t handle,
     size_t section_offset)
 {
-    _map_file_descriptors.emplace_back(handle, fd, type, key_size, value_size, max_entries, 0, section_offset);
+    _map_file_descriptors.emplace_back(
+        handle, fd, type, key_size, value_size, max_entries, inner_map_fd, section_offset);
 }
 
 int
 cache_map_handle(
-    uint64_t handle, uint32_t type, uint32_t key_size, uint32_t value_size, uint32_t max_entries, size_t section_offset)
+    uint64_t handle,
+    uint32_t type,
+    uint32_t key_size,
+    uint32_t value_size,
+    uint32_t max_entries,
+    uint32_t inner_map_fd,
+    size_t section_offset)
 {
-    // TODO: Replace this with the CRT helper to create FD from handle once we
-    // have real handles.
     int fd = static_cast<int>(_map_file_descriptors.size() + 1);
-    _map_file_descriptors.emplace_back(handle, fd, type, key_size, value_size, max_entries, 0, section_offset);
+    _map_file_descriptors.emplace_back(
+        handle, fd, type, key_size, value_size, max_entries, inner_map_fd, section_offset);
     return static_cast<int>(_map_file_descriptors.size());
 }
 
