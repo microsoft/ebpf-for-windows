@@ -186,7 +186,7 @@ ebpf_epoch_terminate()
     ebpf_lock_destroy(&_ebpf_epoch_thread_table_lock);
     _ebpf_epoch_rundown = true;
     for (cpu_id = 0; cpu_id < _ebpf_epoch_cpu_count; cpu_id++) {
-        _ebpf_epoch_release_free_list(cpu_id, MAXUINT64);
+        _ebpf_epoch_release_free_list(cpu_id, MAXINT64);
         ebpf_assert(ebpf_list_is_empty(&_ebpf_epoch_cpu_table[cpu_id].free_list));
         ebpf_lock_destroy(&_ebpf_epoch_cpu_table[cpu_id].free_list_lock);
     }
@@ -204,7 +204,7 @@ ebpf_epoch_enter()
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
 
-    if (!ebpf_is_non_preemptible_work_item_supported()) {
+    if (ebpf_is_preemptible()) {
         ebpf_result_t return_value;
         ebpf_lock_state_t lock_state;
         uint64_t current_thread_id = ebpf_get_current_thread_id();
@@ -251,7 +251,7 @@ ebpf_epoch_exit()
         _ebpf_epoch_cpu_table[current_cpu].epoch = _ebpf_current_epoch;
     }
     if (!ebpf_list_is_empty(&_ebpf_epoch_cpu_table[current_cpu].free_list) &&
-        (ebpf_interlocked_compare_exchange_int32(&_ebpf_flush_timer_set, 1, 0) != 0)) {
+        (ebpf_interlocked_compare_exchange_int32(&_ebpf_flush_timer_set, 1, 0) == 0)) {
         ebpf_schedule_timer_work_item(_ebpf_flush_timer, EBPF_EPOCH_FLUSH_DELAY_IN_MICROSECONDS);
     }
 }
