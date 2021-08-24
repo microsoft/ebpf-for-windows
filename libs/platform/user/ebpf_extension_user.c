@@ -3,6 +3,8 @@
 
 #include "ebpf_platform.h"
 
+#define EBPF_EXTENSION_TABLE_BUCKET_COUNT 64
+
 typedef struct _ebpf_extension_client
 {
     GUID client_id;
@@ -84,7 +86,9 @@ ebpf_extension_load(
     return_value = ebpf_hash_table_update(
         local_extension_provider->client_table,
         (const uint8_t*)&local_extension_client->client_id,
-        (const uint8_t*)&local_extension_client);
+        (const uint8_t*)&local_extension_client,
+        NULL,
+        EBPF_HASH_TABLE_OPERATION_INSERT);
     if (return_value != EBPF_SUCCESS) {
         goto Done;
     }
@@ -185,8 +189,14 @@ ebpf_provider_load(
     state = ebpf_lock_lock(&_ebpf_provider_table_lock);
 
     if (!_ebpf_provider_table) {
-        return_value =
-            ebpf_hash_table_create(&_ebpf_provider_table, ebpf_allocate, ebpf_free, sizeof(GUID), sizeof(void*), NULL);
+        return_value = ebpf_hash_table_create(
+            &_ebpf_provider_table,
+            ebpf_allocate,
+            ebpf_free,
+            sizeof(GUID),
+            sizeof(void*),
+            EBPF_EXTENSION_TABLE_BUCKET_COUNT,
+            NULL);
         if (return_value != EBPF_SUCCESS)
             goto Done;
     }
@@ -215,13 +225,23 @@ ebpf_provider_load(
     local_extension_provider->client_detach_callback = client_detach_callback;
 
     return_value = ebpf_hash_table_create(
-        &local_extension_provider->client_table, ebpf_allocate, ebpf_free, sizeof(GUID), sizeof(void*), NULL);
+        &local_extension_provider->client_table,
+        ebpf_allocate,
+        ebpf_free,
+        sizeof(GUID),
+        sizeof(void*),
+        EBPF_EXTENSION_TABLE_BUCKET_COUNT,
+        NULL);
     if (return_value != EBPF_SUCCESS) {
         goto Done;
     }
 
     return_value = ebpf_hash_table_update(
-        _ebpf_provider_table, (const uint8_t*)interface_id, (const uint8_t*)&local_extension_provider);
+        _ebpf_provider_table,
+        (const uint8_t*)interface_id,
+        (const uint8_t*)&local_extension_provider,
+        NULL,
+        EBPF_HASH_TABLE_OPERATION_INSERT);
     if (return_value != EBPF_SUCCESS)
         goto Done;
 

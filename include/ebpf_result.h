@@ -15,7 +15,7 @@ extern "C"
 #pragma warning(disable : 26812) // Prefer enum class
     typedef _Return_type_success_(return == EBPF_SUCCESS) enum ebpf_result {
         /// The operation was successful.
-        EBPF_SUCCESS,
+        EBPF_SUCCESS, // = 0
 
         /// Program verification failed.
         EBPF_VERIFICATION_FAILED,
@@ -30,7 +30,7 @@ extern "C"
         EBPF_INVALID_FD,
 
         /// Invalid object provided (ebpf_object, ebpf_map, ebpf_program).
-        EBPF_INVALID_OBJECT,
+        EBPF_INVALID_OBJECT, // = 5
 
         /// An invalid argument was supplied.
         EBPF_INVALID_ARGUMENT,
@@ -45,7 +45,7 @@ extern "C"
         EBPF_FILE_NOT_FOUND,
 
         /// The program or map already pinned to a different path.
-        EBPF_ALREADY_PINNED,
+        EBPF_ALREADY_PINNED, // = 10
 
         /// The program or map is not pinned.
         EBPF_NOT_PINNED,
@@ -60,7 +60,7 @@ extern "C"
         EBPF_RPC_EXCEPTION,
 
         /// The handle was already initialized.
-        EBPF_ALREADY_INITIALIZED,
+        EBPF_ALREADY_INITIALIZED, // = 15
 
         /// A failure occurred in parsing the ELF file.
         EBPF_ELF_PARSING_FAILED,
@@ -75,7 +75,7 @@ extern "C"
         EBPF_KEY_NOT_FOUND,
 
         /// Access was denied for the requested operation.
-        EBPF_ACCESS_DENIED,
+        EBPF_ACCESS_DENIED, // = 20
 
         /// The operation was blocked for all requesters by policy.
         EBPF_BLOCKED_BY_POLICY,
@@ -90,7 +90,13 @@ extern "C"
         EBPF_INSUFFICIENT_BUFFER,
 
         /// The enumeration found no more keys.
-        EBPF_NO_MORE_KEYS,
+        EBPF_NO_MORE_KEYS, // = 25
+
+        // The requested key is already present.
+        EBPF_KEY_ALREADY_EXISTS,
+        
+        /// Caller has reached tail call limit.
+        EBPF_NO_MORE_TAIL_CALLS,
     } ebpf_result_t;
 
 #ifdef __cplusplus

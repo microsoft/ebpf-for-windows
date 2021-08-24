@@ -8,12 +8,14 @@
 #include <thread>
 #include <WinSock2.h>
 
+#include "bpf.h"
 #include "catch_wrapper.hpp"
 #include "common_tests.h"
 #include "ebpf_bind_program_data.h"
 #include "ebpf_core.h"
 #include "ebpf_xdp_program_data.h"
 #include "helpers.h"
+#include "libbpf.h"
 #include "mock.h"
 #include "test_helper.hpp"
 #include "tlv.h"
@@ -126,6 +128,9 @@ Fail:
         case EBPF_INSUFFICIENT_BUFFER:
             SetLastError(ERROR_MORE_DATA);
             break;
+        case EBPF_OBJECT_ALREADY_EXISTS:
+            SetLastError(ERROR_OBJECT_ALREADY_EXISTS);
+            break;
         default:
             SetLastError(ERROR_INVALID_PARAMETER);
             break;
@@ -156,69 +161,62 @@ droppacket_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
 
-    ebpf_handle_t program_handle;
-    ebpf_handle_t map_handle;
-    uint32_t count_of_map_handle = 1;
-    uint32_t result = 0;
+    ebpf_result_t result;
     const char* error_message = nullptr;
+    bpf_object* object = nullptr;
+    fd_t program_fd;
+    bpf_link* link;
 
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
-    REQUIRE(
-        (result = ebpf_api_load_program(
-             SAMPLE_PATH "droppacket.o",
-             "xdp",
-             execution_type,
-             &program_handle,
-             &count_of_map_handle,
-             &map_handle,
-             &error_message),
-         error_message ? printf("ebpf_api_load_program failed with %s\n", error_message) : 0,
-         ebpf_free_string(error_message),
-         error_message = nullptr,
-         result == EBPF_SUCCESS));
+    result = ebpf_program_load(
+        SAMPLE_PATH "droppacket.o", nullptr, nullptr, execution_type, &object, &program_fd, &error_message);
 
-    REQUIRE(hook.attach(program_handle) == EBPF_SUCCESS);
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free_string(error_message);
+        error_message = nullptr;
+    }
+    REQUIRE(result == EBPF_SUCCESS);
+    fd_t port_map_fd = bpf_object__find_map_fd_by_name(object, "port_map");
+
+    REQUIRE(hook.attach_link(program_fd, &link) == EBPF_SUCCESS);
 
     auto packet = prepare_udp_packet(0);
 
     uint32_t key = 0;
     uint64_t value = 1000;
-    REQUIRE(
-        ebpf_api_map_update_element(map_handle, sizeof(key), (uint8_t*)&key, sizeof(value), (uint8_t*)&value) ==
-        EBPF_SUCCESS);
+    REQUIRE(bpf_map_update_elem(port_map_fd, &key, &value, EBPF_ANY) == EBPF_SUCCESS);
 
     // Test that we drop the packet and increment the map
     xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
 
-    REQUIRE(hook.fire(&ctx, &result) == EBPF_SUCCESS);
-    REQUIRE(result == 2);
+    int hook_result;
+    REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
+    REQUIRE(hook_result == 2);
 
-    REQUIRE(
-        ebpf_api_map_find_element(map_handle, sizeof(key), (uint8_t*)&key, sizeof(value), (uint8_t*)&value) ==
-        EBPF_SUCCESS);
+    REQUIRE(bpf_map_lookup_elem(port_map_fd, &key, &value) == EBPF_SUCCESS);
     REQUIRE(value == 1001);
 
-    REQUIRE(ebpf_api_map_delete_element(map_handle, sizeof(key), (uint8_t*)&key) == EBPF_SUCCESS);
+    REQUIRE(bpf_map_delete_elem(port_map_fd, &key) == EBPF_SUCCESS);
 
-    REQUIRE(
-        ebpf_api_map_find_element(map_handle, sizeof(key), (uint8_t*)&key, sizeof(value), (uint8_t*)&value) ==
-        EBPF_SUCCESS);
+    REQUIRE(bpf_map_lookup_elem(port_map_fd, &key, &value) == EBPF_SUCCESS);
     REQUIRE(value == 0);
 
     packet = prepare_udp_packet(10);
     xdp_md_t ctx2{packet.data(), packet.data() + packet.size()};
 
-    REQUIRE(hook.fire(&ctx2, &result) == EBPF_SUCCESS);
-    REQUIRE(result == 1);
+    REQUIRE(hook.fire(&ctx2, &hook_result) == EBPF_SUCCESS);
+    REQUIRE(hook_result == 1);
 
-    REQUIRE(
-        ebpf_api_map_find_element(map_handle, sizeof(key), (uint8_t*)&key, sizeof(value), (uint8_t*)&value) ==
-        EBPF_SUCCESS);
+    REQUIRE(bpf_map_lookup_elem(port_map_fd, &key, &value) == EBPF_SUCCESS);
     REQUIRE(value == 0);
 
-    hook.detach();
+    hook.detach_link(link);
+    hook.close_link(link);
+
+    bpf_object__close(object);
 }
 
 void
@@ -226,41 +224,41 @@ divide_by_zero_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
 
-    ebpf_handle_t program_handle;
-    ebpf_handle_t map_handle;
-    uint32_t count_of_map_handle = 1;
-    uint32_t result = 0;
+    ebpf_result_t result;
     const char* error_message = nullptr;
+    bpf_object* object = nullptr;
+    fd_t program_fd;
+    bpf_link* link;
 
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
-    REQUIRE(
-        (result = ebpf_api_load_program(
-             SAMPLE_PATH "divide_by_zero.o",
-             "xdp",
-             execution_type,
-             &program_handle,
-             &count_of_map_handle,
-             &map_handle,
-             &error_message),
-         error_message ? printf("ebpf_api_load_program failed with %s\n", error_message) : 0,
-         ebpf_free_string(error_message),
-         error_message = NULL,
-         result == EBPF_SUCCESS));
+    result = ebpf_program_load(
+        SAMPLE_PATH "divide_by_zero.o", nullptr, nullptr, execution_type, &object, &program_fd, &error_message);
 
-    REQUIRE(hook.attach(program_handle) == EBPF_SUCCESS);
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free_string(error_message);
+        error_message = nullptr;
+    }
+    REQUIRE(result == EBPF_SUCCESS);
+
+    REQUIRE(hook.attach_link(program_fd, &link) == EBPF_SUCCESS);
 
     auto packet = prepare_udp_packet(0);
 
     // Test that we drop the packet and increment the map
     xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
 
-    REQUIRE(hook.fire(&ctx, &result) == EBPF_SUCCESS);
+    int hook_result;
+    REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
     // uBPF returns -1 when the program hits a divide by zero error.
-    REQUIRE(result == -1);
+    REQUIRE(hook_result == -1);
 
-    hook.detach();
+    hook.detach_link(link);
+    hook.close_link(link);
+
+    bpf_object__close(object);
 }
 
 typedef struct _process_entry
@@ -270,10 +268,10 @@ typedef struct _process_entry
 } process_entry_t;
 
 uint32_t
-get_bind_count_for_pid(ebpf_handle_t handle, uint64_t pid)
+get_bind_count_for_pid(fd_t map_fd, uint64_t pid)
 {
     process_entry_t entry{};
-    ebpf_api_map_find_element(handle, sizeof(pid), (uint8_t*)&pid, sizeof(entry), (uint8_t*)&entry);
+    bpf_map_lookup_elem(map_fd, &pid, &entry);
 
     return entry.count;
 }
@@ -281,7 +279,7 @@ get_bind_count_for_pid(ebpf_handle_t handle, uint64_t pid)
 bind_action_t
 emulate_bind(single_instance_hook_t& hook, uint64_t pid, const char* appid)
 {
-    uint32_t result;
+    int result;
     std::string app_id = appid;
     bind_md_t ctx{0};
     ctx.app_id_start = (uint8_t*)app_id.c_str();
@@ -295,7 +293,7 @@ emulate_bind(single_instance_hook_t& hook, uint64_t pid, const char* appid)
 void
 emulate_unbind(single_instance_hook_t& hook, uint64_t pid, const char* appid)
 {
-    uint32_t result;
+    int result;
     std::string app_id = appid;
     bind_md_t ctx{0};
     ctx.process_id = pid;
@@ -304,12 +302,10 @@ emulate_unbind(single_instance_hook_t& hook, uint64_t pid, const char* appid)
 }
 
 void
-set_bind_limit(ebpf_handle_t handle, uint32_t limit)
+set_bind_limit(fd_t map_fd, uint32_t limit)
 {
     uint32_t limit_key = 0;
-    REQUIRE(
-        ebpf_api_map_update_element(handle, sizeof(limit_key), (uint8_t*)&limit_key, sizeof(limit), (uint8_t*)&limit) ==
-        EBPF_SUCCESS);
+    REQUIRE(bpf_map_update_elem(map_fd, &limit_key, &limit, EBPF_ANY) == EBPF_SUCCESS);
 }
 
 void
@@ -317,80 +313,75 @@ bindmonitor_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
 
-    ebpf_handle_t program_handle;
     const char* error_message = nullptr;
-    ebpf_handle_t map_handles[2];
-    uint32_t count_of_map_handles = 2;
     uint64_t fake_pid = 12345;
-    uint32_t result;
+    ebpf_result_t result;
+    bpf_object* object = nullptr;
+    bpf_link* link = nullptr;
+    fd_t program_fd;
 
     program_info_provider_t bind_program_info(EBPF_PROGRAM_TYPE_BIND);
 
-    REQUIRE(
-        (result = ebpf_api_load_program(
-             SAMPLE_PATH "bindmonitor.o",
-             "bind",
-             execution_type,
-             &program_handle,
-             &count_of_map_handles,
-             map_handles,
-             &error_message),
-         error_message ? printf("ebpf_api_load_program failed with %s\n", error_message) : 0,
-         ebpf_free_string(error_message),
-         error_message = nullptr,
-         result == EBPF_SUCCESS));
+    result = ebpf_program_load(
+        SAMPLE_PATH "bindmonitor.o", nullptr, nullptr, execution_type, &object, &program_fd, &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free_string(error_message);
+        error_message = nullptr;
+    }
+    REQUIRE(result == EBPF_SUCCESS);
+    fd_t limit_map_fd = bpf_object__find_map_fd_by_name(object, "limits_map");
+    REQUIRE(limit_map_fd > 0);
+    fd_t process_map_fd = bpf_object__find_map_fd_by_name(object, "process_map");
+    REQUIRE(process_map_fd > 0);
 
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
 
-    REQUIRE(hook.attach(program_handle) == EBPF_SUCCESS);
+    REQUIRE(hook.attach_link(program_fd, &link) == EBPF_SUCCESS);
 
     // Apply policy of maximum 2 binds per process
-    set_bind_limit(map_handles[1], 2);
+    set_bind_limit(limit_map_fd, 2);
 
     // Bind first port - success
     REQUIRE(emulate_bind(hook, fake_pid, "fake_app_1") == BIND_PERMIT);
-    REQUIRE(get_bind_count_for_pid(map_handles[0], fake_pid) == 1);
+    REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
 
     // Bind second port - success
     REQUIRE(emulate_bind(hook, fake_pid, "fake_app_1") == BIND_PERMIT);
-    REQUIRE(get_bind_count_for_pid(map_handles[0], fake_pid) == 2);
+    REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 2);
 
     // Bind third port - blocked
     REQUIRE(emulate_bind(hook, fake_pid, "fake_app_1") == BIND_DENY);
-    REQUIRE(get_bind_count_for_pid(map_handles[0], fake_pid) == 2);
+    REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 2);
 
     // Unbind second port
     emulate_unbind(hook, fake_pid, "fake_app_1");
-    REQUIRE(get_bind_count_for_pid(map_handles[0], fake_pid) == 1);
+    REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
 
     // Unbind first port
     emulate_unbind(hook, fake_pid, "fake_app_1");
-    REQUIRE(get_bind_count_for_pid(map_handles[0], fake_pid) == 0);
+    REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 0);
 
     // Bind from two apps to test enumeration
     REQUIRE(emulate_bind(hook, fake_pid, "fake_app_1") == BIND_PERMIT);
-    REQUIRE(get_bind_count_for_pid(map_handles[0], fake_pid) == 1);
+    REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
 
     fake_pid = 54321;
     REQUIRE(emulate_bind(hook, fake_pid, "fake_app_2") == BIND_PERMIT);
-    REQUIRE(get_bind_count_for_pid(map_handles[0], fake_pid) == 1);
+    REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
 
     uint64_t pid;
-    REQUIRE(
-        ebpf_api_get_next_map_key(map_handles[0], sizeof(uint64_t), NULL, reinterpret_cast<uint8_t*>(&pid)) ==
-        EBPF_SUCCESS);
+    REQUIRE(bpf_map_get_next_key(process_map_fd, NULL, &pid) == EBPF_SUCCESS);
     REQUIRE(pid != 0);
-    REQUIRE(
-        ebpf_api_get_next_map_key(
-            map_handles[0], sizeof(uint64_t), reinterpret_cast<uint8_t*>(&pid), reinterpret_cast<uint8_t*>(&pid)) ==
-        EBPF_SUCCESS);
+    REQUIRE(bpf_map_get_next_key(process_map_fd, &pid, &pid) == EBPF_SUCCESS);
     REQUIRE(pid != 0);
-    REQUIRE(
-        ebpf_api_get_next_map_key(
-            map_handles[0], sizeof(uint64_t), reinterpret_cast<uint8_t*>(&pid), reinterpret_cast<uint8_t*>(&pid)) ==
-        ERROR_NO_MORE_ITEMS);
+    REQUIRE(bpf_map_get_next_key(process_map_fd, &pid, &pid) == -EBPF_NO_MORE_KEYS);
 
-    hook.detach();
+    hook.detach_link(link);
+    hook.close_link(link);
+
+    bpf_object__close(object);
 }
 
 TEST_CASE("droppacket-jit", "[end_to_end]") { droppacket_test(EBPF_EXECUTION_JIT); }
@@ -460,203 +451,177 @@ TEST_CASE("map_pinning_test", "[end_to_end]")
 {
     _test_helper_end_to_end test_helper;
 
-    ebpf_handle_t program_handle;
     const char* error_message = nullptr;
-    ebpf_handle_t map_handles[4] = {0};
-    uint32_t count_of_map_handles = 2;
-    uint32_t result;
+    ebpf_result_t result;
+    bpf_object* object = nullptr;
+    fd_t program_fd;
 
     program_info_provider_t bind_program_info(EBPF_PROGRAM_TYPE_BIND);
 
-    REQUIRE(
-        (result = ebpf_api_load_program(
-             SAMPLE_PATH "bindmonitor.o",
-             "bind",
-             EBPF_EXECUTION_INTERPRET,
-             &program_handle,
-             &count_of_map_handles,
-             map_handles,
-             &error_message),
-         error_message ? printf("ebpf_api_load_program failed with %s\n", error_message) : 0,
-         ebpf_free_string(error_message),
-         error_message = nullptr,
-         result == EBPF_SUCCESS));
+    result = ebpf_program_load(
+        SAMPLE_PATH "bindmonitor.o", nullptr, nullptr, EBPF_EXECUTION_INTERPRET, &object, &program_fd, &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free_string(error_message);
+        error_message = nullptr;
+    }
+    REQUIRE(result == EBPF_SUCCESS);
 
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
 
-    std::string process_maps_name = "bindmonitor::process_maps";
+    std::string process_maps_name = "bindmonitor::process_map";
     std::string limit_maps_name = "bindmonitor::limits_map";
 
+    REQUIRE(bpf_object__find_map_by_name(object, "process_map") != nullptr);
+    REQUIRE(bpf_object__find_map_by_name(object, "limits_map") != nullptr);
     REQUIRE(
-        ebpf_api_pin_object(
-            map_handles[0],
-            reinterpret_cast<const uint8_t*>(process_maps_name.c_str()),
-            static_cast<uint32_t>(process_maps_name.size())) == EBPF_SUCCESS);
-    REQUIRE(
-        ebpf_api_pin_object(
-            map_handles[1],
-            reinterpret_cast<const uint8_t*>(limit_maps_name.c_str()),
-            static_cast<uint32_t>(limit_maps_name.size())) == EBPF_SUCCESS);
+        bpf_map__pin(bpf_object__find_map_by_name(object, "process_map"), process_maps_name.c_str()) == EBPF_SUCCESS);
+    REQUIRE(bpf_map__pin(bpf_object__find_map_by_name(object, "limits_map"), limit_maps_name.c_str()) == EBPF_SUCCESS);
+
+    REQUIRE(ebpf_object_get(process_maps_name.c_str()) != ebpf_fd_invalid);
+
+    REQUIRE(ebpf_object_get(limit_maps_name.c_str()) != ebpf_fd_invalid);
 
     REQUIRE(
-        ebpf_api_get_pinned_map(
-            reinterpret_cast<const uint8_t*>(process_maps_name.c_str()),
-            static_cast<uint32_t>(process_maps_name.size()),
-            &map_handles[2]) == EBPF_SUCCESS);
-
+        bpf_map__unpin(bpf_object__find_map_by_name(object, "process_map"), process_maps_name.c_str()) == EBPF_SUCCESS);
     REQUIRE(
-        ebpf_api_get_pinned_map(
-            reinterpret_cast<const uint8_t*>(limit_maps_name.c_str()),
-            static_cast<uint32_t>(limit_maps_name.size()),
-            &map_handles[3]) == EBPF_SUCCESS);
+        bpf_map__unpin(bpf_object__find_map_by_name(object, "limits_map"), limit_maps_name.c_str()) == EBPF_SUCCESS);
 
-    REQUIRE(
-        ebpf_api_unpin_object(
-            reinterpret_cast<const uint8_t*>(process_maps_name.c_str()),
-            static_cast<uint32_t>(process_maps_name.size())) == EBPF_SUCCESS);
-    REQUIRE(
-        ebpf_api_unpin_object(
-            reinterpret_cast<const uint8_t*>(limit_maps_name.c_str()), static_cast<uint32_t>(limit_maps_name.size())) ==
-        EBPF_SUCCESS);
+    REQUIRE(ebpf_object_get(limit_maps_name.c_str()) == ebpf_fd_invalid);
 
-    ebpf_handle_t test_handle;
+    REQUIRE(ebpf_object_get(process_maps_name.c_str()) == ebpf_fd_invalid);
 
-    REQUIRE(
-        ebpf_api_get_pinned_map(
-            reinterpret_cast<const uint8_t*>(process_maps_name.c_str()),
-            static_cast<uint32_t>(process_maps_name.size()),
-            &test_handle) == ERROR_NOT_FOUND);
-    REQUIRE(
-        ebpf_api_get_pinned_map(
-            reinterpret_cast<const uint8_t*>(limit_maps_name.c_str()),
-            static_cast<uint32_t>(limit_maps_name.size()),
-            &test_handle) == ERROR_NOT_FOUND);
-
-    for (auto handle : map_handles) {
-        ebpf_api_close_handle(handle);
-    }
+    bpf_object__close(object);
 }
 
 TEST_CASE("enumerate_and_query_maps", "[end_to_end]")
 {
     _test_helper_end_to_end test_helper;
 
-    ebpf_handle_t program_handle;
     const char* error_message = nullptr;
-    ebpf_handle_t map_handles[4];
-    uint32_t count_of_map_handles = 2;
+    fd_t map_fds[4] = {0};
+    bpf_object* object;
+    fd_t program_fd;
     uint32_t result;
 
     program_info_provider_t bind_program_info(EBPF_PROGRAM_TYPE_BIND);
 
-    REQUIRE(
-        (result = ebpf_api_load_program(
-             SAMPLE_PATH "bindmonitor.o",
-             "bind",
-             EBPF_EXECUTION_INTERPRET,
-             &program_handle,
-             &count_of_map_handles,
-             map_handles,
-             &error_message),
-         error_message ? printf("ebpf_api_load_program failed with %s\n", error_message) : 0,
-         ebpf_free_string(error_message),
-         error_message = nullptr,
-         result == EBPF_SUCCESS));
+    result = ebpf_program_load(
+        SAMPLE_PATH "bindmonitor.o", nullptr, nullptr, EBPF_EXECUTION_INTERPRET, &object, &program_fd, &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free_string(error_message);
+        error_message = nullptr;
+    }
+    REQUIRE(result == EBPF_SUCCESS);
 
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
 
-    std::string process_maps_name = "bindmonitor::process_maps";
-    std::string limit_maps_name = "bindmonitor::limits_map";
+    std::string process_maps_name = "process_map";
+    std::string limit_maps_name = "limits_map";
 
-    ebpf_handle_t handle_iterator = INVALID_HANDLE_VALUE;
-    REQUIRE(ebpf_api_get_next_map(handle_iterator, &handle_iterator) == EBPF_SUCCESS);
-    map_handles[2] = handle_iterator;
-    REQUIRE(ebpf_api_get_next_map(handle_iterator, &handle_iterator) == EBPF_SUCCESS);
-    map_handles[3] = handle_iterator;
-    REQUIRE(ebpf_api_get_next_map(handle_iterator, &handle_iterator) == EBPF_SUCCESS);
-    REQUIRE(handle_iterator == INVALID_HANDLE_VALUE);
+    map_fds[0] = bpf_object__find_map_fd_by_name(object, process_maps_name.c_str());
+    REQUIRE(map_fds[0] > 0);
+    map_fds[1] = bpf_object__find_map_fd_by_name(object, limit_maps_name.c_str());
+    REQUIRE(map_fds[1] > 0);
 
-    ebpf_map_definition_t map_definitions[_countof(map_handles)];
+    fd_t fd_iterator = ebpf_fd_invalid;
+    REQUIRE(ebpf_get_next_map(fd_iterator, &fd_iterator) == EBPF_SUCCESS);
+    map_fds[2] = fd_iterator;
+    REQUIRE(ebpf_get_next_map(fd_iterator, &fd_iterator) == EBPF_SUCCESS);
+    map_fds[3] = fd_iterator;
+    REQUIRE(ebpf_get_next_map(fd_iterator, &fd_iterator) == EBPF_SUCCESS);
+    REQUIRE(fd_iterator == ebpf_fd_invalid);
+
+    ebpf_map_definition_t map_definitions[_countof(map_fds)];
     ebpf_map_definition_t process_map = {
         sizeof(ebpf_map_definition_t), BPF_MAP_TYPE_HASH, sizeof(uint64_t), sizeof(process_entry_t), 1024};
 
     ebpf_map_definition_t limits_map = {
         sizeof(ebpf_map_definition_t), BPF_MAP_TYPE_ARRAY, sizeof(uint32_t), sizeof(uint32_t), 1};
 
-    for (size_t index = 0; index < _countof(map_handles); index++) {
+    for (size_t index = 0; index < _countof(map_fds); index++) {
         REQUIRE(
-            ebpf_api_map_query_definition(
-                map_handles[index],
+            ebpf_map_query_definition(
+                map_fds[index],
                 &map_definitions[index].size,
                 reinterpret_cast<uint32_t*>(&map_definitions[index].type),
                 &map_definitions[index].key_size,
                 &map_definitions[index].value_size,
-                &map_definitions[index].max_entries) == EBPF_SUCCESS);
+                &map_definitions[index].max_entries,
+                &map_definitions[index].inner_map_idx) == EBPF_SUCCESS);
         if (index % 2 == 0) {
             REQUIRE(memcmp(&process_map, &map_definitions[index], sizeof(process_map)) == 0);
         } else {
             REQUIRE(memcmp(&limits_map, &map_definitions[index], sizeof(process_map)) == 0);
         }
     }
+
+    bpf_object__close(object);
 }
 
 TEST_CASE("enumerate_and_query_programs", "[end_to_end]")
 {
     _test_helper_end_to_end test_helper;
 
-    ebpf_handle_t program_handle;
-    ebpf_handle_t map_handles[3];
-    uint32_t count_of_map_handle = 1;
+    fd_t program_fd;
+    fd_t next_program_fd;
     const char* error_message = nullptr;
-    uint32_t result;
+    ebpf_result_t result;
     const char* file_name = nullptr;
     const char* section_name = nullptr;
+    bpf_object* object[2] = {0};
+    fd_t program_fds[2] = {0};
 
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
-    REQUIRE(
-        (result = ebpf_api_load_program(
-             SAMPLE_PATH "droppacket.o",
-             "xdp",
-             EBPF_EXECUTION_JIT,
-             &program_handle,
-             &count_of_map_handle,
-             map_handles,
-             &error_message),
-         ebpf_free_string(error_message),
-         error_message ? printf("ebpf_api_load_program failed with %s\n", error_message) : 0,
-         error_message = nullptr,
-         result == EBPF_SUCCESS));
+    result = ebpf_program_load(
+        SAMPLE_PATH "droppacket.o", nullptr, nullptr, EBPF_EXECUTION_JIT, &object[0], &program_fds[0], &error_message);
 
-    REQUIRE(
-        (result = ebpf_api_load_program(
-             SAMPLE_PATH "droppacket.o",
-             "xdp",
-             EBPF_EXECUTION_INTERPRET,
-             &program_handle,
-             &count_of_map_handle,
-             map_handles,
-             &error_message),
-         ebpf_free_string(error_message),
-         error_message ? printf("ebpf_api_load_program failed with %s\n", error_message) : 0,
-         error_message = nullptr,
-         result == EBPF_SUCCESS));
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free_string(error_message);
+        error_message = nullptr;
+    }
+    REQUIRE(result == EBPF_SUCCESS);
+
+    result = ebpf_program_load(
+        SAMPLE_PATH "droppacket.o",
+        nullptr,
+        nullptr,
+        EBPF_EXECUTION_INTERPRET,
+        &object[1],
+        &program_fds[1],
+        &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free_string(error_message);
+        error_message = nullptr;
+    }
+    REQUIRE(result == EBPF_SUCCESS);
 
     ebpf_execution_type_t type;
-    program_handle = INVALID_HANDLE_VALUE;
-    REQUIRE(ebpf_api_get_next_program(program_handle, &program_handle) == EBPF_SUCCESS);
-    REQUIRE(ebpf_api_program_query_info(program_handle, &type, &file_name, &section_name) == EBPF_SUCCESS);
+    program_fd = ebpf_fd_invalid;
+    REQUIRE(ebpf_get_next_program(program_fd, &next_program_fd) == EBPF_SUCCESS);
+    REQUIRE(next_program_fd != ebpf_fd_invalid);
+    program_fd = next_program_fd;
+    REQUIRE(ebpf_program_query_info(program_fd, &type, &file_name, &section_name) == EBPF_SUCCESS);
     REQUIRE(type == EBPF_EXECUTION_JIT);
     REQUIRE(strcmp(file_name, SAMPLE_PATH "droppacket.o") == 0);
     ebpf_free_string(file_name);
     file_name = nullptr;
     REQUIRE(strcmp(section_name, "xdp") == 0);
-    REQUIRE(program_handle != INVALID_HANDLE_VALUE);
     ebpf_free_string(section_name);
     section_name = nullptr;
-    REQUIRE(ebpf_api_get_next_program(program_handle, &program_handle) == EBPF_SUCCESS);
-    REQUIRE(program_handle != INVALID_HANDLE_VALUE);
-    REQUIRE(ebpf_api_program_query_info(program_handle, &type, &file_name, &section_name) == EBPF_SUCCESS);
+
+    REQUIRE(ebpf_get_next_program(program_fd, &next_program_fd) == EBPF_SUCCESS);
+    REQUIRE(next_program_fd != ebpf_fd_invalid);
+    ebpf_close_fd(program_fd);
+    program_fd = next_program_fd;
+    REQUIRE(ebpf_program_query_info(program_fd, &type, &file_name, &section_name) == EBPF_SUCCESS);
     REQUIRE(type == EBPF_EXECUTION_INTERPRET);
     REQUIRE(strcmp(file_name, SAMPLE_PATH "droppacket.o") == 0);
     REQUIRE(strcmp(section_name, "xdp") == 0);
@@ -664,8 +629,14 @@ TEST_CASE("enumerate_and_query_programs", "[end_to_end]")
     ebpf_free_string(section_name);
     file_name = nullptr;
     section_name = nullptr;
-    REQUIRE(ebpf_api_get_next_program(program_handle, &program_handle) == EBPF_SUCCESS);
-    REQUIRE(program_handle == INVALID_HANDLE_VALUE);
+
+    REQUIRE(ebpf_get_next_program(program_fd, &next_program_fd) == EBPF_SUCCESS);
+    REQUIRE(next_program_fd == ebpf_fd_invalid);
+    ebpf_close_fd(program_fd);
+
+    for (int i = 0; i < _countof(object); i++) {
+        bpf_object__close(object[i]);
+    }
 }
 
 TEST_CASE("pinned_map_enum", "[end_to_end]")
@@ -684,44 +655,39 @@ TEST_CASE("implicit_detach", "[end_to_end]")
 
     _test_helper_end_to_end test_helper;
 
-    ebpf_handle_t program_handle;
-    ebpf_handle_t map_handle;
-    uint32_t count_of_map_handle = 1;
     uint32_t result = 0;
+    bpf_object* object = nullptr;
+    fd_t program_fd;
     const char* error_message = nullptr;
+    bpf_link* link = nullptr;
 
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
-    result = ebpf_api_load_program(
-        SAMPLE_PATH "droppacket.o",
-        "xdp",
-        EBPF_EXECUTION_INTERPRET,
-        &program_handle,
-        &count_of_map_handle,
-        &map_handle,
-        &error_message);
+    result = ebpf_program_load(
+        SAMPLE_PATH "droppacket.o", nullptr, nullptr, EBPF_EXECUTION_JIT, &object, &program_fd, &error_message);
 
     if (error_message) {
-        printf("ebpf_api_load_program failed with %s\n", error_message);
+        printf("ebpf_program_load failed with %s\n", error_message);
         ebpf_free_string(error_message);
         error_message = nullptr;
     }
     REQUIRE(result == EBPF_SUCCESS);
 
-    REQUIRE(hook.attach(program_handle) == EBPF_SUCCESS);
+    REQUIRE(hook.attach_link(program_fd, &link) == EBPF_SUCCESS);
 
-    // Close program handle. That should detach the program from the hook
-    // and unload the program.
-    ebpf_api_close_handle(program_handle);
-    program_handle = INVALID_HANDLE_VALUE;
-    REQUIRE(ebpf_api_get_next_program(program_handle, &program_handle) == EBPF_SUCCESS);
-    REQUIRE(program_handle == INVALID_HANDLE_VALUE);
+    // Call bpf_object__close() which will close the program fd. That should
+    // detach the program from the hook and unload the program.
+    bpf_object__close(object);
 
-    // Close link handle. This should delete the link object.
-    // ebpf_object_tracking_terminate() which is called when the test
+    program_fd = ebpf_fd_invalid;
+    REQUIRE(ebpf_get_next_program(program_fd, &program_fd) == EBPF_SUCCESS);
+    REQUIRE(program_fd == ebpf_fd_invalid);
+
+    // Close link handle (without detaching). This should delete the link
+    // object. ebpf_object_tracking_terminate() which is called when the test
     // exits checks if all the objects in EC have been deleted.
-    hook.close_handle();
+    hook.close_link(link);
 }
 
 TEST_CASE("explicit_detach", "[end_to_end]")
@@ -733,43 +699,38 @@ TEST_CASE("explicit_detach", "[end_to_end]")
 
     _test_helper_end_to_end test_helper;
 
-    ebpf_handle_t program_handle;
-    ebpf_handle_t map_handle;
-    uint32_t count_of_map_handle = 1;
-    uint32_t result = 0;
+    bpf_object* object = nullptr;
+    fd_t program_fd;
+    bpf_link* link = nullptr;
+    ebpf_result_t result;
     const char* error_message = nullptr;
 
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
-    result = ebpf_api_load_program(
-        SAMPLE_PATH "droppacket.o",
-        "xdp",
-        EBPF_EXECUTION_INTERPRET,
-        &program_handle,
-        &count_of_map_handle,
-        &map_handle,
-        &error_message);
+    result = ebpf_program_load(
+        SAMPLE_PATH "droppacket.o", nullptr, nullptr, EBPF_EXECUTION_INTERPRET, &object, &program_fd, &error_message);
 
     if (error_message) {
-        printf("ebpf_api_load_program failed with %s\n", error_message);
+        printf("ebpf_program_load failed with %s\n", error_message);
         ebpf_free_string(error_message);
         error_message = nullptr;
     }
     REQUIRE(result == EBPF_SUCCESS);
 
-    REQUIRE(hook.attach(program_handle) == EBPF_SUCCESS);
+    REQUIRE(hook.attach_link(program_fd, &link) == EBPF_SUCCESS);
 
     // Detach and close link handle.
     // ebpf_object_tracking_terminate() which is called when the test
     // exits checks if all the objects in EC have been deleted.
-    hook.detach();
+    hook.detach_link(link);
+    hook.close_link(link);
 
     // Close program handle.
-    ebpf_api_close_handle(program_handle);
-    program_handle = INVALID_HANDLE_VALUE;
-    REQUIRE(ebpf_api_get_next_program(program_handle, &program_handle) == EBPF_SUCCESS);
-    REQUIRE(program_handle == INVALID_HANDLE_VALUE);
+    bpf_object__close(object);
+    program_fd = ebpf_fd_invalid;
+    REQUIRE(ebpf_get_next_program(program_fd, &program_fd) == EBPF_SUCCESS);
+    REQUIRE(program_fd == ebpf_fd_invalid);
 }
 
 TEST_CASE("implicit_explicit_detach", "[end_to_end]")
@@ -781,41 +742,100 @@ TEST_CASE("implicit_explicit_detach", "[end_to_end]")
 
     _test_helper_end_to_end test_helper;
 
-    ebpf_handle_t program_handle;
-    ebpf_handle_t map_handle;
-    uint32_t count_of_map_handle = 1;
-    uint32_t result = 0;
+    bpf_object* object = nullptr;
+    fd_t program_fd;
+    bpf_link* link = nullptr;
+    ebpf_result_t result;
     const char* error_message = nullptr;
 
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
-    result = ebpf_api_load_program(
-        SAMPLE_PATH "droppacket.o",
-        "xdp",
-        EBPF_EXECUTION_INTERPRET,
-        &program_handle,
-        &count_of_map_handle,
-        &map_handle,
-        &error_message);
+    result = ebpf_program_load(
+        SAMPLE_PATH "droppacket.o", nullptr, nullptr, EBPF_EXECUTION_INTERPRET, &object, &program_fd, &error_message);
 
     if (error_message) {
-        printf("ebpf_api_load_program failed with %s\n", error_message);
+        printf("ebpf_program_load failed with %s\n", error_message);
         ebpf_free_string(error_message);
         error_message = nullptr;
     }
     REQUIRE(result == EBPF_SUCCESS);
 
-    REQUIRE(hook.attach(program_handle) == EBPF_SUCCESS);
+    REQUIRE(hook.attach_link(program_fd, &link) == EBPF_SUCCESS);
+
     // Close program handle. That should detach the program from the hook
     // and unload the program.
-    ebpf_api_close_handle(program_handle);
-    program_handle = INVALID_HANDLE_VALUE;
-    REQUIRE(ebpf_api_get_next_program(program_handle, &program_handle) == EBPF_SUCCESS);
-    REQUIRE(program_handle == INVALID_HANDLE_VALUE);
+    bpf_object__close(object);
+    program_fd = ebpf_fd_invalid;
+    REQUIRE(ebpf_get_next_program(program_fd, &program_fd) == EBPF_SUCCESS);
+    REQUIRE(program_fd == ebpf_fd_invalid);
 
     // Detach and close link handle.
     // ebpf_object_tracking_terminate() which is called when the test
     // exits checks if all the objects in EC have been deleted.
-    hook.detach();
+    hook.detach_link(link);
+    hook.close_link(link);
+}
+
+TEST_CASE("create_map", "[end_to_end]")
+{
+    _test_helper_end_to_end test_helper;
+
+    ebpf_result_t result;
+    fd_t map_fd;
+    uint32_t key = 0;
+    uint64_t value = 10;
+    int element_count = 2;
+
+    result = ebpf_create_map(BPF_MAP_TYPE_ARRAY, sizeof(uint32_t), sizeof(uint64_t), 5, 0, &map_fd);
+    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(map_fd > 0);
+
+    for (int i = 0; i < element_count; i++) {
+        REQUIRE(bpf_map_update_elem(map_fd, &key, &value, EBPF_ANY) == EBPF_SUCCESS);
+        key++;
+        value++;
+    }
+
+    key = 0;
+    value = 10;
+    for (int i = 0; i < element_count; i++) {
+        uint64_t read_value;
+        REQUIRE(bpf_map_lookup_elem(map_fd, &key, &read_value) == EBPF_SUCCESS);
+        REQUIRE(read_value == value);
+        key++;
+        value++;
+    }
+}
+
+TEST_CASE("create_map_name", "[end_to_end]")
+{
+    _test_helper_end_to_end test_helper;
+
+    ebpf_result_t result;
+    fd_t map_fd;
+    uint32_t key = 0;
+    uint64_t value = 10;
+    int element_count = 2;
+    const char* map_name = "array_map";
+
+    result = ebpf_create_map_name(BPF_MAP_TYPE_ARRAY, map_name, sizeof(uint32_t), sizeof(uint64_t), 5, 0, &map_fd);
+    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(map_fd > 0);
+
+    for (int i = 0; i < element_count; i++) {
+        REQUIRE(bpf_map_update_elem(map_fd, &key, &value, EBPF_ANY) == EBPF_SUCCESS);
+        key++;
+        value++;
+    }
+
+    key = 0;
+    value = 10;
+    for (int i = 0; i < element_count; i++) {
+        uint64_t read_value;
+        REQUIRE(bpf_map_lookup_elem(map_fd, &key, &read_value) == EBPF_SUCCESS);
+        REQUIRE(read_value == value);
+        key++;
+        value++;
+    }
 }

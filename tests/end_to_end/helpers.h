@@ -20,6 +20,37 @@ typedef struct _ebpf_free_memory
 
 typedef std::unique_ptr<uint8_t, ebpf_free_memory_t> ebpf_memory_t;
 
+extern bool _ebpf_platform_is_preemptible;
+
+typedef class _emulate_dpc
+{
+  public:
+    _emulate_dpc(uint32_t cpu_id)
+    {
+        uintptr_t new_process_affinity_mask = 1ull << cpu_id;
+        if (!GetProcessAffinityMask(GetCurrentProcess(), &old_process_affinity_mask, &old_system_affinity_mask)) {
+            throw new std::runtime_error("GetProcessAffinityMask failed");
+        }
+        if (!SetProcessAffinityMask(GetCurrentProcess(), new_process_affinity_mask)) {
+            throw new std::runtime_error("SetProcessAffinityMask failed");
+        }
+        _ebpf_platform_is_preemptible = false;
+    }
+    ~_emulate_dpc()
+    {
+        _ebpf_platform_is_preemptible = true;
+
+        if (!SetProcessAffinityMask(GetCurrentProcess(), old_process_affinity_mask)) {
+            std::abort();
+        }
+    }
+
+  private:
+    uintptr_t old_process_affinity_mask;
+    uintptr_t old_system_affinity_mask;
+
+} emulate_dpc_t;
+
 typedef class _single_instance_hook
 {
   public:
@@ -49,11 +80,29 @@ typedef class _single_instance_hook
         return ebpf_api_link_program(program_handle, attach_type, &link_handle);
     }
 
+    ebpf_result_t
+    attach_link(fd_t program_fd, bpf_link** link)
+    {
+        return ebpf_program_attach_by_fd(program_fd, &attach_type, nullptr, 0, link);
+    }
+
     void
     detach()
     {
         ebpf_api_unlink_program(link_handle);
         ebpf_api_close_handle(link_handle);
+    }
+
+    void
+    detach_link(bpf_link* link)
+    {
+        ebpf_link_detach(link);
+    }
+
+    void
+    close_link(bpf_link* link)
+    {
+        ebpf_link_close(link);
     }
 
     void
@@ -63,9 +112,9 @@ typedef class _single_instance_hook
     }
 
     ebpf_result_t
-    fire(void* context, uint32_t* result)
+    fire(void* context, int* result)
     {
-        ebpf_result_t (*invoke_program)(void* link, void* context, uint32_t* result) =
+        ebpf_result_t (*invoke_program)(void* link, void* context, int* result) =
             reinterpret_cast<decltype(invoke_program)>(client_dispatch_table->function[0]);
 
         return invoke_program(client_binding_context, context, result);
@@ -115,25 +164,32 @@ typedef class _single_instance_hook
 
 static ebpf_helper_function_prototype_t _ebpf_map_helper_function_prototype[] = {
     {1,
-     "ebpf_map_lookup_element",
+     "bpf_map_lookup_elem",
      EBPF_RETURN_TYPE_PTR_TO_MAP_VALUE_OR_NULL,
      {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY}},
     {2,
-     "ebpf_map_update_element",
+     "bpf_map_update_elem",
      EBPF_RETURN_TYPE_INTEGER,
      {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_VALUE}},
     {3,
-     "ebpf_map_delete_element",
+     "bpf_map_delete_elem",
      EBPF_RETURN_TYPE_INTEGER,
-     {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY}}};
+     {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY}},
+    {4,
+     "bpf_tail_call",
+     EBPF_RETURN_TYPE_INTEGER_OR_NO_RETURN_IF_SUCCEED,
+     {EBPF_ARGUMENT_TYPE_PTR_TO_CTX, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_OF_PROGRAMS, EBPF_ARGUMENT_TYPE_ANYTHING}},
+};
 
-static ebpf_context_descriptor_t _ebpf_xdp_context_descriptor = {sizeof(xdp_md_t),
-                                                                 EBPF_OFFSET_OF(xdp_md_t, data),
-                                                                 EBPF_OFFSET_OF(xdp_md_t, data_end),
-                                                                 EBPF_OFFSET_OF(xdp_md_t, data_meta)};
-static ebpf_program_info_t _ebpf_xdp_program_info = {{"xdp", &_ebpf_xdp_context_descriptor, {0}},
-                                                     EBPF_COUNT_OF(_ebpf_map_helper_function_prototype),
-                                                     _ebpf_map_helper_function_prototype};
+static ebpf_context_descriptor_t _ebpf_xdp_context_descriptor = {
+    sizeof(xdp_md_t),
+    EBPF_OFFSET_OF(xdp_md_t, data),
+    EBPF_OFFSET_OF(xdp_md_t, data_end),
+    EBPF_OFFSET_OF(xdp_md_t, data_meta)};
+static ebpf_program_info_t _ebpf_xdp_program_info = {
+    {"xdp", &_ebpf_xdp_context_descriptor, {0}},
+    EBPF_COUNT_OF(_ebpf_map_helper_function_prototype),
+    _ebpf_map_helper_function_prototype};
 
 static ebpf_program_data_t _ebpf_xdp_program_data = {&_ebpf_xdp_program_info, NULL};
 
@@ -142,9 +198,10 @@ static ebpf_extension_data_t _ebpf_xdp_program_info_provider_data = {
 
 static ebpf_context_descriptor_t _ebpf_bind_context_descriptor = {
     sizeof(bind_md_t), EBPF_OFFSET_OF(bind_md_t, app_id_start), EBPF_OFFSET_OF(bind_md_t, app_id_end), -1};
-static ebpf_program_info_t _ebpf_bind_program_info = {{"bind", &_ebpf_bind_context_descriptor, {0}},
-                                                      EBPF_COUNT_OF(_ebpf_map_helper_function_prototype),
-                                                      _ebpf_map_helper_function_prototype};
+static ebpf_program_info_t _ebpf_bind_program_info = {
+    {"bind", &_ebpf_bind_context_descriptor, {0}},
+    EBPF_COUNT_OF(_ebpf_map_helper_function_prototype),
+    _ebpf_map_helper_function_prototype};
 
 static ebpf_program_data_t _ebpf_bind_program_data = {&_ebpf_bind_program_info, NULL};
 
@@ -179,3 +236,6 @@ typedef class _program_info_provider
     ebpf_extension_data_t* provider_data;
     ebpf_extension_provider_t* provider;
 } program_info_provider_t;
+
+std::vector<uint8_t>
+prepare_udp_packet(uint16_t udp_length);

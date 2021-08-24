@@ -17,6 +17,7 @@ typedef enum _ebpf_operation_id
     EBPF_OPERATION_LOAD_CODE,
     EBPF_OPERATION_MAP_FIND_ELEMENT,
     EBPF_OPERATION_MAP_UPDATE_ELEMENT,
+    EBPF_OPERATION_MAP_UPDATE_ELEMENT_WITH_HANDLE,
     EBPF_OPERATION_MAP_DELETE_ELEMENT,
     EBPF_OPERATION_MAP_GET_NEXT_KEY,
     EBPF_OPERATION_GET_NEXT_MAP,
@@ -104,6 +105,7 @@ typedef struct _ebpf_operation_create_map_request
 {
     struct _ebpf_operation_header header;
     struct _ebpf_map_definition ebpf_map_definition;
+    uint8_t data[1];
 } ebpf_operation_create_map_request_t;
 
 typedef struct _ebpf_operation_create_map_reply
@@ -129,8 +131,18 @@ typedef struct _ebpf_operation_map_update_element_request
 {
     struct _ebpf_operation_header header;
     uint64_t handle;
+    ebpf_map_option_t option;
     uint8_t data[1]; // data is key+value
 } epf_operation_map_update_element_request_t;
+
+typedef struct _ebpf_operation_map_update_element_with_handle_request
+{
+    struct _ebpf_operation_header header;
+    uintptr_t map_handle;
+    uintptr_t value_handle;
+    ebpf_map_option_t option;
+    uint8_t data[1]; // data is key+value
+} ebpf_operation_map_update_element_with_handle_request_t;
 
 typedef struct _ebpf_operation_map_delete_element_request
 {
@@ -143,7 +155,7 @@ typedef struct _ebpf_operation_get_next_map_request
 {
     struct _ebpf_operation_header header;
     uint64_t previous_handle;
-} ebpf_operation_get_next_map_request;
+} ebpf_operation_get_next_map_request_t;
 
 typedef struct _ebpf_operation_get_next_map_reply
 {
@@ -155,7 +167,7 @@ typedef struct _ebpf_operation_get_next_program_request
 {
     struct _ebpf_operation_header header;
     uint64_t previous_handle;
-} ebpf_operation_get_next_program_request;
+} ebpf_operation_get_next_program_request_t;
 
 typedef struct _ebpf_operation_get_next_program_reply
 {
@@ -173,13 +185,13 @@ typedef struct _ebpf_operation_query_map_definition_reply
 {
     struct _ebpf_operation_header header;
     struct _ebpf_map_definition map_definition;
-} ebpf_operation_query_map_definition_reply;
+} ebpf_operation_query_map_definition_reply_t;
 
 typedef struct _ebpf_operation_query_program_info_request
 {
     struct _ebpf_operation_header header;
     uint64_t handle;
-} ebpf_operation_query_program_info_request;
+} ebpf_operation_query_program_info_request_t;
 
 typedef struct _ebpf_operation_query_program_info_reply
 {
@@ -188,7 +200,7 @@ typedef struct _ebpf_operation_query_program_info_reply
     uint16_t file_name_offset;
     uint16_t section_name_offset;
     uint8_t data[1];
-} ebpf_operation_query_program_info_reply;
+} ebpf_operation_query_program_info_reply_t;
 
 typedef struct _ebpf_operation_map_get_next_key_request
 {
@@ -228,6 +240,7 @@ typedef struct _ebpf_operation_link_program_request
     struct _ebpf_operation_header header;
     uint64_t program_handle;
     ebpf_attach_type_t attach_type;
+    uint8_t data[1];
 } ebpf_operation_link_program_request_t;
 
 typedef struct _ebpf_operation_link_program_reply

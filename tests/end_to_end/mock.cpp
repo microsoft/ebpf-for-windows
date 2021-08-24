@@ -73,8 +73,7 @@ ebpf_result_t
 ebpf_rpc_load_program(ebpf_program_load_info* info, const char** logs, uint32_t* logs_size)
 {
     // Short circuit rpc call to service lib.
-
-    return ebpf_verify_and_load_program(
+    ebpf_result_t result = ebpf_verify_and_load_program(
         &info->program_type,
         info->program_handle,
         info->execution_context,
@@ -85,4 +84,7 @@ ebpf_rpc_load_program(ebpf_program_load_info* info, const char** logs, uint32_t*
         info->byte_code,
         const_cast<const char**>(logs),
         logs_size);
+
+    ebpf_clear_thread_local_storage();
+    return result;
 }

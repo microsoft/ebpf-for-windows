@@ -20,6 +20,8 @@ _get_ebpf_program_type(enum bpf_prog_type type)
     switch (type) {
     case BPF_PROG_TYPE_XDP:
         return &EBPF_PROGRAM_TYPE_XDP;
+    case BPF_PROG_TYPE_BIND:
+        return &EBPF_PROGRAM_TYPE_BIND;
     }
     return nullptr;
 }
@@ -51,12 +53,16 @@ bpf_prog_load(const char* file_name, enum bpf_prog_type type, struct bpf_object*
     const ebpf_program_type_t* program_type = _get_ebpf_program_type(type);
 
     if (program_type == nullptr) {
-        return EBPF_INVALID_ARGUMENT;
+        return libbpf_err(-EBPF_INVALID_ARGUMENT);
     }
 
     const char* log_buffer;
-    return (int)ebpf_program_load(
-        file_name, program_type, nullptr, EBPF_EXECUTION_ANY, object, (fd_t*)program_fd, &log_buffer);
+    ebpf_result_t result =
+        ebpf_program_load(file_name, program_type, nullptr, EBPF_EXECUTION_ANY, object, (fd_t*)program_fd, &log_buffer);
+    if (result != EBPF_SUCCESS) {
+        return libbpf_err(-result);
+    }
+    return EBPF_SUCCESS;
 }
 
 int
@@ -144,7 +150,7 @@ bpf_program__unpin(struct bpf_program* prog, const char* path)
         return libbpf_err(-EINVAL);
     }
 
-    err = ebpf_api_unpin_object((const uint8_t*)path, (uint32_t)strlen(path));
+    err = ebpf_object_unpin(path);
     if (err)
         return libbpf_err(-err);
 
@@ -160,9 +166,9 @@ bpf_program__pin(struct bpf_program* prog, const char* path)
         return libbpf_err(-EINVAL);
     }
 
-    err = ebpf_api_pin_object(prog->handle, (const uint8_t*)path, (uint32_t)strlen(path));
+    err = ebpf_object_pin(prog->fd, path);
     if (err) {
-        return libbpf_err(err);
+        return libbpf_err(-err);
     }
 
     return 0;
@@ -261,8 +267,8 @@ bpf_link__destroy(struct bpf_link* link)
     // TODO(issue #81): get handle from ebpf_link_t, and
     // detach before closing the handle.
     ebpf_handle_t link_handle = (ebpf_handle_t)link;
-    uint32_t result = ebpf_api_close_handle(link_handle);
-    return (int)result;
+    ebpf_result_t result = ebpf_api_close_handle(link_handle);
+    return libbpf_err(-(int)result);
 }
 
 enum bpf_attach_type
