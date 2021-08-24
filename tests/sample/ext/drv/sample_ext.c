@@ -214,7 +214,7 @@ const NPI_PROVIDER_CHARACTERISTICS _sample_ebpf_extension_hook_provider_characte
     {0,
      sizeof(NPI_REGISTRATION_INSTANCE),
      &EBPF_ATTACH_TYPE_SAMPLE,
-     &_sample_ebpf_extension_program_info_provider_moduleid,
+     &_sample_ebpf_extension_hook_provider_moduleid,
      0,
      &_sample_ebpf_extension_hook_provider_data},
 };
