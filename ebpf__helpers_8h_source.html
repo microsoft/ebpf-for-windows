@@ -110,6 +110,8 @@ $(function() {
 <div class="line"><a name="l00074"></a><span class="lineno">   74</span>&#160;<span class="preprocessor">#ifndef __doxygen</span></div>
 <div class="line"><a name="l00075"></a><span class="lineno">   75</span>&#160;<span class="preprocessor">#define bpf_tail_call ((bpf_tail_call_t)4)</span></div>
 <div class="line"><a name="l00076"></a><span class="lineno">   76</span>&#160;<span class="preprocessor">#endif</span></div>
+<div class="line"><a name="l00077"></a><span class="lineno">   77</span>&#160; </div>
+<div class="line"><a name="l00078"></a><span class="lineno"><a class="line" href="ebpf__helpers_8h.html#a13854b7af62cb6851a156bb308d0d42f">   78</a></span>&#160;<span class="preprocessor">#define SEC(name) __attribute__((section(name), used))</span></div>
 </div><!-- fragment --></div><!-- contents -->
 <div class="ttc" id="aebpf__helpers_8h_html_a7a4df6874a63623e856735911b0a7c95"><div class="ttname"><a href="ebpf__helpers_8h.html#a7a4df6874a63623e856735911b0a7c95">bpf_map_lookup_elem</a></div><div class="ttdeci">void * bpf_map_lookup_elem(struct _ebpf_map_definition *map, void *key)</div><div class="ttdoc">Get a pointer to an entry in the map.</div></div>
 <div class="ttc" id="aebpf__helpers_8h_html_a8a2409fe484651ce89c8499097811363"><div class="ttname"><a href="ebpf__helpers_8h.html#a8a2409fe484651ce89c8499097811363">bpf_map_delete_elem</a></div><div class="ttdeci">int64_t bpf_map_delete_elem(struct _ebpf_map_definition *map, void *key)</div><div class="ttdoc">Remove an entry from the map.</div></div>

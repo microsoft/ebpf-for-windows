@@ -126,9 +126,9 @@ Functions</h2></td></tr>
 <tr class="memitem:a93cbec23ca2f87d22ae34b1cc8cb203d"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a93cbec23ca2f87d22ae34b1cc8cb203d">ebpf_api_get_next_program</a> (<a class="el" href="ebpf__api_8h.html#a730fd530617bad8bccf98e29452b4d55">ebpf_handle_t</a> previous_handle, <a class="el" href="ebpf__api_8h.html#a730fd530617bad8bccf98e29452b4d55">ebpf_handle_t</a> *next_handle)</td></tr>
 <tr class="memdesc:a93cbec23ca2f87d22ae34b1cc8cb203d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the next eBPF program.  <a href="ebpf__api_8h.html#a93cbec23ca2f87d22ae34b1cc8cb203d">More...</a><br /></td></tr>
 <tr class="separator:a93cbec23ca2f87d22ae34b1cc8cb203d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:afa3b8ac7272d00b0bfc317cf5edcb558"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#afa3b8ac7272d00b0bfc317cf5edcb558">ebpf_map_query_definition</a> (<a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> fd, uint32_t *size, uint32_t *type, uint32_t *key_size, uint32_t *value_size, uint32_t *max_entries)</td></tr>
-<tr class="memdesc:afa3b8ac7272d00b0bfc317cf5edcb558"><td class="mdescLeft">&#160;</td><td class="mdescRight">Query properties of an eBPF map.  <a href="ebpf__api_8h.html#afa3b8ac7272d00b0bfc317cf5edcb558">More...</a><br /></td></tr>
-<tr class="separator:afa3b8ac7272d00b0bfc317cf5edcb558"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a27847bf1397c24521f4c434e31bc47fd"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a27847bf1397c24521f4c434e31bc47fd">ebpf_map_query_definition</a> (<a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> fd, uint32_t *size, uint32_t *type, uint32_t *key_size, uint32_t *value_size, uint32_t *max_entries, uint32_t *inner_map_idx)</td></tr>
+<tr class="memdesc:a27847bf1397c24521f4c434e31bc47fd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Query properties of an eBPF map.  <a href="ebpf__api_8h.html#a27847bf1397c24521f4c434e31bc47fd">More...</a><br /></td></tr>
+<tr class="separator:a27847bf1397c24521f4c434e31bc47fd"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af7aab54ea32e2032072e765b982a3c17"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#af7aab54ea32e2032072e765b982a3c17">ebpf_program_query_info</a> (<a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> fd, <a class="el" href="ebpf__execution__type_8h.html#af58bcede64968a095964be4e78998658">ebpf_execution_type_t</a> *execution_type, _Outptr_result_z_ const char **file_name, _Outptr_result_z_ const char **section_name)</td></tr>
 <tr class="memdesc:af7aab54ea32e2032072e765b982a3c17"><td class="mdescLeft">&#160;</td><td class="mdescRight">Query info about an eBPF program.  <a href="ebpf__api_8h.html#af7aab54ea32e2032072e765b982a3c17">More...</a><br /></td></tr>
 <tr class="separator:af7aab54ea32e2032072e765b982a3c17"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -1394,8 +1394,8 @@ Variables</h2></td></tr>
 
 </div>
 </div>
-<a id="afa3b8ac7272d00b0bfc317cf5edcb558"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#afa3b8ac7272d00b0bfc317cf5edcb558">&#9670;&nbsp;</a></span>ebpf_map_query_definition()</h2>
+<a id="a27847bf1397c24521f4c434e31bc47fd"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a27847bf1397c24521f4c434e31bc47fd">&#9670;&nbsp;</a></span>ebpf_map_query_definition()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1434,7 +1434,13 @@ Variables</h2></td></tr>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">uint32_t *&#160;</td>
-          <td class="paramname"><em>max_entries</em>&#160;</td>
+          <td class="paramname"><em>max_entries</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint32_t *&#160;</td>
+          <td class="paramname"><em>inner_map_idx</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -1453,6 +1459,7 @@ Variables</h2></td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">key_size</td><td>Size of keys in the eBPF map. </td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">value_size</td><td>Size of values in the eBPF map. </td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">max_entries</td><td>Maximum number of entries in the map. </td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">inner_map_idx</td><td>For maps of type BPF_TYPE_ARRAY_OF_MAPS or BPF_TYPE_HASH_OF_MAPS created from an ELF file, this is the index in the maps section of another map that any inner maps must match. Otherwise, the value is 0. </td></tr>
   </table>
   </dd>
 </dl>

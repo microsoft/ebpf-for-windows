@@ -83,6 +83,8 @@ Macros</h2></td></tr>
 <tr class="separator:a4f6cc1f7a616eb436d2557c23229f3b9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1d98f863fc6ebf789b378348438181ca"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__helpers_8h.html#a1d98f863fc6ebf789b378348438181ca">bpf_map</a>&#160;&#160;&#160;<a class="el" href="struct__ebpf__map__definition.html">_ebpf_map_definition</a></td></tr>
 <tr class="separator:a1d98f863fc6ebf789b378348438181ca"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a13854b7af62cb6851a156bb308d0d42f"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__helpers_8h.html#a13854b7af62cb6851a156bb308d0d42f">SEC</a>(name)&#160;&#160;&#160;__attribute__((section(name), used))</td></tr>
+<tr class="separator:a13854b7af62cb6851a156bb308d0d42f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
@@ -122,6 +124,24 @@ Functions</h2></td></tr>
       <table class="memname">
         <tr>
           <td class="memname">#define MAX_TAIL_CALL_CNT&#160;&#160;&#160;32</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a13854b7af62cb6851a156bb308d0d42f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a13854b7af62cb6851a156bb308d0d42f">&#9670;&nbsp;</a></span>SEC</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define SEC</td>
+          <td>(</td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname">name</td><td>)</td>
+          <td>&#160;&#160;&#160;__attribute__((section(name), used))</td>
         </tr>
       </table>
 </div><div class="memdoc">
