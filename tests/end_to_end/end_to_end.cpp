@@ -479,6 +479,10 @@ associatetoflow_test(ebpf_execution_type_t execution_type)
     REQUIRE(emulate_flow(hook, fake_protocol_1, "1_fake_app") == 0);
     REQUIRE(get_app_name(map_handles[0], five_tuple_1) == '1');
 
+    // Duplicate it
+    REQUIRE(emulate_flow(hook, fake_protocol_1, "1_fake_app") == 0);
+    REQUIRE(get_app_name(map_handles[0], five_tuple_1) == '1');
+
     // Establish second flow - success
     REQUIRE(emulate_flow(hook, fake_protocol_2, "2_fake_app") == 0);
     REQUIRE(get_app_name(map_handles[0], five_tuple_2) == '2');
@@ -520,6 +524,168 @@ associatetoflow_test(ebpf_execution_type_t execution_type)
     hook.detach();
 }
 
+//Count Bytes
+std::vector<uint8_t>
+prepare_packet(uint8_t protocol, bool v4, uint16_t length)
+{
+    if (protocol == 0x11 && v4){
+        std::vector<uint8_t> packet(sizeof(ebpf::IPV4_HEADER) + sizeof(ebpf::UDP_HEADER));
+        auto ipv4 = reinterpret_cast<ebpf::IPV4_HEADER*>(packet.data());
+        auto udp = reinterpret_cast<ebpf::UDP_HEADER*>(ipv4 + 1);
+        ipv4->Protocol = 17;
+        udp->length = length;
+        udp->destPort = 0;
+        udp->srcPort = 0;
+        return packet;
+    }
+    else if (protocol == 0x11 && !v4) {
+        std::vector<uint8_t> packet(sizeof(ebpf::IPV6_HEADER) + sizeof(ebpf::UDP_HEADER));
+        auto ipv6 = reinterpret_cast<ebpf::IPV6_HEADER*>(packet.data());
+        auto udp = reinterpret_cast<ebpf::UDP_HEADER*>(ipv6 + 1);
+        ipv6->NextHeader = 17;
+        udp->length = length;
+        udp->destPort = 0;
+        udp->srcPort = 0;
+        return packet;
+    }
+    else if (protocol == 0x06 && v4) {
+        std::vector<uint8_t> packet(sizeof(ebpf::IPV4_HEADER) + sizeof(ebpf::TCP_HEADER));
+        auto ipv4 = reinterpret_cast<ebpf::IPV4_HEADER*>(packet.data());
+        auto tcp = reinterpret_cast<ebpf::TCP_HEADER*>(ipv4 + 1);
+        ipv4->Protocol = 6;
+        tcp->destPort = 0;
+        tcp->srcPort = 0;
+        return packet;
+    }
+    else if (protocol == 0x06 && !v4) {
+        std::vector<uint8_t> packet(sizeof(ebpf::IPV6_HEADER) + sizeof(ebpf::TCP_HEADER));
+        auto ipv6 = reinterpret_cast<ebpf::IPV6_HEADER*>(packet.data());
+        auto tcp = reinterpret_cast<ebpf::TCP_HEADER*>(ipv6 + 1);
+        ipv6->NextHeader = 6;
+        tcp->destPort = 0;
+        tcp->srcPort = 0;
+        return packet;
+    }
+    return std::vector<uint8_t>();
+}
+
+int
+emulate_mac(single_instance_hook_t& hook, uint16_t length, uint64_t packet_length, uint8_t protocol, bool v4)
+{
+    uint32_t result;
+    auto packet = prepare_packet(protocol, v4, length);
+    mac_md_t context = {packet.data(), packet.data() + packet.size(), packet_length, v4};
+    REQUIRE(hook.fire(&context, &result) == EBPF_SUCCESS);
+    return static_cast<int>(result);
+}
+
+void
+countbytes_test(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+
+    ebpf_handle_t program_handle;
+    const char* error_message = nullptr;
+    ebpf_handle_t map_handles[1];
+    uint32_t count_of_map_handles = 1;
+    uint32_t result;
+
+    program_info_provider_t mac_program_info(EBPF_PROGRAM_TYPE_MAC);
+
+    REQUIRE(
+        (result = ebpf_api_load_program(
+             SAMPLE_PATH "countbytes.o",
+             "mac",
+             execution_type,
+             &program_handle,
+             &count_of_map_handles,
+             map_handles,
+             &error_message),
+         error_message ? printf("ebpf_api_load_program failed with %s\n", error_message) : 0,
+         ebpf_free_string(error_message),
+         error_message = nullptr,
+         result == EBPF_SUCCESS));
+
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_MAC, EBPF_ATTACH_TYPE_MAC);
+
+    REQUIRE(hook.attach(program_handle) == EBPF_SUCCESS);
+
+    // Send IPV4 UDP packet
+    uint64_t fake_length_1 = 100;
+    REQUIRE(emulate_mac(hook, 10, fake_length_1, 0x11, 1) == 0);
+    REQUIRE(result == 0);
+
+    // Send IPV4 TCP packet
+    uint64_t fake_length_2 = 200;
+    REQUIRE(emulate_mac(hook, 20, fake_length_2, 0x06, 1) == 0);
+    REQUIRE(result == 0);
+
+    // Send IPV6 UDP packet
+    uint64_t fake_length_3 = 300;
+    REQUIRE(emulate_mac(hook, 30, fake_length_3, 0x11, 0) == 0);
+    REQUIRE(result == 0);
+
+    // Send IPV6TCDP packet
+    uint64_t fake_length_4 = 400;
+    REQUIRE(emulate_mac(hook, 40, fake_length_4, 0x06, 0) == 0);
+    REQUIRE(result == 0);
+
+    five_tuple_t key;
+    uint64_t value;
+
+    REQUIRE(
+        ebpf_api_get_next_map_key(map_handles[0], sizeof(five_tuple_t), NULL, reinterpret_cast<uint8_t*>(&key)) ==
+        EBPF_SUCCESS);
+    REQUIRE(key.protocol == 0x06);
+    REQUIRE(key.dest_port == 0);
+    REQUIRE(key.source_port == 0);
+    REQUIRE(
+        ebpf_api_map_find_element(map_handles[0], sizeof(key), (uint8_t*)&key, sizeof(value), (uint8_t*)&value) ==
+        EBPF_SUCCESS);
+    REQUIRE(value == fake_length_4);
+    REQUIRE(key.dest_port == 0);
+    REQUIRE(key.source_port == 0);
+    REQUIRE(
+        ebpf_api_get_next_map_key(
+            map_handles[0], sizeof(five_tuple_t), reinterpret_cast<uint8_t*>(&key), reinterpret_cast<uint8_t*>(&key)) ==
+        EBPF_SUCCESS);
+    REQUIRE(key.protocol == 0x11);
+    REQUIRE(key.dest_port == 0);
+    REQUIRE(key.source_port == 0);
+    REQUIRE(
+        ebpf_api_map_find_element(map_handles[0], sizeof(key), (uint8_t*)&key, sizeof(value), (uint8_t*)&value) ==
+        EBPF_SUCCESS);
+    REQUIRE(value == fake_length_3);
+    REQUIRE(
+        ebpf_api_get_next_map_key(
+            map_handles[0], sizeof(five_tuple_t), reinterpret_cast<uint8_t*>(&key), reinterpret_cast<uint8_t*>(&key)) ==
+        EBPF_SUCCESS);
+    REQUIRE(key.protocol == 0x06);
+    REQUIRE(key.dest_port == 0);
+    REQUIRE(key.source_port == 0);
+    REQUIRE(
+        ebpf_api_map_find_element(map_handles[0], sizeof(key), (uint8_t*)&key, sizeof(value), (uint8_t*)&value) ==
+        EBPF_SUCCESS);
+    REQUIRE(value == fake_length_2);
+    REQUIRE(
+        ebpf_api_get_next_map_key(
+            map_handles[0], sizeof(five_tuple_t), reinterpret_cast<uint8_t*>(&key), reinterpret_cast<uint8_t*>(&key)) ==
+        EBPF_SUCCESS);
+    REQUIRE(key.protocol == 0x11);
+    REQUIRE(key.dest_port == 0);
+    REQUIRE(key.source_port == 0);
+    REQUIRE(
+        ebpf_api_map_find_element(map_handles[0], sizeof(key), (uint8_t*)&key, sizeof(value), (uint8_t*)&value) ==
+        EBPF_SUCCESS);
+    REQUIRE(value == fake_length_1);
+    REQUIRE(
+        ebpf_api_get_next_map_key(
+            map_handles[0], sizeof(five_tuple_t), reinterpret_cast<uint8_t*>(&key), reinterpret_cast<uint8_t*>(&key)) ==
+        ERROR_NO_MORE_ITEMS);
+
+    hook.detach();
+}
+
 TEST_CASE("droppacket-jit", "[end_to_end]") { droppacket_test(EBPF_EXECUTION_JIT); }
 TEST_CASE("divide_by_zero_jit", "[end_to_end]") { divide_by_zero_test(EBPF_EXECUTION_JIT); }
 TEST_CASE("bindmonitor-jit", "[end_to_end]") { bindmonitor_test(EBPF_EXECUTION_JIT); }
@@ -528,9 +694,9 @@ TEST_CASE("divide_by_zero_interpret", "[end_to_end]") { divide_by_zero_test(EBPF
 TEST_CASE("bindmonitor-interpret", "[end_to_end]") { bindmonitor_test(EBPF_EXECUTION_INTERPRET); }
 
 TEST_CASE("associatetoflow-jit", "[end_to_end]") { associatetoflow_test(EBPF_EXECUTION_JIT); }
-// TEST_CASE("countbytes-jit", "[end_to_end]") { countbytes_test(EBPF_EXECUTION_JIT); }
+TEST_CASE("countbytes-jit", "[end_to_end]") { countbytes_test(EBPF_EXECUTION_JIT); }
 TEST_CASE("associatetoflow-interpret", "[end_to_end]") { associatetoflow_test(EBPF_EXECUTION_INTERPRET); }
-// TEST_CASE("countbytes-interpret", "[end_to_end]") { countbytes_test(EBPF_EXECUTION_INTERPRET); }
+TEST_CASE("countbytes-interpret", "[end_to_end]") { countbytes_test(EBPF_EXECUTION_INTERPRET); }
 
 TEST_CASE("enum section", "[end_to_end]")
 {
