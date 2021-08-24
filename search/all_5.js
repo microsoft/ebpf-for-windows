@@ -5,7 +5,7 @@ var searchData=
   ['ebpf_5falready_5fpinned_67',['EBPF_ALREADY_PINNED',['../ebpf__result_8h.html#a916ce31f9038720787b441792c088372a6e12c2586d08e30bd0c26f5f3c00653e',1,'ebpf_result.h']]],
   ['ebpf_5fany_68',['EBPF_ANY',['../ebpf__structs_8h.html#ad2aa050648c308e0be8329a2ade170fca81b09e155b84d31bab635410874a4835',1,'ebpf_structs.h']]],
   ['ebpf_5fapi_2eh_69',['ebpf_api.h',['../ebpf__api_8h.html',1,'']]],
-  ['ebpf_5fapi_5fclose_5fhandle_70',['ebpf_api_close_handle',['../ebpf__api_8h.html#a151eb1e8847f02b130ab240097375dc0',1,'ebpf_api.h']]],
+  ['ebpf_5fapi_5fclose_5fhandle_70',['ebpf_api_close_handle',['../ebpf__api_8h.html#a4f0329af040370a21a9efe8b3713a314',1,'ebpf_api.h']]],
   ['ebpf_5fapi_5fcreate_5fmap_71',['ebpf_api_create_map',['../ebpf__api_8h.html#a0594ea36462d6efcd31c18144ef363f2',1,'ebpf_api.h']]],
   ['ebpf_5fapi_5felf_5fdisassemble_5fsection_72',['ebpf_api_elf_disassemble_section',['../ebpf__api_8h.html#ae4fbdf4fbbb9196651fd40fd0640c3c9',1,'ebpf_api.h']]],
   ['ebpf_5fapi_5felf_5fenumerate_5fsections_73',['ebpf_api_elf_enumerate_sections',['../ebpf__api_8h.html#a121da5428db28e72b9cee7f22b94a3df',1,'ebpf_api.h']]],
