@@ -424,7 +424,7 @@ TEST_CASE("disallow prog_array mixed program type values", "[libbpf]")
     REQUIRE(error == -EBPF_INVALID_ARGUMENT);
     REQUIRE(errno == -error);
 
-    // TODO(issue #287): _close(map_fd);
+    ebpf_close_fd(map_fd); // TODO(issue #287): change to _close(map_fd);
     bpf_object__close(bind_object);
     bpf_object__close(xdp_object);
 }
@@ -462,8 +462,8 @@ TEST_CASE("simple hash of maps", "[libbpf]")
     error = bpf_map_delete_elem(outer_map_fd, &outer_key);
     REQUIRE(error == 0);
 
-    // TODO(issue #287): _close(inner_map_fd);
-    // TODO(issue #287): _close(outer_map_fd);
+    ebpf_close_fd(inner_map_fd); // TODO(issue #287): change to _close(inner_map_fd);
+    ebpf_close_fd(outer_map_fd); // TODO(issue #287): change to _close(outer_map_fd);
 }
 
 // Verify an app can communicate with an eBPF program via an array of maps.
@@ -515,6 +515,6 @@ TEST_CASE("array of maps", "[libbpf]")
     // Verify the return value is what we saved in the inner map.
     REQUIRE(result == inner_value);
 
-    // TODO(issue #287): _close(inner_map_fd);
+    ebpf_close_fd(inner_map_fd); // TODO(issue #287): change to _close(inner_map_fd);
     bpf_object__close(xdp_object);
 }
