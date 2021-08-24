@@ -7,12 +7,13 @@ typedef unsigned int uint32_t;
 typedef unsigned long uint64_t;
 
 SEC("maps")
-struct bpf_map outer_map = {.type = BPF_MAP_TYPE_ARRAY_OF_MAPS,
-                            .key_size = sizeof(uint32_t),
-                            .value_size = sizeof(uint32_t),
-                            .max_entries = 1,
-                            // inner_map_idx refers to the map index in the same ELF object.
-                            .inner_map_idx = 1}; // (uint32_t)&inner_map
+struct bpf_map outer_map = {
+    .type = BPF_MAP_TYPE_ARRAY_OF_MAPS,
+    .key_size = sizeof(uint32_t),
+    .value_size = sizeof(uint32_t),
+    .max_entries = 1,
+    // inner_map_idx refers to the map index in the same ELF object.
+    .inner_map_idx = 1}; // (uint32_t)&inner_map
 
 SEC("maps")
 struct bpf_map inner_map = {

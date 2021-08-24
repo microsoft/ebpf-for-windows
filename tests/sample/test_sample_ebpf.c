@@ -10,11 +10,12 @@
 #define VALUE_SIZE 32
 
 #pragma clang section data = "maps"
-ebpf_map_definition_t test_map = {.size = sizeof(ebpf_map_definition_t),
-                                  .type = BPF_MAP_TYPE_ARRAY,
-                                  .key_size = sizeof(uint32_t),
-                                  .value_size = VALUE_SIZE,
-                                  .max_entries = 2};
+ebpf_map_definition_t test_map = {
+    .size = sizeof(ebpf_map_definition_t),
+    .type = BPF_MAP_TYPE_ARRAY,
+    .key_size = sizeof(uint32_t),
+    .value_size = VALUE_SIZE,
+    .max_entries = 2};
 
 #pragma clang section text = "sample_ext"
 int

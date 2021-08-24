@@ -7,11 +7,12 @@
 #include "ebpf_helpers.h"
 #include "ebpf_nethooks.h"
 
-__attribute__((section("maps"), used)) struct bpf_map outer_map = {.size = sizeof(struct bpf_map),
-                                                                   .type = BPF_MAP_TYPE_ARRAY_OF_MAPS,
-                                                                   .key_size = sizeof(uint32_t),
-                                                                   .value_size = sizeof(uint32_t),
-                                                                   .max_entries = 1};
+__attribute__((section("maps"), used)) struct bpf_map outer_map = {
+    .size = sizeof(struct bpf_map),
+    .type = BPF_MAP_TYPE_ARRAY_OF_MAPS,
+    .key_size = sizeof(uint32_t),
+    .value_size = sizeof(uint32_t),
+    .max_entries = 1};
 
 __attribute__((section("xdp_prog"), used)) int
 caller(struct xdp_md* ctx)

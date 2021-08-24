@@ -10,7 +10,7 @@ The following must be installed in order to build this project:
    which must be selected as an Individual component in the VS installer
 3. [Visual Studio Build Tools 2019](https://aka.ms/vs/16/release/vs_buildtools.exe)
 4. [WDK for Windows 10, version 2004](https://go.microsoft.com/fwlink/?linkid=2128854)
-5. [Clang/LLVM for Windows 64-bit](https://github.com/llvm/llvm-project/releases/download/llvmorg-8.0.1/LLVM-8.0.1-win64.exe)
+5. [Clang for Windows 64-bit version 12.0.1](https://github.com/llvm/llvm-project/releases/tag/llvmorg-12.0.1)
 6. [nuget.exe](https://www.nuget.org/downloads)
 
 ## How to clone and build the project

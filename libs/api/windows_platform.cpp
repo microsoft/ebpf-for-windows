@@ -62,18 +62,19 @@ parse_maps_section_windows(
         std::vector<ebpf_map_definition_t>((ebpf_map_definition_t*)data, (ebpf_map_definition_t*)(data + size));
     for (int i = 0; i < mapdefs.size(); i++) {
         auto& s = mapdefs[i];
-        map_descriptors.emplace_back(EbpfMapDescriptor{.original_fd = create_map_windows(
-                                                           s.type,
-                                                           s.key_size,
-                                                           s.value_size,
-                                                           s.max_entries,
-                                                           s.inner_map_idx,
-                                                           (i * sizeof(ebpf_map_definition_t)),
-                                                           options),
-                                                       .type = (uint32_t)s.type,
-                                                       .key_size = s.key_size,
-                                                       .value_size = s.value_size,
-                                                       .inner_map_fd = s.inner_map_idx});
+        map_descriptors.emplace_back(EbpfMapDescriptor{
+            .original_fd = create_map_windows(
+                s.type,
+                s.key_size,
+                s.value_size,
+                s.max_entries,
+                s.inner_map_idx,
+                (i * sizeof(ebpf_map_definition_t)),
+                options),
+            .type = (uint32_t)s.type,
+            .key_size = s.key_size,
+            .value_size = s.value_size,
+            .inner_map_fd = s.inner_map_idx});
     }
     for (size_t i = 0; i < mapdefs.size(); i++) {
         unsigned int inner = mapdefs[i].inner_map_idx;

@@ -22,10 +22,11 @@
 // f788ef4a-207d-4dc3-85cf-0f2ea107213c
 DEFINE_GUID(EBPF_PROGRAM_TYPE_SAMPLE, 0xf788ef4a, 0x207d, 0x4dc3, 0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c);
 
-static ebpf_context_descriptor_t _sample_ebpf_context_descriptor = {sizeof(test_program_context_t),
-                                                                    EBPF_OFFSET_OF(test_program_context_t, data_start),
-                                                                    EBPF_OFFSET_OF(test_program_context_t, data_end),
-                                                                    -1};
+static ebpf_context_descriptor_t _sample_ebpf_context_descriptor = {
+    sizeof(test_program_context_t),
+    EBPF_OFFSET_OF(test_program_context_t, data_start),
+    EBPF_OFFSET_OF(test_program_context_t, data_end),
+    -1};
 
 // Test Extension Helper function prototype descriptors.
 static ebpf_helper_function_prototype_t _sample_ebpf_extension_helper_function_prototype[] = {
@@ -63,9 +64,10 @@ static int64_t
 _sample_ebpf_extension_replace(
     _In_ const void* buffer, uint32_t size, int64_t position, _In_ const void* replace, uint32_t arg_size);
 
-static const void* _sample_ebpf_extension_helpers[] = {(void*)&_sample_ebpf_extension_helper_function1,
-                                                       (void*)&_sample_ebpf_extension_find,
-                                                       (void*)&_sample_ebpf_extension_replace};
+static const void* _sample_ebpf_extension_helpers[] = {
+    (void*)&_sample_ebpf_extension_helper_function1,
+    (void*)&_sample_ebpf_extension_find,
+    (void*)&_sample_ebpf_extension_replace};
 
 static ebpf_helper_function_addresses_t _sample_ebpf_extension_helper_function_address_table = {
     EBPF_COUNT_OF(_sample_ebpf_extension_helpers), (uint64_t*)_sample_ebpf_extension_helpers};
@@ -201,9 +203,10 @@ _sample_ebpf_extension_hook_provider_detach_client(_In_ void* provider_binding_c
 // Test eBPF extension Hook NPI provider characteristics
 ebpf_attach_provider_data_t _sample_ebpf_extension_attach_provider_data;
 
-ebpf_extension_data_t _sample_ebpf_extension_hook_provider_data = {EBPF_ATTACH_PROVIDER_DATA_VERSION,
-                                                                   sizeof(_sample_ebpf_extension_attach_provider_data),
-                                                                   &_sample_ebpf_extension_attach_provider_data};
+ebpf_extension_data_t _sample_ebpf_extension_hook_provider_data = {
+    EBPF_ATTACH_PROVIDER_DATA_VERSION,
+    sizeof(_sample_ebpf_extension_attach_provider_data),
+    &_sample_ebpf_extension_attach_provider_data};
 
 const NPI_PROVIDER_CHARACTERISTICS _sample_ebpf_extension_hook_provider_characteristics = {
     0,
