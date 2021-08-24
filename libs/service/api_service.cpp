@@ -218,8 +218,10 @@ _query_and_cache_map_descriptors(_In_reads_(handle_map_count) fd_handle_map* han
                 return result;
             }
 
-            // Convert inner_map_idx to descriptor.inner_map_fd.
-            descriptor.inner_map_fd = handle_map[inner_map_idx].file_descriptor;
+            if (descriptor.type == BPF_MAP_TYPE_ARRAY_OF_MAPS || descriptor.type == BPF_MAP_TYPE_HASH_OF_MAPS) {
+                // Convert inner_map_idx to descriptor.inner_map_fd.
+                descriptor.inner_map_fd = handle_map[inner_map_idx].file_descriptor;
+            }
 
             cache_map_file_descriptor_with_handle(
                 descriptor.type,
