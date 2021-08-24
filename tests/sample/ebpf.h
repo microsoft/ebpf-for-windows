@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+// This file is included by sample eBPF programs.
+
 #if defined(_MSC_VER)
 typedef unsigned long long uint64_t;
 #else
@@ -11,7 +13,6 @@ typedef unsigned int uint32_t;
 typedef unsigned short uint16_t;
 typedef unsigned char uint8_t;
 
-#include "ebpf_helpers.h"
 #include "ebpf_nethooks.h"
 
 #if defined(_MSC_VER)

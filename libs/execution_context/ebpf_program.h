@@ -28,10 +28,28 @@ extern "C"
         ebpf_program_type_t program_type;
         ebpf_utf8_string_t program_name;
         ebpf_utf8_string_t section_name;
+        ebpf_utf8_string_t file_name;
         ebpf_code_type_t code_type;
     } ebpf_program_parameters_t;
 
     typedef ebpf_result_t (*ebpf_program_entry_point_t)(void* context);
+
+    /**
+     * @brief Initialize global state for the ebpf program module.
+     *
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
+     *  operation.
+     */
+    ebpf_result_t
+    ebpf_program_initiate();
+
+    /**
+     * @brief Uninitialize the eBPF state tracking module.
+     *
+     */
+    void
+    ebpf_program_terminate();
 
     /**
      * @brief Create a new program instance.
@@ -59,13 +77,16 @@ extern "C"
     ebpf_program_initialize(ebpf_program_t* program, const ebpf_program_parameters_t* program_parameters);
 
     /**
-     * @brief Get properties describing the program instance.
+     * @brief Get parameters describing the program instance.
      *
      * @param[in] program Program instance to query.
-     * @param[in] program_parameters Parameters of the program.
+     * @returns Pointer to parameters of the program.
      */
-    void
-    ebpf_program_get_properties(ebpf_program_t* program, ebpf_program_parameters_t* program_parameters);
+    _Ret_notnull_ const ebpf_program_parameters_t*
+    ebpf_program_get_parameters(_In_ const ebpf_program_t* program);
+
+    _Ret_notnull_ const ebpf_program_type_t*
+    ebpf_program_type(_In_ const ebpf_program_t* program);
 
     /**
      * @brief Get the program info from the program info extension.
@@ -105,31 +126,20 @@ extern "C"
     ebpf_program_associate_maps(ebpf_program_t* program, ebpf_map_t** maps, size_t maps_count);
 
     /**
-     * @brief Load a block of machine code into the program instance.
+     * @brief Load a block of eBPF code into the program instance.
      *
-     * @param[in] program Program instance to load the machine code into.
-     * @param[in] machine_code Pointer to memory containing the machine code.
-     * @param[in] machine_code_size Size of the memory block containing the machine
+     * @param[in, out] program Program instance to load the eBPF code into.
+     * @param[in] code_type Specifies whether eBPF code is JIT compiled or byte code.
+     * @param[in] code Pointer to memory containing the eBPF code.
+     * @param[in] machine_size Size of the memory block containing the eBPF
      *  code.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  program instance.
      */
     ebpf_result_t
-    ebpf_program_load_machine_code(ebpf_program_t* program, uint8_t* machine_code, size_t machine_code_size);
-
-    /**
-     * @brief Load a block of eBPF instructions into the program instance.
-     *
-     * @param[in] program Program instance to load the byte code into.
-     * @param[in] instructions Pointer to array of eBPF instructions.
-     * @param[in] instruction_count Count of eBPF instructions to load.
-     * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
-     *  program instance.
-     */
-    ebpf_result_t
-    ebpf_program_load_byte_code(ebpf_program_t* program, ebpf_instruction_t* instructions, size_t instruction_count);
+    ebpf_program_load_code(
+        _Inout_ ebpf_program_t* program, ebpf_code_type_t code_type, _In_ const uint8_t* code, size_t code_size);
 
     /**
      * @brief Invoke an ebpf_program_t instance.
@@ -142,17 +152,39 @@ extern "C"
     ebpf_program_invoke(_In_ const ebpf_program_t* program, _In_ void* context, _Out_ uint32_t* result);
 
     /**
-     * @brief Get the address of a helper function.
+     * @brief Store the helper function IDs that are used by the eBPF program in an array
+     *  inside the program object. The array index is the helper function ID to be used by
+     *  uBPF whereas the array value is the actual helper ID.
      *
-     * @param[in] program Program object to query this on.
-     * @param[in] helper_function_id Helper function ID to look up.
-     * @param[out] address Address of the helper function.
+     * @param[in, out] program Program object to query this on.
+     * @param[in] helper_function_count Count of helper functions.
+     * @param[in] helper_function_ids Array of helper function IDs to store.
      * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_INVALID_ARGUMENT The helper_function_id is not valid.
+     * @retval EBPF_INVALID_ARGUMENT The helper function IDs array is already populated.
+     * @retval EBPF_NO_MEMORY Could not allocate array of helper function IDs.
      */
     ebpf_result_t
-    ebpf_program_get_helper_function_address(
-        const ebpf_program_t* program, uint32_t helper_function_id, uint64_t* address);
+    ebpf_program_set_helper_function_ids(
+        _Inout_ ebpf_program_t* program,
+        const size_t helper_function_count,
+        _In_reads_(helper_function_count) const uint32_t* helper_function_ids);
+
+    /**
+     * @brief Get the address of a helper functions referred to by the program. Assumes
+     * ebpf_program_set_helper_function_ids has already been invoked on the program object.
+     *
+     * @param[in] program Program object to query this on.
+     * @param[in] addresses_count Length of caller supplied output array.
+     * @param[out] address Caller supplied output array where the addresses of the helper functions are written to.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INSUFFICIENT_BUFFER Output array is insufficient.
+     * @retval EBPF_INVALID_ARGUMENT At least one helper function id is not valid.
+     */
+    ebpf_result_t
+    ebpf_program_get_helper_function_addresses(
+        _In_ const ebpf_program_t* program,
+        const size_t addresses_count,
+        _Out_writes_(addresses_count) uint64_t* addresses);
 
     /**
      * @brief Attach a link object to an eBPF program.
@@ -171,6 +203,17 @@ extern "C"
      */
     void
     ebpf_program_detach_link(_Inout_ ebpf_program_t* program, _Inout_ ebpf_link_t* link);
+
+    /**
+     * @brief Store the pointer to the program to execute on tail call.
+     *
+     * @param[in] next_program Next program to execute.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INVALID_ARGUMENT Internal error.
+     * @retval EBPF_NO_MORE_TAIL_CALLS Program has executed to many tail calls.
+     */
+    ebpf_result_t
+    ebpf_program_set_tail_call(_In_ const ebpf_program_t* next_program);
 
 #ifdef __cplusplus
 }

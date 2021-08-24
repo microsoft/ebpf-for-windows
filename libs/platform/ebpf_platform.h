@@ -83,6 +83,13 @@ extern "C"
 
     typedef struct _ebpf_helper_function_addresses ebpf_helper_function_addresses_t;
 
+    typedef enum _ebpf_hash_table_operations
+    {
+        EBPF_HASH_TABLE_OPERATION_ANY = 0,
+        EBPF_HASH_TABLE_OPERATION_INSERT = 1,
+        EBPF_HASH_TABLE_OPERATION_REPLACE = 2,
+    } ebpf_hash_table_operations_t;
+
     /**
      * @brief Initialize the eBPF platform abstraction layer.
      * @retval EBPF_SUCCESS The operation was successful.
@@ -258,11 +265,9 @@ extern "C"
 
     /**
      * @brief Query the platform for the total number of CPUs.
-     * @param[out] cpu_count Pointer to memory location that contains the
-     *    number of CPUs.
+     * @return The count of logical cores in the system.
      */
-    void
-    ebpf_get_cpu_count(_Out_ uint32_t* cpu_count);
+    _Ret_range_(>, 0) uint32_t ebpf_get_cpu_count();
 
     /**
      * @brief Query the platform to determine if the current execution can
@@ -372,13 +377,6 @@ extern "C"
 
     typedef struct _ebpf_hash_table ebpf_hash_table_t;
 
-    typedef enum _ebpf_hash_table_compare_result
-    {
-        EBPF_HASH_TABLE_LESS_THAN = 0,
-        EBPF_HASH_TABLE_GREATER_THAN = 1,
-        EBPF_HASH_TABLE_EQUAL = 2,
-    } ebpf_hash_table_compare_result_t;
-
     /**
      * @brief Allocate and initialize a hash table.
      *
@@ -389,8 +387,10 @@ extern "C"
      * @param[in] free Function to use when freeing elements in the hash table.
      * @param[in] key_size Size of the keys used in the hash table.
      * @param[in] value_size Size of the values used in the hash table.
-     * @param[in] compare_function Function used to lexicographically order
-     * keys. If NULL, memcmp is used instead.
+     * @param[in] bucket_count Count of buckets to use.
+     * @param[in] extract_function Function used to convert a key into a value
+     * that can be hashed and compared. If NULL, key is assumes to be
+     * comparable.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  hash table.
@@ -402,7 +402,9 @@ extern "C"
         _In_ void (*free)(void* memory),
         size_t key_size,
         size_t value_size,
-        _In_opt_ ebpf_hash_table_compare_result_t (*compare_function)(const uint8_t* key1, const uint8_t* key2));
+        size_t bucket_count,
+        _In_opt_ void (*extract_function)(
+            _In_ const uint8_t* value, _Outptr_ const uint8_t** data, _Out_ size_t* length));
 
     /**
      * @brief Remove all items from the hash table and release memory.
@@ -429,13 +431,20 @@ extern "C"
      *
      * @param[in] hash_table Hash-table to update.
      * @param[in] key Key to find and insert or update.
-     * @param[in] value Value to insert into hash table.
+     * @param[in] value Value to insert into hash table or NULL to insert zero entry.
+     * @param[in] extra_value Extra value to insert into hash table.
+     * @param[in] operation One of ebpf_hash_table_operations_t operations.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Unable to allocate memory for this
      *  entry in the hash table.
      */
     ebpf_result_t
-    ebpf_hash_table_update(_In_ ebpf_hash_table_t* hash_table, _In_ const uint8_t* key, _In_ const uint8_t* value);
+    ebpf_hash_table_update(
+        _In_ ebpf_hash_table_t* hash_table,
+        _In_ const uint8_t* key,
+        _In_opt_ const uint8_t* value,
+        _In_opt_ const uint8_t* extra_value,
+        ebpf_hash_table_operations_t operation);
 
     /**
      * @brief Remove an entry from the hash table.
@@ -478,6 +487,24 @@ extern "C"
         _In_ ebpf_hash_table_t* hash_table,
         _In_opt_ const uint8_t* previous_key,
         _Out_ uint8_t* next_key,
+        _Inout_opt_ uint8_t** next_value);
+
+    /**
+     * @brief Returns the next (key, value) pair in the hash table.
+     *
+     * @param[in] hash_table Hash-table to query.
+     * @param[in] previous_key Previous key or NULL to restart.
+     * @param[out] next_key_pointer Pointer to next key if one exists.
+     * @param[out] next_value If non-NULL, returns the next value if it exists.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MORE_KEYS No keys exist in the hash table that
+     * are lexicographically after the specified key.
+     */
+    ebpf_result_t
+    ebpf_hash_table_next_key_pointer_and_value(
+        _In_ ebpf_hash_table_t* hash_table,
+        _In_opt_ const uint8_t* previous_key,
+        _Outptr_ uint8_t** next_key_pointer,
         _Outptr_opt_ uint8_t** next_value);
 
     /**
@@ -546,6 +573,25 @@ extern "C"
      */
     int32_t
     ebpf_interlocked_compare_exchange_int32(_Inout_ volatile int32_t* destination, int32_t exchange, int32_t comperand);
+
+    /**
+     * @brief Performs an atomic operation that compares the input value pointed
+     *  to by destination with the value of comperand and replaces it with
+     *  exchange.
+     *
+     * @param[in,out] destination A pointer to the input value that is compared
+     *  with the value of comperand.
+     * @param[in] exchange Specifies the output value pointed to by destination
+     *  if the input value pointed to by destination equals the value of
+     *  comperand.
+     * @param[in] comperand Specifies the value that is compared with the input
+     *  value pointed to by destination.
+     * @return Returns the original value of memory pointed to by
+     *  destination.
+     */
+    void*
+    ebpf_interlocked_compare_exchange_pointer(
+        _Inout_ void* volatile* destination, _In_opt_ const void* exchange, _In_opt_ const void* comperand);
 
     typedef void (*ebpf_extension_change_callback_t)(
         _In_ void* client_binding_context,
@@ -682,14 +728,19 @@ extern "C"
      * @brief Populate the function pointers in a trampoline table.
      *
      * @param[in] trampoline_table Trampoline table to populate.
+     * @param[in] helper_function_count Count of helper functions.
+     * @param[in] helper_function_ids Array of helper function IDs.
      * @param[in] dispatch_table Dispatch table to populate from.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  operation.
+     * @retval EBPF_INVALID_ARGUMENT An invalid argument was supplied.
      */
     ebpf_result_t
     ebpf_update_trampoline_table(
         _Inout_ ebpf_trampoline_table_t* trampoline_table,
+        uint32_t helper_function_count,
+        _In_reads_(helper_function_count) const uint32_t* helper_function_ids,
         _In_ const ebpf_helper_function_addresses_t* helper_function_addresses);
 
     /**
@@ -706,6 +757,21 @@ extern "C"
     ebpf_result_t
     ebpf_get_trampoline_function(
         _In_ const ebpf_trampoline_table_t* trampoline_table, size_t index, _Out_ void** function);
+
+    /**
+     * @brief Get the address of the helper function from the trampoline table entry.
+     *
+     * @param[in] trampoline_table Trampoline table to query.
+     * @param[in] index Index of trampoline table entry.
+     * @param[out] helper_address Pointer to memory that contains the address to helper function on success.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
+     *  operation.
+     * @retval EBPF_INVALID_ARGUMENT An invalid argument was supplied.
+     */
+    ebpf_result_t
+    ebpf_get_trampoline_helper_address(
+        _In_ const ebpf_trampoline_table_t* trampoline_table, size_t index, _Out_ void** helper_address);
 
     typedef struct _ebpf_program_info ebpf_program_info_t;
 
@@ -775,6 +841,14 @@ extern "C"
     ebpf_result_t
     ebpf_validate_security_descriptor(
         _In_ ebpf_security_descriptor_t* security_descriptor, size_t security_descriptor_length);
+
+    /**
+     * @brief Return a pseudorandom number.
+     *
+     * @return A pseudorandom number.
+     */
+    uint32_t
+    ebpf_random_uint32();
 
 #ifdef __cplusplus
 }

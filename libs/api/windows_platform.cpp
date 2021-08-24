@@ -6,7 +6,6 @@
 #include "crab_verifier_wrapper.hpp"
 #include "api_common.hpp"
 #include "ebpf_api.h"
-#include "ebpf_helpers.h"
 #include "helpers.hpp"
 #include "map_descriptors.hpp"
 #include "platform.hpp"
@@ -16,21 +15,33 @@
 
 int
 create_map_internal(
-    uint32_t type, uint32_t key_size, uint32_t value_size, uint32_t max_entries, ebpf_verifier_options_t options);
+    uint32_t type,
+    uint32_t key_size,
+    uint32_t value_size,
+    uint32_t max_entries,
+    uint32_t inner_map_fd,
+    size_t section_offset,
+    ebpf_verifier_options_t options);
 
 static int
 create_map_windows(
-    uint32_t map_type, uint32_t key_size, uint32_t value_size, uint32_t max_entries, ebpf_verifier_options_t options)
+    uint32_t map_type,
+    uint32_t key_size,
+    uint32_t value_size,
+    uint32_t max_entries,
+    uint32_t inner_map_fd,
+    size_t section_offset,
+    ebpf_verifier_options_t options)
 {
     int fd;
     if (options.mock_map_fds) {
         EbpfMapType type = get_map_type_windows(map_type);
         fd = create_map_crab(type, key_size, value_size, max_entries, options);
-        cache_map_file_descriptor(map_type, key_size, value_size, max_entries, fd);
+        cache_map_file_descriptor(map_type, key_size, value_size, max_entries, inner_map_fd, fd);
         return fd;
     }
 
-    return create_map_internal(map_type, key_size, value_size, max_entries, options);
+    return create_map_internal(map_type, key_size, value_size, max_entries, inner_map_fd, section_offset, options);
 }
 
 void
@@ -49,13 +60,27 @@ parse_maps_section_windows(
 
     auto mapdefs =
         std::vector<ebpf_map_definition_t>((ebpf_map_definition_t*)data, (ebpf_map_definition_t*)(data + size));
-    for (auto& s : mapdefs) {
-        map_descriptors.emplace_back(EbpfMapDescriptor{
-            .original_fd = create_map_windows(s.type, s.key_size, s.value_size, s.max_entries, options),
-            .type = (uint32_t)s.type,
-            .key_size = s.key_size,
-            .value_size = s.value_size,
-        });
+    for (int i = 0; i < mapdefs.size(); i++) {
+        auto& s = mapdefs[i];
+        map_descriptors.emplace_back(EbpfMapDescriptor{.original_fd = create_map_windows(
+                                                           s.type,
+                                                           s.key_size,
+                                                           s.value_size,
+                                                           s.max_entries,
+                                                           s.inner_map_idx,
+                                                           (i * sizeof(ebpf_map_definition_t)),
+                                                           options),
+                                                       .type = (uint32_t)s.type,
+                                                       .key_size = s.key_size,
+                                                       .value_size = s.value_size,
+                                                       .inner_map_fd = s.inner_map_idx});
+    }
+    for (size_t i = 0; i < mapdefs.size(); i++) {
+        unsigned int inner = mapdefs[i].inner_map_idx;
+        if (inner >= map_descriptors.size())
+            throw std::runtime_error(
+                std::string("bad inner map index ") + std::to_string(inner) + " for map " + std::to_string(i));
+        map_descriptors[i].inner_map_fd = map_descriptors.at(inner).original_fd;
     }
 }
 

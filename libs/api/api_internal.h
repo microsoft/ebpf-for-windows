@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "api_common.hpp"
 #include "ebpf_api.h"
 #include "ebpf_platform.h"
 #include "ebpf_windows.h"
@@ -21,6 +22,7 @@ typedef struct bpf_program
     ebpf_attach_type_t attach_type;
     ebpf_handle_t handle;
     fd_t fd;
+    bool pinned;
 } ebpf_program_t;
 
 typedef struct bpf_map
@@ -29,10 +31,19 @@ typedef struct bpf_map
     char* name;
     ebpf_handle_t map_handle;
     fd_t map_fd;
+    fd_t mock_map_fd;
     ebpf_map_definition_t map_definition;
     char* pin_path;
     bool pinned;
 } ebpf_map_t;
+
+typedef struct bpf_link
+{
+    char* pin_path;
+    ebpf_handle_t link_handle;
+    fd_t link_fd;
+    bool disconnected;
+} ebpf_link_t;
 
 typedef struct bpf_object
 {
@@ -59,6 +70,9 @@ clean_up_ebpf_program(_In_ _Post_invalid_ ebpf_program_t* program);
 
 void
 clean_up_ebpf_programs(_Inout_ std::vector<ebpf_program_t*>& programs);
+
+void
+clean_up_ebpf_map(_In_ _Post_invalid_ ebpf_map_t* map);
 
 void
 clean_up_ebpf_maps(_Inout_ std::vector<ebpf_map_t*>& maps);
@@ -129,3 +143,90 @@ ebpf_map_get_fd(_In_ const struct bpf_map* map);
  */
 void
 ebpf_object_close(_In_ _Post_invalid_ struct bpf_object* object);
+
+void
+initialize_map(_Out_ ebpf_map_t* map, _In_ const map_cache_t& map_cache);
+
+/**
+ * @brief Pin an eBPF map to specified path.
+ * @param[in] program Pointer to eBPF map.
+ * @param[in] path Pin path for the map.
+ *
+ * @retval EBPF_SUCCESS The operation was successful.
+ */
+ebpf_result_t
+ebpf_map_pin(_In_ struct bpf_map* map, _In_opt_z_ const char* path);
+
+/**
+ * @brief Unpin an eBPF map from the specified path.
+ * @param[in] map Pointer to eBPF map.
+ * @param[in] path Pin path for the map.
+ *
+ * @retval EBPF_SUCCESS The operation was successful.
+ */
+ebpf_result_t
+ebpf_map_unpin(_In_ struct bpf_map* map, _In_opt_z_ const char* path);
+
+/**
+ * @brief Set pin path for an eBPF map.
+ * @param[in] map Pointer to eBPF map.
+ * @param[in] path Pin path for the map.
+ *
+ * @retval EBPF_SUCCESS The API suceeded.
+ * @retval EBPF_NO_MEMORY Out of memory.
+ * @retval EBPF_INVALID_ARGUMENT One or more parameters are wrong.
+ */
+ebpf_result_t
+ebpf_map_set_pin_path(_In_ struct bpf_map* map, _In_ const char* path);
+
+/**
+ * @brief Update value for the specified key in an eBPF map.
+ *
+ * @param[in] map_fd File descriptor for the eBPF map.
+ * @param[in] key Pointer to buffer containing key.
+ * @param[out] value Pointer to buffer containing value.
+ *
+ * @retval EBPF_SUCCESS The operation was successful.
+ */
+ebpf_result_t
+ebpf_map_update_element(fd_t map_fd, _In_ const void* key, _In_ const void* value, uint64_t flags);
+
+/**
+ * @brief Delete an element in an eBPF map.
+ *
+ * @param[in] map_fd File descriptor for the eBPF map.
+ * @param[in] key Pointer to buffer containing key.
+ *
+ * @retval EBPF_SUCCESS The operation was successful.
+ */
+ebpf_result_t
+ebpf_map_delete_element(fd_t map_fd, _In_ const void* key);
+
+/**
+ * @brief Look up an element in an eBPF map.
+ *  For a singleton map, return the value for the given key.
+ *  For a per-cpu map, return aggregate value across all CPUs.
+ *
+ * @param[in] map_fd File descriptor for the eBPF map.
+ * @param[in] key Pointer to buffer containing key.
+ * @param[out] value Pointer to buffer that contains value on success.
+ *
+ * @retval EBPF_SUCCESS The operation was successful.
+ */
+ebpf_result_t
+ebpf_map_lookup_element(fd_t map_fd, _In_ const void* key, _Out_ void* value);
+
+/**
+ * @brief Return the next key in an eBPF map.
+ *
+ * @param[in] map_fd File descriptor for the eBPF map.
+ * @param[in] previous_key Pointer to buffer containing
+    previous key or NULL to restart enumeration.
+ * @param[out] next_key Pointer to buffer that contains next
+ *  key on success.
+ *
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_NO_MORE_KEYS previous_key was the last key.
+ */
+ebpf_result_t
+ebpf_map_get_next_key(fd_t map_fd, _In_opt_ const void* previous_key, _Out_ void* next_key);

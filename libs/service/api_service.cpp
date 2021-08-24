@@ -16,18 +16,23 @@ extern "C"
 }
 #include "Verifier.h"
 #include "verifier_service.h"
+#include "windows_platform.hpp"
 
 #define MAX_CODE_SIZE_IN_BYTES (32 * 1024) // 32 KB
 
 static ebpf_result_t
 _build_helper_id_to_address_map(
-    ebpf_handle_t program_handle, ebpf_code_buffer_t& byte_code, std::vector<uint64_t>& helper_addresses)
+    ebpf_handle_t program_handle,
+    ebpf_code_buffer_t& byte_code,
+    std::vector<uint64_t>& helper_addresses,
+    uint32_t& unwind_index)
 {
     // Note:
     // eBPF supports helper IDs in the range [1, MAXUINT32]
     // uBPF jitter only supports helper IDs in the range [0,63]
     // Build a table to map [1, MAXUINT32] -> [0,63]
     std::map<uint32_t, uint32_t> helper_id_mapping;
+    unwind_index = MAXUINT32;
 
     ebpf_inst* instructions = reinterpret_cast<ebpf_inst*>(byte_code.data());
     for (size_t index = 0; index < byte_code.size() / sizeof(ebpf_inst); index++) {
@@ -85,6 +90,12 @@ _build_helper_id_to_address_map(
             continue;
         }
         instruction.imm = helper_id_mapping[instruction.imm];
+    }
+    for (auto& [old_helper_id, new_helper_id] : helper_id_mapping) {
+        if (get_helper_prototype_windows(old_helper_id).return_type != EBPF_RETURN_TYPE_INTEGER_OR_NO_RETURN_IF_SUCCEED)
+            continue;
+        unwind_index = new_helper_id;
+        break;
     }
 
     return EBPF_SUCCESS;
@@ -185,7 +196,7 @@ _resolve_maps_in_byte_code(ebpf_handle_t program_handle, ebpf_code_buffer_t& byt
 }
 
 static ebpf_result_t
-_query_and_cache_map_descriptors(fd_handle_map* handle_map, uint32_t handle_map_count)
+_query_and_cache_map_descriptors(_In_reads_(handle_map_count) fd_handle_map* handle_map, uint32_t handle_map_count)
 {
     ebpf_result_t result;
     EbpfMapDescriptor descriptor;
@@ -194,15 +205,22 @@ _query_and_cache_map_descriptors(fd_handle_map* handle_map, uint32_t handle_map_
         for (uint32_t i = 0; i < handle_map_count; i++) {
             uint32_t size;
             descriptor = {0};
+            uint32_t inner_map_idx;
             result = query_map_definition(
                 handle_map[i].handle,
                 &size,
                 &descriptor.type,
                 &descriptor.key_size,
                 &descriptor.value_size,
-                &descriptor.max_entries);
+                &descriptor.max_entries,
+                &inner_map_idx);
             if (result != EBPF_SUCCESS) {
                 return result;
+            }
+
+            if (descriptor.type == BPF_MAP_TYPE_ARRAY_OF_MAPS || descriptor.type == BPF_MAP_TYPE_HASH_OF_MAPS) {
+                // Convert inner_map_idx to descriptor.inner_map_fd.
+                descriptor.inner_map_fd = handle_map[inner_map_idx].file_descriptor;
             }
 
             cache_map_file_descriptor_with_handle(
@@ -210,8 +228,10 @@ _query_and_cache_map_descriptors(fd_handle_map* handle_map, uint32_t handle_map_
                 descriptor.key_size,
                 descriptor.value_size,
                 descriptor.max_entries,
+                descriptor.inner_map_fd,
                 handle_map[i].file_descriptor,
-                (uintptr_t)handle_map[i].handle);
+                (uintptr_t)handle_map[i].handle,
+                0);
         }
     }
 
@@ -333,11 +353,13 @@ ebpf_verify_and_load_program(
             goto Exit;
         }
 
+        std::vector<uint64_t> helper_id_adddress;
+        uint32_t unwind_index;
+        result = _build_helper_id_to_address_map(program_handle, byte_code_buffer, helper_id_adddress, unwind_index);
+        if (result != EBPF_SUCCESS)
+            goto Exit;
+
         if (execution_type == EBPF_EXECUTION_JIT) {
-            std::vector<uint64_t> helper_id_adddress;
-            result = _build_helper_id_to_address_map(program_handle, byte_code_buffer, helper_id_adddress);
-            if (result != EBPF_SUCCESS)
-                goto Exit;
 
             ebpf_code_buffer_t machine_code(MAX_CODE_SIZE_IN_BYTES);
             size_t machine_code_size = machine_code.size();
@@ -355,6 +377,9 @@ ebpf_verify_and_load_program(
                     goto Exit;
                 }
             }
+
+            if (unwind_index != MAXUINT32)
+                ubpf_set_unwind_function_index(vm, unwind_index);
 
             ubpf_set_error_print(
                 vm, reinterpret_cast<int (*)(FILE * stream, const char* format, ...)>(log_function_address));

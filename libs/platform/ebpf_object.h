@@ -21,6 +21,7 @@ extern "C"
 
     typedef struct _ebpf_object ebpf_object_t;
     typedef void (*ebpf_free_object_t)(ebpf_object_t* object);
+    typedef const ebpf_program_type_t* (*ebpf_object_get_program_type_t)(_In_ const ebpf_object_t* object);
 
     // This type probably ought to be renamed to avoid confusion with
     // ebpf_object_t in libs\api\api_internal.h
@@ -30,6 +31,7 @@ extern "C"
         volatile int32_t reference_count;
         ebpf_object_type_t type;
         ebpf_free_object_t free_function;
+        ebpf_object_get_program_type_t get_program_type;
         // Used to insert object in the global tracking list.
         ebpf_list_entry_t global_list_entry;
         // Used to insert object in an object specific list.
@@ -56,9 +58,16 @@ extern "C"
      * @param[in,out] object ebpf_object_t structure to initialize.
      * @param[in] object_type The type of the object.
      * @param[in] free_function The function used to free the object.
+     * @param[in] get_program_type_function The function used to get a program type, or NULL.  Each program
+     * has a program type, and hence so do maps that can contain programs, whether directly (like
+     * BPF_MAP_TYPE_PROG_ARRAY) or indirectly (like BPF_MAP_TYPE_ARRAY_OF_MAPS containing a BPF_MAP_TYPE_PROG_ARRAY).
      */
     void
-    ebpf_object_initialize(ebpf_object_t* object, ebpf_object_type_t object_type, ebpf_free_object_t free_function);
+    ebpf_object_initialize(
+        ebpf_object_t* object,
+        ebpf_object_type_t object_type,
+        ebpf_free_object_t free_function,
+        ebpf_object_get_program_type_t get_program_type_function);
 
     /**
      * @brief Acquire a reference to this object.

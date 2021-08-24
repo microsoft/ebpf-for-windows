@@ -43,7 +43,11 @@ static ebpf_helper_function_prototype_t _ebpf_helper_function_prototype[] = {
     {3,
      "bpf_map_delete_elem",
      EBPF_RETURN_TYPE_INTEGER,
-     {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY}}};
+     {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY}},
+    {4,
+     "bpf_tail_call",
+     EBPF_RETURN_TYPE_INTEGER_OR_NO_RETURN_IF_SUCCEED,
+     {EBPF_ARGUMENT_TYPE_PTR_TO_CTX, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_OF_PROGRAMS, EBPF_ARGUMENT_TYPE_ANYTHING}}};
 
 static ebpf_result_t
 _encode_bind()

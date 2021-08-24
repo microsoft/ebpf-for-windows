@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #include "api_internal.h"
+#include "bpf.h"
 #pragma warning(push)
 #pragma warning(disable : 4200)
 #include "libbpf.h"
@@ -12,6 +13,21 @@
 // used under the BSD-2-Clause license , so the coding style tries to match the libbpf.c style to
 // minimize diffs until libbpf becomes cross-platform capable.  This is a temporary workaround for
 // issue #351 until we can compile and use libbpf.c directly.
+
+int
+bpf_create_map(enum bpf_map_type map_type, int key_size, int value_size, int max_entries, uint32_t map_flags)
+{
+    if (key_size <= 0 || value_size <= 0 || max_entries <= 0) {
+        return libbpf_err(-EINVAL);
+    }
+
+    fd_t map_fd;
+    ebpf_result_t result = ebpf_create_map(map_type, key_size, value_size, max_entries, map_flags, &map_fd);
+    if (result != EBPF_SUCCESS) {
+        return libbpf_err(-result);
+    }
+    return map_fd;
+}
 
 struct bpf_map*
 bpf_map__next(const struct bpf_map* previous, const struct bpf_object* object)
@@ -28,38 +44,13 @@ bpf_map__prev(const struct bpf_map* next, const struct bpf_object* object)
 int
 bpf_map__unpin(struct bpf_map* map, const char* path)
 {
-    int err;
-
-    if (map == NULL) {
-        return libbpf_err(-EINVAL);
-    }
-
-    err = ebpf_api_unpin_object((const uint8_t*)path, (uint32_t)strlen(path));
-    if (err) {
-        return libbpf_err(err);
-    }
-
-    map->pinned = false;
-
-    return 0;
+    return libbpf_err(-ebpf_map_unpin(map, path));
 }
 
 int
 bpf_map__pin(struct bpf_map* map, const char* path)
 {
-    int err;
-
-    if (map == NULL) {
-        return libbpf_err(-EINVAL);
-    }
-
-    err = ebpf_api_pin_object(map->map_handle, (const uint8_t*)path, (uint32_t)strlen(path));
-    if (err)
-        return libbpf_err(-err);
-
-    map->pinned = true;
-
-    return 0;
+    return libbpf_err(-ebpf_map_pin(map, path));
 }
 
 int
@@ -181,4 +172,53 @@ int
 bpf_map__fd(const struct bpf_map* map)
 {
     return map ? map->map_fd : libbpf_err(-EINVAL);
+}
+
+struct bpf_map*
+bpf_object__find_map_by_name(const struct bpf_object* obj, const char* name)
+{
+    struct bpf_map* pos;
+
+    bpf_object__for_each_map(pos, obj)
+    {
+        if (pos->name && !strcmp(pos->name, name))
+            return pos;
+    }
+    return NULL;
+}
+
+int
+bpf_object__find_map_fd_by_name(const struct bpf_object* obj, const char* name)
+{
+    return bpf_map__fd(bpf_object__find_map_by_name(obj, name));
+}
+
+int
+bpf_map__set_pin_path(struct bpf_map* map, const char* path)
+{
+    return libbpf_err(-ebpf_map_set_pin_path(map, path));
+}
+
+int
+bpf_map_update_elem(int fd, const void* key, const void* value, uint64_t flags)
+{
+    return libbpf_err(-ebpf_map_update_element(fd, key, value, flags));
+}
+
+int
+bpf_map_delete_elem(int fd, const void* key)
+{
+    return libbpf_err(-ebpf_map_delete_element(fd, key));
+}
+
+int
+bpf_map_lookup_elem(int fd, const void* key, void* value)
+{
+    return libbpf_err(-ebpf_map_lookup_element(fd, key, value));
+}
+
+int
+bpf_map_get_next_key(int fd, const void* key, void* next_key)
+{
+    return libbpf_err(-ebpf_map_get_next_key(fd, key, next_key));
 }

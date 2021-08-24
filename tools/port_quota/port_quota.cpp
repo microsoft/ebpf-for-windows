@@ -4,11 +4,14 @@
 #include <iostream>
 #include <string>
 #include <windows.h>
+#include "bpf.h"
 #include "ebpf_api.h"
+#include "libbpf.h"
 
-const unsigned char process_map[] = "port_quota::process_map";
-const unsigned char limits_map[] = "port_quota::limits_map";
-const unsigned char program_link[] = "port_quota::program_link";
+const char* process_map = "port_quota::process_map";
+const char* limits_map = "port_quota::limits_map";
+const char* program_path = "port_quota::program";
+const char* program_link = "port_quota::program_link";
 
 typedef struct _process_entry
 {
@@ -19,48 +22,69 @@ typedef struct _process_entry
 int
 load(int argc, char** argv)
 {
-    ebpf_handle_t program;
-    ebpf_handle_t link;
-    ebpf_handle_t maps[2];
-    uint32_t map_count = _countof(maps);
     const char* error_message = NULL;
-    uint32_t result;
+    ebpf_result_t result;
+    int error;
+    bpf_object* object = nullptr;
+    bpf_program* program = nullptr;
+    bpf_link* link = nullptr;
+    fd_t program_fd;
     UNREFERENCED_PARAMETER(argc);
     UNREFERENCED_PARAMETER(argv);
-    result = ebpf_api_load_program(
-        "bindmonitor.o", "bind", EBPF_EXECUTION_INTERPRET, &program, &map_count, maps, &error_message);
-    if (result != ERROR_SUCCESS) {
+
+    result = ebpf_program_load(
+        "bindmonitor.o", nullptr, nullptr, EBPF_EXECUTION_INTERPRET, &object, &program_fd, &error_message);
+    if (result != EBPF_SUCCESS) {
         fprintf(stderr, "Failed to load port quota eBPF program\n");
         fprintf(stderr, "%s", error_message);
         ebpf_free_string(error_message);
         return 1;
     }
 
-    result = ebpf_api_pin_object(maps[0], process_map, sizeof(process_map));
-    if (result != ERROR_SUCCESS) {
-        fprintf(stderr, "Failed to pin eBPF program: %d\n", result);
-        ebpf_free_string(error_message);
+    fd_t process_map_fd = bpf_object__find_map_fd_by_name(object, "process_map");
+    if (process_map_fd <= 0) {
+        fprintf(stderr, "Failed to find eBPF map : %s\n", process_map);
         return 1;
     }
-    result = ebpf_api_pin_object(maps[1], limits_map, sizeof(limits_map));
-    if (result != ERROR_SUCCESS) {
+    fd_t limits_map_fd = bpf_object__find_map_fd_by_name(object, "limits_map");
+    if (limits_map_fd <= 0) {
+        fprintf(stderr, "Failed to find eBPF map : %s\n", limits_map);
+        return 1;
+    }
+    result = ebpf_object_pin(process_map_fd, process_map);
+    if (result != EBPF_SUCCESS) {
         fprintf(stderr, "Failed to pin eBPF program: %d\n", result);
-        ebpf_free_string(error_message);
+        return 1;
+    }
+    result = ebpf_object_pin(limits_map_fd, limits_map);
+    if (result != EBPF_SUCCESS) {
+        fprintf(stderr, "Failed to pin eBPF program: %d\n", result);
         return 1;
     }
 
-    result = ebpf_api_link_program(program, EBPF_ATTACH_TYPE_BIND, &link);
+    program = bpf_program__next(nullptr, object);
+    if (program == nullptr) {
+        fprintf(stderr, "Failed to find eBPF program from object.\n");
+        return 1;
+    }
+    result = ebpf_program_attach(program, &EBPF_ATTACH_TYPE_BIND, nullptr, 0, &link);
     if (result != ERROR_SUCCESS) {
         fprintf(stderr, "Failed to attach eBPF program\n");
         return 1;
     }
 
-    result = ebpf_api_pin_object(link, program_link, sizeof(program_link));
-    if (result != ERROR_SUCCESS) {
-        fprintf(stderr, "Failed to pin eBPF program: %d\n", result);
-        ebpf_free_string(error_message);
+    error = bpf_link__pin(link, program_link);
+    if (error != ERROR_SUCCESS) {
+        fprintf(stderr, "Failed to pin eBPF link: %d\n", error);
         return 1;
     }
+
+    error = bpf_program__pin(program, program_path);
+    if (error != ERROR_SUCCESS) {
+        fprintf(stderr, "Failed to pin eBPF program: %d\n", error);
+        return 1;
+    }
+
     return 0;
 }
 
@@ -70,45 +94,40 @@ unload(int argc, char** argv)
     UNREFERENCED_PARAMETER(argc);
     UNREFERENCED_PARAMETER(argv);
 
-    ebpf_api_unpin_object(program_link, sizeof(program_link));
-    ebpf_api_unpin_object(limits_map, sizeof(limits_map));
-    ebpf_api_unpin_object(process_map, sizeof(process_map));
+    ebpf_object_unpin(program_path);
+    ebpf_object_unpin(program_link);
+    ebpf_object_unpin(limits_map);
+    ebpf_object_unpin(process_map);
     return 1;
 }
 
 int
 stats(int argc, char** argv)
 {
-    ebpf_handle_t map;
-    uint32_t result;
+    fd_t map_fd;
+    int result;
     uint64_t pid;
     process_entry_t process_entry;
 
     UNREFERENCED_PARAMETER(argc);
     UNREFERENCED_PARAMETER(argv);
-    result = ebpf_api_get_pinned_map(process_map, sizeof(process_map), &map);
-    if (result != ERROR_SUCCESS) {
-        fprintf(stderr, "Failed to look up eBPF map: %d\n", result);
+    map_fd = ebpf_object_get((char*)process_map);
+    if (map_fd == ebpf_fd_invalid) {
+        fprintf(stderr, "Failed to look up eBPF map\n");
         return 1;
     }
 
     printf("Pid\tCount\tAppId\n");
-    result = ebpf_api_get_next_map_key(map, sizeof(uint64_t), nullptr, reinterpret_cast<uint8_t*>(&pid));
-    while (result == ERROR_SUCCESS) {
+    result = bpf_map_get_next_key(map_fd, nullptr, &pid);
+    while (result == EBPF_SUCCESS) {
         memset(&process_entry, 0, sizeof(process_entry));
-        result = ebpf_api_map_find_element(
-            map,
-            sizeof(uint64_t),
-            reinterpret_cast<uint8_t*>(&pid),
-            sizeof(process_entry),
-            reinterpret_cast<uint8_t*>(&process_entry));
-        if (result != ERROR_SUCCESS) {
+        result = bpf_map_lookup_elem(map_fd, &pid, &process_entry);
+        if (result != EBPF_SUCCESS) {
             fprintf(stderr, "Failed to look up eBPF map entry: %d\n", result);
             return 1;
         }
         printf("%lld\t%d\t%S\n", pid, process_entry.count, process_entry.name);
-        result = ebpf_api_get_next_map_key(
-            map, sizeof(uint64_t), reinterpret_cast<uint8_t*>(&pid), reinterpret_cast<uint8_t*>(&pid));
+        result = bpf_map_get_next_key(map_fd, &pid, &pid);
     };
     return 0;
 }
@@ -123,19 +142,18 @@ limit(int argc, char** argv)
     }
     value = atoi(argv[0]);
 
-    ebpf_handle_t map;
+    fd_t map_fd;
     uint32_t result;
     uint32_t key = 0;
 
-    result = ebpf_api_get_pinned_map(limits_map, sizeof(limits_map), &map);
-    if (result != ERROR_SUCCESS) {
-        fprintf(stderr, "Failed to look up eBPF map: %d\n", result);
+    map_fd = ebpf_object_get((char*)limits_map);
+    if (map_fd == ebpf_fd_invalid) {
+        fprintf(stderr, "Failed to look up eBPF map.\n");
         return 1;
     }
 
-    result = ebpf_api_map_update_element(
-        map, sizeof(key), reinterpret_cast<uint8_t*>(&key), sizeof(value), reinterpret_cast<uint8_t*>(&value));
-    if (result != ERROR_SUCCESS) {
+    result = bpf_map_update_elem(map_fd, &key, &value, EBPF_ANY);
+    if (result != EBPF_SUCCESS) {
         fprintf(stderr, "Failed to update eBPF map element: %d\n", result);
         return 1;
     }
@@ -149,10 +167,11 @@ struct
     const char* name;
     const char* help;
     operation_t operation;
-} commands[]{{"load", "load\tLoad the port quota eBPF program", load},
-             {"unload", "unload\tUnload the port quota eBPF program", unload},
-             {"stats", "stats\tShow stats from the port quota eBPF program", stats},
-             {"limit", "limit value\tSet the port quota limit", limit}};
+} commands[]{
+    {"load", "load\tLoad the port quota eBPF program", load},
+    {"unload", "unload\tUnload the port quota eBPF program", unload},
+    {"stats", "stats\tShow stats from the port quota eBPF program", stats},
+    {"limit", "limit value\tSet the port quota limit", limit}};
 
 void
 print_usage(char* path)

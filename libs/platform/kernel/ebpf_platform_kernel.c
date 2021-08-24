@@ -30,7 +30,9 @@ ebpf_platform_initiate()
 
 void
 ebpf_platform_terminate()
-{}
+{
+    KeFlushQueuedDpcs();
+}
 
 __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
     _Post_writable_byte_size_(size) void* ebpf_allocate(size_t size)
@@ -227,11 +229,14 @@ ebpf_interlocked_compare_exchange_int32(_Inout_ volatile int32_t* destination, i
     return InterlockedCompareExchange((long volatile*)destination, exchange, comperand);
 }
 
-void
-ebpf_get_cpu_count(_Out_ uint32_t* cpu_count)
+void*
+ebpf_interlocked_compare_exchange_pointer(
+    _Inout_ void* volatile* destination, _In_opt_ const void* exchange, _In_opt_ const void* comperand)
 {
-    *cpu_count = KeQueryMaximumProcessorCount();
+    return InterlockedCompareExchangePointer((void* volatile*)destination, (void*)exchange, (void*)comperand);
 }
+
+_Ret_range_(>, 0) uint32_t ebpf_get_cpu_count() { return KeQueryMaximumProcessorCount(); }
 
 bool
 ebpf_is_preemptible()
@@ -311,8 +316,8 @@ ebpf_queue_non_preemptible_work_item(_In_ ebpf_non_preemptible_work_item_t* work
 
 typedef struct _ebpf_timer_work_item
 {
-    KTIMER timer;
     KDPC deferred_procedure_call;
+    KTIMER timer;
     void (*work_item_routine)(void* work_item_context);
     void* work_item_context;
 } ebpf_timer_work_item_t;
@@ -443,4 +448,12 @@ ebpf_validate_security_descriptor(
 
 Done:
     return result;
+}
+
+uint32_t
+ebpf_random_uint32()
+{
+    LARGE_INTEGER p = KeQueryPerformanceCounter(NULL);
+    ULONG seed = p.LowPart ^ (DWORD)p.HighPart;
+    return RtlRandomEx(&seed);
 }

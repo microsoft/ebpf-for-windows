@@ -23,21 +23,21 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="test_ext_drv.c">
+    <ClCompile Include="sample_ext_drv.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="test_ext.c">
+    <ClCompile Include="sample_ext.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="test_ext.h">
+    <ClInclude Include="sample_ext.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\inc\test_ext_helpers.h">
+    <ClInclude Include="..\inc\sample_ext_helpers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\inc\test_ext_ioctls.h">
+    <ClInclude Include="..\inc\sample_ext_ioctls.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
