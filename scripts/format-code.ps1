@@ -250,7 +250,7 @@ function check_clang-format()
     # Windows does not have a clang-format-7 executable
 
 
-    $required_cfver='7.0.0'
+    $required_cfver='10.0.01'
 
     try {
        $cfver=(( Invoke-Expression "clang-format --version" 2> $null ) -split " ")[2]

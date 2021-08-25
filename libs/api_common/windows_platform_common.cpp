@@ -29,10 +29,11 @@
 // the preprocessor treat a prefix list as one macro argument.
 #define COMMA ,
 
-const ebpf_context_descriptor_t g_xdp_context_descriptor = {sizeof(xdp_md_t),
-                                                            EBPF_OFFSET_OF(xdp_md_t, data),
-                                                            EBPF_OFFSET_OF(xdp_md_t, data_end),
-                                                            EBPF_OFFSET_OF(xdp_md_t, data_meta)};
+const ebpf_context_descriptor_t g_xdp_context_descriptor = {
+    sizeof(xdp_md_t),
+    EBPF_OFFSET_OF(xdp_md_t, data),
+    EBPF_OFFSET_OF(xdp_md_t, data_end),
+    EBPF_OFFSET_OF(xdp_md_t, data_meta)};
 
 const EbpfProgramType windows_xdp_program_type =
     PTYPE("xdp", &g_xdp_context_descriptor, (uint64_t)&EBPF_PROGRAM_TYPE_XDP, {"xdp"});
@@ -53,10 +54,11 @@ const ebpf_context_descriptor_t g_sample_ext_context_descriptor = {
 const EbpfProgramType windows_sample_ext_program_type =
     PTYPE("sample_ext", &g_sample_ext_context_descriptor, (uint64_t)&EBPF_PROGRAM_TYPE_SAMPLE, {"sample_ext"});
 
-const std::vector<EbpfProgramType> windows_program_types = {PTYPE("unspecified", {0}, 0, {}),
-                                                            windows_xdp_program_type,
-                                                            windows_bind_program_type,
-                                                            windows_sample_ext_program_type};
+const std::vector<EbpfProgramType> windows_program_types = {
+    PTYPE("unspecified", {0}, 0, {}),
+    windows_xdp_program_type,
+    windows_bind_program_type,
+    windows_sample_ext_program_type};
 
 const std::map<ebpf_program_type_t*, ebpf_attach_type_t*> windows_program_type_to_attach_type = {
     {&EBPF_PROGRAM_TYPE_XDP, &EBPF_ATTACH_TYPE_XDP},

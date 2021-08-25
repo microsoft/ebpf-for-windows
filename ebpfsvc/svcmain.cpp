@@ -27,8 +27,8 @@ service_install();
 
 int __cdecl wmain(ULONG argc, PWSTR* argv)
 {
-    SERVICE_TABLE_ENTRY dispatch_table[] = {{(PWSTR)SERVICE_NAME, (LPSERVICE_MAIN_FUNCTION)service_main},
-                                            {nullptr, nullptr}};
+    SERVICE_TABLE_ENTRY dispatch_table[] = {
+        {(PWSTR)SERVICE_NAME, (LPSERVICE_MAIN_FUNCTION)service_main}, {nullptr, nullptr}};
 
     // If command-line parameter is "install", install the service.
     // Otherwise, the service is probably being started by the SCM.

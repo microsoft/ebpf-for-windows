@@ -84,10 +84,11 @@ _encode_xdp()
     ebpf_result_t return_value;
     uint8_t* buffer = NULL;
     unsigned long buffer_size = 0;
-    ebpf_context_descriptor_t xdp_context_descriptor = {sizeof(xdp_md_t),
-                                                        EBPF_OFFSET_OF(xdp_md_t, data),
-                                                        EBPF_OFFSET_OF(xdp_md_t, data_end),
-                                                        EBPF_OFFSET_OF(xdp_md_t, data_meta)};
+    ebpf_context_descriptor_t xdp_context_descriptor = {
+        sizeof(xdp_md_t),
+        EBPF_OFFSET_OF(xdp_md_t, data),
+        EBPF_OFFSET_OF(xdp_md_t, data_end),
+        EBPF_OFFSET_OF(xdp_md_t, data_meta)};
     ebpf_program_type_descriptor_t xdp_program_type = {"xdp", &xdp_context_descriptor, EBPF_PROGRAM_TYPE_XDP};
     ebpf_program_info_t xdp_program_info = {
         xdp_program_type, EBPF_COUNT_OF(_ebpf_helper_function_prototype), _ebpf_helper_function_prototype};

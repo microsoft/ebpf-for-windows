@@ -34,8 +34,9 @@ allocate_string(const std::string& string, uint32_t* length) noexcept
 std::vector<uint8_t>
 convert_ebpf_program_to_bytes(const std::vector<ebpf_inst>& instructions)
 {
-    return {reinterpret_cast<const uint8_t*>(instructions.data()),
-            reinterpret_cast<const uint8_t*>(instructions.data()) + instructions.size() * sizeof(ebpf_inst)};
+    return {
+        reinterpret_cast<const uint8_t*>(instructions.data()),
+        reinterpret_cast<const uint8_t*>(instructions.data()) + instructions.size() * sizeof(ebpf_inst)};
 }
 
 int
