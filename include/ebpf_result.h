@@ -94,7 +94,7 @@ extern "C"
 
         // The requested key is already present.
         EBPF_KEY_ALREADY_EXISTS,
-        
+
         /// Caller has reached tail call limit.
         EBPF_NO_MORE_TAIL_CALLS,
     } ebpf_result_t;

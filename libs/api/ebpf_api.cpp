@@ -1072,9 +1072,10 @@ ebpf_get_next_program(fd_t previous_fd, _Out_ fd_t* next_fd)
     *next_fd = ebpf_fd_invalid;
 
     ebpf_handle_t previous_handle = _get_handle_from_fd(local_fd);
-    ebpf_operation_get_next_program_request_t request{sizeof(request),
-                                                      ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_PROGRAM,
-                                                      reinterpret_cast<uint64_t>(previous_handle)};
+    ebpf_operation_get_next_program_request_t request{
+        sizeof(request),
+        ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_PROGRAM,
+        reinterpret_cast<uint64_t>(previous_handle)};
 
     ebpf_operation_get_next_program_reply_t reply;
 
@@ -1171,10 +1172,11 @@ ebpf_program_query_info(
 uint32_t
 ebpf_api_link_program(ebpf_handle_t program_handle, ebpf_attach_type_t attach_type, ebpf_handle_t* link_handle)
 {
-    ebpf_operation_link_program_request_t request = {EBPF_OFFSET_OF(ebpf_operation_link_program_request_t, data),
-                                                     EBPF_OPERATION_LINK_PROGRAM,
-                                                     reinterpret_cast<uint64_t>(program_handle),
-                                                     attach_type};
+    ebpf_operation_link_program_request_t request = {
+        EBPF_OFFSET_OF(ebpf_operation_link_program_request_t, data),
+        EBPF_OPERATION_LINK_PROGRAM,
+        reinterpret_cast<uint64_t>(program_handle),
+        attach_type};
     ebpf_operation_link_program_reply_t reply;
 
     uint32_t retval = invoke_ioctl(request, reply);

@@ -74,10 +74,13 @@ TEST_CASE("hash_table_test", "[platform]")
 
     // Insert first
     REQUIRE(
-        ebpf_hash_table_update(table, key_1.data(), data_1.data(), nullptr, EBPF_HASH_TABLE_OPERATION_INSERT) == EBPF_SUCCESS);
+        ebpf_hash_table_update(table, key_1.data(), data_1.data(), nullptr, EBPF_HASH_TABLE_OPERATION_INSERT) ==
+        EBPF_SUCCESS);
 
     // Insert second
-    REQUIRE(ebpf_hash_table_update(table, key_2.data(), data_2.data(), nullptr, EBPF_HASH_TABLE_OPERATION_ANY) == EBPF_SUCCESS);
+    REQUIRE(
+        ebpf_hash_table_update(table, key_2.data(), data_2.data(), nullptr, EBPF_HASH_TABLE_OPERATION_ANY) ==
+        EBPF_SUCCESS);
 
     // Find the first
     REQUIRE(ebpf_hash_table_find(table, key_1.data(), &returned_value) == EBPF_SUCCESS);
@@ -90,7 +93,8 @@ TEST_CASE("hash_table_test", "[platform]")
     // Replace
     memset(data_1.data(), '0x55', data_1.size());
     REQUIRE(
-        ebpf_hash_table_update(table, key_1.data(), data_1.data(), nullptr, EBPF_HASH_TABLE_OPERATION_REPLACE) == EBPF_SUCCESS);
+        ebpf_hash_table_update(table, key_1.data(), data_1.data(), nullptr, EBPF_HASH_TABLE_OPERATION_REPLACE) ==
+        EBPF_SUCCESS);
 
     // Find the first
     REQUIRE(ebpf_hash_table_find(table, key_1.data(), &returned_value) == EBPF_SUCCESS);
@@ -346,8 +350,8 @@ TEST_CASE("trampoline_test", "[platform]")
     auto provider_function2 = []() { return EBPF_OBJECT_ALREADY_EXISTS; };
     ebpf_result_t (*function_pointer2)() = provider_function2;
     const void* helper_functions2[] = {(void*)function_pointer2};
-    ebpf_helper_function_addresses_t helper_function_addresses2 = {EBPF_COUNT_OF(helper_functions1),
-                                                                   (uint64_t*)helper_functions2};
+    ebpf_helper_function_addresses_t helper_function_addresses2 = {
+        EBPF_COUNT_OF(helper_functions1), (uint64_t*)helper_functions2};
 
     REQUIRE(ebpf_allocate_trampoline_table(1, &table) == EBPF_SUCCESS);
     REQUIRE(
@@ -396,10 +400,11 @@ TEST_CASE("program_type_info", "[platform]")
 {
     _test_helper test_helper;
 
-    ebpf_context_descriptor_t context_descriptor{sizeof(xdp_md_t),
-                                                 EBPF_OFFSET_OF(xdp_md_t, data),
-                                                 EBPF_OFFSET_OF(xdp_md_t, data_end),
-                                                 EBPF_OFFSET_OF(xdp_md_t, data_meta)};
+    ebpf_context_descriptor_t context_descriptor{
+        sizeof(xdp_md_t),
+        EBPF_OFFSET_OF(xdp_md_t, data),
+        EBPF_OFFSET_OF(xdp_md_t, data_end),
+        EBPF_OFFSET_OF(xdp_md_t, data_meta)};
     ebpf_program_type_descriptor_t program_type{"xdp", &context_descriptor};
     ebpf_program_info_t program_info{program_type, _countof(_helper_functions), _helper_functions};
     ebpf_program_info_t* new_program_info = nullptr;

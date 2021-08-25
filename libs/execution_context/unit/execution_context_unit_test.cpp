@@ -193,8 +193,8 @@ TEST_CASE("program", "[execution_context]")
     ebpf_result_t (*function_pointer1)() = provider_function1;
     uint32_t test_function_ids[] = {(EBPF_MAX_GENERAL_HELPER_FUNCTION + 1)};
     const void* helper_functions[] = {(void*)function_pointer1};
-    ebpf_helper_function_addresses_t helper_function_addresses = {EBPF_COUNT_OF(helper_functions),
-                                                                  (uint64_t*)helper_functions};
+    ebpf_helper_function_addresses_t helper_function_addresses = {
+        EBPF_COUNT_OF(helper_functions), (uint64_t*)helper_functions};
 
     REQUIRE(ebpf_allocate_trampoline_table(1, &table) == EBPF_SUCCESS);
     REQUIRE(

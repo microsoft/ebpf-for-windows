@@ -21,11 +21,12 @@ typedef unsigned char uint8_t;
 #include "ebpf_helpers.h"
 
 #pragma clang section data = "maps"
-ebpf_map_definition_t test_map = {.size = sizeof(ebpf_map_definition_t),
-                                  .type = BPF_MAP_TYPE_HASH,
-                                  .key_size = sizeof(uint64_t),
-                                  .value_size = sizeof(uint64_t),
-                                  .max_entries = 1};
+ebpf_map_definition_t test_map = {
+    .size = sizeof(ebpf_map_definition_t),
+    .type = BPF_MAP_TYPE_HASH,
+    .key_size = sizeof(uint64_t),
+    .value_size = sizeof(uint64_t),
+    .max_entries = 1};
 
 #pragma clang section text = "bind"
 int
