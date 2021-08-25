@@ -251,16 +251,16 @@ typedef struct _net_ebpf_ext_wfp_callout_state
 } net_ebpf_ext_wfp_callout_state_t;
 
 static net_ebpf_ext_wfp_callout_state_t _net_ebpf_ext_wfp_callout_state[] = {
-    {
-        &EBPF_HOOK_L2_CALLOUT,
-        &FWPM_LAYER_INBOUND_MAC_FRAME_ETHERNET,
-        _net_ebpf_ext_layer_2_classify,
-        _net_ebpf_ext_no_op_notify,
-        _net_ebpf_ext_no_op_flow_delete,
-        L"L2 XDP Callout",
-        L"L2 callout driver for eBPF at XDP-like layer",
-        FWP_ACTION_CALLOUT_TERMINATING,
-    },
+    // {
+    //     &EBPF_HOOK_L2_CALLOUT,
+    //     &FWPM_LAYER_INBOUND_MAC_FRAME_ETHERNET,
+    //     _net_ebpf_ext_layer_2_classify,
+    //     _net_ebpf_ext_no_op_notify,
+    //     _net_ebpf_ext_no_op_flow_delete,
+    //     L"L2 XDP Callout",
+    //     L"L2 callout driver for eBPF at XDP-like layer",
+    //     FWP_ACTION_CALLOUT_TERMINATING,
+    // },
     {
         &EBPF_HOOK_ALE_RESOURCE_ALLOCATION_CALLOUT,
         &FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V4,
@@ -1218,7 +1218,7 @@ net_ebpf_ext_register_providers()
     return_value = ebpf_ext_attach_register_provider(
         &EBPF_PROGRAM_TYPE_FLOW,
         &EBPF_ATTACH_TYPE_FLOW,
-        EBPF_EXT_HOOK_EXECUTION_PASSIVE,
+        EBPF_EXT_HOOK_EXECUTION_DISPATCH,
         &_ebpf_flow_hook_provider_registration);
 
     if (return_value != EBPF_SUCCESS) {
