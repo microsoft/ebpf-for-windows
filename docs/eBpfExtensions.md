@@ -102,7 +102,7 @@ If any of the data or metadata pointer fields are not present on the context str
 
 #### `ebpf_helper_function_prototype_t` Struct
 This structure is used to describe the prototypes of the various helper functions implemented by the extension.
-* `helper_id`: Integer signifying the helper function ID. (See section 3.3).
+* `helper_id`: Integer signifying the helper function ID. (See section 2.6).
 Helper function IDs for different program types need not be unique.
 * `name`: Helper function name.
 * `return_type`: Set the appropriate value for the `ebpf_return_type_t` enum that represents the return type of the helper function.
@@ -187,7 +187,7 @@ invoke_program = (ebpf_invoke_program_function_t)client_dispatch_table->function
 When an extension invokes this function pointer, then the call flows through the eBPF Execution Context and eventually invokes the eBPF program.
 When invoking an eBPF program, the extension must supply the client binding context it obtained from the Hook NPI client as the `client_binding_context` parameter. For the second parameter `context`, it must pass the program type specific context data structure. Note that the Program Information NPI provider supplies the context descriptor (using the `ebpf_context_descriptor_t` type) to the eBPF verifier and JIT-compiler via the NPI client hosted by the Execution Context. The `result` output parameter holds the return value from the eBPF program post execution.
 
-### 3.3 Authoring Helper Functions
+### 2.6 Authoring Helper Functions
 An extension can provide an implementation of helper functions that can be invoked by the eBPF programs. The helper functions can be of two types:
 1. Program-Type specific: These helper functions can only be invoked by eBPF programs of a given program type. Usually, an extension may provide implementations for hooks of certain program types and provide helper functions that are associated with those helper functions. The Program Information NPI provider must then provide the prototypes and addresses for those functions. For these type of helpers, the helper function Id must be greater that 65535 (0xFFFF) for program type specific helper functions.
 2. General: The general helper functions can be invoked by eBPF programs of all types. Examples of this type of helper functions are the eBPF Map helper functions. These helper functions are implemented by the eBPF Execution Context itself. However, if a program type so chooses, it may provide implementations for general helper functions. For that the extension would have to provide another Program Information NPI provider, which *does not* provide any program context descriptor. Instead, it only supplies the prototypes and addresses of the general helper functions. The NPI ID of this module defined as:
@@ -202,9 +202,9 @@ The helper function ID for a general helper function must be in the range 0 - 65
 
 The parameter and return types for these helper functions must adhere to the `ebpf_argument_type_t` and `ebpf_return_type_t` enums.
 
-### 3.4 Registering Program Types and Attach Types
+### 2.7 Registering Program Types and Attach Types
 The eBPF Execution Context loads an eBPF program from an ELF file that has program section(s) with section names. The prefix to these names determines the program type. For example, the section name `"xdp"` implies that the corresponding program type is `EBPF_PROGRAM_TYPE_XDP`. The Execution Context discovers the program type associated with a section prefix by reading the data from Windows registry. When an eBPF extension is installed, it must update the registry with the program types it implements along with the associated section prefixes.
 Note: The registry location and data format are TBD. This is currently tracked by issue #223.
 
-### 3.5 eBPF Sample Driver
+### 2.8 eBPF Sample Driver
 The eBPF for Windows project provides a [sample extension driver](https://github.com/microsoft/ebpf-for-windows/tree/8f46b4020f79c32f994d3a59671ce8782e4b4cf0/tests/sample/ext) as an example for how to implement an extension. This simple extension exposes a new program type, and implements a hook for it with a single attach type. It implements simple NPI provider modules for the two NPIs. It also implements three program-type specific helper functions.
