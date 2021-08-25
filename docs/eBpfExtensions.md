@@ -68,7 +68,7 @@ The various fields of this structure should be set as follows:
 * `name`: Friendly name of the program type.
 * `context_descriptor`: Pointer of type `ebpf_context_descriptor_t`.
 * `program_type`: GUID for the program type. This should be the same as the `NpiId` in `NPI_REGISTRATION_INSTANCE` as noted above.
-* `is_privileged`: This Boolean field should be set to `TRUE` if this is a privileged program type, `FALSE` otherwise.
+* `is_privileged`: Set to `FALSE`.
 
 #### `ebpf_context_descriptor_t` Struct
 This structure (as the name signifies) provides a description of the context parameter that a hook passes when
