@@ -102,7 +102,7 @@ If any of the data or metadata pointer fields are not present on the context str
 
 #### `ebpf_helper_function_prototype_t` Struct
 This structure is used to describe the prototypes of the various helper functions implemented by the extension.
-* `helper_id`: Integer signifying the helper function ID. (See section 3.3).
+* `helper_id`: Integer signifying the helper function ID. (See section 2.6).
 Helper function IDs for different program types need not be unique.
 * `name`: Helper function name.
 * `return_type`: Set the appropriate value for the `ebpf_return_type_t` enum that represents the return type of the helper function.
