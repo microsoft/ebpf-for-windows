@@ -269,13 +269,15 @@ ebpf_epoch_exit()
         _ebpf_epoch_cpu_table[current_cpu].non_preemptible_epoch = _ebpf_current_epoch;
     }
 
+    // First reap the free list.
+    if (!ebpf_list_is_empty(&_ebpf_epoch_cpu_table[current_cpu].free_list)) {
+        _ebpf_epoch_release_free_list(&_ebpf_epoch_cpu_table[current_cpu], _ebpf_release_epoch);
+    }
+
+    // If there are still items in the free list, schedule a timer to reap them in the future.
     if (!ebpf_list_is_empty(&_ebpf_epoch_cpu_table[current_cpu].free_list) &&
         (ebpf_interlocked_compare_exchange_int32(&_ebpf_flush_timer_set, 1, 0) == 0)) {
         ebpf_schedule_timer_work_item(_ebpf_flush_timer, EBPF_EPOCH_FLUSH_DELAY_IN_MICROSECONDS);
-    }
-
-    if (!ebpf_list_is_empty(&_ebpf_epoch_cpu_table[current_cpu].free_list)) {
-        _ebpf_epoch_release_free_list(&_ebpf_epoch_cpu_table[current_cpu], _ebpf_release_epoch);
     }
 }
 
@@ -288,7 +290,7 @@ ebpf_epoch_flush()
 
     return_value = _ebpf_epoch_get_release_epoch(&released_epoch);
     if (return_value == EBPF_SUCCESS) {
-        _ebpf_release_epoch = released_epoch, _ebpf_current_epoch;
+        _ebpf_release_epoch = released_epoch;
     }
 
     if (ebpf_is_non_preemptible_work_item_supported()) {
@@ -463,11 +465,11 @@ _ebpf_epoch_release_free_list(_In_ ebpf_epoch_cpu_entry_t* cpu_entry, int64_t re
 static ebpf_result_t
 _ebpf_epoch_get_release_epoch(_Out_ int64_t* release_epoch)
 {
-    // Grab an authoritative version of _ebpf_current_epoch.
+    // Grab an non-authoritative version of _ebpf_current_epoch.
     // Note: If there are no active threads or non-preemptible work items then we need to assign
     // an epoch that is guaranteed to be older than any thread that starts after this point.
-    // Grabbing the current epoch guarantees that.
-    int64_t lowest_epoch = ebpf_interlocked_increment_int64(&_ebpf_current_epoch);
+    // Grabbing the current epoch guarantees that, even if we have a stale value of _ebpf_current_epoch.
+    int64_t lowest_epoch = _ebpf_current_epoch;
     uint32_t cpu_id;
     ebpf_lock_state_t lock_state;
     ebpf_result_t return_value;
