@@ -16,7 +16,7 @@
 // Non-preemptible invocations behavior:
 // 1) During ebpf_epoch_enter and ebpf_epoch_exit the value of _ebpf_current_epoch is captured in the
 // _ebpf_epoch_cpu_table[cpu_id].non_preemptible_epoch field.
-// 2) This field is read/written with out explicit synchronization and can be old.
+// 2) This field is read/written without explicit synchronization and can be old.
 // 3) _ebpf_epoch_update_cpu_entry periodically updates this on idle CPUs.
 //
 // Preemptible invocations behavior:
@@ -79,25 +79,21 @@ static uint32_t _ebpf_epoch_cpu_count = 0;
 /**
  * @brief _ebpf_current_epoch indicates the newest active epoch. All memory free
  * operations were performed prior to this value.
- *
  */
 static volatile int64_t _ebpf_current_epoch = 1;
 /**
  * @brief _ebpf_release_epoch indicates the newest inactive epoch. All memory
  * free operations performed prior to this value can be safely deleted.
- *
  */
 static volatile int64_t _ebpf_release_epoch = 0;
 
 /**
  * @brief Flag to indicate that eBPF epoch tracker is shutting down.
- *
  */
 static bool _ebpf_epoch_rundown = false;
 
 /**
  * @brief Timer used to update _ebpf_release_epoch.
- *
  */
 static ebpf_timer_work_item_t* _ebpf_flush_timer = NULL;
 static volatile int32_t _ebpf_flush_timer_set = 0;
@@ -133,7 +129,7 @@ typedef struct _ebpf_epoch_work_item
 static bool _ebpf_epoch_initiated = false;
 
 static void
-_ebpf_epoch_release_free_list(ebpf_epoch_cpu_entry_t* cpu_entry, int64_t released_epoch);
+_ebpf_epoch_release_free_list(_In_ ebpf_epoch_cpu_entry_t* cpu_entry, int64_t released_epoch);
 
 static ebpf_result_t
 _ebpf_epoch_get_release_epoch(_Out_ int64_t* released_epoch);
@@ -321,7 +317,7 @@ ebpf_epoch_allocate(size_t size)
 }
 
 void
-ebpf_epoch_free(_In_ void* memory)
+ebpf_epoch_free(_Frees_ptr_opt_ void* memory)
 {
     ebpf_epoch_allocation_header_t* header = (ebpf_epoch_allocation_header_t*)memory;
     ebpf_lock_state_t lock_state;
@@ -390,12 +386,15 @@ ebpf_epoch_schedule_work_item(_In_ ebpf_epoch_work_item_t* work_item)
 }
 
 void
-ebpf_epoch_free_work_item(_In_ ebpf_epoch_work_item_t* work_item)
+ebpf_epoch_free_work_item(_Frees_ptr_opt_ ebpf_epoch_work_item_t* work_item)
 {
     ebpf_lock_state_t lock_state;
     uint32_t current_cpu;
     current_cpu = ebpf_get_current_cpu();
     if (current_cpu >= _ebpf_epoch_cpu_count) {
+        return;
+    }
+    if (!work_item) {
         return;
     }
 
@@ -412,7 +411,7 @@ ebpf_epoch_free_work_item(_In_ ebpf_epoch_work_item_t* work_item)
  * @param[in] released_epoch The epoch to release.
  */
 static void
-_ebpf_epoch_release_free_list(ebpf_epoch_cpu_entry_t* cpu_entry, int64_t released_epoch)
+_ebpf_epoch_release_free_list(_In_ ebpf_epoch_cpu_entry_t* cpu_entry, int64_t released_epoch)
 {
     ebpf_lock_state_t lock_state;
     ebpf_list_entry_t* entry;
@@ -540,7 +539,7 @@ _ebpf_epoch_get_release_epoch(_Out_ int64_t* release_epoch)
     }
 
     // Gather the lowest epoch from threads that are actively running.
-    // Thread is active if and only if entry_epoch > exit_epoch.
+    // A thread is active if and only if entry_epoch > exit_epoch.
     uintptr_t thread_id = 0;
     while (return_value == EBPF_SUCCESS) {
         ebpf_epoch_thread_entry_t* thread_entry = NULL;
