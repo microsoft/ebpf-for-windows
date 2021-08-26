@@ -88,13 +88,6 @@ typedef struct _five_tuple
     uint8_t protocol;
 } five_tuple_t;
 
-// App Id Struct
-typedef struct _app_name
-{
-    uint8_t name[64];
-} app_name_t;
-
-
 //Flow Established Hook
 typedef struct _flow_md
 {
@@ -110,8 +103,7 @@ flow_hook_t(flow_md_t* context);
 //MAC Hook
 typedef struct _mac_md
 {
-    void* data;             ///< Pointer to start of packet data.
-    void* data_end;         ///< Pointer to end of packet data.
+    five_tuple_t five_tuple;
     uint64_t packet_length;
     bool v4;
 } mac_md_t;

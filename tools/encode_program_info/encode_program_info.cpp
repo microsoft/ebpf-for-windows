@@ -145,7 +145,7 @@ _encode_mac()
     uint8_t* buffer = NULL;
     unsigned long buffer_size = 0;
     ebpf_context_descriptor_t mac_context_descriptor = {
-        sizeof(mac_md_t), EBPF_OFFSET_OF(mac_md_t, data), EBPF_OFFSET_OF(mac_md_t, data_end), -1};
+        sizeof(mac_md_t), -1, -1, -1};
     ebpf_program_type_descriptor_t mac_program_type = {"mac", &mac_context_descriptor, EBPF_PROGRAM_TYPE_MAC};
     ebpf_program_info_t mac_program_info = {
         mac_program_type, EBPF_COUNT_OF(_ebpf_helper_function_prototype), _ebpf_helper_function_prototype};
