@@ -213,6 +213,18 @@ ebpf_random_uint32()
     return mt();
 }
 
+uint64_t
+ebpf_query_interrupt_time_precise()
+{
+    uint64_t interrupt_time;
+    // QueryInterruptTimePrecise returns A pointer to a ULONGLONG in which to receive the interrupt-time count in system
+    // time units of 100 nanoseconds.
+    // https://docs.microsoft.com/en-us/windows/win32/api/realtimeapiset/nf-realtimeapiset-queryinterrupttimeprecise.
+    QueryInterruptTimePrecise(&interrupt_time);
+
+    return interrupt_time;
+}
+
 _Ret_range_(>, 0) uint32_t ebpf_get_cpu_count()
 {
     SYSTEM_INFO system_info;
