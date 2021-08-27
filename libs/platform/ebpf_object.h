@@ -4,6 +4,7 @@
 #pragma once
 
 #include "ebpf_platform.h"
+#include "ebpf_structs.h"
 #include "framework.h"
 
 #ifdef __cplusplus
@@ -32,8 +33,8 @@ extern "C"
         ebpf_object_type_t type;
         ebpf_free_object_t free_function;
         ebpf_object_get_program_type_t get_program_type;
-        // Used to insert object in the global tracking list.
-        ebpf_list_entry_t global_list_entry;
+        // ID for this object.
+        ebpf_id_t id;
         // Used to insert object in an object specific list.
         ebpf_list_entry_t object_list_entry;
     } ebpf_object_t;
@@ -61,8 +62,10 @@ extern "C"
      * @param[in] get_program_type_function The function used to get a program type, or NULL.  Each program
      * has a program type, and hence so do maps that can contain programs, whether directly (like
      * BPF_MAP_TYPE_PROG_ARRAY) or indirectly (like BPF_MAP_TYPE_ARRAY_OF_MAPS containing a BPF_MAP_TYPE_PROG_ARRAY).
+     * @retval EBPF_SUCCESS Initialization succeeded.
+     * @retval EBPF_NO_MEMORY Could not insert into the tracking table.
      */
-    void
+    ebpf_result_t
     ebpf_object_initialize(
         ebpf_object_t* object,
         ebpf_object_type_t object_type,
@@ -108,6 +111,30 @@ extern "C"
     void
     ebpf_object_reference_next_object(
         ebpf_object_t* previous_object, ebpf_object_type_t type, ebpf_object_t** next_object);
+
+    /**
+     * @brief Find an ID in the ID table, verify the type matches,
+     *  acquire a reference to the object and return it.
+     *
+     * @param[in] id ID to find in table.
+     * @param[in] object_type Object type to match.
+     * @param[out] object Pointer to memory that contains object success.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_KEY_NOT_FOUND The provided ID is not valid.
+     */
+    ebpf_result_t
+    ebpf_reference_object_by_id(ebpf_id_t id, ebpf_object_type_t object_type, _Outptr_ ebpf_object_t** object);
+
+    /**
+     * @brief Find the next ID of a given type greater than a given ID.
+     *
+     * @param[in] start_id ID to look for an ID after.  The start_id
+     * need not exist.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MORE_KEYS No such IDs found.
+     */
+    ebpf_result_t
+    ebpf_get_next_id(ebpf_id_t start_id, ebpf_object_type_t object_type, _Out_ ebpf_id_t* next_id);
 
 #ifdef __cplusplus
 }

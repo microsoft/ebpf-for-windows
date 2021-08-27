@@ -312,11 +312,14 @@ ebpf_program_create(ebpf_program_t** program)
         goto Done;
     }
 
+    retval = ebpf_object_initialize(
+        &local_program->object, EBPF_OBJECT_PROGRAM, _ebpf_program_free, _ebpf_program_get_program_type);
+    if (retval != EBPF_SUCCESS) {
+        goto Done;
+    }
+
     ebpf_list_initialize(&local_program->links);
     ebpf_lock_create(&local_program->links_lock);
-
-    ebpf_object_initialize(
-        &local_program->object, EBPF_OBJECT_PROGRAM, _ebpf_program_free, _ebpf_program_get_program_type);
 
     *program = local_program;
     local_program = NULL;

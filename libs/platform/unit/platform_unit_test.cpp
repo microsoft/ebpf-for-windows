@@ -220,10 +220,12 @@ TEST_CASE("pinning_test", "[platform]")
     ebpf_utf8_string_t foo = EBPF_UTF8_STRING_FROM_CONST_STRING("foo");
     ebpf_utf8_string_t bar = EBPF_UTF8_STRING_FROM_CONST_STRING("bar");
 
-    ebpf_object_initialize(
-        &an_object.object, EBPF_OBJECT_MAP, [](ebpf_object_t*) {}, NULL);
-    ebpf_object_initialize(
-        &another_object.object, EBPF_OBJECT_MAP, [](ebpf_object_t*) {}, NULL);
+    REQUIRE(
+        ebpf_object_initialize(
+            &an_object.object, EBPF_OBJECT_MAP, [](ebpf_object_t*) {}, NULL) == EBPF_SUCCESS);
+    REQUIRE(
+        ebpf_object_initialize(
+            &another_object.object, EBPF_OBJECT_MAP, [](ebpf_object_t*) {}, NULL) == EBPF_SUCCESS);
 
     ebpf_pinning_table_t* pinning_table = nullptr;
     REQUIRE(ebpf_pinning_table_allocate(&pinning_table) == EBPF_SUCCESS);

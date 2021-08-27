@@ -979,6 +979,98 @@ Exit:
     return result;
 }
 
+static ebpf_result_t
+_get_handle_by_id(
+    ebpf_object_type_t type,
+    _In_ const ebpf_operation_get_handle_by_id_request_t* request,
+    _Out_ ebpf_operation_get_handle_by_id_reply_t* reply,
+    uint16_t reply_length)
+{
+    if (reply_length < sizeof(*reply)) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+    ebpf_object_t* object;
+    ebpf_result_t result = ebpf_reference_object_by_id(request->id, type, &object);
+    if (result != EBPF_SUCCESS) {
+        return result;
+    }
+
+    reply->header.length = sizeof(reply->header);
+
+    result = ebpf_handle_create(&reply->handle, object);
+    ebpf_object_release_reference(object);
+
+    return result;
+}
+
+static ebpf_result_t
+_ebpf_core_protocol_get_map_handle_by_id(
+    _In_ const ebpf_operation_get_handle_by_id_request_t* request,
+    _Out_ ebpf_operation_get_handle_by_id_reply_t* reply,
+    uint16_t reply_length)
+{
+    return _get_handle_by_id(EBPF_OBJECT_MAP, request, reply, reply_length);
+}
+
+static ebpf_result_t
+_ebpf_core_protocol_get_program_handle_by_id(
+    _In_ const ebpf_operation_get_handle_by_id_request_t* request,
+    _Out_ ebpf_operation_get_handle_by_id_reply_t* reply,
+    uint16_t reply_length)
+{
+    return _get_handle_by_id(EBPF_OBJECT_PROGRAM, request, reply, reply_length);
+}
+
+static ebpf_result_t
+_ebpf_core_protocol_get_link_handle_by_id(
+    _In_ const ebpf_operation_get_handle_by_id_request_t* request,
+    _Out_ ebpf_operation_get_handle_by_id_reply_t* reply,
+    uint16_t reply_length)
+{
+    return _get_handle_by_id(EBPF_OBJECT_LINK, request, reply, reply_length);
+}
+
+static ebpf_result_t
+_get_next_id(
+    ebpf_object_type_t type,
+    _In_ const ebpf_operation_get_next_id_request_t* request,
+    _Out_ ebpf_operation_get_next_id_reply_t* reply,
+    uint16_t reply_length)
+{
+    if (reply_length < sizeof(*reply)) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    return ebpf_get_next_id(request->start_id, type, &reply->next_id);
+}
+
+static ebpf_result_t
+_ebpf_core_protocol_get_next_link_id(
+    _In_ const ebpf_operation_get_next_id_request_t* request,
+    _Out_ ebpf_operation_get_next_id_reply_t* reply,
+    uint16_t reply_length)
+{
+    return _get_next_id(EBPF_OBJECT_LINK, request, reply, reply_length);
+}
+
+static ebpf_result_t
+_ebpf_core_protocol_get_next_map_id(
+    _In_ const ebpf_operation_get_next_id_request_t* request,
+    _Out_ ebpf_operation_get_next_id_reply_t* reply,
+    uint16_t reply_length)
+{
+    return _get_next_id(EBPF_OBJECT_MAP, request, reply, reply_length);
+}
+
+static ebpf_result_t
+_ebpf_core_protocol_get_next_program_id(
+    _In_ const ebpf_operation_get_next_id_request_t* request,
+    _Out_ ebpf_operation_get_next_id_reply_t* reply,
+    uint16_t reply_length)
+{
+    return _get_next_id(EBPF_OBJECT_PROGRAM, request, reply, reply_length);
+}
+
 static void*
 _ebpf_core_map_find_element(ebpf_map_t* map, const uint8_t* key)
 {
@@ -1153,7 +1245,38 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
     // EBPF_OPERATION_GET_MAP_INFO
     {(ebpf_result_t(__cdecl*)(const void*))_ebpf_core_protocol_get_map_info,
      sizeof(ebpf_operation_get_map_info_request_t),
-     EBPF_OFFSET_OF(ebpf_operation_get_map_info_reply_t, data)}};
+     EBPF_OFFSET_OF(ebpf_operation_get_map_info_reply_t, data)},
+
+    // EBPF_OPERATION_GET_LINK_HANDLE_BY_ID
+    {(ebpf_result_t(__cdecl*)(const void*))_ebpf_core_protocol_get_link_handle_by_id,
+     sizeof(ebpf_operation_get_handle_by_id_request_t),
+     sizeof(ebpf_operation_get_handle_by_id_reply_t)},
+
+    // EBPF_OPERATION_GET_MAP_HANDLE_BY_ID
+    {(ebpf_result_t(__cdecl*)(const void*))_ebpf_core_protocol_get_map_handle_by_id,
+     sizeof(ebpf_operation_get_handle_by_id_request_t),
+     sizeof(ebpf_operation_get_handle_by_id_reply_t)},
+
+    // EBPF_OPERATION_GET_PROGRAM_HANDLE_BY_ID
+    {(ebpf_result_t(__cdecl*)(const void*))_ebpf_core_protocol_get_program_handle_by_id,
+     sizeof(ebpf_operation_get_handle_by_id_request_t),
+     sizeof(ebpf_operation_get_handle_by_id_reply_t)},
+
+    // EBPF_OPERATION_GET_NEXT_LINK_ID
+    {(ebpf_result_t(__cdecl*)(const void*))_ebpf_core_protocol_get_next_link_id,
+     sizeof(ebpf_operation_get_next_id_request_t),
+     sizeof(ebpf_operation_get_next_id_reply_t)},
+
+    // EBPF_OPERATION_GET_NEXT_MAP_ID
+    {(ebpf_result_t(__cdecl*)(const void*))_ebpf_core_protocol_get_next_map_id,
+     sizeof(ebpf_operation_get_next_id_request_t),
+     sizeof(ebpf_operation_get_next_id_reply_t)},
+
+    // EBPF_OPERATION_GET_NEXT_PROGRAM_ID
+    {(ebpf_result_t(__cdecl*)(const void*))_ebpf_core_protocol_get_next_program_id,
+     sizeof(ebpf_operation_get_next_id_request_t),
+     sizeof(ebpf_operation_get_next_id_reply_t)},
+};
 
 ebpf_result_t
 ebpf_core_get_protocol_handler_properties(

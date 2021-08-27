@@ -323,7 +323,7 @@ _get_map_descriptor_properties(
         // Map is not present in the local cache. Query map descriptor from EC.
         uint32_t size;
         uint32_t max_entries;
-        uint32_t inner_map_id;
+        ebpf_id_t inner_map_id;
         result = query_map_definition(handle, &size, type, key_size, value_size, &max_entries, &inner_map_id);
         if (result != EBPF_SUCCESS) {
             goto Exit;
@@ -1092,7 +1092,7 @@ ebpf_map_query_definition(
     _Out_ uint32_t* key_size,
     _Out_ uint32_t* value_size,
     _Out_ uint32_t* max_entries,
-    _Out_ uint32_t* inner_map_id)
+    _Out_ ebpf_id_t* inner_map_id)
 {
     ebpf_handle_t map_handle = _get_handle_from_fd(fd);
     if (map_handle == ebpf_handle_invalid) {
@@ -1947,4 +1947,72 @@ ebpf_object_close(_In_ _Post_invalid_ struct bpf_object* object)
 
     _remove_ebpf_object_from_globals(object);
     _clean_up_ebpf_object(object);
+}
+
+static ebpf_result_t
+_get_fd_by_id(ebpf_operation_id_t operation, ebpf_id_t id, _Out_ int* fd) noexcept
+{
+    _ebpf_operation_get_handle_by_id_request request{sizeof(request), operation, id};
+    _ebpf_operation_get_handle_by_id_reply reply;
+
+    uint32_t error = invoke_ioctl(request, reply);
+    ebpf_result_t result = windows_error_to_ebpf_result(error);
+    if (result != EBPF_SUCCESS) {
+        return result;
+    }
+
+    *fd = _get_next_file_descriptor((ebpf_handle_t)reply.handle);
+    return EBPF_SUCCESS;
+}
+
+ebpf_result_t
+ebpf_get_map_fd_by_id(ebpf_id_t id, _Out_ int* fd) noexcept
+{
+    return _get_fd_by_id(ebpf_operation_id_t::EBPF_OPERATION_GET_MAP_HANDLE_BY_ID, id, fd);
+}
+
+ebpf_result_t
+ebpf_get_program_fd_by_id(ebpf_id_t id, _Out_ int* fd) noexcept
+{
+    return _get_fd_by_id(ebpf_operation_id_t::EBPF_OPERATION_GET_PROGRAM_HANDLE_BY_ID, id, fd);
+}
+
+ebpf_result_t
+ebpf_get_link_fd_by_id(ebpf_id_t id, _Out_ int* fd) noexcept
+{
+    return _get_fd_by_id(ebpf_operation_id_t::EBPF_OPERATION_GET_LINK_HANDLE_BY_ID, id, fd);
+}
+
+static ebpf_result_t
+_get_next_id(ebpf_operation_id_t operation, ebpf_id_t start_id, _Out_ ebpf_id_t* next_id)
+{
+    _ebpf_operation_get_next_id_request request{sizeof(request), operation, start_id};
+    _ebpf_operation_get_next_id_reply reply;
+
+    uint32_t error = invoke_ioctl(request, reply);
+    ebpf_result_t result = windows_error_to_ebpf_result(error);
+    if (result != EBPF_SUCCESS) {
+        return result;
+    }
+
+    *next_id = reply.next_id;
+    return EBPF_SUCCESS;
+}
+
+ebpf_result_t
+ebpf_get_next_link_id(ebpf_id_t start_id, _Out_ ebpf_id_t* next_id) noexcept
+{
+    return _get_next_id(ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_LINK_ID, start_id, next_id);
+}
+
+ebpf_result_t
+ebpf_get_next_map_id(ebpf_id_t start_id, _Out_ ebpf_id_t* next_id) noexcept
+{
+    return _get_next_id(ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_MAP_ID, start_id, next_id);
+}
+
+ebpf_result_t
+ebpf_get_next_program_id(ebpf_id_t start_id, _Out_ ebpf_id_t* next_id) noexcept
+{
+    return _get_next_id(ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_PROGRAM_ID, start_id, next_id);
 }

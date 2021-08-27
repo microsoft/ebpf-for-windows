@@ -32,6 +32,12 @@ typedef enum _ebpf_operation_id
     EBPF_OPERATION_GET_EC_FUNCTION,
     EBPF_OPERATION_GET_PROGRAM_INFO,
     EBPF_OPERATION_GET_MAP_INFO,
+    EBPF_OPERATION_GET_LINK_HANDLE_BY_ID,
+    EBPF_OPERATION_GET_MAP_HANDLE_BY_ID,
+    EBPF_OPERATION_GET_PROGRAM_HANDLE_BY_ID,
+    EBPF_OPERATION_GET_NEXT_LINK_ID,
+    EBPF_OPERATION_GET_NEXT_MAP_ID,
+    EBPF_OPERATION_GET_NEXT_PROGRAM_ID,
 } ebpf_operation_id_t;
 
 typedef enum _ebpf_code_type
@@ -188,6 +194,18 @@ typedef struct _ebpf_operation_query_map_definition_reply
     ebpf_map_definition_in_memory_t map_definition;
 } ebpf_operation_query_map_definition_reply_t;
 
+typedef struct _ebpf_operation_get_handle_by_id_request
+{
+    struct _ebpf_operation_header header;
+    ebpf_id_t id;
+} ebpf_operation_get_handle_by_id_request_t;
+
+typedef struct _ebpf_operation_get_handle_by_id_reply
+{
+    struct _ebpf_operation_header header;
+    uint64_t handle;
+} ebpf_operation_get_handle_by_id_reply_t;
+
 typedef struct _ebpf_operation_query_program_info_request
 {
     struct _ebpf_operation_header header;
@@ -302,3 +320,15 @@ typedef struct _ebpf_operation_get_map_info_reply
     size_t size;
     uint8_t data[1];
 } ebpf_operation_get_map_info_reply_t;
+
+typedef struct _ebpf_operation_get_next_id_request
+{
+    struct _ebpf_operation_header header;
+    ebpf_id_t start_id;
+} ebpf_operation_get_next_id_request_t;
+
+typedef struct _ebpf_operation_get_next_id_reply
+{
+    struct _ebpf_operation_header header;
+    ebpf_id_t next_id;
+} ebpf_operation_get_next_id_reply_t;

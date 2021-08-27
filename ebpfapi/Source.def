@@ -12,6 +12,8 @@ EXPORTS
     bpf_link__pin
     bpf_link__unpin
     bpf_link_detach
+    bpf_link_get_fd_by_id
+    bpf_link_get_next_id
     bpf_map__fd
     bpf_map__is_pinned
     bpf_map__key_size
@@ -23,6 +25,8 @@ EXPORTS
     bpf_map__unpin
     bpf_map__value_size
     bpf_map_delete_elem
+    bpf_map_get_fd_by_id
+    bpf_map_get_next_id
     bpf_map_get_next_key
     bpf_map_lookup_elem
     bpf_map_update_elem
@@ -36,7 +40,9 @@ EXPORTS
     bpf_object__pin_programs
     bpf_object__unpin_maps
     bpf_object__unpin_programs
+    bpf_prog_get_fd_by_id
     bpf_prog_load
+    bpf_prog_get_next_id
     bpf_program__attach
     bpf_program__attach_xdp
     bpf_program__fd
