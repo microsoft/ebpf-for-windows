@@ -8,6 +8,7 @@
 #include "ebpf_nethooks.h"
 #include "ebpf_platform.h"
 #include "ebpf_program_types.h"
+#include "sample_ext_program_info.h"
 
 typedef struct _ebpf_free_memory
 {
@@ -51,12 +52,33 @@ typedef class _emulate_dpc
 
 } emulate_dpc_t;
 
-typedef class _single_instance_hook
+typedef class _hook_helper
+{
+  public:
+    _hook_helper(ebpf_attach_type_t attach_type) : _attach_type(attach_type) {}
+
+    ebpf_result_t
+    attach(struct bpf_program* program)
+    {
+        // Attach program to link.
+        bpf_link* link = nullptr;
+        ebpf_result_t result = ebpf_program_attach(program, &_attach_type, nullptr, 0, &link);
+
+        REQUIRE(result == EBPF_SUCCESS);
+
+        return result;
+    }
+
+  private:
+    ebpf_attach_type_t _attach_type;
+} hook_helper_t;
+
+typedef class _single_instance_hook : public _hook_helper
 {
   public:
     _single_instance_hook(ebpf_program_type_t program_type, ebpf_attach_type_t attach_type)
-        : provider(nullptr), client_binding_context(nullptr), client_data(nullptr), client_dispatch_table(nullptr),
-          link_handle(nullptr)
+        : _hook_helper{attach_type}, provider(nullptr), client_binding_context(nullptr), client_data(nullptr),
+          client_dispatch_table(nullptr), link_handle(nullptr)
     {
         ebpf_guid_create(&client_id);
         attach_provider_data.supported_program_type = program_type;
@@ -211,6 +233,15 @@ static ebpf_program_data_t _ebpf_bind_program_data = {&_ebpf_bind_program_info, 
 static ebpf_extension_data_t _ebpf_bind_program_info_provider_data = {
     TEST_NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_ebpf_bind_program_data), &_ebpf_bind_program_data};
 
+static ebpf_program_data_t _test_ebpf_sample_extension_program_data = {&_sample_ebpf_extension_program_info, NULL};
+
+#define TEST_EBPF_SAMPLE_EXTENSION_NPI_PROVIDER_VERSION 0
+
+static ebpf_extension_data_t _test_ebpf_sample_extension_program_info_provider_data = {
+    TEST_EBPF_SAMPLE_EXTENSION_NPI_PROVIDER_VERSION,
+    sizeof(_test_ebpf_sample_extension_program_data),
+    &_test_ebpf_sample_extension_program_data};
+
 typedef class _program_info_provider
 {
   public:
@@ -225,6 +256,10 @@ typedef class _program_info_provider
             provider_data = &_ebpf_bind_program_info_provider_data;
             program_data = (ebpf_program_data_t*)provider_data->data;
             program_data->program_info->program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_BIND;
+        } else if (program_type == EBPF_PROGRAM_TYPE_SAMPLE) {
+            provider_data = &_test_ebpf_sample_extension_program_info_provider_data;
+            program_data = (ebpf_program_data_t*)provider_data->data;
+            program_data->program_info->program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_SAMPLE;
         }
 
         REQUIRE(

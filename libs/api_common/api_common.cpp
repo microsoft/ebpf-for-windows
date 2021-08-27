@@ -106,6 +106,7 @@ get_global_attach_type()
 void
 ebpf_clear_thread_local_storage() noexcept
 {
+    set_global_program_and_attach_type(nullptr, nullptr);
     clear_map_descriptors();
     clear_program_info_cache();
     set_program_under_verification(ebpf_handle_invalid);
