@@ -452,7 +452,6 @@ _ebpf_epoch_release_free_list(_In_ ebpf_epoch_cpu_entry_t* cpu_entry, int64_t re
         }
         }
     }
-    ebpf_assert(ebpf_list_is_empty(&cpu_entry->free_list) || !_ebpf_epoch_rundown);
 }
 
 /**
