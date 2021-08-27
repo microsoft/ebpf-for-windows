@@ -242,7 +242,7 @@ bool
 ebpf_is_preemptible()
 {
     KIRQL irql = KeGetCurrentIrql();
-    return irql >= DISPATCH_LEVEL;
+    return irql < DISPATCH_LEVEL;
 }
 
 bool

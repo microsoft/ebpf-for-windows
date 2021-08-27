@@ -26,7 +26,7 @@ ebpf_state_initiate()
     ebpf_result_t return_value = EBPF_SUCCESS;
 
     if (ebpf_is_non_preemptible_work_item_supported()) {
-        ebpf_get_cpu_count(&_ebpf_state_cpu_table_size);
+        _ebpf_state_cpu_table_size = ebpf_get_cpu_count();
         _Analysis_assume_(_ebpf_state_cpu_table_size >= 1);
 
         _ebpf_state_cpu_table = ebpf_allocate(_ebpf_state_cpu_table_size * sizeof(ebpf_state_entry_t));
