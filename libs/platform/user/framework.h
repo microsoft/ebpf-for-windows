@@ -55,6 +55,8 @@ extern "C"
         entry->Blink = previous_entry;
         previous_entry->Flink = entry;
         list_head->Blink = entry;
+        ebpf_assert(list_head->Blink->Flink == list_head);
+        ebpf_assert(list_head->Flink->Blink == list_head);
         return;
     }
 

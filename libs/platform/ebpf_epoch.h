@@ -57,7 +57,7 @@ extern "C"
      * @param[in] memory Allocation to be freed once epoch ends.
      */
     void
-    ebpf_epoch_free(void* memory);
+    ebpf_epoch_free(_Frees_ptr_opt_ void* memory);
 
     /**
      * @Brief Release any memory that is associated with expired epochs.
@@ -74,7 +74,7 @@ extern "C"
      * @return Pointer to work item that can be scheduled.
      */
     ebpf_epoch_work_item_t*
-    ebpf_epoch_allocate_work_item(void* callback_context, void (*callback)(void* context));
+    ebpf_epoch_allocate_work_item(_In_ void* callback_context, _In_ void (*callback)(void* context));
 
     /**
      * @brief Schedule a previously allocated work-item to run when the current
@@ -83,7 +83,7 @@ extern "C"
      * @param[in] work_item Pointer to work item to run on epoch end.
      */
     void
-    ebpf_epoch_schedule_work_item(ebpf_epoch_work_item_t* work_item);
+    ebpf_epoch_schedule_work_item(_In_ ebpf_epoch_work_item_t* work_item);
 
     /**
      * @brief Free an epoch work item.
@@ -91,7 +91,7 @@ extern "C"
      * @param[in] work_item Pointer to work item to free.
      */
     void
-    ebpf_epoch_free_work_item(ebpf_epoch_work_item_t* work_item);
+    ebpf_epoch_free_work_item(_Frees_ptr_opt_ ebpf_epoch_work_item_t* work_item);
 
 #ifdef __cplusplus
 }
