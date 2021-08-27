@@ -14,7 +14,7 @@ _perf_epoch_enter_exit()
 
 /**
  * @brief Helper function to set up the hash-table for testing.
- *
+ * All tests perform the operation under test multiplier() times.
  */
 typedef class _ebpf_hash_table_test_state
 {
