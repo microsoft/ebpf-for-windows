@@ -76,7 +76,7 @@ typedef class _ebpf_hash_table_test_state
         uint32_t start = ebpf_get_current_cpu() * 4;
         uint32_t end = (ebpf_get_current_cpu() + 1) * 4;
         // Update non-conflicting keys
-        for (uint32_t i = 0; i < ebpf_get_current_cpu(); i++) {
+        for (uint32_t i = 0; i < ebpf_get_cpu_count(); i++) {
             for (uint32_t index = start; index < end; index++) {
                 ebpf_epoch_enter();
                 ebpf_hash_table_update(
