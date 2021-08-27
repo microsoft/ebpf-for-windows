@@ -33,14 +33,32 @@ typedef enum ebpf_map_option
 } ebpf_map_option_t;
 
 /**
- * @brief eBPF Map Definition.
+ * @brief eBPF Map Definition as it is stored in memory.
  */
-typedef struct _ebpf_map_definition
+typedef struct _ebpf_map_definition_in_memory
 {
-    uint32_t size;
-    ebpf_map_type_t type;
-    uint32_t key_size;
-    uint32_t value_size;
-    uint32_t max_entries;
+    uint32_t size;        ///< Size in bytes of the ebpf_map_definition_t structure.
+    ebpf_map_type_t type; ///< Type of map.
+    uint32_t key_size;    ///< Size in bytes of a map key.
+    uint32_t value_size;  ///< Size in bytes of a map value.
+    uint32_t max_entries; ///< Maximum number of entries allowed in the map.
+    uint32_t inner_map_id;
+} ebpf_map_definition_in_memory_t;
+
+/**
+ * @brief eBPF Map Definition as it appears in the maps section of an ELF file.
+ */
+typedef struct _ebpf_map_definition_in_file
+{
+    uint32_t size;        ///< Size in bytes of the ebpf_map_definition_t structure.
+    ebpf_map_type_t type; ///< Type of map.
+    uint32_t key_size;    ///< Size in bytes of a map key.
+    uint32_t value_size;  ///< Size in bytes of a map value.
+    uint32_t max_entries; ///< Maximum number of entries allowed in the map.
+
+    /** When a map definition is hard coded in an eBPF program, inner_map_idx
+     * indicates the 0-based index of which map in the maps section of the ELF
+     * file is the inner map template.
+     */
     uint32_t inner_map_idx;
-} ebpf_map_definition_t;
+} ebpf_map_definition_in_file_t;

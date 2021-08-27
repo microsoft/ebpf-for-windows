@@ -16,15 +16,15 @@ typedef struct _process_entry
 } process_entry_t;
 
 #pragma clang section data = "maps"
-ebpf_map_definition_t process_map = {
-    .size = sizeof(ebpf_map_definition_t),
+ebpf_map_definition_in_file_t process_map = {
+    .size = sizeof(ebpf_map_definition_in_file_t),
     .type = BPF_MAP_TYPE_HASH,
     .key_size = sizeof(uint64_t),
     .value_size = sizeof(process_entry_t),
     .max_entries = 1024};
 
-ebpf_map_definition_t limits_map = {
-    .size = sizeof(ebpf_map_definition_t),
+ebpf_map_definition_in_file_t limits_map = {
+    .size = sizeof(ebpf_map_definition_in_file_t),
     .type = BPF_MAP_TYPE_ARRAY,
     .key_size = sizeof(uint32_t),
     .value_size = sizeof(uint32_t),

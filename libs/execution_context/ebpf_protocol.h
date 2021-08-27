@@ -104,7 +104,8 @@ typedef struct _ebpf_operation_load_code_request
 typedef struct _ebpf_operation_create_map_request
 {
     struct _ebpf_operation_header header;
-    struct _ebpf_map_definition ebpf_map_definition;
+    ebpf_map_definition_in_memory_t ebpf_map_definition;
+    uint64_t inner_map_handle;
     uint8_t data[1];
 } ebpf_operation_create_map_request_t;
 
@@ -184,7 +185,7 @@ typedef struct _ebpf_operation_query_map_definition_request
 typedef struct _ebpf_operation_query_map_definition_reply
 {
     struct _ebpf_operation_header header;
-    struct _ebpf_map_definition map_definition;
+    ebpf_map_definition_in_memory_t map_definition;
 } ebpf_operation_query_map_definition_reply_t;
 
 typedef struct _ebpf_operation_query_program_info_request
