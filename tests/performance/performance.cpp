@@ -3,8 +3,6 @@
 
 #define CATCH_CONFIG_MAIN
 
-#include "performance_measure.h"
-
 #include "catch_wrapper.hpp"
 #include "ebpf.h"
 #include "ebpf_epoch.h"
@@ -13,6 +11,7 @@
 #include "ebpf_object.h"
 #include "ebpf_program.h"
 #include "helpers.h"
+#include "performance_measure.h"
 extern "C"
 {
 #include "ubpf.h"

@@ -90,7 +90,7 @@ jobs:
 
     - name: Run Performance Benchmark Tests
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
-      run: procdump64.exe -accepteula -o -ma -e -x c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}} ./performance.exe
+      run: procdump64.exe -accepteula -o -ma -e -x c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}} ./ebpf_performance.exe
 
     - name: Upload any crash dumps
       uses: actions/upload-artifact@v2

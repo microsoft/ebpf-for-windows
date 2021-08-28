@@ -12,15 +12,15 @@
 // The per-CPU state is protected by a single per-CPU lock.
 //
 // ebpf_epoch_enter:
-// The current epoch is recorded in either a per thread (preemptible) or per CPU (non-preemtpible) ebpf_epoch_state_t
+// The current epoch is recorded in either a per thread (preemptible) or per CPU (non-preemptible) ebpf_epoch_state_t
 // and it is marked as active.
 //
 // ebpf_epoch_exit:
 // First:
 // The current epoch is recorded in either a per thread or per CPU ebpf_epoch_state_t and it is marked as inactive.
-// For the per-thread case, the current CPU's per-thread table is first checked for an active epoch record. If not
-// found then each CPU's per-thread table is checked until the active record is found. This deals with the case where
-// a thread may switch CPU's between enter and exit.
+// For the per-thread case, the current CPUs per-thread table is first checked for an active epoch record. If not
+// found then each CPUs per-thread table is checked until the active record is found. This deals with the case where
+// a thread may switch CPUs between enter and exit.
 //
 // Second:
 // The any entries in the per CPU free-list with epoch older than _ebpf_release_epoch are freed.
@@ -515,7 +515,7 @@ _ebpf_epoch_update_thread_state(uint32_t cpu_id, uintptr_t thread_id, int64_t cu
     }
 
     // If this is an exit call and the current CPU doesn't have the active entry
-    // then scan all CPU's until we find it.
+    // then scan all CPUs until we find it.
     if (!active_entry_found) {
         for (cpu_id = 0; cpu_id < _ebpf_epoch_cpu_count; cpu_id++) {
             lock_state = ebpf_lock_lock(&_ebpf_epoch_cpu_table[cpu_id].lock);
