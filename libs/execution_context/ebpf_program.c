@@ -48,6 +48,7 @@ typedef struct _ebpf_program
     // Program type specific helper function count.
     uint32_t provider_helper_function_count;
     bool program_invalidated;
+    bool tail_calls_enabled;
 
     ebpf_trampoline_table_t* trampoline_table;
 
@@ -597,6 +598,12 @@ ebpf_program_set_tail_call(_In_ const ebpf_program_t* next_program)
 }
 
 void
+ebpf_program_enable_tail_calls(ebpf_program_t* program)
+{
+    program->tail_calls_enabled = true;
+}
+
+void
 ebpf_program_invoke(_In_ const ebpf_program_t* program, _In_ void* context, _Out_ uint32_t* result)
 {
     ebpf_program_tail_call_state_t state = {0};
@@ -607,10 +614,11 @@ ebpf_program_invoke(_In_ const ebpf_program_t* program, _In_ void* context, _Out
         return;
     }
 
-    if (!ebpf_state_store(_ebpf_program_state_index, (uintptr_t)&state) == EBPF_SUCCESS) {
-        *result = 0;
-        return;
-    }
+    if (program->tail_calls_enabled)
+        if (!ebpf_state_store(_ebpf_program_state_index, (uintptr_t)&state) == EBPF_SUCCESS) {
+            *result = 0;
+            return;
+        }
 
     for (state.count = 0; state.count < MAX_TAIL_CALL_CNT; state.count++) {
         if (current_program->parameters.code_type == EBPF_CODE_NATIVE) {
@@ -640,7 +648,8 @@ ebpf_program_invoke(_In_ const ebpf_program_t* program, _In_ void* context, _Out
         }
     }
 
-    ebpf_state_store(_ebpf_program_state_index, 0);
+    if (program->tail_calls_enabled)
+        ebpf_state_store(_ebpf_program_state_index, 0);
 }
 
 static ebpf_result_t

@@ -194,6 +194,10 @@ _ebpf_core_protocol_load_code(_In_ const ebpf_operation_load_code_request_t* req
     code = (uint8_t*)request->code;
     code_length = request->header.length - EBPF_OFFSET_OF(ebpf_operation_load_code_request_t, code);
 
+    if (request->program_uses_tail_calls) {
+        ebpf_program_enable_tail_calls(program);
+    }
+
     retval = ebpf_program_load_code(program, request->code_type, code, code_length);
     if (retval != EBPF_SUCCESS)
         goto Done;

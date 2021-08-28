@@ -11,11 +11,19 @@
 #include "ebpf_object.h"
 #include "ebpf_program.h"
 #include "helpers.h"
+#include "libbpf.h"
 #include "performance_measure.h"
+#include "test_helper.hpp"
 extern "C"
 {
 #include "ubpf.h"
 }
+namespace ebpf {
+#pragma warning(push)
+#pragma warning(disable : 4201) // nonstandard extension used : nameless struct/union
+#include "../sample/ebpf.h"
+#pragma warning(pop)
+}; // namespace ebpf
 
 #define PERF_TEST(FUNCTION)                                                 \
     TEST_CASE(#FUNCTION "_preemption", "[performance]") { FUNCTION(true); } \
@@ -233,8 +241,71 @@ typedef class _ebpf_program_test_state
     _program_info_provider program_info_provider;
 } ebpf_program_test_state_t;
 
+void
+load_program_and_attach(
+    ebpf_execution_type_t execution_type,
+    const char* object_file,
+    single_instance_hook_t& hook,
+    bpf_object** object,
+    bpf_link** link)
+{
+    ebpf_result_t result;
+    const char* error_message = nullptr;
+    fd_t program_fd;
+
+    result = ebpf_program_load(object_file, nullptr, nullptr, execution_type, object, &program_fd, &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free_string(error_message);
+        error_message = nullptr;
+    }
+    REQUIRE(result == EBPF_SUCCESS);
+
+    REQUIRE(hook.attach_link(program_fd, link) == EBPF_SUCCESS);
+}
+
+typedef class _ebpf_drop_packet_state
+{
+  public:
+    _ebpf_drop_packet_state(ebpf_execution_type_t execution_type)
+        : hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP), xdp_program_info(EBPF_PROGRAM_TYPE_XDP)
+    {
+        load_program_and_attach(execution_type, "droppacket.o", hook, &object, &link);
+        packet.resize(sizeof(ebpf::IPV4_HEADER) + sizeof(ebpf::UDP_HEADER));
+        auto ipv4 = reinterpret_cast<ebpf::IPV4_HEADER*>(packet.data());
+        auto udp = reinterpret_cast<ebpf::UDP_HEADER*>(ipv4 + 1);
+        ipv4->Protocol = 17;
+        udp->length = 0;
+        ctx = xdp_md_t{packet.data(), packet.data() + packet.size()};
+    }
+    ~_ebpf_drop_packet_state()
+    {
+        hook.detach_link(link);
+        hook.close_link(link);
+        bpf_object__close(object);
+    }
+
+    void
+    test()
+    {
+        int hook_result;
+        hook.fire(&ctx, &hook_result);
+    }
+
+  private:
+    single_instance_hook_t hook;
+    program_info_provider_t xdp_program_info;
+    _test_helper_end_to_end test_helper;
+    bpf_object* object;
+    bpf_link* link;
+    xdp_md_t ctx;
+    std::vector<uint8_t> packet;
+} ebpf_drop_packet_state_t;
+
 static ebpf_hash_table_test_state_t* _ebpf_hash_table_test_state_instance = nullptr;
 static ebpf_program_test_state_t* _ebpf_program_test_state_instance = nullptr;
+static ebpf_drop_packet_state_t* _ebpf_drop_packet_state_instance = nullptr;
 
 static void
 _ebpf_hash_table_test_find()
@@ -266,7 +337,11 @@ _ebpf_program_invoke()
     _ebpf_program_test_state_instance->test(nullptr);
 }
 
-extern bool _ebpf_platform_is_preemptible;
+static void
+_drop_packet_test()
+{
+    _ebpf_drop_packet_state_instance->test();
+}
 
 void
 test_epoch_enter_exit(bool preemptible)
@@ -356,6 +431,26 @@ test_program_invoke_interpret(bool preemptible)
     measure.run_test();
 }
 
+void
+test_drop_packet_jit(bool preemptible)
+{
+    size_t iterations = PERFORMANCE_MEASURE_ITERATION_COUNT * 10;
+    ebpf_drop_packet_state_t drop_packet_state(EBPF_EXECUTION_JIT);
+    _ebpf_drop_packet_state_instance = &drop_packet_state;
+    _performance_measure measure(__FUNCTION__, preemptible, _drop_packet_test, iterations);
+    measure.run_test();
+}
+
+void
+test_drop_packet_interpret(bool preemptible)
+{
+    size_t iterations = PERFORMANCE_MEASURE_ITERATION_COUNT * 10;
+    ebpf_drop_packet_state_t drop_packet_state(EBPF_EXECUTION_INTERPRET);
+    _ebpf_drop_packet_state_instance = &drop_packet_state;
+    _performance_measure measure(__FUNCTION__, preemptible, _drop_packet_test, iterations);
+    measure.run_test();
+}
+
 PERF_TEST(test_epoch_enter_exit);
 PERF_TEST(test_epoch_enter_exit_alloc_free);
 PERF_TEST(test_ebpf_hash_table_find);
@@ -364,3 +459,6 @@ PERF_TEST(test_ebpf_hash_table_update);
 PERF_TEST(test_ebpf_hash_table_update_overlapping);
 PERF_TEST(test_program_invoke_jit);
 PERF_TEST(test_program_invoke_interpret);
+
+PERF_TEST(test_drop_packet_jit);
+PERF_TEST(test_drop_packet_interpret);

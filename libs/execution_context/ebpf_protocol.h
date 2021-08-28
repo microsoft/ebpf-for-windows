@@ -98,6 +98,7 @@ typedef struct _ebpf_operation_load_code_request
     struct _ebpf_operation_header header;
     uint64_t program_handle;
     ebpf_code_type_t code_type;
+    bool program_uses_tail_calls;
     uint8_t code[1];
 } ebpf_operation_load_code_request_t;
 

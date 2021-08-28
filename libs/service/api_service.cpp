@@ -410,6 +410,7 @@ ebpf_verify_and_load_program(
         request->header.id = ebpf_operation_id_t::EBPF_OPERATION_LOAD_CODE;
         request->header.length = static_cast<uint16_t>(request_buffer.size());
         request->program_handle = reinterpret_cast<uint64_t>(program_handle);
+        request->program_uses_tail_calls = unwind_index != MAXUINT32;
         request->code_type = execution_type == EBPF_EXECUTION_JIT ? EBPF_CODE_NATIVE : EBPF_CODE_EBPF;
 
         std::copy(

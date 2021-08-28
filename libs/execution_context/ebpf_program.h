@@ -215,6 +215,9 @@ extern "C"
     ebpf_result_t
     ebpf_program_set_tail_call(_In_ const ebpf_program_t* next_program);
 
+    void
+    ebpf_program_enable_tail_calls(_In_ ebpf_program_t* program);
+
 #ifdef __cplusplus
 }
 #endif
