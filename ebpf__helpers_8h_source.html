@@ -111,14 +111,32 @@ $(function() {
 <div class="line"><a name="l00075"></a><span class="lineno">   75</span>&#160;<span class="preprocessor">#define bpf_tail_call ((bpf_tail_call_t)4)</span></div>
 <div class="line"><a name="l00076"></a><span class="lineno">   76</span>&#160;<span class="preprocessor">#endif</span></div>
 <div class="line"><a name="l00077"></a><span class="lineno">   77</span>&#160; </div>
-<div class="line"><a name="l00078"></a><span class="lineno"><a class="line" href="ebpf__helpers_8h.html#a13854b7af62cb6851a156bb308d0d42f">   78</a></span>&#160;<span class="preprocessor">#define SEC(name) __attribute__((section(name), used))</span></div>
+<div class="line"><a name="l00083"></a><span class="lineno">   83</span>&#160;EBPF_HELPER(uint32_t, <a class="code" href="ebpf__helpers_8h.html#adad4a120de1d0f6c2a380e8d7b56570b">bpf_get_prandom_u32</a>, ());</div>
+<div class="line"><a name="l00084"></a><span class="lineno">   84</span>&#160;<span class="preprocessor">#ifndef __doxygen</span></div>
+<div class="line"><a name="l00085"></a><span class="lineno">   85</span>&#160;<span class="preprocessor">#define bpf_get_prandom_u32 ((bpf_get_prandom_u32_t)5)</span></div>
+<div class="line"><a name="l00086"></a><span class="lineno">   86</span>&#160;<span class="preprocessor">#endif</span></div>
+<div class="line"><a name="l00087"></a><span class="lineno">   87</span>&#160; </div>
+<div class="line"><a name="l00093"></a><span class="lineno">   93</span>&#160;EBPF_HELPER(uint64_t, <a class="code" href="ebpf__helpers_8h.html#afcd5d11ba0f150bb73ac41eaf8f847e5">bpf_ktime_get_boot_ns</a>, ());</div>
+<div class="line"><a name="l00094"></a><span class="lineno">   94</span>&#160;<span class="preprocessor">#ifndef __doxygen</span></div>
+<div class="line"><a name="l00095"></a><span class="lineno">   95</span>&#160;<span class="preprocessor">#define bpf_ktime_get_boot_ns ((bpf_ktime_get_boot_ns_t)6)</span></div>
+<div class="line"><a name="l00096"></a><span class="lineno">   96</span>&#160;<span class="preprocessor">#endif</span></div>
+<div class="line"><a name="l00097"></a><span class="lineno">   97</span>&#160; </div>
+<div class="line"><a name="l00103"></a><span class="lineno">  103</span>&#160;EBPF_HELPER(uint64_t, <a class="code" href="ebpf__helpers_8h.html#aeac5e76520396d4436978a5c53cdd94d">bpf_get_smp_processor_id</a>, ());</div>
+<div class="line"><a name="l00104"></a><span class="lineno">  104</span>&#160;<span class="preprocessor">#ifndef __doxygen</span></div>
+<div class="line"><a name="l00105"></a><span class="lineno">  105</span>&#160;<span class="preprocessor">#define bpf_get_smp_processor_id ((bpf_get_smp_processor_id_t)7)</span></div>
+<div class="line"><a name="l00106"></a><span class="lineno">  106</span>&#160;<span class="preprocessor">#endif</span></div>
+<div class="line"><a name="l00107"></a><span class="lineno">  107</span>&#160; </div>
+<div class="line"><a name="l00108"></a><span class="lineno"><a class="line" href="ebpf__helpers_8h.html#a13854b7af62cb6851a156bb308d0d42f">  108</a></span>&#160;<span class="preprocessor">#define SEC(name) __attribute__((section(name), used))</span></div>
 </div><!-- fragment --></div><!-- contents -->
+<div class="ttc" id="aebpf__helpers_8h_html_aeac5e76520396d4436978a5c53cdd94d"><div class="ttname"><a href="ebpf__helpers_8h.html#aeac5e76520396d4436978a5c53cdd94d">bpf_get_smp_processor_id</a></div><div class="ttdeci">uint64_t bpf_get_smp_processor_id()</div><div class="ttdoc">Return SMP id of the processor running the program.</div></div>
 <div class="ttc" id="aebpf__helpers_8h_html_a7a4df6874a63623e856735911b0a7c95"><div class="ttname"><a href="ebpf__helpers_8h.html#a7a4df6874a63623e856735911b0a7c95">bpf_map_lookup_elem</a></div><div class="ttdeci">void * bpf_map_lookup_elem(struct _ebpf_map_definition *map, void *key)</div><div class="ttdoc">Get a pointer to an entry in the map.</div></div>
 <div class="ttc" id="aebpf__helpers_8h_html_a8a2409fe484651ce89c8499097811363"><div class="ttname"><a href="ebpf__helpers_8h.html#a8a2409fe484651ce89c8499097811363">bpf_map_delete_elem</a></div><div class="ttdeci">int64_t bpf_map_delete_elem(struct _ebpf_map_definition *map, void *key)</div><div class="ttdoc">Remove an entry from the map.</div></div>
+<div class="ttc" id="aebpf__helpers_8h_html_afcd5d11ba0f150bb73ac41eaf8f847e5"><div class="ttname"><a href="ebpf__helpers_8h.html#afcd5d11ba0f150bb73ac41eaf8f847e5">bpf_ktime_get_boot_ns</a></div><div class="ttdeci">uint64_t bpf_ktime_get_boot_ns()</div><div class="ttdoc">Return time elapsed since boot in nanoseconds.</div></div>
 <div class="ttc" id="aebpf__helpers_8h_html_a0d07b7cc653296766e600371ecc326a6"><div class="ttname"><a href="ebpf__helpers_8h.html#a0d07b7cc653296766e600371ecc326a6">bpf_tail_call</a></div><div class="ttdeci">int64_t bpf_tail_call(void *ctx, struct _ebpf_map_definition *prog_array_map, uint32_t index)</div><div class="ttdoc">Perform a tail call into another eBPF program.</div></div>
 <div class="ttc" id="aebpf__structs_8h_html"><div class="ttname"><a href="ebpf__structs_8h.html">ebpf_structs.h</a></div></div>
 <div class="ttc" id="aebpf__helpers_8h_html_ac1b8f1a4da92b8e18987b7751dd75d07"><div class="ttname"><a href="ebpf__helpers_8h.html#ac1b8f1a4da92b8e18987b7751dd75d07">bpf_map_update_elem</a></div><div class="ttdeci">int64_t bpf_map_update_elem(struct _ebpf_map_definition *map, void *key, void *value, uint64_t flags)</div><div class="ttdoc">Insert or update an entry in the map.</div></div>
 <div class="ttc" id="aebpf__helpers_8h_html_a1d98f863fc6ebf789b378348438181ca"><div class="ttname"><a href="ebpf__helpers_8h.html#a1d98f863fc6ebf789b378348438181ca">bpf_map</a></div><div class="ttdeci">#define bpf_map</div><div class="ttdef"><b>Definition:</b> ebpf_helpers.h:14</div></div>
+<div class="ttc" id="aebpf__helpers_8h_html_adad4a120de1d0f6c2a380e8d7b56570b"><div class="ttname"><a href="ebpf__helpers_8h.html#adad4a120de1d0f6c2a380e8d7b56570b">bpf_get_prandom_u32</a></div><div class="ttdeci">uint32_t bpf_get_prandom_u32()</div><div class="ttdoc">Get a pseudo-random number.</div></div>
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
 Generated by &#160;<a href="http://www.doxygen.org/index.html">

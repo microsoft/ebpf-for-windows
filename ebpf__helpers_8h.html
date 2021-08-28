@@ -100,6 +100,15 @@ Functions</h2></td></tr>
 <tr class="memitem:a0d07b7cc653296766e600371ecc326a6"><td class="memItemLeft" align="right" valign="top">int64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__helpers_8h.html#a0d07b7cc653296766e600371ecc326a6">bpf_tail_call</a> (void *ctx, struct <a class="el" href="struct__ebpf__map__definition.html">_ebpf_map_definition</a> *prog_array_map, uint32_t index)</td></tr>
 <tr class="memdesc:a0d07b7cc653296766e600371ecc326a6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Perform a tail call into another eBPF program.  <a href="ebpf__helpers_8h.html#a0d07b7cc653296766e600371ecc326a6">More...</a><br /></td></tr>
 <tr class="separator:a0d07b7cc653296766e600371ecc326a6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:adad4a120de1d0f6c2a380e8d7b56570b"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__helpers_8h.html#adad4a120de1d0f6c2a380e8d7b56570b">bpf_get_prandom_u32</a> ()</td></tr>
+<tr class="memdesc:adad4a120de1d0f6c2a380e8d7b56570b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get a pseudo-random number.  <a href="ebpf__helpers_8h.html#adad4a120de1d0f6c2a380e8d7b56570b">More...</a><br /></td></tr>
+<tr class="separator:adad4a120de1d0f6c2a380e8d7b56570b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afcd5d11ba0f150bb73ac41eaf8f847e5"><td class="memItemLeft" align="right" valign="top">uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__helpers_8h.html#afcd5d11ba0f150bb73ac41eaf8f847e5">bpf_ktime_get_boot_ns</a> ()</td></tr>
+<tr class="memdesc:afcd5d11ba0f150bb73ac41eaf8f847e5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return time elapsed since boot in nanoseconds.  <a href="ebpf__helpers_8h.html#afcd5d11ba0f150bb73ac41eaf8f847e5">More...</a><br /></td></tr>
+<tr class="separator:afcd5d11ba0f150bb73ac41eaf8f847e5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aeac5e76520396d4436978a5c53cdd94d"><td class="memItemLeft" align="right" valign="top">uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__helpers_8h.html#aeac5e76520396d4436978a5c53cdd94d">bpf_get_smp_processor_id</a> ()</td></tr>
+<tr class="memdesc:aeac5e76520396d4436978a5c53cdd94d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return SMP id of the processor running the program.  <a href="ebpf__helpers_8h.html#aeac5e76520396d4436978a5c53cdd94d">More...</a><br /></td></tr>
+<tr class="separator:aeac5e76520396d4436978a5c53cdd94d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Macro Definition Documentation</h2>
 <a id="a1d98f863fc6ebf789b378348438181ca"></a>
@@ -149,6 +158,66 @@ Functions</h2></td></tr>
 </div>
 </div>
 <h2 class="groupheader">Function Documentation</h2>
+<a id="adad4a120de1d0f6c2a380e8d7b56570b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#adad4a120de1d0f6c2a380e8d7b56570b">&#9670;&nbsp;</a></span>bpf_get_prandom_u32()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint32_t bpf_get_prandom_u32 </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Get a pseudo-random number. </p>
+<dl class="section return"><dt>Returns</dt><dd>A random 32-bit unsigned value. </dd></dl>
+
+</div>
+</div>
+<a id="aeac5e76520396d4436978a5c53cdd94d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aeac5e76520396d4436978a5c53cdd94d">&#9670;&nbsp;</a></span>bpf_get_smp_processor_id()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint64_t bpf_get_smp_processor_id </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Return SMP id of the processor running the program. </p>
+<dl class="section return"><dt>Returns</dt><dd>SMP id of the processor running the program. </dd></dl>
+
+</div>
+</div>
+<a id="afcd5d11ba0f150bb73ac41eaf8f847e5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#afcd5d11ba0f150bb73ac41eaf8f847e5">&#9670;&nbsp;</a></span>bpf_ktime_get_boot_ns()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint64_t bpf_ktime_get_boot_ns </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Return time elapsed since boot in nanoseconds. </p>
+<dl class="section return"><dt>Returns</dt><dd>Time elapsed since boot in nanosecond units. </dd></dl>
+
+</div>
+</div>
 <a id="a8a2409fe484651ce89c8499097811363"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a8a2409fe484651ce89c8499097811363">&#9670;&nbsp;</a></span>bpf_map_delete_elem()</h2>
 
