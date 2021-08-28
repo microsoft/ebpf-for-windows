@@ -116,13 +116,13 @@ typedef class _ebpf_hash_table_test_state
     }
 
     void
-    test_replace_value()
+    test_replace_value(uint32_t current_cpu)
     {
         uint64_t value = 12345678;
-        uint32_t start = cpu_count * 4;
-        uint32_t end = (cpu_count + 1) * 4;
         // Update non-conflicting keys
         for (uint32_t i = 0; i < cpu_count; i++) {
+            uint32_t start = current_cpu * 4;
+            uint32_t end = start + 4;
             for (uint32_t index = start; index < end; index++) {
                 ebpf_epoch_enter();
                 ebpf_hash_table_update(
@@ -249,9 +249,9 @@ _ebpf_hash_table_test_next_key()
 }
 
 static void
-_ebpf_hash_table_test_replace_value()
+_ebpf_hash_table_test_replace_value(uint32_t current_cpu)
 {
-    _ebpf_hash_table_test_state_instance->test_replace_value();
+    _ebpf_hash_table_test_state_instance->test_replace_value(current_cpu);
 }
 
 static void

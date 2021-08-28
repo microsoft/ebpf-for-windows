@@ -68,7 +68,11 @@ template <typename T> class _performance_measure
                 WaitForSingleObject(start_event, INFINITE);
                 QueryPerformanceCounter(&this->counters[local_cpu_id].first);
                 for (size_t k = 0; k < iterations; k++) {
-                    worker();
+                    if constexpr (std::is_same<T, void(__cdecl*)(uint32_t)>::value) {
+                        worker(local_cpu_id);
+                    } else {
+                        worker();
+                    }
                 }
                 QueryPerformanceCounter(&this->counters[local_cpu_id].second);
             }));
