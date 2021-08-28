@@ -305,10 +305,6 @@ test_ebpf_hash_table_next_key(bool preemptible)
 void
 test_ebpf_hash_table_update(bool preemptible)
 {
-    // Issue: https: // github.com/microsoft/ebpf-for-windows/issues/449
-    // Non-preemtible mode triggers heap corruption.
-    // if (preemptible)
-    //    return;
     _ebpf_hash_table_test_state instance;
     _ebpf_hash_table_test_state_instance = &instance;
     _performance_measure measure(
@@ -319,10 +315,6 @@ test_ebpf_hash_table_update(bool preemptible)
 void
 test_ebpf_hash_table_update_overlapping(bool preemptible)
 {
-    // Issue: https: // github.com/microsoft/ebpf-for-windows/issues/449
-    // Non-preemtible mode triggers heap corruption.
-    // if (preemptible)
-    //    return;
     _ebpf_hash_table_test_state instance;
     _ebpf_hash_table_test_state_instance = &instance;
     _performance_measure measure(
