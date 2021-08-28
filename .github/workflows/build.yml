@@ -88,6 +88,10 @@ jobs:
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
       run: procdump64.exe -accepteula -o -ma -e -x c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}} ./ebpf_client.exe -s
 
+    - name: Run Performance Benchmark Tests
+      working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+      run: procdump64.exe -accepteula -o -ma -e -x c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}} ./performance.exe
+
     - name: Upload any crash dumps
       uses: actions/upload-artifact@v2
       if: failure()

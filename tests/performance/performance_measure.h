@@ -8,12 +8,15 @@
 #include <Windows.h>
 
 #include <thread>
+#include <vector>
+#include <stdexcept>
 
-#include "catch_wrapper.hpp"
-#include "ebpf_epoch.h"
-#include "ebpf_platform.h"
+#include <ebpf_platform.h>
 
 #define PERFORMANCE_MEASURE_ITERATION_COUNT 1000000
+#define PERFORMANCE_MEASURE_TIMEOUT 60000
+
+extern bool _ebpf_platform_is_preemptible;
 
 /**
  * @brief Test helper function that executes a provided method on each CPU
@@ -31,31 +34,27 @@ template <typename T> class _performance_measure
      * @param[in] worker Function under test
      * @param[in] iterations Iteration count to run.
      */
-    _performance_measure(T worker, size_t iterations = PERFORMANCE_MEASURE_ITERATION_COUNT)
-        : cpu_count(ebpf_get_cpu_count()), iterations(iterations), counters(cpu_count), worker(worker)
+    _performance_measure(
+        const char* test_name, bool preemptible, T worker, size_t iterations = PERFORMANCE_MEASURE_ITERATION_COUNT)
+        : cpu_count(ebpf_get_cpu_count()), iterations(iterations), counters(cpu_count), worker(worker),
+          preemptible(preemptible), test_name(test_name)
     {
-        REQUIRE(ebpf_platform_initiate() == EBPF_SUCCESS);
-        platform_initiated = true;
-        REQUIRE(ebpf_epoch_initiate() == EBPF_SUCCESS);
-        epoch_initated = true;
-
         start_event = CreateEvent(nullptr, true, false, nullptr);
+        _ebpf_platform_is_preemptible = preemptible;
     }
     ~_performance_measure()
     {
-        if (epoch_initated)
-            ebpf_epoch_terminate();
-        if (platform_initiated)
-            ebpf_platform_terminate();
-    };
+        _ebpf_platform_is_preemptible = true;
+        CloseHandle(start_event);
+    }
 
     /**
      * @brief Perform the measurement
      *
      * @return Nano-seconds elapsed for each iteration.
      */
-    double
-    run_test()
+    void
+    run_test(size_t multiplier = 1)
     {
         int32_t ready_count = 0;
         std::vector<std::thread> threads;
@@ -75,7 +74,11 @@ template <typename T> class _performance_measure
             }));
         }
         // Wait for threads to spin up.
+        auto tick_count = GetTickCount64();
         while ((uint32_t)ready_count != cpu_count) {
+            if ((GetTickCount64() - tick_count) > PERFORMANCE_MEASURE_TIMEOUT) {
+                throw new std::runtime_error("Test timed out waiting for worker to start");
+            }
             Sleep(1);
         }
         SetEvent(start_event);
@@ -93,7 +96,8 @@ template <typename T> class _performance_measure
         average_duration /= cpu_count;
         average_duration *= 1e9;
         average_duration /= static_cast<double>(frequency.QuadPart);
-        return average_duration;
+        average_duration /= multiplier;
+        printf("%s,%d,%.0f\n", test_name, preemptible, average_duration);
     }
 
   private:
@@ -102,6 +106,6 @@ template <typename T> class _performance_measure
     T worker;
     std::vector<std::pair<LARGE_INTEGER, LARGE_INTEGER>> counters;
     HANDLE start_event;
-    bool platform_initiated = false;
-    bool epoch_initated = false;
+    bool preemptible;
+    const char* test_name;
 };
