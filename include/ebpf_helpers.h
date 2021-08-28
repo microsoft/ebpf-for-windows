@@ -75,4 +75,34 @@ EBPF_HELPER(int64_t, bpf_tail_call, (void* ctx, struct bpf_map* prog_array_map, 
 #define bpf_tail_call ((bpf_tail_call_t)4)
 #endif
 
+/**
+ * @brief Get a pseudo-random number.
+ *
+ * @return A random 32-bit unsigned value.
+ */
+EBPF_HELPER(uint32_t, bpf_get_prandom_u32, ());
+#ifndef __doxygen
+#define bpf_get_prandom_u32 ((bpf_get_prandom_u32_t)5)
+#endif
+
+/**
+ * @brief Return time elapsed since boot in nanoseconds.
+ *
+ * @return Time elapsed since boot in nanosecond units.
+ */
+EBPF_HELPER(uint64_t, bpf_ktime_get_boot_ns, ());
+#ifndef __doxygen
+#define bpf_ktime_get_boot_ns ((bpf_ktime_get_boot_ns_t)6)
+#endif
+
+/**
+ * @brief Return SMP id of the processor running the program.
+ *
+ * @return SMP id of the processor running the program.
+ */
+EBPF_HELPER(uint64_t, bpf_get_smp_processor_id, ());
+#ifndef __doxygen
+#define bpf_get_smp_processor_id ((bpf_get_smp_processor_id_t)7)
+#endif
+
 #define SEC(name) __attribute__((section(name), used))

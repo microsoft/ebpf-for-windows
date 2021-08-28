@@ -408,6 +408,9 @@ static ebpf_helper_function_prototype_t _helper_functions[] = {
      "bpf_tail_call",
      EBPF_RETURN_TYPE_INTEGER_OR_NO_RETURN_IF_SUCCEED,
      {EBPF_ARGUMENT_TYPE_PTR_TO_CTX, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_OF_PROGRAMS, EBPF_ARGUMENT_TYPE_ANYTHING}},
+    {5, "bpf_get_prandom_u32", EBPF_RETURN_TYPE_INTEGER, {0}},
+    {6, "bpf_ktime_get_boot_ns", EBPF_RETURN_TYPE_INTEGER, {0}},
+    {7, "bpf_get_smp_processor_id", EBPF_RETURN_TYPE_INTEGER, {0}},
 };
 
 TEST_CASE("program_type_info", "[platform]")

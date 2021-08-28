@@ -850,6 +850,14 @@ extern "C"
     uint32_t
     ebpf_random_uint32();
 
+    /**
+     * @brief Return time elapsed since boot in units of 100 nanoseconds.
+     *
+     * @return Time elapsed since boot in 100 nanosecond units.
+     */
+    uint64_t
+    ebpf_query_interrupt_time_precise();
+
 #ifdef __cplusplus
 }
 #endif

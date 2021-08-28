@@ -23,14 +23,25 @@ static ebpf_pinning_table_t* _ebpf_core_map_pinning_table = NULL;
 // Assume enabled until we can query it.
 static ebpf_code_integrity_state_t _ebpf_core_code_integrity_state = EBPF_CODE_INTEGRITY_HYPER_VISOR_KERNEL_MODE;
 
+// Map related helpers.
 static void*
 _ebpf_core_map_find_element(ebpf_map_t* map, const uint8_t* key);
 static int64_t
 _ebpf_core_map_update_element(ebpf_map_t* map, const uint8_t* key, const uint8_t* data, uint64_t flags);
 static int64_t
 _ebpf_core_map_delete_element(ebpf_map_t* map, const uint8_t* key);
+
+// Tail call.
 static int64_t
 _ebpf_core_tail_call(void* ctx, ebpf_map_t* map, uint32_t index);
+
+// Utility functions.
+static uint32_t
+_ebpf_core_random_uint32();
+static uint64_t
+_ebpf_core_get_time_since_boot_ns();
+static uint32_t
+_ebpf_core_get_current_cpu();
 
 #define EBPF_CORE_GLOBAL_HELPER_EXTENSION_VERSION 0
 
@@ -51,6 +62,9 @@ static ebpf_helper_function_prototype_t _ebpf_map_helper_function_prototype[] = 
      "bpf_tail_call",
      EBPF_RETURN_TYPE_INTEGER_OR_NO_RETURN_IF_SUCCEED,
      {EBPF_ARGUMENT_TYPE_PTR_TO_CTX, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_OF_PROGRAMS, EBPF_ARGUMENT_TYPE_ANYTHING}},
+    {(uint32_t)(intptr_t)bpf_get_prandom_u32, "bpf_get_prandom_u32", EBPF_RETURN_TYPE_INTEGER, {0}},
+    {(uint64_t)(intptr_t)bpf_ktime_get_boot_ns, "bpf_ktime_get_boot_ns", EBPF_RETURN_TYPE_INTEGER, {0}},
+    {(uint32_t)(intptr_t)bpf_get_smp_processor_id, "bpf_get_smp_processor_id", EBPF_RETURN_TYPE_INTEGER, {0}},
 };
 
 static ebpf_program_info_t _ebpf_global_helper_program_info = {
@@ -63,7 +77,10 @@ static const void* _ebpf_general_helpers[] = {
     (void*)&_ebpf_core_map_find_element,
     (void*)&_ebpf_core_map_update_element,
     (void*)&_ebpf_core_map_delete_element,
-    (void*)&_ebpf_core_tail_call};
+    (void*)&_ebpf_core_tail_call,
+    (void*)&_ebpf_core_random_uint32,
+    (void*)&_ebpf_core_get_time_since_boot_ns,
+    (void*)_ebpf_core_get_current_cpu};
 
 static ebpf_extension_provider_t* _ebpf_global_helper_function_provider_context = NULL;
 static ebpf_helper_function_addresses_t _ebpf_global_helper_function_dispatch_table = {
@@ -1011,6 +1028,26 @@ _ebpf_core_tail_call(void* context, ebpf_map_t* map, uint32_t index)
         return -EBPF_INVALID_ARGUMENT;
     }
     return -ebpf_program_set_tail_call(callee);
+}
+
+static uint32_t
+_ebpf_core_random_uint32()
+{
+    return ebpf_random_uint32();
+}
+
+static uint64_t
+_ebpf_core_get_time_since_boot_ns()
+{
+    // ebpf_query_interrupt_time_precise returns time elapsed since
+    // boot in units of 100 ns.
+    return ebpf_query_interrupt_time_precise() * 100;
+}
+
+static uint32_t
+_ebpf_core_get_current_cpu()
+{
+    return ebpf_get_current_cpu();
 }
 
 typedef struct _ebpf_protocol_handler
