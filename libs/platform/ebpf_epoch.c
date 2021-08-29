@@ -47,6 +47,7 @@ typedef struct _ebpf_epoch_state
 } ebpf_epoch_state_t;
 
 // Table to track per CPU state.
+// This table must fit into a multiple of EBPF_CACHE_LINE_SIZE.
 typedef struct _ebpf_epoch_cpu_entry
 {
     ebpf_lock_t lock;
@@ -55,6 +56,8 @@ typedef struct _ebpf_epoch_cpu_entry
     _Requires_lock_held_(lock) ebpf_hash_table_t* thread_table;
     uintptr_t padding[2];
 } ebpf_epoch_cpu_entry_t;
+
+C_ASSERT(sizeof(ebpf_epoch_cpu_entry_t) % EBPF_CACHE_LINE_SIZE == 0);
 
 static _Writable_elements_(_ebpf_epoch_cpu_count) ebpf_epoch_cpu_entry_t* _ebpf_epoch_cpu_table = NULL;
 static uint32_t _ebpf_epoch_cpu_count = 0;
@@ -135,8 +138,6 @@ ebpf_epoch_initiate()
     _ebpf_release_epoch = 0;
     _ebpf_epoch_cpu_count = cpu_count;
     _ebpf_flush_timer_set = 0;
-
-    C_ASSERT(sizeof(ebpf_epoch_cpu_entry_t) % EBPF_CACHE_LINE_SIZE == 0);
 
     _ebpf_epoch_cpu_table = ebpf_allocate(_ebpf_epoch_cpu_count * sizeof(ebpf_epoch_cpu_entry_t));
     if (!_ebpf_epoch_cpu_table) {
