@@ -27,15 +27,15 @@ parse_maps_section_windows(
             std::to_string(sizeof(ebpf_map_definition_in_file_t)));
     }
 
+    // The map file descriptors that appear in eBPF bytecode start at 1,
+    // in the order the maps appear in the maps section.
+    const int ORIGINAL_FD_OFFSET = 1;
+
     auto mapdefs = std::vector<ebpf_map_definition_in_file_t>(
         (ebpf_map_definition_in_file_t*)data, (ebpf_map_definition_in_file_t*)(data + size));
     for (int i = 0; i < mapdefs.size(); i++) {
         auto& s = mapdefs[i];
         uint32_t section_offset = (i * sizeof(ebpf_map_definition_in_file_t));
-
-        // The map file descriptors that appear in eBPF bytecode start at 1,
-        // in the order the maps appear in the maps section.
-        const int ORIGINAL_FD_OFFSET = 1;
 
         int original_fd = i + ORIGINAL_FD_OFFSET;
         unsigned int inner_map_original_fd = UINT_MAX;
@@ -66,7 +66,7 @@ const ebpf_platform_t g_ebpf_platform_windows = {
     get_program_type_windows,
     get_helper_prototype_windows,
     is_helper_usable_windows,
-    sizeof(ebpf_map_definition_in_memory_t),
+    sizeof(ebpf_map_definition_in_file_t),
     parse_maps_section_windows,
     get_map_descriptor_windows,
     get_map_type_windows,
