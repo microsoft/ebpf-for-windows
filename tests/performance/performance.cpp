@@ -29,7 +29,7 @@ _perf_epoch_enter_exit()
 }
 
 static void
-_perf_epoch_enter_exit_alloc_free()
+_perf_epoch_enter_alloc_free_exit()
 {
     ebpf_epoch_enter();
     void* p = ebpf_epoch_allocate(10);
@@ -283,7 +283,7 @@ test_epoch_enter_exit_alloc_free(bool preemptible)
 {
     REQUIRE(ebpf_core_initiate() == EBPF_SUCCESS);
     size_t iterations = PERFORMANCE_MEASURE_ITERATION_COUNT * 10;
-    _performance_measure measure(__FUNCTION__, preemptible, _perf_epoch_enter_exit_alloc_free, iterations);
+    _performance_measure measure(__FUNCTION__, preemptible, _perf_epoch_enter_alloc_free_exit, iterations);
     measure.run_test();
     ebpf_core_terminate();
 }

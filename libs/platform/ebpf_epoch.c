@@ -25,7 +25,7 @@
 // a thread may switch CPUs between enter and exit.
 //
 // Second:
-// The any entries in the per CPU free-list with epoch older than _ebpf_release_epoch are freed.
+// Any entries in the per CPU free-list with epoch older than _ebpf_release_epoch are freed.
 //
 // Third:
 // If the free-list still contains entries, the _ebpf_flush_timer is set (if not already set).
