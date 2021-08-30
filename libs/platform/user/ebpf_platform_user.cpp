@@ -17,9 +17,33 @@ bool _ebpf_platform_code_integrity_enabled = false;
 // Permit the test to simulate non-preemptible execution.
 bool _ebpf_platform_is_preemptible = true;
 
+ULONG (*RtlRandomEx)(ULONG* seed);
+
+template <typename fn>
+bool
+resolve_function(HMODULE module_handle, fn& function, const char* function_name)
+{
+    function = reinterpret_cast<fn>(GetProcAddress(module_handle, function_name));
+    return (function != nullptr);
+}
+
 ebpf_result_t
 ebpf_platform_initiate()
 {
+    HMODULE ntdll_module = nullptr;
+
+    ntdll_module = LoadLibrary(L"ntdll.dll");
+    if (ntdll_module == nullptr) {
+        return EBPF_OPERATION_NOT_SUPPORTED;
+    }
+
+    if (!resolve_function(ntdll_module, RtlRandomEx, "RtlRandomEx")) {
+        return EBPF_OPERATION_NOT_SUPPORTED;
+    }
+
+    // Note: This is safe because ntdll is never unloaded becuase
+    // ntdll.dll houses the module loader, which cannot unload itself.
+    FreeLibrary(ntdll_module);
     return EBPF_SUCCESS;
 }
 
@@ -208,9 +232,10 @@ ebpf_interlocked_compare_exchange_pointer(
 uint32_t
 ebpf_random_uint32()
 {
-    std::random_device rd;
-    std::mt19937 mt(rd());
-    return mt();
+    LARGE_INTEGER p;
+    QueryPerformanceCounter(&p);
+    ULONG seed = p.LowPart ^ (DWORD)p.HighPart;
+    return RtlRandomEx(&seed);
 }
 
 uint64_t

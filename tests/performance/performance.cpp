@@ -318,9 +318,9 @@ typedef class _ebpf_drop_packet_state
     }
 
   private:
+    _test_helper_end_to_end test_helper;
     single_instance_hook_t hook;
     program_info_provider_t xdp_program_info;
-    _test_helper_end_to_end test_helper;
     bpf_object* object;
     bpf_link* link;
     xdp_md_t ctx;
