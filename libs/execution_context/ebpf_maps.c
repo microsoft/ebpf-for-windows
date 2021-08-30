@@ -274,13 +274,10 @@ _check_value_type(_In_ const ebpf_core_map_t* outer_map, _In_ const ebpf_object_
     }
 
     ebpf_core_map_t* template = outer_map->inner_map_template;
-    ebpf_object_t* template_object = &template->object;
     const ebpf_map_t* value_map = (ebpf_map_t*)value_object;
 
-    // TODO: what other map attributes need to match?
+    // TODO(discussion #460): what other map attributes need to match?
     bool allowed = (template != NULL) && (value_map->ebpf_map_definition.type == template->ebpf_map_definition.type);
-
-    ebpf_object_release_reference((ebpf_object_t*)template_object);
 
     return allowed;
 }
@@ -326,7 +323,7 @@ _update_array_map_entry_with_handle(
     if (value_type == EBPF_OBJECT_MAP) {
         // Validate that the value is of the correct type.
         if (!_check_value_type(map, value_object)) {
-            ebpf_object_release_reference((ebpf_object_t*)value_object);
+            ebpf_object_release_reference(value_object);
             result = EBPF_INVALID_FD;
             goto Done;
         }
@@ -340,7 +337,7 @@ _update_array_map_entry_with_handle(
             map_of_objects->is_program_type_set = TRUE;
             map_of_objects->program_type = *value_program_type;
         } else if (memcmp(&map_of_objects->program_type, value_program_type, sizeof(*value_program_type)) != 0) {
-            ebpf_object_release_reference((ebpf_object_t*)value_object);
+            ebpf_object_release_reference(value_object);
             result = EBPF_INVALID_FD;
             goto Done;
         }
@@ -866,6 +863,9 @@ _ebpf_map_delete(_In_ ebpf_object_t* object)
 {
     ebpf_map_t* map = (ebpf_map_t*)object;
 
+    if (map->inner_map_template != NULL) {
+        ebpf_object_release_reference(&map->inner_map_template->object);
+    }
     ebpf_free(map->name.value);
     ebpf_map_function_tables[map->ebpf_map_definition.type].delete_map(map);
 }
