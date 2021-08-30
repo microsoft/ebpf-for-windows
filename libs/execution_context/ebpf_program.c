@@ -598,7 +598,7 @@ ebpf_program_set_tail_call(_In_ const ebpf_program_t* next_program)
 }
 
 void
-ebpf_program_enable_tail_calls(ebpf_program_t* program)
+ebpf_program_enable_tail_calls(_In_ ebpf_program_t* program)
 {
     program->tail_calls_enabled = true;
 }

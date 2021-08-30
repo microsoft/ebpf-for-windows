@@ -215,6 +215,11 @@ extern "C"
     ebpf_result_t
     ebpf_program_set_tail_call(_In_ const ebpf_program_t* next_program);
 
+    /**
+     * @brief Enable this program to perform tail calls.
+     *
+     * @param[in] program Program on which to set the tail call enabled flag.
+     */
     void
     ebpf_program_enable_tail_calls(_In_ ebpf_program_t* program);
 
