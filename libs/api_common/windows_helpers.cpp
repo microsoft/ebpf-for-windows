@@ -40,6 +40,14 @@ static thread_local std::map<GUID, ebpf_program_info_ptr_t, guid_compare> _progr
 
 static thread_local std::map<GUID, ebpf_helper::ebpf_memory_ptr, guid_compare> _static_program_info_cache;
 
+static thread_local ebpf_handle_t _program_under_verification = ebpf_handle_invalid;
+
+void
+set_program_under_verification(ebpf_handle_t program)
+{
+    _program_under_verification = program;
+}
+
 void
 clear_program_info_cache()
 {
@@ -49,10 +57,13 @@ clear_program_info_cache()
 ebpf_result_t
 get_program_info_data(ebpf_program_type_t program_type, _Outptr_ ebpf_program_info_t** program_info)
 {
-    ebpf_protocol_buffer_t reply_buffer(1024);
+    ebpf_protocol_buffer_t reply_buffer(2048);
     size_t required_buffer_length;
     ebpf_operation_get_program_info_request_t request{
-        sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_GET_PROGRAM_INFO, program_type};
+        sizeof(request),
+        ebpf_operation_id_t::EBPF_OPERATION_GET_PROGRAM_INFO,
+        program_type,
+        reinterpret_cast<uint64_t>(_program_under_verification)};
 
     *program_info = nullptr;
 

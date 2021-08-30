@@ -238,13 +238,6 @@ _query_and_cache_map_descriptors(_In_reads_(handle_map_count) fd_handle_map* han
     return EBPF_SUCCESS;
 }
 
-void
-ebpf_clear_thread_local_storage() noexcept
-{
-    clear_map_descriptors();
-    clear_program_info_cache();
-}
-
 ebpf_result_t
 ebpf_verify_program(
     const GUID* program_type,

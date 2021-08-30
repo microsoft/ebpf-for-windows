@@ -39,6 +39,3 @@ ebpf_service_initialize() noexcept;
 
 void
 ebpf_service_cleanup() noexcept;
-
-void
-ebpf_clear_thread_local_storage() noexcept;

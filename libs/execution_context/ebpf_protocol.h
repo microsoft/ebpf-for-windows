@@ -277,6 +277,7 @@ typedef struct _ebpf_operation_get_program_info_request
 {
     struct _ebpf_operation_header header;
     ebpf_program_type_t program_type;
+    uint64_t program_handle;
 } ebpf_operation_get_program_info_request_t;
 
 typedef struct _ebpf_operation_get_program_info_reply

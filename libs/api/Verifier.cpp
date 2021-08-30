@@ -35,6 +35,11 @@ typedef struct _section_offset_to_map
     string map_name;
 } section_offset_to_map_t;
 
+struct _thread_local_storage_cache
+{
+    ~_thread_local_storage_cache() { ebpf_clear_thread_local_storage(); }
+};
+
 static void
 _get_program_and_map_names(
     _In_ string& path,
@@ -329,6 +334,8 @@ ebpf_api_elf_enumerate_sections(
     ebpf_verifier_options_t verifier_options{false, false, false, false, true};
     const ebpf_platform_t* platform = &g_ebpf_platform_windows;
     std::ostringstream str;
+    struct _thread_local_storage_cache tls_cache;
+
     try {
         auto raw_programs = read_elf(file, section ? std::string(section) : std::string(), &verifier_options, platform);
         tlv_sequence sequence;
@@ -380,6 +387,8 @@ ebpf_api_elf_disassemble_section(
     const ebpf_platform_t* platform = &g_ebpf_platform_windows;
     std::ostringstream error;
     std::ostringstream output;
+    struct _thread_local_storage_cache tls_cache;
+
     try {
         auto raw_programs = read_elf(file, section, &verifier_options, platform);
         raw_program raw_program = raw_programs.back();
@@ -414,8 +423,8 @@ ebpf_api_elf_verify_section(
     ebpf_api_verifier_stats_t* stats)
 {
     std::ostringstream error;
-
     std::ostringstream output;
+    struct _thread_local_storage_cache tls_cache;
 
     *report = nullptr;
     *error_message = nullptr;
