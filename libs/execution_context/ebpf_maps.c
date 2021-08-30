@@ -7,7 +7,7 @@
 #include "ebpf_object.h"
 #include "ebpf_program.h"
 
-#define PAD16(X) ((X + 15) & ~15)
+#define PAD_CACHE_SIZE(X) ((X + 63) & ~63)
 
 typedef struct _ebpf_core_map
 {
@@ -692,7 +692,7 @@ static ebpf_result_t
 _ebpf_adjust_value_pointer(_In_ ebpf_map_t* map, _Inout_ uint8_t** value)
 {
     uint32_t current_cpu;
-    uint32_t max_cpu = map->ebpf_map_definition.value_size / PAD16(map->original_value_size);
+    uint32_t max_cpu = map->ebpf_map_definition.value_size / PAD_CACHE_SIZE(map->original_value_size);
     switch (map->ebpf_map_definition.type) {
     case BPF_MAP_TYPE_PERCPU_ARRAY:
     case BPF_MAP_TYPE_PERCPU_HASH:
@@ -705,7 +705,7 @@ _ebpf_adjust_value_pointer(_In_ ebpf_map_t* map, _Inout_ uint8_t** value)
     if (current_cpu > max_cpu) {
         return EBPF_INVALID_ARGUMENT;
     }
-    (*value) += PAD16((size_t)map->original_value_size) * current_cpu;
+    (*value) += PAD_CACHE_SIZE((size_t)map->original_value_size) * current_cpu;
     return EBPF_SUCCESS;
 }
 
@@ -854,7 +854,7 @@ ebpf_map_create(
     switch (local_map_definition.type) {
     case BPF_MAP_TYPE_PERCPU_HASH:
     case BPF_MAP_TYPE_PERCPU_ARRAY:
-        local_map_definition.value_size = cpu_count * PAD16(local_map_definition.value_size);
+        local_map_definition.value_size = cpu_count * PAD_CACHE_SIZE(local_map_definition.value_size);
         break;
     default:
         break;
