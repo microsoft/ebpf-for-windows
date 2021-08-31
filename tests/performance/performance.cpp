@@ -267,41 +267,47 @@ typedef class _ebpf_map_test_state
     {
         ebpf_utf8_string_t name{(uint8_t*)"test", 4};
         ebpf_map_definition_in_memory_t definition{
-            sizeof(ebpf_map_definition_in_memory_t), type, sizeof(uint32_t), sizeof(uint64_t), 1};
+            sizeof(ebpf_map_definition_in_memory_t), type, sizeof(uint32_t), sizeof(uint64_t), ebpf_get_cpu_count()};
 
         REQUIRE(
             ebpf_map_create(&name, &definition, reinterpret_cast<uintptr_t>(ebpf_handle_invalid), &map) ==
             EBPF_SUCCESS);
+
+        for (uint32_t i = 0; i < ebpf_get_cpu_count(); i++) {
+            uint64_t value = 0;
+            ebpf_map_update_entry(map, 0, (uint8_t*)&i, 0, (uint8_t*)&value, EBPF_ANY, EBPF_MAP_FLAG_HELPER);
+        }
     }
     ~_ebpf_map_test_state() { ebpf_object_release_reference((ebpf_object_t*)map); }
 
     void
-    test_find_read()
+    test_find_read(uint32_t cpu_id)
     {
-        uint32_t key = 0;
+        uint32_t key = cpu_id;
         volatile uint64_t* value = nullptr;
 
         ebpf_epoch_enter();
         ebpf_map_find_entry(map, 0, (uint8_t*)&key, 0, (uint8_t*)&value, EBPF_MAP_FLAG_HELPER);
         uint64_t local = *value;
+        UNREFERENCED_PARAMETER(local);
         ebpf_epoch_exit();
     }
 
     void
-    test_find_write()
+    test_find_write(uint32_t cpu_id)
     {
-        uint32_t key = 0;
+        uint32_t key = cpu_id;
         uint64_t* value = nullptr;
         ebpf_epoch_enter();
         ebpf_map_find_entry(map, 0, (uint8_t*)&key, 0, (uint8_t*)&value, EBPF_MAP_FLAG_HELPER);
-        *value = 1;
+        (*value)++;
         ebpf_epoch_exit();
     }
 
     void
-    test_update()
+    test_update(uint32_t cpu_id)
     {
-        uint32_t key = 0;
+        uint32_t key = cpu_id;
         uint64_t value = 0;
         ebpf_epoch_enter();
         ebpf_map_update_entry(map, 0, (uint8_t*)&key, 0, (uint8_t*)&value, EBPF_ANY, EBPF_MAP_FLAG_HELPER);
@@ -348,21 +354,21 @@ _ebpf_program_invoke()
 }
 
 static void
-_map_find_read_test()
+_map_find_read_test(uint32_t cpu_id)
 {
-    _ebpf_map_test_state_instance->test_find_read();
+    _ebpf_map_test_state_instance->test_find_read(cpu_id);
 }
 
 static void
-_map_find_write_test()
+_map_find_write_test(uint32_t cpu_id)
 {
-    _ebpf_map_test_state_instance->test_find_write();
+    _ebpf_map_test_state_instance->test_find_write(cpu_id);
 }
 
 static void
-_map_update_test()
+_map_update_test(uint32_t cpu_id)
 {
-    _ebpf_map_test_state_instance->test_update();
+    _ebpf_map_test_state_instance->test_update(cpu_id);
 }
 
 static const char*
