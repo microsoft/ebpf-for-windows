@@ -3,7 +3,7 @@
 
 // eBPF program for testing utility general helper functions.
 
-#include "ebpf_helpers.h"
+#include "bpf_helpers.h"
 #include "ebpf_nethooks.h"
 #include "sample_test_common.h"
 

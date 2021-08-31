@@ -1,10 +1,7 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include "ebpf_helpers.h"
-#include "ebpf_nethooks.h"
-typedef unsigned int uint32_t;
-typedef unsigned long uint64_t;
+#include "bpf_helpers.h"
 
 SEC("maps")
 struct _ebpf_map_definition_in_file outer_map = {
