@@ -44,7 +44,7 @@ jobs:
     - name: Set AeDebug registry key
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
-        procdump64.exe -i -r -ma c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+        procdump64.exe -accepteula -i -r -ma c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
 
     - name: Install LLVM and Clang
       working-directory: ${{env.GITHUB_WORKSPACE}}
