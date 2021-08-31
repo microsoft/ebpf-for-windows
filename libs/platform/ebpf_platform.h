@@ -26,6 +26,23 @@ extern "C"
         ((uint8_t*)(x)), sizeof((x)) - 1      \
     }
 
+#define EBPF_CACHE_LINE_SIZE (64)
+#define EBPF_CACHE_ALIGN_POINTER(P) (void*)(((uintptr_t)P + EBPF_CACHE_LINE_SIZE - 1) & ~(EBPF_CACHE_LINE_SIZE - 1))
+
+#define EBPF_DECLARE_ALIGNED_POINTER(TYPE, NAME)        \
+    C_ASSERT(sizeof(TYPE) % EBPF_CACHE_LINE_SIZE == 0); \
+    static TYPE* NAME = NULL;                           \
+    static void* NAME##_unaligned = NULL;
+
+#define EBPF_ALLOCATE_ALIGNED_POINTER(TYPE, NAME, COUNT)                           \
+    NAME##_unaligned = ebpf_allocate(sizeof(TYPE) * COUNT + EBPF_CACHE_LINE_SIZE); \
+    NAME = NAME##_unaligned != NULL ? NAME = EBPF_CACHE_ALIGN_POINTER(NAME##_unaligned) : NULL;
+
+#define EBPF_FREE_ALIGNED_PONTER(NAME) \
+    ebpf_free(NAME##_unaligned);       \
+    NAME##_unaligned = NULL;           \
+    NAME = NULL;
+
     /**
      * @brief A UTF-8 encoded string.
      * Notes:
