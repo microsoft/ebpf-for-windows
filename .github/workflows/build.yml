@@ -41,6 +41,11 @@ jobs:
         mkdir c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
         echo "test" > c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/test.txt
 
+    - name: Set AeDebug registry key
+      working-directory: c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+      run: |
+        procdump64.exe -accepteula -i -r -ma c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+
     - name: Install LLVM and Clang
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
@@ -82,15 +87,15 @@ jobs:
 
     - name: Run Unit Tests
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
-      run: procdump64.exe -accepteula -o -ma -e -x c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}} ./unit_tests.exe -s
+      run: ./unit_tests.exe -s
 
     - name: Run RPC Client Tests
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
-      run: procdump64.exe -accepteula -o -ma -e -x c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}} ./ebpf_client.exe -s
+      run: ./ebpf_client.exe -s
 
-    - name: Run Performance Benchmark Tests
-      working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
-      run: procdump64.exe -accepteula -o -ma -e -x c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}} ./ebpf_performance.exe
+    - name: Check for crash dumps
+      working-directory: c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+      run: if (Test-Path *.dmp) { exit 1 }
 
     - name: Upload any crash dumps
       uses: actions/upload-artifact@v2
