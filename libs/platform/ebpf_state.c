@@ -17,7 +17,7 @@ typedef struct _ebpf_state_entry
     uintptr_t state[EBPF_MAX_STATE_ENTRIES];
 } ebpf_state_entry_t;
 
-EBPF_DECLARE_STATIC_ALIGNED_POINTER(_Writable_elements_(_ebpf_state_cpu_table_size) ebpf_state_entry_t, _ebpf_state_cpu_table)
+static _Writable_elements_(_ebpf_state_cpu_table_size) ebpf_state_entry_t* _ebpf_state_cpu_table = NULL;
 static uint32_t _ebpf_state_cpu_table_size = 0;
 
 ebpf_result_t
@@ -29,7 +29,7 @@ ebpf_state_initiate()
         _ebpf_state_cpu_table_size = ebpf_get_cpu_count();
         _Analysis_assume_(_ebpf_state_cpu_table_size >= 1);
 
-        EBPF_ALLOCATE_ALIGNED_POINTER(ebpf_state_entry_t, _ebpf_state_cpu_table, _ebpf_state_cpu_table_size);
+        _ebpf_state_cpu_table = ebpf_allocate_cache_aligned(sizeof(ebpf_state_entry_t) * _ebpf_state_cpu_table_size);
         if (!_ebpf_state_cpu_table) {
             return_value = EBPF_NO_MEMORY;
             goto Error;
@@ -63,7 +63,7 @@ void
 ebpf_state_terminate()
 {
     ebpf_hash_table_destroy(_ebpf_state_thread_table);
-    EBPF_FREE_ALIGNED_PONTER(_ebpf_state_cpu_table);
+    ebpf_free_cache_aligned(_ebpf_state_cpu_table);
 }
 
 ebpf_result_t

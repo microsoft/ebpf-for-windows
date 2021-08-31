@@ -65,7 +65,7 @@ typedef struct _ebpf_epoch_cpu_entry
 
 C_ASSERT(sizeof(ebpf_epoch_cpu_entry_t) % EBPF_CACHE_LINE_SIZE == 0);
 
-EBPF_DECLARE_STATIC_ALIGNED_POINTER(_Writable_elements_(_ebpf_epoch_cpu_count) ebpf_epoch_cpu_entry_t, _ebpf_epoch_cpu_table)
+static _Writable_elements_(_ebpf_epoch_cpu_count) ebpf_epoch_cpu_entry_t* _ebpf_epoch_cpu_table = NULL;
 static uint32_t _ebpf_epoch_cpu_count = 0;
 
 /**
@@ -143,12 +143,13 @@ ebpf_epoch_initiate()
     _ebpf_release_epoch = 0;
     _ebpf_epoch_cpu_count = cpu_count;
 
-    EBPF_ALLOCATE_ALIGNED_POINTER(ebpf_epoch_cpu_entry_t, _ebpf_epoch_cpu_table, cpu_count)
-
+    _ebpf_epoch_cpu_table = ebpf_allocate_cache_aligned(sizeof(ebpf_epoch_cpu_entry_t) * cpu_count);
     if (!_ebpf_epoch_cpu_table) {
         return_value = EBPF_NO_MEMORY;
         goto Error;
     }
+
+    ebpf_assert(EBPF_CACHE_ALIGN_POINTER(_ebpf_epoch_cpu_table) == _ebpf_epoch_cpu_table);
 
     for (cpu_id = 0; cpu_id < _ebpf_epoch_cpu_count; cpu_id++) {
         _ebpf_epoch_cpu_table[cpu_id].cpu_epoch_state.epoch = _ebpf_current_epoch;
@@ -200,7 +201,7 @@ ebpf_epoch_terminate()
     }
     _ebpf_epoch_cpu_count = 0;
 
-    EBPF_FREE_ALIGNED_PONTER(_ebpf_epoch_cpu_table);
+    ebpf_free_cache_aligned(_ebpf_epoch_cpu_table);
 }
 
 ebpf_result_t

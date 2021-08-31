@@ -29,20 +29,6 @@ extern "C"
 #define EBPF_CACHE_LINE_SIZE 64
 #define EBPF_CACHE_ALIGN_POINTER(P) (void*)(((uintptr_t)P + EBPF_CACHE_LINE_SIZE - 1) & ~(EBPF_CACHE_LINE_SIZE - 1))
 
-#define EBPF_DECLARE_STATIC_ALIGNED_POINTER(TYPE, NAME)        \
-    C_ASSERT(sizeof(TYPE) % EBPF_CACHE_LINE_SIZE == 0); \
-    static TYPE* NAME = NULL;                           \
-    static void* NAME##_unaligned = NULL;
-
-#define EBPF_ALLOCATE_ALIGNED_POINTER(TYPE, NAME, COUNT)                           \
-    NAME##_unaligned = ebpf_allocate(sizeof(TYPE) * COUNT + EBPF_CACHE_LINE_SIZE); \
-    NAME = NAME##_unaligned != NULL ? NAME = EBPF_CACHE_ALIGN_POINTER(NAME##_unaligned) : NULL;
-
-#define EBPF_FREE_ALIGNED_PONTER(NAME) \
-    ebpf_free(NAME##_unaligned);       \
-    NAME##_unaligned = NULL;           \
-    NAME = NULL;
-
     /**
      * @brief A UTF-8 encoded string.
      * Notes:
@@ -136,6 +122,21 @@ extern "C"
      */
     void
     ebpf_free(_Frees_ptr_opt_ void* memory);
+
+    /**
+     * @brief Allocate memory that has a starting address that is cache aligned.
+     * @param[in] size Size of memory to allocate
+     * @returns Pointer to memory block allocated, or null on failure.
+     */
+    __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
+        _Post_writable_byte_size_(size) void* ebpf_allocate_cache_aligned(size_t size);
+
+    /**
+     * @brief Free memory that has a starting address that is cache aligned.
+     * @param[in] memory Allocation to be freed.
+     */
+    void
+    ebpf_free_cache_aligned(_Frees_ptr_opt_ void* memory);
 
     typedef enum _ebpf_page_protection
     {
