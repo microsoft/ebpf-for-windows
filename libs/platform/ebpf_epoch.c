@@ -65,7 +65,7 @@ typedef struct _ebpf_epoch_cpu_entry
 
 C_ASSERT(sizeof(ebpf_epoch_cpu_entry_t) % EBPF_CACHE_LINE_SIZE == 0);
 
-EBPF_DECLARE_ALIGNED_POINTER(_Writable_elements_(_ebpf_epoch_cpu_count) ebpf_epoch_cpu_entry_t, _ebpf_epoch_cpu_table)
+EBPF_DECLARE_STATIC_ALIGNED_POINTER(_Writable_elements_(_ebpf_epoch_cpu_count) ebpf_epoch_cpu_entry_t, _ebpf_epoch_cpu_table)
 static uint32_t _ebpf_epoch_cpu_count = 0;
 
 /**

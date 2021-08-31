@@ -26,10 +26,10 @@ extern "C"
         ((uint8_t*)(x)), sizeof((x)) - 1      \
     }
 
-#define EBPF_CACHE_LINE_SIZE (64)
+#define EBPF_CACHE_LINE_SIZE 64
 #define EBPF_CACHE_ALIGN_POINTER(P) (void*)(((uintptr_t)P + EBPF_CACHE_LINE_SIZE - 1) & ~(EBPF_CACHE_LINE_SIZE - 1))
 
-#define EBPF_DECLARE_ALIGNED_POINTER(TYPE, NAME)        \
+#define EBPF_DECLARE_STATIC_ALIGNED_POINTER(TYPE, NAME)        \
     C_ASSERT(sizeof(TYPE) % EBPF_CACHE_LINE_SIZE == 0); \
     static TYPE* NAME = NULL;                           \
     static void* NAME##_unaligned = NULL;

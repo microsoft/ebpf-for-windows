@@ -17,7 +17,7 @@ typedef struct _ebpf_state_entry
     uintptr_t state[EBPF_MAX_STATE_ENTRIES];
 } ebpf_state_entry_t;
 
-EBPF_DECLARE_ALIGNED_POINTER(_Writable_elements_(_ebpf_state_cpu_table_size) ebpf_state_entry_t, _ebpf_state_cpu_table)
+EBPF_DECLARE_STATIC_ALIGNED_POINTER(_Writable_elements_(_ebpf_state_cpu_table_size) ebpf_state_entry_t, _ebpf_state_cpu_table)
 static uint32_t _ebpf_state_cpu_table_size = 0;
 
 ebpf_result_t
