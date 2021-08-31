@@ -127,7 +127,8 @@ ebpf_api_create_map(
     _ebpf_operation_create_map_request request{
         EBPF_OFFSET_OF(ebpf_operation_create_map_request_t, data),
         ebpf_operation_id_t::EBPF_OPERATION_CREATE_MAP,
-        {sizeof(struct _ebpf_map_definition), type, key_size, value_size, max_entries}};
+        {sizeof(ebpf_map_definition_in_memory_t), type, key_size, value_size, max_entries},
+        (uint64_t)ebpf_handle_invalid};
 
     _ebpf_operation_create_map_reply reply{};
 
@@ -154,7 +155,10 @@ Exit:
 
 static ebpf_result_t
 _create_map(
-    _In_opt_z_ const char* name, _In_ const ebpf_map_definition_t* map_definition, _Out_ ebpf_handle_t* map_handle)
+    _In_opt_z_ const char* name,
+    _In_ const ebpf_map_definition_in_memory_t* map_definition,
+    ebpf_handle_t inner_map_handle,
+    _Out_ ebpf_handle_t* map_handle)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     uint32_t return_value = ERROR_SUCCESS;
@@ -177,6 +181,7 @@ _create_map(
     request->header.id = EBPF_OPERATION_CREATE_MAP;
     request->header.length = static_cast<uint16_t>(request_buffer.size());
     request->ebpf_map_definition = *map_definition;
+    request->inner_map_handle = (uint64_t)inner_map_handle;
     std::copy(
         map_name.begin(), map_name.end(), request_buffer.begin() + offsetof(ebpf_operation_create_map_request_t, data));
 
@@ -204,7 +209,7 @@ ebpf_create_map_name(
 {
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_handle_t map_handle = ebpf_handle_invalid;
-    ebpf_map_definition_t map_definition = {0};
+    ebpf_map_definition_in_memory_t map_definition = {0};
 
     if (map_flags != 0 || map_fd == nullptr) {
         result = EBPF_INVALID_ARGUMENT;
@@ -219,7 +224,7 @@ ebpf_create_map_name(
         map_definition.value_size = value_size;
         map_definition.max_entries = max_entries;
 
-        result = _create_map(name, &map_definition, &map_handle);
+        result = _create_map(name, &map_definition, ebpf_handle_invalid, &map_handle);
         if (result != EBPF_SUCCESS) {
             goto Exit;
         }
@@ -318,8 +323,8 @@ _get_map_descriptor_properties(
         // Map is not present in the local cache. Query map descriptor from EC.
         uint32_t size;
         uint32_t max_entries;
-        uint32_t inner_map_idx;
-        result = query_map_definition(handle, &size, type, key_size, value_size, &max_entries, &inner_map_idx);
+        uint32_t inner_map_id;
+        result = query_map_definition(handle, &size, type, key_size, value_size, &max_entries, &inner_map_id);
         if (result != EBPF_SUCCESS) {
             goto Exit;
         }
@@ -604,28 +609,6 @@ Exit:
     return result;
 }
 
-int
-create_map_internal(
-    uint32_t type,
-    uint32_t key_size,
-    uint32_t value_size,
-    uint32_t max_entries,
-    uint32_t inner_map_fd,
-    size_t section_offset,
-    ebpf_verifier_options_t)
-{
-    // Get a mock fd and store the map information in the map descriptor cache.
-    // Actual map creation will happen at a later stage.
-    return cache_map_handle(
-        reinterpret_cast<uint64_t>(INVALID_HANDLE_VALUE),
-        type,
-        key_size,
-        value_size,
-        max_entries,
-        inner_map_fd,
-        section_offset);
-}
-
 static ebpf_result_t
 _create_program(
     ebpf_program_type_t program_type,
@@ -730,10 +713,10 @@ ebpf_api_load_program(
     ebpf_handle_t program_handle = INVALID_HANDLE_VALUE;
     ebpf_protocol_buffer_t request_buffer;
     uint32_t error_message_size = 0;
-    std::vector<uintptr_t> handles;
+    std::vector<ebpf_handle_t> handles;
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_program_load_info load_info = {0};
-    std::vector<fd_handle_map> handle_map;
+    std::vector<original_fd_handle_map_t> handle_map;
     std::vector<ebpf_program_t*> programs;
     std::vector<ebpf_map_t*> maps;
     ebpf_program_t* program = nullptr;
@@ -758,7 +741,8 @@ ebpf_api_load_program(
 
         // Create all the maps.
         for (auto& map : maps) {
-            result = _create_map(map->name, &map->map_definition, &map->map_handle);
+            ebpf_handle_t inner_map_handle = (map->inner_map) ? map->inner_map->map_handle : ebpf_handle_invalid;
+            result = _create_map(map->name, &map->map_definition, inner_map_handle, &map->map_handle);
             if (result != EBPF_SUCCESS) {
                 goto Done;
             }
@@ -795,7 +779,9 @@ ebpf_api_load_program(
 
         if (load_info.map_count > 0) {
             for (auto& map : maps) {
-                handle_map.emplace_back(map->mock_map_fd, reinterpret_cast<file_handle_t>(map->map_handle));
+                fd_t inner_map_original_fd = (map->inner_map) ? map->inner_map->original_fd : ebpf_fd_invalid;
+                handle_map.emplace_back(
+                    map->original_fd, inner_map_original_fd, reinterpret_cast<file_handle_t>(map->map_handle));
             }
 
             load_info.handle_map = handle_map.data();
@@ -1106,13 +1092,13 @@ ebpf_map_query_definition(
     _Out_ uint32_t* key_size,
     _Out_ uint32_t* value_size,
     _Out_ uint32_t* max_entries,
-    _Out_ uint32_t* inner_map_idx)
+    _Out_ uint32_t* inner_map_id)
 {
     ebpf_handle_t map_handle = _get_handle_from_fd(fd);
     if (map_handle == ebpf_handle_invalid) {
         return EBPF_INVALID_FD;
     }
-    return query_map_definition(map_handle, size, type, key_size, value_size, max_entries, inner_map_idx);
+    return query_map_definition(map_handle, size, type, key_size, value_size, max_entries, inner_map_id);
 }
 
 ebpf_result_t
@@ -1584,20 +1570,19 @@ _clean_up_ebpf_objects()
 void
 initialize_map(_Out_ ebpf_map_t* map, _In_ const map_cache_t& map_cache)
 {
-    // Map cache contains mock fd. Initialize handle to ebpf_handle_invalid.
+    // Initialize handle to ebpf_handle_invalid.
     map->map_handle = ebpf_handle_invalid;
-    map->mock_map_fd = map_cache.ebpf_map_descriptor.original_fd;
+    map->original_fd = map_cache.verifier_map_descriptor.original_fd;
     map->map_definition.size = sizeof(map->map_definition);
-    map->map_definition.type = (ebpf_map_type_t)map_cache.ebpf_map_descriptor.type;
-    map->map_definition.key_size = map_cache.ebpf_map_descriptor.key_size;
-    map->map_definition.value_size = map_cache.ebpf_map_descriptor.value_size;
-    map->map_definition.max_entries = map_cache.ebpf_map_descriptor.max_entries;
+    map->map_definition.type = (ebpf_map_type_t)map_cache.verifier_map_descriptor.type;
+    map->map_definition.key_size = map_cache.verifier_map_descriptor.key_size;
+    map->map_definition.value_size = map_cache.verifier_map_descriptor.value_size;
+    map->map_definition.max_entries = map_cache.verifier_map_descriptor.max_entries;
 
-    // The PREVAIL code calls the field inner_map_fd, which is what user-mode
-    // apps would write into map values, but what is stored and read from map
-    // values is instead an inner_map_idx which is what the field is called on
-    // Linux.
-    map->map_definition.inner_map_idx = map_cache.ebpf_map_descriptor.inner_map_fd;
+    // TODO(issue #396): fill in inner map id, if any.
+    map->map_definition.inner_map_id = (uint32_t)-1;
+
+    map->inner_map_original_fd = map_cache.verifier_map_descriptor.inner_map_fd;
 
     map->pinned = false;
     map->pin_path = nullptr;
@@ -1641,6 +1626,51 @@ Exit:
     return result;
 }
 
+// Find a map that needs to be created and doesn't depend on
+// creating another map first.  That is, we want to create an
+// inner map template before creating an outer map that depends
+// on the inner map template.
+static ebpf_map_t*
+_get_next_map_to_create(std::vector<ebpf_map_t*>& maps)
+{
+    for (auto& map : maps) {
+        if (map->map_handle != ebpf_handle_invalid) {
+            // Already created.
+            continue;
+        }
+        if (map->map_definition.type != BPF_MAP_TYPE_ARRAY_OF_MAPS &&
+            map->map_definition.type != BPF_MAP_TYPE_HASH_OF_MAPS) {
+            return map;
+        }
+        if (map->inner_map == nullptr) {
+            // This map requires an inner map template, look up which one.
+            for (auto& inner_map : maps) {
+                if (inner_map->original_fd == map->inner_map_original_fd) {
+                    map->inner_map = inner_map;
+                    break;
+                }
+            }
+            if (map->inner_map == nullptr) {
+                // We can't create this map because there is no inner template.
+                continue;
+            }
+        }
+        if (map->inner_map->map_handle == ebpf_handle_invalid) {
+            // We need to create the inner map template first.
+            continue;
+        }
+
+        // The inner map has been created so we can now
+        // go ahead and create this outer map with the real
+        // inner_map_id instead of the mock one.
+        map->map_definition.inner_map_id = map->inner_map->map_id;
+        return map;
+    }
+
+    // There are no maps left that we can create.
+    return nullptr;
+}
+
 ebpf_result_t
 ebpf_program_load(
     _In_z_ const char* file_name,
@@ -1657,7 +1687,7 @@ ebpf_program_load(
     std::vector<uintptr_t> handles;
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_program_load_info load_info = {0};
-    std::vector<fd_handle_map> handle_map;
+    std::vector<original_fd_handle_map_t> handle_map;
 
     if (file_name == nullptr || object == nullptr || program_fd == nullptr || log_buffer == nullptr) {
         result = EBPF_INVALID_ARGUMENT;
@@ -1687,10 +1717,18 @@ ebpf_program_load(
             goto Done;
         }
 
-        // Create all the maps.
+        // Create all maps.
         // TODO: update ebpf_map_definition_t structure so that it contains flag and pinning information.
-        for (auto& map : new_object->maps) {
-            result = _create_map(map->name, &map->map_definition, &map->map_handle);
+        for (int count = 0; count < new_object->maps.size(); count++) {
+            ebpf_map_t* map = _get_next_map_to_create(new_object->maps);
+            if (map == nullptr) {
+                // Any remaining maps cannot be created.
+                result = EBPF_INVALID_OBJECT;
+                goto Done;
+            }
+
+            ebpf_handle_t inner_map_handle = (map->inner_map) ? map->inner_map->map_handle : ebpf_handle_invalid;
+            result = _create_map(map->name, &map->map_definition, inner_map_handle, &map->map_handle);
             if (result != EBPF_SUCCESS) {
                 goto Done;
             }
@@ -1723,7 +1761,9 @@ ebpf_program_load(
 
             if (load_info.map_count > 0) {
                 for (auto& map : new_object->maps) {
-                    handle_map.emplace_back(map->mock_map_fd, reinterpret_cast<file_handle_t>(map->map_handle));
+                    fd_t inner_map_original_fd = (map->inner_map) ? map->inner_map->original_fd : ebpf_fd_invalid;
+                    handle_map.emplace_back(
+                        map->original_fd, inner_map_original_fd, reinterpret_cast<file_handle_t>(map->map_handle));
                 }
 
                 load_info.handle_map = handle_map.data();

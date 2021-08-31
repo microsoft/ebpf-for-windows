@@ -17,7 +17,7 @@ const ebpf_platform_t g_ebpf_platform_windows_service = {
     get_program_type_windows,
     get_helper_prototype_windows,
     is_helper_usable_windows,
-    sizeof(ebpf_map_definition_t),
+    sizeof(ebpf_map_definition_in_memory_t),
     nullptr, // parse_maps_section_windows,
     get_map_descriptor_windows,
     get_map_type_windows,

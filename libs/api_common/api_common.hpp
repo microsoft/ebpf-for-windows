@@ -14,33 +14,33 @@
 
 typedef struct _map_cache
 {
-    uintptr_t handle;
+    ebpf_handle_t handle;
     size_t section_offset;
-    EbpfMapDescriptor ebpf_map_descriptor;
+    EbpfMapDescriptor verifier_map_descriptor;
 
-    _map_cache() : handle(0), section_offset(0), ebpf_map_descriptor() {}
+    _map_cache() : handle(0), section_offset(0), verifier_map_descriptor() {}
 
-    _map_cache(uintptr_t handle, size_t section_offset, EbpfMapDescriptor descriptor)
-        : handle(handle), section_offset(section_offset), ebpf_map_descriptor(descriptor)
+    _map_cache(ebpf_handle_t handle, size_t section_offset, EbpfMapDescriptor descriptor)
+        : handle(handle), section_offset(section_offset), verifier_map_descriptor(descriptor)
     {}
 
     _map_cache(
-        uintptr_t handle,
-        int original_fd,
+        ebpf_handle_t handle,
+        int original_fd, // fd as it appears in raw bytecode
         uint32_t type,
         unsigned int key_size,
         unsigned int value_size,
         unsigned int max_entries,
-        unsigned int inner_map_idx,
+        unsigned int inner_map_original_fd, // original fd of inner map
         size_t section_offset)
         : handle(handle), section_offset(section_offset)
     {
-        ebpf_map_descriptor.original_fd = original_fd;
-        ebpf_map_descriptor.type = type;
-        ebpf_map_descriptor.key_size = key_size;
-        ebpf_map_descriptor.value_size = value_size;
-        ebpf_map_descriptor.max_entries = max_entries;
-        ebpf_map_descriptor.inner_map_fd = inner_map_idx;
+        verifier_map_descriptor.original_fd = original_fd;
+        verifier_map_descriptor.type = type;
+        verifier_map_descriptor.key_size = key_size;
+        verifier_map_descriptor.value_size = value_size;
+        verifier_map_descriptor.max_entries = max_entries;
+        verifier_map_descriptor.inner_map_fd = inner_map_original_fd;
     }
 } map_cache_t;
 
@@ -56,23 +56,24 @@ get_file_size(const char* filename, size_t* byte_code_size) noexcept;
 EbpfHelperPrototype
 get_helper_prototype_windows(unsigned int n);
 
-int
+void
 cache_map_handle(
-    uint64_t handle,
+    ebpf_handle_t handle,
+    uint32_t original_fd,
     uint32_t type,
     uint32_t key_size,
     uint32_t value_size,
     uint32_t max_entries,
-    uint32_t inner_map_fd,
+    uint32_t inner_map_original_fd,
     size_t section_offset);
 
 size_t
 get_map_descriptor_size(void);
 
-uintptr_t
+ebpf_handle_t
 get_map_handle(int map_fd);
 
-std::vector<uintptr_t>
+std::vector<ebpf_handle_t>
 get_all_map_handles(void);
 
 std::vector<map_cache_t>
@@ -145,7 +146,7 @@ query_map_definition(
     _Out_ uint32_t* key_size,
     _Out_ uint32_t* value_size,
     _Out_ uint32_t* max_entries,
-    _Out_ uint32_t* inner_map_idx) noexcept;
+    _Out_ uint32_t* inner_map_id) noexcept;
 
 void
 set_global_program_and_attach_type(const ebpf_program_type_t* program_type, const ebpf_attach_type_t* attach_type);

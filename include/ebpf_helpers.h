@@ -8,10 +8,10 @@
 
 #define MAX_TAIL_CALL_CNT 32
 
-// In an execution context, struct bpf_map means struct _ebpf_map_definition,
-// as opposed to for user mode apps, so define the alias here where the execution
-// context and eBPF programs will get it.
-#define bpf_map _ebpf_map_definition
+// For eBPF programs, struct bpf_map means struct _ebpf_map_definition_in_file,
+// since they use inner_map_idx and pass pointers to such structures to the various
+// map APIs.
+#define bpf_map _ebpf_map_definition_in_file
 
 #ifndef __doxygen
 #define EBPF_HELPER(return_type, name, args) typedef return_type(*name##_t) args

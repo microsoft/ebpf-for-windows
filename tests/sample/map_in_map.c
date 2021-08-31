@@ -7,7 +7,7 @@ typedef unsigned int uint32_t;
 typedef unsigned long uint64_t;
 
 SEC("maps")
-struct bpf_map outer_map = {
+struct _ebpf_map_definition_in_file outer_map = {
     .type = BPF_MAP_TYPE_ARRAY_OF_MAPS,
     .key_size = sizeof(uint32_t),
     .value_size = sizeof(uint32_t),
@@ -16,7 +16,7 @@ struct bpf_map outer_map = {
     .inner_map_idx = 1}; // (uint32_t)&inner_map
 
 SEC("maps")
-struct bpf_map inner_map = {
+struct _ebpf_map_definition_in_file inner_map = {
     .type = BPF_MAP_TYPE_ARRAY, .key_size = sizeof(uint32_t), .value_size = sizeof(uint32_t), .max_entries = 1};
 
 SEC("xdp_prog") int caller(struct xdp_md* ctx)

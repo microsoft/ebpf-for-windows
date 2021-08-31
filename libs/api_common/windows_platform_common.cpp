@@ -132,15 +132,15 @@ get_map_type_windows(uint32_t platform_specific_type)
 }
 
 EbpfMapDescriptor&
-get_map_descriptor_windows(int map_fd)
+get_map_descriptor_windows(int original_fd)
 {
     // First check if we already have the map descriptor cached.
-    EbpfMapDescriptor* map = find_map_descriptor(map_fd);
+    EbpfMapDescriptor* map = find_map_descriptor(original_fd);
     if (map != nullptr) {
         return *map;
     }
 
-    return get_map_descriptor(map_fd);
+    return get_map_descriptor(original_fd);
 }
 
 const ebpf_attach_type_t*

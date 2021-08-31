@@ -586,12 +586,22 @@ TEST_CASE("enumerate_and_query_maps", "[end_to_end]")
     REQUIRE(ebpf_get_next_map(fd_iterator, &fd_iterator) == EBPF_SUCCESS);
     REQUIRE(fd_iterator == ebpf_fd_invalid);
 
-    ebpf_map_definition_t map_definitions[_countof(map_fds)];
-    ebpf_map_definition_t process_map = {
-        sizeof(ebpf_map_definition_t), BPF_MAP_TYPE_HASH, sizeof(uint64_t), sizeof(process_entry_t), 1024};
+    ebpf_map_definition_in_memory_t map_definitions[_countof(map_fds)];
+    ebpf_map_definition_in_memory_t process_map = {
+        sizeof(ebpf_map_definition_in_memory_t),
+        BPF_MAP_TYPE_HASH,
+        sizeof(uint64_t),
+        sizeof(process_entry_t),
+        1024,
+        (uint32_t)-1};
 
-    ebpf_map_definition_t limits_map = {
-        sizeof(ebpf_map_definition_t), BPF_MAP_TYPE_ARRAY, sizeof(uint32_t), sizeof(uint32_t), 1};
+    ebpf_map_definition_in_memory_t limits_map = {
+        sizeof(ebpf_map_definition_in_memory_t),
+        BPF_MAP_TYPE_ARRAY,
+        sizeof(uint32_t),
+        sizeof(uint32_t),
+        1,
+        (uint32_t)-1};
 
     for (size_t index = 0; index < _countof(map_fds); index++) {
         REQUIRE(
@@ -602,7 +612,7 @@ TEST_CASE("enumerate_and_query_maps", "[end_to_end]")
                 &map_definitions[index].key_size,
                 &map_definitions[index].value_size,
                 &map_definitions[index].max_entries,
-                &map_definitions[index].inner_map_idx) == EBPF_SUCCESS);
+                &map_definitions[index].inner_map_id) == EBPF_SUCCESS);
         if (index % 2 == 0) {
             REQUIRE(memcmp(&process_map, &map_definitions[index], sizeof(process_map)) == 0);
         } else {
