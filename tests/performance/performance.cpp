@@ -279,9 +279,11 @@ typedef class _ebpf_map_test_state
     test_find_read()
     {
         uint32_t key = 0;
-        uint64_t* value = nullptr;
+        volatile uint64_t* value = nullptr;
+
         ebpf_epoch_enter();
         ebpf_map_find_entry(map, 0, (uint8_t*)&key, 0, (uint8_t*)&value, EBPF_MAP_FLAG_HELPER);
+        uint64_t local = *value;
         ebpf_epoch_exit();
     }
 
@@ -292,6 +294,7 @@ typedef class _ebpf_map_test_state
         uint64_t* value = nullptr;
         ebpf_epoch_enter();
         ebpf_map_find_entry(map, 0, (uint8_t*)&key, 0, (uint8_t*)&value, EBPF_MAP_FLAG_HELPER);
+        *value = 1;
         ebpf_epoch_exit();
     }
 
