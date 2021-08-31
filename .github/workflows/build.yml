@@ -41,7 +41,7 @@ jobs:
         mkdir c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
         echo "test" > c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/test.txt
 
-    - name: Set AeDebug registry key:
+    - name: Set AeDebug registry key
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
         procdump64.exe -i -r -ma c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
