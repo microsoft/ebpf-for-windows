@@ -10,12 +10,13 @@ var searchData=
   ['_5febpf_5fhelper_5ffunction_7',['_ebpf_helper_function',['../ebpf__windows_8h.html#a653f667ffc6571d5f67b1b81d612a0cd',1,'ebpf_windows.h']]],
   ['_5febpf_5fhelper_5ffunction_5faddresses_8',['_ebpf_helper_function_addresses',['../struct__ebpf__helper__function__addresses.html',1,'']]],
   ['_5febpf_5fhelper_5ffunction_5fprototype_9',['_ebpf_helper_function_prototype',['../struct__ebpf__helper__function__prototype.html',1,'']]],
-  ['_5febpf_5fmap_5fdefinition_10',['_ebpf_map_definition',['../struct__ebpf__map__definition.html',1,'']]],
-  ['_5febpf_5fmap_5finfo_11',['_ebpf_map_info',['../struct__ebpf__map__info.html',1,'']]],
-  ['_5febpf_5fprogram_5fdata_12',['_ebpf_program_data',['../struct__ebpf__program__data.html',1,'']]],
-  ['_5febpf_5fprogram_5finfo_13',['_ebpf_program_info',['../struct__ebpf__program__info.html',1,'']]],
-  ['_5febpf_5fprogram_5ftype_5fdescriptor_14',['_ebpf_program_type_descriptor',['../struct__ebpf__program__type__descriptor.html',1,'']]],
-  ['_5ftlv_5ftype_15',['_tlv_type',['../tlv_8h.html#a50a469b7a3bd57834902b2d2f67a9c94',1,'tlv.h']]],
-  ['_5ftlv_5ftype_5flength_5fvalue_16',['_tlv_type_length_value',['../struct__tlv__type__length__value.html',1,'']]],
-  ['_5fxdp_5faction_17',['_xdp_action',['../ebpf__nethooks_8h.html#a5aff0d5d670941126cebc5687d5e280d',1,'ebpf_nethooks.h']]]
+  ['_5febpf_5fmap_5fdefinition_5fin_5ffile_10',['_ebpf_map_definition_in_file',['../struct__ebpf__map__definition__in__file.html',1,'']]],
+  ['_5febpf_5fmap_5fdefinition_5fin_5fmemory_11',['_ebpf_map_definition_in_memory',['../struct__ebpf__map__definition__in__memory.html',1,'']]],
+  ['_5febpf_5fmap_5finfo_12',['_ebpf_map_info',['../struct__ebpf__map__info.html',1,'']]],
+  ['_5febpf_5fprogram_5fdata_13',['_ebpf_program_data',['../struct__ebpf__program__data.html',1,'']]],
+  ['_5febpf_5fprogram_5finfo_14',['_ebpf_program_info',['../struct__ebpf__program__info.html',1,'']]],
+  ['_5febpf_5fprogram_5ftype_5fdescriptor_15',['_ebpf_program_type_descriptor',['../struct__ebpf__program__type__descriptor.html',1,'']]],
+  ['_5ftlv_5ftype_16',['_tlv_type',['../tlv_8h.html#a50a469b7a3bd57834902b2d2f67a9c94',1,'tlv.h']]],
+  ['_5ftlv_5ftype_5flength_5fvalue_17',['_tlv_type_length_value',['../struct__tlv__type__length__value.html',1,'']]],
+  ['_5fxdp_5faction_18',['_xdp_action',['../ebpf__nethooks_8h.html#a5aff0d5d670941126cebc5687d5e280d',1,'ebpf_nethooks.h']]]
 ];

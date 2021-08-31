@@ -80,8 +80,11 @@ $(function() {
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="nested-classes"></a>
 Data Structures</h2></td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__map__definition.html">_ebpf_map_definition</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">eBPF Map Definition.  <a href="struct__ebpf__map__definition.html#details">More...</a><br /></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__map__definition__in__memory.html">_ebpf_map_definition_in_memory</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">eBPF Map Definition as it is stored in memory.  <a href="struct__ebpf__map__definition__in__memory.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__map__definition__in__file.html">_ebpf_map_definition_in_file</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">eBPF Map Definition as it appears in the maps section of an ELF file.  <a href="struct__ebpf__map__definition__in__file.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="typedef-members"></a>
@@ -90,9 +93,12 @@ Typedefs</h2></td></tr>
 <tr class="separator:a4834bac82ca5ec846765b1a43f086a11"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2570d5b1e2c808efd04dfde574e29f23"><td class="memItemLeft" align="right" valign="top">typedef enum <a class="el" href="ebpf__structs_8h.html#ad2aa050648c308e0be8329a2ade170fc">ebpf_map_option</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__structs_8h.html#a2570d5b1e2c808efd04dfde574e29f23">ebpf_map_option_t</a></td></tr>
 <tr class="separator:a2570d5b1e2c808efd04dfde574e29f23"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa51d087caeb6b6965122893927824f28"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__ebpf__map__definition.html">_ebpf_map_definition</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__structs_8h.html#aa51d087caeb6b6965122893927824f28">ebpf_map_definition_t</a></td></tr>
-<tr class="memdesc:aa51d087caeb6b6965122893927824f28"><td class="mdescLeft">&#160;</td><td class="mdescRight">eBPF Map Definition.  <a href="ebpf__structs_8h.html#aa51d087caeb6b6965122893927824f28">More...</a><br /></td></tr>
-<tr class="separator:aa51d087caeb6b6965122893927824f28"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a82ab886570d00bb3a08ea54437c9cdaf"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__ebpf__map__definition__in__memory.html">_ebpf_map_definition_in_memory</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__structs_8h.html#a82ab886570d00bb3a08ea54437c9cdaf">ebpf_map_definition_in_memory_t</a></td></tr>
+<tr class="memdesc:a82ab886570d00bb3a08ea54437c9cdaf"><td class="mdescLeft">&#160;</td><td class="mdescRight">eBPF Map Definition as it is stored in memory.  <a href="ebpf__structs_8h.html#a82ab886570d00bb3a08ea54437c9cdaf">More...</a><br /></td></tr>
+<tr class="separator:a82ab886570d00bb3a08ea54437c9cdaf"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab8db12973e5e476b352a3a3c7470a635"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__ebpf__map__definition__in__file.html">_ebpf_map_definition_in_file</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__structs_8h.html#ab8db12973e5e476b352a3a3c7470a635">ebpf_map_definition_in_file_t</a></td></tr>
+<tr class="memdesc:ab8db12973e5e476b352a3a3c7470a635"><td class="mdescLeft">&#160;</td><td class="mdescRight">eBPF Map Definition as it appears in the maps section of an ELF file.  <a href="ebpf__structs_8h.html#ab8db12973e5e476b352a3a3c7470a635">More...</a><br /></td></tr>
+<tr class="separator:ab8db12973e5e476b352a3a3c7470a635"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="enum-members"></a>
 Enumerations</h2></td></tr>
@@ -116,19 +122,35 @@ Enumerations</h2></td></tr>
 <tr class="separator:ad2aa050648c308e0be8329a2ade170fc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Typedef Documentation</h2>
-<a id="aa51d087caeb6b6965122893927824f28"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aa51d087caeb6b6965122893927824f28">&#9670;&nbsp;</a></span>ebpf_map_definition_t</h2>
+<a id="ab8db12973e5e476b352a3a3c7470a635"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab8db12973e5e476b352a3a3c7470a635">&#9670;&nbsp;</a></span>ebpf_map_definition_in_file_t</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">typedef struct <a class="el" href="struct__ebpf__map__definition.html">_ebpf_map_definition</a> <a class="el" href="ebpf__structs_8h.html#aa51d087caeb6b6965122893927824f28">ebpf_map_definition_t</a></td>
+          <td class="memname">typedef struct <a class="el" href="struct__ebpf__map__definition__in__file.html">_ebpf_map_definition_in_file</a> <a class="el" href="ebpf__structs_8h.html#ab8db12973e5e476b352a3a3c7470a635">ebpf_map_definition_in_file_t</a></td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p>eBPF Map Definition. </p>
+<p>eBPF Map Definition as it appears in the maps section of an ELF file. </p>
+
+</div>
+</div>
+<a id="a82ab886570d00bb3a08ea54437c9cdaf"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a82ab886570d00bb3a08ea54437c9cdaf">&#9670;&nbsp;</a></span>ebpf_map_definition_in_memory_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef struct <a class="el" href="struct__ebpf__map__definition__in__memory.html">_ebpf_map_definition_in_memory</a> <a class="el" href="ebpf__structs_8h.html#a82ab886570d00bb3a08ea54437c9cdaf">ebpf_map_definition_in_memory_t</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>eBPF Map Definition as it is stored in memory. </p>
 
 </div>
 </div>
