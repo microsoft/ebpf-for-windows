@@ -127,7 +127,8 @@ ebpf_api_create_map(
     _ebpf_operation_create_map_request request{
         EBPF_OFFSET_OF(ebpf_operation_create_map_request_t, data),
         ebpf_operation_id_t::EBPF_OPERATION_CREATE_MAP,
-        {sizeof(ebpf_map_definition_in_memory_t), type, key_size, value_size, max_entries}};
+        {sizeof(ebpf_map_definition_in_memory_t), type, key_size, value_size, max_entries},
+        (uint64_t)ebpf_handle_invalid};
 
     _ebpf_operation_create_map_reply reply{};
 
@@ -1718,10 +1719,12 @@ ebpf_program_load(
 
         // Create all maps.
         // TODO: update ebpf_map_definition_t structure so that it contains flag and pinning information.
-        for (;;) {
+        for (int count = 0; count < new_object->maps.size(); count++) {
             ebpf_map_t* map = _get_next_map_to_create(new_object->maps);
             if (map == nullptr) {
-                break;
+                // Any remaining maps cannot be created.
+                result = EBPF_INVALID_OBJECT;
+                goto Done;
             }
 
             ebpf_handle_t inner_map_handle = (map->inner_map) ? map->inner_map->map_handle : ebpf_handle_invalid;
