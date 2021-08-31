@@ -12,6 +12,8 @@
 #include "ebpf_serialize.h"
 #include "ebpf_state.h"
 
+const ebpf_handle_t ebpf_handle_invalid = (ebpf_handle_t)-1;
+
 GUID ebpf_general_helper_function_interface_id = {/* 8d2a1d3f-9ce6-473d-b48e-17aa5c5581fe */
                                                   0x8d2a1d3f,
                                                   0x9ce6,
@@ -319,18 +321,21 @@ _ebpf_core_protocol_create_map(
         map_name.length = ((uint8_t*)request) + request->header.length - ((uint8_t*)request->data);
     }
 
-    retval = ebpf_map_create(&map_name, &request->ebpf_map_definition, &map);
+    retval = ebpf_map_create(&map_name, &request->ebpf_map_definition, request->inner_map_handle, &map);
     if (retval != EBPF_SUCCESS)
-        goto Done;
+        return retval;
 
-    retval = ebpf_handle_create(&reply->handle, (ebpf_object_t*)map);
-    if (retval != EBPF_SUCCESS)
+    ebpf_object_t* map_object = (ebpf_object_t*)map;
+
+    retval = ebpf_handle_create(&reply->handle, map_object);
+    if (retval != EBPF_SUCCESS) {
         goto Done;
+    }
 
     retval = EBPF_SUCCESS;
 
 Done:
-    ebpf_object_release_reference((ebpf_object_t*)map);
+    ebpf_object_release_reference(map_object);
 
     return retval;
 }
@@ -441,7 +446,7 @@ _ebpf_core_protocol_map_update_element(_In_ const epf_operation_map_update_eleme
     if (retval != EBPF_SUCCESS)
         goto Done;
 
-    const ebpf_map_definition_t* map_definition = ebpf_map_get_definition(map);
+    const ebpf_map_definition_in_memory_t* map_definition = ebpf_map_get_definition(map);
 
     retval = ebpf_safe_size_t_subtract(
         request->header.length, EBPF_OFFSET_OF(epf_operation_map_update_element_request_t, data), &value_length);
@@ -475,7 +480,7 @@ _ebpf_core_protocol_map_update_element_with_handle(
     if (retval != EBPF_SUCCESS)
         goto Done;
 
-    const ebpf_map_definition_t* map_definition = ebpf_map_get_definition(map);
+    const ebpf_map_definition_in_memory_t* map_definition = ebpf_map_get_definition(map);
 
     retval = ebpf_safe_size_t_subtract(
         request->header.length,
@@ -623,22 +628,21 @@ _ebpf_core_protocol_query_map_definition(
     _Inout_ struct _ebpf_operation_query_map_definition_reply* reply,
     uint16_t reply_length)
 {
-    ebpf_result_t retval;
-    ebpf_map_t* map = NULL;
     UNREFERENCED_PARAMETER(reply_length);
 
-    retval = ebpf_reference_object_by_handle(request->handle, EBPF_OBJECT_MAP, (ebpf_object_t**)&map);
-    if (retval != EBPF_SUCCESS)
-        goto Done;
+    ebpf_object_t* object;
+    ebpf_result_t result = ebpf_reference_object_by_handle(request->handle, EBPF_OBJECT_MAP, &object);
+    if (result != EBPF_SUCCESS) {
+        return result;
+    }
 
+    ebpf_map_t* map = (ebpf_map_t*)object;
     reply->map_definition = *ebpf_map_get_definition(map);
     reply->map_definition.value_size = ebpf_map_get_effective_value_size(map);
-    retval = EBPF_SUCCESS;
 
-Done:
-    ebpf_object_release_reference((ebpf_object_t*)map);
+    ebpf_object_release_reference(object);
 
-    return retval;
+    return EBPF_SUCCESS;
 }
 
 static ebpf_result_t
@@ -833,15 +837,21 @@ _ebpf_core_protocol_get_program_info(
     size_t serialization_buffer_size;
     size_t required_length;
 
-    retval = ebpf_program_create(&program);
-    if (retval != EBPF_SUCCESS)
-        goto Done;
-
     program_parameters.program_type = request->program_type;
 
-    retval = ebpf_program_initialize(program, &program_parameters);
-    if (retval != EBPF_SUCCESS)
-        goto Done;
+    if (request->program_handle == ebpf_handle_invalid) {
+        retval = ebpf_program_create(&program);
+        if (retval != EBPF_SUCCESS)
+            goto Done;
+        retval = ebpf_program_initialize(program, &program_parameters);
+        if (retval != EBPF_SUCCESS)
+            goto Done;
+    } else {
+        retval =
+            ebpf_reference_object_by_handle(request->program_handle, EBPF_OBJECT_PROGRAM, (ebpf_object_t**)&program);
+        if (retval != EBPF_SUCCESS)
+            goto Done;
+    }
 
     retval = ebpf_program_get_program_info(program, &program_info);
     if (retval != EBPF_SUCCESS)
@@ -904,7 +914,7 @@ _ebpf_core_protocol_convert_pinning_entries_to_map_info_array(
         }
 
         // Query map defintion.
-        const ebpf_map_definition_t* map_definition = ebpf_map_get_definition((ebpf_map_t*)source->object);
+        const ebpf_map_definition_in_memory_t* map_definition = ebpf_map_get_definition((ebpf_map_t*)source->object);
         destination->definition = *map_definition;
         destination->definition.value_size = ebpf_map_get_effective_value_size((ebpf_map_t*)source->object);
         // Set pin path. No need to duplicate.

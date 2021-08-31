@@ -28,7 +28,7 @@ ebpf_verify_and_load_program(
     ebpf_execution_context_t execution_context,
     ebpf_execution_type_t execution_type,
     uint32_t handle_map_count,
-    fd_handle_map* handle_map,
+    original_fd_handle_map_t* handle_map,
     uint32_t byte_code_size,
     uint8_t* byte_code,
     const char** error_message,
@@ -39,6 +39,3 @@ ebpf_service_initialize() noexcept;
 
 void
 ebpf_service_cleanup() noexcept;
-
-void
-ebpf_clear_thread_local_storage() noexcept;

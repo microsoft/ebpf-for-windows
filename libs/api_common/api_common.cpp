@@ -13,6 +13,8 @@
 
 #include "ebpf_verifier_wrapper.hpp"
 
+#include "map_descriptors.hpp"
+
 thread_local static const ebpf_program_type_t* _global_program_type = nullptr;
 thread_local static const ebpf_attach_type_t* _global_attach_type = nullptr;
 
@@ -62,7 +64,7 @@ query_map_definition(
     _Out_ uint32_t* key_size,
     _Out_ uint32_t* value_size,
     _Out_ uint32_t* max_entries,
-    _Out_ uint32_t* inner_map_idx) noexcept
+    _Out_ uint32_t* inner_map_id) noexcept
 {
     _ebpf_operation_query_map_definition_request request{
         sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_QUERY_MAP_DEFINITION, reinterpret_cast<uint64_t>(handle)};
@@ -77,7 +79,7 @@ query_map_definition(
         *key_size = reply.map_definition.key_size;
         *value_size = reply.map_definition.value_size;
         *max_entries = reply.map_definition.max_entries;
-        *inner_map_idx = reply.map_definition.inner_map_idx;
+        *inner_map_id = reply.map_definition.inner_map_id;
     }
     return result;
 }
@@ -99,4 +101,12 @@ const ebpf_attach_type_t*
 get_global_attach_type()
 {
     return _global_attach_type;
+}
+
+void
+ebpf_clear_thread_local_storage() noexcept
+{
+    clear_map_descriptors();
+    clear_program_info_cache();
+    set_program_under_verification(ebpf_handle_invalid);
 }

@@ -9,16 +9,15 @@
 
 #define VALUE_SIZE 32
 
-#pragma clang section data = "maps"
-
-ebpf_map_definition_t utility_map = {
-    .size = sizeof(ebpf_map_definition_t),
+SEC("maps")
+struct bpf_map utility_map = {
+    .size = sizeof(struct bpf_map),
     .type = BPF_MAP_TYPE_ARRAY,
     .key_size = sizeof(uint32_t),
     .value_size = sizeof(ebpf_utility_helpers_data_t),
     .max_entries = UTILITY_MAP_SIZE};
 
-#pragma clang section text = "xdp"
+SEC("xdp")
 int
 test_program_entry(xdp_md_t* context)
 {

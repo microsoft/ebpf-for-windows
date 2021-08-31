@@ -13,9 +13,10 @@ typedef struct _ebpf_core_map
 {
     ebpf_object_t object;
     ebpf_utf8_string_t name;
-    struct _ebpf_map_definition ebpf_map_definition;
+    ebpf_map_definition_in_memory_t ebpf_map_definition;
     ebpf_lock_t lock;
     uint32_t original_value_size;
+    struct _ebpf_core_map* inner_map_template;
     uint8_t* data;
 } ebpf_core_map_t;
 
@@ -35,7 +36,7 @@ _get_map_program_type(_In_ const ebpf_object_t* object)
 
 typedef struct _ebpf_map_function_table
 {
-    ebpf_core_map_t* (*create_map)(_In_ const ebpf_map_definition_t* map_definition);
+    ebpf_core_map_t* (*create_map)(_In_ const ebpf_map_definition_in_memory_t* map_definition);
     void (*delete_map)(_In_ ebpf_core_map_t* map);
     ebpf_result_t (*associate_program)(_In_ ebpf_map_t* map, _In_ const ebpf_program_t* program);
     uint8_t* (*find_entry)(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key);
@@ -56,7 +57,7 @@ typedef struct _ebpf_map_function_table
 
 ebpf_map_function_table_t ebpf_map_function_tables[];
 
-const ebpf_map_definition_t*
+const ebpf_map_definition_in_memory_t*
 ebpf_map_get_definition(_In_ const ebpf_map_t* map)
 {
     return &map->ebpf_map_definition;
@@ -70,7 +71,7 @@ ebpf_map_get_effective_value_size(_In_ const ebpf_map_t* map)
 
 static ebpf_core_map_t*
 _create_array_map_with_extra_value_size(
-    size_t map_struct_size, _In_ const ebpf_map_definition_t* map_definition, size_t extra_value_size)
+    size_t map_struct_size, _In_ const ebpf_map_definition_in_memory_t* map_definition, size_t extra_value_size)
 {
     ebpf_result_t retval;
     size_t map_data_size = 0;
@@ -108,7 +109,7 @@ Done:
 }
 
 static ebpf_core_map_t*
-_create_array_map(_In_ const ebpf_map_definition_t* map_definition)
+_create_array_map(_In_ const ebpf_map_definition_in_memory_t* map_definition)
 {
     return _create_array_map_with_extra_value_size(sizeof(ebpf_core_map_t), map_definition, 0);
 }
@@ -218,7 +219,7 @@ _next_array_map_key(_In_ ebpf_core_map_t* map, _In_ const uint8_t* previous_key,
 }
 
 static ebpf_core_map_t*
-_create_object_array_map(_In_ const ebpf_map_definition_t* map_definition)
+_create_object_array_map(_In_ const ebpf_map_definition_in_memory_t* map_definition)
 {
     return _create_array_map_with_extra_value_size(sizeof(ebpf_core_object_map_t), map_definition, sizeof(void*));
 }
@@ -264,6 +265,23 @@ _associate_program_with_prog_array_map(_In_ ebpf_core_map_t* map, _In_ const ebp
     return result;
 }
 
+static bool // Returns true if ok, false if not.
+_check_value_type(_In_ const ebpf_core_map_t* outer_map, _In_ const ebpf_object_t* value_object)
+{
+    if (outer_map->ebpf_map_definition.type != BPF_MAP_TYPE_ARRAY_OF_MAPS &&
+        outer_map->ebpf_map_definition.type != BPF_MAP_TYPE_HASH_OF_MAPS) {
+        return true;
+    }
+
+    ebpf_core_map_t* template = outer_map->inner_map_template;
+    const ebpf_map_t* value_map = (ebpf_map_t*)value_object;
+
+    // TODO(discussion #460): what other map attributes need to match?
+    bool allowed = (template != NULL) && (value_map->ebpf_map_definition.type == template->ebpf_map_definition.type);
+
+    return allowed;
+}
+
 static ebpf_result_t
 _update_array_map_entry_with_handle(
     _In_ ebpf_core_map_t* map,
@@ -287,29 +305,39 @@ _update_array_map_entry_with_handle(
         return EBPF_INVALID_ARGUMENT;
 
     // Convert value handle to an object pointer.
-    struct _ebpf_object* object;
-    int return_value = ebpf_reference_object_by_handle(value_handle, value_type, &object);
+    ebpf_object_t* value_object;
+    int return_value = ebpf_reference_object_by_handle(value_handle, value_type, &value_object);
     if (return_value != EBPF_SUCCESS)
         return return_value;
 
     // The following addition is safe since it was checked during map creation.
     size_t actual_value_size = ((size_t)map->ebpf_map_definition.value_size) + sizeof(struct _ebpf_object*);
 
-    // Validate that the value's program type (if any) is
-    // not in conflict with the map's program type.
-    const ebpf_program_type_t* value_program_type =
-        (object->get_program_type) ? object->get_program_type(object) : NULL;
-    ebpf_core_object_map_t* object_map = (ebpf_core_object_map_t*)map;
     ebpf_result_t result = EBPF_SUCCESS;
+
+    const ebpf_program_type_t* value_program_type =
+        (value_object->get_program_type) ? value_object->get_program_type(value_object) : NULL;
 
     ebpf_lock_state_t lock_state = ebpf_lock_lock(&map->lock);
 
+    if (value_type == EBPF_OBJECT_MAP) {
+        // Validate that the value is of the correct type.
+        if (!_check_value_type(map, value_object)) {
+            ebpf_object_release_reference(value_object);
+            result = EBPF_INVALID_FD;
+            goto Done;
+        }
+    }
+
+    // Validate that the value's program type (if any) is
+    // not in conflict with the map's program type.
     if (value_program_type) {
-        if (!object_map->is_program_type_set) {
-            object_map->is_program_type_set = TRUE;
-            object_map->program_type = *value_program_type;
-        } else if (memcmp(&object_map->program_type, value_program_type, sizeof(*value_program_type)) != 0) {
-            ebpf_object_release_reference((ebpf_object_t*)object);
+        ebpf_core_object_map_t* map_of_objects = (ebpf_core_object_map_t*)map;
+        if (!map_of_objects->is_program_type_set) {
+            map_of_objects->is_program_type_set = TRUE;
+            map_of_objects->program_type = *value_program_type;
+        } else if (memcmp(&map_of_objects->program_type, value_program_type, sizeof(*value_program_type)) != 0) {
+            ebpf_object_release_reference(value_object);
             result = EBPF_INVALID_FD;
             goto Done;
         }
@@ -324,7 +352,7 @@ _update_array_map_entry_with_handle(
     }
 
     // Store object pointer after the value.
-    memcpy(entry + map->ebpf_map_definition.value_size, &object, sizeof(void*));
+    memcpy(entry + map->ebpf_map_definition.value_size, &value_object, sizeof(void*));
 
 Done:
     ebpf_lock_unlock(&map->lock, lock_state);
@@ -396,7 +424,7 @@ _get_object_from_array_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* 
 
 static ebpf_core_map_t*
 _create_hash_map_with_extra_value_size(
-    size_t map_struct_size, _In_ const ebpf_map_definition_t* map_definition, size_t extra_value_size)
+    size_t map_struct_size, _In_ const ebpf_map_definition_in_memory_t* map_definition, size_t extra_value_size)
 {
     ebpf_result_t retval;
     ebpf_core_map_t* map = NULL;
@@ -445,13 +473,13 @@ Done:
 }
 
 static ebpf_core_map_t*
-_create_hash_map(_In_ const ebpf_map_definition_t* map_definition)
+_create_hash_map(_In_ const ebpf_map_definition_in_memory_t* map_definition)
 {
     return _create_hash_map_with_extra_value_size(sizeof(ebpf_core_map_t), map_definition, 0);
 }
 
 static ebpf_core_map_t*
-_create_object_hash_map(_In_ const ebpf_map_definition_t* map_definition)
+_create_object_hash_map(_In_ const ebpf_map_definition_in_memory_t* map_definition)
 {
     return _create_hash_map_with_extra_value_size(sizeof(ebpf_core_object_map_t), map_definition, sizeof(void*));
 }
@@ -835,6 +863,9 @@ _ebpf_map_delete(_In_ ebpf_object_t* object)
 {
     ebpf_map_t* map = (ebpf_map_t*)object;
 
+    if (map->inner_map_template != NULL) {
+        ebpf_object_release_reference(&map->inner_map_template->object);
+    }
     ebpf_free(map->name.value);
     ebpf_map_function_tables[map->ebpf_map_definition.type].delete_map(map);
 }
@@ -842,15 +873,17 @@ _ebpf_map_delete(_In_ ebpf_object_t* object)
 ebpf_result_t
 ebpf_map_create(
     _In_ const ebpf_utf8_string_t* map_name,
-    _In_ const ebpf_map_definition_t* ebpf_map_definition,
+    _In_ const ebpf_map_definition_in_memory_t* ebpf_map_definition,
+    ebpf_handle_t inner_map_handle,
     _Outptr_ ebpf_map_t** ebpf_map)
 {
     ebpf_map_t* local_map = NULL;
+    ebpf_object_t* inner_map_template_object = NULL;
     ebpf_map_type_t type = ebpf_map_definition->type;
     ebpf_result_t result = EBPF_SUCCESS;
     uint32_t cpu_count;
     cpu_count = ebpf_get_cpu_count();
-    ebpf_map_definition_t local_map_definition = *ebpf_map_definition;
+    ebpf_map_definition_in_memory_t local_map_definition = *ebpf_map_definition;
     switch (local_map_definition.type) {
     case BPF_MAP_TYPE_PERCPU_HASH:
     case BPF_MAP_TYPE_PERCPU_ARRAY:
@@ -875,6 +908,13 @@ ebpf_map_create(
         goto Exit;
     }
 
+    if (inner_map_handle != (ebpf_handle_t)-1) {
+        // Convert value handle to an object pointer.
+        result = ebpf_reference_object_by_handle(inner_map_handle, EBPF_OBJECT_MAP, &inner_map_template_object);
+        if (result != EBPF_SUCCESS)
+            goto Exit;
+    }
+
     local_map = ebpf_map_function_tables[type].create_map(&local_map_definition);
     if (!local_map) {
         result = EBPF_NO_MEMORY;
@@ -892,11 +932,13 @@ ebpf_map_create(
     ebpf_object_get_program_type_t get_program_type = (table->get_object_from_entry) ? _get_map_program_type : NULL;
     ebpf_object_initialize(&local_map->object, EBPF_OBJECT_MAP, _ebpf_map_delete, get_program_type);
 
+    local_map->inner_map_template = (ebpf_map_t*)inner_map_template_object;
     *ebpf_map = local_map;
 
 Exit:
     if (result != EBPF_SUCCESS) {
         if (local_map) {
+            ebpf_object_release_reference(inner_map_template_object);
             ebpf_free(local_map->name.value);
             ebpf_free(local_map);
         }

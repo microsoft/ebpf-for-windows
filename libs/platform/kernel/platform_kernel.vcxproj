@@ -52,6 +52,12 @@
     <ClCompile Include="ebpf_platform_kernel.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\external\ebpf-verifier\src\ebpf_base.h" />
+    <ClInclude Include="..\..\..\include\ebpf_core_structs.h" />
+    <ClInclude Include="..\..\..\include\ebpf_program_types.h" />
+    <ClInclude Include="..\..\..\include\ebpf_result.h" />
+    <ClInclude Include="..\..\..\include\ebpf_structs.h" />
+    <ClInclude Include="..\..\..\include\ebpf_windows.h" />
     <ClInclude Include="..\ebpf_epoch.h" />
     <ClInclude Include="..\ebpf_handle.h" />
     <ClInclude Include="..\ebpf_object.h" />
