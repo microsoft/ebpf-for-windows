@@ -54,10 +54,12 @@ clear_program_info_cache()
     _program_info_cache.clear();
 }
 
+#define GET_PROGRAM_INFO_REPLY_BUFFER_SIZE 2048
+
 ebpf_result_t
 get_program_info_data(ebpf_program_type_t program_type, _Outptr_ ebpf_program_info_t** program_info)
 {
-    ebpf_protocol_buffer_t reply_buffer(2048);
+    ebpf_protocol_buffer_t reply_buffer(GET_PROGRAM_INFO_REPLY_BUFFER_SIZE);
     size_t required_buffer_length;
     ebpf_operation_get_program_info_request_t request{
         sizeof(request),

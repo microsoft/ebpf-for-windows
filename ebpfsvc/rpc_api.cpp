@@ -21,7 +21,7 @@ ebpf_server_verify_and_load_program(
         return EBPF_INVALID_ARGUMENT;
     }
 
-    // Set the handle of program being verified in TLS.
+    // Set the handle of program being verified in thread-local storage.
     set_program_under_verification(info->program_handle);
 
     result = ebpf_verify_and_load_program(
