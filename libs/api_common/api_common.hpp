@@ -157,7 +157,7 @@ const ebpf_attach_type_t*
 get_global_attach_type();
 
 /**
- * @brief Saves handle to program being verified in thread-local storage.
+ * @brief Save handle to program being verified in thread-local storage.
  *
  * @param[in] program Handle to program being verified.
  */
