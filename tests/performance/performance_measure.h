@@ -54,7 +54,9 @@ template <typename T> class _performance_measure
     }
 
     /**
-     * @brief Perform the measurement
+     * @brief Perform the measurement.
+     *
+     * @param[in] multiplier Count of tests each invocation of worker represents.
      */
     void
     run_test(size_t multiplier = 1)
