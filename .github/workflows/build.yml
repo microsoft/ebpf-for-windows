@@ -93,7 +93,7 @@ jobs:
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
       run: ./ebpf_performance.exe
 
-   - name: Check for crash dumps:
+    - name: Check for crash dumps:
       working-directory: c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
       run: if (Test-Path *.dmp) { exit 1 }
 
