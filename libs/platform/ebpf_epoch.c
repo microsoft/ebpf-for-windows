@@ -54,7 +54,15 @@ typedef struct _ebpf_epoch_cpu_entry
     _Requires_lock_held_(lock) ebpf_epoch_state_t cpu_epoch_state;
     _Requires_lock_held_(lock) ebpf_list_entry_t free_list;
     _Requires_lock_held_(lock) ebpf_hash_table_t* thread_table;
-    uintptr_t padding[2];
+    union
+    {
+        struct
+        {
+            int timer_armed : 1;
+        } individual_flags;
+        uintptr_t aggregate_flags;
+    } flags;
+    uintptr_t padding;
 } ebpf_epoch_cpu_entry_t;
 
 C_ASSERT(sizeof(ebpf_epoch_cpu_entry_t) % EBPF_CACHE_LINE_SIZE == 0);
@@ -82,7 +90,6 @@ static bool _ebpf_epoch_rundown = false;
  * @brief Timer used to update _ebpf_release_epoch.
  */
 static ebpf_timer_work_item_t* _ebpf_flush_timer = NULL;
-static volatile int32_t _ebpf_flush_timer_set = 0;
 
 // There are two possible actions that can be taken at the end of an epoch.
 // 1. Return a block of memory to the memory pool.
@@ -137,7 +144,6 @@ ebpf_epoch_initiate()
     _ebpf_current_epoch = 1;
     _ebpf_release_epoch = 0;
     _ebpf_epoch_cpu_count = cpu_count;
-    _ebpf_flush_timer_set = 0;
 
     _ebpf_epoch_cpu_table = ebpf_allocate(_ebpf_epoch_cpu_count * sizeof(ebpf_epoch_cpu_entry_t));
     if (!_ebpf_epoch_cpu_table) {
@@ -236,15 +242,9 @@ ebpf_epoch_exit()
         ebpf_lock_unlock(&_ebpf_epoch_cpu_table[current_cpu].lock, state);
     }
 
-    // First reap the free list.
+    // Reap the free list.
     if (!ebpf_list_is_empty(&_ebpf_epoch_cpu_table[current_cpu].free_list)) {
         _ebpf_epoch_release_free_list(&_ebpf_epoch_cpu_table[current_cpu], _ebpf_release_epoch);
-    }
-
-    // If there are still items in the free list, schedule a timer to reap them in the future.
-    if (!ebpf_list_is_empty(&_ebpf_epoch_cpu_table[current_cpu].free_list) &&
-        (ebpf_interlocked_compare_exchange_int32(&_ebpf_flush_timer_set, 1, 0) == 0)) {
-        ebpf_schedule_timer_work_item(_ebpf_flush_timer, EBPF_EPOCH_FLUSH_DELAY_IN_MICROSECONDS);
     }
 }
 
@@ -385,6 +385,14 @@ _ebpf_epoch_release_free_list(_In_ ebpf_epoch_cpu_entry_t* cpu_entry, int64_t re
             break;
         }
     }
+    // If there are still items in the free list, schedule a timer to reap them in the future.
+    if (!ebpf_list_is_empty(&cpu_entry->free_list) && !cpu_entry->flags.individual_flags.timer_armed) {
+        // We will arm the timer once per CPU that sees entries it can't release.
+        // That's acceptable as arming the timer is idempotent.
+        cpu_entry->flags.individual_flags.timer_armed = true;
+        ebpf_schedule_timer_work_item(_ebpf_flush_timer, EBPF_EPOCH_FLUSH_DELAY_IN_MICROSECONDS);
+    }
+
     ebpf_lock_unlock(&cpu_entry->lock, lock_state);
 
     // Free all the expired items outside of the lock.
@@ -430,6 +438,10 @@ _ebpf_epoch_get_release_epoch(_Out_ int64_t* release_epoch)
 
         // Grab the CPU epoch.
         lock_state = ebpf_lock_lock(&_ebpf_epoch_cpu_table[cpu_id].lock);
+
+        // Clear the flush timer flag.
+        _ebpf_epoch_cpu_table[cpu_id].flags.individual_flags.timer_armed = false;
+
         if (_ebpf_epoch_cpu_table[cpu_id].cpu_epoch_state.active) {
             lowest_epoch = min(lowest_epoch, _ebpf_epoch_cpu_table[cpu_id].cpu_epoch_state.epoch);
         }
@@ -477,7 +489,6 @@ _ebpf_flush_worker(_In_ void* context)
     UNREFERENCED_PARAMETER(context);
 
     ebpf_epoch_flush();
-    ebpf_interlocked_compare_exchange_int32(&_ebpf_flush_timer_set, 0, 1);
 }
 
 ebpf_result_t
