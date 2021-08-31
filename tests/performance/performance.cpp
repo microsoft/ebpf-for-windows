@@ -65,6 +65,7 @@ _perf_bpf_ktime_get_boot_ns()
 static void
 _perf_bpf_get_smp_processor_id()
 {
+    ebpf_epoch_enter();
     ebpf_get_current_cpu();
     ebpf_epoch_exit();
 }
@@ -265,9 +266,12 @@ typedef class _ebpf_map_test_state
     _ebpf_map_test_state(ebpf_map_type_t type)
     {
         ebpf_utf8_string_t name{(uint8_t*)"test", 4};
-        ebpf_map_definition_in_memory_t definition{sizeof(ebpf_map_definition_in_memory_t), type, sizeof(uint32_t), sizeof(uint64_t), 1};
+        ebpf_map_definition_in_memory_t definition{
+            sizeof(ebpf_map_definition_in_memory_t), type, sizeof(uint32_t), sizeof(uint64_t), 1};
 
-        REQUIRE(ebpf_map_create(&name, &definition, reinterpret_cast<uintptr_t>(ebpf_handle_invalid), &map) == EBPF_SUCCESS);
+        REQUIRE(
+            ebpf_map_create(&name, &definition, reinterpret_cast<uintptr_t>(ebpf_handle_invalid), &map) ==
+            EBPF_SUCCESS);
     }
     ~_ebpf_map_test_state() { ebpf_object_release_reference((ebpf_object_t*)map); }
 
@@ -305,7 +309,6 @@ typedef class _ebpf_map_test_state
     ebpf_map_t* map;
     _test_helper_end_to_end test_helper;
 } ebpf_map_test_state_t;
-
 
 static ebpf_hash_table_test_state_t* _ebpf_hash_table_test_state_instance = nullptr;
 static ebpf_program_test_state_t* _ebpf_program_test_state_instance = nullptr;
@@ -458,7 +461,6 @@ test_bpf_get_smp_processor_id(bool preemptible)
     measure.run_test();
     ebpf_core_terminate();
 }
-
 
 extern bool _ebpf_platform_is_preemptible;
 
