@@ -62,7 +62,7 @@ query_map_definition(
     _Out_ uint32_t* key_size,
     _Out_ uint32_t* value_size,
     _Out_ uint32_t* max_entries,
-    _Out_ uint32_t* inner_map_idx) noexcept
+    _Out_ uint32_t* inner_map_id) noexcept
 {
     _ebpf_operation_query_map_definition_request request{
         sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_QUERY_MAP_DEFINITION, reinterpret_cast<uint64_t>(handle)};
@@ -77,7 +77,7 @@ query_map_definition(
         *key_size = reply.map_definition.key_size;
         *value_size = reply.map_definition.value_size;
         *max_entries = reply.map_definition.max_entries;
-        *inner_map_idx = reply.map_definition.inner_map_idx;
+        *inner_map_id = reply.map_definition.inner_map_id;
     }
     return result;
 }

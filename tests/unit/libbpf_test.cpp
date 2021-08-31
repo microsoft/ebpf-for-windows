@@ -564,3 +564,34 @@ TEST_CASE("array of maps", "[libbpf]")
     ebpf_close_fd(inner_map_fd); // TODO(issue #287): change to _close(inner_map_fd);
     bpf_object__close(xdp_object);
 }
+
+TEST_CASE("disallow wrong inner map types", "[libbpf]")
+{
+    _test_helper_end_to_end test_helper;
+    program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
+
+    struct bpf_object* xdp_object;
+    int xdp_object_fd;
+    int error = bpf_prog_load("map_in_map.o", BPF_PROG_TYPE_XDP, &xdp_object, &xdp_object_fd);
+    REQUIRE(error == 0);
+    REQUIRE(xdp_object != nullptr);
+
+    struct bpf_map* outer_map = bpf_object__find_map_by_name(xdp_object, "outer_map");
+    REQUIRE(outer_map != nullptr);
+
+    int outer_map_fd = bpf_map__fd(outer_map);
+    REQUIRE(outer_map_fd > 0);
+
+    // Create an inner map of the wrong type.
+    int inner_map_fd = bpf_create_map(BPF_MAP_TYPE_HASH, sizeof(__u32), sizeof(__u32), 1, 0);
+    REQUIRE(inner_map_fd > 0);
+
+    // Try to add the array map to the outer map.
+    __u32 outer_key = 0;
+    error = bpf_map_update_elem(outer_map_fd, &outer_key, &inner_map_fd, 0);
+    REQUIRE(error == -EBPF_INVALID_ARGUMENT);
+    REQUIRE(errno == -error);
+
+    ebpf_close_fd(inner_map_fd); // TODO(issue #287): change to _close(inner_map_fd);
+    bpf_object__close(xdp_object);
+}

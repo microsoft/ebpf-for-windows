@@ -37,13 +37,14 @@ _test_crud_operations(ebpf_map_type_t map_type, bool is_array)
 {
     _ebpf_core_initializer core;
 
-    ebpf_map_definition_t map_definition{
-        sizeof(ebpf_map_definition_t), map_type, sizeof(uint32_t), sizeof(uint64_t), 10};
+    ebpf_map_definition_in_memory_t map_definition{
+        sizeof(ebpf_map_definition_in_memory_t), map_type, sizeof(uint32_t), sizeof(uint64_t), 10};
     map_ptr map;
     {
         ebpf_map_t* local_map;
         ebpf_utf8_string_t map_name = {0};
-        REQUIRE(ebpf_map_create(&map_name, &map_definition, &local_map) == EBPF_SUCCESS);
+        REQUIRE(
+            ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
         map.reset(local_map);
     }
     std::vector<uint8_t> value(ebpf_map_get_definition(map.get())->value_size);
@@ -154,13 +155,14 @@ TEST_CASE("program", "[execution_context]")
         program.reset(local_program);
     }
 
-    ebpf_map_definition_t map_definition{
-        sizeof(ebpf_map_definition_t), BPF_MAP_TYPE_HASH, sizeof(uint32_t), sizeof(uint64_t), 10};
+    ebpf_map_definition_in_memory_t map_definition{
+        sizeof(ebpf_map_definition_in_memory_t), BPF_MAP_TYPE_HASH, sizeof(uint32_t), sizeof(uint64_t), 10};
     map_ptr map;
     {
         ebpf_map_t* local_map;
         ebpf_utf8_string_t map_name = {0};
-        REQUIRE(ebpf_map_create(&map_name, &map_definition, &local_map) == EBPF_SUCCESS);
+        REQUIRE(
+            ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
         map.reset(local_map);
     }
 

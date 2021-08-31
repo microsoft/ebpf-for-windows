@@ -568,7 +568,8 @@ TEST_CASE("serialize_map_test", "[platform]")
     for (int i = 0; i < map_count; i++) {
         ebpf_map_info_internal_t* input_map_info = &internal_map_info_array[i];
         ebpf_map_info_t* map_info = &map_info_array[i];
-        REQUIRE(memcmp(&map_info->definition, &input_map_info->definition, sizeof(ebpf_map_definition_t)) == 0);
+        REQUIRE(
+            memcmp(&map_info->definition, &input_map_info->definition, sizeof(ebpf_map_definition_in_memory_t)) == 0);
         REQUIRE(strnlen_s(map_info->pin_path, EBPF_MAX_PIN_PATH_LENGTH) == input_map_info->pin_path.length);
         REQUIRE(memcmp(map_info->pin_path, input_map_info->pin_path.value, input_map_info->pin_path.length) == 0);
     }

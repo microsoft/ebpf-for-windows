@@ -19,7 +19,7 @@ extern "C"
      */
     typedef struct _ebpf_map_info_internal
     {
-        ebpf_map_definition_t definition;
+        ebpf_map_definition_in_memory_t definition;
         ebpf_utf8_string_t pin_path;
     } ebpf_map_info_internal_t;
 
@@ -28,7 +28,7 @@ extern "C"
      */
     typedef struct _ebpf_serialized_map_info
     {
-        ebpf_map_definition_t definition;
+        ebpf_map_definition_in_memory_t definition;
         uint16_t pin_path_length;
         uint8_t pin_path[1];
     } ebpf_serialized_map_info_t;

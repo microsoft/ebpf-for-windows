@@ -171,7 +171,7 @@ _resolve_maps_in_byte_code(ebpf_handle_t program_handle, ebpf_code_buffer_t& byt
         if (map_handles[index] > get_map_descriptor_size()) {
             return EBPF_INVALID_OBJECT;
         }
-        request->map_handle[index] = get_map_handle_at_index((int)map_handles[index] - 1);
+        request->map_handle[index] = (uint64_t)get_map_handle_at_index((int)map_handles[index] - 1);
     }
 
     uint32_t result = invoke_ioctl(request_buffer, reply_buffer);
@@ -196,7 +196,8 @@ _resolve_maps_in_byte_code(ebpf_handle_t program_handle, ebpf_code_buffer_t& byt
 }
 
 static ebpf_result_t
-_query_and_cache_map_descriptors(_In_reads_(handle_map_count) fd_handle_map* handle_map, uint32_t handle_map_count)
+_query_and_cache_map_descriptors(
+    _In_reads_(handle_map_count) original_fd_handle_map_t* handle_map, uint32_t handle_map_count)
 {
     ebpf_result_t result;
     EbpfMapDescriptor descriptor;
@@ -205,7 +206,7 @@ _query_and_cache_map_descriptors(_In_reads_(handle_map_count) fd_handle_map* han
         for (uint32_t i = 0; i < handle_map_count; i++) {
             uint32_t size;
             descriptor = {0};
-            uint32_t inner_map_idx;
+            uint32_t inner_map_id;
             result = query_map_definition(
                 handle_map[i].handle,
                 &size,
@@ -213,24 +214,19 @@ _query_and_cache_map_descriptors(_In_reads_(handle_map_count) fd_handle_map* han
                 &descriptor.key_size,
                 &descriptor.value_size,
                 &descriptor.max_entries,
-                &inner_map_idx);
+                &inner_map_id);
             if (result != EBPF_SUCCESS) {
                 return result;
             }
 
-            if (descriptor.type == BPF_MAP_TYPE_ARRAY_OF_MAPS || descriptor.type == BPF_MAP_TYPE_HASH_OF_MAPS) {
-                // Convert inner_map_idx to descriptor.inner_map_fd.
-                descriptor.inner_map_fd = handle_map[inner_map_idx].file_descriptor;
-            }
-
-            cache_map_file_descriptor_with_handle(
+            cache_map_original_file_descriptor_with_handle(
+                handle_map[i].original_fd,
                 descriptor.type,
                 descriptor.key_size,
                 descriptor.value_size,
                 descriptor.max_entries,
-                descriptor.inner_map_fd,
-                handle_map[i].file_descriptor,
-                (uintptr_t)handle_map[i].handle,
+                handle_map[i].inner_map_original_fd,
+                handle_map[i].handle,
                 0);
         }
     }
@@ -267,7 +263,7 @@ ebpf_verify_program(
 
     try {
         if (map_descriptors_count != 0) {
-            cache_map_file_descriptors(map_descriptors, map_descriptors_count);
+            cache_map_original_file_descriptors(map_descriptors, map_descriptors_count);
         }
 
         // Verify the program.
@@ -293,7 +289,7 @@ ebpf_verify_and_load_program(
     ebpf_execution_context_t execution_context,
     ebpf_execution_type_t execution_type,
     uint32_t handle_map_count,
-    fd_handle_map* handle_map,
+    original_fd_handle_map_t* handle_map,
     uint32_t byte_code_size,
     uint8_t* byte_code,
     const char** error_message,
