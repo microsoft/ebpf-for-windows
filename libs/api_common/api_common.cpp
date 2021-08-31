@@ -13,6 +13,8 @@
 
 #include "ebpf_verifier_wrapper.hpp"
 
+#include "map_descriptors.hpp"
+
 thread_local static const ebpf_program_type_t* _global_program_type = nullptr;
 thread_local static const ebpf_attach_type_t* _global_attach_type = nullptr;
 
@@ -99,4 +101,12 @@ const ebpf_attach_type_t*
 get_global_attach_type()
 {
     return _global_attach_type;
+}
+
+void
+ebpf_clear_thread_local_storage() noexcept
+{
+    clear_map_descriptors();
+    clear_program_info_cache();
+    set_program_under_verification(ebpf_handle_invalid);
 }

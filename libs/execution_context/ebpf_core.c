@@ -12,6 +12,8 @@
 #include "ebpf_serialize.h"
 #include "ebpf_state.h"
 
+const ebpf_handle_t ebpf_handle_invalid = (ebpf_handle_t)-1;
+
 GUID ebpf_general_helper_function_interface_id = {/* 8d2a1d3f-9ce6-473d-b48e-17aa5c5581fe */
                                                   0x8d2a1d3f,
                                                   0x9ce6,
@@ -835,15 +837,21 @@ _ebpf_core_protocol_get_program_info(
     size_t serialization_buffer_size;
     size_t required_length;
 
-    retval = ebpf_program_create(&program);
-    if (retval != EBPF_SUCCESS)
-        goto Done;
-
     program_parameters.program_type = request->program_type;
 
-    retval = ebpf_program_initialize(program, &program_parameters);
-    if (retval != EBPF_SUCCESS)
-        goto Done;
+    if (request->program_handle == ebpf_handle_invalid) {
+        retval = ebpf_program_create(&program);
+        if (retval != EBPF_SUCCESS)
+            goto Done;
+        retval = ebpf_program_initialize(program, &program_parameters);
+        if (retval != EBPF_SUCCESS)
+            goto Done;
+    } else {
+        retval =
+            ebpf_reference_object_by_handle(request->program_handle, EBPF_OBJECT_PROGRAM, (ebpf_object_t**)&program);
+        if (retval != EBPF_SUCCESS)
+            goto Done;
+    }
 
     retval = ebpf_program_get_program_info(program, &program_info);
     if (retval != EBPF_SUCCESS)

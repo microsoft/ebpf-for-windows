@@ -486,6 +486,7 @@ TEST_CASE("verify section", "[end_to_end]")
     const char* error_message = nullptr;
     const char* report = nullptr;
     uint32_t result;
+    program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
     ebpf_api_verifier_stats_t stats;
     REQUIRE((

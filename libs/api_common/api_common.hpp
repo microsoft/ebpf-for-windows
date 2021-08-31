@@ -156,3 +156,17 @@ get_global_program_type();
 
 const ebpf_attach_type_t*
 get_global_attach_type();
+
+/**
+ * @brief Save handle to program being verified in thread-local storage.
+ *
+ * @param[in] program Handle to program being verified.
+ */
+void
+set_program_under_verification(ebpf_handle_t program);
+
+/**
+ * @brief Clear thread-local storage used for storing data needed for program verification.
+ */
+void
+ebpf_clear_thread_local_storage() noexcept;
