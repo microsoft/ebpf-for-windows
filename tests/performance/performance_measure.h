@@ -29,13 +29,18 @@ template <typename T> class _performance_measure
 {
   public:
     /**
-     * @brief Construct a new performance measure object
+     * @brief Construct a new performance measure object.
      *
+     * @param[in] test_name Display name of the test to run.
+     * @param[in] preemptible Run the test function in preemptible mode.
      * @param[in] worker Function under test
      * @param[in] iterations Iteration count to run.
      */
     _performance_measure(
-        const char* test_name, bool preemptible, T worker, size_t iterations = PERFORMANCE_MEASURE_ITERATION_COUNT)
+        _In_z_ const char* test_name,
+        bool preemptible,
+        T worker,
+        size_t iterations = PERFORMANCE_MEASURE_ITERATION_COUNT)
         : cpu_count(ebpf_get_cpu_count()), iterations(iterations), counters(cpu_count), worker(worker),
           preemptible(preemptible), test_name(test_name)
     {
@@ -50,8 +55,6 @@ template <typename T> class _performance_measure
 
     /**
      * @brief Perform the measurement
-     *
-     * @return Nano-seconds elapsed for each iteration.
      */
     void
     run_test(size_t multiplier = 1)

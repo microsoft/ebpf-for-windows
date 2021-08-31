@@ -187,7 +187,7 @@ typedef class _ebpf_program_test_state
     }
 
     void
-    setup_jit_program()
+    prepare_jit_program()
     {
         ubpf_vm* vm = ubpf_create();
         char* error_message = nullptr;
@@ -208,7 +208,7 @@ typedef class _ebpf_program_test_state
     }
 
     void
-    setup_interpret_program()
+    prepare_interpret_program()
     {
         REQUIRE(
             ebpf_program_load_code(
@@ -336,7 +336,7 @@ test_program_invoke_jit(bool preemptible)
     std::vector<ebpf_instruction_t> byte_code = {{EBPF_OP_MOV_IMM, 0, 0, 0, 42}, {EBPF_OP_EXIT}};
     _ebpf_program_test_state program_state(byte_code);
     _ebpf_program_test_state_instance = &program_state;
-    program_state.setup_jit_program();
+    program_state.prepare_jit_program();
 
     _performance_measure measure(__FUNCTION__, preemptible, _ebpf_program_invoke, iterations);
     measure.run_test();
@@ -350,7 +350,7 @@ test_program_invoke_interpret(bool preemptible)
     std::vector<ebpf_instruction_t> byte_code = {{EBPF_OP_MOV_IMM, 0, 0, 0, 42}, {EBPF_OP_EXIT}};
     _ebpf_program_test_state program_state(byte_code);
     _ebpf_program_test_state_instance = &program_state;
-    program_state.setup_interpret_program();
+    program_state.prepare_interpret_program();
 
     _performance_measure measure(__FUNCTION__, preemptible, _ebpf_program_invoke, iterations);
     measure.run_test();

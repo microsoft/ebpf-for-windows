@@ -496,6 +496,8 @@ _ebpf_epoch_update_thread_state(uint32_t cpu_id, uintptr_t thread_id, int64_t cu
             thread_epoch->epoch = current_epoch;
             thread_epoch->active = true;
         } else {
+            // https://github.com/microsoft/ebpf-for-windows/issues/437
+            // Consider pruning inactive entries.
             if (thread_epoch->active) {
                 thread_epoch->active = false;
                 active_entry_found = true;
