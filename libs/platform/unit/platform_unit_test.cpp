@@ -131,6 +131,12 @@ run_in_epoch(std::function<void()> function)
     }
 }
 
+TEST_CASE("This_test_fails", "[platform]")
+{
+    uint8_t* p = (uint8_t*)1;
+    *p = 2;
+}
+
 TEST_CASE("hash_table_stress_test", "[platform]")
 {
     _test_helper test_helper;
