@@ -131,6 +131,8 @@ run_in_epoch(std::function<void()> function)
     }
 }
 
+TEST_CASE("This_case_should_fail", "[platform]") { REQUIRE(1 == 2); }
+
 TEST_CASE("hash_table_stress_test", "[platform]")
 {
     _test_helper test_helper;

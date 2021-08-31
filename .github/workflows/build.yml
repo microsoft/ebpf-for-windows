@@ -82,11 +82,11 @@ jobs:
 
     - name: Run Unit Tests
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
-      run: procdump64.exe -accepteula -o -ma -e -x c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}} ./unit_tests.exe -s
+      run: procdump64.exe -accepteula -o -ma -e -x c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}} ./unit_tests.exe -s -b
 
     - name: Run RPC Client Tests
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
-      run: procdump64.exe -accepteula -o -ma -e -x c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}} ./ebpf_client.exe -s
+      run: procdump64.exe -accepteula -o -ma -e -x c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}} ./ebpf_client.exe -s -b
 
     - name: Upload any crash dumps
       uses: actions/upload-artifact@v2
