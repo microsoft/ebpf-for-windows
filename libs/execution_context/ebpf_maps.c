@@ -7,7 +7,7 @@
 #include "ebpf_object.h"
 #include "ebpf_program.h"
 
-#define PAD_CACHE(X) ((X + EBPF_CACHE_LINE_SIZE-1) & ~(EBPF_CACHE_LINE_SIZE-1))
+#define PAD_CACHE(X) ((X + EBPF_CACHE_LINE_SIZE - 1) & ~(EBPF_CACHE_LINE_SIZE - 1))
 
 typedef struct _ebpf_core_map
 {
