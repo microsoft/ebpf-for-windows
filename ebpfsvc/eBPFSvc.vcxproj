@@ -151,6 +151,12 @@
     <Midl>
       <DefaultCharType>Unsigned</DefaultCharType>
     </Midl>
+    <PreBuildEvent>
+      <Command>powershell $(SolutionDir)scripts\generate-commitid.ps1 $(OutDir)</Command>
+    </PreBuildEvent>
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>$(OutDir)</AdditionalIncludeDirectories>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -176,8 +182,15 @@
     <Midl>
       <DefaultCharType>Unsigned</DefaultCharType>
     </Midl>
+    <PreBuildEvent>
+      <Command>powershell $(SolutionDir)scripts\generate-commitid.ps1 $(OutDir)</Command>
+    </PreBuildEvent>
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>$(OutDir)</AdditionalIncludeDirectories>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="resource.h" />
     <ClInclude Include="rpc_util.h" />
     <ClInclude Include="svc_common.h" />
   </ItemGroup>
@@ -209,6 +222,9 @@
     <ProjectReference Include="..\rpc_interface\rpc_interface.vcxproj">
       <Project>{1423245d-0249-40fc-a077-ff7780acfe3f}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="..\resource\ebpf_resource.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

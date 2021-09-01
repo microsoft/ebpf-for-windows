@@ -29,3 +29,6 @@
 #define _APS_NEXT_SYMED_VALUE 101
 #endif
 #endif
+
+#define EBPF_FILE_DESCRIPTION "eBPF for Windows Netsh Helper"
+#define EBPF_FILE_NAME "ebpfnetsh.dll"
