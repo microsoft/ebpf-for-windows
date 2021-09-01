@@ -25,8 +25,8 @@ typedef struct _app_name
 int load(int /*argc*/, char** /*argv*/)
 {
     const char* error_message = nullptr;
-    int error;
-    ebpf_result_t result;
+    int error = 0;
+    ebpf_result_t result = {};
 
     // Load and attach FLOW program
 
