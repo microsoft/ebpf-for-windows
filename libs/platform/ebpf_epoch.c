@@ -3,8 +3,6 @@
 
 #include "ebpf_epoch.h"
 
-#define EBPF_CACHE_LINE_SIZE 64
-
 // Brief summary of how epoch tracking works.
 // Each free operation increments the _ebpf_current_epoch, the freed memory is stamped with that epoch, and the
 // memory is inserted into a per-CPU free list.
@@ -145,11 +143,13 @@ ebpf_epoch_initiate()
     _ebpf_release_epoch = 0;
     _ebpf_epoch_cpu_count = cpu_count;
 
-    _ebpf_epoch_cpu_table = ebpf_allocate(_ebpf_epoch_cpu_count * sizeof(ebpf_epoch_cpu_entry_t));
+    _ebpf_epoch_cpu_table = ebpf_allocate_cache_aligned(sizeof(ebpf_epoch_cpu_entry_t) * cpu_count);
     if (!_ebpf_epoch_cpu_table) {
         return_value = EBPF_NO_MEMORY;
         goto Error;
     }
+
+    ebpf_assert(EBPF_CACHE_ALIGN_POINTER(_ebpf_epoch_cpu_table) == _ebpf_epoch_cpu_table);
 
     for (cpu_id = 0; cpu_id < _ebpf_epoch_cpu_count; cpu_id++) {
         _ebpf_epoch_cpu_table[cpu_id].cpu_epoch_state.epoch = _ebpf_current_epoch;
@@ -201,8 +201,7 @@ ebpf_epoch_terminate()
     }
     _ebpf_epoch_cpu_count = 0;
 
-    ebpf_free(_ebpf_epoch_cpu_table);
-    _ebpf_epoch_cpu_table = NULL;
+    ebpf_free_cache_aligned(_ebpf_epoch_cpu_table);
 }
 
 ebpf_result_t
