@@ -6,8 +6,8 @@
 // For bpf code: clang -target bpf -O2 -Wall -c droppacket.c -o droppacket.o
 // this passes the checker
 
+#include "bpf_helpers.h"
 #include "ebpf.h"
-#include "ebpf_helpers.h"
 
 SEC("maps")
 ebpf_map_definition_in_file_t port_map = {

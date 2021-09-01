@@ -163,25 +163,25 @@ typedef class _single_instance_hook
 #define TEST_NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION 0
 
 static ebpf_helper_function_prototype_t _ebpf_map_helper_function_prototype[] = {
-    {1,
+    {BPF_FUNC_map_lookup_elem,
      "bpf_map_lookup_elem",
      EBPF_RETURN_TYPE_PTR_TO_MAP_VALUE_OR_NULL,
      {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY}},
-    {2,
+    {BPF_FUNC_map_update_elem,
      "bpf_map_update_elem",
      EBPF_RETURN_TYPE_INTEGER,
      {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_VALUE}},
-    {3,
+    {BPF_FUNC_map_delete_elem,
      "bpf_map_delete_elem",
      EBPF_RETURN_TYPE_INTEGER,
      {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY}},
-    {4,
+    {BPF_FUNC_tail_call,
      "bpf_tail_call",
      EBPF_RETURN_TYPE_INTEGER_OR_NO_RETURN_IF_SUCCEED,
      {EBPF_ARGUMENT_TYPE_PTR_TO_CTX, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_OF_PROGRAMS, EBPF_ARGUMENT_TYPE_ANYTHING}},
-    {5, "bpf_get_prandom_u32", EBPF_RETURN_TYPE_INTEGER, {0}},
-    {6, "bpf_ktime_get_boot_ns", EBPF_RETURN_TYPE_INTEGER, {0}},
-    {7, "bpf_get_smp_processor_id", EBPF_RETURN_TYPE_INTEGER, {0}},
+    {BPF_FUNC_get_prandom_u32, "bpf_get_prandom_u32", EBPF_RETURN_TYPE_INTEGER, {0}},
+    {BPF_FUNC_ktime_get_boot_ns, "bpf_ktime_get_boot_ns", EBPF_RETURN_TYPE_INTEGER, {0}},
+    {BPF_FUNC_get_smp_processor_id, "bpf_get_smp_processor_id", EBPF_RETURN_TYPE_INTEGER, {0}},
 };
 
 static ebpf_context_descriptor_t _ebpf_xdp_context_descriptor = {

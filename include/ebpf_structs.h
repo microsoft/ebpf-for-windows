@@ -62,3 +62,14 @@ typedef struct _ebpf_map_definition_in_file
      */
     uint32_t inner_map_idx;
 } ebpf_map_definition_in_file_t;
+
+typedef enum
+{
+    BPF_FUNC_map_lookup_elem = 1,
+    BPF_FUNC_map_update_elem = 2,
+    BPF_FUNC_map_delete_elem = 3,
+    BPF_FUNC_tail_call = 4,
+    BPF_FUNC_get_prandom_u32 = 5,
+    BPF_FUNC_ktime_get_boot_ns = 6,
+    BPF_FUNC_get_smp_processor_id = 7,
+} ebpf_helper_id_t;

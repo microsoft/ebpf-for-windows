@@ -1,13 +1,13 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-// clang -O2 -Wall -c droppacket.c -o dropjit.o
+// clang -O2 -Wall -c divide_by_zero.c -o divide_by_zero_jit.o
 //
-// For bpf code: clang -target bpf -O2 -Wall -c droppacket.c -o droppacket.o
+// For bpf code: clang -target bpf -O2 -Wall -c divide_by_zero.c -o divide_by_zero.o
 // this passes the checker
 
+#include "bpf_helpers.h"
 #include "ebpf.h"
-#include "ebpf_helpers.h"
 
 SEC("maps")
 ebpf_map_definition_in_file_t test_map = {
