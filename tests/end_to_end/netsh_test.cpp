@@ -3,9 +3,15 @@
 
 #include <windows.h>
 #include <netsh.h> // Must be included after windows.h
+#include "bpf.h"
 #include "capture_helper.hpp"
 #include "catch_wrapper.hpp"
 #include "elf.h"
+#pragma warning(push)
+#pragma warning(disable : 4200)
+#include "libbpf.h"
+#pragma warning(pop)
+#include "maps.h"
 #include "programs.h"
 #include "test_helper.hpp"
 
@@ -65,8 +71,6 @@ static std::string
 _run_netsh_command(
     _In_ FN_HANDLE_CMD* command, _In_opt_z_ const wchar_t* arg1, _In_opt_z_ const wchar_t* arg2, _Out_ int* result)
 {
-    _test_helper_end_to_end test_helper;
-
     capture_helper_t capture;
     errno_t error = capture.begin_capture();
     if (error != NO_ERROR) {
@@ -193,6 +197,8 @@ TEST_CASE("show verification bpf.o", "[netsh][verification]")
 
 TEST_CASE("show verification droppacket.o", "[netsh][verification]")
 {
+    _test_helper_libbpf test_helper;
+
     int result;
     std::string output = _run_netsh_command(handle_ebpf_show_verification, L"droppacket.o", L"xdp", &result);
     REQUIRE(result == NO_ERROR);
@@ -206,6 +212,8 @@ TEST_CASE("show verification droppacket.o", "[netsh][verification]")
 
 TEST_CASE("show verification droppacket_unsafe.o", "[netsh][verification]")
 {
+    _test_helper_libbpf test_helper;
+
     int result;
     std::string output = _run_netsh_command(handle_ebpf_show_verification, L"droppacket_unsafe.o", L"xdp", &result);
     REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
@@ -225,13 +233,52 @@ TEST_CASE("show verification droppacket_unsafe.o", "[netsh][verification]")
 
 TEST_CASE("show programs", "[netsh][programs]")
 {
-    int result;
+    _test_helper_libbpf test_helper;
+
+    // Load a program to show.
+    struct bpf_object* object;
+    int program_fd;
+    int result = bpf_prog_load("tail_call.o", BPF_PROG_TYPE_XDP, &object, &program_fd);
+    REQUIRE(result == 0);
+    REQUIRE(object != nullptr);
+    REQUIRE(program_fd != -1);
+
     std::string output = _run_netsh_command(handle_ebpf_show_programs, nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
 
-    // Since we mocked the ioctl, there should be no programs shown.
     REQUIRE(
         output == "\n"
                   "           File Name          Section  Requested Execution Type\n"
-                  "====================  ===============  ========================\n");
+                  "====================  ===============  ========================\n"
+                  "         tail_call.o         xdp_prog                       JIT\n"
+                  "         tail_call.o       xdp_prog/0                       JIT\n");
+
+    bpf_object__close(object);
+}
+
+TEST_CASE("show maps", "[netsh][maps]")
+{
+    _test_helper_end_to_end test_helper;
+
+    // Create maps to show.
+    int outer_map_fd = bpf_create_map(BPF_MAP_TYPE_HASH_OF_MAPS, sizeof(__u32), sizeof(__u32), 2, 0);
+    REQUIRE(outer_map_fd > 0);
+
+    int inner_map_fd = bpf_create_map(BPF_MAP_TYPE_ARRAY, sizeof(__u32), sizeof(__u32), 1, 0);
+    REQUIRE(inner_map_fd > 0);
+
+    int result;
+    std::string output = _run_netsh_command(handle_ebpf_show_maps, nullptr, nullptr, &result);
+    REQUIRE(result == NO_ERROR);
+
+    REQUIRE(
+        output == "\n"
+                  "                     Key  Value      Max  Inner\n"
+                  "          Map Type  Size   Size  Entries  Index\n"
+                  "==================  ====  =====  =======  =====\n"
+                  "      Hash of maps     4      4        2      0\n"
+                  "             Array     4      4        1      0\n");
+
+    ebpf_close_fd(inner_map_fd); // TODO(issue #287): change to _close(inner_map_fd);
+    ebpf_close_fd(outer_map_fd); // TODO(issue #287): change to _close(outer_map_fd);
 }
