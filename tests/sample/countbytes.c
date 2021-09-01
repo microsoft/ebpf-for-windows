@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "ebpf_helpers.h"
-#include "ebpf_nethooks.h"
+#include "ebpf.h"
 
 #define NO_FLAGS 0
 
@@ -30,5 +30,6 @@ int CountBytes(mac_md_t* context)
         value = *byte_count + value;
         bpf_map_update_elem(&byte_map, &key, &value, NO_FLAGS);
     }
+
     return 0;
 }

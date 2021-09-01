@@ -4,9 +4,15 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "ebpf_helpers.h"
-#include "ebpf_nethooks.h"
+#include "ebpf.h"
 
 #define NO_FLAGS 0
+#define NAME_SIZE 64
+
+typedef struct _app_name
+{
+    uint8_t name[64];
+} app_name_t;
 
 #pragma clang section data = "maps"
 ebpf_map_definition_t app_map = {
@@ -29,19 +35,18 @@ int AssociateFlowToContext(flow_md_t* context)
     }
     else // Flow Established
     {
-        if (!context->app_name_start || !context->app_name_end)
-        {
-            return 1;
-        }
         bpf_map_update_elem(&app_map, &key, &value, NO_FLAGS);
         entry = bpf_map_lookup_elem(&app_map, &key);
         if (!entry)
         {
             return 1;
         }
-
-        // Iterate through app Id bytes to parse app name and add into map entry
-        for (index = 0; index < 64; index++)
+        if (!context->app_name_start || !context->app_name_end)
+        {
+            return 0;
+        }
+        // Iterate through bytes to parse application name and add into map entry
+        for (index = 0; index < NAME_SIZE; index++)
         {
             if ((context->app_name_start + index) >= context->app_name_end)
             {

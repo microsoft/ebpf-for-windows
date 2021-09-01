@@ -14,6 +14,8 @@
 #include "ebpf_bind_program_data.h"
 #include "ebpf_core.h"
 #include "ebpf_xdp_program_data.h"
+#include "ebpf_flow_program_data.h"
+#include "ebpf_mac_program_data.h"
 #include "helpers.h"
 #include "libbpf.h"
 #include "mock.h"

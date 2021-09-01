@@ -46,6 +46,11 @@ Environment:
 #include "ebpf_flow_program_data.h"
 #include "ebpf_mac_program_data.h"
 
+
+typedef struct _FLOW_CONTEXT {
+    five_tuple_t five_tuple;
+} FLOW_CONTEXT, *PFLOW_CONTEXT;
+
 static ebpf_ext_attach_hook_provider_registration_t* _ebpf_xdp_hook_provider_registration = NULL;
 static ebpf_ext_attach_hook_provider_registration_t* _ebpf_bind_hook_provider_registration = NULL;
 static ebpf_ext_attach_hook_provider_registration_t* _ebpf_flow_hook_provider_registration = NULL;
@@ -56,8 +61,13 @@ static ebpf_extension_provider_t* _ebpf_flow_program_info_provider = NULL;
 static ebpf_extension_provider_t* _ebpf_mac_program_info_provider = NULL;
 
 #define RTL_COUNT_OF(arr) (sizeof(arr) / sizeof(arr[0]))
-
 #define NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION 0
+#define FLOW_CONTEXT_POOL_TAG 'fcpt'
+#define READ_BYTE_OFFSET 256
+#define IPV6_SIZE 16
+#define UDP 17
+#define TCP 6
+#define V4_PROTOCOL 2048
 
 static ebpf_context_descriptor_t _ebpf_xdp_context_descriptor = {
     sizeof(xdp_md_t),
@@ -183,7 +193,7 @@ _net_ebpf_ext_resource_release_classify(
     _Inout_ FWPS_CLASSIFY_OUT* classify_output);
 
 static void
-_net_ebpf_ext_flow_established_classify(
+_net_ebpf_ext_flow_established_v4_classify(
     _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values,
     _In_ const FWPS_INCOMING_METADATA_VALUES* incoming_metadata_values,
     _Inout_opt_ void* layer_data,
@@ -193,7 +203,27 @@ _net_ebpf_ext_flow_established_classify(
     _Inout_ FWPS_CLASSIFY_OUT* classify_output);
 
 static void
-_net_ebpf_ext_mac_ethernet_classify(
+_net_ebpf_ext_flow_established_v6_classify(
+    _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values,
+    _In_ const FWPS_INCOMING_METADATA_VALUES* incoming_metadata_values,
+    _Inout_opt_ void* layer_data,
+    _In_opt_ const void* classify_context,
+    _In_ const FWPS_FILTER* filter,
+    uint64_t flow_context,
+    _Inout_ FWPS_CLASSIFY_OUT* classify_output);
+
+static void
+_net_ebpf_ext_outbound_mac_ethernet_classify(
+    _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values,
+    _In_ const FWPS_INCOMING_METADATA_VALUES* incoming_metadata_values,
+    _Inout_opt_ void* layer_data,
+    _In_opt_ const void* classify_context,
+    _In_ const FWPS_FILTER* filter,
+    uint64_t flow_context,
+    _Inout_ FWPS_CLASSIFY_OUT* classify_output);
+
+static void
+_net_ebpf_ext_inbound_mac_ethernet_classify(
     _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values,
     _In_ const FWPS_INCOMING_METADATA_VALUES* incoming_metadata_values,
     _Inout_opt_ void* layer_data,
@@ -226,16 +256,16 @@ typedef struct _net_ebpf_ext_wfp_callout_state
 } net_ebpf_ext_wfp_callout_state_t;
 
 static net_ebpf_ext_wfp_callout_state_t _net_ebpf_ext_wfp_callout_state[] = {
-    {
-        &EBPF_HOOK_L2_CALLOUT,
-        &FWPM_LAYER_INBOUND_MAC_FRAME_ETHERNET,
-        _net_ebpf_ext_layer_2_classify,
-        _net_ebpf_ext_no_op_notify,
-        _net_ebpf_ext_no_op_flow_delete,
-        L"L2 XDP Callout",
-        L"L2 callout driver for eBPF at XDP-like layer",
-        FWP_ACTION_CALLOUT_TERMINATING,
-    },
+    // {
+    //     &EBPF_HOOK_L2_CALLOUT,
+    //     &FWPM_LAYER_INBOUND_MAC_FRAME_ETHERNET,
+    //     _net_ebpf_ext_layer_2_classify,
+    //     _net_ebpf_ext_no_op_notify,
+    //     _net_ebpf_ext_no_op_flow_delete,
+    //     L"L2 XDP Callout",
+    //     L"L2 callout driver for eBPF at XDP-like layer",
+    //     FWP_ACTION_CALLOUT_TERMINATING,
+    // },
     {
         &EBPF_HOOK_ALE_RESOURCE_ALLOCATION_CALLOUT,
         &FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V4,
@@ -259,9 +289,9 @@ static net_ebpf_ext_wfp_callout_state_t _net_ebpf_ext_wfp_callout_state[] = {
     {
         &EBPF_HOOK_FLOW_ESTABLISHED_CALLOUT_V4,
         &FWPM_LAYER_ALE_FLOW_ESTABLISHED_V4,
-        _net_ebpf_ext_flow_established_classify,
+        _net_ebpf_ext_flow_established_v4_classify,
         _net_ebpf_ext_no_op_notify,
-        _net_ebpf_ext_no_op_flow_delete,
+        _net_ebpf_ext_flow_delete,
         L"Flow Established V4 Callout",
         L"Flow Established callout driver for eBPF",
         FWP_ACTION_CALLOUT_TERMINATING,
@@ -269,7 +299,7 @@ static net_ebpf_ext_wfp_callout_state_t _net_ebpf_ext_wfp_callout_state[] = {
     {
         &EBPF_HOOK_FLOW_ESTABLISHED_CALLOUT_V6,
         &FWPM_LAYER_ALE_FLOW_ESTABLISHED_V6,
-        _net_ebpf_ext_flow_established_classify,
+        _net_ebpf_ext_flow_established_v6_classify,
         _net_ebpf_ext_no_op_notify,
         _net_ebpf_ext_flow_delete,
         L"Flow Established V6 Callout",
@@ -279,9 +309,9 @@ static net_ebpf_ext_wfp_callout_state_t _net_ebpf_ext_wfp_callout_state[] = {
     {
         &EBPF_HOOK_INBOUND_MAC_ETHERNET_CALLOUT,
         &FWPM_LAYER_INBOUND_MAC_FRAME_ETHERNET,
-        _net_ebpf_ext_mac_ethernet_classify,
+        _net_ebpf_ext_inbound_mac_ethernet_classify,
         _net_ebpf_ext_no_op_notify,
-        _net_ebpf_ext_flow_delete,
+        _net_ebpf_ext_no_op_flow_delete,
         L"Inbound Mac Frame Ethernet Callout",
         L"MAC layer callout driver for eBPF",
         FWP_ACTION_CALLOUT_TERMINATING,
@@ -289,7 +319,7 @@ static net_ebpf_ext_wfp_callout_state_t _net_ebpf_ext_wfp_callout_state[] = {
     {
         &EBPF_HOOK_OUTBOUND_MAC_ETHERNET_CALLOUT,
         &FWPM_LAYER_OUTBOUND_MAC_FRAME_ETHERNET,
-        _net_ebpf_ext_mac_ethernet_classify,
+        _net_ebpf_ext_outbound_mac_ethernet_classify,
         _net_ebpf_ext_no_op_notify,
         _net_ebpf_ext_no_op_flow_delete,
         L"Outbound Mac Frame Ethernet Callout",
@@ -705,7 +735,22 @@ Exit:
 }
 
 static void
-_net_ebpf_ext_flow_established_classify(
+_net_ebpf_ext_flow_established_truncate_appid(flow_md_t* context)
+{
+    wchar_t* last_separator = (wchar_t*)context->app_name_start;
+    for (wchar_t* position = (wchar_t*)context->app_name_start; position < (wchar_t*)context->app_name_end; position++) {
+        if (*position == '\\') {
+            last_separator = position;
+        }
+    }
+    if (*last_separator == '\\') {
+        last_separator++;
+    }
+    context->app_name_start = (uint8_t*)last_separator;
+}
+
+static void
+_net_ebpf_ext_flow_established_v4_classify(
     _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values,
     _In_ const FWPS_INCOMING_METADATA_VALUES* incoming_metadata_values,
     _Inout_opt_ void* layer_data,
@@ -719,18 +764,231 @@ _net_ebpf_ext_flow_established_classify(
 
 -- */    
 {
-    UNREFERENCED_PARAMETER(incoming_fixed_values);
-    UNREFERENCED_PARAMETER(incoming_metadata_values);
     UNREFERENCED_PARAMETER(layer_data);
     UNREFERENCED_PARAMETER(classify_context);
-    UNREFERENCED_PARAMETER(filter);
     UNREFERENCED_PARAMETER(flow_context);
-    UNREFERENCED_PARAMETER(classify_output);
+
+    classify_output->actionType = FWP_ACTION_PERMIT;
+
+    if (!ebpf_ext_attach_enter_rundown(_ebpf_flow_hook_provider_registration)) {
+        goto Exit;
+    }
+
+    uint32_t result = 0;
+    five_tuple_t five_tuple = {0};
+    flow_md_t context = {0};
+
+    five_tuple.protocol =
+        incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V4_IP_PROTOCOL].value.uint8;
+    if (five_tuple.protocol != UDP && five_tuple.protocol != TCP) {
+        // Create five_tuple with only protocol so we can bucket and attribute non-TCP/UDP protocols (ICMP, etc.)
+        context.five_tuple = five_tuple;
+        context.app_name_start = NULL;
+        context.app_name_end = NULL;
+        context.flow_established_flag = true;
+        goto Invoke;
+    }
+    five_tuple.v4 = true;
+    five_tuple.source_port =
+        incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V4_IP_LOCAL_PORT].value.uint16;
+    five_tuple.dest_port =
+        incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V4_IP_REMOTE_PORT].value.uint16;
+    *(uint32_t *)five_tuple.source_ip =
+        incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V4_IP_LOCAL_ADDRESS].value.uint32;
+    *(uint32_t *)five_tuple.dest_ip =
+            incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V4_IP_REMOTE_ADDRESS].value.uint32;
+
+    if (FWPS_IS_METADATA_FIELD_PRESENT(incoming_metadata_values, FWPS_METADATA_FIELD_FLOW_HANDLE)) {
+        uint64_t flow_handle = incoming_metadata_values->flowHandle;
+
+        // Allocate the flow context structure
+        PFLOW_CONTEXT flow =(PFLOW_CONTEXT)ExAllocatePoolWithTag(NonPagedPool, sizeof(FLOW_CONTEXT), FLOW_CONTEXT_POOL_TAG);
+        if (flow == NULL) {
+            KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "Failed to allocate flow context \n"));
+            goto Exit;
+        }
+        
+        // Initialize the flow context structure
+        RtlZeroMemory(flow, sizeof(*flow));
+        flow->five_tuple = five_tuple;
+
+        // Associate the flow context structure with the data flow
+        NTSTATUS status = FwpsFlowAssociateContext0(
+            flow_handle, incoming_fixed_values->layerId, filter->action.calloutId, (uint64_t)flow);
+        if (status != STATUS_SUCCESS) {
+            KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "Failed to associate flow context with %d\n", status));
+            ExFreePool(flow);
+            goto Exit;
+        }
+    }
+
+    uint8_t* app_name_start =
+        incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V4_ALE_APP_ID].value.byteBlob->data;
+    uint8_t* app_name_end =
+        (uint8_t*)app_name_start +
+        incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V4_ALE_APP_ID].value.byteBlob->size;
+
+    context.five_tuple = five_tuple;
+    context.app_name_start = app_name_start;
+    context.app_name_end = app_name_end;
+    context.flow_established_flag = true;
+    _net_ebpf_ext_flow_established_truncate_appid(&context);
+
+Invoke:
+    ebpf_ext_attach_invoke_hook(_ebpf_flow_hook_provider_registration, &context, &result);
+    
+Exit:
+    ebpf_ext_attach_leave_rundown(_ebpf_flow_hook_provider_registration);
     return;
 }
 
 static void
-_net_ebpf_ext_mac_ethernet_classify(
+_net_ebpf_ext_flow_established_v6_classify(
+    _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values,
+    _In_ const FWPS_INCOMING_METADATA_VALUES* incoming_metadata_values,
+    _Inout_opt_ void* layer_data,
+    _In_opt_ const void* classify_context,
+    _In_ const FWPS_FILTER* filter,
+    uint64_t flow_context,
+    _Inout_ FWPS_CLASSIFY_OUT* classify_output)
+/* ++
+
+   A simple classify function at the WFP Flow Established layer.
+
+-- */    
+{
+    UNREFERENCED_PARAMETER(layer_data);
+    UNREFERENCED_PARAMETER(classify_context);
+    UNREFERENCED_PARAMETER(flow_context);
+
+    classify_output->actionType = FWP_ACTION_PERMIT;
+
+    if (!ebpf_ext_attach_enter_rundown(_ebpf_flow_hook_provider_registration)) {
+        goto Exit;
+    }
+
+    uint32_t result = 0;
+    five_tuple_t five_tuple = {0};
+    flow_md_t context = {0};
+    size_t index;
+
+    five_tuple.protocol =
+        incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V6_IP_PROTOCOL].value.uint8;
+    if (five_tuple.protocol != UDP && five_tuple.protocol != TCP) {
+        // Create five_tuple with only protocol so we can bucket and attribute non-TCP/UDP protocols (ICMP, etc.)
+        context.five_tuple = five_tuple;
+        context.app_name_start = NULL;
+        context.app_name_end = NULL;
+        context.flow_established_flag = true;
+        goto Invoke;
+    }
+    five_tuple.v4 = false;
+    five_tuple.source_port =
+        incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V6_IP_LOCAL_PORT].value.uint16;
+    five_tuple.dest_port =
+        incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V6_IP_REMOTE_PORT].value.uint16;
+    for (index = 0; index < IPV6_SIZE; index++) {
+        five_tuple.source_ip[index] =
+            (uint8_t)incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V6_IP_LOCAL_ADDRESS].value.byteArray16->byteArray16[index];
+        five_tuple.dest_ip[index] =
+            (uint8_t)incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V6_IP_REMOTE_ADDRESS].value.byteArray16->byteArray16[index];
+    }
+
+    if (FWPS_IS_METADATA_FIELD_PRESENT(incoming_metadata_values, FWPS_METADATA_FIELD_FLOW_HANDLE))
+    {
+        uint64_t flow_handle = incoming_metadata_values->flowHandle;
+
+        // Allocate the flow context structure
+        PFLOW_CONTEXT flow = (PFLOW_CONTEXT)ExAllocatePoolWithTag(NonPagedPool, sizeof(FLOW_CONTEXT), FLOW_CONTEXT_POOL_TAG);
+        if (flow == NULL) {
+            KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "Failed to allocate flow context \n"));
+            goto Exit;
+        }
+
+        // Initialize the flow context structure
+        RtlZeroMemory(flow, sizeof(*flow));
+        flow->five_tuple = five_tuple;
+
+        // Associate the flow context structure with the data flow
+        NTSTATUS status = FwpsFlowAssociateContext0(
+            flow_handle, incoming_fixed_values->layerId, filter->action.calloutId, (uint64_t)flow);
+        if (status != STATUS_SUCCESS) {
+            KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "Failed to associate flow context with %d\n", status));
+            ExFreePool(flow);
+            goto Exit;
+        }
+    }
+
+    uint8_t* app_name_start =
+        incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V6_ALE_APP_ID].value.byteBlob->data;
+    uint8_t* app_name_end =
+        (uint8_t*)app_name_start +
+        incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V6_ALE_APP_ID].value.byteBlob->size;
+    
+    context.five_tuple = five_tuple;
+    context.app_name_start = app_name_start;
+    context.app_name_end = app_name_end;
+    context.flow_established_flag = true;
+    _net_ebpf_ext_flow_established_truncate_appid(&context);
+
+Invoke:
+    ebpf_ext_attach_invoke_hook(_ebpf_flow_hook_provider_registration, &context, &result);
+
+Exit:
+    ebpf_ext_attach_leave_rundown(_ebpf_flow_hook_provider_registration);
+    return;
+}
+
+typedef struct UDP_HEADER_
+{
+    union
+    {
+        uint16_t srcPort;
+        struct {
+            uint8_t srcPort1;
+            uint8_t srcPort2;
+        } srcPortByte;
+    };
+    union
+    {
+        uint16_t destPort;
+        struct {
+            uint8_t destPort1;
+            uint8_t destPort2;
+        } destPortByte;
+    };
+    uint16_t length;
+    uint16_t checksum;
+} UDP_HEADER;
+
+typedef struct TCP_HEADER_
+{
+    union
+    {
+        uint16_t srcPort;
+        struct {
+            uint8_t srcPort1;
+            uint8_t srcPort2;
+        } srcPortByte;
+    };
+    union
+    {
+        uint16_t destPort;
+        struct {
+            uint8_t destPort1;
+            uint8_t destPort2;
+        } destPortByte;
+    };
+    uint32_t sequenceNumber;
+    uint32_t ackNumber;
+    uint16_t offsetAndFlags;
+    uint16_t windowSize;
+    uint16_t checksum;
+    uint16_t urgentPointer;
+} TCP_HEADER;
+
+static void
+_net_ebpf_ext_outbound_mac_ethernet_classify(
     _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values,
     _In_ const FWPS_INCOMING_METADATA_VALUES* incoming_metadata_values,
     _Inout_opt_ void* layer_data,
@@ -744,13 +1002,276 @@ _net_ebpf_ext_mac_ethernet_classify(
 
 -- */
 {
-    UNREFERENCED_PARAMETER(incoming_fixed_values);
     UNREFERENCED_PARAMETER(incoming_metadata_values);
     UNREFERENCED_PARAMETER(layer_data);
     UNREFERENCED_PARAMETER(classify_context);
     UNREFERENCED_PARAMETER(filter);
     UNREFERENCED_PARAMETER(flow_context);
-    UNREFERENCED_PARAMETER(classify_output);
+    
+    classify_output->actionType = FWP_ACTION_PERMIT;
+
+    if (!ebpf_ext_attach_enter_rundown(_ebpf_mac_hook_provider_registration)) {
+        goto Exit;
+    }
+
+    // Check if IPV4 or IPV6 Protocol
+    bool v4 = false;
+    if (incoming_fixed_values->incomingValue[FWPS_FIELD_OUTBOUND_MAC_FRAME_ETHERNET_ETHER_TYPE].value.uint16 == V4_PROTOCOL) {
+        v4 = true;
+    }
+
+    uint8_t* packet_buffer;
+    uint64_t packet_length = 0;
+    five_tuple_t five_tuple = {0};
+    uint32_t result = 0;
+    NET_BUFFER_LIST* nbl = (NET_BUFFER_LIST*)layer_data;
+    NET_BUFFER* net_buffer = NULL;
+
+    if (nbl == NULL) {
+        KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "Null nbl in MAC hook.\n"));
+        goto Exit;
+    }
+
+    net_buffer = NET_BUFFER_LIST_FIRST_NB(nbl);
+    if (net_buffer == NULL) {
+        KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "net_buffer not present in MAC hook.\n"));
+        goto Exit;
+    }
+
+    packet_buffer = NdisGetDataBuffer(net_buffer, net_buffer->DataLength, NULL, sizeof(uint16_t), 0);
+    if (!packet_buffer) {
+        goto Exit;
+    }
+
+    // Parse five-tuple
+    if (v4)
+    {
+        IPV4_HEADER* iphdr = (IPV4_HEADER*)packet_buffer;
+        if ((char*)packet_buffer + sizeof(IPV4_HEADER) > (char*)(packet_buffer + net_buffer->DataLength)) {
+            goto Exit;
+        }
+
+        //Get Protocol and Header
+        if ((char*)packet_buffer + sizeof(IPV4_HEADER) + sizeof(UDP_HEADER) <= (char*)(packet_buffer + net_buffer->DataLength)
+            && iphdr->Protocol == UDP) {
+                five_tuple.protocol = UDP;
+                UDP_HEADER* udphdr = (UDP_HEADER*)(iphdr + 1);
+                five_tuple.source_port = (uint16_t)(udphdr->srcPortByte.srcPort1 * READ_BYTE_OFFSET + udphdr->srcPortByte.srcPort2);
+                five_tuple.dest_port = (uint16_t)(udphdr->destPortByte.destPort1 * READ_BYTE_OFFSET + udphdr->destPortByte.destPort2);
+        }
+        else if ((char*)packet_buffer + sizeof(IPV4_HEADER) + sizeof(TCP_HEADER) <= (char*)(packet_buffer + net_buffer->DataLength)
+            && iphdr->Protocol == TCP){
+                five_tuple.protocol = TCP;
+                TCP_HEADER* tcphdr = (TCP_HEADER*)(iphdr + 1);
+                five_tuple.source_port = (uint16_t)(tcphdr->srcPortByte.srcPort1 * READ_BYTE_OFFSET + tcphdr->srcPortByte.srcPort2);
+                five_tuple.dest_port = (uint16_t)(tcphdr->destPortByte.destPort1 * READ_BYTE_OFFSET + tcphdr->destPortByte.destPort2);
+        }
+        else { // Other Protocol
+            five_tuple.protocol = iphdr->Protocol;
+            goto Invoke;
+        }
+        // Store reverse by byte to match address from Flow Established
+        five_tuple.source_ip[0] = iphdr->SourceAddress.S_un.S_un_b.s_b4;
+        five_tuple.source_ip[1] = iphdr->SourceAddress.S_un.S_un_b.s_b3;
+        five_tuple.source_ip[2] = iphdr->SourceAddress.S_un.S_un_b.s_b2;
+        five_tuple.source_ip[3] = iphdr->SourceAddress.S_un.S_un_b.s_b1;
+        five_tuple.dest_ip[0] = iphdr->DestinationAddress.S_un.S_un_b.s_b4;
+        five_tuple.dest_ip[1] = iphdr->DestinationAddress.S_un.S_un_b.s_b3;
+        five_tuple.dest_ip[2] = iphdr->DestinationAddress.S_un.S_un_b.s_b2;
+        five_tuple.dest_ip[3] = iphdr->DestinationAddress.S_un.S_un_b.s_b1;
+        five_tuple.v4 = true;
+    }
+    else {
+        int index;
+        IPV6_HEADER* iphdr = (IPV6_HEADER*)packet_buffer;
+        if ((char*)packet_buffer + sizeof(IPV6_HEADER) > (char*)(packet_buffer + net_buffer->DataLength)) {
+            goto Invoke;
+        }
+
+        //Get Protocol and Header
+        if ((char*)packet_buffer + sizeof(IPV6_HEADER) + sizeof(UDP_HEADER) <= (char*)(packet_buffer + net_buffer->DataLength)
+            && iphdr->NextHeader == UDP) {
+                five_tuple.protocol = UDP;
+                UDP_HEADER* udphdr = (UDP_HEADER*)(iphdr + 1);
+                five_tuple.source_port = (uint16_t)(udphdr->srcPortByte.srcPort1 * READ_BYTE_OFFSET + udphdr->srcPortByte.srcPort2);
+                five_tuple.dest_port = (uint16_t)(udphdr->destPortByte.destPort1 * READ_BYTE_OFFSET + udphdr->destPortByte.destPort2);
+        }
+        else if ((char*)packet_buffer + sizeof(IPV6_HEADER) + sizeof(TCP_HEADER) <= (char*)(packet_buffer + net_buffer->DataLength)
+            && iphdr->NextHeader == TCP){
+                five_tuple.protocol = TCP;
+                TCP_HEADER* tcphdr = (TCP_HEADER*)(iphdr + 1);
+                five_tuple.source_port = (uint16_t)(tcphdr->srcPortByte.srcPort1 * READ_BYTE_OFFSET + tcphdr->srcPortByte.srcPort2);
+                five_tuple.dest_port = (uint16_t)(tcphdr->destPortByte.destPort1 * READ_BYTE_OFFSET + tcphdr->destPortByte.destPort2);
+        }
+        else { // Other Protocol
+            five_tuple.protocol = iphdr->NextHeader;
+            goto Invoke;
+        }
+        // Store reverse by byte to match address from Flow Established
+        for (index = 0; index < IPV6_SIZE; index++) {
+            five_tuple.source_ip[IPV6_SIZE-index-1] =
+                (uint8_t)iphdr->SourceAddress.u.Byte[index];
+            five_tuple.dest_ip[IPV6_SIZE-index-1] =
+                (uint8_t)iphdr->DestinationAddress.u.Byte[index];
+        }
+        five_tuple.v4 = false;
+    }
+
+Invoke:
+
+    while (net_buffer != NULL) {
+        packet_length += NET_BUFFER_DATA_LENGTH(net_buffer);
+        net_buffer = NET_BUFFER_NEXT_NB(net_buffer);
+    }
+    mac_md_t context = {five_tuple, packet_length, v4};
+    ebpf_ext_attach_invoke_hook(_ebpf_mac_hook_provider_registration, &context, &result);
+
+Exit:
+    ebpf_ext_attach_leave_rundown(_ebpf_mac_hook_provider_registration);
+    return;
+}
+
+static void
+_net_ebpf_ext_inbound_mac_ethernet_classify(
+    _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values,
+    _In_ const FWPS_INCOMING_METADATA_VALUES* incoming_metadata_values,
+    _Inout_opt_ void* layer_data,
+    _In_opt_ const void* classify_context,
+    _In_ const FWPS_FILTER* filter,
+    uint64_t flow_context,
+    _Inout_ FWPS_CLASSIFY_OUT* classify_output)
+/* ++
+
+   A simple classify function at the WFP L2 MAC layer.
+
+-- */
+{
+    UNREFERENCED_PARAMETER(incoming_metadata_values);
+    UNREFERENCED_PARAMETER(layer_data);
+    UNREFERENCED_PARAMETER(classify_context);
+    UNREFERENCED_PARAMETER(filter);
+    UNREFERENCED_PARAMETER(flow_context);
+    
+    classify_output->actionType = FWP_ACTION_PERMIT;
+
+    if (!ebpf_ext_attach_enter_rundown(_ebpf_mac_hook_provider_registration)) {
+        goto Exit;
+    }
+
+    // Check if IPV4 or IPV6 Protocol
+    bool v4 = false;
+    if (incoming_fixed_values->incomingValue[FWPS_FIELD_INBOUND_MAC_FRAME_ETHERNET_ETHER_TYPE].value.uint16 == V4_PROTOCOL) {
+        v4 = true;
+    }
+
+    uint8_t* packet_buffer;
+    uint64_t packet_length = 0;
+    five_tuple_t five_tuple = {0};
+    uint32_t result = 0;
+    NET_BUFFER_LIST* nbl = (NET_BUFFER_LIST*)layer_data;
+    NET_BUFFER* net_buffer = NULL;
+
+    if (nbl == NULL) {
+        KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "Null nbl in MAC hook.\n"));
+        goto Exit;
+    }
+
+    net_buffer = NET_BUFFER_LIST_FIRST_NB(nbl);
+    if (net_buffer == NULL) {
+        KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "net_buffer not present in MAC hook.\n"));
+        goto Exit;
+    }
+
+    packet_buffer = NdisGetDataBuffer(net_buffer, net_buffer->DataLength, NULL, sizeof(uint16_t), 0);
+    if (!packet_buffer) {
+        goto Exit;
+    }
+
+    // Parse five-tuple (since INBOUND, reverse source and dest values to match Flow Established five-tuple)
+    if (v4)
+    {
+        IPV4_HEADER* iphdr = (IPV4_HEADER*)packet_buffer;
+        if ((char*)packet_buffer + sizeof(IPV4_HEADER) > (char*)(packet_buffer + net_buffer->DataLength)) {
+            goto Exit;
+        }
+
+        //Get Protocol and Header
+        if ((char*)packet_buffer + sizeof(IPV4_HEADER) + sizeof(UDP_HEADER) <= (char*)(packet_buffer + net_buffer->DataLength)
+            && iphdr->Protocol == UDP) {
+                five_tuple.protocol = UDP;
+                UDP_HEADER* udphdr = (UDP_HEADER*)(iphdr + 1);
+                five_tuple.dest_port = (uint16_t)(udphdr->srcPortByte.srcPort1 * READ_BYTE_OFFSET + udphdr->srcPortByte.srcPort2);
+                five_tuple.source_port = (uint16_t)(udphdr->destPortByte.destPort1 * READ_BYTE_OFFSET + udphdr->destPortByte.destPort2);
+        }
+        else if ((char*)packet_buffer + sizeof(IPV4_HEADER) + sizeof(TCP_HEADER) <= (char*)(packet_buffer + net_buffer->DataLength)
+            && iphdr->Protocol == TCP){
+                five_tuple.protocol = TCP;
+                TCP_HEADER* tcphdr = (TCP_HEADER*)(iphdr + 1);
+                five_tuple.dest_port = (uint16_t)(tcphdr->srcPortByte.srcPort1 * READ_BYTE_OFFSET + tcphdr->srcPortByte.srcPort2);
+                five_tuple.source_port = (uint16_t)(tcphdr->destPortByte.destPort1 * READ_BYTE_OFFSET + tcphdr->destPortByte.destPort2);
+        }
+        else { // Other Protocol
+            five_tuple.protocol = iphdr->Protocol;
+            goto Invoke;
+        }
+        // Store reverse by byte to match address from Flow Established
+        five_tuple.dest_ip[0] = iphdr->SourceAddress.S_un.S_un_b.s_b4;
+        five_tuple.dest_ip[1] = iphdr->SourceAddress.S_un.S_un_b.s_b3;
+        five_tuple.dest_ip[2] = iphdr->SourceAddress.S_un.S_un_b.s_b2;
+        five_tuple.dest_ip[3] = iphdr->SourceAddress.S_un.S_un_b.s_b1;
+        five_tuple.source_ip[0] = iphdr->DestinationAddress.S_un.S_un_b.s_b4;
+        five_tuple.source_ip[1] = iphdr->DestinationAddress.S_un.S_un_b.s_b3;
+        five_tuple.source_ip[2] = iphdr->DestinationAddress.S_un.S_un_b.s_b2;
+        five_tuple.source_ip[3] = iphdr->DestinationAddress.S_un.S_un_b.s_b1;
+        five_tuple.v4 = true;
+    }
+    else {
+        int index;
+        IPV6_HEADER* iphdr = (IPV6_HEADER*)packet_buffer;
+        if ((char*)packet_buffer + sizeof(IPV6_HEADER) > (char*)(packet_buffer + net_buffer->DataLength)) {
+            goto Invoke;
+        }
+
+        //Get Protocol and Header
+        if ((char*)packet_buffer + sizeof(IPV6_HEADER) + sizeof(UDP_HEADER) <= (char*)(packet_buffer + net_buffer->DataLength)
+            && iphdr->NextHeader == UDP) {
+                five_tuple.protocol = UDP;
+                UDP_HEADER* udphdr = (UDP_HEADER*)(iphdr + 1);
+                five_tuple.dest_port = (uint16_t)(udphdr->srcPortByte.srcPort1 * READ_BYTE_OFFSET + udphdr->srcPortByte.srcPort2);
+                five_tuple.source_port = (uint16_t)(udphdr->destPortByte.destPort1 * READ_BYTE_OFFSET + udphdr->destPortByte.destPort2);
+        }
+        else if ((char*)packet_buffer + sizeof(IPV6_HEADER) + sizeof(TCP_HEADER) <= (char*)(packet_buffer + net_buffer->DataLength)
+            && iphdr->NextHeader == TCP){
+                five_tuple.protocol = TCP;
+                TCP_HEADER* tcphdr = (TCP_HEADER*)(iphdr + 1);
+                five_tuple.dest_port = (uint16_t)(tcphdr->srcPortByte.srcPort1 * READ_BYTE_OFFSET + tcphdr->srcPortByte.srcPort2);
+                five_tuple.source_port = (uint16_t)(tcphdr->destPortByte.destPort1 * READ_BYTE_OFFSET + tcphdr->destPortByte.destPort2);
+        }
+        else {
+            five_tuple.protocol = iphdr->NextHeader;
+            goto Invoke;
+        }
+        // Store reverse by byte to match address from Flow Established
+        for (index = 0; index < IPV6_SIZE; index++) {
+            five_tuple.dest_ip[IPV6_SIZE-index-1] =
+                (uint8_t)iphdr->SourceAddress.u.Byte[index];
+            five_tuple.source_ip[IPV6_SIZE-index-1] =
+                (uint8_t)iphdr->DestinationAddress.u.Byte[index];
+        }
+        five_tuple.v4 = false;
+    }
+
+Invoke:
+
+    while (net_buffer != NULL) {
+        packet_length += NET_BUFFER_DATA_LENGTH(net_buffer);
+        net_buffer = NET_BUFFER_NEXT_NB(net_buffer);
+    }
+    mac_md_t context = {five_tuple, packet_length, v4};
+    ebpf_ext_attach_invoke_hook(_ebpf_mac_hook_provider_registration, &context, &result);
+
+Exit:
+    ebpf_ext_attach_leave_rundown(_ebpf_mac_hook_provider_registration);
     return;
 }
 
@@ -790,6 +1311,13 @@ _net_ebpf_ext_flow_delete(uint16_t layer_id, uint32_t fwpm_callout_id, uint64_t 
     UNREFERENCED_PARAMETER(layer_id);
     UNREFERENCED_PARAMETER(fwpm_callout_id);
     UNREFERENCED_PARAMETER(flow_context);
+    
+    uint32_t result;
+    PFLOW_CONTEXT flow = (PFLOW_CONTEXT)(ULONG_PTR)flow_context;
+    flow_md_t context = {NULL, NULL, false, flow->five_tuple};
+
+    ebpf_ext_attach_invoke_hook(_ebpf_flow_hook_provider_registration, &context, &result);
+    ExFreePool(flow);
     return;
 }
 
@@ -819,7 +1347,7 @@ net_ebpf_ext_register_providers()
     return_value = ebpf_ext_attach_register_provider(
         &EBPF_PROGRAM_TYPE_FLOW,
         &EBPF_ATTACH_TYPE_FLOW,
-        EBPF_EXT_HOOK_EXECUTION_PASSIVE,
+        EBPF_EXT_HOOK_EXECUTION_DISPATCH,
         &_ebpf_flow_hook_provider_registration);
 
     if (return_value != EBPF_SUCCESS) {
@@ -829,7 +1357,7 @@ net_ebpf_ext_register_providers()
     return_value = ebpf_ext_attach_register_provider(
         &EBPF_PROGRAM_TYPE_MAC,
         &EBPF_ATTACH_TYPE_MAC,
-        EBPF_EXT_HOOK_EXECUTION_PASSIVE,
+        EBPF_EXT_HOOK_EXECUTION_DISPATCH,
         &_ebpf_mac_hook_provider_registration);
 
     if (return_value != EBPF_SUCCESS) {
