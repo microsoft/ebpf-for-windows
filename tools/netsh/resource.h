@@ -16,6 +16,8 @@
 #define HLP_EBPF_SHOW_SECTIONS_EX 112
 #define HLP_EBPF_SHOW_VERIFICATION 113
 #define HLP_EBPF_SHOW_VERIFICATION_EX 114
+#define HLP_EBPF_SHOW_MAPS 115
+#define HLP_EBPF_SHOW_MAPS_EX 116
 
 // Next default values for new objects
 //
