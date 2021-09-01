@@ -74,6 +74,12 @@
       </ModuleDefinitionFile>
       <AdditionalLibraryDirectories>$(OutDir)</AdditionalLibraryDirectories>
     </Link>
+    <PreBuildEvent>
+      <Command>powershell $(SolutionDir)scripts\generate-commitid.ps1 $(OutDir)</Command>
+    </PreBuildEvent>
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>$(OutDir)</AdditionalIncludeDirectories>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -98,6 +104,12 @@
       </ModuleDefinitionFile>
       <AdditionalLibraryDirectories>$(OutDir)</AdditionalLibraryDirectories>
     </Link>
+    <PreBuildEvent>
+      <Command>powershell $(SolutionDir)scripts\generate-commitid.ps1 $(OutDir)</Command>
+    </PreBuildEvent>
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>$(OutDir)</AdditionalIncludeDirectories>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="elf.h" />
@@ -109,6 +121,7 @@
     <ClCompile Include="dllmain.c" />
   </ItemGroup>
   <ItemGroup>
+    <ResourceCompile Include="..\..\resource\ebpf_resource.rc" />
     <ResourceCompile Include="ebpfnetsh.rc" />
   </ItemGroup>
   <ItemGroup>
