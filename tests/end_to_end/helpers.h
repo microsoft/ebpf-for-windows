@@ -10,8 +10,6 @@
 #include "ebpf_program_types.h"
 #include "sample_ext_program_info.h"
 
-#pragma warning(disable : 26812) // Prefer enum class.
-
 typedef struct _ebpf_free_memory
 {
     void

@@ -11,6 +11,8 @@
 
 #include "sample_ext_helpers.h"
 
+#define SAMPLE_EXT_HELPER_FUNCTION_START EBPF_MAX_GENERAL_HELPER_FUNCTION
+
 static ebpf_context_descriptor_t _sample_ebpf_context_descriptor = {
     sizeof(sample_program_context_t),
     EBPF_OFFSET_OF(sample_program_context_t, data_start),
@@ -19,18 +21,18 @@ static ebpf_context_descriptor_t _sample_ebpf_context_descriptor = {
 
 // Test Extension Helper function prototype descriptors.
 static ebpf_helper_function_prototype_t _sample_ebpf_extension_helper_function_prototype[] = {
-    {EBPF_MAX_GENERAL_HELPER_FUNCTION + 1,
+    {SAMPLE_EXT_HELPER_FUNCTION_START + 1,
      "sample_ebpf_extension_helper_function1",
      EBPF_RETURN_TYPE_INTEGER,
      {EBPF_ARGUMENT_TYPE_PTR_TO_CTX}},
-    {EBPF_MAX_GENERAL_HELPER_FUNCTION + 2,
+    {SAMPLE_EXT_HELPER_FUNCTION_START + 2,
      "sample_ebpf_extension_find",
      EBPF_RETURN_TYPE_INTEGER,
      {EBPF_ARGUMENT_TYPE_PTR_TO_MEM,
       EBPF_ARGUMENT_TYPE_CONST_SIZE,
       EBPF_ARGUMENT_TYPE_PTR_TO_MEM,
       EBPF_ARGUMENT_TYPE_CONST_SIZE}},
-    {EBPF_MAX_GENERAL_HELPER_FUNCTION + 3,
+    {SAMPLE_EXT_HELPER_FUNCTION_START + 3,
      "sample_ebpf_extension_replace",
      EBPF_RETURN_TYPE_INTEGER,
      {EBPF_ARGUMENT_TYPE_PTR_TO_MEM,

@@ -15,7 +15,7 @@ typedef class _program_load_attach_helper
     _program_load_attach_helper(
         _In_z_ const char* file_name,
         ebpf_program_type_t program_type,
-        _In_ const char* program_name,
+        _In_z_ const char* program_name,
         ebpf_execution_type_t execution_type,
         hook_helper_t& hook,
         bool initiate_api = false);

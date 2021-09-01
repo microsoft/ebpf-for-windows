@@ -8,7 +8,7 @@
 
 #include <stdint.h>
 
-// Test Extension Hook program context.
+// Sample extension program context.
 typedef struct _sample_program_context
 {
     uint8_t* data_start;

@@ -4,7 +4,6 @@
 // Test eBPF program for EBPF_PROGRAM_TYPE_SAMPLE implemented in
 // the Test eBPF extension.
 
-#include "bpf_helpers.h"
 #include "sample_common_routines.h"
 #include "sample_ext_helpers.h"
 #include "sample_test_common.h"
@@ -64,7 +63,7 @@ struct bpf_map utility_map = {
     .value_size = sizeof(ebpf_utility_helpers_data_t),
     .max_entries = UTILITY_MAP_SIZE};
 
-#pragma clang section text = "sample_ext/utility"
+SEC("sample_ext/utility")
 int
 test_utility_helpers(sample_program_context_t* context)
 {
