@@ -29,7 +29,7 @@ ebpf_state_initiate()
         _ebpf_state_cpu_table_size = ebpf_get_cpu_count();
         _Analysis_assume_(_ebpf_state_cpu_table_size >= 1);
 
-        _ebpf_state_cpu_table = ebpf_allocate(_ebpf_state_cpu_table_size * sizeof(ebpf_state_entry_t));
+        _ebpf_state_cpu_table = ebpf_allocate_cache_aligned(sizeof(ebpf_state_entry_t) * _ebpf_state_cpu_table_size);
         if (!_ebpf_state_cpu_table) {
             return_value = EBPF_NO_MEMORY;
             goto Error;
@@ -63,7 +63,7 @@ void
 ebpf_state_terminate()
 {
     ebpf_hash_table_destroy(_ebpf_state_thread_table);
-    ebpf_free(_ebpf_state_cpu_table);
+    ebpf_free_cache_aligned(_ebpf_state_cpu_table);
 }
 
 ebpf_result_t
