@@ -6,13 +6,13 @@
 
 _program_load_attach_helper::_program_load_attach_helper(
     _In_z_ const char* file_name,
-    _In_ const ebpf_program_type_t program_type,
+    ebpf_program_type_t program_type,
     _In_ const char* program_name,
     ebpf_execution_type_t execution_type,
     hook_helper_t& hook,
     bool initiate_api)
     : _file_name(file_name), _program_type(program_type), _program_name(program_name), _execution_type(execution_type),
-      _object(nullptr)
+      _object(nullptr), _api_initialized(false)
 {
     ebpf_result_t result;
     fd_t program_fd;

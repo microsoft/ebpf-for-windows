@@ -11,6 +11,8 @@
 #include "ebpf_result.h"
 #include "libbpf.h"
 
+#pragma warning(disable : 26812) // Prefer enum class.
+
 void
 ebpf_test_pinned_map_enum();
 
