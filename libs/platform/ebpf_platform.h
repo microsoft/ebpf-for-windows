@@ -26,6 +26,9 @@ extern "C"
         ((uint8_t*)(x)), sizeof((x)) - 1      \
     }
 
+#define EBPF_CACHE_LINE_SIZE 64
+#define EBPF_CACHE_ALIGN_POINTER(P) (void*)(((uintptr_t)P + EBPF_CACHE_LINE_SIZE - 1) & ~(EBPF_CACHE_LINE_SIZE - 1))
+
     /**
      * @brief A UTF-8 encoded string.
      * Notes:
@@ -119,6 +122,21 @@ extern "C"
      */
     void
     ebpf_free(_Frees_ptr_opt_ void* memory);
+
+    /**
+     * @brief Allocate memory that has a starting address that is cache aligned.
+     * @param[in] size Size of memory to allocate
+     * @returns Pointer to memory block allocated, or null on failure.
+     */
+    __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
+        _Post_writable_byte_size_(size) void* ebpf_allocate_cache_aligned(size_t size);
+
+    /**
+     * @brief Free memory that has a starting address that is cache aligned.
+     * @param[in] memory Allocation to be freed.
+     */
+    void
+    ebpf_free_cache_aligned(_Frees_ptr_opt_ void* memory);
 
     typedef enum _ebpf_page_protection
     {
