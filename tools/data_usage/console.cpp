@@ -26,7 +26,7 @@ int load(int /*argc*/, char** /*argv*/)
 {
     const char* error_message = nullptr;
     int error = 0;
-    ebpf_result_t result = {};
+    ebpf_result_t result{};
 
     // Load and attach FLOW program
 
