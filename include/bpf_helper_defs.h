@@ -2,23 +2,10 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 
-#include <stdint.h>
-
-#include "ebpf_structs.h"
-
-#define MAX_TAIL_CALL_CNT 32
-
-// For eBPF programs, struct bpf_map means struct _ebpf_map_definition_in_file,
-// since they use inner_map_idx and pass pointers to such structures to the various
-// map APIs.
-#define bpf_map _ebpf_map_definition_in_file
-
-#ifndef __doxygen
-#define EBPF_HELPER(return_type, name, args) typedef return_type(*name##_t) args
-#endif
-
-// This file contains APIs for global helpers that are
-// exposed for use by all eBPF programs.
+// This file contains APIs for global helpers that are exposed for
+// use by all eBPF programs.  Libbpf has bpf_helper_defs.h which is
+// auto-generated but it's not platform-agnostic currently as it
+// hard-codes the actual helper IDs.
 
 /**
  * @brief Get a pointer to an entry in the map.
@@ -29,7 +16,7 @@
  */
 EBPF_HELPER(void*, bpf_map_lookup_elem, (struct bpf_map * map, void* key));
 #ifndef __doxygen
-#define bpf_map_lookup_elem ((bpf_map_lookup_elem_t)1)
+#define bpf_map_lookup_elem ((bpf_map_lookup_elem_t)BPF_FUNC_map_lookup_elem)
 #endif
 
 /**
@@ -45,7 +32,7 @@ EBPF_HELPER(void*, bpf_map_lookup_elem, (struct bpf_map * map, void* key));
  */
 EBPF_HELPER(int64_t, bpf_map_update_elem, (struct bpf_map * map, void* key, void* value, uint64_t flags));
 #ifndef __doxygen
-#define bpf_map_update_elem ((bpf_map_update_elem_t)2)
+#define bpf_map_update_elem ((bpf_map_update_elem_t)BPF_FUNC_map_update_elem)
 #endif
 
 /**
@@ -58,7 +45,7 @@ EBPF_HELPER(int64_t, bpf_map_update_elem, (struct bpf_map * map, void* key, void
  */
 EBPF_HELPER(int64_t, bpf_map_delete_elem, (struct bpf_map * map, void* key));
 #ifndef __doxygen
-#define bpf_map_delete_elem ((bpf_map_delete_elem_t)3)
+#define bpf_map_delete_elem ((bpf_map_delete_elem_t)BPF_FUNC_map_delete_elem)
 #endif
 
 /**
@@ -72,7 +59,7 @@ EBPF_HELPER(int64_t, bpf_map_delete_elem, (struct bpf_map * map, void* key));
  */
 EBPF_HELPER(int64_t, bpf_tail_call, (void* ctx, struct bpf_map* prog_array_map, uint32_t index));
 #ifndef __doxygen
-#define bpf_tail_call ((bpf_tail_call_t)4)
+#define bpf_tail_call ((bpf_tail_call_t)BPF_FUNC_tail_call)
 #endif
 
 /**
@@ -82,7 +69,7 @@ EBPF_HELPER(int64_t, bpf_tail_call, (void* ctx, struct bpf_map* prog_array_map, 
  */
 EBPF_HELPER(uint32_t, bpf_get_prandom_u32, ());
 #ifndef __doxygen
-#define bpf_get_prandom_u32 ((bpf_get_prandom_u32_t)5)
+#define bpf_get_prandom_u32 ((bpf_get_prandom_u32_t)BPF_FUNC_get_prandom_u32)
 #endif
 
 /**
@@ -92,7 +79,7 @@ EBPF_HELPER(uint32_t, bpf_get_prandom_u32, ());
  */
 EBPF_HELPER(uint64_t, bpf_ktime_get_boot_ns, ());
 #ifndef __doxygen
-#define bpf_ktime_get_boot_ns ((bpf_ktime_get_boot_ns_t)6)
+#define bpf_ktime_get_boot_ns ((bpf_ktime_get_boot_ns_t)BPF_FUNC_ktime_get_boot_ns)
 #endif
 
 /**
@@ -102,7 +89,5 @@ EBPF_HELPER(uint64_t, bpf_ktime_get_boot_ns, ());
  */
 EBPF_HELPER(uint64_t, bpf_get_smp_processor_id, ());
 #ifndef __doxygen
-#define bpf_get_smp_processor_id ((bpf_get_smp_processor_id_t)7)
+#define bpf_get_smp_processor_id ((bpf_get_smp_processor_id_t)BPF_FUNC_get_smp_processor_id)
 #endif
-
-#define SEC(name) __attribute__((section(name), used))

@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "ebpf_helpers.h"
+#include "bpf_helpers.h"
 #include "ebpf_platform.h"
 
 #ifdef __cplusplus

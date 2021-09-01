@@ -43,7 +43,7 @@ extern "C"
      *
      * Attach type(s): \ref EBPF_ATTACH_TYPE_XDP
      *
-     * Helpers available: see ebpf_helpers.h
+     * Helpers available: see bpf_helpers.h
      */
     __declspec(selectany) ebpf_program_type_t EBPF_PROGRAM_TYPE_XDP = {
         0xf1832a85, 0x85d5, 0x45b0, {0x98, 0xa0, 0x70, 0x69, 0xd6, 0x30, 0x13, 0xb0}};
@@ -54,7 +54,7 @@ extern "C"
      *
      * Attach type(s): \ref EBPF_ATTACH_TYPE_BIND
      *
-     * Helpers available: see ebpf_helpers.h
+     * Helpers available: see bpf_helpers.h
      */
     __declspec(selectany) ebpf_program_type_t EBPF_PROGRAM_TYPE_BIND = {
         0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};

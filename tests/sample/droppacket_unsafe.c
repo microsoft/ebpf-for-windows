@@ -1,13 +1,13 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-// clang -O2 -Wall -c droppacket.c -o dropjit.o
+// clang -O2 -Wall -c droppacket_unsafe.c -o droppacket_unsafe_jit.o
 //
-// For bpf code: clang -target bpf -O2 -Wall -c droppacket.c -o droppacket.o
+// For bpf code: clang -target bpf -O2 -Wall -c droppacket_unsafe.c -o droppacket_unsafe.o
 // this passes the checker
 
+#include "bpf_helpers.h"
 #include "ebpf.h"
-#include "ebpf_helpers.h"
 
 #pragma clang section data = "maps"
 ebpf_map_definition_in_file_t port_map = {

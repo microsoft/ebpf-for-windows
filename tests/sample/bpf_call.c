@@ -1,16 +1,11 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-// All of this file is cross-platform except the following
-// two includes.  TODO(issue #426): make the include filename(s) also be
-// cross-platform for eBPF program portability.
-#include "ebpf_helpers.h"
-#include "ebpf_nethooks.h"
+#include "bpf_helpers.h"
 
-__attribute__((section("maps"), used)) struct bpf_map map = {sizeof(struct bpf_map), BPF_MAP_TYPE_ARRAY, 2, 4, 512};
+SEC("maps") struct bpf_map map = {sizeof(struct bpf_map), BPF_MAP_TYPE_ARRAY, 2, 4, 512};
 
-__attribute__((section("xdp_prog"), used)) int
-func(struct xdp_md* ctx)
+SEC("xdp_prog") int func(struct xdp_md* ctx)
 {
     uint32_t key = 0;
     uint32_t value = 42;

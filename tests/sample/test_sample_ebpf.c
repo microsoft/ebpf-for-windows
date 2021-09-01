@@ -4,7 +4,7 @@
 // Test eBPF program for EBPF_PROGRAM_TYPE_SAMPLE implemented in
 // the Test eBPF extension.
 
-#include "ebpf_helpers.h"
+#include "bpf_helpers.h"
 #include "sample_ext_helpers.h"
 
 #define VALUE_SIZE 32

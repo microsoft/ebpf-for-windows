@@ -1,12 +1,12 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-// clang -O2 -Wall -c droppacket.c -o dropjit.o
+// clang -O2 -Wall -c bindmonitor.c -o bindmonitor_jit.o
 //
 // For bpf code: clang -target bpf -O2 -Wall -c bindmonitor.c -o bindmonitor.o
 // this passes the checker
 
-#include "ebpf_helpers.h"
+#include "bpf_helpers.h"
 #include "ebpf_nethooks.h"
 
 typedef struct _process_entry
