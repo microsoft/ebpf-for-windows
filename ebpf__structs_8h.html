@@ -120,6 +120,18 @@ Enumerations</h2></td></tr>
 <a class="el" href="ebpf__structs_8h.html#ad2aa050648c308e0be8329a2ade170fca9ce0edc2520ca685ab2da7cf4eea5f70">EBPF_EXIST</a>
  }</td></tr>
 <tr class="separator:ad2aa050648c308e0be8329a2ade170fc"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa752b12bfaedda8a28a7a88c1b96f272"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__structs_8h.html#aa752b12bfaedda8a28a7a88c1b96f272">ebpf_helper_id_t</a> { <br />
+&#160;&#160;<a class="el" href="ebpf__structs_8h.html#aa752b12bfaedda8a28a7a88c1b96f272ac63c4bc22d3821feffcca941871808be">BPF_FUNC_map_lookup_elem</a> = 1, 
+<a class="el" href="ebpf__structs_8h.html#aa752b12bfaedda8a28a7a88c1b96f272aa5ceec1dcaac16cf3785f3b2ca0ee50f">BPF_FUNC_map_update_elem</a> = 2, 
+<a class="el" href="ebpf__structs_8h.html#aa752b12bfaedda8a28a7a88c1b96f272abe572ff24bf3386a1c375e7b49023ce0">BPF_FUNC_map_delete_elem</a> = 3, 
+<a class="el" href="ebpf__structs_8h.html#aa752b12bfaedda8a28a7a88c1b96f272a11bda44b63078eaa10477c22d4e0c70f">BPF_FUNC_tail_call</a> = 4, 
+<br />
+&#160;&#160;<a class="el" href="ebpf__structs_8h.html#aa752b12bfaedda8a28a7a88c1b96f272a30379124ac856b90d0f65ae330d01eb4">BPF_FUNC_get_prandom_u32</a> = 5, 
+<a class="el" href="ebpf__structs_8h.html#aa752b12bfaedda8a28a7a88c1b96f272ac93b8f6e2cb11c15ebbe377f68008225">BPF_FUNC_ktime_get_boot_ns</a> = 6, 
+<a class="el" href="ebpf__structs_8h.html#aa752b12bfaedda8a28a7a88c1b96f272a1ff4bcdf1da58693cf186a2211712bfd">BPF_FUNC_get_smp_processor_id</a> = 7
+<br />
+ }</td></tr>
+<tr class="separator:aa752b12bfaedda8a28a7a88c1b96f272"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Typedef Documentation</h2>
 <a id="ab8db12973e5e476b352a3a3c7470a635"></a>
@@ -207,6 +219,29 @@ Enumerations</h2></td></tr>
 <tr><td class="fieldname"><a id="afd97ad5450067d01ec6b6cd3c30761a1a2d7ebe3c4a82861bcd69b500d7f67de2"></a>BPF_MAP_TYPE_PERCPU_ARRAY&#160;</td><td class="fielddoc"></td></tr>
 <tr><td class="fieldname"><a id="afd97ad5450067d01ec6b6cd3c30761a1a6e2e8feb969aa5b9e78960e2986d6dcb"></a>BPF_MAP_TYPE_HASH_OF_MAPS&#160;</td><td class="fielddoc"></td></tr>
 <tr><td class="fieldname"><a id="afd97ad5450067d01ec6b6cd3c30761a1acb31e6ac8381a668a866a3e858a55199"></a>BPF_MAP_TYPE_ARRAY_OF_MAPS&#160;</td><td class="fielddoc"></td></tr>
+</table>
+
+</div>
+</div>
+<a id="aa752b12bfaedda8a28a7a88c1b96f272"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa752b12bfaedda8a28a7a88c1b96f272">&#9670;&nbsp;</a></span>ebpf_helper_id_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">enum <a class="el" href="ebpf__structs_8h.html#aa752b12bfaedda8a28a7a88c1b96f272">ebpf_helper_id_t</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<table class="fieldtable">
+<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="aa752b12bfaedda8a28a7a88c1b96f272ac63c4bc22d3821feffcca941871808be"></a>BPF_FUNC_map_lookup_elem&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="aa752b12bfaedda8a28a7a88c1b96f272aa5ceec1dcaac16cf3785f3b2ca0ee50f"></a>BPF_FUNC_map_update_elem&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="aa752b12bfaedda8a28a7a88c1b96f272abe572ff24bf3386a1c375e7b49023ce0"></a>BPF_FUNC_map_delete_elem&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="aa752b12bfaedda8a28a7a88c1b96f272a11bda44b63078eaa10477c22d4e0c70f"></a>BPF_FUNC_tail_call&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="aa752b12bfaedda8a28a7a88c1b96f272a30379124ac856b90d0f65ae330d01eb4"></a>BPF_FUNC_get_prandom_u32&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="aa752b12bfaedda8a28a7a88c1b96f272ac93b8f6e2cb11c15ebbe377f68008225"></a>BPF_FUNC_ktime_get_boot_ns&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="aa752b12bfaedda8a28a7a88c1b96f272a1ff4bcdf1da58693cf186a2211712bfd"></a>BPF_FUNC_get_smp_processor_id&#160;</td><td class="fielddoc"></td></tr>
 </table>
 
 </div>

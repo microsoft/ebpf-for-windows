@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.17"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>eBPF for Windows: Globals</title>
+<title>eBPF for Windows: include/bpf_helpers.h File Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -45,7 +45,6 @@ $(function() {
 });
 /* @license-end */</script>
 <div id="main-nav"></div>
-</div><!-- top -->
 <!-- window showing the filter options -->
 <div id="MSearchSelectWindow"
      onmouseover="return searchBox.OnSearchSelectShow()"
@@ -60,51 +59,45 @@ $(function() {
 </iframe>
 </div>
 
+<div id="nav-path" class="navpath">
+  <ul>
+<li class="navelem"><a class="el" href="dir_d44c64559bbebec7f509842c48db8b23.html">include</a></li>  </ul>
+</div>
+</div><!-- top -->
+<div class="header">
+  <div class="summary">
+<a href="#define-members">Macros</a>  </div>
+  <div class="headertitle">
+<div class="title">bpf_helpers.h File Reference</div>  </div>
+</div><!--header-->
 <div class="contents">
-&#160;<ul>
-<li>_bind_action
-: <a class="el" href="ebpf__nethooks_8h.html#a9e5d69be705b1f7503ab2fd752c41d02">ebpf_nethooks.h</a>
-</li>
-<li>_bind_operation
-: <a class="el" href="ebpf__nethooks_8h.html#a814187ca47e221594a21bde5324d86fc">ebpf_nethooks.h</a>
-</li>
-<li>_ebpf_execution_type
-: <a class="el" href="ebpf__execution__type_8h.html#a5c71fd3591cdd9c7f91f3908c0099b72">ebpf_execution_type.h</a>
-</li>
-<li>_ebpf_helper_function
-: <a class="el" href="ebpf__windows_8h.html#a653f667ffc6571d5f67b1b81d612a0cd">ebpf_windows.h</a>
-</li>
-<li>_tlv_type
-: <a class="el" href="tlv_8h.html#a50a469b7a3bd57834902b2d2f67a9c94">tlv.h</a>
-</li>
-<li>_xdp_action
-: <a class="el" href="ebpf__nethooks_8h.html#a5aff0d5d670941126cebc5687d5e280d">ebpf_nethooks.h</a>
-</li>
-<li>bpf_attach_type
-: <a class="el" href="linux_2bpf_8h.html#aac6b4c09fa267f53c1d213551e0ccd5a">bpf.h</a>
-</li>
-<li>bpf_func_id
-: <a class="el" href="linux_2bpf_8h.html#a44524dd17e07ebef30256811df8b7ba4">bpf.h</a>
-</li>
-<li>bpf_map_type
-: <a class="el" href="ebpf__structs_8h.html#afd97ad5450067d01ec6b6cd3c30761a1">ebpf_structs.h</a>
-</li>
-<li>bpf_prog_type
-: <a class="el" href="linux_2bpf_8h.html#a0f8242763b15ec665eaa47c6add861a0">bpf.h</a>
-</li>
-<li>bpf_stats_type
-: <a class="el" href="linux_2bpf_8h.html#af8f453a20dddc8657d0e69f73ffe2879">bpf.h</a>
-</li>
-<li>ebpf_helper_id_t
-: <a class="el" href="ebpf__structs_8h.html#aa752b12bfaedda8a28a7a88c1b96f272">ebpf_structs.h</a>
-</li>
-<li>ebpf_map_option
-: <a class="el" href="ebpf__structs_8h.html#ad2aa050648c308e0be8329a2ade170fc">ebpf_structs.h</a>
-</li>
-<li>ebpf_result
-: <a class="el" href="ebpf__result_8h.html#a916ce31f9038720787b441792c088372">ebpf_result.h</a>
-</li>
-</ul>
+<div class="textblock"><code>#include &quot;<a class="el" href="ebpf__structs_8h_source.html">ebpf_structs.h</a>&quot;</code><br />
+<code>#include &quot;<a class="el" href="bpf__helpers__platform_8h_source.html">bpf_helpers_platform.h</a>&quot;</code><br />
+<code>#include &quot;../external/libbpf/src/bpf_helpers.h&quot;</code><br />
+<code>#include &quot;<a class="el" href="bpf__helper__defs_8h_source.html">bpf_helper_defs.h</a>&quot;</code><br />
+</div>
+<p><a href="bpf__helpers_8h_source.html">Go to the source code of this file.</a></p>
+<table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="define-members"></a>
+Macros</h2></td></tr>
+<tr class="memitem:a4f6cc1f7a616eb436d2557c23229f3b9"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helpers_8h.html#a4f6cc1f7a616eb436d2557c23229f3b9">MAX_TAIL_CALL_CNT</a>&#160;&#160;&#160;32</td></tr>
+<tr class="separator:a4f6cc1f7a616eb436d2557c23229f3b9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table>
+<h2 class="groupheader">Macro Definition Documentation</h2>
+<a id="a4f6cc1f7a616eb436d2557c23229f3b9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4f6cc1f7a616eb436d2557c23229f3b9">&#9670;&nbsp;</a></span>MAX_TAIL_CALL_CNT</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define MAX_TAIL_CALL_CNT&#160;&#160;&#160;32</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
