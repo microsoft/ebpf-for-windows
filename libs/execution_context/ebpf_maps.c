@@ -7,7 +7,7 @@
 #include "ebpf_object.h"
 #include "ebpf_program.h"
 
-#define PAD16(X) ((X + 15) & ~15)
+#define PAD_CACHE(X) ((X + EBPF_CACHE_LINE_SIZE-1) & ~(EBPF_CACHE_LINE_SIZE-1))
 
 typedef struct _ebpf_core_map
 {
@@ -89,20 +89,20 @@ _create_array_map_with_extra_value_size(
     }
 
     size_t full_map_size;
-    retval = ebpf_safe_size_t_add(map_struct_size, map_data_size, &full_map_size);
+    retval = ebpf_safe_size_t_add(PAD_CACHE(map_struct_size), map_data_size, &full_map_size);
     if (retval != EBPF_SUCCESS) {
         goto Done;
     }
 
     // allocate
-    map = ebpf_allocate(full_map_size);
+    map = ebpf_allocate_cache_aligned(full_map_size);
     if (map == NULL) {
         goto Done;
     }
     memset(map, 0, full_map_size);
 
     map->ebpf_map_definition = *map_definition;
-    map->data = ((uint8_t*)map) + map_struct_size;
+    map->data = ((uint8_t*)map) + PAD_CACHE(map_struct_size);
 
 Done:
     return map;
@@ -117,7 +117,7 @@ _create_array_map(_In_ const ebpf_map_definition_in_memory_t* map_definition)
 static void
 _delete_array_map(_In_ ebpf_core_map_t* map)
 {
-    ebpf_free(map);
+    ebpf_free_cache_aligned(map);
 }
 
 static uint8_t*
@@ -720,7 +720,7 @@ static ebpf_result_t
 _ebpf_adjust_value_pointer(_In_ ebpf_map_t* map, _Inout_ uint8_t** value)
 {
     uint32_t current_cpu;
-    uint32_t max_cpu = map->ebpf_map_definition.value_size / PAD16(map->original_value_size);
+    uint32_t max_cpu = map->ebpf_map_definition.value_size / PAD_CACHE(map->original_value_size);
     switch (map->ebpf_map_definition.type) {
     case BPF_MAP_TYPE_PERCPU_ARRAY:
     case BPF_MAP_TYPE_PERCPU_HASH:
@@ -733,7 +733,7 @@ _ebpf_adjust_value_pointer(_In_ ebpf_map_t* map, _Inout_ uint8_t** value)
     if (current_cpu > max_cpu) {
         return EBPF_INVALID_ARGUMENT;
     }
-    (*value) += PAD16((size_t)map->original_value_size) * current_cpu;
+    (*value) += PAD_CACHE((size_t)map->original_value_size) * current_cpu;
     return EBPF_SUCCESS;
 }
 
@@ -887,7 +887,7 @@ ebpf_map_create(
     switch (local_map_definition.type) {
     case BPF_MAP_TYPE_PERCPU_HASH:
     case BPF_MAP_TYPE_PERCPU_ARRAY:
-        local_map_definition.value_size = cpu_count * PAD16(local_map_definition.value_size);
+        local_map_definition.value_size = cpu_count * PAD_CACHE(local_map_definition.value_size);
         break;
     default:
         break;

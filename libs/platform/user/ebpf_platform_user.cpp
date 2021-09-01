@@ -58,7 +58,11 @@ ebpf_free(_Frees_ptr_opt_ void* memory)
 __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
     _Post_writable_byte_size_(size) void* ebpf_allocate_cache_aligned(size_t size)
 {
-    return _aligned_malloc(size, EBPF_CACHE_LINE_SIZE);
+    void* memory = _aligned_malloc(size, EBPF_CACHE_LINE_SIZE);
+    if (memory != nullptr)
+        memset(memory, 0, size);
+
+    return memory;
 }
 
 void
