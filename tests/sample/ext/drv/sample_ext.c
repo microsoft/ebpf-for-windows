@@ -15,6 +15,8 @@
 #include "ebpf_program_types.h"
 
 #include "sample_ext_program_info.h"
+#include "sample_ext_helpers.h"
+#include "sample_ext_ioctls.h"
 
 #define SAMPLE_EBPF_EXTENSION_NPI_PROVIDER_VERSION 0
 
@@ -450,6 +452,49 @@ sample_ebpf_extension_invoke_program(_In_ const sample_program_context_t* contex
 
     // Run the eBPF program using cached copies of invoke_program and client_binding_context.
     return_value = invoke_program(client_binding_context, context, result);
+
+Exit:
+    return return_value;
+}
+
+ebpf_result_t
+sample_ebpf_extension_profile_program(
+    sample_ebpf_ext_profile_request_t* request, size_t request_length, sample_ebpf_ext_profile_reply_t* reply)
+{
+    ebpf_result_t return_value = EBPF_SUCCESS;
+    LARGE_INTEGER start;
+    LARGE_INTEGER end;
+    uint32_t result;
+    KIRQL old_irql = PASSIVE_LEVEL;
+    sample_program_context_t program_context = {
+        request->data, request->data + request_length - FIELD_OFFSET(sample_ebpf_ext_profile_request_t, data)};
+
+    sample_ebpf_extension_hook_provider_t* hook_provider_context = &_sample_ebpf_extension_hook_provider_context;
+
+    sample_ebpf_extension_hook_client_t* hook_client = hook_provider_context->attached_client;
+
+    if (hook_client == NULL) {
+        return_value = EBPF_FAILED;
+        goto Exit;
+    }
+    ebpf_invoke_program_function_t invoke_program = hook_client->invoke_program;
+    const void* client_binding_context = hook_client->client_binding_context;
+
+    program_context.uint32_data = KeGetCurrentProcessorNumber();
+
+    KeQueryPerformanceCounter(&start);
+    if (request->flags & SAMPLE_EBPF_EXT_FLAG_DISPATCH) {
+        KeRaiseIrql(DISPATCH_LEVEL, &old_irql);
+    }
+    for (size_t i = 0; i < request->iterations; i++) {
+        invoke_program(client_binding_context, &program_context, &result);
+    }
+    if (request->flags & SAMPLE_EBPF_EXT_FLAG_DISPATCH) {
+        KeLowerIrql(old_irql);
+    }
+    KeQueryPerformanceCounter(&end);
+
+    reply->duration = end.QuadPart - start.QuadPart;
 
 Exit:
     return return_value;

@@ -9,6 +9,7 @@
 
 #include <ntddk.h>
 #include "ebpf_platform.h"
+#include "sample_ext_ioctls.h"
 
 typedef struct _sample_program_context sample_program_context_t;
 
@@ -55,3 +56,7 @@ sample_ebpf_extension_hook_provider_unregister();
  */
 ebpf_result_t
 sample_ebpf_extension_invoke_program(_In_ const sample_program_context_t* context, _Out_ uint32_t* result);
+
+ebpf_result_t
+sample_ebpf_extension_profile_program(
+    sample_ebpf_ext_profile_request_t* request, size_t request_length, sample_ebpf_ext_profile_reply_t* reply);
