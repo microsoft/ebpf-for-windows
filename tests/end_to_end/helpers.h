@@ -58,15 +58,9 @@ typedef class _hook_helper
     _hook_helper(ebpf_attach_type_t attach_type) : _attach_type(attach_type) {}
 
     ebpf_result_t
-    attach(struct bpf_program* program)
+    attach_link(fd_t program_fd, bpf_link** link)
     {
-        // Attach program to link.
-        bpf_link* link = nullptr;
-        ebpf_result_t result = ebpf_program_attach(program, &_attach_type, nullptr, 0, &link);
-
-        REQUIRE(result == EBPF_SUCCESS);
-
-        return result;
+        return ebpf_program_attach_by_fd(program_fd, &_attach_type, nullptr, 0, link);
     }
 
   private:
@@ -100,12 +94,6 @@ typedef class _single_instance_hook : public _hook_helper
     attach(ebpf_handle_t program_handle)
     {
         return ebpf_api_link_program(program_handle, attach_type, &link_handle);
-    }
-
-    ebpf_result_t
-    attach_link(fd_t program_fd, bpf_link** link)
-    {
-        return ebpf_program_attach_by_fd(program_fd, &attach_type, nullptr, 0, link);
     }
 
     void

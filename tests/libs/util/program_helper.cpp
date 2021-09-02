@@ -12,7 +12,7 @@ _program_load_attach_helper::_program_load_attach_helper(
     hook_helper_t& hook,
     bool initiate_api)
     : _file_name(file_name), _program_type(program_type), _program_name(program_name), _execution_type(execution_type),
-      _object(nullptr), _api_initialized(false)
+      _link(nullptr), _object(nullptr), _api_initialized(false)
 {
     ebpf_result_t result;
     fd_t program_fd;
@@ -32,15 +32,18 @@ _program_load_attach_helper::_program_load_attach_helper(
     // Load program by name.
     struct bpf_program* program = bpf_object__find_program_by_name(_object, _program_name.c_str());
     REQUIRE(program != nullptr);
+    program_fd = bpf_program__fd(program);
+    REQUIRE(program_fd > 0);
 
     // Attach program to link.
-    REQUIRE(hook.attach(program) == EBPF_SUCCESS);
+    REQUIRE(hook.attach_link(program_fd, &_link) == EBPF_SUCCESS);
 
     ebpf_free_string(log_buffer);
 }
 
 _program_load_attach_helper::~_program_load_attach_helper()
 {
+    // bpf_link__destroy(_link);
     bpf_object__close(_object);
 
     if (_api_initialized)

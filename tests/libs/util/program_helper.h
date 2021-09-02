@@ -30,6 +30,7 @@ typedef class _program_load_attach_helper
     ebpf_program_type_t _program_type;
     std::string _program_name;
     ebpf_execution_type_t _execution_type;
+    bpf_link* _link;
     bpf_object* _object;
     bool _api_initialized;
 } program_load_attach_helper_t;
