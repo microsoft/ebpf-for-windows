@@ -30,7 +30,7 @@ Follow the [instructions](https://github.com/microsoft/ebpf-for-windows/blob/mas
 6. From the host machine's command line prompt, you'll see the packets being sent to VM. From the VM, you'll see the packets being received.
 7. You can stop the host at any time and it will give you how many bytes of traffic sent, and you can compare it to what the console application says.
 
-### Some notes for troubleshooting:
+## Some notes for troubleshooting:
 - You need to reload your NetEbpfExt driver after restart or rebooting, because it does not work properly after. Ebpfsvc stops after restarting or rebooting as well, so it is best to run install-ebpf.bat after a restart or boot.
 - If you decide to run Netsh instead of loading via the console user mode application, make sure you include both the program type and section name. For example: it is ```netsh add program associatetoflow.o flow flow```, and NOT ```netsh add program associatetoflow.o flow```.
 
