@@ -1,9 +1,10 @@
 # Setting up eBPF for Data Usage
 
 ## Step 1: eBPF Installation
-Follow the [instructions](https://github.com/microsoft/ebpf-for-windows/blob/master/docs/GettingStarted.md#Prerequisites) for Prerequisites, How to clone and build the project and Installing eBPF for Windows sections. 
-For the How to clone and build the project section instead of:
+Follow the [instructions](https://github.com/microsoft/ebpf-for-windows/blob/master/docs/GettingStarted.md#Prerequisites) for "Prerequisites", "How to clone and build the project" and "Installing eBPF for Windows" sections. 
+For the "How to clone and build the project" section instead of:
 > 1. ```git clone --recurse-submodules https://github.com/microsoft/ebpf-for-windows.git```
+
 Run the following:
 > ```git clone --recurse-submodules https://github.com/trishms/ebpf-for-windows.git```
 
