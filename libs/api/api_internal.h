@@ -55,8 +55,8 @@ typedef struct bpf_map
 typedef struct bpf_link
 {
     char* pin_path;
-    ebpf_handle_t link_handle;
-    fd_t link_fd;
+    ebpf_handle_t handle;
+    fd_t fd;
     bool disconnected;
 } ebpf_link_t;
 
@@ -245,3 +245,29 @@ ebpf_map_lookup_element(fd_t map_fd, _In_ const void* key, _Out_ void* value);
  */
 ebpf_result_t
 ebpf_map_get_next_key(fd_t map_fd, _In_opt_ const void* previous_key, _Out_ void* next_key);
+
+/**
+ * @brief Get a link object given a link handle.
+ *
+ * @param[in] handle Handle to the link.
+ * @param[out] link Pointer to link object.
+ *
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_INVALID_ARGUMENT The handle was not valid.
+ * @retval EBPF_NO_MEMORY Out of memory.
+ */
+ebpf_result_t
+ebpf_get_link_by_handle(ebpf_handle_t handle, _Outptr_ ebpf_link_t** link);
+
+/**
+ * @brief Get a link object given a file descriptor.
+ *
+ * @param[in] fd File descriptor for the link.
+ * @param[out] link Pointer to link object.
+ *
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_INVALID_ARGUMENT The handle was not valid.
+ * @retval EBPF_NO_MEMORY Out of memory.
+ */
+ebpf_result_t
+ebpf_get_link_by_fd(fd_t fd, _Outptr_ ebpf_link_t** link);

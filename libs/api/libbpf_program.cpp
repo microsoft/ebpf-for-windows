@@ -53,14 +53,14 @@ bpf_prog_load(const char* file_name, enum bpf_prog_type type, struct bpf_object*
     const ebpf_program_type_t* program_type = _get_ebpf_program_type(type);
 
     if (program_type == nullptr) {
-        return libbpf_err(-EBPF_INVALID_ARGUMENT);
+        return libbpf_err(-EINVAL);
     }
 
     const char* log_buffer;
     ebpf_result_t result =
         ebpf_program_load(file_name, program_type, nullptr, EBPF_EXECUTION_ANY, object, (fd_t*)program_fd, &log_buffer);
     if (result != EBPF_SUCCESS) {
-        return libbpf_err(-result);
+        return libbpf_result_err(result);
     }
     return EBPF_SUCCESS;
 }
@@ -93,13 +93,14 @@ struct bpf_link*
 bpf_program__attach(struct bpf_program* program)
 {
     if (program == nullptr) {
+        errno = EINVAL;
         return nullptr;
     }
 
     bpf_link* link = nullptr;
     ebpf_result_t result = ebpf_program_attach(program, nullptr, nullptr, 0, &link);
     if (result) {
-        errno = result;
+        errno = ebpf_result_to_errno(result);
     }
 
     return link;
@@ -109,6 +110,7 @@ struct bpf_link*
 bpf_program__attach_xdp(struct bpf_program* program, int ifindex)
 {
     if (program == nullptr) {
+        errno = EINVAL;
         return nullptr;
     }
 
@@ -118,7 +120,7 @@ bpf_program__attach_xdp(struct bpf_program* program, int ifindex)
     bpf_link* link = nullptr;
     ebpf_result_t result = ebpf_program_attach(program, &EBPF_ATTACH_TYPE_XDP, nullptr, 0, &link);
     if (result) {
-        errno = result;
+        errno = ebpf_result_to_errno(result);
     }
 
     return link;
@@ -139,15 +141,15 @@ bpf_program__prev(struct bpf_program* next, const struct bpf_object* object)
 int
 bpf_program__unpin(struct bpf_program* prog, const char* path)
 {
-    int err;
+    ebpf_result_t result;
 
     if (prog == NULL) {
         return libbpf_err(-EINVAL);
     }
 
-    err = ebpf_object_unpin(path);
-    if (err)
-        return libbpf_err(-err);
+    result = ebpf_object_unpin(path);
+    if (result)
+        return libbpf_result_err(result);
 
     return 0;
 }
@@ -155,15 +157,15 @@ bpf_program__unpin(struct bpf_program* prog, const char* path)
 int
 bpf_program__pin(struct bpf_program* prog, const char* path)
 {
-    int err;
+    ebpf_result_t result;
 
     if (prog == NULL) {
         return libbpf_err(-EINVAL);
     }
 
-    err = ebpf_object_pin(prog->fd, path);
-    if (err) {
-        return libbpf_err(-err);
+    result = ebpf_object_pin(prog->fd, path);
+    if (result) {
+        return libbpf_result_err(result);
     }
 
     return 0;

@@ -29,6 +29,7 @@ static uint64_t _ebpf_file_descriptor_counter = 0;
 static std::map<fd_t, ebpf_handle_t> _fd_to_handle_map;
 static std::map<ebpf_handle_t, ebpf_program_t*> _ebpf_programs;
 static std::map<ebpf_handle_t, ebpf_map_t*> _ebpf_maps;
+static std::map<ebpf_handle_t, ebpf_link_t*> _ebpf_links;
 static std::vector<ebpf_object_t*> _ebpf_objects;
 
 static void
@@ -85,6 +86,35 @@ _get_ebpf_program_from_handle(ebpf_handle_t program_handle)
     }
 
     return program;
+}
+
+ebpf_result_t
+ebpf_get_link_by_handle(ebpf_handle_t handle, _Outptr_ ebpf_link_t** link)
+{
+    if (handle == ebpf_handle_invalid) {
+        *link = nullptr;
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    // See if we already have the info cached.
+    std::map<ebpf_handle_t, ebpf_link_t*>::iterator it = _ebpf_links.find(handle);
+    if (it != _ebpf_links.end()) {
+        *link = it->second;
+        return EBPF_SUCCESS;
+    }
+
+    ebpf_link_t* new_link = (ebpf_link_t*)calloc(1, sizeof(ebpf_link_t));
+    if (new_link == nullptr) {
+        return EBPF_NO_MEMORY;
+    }
+
+    new_link->handle = handle;
+    new_link->fd = _get_next_file_descriptor(handle);
+
+    _ebpf_links.insert(std::pair<ebpf_handle_t, ebpf_link_t*>(new_link->handle, new_link));
+
+    *link = new_link;
+    return EBPF_SUCCESS;
 }
 
 uint32_t
@@ -1234,12 +1264,24 @@ _clean_up_ebpf_link(_In_opt_ _Post_invalid_ ebpf_link_t* link)
     if (link == nullptr) {
         return;
     }
-    if (link->link_handle != ebpf_handle_invalid) {
-        ebpf_api_close_handle(link->link_handle);
+    if (link->handle != ebpf_handle_invalid) {
+        _ebpf_links.erase(link->handle);
+        ebpf_api_close_handle(link->handle);
     }
     free(link->pin_path);
 
     free(link);
+}
+
+ebpf_result_t
+ebpf_get_link_by_fd(fd_t fd, _Outptr_ ebpf_link_t** link)
+{
+    ebpf_handle_t link_handle = _get_handle_from_fd(fd);
+    if (link_handle == ebpf_handle_invalid) {
+        return EBPF_INVALID_FD;
+    }
+
+    return ebpf_get_link_by_handle(link_handle, link);
 }
 
 ebpf_result_t
@@ -1279,20 +1321,21 @@ ebpf_program_attach(
     }
 
     result = _link_ebpf_program(
-        program->handle, program_attach_type, &new_link->link_handle, (uint8_t*)attach_parameters, attach_params_size);
+        program->handle, program_attach_type, &new_link->handle, (uint8_t*)attach_parameters, attach_params_size);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
-    new_link->link_fd = _get_next_file_descriptor(new_link->link_handle);
-    if (new_link->link_fd == ebpf_fd_invalid) {
+    new_link->fd = _get_next_file_descriptor(new_link->handle);
+    if (new_link->fd == ebpf_fd_invalid) {
         result = EBPF_NO_MEMORY;
         goto Exit;
     }
+    _ebpf_links.insert(std::pair<ebpf_handle_t, ebpf_link_t*>(new_link->handle, new_link));
     *link = new_link;
 
 Exit:
     if (result != EBPF_SUCCESS) {
-        if (new_link != nullptr && new_link->link_handle != ebpf_handle_invalid) {
+        if (new_link != nullptr && new_link->handle != ebpf_handle_invalid) {
             ebpf_link_detach(new_link);
         }
         _clean_up_ebpf_link(new_link);
@@ -1332,10 +1375,10 @@ ebpf_link_detach(_In_ struct bpf_link* link)
     if (link == nullptr) {
         return EBPF_INVALID_ARGUMENT;
     }
-    assert(link->link_handle != ebpf_handle_invalid);
+    assert(link->handle != ebpf_handle_invalid);
 
     ebpf_operation_unlink_program_request_t request = {
-        sizeof(request), EBPF_OPERATION_UNLINK_PROGRAM, reinterpret_cast<uint64_t>(link->link_handle)};
+        sizeof(request), EBPF_OPERATION_UNLINK_PROGRAM, reinterpret_cast<uint64_t>(link->handle)};
 
     return windows_error_to_ebpf_result(invoke_ioctl(request));
 }
