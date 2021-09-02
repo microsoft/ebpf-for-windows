@@ -9,7 +9,7 @@ Run the following:
 > ```git clone --recurse-submodules https://github.com/trishms/ebpf-for-windows.git```
 
 ## Step 2: VM Installation Instructions
-Follow the [instructions](https://github.com/microsoft/ebpf-for-windows/blob/master/docs/vm-setup.md) for the One-Time Setup & Installing eBPF into a VM. You'll need this VM to load eBPF, the necessary eBPF programs and run the user mode application.
+Follow the [instructions](https://github.com/microsoft/ebpf-for-windows/blob/master/docs/vm-setup.md) for the "One-Time Setup" and "Installing eBPF into a VM". You'll need this VM to load eBPF, the necessary eBPF programs and run the user mode application.
 
 ## Step 3: Prep and demo
 
