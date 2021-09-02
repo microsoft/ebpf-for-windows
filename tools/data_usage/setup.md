@@ -21,8 +21,8 @@ Follow the [instructions](https://github.com/microsoft/ebpf-for-windows/blob/mas
 7. Once you are done querying, CTRL-C and run ```console.exe unload``` to unload and disable the programs.
 
 ## How to create your own traffic and have data usage outputted:
-1. Visit [ctstraffic](https://github.com/microsoft/ctsTraffic) and downloaded the binary on both your host and VM machine.
-2. Then after you have ran install-ebpf.bat (Refer to Step 2) on your VM, run ```ctstraffic.exe -listen:* -consoleverbosity:1```.
+1. Visit [ctstraffic](https://github.com/microsoft/ctsTraffic) and download the binary on both your host and VM machine.
+2. Then after you have ran install-ebpf.bat (Refer to Step 2) on your VM, run ```ctstraffic.exe -listen:* -consoleverbosity:1``` on another command prompt on the VM side.
 3. Copy and paste your eBPF programs and run your console app (Refer to Prep and Demo).
 4. On your host machine, run ```ctsTraffic.exe -target:{Your VM IP Address} -connections:5 -iterations:5 -transfer:1000000 -consoleverbosity:1 -statusfilename:clientstatus.csv -connectionfilename:clientconnections.csv```
 5. You can change the iteration, connections and transfer amount to customize how you'd like to send over the bytes.
