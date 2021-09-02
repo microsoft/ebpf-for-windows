@@ -14,6 +14,7 @@ Follow the [instructions](https://github.com/microsoft/ebpf-for-windows/blob/mas
 ## Step 3: Prep and demo
 
 1. Set up the VM (Refer to Step 2)
+2. Power it off and in that VM's settings, go to Processor and change the number of processors to 1. (This is because Per-CPU maps are not yet implemented).
 3. Click View on the toolbar and turn on Enhanced Mode
 4. Copy and paste the folder x64/Debug from the repo you built to your VM's C:\Temp folder or in any other place you want. If the repo is built in the VM, you do not need to do this. As long as the binaries are in the VM.
 5. In an elevated command prompt, go to the x64/Debug folder you just pasted in your VM and run ```console.exe load``` to load the associatetoflow and countbytes programs.
@@ -28,3 +29,7 @@ Follow the [instructions](https://github.com/microsoft/ebpf-for-windows/blob/mas
 5. You can change the iteration, connections and transfer amount to customize how you'd like to send over the bytes.
 6. From the host machine's command line prompt, you'll see the packets being sent to VM. From the VM, you'll see the packets being received.
 7. You can stop the host at any time and it will give you how many bytes of traffic sent, and you can compare it to what the console application says.
+
+## Some notes for troubleshooting:
+- You need to reload your NetEbpfExt driver after restart or rebooting, because it does not work properly after. Ebpfsvc stops after restarting or rebooting as well, so it is best to run install-ebpf.bat after a restart or boot.
+- If you decide to run Netsh instead of loading via the console user mode application, make sure you include both the program type and section name. For example: it is ```netsh add program associatetoflow.o flow flow```, and NOT ```netsh add program associatetoflow.o flow```.
