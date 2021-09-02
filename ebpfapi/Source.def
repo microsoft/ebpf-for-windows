@@ -7,6 +7,7 @@ LIBRARY
 EXPORTS
     bpf_create_map
     bpf_link__destroy
+    bpf_link__disconnect
     bpf_link__pin
     bpf_link__unpin
     bpf_map__fd

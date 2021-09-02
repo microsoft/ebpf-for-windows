@@ -147,11 +147,6 @@ TEST_CASE("libbpf program attach", "[libbpf]")
     result = bpf_link__destroy(link);
     REQUIRE(result == 0);
 
-    // Verify that a duplicate link destroy fails.
-    result = bpf_link__destroy(link);
-    REQUIRE(result == -EBPF_INVALID_ARGUMENT);
-    REQUIRE(errno == -result);
-
     bpf_object__close(object);
 }
 

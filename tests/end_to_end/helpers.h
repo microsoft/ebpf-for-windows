@@ -179,9 +179,9 @@ static ebpf_helper_function_prototype_t _ebpf_map_helper_function_prototype[] = 
      "bpf_tail_call",
      EBPF_RETURN_TYPE_INTEGER_OR_NO_RETURN_IF_SUCCEED,
      {EBPF_ARGUMENT_TYPE_PTR_TO_CTX, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_OF_PROGRAMS, EBPF_ARGUMENT_TYPE_ANYTHING}},
-    {BPF_FUNC_get_prandom_u32, "bpf_get_prandom_u32", EBPF_RETURN_TYPE_INTEGER, {0}},
-    {BPF_FUNC_ktime_get_boot_ns, "bpf_ktime_get_boot_ns", EBPF_RETURN_TYPE_INTEGER, {0}},
-    {BPF_FUNC_get_smp_processor_id, "bpf_get_smp_processor_id", EBPF_RETURN_TYPE_INTEGER, {0}},
+    {BPF_FUNC_get_prandom_u32, "bpf_get_prandom_u32", EBPF_RETURN_TYPE_INTEGER, {(ebpf_argument_type_t)0}},
+    {BPF_FUNC_ktime_get_boot_ns, "bpf_ktime_get_boot_ns", EBPF_RETURN_TYPE_INTEGER, {(ebpf_argument_type_t)0}},
+    {BPF_FUNC_get_smp_processor_id, "bpf_get_smp_processor_id", EBPF_RETURN_TYPE_INTEGER, {(ebpf_argument_type_t)0}},
 };
 
 static ebpf_context_descriptor_t _ebpf_xdp_context_descriptor = {
