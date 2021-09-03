@@ -36,4 +36,3 @@ class service_install_helper
     bool already_installed;
     bool initialized;
 };
-

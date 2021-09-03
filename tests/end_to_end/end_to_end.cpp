@@ -17,6 +17,7 @@
 #include "helpers.h"
 #include "libbpf.h"
 #include "mock.h"
+#include "program_helper.h"
 #include "sample_test_common.h"
 #include "test_helper.hpp"
 #include "tlv.h"
@@ -275,28 +276,11 @@ static void
 _utility_helper_functions_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
-
-    ebpf_result_t result;
-    const char* error_message = nullptr;
-    bpf_object* object = nullptr;
-    fd_t program_fd;
-    bpf_link* link;
-
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
-
-    result = ebpf_program_load(
-        SAMPLE_PATH "test_utility_helpers.o", nullptr, nullptr, execution_type, &object, &program_fd, &error_message);
-
-    if (error_message) {
-        printf("ebpf_program_load failed with %s\n", error_message);
-        ebpf_free_string(error_message);
-        error_message = nullptr;
-    }
-    REQUIRE(result == EBPF_SUCCESS);
-    fd_t utility_map_fd = bpf_object__find_map_fd_by_name(object, "utility_map");
-
-    REQUIRE(hook.attach_link(program_fd, &link) == EBPF_SUCCESS);
+    program_load_attach_helper_t program_helper(
+        SAMPLE_PATH "test_utility_helpers.o", EBPF_PROGRAM_TYPE_XDP, "test_utility_helpers", execution_type, hook);
+    bpf_object* object = program_helper.get_object();
 
     // Dummy context (not used by the eBPF program).
     xdp_md_t ctx{};
@@ -305,17 +289,7 @@ _utility_helper_functions_test(ebpf_execution_type_t execution_type)
     REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == 0);
 
-    ebpf_utility_helpers_data_t test_data[UTILITY_MAP_SIZE];
-    for (uint32_t key = 0; key < UTILITY_MAP_SIZE; key++)
-        REQUIRE(bpf_map_lookup_elem(utility_map_fd, &key, (void*)&test_data[key]) == EBPF_SUCCESS);
-
-    REQUIRE(test_data[0].random != test_data[1].random);
-    REQUIRE(test_data[0].timestamp < test_data[1].timestamp);
-
-    hook.detach_link(link);
-    hook.close_link(link);
-
-    bpf_object__close(object);
+    verify_utility_helper_results(object);
 }
 
 TEST_CASE("droppacket-jit", "[end_to_end]") { droppacket_test(EBPF_EXECUTION_JIT); }
@@ -382,6 +356,49 @@ TEST_CASE("verify section", "[end_to_end]")
         result == 0));
     REQUIRE(report != nullptr);
     ebpf_free_string(report);
+}
+
+TEST_CASE("verify_test0", "[sample_extension]")
+{
+    _test_helper_end_to_end test_helper;
+    program_info_provider_t sample_extension_program_info(EBPF_PROGRAM_TYPE_SAMPLE);
+
+    const char* error_message = nullptr;
+    const char* report = nullptr;
+    uint32_t result;
+
+    ebpf_api_verifier_stats_t stats;
+    REQUIRE(
+        (result = ebpf_api_elf_verify_section(
+             SAMPLE_PATH "test_sample_ebpf.o", "sample_ext", false, &report, &error_message, &stats),
+         ebpf_free_string(error_message),
+         error_message = nullptr,
+         result == 0));
+    REQUIRE(report != nullptr);
+    ebpf_free_string(report);
+}
+
+TEST_CASE("verify_test1", "[sample_extension]")
+{
+    _test_helper_end_to_end test_helper;
+    program_info_provider_t sample_extension_program_info(EBPF_PROGRAM_TYPE_SAMPLE);
+
+    const char* error_message = nullptr;
+    const char* report = nullptr;
+    uint32_t result;
+
+    ebpf_api_verifier_stats_t stats;
+
+    REQUIRE(
+        (result = ebpf_api_elf_verify_section(
+             SAMPLE_PATH "test_sample_ebpf.o", "sample_ext/utility", false, &report, &error_message, &stats),
+         ebpf_free_string(error_message),
+         error_message = nullptr,
+         result == 0));
+    REQUIRE(report != nullptr);
+    ebpf_free_string(report);
+
+    REQUIRE(result == 0);
 }
 
 TEST_CASE("map_pinning_test", "[end_to_end]")

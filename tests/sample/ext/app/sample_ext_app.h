@@ -6,3 +6,4 @@
 #include "ebpf_windows.h"
 #include "framework.h"
 #include "sample_ext_ioctls.h"
+#include "sample_test_common.h"
