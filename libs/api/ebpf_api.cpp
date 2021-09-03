@@ -29,7 +29,6 @@ static uint64_t _ebpf_file_descriptor_counter = 0;
 static std::map<fd_t, ebpf_handle_t> _fd_to_handle_map;
 static std::map<ebpf_handle_t, ebpf_program_t*> _ebpf_programs;
 static std::map<ebpf_handle_t, ebpf_map_t*> _ebpf_maps;
-static std::map<ebpf_handle_t, ebpf_link_t*> _ebpf_links;
 static std::vector<ebpf_object_t*> _ebpf_objects;
 
 static void
@@ -1236,7 +1235,6 @@ _clean_up_ebpf_link(_In_opt_ _Post_invalid_ ebpf_link_t* link)
         return;
     }
     if (link->handle != ebpf_handle_invalid) {
-        _ebpf_links.erase(link->handle);
         ebpf_api_close_handle(link->handle);
     }
     free(link->pin_path);
@@ -1310,7 +1308,6 @@ ebpf_program_attach(
         result = EBPF_NO_MEMORY;
         goto Exit;
     }
-    _ebpf_links.insert(std::pair<ebpf_handle_t, ebpf_link_t*>(new_link->handle, new_link));
     *link = new_link;
 
 Exit:
