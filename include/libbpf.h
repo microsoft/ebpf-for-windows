@@ -52,6 +52,7 @@ bpf_link__fd(const struct bpf_link* link);
  * @retval <0 An error occured, and errno was set.
  *
  * @exception EBUSY A pin path was previously specified.
+ * @exception EEXIST Something is already pinned to the specified path.
  * @exception EINVAL An invalid argument was provided.
  * @exception ENOMEM Out of memory.
  *
@@ -151,6 +152,7 @@ bpf_map__next(const struct bpf_map* map, const struct bpf_object* obj);
  * @retval <0 An error occured, and errno was set.
  *
  * @exception EBUSY A pin path was previously specified.
+ * @exception EEXIST Something is already pinned to the specified path.
  * @exception EINVAL An invalid argument was provided.
  * @exception ENOMEM Out of memory.
  *
@@ -284,7 +286,7 @@ bpf_object__name(const struct bpf_object* obj);
  * @retval 0 The operation was successful.
  * @retval <0 An error occured, and errno was set.
  *
- * @exception EBUSY A pin path was previously specified.
+ * @exception EBUSY Something is already pinned to the specified path.
  * @exception EINVAL An invalid argument was provided.
  * @exception ENOMEM Out of memory.
  *
@@ -305,7 +307,7 @@ bpf_object__pin(struct bpf_object* object, const char* path);
  * @retval 0 The operation was successful.
  * @retval <0 An error occured, and errno was set.
  *
- * @exception EBUSY A pin path was previously specified.
+ * @exception EBUSY Something is already pinned to the specified path.
  * @exception EINVAL An invalid argument was provided.
  * @exception ENOMEM Out of memory.
  *
@@ -325,7 +327,7 @@ bpf_object__pin_maps(struct bpf_object* obj, const char* path);
  * @retval 0 The operation was successful.
  * @retval <0 An error occured, and errno was set.
  *
- * @exception EBUSY A pin path was previously specified.
+ * @exception EBUSY Something is already pinned to the specified path.
  * @exception EINVAL An invalid argument was provided.
  * @exception ENOMEM Out of memory.
  *
@@ -492,6 +494,7 @@ bpf_program__next(struct bpf_program* prog, const struct bpf_object* obj);
  * @retval <0 An error occured, and errno was set.
  *
  * @exception EBUSY A pin path was previously specified.
+ * @exception EEXIST Something is already pinned to the specified path.
  * @exception EINVAL An invalid argument was provided.
  * @exception ENOMEM Out of memory.
  *
