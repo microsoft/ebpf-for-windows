@@ -210,7 +210,7 @@ _sample_ebpf_ext_driver_io_device_control(
     void* output_buffer = NULL;
     size_t actual_input_length = 0;
     size_t actual_output_length = 0;
-    test_program_context_t program_context = {0};
+    sample_program_context_t program_context = {0};
     uint32_t program_result = 0;
     ebpf_result_t result;
 

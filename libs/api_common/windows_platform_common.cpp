@@ -45,9 +45,9 @@ const EbpfProgramType windows_bind_program_type =
     PTYPE("bind", &g_bind_context_descriptor, (uint64_t)&EBPF_PROGRAM_TYPE_BIND, {"bind"});
 
 const ebpf_context_descriptor_t g_sample_ext_context_descriptor = {
-    sizeof(test_program_context_t),
-    EBPF_OFFSET_OF(test_program_context_t, data_start),
-    EBPF_OFFSET_OF(test_program_context_t, data_end),
+    sizeof(sample_program_context_t),
+    EBPF_OFFSET_OF(sample_program_context_t, data_start),
+    EBPF_OFFSET_OF(sample_program_context_t, data_end),
     -1, // Offset into ctx struct for pointer to metadata, or -1 if none.
 };
 
