@@ -660,7 +660,7 @@ TEST_CASE("implicit_detach", "[end_to_end]")
 TEST_CASE("implicit_detach_2", "[end_to_end]")
 {
     // This test case does the following:
-    // 1. Close program handle. An implicit detach should happen and program
+    // 1. Close program handle. An implicit detach should happen and the program
     //    object should be deleted.
     // 2. Close link handle. The link object should be deleted.
 
@@ -697,7 +697,7 @@ TEST_CASE("implicit_detach_2", "[end_to_end]")
 
     // Close link handle (without detaching). This should delete the link
     // object. ebpf_object_tracking_terminate() which is called when the test
-    // exits checks if all the objects in EC have been deleted.
+    // exits checks if all the objects in the execution context have been deleted.
     bpf_link__disconnect(link);
     REQUIRE(bpf_link__destroy(link) == 0);
 }
