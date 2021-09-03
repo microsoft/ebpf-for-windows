@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <errno.h>
 #include <map>
 #include <stdexcept>
 #include "ebpf_api.h"
@@ -136,6 +137,56 @@ windows_error_to_ebpf_result(uint32_t error)
     }
 
     return result;
+}
+
+__forceinline int
+ebpf_result_to_errno(ebpf_result_t result)
+{
+    int error;
+
+    switch (result) {
+    case EBPF_SUCCESS:
+        error = 0;
+        break;
+
+    case EBPF_NO_MEMORY:
+        error = ENOMEM;
+        break;
+
+    case EBPF_ALREADY_INITIALIZED:
+    case EBPF_INVALID_ARGUMENT:
+        error = EINVAL;
+        break;
+
+    case EBPF_INVALID_FD:
+    case EBPF_INVALID_OBJECT:
+        error = EBADF;
+        break;
+
+    case EBPF_OPERATION_NOT_SUPPORTED:
+        error = ENOTSUP;
+        break;
+
+    case EBPF_INSUFFICIENT_BUFFER:
+        error = ENOBUFS;
+        break;
+
+    case EBPF_FILE_NOT_FOUND:
+    case EBPF_KEY_NOT_FOUND:
+    case EBPF_NO_MORE_KEYS:
+        error = ENOENT;
+        break;
+
+    case EBPF_OBJECT_ALREADY_EXISTS:
+        error = EEXIST;
+        break;
+
+    default:
+        error = EOTHER;
+        break;
+    }
+
+    return error;
 }
 
 ebpf_result_t

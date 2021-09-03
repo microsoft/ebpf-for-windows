@@ -73,25 +73,24 @@ TEST_CASE("libbpf program pinning", "[libbpf]")
 
     // Make sure a duplicate pin fails.
     result = bpf_program__pin(program, pin_path);
-    REQUIRE(result == -EBPF_OBJECT_ALREADY_EXISTS);
-    REQUIRE(errno == -result);
+    REQUIRE(result < 0);
+    REQUIRE(errno == EEXIST);
 
     result = bpf_program__unpin(program, pin_path);
     REQUIRE(result == 0);
 
     // Make sure a duplicate unpin fails.
     result = bpf_program__unpin(program, pin_path);
-    REQUIRE(result == -EBPF_KEY_NOT_FOUND);
-    REQUIRE(errno == -result);
+    REQUIRE(result < 0);
+    REQUIRE(errno == ENOENT);
 
     // Try to pin all (1) programs in the object.
     result = bpf_object__pin_programs(object, pin_path);
     REQUIRE(result == 0);
 
     // Make sure a duplicate pin fails.
-    result = bpf_object__pin_programs(object, pin_path);
-    REQUIRE(result == -EBPF_OBJECT_ALREADY_EXISTS);
-    REQUIRE(errno == -result);
+    REQUIRE(bpf_object__pin_programs(object, pin_path) < 0);
+    REQUIRE(errno == EEXIST);
 
     result = bpf_object__unpin_programs(object, pin_path);
     REQUIRE(result == 0);
@@ -101,9 +100,8 @@ TEST_CASE("libbpf program pinning", "[libbpf]")
     REQUIRE(result == 0);
 
     // Make sure a duplicate pin fails.
-    result = bpf_object__pin_programs(object, pin_path);
-    REQUIRE(result == -EBPF_OBJECT_ALREADY_EXISTS);
-    REQUIRE(errno == -result);
+    REQUIRE(bpf_object__pin_programs(object, pin_path) < 0);
+    REQUIRE(errno == EEXIST);
 
     // There is no bpf_object__unpin API, so
     // we have to unpin programs and maps separately.
@@ -144,13 +142,14 @@ TEST_CASE("libbpf program attach", "[libbpf]")
     bpf_link* link = bpf_program__attach(program);
     REQUIRE(link != nullptr);
 
-    result = bpf_link__destroy(link);
+    int link_fd = bpf_link__fd(link);
+    REQUIRE(link_fd >= 0);
+
+    result = bpf_link_detach(link_fd);
     REQUIRE(result == 0);
 
-    // Verify that a duplicate link destroy fails.
     result = bpf_link__destroy(link);
-    REQUIRE(result == -EBPF_INVALID_ARGUMENT);
-    REQUIRE(errno == -result);
+    REQUIRE(result == 0);
 
     bpf_object__close(object);
 }
@@ -187,45 +186,45 @@ TEST_CASE("libbpf map", "[libbpf]")
     uint32_t index = 2; // Past end of array.
 
     result = bpf_map_lookup_elem(map_fd, NULL, NULL);
-    REQUIRE(result == -EBPF_INVALID_ARGUMENT);
-    REQUIRE(errno == -result);
+    REQUIRE(result < 0);
+    REQUIRE(errno == EINVAL);
 
     result = bpf_map_lookup_elem(map_fd, &index, &value);
-    REQUIRE(result == -EBPF_INVALID_ARGUMENT);
-    REQUIRE(errno == -result);
+    REQUIRE(result < 0);
+    REQUIRE(errno == EINVAL);
 
     result = bpf_map_delete_elem(map_fd, NULL);
-    REQUIRE(result == -EBPF_INVALID_ARGUMENT);
-    REQUIRE(errno == -result);
+    REQUIRE(result < 0);
+    REQUIRE(errno == EINVAL);
 
     result = bpf_map_delete_elem(map_fd, &index);
-    REQUIRE(result == -EBPF_INVALID_ARGUMENT);
-    REQUIRE(errno == -result);
+    REQUIRE(result < 0);
+    REQUIRE(errno == EINVAL);
 
     result = bpf_map_update_elem(map_fd, NULL, NULL, 0);
-    REQUIRE(result == -EBPF_INVALID_ARGUMENT);
-    REQUIRE(errno == -result);
+    REQUIRE(result < 0);
+    REQUIRE(errno == EINVAL);
 
     result = bpf_map_update_elem(map_fd, &index, &value, 0);
-    REQUIRE(result == -EBPF_INVALID_ARGUMENT);
-    REQUIRE(errno == -result);
+    REQUIRE(result < 0);
+    REQUIRE(errno == EINVAL);
 
     index = 0;
-    REQUIRE(bpf_map_lookup_elem(map_fd, &index, &value) == EBPF_SUCCESS);
+    REQUIRE(bpf_map_lookup_elem(map_fd, &index, &value) == 0);
     REQUIRE(value == 0);
 
-    REQUIRE(bpf_map_delete_elem(map_fd, &index) == EBPF_SUCCESS);
+    REQUIRE(bpf_map_delete_elem(map_fd, &index) == 0);
 
     value = 12345;
-    REQUIRE(bpf_map_update_elem(map_fd, &index, &value, 0) == EBPF_SUCCESS);
+    REQUIRE(bpf_map_update_elem(map_fd, &index, &value, 0) == 0);
 
     value = 0;
-    REQUIRE(bpf_map_lookup_elem(map_fd, &index, &value) == EBPF_SUCCESS);
+    REQUIRE(bpf_map_lookup_elem(map_fd, &index, &value) == 0);
     REQUIRE(value == 12345);
 
-    REQUIRE(bpf_map_delete_elem(map_fd, &index) == EBPF_SUCCESS);
+    REQUIRE(bpf_map_delete_elem(map_fd, &index) == 0);
 
-    REQUIRE(bpf_map_lookup_elem(map_fd, &index, &value) == EBPF_SUCCESS);
+    REQUIRE(bpf_map_lookup_elem(map_fd, &index, &value) == 0);
     REQUIRE(value == 0);
 
     bpf_object__close(object);
@@ -255,8 +254,8 @@ TEST_CASE("libbpf map pinning", "[libbpf]")
 
     // Make sure a duplicate pin fails.
     result = bpf_map__pin(map, pin_path);
-    REQUIRE(result == -EBPF_OBJECT_ALREADY_EXISTS);
-    REQUIRE(errno == -result);
+    REQUIRE(result < 0);
+    REQUIRE(errno == EEXIST);
 
     result = bpf_map__unpin(map, pin_path);
     REQUIRE(result == 0);
@@ -265,8 +264,8 @@ TEST_CASE("libbpf map pinning", "[libbpf]")
 
     // Make sure a duplicate unpin fails.
     result = bpf_map__unpin(map, pin_path);
-    REQUIRE(result == -EBPF_KEY_NOT_FOUND);
-    REQUIRE(errno == -result);
+    REQUIRE(result < 0);
+    REQUIRE(errno == ENOENT);
 
     // Clear pin path for the map.
     result = bpf_map__set_pin_path(map, nullptr);
@@ -280,8 +279,8 @@ TEST_CASE("libbpf map pinning", "[libbpf]")
 
     // Make sure a duplicate pin fails.
     result = bpf_object__pin_maps(object, pin_path);
-    REQUIRE(result == -EBPF_OBJECT_ALREADY_EXISTS);
-    REQUIRE(errno == -result);
+    REQUIRE(result < 0);
+    REQUIRE(errno == EEXIST);
 
     result = bpf_object__unpin_maps(object, pin_path);
     REQUIRE(result == 0);
@@ -296,8 +295,8 @@ TEST_CASE("libbpf map pinning", "[libbpf]")
 
     // Make sure a duplicate pin fails.
     result = bpf_object__pin_maps(object, pin_path);
-    REQUIRE(result == -EBPF_OBJECT_ALREADY_EXISTS);
-    REQUIRE(errno == -result);
+    REQUIRE(result < 0);
+    REQUIRE(errno == EEXIST);
 
     // There is no bpf_object__unpin API, so
     // we have to unpin programs and maps separately.
@@ -430,8 +429,8 @@ TEST_CASE("disallow setting bind fd in xdp prog array", "[libbpf]")
     // associated with an XDP program.
     int index = 0;
     error = bpf_map_update_elem(map_fd, (uint8_t*)&index, (uint8_t*)&callee_fd, 0);
-    REQUIRE(error == -EBPF_INVALID_ARGUMENT);
-    REQUIRE(errno == -error);
+    REQUIRE(error < 0);
+    REQUIRE(errno == EINVAL);
 
     bpf_object__close(bind_object);
     bpf_object__close(xdp_object);
@@ -467,8 +466,8 @@ TEST_CASE("disallow prog_array mixed program type values", "[libbpf]")
 
     // Adding an entry with a different program type should fail.
     error = bpf_map_update_elem(map_fd, (uint8_t*)&index, (uint8_t*)&bind_object_fd, 0);
-    REQUIRE(error == -EBPF_INVALID_ARGUMENT);
-    REQUIRE(errno == -error);
+    REQUIRE(error < 0);
+    REQUIRE(errno == EINVAL);
 
     ebpf_close_fd(map_fd); // TODO(issue #287): change to _close(map_fd);
     bpf_object__close(bind_object);
@@ -495,13 +494,13 @@ TEST_CASE("simple hash of maps", "[libbpf]")
     __u32 bad_value = 12345678;
     outer_key = 1;
     error = bpf_map_update_elem(outer_map_fd, &outer_key, &bad_value, 0);
-    REQUIRE(error == -EBPF_INVALID_FD);
-    REQUIRE(errno == -error);
+    REQUIRE(error < 0);
+    REQUIRE(errno == EBADF);
 
     // Try deleting outer key that doesn't exist
     error = bpf_map_delete_elem(outer_map_fd, &outer_key);
-    REQUIRE(error == -EBPF_KEY_NOT_FOUND);
-    REQUIRE(errno == -error);
+    REQUIRE(error < 0);
+    REQUIRE(errno == ENOENT);
 
     // Try deleting outer key that does exist.
     outer_key = 0;
@@ -589,8 +588,8 @@ TEST_CASE("disallow wrong inner map types", "[libbpf]")
     // Try to add the array map to the outer map.
     __u32 outer_key = 0;
     error = bpf_map_update_elem(outer_map_fd, &outer_key, &inner_map_fd, 0);
-    REQUIRE(error == -EBPF_INVALID_ARGUMENT);
-    REQUIRE(errno == -error);
+    REQUIRE(error < 0);
+    REQUIRE(errno == EINVAL);
 
     ebpf_close_fd(inner_map_fd); // TODO(issue #287): change to _close(inner_map_fd);
     bpf_object__close(xdp_object);

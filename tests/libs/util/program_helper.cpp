@@ -43,7 +43,7 @@ _program_load_attach_helper::_program_load_attach_helper(
 
 _program_load_attach_helper::~_program_load_attach_helper()
 {
-    // bpf_link__destroy(_link);
+    bpf_link__destroy(_link);
     bpf_object__close(_object);
 
     if (_api_initialized)

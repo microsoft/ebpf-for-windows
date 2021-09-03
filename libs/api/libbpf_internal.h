@@ -12,3 +12,9 @@ libbpf_err(int ret)
         errno = -ret;
     return ret;
 }
+
+static inline int
+libbpf_result_err(ebpf_result_t result)
+{
+    return libbpf_err(-ebpf_result_to_errno(result));
+}
