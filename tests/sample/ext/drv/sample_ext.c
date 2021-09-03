@@ -15,49 +15,16 @@
 #include "ebpf_program_types.h"
 #include "ebpf_windows.h"
 
-#include "sample_ext_helpers.h"
+#include "sample_ext_program_info.h"
 
 #define SAMPLE_EBPF_EXTENSION_NPI_PROVIDER_VERSION 0
 
 // f788ef4a-207d-4dc3-85cf-0f2ea107213c
 DEFINE_GUID(EBPF_PROGRAM_TYPE_SAMPLE, 0xf788ef4a, 0x207d, 0x4dc3, 0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c);
 
-static ebpf_context_descriptor_t _sample_ebpf_context_descriptor = {
-    sizeof(test_program_context_t),
-    EBPF_OFFSET_OF(test_program_context_t, data_start),
-    EBPF_OFFSET_OF(test_program_context_t, data_end),
-    -1};
-
-// Test Extension Helper function prototype descriptors.
-static ebpf_helper_function_prototype_t _sample_ebpf_extension_helper_function_prototype[] = {
-    {EBPF_MAX_GENERAL_HELPER_FUNCTION + 1,
-     "sample_ebpf_extension_helper_function1",
-     EBPF_RETURN_TYPE_INTEGER,
-     {EBPF_ARGUMENT_TYPE_PTR_TO_CTX}},
-    {EBPF_MAX_GENERAL_HELPER_FUNCTION + 2,
-     "sample_ebpf_extension_find",
-     EBPF_RETURN_TYPE_INTEGER,
-     {EBPF_ARGUMENT_TYPE_PTR_TO_MEM,
-      EBPF_ARGUMENT_TYPE_CONST_SIZE,
-      EBPF_ARGUMENT_TYPE_PTR_TO_MEM,
-      EBPF_ARGUMENT_TYPE_CONST_SIZE}},
-    {EBPF_MAX_GENERAL_HELPER_FUNCTION + 3,
-     "sample_ebpf_extension_replace",
-     EBPF_RETURN_TYPE_INTEGER,
-     {EBPF_ARGUMENT_TYPE_PTR_TO_MEM,
-      EBPF_ARGUMENT_TYPE_CONST_SIZE,
-      EBPF_ARGUMENT_TYPE_ANYTHING,
-      EBPF_ARGUMENT_TYPE_PTR_TO_MEM,
-      EBPF_ARGUMENT_TYPE_CONST_SIZE}}};
-
-static ebpf_program_info_t _sample_ebpf_extension_program_info = {
-    {"sample", &_sample_ebpf_context_descriptor, {0}},
-    EBPF_COUNT_OF(_sample_ebpf_extension_helper_function_prototype),
-    _sample_ebpf_extension_helper_function_prototype};
-
 // Test Extension helper function addresses table.
 static int64_t
-_sample_ebpf_extension_helper_function1(_In_ const test_program_context_t* context);
+_sample_ebpf_extension_helper_function1(_In_ const sample_program_context_t* context);
 static int64_t
 _sample_ebpf_extension_find(_In_ const void* buffer, uint32_t size, _In_ const void* find, uint32_t arg_size);
 static int64_t
@@ -467,7 +434,7 @@ Exit:
 }
 
 ebpf_result_t
-sample_ebpf_extension_invoke_program(_In_ const test_program_context_t* context, _Out_ uint32_t* result)
+sample_ebpf_extension_invoke_program(_In_ const sample_program_context_t* context, _Out_ uint32_t* result)
 {
     ebpf_result_t return_value = EBPF_SUCCESS;
 
@@ -492,7 +459,7 @@ Exit:
 // Helper Function Definitions.
 
 static int64_t
-_sample_ebpf_extension_helper_function1(_In_ const test_program_context_t* context)
+_sample_ebpf_extension_helper_function1(_In_ const sample_program_context_t* context)
 {
     UNREFERENCED_PARAMETER(context);
     return 0;

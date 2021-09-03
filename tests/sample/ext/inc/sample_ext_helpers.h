@@ -1,20 +1,21 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
+
+// This file contains program context and helper functions declarations that are
+// exposed by the sample extension.
+
 #pragma once
 
 #include <stdint.h>
 
-// Test Extension Hook program context.
-typedef struct _test_program_context
+// Sample extension program context.
+typedef struct _sample_program_context
 {
     uint8_t* data_start;
     uint8_t* data_end;
     uint32_t uint32_data;
     uint16_t uint16_data;
-} test_program_context_t;
-
-// This file contains APIs for helper functions that are
-// exposed by the test extension.
+} sample_program_context_t;
 
 #define SAMPLE_EXT_HELPER_FN_BASE 0xFFFF
 
@@ -27,7 +28,7 @@ typedef struct _test_program_context
  * @param[in] context Pointer to program context.
  * @retval 0 The operation was successful.
  */
-EBPF_HELPER(int64_t, sample_ebpf_extension_helper_function1, (test_program_context_t * context));
+EBPF_HELPER(int64_t, sample_ebpf_extension_helper_function1, (sample_program_context_t * context));
 #ifndef __doxygen
 #define sample_ebpf_extension_helper_function1 ((sample_ebpf_extension_helper_function1_t)SAMPLE_EXT_HELPER_FN_BASE + 1)
 #endif

@@ -152,7 +152,7 @@
       <DefaultCharType>Unsigned</DefaultCharType>
     </Midl>
     <PreBuildEvent>
-      <Command>powershell $(SolutionDir)scripts\generate-commitid.ps1 $(OutDir)</Command>
+      <Command>powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\generate-commitid.ps1 $(OutDir)</Command>
     </PreBuildEvent>
     <ResourceCompile>
       <AdditionalIncludeDirectories>$(OutDir)</AdditionalIncludeDirectories>
@@ -183,7 +183,7 @@
       <DefaultCharType>Unsigned</DefaultCharType>
     </Midl>
     <PreBuildEvent>
-      <Command>powershell $(SolutionDir)scripts\generate-commitid.ps1 $(OutDir)</Command>
+      <Command>powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\generate-commitid.ps1 $(OutDir)</Command>
     </PreBuildEvent>
     <ResourceCompile>
       <AdditionalIncludeDirectories>$(OutDir)</AdditionalIncludeDirectories>

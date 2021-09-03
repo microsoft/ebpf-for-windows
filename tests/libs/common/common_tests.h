@@ -6,8 +6,13 @@
 #pragma once
 #include <windows.h>
 
+#include "bpf.h"
 #include "ebpf_api.h"
 #include "ebpf_result.h"
+#include "libbpf.h"
 
 void
 ebpf_test_pinned_map_enum();
+
+void
+verify_utility_helper_results(_In_ const bpf_object* object);

@@ -6,6 +6,7 @@
 #include <map>
 #include "catch_wrapper.hpp"
 #include "common_tests.h"
+#include "sample_test_common.h"
 
 void
 ebpf_test_pinned_map_enum()
@@ -71,4 +72,16 @@ Exit:
     ebpf_api_map_info_free(map_count, map_info);
     map_count = 0;
     map_info = nullptr;
+}
+
+void
+verify_utility_helper_results(_In_ const bpf_object* object)
+{
+    fd_t utility_map_fd = bpf_object__find_map_fd_by_name(object, "utility_map");
+    ebpf_utility_helpers_data_t test_data[UTILITY_MAP_SIZE];
+    for (uint32_t key = 0; key < UTILITY_MAP_SIZE; key++)
+        REQUIRE(bpf_map_lookup_elem(utility_map_fd, &key, (void*)&test_data[key]) == EBPF_SUCCESS);
+
+    REQUIRE(test_data[0].random != test_data[1].random);
+    REQUIRE(test_data[0].timestamp < test_data[1].timestamp);
 }

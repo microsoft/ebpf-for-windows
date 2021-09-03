@@ -9,7 +9,9 @@
 
 #include "bpf.h"
 #include "catch_wrapper.hpp"
+#include "common_tests.h"
 #include "libbpf.h"
+#include "program_helper.h"
 #include "service_helper.h"
 #include "sample_ext_app.h"
 
@@ -33,57 +35,65 @@ static service_install_helper
 static service_install_helper
     _ebpf_service_helper(EBPF_SERVICE_NAME, EBPF_SERVICE_BINARY_NAME, SERVICE_WIN32_OWN_PROCESS);
 
-static ebpf_result_t
-_program_load_helper(
-    _In_z_ const char* file_name,
-    _In_ const ebpf_program_type_t* program_type,
-    ebpf_execution_type_t execution_type,
-    _Outptr_ struct bpf_object** object,
-    _Out_ fd_t* program_fd)
+struct _sample_extension_helper
 {
-    ebpf_result_t result;
-    const char* log_buffer = nullptr;
-    result = ebpf_program_load(file_name, program_type, nullptr, execution_type, object, program_fd, &log_buffer);
+  public:
+    _sample_extension_helper() : device_handle(INVALID_HANDLE_VALUE) {}
 
-    ebpf_free_string(log_buffer);
-    return result;
-}
+    ~_sample_extension_helper()
+    {
+        if (device_handle != INVALID_HANDLE_VALUE)
+            ::CloseHandle(device_handle);
+    }
+
+    void
+    invoke(std::vector<char>& input_buffer, std::vector<char>& output_buffer)
+    {
+        uint32_t count_of_bytes_returned;
+
+        // Open handle to test eBPF extension device.
+        REQUIRE(
+            (device_handle = ::CreateFileW(
+                 SAMPLE_EBPF_EXT_DEVICE_WIN32_NAME,
+                 GENERIC_READ | GENERIC_WRITE,
+                 0,
+                 nullptr,
+                 CREATE_ALWAYS,
+                 FILE_ATTRIBUTE_NORMAL,
+                 nullptr)) != INVALID_HANDLE_VALUE);
+
+        // Issue IOCTL.
+        REQUIRE(
+            ::DeviceIoControl(
+                device_handle,
+                IOCTL_SAMPLE_EBPF_EXT_CTL,
+                input_buffer.data(),
+                static_cast<uint32_t>(input_buffer.size()),
+                output_buffer.data(),
+                static_cast<uint32_t>(output_buffer.size()),
+                (DWORD*)&count_of_bytes_returned,
+                nullptr) == TRUE);
+    }
+
+  private:
+    HANDLE device_handle;
+};
 
 void
-sample_ebpf_ext_test(ebpf_execution_type_t execution_type)
+sample_ebpf_ext_test(_In_ const struct bpf_object* object)
 {
-    ebpf_result_t result;
-    struct bpf_object* object = nullptr;
-    fd_t program_fd;
-    fd_t previous_program_fd = ebpf_fd_invalid;
-    fd_t next_program_fd = ebpf_fd_invalid;
     struct bpf_map* map = nullptr;
+    fd_t map_fd;
     const char* strings[2] = {"rainy", "sunny"};
     std::vector<std::vector<char>> map_entry_buffers(2, std::vector<char>(32));
-    HANDLE device_handle = INVALID_HANDLE_VALUE;
     const char* input_string = "Seattle is a rainy city";
     std::vector<char> input_buffer(input_string, input_string + strlen(input_string));
     const char* expected_output = "Seattle is a sunny city";
     std::vector<char> output_buffer(256);
-    uint32_t count_of_bytes_returned;
-    fd_t map_fd;
-
-    REQUIRE(ebpf_api_initiate() == EBPF_SUCCESS);
-
-    result =
-        _program_load_helper("test_sample_ebpf.o", &EBPF_PROGRAM_TYPE_SAMPLE, execution_type, &object, &program_fd);
-
-    REQUIRE(result == EBPF_SUCCESS);
-    REQUIRE(program_fd > 0);
-
-    // Query loaded programs to verify this program is loaded.
-    REQUIRE(ebpf_get_next_program(previous_program_fd, &next_program_fd) == EBPF_SUCCESS);
-    REQUIRE(next_program_fd != ebpf_fd_invalid);
-
-    previous_program_fd = next_program_fd;
+    _sample_extension_helper extension;
 
     // Get map and insert data.
-    map = bpf_map__next(nullptr, object);
+    map = bpf_object__find_map_by_name(object, "test_map");
     REQUIRE(map != nullptr);
     map_fd = bpf_map__fd(map);
     REQUIRE(map_fd > 0);
@@ -93,44 +103,47 @@ sample_ebpf_ext_test(ebpf_execution_type_t execution_type)
         REQUIRE(bpf_map_update_elem(map_fd, &key, map_entry_buffers[key].data(), EBPF_ANY) == EBPF_SUCCESS);
     }
 
-    // Attach to link.
-    bpf_link* link = nullptr;
-    bpf_program* program = bpf_program__next(nullptr, object);
-    REQUIRE(ebpf_program_attach(program, &EBPF_ATTACH_TYPE_SAMPLE, nullptr, 0, &link) == EBPF_SUCCESS);
-
-    // Open handle to test eBPF extension device.
-    REQUIRE(
-        (device_handle = ::CreateFileW(
-             SAMPLE_EBPF_EXT_DEVICE_WIN32_NAME,
-             GENERIC_READ | GENERIC_WRITE,
-             0,
-             nullptr,
-             CREATE_ALWAYS,
-             FILE_ATTRIBUTE_NORMAL,
-             nullptr)) != INVALID_HANDLE_VALUE);
-
-    // Issue IOCTL.
-    REQUIRE(
-        ::DeviceIoControl(
-            device_handle,
-            IOCTL_SAMPLE_EBPF_EXT_CTL,
-            input_buffer.data(),
-            static_cast<uint32_t>(input_buffer.size()),
-            output_buffer.data(),
-            static_cast<uint32_t>(output_buffer.size()),
-            (DWORD*)&count_of_bytes_returned,
-            nullptr) == TRUE);
+    extension.invoke(input_buffer, output_buffer);
 
     REQUIRE(memcmp(output_buffer.data(), expected_output, strlen(expected_output)) == 0);
-
-    ebpf_close_fd(previous_program_fd);
-    bpf_object__close(object);
-    if (device_handle != INVALID_HANDLE_VALUE)
-        ::CloseHandle(device_handle);
-
-    ebpf_api_terminate();
 }
 
-TEST_CASE("jit_test", "[test_test]") { sample_ebpf_ext_test(EBPF_EXECUTION_JIT); }
+TEST_CASE("jit_test", "[test_test]")
+{
+    struct bpf_object* object = nullptr;
+    hook_helper_t hook(EBPF_ATTACH_TYPE_SAMPLE);
+    program_load_attach_helper_t _helper(
+        "test_sample_ebpf.o", EBPF_PROGRAM_TYPE_SAMPLE, "test_program_entry", EBPF_EXECUTION_JIT, hook, true);
 
-TEST_CASE("interpret_test", "[test_test]") { sample_ebpf_ext_test(EBPF_EXECUTION_INTERPRET); }
+    object = _helper.get_object();
+
+    sample_ebpf_ext_test(object);
+}
+
+TEST_CASE("interpret_test", "[test_test]")
+{
+    struct bpf_object* object = nullptr;
+    hook_helper_t hook(EBPF_ATTACH_TYPE_SAMPLE);
+    program_load_attach_helper_t _helper(
+        "test_sample_ebpf.o", EBPF_PROGRAM_TYPE_SAMPLE, "test_program_entry", EBPF_EXECUTION_INTERPRET, hook, true);
+
+    object = _helper.get_object();
+
+    sample_ebpf_ext_test(object);
+}
+
+TEST_CASE("utility_helpers_test", "[test_test]")
+{
+    struct bpf_object* object = nullptr;
+    hook_helper_t hook(EBPF_ATTACH_TYPE_SAMPLE);
+    program_load_attach_helper_t _helper(
+        "test_sample_ebpf.o", EBPF_PROGRAM_TYPE_SAMPLE, "test_utility_helpers", EBPF_EXECUTION_INTERPRET, hook, true);
+    object = _helper.get_object();
+
+    std::vector<char> dummy(1);
+    _sample_extension_helper extension;
+
+    extension.invoke(dummy, dummy);
+
+    verify_utility_helper_results(object);
+}
