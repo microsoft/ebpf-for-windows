@@ -256,28 +256,6 @@ bpf_object__unpin_programs(struct bpf_object* obj, const char* path)
     return 0;
 }
 
-void
-bpf_link__disconnect(struct bpf_link* link)
-{
-    link->disconnected = true;
-}
-
-int
-bpf_link__destroy(struct bpf_link* link)
-{
-    if (link == nullptr) {
-        return 0;
-    }
-
-    ebpf_result_t result = EBPF_SUCCESS;
-    if (!link->disconnected) {
-        result = ebpf_link_detach(link);
-    }
-    ebpf_link_close(link);
-
-    return libbpf_err(-(int)result);
-}
-
 enum bpf_attach_type
 bpf_program__get_expected_attach_type(const struct bpf_program* program)
 {

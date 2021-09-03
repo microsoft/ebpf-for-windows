@@ -46,3 +46,25 @@ bpf_link__unpin(struct bpf_link* link)
     link->pin_path = nullptr;
     return 0;
 }
+
+void
+bpf_link__disconnect(struct bpf_link* link)
+{
+    link->disconnected = true;
+}
+
+int
+bpf_link__destroy(struct bpf_link* link)
+{
+    if (link == nullptr) {
+        return 0;
+    }
+
+    ebpf_result_t result = EBPF_SUCCESS;
+    if (!link->disconnected) {
+        result = ebpf_link_detach(link);
+    }
+    ebpf_link_close(link);
+
+    return libbpf_err(-(int)result);
+}
