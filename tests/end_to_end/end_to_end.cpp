@@ -260,11 +260,12 @@ bindmonitor_test(ebpf_execution_type_t execution_type)
     REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
 
     uint64_t pid;
-    REQUIRE(bpf_map_get_next_key(process_map_fd, NULL, &pid) == EBPF_SUCCESS);
+    REQUIRE(bpf_map_get_next_key(process_map_fd, NULL, &pid) == 0);
     REQUIRE(pid != 0);
-    REQUIRE(bpf_map_get_next_key(process_map_fd, &pid, &pid) == EBPF_SUCCESS);
+    REQUIRE(bpf_map_get_next_key(process_map_fd, &pid, &pid) == 0);
     REQUIRE(pid != 0);
-    REQUIRE(bpf_map_get_next_key(process_map_fd, &pid, &pid) == -EBPF_NO_MORE_KEYS);
+    REQUIRE(bpf_map_get_next_key(process_map_fd, &pid, &pid) < 0);
+    REQUIRE(errno == ENOENT);
 
     hook.detach_link(link);
     hook.close_link(link);
