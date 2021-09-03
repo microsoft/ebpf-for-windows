@@ -7,6 +7,7 @@ LIBRARY
 EXPORTS
     bpf_create_map
     bpf_link__destroy
+    bpf_link__disconnect
     bpf_link__pin
     bpf_link__unpin
     bpf_map__fd
@@ -64,6 +65,7 @@ EXPORTS
     ebpf_free_string
     ebpf_get_next_map
     ebpf_get_next_program
+    ebpf_link_close
     ebpf_map_pin
     ebpf_object_get
     ebpf_object_pin

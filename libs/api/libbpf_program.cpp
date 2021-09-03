@@ -96,16 +96,13 @@ bpf_program__attach(struct bpf_program* program)
         return nullptr;
     }
 
-    ebpf_handle_t link_handle;
-    uint32_t result = ebpf_api_link_program(program->handle, program->attach_type, &link_handle);
+    bpf_link* link = nullptr;
+    ebpf_result_t result = ebpf_program_attach(program, nullptr, nullptr, 0, &link);
     if (result) {
         errno = result;
-        return nullptr;
     }
 
-    // The bpf_link structure is opaque so we can use the link handle directly.
-    // TODO(issue #81): return pointer to ebpf_link_t.
-    return (struct bpf_link*)link_handle;
+    return link;
 }
 
 struct bpf_link*
@@ -118,15 +115,13 @@ bpf_program__attach_xdp(struct bpf_program* program, int ifindex)
     // TODO: use ifindex
     UNREFERENCED_PARAMETER(ifindex);
 
-    ebpf_handle_t link_handle;
-    uint32_t result = ebpf_api_link_program(program->handle, EBPF_ATTACH_TYPE_XDP, &link_handle);
+    bpf_link* link = nullptr;
+    ebpf_result_t result = ebpf_program_attach(program, &EBPF_ATTACH_TYPE_XDP, nullptr, 0, &link);
     if (result) {
-        return nullptr;
+        errno = result;
     }
 
-    // The bpf_link structure is opaque so we can use the link handle directly.
-    // TODO(issue #81): return pointer to ebpf_link_t.
-    return (struct bpf_link*)link_handle;
+    return link;
 }
 
 struct bpf_program*
@@ -259,16 +254,6 @@ bpf_object__unpin_programs(struct bpf_object* obj, const char* path)
     }
 
     return 0;
-}
-
-int
-bpf_link__destroy(struct bpf_link* link)
-{
-    // TODO(issue #81): get handle from ebpf_link_t, and
-    // detach before closing the handle.
-    ebpf_handle_t link_handle = (ebpf_handle_t)link;
-    ebpf_result_t result = ebpf_api_close_handle(link_handle);
-    return libbpf_err(-(int)result);
 }
 
 enum bpf_attach_type

@@ -610,6 +610,7 @@ TEST_CASE("pinned_map_enum", "[end_to_end]")
     ebpf_test_pinned_map_enum();
 }
 
+// This test uses ebpf_link_close() to test implicit detach.
 TEST_CASE("implicit_detach", "[end_to_end]")
 {
     // This test case does the following:
@@ -652,6 +653,53 @@ TEST_CASE("implicit_detach", "[end_to_end]")
     // object. ebpf_object_tracking_terminate() which is called when the test
     // exits checks if all the objects in EC have been deleted.
     hook.close_link(link);
+}
+
+// This test uses bpf_link__disconnect() and bpf_link__destroy() to test
+// implicit detach.
+TEST_CASE("implicit_detach_2", "[end_to_end]")
+{
+    // This test case does the following:
+    // 1. Close program handle. An implicit detach should happen and the program
+    //    object should be deleted.
+    // 2. Close link handle. The link object should be deleted.
+
+    _test_helper_end_to_end test_helper;
+
+    uint32_t result = 0;
+    bpf_object* object = nullptr;
+    fd_t program_fd;
+    const char* error_message = nullptr;
+    bpf_link* link = nullptr;
+
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
+    program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
+
+    result = ebpf_program_load(
+        SAMPLE_PATH "droppacket.o", nullptr, nullptr, EBPF_EXECUTION_JIT, &object, &program_fd, &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free_string(error_message);
+        error_message = nullptr;
+    }
+    REQUIRE(result == EBPF_SUCCESS);
+
+    REQUIRE(hook.attach_link(program_fd, &link) == EBPF_SUCCESS);
+
+    // Call bpf_object__close() which will close the program fd. That should
+    // detach the program from the hook and unload the program.
+    bpf_object__close(object);
+
+    program_fd = ebpf_fd_invalid;
+    REQUIRE(ebpf_get_next_program(program_fd, &program_fd) == EBPF_SUCCESS);
+    REQUIRE(program_fd == ebpf_fd_invalid);
+
+    // Close link handle (without detaching). This should delete the link
+    // object. ebpf_object_tracking_terminate() which is called when the test
+    // exits checks if all the objects in the execution context have been deleted.
+    bpf_link__disconnect(link);
+    REQUIRE(bpf_link__destroy(link) == 0);
 }
 
 TEST_CASE("explicit_detach", "[end_to_end]")
