@@ -88,35 +88,6 @@ _get_ebpf_program_from_handle(ebpf_handle_t program_handle)
     return program;
 }
 
-ebpf_result_t
-ebpf_get_link_by_handle(ebpf_handle_t handle, _Outptr_ ebpf_link_t** link)
-{
-    if (handle == ebpf_handle_invalid) {
-        *link = nullptr;
-        return EBPF_INVALID_ARGUMENT;
-    }
-
-    // See if we already have the info cached.
-    std::map<ebpf_handle_t, ebpf_link_t*>::iterator it = _ebpf_links.find(handle);
-    if (it != _ebpf_links.end()) {
-        *link = it->second;
-        return EBPF_SUCCESS;
-    }
-
-    ebpf_link_t* new_link = (ebpf_link_t*)calloc(1, sizeof(ebpf_link_t));
-    if (new_link == nullptr) {
-        return EBPF_NO_MEMORY;
-    }
-
-    new_link->handle = handle;
-    new_link->fd = _get_next_file_descriptor(handle);
-
-    _ebpf_links.insert(std::pair<ebpf_handle_t, ebpf_link_t*>(new_link->handle, new_link));
-
-    *link = new_link;
-    return EBPF_SUCCESS;
-}
-
 uint32_t
 ebpf_api_initiate()
 {
