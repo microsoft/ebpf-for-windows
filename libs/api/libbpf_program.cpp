@@ -93,6 +93,7 @@ struct bpf_link*
 bpf_program__attach(struct bpf_program* program)
 {
     if (program == nullptr) {
+        errno = EINVAL;
         return nullptr;
     }
 

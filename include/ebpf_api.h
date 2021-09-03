@@ -132,7 +132,7 @@ extern "C"
     /**
      * @brief Create an eBPF map with input parameters.
      *
-     * @param[in] type Map type.
+     * @param[in] map_type Map type.
      * @param[in] key_size Key size.
      * @param[in] value_size Value size.
      * @param[in] max_entries Maximum number of entries in the map.
@@ -557,6 +557,9 @@ extern "C"
      *
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_INVALID_ARGUMENT Invalid argument was provided.
+     *
+     * @sa bpf_link__destroy
+     * @sa bpf_link_detach
      */
     ebpf_result_t
     ebpf_link_close(_In_ struct bpf_link* link);
