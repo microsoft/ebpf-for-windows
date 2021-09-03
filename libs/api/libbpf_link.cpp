@@ -79,12 +79,5 @@ bpf_link__fd(const struct bpf_link* link)
 int
 bpf_link_detach(int link_fd)
 {
-    struct bpf_link* link;
-    ebpf_result_t result = ebpf_get_link_by_fd(link_fd, &link);
-    if (result != EBPF_SUCCESS) {
-        return libbpf_result_err(result);
-    }
-
-    result = ebpf_link_detach(link);
-    return libbpf_result_err(result);
+    return libbpf_result_err(ebpf_detach_link_by_fd(link_fd));
 }

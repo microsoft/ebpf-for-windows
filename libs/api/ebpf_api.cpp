@@ -1273,15 +1273,24 @@ _clean_up_ebpf_link(_In_opt_ _Post_invalid_ ebpf_link_t* link)
     free(link);
 }
 
+static ebpf_result_t
+_detach_link_by_handle(ebpf_handle_t link_handle)
+{
+    ebpf_operation_unlink_program_request_t request = {
+        sizeof(request), EBPF_OPERATION_UNLINK_PROGRAM, reinterpret_cast<uint64_t>(link_handle)};
+
+    return windows_error_to_ebpf_result(invoke_ioctl(request));
+}
+
 ebpf_result_t
-ebpf_get_link_by_fd(fd_t fd, _Outptr_ ebpf_link_t** link)
+ebpf_detach_link_by_fd(fd_t fd)
 {
     ebpf_handle_t link_handle = _get_handle_from_fd(fd);
     if (link_handle == ebpf_handle_invalid) {
         return EBPF_INVALID_FD;
     }
 
-    return ebpf_get_link_by_handle(link_handle, link);
+    return _detach_link_by_handle(link_handle);
 }
 
 ebpf_result_t
@@ -1375,12 +1384,7 @@ ebpf_link_detach(_In_ struct bpf_link* link)
     if (link == nullptr) {
         return EBPF_INVALID_ARGUMENT;
     }
-    assert(link->handle != ebpf_handle_invalid);
-
-    ebpf_operation_unlink_program_request_t request = {
-        sizeof(request), EBPF_OPERATION_UNLINK_PROGRAM, reinterpret_cast<uint64_t>(link->handle)};
-
-    return windows_error_to_ebpf_result(invoke_ioctl(request));
+    return _detach_link_by_handle(link->handle);
 }
 
 ebpf_result_t
