@@ -126,7 +126,7 @@ extern "C"
     ebpf_reference_object_by_id(ebpf_id_t id, ebpf_object_type_t object_type, _Outptr_ ebpf_object_t** object);
 
     /**
-     * @brief Find the next ID of a given type greater than a given ID.
+     * @brief Find the object of a given type with the next ID greater than a given ID.
      *
      * @param[in] start_id ID to look for an ID after.  The start_id
      * need not exist.

@@ -1962,7 +1962,7 @@ _get_fd_by_id(ebpf_operation_id_t operation, ebpf_id_t id, _Out_ int* fd) noexce
     }
 
     *fd = _get_next_file_descriptor((ebpf_handle_t)reply.handle);
-    return EBPF_SUCCESS;
+    return (*fd == ebpf_fd_invalid) ? EBPF_NO_MEMORY : EBPF_SUCCESS;
 }
 
 ebpf_result_t
