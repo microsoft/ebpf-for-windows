@@ -123,7 +123,7 @@ extern "C"
      * @retval EBPF_KEY_NOT_FOUND The provided ID is not valid.
      */
     ebpf_result_t
-    ebpf_reference_object_by_id(ebpf_id_t id, ebpf_object_type_t object_type, _Outptr_ ebpf_object_t** object);
+    ebpf_object_reference_by_id(ebpf_id_t id, ebpf_object_type_t object_type, _Outptr_ ebpf_object_t** object);
 
     /**
      * @brief Find the object of a given type with the next ID greater than a given ID.
@@ -134,7 +134,7 @@ extern "C"
      * @retval EBPF_NO_MORE_KEYS No such IDs found.
      */
     ebpf_result_t
-    ebpf_get_next_id(ebpf_id_t start_id, ebpf_object_type_t object_type, _Out_ ebpf_id_t* next_id);
+    ebpf_object_get_next_id(ebpf_id_t start_id, ebpf_object_type_t object_type, _Out_ ebpf_id_t* next_id);
 
 #ifdef __cplusplus
 }

@@ -206,7 +206,7 @@ ebpf_duplicate_utf8_string(_Out_ ebpf_utf8_string_t* destination, _In_ const ebp
     }
 }
 
-_Requires_lock_held_(&_ebpf_object_tracking_list_lock) static ebpf_object_t* _get_next_object(
+_Requires_lock_held_(&_ebpf_object_tracking_list_lock) static ebpf_object_t* _get_next_object_by_id(
     ebpf_id_t start_id, ebpf_object_type_t object_type)
 {
     // The start_id need not exist, so we can't call _get_index_from_id().
@@ -225,13 +225,13 @@ _Requires_lock_held_(&_ebpf_object_tracking_list_lock) static ebpf_object_t* _ge
 }
 
 ebpf_result_t
-ebpf_get_next_id(ebpf_id_t start_id, ebpf_object_type_t object_type, _Out_ ebpf_id_t* next_id)
+ebpf_object_get_next_id(ebpf_id_t start_id, ebpf_object_type_t object_type, _Out_ ebpf_id_t* next_id)
 {
     ebpf_result_t return_value = EBPF_NO_MORE_KEYS;
 
     ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_object_tracking_list_lock);
 
-    ebpf_object_t* object = _get_next_object(start_id, object_type);
+    ebpf_object_t* object = _get_next_object_by_id(start_id, object_type);
     if (object != NULL) {
         *next_id = object->id;
         return_value = EBPF_SUCCESS;
@@ -250,7 +250,7 @@ ebpf_object_reference_next_object(ebpf_object_t* previous_object, ebpf_object_ty
     state = ebpf_lock_lock(&_ebpf_object_tracking_list_lock);
 
     ebpf_id_t start_id = (previous_object) ? previous_object->id : 0;
-    ebpf_object_t* object = _get_next_object(start_id, type);
+    ebpf_object_t* object = _get_next_object_by_id(start_id, type);
     if (object != NULL) {
         *next_object = object;
         ebpf_object_acquire_reference(object);
@@ -260,7 +260,7 @@ ebpf_object_reference_next_object(ebpf_object_t* previous_object, ebpf_object_ty
 }
 
 ebpf_result_t
-ebpf_reference_object_by_id(ebpf_id_t id, ebpf_object_type_t object_type, _Outptr_ ebpf_object_t** object)
+ebpf_object_reference_by_id(ebpf_id_t id, ebpf_object_type_t object_type, _Outptr_ ebpf_object_t** object)
 {
     ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_object_tracking_list_lock);
 

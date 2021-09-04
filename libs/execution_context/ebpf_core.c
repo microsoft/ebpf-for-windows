@@ -990,7 +990,7 @@ _get_handle_by_id(
         return EBPF_INVALID_ARGUMENT;
     }
     ebpf_object_t* object;
-    ebpf_result_t result = ebpf_reference_object_by_id(request->id, type, &object);
+    ebpf_result_t result = ebpf_object_reference_by_id(request->id, type, &object);
     if (result != EBPF_SUCCESS) {
         return result;
     }
@@ -1041,7 +1041,7 @@ _get_next_id(
         return EBPF_INVALID_ARGUMENT;
     }
 
-    return ebpf_get_next_id(request->start_id, type, &reply->next_id);
+    return ebpf_object_get_next_id(request->start_id, type, &reply->next_id);
 }
 
 static ebpf_result_t
