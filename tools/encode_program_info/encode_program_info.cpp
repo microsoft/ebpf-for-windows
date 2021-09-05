@@ -6,6 +6,12 @@
 #include "ebpf_nethooks.h"
 #include "encode_program_info.h"
 
+extern "C"
+{
+    extern ebpf_helper_function_prototype_t* _ebpf_core_helper_function_prototype;
+    extern uint32_t _ebpf_core_helper_functions_count;
+}
+
 static ebpf_result_t
 _emit_program_info_file(const char* file_name, const char* symbol_name, uint8_t* buffer, unsigned long buffer_size)
 {

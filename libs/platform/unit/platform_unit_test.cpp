@@ -22,6 +22,12 @@
 #include "ebpf_state.h"
 #include "encode_program_info.h"
 
+extern "C"
+{
+    extern ebpf_helper_function_prototype_t* _ebpf_core_helper_function_prototype;
+    extern uint32_t _ebpf_core_helper_functions_count;
+}
+
 class _test_helper
 {
   public:

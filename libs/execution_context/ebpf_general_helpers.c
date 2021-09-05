@@ -36,9 +36,15 @@ extern "C"
 {
 #endif
 
+<<<<<<< HEAD
     ebpf_helper_function_prototype_t* ebpf_core_helper_function_prototype =
         &ebpf_core_helper_function_prototype_array[0];
     uint32_t ebpf_core_helper_functions_count = EBPF_COUNT_OF(ebpf_core_helper_function_prototype_array);
+=======
+    ebpf_helper_function_prototype_t* _ebpf_core_helper_function_prototype =
+        &_ebpf_core_helper_function_prototype_array[0];
+    uint32_t _ebpf_core_helper_functions_count = EBPF_COUNT_OF(_ebpf_core_helper_function_prototype_array);
+>>>>>>> 0b8c59b (cleanup test code.)
 
 #ifdef __cplusplus
 }
