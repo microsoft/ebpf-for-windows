@@ -24,6 +24,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\ebpf_core.c" />
+    <ClCompile Include="..\ebpf_general_helpers.c" />
     <ClCompile Include="..\ebpf_link.c" />
     <ClCompile Include="..\ebpf_maps.c" />
     <ClCompile Include="..\ebpf_program.c" />

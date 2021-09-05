@@ -180,6 +180,9 @@ $(OutputPath)encode_program_info.exe</Command>
     <ProjectReference Include="..\..\libs\platform\user\platform_user.vcxproj">
       <Project>{c26cb6a9-158c-4a9e-a243-755ddd98e5fe}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\..\libs\execution_context\user\execution_context_user.vcxproj">
+      <Project>{18127b0d-8381-4afe-9a3a-cf53241992d3}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
