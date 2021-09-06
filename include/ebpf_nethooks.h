@@ -20,7 +20,8 @@ typedef struct xdp_md
 typedef enum _xdp_action
 {
     XDP_PASS = 1, ///< Allow the packet to pass.
-    XDP_DROP = 2  ///< Drop the packet.
+    XDP_DROP,     ///< Drop the packet.
+    XDP_TX        ///< Bounce the received packet back out the same NIC it arrived on.
 } xdp_action_t;
 
 /**

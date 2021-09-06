@@ -3,6 +3,7 @@
 
 #define CATCH_CONFIG_MAIN
 
+#include <array>
 #include <chrono>
 #include <mutex>
 #include <thread>
@@ -21,6 +22,8 @@
 #include "sample_test_common.h"
 #include "test_helper.hpp"
 #include "tlv.h"
+#include "xdp_tests_common.h"
+
 namespace ebpf {
 #pragma warning(push)
 #pragma warning(disable : 4201) // nonstandard extension used : nameless struct/union
@@ -42,6 +45,76 @@ prepare_udp_packet(uint16_t udp_length)
 
     return packet;
 }
+
+const std::array<uint8_t, 6> _test_source_mac = {0, 1, 2, 3, 4, 5};
+const std::array<uint8_t, 6> _test_destination_mac = {0xa, 0xb, 0xc, 0xd, 0xe, 0xf};
+const in_addr _test_source_ip = {10, 0, 0, 1};
+const in_addr _test_destination_ip = {20, 0, 0, 1};
+
+typedef class _udp_packet
+{
+  public:
+    _udp_packet(
+        _In_ const std::array<uint8_t, 6>& source_mac = _test_source_mac,
+        _In_ const std::array<uint8_t, 6> destination_mac = _test_destination_mac,
+        _In_ const in_addr* source_ip = &_test_source_ip,
+        _In_ const in_addr* destination_ip = &_test_destination_ip,
+        uint16_t datagram_length = 1024)
+    {
+        UNREFERENCED_PARAMETER(source_mac);
+        UNREFERENCED_PARAMETER(destination_mac);
+        _packet = prepare_udp_packet(sizeof(ebpf::UDP_HEADER) + datagram_length);
+        set_mac_addresses(source_mac, destination_mac);
+        set_ip_addresses(source_ip, destination_ip);
+    }
+    uint8_t*
+    data()
+    {
+        return _packet.data();
+    }
+    size_t
+    size()
+    {
+        return _packet.size();
+    }
+
+    void
+    set_source_port(uint16_t source_port)
+    {
+        auto eth = reinterpret_cast<ebpf::ETHERNET_HEADER*>(_packet.data());
+        auto ipv4 = reinterpret_cast<ebpf::IPV4_HEADER*>(eth + 1);
+        auto udp = reinterpret_cast<ebpf::UDP_HEADER*>(ipv4 + 1);
+        udp->srcPort = source_port;
+    }
+
+    void
+    set_destination_port(uint16_t destination_port)
+    {
+        auto eth = reinterpret_cast<ebpf::ETHERNET_HEADER*>(_packet.data());
+        auto ipv4 = reinterpret_cast<ebpf::IPV4_HEADER*>(eth + 1);
+        auto udp = reinterpret_cast<ebpf::UDP_HEADER*>(ipv4 + 1);
+        udp->destPort = destination_port;
+    }
+
+  private:
+    std::vector<uint8_t> _packet;
+    void
+    set_mac_addresses(_In_ const std::array<uint8_t, 6>& source_mac, _In_ const std::array<uint8_t, 6>& destination_mac)
+    {
+        auto eth = reinterpret_cast<ebpf::ETHERNET_HEADER*>(_packet.data());
+        memcpy(eth->Source, source_mac.data(), sizeof(eth->Source));
+        memcpy(eth->Destination, destination_mac.data(), sizeof(eth->Destination));
+    }
+    void
+    set_ip_addresses(_In_ const in_addr* source_address, _In_ const in_addr* destination_address)
+    {
+        auto eth = reinterpret_cast<ebpf::ETHERNET_HEADER*>(_packet.data());
+        auto ipv4 = reinterpret_cast<ebpf::IPV4_HEADER*>(eth + 1);
+
+        ipv4->SourceAddress = source_address->s_addr;
+        ipv4->DestinationAddress = destination_address->s_addr;
+    }
+} udp_packet_t;
 
 #define SAMPLE_PATH ""
 
@@ -853,3 +926,34 @@ TEST_CASE("create_map_name", "[end_to_end]")
         value++;
     }
 }
+
+static void
+_xdp_reflect_packet_test(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
+    program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
+    program_load_attach_helper_t program_helper(
+        SAMPLE_PATH "reflect_packet.o", EBPF_PROGRAM_TYPE_XDP, "reflect_packet", execution_type, hook);
+
+    // Dummy UDP datagram with fake IP and MAC addresses.
+    udp_packet_t packet;
+    packet.set_destination_port(ntohs(REFLECTION_TEST_PORT));
+
+    // Dummy context (not used by the eBPF program).
+    xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
+
+    int hook_result;
+    REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
+    REQUIRE(hook_result == 3);
+
+    ebpf::ETHERNET_HEADER* eth_hdr = reinterpret_cast<ebpf::ETHERNET_HEADER*>(ctx.data);
+    REQUIRE(memcmp(eth_hdr->Destination, _test_source_mac.data(), sizeof(eth_hdr->Destination)) == 0);
+    REQUIRE(memcmp(eth_hdr->Source, _test_destination_mac.data(), sizeof(eth_hdr->Source)) == 0);
+    ebpf::IPV4_HEADER* ipv4 = reinterpret_cast<ebpf::IPV4_HEADER*>(eth_hdr + 1);
+    REQUIRE(ipv4->SourceAddress == _test_destination_ip.s_addr);
+    REQUIRE(ipv4->DestinationAddress == _test_source_ip.s_addr);
+}
+
+TEST_CASE("xdp-reflect-jit", "[xdp_tests]") { _xdp_reflect_packet_test(EBPF_EXECUTION_INTERPRET); }
+TEST_CASE("xdp-reflect-interpret", "[xdp_tests]") { _xdp_reflect_packet_test(EBPF_EXECUTION_INTERPRET); }
