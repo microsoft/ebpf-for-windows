@@ -17,6 +17,17 @@ ntohs(uint16_t us)
     return us << 8 | us >> 8;
 }
 
+typedef struct _ETHERNET_HEADER
+{
+    uint8_t Destination[6];
+    uint8_t Source[6];
+    union
+    {
+        uint16_t Type;   // Ethernet
+        uint16_t Length; // IEEE 802
+    };
+} ETHERNET_HEADER, *PETHERNET_HEADER;
+
 typedef struct _IPV4_HEADER
 {
     union

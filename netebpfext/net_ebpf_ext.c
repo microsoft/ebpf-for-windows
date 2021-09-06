@@ -167,7 +167,7 @@ typedef struct _net_ebpf_ext_wfp_callout_state
 static net_ebpf_ext_wfp_callout_state_t _net_ebpf_ext_wfp_callout_state[] = {
     {
         &EBPF_HOOK_L2_CALLOUT,
-        &FWPM_LAYER_INBOUND_MAC_FRAME_ETHERNET,
+        &FWPM_LAYER_INBOUND_MAC_FRAME_NATIVE,
         _net_ebpf_ext_layer_2_classify,
         _net_ebpf_ext_no_op_notify,
         _net_ebpf_ext_no_op_flow_delete,

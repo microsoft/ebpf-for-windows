@@ -11,9 +11,6 @@
 #include "ebpf_serialize.h"
 #include "ebpf_state.h"
 
-extern ebpf_helper_function_prototype_t* _ebpf_core_helper_function_prototype;
-extern uint32_t _ebpf_core_helper_functions_count;
-
 const ebpf_handle_t ebpf_handle_invalid = (ebpf_handle_t)-1;
 
 GUID ebpf_general_helper_function_interface_id = {/* 8d2a1d3f-9ce6-473d-b48e-17aa5c5581fe */
