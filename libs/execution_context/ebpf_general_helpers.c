@@ -2,14 +2,14 @@
 // SPDX-License-Identifier: MIT
 
 /**
- * @brief Prototypes for general helper function implemented by eBPF core Execution Context.
+ * @brief Prototypes for general helper functions (aka global functions) implemented by eBPF core Execution Context.
  */
 
 #include "ebpf_platform.h"
 #include "ebpf_program_types.h"
 #include "ebpf_structs.h"
 
-ebpf_helper_function_prototype_t _ebpf_core_helper_function_prototype_array[] = {
+ebpf_helper_function_prototype_t ebpf_core_helper_function_prototype_array[] = {
     {BPF_FUNC_map_lookup_elem,
      "bpf_map_lookup_elem",
      EBPF_RETURN_TYPE_PTR_TO_MAP_VALUE_OR_NULL,
@@ -36,9 +36,9 @@ extern "C"
 {
 #endif
 
-    ebpf_helper_function_prototype_t* _ebpf_core_helper_function_prototype =
-        &_ebpf_core_helper_function_prototype_array[0];
-    uint32_t _ebpf_core_helper_functions_count = EBPF_COUNT_OF(_ebpf_core_helper_function_prototype_array);
+    ebpf_helper_function_prototype_t* ebpf_core_helper_function_prototype =
+        &ebpf_core_helper_function_prototype_array[0];
+    uint32_t ebpf_core_helper_functions_count = EBPF_COUNT_OF(ebpf_core_helper_function_prototype_array);
 
 #ifdef __cplusplus
 }

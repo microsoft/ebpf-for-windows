@@ -8,12 +8,8 @@
 #include "ebpf_maps.h"
 #include "ebpf_pinning_table.h"
 #include "ebpf_program.h"
-#include "ebpf_program_types.h"
 #include "ebpf_serialize.h"
 #include "ebpf_state.h"
-
-extern ebpf_helper_function_prototype_t* _ebpf_core_helper_function_prototype;
-extern uint32_t _ebpf_core_helper_functions_count;
 
 const ebpf_handle_t ebpf_handle_invalid = (ebpf_handle_t)-1;
 
@@ -104,8 +100,8 @@ ebpf_core_initiate()
     if (return_value != EBPF_SUCCESS)
         goto Done;
 
-    _ebpf_global_helper_program_info.count_of_helpers = _ebpf_core_helper_functions_count;
-    _ebpf_global_helper_program_info.helper_prototype = _ebpf_core_helper_function_prototype;
+    _ebpf_global_helper_program_info.count_of_helpers = ebpf_core_helper_functions_count;
+    _ebpf_global_helper_program_info.helper_prototype = ebpf_core_helper_function_prototype;
     return_value = ebpf_provider_load(
         &_ebpf_global_helper_function_provider_context,
         &ebpf_general_helper_function_interface_id,

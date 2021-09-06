@@ -20,12 +20,7 @@
 #include "ebpf_serialize.h"
 #include "ebpf_xdp_program_data.h"
 #include "ebpf_state.h"
-
-extern "C"
-{
-    extern ebpf_helper_function_prototype_t* _ebpf_core_helper_function_prototype;
-    extern uint32_t _ebpf_core_helper_functions_count;
-}
+#include "encode_program_info.h"
 
 class _test_helper
 {
@@ -408,7 +403,7 @@ TEST_CASE("program_type_info", "[platform]")
         EBPF_OFFSET_OF(xdp_md_t, data_meta)};
     ebpf_program_type_descriptor_t program_type{"xdp", &context_descriptor};
     ebpf_program_info_t program_info{
-        program_type, _ebpf_core_helper_functions_count, _ebpf_core_helper_function_prototype};
+        program_type, ebpf_core_helper_functions_count, ebpf_core_helper_function_prototype};
     ebpf_program_info_t* new_program_info = nullptr;
     uint8_t* buffer = nullptr;
     unsigned long buffer_size;
@@ -426,7 +421,7 @@ TEST_CASE("program_type_info_stored", "[platform]")
         ebpf_program_info_decode(
             &xdp_program_info, _ebpf_encoded_xdp_program_info_data, sizeof(_ebpf_encoded_xdp_program_info_data)) ==
         EBPF_SUCCESS);
-    REQUIRE(xdp_program_info->count_of_helpers == _ebpf_core_helper_functions_count);
+    REQUIRE(xdp_program_info->count_of_helpers == ebpf_core_helper_functions_count);
     REQUIRE(strcmp(xdp_program_info->program_type_descriptor.name, "xdp") == 0);
     ebpf_free(xdp_program_info);
 
@@ -435,7 +430,7 @@ TEST_CASE("program_type_info_stored", "[platform]")
             &bind_program_info, _ebpf_encoded_bind_program_info_data, sizeof(_ebpf_encoded_bind_program_info_data)) ==
         EBPF_SUCCESS);
     REQUIRE(strcmp(bind_program_info->program_type_descriptor.name, "bind") == 0);
-    REQUIRE(bind_program_info->count_of_helpers == _ebpf_core_helper_functions_count);
+    REQUIRE(bind_program_info->count_of_helpers == ebpf_core_helper_functions_count);
     ebpf_free(bind_program_info);
 }
 
