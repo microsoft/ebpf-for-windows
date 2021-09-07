@@ -91,9 +91,6 @@
     <ResourceCompile>
       <AdditionalIncludeDirectories>$(OutDir)</AdditionalIncludeDirectories>
     </ResourceCompile>
-    <PreBuildEvent>
-      <Command>powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\generate-commitid.ps1 $(OutDir)</Command>
-    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -123,10 +120,6 @@
     <ResourceCompile>
       <AdditionalIncludeDirectories>$(OutDir)</AdditionalIncludeDirectories>
     </ResourceCompile>
-    <PreBuildEvent>
-      <Command>powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\generate-commitid.ps1 $(OutDir)
-</Command>
-    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>

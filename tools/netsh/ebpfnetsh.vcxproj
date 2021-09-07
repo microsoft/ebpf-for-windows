@@ -74,9 +74,6 @@
       </ModuleDefinitionFile>
       <AdditionalLibraryDirectories>$(OutDir)</AdditionalLibraryDirectories>
     </Link>
-    <PreBuildEvent>
-      <Command>powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\generate-commitid.ps1 $(OutDir)</Command>
-    </PreBuildEvent>
     <ResourceCompile>
       <AdditionalIncludeDirectories>$(OutDir)</AdditionalIncludeDirectories>
     </ResourceCompile>
@@ -104,9 +101,6 @@
       </ModuleDefinitionFile>
       <AdditionalLibraryDirectories>$(OutDir)</AdditionalLibraryDirectories>
     </Link>
-    <PreBuildEvent>
-      <Command>powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\generate-commitid.ps1 $(OutDir)</Command>
-    </PreBuildEvent>
     <ResourceCompile>
       <AdditionalIncludeDirectories>$(OutDir)</AdditionalIncludeDirectories>
     </ResourceCompile>
