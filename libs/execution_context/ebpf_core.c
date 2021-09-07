@@ -8,7 +8,6 @@
 #include "ebpf_maps.h"
 #include "ebpf_pinning_table.h"
 #include "ebpf_program.h"
-#include "ebpf_program_types.h"
 #include "ebpf_serialize.h"
 #include "ebpf_state.h"
 
@@ -47,32 +46,7 @@ _ebpf_core_get_current_cpu();
 
 #define EBPF_CORE_GLOBAL_HELPER_EXTENSION_VERSION 0
 
-static ebpf_helper_function_prototype_t _ebpf_map_helper_function_prototype[] = {
-    {(uint32_t)(intptr_t)bpf_map_lookup_elem,
-     "bpf_map_lookup_elem",
-     EBPF_RETURN_TYPE_PTR_TO_MAP_VALUE_OR_NULL,
-     {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY}},
-    {(uint32_t)(intptr_t)bpf_map_update_elem,
-     "bpf_map_update_elem",
-     EBPF_RETURN_TYPE_INTEGER,
-     {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_VALUE}},
-    {(uint32_t)(intptr_t)bpf_map_delete_elem,
-     "bpf_map_delete_elem",
-     EBPF_RETURN_TYPE_INTEGER,
-     {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY}},
-    {(uint32_t)(intptr_t)bpf_tail_call,
-     "bpf_tail_call",
-     EBPF_RETURN_TYPE_INTEGER_OR_NO_RETURN_IF_SUCCEED,
-     {EBPF_ARGUMENT_TYPE_PTR_TO_CTX, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_OF_PROGRAMS, EBPF_ARGUMENT_TYPE_ANYTHING}},
-    {(uint32_t)(intptr_t)bpf_get_prandom_u32, "bpf_get_prandom_u32", EBPF_RETURN_TYPE_INTEGER, {0}},
-    {(uint64_t)(intptr_t)bpf_ktime_get_boot_ns, "bpf_ktime_get_boot_ns", EBPF_RETURN_TYPE_INTEGER, {0}},
-    {(uint32_t)(intptr_t)bpf_get_smp_processor_id, "bpf_get_smp_processor_id", EBPF_RETURN_TYPE_INTEGER, {0}},
-};
-
-static ebpf_program_info_t _ebpf_global_helper_program_info = {
-    {"global_helper", NULL, {0}},
-    EBPF_COUNT_OF(_ebpf_map_helper_function_prototype),
-    _ebpf_map_helper_function_prototype};
+static ebpf_program_info_t _ebpf_global_helper_program_info = {{"global_helper", NULL, {0}}, 0, NULL};
 
 static const void* _ebpf_general_helpers[] = {
     NULL,
@@ -126,6 +100,8 @@ ebpf_core_initiate()
     if (return_value != EBPF_SUCCESS)
         goto Done;
 
+    _ebpf_global_helper_program_info.count_of_helpers = ebpf_core_helper_functions_count;
+    _ebpf_global_helper_program_info.helper_prototype = ebpf_core_helper_function_prototype;
     return_value = ebpf_provider_load(
         &_ebpf_global_helper_function_provider_context,
         &ebpf_general_helper_function_interface_id,
