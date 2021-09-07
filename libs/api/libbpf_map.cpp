@@ -222,3 +222,20 @@ bpf_map_get_next_key(int fd, const void* key, void* next_key)
 {
     return libbpf_result_err(ebpf_map_get_next_key(fd, key, next_key));
 }
+
+int
+bpf_map_get_fd_by_id(uint32_t id)
+{
+    fd_t fd;
+    ebpf_result_t result = ebpf_get_map_fd_by_id(id, &fd);
+    if (result != EBPF_SUCCESS) {
+        return libbpf_result_err(result);
+    }
+    return fd;
+}
+
+int
+bpf_map_get_next_id(uint32_t start_id, uint32_t* next_id)
+{
+    return libbpf_result_err(ebpf_get_next_map_id(start_id, next_id));
+}
