@@ -206,7 +206,7 @@ _query_and_cache_map_descriptors(
         for (uint32_t i = 0; i < handle_map_count; i++) {
             uint32_t size;
             descriptor = {0};
-            uint32_t inner_map_id;
+            ebpf_id_t inner_map_id;
             result = query_map_definition(
                 handle_map[i].handle,
                 &size,

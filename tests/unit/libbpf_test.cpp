@@ -8,6 +8,7 @@
 #pragma warning(disable : 4200)
 #include "libbpf.h"
 #pragma warning(pop)
+#include "program_helper.h"
 #include "test_helper.hpp"
 
 // libbpf.h uses enum types and generates the
@@ -474,6 +475,42 @@ TEST_CASE("disallow prog_array mixed program type values", "[libbpf]")
     bpf_object__close(xdp_object);
 }
 
+TEST_CASE("enumerate program IDs", "[libbpf]")
+{
+    _test_helper_end_to_end test_helper;
+    program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
+
+    // Verify the enumeration is empty.
+    uint32_t id1;
+    REQUIRE(bpf_prog_get_next_id(0, &id1) < 0);
+    REQUIRE(errno == ENOENT);
+
+    // Load a file with multiple programs.
+    struct bpf_object* xdp_object;
+    int xdp_object_fd;
+    int error = bpf_prog_load("tail_call.o", BPF_PROG_TYPE_XDP, &xdp_object, &xdp_object_fd);
+    REQUIRE(error == 0);
+    REQUIRE(xdp_object != nullptr);
+
+    // Now enumerate the IDs.
+    REQUIRE(bpf_prog_get_next_id(0, &id1) == 0);
+    fd_t fd1 = bpf_prog_get_fd_by_id(id1);
+    REQUIRE(fd1 >= 0);
+    ebpf_close_fd(fd1); // TODO(issue #287): change to _close(fd1);
+
+    uint32_t id2;
+    REQUIRE(bpf_prog_get_next_id(id1, &id2) == 0);
+    fd_t fd2 = bpf_prog_get_fd_by_id(id2);
+    REQUIRE(fd2 >= 0);
+    ebpf_close_fd(fd2); // TODO(issue #287): change to _close(fd2);
+
+    uint32_t id3;
+    REQUIRE(bpf_prog_get_next_id(id2, &id3) < 0);
+    REQUIRE(errno == ENOENT);
+
+    bpf_object__close(xdp_object);
+}
+
 // Verify libbpf can create and update arrays of maps.
 TEST_CASE("simple hash of maps", "[libbpf]")
 {
@@ -593,4 +630,78 @@ TEST_CASE("disallow wrong inner map types", "[libbpf]")
 
     ebpf_close_fd(inner_map_fd); // TODO(issue #287): change to _close(inner_map_fd);
     bpf_object__close(xdp_object);
+}
+
+TEST_CASE("enumerate map IDs", "[libbpf]")
+{
+    _test_helper_end_to_end test_helper;
+
+    // Verify the enumeration is empty.
+    uint32_t id1;
+    REQUIRE(bpf_map_get_next_id(0, &id1) < 0);
+    REQUIRE(errno == ENOENT);
+
+    // Create two maps.
+    int map1_fd = bpf_create_map(BPF_MAP_TYPE_ARRAY, sizeof(__u32), sizeof(__u32), 1, 0);
+    REQUIRE(map1_fd > 0);
+
+    int map2_fd = bpf_create_map(BPF_MAP_TYPE_HASH, sizeof(__u32), sizeof(__u32), 1, 0);
+    REQUIRE(map2_fd > 0);
+
+    // Now enumerate the IDs.
+    REQUIRE(bpf_map_get_next_id(0, &id1) == 0);
+    fd_t fd1 = bpf_map_get_fd_by_id(id1);
+    REQUIRE(fd1 >= 0);
+    ebpf_close_fd(fd1); // TODO(issue #287): change to _close(fd1);
+
+    uint32_t id2;
+    REQUIRE(bpf_map_get_next_id(id1, &id2) == 0);
+    fd_t fd2 = bpf_map_get_fd_by_id(id2);
+    REQUIRE(fd2 >= 0);
+    ebpf_close_fd(fd2); // TODO(issue #287): change to _close(fd2);
+
+    uint32_t id3;
+    REQUIRE(bpf_map_get_next_id(id2, &id3) < 0);
+    REQUIRE(errno == ENOENT);
+
+    ebpf_close_fd(map1_fd); // TODO(issue #287): change to _close(map1_fd);
+    ebpf_close_fd(map2_fd); // TODO(issue #287): change to _close(map2_fd);
+    ebpf_close_fd(fd1);     // TODO(issue #287): change to _close(fd1);
+    ebpf_close_fd(fd2);     // TODO(issue #287): change to _close(fd2);
+}
+
+TEST_CASE("enumerate link IDs", "[libbpf]")
+{
+    _test_helper_end_to_end test_helper;
+    program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
+    program_info_provider_t bind_program_info(EBPF_PROGRAM_TYPE_BIND);
+    single_instance_hook_t xdp_hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
+    single_instance_hook_t bind_hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
+
+    // Verify the enumeration is empty.
+    uint32_t id1;
+    REQUIRE(bpf_link_get_next_id(0, &id1) < 0);
+    REQUIRE(errno == ENOENT);
+
+    // Load and attach some programs.
+    program_load_attach_helper_t xdp_helper(
+        "droppacket.o", EBPF_PROGRAM_TYPE_XDP, "DropPacket", EBPF_EXECUTION_JIT, xdp_hook, false);
+    program_load_attach_helper_t bind_helper(
+        "bindmonitor.o", EBPF_PROGRAM_TYPE_BIND, "BindMonitor", EBPF_EXECUTION_JIT, bind_hook, false);
+
+    // Now enumerate the IDs.
+    REQUIRE(bpf_link_get_next_id(0, &id1) == 0);
+    fd_t fd1 = bpf_link_get_fd_by_id(id1);
+    REQUIRE(fd1 >= 0);
+    ebpf_close_fd(fd1); // TODO(issue #287): change to _close(fd1);
+
+    uint32_t id2;
+    REQUIRE(bpf_link_get_next_id(id1, &id2) == 0);
+    fd_t fd2 = bpf_link_get_fd_by_id(id2);
+    REQUIRE(fd2 >= 0);
+    ebpf_close_fd(fd2); // TODO(issue #287): change to _close(fd2);
+
+    uint32_t id3;
+    REQUIRE(bpf_link_get_next_id(id2, &id3) < 0);
+    REQUIRE(errno == ENOENT);
 }

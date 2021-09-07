@@ -48,7 +48,12 @@ ebpf_link_create(ebpf_link_t** link)
 
     memset(*link, 0, sizeof(ebpf_link_t));
 
-    ebpf_object_initialize(&(*link)->object, EBPF_OBJECT_LINK, _ebpf_link_free, NULL);
+    ebpf_result_t result = ebpf_object_initialize(&(*link)->object, EBPF_OBJECT_LINK, _ebpf_link_free, NULL);
+    if (result != EBPF_SUCCESS) {
+        ebpf_epoch_free(link);
+        return result;
+    }
+
     ebpf_lock_create(&(*link)->attach_lock);
     return EBPF_SUCCESS;
 }
