@@ -3,5 +3,15 @@
 
 param($OutDir)
 
+$file_name = ($OutDir + "\" + "git_commit_id.h")
 $commit_id = git rev-parse HEAD
-'#define GIT_COMMIT_ID "' + $commit_id + '"' + "`n" | out-file -FilePath ($OutDir + "\\" + "git_commit_id.h")
+$new_content = '#define GIT_COMMIT_ID "' + $commit_id + '"' + "`n"
+[string]$old_content = ""
+if (Test-Path $file_name) {
+    $old_content = Get-Content $file_name
+}
+$old_commit_id = $old_content.Split('"')[1]
+if ($old_commit_id -ne $commit_id) {
+    Write-Output "Commit ID changed, regenerating $file_name"
+    $new_content | out-file -FilePath $file_name
+}
