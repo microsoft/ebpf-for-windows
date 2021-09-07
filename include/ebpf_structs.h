@@ -32,6 +32,9 @@ typedef enum ebpf_map_option
     EBPF_EXIST
 } ebpf_map_option_t;
 
+typedef uint32_t ebpf_id_t;
+#define EBPF_ID_NONE UINT32_MAX
+
 /**
  * @brief eBPF Map Definition as it is stored in memory.
  */
@@ -42,7 +45,7 @@ typedef struct _ebpf_map_definition_in_memory
     uint32_t key_size;    ///< Size in bytes of a map key.
     uint32_t value_size;  ///< Size in bytes of a map value.
     uint32_t max_entries; ///< Maximum number of entries allowed in the map.
-    uint32_t inner_map_id;
+    ebpf_id_t inner_map_id;
 } ebpf_map_definition_in_memory_t;
 
 /**

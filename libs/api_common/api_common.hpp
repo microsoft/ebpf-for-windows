@@ -197,7 +197,7 @@ query_map_definition(
     _Out_ uint32_t* key_size,
     _Out_ uint32_t* value_size,
     _Out_ uint32_t* max_entries,
-    _Out_ uint32_t* inner_map_id) noexcept;
+    _Out_ ebpf_id_t* inner_map_id) noexcept;
 
 void
 set_global_program_and_attach_type(const ebpf_program_type_t* program_type, const ebpf_attach_type_t* attach_type);
