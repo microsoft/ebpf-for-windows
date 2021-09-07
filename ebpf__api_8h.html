@@ -1117,7 +1117,7 @@ Variables</h2></td></tr>
 <p>Create an eBPF map with input parameters. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">type</td><td>Map type. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">map_type</td><td>Map type. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">key_size</td><td>Key size. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">value_size</td><td>Value size. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">max_entries</td><td>Maximum number of entries in the map. </td></tr>
@@ -1354,10 +1354,13 @@ Variables</h2></td></tr>
 <dl class="retval"><dt>Return values</dt><dd>
   <table class="retval">
     <tr><td class="paramname">EBPF_SUCCESS</td><td>The operation was successful. </td></tr>
-    <tr><td class="paramname">EBPF_INVALID_ARGUMENT</td><td>Invalid argument was provided. </td></tr>
+    <tr><td class="paramname">EBPF_INVALID_ARGUMENT</td><td>Invalid argument was provided.</td></tr>
   </table>
   </dd>
 </dl>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="libbpf_8h.html#ab10dd31881e90cb8ba93ffb77b92308b" title="Clean up a link.">bpf_link__destroy</a> </dd>
+<dd>
+<a class="el" href="bpf_8h.html#a9bd017a4caa22bd9d57426e43b3390e1" title="Detach a link.">bpf_link_detach</a> </dd></dl>
 
 </div>
 </div>

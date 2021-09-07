@@ -80,14 +80,21 @@ eBPF Program Reference</h1>
 <p>More hooks will be added over time.</p>
 <p>eBPF programs can also call helper APIs to do additional processing. There are two types of helpers: </p><ul>
 <li>
-Helpers defined in ebpf_helpers.h which are accessible to all program types. </li>
+Helpers defined in <a class="el" href="bpf__helpers_8h.html">bpf_helpers.h</a> which are accessible to all program types. </li>
 <li>
 Helpers specific to a given program type and declared in other headers. </li>
 </ul>
 <p>The documentation for each program type will list which helper header files can be used for that program type. Similarly such documentation for each program type will give the API prototype to implement, and the list of supported attach types that can be used when attaching an eBPF program. Most program types have only a single attach type, but some may support multiple places to which the same type of program can be attached.</p>
 <h1><a class="anchor" id="api"></a>
 eBPF User-Mode API Reference</h1>
-<p>Eventually the libbpf API will be supported but this is still a work in progress. In the meantime, <a class="el" href="ebpf__api_8h.html">ebpf_api.h</a> defines the temporary user-mode API. </p>
+<p>User-mode applications have access to three types of APIs: </p><ul>
+<li>
+Libbpf APIs defined in <a class="el" href="libbpf_8h.html">libbpf.h</a>. </li>
+<li>
+Libbpf APIs defined in <a href="bpf_8h.html"><b>bpf.h</b></a>. </li>
+<li>
+Additional APIs defined in <a class="el" href="ebpf__api_8h.html">ebpf_api.h</a>. Many of these are temporary and will be replaced as more Libbpf APIs are supported directly. </li>
+</ul>
 </div></div><!-- PageDoc -->
 </div><!-- contents -->
 <!-- start footer part -->
