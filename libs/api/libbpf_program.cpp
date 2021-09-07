@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #include "api_internal.h"
+#include "bpf.h"
 #pragma warning(push)
 #pragma warning(disable : 4200)
 #include "libbpf.h"
@@ -268,4 +269,21 @@ void
 bpf_program__set_expected_attach_type(struct bpf_program* program, enum bpf_attach_type type)
 {
     program->attach_type = *_get_ebpf_attach_type(type);
+}
+
+int
+bpf_prog_get_fd_by_id(uint32_t id)
+{
+    fd_t fd;
+    ebpf_result_t result = ebpf_get_program_fd_by_id(id, &fd);
+    if (result != EBPF_SUCCESS) {
+        return libbpf_result_err(result);
+    }
+    return fd;
+}
+
+int
+bpf_prog_get_next_id(uint32_t start_id, uint32_t* next_id)
+{
+    return libbpf_result_err(ebpf_get_next_program_id(start_id, next_id));
 }

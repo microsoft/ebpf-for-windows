@@ -23,7 +23,7 @@
  *
  *  eBPF programs can also call helper APIs to do additional processing.  There are two types of helpers:
  *  <ul>
- *   <li>Helpers defined in ebpf_helpers.h which are accessible to all program types.
+ *   <li>Helpers defined in bpf_helpers.h which are accessible to all program types.
  *   <li>Helpers specific to a given program type and declared in other headers.
  *  </ul>
  *  The documentation for each program type will list which helper header files can be used for that program type.
@@ -33,6 +33,11 @@
  *
  *  @section api eBPF User-Mode API Reference
  *
- *  Eventually the libbpf API will be supported but this is still a work in progress.
- *  In the meantime, ebpf_api.h defines the temporary user-mode API.
+ *  User-mode applications have access to three types of APIs:
+ *  <ul>
+ *   <li> Libbpf APIs defined in libbpf.h.
+ *   <li> Libbpf APIs defined in [**bpf.h**](bpf_8h.html).
+ *   <li> Additional APIs defined in ebpf_api.h.  Many of these are temporary and will be replaced as more
+ *        Libbpf APIs are supported directly.
+ *  </ul>
  */

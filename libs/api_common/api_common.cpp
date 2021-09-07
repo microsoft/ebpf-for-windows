@@ -64,7 +64,7 @@ query_map_definition(
     _Out_ uint32_t* key_size,
     _Out_ uint32_t* value_size,
     _Out_ uint32_t* max_entries,
-    _Out_ uint32_t* inner_map_id) noexcept
+    _Out_ ebpf_id_t* inner_map_id) noexcept
 {
     _ebpf_operation_query_map_definition_request request{
         sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_QUERY_MAP_DEFINITION, reinterpret_cast<uint64_t>(handle)};
