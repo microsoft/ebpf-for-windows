@@ -194,7 +194,6 @@ _ebpf_hash_table_bucket_entry(size_t key_size, _In_ ebpf_hash_bucket_header_t* b
  * @param[in] hash_table Hash table to update.
  * @param[in] key Key to operate on.
  * @param[in] value Value to be inserted or NULL.
- * @param[in] extra_value Extra value to be associated, or NULL.
  * @param[in] operation Operation to perform.
  * @retval EBPF_SUCCESS The operation succeeded.
  * @retval EBPF_KEY_NOT_FOUND The specified key is not present in the bucket.
@@ -205,7 +204,6 @@ _ebpf_hash_table_replace_bucket(
     _In_ ebpf_hash_table_t* hash_table,
     _In_ const uint8_t* key,
     _In_opt_ const uint8_t* value,
-    _In_opt_ const uint8_t* extra_value,
     ebpf_hash_bucket_operation_t operation)
 {
     ebpf_result_t result;
@@ -232,17 +230,7 @@ _ebpf_hash_table_replace_bucket(
         }
         delete_data = new_data;
         if (value) {
-            // TODO(issue #396): remove extra_value logic once we store ids in the value.
-            if (extra_value) {
-                // The value is in two input buffers: value and extra_value,
-                // which is always of size sizeof(void*).
-                size_t extra_value_offset = hash_table->value_size - sizeof(void*);
-                memcpy(new_data, value, extra_value_offset);
-                memcpy(new_data + extra_value_offset, extra_value, sizeof(void*));
-            } else {
-                // The full value is contiguous.
-                memcpy(new_data, value, hash_table->value_size);
-            }
+            memcpy(new_data, value, hash_table->value_size);
         }
         break;
     case EBPF_HASH_BUCKET_OPERATION_DELETE:
@@ -502,7 +490,6 @@ ebpf_hash_table_update(
     _In_ ebpf_hash_table_t* hash_table,
     _In_ const uint8_t* key,
     _In_opt_ const uint8_t* value,
-    _In_opt_ const uint8_t* extra_value,
     ebpf_hash_table_operations_t operation)
 {
     ebpf_result_t retval;
@@ -528,7 +515,7 @@ ebpf_hash_table_update(
         goto Done;
     }
 
-    retval = _ebpf_hash_table_replace_bucket(hash_table, key, value, extra_value, bucket_operation);
+    retval = _ebpf_hash_table_replace_bucket(hash_table, key, value, bucket_operation);
 Done:
     return retval;
 }
@@ -543,7 +530,7 @@ ebpf_hash_table_delete(_In_ ebpf_hash_table_t* hash_table, _In_ const uint8_t* k
         goto Done;
     }
 
-    retval = _ebpf_hash_table_replace_bucket(hash_table, key, NULL, NULL, EBPF_HASH_BUCKET_OPERATION_DELETE);
+    retval = _ebpf_hash_table_replace_bucket(hash_table, key, NULL, EBPF_HASH_BUCKET_OPERATION_DELETE);
 
 Done:
     return retval;

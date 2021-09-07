@@ -148,7 +148,7 @@ typedef struct _ebpf_operation_map_update_element_with_handle_request
     uintptr_t map_handle;
     uintptr_t value_handle;
     ebpf_map_option_t option;
-    uint8_t data[1]; // data is key+value
+    uint8_t key[1];
 } ebpf_operation_map_update_element_with_handle_request_t;
 
 typedef struct _ebpf_operation_map_delete_element_request

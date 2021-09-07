@@ -116,7 +116,6 @@ ebpf_pinning_table_insert(ebpf_pinning_table_t* pinning_table, const ebpf_utf8_s
         pinning_table->hash_table,
         (const uint8_t*)&new_key,
         (const uint8_t*)&new_pinning_entry,
-        NULL,
         EBPF_HASH_TABLE_OPERATION_INSERT);
     if (return_value == EBPF_KEY_ALREADY_EXISTS) {
         return_value = EBPF_OBJECT_ALREADY_EXISTS;

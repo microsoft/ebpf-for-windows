@@ -360,6 +360,16 @@ _ebpf_test_tail_call(_In_z_ const char* filename, int expected_result)
     error = bpf_map_update_elem(map_fd, (uint8_t*)&index, (uint8_t*)&callee_fd, 0);
     REQUIRE(error == 0);
 
+    // Verify that we can read it back.
+    ebpf_id_t callee_id;
+    REQUIRE(bpf_map_lookup_elem(map_fd, &index, &callee_id) == 0);
+
+    // Verify that we can convert the ID to a new fd, so we know it is actually
+    // a valid program ID.
+    int callee_fd2 = bpf_prog_get_fd_by_id(callee_id);
+    REQUIRE(callee_fd2 > 0);
+    ebpf_close_fd(callee_fd2); // TODO(issue #287): change to _close(callee_fd2);
+
     bpf_link* link = bpf_program__attach_xdp(caller, 1);
     REQUIRE(link != nullptr);
 
@@ -526,6 +536,16 @@ TEST_CASE("simple hash of maps", "[libbpf]")
     __u32 outer_key = 0;
     int error = bpf_map_update_elem(outer_map_fd, &outer_key, &inner_map_fd, 0);
     REQUIRE(error == 0);
+
+    // Verify that we can read it back.
+    ebpf_id_t inner_map_id;
+    REQUIRE(bpf_map_lookup_elem(outer_map_fd, &outer_key, &inner_map_id) == 0);
+
+    // Verify that we can convert the ID to a new fd, so we know it is actually
+    // a valid map ID.
+    int inner_map_fd2 = bpf_map_get_fd_by_id(inner_map_id);
+    REQUIRE(inner_map_fd2 > 0);
+    ebpf_close_fd(inner_map_fd2); // TODO(issue #287): change to _close(inner_map_fd2);
 
     // Verify we can't insert an integer into the outer map.
     __u32 bad_value = 12345678;
