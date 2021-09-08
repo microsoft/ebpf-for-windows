@@ -447,8 +447,10 @@ _net_ebpf_ext_handle_xdp_tx(_Inout_ NET_BUFFER_LIST* packet, _In_ const FWPS_INC
         ndis_port,
         packet_clone,
         _net_ebpf_ext_l2_inject_complete,
-        NULL);
-
+        NULL); 
+   
+    if (status != STATUS_SUCCESS)
+        goto Exit;
 Exit:
     return;
 }
