@@ -12,7 +12,6 @@ name: Kernel_Test
 on:
   workflow_run:
     workflows: ["MSBuild"]
-    branches: [master]
     types:
       - completed
 
