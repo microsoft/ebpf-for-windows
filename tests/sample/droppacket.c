@@ -21,20 +21,26 @@ SEC("xdp")
 int
 DropPacket(xdp_md_t* ctx)
 {
-    IPV4_HEADER* iphdr = (IPV4_HEADER*)ctx->data;
-    UDP_HEADER* udphdr = (UDP_HEADER*)(iphdr + 1);
     int rc = XDP_PASS;
-    if ((char*)ctx->data + sizeof(IPV4_HEADER) + sizeof(UDP_HEADER) > (char*)ctx->data_end)
+    ETHERNET_HEADER* eth = NULL;
+
+    if ((char*)ctx->data + sizeof(ETHERNET_HEADER) + sizeof(IPV4_HEADER) + sizeof(UDP_HEADER) > (char*)ctx->data_end)
         goto Done;
 
-    // udp
-    if (iphdr->Protocol == 17) {
-        if (ntohs(udphdr->length) <= sizeof(UDP_HEADER)) {
-            long key = 0;
-            long* count = bpf_map_lookup_elem(&port_map, &key);
-            if (count)
-                *count = (*count + 1);
-            rc = XDP_DROP;
+    eth = (ETHERNET_HEADER*)ctx->data;
+    if (ntohs(eth->Type) == 0x0800) {
+        // IPv4.
+        IPV4_HEADER* iphdr = (IPV4_HEADER*)(eth + 1);
+        if (iphdr->Protocol == 17) {
+            // UDP.
+            UDP_HEADER* udphdr = (UDP_HEADER*)(iphdr + 1);
+            if (ntohs(udphdr->length) <= sizeof(UDP_HEADER)) {
+                long key = 0;
+                long* count = bpf_map_lookup_elem(&port_map, &key);
+                if (count)
+                    *count = (*count + 1);
+                rc = XDP_DROP;
+            }
         }
     }
 Done:
