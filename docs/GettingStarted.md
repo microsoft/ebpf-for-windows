@@ -41,6 +41,7 @@ This will build the following binaries:
                 and EbpCore and NetEbpfExt drivers to be loaded.
 * sample_ebpf_ext.sys: A sample eBPF extension driver that implements a test hook (for a test program type) and test helper functions.
 * sample_ext_app.exe : A sample application for testing the sample extension driver.
+* xdp_tests.exe : Application for testing various XDP functionalities.
 
 and a few binaries just used for demo'ing eBPF functionality, as in the demo walkthrough discussed below:
 
@@ -139,6 +140,10 @@ checking in changes.
 This is a test application for the sample eBPF extension. This application loads a test eBPF program
 and attaches it to the test hook implemented by the sample extension and validates if the eBPF program
 executed as expected.
+
+### xdp_tests.exe
+This application tests various XDP functionalities. This how the tests should be run:
+1. Reflection Test: This tests the XDP_TX functionality. On the system under test, install eBPF binaries, then load reflect_packet.o using netsh, ebpf, add program commands. Then from a remote host, run xdp_tests.exe and in `--remote-ip` parameter pass the IP address of the system under test.
 
 ### Running the tests
 1.	Set the build output folder as the current working directory.
