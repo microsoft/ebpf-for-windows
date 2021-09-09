@@ -265,8 +265,10 @@ _check_value_type(_In_ const ebpf_core_map_t* outer_map, _In_ const ebpf_object_
     ebpf_core_map_t* template = outer_map->inner_map_template;
     const ebpf_map_t* value_map = (ebpf_map_t*)value_object;
 
-    // TODO(discussion #460): what other map attributes need to match?
-    bool allowed = (template != NULL) && (value_map->ebpf_map_definition.type == template->ebpf_map_definition.type);
+    bool allowed = (template != NULL) && (value_map->ebpf_map_definition.type == template->ebpf_map_definition.type) &&
+                   (value_map->ebpf_map_definition.key_size == template->ebpf_map_definition.key_size) &&
+                   (value_map->ebpf_map_definition.value_size == template->ebpf_map_definition.value_size) &&
+                   (value_map->ebpf_map_definition.max_entries == template->ebpf_map_definition.max_entries);
 
     return allowed;
 }

@@ -591,7 +591,7 @@ TEST_CASE("array of maps", "[libbpf]")
     REQUIRE(outer_map_fd > 0);
 
     // Create an inner map.
-    int inner_map_fd = bpf_create_map(BPF_MAP_TYPE_ARRAY, sizeof(__u32), sizeof(__u32), 1, 0);
+    int inner_map_fd = bpf_create_map(BPF_MAP_TYPE_HASH, sizeof(__u32), sizeof(__u32), 1, 0);
     REQUIRE(inner_map_fd > 0);
 
     // Add a value to the inner map.
@@ -639,7 +639,7 @@ TEST_CASE("disallow wrong inner map types", "[libbpf]")
     REQUIRE(outer_map_fd > 0);
 
     // Create an inner map of the wrong type.
-    int inner_map_fd = bpf_create_map(BPF_MAP_TYPE_HASH, sizeof(__u32), sizeof(__u32), 1, 0);
+    int inner_map_fd = bpf_create_map(BPF_MAP_TYPE_ARRAY, sizeof(__u32), sizeof(__u32), 1, 0);
     REQUIRE(inner_map_fd > 0);
 
     // Try to add the array map to the outer map.
@@ -649,6 +649,31 @@ TEST_CASE("disallow wrong inner map types", "[libbpf]")
     REQUIRE(errno == EINVAL);
 
     ebpf_close_fd(inner_map_fd); // TODO(issue #287): change to _close(inner_map_fd);
+
+    // Try an inner map with wrong key_size.
+    inner_map_fd = bpf_create_map(BPF_MAP_TYPE_HASH, sizeof(__u64), sizeof(__u32), 1, 0);
+    REQUIRE(inner_map_fd > 0);
+    error = bpf_map_update_elem(outer_map_fd, &outer_key, &inner_map_fd, 0);
+    REQUIRE(error < 0);
+    REQUIRE(errno == EINVAL);
+    ebpf_close_fd(inner_map_fd); // TODO(issue #287): change to _close(inner_map_fd);
+
+    // Try an inner map of the wrong value size.
+    inner_map_fd = bpf_create_map(BPF_MAP_TYPE_HASH, sizeof(__u32), sizeof(__u64), 1, 0);
+    REQUIRE(inner_map_fd > 0);
+    error = bpf_map_update_elem(outer_map_fd, &outer_key, &inner_map_fd, 0);
+    REQUIRE(error < 0);
+    REQUIRE(errno == EINVAL);
+    ebpf_close_fd(inner_map_fd); // TODO(issue #287): change to _close(inner_map_fd);
+
+    // Try an inner map with wrong max_entries.
+    inner_map_fd = bpf_create_map(BPF_MAP_TYPE_HASH, sizeof(__u32), sizeof(__u32), 2, 0);
+    REQUIRE(inner_map_fd > 0);
+    error = bpf_map_update_elem(outer_map_fd, &outer_key, &inner_map_fd, 0);
+    REQUIRE(error < 0);
+    REQUIRE(errno == EINVAL);
+    ebpf_close_fd(inner_map_fd); // TODO(issue #287): change to _close(inner_map_fd);
+
     bpf_object__close(xdp_object);
 }
 
