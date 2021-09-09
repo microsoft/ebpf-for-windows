@@ -17,6 +17,11 @@ ntohs(uint16_t us)
     return us << 8 | us >> 8;
 }
 
+typedef uint8_t mac_address_t[6];
+
+#define ETHERNET_TYPE_IPV4 0x0800
+#define ETHERNET_TYPE_IPV6 0x86dd
+
 typedef struct _ETHERNET_HEADER
 {
     uint8_t Destination[6];
@@ -68,6 +73,27 @@ typedef struct _IPV4_HEADER
     uint32_t SourceAddress;
     uint32_t DestinationAddress;
 } IPV4_HEADER, *PIPV4_HEADER;
+
+typedef uint8_t ipv6_address_t[16];
+
+typedef struct _IPV6_HEADER
+{
+    union
+    {
+        uint32_t VersionClassFlow; // 4 bits Version, 8 Traffic Class, 20 Flow Label.
+        struct
+        { // Convenience structure to access Version field only.
+            uint32_t : 4;
+            uint32_t Version : 4;
+            uint32_t : 24;
+        };
+    };
+    uint16_t PayloadLength; // Zero indicates Jumbo Payload hop-by-hop option.
+    uint8_t NextHeader;     // Values are superset of IPv4's Protocol field.
+    uint8_t HopLimit;
+    ipv6_address_t SourceAddress;
+    ipv6_address_t DestinationAddress;
+} IPV6_HEADER, *PIPV6_HEADER;
 
 typedef struct UDP_HEADER_
 {

@@ -41,7 +41,8 @@ This will build the following binaries:
                 and EbpCore and NetEbpfExt drivers to be loaded.
 * sample_ebpf_ext.sys: A sample eBPF extension driver that implements a test hook (for a test program type) and test helper functions.
 * sample_ext_app.exe : A sample application for testing the sample extension driver.
-* xdp_tests.exe : Application for testing various XDP functionalities.
+* xdp_tests.exe : Application for testing various XDP functionalities.  This requires EbpSvc service to be running,
+                and EbpCore and NetEbpfExt drivers to be loaded.
 
 and a few binaries just used for demo'ing eBPF functionality, as in the demo walkthrough discussed below:
 
@@ -141,10 +142,6 @@ This is a test application for the sample eBPF extension. This application loads
 and attaches it to the test hook implemented by the sample extension and validates if the eBPF program
 executed as expected.
 
-### xdp_tests.exe
-This application tests various XDP functionalities. This how the tests should be run:
-1. Reflection Test: This tests the XDP_TX functionality. On the system under test, install eBPF binaries, then load reflect_packet.o using netsh, ebpf, add program commands. Then from a remote host, run xdp_tests.exe and in `--remote-ip` parameter pass the IP address of the system under test.
-
 ### Running the tests
 1.	Set the build output folder as the current working directory.
 2.	Invoke the appropriate exe.
@@ -158,3 +155,11 @@ Other useful options include:
 2.	-b to break into the debugger on test failure
 3.	-l to list test cases
 4.	Test_name to run a single test
+
+### xdp_tests.exe
+This application tests various XDP functionalities. It has the following tests:
+1. Reflection Test: This tests the XDP_TX functionality. The following steps show how to run the test:
+   1. On the system under test, install eBPF binaries (install-ebpf.bat).
+   2. Load the test eBPF program by running the following commands: `netsh`, `ebpf`, `add program reflect_packet.o xdp`.
+   3. From a remote host, run xdp_tests.exe and in `--remote-ip` parameter pass the IPv4/IPv6 address of an ethernet like interface on the system under test in string format.
+   4. Unload the program from system under test by running `delete program reflect_packet.o xdp` on the netsh prompt.

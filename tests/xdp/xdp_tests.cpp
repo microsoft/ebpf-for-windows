@@ -11,31 +11,39 @@
 #include "xdp_tests.h"
 #include "xdp_tests_common.h"
 
+#include <mstcpip.h>
+
 std::string _remote_ip;
 const uint16_t _reflection_port = REFLECTION_TEST_PORT;
 
 TEST_CASE("xdp_reflect_test", "[xdp_tests]")
 {
     int error = 0;
+    uint32_t ipv6_opt = 0;
+
     // Create a receiver socket.
     SOCKET receiver_socket = INVALID_SOCKET;
-    receiver_socket = WSASocket(AF_INET, SOCK_DGRAM, IPPROTO_UDP, nullptr, 0, WSA_FLAG_OVERLAPPED);
+    receiver_socket = WSASocket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP, nullptr, 0, WSA_FLAG_OVERLAPPED);
     if (receiver_socket == INVALID_SOCKET)
         FAIL("Failed to create receiver socket with error: " << WSAGetLastError());
+    error =
+        setsockopt(receiver_socket, IPPROTO_IPV6, IPV6_V6ONLY, reinterpret_cast<const char*>(&ipv6_opt), sizeof(ULONG));
+    if (error != 0)
+        FAIL("Could not enable dual family endpoint: " << WSAGetLastError());
 
     // Bind it to the reflection port.
-    struct sockaddr_in recv_addr;
-    recv_addr.sin_family = AF_INET;
-    recv_addr.sin_port = htons(_reflection_port);
-    recv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    SOCKADDR_STORAGE recv_addr;
+    recv_addr.ss_family = AF_INET6;
+    INETADDR_SETANY((PSOCKADDR)&recv_addr);
+    ((PSOCKADDR_IN6)&recv_addr)->sin6_port = htons(_reflection_port);
 
-    error = bind(receiver_socket, (SOCKADDR*)&recv_addr, sizeof(recv_addr));
+    error = bind(receiver_socket, (PSOCKADDR)&recv_addr, sizeof(recv_addr));
     if (error != 0)
         FAIL("Failed to bind receiver socket with error: " << WSAGetLastError());
 
     WSAOVERLAPPED overlapped = {};
 
-    // Create an event handle and setup the overlapped structure.
+    // Create an event handle and set up the overlapped structure.
     overlapped.hEvent = WSACreateEvent();
     if (overlapped.hEvent == NULL)
         FAIL("WSACreateEvent failed with error: " << WSAGetLastError());
@@ -44,7 +52,7 @@ TEST_CASE("xdp_reflect_test", "[xdp_tests]")
     std::vector<char> recv_buffer(1024);
     WSABUF wsa_recv_buffer{static_cast<ULONG>(recv_buffer.size()), reinterpret_cast<char*>(recv_buffer.data())};
     uint32_t recv_flags = 0;
-    struct sockaddr_in sender_addr;
+    SOCKADDR_STORAGE sender_addr;
     int sender_addr_size = sizeof(sender_addr);
     error = WSARecvFrom(
         receiver_socket,
@@ -52,7 +60,7 @@ TEST_CASE("xdp_reflect_test", "[xdp_tests]")
         1,
         nullptr,
         reinterpret_cast<LPDWORD>(&recv_flags),
-        (SOCKADDR*)&sender_addr,
+        (PSOCKADDR)&sender_addr,
         &sender_addr_size,
         &overlapped,
         nullptr);
@@ -64,21 +72,30 @@ TEST_CASE("xdp_reflect_test", "[xdp_tests]")
 
     // Create the sender socket for sending data.
     SOCKET sender_socket = INVALID_SOCKET;
-    sender_socket = WSASocket(AF_INET, SOCK_DGRAM, IPPROTO_UDP, nullptr, 0, 0);
+    sender_socket = WSASocket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP, nullptr, 0, 0);
     if (sender_socket == INVALID_SOCKET)
         FAIL("Failed to create sender socket with error: " << WSAGetLastError());
+    error =
+        setsockopt(sender_socket, IPPROTO_IPV6, IPV6_V6ONLY, reinterpret_cast<const char*>(&ipv6_opt), sizeof(ULONG));
+    if (error != 0)
+        FAIL("Could not enable dual family endpoint: " << WSAGetLastError());
 
     // Initialize the remote address.
-    struct sockaddr_in remote_address;
-
-    remote_address.sin_family = AF_INET;
-    inet_pton(AF_INET, _remote_ip.data(), &remote_address.sin_addr.s_addr);
-    if (remote_address.sin_addr.s_addr == INADDR_NONE) {
-        FAIL("The target ip address entered " << _remote_ip.data() << "must be a legal IPv4 address\n");
-    }
+    struct sockaddr_storage remote_address = {};
+    struct in_addr ipv4_addr;
+    // Try converting address string to IPv4 address.
+    if (inet_pton(AF_INET, _remote_ip.data(), &ipv4_addr))
+        // Get v4 mapped v6 address for dual stack socket.
+        IN6ADDR_SETV4MAPPED((PSOCKADDR_IN6)&remote_address, &ipv4_addr, scopeid_unspecified, 0);
+    // If not, try converting to IPv6 address.
+    else if (inet_pton(AF_INET6, _remote_ip.data(), &((PSOCKADDR_IN6)&remote_address)->sin6_addr))
+        remote_address.ss_family = AF_INET6;
+    // The address string is bad.
+    else
+        FAIL("The target ip address entered " << _remote_ip.data() << " must be a legal IP address\n");
 
     // Send a message to the remote host using the sender socket.
-    remote_address.sin_port = htons(_reflection_port);
+    ((PSOCKADDR_IN6)&remote_address)->sin6_port = htons(_reflection_port);
     const char* message = "Bo!ng";
     std::vector<char> send_buffer(message, message + strlen(message));
     WSABUF wsa_send_buffer{static_cast<ULONG>(send_buffer.size()), reinterpret_cast<char*>(send_buffer.data())};
@@ -90,7 +107,7 @@ TEST_CASE("xdp_reflect_test", "[xdp_tests]")
         1,
         reinterpret_cast<LPDWORD>(&bytes_sent),
         send_flags,
-        (SOCKADDR*)&remote_address,
+        (PSOCKADDR)&remote_address,
         sizeof(remote_address),
         nullptr,
         nullptr);
@@ -104,7 +121,7 @@ TEST_CASE("xdp_reflect_test", "[xdp_tests]")
         if (error == WSA_WAIT_TIMEOUT)
             FAIL("Receiver socket did not receive any message in 1 second.");
         else
-            FAIL("Waiting on receiver socekt failed with " << error);
+            FAIL("Waiting on receiver socket failed with " << error);
 
     uint32_t bytes_received = 0;
     if (!WSAGetOverlappedResult(

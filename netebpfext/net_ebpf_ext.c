@@ -416,14 +416,11 @@ net_ebpf_ext_unregister_callouts(void)
 
 static void
 _net_ebpf_ext_l2_inject_complete(
-    _In_ const void* context, _Inout_ NET_BUFFER_LIST* packet_clone, _In_ BOOLEAN dispatch_level)
+    _In_ const void* context, _Inout_ NET_BUFFER_LIST* packet_clone, BOOLEAN dispatch_level)
 {
     UNREFERENCED_PARAMETER(context);
     FwpsFreeCloneNetBufferList(packet_clone, dispatch_level);
 }
-
-#define L2_INTERFACE_INDEX FWPS_FIELD_INBOUND_MAC_FRAME_NATIVE_INTERFACE_INDEX
-#define L2_NDIS_PORT FWPS_FIELD_INBOUND_MAC_FRAME_NATIVE_NDIS_PORT
 
 static void
 _net_ebpf_ext_handle_xdp_tx(_Inout_ NET_BUFFER_LIST* packet, _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values)
@@ -431,8 +428,10 @@ _net_ebpf_ext_handle_xdp_tx(_Inout_ NET_BUFFER_LIST* packet, _In_ const FWPS_INC
     NET_BUFFER_LIST* packet_clone = NULL;
     NTSTATUS status = STATUS_SUCCESS;
 
-    uint32_t interface_index = incoming_fixed_values->incomingValue[L2_INTERFACE_INDEX].value.uint32;
-    uint32_t ndis_port = incoming_fixed_values->incomingValue[L2_NDIS_PORT].value.uint32;
+    uint32_t interface_index =
+        incoming_fixed_values->incomingValue[FWPS_FIELD_INBOUND_MAC_FRAME_NATIVE_INTERFACE_INDEX].value.uint32;
+    uint32_t ndis_port =
+        incoming_fixed_values->incomingValue[FWPS_FIELD_INBOUND_MAC_FRAME_NATIVE_NDIS_PORT].value.uint32;
 
     status = FwpsAllocateCloneNetBufferList(packet, NULL, NULL, 0, &packet_clone);
     if (status != STATUS_SUCCESS)
@@ -447,8 +446,8 @@ _net_ebpf_ext_handle_xdp_tx(_Inout_ NET_BUFFER_LIST* packet, _In_ const FWPS_INC
         ndis_port,
         packet_clone,
         _net_ebpf_ext_l2_inject_complete,
-        NULL); 
-   
+        NULL);
+
     if (status != STATUS_SUCCESS)
         goto Exit;
 Exit:
