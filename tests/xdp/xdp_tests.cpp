@@ -81,18 +81,20 @@ TEST_CASE("xdp_reflect_test", "[xdp_tests]")
         FAIL("Could not enable dual family endpoint: " << WSAGetLastError());
 
     // Initialize the remote address.
+    ADDRINFO* address_info = nullptr;
     struct sockaddr_storage remote_address = {};
-    struct in_addr ipv4_addr;
-    // Try converting address string to IPv4 address.
-    if (inet_pton(AF_INET, _remote_ip.data(), &ipv4_addr))
-        // Get v4 mapped v6 address for dual stack socket.
-        IN6ADDR_SETV4MAPPED((PSOCKADDR_IN6)&remote_address, &ipv4_addr, scopeid_unspecified, 0);
-    // If not, try converting to IPv6 address.
-    else if (inet_pton(AF_INET6, _remote_ip.data(), &((PSOCKADDR_IN6)&remote_address)->sin6_addr))
+    // Try converting address string to IP address.
+    error = getaddrinfo(_remote_ip.data(), nullptr, nullptr, &address_info);
+    if (error != 0)
+        FAIL("getaddrinfo for" << _remote_ip << " failed with " << WSAGetLastError());
+    if (address_info->ai_family == AF_INET)
+        IN6ADDR_SETV4MAPPED(
+            (PSOCKADDR_IN6)&remote_address, (IN_ADDR*)INETADDR_ADDRESS(address_info->ai_addr), scopeid_unspecified, 0);
+    else {
+        REQUIRE(address_info->ai_family == AF_INET6);
         remote_address.ss_family = AF_INET6;
-    // The address string is bad.
-    else
-        FAIL("The target ip address entered " << _remote_ip.data() << " must be a legal IP address\n");
+        INETADDR_SET_ADDRESS((PSOCKADDR)&remote_address, INETADDR_ADDRESS(address_info->ai_addr));
+    }
 
     // Send a message to the remote host using the sender socket.
     ((PSOCKADDR_IN6)&remote_address)->sin6_port = htons(_reflection_port);
@@ -136,6 +138,7 @@ TEST_CASE("xdp_reflect_test", "[xdp_tests]")
         REQUIRE(memcmp(recv_buffer.data(), message, strlen(message)) == 0);
     }
 
+    freeaddrinfo(address_info);
     closesocket(receiver_socket);
     WSACloseEvent(overlapped.hEvent);
     closesocket(sender_socket);

@@ -8,6 +8,13 @@
 #include <ws2tcpip.h>
 #pragma comment(lib, "ws2_32.lib")
 
+struct _address_info
+{
+    _address_info(_In_ const ADDRINFOA* addrinfo) : _addrinfo(const_cast<ADDRINFO*>(addrinfo)) {}
+    ~_address_info() { freeaddrinfo(_addrinfo); }
+    ADDRINFOA* _addrinfo;
+};
+
 int
 main(int argc, const char** argv)
 {
@@ -39,6 +46,8 @@ main(int argc, const char** argv)
         printf("getaddrinfo failed \n");
         return 1;
     }
+
+    _address_info _address_information(const_cast<const ADDRINFOA*>(addrinfo));
 
     if (connect(socket, addrinfo->ai_addr, static_cast<int>(addrinfo->ai_addrlen)) != 0) {
         printf("connect failed \n");

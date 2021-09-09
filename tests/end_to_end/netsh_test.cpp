@@ -207,7 +207,7 @@ TEST_CASE("show verification droppacket.o", "[netsh][verification]")
                   "\n"
                   "0 errors\n"
                   "Verification succeeded\n"
-                  "Program terminates within 87 instructions\n");
+                  "Program terminates within 114 instructions\n");
 }
 
 TEST_CASE("show verification droppacket_unsafe.o", "[netsh][verification]")

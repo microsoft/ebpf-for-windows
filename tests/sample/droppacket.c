@@ -30,11 +30,14 @@ DropPacket(xdp_md_t* ctx)
     eth = (ETHERNET_HEADER*)ctx->data;
     if (ntohs(eth->Type) == 0x0800) {
         // IPv4.
-        IPV4_HEADER* iphdr = (IPV4_HEADER*)(eth + 1);
-        if (iphdr->Protocol == 17) {
+        IPV4_HEADER* ipv4_header = (IPV4_HEADER*)(eth + 1);
+        if (ipv4_header->Protocol == IPPROTO_UDP) {
             // UDP.
-            UDP_HEADER* udphdr = (UDP_HEADER*)(iphdr + 1);
-            if (ntohs(udphdr->length) <= sizeof(UDP_HEADER)) {
+            char* next_header = (char*)ipv4_header + sizeof(uint32_t) * ipv4_header->HeaderLength;
+            if ((char*)next_header + sizeof(UDP_HEADER) > (char*)ctx->data_end)
+                goto Done;
+            UDP_HEADER* udp_header = (UDP_HEADER*)((char*)ipv4_header + sizeof(uint32_t) * ipv4_header->HeaderLength);
+            if (ntohs(udp_header->length) <= sizeof(UDP_HEADER)) {
                 long key = 0;
                 long* count = bpf_map_lookup_elem(&port_map, &key);
                 if (count)

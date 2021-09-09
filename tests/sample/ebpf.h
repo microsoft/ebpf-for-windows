@@ -33,6 +33,8 @@ typedef struct _ETHERNET_HEADER
     };
 } ETHERNET_HEADER, *PETHERNET_HEADER;
 
+#define IPPROTO_UDP 17
+
 typedef struct _IPV4_HEADER
 {
     union

@@ -237,4 +237,4 @@ typedef class _program_info_provider
 
 #define ETHERNET_TYPE_IPV4 0x0800
 std::vector<uint8_t>
-prepare_udp_packet(uint16_t udp_length, uint16_t eth_type = ETHERNET_TYPE_IPV4);
+prepare_udp_packet(uint16_t udp_length, uint16_t ethertype);

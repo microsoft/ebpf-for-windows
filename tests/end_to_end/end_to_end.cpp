@@ -8,7 +8,7 @@
 #include <mutex>
 #include <thread>
 #include <WinSock2.h>
-#include <in6addr.h>
+#include <in6addr.h> // Must come after Winsock2.h
 
 #include "bpf.h"
 #include "catch_wrapper.hpp"
@@ -33,23 +33,24 @@ namespace ebpf {
 }; // namespace ebpf
 
 std::vector<uint8_t>
-prepare_udp_packet(uint16_t udp_length, uint16_t eth_type)
+prepare_udp_packet(uint16_t udp_length, uint16_t ethernet_type)
 {
     std::vector<uint8_t> packet(
         sizeof(ebpf::ETHERNET_HEADER) + sizeof(ebpf::UDP_HEADER) +
-        ((eth_type == ETHERNET_TYPE_IPV4) ? sizeof(ebpf::IPV4_HEADER) : sizeof(ebpf::IPV6_HEADER)));
+        ((ethernet_type == ETHERNET_TYPE_IPV4) ? sizeof(ebpf::IPV4_HEADER) : sizeof(ebpf::IPV6_HEADER)));
     auto eth = reinterpret_cast<ebpf::ETHERNET_HEADER*>(packet.data());
     ebpf::UDP_HEADER* udp;
-    if (eth_type == ETHERNET_TYPE_IPV4) {
+    if (ethernet_type == ETHERNET_TYPE_IPV4) {
         auto ipv4 = reinterpret_cast<ebpf::IPV4_HEADER*>(eth + 1);
-        ipv4->Protocol = 17; // UDP
+        ipv4->HeaderLength = sizeof(ebpf::IPV4_HEADER) / sizeof(uint32_t);
+        ipv4->Protocol = IPPROTO_UDP;
         udp = reinterpret_cast<ebpf::UDP_HEADER*>(ipv4 + 1);
     } else {
         auto ipv6 = reinterpret_cast<ebpf::IPV6_HEADER*>(eth + 1);
-        ipv6->NextHeader = 17; // UDP
+        ipv6->NextHeader = IPPROTO_UDP;
         udp = reinterpret_cast<ebpf::UDP_HEADER*>(ipv6 + 1);
     }
-    eth->Type = ntohs(eth_type);
+    eth->Type = ntohs(ethernet_type);
     udp->length = udp_length;
 
     return packet;
@@ -82,7 +83,7 @@ typedef class _udp_packet
 {
   public:
     _udp_packet(
-        ADDRESS_FAMILY address_family = AF_INET,
+        ADDRESS_FAMILY address_family,
         _In_ const std::array<uint8_t, 6>& source_mac = _test_source_mac,
         _In_ const std::array<uint8_t, 6>& destination_mac = _test_destination_mac,
         _In_opt_ const void* ip_addrs = nullptr,
@@ -126,6 +127,7 @@ typedef class _udp_packet
             auto ip = reinterpret_cast<const ebpf::IPV4_HEADER*>(eth + 1);
             udp = reinterpret_cast<const ebpf::UDP_HEADER*>(ip + 1);
         } else {
+            REQUIRE(address_family == AF_INET6);
             auto ip = reinterpret_cast<const ebpf::IPV6_HEADER*>(eth + 1);
             udp = reinterpret_cast<const ebpf::UDP_HEADER*>(ip + 1);
         }
@@ -207,7 +209,7 @@ droppacket_test(ebpf_execution_type_t execution_type)
 
     REQUIRE(hook.attach_link(program_fd, &link) == EBPF_SUCCESS);
 
-    auto packet = prepare_udp_packet(0);
+    auto packet = prepare_udp_packet(0, ETHERNET_TYPE_IPV4);
 
     uint32_t key = 0;
     uint64_t value = 1000;
@@ -228,7 +230,7 @@ droppacket_test(ebpf_execution_type_t execution_type)
     REQUIRE(bpf_map_lookup_elem(port_map_fd, &key, &value) == EBPF_SUCCESS);
     REQUIRE(value == 0);
 
-    packet = prepare_udp_packet(10);
+    packet = prepare_udp_packet(10, ETHERNET_TYPE_IPV4);
     xdp_md_t ctx2{packet.data(), packet.data() + packet.size()};
 
     REQUIRE(hook.fire(&ctx2, &hook_result) == EBPF_SUCCESS);
@@ -269,7 +271,7 @@ divide_by_zero_test(ebpf_execution_type_t execution_type)
 
     REQUIRE(hook.attach_link(program_fd, &link) == EBPF_SUCCESS);
 
-    auto packet = prepare_udp_packet(0);
+    auto packet = prepare_udp_packet(0, ETHERNET_TYPE_IPV4);
 
     // Test that we drop the packet and increment the map
     xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
@@ -990,7 +992,7 @@ TEST_CASE("create_map_name", "[end_to_end]")
 }
 
 static void
-_xdp_reflect_packet_test(ebpf_execution_type_t execution_type, ADDRESS_FAMILY address_family = AF_INET)
+_xdp_reflect_packet_test(ebpf_execution_type_t execution_type, ADDRESS_FAMILY address_family)
 {
     _test_helper_end_to_end test_helper;
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
@@ -1009,22 +1011,22 @@ _xdp_reflect_packet_test(ebpf_execution_type_t execution_type, ADDRESS_FAMILY ad
     REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == 3);
 
-    ebpf::ETHERNET_HEADER* eth_hdr = reinterpret_cast<ebpf::ETHERNET_HEADER*>(ctx.data);
-    REQUIRE(memcmp(eth_hdr->Destination, _test_source_mac.data(), sizeof(eth_hdr->Destination)) == 0);
-    REQUIRE(memcmp(eth_hdr->Source, _test_destination_mac.data(), sizeof(eth_hdr->Source)) == 0);
+    ebpf::ETHERNET_HEADER* ethernet_header = reinterpret_cast<ebpf::ETHERNET_HEADER*>(ctx.data);
+    REQUIRE(memcmp(ethernet_header->Destination, _test_source_mac.data(), sizeof(ethernet_header->Destination)) == 0);
+    REQUIRE(memcmp(ethernet_header->Source, _test_destination_mac.data(), sizeof(ethernet_header->Source)) == 0);
 
     if (address_family == AF_INET) {
-        ebpf::IPV4_HEADER* ipv4 = reinterpret_cast<ebpf::IPV4_HEADER*>(eth_hdr + 1);
+        ebpf::IPV4_HEADER* ipv4 = reinterpret_cast<ebpf::IPV4_HEADER*>(ethernet_header + 1);
         REQUIRE(ipv4->SourceAddress == _test_destination_ipv4.s_addr);
         REQUIRE(ipv4->DestinationAddress == _test_source_ipv4.s_addr);
     } else {
-        ebpf::IPV6_HEADER* ipv6 = reinterpret_cast<ebpf::IPV6_HEADER*>(eth_hdr + 1);
+        ebpf::IPV6_HEADER* ipv6 = reinterpret_cast<ebpf::IPV6_HEADER*>(ethernet_header + 1);
         REQUIRE(memcmp(ipv6->SourceAddress, &_test_destination_ipv6, sizeof(ebpf::ipv6_address_t)) == 0);
         REQUIRE(memcmp(ipv6->DestinationAddress, &_test_source_ipv6, sizeof(ebpf::ipv6_address_t)) == 0);
     }
 }
 
-TEST_CASE("xdp-reflect-v4-jit", "[xdp_tests]") { _xdp_reflect_packet_test(EBPF_EXECUTION_INTERPRET); }
+TEST_CASE("xdp-reflect-v4-jit", "[xdp_tests]") { _xdp_reflect_packet_test(EBPF_EXECUTION_INTERPRET, AF_INET); }
 TEST_CASE("xdp-reflect-v6-jit", "[xdp_tests]") { _xdp_reflect_packet_test(EBPF_EXECUTION_INTERPRET, AF_INET6); }
-TEST_CASE("xdp-reflect-v4-interpret", "[xdp_tests]") { _xdp_reflect_packet_test(EBPF_EXECUTION_INTERPRET); }
+TEST_CASE("xdp-reflect-v4-interpret", "[xdp_tests]") { _xdp_reflect_packet_test(EBPF_EXECUTION_INTERPRET, AF_INET); }
 TEST_CASE("xdp-reflect-v6-interpret", "[xdp_tests]") { _xdp_reflect_packet_test(EBPF_EXECUTION_INTERPRET, AF_INET6); }
