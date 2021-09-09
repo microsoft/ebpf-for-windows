@@ -386,12 +386,225 @@ bindmonitor_test(ebpf_execution_type_t execution_type)
     bpf_object__close(object);
 }
 
+//Associate to Flow
+
+typedef struct _app_name
+{
+    uint8_t name[64];
+} app_name_t;
+
+int
+emulate_flow(single_instance_hook_t& hook, uint8_t protocol, const char* appid)
+{
+    int result = 0;
+    std::string app_id = appid;
+    flow_md_t context{0};
+    context.app_name_start = (uint8_t*)app_id.c_str();
+    context.app_name_end = (uint8_t*)(app_id.c_str()) + app_id.size();
+    context.five_tuple = {};
+    context.five_tuple.protocol = protocol;
+    context.flow_established_flag = true;
+    REQUIRE(hook.fire(&context, &result) == EBPF_SUCCESS);
+    return result;
+}
+
+int
+emulate_flow_delete(single_instance_hook_t& hook, five_tuple_t five_tuple)
+{
+    int result = 0;
+    flow_md_t context{0};
+    context.five_tuple = five_tuple;
+    context.flow_established_flag = false;
+    REQUIRE(hook.fire(&context, &result) == EBPF_SUCCESS);
+    return result;
+}
+
+uint8_t
+get_app_name(fd_t map_fd, five_tuple_t key)
+{
+    app_name_t value{};
+    bpf_map_lookup_elem(map_fd, &key, &value);
+    return value.name[0];
+}
+
+
+void
+associatetoflow_test(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+
+    const char* error_message = nullptr;
+    bpf_object* object = nullptr;
+    bpf_link* link = nullptr;
+    fd_t program_fd = 0ul;
+    ebpf_result_t result{};
+
+    uint8_t fake_protocol_1 = 0x11;
+    uint8_t fake_protocol_2 = 0x06;
+
+    five_tuple_t five_tuple_1{};
+    five_tuple_1.protocol = fake_protocol_1;
+    five_tuple_t five_tuple_2{};
+    five_tuple_2.protocol = fake_protocol_2;
+
+    program_info_provider_t flow_program_info(EBPF_PROGRAM_TYPE_FLOW);
+
+    result = ebpf_program_load(
+        SAMPLE_PATH "associatetoflow.o", &EBPF_PROGRAM_TYPE_FLOW, &EBPF_ATTACH_TYPE_FLOW, execution_type, &object, &program_fd, &error_message);
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free_string(error_message);
+        error_message = nullptr;
+    }
+    REQUIRE(result == EBPF_SUCCESS);
+    fd_t app_map_fd = bpf_object__find_map_fd_by_name(object, "app_map");
+    REQUIRE(app_map_fd > 0);
+
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_FLOW, EBPF_ATTACH_TYPE_FLOW);
+
+    REQUIRE(hook.attach_link(program_fd, &link) == EBPF_SUCCESS);
+
+    // Establish first flow - success
+    REQUIRE(emulate_flow(hook, fake_protocol_1, "1_fake_app") == 0);
+    REQUIRE(get_app_name(app_map_fd, five_tuple_1) == '1');
+
+    // Establish second flow - success
+    REQUIRE(emulate_flow(hook, fake_protocol_2, "2_fake_app") == 0);
+    REQUIRE(get_app_name(app_map_fd, five_tuple_2) == '2');
+
+    five_tuple_t key{};
+    app_name_t app_name{};
+
+    REQUIRE(bpf_map_get_next_key(app_map_fd, NULL, &key) == EBPF_SUCCESS);
+    REQUIRE(key.protocol != 0);
+    REQUIRE(bpf_map_get_next_key(app_map_fd, &key, &key) == EBPF_SUCCESS);
+    REQUIRE(key.protocol != 0);
+    REQUIRE(bpf_map_get_next_key(app_map_fd, &key, &key) == -EBPF_NO_MORE_KEYS);
+
+    // Delete second flow
+    emulate_flow_delete(hook, five_tuple_2);
+    REQUIRE(get_app_name(app_map_fd, five_tuple_2) == 0);
+
+    // Delete first flow
+    emulate_flow_delete(hook, five_tuple_1);
+    REQUIRE(get_app_name(app_map_fd, five_tuple_1) == 0);
+
+    // All elements deleted from map
+    REQUIRE(bpf_map_get_next_key(app_map_fd, NULL, &key) == -EBPF_NO_MORE_KEYS);
+
+    hook.detach_link(link);
+    hook.close_link(link);
+
+    bpf_object__close(object);
+}
+
+//Count Bytes
+
+int
+emulate_mac(single_instance_hook_t& hook, uint64_t packet_length, uint8_t protocol, bool v4)
+{
+    int result = 0;
+    five_tuple_t five_tuple = {v4, {0}, {0}, 0, 0, protocol};
+    mac_md_t context = {five_tuple, packet_length, v4};
+    REQUIRE(hook.fire(&context, &result) == EBPF_SUCCESS);
+    return result;
+}
+
+void
+countbytes_test(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+
+    const char* error_message = nullptr;
+    bpf_object* object = nullptr;
+    bpf_link* link = nullptr;
+    fd_t program_fd = 0ul;
+    ebpf_result_t result{};
+
+    program_info_provider_t mac_program_info(EBPF_PROGRAM_TYPE_MAC);
+
+    result = ebpf_program_load(
+        SAMPLE_PATH "countbytes.o", &EBPF_PROGRAM_TYPE_MAC, &EBPF_ATTACH_TYPE_MAC, execution_type, &object, &program_fd, &error_message);
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free_string(error_message);
+        error_message = nullptr;
+    }
+    REQUIRE(result == EBPF_SUCCESS);
+
+    fd_t byte_map_fd = bpf_object__find_map_fd_by_name(object, "byte_map");
+    REQUIRE(byte_map_fd > 0);
+
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_MAC, EBPF_ATTACH_TYPE_MAC);
+
+    REQUIRE(hook.attach_link(program_fd, &link) == EBPF_SUCCESS);
+
+    // Send IPV4 UDP packet
+    uint64_t fake_length_1 = 100;
+    REQUIRE(emulate_mac(hook, fake_length_1, 0x11, 1) == 0);
+    REQUIRE(result == 0);
+
+    // Send IPV4 TCP packet
+    uint64_t fake_length_2 = 200;
+    REQUIRE(emulate_mac(hook, fake_length_2, 0x06, 1) == 0);
+    REQUIRE(result == 0);
+
+    // Send IPV6 UDP packet
+    uint64_t fake_length_3 = 300;
+    REQUIRE(emulate_mac(hook, fake_length_3, 0x11, 0) == 0);
+    REQUIRE(result == 0);
+
+    // Send IPV6 TCP packet
+    uint64_t fake_length_4 = 400;
+    REQUIRE(emulate_mac(hook, fake_length_4, 0x06, 0) == 0);
+    REQUIRE(result == 0);
+
+    five_tuple_t key{};
+    uint64_t value{};
+
+    REQUIRE(bpf_map_get_next_key(byte_map_fd, NULL, &key) == EBPF_SUCCESS);
+    REQUIRE(key.protocol != 0);
+    REQUIRE(key.dest_port == 0);
+    REQUIRE(key.source_port == 0);
+    REQUIRE(bpf_map_lookup_elem(byte_map_fd, &key, &value) == EBPF_SUCCESS);
+    REQUIRE(value != 0);
+    REQUIRE(bpf_map_get_next_key(byte_map_fd, &key, &key) == EBPF_SUCCESS);
+    REQUIRE(key.protocol != 0);
+    REQUIRE(key.dest_port == 0);
+    REQUIRE(key.source_port == 0);
+    REQUIRE(bpf_map_lookup_elem(byte_map_fd, &key, &value) == EBPF_SUCCESS);
+    REQUIRE(value != 0);
+    REQUIRE(bpf_map_get_next_key(byte_map_fd, &key, &key) == EBPF_SUCCESS);
+    REQUIRE(key.protocol != 0);
+    REQUIRE(key.dest_port == 0);
+    REQUIRE(key.source_port == 0);
+    REQUIRE(bpf_map_lookup_elem(byte_map_fd, &key, &value) == EBPF_SUCCESS);
+    REQUIRE(value != 0);
+    REQUIRE(bpf_map_get_next_key(byte_map_fd, &key, &key) == EBPF_SUCCESS);
+    REQUIRE(key.protocol != 0);
+    REQUIRE(key.dest_port == 0);
+    REQUIRE(key.source_port == 0);
+    REQUIRE(bpf_map_lookup_elem(byte_map_fd, &key, &value) == EBPF_SUCCESS);
+    REQUIRE(value != 0);
+    REQUIRE(bpf_map_get_next_key(byte_map_fd, &key, &key) == -EBPF_NO_MORE_KEYS);
+
+    hook.detach_link(link);
+    hook.close_link(link);
+
+    bpf_object__close(object);
+}
+
 TEST_CASE("droppacket-jit", "[end_to_end]") { droppacket_test(EBPF_EXECUTION_JIT); }
 TEST_CASE("divide_by_zero_jit", "[end_to_end]") { divide_by_zero_test(EBPF_EXECUTION_JIT); }
 TEST_CASE("bindmonitor-jit", "[end_to_end]") { bindmonitor_test(EBPF_EXECUTION_JIT); }
 TEST_CASE("droppacket-interpret", "[end_to_end]") { droppacket_test(EBPF_EXECUTION_INTERPRET); }
 TEST_CASE("divide_by_zero_interpret", "[end_to_end]") { divide_by_zero_test(EBPF_EXECUTION_INTERPRET); }
 TEST_CASE("bindmonitor-interpret", "[end_to_end]") { bindmonitor_test(EBPF_EXECUTION_INTERPRET); }
+
+TEST_CASE("associatetoflow-jit", "[end_to_end]") { associatetoflow_test(EBPF_EXECUTION_JIT); }
+TEST_CASE("countbytes-jit", "[end_to_end]") { countbytes_test(EBPF_EXECUTION_JIT); }
+TEST_CASE("associatetoflow-interpret", "[end_to_end]") { associatetoflow_test(EBPF_EXECUTION_INTERPRET); }
+TEST_CASE("countbytes-interpret", "[end_to_end]") { countbytes_test(EBPF_EXECUTION_INTERPRET); }
 
 TEST_CASE("enum section", "[end_to_end]")
 {
