@@ -35,3 +35,7 @@ jobs:
     - name: Install eBPF
       working-directory: ${{ github.workspace }}
       run: ./install-ebpf.bat
+
+    - name: Run kernel driver tests
+      working-directory: ${{ github.workspace }}
+      run: ./run_tests.bat
