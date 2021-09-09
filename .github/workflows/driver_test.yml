@@ -38,4 +38,4 @@ jobs:
 
     - name: Run kernel driver tests
       working-directory: ${{ github.workspace }}
-      run: ./run_tests.bat
+      run: ./run_tests.bat /noinstall
