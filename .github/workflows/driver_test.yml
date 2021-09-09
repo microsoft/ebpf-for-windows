@@ -1,8 +1,8 @@
 # Copyright (c) Microsoft Corporation
 # SPDX-License-Identifier: MIT
 
-# For documentation on the github environment, see
-# https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners
+# This workflow depends on self-hosted runners. See the following document for details:
+# https://github.com/microsoft/ebpf-for-windows/blob/master/docs/SelfHostedRunnerSetup.md
 #
 # For documentation on the syntax of this file, see
 # https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions
@@ -22,6 +22,7 @@ jobs:
         configurations: [Debug, Release]
 
     runs-on: [windows, self-hosted]
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
     - name: Download workflow artifact
       uses: dawidd6/action-download-artifact@v2.14.1
