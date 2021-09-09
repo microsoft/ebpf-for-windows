@@ -19,8 +19,8 @@ copy *.exe %windir%\system32
 copy *.dll %windir%\system32
 
 rem Register the binaries
-sc create EbpfCore type=kernel start=boot binpath=%windir%\system32\drivers\ebpfcore.sys
-sc create NetEbpfExt type=kernel start=boot binpath=%windir%\system32\drivers\netebpfext.sys
+sc create EbpfCore type=kernel start=demand binpath=%windir%\system32\drivers\ebpfcore.sys
+sc create NetEbpfExt type=kernel start=demand binpath=%windir%\system32\drivers\netebpfext.sys
 sc create SampleEbpfExt type=kernel start=demand binpath=%windir%\system32\drivers\sample_ebpf_ext.sys
 %windir%\system32\ebpfsvc.exe install
 netsh add helper %windir%\system32\ebpfnetsh.dll
