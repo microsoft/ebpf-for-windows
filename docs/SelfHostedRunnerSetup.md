@@ -6,7 +6,7 @@ Self-hosted runners are necessary as GitHub hosted runners don't have the requis
 2) Enable Test Signing mode.
    1) ``` bcdedit /set testsigning on ```
 3) Enable driver verifier.
-   1) ``` verifier /standard /bootmode persistent /driver ebpfcore.sys netebpfext.sys  ```
+   1) ``` verifier /standard /bootmode persistent /driver ebpfcore.sys netebpfext.sys sample_ebpf_ext.sys  ```
 4) Download and install action runner (using PowerShell).
    1) ```cd c:\```
    2) ```mkdir actions-runner; cd actions-runner```
