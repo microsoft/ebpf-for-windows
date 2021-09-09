@@ -87,7 +87,6 @@ ebpf_extension_load(
         local_extension_provider->client_table,
         (const uint8_t*)&local_extension_client->client_id,
         (const uint8_t*)&local_extension_client,
-        NULL,
         EBPF_HASH_TABLE_OPERATION_INSERT);
     if (return_value != EBPF_SUCCESS) {
         goto Done;
@@ -240,7 +239,6 @@ ebpf_provider_load(
         _ebpf_provider_table,
         (const uint8_t*)interface_id,
         (const uint8_t*)&local_extension_provider,
-        NULL,
         EBPF_HASH_TABLE_OPERATION_INSERT);
     if (return_value != EBPF_SUCCESS)
         goto Done;

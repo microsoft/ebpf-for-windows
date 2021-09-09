@@ -415,20 +415,19 @@ _update_map_element_with_handle(
     ebpf_handle_t map_handle,
     uint32_t key_size,
     _In_ const uint8_t* key,
-    uint32_t value_size,
-    _In_ const uint8_t* value,
-    ebpf_handle_t value_handle) noexcept
+    ebpf_handle_t value_handle,
+    uint64_t flags) noexcept
 {
     ebpf_protocol_buffer_t request_buffer(
-        EBPF_OFFSET_OF(ebpf_operation_map_update_element_with_handle_request_t, data) + key_size + value_size);
+        EBPF_OFFSET_OF(ebpf_operation_map_update_element_with_handle_request_t, key) + key_size);
     auto request = reinterpret_cast<ebpf_operation_map_update_element_with_handle_request_t*>(request_buffer.data());
 
     request->header.length = static_cast<uint16_t>(request_buffer.size());
     request->header.id = ebpf_operation_id_t::EBPF_OPERATION_MAP_UPDATE_ELEMENT_WITH_HANDLE;
     request->map_handle = (uintptr_t)map_handle;
     request->value_handle = (uintptr_t)value_handle;
-    std::copy(key, key + key_size, request->data);
-    std::copy(value, value + value_size, request->data + key_size);
+    request->option = static_cast<ebpf_map_option_t>(flags);
+    std::copy(key, key + key_size, request->key);
 
     return windows_error_to_ebpf_result(invoke_ioctl(request_buffer));
 }
@@ -477,8 +476,7 @@ ebpf_map_update_element(fd_t map_fd, _In_ const void* key, _In_ const void* valu
             return EBPF_INVALID_FD;
         }
 
-        return _update_map_element_with_handle(
-            map_handle, key_size, (const uint8_t*)key, value_size, (const uint8_t*)value, handle);
+        return _update_map_element_with_handle(map_handle, key_size, (const uint8_t*)key, handle, flags);
     } else {
         return _update_map_element(map_handle, key, key_size, value, value_size, flags);
     }
@@ -1383,7 +1381,7 @@ ebpf_close_fd(fd_t fd)
         return EBPF_INVALID_FD;
     }
     _fd_to_handle_map.erase(fd);
-    Platform::CloseHandle(handle);
+    ebpf_api_close_handle(handle);
 
     return EBPF_SUCCESS;
 }

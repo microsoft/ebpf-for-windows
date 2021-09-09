@@ -515,7 +515,6 @@ _ebpf_epoch_update_thread_state(uint32_t cpu_id, uintptr_t thread_id, int64_t cu
             _ebpf_epoch_cpu_table[cpu_id].thread_table,
             (const uint8_t*)&thread_id,
             (const uint8_t*)&local_thread_epoch,
-            NULL,
             EBPF_HASH_TABLE_OPERATION_INSERT);
     }
     ebpf_lock_unlock(&_ebpf_epoch_cpu_table[cpu_id].lock, lock_state);

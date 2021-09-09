@@ -96,7 +96,6 @@ _ebpf_state_get_entry(_Out_ ebpf_state_entry_t** entry)
                 _ebpf_state_thread_table,
                 (const uint8_t*)&current_thread_id,
                 (const uint8_t*)&new_entry,
-                NULL,
                 EBPF_HASH_TABLE_OPERATION_INSERT);
 
             if (return_value != EBPF_SUCCESS) {
