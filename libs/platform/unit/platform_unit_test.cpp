@@ -75,13 +75,10 @@ TEST_CASE("hash_table_test", "[platform]")
 
     // Insert first
     REQUIRE(
-        ebpf_hash_table_update(table, key_1.data(), data_1.data(), nullptr, EBPF_HASH_TABLE_OPERATION_INSERT) ==
-        EBPF_SUCCESS);
+        ebpf_hash_table_update(table, key_1.data(), data_1.data(), EBPF_HASH_TABLE_OPERATION_INSERT) == EBPF_SUCCESS);
 
     // Insert second
-    REQUIRE(
-        ebpf_hash_table_update(table, key_2.data(), data_2.data(), nullptr, EBPF_HASH_TABLE_OPERATION_ANY) ==
-        EBPF_SUCCESS);
+    REQUIRE(ebpf_hash_table_update(table, key_2.data(), data_2.data(), EBPF_HASH_TABLE_OPERATION_ANY) == EBPF_SUCCESS);
 
     // Find the first
     REQUIRE(ebpf_hash_table_find(table, key_1.data(), &returned_value) == EBPF_SUCCESS);
@@ -94,8 +91,7 @@ TEST_CASE("hash_table_test", "[platform]")
     // Replace
     memset(data_1.data(), '0x55', data_1.size());
     REQUIRE(
-        ebpf_hash_table_update(table, key_1.data(), data_1.data(), nullptr, EBPF_HASH_TABLE_OPERATION_REPLACE) ==
-        EBPF_SUCCESS);
+        ebpf_hash_table_update(table, key_1.data(), data_1.data(), EBPF_HASH_TABLE_OPERATION_REPLACE) == EBPF_SUCCESS);
 
     // Find the first
     REQUIRE(ebpf_hash_table_find(table, key_1.data(), &returned_value) == EBPF_SUCCESS);
@@ -172,7 +168,6 @@ TEST_CASE("hash_table_stress_test", "[platform]")
                         table,
                         reinterpret_cast<const uint8_t*>(&key),
                         reinterpret_cast<const uint8_t*>(&value),
-                        nullptr,
                         EBPF_HASH_TABLE_OPERATION_ANY);
                 });
             }

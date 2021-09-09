@@ -449,7 +449,6 @@ _ebpf_core_protocol_map_update_element_with_handle(
 {
     ebpf_result_t retval;
     ebpf_map_t* map = NULL;
-    size_t value_length;
     size_t key_length;
 
     retval = ebpf_reference_object_by_handle(request->map_handle, EBPF_OBJECT_MAP, (ebpf_object_t**)&map);
@@ -460,25 +459,17 @@ _ebpf_core_protocol_map_update_element_with_handle(
 
     retval = ebpf_safe_size_t_subtract(
         request->header.length,
-        EBPF_OFFSET_OF(ebpf_operation_map_update_element_with_handle_request_t, data),
-        &value_length);
+        EBPF_OFFSET_OF(ebpf_operation_map_update_element_with_handle_request_t, key),
+        &key_length);
     if (retval != EBPF_SUCCESS)
         goto Done;
 
-    retval = ebpf_safe_size_t_subtract(value_length, map_definition->key_size, &value_length);
-    if (retval != EBPF_SUCCESS)
+    if (key_length != map_definition->key_size) {
+        retval = EBPF_INVALID_ARGUMENT;
         goto Done;
+    }
 
-    key_length = map_definition->key_size;
-
-    retval = ebpf_map_update_entry_with_handle(
-        map,
-        key_length,
-        request->data,
-        value_length,
-        request->data + map_definition->key_size,
-        request->value_handle,
-        request->option);
+    retval = ebpf_map_update_entry_with_handle(map, key_length, request->key, request->value_handle, request->option);
 
 Done:
     ebpf_object_release_reference((ebpf_object_t*)map);
@@ -1178,7 +1169,7 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
 
     // EBPF_OPERATION_MAP_UPDATE_ELEMENT_WITH_HANDLE
     {_ebpf_core_protocol_map_update_element_with_handle,
-     EBPF_OFFSET_OF(ebpf_operation_map_update_element_with_handle_request_t, data),
+     EBPF_OFFSET_OF(ebpf_operation_map_update_element_with_handle_request_t, key),
      0},
 
     // EBPF_OPERATION_MAP_DELETE_ELEMENT

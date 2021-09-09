@@ -105,7 +105,6 @@ typedef class _ebpf_hash_table_test_state
                     table,
                     reinterpret_cast<uint8_t*>(&key),
                     reinterpret_cast<uint8_t*>(&value),
-                    nullptr,
                     EBPF_HASH_TABLE_OPERATION_ANY) == EBPF_SUCCESS);
         }
         ebpf_epoch_exit();
@@ -156,7 +155,6 @@ typedef class _ebpf_hash_table_test_state
                     table,
                     reinterpret_cast<uint8_t*>(&keys[index]),
                     reinterpret_cast<uint8_t*>(&value),
-                    nullptr,
                     EBPF_HASH_TABLE_OPERATION_REPLACE);
                 ebpf_epoch_exit();
             }
@@ -174,7 +172,6 @@ typedef class _ebpf_hash_table_test_state
                 table,
                 reinterpret_cast<uint8_t*>(&key),
                 reinterpret_cast<uint8_t*>(&value),
-                nullptr,
                 EBPF_HASH_TABLE_OPERATION_REPLACE);
             ebpf_epoch_exit();
         }

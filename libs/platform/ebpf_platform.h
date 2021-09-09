@@ -450,7 +450,6 @@ extern "C"
      * @param[in] hash_table Hash-table to update.
      * @param[in] key Key to find and insert or update.
      * @param[in] value Value to insert into hash table or NULL to insert zero entry.
-     * @param[in] extra_value Extra value to insert into hash table.
      * @param[in] operation One of ebpf_hash_table_operations_t operations.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Unable to allocate memory for this
@@ -461,7 +460,6 @@ extern "C"
         _In_ ebpf_hash_table_t* hash_table,
         _In_ const uint8_t* key,
         _In_opt_ const uint8_t* value,
-        _In_opt_ const uint8_t* extra_value,
         ebpf_hash_table_operations_t operation);
 
     /**
