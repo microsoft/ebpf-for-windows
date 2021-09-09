@@ -28,5 +28,8 @@
     <CopyFileToFolders Include="..\run_tests.bat">
       <Filter>Source Files</Filter>
     </CopyFileToFolders>
+    <CopyFileToFolders Include="..\uninstall-ebpf.bat">
+      <Filter>Source Files</Filter>
+    </CopyFileToFolders>
   </ItemGroup>
 </Project>

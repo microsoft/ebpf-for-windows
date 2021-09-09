@@ -39,3 +39,7 @@ jobs:
     - name: Run kernel driver tests
       working-directory: ${{ github.workspace }}
       run: ./run_tests.bat /noinstall
+
+    - name: Uninstall eBPF
+      working-directory: ${{ github.workspace }}
+      run: ./uninstall-ebpf.bat
