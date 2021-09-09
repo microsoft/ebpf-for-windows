@@ -179,6 +179,35 @@ bpf_map_update_elem(int fd, const void* key, const void* value, __u64 flags);
 /** @} */
 
 /**
+ * @name Object-related functions
+ * @{
+ */
+
+/**
+ * @brief Obtain information about the eBPF object referred to by bpf_fd.
+ * This function populates up to info_len bytes of info, which will
+ * be in one of the following formats depending on the eBPF object type of
+ * bpf_fd:
+ *
+ * * struct bpf_link_info
+ * * struct bpf_map_info
+ * * struct bpf_prog_info
+ *
+ *
+ * @param[in] bpf_fd File descriptor referring to an eBPF object.
+ * @param[out] info Pointer to memory in which to write the info obtained.
+ * @param[in,out] info_len On input, contains the maximum number of bytes to
+ * write into the info.  On output, contains the actual number of bytes written.
+ *
+ * @retval 0 The operation was successful.
+ * @retval <0 An error occured, and errno was set.
+ */
+int
+bpf_obj_get_info_by_fd(int bpf_fd, void* info, __u32* info_len);
+
+/** @} */
+
+/**
  * @name Program-related functions
  * @{
  */

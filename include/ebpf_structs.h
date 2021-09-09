@@ -77,3 +77,29 @@ typedef enum
     BPF_FUNC_get_smp_processor_id = 7,
     BPF_FUNC_ktime_get_ns = 8,
 } ebpf_helper_id_t;
+
+// Libbpf itself requires the following structs to be defined, but doesn't
+// care what fields they have.  Applications such as bpftool on the other
+// hand depend on fields of specific names and types.
+
+struct bpf_link_info
+{
+    ebpf_id_t id;      ///< Link ID.
+    ebpf_id_t prog_id; ///< Program ID.
+};
+
+struct bpf_map_info
+{
+    ebpf_id_t id;         ///< Map ID.
+    ebpf_map_type_t type; ///< Type of map.
+    uint32_t key_size;    ///< Size in bytes of a map key.
+    uint32_t value_size;  ///< Size in bytes of a map value.
+    uint32_t max_entries; ///< Maximum number of entries allowed in the map.
+};
+
+struct bpf_prog_info
+{
+    ebpf_id_t id;        ///< Program ID.
+    uint32_t nr_map_ids; ///< Number of maps associated with this program.
+    char name[16];       ///< Program name.
+};

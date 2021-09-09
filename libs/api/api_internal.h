@@ -328,3 +328,25 @@ ebpf_get_next_map_id(ebpf_id_t start_id, ebpf_id_t _Out_* next_id) noexcept;
  */
 ebpf_result_t
 ebpf_get_next_program_id(ebpf_id_t start_id, ebpf_id_t _Out_* next_id) noexcept;
+
+/**
+ * @brief Obtain information about the eBPF object referred to by bpf_fd.
+ * This function populates up to info_len bytes of info, which will
+ * be in one of the following formats depending on the eBPF object type of
+ * bpf_fd:
+ *
+ * * struct bpf_link_info
+ * * struct bpf_map_info
+ * * struct bpf_prog_info
+ *
+ *
+ * @param[in] bpf_fd File descriptor referring to an eBPF object.
+ * @param[out] info Pointer to memory in which to write the info obtained.
+ * @param[in,out] info_len On input, contains the maximum number of bytes to
+ * write into the info.  On output, contains the actual number of bytes written.
+ *
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_INVALID_ARGUMENT One or more parameters are wrong.
+ */
+ebpf_result_t
+ebpf_object_get_info_by_fd(fd_t bpf_fd, void* info, uint32_t* info_len);

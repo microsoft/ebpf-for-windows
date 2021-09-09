@@ -752,3 +752,67 @@ TEST_CASE("enumerate link IDs", "[libbpf]")
     REQUIRE(bpf_link_get_next_id(id2, &id3) < 0);
     REQUIRE(errno == ENOENT);
 }
+
+TEST_CASE("get prog and link info", "[libbpf]")
+{
+    _test_helper_end_to_end test_helper;
+    program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
+    single_instance_hook_t xdp_hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
+    program_load_attach_helper_t xdp_helper(
+        "droppacket.o", EBPF_PROGRAM_TYPE_XDP, "DropPacket", EBPF_EXECUTION_JIT, xdp_hook, false);
+
+    struct bpf_object* object = xdp_helper.get_object();
+    REQUIRE(object != nullptr);
+
+    struct bpf_program* program = bpf_program__next(nullptr, object);
+    REQUIRE(program != nullptr);
+
+    const char* program_name = bpf_program__name(program);
+    REQUIRE(program != nullptr);
+
+    int program_fd = bpf_program__fd(program);
+    REQUIRE(program_fd > 0);
+
+    struct bpf_map* map = bpf_map__next(nullptr, object);
+    REQUIRE(map != nullptr);
+
+    int map_fd = bpf_map__fd(map);
+    REQUIRE(map_fd > 0);
+
+    // Fetch info about the map and verify it matches what we'd expect.
+    bpf_map_info map_info;
+    uint32_t map_info_size = sizeof(map_info);
+    REQUIRE(bpf_obj_get_info_by_fd(map_fd, &map_info, &map_info_size) == 0);
+    REQUIRE(map_info_size == sizeof(map_info));
+    REQUIRE(map_info.type == BPF_MAP_TYPE_ARRAY);
+    REQUIRE(map_info.key_size == sizeof(uint32_t));
+    REQUIRE(map_info.value_size == sizeof(uint64_t));
+    REQUIRE(map_info.max_entries == 1);
+
+    // Fetch info about the program and verify it matches what we'd expect.
+    bpf_prog_info program_info;
+    uint32_t program_info_size = sizeof(program_info);
+    REQUIRE(bpf_obj_get_info_by_fd(program_fd, &program_info, &program_info_size) == 0);
+    REQUIRE(program_info_size == sizeof(program_info));
+    REQUIRE(strcmp(program_info.name, program_name) == 0);
+    REQUIRE(program_info.nr_map_ids == 1);
+
+    // Fetch info about the attachment and verify it matches what we'd expect.
+    uint32_t link_id;
+    REQUIRE(bpf_link_get_next_id(0, &link_id) == 0);
+    fd_t link_fd = bpf_link_get_fd_by_id(link_id);
+    REQUIRE(link_fd >= 0);
+
+    bpf_link_info link_info;
+    uint32_t link_info_size = sizeof(link_info);
+    REQUIRE(bpf_obj_get_info_by_fd(link_fd, &link_info, &link_info_size) == 0);
+    REQUIRE(link_info_size == sizeof(link_info));
+
+    REQUIRE(link_info.prog_id == program_info.id);
+
+    // Verify we can detach using this link fd.
+    // This is the flow used by bpftool to detach a link.
+    REQUIRE(bpf_link_detach(link_fd) == 0);
+
+    ebpf_close_fd(link_fd); // TODO(issue #287): change to _close(link_fd);
+}

@@ -61,6 +61,22 @@ extern "C"
     void
     ebpf_link_detach_program(ebpf_link_t* link);
 
+    /**
+     * @brief Get bpf_link_info about a link.
+     *
+     * @param[in] link The link object to get info about.
+     * @param[out] buffer Buffer to write bpf_link_info into.
+     * @param[in,out] info_size On input, the size in bytes of the buffer.
+     * On output, the number of bytes actually written.
+     *
+     * @retval EBPF_SUCCESS The operation was successful.
+     */
+    ebpf_result_t
+    ebpf_link_get_info(
+        _In_ const ebpf_link_t* link,
+        _Out_writes_to_(*info_size, *info_size) uint8_t* buffer,
+        _Inout_ uint16_t* info_size);
+
 #ifdef __cplusplus
 }
 #endif
