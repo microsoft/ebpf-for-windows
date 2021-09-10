@@ -92,11 +92,14 @@ Functions</h2></td></tr>
 <tr class="memdesc:adad4a120de1d0f6c2a380e8d7b56570b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get a pseudo-random number.  <a href="bpf__helper__defs_8h.html#adad4a120de1d0f6c2a380e8d7b56570b">More...</a><br /></td></tr>
 <tr class="separator:adad4a120de1d0f6c2a380e8d7b56570b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:afcd5d11ba0f150bb73ac41eaf8f847e5"><td class="memItemLeft" align="right" valign="top">uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#afcd5d11ba0f150bb73ac41eaf8f847e5">bpf_ktime_get_boot_ns</a> ()</td></tr>
-<tr class="memdesc:afcd5d11ba0f150bb73ac41eaf8f847e5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return time elapsed since boot in nanoseconds.  <a href="bpf__helper__defs_8h.html#afcd5d11ba0f150bb73ac41eaf8f847e5">More...</a><br /></td></tr>
+<tr class="memdesc:afcd5d11ba0f150bb73ac41eaf8f847e5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return time elapsed since boot in nanoseconds including time while suspended.  <a href="bpf__helper__defs_8h.html#afcd5d11ba0f150bb73ac41eaf8f847e5">More...</a><br /></td></tr>
 <tr class="separator:afcd5d11ba0f150bb73ac41eaf8f847e5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aeac5e76520396d4436978a5c53cdd94d"><td class="memItemLeft" align="right" valign="top">uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#aeac5e76520396d4436978a5c53cdd94d">bpf_get_smp_processor_id</a> ()</td></tr>
 <tr class="memdesc:aeac5e76520396d4436978a5c53cdd94d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return SMP id of the processor running the program.  <a href="bpf__helper__defs_8h.html#aeac5e76520396d4436978a5c53cdd94d">More...</a><br /></td></tr>
 <tr class="separator:aeac5e76520396d4436978a5c53cdd94d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a25b647b1c513ab7afec473ee3043e0dd"><td class="memItemLeft" align="right" valign="top">uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#a25b647b1c513ab7afec473ee3043e0dd">bpf_ktime_get_ns</a> ()</td></tr>
+<tr class="memdesc:a25b647b1c513ab7afec473ee3043e0dd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return time elapsed since boot in nanoseconds excluding time while suspended.  <a href="bpf__helper__defs_8h.html#a25b647b1c513ab7afec473ee3043e0dd">More...</a><br /></td></tr>
+<tr class="separator:a25b647b1c513ab7afec473ee3043e0dd"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Function Documentation</h2>
 <a id="adad4a120de1d0f6c2a380e8d7b56570b"></a>
@@ -154,7 +157,27 @@ Functions</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Return time elapsed since boot in nanoseconds. </p>
+<p>Return time elapsed since boot in nanoseconds including time while suspended. </p>
+<dl class="section return"><dt>Returns</dt><dd>Time elapsed since boot in nanosecond units. </dd></dl>
+
+</div>
+</div>
+<a id="a25b647b1c513ab7afec473ee3043e0dd"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a25b647b1c513ab7afec473ee3043e0dd">&#9670;&nbsp;</a></span>bpf_ktime_get_ns()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint64_t bpf_ktime_get_ns </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Return time elapsed since boot in nanoseconds excluding time while suspended. </p>
 <dl class="section return"><dt>Returns</dt><dd>Time elapsed since boot in nanosecond units. </dd></dl>
 
 </div>
