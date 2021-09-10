@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include "framework.h"
+
 #include "ebpf_handle.h"
 
 extern DEVICE_OBJECT*

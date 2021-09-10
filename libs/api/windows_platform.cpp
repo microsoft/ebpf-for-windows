@@ -44,7 +44,7 @@ parse_maps_section_windows(
         }
 
         cache_map_handle(
-            INVALID_HANDLE_VALUE,
+            ebpf_handle_invalid,
             original_fd,
             s.type,
             s.key_size,

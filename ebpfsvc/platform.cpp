@@ -19,7 +19,7 @@ DeviceIoControl(
     _Inout_opt_ OVERLAPPED* overlapped)
 {
     return ::DeviceIoControl(
-        device_handle,
+        reinterpret_cast<HANDLE>(device_handle),
         io_control_code,
         input_buffer,
         input_buffer_size,
@@ -39,19 +39,19 @@ CreateFileW(
     uint32_t flags_and_attributes,
     _In_opt_ ebpf_handle_t template_file)
 {
-    return ::CreateFileW(
+    return reinterpret_cast<ebpf_handle_t>(::CreateFileW(
         file_name,
         desired_access,
         share_mode,
         security_attributes,
         creation_disposition,
         flags_and_attributes,
-        template_file);
+        reinterpret_cast<HANDLE>(template_file)));
 }
 
 bool
 CloseHandle(_In_ _Post_ptr_invalid_ ebpf_handle_t handle)
 {
-    return ::CloseHandle(handle);
+    return ::CloseHandle(reinterpret_cast<HANDLE>(handle));
 }
 } // namespace Platform

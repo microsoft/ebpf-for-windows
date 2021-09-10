@@ -12,7 +12,7 @@
 static uint64_t _ebpf_file_descriptor_counter = 0;
 static std::map<fd_t, ebpf_handle_t> _fd_to_handle_map;
 
-ebpf_handle_t
+HANDLE
 GlueCreateFileW(
     PCWSTR lpFileName,
     DWORD dwDesiredAccess,
@@ -20,7 +20,7 @@ GlueCreateFileW(
     PSECURITY_ATTRIBUTES lpSecurityAttributes,
     DWORD dwCreationDisposition,
     DWORD dwFlagsAndAttributes,
-    ebpf_handle_t hTemplateFile)
+    HANDLE hTemplateFile)
 {
     UNREFERENCED_PARAMETER(lpFileName);
     UNREFERENCED_PARAMETER(dwDesiredAccess);
@@ -30,11 +30,11 @@ GlueCreateFileW(
     UNREFERENCED_PARAMETER(dwFlagsAndAttributes);
     UNREFERENCED_PARAMETER(hTemplateFile);
 
-    return (ebpf_handle_t)0x12345678;
+    return (HANDLE)0x12345678;
 }
 
 BOOL
-GlueCloseHandle(ebpf_handle_t hObject)
+GlueCloseHandle(HANDLE hObject)
 {
     UNREFERENCED_PARAMETER(hObject);
     return TRUE;
@@ -42,7 +42,7 @@ GlueCloseHandle(ebpf_handle_t hObject)
 
 BOOL
 GlueDeviceIoControl(
-    ebpf_handle_t hDevice,
+    HANDLE hDevice,
     DWORD dwIoControlCode,
     PVOID lpInBuffer,
     DWORD nInBufferSize,
@@ -132,7 +132,7 @@ Glue_open_osfhandle(intptr_t os_file_handle, int flags)
     UNREFERENCED_PARAMETER(flags);
     try {
         fd_t fd = static_cast<fd_t>(InterlockedIncrement(&_ebpf_file_descriptor_counter));
-        _fd_to_handle_map.insert(std::pair<fd_t, ebpf_handle_t>(fd, reinterpret_cast<ebpf_handle_t>(os_file_handle)));
+        _fd_to_handle_map.insert(std::pair<fd_t, ebpf_handle_t>(fd, os_file_handle));
         return fd;
     } catch (...) {
         return ebpf_fd_invalid;
@@ -144,10 +144,10 @@ Glue_get_osfhandle(int file_handle)
 {
     std::map<fd_t, ebpf_handle_t>::iterator it = _fd_to_handle_map.find(file_handle);
     if (it != _fd_to_handle_map.end()) {
-        return reinterpret_cast<intptr_t>(it->second);
+        return it->second;
     }
 
-    return reinterpret_cast<intptr_t>(ebpf_handle_invalid);
+    return ebpf_handle_invalid;
 }
 
 int
