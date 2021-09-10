@@ -753,7 +753,7 @@ TEST_CASE("enumerate link IDs", "[libbpf]")
     REQUIRE(errno == ENOENT);
 }
 
-TEST_CASE("get prog and link info", "[libbpf]")
+TEST_CASE("bpf_obj_get_info_by_fd", "[libbpf]")
 {
     _test_helper_end_to_end test_helper;
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);

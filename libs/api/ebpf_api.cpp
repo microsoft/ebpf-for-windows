@@ -2016,9 +2016,10 @@ ebpf_get_next_program_id(ebpf_id_t start_id, _Out_ ebpf_id_t* next_id) noexcept
 }
 
 ebpf_result_t
-ebpf_object_get_info_by_fd(fd_t bpf_fd, void* info, uint32_t* info_len)
+ebpf_object_get_info_by_fd(
+    fd_t bpf_fd, _Out_writes_bytes_to_(*info_size, *info_size) void* info, _Inout_ uint32_t* info_size)
 {
-    if (info == nullptr || info_len == nullptr) {
+    if (info == nullptr || info_size == nullptr) {
         return EBPF_INVALID_ARGUMENT;
     }
 
@@ -2028,7 +2029,7 @@ ebpf_object_get_info_by_fd(fd_t bpf_fd, void* info, uint32_t* info_len)
     }
 
     ebpf_protocol_buffer_t request_buffer(sizeof(ebpf_operation_get_object_info_request_t));
-    ebpf_protocol_buffer_t reply_buffer(EBPF_OFFSET_OF(ebpf_operation_get_object_info_reply_t, info) + *info_len);
+    ebpf_protocol_buffer_t reply_buffer(EBPF_OFFSET_OF(ebpf_operation_get_object_info_reply_t, info) + *info_size);
     auto request = reinterpret_cast<ebpf_operation_get_object_info_request_t*>(request_buffer.data());
     auto reply = reinterpret_cast<ebpf_operation_get_object_info_reply_t*>(reply_buffer.data());
 
@@ -2038,8 +2039,8 @@ ebpf_object_get_info_by_fd(fd_t bpf_fd, void* info, uint32_t* info_len)
 
     ebpf_result_t result = windows_error_to_ebpf_result(invoke_ioctl(request_buffer, reply_buffer));
     if (result == EBPF_SUCCESS) {
-        *info_len = reply->header.length - EBPF_OFFSET_OF(ebpf_operation_get_object_info_reply_t, info);
-        memcpy(info, reply->info, *info_len);
+        *info_size = reply->header.length - EBPF_OFFSET_OF(ebpf_operation_get_object_info_reply_t, info);
+        memcpy(info, reply->info, *info_size);
     }
 
     return result;

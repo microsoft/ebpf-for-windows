@@ -177,6 +177,7 @@ extern "C"
      * On output, the number of bytes actually written.
      *
      * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INSUFFICIENT_BUFFER The buffer was too small to hold bpf_map_info.
      */
     ebpf_result_t
     ebpf_map_get_info(
