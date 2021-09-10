@@ -854,10 +854,6 @@ ebpf_object_pin(fd_t fd, _In_z_ const char* path)
         return EBPF_INVALID_ARGUMENT;
     }
 
-    // This is a workaround till we start using _open_osfhandle() to generate
-    // fds for the handles (issue tracked by TODO: Issue# 287). Once this is
-    // fixed, _get_osfhandle() can be directly used to fetch the corresponding
-    // handle.
     handle = _get_handle_from_file_descriptor(fd);
     if (handle == ebpf_handle_invalid) {
         return EBPF_INVALID_FD;
@@ -1641,6 +1637,9 @@ _get_next_map_to_create(std::vector<ebpf_map_t*>& maps)
         if (map->inner_map == nullptr) {
             // This map requires an inner map template, look up which one.
             for (auto& inner_map : maps) {
+                if (!inner_map) {
+                    continue;
+                }
                 if (inner_map->original_fd == map->inner_map_original_fd) {
                     map->inner_map = inner_map;
                     break;
