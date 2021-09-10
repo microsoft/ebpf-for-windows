@@ -868,11 +868,21 @@ extern "C"
 
     /**
      * @brief Return time elapsed since boot in units of 100 nanoseconds.
+     * Does not include time when the system was suspended.
      *
      * @return Time elapsed since boot in 100 nanosecond units.
      */
     uint64_t
     ebpf_query_interrupt_time_precise();
+
+    /**
+     * @brief Return time elapsed since boot in units of 100 nanoseconds.
+     * Does include time when the system was suspended.
+     *
+     * @return Time elapsed since boot in 100 nanosecond units.
+     */
+    uint64_t
+    ebpf_query_unbiased_interrupt_time_precise();
 
 #ifdef __cplusplus
 }

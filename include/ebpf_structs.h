@@ -75,4 +75,5 @@ typedef enum
     BPF_FUNC_get_prandom_u32 = 5,
     BPF_FUNC_ktime_get_boot_ns = 6,
     BPF_FUNC_get_smp_processor_id = 7,
+    BPF_FUNC_ktime_get_ns = 8,
 } ebpf_helper_id_t;

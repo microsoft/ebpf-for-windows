@@ -479,3 +479,12 @@ ebpf_query_interrupt_time_precise()
     // https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-kequeryinterrupttimeprecise
     return KeQueryInterruptTimePrecise(&qpc_time);
 }
+
+uint64_t
+ebpf_query_unbiased_interrupt_time_precise()
+{
+    uint64_t qpc_time;
+    // KeQueryInterruptTimePrecise returns the current interrupt-time count in 100-nanosecond units.
+    // https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-kequeryinterrupttimeprecise
+    return KeQueryUnbiasedInterruptTimePrecise(&qpc_time);
+}

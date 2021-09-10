@@ -41,6 +41,8 @@ static uint32_t
 _ebpf_core_random_uint32();
 static uint64_t
 _ebpf_core_get_time_since_boot_ns();
+static uint64_t
+_ebpf_core_get_time_ns();
 static uint32_t
 _ebpf_core_get_current_cpu();
 
@@ -56,7 +58,8 @@ static const void* _ebpf_general_helpers[] = {
     (void*)&_ebpf_core_tail_call,
     (void*)&_ebpf_core_random_uint32,
     (void*)&_ebpf_core_get_time_since_boot_ns,
-    (void*)_ebpf_core_get_current_cpu};
+    (void*)_ebpf_core_get_current_cpu,
+    (void*)&_ebpf_core_get_time_ns};
 
 static ebpf_extension_provider_t* _ebpf_global_helper_function_provider_context = NULL;
 static ebpf_helper_function_addresses_t _ebpf_global_helper_function_dispatch_table = {
@@ -1107,6 +1110,14 @@ _ebpf_core_random_uint32()
 
 static uint64_t
 _ebpf_core_get_time_since_boot_ns()
+{
+    // ebpf_query_interrupt_time_precise returns time elapsed since
+    // boot in units of 100 ns.
+    return ebpf_query_unbiased_interrupt_time_precise() * 100;
+}
+
+static uint64_t
+_ebpf_core_get_time_ns()
 {
     // ebpf_query_interrupt_time_precise returns time elapsed since
     // boot in units of 100 ns.
