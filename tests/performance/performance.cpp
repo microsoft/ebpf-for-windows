@@ -58,7 +58,16 @@ _perf_bpf_ktime_get_boot_ns()
 {
     uint64_t time;
     ebpf_epoch_enter();
-    time = ebpf_query_interrupt_time_precise() * 100;
+    time = ebpf_query_time_since_boot(true) * 100;
+    ebpf_epoch_exit();
+}
+
+static void
+_perf_bpf_ktime_get_ns()
+{
+    uint64_t time;
+    ebpf_epoch_enter();
+    time = ebpf_query_time_since_boot(false) * 100;
     ebpf_epoch_exit();
 }
 
@@ -459,6 +468,16 @@ test_bpf_ktime_get_boot_ns(bool preemptible)
 }
 
 void
+test_bpf_ktime_get_ns(bool preemptible)
+{
+    REQUIRE(ebpf_core_initiate() == EBPF_SUCCESS);
+    size_t iterations = PERFORMANCE_MEASURE_ITERATION_COUNT;
+    _performance_measure measure(__FUNCTION__, preemptible, _perf_bpf_ktime_get_ns, iterations);
+    measure.run_test();
+    ebpf_core_terminate();
+}
+
+void
 test_bpf_get_smp_processor_id(bool preemptible)
 {
     REQUIRE(ebpf_core_initiate() == EBPF_SUCCESS);
@@ -569,6 +588,7 @@ PERF_TEST(test_program_invoke_interpret);
 
 PERF_TEST(test_bpf_get_prandom_u32);
 PERF_TEST(test_bpf_ktime_get_boot_ns);
+PERF_TEST(test_bpf_ktime_get_ns);
 PERF_TEST(test_bpf_get_smp_processor_id);
 
 PERF_TEST(test_bpf_map_lookup_elem_read<BPF_MAP_TYPE_HASH>);

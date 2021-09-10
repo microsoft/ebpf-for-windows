@@ -29,6 +29,7 @@ ebpf_helper_function_prototype_t ebpf_core_helper_function_prototype_array[] = {
     {BPF_FUNC_get_prandom_u32, "bpf_get_prandom_u32", EBPF_RETURN_TYPE_INTEGER, {0}},
     {BPF_FUNC_ktime_get_boot_ns, "bpf_ktime_get_boot_ns", EBPF_RETURN_TYPE_INTEGER, {0}},
     {BPF_FUNC_get_smp_processor_id, "bpf_get_smp_processor_id", EBPF_RETURN_TYPE_INTEGER, {0}},
+    {BPF_FUNC_ktime_get_ns, "bpf_ktime_get_ns", EBPF_RETURN_TYPE_INTEGER, {0}},
 };
 
 #ifdef __cplusplus

@@ -84,4 +84,8 @@ verify_utility_helper_results(_In_ const bpf_object* object)
 
     REQUIRE(test_data[0].random != test_data[1].random);
     REQUIRE(test_data[0].timestamp < test_data[1].timestamp);
+    REQUIRE(test_data[0].boot_timestamp < test_data[1].boot_timestamp);
+    REQUIRE(
+        (test_data[1].boot_timestamp - test_data[0].boot_timestamp) >=
+        (test_data[1].timestamp - test_data[0].timestamp));
 }

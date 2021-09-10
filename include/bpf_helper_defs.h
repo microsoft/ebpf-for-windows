@@ -73,7 +73,7 @@ EBPF_HELPER(uint32_t, bpf_get_prandom_u32, ());
 #endif
 
 /**
- * @brief Return time elapsed since boot in nanoseconds.
+ * @brief Return time elapsed since boot in nanoseconds including time while suspended.
  *
  * @return Time elapsed since boot in nanosecond units.
  */
@@ -90,4 +90,14 @@ EBPF_HELPER(uint64_t, bpf_ktime_get_boot_ns, ());
 EBPF_HELPER(uint64_t, bpf_get_smp_processor_id, ());
 #ifndef __doxygen
 #define bpf_get_smp_processor_id ((bpf_get_smp_processor_id_t)BPF_FUNC_get_smp_processor_id)
+#endif
+
+/**
+ * @brief Return time elapsed since boot in nanoseconds excluding time while suspended.
+ *
+ * @return Time elapsed since boot in nanosecond units.
+ */
+EBPF_HELPER(uint64_t, bpf_ktime_get_ns, ());
+#ifndef __doxygen
+#define bpf_ktime_get_ns ((bpf_ktime_get_ns_t)BPF_FUNC_ktime_get_boot_ns)
 #endif

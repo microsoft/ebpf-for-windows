@@ -16,7 +16,10 @@ test_utility_helper_functions(struct bpf_map* utility_map)
     test_data.random = bpf_get_prandom_u32();
 
     // Get current timestamp.
-    test_data.timestamp = bpf_ktime_get_boot_ns();
+    test_data.boot_timestamp = bpf_ktime_get_boot_ns();
+
+    // Get current timestamp.
+    test_data.timestamp = bpf_ktime_get_ns();
 
     // Get current cpu ID.
     test_data.cpu_id = bpf_get_smp_processor_id();
@@ -28,7 +31,10 @@ test_utility_helper_functions(struct bpf_map* utility_map)
     test_data.random = bpf_get_prandom_u32();
 
     // Get current timestamp.
-    test_data.timestamp = bpf_ktime_get_boot_ns();
+    test_data.boot_timestamp = bpf_ktime_get_boot_ns();
+
+    // Get current timestamp.
+    test_data.timestamp = bpf_ktime_get_ns();
 
     // Write into test utility_map index 1.
     bpf_map_update_elem(utility_map, &keys[1], &test_data, 0);
