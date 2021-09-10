@@ -65,6 +65,9 @@ _open_osfhandle(intptr_t os_file_handle, int flags)
 intptr_t
 _get_osfhandle(int file_handle)
 {
+    if (file_handle == ebpf_fd_invalid) {
+        return reinterpret_cast<intptr_t>(ebpf_handle_invalid);
+    }
     return ::_get_osfhandle(file_handle);
 }
 
