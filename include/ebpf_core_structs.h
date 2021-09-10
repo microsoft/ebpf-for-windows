@@ -20,3 +20,5 @@ typedef struct _ebpf_map_info
     ebpf_map_definition_in_memory_t definition;
     _Field_z_ char* pin_path;
 } ebpf_map_info_t;
+
+typedef intptr_t ebpf_handle_t;

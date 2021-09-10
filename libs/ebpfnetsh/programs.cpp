@@ -24,11 +24,11 @@ class program_state_t final
     ebpf_handle_t map_handles[10];
 
     program_state_t(std::string filename, std::string section)
-        : program_filename(filename), program_section(section), program_handle(INVALID_HANDLE_VALUE),
-          link_handle(INVALID_HANDLE_VALUE)
+        : program_filename(filename), program_section(section), program_handle(ebpf_handle_invalid),
+          link_handle(ebpf_handle_invalid)
     {
         for (int i = 0; i < _countof(map_handles); i++) {
-            map_handles[i] = INVALID_HANDLE_VALUE;
+            map_handles[i] = ebpf_handle_invalid;
         }
     }
 
@@ -46,9 +46,9 @@ class program_state_t final
     void
     close_handle(ebpf_handle_t* handle)
     {
-        if (*handle != INVALID_HANDLE_VALUE) {
+        if (*handle != ebpf_handle_invalid) {
             ebpf_api_close_handle(*handle);
-            *handle = INVALID_HANDLE_VALUE;
+            *handle = ebpf_handle_invalid;
         }
     }
 };

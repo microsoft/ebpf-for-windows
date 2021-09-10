@@ -64,7 +64,7 @@ extern "C"
 
     typedef int32_t fd_t;
     const fd_t ebpf_fd_invalid = -1;
-    typedef void* ebpf_handle_t;
+    typedef intptr_t ebpf_handle_t;
     const ebpf_handle_t ebpf_handle_invalid = (ebpf_handle_t)-1;
     typedef struct _tlv_type_length_value tlv_type_length_value_t;
 

@@ -275,9 +275,7 @@ typedef class _ebpf_map_test_state
         ebpf_map_definition_in_memory_t definition{
             sizeof(ebpf_map_definition_in_memory_t), type, sizeof(uint32_t), sizeof(uint64_t), ebpf_get_cpu_count()};
 
-        REQUIRE(
-            ebpf_map_create(&name, &definition, reinterpret_cast<uintptr_t>(ebpf_handle_invalid), &map) ==
-            EBPF_SUCCESS);
+        REQUIRE(ebpf_map_create(&name, &definition, ebpf_handle_invalid, &map) == EBPF_SUCCESS);
 
         for (uint32_t i = 0; i < ebpf_get_cpu_count(); i++) {
             uint64_t value = 0;
