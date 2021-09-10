@@ -235,5 +235,6 @@ typedef class _program_info_provider
     ebpf_extension_provider_t* provider;
 } program_info_provider_t;
 
+#define ETHERNET_TYPE_IPV4 0x0800
 std::vector<uint8_t>
-prepare_udp_packet(uint16_t udp_length);
+prepare_udp_packet(uint16_t udp_length, uint16_t ethertype);

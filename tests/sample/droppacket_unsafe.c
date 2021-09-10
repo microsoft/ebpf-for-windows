@@ -21,13 +21,13 @@ ebpf_map_definition_in_file_t port_map = {
 int
 DropPacket(xdp_md_t* ctx)
 {
-    IPV4_HEADER* iphdr = (IPV4_HEADER*)ctx->data;
-    UDP_HEADER* udphdr = (UDP_HEADER*)(iphdr + 1);
+    IPV4_HEADER* ip_header = (IPV4_HEADER*)ctx->data;
+    UDP_HEADER* udp_header = (UDP_HEADER*)(ip_header + 1);
     int rc = XDP_PASS;
 
     // udp
-    if (iphdr->Protocol == 17) {
-        if (ntohs(udphdr->length) <= sizeof(UDP_HEADER)) {
+    if (ip_header->Protocol == IPPROTO_UDP) {
+        if (ntohs(udp_header->length) <= sizeof(UDP_HEADER)) {
             long key = 0;
             long* count = bpf_map_lookup_elem(&port_map, &key);
             if (count)

@@ -38,7 +38,19 @@ static service_install_helper
 struct _sample_extension_helper
 {
   public:
-    _sample_extension_helper() : device_handle(INVALID_HANDLE_VALUE) {}
+    _sample_extension_helper() : device_handle(INVALID_HANDLE_VALUE)
+    {
+        // Open handle to test eBPF extension device.
+        REQUIRE(
+            (device_handle = ::CreateFileW(
+                 SAMPLE_EBPF_EXT_DEVICE_WIN32_NAME,
+                 GENERIC_READ | GENERIC_WRITE,
+                 0,
+                 nullptr,
+                 CREATE_ALWAYS,
+                 FILE_ATTRIBUTE_NORMAL,
+                 nullptr)) != INVALID_HANDLE_VALUE);
+    }
 
     ~_sample_extension_helper()
     {
@@ -50,17 +62,6 @@ struct _sample_extension_helper
     invoke(std::vector<char>& input_buffer, std::vector<char>& output_buffer)
     {
         uint32_t count_of_bytes_returned;
-
-        // Open handle to test eBPF extension device.
-        REQUIRE(
-            (device_handle = ::CreateFileW(
-                 SAMPLE_EBPF_EXT_DEVICE_WIN32_NAME,
-                 GENERIC_READ | GENERIC_WRITE,
-                 0,
-                 nullptr,
-                 CREATE_ALWAYS,
-                 FILE_ATTRIBUTE_NORMAL,
-                 nullptr)) != INVALID_HANDLE_VALUE);
 
         // Issue IOCTL.
         REQUIRE(

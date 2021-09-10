@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 #include <io.h>
+#include <WinSock2.h>
+
 #include "bpf.h"
 #include "catch_wrapper.hpp"
 #include "helpers.h"
@@ -44,7 +46,7 @@ TEST_CASE("libbpf program", "[libbpf]")
     REQUIRE(fd2 == program_fd);
 
     size_t size = bpf_program__size(program);
-    REQUIRE(size == 208);
+    REQUIRE(size == 272);
 
     REQUIRE(bpf_program__next(program, object) == nullptr);
     REQUIRE(bpf_program__prev(program, object) == nullptr);
@@ -373,7 +375,7 @@ _ebpf_test_tail_call(_In_z_ const char* filename, int expected_result)
     bpf_link* link = bpf_program__attach_xdp(caller, 1);
     REQUIRE(link != nullptr);
 
-    auto packet = prepare_udp_packet(0);
+    auto packet = prepare_udp_packet(0, ETHERNET_TYPE_IPV4);
     xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
     int result;
     REQUIRE(hook.fire(&ctx, &result) == EBPF_SUCCESS);
@@ -609,7 +611,7 @@ TEST_CASE("array of maps", "[libbpf]")
     REQUIRE(link != nullptr);
 
     // Now run the ebpf program.
-    auto packet = prepare_udp_packet(0);
+    auto packet = prepare_udp_packet(0, ETHERNET_TYPE_IPV4);
     xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
     int result;
     REQUIRE(hook.fire(&ctx, &result) == EBPF_SUCCESS);

@@ -44,6 +44,8 @@ Environment:
 #include "ebpf_windows.h"
 #include "ebpf_xdp_program_data.h"
 
+static HANDLE _net_ebpf_ext_l2_injection_handle = NULL;
+
 static ebpf_ext_attach_hook_provider_registration_t* _ebpf_xdp_hook_provider_registration = NULL;
 static ebpf_ext_attach_hook_provider_registration_t* _ebpf_bind_hook_provider_registration = NULL;
 static ebpf_extension_provider_t* _ebpf_xdp_program_info_provider = NULL;
@@ -293,8 +295,7 @@ NTSTATUS
 net_ebpf_ext_register_callouts(_Inout_ void* device_object)
 /* ++
 
-   This function registers dynamic callouts and filters that
-   FWPM_LAYER_INBOUND_MAC_FRAME_ETHERNET layer.
+   This function registers WFP callouts and filters at various layers.
 
    Callouts and filters will be removed during DriverUnload.
 
@@ -376,6 +377,11 @@ net_ebpf_ext_register_callouts(_Inout_ void* device_object)
     }
     is_in_transaction = FALSE;
 
+    // Create L2 injection handle.
+    status = FwpsInjectionHandleCreate(AF_LINK, FWPS_INJECTION_TYPE_L2, &_net_ebpf_ext_l2_injection_handle);
+    if (!NT_SUCCESS(status))
+        goto Exit;
+
 Exit:
 
     if (!NT_SUCCESS(status)) {
@@ -404,6 +410,48 @@ net_ebpf_ext_unregister_callouts(void)
             FwpsCalloutUnregisterById(_net_ebpf_ext_wfp_callout_state[index].assigned_callout_id);
         }
     }
+
+    FwpsInjectionHandleDestroy(_net_ebpf_ext_l2_injection_handle);
+}
+
+static void
+_net_ebpf_ext_l2_inject_complete(
+    _In_ const void* context, _Inout_ NET_BUFFER_LIST* packet_clone, BOOLEAN dispatch_level)
+{
+    UNREFERENCED_PARAMETER(context);
+    FwpsFreeCloneNetBufferList(packet_clone, dispatch_level);
+}
+
+static void
+_net_ebpf_ext_handle_xdp_tx(_Inout_ NET_BUFFER_LIST* packet, _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values)
+{
+    NET_BUFFER_LIST* packet_clone = NULL;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    uint32_t interface_index =
+        incoming_fixed_values->incomingValue[FWPS_FIELD_INBOUND_MAC_FRAME_NATIVE_INTERFACE_INDEX].value.uint32;
+    uint32_t ndis_port =
+        incoming_fixed_values->incomingValue[FWPS_FIELD_INBOUND_MAC_FRAME_NATIVE_NDIS_PORT].value.uint32;
+
+    status = FwpsAllocateCloneNetBufferList(packet, NULL, NULL, 0, &packet_clone);
+    if (status != STATUS_SUCCESS)
+        goto Exit;
+
+    status = FwpsInjectMacSendAsync(
+        _net_ebpf_ext_l2_injection_handle,
+        NULL,
+        0,
+        FWPS_LAYER_OUTBOUND_MAC_FRAME_NATIVE,
+        interface_index,
+        ndis_port,
+        packet_clone,
+        _net_ebpf_ext_l2_inject_complete,
+        NULL);
+
+    if (status != STATUS_SUCCESS)
+        goto Exit;
+Exit:
+    return;
 }
 
 static void
@@ -422,7 +470,7 @@ _net_ebpf_ext_layer_2_classify(
 -- */
 {
     FWP_ACTION_TYPE action = FWP_ACTION_PERMIT;
-    UNREFERENCED_PARAMETER(incoming_fixed_values);
+
     UNREFERENCED_PARAMETER(incoming_metadata_values);
     UNREFERENCED_PARAMETER(classify_context);
     UNREFERENCED_PARAMETER(filter);
@@ -459,8 +507,12 @@ _net_ebpf_ext_layer_2_classify(
         case XDP_PASS:
             action = FWP_ACTION_PERMIT;
             break;
+        case XDP_TX:
+            _net_ebpf_ext_handle_xdp_tx(nbl, incoming_fixed_values);
+            // Fall through.
         case XDP_DROP:
             action = FWP_ACTION_BLOCK;
+            classify_output->flags |= FWPS_CLASSIFY_OUT_FLAG_ABSORB;
             break;
         }
     }
