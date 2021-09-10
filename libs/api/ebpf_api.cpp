@@ -1737,9 +1737,6 @@ ebpf_program_load(
                 goto Done;
             }
 
-            // TODO: (Issue #287) _open_osfhandle() fails for the program handle.
-            // Workaround: for now increment a global counter and use that as
-            // file descriptor.
             program->fd = _create_file_descriptor_for_handle(program->handle);
 
             // populate load_info.
