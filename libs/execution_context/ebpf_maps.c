@@ -871,7 +871,7 @@ ebpf_map_create(
         break;
     }
 
-    if (type >= EBPF_COUNT_OF(ebpf_map_function_tables)) {
+    if ((type >= EBPF_COUNT_OF(ebpf_map_function_tables)) || (map_name->length >= BPF_OBJ_NAME_LEN)) {
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }

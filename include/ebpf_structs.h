@@ -97,7 +97,7 @@ struct bpf_map_info
     uint32_t max_entries; ///< Maximum number of entries allowed in the map.
 };
 
-#define BPF_OBJ_NAME_LEN 16
+#define BPF_OBJ_NAME_LEN 64
 
 struct bpf_prog_info
 {

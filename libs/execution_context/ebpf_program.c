@@ -341,7 +341,8 @@ ebpf_program_initialize(ebpf_program_t* program, const ebpf_program_parameters_t
     ebpf_utf8_string_t local_section_name = {NULL, 0};
     ebpf_utf8_string_t local_file_name = {NULL, 0};
 
-    if (program->parameters.code_type != EBPF_CODE_NONE) {
+    if ((program->parameters.code_type != EBPF_CODE_NONE) ||
+        (program_parameters->program_name.length >= BPF_OBJ_NAME_LEN)) {
         return_value = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
