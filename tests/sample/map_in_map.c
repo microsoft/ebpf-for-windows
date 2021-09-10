@@ -14,7 +14,7 @@ struct _ebpf_map_definition_in_file outer_map = {
 
 SEC("maps")
 struct _ebpf_map_definition_in_file inner_map = {
-    .type = BPF_MAP_TYPE_ARRAY, .key_size = sizeof(uint32_t), .value_size = sizeof(uint32_t), .max_entries = 1};
+    .type = BPF_MAP_TYPE_HASH, .key_size = sizeof(uint32_t), .value_size = sizeof(uint32_t), .max_entries = 1};
 
 SEC("xdp_prog") int caller(struct xdp_md* ctx)
 {
