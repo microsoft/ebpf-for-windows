@@ -6,7 +6,6 @@
 #include "api_common.hpp"
 #include "ebpf_api.h"
 #include "ebpf_platform.h"
-#include "ebpf_windows.h"
 #include "spec_type_descriptors.hpp"
 
 struct bpf_object;

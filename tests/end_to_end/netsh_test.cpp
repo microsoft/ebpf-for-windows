@@ -255,7 +255,7 @@ TEST_CASE("show programs", "[netsh][programs]")
     REQUIRE(object != nullptr);
     REQUIRE(program_fd != -1);
 
-    std::string output = _run_netsh_command(handle_ebpf_show_programs, nullptr, nullptr, nullptr, &result);
+    std::string output = _run_netsh_command(handle_ebpf_show_programs, L"xdp", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
 
     REQUIRE(

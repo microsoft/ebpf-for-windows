@@ -287,3 +287,30 @@ bpf_prog_get_next_id(uint32_t start_id, uint32_t* next_id)
 {
     return libbpf_result_err(ebpf_get_next_program_id(start_id, next_id));
 }
+
+int
+libbpf_prog_type_by_name(const char* name, enum bpf_prog_type* prog_type, enum bpf_attach_type* expected_attach_type)
+{
+    ebpf_program_type_t program_type_uuid;
+    ebpf_attach_type_t expected_attach_type_uuid;
+    ebpf_result_t result = ebpf_get_program_type_by_name(name, &program_type_uuid, &expected_attach_type_uuid);
+    if (result != EBPF_SUCCESS) {
+        return libbpf_result_err(result);
+    }
+
+    // Convert UUIDs to enum values if they exist.
+    // TODO(issue #223): get info from registry.
+    if (memcmp(&program_type_uuid, &EBPF_PROGRAM_TYPE_XDP, sizeof(program_type_uuid)) == 0) {
+        *prog_type = BPF_PROG_TYPE_XDP;
+        *expected_attach_type = BPF_ATTACH_TYPE_XDP;
+        return 0;
+    }
+    if (memcmp(&program_type_uuid, &EBPF_PROGRAM_TYPE_BIND, sizeof(program_type_uuid)) == 0) {
+        *prog_type = BPF_PROG_TYPE_BIND;
+        *expected_attach_type = BPF_ATTACH_TYPE_UNSPEC;
+        return 0;
+    }
+
+    errno = ESRCH;
+    return -1;
+}

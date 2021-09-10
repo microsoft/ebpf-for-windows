@@ -7,7 +7,6 @@
 #include <stdlib.h>
 #include <windows.h>
 #include "ebpf_api.h"
-#include "ebpf_windows.h"
 #include "rpc_interface_c.c"
 
 #pragma comment(lib, "Rpcrt4.lib")

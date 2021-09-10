@@ -568,6 +568,19 @@ bpf_program__set_expected_attach_type(struct bpf_program* prog, enum bpf_attach_
 int
 bpf_program__unpin(struct bpf_program* prog, const char* path);
 
+/**
+ * @brief Get a program type and expected attach type by name.
+ *
+ * @param[in] name Name, as if it were a section name in an ELF file.
+ * @param[out] prog_type Program type.
+ * @param[out] expected_attach_type Expected attach type.
+ *
+ * @retval 0 The operation was successful.
+ * @retval <0 An error occured, and errno was set.
+ */
+int
+libbpf_prog_type_by_name(const char* name, enum bpf_prog_type* prog_type, enum bpf_attach_type* expected_attach_type);
+
 /** @} */
 
 #else

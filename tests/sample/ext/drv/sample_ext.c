@@ -13,7 +13,6 @@
 
 #include "ebpf_platform.h"
 #include "ebpf_program_types.h"
-#include "ebpf_windows.h"
 
 #include "sample_ext_program_info.h"
 

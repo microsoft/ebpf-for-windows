@@ -11,7 +11,6 @@
 #include <netsh.h>
 #include "bpf.h"
 #include "ebpf_api.h"
-#include "ebpf_windows.h"
 #include "libbpf.h"
 #include "platform.h"
 #include "programs.h"
@@ -30,42 +29,9 @@ static TOKEN_VALUE _boolean_constraint_enum[] = {
     {L"no", BC_NO},
 };
 
-// TODO:(issue #223) ebpf_attach_type_index_t, _ebpf_attach_type_enum, and
-// _ebpf_attach_type_guids should all be replaced as soon as we
-// can query the information from ebpfapi.
-
-// Index into the _ebpf_attach_type_guids array below (this need
-// not match an integer used anywhere outside this file).
-typedef enum _ebpf_attach_type_index
-{
-    EBPF_ATTACH_TYPE_UNSPECIFIED_INDEX = 0,
-    EBPF_ATTACH_TYPE_XDP_INDEX = 1,
-    EBPF_ATTACH_TYPE_BIND_INDEX = 2
-} ebpf_attach_type_index_t;
-
-static TOKEN_VALUE _ebpf_attach_type_enum[] = {
-    {L"unknown", EBPF_ATTACH_TYPE_UNSPECIFIED_INDEX},
-    {L"xdp", EBPF_ATTACH_TYPE_XDP_INDEX},
-    {L"bind", EBPF_ATTACH_TYPE_BIND_INDEX},
-
-};
-
-GUID _ebpf_program_type_guids[] = {
-    EBPF_PROGRAM_TYPE_UNSPECIFIED,
-    EBPF_PROGRAM_TYPE_XDP,
-    EBPF_PROGRAM_TYPE_BIND,
-};
-
-GUID _ebpf_attach_type_guids[] = {
-    EBPF_ATTACH_TYPE_UNSPECIFIED,
-    EBPF_ATTACH_TYPE_XDP,
-    EBPF_ATTACH_TYPE_BIND,
-};
-
 static TOKEN_VALUE _ebpf_execution_type_enum[] = {
     {L"jit", EBPF_EXECUTION_JIT},
     {L"interpret", EBPF_EXECUTION_INTERPRET},
-
 };
 
 std::string
@@ -92,8 +58,8 @@ handle_ebpf_add_program(
 
     std::string filename;
     std::string pinned;
-    ebpf_program_type_t* program_type = nullptr;
-    ebpf_attach_type_t* attach_type = nullptr;
+    ebpf_program_type_t program_type = EBPF_PROGRAM_TYPE_UNSPECIFIED;
+    ebpf_attach_type_t attach_type = EBPF_ATTACH_TYPE_UNSPECIFIED;
     ebpf_execution_type_t execution = EBPF_EXECUTION_JIT;
     for (int i = 0; (status == NO_ERROR) && ((i + current_index) < argc); i++) {
         switch (tag_type[i]) {
@@ -104,18 +70,12 @@ handle_ebpf_add_program(
         }
         case 1: // TYPE
         {
-            ebpf_attach_type_index_t attach_type_index;
-            status = MatchEnumTag(
-                NULL,
-                argv[current_index + i],
-                _countof(_ebpf_attach_type_enum),
-                _ebpf_attach_type_enum,
-                (PULONG)&attach_type_index);
-            if (status != NO_ERROR) {
+            std::string type_name = down_cast_from_wstring(std::wstring(argv[current_index + i]));
+            ebpf_attach_type_t expected_attach_type;
+            ebpf_result_t result =
+                ebpf_get_program_type_by_name(type_name.c_str(), &program_type, &expected_attach_type);
+            if (result != EBPF_SUCCESS) {
                 status = ERROR_INVALID_PARAMETER;
-            } else {
-                program_type = &_ebpf_program_type_guids[attach_type_index];
-                attach_type = &_ebpf_attach_type_guids[attach_type_index];
             }
             break;
         }
@@ -143,7 +103,13 @@ handle_ebpf_add_program(
     int program_fd;
     PCSTR error_message;
     ebpf_result_t result = ebpf_program_load(
-        filename.c_str(), program_type, attach_type, EBPF_EXECUTION_ANY, &object, &program_fd, &error_message);
+        filename.c_str(),
+        (tags[1].bPresent ? &program_type : nullptr),
+        (tags[1].bPresent ? &attach_type : nullptr),
+        EBPF_EXECUTION_ANY,
+        &object,
+        &program_fd,
+        &error_message);
     if (result != EBPF_SUCCESS) {
         std::cerr << "error " << result << ": could not load program" << std::endl;
         std::cerr << error_message << std::endl;
@@ -153,7 +119,7 @@ handle_ebpf_add_program(
 
     struct bpf_program* program = bpf_program__next(nullptr, object);
     struct bpf_link* link;
-    result = ebpf_program_attach(program, attach_type, nullptr, 0, &link);
+    result = ebpf_program_attach(program, (tags[1].bPresent ? &attach_type : nullptr), nullptr, 0, &link);
     if (result != EBPF_SUCCESS) {
         std::cerr << "error " << result << ": could not attach program" << std::endl;
         return ERROR_SUPPRESS_OUTPUT;
@@ -417,7 +383,7 @@ handle_ebpf_show_programs(
     ULONG status =
         PreprocessCommand(nullptr, argv, current_index, argc, tags, _countof(tags), 0, _countof(tags), tag_type);
 
-    ebpf_attach_type_t attach_type = EBPF_ATTACH_TYPE_XDP;
+    ebpf_program_type_t program_type = EBPF_PROGRAM_TYPE_UNSPECIFIED;
     BOOLEAN_CONSTRAINT attached = BC_ANY;
     BOOLEAN_CONSTRAINT pinned = BC_ANY;
     VERBOSITY_LEVEL level = VL_NORMAL;
@@ -428,17 +394,12 @@ handle_ebpf_show_programs(
         switch (tag_type[i]) {
         case 0: // TYPE
         {
-            ebpf_attach_type_index_t attach_type_index;
-            status = MatchEnumTag(
-                NULL,
-                argv[current_index + i],
-                _countof(_ebpf_attach_type_enum),
-                _ebpf_attach_type_enum,
-                (PULONG)&attach_type_index);
-            if (status != NO_ERROR) {
+            std::string type_name = down_cast_from_wstring(std::wstring(argv[current_index + i]));
+            ebpf_attach_type_t expected_attach_type;
+            ebpf_result_t result =
+                ebpf_get_program_type_by_name(type_name.c_str(), &program_type, &expected_attach_type);
+            if (result != EBPF_SUCCESS) {
                 status = ERROR_INVALID_PARAMETER;
-            } else {
-                attach_type = _ebpf_attach_type_guids[attach_type_index];
             }
             break;
         }
@@ -526,7 +487,6 @@ handle_ebpf_show_programs(
             break;
         }
 
-        // TODO(#190): we also need the program type so we can filter on it.
         struct bpf_prog_info info;
         uint32_t info_size = (uint32_t)sizeof(info);
         int error = bpf_obj_get_info_by_fd(program_fd, &info, &info_size);
@@ -535,6 +495,9 @@ handle_ebpf_show_programs(
         }
 
         if ((id != 0) && (info.id != id)) {
+            continue;
+        }
+        if (tags[0].bPresent && (memcmp(&info.type_uuid, &program_type, sizeof(program_type)) != 0)) {
             continue;
         }
 

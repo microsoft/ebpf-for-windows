@@ -2,7 +2,11 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 
+#ifdef _MSC_VER
 #include <guiddef.h>
+#else
+typedef uint8_t GUID[16];
+#endif
 
 // This file contains eBPF definitions needed by eBPF programs as well as
 // the verifier and execution context.

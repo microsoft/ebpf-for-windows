@@ -821,3 +821,24 @@ TEST_CASE("bpf_obj_get_info_by_fd", "[libbpf]")
 
     Platform::_close(link_fd);
 }
+
+TEST_CASE("libbpf_prog_type_by_name", "[libbpf]")
+{
+    bpf_prog_type prog_type;
+    bpf_attach_type expected_attach_type;
+
+    // Try a cross-platform type.
+    REQUIRE(libbpf_prog_type_by_name("xdp", &prog_type, &expected_attach_type) == 0);
+    REQUIRE(prog_type == BPF_PROG_TYPE_XDP);
+    REQUIRE(expected_attach_type == BPF_ATTACH_TYPE_XDP);
+
+    // Try a Windows-specific type.
+    REQUIRE(libbpf_prog_type_by_name("bind", &prog_type, &expected_attach_type) == 0);
+    REQUIRE(prog_type == BPF_PROG_TYPE_BIND);
+    REQUIRE(expected_attach_type == BPF_ATTACH_TYPE_UNSPEC);
+
+    // Try something that will fall back to the default.
+    REQUIRE(libbpf_prog_type_by_name("default", &prog_type, &expected_attach_type) == 0);
+    REQUIRE(prog_type == BPF_PROG_TYPE_XDP);
+    REQUIRE(expected_attach_type == BPF_ATTACH_TYPE_XDP);
+}

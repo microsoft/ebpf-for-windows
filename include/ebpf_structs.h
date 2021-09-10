@@ -8,6 +8,7 @@
 
 #include <stdint.h>
 #include "../external/ebpf-verifier/src/ebpf_base.h"
+#include "ebpf_windows.h"
 
 typedef enum bpf_map_type
 {
@@ -78,6 +79,14 @@ typedef enum
     BPF_FUNC_ktime_get_ns = 8,
 } ebpf_helper_id_t;
 
+// Cross-platform BPF program types.
+enum bpf_prog_type
+{
+    BPF_PROG_TYPE_UNKNOWN,
+    BPF_PROG_TYPE_XDP,
+    BPF_PROG_TYPE_BIND, // TODO(#333): replace with cross-platform program type
+};
+
 // Libbpf itself requires the following structs to be defined, but doesn't
 // care what fields they have.  Applications such as bpftool on the other
 // hand depend on fields of specific names and types.
@@ -102,7 +111,12 @@ struct bpf_map_info
 
 struct bpf_prog_info
 {
+    // Cross-platform fields.
     ebpf_id_t id;                ///< Program ID.
+    enum bpf_prog_type type;     ///< Program type, if a cross-platform type..
     uint32_t nr_map_ids;         ///< Number of maps associated with this program.
     char name[BPF_OBJ_NAME_LEN]; ///< Null-terminated program name.
+
+    // Windows-specific fields.
+    ebpf_program_type_t type_uuid; ///< Program type UUID.
 };

@@ -869,6 +869,8 @@ ebpf_program_get_info(
         (char*)program->parameters.program_name.value,
         program->parameters.program_name.length);
     info->nr_map_ids = program->count_of_maps;
+    info->type = BPF_PROG_TYPE_UNKNOWN; // TODO(issue #223): get integer if any.
+    info->type_uuid = *ebpf_program_type(program);
 
     *info_size = sizeof(*info);
     return EBPF_SUCCESS;
