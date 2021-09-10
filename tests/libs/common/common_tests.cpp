@@ -11,30 +11,25 @@
 void
 ebpf_test_pinned_map_enum()
 {
+    int error;
     uint32_t return_value;
     ebpf_result_t result;
-    ebpf_handle_t map_handle;
     const int pinned_map_count = 10;
     std::string pin_path_prefix = "\\ebpf\\map\\";
     uint16_t map_count = 0;
     ebpf_map_info_t* map_info = nullptr;
     std::map<std::string, std::string> results;
 
-    REQUIRE(
-        (result = ebpf_api_create_map(BPF_MAP_TYPE_ARRAY, sizeof(uint32_t), sizeof(uint64_t), 1024, 0, &map_handle)) ==
-        EBPF_SUCCESS);
+    fd_t map_fd = bpf_create_map(BPF_MAP_TYPE_ARRAY, sizeof(uint32_t), sizeof(uint64_t), 1024, 0);
+    REQUIRE(map_fd >= 0);
 
-    if (result != EBPF_SUCCESS)
+    if (map_fd < 0)
         goto Exit;
 
     for (int i = 0; i < pinned_map_count; i++) {
         std::string pin_path = pin_path_prefix + std::to_string(i);
-        REQUIRE(
-            (return_value = ebpf_api_pin_object(
-                 map_handle,
-                 reinterpret_cast<const uint8_t*>(pin_path.c_str()),
-                 static_cast<uint32_t>(pin_path.size()))) == EBPF_SUCCESS);
-        if (return_value != ERROR_SUCCESS)
+        REQUIRE((error = bpf_obj_pin(map_fd, pin_path.c_str())) == 0);
+        if (error != 0)
             goto Exit;
     }
 
@@ -68,7 +63,7 @@ ebpf_test_pinned_map_enum()
     }
 
 Exit:
-    ebpf_api_close_handle(map_handle);
+    ebpf_close_fd(map_fd); // TODO(issue #287): change to _close(map_fd);
     ebpf_api_map_info_free(map_count, map_info);
     map_count = 0;
     map_info = nullptr;

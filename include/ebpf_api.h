@@ -85,28 +85,6 @@ extern "C"
     ebpf_api_terminate();
 
     /**
-     * @brief Load an eBFP program into the kernel execution context.
-     * @param[in] file An ELF file containing one or more eBPF programs.
-     * @param[in] section_name Name of the section in the ELF file to load.
-     * @param[in] execution_type How this program should be run in the execution
-     * context.
-     * @param[out] handle Handle to eBPF program.
-     * @param[in,out] count_of_map_handles On input, contains the maximum number of map_handles to return.
-     * On output, contains the actual number of map_handles returned.
-     * @param[out] map_handles Array of map handles to be filled in.
-     * @param[out] error_message Error message describing what failed.
-     */
-    ebpf_result_t
-    ebpf_api_load_program(
-        const char* file,
-        const char* section_name,
-        ebpf_execution_type_t execution_type,
-        ebpf_handle_t* handle,
-        uint32_t* count_of_map_handles,
-        ebpf_handle_t* map_handles,
-        const char** error_message);
-
-    /**
      * @brief Create an eBPF map with input parameters.
      * @param[in] type Map type.
      * @param[in] key_size Key size.
@@ -199,16 +177,6 @@ extern "C"
      */
     ebpf_result_t
     ebpf_get_next_program(fd_t previous_fd, _Out_ fd_t* next_fd);
-
-    /**
-     * @brief Get the next eBPF program.
-     * @param[in] previous_handle Handle to previous eBPF program or
-     *  ebpf_handle_invalid to start enumeration.
-     * @param[out] next_handle The next eBPF program or ebpf_handle_invalid if this
-     *  is the last map.
-     */
-    uint32_t
-    ebpf_api_get_next_program(ebpf_handle_t previous_handle, ebpf_handle_t* next_handle);
 
     /**
      * @brief Query properties of an eBPF map.
@@ -334,15 +302,6 @@ extern "C"
      */
     void
     ebpf_free_string(_In_opt_ _Post_invalid_ const char* string);
-
-    /**
-     * @brief Associate a name with an object handle.
-     * @param[in] handle Handle to object.
-     * @param[in] name Name to associate with handle.
-     * @param[in] name_length Length in bytes of the name.
-     */
-    uint32_t
-    ebpf_api_pin_object(ebpf_handle_t handle, const uint8_t* name, uint32_t name_length);
 
     /**
      * @brief Dissociate a name with an object handle.

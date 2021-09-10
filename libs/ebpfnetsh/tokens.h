@@ -2,12 +2,14 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 
-#define TOKEN_FILENAME L"filename"
-#define TOKEN_LEVEL L"level"
-#define TOKEN_SECTION L"section"
-#define TOKEN_PINNED L"pinned"
-#define TOKEN_TYPE L"type"
+#define TOKEN_ATTACHED L"attached"
 #define TOKEN_EXECUTION L"execution"
+#define TOKEN_FILENAME L"filename"
+#define TOKEN_ID L"id"
+#define TOKEN_LEVEL L"level"
+#define TOKEN_PINNED L"pinned"
+#define TOKEN_SECTION L"section"
+#define TOKEN_TYPE L"type"
 
 typedef enum
 {

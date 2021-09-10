@@ -58,8 +58,22 @@ bpf_object__find_program_by_name(const struct bpf_object* obj, const char* name)
     return nullptr;
 }
 
+struct bpf_object*
+bpf_object__next(struct bpf_object* prev)
+{
+    return ebpf_object_next(prev);
+}
+
+// APIs from libbpf's bpf.h.
+
 int
 bpf_obj_get_info_by_fd(int bpf_fd, void* info, __u32* info_len)
 {
     return libbpf_result_err(ebpf_object_get_info_by_fd((fd_t)bpf_fd, info, info_len));
+}
+
+int
+bpf_obj_pin(int fd, const char* pathname)
+{
+    return libbpf_result_err(ebpf_object_pin((fd_t)fd, pathname));
 }

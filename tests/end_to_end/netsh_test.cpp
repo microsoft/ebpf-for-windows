@@ -60,17 +60,24 @@ DWORD
 MatchEnumTag(HANDLE hModule, LPCWSTR pwcArg, DWORD dwNumArg, const TOKEN_VALUE* pEnumTable, PDWORD pdwValue)
 {
     UNREFERENCED_PARAMETER(hModule);
-    UNREFERENCED_PARAMETER(pwcArg);
-    UNREFERENCED_PARAMETER(dwNumArg);
-    UNREFERENCED_PARAMETER(pEnumTable);
-    UNREFERENCED_PARAMETER(pdwValue);
-    return 0;
+
+    for (DWORD i = 0; i < dwNumArg; i++) {
+        if (wcscmp(pwcArg, pEnumTable[i].pwszToken) == 0) {
+            *pdwValue = pEnumTable[i].dwValue;
+            return NO_ERROR;
+        }
+    }
+    return ERROR_NOT_FOUND;
 }
 #pragma endregion
 
 static std::string
 _run_netsh_command(
-    _In_ FN_HANDLE_CMD* command, _In_opt_z_ const wchar_t* arg1, _In_opt_z_ const wchar_t* arg2, _Out_ int* result)
+    _In_ FN_HANDLE_CMD* command,
+    _In_opt_z_ const wchar_t* arg1,
+    _In_opt_z_ const wchar_t* arg2,
+    _In_opt_z_ const wchar_t* arg3,
+    _Out_ int* result)
 {
     capture_helper_t capture;
     errno_t error = capture.begin_capture();
@@ -80,13 +87,16 @@ _run_netsh_command(
     }
 
     // Copy args into an array.
-    PWSTR argv[2] = {};
+    PWSTR argv[3] = {};
     int argc = 0;
     if (arg1 != nullptr) {
         argv[argc++] = (PWSTR)arg1;
     }
     if (arg2 != nullptr) {
         argv[argc++] = (PWSTR)arg2;
+    }
+    if (arg3 != nullptr) {
+        argv[argc++] = (PWSTR)arg3;
     }
 
     error = command(nullptr, argv, 0, argc, 0, 0, nullptr);
@@ -102,7 +112,7 @@ _run_netsh_command(
 TEST_CASE("show disassembly bpf.o", "[netsh][disassembly]")
 {
     int result;
-    std::string output = _run_netsh_command(handle_ebpf_show_disassembly, L"bpf.o", nullptr, &result);
+    std::string output = _run_netsh_command(handle_ebpf_show_disassembly, L"bpf.o", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
     REQUIRE(
         output == "       0:	r0 = 42\n"
@@ -112,7 +122,7 @@ TEST_CASE("show disassembly bpf.o", "[netsh][disassembly]")
 TEST_CASE("show disassembly bpf.o nosuchsection", "[netsh][disassembly]")
 {
     int result;
-    std::string output = _run_netsh_command(handle_ebpf_show_disassembly, L"bpf.o", L"nosuchsection", &result);
+    std::string output = _run_netsh_command(handle_ebpf_show_disassembly, L"bpf.o", L"nosuchsection", nullptr, &result);
     REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
     REQUIRE(output == "error: Can't find section nosuchsection in file bpf.o\n");
 }
@@ -120,7 +130,7 @@ TEST_CASE("show disassembly bpf.o nosuchsection", "[netsh][disassembly]")
 TEST_CASE("show disassembly nosuchfile.o", "[netsh][disassembly]")
 {
     int result;
-    std::string output = _run_netsh_command(handle_ebpf_show_disassembly, L"nosuchfile.o", nullptr, &result);
+    std::string output = _run_netsh_command(handle_ebpf_show_disassembly, L"nosuchfile.o", nullptr, nullptr, &result);
     REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
     REQUIRE(output == "error: No such file or directory opening nosuchfile.o\n");
 }
@@ -128,7 +138,7 @@ TEST_CASE("show disassembly nosuchfile.o", "[netsh][disassembly]")
 TEST_CASE("show sections nosuchfile.o", "[netsh][sections]")
 {
     int result;
-    std::string output = _run_netsh_command(handle_ebpf_show_sections, L"nosuchfile.o", nullptr, &result);
+    std::string output = _run_netsh_command(handle_ebpf_show_sections, L"nosuchfile.o", nullptr, nullptr, &result);
     REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
     REQUIRE(output == "error: No such file or directory opening nosuchfile.o\n");
 }
@@ -136,7 +146,7 @@ TEST_CASE("show sections nosuchfile.o", "[netsh][sections]")
 TEST_CASE("show sections bpf.o", "[netsh][sections]")
 {
     int result;
-    std::string output = _run_netsh_command(handle_ebpf_show_sections, L"bpf.o", nullptr, &result);
+    std::string output = _run_netsh_command(handle_ebpf_show_sections, L"bpf.o", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
     REQUIRE(
         output == "\n"
@@ -148,7 +158,7 @@ TEST_CASE("show sections bpf.o", "[netsh][sections]")
 TEST_CASE("show sections bpf.o xdp_prog", "[netsh][sections]")
 {
     int result;
-    std::string output = _run_netsh_command(handle_ebpf_show_sections, L"bpf.o", L"xdp_prog", &result);
+    std::string output = _run_netsh_command(handle_ebpf_show_sections, L"bpf.o", L"xdp_prog", nullptr, &result);
     REQUIRE(result == NO_ERROR);
     REQUIRE(
         output == "\n"
@@ -178,7 +188,7 @@ TEST_CASE("show sections bpf.o xdp_prog", "[netsh][sections]")
 TEST_CASE("show verification nosuchfile.o", "[netsh][verification]")
 {
     int result;
-    std::string output = _run_netsh_command(handle_ebpf_show_verification, L"nosuchfile.o", nullptr, &result);
+    std::string output = _run_netsh_command(handle_ebpf_show_verification, L"nosuchfile.o", nullptr, nullptr, &result);
     REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
     REQUIRE(output == "error: No such file or directory opening nosuchfile.o\n");
 }
@@ -186,7 +196,7 @@ TEST_CASE("show verification nosuchfile.o", "[netsh][verification]")
 TEST_CASE("show verification bpf.o", "[netsh][verification]")
 {
     int result;
-    std::string output = _run_netsh_command(handle_ebpf_show_verification, L"bpf.o", nullptr, &result);
+    std::string output = _run_netsh_command(handle_ebpf_show_verification, L"bpf.o", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
     REQUIRE(
         output == "\n"
@@ -201,7 +211,7 @@ TEST_CASE("show verification droppacket.o", "[netsh][verification]")
     _test_helper_libbpf test_helper;
 
     int result;
-    std::string output = _run_netsh_command(handle_ebpf_show_verification, L"droppacket.o", L"xdp", &result);
+    std::string output = _run_netsh_command(handle_ebpf_show_verification, L"droppacket.o", L"xdp", nullptr, &result);
     REQUIRE(result == NO_ERROR);
     REQUIRE(
         output == "\n"
@@ -216,7 +226,8 @@ TEST_CASE("show verification droppacket_unsafe.o", "[netsh][verification]")
     _test_helper_libbpf test_helper;
 
     int result;
-    std::string output = _run_netsh_command(handle_ebpf_show_verification, L"droppacket_unsafe.o", L"xdp", &result);
+    std::string output =
+        _run_netsh_command(handle_ebpf_show_verification, L"droppacket_unsafe.o", L"xdp", nullptr, &result);
     REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
     REQUIRE(
         output == "Verification failed\n"
@@ -244,17 +255,68 @@ TEST_CASE("show programs", "[netsh][programs]")
     REQUIRE(object != nullptr);
     REQUIRE(program_fd != -1);
 
-    std::string output = _run_netsh_command(handle_ebpf_show_programs, nullptr, nullptr, &result);
+    std::string output = _run_netsh_command(handle_ebpf_show_programs, nullptr, nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
 
     REQUIRE(
         output == "\n"
-                  "           File Name          Section  Requested Execution Type\n"
-                  "====================  ===============  ========================\n"
-                  "         tail_call.o         xdp_prog                       JIT\n"
-                  "         tail_call.o       xdp_prog/0                       JIT\n");
+                  "    ID            File Name         Section             Name      Mode\n"
+                  "====== ==================== =============== ================ =========\n"
+                  "196609          tail_call.o        xdp_prog           caller       JIT\n"
+                  "262146          tail_call.o      xdp_prog/0           callee       JIT\n");
 
     bpf_object__close(object);
+}
+
+TEST_CASE("set program", "[netsh][programs]")
+{
+    _test_helper_libbpf test_helper;
+
+    int result;
+    std::string output = _run_netsh_command(handle_ebpf_add_program, L"tail_call.o", nullptr, nullptr, &result);
+    REQUIRE(strcmp(output.c_str(), "Loaded with ID 196609\n") == 0);
+
+    // Detach the program. This won't delete the program since
+    // the containing object is still associated with the netsh process,
+    // and could still be enumerated by it with bpf_object__next().
+    output = _run_netsh_command(handle_ebpf_set_program, L"196609", L"", nullptr, &result);
+    REQUIRE(output == "");
+    REQUIRE(result == ERROR_OKAY);
+    REQUIRE(bpf_object__next(nullptr) != nullptr);
+
+    // Try to detach an unattached program.
+    output = _run_netsh_command(handle_ebpf_set_program, L"196609", L"", nullptr, &result);
+    REQUIRE(output == "error 1168: could not detach program\n");
+    REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
+
+    RPC_WSTR attach_type_string;
+    REQUIRE(UuidToStringW(&EBPF_ATTACH_TYPE_XDP, &attach_type_string) == 0);
+
+    // Attach the program to its default attach type.
+    output = _run_netsh_command(handle_ebpf_set_program, L"196609", (PCWSTR)attach_type_string, nullptr, &result);
+    REQUIRE(output == "");
+    REQUIRE(result == ERROR_OKAY);
+
+    // Detach the program again.
+    output = _run_netsh_command(handle_ebpf_set_program, L"196609", L"", nullptr, &result);
+    REQUIRE(output == "");
+    REQUIRE(result == ERROR_OKAY);
+
+    // Verify we can delete a detached program.
+    RpcStringFreeW(&attach_type_string);
+    output = _run_netsh_command(handle_ebpf_delete_program, L"196609", nullptr, nullptr, &result);
+    REQUIRE(output == "");
+    REQUIRE(result == ERROR_OKAY);
+    REQUIRE(bpf_object__next(nullptr) == nullptr);
+
+    // Verify the program ID doesn't exist any more.
+    output = _run_netsh_command(handle_ebpf_show_programs, nullptr, nullptr, nullptr, &result);
+    REQUIRE(
+        output == "\n"
+                  "    ID            File Name         Section             Name      Mode\n"
+                  "====== ==================== =============== ================ =========\n");
+
+    REQUIRE(result == NO_ERROR);
 }
 
 TEST_CASE("show maps", "[netsh][maps]")
@@ -269,7 +331,7 @@ TEST_CASE("show maps", "[netsh][maps]")
     REQUIRE(inner_map_fd > 0);
 
     int result;
-    std::string output = _run_netsh_command(handle_ebpf_show_maps, nullptr, nullptr, &result);
+    std::string output = _run_netsh_command(handle_ebpf_show_maps, nullptr, nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
 
     REQUIRE(

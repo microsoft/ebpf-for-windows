@@ -93,6 +93,15 @@ void
 clean_up_ebpf_maps(_Inout_ std::vector<ebpf_map_t*>& maps);
 
 /**
+ * @brief Get next eBPF object.
+ *
+ * @param[in] previous Pointer to previous eBPF object, or NULL to get the first one.
+ * @return Pointer to the next object, or NULL if none.
+ */
+_Ret_maybenull_ struct bpf_object*
+ebpf_object_next(_In_opt_ const struct bpf_object* previous);
+
+/**
  * @brief Get next program in ebpf_object object.
  *
  * @param[in] previous Pointer to previous eBPF program, or NULL to get the first one.

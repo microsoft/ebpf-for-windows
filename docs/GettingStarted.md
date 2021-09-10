@@ -109,9 +109,9 @@ On the attacker machine, do the following:
 6. Show that the verifier checks the code ```netsh ebpf show verification droppacket.o xdp```
 7. Launch netsh ```netsh```
 8. Switch to ebpf context ```ebpf```
-9. Load eBPF program ```add program droppacket.o xdp```
+9. Load eBPF program ```add program droppacket.o xdp``` and note the ID.
 10. Show UDP datagrams received drop to under 10 per second
-11. Unload program ```delete program droppacket.o xdp```
+11. Unload program ```delete program <id>``` where <id> is the ID noted above.
 12. Show UDP datagrams received drop to back up to ~200K per second
 13. Modify droppacket.c to be unsafe - Comment out line 20 & 21
 14. Compile droppacket.c ```clang -target bpf -O2 -Wall -c droppacket.c -o droppacket.o```
@@ -166,6 +166,6 @@ Other useful options include:
 This application tests various XDP functionalities. It has the following tests:
 1. Reflection Test: This tests the XDP_TX functionality. The following steps show how to run the test:
    1. On the system under test, install eBPF binaries (install-ebpf.bat).
-   2. Load the test eBPF program by running the following commands: `netsh`, `ebpf`, `add program reflect_packet.o xdp`.
+   2. Load the test eBPF program by running the following commands: `netsh`, `ebpf`, `add program reflect_packet.o xdp` and note the ID.
    3. From a remote host, run xdp_tests.exe and in `--remote-ip` parameter pass an IPv4 or IPv6 address of an Ethernet-like interface on the system under test in string format.
-   4. Unload the program from system under test by running `delete program reflect_packet.o xdp` on the netsh prompt.
+   4. Unload the program from system under test by running `delete program <id>` on the netsh prompt, where <id> is the ID noted above.
