@@ -9,6 +9,9 @@
 std::function<decltype(CreateFileW)> create_file_handler;
 std::function<decltype(DeviceIoControl)> device_io_control_handler;
 std::function<decltype(CloseHandle)> close_handle_handler;
+std::function<decltype(_open_osfhandle)> open_osfhandle_handler;
+std::function<decltype(_get_osfhandle)> get_osfhandle_handler;
+std::function<decltype(_close)> close_handler;
 
 namespace Platform {
 bool
@@ -57,6 +60,24 @@ bool
 CloseHandle(_In_ _Post_ptr_invalid_ ebpf_handle_t handle)
 {
     return close_handle_handler(handle);
+}
+
+int
+_open_osfhandle(intptr_t os_file_handle, int flags)
+{
+    return open_osfhandle_handler(os_file_handle, flags);
+}
+
+intptr_t
+_get_osfhandle(int file_handle)
+{
+    return get_osfhandle_handler(file_handle);
+}
+
+int
+_close(int file_handle)
+{
+    return close_handler(file_handle);
 }
 
 } // namespace Platform

@@ -37,24 +37,13 @@ _clean_up_ebpf_objects();
 static fd_t
 _get_next_file_descriptor(ebpf_handle_t handle) noexcept
 {
-    try {
-        fd_t fd = static_cast<fd_t>(InterlockedIncrement(&_ebpf_file_descriptor_counter));
-        _fd_to_handle_map.insert(std::pair<fd_t, ebpf_handle_t>(fd, handle));
-        return fd;
-    } catch (...) {
-        return ebpf_fd_invalid;
-    }
+    return Platform::_open_osfhandle(reinterpret_cast<intptr_t>(handle), 0);
 }
 
 inline static ebpf_handle_t
 _get_handle_from_fd(fd_t fd)
 {
-    std::map<fd_t, ebpf_handle_t>::iterator it = _fd_to_handle_map.find(fd);
-    if (it != _fd_to_handle_map.end()) {
-        return it->second;
-    }
-
-    return ebpf_handle_invalid;
+    return reinterpret_cast<ebpf_handle_t>(Platform::_get_osfhandle(fd));
 }
 
 inline static ebpf_map_t*

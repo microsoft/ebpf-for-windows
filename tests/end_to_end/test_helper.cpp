@@ -1,11 +1,16 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
+#include <map>
+
 #include "catch_wrapper.hpp"
 #include "ebpf_api.h"
 #include "ebpf_core.h"
 #include "helpers.h"
 #include "mock.h"
 #include "test_helper.hpp"
+
+static uint64_t _ebpf_file_descriptor_counter = 0;
+static std::map<fd_t, ebpf_handle_t> _fd_to_handle_map;
 
 ebpf_handle_t
 GlueCreateFileW(
@@ -121,11 +126,50 @@ Fail:
     return FALSE;
 }
 
+int
+Glue_open_osfhandle(intptr_t os_file_handle, int flags)
+{
+    UNREFERENCED_PARAMETER(flags);
+    try {
+        fd_t fd = static_cast<fd_t>(InterlockedIncrement(&_ebpf_file_descriptor_counter));
+        _fd_to_handle_map.insert(std::pair<fd_t, ebpf_handle_t>(fd, reinterpret_cast<ebpf_handle_t>(os_file_handle)));
+        return fd;
+    } catch (...) {
+        return ebpf_fd_invalid;
+    }
+}
+
+intptr_t
+Glue_get_osfhandle(int file_handle)
+{
+    std::map<fd_t, ebpf_handle_t>::iterator it = _fd_to_handle_map.find(file_handle);
+    if (it != _fd_to_handle_map.end()) {
+        return reinterpret_cast<intptr_t>(it->second);
+    }
+
+    return reinterpret_cast<intptr_t>(ebpf_handle_invalid);
+}
+
+int
+Glue_close(int file_handle)
+{
+    std::map<fd_t, ebpf_handle_t>::iterator it = _fd_to_handle_map.find(file_handle);
+    if (it == _fd_to_handle_map.end()) {
+        return -1;
+    } else {
+        _fd_to_handle_map.erase(file_handle);
+        return 0;
+    }
+}
+
 _test_helper_end_to_end::_test_helper_end_to_end()
 {
     device_io_control_handler = GlueDeviceIoControl;
     create_file_handler = GlueCreateFileW;
     close_handle_handler = GlueCloseHandle;
+    open_osfhandle_handler = Glue_open_osfhandle;
+    get_osfhandle_handler = Glue_get_osfhandle;
+    close_handler = Glue_close;
     REQUIRE(ebpf_core_initiate() == EBPF_SUCCESS);
     ec_initialized = true;
     REQUIRE(ebpf_api_initiate() == EBPF_SUCCESS);

@@ -3,6 +3,7 @@
 
 #define WIN32_LEAN_AND_MEAN // Exclude rarely-used stuff from Windows headers
 #include "pch.h"
+#include <io.h>
 #include <stdint.h>
 #include "ebpf_api.h"
 
@@ -53,5 +54,23 @@ bool
 CloseHandle(_In_ _Post_ptr_invalid_ ebpf_handle_t handle)
 {
     return ::CloseHandle(handle);
+}
+
+int
+_open_osfhandle(intptr_t os_file_handle, int flags)
+{
+    return ::_open_osfhandle(os_file_handle, flags);
+}
+
+intptr_t
+_get_osfhandle(int file_handle)
+{
+    return ::_get_osfhandle(file_handle);
+}
+
+int
+_close(int file_handle)
+{
+    return ::_close(file_handle);
 }
 } // namespace Platform
