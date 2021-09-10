@@ -58,7 +58,7 @@ _perf_bpf_ktime_get_boot_ns()
 {
     uint64_t time;
     ebpf_epoch_enter();
-    time = ebpf_query_interrupt_time_precise() * 100;
+    time = ebpf_query_time_since_boot(true) * 100;
     ebpf_epoch_exit();
 }
 
@@ -67,7 +67,7 @@ _perf_bpf_ktime_get_ns()
 {
     uint64_t time;
     ebpf_epoch_enter();
-    time = ebpf_query_unbiased_interrupt_time_precise() * 100;
+    time = ebpf_query_time_since_boot(false) * 100;
     ebpf_epoch_exit();
 }
 

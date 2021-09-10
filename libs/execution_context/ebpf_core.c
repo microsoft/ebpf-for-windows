@@ -1111,17 +1111,17 @@ _ebpf_core_random_uint32()
 static uint64_t
 _ebpf_core_get_time_since_boot_ns()
 {
-    // ebpf_query_interrupt_time_precise returns time elapsed since
+    // ebpf_query_time_since_boot returns time elapsed since
     // boot in units of 100 ns.
-    return ebpf_query_unbiased_interrupt_time_precise() * 100;
+    return ebpf_query_time_since_boot(true) * 100;
 }
 
 static uint64_t
 _ebpf_core_get_time_ns()
 {
-    // ebpf_query_interrupt_time_precise returns time elapsed since
+    // ebpf_query_time_since_boot returns time elapsed since
     // boot in units of 100 ns.
-    return ebpf_query_interrupt_time_precise() * 100;
+    return ebpf_query_time_since_boot(false) * 100;
 }
 
 static uint32_t

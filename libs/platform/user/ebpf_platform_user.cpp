@@ -226,25 +226,20 @@ ebpf_random_uint32()
 }
 
 uint64_t
-ebpf_query_interrupt_time_precise()
+ebpf_query_time_since_boot(bool include_suspended_time)
 {
     uint64_t interrupt_time;
-    // QueryInterruptTimePrecise returns A pointer to a ULONGLONG in which to receive the interrupt-time count in system
-    // time units of 100 nanoseconds.
-    // https://docs.microsoft.com/en-us/windows/win32/api/realtimeapiset/nf-realtimeapiset-queryinterrupttimeprecise.
-    QueryInterruptTimePrecise(&interrupt_time);
-
-    return interrupt_time;
-}
-
-uint64_t
-ebpf_query_unbiased_interrupt_time_precise()
-{
-    uint64_t interrupt_time;
-    // QueryUnbiasedInterruptTimePrecise returns A pointer to a ULONGLONG in which to receive the interrupt-time count
-    // in system time units of 100 nanoseconds.
-    // https://docs.microsoft.com/en-us/windows/win32/api/realtimeapiset/nf-realtimeapiset-queryinterrupttimeprecise.
-    QueryUnbiasedInterruptTimePrecise(&interrupt_time);
+    if (include_suspended_time) {
+        // QueryUnbiasedInterruptTimePrecise returns A pointer to a ULONGLONG in which to receive the interrupt-time
+        // count in system time units of 100 nanoseconds.
+        // https://docs.microsoft.com/en-us/windows/win32/api/realtimeapiset/nf-realtimeapiset-queryunbiasedinterrupttimeprecise.
+        QueryUnbiasedInterruptTimePrecise(&interrupt_time);
+    } else {
+        // QueryInterruptTimePrecise returns A pointer to a ULONGLONG in which to receive the interrupt-time count in
+        // system time units of 100 nanoseconds.
+        // https://docs.microsoft.com/en-us/windows/win32/api/realtimeapiset/nf-realtimeapiset-queryinterrupttimeprecise.
+        QueryInterruptTimePrecise(&interrupt_time);
+    }
 
     return interrupt_time;
 }
