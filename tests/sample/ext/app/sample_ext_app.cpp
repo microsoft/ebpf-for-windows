@@ -133,12 +133,13 @@ TEST_CASE("interpret_test", "[test_test]")
     sample_ebpf_ext_test(object);
 }
 
-TEST_CASE("utility_helpers_test", "[test_test]")
+void
+utility_helpers_test(ebpf_execution_type_t execution_type)
 {
     struct bpf_object* object = nullptr;
     hook_helper_t hook(EBPF_ATTACH_TYPE_SAMPLE);
     program_load_attach_helper_t _helper(
-        "test_sample_ebpf.o", EBPF_PROGRAM_TYPE_SAMPLE, "test_utility_helpers", EBPF_EXECUTION_INTERPRET, hook, true);
+        "test_sample_ebpf.o", EBPF_PROGRAM_TYPE_SAMPLE, "test_utility_helpers", execution_type, hook, true);
     object = _helper.get_object();
 
     std::vector<char> dummy(1);
@@ -148,3 +149,6 @@ TEST_CASE("utility_helpers_test", "[test_test]")
 
     verify_utility_helper_results(object);
 }
+
+TEST_CASE("utility_helpers_test_interpret", "[test_test]") { utility_helpers_test(EBPF_EXECUTION_INTERPRET); }
+TEST_CASE("utility_helpers_test_jit", "[test_test]") { utility_helpers_test(EBPF_EXECUTION_JIT); }
