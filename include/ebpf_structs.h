@@ -97,9 +97,11 @@ struct bpf_map_info
     uint32_t max_entries; ///< Maximum number of entries allowed in the map.
 };
 
+#define BPF_OBJ_NAME_LEN 16
+
 struct bpf_prog_info
 {
-    ebpf_id_t id;        ///< Program ID.
-    uint32_t nr_map_ids; ///< Number of maps associated with this program.
-    char name[16];       ///< Program name.
+    ebpf_id_t id;                ///< Program ID.
+    uint32_t nr_map_ids;         ///< Number of maps associated with this program.
+    char name[BPF_OBJ_NAME_LEN]; ///< Null-terminated program name.
 };
