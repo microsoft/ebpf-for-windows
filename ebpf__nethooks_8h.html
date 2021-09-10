@@ -106,7 +106,8 @@ Typedefs</h2></td></tr>
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="enum-members"></a>
 Enumerations</h2></td></tr>
 <tr class="memitem:a5aff0d5d670941126cebc5687d5e280d"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#a5aff0d5d670941126cebc5687d5e280d">_xdp_action</a> { <a class="el" href="ebpf__nethooks_8h.html#a5aff0d5d670941126cebc5687d5e280da4183873d825c2345b21c147497736ea3">XDP_PASS</a> = 1, 
-<a class="el" href="ebpf__nethooks_8h.html#a5aff0d5d670941126cebc5687d5e280da9fdb2c82240b62a6545006bbee159a99">XDP_DROP</a> = 2
+<a class="el" href="ebpf__nethooks_8h.html#a5aff0d5d670941126cebc5687d5e280da9fdb2c82240b62a6545006bbee159a99">XDP_DROP</a>, 
+<a class="el" href="ebpf__nethooks_8h.html#a5aff0d5d670941126cebc5687d5e280da2660d3d871232c9a9d8e18867f6ac31b">XDP_TX</a>
  }</td></tr>
 <tr class="separator:a5aff0d5d670941126cebc5687d5e280d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a814187ca47e221594a21bde5324d86fc"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#a814187ca47e221594a21bde5324d86fc">_bind_operation</a> { <a class="el" href="ebpf__nethooks_8h.html#a814187ca47e221594a21bde5324d86fca3e490f90b26afc8d39df8bb5cdd4113f">BIND_OPERATION_BIND</a>, 
@@ -312,6 +313,8 @@ Enumerations</h2></td></tr>
 <tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="a5aff0d5d670941126cebc5687d5e280da4183873d825c2345b21c147497736ea3"></a>XDP_PASS&#160;</td><td class="fielddoc"><p>Allow the packet to pass. </p>
 </td></tr>
 <tr><td class="fieldname"><a id="a5aff0d5d670941126cebc5687d5e280da9fdb2c82240b62a6545006bbee159a99"></a>XDP_DROP&#160;</td><td class="fielddoc"><p>Drop the packet. </p>
+</td></tr>
+<tr><td class="fieldname"><a id="a5aff0d5d670941126cebc5687d5e280da2660d3d871232c9a9d8e18867f6ac31b"></a>XDP_TX&#160;</td><td class="fielddoc"><p>Bounce the received packet back out the same NIC it arrived on. </p>
 </td></tr>
 </table>
 
