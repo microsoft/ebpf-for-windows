@@ -296,7 +296,7 @@ _ebpf_core_protocol_create_map(
     UNREFERENCED_PARAMETER(reply_length);
     ebpf_utf8_string_t map_name = {0};
 
-    if (request->header.length > sizeof(ebpf_operation_create_map_request_t)) {
+    if (request->header.length > EBPF_OFFSET_OF(ebpf_operation_create_map_request_t, data)) {
         map_name.value = (uint8_t*)request->data;
         map_name.length = ((uint8_t*)request) + request->header.length - ((uint8_t*)request->data);
     }

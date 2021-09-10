@@ -768,13 +768,16 @@ TEST_CASE("bpf_obj_get_info_by_fd", "[libbpf]")
     REQUIRE(program != nullptr);
 
     const char* program_name = bpf_program__name(program);
-    REQUIRE(program != nullptr);
+    REQUIRE(program_name != nullptr);
 
     int program_fd = bpf_program__fd(program);
     REQUIRE(program_fd > 0);
 
     struct bpf_map* map = bpf_map__next(nullptr, object);
     REQUIRE(map != nullptr);
+
+    const char* map_name = bpf_map__name(map);
+    REQUIRE(map_name != nullptr);
 
     int map_fd = bpf_map__fd(map);
     REQUIRE(map_fd > 0);
@@ -788,6 +791,7 @@ TEST_CASE("bpf_obj_get_info_by_fd", "[libbpf]")
     REQUIRE(map_info.key_size == sizeof(uint32_t));
     REQUIRE(map_info.value_size == sizeof(uint64_t));
     REQUIRE(map_info.max_entries == 1);
+    REQUIRE(strcmp(map_info.name, map_name) == 0);
 
     // Fetch info about the program and verify it matches what we'd expect.
     bpf_prog_info program_info;
