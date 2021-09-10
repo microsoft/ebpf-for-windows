@@ -26,4 +26,14 @@ CreateFileW(
 
 bool
 CloseHandle(_In_ _Post_ptr_invalid_ ebpf_handle_t handle);
+
+int
+_open_osfhandle(intptr_t os_file_handle, int flags);
+
+intptr_t
+_get_osfhandle(int file_handle);
+
+int
+_close(int file_handle);
+
 } // namespace Platform
