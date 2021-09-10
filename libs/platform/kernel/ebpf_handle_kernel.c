@@ -1,9 +1,8 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include "framework.h"
-
 #include "ebpf_handle.h"
+#include "framework.h"
 
 extern DEVICE_OBJECT*
 ebpf_driver_get_device_object();
