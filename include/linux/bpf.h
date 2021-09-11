@@ -7,6 +7,7 @@
 
 #include "ebpf_program_types.h"
 #include "ebpf_api.h"
+#include "ebpf_structs.h"
 #define LIBBPF_API
 #include "libbpf_common.h"
 #undef LIBBPF_DEPRECATED
@@ -38,9 +39,4 @@ enum bpf_func_id
 enum bpf_stats_type
 {
     BPF_STATS_TYPE_UNKNOWN
-};
-
-struct bpf_prog_info
-{
-    int data;
 };

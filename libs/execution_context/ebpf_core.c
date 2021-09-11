@@ -245,11 +245,12 @@ _ebpf_core_protocol_resolve_map(
     uint16_t reply_length)
 {
     ebpf_program_t* program = NULL;
-    size_t count_of_maps = (request->header.length - EBPF_OFFSET_OF(ebpf_operation_resolve_map_request_t, map_handle)) /
-                           sizeof(request->map_handle[0]);
+    uint32_t count_of_maps =
+        (request->header.length - EBPF_OFFSET_OF(ebpf_operation_resolve_map_request_t, map_handle)) /
+        sizeof(request->map_handle[0]);
     size_t required_reply_length =
         EBPF_OFFSET_OF(ebpf_operation_resolve_map_reply_t, address) + count_of_maps * sizeof(reply->address[0]);
-    size_t map_index;
+    uint32_t map_index;
     ebpf_result_t return_value;
 
     if (reply_length < required_reply_length) {
@@ -295,7 +296,7 @@ _ebpf_core_protocol_create_map(
     UNREFERENCED_PARAMETER(reply_length);
     ebpf_utf8_string_t map_name = {0};
 
-    if (request->header.length > sizeof(ebpf_operation_create_map_request_t)) {
+    if (request->header.length > EBPF_OFFSET_OF(ebpf_operation_create_map_request_t, data)) {
         map_name.value = (uint8_t*)request->data;
         map_name.length = ((uint8_t*)request) + request->header.length - ((uint8_t*)request->data);
     }
@@ -794,6 +795,9 @@ _ebpf_core_protocol_get_ec_function(
     return EBPF_SUCCESS;
 }
 
+// Get helper info for a program or program type.  This is used by the jitter/verifier,
+// not by libbpf which instead uses ebpf_program_get_info
+// to get standard cross-platform info.
 static ebpf_result_t
 _ebpf_core_protocol_get_program_info(
     _In_ const ebpf_operation_get_program_info_request_t* request,
@@ -931,6 +935,8 @@ _ebpf_core_protocol_serialize_map_info_reply(
     return result;
 }
 
+// Get map pinning info, as opposed to ebpf_map_get_info
+// which is used by libbpf to get standard cross-platform bpf_map_info.
 static ebpf_result_t
 _ebpf_core_protocol_get_map_info(
     _In_ const ebpf_operation_get_map_info_request_t* request,
@@ -1063,6 +1069,42 @@ _ebpf_core_protocol_get_next_program_id(
     uint16_t reply_length)
 {
     return _get_next_id(EBPF_OBJECT_PROGRAM, request, reply, reply_length);
+}
+
+static ebpf_result_t
+_ebpf_core_protocol_get_object_info(
+    _In_ const ebpf_operation_get_object_info_request_t* request,
+    _Out_ ebpf_operation_get_object_info_reply_t* reply,
+    uint16_t reply_length)
+{
+    uint16_t info_size = reply_length - FIELD_OFFSET(ebpf_operation_get_object_info_reply_t, info);
+
+    ebpf_object_t* object;
+    ebpf_result_t result = ebpf_reference_object_by_handle(request->handle, EBPF_OBJECT_UNKNOWN, &object);
+    if (result != EBPF_SUCCESS) {
+        return result;
+    }
+
+    switch (object->type) {
+    case EBPF_OBJECT_LINK:
+        result = ebpf_link_get_info((ebpf_link_t*)object, reply->info, &info_size);
+        break;
+    case EBPF_OBJECT_MAP:
+        result = ebpf_map_get_info((ebpf_map_t*)object, reply->info, &info_size);
+        break;
+    case EBPF_OBJECT_PROGRAM:
+        result = ebpf_program_get_info((ebpf_program_t*)object, reply->info, &info_size);
+        break;
+    default:
+        result = EBPF_INVALID_ARGUMENT;
+        break;
+    }
+
+    if (result == EBPF_SUCCESS) {
+        reply->header.length = FIELD_OFFSET(ebpf_operation_get_object_info_reply_t, info) + info_size;
+    }
+    ebpf_object_release_reference(object);
+    return result;
 }
 
 static void*
@@ -1278,6 +1320,11 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
     {(ebpf_result_t(__cdecl*)(const void*))_ebpf_core_protocol_get_next_program_id,
      sizeof(ebpf_operation_get_next_id_request_t),
      sizeof(ebpf_operation_get_next_id_reply_t)},
+
+    // EBPF_OPERATION_GET_OBJECT_INFO
+    {(ebpf_result_t(__cdecl*)(const void*))_ebpf_core_protocol_get_object_info,
+     sizeof(ebpf_operation_get_object_info_request_t),
+     sizeof(ebpf_operation_get_object_info_reply_t)},
 };
 
 ebpf_result_t

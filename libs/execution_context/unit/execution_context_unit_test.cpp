@@ -225,3 +225,29 @@ TEST_CASE("program", "[execution_context]")
     REQUIRE(addresses[1] == 0);
     REQUIRE(addresses[2] != 0);
 }
+
+TEST_CASE("name size", "[execution_context]")
+{
+    _ebpf_core_initializer core;
+    program_info_provider_t program_info_provider(EBPF_PROGRAM_TYPE_BIND);
+
+    program_ptr program;
+    {
+        ebpf_program_t* local_program = nullptr;
+        REQUIRE(ebpf_program_create(&local_program) == EBPF_SUCCESS);
+        program.reset(local_program);
+    }
+    const ebpf_utf8_string_t oversize_name{
+        (uint8_t*)("a234567890123456789012345678901234567890123456789012345678901234"), 64};
+    const ebpf_utf8_string_t section_name{(uint8_t*)("bar"), 3};
+    const ebpf_program_parameters_t program_parameters{EBPF_PROGRAM_TYPE_BIND, oversize_name, section_name};
+
+    REQUIRE(ebpf_program_initialize(program.get(), &program_parameters) == EBPF_INVALID_ARGUMENT);
+
+    ebpf_map_definition_in_memory_t map_definition{
+        sizeof(ebpf_map_definition_in_memory_t), BPF_MAP_TYPE_HASH, sizeof(uint32_t), sizeof(uint64_t), 10};
+    ebpf_map_t* local_map;
+    REQUIRE(
+        ebpf_map_create(&oversize_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) ==
+        EBPF_INVALID_ARGUMENT);
+}

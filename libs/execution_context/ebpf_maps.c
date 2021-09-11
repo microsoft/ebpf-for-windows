@@ -871,7 +871,7 @@ ebpf_map_create(
         break;
     }
 
-    if (type >= EBPF_COUNT_OF(ebpf_map_function_tables)) {
+    if ((type >= EBPF_COUNT_OF(ebpf_map_function_tables)) || (map_name->length >= BPF_OBJ_NAME_LEN)) {
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
@@ -1075,4 +1075,25 @@ ebpf_map_next_key(
         return EBPF_INVALID_ARGUMENT;
     }
     return ebpf_map_function_tables[map->ebpf_map_definition.type].next_key(map, previous_key, next_key);
+}
+
+ebpf_result_t
+ebpf_map_get_info(
+    _In_ const ebpf_map_t* map, _Out_writes_to_(*info_size, *info_size) uint8_t* buffer, _Inout_ uint16_t* info_size)
+{
+    struct bpf_map_info* info = (struct bpf_map_info*)buffer;
+
+    if (*info_size < sizeof(*info)) {
+        return EBPF_INSUFFICIENT_BUFFER;
+    }
+
+    info->id = map->object.id;
+    info->type = map->ebpf_map_definition.type;
+    info->key_size = map->ebpf_map_definition.key_size;
+    info->value_size = map->original_value_size;
+    info->max_entries = map->ebpf_map_definition.max_entries;
+    strncpy_s(info->name, sizeof(info->name), (char*)map->name.value, map->name.length);
+
+    *info_size = sizeof(*info);
+    return EBPF_SUCCESS;
 }

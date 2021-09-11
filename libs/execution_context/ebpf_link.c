@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #include "ebpf_epoch.h"
+#include "ebpf_handle.h"
 #include "ebpf_link.h"
 #include "ebpf_object.h"
 #include "ebpf_platform.h"
@@ -172,4 +173,21 @@ _ebpf_link_instance_invoke(
 
 Exit:
     return return_value;
+}
+
+ebpf_result_t
+ebpf_link_get_info(
+    _In_ const ebpf_link_t* link, _Out_writes_to_(*info_size, *info_size) uint8_t* buffer, _Inout_ uint16_t* info_size)
+{
+    struct bpf_link_info* info = (struct bpf_link_info*)buffer;
+
+    if (*info_size < sizeof(*info)) {
+        return EBPF_INSUFFICIENT_BUFFER;
+    }
+
+    info->id = link->object.id;
+    info->prog_id = ((ebpf_object_t*)link->program)->id;
+
+    *info_size = sizeof(*info);
+    return EBPF_SUCCESS;
 }

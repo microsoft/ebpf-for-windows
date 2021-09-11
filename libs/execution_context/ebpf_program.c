@@ -4,6 +4,7 @@
 #include "bpf_helpers.h"
 #include "ebpf_core.h"
 #include "ebpf_epoch.h"
+#include "ebpf_handle.h"
 #include "ebpf_link.h"
 #include "ebpf_object.h"
 #include "ebpf_program.h"
@@ -40,7 +41,7 @@ typedef struct _ebpf_program
     ebpf_extension_dispatch_table_t* general_helper_provider_dispatch_table;
 
     ebpf_map_t** maps;
-    size_t count_of_maps;
+    uint32_t count_of_maps;
 
     ebpf_extension_client_t* program_info_client;
     const void* program_info_binding_context;
@@ -340,7 +341,8 @@ ebpf_program_initialize(ebpf_program_t* program, const ebpf_program_parameters_t
     ebpf_utf8_string_t local_section_name = {NULL, 0};
     ebpf_utf8_string_t local_file_name = {NULL, 0};
 
-    if (program->parameters.code_type != EBPF_CODE_NONE) {
+    if ((program->parameters.code_type != EBPF_CODE_NONE) ||
+        (program_parameters->program_name.length >= BPF_OBJ_NAME_LEN)) {
         return_value = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
@@ -395,7 +397,7 @@ ebpf_program_type(_In_ const ebpf_program_t* program)
 }
 
 ebpf_result_t
-ebpf_program_associate_maps(ebpf_program_t* program, ebpf_map_t** maps, size_t maps_count)
+ebpf_program_associate_maps(ebpf_program_t* program, ebpf_map_t** maps, uint32_t maps_count)
 {
     size_t index;
     ebpf_map_t** program_maps = ebpf_allocate(maps_count * sizeof(ebpf_map_t*));
@@ -847,4 +849,27 @@ ebpf_program_detach_link(_Inout_ ebpf_program_t* program, _Inout_ ebpf_link_t* l
 
     // Release the "attach" reference.
     ebpf_object_release_reference((ebpf_object_t*)link);
+}
+
+ebpf_result_t
+ebpf_program_get_info(
+    _In_ const ebpf_program_t* program,
+    _Out_writes_to_(*info_size, *info_size) uint8_t* buffer,
+    _Inout_ uint16_t* info_size)
+{
+    struct bpf_prog_info* info = (struct bpf_prog_info*)buffer;
+    if (*info_size < sizeof(*info)) {
+        return EBPF_INSUFFICIENT_BUFFER;
+    }
+
+    info->id = program->object.id;
+    strncpy_s(
+        info->name,
+        sizeof(info->name),
+        (char*)program->parameters.program_name.value,
+        program->parameters.program_name.length);
+    info->nr_map_ids = program->count_of_maps;
+
+    *info_size = sizeof(*info);
+    return EBPF_SUCCESS;
 }
