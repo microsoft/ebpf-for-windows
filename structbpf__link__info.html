@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.17"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>eBPF for Windows: bpf_prog_info Struct Reference</title>
+<title>eBPF for Windows: bpf_link_info Struct Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -64,7 +64,7 @@ $(function() {
   <div class="summary">
 <a href="#pub-attribs">Data Fields</a>  </div>
   <div class="headertitle">
-<div class="title">bpf_prog_info Struct Reference</div>  </div>
+<div class="title">bpf_link_info Struct Reference</div>  </div>
 </div><!--header-->
 <div class="contents">
 
@@ -72,62 +72,43 @@ $(function() {
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Data Fields</h2></td></tr>
-<tr class="memitem:ac93577683e5e340b94b9fca9b12efd02"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__structs_8h.html#aa03abb9b99ca6cfa2fa19f2fb8140df8">ebpf_id_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structbpf__prog__info.html#ac93577683e5e340b94b9fca9b12efd02">id</a></td></tr>
-<tr class="memdesc:ac93577683e5e340b94b9fca9b12efd02"><td class="mdescLeft">&#160;</td><td class="mdescRight">Program ID.  <a href="structbpf__prog__info.html#ac93577683e5e340b94b9fca9b12efd02">More...</a><br /></td></tr>
-<tr class="separator:ac93577683e5e340b94b9fca9b12efd02"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab707e966eb488feaf4268784ddc9735c"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structbpf__prog__info.html#ab707e966eb488feaf4268784ddc9735c">nr_map_ids</a></td></tr>
-<tr class="memdesc:ab707e966eb488feaf4268784ddc9735c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Number of maps associated with this program.  <a href="structbpf__prog__info.html#ab707e966eb488feaf4268784ddc9735c">More...</a><br /></td></tr>
-<tr class="separator:ab707e966eb488feaf4268784ddc9735c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a583e0a419308b97503899bac3a3139d2"><td class="memItemLeft" align="right" valign="top">char&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structbpf__prog__info.html#a583e0a419308b97503899bac3a3139d2">name</a> [<a class="el" href="ebpf__structs_8h.html#abc5e07d826c22d4c2b46fd1fb5a2e93e">BPF_OBJ_NAME_LEN</a>]</td></tr>
-<tr class="memdesc:a583e0a419308b97503899bac3a3139d2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Null-terminated program name.  <a href="structbpf__prog__info.html#a583e0a419308b97503899bac3a3139d2">More...</a><br /></td></tr>
-<tr class="separator:a583e0a419308b97503899bac3a3139d2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af38c04d5b8713678bd18719734398a73"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__structs_8h.html#aa03abb9b99ca6cfa2fa19f2fb8140df8">ebpf_id_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structbpf__link__info.html#af38c04d5b8713678bd18719734398a73">id</a></td></tr>
+<tr class="memdesc:af38c04d5b8713678bd18719734398a73"><td class="mdescLeft">&#160;</td><td class="mdescRight">Link ID.  <a href="structbpf__link__info.html#af38c04d5b8713678bd18719734398a73">More...</a><br /></td></tr>
+<tr class="separator:af38c04d5b8713678bd18719734398a73"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a58b4021ef61000e376be819e1da615a6"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__structs_8h.html#aa03abb9b99ca6cfa2fa19f2fb8140df8">ebpf_id_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structbpf__link__info.html#a58b4021ef61000e376be819e1da615a6">prog_id</a></td></tr>
+<tr class="memdesc:a58b4021ef61000e376be819e1da615a6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Program ID.  <a href="structbpf__link__info.html#a58b4021ef61000e376be819e1da615a6">More...</a><br /></td></tr>
+<tr class="separator:a58b4021ef61000e376be819e1da615a6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Field Documentation</h2>
-<a id="ac93577683e5e340b94b9fca9b12efd02"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ac93577683e5e340b94b9fca9b12efd02">&#9670;&nbsp;</a></span>id</h2>
+<a id="af38c04d5b8713678bd18719734398a73"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af38c04d5b8713678bd18719734398a73">&#9670;&nbsp;</a></span>id</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="ebpf__structs_8h.html#aa03abb9b99ca6cfa2fa19f2fb8140df8">ebpf_id_t</a> bpf_prog_info::id</td>
+          <td class="memname"><a class="el" href="ebpf__structs_8h.html#aa03abb9b99ca6cfa2fa19f2fb8140df8">ebpf_id_t</a> bpf_link_info::id</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Link ID. </p>
+
+</div>
+</div>
+<a id="a58b4021ef61000e376be819e1da615a6"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a58b4021ef61000e376be819e1da615a6">&#9670;&nbsp;</a></span>prog_id</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="ebpf__structs_8h.html#aa03abb9b99ca6cfa2fa19f2fb8140df8">ebpf_id_t</a> bpf_link_info::prog_id</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
 <p>Program ID. </p>
-
-</div>
-</div>
-<a id="a583e0a419308b97503899bac3a3139d2"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a583e0a419308b97503899bac3a3139d2">&#9670;&nbsp;</a></span>name</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">char bpf_prog_info::name[<a class="el" href="ebpf__structs_8h.html#abc5e07d826c22d4c2b46fd1fb5a2e93e">BPF_OBJ_NAME_LEN</a>]</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Null-terminated program name. </p>
-
-</div>
-</div>
-<a id="ab707e966eb488feaf4268784ddc9735c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ab707e966eb488feaf4268784ddc9735c">&#9670;&nbsp;</a></span>nr_map_ids</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">uint32_t bpf_prog_info::nr_map_ids</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Number of maps associated with this program. </p>
 
 </div>
 </div>

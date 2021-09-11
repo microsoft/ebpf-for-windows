@@ -106,6 +106,10 @@ Functions</h2></td></tr>
 <tr class="memitem:ac9e08c49e17fcf8c69e202cfe15b87b3"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf_8h.html#ac9e08c49e17fcf8c69e202cfe15b87b3">bpf_map_update_elem</a> (int fd, const void *key, const void *value, <a class="el" href="bpf__helpers__platform_8h.html#ac2a2bfb32105ffe8e74b67670b7ec440">__u64</a> flags)</td></tr>
 <tr class="memdesc:ac9e08c49e17fcf8c69e202cfe15b87b3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create or update an element (key/value pair) in a specified map.  <a href="bpf_8h.html#ac9e08c49e17fcf8c69e202cfe15b87b3">More...</a><br /></td></tr>
 <tr class="separator:ac9e08c49e17fcf8c69e202cfe15b87b3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr><td colspan="2"><div class="groupHeader">Object-related functions</div></td></tr>
+<tr class="memitem:a23ca7dd3889db2e7fc97e063c727c17f"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf_8h.html#a23ca7dd3889db2e7fc97e063c727c17f">bpf_obj_get_info_by_fd</a> (int bpf_fd, void *info, <a class="el" href="bpf__helpers__platform_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a> *info_len)</td></tr>
+<tr class="memdesc:a23ca7dd3889db2e7fc97e063c727c17f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Obtain information about the eBPF object referred to by bpf_fd. This function populates up to info_len bytes of info, which will be in one of the following formats depending on the eBPF object type of bpf_fd:  <a href="bpf_8h.html#a23ca7dd3889db2e7fc97e063c727c17f">More...</a><br /></td></tr>
+<tr class="separator:a23ca7dd3889db2e7fc97e063c727c17f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr><td colspan="2"><div class="groupHeader">Program-related functions</div></td></tr>
 <tr class="memitem:af4a69e7174078629e3f20dade5e6743d"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf_8h.html#af4a69e7174078629e3f20dade5e6743d">bpf_prog_get_fd_by_id</a> (<a class="el" href="bpf__helpers__platform_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a> id)</td></tr>
 <tr class="memdesc:af4a69e7174078629e3f20dade5e6743d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get a file descriptor referring to a program with a given ID.  <a href="bpf_8h.html#af4a69e7174078629e3f20dade5e6743d">More...</a><br /></td></tr>
@@ -612,6 +616,62 @@ Functions</h2></td></tr>
     <tr><td class="paramname">EINVAL</td><td>An invalid argument was provided. </td></tr>
     <tr><td class="paramname">EBADF</td><td>The file descriptor was not found. </td></tr>
     <tr><td class="paramname">ENOMEM</td><td>Out of memory. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="a23ca7dd3889db2e7fc97e063c727c17f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a23ca7dd3889db2e7fc97e063c727c17f">&#9670;&nbsp;</a></span>bpf_obj_get_info_by_fd()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int bpf_obj_get_info_by_fd </td>
+          <td>(</td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>bpf_fd</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>info</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="bpf__helpers__platform_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a> *&#160;</td>
+          <td class="paramname"><em>info_len</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Obtain information about the eBPF object referred to by bpf_fd. This function populates up to info_len bytes of info, which will be in one of the following formats depending on the eBPF object type of bpf_fd: </p>
+<ul>
+<li>struct <a class="el" href="structbpf__link__info.html">bpf_link_info</a></li>
+<li>struct <a class="el" href="structbpf__map__info.html">bpf_map_info</a></li>
+<li>struct <a class="el" href="structbpf__prog__info.html">bpf_prog_info</a></li>
+</ul>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">bpf_fd</td><td>File descriptor referring to an eBPF object. </td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">info</td><td>Pointer to memory in which to write the info obtained. </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">info_len</td><td>On input, contains the maximum number of bytes to write into the info. On output, contains the actual number of bytes written.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
+    <tr><td class="paramname">&lt;0</td><td>An error occured, and errno was set. </td></tr>
   </table>
   </dd>
 </dl>
