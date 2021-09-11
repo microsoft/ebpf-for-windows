@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #include "api_internal.h"
+#include "bpf.h"
 #pragma warning(push)
 #pragma warning(disable : 4200)
 #include "libbpf.h"
@@ -55,4 +56,10 @@ bpf_object__find_program_by_name(const struct bpf_object* obj, const char* name)
     }
     errno = ENOENT;
     return nullptr;
+}
+
+int
+bpf_obj_get_info_by_fd(int bpf_fd, void* info, __u32* info_len)
+{
+    return libbpf_result_err(ebpf_object_get_info_by_fd((fd_t)bpf_fd, info, info_len));
 }

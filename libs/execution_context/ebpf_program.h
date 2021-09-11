@@ -123,7 +123,7 @@ extern "C"
      *  program instance.
      */
     ebpf_result_t
-    ebpf_program_associate_maps(ebpf_program_t* program, ebpf_map_t** maps, size_t maps_count);
+    ebpf_program_associate_maps(ebpf_program_t* program, ebpf_map_t** maps, uint32_t maps_count);
 
     /**
      * @brief Load a block of eBPF code into the program instance.
@@ -214,6 +214,23 @@ extern "C"
      */
     ebpf_result_t
     ebpf_program_set_tail_call(_In_ const ebpf_program_t* next_program);
+
+    /**
+     * @brief Get bpf_prog_info about a program.
+     *
+     * @param[in] program The program to get info about.
+     * @param[out] buffer Buffer to write bpf_prog_info into.
+     * @param[in,out] info_size On input, the size in bytes of the buffer.
+     * On output, the number of bytes actually written.
+     *
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INSUFFICIENT_BUFFER The buffer was too small to hold bpf_prog_info.
+     */
+    ebpf_result_t
+    ebpf_program_get_info(
+        _In_ const ebpf_program_t* program,
+        _Out_writes_to_(*info_size, *info_size) uint8_t* buffer,
+        _Inout_ uint16_t* info_size);
 
 #ifdef __cplusplus
 }

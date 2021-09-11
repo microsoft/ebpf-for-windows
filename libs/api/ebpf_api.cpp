@@ -1980,3 +1980,34 @@ ebpf_get_next_program_id(ebpf_id_t start_id, _Out_ ebpf_id_t* next_id) noexcept
 {
     return _get_next_id(ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_PROGRAM_ID, start_id, next_id);
 }
+
+ebpf_result_t
+ebpf_object_get_info_by_fd(
+    fd_t bpf_fd, _Out_writes_bytes_to_(*info_size, *info_size) void* info, _Inout_ uint32_t* info_size)
+{
+    if (info == nullptr || info_size == nullptr) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    ebpf_handle_t handle = _get_handle_from_fd(bpf_fd);
+    if (handle == ebpf_handle_invalid) {
+        return EBPF_INVALID_FD;
+    }
+
+    ebpf_protocol_buffer_t request_buffer(sizeof(ebpf_operation_get_object_info_request_t));
+    ebpf_protocol_buffer_t reply_buffer(EBPF_OFFSET_OF(ebpf_operation_get_object_info_reply_t, info) + *info_size);
+    auto request = reinterpret_cast<ebpf_operation_get_object_info_request_t*>(request_buffer.data());
+    auto reply = reinterpret_cast<ebpf_operation_get_object_info_reply_t*>(reply_buffer.data());
+
+    request->header.length = static_cast<uint16_t>(request_buffer.size());
+    request->header.id = ebpf_operation_id_t::EBPF_OPERATION_GET_OBJECT_INFO;
+    request->handle = reinterpret_cast<uint64_t>(handle);
+
+    ebpf_result_t result = windows_error_to_ebpf_result(invoke_ioctl(request_buffer, reply_buffer));
+    if (result == EBPF_SUCCESS) {
+        *info_size = reply->header.length - EBPF_OFFSET_OF(ebpf_operation_get_object_info_reply_t, info);
+        memcpy(info, reply->info, *info_size);
+    }
+
+    return result;
+}

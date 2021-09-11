@@ -30,6 +30,7 @@ EXPORTS
     bpf_map_get_next_key
     bpf_map_lookup_elem
     bpf_map_update_elem
+    bpf_obj_get_info_by_fd
     bpf_object__close
     bpf_object__find_map_by_name
     bpf_object__find_map_fd_by_name
