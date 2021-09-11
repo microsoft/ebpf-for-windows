@@ -63,17 +63,17 @@ _open_osfhandle(intptr_t os_file_handle, int flags)
 }
 
 intptr_t
-_get_osfhandle(int file_handle)
+_get_osfhandle(int file_descriptor)
 {
-    if (file_handle == ebpf_fd_invalid) {
+    if (file_descriptor == ebpf_fd_invalid) {
         return ebpf_handle_invalid;
     }
-    return ::_get_osfhandle(file_handle);
+    return ::_get_osfhandle(file_descriptor);
 }
 
 int
-_close(int file_handle)
+_close(int file_descriptor)
 {
-    return ::_close(file_handle);
+    return ::_close(file_descriptor);
 }
 } // namespace Platform

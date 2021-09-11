@@ -69,9 +69,9 @@ _open_osfhandle(intptr_t os_file_handle, int flags)
 }
 
 intptr_t
-_get_osfhandle(int file_handle)
+_get_osfhandle(int file_descriptor)
 {
-    return get_osfhandle_handler(file_handle);
+    return get_osfhandle_handler(file_descriptor);
 }
 
 int

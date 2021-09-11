@@ -157,6 +157,7 @@ Glue_close(int file_handle)
     if (it == _fd_to_handle_map.end()) {
         return -1;
     } else {
+        ebpf_api_close_handle(it->second);
         _fd_to_handle_map.erase(file_handle);
         return 0;
     }
