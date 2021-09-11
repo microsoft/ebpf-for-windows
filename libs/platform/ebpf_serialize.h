@@ -88,7 +88,7 @@ extern "C"
     /**
      * @brief Serialize ebpf_program_info_t onto output buffer.
      *
-     * @param[in]  program_info Pointer to program_map_info_t to serialize.
+     * @param[in]  program_info Pointer to ebpf_program_info_t to serialize.
      * @param[out] output_buffer Caller specified output buffer to write serialized data into.
      * @param[in]  output_buffer_length Output buffer length.
      * @param[out] serialized_data_length Length of successfully serialized data.
@@ -107,7 +107,7 @@ extern "C"
         _Out_ size_t* required_length);
 
     /**
-     * @brief Deserialize input buffer to an array of ebpf_map_info_t.
+     * @brief Deserialize input buffer to an array of ebpf_program_info_t.
      *
      * @param[in] input_buffer_length Input buffer length.
      * @param[in] input_buffer Input buffer that will be de-serialized.

@@ -474,7 +474,7 @@ bpf_program__name(const struct bpf_program* prog);
 /**
  * @brief Get the next program for a given eBPF object.
  *
- * @param[in] prog Previous program.
+ * @param[in] prog Previous program, or NULL to get the first program.
  * @param[in] obj Object with programs.
  *
  * @returns Next program, or NULL if none.

@@ -168,6 +168,23 @@ extern "C"
     ebpf_result_t
     ebpf_map_associate_program(_In_ ebpf_map_t* map, _In_ const struct _ebpf_program* program);
 
+    /**
+     * @brief Get bpf_map_info about a map.
+     *
+     * @param[in] map The map to get info about.
+     * @param[out] buffer Buffer to write bpf_map_info into.
+     * @param[in,out] info_size On input, the size in bytes of the buffer.
+     * On output, the number of bytes actually written.
+     *
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INSUFFICIENT_BUFFER The buffer was too small to hold bpf_map_info.
+     */
+    ebpf_result_t
+    ebpf_map_get_info(
+        _In_ const ebpf_map_t* map,
+        _Out_writes_to_(*info_size, *info_size) uint8_t* buffer,
+        _Inout_ uint16_t* info_size);
+
 #ifdef __cplusplus
 }
 #endif
