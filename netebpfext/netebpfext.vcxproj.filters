@@ -29,6 +29,12 @@
     <ClCompile Include="net_ebpf_ext.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="net_ebpf_ext_bind.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="net_ebpf_ext_xdp.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="ebpf_ext_attach_provider.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -38,6 +44,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ebpf_ext_attach_provider.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="net_ebpf_ext_bind.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="net_ebpf_ext_xdp.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="resource.h">
