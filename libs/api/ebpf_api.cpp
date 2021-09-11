@@ -19,14 +19,14 @@ extern "C"
 }
 #include "Verifier.h"
 
+using namespace Platform;
+
 #ifndef GUID_NULL
 const GUID GUID_NULL = {0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0}};
 #endif
 
 #define MAX_CODE_SIZE (32 * 1024) // 32 KB
 
-static uint64_t _ebpf_file_descriptor_counter = 0;
-static std::map<fd_t, ebpf_handle_t> _fd_to_handle_map;
 static std::map<ebpf_handle_t, ebpf_program_t*> _ebpf_programs;
 static std::map<ebpf_handle_t, ebpf_map_t*> _ebpf_maps;
 static std::vector<ebpf_object_t*> _ebpf_objects;
@@ -1354,19 +1354,6 @@ ebpf_api_close_handle(ebpf_handle_t handle)
 }
 
 ebpf_result_t
-ebpf_close_fd(fd_t fd)
-{
-    ebpf_handle_t handle = _get_handle_from_file_descriptor(fd);
-    if (handle == ebpf_handle_invalid) {
-        return EBPF_INVALID_FD;
-    }
-    _fd_to_handle_map.erase(fd);
-    ebpf_api_close_handle(handle);
-
-    return EBPF_SUCCESS;
-}
-
-ebpf_result_t
 ebpf_api_get_pinned_map_info(
     _Out_ uint16_t* map_count, _Outptr_result_buffer_maybenull_(*map_count) ebpf_map_info_t** map_info)
 {
@@ -1475,7 +1462,7 @@ clean_up_ebpf_program(_In_ _Post_invalid_ ebpf_program_t* program)
         return;
     }
     if (program->fd != 0) {
-        _fd_to_handle_map.erase(program->fd);
+        Platform::_close(program->fd);
     }
     if (program->handle != ebpf_handle_invalid) {
         _ebpf_programs.erase(program->handle);
@@ -1504,7 +1491,7 @@ clean_up_ebpf_map(_In_ _Post_invalid_ ebpf_map_t* map)
         return;
     }
     if (map->map_fd != 0) {
-        _fd_to_handle_map.erase(map->map_fd);
+        Platform::_close(map->map_fd);
     }
     if (map->map_handle != ebpf_handle_invalid) {
         _ebpf_maps.erase(map->map_handle);

@@ -112,6 +112,7 @@
     <ClInclude Include="tokens.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\libs\thunk\windows\platform.cpp" />
     <ClCompile Include="dllmain.c" />
   </ItemGroup>
   <ItemGroup>

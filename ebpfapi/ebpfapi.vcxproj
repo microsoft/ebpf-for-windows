@@ -134,8 +134,8 @@
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\libs\thunk\windows\platform.cpp" />
     <ClCompile Include="dllmain.cpp" />
-    <ClCompile Include="platform.cpp" />
     <ClCompile Include="rpc_client.cpp" />
   </ItemGroup>
   <ItemGroup>

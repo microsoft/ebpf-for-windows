@@ -12,6 +12,7 @@
 #include "libbpf.h"
 #pragma warning(pop)
 #include "maps.h"
+#include "platform.h"
 #include "programs.h"
 #include "test_helper.hpp"
 
@@ -279,6 +280,6 @@ TEST_CASE("show maps", "[netsh][maps]")
                   "      Hash of maps     4      4        2      0\n"
                   "             Array     4      4        1      0\n");
 
-    ebpf_close_fd(inner_map_fd); // TODO(issue #287): change to _close(inner_map_fd);
-    ebpf_close_fd(outer_map_fd); // TODO(issue #287): change to _close(outer_map_fd);
+    Platform::_close(inner_map_fd);
+    Platform::_close(outer_map_fd);
 }

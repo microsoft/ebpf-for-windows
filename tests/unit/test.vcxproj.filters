@@ -28,9 +28,6 @@
     <ClCompile Include="..\..\libs\execution_context\unit\execution_context_unit_test.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\end_to_end\mock.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\libs\platform\unit\platform_unit_test.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -46,15 +43,18 @@
     <ClCompile Include="..\end_to_end\test_helper.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\libs\thunk\mock\mock.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\end_to_end\helpers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\end_to_end\mock.h">
+    <ClInclude Include="..\end_to_end\test_helper.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\end_to_end\test_helper.hpp">
+    <ClInclude Include="..\..\libs\thunk\mock\mock.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

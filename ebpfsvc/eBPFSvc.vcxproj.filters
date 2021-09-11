@@ -39,7 +39,7 @@
     <ClCompile Include="rpc_api.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="platform.cpp">
+    <ClCompile Include="..\libs\thunk\windows\platform.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

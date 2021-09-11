@@ -7,6 +7,7 @@
 #include <windows.h>
 #include <netsh.h>
 #include "ebpf_windows.h"
+#include "platform.h"
 #include "programs.h"
 #include "tokens.h"
 
@@ -232,7 +233,7 @@ _find_program_fd(const char* filename, const char* section)
             break;
         }
         if (program_fd != ebpf_fd_invalid) {
-            ebpf_close_fd(program_fd);
+            Platform::_close(program_fd);
         }
 
         program_fd = next_program_fd;
@@ -260,7 +261,7 @@ _find_program_fd(const char* filename, const char* section)
     }
 
     if (program_fd != ebpf_fd_invalid) {
-        ebpf_close_fd(program_fd);
+        Platform::_close(program_fd);
     }
     return ebpf_fd_invalid;
 }
@@ -405,7 +406,7 @@ handle_ebpf_set_program(
             return ERROR_SUPPRESS_OUTPUT;
         }
 
-        ebpf_close_fd(program_fd);
+        Platform::_close(program_fd);
     }
 
     return ERROR_CALL_NOT_IMPLEMENTED;
@@ -510,7 +511,7 @@ handle_ebpf_show_programs(
         }
 
         if (program_fd != ebpf_fd_invalid) {
-            ebpf_close_fd(program_fd);
+            Platform::_close(program_fd);
         }
         program_fd = next_program_fd;
 
@@ -538,7 +539,7 @@ handle_ebpf_show_programs(
         ebpf_free_string(program_section_name);
     }
     if (program_fd != ebpf_fd_invalid) {
-        ebpf_close_fd(program_fd);
+        Platform::_close(program_fd);
     }
     return status;
 }

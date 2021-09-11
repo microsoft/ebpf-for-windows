@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include "ebpf_core_structs.h"
+
 #pragma once
 namespace Platform {
 bool

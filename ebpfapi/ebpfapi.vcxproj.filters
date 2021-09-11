@@ -33,10 +33,10 @@
     <ClCompile Include="dllmain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="platform.cpp">
+    <ClCompile Include="rpc_client.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="rpc_client.cpp">
+    <ClCompile Include="..\libs\thunk\windows\platform.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
