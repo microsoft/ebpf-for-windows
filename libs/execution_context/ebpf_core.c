@@ -796,7 +796,7 @@ _ebpf_core_protocol_get_ec_function(
 }
 
 // Get helper info for a program or program type.  This is used by the jitter/verifier,
-// not by libbpf which instead uses _ebpf_core_protocol_get_program_object_info
+// not by libbpf which instead uses ebpf_program_get_info
 // to get standard cross-platform info.
 static ebpf_result_t
 _ebpf_core_protocol_get_program_info(
@@ -935,7 +935,7 @@ _ebpf_core_protocol_serialize_map_info_reply(
     return result;
 }
 
-// Get map pinning info, as opposed to _ebpf_core_protocol_get_program_object_info
+// Get map pinning info, as opposed to ebpf_map_get_info
 // which is used by libbpf to get standard cross-platform bpf_map_info.
 static ebpf_result_t
 _ebpf_core_protocol_get_map_info(
@@ -1071,56 +1071,6 @@ _ebpf_core_protocol_get_next_program_id(
     return _get_next_id(EBPF_OBJECT_PROGRAM, request, reply, reply_length);
 }
 
-// Get standard cross-platform bpf_link_info for a link object.
-static ebpf_result_t
-_ebpf_core_protocol_get_link_object_info(
-    ebpf_handle_t handle, _Out_writes_to_(*info_size, *info_size) uint8_t* buffer, _Inout_ uint16_t* info_size)
-{
-    ebpf_link_t* link;
-    ebpf_result_t result = ebpf_reference_object_by_handle(handle, EBPF_OBJECT_LINK, (ebpf_object_t**)&link);
-    if (result != EBPF_SUCCESS) {
-        return result;
-    }
-    result = ebpf_link_get_info(link, buffer, info_size);
-    ebpf_object_release_reference((ebpf_object_t*)link);
-    return result;
-}
-
-// Get standard cross-platform bpf_map_info for a map object.
-// Compare _ebpf_core_protocol_get_map_info which is used to get
-// map pinning info.
-static ebpf_result_t
-_ebpf_core_protocol_get_map_object_info(
-    ebpf_handle_t handle, _Out_writes_to_(*info_size, *info_size) uint8_t* buffer, _Inout_ uint16_t* info_size)
-{
-    ebpf_map_t* map;
-    ebpf_result_t result = ebpf_reference_object_by_handle(handle, EBPF_OBJECT_MAP, (ebpf_object_t**)&map);
-    if (result != EBPF_SUCCESS) {
-        return result;
-    }
-    result = ebpf_map_get_info(map, buffer, info_size);
-    ebpf_object_release_reference((ebpf_object_t*)map);
-    return result;
-}
-
-// Get standard cross-platform bpf_prog_info for a program object.
-// Compare _ebpf_core_protocol_get_program_info which is used
-// by the verifier/jitter to get helper info for a program or
-// program type.
-static ebpf_result_t
-_ebpf_core_protocol_get_program_object_info(
-    ebpf_handle_t handle, _Out_writes_to_(*info_size, *info_size) uint8_t* buffer, _Inout_ uint16_t* info_size)
-{
-    ebpf_program_t* program;
-    ebpf_result_t result = ebpf_reference_object_by_handle(handle, EBPF_OBJECT_PROGRAM, (ebpf_object_t**)&program);
-    if (result != EBPF_SUCCESS) {
-        return result;
-    }
-    result = ebpf_program_get_info(program, buffer, info_size);
-    ebpf_object_release_reference((ebpf_object_t*)program);
-    return result;
-}
-
 static ebpf_result_t
 _ebpf_core_protocol_get_object_info(
     _In_ const ebpf_operation_get_object_info_request_t* request,
@@ -1128,30 +1078,33 @@ _ebpf_core_protocol_get_object_info(
     uint16_t reply_length)
 {
     uint16_t info_size = reply_length - FIELD_OFFSET(ebpf_operation_get_object_info_reply_t, info);
-    ebpf_result_t result;
 
-    // Try a link handle.
-    result = _ebpf_core_protocol_get_link_object_info(request->handle, reply->info, &info_size);
-    if (result == EBPF_SUCCESS) {
-        reply->header.length = FIELD_OFFSET(ebpf_operation_get_object_info_reply_t, info) + info_size;
-        return EBPF_SUCCESS;
+    ebpf_object_t* object;
+    ebpf_result_t result = ebpf_reference_object_by_handle(request->handle, EBPF_OBJECT_UNKNOWN, &object);
+    if (result != EBPF_SUCCESS) {
+        return result;
     }
 
-    // Try a map handle.
-    result = _ebpf_core_protocol_get_map_object_info(request->handle, reply->info, &info_size);
-    if (result == EBPF_SUCCESS) {
-        reply->header.length = FIELD_OFFSET(ebpf_operation_get_object_info_reply_t, info) + info_size;
-        return EBPF_SUCCESS;
+    switch (object->type) {
+    case EBPF_OBJECT_LINK:
+        result = ebpf_link_get_info((ebpf_link_t*)object, reply->info, &info_size);
+        break;
+    case EBPF_OBJECT_MAP:
+        result = ebpf_map_get_info((ebpf_map_t*)object, reply->info, &info_size);
+        break;
+    case EBPF_OBJECT_PROGRAM:
+        result = ebpf_program_get_info((ebpf_program_t*)object, reply->info, &info_size);
+        break;
+    default:
+        result = EBPF_INVALID_ARGUMENT;
+        break;
     }
 
-    // Try a program handle.
-    result = _ebpf_core_protocol_get_program_object_info(request->handle, reply->info, &info_size);
     if (result == EBPF_SUCCESS) {
         reply->header.length = FIELD_OFFSET(ebpf_operation_get_object_info_reply_t, info) + info_size;
-        return EBPF_SUCCESS;
     }
-
-    return EBPF_INVALID_ARGUMENT;
+    ebpf_object_release_reference(object);
+    return result;
 }
 
 static void*
