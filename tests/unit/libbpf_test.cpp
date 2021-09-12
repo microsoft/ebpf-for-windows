@@ -819,5 +819,5 @@ TEST_CASE("bpf_obj_get_info_by_fd", "[libbpf]")
     // This is the flow used by bpftool to detach a link.
     REQUIRE(bpf_link_detach(link_fd) == 0);
 
-    ebpf_close_fd(link_fd); // TODO(issue #287): change to _close(link_fd);
+    Platform::_close(link_fd);
 }

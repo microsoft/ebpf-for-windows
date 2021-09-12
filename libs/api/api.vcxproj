@@ -181,9 +181,9 @@
     <ClCompile Include="windows_platform.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\thunk\platform.h" />
     <ClInclude Include="api_internal.h" />
     <ClInclude Include="pch.h" />
-    <ClInclude Include="platform.h" />
     <ClInclude Include="rpc_client.h" />
     <ClInclude Include="tlv.h" />
     <ClInclude Include="Verifier.h" />

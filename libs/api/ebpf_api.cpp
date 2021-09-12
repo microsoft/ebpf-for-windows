@@ -1989,7 +1989,7 @@ ebpf_object_get_info_by_fd(
         return EBPF_INVALID_ARGUMENT;
     }
 
-    ebpf_handle_t handle = _get_handle_from_fd(bpf_fd);
+    ebpf_handle_t handle = _get_handle_from_file_descriptor(bpf_fd);
     if (handle == ebpf_handle_invalid) {
         return EBPF_INVALID_FD;
     }
@@ -2001,7 +2001,7 @@ ebpf_object_get_info_by_fd(
 
     request->header.length = static_cast<uint16_t>(request_buffer.size());
     request->header.id = ebpf_operation_id_t::EBPF_OPERATION_GET_OBJECT_INFO;
-    request->handle = reinterpret_cast<uint64_t>(handle);
+    request->handle = handle;
 
     ebpf_result_t result = windows_error_to_ebpf_result(invoke_ioctl(request_buffer, reply_buffer));
     if (result == EBPF_SUCCESS) {
