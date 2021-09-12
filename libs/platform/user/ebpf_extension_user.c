@@ -47,8 +47,6 @@ ebpf_extension_load(
     ebpf_extension_provider_t** hash_table_find_result = NULL;
     ebpf_extension_client_t* local_extension_client = NULL;
 
-    UNREFERENCED_PARAMETER(extension_changed);
-
     state = ebpf_lock_lock(&_ebpf_provider_table_lock);
 
     if (provider_binding_context == NULL) {
@@ -112,6 +110,10 @@ ebpf_extension_load(
         *provider_data = local_extension_provider->provider_data;
     if (provider_dispatch_table != NULL)
         *provider_dispatch_table = local_extension_provider->provider_dispatch_table;
+
+    // Invoke extension changed on client.
+    if (extension_changed != NULL)
+        extension_changed(extension_client_context, provider_binding_context, *provider_data);
 
 Done:
     if (local_extension_provider && local_extension_client) {

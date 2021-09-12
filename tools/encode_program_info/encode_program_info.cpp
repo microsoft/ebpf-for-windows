@@ -1,10 +1,11 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
-
+#include <vector>
 #include <stdio.h>
 #include "ebpf_api.h"
 #include "ebpf_nethooks.h"
 #include "encode_program_info.h"
+#include "net_ebpf_ext_program_info.h"
 
 static ebpf_result_t
 _emit_program_info_file(const char* file_name, const char* symbol_name, uint8_t* buffer, unsigned long buffer_size)
@@ -72,8 +73,16 @@ _encode_xdp()
         EBPF_OFFSET_OF(xdp_md_t, data_meta)};
     ebpf_program_type_descriptor_t xdp_program_type = {"xdp", &xdp_context_descriptor, EBPF_PROGRAM_TYPE_XDP};
     ebpf_program_info_t xdp_program_info = {xdp_program_type, 0, NULL};
-    xdp_program_info.count_of_helpers = ebpf_core_helper_functions_count;
-    xdp_program_info.helper_prototype = ebpf_core_helper_function_prototype;
+    xdp_program_info.count_of_helpers =
+        ebpf_core_helper_functions_count + EBPF_COUNT_OF(_xdp_ebpf_extension_helper_function_prototype);
+    std::vector<ebpf_helper_function_prototype_t> _helper_function_prototypes;
+    _helper_function_prototypes.assign(
+        ebpf_core_helper_function_prototype, ebpf_core_helper_function_prototype + ebpf_core_helper_functions_count);
+    _helper_function_prototypes.insert(
+        _helper_function_prototypes.end(),
+        _xdp_ebpf_extension_helper_function_prototype,
+        _xdp_ebpf_extension_helper_function_prototype + EBPF_COUNT_OF(_xdp_ebpf_extension_helper_function_prototype));
+    xdp_program_info.helper_prototype = _helper_function_prototypes.data();
     return_value = ebpf_program_info_encode(&xdp_program_info, &buffer, &buffer_size);
     if (return_value != EBPF_SUCCESS)
         goto Done;

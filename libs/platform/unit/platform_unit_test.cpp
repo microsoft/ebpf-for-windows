@@ -21,6 +21,7 @@
 #include "ebpf_xdp_program_data.h"
 #include "ebpf_state.h"
 #include "encode_program_info.h"
+#include "net_ebpf_ext_program_info.h"
 
 class _test_helper
 {
@@ -418,7 +419,9 @@ TEST_CASE("program_type_info_stored", "[platform]")
         ebpf_program_info_decode(
             &xdp_program_info, _ebpf_encoded_xdp_program_info_data, sizeof(_ebpf_encoded_xdp_program_info_data)) ==
         EBPF_SUCCESS);
-    REQUIRE(xdp_program_info->count_of_helpers == ebpf_core_helper_functions_count);
+    REQUIRE(
+        xdp_program_info->count_of_helpers ==
+        ebpf_core_helper_functions_count + EBPF_COUNT_OF(_xdp_ebpf_extension_helper_function_prototype));
     REQUIRE(strcmp(xdp_program_info->program_type_descriptor.name, "xdp") == 0);
     ebpf_free(xdp_program_info);
 

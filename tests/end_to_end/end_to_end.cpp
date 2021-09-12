@@ -118,6 +118,12 @@ typedef class _udp_packet
         return _packet.size();
     }
 
+    std::vector<uint8_t>&
+    packet()
+    {
+        return _packet;
+    }
+
     static const ebpf::UDP_HEADER*
     _get_udp_header(_In_ const uint8_t* packet_buffer, ADDRESS_FAMILY address_family)
     {
@@ -1026,7 +1032,60 @@ _xdp_reflect_packet_test(ebpf_execution_type_t execution_type, ADDRESS_FAMILY ad
     }
 }
 
-TEST_CASE("xdp-reflect-v4-jit", "[xdp_tests]") { _xdp_reflect_packet_test(EBPF_EXECUTION_INTERPRET, AF_INET); }
-TEST_CASE("xdp-reflect-v6-jit", "[xdp_tests]") { _xdp_reflect_packet_test(EBPF_EXECUTION_INTERPRET, AF_INET6); }
+static void
+_xdp_encap_reflect_packet_test(ebpf_execution_type_t execution_type, ADDRESS_FAMILY address_family)
+{
+    _test_helper_end_to_end test_helper;
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
+    program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
+    program_load_attach_helper_t program_helper(
+        SAMPLE_PATH "reflect_packet.o", EBPF_PROGRAM_TYPE_XDP, "encap_reflect_packet", execution_type, hook);
+
+    // Dummy UDP datagram with fake IP and MAC addresses.
+    udp_packet_t packet(address_family);
+    packet.set_destination_port(ntohs(REFLECTION_TEST_PORT));
+
+    // Dummy context (not used by the eBPF program).
+    xdp_md_helper_t ctx(packet.packet());
+    uint8_t* ip_header = packet.packet().data() + sizeof(ebpf::ETHERNET_HEADER);
+    std::vector<uint8_t> original_ip_datagram(ip_header, packet.packet().data() + packet.packet().size());
+
+    int hook_result;
+    REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
+    REQUIRE(hook_result == 3);
+
+    ebpf::ETHERNET_HEADER* ethernet_header = reinterpret_cast<ebpf::ETHERNET_HEADER*>(ctx.data);
+    REQUIRE(memcmp(ethernet_header->Destination, _test_source_mac.data(), sizeof(ethernet_header->Destination)) == 0);
+    REQUIRE(memcmp(ethernet_header->Source, _test_destination_mac.data(), sizeof(ethernet_header->Source)) == 0);
+
+    if (address_family == AF_INET) {
+        ebpf::IPV4_HEADER* ipv4 = reinterpret_cast<ebpf::IPV4_HEADER*>(ethernet_header + 1);
+        REQUIRE(ipv4->SourceAddress == _test_destination_ipv4.s_addr);
+        REQUIRE(ipv4->DestinationAddress == _test_source_ipv4.s_addr);
+        REQUIRE(ipv4->Protocol == IPPROTO_IPV4);
+        uint8_t* inner_ip_header = (uint8_t*)(ipv4 + 1);
+        REQUIRE(memcmp(inner_ip_header, original_ip_datagram.data(), original_ip_datagram.size()) == 0);
+    } else {
+        ebpf::IPV6_HEADER* ipv6 = reinterpret_cast<ebpf::IPV6_HEADER*>(ethernet_header + 1);
+        REQUIRE(memcmp(ipv6->SourceAddress, &_test_destination_ipv6, sizeof(ebpf::ipv6_address_t)) == 0);
+        REQUIRE(memcmp(ipv6->DestinationAddress, &_test_source_ipv6, sizeof(ebpf::ipv6_address_t)) == 0);
+        REQUIRE(ipv6->NextHeader == IPPROTO_IPV6);
+        uint8_t* inner_ip_header = (uint8_t*)(ipv6 + 1);
+        REQUIRE(memcmp(inner_ip_header, original_ip_datagram.data(), original_ip_datagram.size()) == 0);
+    }
+}
+
+TEST_CASE("xdp-reflect-v4-jit", "[xdp_tests]") { _xdp_reflect_packet_test(EBPF_EXECUTION_JIT, AF_INET); }
+TEST_CASE("xdp-reflect-v6-jit", "[xdp_tests]") { _xdp_reflect_packet_test(EBPF_EXECUTION_JIT, AF_INET6); }
 TEST_CASE("xdp-reflect-v4-interpret", "[xdp_tests]") { _xdp_reflect_packet_test(EBPF_EXECUTION_INTERPRET, AF_INET); }
 TEST_CASE("xdp-reflect-v6-interpret", "[xdp_tests]") { _xdp_reflect_packet_test(EBPF_EXECUTION_INTERPRET, AF_INET6); }
+TEST_CASE("xdp-encap-reflect-v4-jit", "[xdp_tests]") { _xdp_encap_reflect_packet_test(EBPF_EXECUTION_JIT, AF_INET); }
+TEST_CASE("xdp-encap-reflect-v6-jit", "[xdp_tests]") { _xdp_encap_reflect_packet_test(EBPF_EXECUTION_JIT, AF_INET); }
+TEST_CASE("xdp-encap-reflect-v4-interpret", "[xdp_tests]")
+{
+    _xdp_encap_reflect_packet_test(EBPF_EXECUTION_INTERPRET, AF_INET);
+}
+TEST_CASE("xdp-encap-reflect-v6-interpret", "[xdp_tests]")
+{
+    _xdp_encap_reflect_packet_test(EBPF_EXECUTION_INTERPRET, AF_INET);
+}

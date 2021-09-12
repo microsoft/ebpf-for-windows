@@ -72,6 +72,9 @@ clean_up_rpc_binding() { return RPC_S_OK; }
 ebpf_result_t
 ebpf_rpc_load_program(ebpf_program_load_info* info, const char** logs, uint32_t* logs_size)
 {
+    // Set the handle of program being verified in thread-local storage.
+    set_program_under_verification(info->program_handle);
+
     // Short circuit rpc call to service lib.
     ebpf_result_t result = ebpf_verify_and_load_program(
         &info->program_type,

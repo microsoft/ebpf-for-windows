@@ -8,6 +8,7 @@
 #include "ebpf_nethooks.h"
 #include "ebpf_platform.h"
 #include "ebpf_program_types.h"
+#include "net_ebpf_ext_program_info.h"
 #include "sample_ext_program_info.h"
 
 typedef struct _ebpf_free_memory
@@ -172,14 +173,64 @@ typedef class _single_instance_hook : public _hook_helper
 
 #define TEST_NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION 0
 
-static ebpf_context_descriptor_t _ebpf_xdp_context_descriptor = {
-    sizeof(xdp_md_t),
-    EBPF_OFFSET_OF(xdp_md_t, data),
-    EBPF_OFFSET_OF(xdp_md_t, data_end),
-    EBPF_OFFSET_OF(xdp_md_t, data_meta)};
-static ebpf_program_info_t _ebpf_xdp_program_info = {{"xdp", &_ebpf_xdp_context_descriptor, {0}}, 0, NULL};
+typedef class xdp_md_helper : public xdp_md_t
+{
+  public:
+    xdp_md_helper(std::vector<uint8_t>& packet)
+        : xdp_md_t{packet.data(), packet.data() + packet.size()}, _packet(&packet), _begin(0), _end(packet.size()){};
+    int
+    adjust_head(int delta)
+    {
+        int return_value = 0;
+        if (delta == 0)
+            // Nothing changes.
+            goto Done;
 
-static ebpf_program_data_t _ebpf_xdp_program_data = {&_ebpf_xdp_program_info, NULL};
+        if (delta > 0) {
+            if (_begin + delta > _end) {
+                return_value = -1;
+                goto Done;
+            }
+            _begin += delta;
+        } else {
+            int abs_delta = -delta;
+            if (_begin >= abs_delta)
+                _begin -= abs_delta;
+            else {
+                size_t additional_space_needed = abs_delta - _begin;
+                // Prepend _packet with additional_space_needed count of 0.
+                _packet->insert(_packet->begin(), additional_space_needed, 0);
+                _begin = 0;
+                _end += additional_space_needed;
+            }
+            // Adjust xdp_md data pointers.
+            data = _packet->data();
+            data_end = _packet->data() + _packet->size();
+        }
+    Done:
+        return return_value;
+    }
+
+  private:
+    std::vector<uint8_t>* _packet;
+    size_t _begin;
+    size_t _end;
+} xdp_md_helper_t;
+
+static int
+_test_xdp_adjust_head(xdp_md_t* ctx, int delta)
+{
+    ((xdp_md_helper_t*)ctx)->adjust_head(delta);
+    return 0;
+}
+
+static const void* _test_ebpf_xdp_helper_functions[] = {(void*)&_test_xdp_adjust_head};
+
+static ebpf_helper_function_addresses_t _test_ebpf_xdp_helper_function_address_table = {
+    EBPF_COUNT_OF(_test_ebpf_xdp_helper_functions), (uint64_t*)_test_ebpf_xdp_helper_functions};
+
+static ebpf_program_data_t _ebpf_xdp_program_data = {
+    &_ebpf_xdp_program_info, &_test_ebpf_xdp_helper_function_address_table};
 
 static ebpf_extension_data_t _ebpf_xdp_program_info_provider_data = {
     TEST_NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_ebpf_xdp_program_data), &_ebpf_xdp_program_data};

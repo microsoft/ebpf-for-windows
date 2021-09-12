@@ -36,6 +36,26 @@ typedef enum _xdp_action
 typedef xdp_action_t
 xdp_hook_t(xdp_md_t* context);
 
+// XDP helper functions.
+#define XDP_EXT_HELPER_FN_BASE 0xFFFF
+
+#ifndef __doxygen
+#define EBPF_HELPER(return_type, name, args) typedef return_type(*name##_t) args
+#endif
+
+/**
+ * @brief Adjustss XDP context data pointer.
+ *
+ * @param[in] ctx XDP Context.
+ * @param[in] delta Number of bytes to move the data pointer by.
+ *
+ * @retval 0 on success, or a negative error in case of failure.
+ */
+EBPF_HELPER(int, bpf_xdp_adjust_head, (xdp_md_t * ctx, int delta));
+#ifndef __doxygen
+#define bpf_xdp_adjust_head ((bpf_xdp_adjust_head_t)XDP_EXT_HELPER_FN_BASE + 1)
+#endif
+
 // BIND hook
 
 typedef enum _bind_operation
