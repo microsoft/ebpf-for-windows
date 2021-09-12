@@ -1,17 +1,11 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-/*++
+/**
+ * @brief This file implements the XDP program type hook and helper functions on eBPF for Windows.
+ *
+ */
 
-Abstract:
-
-   This file implements the XDP program type hook and helper functions on eBPF for Windows.
-
-Environment:
-
-    Kernel mode
-
---*/
 #define INITGUID
 
 #include "net_ebpf_ext.h"
@@ -92,11 +86,6 @@ net_ebpf_ext_layer_2_classify(
     _In_ const FWPS_FILTER* filter,
     uint64_t flow_context,
     _Inout_ FWPS_CLASSIFY_OUT* classify_output)
-/* ++
-
-   A simple classify function at the WFP L2 MAC layer.
-
--- */
 {
     FWP_ACTION_TYPE action = FWP_ACTION_PERMIT;
 

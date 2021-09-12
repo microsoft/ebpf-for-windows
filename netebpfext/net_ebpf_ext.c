@@ -38,9 +38,9 @@ typedef struct _net_ebpf_ext_wfp_callout_state
 {
     const GUID* callout_guid;
     const GUID* layer_guid;
-    FWPS_CALLOUT_CLASSIFY_FN3 classify_fn;
-    FWPS_CALLOUT_NOTIFY_FN3 notify_fn;
-    FWPS_CALLOUT_FLOW_DELETE_NOTIFY_FN0 delete_fn;
+    FWPS_CALLOUT_CLASSIFY_FN classify_fn;
+    FWPS_CALLOUT_NOTIFY_FN notify_fn;
+    FWPS_CALLOUT_FLOW_DELETE_NOTIFY_FN delete_fn;
     wchar_t* name;
     wchar_t* description;
     FWP_ACTION_TYPE filter_action_type;
@@ -233,7 +233,7 @@ net_ebpf_ext_register_callouts(_Inout_ void* device_object)
         goto Exit;
     }
 
-    for (index = 0; index < RTL_COUNT_OF(_net_ebpf_ext_wfp_callout_state); index++) {
+    for (index = 0; index < EBPF_COUNT_OF(_net_ebpf_ext_wfp_callout_state); index++) {
         status = _net_ebpf_ext_register_wfp_callout(&_net_ebpf_ext_wfp_callout_state[index], device_object);
         if (!NT_SUCCESS(status)) {
             KdPrintEx(
@@ -287,7 +287,7 @@ net_ebpf_ext_unregister_callouts(void)
         FwpmEngineClose(_fwp_engine_handle);
         _fwp_engine_handle = NULL;
 
-        for (index = 0; index < RTL_COUNT_OF(_net_ebpf_ext_wfp_callout_state); index++) {
+        for (index = 0; index < EBPF_COUNT_OF(_net_ebpf_ext_wfp_callout_state); index++) {
             FwpsCalloutUnregisterById(_net_ebpf_ext_wfp_callout_state[index].assigned_callout_id);
         }
     }

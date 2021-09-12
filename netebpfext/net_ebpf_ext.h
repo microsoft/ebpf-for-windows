@@ -36,8 +36,6 @@ Environment:
 #include "ebpf_program_types.h"
 #include "ebpf_windows.h"
 
-#define RTL_COUNT_OF(arr) (sizeof(arr) / sizeof(arr[0]))
-
 #define NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION 0
 
 //

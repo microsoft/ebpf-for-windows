@@ -1,17 +1,11 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-/*++
+/**
+ * @brief    This file implements the BIND program type hook on eBPF for Windows.
+ *
+ */
 
-Abstract:
-
-   This file implements the BIND program type hook on eBPF for Windows.
-
-Environment:
-
-    Kernel mode
-
---*/
 #define INITGUID
 
 #include "net_ebpf_ext.h"
@@ -64,11 +58,6 @@ net_ebpf_ext_resource_allocation_classify(
     _In_ const FWPS_FILTER* filter,
     uint64_t flow_context,
     _Inout_ FWPS_CLASSIFY_OUT* classify_output)
-/* ++
-
-   A simple classify function at the WFP Resource Allocation layer.
-
--- */
 {
     SOCKADDR_IN addr = {AF_INET};
     uint32_t result;
@@ -126,11 +115,6 @@ net_ebpf_ext_resource_release_classify(
     _In_ const FWPS_FILTER* filter,
     uint64_t flow_context,
     _Inout_ FWPS_CLASSIFY_OUT* classify_output)
-/* ++
-
-   A simple classify function at the WFP Resource Release layer.
-
--- */
 {
     SOCKADDR_IN addr = {AF_INET};
     uint32_t result;
