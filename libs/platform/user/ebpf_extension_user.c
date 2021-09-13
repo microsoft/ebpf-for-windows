@@ -112,7 +112,7 @@ ebpf_extension_load(
         *provider_dispatch_table = local_extension_provider->provider_dispatch_table;
 
     // Invoke extension changed on client.
-    if (extension_changed != NULL)
+    if ((extension_changed != NULL) && (provider_data != NULL))
         extension_changed(extension_client_context, provider_binding_context, *provider_data);
 
 Done:
