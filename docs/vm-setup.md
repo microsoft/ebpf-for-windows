@@ -16,7 +16,7 @@
     4. When the Create Virtual Machine dialog appears, select "Windows 10 dev environment".
     5. Click the "Create Virtual Machine" button.
     6. Once that is complete click the "Edit Settings" button.
-    7. Select security, clear the "Enable Scure Boot" checkbox, and click OK. (This is a prerequisite for
+    7. Select security, clear the "Enable Secure Boot" checkbox, and click OK. (This is a prerequisite for
        enabling test signed binaries.)
     8. Click "Connect" and start the VM.
 
@@ -25,6 +25,13 @@
     1. Start an admin command shell (cmd.exe).
     2. Do `bcdedit.exe -set TESTSIGNING ON`.
     3. Restart the VM so that the change will be applied.
+
+4. Install the matching version of the Microsoft Visual C++ Runtime:
+Versions of the Microsoft C Runtime are available on the developer machine, located in %ProgramFiles(x86)%\Microsoft Visual Studio\2019\Enterprise\VC\Redist\MSVC\version, where version is updated with each patch of Visual Studio.
+
+With version 14.29.30133, the full path is:
+1) Release - ```%ProgramFiles(x86)%\Microsoft Visual Studio\2019\Enterprise\VC\Redist\MSVC\14.29.30133\vc_redist.x64.exe```
+2) Debug - ```%ProgramFiles(x86)%\Microsoft Visual Studio\2019\Enterprise\VC\Redist\MSVC\14.29.30133\debug_nonredist\x64\Microsoft.VC142.DebugCRT```
 
 ## Installing eBPF into a VM
 
