@@ -9,6 +9,7 @@
 #include "ebpf_platform.h"
 #include "ebpf_program_types.h"
 #include "net_ebpf_ext_program_info.h"
+#include "net_ebpf_ext_helpers.h"
 #include "sample_ext_program_info.h"
 
 typedef struct _ebpf_free_memory
@@ -240,13 +241,19 @@ typedef class xdp_md_helper : public xdp_md_t
 } xdp_md_helper_t;
 
 static int
-_test_xdp_adjust_head(xdp_md_t* ctx, int delta)
+_test_xdp_adjust_head(_In_ xdp_md_t* ctx, int delta)
 {
     ((xdp_md_helper_t*)ctx)->adjust_head(delta);
     return 0;
 }
 
-static const void* _test_ebpf_xdp_helper_functions[] = {(void*)&_test_xdp_adjust_head};
+static int
+_test_csum_diff(_In_opt_ const void* from, int from_size, _In_opt_ const void* to, int to_size, int seed)
+{
+    return _net_ebpf_ext_csum_diff(from, from_size, to, to_size, seed);
+}
+
+static const void* _test_ebpf_xdp_helper_functions[] = {(void*)&_test_xdp_adjust_head, (void*)&_test_csum_diff};
 
 static ebpf_helper_function_addresses_t _test_ebpf_xdp_helper_function_address_table = {
     EBPF_COUNT_OF(_test_ebpf_xdp_helper_functions), (uint64_t*)_test_ebpf_xdp_helper_functions};

@@ -144,6 +144,7 @@
     <ClInclude Include="net_ebpf_ext.h" />
     <ClInclude Include="net_ebpf_ext_bind.h" />
     <ClInclude Include="net_ebpf_ext_xdp.h" />
+    <ClInclude Include="net_ebpf_ext_helpers.h" />
     <ClInclude Include="net_ebpf_ext_program_info.h" />
     <ClInclude Include="ebpf_ext_attach_provider.h" />
     <ClInclude Include="resource.h" />

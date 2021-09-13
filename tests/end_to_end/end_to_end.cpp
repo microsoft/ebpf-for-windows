@@ -967,7 +967,7 @@ _xdp_encap_reflect_packet_test(ebpf_execution_type_t execution_type, ADDRESS_FAM
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
     program_load_attach_helper_t program_helper(
-        SAMPLE_PATH "reflect_packet.o", EBPF_PROGRAM_TYPE_XDP, "encap_reflect_packet", execution_type, hook);
+        SAMPLE_PATH "encap_reflect_packet.o", EBPF_PROGRAM_TYPE_XDP, "encap_reflect_packet", execution_type, hook);
 
     // Dummy UDP datagram with fake IP and MAC addresses.
     udp_packet_t packet(address_family);
@@ -1001,6 +1001,27 @@ _xdp_encap_reflect_packet_test(ebpf_execution_type_t execution_type, ADDRESS_FAM
         uint8_t* inner_ip_header = (uint8_t*)(ipv6 + 1);
         REQUIRE(memcmp(inner_ip_header, original_ip_datagram.data(), original_ip_datagram.size()) == 0);
     }
+}
+
+TEST_CASE("test-csum-diff", "[end_to_end]")
+{
+    uint16_t from_buffer[] = {0x4500, 0x0073, 0x0000, 0x4000, 0x4011, 0x0000, 0x2000, 0x0001, 0x2000, 0x000a};
+    uint16_t to_buffer[] = {0x4500, 0x0073, 0x0000, 0x4000, 0x4011, 0x0000, 0xc0a8, 0x0001, 0xc0a8, 0x00c7};
+
+    int csum = _test_csum_diff(
+        from_buffer,
+        sizeof(from_buffer),
+        to_buffer,
+        sizeof(to_buffer),
+        _test_csum_diff(nullptr, 0, from_buffer, sizeof(from_buffer), 0));
+    REQUIRE(csum > 0);
+    // Fold checksum.
+    csum = (csum >> 16) + (csum & 0xFFFF);
+    csum = (csum >> 16) + (csum & 0xFFFF);
+    csum = (uint16_t)~csum;
+
+    // See: https://en.wikipedia.org/wiki/IPv4_header_checksum#Calculating_the_IPv4_header_checksum
+    REQUIRE(csum == 0xb861);
 }
 
 TEST_CASE("xdp-reflect-v4-jit", "[xdp_tests]") { _xdp_reflect_packet_test(EBPF_EXECUTION_JIT, AF_INET); }
