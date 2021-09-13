@@ -15,6 +15,11 @@ test_utility_helper_functions(struct bpf_map* utility_map)
     // Get a random number.
     test_data.random = bpf_get_prandom_u32();
 
+    // Test assumes time stamps are ordered as follows:
+    // test_data[0].boot_timestamp
+    // test_data[0].timestamp
+    // test_data[1].timestamp
+    // test_data[1].boot_timestamp
     // Get current timestamp.
     test_data.boot_timestamp = bpf_ktime_get_boot_ns();
 
@@ -31,10 +36,10 @@ test_utility_helper_functions(struct bpf_map* utility_map)
     test_data.random = bpf_get_prandom_u32();
 
     // Get current timestamp.
-    test_data.boot_timestamp = bpf_ktime_get_boot_ns();
+    test_data.timestamp = bpf_ktime_get_ns();
 
     // Get current timestamp.
-    test_data.timestamp = bpf_ktime_get_ns();
+    test_data.boot_timestamp = bpf_ktime_get_boot_ns();
 
     // Write into test utility_map index 1.
     bpf_map_update_elem(utility_map, &keys[1], &test_data, 0);
