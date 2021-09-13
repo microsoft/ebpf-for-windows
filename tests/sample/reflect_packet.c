@@ -95,7 +95,7 @@ encapsulate_ipv4_reflect_packet(xdp_md_t* ctx)
 {
     int rc = XDP_DROP;
 
-    // Adjust XDP context to allocate space for outer IPV4 header.
+    // Adjust XDP context to allocate space for outer IPv4 header.
     if (bpf_xdp_adjust_head(ctx, -sizeof(IPV4_HEADER)) < 0)
         goto Done;
 
@@ -112,7 +112,7 @@ encapsulate_ipv4_reflect_packet(xdp_md_t* ctx)
     next_header = (char*)ctx->data + sizeof(IPV4_HEADER);
     ETHERNET_HEADER* old_ethernet_header = (ETHERNET_HEADER*)next_header;
 
-    // The outer IPV4 header will be after the new ethernet header.
+    // The outer IPv4 header will be after the new ethernet header.
     next_header = (char*)(new_ethernet_header + 1);
     if ((char*)next_header + sizeof(IPV4_HEADER) > (char*)ctx->data_end)
         goto Done;
@@ -150,7 +150,7 @@ encapsulate_ipv6_reflect_packet(xdp_md_t* ctx)
 {
     int rc = XDP_DROP;
 
-    // Adjust XDP context to allocate space for outer IPV6 header.
+    // Adjust XDP context to allocate space for outer IPv6 header.
     if (bpf_xdp_adjust_head(ctx, -sizeof(IPV6_HEADER)) < 0)
         goto Done;
 
@@ -167,7 +167,7 @@ encapsulate_ipv6_reflect_packet(xdp_md_t* ctx)
     next_header = (char*)ctx->data + sizeof(IPV6_HEADER);
     ETHERNET_HEADER* old_ethernet_header = (ETHERNET_HEADER*)next_header;
 
-    // The outer IPV4 header will be after the new ethernet header.
+    // The outer IPv6 header will be after the new ethernet header.
     next_header = (char*)(new_ethernet_header + 1);
     if ((char*)next_header + sizeof(IPV6_HEADER) > (char*)ctx->data_end)
         goto Done;
