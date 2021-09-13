@@ -42,7 +42,7 @@ static BOOLEAN _net_ebpf_ext_driver_unloading_flag = FALSE;
 DRIVER_INITIALIZE DriverEntry;
 
 static void
-__net_ebpf_ext_driver_uninitialize_objects()
+_net_ebpf_ext_driver_uninitialize_objects()
 {
     _net_ebpf_ext_driver_unloading_flag = TRUE;
 
@@ -55,10 +55,10 @@ __net_ebpf_ext_driver_uninitialize_objects()
 }
 
 static _Function_class_(EVT_WDF_DRIVER_UNLOAD) _IRQL_requires_same_
-    _IRQL_requires_max_(PASSIVE_LEVEL) void __net_ebpf_ext_driver_unload(_In_ WDFDRIVER driver_object)
+    _IRQL_requires_max_(PASSIVE_LEVEL) void _net_ebpf_ext_driver_unload(_In_ WDFDRIVER driver_object)
 {
     UNREFERENCED_PARAMETER(driver_object);
-    __net_ebpf_ext_driver_uninitialize_objects();
+    _net_ebpf_ext_driver_uninitialize_objects();
 }
 
 //
@@ -66,7 +66,7 @@ static _Function_class_(EVT_WDF_DRIVER_UNLOAD) _IRQL_requires_same_
 // WFP callouts and NPI providers.
 //
 static NTSTATUS
-__net_ebpf_ext_driver_initialize_objects(_Inout_ DRIVER_OBJECT* driver_object, _In_ const UNICODE_STRING* registry_path)
+_net_ebpf_ext_driver_initialize_objects(_Inout_ DRIVER_OBJECT* driver_object, _In_ const UNICODE_STRING* registry_path)
 {
     NTSTATUS status;
     WDF_DRIVER_CONFIG driver_configuration;
@@ -77,7 +77,7 @@ __net_ebpf_ext_driver_initialize_objects(_Inout_ DRIVER_OBJECT* driver_object, _
     WDF_DRIVER_CONFIG_INIT(&driver_configuration, WDF_NO_EVENT_CALLBACK);
 
     driver_configuration.DriverInitFlags |= WdfDriverInitNonPnpDriver;
-    driver_configuration.EvtDriverUnload = __net_ebpf_ext_driver_unload;
+    driver_configuration.EvtDriverUnload = _net_ebpf_ext_driver_unload;
 
     status = WdfDriverCreate(driver_object, registry_path, WDF_NO_OBJECT_ATTRIBUTES, &driver_configuration, &driver);
 
@@ -142,7 +142,7 @@ DriverEntry(_In_ DRIVER_OBJECT* driver_object, _In_ UNICODE_STRING* registry_pat
 
     KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "NetEbpfExt: DriverEntry\n"));
 
-    status = __net_ebpf_ext_driver_initialize_objects(driver_object, registry_path);
+    status = _net_ebpf_ext_driver_initialize_objects(driver_object, registry_path);
 
     if (!NT_SUCCESS(status)) {
         goto Exit;
@@ -151,7 +151,7 @@ DriverEntry(_In_ DRIVER_OBJECT* driver_object, _In_ UNICODE_STRING* registry_pat
 Exit:
 
     if (!NT_SUCCESS(status)) {
-        __net_ebpf_ext_driver_uninitialize_objects();
+        _net_ebpf_ext_driver_uninitialize_objects();
     }
 
     return status;
