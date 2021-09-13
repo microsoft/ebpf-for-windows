@@ -99,7 +99,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebugDll</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -133,7 +133,7 @@
       <AdditionalIncludeDirectories>$(SolutionDir)libs\api_common;$(SolutionDir)libs\execution_context;$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\user;$(SolutionDir)tests\end_to_end;$(SolutionDir)tests\sample\ext\inc;$(OutDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebugDll</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>

@@ -64,6 +64,12 @@ a kernel debugger (KD) attached and running, or test signing is enabled. (It is 
 releases of eBPF for Windows will eventually be production signed at some point in the future after
 security hardening is completed.)
 
+Ensure that the matching versions of the Microsoft C Runtime are installed on the machine. Versions of the Microsoft C Runtime are available on the developer machine, located in %ProgramFiles(x86)%\Microsoft Visual Studio\2019\Enterprise\VC\Redist\MSVC\version, where version is updated with each patch of Visual Studio.
+
+With version 14.29.30133, the full path is:
+1) Release - ```%ProgramFiles(x86)%\Microsoft Visual Studio\2019\Enterprise\VC\Redist\MSVC\14.29.30133\vc_redist.x64.exe```
+2) Debug - ```%ProgramFiles(x86)%\Microsoft Visual Studio\2019\Enterprise\VC\Redist\MSVC\14.29.30133\debug_nonredist\x64\Microsoft.VC142.DebugCRT```
+
 For basic testing, the simplest way to install eBPF for Windows is into a Windows VM with test signing enabled.
 Follow the [VM Installation Instructions](vm-setup.md) to do so.
 
