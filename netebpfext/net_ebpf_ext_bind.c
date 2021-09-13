@@ -2,13 +2,11 @@
 // SPDX-License-Identifier: MIT
 
 /**
- * @brief    This file implements the BIND program type hook on eBPF for Windows.
+ * @file This file implements the BIND program type hook on eBPF for Windows.
  *
  */
 
 #define INITGUID
-
-#include "net_ebpf_ext.h"
 
 // ebpf_bind_program_data.h has generated
 // headers. encode_program_info generates them from the structs
@@ -16,6 +14,8 @@
 // to call RPC serialization services from kernel mode. Once we switch
 // to a different serializer, we can get rid of this workaround.
 #include "ebpf_bind_program_data.h"
+
+#include "net_ebpf_ext.h"
 
 static ebpf_ext_attach_hook_provider_registration_t* _ebpf_bind_hook_provider_registration = NULL;
 static ebpf_extension_provider_t* _ebpf_bind_program_info_provider = NULL;
@@ -32,6 +32,7 @@ static ebpf_extension_data_t _ebpf_bind_program_info_provider_data = {
 // b9707e04-8127-4c72-833e-05b1fb439496
 DEFINE_GUID(EBPF_ATTACH_TYPE_BIND, 0xb9707e04, 0x8127, 0x4c72, 0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96);
 
+// 608c517c-6c52-0x4a26-b677-bb01c34425adf
 DEFINE_GUID(EBPF_PROGRAM_TYPE_BIND, 0x608c517c, 0x6c52, 0x4a26, 0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf);
 
 static void

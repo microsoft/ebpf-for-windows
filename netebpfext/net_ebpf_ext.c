@@ -19,8 +19,8 @@ Environment:
 --*/
 
 #include "net_ebpf_ext.h"
-#include "net_ebpf_ext_xdp.h"
 #include "net_ebpf_ext_bind.h"
+#include "net_ebpf_ext_xdp.h"
 
 // Sublayer GUID.
 

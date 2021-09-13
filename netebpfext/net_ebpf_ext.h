@@ -20,12 +20,13 @@ Environment:
 
 #define INITGUID
 
+#include <fwpmk.h>
+
 #pragma warning(push)
 #pragma warning(disable : 4201) // unnamed struct/union
 #include <fwpsk.h>
 #pragma warning(pop)
 
-#include <fwpmk.h>
 #include <guiddef.h>
 #include <netiodef.h>
 #include <ntddk.h>

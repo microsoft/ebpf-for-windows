@@ -2,19 +2,20 @@
 // SPDX-License-Identifier: MIT
 
 /**
- * @brief This file implements the XDP program type hook and helper functions on eBPF for Windows.
+ * @file This file implements the XDP program type hook and helper functions on eBPF for Windows.
  *
  */
 
 #define INITGUID
 
-#include "net_ebpf_ext.h"
 // ebpf_xdp_program_data.h has generated
 // headers. encode_program_info generates them from the structs
 // in ebpf_nethooks.h. This workaround exists due to the inability
 // to call RPC serialization services from kernel mode. Once we switch
 // to a different serializer, we can get rid of this workaround.
 #include "ebpf_xdp_program_data.h"
+
+#include "net_ebpf_ext.h"
 
 HANDLE _net_ebpf_ext_l2_injection_handle = NULL;
 static ebpf_ext_attach_hook_provider_registration_t* _ebpf_xdp_hook_provider_registration = NULL;
@@ -102,7 +103,7 @@ net_ebpf_ext_layer_2_classify(
         goto done;
 
     if (nbl == NULL) {
-        KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "Null nbl \n"));
+        KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "Null NBL \n"));
         goto done;
     }
 
