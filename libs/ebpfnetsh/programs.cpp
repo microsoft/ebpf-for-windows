@@ -494,7 +494,7 @@ handle_ebpf_show_programs(
         level = VL_VERBOSE;
     }
 
-    // TODO: We need to implement level, other columns, and implement filtering by attached and pinned.
+    // TODO(#190): We need to implement level, other columns, and implement filtering by attached and pinned.
 
     std::cout << "\n";
     std::cout << "    ID            File Name         Section             Name      Mode\n";
@@ -521,7 +521,7 @@ handle_ebpf_show_programs(
             break;
         }
 
-        // TODO: we also need the program type so we can filter on it.
+        // TODO(#190): we also need the program type so we can filter on it.
         struct bpf_prog_info info;
         uint32_t info_size = (uint32_t)sizeof(info);
         int error = bpf_obj_get_info_by_fd(program_fd, &info, &info_size);
