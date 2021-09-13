@@ -26,7 +26,7 @@ _net_ebpf_xdp_adjust_head(xdp_md_t* ctx, int delta)
 {
     UNREFERENCED_PARAMETER(ctx);
     UNREFERENCED_PARAMETER(delta);
-    return 0;
+    return -1;
 }
 
 static const void* _ebpf_xdp_helper_functions[] = {(void*)&_net_ebpf_xdp_adjust_head};

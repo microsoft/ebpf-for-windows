@@ -91,11 +91,11 @@ Done:
 }
 
 int
-encap_ipv4_reflect_packet(xdp_md_t* ctx)
+encapsulate_ipv4_reflect_packet(xdp_md_t* ctx)
 {
     int rc = XDP_DROP;
 
-    // Adjust XDP context to allocate space for encap IPv4 header.
+    // Adjust XDP context to allocate space for outer IPV4 header.
     if (bpf_xdp_adjust_head(ctx, -sizeof(IPV4_HEADER)) < 0)
         goto Done;
 
@@ -112,13 +112,13 @@ encap_ipv4_reflect_packet(xdp_md_t* ctx)
     next_header = (char*)ctx->data + sizeof(IPV4_HEADER);
     ETHERNET_HEADER* old_ethernet_header = (ETHERNET_HEADER*)next_header;
 
-    // The encap IPv4 header will be after the new etherenet header.
+    // The outer IPV4 header will be after the new ethernet header.
     next_header = (char*)(new_ethernet_header + 1);
     if ((char*)next_header + sizeof(IPV4_HEADER) > (char*)ctx->data_end)
         goto Done;
-    IPV4_HEADER* encap_ipv4_header = (IPV4_HEADER*)next_header;
+    IPV4_HEADER* outer_ipv4_header = (IPV4_HEADER*)next_header;
 
-    // The inner IPv4 header will be after the old etherenet header.
+    // The inner IPv4 header will be after the old ethernet header.
     next_header = (char*)(old_ethernet_header + 1);
     if ((char*)next_header + sizeof(IPV4_HEADER) > (char*)ctx->data_end)
         goto Done;
@@ -130,14 +130,14 @@ encap_ipv4_reflect_packet(xdp_md_t* ctx)
     swap_mac_addresses(new_ethernet_header);
 
     // Copy over the inner IP header to the encap IP header.
-    memcpy(encap_ipv4_header, inner_ipv4_header, sizeof(IPV4_HEADER));
+    memcpy(outer_ipv4_header, inner_ipv4_header, sizeof(IPV4_HEADER));
     // Swap the IP addresses.
-    swap_ipv4_addresses(encap_ipv4_header);
+    swap_ipv4_addresses(outer_ipv4_header);
     // Adjust header fields.
-    encap_ipv4_header->Protocol = IPPROTO_IPV4;
-    encap_ipv4_header->HeaderLength = sizeof(IPV4_HEADER) / sizeof(uint32_t);
-    encap_ipv4_header->TotalLength = htons((ntohs(inner_ipv4_header->TotalLength) + sizeof(IPV4_HEADER)));
-    encap_ipv4_header->HeaderChecksum = 0;
+    outer_ipv4_header->Protocol = IPPROTO_IPV4;
+    outer_ipv4_header->HeaderLength = sizeof(IPV4_HEADER) / sizeof(uint32_t);
+    outer_ipv4_header->TotalLength = htons((ntohs(inner_ipv4_header->TotalLength) + sizeof(IPV4_HEADER)));
+    outer_ipv4_header->HeaderChecksum = 0;
 
     rc = XDP_TX;
 
@@ -146,11 +146,11 @@ Done:
 }
 
 int
-encap_ipv6_reflect_packet(xdp_md_t* ctx)
+encapsulate_ipv6_reflect_packet(xdp_md_t* ctx)
 {
     int rc = XDP_DROP;
 
-    // Adjust XDP context to allocate space for encap IPv6 header.
+    // Adjust XDP context to allocate space for outer IPV6 header.
     if (bpf_xdp_adjust_head(ctx, -sizeof(IPV6_HEADER)) < 0)
         goto Done;
 
@@ -167,13 +167,13 @@ encap_ipv6_reflect_packet(xdp_md_t* ctx)
     next_header = (char*)ctx->data + sizeof(IPV6_HEADER);
     ETHERNET_HEADER* old_ethernet_header = (ETHERNET_HEADER*)next_header;
 
-    // The encap IPv4 header will be after the new etherenet header.
+    // The outer IPV4 header will be after the new ethernet header.
     next_header = (char*)(new_ethernet_header + 1);
     if ((char*)next_header + sizeof(IPV6_HEADER) > (char*)ctx->data_end)
         goto Done;
-    IPV6_HEADER* encap_ipv6_header = (IPV6_HEADER*)next_header;
+    IPV6_HEADER* outer_ipv6_header = (IPV6_HEADER*)next_header;
 
-    // The inner IPv6 header will be after the old etherenet header.
+    // The inner IPv6 header will be after the old ethernet header.
     next_header = (char*)(old_ethernet_header + 1);
     if ((char*)next_header + sizeof(IPV6_HEADER) > (char*)ctx->data_end)
         goto Done;
@@ -185,12 +185,12 @@ encap_ipv6_reflect_packet(xdp_md_t* ctx)
     swap_mac_addresses(new_ethernet_header);
 
     // Copy over the inner IP header to the encap IP header.
-    memcpy(encap_ipv6_header, inner_ipv6_header, sizeof(IPV6_HEADER));
+    memcpy(outer_ipv6_header, inner_ipv6_header, sizeof(IPV6_HEADER));
     // Swap the IP addresses.
-    swap_ipv4_addresses(encap_ipv6_header);
+    swap_ipv6_addresses(outer_ipv6_header);
     // Adjust header fields.
-    encap_ipv6_header->NextHeader = IPPROTO_IPV6;
-    encap_ipv6_header->PayloadLength = htons((ntohs(inner_ipv6_header->PayloadLength) + sizeof(IPV6_HEADER)));
+    outer_ipv6_header->NextHeader = IPPROTO_IPV6;
+    outer_ipv6_header->PayloadLength = htons((ntohs(inner_ipv6_header->PayloadLength) + sizeof(IPV6_HEADER)));
 
     rc = XDP_TX;
 
@@ -199,9 +199,9 @@ Done:
 }
 
 //
-// Same as the reflect_packet function, except the reflected packet is encapsulated in a nee IP header.
-// The addresses on the outer IP header is the reverse of those on the inner IP header.
-// This XDP program uses bpf_xdp_adjust_head helper function.
+// Same as the reflect_packet function, except the reflected packet is encapsulated in a new IP header.
+// The addresses on the outer IP header are the reverse of those on the inner IP header.
+// This program uses the bpf_xdp_adjust_head helper function.
 // (This program can only perform v4 in v4 and v6 in v6 encapsulation.)
 //
 SEC("xdp/encap_reflect")
@@ -228,7 +228,7 @@ encap_reflect_packet(xdp_md_t* ctx)
             // UDP.
             UDP_HEADER* udp_header = (UDP_HEADER*)next_header;
             if (udp_header->destPort == ntohs(REFLECTION_TEST_PORT))
-                rc = encap_ipv4_reflect_packet(ctx);
+                rc = encapsulate_ipv4_reflect_packet(ctx);
         }
     } else if (ethernet_header->Type == ntohs(ETHERNET_TYPE_IPV6)) {
         if ((char*)next_header + sizeof(IPV6_HEADER) > (char*)ctx->data_end)
@@ -242,7 +242,7 @@ encap_reflect_packet(xdp_md_t* ctx)
             // UDP.
             UDP_HEADER* udp_header = (UDP_HEADER*)next_header;
             if (udp_header->destPort == ntohs(REFLECTION_TEST_PORT))
-                rc = encap_ipv6_reflect_packet(ctx);
+                rc = encapsulate_ipv6_reflect_packet(ctx);
         }
     }
 

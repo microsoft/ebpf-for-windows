@@ -1080,12 +1080,12 @@ TEST_CASE("xdp-reflect-v6-jit", "[xdp_tests]") { _xdp_reflect_packet_test(EBPF_E
 TEST_CASE("xdp-reflect-v4-interpret", "[xdp_tests]") { _xdp_reflect_packet_test(EBPF_EXECUTION_INTERPRET, AF_INET); }
 TEST_CASE("xdp-reflect-v6-interpret", "[xdp_tests]") { _xdp_reflect_packet_test(EBPF_EXECUTION_INTERPRET, AF_INET6); }
 TEST_CASE("xdp-encap-reflect-v4-jit", "[xdp_tests]") { _xdp_encap_reflect_packet_test(EBPF_EXECUTION_JIT, AF_INET); }
-TEST_CASE("xdp-encap-reflect-v6-jit", "[xdp_tests]") { _xdp_encap_reflect_packet_test(EBPF_EXECUTION_JIT, AF_INET); }
+TEST_CASE("xdp-encap-reflect-v6-jit", "[xdp_tests]") { _xdp_encap_reflect_packet_test(EBPF_EXECUTION_JIT, AF_INET6); }
 TEST_CASE("xdp-encap-reflect-v4-interpret", "[xdp_tests]")
 {
     _xdp_encap_reflect_packet_test(EBPF_EXECUTION_INTERPRET, AF_INET);
 }
 TEST_CASE("xdp-encap-reflect-v6-interpret", "[xdp_tests]")
 {
-    _xdp_encap_reflect_packet_test(EBPF_EXECUTION_INTERPRET, AF_INET);
+    _xdp_encap_reflect_packet_test(EBPF_EXECUTION_INTERPRET, AF_INET6);
 }

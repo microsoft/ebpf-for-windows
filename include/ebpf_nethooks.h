@@ -44,12 +44,13 @@ xdp_hook_t(xdp_md_t* context);
 #endif
 
 /**
- * @brief Adjustss XDP context data pointer.
+ * @brief Adjust XDP context data pointer.
  *
- * @param[in] ctx XDP Context.
+ * @param[in] ctx XDP context.
  * @param[in] delta Number of bytes to move the data pointer by.
  *
- * @retval 0 on success, or a negative error in case of failure.
+ * @retval 0 The operation was successful.
+ * @retval <0 A failure occured.
  */
 EBPF_HELPER(int, bpf_xdp_adjust_head, (xdp_md_t * ctx, int delta));
 #ifndef __doxygen

@@ -1,7 +1,8 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
-#include <vector>
 #include <stdio.h>
+#include <vector>
+
 #include "ebpf_api.h"
 #include "ebpf_nethooks.h"
 #include "encode_program_info.h"
