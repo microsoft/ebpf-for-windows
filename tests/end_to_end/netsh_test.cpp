@@ -223,9 +223,9 @@ TEST_CASE("show verification droppacket_unsafe.o", "[netsh][verification]")
                   "Verification report:\n"
                   "\n"
                   "2: r2 = *(u8 *)(r1 + 9)\n"
-                  "  Upper bound must be at most packet_size (valid_access(r1, 9:1))\n"
+                  "  Upper bound must be at most packet_size (valid_access(r1.offset+9, width=1))\n"
                   "4: r1 = *(u16 *)(r1 + 24)\n"
-                  "  Upper bound must be at most packet_size (valid_access(r1, 24:2))\n"
+                  "  Upper bound must be at most packet_size (valid_access(r1.offset+24, width=2))\n"
                   "\n"
                   "2 errors\n"
                   "\n");
