@@ -124,6 +124,8 @@
   <ItemGroup>
     <ClCompile Include="net_ebpf_ext_drv.c" />
     <ClCompile Include="net_ebpf_ext.c" />
+    <ClCompile Include="net_ebpf_ext_bind.c" />
+    <ClCompile Include="net_ebpf_ext_xdp.c" />
     <ClCompile Include="ebpf_ext_attach_provider.c" />
   </ItemGroup>
   <ItemGroup>
@@ -134,6 +136,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="net_ebpf_ext.h" />
+    <ClInclude Include="net_ebpf_ext_bind.h" />
+    <ClInclude Include="net_ebpf_ext_xdp.h" />
     <ClInclude Include="ebpf_ext_attach_provider.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>

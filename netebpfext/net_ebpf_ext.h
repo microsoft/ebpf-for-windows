@@ -18,8 +18,29 @@ Environment:
 
 #include <ntddk.h>
 
+#define INITGUID
+
+#include <fwpmk.h>
+
+#pragma warning(push)
+#pragma warning(disable : 4201) // unnamed struct/union
+#include <fwpsk.h>
+#pragma warning(pop)
+
+#include <guiddef.h>
+#include <netiodef.h>
+#include <ntddk.h>
+
+#include "ebpf_ext_attach_provider.h"
+#include "ebpf_nethooks.h"
+#include "ebpf_platform.h"
+#include "ebpf_program_types.h"
+#include "ebpf_windows.h"
+
+#define NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION 0
+
 //
-// Shared function prototypes
+// Shared function prototypes.
 //
 
 /**
@@ -40,7 +61,7 @@ void
 net_ebpf_ext_unregister_callouts(void);
 
 /**
- * @brief Register hook providers with eBPF core.
+ * @brief Register network extension NPI providers with eBPF core.
  *
  * @retval STATUS_SUCCESS Operation succeeded.
  * @retval STATUS_UNSUCCESSFUL Operation failed.
@@ -49,24 +70,8 @@ NTSTATUS
 net_ebpf_ext_register_providers();
 
 /**
- * @brief Unregister hook providers from eBPF core.
+ * @brief Unregister network extension NPI providers from eBPF core.
  *
  */
 void
 net_ebpf_ext_unregister_providers();
-
-/**
- * @brief Register program info providers with eBPF core.
- *
- * @retval STATUS_SUCCESS Operation succeeded.
- * @retval STATUS_UNSUCCESSFUL Operation failed.
- */
-NTSTATUS
-net_ebpf_ext_program_info_provider_register();
-
-/**
- * @brief Unregister program info providers from eBPF core.
- *
- */
-void
-net_ebpf_ext_program_info_provider_unregister();
