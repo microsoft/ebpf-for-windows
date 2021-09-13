@@ -140,25 +140,37 @@ Glue_open_osfhandle(intptr_t os_file_handle, int flags)
 }
 
 intptr_t
-Glue_get_osfhandle(int file_handle)
+Glue_get_osfhandle(int file_descriptor)
 {
-    std::map<fd_t, ebpf_handle_t>::iterator it = _fd_to_handle_map.find(file_handle);
+    if (file_descriptor == ebpf_fd_invalid) {
+        errno = EINVAL;
+        return ebpf_handle_invalid;
+    }
+
+    std::map<fd_t, ebpf_handle_t>::iterator it = _fd_to_handle_map.find(file_descriptor);
     if (it != _fd_to_handle_map.end()) {
         return it->second;
     }
 
+    errno = EINVAL;
     return ebpf_handle_invalid;
 }
 
 int
-Glue_close(int file_handle)
+Glue_close(int file_descriptor)
 {
-    std::map<fd_t, ebpf_handle_t>::iterator it = _fd_to_handle_map.find(file_handle);
+    if (file_descriptor == ebpf_fd_invalid) {
+        errno = EINVAL;
+        return ebpf_handle_invalid;
+    }
+
+    std::map<fd_t, ebpf_handle_t>::iterator it = _fd_to_handle_map.find(file_descriptor);
     if (it == _fd_to_handle_map.end()) {
+        errno = EINVAL;
         return -1;
     } else {
         ebpf_api_close_handle(it->second);
-        _fd_to_handle_map.erase(file_handle);
+        _fd_to_handle_map.erase(file_descriptor);
         return 0;
     }
 }

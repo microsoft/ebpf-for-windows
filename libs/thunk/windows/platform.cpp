@@ -5,7 +5,28 @@
 #include <Windows.h>
 #include <io.h>
 #include <stdint.h>
+#include <cstdlib>
 #include "ebpf_api.h"
+
+class _invalid_parameter_suppression
+{
+  public:
+    _invalid_parameter_suppression() { previous_handler = _set_invalid_parameter_handler(_ignore_invalid_parameter); }
+    ~_invalid_parameter_suppression() { _set_invalid_parameter_handler(previous_handler); }
+
+  private:
+    static void
+    _ignore_invalid_parameter(
+        const wchar_t* expression, const wchar_t* function, const wchar_t* file, unsigned int line, uintptr_t pReserved)
+    {
+        UNREFERENCED_PARAMETER(expression);
+        UNREFERENCED_PARAMETER(function);
+        UNREFERENCED_PARAMETER(file);
+        UNREFERENCED_PARAMETER(line);
+        UNREFERENCED_PARAMETER(pReserved);
+    }
+    _invalid_parameter_handler previous_handler;
+};
 
 namespace Platform {
 bool
@@ -59,21 +80,21 @@ CloseHandle(_In_ _Post_ptr_invalid_ ebpf_handle_t handle)
 int
 _open_osfhandle(intptr_t os_file_handle, int flags)
 {
+    _invalid_parameter_suppression suppress;
     return ::_open_osfhandle(os_file_handle, flags);
 }
 
 intptr_t
 _get_osfhandle(int file_descriptor)
 {
-    if (file_descriptor == ebpf_fd_invalid) {
-        return ebpf_handle_invalid;
-    }
+    _invalid_parameter_suppression suppress;
     return ::_get_osfhandle(file_descriptor);
 }
 
 int
 _close(int file_descriptor)
 {
+    _invalid_parameter_suppression suppress;
     return ::_close(file_descriptor);
 }
 } // namespace Platform
