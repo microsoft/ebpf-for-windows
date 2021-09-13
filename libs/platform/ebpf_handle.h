@@ -11,7 +11,6 @@
 extern "C"
 {
 #endif
-
     /**
      * @brief Initialize the global handle table.
      *

@@ -1466,7 +1466,6 @@ clean_up_ebpf_program(_In_ _Post_invalid_ ebpf_program_t* program)
     }
     if (program->handle != ebpf_handle_invalid) {
         _ebpf_programs.erase(program->handle);
-        ebpf_api_close_handle(program->handle);
     }
     free(program->byte_code);
     free(program->program_name);
@@ -1495,7 +1494,6 @@ clean_up_ebpf_map(_In_ _Post_invalid_ ebpf_map_t* map)
     }
     if (map->map_handle != ebpf_handle_invalid) {
         _ebpf_maps.erase(map->map_handle);
-        ebpf_api_close_handle(map->map_handle);
     }
     free(map->name);
 

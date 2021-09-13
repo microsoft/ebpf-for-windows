@@ -9,7 +9,7 @@
 #include "api_test.h"
 #include "catch_wrapper.hpp"
 #include "common_tests.h"
-#include "platform.h"
+#include <io.h>
 #include "service_helper.h"
 #include "libbpf.h"
 #define SAMPLE_PATH ""
@@ -102,7 +102,7 @@ _test_program_load(
     REQUIRE(ebpf_get_next_program(previous_fd, &next_fd) == EBPF_SUCCESS);
     REQUIRE(next_fd == ebpf_fd_invalid);
 
-    Platform::_close(previous_fd);
+    _close(previous_fd);
     previous_fd = ebpf_fd_invalid;
     bpf_object__close(object);
 

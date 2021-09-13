@@ -6,12 +6,17 @@
 #include <io.h>
 #include <stdint.h>
 #include <cstdlib>
+#include <crtdbg.h> // For _CrtSetReportMode
 #include "ebpf_api.h"
 
 class _invalid_parameter_suppression
 {
   public:
-    _invalid_parameter_suppression() { previous_handler = _set_invalid_parameter_handler(_ignore_invalid_parameter); }
+    _invalid_parameter_suppression()
+    {
+        _CrtSetReportMode(_CRT_ASSERT, 0);
+        previous_handler = _set_invalid_parameter_handler(_ignore_invalid_parameter);
+    }
     ~_invalid_parameter_suppression() { _set_invalid_parameter_handler(previous_handler); }
 
   private:

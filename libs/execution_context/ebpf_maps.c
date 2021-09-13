@@ -886,7 +886,7 @@ ebpf_map_create(
         goto Exit;
     }
 
-    if (inner_map_handle != (ebpf_handle_t)-1) {
+    if (inner_map_handle != ebpf_handle_invalid) {
         // Convert value handle to an object pointer.
         result = ebpf_reference_object_by_handle(inner_map_handle, EBPF_OBJECT_MAP, &inner_map_template_object);
         if (result != EBPF_SUCCESS)
