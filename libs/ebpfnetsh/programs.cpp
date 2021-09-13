@@ -197,7 +197,7 @@ handle_ebpf_delete_program(
         PreprocessCommand(nullptr, argv, current_index, argc, tags, _countof(tags), 0, _countof(tags), tag_type);
 
     ebpf_id_t id = EBPF_ID_NONE;
-    for (int i = 0; (status == NO_ERROR) && ((i + current_index) < argc); i++) {
+    for (int i = 0; (status == NO_ERROR) && ((i + current_index) < argc) && (i < _countof(tag_type)); i++) {
         switch (tag_type[i]) {
         case 0: // ID
         {
