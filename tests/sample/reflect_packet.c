@@ -40,7 +40,7 @@ SEC("xdp/reflect")
 int
 reflect_packet(xdp_md_t* ctx)
 {
-    int rc = XDP_DROP;
+    int rc = XDP_PASS;
 
     ETHERNET_HEADER* ethernet_header = NULL;
     char* next_header = (char*)ctx->data;
@@ -208,7 +208,7 @@ SEC("xdp/encap_reflect")
 int
 encap_reflect_packet(xdp_md_t* ctx)
 {
-    int rc = XDP_DROP;
+    int rc = XDP_PASS;
 
     ETHERNET_HEADER* ethernet_header = NULL;
     char* next_header = (char*)ctx->data;
