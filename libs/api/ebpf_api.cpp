@@ -1461,7 +1461,7 @@ clean_up_ebpf_program(_In_ _Post_invalid_ ebpf_program_t* program)
     if (program == nullptr) {
         return;
     }
-    if (program->fd != 0) {
+    if (program->fd != ebpf_fd_invalid) {
         Platform::_close(program->fd);
     }
     if (program->handle != ebpf_handle_invalid) {
