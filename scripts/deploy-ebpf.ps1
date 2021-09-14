@@ -5,7 +5,7 @@
 ## Initialize parameters
 ##
 $build_directory=".\x64\Debug"
-[System.Collections.ArrayList]$built_files=@( "EbpfCore.sys", "EbpfApi.dll", "ebpfnetsh.dll", "ebpfsvc.exe", "NetEbpfExt.sys", "sample_ebpf_ext.sys", "concrt140d.dll", "msvcp140d.dll", "msvcp140d_atomic_wait.dll", "msvcp140d_codecvt_ids.dll", "msvcp140_1d.dll", "msvcp140_2d.dll", "vccorlib140d.dll", "vcruntime140d.dll", "vcruntime140_1d.dll")
+[System.Collections.ArrayList]$built_files=@( "EbpfCore.sys", "EbpfApi.dll", "ebpfnetsh.dll", "ebpfsvc.exe", "NetEbpfExt.sys", "sample_ebpf_ext.sys", "MSVCP140D.dll", "VCRUNTIME140D.dll", "VCRUNTIME140_1D.dll")
 $destination_directory="C:\Temp"
 $error.clear()
 $vm="Windows 10 dev environment"
