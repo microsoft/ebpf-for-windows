@@ -153,7 +153,7 @@
     <PreBuildEvent>
       <Command>powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\generate-commitid.ps1 $(OutDir)
 copy "$(VC_DebugCppRuntimeFilesPath_x64)\Microsoft.VC142.DebugCRT\*" "$(OutDir)"
-copy "%windir%\system32\ucrtbased.dll" "$(OutDir)"</Command>
+copy "$(UniversalDebugCRT_ExecutablePath_x64)\ucrtbased.dll" "$(OutDir)"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
