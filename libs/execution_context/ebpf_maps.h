@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "ebpf_core_structs.h"
 #include "bpf_helpers.h"
 #include "ebpf_platform.h"
 
@@ -28,7 +29,7 @@ extern "C"
     ebpf_map_create(
         _In_ const ebpf_utf8_string_t* map_name,
         _In_ const ebpf_map_definition_in_memory_t* ebpf_map_definition,
-        uintptr_t inner_map_handle,
+        ebpf_handle_t inner_map_handle,
         _Outptr_ ebpf_map_t** map);
 
     /**

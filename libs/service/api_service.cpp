@@ -60,7 +60,7 @@ _build_helper_id_to_address_map(
     auto reply = reinterpret_cast<ebpf_operation_resolve_helper_reply_t*>(reply_buffer.data());
     request->header.id = ebpf_operation_id_t::EBPF_OPERATION_RESOLVE_HELPER;
     request->header.length = static_cast<uint16_t>(request_buffer.size());
-    request->program_handle = reinterpret_cast<uint64_t>(program_handle);
+    request->program_handle = program_handle;
 
     // Build list of helper_ids to resolve and assign new helper id.
     // New helper ids are in the range [0,63]
@@ -165,7 +165,7 @@ _resolve_maps_in_byte_code(ebpf_handle_t program_handle, ebpf_code_buffer_t& byt
     auto reply = reinterpret_cast<ebpf_operation_resolve_map_reply_t*>(reply_buffer.data());
     request->header.id = ebpf_operation_id_t::EBPF_OPERATION_RESOLVE_MAP;
     request->header.length = static_cast<uint16_t>(request_buffer.size());
-    request->program_handle = reinterpret_cast<uint64_t>(program_handle);
+    request->program_handle = program_handle;
 
     for (size_t index = 0; index < map_handles.size(); index++) {
         if (map_handles[index] > get_map_descriptor_size()) {
@@ -208,7 +208,7 @@ _query_and_cache_map_descriptors(
             descriptor = {0};
             ebpf_id_t inner_map_id;
             result = query_map_definition(
-                handle_map[i].handle,
+                reinterpret_cast<ebpf_handle_t>(handle_map[i].handle),
                 &size,
                 &descriptor.type,
                 &descriptor.key_size,
@@ -226,7 +226,7 @@ _query_and_cache_map_descriptors(
                 descriptor.value_size,
                 descriptor.max_entries,
                 handle_map[i].inner_map_original_fd,
-                handle_map[i].handle,
+                reinterpret_cast<ebpf_handle_t>(handle_map[i].handle),
                 0);
         }
     }
@@ -398,7 +398,7 @@ ebpf_verify_and_load_program(
         request = reinterpret_cast<ebpf_operation_load_code_request_t*>(request_buffer.data());
         request->header.id = ebpf_operation_id_t::EBPF_OPERATION_LOAD_CODE;
         request->header.length = static_cast<uint16_t>(request_buffer.size());
-        request->program_handle = reinterpret_cast<uint64_t>(program_handle);
+        request->program_handle = program_handle;
         request->code_type = execution_type == EBPF_EXECUTION_JIT ? EBPF_CODE_NATIVE : EBPF_CODE_EBPF;
 
         std::copy(

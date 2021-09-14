@@ -67,7 +67,7 @@ query_map_definition(
     _Out_ ebpf_id_t* inner_map_id) noexcept
 {
     _ebpf_operation_query_map_definition_request request{
-        sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_QUERY_MAP_DEFINITION, reinterpret_cast<uint64_t>(handle)};
+        sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_QUERY_MAP_DEFINITION, handle};
 
     _ebpf_operation_query_map_definition_reply reply;
 

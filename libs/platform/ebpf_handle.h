@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "ebpf_core_structs.h"
 #include "ebpf_object.h"
 #include "ebpf_platform.h"
 
@@ -10,9 +11,6 @@
 extern "C"
 {
 #endif
-
-    typedef uint64_t ebpf_handle_t;
-
     /**
      * @brief Initialize the global handle table.
      *

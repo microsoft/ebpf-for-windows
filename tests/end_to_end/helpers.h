@@ -73,7 +73,7 @@ typedef class _single_instance_hook : public _hook_helper
   public:
     _single_instance_hook(ebpf_program_type_t program_type, ebpf_attach_type_t attach_type)
         : _hook_helper{attach_type}, provider(nullptr), client_binding_context(nullptr), client_data(nullptr),
-          client_dispatch_table(nullptr), link_handle(nullptr)
+          client_dispatch_table(nullptr), link_handle(ebpf_handle_invalid)
     {
         ebpf_guid_create(&client_id);
         attach_provider_data.supported_program_type = program_type;

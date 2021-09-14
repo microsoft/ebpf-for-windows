@@ -22,11 +22,11 @@ ebpf_server_verify_and_load_program(
     }
 
     // Set the handle of program being verified in thread-local storage.
-    set_program_under_verification(info->program_handle);
+    set_program_under_verification(reinterpret_cast<ebpf_handle_t>(info->program_handle));
 
     result = ebpf_verify_and_load_program(
         &info->program_type,
-        info->program_handle,
+        reinterpret_cast<ebpf_handle_t>(info->program_handle),
         info->execution_context,
         info->execution_type,
         info->map_count,

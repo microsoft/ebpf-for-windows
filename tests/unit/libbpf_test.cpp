@@ -10,6 +10,7 @@
 #pragma warning(disable : 4200)
 #include "libbpf.h"
 #pragma warning(pop)
+#include "platform.h"
 #include "program_helper.h"
 #include "test_helper.hpp"
 
@@ -370,7 +371,7 @@ _ebpf_test_tail_call(_In_z_ const char* filename, int expected_result)
     // a valid program ID.
     int callee_fd2 = bpf_prog_get_fd_by_id(callee_id);
     REQUIRE(callee_fd2 > 0);
-    ebpf_close_fd(callee_fd2); // TODO(issue #287): change to _close(callee_fd2);
+    Platform::_close(callee_fd2);
 
     bpf_link* link = bpf_program__attach_xdp(caller, 1);
     REQUIRE(link != nullptr);
@@ -482,7 +483,7 @@ TEST_CASE("disallow prog_array mixed program type values", "[libbpf]")
     REQUIRE(error < 0);
     REQUIRE(errno == EINVAL);
 
-    ebpf_close_fd(map_fd); // TODO(issue #287): change to _close(map_fd);
+    Platform::_close(map_fd);
     bpf_object__close(bind_object);
     bpf_object__close(xdp_object);
 }
@@ -508,13 +509,13 @@ TEST_CASE("enumerate program IDs", "[libbpf]")
     REQUIRE(bpf_prog_get_next_id(0, &id1) == 0);
     fd_t fd1 = bpf_prog_get_fd_by_id(id1);
     REQUIRE(fd1 >= 0);
-    ebpf_close_fd(fd1); // TODO(issue #287): change to _close(fd1);
+    Platform::_close(fd1);
 
     uint32_t id2;
     REQUIRE(bpf_prog_get_next_id(id1, &id2) == 0);
     fd_t fd2 = bpf_prog_get_fd_by_id(id2);
     REQUIRE(fd2 >= 0);
-    ebpf_close_fd(fd2); // TODO(issue #287): change to _close(fd2);
+    Platform::_close(fd2);
 
     uint32_t id3;
     REQUIRE(bpf_prog_get_next_id(id2, &id3) < 0);
@@ -547,7 +548,7 @@ TEST_CASE("simple hash of maps", "[libbpf]")
     // a valid map ID.
     int inner_map_fd2 = bpf_map_get_fd_by_id(inner_map_id);
     REQUIRE(inner_map_fd2 > 0);
-    ebpf_close_fd(inner_map_fd2); // TODO(issue #287): change to _close(inner_map_fd2);
+    Platform::_close(inner_map_fd2);
 
     // Verify we can't insert an integer into the outer map.
     __u32 bad_value = 12345678;
@@ -566,8 +567,8 @@ TEST_CASE("simple hash of maps", "[libbpf]")
     error = bpf_map_delete_elem(outer_map_fd, &outer_key);
     REQUIRE(error == 0);
 
-    ebpf_close_fd(inner_map_fd); // TODO(issue #287): change to _close(inner_map_fd);
-    ebpf_close_fd(outer_map_fd); // TODO(issue #287): change to _close(outer_map_fd);
+    Platform::_close(inner_map_fd);
+    Platform::_close(outer_map_fd);
 }
 
 // Verify an app can communicate with an eBPF program via an array of maps.
@@ -619,7 +620,7 @@ TEST_CASE("array of maps", "[libbpf]")
     // Verify the return value is what we saved in the inner map.
     REQUIRE(result == inner_value);
 
-    ebpf_close_fd(inner_map_fd); // TODO(issue #287): change to _close(inner_map_fd);
+    Platform::_close(inner_map_fd);
     bpf_object__close(xdp_object);
 }
 
@@ -650,7 +651,7 @@ TEST_CASE("disallow wrong inner map types", "[libbpf]")
     REQUIRE(error < 0);
     REQUIRE(errno == EINVAL);
 
-    ebpf_close_fd(inner_map_fd); // TODO(issue #287): change to _close(inner_map_fd);
+    Platform::_close(inner_map_fd);
 
     // Try an inner map with wrong key_size.
     inner_map_fd = bpf_create_map(BPF_MAP_TYPE_HASH, sizeof(__u64), sizeof(__u32), 1, 0);
@@ -658,7 +659,7 @@ TEST_CASE("disallow wrong inner map types", "[libbpf]")
     error = bpf_map_update_elem(outer_map_fd, &outer_key, &inner_map_fd, 0);
     REQUIRE(error < 0);
     REQUIRE(errno == EINVAL);
-    ebpf_close_fd(inner_map_fd); // TODO(issue #287): change to _close(inner_map_fd);
+    Platform::_close(inner_map_fd);
 
     // Try an inner map of the wrong value size.
     inner_map_fd = bpf_create_map(BPF_MAP_TYPE_HASH, sizeof(__u32), sizeof(__u64), 1, 0);
@@ -666,7 +667,7 @@ TEST_CASE("disallow wrong inner map types", "[libbpf]")
     error = bpf_map_update_elem(outer_map_fd, &outer_key, &inner_map_fd, 0);
     REQUIRE(error < 0);
     REQUIRE(errno == EINVAL);
-    ebpf_close_fd(inner_map_fd); // TODO(issue #287): change to _close(inner_map_fd);
+    Platform::_close(inner_map_fd);
 
     // Try an inner map with wrong max_entries.
     inner_map_fd = bpf_create_map(BPF_MAP_TYPE_HASH, sizeof(__u32), sizeof(__u32), 2, 0);
@@ -674,7 +675,7 @@ TEST_CASE("disallow wrong inner map types", "[libbpf]")
     error = bpf_map_update_elem(outer_map_fd, &outer_key, &inner_map_fd, 0);
     REQUIRE(error < 0);
     REQUIRE(errno == EINVAL);
-    ebpf_close_fd(inner_map_fd); // TODO(issue #287): change to _close(inner_map_fd);
+    Platform::_close(inner_map_fd);
 
     bpf_object__close(xdp_object);
 }
@@ -699,22 +700,22 @@ TEST_CASE("enumerate map IDs", "[libbpf]")
     REQUIRE(bpf_map_get_next_id(0, &id1) == 0);
     fd_t fd1 = bpf_map_get_fd_by_id(id1);
     REQUIRE(fd1 >= 0);
-    ebpf_close_fd(fd1); // TODO(issue #287): change to _close(fd1);
+    Platform::_close(fd1);
 
     uint32_t id2;
     REQUIRE(bpf_map_get_next_id(id1, &id2) == 0);
     fd_t fd2 = bpf_map_get_fd_by_id(id2);
     REQUIRE(fd2 >= 0);
-    ebpf_close_fd(fd2); // TODO(issue #287): change to _close(fd2);
+    Platform::_close(fd2);
 
     uint32_t id3;
     REQUIRE(bpf_map_get_next_id(id2, &id3) < 0);
     REQUIRE(errno == ENOENT);
 
-    ebpf_close_fd(map1_fd); // TODO(issue #287): change to _close(map1_fd);
-    ebpf_close_fd(map2_fd); // TODO(issue #287): change to _close(map2_fd);
-    ebpf_close_fd(fd1);     // TODO(issue #287): change to _close(fd1);
-    ebpf_close_fd(fd2);     // TODO(issue #287): change to _close(fd2);
+    Platform::_close(map1_fd);
+    Platform::_close(map2_fd);
+    Platform::_close(fd1);
+    Platform::_close(fd2);
 }
 
 TEST_CASE("enumerate link IDs", "[libbpf]")
@@ -740,13 +741,13 @@ TEST_CASE("enumerate link IDs", "[libbpf]")
     REQUIRE(bpf_link_get_next_id(0, &id1) == 0);
     fd_t fd1 = bpf_link_get_fd_by_id(id1);
     REQUIRE(fd1 >= 0);
-    ebpf_close_fd(fd1); // TODO(issue #287): change to _close(fd1);
+    Platform::_close(fd1);
 
     uint32_t id2;
     REQUIRE(bpf_link_get_next_id(id1, &id2) == 0);
     fd_t fd2 = bpf_link_get_fd_by_id(id2);
     REQUIRE(fd2 >= 0);
-    ebpf_close_fd(fd2); // TODO(issue #287): change to _close(fd2);
+    Platform::_close(fd2);
 
     uint32_t id3;
     REQUIRE(bpf_link_get_next_id(id2, &id3) < 0);
@@ -818,5 +819,5 @@ TEST_CASE("bpf_obj_get_info_by_fd", "[libbpf]")
     // This is the flow used by bpftool to detach a link.
     REQUIRE(bpf_link_detach(link_fd) == 0);
 
-    ebpf_close_fd(link_fd); // TODO(issue #287): change to _close(link_fd);
+    Platform::_close(link_fd);
 }

@@ -19,6 +19,7 @@
 #include "helpers.h"
 #include "libbpf.h"
 #include "mock.h"
+#include "platform.h"
 #include "program_helper.h"
 #include "sample_test_common.h"
 #include "test_helper.hpp"
@@ -728,7 +729,7 @@ TEST_CASE("enumerate_and_query_programs", "[end_to_end]")
 
     REQUIRE(ebpf_get_next_program(program_fd, &next_program_fd) == EBPF_SUCCESS);
     REQUIRE(next_program_fd != ebpf_fd_invalid);
-    ebpf_close_fd(program_fd);
+    Platform::_close(program_fd);
     program_fd = next_program_fd;
     REQUIRE(ebpf_program_query_info(program_fd, &type, &file_name, &section_name) == EBPF_SUCCESS);
     REQUIRE(type == EBPF_EXECUTION_INTERPRET);
@@ -741,7 +742,7 @@ TEST_CASE("enumerate_and_query_programs", "[end_to_end]")
 
     REQUIRE(ebpf_get_next_program(program_fd, &next_program_fd) == EBPF_SUCCESS);
     REQUIRE(next_program_fd == ebpf_fd_invalid);
-    ebpf_close_fd(program_fd);
+    Platform::_close(program_fd);
 
     for (int i = 0; i < _countof(object); i++) {
         bpf_object__close(object[i]);

@@ -11,6 +11,7 @@
 #include <vector>
 #include "ebpf_api.h"
 #include "ebpf_windows.h"
+#include "platform.h"
 #include "maps.h"
 #include "tokens.h"
 
@@ -49,7 +50,7 @@ handle_ebpf_show_maps(
         }
 
         if (map_fd != ebpf_fd_invalid) {
-            ebpf_close_fd(map_fd);
+            Platform::_close(map_fd);
         }
         map_fd = next_map_fd;
 
@@ -76,7 +77,7 @@ handle_ebpf_show_maps(
                   << map_definition.inner_map_idx << "\n";
     }
     if (map_fd != ebpf_fd_invalid) {
-        ebpf_close_fd(map_fd);
+        Platform::_close(map_fd);
     }
     return result;
 }

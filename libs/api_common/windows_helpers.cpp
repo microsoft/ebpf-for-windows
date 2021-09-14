@@ -65,7 +65,7 @@ get_program_info_data(ebpf_program_type_t program_type, _Outptr_ ebpf_program_in
         sizeof(request),
         ebpf_operation_id_t::EBPF_OPERATION_GET_PROGRAM_INFO,
         program_type,
-        reinterpret_cast<uint64_t>(_program_under_verification)};
+        _program_under_verification};
 
     *program_info = nullptr;
 

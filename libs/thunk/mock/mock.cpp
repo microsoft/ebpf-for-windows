@@ -6,9 +6,12 @@
 #include "mock.h"
 #include "rpc_interface_h.h"
 
+std::function<decltype(_close)> close_handler;
+std::function<decltype(CloseHandle)> close_handle_handler;
 std::function<decltype(CreateFileW)> create_file_handler;
 std::function<decltype(DeviceIoControl)> device_io_control_handler;
-std::function<decltype(CloseHandle)> close_handle_handler;
+std::function<decltype(_get_osfhandle)> get_osfhandle_handler;
+std::function<decltype(_open_osfhandle)> open_osfhandle_handler;
 
 namespace Platform {
 bool
@@ -23,7 +26,7 @@ DeviceIoControl(
     _Inout_opt_ OVERLAPPED* overlapped)
 {
     return device_io_control_handler(
-        device_handle,
+        reinterpret_cast<HANDLE>(device_handle),
         (DWORD)io_control_code,
         input_buffer,
         (DWORD)input_buffer_size,
@@ -43,20 +46,38 @@ CreateFileW(
     uint32_t flags_and_attributes,
     _In_opt_ ebpf_handle_t template_file)
 {
-    return create_file_handler(
+    return reinterpret_cast<ebpf_handle_t>(create_file_handler(
         file_name,
         desired_access,
         share_mode,
         security_attributes,
         creation_disposition,
         flags_and_attributes,
-        template_file);
+        reinterpret_cast<HANDLE>(template_file)));
 }
 
 bool
 CloseHandle(_In_ _Post_ptr_invalid_ ebpf_handle_t handle)
 {
-    return close_handle_handler(handle);
+    return close_handle_handler(reinterpret_cast<HANDLE>(handle));
+}
+
+int
+_open_osfhandle(intptr_t os_file_handle, int flags)
+{
+    return open_osfhandle_handler(os_file_handle, flags);
+}
+
+intptr_t
+_get_osfhandle(int file_descriptor)
+{
+    return get_osfhandle_handler(file_descriptor);
+}
+
+int
+_close(int file_handle)
+{
+    return close_handler(file_handle);
 }
 
 } // namespace Platform
@@ -73,12 +94,12 @@ ebpf_result_t
 ebpf_rpc_load_program(ebpf_program_load_info* info, const char** logs, uint32_t* logs_size)
 {
     // Set the handle of program being verified in thread-local storage.
-    set_program_under_verification(info->program_handle);
+    set_program_under_verification(reinterpret_cast<ebpf_handle_t>(info->program_handle));
 
     // Short circuit rpc call to service lib.
     ebpf_result_t result = ebpf_verify_and_load_program(
         &info->program_type,
-        info->program_handle,
+        reinterpret_cast<ebpf_handle_t>(info->program_handle),
         info->execution_context,
         info->execution_type,
         info->map_count,

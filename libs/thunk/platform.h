@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include "ebpf_core_structs.h"
+
 #pragma once
 namespace Platform {
 bool
@@ -26,4 +28,14 @@ CreateFileW(
 
 bool
 CloseHandle(_In_ _Post_ptr_invalid_ ebpf_handle_t handle);
+
+int
+_open_osfhandle(intptr_t os_file_handle, int flags);
+
+intptr_t
+_get_osfhandle(int file_descriptor);
+
+int
+_close(int file_descriptor);
+
 } // namespace Platform
