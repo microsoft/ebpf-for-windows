@@ -14,14 +14,12 @@ Self-hosted runners are necessary as GitHub-hosted runners don't have the requis
    3) ```Invoke-WebRequest -Uri https://github.com/actions/runner/releases/download/v2.281.1/actions-runner-win-x64-2.281.1.zip -OutFile actions-runner-win-x64-2.281.1.zip```
    4) ```if((Get-FileHash -Path actions-runner-win-x64-2.281.1.zip -Algorithm SHA256).Hash.ToUpper() -ne 'b8dccfef39c5d696443d98edd1ee57881075066bb62adef0a344fcb11bd19f1b'.ToUpper()){ throw 'Computed checksum did not match' }```
    5) ```Add-Type -AssemblyName System.IO.Compression.FileSystem ; [System.IO.Compression.ZipFile]::ExtractToDirectory("$PWD/actions-runner-win-x64-2.281.1.zip", "$PWD")```
-6) Obtain an [authentication token](https://github.com/microsoft/ebpf-for-windows/settings/actions/runners/new). This requires administrator permissions in the project.
-7) Configure action runner.
+5) Obtain an [authentication token](https://github.com/microsoft/ebpf-for-windows/settings/actions/runners/new). This requires administrator permissions in the project.
+6) Configure action runner.
    1) ```./config.cmd --url https://github.com/microsoft/ebpf-for-windows --token <action runner token>```
 8) Change action runner service to run as "LocalSystem".
    1) Open services.msc.
    2) Locate "GitHub Action Runner ...".
    3) Right Click -> Properties -> Log On.
    4) Change "Log on as:" to "Local System Account".
-9)  Install the [Visual C++ Runtime Files](https://docs.microsoft.com/en-us/visualstudio/releases/2019/redistribution#visual-c-runtime-files)
-10)  Install the debug version of the Visual C++ Runtime files from ```"%ProgramFiles(x86)%\Microsoft Visual Studio\2019\Enterprise\VC\Redist\MSVC\14.29.30133\debug_nonredist\x64\Microsoft.VC142.DebugCRT"``` on a machine with Visual Studio installed.
-11) Reboot the runner.
+8) Reboot the runner.
