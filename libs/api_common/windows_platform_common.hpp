@@ -4,10 +4,10 @@
 #pragma once
 
 EbpfHelperPrototype
-get_helper_prototype_windows(unsigned int n);
+get_helper_prototype_windows(int n);
 
 bool
-is_helper_usable_windows(unsigned int n);
+is_helper_usable_windows(int n);
 
 EbpfProgramType
 get_program_type_windows(const GUID& program_type);

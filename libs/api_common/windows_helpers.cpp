@@ -163,7 +163,7 @@ _get_helper_function_prototype(const ebpf_program_info_t* info, unsigned int n)
 
 // Check whether a given integer is a valid helper ID.
 bool
-is_helper_usable_windows(unsigned int n)
+is_helper_usable_windows(int n)
 {
     const ebpf_program_info_t* info;
     ebpf_result_t result = get_program_type_info(&info);
@@ -175,7 +175,7 @@ is_helper_usable_windows(unsigned int n)
 
 // Get the prototype for the helper with a given ID.
 EbpfHelperPrototype
-get_helper_prototype_windows(unsigned int n)
+get_helper_prototype_windows(int n)
 {
     const ebpf_program_info_t* info;
     ebpf_result_t result = get_program_type_info(&info);

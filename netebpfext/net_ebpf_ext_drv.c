@@ -32,7 +32,8 @@ Environment:
 #define NET_EBPF_EXT_DEVICE_NAME L"\\Device\\NetEbpfExt"
 
 // Driver global variables
-static DEVICE_OBJECT* _net_ebpf_ext_driver_device_object;
+static WDFDEVICE _net_ebpf_ext_device = NULL;
+static DEVICE_OBJECT* _net_ebpf_ext_driver_device_object = NULL;
 static BOOLEAN _net_ebpf_ext_driver_unloading_flag = FALSE;
 
 //
@@ -40,50 +41,52 @@ static BOOLEAN _net_ebpf_ext_driver_unloading_flag = FALSE;
 //
 DRIVER_INITIALIZE DriverEntry;
 
-static _Function_class_(EVT_WDF_DRIVER_UNLOAD) _IRQL_requires_same_
-    _IRQL_requires_max_(PASSIVE_LEVEL) void __net_ebpf_ext_driver_unload(_In_ WDFDRIVER driver_object)
+static void
+_net_ebpf_ext_driver_uninitialize_objects()
 {
-    UNREFERENCED_PARAMETER(driver_object);
-
     _net_ebpf_ext_driver_unloading_flag = TRUE;
-
-    net_ebpf_ext_program_info_provider_unregister();
 
     net_ebpf_ext_unregister_providers();
 
     net_ebpf_ext_unregister_callouts();
+
+    if (_net_ebpf_ext_device != NULL)
+        WdfObjectDelete(_net_ebpf_ext_device);
+}
+
+static _Function_class_(EVT_WDF_DRIVER_UNLOAD) _IRQL_requires_same_
+    _IRQL_requires_max_(PASSIVE_LEVEL) void _net_ebpf_ext_driver_unload(_In_ WDFDRIVER driver_object)
+{
+    UNREFERENCED_PARAMETER(driver_object);
+    _net_ebpf_ext_driver_uninitialize_objects();
 }
 
 //
-// Create a basic WDF driver, set up the device object
-// for a callout driver and register with NMR.
+// Create and initialize WDF driver, device object,
+// WFP callouts and NPI providers.
 //
 static NTSTATUS
-__net_ebpf_ext_driver_initialize_objects(
-    _Inout_ DRIVER_OBJECT* driver_object,
-    _In_ const UNICODE_STRING* registry_path,
-    _Out_ WDFDRIVER* driver,
-    _Out_ WDFDEVICE* device)
+_net_ebpf_ext_driver_initialize_objects(_Inout_ DRIVER_OBJECT* driver_object, _In_ const UNICODE_STRING* registry_path)
 {
     NTSTATUS status;
     WDF_DRIVER_CONFIG driver_configuration;
     PWDFDEVICE_INIT device_initialize = NULL;
     UNICODE_STRING ebpf_device_name;
-    BOOLEAN device_create_flag = FALSE;
+    WDFDRIVER driver;
 
     WDF_DRIVER_CONFIG_INIT(&driver_configuration, WDF_NO_EVENT_CALLBACK);
 
     driver_configuration.DriverInitFlags |= WdfDriverInitNonPnpDriver;
-    driver_configuration.EvtDriverUnload = __net_ebpf_ext_driver_unload;
+    driver_configuration.EvtDriverUnload = _net_ebpf_ext_driver_unload;
 
-    status = WdfDriverCreate(driver_object, registry_path, WDF_NO_OBJECT_ATTRIBUTES, &driver_configuration, driver);
+    status = WdfDriverCreate(driver_object, registry_path, WDF_NO_OBJECT_ATTRIBUTES, &driver_configuration, &driver);
 
     if (!NT_SUCCESS(status)) {
         goto Exit;
     }
 
     device_initialize = WdfControlDeviceInitAllocate(
-        *driver,
+        driver,
         &SDDL_DEVOBJ_SYS_ALL_ADM_ALL // only kernel/system and administrators.
     );
     if (!device_initialize) {
@@ -103,7 +106,7 @@ __net_ebpf_ext_driver_initialize_objects(
         goto Exit;
     }
 
-    status = WdfDeviceCreate(&device_initialize, WDF_NO_OBJECT_ATTRIBUTES, device);
+    status = WdfDeviceCreate(&device_initialize, WDF_NO_OBJECT_ATTRIBUTES, &_net_ebpf_ext_device);
 
     if (!NT_SUCCESS(status)) {
         // do not free if any other call
@@ -113,30 +116,19 @@ __net_ebpf_ext_driver_initialize_objects(
         goto Exit;
     }
 
-    device_create_flag = TRUE;
+    _net_ebpf_ext_driver_device_object = WdfDeviceWdmGetDeviceObject(_net_ebpf_ext_device);
 
     status = net_ebpf_ext_register_providers();
     if (!NT_SUCCESS(status)) {
         goto Exit;
     }
 
-    status = net_ebpf_ext_program_info_provider_register();
-    if (!NT_SUCCESS(status)) {
-        goto Exit;
-    }
+    // TODO: https://github.com/microsoft/ebpf-for-windows/issues/521
+    (void)net_ebpf_ext_register_callouts(_net_ebpf_ext_driver_device_object);
 
-    WdfControlFinishInitializing(*device);
+    WdfControlFinishInitializing(_net_ebpf_ext_device);
 
 Exit:
-    if (!NT_SUCCESS(status)) {
-        if (device_create_flag && device != NULL) {
-            //
-            // Release the reference on the newly created object, since
-            // we couldn't initialize it.
-            //
-            WdfObjectDelete(*device);
-        }
-    }
     return status;
 }
 
@@ -144,30 +136,22 @@ NTSTATUS
 DriverEntry(_In_ DRIVER_OBJECT* driver_object, _In_ UNICODE_STRING* registry_path)
 {
     NTSTATUS status;
-    WDFDRIVER driver;
-    WDFDEVICE device;
 
     // Request NX Non-Paged Pool when available
     ExInitializeDriverRuntime(DrvRtPoolNxOptIn);
 
     KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "NetEbpfExt: DriverEntry\n"));
 
-    status = __net_ebpf_ext_driver_initialize_objects(driver_object, registry_path, &driver, &device);
+    status = _net_ebpf_ext_driver_initialize_objects(driver_object, registry_path);
 
     if (!NT_SUCCESS(status)) {
         goto Exit;
     }
 
-    _net_ebpf_ext_driver_device_object = WdfDeviceWdmGetDeviceObject(device);
-
-    net_ebpf_ext_register_callouts(_net_ebpf_ext_driver_device_object);
-    // ignore status. at boot, registration can fail.
-    // we will try to re-register during program load.
-
 Exit:
 
     if (!NT_SUCCESS(status)) {
-        net_ebpf_ext_unregister_callouts();
+        _net_ebpf_ext_driver_uninitialize_objects();
     }
 
     return status;
