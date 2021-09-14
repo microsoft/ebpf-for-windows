@@ -3,10 +3,7 @@
 
 #pragma once
 
-EbpfHelperPrototype
-get_helper_prototype_windows(unsigned int n);
-bool
-is_helper_usable_windows(unsigned int n);
+#include "windows_platform_common.hpp"
 
 EbpfProgramType
 get_program_type_windows(const GUID& program_type);

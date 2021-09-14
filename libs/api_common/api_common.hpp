@@ -12,6 +12,7 @@
 #include "ebpf_result.h"
 #undef VOID
 #include "platform.hpp"
+#include "windows_platform_common.hpp"
 
 typedef struct _map_cache
 {
@@ -53,9 +54,6 @@ convert_ebpf_program_to_bytes(const std::vector<ebpf_inst>& instructions);
 
 int
 get_file_size(const char* filename, size_t* byte_code_size) noexcept;
-
-EbpfHelperPrototype
-get_helper_prototype_windows(unsigned int n);
 
 void
 cache_map_handle(

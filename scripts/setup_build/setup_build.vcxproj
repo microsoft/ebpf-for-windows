@@ -151,7 +151,9 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PreBuildEvent>
-      <Command>powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\generate-commitid.ps1 $(OutDir)</Command>
+      <Command>powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\generate-commitid.ps1 $(OutDir)
+copy "$(VC_DebugCppRuntimeFilesPath_x64)\Microsoft.VC142.DebugCRT\*" "$(OutDir)"
+copy "$(UniversalDebugCRT_ExecutablePath_x64)\ucrtbased.dll" "$(OutDir)"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -170,7 +172,8 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PreBuildEvent>
-      <Command>powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\generate-commitid.ps1 $(OutDir)</Command>
+      <Command>powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\generate-commitid.ps1 $(OutDir)
+copy "$(VC_CppRuntimeFilesPath_x64)\Microsoft.VC142.CRT" "$(OutDir)"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
