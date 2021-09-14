@@ -263,7 +263,7 @@ TEST_CASE("show programs", "[netsh][programs]")
                   "    ID            File Name         Section             Name      Mode\n"
                   "====== ==================== =============== ================ =========\n"
                   "196609          tail_call.o        xdp_prog           caller       JIT\n"
-                  "262146          tail_call.o      xdp_prog/0           callee       JIT\n");
+                  "262145          tail_call.o      xdp_prog/0           callee       JIT\n");
 
     bpf_object__close(object);
 }
