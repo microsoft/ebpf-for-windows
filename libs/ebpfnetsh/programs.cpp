@@ -262,7 +262,7 @@ ebpf_program_attach_by_id(ebpf_id_t program_id, ebpf_attach_type_t attach_type)
     struct bpf_link* link;
     ebpf_result_t result = ebpf_program_attach_by_fd(program_fd, &attach_type, nullptr, 0, &link);
 
-    ebpf_close_fd(program_fd); // TODO(issue #287): _close
+    Platform::_close(program_fd);
     ebpf_link_close(link);
     return result;
 }
@@ -285,11 +285,11 @@ ebpf_program_detach_by_id(ebpf_id_t program_id)
                 if (bpf_link_detach(link_fd) < 0) {
                     return errno;
                 }
-                ebpf_close_fd(link_fd); // TODO(#287): _close
+                Platform::_close(link_fd);
                 return NO_ERROR;
             }
         }
-        ebpf_close_fd(link_fd); // TODO(#287): _close
+        Platform::_close(link_fd);
     }
     return ERROR_NOT_FOUND;
 }

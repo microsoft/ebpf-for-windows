@@ -6,6 +6,7 @@
 #include <map>
 #include "catch_wrapper.hpp"
 #include "common_tests.h"
+#include "platform.h"
 #include "sample_test_common.h"
 
 void
@@ -64,7 +65,7 @@ ebpf_test_pinned_map_enum()
     }
 
 Exit:
-    ebpf_close_fd(map_fd); // TODO(issue #287): change to _close(map_fd);
+    Platform::_close(map_fd);
     ebpf_api_map_info_free(map_count, map_info);
     map_count = 0;
     map_info = nullptr;

@@ -1050,8 +1050,8 @@ _link_ebpf_program(
             goto Exit;
         }
 
-        new_link->handle = reinterpret_cast<ebpf_handle_t>(reply.link_handle);
-        new_link->fd = _get_next_file_descriptor(new_link->handle);
+        new_link->handle = reply.link_handle;
+        new_link->fd = _create_file_descriptor_for_handle(new_link->handle);
         if (new_link->fd == ebpf_fd_invalid) {
             result = EBPF_NO_MEMORY;
         } else {
@@ -1150,13 +1150,12 @@ ebpf_program_attach_by_fd(
     _In_ size_t attach_parameters_size,
     _Outptr_ struct bpf_link** link)
 {
-    ebpf_program_t* program = _get_ebpf_program_from_handle(_get_handle_from_file_descriptor(program_fd));
-    if (program == nullptr || link == nullptr) {
+    if (link == nullptr) {
         return EBPF_INVALID_ARGUMENT;
     }
     *link = nullptr;
 
-    ebpf_handle_t program_handle = _get_handle_from_fd(program_fd);
+    ebpf_handle_t program_handle = _get_handle_from_file_descriptor(program_fd);
     if (program_handle == ebpf_handle_invalid) {
         return EBPF_INVALID_FD;
     }
