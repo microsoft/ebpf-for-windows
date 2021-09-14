@@ -216,7 +216,7 @@ bpf_map__value_size(const struct bpf_map* map);
 /** @} */
 
 /**
- * @name File object-related functions
+ * @name Object-related functions
  * @{
  */
 
@@ -276,6 +276,16 @@ bpf_object__find_program_by_name(const struct bpf_object* obj, const char* name)
  */
 const char*
 bpf_object__name(const struct bpf_object* obj);
+
+/**
+ * @brief Get the next eBPF object opened by the calling process.
+ *
+ * @param[in] prev Previous object, or NULL to get the first object.
+ *
+ * @returns Next object, or NULL if none.
+ */
+struct bpf_object*
+bpf_object__next(struct bpf_object* prev);
 
 /**
  * @brief Pin an eBPF object to a specified path.

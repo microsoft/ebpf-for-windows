@@ -55,7 +55,6 @@ BEGIN
     HLP_EBPF_ADD_PROGRAM    "Loads an eBPF program.\n"
     HLP_EBPF_ADD_PROGRAM_EX "\
 \nUsage: %1!s! [filename=]<string>\
-\n                   [section=]<string>\
 \n                   [[type=]xdp]\
 \n                   [[pinned=]<string>]\
 \n                   [[execution=]jit|interpret]\
@@ -65,7 +64,6 @@ BEGIN
 \n      Tag         Value\
 \n      filename  - Filename or path to ELF file containing the\
 \n                  program.\
-\n      section   - The name of the section containing the program.\
 \n      type      - One of the following values:\
 \n                   xdp: The program is meant to hook into XDP.\
 \n                        This is the default value.\
@@ -80,18 +78,12 @@ BEGIN
 \n"
     HLP_EBPF_DELETE_PROGRAM "Deletes an eBPF program.\n"
     HLP_EBPF_DELETE_PROGRAM_EX "\
-\nUsage: %1!s! [filename=]<string> [[section=]<string>]\
+\nUsage: %1!s! [id=]<integer>\
 \n\
 \nParameters:\
 \n\
 \n      Tag         Value\
-\n      filename  - Filename or path to ELF file containing the\
-\n                  program.  The ELF file itself is not used, but\
-\n                  the filename is used as an identifier to match\
-\n                  a pinned program.\
-\n      section   - Optionally the name of the section containing the\
-\n                  program.  If not specified, the default is to use the\
-\n                  first code section.\
+\n      id        - ID of the program to delete.\
 \n\
 \nRemarks: If the program is pinned, this unpins the specified\
 \n         program.  If an unpinned process was loaded by the same\
@@ -103,23 +95,21 @@ BEGIN
 \n"
     HLP_EBPF_SET_PROGRAM    "Updates an eBPF program.\n"
     HLP_EBPF_SET_PROGRAM_EX "\
-\nUsage: %1!s! [filename=]<string>\
-\n                   [section=]<string>\
+\nUsage: %1!s! [id=]<integer>\
+\n                   [[attached=]yes|no]\
 \n                   [[pinned=]<string>]\
 \n\
 \nParameters:\
 \n\
 \n      Tag         Value\
-\n      filename  - Filename or path to ELF file containing the\
-\n                  program.  The ELF file itself is not used, but\
-\n                  the filename is used as an identifier to match\
-\n                  a pinned program.\
-\n      section   - The name of the section containing the program.\
+\n      id        - Program ID as shown via ""show programs"".\
+\n      attached  - Yes to attach a detached program using its\
+\n                  default attach type, or no to detach it.\
 \n      pinned    - The name to pin the program to, or if not\
-\n                  specified or empty, unpin the program.\
+\n                  empty, unpin the program.\
 \n\
-\nRemarks: Pins or unpins the specified program which must already\
-\n         be loaded.\
+\nRemarks: Pins, unpins, attaches, or detaches the specified\
+\n         program which must already be loaded.\
 \n"
     HLP_EBPF_SHOW_PROGRAMS  "Shows eBPF programs.\n"
     HLP_EBPF_SHOW_PROGRAMS_EX "\
@@ -128,6 +118,7 @@ BEGIN
 \n                     [[level=]normal|verbose]\
 \n                     [[filename=]<string>\
 \n                     [[section=]<string>]]\
+\n                     [[id=]<integer>]]\
 \n\
 \nParameters:\
 \n\
@@ -152,8 +143,10 @@ BEGIN
 \n      section   - Optionally the name of the section containing the\
 \n                  program.  If not specified, the default is to use the\
 \n                  first code section.\
+\n      id        - ID of a program to show.\
 \n\
-\nRemarks: Shows all loaded programs.\
+\nRemarks: Shows all loaded programs, or those matching specified\
+\n         criteria.\
 \n"
 
     HLP_EBPF_SHOW_DISASSEMBLY "Shows disassembly of an eBPF program.\n"

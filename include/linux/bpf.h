@@ -20,14 +20,14 @@ typedef uint32_t pid_t;
 
 enum bpf_prog_type
 {
-    BPF_PROG_TYPE_UNKNOWN,
+    BPF_PROG_TYPE_UNSPEC,
     BPF_PROG_TYPE_XDP,
     BPF_PROG_TYPE_BIND, // TODO(#333): replace with cross-platform program type
 };
 
 enum bpf_attach_type
 {
-    BPF_ATTACH_TYPE_UNKNOWN,
+    BPF_ATTACH_TYPE_UNSPEC,
     BPF_ATTACH_TYPE_XDP,
 };
 
