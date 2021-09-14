@@ -24,7 +24,6 @@ load(int argc, char** argv)
 {
     const char* error_message = NULL;
     ebpf_result_t result;
-    int error;
     bpf_object* object = nullptr;
     bpf_program* program = nullptr;
     bpf_link* link = nullptr;
@@ -51,14 +50,12 @@ load(int argc, char** argv)
         fprintf(stderr, "Failed to find eBPF map : %s\n", limits_map);
         return 1;
     }
-    result = ebpf_object_pin(process_map_fd, process_map);
-    if (result != EBPF_SUCCESS) {
-        fprintf(stderr, "Failed to pin eBPF program: %d\n", result);
+    if (bpf_obj_pin(process_map_fd, process_map) < 0) {
+        fprintf(stderr, "Failed to pin eBPF program: %d\n", errno);
         return 1;
     }
-    result = ebpf_object_pin(limits_map_fd, limits_map);
-    if (result != EBPF_SUCCESS) {
-        fprintf(stderr, "Failed to pin eBPF program: %d\n", result);
+    if (bpf_obj_pin(limits_map_fd, limits_map) < 0) {
+        fprintf(stderr, "Failed to pin eBPF program: %d\n", errno);
         return 1;
     }
 
@@ -73,15 +70,13 @@ load(int argc, char** argv)
         return 1;
     }
 
-    error = bpf_link__pin(link, program_link);
-    if (error != ERROR_SUCCESS) {
-        fprintf(stderr, "Failed to pin eBPF link: %d\n", error);
+    if (bpf_link__pin(link, program_link) < 0) {
+        fprintf(stderr, "Failed to pin eBPF link: %d\n", errno);
         return 1;
     }
 
-    error = bpf_program__pin(program, program_path);
-    if (error != ERROR_SUCCESS) {
-        fprintf(stderr, "Failed to pin eBPF program: %d\n", error);
+    if (bpf_program__pin(program, program_path) < 0) {
+        fprintf(stderr, "Failed to pin eBPF program: %d\n", errno);
         return 1;
     }
 

@@ -136,7 +136,7 @@ TEST_CASE("libbpf program attach", "[libbpf]")
     // TODO: it is not currently set.  Update this
     // test once it is set correctly.
     enum bpf_attach_type type = bpf_program__get_expected_attach_type(program);
-    REQUIRE(type == BPF_ATTACH_TYPE_UNKNOWN);
+    REQUIRE(type == BPF_ATTACH_TYPE_UNSPEC);
 
     bpf_program__set_expected_attach_type(program, BPF_ATTACH_TYPE_XDP);
 

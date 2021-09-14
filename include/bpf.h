@@ -205,6 +205,19 @@ bpf_map_update_elem(int fd, const void* key, const void* value, __u64 flags);
 int
 bpf_obj_get_info_by_fd(int bpf_fd, void* info, __u32* info_len);
 
+/**
+ * @brief Pin an eBPF program or map referred to by fd to the
+ * provided pathname.
+ *
+ * @param[in] fd File descriptor referring to the program or map to pin.
+ * @param[in] pathname Path name to pin the object to.
+ *
+ * @retval 0 The operation was successful.
+ * @retval <0 An error occured, and errno was set.
+ */
+int
+bpf_obj_pin(int fd, const char* pathname);
+
 /** @} */
 
 /**
