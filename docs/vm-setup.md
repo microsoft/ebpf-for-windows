@@ -16,7 +16,7 @@
     4. When the Create Virtual Machine dialog appears, select "Windows 10 dev environment".
     5. Click the "Create Virtual Machine" button.
     6. Once that is complete click the "Edit Settings" button.
-    7. Select security, clear the "Enable Scure Boot" checkbox, and click OK. (This is a prerequisite for
+    7. Select security, clear the "Enable Secure Boot" checkbox, and click OK. (This is a prerequisite for
        enabling test signed binaries.)
     8. Click "Connect" and start the VM.
 
