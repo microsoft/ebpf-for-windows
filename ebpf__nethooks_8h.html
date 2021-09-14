@@ -67,8 +67,10 @@ $(function() {
 <div class="header">
   <div class="summary">
 <a href="#nested-classes">Data Structures</a> &#124;
+<a href="#define-members">Macros</a> &#124;
 <a href="#typedef-members">Typedefs</a> &#124;
-<a href="#enum-members">Enumerations</a>  </div>
+<a href="#enum-members">Enumerations</a> &#124;
+<a href="#func-members">Functions</a>  </div>
   <div class="headertitle">
 <div class="title">ebpf_nethooks.h File Reference</div>  </div>
 </div><!--header-->
@@ -83,6 +85,11 @@ Data Structures</h2></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__bind__md.html">_bind_md</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="define-members"></a>
+Macros</h2></td></tr>
+<tr class="memitem:acce2f548e179db8cc18c8173a4a7a6e6"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#acce2f548e179db8cc18c8173a4a7a6e6">XDP_EXT_HELPER_FN_BASE</a>&#160;&#160;&#160;0xFFFF</td></tr>
+<tr class="separator:acce2f548e179db8cc18c8173a4a7a6e6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="typedef-members"></a>
 Typedefs</h2></td></tr>
@@ -120,7 +127,28 @@ Enumerations</h2></td></tr>
 <a class="el" href="ebpf__nethooks_8h.html#a9e5d69be705b1f7503ab2fd752c41d02a070e43983c9e259ec6e076c87586710a">BIND_REDIRECT</a>
  }</td></tr>
 <tr class="separator:a9e5d69be705b1f7503ab2fd752c41d02"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
+Functions</h2></td></tr>
+<tr class="memitem:affc4b6ad0564d5788cf036749dff4e50"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#affc4b6ad0564d5788cf036749dff4e50">bpf_xdp_adjust_head</a> (<a class="el" href="ebpf__nethooks_8h.html#ad23ae5164c0bc1b25cfc3c60ab24a781">xdp_md_t</a> *ctx, int delta)</td></tr>
+<tr class="memdesc:affc4b6ad0564d5788cf036749dff4e50"><td class="mdescLeft">&#160;</td><td class="mdescRight">Adjust XDP context data pointer.  <a href="ebpf__nethooks_8h.html#affc4b6ad0564d5788cf036749dff4e50">More...</a><br /></td></tr>
+<tr class="separator:affc4b6ad0564d5788cf036749dff4e50"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
+<h2 class="groupheader">Macro Definition Documentation</h2>
+<a id="acce2f548e179db8cc18c8173a4a7a6e6"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#acce2f548e179db8cc18c8173a4a7a6e6">&#9670;&nbsp;</a></span>XDP_EXT_HELPER_FN_BASE</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define XDP_EXT_HELPER_FN_BASE&#160;&#160;&#160;0xFFFF</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <h2 class="groupheader">Typedef Documentation</h2>
 <a id="ad76a0927c7e31a4b67e34a7d34d278a2"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ad76a0927c7e31a4b67e34a7d34d278a2">&#9670;&nbsp;</a></span>bind_action_t</h2>
@@ -317,6 +345,51 @@ Enumerations</h2></td></tr>
 <tr><td class="fieldname"><a id="a5aff0d5d670941126cebc5687d5e280da2660d3d871232c9a9d8e18867f6ac31b"></a>XDP_TX&#160;</td><td class="fielddoc"><p>Bounce the received packet back out the same NIC it arrived on. </p>
 </td></tr>
 </table>
+
+</div>
+</div>
+<h2 class="groupheader">Function Documentation</h2>
+<a id="affc4b6ad0564d5788cf036749dff4e50"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#affc4b6ad0564d5788cf036749dff4e50">&#9670;&nbsp;</a></span>bpf_xdp_adjust_head()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int bpf_xdp_adjust_head </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="ebpf__nethooks_8h.html#ad23ae5164c0bc1b25cfc3c60ab24a781">xdp_md_t</a> *&#160;</td>
+          <td class="paramname"><em>ctx</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>delta</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Adjust XDP context data pointer. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">ctx</td><td>XDP context. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">delta</td><td>Number of bytes to move the data pointer by.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
+    <tr><td class="paramname">&lt;0</td><td>A failure occured. </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>

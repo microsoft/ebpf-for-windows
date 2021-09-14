@@ -102,5 +102,6 @@ var searchData=
   ['bpf_5fprogram_5f_5funpin_127',['bpf_program__unpin',['../libbpf_8h.html#a3b5343605f1e4aff8008b4f3bba296bd',1,'libbpf.h']]],
   ['bpf_5fstats_5ftype_128',['bpf_stats_type',['../linux_2bpf_8h.html#af8f453a20dddc8657d0e69f73ffe2879',1,'bpf.h']]],
   ['bpf_5fstats_5ftype_5funknown_129',['BPF_STATS_TYPE_UNKNOWN',['../linux_2bpf_8h.html#af8f453a20dddc8657d0e69f73ffe2879abc1dd3438f95108ae16a1387917b5c65',1,'bpf.h']]],
-  ['bpf_5ftail_5fcall_130',['bpf_tail_call',['../bpf__helper__defs_8h.html#af0a0db158b6d6cc4fdf93411e41431ef',1,'bpf_helper_defs.h']]]
+  ['bpf_5ftail_5fcall_130',['bpf_tail_call',['../bpf__helper__defs_8h.html#af0a0db158b6d6cc4fdf93411e41431ef',1,'bpf_helper_defs.h']]],
+  ['bpf_5fxdp_5fadjust_5fhead_131',['bpf_xdp_adjust_head',['../ebpf__nethooks_8h.html#affc4b6ad0564d5788cf036749dff4e50',1,'ebpf_nethooks.h']]]
 ];
