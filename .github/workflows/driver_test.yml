@@ -33,6 +33,10 @@ jobs:
         name: Build x64 ${{ matrix.configurations }}
         path: ${{ github.workspace }}
 
+    - name: Cache driver symbols
+      working-directory: ${{ github.workspace }}
+      run: symchk -s cache*c:\symbols;. *.sys
+
     - name: Install eBPF
       working-directory: ${{ github.workspace }}
       run: ./install-ebpf.bat
