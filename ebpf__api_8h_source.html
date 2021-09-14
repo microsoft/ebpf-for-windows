@@ -111,199 +111,198 @@ $(function() {
 <div class="line"><a name="l00064"></a><span class="lineno">   64</span>&#160; </div>
 <div class="line"><a name="l00065"></a><span class="lineno"><a class="line" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">   65</a></span>&#160;    <span class="keyword">typedef</span> int32_t <a class="code" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a>;</div>
 <div class="line"><a name="l00066"></a><span class="lineno"><a class="line" href="ebpf__api_8h.html#acb6a7f4388cfb294444793fb9bbdaf35">   66</a></span>&#160;    <span class="keyword">const</span> <a class="code" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> <a class="code" href="ebpf__api_8h.html#acb6a7f4388cfb294444793fb9bbdaf35">ebpf_fd_invalid</a> = -1;</div>
-<div class="line"><a name="l00067"></a><span class="lineno"><a class="line" href="ebpf__api_8h.html#a730fd530617bad8bccf98e29452b4d55">   67</a></span>&#160;    <span class="keyword">typedef</span> <span class="keywordtype">void</span>* <a class="code" href="ebpf__api_8h.html#a730fd530617bad8bccf98e29452b4d55">ebpf_handle_t</a>;</div>
-<div class="line"><a name="l00068"></a><span class="lineno"><a class="line" href="ebpf__api_8h.html#a0584fa3dd32523977315bcbc05af2b97">   68</a></span>&#160;    <span class="keyword">const</span> <a class="code" href="ebpf__api_8h.html#a730fd530617bad8bccf98e29452b4d55">ebpf_handle_t</a> <a class="code" href="ebpf__api_8h.html#a0584fa3dd32523977315bcbc05af2b97">ebpf_handle_invalid</a> = (<a class="code" href="ebpf__api_8h.html#a730fd530617bad8bccf98e29452b4d55">ebpf_handle_t</a>)-1;</div>
-<div class="line"><a name="l00069"></a><span class="lineno"><a class="line" href="ebpf__api_8h.html#a2f716f8d7c1f8c5f04be07e15fd421d3">   69</a></span>&#160;    <span class="keyword">typedef</span> <span class="keyword">struct </span><a class="code" href="struct__tlv__type__length__value.html">_tlv_type_length_value</a> <a class="code" href="struct__tlv__type__length__value.html">tlv_type_length_value_t</a>;</div>
-<div class="line"><a name="l00070"></a><span class="lineno">   70</span>&#160; </div>
-<div class="line"><a name="l00071"></a><span class="lineno">   71</span>&#160;    <span class="keyword">struct </span>bpf_object;</div>
-<div class="line"><a name="l00072"></a><span class="lineno">   72</span>&#160;    <span class="keyword">struct </span>bpf_program;</div>
-<div class="line"><a name="l00073"></a><span class="lineno">   73</span>&#160;    <span class="keyword">struct </span><a class="code" href="bpf__helpers__platform_8h.html#a1d98f863fc6ebf789b378348438181ca">bpf_map</a>;</div>
-<div class="line"><a name="l00074"></a><span class="lineno">   74</span>&#160;    <span class="keyword">struct </span>bpf_link;</div>
-<div class="line"><a name="l00075"></a><span class="lineno">   75</span>&#160; </div>
-<div class="line"><a name="l00079"></a><span class="lineno">   79</span>&#160;    uint32_t</div>
-<div class="line"><a name="l00080"></a><span class="lineno">   80</span>&#160;    <a class="code" href="ebpf__api_8h.html#ab01f35f2524536c37711f4efe94efa7d">ebpf_api_initiate</a>();</div>
-<div class="line"><a name="l00081"></a><span class="lineno">   81</span>&#160; </div>
-<div class="line"><a name="l00085"></a><span class="lineno">   85</span>&#160;    <span class="keywordtype">void</span></div>
-<div class="line"><a name="l00086"></a><span class="lineno">   86</span>&#160;    <a class="code" href="ebpf__api_8h.html#ae461e96edcb2ca89c07e655421347d19">ebpf_api_terminate</a>();</div>
-<div class="line"><a name="l00087"></a><span class="lineno">   87</span>&#160; </div>
-<div class="line"><a name="l00100"></a><span class="lineno">  100</span>&#160;    <a class="code" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a></div>
-<div class="line"><a name="l00101"></a><span class="lineno">  101</span>&#160;    <a class="code" href="ebpf__api_8h.html#a71b58a2b58320461430b90e741c8669a">ebpf_api_load_program</a>(</div>
-<div class="line"><a name="l00102"></a><span class="lineno">  102</span>&#160;        <span class="keyword">const</span> <span class="keywordtype">char</span>* file,</div>
-<div class="line"><a name="l00103"></a><span class="lineno">  103</span>&#160;        <span class="keyword">const</span> <span class="keywordtype">char</span>* section_name,</div>
-<div class="line"><a name="l00104"></a><span class="lineno">  104</span>&#160;        <a class="code" href="ebpf__execution__type_8h.html#af58bcede64968a095964be4e78998658">ebpf_execution_type_t</a> execution_type,</div>
-<div class="line"><a name="l00105"></a><span class="lineno">  105</span>&#160;        <a class="code" href="ebpf__api_8h.html#a730fd530617bad8bccf98e29452b4d55">ebpf_handle_t</a>* handle,</div>
-<div class="line"><a name="l00106"></a><span class="lineno">  106</span>&#160;        uint32_t* count_of_map_handles,</div>
-<div class="line"><a name="l00107"></a><span class="lineno">  107</span>&#160;        <a class="code" href="ebpf__api_8h.html#a730fd530617bad8bccf98e29452b4d55">ebpf_handle_t</a>* map_handles,</div>
-<div class="line"><a name="l00108"></a><span class="lineno">  108</span>&#160;        <span class="keyword">const</span> <span class="keywordtype">char</span>** error_message);</div>
-<div class="line"><a name="l00109"></a><span class="lineno">  109</span>&#160; </div>
-<div class="line"><a name="l00123"></a><span class="lineno">  123</span>&#160;    <a class="code" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a></div>
-<div class="line"><a name="l00124"></a><span class="lineno">  124</span>&#160;    <a class="code" href="ebpf__api_8h.html#a0594ea36462d6efcd31c18144ef363f2">ebpf_api_create_map</a>(</div>
-<div class="line"><a name="l00125"></a><span class="lineno">  125</span>&#160;        <a class="code" href="ebpf__structs_8h.html#a4834bac82ca5ec846765b1a43f086a11">ebpf_map_type_t</a> type,</div>
-<div class="line"><a name="l00126"></a><span class="lineno">  126</span>&#160;        uint32_t key_size,</div>
-<div class="line"><a name="l00127"></a><span class="lineno">  127</span>&#160;        uint32_t value_size,</div>
-<div class="line"><a name="l00128"></a><span class="lineno">  128</span>&#160;        uint32_t max_entries,</div>
-<div class="line"><a name="l00129"></a><span class="lineno">  129</span>&#160;        uint32_t map_flags,</div>
-<div class="line"><a name="l00130"></a><span class="lineno">  130</span>&#160;        _Out_ <a class="code" href="ebpf__api_8h.html#a730fd530617bad8bccf98e29452b4d55">ebpf_handle_t</a>* handle);</div>
-<div class="line"><a name="l00131"></a><span class="lineno">  131</span>&#160; </div>
-<div class="line"><a name="l00147"></a><span class="lineno">  147</span>&#160;    <a class="code" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a></div>
-<div class="line"><a name="l00148"></a><span class="lineno">  148</span>&#160;    <a class="code" href="ebpf__api_8h.html#a895564663b45357cfcd9ba200c01cdc7">ebpf_create_map</a>(</div>
-<div class="line"><a name="l00149"></a><span class="lineno">  149</span>&#160;        <a class="code" href="ebpf__structs_8h.html#a4834bac82ca5ec846765b1a43f086a11">ebpf_map_type_t</a> map_type,</div>
-<div class="line"><a name="l00150"></a><span class="lineno">  150</span>&#160;        uint32_t key_size,</div>
-<div class="line"><a name="l00151"></a><span class="lineno">  151</span>&#160;        uint32_t value_size,</div>
-<div class="line"><a name="l00152"></a><span class="lineno">  152</span>&#160;        uint32_t max_entries,</div>
-<div class="line"><a name="l00153"></a><span class="lineno">  153</span>&#160;        uint32_t map_flags,</div>
-<div class="line"><a name="l00154"></a><span class="lineno">  154</span>&#160;        _Out_ <a class="code" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a>* map_fd);</div>
-<div class="line"><a name="l00155"></a><span class="lineno">  155</span>&#160; </div>
-<div class="line"><a name="l00172"></a><span class="lineno">  172</span>&#160;    <a class="code" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a></div>
-<div class="line"><a name="l00173"></a><span class="lineno">  173</span>&#160;    <a class="code" href="ebpf__api_8h.html#ab660ef9c16c8546333ded0a44141f31c">ebpf_create_map_name</a>(</div>
-<div class="line"><a name="l00174"></a><span class="lineno">  174</span>&#160;        <a class="code" href="ebpf__structs_8h.html#a4834bac82ca5ec846765b1a43f086a11">ebpf_map_type_t</a> type,</div>
-<div class="line"><a name="l00175"></a><span class="lineno">  175</span>&#160;        _In_opt_z_ <span class="keyword">const</span> <span class="keywordtype">char</span>* name,</div>
-<div class="line"><a name="l00176"></a><span class="lineno">  176</span>&#160;        uint32_t key_size,</div>
-<div class="line"><a name="l00177"></a><span class="lineno">  177</span>&#160;        uint32_t value_size,</div>
-<div class="line"><a name="l00178"></a><span class="lineno">  178</span>&#160;        uint32_t max_entries,</div>
-<div class="line"><a name="l00179"></a><span class="lineno">  179</span>&#160;        uint32_t map_flags,</div>
-<div class="line"><a name="l00180"></a><span class="lineno">  180</span>&#160;        _Out_ <a class="code" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a>* map_fd);</div>
-<div class="line"><a name="l00181"></a><span class="lineno">  181</span>&#160; </div>
-<div class="line"><a name="l00190"></a><span class="lineno">  190</span>&#160;    <a class="code" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a></div>
-<div class="line"><a name="l00191"></a><span class="lineno">  191</span>&#160;    <a class="code" href="ebpf__api_8h.html#a8a64245708e8b9a15bfa8c3aabdb275a">ebpf_get_next_map</a>(<a class="code" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> previous_fd, _Out_ <a class="code" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a>* next_fd);</div>
-<div class="line"><a name="l00192"></a><span class="lineno">  192</span>&#160; </div>
-<div class="line"><a name="l00201"></a><span class="lineno">  201</span>&#160;    <a class="code" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a></div>
-<div class="line"><a name="l00202"></a><span class="lineno">  202</span>&#160;    <a class="code" href="ebpf__api_8h.html#ac51d3d3fb9bf564c248c675cab6282e1">ebpf_get_next_program</a>(<a class="code" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> previous_fd, _Out_ <a class="code" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a>* next_fd);</div>
-<div class="line"><a name="l00203"></a><span class="lineno">  203</span>&#160; </div>
-<div class="line"><a name="l00211"></a><span class="lineno">  211</span>&#160;    uint32_t</div>
-<div class="line"><a name="l00212"></a><span class="lineno">  212</span>&#160;    <a class="code" href="ebpf__api_8h.html#a93cbec23ca2f87d22ae34b1cc8cb203d">ebpf_api_get_next_program</a>(<a class="code" href="ebpf__api_8h.html#a730fd530617bad8bccf98e29452b4d55">ebpf_handle_t</a> previous_handle, <a class="code" href="ebpf__api_8h.html#a730fd530617bad8bccf98e29452b4d55">ebpf_handle_t</a>* next_handle);</div>
-<div class="line"><a name="l00213"></a><span class="lineno">  213</span>&#160; </div>
-<div class="line"><a name="l00225"></a><span class="lineno">  225</span>&#160;    <a class="code" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a></div>
-<div class="line"><a name="l00226"></a><span class="lineno">  226</span>&#160;    <a class="code" href="ebpf__api_8h.html#a3c3475fa484645d8a8672e3d1fee5621">ebpf_map_query_definition</a>(</div>
-<div class="line"><a name="l00227"></a><span class="lineno">  227</span>&#160;        <a class="code" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> fd,</div>
-<div class="line"><a name="l00228"></a><span class="lineno">  228</span>&#160;        _Out_ uint32_t* size,</div>
-<div class="line"><a name="l00229"></a><span class="lineno">  229</span>&#160;        _Out_ uint32_t* type,</div>
-<div class="line"><a name="l00230"></a><span class="lineno">  230</span>&#160;        _Out_ uint32_t* key_size,</div>
-<div class="line"><a name="l00231"></a><span class="lineno">  231</span>&#160;        _Out_ uint32_t* value_size,</div>
-<div class="line"><a name="l00232"></a><span class="lineno">  232</span>&#160;        _Out_ uint32_t* max_entries,</div>
-<div class="line"><a name="l00233"></a><span class="lineno">  233</span>&#160;        _Out_ <a class="code" href="ebpf__structs_8h.html#aa03abb9b99ca6cfa2fa19f2fb8140df8">ebpf_id_t</a>* inner_map_id);</div>
-<div class="line"><a name="l00234"></a><span class="lineno">  234</span>&#160; </div>
-<div class="line"><a name="l00243"></a><span class="lineno">  243</span>&#160;    <a class="code" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a></div>
-<div class="line"><a name="l00244"></a><span class="lineno">  244</span>&#160;    <a class="code" href="ebpf__api_8h.html#af7aab54ea32e2032072e765b982a3c17">ebpf_program_query_info</a>(</div>
-<div class="line"><a name="l00245"></a><span class="lineno">  245</span>&#160;        <a class="code" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> fd,</div>
-<div class="line"><a name="l00246"></a><span class="lineno">  246</span>&#160;        _Out_ <a class="code" href="ebpf__execution__type_8h.html#af58bcede64968a095964be4e78998658">ebpf_execution_type_t</a>* execution_type,</div>
-<div class="line"><a name="l00247"></a><span class="lineno">  247</span>&#160;        _Outptr_result_z_ <span class="keyword">const</span> <span class="keywordtype">char</span>** file_name,</div>
-<div class="line"><a name="l00248"></a><span class="lineno">  248</span>&#160;        _Outptr_result_z_ <span class="keyword">const</span> <span class="keywordtype">char</span>** section_name);</div>
-<div class="line"><a name="l00249"></a><span class="lineno">  249</span>&#160; </div>
-<div class="line"><a name="l00278"></a><span class="lineno">  278</span>&#160;    uint32_t</div>
-<div class="line"><a name="l00279"></a><span class="lineno">  279</span>&#160;    <a class="code" href="ebpf__api_8h.html#a121da5428db28e72b9cee7f22b94a3df">ebpf_api_elf_enumerate_sections</a>(</div>
-<div class="line"><a name="l00280"></a><span class="lineno">  280</span>&#160;        <span class="keyword">const</span> <span class="keywordtype">char</span>* file,</div>
-<div class="line"><a name="l00281"></a><span class="lineno">  281</span>&#160;        <span class="keyword">const</span> <span class="keywordtype">char</span>* section,</div>
-<div class="line"><a name="l00282"></a><span class="lineno">  282</span>&#160;        <span class="keywordtype">bool</span> verbose,</div>
-<div class="line"><a name="l00283"></a><span class="lineno">  283</span>&#160;        <span class="keyword">const</span> <a class="code" href="struct__tlv__type__length__value.html">tlv_type_length_value_t</a>** data,</div>
-<div class="line"><a name="l00284"></a><span class="lineno">  284</span>&#160;        <span class="keyword">const</span> <span class="keywordtype">char</span>** error_message);</div>
-<div class="line"><a name="l00285"></a><span class="lineno">  285</span>&#160; </div>
-<div class="line"><a name="l00294"></a><span class="lineno">  294</span>&#160;    uint32_t</div>
-<div class="line"><a name="l00295"></a><span class="lineno">  295</span>&#160;    <a class="code" href="ebpf__api_8h.html#ae4fbdf4fbbb9196651fd40fd0640c3c9">ebpf_api_elf_disassemble_section</a>(</div>
-<div class="line"><a name="l00296"></a><span class="lineno">  296</span>&#160;        <span class="keyword">const</span> <span class="keywordtype">char</span>* file, <span class="keyword">const</span> <span class="keywordtype">char</span>* section, <span class="keyword">const</span> <span class="keywordtype">char</span>** disassembly, <span class="keyword">const</span> <span class="keywordtype">char</span>** error_message);</div>
-<div class="line"><a name="l00297"></a><span class="lineno">  297</span>&#160; </div>
-<div class="line"><a name="l00298"></a><span class="lineno"><a class="line" href="structebpf__api__verifier__stats__t.html">  298</a></span>&#160;    <span class="keyword">typedef</span> <span class="keyword">struct</span></div>
-<div class="line"><a name="l00299"></a><span class="lineno">  299</span>&#160;    {</div>
-<div class="line"><a name="l00300"></a><span class="lineno"><a class="line" href="structebpf__api__verifier__stats__t.html#a8c63d828b7004160dcb961cfd4832649">  300</a></span>&#160;        <span class="keywordtype">int</span> <a class="code" href="structebpf__api__verifier__stats__t.html#a8c63d828b7004160dcb961cfd4832649">total_unreachable</a>;</div>
-<div class="line"><a name="l00301"></a><span class="lineno"><a class="line" href="structebpf__api__verifier__stats__t.html#a3208c61600bdee5b04f21c7e96270a65">  301</a></span>&#160;        <span class="keywordtype">int</span> <a class="code" href="structebpf__api__verifier__stats__t.html#a3208c61600bdee5b04f21c7e96270a65">total_warnings</a>;</div>
-<div class="line"><a name="l00302"></a><span class="lineno"><a class="line" href="structebpf__api__verifier__stats__t.html#ac0b14f4498797ed6aebffb06f19c0f20">  302</a></span>&#160;        <span class="keywordtype">int</span> <a class="code" href="structebpf__api__verifier__stats__t.html#ac0b14f4498797ed6aebffb06f19c0f20">max_instruction_count</a>;</div>
-<div class="line"><a name="l00303"></a><span class="lineno">  303</span>&#160;    } <a class="code" href="structebpf__api__verifier__stats__t.html">ebpf_api_verifier_stats_t</a>;</div>
-<div class="line"><a name="l00304"></a><span class="lineno">  304</span>&#160; </div>
-<div class="line"><a name="l00316"></a><span class="lineno">  316</span>&#160;    uint32_t</div>
-<div class="line"><a name="l00317"></a><span class="lineno">  317</span>&#160;    <a class="code" href="ebpf__api_8h.html#a5d9dba4c9d7ffc6a29b64bd76b4d40d9">ebpf_api_elf_verify_section</a>(</div>
-<div class="line"><a name="l00318"></a><span class="lineno">  318</span>&#160;        <span class="keyword">const</span> <span class="keywordtype">char</span>* file,</div>
-<div class="line"><a name="l00319"></a><span class="lineno">  319</span>&#160;        <span class="keyword">const</span> <span class="keywordtype">char</span>* section,</div>
-<div class="line"><a name="l00320"></a><span class="lineno">  320</span>&#160;        <span class="keywordtype">bool</span> verbose,</div>
-<div class="line"><a name="l00321"></a><span class="lineno">  321</span>&#160;        <span class="keyword">const</span> <span class="keywordtype">char</span>** report,</div>
-<div class="line"><a name="l00322"></a><span class="lineno">  322</span>&#160;        <span class="keyword">const</span> <span class="keywordtype">char</span>** error_message,</div>
-<div class="line"><a name="l00323"></a><span class="lineno">  323</span>&#160;        <a class="code" href="structebpf__api__verifier__stats__t.html">ebpf_api_verifier_stats_t</a>* stats);</div>
-<div class="line"><a name="l00324"></a><span class="lineno">  324</span>&#160; </div>
-<div class="line"><a name="l00329"></a><span class="lineno">  329</span>&#160;    <span class="keywordtype">void</span></div>
-<div class="line"><a name="l00330"></a><span class="lineno">  330</span>&#160;    <a class="code" href="ebpf__api_8h.html#afe38ca942567ba2335a2612460576156">ebpf_api_elf_free</a>(<span class="keyword">const</span> <a class="code" href="struct__tlv__type__length__value.html">tlv_type_length_value_t</a>* data);</div>
-<div class="line"><a name="l00331"></a><span class="lineno">  331</span>&#160; </div>
-<div class="line"><a name="l00336"></a><span class="lineno">  336</span>&#160;    <span class="keywordtype">void</span></div>
-<div class="line"><a name="l00337"></a><span class="lineno">  337</span>&#160;    <a class="code" href="ebpf__api_8h.html#a90cbc93764ecd96f2a84fd659e517851">ebpf_free_string</a>(_In_opt_ _Post_invalid_ <span class="keyword">const</span> <span class="keywordtype">char</span>* <span class="keywordtype">string</span>);</div>
-<div class="line"><a name="l00338"></a><span class="lineno">  338</span>&#160; </div>
-<div class="line"><a name="l00345"></a><span class="lineno">  345</span>&#160;    uint32_t</div>
-<div class="line"><a name="l00346"></a><span class="lineno">  346</span>&#160;    <a class="code" href="ebpf__api_8h.html#a7ee75d3902b22c4bf7b75b957a4c2922">ebpf_api_pin_object</a>(<a class="code" href="ebpf__api_8h.html#a730fd530617bad8bccf98e29452b4d55">ebpf_handle_t</a> handle, <span class="keyword">const</span> uint8_t* name, uint32_t name_length);</div>
-<div class="line"><a name="l00347"></a><span class="lineno">  347</span>&#160; </div>
-<div class="line"><a name="l00353"></a><span class="lineno">  353</span>&#160;    uint32_t</div>
-<div class="line"><a name="l00354"></a><span class="lineno">  354</span>&#160;    <a class="code" href="ebpf__api_8h.html#af3dc979c21fbfa8e63d80eb5726cc090">ebpf_api_unpin_object</a>(<span class="keyword">const</span> uint8_t* name, uint32_t name_length);</div>
-<div class="line"><a name="l00355"></a><span class="lineno">  355</span>&#160; </div>
-<div class="line"><a name="l00363"></a><span class="lineno">  363</span>&#160;    <a class="code" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a></div>
-<div class="line"><a name="l00364"></a><span class="lineno">  364</span>&#160;    <a class="code" href="ebpf__api_8h.html#a6d7b3db01124a30af90d1860b583c10c">ebpf_object_pin</a>(<a class="code" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> fd, _In_z_ <span class="keyword">const</span> <span class="keywordtype">char</span>* path);</div>
-<div class="line"><a name="l00365"></a><span class="lineno">  365</span>&#160; </div>
-<div class="line"><a name="l00372"></a><span class="lineno">  372</span>&#160;    <a class="code" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a></div>
-<div class="line"><a name="l00373"></a><span class="lineno">  373</span>&#160;    <a class="code" href="ebpf__api_8h.html#abff7c5b1b63aabfc77e14104de4ae3cb">ebpf_object_unpin</a>(_In_z_ <span class="keyword">const</span> <span class="keywordtype">char</span>* path);</div>
-<div class="line"><a name="l00374"></a><span class="lineno">  374</span>&#160; </div>
-<div class="line"><a name="l00381"></a><span class="lineno">  381</span>&#160;    uint32_t</div>
-<div class="line"><a name="l00382"></a><span class="lineno">  382</span>&#160;    <a class="code" href="ebpf__api_8h.html#af1636518b704a50a14f868545197dca7">ebpf_api_get_pinned_map</a>(<span class="keyword">const</span> uint8_t* name, uint32_t name_length, <a class="code" href="ebpf__api_8h.html#a730fd530617bad8bccf98e29452b4d55">ebpf_handle_t</a>* handle);</div>
-<div class="line"><a name="l00383"></a><span class="lineno">  383</span>&#160; </div>
-<div class="line"><a name="l00395"></a><span class="lineno">  395</span>&#160;    uint32_t</div>
-<div class="line"><a name="l00396"></a><span class="lineno">  396</span>&#160;    <a class="code" href="ebpf__api_8h.html#aa9830656da56c0b0b7e980dc9ad012e7">ebpf_api_link_program</a>(<a class="code" href="ebpf__api_8h.html#a730fd530617bad8bccf98e29452b4d55">ebpf_handle_t</a> program_handle, <a class="code" href="ebpf__windows_8h.html#a3f56868552f991b0f9eb6800d8f9a43c">ebpf_attach_type_t</a> attach_type, <a class="code" href="ebpf__api_8h.html#a730fd530617bad8bccf98e29452b4d55">ebpf_handle_t</a>* link_handle);</div>
-<div class="line"><a name="l00397"></a><span class="lineno">  397</span>&#160; </div>
-<div class="line"><a name="l00406"></a><span class="lineno">  406</span>&#160;    uint32_t</div>
-<div class="line"><a name="l00407"></a><span class="lineno">  407</span>&#160;    <a class="code" href="ebpf__api_8h.html#aecda75bf2d796bb5f3e02314501aa492">ebpf_api_unlink_program</a>(<a class="code" href="ebpf__api_8h.html#a730fd530617bad8bccf98e29452b4d55">ebpf_handle_t</a> link_handle);</div>
-<div class="line"><a name="l00408"></a><span class="lineno">  408</span>&#160; </div>
-<div class="line"><a name="l00416"></a><span class="lineno">  416</span>&#160;    <a class="code" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a></div>
-<div class="line"><a name="l00417"></a><span class="lineno">  417</span>&#160;    <a class="code" href="ebpf__api_8h.html#a4f0329af040370a21a9efe8b3713a314">ebpf_api_close_handle</a>(<a class="code" href="ebpf__api_8h.html#a730fd530617bad8bccf98e29452b4d55">ebpf_handle_t</a> handle);</div>
-<div class="line"><a name="l00418"></a><span class="lineno">  418</span>&#160; </div>
-<div class="line"><a name="l00429"></a><span class="lineno">  429</span>&#160;    <a class="code" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a></div>
-<div class="line"><a name="l00430"></a><span class="lineno">  430</span>&#160;    <a class="code" href="ebpf__api_8h.html#a9efa5b0bc9c76b830614f120acb73a42">ebpf_api_get_pinned_map_info</a>(</div>
-<div class="line"><a name="l00431"></a><span class="lineno">  431</span>&#160;        _Out_ uint16_t* map_count, _Outptr_result_buffer_maybenull_(*map_count) <a class="code" href="struct__ebpf__map__info.html">ebpf_map_info_t</a>** map_info);</div>
-<div class="line"><a name="l00432"></a><span class="lineno">  432</span>&#160; </div>
-<div class="line"><a name="l00440"></a><span class="lineno">  440</span>&#160;    <span class="keywordtype">void</span></div>
-<div class="line"><a name="l00441"></a><span class="lineno">  441</span>&#160;    <a class="code" href="ebpf__api_8h.html#afa6f86ddbf4799f3e34501e8b9e8bf7e">ebpf_api_map_info_free</a>(</div>
-<div class="line"><a name="l00442"></a><span class="lineno">  442</span>&#160;        uint16_t map_count, _In_opt_count_(map_count) _Post_ptr_invalid_ <span class="keyword">const</span> <a class="code" href="struct__ebpf__map__info.html">ebpf_map_info_t</a>* map_info);</div>
-<div class="line"><a name="l00443"></a><span class="lineno">  443</span>&#160; </div>
-<div class="line"><a name="l00480"></a><span class="lineno">  480</span>&#160;    <a class="code" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a></div>
-<div class="line"><a name="l00481"></a><span class="lineno">  481</span>&#160;    <a class="code" href="ebpf__api_8h.html#aaef788607a4a4665866140af5f50e78c">ebpf_program_load</a>(</div>
-<div class="line"><a name="l00482"></a><span class="lineno">  482</span>&#160;        _In_z_ <span class="keyword">const</span> <span class="keywordtype">char</span>* file_name,</div>
-<div class="line"><a name="l00483"></a><span class="lineno">  483</span>&#160;        _In_opt_ <span class="keyword">const</span> <a class="code" href="ebpf__windows_8h.html#a7392ed9f9037688cd94f7069c523c251">ebpf_program_type_t</a>* program_type,</div>
-<div class="line"><a name="l00484"></a><span class="lineno">  484</span>&#160;        _In_opt_ <span class="keyword">const</span> <a class="code" href="ebpf__windows_8h.html#a3f56868552f991b0f9eb6800d8f9a43c">ebpf_attach_type_t</a>* attach_type,</div>
-<div class="line"><a name="l00485"></a><span class="lineno">  485</span>&#160;        _In_ <a class="code" href="ebpf__execution__type_8h.html#af58bcede64968a095964be4e78998658">ebpf_execution_type_t</a> execution_type,</div>
-<div class="line"><a name="l00486"></a><span class="lineno">  486</span>&#160;        _Outptr_ <span class="keyword">struct</span> bpf_object** <span class="keywordtype">object</span>,</div>
-<div class="line"><a name="l00487"></a><span class="lineno">  487</span>&#160;        _Out_ <a class="code" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a>* program_fd,</div>
-<div class="line"><a name="l00488"></a><span class="lineno">  488</span>&#160;        _Outptr_result_maybenull_z_ <span class="keyword">const</span> <span class="keywordtype">char</span>** log_buffer);</div>
-<div class="line"><a name="l00489"></a><span class="lineno">  489</span>&#160; </div>
-<div class="line"><a name="l00506"></a><span class="lineno">  506</span>&#160;    <a class="code" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a></div>
-<div class="line"><a name="l00507"></a><span class="lineno">  507</span>&#160;    <a class="code" href="ebpf__api_8h.html#ac49d0596d90fcfb57ad393ef7d3bd395">ebpf_program_attach</a>(</div>
-<div class="line"><a name="l00508"></a><span class="lineno">  508</span>&#160;        _In_ <span class="keyword">struct</span> bpf_program* program,</div>
-<div class="line"><a name="l00509"></a><span class="lineno">  509</span>&#160;        _In_opt_ <span class="keyword">const</span> <a class="code" href="ebpf__windows_8h.html#a3f56868552f991b0f9eb6800d8f9a43c">ebpf_attach_type_t</a>* attach_type,</div>
-<div class="line"><a name="l00510"></a><span class="lineno">  510</span>&#160;        _In_reads_bytes_opt_(attach_params_size) <span class="keywordtype">void</span>* attach_parameters,</div>
-<div class="line"><a name="l00511"></a><span class="lineno">  511</span>&#160;        _In_ <span class="keywordtype">size_t</span> attach_params_size,</div>
-<div class="line"><a name="l00512"></a><span class="lineno">  512</span>&#160;        _Outptr_ <span class="keyword">struct</span> bpf_link** link);</div>
-<div class="line"><a name="l00513"></a><span class="lineno">  513</span>&#160; </div>
-<div class="line"><a name="l00530"></a><span class="lineno">  530</span>&#160;    <a class="code" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a></div>
-<div class="line"><a name="l00531"></a><span class="lineno">  531</span>&#160;    <a class="code" href="ebpf__api_8h.html#a45795cc59c800ba8f8a3300611e2bfe3">ebpf_program_attach_by_fd</a>(</div>
-<div class="line"><a name="l00532"></a><span class="lineno">  532</span>&#160;        <a class="code" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> program_fd,</div>
-<div class="line"><a name="l00533"></a><span class="lineno">  533</span>&#160;        _In_opt_ <span class="keyword">const</span> <a class="code" href="ebpf__windows_8h.html#a3f56868552f991b0f9eb6800d8f9a43c">ebpf_attach_type_t</a>* attach_type,</div>
-<div class="line"><a name="l00534"></a><span class="lineno">  534</span>&#160;        _In_reads_bytes_opt_(attach_params_size) <span class="keywordtype">void</span>* attach_parameters,</div>
-<div class="line"><a name="l00535"></a><span class="lineno">  535</span>&#160;        _In_ <span class="keywordtype">size_t</span> attach_params_size,</div>
-<div class="line"><a name="l00536"></a><span class="lineno">  536</span>&#160;        _Outptr_ <span class="keyword">struct</span> bpf_link** link);</div>
-<div class="line"><a name="l00537"></a><span class="lineno">  537</span>&#160; </div>
-<div class="line"><a name="l00547"></a><span class="lineno">  547</span>&#160;    <a class="code" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a></div>
-<div class="line"><a name="l00548"></a><span class="lineno">  548</span>&#160;    <a class="code" href="ebpf__api_8h.html#acffc92c675ef416fbc24d98651158029">ebpf_link_detach</a>(_In_ <span class="keyword">struct</span> bpf_link* link);</div>
-<div class="line"><a name="l00549"></a><span class="lineno">  549</span>&#160; </div>
-<div class="line"><a name="l00562"></a><span class="lineno">  562</span>&#160;    <a class="code" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a></div>
-<div class="line"><a name="l00563"></a><span class="lineno">  563</span>&#160;    <a class="code" href="ebpf__api_8h.html#a615bbda0f78b51d852e60fb6b9cb6433">ebpf_link_close</a>(_In_ <span class="keyword">struct</span> bpf_link* link);</div>
-<div class="line"><a name="l00564"></a><span class="lineno">  564</span>&#160; </div>
-<div class="line"><a name="l00571"></a><span class="lineno">  571</span>&#160;    <a class="code" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a></div>
-<div class="line"><a name="l00572"></a><span class="lineno">  572</span>&#160;    <a class="code" href="ebpf__api_8h.html#accc960f392ccf0ab7fb13c09e5b98ec0">ebpf_object_get</a>(_In_z_ <span class="keyword">const</span> <span class="keywordtype">char</span>* path);</div>
-<div class="line"><a name="l00573"></a><span class="lineno">  573</span>&#160; </div>
-<div class="line"><a name="l00581"></a><span class="lineno">  581</span>&#160;    <a class="code" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a></div>
-<div class="line"><a name="l00582"></a><span class="lineno">  582</span>&#160;    <a class="code" href="ebpf__api_8h.html#ad5dde8db65d21b803c80a120a1db1105">ebpf_close_fd</a>(<a class="code" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> fd);</div>
-<div class="line"><a name="l00583"></a><span class="lineno">  583</span>&#160; </div>
-<div class="line"><a name="l00584"></a><span class="lineno">  584</span>&#160;<span class="preprocessor">#ifdef __cplusplus</span></div>
-<div class="line"><a name="l00585"></a><span class="lineno">  585</span>&#160;}</div>
-<div class="line"><a name="l00586"></a><span class="lineno">  586</span>&#160;<span class="preprocessor">#endif</span></div>
+<div class="line"><a name="l00067"></a><span class="lineno"><a class="line" href="ebpf__api_8h.html#abb41989791fe081530c8719049ad1c35">   67</a></span>&#160;    <span class="keyword">typedef</span> intptr_t <a class="code" href="ebpf__api_8h.html#abb41989791fe081530c8719049ad1c35">ebpf_handle_t</a>;</div>
+<div class="line"><a name="l00068"></a><span class="lineno"><a class="line" href="ebpf__api_8h.html#a2f716f8d7c1f8c5f04be07e15fd421d3">   68</a></span>&#160;    <span class="keyword">typedef</span> <span class="keyword">struct </span><a class="code" href="struct__tlv__type__length__value.html">_tlv_type_length_value</a> <a class="code" href="struct__tlv__type__length__value.html">tlv_type_length_value_t</a>;</div>
+<div class="line"><a name="l00069"></a><span class="lineno">   69</span>&#160; </div>
+<div class="line"><a name="l00070"></a><span class="lineno">   70</span>&#160;    <span class="keyword">struct </span>bpf_object;</div>
+<div class="line"><a name="l00071"></a><span class="lineno">   71</span>&#160;    <span class="keyword">struct </span>bpf_program;</div>
+<div class="line"><a name="l00072"></a><span class="lineno">   72</span>&#160;    <span class="keyword">struct </span><a class="code" href="bpf__helpers__platform_8h.html#a1d98f863fc6ebf789b378348438181ca">bpf_map</a>;</div>
+<div class="line"><a name="l00073"></a><span class="lineno">   73</span>&#160;    <span class="keyword">struct </span>bpf_link;</div>
+<div class="line"><a name="l00074"></a><span class="lineno">   74</span>&#160; </div>
+<div class="line"><a name="l00078"></a><span class="lineno">   78</span>&#160;    uint32_t</div>
+<div class="line"><a name="l00079"></a><span class="lineno">   79</span>&#160;    <a class="code" href="ebpf__api_8h.html#ab01f35f2524536c37711f4efe94efa7d">ebpf_api_initiate</a>();</div>
+<div class="line"><a name="l00080"></a><span class="lineno">   80</span>&#160; </div>
+<div class="line"><a name="l00084"></a><span class="lineno">   84</span>&#160;    <span class="keywordtype">void</span></div>
+<div class="line"><a name="l00085"></a><span class="lineno">   85</span>&#160;    <a class="code" href="ebpf__api_8h.html#ae461e96edcb2ca89c07e655421347d19">ebpf_api_terminate</a>();</div>
+<div class="line"><a name="l00086"></a><span class="lineno">   86</span>&#160; </div>
+<div class="line"><a name="l00099"></a><span class="lineno">   99</span>&#160;    <a class="code" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a></div>
+<div class="line"><a name="l00100"></a><span class="lineno">  100</span>&#160;    <a class="code" href="ebpf__api_8h.html#a71b58a2b58320461430b90e741c8669a">ebpf_api_load_program</a>(</div>
+<div class="line"><a name="l00101"></a><span class="lineno">  101</span>&#160;        <span class="keyword">const</span> <span class="keywordtype">char</span>* file,</div>
+<div class="line"><a name="l00102"></a><span class="lineno">  102</span>&#160;        <span class="keyword">const</span> <span class="keywordtype">char</span>* section_name,</div>
+<div class="line"><a name="l00103"></a><span class="lineno">  103</span>&#160;        <a class="code" href="ebpf__execution__type_8h.html#af58bcede64968a095964be4e78998658">ebpf_execution_type_t</a> execution_type,</div>
+<div class="line"><a name="l00104"></a><span class="lineno">  104</span>&#160;        <a class="code" href="ebpf__api_8h.html#abb41989791fe081530c8719049ad1c35">ebpf_handle_t</a>* handle,</div>
+<div class="line"><a name="l00105"></a><span class="lineno">  105</span>&#160;        uint32_t* count_of_map_handles,</div>
+<div class="line"><a name="l00106"></a><span class="lineno">  106</span>&#160;        <a class="code" href="ebpf__api_8h.html#abb41989791fe081530c8719049ad1c35">ebpf_handle_t</a>* map_handles,</div>
+<div class="line"><a name="l00107"></a><span class="lineno">  107</span>&#160;        <span class="keyword">const</span> <span class="keywordtype">char</span>** error_message);</div>
+<div class="line"><a name="l00108"></a><span class="lineno">  108</span>&#160; </div>
+<div class="line"><a name="l00122"></a><span class="lineno">  122</span>&#160;    <a class="code" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a></div>
+<div class="line"><a name="l00123"></a><span class="lineno">  123</span>&#160;    <a class="code" href="ebpf__api_8h.html#a0594ea36462d6efcd31c18144ef363f2">ebpf_api_create_map</a>(</div>
+<div class="line"><a name="l00124"></a><span class="lineno">  124</span>&#160;        <a class="code" href="ebpf__structs_8h.html#a4834bac82ca5ec846765b1a43f086a11">ebpf_map_type_t</a> type,</div>
+<div class="line"><a name="l00125"></a><span class="lineno">  125</span>&#160;        uint32_t key_size,</div>
+<div class="line"><a name="l00126"></a><span class="lineno">  126</span>&#160;        uint32_t value_size,</div>
+<div class="line"><a name="l00127"></a><span class="lineno">  127</span>&#160;        uint32_t max_entries,</div>
+<div class="line"><a name="l00128"></a><span class="lineno">  128</span>&#160;        uint32_t map_flags,</div>
+<div class="line"><a name="l00129"></a><span class="lineno">  129</span>&#160;        _Out_ <a class="code" href="ebpf__api_8h.html#abb41989791fe081530c8719049ad1c35">ebpf_handle_t</a>* handle);</div>
+<div class="line"><a name="l00130"></a><span class="lineno">  130</span>&#160; </div>
+<div class="line"><a name="l00146"></a><span class="lineno">  146</span>&#160;    <a class="code" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a></div>
+<div class="line"><a name="l00147"></a><span class="lineno">  147</span>&#160;    <a class="code" href="ebpf__api_8h.html#a895564663b45357cfcd9ba200c01cdc7">ebpf_create_map</a>(</div>
+<div class="line"><a name="l00148"></a><span class="lineno">  148</span>&#160;        <a class="code" href="ebpf__structs_8h.html#a4834bac82ca5ec846765b1a43f086a11">ebpf_map_type_t</a> map_type,</div>
+<div class="line"><a name="l00149"></a><span class="lineno">  149</span>&#160;        uint32_t key_size,</div>
+<div class="line"><a name="l00150"></a><span class="lineno">  150</span>&#160;        uint32_t value_size,</div>
+<div class="line"><a name="l00151"></a><span class="lineno">  151</span>&#160;        uint32_t max_entries,</div>
+<div class="line"><a name="l00152"></a><span class="lineno">  152</span>&#160;        uint32_t map_flags,</div>
+<div class="line"><a name="l00153"></a><span class="lineno">  153</span>&#160;        _Out_ <a class="code" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a>* map_fd);</div>
+<div class="line"><a name="l00154"></a><span class="lineno">  154</span>&#160; </div>
+<div class="line"><a name="l00171"></a><span class="lineno">  171</span>&#160;    <a class="code" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a></div>
+<div class="line"><a name="l00172"></a><span class="lineno">  172</span>&#160;    <a class="code" href="ebpf__api_8h.html#ab660ef9c16c8546333ded0a44141f31c">ebpf_create_map_name</a>(</div>
+<div class="line"><a name="l00173"></a><span class="lineno">  173</span>&#160;        <a class="code" href="ebpf__structs_8h.html#a4834bac82ca5ec846765b1a43f086a11">ebpf_map_type_t</a> type,</div>
+<div class="line"><a name="l00174"></a><span class="lineno">  174</span>&#160;        _In_opt_z_ <span class="keyword">const</span> <span class="keywordtype">char</span>* name,</div>
+<div class="line"><a name="l00175"></a><span class="lineno">  175</span>&#160;        uint32_t key_size,</div>
+<div class="line"><a name="l00176"></a><span class="lineno">  176</span>&#160;        uint32_t value_size,</div>
+<div class="line"><a name="l00177"></a><span class="lineno">  177</span>&#160;        uint32_t max_entries,</div>
+<div class="line"><a name="l00178"></a><span class="lineno">  178</span>&#160;        uint32_t map_flags,</div>
+<div class="line"><a name="l00179"></a><span class="lineno">  179</span>&#160;        _Out_ <a class="code" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a>* map_fd);</div>
+<div class="line"><a name="l00180"></a><span class="lineno">  180</span>&#160; </div>
+<div class="line"><a name="l00189"></a><span class="lineno">  189</span>&#160;    <a class="code" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a></div>
+<div class="line"><a name="l00190"></a><span class="lineno">  190</span>&#160;    <a class="code" href="ebpf__api_8h.html#a8a64245708e8b9a15bfa8c3aabdb275a">ebpf_get_next_map</a>(<a class="code" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> previous_fd, _Out_ <a class="code" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a>* next_fd);</div>
+<div class="line"><a name="l00191"></a><span class="lineno">  191</span>&#160; </div>
+<div class="line"><a name="l00200"></a><span class="lineno">  200</span>&#160;    <a class="code" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a></div>
+<div class="line"><a name="l00201"></a><span class="lineno">  201</span>&#160;    <a class="code" href="ebpf__api_8h.html#ac51d3d3fb9bf564c248c675cab6282e1">ebpf_get_next_program</a>(<a class="code" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> previous_fd, _Out_ <a class="code" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a>* next_fd);</div>
+<div class="line"><a name="l00202"></a><span class="lineno">  202</span>&#160; </div>
+<div class="line"><a name="l00210"></a><span class="lineno">  210</span>&#160;    uint32_t</div>
+<div class="line"><a name="l00211"></a><span class="lineno">  211</span>&#160;    <a class="code" href="ebpf__api_8h.html#a93cbec23ca2f87d22ae34b1cc8cb203d">ebpf_api_get_next_program</a>(<a class="code" href="ebpf__api_8h.html#abb41989791fe081530c8719049ad1c35">ebpf_handle_t</a> previous_handle, <a class="code" href="ebpf__api_8h.html#abb41989791fe081530c8719049ad1c35">ebpf_handle_t</a>* next_handle);</div>
+<div class="line"><a name="l00212"></a><span class="lineno">  212</span>&#160; </div>
+<div class="line"><a name="l00224"></a><span class="lineno">  224</span>&#160;    <a class="code" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a></div>
+<div class="line"><a name="l00225"></a><span class="lineno">  225</span>&#160;    <a class="code" href="ebpf__api_8h.html#a3c3475fa484645d8a8672e3d1fee5621">ebpf_map_query_definition</a>(</div>
+<div class="line"><a name="l00226"></a><span class="lineno">  226</span>&#160;        <a class="code" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> fd,</div>
+<div class="line"><a name="l00227"></a><span class="lineno">  227</span>&#160;        _Out_ uint32_t* size,</div>
+<div class="line"><a name="l00228"></a><span class="lineno">  228</span>&#160;        _Out_ uint32_t* type,</div>
+<div class="line"><a name="l00229"></a><span class="lineno">  229</span>&#160;        _Out_ uint32_t* key_size,</div>
+<div class="line"><a name="l00230"></a><span class="lineno">  230</span>&#160;        _Out_ uint32_t* value_size,</div>
+<div class="line"><a name="l00231"></a><span class="lineno">  231</span>&#160;        _Out_ uint32_t* max_entries,</div>
+<div class="line"><a name="l00232"></a><span class="lineno">  232</span>&#160;        _Out_ <a class="code" href="ebpf__structs_8h.html#aa03abb9b99ca6cfa2fa19f2fb8140df8">ebpf_id_t</a>* inner_map_id);</div>
+<div class="line"><a name="l00233"></a><span class="lineno">  233</span>&#160; </div>
+<div class="line"><a name="l00242"></a><span class="lineno">  242</span>&#160;    <a class="code" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a></div>
+<div class="line"><a name="l00243"></a><span class="lineno">  243</span>&#160;    <a class="code" href="ebpf__api_8h.html#af7aab54ea32e2032072e765b982a3c17">ebpf_program_query_info</a>(</div>
+<div class="line"><a name="l00244"></a><span class="lineno">  244</span>&#160;        <a class="code" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> fd,</div>
+<div class="line"><a name="l00245"></a><span class="lineno">  245</span>&#160;        _Out_ <a class="code" href="ebpf__execution__type_8h.html#af58bcede64968a095964be4e78998658">ebpf_execution_type_t</a>* execution_type,</div>
+<div class="line"><a name="l00246"></a><span class="lineno">  246</span>&#160;        _Outptr_result_z_ <span class="keyword">const</span> <span class="keywordtype">char</span>** file_name,</div>
+<div class="line"><a name="l00247"></a><span class="lineno">  247</span>&#160;        _Outptr_result_z_ <span class="keyword">const</span> <span class="keywordtype">char</span>** section_name);</div>
+<div class="line"><a name="l00248"></a><span class="lineno">  248</span>&#160; </div>
+<div class="line"><a name="l00277"></a><span class="lineno">  277</span>&#160;    uint32_t</div>
+<div class="line"><a name="l00278"></a><span class="lineno">  278</span>&#160;    <a class="code" href="ebpf__api_8h.html#a121da5428db28e72b9cee7f22b94a3df">ebpf_api_elf_enumerate_sections</a>(</div>
+<div class="line"><a name="l00279"></a><span class="lineno">  279</span>&#160;        <span class="keyword">const</span> <span class="keywordtype">char</span>* file,</div>
+<div class="line"><a name="l00280"></a><span class="lineno">  280</span>&#160;        <span class="keyword">const</span> <span class="keywordtype">char</span>* section,</div>
+<div class="line"><a name="l00281"></a><span class="lineno">  281</span>&#160;        <span class="keywordtype">bool</span> verbose,</div>
+<div class="line"><a name="l00282"></a><span class="lineno">  282</span>&#160;        <span class="keyword">const</span> <a class="code" href="struct__tlv__type__length__value.html">tlv_type_length_value_t</a>** data,</div>
+<div class="line"><a name="l00283"></a><span class="lineno">  283</span>&#160;        <span class="keyword">const</span> <span class="keywordtype">char</span>** error_message);</div>
+<div class="line"><a name="l00284"></a><span class="lineno">  284</span>&#160; </div>
+<div class="line"><a name="l00293"></a><span class="lineno">  293</span>&#160;    uint32_t</div>
+<div class="line"><a name="l00294"></a><span class="lineno">  294</span>&#160;    <a class="code" href="ebpf__api_8h.html#ae4fbdf4fbbb9196651fd40fd0640c3c9">ebpf_api_elf_disassemble_section</a>(</div>
+<div class="line"><a name="l00295"></a><span class="lineno">  295</span>&#160;        <span class="keyword">const</span> <span class="keywordtype">char</span>* file, <span class="keyword">const</span> <span class="keywordtype">char</span>* section, <span class="keyword">const</span> <span class="keywordtype">char</span>** disassembly, <span class="keyword">const</span> <span class="keywordtype">char</span>** error_message);</div>
+<div class="line"><a name="l00296"></a><span class="lineno">  296</span>&#160; </div>
+<div class="line"><a name="l00297"></a><span class="lineno"><a class="line" href="structebpf__api__verifier__stats__t.html">  297</a></span>&#160;    <span class="keyword">typedef</span> <span class="keyword">struct</span></div>
+<div class="line"><a name="l00298"></a><span class="lineno">  298</span>&#160;    {</div>
+<div class="line"><a name="l00299"></a><span class="lineno"><a class="line" href="structebpf__api__verifier__stats__t.html#a8c63d828b7004160dcb961cfd4832649">  299</a></span>&#160;        <span class="keywordtype">int</span> <a class="code" href="structebpf__api__verifier__stats__t.html#a8c63d828b7004160dcb961cfd4832649">total_unreachable</a>;</div>
+<div class="line"><a name="l00300"></a><span class="lineno"><a class="line" href="structebpf__api__verifier__stats__t.html#a3208c61600bdee5b04f21c7e96270a65">  300</a></span>&#160;        <span class="keywordtype">int</span> <a class="code" href="structebpf__api__verifier__stats__t.html#a3208c61600bdee5b04f21c7e96270a65">total_warnings</a>;</div>
+<div class="line"><a name="l00301"></a><span class="lineno"><a class="line" href="structebpf__api__verifier__stats__t.html#ac0b14f4498797ed6aebffb06f19c0f20">  301</a></span>&#160;        <span class="keywordtype">int</span> <a class="code" href="structebpf__api__verifier__stats__t.html#ac0b14f4498797ed6aebffb06f19c0f20">max_instruction_count</a>;</div>
+<div class="line"><a name="l00302"></a><span class="lineno">  302</span>&#160;    } <a class="code" href="structebpf__api__verifier__stats__t.html">ebpf_api_verifier_stats_t</a>;</div>
+<div class="line"><a name="l00303"></a><span class="lineno">  303</span>&#160; </div>
+<div class="line"><a name="l00315"></a><span class="lineno">  315</span>&#160;    uint32_t</div>
+<div class="line"><a name="l00316"></a><span class="lineno">  316</span>&#160;    <a class="code" href="ebpf__api_8h.html#a5d9dba4c9d7ffc6a29b64bd76b4d40d9">ebpf_api_elf_verify_section</a>(</div>
+<div class="line"><a name="l00317"></a><span class="lineno">  317</span>&#160;        <span class="keyword">const</span> <span class="keywordtype">char</span>* file,</div>
+<div class="line"><a name="l00318"></a><span class="lineno">  318</span>&#160;        <span class="keyword">const</span> <span class="keywordtype">char</span>* section,</div>
+<div class="line"><a name="l00319"></a><span class="lineno">  319</span>&#160;        <span class="keywordtype">bool</span> verbose,</div>
+<div class="line"><a name="l00320"></a><span class="lineno">  320</span>&#160;        <span class="keyword">const</span> <span class="keywordtype">char</span>** report,</div>
+<div class="line"><a name="l00321"></a><span class="lineno">  321</span>&#160;        <span class="keyword">const</span> <span class="keywordtype">char</span>** error_message,</div>
+<div class="line"><a name="l00322"></a><span class="lineno">  322</span>&#160;        <a class="code" href="structebpf__api__verifier__stats__t.html">ebpf_api_verifier_stats_t</a>* stats);</div>
+<div class="line"><a name="l00323"></a><span class="lineno">  323</span>&#160; </div>
+<div class="line"><a name="l00328"></a><span class="lineno">  328</span>&#160;    <span class="keywordtype">void</span></div>
+<div class="line"><a name="l00329"></a><span class="lineno">  329</span>&#160;    <a class="code" href="ebpf__api_8h.html#afe38ca942567ba2335a2612460576156">ebpf_api_elf_free</a>(<span class="keyword">const</span> <a class="code" href="struct__tlv__type__length__value.html">tlv_type_length_value_t</a>* data);</div>
+<div class="line"><a name="l00330"></a><span class="lineno">  330</span>&#160; </div>
+<div class="line"><a name="l00335"></a><span class="lineno">  335</span>&#160;    <span class="keywordtype">void</span></div>
+<div class="line"><a name="l00336"></a><span class="lineno">  336</span>&#160;    <a class="code" href="ebpf__api_8h.html#a90cbc93764ecd96f2a84fd659e517851">ebpf_free_string</a>(_In_opt_ _Post_invalid_ <span class="keyword">const</span> <span class="keywordtype">char</span>* <span class="keywordtype">string</span>);</div>
+<div class="line"><a name="l00337"></a><span class="lineno">  337</span>&#160; </div>
+<div class="line"><a name="l00344"></a><span class="lineno">  344</span>&#160;    uint32_t</div>
+<div class="line"><a name="l00345"></a><span class="lineno">  345</span>&#160;    <a class="code" href="ebpf__api_8h.html#a7ee75d3902b22c4bf7b75b957a4c2922">ebpf_api_pin_object</a>(<a class="code" href="ebpf__api_8h.html#abb41989791fe081530c8719049ad1c35">ebpf_handle_t</a> handle, <span class="keyword">const</span> uint8_t* name, uint32_t name_length);</div>
+<div class="line"><a name="l00346"></a><span class="lineno">  346</span>&#160; </div>
+<div class="line"><a name="l00352"></a><span class="lineno">  352</span>&#160;    uint32_t</div>
+<div class="line"><a name="l00353"></a><span class="lineno">  353</span>&#160;    <a class="code" href="ebpf__api_8h.html#af3dc979c21fbfa8e63d80eb5726cc090">ebpf_api_unpin_object</a>(<span class="keyword">const</span> uint8_t* name, uint32_t name_length);</div>
+<div class="line"><a name="l00354"></a><span class="lineno">  354</span>&#160; </div>
+<div class="line"><a name="l00362"></a><span class="lineno">  362</span>&#160;    <a class="code" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a></div>
+<div class="line"><a name="l00363"></a><span class="lineno">  363</span>&#160;    <a class="code" href="ebpf__api_8h.html#a6d7b3db01124a30af90d1860b583c10c">ebpf_object_pin</a>(<a class="code" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> fd, _In_z_ <span class="keyword">const</span> <span class="keywordtype">char</span>* path);</div>
+<div class="line"><a name="l00364"></a><span class="lineno">  364</span>&#160; </div>
+<div class="line"><a name="l00371"></a><span class="lineno">  371</span>&#160;    <a class="code" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a></div>
+<div class="line"><a name="l00372"></a><span class="lineno">  372</span>&#160;    <a class="code" href="ebpf__api_8h.html#abff7c5b1b63aabfc77e14104de4ae3cb">ebpf_object_unpin</a>(_In_z_ <span class="keyword">const</span> <span class="keywordtype">char</span>* path);</div>
+<div class="line"><a name="l00373"></a><span class="lineno">  373</span>&#160; </div>
+<div class="line"><a name="l00380"></a><span class="lineno">  380</span>&#160;    uint32_t</div>
+<div class="line"><a name="l00381"></a><span class="lineno">  381</span>&#160;    <a class="code" href="ebpf__api_8h.html#af1636518b704a50a14f868545197dca7">ebpf_api_get_pinned_map</a>(<span class="keyword">const</span> uint8_t* name, uint32_t name_length, <a class="code" href="ebpf__api_8h.html#abb41989791fe081530c8719049ad1c35">ebpf_handle_t</a>* handle);</div>
+<div class="line"><a name="l00382"></a><span class="lineno">  382</span>&#160; </div>
+<div class="line"><a name="l00394"></a><span class="lineno">  394</span>&#160;    uint32_t</div>
+<div class="line"><a name="l00395"></a><span class="lineno">  395</span>&#160;    <a class="code" href="ebpf__api_8h.html#aa9830656da56c0b0b7e980dc9ad012e7">ebpf_api_link_program</a>(<a class="code" href="ebpf__api_8h.html#abb41989791fe081530c8719049ad1c35">ebpf_handle_t</a> program_handle, <a class="code" href="ebpf__windows_8h.html#a3f56868552f991b0f9eb6800d8f9a43c">ebpf_attach_type_t</a> attach_type, <a class="code" href="ebpf__api_8h.html#abb41989791fe081530c8719049ad1c35">ebpf_handle_t</a>* link_handle);</div>
+<div class="line"><a name="l00396"></a><span class="lineno">  396</span>&#160; </div>
+<div class="line"><a name="l00405"></a><span class="lineno">  405</span>&#160;    uint32_t</div>
+<div class="line"><a name="l00406"></a><span class="lineno">  406</span>&#160;    <a class="code" href="ebpf__api_8h.html#aecda75bf2d796bb5f3e02314501aa492">ebpf_api_unlink_program</a>(<a class="code" href="ebpf__api_8h.html#abb41989791fe081530c8719049ad1c35">ebpf_handle_t</a> link_handle);</div>
+<div class="line"><a name="l00407"></a><span class="lineno">  407</span>&#160; </div>
+<div class="line"><a name="l00415"></a><span class="lineno">  415</span>&#160;    <a class="code" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a></div>
+<div class="line"><a name="l00416"></a><span class="lineno">  416</span>&#160;    <a class="code" href="ebpf__api_8h.html#a4f0329af040370a21a9efe8b3713a314">ebpf_api_close_handle</a>(<a class="code" href="ebpf__api_8h.html#abb41989791fe081530c8719049ad1c35">ebpf_handle_t</a> handle);</div>
+<div class="line"><a name="l00417"></a><span class="lineno">  417</span>&#160; </div>
+<div class="line"><a name="l00428"></a><span class="lineno">  428</span>&#160;    <a class="code" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a></div>
+<div class="line"><a name="l00429"></a><span class="lineno">  429</span>&#160;    <a class="code" href="ebpf__api_8h.html#a9efa5b0bc9c76b830614f120acb73a42">ebpf_api_get_pinned_map_info</a>(</div>
+<div class="line"><a name="l00430"></a><span class="lineno">  430</span>&#160;        _Out_ uint16_t* map_count, _Outptr_result_buffer_maybenull_(*map_count) <a class="code" href="struct__ebpf__map__info.html">ebpf_map_info_t</a>** map_info);</div>
+<div class="line"><a name="l00431"></a><span class="lineno">  431</span>&#160; </div>
+<div class="line"><a name="l00439"></a><span class="lineno">  439</span>&#160;    <span class="keywordtype">void</span></div>
+<div class="line"><a name="l00440"></a><span class="lineno">  440</span>&#160;    <a class="code" href="ebpf__api_8h.html#afa6f86ddbf4799f3e34501e8b9e8bf7e">ebpf_api_map_info_free</a>(</div>
+<div class="line"><a name="l00441"></a><span class="lineno">  441</span>&#160;        uint16_t map_count, _In_opt_count_(map_count) _Post_ptr_invalid_ <span class="keyword">const</span> <a class="code" href="struct__ebpf__map__info.html">ebpf_map_info_t</a>* map_info);</div>
+<div class="line"><a name="l00442"></a><span class="lineno">  442</span>&#160; </div>
+<div class="line"><a name="l00479"></a><span class="lineno">  479</span>&#160;    <a class="code" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a></div>
+<div class="line"><a name="l00480"></a><span class="lineno">  480</span>&#160;    <a class="code" href="ebpf__api_8h.html#aaef788607a4a4665866140af5f50e78c">ebpf_program_load</a>(</div>
+<div class="line"><a name="l00481"></a><span class="lineno">  481</span>&#160;        _In_z_ <span class="keyword">const</span> <span class="keywordtype">char</span>* file_name,</div>
+<div class="line"><a name="l00482"></a><span class="lineno">  482</span>&#160;        _In_opt_ <span class="keyword">const</span> <a class="code" href="ebpf__windows_8h.html#a7392ed9f9037688cd94f7069c523c251">ebpf_program_type_t</a>* program_type,</div>
+<div class="line"><a name="l00483"></a><span class="lineno">  483</span>&#160;        _In_opt_ <span class="keyword">const</span> <a class="code" href="ebpf__windows_8h.html#a3f56868552f991b0f9eb6800d8f9a43c">ebpf_attach_type_t</a>* attach_type,</div>
+<div class="line"><a name="l00484"></a><span class="lineno">  484</span>&#160;        _In_ <a class="code" href="ebpf__execution__type_8h.html#af58bcede64968a095964be4e78998658">ebpf_execution_type_t</a> execution_type,</div>
+<div class="line"><a name="l00485"></a><span class="lineno">  485</span>&#160;        _Outptr_ <span class="keyword">struct</span> bpf_object** <span class="keywordtype">object</span>,</div>
+<div class="line"><a name="l00486"></a><span class="lineno">  486</span>&#160;        _Out_ <a class="code" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a>* program_fd,</div>
+<div class="line"><a name="l00487"></a><span class="lineno">  487</span>&#160;        _Outptr_result_maybenull_z_ <span class="keyword">const</span> <span class="keywordtype">char</span>** log_buffer);</div>
+<div class="line"><a name="l00488"></a><span class="lineno">  488</span>&#160; </div>
+<div class="line"><a name="l00505"></a><span class="lineno">  505</span>&#160;    <a class="code" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a></div>
+<div class="line"><a name="l00506"></a><span class="lineno">  506</span>&#160;    <a class="code" href="ebpf__api_8h.html#ac49d0596d90fcfb57ad393ef7d3bd395">ebpf_program_attach</a>(</div>
+<div class="line"><a name="l00507"></a><span class="lineno">  507</span>&#160;        _In_ <span class="keyword">struct</span> bpf_program* program,</div>
+<div class="line"><a name="l00508"></a><span class="lineno">  508</span>&#160;        _In_opt_ <span class="keyword">const</span> <a class="code" href="ebpf__windows_8h.html#a3f56868552f991b0f9eb6800d8f9a43c">ebpf_attach_type_t</a>* attach_type,</div>
+<div class="line"><a name="l00509"></a><span class="lineno">  509</span>&#160;        _In_reads_bytes_opt_(attach_params_size) <span class="keywordtype">void</span>* attach_parameters,</div>
+<div class="line"><a name="l00510"></a><span class="lineno">  510</span>&#160;        _In_ <span class="keywordtype">size_t</span> attach_params_size,</div>
+<div class="line"><a name="l00511"></a><span class="lineno">  511</span>&#160;        _Outptr_ <span class="keyword">struct</span> bpf_link** link);</div>
+<div class="line"><a name="l00512"></a><span class="lineno">  512</span>&#160; </div>
+<div class="line"><a name="l00529"></a><span class="lineno">  529</span>&#160;    <a class="code" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a></div>
+<div class="line"><a name="l00530"></a><span class="lineno">  530</span>&#160;    <a class="code" href="ebpf__api_8h.html#a45795cc59c800ba8f8a3300611e2bfe3">ebpf_program_attach_by_fd</a>(</div>
+<div class="line"><a name="l00531"></a><span class="lineno">  531</span>&#160;        <a class="code" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> program_fd,</div>
+<div class="line"><a name="l00532"></a><span class="lineno">  532</span>&#160;        _In_opt_ <span class="keyword">const</span> <a class="code" href="ebpf__windows_8h.html#a3f56868552f991b0f9eb6800d8f9a43c">ebpf_attach_type_t</a>* attach_type,</div>
+<div class="line"><a name="l00533"></a><span class="lineno">  533</span>&#160;        _In_reads_bytes_opt_(attach_params_size) <span class="keywordtype">void</span>* attach_parameters,</div>
+<div class="line"><a name="l00534"></a><span class="lineno">  534</span>&#160;        _In_ <span class="keywordtype">size_t</span> attach_params_size,</div>
+<div class="line"><a name="l00535"></a><span class="lineno">  535</span>&#160;        _Outptr_ <span class="keyword">struct</span> bpf_link** link);</div>
+<div class="line"><a name="l00536"></a><span class="lineno">  536</span>&#160; </div>
+<div class="line"><a name="l00546"></a><span class="lineno">  546</span>&#160;    <a class="code" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a></div>
+<div class="line"><a name="l00547"></a><span class="lineno">  547</span>&#160;    <a class="code" href="ebpf__api_8h.html#acffc92c675ef416fbc24d98651158029">ebpf_link_detach</a>(_In_ <span class="keyword">struct</span> bpf_link* link);</div>
+<div class="line"><a name="l00548"></a><span class="lineno">  548</span>&#160; </div>
+<div class="line"><a name="l00561"></a><span class="lineno">  561</span>&#160;    <a class="code" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a></div>
+<div class="line"><a name="l00562"></a><span class="lineno">  562</span>&#160;    <a class="code" href="ebpf__api_8h.html#a615bbda0f78b51d852e60fb6b9cb6433">ebpf_link_close</a>(_In_ <span class="keyword">struct</span> bpf_link* link);</div>
+<div class="line"><a name="l00563"></a><span class="lineno">  563</span>&#160; </div>
+<div class="line"><a name="l00570"></a><span class="lineno">  570</span>&#160;    <a class="code" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a></div>
+<div class="line"><a name="l00571"></a><span class="lineno">  571</span>&#160;    <a class="code" href="ebpf__api_8h.html#accc960f392ccf0ab7fb13c09e5b98ec0">ebpf_object_get</a>(_In_z_ <span class="keyword">const</span> <span class="keywordtype">char</span>* path);</div>
+<div class="line"><a name="l00572"></a><span class="lineno">  572</span>&#160; </div>
+<div class="line"><a name="l00580"></a><span class="lineno">  580</span>&#160;    <a class="code" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a></div>
+<div class="line"><a name="l00581"></a><span class="lineno">  581</span>&#160;    <a class="code" href="ebpf__api_8h.html#ad5dde8db65d21b803c80a120a1db1105">ebpf_close_fd</a>(<a class="code" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> fd);</div>
+<div class="line"><a name="l00582"></a><span class="lineno">  582</span>&#160; </div>
+<div class="line"><a name="l00583"></a><span class="lineno">  583</span>&#160;<span class="preprocessor">#ifdef __cplusplus</span></div>
+<div class="line"><a name="l00584"></a><span class="lineno">  584</span>&#160;}</div>
+<div class="line"><a name="l00585"></a><span class="lineno">  585</span>&#160;<span class="preprocessor">#endif</span></div>
 </div><!-- fragment --></div><!-- contents -->
 <div class="ttc" id="aebpf__api_8h_html_a615bbda0f78b51d852e60fb6b9cb6433"><div class="ttname"><a href="ebpf__api_8h.html#a615bbda0f78b51d852e60fb6b9cb6433">ebpf_link_close</a></div><div class="ttdeci">ebpf_result_t ebpf_link_close(struct bpf_link *link)</div></div>
 <div class="ttc" id="aebpf__api_8h_html_a93cbec23ca2f87d22ae34b1cc8cb203d"><div class="ttname"><a href="ebpf__api_8h.html#a93cbec23ca2f87d22ae34b1cc8cb203d">ebpf_api_get_next_program</a></div><div class="ttdeci">uint32_t ebpf_api_get_next_program(ebpf_handle_t previous_handle, ebpf_handle_t *next_handle)</div><div class="ttdoc">Get the next eBPF program.</div></div>
-<div class="ttc" id="aebpf__api_8h_html_a0584fa3dd32523977315bcbc05af2b97"><div class="ttname"><a href="ebpf__api_8h.html#a0584fa3dd32523977315bcbc05af2b97">ebpf_handle_invalid</a></div><div class="ttdeci">const ebpf_handle_t ebpf_handle_invalid</div><div class="ttdef"><b>Definition:</b> ebpf_api.h:68</div></div>
-<div class="ttc" id="astructebpf__api__verifier__stats__t_html"><div class="ttname"><a href="structebpf__api__verifier__stats__t.html">ebpf_api_verifier_stats_t</a></div><div class="ttdef"><b>Definition:</b> ebpf_api.h:298</div></div>
+<div class="ttc" id="astructebpf__api__verifier__stats__t_html"><div class="ttname"><a href="structebpf__api__verifier__stats__t.html">ebpf_api_verifier_stats_t</a></div><div class="ttdef"><b>Definition:</b> ebpf_api.h:297</div></div>
 <div class="ttc" id="aebpf__api_8h_html_a8a64245708e8b9a15bfa8c3aabdb275a"><div class="ttname"><a href="ebpf__api_8h.html#a8a64245708e8b9a15bfa8c3aabdb275a">ebpf_get_next_map</a></div><div class="ttdeci">ebpf_result_t ebpf_get_next_map(fd_t previous_fd, fd_t *next_fd)</div><div class="ttdoc">Get file descriptor to the next eBPF map.</div></div>
 <div class="ttc" id="aebpf__api_8h_html_afe38ca942567ba2335a2612460576156"><div class="ttname"><a href="ebpf__api_8h.html#afe38ca942567ba2335a2612460576156">ebpf_api_elf_free</a></div><div class="ttdeci">void ebpf_api_elf_free(const tlv_type_length_value_t *data)</div><div class="ttdoc">Free a TLV returned from ebpf_api_elf_enumerate_sections.</div></div>
+<div class="ttc" id="aebpf__api_8h_html_abb41989791fe081530c8719049ad1c35"><div class="ttname"><a href="ebpf__api_8h.html#abb41989791fe081530c8719049ad1c35">ebpf_handle_t</a></div><div class="ttdeci">intptr_t ebpf_handle_t</div><div class="ttdef"><b>Definition:</b> ebpf_api.h:67</div></div>
 <div class="ttc" id="aebpf__execution__type_8h_html_af58bcede64968a095964be4e78998658"><div class="ttname"><a href="ebpf__execution__type_8h.html#af58bcede64968a095964be4e78998658">ebpf_execution_type_t</a></div><div class="ttdeci">enum _ebpf_execution_type ebpf_execution_type_t</div></div>
 <div class="ttc" id="aebpf__api_8h_html_abe90d24d0c454a36674265f6c0ae96f4"><div class="ttname"><a href="ebpf__api_8h.html#abe90d24d0c454a36674265f6c0ae96f4">EBPF_PROGRAM_TYPE_UNSPECIFIED</a></div><div class="ttdeci">ebpf_attach_type_t EBPF_PROGRAM_TYPE_UNSPECIFIED</div><div class="ttdef"><b>Definition:</b> ebpf_api.h:38</div></div>
 <div class="ttc" id="aebpf__api_8h_html_ae4fbdf4fbbb9196651fd40fd0640c3c9"><div class="ttname"><a href="ebpf__api_8h.html#ae4fbdf4fbbb9196651fd40fd0640c3c9">ebpf_api_elf_disassemble_section</a></div><div class="ttdeci">uint32_t ebpf_api_elf_disassemble_section(const char *file, const char *section, const char **disassembly, const char **error_message)</div><div class="ttdoc">Convert an eBPF program to human readable byte code.</div></div>
@@ -311,15 +310,14 @@ $(function() {
 <div class="ttc" id="aebpf__api_8h_html_ac51d3d3fb9bf564c248c675cab6282e1"><div class="ttname"><a href="ebpf__api_8h.html#ac51d3d3fb9bf564c248c675cab6282e1">ebpf_get_next_program</a></div><div class="ttdeci">ebpf_result_t ebpf_get_next_program(fd_t previous_fd, fd_t *next_fd)</div><div class="ttdoc">Get file descriptor to the next eBPF program.</div></div>
 <div class="ttc" id="aebpf__api_8h_html_aa9830656da56c0b0b7e980dc9ad012e7"><div class="ttname"><a href="ebpf__api_8h.html#aa9830656da56c0b0b7e980dc9ad012e7">ebpf_api_link_program</a></div><div class="ttdeci">uint32_t ebpf_api_link_program(ebpf_handle_t program_handle, ebpf_attach_type_t attach_type, ebpf_handle_t *link_handle)</div><div class="ttdoc">Bind a program to an attach point and return a handle representing the link.</div></div>
 <div class="ttc" id="aebpf__api_8h_html_af7aab54ea32e2032072e765b982a3c17"><div class="ttname"><a href="ebpf__api_8h.html#af7aab54ea32e2032072e765b982a3c17">ebpf_program_query_info</a></div><div class="ttdeci">ebpf_result_t ebpf_program_query_info(fd_t fd, ebpf_execution_type_t *execution_type, _Outptr_result_z_ const char **file_name, _Outptr_result_z_ const char **section_name)</div><div class="ttdoc">Query info about an eBPF program.</div></div>
-<div class="ttc" id="aebpf__api_8h_html_a730fd530617bad8bccf98e29452b4d55"><div class="ttname"><a href="ebpf__api_8h.html#a730fd530617bad8bccf98e29452b4d55">ebpf_handle_t</a></div><div class="ttdeci">void * ebpf_handle_t</div><div class="ttdef"><b>Definition:</b> ebpf_api.h:67</div></div>
-<div class="ttc" id="astructebpf__api__verifier__stats__t_html_ac0b14f4498797ed6aebffb06f19c0f20"><div class="ttname"><a href="structebpf__api__verifier__stats__t.html#ac0b14f4498797ed6aebffb06f19c0f20">ebpf_api_verifier_stats_t::max_instruction_count</a></div><div class="ttdeci">int max_instruction_count</div><div class="ttdef"><b>Definition:</b> ebpf_api.h:302</div></div>
+<div class="ttc" id="astructebpf__api__verifier__stats__t_html_ac0b14f4498797ed6aebffb06f19c0f20"><div class="ttname"><a href="structebpf__api__verifier__stats__t.html#ac0b14f4498797ed6aebffb06f19c0f20">ebpf_api_verifier_stats_t::max_instruction_count</a></div><div class="ttdeci">int max_instruction_count</div><div class="ttdef"><b>Definition:</b> ebpf_api.h:301</div></div>
 <div class="ttc" id="aebpf__api_8h_html_aa3366836c559140590a7501b8f4a4d9a"><div class="ttname"><a href="ebpf__api_8h.html#aa3366836c559140590a7501b8f4a4d9a">EBPF_PROGRAM_TYPE_SAMPLE</a></div><div class="ttdeci">ebpf_program_type_t EBPF_PROGRAM_TYPE_SAMPLE</div><div class="ttdef"><b>Definition:</b> ebpf_api.h:62</div></div>
 <div class="ttc" id="aebpf__api_8h_html_accc960f392ccf0ab7fb13c09e5b98ec0"><div class="ttname"><a href="ebpf__api_8h.html#accc960f392ccf0ab7fb13c09e5b98ec0">ebpf_object_get</a></div><div class="ttdeci">fd_t ebpf_object_get(const char *path)</div><div class="ttdoc">Get fd for a pinned object by pin path.</div></div>
 <div class="ttc" id="aebpf__api_8h_html_a45795cc59c800ba8f8a3300611e2bfe3"><div class="ttname"><a href="ebpf__api_8h.html#a45795cc59c800ba8f8a3300611e2bfe3">ebpf_program_attach_by_fd</a></div><div class="ttdeci">ebpf_result_t ebpf_program_attach_by_fd(fd_t program_fd, const ebpf_attach_type_t *attach_type, _In_reads_bytes_opt_(attach_params_size) void *attach_parameters, size_t attach_params_size, struct bpf_link **link)</div><div class="ttdoc">Attach an eBPF program by program file descriptor.</div></div>
 <div class="ttc" id="aebpf__api_8h_html_a6d7b3db01124a30af90d1860b583c10c"><div class="ttname"><a href="ebpf__api_8h.html#a6d7b3db01124a30af90d1860b583c10c">ebpf_object_pin</a></div><div class="ttdeci">ebpf_result_t ebpf_object_pin(fd_t fd, const char *path)</div><div class="ttdoc">Pin an object to the specified path.</div></div>
 <div class="ttc" id="aebpf__windows_8h_html"><div class="ttname"><a href="ebpf__windows_8h.html">ebpf_windows.h</a></div></div>
 <div class="ttc" id="aebpf__api_8h_html_a718ad43a2eaff162adfd9119e6618355"><div class="ttname"><a href="ebpf__api_8h.html#a718ad43a2eaff162adfd9119e6618355">EBPF_ATTACH_TYPE_XDP</a></div><div class="ttdeci">ebpf_attach_type_t EBPF_ATTACH_TYPE_XDP</div><div class="ttdoc">Attach type for handling incoming packets as early as possible.</div><div class="ttdef"><b>Definition:</b> ebpf_api.h:25</div></div>
-<div class="ttc" id="astructebpf__api__verifier__stats__t_html_a3208c61600bdee5b04f21c7e96270a65"><div class="ttname"><a href="structebpf__api__verifier__stats__t.html#a3208c61600bdee5b04f21c7e96270a65">ebpf_api_verifier_stats_t::total_warnings</a></div><div class="ttdeci">int total_warnings</div><div class="ttdef"><b>Definition:</b> ebpf_api.h:301</div></div>
+<div class="ttc" id="astructebpf__api__verifier__stats__t_html_a3208c61600bdee5b04f21c7e96270a65"><div class="ttname"><a href="structebpf__api__verifier__stats__t.html#a3208c61600bdee5b04f21c7e96270a65">ebpf_api_verifier_stats_t::total_warnings</a></div><div class="ttdeci">int total_warnings</div><div class="ttdef"><b>Definition:</b> ebpf_api.h:300</div></div>
 <div class="ttc" id="aebpf__api_8h_html_acb6a7f4388cfb294444793fb9bbdaf35"><div class="ttname"><a href="ebpf__api_8h.html#acb6a7f4388cfb294444793fb9bbdaf35">ebpf_fd_invalid</a></div><div class="ttdeci">const fd_t ebpf_fd_invalid</div><div class="ttdef"><b>Definition:</b> ebpf_api.h:66</div></div>
 <div class="ttc" id="aebpf__api_8h_html_a90cbc93764ecd96f2a84fd659e517851"><div class="ttname"><a href="ebpf__api_8h.html#a90cbc93764ecd96f2a84fd659e517851">ebpf_free_string</a></div><div class="ttdeci">void ebpf_free_string(const char *string)</div><div class="ttdoc">Free memory for a string returned from an eBPF API.</div></div>
 <div class="ttc" id="aebpf__api_8h_html_ab01f35f2524536c37711f4efe94efa7d"><div class="ttname"><a href="ebpf__api_8h.html#ab01f35f2524536c37711f4efe94efa7d">ebpf_api_initiate</a></div><div class="ttdeci">uint32_t ebpf_api_initiate()</div><div class="ttdoc">Initialize the eBPF user mode library.</div></div>
@@ -332,7 +330,7 @@ $(function() {
 <div class="ttc" id="aebpf__windows_8h_html_a7392ed9f9037688cd94f7069c523c251"><div class="ttname"><a href="ebpf__windows_8h.html#a7392ed9f9037688cd94f7069c523c251">ebpf_program_type_t</a></div><div class="ttdeci">GUID ebpf_program_type_t</div><div class="ttdef"><b>Definition:</b> ebpf_windows.h:10</div></div>
 <div class="ttc" id="aebpf__api_8h_html_ad5dde8db65d21b803c80a120a1db1105"><div class="ttname"><a href="ebpf__api_8h.html#ad5dde8db65d21b803c80a120a1db1105">ebpf_close_fd</a></div><div class="ttdeci">ebpf_result_t ebpf_close_fd(fd_t fd)</div><div class="ttdoc">Close a file descriptor. Also close the underlying handle.</div></div>
 <div class="ttc" id="aebpf__api_8h_html_a0594ea36462d6efcd31c18144ef363f2"><div class="ttname"><a href="ebpf__api_8h.html#a0594ea36462d6efcd31c18144ef363f2">ebpf_api_create_map</a></div><div class="ttdeci">ebpf_result_t ebpf_api_create_map(ebpf_map_type_t type, uint32_t key_size, uint32_t value_size, uint32_t max_entries, uint32_t map_flags, ebpf_handle_t *handle)</div><div class="ttdoc">Create an eBPF map with input parameters.</div></div>
-<div class="ttc" id="astructebpf__api__verifier__stats__t_html_a8c63d828b7004160dcb961cfd4832649"><div class="ttname"><a href="structebpf__api__verifier__stats__t.html#a8c63d828b7004160dcb961cfd4832649">ebpf_api_verifier_stats_t::total_unreachable</a></div><div class="ttdeci">int total_unreachable</div><div class="ttdef"><b>Definition:</b> ebpf_api.h:300</div></div>
+<div class="ttc" id="astructebpf__api__verifier__stats__t_html_a8c63d828b7004160dcb961cfd4832649"><div class="ttname"><a href="structebpf__api__verifier__stats__t.html#a8c63d828b7004160dcb961cfd4832649">ebpf_api_verifier_stats_t::total_unreachable</a></div><div class="ttdeci">int total_unreachable</div><div class="ttdef"><b>Definition:</b> ebpf_api.h:299</div></div>
 <div class="ttc" id="aebpf__core__structs_8h_html"><div class="ttname"><a href="ebpf__core__structs_8h.html">ebpf_core_structs.h</a></div></div>
 <div class="ttc" id="aebpf__api_8h_html_a71b58a2b58320461430b90e741c8669a"><div class="ttname"><a href="ebpf__api_8h.html#a71b58a2b58320461430b90e741c8669a">ebpf_api_load_program</a></div><div class="ttdeci">ebpf_result_t ebpf_api_load_program(const char *file, const char *section_name, ebpf_execution_type_t execution_type, ebpf_handle_t *handle, uint32_t *count_of_map_handles, ebpf_handle_t *map_handles, const char **error_message)</div><div class="ttdoc">Load an eBFP program into the kernel execution context.</div></div>
 <div class="ttc" id="aebpf__structs_8h_html_aa03abb9b99ca6cfa2fa19f2fb8140df8"><div class="ttname"><a href="ebpf__structs_8h.html#aa03abb9b99ca6cfa2fa19f2fb8140df8">ebpf_id_t</a></div><div class="ttdeci">uint32_t ebpf_id_t</div><div class="ttdef"><b>Definition:</b> ebpf_structs.h:35</div></div>
