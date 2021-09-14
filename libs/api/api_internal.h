@@ -359,3 +359,13 @@ ebpf_get_next_program_id(ebpf_id_t start_id, ebpf_id_t _Out_* next_id) noexcept;
 ebpf_result_t
 ebpf_object_get_info_by_fd(
     fd_t bpf_fd, _Out_writes_bytes_to_(*info_size, *info_size) void* info, _Inout_ uint32_t* info_size);
+
+/**
+ * @brief Pin an object to the specified path.
+ * @param[in] fd File descriptor to the object.
+ * @param[in] path Path to pin the object to.
+ *
+ * @retval EBPF_SUCCESS The operation was successful.
+ */
+ebpf_result_t
+ebpf_object_pin(fd_t fd, _In_z_ const char* path);

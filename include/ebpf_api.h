@@ -312,16 +312,6 @@ extern "C"
     ebpf_api_unpin_object(const uint8_t* name, uint32_t name_length);
 
     /**
-     * @brief Pin an object to the specified path.
-     * @param[in] fd File descriptor to the object.
-     * @param[in] path Path to pin the object to.
-     *
-     * @retval EBPF_SUCCESS The operation was successful.
-     */
-    ebpf_result_t
-    ebpf_object_pin(fd_t fd, _In_z_ const char* path);
-
-    /**
      * @brief Unpin the object from the specified path.
      * @param[in] path Path from which to unpin.
      *
@@ -427,7 +417,7 @@ extern "C"
      *  ebpf_object_close() to close this (and other) file descriptors.
      * @param[out] log_buffer Returns a pointer to a null-terminated log buffer.
      *  The caller is responsible for freeing the returned log_buffer pointer
-     *  by calling ebpf_api_free_string().
+     *  by calling ebpf_free_string().
      *
      * @retval EBPF_SUCCESS The programs are loaded and maps are created successfully.
      * @retval EBPF_INVALID_ARGUMENT One or more parameters are incorrect.

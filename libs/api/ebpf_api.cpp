@@ -1054,10 +1054,9 @@ _link_ebpf_program(
         new_link->fd = _get_next_file_descriptor(new_link->handle);
         if (new_link->fd == ebpf_fd_invalid) {
             result = EBPF_NO_MEMORY;
-            ebpf_link_detach(new_link);
-            ebpf_link_close(new_link);
         } else {
             *link = new_link;
+            new_link = nullptr;
         }
     } catch (const std::bad_alloc&) {
         result = EBPF_NO_MEMORY;
@@ -1068,6 +1067,10 @@ _link_ebpf_program(
     }
 
 Exit:
+    if (new_link != nullptr) {
+        ebpf_link_detach(new_link);
+        ebpf_link_close(new_link);
+    }
     return result;
 }
 
@@ -1161,7 +1164,7 @@ ebpf_program_attach_by_fd(
     if (attach_type == nullptr) {
         // We can only use an unspecified attach_type if we can find an ebpf_program_t.
         ebpf_program_t* program = _get_ebpf_program_from_handle(program_handle);
-        if (program == nullptr || link == nullptr) {
+        if (program == nullptr) {
             return EBPF_INVALID_ARGUMENT;
         }
 
@@ -1649,7 +1652,7 @@ ebpf_object_next(_In_opt_ const struct bpf_object* previous)
         // No more objects.
         return nullptr;
     }
-    return *(it++);
+    return *it;
 }
 
 _Ret_maybenull_ struct bpf_program*

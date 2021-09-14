@@ -147,6 +147,7 @@ handle_ebpf_add_program(
     if (result != EBPF_SUCCESS) {
         std::cerr << "error " << result << ": could not load program" << std::endl;
         std::cerr << error_message << std::endl;
+        ebpf_free_string(error_message);
         return ERROR_SUPPRESS_OUTPUT;
     }
 
@@ -243,6 +244,9 @@ handle_ebpf_delete_program(
         }
     }
 
+    // TODO: see if the program is still loaded, in which case some other process holds
+    // a reference. Get the PID of that process and display it.
+
     std::cout << "Program not found\n";
     return ERROR_SUPPRESS_OUTPUT;
 }
@@ -259,6 +263,7 @@ ebpf_program_attach_by_id(ebpf_id_t program_id, ebpf_attach_type_t attach_type)
     ebpf_result_t result = ebpf_program_attach_by_fd(program_fd, &attach_type, nullptr, 0, &link);
 
     ebpf_close_fd(program_fd); // TODO(issue #287): _close
+    ebpf_link_close(link);
     return result;
 }
 
