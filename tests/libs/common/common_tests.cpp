@@ -28,7 +28,8 @@ ebpf_test_pinned_map_enum()
 
     for (int i = 0; i < pinned_map_count; i++) {
         std::string pin_path = pin_path_prefix + std::to_string(i);
-        REQUIRE((error = bpf_obj_pin(map_fd, pin_path.c_str())) == 0);
+        error = bpf_obj_pin(map_fd, pin_path.c_str());
+        REQUIRE(error == 0);
         if (error != 0)
             goto Exit;
     }
