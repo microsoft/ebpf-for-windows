@@ -45,7 +45,7 @@ _get_bpf_attach_type(const ebpf_attach_type_t* type)
     if (memcmp(type, &EBPF_ATTACH_TYPE_XDP, sizeof(*type)) == 0) {
         return BPF_ATTACH_TYPE_XDP;
     }
-    return BPF_ATTACH_TYPE_UNKNOWN;
+    return BPF_ATTACH_TYPE_UNSPEC;
 }
 
 int
