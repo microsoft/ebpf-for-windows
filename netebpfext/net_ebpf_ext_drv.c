@@ -46,9 +46,9 @@ _net_ebpf_ext_driver_uninitialize_objects()
 {
     _net_ebpf_ext_driver_unloading_flag = TRUE;
 
-    net_ebpf_ext_unregister_providers();
-
     net_ebpf_ext_unregister_callouts();
+
+    net_ebpf_ext_unregister_providers();
 
     if (_net_ebpf_ext_device != NULL)
         WdfObjectDelete(_net_ebpf_ext_device);
