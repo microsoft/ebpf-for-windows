@@ -186,7 +186,7 @@ ebpf_link_get_info(
     }
 
     info->id = link->object.id;
-    info->prog_id = ((ebpf_object_t*)link->program)->id;
+    info->prog_id = (link->program) ? ((ebpf_object_t*)link->program)->id : EBPF_ID_NONE;
 
     *info_size = sizeof(*info);
     return EBPF_SUCCESS;
