@@ -37,6 +37,8 @@ Environment:
 #include "ebpf_program_types.h"
 #include "ebpf_windows.h"
 
+#include "net_ebpf_ext_program_info.h"
+
 #define NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION 0
 
 //

@@ -17,6 +17,8 @@ ntohs(uint16_t us)
     return us << 8 | us >> 8;
 }
 
+#define htons(x) ntohs(x)
+
 typedef uint8_t mac_address_t[6];
 
 #define ETHERNET_TYPE_IPV4 0x0800
@@ -34,6 +36,8 @@ typedef struct _ETHERNET_HEADER
 } ETHERNET_HEADER, *PETHERNET_HEADER;
 
 #define IPPROTO_UDP 17
+#define IPPROTO_IPV4 4
+#define IPPROTO_IPV6 41
 
 typedef struct _IPV4_HEADER
 {

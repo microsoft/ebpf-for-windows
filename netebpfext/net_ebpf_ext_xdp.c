@@ -21,14 +21,20 @@ HANDLE _net_ebpf_ext_l2_injection_handle = NULL;
 static ebpf_ext_attach_hook_provider_registration_t* _ebpf_xdp_hook_provider_registration = NULL;
 static ebpf_extension_provider_t* _ebpf_xdp_program_info_provider = NULL;
 
-static ebpf_context_descriptor_t _ebpf_xdp_context_descriptor = {
-    sizeof(xdp_md_t),
-    EBPF_OFFSET_OF(xdp_md_t, data),
-    EBPF_OFFSET_OF(xdp_md_t, data_end),
-    EBPF_OFFSET_OF(xdp_md_t, data_meta)};
-static ebpf_program_info_t _ebpf_xdp_program_info = {{"xdp", &_ebpf_xdp_context_descriptor, {0}}, 0, NULL};
+static int
+_net_ebpf_xdp_adjust_head(xdp_md_t* ctx, int delta)
+{
+    UNREFERENCED_PARAMETER(ctx);
+    UNREFERENCED_PARAMETER(delta);
+    return -1;
+}
 
-static ebpf_program_data_t _ebpf_xdp_program_data = {&_ebpf_xdp_program_info, NULL};
+static const void* _ebpf_xdp_helper_functions[] = {(void*)&_net_ebpf_xdp_adjust_head};
+
+static ebpf_helper_function_addresses_t _ebpf_xdp_helper_function_address_table = {
+    EBPF_COUNT_OF(_ebpf_xdp_helper_functions), (uint64_t*)_ebpf_xdp_helper_functions};
+
+static ebpf_program_data_t _ebpf_xdp_program_data = {&_ebpf_xdp_program_info, &_ebpf_xdp_helper_function_address_table};
 
 static ebpf_extension_data_t _ebpf_xdp_program_info_provider_data = {
     NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_ebpf_xdp_program_data), &_ebpf_xdp_program_data};
