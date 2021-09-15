@@ -73,6 +73,7 @@ EXPORTS
     ebpf_free_string
     ebpf_get_next_map
     ebpf_get_next_program
+    ebpf_get_program_type_by_name
     ebpf_link_close
     ebpf_map_pin
     ebpf_object_get
@@ -81,3 +82,4 @@ EXPORTS
     ebpf_program_attach_by_fd
     ebpf_program_load
     ebpf_program_query_info
+    libbpf_prog_type_by_name

@@ -18,6 +18,7 @@ extern "C"
 #include "ubpf.h"
 }
 #include "Verifier.h"
+#include "windows_platform_common.hpp"
 
 using namespace Platform;
 
@@ -1884,4 +1885,21 @@ ebpf_object_get_info_by_fd(
     }
 
     return result;
+}
+
+ebpf_result_t
+ebpf_get_program_type_by_name(
+    _In_z_ const char* name, _Out_ ebpf_program_type_t* program_type, _Out_ ebpf_attach_type_t* expected_attach_type)
+{
+    if (name == nullptr || program_type == nullptr || expected_attach_type == nullptr) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    EbpfProgramType type = get_program_type_windows(name, name);
+    *program_type = *(GUID*)type.platform_specific_data;
+
+    // TODO(issue #223): get expected attach type.
+    *expected_attach_type = EBPF_ATTACH_TYPE_UNSPECIFIED;
+
+    return EBPF_SUCCESS;
 }

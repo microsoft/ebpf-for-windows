@@ -5,11 +5,9 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include "ebpf_core_structs.h"
 #include "ebpf_execution_type.h"
 #include "ebpf_result.h"
-#include "ebpf_core_structs.h"
-#include "ebpf_result.h"
-#include "ebpf_windows.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -528,6 +526,22 @@ extern "C"
      */
     ebpf_result_t
     ebpf_close_fd(fd_t fd);
+
+    /**
+     * @brief Get a program type and expected attach type by name.
+     *
+     * @param[in] name Name, as if it were a section name in an ELF file.
+     * @param[out] prog_type Program type.
+     * @param[out] expected_attach_type Expected attach type.
+     *
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_KEY_NOT_FOUND No program type was found.
+     */
+    ebpf_result_t
+    ebpf_get_program_type_by_name(
+        _In_z_ const char* name,
+        _Out_ ebpf_program_type_t* program_type,
+        _Out_ ebpf_attach_type_t* expected_attach_type);
 
 #ifdef __cplusplus
 }
