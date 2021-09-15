@@ -1,6 +1,19 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+// The pinning table stores ebpf_pinning_entry_t objects in an ebpf_hash_table_t, which is designed to store fixed
+// size keys and values. The pinning table uses ebpf_utf8_string_t as the key for this table, which is a variable
+// sized structure with embedded pointers. As a result, ebpf_utf8_string_t are not directly comparible.
+// To handle this case, the ebpf_hash_table_t exposes an extract method, that accepts a key and returns
+// a pointer to data that can be compared or hashed. The ebpf_hash_table_t is initialized to use ebpf_utf8_string_t*
+// as keys and ebpf_pinning_entry_t* as values.
+// Insertion - The key is a pointer to the ebpf_utf8_string_t embedded in the ebpf_pinning_entry_t and the value is
+// a pointer to the ebpf_pinning_entry_t object.
+// Find/Delete - The key is a pointer to an ebpf_utf8_string_t that contains the string to search for.
+// Find returns a pointer to the ebpf_pinning_entry_t object. Comparison is done based on the value pointed to by the
+// key. Delete erases the entry from the ebpf_hash_table_t, but doesn't free the memory associated with the
+// ebpf_pinning_entry_t.
+
 #include "ebpf_pinning_table.h"
 
 #include "ebpf_object.h"
