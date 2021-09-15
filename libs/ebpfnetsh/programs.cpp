@@ -360,7 +360,7 @@ handle_ebpf_set_program(
         if (memcmp(&attach_type, &EBPF_ATTACH_TYPE_UNSPECIFIED, sizeof(ebpf_attach_type_t)) != 0) {
             ebpf_result_t result = ebpf_program_attach_by_id(id, attach_type);
             if (result != NO_ERROR) {
-                std::cerr << "error " << result << ": could not detach program" << std::endl;
+                std::cerr << "error " << result << ": could not attach program" << std::endl;
                 return ERROR_SUPPRESS_OUTPUT;
             }
         } else {

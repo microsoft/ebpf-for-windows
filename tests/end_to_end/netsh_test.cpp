@@ -3,6 +3,7 @@
 
 #include <windows.h>
 #include <netsh.h> // Must be included after windows.h
+#include <string.h>
 #include "bpf.h"
 #include "capture_helper.hpp"
 #include "catch_wrapper.hpp"
@@ -32,7 +33,6 @@ PreprocessCommand(
     _Out_writes_opt_(dwArgCount - dwCurrentIndex) DWORD* pdwTagType)
 {
     UNREFERENCED_PARAMETER(hModule);
-    UNREFERENCED_PARAMETER(ppwcArguments);
 
     DWORD argc = dwArgCount - dwCurrentIndex;
     if (argc < dwMinArgs || argc > dwMaxArgs) {
@@ -43,12 +43,42 @@ PreprocessCommand(
         return ERROR_INVALID_SYNTAX;
     }
 
-    // Simplified algorithm is to assume arguments are supplied in the correct order.
+    for (DWORD i = 0; i < argc; i++) {
+        PWSTR equals = wcschr(ppwcArguments[dwCurrentIndex + i], L'=');
+        PWSTR tagName = nullptr;
+        if (equals) {
+            tagName = _wcsdup(ppwcArguments[dwCurrentIndex + i]);
+            if (tagName == nullptr) {
+                return ERROR_OUTOFMEMORY;
+            }
+            tagName[equals - ppwcArguments[dwCurrentIndex + i]] = 0;
+
+            // Advance past the tag.
+            ppwcArguments[dwCurrentIndex + i] = ++equals;
+        }
+
+        // Find which tag this argument goes with.
+        DWORD dwTagIndex;
+        for (dwTagIndex = 0; dwTagIndex < dwTagCount; dwTagIndex++) {
+            if ((tagName == nullptr && !pttTags[dwTagIndex].bPresent) ||
+                (tagName != nullptr && wcsncmp(pttTags[dwTagIndex].pwszTag, tagName, wcslen(tagName)) == 0)) {
+                pttTags[dwTagIndex].bPresent = true;
+                pdwTagType[i] = dwTagIndex;
+                break;
+            }
+        }
+        if (tagName) {
+            free((void*)tagName);
+        }
+        if (dwTagIndex == dwTagCount) {
+            // Tag not found.
+            return ERROR_INVALID_SYNTAX;
+        }
+    }
+
+    // See if any required tags are absent.
     for (DWORD i = 0; i < dwTagCount; i++) {
-        if (dwCurrentIndex + i < dwArgCount) {
-            pttTags[i].bPresent = true;
-            pdwTagType[i] = i;
-        } else if (pttTags[i].dwRequired & NS_REQ_PRESENT) {
+        if (!pttTags[i].bPresent && (pttTags[i].dwRequired & NS_REQ_PRESENT)) {
             return ERROR_INVALID_SYNTAX;
         }
     }
@@ -357,7 +387,7 @@ TEST_CASE("delete pinned program", "[netsh][programs]")
     REQUIRE(result == NO_ERROR);
 
     // Pin the program.
-    output = _run_netsh_command(handle_ebpf_set_program, L"196609", L"xdp", L"mypinname", &result);
+    output = _run_netsh_command(handle_ebpf_set_program, L"196609", L"pinned=mypinname", nullptr, &result);
     REQUIRE(result == ERROR_OKAY);
     REQUIRE(output == "");
 
