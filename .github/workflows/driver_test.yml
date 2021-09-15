@@ -41,10 +41,6 @@ jobs:
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
       run: ./unit_tests.exe -s
 
-    - name: Run Performance Benchmark Tests
-      working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
-      run: ./ebpf_performance.exe
-
     - name: Run Ebpf Client Tests
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
       run: |
