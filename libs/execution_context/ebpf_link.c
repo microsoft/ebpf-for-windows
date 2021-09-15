@@ -94,10 +94,6 @@ ebpf_link_initialize(
         goto Exit;
     }
 
-    if (!provider_data) {
-        return_value = EBPF_INVALID_ARGUMENT;
-        goto Exit;
-    }
     if ((provider_data->version != EBPF_ATTACH_PROVIDER_DATA_VERSION) || (!provider_data->data) ||
         (provider_data->size != sizeof(ebpf_attach_provider_data_t))) {
         return_value = EBPF_INVALID_ARGUMENT;
@@ -137,7 +133,7 @@ Done:
 }
 
 void
-ebpf_link_detach_program(ebpf_link_t* link)
+ebpf_link_detach_program(_In_ ebpf_link_t* link)
 {
     ebpf_lock_state_t state;
     ebpf_program_t* program;

@@ -59,7 +59,7 @@ extern "C"
      * @param[in] link The link object to detach.
      */
     void
-    ebpf_link_detach_program(ebpf_link_t* link);
+    ebpf_link_detach_program(_In_ ebpf_link_t* link);
 
     /**
      * @brief Get bpf_link_info about a link.
