@@ -1891,6 +1891,10 @@ ebpf_result_t
 ebpf_get_program_type_by_name(
     _In_z_ const char* name, _Out_ ebpf_program_type_t* program_type, _Out_ ebpf_attach_type_t* expected_attach_type)
 {
+    if (name == nullptr || program_type == nullptr || expected_attach_type == nullptr) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
     EbpfProgramType type = get_program_type_windows(name, name);
     *program_type = *(GUID*)type.platform_specific_data;
 

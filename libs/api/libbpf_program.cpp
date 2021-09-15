@@ -63,7 +63,7 @@ bpf_prog_load(const char* file_name, enum bpf_prog_type type, struct bpf_object*
     if (result != EBPF_SUCCESS) {
         return libbpf_result_err(result);
     }
-    return EBPF_SUCCESS;
+    return 0;
 }
 
 int
@@ -291,6 +291,10 @@ bpf_prog_get_next_id(uint32_t start_id, uint32_t* next_id)
 int
 libbpf_prog_type_by_name(const char* name, enum bpf_prog_type* prog_type, enum bpf_attach_type* expected_attach_type)
 {
+    if (prog_type == nullptr || expected_attach_type == nullptr) {
+        return libbpf_err(-EINVAL);
+    }
+
     ebpf_program_type_t program_type_uuid;
     ebpf_attach_type_t expected_attach_type_uuid;
     ebpf_result_t result = ebpf_get_program_type_by_name(name, &program_type_uuid, &expected_attach_type_uuid);
