@@ -1111,7 +1111,7 @@ TEST_CASE("link_tests", "[end_to_end]")
     bpf_program* program = bpf_object__find_program_by_name(program_helper.get_object(), "func");
     REQUIRE(program != nullptr);
 
-    // Second attach of program should fail.
+    // Test the case where the provider only permits a single program to be attached.
     REQUIRE(hook.attach(program) == EBPF_INVALID_ARGUMENT);
 
     hook.detach();

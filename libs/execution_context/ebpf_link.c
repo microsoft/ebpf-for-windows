@@ -133,7 +133,7 @@ Done:
 }
 
 void
-ebpf_link_detach_program(_In_ ebpf_link_t* link)
+ebpf_link_detach_program(_Inout_ ebpf_link_t* link)
 {
     ebpf_lock_state_t state;
     ebpf_program_t* program;
