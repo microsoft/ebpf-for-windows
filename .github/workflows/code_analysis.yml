@@ -1,50 +1,36 @@
 # Copyright (c) Microsoft Corporation
 # SPDX-License-Identifier: MIT
 
-name: "CodeQL"
+# For documentation on the github environment, see
+# https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners
+#
+# For documentation on the syntax of this file, see
+# https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions
+name: Code-Analysis
 
-on:
-  push:
-    branches: [ master ]
-  pull_request:
-    # The branches below must be a subset of the branches above
-    branches: [ master ]
-  schedule:
-    - cron: '00 21 * * 0'
+on: pull_request
 
 jobs:
-  analyze:
-    name: Analyze
+  build:
+    strategy:
+      matrix:
+        configurations: [Debug, Release]
     runs-on: windows-latest
     env:
+      # Path to the solution file relative to the root of the project.
       SOLUTION_FILE_PATH: ebpf-for-windows.sln
-      BUILD_CONFIGURATION: Release
+
+      # Configuration type to build.
+      # You can convert this to a build matrix if you need coverage of multiple configuration types.
+      # https://docs.github.com/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
+      BUILD_CONFIGURATION: ${{matrix.configurations}}
+
       BUILD_PLATFORM: x64
-
-    permissions:
-      actions: read
-      contents: read
-      security-events: write
-
-    strategy:
-      fail-fast: false
-      matrix:
-        language: [ 'cpp' ]
 
     steps:
     - uses: actions/checkout@v2
       with:
         submodules: 'recursive'
-
-    # Initializes the CodeQL tools for scanning.
-    - name: Initialize CodeQL
-      uses: github/codeql-action/init@v1
-      with:
-        languages: ${{ matrix.language }}
-        # If you wish to specify custom queries, you can do so here or in a config file.
-        # By default, queries listed here will override any specified in a config file.
-        # Prefix the list here with "+" to use these queries and those in the config file.
-        # queries: ./path/to/local/query, your-org/your-repo/queries@main
 
     - name: Add MSBuild to PATH
       uses: microsoft/setup-msbuild@v1
@@ -71,7 +57,4 @@ jobs:
       working-directory: ${{env.GITHUB_WORKSPACE}}
       # Add additional options to the MSBuild command line here (like platform or verbosity level).
       # See https://docs.microsoft.com/visualstudio/msbuild/msbuild-command-line-reference
-      run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{env.BUILD_PLATFORM}} ${{env.SOLUTION_FILE_PATH}}
-
-    - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v1
+      run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{env.BUILD_PLATFORM}} /p:Analysis='True' ${{env.SOLUTION_FILE_PATH}}
