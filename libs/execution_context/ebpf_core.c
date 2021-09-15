@@ -750,7 +750,7 @@ _ebpf_core_protocol_link_program(
         goto Done;
 
 Done:
-    if (retval != EBPF_SUCCESS) {
+    if (retval != EBPF_SUCCESS && link) {
         ebpf_link_detach_program(link);
     }
     ebpf_object_release_reference((ebpf_object_t*)program);

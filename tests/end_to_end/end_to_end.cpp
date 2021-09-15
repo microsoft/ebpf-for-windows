@@ -1090,3 +1090,29 @@ TEST_CASE("xdp-encap-reflect-v6-interpret", "[xdp_tests]")
 {
     _xdp_encap_reflect_packet_test(EBPF_EXECUTION_INTERPRET, AF_INET6);
 }
+
+TEST_CASE("link_tests", "[end_to_end]")
+{
+    _test_helper_end_to_end test_helper;
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
+    program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
+    program_load_attach_helper_t program_helper(
+        SAMPLE_PATH "bpf.o", EBPF_PROGRAM_TYPE_XDP, "func", EBPF_EXECUTION_INTERPRET, hook);
+
+    // Dummy UDP datagram with fake IP and MAC addresses.
+    udp_packet_t packet(AF_INET);
+    packet.set_destination_port(ntohs(REFLECTION_TEST_PORT));
+
+    // Dummy context (not used by the eBPF program).
+    xdp_md_helper_t ctx(packet.packet());
+    int result;
+
+    REQUIRE(hook.fire(&ctx, &result) == EBPF_SUCCESS);
+    bpf_program* program = bpf_object__find_program_by_name(program_helper.get_object(), "func");
+    REQUIRE(program != nullptr);
+
+    // Test the case where the provider only permits a single program to be attached.
+    REQUIRE(hook.attach(program) == EBPF_INVALID_ARGUMENT);
+
+    hook.detach();
+}
