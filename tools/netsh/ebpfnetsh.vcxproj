@@ -64,6 +64,7 @@
       <RuntimeLibrary>MultiThreadedDebugDll</RuntimeLibrary>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <TreatWarningAsError>true</TreatWarningAsError>
+      <SupportJustMyCode>false</SupportJustMyCode>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

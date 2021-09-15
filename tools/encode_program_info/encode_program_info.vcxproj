@@ -129,6 +129,7 @@
       <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\user;$(SolutionDir)libs\api;$(SolutionDir)\netebpfext</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebugDll</RuntimeLibrary>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <SupportJustMyCode>false</SupportJustMyCode>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

@@ -88,6 +88,7 @@
       <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\user;$(SolutionDir)libs\ubpf;$(SolutionDir)\external\ubpf\vm;$(SolutionDir)\external\ubpf\vm\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebugDll</RuntimeLibrary>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <SupportJustMyCode>false</SupportJustMyCode>
     </ClCompile>
     <Link>
       <SubSystem>
