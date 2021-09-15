@@ -7,7 +7,7 @@ on:
   push:
     branches: [ master ]
   schedule:
-    - cron: '00 21 * * 0'
+    - cron: '00 21 * * *'
 
 jobs:
   analyze:
