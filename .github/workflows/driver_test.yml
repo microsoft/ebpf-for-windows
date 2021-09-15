@@ -59,6 +59,11 @@ jobs:
         $env:install=0
         .\sample_ext_app.exe -s
 
+    - name: Run Performance Benchmark Tests
+      if: ${{ env.BUILD_CONFIGURATION == 'Release' }}
+      working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+      run: ./ebpf_performance.exe
+
     - name: Uninstall eBPF
       working-directory: ${{ github.workspace }}
       run: ./uninstall-ebpf.bat
