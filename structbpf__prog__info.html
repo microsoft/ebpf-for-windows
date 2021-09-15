@@ -75,12 +75,18 @@ Data Fields</h2></td></tr>
 <tr class="memitem:ac93577683e5e340b94b9fca9b12efd02"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__structs_8h.html#aa03abb9b99ca6cfa2fa19f2fb8140df8">ebpf_id_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structbpf__prog__info.html#ac93577683e5e340b94b9fca9b12efd02">id</a></td></tr>
 <tr class="memdesc:ac93577683e5e340b94b9fca9b12efd02"><td class="mdescLeft">&#160;</td><td class="mdescRight">Program ID.  <a href="structbpf__prog__info.html#ac93577683e5e340b94b9fca9b12efd02">More...</a><br /></td></tr>
 <tr class="separator:ac93577683e5e340b94b9fca9b12efd02"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4e9d6f19ea338703f116b2557dd61363"><td class="memItemLeft" align="right" valign="top">enum <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0">bpf_prog_type</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structbpf__prog__info.html#a4e9d6f19ea338703f116b2557dd61363">type</a></td></tr>
+<tr class="memdesc:a4e9d6f19ea338703f116b2557dd61363"><td class="mdescLeft">&#160;</td><td class="mdescRight">Program type, if a cross-platform type..  <a href="structbpf__prog__info.html#a4e9d6f19ea338703f116b2557dd61363">More...</a><br /></td></tr>
+<tr class="separator:a4e9d6f19ea338703f116b2557dd61363"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab707e966eb488feaf4268784ddc9735c"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structbpf__prog__info.html#ab707e966eb488feaf4268784ddc9735c">nr_map_ids</a></td></tr>
 <tr class="memdesc:ab707e966eb488feaf4268784ddc9735c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Number of maps associated with this program.  <a href="structbpf__prog__info.html#ab707e966eb488feaf4268784ddc9735c">More...</a><br /></td></tr>
 <tr class="separator:ab707e966eb488feaf4268784ddc9735c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a583e0a419308b97503899bac3a3139d2"><td class="memItemLeft" align="right" valign="top">char&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structbpf__prog__info.html#a583e0a419308b97503899bac3a3139d2">name</a> [<a class="el" href="ebpf__structs_8h.html#abc5e07d826c22d4c2b46fd1fb5a2e93e">BPF_OBJ_NAME_LEN</a>]</td></tr>
 <tr class="memdesc:a583e0a419308b97503899bac3a3139d2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Null-terminated program name.  <a href="structbpf__prog__info.html#a583e0a419308b97503899bac3a3139d2">More...</a><br /></td></tr>
 <tr class="separator:a583e0a419308b97503899bac3a3139d2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:acbb1379ce1dbc7fe7ef223edf2f50420"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__windows_8h.html#a7392ed9f9037688cd94f7069c523c251">ebpf_program_type_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structbpf__prog__info.html#acbb1379ce1dbc7fe7ef223edf2f50420">type_uuid</a></td></tr>
+<tr class="memdesc:acbb1379ce1dbc7fe7ef223edf2f50420"><td class="mdescLeft">&#160;</td><td class="mdescRight">Program type UUID.  <a href="structbpf__prog__info.html#acbb1379ce1dbc7fe7ef223edf2f50420">More...</a><br /></td></tr>
+<tr class="separator:acbb1379ce1dbc7fe7ef223edf2f50420"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Field Documentation</h2>
 <a id="ac93577683e5e340b94b9fca9b12efd02"></a>
@@ -128,6 +134,38 @@ Data Fields</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Number of maps associated with this program. </p>
+
+</div>
+</div>
+<a id="a4e9d6f19ea338703f116b2557dd61363"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4e9d6f19ea338703f116b2557dd61363">&#9670;&nbsp;</a></span>type</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">enum <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0">bpf_prog_type</a> bpf_prog_info::type</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Program type, if a cross-platform type.. </p>
+
+</div>
+</div>
+<a id="acbb1379ce1dbc7fe7ef223edf2f50420"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#acbb1379ce1dbc7fe7ef223edf2f50420">&#9670;&nbsp;</a></span>type_uuid</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="ebpf__windows_8h.html#a7392ed9f9037688cd94f7069c523c251">ebpf_program_type_t</a> bpf_prog_info::type_uuid</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Program type UUID. </p>
 
 </div>
 </div>

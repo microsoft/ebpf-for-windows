@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['midl_424',['MIDL',['../struct__ebpf__program__info.html#a1790ac66e704de97367583bd59348c85',1,'_ebpf_program_info::MIDL()'],['../struct__ebpf__helper__function__addresses.html#a75d6a19ec98050c548f3a22c4ead1c93',1,'_ebpf_helper_function_addresses::MIDL()']]]
+  ['libbpf_5fprog_5ftype_5fby_5fname_429',['libbpf_prog_type_by_name',['../libbpf_8h.html#a64a0e9275ed02a9f30291ae5dd777452',1,'libbpf.h']]]
 ];

@@ -76,6 +76,7 @@ $(function() {
 <div class="contents">
 <div class="textblock"><code>#include &lt;stdint.h&gt;</code><br />
 <code>#include &quot;../external/ebpf-verifier/src/ebpf_base.h&quot;</code><br />
+<code>#include &quot;<a class="el" href="ebpf__windows_8h_source.html">ebpf_windows.h</a>&quot;</code><br />
 </div>
 <p><a href="ebpf__structs_8h_source.html">Go to the source code of this file.</a></p>
 <table class="memberdecls">
@@ -149,6 +150,11 @@ Enumerations</h2></td></tr>
 <br />
  }</td></tr>
 <tr class="separator:aa752b12bfaedda8a28a7a88c1b96f272"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0f8242763b15ec665eaa47c6add861a0"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0">bpf_prog_type</a> { <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0aa21c34810941a56e48bcf53206067a25">BPF_PROG_TYPE_UNKNOWN</a>, 
+<a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0a1945ca3d46bd1e589c4d0effe14f18d6">BPF_PROG_TYPE_XDP</a>, 
+<a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0a2af8d41961c186b1a62fcc54a29446d2">BPF_PROG_TYPE_BIND</a>
+ }</td></tr>
+<tr class="separator:a0f8242763b15ec665eaa47c6add861a0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Macro Definition Documentation</h2>
 <a id="abc5e07d826c22d4c2b46fd1fb5a2e93e"></a>
@@ -279,6 +285,25 @@ Enumerations</h2></td></tr>
 <tr><td class="fieldname"><a id="afd97ad5450067d01ec6b6cd3c30761a1a2d7ebe3c4a82861bcd69b500d7f67de2"></a>BPF_MAP_TYPE_PERCPU_ARRAY&#160;</td><td class="fielddoc"></td></tr>
 <tr><td class="fieldname"><a id="afd97ad5450067d01ec6b6cd3c30761a1a6e2e8feb969aa5b9e78960e2986d6dcb"></a>BPF_MAP_TYPE_HASH_OF_MAPS&#160;</td><td class="fielddoc"></td></tr>
 <tr><td class="fieldname"><a id="afd97ad5450067d01ec6b6cd3c30761a1acb31e6ac8381a668a866a3e858a55199"></a>BPF_MAP_TYPE_ARRAY_OF_MAPS&#160;</td><td class="fielddoc"></td></tr>
+</table>
+
+</div>
+</div>
+<a id="a0f8242763b15ec665eaa47c6add861a0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a0f8242763b15ec665eaa47c6add861a0">&#9670;&nbsp;</a></span>bpf_prog_type</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">enum <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0">bpf_prog_type</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<table class="fieldtable">
+<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="a0f8242763b15ec665eaa47c6add861a0aa21c34810941a56e48bcf53206067a25"></a>BPF_PROG_TYPE_UNKNOWN&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="a0f8242763b15ec665eaa47c6add861a0a1945ca3d46bd1e589c4d0effe14f18d6"></a>BPF_PROG_TYPE_XDP&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="a0f8242763b15ec665eaa47c6add861a0a2af8d41961c186b1a62fcc54a29446d2"></a>BPF_PROG_TYPE_BIND&#160;</td><td class="fielddoc"></td></tr>
 </table>
 
 </div>

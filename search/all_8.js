@@ -1,8 +1,6 @@
 var searchData=
 [
-  ['id_253',['id',['../structbpf__link__info.html#af38c04d5b8713678bd18719734398a73',1,'bpf_link_info::id()'],['../structbpf__map__info.html#abadc9741409bc738b2b7c290a505034e',1,'bpf_map_info::id()'],['../structbpf__prog__info.html#ac93577683e5e340b94b9fca9b12efd02',1,'bpf_prog_info::id()']]],
-  ['inner_5fmap_5fid_254',['inner_map_id',['../struct__ebpf__map__definition__in__memory.html#a3b8e470365252209c395e43a6f6268e5',1,'_ebpf_map_definition_in_memory']]],
-  ['inner_5fmap_5fidx_255',['inner_map_idx',['../struct__ebpf__map__definition__in__file.html#a1bc0c265be49ca02958cad64cd952a46',1,'_ebpf_map_definition_in_file']]],
-  ['int_256',['INT',['../tlv_8h.html#a50a469b7a3bd57834902b2d2f67a9c94a53f93baa3057821107c750323892fa92',1,'tlv.h']]],
-  ['is_5fprivileged_257',['is_privileged',['../struct__ebpf__program__type__descriptor.html#aafa9c2f4ceef8b382998f6e445c38121',1,'_ebpf_program_type_descriptor']]]
+  ['helper_5ffunction_5faddresses_252',['helper_function_addresses',['../struct__ebpf__program__data.html#a00f714762e415357b4199ce3d09787e3',1,'_ebpf_program_data']]],
+  ['helper_5ffunction_5fcount_253',['helper_function_count',['../struct__ebpf__helper__function__addresses.html#a8d8d99e7ecece4fa5299f363050ec9fa',1,'_ebpf_helper_function_addresses']]],
+  ['helper_5fid_254',['helper_id',['../struct__ebpf__helper__function__prototype.html#a69f15009a0fd600af05bfca606b2b894',1,'_ebpf_helper_function_prototype']]]
 ];

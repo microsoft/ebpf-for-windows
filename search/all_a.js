@@ -1,7 +1,4 @@
 var searchData=
 [
-  ['length_259',['length',['../struct__tlv__type__length__value.html#a416128b198ed472f76e2c38bd23d4f27',1,'_tlv_type_length_value']]],
-  ['libbpf_2eh_260',['libbpf.h',['../libbpf_8h.html',1,'']]],
-  ['libbpf_5fapi_261',['LIBBPF_API',['../linux_2bpf_8h.html#abf2e376a832317e2b685e430a6fdb8a7',1,'bpf.h']]],
-  ['libbpf_5fdeprecated_262',['LIBBPF_DEPRECATED',['../linux_2bpf_8h.html#aa54db9e919a5587064e975ca181cb8ca',1,'bpf.h']]]
+  ['key_5fsize_260',['key_size',['../struct__ebpf__map__definition__in__memory.html#a3355e179c8e1ad58c8f111c96c3d5879',1,'_ebpf_map_definition_in_memory::key_size()'],['../struct__ebpf__map__definition__in__file.html#a103d15ebb247ecc8e060be0347aa4303',1,'_ebpf_map_definition_in_file::key_size()'],['../structbpf__map__info.html#a59d3a53b2bec2c49d3955f25707cb337',1,'bpf_map_info::key_size()']]]
 ];
