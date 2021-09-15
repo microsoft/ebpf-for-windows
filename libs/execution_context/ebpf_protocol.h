@@ -38,6 +38,7 @@ typedef enum _ebpf_operation_id
     EBPF_OPERATION_GET_NEXT_MAP_ID,
     EBPF_OPERATION_GET_NEXT_PROGRAM_ID,
     EBPF_OPERATION_GET_OBJECT_INFO,
+    EBPF_OPERATION_GET_NEXT_PINNED_PROGRAM_NAME,
 } ebpf_operation_id_t;
 
 typedef enum _ebpf_code_type
@@ -332,6 +333,18 @@ typedef struct _ebpf_operation_get_next_id_reply
     struct _ebpf_operation_header header;
     ebpf_id_t next_id;
 } ebpf_operation_get_next_id_reply_t;
+
+typedef struct _ebpf_operation_get_next_pinned_name_request
+{
+    struct _ebpf_operation_header header;
+    char start_name[EBPF_MAX_PIN_PATH_LENGTH];
+} ebpf_operation_get_next_pinned_name_request_t;
+
+typedef struct _ebpf_operation_get_next_pinned_name_reply
+{
+    struct _ebpf_operation_header header;
+    char next_name[EBPF_MAX_PIN_PATH_LENGTH];
+} ebpf_operation_get_next_pinned_name_reply_t;
 
 typedef struct _ebpf_operation_get_object_info_request
 {

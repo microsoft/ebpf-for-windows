@@ -14,9 +14,9 @@
 // key. Delete erases the entry from the ebpf_hash_table_t, but doesn't free the memory associated with the
 // ebpf_pinning_entry_t.
 
-#include "ebpf_pinning_table.h"
-
+#include "ebpf_core_structs.h"
 #include "ebpf_object.h"
+#include "ebpf_pinning_table.h"
 
 #define EBPF_PINNING_TABLE_BUCKET_COUNT 64
 
@@ -108,6 +108,10 @@ ebpf_pinning_table_insert(ebpf_pinning_table_t* pinning_table, const ebpf_utf8_s
     ebpf_result_t return_value;
     ebpf_utf8_string_t* new_key;
     ebpf_pinning_entry_t* new_pinning_entry;
+
+    if (name->length >= EBPF_MAX_PIN_PATH_LENGTH) {
+        return EBPF_INVALID_ARGUMENT;
+    }
 
     new_pinning_entry = ebpf_allocate(sizeof(ebpf_pinning_entry_t));
     if (!new_pinning_entry) {
@@ -282,6 +286,52 @@ Exit:
     *entry_count = local_entry_count;
     *pinning_entries = local_pinning_entries;
 
+    return result;
+}
+
+ebpf_result_t
+ebpf_pinning_table_get_next_name(
+    _In_ ebpf_pinning_table_t* pinning_table,
+    ebpf_object_type_t object_type,
+    _In_z_ const char* start_name,
+    _Out_writes_z_(EBPF_MAX_PIN_PATH_LENGTH) char* next_name)
+{
+    if ((pinning_table == NULL) || (start_name == NULL) || (next_name == NULL)) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    // Copy the name provided into a buffer that we can guarantee is null terminated.
+    char name_buffer[EBPF_MAX_PIN_PATH_LENGTH];
+    strncpy_s(name_buffer, EBPF_MAX_PIN_PATH_LENGTH, start_name, _TRUNCATE);
+    const ebpf_utf8_string_t name_string = {(uint8_t*)name_buffer, strlen(name_buffer)};
+    const ebpf_utf8_string_t* name = &name_string;
+    const uint8_t* previous_key = (name->length == 0) ? NULL : (const uint8_t*)&name;
+
+    ebpf_lock_state_t state = ebpf_lock_lock(&pinning_table->lock);
+
+    ebpf_result_t result;
+    ebpf_pinning_entry_t** next_pinning_entry = NULL;
+
+    for (;;) {
+        // Get the next entry in the table.
+        ebpf_utf8_string_t* next_object_name;
+        result = ebpf_hash_table_next_key_and_value(
+            pinning_table->hash_table, previous_key, (uint8_t*)&next_object_name, (uint8_t**)&next_pinning_entry);
+        if (result != EBPF_SUCCESS) {
+            break;
+        }
+
+        // See if the entry matches the object type the caller is interested in.
+        if (object_type == ebpf_object_get_type((*next_pinning_entry)->object)) {
+            // Copy the name into the caller's buffer.
+            strncpy_s(
+                next_name, EBPF_MAX_PIN_PATH_LENGTH, (const char*)next_object_name->value, next_object_name->length);
+            break;
+        }
+        previous_key = (uint8_t*)&next_object_name;
+    }
+
+    ebpf_lock_unlock(&pinning_table->lock, state);
     return result;
 }
 

@@ -120,3 +120,9 @@ struct bpf_prog_info
     // Windows-specific fields.
     ebpf_program_type_t type_uuid; ///< Program type UUID.
 };
+
+typedef struct _ebpf_windows_program_type_data
+{
+    ebpf_program_type_t program_type_uuid; ///< Program type UUID.
+    ebpf_attach_type_t attach_type_uuid;   ///< Attach type UUID.
+} ebpf_windows_program_type_data_t;

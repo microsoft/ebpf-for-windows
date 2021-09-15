@@ -275,6 +275,7 @@ TEST_CASE("set program", "[netsh][programs]")
     int result;
     std::string output = _run_netsh_command(handle_ebpf_add_program, L"tail_call.o", nullptr, nullptr, &result);
     REQUIRE(strcmp(output.c_str(), "Loaded with ID 196609\n") == 0);
+    REQUIRE(result == NO_ERROR);
 
     // Detach the program. This won't delete the program since
     // the containing object is still associated with the netsh process,
@@ -306,7 +307,7 @@ TEST_CASE("set program", "[netsh][programs]")
     RpcStringFreeW(&attach_type_string);
     output = _run_netsh_command(handle_ebpf_delete_program, L"196609", nullptr, nullptr, &result);
     REQUIRE(output == "");
-    REQUIRE(result == ERROR_OKAY);
+    REQUIRE(result == NO_ERROR);
     REQUIRE(bpf_object__next(nullptr) == nullptr);
 
     // Verify the program ID doesn't exist any more.
@@ -315,7 +316,6 @@ TEST_CASE("set program", "[netsh][programs]")
         output == "\n"
                   "    ID            File Name         Section             Name      Mode\n"
                   "====== ==================== =============== ================ =========\n");
-
     REQUIRE(result == NO_ERROR);
 }
 
@@ -344,4 +344,64 @@ TEST_CASE("show maps", "[netsh][maps]")
 
     Platform::_close(inner_map_fd);
     Platform::_close(outer_map_fd);
+}
+
+TEST_CASE("delete pinned program", "[netsh][programs]")
+{
+    _test_helper_libbpf test_helper;
+
+    // Load a program unpinned.
+    int result;
+    std::string output = _run_netsh_command(handle_ebpf_add_program, L"tail_call.o", nullptr, nullptr, &result);
+    REQUIRE(strcmp(output.c_str(), "Loaded with ID 196609\n") == 0);
+    REQUIRE(result == NO_ERROR);
+
+    // Pin the program.
+    output = _run_netsh_command(handle_ebpf_set_program, L"196609", L"xdp", L"mypinname", &result);
+    REQUIRE(result == ERROR_OKAY);
+    REQUIRE(output == "");
+
+    // Verify we can delete a pinned program.
+    output = _run_netsh_command(handle_ebpf_delete_program, L"196609", nullptr, nullptr, &result);
+    REQUIRE(output == "Unpinned 196609 from mypinname\n");
+    REQUIRE(result == NO_ERROR);
+    REQUIRE(bpf_object__next(nullptr) == nullptr);
+
+    // Verify the program ID doesn't exist any more.
+    output = _run_netsh_command(handle_ebpf_show_programs, nullptr, nullptr, nullptr, &result);
+    REQUIRE(
+        output == "\n"
+                  "    ID            File Name         Section             Name      Mode\n"
+                  "====== ==================== =============== ================ =========\n");
+    REQUIRE(result == NO_ERROR);
+}
+
+TEST_CASE("unpin program", "[netsh][programs]")
+{
+    _test_helper_libbpf test_helper;
+
+    // Load a program pinned.
+    int result;
+    std::string output = _run_netsh_command(handle_ebpf_add_program, L"tail_call.o", L"xdp", L"mypinname", &result);
+    REQUIRE(strcmp(output.c_str(), "Loaded with ID 196609\n") == 0);
+    REQUIRE(result == NO_ERROR);
+
+    // Unpin the program.
+    output = _run_netsh_command(handle_ebpf_set_program, L"196609", L"", nullptr, &result);
+    REQUIRE(result == ERROR_OKAY);
+    REQUIRE(output == "");
+
+    // Verify we can delete the unpinned program.
+    output = _run_netsh_command(handle_ebpf_delete_program, L"196609", nullptr, nullptr, &result);
+    REQUIRE(output == "Unpinned 196609 from mypinname\n");
+    REQUIRE(result == NO_ERROR);
+    REQUIRE(bpf_object__next(nullptr) == nullptr);
+
+    // Verify the program ID doesn't exist any more.
+    output = _run_netsh_command(handle_ebpf_show_programs, nullptr, nullptr, nullptr, &result);
+    REQUIRE(
+        output == "\n"
+                  "    ID            File Name         Section             Name      Mode\n"
+                  "====== ==================== =============== ================ =========\n");
+    REQUIRE(result == NO_ERROR);
 }
