@@ -22,6 +22,4 @@ Self-hosted runners are necessary as GitHub-hosted runners don't have the requis
    2) Locate "GitHub Action Runner ...".
    3) Right Click -> Properties -> Log On.
    4) Change "Log on as:" to "Local System Account".
-9)  Install the [Visual C++ Runtime Files](https://docs.microsoft.com/en-us/visualstudio/releases/2019/redistribution#visual-c-runtime-files)
-10)  Install the debug version of the Visual C++ Runtime files from ```"%ProgramFiles(x86)%\Microsoft Visual Studio\2019\Enterprise\VC\Redist\MSVC\14.29.30133\debug_nonredist\x64\Microsoft.VC142.DebugCRT"``` on a machine with Visual Studio installed.
-11) Reboot the runner.
+9) Reboot the runner.

@@ -26,13 +26,6 @@
     2. Do `bcdedit.exe -set TESTSIGNING ON`.
     3. Restart the VM so that the change will be applied.
 
-4. Install the matching version of the Microsoft Visual C++ Runtime:
-Versions of the Microsoft C Runtime are available on the developer machine, located in %ProgramFiles(x86)%\Microsoft Visual Studio\2019\Enterprise\VC\Redist\MSVC\version, where version is updated with each patch of Visual Studio.
-
-With version 14.29.30133, the full path is:
-1) Release - ```%ProgramFiles(x86)%\Microsoft Visual Studio\2019\Enterprise\VC\Redist\MSVC\14.29.30133\vc_redist.x64.exe```
-2) Debug - ```%ProgramFiles(x86)%\Microsoft Visual Studio\2019\Enterprise\VC\Redist\MSVC\14.29.30133\debug_nonredist\x64\Microsoft.VC142.DebugCRT```
-
 ## Installing eBPF into a VM
 
 Once the one-time setup has been completed, the following steps will
