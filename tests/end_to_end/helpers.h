@@ -73,7 +73,7 @@ typedef class _single_instance_hook : public _hook_helper
   public:
     _single_instance_hook(ebpf_program_type_t program_type, ebpf_attach_type_t attach_type)
         : _hook_helper{attach_type}, provider(nullptr), client_binding_context(nullptr), client_data(nullptr),
-          client_dispatch_table(nullptr), link_handle(ebpf_handle_invalid)
+          client_dispatch_table(nullptr), link_handle(ebpf_handle_invalid), link_object(nullptr)
     {
         ebpf_guid_create(&client_id);
         attach_provider_data.supported_program_type = program_type;
@@ -89,7 +89,11 @@ typedef class _single_instance_hook : public _hook_helper
                 client_attach_callback,
                 client_detach_callback) == EBPF_SUCCESS);
     }
-    ~_single_instance_hook() { ebpf_provider_unload(provider); }
+    ~_single_instance_hook()
+    {
+        detach();
+        ebpf_provider_unload(provider);
+    }
 
     uint32_t
     attach(ebpf_handle_t program_handle)
@@ -97,11 +101,25 @@ typedef class _single_instance_hook : public _hook_helper
         return ebpf_api_link_program(program_handle, attach_type, &link_handle);
     }
 
+    uint32_t
+    attach(bpf_program* program)
+    {
+        return ebpf_program_attach(program, &attach_type, nullptr, 0, &link_object);
+    }
+
     void
     detach()
     {
-        ebpf_api_unlink_program(link_handle);
-        ebpf_api_close_handle(link_handle);
+        if (link_handle != ebpf_handle_invalid) {
+            ebpf_api_unlink_program(link_handle);
+            ebpf_api_close_handle(link_handle);
+            link_handle = ebpf_handle_invalid;
+        }
+        if (link_object != nullptr) {
+            ebpf_link_detach(link_object);
+            ebpf_link_close(link_object);
+            link_object = nullptr;
+        }
     }
 
     void
@@ -141,6 +159,9 @@ typedef class _single_instance_hook : public _hook_helper
         const ebpf_extension_dispatch_table_t* client_dispatch_table)
     {
         auto hook = reinterpret_cast<_single_instance_hook*>(context);
+        if (hook->client_binding_context != nullptr) {
+            return EBPF_OPERATION_NOT_SUPPORTED;
+        }
         hook->client_id = *client_id;
         hook->client_binding_context = client_binding_context;
         hook->client_data = client_data;
@@ -169,6 +190,7 @@ typedef class _single_instance_hook : public _hook_helper
     const ebpf_extension_data_t* client_data;
     const ebpf_extension_dispatch_table_t* client_dispatch_table;
     ebpf_handle_t link_handle;
+    bpf_link* link_object;
 } single_instance_hook_t;
 
 #define TEST_NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION 0

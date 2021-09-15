@@ -90,6 +90,10 @@ ebpf_link_initialize(
         NULL,
         NULL);
 
+    if (return_value != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
     if (!provider_data) {
         return_value = EBPF_INVALID_ARGUMENT;
         goto Exit;
@@ -137,6 +141,11 @@ ebpf_link_detach_program(ebpf_link_t* link)
 {
     ebpf_lock_state_t state;
     ebpf_program_t* program;
+
+    if (!link) {
+        return;
+    }
+
     state = ebpf_lock_lock(&link->attach_lock);
     if (!link->program) {
         ebpf_lock_unlock(&link->attach_lock, state);
