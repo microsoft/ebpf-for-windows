@@ -104,23 +104,26 @@ $(function() {
 <div class="line"><a name="l00176"></a><span class="lineno">  176</span>&#160;<span class="keywordtype">int</span></div>
 <div class="line"><a name="l00177"></a><span class="lineno">  177</span>&#160;<a class="code" href="bpf_8h.html#ac9e08c49e17fcf8c69e202cfe15b87b3">bpf_map_update_elem</a>(<span class="keywordtype">int</span> fd, <span class="keyword">const</span> <span class="keywordtype">void</span>* key, <span class="keyword">const</span> <span class="keywordtype">void</span>* value, <a class="code" href="bpf__helpers__platform_8h.html#ac2a2bfb32105ffe8e74b67670b7ec440">__u64</a> flags);</div>
 <div class="line"><a name="l00178"></a><span class="lineno">  178</span>&#160; </div>
-<div class="line"><a name="l00205"></a><span class="lineno">  205</span>&#160;<span class="keywordtype">int</span></div>
-<div class="line"><a name="l00206"></a><span class="lineno">  206</span>&#160;<a class="code" href="bpf_8h.html#a23ca7dd3889db2e7fc97e063c727c17f">bpf_obj_get_info_by_fd</a>(<span class="keywordtype">int</span> bpf_fd, <span class="keywordtype">void</span>* info, <a class="code" href="bpf__helpers__platform_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a>* info_len);</div>
-<div class="line"><a name="l00207"></a><span class="lineno">  207</span>&#160; </div>
-<div class="line"><a name="l00218"></a><span class="lineno">  218</span>&#160;<span class="keywordtype">int</span></div>
-<div class="line"><a name="l00219"></a><span class="lineno">  219</span>&#160;<a class="code" href="bpf_8h.html#a9f5eaf959fde6143ec1d94617362f5f1">bpf_obj_pin</a>(<span class="keywordtype">int</span> fd, <span class="keyword">const</span> <span class="keywordtype">char</span>* pathname);</div>
-<div class="line"><a name="l00220"></a><span class="lineno">  220</span>&#160; </div>
-<div class="line"><a name="l00239"></a><span class="lineno">  239</span>&#160;<span class="keywordtype">int</span></div>
-<div class="line"><a name="l00240"></a><span class="lineno">  240</span>&#160;<a class="code" href="bpf_8h.html#af4a69e7174078629e3f20dade5e6743d">bpf_prog_get_fd_by_id</a>(<a class="code" href="bpf__helpers__platform_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a> <span class="keywordtype">id</span>);</div>
-<div class="line"><a name="l00241"></a><span class="lineno">  241</span>&#160; </div>
-<div class="line"><a name="l00253"></a><span class="lineno">  253</span>&#160;<span class="keywordtype">int</span></div>
-<div class="line"><a name="l00254"></a><span class="lineno">  254</span>&#160;<a class="code" href="bpf_8h.html#a08fd6fe439bbd700f63a5cf95324be90">bpf_prog_get_next_id</a>(<a class="code" href="bpf__helpers__platform_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a> start_id, <a class="code" href="bpf__helpers__platform_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a>* next_id);</div>
-<div class="line"><a name="l00255"></a><span class="lineno">  255</span>&#160; </div>
-<div class="line"><a name="l00258"></a><span class="lineno">  258</span>&#160;<span class="preprocessor">#else</span></div>
-<div class="line"><a name="l00259"></a><span class="lineno">  259</span>&#160;<span class="preprocessor">#pragma warning(push)</span></div>
-<div class="line"><a name="l00260"></a><span class="lineno">  260</span>&#160;<span class="preprocessor">#include &quot;../external/libbpf/src/bpf.h&quot;</span></div>
-<div class="line"><a name="l00261"></a><span class="lineno">  261</span>&#160;<span class="preprocessor">#pragma warning(pop)</span></div>
-<div class="line"><a name="l00262"></a><span class="lineno">  262</span>&#160;<span class="preprocessor">#endif</span></div>
+<div class="line"><a name="l00192"></a><span class="lineno">  192</span>&#160;<span class="keywordtype">int</span></div>
+<div class="line"><a name="l00193"></a><span class="lineno">  193</span>&#160;<a class="code" href="bpf_8h.html#a2fd48f3d62ed0b56a9d01675bcd68c7a">bpf_obj_get</a>(<span class="keyword">const</span> <span class="keywordtype">char</span>* pathname);</div>
+<div class="line"><a name="l00194"></a><span class="lineno">  194</span>&#160; </div>
+<div class="line"><a name="l00214"></a><span class="lineno">  214</span>&#160;<span class="keywordtype">int</span></div>
+<div class="line"><a name="l00215"></a><span class="lineno">  215</span>&#160;<a class="code" href="bpf_8h.html#a23ca7dd3889db2e7fc97e063c727c17f">bpf_obj_get_info_by_fd</a>(<span class="keywordtype">int</span> bpf_fd, <span class="keywordtype">void</span>* info, <a class="code" href="bpf__helpers__platform_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a>* info_len);</div>
+<div class="line"><a name="l00216"></a><span class="lineno">  216</span>&#160; </div>
+<div class="line"><a name="l00227"></a><span class="lineno">  227</span>&#160;<span class="keywordtype">int</span></div>
+<div class="line"><a name="l00228"></a><span class="lineno">  228</span>&#160;<a class="code" href="bpf_8h.html#a9f5eaf959fde6143ec1d94617362f5f1">bpf_obj_pin</a>(<span class="keywordtype">int</span> fd, <span class="keyword">const</span> <span class="keywordtype">char</span>* pathname);</div>
+<div class="line"><a name="l00229"></a><span class="lineno">  229</span>&#160; </div>
+<div class="line"><a name="l00248"></a><span class="lineno">  248</span>&#160;<span class="keywordtype">int</span></div>
+<div class="line"><a name="l00249"></a><span class="lineno">  249</span>&#160;<a class="code" href="bpf_8h.html#af4a69e7174078629e3f20dade5e6743d">bpf_prog_get_fd_by_id</a>(<a class="code" href="bpf__helpers__platform_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a> <span class="keywordtype">id</span>);</div>
+<div class="line"><a name="l00250"></a><span class="lineno">  250</span>&#160; </div>
+<div class="line"><a name="l00262"></a><span class="lineno">  262</span>&#160;<span class="keywordtype">int</span></div>
+<div class="line"><a name="l00263"></a><span class="lineno">  263</span>&#160;<a class="code" href="bpf_8h.html#a08fd6fe439bbd700f63a5cf95324be90">bpf_prog_get_next_id</a>(<a class="code" href="bpf__helpers__platform_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a> start_id, <a class="code" href="bpf__helpers__platform_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a>* next_id);</div>
+<div class="line"><a name="l00264"></a><span class="lineno">  264</span>&#160; </div>
+<div class="line"><a name="l00267"></a><span class="lineno">  267</span>&#160;<span class="preprocessor">#else</span></div>
+<div class="line"><a name="l00268"></a><span class="lineno">  268</span>&#160;<span class="preprocessor">#pragma warning(push)</span></div>
+<div class="line"><a name="l00269"></a><span class="lineno">  269</span>&#160;<span class="preprocessor">#include &quot;../external/libbpf/src/bpf.h&quot;</span></div>
+<div class="line"><a name="l00270"></a><span class="lineno">  270</span>&#160;<span class="preprocessor">#pragma warning(pop)</span></div>
+<div class="line"><a name="l00271"></a><span class="lineno">  271</span>&#160;<span class="preprocessor">#endif</span></div>
 </div><!-- fragment --></div><!-- contents -->
 <div class="ttc" id="abpf_8h_html_a9bd017a4caa22bd9d57426e43b3390e1"><div class="ttname"><a href="bpf_8h.html#a9bd017a4caa22bd9d57426e43b3390e1">bpf_link_detach</a></div><div class="ttdeci">int bpf_link_detach(int link_fd)</div><div class="ttdoc">Detach a link.</div></div>
 <div class="ttc" id="abpf_8h_html_a9f5eaf959fde6143ec1d94617362f5f1"><div class="ttname"><a href="bpf_8h.html#a9f5eaf959fde6143ec1d94617362f5f1">bpf_obj_pin</a></div><div class="ttdeci">int bpf_obj_pin(int fd, const char *pathname)</div><div class="ttdoc">Pin an eBPF program or map referred to by fd to the provided pathname.</div></div>
@@ -132,6 +135,7 @@ $(function() {
 <div class="ttc" id="abpf__helpers__platform_8h_html_a3acae9310e2c2e411e800a8a369171c6"><div class="ttname"><a href="bpf__helpers__platform_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a></div><div class="ttdeci">uint32_t __u32</div><div class="ttdef"><b>Definition:</b> bpf_helpers_platform.h:18</div></div>
 <div class="ttc" id="aebpf__structs_8h_html_afd97ad5450067d01ec6b6cd3c30761a1"><div class="ttname"><a href="ebpf__structs_8h.html#afd97ad5450067d01ec6b6cd3c30761a1">bpf_map_type</a></div><div class="ttdeci">bpf_map_type</div><div class="ttdef"><b>Definition:</b> ebpf_structs.h:13</div></div>
 <div class="ttc" id="abpf_8h_html_a415dcff6da1cf861efbafe33768976af"><div class="ttname"><a href="bpf_8h.html#a415dcff6da1cf861efbafe33768976af">bpf_create_map</a></div><div class="ttdeci">int bpf_create_map(enum bpf_map_type map_type, int key_size, int value_size, int max_entries, __u32 map_flags)</div><div class="ttdoc">Create a new map.</div></div>
+<div class="ttc" id="abpf_8h_html_a2fd48f3d62ed0b56a9d01675bcd68c7a"><div class="ttname"><a href="bpf_8h.html#a2fd48f3d62ed0b56a9d01675bcd68c7a">bpf_obj_get</a></div><div class="ttdeci">int bpf_obj_get(const char *pathname)</div><div class="ttdoc">Get a file descriptor for a pinned object by pin path.</div></div>
 <div class="ttc" id="abpf_8h_html_a0331c5fc14dade8fdf12824da742f67e"><div class="ttname"><a href="bpf_8h.html#a0331c5fc14dade8fdf12824da742f67e">bpf_map_get_next_key</a></div><div class="ttdeci">int bpf_map_get_next_key(int fd, const void *key, void *next_key)</div><div class="ttdoc">Look up an element by key in a map and get the next key. If the specific key is not found,...</div></div>
 <div class="ttc" id="abpf_8h_html_af4a69e7174078629e3f20dade5e6743d"><div class="ttname"><a href="bpf_8h.html#af4a69e7174078629e3f20dade5e6743d">bpf_prog_get_fd_by_id</a></div><div class="ttdeci">int bpf_prog_get_fd_by_id(__u32 id)</div><div class="ttdoc">Get a file descriptor referring to a program with a given ID.</div></div>
 <div class="ttc" id="abpf_8h_html_a22b6c612a8c54fff0dd93f163bfadf22"><div class="ttname"><a href="bpf_8h.html#a22b6c612a8c54fff0dd93f163bfadf22">bpf_link_get_next_id</a></div><div class="ttdeci">int bpf_link_get_next_id(__u32 start_id, __u32 *next_id)</div><div class="ttdoc">Look for the next link ID greater than a given ID.</div></div>

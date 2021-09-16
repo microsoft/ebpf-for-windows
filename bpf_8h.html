@@ -107,6 +107,9 @@ Functions</h2></td></tr>
 <tr class="memdesc:ac9e08c49e17fcf8c69e202cfe15b87b3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create or update an element (key/value pair) in a specified map.  <a href="bpf_8h.html#ac9e08c49e17fcf8c69e202cfe15b87b3">More...</a><br /></td></tr>
 <tr class="separator:ac9e08c49e17fcf8c69e202cfe15b87b3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr><td colspan="2"><div class="groupHeader">Object-related functions</div></td></tr>
+<tr class="memitem:a2fd48f3d62ed0b56a9d01675bcd68c7a"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf_8h.html#a2fd48f3d62ed0b56a9d01675bcd68c7a">bpf_obj_get</a> (const char *pathname)</td></tr>
+<tr class="memdesc:a2fd48f3d62ed0b56a9d01675bcd68c7a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get a file descriptor for a pinned object by pin path.  <a href="bpf_8h.html#a2fd48f3d62ed0b56a9d01675bcd68c7a">More...</a><br /></td></tr>
+<tr class="separator:a2fd48f3d62ed0b56a9d01675bcd68c7a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a23ca7dd3889db2e7fc97e063c727c17f"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf_8h.html#a23ca7dd3889db2e7fc97e063c727c17f">bpf_obj_get_info_by_fd</a> (int bpf_fd, void *info, <a class="el" href="bpf__helpers__platform_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a> *info_len)</td></tr>
 <tr class="memdesc:a23ca7dd3889db2e7fc97e063c727c17f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Obtain information about the eBPF object referred to by bpf_fd. This function populates up to info_len bytes of info, which will be in one of the following formats depending on the eBPF object type of bpf_fd:  <a href="bpf_8h.html#a23ca7dd3889db2e7fc97e063c727c17f">More...</a><br /></td></tr>
 <tr class="separator:a23ca7dd3889db2e7fc97e063c727c17f"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -622,6 +625,33 @@ Functions</h2></td></tr>
   </table>
   </dd>
 </dl>
+
+</div>
+</div>
+<a id="a2fd48f3d62ed0b56a9d01675bcd68c7a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a2fd48f3d62ed0b56a9d01675bcd68c7a">&#9670;&nbsp;</a></span>bpf_obj_get()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int bpf_obj_get </td>
+          <td>(</td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>pathname</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Get a file descriptor for a pinned object by pin path. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">path</td><td>Pin path for the object.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>file descriptor for the pinned object, or -1 if not found. </dd></dl>
 
 </div>
 </div>
