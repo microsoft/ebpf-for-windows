@@ -1822,6 +1822,30 @@ ebpf_get_link_fd_by_id(ebpf_id_t id, _Out_ int* fd) noexcept
     return _get_fd_by_id(ebpf_operation_id_t::EBPF_OPERATION_GET_LINK_HANDLE_BY_ID, id, fd);
 }
 
+ebpf_result_t
+ebpf_get_next_pinned_program_name(
+    _In_z_ const char* start_name, _Out_writes_z_(EBPF_MAX_PIN_PATH_LENGTH) char* next_name)
+{
+    if (start_name == nullptr || next_name == nullptr) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    _ebpf_operation_get_next_pinned_name_request request{
+        sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_PINNED_PROGRAM_NAME};
+    _ebpf_operation_get_next_pinned_name_reply reply;
+
+    strcpy_s(request.start_name, sizeof(request.start_name), start_name);
+
+    uint32_t error = invoke_ioctl(request, reply);
+    ebpf_result_t result = windows_error_to_ebpf_result(error);
+    if (result != EBPF_SUCCESS) {
+        return result;
+    }
+
+    strcpy_s(next_name, EBPF_MAX_PIN_PATH_LENGTH, reply.next_name);
+    return EBPF_SUCCESS;
+}
+
 static ebpf_result_t
 _get_next_id(ebpf_operation_id_t operation, ebpf_id_t start_id, _Out_ ebpf_id_t* next_id)
 {
@@ -1896,10 +1920,10 @@ ebpf_get_program_type_by_name(
     }
 
     EbpfProgramType type = get_program_type_windows(name, name);
-    *program_type = *(GUID*)type.platform_specific_data;
+    ebpf_windows_program_type_data_t* data = (ebpf_windows_program_type_data_t*)type.platform_specific_data;
 
-    // TODO(issue #223): get expected attach type.
-    *expected_attach_type = EBPF_ATTACH_TYPE_UNSPECIFIED;
+    *program_type = data->program_type_uuid;
+    *expected_attach_type = data->attach_type_uuid;
 
     return EBPF_SUCCESS;
 }

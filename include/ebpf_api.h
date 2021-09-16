@@ -509,15 +509,6 @@ extern "C"
     ebpf_link_close(_In_ struct bpf_link* link);
 
     /**
-     * @brief Get fd for a pinned object by pin path.
-     * @param[in] path Pin path for the object.
-     *
-     * @return file descriptor for the pinned object, -1 if not found.
-     */
-    fd_t
-    ebpf_object_get(_In_z_ const char* path);
-
-    /**
      * @brief Close a file descriptor. Also close the underlying handle.
      * @param [in] fd File descriptor to be closed.
      *
@@ -542,6 +533,19 @@ extern "C"
         _In_z_ const char* name,
         _Out_ ebpf_program_type_t* program_type,
         _Out_ ebpf_attach_type_t* expected_attach_type);
+
+    /**
+     * @brief Gets the next pinned program after a given name.
+     *
+     * @param[in] start_name Name to look for an entry greater than.
+     * @param[out] next_name Returns the next name, if one exists.
+     *
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MORE_KEYS No more entries found.
+     */
+    ebpf_result_t
+    ebpf_get_next_pinned_program_name(
+        _In_z_ const char* start_name, _Out_writes_z_(EBPF_MAX_PIN_PATH_LENGTH) char* next_name);
 
 #ifdef __cplusplus
 }

@@ -579,18 +579,22 @@ TEST_CASE("map_pinning_test", "[end_to_end]")
         bpf_map__pin(bpf_object__find_map_by_name(object, "process_map"), process_maps_name.c_str()) == EBPF_SUCCESS);
     REQUIRE(bpf_map__pin(bpf_object__find_map_by_name(object, "limits_map"), limit_maps_name.c_str()) == EBPF_SUCCESS);
 
-    REQUIRE(ebpf_object_get(process_maps_name.c_str()) != ebpf_fd_invalid);
+    fd_t fd = bpf_obj_get(process_maps_name.c_str());
+    REQUIRE(fd != ebpf_fd_invalid);
+    Platform::_close(fd);
 
-    REQUIRE(ebpf_object_get(limit_maps_name.c_str()) != ebpf_fd_invalid);
+    fd = bpf_obj_get(limit_maps_name.c_str());
+    REQUIRE(fd != ebpf_fd_invalid);
+    Platform::_close(fd);
 
     REQUIRE(
         bpf_map__unpin(bpf_object__find_map_by_name(object, "process_map"), process_maps_name.c_str()) == EBPF_SUCCESS);
     REQUIRE(
         bpf_map__unpin(bpf_object__find_map_by_name(object, "limits_map"), limit_maps_name.c_str()) == EBPF_SUCCESS);
 
-    REQUIRE(ebpf_object_get(limit_maps_name.c_str()) == ebpf_fd_invalid);
+    REQUIRE(bpf_obj_get(limit_maps_name.c_str()) == ebpf_fd_invalid);
 
-    REQUIRE(ebpf_object_get(process_maps_name.c_str()) == ebpf_fd_invalid);
+    REQUIRE(bpf_obj_get(process_maps_name.c_str()) == ebpf_fd_invalid);
 
     bpf_object__close(object);
 }

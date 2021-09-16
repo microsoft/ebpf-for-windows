@@ -368,3 +368,12 @@ ebpf_object_get_info_by_fd(
  */
 ebpf_result_t
 ebpf_object_pin(fd_t fd, _In_z_ const char* path);
+
+/**
+ * @brief Get fd for a pinned object by pin path.
+ * @param[in] path Pin path for the object.
+ *
+ * @return file descriptor for the pinned object, -1 if not found.
+ */
+fd_t
+ebpf_object_get(_In_z_ const char* path);

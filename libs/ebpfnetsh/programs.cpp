@@ -71,9 +71,7 @@ handle_ebpf_add_program(
         case 1: // TYPE
         {
             std::string type_name = down_cast_from_wstring(std::wstring(argv[current_index + i]));
-            ebpf_attach_type_t expected_attach_type;
-            ebpf_result_t result =
-                ebpf_get_program_type_by_name(type_name.c_str(), &program_type, &expected_attach_type);
+            ebpf_result_t result = ebpf_get_program_type_by_name(type_name.c_str(), &program_type, &attach_type);
             if (result != EBPF_SUCCESS) {
                 status = ERROR_INVALID_PARAMETER;
             }
@@ -117,6 +115,7 @@ handle_ebpf_add_program(
         return ERROR_SUPPRESS_OUTPUT;
     }
 
+    // TODO(#188): add option to pin all programs in the object.
     struct bpf_program* program = bpf_program__next(nullptr, object);
     struct bpf_link* link;
     result = ebpf_program_attach(program, (tags[1].bPresent ? &attach_type : nullptr), nullptr, 0, &link);
@@ -144,6 +143,40 @@ handle_ebpf_add_program(
     ebpf_link_close(link);
 
     return ERROR_SUCCESS;
+}
+
+static DWORD
+_unpin_program_by_id(ebpf_id_t id)
+{
+    ebpf_result_t result;
+    DWORD status = NO_ERROR;
+    char name[EBPF_MAX_PIN_PATH_LENGTH] = {0};
+
+    for (;;) {
+        result = ebpf_get_next_pinned_program_name(name, name);
+        if (result != EBPF_SUCCESS) {
+            break;
+        }
+        int fd = bpf_obj_get(name);
+        if (fd < 0) {
+            continue;
+        }
+        bpf_prog_info info;
+        uint32_t info_size = sizeof(info);
+        if (bpf_obj_get_info_by_fd(fd, &info, &info_size) == 0) {
+            if (id == info.id) {
+                result = ebpf_object_unpin(name);
+                if (result != EBPF_SUCCESS) {
+                    printf("Error %d unpinning %d from %s\n", result, id, name);
+                    status = ERROR_SUPPRESS_OUTPUT;
+                } else {
+                    printf("Unpinned %d from %s\n", id, name);
+                }
+            }
+        }
+        Platform::_close(fd);
+    }
+    return status;
 }
 
 DWORD
@@ -180,9 +213,11 @@ handle_ebpf_delete_program(
         return status;
     }
 
-    // TODO(issue #190): If the program is pinned, unpin the specified program.
-    // The temporary API ebpf_api_unpin_object requires knowing the name a priori
-    // and we have no way to get it yet.
+    // If the program is pinned, unpin the specified program.
+    status = _unpin_program_by_id(id);
+    if (status != NO_ERROR) {
+        return status;
+    }
 
     // Remove from our list of programs to release our own reference if we took one.
     // If there are no other references to the program, it will be unloaded.
@@ -205,7 +240,7 @@ handle_ebpf_delete_program(
                 // TODO: see if the program is still loaded, in which case some other process holds
                 // a reference. Get the PID of that process and display it.
 
-                return ERROR_OKAY;
+                return NO_ERROR;
             }
         }
     }
@@ -299,9 +334,13 @@ handle_ebpf_set_program(
         }
         case 1: // ATTACHED
         {
-            if ((argv[current_index + i][0] != 0) &&
-                (UuidFromStringW((RPC_WSTR)argv[current_index + i], &attach_type))) {
-                status = ERROR_INVALID_SYNTAX;
+            if (argv[current_index + i][0] != 0) {
+                std::string type_name = down_cast_from_wstring(std::wstring(argv[current_index + i]));
+                ebpf_program_type_t program_type;
+                ebpf_result_t result = ebpf_get_program_type_by_name(type_name.c_str(), &program_type, &attach_type);
+                if (result != EBPF_SUCCESS) {
+                    status = ERROR_INVALID_SYNTAX;
+                }
             }
             break;
         }
@@ -321,7 +360,7 @@ handle_ebpf_set_program(
         if (memcmp(&attach_type, &EBPF_ATTACH_TYPE_UNSPECIFIED, sizeof(ebpf_attach_type_t)) != 0) {
             ebpf_result_t result = ebpf_program_attach_by_id(id, attach_type);
             if (result != NO_ERROR) {
-                std::cerr << "error " << result << ": could not detach program" << std::endl;
+                std::cerr << "error " << result << ": could not attach program" << std::endl;
                 return ERROR_SUPPRESS_OUTPUT;
             }
         } else {
@@ -335,10 +374,8 @@ handle_ebpf_set_program(
 
     if (tags[2].bPresent) {
         if (pinned.empty()) {
-            // TODO (issue #190): call ebpf_program_unpin() once it exists.
-            // The temporary API ebpf_api_unpin_object requires knowing the name a priori
-            // and we have no way to get it.
-            return ERROR_CALL_NOT_IMPLEMENTED;
+            // Unpin a program from all names to which it is currently pinned.
+            return _unpin_program_by_id(id);
         } else {
             // Try to find the program with the specified ID.
             fd_t program_fd = bpf_prog_get_fd_by_id(id);
@@ -460,7 +497,7 @@ handle_ebpf_show_programs(
         level = VL_VERBOSE;
     }
 
-    // TODO(#190): We need to implement level, other columns, and implement filtering by attached and pinned.
+    // TODO(#188): We need to implement level, other columns, and implement filtering by attached and pinned.
 
     std::cout << "\n";
     std::cout << "    ID            File Name         Section             Name      Mode\n";

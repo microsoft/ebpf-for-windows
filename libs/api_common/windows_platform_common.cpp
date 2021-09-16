@@ -35,14 +35,18 @@ const ebpf_context_descriptor_t g_xdp_context_descriptor = {
     EBPF_OFFSET_OF(xdp_md_t, data_end),
     EBPF_OFFSET_OF(xdp_md_t, data_meta)};
 
+const ebpf_windows_program_type_data_t windows_xdp_program_type_data = {EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP};
+
 const EbpfProgramType windows_xdp_program_type =
-    PTYPE("xdp", &g_xdp_context_descriptor, (uint64_t)&EBPF_PROGRAM_TYPE_XDP, {"xdp"});
+    PTYPE("xdp", &g_xdp_context_descriptor, (uint64_t)&windows_xdp_program_type_data, {"xdp"});
+
+const ebpf_windows_program_type_data_t windows_bind_program_type_data = {EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND};
 
 const ebpf_context_descriptor_t g_bind_context_descriptor = {
     sizeof(bind_md_t), EBPF_OFFSET_OF(bind_md_t, app_id_start), EBPF_OFFSET_OF(bind_md_t, app_id_end), -1};
 
 const EbpfProgramType windows_bind_program_type =
-    PTYPE("bind", &g_bind_context_descriptor, (uint64_t)&EBPF_PROGRAM_TYPE_BIND, {"bind"});
+    PTYPE("bind", &g_bind_context_descriptor, (uint64_t)&windows_bind_program_type_data, {"bind"});
 
 const ebpf_context_descriptor_t g_sample_ext_context_descriptor = {
     sizeof(sample_program_context_t),
@@ -73,7 +77,8 @@ get_program_type_windows(const GUID& program_type)
     //       info and then fill the EbpfProgramType struct.
     for (const EbpfProgramType t : windows_program_types) {
         if (t.platform_specific_data != 0) {
-            if (IsEqualGUID(*(GUID*)t.platform_specific_data, program_type)) {
+            ebpf_windows_program_type_data_t* data = (ebpf_windows_program_type_data_t*)t.platform_specific_data;
+            if (IsEqualGUID(data->program_type_uuid, program_type)) {
                 return t;
             }
         }
@@ -92,8 +97,11 @@ get_program_type_windows(const std::string& section, const std::string&)
     //       prefixes and corresponding program and attach types.
     for (const EbpfProgramType t : windows_program_types) {
         if (program_type != nullptr) {
-            if (t.platform_specific_data != 0 && IsEqualGUID(*(GUID*)t.platform_specific_data, *program_type)) {
-                return t;
+            if (t.platform_specific_data != 0) {
+                ebpf_windows_program_type_data_t* data = (ebpf_windows_program_type_data_t*)t.platform_specific_data;
+                if (IsEqualGUID(data->program_type_uuid, *program_type)) {
+                    return t;
+                }
             }
         } else {
             for (const std::string prefix : t.section_prefixes) {
@@ -152,7 +160,9 @@ get_attach_type_windows(const std::string& section)
         for (const std::string prefix : t.section_prefixes) {
             if (section.find(prefix) == 0) {
                 for (auto& [program_type, attach_type] : windows_program_type_to_attach_type) {
-                    if (IsEqualGUID(*(GUID*)t.platform_specific_data, *program_type)) {
+                    ebpf_windows_program_type_data_t* data =
+                        (ebpf_windows_program_type_data_t*)t.platform_specific_data;
+                    if (IsEqualGUID(data->attach_type_uuid, *attach_type)) {
                         return attach_type;
                     }
                 }
