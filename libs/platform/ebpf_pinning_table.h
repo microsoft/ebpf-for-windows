@@ -102,21 +102,21 @@ extern "C"
         _Outptr_result_buffer_maybenull_(*entry_count) ebpf_pinning_entry_t** pinning_entries);
 
     /**
-     * @brief Gets the next name in the pinning table after a given name.
+     * @brief Gets the next path in the pinning table after a given path.
      *
      * @param[in] pinning_table Pinning table to enumerate.
      * @param[in] object_type Object type.
-     * @param[in] start_name Name to look for an entry greater than.
-     * @param[out] next_name Returns the next name, if one exists.
+     * @param[in] start_path Name to look for an entry greater than.
+     * @param[out] next_path Returns the next name, if one exists.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MORE_KEYS No more entries found.
      */
     ebpf_result_t
-    ebpf_pinning_table_get_next_name(
+    ebpf_pinning_table_get_next_path(
         _In_ ebpf_pinning_table_t* pinning_table,
         ebpf_object_type_t object_type,
-        _In_z_ const char* start_name,
-        _Out_writes_z_(EBPF_MAX_PIN_PATH_LENGTH) char* next_name);
+        _In_z_ const char* start_path,
+        _Out_writes_z_(EBPF_MAX_PIN_PATH_LENGTH) char* next_path);
 
     /**
      * @brief Releases entries returned by ebpf_pinning_table_enumerate_entries.

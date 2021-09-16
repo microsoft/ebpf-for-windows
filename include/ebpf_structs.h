@@ -113,12 +113,14 @@ struct bpf_prog_info
 {
     // Cross-platform fields.
     ebpf_id_t id;                ///< Program ID.
-    enum bpf_prog_type type;     ///< Program type, if a cross-platform type..
+    enum bpf_prog_type type;     ///< Program type, if a cross-platform type.
     uint32_t nr_map_ids;         ///< Number of maps associated with this program.
     char name[BPF_OBJ_NAME_LEN]; ///< Null-terminated program name.
 
     // Windows-specific fields.
     ebpf_program_type_t type_uuid; ///< Program type UUID.
+    uint32_t pinned_path_count;    ///< Number of pinned paths.
+    uint32_t link_count;           ///< Number of attached links.
 };
 
 typedef struct _ebpf_windows_program_type_data

@@ -535,17 +535,17 @@ extern "C"
         _Out_ ebpf_attach_type_t* expected_attach_type);
 
     /**
-     * @brief Gets the next pinned program after a given name.
+     * @brief Gets the next pinned program after a given path.
      *
-     * @param[in] start_name Name to look for an entry greater than.
-     * @param[out] next_name Returns the next name, if one exists.
+     * @param[in] start_path Path to look for an entry greater than.
+     * @param[out] next_path Returns the next path, if one exists.
      *
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MORE_KEYS No more entries found.
      */
     ebpf_result_t
-    ebpf_get_next_pinned_program_name(
-        _In_z_ const char* start_name, _Out_writes_z_(EBPF_MAX_PIN_PATH_LENGTH) char* next_name);
+    ebpf_get_next_pinned_program_path(
+        _In_z_ const char* start_path, _Out_writes_z_(EBPF_MAX_PIN_PATH_LENGTH) char* next_path);
 
 #ifdef __cplusplus
 }

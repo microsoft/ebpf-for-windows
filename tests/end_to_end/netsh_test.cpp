@@ -273,29 +273,117 @@ TEST_CASE("show verification droppacket_unsafe.o", "[netsh][verification]")
                   "\n");
 }
 
+TEST_CASE("pin first", "[netsh][programs]")
+{
+    _test_helper_libbpf test_helper;
+
+    // Load a program to show.
+    int result;
+    std::string output =
+        _run_netsh_command(handle_ebpf_add_program, L"reflect_packet.o", L"xdp", L"pinned=reflect", &result);
+    REQUIRE(strcmp(output.c_str(), "Loaded with ID 65537\n") == 0);
+    REQUIRE(result == NO_ERROR);
+
+    // Show programs in normal (table) format.
+    output = _run_netsh_command(handle_ebpf_show_programs, nullptr, nullptr, nullptr, &result);
+    REQUIRE(result == NO_ERROR);
+    REQUIRE(
+        output == "\n"
+                  "    ID  Pins  Links  Mode       Name\n"
+                  "======  ====  =====  =========  ====================\n"
+                  " 65537     1      1  JIT        reflect_packet\n"
+                  "131073     0      0  JIT        encap_reflect_packet\n");
+
+    output = _run_netsh_command(handle_ebpf_delete_program, L"65537", nullptr, nullptr, &result);
+    REQUIRE(output == "Unpinned 65537 from reflect\n");
+    REQUIRE(result == NO_ERROR);
+    REQUIRE(bpf_object__next(nullptr) == nullptr);
+}
+
 TEST_CASE("show programs", "[netsh][programs]")
 {
     _test_helper_libbpf test_helper;
 
     // Load a program to show.
-    struct bpf_object* object;
-    int program_fd;
-    int result = bpf_prog_load("tail_call.o", BPF_PROG_TYPE_XDP, &object, &program_fd);
-    REQUIRE(result == 0);
-    REQUIRE(object != nullptr);
-    REQUIRE(program_fd != -1);
-
-    std::string output = _run_netsh_command(handle_ebpf_show_programs, L"xdp", nullptr, nullptr, &result);
+    int result;
+    std::string output =
+        _run_netsh_command(handle_ebpf_add_program, L"tail_call.o", L"pinned=mypinname", nullptr, &result);
+    REQUIRE(strcmp(output.c_str(), "Loaded with ID 196609\n") == 0);
     REQUIRE(result == NO_ERROR);
 
+    // Show programs in normal (table) format.
+    output = _run_netsh_command(handle_ebpf_show_programs, L"xdp", nullptr, nullptr, &result);
+    REQUIRE(result == NO_ERROR);
     REQUIRE(
         output == "\n"
-                  "    ID            File Name         Section             Name      Mode\n"
-                  "====== ==================== =============== ================ =========\n"
-                  "196609          tail_call.o        xdp_prog           caller       JIT\n"
-                  "262145          tail_call.o      xdp_prog/0           callee       JIT\n");
+                  "    ID  Pins  Links  Mode       Name\n"
+                  "======  ====  =====  =========  ====================\n"
+                  "196609     1      1  JIT        caller\n"
+                  "262145     0      0  JIT        callee\n");
 
-    bpf_object__close(object);
+    // Test filtering by "attached=yes".
+    output = _run_netsh_command(handle_ebpf_show_programs, L"attached=yes", nullptr, nullptr, &result);
+    REQUIRE(result == NO_ERROR);
+    REQUIRE(
+        output == "\n"
+                  "    ID  Pins  Links  Mode       Name\n"
+                  "======  ====  =====  =========  ====================\n"
+                  "196609     1      1  JIT        caller\n");
+
+    // Test filtering by "attached=no".
+    output = _run_netsh_command(handle_ebpf_show_programs, L"attached=no", nullptr, nullptr, &result);
+    REQUIRE(result == NO_ERROR);
+    REQUIRE(
+        output == "\n"
+                  "    ID  Pins  Links  Mode       Name\n"
+                  "======  ====  =====  =========  ====================\n"
+                  "262145     0      0  JIT        callee\n");
+
+    // Test filtering by "pinned=yes".
+    output = _run_netsh_command(handle_ebpf_show_programs, L"pinned=yes", nullptr, nullptr, &result);
+    REQUIRE(result == NO_ERROR);
+    REQUIRE(
+        output == "\n"
+                  "    ID  Pins  Links  Mode       Name\n"
+                  "======  ====  =====  =========  ====================\n"
+                  "196609     1      1  JIT        caller\n");
+
+    // Test filtering by "pinned=no".
+    output = _run_netsh_command(handle_ebpf_show_programs, L"pinned=no", nullptr, nullptr, &result);
+    REQUIRE(result == NO_ERROR);
+    REQUIRE(
+        output == "\n"
+                  "    ID  Pins  Links  Mode       Name\n"
+                  "======  ====  =====  =========  ====================\n"
+                  "262145     0      0  JIT        callee\n");
+
+    // Test verbose output format.
+    output = _run_netsh_command(handle_ebpf_show_programs, L"level=verbose", nullptr, nullptr, &result);
+    REQUIRE(result == NO_ERROR);
+    REQUIRE(
+        output == "\n"
+                  "ID             : 196609\n"
+                  "File name      : tail_call.o\n"
+                  "Section        : xdp_prog\n"
+                  "Name           : caller\n"
+                  "Mode           : JIT\n"
+                  "# map IDs      : 2\n"
+                  "# pinned paths : 1\n"
+                  "# links        : 1\n"
+                  "\n"
+                  "ID             : 262145\n"
+                  "File name      : tail_call.o\n"
+                  "Section        : xdp_prog/0\n"
+                  "Name           : callee\n"
+                  "Mode           : JIT\n"
+                  "# map IDs      : 0\n"
+                  "# pinned paths : 0\n"
+                  "# links        : 0\n");
+
+    output = _run_netsh_command(handle_ebpf_delete_program, L"196609", nullptr, nullptr, &result);
+    REQUIRE(output == "Unpinned 196609 from mypinname\n");
+    REQUIRE(result == NO_ERROR);
+    REQUIRE(bpf_object__next(nullptr) == nullptr);
 }
 
 TEST_CASE("set program", "[netsh][programs]")
@@ -344,8 +432,8 @@ TEST_CASE("set program", "[netsh][programs]")
     output = _run_netsh_command(handle_ebpf_show_programs, nullptr, nullptr, nullptr, &result);
     REQUIRE(
         output == "\n"
-                  "    ID            File Name         Section             Name      Mode\n"
-                  "====== ==================== =============== ================ =========\n");
+                  "    ID  Pins  Links  Mode       Name\n"
+                  "======  ====  =====  =========  ====================\n");
     REQUIRE(result == NO_ERROR);
 }
 
@@ -401,8 +489,8 @@ TEST_CASE("delete pinned program", "[netsh][programs]")
     output = _run_netsh_command(handle_ebpf_show_programs, nullptr, nullptr, nullptr, &result);
     REQUIRE(
         output == "\n"
-                  "    ID            File Name         Section             Name      Mode\n"
-                  "====== ==================== =============== ================ =========\n");
+                  "    ID  Pins  Links  Mode       Name\n"
+                  "======  ====  =====  =========  ====================\n");
     REQUIRE(result == NO_ERROR);
 }
 
@@ -431,7 +519,7 @@ TEST_CASE("unpin program", "[netsh][programs]")
     output = _run_netsh_command(handle_ebpf_show_programs, nullptr, nullptr, nullptr, &result);
     REQUIRE(
         output == "\n"
-                  "    ID            File Name         Section             Name      Mode\n"
-                  "====== ==================== =============== ================ =========\n");
+                  "    ID  Pins  Links  Mode       Name\n"
+                  "======  ====  =====  =========  ====================\n");
     REQUIRE(result == NO_ERROR);
 }

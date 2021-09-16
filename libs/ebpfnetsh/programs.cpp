@@ -145,19 +145,21 @@ handle_ebpf_add_program(
     return ERROR_SUCCESS;
 }
 
+// Given a program ID, unpin the program from all paths to which
+// // it is currently pinned.
 static DWORD
 _unpin_program_by_id(ebpf_id_t id)
 {
     ebpf_result_t result;
     DWORD status = NO_ERROR;
-    char name[EBPF_MAX_PIN_PATH_LENGTH] = {0};
+    char path[EBPF_MAX_PIN_PATH_LENGTH] = {0};
 
     for (;;) {
-        result = ebpf_get_next_pinned_program_name(name, name);
+        result = ebpf_get_next_pinned_program_path(path, path);
         if (result != EBPF_SUCCESS) {
             break;
         }
-        int fd = bpf_obj_get(name);
+        int fd = bpf_obj_get(path);
         if (fd < 0) {
             continue;
         }
@@ -165,12 +167,12 @@ _unpin_program_by_id(ebpf_id_t id)
         uint32_t info_size = sizeof(info);
         if (bpf_obj_get_info_by_fd(fd, &info, &info_size) == 0) {
             if (id == info.id) {
-                result = ebpf_object_unpin(name);
+                result = ebpf_object_unpin(path);
                 if (result != EBPF_SUCCESS) {
-                    printf("Error %d unpinning %d from %s\n", result, id, name);
+                    printf("Error %d unpinning %d from %s\n", result, id, path);
                     status = ERROR_SUPPRESS_OUTPUT;
                 } else {
-                    printf("Unpinned %d from %s\n", id, name);
+                    printf("Unpinned %d from %s\n", id, path);
                 }
             }
         }
@@ -492,22 +494,22 @@ handle_ebpf_show_programs(
         return status;
     }
 
-    // If the user specified a filename and no level, default to verbose.
-    if (tags[3].bPresent && !tags[2].bPresent) {
+    // If the user specified an ID and no level, default to verbose.
+    if (tags[6].bPresent && !tags[2].bPresent) {
         level = VL_VERBOSE;
     }
 
-    // TODO(#188): We need to implement level, other columns, and implement filtering by attached and pinned.
-
-    std::cout << "\n";
-    std::cout << "    ID            File Name         Section             Name      Mode\n";
-    std::cout << "====== ==================== =============== ================ =========\n";
+    if (level == VL_NORMAL) {
+        std::cout << "\n";
+        std::cout << "    ID  Pins  Links  Mode       Name\n";
+        std::cout << "======  ====  =====  =========  ====================\n";
+    }
 
     fd_t program_fd = ebpf_fd_invalid;
     for (;;) {
         const char* program_file_name;
         const char* program_section_name;
-        const char* program_type_name;
+        const char* execution_type_name;
         ebpf_execution_type_t program_execution_type;
         fd_t next_program_fd;
         status = ebpf_get_next_program(program_fd, &next_program_fd);
@@ -538,6 +540,22 @@ handle_ebpf_show_programs(
             continue;
         }
 
+        // Filter by attached if desired.
+        if (attached == BC_NO && info.link_count > 0) {
+            continue;
+        }
+        if (attached == BC_YES && info.link_count == 0) {
+            continue;
+        }
+
+        // Filter by pinned if desired.
+        if (pinned == BC_NO && info.pinned_path_count > 0) {
+            continue;
+        }
+        if (pinned == BC_YES && info.pinned_path_count == 0) {
+            continue;
+        }
+
         status =
             ebpf_program_query_info(program_fd, &program_execution_type, &program_file_name, &program_section_name);
         if (status != ERROR_SUCCESS) {
@@ -546,14 +564,27 @@ handle_ebpf_show_programs(
 
         if (filename.empty() || strcmp(program_file_name, filename.c_str()) == 0) {
             if (section.empty() || strcmp(program_section_name, section.c_str()) == 0) {
-                program_type_name = program_execution_type == EBPF_EXECUTION_JIT ? "JIT" : "INTERPRET";
-                printf(
-                    "%6u %20s %15s %16s %9s\n",
-                    info.id,
-                    program_file_name,
-                    program_section_name,
-                    info.name,
-                    program_type_name);
+                execution_type_name = program_execution_type == EBPF_EXECUTION_JIT ? "JIT" : "INTERPRET";
+
+                if (level == VL_NORMAL) {
+                    printf(
+                        "%6u  %4u  %5u  %-9s  %s\n",
+                        info.id,
+                        info.pinned_path_count,
+                        info.link_count,
+                        execution_type_name,
+                        info.name);
+                } else {
+                    std::cout << "\n";
+                    std::cout << "ID             : " << info.id << "\n";
+                    std::cout << "File name      : " << program_file_name << "\n";
+                    std::cout << "Section        : " << program_section_name << "\n";
+                    std::cout << "Name           : " << info.name << "\n";
+                    std::cout << "Mode           : " << execution_type_name << "\n";
+                    std::cout << "# map IDs      : " << info.nr_map_ids << "\n";
+                    std::cout << "# pinned paths : " << info.pinned_path_count << "\n";
+                    std::cout << "# links        : " << info.link_count << "\n";
+                }
             }
         }
 

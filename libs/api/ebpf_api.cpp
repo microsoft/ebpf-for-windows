@@ -1823,18 +1823,18 @@ ebpf_get_link_fd_by_id(ebpf_id_t id, _Out_ int* fd) noexcept
 }
 
 ebpf_result_t
-ebpf_get_next_pinned_program_name(
-    _In_z_ const char* start_name, _Out_writes_z_(EBPF_MAX_PIN_PATH_LENGTH) char* next_name)
+ebpf_get_next_pinned_program_path(
+    _In_z_ const char* start_path, _Out_writes_z_(EBPF_MAX_PIN_PATH_LENGTH) char* next_path)
 {
-    if (start_name == nullptr || next_name == nullptr) {
+    if (start_path == nullptr || next_path == nullptr) {
         return EBPF_INVALID_ARGUMENT;
     }
 
-    _ebpf_operation_get_next_pinned_name_request request{
-        sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_PINNED_PROGRAM_NAME};
-    _ebpf_operation_get_next_pinned_name_reply reply;
+    _ebpf_operation_get_next_pinned_path_request request{
+        sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_PINNED_PROGRAM_PATH};
+    _ebpf_operation_get_next_pinned_path_reply reply;
 
-    strcpy_s(request.start_name, sizeof(request.start_name), start_name);
+    strcpy_s(request.start_name, sizeof(request.start_name), start_path);
 
     uint32_t error = invoke_ioctl(request, reply);
     ebpf_result_t result = windows_error_to_ebpf_result(error);
@@ -1842,7 +1842,7 @@ ebpf_get_next_pinned_program_name(
         return result;
     }
 
-    strcpy_s(next_name, EBPF_MAX_PIN_PATH_LENGTH, reply.next_name);
+    strcpy_s(next_path, EBPF_MAX_PIN_PATH_LENGTH, reply.next_path);
     return EBPF_SUCCESS;
 }
 
