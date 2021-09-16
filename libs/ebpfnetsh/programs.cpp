@@ -34,6 +34,19 @@ static TOKEN_VALUE _ebpf_execution_type_enum[] = {
     {L"interpret", EBPF_EXECUTION_INTERPRET},
 };
 
+typedef enum
+{
+    PT_NONE,  // Don't pin any programs in an eBPF object.
+    PT_FIRST, // Pin only the first program in an object.
+    PT_ALL,   // Pin all programs in an object.
+} pinned_type_t;
+
+static TOKEN_VALUE _ebpf_pinned_type_enum[] = {
+    {L"none", PT_NONE},
+    {L"first", PT_FIRST},
+    {L"all", PT_ALL},
+};
+
 std::string
 down_cast_from_wstring(const std::wstring& wide_string);
 
@@ -49,27 +62,32 @@ handle_ebpf_add_program(
     TAG_TYPE tags[] = {
         {TOKEN_FILENAME, NS_REQ_PRESENT, FALSE},
         {TOKEN_TYPE, NS_REQ_ZERO, FALSE},
+        {TOKEN_PINPATH, NS_REQ_ZERO, FALSE},
         {TOKEN_PINNED, NS_REQ_ZERO, FALSE},
         {TOKEN_EXECUTION, NS_REQ_ZERO, FALSE}};
+    const int FILENAME_INDEX = 0;
+    const int TYPE_INDEX = 1;
+    const int PINPATH_INDEX = 2;
+    const int PINNED_INDEX = 3;
+    const int EXECUTION_INDEX = 4;
     ULONG tag_type[_countof(tags)] = {0};
 
     ULONG status =
         PreprocessCommand(nullptr, argv, current_index, argc, tags, _countof(tags), 0, _countof(tags), tag_type);
 
     std::string filename;
-    std::string pinned;
+    std::string pinpath;
     ebpf_program_type_t program_type = EBPF_PROGRAM_TYPE_UNSPECIFIED;
     ebpf_attach_type_t attach_type = EBPF_ATTACH_TYPE_UNSPECIFIED;
+    pinned_type_t pinned_type = PT_FIRST; // Like bpftool, we default to pin first.
     ebpf_execution_type_t execution = EBPF_EXECUTION_JIT;
     for (int i = 0; (status == NO_ERROR) && ((i + current_index) < argc); i++) {
         switch (tag_type[i]) {
-        case 0: // FILENAME
-        {
+        case FILENAME_INDEX: {
             filename = down_cast_from_wstring(std::wstring(argv[current_index + i]));
             break;
         }
-        case 1: // TYPE
-        {
+        case TYPE_INDEX: {
             std::string type_name = down_cast_from_wstring(std::wstring(argv[current_index + i]));
             ebpf_result_t result = ebpf_get_program_type_by_name(type_name.c_str(), &program_type, &attach_type);
             if (result != EBPF_SUCCESS) {
@@ -77,10 +95,18 @@ handle_ebpf_add_program(
             }
             break;
         }
-        case 2: // PINNED
-            pinned = down_cast_from_wstring(std::wstring(argv[current_index + i]));
+        case PINPATH_INDEX:
+            pinpath = down_cast_from_wstring(std::wstring(argv[current_index + i]));
             break;
-        case 3: // EXECUTION
+        case PINNED_INDEX:
+            status = MatchEnumTag(
+                NULL,
+                argv[current_index + i],
+                _countof(_ebpf_pinned_type_enum),
+                _ebpf_pinned_type_enum,
+                (PULONG)&pinned_type);
+            break;
+        case EXECUTION_INDEX:
             status = MatchEnumTag(
                 NULL,
                 argv[current_index + i],
@@ -102,8 +128,8 @@ handle_ebpf_add_program(
     PCSTR error_message;
     ebpf_result_t result = ebpf_program_load(
         filename.c_str(),
-        (tags[1].bPresent ? &program_type : nullptr),
-        (tags[1].bPresent ? &attach_type : nullptr),
+        (tags[TYPE_INDEX].bPresent ? &program_type : nullptr),
+        (tags[TYPE_INDEX].bPresent ? &attach_type : nullptr),
         EBPF_EXECUTION_ANY,
         &object,
         &program_fd,
@@ -115,19 +141,34 @@ handle_ebpf_add_program(
         return ERROR_SUPPRESS_OUTPUT;
     }
 
-    // TODO(#188): add option to pin all programs in the object.
     struct bpf_program* program = bpf_program__next(nullptr, object);
     struct bpf_link* link;
-    result = ebpf_program_attach(program, (tags[1].bPresent ? &attach_type : nullptr), nullptr, 0, &link);
+    result = ebpf_program_attach(program, (tags[TYPE_INDEX].bPresent ? &attach_type : nullptr), nullptr, 0, &link);
     if (result != EBPF_SUCCESS) {
         std::cerr << "error " << result << ": could not attach program" << std::endl;
         return ERROR_SUPPRESS_OUTPUT;
     }
 
-    if (!pinned.empty()) {
-        if (bpf_program__pin(program, pinned.c_str()) < 0) {
-            std::cerr << "error " << errno << ": could not pin program" << std::endl;
+    if (pinned_type == PT_FIRST) {
+        if (pinpath.empty()) {
+            pinpath = bpf_program__name(program);
+        }
+        if (bpf_program__pin(program, pinpath.c_str()) < 0) {
+            std::cerr << "error " << errno << ": could not pin to " << pinpath << std::endl;
             return ERROR_SUPPRESS_OUTPUT;
+        }
+    } else if (pinned_type == PT_ALL) {
+        // The pinpath specified is like a "directory" under which to pin programs.
+        if (!pinpath.empty()) {
+            pinpath += "/";
+        }
+        bpf_object__for_each_program(program, object)
+        {
+            std::string fullpath = pinpath + bpf_program__name(program);
+            if (bpf_program__pin(program, fullpath.c_str()) < 0) {
+                std::cerr << "error " << errno << ": could not pin to " << fullpath << std::endl;
+                return ERROR_SUPPRESS_OUTPUT;
+            }
         }
     }
 
@@ -193,6 +234,7 @@ handle_ebpf_delete_program(
     TAG_TYPE tags[] = {
         {TOKEN_ID, NS_REQ_PRESENT, FALSE},
     };
+    const int ID_INDEX = 0;
     ULONG tag_type[_countof(tags)] = {0};
 
     ULONG status =
@@ -201,8 +243,7 @@ handle_ebpf_delete_program(
     ebpf_id_t id = EBPF_ID_NONE;
     for (int i = 0; (status == NO_ERROR) && ((i + current_index) < argc) && (i < _countof(tag_type)); i++) {
         switch (tag_type[i]) {
-        case 0: // ID
-        {
+        case ID_INDEX: {
             id = (uint32_t)_wtoi(argv[current_index + i]);
             break;
         }
@@ -215,7 +256,7 @@ handle_ebpf_delete_program(
         return status;
     }
 
-    // If the program is pinned, unpin the specified program.
+    // If the program is pinpath, unpin the specified program.
     status = _unpin_program_by_id(id);
     if (status != NO_ERROR) {
         return status;
@@ -309,8 +350,11 @@ handle_ebpf_set_program(
     TAG_TYPE tags[] = {
         {TOKEN_ID, NS_REQ_PRESENT, FALSE},
         {TOKEN_ATTACHED, NS_REQ_ZERO, FALSE},
-        {TOKEN_PINNED, NS_REQ_ZERO, FALSE},
+        {TOKEN_PINPATH, NS_REQ_ZERO, FALSE},
     };
+    const int ID_INDEX = 0;
+    const int ATTACHED_INDEX = 1;
+    const int PINPATH_INDEX = 2;
     ULONG tag_type[_countof(tags)] = {0};
 
     ULONG status = PreprocessCommand(
@@ -325,17 +369,15 @@ handle_ebpf_set_program(
         tag_type);
 
     uint32_t id;
-    std::string pinned;
+    std::string pinpath;
     ebpf_attach_type_t attach_type = EBPF_ATTACH_TYPE_UNSPECIFIED;
     for (int i = 0; (status == NO_ERROR) && ((i + current_index) < argc); i++) {
         switch (tag_type[i]) {
-        case 0: // ID
-        {
+        case ID_INDEX: {
             id = (uint32_t)_wtoi(argv[current_index + i]);
             break;
         }
-        case 1: // ATTACHED
-        {
+        case ATTACHED_INDEX: {
             if (argv[current_index + i][0] != 0) {
                 std::string type_name = down_cast_from_wstring(std::wstring(argv[current_index + i]));
                 ebpf_program_type_t program_type;
@@ -346,8 +388,8 @@ handle_ebpf_set_program(
             }
             break;
         }
-        case 2: // PINNED
-            pinned = down_cast_from_wstring(std::wstring(argv[current_index + i]));
+        case PINPATH_INDEX:
+            pinpath = down_cast_from_wstring(std::wstring(argv[current_index + i]));
             break;
         default:
             status = ERROR_INVALID_SYNTAX;
@@ -358,7 +400,7 @@ handle_ebpf_set_program(
         return status;
     }
 
-    if (tags[1].bPresent) {
+    if (tags[ATTACHED_INDEX].bPresent) {
         if (memcmp(&attach_type, &EBPF_ATTACH_TYPE_UNSPECIFIED, sizeof(ebpf_attach_type_t)) != 0) {
             ebpf_result_t result = ebpf_program_attach_by_id(id, attach_type);
             if (result != NO_ERROR) {
@@ -374,9 +416,9 @@ handle_ebpf_set_program(
         }
     }
 
-    if (tags[2].bPresent) {
-        if (pinned.empty()) {
-            // Unpin a program from all names to which it is currently pinned.
+    if (tags[PINPATH_INDEX].bPresent) {
+        if (pinpath.empty()) {
+            // Unpin a program from all names to which it is currently pinpath.
             return _unpin_program_by_id(id);
         } else {
             // Try to find the program with the specified ID.
@@ -386,7 +428,7 @@ handle_ebpf_set_program(
                 return ERROR_SUPPRESS_OUTPUT;
             }
 
-            status = bpf_obj_pin(program_fd, pinned.c_str());
+            status = bpf_obj_pin(program_fd, pinpath.c_str());
             if (status != EBPF_SUCCESS) {
                 std::cerr << "error " << status << ": could not pin program" << std::endl;
                 return ERROR_SUPPRESS_OUTPUT;
@@ -417,6 +459,14 @@ handle_ebpf_show_programs(
         {TOKEN_SECTION, NS_REQ_ZERO, FALSE},
         {TOKEN_ID, NS_REQ_ZERO, FALSE},
     };
+    const int TYPE_INDEX = 0;
+    const int ATTACHED_INDEX = 1;
+    const int PINNED_INDEX = 2;
+    const int LEVEL_INDEX = 3;
+    const int FILENAME_INDEX = 4;
+    const int SECTION_INDEX = 5;
+    const int ID_INDEX = 6;
+
     ULONG tag_type[_countof(tags)] = {0};
 
     ULONG status =
@@ -431,8 +481,7 @@ handle_ebpf_show_programs(
     ebpf_id_t id = 0;
     for (int i = 0; (status == NO_ERROR) && ((i + current_index) < argc); i++) {
         switch (tag_type[i]) {
-        case 0: // TYPE
-        {
+        case TYPE_INDEX: {
             std::string type_name = down_cast_from_wstring(std::wstring(argv[current_index + i]));
             ebpf_attach_type_t expected_attach_type;
             ebpf_result_t result =
@@ -442,7 +491,7 @@ handle_ebpf_show_programs(
             }
             break;
         }
-        case 1: // ATTACHED
+        case ATTACHED_INDEX:
             status = MatchEnumTag(
                 NULL,
                 argv[current_index + i],
@@ -453,7 +502,7 @@ handle_ebpf_show_programs(
                 status = ERROR_INVALID_PARAMETER;
             }
             break;
-        case 2: // PINNED
+        case PINNED_INDEX:
             status = MatchEnumTag(
                 NULL,
                 argv[current_index + i],
@@ -464,24 +513,21 @@ handle_ebpf_show_programs(
                 status = ERROR_INVALID_PARAMETER;
             }
             break;
-        case 3: // LEVEL
+        case LEVEL_INDEX:
             status = MatchEnumTag(NULL, argv[current_index + i], _countof(g_LevelEnum), g_LevelEnum, (PULONG)&level);
             if (status != NO_ERROR) {
                 status = ERROR_INVALID_PARAMETER;
             }
             break;
-        case 4: // FILENAME
-        {
+        case FILENAME_INDEX: {
             filename = down_cast_from_wstring(std::wstring(argv[current_index + i]));
             break;
         }
-        case 5: // SECTION
-        {
+        case SECTION_INDEX: {
             section = down_cast_from_wstring(std::wstring(argv[current_index + i]));
             break;
         }
-        case 6: // ID
-        {
+        case ID_INDEX: {
             id = (uint32_t)_wtoi(argv[current_index + i]);
             break;
         }
@@ -495,7 +541,7 @@ handle_ebpf_show_programs(
     }
 
     // If the user specified an ID and no level, default to verbose.
-    if (tags[6].bPresent && !tags[2].bPresent) {
+    if (tags[ID_INDEX].bPresent && !tags[LEVEL_INDEX].bPresent) {
         level = VL_VERBOSE;
     }
 
@@ -548,7 +594,7 @@ handle_ebpf_show_programs(
             continue;
         }
 
-        // Filter by pinned if desired.
+        // Filter by pinpath if desired.
         if (pinned == BC_NO && info.pinned_path_count > 0) {
             continue;
         }

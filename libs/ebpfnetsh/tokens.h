@@ -8,6 +8,7 @@
 #define TOKEN_ID L"id"
 #define TOKEN_LEVEL L"level"
 #define TOKEN_PINNED L"pinned"
+#define TOKEN_PINPATH L"pinpath"
 #define TOKEN_SECTION L"section"
 #define TOKEN_TYPE L"type"
 

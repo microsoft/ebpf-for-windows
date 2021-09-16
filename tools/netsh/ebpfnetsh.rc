@@ -56,7 +56,8 @@ BEGIN
     HLP_EBPF_ADD_PROGRAM_EX "\
 \nUsage: %1!s! [filename=]<string>\
 \n                   [[type=]<string>]\
-\n                   [[pinned=]<string>]\
+\n                   [[pinpath=]<string>]\
+\n                   [[pinned=]none|first|all]\
 \n                   [[execution=]jit|interpret]\
 \n\
 \nParameters:\
@@ -67,14 +68,17 @@ BEGIN
 \n      type      - A string used as if it were a section name, to\
 \n                  determine the program type and expected attach\
 \n                  type.  If not specified, the default is xdp.\
-\n      pinned    - Optionally the name to pin the program to.  If not\
-\n                  specified, the default is to not pin the program.\
+\n      pinpath   - Optionally the name to pin the program to.\
+\n      pinned    - One of the following values:\
+\n                   none: Load all programs without pinning any.\
+\n                   first: Pin the first program in the file.\
+\n                   all: Pin all programs in the file.\
 \n      execution - One of the following values:\
 \n                   jit: Convert the program to machine code.\
 \n                   interpret: Run the program as byte code.\
 \n\
-\nRemarks: Loads a program (if not already loaded) and pins it if\
-\n         requested.\
+\nRemarks: Loads programs from a file (if not already loaded)\
+\n         and pins them if requested.\
 \n"
     HLP_EBPF_DELETE_PROGRAM "Deletes an eBPF program.\n"
     HLP_EBPF_DELETE_PROGRAM_EX "\
@@ -97,7 +101,7 @@ BEGIN
     HLP_EBPF_SET_PROGRAM_EX "\
 \nUsage: %1!s! [id=]<integer>\
 \n                   [[attached=]yes|no]\
-\n                   [[pinned=]<string>]\
+\n                   [[pinpath=]<string>]\
 \n\
 \nParameters:\
 \n\
@@ -105,7 +109,7 @@ BEGIN
 \n      id        - Program ID as shown via ""show programs"".\
 \n      attached  - Yes to attach a detached program using its\
 \n                  default attach type, or no to detach it.\
-\n      pinned    - The name to pin the program to, or if not\
+\n      pinpath   - The name to pin the program to, or if not\
 \n                  empty, unpin the program.\
 \n\
 \nRemarks: Pins, unpins, attaches, or detaches the specified\
@@ -210,6 +214,20 @@ BEGIN
 \nUsage: %1!s!\
 \n\
 \nRemarks: Shows all loaded maps.\
+\n"
+
+    HLP_EBPF_SHOW_LINKS  "Shows eBPF links.\n"
+    HLP_EBPF_SHOW_LINKS_EX "\
+\nUsage: %1!s!\
+\n\
+\nRemarks: Shows all loaded links.\
+\n"
+
+    HLP_EBPF_SHOW_PINS  "Shows paths used by pinned programs.\n"
+    HLP_EBPF_SHOW_PINS_EX "\
+\nUsage: %1!s!\
+\n\
+\nRemarks: Shows pinned program paths.\
 \n"
 
 

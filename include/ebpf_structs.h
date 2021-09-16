@@ -102,12 +102,16 @@ struct bpf_link_info
 
 struct bpf_map_info
 {
+    // Cross-platform fields.
     ebpf_id_t id;                ///< Map ID.
     ebpf_map_type_t type;        ///< Type of map.
     uint32_t key_size;           ///< Size in bytes of a map key.
     uint32_t value_size;         ///< Size in bytes of a map value.
     uint32_t max_entries;        ///< Maximum number of entries allowed in the map.
     char name[BPF_OBJ_NAME_LEN]; ///< Null-terminated map name.
+
+    // Windows-specific fields.
+    ebpf_id_t inner_map_id; ///< ID of inner map template.
 };
 
 struct bpf_prog_info
