@@ -667,25 +667,25 @@ static ebpf_result_t
 _ebpf_core_protocol_update_pinning(_In_ const struct _ebpf_operation_update_map_pinning_request* request)
 {
     ebpf_result_t retval;
-    const ebpf_utf8_string_t name = {
-        (uint8_t*)request->name,
-        request->header.length - EBPF_OFFSET_OF(ebpf_operation_update_pinning_request_t, name)};
+    const ebpf_utf8_string_t path = {
+        (uint8_t*)request->path,
+        request->header.length - EBPF_OFFSET_OF(ebpf_operation_update_pinning_request_t, path)};
     ebpf_object_t* object = NULL;
 
-    if (name.length == 0) {
+    if (path.length == 0) {
         retval = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
 
     if (request->handle == UINT64_MAX) {
-        retval = ebpf_pinning_table_delete(_ebpf_core_map_pinning_table, &name);
+        retval = ebpf_pinning_table_delete(_ebpf_core_map_pinning_table, &path);
         goto Done;
     } else {
         retval = ebpf_reference_object_by_handle(request->handle, EBPF_OBJECT_UNKNOWN, (ebpf_object_t**)&object);
         if (retval != EBPF_SUCCESS)
             goto Done;
 
-        retval = ebpf_pinning_table_insert(_ebpf_core_map_pinning_table, &name, (ebpf_object_t*)object);
+        retval = ebpf_pinning_table_insert(_ebpf_core_map_pinning_table, &path, (ebpf_object_t*)object);
     }
 Done:
     ebpf_object_release_reference((ebpf_object_t*)object);
@@ -701,16 +701,16 @@ _ebpf_core_protocol_get_pinned_object(
 {
     ebpf_result_t retval;
     ebpf_object_t* object = NULL;
-    const ebpf_utf8_string_t name = {
-        (uint8_t*)request->name, request->header.length - EBPF_OFFSET_OF(ebpf_operation_get_pinning_request_t, name)};
+    const ebpf_utf8_string_t path = {
+        (uint8_t*)request->path, request->header.length - EBPF_OFFSET_OF(ebpf_operation_get_pinning_request_t, path)};
     UNREFERENCED_PARAMETER(reply_length);
 
-    if (name.length == 0) {
+    if (path.length == 0) {
         retval = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
 
-    retval = ebpf_pinning_table_find(_ebpf_core_map_pinning_table, &name, (ebpf_object_t**)&object);
+    retval = ebpf_pinning_table_find(_ebpf_core_map_pinning_table, &path, (ebpf_object_t**)&object);
     if (retval != EBPF_SUCCESS)
         goto Done;
 
@@ -890,7 +890,7 @@ _ebpf_core_protocol_convert_pinning_entries_to_map_info_array(
         destination->definition = *map_definition;
         destination->definition.value_size = ebpf_map_get_effective_value_size((ebpf_map_t*)source->object);
         // Set pin path. No need to duplicate.
-        destination->pin_path = source->name;
+        destination->pin_path = source->path;
     }
 
 Exit:
@@ -1070,17 +1070,29 @@ _ebpf_core_protocol_get_next_program_id(
 }
 
 static ebpf_result_t
-_ebpf_core_protocol_get_next_pinned_program_name(
+_ebpf_core_protocol_get_next_pinned_program_path(
     _In_ const ebpf_operation_get_next_pinned_path_request_t* request,
     _Out_ ebpf_operation_get_next_pinned_path_reply_t* reply,
     uint16_t reply_length)
 {
-    UNREFERENCED_PARAMETER(reply_length);
+    ebpf_utf8_string_t start_path;
+    ebpf_utf8_string_t next_path;
 
-    return ebpf_pinning_table_get_next_path(
-        _ebpf_core_map_pinning_table, EBPF_OBJECT_PROGRAM, request->start_path, reply->next_path);
+    start_path.length =
+        request->header.length - EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_path_request_t, start_path);
+    start_path.value = (uint8_t*)request->start_path;
+    next_path.length = reply_length - EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_path_reply_t, next_path);
+    next_path.value = (uint8_t*)reply->next_path;
+
+    ebpf_result_t result =
+        ebpf_pinning_table_get_next_path(_ebpf_core_map_pinning_table, EBPF_OBJECT_PROGRAM, &start_path, &next_path);
+
+    if (result == EBPF_SUCCESS) {
+        reply->header.length =
+            (uint16_t)next_path.length + EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_path_reply_t, next_path);
+    }
+    return result;
 }
-
 static ebpf_result_t
 _ebpf_core_protocol_get_object_info(
     _In_ const ebpf_operation_get_object_info_request_t* request,
@@ -1264,11 +1276,11 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
      EBPF_OFFSET_OF(ebpf_operation_query_program_info_reply_t, data)},
 
     // EBPF_OPERATION_UPDATE_PINNING
-    {_ebpf_core_protocol_update_pinning, EBPF_OFFSET_OF(ebpf_operation_update_pinning_request_t, name), 0},
+    {_ebpf_core_protocol_update_pinning, EBPF_OFFSET_OF(ebpf_operation_update_pinning_request_t, path), 0},
 
     // EBPF_OPERATION_GET_PINNING
     {(ebpf_result_t(__cdecl*)(const void*))_ebpf_core_protocol_get_pinned_object,
-     EBPF_OFFSET_OF(ebpf_operation_get_pinning_request_t, name),
+     EBPF_OFFSET_OF(ebpf_operation_get_pinning_request_t, path),
      sizeof(struct _ebpf_operation_get_pinning_reply)},
 
     // EBPF_OPERATION_LINK_PROGRAM
@@ -1337,7 +1349,7 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
      sizeof(ebpf_operation_get_object_info_reply_t)},
 
     // EBPF_OPERATION_GET_NEXT_PINNED_PROGRAM_NAME
-    {(ebpf_result_t(__cdecl*)(const void*))_ebpf_core_protocol_get_next_pinned_program_name,
+    {(ebpf_result_t(__cdecl*)(const void*))_ebpf_core_protocol_get_next_pinned_program_path,
      sizeof(ebpf_operation_get_next_pinned_path_request_t),
      sizeof(ebpf_operation_get_next_pinned_path_reply_t)},
 };
