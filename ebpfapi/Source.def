@@ -30,6 +30,7 @@ EXPORTS
     bpf_map_get_next_key
     bpf_map_lookup_elem
     bpf_map_update_elem
+    bpf_obj_get
     bpf_obj_get_info_by_fd
     bpf_obj_pin
     bpf_object__close
@@ -72,6 +73,7 @@ EXPORTS
     ebpf_create_map_name
     ebpf_free_string
     ebpf_get_next_map
+    ebpf_get_next_pinned_program_name
     ebpf_get_next_program
     ebpf_get_program_type_by_name
     ebpf_link_close

@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include <io.h>
 #include <iostream>
 #include <string>
 #include <windows.h>
@@ -106,7 +107,7 @@ stats(int argc, char** argv)
 
     UNREFERENCED_PARAMETER(argc);
     UNREFERENCED_PARAMETER(argv);
-    map_fd = ebpf_object_get((char*)process_map);
+    map_fd = bpf_obj_get((char*)process_map);
     if (map_fd == ebpf_fd_invalid) {
         fprintf(stderr, "Failed to look up eBPF map\n");
         return 1;
@@ -124,6 +125,7 @@ stats(int argc, char** argv)
         printf("%lld\t%d\t%S\n", pid, process_entry.count, process_entry.name);
         result = bpf_map_get_next_key(map_fd, &pid, &pid);
     };
+    _close(map_fd);
     return 0;
 }
 
@@ -141,7 +143,7 @@ limit(int argc, char** argv)
     uint32_t result;
     uint32_t key = 0;
 
-    map_fd = ebpf_object_get((char*)limits_map);
+    map_fd = bpf_obj_get((char*)limits_map);
     if (map_fd == ebpf_fd_invalid) {
         fprintf(stderr, "Failed to look up eBPF map.\n");
         return 1;
@@ -152,6 +154,8 @@ limit(int argc, char** argv)
         fprintf(stderr, "Failed to update eBPF map element: %d\n", result);
         return 1;
     }
+
+    _close(map_fd);
 
     return 0;
 }
