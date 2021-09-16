@@ -37,8 +37,5 @@
     <ClInclude Include="..\inc\sample_ext_helpers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\inc\sample_ext_ioctls.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
   </ItemGroup>
 </Project>
