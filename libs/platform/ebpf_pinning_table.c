@@ -109,7 +109,7 @@ ebpf_pinning_table_insert(ebpf_pinning_table_t* pinning_table, const ebpf_utf8_s
     ebpf_utf8_string_t* new_key;
     ebpf_pinning_entry_t* new_pinning_entry;
 
-    if (path->length >= EBPF_MAX_PIN_PATH_LENGTH) {
+    if (path->length >= EBPF_MAX_PIN_PATH_LENGTH || path->length == 0) {
         return EBPF_INVALID_ARGUMENT;
     }
 
