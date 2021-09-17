@@ -76,7 +76,7 @@ Data Fields</h2></td></tr>
 <tr class="memdesc:ac93577683e5e340b94b9fca9b12efd02"><td class="mdescLeft">&#160;</td><td class="mdescRight">Program ID.  <a href="structbpf__prog__info.html#ac93577683e5e340b94b9fca9b12efd02">More...</a><br /></td></tr>
 <tr class="separator:ac93577683e5e340b94b9fca9b12efd02"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4e9d6f19ea338703f116b2557dd61363"><td class="memItemLeft" align="right" valign="top">enum <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0">bpf_prog_type</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structbpf__prog__info.html#a4e9d6f19ea338703f116b2557dd61363">type</a></td></tr>
-<tr class="memdesc:a4e9d6f19ea338703f116b2557dd61363"><td class="mdescLeft">&#160;</td><td class="mdescRight">Program type, if a cross-platform type..  <a href="structbpf__prog__info.html#a4e9d6f19ea338703f116b2557dd61363">More...</a><br /></td></tr>
+<tr class="memdesc:a4e9d6f19ea338703f116b2557dd61363"><td class="mdescLeft">&#160;</td><td class="mdescRight">Program type, if a cross-platform type.  <a href="structbpf__prog__info.html#a4e9d6f19ea338703f116b2557dd61363">More...</a><br /></td></tr>
 <tr class="separator:a4e9d6f19ea338703f116b2557dd61363"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab707e966eb488feaf4268784ddc9735c"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structbpf__prog__info.html#ab707e966eb488feaf4268784ddc9735c">nr_map_ids</a></td></tr>
 <tr class="memdesc:ab707e966eb488feaf4268784ddc9735c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Number of maps associated with this program.  <a href="structbpf__prog__info.html#ab707e966eb488feaf4268784ddc9735c">More...</a><br /></td></tr>
@@ -87,6 +87,12 @@ Data Fields</h2></td></tr>
 <tr class="memitem:acbb1379ce1dbc7fe7ef223edf2f50420"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__windows_8h.html#a7392ed9f9037688cd94f7069c523c251">ebpf_program_type_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structbpf__prog__info.html#acbb1379ce1dbc7fe7ef223edf2f50420">type_uuid</a></td></tr>
 <tr class="memdesc:acbb1379ce1dbc7fe7ef223edf2f50420"><td class="mdescLeft">&#160;</td><td class="mdescRight">Program type UUID.  <a href="structbpf__prog__info.html#acbb1379ce1dbc7fe7ef223edf2f50420">More...</a><br /></td></tr>
 <tr class="separator:acbb1379ce1dbc7fe7ef223edf2f50420"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3bf702e4104bc645d8873ad16f303f81"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structbpf__prog__info.html#a3bf702e4104bc645d8873ad16f303f81">pinned_path_count</a></td></tr>
+<tr class="memdesc:a3bf702e4104bc645d8873ad16f303f81"><td class="mdescLeft">&#160;</td><td class="mdescRight">Number of pinned paths.  <a href="structbpf__prog__info.html#a3bf702e4104bc645d8873ad16f303f81">More...</a><br /></td></tr>
+<tr class="separator:a3bf702e4104bc645d8873ad16f303f81"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4a53fd3aada67c1f67cbbe1d2ec4fb18"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structbpf__prog__info.html#a4a53fd3aada67c1f67cbbe1d2ec4fb18">link_count</a></td></tr>
+<tr class="memdesc:a4a53fd3aada67c1f67cbbe1d2ec4fb18"><td class="mdescLeft">&#160;</td><td class="mdescRight">Number of attached links.  <a href="structbpf__prog__info.html#a4a53fd3aada67c1f67cbbe1d2ec4fb18">More...</a><br /></td></tr>
+<tr class="separator:a4a53fd3aada67c1f67cbbe1d2ec4fb18"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Field Documentation</h2>
 <a id="ac93577683e5e340b94b9fca9b12efd02"></a>
@@ -102,6 +108,22 @@ Data Fields</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Program ID. </p>
+
+</div>
+</div>
+<a id="a4a53fd3aada67c1f67cbbe1d2ec4fb18"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4a53fd3aada67c1f67cbbe1d2ec4fb18">&#9670;&nbsp;</a></span>link_count</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint32_t bpf_prog_info::link_count</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Number of attached links. </p>
 
 </div>
 </div>
@@ -137,6 +159,22 @@ Data Fields</h2></td></tr>
 
 </div>
 </div>
+<a id="a3bf702e4104bc645d8873ad16f303f81"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a3bf702e4104bc645d8873ad16f303f81">&#9670;&nbsp;</a></span>pinned_path_count</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint32_t bpf_prog_info::pinned_path_count</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Number of pinned paths. </p>
+
+</div>
+</div>
 <a id="a4e9d6f19ea338703f116b2557dd61363"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a4e9d6f19ea338703f116b2557dd61363">&#9670;&nbsp;</a></span>type</h2>
 
@@ -149,7 +187,7 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Program type, if a cross-platform type.. </p>
+<p>Program type, if a cross-platform type. </p>
 
 </div>
 </div>
