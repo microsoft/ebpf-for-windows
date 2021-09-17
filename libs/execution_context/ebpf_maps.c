@@ -30,7 +30,8 @@ typedef struct _ebpf_core_object_map
 typedef struct _ebpf_core_lru_map
 {
     ebpf_core_map_t core_map;
-    // TODO: Replace with lock-free heap.
+    // https://github.com/microsoft/ebpf-for-windows/issues/557
+    // Investigate replacing this with a heap to speed up finding oldest key.
     ebpf_hash_table_t* key_history;
 } ebpf_core_lru_map_t;
 
@@ -490,10 +491,8 @@ _create_lru_hash_map(_In_ const ebpf_map_definition_in_memory_t* map_definition)
             map = NULL;
         }
     }
-    if (map)
-        return &map->core_map;
-    else
-        return NULL;
+
+    return (map) ? &map->core_map : NULL;
 }
 
 static void
@@ -597,11 +596,12 @@ _find_hash_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
     if (!map || !key)
         return NULL;
 
-    _update_key_history(map, key, false);
-
     if (ebpf_hash_table_find((ebpf_hash_table_t*)map->data, key, &value) != EBPF_SUCCESS) {
         value = NULL;
     }
+
+    if (value)
+        _update_key_history(map, key, false);
 
     return value;
 }
@@ -670,7 +670,8 @@ _update_hash_map_entry(
     else
         result = ebpf_hash_table_update((ebpf_hash_table_t*)map->data, key, data, hash_table_operation);
 
-    _update_key_history(map, key, false);
+    if (result == EBPF_SUCCESS)
+        _update_key_history(map, key, false);
 
     return result;
 }
