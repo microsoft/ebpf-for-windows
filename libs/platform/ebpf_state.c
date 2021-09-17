@@ -9,7 +9,7 @@
 // Table to track what state for each thread.
 static ebpf_hash_table_t* _ebpf_state_thread_table = NULL;
 
-static int64_t _ebpf_state_next_index = 0;
+static int64_t _ebpf_state_next_index;
 
 // Table to track what state for each CPU.
 typedef struct _ebpf_state_entry
@@ -24,6 +24,8 @@ ebpf_result_t
 ebpf_state_initiate()
 {
     ebpf_result_t return_value = EBPF_SUCCESS;
+
+    _ebpf_state_next_index = 0;
 
     if (ebpf_is_non_preemptible_work_item_supported()) {
         _ebpf_state_cpu_table_size = ebpf_get_cpu_count();
