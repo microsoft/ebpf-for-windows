@@ -33,7 +33,7 @@ typedef std::unique_ptr<ebpf_map_t, ebpf_object_deleter<ebpf_map_t>> map_ptr;
 typedef std::unique_ptr<ebpf_program_t, ebpf_object_deleter<ebpf_program_t>> program_ptr;
 
 static void
-_test_crud_operations(ebpf_map_type_t map_type, bool is_array)
+_test_crud_operations(ebpf_map_type_t map_type, bool is_array, bool replace_on_full = false)
 {
     _ebpf_core_initializer core;
 
@@ -62,8 +62,8 @@ _test_crud_operations(ebpf_map_type_t map_type, bool is_array)
     }
 
     // Test for inserting max_entries + 1
-    uint32_t bad_key = 11;
-    *reinterpret_cast<uint64_t*>(value.data()) = 11 * 11;
+    uint32_t bad_key = 10;
+    *reinterpret_cast<uint64_t*>(value.data()) = static_cast<uint64_t>(bad_key) * static_cast<uint64_t>(bad_key);
     REQUIRE(
         ebpf_map_update_entry(
             map.get(),
@@ -72,20 +72,29 @@ _test_crud_operations(ebpf_map_type_t map_type, bool is_array)
             value.size(),
             value.data(),
             EBPF_ANY,
-            0) == EBPF_INVALID_ARGUMENT);
+            0) == (replace_on_full ? EBPF_SUCCESS : EBPF_INVALID_ARGUMENT));
 
-    ebpf_result_t expected_result = is_array ? EBPF_INVALID_ARGUMENT : EBPF_KEY_NOT_FOUND;
-    REQUIRE(
-        ebpf_map_delete_entry(map.get(), sizeof(bad_key), reinterpret_cast<const uint8_t*>(&bad_key), 0) ==
-        expected_result);
+    if (!replace_on_full) {
+        ebpf_result_t expected_result = is_array ? EBPF_INVALID_ARGUMENT : EBPF_KEY_NOT_FOUND;
+        REQUIRE(
+            ebpf_map_delete_entry(map.get(), sizeof(bad_key), reinterpret_cast<const uint8_t*>(&bad_key), 0) ==
+            expected_result);
+    }
 
     for (uint32_t key = 0; key < 10; key++) {
+        ebpf_result_t expected_result;
+        if (replace_on_full) {
+            expected_result = key == 0 ? EBPF_OBJECT_NOT_FOUND : EBPF_SUCCESS;
+        } else {
+            expected_result = key == 10 ? EBPF_OBJECT_NOT_FOUND : EBPF_SUCCESS;
+        }
         REQUIRE(
             ebpf_map_find_entry(
                 map.get(), sizeof(key), reinterpret_cast<const uint8_t*>(&key), value.size(), value.data(), 0) ==
-            EBPF_SUCCESS);
-
-        REQUIRE(*reinterpret_cast<uint64_t*>(value.data()) == key * key);
+            expected_result);
+        if (expected_result == EBPF_SUCCESS) {
+            REQUIRE(*reinterpret_cast<uint64_t*>(value.data()) == key * key);
+        }
     }
 
     uint32_t previous_key;
@@ -110,7 +119,7 @@ _test_crud_operations(ebpf_map_type_t map_type, bool is_array)
             reinterpret_cast<const uint8_t*>(&previous_key),
             reinterpret_cast<uint8_t*>(&next_key)) == EBPF_NO_MORE_KEYS);
 
-    for (uint32_t key = 0; key < 10; key++) {
+    for (const auto key : keys) {
         REQUIRE(
             ebpf_map_delete_entry(map.get(), sizeof(key), reinterpret_cast<const uint8_t*>(&key), 0) == EBPF_SUCCESS);
     }
@@ -123,6 +132,11 @@ _test_crud_operations(ebpf_map_type_t map_type, bool is_array)
 TEST_CASE("map_crud_operations_array", "[execution_context]") { _test_crud_operations(BPF_MAP_TYPE_ARRAY, true); }
 
 TEST_CASE("map_crud_operations_hash", "[execution_context]") { _test_crud_operations(BPF_MAP_TYPE_HASH, false); }
+
+TEST_CASE("map_crud_operations_lru_hash", "[execution_context]")
+{
+    _test_crud_operations(BPF_MAP_TYPE_LRU_HASH, false, true);
+}
 
 TEST_CASE("map_crud_operations_array_per_cpu", "[execution_context]")
 {

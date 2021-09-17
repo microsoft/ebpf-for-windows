@@ -27,6 +27,14 @@ typedef struct _ebpf_core_object_map
     ebpf_program_type_t program_type;
 } ebpf_core_object_map_t;
 
+typedef struct _ebpf_core_lru_map
+{
+    ebpf_core_map_t core_map;
+    // https://github.com/microsoft/ebpf-for-windows/issues/557
+    // Investigate replacing this with a heap to speed up finding oldest key.
+    ebpf_hash_table_t* key_history;
+} ebpf_core_lru_map_t;
+
 _Ret_notnull_ static const ebpf_program_type_t*
 _get_map_program_type(_In_ const ebpf_object_t* object)
 {
@@ -158,7 +166,7 @@ _delete_array_map_entry_with_reference(
 
     key_value = *(uint32_t*)key;
 
-    if (key_value > map->ebpf_map_definition.max_entries)
+    if (key_value >= map->ebpf_map_definition.max_entries)
         return EBPF_INVALID_ARGUMENT;
 
     uint8_t* entry = &map->data[key_value * map->ebpf_map_definition.value_size];
@@ -459,10 +467,47 @@ _create_object_hash_map(_In_ const ebpf_map_definition_in_memory_t* map_definiti
     return _create_hash_map_with_map_struct_size(sizeof(ebpf_core_object_map_t), map_definition);
 }
 
+static ebpf_core_map_t*
+_create_lru_hash_map(_In_ const ebpf_map_definition_in_memory_t* map_definition)
+{
+    ebpf_core_lru_map_t* map =
+        (ebpf_core_lru_map_t*)_create_hash_map_with_map_struct_size(sizeof(ebpf_core_lru_map_t), map_definition);
+    if (map) {
+        ebpf_result_t retval;
+        // Note:
+        // ebpf_hash_table_t doesn't require synchronization as long as allocations
+        // are performed using the epoch allocator.
+        retval = ebpf_hash_table_create(
+            &map->key_history,
+            ebpf_epoch_allocate,
+            ebpf_epoch_free,
+            map->core_map.ebpf_map_definition.key_size,
+            sizeof(uint64_t),
+            map->core_map.ebpf_map_definition.max_entries,
+            NULL);
+        if (retval != EBPF_SUCCESS) {
+            ebpf_hash_table_destroy((ebpf_hash_table_t*)map->core_map.data);
+            ebpf_free(map);
+            map = NULL;
+        }
+    }
+
+    return (map) ? &map->core_map : NULL;
+}
+
 static void
 _delete_hash_map(_In_ ebpf_core_map_t* map)
 {
     ebpf_hash_table_destroy((ebpf_hash_table_t*)map->data);
+    ebpf_free(map);
+}
+
+static void
+_delete_lru_hash_map(_In_ ebpf_core_map_t* map)
+{
+    ebpf_core_lru_map_t* lru_map = EBPF_FROM_FIELD(ebpf_core_lru_map_t, core_map, map);
+    ebpf_hash_table_destroy(lru_map->key_history);
+    ebpf_hash_table_destroy((ebpf_hash_table_t*)lru_map->core_map.data);
     ebpf_free(map);
 }
 
@@ -485,6 +530,65 @@ _delete_object_hash_map(_In_ ebpf_core_map_t* map)
     _delete_hash_map(map);
 }
 
+static ebpf_result_t
+_update_key_history(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key, bool remove)
+{
+    uint64_t now;
+    ebpf_core_lru_map_t* lru_map;
+    if (map->ebpf_map_definition.type != BPF_MAP_TYPE_LRU_HASH) {
+        return EBPF_SUCCESS;
+    }
+    lru_map = EBPF_FROM_FIELD(ebpf_core_lru_map_t, core_map, map);
+    now = ebpf_query_time_since_boot(true);
+
+    if (!remove) {
+        return ebpf_hash_table_update(lru_map->key_history, key, (uint8_t*)&now, EBPF_HASH_TABLE_OPERATION_ANY);
+    } else {
+        return ebpf_hash_table_delete(lru_map->key_history, key);
+    }
+}
+
+static bool
+_reap_oldest_map_entry(_In_ ebpf_core_map_t* map)
+{
+    uint8_t* previous_key = NULL;
+    uint8_t* next_key = NULL;
+    uint8_t* oldest_key = NULL;
+    uint64_t* key_age = NULL;
+    uint64_t oldest_key_age = MAXUINT64;
+    ebpf_result_t result;
+    ebpf_core_lru_map_t* lru_map;
+
+    if (map->ebpf_map_definition.type != BPF_MAP_TYPE_LRU_HASH) {
+        return false;
+    }
+
+    lru_map = EBPF_FROM_FIELD(ebpf_core_lru_map_t, core_map, map);
+
+    // Walk through all the keys and values and find the oldest one.
+    for (;;) {
+        result = ebpf_hash_table_next_key_pointer_and_value(
+            lru_map->key_history, previous_key, &next_key, (uint8_t**)&key_age);
+        if (result != EBPF_SUCCESS) {
+            break;
+        }
+
+        if (*key_age < oldest_key_age) {
+            oldest_key_age = *key_age;
+            oldest_key = next_key;
+        }
+        previous_key = next_key;
+    }
+
+    // If we reached the end of the keys, delete the oldest one found.
+    if (result == EBPF_NO_MORE_KEYS && oldest_key != NULL) {
+        ebpf_hash_table_delete((ebpf_hash_table_t*)lru_map->core_map.data, oldest_key);
+        _update_key_history(map, oldest_key, true);
+        return true;
+    }
+    return false;
+}
+
 static uint8_t*
 _find_hash_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
 {
@@ -495,6 +599,9 @@ _find_hash_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
     if (ebpf_hash_table_find((ebpf_hash_table_t*)map->data, key, &value) != EBPF_SUCCESS) {
         value = NULL;
     }
+
+    if (value)
+        _update_key_history(map, key, false);
 
     return value;
 }
@@ -557,10 +664,14 @@ _update_hash_map_entry(
     entry_count = ebpf_hash_table_key_count((ebpf_hash_table_t*)map->data);
 
     if ((entry_count == map->ebpf_map_definition.max_entries) &&
-        (ebpf_hash_table_find((ebpf_hash_table_t*)map->data, key, &value) != EBPF_SUCCESS))
+        (ebpf_hash_table_find((ebpf_hash_table_t*)map->data, key, &value) != EBPF_SUCCESS) &&
+        !_reap_oldest_map_entry(map))
         result = EBPF_INVALID_ARGUMENT;
     else
         result = ebpf_hash_table_update((ebpf_hash_table_t*)map->data, key, data, hash_table_operation);
+
+    if (result == EBPF_SUCCESS)
+        _update_key_history(map, key, false);
 
     return result;
 }
@@ -674,6 +785,7 @@ _delete_hash_map_entry_with_reference(_In_ ebpf_core_map_t* map, _In_ const uint
 static ebpf_result_t
 _delete_hash_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
 {
+    _update_key_history(map, key, true);
     return _delete_hash_map_entry_with_reference(map, key, EBPF_OBJECT_UNKNOWN);
 }
 
@@ -834,6 +946,17 @@ ebpf_map_function_table_t ebpf_map_function_tables[] = {
      NULL,
      _delete_map_array_map_entry,
      _next_array_map_key},
+    {// BPF_MAP_TYPE_LRU_HASH
+     _create_lru_hash_map,
+     _delete_lru_hash_map,
+     NULL,
+     _find_hash_map_entry,
+     NULL,
+     _update_hash_map_entry,
+     NULL,
+     NULL,
+     _delete_hash_map_entry,
+     _next_hash_map_key},
 };
 
 static void
