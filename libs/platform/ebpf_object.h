@@ -37,6 +37,8 @@ extern "C"
         ebpf_id_t id;
         // Used to insert object in an object specific list.
         ebpf_list_entry_t object_list_entry;
+        // # of pinned paths, for diagnostic purposes.
+        uint32_t pinned_path_count;
     } ebpf_object_t;
 
     /**

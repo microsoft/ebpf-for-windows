@@ -59,6 +59,7 @@ typedef struct _ebpf_program
     ebpf_epoch_work_item_t* cleanup_work_item;
 
     ebpf_list_entry_t links;
+    uint32_t link_count;
     ebpf_lock_t links_lock;
 } ebpf_program_t;
 
@@ -835,6 +836,7 @@ ebpf_program_attach_link(_Inout_ ebpf_program_t* program, _Inout_ ebpf_link_t* l
     ebpf_lock_state_t state;
     state = ebpf_lock_lock(&program->links_lock);
     ebpf_list_insert_tail(&program->links, &((ebpf_object_t*)link)->object_list_entry);
+    program->link_count++;
     ebpf_lock_unlock(&program->links_lock, state);
 }
 
@@ -845,6 +847,7 @@ ebpf_program_detach_link(_Inout_ ebpf_program_t* program, _Inout_ ebpf_link_t* l
     ebpf_lock_state_t state;
     state = ebpf_lock_lock(&program->links_lock);
     ebpf_list_remove_entry(&((ebpf_object_t*)link)->object_list_entry);
+    program->link_count--;
     ebpf_lock_unlock(&program->links_lock, state);
 
     // Release the "attach" reference.
@@ -871,6 +874,8 @@ ebpf_program_get_info(
     info->nr_map_ids = program->count_of_maps;
     info->type = BPF_PROG_TYPE_UNKNOWN; // TODO(issue #223): get integer if any.
     info->type_uuid = *ebpf_program_type(program);
+    info->pinned_path_count = program->object.pinned_path_count;
+    info->link_count = program->link_count;
 
     *info_size = sizeof(*info);
     return EBPF_SUCCESS;

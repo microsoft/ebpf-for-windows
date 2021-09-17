@@ -1072,13 +1072,13 @@ _ebpf_core_protocol_get_next_program_id(
 static ebpf_result_t
 _ebpf_core_protocol_get_next_pinned_program_name(
     _In_ const ebpf_operation_get_next_pinned_name_request_t* request,
-    _Out_ ebpf_operation_get_next_pinned_name_reply_t* reply,
+    _Out_ ebpf_operation_get_next_pinned_path_reply_t* reply,
     uint16_t reply_length)
 {
     UNREFERENCED_PARAMETER(reply_length);
 
-    return ebpf_pinning_table_get_next_name(
-        _ebpf_core_map_pinning_table, EBPF_OBJECT_PROGRAM, request->start_name, reply->next_name);
+    return ebpf_pinning_table_get_next_path(
+        _ebpf_core_map_pinning_table, EBPF_OBJECT_PROGRAM, request->start_name, reply->next_path);
 }
 
 static ebpf_result_t
@@ -1339,7 +1339,7 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
     // EBPF_OPERATION_GET_NEXT_PINNED_PROGRAM_NAME
     {(ebpf_result_t(__cdecl*)(const void*))_ebpf_core_protocol_get_next_pinned_program_name,
      sizeof(ebpf_operation_get_next_pinned_name_request_t),
-     sizeof(ebpf_operation_get_next_pinned_name_reply_t)},
+     sizeof(ebpf_operation_get_next_pinned_path_reply_t)},
 };
 
 ebpf_result_t
