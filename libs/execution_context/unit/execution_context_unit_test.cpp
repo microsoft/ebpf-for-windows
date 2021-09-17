@@ -63,7 +63,7 @@ _test_crud_operations(ebpf_map_type_t map_type, bool is_array, bool replace_on_f
 
     // Test for inserting max_entries + 1
     uint32_t bad_key = 10;
-    *reinterpret_cast<uint64_t*>(value.data()) = bad_key * bad_key;
+    *reinterpret_cast<uint64_t*>(value.data()) = static_cast<uint64_t>(bad_key) * static_cast<uint64_t>(bad_key);
     REQUIRE(
         ebpf_map_update_entry(
             map.get(),
