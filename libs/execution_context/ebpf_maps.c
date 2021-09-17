@@ -490,7 +490,10 @@ _create_lru_hash_map(_In_ const ebpf_map_definition_in_memory_t* map_definition)
             map = NULL;
         }
     }
-    return &map->core_map;
+    if (map)
+        return &map->core_map;
+    else
+        return NULL;
 }
 
 static void
