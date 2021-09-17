@@ -256,7 +256,7 @@ handle_ebpf_delete_program(
         return status;
     }
 
-    // If the program is pinpath, unpin the specified program.
+    // If the program is pinned, unpin the specified program.
     status = _unpin_program_by_id(id);
     if (status != NO_ERROR) {
         return status;
