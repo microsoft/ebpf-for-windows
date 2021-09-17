@@ -1817,7 +1817,7 @@ ebpf_get_next_pinned_program_path(
         sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_PINNED_PROGRAM_PATH};
     _ebpf_operation_get_next_pinned_path_reply reply;
 
-    strcpy_s(request.start_name, sizeof(request.start_name), start_path);
+    strcpy_s(request.start_path, sizeof(request.start_path), start_path);
 
     uint32_t error = invoke_ioctl(request, reply);
     ebpf_result_t result = windows_error_to_ebpf_result(error);
