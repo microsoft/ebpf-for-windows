@@ -47,6 +47,7 @@ docs/html
 # Generated version files.
 .version/**/*
 /**/*/PipelineAssemblyInfo.cs
+include/git_commit_id.h
 
 # Visual Studio junk.
 **/.vs/**/*
