@@ -51,6 +51,10 @@ static _Requires_lock_held_(&_ebpf_object_tracking_list_lock) ebpf_id_entry_t _e
 static inline ebpf_id_t
 _get_id_from_index(uint32_t index)
 {
+    if (index >= EBPF_COUNT_OF(_ebpf_id_table)) {
+        return EBPF_ID_NONE;
+    }
+
     // Put the index in the high 2 bytes and the counter in the low 2 bytes.
     // This allows us to more easily detect stale IDs while
     // still keeping IDs in order by index.
