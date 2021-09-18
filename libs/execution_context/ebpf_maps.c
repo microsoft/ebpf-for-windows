@@ -866,6 +866,7 @@ _update_entry_per_cpu(
     return EBPF_SUCCESS;
 }
 
+// Given two keys, compute the number of bits that match.
 static size_t
 _lpm_trie_matching_key_prefix_length(
     const uint8_t* key_a, size_t key_length_a, const uint8_t* key_b, size_t key_length_b)
