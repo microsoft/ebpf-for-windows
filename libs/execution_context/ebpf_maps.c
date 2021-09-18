@@ -866,6 +866,80 @@ _update_entry_per_cpu(
     return EBPF_SUCCESS;
 }
 
+static size_t
+_lpm_trie_matching_key_prefix_length(
+    const uint8_t* key_a, size_t key_length_a, const uint8_t* key_b, size_t key_length_b)
+{
+    size_t maximum_matching_length = key_length_a > key_length_b ? key_length_b : key_length_a;
+    size_t remainin_key_length_in_bits = maximum_matching_length;
+    uint8_t key_a_last_byte;
+    uint8_t key_b_last_byte;
+    size_t index;
+
+    while (remainin_key_length_in_bits >= 8) {
+        index = (maximum_matching_length - remainin_key_length_in_bits) / 8;
+        if (key_a[index] != key_b[index]) {
+            break;
+        }
+        remainin_key_length_in_bits -= 8;
+    }
+    if (!remainin_key_length_in_bits) {
+        return maximum_matching_length;
+    }
+
+    index = (maximum_matching_length - remainin_key_length_in_bits) / 8;
+    key_a_last_byte = key_a[index];
+    key_b_last_byte = key_b[index];
+
+    while (remainin_key_length_in_bits) {
+        if ((key_a_last_byte & 0x80) != (key_b_last_byte & 0x80)) {
+            break;
+        }
+        remainin_key_length_in_bits--;
+        key_a_last_byte <<= 1;
+        key_b_last_byte <<= 1;
+    }
+    return maximum_matching_length - remainin_key_length_in_bits;
+}
+
+static uint8_t*
+_find_lpm_trie_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
+{
+    uint8_t* best_value = NULL;
+    uint32_t search_key_length = *(uint32_t*)key;
+    const uint8_t* search_key = key + sizeof(uint32_t);
+    uint8_t* current_key = NULL;
+    uint8_t* current_value = NULL;
+    size_t longest_key_match = 0;
+    ebpf_result_t result;
+
+    if (!map || !key)
+        return NULL;
+
+    do {
+        result = ebpf_hash_table_next_key_pointer_and_value(
+            (ebpf_hash_table_t*)map->data, current_key, &current_key, &current_value);
+
+        if (result == EBPF_SUCCESS) {
+            uint32_t compare_key_length = *(uint32_t*)current_key;
+            uint8_t* compare_key = current_key + sizeof(uint32_t);
+            size_t compare_key_match =
+                _lpm_trie_matching_key_prefix_length(compare_key, compare_key_length, search_key, search_key_length);
+
+            // All bits in the compare_key must match
+            if (compare_key_match != compare_key_length) {
+                continue;
+            }
+            // Find the longest comparison that matches.
+            if (compare_key_match > longest_key_match) {
+                longest_key_match = compare_key_match;
+                best_value = current_value;
+            }
+        }
+    } while (result == EBPF_SUCCESS);
+    return best_value;
+}
+
 ebpf_map_function_table_t ebpf_map_function_tables[] = {
     {// BPF_MAP_TYPE_UNSPECIFIED
      NULL},
@@ -951,6 +1025,18 @@ ebpf_map_function_table_t ebpf_map_function_tables[] = {
      _delete_lru_hash_map,
      NULL,
      _find_hash_map_entry,
+     NULL,
+     _update_hash_map_entry,
+     NULL,
+     NULL,
+     _delete_hash_map_entry,
+     _next_hash_map_key},
+    // LPM_TRIE is currently a hash-map with special behavior for find.
+    {// BPF_MAP_TYPE_LPM_TRIE
+     _create_hash_map,
+     _delete_hash_map,
+     NULL,
+     _find_lpm_trie_map_entry,
      NULL,
      _update_hash_map_entry,
      NULL,
