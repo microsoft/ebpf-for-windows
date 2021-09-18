@@ -144,7 +144,7 @@ TEST_CASE("map_crud_operations_lpm_trie", "[execution_context]")
 
     typedef struct _lpm_trie_key
     {
-        uint32_t key;
+        uint32_t prefix_length;
         uint8_t value[4];
     } lpm_trie_key_t;
     ebpf_map_definition_in_memory_t map_definition{
