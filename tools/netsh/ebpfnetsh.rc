@@ -77,8 +77,7 @@ BEGIN
 \n                   jit: Convert the program to machine code.\
 \n                   interpret: Run the program as byte code.\
 \n\
-\nRemarks: Loads programs from a file (if not already loaded)\
-\n         and pins them if requested.\
+\nRemarks: Loads programs from a file and pins them if requested.\
 \n"
     HLP_EBPF_DELETE_PROGRAM "Deletes an eBPF program.\n"
     HLP_EBPF_DELETE_PROGRAM_EX "\

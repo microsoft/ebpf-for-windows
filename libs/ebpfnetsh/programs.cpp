@@ -150,6 +150,8 @@ handle_ebpf_add_program(
     }
 
     if (pinned_type == PT_FIRST) {
+        // The pinpath specified is like a "file" under which to pin programs.
+        // This matches the "bpftool prog load" behavior.
         if (pinpath.empty()) {
             pinpath = bpf_program__name(program);
         }
@@ -159,6 +161,7 @@ handle_ebpf_add_program(
         }
     } else if (pinned_type == PT_ALL) {
         // The pinpath specified is like a "directory" under which to pin programs.
+        // This matches the "bpftool prog loadall" behavior.
         if (!pinpath.empty()) {
             pinpath += "/";
         }
@@ -167,6 +170,11 @@ handle_ebpf_add_program(
             std::string fullpath = pinpath + bpf_program__name(program);
             if (bpf_program__pin(program, fullpath.c_str()) < 0) {
                 std::cerr << "error " << errno << ": could not pin to " << fullpath << std::endl;
+
+                // In case of failure just close the object.
+                // This matches the "bpftool prog loadall" behavior.
+                bpf_object__close(object);
+
                 return ERROR_SUPPRESS_OUTPUT;
             }
         }

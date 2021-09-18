@@ -516,6 +516,14 @@ TEST_CASE("show links", "[netsh][links]")
     REQUIRE(output == "");
     REQUIRE(result == NO_ERROR);
     REQUIRE(bpf_object__next(nullptr) == nullptr);
+
+    output = _run_netsh_command(handle_ebpf_show_links, nullptr, nullptr, nullptr, &result);
+    REQUIRE(result == NO_ERROR);
+    REQUIRE(
+        output == "\n"
+                  "   Link  Program\n"
+                  "     ID       ID\n"
+                  "=======  =======\n");
 }
 
 TEST_CASE("show pins", "[netsh][pins]")
