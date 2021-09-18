@@ -177,27 +177,6 @@ extern "C"
     ebpf_get_next_program(fd_t previous_fd, _Out_ fd_t* next_fd);
 
     /**
-     * @brief Query properties of an eBPF map.
-     * @param[in] fd File descriptor for an eBPF map.
-     * @param[out] size Size of the eBPF map definition.
-     * @param[out] type Type of the eBPF map.
-     * @param[out] key_size Size of keys in the eBPF map.
-     * @param[out] value_size Size of values in the eBPF map.
-     * @param[out] max_entries Maximum number of entries in the map.
-     * @param[out] inner_map_id Map ID if the inner map, if any.
-     * @retval EBPF_SUCCESS The operation was successful.
-     */
-    ebpf_result_t
-    ebpf_map_query_definition(
-        fd_t fd,
-        _Out_ uint32_t* size,
-        _Out_ uint32_t* type,
-        _Out_ uint32_t* key_size,
-        _Out_ uint32_t* value_size,
-        _Out_ uint32_t* max_entries,
-        _Out_ ebpf_id_t* inner_map_id);
-
-    /**
      * @brief Query info about an eBPF program.
      * @param[in] fd File descriptor of an eBPF program.
      * @param[out] execution_type On success, contains the execution type.

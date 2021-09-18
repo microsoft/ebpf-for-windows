@@ -915,23 +915,6 @@ ebpf_get_next_program(fd_t previous_fd, _Out_ fd_t* next_fd)
 }
 
 ebpf_result_t
-ebpf_map_query_definition(
-    fd_t fd,
-    _Out_ uint32_t* size,
-    _Out_ uint32_t* type,
-    _Out_ uint32_t* key_size,
-    _Out_ uint32_t* value_size,
-    _Out_ uint32_t* max_entries,
-    _Out_ ebpf_id_t* inner_map_id)
-{
-    ebpf_handle_t map_handle = _get_handle_from_file_descriptor(fd);
-    if (map_handle == ebpf_handle_invalid) {
-        return EBPF_INVALID_FD;
-    }
-    return query_map_definition(map_handle, size, type, key_size, value_size, max_entries, inner_map_id);
-}
-
-ebpf_result_t
 ebpf_program_query_info(
     fd_t fd,
     _Out_ ebpf_execution_type_t* execution_type,
@@ -1834,7 +1817,7 @@ ebpf_get_next_pinned_program_path(
         sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_PINNED_PROGRAM_PATH};
     _ebpf_operation_get_next_pinned_path_reply reply;
 
-    strcpy_s(request.start_name, sizeof(request.start_name), start_path);
+    strcpy_s(request.start_path, sizeof(request.start_path), start_path);
 
     uint32_t error = invoke_ioctl(request, reply);
     ebpf_result_t result = windows_error_to_ebpf_result(error);

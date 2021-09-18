@@ -12,7 +12,9 @@
 #pragma warning(disable : 4200)
 #include "libbpf.h"
 #pragma warning(pop)
+#include "links.h"
 #include "maps.h"
+#include "pins.h"
 #include "platform.h"
 #include "programs.h"
 #include "test_helper.hpp"
@@ -273,14 +275,14 @@ TEST_CASE("show verification droppacket_unsafe.o", "[netsh][verification]")
                   "\n");
 }
 
-TEST_CASE("pin first", "[netsh][programs]")
+TEST_CASE("pin first program", "[netsh][programs]")
 {
     _test_helper_libbpf test_helper;
 
     // Load a program to show.
     int result;
     std::string output =
-        _run_netsh_command(handle_ebpf_add_program, L"reflect_packet.o", L"xdp", L"pinned=reflect", &result);
+        _run_netsh_command(handle_ebpf_add_program, L"reflect_packet.o", L"xdp", L"pinpath=reflect", &result);
     REQUIRE(strcmp(output.c_str(), "Loaded with ID 65537\n") == 0);
     REQUIRE(result == NO_ERROR);
 
@@ -300,6 +302,33 @@ TEST_CASE("pin first", "[netsh][programs]")
     REQUIRE(bpf_object__next(nullptr) == nullptr);
 }
 
+TEST_CASE("pin all programs", "[netsh][programs]")
+{
+    _test_helper_libbpf test_helper;
+
+    // Load programs to show.
+    int result;
+    std::string output =
+        _run_netsh_command(handle_ebpf_add_program, L"reflect_packet.o", L"pinpath=mypinpath", L"pinned=all", &result);
+    REQUIRE(strcmp(output.c_str(), "Loaded with ID 65537\n") == 0);
+    REQUIRE(result == NO_ERROR);
+
+    // Show programs in normal (table) format.
+    output = _run_netsh_command(handle_ebpf_show_programs, nullptr, nullptr, nullptr, &result);
+    REQUIRE(result == NO_ERROR);
+    REQUIRE(
+        output == "\n"
+                  "    ID  Pins  Links  Mode       Name\n"
+                  "======  ====  =====  =========  ====================\n"
+                  " 65537     1      1  JIT        reflect_packet\n"
+                  "131073     1      0  JIT        encap_reflect_packet\n");
+
+    output = _run_netsh_command(handle_ebpf_delete_program, L"65537", nullptr, nullptr, &result);
+    REQUIRE(output == "Unpinned 65537 from mypinpath/xdp_reflect\n");
+    REQUIRE(result == NO_ERROR);
+    REQUIRE(bpf_object__next(nullptr) == nullptr);
+}
+
 TEST_CASE("show programs", "[netsh][programs]")
 {
     _test_helper_libbpf test_helper;
@@ -307,7 +336,7 @@ TEST_CASE("show programs", "[netsh][programs]")
     // Load a program to show.
     int result;
     std::string output =
-        _run_netsh_command(handle_ebpf_add_program, L"tail_call.o", L"pinned=mypinname", nullptr, &result);
+        _run_netsh_command(handle_ebpf_add_program, L"tail_call.o", L"pinpath=mypinname", nullptr, &result);
     REQUIRE(strcmp(output.c_str(), "Loaded with ID 196609\n") == 0);
     REQUIRE(result == NO_ERROR);
 
@@ -391,7 +420,7 @@ TEST_CASE("set program", "[netsh][programs]")
     _test_helper_libbpf test_helper;
 
     int result;
-    std::string output = _run_netsh_command(handle_ebpf_add_program, L"tail_call.o", nullptr, nullptr, &result);
+    std::string output = _run_netsh_command(handle_ebpf_add_program, L"tail_call.o", L"pinned=none", nullptr, &result);
     REQUIRE(strcmp(output.c_str(), "Loaded with ID 196609\n") == 0);
     REQUIRE(result == NO_ERROR);
 
@@ -455,7 +484,7 @@ TEST_CASE("show maps", "[netsh][maps]")
     REQUIRE(
         output == "\n"
                   "                     Key  Value      Max  Inner\n"
-                  "          Map Type  Size   Size  Entries  Index\n"
+                  "          Map Type  Size   Size  Entries     ID\n"
                   "==================  ====  =====  =======  =====\n"
                   "      Hash of maps     4      4        2      0\n"
                   "             Array     4      4        1      0\n");
@@ -464,18 +493,77 @@ TEST_CASE("show maps", "[netsh][maps]")
     Platform::_close(outer_map_fd);
 }
 
+TEST_CASE("show links", "[netsh][links]")
+{
+    _test_helper_libbpf test_helper;
+
+    // Load and attach a program.
+    int result;
+    std::string output = _run_netsh_command(handle_ebpf_add_program, L"tail_call.o", L"pinned=none", nullptr, &result);
+    REQUIRE(strcmp(output.c_str(), "Loaded with ID 196609\n") == 0);
+    REQUIRE(result == NO_ERROR);
+
+    output = _run_netsh_command(handle_ebpf_show_links, nullptr, nullptr, nullptr, &result);
+    REQUIRE(result == NO_ERROR);
+    REQUIRE(
+        output == "\n"
+                  "   Link  Program\n"
+                  "     ID       ID\n"
+                  "=======  =======\n"
+                  " 327681   196609\n");
+
+    output = _run_netsh_command(handle_ebpf_delete_program, L"196609", nullptr, nullptr, &result);
+    REQUIRE(output == "");
+    REQUIRE(result == NO_ERROR);
+    REQUIRE(bpf_object__next(nullptr) == nullptr);
+
+    output = _run_netsh_command(handle_ebpf_show_links, nullptr, nullptr, nullptr, &result);
+    REQUIRE(result == NO_ERROR);
+    REQUIRE(
+        output == "\n"
+                  "   Link  Program\n"
+                  "     ID       ID\n"
+                  "=======  =======\n");
+}
+
+TEST_CASE("show pins", "[netsh][pins]")
+{
+    _test_helper_libbpf test_helper;
+
+    // Load and pin programs.
+    int result;
+    std::string output =
+        _run_netsh_command(handle_ebpf_add_program, L"tail_call.o", L"pinned=all", L"pinpath=mypinpath", &result);
+    REQUIRE(strcmp(output.c_str(), "Loaded with ID 196609\n") == 0);
+    REQUIRE(result == NO_ERROR);
+
+    output = _run_netsh_command(handle_ebpf_show_pins, nullptr, nullptr, nullptr, &result);
+    REQUIRE(result == NO_ERROR);
+    REQUIRE(
+        output == "\n"
+                  "     ID     Type  Path\n"
+                  "=======  =======  ==============\n"
+                  " 196609  Program  mypinpath/xdp_prog\n"
+                  " 262145  Program  mypinpath/xdp_prog_0\n");
+
+    output = _run_netsh_command(handle_ebpf_delete_program, L"196609", nullptr, nullptr, &result);
+    REQUIRE(output == "Unpinned 196609 from mypinpath/xdp_prog\n");
+    REQUIRE(result == NO_ERROR);
+    REQUIRE(bpf_object__next(nullptr) == nullptr);
+}
+
 TEST_CASE("delete pinned program", "[netsh][programs]")
 {
     _test_helper_libbpf test_helper;
 
     // Load a program unpinned.
     int result;
-    std::string output = _run_netsh_command(handle_ebpf_add_program, L"tail_call.o", nullptr, nullptr, &result);
+    std::string output = _run_netsh_command(handle_ebpf_add_program, L"tail_call.o", L"pinned=none", nullptr, &result);
     REQUIRE(strcmp(output.c_str(), "Loaded with ID 196609\n") == 0);
     REQUIRE(result == NO_ERROR);
 
     // Pin the program.
-    output = _run_netsh_command(handle_ebpf_set_program, L"196609", L"pinned=mypinname", nullptr, &result);
+    output = _run_netsh_command(handle_ebpf_set_program, L"196609", L"pinpath=mypinname", nullptr, &result);
     REQUIRE(result == ERROR_OKAY);
     REQUIRE(output == "");
 
