@@ -1350,8 +1350,8 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
 
     // EBPF_OPERATION_GET_NEXT_PINNED_PROGRAM_NAME
     {(ebpf_result_t(__cdecl*)(const void*))_ebpf_core_protocol_get_next_pinned_program_path,
-     sizeof(ebpf_operation_get_next_pinned_path_request_t),
-     sizeof(ebpf_operation_get_next_pinned_path_reply_t)},
+     EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_path_request_t, start_path),
+     EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_path_reply_t, next_path)},
 };
 
 ebpf_result_t
