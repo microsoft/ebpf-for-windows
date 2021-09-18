@@ -1008,12 +1008,12 @@ TEST_CASE("test-csum-diff", "[end_to_end]")
     uint16_t from_buffer[] = {0x4500, 0x0073, 0x0000, 0x4000, 0x4011, 0x0000, 0x2000, 0x0001, 0x2000, 0x000a};
     uint16_t to_buffer[] = {0x4500, 0x0073, 0x0000, 0x4000, 0x4011, 0x0000, 0xc0a8, 0x0001, 0xc0a8, 0x00c7};
 
-    int csum = _test_csum_diff(
+    int csum = test_xdp_helper_t::csum_diff(
         from_buffer,
         sizeof(from_buffer),
         to_buffer,
         sizeof(to_buffer),
-        _test_csum_diff(nullptr, 0, from_buffer, sizeof(from_buffer), 0));
+        test_xdp_helper_t::csum_diff(nullptr, 0, from_buffer, sizeof(from_buffer), 0));
     REQUIRE(csum > 0);
     // Fold checksum.
     csum = (csum >> 16) + (csum & 0xFFFF);

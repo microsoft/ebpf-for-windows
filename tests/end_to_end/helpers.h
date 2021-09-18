@@ -194,8 +194,6 @@ typedef class _single_instance_hook : public _hook_helper
     bpf_link* link_object;
 } single_instance_hook_t;
 
-#define TEST_NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION 0
-
 typedef class xdp_md_helper : public xdp_md_t
 {
   public:
@@ -240,20 +238,32 @@ typedef class xdp_md_helper : public xdp_md_t
     size_t _end;
 } xdp_md_helper_t;
 
-static int
-_test_xdp_adjust_head(_In_ xdp_md_t* ctx, int delta)
+typedef class _test_xdp_helper
 {
-    ((xdp_md_helper_t*)ctx)->adjust_head(delta);
-    return 0;
-}
+  public:
+    static int
+    adjust_head(_In_ xdp_md_t* ctx, int delta)
+    {
+        ((xdp_md_helper_t*)ctx)->adjust_head(delta);
+        return 0;
+    }
 
-static int
-_test_csum_diff(_In_opt_ const void* from, int from_size, _In_opt_ const void* to, int to_size, int seed)
-{
-    return _net_ebpf_ext_csum_diff(from, from_size, to, to_size, seed);
-}
+    static int
+    csum_diff(
+        _In_reads_bytes_opt_(from_size) const void* from,
+        int from_size,
+        _In_reads_bytes_opt_(to_size) const void* to,
+        int to_size,
+        int seed)
+    {
+        return _net_ebpf_ext_csum_diff(from, from_size, to, to_size, seed);
+    }
+} test_xdp_helper_t;
 
-static const void* _test_ebpf_xdp_helper_functions[] = {(void*)&_test_xdp_adjust_head, (void*)&_test_csum_diff};
+#define TEST_NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION 0
+
+static const void* _test_ebpf_xdp_helper_functions[] = {
+    (void*)&test_xdp_helper_t::adjust_head, (void*)&test_xdp_helper_t::csum_diff};
 
 static ebpf_helper_function_addresses_t _test_ebpf_xdp_helper_function_address_table = {
     EBPF_COUNT_OF(_test_ebpf_xdp_helper_functions), (uint64_t*)_test_ebpf_xdp_helper_functions};

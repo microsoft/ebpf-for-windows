@@ -5,7 +5,7 @@
 #include "ebpf.h"
 #include "xdp_tests_common.h"
 
-void
+inline void
 swap_mac_addresses(ETHERNET_HEADER* ethernet_header)
 {
     mac_address_t mac = {0};
@@ -14,7 +14,7 @@ swap_mac_addresses(ETHERNET_HEADER* ethernet_header)
     memcpy(ethernet_header->Source, mac, sizeof(mac_address_t));
 }
 
-void
+inline void
 swap_ipv4_addresses(IPV4_HEADER* ipv4_header)
 {
     uint32_t address = ipv4_header->DestinationAddress;
@@ -22,7 +22,7 @@ swap_ipv4_addresses(IPV4_HEADER* ipv4_header)
     ipv4_header->SourceAddress = address;
 }
 
-void
+inline void
 swap_ipv6_addresses(IPV6_HEADER* ipv6_header)
 {
     ipv6_address_t address = {0};
@@ -31,7 +31,7 @@ swap_ipv6_addresses(IPV6_HEADER* ipv6_header)
     memcpy(ipv6_header->SourceAddress, address, sizeof(ipv6_address_t));
 }
 
-int
+inline int
 fold_csum(int csum)
 {
     int folded_csum = csum;

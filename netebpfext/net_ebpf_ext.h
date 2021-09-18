@@ -60,7 +60,7 @@ extern HANDLE _net_ebpf_ext_l2_injection_handle;
  *
  * @param[in] driver_object The driver object to associate the NDIS generic object handle with.
  * @retval STATUS_SUCCESS NDIS handles initialized successfully.
- * @retval STATUS_INSUFFICIENT_RESOURCES Failed to initialized NDIS handles due to insufficient resources.
+ * @retval STATUS_INSUFFICIENT_RESOURCES Failed to initialize NDIS handles due to insufficient resources.
  */
 NTSTATUS
 net_ebpf_ext_initialize_ndis_handles(_In_ const DRIVER_OBJECT* driver_object);

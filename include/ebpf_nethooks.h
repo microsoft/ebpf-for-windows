@@ -61,12 +61,11 @@ EBPF_HELPER(int, bpf_xdp_adjust_head, (xdp_md_t * ctx, int delta));
  * @brief Compute checksum difference for replacing parts of a network packet buffer.
  *
  * @param[in] from Pointer to raw buffer that will be replaced.
- * @param[in] from_size Length of the "from" buffer. Must be multiples of 4.
+ * @param[in] from_size Length of the "from" buffer. Must be a multiple of 4.
  * @param[in] to Pointer to the raw buffer that will replace the previous buffer.
- * @param[in] to_size Length of the "to" buffer. Must be multiples of 4.
+ * @param[in] to_size Length of the "to" buffer. Must be a multiple of 4.
  *
- * @retval The checksum delta on success.
- * @retval <0 A failure occured.
+ * @returns The checksum delta on success, or <0 on failure.
  */
 EBPF_HELPER(int, bpf_csum_diff, (void* from, int from_size, void* to, int to_size, int seed));
 #ifndef __doxygen

@@ -17,7 +17,7 @@ std::string _remote_ip;
 const uint16_t _reflection_port = REFLECTION_TEST_PORT;
 
 static void
-_send_message_to_remote_host(_In_ const char* message, sockaddr_storage& remote_address)
+_send_message_to_remote_host(_In_z_ const char* message, sockaddr_storage& remote_address)
 {
     int error = 0;
     uint32_t ipv6_opt = 0;
@@ -79,7 +79,7 @@ _get_remote_address(sockaddr_storage& remote_address, _Out_opt_ ADDRESS_FAMILY* 
 }
 
 /**
- * @class A dual stack UDP or RAW socket bound to wild card address that is used to receive datagrams.
+ * @class A dual stack UDP or raw socket bound to wildcard address that is used to receive datagrams.
  */
 typedef class _receiver_socket
 {
@@ -208,7 +208,7 @@ TEST_CASE("xdp_encap_reflect_test", "[xdp_tests]")
     receiver_socket_t receiver_socket(SOCK_RAW, protocol);
     // Post an asynchronous receive on the receiver socket.
     receiver_socket.post_async_receive();
-    // send message to remote host on reflection port.
+    // Send message to remote host on reflection port.
     const char* message = "Bo!ng";
     _send_message_to_remote_host(message, remote_address);
     // Complete the asynchronous receive and obtain the reflected message.
@@ -224,7 +224,8 @@ TEST_CASE("xdp_encap_reflect_test", "[xdp_tests]")
     char* received_message = nullptr;
     receiver_socket.get_received_message(bytes_received, received_message);
     if (address_family == AF_INET) {
-        // Raw sockets with protocol IPPROTO_IPV4 receives outer IP header in received message.
+        // Raw sockets with protocol IPPROTO_IPV4 receives the IP header in received message.
+        // So skip over outer IP header to get the inner IP datagram.
         uint32_t remaining_bytes = bytes_received;
         REQUIRE(remaining_bytes > sizeof(IPV4_HEADER));
         remaining_bytes -= sizeof(IPV4_HEADER);
@@ -232,16 +233,17 @@ TEST_CASE("xdp_encap_reflect_test", "[xdp_tests]")
         REQUIRE(remaining_bytes > inner_ipv4_header->HeaderLength * sizeof(uint32_t));
         remaining_bytes -= inner_ipv4_header->HeaderLength * sizeof(uint32_t);
         REQUIRE(inner_ipv4_header->Protocol == IPPROTO_UDP);
-        struct _udp_header* udp_header = reinterpret_cast<struct _udp_header*>(
+        UDP_HEADER* udp_header = reinterpret_cast<UDP_HEADER*>(
             reinterpret_cast<char*>(inner_ipv4_header) + inner_ipv4_header->HeaderLength * sizeof(uint32_t));
-        REQUIRE(remaining_bytes > sizeof(struct _udp_header));
-        remaining_bytes -= sizeof(struct _udp_header);
+        REQUIRE(remaining_bytes > sizeof(UDP_HEADER));
+        remaining_bytes -= sizeof(UDP_HEADER);
         REQUIRE(remaining_bytes == strlen(message));
         REQUIRE(memcmp(reinterpret_cast<char*>(udp_header + 1), message, strlen(message)) == 0);
     } else {
-        // Raw sockets with protocol IPPROTO_IPV4 does not receive outer IP header in received message.
-        REQUIRE(bytes_received == sizeof(IPV6_HEADER) + sizeof(_udp_header) + strlen(message));
-        REQUIRE(memcmp(received_message + sizeof(IPV6_HEADER) + sizeof(_udp_header), message, strlen(message)) == 0);
+        // Raw sockets with protocol IPPROTO_IPV6 does not receive the IP header in received message.
+        // So in this case the received message is the inner IP datagram.
+        REQUIRE(bytes_received == sizeof(IPV6_HEADER) + sizeof(UDP_HEADER) + strlen(message));
+        REQUIRE(memcmp(received_message + sizeof(IPV6_HEADER) + sizeof(UDP_HEADER), message, strlen(message)) == 0);
     }
 }
 

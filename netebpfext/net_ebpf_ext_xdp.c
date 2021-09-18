@@ -160,7 +160,7 @@ _net_ebpf_xdp_adjust_head(_Inout_ xdp_md_t* ctx, int delta)
             // Data in net_buffer not contiguous.
             // Restore net_buffer.
             NdisAdvanceNetBufferDataStart(net_buffer, absolute_delta, TRUE, NULL);
-            // Allocate a cloned nbl with continguous data.
+            // Allocate a cloned NBL with contiguous data.
             _net_ebpf_ext_allocate_cloned_nbl(net_xdp_ctx, absolute_delta);
         }
     } else {
@@ -175,7 +175,7 @@ Exit:
     return return_value;
 }
 
-void
+static void
 _net_ebpf_ext_free_nbl(_Inout_ NET_BUFFER_LIST* nbl)
 {
     NET_BUFFER* net_buffer = NET_BUFFER_LIST_FIRST_NB(nbl);
@@ -197,7 +197,7 @@ _net_ebpf_ext_l2_receive_inject_complete(_In_ const void* context, _Inout_ NET_B
 }
 
 static FWP_ACTION_TYPE
-_net_ebpf_ext_receive_inject_cloned_bl(
+_net_ebpf_ext_receive_inject_cloned_nbl(
     _In_ const NET_BUFFER_LIST* cloned_nbl, _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values)
 {
     uint32_t interface_index =
@@ -220,7 +220,7 @@ _net_ebpf_ext_receive_inject_cloned_bl(
 static void
 _net_ebpf_ext_l2_inject_send_complete(_In_ const void* context, _Inout_ NET_BUFFER_LIST* nbl, BOOLEAN dispatch_level)
 {
-    if (context == 0x0)
+    if ((BOOLEAN)(uintptr_t)context == FALSE)
         // Free clone allocated using _net_ebpf_ext_allocate_cloned_nbl.
         _net_ebpf_ext_free_nbl(nbl);
     else
@@ -315,7 +315,7 @@ net_ebpf_ext_layer_2_classify(
     packet_buffer = NdisGetDataBuffer(net_buffer, net_buffer->DataLength, NULL, sizeof(uint16_t), 0);
     if (!packet_buffer) {
         // Data in net_buffer not contiguous.
-        // Allocate a cloned nbl with continguous data.
+        // Allocate a cloned NBL with contiguous data.
         status = _net_ebpf_ext_allocate_cloned_nbl(&net_xdp_ctx, 0);
         if (!NT_SUCCESS(status))
             goto Done;
@@ -333,7 +333,7 @@ net_ebpf_ext_layer_2_classify(
                 action = FWP_ACTION_BLOCK;
 
                 // Inject the cloned NBL in receive path.
-                status = _net_ebpf_ext_receive_inject_cloned_bl(net_xdp_ctx.cloned_nbl, incoming_fixed_values);
+                status = _net_ebpf_ext_receive_inject_cloned_nbl(net_xdp_ctx.cloned_nbl, incoming_fixed_values);
                 if (NT_SUCCESS(status))
                     // If cloned packet could be successfully injected, no need to audit for dropping the original.
                     // So absorb the original packet.
