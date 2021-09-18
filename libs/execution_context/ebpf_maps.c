@@ -872,35 +872,35 @@ _lpm_trie_matching_key_prefix_length(
     const uint8_t* key_a, size_t key_length_a, const uint8_t* key_b, size_t key_length_b)
 {
     size_t maximum_matching_length = key_length_a > key_length_b ? key_length_b : key_length_a;
-    size_t remainin_key_length_in_bits = maximum_matching_length;
+    size_t remaining_key_length_in_bits = maximum_matching_length;
     uint8_t key_a_last_byte;
     uint8_t key_b_last_byte;
     size_t index;
 
-    while (remainin_key_length_in_bits >= 8) {
-        index = (maximum_matching_length - remainin_key_length_in_bits) / 8;
+    while (remaining_key_length_in_bits >= 8) {
+        index = (maximum_matching_length - remaining_key_length_in_bits) / 8;
         if (key_a[index] != key_b[index]) {
             break;
         }
-        remainin_key_length_in_bits -= 8;
+        remaining_key_length_in_bits -= 8;
     }
-    if (!remainin_key_length_in_bits) {
+    if (!remaining_key_length_in_bits) {
         return maximum_matching_length;
     }
 
-    index = (maximum_matching_length - remainin_key_length_in_bits) / 8;
+    index = (maximum_matching_length - remaining_key_length_in_bits) / 8;
     key_a_last_byte = key_a[index];
     key_b_last_byte = key_b[index];
 
-    while (remainin_key_length_in_bits) {
+    while (remaining_key_length_in_bits) {
         if ((key_a_last_byte & 0x80) != (key_b_last_byte & 0x80)) {
             break;
         }
-        remainin_key_length_in_bits--;
+        remaining_key_length_in_bits--;
         key_a_last_byte <<= 1;
         key_b_last_byte <<= 1;
     }
-    return maximum_matching_length - remainin_key_length_in_bits;
+    return maximum_matching_length - remaining_key_length_in_bits;
 }
 
 static uint8_t*
