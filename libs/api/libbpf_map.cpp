@@ -15,18 +15,28 @@
 // issue #351 until we can compile and use libbpf.c directly.
 
 int
-bpf_create_map(enum bpf_map_type map_type, int key_size, int value_size, int max_entries, uint32_t map_flags)
+bpf_create_map_xattr(const struct bpf_create_map_attr* create_attr)
 {
-    if (key_size <= 0 || value_size <= 0 || max_entries <= 0) {
-        return libbpf_err(-EINVAL);
-    }
-
     fd_t map_fd;
-    ebpf_result_t result = ebpf_create_map(map_type, key_size, value_size, max_entries, map_flags, &map_fd);
+    ebpf_result_t result = ebpf_create_map_xattr(create_attr, &map_fd);
     if (result != EBPF_SUCCESS) {
         return libbpf_result_err(result);
     }
     return map_fd;
+}
+
+int
+bpf_create_map(enum bpf_map_type map_type, int key_size, int value_size, int max_entries, uint32_t map_flags)
+{
+    struct bpf_create_map_attr map_attr = {0};
+
+    map_attr.map_type = map_type;
+    map_attr.map_flags = map_flags;
+    map_attr.key_size = key_size;
+    map_attr.value_size = value_size;
+    map_attr.max_entries = max_entries;
+
+    return bpf_create_map_xattr(&map_attr);
 }
 
 struct bpf_map*

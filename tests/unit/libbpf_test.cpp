@@ -680,6 +680,30 @@ TEST_CASE("disallow wrong inner map types", "[libbpf]")
     bpf_object__close(xdp_object);
 }
 
+TEST_CASE("create map with name", "[libbpf]")
+{
+    _test_helper_end_to_end test_helper;
+
+    // Create a map with a given name.
+    PCSTR name = "mymapname";
+    bpf_create_map_attr attr = {0};
+    attr.map_type = BPF_MAP_TYPE_ARRAY;
+    attr.key_size = sizeof(__u32);
+    attr.value_size = sizeof(__u32);
+    attr.max_entries = 1;
+    attr.name = name;
+    int map_fd = bpf_create_map_xattr(&attr);
+    REQUIRE(map_fd > 0);
+
+    // Make sure the name matches what we set.
+    bpf_map_info info;
+    uint32_t info_size = sizeof(info);
+    REQUIRE(bpf_obj_get_info_by_fd(map_fd, &info, &info_size) == 0);
+    REQUIRE(strcmp(info.name, name) == 0);
+
+    Platform::_close(map_fd);
+}
+
 TEST_CASE("enumerate map IDs", "[libbpf]")
 {
     _test_helper_end_to_end test_helper;

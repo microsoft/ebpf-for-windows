@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <io.h>
 #include "api_internal.h"
+#include "bpf.h"
 #include "device_helper.hpp"
 #include "ebpf_api.h"
 #include "ebpf_platform.h"
@@ -103,46 +104,6 @@ ebpf_api_terminate()
     clean_up_rpc_binding();
 }
 
-ebpf_result_t
-ebpf_api_create_map(
-    ebpf_map_type_t type,
-    uint32_t key_size,
-    uint32_t value_size,
-    uint32_t max_entries,
-    uint32_t map_flags,
-    _Out_ ebpf_handle_t* handle)
-{
-    UNREFERENCED_PARAMETER(map_flags);
-
-    _ebpf_operation_create_map_request request{
-        EBPF_OFFSET_OF(ebpf_operation_create_map_request_t, data),
-        ebpf_operation_id_t::EBPF_OPERATION_CREATE_MAP,
-        {sizeof(ebpf_map_definition_in_memory_t), type, key_size, value_size, max_entries},
-        ebpf_handle_invalid};
-
-    _ebpf_operation_create_map_reply reply{};
-
-    uint32_t return_value = EBPF_SUCCESS;
-
-    if (handle == nullptr) {
-        return_value = ERROR_INVALID_PARAMETER;
-        goto Exit;
-    }
-    *handle = ebpf_handle_invalid;
-
-    return_value = invoke_ioctl(request, reply);
-
-    if (return_value != ERROR_SUCCESS)
-        goto Exit;
-
-    ebpf_assert(reply.header.id == ebpf_operation_id_t::EBPF_OPERATION_CREATE_MAP);
-
-    *handle = reply.handle;
-
-Exit:
-    return windows_error_to_ebpf_result(return_value);
-}
-
 static ebpf_result_t
 _create_map(
     _In_opt_z_ const char* name,
@@ -188,20 +149,13 @@ Exit:
 }
 
 ebpf_result_t
-ebpf_create_map_name(
-    ebpf_map_type_t type,
-    _In_opt_z_ const char* name,
-    uint32_t key_size,
-    uint32_t value_size,
-    uint32_t max_entries,
-    uint32_t map_flags,
-    _Out_ fd_t* map_fd)
+ebpf_create_map_xattr(_In_ const struct bpf_create_map_attr* create_attr, _Out_ fd_t* map_fd)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_handle_t map_handle = ebpf_handle_invalid;
     ebpf_map_definition_in_memory_t map_definition = {0};
 
-    if (map_flags != 0 || map_fd == nullptr) {
+    if (create_attr->map_flags != 0 || map_fd == nullptr) {
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
@@ -209,12 +163,12 @@ ebpf_create_map_name(
 
     try {
         map_definition.size = sizeof(map_definition);
-        map_definition.type = type;
-        map_definition.key_size = key_size;
-        map_definition.value_size = value_size;
-        map_definition.max_entries = max_entries;
+        map_definition.type = create_attr->map_type;
+        map_definition.key_size = create_attr->key_size;
+        map_definition.value_size = create_attr->value_size;
+        map_definition.max_entries = create_attr->max_entries;
 
-        result = _create_map(name, &map_definition, ebpf_handle_invalid, &map_handle);
+        result = _create_map(create_attr->name, &map_definition, ebpf_handle_invalid, &map_handle);
         if (result != EBPF_SUCCESS) {
             goto Exit;
         }
@@ -241,6 +195,28 @@ Exit:
 }
 
 ebpf_result_t
+ebpf_create_map_name(
+    ebpf_map_type_t type,
+    _In_opt_z_ const char* name,
+    uint32_t key_size,
+    uint32_t value_size,
+    uint32_t max_entries,
+    uint32_t map_flags,
+    _Out_ fd_t* map_fd)
+{
+    struct bpf_create_map_attr map_attr = {0};
+
+    map_attr.name = name;
+    map_attr.map_type = type;
+    map_attr.map_flags = map_flags;
+    map_attr.key_size = key_size;
+    map_attr.value_size = value_size;
+    map_attr.max_entries = max_entries;
+
+    return ebpf_create_map_xattr(&map_attr, map_fd);
+}
+
+ebpf_result_t
 ebpf_create_map(
     ebpf_map_type_t type,
     uint32_t key_size,
@@ -249,7 +225,15 @@ ebpf_create_map(
     uint32_t map_flags,
     _Out_ fd_t* map_fd)
 {
-    return ebpf_create_map_name(type, nullptr, key_size, value_size, max_entries, map_flags, map_fd);
+    struct bpf_create_map_attr map_attr = {0};
+
+    map_attr.map_type = type;
+    map_attr.map_flags = map_flags;
+    map_attr.key_size = key_size;
+    map_attr.value_size = value_size;
+    map_attr.max_entries = max_entries;
+
+    return ebpf_create_map_xattr(&map_attr, map_fd);
 }
 
 static ebpf_result_t
