@@ -324,7 +324,7 @@ TEST_CASE("pin all programs", "[netsh][programs]")
                   "131073     1      0  JIT        encap_reflect_packet\n");
 
     output = _run_netsh_command(handle_ebpf_delete_program, L"65537", nullptr, nullptr, &result);
-    REQUIRE(output == "Unpinned 65537 from mypinpath/reflect_packet\n");
+    REQUIRE(output == "Unpinned 65537 from mypinpath/xdp_reflect\n");
     REQUIRE(result == NO_ERROR);
     REQUIRE(bpf_object__next(nullptr) == nullptr);
 }
@@ -543,11 +543,11 @@ TEST_CASE("show pins", "[netsh][pins]")
         output == "\n"
                   "     ID     Type  Path\n"
                   "=======  =======  ==============\n"
-                  " 262145  Program  mypinpath/callee\n"
-                  " 196609  Program  mypinpath/caller\n");
+                  " 196609  Program  mypinpath/xdp_prog\n"
+                  " 262145  Program  mypinpath/xdp_prog_0\n");
 
     output = _run_netsh_command(handle_ebpf_delete_program, L"196609", nullptr, nullptr, &result);
-    REQUIRE(output == "Unpinned 196609 from mypinpath/caller\n");
+    REQUIRE(output == "Unpinned 196609 from mypinpath/xdp_prog\n");
     REQUIRE(result == NO_ERROR);
     REQUIRE(bpf_object__next(nullptr) == nullptr);
 }
