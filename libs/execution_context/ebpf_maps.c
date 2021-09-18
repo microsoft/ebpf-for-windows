@@ -869,7 +869,10 @@ _update_entry_per_cpu(
 // Given two keys, compute the number of bits that match.
 static size_t
 _lpm_trie_matching_key_prefix_length(
-    const uint8_t* key_a, size_t key_length_a, const uint8_t* key_b, size_t key_length_b)
+    _In_reads_((key_length_a + 7) / 8) const uint8_t* key_a,
+    size_t key_length_a,
+    _In_reads_((key_length_b + 7) / 8) const uint8_t* key_b,
+    size_t key_length_b)
 {
     size_t maximum_matching_length = key_length_a > key_length_b ? key_length_b : key_length_a;
     size_t remaining_key_length_in_bits = maximum_matching_length;
