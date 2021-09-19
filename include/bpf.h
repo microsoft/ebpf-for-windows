@@ -80,7 +80,7 @@ bpf_create_map(enum bpf_map_type map_type, int key_size, int value_size, int max
 /**
  * @brief Create a new map.
  *
- * @param[in] create_attr Structure of attributes to create a map using.
+ * @param[in] create_attr Structure of attributes using which a map gets created.
  *
  * @returns A new file descriptor that refers to the map.  A negative
  * value indicates an error occurred and errno was set.
