@@ -459,7 +459,9 @@ Exit:
 
 ebpf_result_t
 sample_ebpf_extension_profile_program(
-    sample_ebpf_ext_profile_request_t* request, size_t request_length, sample_ebpf_ext_profile_reply_t* reply)
+    _In_ sample_ebpf_ext_profile_request_t* request,
+    size_t request_length,
+    _Inout_ sample_ebpf_ext_profile_reply_t* reply)
 {
     ebpf_result_t return_value = EBPF_SUCCESS;
     LARGE_INTEGER start;
