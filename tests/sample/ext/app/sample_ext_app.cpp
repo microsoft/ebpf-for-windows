@@ -11,6 +11,7 @@
 #include "catch_wrapper.hpp"
 #include "common_tests.h"
 #include "libbpf.h"
+#include "netsh_test_helper.h"
 #include "program_helper.h"
 #include "service_helper.h"
 #include "sample_ext_app.h"
@@ -109,7 +110,7 @@ sample_ebpf_ext_test(_In_ const struct bpf_object* object)
     REQUIRE(memcmp(output_buffer.data(), expected_output, strlen(expected_output)) == 0);
 }
 
-TEST_CASE("jit_test", "[test_test]")
+TEST_CASE("jit_test", "[sample_ext_test]")
 {
     struct bpf_object* object = nullptr;
     hook_helper_t hook(EBPF_ATTACH_TYPE_SAMPLE);
@@ -121,7 +122,7 @@ TEST_CASE("jit_test", "[test_test]")
     sample_ebpf_ext_test(object);
 }
 
-TEST_CASE("interpret_test", "[test_test]")
+TEST_CASE("interpret_test", "[sample_ext_test]")
 {
     struct bpf_object* object = nullptr;
     hook_helper_t hook(EBPF_ATTACH_TYPE_SAMPLE);
@@ -150,5 +151,14 @@ utility_helpers_test(ebpf_execution_type_t execution_type)
     verify_utility_helper_results(object);
 }
 
-TEST_CASE("utility_helpers_test_interpret", "[test_test]") { utility_helpers_test(EBPF_EXECUTION_INTERPRET); }
-TEST_CASE("utility_helpers_test_jit", "[test_test]") { utility_helpers_test(EBPF_EXECUTION_JIT); }
+TEST_CASE("utility_helpers_test_interpret", "[sample_ext_test]") { utility_helpers_test(EBPF_EXECUTION_INTERPRET); }
+TEST_CASE("utility_helpers_test_jit", "[sample_ext_test]") { utility_helpers_test(EBPF_EXECUTION_JIT); }
+TEST_CASE("netsh_add_program_test_sample_ebpf", "[sample_ext_test]")
+{
+    REQUIRE(ebpf_api_initiate() == EBPF_SUCCESS);
+    int result;
+    std::string output =
+        _run_netsh_command(handle_ebpf_add_program, L"test_sample_ebpf.o", L"pinned=none", nullptr, &result);
+    REQUIRE(result == NO_ERROR);
+    REQUIRE(output.starts_with("Loaded with"));
+}
