@@ -7,18 +7,11 @@
  */
 
 #pragma once
+
+#include <errno.h>
 #include "ebpf_platform.h"
 
-static int
-_partial_sum(_In_reads_bytes_(buffer_length) const void* buffer, int buffer_length)
-{
-    int partial_sum = 0;
-    for (int i = 0; i < buffer_length / 2; i++)
-        partial_sum += *((uint16_t*)buffer + i);
-    return partial_sum;
-}
-
-static int
+static inline int
 _net_ebpf_ext_csum_diff(
     _In_reads_bytes_opt_(from_size) const void* from,
     int from_size,
@@ -26,17 +19,25 @@ _net_ebpf_ext_csum_diff(
     int to_size,
     int seed)
 {
-    int csum_diff = -1;
+    int csum_diff = -EINVAL;
 
     if ((from_size % 4 != 0) || (to_size % 4 != 0))
         // size of buffers should be a multiple of 4.
         goto Exit;
 
     csum_diff = seed;
-    if ((to != NULL) && (to_size > 0))
-        csum_diff += _partial_sum(to, to_size);
-    if ((from != NULL) && (from_size > 0))
-        csum_diff -= _partial_sum(from, from_size);
+    if (to != NULL)
+        for (int i = 0; i < to_size / 2; i++)
+            csum_diff += (uint16_t) * ((uint16_t*)to + i);
+    if (from != NULL)
+        for (int i = 0; i < from_size / 2; i++)
+            csum_diff += (uint16_t)(~*((uint16_t*)from + i));
+
+    // Adding 16-bit unsigned integers or their one's complement will produce a positive 32-bit integer,
+    // unless the length of the buffers is so long, that the signed 32 bit output overflows and produces a negative
+    // result.
+    if (csum_diff < 0)
+        csum_diff = -EINVAL;
 Exit:
     return csum_diff;
 }
