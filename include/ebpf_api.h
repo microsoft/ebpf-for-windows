@@ -84,28 +84,6 @@ extern "C"
 
     /**
      * @brief Create an eBPF map with input parameters.
-     * @param[in] type Map type.
-     * @param[in] key_size Key size.
-     * @param[in] value_size Value size.
-     * @param[in] max_entries Maximum number of entries in the map.
-     * @param[in] map_flags Map flags.
-     * @param[out] handle Pointer to map handle.
-     *
-     * @retval EBPF_SUCCESS Map created successfully.
-     * @retval EBPF_ERROR_NOT_SUPPORTED Unsupported map type.
-     * @retval EBPF_INVALID_ARGUMENT One or more parameters are incorrect.
-     */
-    ebpf_result_t
-    ebpf_api_create_map(
-        ebpf_map_type_t type,
-        uint32_t key_size,
-        uint32_t value_size,
-        uint32_t max_entries,
-        uint32_t map_flags,
-        _Out_ ebpf_handle_t* handle);
-
-    /**
-     * @brief Create an eBPF map with input parameters.
      *
      * @param[in] map_type Map type.
      * @param[in] key_size Key size.
