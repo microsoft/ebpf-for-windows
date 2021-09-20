@@ -1,7 +1,6 @@
 var searchData=
 [
-  ['ebpf_5fapi_5fclose_5fhandle_408',['ebpf_api_close_handle',['../ebpf__api_8h.html#a4f0329af040370a21a9efe8b3713a314',1,'ebpf_api.h']]],
-  ['ebpf_5fapi_5fcreate_5fmap_409',['ebpf_api_create_map',['../ebpf__api_8h.html#a0594ea36462d6efcd31c18144ef363f2',1,'ebpf_api.h']]],
+  ['ebpf_5fapi_5fclose_5fhandle_409',['ebpf_api_close_handle',['../ebpf__api_8h.html#a4f0329af040370a21a9efe8b3713a314',1,'ebpf_api.h']]],
   ['ebpf_5fapi_5felf_5fdisassemble_5fsection_410',['ebpf_api_elf_disassemble_section',['../ebpf__api_8h.html#ae4fbdf4fbbb9196651fd40fd0640c3c9',1,'ebpf_api.h']]],
   ['ebpf_5fapi_5felf_5fenumerate_5fsections_411',['ebpf_api_elf_enumerate_sections',['../ebpf__api_8h.html#a121da5428db28e72b9cee7f22b94a3df',1,'ebpf_api.h']]],
   ['ebpf_5fapi_5felf_5ffree_412',['ebpf_api_elf_free',['../ebpf__api_8h.html#afe38ca942567ba2335a2612460576156',1,'ebpf_api.h']]],

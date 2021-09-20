@@ -88,6 +88,9 @@ Functions</h2></td></tr>
 <tr class="memitem:a415dcff6da1cf861efbafe33768976af"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf_8h.html#a415dcff6da1cf861efbafe33768976af">bpf_create_map</a> (enum <a class="el" href="ebpf__structs_8h.html#afd97ad5450067d01ec6b6cd3c30761a1">bpf_map_type</a> map_type, int key_size, int value_size, int max_entries, <a class="el" href="bpf__helpers__platform_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a> map_flags)</td></tr>
 <tr class="memdesc:a415dcff6da1cf861efbafe33768976af"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create a new map.  <a href="bpf_8h.html#a415dcff6da1cf861efbafe33768976af">More...</a><br /></td></tr>
 <tr class="separator:a415dcff6da1cf861efbafe33768976af"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa4489fd67da7d5641a428d1b76f24eff"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf_8h.html#aa4489fd67da7d5641a428d1b76f24eff">bpf_create_map_xattr</a> (const struct bpf_create_map_attr *create_attr)</td></tr>
+<tr class="memdesc:aa4489fd67da7d5641a428d1b76f24eff"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create a new map.  <a href="bpf_8h.html#aa4489fd67da7d5641a428d1b76f24eff">More...</a><br /></td></tr>
+<tr class="separator:aa4489fd67da7d5641a428d1b76f24eff"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad0ed6a975a6d623155c61de44e55e484"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf_8h.html#ad0ed6a975a6d623155c61de44e55e484">bpf_map_delete_elem</a> (int fd, const void *key)</td></tr>
 <tr class="memdesc:ad0ed6a975a6d623155c61de44e55e484"><td class="mdescLeft">&#160;</td><td class="mdescRight">Look up and delete an element by key in a specified map.  <a href="bpf_8h.html#ad0ed6a975a6d623155c61de44e55e484">More...</a><br /></td></tr>
 <tr class="separator:ad0ed6a975a6d623155c61de44e55e484"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -177,6 +180,40 @@ Functions</h2></td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">value_size</td><td>Size in bytes of values. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">max_entries</td><td>Maximum number of entries in the map. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">map_flags</td><td>Flags (currently 0).</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>A new file descriptor that refers to the map. A negative value indicates an error occurred and errno was set.</dd></dl>
+<dl class="exception"><dt>Exceptions</dt><dd>
+  <table class="exception">
+    <tr><td class="paramname">EINVAL</td><td>An invalid argument was provided. </td></tr>
+    <tr><td class="paramname">ENOMEM</td><td>Out of memory. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="aa4489fd67da7d5641a428d1b76f24eff"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa4489fd67da7d5641a428d1b76f24eff">&#9670;&nbsp;</a></span>bpf_create_map_xattr()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int bpf_create_map_xattr </td>
+          <td>(</td>
+          <td class="paramtype">const struct bpf_create_map_attr *&#160;</td>
+          <td class="paramname"><em>create_attr</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Create a new map. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">create_attr</td><td>Structure of attributes using which a map gets created.</td></tr>
   </table>
   </dd>
 </dl>
