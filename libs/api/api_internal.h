@@ -141,6 +141,20 @@ _Ret_maybenull_ struct bpf_map*
 ebpf_map_previous(_In_opt_ const struct bpf_map* next, _In_ const struct bpf_object* object);
 
 /**
+ * @brief Create a new map.
+ *
+ * @param[in] create_attr Structure of attributes to create a map using.
+ * @param[out] map_fd File descriptor for the created map. The caller needs to
+ *  call _close() on the returned fd when done.
+ *
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_INVALID_ARGUMENT One or more parameters are wrong.
+ * @retval EBPF_NO_MEMORY Out of memory.
+ */
+ebpf_result_t
+ebpf_create_map_xattr(_In_ const struct bpf_create_map_attr* create_attr, _Out_ fd_t* map_fd);
+
+/**
  * @brief Fetch fd for a program object.
  *
  * @param[in] program Pointer to eBPF program.
