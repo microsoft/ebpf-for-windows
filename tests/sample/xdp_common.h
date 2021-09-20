@@ -9,9 +9,9 @@ inline void
 swap_mac_addresses(ETHERNET_HEADER* ethernet_header)
 {
     mac_address_t mac = {0};
-    memcpy(mac, ethernet_header->Destination, sizeof(mac_address_t));
-    memcpy(ethernet_header->Destination, ethernet_header->Source, sizeof(mac_address_t));
-    memcpy(ethernet_header->Source, mac, sizeof(mac_address_t));
+    __builtin_memcpy(mac, ethernet_header->Destination, sizeof(mac_address_t));
+    __builtin_memcpy(ethernet_header->Destination, ethernet_header->Source, sizeof(mac_address_t));
+    __builtin_memcpy(ethernet_header->Source, mac, sizeof(mac_address_t));
 }
 
 inline void
@@ -26,9 +26,9 @@ inline void
 swap_ipv6_addresses(IPV6_HEADER* ipv6_header)
 {
     ipv6_address_t address = {0};
-    memcpy(address, ipv6_header->DestinationAddress, sizeof(ipv6_address_t));
-    memcpy(ipv6_header->DestinationAddress, ipv6_header->SourceAddress, sizeof(ipv6_address_t));
-    memcpy(ipv6_header->SourceAddress, address, sizeof(ipv6_address_t));
+    __builtin_memcpy(address, ipv6_header->DestinationAddress, sizeof(ipv6_address_t));
+    __builtin_memcpy(ipv6_header->DestinationAddress, ipv6_header->SourceAddress, sizeof(ipv6_address_t));
+    __builtin_memcpy(ipv6_header->SourceAddress, address, sizeof(ipv6_address_t));
 }
 
 inline int
