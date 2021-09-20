@@ -159,9 +159,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\libs\thunk\mock\mock.cpp" />
-    <ClCompile Include="..\end_to_end\test_helper.cpp" />
+    <ClCompile Include="ExecutionContext.cpp" />
     <ClCompile Include="performance.cpp" />
+    <ClCompile Include="platform.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\external\ebpf-verifier\build\ebpfverifier.vcxproj">
@@ -190,8 +190,7 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\end_to_end\mock.h" />
-    <ClInclude Include="..\end_to_end\test_helper.hpp" />
+    <ClInclude Include="performance.h" />
     <ClInclude Include="performance_measure.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
