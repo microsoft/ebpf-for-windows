@@ -3,13 +3,13 @@
 #include <io.h>
 #include <WinSock2.h>
 
-#include "bpf.h"
-#include "catch_wrapper.hpp"
-#include "helpers.h"
+#include "bpf/bpf.h"
 #pragma warning(push)
 #pragma warning(disable : 4200)
-#include "libbpf.h"
+#include "bpf/libbpf.h"
 #pragma warning(pop)
+#include "catch_wrapper.hpp"
+#include "helpers.h"
 #include "platform.h"
 #include "program_helper.h"
 #include "test_helper.hpp"
@@ -874,4 +874,50 @@ TEST_CASE("libbpf_prog_type_by_name", "[libbpf]")
     REQUIRE(libbpf_prog_type_by_name("default", &prog_type, &expected_attach_type) == 0);
     REQUIRE(prog_type == BPF_PROG_TYPE_XDP);
     REQUIRE(expected_attach_type == BPF_ATTACH_TYPE_XDP);
+}
+
+TEST_CASE("libbpf_get_error", "[libbpf]")
+{
+    errno = 123;
+    REQUIRE(libbpf_get_error(nullptr) == -123);
+}
+
+TEST_CASE("bpf_object__load", "[libbpf]")
+{
+    _test_helper_libbpf test_helper;
+
+    const char* my_object_name = "my_object_name";
+    struct bpf_object_open_opts opts = {0};
+    opts.object_name = my_object_name;
+    struct bpf_object* object = bpf_object__open_file("droppacket.o", &opts);
+    REQUIRE(object != nullptr);
+
+    REQUIRE(strcmp(bpf_object__name(object), my_object_name) == 0);
+
+    struct bpf_program* program = bpf_object__find_program_by_name(object, "DropPacket");
+    REQUIRE(program != nullptr);
+
+    REQUIRE(bpf_program__fd(program) == ebpf_fd_invalid);
+    REQUIRE(bpf_program__get_type(program) == BPF_PROG_TYPE_XDP);
+
+    // Make sure we can override the program type if desired.
+    bpf_program__set_type(program, BPF_PROG_TYPE_BIND);
+    REQUIRE(bpf_program__get_type(program) == BPF_PROG_TYPE_BIND);
+
+    bpf_program__set_type(program, BPF_PROG_TYPE_XDP);
+
+    // Trying to attach the program should fail since it's not loaded yet.
+    bpf_link* link = bpf_program__attach(program);
+    REQUIRE(link == nullptr);
+    REQUIRE(libbpf_get_error(link) == -EINVAL);
+
+    // Load the program.
+    REQUIRE(bpf_object__load(object) == 0);
+
+    // Attach should now succeed.
+    link = bpf_program__attach(program);
+    REQUIRE(link != nullptr);
+
+    REQUIRE(bpf_link__destroy(link) == 0);
+    bpf_object__close(object);
 }

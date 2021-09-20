@@ -6,10 +6,10 @@
 #pragma once
 #include <windows.h>
 
-#include "bpf.h"
+#include "bpf/bpf.h"
+#include "bpf/libbpf.h"
 #include "ebpf_api.h"
 #include "ebpf_result.h"
-#include "libbpf.h"
 
 void
 ebpf_test_pinned_map_enum();

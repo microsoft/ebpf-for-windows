@@ -12,9 +12,9 @@
 
 typedef enum bpf_map_type
 {
-    BPF_MAP_TYPE_UNSPECIFIED = 0, ///< Unspecified map type.
-    BPF_MAP_TYPE_HASH = 1,        ///< Hash table.
-    BPF_MAP_TYPE_ARRAY = 2,       ///< Array, where the map key is the array index.
+    BPF_MAP_TYPE_UNSPEC = 0, ///< Unspecified map type.
+    BPF_MAP_TYPE_HASH = 1,   ///< Hash table.
+    BPF_MAP_TYPE_ARRAY = 2,  ///< Array, where the map key is the array index.
     BPF_MAP_TYPE_PROG_ARRAY =
         3, ///< Array of program fds usable with bpf_tail_call, where the map key is the array index.
     BPF_MAP_TYPE_PERCPU_HASH = 4,
@@ -84,20 +84,44 @@ typedef enum
 // Cross-platform BPF program types.
 enum bpf_prog_type
 {
-    BPF_PROG_TYPE_UNKNOWN,
+    BPF_PROG_TYPE_UNSPEC,
     BPF_PROG_TYPE_XDP,
     BPF_PROG_TYPE_BIND, // TODO(#333): replace with cross-platform program type
+};
+
+enum bpf_link_type
+{
+    BPF_LINK_TYPE_UNSPEC,
+    BPF_LINK_TYPE_PLAIN,
+};
+
+enum bpf_attach_type
+{
+    BPF_ATTACH_TYPE_UNSPEC,
+    BPF_ATTACH_TYPE_XDP,
+    __MAX_BPF_ATTACH_TYPE,
 };
 
 // Libbpf itself requires the following structs to be defined, but doesn't
 // care what fields they have.  Applications such as bpftool on the other
 // hand depend on fields of specific names and types.
 
+#pragma warning(push)
+#pragma warning(disable : 4201) /* nameless struct/union */
 struct bpf_link_info
 {
-    ebpf_id_t id;      ///< Link ID.
-    ebpf_id_t prog_id; ///< Program ID.
+    ebpf_id_t id;            ///< Link ID.
+    ebpf_id_t prog_id;       ///< Program ID.
+    enum bpf_link_type type; ///< Link type.
+    union
+    {
+        struct
+        {
+            int attach_type; ///< Attach type integer.
+        };
+    };
 };
+#pragma warning(pop)
 
 #define BPF_OBJ_NAME_LEN 64
 
@@ -110,11 +134,16 @@ struct bpf_map_info
     uint32_t value_size;         ///< Size in bytes of a map value.
     uint32_t max_entries;        ///< Maximum number of entries allowed in the map.
     char name[BPF_OBJ_NAME_LEN]; ///< Null-terminated map name.
+    uint32_t map_flags;          ///< Map flags.
 
     // Windows-specific fields.
     ebpf_id_t inner_map_id;     ///< ID of inner map template.
     uint32_t pinned_path_count; ///< Number of pinned paths.
 };
+
+#define BPF_ANY 0x0
+#define BPF_NOEXIST 0x1
+#define BPF_EXIST 0x2
 
 struct bpf_prog_info
 {

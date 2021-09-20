@@ -61,9 +61,10 @@ typedef struct bpf_link
 
 typedef struct bpf_object
 {
-    char* file_name = nullptr;
+    char* object_name = nullptr;
     std::vector<ebpf_program_t*> programs;
     std::vector<ebpf_map_t*> maps;
+    bool loaded = false;
 } ebpf_object_t;
 
 ebpf_result_t
@@ -179,7 +180,7 @@ ebpf_map_get_fd(_In_ const struct bpf_map* map);
  * @param[in] object Pointer to ebpf_object.
  */
 void
-ebpf_object_close(_In_ _Post_invalid_ struct bpf_object* object);
+ebpf_object_close(_In_opt_ _Post_invalid_ struct bpf_object* object);
 
 void
 initialize_map(_Out_ ebpf_map_t* map, _In_ const map_cache_t& map_cache);
@@ -391,3 +392,48 @@ ebpf_object_pin(fd_t fd, _In_z_ const char* path);
  */
 fd_t
 ebpf_object_get(_In_z_ const char* path);
+
+/**
+ * @brief Open a file without loading the programs.
+ *
+ * @param[in] path File name to open.
+ * @param[in] object_name Optional object name to override file name
+ * as the object name.
+ * @param[in] program_type Optional program type for all programs.
+ * If NULL, the program type is derived from the section names.
+ * @param[in] attach_type Default attach type for all programs.
+ * If NULL, the attach type is derived from the section names.
+ * @param[out] object Returns a pointer to the object created.
+ * @param[out] error_message Error message string, which
+ * the caller must free using ebpf_free_string().
+ *
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_INVALID_ARGUMENT One or more parameters are wrong.
+ * @retval EBPF_NO_MEMORY Out of memory.
+ */
+ebpf_result_t
+ebpf_object_open(
+    _In_z_ const char* path,
+    _In_opt_z_ const char* object_name,
+    _In_opt_ const ebpf_program_type_t* program_type,
+    _In_opt_ const ebpf_attach_type_t* attach_type,
+    _Outptr_ struct bpf_object** object,
+    _Outptr_result_maybenull_z_ const char** error_message) noexcept;
+
+/**
+ * @brief Load all the programs in a given object.
+ *
+ * @param[in] object Object from which to load programs.
+ * @param[in] execution_type Execution type.
+ * @param[out] error_message Error message string, which
+ * the caller must free using ebpf_free_string().
+ *
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_INVALID_ARGUMENT One or more parameters are wrong.
+ * @retval EBPF_NO_MEMORY Out of memory.
+ */
+ebpf_result_t
+ebpf_object_load(
+    _Inout_ struct bpf_object* object,
+    ebpf_execution_type_t execution_type,
+    _Outptr_result_maybenull_z_ const char** error_message);

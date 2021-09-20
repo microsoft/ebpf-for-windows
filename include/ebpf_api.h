@@ -61,7 +61,7 @@ extern "C"
         0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 
     typedef int32_t fd_t;
-    const fd_t ebpf_fd_invalid = -1;
+    extern __declspec(selectany) const fd_t ebpf_fd_invalid = -1;
     typedef intptr_t ebpf_handle_t;
     typedef struct _tlv_type_length_value tlv_type_length_value_t;
 
@@ -366,10 +366,10 @@ extern "C"
      *  EBPF_EXECUTION_ANY is specified, execution type will be decided by a
      *  system-wide policy.
      * @param[out] object Returns pointer to ebpf_object object. The caller
-        is expected to call ebpf_object_close() at the end.
+        is expected to call bpf_object__close() at the end.
      * @param[out] program_fd Returns a file descriptor for the first program.
      *  The caller should not call _close() on the fd, but should instead use
-     *  ebpf_object_close() to close this (and other) file descriptors.
+     *  bpf_object__close() to close this (and other) file descriptors.
      * @param[out] log_buffer Returns a pointer to a null-terminated log buffer.
      *  The caller is responsible for freeing the returned log_buffer pointer
      *  by calling ebpf_free_string().
@@ -479,7 +479,7 @@ extern "C"
      * @brief Get a program type and expected attach type by name.
      *
      * @param[in] name Name, as if it were a section name in an ELF file.
-     * @param[out] prog_type Program type.
+     * @param[out] program_type Program type.
      * @param[out] expected_attach_type Expected attach type.
      *
      * @retval EBPF_SUCCESS The operation was successful.

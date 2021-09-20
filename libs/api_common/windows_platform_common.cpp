@@ -120,7 +120,7 @@ get_program_type_windows(const std::string& section, const std::string&)
 #define BPF_MAP_TYPE(x) BPF_MAP_TYPE_##x, #x
 
 static const EbpfMapType windows_map_types[] = {
-    {BPF_MAP_TYPE(UNSPECIFIED)},
+    {BPF_MAP_TYPE(UNSPEC)},
     {BPF_MAP_TYPE(HASH)},
     {BPF_MAP_TYPE(ARRAY), true},
     {BPF_MAP_TYPE(PROG_ARRAY), true, EbpfMapValueType::PROGRAM},

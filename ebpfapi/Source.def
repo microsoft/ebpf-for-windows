@@ -19,6 +19,7 @@ EXPORTS
     bpf_map__is_pinned
     bpf_map__key_size
     bpf_map__max_entries
+    bpf_map__name
     bpf_map__next
     bpf_map__pin
     bpf_map__prev
@@ -38,8 +39,11 @@ EXPORTS
     bpf_object__find_map_by_name
     bpf_object__find_map_fd_by_name
     bpf_object__find_program_by_name
+    bpf_object__load
+    bpf_object__load_xattr
     bpf_object__name
     bpf_object__next
+    bpf_object__open_file
     bpf_object__pin
     bpf_object__pin_maps
     bpf_object__pin_programs
@@ -52,12 +56,14 @@ EXPORTS
     bpf_program__attach_xdp
     bpf_program__fd
     bpf_program__get_expected_attach_type
+    bpf_program__get_type
     bpf_program__name
     bpf_program__next
     bpf_program__pin
     bpf_program__prev
     bpf_program__section_name
     bpf_program__set_expected_attach_type
+    bpf_program__set_type
     bpf_program__unpin
     ebpf_api_initiate
     ebpf_api_terminate
@@ -84,4 +90,6 @@ EXPORTS
     ebpf_program_attach_by_fd
     ebpf_program_load
     ebpf_program_query_info
+    libbpf_get_error
+    libbpf_num_possible_cpus
     libbpf_prog_type_by_name

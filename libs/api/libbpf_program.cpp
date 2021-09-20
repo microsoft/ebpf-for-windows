@@ -27,6 +27,19 @@ _get_ebpf_program_type(enum bpf_prog_type type)
     return nullptr;
 }
 
+static enum bpf_prog_type
+_get_bpf_program_type(const ebpf_program_type_t* type)
+{
+    // TODO(issue #223): read this mapping from the registry
+    if (memcmp(type, &EBPF_PROGRAM_TYPE_XDP, sizeof(*type)) == 0) {
+        return BPF_PROG_TYPE_XDP;
+    }
+    if (memcmp(type, &EBPF_PROGRAM_TYPE_BIND, sizeof(*type)) == 0) {
+        return BPF_PROG_TYPE_BIND;
+    }
+    return BPF_PROG_TYPE_UNSPEC;
+}
+
 static const ebpf_attach_type_t*
 _get_ebpf_attach_type(enum bpf_attach_type type)
 {
@@ -269,6 +282,18 @@ void
 bpf_program__set_expected_attach_type(struct bpf_program* program, enum bpf_attach_type type)
 {
     program->attach_type = *_get_ebpf_attach_type(type);
+}
+
+enum bpf_prog_type
+bpf_program__get_type(const struct bpf_program* program)
+{
+    return _get_bpf_program_type(&program->program_type);
+}
+
+void
+bpf_program__set_type(struct bpf_program* program, enum bpf_prog_type type)
+{
+    program->program_type = *_get_ebpf_program_type(type);
 }
 
 int
