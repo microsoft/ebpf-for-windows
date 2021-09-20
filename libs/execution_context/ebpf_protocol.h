@@ -337,8 +337,8 @@ typedef struct _ebpf_operation_get_next_id_reply
 typedef struct _ebpf_operation_get_next_pinned_path_request
 {
     struct _ebpf_operation_header header;
-    char start_name[EBPF_MAX_PIN_PATH_LENGTH];
-} ebpf_operation_get_next_pinned_name_request_t;
+    char start_path[EBPF_MAX_PIN_PATH_LENGTH];
+} ebpf_operation_get_next_pinned_path_request_t;
 
 typedef struct _ebpf_operation_get_next_pinned_path_reply
 {

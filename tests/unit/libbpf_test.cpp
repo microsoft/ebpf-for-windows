@@ -498,6 +498,9 @@ TEST_CASE("enumerate program IDs", "[libbpf]")
     REQUIRE(bpf_prog_get_next_id(0, &id1) < 0);
     REQUIRE(errno == ENOENT);
 
+    REQUIRE(bpf_prog_get_next_id(EBPF_ID_NONE, &id1) < 0);
+    REQUIRE(errno == ENOENT);
+
     // Load a file with multiple programs.
     struct bpf_object* xdp_object;
     int xdp_object_fd;
@@ -713,6 +716,9 @@ TEST_CASE("enumerate map IDs", "[libbpf]")
     REQUIRE(bpf_map_get_next_id(0, &id1) < 0);
     REQUIRE(errno == ENOENT);
 
+    REQUIRE(bpf_map_get_next_id(EBPF_ID_NONE, &id1) < 0);
+    REQUIRE(errno == ENOENT);
+
     // Create two maps.
     int map1_fd = bpf_create_map(BPF_MAP_TYPE_ARRAY, sizeof(__u32), sizeof(__u32), 1, 0);
     REQUIRE(map1_fd > 0);
@@ -753,6 +759,9 @@ TEST_CASE("enumerate link IDs", "[libbpf]")
     // Verify the enumeration is empty.
     uint32_t id1;
     REQUIRE(bpf_link_get_next_id(0, &id1) < 0);
+    REQUIRE(errno == ENOENT);
+
+    REQUIRE(bpf_link_get_next_id(EBPF_ID_NONE, &id1) < 0);
     REQUIRE(errno == ENOENT);
 
     // Load and attach some programs.
