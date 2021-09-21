@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 // This file is included by sample eBPF programs that need
-// definitions for IPv4 and UDP headers.
+// definitions for Ethernet and IPv4/IPv6 headers.
 
 #include "ebpf_nethooks.h"
 

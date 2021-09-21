@@ -3,8 +3,6 @@
 
 #include "net_ebpf_ext.h"
 
-extern HANDLE _net_ebpf_ext_l2_injection_handle;
-
 // Callout GUIDs
 
 // 5a5614e5-6b64-4738-8367-33c6ca07bf8f
