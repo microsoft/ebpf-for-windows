@@ -4,6 +4,7 @@
 #include <windows.h>
 #include <netsh.h> // Must be included after windows.h
 #include <string.h>
+#include "ebpf_epoch.h"
 #pragma warning(push)
 #pragma warning(disable : 4200)
 #include "libbpf.h"

@@ -6,7 +6,7 @@
 #include <windows.h>
 #include <netsh.h> // Must be included after windows.h
 #include <string.h>
-#include "bpf/bpf.h"
+#include "bpf.h"
 #include "capture_helper.hpp"
 #include "catch_wrapper.hpp"
 #include "elf.h"

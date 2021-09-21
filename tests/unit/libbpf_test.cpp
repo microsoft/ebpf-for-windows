@@ -587,7 +587,7 @@ TEST_CASE("array of maps", "[libbpf]")
     REQUIRE(error == 0);
     REQUIRE(xdp_object != nullptr);
 
-    struct bpf_program* caller = bpf_object__find_program_by_name(xdp_object, "caller");
+    struct bpf_program* caller = bpf_object__find_program_by_name(xdp_object, "lookup");
     REQUIRE(caller != nullptr);
 
     struct bpf_map* outer_map = bpf_object__find_map_by_name(xdp_object, "outer_map");
