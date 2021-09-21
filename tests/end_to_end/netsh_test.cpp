@@ -155,8 +155,8 @@ TEST_CASE("pin first program", "[netsh][programs]")
     // Load a program to show.
     int result;
     std::string output =
-        _run_netsh_command(handle_ebpf_add_program, L"reflect_packet.o", L"xdp", L"pinpath=reflect", &result);
-    REQUIRE(strcmp(output.c_str(), "Loaded with ID 65537\n") == 0);
+        _run_netsh_command(handle_ebpf_add_program, L"tail_call.o", L"xdp", L"pinpath=mypinpath", &result);
+    REQUIRE(strcmp(output.c_str(), "Loaded with ID 196609\n") == 0);
     REQUIRE(result == NO_ERROR);
 
     // Show programs in normal (table) format.
@@ -166,11 +166,11 @@ TEST_CASE("pin first program", "[netsh][programs]")
         output == "\n"
                   "    ID  Pins  Links  Mode       Name\n"
                   "======  ====  =====  =========  ====================\n"
-                  " 65537     1      1  JIT        reflect_packet\n"
-                  "131073     0      0  JIT        encap_reflect_packet\n");
+                  "196609     1      1  JIT        caller\n"
+                  "262145     0      0  JIT        callee\n");
 
-    output = _run_netsh_command(handle_ebpf_delete_program, L"65537", nullptr, nullptr, &result);
-    REQUIRE(output == "Unpinned 65537 from reflect\n");
+    output = _run_netsh_command(handle_ebpf_delete_program, L"196609", nullptr, nullptr, &result);
+    REQUIRE(output == "Unpinned 196609 from mypinpath\n");
     REQUIRE(result == NO_ERROR);
     REQUIRE(bpf_object__next(nullptr) == nullptr);
 }
@@ -182,8 +182,8 @@ TEST_CASE("pin all programs", "[netsh][programs]")
     // Load programs to show.
     int result;
     std::string output =
-        _run_netsh_command(handle_ebpf_add_program, L"reflect_packet.o", L"pinpath=mypinpath", L"pinned=all", &result);
-    REQUIRE(strcmp(output.c_str(), "Loaded with ID 65537\n") == 0);
+        _run_netsh_command(handle_ebpf_add_program, L"tail_call.o", L"pinpath=mypinpath", L"pinned=all", &result);
+    REQUIRE(strcmp(output.c_str(), "Loaded with ID 196609\n") == 0);
     REQUIRE(result == NO_ERROR);
 
     // Show programs in normal (table) format.
@@ -193,11 +193,11 @@ TEST_CASE("pin all programs", "[netsh][programs]")
         output == "\n"
                   "    ID  Pins  Links  Mode       Name\n"
                   "======  ====  =====  =========  ====================\n"
-                  " 65537     1      1  JIT        reflect_packet\n"
-                  "131073     1      0  JIT        encap_reflect_packet\n");
+                  "196609     1      1  JIT        caller\n"
+                  "262145     1      0  JIT        callee\n");
 
-    output = _run_netsh_command(handle_ebpf_delete_program, L"65537", nullptr, nullptr, &result);
-    REQUIRE(output == "Unpinned 65537 from mypinpath/xdp_reflect\n");
+    output = _run_netsh_command(handle_ebpf_delete_program, L"196609", nullptr, nullptr, &result);
+    REQUIRE(output == "Unpinned 196609 from mypinpath/xdp_prog\n");
     REQUIRE(result == NO_ERROR);
     REQUIRE(bpf_object__next(nullptr) == nullptr);
 }
