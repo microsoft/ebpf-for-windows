@@ -1215,7 +1215,8 @@ ebpf_map_get_info(
     info->key_size = map->ebpf_map_definition.key_size;
     info->value_size = map->original_value_size;
     info->max_entries = map->ebpf_map_definition.max_entries;
-    info->inner_map_id = map->ebpf_map_definition.inner_map_id;
+    info->inner_map_id = (map->inner_map_template) ? map->inner_map_template->object.id : EBPF_ID_NONE;
+    info->pinned_path_count = map->object.pinned_path_count;
     strncpy_s(info->name, sizeof(info->name), (char*)map->name.value, map->name.length);
 
     *info_size = sizeof(*info);
