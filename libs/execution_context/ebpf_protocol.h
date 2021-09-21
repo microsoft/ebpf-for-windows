@@ -240,13 +240,13 @@ typedef struct _ebpf_operation_update_map_pinning_request
 {
     struct _ebpf_operation_header header;
     ebpf_handle_t handle;
-    uint8_t name[1];
+    uint8_t path[1];
 } ebpf_operation_update_pinning_request_t;
 
 typedef struct _ebpf_operation_get_pinning_request
 {
     struct _ebpf_operation_header header;
-    uint8_t name[1];
+    uint8_t path[1];
 } ebpf_operation_get_pinning_request_t;
 
 typedef struct _ebpf_operation_get_pinning_reply
@@ -337,13 +337,13 @@ typedef struct _ebpf_operation_get_next_id_reply
 typedef struct _ebpf_operation_get_next_pinned_path_request
 {
     struct _ebpf_operation_header header;
-    char start_path[EBPF_MAX_PIN_PATH_LENGTH];
+    uint8_t start_path[1];
 } ebpf_operation_get_next_pinned_path_request_t;
 
 typedef struct _ebpf_operation_get_next_pinned_path_reply
 {
     struct _ebpf_operation_header header;
-    char next_path[EBPF_MAX_PIN_PATH_LENGTH];
+    uint8_t next_path[1];
 } ebpf_operation_get_next_pinned_path_reply_t;
 
 typedef struct _ebpf_operation_get_object_info_request

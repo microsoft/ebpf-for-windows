@@ -55,8 +55,11 @@ const ebpf_context_descriptor_t g_sample_ext_context_descriptor = {
     -1, // Offset into ctx struct for pointer to metadata, or -1 if none.
 };
 
+const ebpf_windows_program_type_data_t windows_sample_program_type_data = {
+    EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE};
+
 const EbpfProgramType windows_sample_ext_program_type =
-    PTYPE("sample_ext", &g_sample_ext_context_descriptor, (uint64_t)&EBPF_PROGRAM_TYPE_SAMPLE, {"sample_ext"});
+    PTYPE("sample_ext", &g_sample_ext_context_descriptor, (uint64_t)&windows_sample_program_type_data, {"sample_ext"});
 
 const std::vector<EbpfProgramType> windows_program_types = {
     PTYPE("unspecified", {0}, 0, {}),
