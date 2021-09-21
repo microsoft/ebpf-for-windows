@@ -133,6 +133,9 @@ Functions</h2></td></tr>
 <tr class="memitem:affc4b6ad0564d5788cf036749dff4e50"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#affc4b6ad0564d5788cf036749dff4e50">bpf_xdp_adjust_head</a> (<a class="el" href="ebpf__nethooks_8h.html#ad23ae5164c0bc1b25cfc3c60ab24a781">xdp_md_t</a> *ctx, int delta)</td></tr>
 <tr class="memdesc:affc4b6ad0564d5788cf036749dff4e50"><td class="mdescLeft">&#160;</td><td class="mdescRight">Adjust XDP context data pointer.  <a href="ebpf__nethooks_8h.html#affc4b6ad0564d5788cf036749dff4e50">More...</a><br /></td></tr>
 <tr class="separator:affc4b6ad0564d5788cf036749dff4e50"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8925aebb6537b5d34b8cb28b04d34515"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#a8925aebb6537b5d34b8cb28b04d34515">bpf_csum_diff</a> (void *from, int from_size, void *to, int to_size, int seed)</td></tr>
+<tr class="memdesc:a8925aebb6537b5d34b8cb28b04d34515"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute checksum difference for replacing parts of a network packet buffer.  <a href="ebpf__nethooks_8h.html#a8925aebb6537b5d34b8cb28b04d34515">More...</a><br /></td></tr>
+<tr class="separator:a8925aebb6537b5d34b8cb28b04d34515"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Macro Definition Documentation</h2>
 <a id="acce2f548e179db8cc18c8173a4a7a6e6"></a>
@@ -349,6 +352,64 @@ Functions</h2></td></tr>
 </div>
 </div>
 <h2 class="groupheader">Function Documentation</h2>
+<a id="a8925aebb6537b5d34b8cb28b04d34515"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a8925aebb6537b5d34b8cb28b04d34515">&#9670;&nbsp;</a></span>bpf_csum_diff()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int bpf_csum_diff </td>
+          <td>(</td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>from</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>from_size</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>to</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>to_size</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>seed</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Compute checksum difference for replacing parts of a network packet buffer. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">from</td><td>Pointer to raw buffer that will be replaced. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">from_size</td><td>Length of the "from" buffer. Must be a multiple of 4. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">to</td><td>Pointer to the raw buffer that will replace the previous buffer. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">to_size</td><td>Length of the "to" buffer. Must be a multiple of 4.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The checksum delta on success, or &lt;0 on failure. </dd></dl>
+
+</div>
+</div>
 <a id="affc4b6ad0564d5788cf036749dff4e50"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#affc4b6ad0564d5788cf036749dff4e50">&#9670;&nbsp;</a></span>bpf_xdp_adjust_head()</h2>
 
