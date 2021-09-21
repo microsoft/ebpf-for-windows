@@ -49,8 +49,8 @@ jobs:
     - name: Install LLVM and Clang
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
-        curl -fsSL -o LLVM8.exe https://github.com/llvm/llvm-project/releases/download/llvmorg-8.0.1/LLVM-8.0.1-win64.exe
-        7z x LLVM8.exe -y -o"C:/Program Files/LLVM"
+        curl -fsSL -o LLVM10.exe https://github.com/llvm/llvm-project/releases/download/llvmorg-10.0.0/LLVM-10.0.0-win64.exe
+        7z x LLVM10.exe -y -o"C:/Program Files/LLVM"
         echo "C:\Program Files\LLVM\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
     - name: Restore NuGet packages
