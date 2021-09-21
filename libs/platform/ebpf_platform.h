@@ -875,6 +875,12 @@ extern "C"
     uint64_t
     ebpf_query_time_since_boot(bool include_suspended_time);
 
+    ebpf_result_t
+    ebpf_set_current_thread_affinity(uintptr_t new_thread_affinity_mask, _Out_ uintptr_t* old_thread_affinity_mask);
+
+    void
+    ebpf_restore_current_thread_affinity(uintptr_t old_thread_affinity_mask);
+
 #ifdef __cplusplus
 }
 #endif
