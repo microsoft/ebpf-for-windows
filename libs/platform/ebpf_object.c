@@ -134,7 +134,7 @@ ebpf_object_tracking_terminate()
 }
 
 /**
- * @brief Free invoked when the current epoch ends. When the object ref-count reaches zero.
+ * @brief Free invoked when the current epoch ends.
  *
  * @param[in] context Pointer to the ebpf_object_t passed as context in the work-item.
  */
@@ -148,15 +148,17 @@ _ebpf_object_epoch_free(_In_ void* context)
 
 ebpf_result_t
 ebpf_object_initialize(
-    ebpf_object_t* object,
+    _In_ ebpf_object_t* object,
     ebpf_object_type_t object_type,
-    ebpf_free_object_t free_function,
-    ebpf_object_get_program_type_t get_program_type_function)
+    _In_opt_ ebpf_zero_ref_count_object_t zero_ref_count_function,
+    _In_ ebpf_free_object_t free_function,
+    _In_opt_ ebpf_object_get_program_type_t get_program_type_function)
 {
     object->marker = _ebpf_object_marker;
     object->reference_count = 1;
     object->type = object_type;
     object->free_function = free_function;
+    object->zero_ref_count_function = zero_ref_count_function;
     object->get_program_type = get_program_type_function;
     ebpf_list_initialize(&object->object_list_entry);
 
@@ -177,7 +179,7 @@ ebpf_object_acquire_reference(ebpf_object_t* object)
 }
 
 _Requires_lock_held_(&_ebpf_object_tracking_list_lock) void _ebpf_object_release_reference_under_lock(
-    ebpf_object_t* object)
+    ebpf_object_t* object, ebpf_lock_state_t* state)
 {
     uint32_t new_ref_count;
 
@@ -190,6 +192,12 @@ _Requires_lock_held_(&_ebpf_object_tracking_list_lock) void _ebpf_object_release
     new_ref_count = ebpf_interlocked_decrement_int32(&object->reference_count);
 
     if (new_ref_count == 0) {
+        if (object->zero_ref_count_function) {
+            ebpf_lock_unlock(&_ebpf_object_tracking_list_lock, *state);
+            object->zero_ref_count_function(object);
+            *state = ebpf_lock_lock(&_ebpf_object_tracking_list_lock);
+        }
+
         _ebpf_object_tracking_list_remove(object);
         object->marker = ~object->marker;
         ebpf_epoch_schedule_work_item(object->cleanup_work_item);
@@ -210,11 +218,15 @@ ebpf_object_release_reference(ebpf_object_t* object)
     new_ref_count = ebpf_interlocked_decrement_int32(&object->reference_count);
 
     if (new_ref_count == 0) {
+        if (object->zero_ref_count_function) {
+            object->zero_ref_count_function(object);
+        }
+
         ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_object_tracking_list_lock);
         _ebpf_object_tracking_list_remove(object);
         ebpf_lock_unlock(&_ebpf_object_tracking_list_lock, state);
         object->marker = ~object->marker;
-        object->free_function(object);
+        ebpf_epoch_schedule_work_item(object->cleanup_work_item);
     }
 }
 
@@ -324,7 +336,7 @@ ebpf_object_dereference_by_id(ebpf_id_t id, ebpf_object_type_t object_type)
     if (return_value == EBPF_SUCCESS) {
         ebpf_object_t* found = _ebpf_id_table[index].object;
         if ((found != NULL) && (found->type == object_type)) {
-            _ebpf_object_release_reference_under_lock(found);
+            _ebpf_object_release_reference_under_lock(found, &state);
         } else
             return_value = EBPF_KEY_NOT_FOUND;
     }

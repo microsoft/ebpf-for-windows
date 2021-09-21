@@ -169,17 +169,16 @@ Exit:
 }
 
 /**
- * @brief Free invoked by ebpf_object_t reference tracking. This schedules the
- * final delete of the ebpf_program_t once the current epoch ends.
+ * @brief Invoked by ebpf_object_t reference tracking when the refcount reaches zero.
  *
  * @param[in] object Pointer to ebpf_object_t whose ref-count reached zero.
  */
 static void
-_ebpf_program_free(ebpf_object_t* object)
+_ebpf_program_zero_ref_count(ebpf_object_t* object)
 {
+    ebpf_program_t* program = (ebpf_program_t*)object;
     size_t index;
 
-    ebpf_program_t* program = (ebpf_program_t*)object;
     if (!program) {
         return;
     }
@@ -187,6 +186,28 @@ _ebpf_program_free(ebpf_object_t* object)
     // Detach from all the attach points.
     _ebpf_program_detach_links(program);
     ebpf_assert(ebpf_list_is_empty(&program->links));
+
+    for (index = 0; index < program->count_of_maps; index++)
+        ebpf_object_release_reference((ebpf_object_t*)program->maps[index]);
+}
+
+static const ebpf_program_type_t*
+_ebpf_program_get_program_type(_In_ const ebpf_object_t* object)
+{
+    return ebpf_program_type((const ebpf_program_t*)object);
+}
+
+/**
+ * @brief Free invoked when the current epoch ends. Scheduled by
+ * _ebpf_program_free.
+ *
+ * @param[in] context Pointer to the ebpf_program_t passed as context in the
+ * work-item.
+ */
+static void
+_ebpf_program_free(void* context)
+{
+    ebpf_program_t* program = (ebpf_program_t*)context;
 
     ebpf_lock_destroy(&program->links_lock);
 
@@ -208,19 +229,13 @@ _ebpf_program_free(ebpf_object_t* object)
     ebpf_free(program->parameters.section_name.value);
     ebpf_free(program->parameters.file_name.value);
 
-    for (index = 0; index < program->count_of_maps; index++)
-        ebpf_object_release_reference((ebpf_object_t*)program->maps[index]);
-
     ebpf_free(program->maps);
-    ebpf_free_trampoline_table(program->trampoline_table);
-    ebpf_free(program->helper_function_ids);
-    ebpf_free(program);
-}
 
-static const ebpf_program_type_t*
-_ebpf_program_get_program_type(_In_ const ebpf_object_t* object)
-{
-    return ebpf_program_type((const ebpf_program_t*)object);
+    ebpf_free_trampoline_table(program->trampoline_table);
+
+    ebpf_free(program->helper_function_ids);
+
+    ebpf_free(program);
 }
 
 static ebpf_result_t
@@ -292,7 +307,11 @@ ebpf_program_create(ebpf_program_t** program)
     ebpf_lock_create(&local_program->links_lock);
 
     retval = ebpf_object_initialize(
-        &local_program->object, EBPF_OBJECT_PROGRAM, _ebpf_program_free, _ebpf_program_get_program_type);
+        &local_program->object,
+        EBPF_OBJECT_PROGRAM,
+        _ebpf_program_zero_ref_count,
+        _ebpf_program_free,
+        _ebpf_program_get_program_type);
     if (retval != EBPF_SUCCESS) {
         goto Done;
     }
@@ -303,7 +322,7 @@ ebpf_program_create(ebpf_program_t** program)
 
 Done:
     if (local_program)
-        _ebpf_program_free(&local_program->object);
+        _ebpf_program_free(local_program);
 
     return retval;
 }

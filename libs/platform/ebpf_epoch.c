@@ -307,6 +307,7 @@ ebpf_epoch_allocate_work_item(_In_ void* callback_context, _In_ void (*callback)
     work_item->callback = callback;
     work_item->callback_context = callback_context;
     work_item->header.entry_type = EBPF_EPOCH_ALLOCATION_WORK_ITEM;
+    ebpf_list_initialize(&work_item->header.list_entry);
 
     return work_item;
 }

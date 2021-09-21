@@ -959,14 +959,26 @@ ebpf_map_function_table_t ebpf_map_function_tables[] = {
      _next_hash_map_key},
 };
 
+/**
+ * @brief Invoked by ebpf_object_t reference tracking when the refcount reaches zero.
+ *
+ * @param[in] object Pointer to ebpf_object_t whose ref-count reached zero.
+ */
 static void
-_ebpf_map_delete(_In_ ebpf_object_t* object)
+_ebpf_map_zero_ref_count(_In_ ebpf_object_t* object)
 {
     ebpf_map_t* map = (ebpf_map_t*)object;
 
     if (map->inner_map_template != NULL) {
         ebpf_object_release_reference(&map->inner_map_template->object);
     }
+}
+
+static void
+_ebpf_map_delete(_In_ ebpf_object_t* object)
+{
+    ebpf_map_t* map = (ebpf_map_t*)object;
+
     ebpf_free(map->name.value);
     ebpf_map_function_tables[map->ebpf_map_definition.type].delete_map(map);
 }
@@ -1031,7 +1043,8 @@ ebpf_map_create(
 
     ebpf_map_function_table_t* table = &ebpf_map_function_tables[local_map->ebpf_map_definition.type];
     ebpf_object_get_program_type_t get_program_type = (table->get_object_from_entry) ? _get_map_program_type : NULL;
-    result = ebpf_object_initialize(&local_map->object, EBPF_OBJECT_MAP, _ebpf_map_delete, get_program_type);
+    result = ebpf_object_initialize(
+        &local_map->object, EBPF_OBJECT_MAP, _ebpf_map_zero_ref_count, _ebpf_map_delete, get_program_type);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }

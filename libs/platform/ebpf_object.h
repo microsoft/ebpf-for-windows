@@ -23,6 +23,7 @@ extern "C"
 
     typedef struct _ebpf_object ebpf_object_t;
     typedef void (*ebpf_free_object_t)(ebpf_object_t* object);
+    typedef void (*ebpf_zero_ref_count_object_t)(ebpf_object_t* object);
     typedef const ebpf_program_type_t* (*ebpf_object_get_program_type_t)(_In_ const ebpf_object_t* object);
 
     // This type probably ought to be renamed to avoid confusion with
@@ -33,6 +34,7 @@ extern "C"
         volatile int32_t reference_count;
         ebpf_object_type_t type;
         ebpf_epoch_work_item_t* cleanup_work_item;
+        ebpf_zero_ref_count_object_t zero_ref_count_function;
         ebpf_free_object_t free_function;
         ebpf_object_get_program_type_t get_program_type;
         // ID for this object.
@@ -62,6 +64,7 @@ extern "C"
      *
      * @param[in,out] object ebpf_object_t structure to initialize.
      * @param[in] object_type The type of the object.
+     * @param[in] zero_ref_count_function The function invoked when the ref-count reaches zero.
      * @param[in] free_function The function used to free the object.
      * @param[in] get_program_type_function The function used to get a program type, or NULL.  Each program
      * has a program type, and hence so do maps that can contain programs, whether directly (like
@@ -71,10 +74,11 @@ extern "C"
      */
     ebpf_result_t
     ebpf_object_initialize(
-        ebpf_object_t* object,
+        _In_ ebpf_object_t* object,
         ebpf_object_type_t object_type,
-        ebpf_free_object_t free_function,
-        ebpf_object_get_program_type_t get_program_type_function);
+        _In_opt_ ebpf_zero_ref_count_object_t zero_ref_count_function,
+        _In_ ebpf_free_object_t free_function,
+        _In_opt_ ebpf_object_get_program_type_t get_program_type_function);
 
     /**
      * @brief Acquire a reference to this object.
