@@ -80,7 +80,7 @@ This section shows how to use eBPF for Windows in a demo that lets us control a 
    [Installing eBPF for Windows](#installing-ebpf-for-windows)
 #### Demo
 1. In an admin prompt, run ``port_quota.exe load`` to load the port quota ebpf program at the bind  hook.
-2. Set a limit to a threshold number of ports you want to permit an application to bind to by calling ``port_quota.exe limit 5000``
+2. Set a limit to a threshold number of ports you want to permit an application to bind to by doing ``port_quota.exe limit 5000``
 3. Run ``port_leak.exe`` in another command prompt. This will just leak UDP ports. Observe the output that bind starts to fail after this app binds upto 5000 ports.
 4. To demonstrate observability use case of this hook, running ```port_quota.exe stats``` will dump how many ports are taken up by an application. Under the covers, the ebpf program communicates this information up to the user mode application via a bpf map.
 
