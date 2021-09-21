@@ -36,9 +36,9 @@ handle_ebpf_show_maps(
     UNREFERENCED_PARAMETER(done);
 
     std::cout << "\n";
-    std::cout << "                     Key  Value      Max  Inner\n";
-    std::cout << "          Map Type  Size   Size  Entries     ID\n";
-    std::cout << "==================  ====  =====  =======  =====\n";
+    std::cout << "                             Key  Value      Max  Inner\n";
+    std::cout << "    ID            Map Type  Size   Size  Entries     ID  Pins  Name\n";
+    std::cout << "======  ==================  ====  =====  =======  =====  ====  ========\n";
 
     uint32_t map_id = 0;
     for (;;) {
@@ -55,12 +55,15 @@ handle_ebpf_show_maps(
         uint32_t info_size = (uint32_t)sizeof(info);
         if (bpf_obj_get_info_by_fd(map_fd, &info, &info_size) == 0) {
             printf(
-                "%18s%6u%7u%9u%7u\n",
+                "%6u  %18s%6u%7u%9u%7d%6u  %s\n",
+                info.id,
                 _get_map_type_name(info.type),
                 info.key_size,
                 info.value_size,
                 info.max_entries,
-                info.inner_map_id);
+                info.inner_map_id,
+                info.pinned_path_count,
+                info.name);
         }
 
         Platform::_close(map_fd);
