@@ -133,6 +133,19 @@ ebpf_object_tracking_terminate()
     }
 }
 
+/**
+ * @brief Free invoked when the current epoch ends. When the object ref-count reaches zero.
+ *
+ * @param[in] context Pointer to the ebpf_object_t passed as context in the work-item.
+ */
+static void
+_ebpf_object_epoch_free(_In_ void* context)
+{
+    ebpf_object_t* object = (ebpf_object_t*)context;
+    ebpf_epoch_free_work_item(object->cleanup_work_item);
+    object->free_function(object);
+}
+
 ebpf_result_t
 ebpf_object_initialize(
     ebpf_object_t* object,
@@ -146,6 +159,11 @@ ebpf_object_initialize(
     object->free_function = free_function;
     object->get_program_type = get_program_type_function;
     ebpf_list_initialize(&object->object_list_entry);
+
+    object->cleanup_work_item = ebpf_epoch_allocate_work_item(object, _ebpf_object_epoch_free);
+    if (!object->cleanup_work_item) {
+        return EBPF_NO_MEMORY;
+    }
 
     return _ebpf_object_tracking_list_insert(object);
 }
@@ -174,7 +192,7 @@ _Requires_lock_held_(&_ebpf_object_tracking_list_lock) void _ebpf_object_release
     if (new_ref_count == 0) {
         _ebpf_object_tracking_list_remove(object);
         object->marker = ~object->marker;
-        object->free_function(object);
+        ebpf_epoch_schedule_work_item(object->cleanup_work_item);
     }
 }
 

@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "ebpf_epoch.h"
 #include "ebpf_platform.h"
 #include "ebpf_structs.h"
 #include "framework.h"
@@ -31,6 +32,7 @@ extern "C"
         uint32_t marker;
         volatile int32_t reference_count;
         ebpf_object_type_t type;
+        ebpf_epoch_work_item_t* cleanup_work_item;
         ebpf_free_object_t free_function;
         ebpf_object_get_program_type_t get_program_type;
         // ID for this object.

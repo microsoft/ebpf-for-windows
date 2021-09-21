@@ -56,8 +56,6 @@ typedef struct _ebpf_program
     size_t helper_function_count;
     uint32_t* helper_function_ids;
 
-    ebpf_epoch_work_item_t* cleanup_work_item;
-
     ebpf_list_entry_t links;
     uint32_t link_count;
     ebpf_lock_t links_lock;
@@ -179,6 +177,8 @@ Exit:
 static void
 _ebpf_program_free(ebpf_object_t* object)
 {
+    size_t index;
+
     ebpf_program_t* program = (ebpf_program_t*)object;
     if (!program) {
         return;
@@ -187,28 +187,6 @@ _ebpf_program_free(ebpf_object_t* object)
     // Detach from all the attach points.
     _ebpf_program_detach_links(program);
     ebpf_assert(ebpf_list_is_empty(&program->links));
-
-    ebpf_epoch_schedule_work_item(program->cleanup_work_item);
-}
-
-static const ebpf_program_type_t*
-_ebpf_program_get_program_type(_In_ const ebpf_object_t* object)
-{
-    return ebpf_program_type((const ebpf_program_t*)object);
-}
-
-/**
- * @brief Free invoked when the current epoch ends. Scheduled by
- * _ebpf_program_free.
- *
- * @param[in] context Pointer to the ebpf_program_t passed as context in the
- * work-item.
- */
-static void
-_ebpf_program_epoch_free(void* context)
-{
-    ebpf_program_t* program = (ebpf_program_t*)context;
-    size_t index;
 
     ebpf_lock_destroy(&program->links_lock);
 
@@ -234,13 +212,15 @@ _ebpf_program_epoch_free(void* context)
         ebpf_object_release_reference((ebpf_object_t*)program->maps[index]);
 
     ebpf_free(program->maps);
-
     ebpf_free_trampoline_table(program->trampoline_table);
-
     ebpf_free(program->helper_function_ids);
-
-    ebpf_free(program->cleanup_work_item);
     ebpf_free(program);
+}
+
+static const ebpf_program_type_t*
+_ebpf_program_get_program_type(_In_ const ebpf_object_t* object)
+{
+    return ebpf_program_type((const ebpf_program_t*)object);
 }
 
 static ebpf_result_t
@@ -308,12 +288,6 @@ ebpf_program_create(ebpf_program_t** program)
 
     memset(local_program, 0, sizeof(ebpf_program_t));
 
-    local_program->cleanup_work_item = ebpf_epoch_allocate_work_item(local_program, _ebpf_program_epoch_free);
-    if (!local_program->cleanup_work_item) {
-        retval = EBPF_NO_MEMORY;
-        goto Done;
-    }
-
     ebpf_list_initialize(&local_program->links);
     ebpf_lock_create(&local_program->links_lock);
 
@@ -329,7 +303,7 @@ ebpf_program_create(ebpf_program_t** program)
 
 Done:
     if (local_program)
-        _ebpf_program_epoch_free(local_program);
+        _ebpf_program_free(&local_program->object);
 
     return retval;
 }
