@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-// clang -O2 -Wall -c droppacket_unsafe.c -o droppacket_unsafe_jit.o
+// clang -O2 -Werror -c droppacket_unsafe.c -o droppacket_unsafe_jit.o
 //
-// For bpf code: clang -target bpf -O2 -Wall -c droppacket_unsafe.c -o droppacket_unsafe.o
+// For bpf code: clang -target bpf -O2 -Werror -c droppacket_unsafe.c -o droppacket_unsafe.o
 // this passes the checker
 
 #include "bpf_helpers.h"

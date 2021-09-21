@@ -9,7 +9,7 @@ encapsulate_ipv4_reflect_packet(xdp_md_t* ctx)
     int rc = XDP_DROP;
 
     // Adjust XDP context to allocate space for outer IPv4 header.
-    if (bpf_xdp_adjust_head(ctx, -sizeof(IPV4_HEADER)) < 0)
+    if (bpf_xdp_adjust_head(ctx, (int)-sizeof(IPV4_HEADER)) < 0)
         goto Done;
 
     // The new ethernet header will be at the beginning of the expanded buffer.
@@ -38,12 +38,12 @@ encapsulate_ipv4_reflect_packet(xdp_md_t* ctx)
     IPV4_HEADER* inner_ipv4_header = (IPV4_HEADER*)next_header;
 
     // Copy over the old ethernet header to the new one.
-    memcpy(new_ethernet_header, old_ethernet_header, sizeof(ETHERNET_HEADER));
+    __builtin_memcpy(new_ethernet_header, old_ethernet_header, sizeof(ETHERNET_HEADER));
     // Swap the MAC addresses.
     swap_mac_addresses(new_ethernet_header);
 
     // Copy over the inner IP header to the encap IP header.
-    memcpy(outer_ipv4_header, inner_ipv4_header, sizeof(IPV4_HEADER));
+    __builtin_memcpy(outer_ipv4_header, inner_ipv4_header, sizeof(IPV4_HEADER));
     // Swap the IP addresses.
     swap_ipv4_addresses(outer_ipv4_header);
     // Adjust header fields.
@@ -67,7 +67,7 @@ encapsulate_ipv6_reflect_packet(xdp_md_t* ctx)
     int rc = XDP_DROP;
 
     // Adjust XDP context to allocate space for outer IPv6 header.
-    if (bpf_xdp_adjust_head(ctx, -sizeof(IPV6_HEADER)) < 0)
+    if (bpf_xdp_adjust_head(ctx, (int)-sizeof(IPV6_HEADER)) < 0)
         goto Done;
 
     // The new ethernet header will be at the beginning of the expanded buffer.
@@ -96,12 +96,12 @@ encapsulate_ipv6_reflect_packet(xdp_md_t* ctx)
     IPV6_HEADER* inner_ipv6_header = (IPV6_HEADER*)next_header;
 
     // Copy over the old ethernet header to the new one.
-    memcpy(new_ethernet_header, old_ethernet_header, sizeof(ETHERNET_HEADER));
+    __builtin_memcpy(new_ethernet_header, old_ethernet_header, sizeof(ETHERNET_HEADER));
     // Swap the MAC addresses.
     swap_mac_addresses(new_ethernet_header);
 
     // Copy over the inner IP header to the encap IP header.
-    memcpy(outer_ipv6_header, inner_ipv6_header, sizeof(IPV6_HEADER));
+    __builtin_memcpy(outer_ipv6_header, inner_ipv6_header, sizeof(IPV6_HEADER));
     // Swap the IP addresses.
     swap_ipv6_addresses(outer_ipv6_header);
     // Adjust header fields.
