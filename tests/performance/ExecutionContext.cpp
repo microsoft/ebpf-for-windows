@@ -32,6 +32,8 @@ typedef class _ebpf_program_test_state
     prepare_jit_program()
     {
         ubpf_vm* vm = ubpf_create();
+        REQUIRE(vm != nullptr);
+
         char* error_message = nullptr;
         std::vector<uint8_t> machine_code(1024);
         size_t machine_code_size = machine_code.size();
