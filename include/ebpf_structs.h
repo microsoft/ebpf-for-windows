@@ -111,7 +111,8 @@ struct bpf_map_info
     char name[BPF_OBJ_NAME_LEN]; ///< Null-terminated map name.
 
     // Windows-specific fields.
-    ebpf_id_t inner_map_id; ///< ID of inner map template.
+    ebpf_id_t inner_map_id;     ///< ID of inner map template.
+    uint32_t pinned_path_count; ///< Number of pinned paths.
 };
 
 struct bpf_prog_info

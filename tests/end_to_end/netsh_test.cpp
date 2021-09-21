@@ -4,6 +4,7 @@
 #include <windows.h>
 #include <netsh.h> // Must be included after windows.h
 #include <string.h>
+#include "ebpf_epoch.h"
 #pragma warning(push)
 #pragma warning(disable : 4200)
 #include "libbpf.h"
@@ -340,29 +341,37 @@ TEST_CASE("set program", "[netsh][programs]")
 
 TEST_CASE("show maps", "[netsh][maps]")
 {
-    _test_helper_end_to_end test_helper;
-
-    // Create maps to show.
-    int outer_map_fd = bpf_create_map(BPF_MAP_TYPE_HASH_OF_MAPS, sizeof(__u32), sizeof(__u32), 2, 0);
-    REQUIRE(outer_map_fd > 0);
-
-    int inner_map_fd = bpf_create_map(BPF_MAP_TYPE_ARRAY, sizeof(__u32), sizeof(__u32), 1, 0);
-    REQUIRE(inner_map_fd > 0);
+    _test_helper_libbpf test_helper;
 
     int result;
-    std::string output = _run_netsh_command(handle_ebpf_show_maps, nullptr, nullptr, nullptr, &result);
+    std::string output = _run_netsh_command(handle_ebpf_add_program, L"map_in_map.o", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
+    REQUIRE(strcmp(output.c_str(), "Loaded with ID 196609\n") == 0);
 
+    output = _run_netsh_command(handle_ebpf_show_maps, nullptr, nullptr, nullptr, &result);
+    REQUIRE(result == NO_ERROR);
     REQUIRE(
         output == "\n"
-                  "                     Key  Value      Max  Inner\n"
-                  "          Map Type  Size   Size  Entries     ID\n"
-                  "==================  ====  =====  =======  =====\n"
-                  "      Hash of maps     4      4        2      0\n"
-                  "             Array     4      4        1      0\n");
+                  "                             Key  Value      Max  Inner\n"
+                  "    ID            Map Type  Size   Size  Entries     ID  Pins  Name\n"
+                  "======  ==================  ====  =====  =======  =====  ====  ========\n"
+                  " 65537                Hash     4      4        1     -1     0  inner_map\n"
+                  "131073       Array of maps     4      4        1  65537     0  outer_map\n");
 
-    Platform::_close(inner_map_fd);
-    Platform::_close(outer_map_fd);
+    output = _run_netsh_command(handle_ebpf_delete_program, L"196609", nullptr, nullptr, &result);
+    REQUIRE(result == NO_ERROR);
+    REQUIRE(output == "Unpinned 196609 from lookup\n");
+    REQUIRE(bpf_object__next(nullptr) == nullptr);
+
+    ebpf_epoch_flush();
+
+    output = _run_netsh_command(handle_ebpf_show_maps, nullptr, nullptr, nullptr, &result);
+    REQUIRE(result == NO_ERROR);
+    REQUIRE(
+        output == "\n"
+                  "                             Key  Value      Max  Inner\n"
+                  "    ID            Map Type  Size   Size  Entries     ID  Pins  Name\n"
+                  "======  ==================  ====  =====  =======  =====  ====  ========\n");
 }
 
 TEST_CASE("show links", "[netsh][links]")
