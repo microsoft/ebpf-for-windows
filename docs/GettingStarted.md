@@ -73,7 +73,7 @@ If you're not already familiar with eBPF, or want a detailed walkthrough, see ou
 
 For API documentation, see https://microsoft.github.io/ebpf-for-windows/
 ### Port leak and bind observability demo
-This section shows how to use eBPF for Windows in a demo that lets us control a UDP port leak by hooking an eBPF program at the bind layer of the windows networking stack via the EBPF_ATTACH_TYPE_BIND hook.
+This section shows how to use eBPF for Windows in a demo that lets us control a UDP port leak by hooking an eBPF program at the bind layer of the Windows networking stack via the EBPF_ATTACH_TYPE_BIND hook.
 #### Prep
 1. Build the ``port_leak`` and ``port_quota`` applications from under the tools project.
 2. Copy both the exe's to a machine that has eBPF installed. See
