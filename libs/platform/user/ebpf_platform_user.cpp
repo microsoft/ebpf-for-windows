@@ -58,7 +58,11 @@ ebpf_free(_Frees_ptr_opt_ void* memory)
 __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
     _Post_writable_byte_size_(size) void* ebpf_allocate_cache_aligned(size_t size)
 {
-    return _aligned_malloc(size, EBPF_CACHE_LINE_SIZE);
+    void* memory = _aligned_malloc(size, EBPF_CACHE_LINE_SIZE);
+    if (memory) {
+        memset(memory, 0, size);
+    }
+    return memory;
 }
 
 void
@@ -244,6 +248,24 @@ ebpf_query_time_since_boot(bool include_suspended_time)
     }
 
     return interrupt_time;
+}
+
+ebpf_result_t
+ebpf_set_current_thread_affinity(uintptr_t new_thread_affinity_mask, _Out_ uintptr_t* old_thread_affinity_mask)
+{
+    uintptr_t old_mask = SetThreadAffinityMask(GetCurrentThread(), new_thread_affinity_mask);
+    if (old_mask == 0) {
+        return EBPF_OPERATION_NOT_SUPPORTED;
+    } else {
+        *old_thread_affinity_mask = old_mask;
+        return EBPF_SUCCESS;
+    }
+}
+
+void
+ebpf_restore_current_thread_affinity(uintptr_t old_thread_affinity_mask)
+{
+    SetThreadAffinityMask(GetCurrentThread(), old_thread_affinity_mask);
 }
 
 _Ret_range_(>, 0) uint32_t ebpf_get_cpu_count()

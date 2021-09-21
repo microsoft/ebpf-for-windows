@@ -16,7 +16,7 @@ SEC("maps")
 struct _ebpf_map_definition_in_file inner_map = {
     .type = BPF_MAP_TYPE_HASH, .key_size = sizeof(uint32_t), .value_size = sizeof(uint32_t), .max_entries = 1};
 
-SEC("xdp_prog") int caller(struct xdp_md* ctx)
+SEC("xdp_prog") int lookup(struct xdp_md* ctx)
 {
     uint32_t outer_key = 0;
     void* nolocal_lru_map = bpf_map_lookup_elem(&outer_map, &outer_key);
