@@ -1372,6 +1372,11 @@ ebpf_core_invoke_protocol_handler(
     if (operation_id >= EBPF_COUNT_OF(_ebpf_protocol_handlers) || operation_id < EBPF_OPERATION_RESOLVE_HELPER) {
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
+    uintptr_t old_affinity_mask = 0;
+
+    retval = ebpf_set_current_thread_affinity((uintptr_t)1 << ebpf_get_current_cpu(), &old_affinity_mask);
+    if (retval != EBPF_SUCCESS)
+        return retval;
 
     retval = ebpf_epoch_enter();
     if (retval != EBPF_SUCCESS)
@@ -1384,5 +1389,7 @@ ebpf_core_invoke_protocol_handler(
             input_buffer, output_buffer, output_buffer_length);
 
     ebpf_epoch_exit();
+
+    ebpf_restore_current_thread_affinity(old_affinity_mask);
     return retval;
 }
