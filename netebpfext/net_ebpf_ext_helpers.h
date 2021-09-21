@@ -28,7 +28,7 @@ _net_ebpf_ext_csum_diff(
     csum_diff = seed;
     if (to != NULL)
         for (int i = 0; i < to_size / 2; i++)
-            csum_diff += (uint16_t) * ((uint16_t*)to + i);
+            csum_diff += (uint16_t)(*((uint16_t*)to + i));
     if (from != NULL)
         for (int i = 0; i < from_size / 2; i++)
             csum_diff += (uint16_t)(~*((uint16_t*)from + i));
