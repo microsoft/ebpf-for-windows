@@ -6,7 +6,7 @@
 #include "bpf_helpers.h"
 #include "sample_test_common.h"
 
-int
+inline int
 test_utility_helper_functions(struct bpf_map* utility_map)
 {
     uint32_t keys[UTILITY_MAP_SIZE] = {0, 1};
