@@ -22,6 +22,11 @@ Environment:
 #include "net_ebpf_ext_bind.h"
 #include "net_ebpf_ext_xdp.h"
 
+// Globals.
+NDIS_HANDLE _net_ebpf_ext_ndis_handle = NULL;
+NDIS_HANDLE _net_ebpf_ext_nbl_pool_handle = NULL;
+HANDLE _net_ebpf_ext_l2_injection_handle = NULL;
+
 // Sublayer GUID.
 
 // 7c7b3fb9-3331-436a-98e1-b901df457fff
@@ -170,6 +175,47 @@ Exit:
     }
 
     return status;
+}
+
+NTSTATUS
+net_ebpf_ext_initialize_ndis_handles(_In_ const DRIVER_OBJECT* driver_object)
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    NET_BUFFER_LIST_POOL_PARAMETERS nbl_pool_parameters = {0};
+
+    _net_ebpf_ext_ndis_handle =
+        NdisAllocateGenericObject((DRIVER_OBJECT*)driver_object, NET_EBPF_EXTENSION_POOL_TAG, 0);
+    if (_net_ebpf_ext_ndis_handle == NULL) {
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto Exit;
+    }
+
+    nbl_pool_parameters.Header.Type = NDIS_OBJECT_TYPE_DEFAULT;
+    nbl_pool_parameters.Header.Revision = NET_BUFFER_LIST_POOL_PARAMETERS_REVISION_1;
+    nbl_pool_parameters.Header.Size = NDIS_SIZEOF_NET_BUFFER_LIST_POOL_PARAMETERS_REVISION_1;
+    nbl_pool_parameters.ProtocolId = NDIS_PROTOCOL_ID_DEFAULT;
+    nbl_pool_parameters.fAllocateNetBuffer = TRUE;
+    nbl_pool_parameters.DataSize = 0;
+    nbl_pool_parameters.PoolTag = NET_EBPF_EXTENSION_POOL_TAG;
+
+    _net_ebpf_ext_nbl_pool_handle = NdisAllocateNetBufferListPool(_net_ebpf_ext_ndis_handle, &nbl_pool_parameters);
+    if (_net_ebpf_ext_nbl_pool_handle == NULL) {
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto Exit;
+    }
+
+Exit:
+    return status;
+}
+
+void
+net_ebpf_ext_uninitialize_ndis_handles()
+{
+    if (_net_ebpf_ext_nbl_pool_handle != NULL)
+        NdisFreeNetBufferListPool(_net_ebpf_ext_nbl_pool_handle);
+
+    if (_net_ebpf_ext_ndis_handle != NULL)
+        NdisFreeGenericObject(_net_ebpf_ext_ndis_handle);
 }
 
 NTSTATUS
