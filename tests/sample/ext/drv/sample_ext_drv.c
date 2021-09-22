@@ -217,7 +217,7 @@ _sample_ebpf_ext_driver_io_device_control(
     device = WdfIoQueueGetDevice(queue);
 
     switch (io_control_code) {
-    case IOCTL_SAMPLE_EBPF_EXT_CTL:
+    case IOCTL_SAMPLE_EBPF_EXT_CTL_RUN:
         if (input_buffer_length != 0) {
             // Retrieve the input buffer associated with the request object.
             status = WdfRequestRetrieveInputBuffer(
@@ -280,6 +280,63 @@ _sample_ebpf_ext_driver_io_device_control(
             goto Done;
         }
         break;
+    case IOCTL_SAMPLE_EBPF_EXT_CTL_PROFILE: {
+        size_t minimum_request_size = sizeof(sample_ebpf_ext_profile_request_t);
+        size_t minimum_reply_size = sizeof(sample_ebpf_ext_profile_reply_t);
+        sample_ebpf_ext_profile_request_t* profile_request;
+        sample_ebpf_ext_profile_reply_t* profile_reply;
+
+        if (input_buffer_length == 0) {
+            status = STATUS_INVALID_PARAMETER;
+            goto Done;
+        }
+        // Retrieve the input buffer associated with the request object.
+        status = WdfRequestRetrieveInputBuffer(
+            request,             // Request object.
+            input_buffer_length, // Length of input buffer.
+            &input_buffer,       // Pointer to buffer.
+            &actual_input_length // Length of buffer.
+        );
+
+        if (!NT_SUCCESS(status)) {
+            KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "SampleEbpfExt: Input buffer failure %d\n", status));
+            goto Done;
+        }
+
+        if (input_buffer == NULL) {
+            status = STATUS_INVALID_PARAMETER;
+            goto Done;
+        }
+
+        if (actual_input_length < minimum_request_size) {
+            status = STATUS_INVALID_PARAMETER;
+            goto Done;
+        }
+
+        // Retrieve output buffer associated with the request object.
+        status = WdfRequestRetrieveOutputBuffer(request, output_buffer_length, &output_buffer, &actual_output_length);
+        if (!NT_SUCCESS(status)) {
+            KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "SampleEbpfExt: Output buffer failure %d\n", status));
+            goto Done;
+        }
+
+        if (output_buffer == NULL) {
+            status = STATUS_INVALID_PARAMETER;
+            goto Done;
+        }
+
+        if (actual_output_length < minimum_reply_size) {
+            status = STATUS_BUFFER_TOO_SMALL;
+            goto Done;
+        }
+
+        profile_request = input_buffer;
+        profile_reply = output_buffer;
+
+        sample_ebpf_extension_profile_program(profile_request, actual_input_length, profile_reply);
+
+        break;
+    }
     default:
         break;
     }
