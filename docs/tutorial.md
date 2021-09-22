@@ -31,7 +31,7 @@ anything.
 **Step 2)** Compile optimized code with clang as follows:
 
 ```
-> clang -target bpf -Wall -O2 -c bpf.c -o bpf.o
+> clang -target bpf -Werror -O2 -c bpf.c -o bpf.o
 ```
 
 This will compile bpf.c (into bpf.o in this example) using bpf as the assembly format,
@@ -61,7 +61,7 @@ for this walkthrough we will put the result into a separate .o file,
 bpf-d.o in this example:
 
 ```
-> clang -target bpf -Wall -g -O2 -c bpf.c -o bpf-d.o
+> clang -target bpf -Werror -g -O2 -c bpf.c -o bpf-d.o
 ```
 
 
@@ -162,7 +162,7 @@ int anotherfunc()
 If we now compile the above code as before we can see the new list of sections.
 
 ```
-> clang -target bpf -Wall -O2 -c bpf2.c -o bpf2.o
+> clang -target bpf -Werror -O2 -c bpf2.c -o bpf2.o
 
 > llvm-objdump --triple=bpf -h bpf2.o
 
@@ -619,7 +619,7 @@ Let's compile it and see what it looks like.   Here we compile with `-g`
 to include source line info:
 
 ```
-> clang -target bpf -Wall -g -O2 -c helpers.c -o helpers.o
+> clang -target bpf -Werror -g -O2 -c helpers.c -o helpers.o
 
 > llvm-objdump --triple bpf -S helpers.o
 
@@ -702,7 +702,7 @@ happens if we didn't compile with `-O2`?  The disassembly looks instead
 like this:
 
 ```
-> clang -target bpf -Wall -g -c helpers.c -o helpers.o
+> clang -target bpf -Werror -g -c helpers.c -o helpers.o
 
 > llvm-objdump --triple bpf -S helpers.o
 
@@ -821,7 +821,7 @@ using the map parameters specified.  We can see the fields encoded
 into the `maps` section as follows:
 
 ```
-> clang -target bpf -Wall -g -O2 -c maponly.c -o maponly.o
+> clang -target bpf -Werror -g -O2 -c maponly.c -o maponly.o
 > llvm-objdump -s -section maps maponly.o
 
 maponly.o:      file format ELF64-BPF
