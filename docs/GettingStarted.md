@@ -110,7 +110,7 @@ On the attacker machine, do the following:
 1. Start performance monitor and add UDPv4 Datagrams/sec
 2. Show that 200K packets per second are being received
 3. Show & explain code of droppacket.c
-4. Compile droppacket.c ```clang -target bpf -O2 -Wall -c droppacket.c -o droppacket.o```
+4. Compile droppacket.c ```clang -target bpf -O2 -Werror -c droppacket.c -o droppacket.o```
 5. Show eBPF byte code for droppacket.o ```netsh ebpf show disassembly droppacket.o xdp```
 6. Show that the verifier checks the code ```netsh ebpf show verification droppacket.o xdp```
 7. Launch netsh ```netsh```
@@ -120,7 +120,7 @@ On the attacker machine, do the following:
 11. Unload program ```delete program <id>``` where <id> is the ID noted above.
 12. Show UDP datagrams received drop to back up to ~200K per second
 13. Modify droppacket.c to be unsafe - Comment out line 20 & 21
-14. Compile droppacket.c ```clang -target bpf -O2 -Wall -c droppacket.c -o droppacket.o```
+14. Compile droppacket.c ```clang -target bpf -O2 -Werror -c droppacket.c -o droppacket.o```
 15. Show that the verifier rejects the code ```netsh ebpf show verification droppacket.o xdp```
 16. Show that loading the program fails ```netsh ebpf add program droppacket.o xdp```
 

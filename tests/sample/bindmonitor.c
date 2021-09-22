@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-// clang -O2 -Wall -c bindmonitor.c -o bindmonitor_jit.o
+// clang -O2 -Werror -c bindmonitor.c -o bindmonitor_jit.o
 //
-// For bpf code: clang -target bpf -O2 -Wall -c bindmonitor.c -o bindmonitor.o
+// For bpf code: clang -target bpf -O2 -Werror -c bindmonitor.c -o bindmonitor.o
 // this passes the checker
 
 #include "bpf_helpers.h"

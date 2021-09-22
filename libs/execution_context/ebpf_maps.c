@@ -93,7 +93,7 @@ _create_array_map_with_map_struct_size(
     }
 
     // allocate
-    map = ebpf_allocate_cache_aligned(full_map_size);
+    map = ebpf_epoch_allocate(full_map_size);
     if (map == NULL) {
         goto Done;
     }
@@ -115,7 +115,7 @@ _create_array_map(_In_ const ebpf_map_definition_in_memory_t* map_definition)
 static void
 _delete_array_map(_In_ ebpf_core_map_t* map)
 {
-    ebpf_free_cache_aligned(map);
+    ebpf_epoch_free(map);
 }
 
 static uint8_t*
@@ -418,7 +418,7 @@ _create_hash_map_with_map_struct_size(
     ebpf_result_t retval;
     ebpf_core_map_t* map = NULL;
 
-    map = ebpf_allocate(map_struct_size);
+    map = ebpf_epoch_allocate(map_struct_size);
     if (map == NULL) {
         retval = EBPF_NO_MEMORY;
         goto Done;
@@ -449,7 +449,7 @@ Done:
         if (map && map->data) {
             ebpf_hash_table_destroy((ebpf_hash_table_t*)map->data);
         }
-        ebpf_free(map);
+        ebpf_epoch_free(map);
         map = NULL;
     }
     return map;
@@ -487,7 +487,7 @@ _create_lru_hash_map(_In_ const ebpf_map_definition_in_memory_t* map_definition)
             NULL);
         if (retval != EBPF_SUCCESS) {
             ebpf_hash_table_destroy((ebpf_hash_table_t*)map->core_map.data);
-            ebpf_free(map);
+            ebpf_epoch_free(map);
             map = NULL;
         }
     }
@@ -499,7 +499,7 @@ static void
 _delete_hash_map(_In_ ebpf_core_map_t* map)
 {
     ebpf_hash_table_destroy((ebpf_hash_table_t*)map->data);
-    ebpf_free(map);
+    ebpf_epoch_free(map);
 }
 
 static void
@@ -508,7 +508,7 @@ _delete_lru_hash_map(_In_ ebpf_core_map_t* map)
     ebpf_core_lru_map_t* lru_map = EBPF_FROM_FIELD(ebpf_core_lru_map_t, core_map, map);
     ebpf_hash_table_destroy(lru_map->key_history);
     ebpf_hash_table_destroy((ebpf_hash_table_t*)lru_map->core_map.data);
-    ebpf_free(map);
+    ebpf_epoch_free(map);
 }
 
 static void
@@ -1044,7 +1044,7 @@ Exit:
         if (local_map) {
             ebpf_object_release_reference(inner_map_template_object);
             ebpf_free(local_map->name.value);
-            ebpf_free(local_map);
+            ebpf_epoch_free(local_map);
         }
     }
     return result;
@@ -1215,7 +1215,8 @@ ebpf_map_get_info(
     info->key_size = map->ebpf_map_definition.key_size;
     info->value_size = map->original_value_size;
     info->max_entries = map->ebpf_map_definition.max_entries;
-    info->inner_map_id = map->ebpf_map_definition.inner_map_id;
+    info->inner_map_id = (map->inner_map_template) ? map->inner_map_template->object.id : EBPF_ID_NONE;
+    info->pinned_path_count = map->object.pinned_path_count;
     strncpy_s(info->name, sizeof(info->name), (char*)map->name.value, map->name.length);
 
     *info_size = sizeof(*info);

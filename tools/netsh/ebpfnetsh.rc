@@ -99,15 +99,16 @@ BEGIN
     HLP_EBPF_SET_PROGRAM    "Updates an eBPF program.\n"
     HLP_EBPF_SET_PROGRAM_EX "\
 \nUsage: %1!s! [id=]<integer>\
-\n                   [[attached=]yes|no]\
+\n                   [[attached=]<string>]\
 \n                   [[pinpath=]<string>]\
 \n\
 \nParameters:\
 \n\
 \n      Tag         Value\
 \n      id        - Program ID as shown via ""show programs"".\
-\n      attached  - Yes to attach a detached program using its\
-\n                  default attach type, or no to detach it.\
+\n      attached  - A string used as if it were a section name, to\
+\n                  determine the attach type.  Use an empty string\
+\n                  to detach it.\
 \n      pinpath   - The name to pin the program to, or if not\
 \n                  empty, unpin the program.\
 \n\

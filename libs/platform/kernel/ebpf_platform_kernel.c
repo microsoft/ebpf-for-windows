@@ -255,6 +255,28 @@ ebpf_interlocked_compare_exchange_pointer(
     return InterlockedCompareExchangePointer((void* volatile*)destination, (void*)exchange, (void*)comperand);
 }
 
+ebpf_result_t
+ebpf_set_current_thread_affinity(uintptr_t new_thread_affinity_mask, _Out_ uintptr_t* old_thread_affinity_mask)
+{
+    if (KeGetCurrentIrql() > PASSIVE_LEVEL) {
+        return EBPF_OPERATION_NOT_SUPPORTED;
+    }
+
+    KAFFINITY old_affinity = KeSetSystemAffinityThreadEx(new_thread_affinity_mask);
+    if (old_affinity == 0) {
+        return EBPF_OPERATION_NOT_SUPPORTED;
+    } else {
+        *old_thread_affinity_mask = old_affinity;
+        return EBPF_SUCCESS;
+    }
+}
+
+void
+ebpf_restore_current_thread_affinity(uintptr_t old_thread_affinity_mask)
+{
+    KeRevertToUserAffinityThreadEx(old_thread_affinity_mask);
+}
+
 _Ret_range_(>, 0) uint32_t ebpf_get_cpu_count() { return KeQueryMaximumProcessorCount(); }
 
 bool

@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-// clang -O2 -Wall -c divide_by_zero.c -o divide_by_zero_jit.o
+// clang -O2 -Werror -c divide_by_zero.c -o divide_by_zero_jit.o
 //
-// For bpf code: clang -target bpf -O2 -Wall -c divide_by_zero.c -o divide_by_zero.o
+// For bpf code: clang -target bpf -O2 -Werror -c divide_by_zero.c -o divide_by_zero.o
 // this passes the checker
 
 #include "bpf_helpers.h"
