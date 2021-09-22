@@ -263,12 +263,8 @@ ebpf_set_current_thread_affinity(uintptr_t new_thread_affinity_mask, _Out_ uintp
     }
 
     KAFFINITY old_affinity = KeSetSystemAffinityThreadEx(new_thread_affinity_mask);
-    if (old_affinity == 0) {
-        return EBPF_OPERATION_NOT_SUPPORTED;
-    } else {
-        *old_thread_affinity_mask = old_affinity;
-        return EBPF_SUCCESS;
-    }
+    *old_thread_affinity_mask = old_affinity;
+    return EBPF_SUCCESS;
 }
 
 void
