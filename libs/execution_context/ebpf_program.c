@@ -179,6 +179,7 @@ Exit:
 static void
 _ebpf_program_free(ebpf_object_t* object)
 {
+    size_t index;
     ebpf_program_t* program = (ebpf_program_t*)object;
     if (!program) {
         return;
@@ -187,6 +188,9 @@ _ebpf_program_free(ebpf_object_t* object)
     // Detach from all the attach points.
     _ebpf_program_detach_links(program);
     ebpf_assert(ebpf_list_is_empty(&program->links));
+
+    for (index = 0; index < program->count_of_maps; index++)
+        ebpf_object_release_reference((ebpf_object_t*)program->maps[index]);
 
     ebpf_epoch_schedule_work_item(program->cleanup_work_item);
 }
@@ -208,7 +212,6 @@ static void
 _ebpf_program_epoch_free(void* context)
 {
     ebpf_program_t* program = (ebpf_program_t*)context;
-    size_t index;
 
     ebpf_lock_destroy(&program->links_lock);
 
@@ -229,9 +232,6 @@ _ebpf_program_epoch_free(void* context)
     ebpf_free(program->parameters.program_name.value);
     ebpf_free(program->parameters.section_name.value);
     ebpf_free(program->parameters.file_name.value);
-
-    for (index = 0; index < program->count_of_maps; index++)
-        ebpf_object_release_reference((ebpf_object_t*)program->maps[index]);
 
     ebpf_free(program->maps);
 
