@@ -138,7 +138,7 @@ TEST_CASE("map_crud_operations_lru_hash", "[execution_context]")
     _test_crud_operations(BPF_MAP_TYPE_LRU_HASH, false, true);
 }
 
-TEST_CASE("map_crud_operations_lpm_trie", "[execution_context]")
+TEST_CASE("map_crud_operations_lpm_trie_32", "[execution_context]")
 {
     _ebpf_core_initializer core;
 
@@ -179,6 +179,115 @@ TEST_CASE("map_crud_operations_lpm_trie", "[execution_context]")
         {{32, 10, 10, 10, 10}, "10.0.0.0/16"},
         {{32, 10, 11, 10, 10}, "10.0.0.0/8"},
     };
+
+    for (auto& [key, value] : keys) {
+        REQUIRE(
+            ebpf_map_update_entry(
+                map.get(),
+                0,
+                reinterpret_cast<const uint8_t*>(&key),
+                0,
+                reinterpret_cast<const uint8_t*>(value),
+                EBPF_ANY,
+                EBPF_MAP_FLAG_HELPER) == EBPF_SUCCESS);
+    }
+
+    for (auto& [key, result] : tests) {
+        char* value = nullptr;
+        REQUIRE(
+            ebpf_map_find_entry(
+                map.get(),
+                0,
+                reinterpret_cast<const uint8_t*>(&key),
+                0,
+                reinterpret_cast<uint8_t*>(&value),
+                EBPF_MAP_FLAG_HELPER) == EBPF_SUCCESS);
+        REQUIRE(std::string(value) == result);
+    }
+}
+
+void
+generate_prefix(size_t length, uint8_t value, uint8_t prefix[16])
+{
+    size_t index = 0;
+    memset(prefix, 0, sizeof(prefix));
+    for (index = 0; index < length / 8; index++) {
+        prefix[index] = value;
+    }
+    prefix[index] = value << (8 - (length % 8));
+}
+
+TEST_CASE("map_crud_operations_lpm_trie_128", "[execution_context]")
+{
+    _ebpf_core_initializer core;
+
+    typedef struct _lpm_trie_key
+    {
+        uint32_t prefix_length;
+        uint8_t value[16];
+    } lpm_trie_key_t;
+
+    ebpf_map_definition_in_memory_t map_definition{
+        sizeof(ebpf_map_definition_in_memory_t), BPF_MAP_TYPE_LPM_TRIE, sizeof(lpm_trie_key_t), 20, 10};
+    map_ptr map;
+    {
+        ebpf_map_t* local_map;
+        ebpf_utf8_string_t map_name = {0};
+        REQUIRE(
+            ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
+        map.reset(local_map);
+    }
+
+    std::vector<std::pair<lpm_trie_key_t, const char*>> keys{
+        {{96}, "CC/96"},
+        {{96}, "CD/96"},
+        {{124}, "DD/124"},
+        {{120}, "DD/120"},
+        {{116}, "DD/116"},
+        {{64}, "AA/64"},
+        {{64}, "BB/64"},
+        {{32}, "BB/32"},
+    };
+    {
+        std::vector<uint8_t> values{
+            0xCC,
+            0xCD,
+            0xDD,
+            0xDD,
+            0xDD,
+            0xAA,
+            0xBB,
+            0xBB,
+        };
+        for (size_t index = 0; index < values.size(); index++) {
+            generate_prefix(keys[index].first.prefix_length, values[index], keys[index].first.value);
+        }
+    }
+    std::vector<std::pair<lpm_trie_key_t, std::string>> tests{
+        {{96}, "CC/96"},
+        {{96}, "CD/96"},
+        {{124}, "DD/124"},
+        {{120}, "DD/120"},
+        {{116}, "DD/116"},
+        {{64}, "AA/64"},
+        {{64}, "BB/64"},
+        {{32}, "BB/32"},
+    };
+    {
+        std::vector<uint8_t> values{
+            0xCC,
+            0xCD,
+            0xDD,
+            0xDD,
+            0xDD,
+            0xAA,
+            0xBB,
+            0xBB,
+        };
+        for (size_t index = 0; index < values.size(); index++) {
+            generate_prefix(tests[index].first.prefix_length, values[index], tests[index].first.value);
+        }
+    }
 
     for (auto& [key, value] : keys) {
         REQUIRE(
