@@ -1507,6 +1507,7 @@ ebpf_object_open(
     _ebpf_objects.emplace_back(*object);
 
 Done:
+    clear_map_descriptors();
     if (result != EBPF_SUCCESS) {
         _clean_up_ebpf_object(new_object);
     }
@@ -1683,8 +1684,6 @@ ebpf_program_load(
         if (result != EBPF_SUCCESS) {
             goto Done;
         }
-
-        new_object->loaded = true;
 
         *object = new_object;
         *program_fd = new_object->programs[0]->fd;

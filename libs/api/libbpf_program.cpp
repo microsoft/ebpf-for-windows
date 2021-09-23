@@ -293,7 +293,8 @@ bpf_program__get_type(const struct bpf_program* program)
 void
 bpf_program__set_type(struct bpf_program* program, enum bpf_prog_type type)
 {
-    program->program_type = *_get_ebpf_program_type(type);
+    const ebpf_program_type_t* program_type = _get_ebpf_program_type(type);
+    program->program_type = (program_type != nullptr) ? *program_type : EBPF_PROGRAM_TYPE_UNSPECIFIED;
 }
 
 int
