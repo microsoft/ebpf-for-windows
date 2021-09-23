@@ -344,3 +344,12 @@ libbpf_prog_type_by_name(const char* name, enum bpf_prog_type* prog_type, enum b
     errno = ESRCH;
     return -1;
 }
+
+void
+bpf_program__unload(struct bpf_program* prog)
+{
+    ebpf_result_t result = ebpf_program_unload(prog);
+    if (result != EBPF_SUCCESS) {
+        errno = ebpf_result_to_errno(result);
+    }
+}

@@ -122,6 +122,17 @@ _Ret_maybenull_ struct bpf_program*
 ebpf_program_previous(_In_opt_ const struct bpf_program* next, _In_ const struct bpf_object* object);
 
 /**
+ * @brief Unload an eBPF program.
+ *
+ * @param[in] program Program to unload.
+ *
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_INVALID_ARGUMENT One or more parameters are wrong.
+ */
+ebpf_result_t
+ebpf_program_unload(_In_ struct bpf_program* program);
+
+/**
  * @brief Get next map in ebpf_object object.
  *
  * @param[in] previous Pointer to previous eBPF map, or NULL to get the first one.

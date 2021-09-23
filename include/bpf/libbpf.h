@@ -637,6 +637,17 @@ void
 bpf_program__set_type(struct bpf_program* prog, enum bpf_prog_type type);
 
 /**
+ * @brief Unload a program.
+ *
+ * @param[in] prog Program to unload.
+ *
+ * @sa bpf_object__unload
+ * @sa bpf_prog_load
+ */
+void
+bpf_program__unload(struct bpf_program* prog);
+
+/**
  * @brief Unpin a program.
  *
  * @param[in] prog Program to unpin.

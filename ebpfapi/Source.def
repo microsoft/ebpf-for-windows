@@ -65,6 +65,7 @@ EXPORTS
     bpf_program__section_name
     bpf_program__set_expected_attach_type
     bpf_program__set_type
+    bpf_program__unload
     bpf_program__unpin
     ebpf_api_initiate
     ebpf_api_terminate

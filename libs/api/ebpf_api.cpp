@@ -1288,12 +1288,8 @@ clean_up_ebpf_program(_In_ _Post_invalid_ ebpf_program_t* program)
     if (program == nullptr) {
         return;
     }
-    if (program->fd != ebpf_fd_invalid) {
-        Platform::_close(program->fd);
-    }
-    if (program->handle != ebpf_handle_invalid) {
-        _ebpf_programs.erase(program->handle);
-    }
+    ebpf_program_unload(program);
+
     free(program->byte_code);
     free(program->program_name);
     free(program->section_name);
@@ -1316,7 +1312,7 @@ clean_up_ebpf_map(_In_ _Post_invalid_ ebpf_map_t* map)
     if (map == nullptr) {
         return;
     }
-    if (map->map_fd != 0) {
+    if (map->map_fd > 0) {
         Platform::_close(map->map_fd);
     }
     if (map->map_handle != ebpf_handle_invalid) {
@@ -1646,15 +1642,46 @@ Done:
     return result;
 }
 
+// This function is intended to work like libbpf's bpf_object__unload().
 ebpf_result_t
 ebpf_object_unload(_In_ struct bpf_object* object)
 {
     if (!object)
         return EBPF_INVALID_ARGUMENT;
 
-    clean_up_ebpf_programs(object->programs);
-    clean_up_ebpf_maps(object->maps);
+    for (auto& map : object->maps) {
+        if (map->map_fd > 0) {
+            Platform::_close(map->map_fd);
+            map->map_fd = ebpf_fd_invalid;
+        }
+        if (map->map_handle != ebpf_handle_invalid) {
+            _ebpf_maps.erase(map->map_handle);
+            map->map_handle = ebpf_handle_invalid;
+        }
+    }
 
+    for (auto& program : object->programs) {
+        ebpf_program_unload(program);
+    }
+
+    return EBPF_SUCCESS;
+}
+
+// This function is intended to work like libbpf's bpf_program__unload().
+ebpf_result_t
+ebpf_program_unload(_In_ struct bpf_program* program)
+{
+    if (!program)
+        return EBPF_INVALID_ARGUMENT;
+
+    if (program->fd != ebpf_fd_invalid) {
+        Platform::_close(program->fd);
+        program->fd = ebpf_fd_invalid;
+    }
+    if (program->handle != ebpf_handle_invalid) {
+        _ebpf_programs.erase(program->handle);
+        program->handle = ebpf_handle_invalid;
+    }
     return EBPF_SUCCESS;
 }
 
