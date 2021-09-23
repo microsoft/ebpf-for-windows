@@ -28,9 +28,6 @@ jobs:
       BUILD_PLATFORM: x64
 
     steps:
-    #- name: Add MSBuild to PATH
-    #uses: microsoft/setup-msbuild@v1
-
     - uses: actions/checkout@v2
       with:
         submodules: 'recursive'
