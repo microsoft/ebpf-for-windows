@@ -887,7 +887,7 @@ _lpm_trie_matching_key_prefix_length(
         }
         remaining_key_length_in_bits -= 8;
     }
-    if (!remaining_key_length_in_bits) {
+    if (remaining_key_length_in_bits == 0) {
         return maximum_matching_length;
     }
 
