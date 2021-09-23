@@ -116,3 +116,9 @@ bpf_object__load(struct bpf_object* object)
 
     return bpf_object__load_xattr(&attr);
 }
+
+int
+bpf_object__unload(struct bpf_object* obj)
+{
+    return libbpf_result_err(ebpf_object_unload(obj));
+}

@@ -278,12 +278,28 @@ bpf_object__find_program_by_name(const struct bpf_object* obj, const char* name)
  * @exception EINVAL An invalid argument was provided.
  * @exception ENOMEM Out of memory.
  *
- * @sa bpf_object__open
  * @sa bpf_object__load_xattr
+ * @sa bpf_object__open
+ * @sa bpf_object__unload
  * @sa bpf_prog_load
  */
 int
 bpf_object__load(struct bpf_object* obj);
+
+/**
+ * @brief Unload all the programs in a given object.
+ *
+ * @param[in] obj Object in which to unload programs.
+ *
+ * @retval 0 The operation was successful.
+ * @retval <0 An error occured, and errno was set.
+ *
+ * @sa bpf_object__load
+ * @sa bpf_object__load_xattr
+ * @sa bpf_prog_load
+ */
+int
+bpf_object__unload(struct bpf_object* obj);
 
 /**
  * @brief Load all the programs in a given object.

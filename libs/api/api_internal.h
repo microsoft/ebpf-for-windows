@@ -437,3 +437,14 @@ ebpf_object_load(
     _Inout_ struct bpf_object* object,
     ebpf_execution_type_t execution_type,
     _Outptr_result_maybenull_z_ const char** error_message);
+
+/**
+ * @brief Unload all the programs in a given object.
+ *
+ * @param[in] object Object in which to unload programs.
+ *
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_INVALID_ARGUMENT One or more parameters are wrong.
+ */
+ebpf_result_t
+ebpf_object_unload(_In_ struct bpf_object* object);

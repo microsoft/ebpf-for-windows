@@ -47,6 +47,7 @@ EXPORTS
     bpf_object__pin
     bpf_object__pin_maps
     bpf_object__pin_programs
+    bpf_object__unload
     bpf_object__unpin_maps
     bpf_object__unpin_programs
     bpf_prog_get_fd_by_id

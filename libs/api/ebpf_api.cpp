@@ -1607,6 +1607,7 @@ _ebpf_object_load_programs(
     return result;
 }
 
+// This logic is intended to be similar to libbpf's bpf_object__load_xattr().
 ebpf_result_t
 ebpf_object_load(
     _Inout_ struct bpf_object* object,
@@ -1640,9 +1641,21 @@ ebpf_object_load(
 
 Done:
     if (result != EBPF_SUCCESS) {
-        clean_up_ebpf_maps(object->maps);
+        ebpf_object_unload(object);
     }
     return result;
+}
+
+ebpf_result_t
+ebpf_object_unload(_In_ struct bpf_object* object)
+{
+    if (!object)
+        return EBPF_INVALID_ARGUMENT;
+
+    clean_up_ebpf_programs(object->programs);
+    clean_up_ebpf_maps(object->maps);
+
+    return EBPF_SUCCESS;
 }
 
 ebpf_result_t
