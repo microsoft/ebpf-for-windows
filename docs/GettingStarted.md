@@ -18,7 +18,8 @@ The following must be installed in order to build this project:
 1. ```git clone --recurse-submodules https://github.com/microsoft/ebpf-for-windows.git```
 2. ```cd ebpf-for-windows```
 3. ```cmake -S external\ebpf-verifier -B external\ebpf-verifier\build```
-4. ```msbuild /m /p:Configuration=Debug /p:Platform=x64 ebpf-for-windows.sln```
+4. ```nuget restore ebpf-for-windows.sln```
+5. ```msbuild /m /p:Configuration=Debug /p:Platform=x64 ebpf-for-windows.sln```
    or to build from within Visual Studio:
    - Open ebpf-for-windows.sln
    - Switch to debug / x64
