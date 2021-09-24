@@ -78,6 +78,8 @@ get_all_map_handles(void);
 std::vector<map_cache_t>
 get_all_map_descriptors();
 
+// This should be consistent with _ebpf_result_to_ntstatus()
+// in ebpf_drv.c.
 __forceinline ebpf_result_t
 windows_error_to_ebpf_result(uint32_t error)
 {
@@ -102,6 +104,7 @@ windows_error_to_ebpf_result(uint32_t error)
         break;
 
     case ERROR_NO_MORE_ITEMS:
+    case ERROR_NO_MORE_MATCHES:
         result = EBPF_NO_MORE_KEYS;
         break;
 
