@@ -268,6 +268,58 @@ struct bpf_program*
 bpf_object__find_program_by_name(const struct bpf_object* obj, const char* name);
 
 /**
+ * @brief Load all the programs in a given object.
+ *
+ * @param[in] obj Object from which to load programs.
+ *
+ * @retval 0 The operation was successful.
+ * @retval <0 An error occured, and errno was set.
+ *
+ * @exception EINVAL An invalid argument was provided.
+ * @exception ENOMEM Out of memory.
+ *
+ * @sa bpf_object__load_xattr
+ * @sa bpf_object__open
+ * @sa bpf_object__unload
+ * @sa bpf_prog_load
+ */
+int
+bpf_object__load(struct bpf_object* obj);
+
+/**
+ * @brief Unload all the programs in a given object.
+ *
+ * @param[in] obj Object in which to unload programs.
+ *
+ * @retval 0 The operation was successful.
+ * @retval <0 An error occured, and errno was set.
+ *
+ * @sa bpf_object__load
+ * @sa bpf_object__load_xattr
+ * @sa bpf_prog_load
+ */
+int
+bpf_object__unload(struct bpf_object* obj);
+
+/**
+ * @brief Load all the programs in a given object.
+ *
+ * @param[in] attr Structure with load attributes.
+ *
+ * @retval 0 The operation was successful.
+ * @retval <0 An error occured, and errno was set.
+ *
+ * @exception EINVAL An invalid argument was provided.
+ * @exception ENOMEM Out of memory.
+ *
+ * @sa bpf_object__open
+ * @sa bpf_object__load_xattr
+ * @sa bpf_prog_load
+ */
+int
+bpf_object__load_xattr(struct bpf_object_load_attr* attr);
+
+/**
  * @brief Get the name of an eBPF object.
  *
  * @param[in] obj The object to check.
@@ -286,6 +338,17 @@ bpf_object__name(const struct bpf_object* obj);
  */
 struct bpf_object*
 bpf_object__next(struct bpf_object* prev);
+
+/**
+ * @brief Open a file without loading the programs.
+ *
+ * @param[in] path File name to open.
+ * @param[opts] opts Options to use when opening the object.
+ *
+ * @returns Pointer to an eBPF object, or NULL on failure.
+ */
+struct bpf_object*
+bpf_object__open_file(const char* path, const struct bpf_object_open_opts* opts);
 
 /**
  * @brief Pin an eBPF object to a specified path.
@@ -469,6 +532,18 @@ enum bpf_attach_type
 bpf_program__get_expected_attach_type(const struct bpf_program* prog);
 
 /**
+ * @brief Get the program type for an eBPF program.
+ *
+ * @param[in] prog Program to check.
+ *
+ * @returns Program type.
+ *
+ * @sa bpf_program__get_expected_attach_type
+ */
+enum bpf_prog_type
+bpf_program__get_type(const struct bpf_program* prog);
+
+/**
  * @brief Get the function name of an eBPF program.
  *
  * @param[in] prog Program to check.
@@ -551,6 +626,28 @@ void
 bpf_program__set_expected_attach_type(struct bpf_program* prog, enum bpf_attach_type type);
 
 /**
+ * @brief Set the program type for an eBPF program.
+ *
+ * @param[in] prog Program to update.
+ * @param[in] type Program type to set.
+ *
+ * @sa bpf_program__set_expected_attach_type
+ */
+void
+bpf_program__set_type(struct bpf_program* prog, enum bpf_prog_type type);
+
+/**
+ * @brief Unload a program.
+ *
+ * @param[in] prog Program to unload.
+ *
+ * @sa bpf_object__unload
+ * @sa bpf_prog_load
+ */
+void
+bpf_program__unload(struct bpf_program* prog);
+
+/**
  * @brief Unpin a program.
  *
  * @param[in] prog Program to unpin.
@@ -580,6 +677,31 @@ bpf_program__unpin(struct bpf_program* prog, const char* path);
  */
 int
 libbpf_prog_type_by_name(const char* name, enum bpf_prog_type* prog_type, enum bpf_attach_type* expected_attach_type);
+
+/** @} */
+
+/**
+ * @name System-related functions
+ * @{
+ */
+
+/**
+ * @brief Get a negative error code based on errno and a possibly null pointer.
+ *
+ * @param[in] ptr Pointer that may be NULL.
+ *
+ * @returns Negative error code.
+ */
+long
+libbpf_get_error(const void* ptr);
+
+/**
+ * @brief Get the number of processors on the current system.
+ *
+ * @returns Number of processors.
+ */
+int
+libbpf_num_possible_cpus(void);
 
 /** @} */
 

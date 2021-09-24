@@ -169,8 +169,8 @@ static const char*
 _ebpf_map_type_t_to_string(ebpf_map_type_t type)
 {
     switch (type) {
-    case BPF_MAP_TYPE_UNSPECIFIED:
-        return "BPF_MAP_TYPE_UNSPECIFIED";
+    case BPF_MAP_TYPE_UNSPEC:
+        return "BPF_MAP_TYPE_UNSPEC";
     case BPF_MAP_TYPE_HASH:
         return "BPF_MAP_TYPE_HASH";
     case BPF_MAP_TYPE_ARRAY:

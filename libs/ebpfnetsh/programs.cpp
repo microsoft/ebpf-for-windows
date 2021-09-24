@@ -9,9 +9,9 @@
 #include <windows.h>
 #include <combaseapi.h>
 #include <netsh.h>
-#include "bpf.h"
+#include "bpf/bpf.h"
+#include "bpf/libbpf.h"
 #include "ebpf_api.h"
-#include "libbpf.h"
 #include "platform.h"
 #include "programs.h"
 #include "tokens.h"

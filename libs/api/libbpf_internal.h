@@ -18,3 +18,10 @@ libbpf_result_err(ebpf_result_t result)
 {
     return libbpf_err(-ebpf_result_to_errno(result));
 }
+
+static inline void*
+libbpf_err_ptr(int err)
+{
+    errno = -err;
+    return NULL;
+}

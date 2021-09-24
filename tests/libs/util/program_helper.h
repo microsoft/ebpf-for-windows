@@ -5,9 +5,9 @@
  * @brief Utility functions for loading and attaching test eBPF programs.
  */
 
-#include "bpf.h"
+#include "bpf/bpf.h"
+#include "bpf/libbpf.h"
 #include "helpers.h"
-#include "libbpf.h"
 
 typedef class _program_load_attach_helper
 {

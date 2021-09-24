@@ -4,14 +4,14 @@
 #include <windows.h>
 #include <netsh.h> // Must be included after windows.h
 #include <string.h>
-#include "ebpf_epoch.h"
+#include "bpf/bpf.h"
 #pragma warning(push)
 #pragma warning(disable : 4200)
-#include "libbpf.h"
+#include "bpf/libbpf.h"
 #pragma warning(pop)
+#include "ebpf_epoch.h"
 #include "netsh_test_helper.h"
 #include "platform.h"
-#include "programs.h"
 #include "test_helper.hpp"
 
 TEST_CASE("show disassembly bpf.o", "[netsh][disassembly]")

@@ -7,11 +7,11 @@
 #include <mutex>
 #include <thread>
 #include "api_test.h"
+#include "bpf/libbpf.h"
 #include "catch_wrapper.hpp"
 #include "common_tests.h"
 #include <io.h>
 #include "service_helper.h"
-#include "libbpf.h"
 #define SAMPLE_PATH ""
 
 #define EBPF_CORE_DRIVER_BINARY_NAME L"ebpfcore.sys"

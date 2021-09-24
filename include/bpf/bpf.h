@@ -199,7 +199,7 @@ bpf_map_update_elem(int fd, const void* key, const void* value, __u64 flags);
 
 /**
  * @brief Get a file descriptor for a pinned object by pin path.
- * @param[in] path Pin path for the object.
+ * @param[in] pathname Pin path for the object.
  *
  * @return file descriptor for the pinned object, or -1 if not found.
  */

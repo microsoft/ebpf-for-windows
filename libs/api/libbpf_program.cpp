@@ -27,6 +27,19 @@ _get_ebpf_program_type(enum bpf_prog_type type)
     return nullptr;
 }
 
+static enum bpf_prog_type
+_get_bpf_program_type(const ebpf_program_type_t* type)
+{
+    // TODO(issue #223): read this mapping from the registry
+    if (memcmp(type, &EBPF_PROGRAM_TYPE_XDP, sizeof(*type)) == 0) {
+        return BPF_PROG_TYPE_XDP;
+    }
+    if (memcmp(type, &EBPF_PROGRAM_TYPE_BIND, sizeof(*type)) == 0) {
+        return BPF_PROG_TYPE_BIND;
+    }
+    return BPF_PROG_TYPE_UNSPEC;
+}
+
 static const ebpf_attach_type_t*
 _get_ebpf_attach_type(enum bpf_attach_type type)
 {
@@ -271,6 +284,19 @@ bpf_program__set_expected_attach_type(struct bpf_program* program, enum bpf_atta
     program->attach_type = *_get_ebpf_attach_type(type);
 }
 
+enum bpf_prog_type
+bpf_program__get_type(const struct bpf_program* program)
+{
+    return _get_bpf_program_type(&program->program_type);
+}
+
+void
+bpf_program__set_type(struct bpf_program* program, enum bpf_prog_type type)
+{
+    const ebpf_program_type_t* program_type = _get_ebpf_program_type(type);
+    program->program_type = (program_type != nullptr) ? *program_type : EBPF_PROGRAM_TYPE_UNSPECIFIED;
+}
+
 int
 bpf_prog_get_fd_by_id(uint32_t id)
 {
@@ -317,4 +343,13 @@ libbpf_prog_type_by_name(const char* name, enum bpf_prog_type* prog_type, enum b
 
     errno = ESRCH;
     return -1;
+}
+
+void
+bpf_program__unload(struct bpf_program* prog)
+{
+    ebpf_result_t result = ebpf_program_unload(prog);
+    if (result != EBPF_SUCCESS) {
+        errno = ebpf_result_to_errno(result);
+    }
 }
