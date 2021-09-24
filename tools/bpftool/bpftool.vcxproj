@@ -152,6 +152,7 @@
       <PreprocessorDefinitions>BPFTOOL_VERSION="0.1";_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(ProjectDir);$(SolutionDir)include;$(SolutionDir)external/libbpf/src;$(SolutionDir)external/win-c/include</AdditionalIncludeDirectories>
+      <AdditionalOptions>/analyze:stacksize 163884 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -169,6 +170,7 @@
       <PreprocessorDefinitions>BPFTOOL_VERSION="0.1";NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(ProjectDir);$(SolutionDir)include;$(SolutionDir)external/libbpf/src;$(SolutionDir)external/win-c/include</AdditionalIncludeDirectories>
+      <AdditionalOptions>/analyze:stacksize 163884 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
