@@ -60,6 +60,8 @@ _ebpf_driver_io_device_control(
     size_t input_buffer_length,
     ULONG io_control_code);
 
+// This should be consistent with windows_error_to_ebpf_result()
+// in api_common.hpp.
 inline NTSTATUS
 _ebpf_result_to_ntstatus(ebpf_result_t result)
 {
