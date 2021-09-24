@@ -78,8 +78,50 @@ Data Fields</h2></td></tr>
 <tr class="memitem:a58b4021ef61000e376be819e1da615a6"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__structs_8h.html#aa03abb9b99ca6cfa2fa19f2fb8140df8">ebpf_id_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structbpf__link__info.html#a58b4021ef61000e376be819e1da615a6">prog_id</a></td></tr>
 <tr class="memdesc:a58b4021ef61000e376be819e1da615a6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Program ID.  <a href="structbpf__link__info.html#a58b4021ef61000e376be819e1da615a6">More...</a><br /></td></tr>
 <tr class="separator:a58b4021ef61000e376be819e1da615a6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9de2daef9739178a6c654228e8ef0961"><td class="memItemLeft" align="right" valign="top">enum <a class="el" href="ebpf__structs_8h.html#a354e84389719f1a5541fbca272618eaf">bpf_link_type</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structbpf__link__info.html#a9de2daef9739178a6c654228e8ef0961">type</a></td></tr>
+<tr class="memdesc:a9de2daef9739178a6c654228e8ef0961"><td class="mdescLeft">&#160;</td><td class="mdescRight">Link type.  <a href="structbpf__link__info.html#a9de2daef9739178a6c654228e8ef0961">More...</a><br /></td></tr>
+<tr class="separator:a9de2daef9739178a6c654228e8ef0961"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0d629366c9f279f534c359708e1f1de1"><td class="memItemLeft" >union {</td></tr>
+<tr class="memitem:a3815d9a3f13f3f92accc73b127050542"><td class="memItemLeft" >&#160;&#160;&#160;struct {</td></tr>
+<tr class="memitem:a37f120d8dd8111b90cfb7d1fef09b1ca"><td class="memItemLeft" >&#160;&#160;&#160;&#160;&#160;&#160;int&#160;&#160;&#160;<a class="el" href="structbpf__link__info.html#a1c3f587bf50cd0064f67bbefcd089364">attach_type</a></td></tr>
+<tr class="memdesc:a37f120d8dd8111b90cfb7d1fef09b1ca"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attach type integer.  <a href="structbpf__link__info_1_1_0d0_1_1_0d2.html#a37f120d8dd8111b90cfb7d1fef09b1ca">More...</a><br /></td></tr>
+<tr class="separator:a37f120d8dd8111b90cfb7d1fef09b1ca"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3815d9a3f13f3f92accc73b127050542"><td class="memItemLeft" valign="top">&#160;&#160;&#160;}&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
+<tr class="separator:a3815d9a3f13f3f92accc73b127050542"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0d629366c9f279f534c359708e1f1de1"><td class="memItemLeft" valign="top">};&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
+<tr class="separator:a0d629366c9f279f534c359708e1f1de1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Field Documentation</h2>
+<a id="a0d629366c9f279f534c359708e1f1de1"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a0d629366c9f279f534c359708e1f1de1">&#9670;&nbsp;</a></span>@1</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">union { ... } </td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a1c3f587bf50cd0064f67bbefcd089364"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1c3f587bf50cd0064f67bbefcd089364">&#9670;&nbsp;</a></span>attach_type</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int bpf_link_info::attach_type</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Attach type integer. </p>
+
+</div>
+</div>
 <a id="af38c04d5b8713678bd18719734398a73"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#af38c04d5b8713678bd18719734398a73">&#9670;&nbsp;</a></span>id</h2>
 
@@ -109,6 +151,22 @@ Data Fields</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Program ID. </p>
+
+</div>
+</div>
+<a id="a9de2daef9739178a6c654228e8ef0961"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a9de2daef9739178a6c654228e8ef0961">&#9670;&nbsp;</a></span>type</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">enum <a class="el" href="ebpf__structs_8h.html#a354e84389719f1a5541fbca272618eaf">bpf_link_type</a> bpf_link_info::type</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Link type. </p>
 
 </div>
 </div>

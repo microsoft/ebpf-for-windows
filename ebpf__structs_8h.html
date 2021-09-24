@@ -103,6 +103,12 @@ Macros</h2></td></tr>
 <tr class="separator:a388fd28300caec17017c2fc514a162a6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abc5e07d826c22d4c2b46fd1fb5a2e93e"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__structs_8h.html#abc5e07d826c22d4c2b46fd1fb5a2e93e">BPF_OBJ_NAME_LEN</a>&#160;&#160;&#160;64</td></tr>
 <tr class="separator:abc5e07d826c22d4c2b46fd1fb5a2e93e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a796578ca395aca4494d6a84c01cd3330"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__structs_8h.html#a796578ca395aca4494d6a84c01cd3330">BPF_ANY</a>&#160;&#160;&#160;0x0</td></tr>
+<tr class="separator:a796578ca395aca4494d6a84c01cd3330"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4e2941429633c74bc65f828949705337"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__structs_8h.html#a4e2941429633c74bc65f828949705337">BPF_NOEXIST</a>&#160;&#160;&#160;0x1</td></tr>
+<tr class="separator:a4e2941429633c74bc65f828949705337"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4dd42c358e8becc9052bad912876f82c"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__structs_8h.html#a4dd42c358e8becc9052bad912876f82c">BPF_EXIST</a>&#160;&#160;&#160;0x2</td></tr>
+<tr class="separator:a4dd42c358e8becc9052bad912876f82c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="typedef-members"></a>
 Typedefs</h2></td></tr>
@@ -124,7 +130,7 @@ Typedefs</h2></td></tr>
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="enum-members"></a>
 Enumerations</h2></td></tr>
 <tr class="memitem:afd97ad5450067d01ec6b6cd3c30761a1"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__structs_8h.html#afd97ad5450067d01ec6b6cd3c30761a1">bpf_map_type</a> { <br />
-&#160;&#160;<a class="el" href="ebpf__structs_8h.html#afd97ad5450067d01ec6b6cd3c30761a1a4aa183ff27ce9e1271dd3939e722f407">BPF_MAP_TYPE_UNSPECIFIED</a> = 0, 
+&#160;&#160;<a class="el" href="ebpf__structs_8h.html#afd97ad5450067d01ec6b6cd3c30761a1ad7485aff9cabb71cc683bb7037dd76a6">BPF_MAP_TYPE_UNSPEC</a> = 0, 
 <a class="el" href="ebpf__structs_8h.html#afd97ad5450067d01ec6b6cd3c30761a1ae21084f25e9cb0889604d7e8b3c58575">BPF_MAP_TYPE_HASH</a> = 1, 
 <a class="el" href="ebpf__structs_8h.html#afd97ad5450067d01ec6b6cd3c30761a1ad992c770dd3affefa8d83220d99319e0">BPF_MAP_TYPE_ARRAY</a> = 2, 
 <a class="el" href="ebpf__structs_8h.html#afd97ad5450067d01ec6b6cd3c30761a1ae1ec5cf07509595615d558884ba109b2">BPF_MAP_TYPE_PROG_ARRAY</a>, 
@@ -157,13 +163,64 @@ Enumerations</h2></td></tr>
 <br />
  }</td></tr>
 <tr class="separator:aa752b12bfaedda8a28a7a88c1b96f272"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a0f8242763b15ec665eaa47c6add861a0"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0">bpf_prog_type</a> { <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0aa21c34810941a56e48bcf53206067a25">BPF_PROG_TYPE_UNKNOWN</a>, 
+<tr class="memitem:a0f8242763b15ec665eaa47c6add861a0"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0">bpf_prog_type</a> { <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0a958e0e8697a05086ba164ab5fea3eeb7">BPF_PROG_TYPE_UNSPEC</a>, 
 <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0a1945ca3d46bd1e589c4d0effe14f18d6">BPF_PROG_TYPE_XDP</a>, 
 <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0a2af8d41961c186b1a62fcc54a29446d2">BPF_PROG_TYPE_BIND</a>
  }</td></tr>
 <tr class="separator:a0f8242763b15ec665eaa47c6add861a0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a354e84389719f1a5541fbca272618eaf"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__structs_8h.html#a354e84389719f1a5541fbca272618eaf">bpf_link_type</a> { <a class="el" href="ebpf__structs_8h.html#a354e84389719f1a5541fbca272618eafa0de2e37582b89cb7fe3a05433604fbec">BPF_LINK_TYPE_UNSPEC</a>, 
+<a class="el" href="ebpf__structs_8h.html#a354e84389719f1a5541fbca272618eafabc44149b391f00ddd4f2b980191940c7">BPF_LINK_TYPE_PLAIN</a>
+ }</td></tr>
+<tr class="separator:a354e84389719f1a5541fbca272618eaf"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aac6b4c09fa267f53c1d213551e0ccd5a"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5a">bpf_attach_type</a> { <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aa68aee7490a9031b8e3838919541d51dc">BPF_ATTACH_TYPE_UNSPEC</a>, 
+<a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aaeafe93685e394bfefc0b0dab079d95ae">BPF_ATTACH_TYPE_XDP</a>, 
+<a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aa7bb29441638f2e3966fa94ebd4aeb82a">__MAX_BPF_ATTACH_TYPE</a>
+ }</td></tr>
+<tr class="separator:aac6b4c09fa267f53c1d213551e0ccd5a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Macro Definition Documentation</h2>
+<a id="a796578ca395aca4494d6a84c01cd3330"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a796578ca395aca4494d6a84c01cd3330">&#9670;&nbsp;</a></span>BPF_ANY</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define BPF_ANY&#160;&#160;&#160;0x0</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a4dd42c358e8becc9052bad912876f82c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4dd42c358e8becc9052bad912876f82c">&#9670;&nbsp;</a></span>BPF_EXIST</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define BPF_EXIST&#160;&#160;&#160;0x2</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a4e2941429633c74bc65f828949705337"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4e2941429633c74bc65f828949705337">&#9670;&nbsp;</a></span>BPF_NOEXIST</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define BPF_NOEXIST&#160;&#160;&#160;0x1</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <a id="abc5e07d826c22d4c2b46fd1fb5a2e93e"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#abc5e07d826c22d4c2b46fd1fb5a2e93e">&#9670;&nbsp;</a></span>BPF_OBJ_NAME_LEN</h2>
 
@@ -282,6 +339,43 @@ Enumerations</h2></td></tr>
 </div>
 </div>
 <h2 class="groupheader">Enumeration Type Documentation</h2>
+<a id="aac6b4c09fa267f53c1d213551e0ccd5a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aac6b4c09fa267f53c1d213551e0ccd5a">&#9670;&nbsp;</a></span>bpf_attach_type</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">enum <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5a">bpf_attach_type</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<table class="fieldtable">
+<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="aac6b4c09fa267f53c1d213551e0ccd5aa68aee7490a9031b8e3838919541d51dc"></a>BPF_ATTACH_TYPE_UNSPEC&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="aac6b4c09fa267f53c1d213551e0ccd5aaeafe93685e394bfefc0b0dab079d95ae"></a>BPF_ATTACH_TYPE_XDP&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="aac6b4c09fa267f53c1d213551e0ccd5aa7bb29441638f2e3966fa94ebd4aeb82a"></a>__MAX_BPF_ATTACH_TYPE&#160;</td><td class="fielddoc"></td></tr>
+</table>
+
+</div>
+</div>
+<a id="a354e84389719f1a5541fbca272618eaf"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a354e84389719f1a5541fbca272618eaf">&#9670;&nbsp;</a></span>bpf_link_type</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">enum <a class="el" href="ebpf__structs_8h.html#a354e84389719f1a5541fbca272618eaf">bpf_link_type</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<table class="fieldtable">
+<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="a354e84389719f1a5541fbca272618eafa0de2e37582b89cb7fe3a05433604fbec"></a>BPF_LINK_TYPE_UNSPEC&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="a354e84389719f1a5541fbca272618eafabc44149b391f00ddd4f2b980191940c7"></a>BPF_LINK_TYPE_PLAIN&#160;</td><td class="fielddoc"></td></tr>
+</table>
+
+</div>
+</div>
 <a id="afd97ad5450067d01ec6b6cd3c30761a1"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#afd97ad5450067d01ec6b6cd3c30761a1">&#9670;&nbsp;</a></span>bpf_map_type</h2>
 
@@ -294,7 +388,7 @@ Enumerations</h2></td></tr>
       </table>
 </div><div class="memdoc">
 <table class="fieldtable">
-<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="afd97ad5450067d01ec6b6cd3c30761a1a4aa183ff27ce9e1271dd3939e722f407"></a>BPF_MAP_TYPE_UNSPECIFIED&#160;</td><td class="fielddoc"><p>Unspecified map type. </p>
+<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="afd97ad5450067d01ec6b6cd3c30761a1ad7485aff9cabb71cc683bb7037dd76a6"></a>BPF_MAP_TYPE_UNSPEC&#160;</td><td class="fielddoc"><p>Unspecified map type. </p>
 </td></tr>
 <tr><td class="fieldname"><a id="afd97ad5450067d01ec6b6cd3c30761a1ae21084f25e9cb0889604d7e8b3c58575"></a>BPF_MAP_TYPE_HASH&#160;</td><td class="fielddoc"><p>Hash table. </p>
 </td></tr>
@@ -324,7 +418,7 @@ Enumerations</h2></td></tr>
       </table>
 </div><div class="memdoc">
 <table class="fieldtable">
-<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="a0f8242763b15ec665eaa47c6add861a0aa21c34810941a56e48bcf53206067a25"></a>BPF_PROG_TYPE_UNKNOWN&#160;</td><td class="fielddoc"></td></tr>
+<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="a0f8242763b15ec665eaa47c6add861a0a958e0e8697a05086ba164ab5fea3eeb7"></a>BPF_PROG_TYPE_UNSPEC&#160;</td><td class="fielddoc"></td></tr>
 <tr><td class="fieldname"><a id="a0f8242763b15ec665eaa47c6add861a0a1945ca3d46bd1e589c4d0effe14f18d6"></a>BPF_PROG_TYPE_XDP&#160;</td><td class="fielddoc"></td></tr>
 <tr><td class="fieldname"><a id="a0f8242763b15ec665eaa47c6add861a0a2af8d41961c186b1a62fcc54a29446d2"></a>BPF_PROG_TYPE_BIND&#160;</td><td class="fielddoc"></td></tr>
 </table>

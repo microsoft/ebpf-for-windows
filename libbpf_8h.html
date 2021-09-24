@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.17"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>eBPF for Windows: include/libbpf.h File Reference</title>
+<title>eBPF for Windows: include/bpf/libbpf.h File Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -61,7 +61,7 @@ $(function() {
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><a class="el" href="dir_d44c64559bbebec7f509842c48db8b23.html">include</a></li>  </ul>
+<li class="navelem"><a class="el" href="dir_d44c64559bbebec7f509842c48db8b23.html">include</a></li><li class="navelem"><a class="el" href="dir_c1f57bbcb84f464fab06f58341d3aa17.html">bpf</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
@@ -134,12 +134,24 @@ Functions</h2></td></tr>
 <tr class="memitem:ada024e40fc8bb845fc33e69283333f5f"><td class="memItemLeft" align="right" valign="top">struct bpf_program *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#ada024e40fc8bb845fc33e69283333f5f">bpf_object__find_program_by_name</a> (const struct bpf_object *obj, const char *name)</td></tr>
 <tr class="memdesc:ada024e40fc8bb845fc33e69283333f5f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Find a program with a given name among programs associated with an eBPF object.  <a href="libbpf_8h.html#ada024e40fc8bb845fc33e69283333f5f">More...</a><br /></td></tr>
 <tr class="separator:ada024e40fc8bb845fc33e69283333f5f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a101742f5d81ad187cd879e22d6385031"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a101742f5d81ad187cd879e22d6385031">bpf_object__load</a> (struct bpf_object *obj)</td></tr>
+<tr class="memdesc:a101742f5d81ad187cd879e22d6385031"><td class="mdescLeft">&#160;</td><td class="mdescRight">Load all the programs in a given object.  <a href="libbpf_8h.html#a101742f5d81ad187cd879e22d6385031">More...</a><br /></td></tr>
+<tr class="separator:a101742f5d81ad187cd879e22d6385031"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a33a41f94f254e17a56b5059bb5983bff"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a33a41f94f254e17a56b5059bb5983bff">bpf_object__unload</a> (struct bpf_object *obj)</td></tr>
+<tr class="memdesc:a33a41f94f254e17a56b5059bb5983bff"><td class="mdescLeft">&#160;</td><td class="mdescRight">Unload all the programs in a given object.  <a href="libbpf_8h.html#a33a41f94f254e17a56b5059bb5983bff">More...</a><br /></td></tr>
+<tr class="separator:a33a41f94f254e17a56b5059bb5983bff"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afac9e0bb7320698059d043359a363db8"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#afac9e0bb7320698059d043359a363db8">bpf_object__load_xattr</a> (struct bpf_object_load_attr *attr)</td></tr>
+<tr class="memdesc:afac9e0bb7320698059d043359a363db8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Load all the programs in a given object.  <a href="libbpf_8h.html#afac9e0bb7320698059d043359a363db8">More...</a><br /></td></tr>
+<tr class="separator:afac9e0bb7320698059d043359a363db8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abb7285f852d30deac24ec8a2fbb3a919"><td class="memItemLeft" align="right" valign="top">const char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#abb7285f852d30deac24ec8a2fbb3a919">bpf_object__name</a> (const struct bpf_object *obj)</td></tr>
 <tr class="memdesc:abb7285f852d30deac24ec8a2fbb3a919"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the name of an eBPF object.  <a href="libbpf_8h.html#abb7285f852d30deac24ec8a2fbb3a919">More...</a><br /></td></tr>
 <tr class="separator:abb7285f852d30deac24ec8a2fbb3a919"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a02683bd38babc219a58fac60549b3733"><td class="memItemLeft" align="right" valign="top">struct bpf_object *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a02683bd38babc219a58fac60549b3733">bpf_object__next</a> (struct bpf_object *prev)</td></tr>
 <tr class="memdesc:a02683bd38babc219a58fac60549b3733"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the next eBPF object opened by the calling process.  <a href="libbpf_8h.html#a02683bd38babc219a58fac60549b3733">More...</a><br /></td></tr>
 <tr class="separator:a02683bd38babc219a58fac60549b3733"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0dba5a39c1e6994fec70ec41183acde2"><td class="memItemLeft" align="right" valign="top">struct bpf_object *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a0dba5a39c1e6994fec70ec41183acde2">bpf_object__open_file</a> (const char *path, const struct bpf_object_open_opts *opts)</td></tr>
+<tr class="memdesc:a0dba5a39c1e6994fec70ec41183acde2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Open a file without loading the programs.  <a href="libbpf_8h.html#a0dba5a39c1e6994fec70ec41183acde2">More...</a><br /></td></tr>
+<tr class="separator:a0dba5a39c1e6994fec70ec41183acde2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a854b1fd0041c09fd70dbfa6103483216"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a854b1fd0041c09fd70dbfa6103483216">bpf_object__pin</a> (struct bpf_object *object, const char *path)</td></tr>
 <tr class="memdesc:a854b1fd0041c09fd70dbfa6103483216"><td class="mdescLeft">&#160;</td><td class="mdescRight">Pin an eBPF object to a specified path.  <a href="libbpf_8h.html#a854b1fd0041c09fd70dbfa6103483216">More...</a><br /></td></tr>
 <tr class="separator:a854b1fd0041c09fd70dbfa6103483216"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -168,9 +180,12 @@ Functions</h2></td></tr>
 <tr class="memitem:a8ee480e1b45d468710fd35a2f43aeed3"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a8ee480e1b45d468710fd35a2f43aeed3">bpf_program__fd</a> (const struct bpf_program *prog)</td></tr>
 <tr class="memdesc:a8ee480e1b45d468710fd35a2f43aeed3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get a file descriptor that refers to a program.  <a href="libbpf_8h.html#a8ee480e1b45d468710fd35a2f43aeed3">More...</a><br /></td></tr>
 <tr class="separator:a8ee480e1b45d468710fd35a2f43aeed3"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a533e13b68a34e8228fbadeecf63b658a"><td class="memItemLeft" align="right" valign="top">enum <a class="el" href="linux_2bpf_8h.html#aac6b4c09fa267f53c1d213551e0ccd5a">bpf_attach_type</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a533e13b68a34e8228fbadeecf63b658a">bpf_program__get_expected_attach_type</a> (const struct bpf_program *prog)</td></tr>
+<tr class="memitem:a533e13b68a34e8228fbadeecf63b658a"><td class="memItemLeft" align="right" valign="top">enum <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5a">bpf_attach_type</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a533e13b68a34e8228fbadeecf63b658a">bpf_program__get_expected_attach_type</a> (const struct bpf_program *prog)</td></tr>
 <tr class="memdesc:a533e13b68a34e8228fbadeecf63b658a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the expected attach type for an eBPF program.  <a href="libbpf_8h.html#a533e13b68a34e8228fbadeecf63b658a">More...</a><br /></td></tr>
 <tr class="separator:a533e13b68a34e8228fbadeecf63b658a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6a801e0d961347b9ca550a111b4b1148"><td class="memItemLeft" align="right" valign="top">enum <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0">bpf_prog_type</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a6a801e0d961347b9ca550a111b4b1148">bpf_program__get_type</a> (const struct bpf_program *prog)</td></tr>
+<tr class="memdesc:a6a801e0d961347b9ca550a111b4b1148"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the program type for an eBPF program.  <a href="libbpf_8h.html#a6a801e0d961347b9ca550a111b4b1148">More...</a><br /></td></tr>
+<tr class="separator:a6a801e0d961347b9ca550a111b4b1148"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5bc9a44c10c7fc330c09b3fd127beee3"><td class="memItemLeft" align="right" valign="top">const char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a5bc9a44c10c7fc330c09b3fd127beee3">bpf_program__name</a> (const struct bpf_program *prog)</td></tr>
 <tr class="memdesc:a5bc9a44c10c7fc330c09b3fd127beee3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the function name of an eBPF program.  <a href="libbpf_8h.html#a5bc9a44c10c7fc330c09b3fd127beee3">More...</a><br /></td></tr>
 <tr class="separator:a5bc9a44c10c7fc330c09b3fd127beee3"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -186,15 +201,28 @@ Functions</h2></td></tr>
 <tr class="memitem:a26150fd9e12b1d6b33a76345af3b30cf"><td class="memItemLeft" align="right" valign="top">const char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a26150fd9e12b1d6b33a76345af3b30cf">bpf_program__section_name</a> (const struct bpf_program *prog)</td></tr>
 <tr class="memdesc:a26150fd9e12b1d6b33a76345af3b30cf"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets the ELF section name of an eBPF program, if any.  <a href="libbpf_8h.html#a26150fd9e12b1d6b33a76345af3b30cf">More...</a><br /></td></tr>
 <tr class="separator:a26150fd9e12b1d6b33a76345af3b30cf"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a6a1f42b57d26d244246d4b7d4118f5e1"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a6a1f42b57d26d244246d4b7d4118f5e1">bpf_program__set_expected_attach_type</a> (struct bpf_program *prog, enum <a class="el" href="linux_2bpf_8h.html#aac6b4c09fa267f53c1d213551e0ccd5a">bpf_attach_type</a> type)</td></tr>
+<tr class="memitem:a6a1f42b57d26d244246d4b7d4118f5e1"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a6a1f42b57d26d244246d4b7d4118f5e1">bpf_program__set_expected_attach_type</a> (struct bpf_program *prog, enum <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5a">bpf_attach_type</a> type)</td></tr>
 <tr class="memdesc:a6a1f42b57d26d244246d4b7d4118f5e1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the expected attach type for an eBPF program.  <a href="libbpf_8h.html#a6a1f42b57d26d244246d4b7d4118f5e1">More...</a><br /></td></tr>
 <tr class="separator:a6a1f42b57d26d244246d4b7d4118f5e1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2df33ac2a14774448fc5083c47e2012c"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a2df33ac2a14774448fc5083c47e2012c">bpf_program__set_type</a> (struct bpf_program *prog, enum <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0">bpf_prog_type</a> type)</td></tr>
+<tr class="memdesc:a2df33ac2a14774448fc5083c47e2012c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the program type for an eBPF program.  <a href="libbpf_8h.html#a2df33ac2a14774448fc5083c47e2012c">More...</a><br /></td></tr>
+<tr class="separator:a2df33ac2a14774448fc5083c47e2012c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa193a3941705024e16738bb5ed687fd7"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#aa193a3941705024e16738bb5ed687fd7">bpf_program__unload</a> (struct bpf_program *prog)</td></tr>
+<tr class="memdesc:aa193a3941705024e16738bb5ed687fd7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Unload a program.  <a href="libbpf_8h.html#aa193a3941705024e16738bb5ed687fd7">More...</a><br /></td></tr>
+<tr class="separator:aa193a3941705024e16738bb5ed687fd7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a3b5343605f1e4aff8008b4f3bba296bd"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a3b5343605f1e4aff8008b4f3bba296bd">bpf_program__unpin</a> (struct bpf_program *prog, const char *path)</td></tr>
 <tr class="memdesc:a3b5343605f1e4aff8008b4f3bba296bd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Unpin a program.  <a href="libbpf_8h.html#a3b5343605f1e4aff8008b4f3bba296bd">More...</a><br /></td></tr>
 <tr class="separator:a3b5343605f1e4aff8008b4f3bba296bd"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a64a0e9275ed02a9f30291ae5dd777452"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a64a0e9275ed02a9f30291ae5dd777452">libbpf_prog_type_by_name</a> (const char *name, enum <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0">bpf_prog_type</a> *prog_type, enum <a class="el" href="linux_2bpf_8h.html#aac6b4c09fa267f53c1d213551e0ccd5a">bpf_attach_type</a> *expected_attach_type)</td></tr>
+<tr class="memitem:a64a0e9275ed02a9f30291ae5dd777452"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a64a0e9275ed02a9f30291ae5dd777452">libbpf_prog_type_by_name</a> (const char *name, enum <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0">bpf_prog_type</a> *prog_type, enum <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5a">bpf_attach_type</a> *expected_attach_type)</td></tr>
 <tr class="memdesc:a64a0e9275ed02a9f30291ae5dd777452"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get a program type and expected attach type by name.  <a href="libbpf_8h.html#a64a0e9275ed02a9f30291ae5dd777452">More...</a><br /></td></tr>
 <tr class="separator:a64a0e9275ed02a9f30291ae5dd777452"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr><td colspan="2"><div class="groupHeader">System-related functions</div></td></tr>
+<tr class="memitem:a6ae394e7b2a465a2bf7f30e2a5b4c4bd"><td class="memItemLeft" align="right" valign="top">long&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a6ae394e7b2a465a2bf7f30e2a5b4c4bd">libbpf_get_error</a> (const void *ptr)</td></tr>
+<tr class="memdesc:a6ae394e7b2a465a2bf7f30e2a5b4c4bd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get a negative error code based on errno and a possibly null pointer.  <a href="libbpf_8h.html#a6ae394e7b2a465a2bf7f30e2a5b4c4bd">More...</a><br /></td></tr>
+<tr class="separator:a6ae394e7b2a465a2bf7f30e2a5b4c4bd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a952441cb1b1f252e10b100c2657e6242"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a952441cb1b1f252e10b100c2657e6242">libbpf_num_possible_cpus</a> (void)</td></tr>
+<tr class="memdesc:a952441cb1b1f252e10b100c2657e6242"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the number of processors on the current system.  <a href="libbpf_8h.html#a952441cb1b1f252e10b100c2657e6242">More...</a><br /></td></tr>
+<tr class="separator:a952441cb1b1f252e10b100c2657e6242"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Function Documentation</h2>
 <a id="ab10dd31881e90cb8ba93ffb77b92308b"></a>
@@ -221,7 +249,7 @@ Functions</h2></td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section see"><dt>See also</dt><dd><a class="el" href="bpf_8h.html#a9bd017a4caa22bd9d57426e43b3390e1" title="Detach a link.">bpf_link_detach</a> </dd>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="bpf_2bpf_8h.html#a9bd017a4caa22bd9d57426e43b3390e1" title="Detach a link.">bpf_link_detach</a> </dd>
 <dd>
 <a class="el" href="ebpf__api_8h.html#a615bbda0f78b51d852e60fb6b9cb6433">ebpf_link_close</a> </dd></dl>
 
@@ -880,6 +908,98 @@ Functions</h2></td></tr>
 
 </div>
 </div>
+<a id="a101742f5d81ad187cd879e22d6385031"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a101742f5d81ad187cd879e22d6385031">&#9670;&nbsp;</a></span>bpf_object__load()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int bpf_object__load </td>
+          <td>(</td>
+          <td class="paramtype">struct bpf_object *&#160;</td>
+          <td class="paramname"><em>obj</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Load all the programs in a given object. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">obj</td><td>Object from which to load programs.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
+    <tr><td class="paramname">&lt;0</td><td>An error occured, and errno was set.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="exception"><dt>Exceptions</dt><dd>
+  <table class="exception">
+    <tr><td class="paramname">EINVAL</td><td>An invalid argument was provided. </td></tr>
+    <tr><td class="paramname">ENOMEM</td><td>Out of memory.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="libbpf_8h.html#afac9e0bb7320698059d043359a363db8" title="Load all the programs in a given object.">bpf_object__load_xattr</a> </dd>
+<dd>
+bpf_object__open </dd>
+<dd>
+<a class="el" href="libbpf_8h.html#a33a41f94f254e17a56b5059bb5983bff" title="Unload all the programs in a given object.">bpf_object__unload</a> </dd>
+<dd>
+<a class="el" href="libbpf_8h.html#a37b9672527f744e7492797529f4f9a6a" title="Load (but do not attach) eBPF maps and programs from an ELF file.">bpf_prog_load</a> </dd></dl>
+
+</div>
+</div>
+<a id="afac9e0bb7320698059d043359a363db8"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#afac9e0bb7320698059d043359a363db8">&#9670;&nbsp;</a></span>bpf_object__load_xattr()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int bpf_object__load_xattr </td>
+          <td>(</td>
+          <td class="paramtype">struct bpf_object_load_attr *&#160;</td>
+          <td class="paramname"><em>attr</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Load all the programs in a given object. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">attr</td><td>Structure with load attributes.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
+    <tr><td class="paramname">&lt;0</td><td>An error occured, and errno was set.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="exception"><dt>Exceptions</dt><dd>
+  <table class="exception">
+    <tr><td class="paramname">EINVAL</td><td>An invalid argument was provided. </td></tr>
+    <tr><td class="paramname">ENOMEM</td><td>Out of memory.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section see"><dt>See also</dt><dd>bpf_object__open </dd>
+<dd>
+<a class="el" href="libbpf_8h.html#afac9e0bb7320698059d043359a363db8" title="Load all the programs in a given object.">bpf_object__load_xattr</a> </dd>
+<dd>
+<a class="el" href="libbpf_8h.html#a37b9672527f744e7492797529f4f9a6a" title="Load (but do not attach) eBPF maps and programs from an ELF file.">bpf_prog_load</a> </dd></dl>
+
+</div>
+</div>
 <a id="abb7285f852d30deac24ec8a2fbb3a919"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#abb7285f852d30deac24ec8a2fbb3a919">&#9670;&nbsp;</a></span>bpf_object__name()</h2>
 
@@ -931,6 +1051,44 @@ Functions</h2></td></tr>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>Next object, or NULL if none. </dd></dl>
+
+</div>
+</div>
+<a id="a0dba5a39c1e6994fec70ec41183acde2"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a0dba5a39c1e6994fec70ec41183acde2">&#9670;&nbsp;</a></span>bpf_object__open_file()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">struct bpf_object* bpf_object__open_file </td>
+          <td>(</td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>path</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const struct bpf_object_open_opts *&#160;</td>
+          <td class="paramname"><em>opts</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Open a file without loading the programs. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">path</td><td>File name to open. </td></tr>
+    <tr><td class="paramdir"></td><td class="paramname">[opts]</td><td>opts Options to use when opening the object.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>Pointer to an eBPF object, or NULL on failure. </dd></dl>
 
 </div>
 </div>
@@ -1104,6 +1262,44 @@ Functions</h2></td></tr>
 <a class="el" href="libbpf_8h.html#a854b1fd0041c09fd70dbfa6103483216" title="Pin an eBPF object to a specified path.">bpf_object__pin</a> </dd>
 <dd>
 <a class="el" href="libbpf_8h.html#a707d517a9861144008ed57e717ac174a" title="Unpin all programs associated with an eBPF object from a specified path.">bpf_object__unpin_programs</a> </dd></dl>
+
+</div>
+</div>
+<a id="a33a41f94f254e17a56b5059bb5983bff"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a33a41f94f254e17a56b5059bb5983bff">&#9670;&nbsp;</a></span>bpf_object__unload()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int bpf_object__unload </td>
+          <td>(</td>
+          <td class="paramtype">struct bpf_object *&#160;</td>
+          <td class="paramname"><em>obj</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Unload all the programs in a given object. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">obj</td><td>Object in which to unload programs.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
+    <tr><td class="paramname">&lt;0</td><td>An error occured, and errno was set.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="libbpf_8h.html#a101742f5d81ad187cd879e22d6385031" title="Load all the programs in a given object.">bpf_object__load</a> </dd>
+<dd>
+<a class="el" href="libbpf_8h.html#afac9e0bb7320698059d043359a363db8" title="Load all the programs in a given object.">bpf_object__load_xattr</a> </dd>
+<dd>
+<a class="el" href="libbpf_8h.html#a37b9672527f744e7492797529f4f9a6a" title="Load (but do not attach) eBPF maps and programs from an ELF file.">bpf_prog_load</a> </dd></dl>
 
 </div>
 </div>
@@ -1396,7 +1592,7 @@ bpf_object__unpin </dd></dl>
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">enum <a class="el" href="linux_2bpf_8h.html#aac6b4c09fa267f53c1d213551e0ccd5a">bpf_attach_type</a> bpf_program__get_expected_attach_type </td>
+          <td class="memname">enum <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5a">bpf_attach_type</a> bpf_program__get_expected_attach_type </td>
           <td>(</td>
           <td class="paramtype">const struct bpf_program *&#160;</td>
           <td class="paramname"><em>prog</em></td><td>)</td>
@@ -1416,6 +1612,34 @@ bpf_object__unpin </dd></dl>
 <dl class="section see"><dt>See also</dt><dd><a class="el" href="libbpf_8h.html#adecb674c106a245b9bf857719a9c32d3" title="Attach an eBPF program to a hook associated with the program&#39;s expected attach type.">bpf_program__attach</a> </dd>
 <dd>
 <a class="el" href="libbpf_8h.html#a6a1f42b57d26d244246d4b7d4118f5e1" title="Set the expected attach type for an eBPF program.">bpf_program__set_expected_attach_type</a> </dd></dl>
+
+</div>
+</div>
+<a id="a6a801e0d961347b9ca550a111b4b1148"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6a801e0d961347b9ca550a111b4b1148">&#9670;&nbsp;</a></span>bpf_program__get_type()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">enum <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0">bpf_prog_type</a> bpf_program__get_type </td>
+          <td>(</td>
+          <td class="paramtype">const struct bpf_program *&#160;</td>
+          <td class="paramname"><em>prog</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Get the program type for an eBPF program. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">prog</td><td>Program to check.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>Program type.</dd></dl>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="libbpf_8h.html#a533e13b68a34e8228fbadeecf63b658a" title="Get the expected attach type for an eBPF program.">bpf_program__get_expected_attach_type</a> </dd></dl>
 
 </div>
 </div>
@@ -1625,7 +1849,7 @@ bpf_object__unpin </dd></dl>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">enum <a class="el" href="linux_2bpf_8h.html#aac6b4c09fa267f53c1d213551e0ccd5a">bpf_attach_type</a>&#160;</td>
+          <td class="paramtype">enum <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5a">bpf_attach_type</a>&#160;</td>
           <td class="paramname"><em>type</em>&#160;</td>
         </tr>
         <tr>
@@ -1647,6 +1871,73 @@ bpf_object__unpin </dd></dl>
 <dl class="section see"><dt>See also</dt><dd><a class="el" href="libbpf_8h.html#adecb674c106a245b9bf857719a9c32d3" title="Attach an eBPF program to a hook associated with the program&#39;s expected attach type.">bpf_program__attach</a> </dd>
 <dd>
 <a class="el" href="libbpf_8h.html#a533e13b68a34e8228fbadeecf63b658a" title="Get the expected attach type for an eBPF program.">bpf_program__get_expected_attach_type</a> </dd></dl>
+
+</div>
+</div>
+<a id="a2df33ac2a14774448fc5083c47e2012c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a2df33ac2a14774448fc5083c47e2012c">&#9670;&nbsp;</a></span>bpf_program__set_type()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void bpf_program__set_type </td>
+          <td>(</td>
+          <td class="paramtype">struct bpf_program *&#160;</td>
+          <td class="paramname"><em>prog</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">enum <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0">bpf_prog_type</a>&#160;</td>
+          <td class="paramname"><em>type</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Set the program type for an eBPF program. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">prog</td><td>Program to update. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">type</td><td>Program type to set.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="libbpf_8h.html#a6a1f42b57d26d244246d4b7d4118f5e1" title="Set the expected attach type for an eBPF program.">bpf_program__set_expected_attach_type</a> </dd></dl>
+
+</div>
+</div>
+<a id="aa193a3941705024e16738bb5ed687fd7"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa193a3941705024e16738bb5ed687fd7">&#9670;&nbsp;</a></span>bpf_program__unload()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void bpf_program__unload </td>
+          <td>(</td>
+          <td class="paramtype">struct bpf_program *&#160;</td>
+          <td class="paramname"><em>prog</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Unload a program. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">prog</td><td>Program to unload.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="libbpf_8h.html#a33a41f94f254e17a56b5059bb5983bff" title="Unload all the programs in a given object.">bpf_object__unload</a> </dd>
+<dd>
+<a class="el" href="libbpf_8h.html#a37b9672527f744e7492797529f4f9a6a" title="Load (but do not attach) eBPF maps and programs from an ELF file.">bpf_prog_load</a> </dd></dl>
 
 </div>
 </div>
@@ -1704,6 +1995,54 @@ bpf_object__unpin </dd></dl>
 
 </div>
 </div>
+<a id="a6ae394e7b2a465a2bf7f30e2a5b4c4bd"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6ae394e7b2a465a2bf7f30e2a5b4c4bd">&#9670;&nbsp;</a></span>libbpf_get_error()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">long libbpf_get_error </td>
+          <td>(</td>
+          <td class="paramtype">const void *&#160;</td>
+          <td class="paramname"><em>ptr</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Get a negative error code based on errno and a possibly null pointer. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">ptr</td><td>Pointer that may be NULL.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>Negative error code. </dd></dl>
+
+</div>
+</div>
+<a id="a952441cb1b1f252e10b100c2657e6242"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a952441cb1b1f252e10b100c2657e6242">&#9670;&nbsp;</a></span>libbpf_num_possible_cpus()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int libbpf_num_possible_cpus </td>
+          <td>(</td>
+          <td class="paramtype">void&#160;</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Get the number of processors on the current system. </p>
+<dl class="section return"><dt>Returns</dt><dd>Number of processors. </dd></dl>
+
+</div>
+</div>
 <a id="a64a0e9275ed02a9f30291ae5dd777452"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a64a0e9275ed02a9f30291ae5dd777452">&#9670;&nbsp;</a></span>libbpf_prog_type_by_name()</h2>
 
@@ -1725,7 +2064,7 @@ bpf_object__unpin </dd></dl>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">enum <a class="el" href="linux_2bpf_8h.html#aac6b4c09fa267f53c1d213551e0ccd5a">bpf_attach_type</a> *&#160;</td>
+          <td class="paramtype">enum <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5a">bpf_attach_type</a> *&#160;</td>
           <td class="paramname"><em>expected_attach_type</em>&#160;</td>
         </tr>
         <tr>
