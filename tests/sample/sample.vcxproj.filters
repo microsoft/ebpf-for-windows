@@ -63,5 +63,8 @@
     <CustomBuild Include="test_utility_helpers.c">
       <Filter>Source Files</Filter>
     </CustomBuild>
+    <CustomBuild Include="router.c">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
   </ItemGroup>
 </Project>

@@ -422,7 +422,7 @@ extern "C"
         size_t value_size,
         size_t bucket_count,
         _In_opt_ void (*extract_function)(
-            _In_ const uint8_t* value, _Outptr_ const uint8_t** data, _Out_ size_t* length));
+            _In_ const uint8_t* value, _Outptr_ const uint8_t** data, _Out_ size_t* length_in_bits));
 
     /**
      * @brief Remove all items from the hash table and release memory.

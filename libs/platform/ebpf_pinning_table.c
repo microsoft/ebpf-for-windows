@@ -31,7 +31,7 @@ _ebpf_pinning_table_extract(_In_ const uint8_t* value, _Outptr_ const uint8_t** 
 {
     const ebpf_utf8_string_t* key = *(ebpf_utf8_string_t**)value;
     *data = key->value;
-    *length = key->length;
+    *length = key->length * 8;
 }
 
 static void
