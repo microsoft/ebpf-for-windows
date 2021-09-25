@@ -341,7 +341,7 @@ _ebpf_driver_io_device_control(
                 // buffer.
                 if (status == STATUS_SUCCESS && user_reply) {
                     user_reply->id = user_request->id;
-                    user_reply->length = (uint16_t)actual_output_length;
+                    user_reply->length = min((uint16_t)actual_output_length, user_reply->length);
                 }
                 goto Done;
             }
