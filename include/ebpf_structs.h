@@ -23,6 +23,7 @@ typedef enum bpf_map_type
     BPF_MAP_TYPE_ARRAY_OF_MAPS = 7,
     BPF_MAP_TYPE_LRU_HASH = 8,
     BPF_MAP_TYPE_LPM_TRIE = 9,
+    BPF_MAP_TYPE_QUEUE = 10,
 } ebpf_map_type_t;
 
 typedef enum ebpf_map_option

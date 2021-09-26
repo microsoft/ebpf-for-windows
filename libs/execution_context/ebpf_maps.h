@@ -186,6 +186,27 @@ extern "C"
         _Out_writes_to_(*info_size, *info_size) uint8_t* buffer,
         _Inout_ uint16_t* info_size);
 
+    /**
+     * @brief Get a pointer to an entry in the map and remove it.
+     *
+     * @param[in] map Map to search.
+     * @param[in] key Key to use when searching map.
+     * @param[in] flags Zero or more EBPF_MAP_FIND_ENTRY_FLAG_* flags.
+     * @param[in] value_size Size of memory to write the value into.
+     * @param[out] value Pointer to memory that holds the value on success.
+     * @param[in] flags Zero or more flags.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INVALID_ARGUMENT An argument was invalid.
+     * @retval EBPF_OBJECT_NOT_FOUND No element matched that key.
+     */
+    ebpf_result_t
+    ebpf_map_find_and_delete_entry(
+        _In_ ebpf_map_t* map,
+        size_t key_size,
+        _In_reads_(key_size) const uint8_t* key,
+        size_t value_size,
+        _Out_writes_(value_size) uint8_t* value,
+        int flags);
 #ifdef __cplusplus
 }
 #endif

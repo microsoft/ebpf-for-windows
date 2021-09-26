@@ -320,6 +320,51 @@ TEST_CASE("map_crud_operations_lpm_trie_128", "[execution_context]")
     }
 }
 
+TEST_CASE("map_crud_operations_queue", "[execution_context]")
+{
+    _ebpf_core_initializer core;
+    ebpf_map_definition_in_memory_t map_definition{
+        sizeof(ebpf_map_definition_in_memory_t), BPF_MAP_TYPE_QUEUE, 0, sizeof(uint32_t), 10};
+    map_ptr map;
+    {
+        ebpf_map_t* local_map;
+        ebpf_utf8_string_t map_name = {0};
+        REQUIRE(
+            ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
+        map.reset(local_map);
+    }
+    for (uint32_t value = 0; value < 9; value++) {
+        REQUIRE(
+            ebpf_map_update_entry(map.get(), 0, NULL, sizeof(value), reinterpret_cast<uint8_t*>(&value), EBPF_ANY, 0) ==
+            EBPF_SUCCESS);
+    }
+    uint32_t extra_value = 10;
+    REQUIRE(
+        ebpf_map_update_entry(
+            map.get(), 0, NULL, sizeof(extra_value), reinterpret_cast<uint8_t*>(&extra_value), EBPF_ANY, 0) ==
+        EBPF_INVALID_ARGUMENT);
+
+    // Peek the first element;
+    uint32_t return_value = MAXUINT32;
+    REQUIRE(
+        ebpf_map_find_entry(map.get(), 0, NULL, sizeof(return_value), reinterpret_cast<uint8_t*>(&return_value), 0) ==
+        EBPF_SUCCESS);
+
+    REQUIRE(return_value == 0);
+
+    for (uint32_t value = 0; value < 9; value++) {
+        REQUIRE(
+            ebpf_map_find_and_delete_entry(
+                map.get(), 0, NULL, sizeof(return_value), reinterpret_cast<uint8_t*>(&return_value), 0) ==
+            EBPF_SUCCESS);
+        REQUIRE(return_value == value);
+    }
+
+    REQUIRE(
+        ebpf_map_find_entry(map.get(), 0, NULL, sizeof(return_value), reinterpret_cast<uint8_t*>(&return_value), 0) ==
+        EBPF_OBJECT_NOT_FOUND);
+}
+
 TEST_CASE("map_crud_operations_array_per_cpu", "[execution_context]")
 {
     emulate_dpc_t dpc(0);
