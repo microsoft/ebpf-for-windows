@@ -80,6 +80,7 @@ typedef enum
     BPF_FUNC_ktime_get_boot_ns = 6,
     BPF_FUNC_get_smp_processor_id = 7,
     BPF_FUNC_ktime_get_ns = 8,
+    BPF_FUNC_map_lookup_and_delete_elem = 9,
 } ebpf_helper_id_t;
 
 // Cross-platform BPF program types.

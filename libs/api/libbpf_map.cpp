@@ -228,6 +228,12 @@ bpf_map_lookup_elem(int fd, const void* key, void* value)
 }
 
 int
+bpf_map_lookup_and_delete_elem(int fd, const void* key, void* value)
+{
+    return libbpf_result_err(ebpf_map_lookup_and_delete_element(fd, key, value));
+}
+
+int
 bpf_map_get_next_key(int fd, const void* key, void* next_key)
 {
     return libbpf_result_err(ebpf_map_get_next_key(fd, key, next_key));
