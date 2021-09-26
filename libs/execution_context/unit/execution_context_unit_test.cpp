@@ -3,6 +3,7 @@
 
 #include <set>
 
+#include <optional>
 #include "catch_wrapper.hpp"
 #include "ebpf_core.h"
 #include "ebpf_maps.h"
@@ -33,9 +34,58 @@ typedef std::unique_ptr<ebpf_map_t, ebpf_object_deleter<ebpf_map_t>> map_ptr;
 typedef std::unique_ptr<ebpf_program_t, ebpf_object_deleter<ebpf_program_t>> program_ptr;
 
 static void
-_test_crud_operations(ebpf_map_type_t map_type, bool is_array, bool replace_on_full = false)
+_test_crud_operations(ebpf_map_type_t map_type)
 {
     _ebpf_core_initializer core;
+    bool is_array;
+    bool supports_find_and_delete;
+    bool replace_on_full;
+    bool run_at_dpc;
+    switch (map_type) {
+    case BPF_MAP_TYPE_HASH:
+        is_array = false;
+        supports_find_and_delete = true;
+        replace_on_full = false;
+        run_at_dpc = false;
+        break;
+    case BPF_MAP_TYPE_ARRAY:
+        is_array = true;
+        supports_find_and_delete = false;
+        replace_on_full = false;
+        run_at_dpc = false;
+        break;
+    case BPF_MAP_TYPE_PERCPU_HASH:
+        is_array = false;
+        supports_find_and_delete = true;
+        replace_on_full = false;
+        run_at_dpc = true;
+        break;
+    case BPF_MAP_TYPE_PERCPU_ARRAY:
+        is_array = true;
+        supports_find_and_delete = false;
+        replace_on_full = false;
+        run_at_dpc = false;
+        break;
+    case BPF_MAP_TYPE_LRU_HASH:
+        is_array = false;
+        supports_find_and_delete = true;
+        replace_on_full = true;
+        run_at_dpc = false;
+        break;
+    case BPF_MAP_TYPE_LRU_PERCPU_HASH:
+        is_array = false;
+        supports_find_and_delete = true;
+        replace_on_full = true;
+        run_at_dpc = true;
+        break;
+    default:
+        ebpf_assert((false, "Unsupported map type"));
+        return;
+    }
+    std::optional<emulate_dpc_t> dpc;
+    if (run_at_dpc) {
+        dpc = {emulate_dpc_t(1)};
+    }
 
     ebpf_map_definition_in_memory_t map_definition{
         sizeof(ebpf_map_definition_in_memory_t), map_type, sizeof(uint32_t), sizeof(uint64_t), 10};
@@ -124,19 +174,49 @@ _test_crud_operations(ebpf_map_type_t map_type, bool is_array, bool replace_on_f
             ebpf_map_delete_entry(map.get(), sizeof(key), reinterpret_cast<const uint8_t*>(&key), 0) == EBPF_SUCCESS);
     }
 
+    if (supports_find_and_delete) {
+        uint32_t key = 0;
+        REQUIRE(
+            ebpf_map_update_entry(
+                map.get(),
+                sizeof(key),
+                reinterpret_cast<const uint8_t*>(&key),
+                value.size(),
+                value.data(),
+                EBPF_ANY,
+                0) == EBPF_SUCCESS);
+
+        REQUIRE(
+            ebpf_map_find_and_delete_entry(
+                map.get(), sizeof(key), reinterpret_cast<const uint8_t*>(&key), value.size(), value.data(), 0) ==
+            EBPF_SUCCESS);
+
+        REQUIRE(
+            ebpf_map_find_entry(
+                map.get(), sizeof(key), reinterpret_cast<const uint8_t*>(&key), value.size(), value.data(), 0) ==
+            EBPF_OBJECT_NOT_FOUND);
+    } else {
+        uint32_t key = 0;
+        REQUIRE(
+            ebpf_map_find_and_delete_entry(
+                map.get(), sizeof(key), reinterpret_cast<const uint8_t*>(&key), value.size(), value.data(), 0) ==
+            EBPF_INVALID_ARGUMENT);
+    }
+
     auto retrieved_map_definition = *ebpf_map_get_definition(map.get());
     retrieved_map_definition.value_size = ebpf_map_get_effective_value_size(map.get());
     REQUIRE(memcmp(&retrieved_map_definition, &map_definition, sizeof(map_definition)) == 0);
 }
 
-TEST_CASE("map_crud_operations_array", "[execution_context]") { _test_crud_operations(BPF_MAP_TYPE_ARRAY, true); }
+#define MAP_TEST(MAP_TYPE) \
+    TEST_CASE("map_crud_operations:" #MAP_TYPE, "[execution_context]") { _test_crud_operations(MAP_TYPE); }
 
-TEST_CASE("map_crud_operations_hash", "[execution_context]") { _test_crud_operations(BPF_MAP_TYPE_HASH, false); }
-
-TEST_CASE("map_crud_operations_lru_hash", "[execution_context]")
-{
-    _test_crud_operations(BPF_MAP_TYPE_LRU_HASH, false, true);
-}
+MAP_TEST(BPF_MAP_TYPE_HASH);
+MAP_TEST(BPF_MAP_TYPE_ARRAY);
+MAP_TEST(BPF_MAP_TYPE_PERCPU_HASH);
+MAP_TEST(BPF_MAP_TYPE_PERCPU_ARRAY);
+MAP_TEST(BPF_MAP_TYPE_LRU_HASH);
+MAP_TEST(BPF_MAP_TYPE_LRU_PERCPU_HASH);
 
 TEST_CASE("map_crud_operations_lpm_trie_32", "[execution_context]")
 {
@@ -363,18 +443,6 @@ TEST_CASE("map_crud_operations_queue", "[execution_context]")
     REQUIRE(
         ebpf_map_find_entry(map.get(), 0, NULL, sizeof(return_value), reinterpret_cast<uint8_t*>(&return_value), 0) ==
         EBPF_OBJECT_NOT_FOUND);
-}
-
-TEST_CASE("map_crud_operations_array_per_cpu", "[execution_context]")
-{
-    emulate_dpc_t dpc(0);
-    _test_crud_operations(BPF_MAP_TYPE_PERCPU_ARRAY, true);
-}
-
-TEST_CASE("map_crud_operations_hash_per_cpu", "[execution_context]")
-{
-    emulate_dpc_t dpc(0);
-    _test_crud_operations(BPF_MAP_TYPE_PERCPU_HASH, false);
 }
 
 #define TEST_FUNCTION_RETURN 42

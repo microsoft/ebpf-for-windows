@@ -556,7 +556,12 @@ _update_key_history(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key, bool rem
 {
     uint64_t now;
     ebpf_core_lru_map_t* lru_map;
-    if (map->ebpf_map_definition.type != BPF_MAP_TYPE_LRU_HASH) {
+    switch (map->ebpf_map_definition.type) {
+    case BPF_MAP_TYPE_LRU_HASH:
+    case BPF_MAP_TYPE_LRU_PERCPU_HASH:
+        break;
+
+    default:
         return EBPF_SUCCESS;
     }
     lru_map = EBPF_FROM_FIELD(ebpf_core_lru_map_t, core_map, map);
@@ -580,7 +585,12 @@ _reap_oldest_map_entry(_In_ ebpf_core_map_t* map)
     ebpf_result_t result;
     ebpf_core_lru_map_t* lru_map;
 
-    if (map->ebpf_map_definition.type != BPF_MAP_TYPE_LRU_HASH) {
+    switch (map->ebpf_map_definition.type) {
+    case BPF_MAP_TYPE_LRU_HASH:
+    case BPF_MAP_TYPE_LRU_PERCPU_HASH:
+        break;
+
+    default:
         return false;
     }
 
@@ -618,6 +628,27 @@ _find_hash_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
         return NULL;
 
     if (ebpf_hash_table_find((ebpf_hash_table_t*)map->data, key, &value) != EBPF_SUCCESS) {
+        value = NULL;
+    }
+
+    if (value)
+        _update_key_history(map, key, false);
+
+    return value;
+}
+
+static uint8_t*
+_find_and_delete_hash_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
+{
+    uint8_t* value = NULL;
+    if (!map || !key)
+        return NULL;
+
+    if (ebpf_hash_table_find((ebpf_hash_table_t*)map->data, key, &value) != EBPF_SUCCESS) {
+        value = NULL;
+    }
+
+    if (ebpf_hash_table_delete((ebpf_hash_table_t*)map->data, key) != EBPF_SUCCESS) {
         value = NULL;
     }
 
@@ -835,6 +866,7 @@ _ebpf_adjust_value_pointer(_In_ ebpf_map_t* map, _Inout_ uint8_t** value)
     switch (map->ebpf_map_definition.type) {
     case BPF_MAP_TYPE_PERCPU_ARRAY:
     case BPF_MAP_TYPE_PERCPU_HASH:
+    case BPF_MAP_TYPE_LRU_PERCPU_HASH:
         break;
     default:
         return EBPF_SUCCESS;
@@ -1054,7 +1086,8 @@ ebpf_map_function_table_t ebpf_map_function_tables[] = {
      NULL,
      NULL,
      _delete_hash_map_entry,
-     _next_hash_map_key},
+     _next_hash_map_key,
+     _find_and_delete_hash_map_entry},
     {// BPF_MAP_TYPE_ARRAY
      _create_array_map,
      _delete_array_map,
@@ -1087,7 +1120,8 @@ ebpf_map_function_table_t ebpf_map_function_tables[] = {
      NULL,
      _update_entry_per_cpu,
      _delete_hash_map_entry,
-     _next_hash_map_key},
+     _next_hash_map_key,
+     _find_and_delete_hash_map_entry},
     {// BPF_MAP_TYPE_PERCPU_ARRAY
      _create_array_map,
      _delete_array_map,
@@ -1131,7 +1165,8 @@ ebpf_map_function_table_t ebpf_map_function_tables[] = {
      NULL,
      NULL,
      _delete_hash_map_entry,
-     _next_hash_map_key},
+     _next_hash_map_key,
+     _find_and_delete_hash_map_entry},
     // LPM_TRIE is currently a hash-map with special behavior for find.
     {// BPF_MAP_TYPE_LPM_TRIE
      _create_lpm_map,
@@ -1156,6 +1191,18 @@ ebpf_map_function_table_t ebpf_map_function_tables[] = {
      NULL,
      NULL,
      _find_and_delete_queue_map_entry},
+    {// BPF_MAP_TYPE_LRU_PERCPU_HASH
+     _create_lru_hash_map,
+     _delete_lru_hash_map,
+     NULL,
+     _find_hash_map_entry,
+     NULL,
+     _update_hash_map_entry,
+     NULL,
+     _update_entry_per_cpu,
+     _delete_hash_map_entry,
+     _next_hash_map_key,
+     _find_and_delete_hash_map_entry},
 };
 
 static void
