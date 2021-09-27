@@ -187,9 +187,13 @@ _test_crud_operations(ebpf_map_type_t map_type)
                 0) == EBPF_SUCCESS);
 
         REQUIRE(
-            ebpf_map_find_and_delete_entry(
-                map.get(), sizeof(key), reinterpret_cast<const uint8_t*>(&key), value.size(), value.data(), 0) ==
-            EBPF_SUCCESS);
+            ebpf_map_find_entry(
+                map.get(),
+                sizeof(key),
+                reinterpret_cast<const uint8_t*>(&key),
+                value.size(),
+                value.data(),
+                EPBF_MAP_FIND_FLAG_DELETE) == EBPF_SUCCESS);
 
         REQUIRE(
             ebpf_map_find_entry(
@@ -198,9 +202,13 @@ _test_crud_operations(ebpf_map_type_t map_type)
     } else {
         uint32_t key = 0;
         REQUIRE(
-            ebpf_map_find_and_delete_entry(
-                map.get(), sizeof(key), reinterpret_cast<const uint8_t*>(&key), value.size(), value.data(), 0) ==
-            EBPF_INVALID_ARGUMENT);
+            ebpf_map_find_entry(
+                map.get(),
+                sizeof(key),
+                reinterpret_cast<const uint8_t*>(&key),
+                value.size(),
+                value.data(),
+                EPBF_MAP_FIND_FLAG_DELETE) == EBPF_INVALID_ARGUMENT);
     }
 
     auto retrieved_map_definition = *ebpf_map_get_definition(map.get());
@@ -434,9 +442,13 @@ TEST_CASE("map_crud_operations_queue", "[execution_context]")
 
     for (uint32_t value = 0; value < 9; value++) {
         REQUIRE(
-            ebpf_map_find_and_delete_entry(
-                map.get(), 0, NULL, sizeof(return_value), reinterpret_cast<uint8_t*>(&return_value), 0) ==
-            EBPF_SUCCESS);
+            ebpf_map_find_entry(
+                map.get(),
+                0,
+                NULL,
+                sizeof(return_value),
+                reinterpret_cast<uint8_t*>(&return_value),
+                EPBF_MAP_FIND_FLAG_DELETE) == EBPF_SUCCESS);
         REQUIRE(return_value == value);
     }
 

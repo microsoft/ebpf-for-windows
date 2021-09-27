@@ -45,7 +45,7 @@ static uint32_t
 _ebpf_core_get_current_cpu();
 
 static void*
-_ebpf_core_map_find_and_delete_element(ebpf_map_t* map, const uint8_t* key);
+_ebpf_core_map_find_and_delete_element(_Inout_ ebpf_map_t* map, _In_ const uint8_t* key);
 
 #define EBPF_CORE_GLOBAL_HELPER_EXTENSION_VERSION 0
 
@@ -405,15 +405,15 @@ _ebpf_core_protocol_map_find_element(
     if (retval != EBPF_SUCCESS)
         goto Done;
 
-    if (request->find_and_delete) {
-        retval = ebpf_map_find_and_delete_entry(map, key_length, request->key, value_length, reply->value, 0);
-        if (retval != EBPF_SUCCESS)
-            goto Done;
-    } else {
-        retval = ebpf_map_find_entry(map, key_length, request->key, value_length, reply->value, 0);
-        if (retval != EBPF_SUCCESS)
-            goto Done;
-    }
+    retval = ebpf_map_find_entry(
+        map,
+        key_length,
+        request->key,
+        value_length,
+        reply->value,
+        request->find_and_delete ? EPBF_MAP_FIND_FLAG_DELETE : 0);
+    if (retval != EBPF_SUCCESS)
+        goto Done;
 
     retval = EBPF_SUCCESS;
     reply->header.length = reply_length;
@@ -1206,11 +1206,12 @@ _ebpf_core_get_current_cpu()
 }
 
 static void*
-_ebpf_core_map_find_and_delete_element(ebpf_map_t* map, const uint8_t* key)
+_ebpf_core_map_find_and_delete_element(_Inout_ ebpf_map_t* map, _In_ const uint8_t* key)
 {
     ebpf_result_t retval;
     uint8_t* value;
-    retval = ebpf_map_find_and_delete_entry(map, 0, key, sizeof(&value), (uint8_t*)&value, EBPF_MAP_FLAG_HELPER);
+    retval = ebpf_map_find_entry(
+        map, 0, key, sizeof(&value), (uint8_t*)&value, EBPF_MAP_FLAG_HELPER | EPBF_MAP_FIND_FLAG_DELETE);
     if (retval != EBPF_SUCCESS)
         return NULL;
     else
