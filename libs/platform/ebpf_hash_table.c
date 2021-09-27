@@ -157,7 +157,7 @@ _ebpf_hash_table_compare(_In_ const ebpf_hash_table_t* hash_table, _In_ const ui
         return 1;
     }
     int cmp_result = memcmp(data_a, data_b, length_a_in_bits / 8);
-    // No match or length ends on a byte boundary
+    // No match or length ends on a byte boundary.
     if (cmp_result != 0 || length_a_in_bits % 8 == 0) {
         return cmp_result;
     }
@@ -413,7 +413,10 @@ ebpf_hash_table_create(
     size_t key_size,
     size_t value_size,
     size_t bucket_count,
-    _In_opt_ void (*extract)(_In_ const uint8_t* value, _Outptr_ const uint8_t** data, _Out_ size_t* num))
+    _In_opt_ void (*extract)(
+        _In_ const uint8_t* value,
+        _Outptr_result_buffer_((*length_in_bits + 7) / 8) const uint8_t** data,
+        _Out_ size_t* length_in_bits))
 {
     ebpf_result_t retval;
     ebpf_hash_table_t* table = NULL;

@@ -148,7 +148,7 @@ typedef class _ebpf_map_lpm_trie_test_state
     void
     populate_ipv4_routes(size_t route_count)
     {
-        ebpf_utf8_string_t name{(uint8_t*)"route_table", 11};
+        ebpf_utf8_string_t name{(uint8_t*)"ipv4_route_table", 11};
         ebpf_map_definition_in_memory_t definition{
             sizeof(ebpf_map_definition_in_memory_t),
             BPF_MAP_TYPE_LPM_TRIE,

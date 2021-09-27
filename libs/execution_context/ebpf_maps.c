@@ -908,9 +908,9 @@ _find_lpm_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
     if (!map || !key)
         return NULL;
 
-    // Divide prefix length into 32bit blocks.
+    // Divide prefix length into 32-bit blocks.
     for (uint32_t index = 0; index < prefix_blocks; index++) {
-        // Search each 32bit block for a set bit.
+        // Search each 32-bit block for a set bit.
         prefix_copy = *((uint32_t*)trie_map->prefix_in_use + index);
         for (;;) {
             // For each set bit, check if a prefix of that length matches.
@@ -944,7 +944,8 @@ _update_lpm_map_entry(
     ebpf_result_t result = _update_hash_map_entry(map, key, data, option);
     if (result == EBPF_SUCCESS) {
         // Set the bit corresponding to the prefix length.
-        // Store in reverse order in bitmap.
+        // Store in reverse order in bitmap so that we traverse the prefixes from longest
+        // to shortest.
         ebpf_interlocked_set_bit(trie_map->prefix_in_use, trie_map->max_prefix - prefix_length);
     }
     return result;
