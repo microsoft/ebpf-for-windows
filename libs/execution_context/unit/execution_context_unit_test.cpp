@@ -432,7 +432,7 @@ TEST_CASE("map_crud_operations_queue", "[execution_context]")
             map.get(), 0, NULL, sizeof(extra_value), reinterpret_cast<uint8_t*>(&extra_value), EBPF_ANY, 0) ==
         EBPF_INVALID_ARGUMENT);
 
-    // Peek the first element;
+    // Peek the first element.
     uint32_t return_value = MAXUINT32;
     REQUIRE(
         ebpf_map_find_entry(map.get(), 0, NULL, sizeof(return_value), reinterpret_cast<uint8_t*>(&return_value), 0) ==
