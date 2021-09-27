@@ -996,39 +996,30 @@ _delete_queue_map(_In_ ebpf_core_map_t* map)
 
     for (size_t i = 0; i < queue_map->core_map.ebpf_map_definition.max_entries; i++) {
         ebpf_epoch_free(queue_map->slots[i]);
-        queue_map->slots[i] = NULL;
     }
     ebpf_epoch_free(queue_map);
 }
 
-static uint8_t*
-_peek_or_pop_queue_map_entry(ebpf_core_queue_map_t* queue_map, bool peek)
-{
-    uint8_t* value = NULL;
-    if (queue_map->start == queue_map->end) {
-        return NULL;
-    }
-
-    ebpf_lock_state_t state = ebpf_lock_lock(&queue_map->core_map.lock);
-    value = queue_map->slots[queue_map->start];
-    if (!peek) {
-        ebpf_epoch_free(queue_map->slots[queue_map->start]);
-        queue_map->slots[queue_map->start] = NULL;
-        queue_map->start = (queue_map->start + 1) % queue_map->core_map.ebpf_map_definition.max_entries;
-    }
-    ebpf_lock_unlock(&queue_map->core_map.lock, state);
-    return value;
-}
-
 static ebpf_result_t
 _find_queue_map_entry(
-    _In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_ bool delete_on_success, _Outptr_ uint8_t** data)
+    _In_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, _In_ bool delete_on_success, _Outptr_ uint8_t** data)
 {
     if (!map || key)
         return EBPF_INVALID_ARGUMENT;
 
     ebpf_core_queue_map_t* queue_map = EBPF_FROM_FIELD(ebpf_core_queue_map_t, core_map, map);
-    *data = _peek_or_pop_queue_map_entry(queue_map, !delete_on_success);
+    ebpf_lock_state_t state = ebpf_lock_lock(&queue_map->core_map.lock);
+    if (queue_map->start == queue_map->end) {
+        *data = NULL;
+    } else {
+        *data = queue_map->slots[queue_map->start];
+        if (delete_on_success) {
+            ebpf_epoch_free(queue_map->slots[queue_map->start]);
+            queue_map->slots[queue_map->start] = NULL;
+            queue_map->start = (queue_map->start + 1) % queue_map->core_map.ebpf_map_definition.max_entries;
+        }
+    }
+    ebpf_lock_unlock(&queue_map->core_map.lock, state);
     return *data == NULL ? EBPF_OBJECT_NOT_FOUND : EBPF_SUCCESS;
 }
 
@@ -1043,7 +1034,7 @@ _update_queue_map_entry(
     ebpf_core_queue_map_t* queue_map = EBPF_FROM_FIELD(ebpf_core_queue_map_t, core_map, map);
     ebpf_lock_state_t state = ebpf_lock_lock(&queue_map->core_map.lock);
 
-    // Check for queue full
+    // Check for queue full.
     if (queue_map->start == ((queue_map->end + 1) % queue_map->core_map.ebpf_map_definition.max_entries)) {
         result = EBPF_INVALID_ARGUMENT;
         goto Done;
