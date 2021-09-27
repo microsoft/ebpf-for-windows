@@ -6,8 +6,9 @@
 /**
  * @brief Set a bit in data in a thread safe manner.
  * Assumes data is in network byte order.
+ * Bit 0 indicates least significant bit of byte 0.
  *
- * @param[in] data 32 bit aligned block of memory containing bits.
+ * @param[in] data 32-bit aligned block of memory containing bits.
  * @param[in] bit Offset of bit to set.
  * @returns The previous value of this bit.
  */
@@ -17,8 +18,9 @@ ebpf_interlocked_set_bit(_In_ volatile uint8_t* data, uint32_t bit);
 /**
  * @brief Reset a bit in data in a thread safe manner.
  * Assumes data is in network byte order.
+ * Bit 0 indicates least significant bit of byte 0.
  *
- * @param[in] data 32 bit aligned block of memory containing bits.
+ * @param[in] data 32-bit aligned block of memory containing bits.
  * @param[in] bit Offset of bit to reset.
  * @returns The previous value of this bit.
  */
@@ -26,10 +28,11 @@ bool
 ebpf_interlocked_clear_bit(_In_ volatile uint8_t* data, uint32_t bit);
 
 /**
- * @brief Find the first bit set in data, clear it and return the offset.
+ * @brief Find the least significant bit set in data, clear it and return the offset.
  * Assumes data is in network byte order.
+ * Bit 0 indicates least significant bit of byte 0.
  *
- * @param data Block of 32 bits.
+ * @param data Block of 32-bits.
  * @returns uint32_t Offset of the bit that was cleared.
  */
 uint32_t
