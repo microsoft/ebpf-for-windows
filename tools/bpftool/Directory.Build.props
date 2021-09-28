@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (c) Microsoft Corporation
+  SPDX-License-Identifier: MIT
+-->
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" TreatAsLocalProperty="Platform">
+  <Import Project="$(SolutionDir)Directory.Build.props"/>
+  <!-- Override the rules for projects that are not under control of this project -->
+  <PropertyGroup>
+    <CodeAnalysisRuleSet>$(SolutionDir)external\Analyze.external.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+</Project>
