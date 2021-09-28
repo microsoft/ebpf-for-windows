@@ -892,6 +892,9 @@ _create_lpm_map(_In_ const ebpf_map_definition_in_memory_t* map_definition)
     size_t max_prefix_length = (map_definition->key_size - sizeof(uint32_t)) * 8 + 1;
     ebpf_core_lpm_map_t* map = (ebpf_core_lpm_map_t*)_create_hash_map_internal(
         EBPF_OFFSET_OF(ebpf_core_lpm_map_t, data) + ebpf_bitmap_size(max_prefix_length), map_definition, _lpm_extract);
+    if (!map) {
+        return NULL;
+    }
     map->max_prefix = (uint32_t)max_prefix_length;
     ebpf_bitmap_initialize((ebpf_bitmap_t*)map->data, max_prefix_length);
     return &(map->core_map);
