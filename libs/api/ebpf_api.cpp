@@ -2051,3 +2051,19 @@ ebpf_get_program_type_by_name(
 
     return EBPF_SUCCESS;
 }
+
+_Ret_maybenull_z_ const char*
+ebpf_get_program_type_name(_In_ const ebpf_program_type_t* program_type)
+{
+    if (program_type == nullptr) {
+        return nullptr;
+    }
+    const EbpfProgramType& type = get_program_type_windows(*program_type);
+    return type.name.c_str();
+}
+
+_Ret_maybenull_z_ const char*
+ebpf_get_attach_type_name(_In_ const ebpf_attach_type_t* attach_type)
+{
+    return get_attach_type_name(attach_type);
+}
