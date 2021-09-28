@@ -2092,7 +2092,7 @@ ebpf_get_next_pinned_program_path(
     ebpf_protocol_buffer_t request_buffer(
         EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_path_request_t, start_path) + start_path_length);
     ebpf_protocol_buffer_t reply_buffer(
-        EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_path_reply_t, next_path) + EBPF_MAX_PIN_PATH_LENGTH);
+        EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_path_reply_t, next_path) + EBPF_MAX_PIN_PATH_LENGTH - 1);
     ebpf_operation_get_next_pinned_path_request_t* request =
         reinterpret_cast<ebpf_operation_get_next_pinned_path_request_t*>(request_buffer.data());
     ebpf_operation_get_next_pinned_path_reply_t* reply =
@@ -2199,4 +2199,20 @@ ebpf_get_program_type_by_name(
     *expected_attach_type = data->attach_type_uuid;
 
     return EBPF_SUCCESS;
+}
+
+_Ret_maybenull_z_ const char*
+ebpf_get_program_type_name(_In_ const ebpf_program_type_t* program_type)
+{
+    if (program_type == nullptr) {
+        return nullptr;
+    }
+    const EbpfProgramType& type = get_program_type_windows(*program_type);
+    return type.name.c_str();
+}
+
+_Ret_maybenull_z_ const char*
+ebpf_get_attach_type_name(_In_ const ebpf_attach_type_t* attach_type)
+{
+    return get_attach_type_name(attach_type);
 }

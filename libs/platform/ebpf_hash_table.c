@@ -73,7 +73,7 @@ _ebpf_rol(uint32_t value, size_t count)
  * @return Hash of key.
  */
 unsigned long
-_ebpf_murmur3_32(_In_ const uint8_t* key, size_t length, uint32_t seed)
+_ebpf_murmur3_32(_In_ const uint8_t* key, size_t length_in_bits, uint32_t seed)
 {
     uint32_t c1 = 0xcc9e2d51;
     uint32_t c2 = 0x1b873593;
@@ -82,8 +82,10 @@ _ebpf_murmur3_32(_In_ const uint8_t* key, size_t length, uint32_t seed)
     uint32_t m = 5;
     uint32_t n = 0xe6546b64;
     uint32_t hash = seed;
+    uint32_t length_in_bytes = ((uint32_t)length_in_bits / 8);
+    uint32_t remaining_bits = length_in_bits % 8;
 
-    for (size_t index = 0; (length - index) > 3; index += 4) {
+    for (size_t index = 0; (length_in_bytes - index) > 3; index += 4) {
         uint32_t k = *(uint32_t*)(key + index);
         k *= c1;
         k = _ebpf_rol(k, r1);
@@ -95,16 +97,23 @@ _ebpf_murmur3_32(_In_ const uint8_t* key, size_t length, uint32_t seed)
         hash += n;
     }
     unsigned long remainder = 0;
-    for (size_t index = length & (~3); index < length; index++) {
+    for (size_t index = length_in_bytes & (~3); index < length_in_bytes; index++) {
         remainder <<= 8;
         remainder |= key[index];
     }
+    if (remaining_bits) {
+        uint8_t bits = key[length_in_bytes];
+        bits >>= (8 - remaining_bits);
+        remainder <<= 8;
+        remainder |= bits;
+    }
+
     remainder *= c1;
     remainder = _ebpf_rol(remainder, r1);
     remainder *= c2;
 
     hash ^= remainder;
-    hash ^= (uint32_t)length;
+    hash ^= (uint32_t)length_in_bytes;
     hash *= 0x85ebca6b;
     hash ^= (hash >> r2);
     hash *= 0xc2b2ae35;
@@ -126,26 +135,44 @@ _ebpf_murmur3_32(_In_ const uint8_t* key, size_t length, uint32_t seed)
 static int
 _ebpf_hash_table_compare(_In_ const ebpf_hash_table_t* hash_table, _In_ const uint8_t* key_a, _In_ const uint8_t* key_b)
 {
-    size_t length_a;
-    size_t length_b;
+    size_t length_a_in_bits;
+    size_t length_b_in_bits;
     const uint8_t* data_a;
     const uint8_t* data_b;
+    uint8_t remainder_a;
+    uint8_t remainder_b;
     if (hash_table->extract) {
-        hash_table->extract(key_a, &data_a, &length_a);
-        hash_table->extract(key_b, &data_b, &length_b);
+        hash_table->extract(key_a, &data_a, &length_a_in_bits);
+        hash_table->extract(key_b, &data_b, &length_b_in_bits);
     } else {
-        length_a = hash_table->key_size;
+        length_a_in_bits = hash_table->key_size * 8;
         data_a = key_a;
-        length_b = hash_table->key_size;
+        length_b_in_bits = hash_table->key_size * 8;
         data_b = key_b;
     }
-    if (length_a < length_b) {
+    if (length_a_in_bits < length_b_in_bits) {
         return -1;
     }
-    if (length_a > length_b) {
+    if (length_a_in_bits > length_b_in_bits) {
         return 1;
     }
-    return memcmp(data_a, data_b, length_a);
+    int cmp_result = memcmp(data_a, data_b, length_a_in_bits / 8);
+    // No match or length ends on a byte boundary.
+    if (cmp_result != 0 || length_a_in_bits % 8 == 0) {
+        return cmp_result;
+    }
+    // Check remaining high-order bits.
+    remainder_a = data_a[length_a_in_bits / 8];
+    remainder_b = data_b[length_b_in_bits / 8];
+    remainder_a >>= 8 - (length_a_in_bits % 8);
+    remainder_b >>= 8 - (length_b_in_bits % 8);
+    if (remainder_a < remainder_b) {
+        return -1;
+    } else if (remainder_a > remainder_b) {
+        return 1;
+    } else {
+        return 0;
+    }
 }
 
 /**
@@ -164,7 +191,7 @@ _ebpf_hash_table_compute_hash(_In_ const ebpf_hash_table_t* hash_table, _In_ con
     if (hash_table->extract) {
         hash_table->extract(key, &data, &length);
     } else {
-        length = hash_table->key_size;
+        length = hash_table->key_size * 8;
         data = key;
     }
     return _ebpf_murmur3_32(data, length, hash_table->seed);
@@ -386,7 +413,10 @@ ebpf_hash_table_create(
     size_t key_size,
     size_t value_size,
     size_t bucket_count,
-    _In_opt_ void (*extract)(_In_ const uint8_t* value, _Outptr_ const uint8_t** data, _Out_ size_t* num))
+    _In_opt_ void (*extract)(
+        _In_ const uint8_t* value,
+        _Outptr_result_buffer_((*length_in_bits + 7) / 8) const uint8_t** data,
+        _Out_ size_t* length_in_bits))
 {
     ebpf_result_t retval;
     ebpf_hash_table_t* table = NULL;

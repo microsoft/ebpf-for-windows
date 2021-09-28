@@ -544,8 +544,8 @@ handle_ebpf_show_programs(
 
     if (level == VL_NORMAL) {
         std::cout << "\n";
-        std::cout << "    ID  Pins  Links  Mode       Name\n";
-        std::cout << "======  ====  =====  =========  ====================\n";
+        std::cout << "    ID  Pins  Links  Mode       Type           Name\n";
+        std::cout << "======  ====  =====  =========  =============  ====================\n";
     }
 
     fd_t program_fd = ebpf_fd_invalid;
@@ -608,14 +608,16 @@ handle_ebpf_show_programs(
         if (filename.empty() || strcmp(program_file_name, filename.c_str()) == 0) {
             if (section.empty() || strcmp(program_section_name, section.c_str()) == 0) {
                 execution_type_name = program_execution_type == EBPF_EXECUTION_JIT ? "JIT" : "INTERPRET";
+                const char* program_type_name = ebpf_get_program_type_name(&info.type_uuid);
 
                 if (level == VL_NORMAL) {
                     printf(
-                        "%6u  %4u  %5u  %-9s  %s\n",
+                        "%6u  %4u  %5u  %-9s  %-13s  %s\n",
                         info.id,
                         info.pinned_path_count,
                         info.link_count,
                         execution_type_name,
+                        program_type_name,
                         info.name);
                 } else {
                     std::cout << "\n";
@@ -623,6 +625,7 @@ handle_ebpf_show_programs(
                     std::cout << "File name      : " << program_file_name << "\n";
                     std::cout << "Section        : " << program_section_name << "\n";
                     std::cout << "Name           : " << info.name << "\n";
+                    std::cout << "Program type   : " << program_type_name << "\n";
                     std::cout << "Mode           : " << execution_type_name << "\n";
                     std::cout << "# map IDs      : " << info.nr_map_ids << "\n";
                     std::cout << "# pinned paths : " << info.pinned_path_count << "\n";

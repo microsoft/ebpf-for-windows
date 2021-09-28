@@ -130,7 +130,9 @@ struct bpf_link_info
     {
         struct
         {
-            int attach_type; ///< Attach type integer.
+            int attach_type;                       ///< Attach type integer.
+            ebpf_attach_type_t attach_type_uuid;   ///< Attach type UUID.
+            ebpf_program_type_t program_type_uuid; ///< Program type UUID.
         };
     };
 };
