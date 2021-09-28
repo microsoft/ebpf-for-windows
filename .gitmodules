@@ -9,3 +9,9 @@
 [submodule "external/libbpf"]
 	path = external/libbpf
 	url = https://github.com/libbpf/libbpf.git
+[submodule "external/bpftool"]
+	path = external/bpftool
+	url = https://github.com/dthaler/bpftool.git
+[submodule "external/win-c"]
+	path = external/win-c
+	url = https://github.com/takamin/win-c.git

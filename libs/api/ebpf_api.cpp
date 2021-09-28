@@ -287,7 +287,7 @@ _get_map_descriptor_properties(
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_map_t* map;
 
-    *type = BPF_MAP_TYPE_UNSPECIFIED;
+    *type = BPF_MAP_TYPE_UNSPEC;
     *key_size = 0;
     *value_size = 0;
 
@@ -1101,7 +1101,10 @@ ebpf_program_attach(
     } else {
         program_attach_type = &program->attach_type;
     }
-    assert(program->handle != ebpf_handle_invalid);
+    if (program->handle == ebpf_handle_invalid) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
 
     result =
         _link_ebpf_program(program->handle, program_attach_type, link, (uint8_t*)attach_parameters, attach_params_size);
@@ -1285,12 +1288,8 @@ clean_up_ebpf_program(_In_ _Post_invalid_ ebpf_program_t* program)
     if (program == nullptr) {
         return;
     }
-    if (program->fd != ebpf_fd_invalid) {
-        Platform::_close(program->fd);
-    }
-    if (program->handle != ebpf_handle_invalid) {
-        _ebpf_programs.erase(program->handle);
-    }
+    ebpf_program_unload(program);
+
     free(program->byte_code);
     free(program->program_name);
     free(program->section_name);
@@ -1313,7 +1312,7 @@ clean_up_ebpf_map(_In_ _Post_invalid_ ebpf_map_t* map)
     if (map == nullptr) {
         return;
     }
-    if (map->map_fd != 0) {
+    if (map->map_fd > 0) {
         Platform::_close(map->map_fd);
     }
     if (map->map_handle != ebpf_handle_invalid) {
@@ -1392,6 +1391,7 @@ initialize_map(_Out_ ebpf_map_t* map, _In_ const map_cache_t& map_cache)
 static ebpf_result_t
 _initialize_ebpf_object_from_elf(
     _In_z_ const char* file_name,
+    _In_opt_z_ const char* object_name,
     _In_opt_ const ebpf_program_type_t* expected_program_type,
     _In_opt_ const ebpf_attach_type_t* expected_attach_type,
     _Out_ ebpf_object_t& object,
@@ -1406,16 +1406,18 @@ _initialize_ebpf_object_from_elf(
         goto Exit;
     }
 
-    object.file_name = _strdup(file_name);
-    if (object.file_name == nullptr) {
+    object.object_name = _strdup(object_name ? object_name : file_name);
+    if (object.object_name == nullptr) {
         result = EBPF_NO_MEMORY;
         goto Exit;
     }
 
     for (auto& program : object.programs) {
+        program->fd = ebpf_fd_invalid;
         program->object = &object;
     }
     for (auto& map : object.maps) {
+        map->map_fd = ebpf_fd_invalid;
         map->object = &object;
     }
 
@@ -1476,6 +1478,214 @@ _get_next_map_to_create(std::vector<ebpf_map_t*>& maps)
 }
 
 ebpf_result_t
+ebpf_object_open(
+    _In_z_ const char* path,
+    _In_opt_z_ const char* object_name,
+    _In_opt_ const ebpf_program_type_t* program_type,
+    _In_opt_ const ebpf_attach_type_t* attach_type,
+    _Outptr_ struct bpf_object** object,
+    _Outptr_result_maybenull_z_ const char** error_message) noexcept
+{
+    *error_message = nullptr;
+
+    ebpf_object_t* new_object = new (std::nothrow) ebpf_object_t();
+    if (new_object == nullptr) {
+        return EBPF_NO_MEMORY;
+    }
+
+    ebpf_result_t result =
+        _initialize_ebpf_object_from_elf(path, object_name, program_type, attach_type, *new_object, error_message);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
+
+    *object = new_object;
+    _ebpf_objects.emplace_back(*object);
+
+Done:
+    clear_map_descriptors();
+    if (result != EBPF_SUCCESS) {
+        _clean_up_ebpf_object(new_object);
+    }
+    return result;
+}
+
+static ebpf_result_t
+_ebpf_object_create_maps(_Inout_ ebpf_object_t* object)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+
+    clear_map_descriptors();
+
+    // TODO: update ebpf_map_definition_t structure so that it contains flag and pinning information.
+    for (int count = 0; count < object->maps.size(); count++) {
+        ebpf_map_t* map = _get_next_map_to_create(object->maps);
+        if (map == nullptr) {
+            // Any remaining maps cannot be created.
+            result = EBPF_INVALID_OBJECT;
+            break;
+        }
+
+        ebpf_handle_t inner_map_handle = (map->inner_map) ? map->inner_map->map_handle : ebpf_handle_invalid;
+        result = _create_map(map->name, &map->map_definition, inner_map_handle, &map->map_handle);
+        if (result != EBPF_SUCCESS) {
+            break;
+        }
+        map->map_fd = _create_file_descriptor_for_handle(map->map_handle);
+    }
+
+    if (result != EBPF_SUCCESS) {
+        clean_up_ebpf_maps(object->maps);
+    } else {
+        for (auto& map : object->maps) {
+            _ebpf_maps.insert(std::pair<ebpf_handle_t, ebpf_map_t*>(map->map_handle, map));
+        }
+    }
+    clear_map_descriptors();
+    return result;
+}
+
+static ebpf_result_t
+_ebpf_object_load_programs(
+    _Inout_ struct bpf_object* object,
+    _In_ ebpf_execution_type_t execution_type,
+    _Outptr_result_maybenull_z_ const char** log_buffer)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+    std::vector<original_fd_handle_map_t> handle_map;
+    uint32_t error_message_size = 0;
+
+    *log_buffer = nullptr;
+
+    for (auto& program : object->programs) {
+        result = _create_program(
+            program->program_type, object->object_name, program->section_name, program->program_name, &program->handle);
+        if (result != EBPF_SUCCESS) {
+            break;
+        }
+
+        program->fd = _create_file_descriptor_for_handle(program->handle);
+
+        // Populate load_info.
+        ebpf_program_load_info load_info = {0};
+        load_info.object_name = const_cast<char*>(object->object_name);
+        load_info.section_name = const_cast<char*>(program->section_name);
+        load_info.program_name = const_cast<char*>(program->program_name);
+        load_info.program_type = program->program_type;
+        load_info.program_handle = reinterpret_cast<file_handle_t>(program->handle);
+        load_info.execution_type = execution_type;
+        load_info.byte_code = program->byte_code;
+        load_info.byte_code_size = program->byte_code_size;
+        load_info.execution_context = execution_context_kernel_mode;
+        load_info.map_count = (uint32_t)object->maps.size();
+
+        if (load_info.map_count > 0) {
+            for (auto& map : object->maps) {
+                fd_t inner_map_original_fd = (map->inner_map) ? map->inner_map->original_fd : ebpf_fd_invalid;
+                handle_map.emplace_back(
+                    map->original_fd, inner_map_original_fd, reinterpret_cast<file_handle_t>(map->map_handle));
+            }
+
+            load_info.handle_map = handle_map.data();
+        }
+
+        result = ebpf_rpc_load_program(&load_info, log_buffer, &error_message_size);
+        if (result != EBPF_SUCCESS) {
+            break;
+        }
+    }
+
+    if (result == EBPF_SUCCESS) {
+        for (auto& program : object->programs) {
+            _ebpf_programs.insert(std::pair<ebpf_handle_t, ebpf_program_t*>(program->handle, program));
+        }
+    }
+    return result;
+}
+
+// This logic is intended to be similar to libbpf's bpf_object__load_xattr().
+ebpf_result_t
+ebpf_object_load(
+    _Inout_ struct bpf_object* object,
+    ebpf_execution_type_t execution_type,
+    _Outptr_result_maybenull_z_ const char** log_buffer)
+{
+    if (!object)
+        return EBPF_INVALID_ARGUMENT;
+
+    if (object->loaded) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    ebpf_result_t result = EBPF_SUCCESS;
+    try {
+        result = _ebpf_object_create_maps(object);
+        if (result != EBPF_SUCCESS) {
+            goto Done;
+        }
+
+        result = _ebpf_object_load_programs(object, execution_type, log_buffer);
+    } catch (const std::bad_alloc&) {
+        result = EBPF_NO_MEMORY;
+        goto Done;
+    } catch (...) {
+        result = EBPF_FAILED;
+        goto Done;
+    }
+
+    object->loaded = true; /* doesn't matter if successfully loaded or not */
+
+Done:
+    if (result != EBPF_SUCCESS) {
+        ebpf_object_unload(object);
+    }
+    return result;
+}
+
+// This function is intended to work like libbpf's bpf_object__unload().
+ebpf_result_t
+ebpf_object_unload(_In_ struct bpf_object* object)
+{
+    if (!object)
+        return EBPF_INVALID_ARGUMENT;
+
+    for (auto& map : object->maps) {
+        if (map->map_fd > 0) {
+            Platform::_close(map->map_fd);
+            map->map_fd = ebpf_fd_invalid;
+        }
+        if (map->map_handle != ebpf_handle_invalid) {
+            _ebpf_maps.erase(map->map_handle);
+            map->map_handle = ebpf_handle_invalid;
+        }
+    }
+
+    for (auto& program : object->programs) {
+        ebpf_program_unload(program);
+    }
+
+    return EBPF_SUCCESS;
+}
+
+// This function is intended to work like libbpf's bpf_program__unload().
+ebpf_result_t
+ebpf_program_unload(_In_ struct bpf_program* program)
+{
+    if (!program)
+        return EBPF_INVALID_ARGUMENT;
+
+    if (program->fd != ebpf_fd_invalid) {
+        Platform::_close(program->fd);
+        program->fd = ebpf_fd_invalid;
+    }
+    if (program->handle != ebpf_handle_invalid) {
+        _ebpf_programs.erase(program->handle);
+        program->handle = ebpf_handle_invalid;
+    }
+    return EBPF_SUCCESS;
+}
+
+ebpf_result_t
 ebpf_program_load(
     _In_z_ const char* file_name,
     _In_opt_ const ebpf_program_type_t* program_type,
@@ -1487,11 +1697,8 @@ ebpf_program_load(
 {
     ebpf_object_t* new_object = nullptr;
     ebpf_protocol_buffer_t request_buffer;
-    uint32_t error_message_size = 0;
     std::vector<uintptr_t> handles;
     ebpf_result_t result = EBPF_SUCCESS;
-    ebpf_program_load_info load_info = {0};
-    std::vector<original_fd_handle_map_t> handle_map;
 
     if (file_name == nullptr || object == nullptr || program_fd == nullptr || log_buffer == nullptr) {
         result = EBPF_INVALID_ARGUMENT;
@@ -1506,85 +1713,19 @@ ebpf_program_load(
     }
 
     clear_map_descriptors();
-    *log_buffer = nullptr;
-    *object = nullptr;
 
     try {
-        new_object = new ebpf_object_t();
-        if (new_object == nullptr) {
-            result = EBPF_NO_MEMORY;
-            goto Done;
-        }
-
-        result = _initialize_ebpf_object_from_elf(file_name, program_type, attach_type, *new_object, log_buffer);
+        result = ebpf_object_open(file_name, nullptr, program_type, attach_type, &new_object, log_buffer);
         if (result != EBPF_SUCCESS) {
             goto Done;
         }
 
-        // Create all maps.
-        // TODO: update ebpf_map_definition_t structure so that it contains flag and pinning information.
-        for (int count = 0; count < new_object->maps.size(); count++) {
-            ebpf_map_t* map = _get_next_map_to_create(new_object->maps);
-            if (map == nullptr) {
-                // Any remaining maps cannot be created.
-                result = EBPF_INVALID_OBJECT;
-                goto Done;
-            }
-
-            ebpf_handle_t inner_map_handle = (map->inner_map) ? map->inner_map->map_handle : ebpf_handle_invalid;
-            result = _create_map(map->name, &map->map_definition, inner_map_handle, &map->map_handle);
-            if (result != EBPF_SUCCESS) {
-                goto Done;
-            }
-            map->map_fd = _create_file_descriptor_for_handle(map->map_handle);
-        }
-
-        for (auto& program : new_object->programs) {
-            result = _create_program(
-                program->program_type, file_name, program->section_name, program->program_name, &program->handle);
-            if (result != EBPF_SUCCESS) {
-                goto Done;
-            }
-
-            program->fd = _create_file_descriptor_for_handle(program->handle);
-
-            // populate load_info.
-            load_info.file_name = const_cast<char*>(file_name);
-            load_info.section_name = const_cast<char*>(program->section_name);
-            load_info.program_name = const_cast<char*>(program->program_name);
-            load_info.program_type = program->program_type;
-            load_info.program_handle = reinterpret_cast<file_handle_t>(program->handle);
-            load_info.execution_type = execution_type;
-            load_info.byte_code = program->byte_code;
-            load_info.byte_code_size = program->byte_code_size;
-            load_info.execution_context = execution_context_kernel_mode;
-            load_info.map_count = (uint32_t)new_object->maps.size();
-
-            if (load_info.map_count > 0) {
-                for (auto& map : new_object->maps) {
-                    fd_t inner_map_original_fd = (map->inner_map) ? map->inner_map->original_fd : ebpf_fd_invalid;
-                    handle_map.emplace_back(
-                        map->original_fd, inner_map_original_fd, reinterpret_cast<file_handle_t>(map->map_handle));
-                }
-
-                load_info.handle_map = handle_map.data();
-            }
-
-            result = ebpf_rpc_load_program(&load_info, log_buffer, &error_message_size);
-            if (result != EBPF_SUCCESS) {
-                goto Done;
-            }
-        }
-
-        for (auto& program : new_object->programs) {
-            _ebpf_programs.insert(std::pair<ebpf_handle_t, ebpf_program_t*>(program->handle, program));
-        }
-        for (auto& map : new_object->maps) {
-            _ebpf_maps.insert(std::pair<ebpf_handle_t, ebpf_map_t*>(map->map_handle, map));
+        result = ebpf_object_load(new_object, execution_type, log_buffer);
+        if (result != EBPF_SUCCESS) {
+            goto Done;
         }
 
         *object = new_object;
-        _ebpf_objects.emplace_back(*object);
         *program_fd = new_object->programs[0]->fd;
     } catch (const std::bad_alloc&) {
         result = EBPF_NO_MEMORY;
@@ -1596,7 +1737,7 @@ ebpf_program_load(
 
 Done:
     if (result != EBPF_SUCCESS) {
-        _clean_up_ebpf_object(new_object);
+        ebpf_object_close(new_object);
     }
     clear_map_descriptors();
     return result;
@@ -1745,7 +1886,7 @@ ebpf_map_get_fd(_In_ const struct bpf_map* map)
 }
 
 void
-ebpf_object_close(_In_ _Post_invalid_ struct bpf_object* object)
+ebpf_object_close(_In_opt_ _Post_invalid_ struct bpf_object* object)
 {
     if (object == nullptr) {
         return;
@@ -1802,7 +1943,7 @@ ebpf_get_next_pinned_program_path(
     ebpf_protocol_buffer_t request_buffer(
         EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_path_request_t, start_path) + start_path_length);
     ebpf_protocol_buffer_t reply_buffer(
-        EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_path_reply_t, next_path) + EBPF_MAX_PIN_PATH_LENGTH);
+        EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_path_reply_t, next_path) + EBPF_MAX_PIN_PATH_LENGTH - 1);
     ebpf_operation_get_next_pinned_path_request_t* request =
         reinterpret_cast<ebpf_operation_get_next_pinned_path_request_t*>(request_buffer.data());
     ebpf_operation_get_next_pinned_path_reply_t* reply =
@@ -1909,4 +2050,20 @@ ebpf_get_program_type_by_name(
     *expected_attach_type = data->attach_type_uuid;
 
     return EBPF_SUCCESS;
+}
+
+_Ret_maybenull_z_ const char*
+ebpf_get_program_type_name(_In_ const ebpf_program_type_t* program_type)
+{
+    if (program_type == nullptr) {
+        return nullptr;
+    }
+    const EbpfProgramType& type = get_program_type_windows(*program_type);
+    return type.name.c_str();
+}
+
+_Ret_maybenull_z_ const char*
+ebpf_get_attach_type_name(_In_ const ebpf_attach_type_t* attach_type)
+{
+    return get_attach_type_name(attach_type);
 }

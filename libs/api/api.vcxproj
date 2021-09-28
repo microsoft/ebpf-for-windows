@@ -178,6 +178,7 @@
     <ClCompile Include="libbpf_object.cpp" />
     <ClCompile Include="libbpf_program.cpp" />
     <ClCompile Include="libbpf_map.cpp" />
+    <ClCompile Include="libbpf_system.cpp" />
     <ClCompile Include="Verifier.cpp" />
     <ClCompile Include="windows_platform.cpp" />
   </ItemGroup>

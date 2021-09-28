@@ -98,6 +98,10 @@ GlueDeviceIoControl(
 
 Fail:
     if (result != EBPF_SUCCESS) {
+        // Convert result to Win32 error.  This must be
+        // consistent with _ebpf_result_to_ntstatus() in
+        // ebpf_drv.c and windows_error_to_ebpf_result()
+        // in api_common.hpp.
         switch (result) {
         case EBPF_NO_MEMORY:
             SetLastError(ERROR_OUTOFMEMORY);
@@ -109,7 +113,7 @@ Fail:
             SetLastError(ERROR_INVALID_PARAMETER);
             break;
         case EBPF_NO_MORE_KEYS:
-            SetLastError(ERROR_NO_MORE_ITEMS);
+            SetLastError(ERROR_NO_MORE_MATCHES);
             break;
         case EBPF_INSUFFICIENT_BUFFER:
             SetLastError(ERROR_MORE_DATA);

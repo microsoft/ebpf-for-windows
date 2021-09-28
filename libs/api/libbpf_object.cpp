@@ -17,7 +17,7 @@
 const char*
 bpf_object__name(const struct bpf_object* object)
 {
-    return object->file_name;
+    return object->object_name;
 }
 
 int
@@ -54,8 +54,7 @@ bpf_object__find_program_by_name(const struct bpf_object* obj, const char* name)
         if (!strcmp(prog->program_name, name))
             return prog;
     }
-    errno = ENOENT;
-    return nullptr;
+    return (struct bpf_program*)libbpf_err_ptr(-ENOENT);
 }
 
 struct bpf_object*
@@ -82,4 +81,44 @@ int
 bpf_obj_get(const char* pathname)
 {
     return (int)ebpf_object_get(pathname);
+}
+
+struct bpf_object*
+bpf_object__open_file(const char* path, const struct bpf_object_open_opts* opts)
+{
+    if (!path) {
+        return (struct bpf_object*)libbpf_err_ptr(-EINVAL);
+    }
+
+    struct bpf_object* object;
+    const char* error_message;
+    ebpf_result_t result = ebpf_object_open(path, opts->object_name, nullptr, nullptr, &object, &error_message);
+    ebpf_free_string(error_message);
+    libbpf_result_err(result); // Set errno.
+    return object;
+}
+
+int
+bpf_object__load_xattr(struct bpf_object_load_attr* attr)
+{
+    const char* error_message;
+    ebpf_result result = ebpf_object_load(attr->obj, EBPF_EXECUTION_ANY, &error_message);
+    ebpf_free_string(error_message);
+    return libbpf_result_err(result);
+}
+
+int
+bpf_object__load(struct bpf_object* object)
+{
+    struct bpf_object_load_attr attr = {
+        .obj = object,
+    };
+
+    return bpf_object__load_xattr(&attr);
+}
+
+int
+bpf_object__unload(struct bpf_object* obj)
+{
+    return libbpf_result_err(ebpf_object_unload(obj));
 }

@@ -23,6 +23,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\ebpf_bitmap.c" />
     <ClCompile Include="..\ebpf_epoch.c" />
     <ClCompile Include="..\ebpf_hash_table.c" />
     <ClCompile Include="..\ebpf_object.c" />
@@ -34,6 +35,7 @@
     <ClCompile Include="ebpf_extension_user.c" />
     <ClCompile Include="ebpf_handle_user.c" />
     <ClCompile Include="ebpf_platform_user.cpp" />
+    <ClInclude Include="..\ebpf_bitmap.h" />
     <ClInclude Include="..\ebpf_epoch.h" />
     <ClInclude Include="..\ebpf_handle.h" />
     <ClInclude Include="..\ebpf_object.h" />

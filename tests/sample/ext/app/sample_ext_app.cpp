@@ -7,10 +7,10 @@
 #include <mutex>
 #include <thread>
 
-#include "bpf.h"
+#include "bpf/bpf.h"
+#include "bpf/libbpf.h"
 #include "catch_wrapper.hpp"
 #include "common_tests.h"
-#include "libbpf.h"
 #include "netsh_test_helper.h"
 #include "program_helper.h"
 #include "service_helper.h"

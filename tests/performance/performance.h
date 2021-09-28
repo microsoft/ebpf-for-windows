@@ -10,7 +10,7 @@
 #include "ebpf_object.h"
 #include "ebpf_program.h"
 #include "helpers.h"
-#include "libbpf.h"
+#include "bpf/libbpf.h"
 #include "performance_measure.h"
 
 #define PERF_TEST(FUNCTION)                                                               \

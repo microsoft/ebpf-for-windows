@@ -102,6 +102,7 @@ ebpf_link_initialize(
 
     attach_provider_data = (ebpf_attach_provider_data_t*)provider_data->data;
     link->program_type = attach_provider_data->supported_program_type;
+    link->attach_type = attach_type;
 
 Exit:
     return return_value;
@@ -188,6 +189,10 @@ ebpf_link_get_info(
 
     info->id = link->object.id;
     info->prog_id = (link->program) ? ((ebpf_object_t*)link->program)->id : EBPF_ID_NONE;
+    info->type = BPF_LINK_TYPE_PLAIN;
+    info->program_type_uuid = link->program_type;
+    info->attach_type_uuid = link->attach_type;
+    info->attach_type = BPF_ATTACH_TYPE_UNSPEC; // TODO(#223): get actual integer, and also return attach_type_uuid
 
     *info_size = sizeof(*info);
     return EBPF_SUCCESS;

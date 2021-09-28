@@ -39,6 +39,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\ebpf_bitmap.c" />
     <ClCompile Include="..\ebpf_epoch.c" />
     <ClCompile Include="..\ebpf_hash_table.c" />
     <ClCompile Include="..\ebpf_object.c" />
@@ -58,6 +59,7 @@
     <ClInclude Include="..\..\..\include\ebpf_result.h" />
     <ClInclude Include="..\..\..\include\ebpf_structs.h" />
     <ClInclude Include="..\..\..\include\ebpf_windows.h" />
+    <ClInclude Include="..\ebpf_bitmap.h" />
     <ClInclude Include="..\ebpf_epoch.h" />
     <ClInclude Include="..\ebpf_handle.h" />
     <ClInclude Include="..\ebpf_object.h" />

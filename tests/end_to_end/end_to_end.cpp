@@ -10,14 +10,14 @@
 #include <WinSock2.h>
 #include <in6addr.h> // Must come after Winsock2.h
 
-#include "bpf.h"
+#include "bpf/bpf.h"
+#include "bpf/libbpf.h"
 #include "catch_wrapper.hpp"
 #include "common_tests.h"
 #include "ebpf_bind_program_data.h"
 #include "ebpf_core.h"
 #include "ebpf_xdp_program_data.h"
 #include "helpers.h"
-#include "libbpf.h"
 #include "mock.h"
 #include "platform.h"
 #include "program_helper.h"
