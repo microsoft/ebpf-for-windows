@@ -270,6 +270,18 @@ bpf_obj_pin(int fd, const char* pathname);
  */
 
 /**
+ * @brief Bind a map to a program so that it holds a reference on the map.
+ *
+ * @param[in] prog_fd File descriptor of program to bind map to.
+ * @param[in] map_fd File descriptor of map to bind.
+ *
+ * @retval 0 The operation was successful.
+ * @retval <0 An error occured, and errno was set.
+ */
+int
+bpf_prog_bind_map(int prog_fd, int map_fd, const struct bpf_prog_bind_opts* opts);
+
+/**
  * @brief Get a file descriptor referring to a program
  * with a given ID.
  *

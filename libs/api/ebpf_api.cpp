@@ -2070,3 +2070,25 @@ ebpf_get_attach_type_name(_In_ const ebpf_attach_type_t* attach_type)
 {
     return get_attach_type_name(attach_type);
 }
+
+ebpf_result_t
+ebpf_program_bind_map(fd_t program_fd, fd_t map_fd)
+{
+    ebpf_handle_t program_handle = _get_handle_from_file_descriptor(program_fd);
+    if (program_handle == ebpf_handle_invalid) {
+        return EBPF_INVALID_FD;
+    }
+
+    ebpf_handle_t map_handle = _get_handle_from_file_descriptor(map_fd);
+    if (map_handle == ebpf_handle_invalid) {
+        return EBPF_INVALID_FD;
+    }
+
+    ebpf_operation_bind_map_request_t request;
+    request.header.id = EBPF_OPERATION_BIND_MAP;
+    request.header.length = sizeof(request);
+    request.program_handle = program_handle;
+    request.map_handle = map_handle;
+
+    return windows_error_to_ebpf_result(invoke_ioctl(request));
+}

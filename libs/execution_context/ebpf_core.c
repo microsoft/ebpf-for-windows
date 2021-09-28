@@ -1093,6 +1093,36 @@ _ebpf_core_protocol_get_next_pinned_program_path(
     }
     return result;
 }
+
+static ebpf_result_t
+_ebpf_core_protocol_bind_map(_In_ const ebpf_operation_bind_map_request_t* request)
+{
+    ebpf_result_t result;
+    ebpf_program_t* program = NULL;
+    ebpf_map_t* map = NULL;
+
+    result = ebpf_reference_object_by_handle(request->program_handle, EBPF_OBJECT_PROGRAM, (ebpf_object_t**)&program);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
+
+    result = ebpf_reference_object_by_handle(request->map_handle, EBPF_OBJECT_MAP, (ebpf_object_t**)&map);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
+
+    result = ebpf_program_associate_map(program, map);
+
+Done:
+    if (program) {
+        ebpf_object_release_reference((ebpf_object_t*)program);
+    }
+    if (map) {
+        ebpf_object_release_reference((ebpf_object_t*)map);
+    }
+    return result;
+}
+
 static ebpf_result_t
 _ebpf_core_protocol_get_object_info(
     _In_ const ebpf_operation_get_object_info_request_t* request,
@@ -1352,6 +1382,9 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
     {(ebpf_result_t(__cdecl*)(const void*))_ebpf_core_protocol_get_next_pinned_program_path,
      EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_path_request_t, start_path),
      EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_path_reply_t, next_path)},
+
+    // EBPF_OPERATION_BIND_MAP
+    {(ebpf_result_t(__cdecl*)(const void*))_ebpf_core_protocol_bind_map, sizeof(ebpf_operation_bind_map_request_t), 0},
 };
 
 ebpf_result_t

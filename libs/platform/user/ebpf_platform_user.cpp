@@ -49,6 +49,16 @@ __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
     return memory;
 }
 
+__drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
+    _Post_writable_byte_size_(size) void* ebpf_reallocate(_In_ void* memory, size_t old_size, size_t new_size)
+{
+    UNREFERENCED_PARAMETER(old_size);
+    void* p = realloc(memory, new_size);
+    if (p && (new_size > old_size))
+        memset(((char*)p) + old_size, 0, new_size - old_size);
+    return p;
+}
+
 void
 ebpf_free(_Frees_ptr_opt_ void* memory)
 {

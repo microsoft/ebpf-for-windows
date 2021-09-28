@@ -110,11 +110,21 @@ extern "C"
 
     /**
      * @brief Allocate memory.
-     * @param[in] size Size of memory to allocate
+     * @param[in] size Size of memory to allocate.
      * @returns Pointer to memory block allocated, or null on failure.
      */
     __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
         _Post_writable_byte_size_(size) void* ebpf_allocate(size_t size);
+
+    /**
+     * @brief Rellocate memory.
+     * @param[in] memory Allocation to be reallocated.
+     * @param[in] old_size Old size of memory to reallocate.
+     * @param[in] new_size New size of memory to reallocate.
+     * @returns Pointer to memory block allocated, or null on failure.
+     */
+    __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
+        _Post_writable_byte_size_(size) void* ebpf_reallocate(_In_ void* memory, size_t old_size, size_t new_size);
 
     /**
      * @brief Free memory.
