@@ -45,8 +45,8 @@ import "wtypes.idl";
 
         typedef struct _ebpf_program_load_info
         {
-            // Optional file name.
-            [string] char* file_name;
+            // Object name.
+            [string] char* object_name;
             // Optional section name.
             [string] char* section_name;
             // Optional program name.

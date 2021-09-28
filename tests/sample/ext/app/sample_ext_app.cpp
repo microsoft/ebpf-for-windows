@@ -7,10 +7,10 @@
 #include <mutex>
 #include <thread>
 
-#include "bpf.h"
+#include "bpf/bpf.h"
+#include "bpf/libbpf.h"
 #include "catch_wrapper.hpp"
 #include "common_tests.h"
-#include "libbpf.h"
 #include "netsh_test_helper.h"
 #include "program_helper.h"
 #include "service_helper.h"
@@ -68,7 +68,7 @@ struct _sample_extension_helper
         REQUIRE(
             ::DeviceIoControl(
                 device_handle,
-                IOCTL_SAMPLE_EBPF_EXT_CTL,
+                IOCTL_SAMPLE_EBPF_EXT_CTL_RUN,
                 input_buffer.data(),
                 static_cast<uint32_t>(input_buffer.size()),
                 output_buffer.data(),

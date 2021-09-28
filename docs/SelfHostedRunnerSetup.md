@@ -22,4 +22,5 @@ Self-hosted runners are necessary as GitHub-hosted runners don't have the requis
    2) Locate "GitHub Action Runner ...".
    3) Right Click -> Properties -> Log On.
    4) Change "Log on as:" to "Local System Account".
-9) Reboot the runner.
+9) Install (for all users) the Prerequisites listed at the top of the [Getting Started page](./GettingStarted.md#prerequisites)
+10) Reboot the runner.

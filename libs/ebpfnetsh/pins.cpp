@@ -10,7 +10,7 @@
 #include <set>
 #include <string>
 #include <vector>
-#include "bpf.h"
+#include "bpf/bpf.h"
 #include "ebpf_api.h"
 #include "ebpf_windows.h"
 #include "pins.h"

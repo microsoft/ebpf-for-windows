@@ -60,6 +60,8 @@ _ebpf_driver_io_device_control(
     size_t input_buffer_length,
     ULONG io_control_code);
 
+// This should be consistent with windows_error_to_ebpf_result()
+// in api_common.hpp.
 inline NTSTATUS
 _ebpf_result_to_ntstatus(ebpf_result_t result)
 {
@@ -339,7 +341,7 @@ _ebpf_driver_io_device_control(
                 // buffer.
                 if (status == STATUS_SUCCESS && user_reply) {
                     user_reply->id = user_request->id;
-                    user_reply->length = (uint16_t)actual_output_length;
+                    user_reply->length = min((uint16_t)actual_output_length, user_reply->length);
                 }
                 goto Done;
             }

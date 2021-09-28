@@ -188,6 +188,8 @@ ebpf_link_get_info(
 
     info->id = link->object.id;
     info->prog_id = (link->program) ? ((ebpf_object_t*)link->program)->id : EBPF_ID_NONE;
+    info->type = BPF_LINK_TYPE_PLAIN;
+    info->attach_type = BPF_ATTACH_TYPE_UNSPEC; // TODO(#223): get actual integer, and also return attach_type_uuid
 
     *info_size = sizeof(*info);
     return EBPF_SUCCESS;
