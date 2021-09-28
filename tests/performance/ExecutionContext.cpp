@@ -143,9 +143,8 @@ typedef class _ebpf_map_test_state
     void
     test_update_lru()
     {
-        static uint32_t key = 0;
+        uint32_t key = ebpf_random_uint32();
         uint64_t value = 0;
-        ebpf_interlocked_decrement_int32((volatile int32_t*)&key);
         ebpf_epoch_enter();
         ebpf_map_update_entry(map, 0, (uint8_t*)&key, 0, (uint8_t*)&value, EBPF_ANY, EBPF_MAP_FLAG_HELPER);
         ebpf_epoch_exit();
@@ -265,7 +264,7 @@ void
 test_bpf_map_update_lru_elem(bool preemptible)
 {
     size_t iterations = 1000;
-    ebpf_map_test_state_t map_test_state(map_type);
+    ebpf_map_test_state_t map_test_state(map_type, {100});
     _ebpf_map_test_state_instance = &map_test_state;
     std::string name = __FUNCTION__;
     name += "<";
