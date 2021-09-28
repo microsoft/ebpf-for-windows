@@ -269,7 +269,11 @@ _map_update_lru_test()
     _ebpf_map_test_state_instance->test_update_lru();
 }
 
-_lpm_trie_ipv4_find() { _ebpf_map_lpm_trie_test_state_instance->test_find_ipv4_route(); }
+static void
+_lpm_trie_ipv4_find()
+{
+    _ebpf_map_lpm_trie_test_state_instance->test_find_ipv4_route();
+}
 
 static const char*
 _ebpf_map_type_t_to_string(ebpf_map_type_t type)
