@@ -3,6 +3,8 @@
 
 #define TEST_AREA "ExecutionContext"
 
+#include <optional>
+
 #include "performance.h"
 
 extern "C"
@@ -80,11 +82,15 @@ typedef class _ebpf_program_test_state
 typedef class _ebpf_map_test_state
 {
   public:
-    _ebpf_map_test_state(ebpf_map_type_t type)
+    _ebpf_map_test_state(ebpf_map_type_t type, std::optional<uint32_t> map_size = {})
     {
         ebpf_utf8_string_t name{(uint8_t*)"test", 4};
         ebpf_map_definition_in_memory_t definition{
-            sizeof(ebpf_map_definition_in_memory_t), type, sizeof(uint32_t), sizeof(uint64_t), ebpf_get_cpu_count()};
+            sizeof(ebpf_map_definition_in_memory_t),
+            type,
+            sizeof(uint32_t),
+            sizeof(uint64_t),
+            map_size.has_value() ? map_size.value() : ebpf_get_cpu_count()};
 
         REQUIRE(ebpf_core_initiate() == EBPF_SUCCESS);
         REQUIRE(ebpf_map_create(&name, &definition, ebpf_handle_invalid, &map) == EBPF_SUCCESS);
@@ -134,6 +140,17 @@ typedef class _ebpf_map_test_state
         ebpf_epoch_exit();
     }
 
+    void
+    test_update_lru()
+    {
+        static uint32_t key = 0;
+        uint64_t value = 0;
+        ebpf_interlocked_decrement_int32((volatile int32_t*)&key);
+        ebpf_epoch_enter();
+        ebpf_map_update_entry(map, 0, (uint8_t*)&key, 0, (uint8_t*)&value, EBPF_ANY, EBPF_MAP_FLAG_HELPER);
+        ebpf_epoch_exit();
+    }
+
   private:
     ebpf_map_t* map;
 } ebpf_map_test_state_t;
@@ -165,6 +182,12 @@ _map_update_test(uint32_t cpu_id)
     _ebpf_map_test_state_instance->test_update(cpu_id);
 }
 
+static void
+_map_update_lru_test()
+{
+    _ebpf_map_test_state_instance->test_update_lru();
+}
+
 static const char*
 _ebpf_map_type_t_to_string(ebpf_map_type_t type)
 {
@@ -185,6 +208,8 @@ _ebpf_map_type_t_to_string(ebpf_map_type_t type)
         return "BPF_MAP_TYPE_HASH_OF_MAPS";
     case BPF_MAP_TYPE_ARRAY_OF_MAPS:
         return "BPF_MAP_TYPE_ARRAY_OF_MAPS";
+    case BPF_MAP_TYPE_LRU_HASH:
+        return "BPF_MAP_TYPE_LRU_HASH";
     default:
         return "Error";
     }
@@ -235,6 +260,21 @@ test_bpf_map_update_elem(bool preemptible)
     measure.run_test();
 }
 
+template <ebpf_map_type_t map_type>
+void
+test_bpf_map_update_lru_elem(bool preemptible)
+{
+    size_t iterations = 1000;
+    ebpf_map_test_state_t map_test_state(map_type);
+    _ebpf_map_test_state_instance = &map_test_state;
+    std::string name = __FUNCTION__;
+    name += "<";
+    name += _ebpf_map_type_t_to_string(map_type);
+    name += ">";
+    _performance_measure measure(name.c_str(), preemptible, _map_update_lru_test, iterations);
+    measure.run_test();
+}
+
 void
 test_program_invoke_jit(bool preemptible)
 {
@@ -279,3 +319,5 @@ PERF_TEST(test_bpf_map_update_elem<BPF_MAP_TYPE_HASH>);
 PERF_TEST(test_bpf_map_update_elem<BPF_MAP_TYPE_ARRAY>);
 PERF_TEST(test_bpf_map_update_elem<BPF_MAP_TYPE_PERCPU_HASH>);
 PERF_TEST(test_bpf_map_update_elem<BPF_MAP_TYPE_PERCPU_ARRAY>);
+
+PERF_TEST(test_bpf_map_update_lru_elem<BPF_MAP_TYPE_LRU_HASH>);
