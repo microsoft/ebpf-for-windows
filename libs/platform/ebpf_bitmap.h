@@ -34,7 +34,7 @@ extern "C"
      * @param[in,out] bitmap Pointer to the bitmap.
      * @param[in] index Index to modify.
      * @param[in] interlocked Perform the operation using interlocked.
-     * @retval true of the bit was set, false otherwise.
+     * @return true if the bit was set, false otherwise.
      */
     bool
     ebpf_bitmap_set_bit(_Inout_ ebpf_bitmap_t* bitmap, size_t index, bool interlocked);
@@ -45,7 +45,7 @@ extern "C"
      * @param[in,out] bitmap Pointer to the bitmap.
      * @param[in] index Index to modify.
      * @param[in] interlocked Perform the operation using interlocked.
-     * @retval true of the bit was set, false otherwise.
+     * @return true if the bit was set, false otherwise.
      */
     bool
     ebpf_bitmap_reset_bit(_Inout_ ebpf_bitmap_t* bitmap, size_t index, bool interlocked);
