@@ -67,7 +67,7 @@ extern "C"
      * @param[out] cursor Pointer to cursor.
      */
     void
-    ebpf_bitmap_start_forward_search(_In_ ebpf_bitmap_t* bitmap, _Out_ ebpf_bitmap_cursor_t* cursor);
+    ebpf_bitmap_start_forward_search(_In_ const ebpf_bitmap_t* bitmap, _Out_ ebpf_bitmap_cursor_t* cursor);
 
     /**
      * @brief Initialize a cursor to perform a reverse scan of bits.
@@ -76,7 +76,7 @@ extern "C"
      * @param[out] cursor Pointer to cursor.
      */
     void
-    ebpf_bitmap_start_reverse_search(_In_ ebpf_bitmap_t* bitmap, _Out_ ebpf_bitmap_cursor_t* cursor);
+    ebpf_bitmap_start_reverse_search(_In_ const ebpf_bitmap_t* bitmap, _Out_ ebpf_bitmap_cursor_t* cursor);
 
     /**
      * @brief Find the next set bit in the bitmap via forward search.

@@ -11,7 +11,7 @@ typedef struct _ebpf_bitmap
 
 typedef struct _ebpf_bitmap_cursor_internal
 {
-    ebpf_bitmap_t* bitmap;
+    const ebpf_bitmap_t* bitmap;
     size_t index;         // Current block being searched.
     size_t current_block; // Copy of the current block.
 } ebpf_bitmap_cursor_internal_t;
@@ -67,7 +67,7 @@ ebpf_bitmap_test_bit(_In_ const ebpf_bitmap_t* bitmap, size_t index)
 }
 
 void
-ebpf_bitmap_start_forward_search(_In_ ebpf_bitmap_t* bitmap, _Out_ ebpf_bitmap_cursor_t* cursor)
+ebpf_bitmap_start_forward_search(_In_ const ebpf_bitmap_t* bitmap, _Out_ ebpf_bitmap_cursor_t* cursor)
 {
     ebpf_bitmap_cursor_internal_t* internal_cursor = (ebpf_bitmap_cursor_internal_t*)cursor;
     internal_cursor->bitmap = bitmap;
@@ -76,7 +76,7 @@ ebpf_bitmap_start_forward_search(_In_ ebpf_bitmap_t* bitmap, _Out_ ebpf_bitmap_c
 }
 
 void
-ebpf_bitmap_start_reverse_search(_In_ ebpf_bitmap_t* bitmap, _Out_ ebpf_bitmap_cursor_t* cursor)
+ebpf_bitmap_start_reverse_search(_In_ const ebpf_bitmap_t* bitmap, _Out_ ebpf_bitmap_cursor_t* cursor)
 {
     ebpf_bitmap_cursor_internal_t* internal_cursor = (ebpf_bitmap_cursor_internal_t*)cursor;
     internal_cursor->bitmap = bitmap;
