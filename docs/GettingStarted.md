@@ -73,10 +73,22 @@ Follow the [VM Installation Instructions](vm-setup.md) to do so.
 If you're not already familiar with eBPF, or want a detailed walkthrough, see our [eBPF tutorial](tutorial.md).
 
 For API documentation, see https://microsoft.github.io/ebpf-for-windows/
+### Port leak and bind observability demo
+This section shows how to use eBPF for Windows in a demo that lets us control a UDP port leak by attaching an eBPF program to the socket bind() call via the EBPF_ATTACH_TYPE_BIND hook.
+#### Prep
+1. Build the ``port_leak`` and ``port_quota`` applications from under the tools project.
+2. Copy both the exe's to a machine that has eBPF installed. See
+   [Installing eBPF for Windows](#installing-ebpf-for-windows)
+#### Demo
+1. At a command prompt running as Administrator, run ``port_quota.exe load`` to load the port quota eBPF program attached to the bind hook.
+2. Set a limit to a threshold number of ports you want to permit an application to bind to by doing ``port_quota.exe limit 5000``
+3. Run ``port_leak.exe`` in another command prompt. This will just leak UDP ports. Observe the output that bind starts to fail after this app binds 5000 ports.
+4. Running ```port_quota.exe stats``` will dump how many ports are taken up by an application. Under the covers, the eBPF program communicates this information up to the user mode application via an eBPF map.
 
+### DNS flood attack demo
 This section shows how to use eBPF for Windows in a demo that defends against a 0-byte UDP attack on a DNS server.
 
-### Prep
+#### Prep
 Set up 2 VMs, which we will refer to as the "attacker" machine and the "defender" machine.
 
 On a defender machine with [eBPF installed](#installing-ebpf-for-windows), do the following:
@@ -91,11 +103,11 @@ On a defender machine with [eBPF installed](#installing-ebpf-for-windows), do th
 On the attacker machine, do the following:
 1. Copy DnsFlood.exe to attacker machine
 
-### Demo
-#### On the attacker machine
+#### Demo
+##### On the attacker machine
 1. Run ```for /L %i in (1,1,4) do start /min DnsFlood <ip of defender>```
 
-#### On the defender machine
+##### On the defender machine
 1. Start performance monitor and add UDPv4 Datagrams/sec
 2. Show that 200K packets per second are being received
 3. Show & explain code of droppacket.c
