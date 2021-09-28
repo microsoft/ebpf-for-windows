@@ -41,7 +41,7 @@ typedef struct _ebpf_core_lpm_map
     ebpf_core_map_t core_map;
     uint32_t max_prefix;
     // Bitmap of prefix lengths inserted into the map.
-    uint8_t prefix_in_use[1];
+    uint8_t data[1];
 } ebpf_core_lpm_map_t;
 
 _Ret_notnull_ static const ebpf_program_type_t*
@@ -889,9 +889,11 @@ _lpm_extract(_In_ const uint8_t* value, _Outptr_ const uint8_t** data, _Out_ siz
 static ebpf_core_map_t*
 _create_lpm_map(_In_ const ebpf_map_definition_in_memory_t* map_definition)
 {
+    size_t max_prefix_length = (map_definition->key_size - sizeof(uint32_t)) * 8 + 1;
     ebpf_core_lpm_map_t* map = (ebpf_core_lpm_map_t*)_create_hash_map_internal(
-        EBPF_OFFSET_OF(ebpf_core_lpm_map_t, prefix_in_use) + map_definition->key_size, map_definition, _lpm_extract);
-    map->max_prefix = (map_definition->key_size - sizeof(uint32_t)) * 8;
+        EBPF_OFFSET_OF(ebpf_core_lpm_map_t, data) + ebpf_bitmap_size(max_prefix_length), map_definition, _lpm_extract);
+    map->max_prefix = (uint32_t)max_prefix_length;
+    ebpf_bitmap_initialize((ebpf_bitmap_t*)map->data, max_prefix_length);
     return &(map->core_map);
 }
 
@@ -900,35 +902,22 @@ _find_lpm_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
 {
     uint32_t* prefix_length = (uint32_t*)key;
     uint32_t original_prefix_length = *prefix_length;
-    uint8_t* value;
+    uint8_t* value = NULL;
     ebpf_core_lpm_map_t* trie_map = EBPF_FROM_FIELD(ebpf_core_lpm_map_t, core_map, map);
-    uint32_t next_prefix_length = MAXUINT32;
-    uint32_t prefix_blocks = (trie_map->max_prefix + 31) / 32;
-    uint32_t prefix_copy;
     if (!map || !key)
         return NULL;
 
-    // Divide prefix length into 32-bit blocks.
-    for (uint32_t index = 0; index < prefix_blocks; index++) {
-        // Search each 32-bit block for a set bit.
-        prefix_copy = *((uint32_t*)trie_map->prefix_in_use + index);
-        for (;;) {
-            // For each set bit, check if a prefix of that length matches.
-            next_prefix_length = ebpf_find_next_bit_and_reset(&prefix_copy);
-            if (next_prefix_length == MAXUINT32) {
-                break;
-            }
-            next_prefix_length += index * 32;
-            *prefix_length = trie_map->max_prefix - next_prefix_length;
-            value = _find_hash_map_entry(map, key);
-            *prefix_length = original_prefix_length;
-            if (value) {
-                return value;
-            }
+    ebpf_bitmap_cursor_t cursor;
+    ebpf_bitmap_start_reverse_search((ebpf_bitmap_t*)trie_map->data, &cursor);
+    while (*prefix_length != MAXUINT32) {
+        *prefix_length = (uint32_t)ebpf_bitmap_reverse_search_next_bit(&cursor);
+        value = _find_hash_map_entry(map, key);
+        if (value) {
+            break;
         }
     }
     *prefix_length = original_prefix_length;
-    return NULL;
+    return value;
 }
 
 static ebpf_result_t
@@ -943,10 +932,7 @@ _update_lpm_map_entry(
 
     ebpf_result_t result = _update_hash_map_entry(map, key, data, option);
     if (result == EBPF_SUCCESS) {
-        // Set the bit corresponding to the prefix length.
-        // Store in reverse order in bitmap so that we traverse the prefixes from longest
-        // to shortest.
-        ebpf_interlocked_set_bit(trie_map->prefix_in_use, trie_map->max_prefix - prefix_length);
+        ebpf_bitmap_set_bit((ebpf_bitmap_t*)trie_map->data, prefix_length, true);
     }
     return result;
 }

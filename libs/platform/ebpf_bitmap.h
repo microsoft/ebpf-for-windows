@@ -3,37 +3,99 @@
 #pragma once
 #include <ebpf_platform.h>
 
-/**
- * @brief Set a bit in data in a thread safe manner.
- * Assumes data is in network byte order.
- * Bit 0 indicates least significant bit of byte 0.
- *
- * @param[in] data 32-bit aligned block of memory containing bits.
- * @param[in] bit Offset of bit to set.
- * @returns The previous value of this bit.
- */
-bool
-ebpf_interlocked_set_bit(_In_ volatile uint8_t* data, uint32_t bit);
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+    typedef struct _ebpf_bitmap ebpf_bitmap_t;
+    typedef uintptr_t ebpf_bitmap_cursor_t[3];
 
-/**
- * @brief Reset a bit in data in a thread safe manner.
- * Assumes data is in network byte order.
- * Bit 0 indicates least significant bit of byte 0.
- *
- * @param[in] data 32-bit aligned block of memory containing bits.
- * @param[in] bit Offset of bit to reset.
- * @returns The previous value of this bit.
- */
-bool
-ebpf_interlocked_clear_bit(_In_ volatile uint8_t* data, uint32_t bit);
+    /**
+     * @brief Compute the size in bytes required to hold a ebpf_bitmap_t.
+     *
+     * @param[in] bit_count Count of bits the bitmap will hold.
+     * @return Size in bytes required.
+     */
+    size_t
+    ebpf_bitmap_size(size_t bit_count);
 
-/**
- * @brief Find the least significant bit set in data, clear it and return the offset.
- * Assumes data is in network byte order.
- * Bit 0 indicates least significant bit of byte 0.
- *
- * @param data Block of 32-bits.
- * @returns uint32_t Offset of the bit that was cleared.
- */
-uint32_t
-ebpf_find_next_bit_and_reset(_Inout_ uint32_t* data);
+    /**
+     * @brief Initialize an already allocated bitmap.
+     *
+     * @param[out] bitmap Pointer to the bitmap.
+     * @param[in] bit_count Count of bits to be stored.
+     */
+    void
+    ebpf_bitmap_initialize(_Out_ ebpf_bitmap_t* bitmap, size_t bit_count);
+
+    /**
+     * @brief Set bit at index to true.
+     *
+     * @param[in] bitmap Pointer to the bitmap.
+     * @param[in] index Index to modify.
+     * @param[in] interlocked Perform the operation using interlocked.
+     * @retval true of the bit was set, false otherwise.
+     */
+    bool
+    ebpf_bitmap_set_bit(_Inout_ ebpf_bitmap_t* bitmap, size_t index, bool interlocked);
+
+    /**
+     * @brief Set bit at index to false.
+     *
+     * @param[in] bitmap Pointer to the bitmap.
+     * @param[in] index Index to modify.
+     * @param[in] interlocked Perform the operation using interlocked.
+     * @retval true of the bit was set, false otherwise.
+     */
+    bool
+    ebpf_bitmap_reset_bit(_Inout_ ebpf_bitmap_t* bitmap, size_t index, bool interlocked);
+
+    /**
+     * @brief Get the value of the bit at index.
+     *
+     * @param[in] bitmap Pointer to the bitmap.
+     * @param[in] index Index to modify.
+     * @retval true of the bit was set, false otherwise.
+     */
+    bool
+    ebpf_bitmap_test_bit(_In_ const ebpf_bitmap_t* bitmap, size_t index);
+
+    /**
+     * @brief Initialize a cursor to perform a forward scan of bits.
+     *
+     * @param[in] bitmap Pointer to the bitmap.
+     * @param[out] cursor Pointer to cursor.
+     */
+    void
+    ebpf_bitmap_start_forward_search(_In_ ebpf_bitmap_t* bitmap, _Out_ ebpf_bitmap_cursor_t* cursor);
+
+    /**
+     * @brief Initialize a cursor to perform a reverse scan of bits.
+     *
+     * @param[in] bitmap Pointer to the bitmap.
+     * @param[out] cursor Pointer to cursor.
+     */
+    void
+    ebpf_bitmap_start_reverse_search(_In_ ebpf_bitmap_t* bitmap, _Out_ ebpf_bitmap_cursor_t* cursor);
+
+    /**
+     * @brief Find the next set bit in the bitmap via forward search.
+     *
+     * @param cursor Pointer to cursor.
+     * @return Offset of the next set bit.
+     */
+    size_t
+    ebpf_bitmap_forward_search_next_bit(_Inout_ ebpf_bitmap_cursor_t* cursor);
+
+    /**
+     * @brief Find the next set bit in the bitmap via reverse search.
+     *
+     * @param cursor Pointer to cursor.
+     * @return Offset of the next set bit.
+     */
+    size_t
+    ebpf_bitmap_reverse_search_next_bit(_Inout_ ebpf_bitmap_cursor_t* cursor);
+
+#ifdef __cplusplus
+}
+#endif

@@ -12,6 +12,7 @@
 
 #include "catch_wrapper.hpp"
 #include "ebpf_bind_program_data.h"
+#include "ebpf_bitmap.h"
 #include "ebpf_epoch.h"
 #include "ebpf_nethooks.h"
 #include "ebpf_platform.h"
@@ -657,3 +658,46 @@ TEST_CASE("state_test", "[state]")
     REQUIRE(retreived_value == reinterpret_cast<uintptr_t>(&foo));
     ebpf_state_terminate();
 }
+
+template <size_t bit_count>
+void
+bitmap_test()
+{
+    std::vector<uint8_t> data(ebpf_bitmap_size(bit_count));
+
+    ebpf_bitmap_t* bitmap = reinterpret_cast<ebpf_bitmap_t*>(data.data());
+    ebpf_bitmap_initialize(bitmap, bit_count);
+
+    // Set every even bit interlocked.
+    for (size_t i = 0; i < bit_count; i += 2) {
+        ebpf_bitmap_set_bit(bitmap, i, true);
+    }
+
+    // Check every even bit is set.
+    for (size_t i = 0; i < bit_count; i += 2) {
+        REQUIRE(ebpf_bitmap_test_bit(bitmap, i));
+    }
+
+    // verify every odd bit is set.
+    ebpf_bitmap_cursor_t cursor;
+    ebpf_bitmap_start_forward_search(bitmap, &cursor);
+
+    for (size_t i = 0; i < bit_count; i += 2) {
+        REQUIRE(ebpf_bitmap_forward_search_next_bit(&cursor) == i);
+    }
+    REQUIRE(ebpf_bitmap_forward_search_next_bit(&cursor) == MAXSIZE_T);
+
+    ebpf_bitmap_start_reverse_search(bitmap, &cursor);
+    for (size_t i = bit_count - 1; i != -2; i -= 2) {
+        REQUIRE(ebpf_bitmap_reverse_search_next_bit(&cursor) == i);
+    }
+    REQUIRE(ebpf_bitmap_reverse_search_next_bit(&cursor) == MAXSIZE_T);
+}
+
+#define BIT_MASK_TEST(X) \
+    TEST_CASE("bitmap_test:" #X, "[platform]") { bitmap_test<X>(); }
+
+BIT_MASK_TEST(33);
+BIT_MASK_TEST(65);
+BIT_MASK_TEST(129);
+BIT_MASK_TEST(1025);
