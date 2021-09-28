@@ -31,7 +31,7 @@ extern "C"
     /**
      * @brief Set bit at index to true.
      *
-     * @param[in] bitmap Pointer to the bitmap.
+     * @param[in,out] bitmap Pointer to the bitmap.
      * @param[in] index Index to modify.
      * @param[in] interlocked Perform the operation using interlocked.
      * @retval true of the bit was set, false otherwise.
@@ -42,7 +42,7 @@ extern "C"
     /**
      * @brief Set bit at index to false.
      *
-     * @param[in] bitmap Pointer to the bitmap.
+     * @param[in,out] bitmap Pointer to the bitmap.
      * @param[in] index Index to modify.
      * @param[in] interlocked Perform the operation using interlocked.
      * @retval true of the bit was set, false otherwise.
@@ -55,7 +55,7 @@ extern "C"
      *
      * @param[in] bitmap Pointer to the bitmap.
      * @param[in] index Index to modify.
-     * @retval true of the bit was set, false otherwise.
+     * @return true if the bit was set, false otherwise.
      */
     bool
     ebpf_bitmap_test_bit(_In_ const ebpf_bitmap_t* bitmap, size_t index);
@@ -81,7 +81,7 @@ extern "C"
     /**
      * @brief Find the next set bit in the bitmap via forward search.
      *
-     * @param cursor Pointer to cursor.
+     * @param[in,out] cursor Pointer to cursor.
      * @return Offset of the next set bit.
      */
     size_t
@@ -90,7 +90,7 @@ extern "C"
     /**
      * @brief Find the next set bit in the bitmap via reverse search.
      *
-     * @param cursor Pointer to cursor.
+     * @param[in,out] cursor Pointer to cursor.
      * @return Offset of the next set bit.
      */
     size_t

@@ -19,7 +19,7 @@ typedef struct _ebpf_bitmap_cursor_internal
 C_ASSERT(sizeof(ebpf_bitmap_cursor_internal_t) == sizeof(ebpf_bitmap_cursor_t));
 
 #define BITS_IN_SIZE_T (sizeof(size_t) * 8)
-#define BIT_COUNT_TO_BLOCK_COUNT(X) ((X + BITS_IN_SIZE_T - 1) / BITS_IN_SIZE_T)
+#define BIT_COUNT_TO_BLOCK_COUNT(X) (((X) + BITS_IN_SIZE_T - 1) / BITS_IN_SIZE_T)
 
 size_t
 ebpf_bitmap_size(size_t bit_count)
@@ -89,7 +89,7 @@ ebpf_bitmap_forward_search_next_bit(_Inout_ ebpf_bitmap_cursor_t* cursor)
 {
     ebpf_bitmap_cursor_internal_t* internal_cursor = (ebpf_bitmap_cursor_internal_t*)cursor;
     while (internal_cursor->index < internal_cursor->bitmap->bit_count) {
-        DWORD next_bit = 0;
+        unsigned long next_bit = 0;
         if (_BitScanForward64(&next_bit, internal_cursor->current_block)) {
             internal_cursor->index = next_bit + (internal_cursor->index / BITS_IN_SIZE_T) * BITS_IN_SIZE_T;
             // Clear the bit.
@@ -112,7 +112,7 @@ ebpf_bitmap_reverse_search_next_bit(_Inout_ ebpf_bitmap_cursor_t* cursor)
 {
     ebpf_bitmap_cursor_internal_t* internal_cursor = (ebpf_bitmap_cursor_internal_t*)cursor;
     while (internal_cursor->index < internal_cursor->bitmap->bit_count) {
-        DWORD next_bit = 0;
+        unsigned long next_bit = 0;
         if (_BitScanReverse64(&next_bit, internal_cursor->current_block)) {
             internal_cursor->index = next_bit + (internal_cursor->index / BITS_IN_SIZE_T) * BITS_IN_SIZE_T;
             // Clear the bit.

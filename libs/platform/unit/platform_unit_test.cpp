@@ -673,12 +673,12 @@ bitmap_test()
         ebpf_bitmap_set_bit(bitmap, i, true);
     }
 
-    // Check every even bit is set.
+    // Verify every even bit is set via ebpf_bitmap_test_bit.
     for (size_t i = 0; i < bit_count; i += 2) {
         REQUIRE(ebpf_bitmap_test_bit(bitmap, i));
     }
 
-    // verify every odd bit is set.
+    // Verify every even bit is set via ebpf_bitmap_forward_search_next_bit.
     ebpf_bitmap_cursor_t cursor;
     ebpf_bitmap_start_forward_search(bitmap, &cursor);
 
