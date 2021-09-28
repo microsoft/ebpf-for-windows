@@ -73,13 +73,13 @@ If you're not already familiar with eBPF, or want a detailed walkthrough, see ou
 
 For API documentation, see https://microsoft.github.io/ebpf-for-windows/
 ### Port leak and bind observability demo
-This section shows how to use eBPF for Windows in a demo that lets us control a UDP port leak by hooking an eBPF program at the bind layer of the Windows networking stack via the EBPF_ATTACH_TYPE_BIND hook.
+This section shows how to use eBPF for Windows in a demo that lets us control a UDP port leak by attaching an eBPF program to the socket bind() call via the EBPF_ATTACH_TYPE_BIND hook.
 #### Prep
 1. Build the ``port_leak`` and ``port_quota`` applications from under the tools project.
 2. Copy both the exe's to a machine that has eBPF installed. See
    [Installing eBPF for Windows](#installing-ebpf-for-windows)
 #### Demo
-1. In an admin prompt, run ``port_quota.exe load`` to load the port quota ebpf program at the bind  hook.
+1. At a command prompt running as Administrator, run ``port_quota.exe load`` to load the port quota eBPF program attached to the bind hook.
 2. Set a limit to a threshold number of ports you want to permit an application to bind to by doing ``port_quota.exe limit 5000``
 3. Run ``port_leak.exe`` in another command prompt. This will just leak UDP ports. Observe the output that bind starts to fail after this app binds 5000 ports.
 4. Running ```port_quota.exe stats``` will dump how many ports are taken up by an application. Under the covers, the eBPF program communicates this information up to the user mode application via an eBPF map.
