@@ -35,6 +35,14 @@ typedef enum ebpf_map_option
     EBPF_EXIST
 } ebpf_map_option_t;
 
+typedef enum ebpf_pin_type
+{
+    PIN_NONE,
+    PIN_OBJECT_NS,
+    PIN_GLOBAL_NS,
+    PIN_CUSTOM_NS
+} ebpf_pin_type_t;
+
 typedef uint32_t ebpf_id_t;
 #define EBPF_ID_NONE UINT32_MAX
 
@@ -49,6 +57,7 @@ typedef struct _ebpf_map_definition_in_memory
     uint32_t value_size;  ///< Size in bytes of a map value.
     uint32_t max_entries; ///< Maximum number of entries allowed in the map.
     ebpf_id_t inner_map_id;
+    ebpf_pin_type_t pinning;
 } ebpf_map_definition_in_memory_t;
 
 /**
@@ -67,6 +76,7 @@ typedef struct _ebpf_map_definition_in_file
      * file is the inner map template.
      */
     uint32_t inner_map_idx;
+    ebpf_pin_type_t pinning;
 } ebpf_map_definition_in_file_t;
 
 typedef enum

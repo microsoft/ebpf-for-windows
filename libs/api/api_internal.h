@@ -49,6 +49,7 @@ typedef struct bpf_map
     ebpf_map_definition_in_memory_t map_definition;
     char* pin_path;
     bool pinned;
+    bool reused;
 } ebpf_map_t;
 
 typedef struct bpf_link

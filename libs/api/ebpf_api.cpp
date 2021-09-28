@@ -33,6 +33,8 @@ static std::map<ebpf_handle_t, ebpf_program_t*> _ebpf_programs;
 static std::map<ebpf_handle_t, ebpf_map_t*> _ebpf_maps;
 static std::vector<ebpf_object_t*> _ebpf_objects;
 
+#define DEFAULT_PIN_ROOT_PATH "/ebpf/global"
+
 static void
 _clean_up_ebpf_objects();
 
@@ -640,7 +642,8 @@ ebpf_get_program_byte_code(
     *map_descriptors = nullptr;
 
     ebpf_verifier_options_t verifier_options{false, false, false, false, mock_map_fd};
-    result = load_byte_code(file_name, section_name, &verifier_options, programs, maps, error_message);
+    result = load_byte_code(
+        file_name, section_name, &verifier_options, DEFAULT_PIN_ROOT_PATH, programs, maps, error_message);
     if (result != EBPF_SUCCESS) {
         goto Done;
     }
@@ -1319,6 +1322,7 @@ clean_up_ebpf_map(_In_ _Post_invalid_ ebpf_map_t* map)
         _ebpf_maps.erase(map->map_handle);
     }
     free(map->name);
+    free(map->pin_path);
 
     free(map);
 }
@@ -1378,6 +1382,7 @@ initialize_map(_Out_ ebpf_map_t* map, _In_ const map_cache_t& map_cache)
     map->map_definition.key_size = map_cache.verifier_map_descriptor.key_size;
     map->map_definition.value_size = map_cache.verifier_map_descriptor.value_size;
     map->map_definition.max_entries = map_cache.verifier_map_descriptor.max_entries;
+    map->map_definition.pinning = map_cache.pinning;
 
     // TODO(issue #396): fill in inner map id, if any.
     map->map_definition.inner_map_id = (uint32_t)-1;
@@ -1385,6 +1390,7 @@ initialize_map(_Out_ ebpf_map_t* map, _In_ const map_cache_t& map_cache)
     map->inner_map_original_fd = map_cache.verifier_map_descriptor.inner_map_fd;
 
     map->pinned = false;
+    map->reused = false;
     map->pin_path = nullptr;
 }
 
@@ -1401,7 +1407,8 @@ _initialize_ebpf_object_from_elf(
     set_global_program_and_attach_type(expected_program_type, expected_attach_type);
 
     ebpf_verifier_options_t verifier_options{false, false, false, false, false};
-    result = load_byte_code(file_name, nullptr, &verifier_options, object.programs, object.maps, error_message);
+    result = load_byte_code(
+        file_name, nullptr, &verifier_options, DEFAULT_PIN_ROOT_PATH, object.programs, object.maps, error_message);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
@@ -1510,6 +1517,115 @@ Done:
     return result;
 }
 
+static inline bool
+_ebpf_is_map_in_map(ebpf_map_t* map)
+{
+    if (map->map_definition.type == BPF_MAP_TYPE_HASH_OF_MAPS ||
+        map->map_definition.type == BPF_MAP_TYPE_ARRAY_OF_MAPS) {
+        return true;
+    }
+
+    return false;
+}
+
+static ebpf_result_t
+_ebpf_object_reuse_map(_In_ ebpf_map_t* map)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+    fd_t inner_map_info_fd = ebpf_fd_invalid;
+
+    // Check if a map is already present with this pin path.
+    fd_t map_fd = ebpf_object_get(map->pin_path);
+    if (map_fd == ebpf_fd_invalid) {
+        return EBPF_SUCCESS;
+    }
+
+    // Validate that the existing map definition matches with this new map.
+    struct bpf_map_info info;
+    uint32_t info_size = (uint32_t)sizeof(info);
+    result = ebpf_object_get_info_by_fd(map_fd, &info, &info_size);
+    if (result != EBPF_SUCCESS) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
+
+    if (info.type != map->map_definition.type || info.key_size != map->map_definition.key_size ||
+        info.value_size != map->map_definition.value_size || info.max_entries != map->map_definition.max_entries) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
+
+    // Extra checks for map-in-map.
+    if (_ebpf_is_map_in_map(map)) {
+        ebpf_map_t* inner_map = map->inner_map;
+        ebpf_assert(inner_map != nullptr);
+        ebpf_id_t inner_map_id = info.inner_map_id;
+
+        if (inner_map_id == EBPF_ID_NONE) {
+            // The original map is pinned but its template is not initialized yet.
+            // This is not supported for now.
+
+            // Workaround: Check if there are any entries in this map. If present,
+            // use the map entry to get the inner map template.
+            uint32_t key;
+            result = ebpf_map_get_next_key(map_fd, nullptr, &key);
+            if (result != EBPF_SUCCESS) {
+                result = EBPF_INVALID_ARGUMENT;
+                goto Exit;
+            }
+
+            // Got a key. Query the value. That will be the map id of the inner map.
+            result = ebpf_map_lookup_element(map_fd, &key, &inner_map_id);
+            if (result != EBPF_SUCCESS || inner_map_id == EBPF_ID_NONE) {
+                result = EBPF_INVALID_ARGUMENT;
+                goto Exit;
+            }
+        }
+
+        if (inner_map->map_definition.pinning == PIN_GLOBAL_NS) {
+            // Inner map cannot be auto-pinned.
+            result = EBPF_INVALID_ARGUMENT;
+            goto Exit;
+        }
+
+        // For map-in-map, validate the inner map template also.
+        result = ebpf_get_map_fd_by_id(inner_map_id, &inner_map_info_fd);
+        if (result != EBPF_SUCCESS) {
+            result = EBPF_INVALID_ARGUMENT;
+            goto Exit;
+        }
+
+        struct bpf_map_info inner_map_info;
+        info_size = (uint32_t)sizeof(inner_map_info);
+        result = ebpf_object_get_info_by_fd(inner_map_info_fd, &inner_map_info, &info_size);
+        if (result != EBPF_SUCCESS) {
+            result = EBPF_INVALID_ARGUMENT;
+            goto Exit;
+        }
+
+        if (inner_map_info.type != inner_map->map_definition.type ||
+            inner_map_info.key_size != inner_map->map_definition.key_size ||
+            inner_map_info.value_size != inner_map->map_definition.value_size ||
+            inner_map_info.max_entries != inner_map->map_definition.max_entries) {
+            result = EBPF_INVALID_ARGUMENT;
+            goto Exit;
+        }
+    }
+
+    // The map can be reused. Populate map handle and fd.
+    map->map_fd = map_fd;
+    map->map_handle = _get_handle_from_file_descriptor(map_fd);
+    map->reused = true;
+    map->pinned = true;
+
+Exit:
+    Platform::_close(inner_map_info_fd);
+    if (result != EBPF_SUCCESS) {
+        Platform::_close(map_fd);
+    }
+    return result;
+}
+
 static ebpf_result_t
 _ebpf_object_create_maps(_Inout_ ebpf_object_t* object)
 {
@@ -1526,21 +1642,54 @@ _ebpf_object_create_maps(_Inout_ ebpf_object_t* object)
             break;
         }
 
+        if (map->map_definition.pinning == PIN_GLOBAL_NS) {
+            result = _ebpf_object_reuse_map(map);
+            if (result != EBPF_SUCCESS) {
+                break;
+            }
+            if (map->reused) {
+                continue;
+            }
+        }
+
         ebpf_handle_t inner_map_handle = (map->inner_map) ? map->inner_map->map_handle : ebpf_handle_invalid;
         result = _create_map(map->name, &map->map_definition, inner_map_handle, &map->map_handle);
         if (result != EBPF_SUCCESS) {
             break;
         }
         map->map_fd = _create_file_descriptor_for_handle(map->map_handle);
+
+        // If pin_path is set and the map is not yet pinned, pin it now.
+        if (map->pin_path && !map->pinned) {
+            result = ebpf_map_pin(map, nullptr);
+            if (result != EBPF_SUCCESS) {
+                break;
+            }
+        }
+    }
+
+    try {
+        if (result == EBPF_SUCCESS) {
+            for (auto& map : object->maps) {
+                _ebpf_maps.insert(std::pair<ebpf_handle_t, ebpf_map_t*>(map->map_handle, map));
+            }
+        }
+    } catch (const std::bad_alloc&) {
+        result = EBPF_NO_MEMORY;
+    } catch (...) {
+        result = EBPF_FAILED;
     }
 
     if (result != EBPF_SUCCESS) {
-        clean_up_ebpf_maps(object->maps);
-    } else {
+        // Unpin all the maps which have been auto-pinned above.
         for (auto& map : object->maps) {
-            _ebpf_maps.insert(std::pair<ebpf_handle_t, ebpf_map_t*>(map->map_handle, map));
+            if (map->pin_path && map->pinned && !map->reused) {
+                ebpf_map_unpin(map, nullptr);
+            }
         }
+        clean_up_ebpf_maps(object->maps);
     }
+
     clear_map_descriptors();
     return result;
 }

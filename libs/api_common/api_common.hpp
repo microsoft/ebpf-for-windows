@@ -19,11 +19,12 @@ typedef struct _map_cache
     ebpf_handle_t handle;
     size_t section_offset;
     EbpfMapDescriptor verifier_map_descriptor;
+    ebpf_pin_type_t pinning;
 
-    _map_cache() : handle(0), section_offset(0), verifier_map_descriptor() {}
+    _map_cache() : handle(0), section_offset(0), verifier_map_descriptor(), pinning(PIN_NONE) {}
 
-    _map_cache(ebpf_handle_t handle, size_t section_offset, EbpfMapDescriptor descriptor)
-        : handle(handle), section_offset(section_offset), verifier_map_descriptor(descriptor)
+    _map_cache(ebpf_handle_t handle, size_t section_offset, EbpfMapDescriptor descriptor, ebpf_pin_type_t pinning)
+        : handle(handle), section_offset(section_offset), verifier_map_descriptor(descriptor), pinning(pinning)
     {}
 
     _map_cache(
@@ -34,8 +35,9 @@ typedef struct _map_cache
         unsigned int value_size,
         unsigned int max_entries,
         unsigned int inner_map_original_fd, // original fd of inner map
-        size_t section_offset)
-        : handle(handle), section_offset(section_offset)
+        size_t section_offset,
+        ebpf_pin_type_t pinning)
+        : handle(handle), section_offset(section_offset), pinning(pinning)
     {
         verifier_map_descriptor.original_fd = original_fd;
         verifier_map_descriptor.type = type;
@@ -64,7 +66,8 @@ cache_map_handle(
     uint32_t value_size,
     uint32_t max_entries,
     uint32_t inner_map_original_fd,
-    size_t section_offset);
+    size_t section_offset,
+    ebpf_pin_type_t pinning);
 
 size_t
 get_map_descriptor_size(void);

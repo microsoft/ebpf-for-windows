@@ -519,7 +519,7 @@ _delete_object_hash_map(_In_ ebpf_core_map_t* map)
     for (uint8_t* previous_key = NULL;; previous_key = next_key) {
         uint8_t* value;
         ebpf_result_t result =
-            ebpf_hash_table_next_key_pointer_and_value((ebpf_hash_table_t*)map->data, NULL, &next_key, &value);
+            ebpf_hash_table_next_key_pointer_and_value((ebpf_hash_table_t*)map->data, previous_key, &next_key, &value);
         if (result != EBPF_SUCCESS) {
             break;
         }

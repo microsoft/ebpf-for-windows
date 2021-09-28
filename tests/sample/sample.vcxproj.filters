@@ -63,5 +63,14 @@
     <CustomBuild Include="test_utility_helpers.c">
       <Filter>Source Files</Filter>
     </CustomBuild>
+    <CustomBuild Include="encap_reflect_packet.c">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="map_reuse.c">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="map_reuse_bad.c">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
   </ItemGroup>
 </Project>
