@@ -3,6 +3,8 @@
 
 #define TEST_AREA "ExecutionContext"
 
+#include <numeric>
+
 #include "performance.h"
 
 extern "C"
@@ -138,8 +140,89 @@ typedef class _ebpf_map_test_state
     ebpf_map_t* map;
 } ebpf_map_test_state_t;
 
+typedef class _ebpf_map_lpm_trie_test_state
+{
+  public:
+    _ebpf_map_lpm_trie_test_state() : map(nullptr) { REQUIRE(ebpf_core_initiate() == EBPF_SUCCESS); }
+
+    void
+    populate_ipv4_routes(size_t route_count)
+    {
+        ebpf_utf8_string_t name{(uint8_t*)"ipv4_route_table", 11};
+        ebpf_map_definition_in_memory_t definition{
+            sizeof(ebpf_map_definition_in_memory_t),
+            BPF_MAP_TYPE_LPM_TRIE,
+            sizeof(uint32_t) * 2,
+            sizeof(uint64_t),
+            static_cast<uint32_t>(route_count)};
+
+        REQUIRE(ebpf_map_create(&name, &definition, ebpf_handle_invalid, &map) == EBPF_SUCCESS);
+
+        // Prefix Length Distributions from https://bgp.potaroo.net/as2.0/bgp-active.html
+        std::vector<size_t> ipv4_prefix_length_distribution{
+            0,    0,     0,     0,     0,     0,      0,     16,     13,   41, 102, 306, 596, 1215, 2090, 13647,
+            8391, 14216, 25741, 43665, 53098, 109281, 97781, 523876, 1459, 0,  0,   1,   0,   1,    0,    1,
+        };
+
+        size_t total = 0;
+        total = std::accumulate(ipv4_prefix_length_distribution.begin(), ipv4_prefix_length_distribution.end(), total);
+        for (size_t prefix_length = 0; prefix_length < ipv4_prefix_length_distribution.size(); prefix_length++) {
+            size_t scaled_size = ipv4_prefix_length_distribution[prefix_length] * route_count / total;
+            for (size_t count = 0; count < scaled_size; count++) {
+                ipv4_routes.push_back({static_cast<uint32_t>(prefix_length + 1), ebpf_random_uint32()});
+            }
+        }
+        for (auto& [prefix_length, prefix] : ipv4_routes) {
+            std::vector<uint8_t> prefix_bytes(sizeof(uint32_t));
+            *reinterpret_cast<uint32_t*>(prefix_bytes.data()) = prefix;
+            populate_route(prefix_bytes, prefix_length);
+        }
+    }
+
+    void
+    populate_route(const std::vector<uint8_t>& prefix, uint32_t length)
+    {
+        std::vector<uint8_t> value(sizeof(uint64_t));
+        std::vector<uint8_t> key(prefix.size() + sizeof(length));
+        memcpy(key.data(), &length, sizeof(length));
+        std::copy(prefix.begin(), prefix.end(), key.begin() + sizeof(length));
+        ebpf_epoch_enter();
+        REQUIRE(
+            ebpf_map_update_entry(map, key.size(), key.data(), value.size(), value.data(), EBPF_ANY, 0) ==
+            EBPF_SUCCESS);
+        ebpf_epoch_exit();
+    }
+
+    void
+    test_find_ipv4_route()
+    {
+        struct _key
+        {
+            uint32_t prefix_length;
+            uint32_t prefix;
+        } ipv4_key = {32, ipv4_routes[ebpf_random_uint32() % ipv4_routes.size()].second};
+        volatile uint64_t* value = nullptr;
+
+        ebpf_epoch_enter();
+        ebpf_map_find_entry(map, sizeof(ipv4_key), (uint8_t*)&ipv4_key, sizeof(value), (uint8_t*)&value, 0);
+        UNREFERENCED_PARAMETER(value);
+        ebpf_epoch_exit();
+    }
+
+    ~_ebpf_map_lpm_trie_test_state()
+    {
+        ebpf_object_release_reference((ebpf_object_t*)map);
+        ebpf_core_terminate();
+    }
+
+  private:
+    ebpf_map_t* map;
+    std::vector<std::pair<uint32_t, uint32_t>> ipv4_routes;
+} ebpf_map_lpm_trie_test_state_t;
+
 static ebpf_program_test_state_t* _ebpf_program_test_state_instance = nullptr;
 static ebpf_map_test_state_t* _ebpf_map_test_state_instance = nullptr;
+static ebpf_map_lpm_trie_test_state_t* _ebpf_map_lpm_trie_test_state_instance = nullptr;
 
 static void
 _ebpf_program_invoke()
@@ -163,6 +246,12 @@ static void
 _map_update_test(uint32_t cpu_id)
 {
     _ebpf_map_test_state_instance->test_update(cpu_id);
+}
+
+static void
+_lpm_trie_ipv4_find()
+{
+    _ebpf_map_lpm_trie_test_state_instance->test_find_ipv4_route();
 }
 
 static const char*
@@ -262,6 +351,23 @@ test_program_invoke_interpret(bool preemptible)
     measure.run_test();
 }
 
+template <size_t route_count>
+void
+test_lpm_trie_ipv4(bool preemptible)
+{
+    size_t iterations = PERFORMANCE_MEASURE_ITERATION_COUNT;
+    _ebpf_map_lpm_trie_test_state lpm_trie_state;
+    lpm_trie_state.populate_ipv4_routes(route_count);
+    _ebpf_map_lpm_trie_test_state_instance = &lpm_trie_state;
+    std::string name = __FUNCTION__;
+    name += "<";
+    name += std::to_string(route_count);
+    name += ">";
+
+    _performance_measure measure(name.c_str(), preemptible, _lpm_trie_ipv4_find, iterations);
+    measure.run_test();
+}
+
 PERF_TEST(test_program_invoke_jit);
 PERF_TEST(test_program_invoke_interpret);
 
@@ -279,3 +385,8 @@ PERF_TEST(test_bpf_map_update_elem<BPF_MAP_TYPE_HASH>);
 PERF_TEST(test_bpf_map_update_elem<BPF_MAP_TYPE_ARRAY>);
 PERF_TEST(test_bpf_map_update_elem<BPF_MAP_TYPE_PERCPU_HASH>);
 PERF_TEST(test_bpf_map_update_elem<BPF_MAP_TYPE_PERCPU_ARRAY>);
+
+PERF_TEST(test_lpm_trie_ipv4<1024>);
+PERF_TEST(test_lpm_trie_ipv4<1024 * 16>);
+PERF_TEST(test_lpm_trie_ipv4<1024 * 256>);
+PERF_TEST(test_lpm_trie_ipv4<1024 * 1024>);

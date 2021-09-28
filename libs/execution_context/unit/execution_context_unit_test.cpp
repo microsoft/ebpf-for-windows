@@ -167,6 +167,7 @@ TEST_CASE("map_crud_operations_lpm_trie_32", "[execution_context]")
         {{16, 192, 168, 0, 0}, "192.168.0.0/16"},
         {{16, 10, 10, 0, 0}, "10.0.0.0/16"},
         {{8, 10, 0, 0, 0}, "10.0.0.0/8"},
+        {{0, 0, 0, 0, 0}, "0.0.0.0/0"},
     };
 
     std::vector<std::pair<lpm_trie_key_t, std::string>> tests{
@@ -178,6 +179,7 @@ TEST_CASE("map_crud_operations_lpm_trie_32", "[execution_context]")
         {{32, 192, 168, 14, 9}, "192.168.0.0/16"},
         {{32, 10, 10, 10, 10}, "10.0.0.0/16"},
         {{32, 10, 11, 10, 10}, "10.0.0.0/8"},
+        {{32, 11, 0, 0, 0}, "0.0.0.0/0"},
     };
 
     for (auto& [key, value] : keys) {
@@ -247,6 +249,7 @@ TEST_CASE("map_crud_operations_lpm_trie_128", "[execution_context]")
         {{64}, "AA/64"},
         {{64}, "BB/64"},
         {{32}, "BB/32"},
+        {{0}, "/0"},
     };
     {
         std::vector<uint8_t> values{
@@ -272,6 +275,7 @@ TEST_CASE("map_crud_operations_lpm_trie_128", "[execution_context]")
         {{64}, "AA/64"},
         {{64}, "BB/64"},
         {{32}, "BB/32"},
+        {{128}, "/0"},
     };
     {
         std::vector<uint8_t> values{
@@ -283,6 +287,7 @@ TEST_CASE("map_crud_operations_lpm_trie_128", "[execution_context]")
             0xAA,
             0xBB,
             0xBB,
+            0xFF,
         };
         for (size_t index = 0; index < values.size(); index++) {
             generate_prefix(tests[index].first.prefix_length, values[index], tests[index].first.value);
