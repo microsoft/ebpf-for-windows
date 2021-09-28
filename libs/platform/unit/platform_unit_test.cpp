@@ -688,8 +688,8 @@ bitmap_test()
     REQUIRE(ebpf_bitmap_forward_search_next_bit(&cursor) == MAXSIZE_T);
 
     ebpf_bitmap_start_reverse_search(bitmap, &cursor);
-    for (size_t i = bit_count - 1; i != -2; i -= 2) {
-        REQUIRE(ebpf_bitmap_reverse_search_next_bit(&cursor) == i);
+    for (size_t i = 0; i < bit_count; i += 2) {
+        REQUIRE(ebpf_bitmap_reverse_search_next_bit(&cursor) == bit_count - i - 1);
     }
     REQUIRE(ebpf_bitmap_reverse_search_next_bit(&cursor) == MAXSIZE_T);
 }
