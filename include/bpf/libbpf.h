@@ -409,7 +409,7 @@ bpf_object__pin_programs(struct bpf_object* obj, const char* path);
 /**
  * @brief Unload all the programs in a given object.
  *
- * @param[in] obj Object in which to unload programs.
+ * @param[in] obj Object with programs to be unloaded.
  *
  * @retval 0 The operation was successful.
  * @retval <0 An error occured, and errno was set.
