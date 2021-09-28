@@ -309,15 +309,18 @@ PERF_TEST(test_bpf_map_lookup_elem_read<BPF_MAP_TYPE_HASH>);
 PERF_TEST(test_bpf_map_lookup_elem_read<BPF_MAP_TYPE_ARRAY>);
 PERF_TEST(test_bpf_map_lookup_elem_read<BPF_MAP_TYPE_PERCPU_HASH>);
 PERF_TEST(test_bpf_map_lookup_elem_read<BPF_MAP_TYPE_PERCPU_ARRAY>);
+PERF_TEST(test_bpf_map_lookup_elem_read<BPF_MAP_TYPE_LRU_HASH>);
 
 PERF_TEST(test_bpf_map_lookup_elem_write<BPF_MAP_TYPE_HASH>);
 PERF_TEST(test_bpf_map_lookup_elem_write<BPF_MAP_TYPE_ARRAY>);
 PERF_TEST(test_bpf_map_lookup_elem_write<BPF_MAP_TYPE_PERCPU_HASH>);
 PERF_TEST(test_bpf_map_lookup_elem_write<BPF_MAP_TYPE_PERCPU_ARRAY>);
+PERF_TEST(test_bpf_map_lookup_elem_write<BPF_MAP_TYPE_LRU_HASH>);
 
 PERF_TEST(test_bpf_map_update_elem<BPF_MAP_TYPE_HASH>);
 PERF_TEST(test_bpf_map_update_elem<BPF_MAP_TYPE_ARRAY>);
 PERF_TEST(test_bpf_map_update_elem<BPF_MAP_TYPE_PERCPU_HASH>);
 PERF_TEST(test_bpf_map_update_elem<BPF_MAP_TYPE_PERCPU_ARRAY>);
+PERF_TEST(test_bpf_map_update_elem<BPF_MAP_TYPE_LRU_HASH>);
 
 PERF_TEST(test_bpf_map_update_lru_elem<BPF_MAP_TYPE_LRU_HASH>);
