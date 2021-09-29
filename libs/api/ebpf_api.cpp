@@ -153,6 +153,7 @@ ebpf_create_map_xattr(_In_ const struct bpf_create_map_attr* create_attr, _Out_ 
 {
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_handle_t map_handle = ebpf_handle_invalid;
+    ebpf_handle_t inner_map_handle = ebpf_handle_invalid;
     ebpf_map_definition_in_memory_t map_definition = {0};
 
     if (create_attr->map_flags != 0 || map_fd == nullptr) {
@@ -168,7 +169,9 @@ ebpf_create_map_xattr(_In_ const struct bpf_create_map_attr* create_attr, _Out_ 
         map_definition.value_size = create_attr->value_size;
         map_definition.max_entries = create_attr->max_entries;
 
-        result = _create_map(create_attr->name, &map_definition, ebpf_handle_invalid, &map_handle);
+        inner_map_handle = _get_handle_from_file_descriptor(create_attr->inner_map_fd);
+
+        result = _create_map(create_attr->name, &map_definition, inner_map_handle, &map_handle);
         if (result != EBPF_SUCCESS) {
             goto Exit;
         }
