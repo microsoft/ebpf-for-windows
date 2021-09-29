@@ -51,6 +51,7 @@ __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
         memcpy(p, memory, min(old_size, new_size));
         if (new_size > old_size)
             memset(((char*)p) + old_size, 0, new_size - old_size);
+        ebpf_free(memory);
     }
     return p;
 }
