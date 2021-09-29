@@ -1103,18 +1103,18 @@ ebpf_map_create(
         goto Exit;
     }
 
-    if (inner_map_handle != ebpf_handle_invalid) {
+    if (local_map_definition.type == BPF_MAP_TYPE_ARRAY_OF_MAPS ||
+        local_map_definition.type == BPF_MAP_TYPE_HASH_OF_MAPS) {
+        if (inner_map_handle == ebpf_handle_invalid) {
+            // Must have a valid inner_map_handle.
+            result = EBPF_INVALID_FD;
+            goto Exit;
+        }
+
         // Convert value handle to an object pointer.
         result = ebpf_reference_object_by_handle(inner_map_handle, EBPF_OBJECT_MAP, &inner_map_template_object);
         if (result != EBPF_SUCCESS)
             goto Exit;
-    }
-    if ((local_map_definition.type == BPF_MAP_TYPE_ARRAY_OF_MAPS ||
-         local_map_definition.type == BPF_MAP_TYPE_HASH_OF_MAPS) &&
-        (inner_map_template_object == NULL)) {
-        // Must have a valid inner_map_handle.
-        result = EBPF_INVALID_FD;
-        goto Exit;
     }
 
     local_map = ebpf_map_function_tables[type].create_map(&local_map_definition);
