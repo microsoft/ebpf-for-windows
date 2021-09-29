@@ -48,7 +48,7 @@ SEC("xdp_prog") int lookup_update(struct xdp_md* ctx)
         uint32_t inner_key = 0;
         uint32_t* inner_value = (uint32_t*)bpf_map_lookup_elem(inner_map, &inner_key);
         if (inner_value) {
-            // Update the value in port_map
+            // Update the value in port_map.
             uint32_t key = 0;
             uint32_t value = (uint32_t)(*inner_value);
             bpf_map_update_elem(&port_map, &key, &value, 0);

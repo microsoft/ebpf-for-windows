@@ -1303,7 +1303,7 @@ TEST_CASE("auto_pinned_maps_invalid_2", "[end_to_end]")
     int error = bpf_map_update_elem(outer_map_fd, &outer_key, &inner_map_fd, 0);
     REQUIRE(error == 0);
 
-    // Pin the outer map
+    // Pin the outer map.
     error = bpf_obj_pin(outer_map_fd, "/ebpf/global/outer_map");
     REQUIRE(error == 0);
 
