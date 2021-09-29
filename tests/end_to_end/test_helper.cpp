@@ -112,6 +112,9 @@ Fail:
         case EBPF_INVALID_ARGUMENT:
             SetLastError(ERROR_INVALID_PARAMETER);
             break;
+        case EBPF_INVALID_FD:
+            SetLastError(ERROR_INVALID_HANDLE);
+            break;
         case EBPF_NO_MORE_KEYS:
             SetLastError(ERROR_NO_MORE_MATCHES);
             break;
