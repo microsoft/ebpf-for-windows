@@ -43,6 +43,12 @@ xdp_hook_t(xdp_md_t* context);
 #define EBPF_HELPER(return_type, name, args) typedef return_type(*name##_t) args
 #endif
 
+typedef enum
+{
+    BPF_FUNC_xdp_adjust_head = XDP_EXT_HELPER_FN_BASE + 1,
+    BPF_FUNC_csum_diff = XDP_EXT_HELPER_FN_BASE + 2,
+} ebpf_nethook_helper_id_t;
+
 /**
  * @brief Adjust XDP context data pointer.
  *
@@ -54,7 +60,7 @@ xdp_hook_t(xdp_md_t* context);
  */
 EBPF_HELPER(int, bpf_xdp_adjust_head, (xdp_md_t * ctx, int delta));
 #ifndef __doxygen
-#define bpf_xdp_adjust_head ((bpf_xdp_adjust_head_t)XDP_EXT_HELPER_FN_BASE + 1)
+#define bpf_xdp_adjust_head ((bpf_xdp_adjust_head_t)BPF_FUNC_xdp_adjust_head)
 #endif
 
 /**
@@ -69,7 +75,7 @@ EBPF_HELPER(int, bpf_xdp_adjust_head, (xdp_md_t * ctx, int delta));
  */
 EBPF_HELPER(int, bpf_csum_diff, (void* from, int from_size, void* to, int to_size, int seed));
 #ifndef __doxygen
-#define bpf_csum_diff ((bpf_csum_diff_t)XDP_EXT_HELPER_FN_BASE + 2)
+#define bpf_csum_diff ((bpf_csum_diff_t)BPF_FUNC_csum_diff)
 #endif
 
 // BIND hook
