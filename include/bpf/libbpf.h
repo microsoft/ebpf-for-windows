@@ -130,6 +130,16 @@ __u32
 bpf_map__max_entries(const struct bpf_map* map);
 
 /**
+ * @brief Get the name of an eBPF map.
+ *
+ * @param[in] map The map to check.
+ *
+ * @returns The name of the map, or NULL if none.
+ */
+const char*
+bpf_map__name(const struct bpf_map* map);
+
+/**
  * @brief Get the next map for a given eBPF object.
  *
  * @param[in] map Previous map.
@@ -287,21 +297,6 @@ int
 bpf_object__load(struct bpf_object* obj);
 
 /**
- * @brief Unload all the programs in a given object.
- *
- * @param[in] obj Object in which to unload programs.
- *
- * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
- *
- * @sa bpf_object__load
- * @sa bpf_object__load_xattr
- * @sa bpf_prog_load
- */
-int
-bpf_object__unload(struct bpf_object* obj);
-
-/**
  * @brief Load all the programs in a given object.
  *
  * @param[in] attr Structure with load attributes.
@@ -410,6 +405,21 @@ bpf_object__pin_maps(struct bpf_object* obj, const char* path);
  */
 int
 bpf_object__pin_programs(struct bpf_object* obj, const char* path);
+
+/**
+ * @brief Unload all the programs in a given object.
+ *
+ * @param[in] obj Object with programs to be unloaded.
+ *
+ * @retval 0 The operation was successful.
+ * @retval <0 An error occured, and errno was set.
+ *
+ * @sa bpf_object__load
+ * @sa bpf_object__load_xattr
+ * @sa bpf_prog_load
+ */
+int
+bpf_object__unload(struct bpf_object* obj);
 
 /**
  * @brief Unpin all maps associated with an eBPF object from a specified path.
