@@ -1111,7 +1111,7 @@ _ebpf_core_protocol_bind_map(_In_ const ebpf_operation_bind_map_request_t* reque
         goto Done;
     }
 
-    result = ebpf_program_associate_map(program, map);
+    result = ebpf_program_associate_additional_map(program, map);
 
 Done:
     if (program) {

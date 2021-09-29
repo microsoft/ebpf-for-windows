@@ -398,7 +398,7 @@ ebpf_program_type(_In_ const ebpf_program_t* program)
 }
 
 ebpf_result_t
-ebpf_program_associate_map(ebpf_program_t* program, ebpf_map_t* map)
+ebpf_program_associate_additional_map(ebpf_program_t* program, ebpf_map_t* map)
 {
     // First make sure the map can be associated.
     ebpf_result_t result = ebpf_map_associate_program(map, program);

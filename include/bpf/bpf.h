@@ -274,6 +274,7 @@ bpf_obj_pin(int fd, const char* pathname);
  *
  * @param[in] prog_fd File descriptor of program to bind map to.
  * @param[in] map_fd File descriptor of map to bind.
+ * @param[in] opts Optional set of options affecting the bind operation.
  *
  * @retval 0 The operation was successful.
  * @retval <0 An error occured, and errno was set.

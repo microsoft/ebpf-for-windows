@@ -135,7 +135,7 @@ extern "C"
      *  program instance.
      */
     ebpf_result_t
-    ebpf_program_associate_map(ebpf_program_t* program, ebpf_map_t* map);
+    ebpf_program_associate_additional_map(ebpf_program_t* program, ebpf_map_t* map);
 
     /**
      * @brief Load a block of eBPF code into the program instance.
