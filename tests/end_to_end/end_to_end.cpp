@@ -1066,7 +1066,7 @@ TEST_CASE("link_tests", "[end_to_end]")
     hook.detach();
 }
 
-TEST_CASE("auto_pinned_maps", "[end_to_end]")
+TEST_CASE("map_reuse", "[end_to_end]")
 {
     _test_helper_end_to_end test_helper;
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
@@ -1122,6 +1122,117 @@ TEST_CASE("auto_pinned_maps", "[end_to_end]")
 
     REQUIRE(ebpf_object_unpin("/ebpf/global/outer_map") == EBPF_SUCCESS);
     REQUIRE(ebpf_object_unpin("/ebpf/global/port_map") == EBPF_SUCCESS);
+}
+
+TEST_CASE("auto_pinned_maps", "[end_to_end]")
+{
+    _test_helper_end_to_end test_helper;
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
+    program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
+
+    program_load_attach_helper_t program_helper(
+        SAMPLE_PATH "map_reuse.o", EBPF_PROGRAM_TYPE_XDP, "lookup_update", EBPF_EXECUTION_ANY, hook);
+
+    fd_t outer_map_fd = bpf_obj_get("/ebpf/global/outer_map");
+    REQUIRE(outer_map_fd > 0);
+
+    int inner_map_fd = bpf_create_map(BPF_MAP_TYPE_ARRAY, sizeof(__u32), sizeof(__u32), 1, 0);
+    REQUIRE(inner_map_fd > 0);
+
+    __u32 outer_key = 0;
+    int error = bpf_map_update_elem(outer_map_fd, &outer_key, &inner_map_fd, 0);
+    REQUIRE(error == 0);
+
+    // Add an entry in the inner map.
+    __u32 key = 0;
+    __u32 value = 200;
+    error = bpf_map_update_elem(inner_map_fd, &key, &value, BPF_ANY);
+    REQUIRE(error == 0);
+
+    fd_t port_map_fd = bpf_obj_get("/ebpf/global/port_map");
+    REQUIRE(port_map_fd > 0);
+
+    auto packet = prepare_udp_packet(10, ETHERNET_TYPE_IPV4);
+    xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
+    int hook_result;
+
+    REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
+    REQUIRE(hook_result == 200);
+
+    key = 0;
+    __u32 port_map_value;
+    REQUIRE(bpf_map_lookup_elem(port_map_fd, &key, &port_map_value) == EBPF_SUCCESS);
+    REQUIRE(port_map_value == 200);
+
+    Platform::_close(outer_map_fd);
+    Platform::_close(inner_map_fd);
+    Platform::_close(port_map_fd);
+
+    REQUIRE(ebpf_object_unpin("/ebpf/global/outer_map") == EBPF_SUCCESS);
+    REQUIRE(ebpf_object_unpin("/ebpf/global/port_map") == EBPF_SUCCESS);
+}
+
+TEST_CASE("auto_pinned_maps_custom_path", "[end_to_end]")
+{
+    _test_helper_end_to_end test_helper;
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
+    program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
+
+    struct bpf_object_open_opts opts = {0};
+    opts.pin_root_path = "/custompath/global";
+    struct bpf_object* object = bpf_object__open_file("map_reuse.o", &opts);
+    REQUIRE(object != nullptr);
+
+    // Load the program.
+    REQUIRE(bpf_object__load(object) == 0);
+
+    struct bpf_program* program = bpf_object__find_program_by_name(object, "lookup_update");
+    REQUIRE(program != nullptr);
+
+    // Attach should now succeed.
+    struct bpf_link* link = bpf_program__attach(program);
+    REQUIRE(link != nullptr);
+
+    fd_t outer_map_fd = bpf_obj_get("/custompath/global/outer_map");
+    REQUIRE(outer_map_fd > 0);
+
+    int inner_map_fd = bpf_create_map(BPF_MAP_TYPE_ARRAY, sizeof(__u32), sizeof(__u32), 1, 0);
+    REQUIRE(inner_map_fd > 0);
+
+    __u32 outer_key = 0;
+    int error = bpf_map_update_elem(outer_map_fd, &outer_key, &inner_map_fd, 0);
+    REQUIRE(error == 0);
+
+    // Add an entry in the inner map.
+    __u32 key = 0;
+    __u32 value = 200;
+    error = bpf_map_update_elem(inner_map_fd, &key, &value, BPF_ANY);
+    REQUIRE(error == 0);
+
+    fd_t port_map_fd = bpf_obj_get("/custompath/global/port_map");
+    REQUIRE(port_map_fd > 0);
+
+    auto packet = prepare_udp_packet(10, ETHERNET_TYPE_IPV4);
+    xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
+    int hook_result;
+
+    REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
+    REQUIRE(hook_result == 200);
+
+    key = 0;
+    __u32 port_map_value;
+    REQUIRE(bpf_map_lookup_elem(port_map_fd, &key, &port_map_value) == EBPF_SUCCESS);
+    REQUIRE(port_map_value == 200);
+
+    Platform::_close(outer_map_fd);
+    Platform::_close(inner_map_fd);
+    Platform::_close(port_map_fd);
+
+    REQUIRE(ebpf_object_unpin("/custompath/global/outer_map") == EBPF_SUCCESS);
+    REQUIRE(ebpf_object_unpin("/custompath/global/port_map") == EBPF_SUCCESS);
+
+    REQUIRE(bpf_link__destroy(link) == 0);
+    bpf_object__close(object);
 }
 
 TEST_CASE("auto_pinned_maps_invalid", "[end_to_end]")

@@ -49,6 +49,8 @@ typedef struct bpf_map
     ebpf_map_definition_in_memory_t map_definition;
     char* pin_path;
     bool pinned;
+    // Whether this map is newly created or reused
+    // from an existing map.
     bool reused;
 } ebpf_map_t;
 
@@ -411,6 +413,7 @@ ebpf_object_get(_In_z_ const char* path);
  * @param[in] path File name to open.
  * @param[in] object_name Optional object name to override file name
  * as the object name.
+ * @param[in] pin_root_path Optional root path for automatic pinning of maps.
  * @param[in] program_type Optional program type for all programs.
  * If NULL, the program type is derived from the section names.
  * @param[in] attach_type Default attach type for all programs.
@@ -427,6 +430,7 @@ ebpf_result_t
 ebpf_object_open(
     _In_z_ const char* path,
     _In_opt_z_ const char* object_name,
+    _In_opt_z_ const char* pin_root_path,
     _In_opt_ const ebpf_program_type_t* program_type,
     _In_opt_ const ebpf_attach_type_t* attach_type,
     _Outptr_ struct bpf_object** object,

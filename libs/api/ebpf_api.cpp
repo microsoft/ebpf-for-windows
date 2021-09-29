@@ -1398,6 +1398,7 @@ static ebpf_result_t
 _initialize_ebpf_object_from_elf(
     _In_z_ const char* file_name,
     _In_opt_z_ const char* object_name,
+    _In_opt_z_ const char* pin_root_path,
     _In_opt_ const ebpf_program_type_t* expected_program_type,
     _In_opt_ const ebpf_attach_type_t* expected_attach_type,
     _Out_ ebpf_object_t& object,
@@ -1408,7 +1409,13 @@ _initialize_ebpf_object_from_elf(
 
     ebpf_verifier_options_t verifier_options{false, false, false, false, false};
     result = load_byte_code(
-        file_name, nullptr, &verifier_options, DEFAULT_PIN_ROOT_PATH, object.programs, object.maps, error_message);
+        file_name,
+        nullptr,
+        &verifier_options,
+        pin_root_path ? pin_root_path : DEFAULT_PIN_ROOT_PATH,
+        object.programs,
+        object.maps,
+        error_message);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
@@ -1488,6 +1495,7 @@ ebpf_result_t
 ebpf_object_open(
     _In_z_ const char* path,
     _In_opt_z_ const char* object_name,
+    _In_opt_z_ const char* pin_root_path,
     _In_opt_ const ebpf_program_type_t* program_type,
     _In_opt_ const ebpf_attach_type_t* attach_type,
     _Outptr_ struct bpf_object** object,
@@ -1500,8 +1508,8 @@ ebpf_object_open(
         return EBPF_NO_MEMORY;
     }
 
-    ebpf_result_t result =
-        _initialize_ebpf_object_from_elf(path, object_name, program_type, attach_type, *new_object, error_message);
+    ebpf_result_t result = _initialize_ebpf_object_from_elf(
+        path, object_name, pin_root_path, program_type, attach_type, *new_object, error_message);
     if (result != EBPF_SUCCESS) {
         goto Done;
     }
@@ -1529,21 +1537,13 @@ _ebpf_is_map_in_map(ebpf_map_t* map)
 }
 
 static ebpf_result_t
-_ebpf_object_reuse_map(_In_ ebpf_map_t* map)
+_ebpf_validate_map(_In_ ebpf_map_t* map, fd_t original_map_fd)
 {
-    ebpf_result_t result = EBPF_SUCCESS;
-    fd_t inner_map_info_fd = ebpf_fd_invalid;
-
-    // Check if a map is already present with this pin path.
-    fd_t map_fd = ebpf_object_get(map->pin_path);
-    if (map_fd == ebpf_fd_invalid) {
-        return EBPF_SUCCESS;
-    }
-
     // Validate that the existing map definition matches with this new map.
     struct bpf_map_info info;
+    fd_t inner_map_info_fd = ebpf_fd_invalid;
     uint32_t info_size = (uint32_t)sizeof(info);
-    result = ebpf_object_get_info_by_fd(map_fd, &info, &info_size);
+    ebpf_result_t result = ebpf_object_get_info_by_fd(original_map_fd, &info, &info_size);
     if (result != EBPF_SUCCESS) {
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
@@ -1568,14 +1568,14 @@ _ebpf_object_reuse_map(_In_ ebpf_map_t* map)
             // Workaround: Check if there are any entries in this map. If present,
             // use the map entry to get the inner map template.
             uint32_t key;
-            result = ebpf_map_get_next_key(map_fd, nullptr, &key);
+            result = ebpf_map_get_next_key(original_map_fd, nullptr, &key);
             if (result != EBPF_SUCCESS) {
                 result = EBPF_INVALID_ARGUMENT;
                 goto Exit;
             }
 
             // Got a key. Query the value. That will be the map id of the inner map.
-            result = ebpf_map_lookup_element(map_fd, &key, &inner_map_id);
+            result = ebpf_map_lookup_element(original_map_fd, &key, &inner_map_id);
             if (result != EBPF_SUCCESS || inner_map_id == EBPF_ID_NONE) {
                 result = EBPF_INVALID_ARGUMENT;
                 goto Exit;
@@ -1595,21 +1595,30 @@ _ebpf_object_reuse_map(_In_ ebpf_map_t* map)
             goto Exit;
         }
 
-        struct bpf_map_info inner_map_info;
-        info_size = (uint32_t)sizeof(inner_map_info);
-        result = ebpf_object_get_info_by_fd(inner_map_info_fd, &inner_map_info, &info_size);
-        if (result != EBPF_SUCCESS) {
-            result = EBPF_INVALID_ARGUMENT;
-            goto Exit;
-        }
+        result = _ebpf_validate_map(inner_map, inner_map_info_fd);
+    }
 
-        if (inner_map_info.type != inner_map->map_definition.type ||
-            inner_map_info.key_size != inner_map->map_definition.key_size ||
-            inner_map_info.value_size != inner_map->map_definition.value_size ||
-            inner_map_info.max_entries != inner_map->map_definition.max_entries) {
-            result = EBPF_INVALID_ARGUMENT;
-            goto Exit;
-        }
+Exit:
+    Platform::_close(inner_map_info_fd);
+    return result;
+}
+
+static ebpf_result_t
+_ebpf_object_reuse_map(_In_ ebpf_map_t* map)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+
+    // Check if a map is already present with this pin path.
+    fd_t map_fd = ebpf_object_get(map->pin_path);
+    if (map_fd == ebpf_fd_invalid) {
+        return EBPF_SUCCESS;
+    }
+
+    // Recursively validate that the map definition matches with the existing
+    // map.
+    result = _ebpf_validate_map(map, map_fd);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
     }
 
     // The map can be reused. Populate map handle and fd.
@@ -1619,7 +1628,6 @@ _ebpf_object_reuse_map(_In_ ebpf_map_t* map)
     map->pinned = true;
 
 Exit:
-    Platform::_close(inner_map_info_fd);
     if (result != EBPF_SUCCESS) {
         Platform::_close(map_fd);
     }
@@ -1864,7 +1872,7 @@ ebpf_program_load(
     clear_map_descriptors();
 
     try {
-        result = ebpf_object_open(file_name, nullptr, program_type, attach_type, &new_object, log_buffer);
+        result = ebpf_object_open(file_name, nullptr, nullptr, program_type, attach_type, &new_object, log_buffer);
         if (result != EBPF_SUCCESS) {
             goto Done;
         }

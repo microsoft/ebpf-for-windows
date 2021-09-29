@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-// clang -O2 -Werror -c droppacket.c -o dropjit.o
+// clang -O2 -Werror -c map_reuse.c -o map_reuse.o
 //
-// For bpf code: clang -target bpf -O2 -Werror -c droppacket.c -o droppacket.o
+// For bpf code: clang -target bpf -O2 -Werror -c map_reuse.c -o map_reuse.o
 // this passes the checker
 
 #include "bpf_helpers.h"
