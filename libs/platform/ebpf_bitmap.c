@@ -9,13 +9,13 @@
 //
 // Iteration over bits:
 // The BitScanForward/BitScanReverse instructions find the least significant bit or most significant bit that is set in
-// a mask (a block of bits) and returns the offset of that bit. To permit iterating over a set bits, this module
+// a mask (a block of bits) and return the offset of that bit. To permit iterating over a set of bits, this module
 // provides a cursor, which maintains the last offset where a bit was found as well as a copy of the current mask
-// (block) being searched.  At the start of the search, the first block of 64-bits are copied from the bitmap into the
+// (block) being searched.  At the start of the search, the first block of 64-bits is copied from the bitmap into the
 // cursor's current block. As each bit in the current block is found and returned, that bit is cleared so that the
 // BitScanForward/BitScanReverse instruction will find the next bit in the current block. Once all the bits in the
-// current block are found, the next block of 64-bits are copied from the bitmap int the cursors current block and the
-// search is resumed on the new block. Once the cursor's index reaches either 0 (reverse) or bitmaps' bit_count
+// current block are found, the next block of 64-bits is copied from the bitmap into the cursor's current block and the
+// search is resumed on the new block. Once the cursor's index reaches either 0 (reverse) or bitmap's bit_count
 // (forward), the search ends.
 
 #include "ebpf_bitmap.h"
