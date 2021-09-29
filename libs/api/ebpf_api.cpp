@@ -1562,37 +1562,16 @@ _ebpf_validate_map(_In_ ebpf_map_t* map, fd_t original_map_fd)
     if (_ebpf_is_map_in_map(map)) {
         ebpf_map_t* inner_map = map->inner_map;
         ebpf_assert(inner_map != nullptr);
-        ebpf_id_t inner_map_id = info.inner_map_id;
+        // ebpf_id_t inner_map_id = info.inner_map_id;
 
-        if (inner_map_id == EBPF_ID_NONE) {
+        if (info.inner_map_id == EBPF_ID_NONE) {
             // The original map is pinned but its template is not initialized yet.
-            // This is not supported for now.
-
-            // Workaround: Check if there are any entries in this map. If present,
-            // use the map entry to get the inner map template.
-            uint32_t key;
-            result = ebpf_map_get_next_key(original_map_fd, nullptr, &key);
-            if (result != EBPF_SUCCESS) {
-                result = EBPF_INVALID_ARGUMENT;
-                goto Exit;
-            }
-
-            // Got a key. Query the value. That will be the map id of the inner map.
-            result = ebpf_map_lookup_element(original_map_fd, &key, &inner_map_id);
-            if (result != EBPF_SUCCESS || inner_map_id == EBPF_ID_NONE) {
-                result = EBPF_INVALID_ARGUMENT;
-                goto Exit;
-            }
-        }
-
-        if (inner_map->map_definition.pinning == PIN_GLOBAL_NS) {
-            // Inner map cannot be auto-pinned.
             result = EBPF_INVALID_ARGUMENT;
             goto Exit;
         }
 
         // For map-in-map, validate the inner map template also.
-        result = ebpf_get_map_fd_by_id(inner_map_id, &inner_map_info_fd);
+        result = ebpf_get_map_fd_by_id(info.inner_map_id, &inner_map_info_fd);
         if (result != EBPF_SUCCESS) {
             result = EBPF_INVALID_ARGUMENT;
             goto Exit;

@@ -69,7 +69,7 @@
     <CustomBuild Include="map_reuse.c">
       <Filter>Source Files</Filter>
     </CustomBuild>
-    <CustomBuild Include="map_reuse_bad.c">
+    <CustomBuild Include="map_reuse_2.c">
       <Filter>Source Files</Filter>
     </CustomBuild>
   </ItemGroup>
