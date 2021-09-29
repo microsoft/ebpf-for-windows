@@ -86,47 +86,51 @@ $(function() {
 <div class="line"><a name="l00077"></a><span class="lineno">   77</span>&#160;<span class="keywordtype">int</span></div>
 <div class="line"><a name="l00078"></a><span class="lineno">   78</span>&#160;<a class="code" href="bpf_2bpf_8h.html#a415dcff6da1cf861efbafe33768976af">bpf_create_map</a>(<span class="keyword">enum</span> <a class="code" href="ebpf__structs_8h.html#afd97ad5450067d01ec6b6cd3c30761a1">bpf_map_type</a> map_type, <span class="keywordtype">int</span> key_size, <span class="keywordtype">int</span> value_size, <span class="keywordtype">int</span> max_entries, <a class="code" href="bpf__helpers__platform_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a> map_flags);</div>
 <div class="line"><a name="l00079"></a><span class="lineno">   79</span>&#160; </div>
-<div class="line"><a name="l00091"></a><span class="lineno">   91</span>&#160;<span class="keywordtype">int</span></div>
-<div class="line"><a name="l00092"></a><span class="lineno">   92</span>&#160;<a class="code" href="bpf_2bpf_8h.html#aa4489fd67da7d5641a428d1b76f24eff">bpf_create_map_xattr</a>(<span class="keyword">const</span> <span class="keyword">struct</span> bpf_create_map_attr* create_attr);</div>
-<div class="line"><a name="l00093"></a><span class="lineno">   93</span>&#160; </div>
-<div class="line"><a name="l00107"></a><span class="lineno">  107</span>&#160;<span class="keywordtype">int</span></div>
-<div class="line"><a name="l00108"></a><span class="lineno">  108</span>&#160;<a class="code" href="bpf_2bpf_8h.html#ad0ed6a975a6d623155c61de44e55e484">bpf_map_delete_elem</a>(<span class="keywordtype">int</span> fd, <span class="keyword">const</span> <span class="keywordtype">void</span>* key);</div>
-<div class="line"><a name="l00109"></a><span class="lineno">  109</span>&#160; </div>
-<div class="line"><a name="l00121"></a><span class="lineno">  121</span>&#160;<span class="keywordtype">int</span></div>
-<div class="line"><a name="l00122"></a><span class="lineno">  122</span>&#160;<a class="code" href="bpf_2bpf_8h.html#a9f3cba31a46fe9a4115ba4fc1c3a358f">bpf_map_get_fd_by_id</a>(<a class="code" href="bpf__helpers__platform_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a> <span class="keywordtype">id</span>);</div>
-<div class="line"><a name="l00123"></a><span class="lineno">  123</span>&#160; </div>
-<div class="line"><a name="l00135"></a><span class="lineno">  135</span>&#160;<span class="keywordtype">int</span></div>
-<div class="line"><a name="l00136"></a><span class="lineno">  136</span>&#160;<a class="code" href="bpf_2bpf_8h.html#a144e3d9cf90d9e515e550b0f1608ba07">bpf_map_get_next_id</a>(<a class="code" href="bpf__helpers__platform_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a> start_id, <a class="code" href="bpf__helpers__platform_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a>* next_id);</div>
-<div class="line"><a name="l00137"></a><span class="lineno">  137</span>&#160; </div>
-<div class="line"><a name="l00155"></a><span class="lineno">  155</span>&#160;<span class="keywordtype">int</span></div>
-<div class="line"><a name="l00156"></a><span class="lineno">  156</span>&#160;<a class="code" href="bpf_2bpf_8h.html#a0331c5fc14dade8fdf12824da742f67e">bpf_map_get_next_key</a>(<span class="keywordtype">int</span> fd, <span class="keyword">const</span> <span class="keywordtype">void</span>* key, <span class="keywordtype">void</span>* next_key);</div>
-<div class="line"><a name="l00157"></a><span class="lineno">  157</span>&#160; </div>
-<div class="line"><a name="l00174"></a><span class="lineno">  174</span>&#160;<span class="keywordtype">int</span></div>
-<div class="line"><a name="l00175"></a><span class="lineno">  175</span>&#160;<a class="code" href="bpf_2bpf_8h.html#a95579ca07cccfd0f756a361c2da12ad5">bpf_map_lookup_elem</a>(<span class="keywordtype">int</span> fd, <span class="keyword">const</span> <span class="keywordtype">void</span>* key, <span class="keywordtype">void</span>* value);</div>
-<div class="line"><a name="l00176"></a><span class="lineno">  176</span>&#160; </div>
-<div class="line"><a name="l00190"></a><span class="lineno">  190</span>&#160;<span class="keywordtype">int</span></div>
-<div class="line"><a name="l00191"></a><span class="lineno">  191</span>&#160;<a class="code" href="bpf_2bpf_8h.html#ac9e08c49e17fcf8c69e202cfe15b87b3">bpf_map_update_elem</a>(<span class="keywordtype">int</span> fd, <span class="keyword">const</span> <span class="keywordtype">void</span>* key, <span class="keyword">const</span> <span class="keywordtype">void</span>* value, <a class="code" href="bpf__helpers__platform_8h.html#ac2a2bfb32105ffe8e74b67670b7ec440">__u64</a> flags);</div>
-<div class="line"><a name="l00192"></a><span class="lineno">  192</span>&#160; </div>
-<div class="line"><a name="l00206"></a><span class="lineno">  206</span>&#160;<span class="keywordtype">int</span></div>
-<div class="line"><a name="l00207"></a><span class="lineno">  207</span>&#160;<a class="code" href="bpf_2bpf_8h.html#a2fd48f3d62ed0b56a9d01675bcd68c7a">bpf_obj_get</a>(<span class="keyword">const</span> <span class="keywordtype">char</span>* pathname);</div>
-<div class="line"><a name="l00208"></a><span class="lineno">  208</span>&#160; </div>
-<div class="line"><a name="l00228"></a><span class="lineno">  228</span>&#160;<span class="keywordtype">int</span></div>
-<div class="line"><a name="l00229"></a><span class="lineno">  229</span>&#160;<a class="code" href="bpf_2bpf_8h.html#a23ca7dd3889db2e7fc97e063c727c17f">bpf_obj_get_info_by_fd</a>(<span class="keywordtype">int</span> bpf_fd, <span class="keywordtype">void</span>* info, <a class="code" href="bpf__helpers__platform_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a>* info_len);</div>
-<div class="line"><a name="l00230"></a><span class="lineno">  230</span>&#160; </div>
-<div class="line"><a name="l00241"></a><span class="lineno">  241</span>&#160;<span class="keywordtype">int</span></div>
-<div class="line"><a name="l00242"></a><span class="lineno">  242</span>&#160;<a class="code" href="bpf_2bpf_8h.html#a9f5eaf959fde6143ec1d94617362f5f1">bpf_obj_pin</a>(<span class="keywordtype">int</span> fd, <span class="keyword">const</span> <span class="keywordtype">char</span>* pathname);</div>
-<div class="line"><a name="l00243"></a><span class="lineno">  243</span>&#160; </div>
+<div class="line"><a name="l00097"></a><span class="lineno">   97</span>&#160;<span class="keywordtype">int</span></div>
+<div class="line"><a name="l00098"></a><span class="lineno">   98</span>&#160;<a class="code" href="bpf_2bpf_8h.html#aa568c1b6f3dddfb439311bd952824f1b">bpf_create_map_in_map</a>(</div>
+<div class="line"><a name="l00099"></a><span class="lineno">   99</span>&#160;    <span class="keyword">enum</span> <a class="code" href="ebpf__structs_8h.html#afd97ad5450067d01ec6b6cd3c30761a1">bpf_map_type</a> map_type, <span class="keyword">const</span> <span class="keywordtype">char</span>* name, <span class="keywordtype">int</span> key_size, <span class="keywordtype">int</span> inner_map_fd, <span class="keywordtype">int</span> max_entries, <a class="code" href="bpf__helpers__platform_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a> map_flags);</div>
+<div class="line"><a name="l00100"></a><span class="lineno">  100</span>&#160; </div>
+<div class="line"><a name="l00112"></a><span class="lineno">  112</span>&#160;<span class="keywordtype">int</span></div>
+<div class="line"><a name="l00113"></a><span class="lineno">  113</span>&#160;<a class="code" href="bpf_2bpf_8h.html#aa4489fd67da7d5641a428d1b76f24eff">bpf_create_map_xattr</a>(<span class="keyword">const</span> <span class="keyword">struct</span> bpf_create_map_attr* create_attr);</div>
+<div class="line"><a name="l00114"></a><span class="lineno">  114</span>&#160; </div>
+<div class="line"><a name="l00128"></a><span class="lineno">  128</span>&#160;<span class="keywordtype">int</span></div>
+<div class="line"><a name="l00129"></a><span class="lineno">  129</span>&#160;<a class="code" href="bpf_2bpf_8h.html#ad0ed6a975a6d623155c61de44e55e484">bpf_map_delete_elem</a>(<span class="keywordtype">int</span> fd, <span class="keyword">const</span> <span class="keywordtype">void</span>* key);</div>
+<div class="line"><a name="l00130"></a><span class="lineno">  130</span>&#160; </div>
+<div class="line"><a name="l00142"></a><span class="lineno">  142</span>&#160;<span class="keywordtype">int</span></div>
+<div class="line"><a name="l00143"></a><span class="lineno">  143</span>&#160;<a class="code" href="bpf_2bpf_8h.html#a9f3cba31a46fe9a4115ba4fc1c3a358f">bpf_map_get_fd_by_id</a>(<a class="code" href="bpf__helpers__platform_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a> <span class="keywordtype">id</span>);</div>
+<div class="line"><a name="l00144"></a><span class="lineno">  144</span>&#160; </div>
+<div class="line"><a name="l00156"></a><span class="lineno">  156</span>&#160;<span class="keywordtype">int</span></div>
+<div class="line"><a name="l00157"></a><span class="lineno">  157</span>&#160;<a class="code" href="bpf_2bpf_8h.html#a144e3d9cf90d9e515e550b0f1608ba07">bpf_map_get_next_id</a>(<a class="code" href="bpf__helpers__platform_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a> start_id, <a class="code" href="bpf__helpers__platform_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a>* next_id);</div>
+<div class="line"><a name="l00158"></a><span class="lineno">  158</span>&#160; </div>
+<div class="line"><a name="l00176"></a><span class="lineno">  176</span>&#160;<span class="keywordtype">int</span></div>
+<div class="line"><a name="l00177"></a><span class="lineno">  177</span>&#160;<a class="code" href="bpf_2bpf_8h.html#a0331c5fc14dade8fdf12824da742f67e">bpf_map_get_next_key</a>(<span class="keywordtype">int</span> fd, <span class="keyword">const</span> <span class="keywordtype">void</span>* key, <span class="keywordtype">void</span>* next_key);</div>
+<div class="line"><a name="l00178"></a><span class="lineno">  178</span>&#160; </div>
+<div class="line"><a name="l00195"></a><span class="lineno">  195</span>&#160;<span class="keywordtype">int</span></div>
+<div class="line"><a name="l00196"></a><span class="lineno">  196</span>&#160;<a class="code" href="bpf_2bpf_8h.html#a95579ca07cccfd0f756a361c2da12ad5">bpf_map_lookup_elem</a>(<span class="keywordtype">int</span> fd, <span class="keyword">const</span> <span class="keywordtype">void</span>* key, <span class="keywordtype">void</span>* value);</div>
+<div class="line"><a name="l00197"></a><span class="lineno">  197</span>&#160; </div>
+<div class="line"><a name="l00211"></a><span class="lineno">  211</span>&#160;<span class="keywordtype">int</span></div>
+<div class="line"><a name="l00212"></a><span class="lineno">  212</span>&#160;<a class="code" href="bpf_2bpf_8h.html#ac9e08c49e17fcf8c69e202cfe15b87b3">bpf_map_update_elem</a>(<span class="keywordtype">int</span> fd, <span class="keyword">const</span> <span class="keywordtype">void</span>* key, <span class="keyword">const</span> <span class="keywordtype">void</span>* value, <a class="code" href="bpf__helpers__platform_8h.html#ac2a2bfb32105ffe8e74b67670b7ec440">__u64</a> flags);</div>
+<div class="line"><a name="l00213"></a><span class="lineno">  213</span>&#160; </div>
+<div class="line"><a name="l00227"></a><span class="lineno">  227</span>&#160;<span class="keywordtype">int</span></div>
+<div class="line"><a name="l00228"></a><span class="lineno">  228</span>&#160;<a class="code" href="bpf_2bpf_8h.html#a2fd48f3d62ed0b56a9d01675bcd68c7a">bpf_obj_get</a>(<span class="keyword">const</span> <span class="keywordtype">char</span>* pathname);</div>
+<div class="line"><a name="l00229"></a><span class="lineno">  229</span>&#160; </div>
+<div class="line"><a name="l00249"></a><span class="lineno">  249</span>&#160;<span class="keywordtype">int</span></div>
+<div class="line"><a name="l00250"></a><span class="lineno">  250</span>&#160;<a class="code" href="bpf_2bpf_8h.html#a23ca7dd3889db2e7fc97e063c727c17f">bpf_obj_get_info_by_fd</a>(<span class="keywordtype">int</span> bpf_fd, <span class="keywordtype">void</span>* info, <a class="code" href="bpf__helpers__platform_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a>* info_len);</div>
+<div class="line"><a name="l00251"></a><span class="lineno">  251</span>&#160; </div>
 <div class="line"><a name="l00262"></a><span class="lineno">  262</span>&#160;<span class="keywordtype">int</span></div>
-<div class="line"><a name="l00263"></a><span class="lineno">  263</span>&#160;<a class="code" href="bpf_2bpf_8h.html#af4a69e7174078629e3f20dade5e6743d">bpf_prog_get_fd_by_id</a>(<a class="code" href="bpf__helpers__platform_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a> <span class="keywordtype">id</span>);</div>
+<div class="line"><a name="l00263"></a><span class="lineno">  263</span>&#160;<a class="code" href="bpf_2bpf_8h.html#a9f5eaf959fde6143ec1d94617362f5f1">bpf_obj_pin</a>(<span class="keywordtype">int</span> fd, <span class="keyword">const</span> <span class="keywordtype">char</span>* pathname);</div>
 <div class="line"><a name="l00264"></a><span class="lineno">  264</span>&#160; </div>
-<div class="line"><a name="l00276"></a><span class="lineno">  276</span>&#160;<span class="keywordtype">int</span></div>
-<div class="line"><a name="l00277"></a><span class="lineno">  277</span>&#160;<a class="code" href="bpf_2bpf_8h.html#a08fd6fe439bbd700f63a5cf95324be90">bpf_prog_get_next_id</a>(<a class="code" href="bpf__helpers__platform_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a> start_id, <a class="code" href="bpf__helpers__platform_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a>* next_id);</div>
-<div class="line"><a name="l00278"></a><span class="lineno">  278</span>&#160; </div>
-<div class="line"><a name="l00281"></a><span class="lineno">  281</span>&#160;<span class="preprocessor">#else</span></div>
-<div class="line"><a name="l00282"></a><span class="lineno">  282</span>&#160;<span class="preprocessor">#pragma warning(push)</span></div>
-<div class="line"><a name="l00283"></a><span class="lineno">  283</span>&#160;<span class="preprocessor">#include &quot;../external/libbpf/src/bpf.h&quot;</span></div>
-<div class="line"><a name="l00284"></a><span class="lineno">  284</span>&#160;<span class="preprocessor">#pragma warning(pop)</span></div>
-<div class="line"><a name="l00285"></a><span class="lineno">  285</span>&#160;<span class="preprocessor">#endif</span></div>
+<div class="line"><a name="l00283"></a><span class="lineno">  283</span>&#160;<span class="keywordtype">int</span></div>
+<div class="line"><a name="l00284"></a><span class="lineno">  284</span>&#160;<a class="code" href="bpf_2bpf_8h.html#af4a69e7174078629e3f20dade5e6743d">bpf_prog_get_fd_by_id</a>(<a class="code" href="bpf__helpers__platform_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a> <span class="keywordtype">id</span>);</div>
+<div class="line"><a name="l00285"></a><span class="lineno">  285</span>&#160; </div>
+<div class="line"><a name="l00297"></a><span class="lineno">  297</span>&#160;<span class="keywordtype">int</span></div>
+<div class="line"><a name="l00298"></a><span class="lineno">  298</span>&#160;<a class="code" href="bpf_2bpf_8h.html#a08fd6fe439bbd700f63a5cf95324be90">bpf_prog_get_next_id</a>(<a class="code" href="bpf__helpers__platform_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a> start_id, <a class="code" href="bpf__helpers__platform_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a>* next_id);</div>
+<div class="line"><a name="l00299"></a><span class="lineno">  299</span>&#160; </div>
+<div class="line"><a name="l00302"></a><span class="lineno">  302</span>&#160;<span class="preprocessor">#else</span></div>
+<div class="line"><a name="l00303"></a><span class="lineno">  303</span>&#160;<span class="preprocessor">#pragma warning(push)</span></div>
+<div class="line"><a name="l00304"></a><span class="lineno">  304</span>&#160;<span class="preprocessor">#include &quot;../external/libbpf/src/bpf.h&quot;</span></div>
+<div class="line"><a name="l00305"></a><span class="lineno">  305</span>&#160;<span class="preprocessor">#pragma warning(pop)</span></div>
+<div class="line"><a name="l00306"></a><span class="lineno">  306</span>&#160;<span class="preprocessor">#endif</span></div>
 </div><!-- fragment --></div><!-- contents -->
 <div class="ttc" id="abpf_2bpf_8h_html_aa4489fd67da7d5641a428d1b76f24eff"><div class="ttname"><a href="bpf_2bpf_8h.html#aa4489fd67da7d5641a428d1b76f24eff">bpf_create_map_xattr</a></div><div class="ttdeci">int bpf_create_map_xattr(const struct bpf_create_map_attr *create_attr)</div><div class="ttdoc">Create a new map.</div></div>
 <div class="ttc" id="abpf_2bpf_8h_html_a2fd48f3d62ed0b56a9d01675bcd68c7a"><div class="ttname"><a href="bpf_2bpf_8h.html#a2fd48f3d62ed0b56a9d01675bcd68c7a">bpf_obj_get</a></div><div class="ttdeci">int bpf_obj_get(const char *pathname)</div><div class="ttdoc">Get a file descriptor for a pinned object by pin path.</div></div>
@@ -135,6 +139,7 @@ $(function() {
 <div class="ttc" id="abpf_2bpf_8h_html_a9f5eaf959fde6143ec1d94617362f5f1"><div class="ttname"><a href="bpf_2bpf_8h.html#a9f5eaf959fde6143ec1d94617362f5f1">bpf_obj_pin</a></div><div class="ttdeci">int bpf_obj_pin(int fd, const char *pathname)</div><div class="ttdoc">Pin an eBPF program or map referred to by fd to the provided pathname.</div></div>
 <div class="ttc" id="abpf_2bpf_8h_html_af4a69e7174078629e3f20dade5e6743d"><div class="ttname"><a href="bpf_2bpf_8h.html#af4a69e7174078629e3f20dade5e6743d">bpf_prog_get_fd_by_id</a></div><div class="ttdeci">int bpf_prog_get_fd_by_id(__u32 id)</div><div class="ttdoc">Get a file descriptor referring to a program with a given ID.</div></div>
 <div class="ttc" id="abpf_2bpf_8h_html_a08fd6fe439bbd700f63a5cf95324be90"><div class="ttname"><a href="bpf_2bpf_8h.html#a08fd6fe439bbd700f63a5cf95324be90">bpf_prog_get_next_id</a></div><div class="ttdeci">int bpf_prog_get_next_id(__u32 start_id, __u32 *next_id)</div><div class="ttdoc">Look for the next program ID greater than a given ID.</div></div>
+<div class="ttc" id="abpf_2bpf_8h_html_aa568c1b6f3dddfb439311bd952824f1b"><div class="ttname"><a href="bpf_2bpf_8h.html#aa568c1b6f3dddfb439311bd952824f1b">bpf_create_map_in_map</a></div><div class="ttdeci">int bpf_create_map_in_map(enum bpf_map_type map_type, const char *name, int key_size, int inner_map_fd, int max_entries, __u32 map_flags)</div><div class="ttdoc">Create a new map-in-map.</div></div>
 <div class="ttc" id="abpf_2bpf_8h_html_a415dcff6da1cf861efbafe33768976af"><div class="ttname"><a href="bpf_2bpf_8h.html#a415dcff6da1cf861efbafe33768976af">bpf_create_map</a></div><div class="ttdeci">int bpf_create_map(enum bpf_map_type map_type, int key_size, int value_size, int max_entries, __u32 map_flags)</div><div class="ttdoc">Create a new map.</div></div>
 <div class="ttc" id="abpf_2bpf_8h_html_ac9e08c49e17fcf8c69e202cfe15b87b3"><div class="ttname"><a href="bpf_2bpf_8h.html#ac9e08c49e17fcf8c69e202cfe15b87b3">bpf_map_update_elem</a></div><div class="ttdeci">int bpf_map_update_elem(int fd, const void *key, const void *value, __u64 flags)</div><div class="ttdoc">Create or update an element (key/value pair) in a specified map.</div></div>
 <div class="ttc" id="abpf_2bpf_8h_html_a95579ca07cccfd0f756a361c2da12ad5"><div class="ttname"><a href="bpf_2bpf_8h.html#a95579ca07cccfd0f756a361c2da12ad5">bpf_map_lookup_elem</a></div><div class="ttdeci">int bpf_map_lookup_elem(int fd, const void *key, void *value)</div><div class="ttdoc">Look up an element by key in a specified map and return its value.</div></div>
