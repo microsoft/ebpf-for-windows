@@ -1562,7 +1562,6 @@ _ebpf_validate_map(_In_ ebpf_map_t* map, fd_t original_map_fd)
     if (_ebpf_is_map_in_map(map)) {
         ebpf_map_t* inner_map = map->inner_map;
         ebpf_assert(inner_map != nullptr);
-        // ebpf_id_t inner_map_id = info.inner_map_id;
 
         if (info.inner_map_id == EBPF_ID_NONE) {
             // The original map is pinned but its template is not initialized yet.
