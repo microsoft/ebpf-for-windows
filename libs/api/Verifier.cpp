@@ -285,7 +285,7 @@ load_byte_code(
                 goto Exit;
             }
             if (descriptor.pinning == PIN_GLOBAL_NS) {
-                char buf[EBPF_MAX_PIN_PATH_LENGTH];
+                char buffer[EBPF_MAX_PIN_PATH_LENGTH];
                 int len = snprintf(buf, EBPF_MAX_PIN_PATH_LENGTH, "%s/%s", pin_root_path, map->name);
                 if (len < 0 || len >= EBPF_MAX_PIN_PATH_LENGTH) {
                     result = EBPF_INVALID_ARGUMENT;
