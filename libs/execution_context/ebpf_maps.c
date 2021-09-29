@@ -290,6 +290,53 @@ _check_value_type(_In_ const ebpf_core_map_t* outer_map, _In_ const ebpf_object_
     return allowed;
 }
 
+// Validate that a value handle is appropriate for this map,
+// and if so, return a pointer to the object with that handle.
+static ebpf_result_t
+_get_map_value_object(
+    _In_ const ebpf_core_map_t* map,
+    ebpf_handle_t value_handle,
+    ebpf_object_type_t value_type,
+    _Outptr_ ebpf_object_t** value_object_result)
+{
+    // Convert value handle to an object pointer.
+    ebpf_object_t* value_object = NULL;
+    ebpf_result_t result = ebpf_reference_object_by_handle(value_handle, value_type, &value_object);
+    if (result != EBPF_SUCCESS)
+        return result;
+
+    const ebpf_program_type_t* value_program_type =
+        (value_object->get_program_type) ? value_object->get_program_type(value_object) : NULL;
+
+    if (value_type == EBPF_OBJECT_MAP) {
+        // Validate that the value is of the correct type.
+        if (!_check_value_type(map, value_object)) {
+            result = EBPF_INVALID_OBJECT;
+            goto Error;
+        }
+    }
+
+    // Validate that the value's program type (if any) is
+    // not in conflict with the map's program type.
+    if (value_program_type != NULL) {
+        ebpf_core_object_map_t* map_of_objects = (ebpf_core_object_map_t*)map;
+        if (!map_of_objects->is_program_type_set) {
+            map_of_objects->is_program_type_set = TRUE;
+            map_of_objects->program_type = *value_program_type;
+        } else if (memcmp(&map_of_objects->program_type, value_program_type, sizeof(*value_program_type)) != 0) {
+            result = EBPF_INVALID_FD;
+            goto Error;
+        }
+    }
+
+    *value_object_result = value_object;
+    return EBPF_SUCCESS;
+
+Error:
+    ebpf_object_release_reference((ebpf_object_t*)value_object);
+    return result;
+}
+
 static ebpf_result_t
 _update_array_map_entry_with_handle(
     _In_ ebpf_core_map_t* map,
@@ -306,43 +353,17 @@ _update_array_map_entry_with_handle(
     if (index >= map->ebpf_map_definition.max_entries)
         return EBPF_INVALID_ARGUMENT;
 
-    // Convert value handle to an object pointer.
-    ebpf_object_t* value_object;
-    int return_value = ebpf_reference_object_by_handle(value_handle, value_type, &value_object);
-    if (return_value != EBPF_SUCCESS)
-        return return_value;
-
     // The following addition is safe since it was checked during map creation.
     size_t actual_value_size = ((size_t)map->ebpf_map_definition.value_size) + sizeof(struct _ebpf_object*);
 
     ebpf_result_t result = EBPF_SUCCESS;
 
-    const ebpf_program_type_t* value_program_type =
-        (value_object->get_program_type) ? value_object->get_program_type(value_object) : NULL;
-
     ebpf_lock_state_t lock_state = ebpf_lock_lock(&map->lock);
 
-    if (value_type == EBPF_OBJECT_MAP) {
-        // Validate that the value is of the correct type.
-        if (!_check_value_type(map, value_object)) {
-            ebpf_object_release_reference(value_object);
-            result = EBPF_INVALID_FD;
-            goto Done;
-        }
-    }
-
-    // Validate that the value's program type (if any) is
-    // not in conflict with the map's program type.
-    if (value_program_type) {
-        ebpf_core_object_map_t* map_of_objects = (ebpf_core_object_map_t*)map;
-        if (!map_of_objects->is_program_type_set) {
-            map_of_objects->is_program_type_set = TRUE;
-            map_of_objects->program_type = *value_program_type;
-        } else if (memcmp(&map_of_objects->program_type, value_program_type, sizeof(*value_program_type)) != 0) {
-            ebpf_object_release_reference(value_object);
-            result = EBPF_INVALID_FD;
-            goto Done;
-        }
+    ebpf_object_t* value_object = NULL;
+    result = _get_map_value_object(map, value_handle, value_type, &value_object);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
     }
 
     // Release the reference on the old ID stored here, if any.
@@ -693,11 +714,10 @@ _update_hash_map_entry_with_handle(
     _In_ ebpf_core_map_t* map,
     _In_ const uint8_t* key,
     ebpf_object_type_t value_type,
-    uintptr_t value_handle,
+    ebpf_handle_t value_handle,
     ebpf_map_option_t option)
 {
     ebpf_result_t result = EBPF_SUCCESS;
-    ebpf_lock_state_t lock_state;
     size_t entry_count = 0;
     if (!map || !key)
         return EBPF_INVALID_ARGUMENT;
@@ -717,54 +737,42 @@ _update_hash_map_entry_with_handle(
         return EBPF_INVALID_ARGUMENT;
     }
 
-    // Convert value handle to an object pointer.
-    struct _ebpf_object* object;
-    int return_value = ebpf_reference_object_by_handle(value_handle, value_type, &object);
-    if (return_value != EBPF_SUCCESS)
-        return return_value;
+    ebpf_lock_state_t lock_state = ebpf_lock_lock(&map->lock);
 
-    // Validate that the object's program type is
-    // not in conflict with the map's program type.
-    const ebpf_program_type_t* program_type = (object->get_program_type) ? object->get_program_type(object) : NULL;
-    ebpf_core_object_map_t* object_map = (ebpf_core_object_map_t*)map;
-
-    lock_state = ebpf_lock_lock(&map->lock);
     entry_count = ebpf_hash_table_key_count((ebpf_hash_table_t*)map->data);
 
     uint8_t* old_value = NULL;
     ebpf_result_t found_result = ebpf_hash_table_find((ebpf_hash_table_t*)map->data, key, &old_value);
+    ebpf_id_t old_id = (old_value) ? *(ebpf_id_t*)old_value : 0;
+    ebpf_object_t* value_object = NULL;
 
     if ((entry_count == map->ebpf_map_definition.max_entries) && (found_result != EBPF_SUCCESS)) {
         // The hash table is already full.
         result = EBPF_INVALID_ARGUMENT;
-    } else {
-        if (program_type != NULL) {
-            // Verify that the program type of the object being set is not in
-            // conflict with the map's program type.
-            if (!object_map->is_program_type_set) {
-                object_map->is_program_type_set = TRUE;
-                object_map->program_type = *program_type;
-            } else if (memcmp(&object_map->program_type, program_type, sizeof(*program_type)) != 0) {
-                ebpf_object_release_reference((ebpf_object_t*)object);
-                result = EBPF_INVALID_FD;
-                goto Done;
-            }
-        }
+        goto Done;
+    }
 
-        // Release the reference on the old ID stored here, if any.
-        if (old_value) {
-            ebpf_id_t old_id = *(ebpf_id_t*)old_value;
-            if (old_id) {
-                ebpf_object_dereference_by_id(old_id, value_type);
-            }
-        }
+    result = _get_map_value_object(map, value_handle, value_type, &value_object);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
 
-        // Store the new object ID as the value.
-        result =
-            ebpf_hash_table_update((ebpf_hash_table_t*)map->data, key, (uint8_t*)&object->id, hash_table_operation);
+    // Store the new object ID as the value.
+    result =
+        ebpf_hash_table_update((ebpf_hash_table_t*)map->data, key, (uint8_t*)&value_object->id, hash_table_operation);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
+
+    // Release the reference on the old ID stored here, if any.
+    if (old_id) {
+        ebpf_object_dereference_by_id(old_id, value_type);
     }
 
 Done:
+    if ((result != EBPF_SUCCESS) && (value_object != NULL)) {
+        ebpf_object_release_reference((ebpf_object_t*)value_object);
+    }
     ebpf_lock_unlock(&map->lock, lock_state);
     return result;
 }
@@ -1095,7 +1103,14 @@ ebpf_map_create(
         goto Exit;
     }
 
-    if (inner_map_handle != ebpf_handle_invalid) {
+    if (local_map_definition.type == BPF_MAP_TYPE_ARRAY_OF_MAPS ||
+        local_map_definition.type == BPF_MAP_TYPE_HASH_OF_MAPS) {
+        if (inner_map_handle == ebpf_handle_invalid) {
+            // Must have a valid inner_map_handle.
+            result = EBPF_INVALID_FD;
+            goto Exit;
+        }
+
         // Convert value handle to an object pointer.
         result = ebpf_reference_object_by_handle(inner_map_handle, EBPF_OBJECT_MAP, &inner_map_template_object);
         if (result != EBPF_SUCCESS)

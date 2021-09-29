@@ -112,7 +112,7 @@ windows_error_to_ebpf_result(uint32_t error)
         break;
 
     case ERROR_INVALID_HANDLE:
-        result = EBPF_INVALID_OBJECT;
+        result = EBPF_INVALID_FD;
         break;
 
     case ERROR_NOT_SUPPORTED:

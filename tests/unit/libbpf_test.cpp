@@ -444,7 +444,7 @@ TEST_CASE("disallow setting bind fd in xdp prog array", "[libbpf]")
     int index = 0;
     error = bpf_map_update_elem(map_fd, (uint8_t*)&index, (uint8_t*)&callee_fd, 0);
     REQUIRE(error < 0);
-    REQUIRE(errno == EINVAL);
+    REQUIRE(errno == EBADF);
 
     bpf_object__close(bind_object);
     bpf_object__close(xdp_object);
@@ -481,7 +481,7 @@ TEST_CASE("disallow prog_array mixed program type values", "[libbpf]")
     // Adding an entry with a different program type should fail.
     error = bpf_map_update_elem(map_fd, (uint8_t*)&index, (uint8_t*)&bind_object_fd, 0);
     REQUIRE(error < 0);
-    REQUIRE(errno == EINVAL);
+    REQUIRE(errno == EBADF);
 
     Platform::_close(map_fd);
     bpf_object__close(bind_object);
@@ -527,16 +527,25 @@ TEST_CASE("enumerate program IDs", "[libbpf]")
     bpf_object__close(xdp_object);
 }
 
-// Verify libbpf can create and update arrays of maps.
-TEST_CASE("simple hash of maps", "[libbpf]")
+static void
+_ebpf_test_map_in_map(ebpf_map_type_t type)
 {
     _test_helper_end_to_end test_helper;
 
-    int outer_map_fd = bpf_create_map(BPF_MAP_TYPE_HASH_OF_MAPS, sizeof(__u32), sizeof(__u32), 2, 0);
-    REQUIRE(outer_map_fd > 0);
-
+    // Create an inner map that we'll use both as a template and as an actual entry.
     int inner_map_fd = bpf_create_map(BPF_MAP_TYPE_ARRAY, sizeof(__u32), sizeof(__u32), 1, 0);
     REQUIRE(inner_map_fd > 0);
+
+    // Verify that we cannot simply create an outer map without a template.
+    REQUIRE(bpf_create_map(type, sizeof(__u32), sizeof(__u32), 2, 0) < 0);
+    REQUIRE(errno == EBADF);
+
+    REQUIRE(bpf_create_map_in_map(type, nullptr, sizeof(__u32), ebpf_fd_invalid, 2, 0) < 0);
+    REQUIRE(errno == EBADF);
+
+    // Verify we can create an outer map with a template.
+    int outer_map_fd = bpf_create_map_in_map(type, nullptr, sizeof(__u32), inner_map_fd, 2, 0);
+    REQUIRE(outer_map_fd > 0);
 
     // Verify we can insert the inner map into the outer map.
     __u32 outer_key = 0;
@@ -560,10 +569,12 @@ TEST_CASE("simple hash of maps", "[libbpf]")
     REQUIRE(error < 0);
     REQUIRE(errno == EBADF);
 
-    // Try deleting outer key that doesn't exist
-    error = bpf_map_delete_elem(outer_map_fd, &outer_key);
-    REQUIRE(error < 0);
-    REQUIRE(errno == ENOENT);
+    if (type == BPF_MAP_TYPE_HASH_OF_MAPS) {
+        // Try deleting outer key that doesn't exist
+        error = bpf_map_delete_elem(outer_map_fd, &outer_key);
+        REQUIRE(error < 0);
+        REQUIRE(errno == ENOENT);
+    }
 
     // Try deleting outer key that does exist.
     outer_key = 0;
@@ -572,7 +583,18 @@ TEST_CASE("simple hash of maps", "[libbpf]")
 
     Platform::_close(inner_map_fd);
     Platform::_close(outer_map_fd);
+
+    // Verify that all maps were successfully removed.
+    uint32_t id;
+    REQUIRE(bpf_map_get_next_id(0, &id) < 0);
+    REQUIRE(errno == ENOENT);
 }
+
+// Verify libbpf can create and update arrays of maps.
+TEST_CASE("simple array of maps", "[libbpf]") { _ebpf_test_map_in_map(BPF_MAP_TYPE_ARRAY_OF_MAPS); }
+
+// Verify libbpf can create and update hash tables of maps.
+TEST_CASE("simple hash of maps", "[libbpf]") { _ebpf_test_map_in_map(BPF_MAP_TYPE_HASH_OF_MAPS); }
 
 // Verify an app can communicate with an eBPF program via an array of maps.
 TEST_CASE("array of maps", "[libbpf]")
