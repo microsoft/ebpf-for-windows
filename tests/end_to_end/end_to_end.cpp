@@ -1102,14 +1102,14 @@ TEST_CASE("map_reuse", "[end_to_end]")
     int error = bpf_map_update_elem(outer_map_fd, &outer_key, &inner_map_fd, 0);
     REQUIRE(error == 0);
 
-    // Pin the outer map
+    // Pin the outer map.
     error = bpf_obj_pin(outer_map_fd, "/ebpf/global/outer_map");
     REQUIRE(error == 0);
 
     int port_map_fd = bpf_create_map(BPF_MAP_TYPE_ARRAY, sizeof(__u32), sizeof(__u32), 1, 0);
     REQUIRE(port_map_fd > 0);
 
-    // Pin port map
+    // Pin port map.
     error = bpf_obj_pin(port_map_fd, "/ebpf/global/port_map");
     REQUIRE(error == 0);
 
@@ -1274,7 +1274,7 @@ TEST_CASE("map_reuse_invalid", "[end_to_end]")
     int port_map_fd = bpf_create_map(BPF_MAP_TYPE_ARRAY, sizeof(__u32), sizeof(__u32), 1, 0);
     REQUIRE(port_map_fd > 0);
 
-    // Pin port map
+    // Pin port map.
     error = bpf_obj_pin(port_map_fd, "/ebpf/global/port_map");
     REQUIRE(error == 0);
 
@@ -1327,7 +1327,7 @@ TEST_CASE("map_reuse_2", "[end_to_end]")
     int port_map_fd = bpf_create_map(BPF_MAP_TYPE_ARRAY, sizeof(__u32), sizeof(__u32), 1, 0);
     REQUIRE(outer_map_fd > 0);
 
-    // Pin port map
+    // Pin port map.
     error = bpf_obj_pin(port_map_fd, "/ebpf/global/port_map");
     REQUIRE(error == 0);
 
@@ -1395,7 +1395,7 @@ TEST_CASE("map_reuse_3", "[end_to_end]")
     int port_map_fd = bpf_create_map(BPF_MAP_TYPE_ARRAY, sizeof(__u32), sizeof(__u32), 1, 0);
     REQUIRE(outer_map_fd > 0);
 
-    // Pin port map
+    // Pin port map.
     error = bpf_obj_pin(port_map_fd, "/ebpf/global/port_map");
     REQUIRE(error == 0);
 
