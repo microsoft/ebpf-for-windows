@@ -269,6 +269,21 @@ ebpf_result_t
 ebpf_map_lookup_element(fd_t map_fd, _In_ const void* key, _Out_ void* value);
 
 /**
+ * @brief Look up an element in an eBPF map.
+ *  For a singleton map, return the value for the given key.
+ *  For a per-cpu map, return aggregate value across all CPUs.
+ *  On successful lookup, the element is removed from the map.
+ *
+ * @param[in] map_fd File descriptor for the eBPF map.
+ * @param[in] key Pointer to buffer containing key.
+ * @param[out] value Pointer to buffer that contains value on success.
+ *
+ * @retval EBPF_SUCCESS The operation was successful.
+ */
+ebpf_result_t
+ebpf_map_lookup_and_delete_element(fd_t map_fd, _In_ const void* key, _Out_ void* value);
+
+/**
  * @brief Return the next key in an eBPF map.
  *
  * @param[in] map_fd File descriptor for the eBPF map.
