@@ -905,6 +905,8 @@ TEST_CASE("create_map", "[end_to_end]")
         key++;
         value++;
     }
+
+    Platform::_close(map_fd);
 }
 
 TEST_CASE("create_map_name", "[end_to_end]")
@@ -937,6 +939,8 @@ TEST_CASE("create_map_name", "[end_to_end]")
         key++;
         value++;
     }
+
+    Platform::_close(map_fd);
 }
 
 static void
@@ -1354,8 +1358,12 @@ TEST_CASE("map_reuse_2", "[end_to_end]")
     Platform::_close(inner_map_fd);
     Platform::_close(port_map_fd);
 
+    // The below two objects were pinned by this UM test.
     REQUIRE(ebpf_object_unpin("/ebpf/global/outer_map") == EBPF_SUCCESS);
     REQUIRE(ebpf_object_unpin("/ebpf/global/port_map") == EBPF_SUCCESS);
+
+    // This object was auto-pinned while loading the program.
+    REQUIRE(ebpf_object_unpin("/ebpf/global/inner_map") == EBPF_SUCCESS);
 }
 
 TEST_CASE("map_reuse_3", "[end_to_end]")

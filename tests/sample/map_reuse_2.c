@@ -1,16 +1,14 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-// clang -O2 -Werror -c map_reuse_bad.c -o map_reuse_bad.o
+// clang -O2 -Werror -c map_reuse_2.c -o map_reuse_2.o
 //
-// For bpf code: clang -target bpf -O2 -Werror -c map_reuse_bad.c -o map_reuse_bad.o
+// For bpf code: clang -target bpf -O2 -Werror -c map_reuse_2.c -o map_reuse_2.o
 // this passes the checker
 
 #include "bpf_helpers.h"
 #include "ebpf.h"
 
-#define PIN_NONE 0
-#define PIN_GLOBAL_NS 2
 SEC("maps")
 struct _ebpf_map_definition_in_file outer_map = {
     .type = BPF_MAP_TYPE_HASH_OF_MAPS,
