@@ -45,9 +45,6 @@ parse_maps_section_windows(
             } else if (s.inner_id != 0) {
                 for (int j = 0; j < mapdefs.size(); j++) {
                     auto& inner_s = mapdefs[j];
-                    if (inner_s.id == 0) {
-                        continue;
-                    }
                     if (inner_s.id == s.inner_id && i != j) {
                         inner_map_original_fd = j + ORIGINAL_FD_OFFSET;
                         break;
