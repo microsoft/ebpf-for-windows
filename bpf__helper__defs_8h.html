@@ -100,6 +100,9 @@ Functions</h2></td></tr>
 <tr class="memitem:a25b647b1c513ab7afec473ee3043e0dd"><td class="memItemLeft" align="right" valign="top">uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#a25b647b1c513ab7afec473ee3043e0dd">bpf_ktime_get_ns</a> ()</td></tr>
 <tr class="memdesc:a25b647b1c513ab7afec473ee3043e0dd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return time elapsed since boot in nanoseconds excluding time while suspended.  <a href="bpf__helper__defs_8h.html#a25b647b1c513ab7afec473ee3043e0dd">More...</a><br /></td></tr>
 <tr class="separator:a25b647b1c513ab7afec473ee3043e0dd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1db4f0fd3d85ed1a294ce4efb080917f"><td class="memItemLeft" align="right" valign="top">void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#a1db4f0fd3d85ed1a294ce4efb080917f">bpf_map_lookup_and_delete_elem</a> (struct <a class="el" href="bpf__helpers__platform_8h.html#a1d98f863fc6ebf789b378348438181ca">bpf_map</a> *map, void *key)</td></tr>
+<tr class="memdesc:a1db4f0fd3d85ed1a294ce4efb080917f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get a pointer to an entry in the map and erase that element.  <a href="bpf__helper__defs_8h.html#a1db4f0fd3d85ed1a294ce4efb080917f">More...</a><br /></td></tr>
+<tr class="separator:a1db4f0fd3d85ed1a294ce4efb080917f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Function Documentation</h2>
 <a id="adad4a120de1d0f6c2a380e8d7b56570b"></a>
@@ -223,6 +226,44 @@ Functions</h2></td></tr>
   </table>
   </dd>
 </dl>
+
+</div>
+</div>
+<a id="a1db4f0fd3d85ed1a294ce4efb080917f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1db4f0fd3d85ed1a294ce4efb080917f">&#9670;&nbsp;</a></span>bpf_map_lookup_and_delete_elem()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void* bpf_map_lookup_and_delete_elem </td>
+          <td>(</td>
+          <td class="paramtype">struct <a class="el" href="bpf__helpers__platform_8h.html#a1d98f863fc6ebf789b378348438181ca">bpf_map</a> *&#160;</td>
+          <td class="paramname"><em>map</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>key</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Get a pointer to an entry in the map and erase that element. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">map</td><td>Map to search. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">key</td><td>Key to use when searching map. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>Pointer to the value if found or NULL. </dd></dl>
 
 </div>
 </div>
