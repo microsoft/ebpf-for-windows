@@ -40,7 +40,17 @@ parse_maps_section_windows(
         int original_fd = i + ORIGINAL_FD_OFFSET;
         unsigned int inner_map_original_fd = UINT_MAX;
         if (s.type == BPF_MAP_TYPE_ARRAY_OF_MAPS || s.type == BPF_MAP_TYPE_HASH_OF_MAPS) {
-            inner_map_original_fd = (unsigned int)s.inner_map_idx + ORIGINAL_FD_OFFSET;
+            if (s.inner_map_idx != 0) {
+                inner_map_original_fd = (unsigned int)s.inner_map_idx + ORIGINAL_FD_OFFSET;
+            } else if (s.inner_id != 0) {
+                for (int j = 0; j < mapdefs.size(); j++) {
+                    auto& inner_s = mapdefs[j];
+                    if (inner_s.id == s.inner_id && i != j) {
+                        inner_map_original_fd = j + ORIGINAL_FD_OFFSET;
+                        break;
+                    }
+                }
+            }
         }
 
         cache_map_handle(
