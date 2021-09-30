@@ -12,6 +12,9 @@ extern "C"
 {
 #endif
 
+#define EBPF_MAP_FLAG_HELPER 0x01      /* Called by an eBPF program. */
+#define EPBF_MAP_FIND_FLAG_DELETE 0x02 /* Perform a find and delete. */
+
     typedef struct _ebpf_core_map ebpf_map_t;
 
     /**
@@ -51,8 +54,6 @@ extern "C"
      */
     uint32_t
     ebpf_map_get_effective_value_size(_In_ const ebpf_map_t* map);
-
-#define EBPF_MAP_FLAG_HELPER 0x01 /* Called by an eBPF program */
 
     /**
      * @brief Get a pointer to an entry in the map.

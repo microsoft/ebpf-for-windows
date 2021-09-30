@@ -79,7 +79,8 @@ _ebpf_result_to_ntstatus(ebpf_result_t result)
         status = STATUS_NOT_FOUND;
         break;
     }
-    case EBPF_INVALID_ARGUMENT: {
+    case EBPF_INVALID_ARGUMENT:
+    case EBPF_INVALID_OBJECT: {
         status = STATUS_INVALID_PARAMETER;
         break;
     }
@@ -91,7 +92,7 @@ _ebpf_result_to_ntstatus(ebpf_result_t result)
         status = STATUS_NO_MORE_MATCHES;
         break;
     }
-    case EBPF_INVALID_OBJECT: {
+    case EBPF_INVALID_FD: {
         status = STATUS_INVALID_HANDLE;
         break;
     }

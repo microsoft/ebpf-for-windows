@@ -39,6 +39,23 @@ bpf_create_map(enum bpf_map_type map_type, int key_size, int value_size, int max
     return bpf_create_map_xattr(&map_attr);
 }
 
+int
+bpf_create_map_in_map(
+    enum bpf_map_type map_type, const char* name, int key_size, int inner_map_fd, int max_entries, __u32 map_flags)
+{
+    struct bpf_create_map_attr map_attr = {0};
+
+    map_attr.map_type = map_type;
+    map_attr.name = name;
+    map_attr.key_size = key_size;
+    map_attr.value_size = sizeof(ebpf_id_t);
+    map_attr.inner_map_fd = inner_map_fd;
+    map_attr.max_entries = max_entries;
+    map_attr.map_flags = map_flags;
+
+    return bpf_create_map_xattr(&map_attr);
+}
+
 struct bpf_map*
 bpf_map__next(const struct bpf_map* previous, const struct bpf_object* object)
 {
@@ -225,6 +242,12 @@ int
 bpf_map_lookup_elem(int fd, const void* key, void* value)
 {
     return libbpf_result_err(ebpf_map_lookup_element(fd, key, value));
+}
+
+int
+bpf_map_lookup_and_delete_elem(int fd, const void* key, void* value)
+{
+    return libbpf_result_err(ebpf_map_lookup_and_delete_element(fd, key, value));
 }
 
 int

@@ -153,6 +153,7 @@ ebpf_create_map_xattr(_In_ const struct bpf_create_map_attr* create_attr, _Out_ 
 {
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_handle_t map_handle = ebpf_handle_invalid;
+    ebpf_handle_t inner_map_handle = ebpf_handle_invalid;
     ebpf_map_definition_in_memory_t map_definition = {0};
 
     if (create_attr->map_flags != 0 || map_fd == nullptr) {
@@ -168,7 +169,9 @@ ebpf_create_map_xattr(_In_ const struct bpf_create_map_attr* create_attr, _Out_ 
         map_definition.value_size = create_attr->value_size;
         map_definition.max_entries = create_attr->max_entries;
 
-        result = _create_map(create_attr->name, &map_definition, ebpf_handle_invalid, &map_handle);
+        inner_map_handle = _get_handle_from_file_descriptor(create_attr->inner_map_fd);
+
+        result = _create_map(create_attr->name, &map_definition, inner_map_handle, &map_handle);
         if (result != EBPF_SUCCESS) {
             goto Exit;
         }
@@ -239,6 +242,7 @@ ebpf_create_map(
 static ebpf_result_t
 _map_lookup_element(
     ebpf_handle_t handle,
+    bool find_and_delete,
     uint32_t key_size,
     _In_ const uint8_t* key,
     uint32_t value_size,
@@ -255,6 +259,7 @@ _map_lookup_element(
 
         request->header.length = static_cast<uint16_t>(request_buffer.size());
         request->header.id = ebpf_operation_id_t::EBPF_OPERATION_MAP_FIND_ELEMENT;
+        request->find_and_delete = find_and_delete;
         request->handle = handle;
         std::copy(key, key + key_size, request->key);
 
@@ -312,8 +317,8 @@ Exit:
     return result;
 }
 
-ebpf_result_t
-ebpf_map_lookup_element(fd_t map_fd, _In_ const void* key, _Out_ void* value)
+static ebpf_result_t
+_ebpf_map_lookup_element_helper(fd_t map_fd, bool find_and_delete, _In_ const void* key, _Out_ void* value)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_handle_t map_handle;
@@ -341,10 +346,22 @@ ebpf_map_lookup_element(fd_t map_fd, _In_ const void* key, _Out_ void* value)
     assert(key_size != 0);
     assert(value_size != 0);
 
-    result = _map_lookup_element(map_handle, key_size, (uint8_t*)key, value_size, (uint8_t*)value);
+    result = _map_lookup_element(map_handle, find_and_delete, key_size, (uint8_t*)key, value_size, (uint8_t*)value);
 
 Exit:
     return result;
+}
+
+ebpf_result_t
+ebpf_map_lookup_element(fd_t map_fd, _In_ const void* key, _Out_ void* value)
+{
+    return _ebpf_map_lookup_element_helper(map_fd, false, key, value);
+}
+
+ebpf_result_t
+ebpf_map_lookup_and_delete_element(fd_t map_fd, _In_ const void* key, _Out_ void* value)
+{
+    return _ebpf_map_lookup_element_helper(map_fd, true, key, value);
 }
 
 static ebpf_result_t
