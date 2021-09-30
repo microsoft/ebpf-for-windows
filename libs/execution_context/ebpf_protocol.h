@@ -127,6 +127,7 @@ typedef struct _ebpf_operation_map_find_element_request
 {
     struct _ebpf_operation_header header;
     ebpf_handle_t handle;
+    bool find_and_delete;
     uint8_t key[1];
 } ebpf_operation_map_find_element_request_t;
 
