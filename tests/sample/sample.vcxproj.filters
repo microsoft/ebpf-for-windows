@@ -72,5 +72,8 @@
     <CustomBuild Include="map_reuse_2.c">
       <Filter>Source Files</Filter>
     </CustomBuild>
+    <CustomBuild Include="map_in_map_v2.c">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
   </ItemGroup>
 </Project>
