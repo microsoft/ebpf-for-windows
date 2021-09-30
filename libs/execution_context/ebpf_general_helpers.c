@@ -30,6 +30,11 @@ ebpf_helper_function_prototype_t ebpf_core_helper_function_prototype_array[] = {
     {BPF_FUNC_ktime_get_boot_ns, "bpf_ktime_get_boot_ns", EBPF_RETURN_TYPE_INTEGER, {0}},
     {BPF_FUNC_get_smp_processor_id, "bpf_get_smp_processor_id", EBPF_RETURN_TYPE_INTEGER, {0}},
     {BPF_FUNC_ktime_get_ns, "bpf_ktime_get_ns", EBPF_RETURN_TYPE_INTEGER, {0}},
+    {BPF_FUNC_map_lookup_and_delete_elem,
+     "bpf_map_lookup_and_delete_elem",
+     EBPF_RETURN_TYPE_PTR_TO_MAP_VALUE_OR_NULL,
+     {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY}},
+
 };
 
 #ifdef __cplusplus

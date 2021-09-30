@@ -78,6 +78,27 @@ int
 bpf_create_map(enum bpf_map_type map_type, int key_size, int value_size, int max_entries, __u32 map_flags);
 
 /**
+ * @brief Create a new map-in-map.
+ *
+ * @param[in] map_type Type of outer map to create.
+ * @param[in] name Optionally, the name to use for the map.
+ * @param[in] key_size Size in bytes of keys.
+ * @param[in] inner_map_fd File descriptor of the inner map template.
+ * @param[in] max_entries Maximum number of entries in the map.
+ * @param[in] map_flags Flags (currently 0).
+ *
+ * @returns A new file descriptor that refers to the map.  A negative
+ * value indicates an error occurred and errno was set.
+ *
+ * @exception EBADF The file descriptor was not found.
+ * @exception EINVAL An invalid argument was provided.
+ * @exception ENOMEM Out of memory.
+ */
+int
+bpf_create_map_in_map(
+    enum bpf_map_type map_type, const char* name, int key_size, int inner_map_fd, int max_entries, __u32 map_flags);
+
+/**
  * @brief Create a new map.
  *
  * @param[in] create_attr Structure of attributes using which a map gets created.

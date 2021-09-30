@@ -101,3 +101,15 @@ EBPF_HELPER(uint64_t, bpf_ktime_get_ns, ());
 #ifndef __doxygen
 #define bpf_ktime_get_ns ((bpf_ktime_get_ns_t)BPF_FUNC_ktime_get_boot_ns)
 #endif
+
+/**
+ * @brief Get a pointer to an entry in the map and erase that element.
+ *
+ * @param[in] map Map to search.
+ * @param[in] key Key to use when searching map.
+ * @return Pointer to the value if found or NULL.
+ */
+EBPF_HELPER(void*, bpf_map_lookup_and_delete_elem, (struct bpf_map * map, void* key));
+#ifndef __doxygen
+#define bpf_map_lookup_and_delete_elem ((bpf_map_lookup_and_delete_elem_t)BPF_FUNC_map_lookup_and_delete_elem)
+#endif

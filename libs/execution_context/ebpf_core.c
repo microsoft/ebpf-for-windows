@@ -44,6 +44,9 @@ _ebpf_core_get_time_ns();
 static uint32_t
 _ebpf_core_get_current_cpu();
 
+static void*
+_ebpf_core_map_find_and_delete_element(_Inout_ ebpf_map_t* map, _In_ const uint8_t* key);
+
 #define EBPF_CORE_GLOBAL_HELPER_EXTENSION_VERSION 0
 
 static ebpf_program_info_t _ebpf_global_helper_program_info = {{"global_helper", NULL, {0}}, 0, NULL};
@@ -57,7 +60,9 @@ static const void* _ebpf_general_helpers[] = {
     (void*)&_ebpf_core_random_uint32,
     (void*)&_ebpf_core_get_time_since_boot_ns,
     (void*)_ebpf_core_get_current_cpu,
-    (void*)&_ebpf_core_get_time_ns};
+    (void*)&_ebpf_core_get_time_ns,
+    (void*)&_ebpf_core_map_find_and_delete_element,
+};
 
 static ebpf_extension_provider_t* _ebpf_global_helper_function_provider_context = NULL;
 static ebpf_helper_function_addresses_t _ebpf_global_helper_function_dispatch_table = {
@@ -400,7 +405,13 @@ _ebpf_core_protocol_map_find_element(
     if (retval != EBPF_SUCCESS)
         goto Done;
 
-    retval = ebpf_map_find_entry(map, key_length, request->key, value_length, reply->value, 0);
+    retval = ebpf_map_find_entry(
+        map,
+        key_length,
+        request->key,
+        value_length,
+        reply->value,
+        request->find_and_delete ? EPBF_MAP_FIND_FLAG_DELETE : 0);
     if (retval != EBPF_SUCCESS)
         goto Done;
 
@@ -1192,6 +1203,19 @@ static uint32_t
 _ebpf_core_get_current_cpu()
 {
     return ebpf_get_current_cpu();
+}
+
+static void*
+_ebpf_core_map_find_and_delete_element(_Inout_ ebpf_map_t* map, _In_ const uint8_t* key)
+{
+    ebpf_result_t retval;
+    uint8_t* value;
+    retval = ebpf_map_find_entry(
+        map, 0, key, sizeof(&value), (uint8_t*)&value, EBPF_MAP_FLAG_HELPER | EPBF_MAP_FIND_FLAG_DELETE);
+    if (retval != EBPF_SUCCESS)
+        return NULL;
+    else
+        return value;
 }
 
 typedef struct _ebpf_protocol_handler
