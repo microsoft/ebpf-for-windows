@@ -70,6 +70,13 @@ typedef struct _ebpf_map_definition_in_file
      * file is the inner map template.
      */
     uint32_t inner_map_idx;
+
+    /** id is the identifier for a map template.
+     */
+    uint32_t id;
+    /** For a map of map, inner_id is the id of the inner map template.
+     */
+    uint32_t inner_id;
 } ebpf_map_definition_in_file_t;
 
 typedef enum

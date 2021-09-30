@@ -234,6 +234,60 @@ TEST_CASE("libbpf map", "[libbpf]")
     bpf_object__close(object);
 }
 
+TEST_CASE("libbpf map binding", "[libbpf]")
+{
+    _test_helper_libbpf test_helper;
+
+    struct bpf_object* object;
+    int program_fd;
+    int result = bpf_prog_load("droppacket.o", BPF_PROG_TYPE_XDP, &object, &program_fd);
+    REQUIRE(result == 0);
+    REQUIRE(object != nullptr);
+    struct bpf_program* program = bpf_program__next(nullptr, object);
+    REQUIRE(program != nullptr);
+
+    // Create a map.
+    int map_fd = bpf_create_map(BPF_MAP_TYPE_ARRAY, sizeof(uint32_t), sizeof(uint32_t), 2, 0);
+    REQUIRE(map_fd > 0);
+    bpf_map_info info;
+    uint32_t info_size = sizeof(info);
+    REQUIRE(bpf_obj_get_info_by_fd(map_fd, &info, &info_size) == 0);
+    ebpf_id_t map_id = info.id;
+
+    // Try some invalid FDs.
+    int error = bpf_prog_bind_map(ebpf_fd_invalid, map_fd, nullptr);
+    REQUIRE(error < 0);
+    REQUIRE(errno == EBADF);
+
+    error = bpf_prog_bind_map(map_fd, map_fd, nullptr);
+    REQUIRE(error < 0);
+    REQUIRE(errno == EINVAL);
+
+    error = bpf_prog_bind_map(program_fd, ebpf_fd_invalid, nullptr);
+    REQUIRE(error < 0);
+    REQUIRE(errno == EBADF);
+
+    error = bpf_prog_bind_map(program_fd, program_fd, nullptr);
+    REQUIRE(error < 0);
+    REQUIRE(errno == EINVAL);
+
+    // Bind it to the program.
+    error = bpf_prog_bind_map(program_fd, map_fd, nullptr);
+    REQUIRE(error == 0);
+
+    // Release our own reference on the map.
+    Platform::_close(map_fd);
+
+    // Verify that the map still exists.
+    map_fd = bpf_map_get_fd_by_id(map_id);
+    REQUIRE(map_fd > 0);
+    Platform::_close(map_fd);
+
+    // Close the object, which should cause the map to be deleted.
+    bpf_object__close(object);
+    REQUIRE(bpf_map_get_fd_by_id(map_id) < 0);
+}
+
 TEST_CASE("libbpf map pinning", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
@@ -606,6 +660,59 @@ TEST_CASE("array of maps", "[libbpf]")
     struct bpf_object* xdp_object;
     int xdp_object_fd;
     int error = bpf_prog_load("map_in_map.o", BPF_PROG_TYPE_XDP, &xdp_object, &xdp_object_fd);
+    REQUIRE(error == 0);
+    REQUIRE(xdp_object != nullptr);
+
+    struct bpf_program* caller = bpf_object__find_program_by_name(xdp_object, "lookup");
+    REQUIRE(caller != nullptr);
+
+    struct bpf_map* outer_map = bpf_object__find_map_by_name(xdp_object, "outer_map");
+    REQUIRE(outer_map != nullptr);
+
+    int outer_map_fd = bpf_map__fd(outer_map);
+    REQUIRE(outer_map_fd > 0);
+
+    // Create an inner map.
+    int inner_map_fd = bpf_create_map(BPF_MAP_TYPE_HASH, sizeof(__u32), sizeof(__u32), 1, 0);
+    REQUIRE(inner_map_fd > 0);
+
+    // Add a value to the inner map.
+    int inner_value = 42;
+    uint32_t inner_key = 0;
+    error = bpf_map_update_elem(inner_map_fd, &inner_key, &inner_value, 0);
+    REQUIRE(error == 0);
+
+    // Add inner map to outer map.
+    __u32 outer_key = 0;
+    error = bpf_map_update_elem(outer_map_fd, &outer_key, &inner_map_fd, 0);
+    REQUIRE(error == 0);
+
+    bpf_link* link = bpf_program__attach_xdp(caller, 1);
+    REQUIRE(link != nullptr);
+
+    // Now run the ebpf program.
+    auto packet = prepare_udp_packet(0, ETHERNET_TYPE_IPV4);
+    xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
+    int result;
+    REQUIRE(hook.fire(&ctx, &result) == EBPF_SUCCESS);
+
+    // Verify the return value is what we saved in the inner map.
+    REQUIRE(result == inner_value);
+
+    Platform::_close(inner_map_fd);
+    bpf_object__close(xdp_object);
+}
+
+// Create a map-in-map using id and inner_id.
+TEST_CASE("array of maps2", "[libbpf]")
+{
+    _test_helper_end_to_end test_helper;
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
+    program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
+
+    struct bpf_object* xdp_object;
+    int xdp_object_fd;
+    int error = bpf_prog_load("map_in_map_v2.o", BPF_PROG_TYPE_XDP, &xdp_object, &xdp_object_fd);
     REQUIRE(error == 0);
     REQUIRE(xdp_object != nullptr);
 
