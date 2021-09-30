@@ -6,6 +6,7 @@
 LIBRARY
 EXPORTS
     bpf_create_map
+    bpf_create_map_in_map
     bpf_create_map_xattr
     bpf_link__destroy
     bpf_link__disconnect
