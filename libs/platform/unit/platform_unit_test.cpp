@@ -20,6 +20,7 @@
 #include "ebpf_program_types.h"
 #include "ebpf_serialize.h"
 #include "ebpf_xdp_program_data.h"
+#include "ebpf_ring_buffer.h"
 #include "ebpf_state.h"
 #include "encode_program_info.h"
 #include "net_ebpf_ext_program_info.h"
@@ -701,3 +702,55 @@ BIT_MASK_TEST(33);
 BIT_MASK_TEST(65);
 BIT_MASK_TEST(129);
 BIT_MASK_TEST(1025);
+TEST_CASE("ring_buffer", "[platform]")
+{
+    _test_helper test_helper;
+    size_t consumer;
+    size_t producer;
+    ebpf_ring_buffer_t* ring_buffer;
+    ebpf_ring_buffer_record_t* record;
+    uint8_t* buffer;
+    std::vector<uint8_t> data(10);
+    size_t size = 64 * 1024;
+
+    REQUIRE(ebpf_ring_buffer_create(&ring_buffer, 64 * 1024) == EBPF_SUCCESS);
+    REQUIRE(ebpf_ring_buffer_map_buffer(ring_buffer, &buffer) == EBPF_SUCCESS);
+
+    ebpf_ring_buffer_query(ring_buffer, &consumer, &producer);
+
+    // Ring is empty
+    REQUIRE(producer == consumer);
+    REQUIRE(consumer == 0);
+
+    REQUIRE(ebpf_ring_buffer_output(ring_buffer, data.data(), data.size()) == EBPF_SUCCESS);
+    ebpf_ring_buffer_query(ring_buffer, &consumer, &producer);
+
+    // Ring is not empty
+    REQUIRE(producer != consumer);
+    REQUIRE(producer == data.size() + EBPF_OFFSET_OF(ebpf_ring_buffer_record_t, data));
+    REQUIRE(consumer == 0);
+
+    record = reinterpret_cast<ebpf_ring_buffer_record_t*>(buffer + consumer);
+    REQUIRE(record->header.length == data.size() + EBPF_OFFSET_OF(ebpf_ring_buffer_record_t, data));
+
+    REQUIRE(ebpf_ring_buffer_free(ring_buffer, record->header.length) == EBPF_SUCCESS);
+    ebpf_ring_buffer_query(ring_buffer, &consumer, &producer);
+
+    REQUIRE(consumer == producer);
+    REQUIRE(producer == data.size() + EBPF_OFFSET_OF(ebpf_ring_buffer_record_t, data));
+    REQUIRE(consumer == data.size() + EBPF_OFFSET_OF(ebpf_ring_buffer_record_t, data));
+
+    data.resize(1023);
+    while (ebpf_ring_buffer_output(ring_buffer, data.data(), data.size()) == EBPF_SUCCESS) {
+    }
+
+    ebpf_ring_buffer_query(ring_buffer, &consumer, &producer);
+    REQUIRE(ebpf_ring_buffer_free(ring_buffer, (producer - consumer) % size) == EBPF_SUCCESS);
+
+    data.resize(size - EBPF_OFFSET_OF(ebpf_ring_buffer_record_t, data) - 1);
+    // Fill ring
+    REQUIRE(ebpf_ring_buffer_output(ring_buffer, data.data(), data.size()) == EBPF_SUCCESS);
+
+    ebpf_ring_buffer_destroy(ring_buffer);
+    ring_buffer = nullptr;
+}
