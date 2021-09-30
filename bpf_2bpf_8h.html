@@ -123,6 +123,9 @@ Functions</h2></td></tr>
 <tr class="memdesc:a9f5eaf959fde6143ec1d94617362f5f1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Pin an eBPF program or map referred to by fd to the provided pathname.  <a href="bpf_2bpf_8h.html#a9f5eaf959fde6143ec1d94617362f5f1">More...</a><br /></td></tr>
 <tr class="separator:a9f5eaf959fde6143ec1d94617362f5f1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr><td colspan="2"><div class="groupHeader">Program-related functions</div></td></tr>
+<tr class="memitem:aa0444bc5793f94ba959aaada46342240"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf_2bpf_8h.html#aa0444bc5793f94ba959aaada46342240">bpf_prog_bind_map</a> (int prog_fd, int map_fd, const struct bpf_prog_bind_opts *opts)</td></tr>
+<tr class="memdesc:aa0444bc5793f94ba959aaada46342240"><td class="mdescLeft">&#160;</td><td class="mdescRight">Bind a map to a program so that it holds a reference on the map.  <a href="bpf_2bpf_8h.html#aa0444bc5793f94ba959aaada46342240">More...</a><br /></td></tr>
+<tr class="separator:aa0444bc5793f94ba959aaada46342240"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af4a69e7174078629e3f20dade5e6743d"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf_2bpf_8h.html#af4a69e7174078629e3f20dade5e6743d">bpf_prog_get_fd_by_id</a> (<a class="el" href="bpf__helpers__platform_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a> id)</td></tr>
 <tr class="memdesc:af4a69e7174078629e3f20dade5e6743d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get a file descriptor referring to a program with a given ID.  <a href="bpf_2bpf_8h.html#af4a69e7174078629e3f20dade5e6743d">More...</a><br /></td></tr>
 <tr class="separator:af4a69e7174078629e3f20dade5e6743d"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -856,6 +859,57 @@ Functions</h2></td></tr>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">fd</td><td>File descriptor referring to the program or map to pin. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">pathname</td><td>Path name to pin the object to.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
+    <tr><td class="paramname">&lt;0</td><td>An error occured, and errno was set. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="aa0444bc5793f94ba959aaada46342240"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa0444bc5793f94ba959aaada46342240">&#9670;&nbsp;</a></span>bpf_prog_bind_map()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int bpf_prog_bind_map </td>
+          <td>(</td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>prog_fd</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>map_fd</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const struct bpf_prog_bind_opts *&#160;</td>
+          <td class="paramname"><em>opts</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Bind a map to a program so that it holds a reference on the map. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">prog_fd</td><td>File descriptor of program to bind map to. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">map_fd</td><td>File descriptor of map to bind. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">opts</td><td>Optional set of options affecting the bind operation.</td></tr>
   </table>
   </dd>
 </dl>
