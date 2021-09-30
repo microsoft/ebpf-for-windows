@@ -97,6 +97,9 @@ extern "C"
 
         /// Caller has reached tail call limit.
         EBPF_NO_MORE_TAIL_CALLS,
+
+        /// Unable to store additional entries in the map.
+        EBPF_MAP_FULL,
     } ebpf_result_t;
 
 #ifdef __cplusplus

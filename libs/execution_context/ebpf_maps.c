@@ -44,6 +44,20 @@ typedef struct _ebpf_core_lpm_map
     uint8_t data[1];
 } ebpf_core_lpm_map_t;
 
+/**
+ * Core map structure for BPF_MAP_TYPE_QUEUE and BPF_MAP_TYPE_STACK
+ * ebpf_core_queue_map_t and ebpf_core_stack_map_t store a arrays of uint8_t*
+ * pointers. Each pointer stores a version of a value that has been pushed to
+ * the queue or stack. The structure can't store the map values directly as the
+ * caller expects items returned from find_and_delete to remain unmodified. If
+ * items are store directly in the array, then a sequence of:
+ * 1) update
+ * 2) find_and_delete
+ * 3) update
+ * 4) find_and_delete
+ * can result in aliasing the record, which would result in unexpected behavior.
+ */
+
 typedef struct _ebpf_core_queue_map
 {
     ebpf_core_map_t core_map;
@@ -740,7 +754,7 @@ _update_hash_map_entry(
     if ((entry_count == map->ebpf_map_definition.max_entries) &&
         (ebpf_hash_table_find((ebpf_hash_table_t*)map->data, key, &value) != EBPF_SUCCESS) &&
         !_reap_oldest_map_entry(map))
-        result = EBPF_INVALID_ARGUMENT;
+        result = EBPF_MAP_FULL;
     else
         result = ebpf_hash_table_update((ebpf_hash_table_t*)map->data, key, data, hash_table_operation);
 
@@ -789,7 +803,7 @@ _update_hash_map_entry_with_handle(
 
     if ((entry_count == map->ebpf_map_definition.max_entries) && (found_result != EBPF_SUCCESS)) {
         // The hash table is already full.
-        result = EBPF_INVALID_ARGUMENT;
+        result = EBPF_MAP_FULL;
         goto Done;
     }
 
@@ -951,7 +965,8 @@ _create_lpm_map(_In_ const ebpf_map_definition_in_memory_t* map_definition)
 }
 
 static ebpf_result_t
-_find_lpm_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_ bool delete_on_success, _Outptr_ uint8_t** data)
+_find_lpm_map_entry(
+    _In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_ bool delete_on_success, _Outptr_ uint8_t** data)
 {
     uint32_t* prefix_length = (uint32_t*)key;
     uint32_t original_prefix_length = *prefix_length;
@@ -969,7 +984,7 @@ _find_lpm_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_ boo
         }
     }
     *prefix_length = original_prefix_length;
-    
+
     if (!value) {
         return EBPF_KEY_NOT_FOUND;
     } else {
@@ -1050,7 +1065,7 @@ _update_queue_map_entry(
 
     // Check for queue full.
     if (queue_map->start == ((queue_map->end + 1) % queue_map->core_map.ebpf_map_definition.max_entries)) {
-        result = EBPF_INVALID_ARGUMENT;
+        result = EBPF_MAP_FULL;
         goto Done;
     }
 
@@ -1125,7 +1140,7 @@ _update_stack_map_entry(
 
     // Check for stack full.
     if (stack_map->top_of_stack >= stack_map->core_map.ebpf_map_definition.max_entries) {
-        result = EBPF_INVALID_ARGUMENT;
+        result = EBPF_MAP_FULL;
         goto Done;
     }
 
