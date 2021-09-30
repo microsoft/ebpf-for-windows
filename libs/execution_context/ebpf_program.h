@@ -126,6 +126,18 @@ extern "C"
     ebpf_program_associate_maps(ebpf_program_t* program, ebpf_map_t** maps, uint32_t maps_count);
 
     /**
+     * @brief Associate an additional map with this program instance.
+     *
+     * @param[in] program Program instance to associate with the map.
+     * @param[in] map Map to associate with this program.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
+     *  program instance.
+     */
+    ebpf_result_t
+    ebpf_program_associate_additional_map(ebpf_program_t* program, ebpf_map_t* map);
+
+    /**
      * @brief Load a block of eBPF code into the program instance.
      *
      * @param[in, out] program Program instance to load the eBPF code into.

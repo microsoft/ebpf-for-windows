@@ -40,9 +40,6 @@ typedef struct _ebpf_program
     ebpf_extension_data_t* general_helper_provider_data;
     ebpf_extension_dispatch_table_t* general_helper_provider_dispatch_table;
 
-    ebpf_map_t** maps;
-    uint32_t count_of_maps;
-
     ebpf_extension_client_t* program_info_client;
     const void* program_info_binding_context;
     const ebpf_extension_data_t* program_info_provider_data;
@@ -58,9 +55,13 @@ typedef struct _ebpf_program
 
     ebpf_epoch_work_item_t* cleanup_work_item;
 
+    // Lock protecting the fields below.
+    ebpf_lock_t lock;
+
     ebpf_list_entry_t links;
     uint32_t link_count;
-    ebpf_lock_t links_lock;
+    ebpf_map_t** maps;
+    uint32_t count_of_maps;
 } ebpf_program_t;
 
 static ebpf_result_t
@@ -213,7 +214,7 @@ _ebpf_program_epoch_free(void* context)
 {
     ebpf_program_t* program = (ebpf_program_t*)context;
 
-    ebpf_lock_destroy(&program->links_lock);
+    ebpf_lock_destroy(&program->lock);
 
     ebpf_extension_unload(program->general_helper_extension_client);
     ebpf_extension_unload(program->program_info_client);
@@ -315,7 +316,7 @@ ebpf_program_create(ebpf_program_t** program)
     }
 
     ebpf_list_initialize(&local_program->links);
-    ebpf_lock_create(&local_program->links_lock);
+    ebpf_lock_create(&local_program->lock);
 
     retval = ebpf_object_initialize(
         &local_program->object, EBPF_OBJECT_PROGRAM, _ebpf_program_free, _ebpf_program_get_program_type);
@@ -398,6 +399,36 @@ ebpf_program_type(_In_ const ebpf_program_t* program)
 }
 
 ebpf_result_t
+ebpf_program_associate_additional_map(ebpf_program_t* program, ebpf_map_t* map)
+{
+    // First make sure the map can be associated.
+    ebpf_result_t result = ebpf_map_associate_program(map, program);
+    if (result != EBPF_SUCCESS) {
+        return result;
+    }
+
+    ebpf_lock_state_t state = ebpf_lock_lock(&program->lock);
+
+    uint32_t map_count = program->count_of_maps + 1;
+    ebpf_map_t** program_maps =
+        ebpf_reallocate(program->maps, program->count_of_maps * sizeof(ebpf_map_t*), map_count * sizeof(ebpf_map_t*));
+    if (program_maps == NULL) {
+        result = EBPF_NO_MEMORY;
+        goto Done;
+    }
+
+    ebpf_object_acquire_reference((ebpf_object_t*)map);
+    program_maps[map_count - 1] = map;
+    program->maps = program_maps;
+    program->count_of_maps = map_count;
+
+Done:
+    ebpf_lock_unlock(&program->lock, state);
+
+    return result;
+}
+
+ebpf_result_t
 ebpf_program_associate_maps(ebpf_program_t* program, ebpf_map_t** maps, uint32_t maps_count)
 {
     size_t index;
@@ -407,7 +438,7 @@ ebpf_program_associate_maps(ebpf_program_t* program, ebpf_map_t** maps, uint32_t
 
     memcpy(program_maps, maps, sizeof(ebpf_map_t*) * maps_count);
 
-    // Before we acquire any references, map sure
+    // Before we acquire any references, make sure
     // all maps can be associated.
     ebpf_result_t result = EBPF_SUCCESS;
     for (index = 0; index < maps_count; index++) {
@@ -834,10 +865,10 @@ ebpf_program_attach_link(_Inout_ ebpf_program_t* program, _Inout_ ebpf_link_t* l
 
     // Insert the link in the attach list.
     ebpf_lock_state_t state;
-    state = ebpf_lock_lock(&program->links_lock);
+    state = ebpf_lock_lock(&program->lock);
     ebpf_list_insert_tail(&program->links, &((ebpf_object_t*)link)->object_list_entry);
     program->link_count++;
-    ebpf_lock_unlock(&program->links_lock, state);
+    ebpf_lock_unlock(&program->lock, state);
 }
 
 void
@@ -845,10 +876,10 @@ ebpf_program_detach_link(_Inout_ ebpf_program_t* program, _Inout_ ebpf_link_t* l
 {
     // Remove the link from the attach list.
     ebpf_lock_state_t state;
-    state = ebpf_lock_lock(&program->links_lock);
+    state = ebpf_lock_lock(&program->lock);
     ebpf_list_remove_entry(&((ebpf_object_t*)link)->object_list_entry);
     program->link_count--;
-    ebpf_lock_unlock(&program->links_lock, state);
+    ebpf_lock_unlock(&program->lock, state);
 
     // Release the "attach" reference.
     ebpf_object_release_reference((ebpf_object_t*)link);

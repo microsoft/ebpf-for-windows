@@ -39,6 +39,7 @@ typedef enum _ebpf_operation_id
     EBPF_OPERATION_GET_NEXT_PROGRAM_ID,
     EBPF_OPERATION_GET_OBJECT_INFO,
     EBPF_OPERATION_GET_NEXT_PINNED_PROGRAM_PATH,
+    EBPF_OPERATION_BIND_MAP,
 } ebpf_operation_id_t;
 
 typedef enum _ebpf_code_type
@@ -147,8 +148,8 @@ typedef struct _ebpf_operation_map_update_element_request
 typedef struct _ebpf_operation_map_update_element_with_handle_request
 {
     struct _ebpf_operation_header header;
-    uintptr_t map_handle;
-    uintptr_t value_handle;
+    ebpf_handle_t map_handle;
+    ebpf_handle_t value_handle;
     ebpf_map_option_t option;
     uint8_t key[1];
 } ebpf_operation_map_update_element_with_handle_request_t;
@@ -350,7 +351,7 @@ typedef struct _ebpf_operation_get_next_pinned_path_reply
 typedef struct _ebpf_operation_get_object_info_request
 {
     struct _ebpf_operation_header header;
-    uint64_t handle;
+    ebpf_handle_t handle;
 } ebpf_operation_get_object_info_request_t;
 
 typedef struct _ebpf_operation_get_object_info_reply
@@ -358,3 +359,10 @@ typedef struct _ebpf_operation_get_object_info_reply
     struct _ebpf_operation_header header;
     uint8_t info[1];
 } ebpf_operation_get_object_info_reply_t;
+
+typedef struct _ebpf_operation_bind_map_request
+{
+    struct _ebpf_operation_header header;
+    ebpf_handle_t program_handle;
+    ebpf_handle_t map_handle;
+} ebpf_operation_bind_map_request_t;

@@ -133,6 +133,18 @@ ebpf_result_t
 ebpf_program_unload(_In_ struct bpf_program* program);
 
 /**
+ * @brief Bind a map to a program so that it holds a reference on the map.
+ *
+ * @param[in] prog_fd File descriptor of program to bind map to.
+ * @param[in] map_fd File descriptor of map to bind.
+ *
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_INVALID_ARGUMENT One or more parameters are wrong.
+ */
+ebpf_result_t
+ebpf_program_bind_map(fd_t program_fd, fd_t map_fd);
+
+/**
  * @brief Get next map in ebpf_object object.
  *
  * @param[in] previous Pointer to previous eBPF map, or NULL to get the first one.

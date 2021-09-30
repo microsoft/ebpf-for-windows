@@ -353,3 +353,11 @@ bpf_program__unload(struct bpf_program* prog)
         errno = ebpf_result_to_errno(result);
     }
 }
+
+int
+bpf_prog_bind_map(int prog_fd, int map_fd, const struct bpf_prog_bind_opts* opts)
+{
+    UNREFERENCED_PARAMETER(opts);
+
+    return libbpf_result_err(ebpf_program_bind_map(prog_fd, map_fd));
+}
