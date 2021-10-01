@@ -1,6 +1,4 @@
 var searchData=
 [
-  ['xdp_5fdrop_686',['XDP_DROP',['../ebpf__nethooks_8h.html#a5aff0d5d670941126cebc5687d5e280da9fdb2c82240b62a6545006bbee159a99',1,'ebpf_nethooks.h']]],
-  ['xdp_5fpass_687',['XDP_PASS',['../ebpf__nethooks_8h.html#a5aff0d5d670941126cebc5687d5e280da4183873d825c2345b21c147497736ea3',1,'ebpf_nethooks.h']]],
-  ['xdp_5ftx_688',['XDP_TX',['../ebpf__nethooks_8h.html#a5aff0d5d670941126cebc5687d5e280da2660d3d871232c9a9d8e18867f6ac31b',1,'ebpf_nethooks.h']]]
+  ['uint_699',['UINT',['../tlv_8h.html#a50a469b7a3bd57834902b2d2f67a9c94a3351504090a741e69da641a42e00da80',1,'tlv.h']]]
 ];

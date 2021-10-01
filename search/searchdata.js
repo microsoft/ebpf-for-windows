@@ -7,7 +7,7 @@ var indexSectionsWithContent =
   4: "acdehiklmnoprstv",
   5: "_befgptx",
   6: "_be",
-  7: "_beisux",
+  7: "_beipsux",
   8: "belmx"
 };
 
