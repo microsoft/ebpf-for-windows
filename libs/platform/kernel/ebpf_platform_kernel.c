@@ -157,9 +157,11 @@ ebpf_memory_descriptor_get_base_address(ebpf_memory_descriptor_t* memory_descrip
 }
 
 _Ret_maybenull_ ebpf_ring_descriptor_t*
-ebpf_map_ring(size_t length)
+ebpf_allocate_ring_buffer_memory(size_t length)
 {
     NTSTATUS status;
+    size_t requested_page_count = length / PAGE_SIZE;
+
     ebpf_ring_descriptor_t* ring_descriptor = ebpf_allocate(sizeof(ebpf_ring_descriptor_t));
     MDL* source_mdl = NULL;
 
@@ -168,8 +170,13 @@ ebpf_map_ring(size_t length)
         goto Done;
     }
 
+    if (length % PAGE_SIZE != 0) {
+        status = STATUS_NO_MEMORY;
+        goto Done;
+    }
+
     // Allocate pages using ebpf_map_memory.
-    ring_descriptor->memory = ebpf_map_memory(length);
+    ring_descriptor->memory = ebpf_map_memory(requested_page_count * PAGE_SIZE);
     if (!ring_descriptor->memory) {
         status = STATUS_NO_MEMORY;
         goto Done;
@@ -179,7 +186,7 @@ ebpf_map_ring(size_t length)
     // Create a MDL big enough to double map the pages.
     ring_descriptor->memory_descriptor_list = IoAllocateMdl(
         ebpf_memory_descriptor_get_base_address(ring_descriptor->memory),
-        source_mdl->ByteCount * 2,
+        requested_page_count * 2 * PAGE_SIZE,
         FALSE,
         FALSE,
         NULL);
@@ -188,19 +195,15 @@ ebpf_map_ring(size_t length)
         goto Done;
     }
 
-    uint32_t pageCount = source_mdl->ByteCount / PAGE_SIZE;
-
     memcpy(
         MmGetMdlPfnArray(ring_descriptor->memory_descriptor_list),
         MmGetMdlPfnArray(source_mdl),
-        sizeof(PFN_NUMBER) * pageCount);
+        sizeof(PFN_NUMBER) * requested_page_count);
 
     memcpy(
-        MmGetMdlPfnArray(ring_descriptor->memory_descriptor_list) + pageCount,
+        MmGetMdlPfnArray(ring_descriptor->memory_descriptor_list) + requested_page_count,
         MmGetMdlPfnArray(source_mdl),
-        sizeof(PFN_NUMBER) * pageCount);
-
-    ring_descriptor->memory_descriptor_list->ByteCount = source_mdl->ByteCount * 2;
+        sizeof(PFN_NUMBER) * requested_page_count);
 
     ring_descriptor->base_address = MmMapLockedPagesSpecifyCache(
         ring_descriptor->memory_descriptor_list, KernelMode, MmCached, NULL, FALSE, NormalPagePriority);
@@ -229,7 +232,7 @@ Done:
 }
 
 void
-ebpf_unmap_ring(_Frees_ptr_opt_ ebpf_ring_descriptor_t* ring)
+ebpf_free_ring_buffer_memory(_Frees_ptr_opt_ ebpf_ring_descriptor_t* ring)
 {
     if (!ring) {
         return;

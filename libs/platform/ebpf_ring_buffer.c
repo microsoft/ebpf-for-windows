@@ -4,9 +4,6 @@
 #include "ebpf_epoch.h"
 #include "ebpf_ring_buffer.h"
 
-#define PAGE_SIZE 4096
-#define ALIGN_PAGE_SIZE(X) (((X) + PAGE_SIZE - 1) & ~(PAGE_SIZE - 1))
-
 typedef struct _ebpf_ring_buffer
 {
     ebpf_lock_t lock;
@@ -54,16 +51,18 @@ _ring_next_consumer_record(_In_ const ebpf_ring_buffer_t* ring)
 }
 
 inline static _Ret_maybenull_ ebpf_ring_buffer_record_t*
-_ring_buffer_allocate_record(_Inout_ ebpf_ring_buffer_t* ring, size_t requested_length)
+_ring_buffer_acquire_record(_Inout_ ebpf_ring_buffer_t* ring, size_t requested_length)
 {
     ebpf_ring_buffer_record_t* record = NULL;
     requested_length += EBPF_OFFSET_OF(ebpf_ring_buffer_record_t, data);
-    size_t remaining_space = ring->length - _ring_get_producer_offset(ring) - _ring_get_consumer_offset(ring);
+    size_t remaining_space = ring->length - ring->producer_offset - ring->consumer_offset;
 
     if (remaining_space > requested_length) {
         record = _ring_record_at_offset(ring, _ring_get_producer_offset(ring));
         _ring_advance_producer_offset(ring, requested_length);
         record->header.length = (uint32_t)requested_length;
+        record->header.locked = 1;
+        record->header.discarded = 0;
     }
     return record;
 }
@@ -85,7 +84,7 @@ ebpf_ring_buffer_create(_Outptr_ ebpf_ring_buffer_t** ring, size_t capacity)
 
     local_ring_buffer->length = capacity;
 
-    local_ring_buffer->ring_descriptor = ebpf_map_ring(capacity);
+    local_ring_buffer->ring_descriptor = ebpf_allocate_ring_buffer_memory(capacity);
     if (!local_ring_buffer->ring_descriptor) {
         result = EBPF_NO_MEMORY;
         goto Error;
@@ -106,7 +105,7 @@ void
 ebpf_ring_buffer_destroy(_Frees_ptr_opt_ ebpf_ring_buffer_t* ring)
 {
     if (ring) {
-        ebpf_unmap_ring(ring->ring_descriptor);
+        ebpf_free_ring_buffer_memory(ring->ring_descriptor);
     }
     ebpf_epoch_free(ring);
 }
@@ -116,10 +115,10 @@ ebpf_ring_buffer_output(_Inout_ ebpf_ring_buffer_t* ring, _In_reads_bytes_(lengt
 {
     ebpf_result_t result;
     ebpf_lock_state_t state = ebpf_lock_lock(&ring->lock);
-    ebpf_ring_buffer_record_t* record = _ring_buffer_allocate_record(ring, length);
+    ebpf_ring_buffer_record_t* record = _ring_buffer_acquire_record(ring, length);
 
     if (record == NULL) {
-        result = EBPF_INVALID_ARGUMENT;
+        result = EBPF_RING_FULL;
         goto Done;
     }
 
@@ -140,29 +139,29 @@ ebpf_ring_buffer_query(_In_ const ebpf_ring_buffer_t* ring, _Out_ size_t* consum
 }
 
 ebpf_result_t
-ebpf_ring_buffer_free(_Inout_ ebpf_ring_buffer_t* ring, size_t count)
+ebpf_ring_buffer_return(_Inout_ ebpf_ring_buffer_t* ring, size_t length)
 {
     ebpf_result_t result;
     ebpf_lock_state_t state = ebpf_lock_lock(&ring->lock);
-    size_t local_count = count;
+    size_t local_length = length;
     size_t offset = _ring_get_consumer_offset(ring);
 
     // Verify count.
-    while (local_count != 0) {
+    while (local_length != 0) {
         ebpf_ring_buffer_record_t* record = _ring_record_at_offset(ring, offset);
-        if (local_count < record->header.length) {
+        if (local_length < record->header.length) {
             break;
         }
         offset += record->header.length;
-        local_count -= record->header.length;
+        local_length -= record->header.length;
     }
     // Did it end on a record boundary?
-    if (local_count != 0) {
+    if (local_length != 0) {
         result = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
 
-    _ring_advance_consumer_offset(ring, count);
+    _ring_advance_consumer_offset(ring, length);
     result = EBPF_SUCCESS;
 
 Done:
@@ -186,7 +185,7 @@ ebpf_ring_buffer_reserve(_Inout_ ebpf_ring_buffer_t* ring, _Outptr_ uint8_t** da
 {
     ebpf_result_t result;
     ebpf_lock_state_t state = ebpf_lock_lock(&ring->lock);
-    ebpf_ring_buffer_record_t* record = _ring_buffer_allocate_record(ring, length);
+    ebpf_ring_buffer_record_t* record = _ring_buffer_acquire_record(ring, length);
     if (record == NULL) {
         result = EBPF_INVALID_ARGUMENT;
         goto Done;
@@ -230,4 +229,14 @@ ebpf_ring_buffer_discard(_Frees_ptr_opt_ uint8_t* data)
     MemoryBarrier();
     record->header.locked = 0;
     return EBPF_SUCCESS;
+}
+
+const ebpf_ring_buffer_record_t*
+ebpf_ring_buffer_next_record(
+    _In_ const uint8_t* buffer, _In_ size_t buffer_length, _In_ size_t consumer, _In_ size_t producer)
+{
+    if (producer == consumer) {
+        return NULL;
+    }
+    return (ebpf_ring_buffer_record_t*)(buffer + consumer % buffer_length);
 }

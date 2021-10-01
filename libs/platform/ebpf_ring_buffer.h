@@ -66,15 +66,15 @@ extern "C"
     ebpf_ring_buffer_query(_In_ const ebpf_ring_buffer_t* ring_buffer, _Out_ size_t* consumer, _Out_ size_t* producer);
 
     /**
-     * @brief Mark one or more records in the ring buffer as free.
+     * @brief Mark one or more records in the ring buffer as returned to the ring.
      *
      * @param[in,out] ring_buffer Ring buffer to update.
-     * @param[in] count Count of bytes to free in the ring buffer.
-     * @retval EPBF_SUCCESS Successfully freed records in the ring buffer.
-     * @retval EBPF_INVALID_ARGUMENT Unable to free records in the ring buffer.
+     * @param[in] length Length of bytes to return to the ring buffer.
+     * @retval EPBF_SUCCESS Successfully returned records to the ring buffer.
+     * @retval EBPF_INVALID_ARGUMENT Unable to return records to the ring buffer.
      */
     ebpf_result_t
-    ebpf_ring_buffer_free(_Inout_ ebpf_ring_buffer_t* ring_buffer, size_t count);
+    ebpf_ring_buffer_return(_Inout_ ebpf_ring_buffer_t* ring_buffer, size_t length);
 
     /**
      * @brief Get pointer to the ring buffer shared data.
@@ -119,6 +119,20 @@ extern "C"
      */
     ebpf_result_t
     ebpf_ring_buffer_discard(_Frees_ptr_opt_ uint8_t* data);
+
+    /**
+     * @brief Locate the next record in the ring buffer's data buffer and
+     * advance consumer offset.
+     *
+     * @param[in] buffer Pointer to the start of the ring buffer's data buffer.
+     * @param[in] buffer_length Length of the ring buffer's data buffer.
+     * @param[in] consumer Consumer offset.
+     * @param[in] producer Producer offset.
+     * @return Pointer to the next record or NULL if no more records.
+     */
+    const ebpf_ring_buffer_record_t*
+    ebpf_ring_buffer_next_record(
+        _In_ const uint8_t* buffer, _In_ size_t buffer_length, _In_ size_t consumer, _In_ size_t producer);
 
 #ifdef __cplusplus
 }

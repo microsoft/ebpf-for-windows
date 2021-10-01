@@ -97,6 +97,9 @@ extern "C"
 
         /// Caller has reached tail call limit.
         EBPF_NO_MORE_TAIL_CALLS,
+
+        // The ring buffer is out of space.
+        EBPF_RING_FULL,
     } ebpf_result_t;
 
 #ifdef __cplusplus

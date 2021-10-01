@@ -211,19 +211,19 @@ extern "C"
      * @return Pointer to an ebpf_memory_descriptor_t on success, NULL on failure.
      */
     _Ret_maybenull_ ebpf_ring_descriptor_t*
-    ebpf_map_ring(size_t length);
+    ebpf_allocate_ring_buffer_memory(size_t length);
 
     /**
-     * @brief Release physical memory previously allocated via ebpf_map_ring.
+     * @brief Release physical memory previously allocated via ebpf_allocate_ring_buffer_memory.
      *
      * @param[in] memory_descriptor Pointer to ebpf_ring_descriptor_t describing
      * allocated pages.
      */
     void
-    ebpf_unmap_ring(_Frees_ptr_opt_ ebpf_ring_descriptor_t* ring);
+    ebpf_free_ring_buffer_memory(_Frees_ptr_opt_ ebpf_ring_descriptor_t* ring);
 
     /**
-     * @brief Given an ebpf_ring_descriptor_t allocated via ebpf_map_ring
+     * @brief Given an ebpf_ring_descriptor_t allocated via ebpf_allocate_ring_buffer_memory
      * obtain the base virtual address.
      *
      * @param[in] memory_descriptor Pointer to an ebpf_ring_descriptor_t

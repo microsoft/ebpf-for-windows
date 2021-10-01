@@ -123,8 +123,11 @@ ebpf_unmap_memory(_Frees_ptr_opt_ ebpf_memory_descriptor_t* memory_descriptor)
     }
 }
 
+// This code is derived from the sample at:
+// https://docs.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualalloc2
+
 _Ret_maybenull_ ebpf_ring_descriptor_t*
-ebpf_map_ring(size_t length)
+ebpf_allocate_ring_buffer_memory(size_t length)
 {
     bool result = false;
     HANDLE section = nullptr;
@@ -248,7 +251,7 @@ Exit:
 }
 
 void
-ebpf_unmap_ring(_Frees_ptr_opt_ ebpf_ring_descriptor_t* ring)
+ebpf_free_ring_buffer_memory(_Frees_ptr_opt_ ebpf_ring_descriptor_t* ring)
 {
     if (ring) {
         UnmapViewOfFile(ring->primary_view);
