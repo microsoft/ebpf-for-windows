@@ -170,7 +170,7 @@ ebpf_allocate_ring_buffer_memory(size_t length)
         goto Done;
     }
 
-    if (length % PAGE_SIZE != 0) {
+    if (length % PAGE_SIZE != 0 || length > MAXUINT32 / 2) {
         status = STATUS_NO_MEMORY;
         goto Done;
     }
@@ -186,7 +186,7 @@ ebpf_allocate_ring_buffer_memory(size_t length)
     // Create a MDL big enough to double map the pages.
     ring_descriptor->memory_descriptor_list = IoAllocateMdl(
         ebpf_memory_descriptor_get_base_address(ring_descriptor->memory),
-        requested_page_count * 2 * PAGE_SIZE,
+        (uint32_t)(requested_page_count * 2 * PAGE_SIZE),
         FALSE,
         FALSE,
         NULL);
