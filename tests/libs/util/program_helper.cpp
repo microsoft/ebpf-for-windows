@@ -26,6 +26,9 @@ _program_load_attach_helper::_program_load_attach_helper(
     // Load BPF object from ELF file.
     result = ebpf_program_load(
         _file_name.c_str(), &_program_type, nullptr, _execution_type, &_object, &program_fd, &log_buffer);
+    if (log_buffer != nullptr) {
+        printf("ebpf_program_load: error: %s", log_buffer);
+    }
     REQUIRE(result == EBPF_SUCCESS);
     REQUIRE(program_fd > 0);
 

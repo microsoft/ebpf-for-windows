@@ -150,6 +150,7 @@ load_byte_code(
     _In_z_ const char* filename,
     _In_opt_z_ const char* sectionname,
     _In_ ebpf_verifier_options_t* verifier_options,
+    _In_z_ const char* pin_root_path,
     _Inout_ std::vector<ebpf_program_t*>& programs,
     _Inout_ std::vector<ebpf_map_t*>& maps,
     _Outptr_result_maybenull_z_ const char** error_message) noexcept
@@ -266,6 +267,12 @@ load_byte_code(
                 goto Exit;
             }
 
+            // Currently only PIN_NONE and PIN_GLOBAL_NS pinning options are supported.
+            if (descriptor.pinning != PIN_NONE && descriptor.pinning != PIN_GLOBAL_NS) {
+                result = EBPF_INVALID_ARGUMENT;
+                goto Exit;
+            }
+
             map = (ebpf_map_t*)calloc(1, sizeof(ebpf_map_t));
             if (map == nullptr) {
                 result = EBPF_NO_MEMORY;
@@ -276,6 +283,19 @@ load_byte_code(
             if (map->name == nullptr) {
                 result = EBPF_NO_MEMORY;
                 goto Exit;
+            }
+            if (descriptor.pinning == PIN_GLOBAL_NS) {
+                char buffer[EBPF_MAX_PIN_PATH_LENGTH];
+                int len = snprintf(buffer, EBPF_MAX_PIN_PATH_LENGTH, "%s/%s", pin_root_path, map->name);
+                if (len < 0 || len >= EBPF_MAX_PIN_PATH_LENGTH) {
+                    result = EBPF_INVALID_ARGUMENT;
+                    goto Exit;
+                }
+                map->pin_path = _strdup(buffer);
+                if (map->pin_path == nullptr) {
+                    result = EBPF_NO_MEMORY;
+                    goto Exit;
+                }
             }
             maps.emplace_back(map);
             map = nullptr;
