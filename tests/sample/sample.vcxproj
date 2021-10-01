@@ -240,6 +240,24 @@
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
+    <CustomBuild Include="map_reuse.c">
+      <FileType>CppCode</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">clang -g -target bpf -O2 -Werror -I../../include -c %(Filename).c -o $(OutputPath)%(Filename).o</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutputPath)%(Filename).o</Outputs>
+      <TreatOutputAsContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</TreatOutputAsContent>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">clang -g -target bpf -O2 -Werror -I../../include -c %(Filename).c -o $(OutputPath)%(Filename).o</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutputPath)%(Filename).o</Outputs>
+      <TreatOutputAsContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</TreatOutputAsContent>
+    </CustomBuild>
+    <CustomBuild Include="map_reuse_2.c">
+      <FileType>CppCode</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">clang -g -target bpf -O2 -Werror -I../../include -c %(Filename).c -o $(OutputPath)%(Filename).o</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutputPath)%(Filename).o</Outputs>
+      <TreatOutputAsContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</TreatOutputAsContent>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutputPath)%(Filename).o</Outputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">clang -g -target bpf -O2 -Werror -I../../include -c %(Filename).c -o $(OutputPath)%(Filename).o</Command>
+      <TreatOutputAsContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</TreatOutputAsContent>
+    </CustomBuild>
     <CustomBuild Include="map_in_map_v2.c">
       <FileType>CppCode</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">clang -g -target bpf -O2 -Werror -I../../include -c %(Filename).c -o $(OutputPath)%(Filename).o</Command>

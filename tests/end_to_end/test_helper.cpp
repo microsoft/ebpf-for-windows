@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 #include <map>
 
+#include "bpf/bpf.h"
 #include "catch_wrapper.hpp"
 #include "ebpf_api.h"
 #include "ebpf_core.h"
@@ -198,6 +199,11 @@ _test_helper_end_to_end::_test_helper_end_to_end()
 
 _test_helper_end_to_end::~_test_helper_end_to_end()
 {
+    // Verify that all maps were successfully removed.
+    uint32_t id;
+    REQUIRE(bpf_map_get_next_id(0, &id) < 0);
+    REQUIRE(errno == ENOENT);
+
     if (api_initialized)
         ebpf_api_terminate();
     if (ec_initialized)

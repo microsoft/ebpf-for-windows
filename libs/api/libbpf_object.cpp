@@ -92,7 +92,8 @@ bpf_object__open_file(const char* path, const struct bpf_object_open_opts* opts)
 
     struct bpf_object* object;
     const char* error_message;
-    ebpf_result_t result = ebpf_object_open(path, opts->object_name, nullptr, nullptr, &object, &error_message);
+    ebpf_result_t result =
+        ebpf_object_open(path, opts->object_name, opts->pin_root_path, nullptr, nullptr, &object, &error_message);
     ebpf_free_string(error_message);
     libbpf_result_err(result); // Set errno.
     return object;
