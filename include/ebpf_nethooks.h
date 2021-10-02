@@ -46,7 +46,6 @@ xdp_hook_t(xdp_md_t* context);
 typedef enum
 {
     BPF_FUNC_xdp_adjust_head = XDP_EXT_HELPER_FN_BASE + 1,
-    BPF_FUNC_csum_diff = XDP_EXT_HELPER_FN_BASE + 2,
 } ebpf_nethook_helper_id_t;
 
 /**
@@ -61,21 +60,6 @@ typedef enum
 EBPF_HELPER(int, bpf_xdp_adjust_head, (xdp_md_t * ctx, int delta));
 #ifndef __doxygen
 #define bpf_xdp_adjust_head ((bpf_xdp_adjust_head_t)BPF_FUNC_xdp_adjust_head)
-#endif
-
-/**
- * @brief Compute checksum difference for replacing parts of a network packet buffer.
- *
- * @param[in] from Pointer to raw buffer that will be replaced.
- * @param[in] from_size Length of the "from" buffer. Must be a multiple of 4.
- * @param[in] to Pointer to the raw buffer that will replace the previous buffer.
- * @param[in] to_size Length of the "to" buffer. Must be a multiple of 4.
- *
- * @returns The checksum delta on success, or <0 on failure.
- */
-EBPF_HELPER(int, bpf_csum_diff, (void* from, int from_size, void* to, int to_size, int seed));
-#ifndef __doxygen
-#define bpf_csum_diff ((bpf_csum_diff_t)BPF_FUNC_csum_diff)
 #endif
 
 // BIND hook

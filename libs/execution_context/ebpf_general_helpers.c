@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: MIT
 
 /**
- * @brief Prototypes for general helper functions (aka global functions) implemented by eBPF core Execution Context.
+ * @brief Defines prototype structures for program information for general helper functions (aka global functions)
+ * implemented by eBPF core Execution Context.
  */
 
 #include "ebpf_platform.h"
@@ -22,6 +23,10 @@ ebpf_helper_function_prototype_t ebpf_core_helper_function_prototype_array[] = {
      "bpf_map_delete_elem",
      EBPF_RETURN_TYPE_INTEGER,
      {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY}},
+    {BPF_FUNC_map_lookup_and_delete_elem,
+     "bpf_map_lookup_and_delete_elem",
+     EBPF_RETURN_TYPE_PTR_TO_MAP_VALUE_OR_NULL,
+     {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY}},
     {BPF_FUNC_tail_call,
      "bpf_tail_call",
      EBPF_RETURN_TYPE_INTEGER_OR_NO_RETURN_IF_SUCCEED,
@@ -30,12 +35,14 @@ ebpf_helper_function_prototype_t ebpf_core_helper_function_prototype_array[] = {
     {BPF_FUNC_ktime_get_boot_ns, "bpf_ktime_get_boot_ns", EBPF_RETURN_TYPE_INTEGER, {0}},
     {BPF_FUNC_get_smp_processor_id, "bpf_get_smp_processor_id", EBPF_RETURN_TYPE_INTEGER, {0}},
     {BPF_FUNC_ktime_get_ns, "bpf_ktime_get_ns", EBPF_RETURN_TYPE_INTEGER, {0}},
-    {BPF_FUNC_map_lookup_and_delete_elem,
-     "bpf_map_lookup_and_delete_elem",
-     EBPF_RETURN_TYPE_PTR_TO_MAP_VALUE_OR_NULL,
-     {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY}},
-
-};
+    {BPF_FUNC_csum_diff,
+     "bpf_csum_diff",
+     EBPF_RETURN_TYPE_INTEGER,
+     {EBPF_ARGUMENT_TYPE_PTR_TO_MEM_OR_NULL,
+      EBPF_ARGUMENT_TYPE_CONST_SIZE_OR_ZERO,
+      EBPF_ARGUMENT_TYPE_PTR_TO_MEM_OR_NULL,
+      EBPF_ARGUMENT_TYPE_CONST_SIZE_OR_ZERO,
+      EBPF_ARGUMENT_TYPE_ANYTHING}}};
 
 #ifdef __cplusplus
 extern "C"

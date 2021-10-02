@@ -93,12 +93,13 @@ typedef enum
     BPF_FUNC_map_lookup_elem = 1,
     BPF_FUNC_map_update_elem = 2,
     BPF_FUNC_map_delete_elem = 3,
-    BPF_FUNC_tail_call = 4,
-    BPF_FUNC_get_prandom_u32 = 5,
-    BPF_FUNC_ktime_get_boot_ns = 6,
-    BPF_FUNC_get_smp_processor_id = 7,
-    BPF_FUNC_ktime_get_ns = 8,
-    BPF_FUNC_map_lookup_and_delete_elem = 9,
+    BPF_FUNC_map_lookup_and_delete_elem = 4,
+    BPF_FUNC_tail_call = 5,
+    BPF_FUNC_get_prandom_u32 = 6,
+    BPF_FUNC_ktime_get_boot_ns = 7,
+    BPF_FUNC_get_smp_processor_id = 8,
+    BPF_FUNC_ktime_get_ns = 9,
+    BPF_FUNC_csum_diff = 10
 } ebpf_helper_id_t;
 
 // Cross-platform BPF program types.

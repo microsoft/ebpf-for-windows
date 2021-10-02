@@ -1021,28 +1021,6 @@ _xdp_encap_reflect_packet_test(ebpf_execution_type_t execution_type, ADDRESS_FAM
     }
 }
 
-const uint16_t from_buffer[] = {0x4500, 0x0073, 0x0000, 0x4000, 0x4011, 0x0000, 0x2000, 0x0001, 0x2000, 0x000a};
-const uint16_t to_buffer[] = {0x4500, 0x0073, 0x0000, 0x4000, 0x4011, 0x0000, 0xc0a8, 0x0001, 0xc0a8, 0x00c7};
-
-TEST_CASE("test-csum-diff", "[end_to_end]")
-{
-    int csum = test_xdp_helper_t::csum_diff(
-        from_buffer,
-        sizeof(from_buffer),
-        to_buffer,
-        sizeof(to_buffer),
-        test_xdp_helper_t::csum_diff(nullptr, 0, from_buffer, sizeof(from_buffer), 0));
-    REQUIRE(csum > 0);
-
-    // Fold checksum.
-    csum = (csum >> 16) + (csum & 0xFFFF);
-    csum = (csum >> 16) + (csum & 0xFFFF);
-    csum = (uint16_t)~csum;
-
-    // See: https://en.wikipedia.org/wiki/IPv4_header_checksum#Calculating_the_IPv4_header_checksum
-    REQUIRE(csum == 0xb861);
-}
-
 TEST_CASE("xdp-reflect-v4-jit", "[xdp_tests]") { _xdp_reflect_packet_test(EBPF_EXECUTION_JIT, AF_INET); }
 TEST_CASE("xdp-reflect-v6-jit", "[xdp_tests]") { _xdp_reflect_packet_test(EBPF_EXECUTION_JIT, AF_INET6); }
 TEST_CASE("xdp-reflect-v4-interpret", "[xdp_tests]") { _xdp_reflect_packet_test(EBPF_EXECUTION_INTERPRET, AF_INET); }
