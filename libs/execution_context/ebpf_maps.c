@@ -730,7 +730,7 @@ _update_hash_map_entry(
 
     entry_count = ebpf_hash_table_key_count((ebpf_hash_table_t*)map->data);
 
-    if ((entry_count == map->ebpf_map_definition.max_entries) &&
+    if ((entry_count >= map->ebpf_map_definition.max_entries) &&
         (ebpf_hash_table_find((ebpf_hash_table_t*)map->data, key, &value) != EBPF_SUCCESS) &&
         !_reap_oldest_map_entry(map))
         result = EBPF_INVALID_ARGUMENT;

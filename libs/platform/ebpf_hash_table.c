@@ -235,7 +235,6 @@ _ebpf_hash_table_replace_bucket(
 {
     ebpf_result_t result;
     size_t index;
-    size_t old_data_index = MAXSIZE_T;
     size_t entry_size = EBPF_OFFSET_OF(ebpf_hash_bucket_entry_t, key) + hash_table->key_size;
     uint8_t* old_data = NULL;
     uint8_t* new_data = NULL;
@@ -265,6 +264,7 @@ _ebpf_hash_table_replace_bucket(
     }
 
     for (;;) {
+        size_t old_data_index = MAXSIZE_T;
         size_t old_bucket_count = 0;
         size_t new_bucket_count = 0;
 
