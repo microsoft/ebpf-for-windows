@@ -57,3 +57,6 @@ That step can be done from the *Host* as follows:
 2. Do ' set-vmcomport "Windows 10 dev environment" 2 \\.\pipe\DebugVM -DebuggerMode On'
 
 After this point, use "\\.\pipe\DebugVM" in the rest of the instructions as the pipe name.
+
+Alternatively, debugging over IP rather than named pipes can be used, as disussec in
+[Setting Up Network Debugging of a Virtual Machine - KDNET](https://docs.microsoft.com/en-us/windows-hardware/drivers/debugger/setting-up-network-debugging-of-a-virtual-machine-host).
