@@ -61,7 +61,8 @@ parse_maps_section_windows(
             s.value_size,
             s.max_entries,
             inner_map_original_fd,
-            section_offset);
+            section_offset,
+            s.pinning);
 
         verifier_map_descriptors.emplace_back(EbpfMapDescriptor{
             .original_fd = original_fd,

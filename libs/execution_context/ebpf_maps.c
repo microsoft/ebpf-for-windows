@@ -584,7 +584,7 @@ _delete_object_hash_map(_In_ ebpf_core_map_t* map)
     for (uint8_t* previous_key = NULL;; previous_key = next_key) {
         uint8_t* value;
         ebpf_result_t result =
-            ebpf_hash_table_next_key_pointer_and_value((ebpf_hash_table_t*)map->data, NULL, &next_key, &value);
+            ebpf_hash_table_next_key_pointer_and_value((ebpf_hash_table_t*)map->data, previous_key, &next_key, &value);
         if (result != EBPF_SUCCESS) {
             break;
         }
@@ -751,7 +751,7 @@ _update_hash_map_entry(
 
     entry_count = ebpf_hash_table_key_count((ebpf_hash_table_t*)map->data);
 
-    if ((entry_count == map->ebpf_map_definition.max_entries) &&
+    if ((entry_count >= map->ebpf_map_definition.max_entries) &&
         (ebpf_hash_table_find((ebpf_hash_table_t*)map->data, key, &value) != EBPF_SUCCESS) &&
         !_reap_oldest_map_entry(map))
         result = EBPF_MAP_FULL;

@@ -40,3 +40,23 @@ has already built the binaries for x64/Debug.
     1. Start an admin command shell (cmd.exe).
     2. Do 'cd C:\temp'.
     3. Do 'install-ebpf.bat'.
+
+## Debugging a VM
+
+To debug kernel-mode issues in the VM, see [Setting up a Connection to a Virtual Machine in Visual Studio](https://docs.microsoft.com/en-us/windows-hardware/drivers/debugger/setting-up-a-connection-to-a-virtual-machine-in-visual-studio).
+
+To use Windbg or KD as the debugger instead of Visual Studio, see [Setting Up Kernel-Mode Debugging of a Virtual Machine Manually using a Virtual COM Port](https://docs.microsoft.com/en-us/windows-hardware/drivers/debugger/attaching-to-a-virtual-machine--kernel-mode-)
+
+Both of the links above contain the statement:
+"In the virtual machine, configure the COM port to map to a named pipe. The debugger will connect through this pipe.
+For more information about how to create this pipe, see your virtual machine's documentation."
+
+That step can be done from the *Host* as follows:
+
+1. Start an admin powershell.
+2. Do ' set-vmcomport "Windows 10 dev environment" 2 \\.\pipe\DebugVM -DebuggerMode On'
+
+After this point, use "\\.\pipe\DebugVM" in the rest of the instructions as the pipe name.
+
+Alternatively, debugging over IP rather than named pipes can be used, as disussec in
+[Setting Up Network Debugging of a Virtual Machine - KDNET](https://docs.microsoft.com/en-us/windows-hardware/drivers/debugger/setting-up-network-debugging-of-a-virtual-machine-host).

@@ -20,7 +20,7 @@ cache_map_original_file_descriptors(const EbpfMapDescriptor* map_descriptors, ui
         // Temporarily store the original_fd as a mock handle.
         ebpf_handle_t handle = (ebpf_handle_t)(uintptr_t)descriptor.original_fd;
 
-        _map_file_descriptors.emplace_back(handle, 0, descriptor);
+        _map_file_descriptors.emplace_back(handle, 0, descriptor, PIN_NONE);
     }
 }
 
@@ -87,22 +87,6 @@ get_all_map_descriptors()
 }
 
 void
-cache_map_original_file_descriptor(
-    int original_fd,
-    uint32_t type,
-    uint32_t key_size,
-    uint32_t value_size,
-    uint32_t max_entries,
-    uint32_t inner_map_original_fd)
-{
-    // Temporarily store the original fd as a mock handle.
-    ebpf_handle_t handle = (ebpf_handle_t)(uintptr_t)original_fd;
-
-    _map_file_descriptors.emplace_back(
-        handle, original_fd, type, key_size, value_size, max_entries, inner_map_original_fd, 0);
-}
-
-void
 cache_map_original_file_descriptor_with_handle(
     int original_fd,
     uint32_t type,
@@ -114,7 +98,7 @@ cache_map_original_file_descriptor_with_handle(
     size_t section_offset)
 {
     _map_file_descriptors.emplace_back(
-        handle, original_fd, type, key_size, value_size, max_entries, inner_map_original_fd, section_offset);
+        handle, original_fd, type, key_size, value_size, max_entries, inner_map_original_fd, section_offset, PIN_NONE);
 }
 
 void
@@ -126,10 +110,11 @@ cache_map_handle(
     uint32_t value_size,
     uint32_t max_entries,
     uint32_t inner_map_original_fd,
-    size_t section_offset)
+    size_t section_offset,
+    ebpf_pin_type_t pinning)
 {
     _map_file_descriptors.emplace_back(
-        handle, original_fd, type, key_size, value_size, max_entries, inner_map_original_fd, section_offset);
+        handle, original_fd, type, key_size, value_size, max_entries, inner_map_original_fd, section_offset, pinning);
 }
 
 size_t
