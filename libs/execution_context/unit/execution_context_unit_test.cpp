@@ -578,12 +578,12 @@ const uint16_t to_buffer[] = {0x4500, 0x0073, 0x0000, 0x4000, 0x4011, 0x0000, 0x
 
 TEST_CASE("test-csum-diff", "[execution_context]")
 {
-    int csum = ebpf_csum_diff(
+    int csum = ebpf_core_csum_diff(
         from_buffer,
         sizeof(from_buffer),
         to_buffer,
         sizeof(to_buffer),
-        ebpf_csum_diff(nullptr, 0, from_buffer, sizeof(from_buffer), 0));
+        ebpf_core_csum_diff(nullptr, 0, from_buffer, sizeof(from_buffer), 0));
     REQUIRE(csum > 0);
 
     // Fold checksum.

@@ -86,7 +86,7 @@ extern "C"
      * @returns The checksum delta on success, or <0 on failure.
      */
     int
-    ebpf_csum_diff(
+    ebpf_core_csum_diff(
         _In_reads_bytes_opt_(from_size) const void* from,
         int from_size,
         _In_reads_bytes_opt_(to_size) const void* to,

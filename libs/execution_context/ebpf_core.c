@@ -46,13 +46,6 @@ static uint64_t
 _ebpf_core_get_time_ns();
 static uint32_t
 _ebpf_core_get_current_cpu();
-static int
-_ebpf_core_csum_diff(
-    _In_reads_bytes_opt_(from_size) const void* from,
-    int from_size,
-    _In_reads_bytes_opt_(to_size) const void* to,
-    int to_size,
-    int seed);
 
 #define EBPF_CORE_GLOBAL_HELPER_EXTENSION_VERSION 0
 
@@ -69,7 +62,7 @@ static const void* _ebpf_general_helpers[] = {
     (void*)&_ebpf_core_get_time_since_boot_ns,
     (void*)&_ebpf_core_get_current_cpu,
     (void*)&_ebpf_core_get_time_ns,
-    (void*)&_ebpf_core_csum_diff};
+    (void*)&ebpf_core_csum_diff};
 
 static ebpf_extension_provider_t* _ebpf_global_helper_function_provider_context = NULL;
 static ebpf_helper_function_addresses_t _ebpf_global_helper_function_dispatch_table = {
@@ -1255,15 +1248,35 @@ _ebpf_core_get_current_cpu()
     return ebpf_get_current_cpu();
 }
 
-static int
-_ebpf_core_csum_diff(
+int
+ebpf_core_csum_diff(
     _In_reads_bytes_opt_(from_size) const void* from,
     int from_size,
     _In_reads_bytes_opt_(to_size) const void* to,
     int to_size,
     int seed)
 {
-    return ebpf_csum_diff(from, from_size, to, to_size, seed);
+    int csum_diff = -EINVAL;
+
+    if ((from_size % 4 != 0) || (to_size % 4 != 0))
+        // size of buffers should be a multiple of 4.
+        goto Exit;
+
+    csum_diff = seed;
+    if (to != NULL)
+        for (int i = 0; i < to_size / 2; i++)
+            csum_diff += (uint16_t)(*((uint16_t*)to + i));
+    if (from != NULL)
+        for (int i = 0; i < from_size / 2; i++)
+            csum_diff += (uint16_t)(~*((uint16_t*)from + i));
+
+    // Adding 16-bit unsigned integers or their one's complement will produce a positive 32-bit integer,
+    // unless the length of the buffers is so long, that the signed 32 bit output overflows and produces a negative
+    // result.
+    if (csum_diff < 0)
+        csum_diff = -EINVAL;
+Exit:
+    return csum_diff;
 }
 
 typedef struct _ebpf_protocol_handler
@@ -1479,35 +1492,4 @@ ebpf_core_invoke_protocol_handler(
 
     ebpf_restore_current_thread_affinity(old_affinity_mask);
     return retval;
-}
-
-int
-ebpf_csum_diff(
-    _In_reads_bytes_opt_(from_size) const void* from,
-    int from_size,
-    _In_reads_bytes_opt_(to_size) const void* to,
-    int to_size,
-    int seed)
-{
-    int csum_diff = -EINVAL;
-
-    if ((from_size % 4 != 0) || (to_size % 4 != 0))
-        // size of buffers should be a multiple of 4.
-        goto Exit;
-
-    csum_diff = seed;
-    if (to != NULL)
-        for (int i = 0; i < to_size / 2; i++)
-            csum_diff += (uint16_t)(*((uint16_t*)to + i));
-    if (from != NULL)
-        for (int i = 0; i < from_size / 2; i++)
-            csum_diff += (uint16_t)(~*((uint16_t*)from + i));
-
-    // Adding 16-bit unsigned integers or their one's complement will produce a positive 32-bit integer,
-    // unless the length of the buffers is so long, that the signed 32 bit output overflows and produces a negative
-    // result.
-    if (csum_diff < 0)
-        csum_diff = -EINVAL;
-Exit:
-    return csum_diff;
 }

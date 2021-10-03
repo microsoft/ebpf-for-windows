@@ -3,7 +3,7 @@
 
 /**
  * @brief Defines prototype structures for program information for general helper functions (aka global functions)
- * implemented by eBPF core Execution Context.
+ * implemented by the eBPF core Execution Context.
  */
 
 #include "ebpf_platform.h"
