@@ -106,8 +106,8 @@ ebpf_ring_buffer_destroy(_Frees_ptr_opt_ ebpf_ring_buffer_t* ring)
 {
     if (ring) {
         ebpf_free_ring_buffer_memory(ring->ring_descriptor);
+        ebpf_epoch_free(ring);
     }
-    ebpf_epoch_free(ring);
 }
 
 ebpf_result_t
@@ -118,7 +118,7 @@ ebpf_ring_buffer_output(_Inout_ ebpf_ring_buffer_t* ring, _In_reads_bytes_(lengt
     ebpf_ring_buffer_record_t* record = _ring_buffer_acquire_record(ring, length);
 
     if (record == NULL) {
-        result = EBPF_RING_FULL;
+        result = EBPF_OUT_OF_SPACE;
         goto Done;
     }
 
@@ -211,6 +211,9 @@ ebpf_ring_buffer_submit(_Frees_ptr_opt_ uint8_t* data)
         (ebpf_ring_buffer_record_t*)(data - EBPF_OFFSET_OF(ebpf_ring_buffer_record_t, data));
 
     record->header.discarded = 0;
+    // Place a memory barrier here so that all prior writes to the record are completed before the record
+    // is unlocked. Caller needs to ensure a MemoryBarrier between reading the record->header.locked and
+    // the data in the record.
     MemoryBarrier();
     record->header.locked = 0;
     return EBPF_SUCCESS;
@@ -226,6 +229,9 @@ ebpf_ring_buffer_discard(_Frees_ptr_opt_ uint8_t* data)
         (ebpf_ring_buffer_record_t*)(data - EBPF_OFFSET_OF(ebpf_ring_buffer_record_t, data));
 
     record->header.discarded = 1;
+    // Place a memory barrier here so that all prior writes to the record are completed before the record
+    // is unlocked. Caller needs to ensure a MemoryBarrier between reading the record->header.locked and
+    // the data in the record.
     MemoryBarrier();
     record->header.locked = 0;
     return EBPF_SUCCESS;
