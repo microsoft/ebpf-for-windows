@@ -14,8 +14,8 @@ typedef struct xdp_md
     uint64_t data_meta;       ///< Packet metadata.
     uint32_t ingress_ifindex; ///< Ingress interface index.
 
-    /* size: 16, cachelines: 1, members: 4 */
-    /* last cacheline: 16 bytes */
+    /* size: 26, cachelines: 1, members: 4 */
+    /* last cacheline: 26 bytes */
 } xdp_md_t;
 
 typedef enum _xdp_action

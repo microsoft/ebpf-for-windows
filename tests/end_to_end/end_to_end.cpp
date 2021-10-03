@@ -271,7 +271,7 @@ droppacket_test(ebpf_execution_type_t execution_type)
     REQUIRE(hook_result == 2);
     REQUIRE(bpf_map_lookup_elem(dropped_packet_map_fd, &key, &value) == EBPF_SUCCESS);
     REQUIRE(value == 1);
-    // fire a 0-length packet on any interface that is not in the map, which should be allowed.
+    // Fire a 0-length packet on any interface that is not in the map, which should be allowed.
     xdp_md_t ctx4{packet.data(), packet.data() + packet.size(), 0, if_index + 1};
     REQUIRE(hook.fire(&ctx4, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == 1);
