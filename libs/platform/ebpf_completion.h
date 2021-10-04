@@ -73,7 +73,7 @@ extern "C"
      *
      * @param[in] context Context of action to track.
      * @param[in] cancellation_context Context to pass when this action is canceled.
-     * @param[in] on_cancel Function to call this action is canceled.
+     * @param[in] on_cancel Function to call if this action is canceled.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_INVALID_ARGUMENT The action context hasn't been registered.
      */
