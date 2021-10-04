@@ -47,7 +47,7 @@ TEST_CASE("libbpf program", "[libbpf]")
     REQUIRE(fd2 == program_fd);
 
     size_t size = bpf_program__size(program);
-    REQUIRE(size == 272);
+    REQUIRE(size == 376);
 
     REQUIRE(bpf_program__next(program, object) == nullptr);
     REQUIRE(bpf_program__prev(program, object) == nullptr);
@@ -168,17 +168,24 @@ TEST_CASE("libbpf map", "[libbpf]")
     REQUIRE(result == 0);
     REQUIRE(object != nullptr);
 
-    // Get the first (and only) map.
+    // Get the first map.
     struct bpf_map* map = bpf_map__next(nullptr, object);
     REQUIRE(map != nullptr);
 
-    // Verify that it's the only map.
-    REQUIRE(bpf_map__next(map, object) == nullptr);
+    // Verify that there are no maps before this.
     REQUIRE(bpf_map__prev(map, object) == nullptr);
-    REQUIRE(bpf_map__prev(nullptr, object) == map);
+
+    // Get the next map.
+    struct bpf_map* map2 = bpf_map__next(map, object);
+    REQUIRE(map2 != nullptr);
+    REQUIRE(bpf_map__prev(map2, object) == map);
+
+    // Verify that there are no other maps after this.
+    REQUIRE(bpf_map__next(map2, object) == nullptr);
+    REQUIRE(bpf_map__prev(nullptr, object) == map2);
 
     const char* name = bpf_map__name(map);
-    REQUIRE(strcmp(name, "port_map") == 0);
+    REQUIRE(strcmp(name, "dropped_packet_map") == 0);
     REQUIRE(bpf_map__type(map) == BPF_MAP_TYPE_ARRAY);
     REQUIRE(bpf_map__key_size(map) == 4);
     REQUIRE(bpf_map__value_size(map) == 8);
@@ -962,7 +969,7 @@ TEST_CASE("bpf_obj_get_info_by_fd", "[libbpf]")
     REQUIRE(bpf_obj_get_info_by_fd(program_fd, &program_info, &program_info_size) == 0);
     REQUIRE(program_info_size == sizeof(program_info));
     REQUIRE(strcmp(program_info.name, program_name) == 0);
-    REQUIRE(program_info.nr_map_ids == 1);
+    REQUIRE(program_info.nr_map_ids == 2);
 
     // Fetch info about the attachment and verify it matches what we'd expect.
     uint32_t link_id;

@@ -226,7 +226,7 @@ droppacket_test(ebpf_execution_type_t execution_type)
         error_message = nullptr;
     }
     REQUIRE(result == EBPF_SUCCESS);
-    fd_t port_map_fd = bpf_object__find_map_fd_by_name(object, "port_map");
+    fd_t dropped_packet_map_fd = bpf_object__find_map_fd_by_name(object, "dropped_packet_map");
 
     REQUIRE(hook.attach_link(program_fd, &link) == EBPF_SUCCESS);
 
@@ -234,7 +234,7 @@ droppacket_test(ebpf_execution_type_t execution_type)
 
     uint32_t key = 0;
     uint64_t value = 1000;
-    REQUIRE(bpf_map_update_elem(port_map_fd, &key, &value, EBPF_ANY) == EBPF_SUCCESS);
+    REQUIRE(bpf_map_update_elem(dropped_packet_map_fd, &key, &value, EBPF_ANY) == EBPF_SUCCESS);
 
     // Test that we drop the packet and increment the map
     xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
@@ -243,12 +243,12 @@ droppacket_test(ebpf_execution_type_t execution_type)
     REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == 2);
 
-    REQUIRE(bpf_map_lookup_elem(port_map_fd, &key, &value) == EBPF_SUCCESS);
+    REQUIRE(bpf_map_lookup_elem(dropped_packet_map_fd, &key, &value) == EBPF_SUCCESS);
     REQUIRE(value == 1001);
 
-    REQUIRE(bpf_map_delete_elem(port_map_fd, &key) == EBPF_SUCCESS);
+    REQUIRE(bpf_map_delete_elem(dropped_packet_map_fd, &key) == EBPF_SUCCESS);
 
-    REQUIRE(bpf_map_lookup_elem(port_map_fd, &key, &value) == EBPF_SUCCESS);
+    REQUIRE(bpf_map_lookup_elem(dropped_packet_map_fd, &key, &value) == EBPF_SUCCESS);
     REQUIRE(value == 0);
 
     packet = prepare_udp_packet(10, ETHERNET_TYPE_IPV4);
@@ -257,8 +257,26 @@ droppacket_test(ebpf_execution_type_t execution_type)
     REQUIRE(hook.fire(&ctx2, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == 1);
 
-    REQUIRE(bpf_map_lookup_elem(port_map_fd, &key, &value) == EBPF_SUCCESS);
+    REQUIRE(bpf_map_lookup_elem(dropped_packet_map_fd, &key, &value) == EBPF_SUCCESS);
     REQUIRE(value == 0);
+
+    fd_t interface_index_map_fd = bpf_object__find_map_fd_by_name(object, "interface_index_map");
+    uint32_t if_index = 17;
+    REQUIRE(bpf_map_update_elem(interface_index_map_fd, &key, &if_index, EBPF_ANY) == EBPF_SUCCESS);
+
+    packet = prepare_udp_packet(0, ETHERNET_TYPE_IPV4);
+    // Fire a 0-length UDP packet on the interface index in the map, which should be dropped.
+    xdp_md_t ctx3{packet.data(), packet.data() + packet.size(), 0, if_index};
+    REQUIRE(hook.fire(&ctx3, &hook_result) == EBPF_SUCCESS);
+    REQUIRE(hook_result == 2);
+    REQUIRE(bpf_map_lookup_elem(dropped_packet_map_fd, &key, &value) == EBPF_SUCCESS);
+    REQUIRE(value == 1);
+    // Fire a 0-length packet on any interface that is not in the map, which should be allowed.
+    xdp_md_t ctx4{packet.data(), packet.data() + packet.size(), 0, if_index + 1};
+    REQUIRE(hook.fire(&ctx4, &hook_result) == EBPF_SUCCESS);
+    REQUIRE(hook_result == 1);
+    REQUIRE(bpf_map_lookup_elem(dropped_packet_map_fd, &key, &value) == EBPF_SUCCESS);
+    REQUIRE(value == 1);
 
     hook.detach_link(link);
     hook.close_link(link);
