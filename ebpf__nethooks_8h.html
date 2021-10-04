@@ -117,8 +117,7 @@ Enumerations</h2></td></tr>
 <a class="el" href="ebpf__nethooks_8h.html#a5aff0d5d670941126cebc5687d5e280da2660d3d871232c9a9d8e18867f6ac31b">XDP_TX</a>
  }</td></tr>
 <tr class="separator:a5aff0d5d670941126cebc5687d5e280d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab415145f4be30f5838b8805ddd1309b6"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#ab415145f4be30f5838b8805ddd1309b6">ebpf_nethook_helper_id_t</a> { <a class="el" href="ebpf__nethooks_8h.html#ab415145f4be30f5838b8805ddd1309b6a35c71a4a37114afd410582aa42a22a3c">BPF_FUNC_xdp_adjust_head</a> = XDP_EXT_HELPER_FN_BASE + 1, 
-<a class="el" href="ebpf__nethooks_8h.html#ab415145f4be30f5838b8805ddd1309b6abe3e14bdf2b57c53e97bbd7ca9a37d22">BPF_FUNC_csum_diff</a> = XDP_EXT_HELPER_FN_BASE + 2
+<tr class="memitem:ab415145f4be30f5838b8805ddd1309b6"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#ab415145f4be30f5838b8805ddd1309b6">ebpf_nethook_helper_id_t</a> { <a class="el" href="ebpf__nethooks_8h.html#ab415145f4be30f5838b8805ddd1309b6a35c71a4a37114afd410582aa42a22a3c">BPF_FUNC_xdp_adjust_head</a> = XDP_EXT_HELPER_FN_BASE + 1
  }</td></tr>
 <tr class="separator:ab415145f4be30f5838b8805ddd1309b6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a814187ca47e221594a21bde5324d86fc"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#a814187ca47e221594a21bde5324d86fc">_bind_operation</a> { <a class="el" href="ebpf__nethooks_8h.html#a814187ca47e221594a21bde5324d86fca3e490f90b26afc8d39df8bb5cdd4113f">BIND_OPERATION_BIND</a>, 
@@ -137,9 +136,6 @@ Functions</h2></td></tr>
 <tr class="memitem:affc4b6ad0564d5788cf036749dff4e50"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#affc4b6ad0564d5788cf036749dff4e50">bpf_xdp_adjust_head</a> (<a class="el" href="ebpf__nethooks_8h.html#ad23ae5164c0bc1b25cfc3c60ab24a781">xdp_md_t</a> *ctx, int delta)</td></tr>
 <tr class="memdesc:affc4b6ad0564d5788cf036749dff4e50"><td class="mdescLeft">&#160;</td><td class="mdescRight">Adjust XDP context data pointer.  <a href="ebpf__nethooks_8h.html#affc4b6ad0564d5788cf036749dff4e50">More...</a><br /></td></tr>
 <tr class="separator:affc4b6ad0564d5788cf036749dff4e50"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a8925aebb6537b5d34b8cb28b04d34515"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#a8925aebb6537b5d34b8cb28b04d34515">bpf_csum_diff</a> (void *from, int from_size, void *to, int to_size, int seed)</td></tr>
-<tr class="memdesc:a8925aebb6537b5d34b8cb28b04d34515"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute checksum difference for replacing parts of a network packet buffer.  <a href="ebpf__nethooks_8h.html#a8925aebb6537b5d34b8cb28b04d34515">More...</a><br /></td></tr>
-<tr class="separator:a8925aebb6537b5d34b8cb28b04d34515"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Macro Definition Documentation</h2>
 <a id="acce2f548e179db8cc18c8173a4a7a6e6"></a>
@@ -368,70 +364,11 @@ Functions</h2></td></tr>
 </div><div class="memdoc">
 <table class="fieldtable">
 <tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="ab415145f4be30f5838b8805ddd1309b6a35c71a4a37114afd410582aa42a22a3c"></a>BPF_FUNC_xdp_adjust_head&#160;</td><td class="fielddoc"></td></tr>
-<tr><td class="fieldname"><a id="ab415145f4be30f5838b8805ddd1309b6abe3e14bdf2b57c53e97bbd7ca9a37d22"></a>BPF_FUNC_csum_diff&#160;</td><td class="fielddoc"></td></tr>
 </table>
 
 </div>
 </div>
 <h2 class="groupheader">Function Documentation</h2>
-<a id="a8925aebb6537b5d34b8cb28b04d34515"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a8925aebb6537b5d34b8cb28b04d34515">&#9670;&nbsp;</a></span>bpf_csum_diff()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">int bpf_csum_diff </td>
-          <td>(</td>
-          <td class="paramtype">void *&#160;</td>
-          <td class="paramname"><em>from</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">int&#160;</td>
-          <td class="paramname"><em>from_size</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">void *&#160;</td>
-          <td class="paramname"><em>to</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">int&#160;</td>
-          <td class="paramname"><em>to_size</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">int&#160;</td>
-          <td class="paramname"><em>seed</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Compute checksum difference for replacing parts of a network packet buffer. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">from</td><td>Pointer to raw buffer that will be replaced. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">from_size</td><td>Length of the "from" buffer. Must be a multiple of 4. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">to</td><td>Pointer to the raw buffer that will replace the previous buffer. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">to_size</td><td>Length of the "to" buffer. Must be a multiple of 4.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>The checksum delta on success, or &lt;0 on failure. </dd></dl>
-
-</div>
-</div>
 <a id="affc4b6ad0564d5788cf036749dff4e50"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#affc4b6ad0564d5788cf036749dff4e50">&#9670;&nbsp;</a></span>bpf_xdp_adjust_head()</h2>
 

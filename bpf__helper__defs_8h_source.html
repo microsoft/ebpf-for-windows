@@ -93,40 +93,46 @@ $(function() {
 <div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160;<span class="preprocessor">#define bpf_map_delete_elem ((bpf_map_delete_elem_t)BPF_FUNC_map_delete_elem)</span></div>
 <div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160;<span class="preprocessor">#endif</span></div>
 <div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160; </div>
-<div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160;EBPF_HELPER(int64_t, <a class="code" href="bpf__helper__defs_8h.html#af0a0db158b6d6cc4fdf93411e41431ef">bpf_tail_call</a>, (<span class="keywordtype">void</span>* ctx, <span class="keyword">struct</span> <a class="code" href="bpf__helpers__platform_8h.html#a1d98f863fc6ebf789b378348438181ca">bpf_map</a>* prog_array_map, uint32_t index));</div>
-<div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160;<span class="preprocessor">#ifndef __doxygen</span></div>
-<div class="line"><a name="l00062"></a><span class="lineno">   62</span>&#160;<span class="preprocessor">#define bpf_tail_call ((bpf_tail_call_t)BPF_FUNC_tail_call)</span></div>
-<div class="line"><a name="l00063"></a><span class="lineno">   63</span>&#160;<span class="preprocessor">#endif</span></div>
-<div class="line"><a name="l00064"></a><span class="lineno">   64</span>&#160; </div>
-<div class="line"><a name="l00070"></a><span class="lineno">   70</span>&#160;EBPF_HELPER(uint32_t, <a class="code" href="bpf__helper__defs_8h.html#adad4a120de1d0f6c2a380e8d7b56570b">bpf_get_prandom_u32</a>, ());</div>
-<div class="line"><a name="l00071"></a><span class="lineno">   71</span>&#160;<span class="preprocessor">#ifndef __doxygen</span></div>
-<div class="line"><a name="l00072"></a><span class="lineno">   72</span>&#160;<span class="preprocessor">#define bpf_get_prandom_u32 ((bpf_get_prandom_u32_t)BPF_FUNC_get_prandom_u32)</span></div>
-<div class="line"><a name="l00073"></a><span class="lineno">   73</span>&#160;<span class="preprocessor">#endif</span></div>
-<div class="line"><a name="l00074"></a><span class="lineno">   74</span>&#160; </div>
-<div class="line"><a name="l00080"></a><span class="lineno">   80</span>&#160;EBPF_HELPER(uint64_t, <a class="code" href="bpf__helper__defs_8h.html#afcd5d11ba0f150bb73ac41eaf8f847e5">bpf_ktime_get_boot_ns</a>, ());</div>
-<div class="line"><a name="l00081"></a><span class="lineno">   81</span>&#160;<span class="preprocessor">#ifndef __doxygen</span></div>
-<div class="line"><a name="l00082"></a><span class="lineno">   82</span>&#160;<span class="preprocessor">#define bpf_ktime_get_boot_ns ((bpf_ktime_get_boot_ns_t)BPF_FUNC_ktime_get_boot_ns)</span></div>
-<div class="line"><a name="l00083"></a><span class="lineno">   83</span>&#160;<span class="preprocessor">#endif</span></div>
-<div class="line"><a name="l00084"></a><span class="lineno">   84</span>&#160; </div>
-<div class="line"><a name="l00090"></a><span class="lineno">   90</span>&#160;EBPF_HELPER(uint64_t, <a class="code" href="bpf__helper__defs_8h.html#aeac5e76520396d4436978a5c53cdd94d">bpf_get_smp_processor_id</a>, ());</div>
-<div class="line"><a name="l00091"></a><span class="lineno">   91</span>&#160;<span class="preprocessor">#ifndef __doxygen</span></div>
-<div class="line"><a name="l00092"></a><span class="lineno">   92</span>&#160;<span class="preprocessor">#define bpf_get_smp_processor_id ((bpf_get_smp_processor_id_t)BPF_FUNC_get_smp_processor_id)</span></div>
-<div class="line"><a name="l00093"></a><span class="lineno">   93</span>&#160;<span class="preprocessor">#endif</span></div>
-<div class="line"><a name="l00094"></a><span class="lineno">   94</span>&#160; </div>
-<div class="line"><a name="l00100"></a><span class="lineno">  100</span>&#160;EBPF_HELPER(uint64_t, <a class="code" href="bpf__helper__defs_8h.html#a25b647b1c513ab7afec473ee3043e0dd">bpf_ktime_get_ns</a>, ());</div>
-<div class="line"><a name="l00101"></a><span class="lineno">  101</span>&#160;<span class="preprocessor">#ifndef __doxygen</span></div>
-<div class="line"><a name="l00102"></a><span class="lineno">  102</span>&#160;<span class="preprocessor">#define bpf_ktime_get_ns ((bpf_ktime_get_ns_t)BPF_FUNC_ktime_get_boot_ns)</span></div>
-<div class="line"><a name="l00103"></a><span class="lineno">  103</span>&#160;<span class="preprocessor">#endif</span></div>
-<div class="line"><a name="l00104"></a><span class="lineno">  104</span>&#160; </div>
-<div class="line"><a name="l00112"></a><span class="lineno">  112</span>&#160;EBPF_HELPER(<span class="keywordtype">void</span>*, <a class="code" href="bpf__helper__defs_8h.html#a1db4f0fd3d85ed1a294ce4efb080917f">bpf_map_lookup_and_delete_elem</a>, (<span class="keyword">struct</span> <a class="code" href="bpf__helpers__platform_8h.html#a1d98f863fc6ebf789b378348438181ca">bpf_map</a> * map, <span class="keywordtype">void</span>* key));</div>
+<div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160;EBPF_HELPER(<span class="keywordtype">void</span>*, <a class="code" href="bpf__helper__defs_8h.html#a1db4f0fd3d85ed1a294ce4efb080917f">bpf_map_lookup_and_delete_elem</a>, (<span class="keyword">struct</span> <a class="code" href="bpf__helpers__platform_8h.html#a1d98f863fc6ebf789b378348438181ca">bpf_map</a> * map, <span class="keywordtype">void</span>* key));</div>
+<div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160;<span class="preprocessor">#ifndef __doxygen</span></div>
+<div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160;<span class="preprocessor">#define bpf_map_lookup_and_delete_elem ((bpf_map_lookup_and_delete_elem_t)BPF_FUNC_map_lookup_and_delete_elem)</span></div>
+<div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160;<span class="preprocessor">#endif</span></div>
+<div class="line"><a name="l00062"></a><span class="lineno">   62</span>&#160; </div>
+<div class="line"><a name="l00072"></a><span class="lineno">   72</span>&#160;EBPF_HELPER(int64_t, <a class="code" href="bpf__helper__defs_8h.html#af0a0db158b6d6cc4fdf93411e41431ef">bpf_tail_call</a>, (<span class="keywordtype">void</span>* ctx, <span class="keyword">struct</span> <a class="code" href="bpf__helpers__platform_8h.html#a1d98f863fc6ebf789b378348438181ca">bpf_map</a>* prog_array_map, uint32_t index));</div>
+<div class="line"><a name="l00073"></a><span class="lineno">   73</span>&#160;<span class="preprocessor">#ifndef __doxygen</span></div>
+<div class="line"><a name="l00074"></a><span class="lineno">   74</span>&#160;<span class="preprocessor">#define bpf_tail_call ((bpf_tail_call_t)BPF_FUNC_tail_call)</span></div>
+<div class="line"><a name="l00075"></a><span class="lineno">   75</span>&#160;<span class="preprocessor">#endif</span></div>
+<div class="line"><a name="l00076"></a><span class="lineno">   76</span>&#160; </div>
+<div class="line"><a name="l00082"></a><span class="lineno">   82</span>&#160;EBPF_HELPER(uint32_t, <a class="code" href="bpf__helper__defs_8h.html#adad4a120de1d0f6c2a380e8d7b56570b">bpf_get_prandom_u32</a>, ());</div>
+<div class="line"><a name="l00083"></a><span class="lineno">   83</span>&#160;<span class="preprocessor">#ifndef __doxygen</span></div>
+<div class="line"><a name="l00084"></a><span class="lineno">   84</span>&#160;<span class="preprocessor">#define bpf_get_prandom_u32 ((bpf_get_prandom_u32_t)BPF_FUNC_get_prandom_u32)</span></div>
+<div class="line"><a name="l00085"></a><span class="lineno">   85</span>&#160;<span class="preprocessor">#endif</span></div>
+<div class="line"><a name="l00086"></a><span class="lineno">   86</span>&#160; </div>
+<div class="line"><a name="l00092"></a><span class="lineno">   92</span>&#160;EBPF_HELPER(uint64_t, <a class="code" href="bpf__helper__defs_8h.html#afcd5d11ba0f150bb73ac41eaf8f847e5">bpf_ktime_get_boot_ns</a>, ());</div>
+<div class="line"><a name="l00093"></a><span class="lineno">   93</span>&#160;<span class="preprocessor">#ifndef __doxygen</span></div>
+<div class="line"><a name="l00094"></a><span class="lineno">   94</span>&#160;<span class="preprocessor">#define bpf_ktime_get_boot_ns ((bpf_ktime_get_boot_ns_t)BPF_FUNC_ktime_get_boot_ns)</span></div>
+<div class="line"><a name="l00095"></a><span class="lineno">   95</span>&#160;<span class="preprocessor">#endif</span></div>
+<div class="line"><a name="l00096"></a><span class="lineno">   96</span>&#160; </div>
+<div class="line"><a name="l00102"></a><span class="lineno">  102</span>&#160;EBPF_HELPER(uint64_t, <a class="code" href="bpf__helper__defs_8h.html#aeac5e76520396d4436978a5c53cdd94d">bpf_get_smp_processor_id</a>, ());</div>
+<div class="line"><a name="l00103"></a><span class="lineno">  103</span>&#160;<span class="preprocessor">#ifndef __doxygen</span></div>
+<div class="line"><a name="l00104"></a><span class="lineno">  104</span>&#160;<span class="preprocessor">#define bpf_get_smp_processor_id ((bpf_get_smp_processor_id_t)BPF_FUNC_get_smp_processor_id)</span></div>
+<div class="line"><a name="l00105"></a><span class="lineno">  105</span>&#160;<span class="preprocessor">#endif</span></div>
+<div class="line"><a name="l00106"></a><span class="lineno">  106</span>&#160; </div>
+<div class="line"><a name="l00112"></a><span class="lineno">  112</span>&#160;EBPF_HELPER(uint64_t, <a class="code" href="bpf__helper__defs_8h.html#a25b647b1c513ab7afec473ee3043e0dd">bpf_ktime_get_ns</a>, ());</div>
 <div class="line"><a name="l00113"></a><span class="lineno">  113</span>&#160;<span class="preprocessor">#ifndef __doxygen</span></div>
-<div class="line"><a name="l00114"></a><span class="lineno">  114</span>&#160;<span class="preprocessor">#define bpf_map_lookup_and_delete_elem ((bpf_map_lookup_and_delete_elem_t)BPF_FUNC_map_lookup_and_delete_elem)</span></div>
+<div class="line"><a name="l00114"></a><span class="lineno">  114</span>&#160;<span class="preprocessor">#define bpf_ktime_get_ns ((bpf_ktime_get_ns_t)BPF_FUNC_ktime_get_boot_ns)</span></div>
 <div class="line"><a name="l00115"></a><span class="lineno">  115</span>&#160;<span class="preprocessor">#endif</span></div>
+<div class="line"><a name="l00116"></a><span class="lineno">  116</span>&#160; </div>
+<div class="line"><a name="l00129"></a><span class="lineno">  129</span>&#160;EBPF_HELPER(<span class="keywordtype">int</span>, <a class="code" href="bpf__helper__defs_8h.html#a8925aebb6537b5d34b8cb28b04d34515">bpf_csum_diff</a>, (<span class="keywordtype">void</span>* from, <span class="keywordtype">int</span> from_size, <span class="keywordtype">void</span>* to, <span class="keywordtype">int</span> to_size, <span class="keywordtype">int</span> seed));</div>
+<div class="line"><a name="l00130"></a><span class="lineno">  130</span>&#160;<span class="preprocessor">#ifndef __doxygen</span></div>
+<div class="line"><a name="l00131"></a><span class="lineno">  131</span>&#160;<span class="preprocessor">#define bpf_csum_diff ((bpf_csum_diff_t)BPF_FUNC_csum_diff)</span></div>
+<div class="line"><a name="l00132"></a><span class="lineno">  132</span>&#160;<span class="preprocessor">#endif</span></div>
 </div><!-- fragment --></div><!-- contents -->
 <div class="ttc" id="abpf__helper__defs_8h_html_a48f7de9bec5b69a96ebb4bd519ab4d36"><div class="ttname"><a href="bpf__helper__defs_8h.html#a48f7de9bec5b69a96ebb4bd519ab4d36">bpf_map_update_elem</a></div><div class="ttdeci">int64_t bpf_map_update_elem(struct bpf_map *map, void *key, void *value, uint64_t flags)</div><div class="ttdoc">Insert or update an entry in the map.</div></div>
 <div class="ttc" id="abpf__helper__defs_8h_html_a25b647b1c513ab7afec473ee3043e0dd"><div class="ttname"><a href="bpf__helper__defs_8h.html#a25b647b1c513ab7afec473ee3043e0dd">bpf_ktime_get_ns</a></div><div class="ttdeci">uint64_t bpf_ktime_get_ns()</div><div class="ttdoc">Return time elapsed since boot in nanoseconds excluding time while suspended.</div></div>
 <div class="ttc" id="abpf__helper__defs_8h_html_af0a0db158b6d6cc4fdf93411e41431ef"><div class="ttname"><a href="bpf__helper__defs_8h.html#af0a0db158b6d6cc4fdf93411e41431ef">bpf_tail_call</a></div><div class="ttdeci">int64_t bpf_tail_call(void *ctx, struct bpf_map *prog_array_map, uint32_t index)</div><div class="ttdoc">Perform a tail call into another eBPF program.</div></div>
 <div class="ttc" id="abpf__helper__defs_8h_html_afcd5d11ba0f150bb73ac41eaf8f847e5"><div class="ttname"><a href="bpf__helper__defs_8h.html#afcd5d11ba0f150bb73ac41eaf8f847e5">bpf_ktime_get_boot_ns</a></div><div class="ttdeci">uint64_t bpf_ktime_get_boot_ns()</div><div class="ttdoc">Return time elapsed since boot in nanoseconds including time while suspended.</div></div>
+<div class="ttc" id="abpf__helper__defs_8h_html_a8925aebb6537b5d34b8cb28b04d34515"><div class="ttname"><a href="bpf__helper__defs_8h.html#a8925aebb6537b5d34b8cb28b04d34515">bpf_csum_diff</a></div><div class="ttdeci">int bpf_csum_diff(void *from, int from_size, void *to, int to_size, int seed)</div><div class="ttdoc">Computes difference of checksum values for two input raw buffers using 1's complement arithmetic.</div></div>
 <div class="ttc" id="abpf__helper__defs_8h_html_aeac5e76520396d4436978a5c53cdd94d"><div class="ttname"><a href="bpf__helper__defs_8h.html#aeac5e76520396d4436978a5c53cdd94d">bpf_get_smp_processor_id</a></div><div class="ttdeci">uint64_t bpf_get_smp_processor_id()</div><div class="ttdoc">Return SMP id of the processor running the program.</div></div>
 <div class="ttc" id="abpf__helper__defs_8h_html_a1db4f0fd3d85ed1a294ce4efb080917f"><div class="ttname"><a href="bpf__helper__defs_8h.html#a1db4f0fd3d85ed1a294ce4efb080917f">bpf_map_lookup_and_delete_elem</a></div><div class="ttdeci">void * bpf_map_lookup_and_delete_elem(struct bpf_map *map, void *key)</div><div class="ttdoc">Get a pointer to an entry in the map and erase that element.</div></div>
 <div class="ttc" id="abpf__helper__defs_8h_html_adad4a120de1d0f6c2a380e8d7b56570b"><div class="ttname"><a href="bpf__helper__defs_8h.html#adad4a120de1d0f6c2a380e8d7b56570b">bpf_get_prandom_u32</a></div><div class="ttdeci">uint32_t bpf_get_prandom_u32()</div><div class="ttdoc">Get a pseudo-random number.</div></div>

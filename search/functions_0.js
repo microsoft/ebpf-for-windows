@@ -3,7 +3,7 @@ var searchData=
   ['bpf_5fcreate_5fmap_390',['bpf_create_map',['../bpf_2bpf_8h.html#a415dcff6da1cf861efbafe33768976af',1,'bpf.h']]],
   ['bpf_5fcreate_5fmap_5fin_5fmap_391',['bpf_create_map_in_map',['../bpf_2bpf_8h.html#aa568c1b6f3dddfb439311bd952824f1b',1,'bpf.h']]],
   ['bpf_5fcreate_5fmap_5fxattr_392',['bpf_create_map_xattr',['../bpf_2bpf_8h.html#aa4489fd67da7d5641a428d1b76f24eff',1,'bpf.h']]],
-  ['bpf_5fcsum_5fdiff_393',['bpf_csum_diff',['../ebpf__nethooks_8h.html#a8925aebb6537b5d34b8cb28b04d34515',1,'ebpf_nethooks.h']]],
+  ['bpf_5fcsum_5fdiff_393',['bpf_csum_diff',['../bpf__helper__defs_8h.html#a8925aebb6537b5d34b8cb28b04d34515',1,'bpf_helper_defs.h']]],
   ['bpf_5fget_5fprandom_5fu32_394',['bpf_get_prandom_u32',['../bpf__helper__defs_8h.html#adad4a120de1d0f6c2a380e8d7b56570b',1,'bpf_helper_defs.h']]],
   ['bpf_5fget_5fsmp_5fprocessor_5fid_395',['bpf_get_smp_processor_id',['../bpf__helper__defs_8h.html#aeac5e76520396d4436978a5c53cdd94d',1,'bpf_helper_defs.h']]],
   ['bpf_5fktime_5fget_5fboot_5fns_396',['bpf_ktime_get_boot_ns',['../bpf__helper__defs_8h.html#afcd5d11ba0f150bb73ac41eaf8f847e5',1,'bpf_helper_defs.h']]],

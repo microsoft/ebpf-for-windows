@@ -85,6 +85,9 @@ Functions</h2></td></tr>
 <tr class="memitem:a36c83e10e5f7ec38987c55654ffcfba0"><td class="memItemLeft" align="right" valign="top">int64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#a36c83e10e5f7ec38987c55654ffcfba0">bpf_map_delete_elem</a> (struct <a class="el" href="bpf__helpers__platform_8h.html#a1d98f863fc6ebf789b378348438181ca">bpf_map</a> *map, void *key)</td></tr>
 <tr class="memdesc:a36c83e10e5f7ec38987c55654ffcfba0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Remove an entry from the map.  <a href="bpf__helper__defs_8h.html#a36c83e10e5f7ec38987c55654ffcfba0">More...</a><br /></td></tr>
 <tr class="separator:a36c83e10e5f7ec38987c55654ffcfba0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1db4f0fd3d85ed1a294ce4efb080917f"><td class="memItemLeft" align="right" valign="top">void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#a1db4f0fd3d85ed1a294ce4efb080917f">bpf_map_lookup_and_delete_elem</a> (struct <a class="el" href="bpf__helpers__platform_8h.html#a1d98f863fc6ebf789b378348438181ca">bpf_map</a> *map, void *key)</td></tr>
+<tr class="memdesc:a1db4f0fd3d85ed1a294ce4efb080917f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get a pointer to an entry in the map and erase that element.  <a href="bpf__helper__defs_8h.html#a1db4f0fd3d85ed1a294ce4efb080917f">More...</a><br /></td></tr>
+<tr class="separator:a1db4f0fd3d85ed1a294ce4efb080917f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af0a0db158b6d6cc4fdf93411e41431ef"><td class="memItemLeft" align="right" valign="top">int64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#af0a0db158b6d6cc4fdf93411e41431ef">bpf_tail_call</a> (void *ctx, struct <a class="el" href="bpf__helpers__platform_8h.html#a1d98f863fc6ebf789b378348438181ca">bpf_map</a> *prog_array_map, uint32_t index)</td></tr>
 <tr class="memdesc:af0a0db158b6d6cc4fdf93411e41431ef"><td class="mdescLeft">&#160;</td><td class="mdescRight">Perform a tail call into another eBPF program.  <a href="bpf__helper__defs_8h.html#af0a0db158b6d6cc4fdf93411e41431ef">More...</a><br /></td></tr>
 <tr class="separator:af0a0db158b6d6cc4fdf93411e41431ef"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -100,11 +103,70 @@ Functions</h2></td></tr>
 <tr class="memitem:a25b647b1c513ab7afec473ee3043e0dd"><td class="memItemLeft" align="right" valign="top">uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#a25b647b1c513ab7afec473ee3043e0dd">bpf_ktime_get_ns</a> ()</td></tr>
 <tr class="memdesc:a25b647b1c513ab7afec473ee3043e0dd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return time elapsed since boot in nanoseconds excluding time while suspended.  <a href="bpf__helper__defs_8h.html#a25b647b1c513ab7afec473ee3043e0dd">More...</a><br /></td></tr>
 <tr class="separator:a25b647b1c513ab7afec473ee3043e0dd"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a1db4f0fd3d85ed1a294ce4efb080917f"><td class="memItemLeft" align="right" valign="top">void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#a1db4f0fd3d85ed1a294ce4efb080917f">bpf_map_lookup_and_delete_elem</a> (struct <a class="el" href="bpf__helpers__platform_8h.html#a1d98f863fc6ebf789b378348438181ca">bpf_map</a> *map, void *key)</td></tr>
-<tr class="memdesc:a1db4f0fd3d85ed1a294ce4efb080917f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get a pointer to an entry in the map and erase that element.  <a href="bpf__helper__defs_8h.html#a1db4f0fd3d85ed1a294ce4efb080917f">More...</a><br /></td></tr>
-<tr class="separator:a1db4f0fd3d85ed1a294ce4efb080917f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8925aebb6537b5d34b8cb28b04d34515"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#a8925aebb6537b5d34b8cb28b04d34515">bpf_csum_diff</a> (void *from, int from_size, void *to, int to_size, int seed)</td></tr>
+<tr class="memdesc:a8925aebb6537b5d34b8cb28b04d34515"><td class="mdescLeft">&#160;</td><td class="mdescRight">Computes difference of checksum values for two input raw buffers using 1's complement arithmetic.  <a href="bpf__helper__defs_8h.html#a8925aebb6537b5d34b8cb28b04d34515">More...</a><br /></td></tr>
+<tr class="separator:a8925aebb6537b5d34b8cb28b04d34515"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Function Documentation</h2>
+<a id="a8925aebb6537b5d34b8cb28b04d34515"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a8925aebb6537b5d34b8cb28b04d34515">&#9670;&nbsp;</a></span>bpf_csum_diff()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int bpf_csum_diff </td>
+          <td>(</td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>from</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>from_size</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>to</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>to_size</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>seed</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Computes difference of checksum values for two input raw buffers using 1's complement arithmetic. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">from</td><td>Pointer to first raw buffer. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">from_size</td><td>Length of the "from" buffer. Must be a multiple of 4. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">to</td><td>Pointer to the second raw buffer, whose checksum will be subtracted from that of the "from" buffer. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">to_size</td><td>Length of the "to" buffer. Must be a multiple of 4. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">seed</td><td>An optional integer that can be added to the value, which can be used to carry result of a previous csum_diff operation.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The checksum delta on success, or &lt;0 on failure. </dd></dl>
+
+</div>
+</div>
 <a id="adad4a120de1d0f6c2a380e8d7b56570b"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#adad4a120de1d0f6c2a380e8d7b56570b">&#9670;&nbsp;</a></span>bpf_get_prandom_u32()</h2>
 

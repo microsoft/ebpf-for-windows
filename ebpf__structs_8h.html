@@ -164,14 +164,15 @@ Enumerations</h2></td></tr>
 &#160;&#160;<a class="el" href="ebpf__structs_8h.html#aa752b12bfaedda8a28a7a88c1b96f272ac63c4bc22d3821feffcca941871808be">BPF_FUNC_map_lookup_elem</a> = 1, 
 <a class="el" href="ebpf__structs_8h.html#aa752b12bfaedda8a28a7a88c1b96f272aa5ceec1dcaac16cf3785f3b2ca0ee50f">BPF_FUNC_map_update_elem</a> = 2, 
 <a class="el" href="ebpf__structs_8h.html#aa752b12bfaedda8a28a7a88c1b96f272abe572ff24bf3386a1c375e7b49023ce0">BPF_FUNC_map_delete_elem</a> = 3, 
-<a class="el" href="ebpf__structs_8h.html#aa752b12bfaedda8a28a7a88c1b96f272a11bda44b63078eaa10477c22d4e0c70f">BPF_FUNC_tail_call</a> = 4, 
+<a class="el" href="ebpf__structs_8h.html#aa752b12bfaedda8a28a7a88c1b96f272a3f5c5b2ed7496d18e86df61325448d4b">BPF_FUNC_map_lookup_and_delete_elem</a> = 4, 
 <br />
-&#160;&#160;<a class="el" href="ebpf__structs_8h.html#aa752b12bfaedda8a28a7a88c1b96f272a30379124ac856b90d0f65ae330d01eb4">BPF_FUNC_get_prandom_u32</a> = 5, 
-<a class="el" href="ebpf__structs_8h.html#aa752b12bfaedda8a28a7a88c1b96f272ac93b8f6e2cb11c15ebbe377f68008225">BPF_FUNC_ktime_get_boot_ns</a> = 6, 
-<a class="el" href="ebpf__structs_8h.html#aa752b12bfaedda8a28a7a88c1b96f272a1ff4bcdf1da58693cf186a2211712bfd">BPF_FUNC_get_smp_processor_id</a> = 7, 
-<a class="el" href="ebpf__structs_8h.html#aa752b12bfaedda8a28a7a88c1b96f272a12980dface372a7bd94731236043495e">BPF_FUNC_ktime_get_ns</a> = 8, 
+&#160;&#160;<a class="el" href="ebpf__structs_8h.html#aa752b12bfaedda8a28a7a88c1b96f272a11bda44b63078eaa10477c22d4e0c70f">BPF_FUNC_tail_call</a> = 5, 
+<a class="el" href="ebpf__structs_8h.html#aa752b12bfaedda8a28a7a88c1b96f272a30379124ac856b90d0f65ae330d01eb4">BPF_FUNC_get_prandom_u32</a> = 6, 
+<a class="el" href="ebpf__structs_8h.html#aa752b12bfaedda8a28a7a88c1b96f272ac93b8f6e2cb11c15ebbe377f68008225">BPF_FUNC_ktime_get_boot_ns</a> = 7, 
+<a class="el" href="ebpf__structs_8h.html#aa752b12bfaedda8a28a7a88c1b96f272a1ff4bcdf1da58693cf186a2211712bfd">BPF_FUNC_get_smp_processor_id</a> = 8, 
 <br />
-&#160;&#160;<a class="el" href="ebpf__structs_8h.html#aa752b12bfaedda8a28a7a88c1b96f272a3f5c5b2ed7496d18e86df61325448d4b">BPF_FUNC_map_lookup_and_delete_elem</a> = 9
+&#160;&#160;<a class="el" href="ebpf__structs_8h.html#aa752b12bfaedda8a28a7a88c1b96f272a12980dface372a7bd94731236043495e">BPF_FUNC_ktime_get_ns</a> = 9, 
+<a class="el" href="ebpf__structs_8h.html#aa752b12bfaedda8a28a7a88c1b96f272abe3e14bdf2b57c53e97bbd7ca9a37d22">BPF_FUNC_csum_diff</a> = 10
 <br />
  }</td></tr>
 <tr class="separator:aa752b12bfaedda8a28a7a88c1b96f272"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -468,12 +469,13 @@ Enumerations</h2></td></tr>
 <tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="aa752b12bfaedda8a28a7a88c1b96f272ac63c4bc22d3821feffcca941871808be"></a>BPF_FUNC_map_lookup_elem&#160;</td><td class="fielddoc"></td></tr>
 <tr><td class="fieldname"><a id="aa752b12bfaedda8a28a7a88c1b96f272aa5ceec1dcaac16cf3785f3b2ca0ee50f"></a>BPF_FUNC_map_update_elem&#160;</td><td class="fielddoc"></td></tr>
 <tr><td class="fieldname"><a id="aa752b12bfaedda8a28a7a88c1b96f272abe572ff24bf3386a1c375e7b49023ce0"></a>BPF_FUNC_map_delete_elem&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="aa752b12bfaedda8a28a7a88c1b96f272a3f5c5b2ed7496d18e86df61325448d4b"></a>BPF_FUNC_map_lookup_and_delete_elem&#160;</td><td class="fielddoc"></td></tr>
 <tr><td class="fieldname"><a id="aa752b12bfaedda8a28a7a88c1b96f272a11bda44b63078eaa10477c22d4e0c70f"></a>BPF_FUNC_tail_call&#160;</td><td class="fielddoc"></td></tr>
 <tr><td class="fieldname"><a id="aa752b12bfaedda8a28a7a88c1b96f272a30379124ac856b90d0f65ae330d01eb4"></a>BPF_FUNC_get_prandom_u32&#160;</td><td class="fielddoc"></td></tr>
 <tr><td class="fieldname"><a id="aa752b12bfaedda8a28a7a88c1b96f272ac93b8f6e2cb11c15ebbe377f68008225"></a>BPF_FUNC_ktime_get_boot_ns&#160;</td><td class="fielddoc"></td></tr>
 <tr><td class="fieldname"><a id="aa752b12bfaedda8a28a7a88c1b96f272a1ff4bcdf1da58693cf186a2211712bfd"></a>BPF_FUNC_get_smp_processor_id&#160;</td><td class="fielddoc"></td></tr>
 <tr><td class="fieldname"><a id="aa752b12bfaedda8a28a7a88c1b96f272a12980dface372a7bd94731236043495e"></a>BPF_FUNC_ktime_get_ns&#160;</td><td class="fielddoc"></td></tr>
-<tr><td class="fieldname"><a id="aa752b12bfaedda8a28a7a88c1b96f272a3f5c5b2ed7496d18e86df61325448d4b"></a>BPF_FUNC_map_lookup_and_delete_elem&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="aa752b12bfaedda8a28a7a88c1b96f272abe3e14bdf2b57c53e97bbd7ca9a37d22"></a>BPF_FUNC_csum_diff&#160;</td><td class="fielddoc"></td></tr>
 </table>
 
 </div>
