@@ -97,6 +97,9 @@ extern "C"
 
         /// Caller has reached tail call limit.
         EBPF_NO_MORE_TAIL_CALLS,
+
+        // Requested action is still pending.
+        EBPF_PENDING,
     } ebpf_result_t;
 
 #ifdef __cplusplus

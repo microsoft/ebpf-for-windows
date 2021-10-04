@@ -13,6 +13,7 @@
 #include "catch_wrapper.hpp"
 #include "ebpf_bind_program_data.h"
 #include "ebpf_bitmap.h"
+#include "ebpf_completion.h"
 #include "ebpf_epoch.h"
 #include "ebpf_nethooks.h"
 #include "ebpf_platform.h"
@@ -34,6 +35,8 @@ class _test_helper
         platform_initiated = true;
         REQUIRE(ebpf_epoch_initiate() == EBPF_SUCCESS);
         epoch_initated = true;
+        REQUIRE(ebpf_completion_initiate() == EBPF_SUCCESS);
+        completion_initiated = true;
     }
     ~_test_helper()
     {
@@ -47,6 +50,7 @@ class _test_helper
   private:
     bool platform_initiated = false;
     bool epoch_initated = false;
+    bool completion_initiated = false;
 };
 
 TEST_CASE("hash_table_test", "[platform]")
@@ -701,3 +705,49 @@ BIT_MASK_TEST(33);
 BIT_MASK_TEST(65);
 BIT_MASK_TEST(129);
 BIT_MASK_TEST(1025);
+
+TEST_CASE("completion", "[platform]")
+{
+    _test_helper test_helper;
+
+    auto test = [](bool complete) {
+        struct _completion_context
+        {
+            ebpf_result_t result;
+        } completion_context = {EBPF_PENDING};
+
+        struct _cancellation_context
+        {
+            bool cancelled;
+        } cancellation_context = {false};
+
+        REQUIRE(
+            ebpf_completion_set_completion_callback(
+                &completion_context, [](_Inout_ void* context, ebpf_result_t result) {
+                    auto completion_context = reinterpret_cast<_completion_context*>(context);
+                    completion_context->result = result;
+                }) == EBPF_SUCCESS);
+
+        REQUIRE(ebpf_completion_set_cancel_callback(&completion_context, &cancellation_context, [](void* context) {
+                    auto cancellation_context = reinterpret_cast<_cancellation_context*>(context);
+                    cancellation_context->cancelled = true;
+                }) == EBPF_SUCCESS);
+        REQUIRE(completion_context.result == EBPF_PENDING);
+        REQUIRE(!cancellation_context.cancelled);
+
+        if (complete) {
+            REQUIRE(ebpf_completion_complete(&completion_context, EBPF_SUCCESS));
+            REQUIRE(completion_context.result == EBPF_SUCCESS);
+            REQUIRE(!cancellation_context.cancelled);
+            REQUIRE(!ebpf_completion_cancel(&completion_context));
+        } else {
+            REQUIRE(ebpf_completion_cancel(&completion_context));
+            REQUIRE(completion_context.result == EBPF_PENDING);
+            REQUIRE(cancellation_context.cancelled);
+            REQUIRE(!ebpf_completion_complete(&completion_context, EBPF_SUCCESS));
+        }
+    };
+
+    test(true);
+    test(false);
+}

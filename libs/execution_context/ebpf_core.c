@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #include "ebpf_core.h"
+#include "ebpf_completion.h"
 #include "ebpf_epoch.h"
 #include "ebpf_handle.h"
 #include "ebpf_link.h"
@@ -92,6 +93,10 @@ ebpf_core_initiate()
     if (return_value != EBPF_SUCCESS)
         goto Done;
 
+    return_value = ebpf_completion_initiate();
+    if (return_value != EBPF_SUCCESS)
+        goto Done;
+
     ebpf_object_tracking_initiate();
 
     return_value = ebpf_pinning_table_allocate(&_ebpf_core_map_pinning_table);
@@ -140,6 +145,8 @@ ebpf_core_terminate()
     ebpf_program_terminate();
 
     ebpf_handle_table_terminate();
+
+    ebpf_completion_terminate();
 
     ebpf_pinning_table_free(_ebpf_core_map_pinning_table);
 
