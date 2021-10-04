@@ -15,7 +15,7 @@ jobs:
     strategy:
       matrix:
         configurations: [Debug, Release]
-    runs-on: [windows, self-hosted]
+    runs-on: [windows, self-hosted, kernel_test]
     env:
       # Path to the solution file relative to the root of the project.
       SOLUTION_FILE_PATH: ebpf-for-windows.sln
