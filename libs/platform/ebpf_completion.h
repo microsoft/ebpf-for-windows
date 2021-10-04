@@ -58,7 +58,7 @@ extern "C"
      * @brief Set a completion function to be called when actions associated with this context complete.
      *
      * @param[in] context Context of action to track.
-     * @param_ebpf_completion_tracker_table_bucket_count on_complete Function to call when the action associated with
+     * @param[in] on_complete Function to call when the action associated with
      * this context completes.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
