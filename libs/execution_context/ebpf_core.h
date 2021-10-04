@@ -73,6 +73,26 @@ extern "C"
     ebpf_core_get_protocol_handler_properties(
         ebpf_operation_id_t operation_id, _Out_ size_t* minimum_request_size, _Out_ size_t* minimum_reply_size);
 
+    /**
+     * @brief Computes difference of checksum values for two input raw buffers using 1's complement arithmetic.
+     *
+     * @param[in] from Pointer to first raw buffer.
+     * @param[in] from_size Length of the "from" buffer. Must be a multiple of 4.
+     * @param[in] to Pointer to the second raw buffer, whose checksum will be subtracted from that of the "from" buffer.
+     * @param[in] to_size Length of the "to" buffer. Must be a multiple of 4.
+     * @param[in] seed  An optional integer that can be added to the value, which can be used to carry result of a
+     * previous csum_diff operation.
+     *
+     * @returns The checksum delta on success, or <0 on failure.
+     */
+    int
+    ebpf_core_csum_diff(
+        _In_reads_bytes_opt_(from_size) const void* from,
+        int from_size,
+        _In_reads_bytes_opt_(to_size) const void* to,
+        int to_size,
+        int seed);
+
 #ifdef __cplusplus
 }
 #endif
