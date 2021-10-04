@@ -75,7 +75,7 @@ extern "C"
      * @param[in] cancelation_context Context to pass when this action is canceled.
      * @param[in] on_cancel Function to call this action is canceled.
      * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_NOT_FOUND The action context hasn't been registered.
+     * @retval EBPF_INVALID_ARGUMENT The action context hasn't been registered.
      */
     ebpf_result_t
     ebpf_completion_set_cancel_callback(
