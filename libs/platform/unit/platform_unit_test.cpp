@@ -748,6 +748,9 @@ TEST_CASE("completion", "[platform]")
         }
     };
 
+    // Run the test with complete before cancel.
     test(true);
+
+    // Run the test with cancel before complete.
     test(false);
 }

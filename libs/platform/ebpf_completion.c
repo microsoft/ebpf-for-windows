@@ -13,6 +13,8 @@ typedef struct _ebpf_completion_tracker
 
 static ebpf_hash_table_t* _ebpf_completion_tracker_table = NULL;
 
+static const size_t _ebpf_completion_tracker_table_bucket_count = 64;
+
 ebpf_result_t
 ebpf_completion_initiate()
 {
@@ -22,7 +24,7 @@ ebpf_completion_initiate()
         ebpf_epoch_free,
         sizeof(void*),
         sizeof(ebpf_completion_tracker_t),
-        64,
+        _ebpf_completion_tracker_table_bucket_count,
         NULL);
 }
 
@@ -86,9 +88,9 @@ ebpf_completion_cancel(_In_ void* context)
         return false;
     }
     void* cancelation_context = tracker->cancelation_context;
-    void (*on_cancellation)(_In_ void* context) = tracker->on_cancel;
+    void (*on_cancelation)(_In_ void* context) = tracker->on_cancel;
     if (_remove_tracker(context)) {
-        on_cancellation(cancelation_context);
+        on_cancelation(cancelation_context);
         return true;
     } else {
         return false;
