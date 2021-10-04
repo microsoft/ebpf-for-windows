@@ -46,7 +46,7 @@ typedef struct _ebpf_core_lpm_map
 
 /**
  * Core map structure for BPF_MAP_TYPE_QUEUE and BPF_MAP_TYPE_STACK
- * ebpf_core_queue_map_t and ebpf_core_stack_map_t store a arrays of uint8_t*
+ * ebpf_core_queue_map_t and ebpf_core_stack_map_t store arrays of uint8_t*
  * pointers. Each pointer stores a version of a value that has been pushed to
  * the queue or stack. The structure can't store the map values directly as the
  * caller expects items returned from find_and_delete to remain unmodified. If
