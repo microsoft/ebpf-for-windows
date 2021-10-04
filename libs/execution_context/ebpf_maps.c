@@ -50,7 +50,7 @@ typedef struct _ebpf_core_lpm_map
  * pointers. Each pointer stores a version of a value that has been pushed to
  * the queue or stack. The structure can't store the map values directly as the
  * caller expects items returned from find_and_delete to remain unmodified. If
- * items are store directly in the array, then a sequence of:
+ * items are stored directly in the array, then a sequence of:
  * 1) update
  * 2) find_and_delete
  * 3) update
