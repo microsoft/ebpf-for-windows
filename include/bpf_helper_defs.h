@@ -49,6 +49,18 @@ EBPF_HELPER(int64_t, bpf_map_delete_elem, (struct bpf_map * map, void* key));
 #endif
 
 /**
+ * @brief Get a pointer to an entry in the map and erase that element.
+ *
+ * @param[in] map Map to search.
+ * @param[in] key Key to use when searching map.
+ * @return Pointer to the value if found or NULL.
+ */
+EBPF_HELPER(void*, bpf_map_lookup_and_delete_elem, (struct bpf_map * map, void* key));
+#ifndef __doxygen
+#define bpf_map_lookup_and_delete_elem ((bpf_map_lookup_and_delete_elem_t)BPF_FUNC_map_lookup_and_delete_elem)
+#endif
+
+/**
  * @brief Perform a tail call into another eBPF program.
  *
  * @param[in] ctx Context to pass to the called program.
@@ -103,13 +115,18 @@ EBPF_HELPER(uint64_t, bpf_ktime_get_ns, ());
 #endif
 
 /**
- * @brief Get a pointer to an entry in the map and erase that element.
+ * @brief Computes difference of checksum values for two input raw buffers using 1's complement arithmetic.
  *
- * @param[in] map Map to search.
- * @param[in] key Key to use when searching map.
- * @return Pointer to the value if found or NULL.
+ * @param[in] from Pointer to first raw buffer.
+ * @param[in] from_size Length of the "from" buffer. Must be a multiple of 4.
+ * @param[in] to Pointer to the second raw buffer, whose checksum will be subtracted from that of the "from" buffer.
+ * @param[in] to_size Length of the "to" buffer. Must be a multiple of 4.
+ * @param[in] seed  An optional integer that can be added to the value, which can be used to carry result of a previous
+ * csum_diff operation.
+ *
+ * @returns The checksum delta on success, or <0 on failure.
  */
-EBPF_HELPER(void*, bpf_map_lookup_and_delete_elem, (struct bpf_map * map, void* key));
+EBPF_HELPER(int, bpf_csum_diff, (void* from, int from_size, void* to, int to_size, int seed));
 #ifndef __doxygen
-#define bpf_map_lookup_and_delete_elem ((bpf_map_lookup_and_delete_elem_t)BPF_FUNC_map_lookup_and_delete_elem)
+#define bpf_csum_diff ((bpf_csum_diff_t)BPF_FUNC_csum_diff)
 #endif

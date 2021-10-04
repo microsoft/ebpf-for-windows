@@ -16,7 +16,6 @@
 #include "ebpf_xdp_program_data.h"
 
 #include "net_ebpf_ext.h"
-#include "net_ebpf_ext_helpers.h"
 
 static ebpf_ext_attach_hook_provider_registration_t* _ebpf_xdp_hook_provider_registration = NULL;
 static ebpf_extension_provider_t* _ebpf_xdp_program_info_provider = NULL;
@@ -24,7 +23,7 @@ static ebpf_extension_provider_t* _ebpf_xdp_program_info_provider = NULL;
 static int
 _net_ebpf_xdp_adjust_head(_Inout_ xdp_md_t* ctx, int delta);
 
-static const void* _ebpf_xdp_helper_functions[] = {(void*)&_net_ebpf_xdp_adjust_head, (void*)&_net_ebpf_ext_csum_diff};
+static const void* _ebpf_xdp_helper_functions[] = {(void*)&_net_ebpf_xdp_adjust_head};
 
 static ebpf_helper_function_addresses_t _ebpf_xdp_helper_function_address_table = {
     EBPF_COUNT_OF(_ebpf_xdp_helper_functions), (uint64_t*)_ebpf_xdp_helper_functions};

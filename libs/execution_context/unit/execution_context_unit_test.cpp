@@ -634,3 +634,25 @@ TEST_CASE("name size", "[execution_context]")
         ebpf_map_create(&oversize_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) ==
         EBPF_INVALID_ARGUMENT);
 }
+
+const uint16_t from_buffer[] = {0x4500, 0x0073, 0x0000, 0x4000, 0x4011, 0x0000, 0x2000, 0x0001, 0x2000, 0x000a};
+const uint16_t to_buffer[] = {0x4500, 0x0073, 0x0000, 0x4000, 0x4011, 0x0000, 0xc0a8, 0x0001, 0xc0a8, 0x00c7};
+
+TEST_CASE("test-csum-diff", "[execution_context]")
+{
+    int csum = ebpf_core_csum_diff(
+        from_buffer,
+        sizeof(from_buffer),
+        to_buffer,
+        sizeof(to_buffer),
+        ebpf_core_csum_diff(nullptr, 0, from_buffer, sizeof(from_buffer), 0));
+    REQUIRE(csum > 0);
+
+    // Fold checksum.
+    csum = (csum >> 16) + (csum & 0xFFFF);
+    csum = (csum >> 16) + (csum & 0xFFFF);
+    csum = (uint16_t)~csum;
+
+    // See: https://en.wikipedia.org/wiki/IPv4_header_checksum#Calculating_the_IPv4_header_checksum
+    REQUIRE(csum == 0xb861);
+}
