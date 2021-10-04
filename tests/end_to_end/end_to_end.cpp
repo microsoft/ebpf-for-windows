@@ -226,7 +226,7 @@ droppacket_test(ebpf_execution_type_t execution_type)
         error_message = nullptr;
     }
     REQUIRE(result == EBPF_SUCCESS);
-    fd_t port_map_fd = bpf_object__find_map_fd_by_name(object, "port_map");
+    fd_t dropped_packet_map_fd = bpf_object__find_map_fd_by_name(object, "dropped_packet_map");
 
     REQUIRE(hook.attach_link(program_fd, &link) == EBPF_SUCCESS);
 
@@ -234,7 +234,7 @@ droppacket_test(ebpf_execution_type_t execution_type)
 
     uint32_t key = 0;
     uint64_t value = 1000;
-    REQUIRE(bpf_map_update_elem(port_map_fd, &key, &value, EBPF_ANY) == EBPF_SUCCESS);
+    REQUIRE(bpf_map_update_elem(dropped_packet_map_fd, &key, &value, EBPF_ANY) == EBPF_SUCCESS);
 
     // Test that we drop the packet and increment the map
     xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
@@ -243,12 +243,12 @@ droppacket_test(ebpf_execution_type_t execution_type)
     REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == 2);
 
-    REQUIRE(bpf_map_lookup_elem(port_map_fd, &key, &value) == EBPF_SUCCESS);
+    REQUIRE(bpf_map_lookup_elem(dropped_packet_map_fd, &key, &value) == EBPF_SUCCESS);
     REQUIRE(value == 1001);
 
-    REQUIRE(bpf_map_delete_elem(port_map_fd, &key) == EBPF_SUCCESS);
+    REQUIRE(bpf_map_delete_elem(dropped_packet_map_fd, &key) == EBPF_SUCCESS);
 
-    REQUIRE(bpf_map_lookup_elem(port_map_fd, &key, &value) == EBPF_SUCCESS);
+    REQUIRE(bpf_map_lookup_elem(dropped_packet_map_fd, &key, &value) == EBPF_SUCCESS);
     REQUIRE(value == 0);
 
     packet = prepare_udp_packet(10, ETHERNET_TYPE_IPV4);
@@ -257,8 +257,26 @@ droppacket_test(ebpf_execution_type_t execution_type)
     REQUIRE(hook.fire(&ctx2, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == 1);
 
-    REQUIRE(bpf_map_lookup_elem(port_map_fd, &key, &value) == EBPF_SUCCESS);
+    REQUIRE(bpf_map_lookup_elem(dropped_packet_map_fd, &key, &value) == EBPF_SUCCESS);
     REQUIRE(value == 0);
+
+    fd_t interface_index_map_fd = bpf_object__find_map_fd_by_name(object, "interface_index_map");
+    uint32_t if_index = 17;
+    REQUIRE(bpf_map_update_elem(interface_index_map_fd, &key, &if_index, EBPF_ANY) == EBPF_SUCCESS);
+
+    packet = prepare_udp_packet(0, ETHERNET_TYPE_IPV4);
+    // Fire a 0-length UDP packet on the interface index in the map, which should be dropped.
+    xdp_md_t ctx3{packet.data(), packet.data() + packet.size(), 0, if_index};
+    REQUIRE(hook.fire(&ctx3, &hook_result) == EBPF_SUCCESS);
+    REQUIRE(hook_result == 2);
+    REQUIRE(bpf_map_lookup_elem(dropped_packet_map_fd, &key, &value) == EBPF_SUCCESS);
+    REQUIRE(value == 1);
+    // Fire a 0-length packet on any interface that is not in the map, which should be allowed.
+    xdp_md_t ctx4{packet.data(), packet.data() + packet.size(), 0, if_index + 1};
+    REQUIRE(hook.fire(&ctx4, &hook_result) == EBPF_SUCCESS);
+    REQUIRE(hook_result == 1);
+    REQUIRE(bpf_map_lookup_elem(dropped_packet_map_fd, &key, &value) == EBPF_SUCCESS);
+    REQUIRE(value == 1);
 
     hook.detach_link(link);
     hook.close_link(link);
@@ -1019,28 +1037,6 @@ _xdp_encap_reflect_packet_test(ebpf_execution_type_t execution_type, ADDRESS_FAM
         uint8_t* inner_ip_header = (uint8_t*)(ipv6 + 1);
         REQUIRE(memcmp(inner_ip_header, original_ip_datagram.data(), original_ip_datagram.size()) == 0);
     }
-}
-
-const uint16_t from_buffer[] = {0x4500, 0x0073, 0x0000, 0x4000, 0x4011, 0x0000, 0x2000, 0x0001, 0x2000, 0x000a};
-const uint16_t to_buffer[] = {0x4500, 0x0073, 0x0000, 0x4000, 0x4011, 0x0000, 0xc0a8, 0x0001, 0xc0a8, 0x00c7};
-
-TEST_CASE("test-csum-diff", "[end_to_end]")
-{
-    int csum = test_xdp_helper_t::csum_diff(
-        from_buffer,
-        sizeof(from_buffer),
-        to_buffer,
-        sizeof(to_buffer),
-        test_xdp_helper_t::csum_diff(nullptr, 0, from_buffer, sizeof(from_buffer), 0));
-    REQUIRE(csum > 0);
-
-    // Fold checksum.
-    csum = (csum >> 16) + (csum & 0xFFFF);
-    csum = (csum >> 16) + (csum & 0xFFFF);
-    csum = (uint16_t)~csum;
-
-    // See: https://en.wikipedia.org/wiki/IPv4_header_checksum#Calculating_the_IPv4_header_checksum
-    REQUIRE(csum == 0xb861);
 }
 
 TEST_CASE("xdp-reflect-v4-jit", "[xdp_tests]") { _xdp_reflect_packet_test(EBPF_EXECUTION_JIT, AF_INET); }

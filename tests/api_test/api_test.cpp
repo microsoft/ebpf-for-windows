@@ -26,7 +26,7 @@
 #define DROP_PACKET_PROGRAM_COUNT 1
 #define BIND_MONITOR_PROGRAM_COUNT 1
 
-#define DROP_PACKET_MAP_COUNT 1
+#define DROP_PACKET_MAP_COUNT 2
 #define BIND_MONITOR_MAP_COUNT 2
 
 static service_install_helper
