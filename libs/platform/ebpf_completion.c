@@ -7,7 +7,7 @@
 typedef struct _ebpf_completion_tracker
 {
     void (*on_complete)(_In_ void* context, ebpf_result_t result);
-    void* cancelation_context;
+    void* cancellation_context;
     void (*on_cancel)(_In_ void* context);
 } ebpf_completion_tracker_t;
 
@@ -69,13 +69,13 @@ _remove_tracker(_In_ void* context)
 
 ebpf_result_t
 ebpf_completion_set_cancel_callback(
-    _In_ void* context, _In_ void* cancelation_context, _In_ void (*on_cancel)(_In_ void* cancelation_context))
+    _In_ void* context, _In_ void* cancellation_context, _In_ void (*on_cancel)(_In_ void* cancellation_context))
 {
     ebpf_completion_tracker_t* tracker = _tracker_from_context(context);
     if (!tracker) {
         return EBPF_INVALID_ARGUMENT;
     }
-    tracker->cancelation_context = cancelation_context;
+    tracker->cancellation_context = cancellation_context;
     tracker->on_cancel = on_cancel;
     return EBPF_SUCCESS;
 }
@@ -87,10 +87,10 @@ ebpf_completion_cancel(_In_ void* context)
     if (!tracker) {
         return false;
     }
-    void* cancelation_context = tracker->cancelation_context;
-    void (*on_cancelation)(_In_ void* context) = tracker->on_cancel;
+    void* cancellation_context = tracker->cancellation_context;
+    void (*on_cancellation)(_In_ void* context) = tracker->on_cancel;
     if (_remove_tracker(context)) {
-        on_cancelation(cancelation_context);
+        on_cancellation(cancellation_context);
         return true;
     } else {
         return false;

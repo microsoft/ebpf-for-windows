@@ -9,14 +9,14 @@
 //
 // 2) Action initiator calls handler to start the asynchronous action.
 //
-// 3) Action handler calls ebpf_completion_set_cancel_callback to permit it to be notified if a cancelation occurs.
+// 3) Action handler calls ebpf_completion_set_cancel_callback to permit it to be notified if a cancellation occurs.
 //
 // 4) Action handler starts the asynchronous operation and returns to action initiator.
 //
 // 5) a) Success path: Action handler calls ebpf_completion_complete to notify the action initiator that the action has
 // completed.
 //
-// 5) b) Cancelation path: Action initiator calls ebpf_completion_cancel to notify the action handler that
+// 5) b) Cancellation path: Action initiator calls ebpf_completion_cancel to notify the action handler that
 // the request has been canceled.
 //
 // Notes:
@@ -27,7 +27,7 @@
 // 2) Action initiator must not re-use context until after prior actions are
 // completed or canceled.
 //
-// 3) Action handler must register for cancelation prior to returning to action initiator.
+// 3) Action handler must register for cancellation prior to returning to action initiator.
 
 #pragma once
 #include "ebpf_platform.h"
@@ -69,17 +69,17 @@ extern "C"
         _In_ void* context, _In_ void (*on_complete)(_In_ void* context, ebpf_result_t result));
 
     /**
-     * @brief Set a cancelation function to be called when actions associated with this context are canceled.
+     * @brief Set a cancellation function to be called when actions associated with this context are canceled.
      *
      * @param[in] context Context of action to track.
-     * @param[in] cancelation_context Context to pass when this action is canceled.
+     * @param[in] cancellation_context Context to pass when this action is canceled.
      * @param[in] on_cancel Function to call this action is canceled.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_INVALID_ARGUMENT The action context hasn't been registered.
      */
     ebpf_result_t
     ebpf_completion_set_cancel_callback(
-        _In_ void* context, _In_ void* cancelation_context, _In_ void (*on_cancel)(_In_ void* cancelation_context));
+        _In_ void* context, _In_ void* cancellation_context, _In_ void (*on_cancel)(_In_ void* cancellation_context));
 
     /**
      * @brief Cancel the action associated with this context.
