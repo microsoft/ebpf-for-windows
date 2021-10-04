@@ -55,7 +55,7 @@ _ring_buffer_acquire_record(_Inout_ ebpf_ring_buffer_t* ring, size_t requested_l
 {
     ebpf_ring_buffer_record_t* record = NULL;
     requested_length += EBPF_OFFSET_OF(ebpf_ring_buffer_record_t, data);
-    size_t remaining_space = ring->length - ring->producer_offset - ring->consumer_offset;
+    size_t remaining_space = ring->length - (ring->producer_offset - ring->consumer_offset);
 
     if (remaining_space > requested_length) {
         record = _ring_record_at_offset(ring, _ring_get_producer_offset(ring));
