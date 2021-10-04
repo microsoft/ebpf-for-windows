@@ -9,12 +9,13 @@
 // XDP hook.  We use "struct xdp_md" for cross-platform compatibility.
 typedef struct xdp_md
 {
-    void* data;         ///< Pointer to start of packet data.
-    void* data_end;     ///< Pointer to end of packet data.
-    uint64_t data_meta; ///< Packet metadata.
+    void* data;               ///< Pointer to start of packet data.
+    void* data_end;           ///< Pointer to end of packet data.
+    uint64_t data_meta;       ///< Packet metadata.
+    uint32_t ingress_ifindex; ///< Ingress interface index.
 
-    /* size: 12, cachelines: 1, members: 3 */
-    /* last cacheline: 12 bytes */
+    /* size: 26, cachelines: 1, members: 4 */
+    /* last cacheline: 26 bytes */
 } xdp_md_t;
 
 typedef enum _xdp_action
