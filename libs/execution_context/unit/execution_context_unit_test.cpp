@@ -48,7 +48,7 @@ _test_crud_operations(ebpf_map_type_t map_type)
         supports_find_and_delete = true;
         replace_on_full = false;
         run_at_dpc = false;
-        error_on_full = EBPF_MAP_FULL;
+        error_on_full = EBPF_OUT_OF_SPACE;
         break;
     case BPF_MAP_TYPE_ARRAY:
         is_array = true;
@@ -62,7 +62,7 @@ _test_crud_operations(ebpf_map_type_t map_type)
         supports_find_and_delete = true;
         replace_on_full = false;
         run_at_dpc = true;
-        error_on_full = EBPF_MAP_FULL;
+        error_on_full = EBPF_OUT_OF_SPACE;
         break;
     case BPF_MAP_TYPE_PERCPU_ARRAY:
         is_array = true;
@@ -76,14 +76,14 @@ _test_crud_operations(ebpf_map_type_t map_type)
         supports_find_and_delete = true;
         replace_on_full = true;
         run_at_dpc = false;
-        error_on_full = EBPF_MAP_FULL;
+        error_on_full = EBPF_OUT_OF_SPACE;
         break;
     case BPF_MAP_TYPE_LRU_PERCPU_HASH:
         is_array = false;
         supports_find_and_delete = true;
         replace_on_full = true;
         run_at_dpc = true;
-        error_on_full = EBPF_MAP_FULL;
+        error_on_full = EBPF_OUT_OF_SPACE;
         break;
     default:
         ebpf_assert((false, "Unsupported map type"));
@@ -437,7 +437,7 @@ TEST_CASE("map_crud_operations_queue", "[execution_context]")
     REQUIRE(
         ebpf_map_update_entry(
             map.get(), 0, NULL, sizeof(extra_value), reinterpret_cast<uint8_t*>(&extra_value), EBPF_ANY, 0) ==
-        EBPF_MAP_FULL);
+        EBPF_OUT_OF_SPACE);
 
     // Peek the first element.
     uint32_t return_value = MAXUINT32;
@@ -493,7 +493,7 @@ TEST_CASE("map_crud_operations_stack", "[execution_context]")
     REQUIRE(
         ebpf_map_update_entry(
             map.get(), 0, NULL, sizeof(extra_value), reinterpret_cast<uint8_t*>(&extra_value), EBPF_ANY, 0) ==
-        EBPF_MAP_FULL);
+        EBPF_OUT_OF_SPACE);
 
     // Peek the first element.
     REQUIRE(

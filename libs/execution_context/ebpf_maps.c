@@ -754,7 +754,7 @@ _update_hash_map_entry(
     if ((entry_count >= map->ebpf_map_definition.max_entries) &&
         (ebpf_hash_table_find((ebpf_hash_table_t*)map->data, key, &value) != EBPF_SUCCESS) &&
         !_reap_oldest_map_entry(map))
-        result = EBPF_MAP_FULL;
+        result = EBPF_OUT_OF_SPACE;
     else
         result = ebpf_hash_table_update((ebpf_hash_table_t*)map->data, key, data, hash_table_operation);
 
@@ -803,7 +803,7 @@ _update_hash_map_entry_with_handle(
 
     if ((entry_count == map->ebpf_map_definition.max_entries) && (found_result != EBPF_SUCCESS)) {
         // The hash table is already full.
-        result = EBPF_MAP_FULL;
+        result = EBPF_OUT_OF_SPACE;
         goto Done;
     }
 
@@ -1065,7 +1065,7 @@ _update_queue_map_entry(
 
     // Check for queue full.
     if (queue_map->start == ((queue_map->end + 1) % queue_map->core_map.ebpf_map_definition.max_entries)) {
-        result = EBPF_MAP_FULL;
+        result = EBPF_OUT_OF_SPACE;
         goto Done;
     }
 
@@ -1140,7 +1140,7 @@ _update_stack_map_entry(
 
     // Check for stack full.
     if (stack_map->top_of_stack >= stack_map->core_map.ebpf_map_definition.max_entries) {
-        result = EBPF_MAP_FULL;
+        result = EBPF_OUT_OF_SPACE;
         goto Done;
     }
 
