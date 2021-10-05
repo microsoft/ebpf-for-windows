@@ -98,6 +98,7 @@ windows_error_to_ebpf_result(uint32_t error)
         result = EBPF_NO_MEMORY;
         break;
 
+    case ERROR_PATH_NOT_FOUND:
     case ERROR_NOT_FOUND:
         result = EBPF_KEY_NOT_FOUND;
         break;
@@ -136,6 +137,9 @@ windows_error_to_ebpf_result(uint32_t error)
         result = EBPF_OBJECT_ALREADY_EXISTS;
         break;
 
+    case ERROR_IO_PENDING:
+        result = EBPF_PENDING;
+        break;
     default:
         result = EBPF_FAILED;
         break;

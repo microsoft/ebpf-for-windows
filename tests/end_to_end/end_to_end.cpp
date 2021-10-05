@@ -373,6 +373,9 @@ set_bind_limit(fd_t map_fd, uint32_t limit)
     REQUIRE(bpf_map_update_elem(map_fd, &limit_key, &limit, EBPF_ANY) == EBPF_SUCCESS);
 }
 
+ebpf_result_t
+ebpf_api_map_wait_for_change(fd_t map_fd, OVERLAPPED* overlapped);
+
 void
 bindmonitor_test(ebpf_execution_type_t execution_type)
 {
@@ -400,6 +403,10 @@ bindmonitor_test(ebpf_execution_type_t execution_type)
     REQUIRE(limit_map_fd > 0);
     fd_t process_map_fd = bpf_object__find_map_fd_by_name(object, "process_map");
     REQUIRE(process_map_fd > 0);
+    OVERLAPPED overlapped{};
+    overlapped.hEvent = CreateEvent(nullptr, false, false, nullptr);
+
+    REQUIRE(ebpf_api_map_wait_for_change(process_map_fd, &overlapped) == EBPF_PENDING);
 
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
 
@@ -411,6 +418,8 @@ bindmonitor_test(ebpf_execution_type_t execution_type)
     // Bind first port - success
     REQUIRE(emulate_bind(hook, fake_pid, "fake_app_1") == BIND_PERMIT);
     REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
+
+    REQUIRE(WaitForSingleObject(overlapped.hEvent, 0) == WAIT_OBJECT_0);
 
     // Bind second port - success
     REQUIRE(emulate_bind(hook, fake_pid, "fake_app_1") == BIND_PERMIT);

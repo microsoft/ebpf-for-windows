@@ -50,6 +50,7 @@ static BOOLEAN _ebpf_driver_unloading_flag = FALSE;
 static EVT_WDF_FILE_CLOSE _ebpf_driver_file_close;
 static EVT_WDF_IO_QUEUE_IO_DEVICE_CONTROL _ebpf_driver_io_device_control;
 static EVT_WDFDEVICE_WDM_IRP_PREPROCESS _ebpf_driver_query_volume_information;
+static EVT_WDF_REQUEST_CANCEL _ebpf_driver_io_device_control_cancel;
 DRIVER_INITIALIZE DriverEntry;
 
 static VOID

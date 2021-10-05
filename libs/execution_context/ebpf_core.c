@@ -1177,6 +1177,28 @@ _ebpf_core_protocol_get_object_info(
     return result;
 }
 
+ebpf_result_t
+_ebpf_core_protocol_wait_for_map_change(
+    _In_ const ebpf_operation_wait_for_map_change_request_t* request,
+    _In_ void* reply,
+    uint16_t output_buffer_length,
+    _In_ void* async_context)
+{
+    UNREFERENCED_PARAMETER(reply);
+    UNREFERENCED_PARAMETER(output_buffer_length);
+
+    ebpf_map_t* map;
+    ebpf_result_t result = ebpf_reference_object_by_handle(request->map_handle, EBPF_OBJECT_MAP, (ebpf_object_t**)&map);
+    if (result != EBPF_SUCCESS) {
+        return result;
+    }
+
+    result = ebpf_map_wait_for_change(map, async_context);
+
+    ebpf_object_release_reference((ebpf_object_t*)map);
+    return result;
+}
+
 static void*
 _ebpf_core_map_find_element(ebpf_map_t* map, const uint8_t* key)
 {
@@ -1453,6 +1475,12 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
 
     // EBPF_OPERATION_BIND_MAP
     {(ebpf_result_t(__cdecl*)(const void*))_ebpf_core_protocol_bind_map, sizeof(ebpf_operation_bind_map_request_t), 0},
+
+    // EBPF_OPERATION_WAIT_FOR_MAP_CHANGE
+    {(ebpf_result_t(__cdecl*)(const void*))_ebpf_core_protocol_wait_for_map_change,
+     sizeof(ebpf_operation_wait_for_map_change_request_t),
+     0,
+     true},
 };
 
 ebpf_result_t
@@ -1519,14 +1547,14 @@ ebpf_core_invoke_protocol_handler(
         }
     }
 
-    if (output_buffer == NULL)
-        retval = _ebpf_protocol_handlers[operation_id].dispatch.protocol_handler_no_reply(input_buffer);
-    else if (!async_context)
-        retval = _ebpf_protocol_handlers[operation_id].dispatch.protocol_handler_with_reply(
-            input_buffer, output_buffer, output_buffer_length);
-    else
+    if (async_context)
         retval = _ebpf_protocol_handlers[operation_id].dispatch.async_protocol_handler_with_reply(
             input_buffer, output_buffer, output_buffer_length, async_context);
+    else if (output_buffer == NULL)
+        retval = _ebpf_protocol_handlers[operation_id].dispatch.protocol_handler_no_reply(input_buffer);
+    else
+        retval = _ebpf_protocol_handlers[operation_id].dispatch.protocol_handler_with_reply(
+            input_buffer, output_buffer, output_buffer_length);
 
 Done:
     if (epoch_entered)

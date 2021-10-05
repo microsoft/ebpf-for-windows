@@ -80,6 +80,7 @@ EXPORTS
     ebpf_api_close_handle
     ebpf_api_get_pinned_map_info
     ebpf_api_map_info_free
+    ebpf_api_map_wait_for_change
     ebpf_create_map
     ebpf_create_map_name
     ebpf_free_string

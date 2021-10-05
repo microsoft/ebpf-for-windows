@@ -84,10 +84,6 @@ GlueDeviceIoControl(
         goto Fail;
     }
 
-    if (async) {
-        ebpf_completion_set_completion_callback(lpOverlapped, _complete_overlapped);
-    }
-
     if (minimum_reply_size > 0) {
         user_reply = reinterpret_cast<decltype(user_reply)>(lpOutBuffer);
         if (!user_reply) {
@@ -104,7 +100,12 @@ GlueDeviceIoControl(
     }
 
     result = ebpf_core_invoke_protocol_handler(
-        request_id, user_request, user_reply, static_cast<uint16_t>(nOutBufferSize), nullptr, nullptr);
+        request_id,
+        user_request,
+        user_reply,
+        static_cast<uint16_t>(nOutBufferSize),
+        lpOverlapped,
+        _complete_overlapped);
 
     if (result != EBPF_SUCCESS)
         goto Fail;

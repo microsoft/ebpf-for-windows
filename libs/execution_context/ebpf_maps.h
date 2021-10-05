@@ -187,6 +187,9 @@ extern "C"
         _Out_writes_to_(*info_size, *info_size) uint8_t* buffer,
         _Inout_ uint16_t* info_size);
 
+    ebpf_result_t
+    ebpf_map_wait_for_change(_Inout_ ebpf_map_t* map, _In_ void* async_context);
+
 #ifdef __cplusplus
 }
 #endif

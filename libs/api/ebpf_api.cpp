@@ -2241,3 +2241,15 @@ ebpf_program_bind_map(fd_t program_fd, fd_t map_fd)
 
     return windows_error_to_ebpf_result(invoke_ioctl(request));
 }
+
+ebpf_result_t
+ebpf_api_map_wait_for_change(fd_t map_fd, OVERLAPPED* overlapped)
+{
+    ebpf_handle_t map_handle = _get_handle_from_file_descriptor(map_fd);
+    if (map_handle == ebpf_handle_invalid) {
+        return EBPF_INVALID_FD;
+    }
+    ebpf_operation_wait_for_map_change_request_t request{
+        sizeof(request), EBPF_OPERATION_WAIT_FOR_MAP_CHANGE, map_handle};
+    return windows_error_to_ebpf_result(invoke_ioctl(request, _empty_reply, overlapped));
+}

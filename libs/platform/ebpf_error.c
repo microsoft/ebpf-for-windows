@@ -62,6 +62,10 @@ ebpf_result_to_ntstatus(ebpf_result_t result)
         status = STATUS_UNSUCCESSFUL;
         break;
     }
+    case EBPF_PENDING: {
+        status = STATUS_PENDING;
+        break;
+    }
     default:
         status = STATUS_UNSUCCESSFUL;
     }
