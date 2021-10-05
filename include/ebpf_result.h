@@ -100,6 +100,9 @@ extern "C"
 
         // Requested action is still pending.
         EBPF_PENDING,
+
+      // The container can not hold additional elements.
+        EBPF_OUT_OF_SPACE,
     } ebpf_result_t;
 
 #ifdef __cplusplus

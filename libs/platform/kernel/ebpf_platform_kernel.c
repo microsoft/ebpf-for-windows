@@ -14,6 +14,14 @@ typedef struct _ebpf_memory_descriptor
     MDL memory_descriptor_list;
 } ebpf_memory_descriptor_t;
 
+struct _ebpf_ring_descriptor
+{
+    MDL* memory_descriptor_list;
+    ebpf_memory_descriptor_t* memory;
+    void* base_address;
+};
+typedef struct _ebpf_ring_descriptor ebpf_ring_descriptor_t;
+
 typedef enum _ebpf_pool_tag
 {
     EBPF_POOL_TAG = 'fpbe'
@@ -101,7 +109,6 @@ ebpf_map_memory(size_t length)
             memory_descriptor_list = NULL;
         }
     }
-
     return (ebpf_memory_descriptor_t*)memory_descriptor_list;
 }
 
@@ -149,6 +156,111 @@ ebpf_memory_descriptor_get_base_address(ebpf_memory_descriptor_t* memory_descrip
     return MmGetSystemAddressForMdlSafe(&memory_descriptor->memory_descriptor_list, NormalPagePriority);
 }
 
+_Ret_maybenull_ ebpf_ring_descriptor_t*
+ebpf_allocate_ring_buffer_memory(size_t length)
+{
+    NTSTATUS status;
+    size_t requested_page_count = length / PAGE_SIZE;
+
+    ebpf_ring_descriptor_t* ring_descriptor = ebpf_allocate(sizeof(ebpf_ring_descriptor_t));
+    MDL* source_mdl = NULL;
+
+    if (!ring_descriptor) {
+        status = STATUS_NO_MEMORY;
+        goto Done;
+    }
+
+    if (length % PAGE_SIZE != 0 || length > MAXUINT32 / 2) {
+        status = STATUS_NO_MEMORY;
+        goto Done;
+    }
+
+    // Allocate pages using ebpf_map_memory.
+    ring_descriptor->memory = ebpf_map_memory(requested_page_count * PAGE_SIZE);
+    if (!ring_descriptor->memory) {
+        status = STATUS_NO_MEMORY;
+        goto Done;
+    }
+    source_mdl = &ring_descriptor->memory->memory_descriptor_list;
+
+    // Create a MDL big enough to double map the pages.
+    ring_descriptor->memory_descriptor_list = IoAllocateMdl(
+        ebpf_memory_descriptor_get_base_address(ring_descriptor->memory),
+        (uint32_t)(requested_page_count * 2 * PAGE_SIZE),
+        FALSE,
+        FALSE,
+        NULL);
+    if (!ring_descriptor->memory_descriptor_list) {
+        status = STATUS_NO_MEMORY;
+        goto Done;
+    }
+
+    memcpy(
+        MmGetMdlPfnArray(ring_descriptor->memory_descriptor_list),
+        MmGetMdlPfnArray(source_mdl),
+        sizeof(PFN_NUMBER) * requested_page_count);
+
+    memcpy(
+        MmGetMdlPfnArray(ring_descriptor->memory_descriptor_list) + requested_page_count,
+        MmGetMdlPfnArray(source_mdl),
+        sizeof(PFN_NUMBER) * requested_page_count);
+
+    ring_descriptor->base_address = MmMapLockedPagesSpecifyCache(
+        ring_descriptor->memory_descriptor_list, KernelMode, MmCached, NULL, FALSE, NormalPagePriority);
+    if (!ring_descriptor->base_address) {
+        status = STATUS_NO_MEMORY;
+        goto Done;
+    }
+
+    status = STATUS_SUCCESS;
+
+Done:
+    if (!NT_SUCCESS(status)) {
+        if (ring_descriptor) {
+            if (ring_descriptor->memory_descriptor_list) {
+                IoFreeMdl(ring_descriptor->memory_descriptor_list);
+            }
+            if (ring_descriptor->memory) {
+                ebpf_unmap_memory(ring_descriptor->memory);
+            }
+            ebpf_free(ring_descriptor);
+            ring_descriptor = NULL;
+        }
+    }
+
+    return ring_descriptor;
+}
+
+void
+ebpf_free_ring_buffer_memory(_Frees_ptr_opt_ ebpf_ring_descriptor_t* ring)
+{
+    if (!ring) {
+        return;
+    }
+
+    MmUnmapLockedPages(ring->base_address, ring->memory_descriptor_list);
+
+    IoFreeMdl(ring->memory_descriptor_list);
+    ebpf_unmap_memory(ring->memory);
+    ebpf_free(ring);
+}
+
+void*
+ebpf_ring_descriptor_get_base_address(_In_ ebpf_ring_descriptor_t* memory_descriptor)
+{
+    return memory_descriptor->base_address;
+}
+
+_Ret_maybenull_ void*
+ebpf_ring_map_readonly_user(_In_ ebpf_ring_descriptor_t* ring)
+{
+    __try {
+        return MmMapLockedPagesSpecifyCache(
+            ring->memory_descriptor_list, UserMode, MmCached, NULL, FALSE, NormalPagePriority | MdlMappingNoWrite);
+    } __except (EXCEPTION_EXECUTE_HANDLER) {
+        return NULL;
+    }
+}
 // There isn't an official API to query this information from kernel.
 // Use NtQuerySystemInformation with struct + header from winternl.h.
 
