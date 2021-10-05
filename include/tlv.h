@@ -16,8 +16,8 @@ typedef enum class _tlv_type
 
 typedef struct _tlv_type_length_value
 {
-    uint16_t type : 16;
-    uint16_t length : 16;
+    uint32_t type : 4;
+    uint32_t length : 28;
     unsigned char value[1];
 } tlv_type_length_value_t;
 
