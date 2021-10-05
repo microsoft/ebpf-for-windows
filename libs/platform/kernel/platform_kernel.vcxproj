@@ -62,7 +62,7 @@
     <ClInclude Include="..\..\..\include\ebpf_structs.h" />
     <ClInclude Include="..\..\..\include\ebpf_windows.h" />
     <ClInclude Include="..\ebpf_bitmap.h" />
-    <ClInclude Include="..\ebpf_completion.h" />
+    <ClInclude Include="..\ebpf_async.h" />
     <ClInclude Include="..\ebpf_epoch.h" />
     <ClInclude Include="..\ebpf_handle.h" />
     <ClInclude Include="..\ebpf_object.h" />

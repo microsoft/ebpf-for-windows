@@ -1541,7 +1541,7 @@ ebpf_core_invoke_protocol_handler(
     epoch_entered = true;
 
     if (async_context) {
-        retval = ebpf_completion_set_completion_callback(async_context, on_complete);
+        retval = ebpf_async_set_completion_callback(async_context, on_complete);
         if (retval != EBPF_SUCCESS) {
             goto Done;
         }
@@ -1568,5 +1568,5 @@ Done:
 bool
 ebpf_core_cancel_protocol_handler(_In_ void* async_context)
 {
-    return ebpf_completion_cancel(async_context);
+    return ebpf_async_cancel(async_context);
 }

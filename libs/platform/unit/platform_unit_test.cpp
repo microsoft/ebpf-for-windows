@@ -37,7 +37,7 @@ class _test_helper
         REQUIRE(ebpf_epoch_initiate() == EBPF_SUCCESS);
         epoch_initated = true;
         REQUIRE(ebpf_async_initiate() == EBPF_SUCCESS);
-        async_initiated = true;
+        completion_initiated = true;
     }
     ~_test_helper()
     {
@@ -724,12 +724,13 @@ TEST_CASE("async", "[platform]")
             bool cancelled;
         } cancellation_context = {false};
 
-        REQUIRE(ebpf_async_set_completion_callback(&async_context, [](_Inout_ void* context, ebpf_result_t result) {
-                    auto async_context = reinterpret_cast<_async_context*>(context);
-                    async_context->result = result;
+        REQUIRE(
+            ebpf_async_set_completion_callback(&completion_context, [](_Inout_ void* context, ebpf_result_t result) {
+                auto completion_context = reinterpret_cast<_completion_context*>(context);
+                completion_context->result = result;
             }) == EBPF_SUCCESS);
 
-        REQUIRE(ebpf_async_set_cancel_callback(&async_context, &cancellation_context, [](void* context) {
+        REQUIRE(ebpf_async_set_cancel_callback(&completion_context, &cancellation_context, [](void* context) {
                     auto cancellation_context = reinterpret_cast<_cancellation_context*>(context);
                     cancellation_context->cancelled = true;
                 }) == EBPF_SUCCESS);
@@ -737,15 +738,15 @@ TEST_CASE("async", "[platform]")
         REQUIRE(!cancellation_context.cancelled);
 
         if (complete) {
-            ebpf_async_complete(&async_context, EBPF_SUCCESS);
-            REQUIRE(async_context.result == EBPF_SUCCESS);
+            REQUIRE(ebpf_async_complete(&completion_context, EBPF_SUCCESS));
+            REQUIRE(completion_context.result == EBPF_SUCCESS);
             REQUIRE(!cancellation_context.cancelled);
-            REQUIRE(!ebpf_async_cancel(&async_context));
+            REQUIRE(!ebpf_async_cancel(&completion_context));
         } else {
-            REQUIRE(ebpf_async_cancel(&async_context));
-            REQUIRE(async_context.result == EBPF_PENDING);
+            REQUIRE(ebpf_async_cancel(&completion_context));
+            REQUIRE(completion_context.result == EBPF_PENDING);
             REQUIRE(cancellation_context.cancelled);
-            REQUIRE(ebpf_completion_complete(&completion_context, EBPF_SUCCESS));
+            REQUIRE(ebpf_async_complete(&completion_context, EBPF_SUCCESS));
         }
     };
 

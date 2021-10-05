@@ -5,7 +5,7 @@
 
 #include <optional>
 #include "catch_wrapper.hpp"
-#include "ebpf_completion.h"
+#include "ebpf_async.h"
 #include "ebpf_core.h"
 #include "ebpf_maps.h"
 #include "ebpf_object.h"
@@ -677,7 +677,7 @@ TEST_CASE("map_notification", "[execution_context]")
         bool completed = false;
     } completion;
 
-    REQUIRE(ebpf_completion_set_completion_callback(&completion, [](void* context, ebpf_result_t result) {
+    REQUIRE(ebpf_async_set_completion_callback(&completion, [](void* context, ebpf_result_t result) {
                 auto completion = reinterpret_cast<_completion*>(context);
                 completion->completed = true;
                 REQUIRE(result == EBPF_SUCCESS);

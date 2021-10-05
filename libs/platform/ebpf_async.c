@@ -94,19 +94,19 @@ ebpf_async_cancel(_In_ void* context)
     return true;
 }
 
-void
+bool
 ebpf_async_complete(_In_ void* context, ebpf_result_t result)
 {
     ebpf_async_tracker_t* tracker = _tracker_from_context(context);
     if (!tracker) {
-        ebpf_assert(!"Async action was double completed");
-        return;
+        return false;
     }
     void (*on_complete)(_In_ void* context, ebpf_result_t result) = tracker->on_complete;
-    if (!_remove_tracker(context)) {
-        ebpf_assert(!"Async action was double completed");
-        return;
+    if (_remove_tracker(context)) {
+        if (on_complete)
+            on_complete(context, result);
+        return true;
+    } else {
+        return false;
     }
-    if (on_complete)
-        on_complete(context, result);
 }

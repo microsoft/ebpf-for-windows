@@ -114,7 +114,7 @@
     <ClInclude Include="..\ebpf_bitmap.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\ebpf_completion.h">
+    <ClInclude Include="..\ebpf_async.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ebpf_ring_buffer.h">

@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include "ebpf_async.h"
 #include "ebpf_bitmap.h"
-#include "ebpf_completion.h"
 #include "ebpf_epoch.h"
 #include "ebpf_handle.h"
 #include "ebpf_maps.h"
@@ -1613,7 +1613,7 @@ _ebpf_map_cancel_context(_In_ void* cancel_context)
     ebpf_lock_state_t state = ebpf_lock_lock(&context->map->lock);
     ebpf_list_remove_entry(&context->entry);
     ebpf_lock_unlock(&context->map->lock, state);
-    ebpf_completion_complete(context->async_context, EBPF_SUCCESS);
+    ebpf_async_complete(context->async_context, EBPF_SUCCESS);
     ebpf_free(context);
 }
 
@@ -1636,7 +1636,7 @@ ebpf_map_wait_for_change(_Inout_ ebpf_map_t* map, _In_ void* async_context)
     }
     ebpf_lock_unlock(&map->lock, state);
 
-    ebpf_completion_set_cancel_callback(async_context, map, _ebpf_map_cancel_context);
+    ebpf_async_set_cancel_callback(async_context, map, _ebpf_map_cancel_context);
     return EBPF_PENDING;
 }
 
@@ -1653,7 +1653,7 @@ _ebpf_map_signal_async_contexts(_In_ ebpf_core_map_t* map)
         ebpf_core_map_async_context_t* context =
             EBPF_FROM_FIELD(ebpf_core_map_async_context_t, entry, map->async_contexts.Flink);
         ebpf_list_remove_entry(&context->entry);
-        ebpf_completion_complete(context->async_context, EBPF_SUCCESS);
+        ebpf_async_complete(context->async_context, EBPF_SUCCESS);
         ebpf_free(context);
     }
     ebpf_lock_unlock(&map->lock, state);

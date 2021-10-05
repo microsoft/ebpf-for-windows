@@ -5,7 +5,7 @@
 #include "bpf/bpf.h"
 #include "catch_wrapper.hpp"
 #include "ebpf_api.h"
-#include "ebpf_completion.h"
+#include "ebpf_async.h"
 #include "ebpf_core.h"
 #include "helpers.h"
 #include "mock.h"
