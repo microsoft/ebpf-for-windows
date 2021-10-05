@@ -60,57 +60,6 @@ _ebpf_driver_io_device_control(
     size_t input_buffer_length,
     ULONG io_control_code);
 
-// This should be consistent with windows_error_to_ebpf_result()
-// in api_common.hpp.
-inline NTSTATUS
-_ebpf_result_to_ntstatus(ebpf_result_t result)
-{
-    NTSTATUS status;
-    switch (result) {
-    case EBPF_SUCCESS: {
-        status = STATUS_SUCCESS;
-        break;
-    }
-    case EBPF_NO_MEMORY: {
-        status = STATUS_INSUFFICIENT_RESOURCES;
-        break;
-    }
-    case EBPF_KEY_NOT_FOUND: {
-        status = STATUS_NOT_FOUND;
-        break;
-    }
-    case EBPF_INVALID_ARGUMENT:
-    case EBPF_INVALID_OBJECT: {
-        status = STATUS_INVALID_PARAMETER;
-        break;
-    }
-    case EBPF_BLOCKED_BY_POLICY: {
-        status = STATUS_CONTENT_BLOCKED;
-        break;
-    }
-    case EBPF_NO_MORE_KEYS: {
-        status = STATUS_NO_MORE_MATCHES;
-        break;
-    }
-    case EBPF_INVALID_FD: {
-        status = STATUS_INVALID_HANDLE;
-        break;
-    }
-    case EBPF_OPERATION_NOT_SUPPORTED: {
-        status = STATUS_NOT_SUPPORTED;
-        break;
-    }
-    case EBPF_INSUFFICIENT_BUFFER: {
-        status = STATUS_BUFFER_OVERFLOW;
-        break;
-    }
-    default:
-        status = STATUS_UNSUCCESSFUL;
-    }
-
-    return status;
-}
-
 static _Function_class_(EVT_WDF_DRIVER_UNLOAD) _IRQL_requires_same_
     _IRQL_requires_max_(PASSIVE_LEVEL) void _ebpf_driver_unload(_In_ WDFDRIVER driver_object)
 {
@@ -229,7 +178,7 @@ _ebpf_driver_initialize_objects(
         goto Exit;
     }
 
-    status = _ebpf_result_to_ntstatus(ebpf_core_initiate());
+    status = ebpf_result_to_ntstatus(ebpf_core_initiate());
     if (!NT_SUCCESS(status)) {
         goto Exit;
     }
@@ -254,6 +203,22 @@ _ebpf_driver_file_close(WDFFILEOBJECT wdf_file_object)
 {
     FILE_OBJECT* file_object = WdfFileObjectWdmGetFileObject(wdf_file_object);
     ebpf_object_release_reference(file_object->FsContext2);
+}
+
+static void
+_ebpf_driver_io_device_control_complete(void* context, ebpf_result_t result)
+{
+    WDFREQUEST request = (WDFREQUEST)context;
+    WdfRequestComplete(request, ebpf_result_to_ntstatus(result));
+    WdfObjectDereference(request);
+}
+
+static void
+_ebpf_driver_io_device_control_cancel(WDFREQUEST request)
+{
+    ebpf_core_cancel_protocol_handler(request);
+    WdfRequestComplete(request, STATUS_CANCELLED);
+    WdfObjectDereference(request);
 }
 
 static VOID
@@ -301,6 +266,8 @@ _ebpf_driver_io_device_control(
             if (input_buffer != NULL) {
                 size_t minimum_request_size = 0;
                 size_t minimum_reply_size = 0;
+                bool async = false;
+                void* async_context = NULL;
 
                 user_request = input_buffer;
                 if (actual_input_length < sizeof(struct _ebpf_operation_header)) {
@@ -308,8 +275,8 @@ _ebpf_driver_io_device_control(
                     goto Done;
                 }
 
-                status = _ebpf_result_to_ntstatus(ebpf_core_get_protocol_handler_properties(
-                    user_request->id, &minimum_request_size, &minimum_reply_size));
+                status = ebpf_result_to_ntstatus(ebpf_core_get_protocol_handler_properties(
+                    user_request->id, &minimum_request_size, &minimum_reply_size, &async));
                 if (status != STATUS_SUCCESS)
                     goto Done;
 
@@ -335,8 +302,19 @@ _ebpf_driver_io_device_control(
                     user_reply = output_buffer;
                 }
 
-                status = _ebpf_result_to_ntstatus(ebpf_core_invoke_protocol_handler(
-                    user_request->id, user_request, user_reply, (uint16_t)actual_output_length));
+                if (async) {
+                    WdfObjectReference(request);
+                    async_context = request;
+                    WdfRequestMarkCancelable(request, _ebpf_driver_io_device_control_cancel);
+                }
+
+                status = ebpf_result_to_ntstatus(ebpf_core_invoke_protocol_handler(
+                    user_request->id,
+                    user_request,
+                    user_reply,
+                    (uint16_t)actual_output_length,
+                    async_context,
+                    _ebpf_driver_io_device_control_complete));
 
                 // Fill out the rest of the out buffer after processing the input
                 // buffer.

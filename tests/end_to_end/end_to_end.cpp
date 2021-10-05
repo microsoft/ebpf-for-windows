@@ -1075,7 +1075,7 @@ TEST_CASE("link_tests", "[end_to_end]")
     REQUIRE(program != nullptr);
 
     // Test the case where the provider only permits a single program to be attached.
-    REQUIRE(hook.attach(program) == EBPF_INVALID_ARGUMENT);
+    REQUIRE(hook.attach(program) == EBPF_FAILED);
 
     hook.detach();
 }

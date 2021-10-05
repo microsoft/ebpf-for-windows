@@ -132,6 +132,7 @@ windows_error_to_ebpf_result(uint32_t error)
         break;
 
     case ERROR_OBJECT_ALREADY_EXISTS:
+    case ERROR_OBJECT_NAME_EXISTS:
         result = EBPF_OBJECT_ALREADY_EXISTS;
         break;
 

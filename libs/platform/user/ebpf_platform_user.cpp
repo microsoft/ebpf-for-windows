@@ -668,3 +668,18 @@ ebpf_validate_security_descriptor(
 Done:
     return result;
 }
+
+unsigned long
+ebpf_result_to_win32(ebpf_result_t result)
+{
+    static ULONG (*RtlNtStatusToDosError)(NTSTATUS Status) = NULL;
+    if (!RtlNtStatusToDosError) {
+        HMODULE ntdll = LoadLibrary(L"ntdll.dll");
+        if (!ntdll) {
+            return ERROR_OUTOFMEMORY;
+        }
+        RtlNtStatusToDosError =
+            reinterpret_cast<decltype(RtlNtStatusToDosError)>(GetProcAddress(ntdll, "RtlNtStatusToDosError"));
+    }
+    return RtlNtStatusToDosError(ebpf_result_to_ntstatus(result));
+}
