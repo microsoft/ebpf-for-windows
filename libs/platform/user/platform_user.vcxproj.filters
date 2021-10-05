@@ -58,6 +58,9 @@
     <ClCompile Include="..\ebpf_bitmap.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\ebpf_ring_buffer.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Midl Include="..\ebpf_program_types.idl">
@@ -92,6 +95,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ebpf_bitmap.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ebpf_ring_buffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

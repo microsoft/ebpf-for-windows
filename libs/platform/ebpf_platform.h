@@ -156,6 +156,7 @@ extern "C"
     } ebpf_page_protection_t;
 
     typedef struct _ebpf_memory_descriptor ebpf_memory_descriptor_t;
+    typedef struct _ebpf_ring_descriptor ebpf_ring_descriptor_t;
 
     /**
      * @brief Allocate pages from physical memory and create a mapping into the
@@ -200,6 +201,46 @@ extern "C"
      */
     void*
     ebpf_memory_descriptor_get_base_address(ebpf_memory_descriptor_t* memory_descriptor);
+
+    /**
+     * @brief Allocate pages from physical memory and create a mapping into the
+     * system address space with the same pages mapped twice.
+     *
+     * @param[in] length Size of memory to allocate (internally this gets rounded
+     * up to a page boundary).
+     * @return Pointer to an ebpf_memory_descriptor_t on success, NULL on failure.
+     */
+    _Ret_maybenull_ ebpf_ring_descriptor_t*
+    ebpf_allocate_ring_buffer_memory(size_t length);
+
+    /**
+     * @brief Release physical memory previously allocated via ebpf_allocate_ring_buffer_memory.
+     *
+     * @param[in] memory_descriptor Pointer to ebpf_ring_descriptor_t describing
+     * allocated pages.
+     */
+    void
+    ebpf_free_ring_buffer_memory(_Frees_ptr_opt_ ebpf_ring_descriptor_t* ring);
+
+    /**
+     * @brief Given an ebpf_ring_descriptor_t allocated via ebpf_allocate_ring_buffer_memory
+     * obtain the base virtual address.
+     *
+     * @param[in] memory_descriptor Pointer to an ebpf_ring_descriptor_t
+     * describing allocated pages.
+     * @return Base virtual address of pages that have been allocated.
+     */
+    void*
+    ebpf_ring_descriptor_get_base_address(_In_ ebpf_ring_descriptor_t* ring);
+
+    /**
+     * @brief Create a read-only mapping in the calling process of the ring buffer.
+     *
+     * @param[in] ring Ring buffer to map.
+     * @return Pointer to the base of the ring buffer.
+     */
+    _Ret_maybenull_ void*
+    ebpf_ring_map_readonly_user(_In_ ebpf_ring_descriptor_t* ring);
 
     /**
      * @brief Allocate and copy a UTF-8 string.

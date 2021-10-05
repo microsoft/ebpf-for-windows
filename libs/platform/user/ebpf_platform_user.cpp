@@ -88,6 +88,14 @@ struct _ebpf_memory_descriptor
 };
 typedef struct _ebpf_memory_descriptor ebpf_memory_descriptor_t;
 
+struct _ebpf_ring_descriptor
+{
+    void* primary_view;
+    void* secondary_view;
+    size_t length;
+};
+typedef struct _ebpf_ring_descriptor ebpf_ring_descriptor_t;
+
 ebpf_memory_descriptor_t*
 ebpf_map_memory(size_t length)
 {
@@ -113,6 +121,155 @@ ebpf_unmap_memory(_Frees_ptr_opt_ ebpf_memory_descriptor_t* memory_descriptor)
         VirtualFree(memory_descriptor->base, 0, MEM_RELEASE);
         free(memory_descriptor);
     }
+}
+
+// This code is derived from the sample at:
+// https://docs.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualalloc2
+
+_Ret_maybenull_ ebpf_ring_descriptor_t*
+ebpf_allocate_ring_buffer_memory(size_t length)
+{
+    bool result = false;
+    HANDLE section = nullptr;
+    SYSTEM_INFO sysInfo;
+    uint8_t* placeholder1 = nullptr;
+    uint8_t* placeholder2 = nullptr;
+    void* view1 = nullptr;
+    void* view2 = nullptr;
+
+    GetSystemInfo(&sysInfo);
+
+    if ((length % sysInfo.dwAllocationGranularity) != 0) {
+        return nullptr;
+    }
+
+    if (length == 0) {
+        return nullptr;
+    }
+
+    ebpf_ring_descriptor_t* descriptor = (ebpf_ring_descriptor_t*)ebpf_allocate(sizeof(ebpf_ring_descriptor_t));
+    if (!descriptor) {
+        goto Exit;
+    }
+    descriptor->length = length;
+
+    //
+    // Reserve a placeholder region where the buffer will be mapped.
+    //
+    placeholder1 = reinterpret_cast<uint8_t*>(
+        VirtualAlloc2(nullptr, nullptr, 2 * length, MEM_RESERVE | MEM_RESERVE_PLACEHOLDER, PAGE_NOACCESS, nullptr, 0));
+
+    if (placeholder1 == nullptr) {
+        goto Exit;
+    }
+
+#pragma warning(push)
+#pragma warning(disable : 6333)  // Invalid parameter:  passing MEM_RELEASE and a non-zero dwSize parameter to
+                                 // 'VirtualFree' is not allowed.  This causes the call to fail.
+#pragma warning(disable : 28160) // Passing MEM_RELEASE and a non-zero dwSize parameter to VirtualFree is not allowed.
+                                 // This results in the failure of this call.
+    //
+    // Split the placeholder region into two regions of equal size.
+    //
+    result = VirtualFree(placeholder1, length, MEM_RELEASE | MEM_PRESERVE_PLACEHOLDER);
+    if (result == FALSE) {
+        goto Exit;
+    }
+#pragma warning(pop)
+    placeholder2 = placeholder1 + length;
+
+    //
+    // Create a pagefile-backed section for the buffer.
+    //
+
+    section = CreateFileMapping(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, 0, static_cast<DWORD>(length), nullptr);
+    if (section == nullptr) {
+        goto Exit;
+    }
+
+    //
+    // Map the section into the first placeholder region.
+    //
+    view1 =
+        MapViewOfFile3(section, nullptr, placeholder1, 0, length, MEM_REPLACE_PLACEHOLDER, PAGE_READWRITE, nullptr, 0);
+    if (view1 == nullptr) {
+        goto Exit;
+    }
+
+    //
+    // Ownership transferred, don't free this now.
+    //
+    placeholder1 = nullptr;
+
+    //
+    // Map the section into the second placeholder region.
+    //
+    view2 =
+        MapViewOfFile3(section, nullptr, placeholder2, 0, length, MEM_REPLACE_PLACEHOLDER, PAGE_READWRITE, nullptr, 0);
+    if (view2 == nullptr) {
+        goto Exit;
+    }
+
+    result = true;
+
+    //
+    // Success, return both mapped views to the caller.
+    //
+    descriptor->primary_view = view1;
+    descriptor->secondary_view = view2;
+
+    placeholder2 = nullptr;
+    view1 = nullptr;
+    view2 = nullptr;
+Exit:
+    if (!result) {
+        ebpf_free(descriptor);
+        descriptor = nullptr;
+    }
+
+    if (section != nullptr) {
+        CloseHandle(section);
+    }
+
+    if (placeholder1 != nullptr) {
+        VirtualFree(placeholder1, 0, MEM_RELEASE);
+    }
+
+    if (placeholder2 != nullptr) {
+        VirtualFree(placeholder2, 0, MEM_RELEASE);
+    }
+
+    if (view1 != nullptr) {
+        UnmapViewOfFileEx(view1, 0);
+    }
+
+    if (view2 != nullptr) {
+        UnmapViewOfFileEx(view2, 0);
+    }
+
+    return descriptor;
+}
+
+void
+ebpf_free_ring_buffer_memory(_Frees_ptr_opt_ ebpf_ring_descriptor_t* ring)
+{
+    if (ring) {
+        UnmapViewOfFile(ring->primary_view);
+        UnmapViewOfFile(ring->secondary_view);
+        ebpf_free(ring);
+    }
+}
+
+void*
+ebpf_ring_descriptor_get_base_address(_In_ ebpf_ring_descriptor_t* ring_descriptor)
+{
+    return ring_descriptor->primary_view;
+}
+
+_Ret_maybenull_ void*
+ebpf_ring_map_readonly_user(_In_ ebpf_ring_descriptor_t* ring)
+{
+    return ebpf_ring_descriptor_get_base_address(ring);
 }
 
 ebpf_result_t

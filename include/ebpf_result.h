@@ -97,6 +97,9 @@ extern "C"
 
         /// Caller has reached tail call limit.
         EBPF_NO_MORE_TAIL_CALLS,
+
+        // The container can not hold additional elements.
+        EBPF_OUT_OF_SPACE,
     } ebpf_result_t;
 
 #ifdef __cplusplus
