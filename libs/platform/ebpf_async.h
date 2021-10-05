@@ -4,24 +4,24 @@
 // Library to tie an asynchronous action initiator and an action handler together.
 // The flow is as follows:
 //
-// 1) Action initiator calls ebpf_completion_set_completion_callback to associate their context with a completion
+// 1) Action initiator calls ebpf_async_set_completion_callback to associate their context with a completion
 // method.
 //
 // 2) Action initiator calls handler to start the asynchronous action.
 //
-// 3) Action handler calls ebpf_completion_set_cancel_callback to permit it to be notified if a cancellation occurs.
+// 3) Action handler calls ebpf_async_set_cancel_callback to permit it to be notified if a cancellation occurs.
 //
 // 4) Action handler starts the asynchronous operation and returns to action initiator.
 //
-// 5) a) Success path: Action handler calls ebpf_completion_complete to notify the action initiator that the action has
+// 5) a) Success path: Action handler calls ebpf_async_complete to notify the action initiator that the action has
 // completed.
 //
-// 5) b) Cancellation path: Action initiator calls ebpf_completion_cancel to notify the action handler that
+// 5) b) Cancellation path: Action initiator calls ebpf_async_cancel to notify the action handler that
 // the request has been canceled.
 //
 // Notes:
 //
-// 1) ebpf_completion_complete and ebpf_completion_cancel can be called
+// 1) ebpf_async_complete and ebpf_async_cancel can be called
 // concurrently, with one becoming a no-op.
 //
 // 2) Action initiator must not re-use context until after prior actions are
@@ -38,21 +38,21 @@ extern "C"
 #endif
 
     /**
-     * @brief Initialize the completion tracking module.
+     * @brief Initialize the async module.
      *
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  operation.
      */
     ebpf_result_t
-    ebpf_completion_initiate();
+    ebpf_async_initiate();
 
     /**
-     * @brief Shut down the completion tracking module.
+     * @brief Shut down the async module.
      *
      */
     void
-    ebpf_completion_terminate();
+    ebpf_async_terminate();
 
     /**
      * @brief Set a completion function to be called when actions associated with this context complete.
@@ -65,7 +65,7 @@ extern "C"
      *  operation.
      */
     ebpf_result_t
-    ebpf_completion_set_completion_callback(
+    ebpf_async_set_completion_callback(
         _In_ void* context, _In_ void (*on_complete)(_In_ void* context, ebpf_result_t result));
 
     /**
@@ -78,7 +78,7 @@ extern "C"
      * @retval EBPF_INVALID_ARGUMENT The action context hasn't been registered.
      */
     ebpf_result_t
-    ebpf_completion_set_cancel_callback(
+    ebpf_async_set_cancel_callback(
         _In_ void* context, _In_ void* cancellation_context, _In_ void (*on_cancel)(_In_ void* cancellation_context));
 
     /**
@@ -89,7 +89,7 @@ extern "C"
      * @retval false Action was already completed.
      */
     bool
-    ebpf_completion_cancel(_In_ void* context);
+    ebpf_async_cancel(_In_ void* context);
 
     /**
      * @brief Complete the action associated with this context.
@@ -100,7 +100,7 @@ extern "C"
      * @retval false Action was already completed.
      */
     bool
-    ebpf_completion_complete(_In_ void* context, ebpf_result_t result);
+    ebpf_async_complete(_In_ void* context, ebpf_result_t result);
 
 #ifdef __cplusplus
 }

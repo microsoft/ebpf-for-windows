@@ -11,9 +11,9 @@
 #include <sddl.h>
 
 #include "catch_wrapper.hpp"
+#include "ebpf_async.h"
 #include "ebpf_bind_program_data.h"
 #include "ebpf_bitmap.h"
-#include "ebpf_completion.h"
 #include "ebpf_epoch.h"
 #include "ebpf_nethooks.h"
 #include "ebpf_platform.h"
@@ -35,7 +35,7 @@ class _test_helper
         platform_initiated = true;
         REQUIRE(ebpf_epoch_initiate() == EBPF_SUCCESS);
         epoch_initated = true;
-        REQUIRE(ebpf_completion_initiate() == EBPF_SUCCESS);
+        REQUIRE(ebpf_async_initiate() == EBPF_SUCCESS);
         completion_initiated = true;
     }
     ~_test_helper()
@@ -722,13 +722,12 @@ TEST_CASE("completion", "[platform]")
         } cancellation_context = {false};
 
         REQUIRE(
-            ebpf_completion_set_completion_callback(
-                &completion_context, [](_Inout_ void* context, ebpf_result_t result) {
-                    auto completion_context = reinterpret_cast<_completion_context*>(context);
-                    completion_context->result = result;
-                }) == EBPF_SUCCESS);
+            ebpf_async_set_completion_callback(&completion_context, [](_Inout_ void* context, ebpf_result_t result) {
+                auto completion_context = reinterpret_cast<_completion_context*>(context);
+                completion_context->result = result;
+            }) == EBPF_SUCCESS);
 
-        REQUIRE(ebpf_completion_set_cancel_callback(&completion_context, &cancellation_context, [](void* context) {
+        REQUIRE(ebpf_async_set_cancel_callback(&completion_context, &cancellation_context, [](void* context) {
                     auto cancellation_context = reinterpret_cast<_cancellation_context*>(context);
                     cancellation_context->cancelled = true;
                 }) == EBPF_SUCCESS);
@@ -736,15 +735,15 @@ TEST_CASE("completion", "[platform]")
         REQUIRE(!cancellation_context.cancelled);
 
         if (complete) {
-            REQUIRE(ebpf_completion_complete(&completion_context, EBPF_SUCCESS));
+            REQUIRE(ebpf_async_complete(&completion_context, EBPF_SUCCESS));
             REQUIRE(completion_context.result == EBPF_SUCCESS);
             REQUIRE(!cancellation_context.cancelled);
-            REQUIRE(!ebpf_completion_cancel(&completion_context));
+            REQUIRE(!ebpf_async_cancel(&completion_context));
         } else {
-            REQUIRE(ebpf_completion_cancel(&completion_context));
+            REQUIRE(ebpf_async_cancel(&completion_context));
             REQUIRE(completion_context.result == EBPF_PENDING);
             REQUIRE(cancellation_context.cancelled);
-            REQUIRE(!ebpf_completion_complete(&completion_context, EBPF_SUCCESS));
+            REQUIRE(!ebpf_async_complete(&completion_context, EBPF_SUCCESS));
         }
     };
 

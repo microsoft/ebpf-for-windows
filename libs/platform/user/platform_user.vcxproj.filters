@@ -58,7 +58,7 @@
     <ClCompile Include="..\ebpf_bitmap.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\ebpf_completion.c">
+    <ClCompile Include="..\ebpf_async.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -97,7 +97,7 @@
     <ClInclude Include="..\ebpf_bitmap.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\ebpf_completion.h">
+    <ClInclude Include="..\ebpf_async.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
