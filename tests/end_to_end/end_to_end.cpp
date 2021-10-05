@@ -404,7 +404,10 @@ bindmonitor_test(ebpf_execution_type_t execution_type)
     fd_t process_map_fd = bpf_object__find_map_fd_by_name(object, "process_map");
     REQUIRE(process_map_fd > 0);
     OVERLAPPED overlapped{};
-    overlapped.hEvent = CreateEvent(nullptr, false, false, nullptr);
+    HANDLE event = CreateEvent(nullptr, false, false, nullptr);
+    REQUIRE(event != INVALID_HANDLE_VALUE);
+    REQUIRE(event != 0);
+    overlapped.hEvent = event;
 
     REQUIRE(ebpf_api_map_wait_for_change(process_map_fd, &overlapped) == EBPF_PENDING);
 
@@ -419,7 +422,9 @@ bindmonitor_test(ebpf_execution_type_t execution_type)
     REQUIRE(emulate_bind(hook, fake_pid, "fake_app_1") == BIND_PERMIT);
     REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
 
-    REQUIRE(WaitForSingleObject(overlapped.hEvent, 0) == WAIT_OBJECT_0);
+    if (event) {
+        REQUIRE(WaitForSingleObject(event, 0) == WAIT_OBJECT_0);
+    }
 
     // Bind second port - success
     REQUIRE(emulate_bind(hook, fake_pid, "fake_app_1") == BIND_PERMIT);
