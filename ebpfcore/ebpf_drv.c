@@ -217,8 +217,6 @@ static void
 _ebpf_driver_io_device_control_cancel(WDFREQUEST request)
 {
     ebpf_core_cancel_protocol_handler(request);
-    WdfRequestComplete(request, STATUS_CANCELLED);
-    WdfObjectDereference(request);
 }
 
 static VOID

@@ -745,7 +745,7 @@ TEST_CASE("async", "[platform]")
             REQUIRE(ebpf_async_cancel(&async_context));
             REQUIRE(async_context.result == EBPF_PENDING);
             REQUIRE(cancellation_context.cancelled);
-            ebpf_async_complete(&async_context, EBPF_SUCCESS);
+            REQUIRE(ebpf_completion_complete(&completion_context, EBPF_SUCCESS));
         }
     };
 
