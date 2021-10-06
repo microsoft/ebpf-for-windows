@@ -153,6 +153,6 @@ function Invoke-CICDTests
         # Do nothing.
     }
 
-    # Stop the components, so that DV can catch leaks etc.
+    # Stop the components, so that Driver Verifier can catch memory leaks etc.
     Stop-eBPFComponents
 }

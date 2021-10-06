@@ -10,7 +10,7 @@ Push-Location $WorkingDirectory
 
 $TestVMCredential = Get-StoredCredential -Target $Target -ErrorAction Stop
 
-#Load other utility modules.
+# Load other utility modules.
 Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
 Import-Module .\config_test_vm.psm1 -Force -ArgumentList ($TestVMCredential.UserName, $TestVMCredential.Password, $WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
 

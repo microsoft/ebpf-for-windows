@@ -24,11 +24,11 @@ function Write-Log
     }
 }
 
-function New-Credentials
+function New-Credential
 {
-    param([Parameter(Mandatory=$True)][string] $Username,
+    param([Parameter(Mandatory=$True)][string] $UserName,
           [Parameter(Mandatory=$True)][SecureString] $AdminPassword)
 
-    $Credentials = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList  @($Username, $AdminPassword)
-    return $Credentials
+    $Credential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList  @($UserName, $AdminPassword)
+    return $Credential
 }

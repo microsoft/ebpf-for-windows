@@ -38,7 +38,7 @@ function Wait-AllVMsToInitialize
         }
         if ($ReadyList.Count -ne $VMList.Count) {
             Write-Log ("{0} of {1} VMs are ready." -f $ReadyList.Count, $VMList.Count)
-            #sleep for 30 seconds
+            # Sleep for 30 seconds.
             Start-Sleep -seconds 30
             $totalSleepTime += 30
         }
@@ -49,7 +49,7 @@ function Wait-AllVMsToInitialize
         throw ("Did not get heartbeat from one or more VMs 5 minutes after starting")
     }
 
-    $TestCred = New-Credentials -Username $UserName -AdminPassword $AdminPassword
+    $TestCredential = New-Credential -Username $UserName -AdminPassword $AdminPassword
     $ReadyList.Clear()
     $totalSleepTime = 0
 
@@ -58,7 +58,7 @@ function Wait-AllVMsToInitialize
             $VMName = $VM.Name
             if ($ReadyList[$VMName] -ne $True) {
                 Write-Log "Poking $VMName to see if it is ready to accept commands"
-                $ret = Invoke-Command -VMName $VMName -Credential $TestCred -ScriptBlock {$True} -ErrorAction SilentlyContinue
+                $ret = Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {$True} -ErrorAction SilentlyContinue
                 if ($ret -eq $True) {
                     $ReadyList += @{$VMName = $True}
                 } else {
@@ -69,7 +69,7 @@ function Wait-AllVMsToInitialize
         }
         if ($ReadyList.Count -ne $VMList.Count) {
             Write-Log "Waiting 30 seconds for $VMName to be responsive."
-            #sleep for 30 seconds
+            # Sleep for 30 seconds.
             Start-Sleep -seconds 30
             $totalSleepTime += 30
         }
@@ -157,7 +157,7 @@ function Stop-AllVMs
     param ([Parameter(Mandatory=$True)] $VMList)
 
     foreach ($VM in $VMList) {
-        # Stop the VM
+        # Stop the VM.
         $VMName = $VM.Name
         Write-Log "Stopping VM $VMName"
         Stop-VM -Name $VMName -Force -TurnOff -WarningAction Ignore  2>&1 | Write-Log
@@ -175,14 +175,13 @@ function Export-BuildArtifactsToVMs
     foreach($VM in $VMList) {
         $VMName = $VM.Name
         Write-Log "Exporting all files in $pwd to c:\eBPF\ on $VMName"
-        $TestCred = New-Credentials -Username $Admin -AdminPassword $AdminPassword
-        $VMSession = New-PSSession -VMName $VMName -Credential $TestCred
+        $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
+        $VMSession = New-PSSession -VMName $VMName -Credential $TestCredential
         if (!$VMSession) {
             throw "Failed to create PowerShell session on $VMName."
         } else {
-            Invoke-Command -VMName $VMName -Credential $TestCred -ScriptBlock {
-                if(!(Test-Path "C:\eBPF"))
-                {
+            Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
+                if(!(Test-Path "C:\eBPF")) {
                     New-Item -ItemType Directory -Path "C:\eBPF"
                 }
             }
@@ -203,15 +202,15 @@ function Import-ResultsFromVM
     foreach($VM in $VMList) {
         $VMName = $VM.Name
         Write-Log "Importing Testlogs from $VMName"
-        $TestCred = New-Credentials -Username $Admin -AdminPassword $AdminPassword
-        $VMSession = New-PSSession -VMName $VMName -Credential $TestCred
+        $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
+        $VMSession = New-PSSession -VMName $VMName -Credential $TestCredential
         if (!$VMSession) {
             throw "Failed to create PowerShell session on $VMName."
         }
-        if(!(Test-Path ".\TestLogs")) {
+        if (!(Test-Path ".\TestLogs")) {
             New-Item -ItemType Directory -Path ".\TestLogs"
         }
-        # Copy logs from Test VM
+        # Copy logs from Test VM.
         Write-Log ("Copy {0}_{1} from C:\eBPF on test VM to $pwd\TestLogs" -f $VMName, $LogFileName)
         Copy-Item -FromSession $VMSession ("C:\eBPF\{0}_{1}" -f $VMName, $LogFileName) -Destination ".\TestLogs" -Recurse -Force -ErrorAction Stop 2>&1 | Write-Log
 
@@ -225,13 +224,13 @@ function Install-eBPFComponentsOnVM
     param([parameter(Mandatory=$true)] [string] $VMName)
 
     Write-Log "Installing eBPF components on $VMName"
-    $TestCred = New-Credentials -Username $Admin -AdminPassword $AdminPassword
+    $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
 
-    Invoke-Command -VMName $VMName -Credential $TestCred -ScriptBlock {
+    Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
         param([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
               [Parameter(Mandatory=$True)] [string] $LogFileName)
-        Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName)  -Force -WarningAction SilentlyContinue
-        Import-Module $WorkingDirectory\install_ebpf.psm1 -ArgumentList ($WorkingDirectory, $LogFileName)  -Force  -WarningAction SilentlyContinue
+        Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
+        Import-Module $WorkingDirectory\install_ebpf.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
         Install-eBPFComponents
     } -ArgumentList ("C:\eBPF", ("{0}_{1}" -f $VMName, $LogFileName)) -ErrorAction Stop
     Write-Log "eBPF components installed on $VMName" -ForegroundColor Green

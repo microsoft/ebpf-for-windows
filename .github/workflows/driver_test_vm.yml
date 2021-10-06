@@ -39,7 +39,7 @@ jobs:
         call "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\Common7\Tools\VsDevCmd.bat"
         mkdir packages
         mklink /j packages\boost.1.75.0.0 %userprofile%\.nuget\packages\boost\1.75.0
-        mklink /j packages\CatchOrg.Catch.2.8.0  %userprofile%\.nuget\packages\catchorg.catch\2.8.0
+        mklink /j packages\CatchOrg.Catch.2.8.0 %userprofile%\.nuget\packages\catchorg.catch\2.8.0
         nuget restore ${{env.SOLUTION_FILE_PATH}}
 
     - name: Create verifier project
@@ -60,7 +60,7 @@ jobs:
         call "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\Common7\Tools\VsDevCmd.bat"
         msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{env.BUILD_PLATFORM}} ${{env.SOLUTION_FILE_PATH}}
 
-    - name: Setup CI/CD Tests
+    - name: Set up CI/CD Tests
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
       run: |
         ./setup_ebpf_cicd_tests.ps1
@@ -70,12 +70,13 @@ jobs:
       run: |
         ./execute_ebpf_cicd_tests.ps1
 
-    - name: Cleanup CI/CD Tests
+    - name: Clean up CI/CD Tests
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
       run: |
         ./cleanup_ebpf_cicd_tests.ps1
 
     - name: Upload log files
+      if: always()
       uses: actions/upload-artifact@v2
       with:
         name: Test-Logs-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}
