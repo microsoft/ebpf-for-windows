@@ -1636,7 +1636,7 @@ ebpf_map_wait_for_change(_Inout_ ebpf_map_t* map, _In_ void* async_context)
     }
     ebpf_lock_unlock(&map->lock, state);
 
-    ebpf_async_set_cancel_callback(async_context, map, _ebpf_map_cancel_context);
+    ebpf_async_set_cancel_callback(async_context, context, _ebpf_map_cancel_context);
     return EBPF_PENDING;
 }
 

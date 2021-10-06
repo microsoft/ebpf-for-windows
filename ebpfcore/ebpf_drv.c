@@ -210,6 +210,7 @@ static void
 _ebpf_driver_io_device_control_complete(void* context, ebpf_result_t result)
 {
     WDFREQUEST request = (WDFREQUEST)context;
+    WdfRequestUnmarkCancelable(request);
     WdfRequestComplete(request, ebpf_result_to_ntstatus(result));
     WdfObjectDereference(request);
 }
@@ -333,7 +334,8 @@ _ebpf_driver_io_device_control(
     }
 
 Done:
-    WdfRequestCompleteWithInformation(request, status, output_buffer_length);
+    if (status != STATUS_PENDING)
+        WdfRequestCompleteWithInformation(request, status, output_buffer_length);
     return;
 }
 
