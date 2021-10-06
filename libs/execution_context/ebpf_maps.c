@@ -1655,4 +1655,3 @@ ebpf_map_wait_for_update(_Inout_ ebpf_map_t* map, _In_ void* async_context)
     map->async_contexts_trip_wire = true;
     return EBPF_PENDING;
 }
-s
