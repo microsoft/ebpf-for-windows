@@ -209,8 +209,10 @@ _ebpf_driver_file_close(WDFFILEOBJECT wdf_file_object)
 static void
 _ebpf_driver_io_device_control_complete(void* context, ebpf_result_t result)
 {
+    NTSTATUS status;
     WDFREQUEST request = (WDFREQUEST)context;
-    WdfRequestUnmarkCancelable(request);
+    status = WdfRequestUnmarkCancelable(request);
+    UNREFERENCED_PARAMETER(status);
     WdfRequestComplete(request, ebpf_result_to_ntstatus(result));
     WdfObjectDereference(request);
 }
