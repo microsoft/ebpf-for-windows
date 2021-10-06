@@ -187,6 +187,14 @@ extern "C"
         _Out_writes_to_(*info_size, *info_size) uint8_t* buffer,
         _Inout_ uint16_t* info_size);
 
+    /**
+     * @brief Queue an async context to be completed when the map changes.
+     *
+     * @param[in] map Map to queue the async context on.
+     * @param[in] async_context Async context to queue.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MEMORY Insufficient memory to complete this operation.
+     */
     ebpf_result_t
     ebpf_map_wait_for_change(_Inout_ ebpf_map_t* map, _In_ void* async_context);
 
