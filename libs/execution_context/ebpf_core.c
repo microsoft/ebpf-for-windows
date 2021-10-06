@@ -1193,7 +1193,7 @@ _ebpf_core_protocol_wait_for_map_change(
         return result;
     }
 
-    result = ebpf_map_wait_for_change(map, async_context);
+    result = ebpf_map_wait_for_update(map, async_context);
 
     ebpf_object_release_reference((ebpf_object_t*)map);
     return result;

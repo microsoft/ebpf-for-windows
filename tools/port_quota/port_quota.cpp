@@ -4,7 +4,6 @@
 #include <io.h>
 #include <iostream>
 #include <string>
-#include <vector>
 #include <windows.h>
 #include "bpf/bpf.h"
 #include "bpf/libbpf.h"
@@ -130,83 +129,6 @@ stats(int argc, char** argv)
     return 0;
 }
 
-class _virtual_console
-{
-  public:
-    _virtual_console()
-    {
-        standard_out = GetStdHandle(STD_OUTPUT_HANDLE);
-        GetConsoleMode(standard_out, &original_mode);
-        if (!SetConsoleMode(standard_out, original_mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING)) {
-            throw new std::runtime_error("SetConsoleMode failed");
-        }
-    }
-    void
-    clear_screen()
-    {
-        // Write the sequence for clearing the display.
-        unsigned long written = 0;
-        wchar_t sequence[] = L"\x1b[2J";
-        if (!WriteConsoleW(standard_out, sequence, (unsigned long)wcslen(sequence), &written, NULL)) {
-            throw new std::runtime_error("WriteConsoleW failed");
-        }
-    }
-    ~_virtual_console()
-    {
-        if (standard_out) {
-            SetConsoleMode(standard_out, original_mode);
-            // Not closing the handle as it's owned by the process.
-        }
-    }
-
-  private:
-    unsigned long original_mode;
-    HANDLE standard_out;
-};
-
-HANDLE shutdown_event = INVALID_HANDLE_VALUE;
-
-BOOL
-handler_routine(unsigned long control_type)
-{
-    UNREFERENCED_PARAMETER(control_type);
-    SetEvent(shutdown_event);
-    return TRUE;
-}
-
-ebpf_result_t
-ebpf_map_wait_for_change(fd_t map_fd, OVERLAPPED* overlapped);
-
-int
-monitor(int argc, char** argv)
-{
-    _virtual_console console;
-    std::vector<HANDLE> handles;
-    OVERLAPPED overlapped{};
-    HANDLE map_changed = CreateEvent(nullptr, false, true, nullptr);
-    overlapped.hEvent = map_changed;
-    shutdown_event = CreateEvent(nullptr, true, false, nullptr);
-    if (shutdown_event == INVALID_HANDLE_VALUE) {
-        throw std::runtime_error("CreateEvent failed");
-    }
-    auto map_fd = bpf_obj_get((char*)process_map);
-    if (map_fd == ebpf_fd_invalid) {
-        fprintf(stderr, "Failed to look up eBPF map\n");
-        return 1;
-    }
-
-    handles.push_back(shutdown_event);
-    handles.push_back(map_changed);
-
-    SetConsoleCtrlHandler(handler_routine, true);
-    while (WaitForMultipleObjects((unsigned long)handles.size(), handles.data(), FALSE, INFINITE) != WAIT_OBJECT_0) {
-        ebpf_map_wait_for_change(map_fd, &overlapped);
-        console.clear_screen();
-        stats(argc, argv);
-    }
-    return 0;
-}
-
 int
 limit(int argc, char** argv)
 {
@@ -248,7 +170,6 @@ struct
     {"load", "load\tLoad the port quota eBPF program", load},
     {"unload", "unload\tUnload the port quota eBPF program", unload},
     {"stats", "stats\tShow stats from the port quota eBPF program", stats},
-    {"monitor", "monitor\tShow stats from the port quota eBPF program each time it changes", monitor},
     {"limit", "limit value\tSet the port quota limit", limit}};
 
 void

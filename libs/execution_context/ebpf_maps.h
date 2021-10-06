@@ -196,7 +196,7 @@ extern "C"
      * @retval EBPF_NO_MEMORY Insufficient memory to complete this operation.
      */
     ebpf_result_t
-    ebpf_map_wait_for_change(_Inout_ ebpf_map_t* map, _In_ void* async_context);
+    ebpf_map_wait_for_update(_Inout_ ebpf_map_t* map, _In_ void* async_context);
 
 #ifdef __cplusplus
 }

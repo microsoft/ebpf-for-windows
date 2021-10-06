@@ -374,7 +374,7 @@ set_bind_limit(fd_t map_fd, uint32_t limit)
 }
 
 ebpf_result_t
-ebpf_map_wait_for_change(fd_t map_fd, OVERLAPPED* overlapped);
+ebpf_map_wait_for_update(fd_t map_fd, _Inout_ OVERLAPPED* overlapped);
 
 void
 bindmonitor_test(ebpf_execution_type_t execution_type)
@@ -409,7 +409,7 @@ bindmonitor_test(ebpf_execution_type_t execution_type)
     REQUIRE(event != 0);
     overlapped.hEvent = event;
 
-    REQUIRE(ebpf_map_wait_for_change(process_map_fd, &overlapped) == EBPF_PENDING);
+    REQUIRE(ebpf_map_wait_for_update(process_map_fd, &overlapped) == EBPF_PENDING);
 
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
 

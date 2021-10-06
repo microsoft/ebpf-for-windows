@@ -1606,7 +1606,7 @@ ebpf_map_get_info(
 }
 
 static void
-_ebpf_map_cancel_context(_In_ void* cancel_context)
+_ebpf_map_cancel_context(_Frees_ptr_opt_ void* cancel_context)
 {
     ebpf_core_map_async_context_t* context = (ebpf_core_map_async_context_t*)cancel_context;
     ebpf_lock_state_t state = ebpf_lock_lock(&context->map->lock);
@@ -1617,7 +1617,7 @@ _ebpf_map_cancel_context(_In_ void* cancel_context)
 }
 
 ebpf_result_t
-ebpf_map_wait_for_change(_Inout_ ebpf_map_t* map, _In_ void* async_context)
+ebpf_map_wait_for_update(_Inout_ ebpf_map_t* map, _In_ void* async_context)
 {
     ebpf_core_map_async_context_t* context = ebpf_allocate(sizeof(ebpf_core_map_async_context_t));
     if (!context) {

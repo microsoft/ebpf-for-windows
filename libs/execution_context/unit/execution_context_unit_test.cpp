@@ -683,7 +683,7 @@ TEST_CASE("map_notification", "[execution_context]")
                 REQUIRE(result == EBPF_SUCCESS);
             }) == EBPF_SUCCESS);
 
-    REQUIRE(ebpf_map_wait_for_change(map.get(), &completion) == EBPF_PENDING);
+    REQUIRE(ebpf_map_wait_for_update(map.get(), &completion) == EBPF_PENDING);
     REQUIRE(completion.completed == false);
     uint64_t value = 1;
     REQUIRE(

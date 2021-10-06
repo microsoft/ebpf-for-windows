@@ -91,7 +91,7 @@ EXPORTS
     ebpf_get_program_type_name
     ebpf_link_close
     ebpf_map_pin
-    ebpf_map_wait_for_change
+    ebpf_map_wait_for_update
     ebpf_object_get
     ebpf_object_unpin
     ebpf_program_attach
