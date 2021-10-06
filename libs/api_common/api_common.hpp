@@ -82,7 +82,7 @@ std::vector<map_cache_t>
 get_all_map_descriptors();
 
 // This should be consistent with _ebpf_result_to_ntstatus()
-// in ebpf_drv.c.
+// in ebpf_error.c
 __forceinline ebpf_result_t
 windows_error_to_ebpf_result(uint32_t error)
 {

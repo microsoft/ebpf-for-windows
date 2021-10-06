@@ -175,7 +175,7 @@ handler_routine(unsigned long control_type)
 }
 
 ebpf_result_t
-ebpf_api_map_wait_for_change(fd_t map_fd, OVERLAPPED* overlapped);
+ebpf_map_wait_for_change(fd_t map_fd, OVERLAPPED* overlapped);
 
 int
 monitor(int argc, char** argv)
@@ -200,7 +200,7 @@ monitor(int argc, char** argv)
 
     SetConsoleCtrlHandler(handler_routine, true);
     while (WaitForMultipleObjects((unsigned long)handles.size(), handles.data(), FALSE, INFINITE) != WAIT_OBJECT_0) {
-        ebpf_api_map_wait_for_change(map_fd, &overlapped);
+        ebpf_map_wait_for_change(map_fd, &overlapped);
         console.clear_screen();
         stats(argc, argv);
     }

@@ -2243,7 +2243,7 @@ ebpf_program_bind_map(fd_t program_fd, fd_t map_fd)
 }
 
 ebpf_result_t
-ebpf_api_map_wait_for_change(fd_t map_fd, OVERLAPPED* overlapped)
+ebpf_map_wait_for_change(fd_t map_fd, _Inout_ OVERLAPPED* overlapped)
 {
     ebpf_handle_t map_handle = _get_handle_from_file_descriptor(map_fd);
     if (map_handle == ebpf_handle_invalid) {

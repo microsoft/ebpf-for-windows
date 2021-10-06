@@ -58,7 +58,7 @@ extern "C"
         _Out_writes_bytes_opt_(output_buffer_length) void* output_buffer,
         uint16_t output_buffer_length,
         _In_opt_ void* async_context,
-        _In_opt_ void (*on_complete)(void* async_context, ebpf_result_t result));
+        _In_opt_ void (*on_complete)(_In_ void* async_context, ebpf_result_t result));
 
     /**
      * @brief Query properties about an operation.
@@ -79,10 +79,10 @@ extern "C"
         _Out_ bool* async);
 
     /**
-     * @brief Cancel a async protocol operation that returned EBPF_PENDING from ebpf_core_invoke_protocol_handler.
+     * @brief Cancel an async protocol operation that returned EBPF_PENDING from ebpf_core_invoke_protocol_handler.
      *
      * @param[in] async_context Async context passed to ebpf_core_invoke_protocol_handler.
-     * @retval true Operation was cancelled.
+     * @retval true Operation was canceled.
      * @retval false Operation was already completed.
      */
     bool

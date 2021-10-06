@@ -8,6 +8,10 @@
 #include <ntstatus.h>
 #include <ebpf_result.h>
 
+// This may need to be updated as part of issue:
+// https://github.com/microsoft/ebpf-for-windows/issues/595
+// This should be consistent with windows_error_to_ebpf_result()
+// in api_common.hpp
 NTSTATUS
 ebpf_result_to_ntstatus(ebpf_result_t result)
 {

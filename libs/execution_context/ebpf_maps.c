@@ -19,7 +19,6 @@ typedef struct _ebpf_core_map
     ebpf_lock_t lock;
     uint32_t original_value_size;
     struct _ebpf_core_map* inner_map_template;
-    bool async_contexts_trip_wire;
     LIST_ENTRY async_contexts;
     uint8_t* data;
 } ebpf_core_map_t;
@@ -1629,11 +1628,7 @@ ebpf_map_wait_for_change(_Inout_ ebpf_map_t* map, _In_ void* async_context)
     context->map = map;
 
     ebpf_lock_state_t state = ebpf_lock_lock(&map->lock);
-
     ebpf_list_insert_tail(&map->async_contexts, &context->entry);
-    if (!map->async_contexts_trip_wire) {
-        map->async_contexts_trip_wire = true;
-    }
     ebpf_lock_unlock(&map->lock, state);
 
     ebpf_async_set_cancel_callback(async_context, context, _ebpf_map_cancel_context);
@@ -1643,11 +1638,6 @@ ebpf_map_wait_for_change(_Inout_ ebpf_map_t* map, _In_ void* async_context)
 static void
 _ebpf_map_signal_async_contexts(_In_ ebpf_core_map_t* map)
 {
-
-    if (!map->async_contexts_trip_wire) {
-        return;
-    }
-
     ebpf_lock_state_t state = ebpf_lock_lock(&map->lock);
     while (!ebpf_list_is_empty(&map->async_contexts)) {
         ebpf_core_map_async_context_t* context =

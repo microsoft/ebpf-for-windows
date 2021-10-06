@@ -493,13 +493,13 @@ ebpf_result_t
 ebpf_object_unload(_In_ struct bpf_object* object);
 
 /**
- * @brief Issue an overlapped IO that will be signalled when the map changes.
+ * @brief Issue an overlapped IO that will be signaled when the map changes.
  *
- * @param map_fd Map to wait on.
- * @param overlapped Overlapped structure to signal when the map state changes.
+ * @param[in] map_fd Map to wait on.
+ * @param[in] overlapped Overlapped structure to signal when the map state changes.
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval EBPF_INVALID_ARGUMENT One or more parameters are wrong.
  * @retval EBPF_NO_MEMORY Out of memory.
  */
 ebpf_result_t
-ebpf_api_map_wait_for_change(fd_t map_fd, OVERLAPPED* overlapped);
+ebpf_map_wait_for_change(fd_t map_fd, _Inout_ OVERLAPPED* overlapped);
