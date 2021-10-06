@@ -19,6 +19,10 @@ typedef struct _ebpf_core_map
     ebpf_lock_t lock;
     uint32_t original_value_size;
     struct _ebpf_core_map* inner_map_template;
+    // Flag that is set the first time an async operation is queued to the map.
+    // This flag only transitions from off -> on. When this flag is set,
+    // updates to the map acquire the lock and check the async_contexts list.
+    bool async_contexts_trip_wire;
     LIST_ENTRY async_contexts;
     uint8_t* data;
 } ebpf_core_map_t;
@@ -1312,8 +1316,24 @@ ebpf_map_function_table_t ebpf_map_function_tables[] = {
 
 };
 
-static void
-_ebpf_map_signal_async_contexts(_In_ ebpf_core_map_t* map);
+inline static void
+_ebpf_map_signal_async_contexts(_In_ ebpf_core_map_t* map)
+{
+    // Skip if no async_contexts have ever been queued
+    if (!map->async_contexts_trip_wire) {
+        return;
+    }
+
+    ebpf_lock_state_t state = ebpf_lock_lock(&map->lock);
+    while (!ebpf_list_is_empty(&map->async_contexts)) {
+        ebpf_core_map_async_context_t* context =
+            EBPF_FROM_FIELD(ebpf_core_map_async_context_t, entry, map->async_contexts.Flink);
+        ebpf_list_remove_entry(&context->entry);
+        ebpf_async_complete(context->async_context, EBPF_SUCCESS);
+        ebpf_free(context);
+    }
+    ebpf_lock_unlock(&map->lock, state);
+}
 
 static void
 _ebpf_map_delete(_In_ ebpf_object_t* object)
@@ -1606,7 +1626,7 @@ ebpf_map_get_info(
 }
 
 static void
-_ebpf_map_cancel_context(_Frees_ptr_opt_ void* cancel_context)
+_ebpf_map_cancel_context(_In_ _Frees_ptr_ void* cancel_context)
 {
     ebpf_core_map_async_context_t* context = (ebpf_core_map_async_context_t*)cancel_context;
     ebpf_lock_state_t state = ebpf_lock_lock(&context->map->lock);
@@ -1632,19 +1652,7 @@ ebpf_map_wait_for_update(_Inout_ ebpf_map_t* map, _In_ void* async_context)
     ebpf_lock_unlock(&map->lock, state);
 
     ebpf_async_set_cancel_callback(async_context, context, _ebpf_map_cancel_context);
+    map->async_contexts_trip_wire = true;
     return EBPF_PENDING;
 }
-
-static void
-_ebpf_map_signal_async_contexts(_In_ ebpf_core_map_t* map)
-{
-    ebpf_lock_state_t state = ebpf_lock_lock(&map->lock);
-    while (!ebpf_list_is_empty(&map->async_contexts)) {
-        ebpf_core_map_async_context_t* context =
-            EBPF_FROM_FIELD(ebpf_core_map_async_context_t, entry, map->async_contexts.Flink);
-        ebpf_list_remove_entry(&context->entry);
-        ebpf_async_complete(context->async_context, EBPF_SUCCESS);
-        ebpf_free(context);
-    }
-    ebpf_lock_unlock(&map->lock, state);
-}
+s
