@@ -1,0 +1,84 @@
+# Copyright (c) Microsoft Corporation
+# SPDX-License-Identifier: MIT
+
+# This workflow depends on self-hosted runners. See the following document for details:
+# https://github.com/microsoft/ebpf-for-windows/blob/master/docs/SelfHostedRunnerSetup.md
+#
+# For documentation on the syntax of this file, see
+# https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions
+name: Kernel_Test_VM
+
+on: pull_request
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        configurations: [Debug]
+    runs-on: [windows, self-hosted, kernel_test_vm]
+    env:
+      # Path to the solution file relative to the root of the project.
+      SOLUTION_FILE_PATH: ebpf-for-windows.sln
+
+      # Configuration type to build.
+      # You can convert this to a build matrix if you need coverage of multiple configuration types.
+      # https://docs.github.com/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
+      BUILD_CONFIGURATION: ${{matrix.configurations}}
+
+      BUILD_PLATFORM: x64
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: 'recursive'
+
+    - name: Restore NuGet packages
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      shell: cmd
+      run: |
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\Common7\Tools\VsDevCmd.bat"
+        mkdir packages
+        mklink /j packages\boost.1.75.0.0 %userprofile%\.nuget\packages\boost\1.75.0
+        mklink /j packages\CatchOrg.Catch.2.8.0 %userprofile%\.nuget\packages\catchorg.catch\2.8.0
+        nuget restore ${{env.SOLUTION_FILE_PATH}}
+
+    - name: Create verifier project
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      shell: cmd
+      run: |
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\Common7\Tools\VsDevCmd.bat"
+        cd external\ebpf-verifier
+        rmdir /s /q build
+        mkdir build\packages
+        mklink /j build\packages\boost %userprofile%\.nuget\packages\boost\1.75.0
+        cmake -B build
+
+    - name: Build
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      shell: cmd
+      run: |
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\Common7\Tools\VsDevCmd.bat"
+        msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{env.BUILD_PLATFORM}} ${{env.SOLUTION_FILE_PATH}}
+
+    - name: Set up CI/CD Tests
+      working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+      run: |
+        ./setup_ebpf_cicd_tests.ps1
+
+    - name: Execute CI/CD Tests
+      working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+      run: |
+        ./execute_ebpf_cicd_tests.ps1
+
+    - name: Clean up CI/CD Tests
+      working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+      run: |
+        ./cleanup_ebpf_cicd_tests.ps1
+
+    - name: Upload log files
+      if: always()
+      uses: actions/upload-artifact@v2
+      with:
+        name: Test-Logs-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}
+        path: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/TestLogs
+        retention-days: 5
