@@ -41,42 +41,49 @@ _test_crud_operations(ebpf_map_type_t map_type)
     bool supports_find_and_delete;
     bool replace_on_full;
     bool run_at_dpc;
+    ebpf_result_t error_on_full;
     switch (map_type) {
     case BPF_MAP_TYPE_HASH:
         is_array = false;
         supports_find_and_delete = true;
         replace_on_full = false;
         run_at_dpc = false;
+        error_on_full = EBPF_OUT_OF_SPACE;
         break;
     case BPF_MAP_TYPE_ARRAY:
         is_array = true;
         supports_find_and_delete = false;
         replace_on_full = false;
         run_at_dpc = false;
+        error_on_full = EBPF_INVALID_ARGUMENT;
         break;
     case BPF_MAP_TYPE_PERCPU_HASH:
         is_array = false;
         supports_find_and_delete = true;
         replace_on_full = false;
         run_at_dpc = true;
+        error_on_full = EBPF_OUT_OF_SPACE;
         break;
     case BPF_MAP_TYPE_PERCPU_ARRAY:
         is_array = true;
         supports_find_and_delete = false;
         replace_on_full = false;
         run_at_dpc = false;
+        error_on_full = EBPF_INVALID_ARGUMENT;
         break;
     case BPF_MAP_TYPE_LRU_HASH:
         is_array = false;
         supports_find_and_delete = true;
         replace_on_full = true;
         run_at_dpc = false;
+        error_on_full = EBPF_OUT_OF_SPACE;
         break;
     case BPF_MAP_TYPE_LRU_PERCPU_HASH:
         is_array = false;
         supports_find_and_delete = true;
         replace_on_full = true;
         run_at_dpc = true;
+        error_on_full = EBPF_OUT_OF_SPACE;
         break;
     default:
         ebpf_assert((false, "Unsupported map type"));
@@ -122,7 +129,7 @@ _test_crud_operations(ebpf_map_type_t map_type)
             value.size(),
             value.data(),
             EBPF_ANY,
-            0) == (replace_on_full ? EBPF_SUCCESS : EBPF_INVALID_ARGUMENT));
+            0) == (replace_on_full ? EBPF_SUCCESS : error_on_full));
 
     if (!replace_on_full) {
         ebpf_result_t expected_result = is_array ? EBPF_INVALID_ARGUMENT : EBPF_KEY_NOT_FOUND;
@@ -430,7 +437,7 @@ TEST_CASE("map_crud_operations_queue", "[execution_context]")
     REQUIRE(
         ebpf_map_update_entry(
             map.get(), 0, NULL, sizeof(extra_value), reinterpret_cast<uint8_t*>(&extra_value), EBPF_ANY, 0) ==
-        EBPF_INVALID_ARGUMENT);
+        EBPF_OUT_OF_SPACE);
 
     // Peek the first element.
     uint32_t return_value = MAXUINT32;
@@ -450,6 +457,61 @@ TEST_CASE("map_crud_operations_queue", "[execution_context]")
                 reinterpret_cast<uint8_t*>(&return_value),
                 EPBF_MAP_FIND_FLAG_DELETE) == EBPF_SUCCESS);
         REQUIRE(return_value == value);
+    }
+
+    REQUIRE(
+        ebpf_map_find_entry(map.get(), 0, NULL, sizeof(return_value), reinterpret_cast<uint8_t*>(&return_value), 0) ==
+        EBPF_OBJECT_NOT_FOUND);
+}
+
+TEST_CASE("map_crud_operations_stack", "[execution_context]")
+{
+    _ebpf_core_initializer core;
+    ebpf_map_definition_in_memory_t map_definition{
+        sizeof(ebpf_map_definition_in_memory_t), BPF_MAP_TYPE_STACK, 0, sizeof(uint32_t), 10};
+    map_ptr map;
+    {
+        ebpf_map_t* local_map;
+        ebpf_utf8_string_t map_name = {0};
+        REQUIRE(
+            ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
+        map.reset(local_map);
+    }
+    uint32_t return_value = MAXUINT32;
+
+    // Should be empty.
+    REQUIRE(
+        ebpf_map_find_entry(map.get(), 0, NULL, sizeof(return_value), reinterpret_cast<uint8_t*>(&return_value), 0) ==
+        EBPF_OBJECT_NOT_FOUND);
+
+    for (uint32_t value = 0; value < 10; value++) {
+        REQUIRE(
+            ebpf_map_update_entry(map.get(), 0, NULL, sizeof(value), reinterpret_cast<uint8_t*>(&value), EBPF_ANY, 0) ==
+            EBPF_SUCCESS);
+    }
+    uint32_t extra_value = 10;
+    REQUIRE(
+        ebpf_map_update_entry(
+            map.get(), 0, NULL, sizeof(extra_value), reinterpret_cast<uint8_t*>(&extra_value), EBPF_ANY, 0) ==
+        EBPF_OUT_OF_SPACE);
+
+    // Peek the first element.
+    REQUIRE(
+        ebpf_map_find_entry(map.get(), 0, NULL, sizeof(return_value), reinterpret_cast<uint8_t*>(&return_value), 0) ==
+        EBPF_SUCCESS);
+
+    REQUIRE(return_value == 9);
+
+    for (uint32_t value = 0; value < 10; value++) {
+        REQUIRE(
+            ebpf_map_find_entry(
+                map.get(),
+                0,
+                NULL,
+                sizeof(return_value),
+                reinterpret_cast<uint8_t*>(&return_value),
+                EPBF_MAP_FIND_FLAG_DELETE) == EBPF_SUCCESS);
+        REQUIRE(return_value == 9 - value);
     }
 
     REQUIRE(
