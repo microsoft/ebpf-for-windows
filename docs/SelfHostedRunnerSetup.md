@@ -1,9 +1,9 @@
 # Setup instructions for self-hosted runners
 
 The CI/CD tests for `eBPF for Windows` requires installing kernel drivers, that are not supported in Github-hosted runners.
-That is why, self-host runners are needed to run those tests. The `Kernel_Test_VM` Github workflow runs on self-host runners that uses Hyper-V VM to deploy
-the eBPF components and runs the CI/CD tests on it. Using Hyper-V VM enables the Github workflow to start from a clean state every time the test runs
-by restoring the VMs to a "baseline" snapshot.
+That is why self-host runners are needed to run those tests. The `Kernel_Test_VM` Github workflow runs on self-host runners that uses Hyper-V VM to deploy
+the eBPF components and runs the CI/CD tests on it. Using a Hyper-V VM enables the Github workflow to start from a clean state every time the test runs
+by restoring the VM to a "baseline" snapshot.
 This document discusses the steps to set up such a selfhost-runner that can run workflow for CI/CD tests.
 
 1) Install Windows Server 2019 - build 17763.
@@ -36,7 +36,7 @@ This document discusses the steps to set up such a selfhost-runner that can run 
       1) Copy `c:\Program Files (x86)\Windows Kits\10\Vsix\VS2019\WDK.vsix` to a file with the extension set to `.zip` instead of `.vsix` and extract it.
       2) Copy all files under `$MSBuild\Microsoft\*` to `c:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\MSBuild\Microsoft`.
    5) Download [Nuget.exe](https://www.nuget.org/downloads). Do not copy the nuget.exe file in `Windows\System32` folder, as that causes issues
-   running `nuget restore` command. Instead copy it in some other folder and make sure that the path to that folder is added to the PATH system environmental variable.
+   running the `nuget restore` command. Instead copy it in some other folder and make sure that the path to that folder is added to the PATH system environmental variable.
 6) [Set up a test VM](https://github.com/microsoft/ebpf-for-windows/blob/master/docs/vm-setup.md) and create a snapshot named **baseline**.
 7) Store the VM administrator credential:
    1) `Install-Module CredentialManager -force`
