@@ -1023,6 +1023,7 @@ _delete_queue_map(_In_ ebpf_core_map_t* map)
 {
     ebpf_core_queue_map_t* queue_map = EBPF_FROM_FIELD(ebpf_core_queue_map_t, core_map, map);
 
+    // Free all the elements stored in the queue.
     for (size_t i = 0; i < queue_map->core_map.ebpf_map_definition.max_entries; i++) {
         ebpf_epoch_free(queue_map->slots[i]);
     }
@@ -1033,6 +1034,7 @@ static ebpf_result_t
 _find_queue_map_entry(
     _In_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, _In_ bool delete_on_success, _Outptr_ uint8_t** data)
 {
+    // Queue uses no key, so key must be NULL.
     if (!map || key)
         return EBPF_INVALID_ARGUMENT;
 
@@ -1057,7 +1059,8 @@ _update_queue_map_entry(
     _In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_opt_ const uint8_t* data, ebpf_map_option_t option)
 {
     ebpf_result_t result;
-    if (!map || key || (option == EBPF_NOEXIST))
+    // Queue uses no key, so key must be NULL.
+    if (!map || key || (option == EBPF_NOEXIST) || !data)
         return EBPF_INVALID_ARGUMENT;
 
     ebpf_core_queue_map_t* queue_map = EBPF_FROM_FIELD(ebpf_core_queue_map_t, core_map, map);
@@ -1097,7 +1100,7 @@ static void
 _delete_stack_map(_In_ ebpf_core_map_t* map)
 {
     ebpf_core_stack_map_t* stack_map = EBPF_FROM_FIELD(ebpf_core_stack_map_t, core_map, map);
-
+    // Free all the elements stored in the stack.
     for (size_t i = 0; i < stack_map->core_map.ebpf_map_definition.max_entries; i++) {
         ebpf_epoch_free(stack_map->slots[i]);
     }
@@ -1108,6 +1111,7 @@ static ebpf_result_t
 _find_stack_map_entry(
     _In_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, _In_ bool delete_on_success, _Outptr_ uint8_t** data)
 {
+    // Stack uses no key, so key must be NULL.
     if (!map || key)
         return EBPF_INVALID_ARGUMENT;
 
@@ -1132,7 +1136,8 @@ _update_stack_map_entry(
     _In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_opt_ const uint8_t* data, ebpf_map_option_t option)
 {
     ebpf_result_t result;
-    if (!map || key || (option == EBPF_NOEXIST))
+    // Stack uses no key, so key must be NULL.
+    if (!map || key || (option == EBPF_NOEXIST) || !data)
         return EBPF_INVALID_ARGUMENT;
 
     ebpf_core_stack_map_t* stack_map = EBPF_FROM_FIELD(ebpf_core_stack_map_t, core_map, map);
