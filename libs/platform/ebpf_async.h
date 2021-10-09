@@ -58,7 +58,8 @@ extern "C"
      * @brief Set a completion function to be called when actions associated with this context complete.
      *
      * @param[in] context Context of action to track.
-     * @param[in] on_complete Function to call when the action associated with this context completes.
+     * @param[in] on_complete Function to call when the action associated with
+     * this context completes.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  operation.
@@ -96,7 +97,7 @@ extern "C"
      * @param[in] context Context associated with the action.
      * @param[in] result The outcome of the action.
      */
-    bool
+    void
     ebpf_async_complete(_In_ void* context, ebpf_result_t result);
 
 #ifdef __cplusplus
