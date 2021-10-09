@@ -13,19 +13,19 @@
 //
 // 4) Action handler starts the asynchronous operation and returns to action initiator.
 //
-// 5) a) Success path: Action handler calls ebpf_async_complete to notify the action initiator that the action has
-// completed.
+// 5) (optional) Action initiator calls ebpf_async_cancel to notify the action handler that the request has been
+// canceled.
 //
-// 5) b) Cancellation path: Action initiator calls ebpf_async_cancel to notify the action handler that
-// the request has been canceled.
+// 6) Action handler calls ebpf_async_complete to notify the action initiator that the action has completed.
+//
 //
 // Notes:
 //
 // 1) ebpf_async_complete and ebpf_async_cancel can be called
-// concurrently, with one becoming a no-op.
+// concurrently, with cancellation being a no-op on a completed action.
 //
 // 2) Action initiator must not re-use context until after prior actions are
-// completed or canceled.
+// completed.
 //
 // 3) Action handler must register for cancellation prior to returning to action initiator.
 
@@ -96,10 +96,8 @@ extern "C"
      *
      * @param[in] context Context associated with the action.
      * @param[in] result The outcome of the action.
-     * @retval true Action was canceled.
-     * @retval false Action was already completed.
      */
-    bool
+    void
     ebpf_async_complete(_In_ void* context, ebpf_result_t result);
 
 #ifdef __cplusplus
