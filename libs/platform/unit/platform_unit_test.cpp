@@ -714,6 +714,7 @@ TEST_CASE("async", "[platform]")
     _test_helper test_helper;
 
     auto test = [](bool complete) {
+        REQUIRE(ebpf_epoch_enter() == EBPF_SUCCESS);
         struct _async_context
         {
             ebpf_result_t result;
@@ -727,7 +728,7 @@ TEST_CASE("async", "[platform]")
         REQUIRE(ebpf_async_set_completion_callback(&async_context, [](_Inout_ void* context, ebpf_result_t result) {
                     auto async_context = reinterpret_cast<_async_context*>(context);
                     async_context->result = result;
-            }) == EBPF_SUCCESS);
+                }) == EBPF_SUCCESS);
 
         REQUIRE(ebpf_async_set_cancel_callback(&async_context, &cancellation_context, [](void* context) {
                     auto cancellation_context = reinterpret_cast<_cancellation_context*>(context);
@@ -747,6 +748,7 @@ TEST_CASE("async", "[platform]")
             REQUIRE(cancellation_context.cancelled);
             ebpf_async_complete(&async_context, EBPF_SUCCESS);
         }
+        ebpf_epoch_exit();
     };
 
     // Run the test with complete before cancel.
@@ -811,4 +813,3 @@ TEST_CASE("ring_buffer", "[platform]")
     ebpf_ring_buffer_destroy(ring_buffer);
     ring_buffer = nullptr;
 }
-
