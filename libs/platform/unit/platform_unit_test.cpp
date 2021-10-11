@@ -11,6 +11,7 @@
 #include <sddl.h>
 
 #include "catch_wrapper.hpp"
+#include "ebpf_async.h"
 #include "ebpf_bind_program_data.h"
 #include "ebpf_bitmap.h"
 #include "ebpf_epoch.h"
@@ -35,9 +36,13 @@ class _test_helper
         platform_initiated = true;
         REQUIRE(ebpf_epoch_initiate() == EBPF_SUCCESS);
         epoch_initated = true;
+        REQUIRE(ebpf_async_initiate() == EBPF_SUCCESS);
+        async_initiated = true;
     }
     ~_test_helper()
     {
+        if (async_initiated)
+            ebpf_async_terminate();
         if (epoch_initated)
             ebpf_epoch_terminate();
         if (platform_initiated)
@@ -48,6 +53,7 @@ class _test_helper
   private:
     bool platform_initiated = false;
     bool epoch_initated = false;
+    bool async_initiated = false;
 };
 
 TEST_CASE("hash_table_test", "[platform]")
@@ -702,6 +708,55 @@ BIT_MASK_TEST(33);
 BIT_MASK_TEST(65);
 BIT_MASK_TEST(129);
 BIT_MASK_TEST(1025);
+
+TEST_CASE("async", "[platform]")
+{
+    _test_helper test_helper;
+
+    auto test = [](bool complete) {
+        REQUIRE(ebpf_epoch_enter() == EBPF_SUCCESS);
+        struct _async_context
+        {
+            ebpf_result_t result;
+        } async_context = {EBPF_PENDING};
+
+        struct _cancellation_context
+        {
+            bool cancelled;
+        } cancellation_context = {false};
+
+        REQUIRE(ebpf_async_set_completion_callback(&async_context, [](_Inout_ void* context, ebpf_result_t result) {
+                    auto async_context = reinterpret_cast<_async_context*>(context);
+                    async_context->result = result;
+                }) == EBPF_SUCCESS);
+
+        REQUIRE(ebpf_async_set_cancel_callback(&async_context, &cancellation_context, [](void* context) {
+                    auto cancellation_context = reinterpret_cast<_cancellation_context*>(context);
+                    cancellation_context->cancelled = true;
+                }) == EBPF_SUCCESS);
+        REQUIRE(async_context.result == EBPF_PENDING);
+        REQUIRE(!cancellation_context.cancelled);
+
+        if (complete) {
+            ebpf_async_complete(&async_context, EBPF_SUCCESS);
+            REQUIRE(async_context.result == EBPF_SUCCESS);
+            REQUIRE(!cancellation_context.cancelled);
+            REQUIRE(!ebpf_async_cancel(&async_context));
+        } else {
+            REQUIRE(ebpf_async_cancel(&async_context));
+            REQUIRE(async_context.result == EBPF_PENDING);
+            REQUIRE(cancellation_context.cancelled);
+            ebpf_async_complete(&async_context, EBPF_SUCCESS);
+        }
+        ebpf_epoch_exit();
+    };
+
+    // Run the test with complete before cancel.
+    test(true);
+
+    // Run the test with cancel before complete.
+    test(false);
+}
 
 TEST_CASE("ring_buffer", "[platform]")
 {
