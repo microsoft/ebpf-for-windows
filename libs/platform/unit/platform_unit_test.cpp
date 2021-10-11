@@ -714,6 +714,7 @@ TEST_CASE("async", "[platform]")
     _test_helper test_helper;
 
     auto test = [](bool complete) {
+        REQUIRE(ebpf_epoch_enter() == EBPF_SUCCESS);
         struct _async_context
         {
             ebpf_result_t result;
@@ -747,6 +748,7 @@ TEST_CASE("async", "[platform]")
             REQUIRE(cancellation_context.cancelled);
             ebpf_async_complete(&async_context, EBPF_SUCCESS);
         }
+        ebpf_epoch_exit();
     };
 
     // Run the test with complete before cancel.
