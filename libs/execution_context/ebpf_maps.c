@@ -22,6 +22,8 @@ typedef struct _ebpf_core_map
     // Flag that is set the first time an async operation is queued to the map.
     // This flag only transitions from off -> on. When this flag is set,
     // updates to the map acquire the lock and check the async_contexts list.
+    // Note that queueing an async operation thus causes a perf degradation
+    // for all subsequent updates, so should only be allowed to admin.
     bool async_contexts_trip_wire;
     LIST_ENTRY async_contexts;
     uint8_t* data;
@@ -1319,7 +1321,7 @@ ebpf_map_function_table_t ebpf_map_function_tables[] = {
 inline static void
 _ebpf_map_signal_async_contexts(_In_ ebpf_core_map_t* map)
 {
-    // Skip if no async_contexts have ever been queued
+    // Skip if no async_contexts have ever been queued.
     if (!map->async_contexts_trip_wire) {
         return;
     }
