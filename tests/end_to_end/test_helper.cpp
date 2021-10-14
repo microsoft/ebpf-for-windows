@@ -5,6 +5,7 @@
 #include "bpf/bpf.h"
 #include "catch_wrapper.hpp"
 #include "ebpf_api.h"
+#include "ebpf_async.h"
 #include "ebpf_core.h"
 #include "helpers.h"
 #include "mock.h"
@@ -41,6 +42,14 @@ GlueCloseHandle(HANDLE hObject)
     return TRUE;
 }
 
+static void
+_complete_overlapped(void* context, ebpf_result_t result)
+{
+    auto overlapped = reinterpret_cast<OVERLAPPED*>(context);
+    overlapped->Internal = ebpf_result_to_ntstatus(result);
+    SetEvent(overlapped->hEvent);
+}
+
 BOOL
 GlueDeviceIoControl(
     HANDLE hDevice,
@@ -64,8 +73,9 @@ GlueDeviceIoControl(
     auto request_id = user_request->id;
     size_t minimum_request_size = 0;
     size_t minimum_reply_size = 0;
+    bool async = false;
 
-    result = ebpf_core_get_protocol_handler_properties(request_id, &minimum_request_size, &minimum_reply_size);
+    result = ebpf_core_get_protocol_handler_properties(request_id, &minimum_request_size, &minimum_reply_size, &async);
     if (result != EBPF_SUCCESS)
         goto Fail;
 
@@ -89,8 +99,13 @@ GlueDeviceIoControl(
         *lpBytesReturned = user_reply->length;
     }
 
-    result =
-        ebpf_core_invoke_protocol_handler(request_id, user_request, user_reply, static_cast<uint16_t>(nOutBufferSize));
+    result = ebpf_core_invoke_protocol_handler(
+        request_id,
+        user_request,
+        user_reply,
+        static_cast<uint16_t>(nOutBufferSize),
+        lpOverlapped,
+        _complete_overlapped);
 
     if (result != EBPF_SUCCESS)
         goto Fail;
@@ -99,36 +114,7 @@ GlueDeviceIoControl(
 
 Fail:
     if (result != EBPF_SUCCESS) {
-        // Convert result to Win32 error.  This must be
-        // consistent with _ebpf_result_to_ntstatus() in
-        // ebpf_drv.c and windows_error_to_ebpf_result()
-        // in api_common.hpp.
-        switch (result) {
-        case EBPF_NO_MEMORY:
-            SetLastError(ERROR_OUTOFMEMORY);
-            break;
-        case EBPF_KEY_NOT_FOUND:
-            SetLastError(ERROR_NOT_FOUND);
-            break;
-        case EBPF_INVALID_ARGUMENT:
-            SetLastError(ERROR_INVALID_PARAMETER);
-            break;
-        case EBPF_INVALID_FD:
-            SetLastError(ERROR_INVALID_HANDLE);
-            break;
-        case EBPF_NO_MORE_KEYS:
-            SetLastError(ERROR_NO_MORE_MATCHES);
-            break;
-        case EBPF_INSUFFICIENT_BUFFER:
-            SetLastError(ERROR_MORE_DATA);
-            break;
-        case EBPF_OBJECT_ALREADY_EXISTS:
-            SetLastError(ERROR_OBJECT_ALREADY_EXISTS);
-            break;
-        default:
-            SetLastError(ERROR_INVALID_PARAMETER);
-            break;
-        }
+        SetLastError(ebpf_result_to_win32(result));
     }
 
     return FALSE;

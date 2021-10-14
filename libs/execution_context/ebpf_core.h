@@ -56,7 +56,9 @@ extern "C"
         ebpf_operation_id_t operation_id,
         _In_ const void* input_buffer,
         _Out_writes_bytes_opt_(output_buffer_length) void* output_buffer,
-        uint16_t output_buffer_length);
+        uint16_t output_buffer_length,
+        _In_opt_ void* async_context,
+        _In_opt_ void (*on_complete)(_In_ void* async_context, ebpf_result_t result));
 
     /**
      * @brief Query properties about an operation.
@@ -71,7 +73,20 @@ extern "C"
      */
     ebpf_result_t
     ebpf_core_get_protocol_handler_properties(
-        ebpf_operation_id_t operation_id, _Out_ size_t* minimum_request_size, _Out_ size_t* minimum_reply_size);
+        ebpf_operation_id_t operation_id,
+        _Out_ size_t* minimum_request_size,
+        _Out_ size_t* minimum_reply_size,
+        _Out_ bool* async);
+
+    /**
+     * @brief Cancel an async protocol operation that returned EBPF_PENDING from ebpf_core_invoke_protocol_handler.
+     *
+     * @param[in] async_context Async context passed to ebpf_core_invoke_protocol_handler.
+     * @retval true Operation was canceled.
+     * @retval false Operation was already completed.
+     */
+    bool
+    ebpf_core_cancel_protocol_handler(_In_ void* async_context);
 
     /**
      * @brief Computes difference of checksum values for two input raw buffers using 1's complement arithmetic.

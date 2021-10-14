@@ -35,7 +35,7 @@ get_device_handle();
 
 template <typename request_t, typename reply_t = empty_reply_t>
 uint32_t
-invoke_ioctl(request_t& request, reply_t& reply = _empty_reply)
+invoke_ioctl(request_t& request, reply_t& reply = _empty_reply, OVERLAPPED* overlapped = nullptr)
 {
     uint32_t return_value = ERROR_SUCCESS;
     uint32_t actual_reply_size;
@@ -79,7 +79,7 @@ invoke_ioctl(request_t& request, reply_t& reply = _empty_reply)
         reply_ptr,
         reply_size,
         &actual_reply_size,
-        nullptr);
+        overlapped);
 
     if (!result) {
         return_value = GetLastError();

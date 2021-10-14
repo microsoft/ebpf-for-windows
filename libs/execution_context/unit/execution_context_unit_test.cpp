@@ -5,6 +5,7 @@
 
 #include <optional>
 #include "catch_wrapper.hpp"
+#include "ebpf_async.h"
 #include "ebpf_core.h"
 #include "ebpf_maps.h"
 #include "ebpf_object.h"
@@ -655,4 +656,39 @@ TEST_CASE("test-csum-diff", "[execution_context]")
 
     // See: https://en.wikipedia.org/wiki/IPv4_header_checksum#Calculating_the_IPv4_header_checksum
     REQUIRE(csum == 0xb861);
+}
+
+TEST_CASE("map_notification", "[execution_context]")
+{
+    _ebpf_core_initializer core;
+    ebpf_map_definition_in_memory_t map_definition{
+        sizeof(ebpf_map_definition_in_memory_t), BPF_MAP_TYPE_QUEUE, 0, sizeof(uint64_t), 10};
+    map_ptr map;
+    {
+        ebpf_map_t* local_map;
+        ebpf_utf8_string_t map_name = {0};
+        REQUIRE(
+            ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
+        map.reset(local_map);
+    }
+
+    struct _completion
+    {
+        bool completed = false;
+    } completion;
+
+    REQUIRE(ebpf_async_set_completion_callback(&completion, [](void* context, ebpf_result_t result) {
+                auto completion = reinterpret_cast<_completion*>(context);
+                completion->completed = true;
+                REQUIRE(result == EBPF_SUCCESS);
+            }) == EBPF_SUCCESS);
+
+    REQUIRE(ebpf_map_wait_for_update(map.get(), &completion) == EBPF_PENDING);
+    REQUIRE(completion.completed == false);
+    uint64_t value = 1;
+    REQUIRE(
+        ebpf_map_update_entry(map.get(), 0, nullptr, sizeof(value), reinterpret_cast<uint8_t*>(&value), EBPF_ANY, 0) ==
+        EBPF_SUCCESS);
+
+    REQUIRE(completion.completed == true);
 }

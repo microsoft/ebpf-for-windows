@@ -40,6 +40,7 @@ typedef enum _ebpf_operation_id
     EBPF_OPERATION_GET_OBJECT_INFO,
     EBPF_OPERATION_GET_NEXT_PINNED_PROGRAM_PATH,
     EBPF_OPERATION_BIND_MAP,
+    EBPF_OPERATION_WAIT_FOR_MAP_CHANGE,
 } ebpf_operation_id_t;
 
 typedef enum _ebpf_code_type
@@ -366,3 +367,9 @@ typedef struct _ebpf_operation_bind_map_request
     ebpf_handle_t program_handle;
     ebpf_handle_t map_handle;
 } ebpf_operation_bind_map_request_t;
+
+typedef struct _ebpf_operation_wait_for_map_change_request
+{
+    struct _ebpf_operation_header header;
+    ebpf_handle_t map_handle;
+} ebpf_operation_wait_for_map_change_request_t;

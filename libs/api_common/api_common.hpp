@@ -82,7 +82,7 @@ std::vector<map_cache_t>
 get_all_map_descriptors();
 
 // This should be consistent with _ebpf_result_to_ntstatus()
-// in ebpf_drv.c.
+// in ebpf_error.c
 __forceinline ebpf_result_t
 windows_error_to_ebpf_result(uint32_t error)
 {
@@ -98,6 +98,7 @@ windows_error_to_ebpf_result(uint32_t error)
         result = EBPF_NO_MEMORY;
         break;
 
+    case ERROR_PATH_NOT_FOUND:
     case ERROR_NOT_FOUND:
         result = EBPF_KEY_NOT_FOUND;
         break;
@@ -132,9 +133,13 @@ windows_error_to_ebpf_result(uint32_t error)
         break;
 
     case ERROR_OBJECT_ALREADY_EXISTS:
+    case ERROR_OBJECT_NAME_EXISTS:
         result = EBPF_OBJECT_ALREADY_EXISTS;
         break;
 
+    case ERROR_IO_PENDING:
+        result = EBPF_PENDING;
+        break;
     default:
         result = EBPF_FAILED;
         break;

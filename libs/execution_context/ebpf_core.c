@@ -1177,6 +1177,28 @@ _ebpf_core_protocol_get_object_info(
     return result;
 }
 
+ebpf_result_t
+_ebpf_core_protocol_wait_for_map_change(
+    _In_ const ebpf_operation_wait_for_map_change_request_t* request,
+    _In_ void* reply,
+    uint16_t output_buffer_length,
+    _In_ void* async_context)
+{
+    UNREFERENCED_PARAMETER(reply);
+    UNREFERENCED_PARAMETER(output_buffer_length);
+
+    ebpf_map_t* map;
+    ebpf_result_t result = ebpf_reference_object_by_handle(request->map_handle, EBPF_OBJECT_MAP, (ebpf_object_t**)&map);
+    if (result != EBPF_SUCCESS) {
+        return result;
+    }
+
+    result = ebpf_map_wait_for_update(map, async_context);
+
+    ebpf_object_release_reference((ebpf_object_t*)map);
+    return result;
+}
+
 static void*
 _ebpf_core_map_find_element(ebpf_map_t* map, const uint8_t* key)
 {
@@ -1295,9 +1317,15 @@ typedef struct _ebpf_protocol_handler
             _In_ const void* input_buffer,
             _Out_writes_bytes_(output_buffer_length) void* output_buffer,
             uint16_t output_buffer_length);
+        ebpf_result_t (*async_protocol_handler_with_reply)(
+            _In_ const void* input_buffer,
+            _Out_writes_bytes_(output_buffer_length) void* output_buffer,
+            uint16_t output_buffer_length,
+            _In_ void* async_context);
     } dispatch;
     size_t minimum_request_size;
     size_t minimum_reply_size;
+    bool async;
 } const ebpf_protocol_handler_t;
 
 static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
@@ -1447,11 +1475,20 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
 
     // EBPF_OPERATION_BIND_MAP
     {(ebpf_result_t(__cdecl*)(const void*))_ebpf_core_protocol_bind_map, sizeof(ebpf_operation_bind_map_request_t), 0},
+
+    // EBPF_OPERATION_WAIT_FOR_MAP_CHANGE
+    {(ebpf_result_t(__cdecl*)(const void*))_ebpf_core_protocol_wait_for_map_change,
+     sizeof(ebpf_operation_wait_for_map_change_request_t),
+     0,
+     true},
 };
 
 ebpf_result_t
 ebpf_core_get_protocol_handler_properties(
-    ebpf_operation_id_t operation_id, _Out_ size_t* minimum_request_size, _Out_ size_t* minimum_reply_size)
+    ebpf_operation_id_t operation_id,
+    _Out_ size_t* minimum_request_size,
+    _Out_ size_t* minimum_reply_size,
+    _Out_ bool* async)
 {
     *minimum_request_size = 0;
     *minimum_reply_size = 0;
@@ -1464,6 +1501,7 @@ ebpf_core_get_protocol_handler_properties(
 
     *minimum_request_size = _ebpf_protocol_handlers[operation_id].minimum_request_size;
     *minimum_reply_size = _ebpf_protocol_handlers[operation_id].minimum_reply_size;
+    *async = _ebpf_protocol_handlers[operation_id].async;
     return EBPF_SUCCESS;
 }
 
@@ -1472,31 +1510,63 @@ ebpf_core_invoke_protocol_handler(
     ebpf_operation_id_t operation_id,
     _In_ const void* input_buffer,
     _Out_writes_bytes_opt_(output_buffer_length) void* output_buffer,
-    uint16_t output_buffer_length)
+    uint16_t output_buffer_length,
+    _In_opt_ void* async_context,
+    _In_opt_ void (*on_complete)(void* async_context, ebpf_result_t result))
 {
     ebpf_result_t retval;
+    bool epoch_entered = false;
+    bool affinity_set = false;
 
     if (operation_id >= EBPF_COUNT_OF(_ebpf_protocol_handlers) || operation_id < EBPF_OPERATION_RESOLVE_HELPER) {
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
+
+    if (async_context && !on_complete) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
     uintptr_t old_affinity_mask = 0;
 
     retval = ebpf_set_current_thread_affinity((uintptr_t)1 << ebpf_get_current_cpu(), &old_affinity_mask);
-    if (retval != EBPF_SUCCESS)
-        return retval;
+    if (retval != EBPF_SUCCESS) {
+        goto Done;
+    }
+    affinity_set = true;
 
     retval = ebpf_epoch_enter();
-    if (retval != EBPF_SUCCESS)
-        return retval;
+    if (retval != EBPF_SUCCESS) {
+        goto Done;
+    }
+    epoch_entered = true;
 
-    if (output_buffer == NULL)
+    if (async_context) {
+        retval = ebpf_async_set_completion_callback(async_context, on_complete);
+        if (retval != EBPF_SUCCESS) {
+            goto Done;
+        }
+    }
+
+    if (async_context)
+        retval = _ebpf_protocol_handlers[operation_id].dispatch.async_protocol_handler_with_reply(
+            input_buffer, output_buffer, output_buffer_length, async_context);
+    else if (output_buffer == NULL)
         retval = _ebpf_protocol_handlers[operation_id].dispatch.protocol_handler_no_reply(input_buffer);
     else
         retval = _ebpf_protocol_handlers[operation_id].dispatch.protocol_handler_with_reply(
             input_buffer, output_buffer, output_buffer_length);
 
-    ebpf_epoch_exit();
+Done:
+    if (epoch_entered)
+        ebpf_epoch_exit();
 
-    ebpf_restore_current_thread_affinity(old_affinity_mask);
+    if (affinity_set)
+        ebpf_restore_current_thread_affinity(old_affinity_mask);
     return retval;
+}
+
+bool
+ebpf_core_cancel_protocol_handler(_In_ void* async_context)
+{
+    return ebpf_async_cancel(async_context);
 }
