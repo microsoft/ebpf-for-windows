@@ -37,9 +37,6 @@ jobs:
       shell: cmd
       run: |
         call "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\Common7\Tools\VsDevCmd.bat"
-        mkdir packages
-        mklink /j packages\boost.1.75.0.0 %userprofile%\.nuget\packages\boost\1.75.0
-        mklink /j packages\CatchOrg.Catch.2.8.0 %userprofile%\.nuget\packages\catchorg.catch\2.8.0
         nuget restore ${{env.SOLUTION_FILE_PATH}}
 
     - name: Create verifier project
@@ -49,8 +46,7 @@ jobs:
         call "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\Common7\Tools\VsDevCmd.bat"
         cd external\ebpf-verifier
         rmdir /s /q build
-        mkdir build\packages
-        mklink /j build\packages\boost %userprofile%\.nuget\packages\boost\1.75.0
+        mkdir build
         cmake -B build
 
     - name: Build
