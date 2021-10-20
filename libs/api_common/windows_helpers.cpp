@@ -70,7 +70,7 @@ get_program_info_data(ebpf_program_type_t program_type, _Outptr_ ebpf_program_in
     *program_info = nullptr;
 
     auto reply = reinterpret_cast<ebpf_operation_get_program_info_reply_t*>(reply_buffer.data());
-    ebpf_result_t result = windows_error_to_ebpf_result(invoke_ioctl(request, reply_buffer));
+    ebpf_result_t result = win32_error_code_to_ebpf_result(invoke_ioctl(request, reply_buffer));
     if ((result != EBPF_SUCCESS) && (result != EBPF_INSUFFICIENT_BUFFER))
         goto Exit;
 
@@ -78,7 +78,7 @@ get_program_info_data(ebpf_program_type_t program_type, _Outptr_ ebpf_program_in
         required_buffer_length = reply->header.length;
         reply_buffer.resize(required_buffer_length);
         reply = reinterpret_cast<ebpf_operation_get_program_info_reply_t*>(reply_buffer.data());
-        result = windows_error_to_ebpf_result(invoke_ioctl(request, reply_buffer));
+        result = win32_error_code_to_ebpf_result(invoke_ioctl(request, reply_buffer));
         if (result != EBPF_SUCCESS)
             goto Exit;
     }

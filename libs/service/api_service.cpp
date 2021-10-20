@@ -73,7 +73,7 @@ _build_helper_id_to_address_map(
 
     uint32_t result = invoke_ioctl(request_buffer, reply_buffer);
     if (result != ERROR_SUCCESS) {
-        return windows_error_to_ebpf_result(result);
+        return win32_error_code_to_ebpf_result(result);
     }
 
     helper_addresses.resize(helper_id_mapping.size());
@@ -109,7 +109,7 @@ _resolve_ec_function(ebpf_ec_function_t function, uint64_t* address)
 
     uint32_t result = invoke_ioctl(request, reply);
     if (result != ERROR_SUCCESS) {
-        return windows_error_to_ebpf_result(result);
+        return win32_error_code_to_ebpf_result(result);
     }
 
     if (reply.header.id != ebpf_operation_id_t::EBPF_OPERATION_GET_EC_FUNCTION) {
@@ -176,7 +176,7 @@ _resolve_maps_in_byte_code(ebpf_handle_t program_handle, ebpf_code_buffer_t& byt
 
     uint32_t result = invoke_ioctl(request_buffer, reply_buffer);
     if (result != ERROR_SUCCESS) {
-        return windows_error_to_ebpf_result(result);
+        return win32_error_code_to_ebpf_result(result);
     }
 
     for (size_t index = 0; index < map_handles.size(); index++) {
