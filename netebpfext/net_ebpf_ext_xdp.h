@@ -5,11 +5,14 @@
 
 // Callout GUIDs
 
+// 5a5614e4-6b64-4738-8367-33c6ca07bf8f
+DEFINE_GUID(EBPF_HOOK_OUTBOUND_L2_CALLOUT, 0x5a5614e4, 0x6b64, 0x4738, 0x83, 0x67, 0x33, 0xc6, 0xca, 0x07, 0xbf, 0x8f);
+
 // 5a5614e5-6b64-4738-8367-33c6ca07bf8f
-DEFINE_GUID(EBPF_HOOK_L2_CALLOUT, 0x5a5614e5, 0x6b64, 0x4738, 0x83, 0x67, 0x33, 0xc6, 0xca, 0x07, 0xbf, 0x8f);
+DEFINE_GUID(EBPF_HOOK_INBOUND_L2_CALLOUT, 0x5a5614e5, 0x6b64, 0x4738, 0x83, 0x67, 0x33, 0xc6, 0xca, 0x07, 0xbf, 0x8f);
 
 /**
- * @brief WFP classifyFn callback for EBPF_HOOK_L2_CALLOUT.
+ * @brief Common WFP classifyFn callback for EBPF_HOOK_OUTBOUND_L2_CALLOUT and EBPF_HOOK_INBOUND_L2_CALLOUT.
  *
  */
 void

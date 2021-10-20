@@ -297,6 +297,9 @@ net_ebpf_ext_layer_2_classify(
     if (!ebpf_ext_attach_enter_rundown(_ebpf_xdp_hook_provider_registration))
         goto Done;
 
+    if (incoming_fixed_values->layerId == FWPS_LAYER_OUTBOUND_MAC_FRAME_NATIVE)
+        goto Done;
+
     if (nbl == NULL) {
         KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "Null NBL \n"));
         goto Done;

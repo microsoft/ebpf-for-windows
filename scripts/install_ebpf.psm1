@@ -28,7 +28,7 @@ function Unregister-eBPFComponents
     }
 
     # Uninstall user mode service.
-    sc.exe delete eBPFSvc.exe 2>&1 | Write-Log
+    sc.exe delete eBPFSvc 2>&1 | Write-Log
 
     # Delete the eBPF netsh helper.
     netsh delete helper "$Env:systemroot\system32\ebpfnetsh.dll"  2>&1 | Write-Log
@@ -84,6 +84,9 @@ function Start-eBPFComponents
 
 function Install-eBPFComponents
 {
+    # Stop eBPF Components
+    Stop-eBPFComponents
+
     # Copy all binaries to system32.
     Copy-Item *.sys -Destination "$Env:systemroot\system32\drivers" -Force -ErrorAction Stop 2>&1 | Write-Log
     Copy-Item *.dll -Destination "$Env:systemroot\system32" -Force -ErrorAction Stop 2>&1 | Write-Log
@@ -99,10 +102,10 @@ function Install-eBPFComponents
 function Stop-eBPFComponents
 {
     # Stop user mode service.
-    Stop-Service "eBPFSvc" -ErrorAction Stop 2>&1 | Write-Log
+    Stop-Service "eBPFSvc" -ErrorAction Ignore 2>&1 | Write-Log
 
     # Stop the drivers.
     $EbpfDrivers.GetEnumerator() | ForEach-Object {
-        Stop-Service $_.Name -ErrorAction Stop 2>&1 | Write-Log
+        Stop-Service $_.Name -ErrorAction Ignore 2>&1 | Write-Log
     }
 }
