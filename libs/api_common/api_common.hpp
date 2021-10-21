@@ -171,7 +171,7 @@ win32_error_code_to_ebpf_result(uint32_t error)
         result = EBPF_RPC_EXCEPTION;
         break;
 
-    case ERROR_FILE_NOT_SUPPORTED:
+    case ERROR_BAD_EXE_FORMAT:
         result = EBPF_ELF_PARSING_FAILED;
         break;
 
