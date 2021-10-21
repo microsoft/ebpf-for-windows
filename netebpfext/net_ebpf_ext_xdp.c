@@ -297,6 +297,18 @@ net_ebpf_ext_layer_2_classify(
     if (!ebpf_ext_attach_enter_rundown(_ebpf_xdp_hook_provider_registration))
         goto Done;
 
+    //
+    // WFP MAC layers are implemented using NDIS light-weight filters (LWF).
+    // See https://docs.microsoft.com/en-us/windows-hardware/drivers/network/using-layer-2-filtering for details.
+    // FwpsInjectMacSendAsync API is used for injecting packets in the outbound direction to implement XDP_TX.
+    // For packet injection to work WFP LWF must register packet send-completion handlers with NDIS.
+    // This handler is added only if WFP filters/callouts are added in the FWPS_LAYER_OUTBOUND_MAC_FRAME_NATIVE layer.
+    // That is why a filter and a callout is added in this layer even though the callout at the outbound layer
+    // need not process any outbound packets.
+    //
+    if (incoming_fixed_values->layerId == FWPS_LAYER_OUTBOUND_MAC_FRAME_NATIVE)
+        goto Done;
+
     if (nbl == NULL) {
         KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "Null NBL \n"));
         goto Done;
