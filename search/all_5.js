@@ -108,12 +108,13 @@ var searchData=
   ['ebpf_5fprogram_5ftypes_2eh_277',['ebpf_program_types.h',['../ebpf__program__types_8h.html',1,'']]],
   ['ebpf_5fresult_278',['ebpf_result',['../ebpf__result_8h.html#a916ce31f9038720787b441792c088372',1,'ebpf_result.h']]],
   ['ebpf_5fresult_2eh_279',['ebpf_result.h',['../ebpf__result_8h.html',1,'']]],
-  ['ebpf_5fresult_5ft_280',['ebpf_result_t',['../ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333',1,'ebpf_result.h']]],
-  ['ebpf_5frpc_5fexception_281',['EBPF_RPC_EXCEPTION',['../ebpf__result_8h.html#a916ce31f9038720787b441792c088372a9ec1ea4f6d473fcf287718daf1204f5f',1,'ebpf_result.h']]],
-  ['ebpf_5fstructs_2eh_282',['ebpf_structs.h',['../ebpf__structs_8h.html',1,'']]],
-  ['ebpf_5fsuccess_283',['EBPF_SUCCESS',['../ebpf__result_8h.html#a916ce31f9038720787b441792c088372a734b14ecdf5504673bd704aef03b1b32',1,'ebpf_result.h']]],
-  ['ebpf_5fupdate_5felement_284',['EBPF_UPDATE_ELEMENT',['../ebpf__windows_8h.html#a653f667ffc6571d5f67b1b81d612a0cdac99cfe5bf6f7c353920b8344fdfae7d7',1,'ebpf_windows.h']]],
-  ['ebpf_5fverification_5ffailed_285',['EBPF_VERIFICATION_FAILED',['../ebpf__result_8h.html#a916ce31f9038720787b441792c088372ae6a0aab27de3861a3be1e6b5f86c031d',1,'ebpf_result.h']]],
-  ['ebpf_5fwindows_2eh_286',['ebpf_windows.h',['../ebpf__windows_8h.html',1,'']]],
-  ['ebpf_5fwindows_5fprogram_5ftype_5fdata_5ft_287',['ebpf_windows_program_type_data_t',['../ebpf__structs_8h.html#a148e0524861ec2c26aa4a73343c245c2',1,'ebpf_structs.h']]]
+  ['ebpf_5fresult_5fcount_280',['EBPF_RESULT_COUNT',['../ebpf__result_8h.html#a02c846ac59536972540561451b0b3211',1,'ebpf_result.h']]],
+  ['ebpf_5fresult_5ft_281',['ebpf_result_t',['../ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333',1,'ebpf_result.h']]],
+  ['ebpf_5frpc_5fexception_282',['EBPF_RPC_EXCEPTION',['../ebpf__result_8h.html#a916ce31f9038720787b441792c088372a9ec1ea4f6d473fcf287718daf1204f5f',1,'ebpf_result.h']]],
+  ['ebpf_5fstructs_2eh_283',['ebpf_structs.h',['../ebpf__structs_8h.html',1,'']]],
+  ['ebpf_5fsuccess_284',['EBPF_SUCCESS',['../ebpf__result_8h.html#a916ce31f9038720787b441792c088372a734b14ecdf5504673bd704aef03b1b32',1,'ebpf_result.h']]],
+  ['ebpf_5fupdate_5felement_285',['EBPF_UPDATE_ELEMENT',['../ebpf__windows_8h.html#a653f667ffc6571d5f67b1b81d612a0cdac99cfe5bf6f7c353920b8344fdfae7d7',1,'ebpf_windows.h']]],
+  ['ebpf_5fverification_5ffailed_286',['EBPF_VERIFICATION_FAILED',['../ebpf__result_8h.html#a916ce31f9038720787b441792c088372ae6a0aab27de3861a3be1e6b5f86c031d',1,'ebpf_result.h']]],
+  ['ebpf_5fwindows_2eh_287',['ebpf_windows.h',['../ebpf__windows_8h.html',1,'']]],
+  ['ebpf_5fwindows_5fprogram_5ftype_5fdata_5ft_288',['ebpf_windows_program_type_data_t',['../ebpf__structs_8h.html#a148e0524861ec2c26aa4a73343c245c2',1,'ebpf_structs.h']]]
 ];
