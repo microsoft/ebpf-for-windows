@@ -14,13 +14,16 @@ The following must be installed in order to build this project:
 6. [nuget.exe](https://www.nuget.org/downloads)
 
 ## How to clone and build the project
+Clone: ```git clone --recurse-submodules https://github.com/microsoft/ebpf-for-windows.git```.
+By default this will clone project under `ebpf-for-windows` directory.
 
-1. ```git clone --recurse-submodules https://github.com/microsoft/ebpf-for-windows.git```
-2. ```cd ebpf-for-windows```
-3. ```cmake -S external\ebpf-verifier -B external\ebpf-verifier\build```
-4. ```nuget restore ebpf-for-windows.sln```
-5. ```msbuild /m /p:Configuration=Debug /p:Platform=x64 ebpf-for-windows.sln```
-   or to build from within Visual Studio:
+Launch `"C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\Common7\Tools\VsDevCmd.bat"`
+1. ```cd ebpf-for-windows```
+2. ```cmake -S external\ebpf-verifier -B external\ebpf-verifier\build```
+3. ```nuget restore ebpf-for-windows.sln```  
+  3.1 ```del external\ebpf-verifier\build\obj\project.assets.json```
+4. ```msbuild /m /p:Configuration=Debug /p:Platform=x64 ebpf-for-windows.sln```  
+   Or to build using within Visual Studio:
    - Open ebpf-for-windows.sln
    - Switch to debug / x64
    - Build solution

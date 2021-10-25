@@ -60,3 +60,9 @@ After this point, use "\\.\pipe\DebugVM" in the rest of the instructions as the 
 
 Alternatively, debugging over IP rather than named pipes can be used, as disussec in
 [Setting Up Network Debugging of a Virtual Machine - KDNET](https://docs.microsoft.com/en-us/windows-hardware/drivers/debugger/setting-up-network-debugging-of-a-virtual-machine-host).
+
+
+## Enable Driver Verifier on eBPF drivers
+[Windows Driver Verifier](https://docs.microsoft.com/en-us/windows-hardware/drivers/devtest/driver-verifier) is a diagnostic tool that can detect illegal operations performed by kernel drivers. This can be optionally enabled on eBPF kernel drivers as follows:
+- ``` verifier /standard /bootmode persistent /driver ebpfcore.sys netebpfext.sys sample_ebpf_ext.sys  ```
+- Reboot the VM.
