@@ -10,6 +10,7 @@
 #include <thread>
 #include <sddl.h>
 
+#include "api_common.hpp"
 #include "catch_wrapper.hpp"
 #include "ebpf_async.h"
 #include "ebpf_bind_program_data.h"
@@ -812,4 +813,13 @@ TEST_CASE("ring_buffer", "[platform]")
 
     ebpf_ring_buffer_destroy(ring_buffer);
     ring_buffer = nullptr;
+}
+
+TEST_CASE("error codes", "[platform]")
+{
+    for (ebpf_result_t result = EBPF_SUCCESS; result < EBPF_RESULT_COUNT; result = (ebpf_result_t)(result + 1)) {
+        uint32_t error = ebpf_result_to_win32_error_code(result);
+        ebpf_result_t result2 = win32_error_code_to_ebpf_result(error);
+        REQUIRE(result2 == result);
+    }
 }

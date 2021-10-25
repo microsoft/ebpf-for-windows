@@ -114,7 +114,7 @@ GlueDeviceIoControl(
 
 Fail:
     if (result != EBPF_SUCCESS) {
-        SetLastError(ebpf_result_to_win32(result));
+        SetLastError(ebpf_result_to_win32_error_code(result));
     }
 
     return FALSE;

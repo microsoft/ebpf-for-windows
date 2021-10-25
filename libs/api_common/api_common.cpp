@@ -72,7 +72,7 @@ query_map_definition(
     _ebpf_operation_query_map_definition_reply reply;
 
     uint32_t error = invoke_ioctl(request, reply);
-    ebpf_result_t result = windows_error_to_ebpf_result(error);
+    ebpf_result_t result = win32_error_code_to_ebpf_result(error);
     if (result == EBPF_SUCCESS) {
         *size = reply.map_definition.size;
         *type = reply.map_definition.type;

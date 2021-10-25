@@ -669,10 +669,10 @@ Done:
     return result;
 }
 
-unsigned long
-ebpf_result_to_win32(ebpf_result_t result)
+uint32_t
+ebpf_result_to_win32_error_code(ebpf_result_t result)
 {
-    static ULONG (*RtlNtStatusToDosError)(NTSTATUS Status) = NULL;
+    static uint32_t (*RtlNtStatusToDosError)(NTSTATUS Status) = NULL;
     if (!RtlNtStatusToDosError) {
         HMODULE ntdll = LoadLibrary(L"ntdll.dll");
         if (!ntdll) {
