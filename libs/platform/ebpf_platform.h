@@ -949,10 +949,10 @@ extern "C"
      * @brief Map an ebpf_result_t to a generic Win32 error code.
      *
      * @param[in] result ebpf_result_t to map.
-     * @return The generic Win32 code.
+     * @return The generic Win32 error code.
      */
-    unsigned long
-    ebpf_result_to_win32(ebpf_result_t result);
+    uint32_t
+    ebpf_result_to_win32_error_code(ebpf_result_t result);
 
 #ifdef __cplusplus
 }

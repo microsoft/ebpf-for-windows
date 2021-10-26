@@ -105,6 +105,8 @@ extern "C"
         EBPF_OUT_OF_SPACE,
     } ebpf_result_t;
 
+#define EBPF_RESULT_COUNT (EBPF_OUT_OF_SPACE + 1)
+
 #ifdef __cplusplus
 }
 #endif

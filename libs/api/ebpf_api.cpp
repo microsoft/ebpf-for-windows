@@ -140,7 +140,7 @@ _create_map(
 
     return_value = invoke_ioctl(request_buffer, reply);
     if (return_value != ERROR_SUCCESS) {
-        result = windows_error_to_ebpf_result(return_value);
+        result = win32_error_code_to_ebpf_result(return_value);
         goto Exit;
     }
     ebpf_assert(reply.header.id == ebpf_operation_id_t::EBPF_OPERATION_CREATE_MAP);
@@ -265,7 +265,7 @@ _map_lookup_element(
         request->handle = handle;
         std::copy(key, key + key_size, request->key);
 
-        result = windows_error_to_ebpf_result(invoke_ioctl(request_buffer, reply_buffer));
+        result = win32_error_code_to_ebpf_result(invoke_ioctl(request_buffer, reply_buffer));
 
         if (reply->header.id != ebpf_operation_id_t::EBPF_OPERATION_MAP_FIND_ELEMENT) {
             result = EBPF_INVALID_ARGUMENT;
@@ -390,7 +390,7 @@ _update_map_element(
         std::copy((uint8_t*)key, (uint8_t*)key + key_size, request->data);
         std::copy((uint8_t*)value, (uint8_t*)value + value_size, request->data + key_size);
 
-        result = windows_error_to_ebpf_result(invoke_ioctl(request_buffer));
+        result = win32_error_code_to_ebpf_result(invoke_ioctl(request_buffer));
     } catch (const std::bad_alloc&) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -422,7 +422,7 @@ _update_map_element_with_handle(
     request->option = static_cast<ebpf_map_option_t>(flags);
     std::copy(key, key + key_size, request->key);
 
-    return windows_error_to_ebpf_result(invoke_ioctl(request_buffer));
+    return win32_error_code_to_ebpf_result(invoke_ioctl(request_buffer));
 }
 
 ebpf_result_t
@@ -514,7 +514,7 @@ ebpf_map_delete_element(fd_t map_fd, _In_ const void* key)
         request->handle = (uint64_t)map_handle;
         std::copy((uint8_t*)key, (uint8_t*)key + key_size, request->key);
 
-        result = windows_error_to_ebpf_result(invoke_ioctl(request_buffer));
+        result = win32_error_code_to_ebpf_result(invoke_ioctl(request_buffer));
         if (result == EBPF_INVALID_OBJECT) {
             result = EBPF_INVALID_FD;
         }
@@ -578,7 +578,7 @@ ebpf_map_get_next_key(fd_t map_fd, _In_opt_ const void* previous_key, _Out_ void
             request->header.length = offsetof(ebpf_operation_map_get_next_key_request_t, previous_key);
         }
 
-        result = windows_error_to_ebpf_result(invoke_ioctl(request_buffer, reply_buffer));
+        result = win32_error_code_to_ebpf_result(invoke_ioctl(request_buffer, reply_buffer));
 
         if (reply->header.id != ebpf_operation_id_t::EBPF_OPERATION_MAP_GET_NEXT_KEY) {
             result = EBPF_INVALID_ARGUMENT;
@@ -639,7 +639,7 @@ _create_program(
     *program_handle = reply.program_handle;
 
 Exit:
-    return windows_error_to_ebpf_result(error);
+    return win32_error_code_to_ebpf_result(error);
 }
 
 ebpf_result_t
@@ -720,7 +720,7 @@ ebpf_object_pin(fd_t fd, _In_z_ const char* path)
     request->header.length = static_cast<uint16_t>(request_buffer.size());
     request->handle = handle;
     std::copy(path, path + path_length, request->path);
-    result = windows_error_to_ebpf_result(invoke_ioctl(request_buffer));
+    result = win32_error_code_to_ebpf_result(invoke_ioctl(request_buffer));
 
     return result;
 }
@@ -739,7 +739,7 @@ ebpf_object_unpin(_In_z_ const char* path)
     request->header.length = static_cast<uint16_t>(request_buffer.size());
     request->handle = UINT64_MAX;
     std::copy(path, path + path_length, request->path);
-    return windows_error_to_ebpf_result(invoke_ioctl(request_buffer));
+    return win32_error_code_to_ebpf_result(invoke_ioctl(request_buffer));
 }
 
 ebpf_result_t
@@ -881,7 +881,7 @@ ebpf_get_next_map(fd_t previous_fd, _Out_ fd_t* next_fd)
             *next_fd = ebpf_fd_invalid;
         }
     }
-    return windows_error_to_ebpf_result(retval);
+    return win32_error_code_to_ebpf_result(retval);
 }
 
 ebpf_result_t
@@ -915,7 +915,7 @@ ebpf_get_next_program(fd_t previous_fd, _Out_ fd_t* next_fd)
             *next_fd = ebpf_fd_invalid;
         }
     }
-    return windows_error_to_ebpf_result(retval);
+    return win32_error_code_to_ebpf_result(retval);
 }
 
 ebpf_result_t
@@ -943,7 +943,7 @@ ebpf_program_query_info(
 
     uint32_t retval = invoke_ioctl(request, reply_buffer);
     if (retval != ERROR_SUCCESS) {
-        result = windows_error_to_ebpf_result(retval);
+        result = win32_error_code_to_ebpf_result(retval);
         __analysis_assume(result != EBPF_SUCCESS);
         return result;
     }
@@ -969,7 +969,7 @@ ebpf_program_query_info(
     *file_name = local_file_name;
     *section_name = local_section_name;
 
-    return windows_error_to_ebpf_result(retval);
+    return win32_error_code_to_ebpf_result(retval);
 }
 
 uint32_t
@@ -1028,7 +1028,7 @@ _link_ebpf_program(
             memcpy_s(request->data, attach_parameter_size, attach_parameter, attach_parameter_size);
         }
 
-        result = windows_error_to_ebpf_result(invoke_ioctl(request_buffer, reply));
+        result = win32_error_code_to_ebpf_result(invoke_ioctl(request_buffer, reply));
         if (result != EBPF_SUCCESS) {
             goto Exit;
         }
@@ -1081,7 +1081,7 @@ _detach_link_by_handle(ebpf_handle_t link_handle)
 {
     ebpf_operation_unlink_program_request_t request = {sizeof(request), EBPF_OPERATION_UNLINK_PROGRAM, link_handle};
 
-    return windows_error_to_ebpf_result(invoke_ioctl(request));
+    return win32_error_code_to_ebpf_result(invoke_ioctl(request));
 }
 
 ebpf_result_t
@@ -1197,7 +1197,7 @@ ebpf_api_close_handle(ebpf_handle_t handle)
 {
     ebpf_operation_close_handle_request_t request = {sizeof(request), EBPF_OPERATION_CLOSE_HANDLE, handle};
 
-    return windows_error_to_ebpf_result(invoke_ioctl(request));
+    return win32_error_code_to_ebpf_result(invoke_ioctl(request));
 }
 
 ebpf_result_t
@@ -1238,7 +1238,7 @@ ebpf_api_get_pinned_map_info(
         }
 
         // Invoke IOCTL.
-        result = windows_error_to_ebpf_result(invoke_ioctl(request, reply_buffer));
+        result = win32_error_code_to_ebpf_result(invoke_ioctl(request, reply_buffer));
 
         if ((result != EBPF_SUCCESS) && (result != EBPF_INSUFFICIENT_BUFFER))
             goto Exit;
@@ -2055,7 +2055,7 @@ _get_fd_by_id(ebpf_operation_id_t operation, ebpf_id_t id, _Out_ int* fd) noexce
     _ebpf_operation_get_handle_by_id_reply reply;
 
     uint32_t error = invoke_ioctl(request, reply);
-    ebpf_result_t result = windows_error_to_ebpf_result(error);
+    ebpf_result_t result = win32_error_code_to_ebpf_result(error);
     if (result != EBPF_SUCCESS) {
         return result;
     }
@@ -2108,7 +2108,7 @@ ebpf_get_next_pinned_program_path(
     memcpy(request->start_path, start_path, start_path_length);
 
     uint32_t error = invoke_ioctl(request_buffer, reply_buffer);
-    ebpf_result_t result = windows_error_to_ebpf_result(error);
+    ebpf_result_t result = win32_error_code_to_ebpf_result(error);
     if (result != EBPF_SUCCESS) {
         return result;
     }
@@ -2129,7 +2129,7 @@ _get_next_id(ebpf_operation_id_t operation, ebpf_id_t start_id, _Out_ ebpf_id_t*
     _ebpf_operation_get_next_id_reply reply;
 
     uint32_t error = invoke_ioctl(request, reply);
-    ebpf_result_t result = windows_error_to_ebpf_result(error);
+    ebpf_result_t result = win32_error_code_to_ebpf_result(error);
     if (result != EBPF_SUCCESS) {
         return result;
     }
@@ -2178,7 +2178,7 @@ ebpf_object_get_info_by_fd(
     request->header.id = ebpf_operation_id_t::EBPF_OPERATION_GET_OBJECT_INFO;
     request->handle = handle;
 
-    ebpf_result_t result = windows_error_to_ebpf_result(invoke_ioctl(request_buffer, reply_buffer));
+    ebpf_result_t result = win32_error_code_to_ebpf_result(invoke_ioctl(request_buffer, reply_buffer));
     if (result == EBPF_SUCCESS) {
         *info_size = reply->header.length - EBPF_OFFSET_OF(ebpf_operation_get_object_info_reply_t, info);
         memcpy(info, reply->info, *info_size);
@@ -2239,7 +2239,7 @@ ebpf_program_bind_map(fd_t program_fd, fd_t map_fd)
     request.program_handle = program_handle;
     request.map_handle = map_handle;
 
-    return windows_error_to_ebpf_result(invoke_ioctl(request));
+    return win32_error_code_to_ebpf_result(invoke_ioctl(request));
 }
 
 ebpf_result_t
@@ -2251,5 +2251,5 @@ ebpf_map_wait_for_update(fd_t map_fd, _Inout_ OVERLAPPED* overlapped)
     }
     ebpf_operation_wait_for_map_change_request_t request{
         sizeof(request), EBPF_OPERATION_WAIT_FOR_MAP_CHANGE, map_handle};
-    return windows_error_to_ebpf_result(invoke_ioctl(request, _empty_reply, overlapped));
+    return win32_error_code_to_ebpf_result(invoke_ioctl(request, _empty_reply, overlapped));
 }

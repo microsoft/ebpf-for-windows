@@ -54,13 +54,23 @@ typedef struct _net_ebpf_ext_wfp_callout_state
 
 static net_ebpf_ext_wfp_callout_state_t _net_ebpf_ext_wfp_callout_state[] = {
     {
-        &EBPF_HOOK_L2_CALLOUT,
+        &EBPF_HOOK_OUTBOUND_L2_CALLOUT,
+        &FWPM_LAYER_OUTBOUND_MAC_FRAME_NATIVE,
+        net_ebpf_ext_layer_2_classify,
+        _net_ebpf_ext_filter_change_notify,
+        _net_ebpf_ext_flow_delete,
+        L"L2 Callout",
+        L"L2 callout driver",
+        FWP_ACTION_CALLOUT_TERMINATING,
+    },
+    {
+        &EBPF_HOOK_INBOUND_L2_CALLOUT,
         &FWPM_LAYER_INBOUND_MAC_FRAME_NATIVE,
         net_ebpf_ext_layer_2_classify,
         _net_ebpf_ext_filter_change_notify,
         _net_ebpf_ext_flow_delete,
-        L"L2 XDP Callout",
-        L"L2 callout driver for eBPF at XDP-like layer",
+        L"L2 Callout",
+        L"L2 callout driver",
         FWP_ACTION_CALLOUT_TERMINATING,
     },
     {
