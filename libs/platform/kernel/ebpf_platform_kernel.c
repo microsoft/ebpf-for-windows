@@ -8,13 +8,6 @@
 #include "ebpf_platform.h"
 
 #include <ntstrsafe.h>
-#include <wdm.h>
-#include <TraceLoggingProvider.h>
-
-TRACELOGGING_DEFINE_PROVIDER(
-    ebpf_tracelog_provider,
-    "EbpfForWindowsProvider",
-    (0x394f321c, 0x5cf4, 0x404c, 0xaa, 0x34, 0x4d, 0xf1, 0x42, 0x8a, 0x7f, 0x9c));
 
 typedef struct _ebpf_memory_descriptor
 {
@@ -40,23 +33,14 @@ static KDEFERRED_ROUTINE _ebpf_timer_routine;
 ebpf_result_t
 ebpf_platform_initiate()
 {
-    TLG_STATUS status = TraceLoggingRegister(ebpf_tracelog_provider);
-    if (!NT_SUCCESS(status)) {
-        return EBPF_NO_MEMORY;
-    }
     return EBPF_SUCCESS;
 }
 
-// Prevent tail call optimization of the call to TraceLoggingUnregister to resolve verifier stop C4/DD
-// "An attempt was made to unload a driver without calling EtwUnregister".
-#pragma optimize("", off)
 void
 ebpf_platform_terminate()
 {
     KeFlushQueuedDpcs();
-    TraceLoggingUnregister(ebpf_tracelog_provider);
 }
-#pragma optimize("", on)
 
 __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
     _Post_writable_byte_size_(size) void* ebpf_allocate(size_t size)
@@ -106,6 +90,7 @@ ebpf_free_cache_aligned(_Frees_ptr_opt_ void* memory)
 ebpf_memory_descriptor_t*
 ebpf_map_memory(size_t length)
 {
+    EBPF_LOG_ENTRY();
     MDL* memory_descriptor_list = NULL;
     PHYSICAL_ADDRESS start_address;
     PHYSICAL_ADDRESS end_address;
@@ -120,29 +105,38 @@ ebpf_map_memory(size_t length)
         void* address =
             MmMapLockedPagesSpecifyCache(memory_descriptor_list, KernelMode, MmCached, NULL, FALSE, NormalPagePriority);
         if (!address) {
+            EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_KEYWORD_BASE, MmMapLockedPagesSpecifyCache, STATUS_NO_MEMORY);
             MmFreePagesFromMdl(memory_descriptor_list);
             ExFreePool(memory_descriptor_list);
             memory_descriptor_list = NULL;
         }
+    } else {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_KEYWORD_BASE, MmAllocatePagesForMdlEx, STATUS_NO_MEMORY);
     }
+    EBPF_LOG_EXIT();
     return (ebpf_memory_descriptor_t*)memory_descriptor_list;
 }
 
 void
 ebpf_unmap_memory(_Frees_ptr_opt_ ebpf_memory_descriptor_t* memory_descriptor)
 {
-    if (!memory_descriptor)
+    EBPF_LOG_ENTRY();
+    if (!memory_descriptor) {
+        EBPF_LOG_EXIT();
         return;
+    }
 
     MmUnmapLockedPages(
         ebpf_memory_descriptor_get_base_address(memory_descriptor), &memory_descriptor->memory_descriptor_list);
     MmFreePagesFromMdl(&memory_descriptor->memory_descriptor_list);
     ExFreePool(memory_descriptor);
+    EBPF_LOG_EXIT();
 }
 
 ebpf_result_t
 ebpf_protect_memory(_In_ const ebpf_memory_descriptor_t* memory_descriptor, ebpf_page_protection_t protection)
 {
+    EBPF_LOG_ENTRY();
     NTSTATUS status;
     ULONG mm_protection_state = 0;
     switch (protection) {
@@ -156,25 +150,32 @@ ebpf_protect_memory(_In_ const ebpf_memory_descriptor_t* memory_descriptor, ebpf
         mm_protection_state = PAGE_EXECUTE_READ;
         break;
     default:
-        return EBPF_INVALID_ARGUMENT;
+        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
     }
 
     status = MmProtectMdlSystemAddress((MDL*)&memory_descriptor->memory_descriptor_list, mm_protection_state);
-    if (!NT_SUCCESS(status))
-        return EBPF_INVALID_ARGUMENT;
+    if (!NT_SUCCESS(status)) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_KEYWORD_BASE, MmProtectMdlSystemAddress, status);
+        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+    }
 
-    return EBPF_SUCCESS;
+    EBPF_RETURN_RESULT(EBPF_SUCCESS);
 }
 
 void*
 ebpf_memory_descriptor_get_base_address(ebpf_memory_descriptor_t* memory_descriptor)
 {
-    return MmGetSystemAddressForMdlSafe(&memory_descriptor->memory_descriptor_list, NormalPagePriority);
+    void* address = MmGetSystemAddressForMdlSafe(&memory_descriptor->memory_descriptor_list, NormalPagePriority);
+    if (!address) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_KEYWORD_BASE, MmGetSystemAddressForMdlSafe, STATUS_NO_MEMORY);
+    }
+    return address;
 }
 
 _Ret_maybenull_ ebpf_ring_descriptor_t*
 ebpf_allocate_ring_buffer_memory(size_t length)
 {
+    EBPF_LOG_ENTRY();
     NTSTATUS status;
     size_t requested_page_count = length / PAGE_SIZE;
 
@@ -188,6 +189,8 @@ ebpf_allocate_ring_buffer_memory(size_t length)
 
     if (length % PAGE_SIZE != 0 || length > MAXUINT32 / 2) {
         status = STATUS_NO_MEMORY;
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_LEVEL_ERROR, EBPF_KEYWORD_BASE, "Ring buffer length doesn't match allocaiton granularity", length);
         goto Done;
     }
 
@@ -207,6 +210,7 @@ ebpf_allocate_ring_buffer_memory(size_t length)
         FALSE,
         NULL);
     if (!ring_descriptor->memory_descriptor_list) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_KEYWORD_BASE, IoAllocateMdl, STATUS_NO_MEMORY);
         status = STATUS_NO_MEMORY;
         goto Done;
     }
@@ -224,6 +228,7 @@ ebpf_allocate_ring_buffer_memory(size_t length)
     ring_descriptor->base_address = MmMapLockedPagesSpecifyCache(
         ring_descriptor->memory_descriptor_list, KernelMode, MmCached, NULL, FALSE, NormalPagePriority);
     if (!ring_descriptor->base_address) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_KEYWORD_BASE, MmMapLockedPagesSpecifyCache, STATUS_NO_MEMORY);
         status = STATUS_NO_MEMORY;
         goto Done;
     }
@@ -244,13 +249,16 @@ Done:
         }
     }
 
+    EBPF_LOG_EXIT();
     return ring_descriptor;
 }
 
 void
 ebpf_free_ring_buffer_memory(_Frees_ptr_opt_ ebpf_ring_descriptor_t* ring)
 {
+    EBPF_LOG_ENTRY();
     if (!ring) {
+        EBPF_LOG_EXIT();
         return;
     }
 
@@ -259,6 +267,7 @@ ebpf_free_ring_buffer_memory(_Frees_ptr_opt_ ebpf_ring_descriptor_t* ring)
     IoFreeMdl(ring->memory_descriptor_list);
     ebpf_unmap_memory(ring->memory);
     ebpf_free(ring);
+    EBPF_LOG_EXIT();
 }
 
 void*
@@ -274,6 +283,7 @@ ebpf_ring_map_readonly_user(_In_ ebpf_ring_descriptor_t* ring)
         return MmMapLockedPagesSpecifyCache(
             ring->memory_descriptor_list, UserMode, MmCached, NULL, FALSE, NormalPagePriority | MdlMappingNoWrite);
     } __except (EXCEPTION_EXECUTE_HANDLER) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_KEYWORD_BASE, MmMapLockedPagesSpecifyCache, STATUS_NO_MEMORY);
         return NULL;
     }
 }
@@ -306,11 +316,16 @@ ebpf_get_code_integrity_state(_Out_ ebpf_code_integrity_state_t* state)
     status = NtQuerySystemInformation(
         SystemCodeIntegrityInformation, &code_integrity_information, system_information_length, &returned_length);
     if (NT_SUCCESS(status)) {
-        *state = (code_integrity_information.CodeIntegrityOptions & CODEINTEGRITY_OPTION_HVCI_KMCI_ENABLED) != 0
-                     ? EBPF_CODE_INTEGRITY_HYPER_VISOR_KERNEL_MODE
-                     : EBPF_CODE_INTEGRITY_DEFAULT;
+        if ((code_integrity_information.CodeIntegrityOptions & CODEINTEGRITY_OPTION_HVCI_KMCI_ENABLED) != 0) {
+            EBPF_LOG_MESSAGE(EBPF_LEVEL_INFO, EBPF_KEYWORD_BASE, "Code integrity enabled");
+            *state = EBPF_CODE_INTEGRITY_HYPER_VISOR_KERNEL_MODE;
+        } else {
+            EBPF_LOG_MESSAGE(EBPF_LEVEL_INFO, EBPF_KEYWORD_BASE, "Code integrity disabled");
+            *state = EBPF_CODE_INTEGRITY_DEFAULT;
+        }
         return EBPF_SUCCESS;
     } else {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_KEYWORD_BASE, NtQuerySystemInformation, status);
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
 }
@@ -564,7 +579,7 @@ ebpf_log_function(_In_ void* context, _In_z_ const char* format_string, ...)
 
     status = RtlStringCchVPrintfA(buffer, sizeof(buffer), format_string, arg_start);
     if (NT_SUCCESS(status)) {
-        KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "eBPF: context: %s\n", buffer));
+        EBPF_LOG_MESSAGE(EBPF_LEVEL_ERROR, EBPF_KEYWORD_ERROR, buffer);
     }
 
     va_end(arg_start);

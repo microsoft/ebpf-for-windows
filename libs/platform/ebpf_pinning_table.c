@@ -48,6 +48,7 @@ _ebpf_pinning_entry_free(ebpf_pinning_entry_t* pinning_entry)
 ebpf_result_t
 ebpf_pinning_table_allocate(ebpf_pinning_table_t** pinning_table)
 {
+    EBPF_LOG_ENTRY();
     ebpf_result_t return_value;
     *pinning_table = ebpf_allocate(sizeof(ebpf_pinning_table_t));
     if (*pinning_table == NULL) {
@@ -80,12 +81,13 @@ Done:
         ebpf_free(*pinning_table);
     }
 
-    return return_value;
+    EBPF_RETURN_RESULT(return_value);
 }
 
 void
 ebpf_pinning_table_free(ebpf_pinning_table_t* pinning_table)
 {
+    EBPF_LOG_ENTRY();
     ebpf_result_t return_value;
     ebpf_utf8_string_t* key = NULL;
 
@@ -99,24 +101,26 @@ ebpf_pinning_table_free(ebpf_pinning_table_t* pinning_table)
 
     ebpf_hash_table_destroy(pinning_table->hash_table);
     ebpf_free(pinning_table);
+    EBPF_LOG_EXIT();
 }
 
 ebpf_result_t
 ebpf_pinning_table_insert(ebpf_pinning_table_t* pinning_table, const ebpf_utf8_string_t* path, ebpf_object_t* object)
 {
+    EBPF_LOG_ENTRY();
     ebpf_lock_state_t state;
     ebpf_result_t return_value;
     ebpf_utf8_string_t* new_key;
     ebpf_pinning_entry_t* new_pinning_entry;
 
     if (path->length >= EBPF_MAX_PIN_PATH_LENGTH || path->length == 0) {
-        return EBPF_INVALID_ARGUMENT;
+        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
     }
 
     // Block embedded null terminators
     for (size_t index = 0; index < path->length; index++) {
         if (path->value[index] == 0) {
-            return EBPF_INVALID_ARGUMENT;
+            EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
         }
     }
 
@@ -152,13 +156,17 @@ ebpf_pinning_table_insert(ebpf_pinning_table_t* pinning_table, const ebpf_utf8_s
 
 Done:
     _ebpf_pinning_entry_free(new_pinning_entry);
+    if (return_value == EBPF_SUCCESS) {
+        EBPF_LOG_MESSAGE_UTF8_STRING(EBPF_LEVEL_VERBOSE, EBPF_KEYWORD_BASE, "Pinned object", *path);
+    }
 
-    return return_value;
+    EBPF_RETURN_RESULT(return_value);
 }
 
 ebpf_result_t
 ebpf_pinning_table_find(ebpf_pinning_table_t* pinning_table, const ebpf_utf8_string_t* path, ebpf_object_t** object)
 {
+    EBPF_LOG_ENTRY();
     ebpf_lock_state_t state;
     ebpf_result_t return_value;
     const ebpf_utf8_string_t* existing_key = path;
@@ -175,12 +183,13 @@ ebpf_pinning_table_find(ebpf_pinning_table_t* pinning_table, const ebpf_utf8_str
 
     ebpf_lock_unlock(&pinning_table->lock, state);
 
-    return return_value;
+    EBPF_RETURN_RESULT(return_value);
 }
 
 ebpf_result_t
 ebpf_pinning_table_delete(ebpf_pinning_table_t* pinning_table, const ebpf_utf8_string_t* path)
 {
+    EBPF_LOG_ENTRY();
     ebpf_lock_state_t state;
     ebpf_result_t return_value;
     const ebpf_utf8_string_t* existing_key = path;
@@ -199,7 +208,10 @@ ebpf_pinning_table_delete(ebpf_pinning_table_t* pinning_table, const ebpf_utf8_s
     }
     ebpf_lock_unlock(&pinning_table->lock, state);
 
-    return return_value;
+    if (return_value == EBPF_SUCCESS) {
+        EBPF_LOG_MESSAGE_UTF8_STRING(EBPF_LEVEL_VERBOSE, EBPF_KEYWORD_BASE, "Unpinned object", *path);
+    }
+    EBPF_RETURN_RESULT(return_value);
 }
 
 ebpf_result_t
@@ -209,6 +221,7 @@ ebpf_pinning_table_enumerate_entries(
     _Out_ uint16_t* entry_count,
     _Outptr_result_buffer_maybenull_(*entry_count) ebpf_pinning_entry_t** pinning_entries)
 {
+    EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_lock_state_t state = 0;
     bool lock_held = FALSE;
@@ -297,7 +310,7 @@ Exit:
     *entry_count = local_entry_count;
     *pinning_entries = local_pinning_entries;
 
-    return result;
+    EBPF_RETURN_RESULT(result);
 }
 
 ebpf_result_t
@@ -307,8 +320,9 @@ ebpf_pinning_table_get_next_path(
     _In_ const ebpf_utf8_string_t* start_path,
     _Inout_ ebpf_utf8_string_t* next_path)
 {
+    EBPF_LOG_ENTRY();
     if ((pinning_table == NULL) || (start_path == NULL) || (next_path == NULL)) {
-        return EBPF_INVALID_ARGUMENT;
+        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
     }
 
     const uint8_t* previous_key = (start_path->length == 0) ? NULL : (const uint8_t*)&start_path;
@@ -342,12 +356,13 @@ ebpf_pinning_table_get_next_path(
     }
 
     ebpf_lock_unlock(&pinning_table->lock, state);
-    return result;
+    EBPF_RETURN_RESULT(result);
 }
 
 void
 ebpf_pinning_entries_release(uint16_t entry_count, _In_opt_count_(entry_count) ebpf_pinning_entry_t* pinning_entries)
 {
+    EBPF_LOG_ENTRY();
     uint16_t index;
     if (!pinning_entries)
         return;
@@ -359,4 +374,5 @@ ebpf_pinning_entries_release(uint16_t entry_count, _In_opt_count_(entry_count) e
         ebpf_object_release_reference(entry->object);
     }
     ebpf_free(pinning_entries);
+    EBPF_LOG_EXIT();
 }

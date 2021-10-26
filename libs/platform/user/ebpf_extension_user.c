@@ -7,6 +7,7 @@
 
 typedef struct _ebpf_extension_client
 {
+    GUID npi_id;
     GUID client_id;
     GUID interface_id;
     void* extension_client_context;
@@ -169,6 +170,13 @@ ebpf_extension_get_client_context(_In_ const void* extension_client_binding_cont
         local_extension_client_context = local_client_context->extension_client_context;
 
     return local_extension_client_context;
+}
+
+GUID
+ebpf_extension_get_provider_guid(_In_ const void* extension_client_binding_context)
+{
+    ebpf_extension_client_t* local_client_context = (ebpf_extension_client_t*)extension_client_binding_context;
+    return local_client_context->npi_id;
 }
 
 #pragma warning(push)

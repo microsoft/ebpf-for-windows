@@ -11,7 +11,6 @@
 #include <stdint.h>
 #include <vector>
 #include <TraceLoggingProvider.h>
-#include <winmeta.h>
 
 // Global variables used to override behavior for testing.
 // Permit the test to simulate both Hyper-V Code Integrity.
@@ -19,34 +18,24 @@ bool _ebpf_platform_code_integrity_enabled = false;
 // Permit the test to simulate non-preemptible execution.
 bool _ebpf_platform_is_preemptible = true;
 
-TRACELOGGING_DEFINE_PROVIDER(
-    ebpf_tracelog_provider,
-    "EbpfForWindowsProvider",
-    // {394f321c-5cf4-404c-aa34-4df1428a7f9c}
-    (0x394f321c, 0x5cf4, 0x404c, 0xaa, 0x34, 0x4d, 0xf1, 0x42, 0x8a, 0x7f, 0x9c));
-
 ebpf_result_t
 ebpf_platform_initiate()
 {
-    ULONG result = TraceLoggingRegister(ebpf_tracelog_provider);
-    if (result != ERROR_SUCCESS) {
-        return EBPF_NO_MEMORY;
-    }
     return EBPF_SUCCESS;
 }
 
 void
 ebpf_platform_terminate()
-{
-    TraceLoggingUnregister(ebpf_tracelog_provider);
-}
+{}
 
 ebpf_result_t
 ebpf_get_code_integrity_state(_Out_ ebpf_code_integrity_state_t* state)
 {
     if (_ebpf_platform_code_integrity_enabled) {
+        EBPF_LOG_MESSAGE(EBPF_LEVEL_INFO, EBPF_KEYWORD_BASE, "Code integrity enabled");
         *state = EBPF_CODE_INTEGRITY_HYPER_VISOR_KERNEL_MODE;
     } else {
+        EBPF_LOG_MESSAGE(EBPF_LEVEL_INFO, EBPF_KEYWORD_BASE, "Code integrity disabled");
         *state = EBPF_CODE_INTEGRITY_DEFAULT;
     }
     return EBPF_SUCCESS;
@@ -122,6 +111,7 @@ ebpf_map_memory(size_t length)
     descriptor->length = length;
 
     if (!descriptor->base) {
+        EBPF_LOG_WIN32_API_FAILURE(EBPF_KEYWORD_BASE, VirtualAlloc);
         free(descriptor);
         descriptor = nullptr;
     }
@@ -132,7 +122,9 @@ void
 ebpf_unmap_memory(_Frees_ptr_opt_ ebpf_memory_descriptor_t* memory_descriptor)
 {
     if (memory_descriptor) {
-        VirtualFree(memory_descriptor->base, 0, MEM_RELEASE);
+        if (!VirtualFree(memory_descriptor->base, 0, MEM_RELEASE)) {
+            EBPF_LOG_WIN32_API_FAILURE(EBPF_KEYWORD_BASE, VirtualFree);
+        }
         free(memory_descriptor);
     }
 }
@@ -143,6 +135,7 @@ ebpf_unmap_memory(_Frees_ptr_opt_ ebpf_memory_descriptor_t* memory_descriptor)
 _Ret_maybenull_ ebpf_ring_descriptor_t*
 ebpf_allocate_ring_buffer_memory(size_t length)
 {
+    EBPF_LOG_ENTRY();
     bool result = false;
     HANDLE section = nullptr;
     SYSTEM_INFO sysInfo;
@@ -153,11 +146,14 @@ ebpf_allocate_ring_buffer_memory(size_t length)
 
     GetSystemInfo(&sysInfo);
 
-    if ((length % sysInfo.dwAllocationGranularity) != 0) {
+    if (length == 0) {
+        EBPF_LOG_MESSAGE(EBPF_LEVEL_ERROR, EBPF_KEYWORD_BASE, "Ring buffer length is zero");
         return nullptr;
     }
 
-    if (length == 0) {
+    if ((length % sysInfo.dwAllocationGranularity) != 0) {
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_LEVEL_ERROR, EBPF_KEYWORD_BASE, "Ring buffer length doesn't match allocaiton granularity", length);
         return nullptr;
     }
 
@@ -174,6 +170,7 @@ ebpf_allocate_ring_buffer_memory(size_t length)
         VirtualAlloc2(nullptr, nullptr, 2 * length, MEM_RESERVE | MEM_RESERVE_PLACEHOLDER, PAGE_NOACCESS, nullptr, 0));
 
     if (placeholder1 == nullptr) {
+        EBPF_LOG_WIN32_API_FAILURE(EBPF_KEYWORD_BASE, VirtualAlloc2);
         goto Exit;
     }
 
@@ -187,6 +184,7 @@ ebpf_allocate_ring_buffer_memory(size_t length)
     //
     result = VirtualFree(placeholder1, length, MEM_RELEASE | MEM_PRESERVE_PLACEHOLDER);
     if (result == FALSE) {
+        EBPF_LOG_WIN32_API_FAILURE(EBPF_KEYWORD_BASE, VirtualFree);
         goto Exit;
     }
 #pragma warning(pop)
@@ -198,6 +196,7 @@ ebpf_allocate_ring_buffer_memory(size_t length)
 
     section = CreateFileMapping(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, 0, static_cast<DWORD>(length), nullptr);
     if (section == nullptr) {
+        EBPF_LOG_WIN32_API_FAILURE(EBPF_KEYWORD_BASE, CreateFileMapping);
         goto Exit;
     }
 
@@ -207,6 +206,7 @@ ebpf_allocate_ring_buffer_memory(size_t length)
     view1 =
         MapViewOfFile3(section, nullptr, placeholder1, 0, length, MEM_REPLACE_PLACEHOLDER, PAGE_READWRITE, nullptr, 0);
     if (view1 == nullptr) {
+        EBPF_LOG_WIN32_API_FAILURE(EBPF_KEYWORD_BASE, MapViewOfFile3);
         goto Exit;
     }
 
@@ -221,6 +221,7 @@ ebpf_allocate_ring_buffer_memory(size_t length)
     view2 =
         MapViewOfFile3(section, nullptr, placeholder2, 0, length, MEM_REPLACE_PLACEHOLDER, PAGE_READWRITE, nullptr, 0);
     if (view2 == nullptr) {
+        EBPF_LOG_WIN32_API_FAILURE(EBPF_KEYWORD_BASE, MapViewOfFile3);
         goto Exit;
     }
 
@@ -261,17 +262,20 @@ Exit:
         UnmapViewOfFileEx(view2, 0);
     }
 
+    EBPF_LOG_EXIT();
     return descriptor;
 }
 
 void
 ebpf_free_ring_buffer_memory(_Frees_ptr_opt_ ebpf_ring_descriptor_t* ring)
 {
+    EBPF_LOG_ENTRY();
     if (ring) {
         UnmapViewOfFile(ring->primary_view);
         UnmapViewOfFile(ring->secondary_view);
         ebpf_free(ring);
     }
+    EBPF_LOG_EXIT();
 }
 
 void*
@@ -283,12 +287,15 @@ ebpf_ring_descriptor_get_base_address(_In_ ebpf_ring_descriptor_t* ring_descript
 _Ret_maybenull_ void*
 ebpf_ring_map_readonly_user(_In_ ebpf_ring_descriptor_t* ring)
 {
+    EBPF_LOG_ENTRY();
+    EBPF_LOG_EXIT();
     return ebpf_ring_descriptor_get_base_address(ring);
 }
 
 ebpf_result_t
 ebpf_protect_memory(_In_ const ebpf_memory_descriptor_t* memory_descriptor, ebpf_page_protection_t protection)
 {
+    EBPF_LOG_ENTRY();
     ULONG mm_protection_state = 0;
     ULONG old_mm_protection_state = 0;
     switch (protection) {
@@ -302,15 +309,16 @@ ebpf_protect_memory(_In_ const ebpf_memory_descriptor_t* memory_descriptor, ebpf
         mm_protection_state = PAGE_EXECUTE_READ;
         break;
     default:
-        return EBPF_INVALID_ARGUMENT;
+        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
     }
 
     if (!VirtualProtect(
             memory_descriptor->base, memory_descriptor->length, mm_protection_state, &old_mm_protection_state)) {
-        return EBPF_INVALID_ARGUMENT;
+        EBPF_LOG_WIN32_API_FAILURE(EBPF_KEYWORD_BASE, VirtualProtect);
+        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
     }
 
-    return EBPF_SUCCESS;
+    EBPF_RETURN_RESULT(EBPF_SUCCESS);
 }
 
 void*

@@ -140,6 +140,8 @@ ebpf_object_initialize(
     ebpf_free_object_t free_function,
     ebpf_object_get_program_type_t get_program_type_function)
 {
+    EBPF_LOG_MESSAGE_POINTER_ENUM(
+        EBPF_LEVEL_VERBOSE, EBPF_KEYWORD_BASE, "EBPF Object Initialized", object, object_type);
     object->marker = _ebpf_object_marker;
     object->reference_count = 1;
     object->type = object_type;
@@ -172,6 +174,9 @@ _Requires_lock_held_(&_ebpf_object_tracking_list_lock) void _ebpf_object_release
     new_ref_count = ebpf_interlocked_decrement_int32(&object->reference_count);
 
     if (new_ref_count == 0) {
+        EBPF_LOG_MESSAGE_POINTER_ENUM(
+            EBPF_LEVEL_VERBOSE, EBPF_KEYWORD_BASE, "EBPF Object Terminated", object, object->type);
+
         _ebpf_object_tracking_list_remove(object);
         object->marker = ~object->marker;
         object->free_function(object);
@@ -192,6 +197,8 @@ ebpf_object_release_reference(ebpf_object_t* object)
     new_ref_count = ebpf_interlocked_decrement_int32(&object->reference_count);
 
     if (new_ref_count == 0) {
+        EBPF_LOG_MESSAGE_POINTER_ENUM(
+            EBPF_LEVEL_VERBOSE, EBPF_KEYWORD_BASE, "EBPF Object Terminated", object, object->type);
         ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_object_tracking_list_lock);
         _ebpf_object_tracking_list_remove(object);
         ebpf_lock_unlock(&_ebpf_object_tracking_list_lock, state);

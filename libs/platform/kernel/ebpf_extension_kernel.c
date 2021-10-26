@@ -268,6 +268,13 @@ ebpf_extension_get_client_context(_In_ const void* extension_client_binding_cont
     return local_extension_client_context;
 }
 
+GUID
+ebpf_extension_get_provider_guid(_In_ const void* extension_client_binding_context)
+{
+    ebpf_extension_client_t* local_client_context = (ebpf_extension_client_t*)extension_client_binding_context;
+    return local_client_context->npi_id;
+}
+
 NTSTATUS
 _ebpf_extension_provider_attach_client(
     HANDLE nmr_binding_handle,

@@ -128,6 +128,7 @@ function Invoke-Test
     } else {
         Write-Log "$TestName passed" -ForegroundColor Green
     }
+
 }
 
 function Invoke-CICDTests
