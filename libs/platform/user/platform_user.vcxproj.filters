@@ -67,9 +67,6 @@
     <ClCompile Include="..\ebpf_error.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\ebpf_tracing.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Midl Include="..\ebpf_program_types.idl">

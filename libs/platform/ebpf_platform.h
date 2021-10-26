@@ -6,6 +6,9 @@
 #include "ebpf_windows.h"
 #include "framework.h"
 
+#include <TraceLoggingProvider.h>
+#include <winmeta.h>
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -954,64 +957,54 @@ extern "C"
     uint32_t
     ebpf_result_to_win32_error_code(ebpf_result_t result);
 
-    /**
-     * @brief Emit a trace message on function entry. Used via EBPF_TRACE_FUNCTION_ENTRY macro.
-     *
-     * @param[in] function Function that is being entered.
-     * @param[in] file File the function is contained in.
-     * @param[in] line Line number.
-     */
-    void
-    ebpf_trace_function_entry(_In_z_ const char* function, _In_z_ const char* file, int line);
+    TRACELOGGING_DECLARE_PROVIDER(ebpf_tracelog_provider);
 
-    /**
-     * @brief Emit a trace message on function entry. Used via EBPF_TRACE_FUNCTION_EXIT macro.
-     *
-     * @param[in] function Function that is being exited.
-     * @param[in] file File the function is contained in.
-     * @param[in] line Line number.
-     * @param[in] result Result code to be traced.
-     */
-    void
-    ebpf_trace_function_exit_result(
-        _In_z_ const char* function, _In_z_ const char* file, int line, ebpf_result_t result);
+#define EBPF_EVENT_SUCCESS "EbpfSuccess"
+#define EBPF_EVENT_GENERIC_ERROR "EbpfGenericError"
+#define EBPF_EVENT_GENERIC_MESSAGE "EbpfGenericMessage"
 
-    /**
-     * @brief Emit a trace message on function entry. Used via EBPF_TRACE_FUNCTION_EXIT_VOID macro.
-     *
-     * @param[in] function Function that is being exited.
-     * @param[in] file File the function is contained in.
-     * @param[in] line Line number.
-     */
-    void
-    ebpf_trace_function_exit_void(_In_z_ const char* function, _In_z_ const char* file, int line);
+#define EBPF_LOG_FUNCTION_SUCCESS()                \
+    TraceLoggingWrite(                             \
+        ebpf_tracelog_provider,                    \
+        EBPF_EVENT_SUCCESS,                        \
+        TraceLoggingLevel(WINEVENT_LEVEL_VERBOSE), \
+        TraceLoggingString(__FUNCTION__ "returned success", "Message"));
 
-    /**
-     * @brief Emit a trace message on function entry. Used via EBPF_TRACE_FUNCTION_EXIT_BOOL macro.
-     *
-     * @param[in] function Function that is being exited.
-     * @param[in] file File the function is contained in.
-     * @param[in] line Line number.
-     * @param[in] result Result bool to be traced.
-     */
-    void
-    ebpf_trace_function_exit_bool(_In_z_ const char* function, _In_z_ const char* file, int line, bool result);
+#define EBPF_LOG_FUNCTION_ERROR(Result)                                     \
+    TraceLoggingWrite(                                                      \
+        ebpf_tracelog_provider,                                             \
+        EBPF_EVENT_GENERIC_ERROR,                                           \
+        TraceLoggingLevel(WINEVENT_LEVEL_ERROR),                            \
+        TraceLoggingString(__FUNCTION__ " returned error", "ErrorMessage"), \
+        TraceLoggingLong(Result, "Error"));
 
-#define EBPF_TRACE_FUNCTION_ENTRY() ebpf_trace_function_entry(__func__, __FILE__, __LINE__)
-#define EBPF_TRACE_FUNCTION_EXIT(status)                                       \
-    {                                                                          \
-        ebpf_result_t result = (status);                                       \
-        ebpf_trace_function_exit_result(__func__, __FILE__, __LINE__, result); \
-        return result;                                                         \
-    }
+#define EBPF_LOG_ENTRY()                           \
+    TraceLoggingWrite(                             \
+        ebpf_tracelog_provider,                    \
+        EBPF_EVENT_GENERIC_MESSAGE,                \
+        TraceLoggingLevel(WINEVENT_LEVEL_VERBOSE), \
+        TraceLoggingOpcode(WINEVENT_OPCODE_START), \
+        TraceLoggingString(__FUNCTION__, "<=="));
 
-#define EBPF_TRACE_FUNCTION_EXIT_VOID() ebpf_trace_function_exit_void(__func__, __FILE__, __LINE__)
-#define EBPF_TRACE_FUNCTION_EXIT_BOOL(boolean)                               \
-    {                                                                        \
-        bool result = (boolean);                                             \
-        ebpf_trace_function_exit_bool(__func__, __FILE__, __LINE__, result); \
-        return result;                                                       \
-    }
+#define EBPF_LOG_EXIT()                            \
+    TraceLoggingWrite(                             \
+        ebpf_tracelog_provider,                    \
+        EBPF_EVENT_GENERIC_MESSAGE,                \
+        TraceLoggingLevel(WINEVENT_LEVEL_VERBOSE), \
+        TraceLoggingOpcode(WINEVENT_OPCODE_STOP),  \
+        TraceLoggingString(__FUNCTION__, "==>"));
+
+#define EBPF_RETURN_RESULT(status)           \
+    do {                                     \
+        ebpf_result_t result = (status);     \
+        if (result == EBPF_SUCCESS) {        \
+            EBPF_LOG_FUNCTION_SUCCESS();     \
+        } else {                             \
+            EBPF_LOG_FUNCTION_ERROR(result); \
+        }                                    \
+        EBPF_LOG_EXIT();                     \
+        return result;                       \
+    } while (false);
 
 #ifdef __cplusplus
 }
