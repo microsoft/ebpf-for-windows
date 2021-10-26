@@ -954,6 +954,65 @@ extern "C"
     uint32_t
     ebpf_result_to_win32_error_code(ebpf_result_t result);
 
+    /**
+     * @brief Emit a trace message on function entry. Used via EBPF_TRACE_FUNCTION_ENTRY macro.
+     *
+     * @param[in] function Function that is being entered.
+     * @param[in] file File the function is contained in.
+     * @param[in] line Line number.
+     */
+    void
+    ebpf_trace_function_entry(_In_z_ const char* function, _In_z_ const char* file, int line);
+
+    /**
+     * @brief Emit a trace message on function entry. Used via EBPF_TRACE_FUNCTION_EXIT macro.
+     *
+     * @param[in] function Function that is being exited.
+     * @param[in] file File the function is contained in.
+     * @param[in] line Line number.
+     * @param[in] result Result code to be traced.
+     */
+    void
+    ebpf_trace_function_exit_result(
+        _In_z_ const char* function, _In_z_ const char* file, int line, ebpf_result_t result);
+
+    /**
+     * @brief Emit a trace message on function entry. Used via EBPF_TRACE_FUNCTION_EXIT_VOID macro.
+     *
+     * @param[in] function Function that is being exited.
+     * @param[in] file File the function is contained in.
+     * @param[in] line Line number.
+     */
+    void
+    ebpf_trace_function_exit_void(_In_z_ const char* function, _In_z_ const char* file, int line);
+
+    /**
+     * @brief Emit a trace message on function entry. Used via EBPF_TRACE_FUNCTION_EXIT_BOOL macro.
+     *
+     * @param[in] function Function that is being exited.
+     * @param[in] file File the function is contained in.
+     * @param[in] line Line number.
+     * @param[in] result Result bool to be traced.
+     */
+    void
+    ebpf_trace_function_exit_bool(_In_z_ const char* function, _In_z_ const char* file, int line, bool result);
+
+#define EBPF_TRACE_FUNCTION_ENTRY() ebpf_trace_function_entry(__func__, __FILE__, __LINE__)
+#define EBPF_TRACE_FUNCTION_EXIT(status)                                       \
+    {                                                                          \
+        ebpf_result_t result = (status);                                       \
+        ebpf_trace_function_exit_result(__func__, __FILE__, __LINE__, result); \
+        return result;                                                         \
+    }
+
+#define EBPF_TRACE_FUNCTION_EXIT_VOID() ebpf_trace_function_exit_void(__func__, __FILE__, __LINE__)
+#define EBPF_TRACE_FUNCTION_EXIT_BOOL(boolean)                               \
+    {                                                                        \
+        bool result = (boolean);                                             \
+        ebpf_trace_function_exit_bool(__func__, __FILE__, __LINE__, result); \
+        return result;                                                       \
+    }
+
 #ifdef __cplusplus
 }
 #endif

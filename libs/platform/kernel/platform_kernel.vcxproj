@@ -49,6 +49,7 @@
     <ClCompile Include="..\ebpf_program_types.c" />
     <ClCompile Include="..\ebpf_serialize.c" />
     <ClCompile Include="..\ebpf_state.c" />
+    <ClCompile Include="..\ebpf_tracing.c" />
     <ClCompile Include="..\ebpf_trampoline.c" />
     <ClCompile Include="ebpf_extension_kernel.c" />
     <ClCompile Include="ebpf_handle_kernel.c" />

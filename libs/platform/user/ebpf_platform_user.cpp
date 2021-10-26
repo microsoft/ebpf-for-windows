@@ -10,6 +10,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <vector>
+#include <TraceLoggingProvider.h>
+#include <winmeta.h>
 
 // Global variables used to override behavior for testing.
 // Permit the test to simulate both Hyper-V Code Integrity.
@@ -17,15 +19,27 @@ bool _ebpf_platform_code_integrity_enabled = false;
 // Permit the test to simulate non-preemptible execution.
 bool _ebpf_platform_is_preemptible = true;
 
+TRACELOGGING_DEFINE_PROVIDER(
+    ebpf_tracelog_provider,
+    "EbpfForWindowsProvider",
+    // {394f321c-5cf4-404c-aa34-4df1428a7f9c}
+    (0x394f321c, 0x5cf4, 0x404c, 0xaa, 0x34, 0x4d, 0xf1, 0x42, 0x8a, 0x7f, 0x9c));
+
 ebpf_result_t
 ebpf_platform_initiate()
 {
+    ULONG result = TraceLoggingRegister(ebpf_tracelog_provider);
+    if (result != ERROR_SUCCESS) {
+        return EBPF_NO_MEMORY;
+    }
     return EBPF_SUCCESS;
 }
 
 void
 ebpf_platform_terminate()
-{}
+{
+    TraceLoggingUnregister(ebpf_tracelog_provider);
+}
 
 ebpf_result_t
 ebpf_get_code_integrity_state(_Out_ ebpf_code_integrity_state_t* state)
