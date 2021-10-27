@@ -33,9 +33,31 @@ clean_up_device_handle();
 ebpf_handle_t
 get_device_handle();
 
+typedef ebpf_result_t (*async_ioctl_completion_callback_t)(_Inout_opt_ void* completion_context);
+
+typedef struct _async_ioctl_completion_context async_ioctl_completion_t;
+
+ebpf_result_t
+initialize_async_ioctl_operation(
+    _Inout_opt_ void* callback_context,
+    _In_ const async_ioctl_completion_callback_t callback,
+    _Outptr_ async_ioctl_completion_t** ioctl_completion);
+
+void
+cleanup_async_ioctl_completion(_Inout_opt_ _Post_invalid_ async_ioctl_completion_t* async_ioctl_completion);
+
+OVERLAPPED*
+get_async_ioctl_operation_overlapped(_In_ const async_ioctl_completion_t* ioctl_completion);
+
+bool
+cancel_async_ioctl(_In_opt_ OVERLAPPED* overlapped);
+
+ebpf_result_t
+get_async_ioctl_result(_In_ const async_ioctl_completion_t* ioctl_completion);
+
 template <typename request_t, typename reply_t = empty_reply_t>
 uint32_t
-invoke_ioctl(request_t& request, reply_t& reply = _empty_reply, OVERLAPPED* overlapped = nullptr)
+invoke_ioctl(request_t& request, reply_t& reply = _empty_reply, _Inout_opt_ OVERLAPPED* overlapped = nullptr)
 {
     uint32_t return_value = ERROR_SUCCESS;
     uint32_t actual_reply_size;
@@ -71,7 +93,7 @@ invoke_ioctl(request_t& request, reply_t& reply = _empty_reply, OVERLAPPED* over
         reply_ptr = &reply;
     }
 
-    auto result = Platform::DeviceIoControl(
+    auto success = Platform::DeviceIoControl(
         get_device_handle(),
         IOCTL_EBPFCTL_METHOD_BUFFERED,
         request_ptr,
@@ -81,7 +103,7 @@ invoke_ioctl(request_t& request, reply_t& reply = _empty_reply, OVERLAPPED* over
         &actual_reply_size,
         overlapped);
 
-    if (!result) {
+    if (!success) {
         return_value = GetLastError();
         goto Exit;
     }

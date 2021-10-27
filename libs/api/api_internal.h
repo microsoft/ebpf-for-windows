@@ -10,6 +10,8 @@
 
 struct bpf_object;
 
+typedef struct _ebpf_ring_buffer_subscription ring_buffer_subscription_t;
+
 typedef struct bpf_program
 {
     struct bpf_object* object;
@@ -492,14 +494,30 @@ ebpf_object_load(
 ebpf_result_t
 ebpf_object_unload(_In_ struct bpf_object* object);
 
+typedef int (*ring_buffer_sample_fn)(void* ctx, void* data, size_t size);
+
 /**
- * @brief Issue an overlapped IO that will be signaled when the map is modified via an update or delete.
+ * @brief Subscribe for notifications from the input ring buffer map.
  *
- * @param[in] map_fd Map to wait on.
- * @param[in] overlapped Overlapped structure to signal when the map is modified.
+ * @param[in] ring_buffer_map_fd File descriptor to the ring buffer map.
+ * @param[in] sample_callback_context Pointer to supplied context to be passed in notification callback.
+ * @param[in] sample_callback Function pointer to notification handler.
+ * @param[out] subscription Opaque pointer to ring buffer subscription object.
+ *
  * @retval EBPF_SUCCESS The operation was successful.
- * @retval EBPF_INVALID_ARGUMENT One or more parameters are wrong.
  * @retval EBPF_NO_MEMORY Out of memory.
  */
 ebpf_result_t
-ebpf_map_wait_for_update(fd_t map_fd, _Inout_ OVERLAPPED* overlapped);
+ebpf_ring_buffer_map_subscribe(
+    fd_t ring_buffer_map_fd,
+    _In_opt_ void* sample_callback_context,
+    ring_buffer_sample_fn sample_callback,
+    _Outptr_ ring_buffer_subscription_t** subscription);
+
+/**
+ * @brief Unsubscribe from the ring buffer map event notifications.
+ *
+ * @param[in] subscription Pointer to ring buffer subscription to be cancelled.
+ */
+bool
+ebpf_ring_buffer_map_unsubscribe(_Inout_ _Post_invalid_ ring_buffer_subscription_t* subscription);

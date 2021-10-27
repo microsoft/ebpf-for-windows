@@ -188,15 +188,53 @@ extern "C"
         _Inout_ uint16_t* info_size);
 
     /**
-     * @brief Queue an async context to be completed when the map changes.
+     * @brief Get pointer to the ring buffer map's shared data.
      *
-     * @param[in] map Map to queue the async context on.
-     * @param[in] async_context Async context to queue.
+     * @param[in] map Ring buffer map to query.
+     * @param[out] buffer Pointer to ring buffer data.
+     * @retval EPBF_SUCCESS Successfully mapped the ring buffer.
+     * @retval EBPF_INVALID_ARGUMENT Unable to map the ring buffer.
+     */
+    ebpf_result_t
+    ebpf_ring_buffer_map_query_buffer(_In_ const ebpf_map_t* map, _Out_ uint8_t** buffer);
+
+    /**
+     * @brief Return consumed buffer back to the ring buffer map.
+     *
+     * @param[in,out] map Ring buffer map.
+     * @param[in] length Length of bytes to return to the ring buffer.
+     * @retval EPBF_SUCCESS Successfully returned records to the ring buffer.
+     * @retval EBPF_INVALID_ARGUMENT Unable to return records to the ring buffer.
+     */
+    ebpf_result_t
+    ebpf_ring_buffer_map_return_buffer(_In_ const ebpf_map_t* map, size_t length);
+
+    /**
+     * @brief Issue an asynchronous query to ring buffer map.
+     *
+     * @param[in] map Ring buffer map to issue the async query on.
+     * @param[in] async_query_result Pointer to structure for storing result of the async query.
+     * @param[in] async_context Async context associated with the query.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Insufficient memory to complete this operation.
      */
     ebpf_result_t
-    ebpf_map_wait_for_update(_Inout_ ebpf_map_t* map, _In_ void* async_context);
+    ebpf_ring_buffer_map_async_query(
+        _Inout_ ebpf_map_t* map,
+        _In_ ebpf_ring_buffer_map_async_query_result_t* async_query_result,
+        _In_ void* async_context);
+
+    /**
+     * @brief Write out a variable sized record to the ring buffer map.
+     *
+     * @param[in,out] map Pointer to map of type EBPF_MAP_TYPE_RINGBUF.
+     * @param[in] data Data of record to write into ring buffer map.
+     * @param[in] length Length of data.
+     * @retval EPBF_SUCCESS Successfully wrote record into ring buffer.
+     * @retval EBPF_OUT_OF_SPACE Unable to output to ring buffer due to inadequate space.
+     */
+    ebpf_result_t
+    ebpf_ring_buffer_map_output(_In_ ebpf_map_t* map, _In_reads_bytes_(length) uint8_t* data, size_t length);
 
 #ifdef __cplusplus
 }

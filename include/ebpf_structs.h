@@ -26,6 +26,7 @@ typedef enum bpf_map_type
     BPF_MAP_TYPE_QUEUE = 10,
     BPF_MAP_TYPE_LRU_PERCPU_HASH = 11,
     BPF_MAP_TYPE_STACK = 12,
+    BPF_MAP_TYPE_RINGBUF = 13
 } ebpf_map_type_t;
 
 typedef enum ebpf_map_option
@@ -100,7 +101,8 @@ typedef enum
     BPF_FUNC_ktime_get_boot_ns = 7,
     BPF_FUNC_get_smp_processor_id = 8,
     BPF_FUNC_ktime_get_ns = 9,
-    BPF_FUNC_csum_diff = 10
+    BPF_FUNC_csum_diff = 10,
+    BPF_FUNC_ringbuf_output = 11
 } ebpf_helper_id_t;
 
 // Cross-platform BPF program types.

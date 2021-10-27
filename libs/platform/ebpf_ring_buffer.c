@@ -15,6 +15,12 @@ typedef struct _ebpf_ring_buffer
 } ebpf_ring_buffer_t;
 
 inline static size_t
+_ring_get_length(_In_ const ebpf_ring_buffer_t* ring)
+{
+    return ring->length;
+}
+
+inline static size_t
 _ring_get_producer_offset(_In_ const ebpf_ring_buffer_t* ring)
 {
     return ring->producer_offset % ring->length;
@@ -149,6 +155,13 @@ ebpf_ring_buffer_return(_Inout_ ebpf_ring_buffer_t* ring, size_t length)
     size_t local_length = length;
     size_t offset = _ring_get_consumer_offset(ring);
 
+    // Check if length is valid.
+    if ((length > _ring_get_length(ring)) ||
+        (length + _ring_get_consumer_offset(ring) > _ring_get_producer_offset(ring))) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
+
     // Verify count.
     while (local_length != 0) {
         ebpf_ring_buffer_record_t* record = _ring_record_at_offset(ring, offset);
@@ -173,7 +186,7 @@ Done:
 }
 
 ebpf_result_t
-ebpf_ring_buffer_map_buffer(_In_ const ebpf_ring_buffer_t* ring, _Outptr_ uint8_t** buffer)
+ebpf_ring_buffer_map_buffer(_In_ const ebpf_ring_buffer_t* ring, _Out_ uint8_t** buffer)
 {
     *buffer = ebpf_ring_map_readonly_user(ring->ring_descriptor);
     if (!*buffer) {

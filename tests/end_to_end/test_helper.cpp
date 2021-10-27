@@ -42,12 +42,42 @@ GlueCloseHandle(HANDLE hObject)
     return TRUE;
 }
 
-static void
-_complete_overlapped(void* context, ebpf_result_t result)
+BOOL
+GlueDuplicateHandle(
+    HANDLE hSourceProcessHandle,
+    HANDLE hSourceHandle,
+    HANDLE hTargetProcessHandle,
+    LPHANDLE lpTargetHandle,
+    DWORD dwDesiredAccess,
+    BOOL bInheritHandle,
+    DWORD dwOptions)
 {
+    UNREFERENCED_PARAMETER(hSourceProcessHandle);
+    UNREFERENCED_PARAMETER(hTargetProcessHandle);
+    UNREFERENCED_PARAMETER(dwDesiredAccess);
+    UNREFERENCED_PARAMETER(bInheritHandle);
+    UNREFERENCED_PARAMETER(dwOptions);
+    *lpTargetHandle = hSourceHandle;
+    return TRUE;
+}
+
+static void
+_complete_overlapped(void* context, size_t output_buffer_length, ebpf_result_t result)
+{
+    UNREFERENCED_PARAMETER(output_buffer_length);
     auto overlapped = reinterpret_cast<OVERLAPPED*>(context);
     overlapped->Internal = ebpf_result_to_ntstatus(result);
     SetEvent(overlapped->hEvent);
+}
+
+BOOL
+GlueCancelIoEx(_In_ HANDLE hFile, _In_opt_ LPOVERLAPPED lpOverlapped)
+{
+    UNREFERENCED_PARAMETER(hFile);
+    BOOL return_value = FALSE;
+    if (lpOverlapped != nullptr)
+        return_value = ebpf_core_cancel_protocol_handler(lpOverlapped);
+    return return_value;
 }
 
 BOOL
@@ -64,7 +94,6 @@ GlueDeviceIoControl(
     UNREFERENCED_PARAMETER(hDevice);
     UNREFERENCED_PARAMETER(nInBufferSize);
     UNREFERENCED_PARAMETER(dwIoControlCode);
-    UNREFERENCED_PARAMETER(lpOverlapped);
 
     ebpf_result_t result;
     const ebpf_operation_header_t* user_request = reinterpret_cast<decltype(user_request)>(lpInBuffer);
@@ -172,8 +201,10 @@ Glue_close(int file_descriptor)
 _test_helper_end_to_end::_test_helper_end_to_end()
 {
     device_io_control_handler = GlueDeviceIoControl;
+    cancel_io_ex_handler = GlueCancelIoEx;
     create_file_handler = GlueCreateFileW;
     close_handle_handler = GlueCloseHandle;
+    duplicate_handle_handler = GlueDuplicateHandle;
     open_osfhandle_handler = Glue_open_osfhandle;
     get_osfhandle_handler = Glue_get_osfhandle;
     close_handler = Glue_close;
@@ -196,8 +227,10 @@ _test_helper_end_to_end::~_test_helper_end_to_end()
         ebpf_core_terminate();
 
     device_io_control_handler = nullptr;
+    cancel_io_ex_handler = nullptr;
     create_file_handler = nullptr;
     close_handle_handler = nullptr;
+    duplicate_handle_handler = nullptr;
 }
 
 _test_helper_libbpf::_test_helper_libbpf()

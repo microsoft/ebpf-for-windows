@@ -49,7 +49,7 @@ extern "C"
      * @param[in] data Data to copy into record.
      * @param[in] length Length of data to copy.
      * @retval EPBF_SUCCESS Successfully wrote record ring buffer.
-     * @retval EBPF_INVALID_ARGUMENT Unable to output to ring buffer.
+     * @retval EBPF_OUT_OF_SPACE Unable to output to ring buffer due to inadequate space.
      */
     ebpf_result_t
     ebpf_ring_buffer_output(
@@ -85,7 +85,7 @@ extern "C"
      * @retval EBPF_INVALID_ARGUMENT Unable to map the ring buffer.
      */
     ebpf_result_t
-    ebpf_ring_buffer_map_buffer(_In_ const ebpf_ring_buffer_t* ring_buffer, _Outptr_ uint8_t** buffer);
+    ebpf_ring_buffer_map_buffer(_In_ const ebpf_ring_buffer_t* ring_buffer, _Out_ uint8_t** buffer);
 
     /**
      * @brief Reserve a buffer in the ring buffer. Buffer is valid until either ebpf_ring_buffer_submit,

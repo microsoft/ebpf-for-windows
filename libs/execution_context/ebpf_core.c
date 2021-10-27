@@ -24,7 +24,6 @@ static ebpf_pinning_table_t* _ebpf_core_map_pinning_table = NULL;
 // Assume enabled until we can query it.
 static ebpf_code_integrity_state_t _ebpf_core_code_integrity_state = EBPF_CODE_INTEGRITY_HYPERVISOR_KERNEL_MODE;
 
-// Map related helpers.
 static void*
 _ebpf_core_map_find_element(ebpf_map_t* map, const uint8_t* key);
 static int64_t
@@ -33,20 +32,15 @@ static int64_t
 _ebpf_core_map_delete_element(ebpf_map_t* map, const uint8_t* key);
 static void*
 _ebpf_core_map_find_and_delete_element(_Inout_ ebpf_map_t* map, _In_ const uint8_t* key);
-
-// Tail call.
 static int64_t
 _ebpf_core_tail_call(void* ctx, ebpf_map_t* map, uint32_t index);
-
-// Utility functions.
-static uint32_t
-_ebpf_core_random_uint32();
 static uint64_t
 _ebpf_core_get_time_since_boot_ns();
 static uint64_t
 _ebpf_core_get_time_ns();
-static uint32_t
-_ebpf_core_get_current_cpu();
+static int
+_ebpf_core_ring_buffer_output(
+    _In_ ebpf_map_t* map, _In_reads_bytes_(length) uint8_t* data, size_t length, uint64_t flags);
 
 #define EBPF_CORE_GLOBAL_HELPER_EXTENSION_VERSION 0
 
@@ -54,16 +48,21 @@ static ebpf_program_info_t _ebpf_global_helper_program_info = {{"global_helper",
 
 static const void* _ebpf_general_helpers[] = {
     NULL,
+    // Map related helpers.
     (void*)&_ebpf_core_map_find_element,
     (void*)&_ebpf_core_map_update_element,
     (void*)&_ebpf_core_map_delete_element,
     (void*)&_ebpf_core_map_find_and_delete_element,
+    // Tail call.
     (void*)&_ebpf_core_tail_call,
-    (void*)&_ebpf_core_random_uint32,
+    // Utility functions.
+    (void*)&ebpf_random_uint32,
     (void*)&_ebpf_core_get_time_since_boot_ns,
-    (void*)&_ebpf_core_get_current_cpu,
+    (void*)&ebpf_get_current_cpu,
     (void*)&_ebpf_core_get_time_ns,
-    (void*)&ebpf_core_csum_diff};
+    (void*)&ebpf_core_csum_diff,
+    // Ring buffer output.
+    (void*)&ebpf_ring_buffer_map_output};
 
 static ebpf_extension_provider_t* _ebpf_global_helper_function_provider_context = NULL;
 static ebpf_helper_function_addresses_t _ebpf_global_helper_function_dispatch_table = {
@@ -1218,16 +1217,14 @@ _ebpf_core_protocol_get_object_info(
     EBPF_RETURN_RESULT(result);
 }
 
-ebpf_result_t
-_ebpf_core_protocol_wait_for_map_change(
-    _In_ const ebpf_operation_wait_for_map_change_request_t* request,
-    _In_ void* reply,
-    uint16_t output_buffer_length,
-    _In_ void* async_context)
+static ebpf_result_t
+_ebpf_core_protocol_ring_buffer_map_query_buffer(
+    _In_ const ebpf_operation_ring_buffer_map_query_buffer_request_t* request,
+    _Out_ ebpf_operation_ring_buffer_map_query_buffer_reply_t* reply,
+    uint16_t reply_length)
 {
     EBPF_LOG_ENTRY();
-    UNREFERENCED_PARAMETER(reply);
-    UNREFERENCED_PARAMETER(output_buffer_length);
+    UNREFERENCED_PARAMETER(reply_length);
 
     ebpf_map_t* map;
     ebpf_result_t result = ebpf_reference_object_by_handle(request->map_handle, EBPF_OBJECT_MAP, (ebpf_object_t**)&map);
@@ -1235,10 +1232,41 @@ _ebpf_core_protocol_wait_for_map_change(
         return result;
     }
 
-    result = ebpf_map_wait_for_update(map, async_context);
+    result = ebpf_ring_buffer_map_query_buffer(map, (uint8_t**)(uintptr_t*)&reply->buffer_address);
 
     ebpf_object_release_reference((ebpf_object_t*)map);
     EBPF_RETURN_RESULT(result);
+}
+
+static ebpf_result_t
+_ebpf_core_protocol_ring_buffer_map_async_query(
+    _In_ const ebpf_operation_ring_buffer_map_async_query_request_t* request,
+    _Inout_ ebpf_operation_ring_buffer_map_async_query_reply_t* reply,
+    uint16_t reply_length,
+    _In_ void* async_context)
+{
+    UNREFERENCED_PARAMETER(reply_length);
+    UNREFERENCED_PARAMETER(async_context);
+
+    ebpf_map_t* map;
+    bool reference_taken = FALSE;
+
+    ebpf_result_t result = ebpf_reference_object_by_handle(request->map_handle, EBPF_OBJECT_MAP, (ebpf_object_t**)&map);
+    if (result != EBPF_SUCCESS)
+        goto Exit;
+    reference_taken = TRUE;
+
+    // Return buffer already consumed by caller in previous notification.
+    result = ebpf_ring_buffer_map_return_buffer(map, request->consumer_offset);
+    if (result != EBPF_SUCCESS)
+        goto Exit;
+
+    result = ebpf_ring_buffer_map_async_query(map, &reply->async_query_result, async_context);
+
+Exit:
+    if (reference_taken)
+        ebpf_object_release_reference((ebpf_object_t*)map);
+    return result;
 }
 
 static void*
@@ -1313,12 +1341,6 @@ _ebpf_core_get_time_ns()
     return ebpf_query_time_since_boot(false) * 100;
 }
 
-static uint32_t
-_ebpf_core_get_current_cpu()
-{
-    return ebpf_get_current_cpu();
-}
-
 int
 ebpf_core_csum_diff(
     _In_reads_bytes_opt_(from_size) const void* from,
@@ -1348,6 +1370,14 @@ ebpf_core_csum_diff(
         csum_diff = -EINVAL;
 Exit:
     return csum_diff;
+}
+
+static int
+_ebpf_core_ring_buffer_output(
+    _In_ ebpf_map_t* map, _In_reads_bytes_(length) uint8_t* data, size_t length, uint64_t flags)
+{
+    UNREFERENCED_PARAMETER(flags);
+    return -ebpf_ring_buffer_map_output(map, data, length);
 }
 
 typedef struct _ebpf_protocol_handler
@@ -1518,10 +1548,15 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
     // EBPF_OPERATION_BIND_MAP
     {(ebpf_result_t(__cdecl*)(const void*))_ebpf_core_protocol_bind_map, sizeof(ebpf_operation_bind_map_request_t), 0},
 
-    // EBPF_OPERATION_WAIT_FOR_MAP_CHANGE
-    {(ebpf_result_t(__cdecl*)(const void*))_ebpf_core_protocol_wait_for_map_change,
-     sizeof(ebpf_operation_wait_for_map_change_request_t),
-     0,
+    // EBPF_OPERATION_RING_BUFFER_MAP_QUERY_BUFFER
+    {(ebpf_result_t(__cdecl*)(const void*))_ebpf_core_protocol_ring_buffer_map_query_buffer,
+     sizeof(ebpf_operation_ring_buffer_map_query_buffer_request_t),
+     sizeof(ebpf_operation_ring_buffer_map_query_buffer_reply_t)},
+
+    // EBPF_OPERATION_RING_BUFFER_MAP_ASYNC_QUERY
+    {(ebpf_result_t(__cdecl*)(const void*))_ebpf_core_protocol_ring_buffer_map_async_query,
+     sizeof(ebpf_operation_ring_buffer_map_async_query_request_t),
+     sizeof(ebpf_operation_ring_buffer_map_async_query_reply_t),
      true},
 };
 
@@ -1554,7 +1589,7 @@ ebpf_core_invoke_protocol_handler(
     _Out_writes_bytes_opt_(output_buffer_length) void* output_buffer,
     uint16_t output_buffer_length,
     _In_opt_ void* async_context,
-    _In_opt_ void (*on_complete)(void* async_context, ebpf_result_t result))
+    _In_opt_ void (*on_complete)(void*, size_t, ebpf_result_t))
 {
     ebpf_result_t retval;
     bool epoch_entered = false;
