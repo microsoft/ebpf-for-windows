@@ -47,12 +47,16 @@ ebpf_platform_initiate()
     return EBPF_SUCCESS;
 }
 
+// Prevent tail call optimization of the call to TraceLoggingUnregister to resolve verifier stop C4/DD
+// "An attempt was made to unload a driver without calling EtwUnregister".
+#pragma optimize("", off)
 void
 ebpf_platform_terminate()
 {
     KeFlushQueuedDpcs();
     TraceLoggingUnregister(ebpf_tracelog_provider);
 }
+#pragma optimize("", on)
 
 __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
     _Post_writable_byte_size_(size) void* ebpf_allocate(size_t size)
