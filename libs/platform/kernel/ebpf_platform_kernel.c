@@ -8,6 +8,13 @@
 #include "ebpf_platform.h"
 
 #include <ntstrsafe.h>
+#include <wdm.h>
+#include <TraceLoggingProvider.h>
+
+TRACELOGGING_DEFINE_PROVIDER(
+    ebpf_tracelog_provider,
+    "EbpfForWindowsProvider",
+    (0x394f321c, 0x5cf4, 0x404c, 0xaa, 0x34, 0x4d, 0xf1, 0x42, 0x8a, 0x7f, 0x9c));
 
 typedef struct _ebpf_memory_descriptor
 {
@@ -33,14 +40,23 @@ static KDEFERRED_ROUTINE _ebpf_timer_routine;
 ebpf_result_t
 ebpf_platform_initiate()
 {
+    TLG_STATUS status = TraceLoggingRegister(ebpf_tracelog_provider);
+    if (!NT_SUCCESS(status)) {
+        return EBPF_NO_MEMORY;
+    }
     return EBPF_SUCCESS;
 }
 
+// Prevent tail call optimization of the call to TraceLoggingUnregister to resolve verifier stop C4/DD
+// "An attempt was made to unload a driver without calling EtwUnregister".
+#pragma optimize("", off)
 void
 ebpf_platform_terminate()
 {
     KeFlushQueuedDpcs();
+    TraceLoggingUnregister(ebpf_tracelog_provider);
 }
+#pragma optimize("", on)
 
 __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
     _Post_writable_byte_size_(size) void* ebpf_allocate(size_t size)

@@ -6,6 +6,9 @@
 #include "ebpf_windows.h"
 #include "framework.h"
 
+#include <TraceLoggingProvider.h>
+#include <winmeta.h>
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -953,6 +956,55 @@ extern "C"
      */
     uint32_t
     ebpf_result_to_win32_error_code(ebpf_result_t result);
+
+    TRACELOGGING_DECLARE_PROVIDER(ebpf_tracelog_provider);
+
+#define EBPF_EVENT_SUCCESS "EbpfSuccess"
+#define EBPF_EVENT_GENERIC_ERROR "EbpfGenericError"
+#define EBPF_EVENT_GENERIC_MESSAGE "EbpfGenericMessage"
+
+#define EBPF_LOG_FUNCTION_SUCCESS()                \
+    TraceLoggingWrite(                             \
+        ebpf_tracelog_provider,                    \
+        EBPF_EVENT_SUCCESS,                        \
+        TraceLoggingLevel(WINEVENT_LEVEL_VERBOSE), \
+        TraceLoggingString(__FUNCTION__ "returned success", "Message"));
+
+#define EBPF_LOG_FUNCTION_ERROR(Result)                                     \
+    TraceLoggingWrite(                                                      \
+        ebpf_tracelog_provider,                                             \
+        EBPF_EVENT_GENERIC_ERROR,                                           \
+        TraceLoggingLevel(WINEVENT_LEVEL_ERROR),                            \
+        TraceLoggingString(__FUNCTION__ " returned error", "ErrorMessage"), \
+        TraceLoggingLong(Result, "Error"));
+
+#define EBPF_LOG_ENTRY()                           \
+    TraceLoggingWrite(                             \
+        ebpf_tracelog_provider,                    \
+        EBPF_EVENT_GENERIC_MESSAGE,                \
+        TraceLoggingLevel(WINEVENT_LEVEL_VERBOSE), \
+        TraceLoggingOpcode(WINEVENT_OPCODE_START), \
+        TraceLoggingString(__FUNCTION__, "<=="));
+
+#define EBPF_LOG_EXIT()                            \
+    TraceLoggingWrite(                             \
+        ebpf_tracelog_provider,                    \
+        EBPF_EVENT_GENERIC_MESSAGE,                \
+        TraceLoggingLevel(WINEVENT_LEVEL_VERBOSE), \
+        TraceLoggingOpcode(WINEVENT_OPCODE_STOP),  \
+        TraceLoggingString(__FUNCTION__, "==>"));
+
+#define EBPF_RETURN_RESULT(status)           \
+    do {                                     \
+        ebpf_result_t result = (status);     \
+        if (result == EBPF_SUCCESS) {        \
+            EBPF_LOG_FUNCTION_SUCCESS();     \
+        } else {                             \
+            EBPF_LOG_FUNCTION_ERROR(result); \
+        }                                    \
+        EBPF_LOG_EXIT();                     \
+        return result;                       \
+    } while (false);
 
 #ifdef __cplusplus
 }
