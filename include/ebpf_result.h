@@ -103,6 +103,9 @@ extern "C"
 
         // The container can not hold additional elements.
         EBPF_OUT_OF_SPACE,
+
+        // Operation was cancelled.
+        EBPF_CANCELLED, // = 30
     } ebpf_result_t;
 
 #define EBPF_RESULT_COUNT (EBPF_OUT_OF_SPACE + 1)

@@ -7,6 +7,7 @@
 #include <mutex>
 #include <stdexcept>
 #include "api_common.hpp"
+#include "device_helper.hpp"
 #include "ebpf_api.h"
 #include "ebpf_bind_program_data.h"
 #include "ebpf_platform.h"
@@ -16,6 +17,14 @@
 #include "ebpf_xdp_program_data.h"
 #include "platform.h"
 #include "platform.hpp"
+
+typedef struct _async_ioctl_completion_context
+{
+    OVERLAPPED overlapped;
+    PTP_WAIT wait;
+    void* callback_context;
+    async_ioctl_completion_callback_t callback;
+} async_ioctl_completion_context_t;
 
 static ebpf_handle_t _device_handle = ebpf_handle_invalid;
 static std::mutex _mutex;
@@ -30,7 +39,7 @@ initialize_device_handle()
     }
 
     _device_handle = Platform::CreateFile(
-        EBPF_DEVICE_WIN32_NAME, GENERIC_READ | GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
+        EBPF_DEVICE_WIN32_NAME, GENERIC_READ | GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_FLAG_OVERLAPPED, 0);
 
     if (_device_handle == ebpf_handle_invalid) {
         return win32_error_code_to_ebpf_result(GetLastError());
@@ -58,4 +67,109 @@ get_device_handle()
     }
 
     return _device_handle;
+}
+
+void
+cleanup_async_ioctl_completion(_Inout_opt_ _Post_invalid_ async_ioctl_completion_t* async_ioctl_completion)
+{
+    if (async_ioctl_completion != nullptr) {
+        if (async_ioctl_completion->wait != nullptr) {
+            // Unregister the wait by setting the event to NULL.
+            SetThreadpoolWait(async_ioctl_completion->wait, nullptr, nullptr);
+
+            // Close the wait.
+            CloseThreadpoolWait(async_ioctl_completion->wait);
+        }
+
+        if (async_ioctl_completion->overlapped.hEvent != nullptr)
+            CloseHandle(async_ioctl_completion->overlapped.hEvent);
+
+        ebpf_free(async_ioctl_completion);
+    }
+}
+
+OVERLAPPED*
+get_async_ioctl_operation_overlapped(_In_ const async_ioctl_completion_t* async_ioctl_completion)
+{
+    return const_cast<OVERLAPPED*>(&async_ioctl_completion->overlapped);
+}
+
+ebpf_result_t
+get_async_ioctl_result(_In_ const async_ioctl_completion_t* ioctl_completion)
+{
+    DWORD dummy;
+    if (!GetOverlappedResult(
+            reinterpret_cast<HANDLE>(get_device_handle()),
+            get_async_ioctl_operation_overlapped(ioctl_completion),
+            &dummy,
+            FALSE))
+        return win32_error_code_to_ebpf_result(GetLastError());
+    return EBPF_SUCCESS;
+}
+
+ebpf_result_t
+initialize_async_ioctl_operation(
+    _Inout_opt_ void* callback_context,
+    _In_ const async_ioctl_completion_callback_t callback,
+    _Outptr_ async_ioctl_completion_t** async_ioctl_completion)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+    *async_ioctl_completion = NULL;
+
+    async_ioctl_completion_context_t* local_async_ioctl_completion =
+        (async_ioctl_completion_context_t*)ebpf_allocate(sizeof(async_ioctl_completion_context_t));
+    if (local_async_ioctl_completion == nullptr) {
+        result = EBPF_NO_MEMORY;
+        goto Exit;
+    }
+
+    local_async_ioctl_completion->callback_context = callback_context;
+    local_async_ioctl_completion->callback = callback;
+
+    // Create Event object for OVERLAPPED struct.
+    local_async_ioctl_completion->overlapped.hEvent = CreateEvent(nullptr, false, false, nullptr);
+    if (local_async_ioctl_completion->overlapped.hEvent == nullptr) {
+        result = win32_error_code_to_ebpf_result(GetLastError());
+        _Analysis_assume_(result != EBPF_SUCCESS);
+        EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, CreateEvent);
+        goto Exit;
+    }
+
+    // Setup threadpool wait for the overlapped hEvent and pass the async completion context as wait callback context.
+    local_async_ioctl_completion->wait = CreateThreadpoolWait(
+        [](_In_ const PTP_CALLBACK_INSTANCE instance,
+           _Inout_ void* context,
+           _Inout_ PTP_WAIT wait,
+           TP_WAIT_RESULT wait_result) {
+            UNREFERENCED_PARAMETER(instance);
+            UNREFERENCED_PARAMETER(wait);
+            UNREFERENCED_PARAMETER(wait_result);
+
+            async_ioctl_completion_context_t* local_async_ioctl_completion = (async_ioctl_completion_context_t*)context;
+            local_async_ioctl_completion->callback(local_async_ioctl_completion->callback_context);
+        },
+        local_async_ioctl_completion,
+        NULL);
+    if (local_async_ioctl_completion->wait == nullptr) {
+        result = win32_error_code_to_ebpf_result(GetLastError());
+        _Analysis_assume_(result != EBPF_SUCCESS);
+        EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, CreateThreadpoolWait);
+        goto Exit;
+    }
+
+    SetThreadpoolWait(local_async_ioctl_completion->wait, local_async_ioctl_completion->overlapped.hEvent, nullptr);
+
+    *async_ioctl_completion = local_async_ioctl_completion;
+
+Exit:
+    if (result != EBPF_SUCCESS)
+        cleanup_async_ioctl_completion(local_async_ioctl_completion);
+
+    EBPF_RETURN_RESULT(result);
+}
+
+bool
+cancel_async_ioctl(_In_opt_ OVERLAPPED* overlapped = nullptr)
+{
+    return Platform::CancelIoEx(get_device_handle(), overlapped);
 }

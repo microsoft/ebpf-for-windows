@@ -272,3 +272,34 @@ bpf_map_get_next_id(uint32_t start_id, uint32_t* next_id)
 {
     return libbpf_result_err(ebpf_get_next_map_id(start_id, next_id));
 }
+
+typedef struct ring_buffer
+{
+    std::vector<ring_buffer_subscription_t*> subscriptions;
+} ring_buffer_t;
+
+struct ring_buffer*
+ring_buffer__new(int map_fd, ring_buffer_sample_fn sample_cb, void* ctx, const struct ring_buffer_opts* opts)
+{
+    ebpf_result result = EBPF_SUCCESS;
+    ring_buffer_subscription_t* subscription = nullptr;
+    UNREFERENCED_PARAMETER(opts);
+    ring_buffer_t* ring_buffer = new ring_buffer_t();
+    if (ring_buffer == nullptr)
+        goto Exit;
+    result = ebpf_ring_buffer_map_subscribe(map_fd, ctx, sample_cb, &subscription);
+    if (result != EBPF_SUCCESS)
+        goto Exit;
+    ring_buffer->subscriptions.push_back(subscription);
+Exit:
+    return ring_buffer;
+}
+
+void
+ring_buffer__free(struct ring_buffer* ring_buffer)
+{
+    for (auto it = ring_buffer->subscriptions.begin(); it != ring_buffer->subscriptions.end(); it++)
+        (void)ebpf_ring_buffer_map_unsubscribe(*it);
+    ring_buffer->subscriptions.clear();
+    delete ring_buffer;
+}

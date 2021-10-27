@@ -1,6 +1,9 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
+#include <chrono>
+#include <future>
 #include <map>
+using namespace std::chrono_literals;
 
 #include "bpf/bpf.h"
 #include "catch_wrapper.hpp"
@@ -13,6 +16,90 @@
 
 static uint64_t _ebpf_file_descriptor_counter = 0;
 static std::map<fd_t, ebpf_handle_t> _fd_to_handle_map;
+
+class duplicate_handles_table_t
+{
+  public:
+    duplicate_handles_table_t()
+    {
+        ebpf_lock_create(&lock);
+        shutting_down = false;
+    }
+    ~duplicate_handles_table_t() { ebpf_lock_destroy(&lock); }
+
+    bool
+    reference_or_add(ebpf_handle_t handle)
+    {
+        bool success = true;
+        auto state = ebpf_lock_lock(&lock);
+        if (!shutting_down) {
+            std::map<ebpf_handle_t, uint16_t>::iterator it = table.find(handle);
+            if (it != table.end()) {
+                it->second++;
+            } else {
+                try {
+                    // The reference count of newly inserted duplicate handle is 2 (for original + first duplicate).
+                    table.insert(std::pair<ebpf_handle_t, uint16_t>(handle, static_cast<uint16_t>(2)));
+                } catch (...) {
+                    success = false;
+                }
+            }
+        }
+        ebpf_lock_unlock(&lock, state);
+        return success;
+    }
+
+    bool
+    dereference_if_found(ebpf_handle_t handle)
+    {
+        bool found = false;
+
+        auto state = ebpf_lock_lock(&lock);
+        std::map<ebpf_handle_t, uint16_t>::iterator it = table.find(handle);
+        if (it != table.end()) {
+            found = true;
+            // Dereference the handle. If the reference count drops to 0, close the handle.
+            if (--it->second == 0) {
+                table.erase(handle);
+                ebpf_api_close_handle(handle);
+            }
+            if (shutting_down && table.size() == 0) {
+                // All duplicate handles have been closed. Fulfill the promise.
+                all_duplicate_handles_closed.set_value();
+            }
+        }
+
+        ebpf_lock_unlock(&lock, state);
+        return found;
+    }
+
+    void
+    rundown()
+    {
+        auto state = ebpf_lock_lock(&lock);
+        std::future<void> all_duplicate_handles_closed_callback;
+        bool duplicates_pending = false;
+        if (table.size() > 0) {
+            duplicates_pending = true;
+            all_duplicate_handles_closed_callback = all_duplicate_handles_closed.get_future();
+            shutting_down = true;
+        }
+        ebpf_lock_unlock(&lock, state);
+        if (duplicates_pending) {
+            // Wait for at most 1 second for all duplicate handles to be closed.
+            REQUIRE(all_duplicate_handles_closed_callback.wait_for(1s) == std::future_status::ready);
+        }
+    }
+
+  private:
+    ebpf_lock_t lock;
+    // Map of handles to duplicate count.
+    std::map<ebpf_handle_t, uint16_t> table;
+    std::promise<void> all_duplicate_handles_closed;
+    bool shutting_down;
+};
+
+static duplicate_handles_table_t _duplicate_handles;
 
 HANDLE
 GlueCreateFileW(
@@ -38,16 +125,48 @@ GlueCreateFileW(
 BOOL
 GlueCloseHandle(HANDLE hObject)
 {
-    UNREFERENCED_PARAMETER(hObject);
+    _duplicate_handles.dereference_if_found(reinterpret_cast<ebpf_handle_t>(hObject));
+
     return TRUE;
 }
 
-static void
-_complete_overlapped(void* context, ebpf_result_t result)
+BOOL
+GlueDuplicateHandle(
+    HANDLE hSourceProcessHandle,
+    HANDLE hSourceHandle,
+    HANDLE hTargetProcessHandle,
+    LPHANDLE lpTargetHandle,
+    DWORD dwDesiredAccess,
+    BOOL bInheritHandle,
+    DWORD dwOptions)
 {
+    UNREFERENCED_PARAMETER(hSourceProcessHandle);
+    UNREFERENCED_PARAMETER(hTargetProcessHandle);
+    UNREFERENCED_PARAMETER(dwDesiredAccess);
+    UNREFERENCED_PARAMETER(bInheritHandle);
+    UNREFERENCED_PARAMETER(dwOptions);
+    // Return the same value for duplicated handle.
+    *lpTargetHandle = hSourceHandle;
+    return !!_duplicate_handles.reference_or_add(reinterpret_cast<ebpf_handle_t>(hSourceHandle));
+}
+
+static void
+_complete_overlapped(void* context, size_t output_buffer_length, ebpf_result_t result)
+{
+    UNREFERENCED_PARAMETER(output_buffer_length);
     auto overlapped = reinterpret_cast<OVERLAPPED*>(context);
     overlapped->Internal = ebpf_result_to_ntstatus(result);
     SetEvent(overlapped->hEvent);
+}
+
+BOOL
+GlueCancelIoEx(_In_ HANDLE hFile, _In_opt_ LPOVERLAPPED lpOverlapped)
+{
+    UNREFERENCED_PARAMETER(hFile);
+    BOOL return_value = FALSE;
+    if (lpOverlapped != nullptr)
+        return_value = ebpf_core_cancel_protocol_handler(lpOverlapped);
+    return return_value;
 }
 
 BOOL
@@ -64,7 +183,6 @@ GlueDeviceIoControl(
     UNREFERENCED_PARAMETER(hDevice);
     UNREFERENCED_PARAMETER(nInBufferSize);
     UNREFERENCED_PARAMETER(dwIoControlCode);
-    UNREFERENCED_PARAMETER(lpOverlapped);
 
     ebpf_result_t result;
     const ebpf_operation_header_t* user_request = reinterpret_cast<decltype(user_request)>(lpInBuffer);
@@ -163,7 +281,12 @@ Glue_close(int file_descriptor)
         errno = EINVAL;
         return -1;
     } else {
-        ebpf_api_close_handle(it->second);
+        bool found = _duplicate_handles.dereference_if_found(it->second);
+        if (!found)
+            // No duplicates. Close the handle.
+            ebpf_api_close_handle(it->second);
+        // else
+        //     // printf("Glue_close found dupe, not closing.\n");
         _fd_to_handle_map.erase(file_descriptor);
         return 0;
     }
@@ -172,8 +295,10 @@ Glue_close(int file_descriptor)
 _test_helper_end_to_end::_test_helper_end_to_end()
 {
     device_io_control_handler = GlueDeviceIoControl;
+    cancel_io_ex_handler = GlueCancelIoEx;
     create_file_handler = GlueCreateFileW;
     close_handle_handler = GlueCloseHandle;
+    duplicate_handle_handler = GlueDuplicateHandle;
     open_osfhandle_handler = Glue_open_osfhandle;
     get_osfhandle_handler = Glue_get_osfhandle;
     close_handler = Glue_close;
@@ -185,6 +310,8 @@ _test_helper_end_to_end::_test_helper_end_to_end()
 
 _test_helper_end_to_end::~_test_helper_end_to_end()
 {
+    // Rundown duplicate handles, if any.
+    _duplicate_handles.rundown();
     // Verify that all maps were successfully removed.
     uint32_t id;
     REQUIRE(bpf_map_get_next_id(0, &id) < 0);
@@ -196,8 +323,10 @@ _test_helper_end_to_end::~_test_helper_end_to_end()
         ebpf_core_terminate();
 
     device_io_control_handler = nullptr;
+    cancel_io_ex_handler = nullptr;
     create_file_handler = nullptr;
     close_handle_handler = nullptr;
+    duplicate_handle_handler = nullptr;
 }
 
 _test_helper_libbpf::_test_helper_libbpf()

@@ -8,6 +8,7 @@
 #include "ebpf_maps.h"
 #include "ebpf_object.h"
 #include "ebpf_program.h"
+#include "ebpf_ring_buffer.h"
 
 #define PAD_CACHE(X) ((X + EBPF_CACHE_LINE_SIZE - 1) & ~(EBPF_CACHE_LINE_SIZE - 1))
 
@@ -19,22 +20,8 @@ typedef struct _ebpf_core_map
     ebpf_lock_t lock;
     uint32_t original_value_size;
     struct _ebpf_core_map* inner_map_template;
-    // Flag that is set the first time an async operation is queued to the map.
-    // This flag only transitions from off -> on. When this flag is set,
-    // updates to the map acquire the lock and check the async_contexts list.
-    // Note that queueing an async operation thus causes a perf degradation
-    // for all subsequent updates, so should only be allowed to admin.
-    bool async_contexts_trip_wire;
-    LIST_ENTRY async_contexts;
     uint8_t* data;
 } ebpf_core_map_t;
-
-typedef struct _ebpf_core_map_async_context
-{
-    LIST_ENTRY entry;
-    ebpf_core_map_t* map;
-    void* async_context;
-} ebpf_core_map_async_context_t;
 
 typedef struct _ebpf_core_object_map
 {
@@ -58,6 +45,26 @@ typedef struct _ebpf_core_lpm_map
     // Bitmap of prefix lengths inserted into the map.
     uint8_t data[1];
 } ebpf_core_lpm_map_t;
+
+typedef struct _ebpf_core_ring_buffer_map
+{
+    ebpf_core_map_t core_map;
+    // Flag that is set the first time an async operation is queued to the map.
+    // This flag only transitions from off -> on. When this flag is set,
+    // updates to the map acquire the lock and check the async_contexts list.
+    // Note that queueing an async operation thus causes a perf degradation
+    // for all subsequent updates, so should only be allowed to admin.
+    bool async_contexts_trip_wire;
+    ebpf_list_entry_t async_contexts;
+} ebpf_core_ring_buffer_map_t;
+
+typedef struct _ebpf_core_ring_buffer_map_async_query_context
+{
+    ebpf_list_entry_t entry;
+    ebpf_core_ring_buffer_map_t* ring_buffer_map;
+    ebpf_ring_buffer_map_async_query_result_t* async_query_result;
+    void* async_context;
+} ebpf_core_ring_buffer_map_async_query_context_t;
 
 /**
  * Core map structure for BPF_MAP_TYPE_QUEUE and BPF_MAP_TYPE_STACK
@@ -1176,6 +1183,203 @@ Done:
     return result;
 }
 
+static _Requires_lock_held_(ring_buffer_map->core_map.lock) void _ebpf_ring_buffer_map_signal_async_query_complete(
+    _In_ ebpf_core_ring_buffer_map_t* ring_buffer_map)
+{
+    EBPF_LOG_ENTRY();
+    // Skip if no async_contexts have ever been queued.
+    if (!ring_buffer_map->async_contexts_trip_wire) {
+        return;
+    }
+
+    ebpf_core_map_t* map = &ring_buffer_map->core_map;
+    while (!ebpf_list_is_empty(&ring_buffer_map->async_contexts)) {
+        ebpf_core_ring_buffer_map_async_query_context_t* context = EBPF_FROM_FIELD(
+            ebpf_core_ring_buffer_map_async_query_context_t, entry, ring_buffer_map->async_contexts.Flink);
+        ebpf_ring_buffer_map_async_query_result_t* async_query_result = context->async_query_result;
+        ebpf_ring_buffer_query(
+            (ebpf_ring_buffer_t*)map->data, &async_query_result->consumer, &async_query_result->producer);
+        ebpf_list_remove_entry(&context->entry);
+        ebpf_async_complete(context->async_context, sizeof(*async_query_result), EBPF_SUCCESS);
+        ebpf_free(context);
+        context = NULL;
+    }
+}
+
+static void
+_delete_ring_buffer_map(_In_ ebpf_core_map_t* map)
+{
+    EBPF_LOG_ENTRY();
+    // Free the ring buffer.
+    ebpf_ring_buffer_destroy((ebpf_ring_buffer_t*)map->data);
+
+    ebpf_core_ring_buffer_map_t* ring_buffer_map = EBPF_FROM_FIELD(ebpf_core_ring_buffer_map_t, core_map, map);
+    // Snap the async context list.
+    ebpf_list_entry_t temp_list;
+    ebpf_list_initialize(&temp_list);
+    ebpf_lock_state_t state = ebpf_lock_lock(&map->lock);
+    ebpf_list_entry_t* first_entry = ring_buffer_map->async_contexts.Flink;
+    if (!ebpf_list_is_empty(&ring_buffer_map->async_contexts)) {
+        ebpf_list_remove_entry(&ring_buffer_map->async_contexts);
+        ebpf_list_append_tail_list(&temp_list, first_entry);
+    }
+    ebpf_lock_unlock(&map->lock, state);
+    // Cancel all pending async query operations.
+    for (ebpf_list_entry_t* temp_entry = temp_list.Flink; temp_entry != &temp_list; temp_entry = temp_entry->Flink) {
+        ebpf_core_ring_buffer_map_async_query_context_t* context =
+            EBPF_FROM_FIELD(ebpf_core_ring_buffer_map_async_query_context_t, entry, temp_entry);
+        ebpf_async_complete(context->async_context, 0, EBPF_CANCELLED);
+    }
+    ebpf_epoch_free(ring_buffer_map);
+}
+
+static ebpf_core_map_t*
+_create_ring_buffer_map(_In_ const ebpf_map_definition_in_memory_t* map_definition)
+{
+    ebpf_result_t result;
+    ebpf_core_ring_buffer_map_t* ring_buffer_map = NULL;
+    ebpf_ring_buffer_t* ring_buffer = NULL;
+    ebpf_core_map_t* core_map = NULL;
+
+    EBPF_LOG_ENTRY();
+
+    // allocate
+    ring_buffer_map = ebpf_epoch_allocate(sizeof(ebpf_core_ring_buffer_map_t));
+    if (ring_buffer_map == NULL) {
+        result = EBPF_NO_MEMORY;
+        goto Exit;
+    }
+    memset(ring_buffer_map, 0, sizeof(ebpf_core_ring_buffer_map_t));
+
+    ring_buffer_map->core_map.ebpf_map_definition = *map_definition;
+    result =
+        ebpf_ring_buffer_create((ebpf_ring_buffer_t**)&ring_buffer_map->core_map.data, map_definition->max_entries);
+    if (result != EBPF_SUCCESS)
+        goto Exit;
+    ring_buffer = (ebpf_ring_buffer_t*)ring_buffer_map->core_map.data;
+
+    ebpf_list_initialize(&ring_buffer_map->async_contexts);
+
+    core_map = &ring_buffer_map->core_map;
+    ring_buffer = NULL;
+    ring_buffer_map = NULL;
+
+Exit:
+    if (ring_buffer != NULL)
+        ebpf_ring_buffer_destroy(ring_buffer);
+
+    if (ring_buffer_map != NULL)
+        ebpf_epoch_free(ring_buffer_map);
+
+    return core_map;
+}
+
+ebpf_result_t
+ebpf_ring_buffer_map_output(_In_ ebpf_core_map_t* map, _In_reads_bytes_(length) uint8_t* data, size_t length)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+
+    EBPF_LOG_ENTRY();
+
+    result = ebpf_ring_buffer_output((ebpf_ring_buffer_t*)map->data, data, length);
+    if (result != EBPF_SUCCESS)
+        goto Exit;
+
+    ebpf_core_ring_buffer_map_t* ring_buffer_map = EBPF_FROM_FIELD(ebpf_core_ring_buffer_map_t, core_map, map);
+
+    ebpf_lock_state_t state = ebpf_lock_lock(&ring_buffer_map->core_map.lock);
+    _ebpf_ring_buffer_map_signal_async_query_complete(ring_buffer_map);
+    ebpf_lock_unlock(&ring_buffer_map->core_map.lock, state);
+
+Exit:
+    EBPF_RETURN_RESULT(result);
+}
+
+static void
+_ebpf_ring_buffer_map_cancel_async_query(_In_ _Frees_ptr_ void* cancel_context)
+{
+    EBPF_LOG_ENTRY();
+    ebpf_core_ring_buffer_map_async_query_context_t* context =
+        (ebpf_core_ring_buffer_map_async_query_context_t*)cancel_context;
+    ebpf_core_map_t* map = &context->ring_buffer_map->core_map;
+    ebpf_lock_state_t state = ebpf_lock_lock(&map->lock);
+    ebpf_list_remove_entry(&context->entry);
+    ebpf_lock_unlock(&map->lock, state);
+    ebpf_async_complete(context->async_context, 0, EBPF_CANCELLED);
+    ebpf_free(context);
+    EBPF_LOG_EXIT();
+}
+
+ebpf_result_t
+ebpf_ring_buffer_map_query_buffer(_In_ const ebpf_map_t* map, _Out_ uint8_t** buffer)
+{
+    return ebpf_ring_buffer_map_buffer((ebpf_ring_buffer_t*)map->data, buffer);
+}
+
+ebpf_result_t
+ebpf_ring_buffer_map_return_buffer(_In_ const ebpf_map_t* map, size_t consumer_offset)
+{
+    size_t producer_offset;
+    size_t old_consumer_offset;
+    size_t consumed_data_length;
+    EBPF_LOG_ENTRY();
+    ebpf_ring_buffer_query((ebpf_ring_buffer_t*)map->data, &old_consumer_offset, &producer_offset);
+    ebpf_result_t result = ebpf_safe_size_t_subtract(consumer_offset, old_consumer_offset, &consumed_data_length);
+    if (result != EBPF_SUCCESS)
+        goto Exit;
+    result = ebpf_ring_buffer_return((ebpf_ring_buffer_t*)map->data, consumed_data_length);
+Exit:
+    EBPF_RETURN_RESULT(result);
+}
+
+ebpf_result_t
+ebpf_ring_buffer_map_async_query(
+    _Inout_ ebpf_map_t* map,
+    _In_ ebpf_ring_buffer_map_async_query_result_t* async_query_result,
+    _In_ void* async_context)
+{
+    ebpf_result_t result = EBPF_PENDING;
+    EBPF_LOG_ENTRY();
+
+    ebpf_ring_buffer_query(
+        (ebpf_ring_buffer_t*)map->data, &async_query_result->consumer, &async_query_result->producer);
+    ebpf_core_ring_buffer_map_t* ring_buffer_map = EBPF_FROM_FIELD(ebpf_core_ring_buffer_map_t, core_map, map);
+
+    ebpf_lock_state_t state = ebpf_lock_lock(&ring_buffer_map->core_map.lock);
+
+    // Fail the async query as there is already another async query operation queued.
+    if (!ebpf_list_is_empty(&ring_buffer_map->async_contexts)) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
+
+    // Allocate and initialize the async query context and queue it up.
+    ebpf_core_ring_buffer_map_async_query_context_t* context =
+        ebpf_allocate(sizeof(ebpf_core_ring_buffer_map_async_query_context_t));
+    if (!context) {
+        result = EBPF_NO_MEMORY;
+        goto Exit;
+    }
+    ebpf_list_initialize(&context->entry);
+    context->ring_buffer_map = ring_buffer_map;
+    context->async_query_result = async_query_result;
+    context->async_context = async_context;
+
+    ebpf_async_set_cancel_callback(async_context, context, _ebpf_ring_buffer_map_cancel_async_query);
+
+    ebpf_list_insert_tail(&ring_buffer_map->async_contexts, &context->entry);
+    ring_buffer_map->async_contexts_trip_wire = true;
+
+    // If there is already some data available in the ring buffer, indicate the results right away.
+    if (async_query_result->producer != async_query_result->consumer)
+        _ebpf_ring_buffer_map_signal_async_query_complete(ring_buffer_map);
+
+Exit:
+    ebpf_lock_unlock(&ring_buffer_map->core_map.lock, state);
+
+    EBPF_RETURN_RESULT(result);
+}
+
 ebpf_map_function_table_t ebpf_map_function_tables[] = {
     {// BPF_MAP_TYPE_UNSPECIFIED
      NULL},
@@ -1312,27 +1516,18 @@ ebpf_map_function_table_t ebpf_map_function_tables[] = {
      NULL,
      NULL,
      NULL},
-
+    {// BPF_MAP_TYPE_RINGBUF
+     _create_ring_buffer_map,
+     _delete_ring_buffer_map,
+     NULL,
+     NULL,
+     NULL,
+     NULL,
+     NULL,
+     NULL,
+     NULL,
+     NULL},
 };
-
-inline static void
-_ebpf_map_signal_async_contexts(_In_ ebpf_core_map_t* map)
-{
-    // Skip if no async_contexts have ever been queued.
-    if (!map->async_contexts_trip_wire) {
-        return;
-    }
-
-    ebpf_lock_state_t state = ebpf_lock_lock(&map->lock);
-    while (!ebpf_list_is_empty(&map->async_contexts)) {
-        ebpf_core_map_async_context_t* context =
-            EBPF_FROM_FIELD(ebpf_core_map_async_context_t, entry, map->async_contexts.Flink);
-        ebpf_list_remove_entry(&context->entry);
-        ebpf_async_complete(context->async_context, EBPF_SUCCESS);
-        ebpf_free(context);
-    }
-    ebpf_lock_unlock(&map->lock, state);
-}
 
 static void
 _ebpf_map_delete(_In_ ebpf_object_t* object)
@@ -1344,7 +1539,6 @@ _ebpf_map_delete(_In_ ebpf_object_t* object)
         ebpf_object_release_reference(&map->inner_map_template->object);
     }
     ebpf_free(map->name.value);
-    _ebpf_map_signal_async_contexts(map);
     ebpf_map_function_tables[map->ebpf_map_definition.type].delete_map(map);
     EBPF_RETURN_VOID();
 }
@@ -1442,8 +1636,6 @@ ebpf_map_create(
     local_map->inner_map_template = (ebpf_map_t*)inner_map_template_object;
     *ebpf_map = local_map;
 
-    ebpf_list_initialize(&local_map->async_contexts);
-
 Exit:
     if (result != EBPF_SUCCESS) {
         if (local_map) {
@@ -1486,6 +1678,10 @@ ebpf_map_find_entry(
         return EBPF_INVALID_ARGUMENT;
     }
 
+    if (ebpf_map_function_tables[map->ebpf_map_definition.type].find_entry == NULL) {
+        return EBPF_OPERATION_NOT_SUPPORTED;
+    }
+
     ebpf_map_type_t type = map->ebpf_map_definition.type;
     if ((flags & EBPF_MAP_FLAG_HELPER) && (ebpf_map_function_tables[type].get_object_from_entry != NULL)) {
 
@@ -1523,9 +1719,6 @@ ebpf_map_find_entry(
         *(uint8_t**)value = return_value;
     } else {
         memcpy(value, return_value, map->ebpf_map_definition.value_size);
-    }
-    if (flags & EPBF_MAP_FIND_FLAG_DELETE) {
-        _ebpf_map_signal_async_contexts(map);
     }
     return EBPF_SUCCESS;
 }
@@ -1597,14 +1790,14 @@ ebpf_map_update_entry(
         return EBPF_INVALID_ARGUMENT;
     }
 
-    if ((ebpf_map_function_tables[map->ebpf_map_definition.type].update_entry == NULL) ||
-        (ebpf_map_function_tables[map->ebpf_map_definition.type].find_entry == NULL)) {
+    if (ebpf_map_function_tables[map->ebpf_map_definition.type].update_entry == NULL) {
         EBPF_LOG_MESSAGE_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_MAP,
             "ebpf_map_update_entry not supported on map",
             map->ebpf_map_definition.type);
-        return EBPF_INVALID_ARGUMENT;
+
+        return EBPF_OPERATION_NOT_SUPPORTED;
     }
 
     if ((flags & EBPF_MAP_FLAG_HELPER) &&
@@ -1612,9 +1805,6 @@ ebpf_map_update_entry(
         result = ebpf_map_function_tables[map->ebpf_map_definition.type].update_entry_per_cpu(map, key, value, option);
     } else {
         result = ebpf_map_function_tables[map->ebpf_map_definition.type].update_entry(map, key, value, option);
-    }
-    if (result == EBPF_SUCCESS) {
-        _ebpf_map_signal_async_contexts(map);
     }
     return result;
 }
@@ -1664,9 +1854,6 @@ ebpf_map_delete_entry(_In_ ebpf_map_t* map, size_t key_size, _In_reads_(key_size
         return EBPF_INVALID_ARGUMENT;
     }
     ebpf_result_t result = ebpf_map_function_tables[map->ebpf_map_definition.type].delete_entry(map, key);
-    if (result == EBPF_SUCCESS) {
-        _ebpf_map_signal_async_contexts(map);
-    }
     return result;
 }
 
@@ -1718,35 +1905,4 @@ ebpf_map_get_info(
 
     *info_size = sizeof(*info);
     return EBPF_SUCCESS;
-}
-
-static void
-_ebpf_map_cancel_context(_In_ _Frees_ptr_ void* cancel_context)
-{
-    ebpf_core_map_async_context_t* context = (ebpf_core_map_async_context_t*)cancel_context;
-    ebpf_lock_state_t state = ebpf_lock_lock(&context->map->lock);
-    ebpf_list_remove_entry(&context->entry);
-    ebpf_lock_unlock(&context->map->lock, state);
-    ebpf_async_complete(context->async_context, EBPF_SUCCESS);
-    ebpf_free(context);
-}
-
-ebpf_result_t
-ebpf_map_wait_for_update(_Inout_ ebpf_map_t* map, _In_ void* async_context)
-{
-    ebpf_core_map_async_context_t* context = ebpf_allocate(sizeof(ebpf_core_map_async_context_t));
-    if (!context) {
-        return EBPF_NO_MEMORY;
-    }
-    ebpf_list_initialize(&context->entry);
-    context->async_context = async_context;
-    context->map = map;
-
-    ebpf_lock_state_t state = ebpf_lock_lock(&map->lock);
-    ebpf_list_insert_tail(&map->async_contexts, &context->entry);
-    ebpf_lock_unlock(&map->lock, state);
-
-    ebpf_async_set_cancel_callback(async_context, context, _ebpf_map_cancel_context);
-    map->async_contexts_trip_wire = true;
-    return EBPF_PENDING;
 }

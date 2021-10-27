@@ -297,6 +297,8 @@ _ebpf_map_type_t_to_string(ebpf_map_type_t type)
         return "BPF_MAP_TYPE_ARRAY_OF_MAPS";
     case BPF_MAP_TYPE_LRU_HASH:
         return "BPF_MAP_TYPE_LRU_HASH";
+    case BPF_MAP_TYPE_RINGBUF:
+        return "BPF_MAP_TYPE_RINGBUF";
     default:
         return "Error";
     }

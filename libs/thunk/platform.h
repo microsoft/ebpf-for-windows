@@ -16,6 +16,9 @@ DeviceIoControl(
     _Out_opt_ uint32_t* count_of_bytes_returned,
     _Inout_opt_ OVERLAPPED* overlapped);
 
+bool
+CancelIoEx(_In_ ebpf_handle_t device_handle, _In_opt_ OVERLAPPED* overlapped);
+
 ebpf_handle_t
 CreateFileW(
     _In_ PCWSTR file_name,
@@ -28,6 +31,16 @@ CreateFileW(
 
 bool
 CloseHandle(_In_ _Post_ptr_invalid_ ebpf_handle_t handle);
+
+bool
+DuplicateHandle(
+    _In_ ebpf_handle_t source_process_handle,
+    _In_ ebpf_handle_t source_handle,
+    _In_ ebpf_handle_t target_process_handle,
+    _Out_ ebpf_handle_t* target_handle,
+    uint32_t desired_access,
+    bool inherit_handle,
+    uint32_t options);
 
 int
 _open_osfhandle(intptr_t os_file_handle, int flags);

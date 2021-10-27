@@ -178,6 +178,7 @@ ebpf_allocate_ring_buffer_memory(size_t length)
 
     ebpf_ring_descriptor_t* ring_descriptor = ebpf_allocate(sizeof(ebpf_ring_descriptor_t));
     MDL* source_mdl = NULL;
+    MDL* new_mdl = NULL;
 
     if (!ring_descriptor) {
         status = STATUS_NO_MEMORY;
@@ -210,30 +211,23 @@ ebpf_allocate_ring_buffer_memory(size_t length)
         status = STATUS_NO_MEMORY;
         goto Done;
     }
+    new_mdl = ring_descriptor->memory_descriptor_list;
+
+    memcpy(MmGetMdlPfnArray(new_mdl), MmGetMdlPfnArray(source_mdl), sizeof(PFN_NUMBER) * requested_page_count);
+
+    memcpy(
+        MmGetMdlPfnArray(new_mdl) + requested_page_count,
+        MmGetMdlPfnArray(source_mdl),
+        sizeof(PFN_NUMBER) * requested_page_count);
 
 #pragma warning(push)
 #pragma warning(disable : 28145) /* The opaque MDL structure should not be modified by a driver except for \
                                     MDL_PAGES_LOCKED and MDL_MAPPING_CAN_FAIL. */
-    ring_descriptor->memory_descriptor_list->MdlFlags |= MDL_PAGES_LOCKED;
+    new_mdl->MdlFlags |= MDL_PAGES_LOCKED;
 #pragma warning(pop)
 
-    memcpy(
-        MmGetMdlPfnArray(ring_descriptor->memory_descriptor_list),
-        MmGetMdlPfnArray(source_mdl),
-        sizeof(PFN_NUMBER) * requested_page_count);
-
-    memcpy(
-        MmGetMdlPfnArray(ring_descriptor->memory_descriptor_list) + requested_page_count,
-        MmGetMdlPfnArray(source_mdl),
-        sizeof(PFN_NUMBER) * requested_page_count);
-
     ring_descriptor->base_address = MmMapLockedPagesSpecifyCache(
-        ring_descriptor->memory_descriptor_list,
-        KernelMode,
-        MmCached,
-        NULL,
-        FALSE,
-        NormalPagePriority | MdlMappingNoExecute);
+        new_mdl, KernelMode, MmCached, NULL, FALSE, NormalPagePriority | MdlMappingNoExecute);
     if (!ring_descriptor->base_address) {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, MmMapLockedPagesSpecifyCache, STATUS_NO_MEMORY);
         status = STATUS_NO_MEMORY;

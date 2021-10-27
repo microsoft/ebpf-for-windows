@@ -210,6 +210,10 @@ win32_error_code_to_ebpf_result(uint32_t error)
         result = EBPF_OUT_OF_SPACE;
         break;
 
+    case ERROR_OPERATION_ABORTED:
+        result = EBPF_CANCELLED;
+        break;
+
     default:
         result = EBPF_FAILED;
         break;
