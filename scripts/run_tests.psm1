@@ -113,6 +113,9 @@ function Invoke-Test
 {
     param([string] $TestName,[bool] $VerboseLogs)
 
+    Write-Log "Starting ETL tracing"
+    Start-Process -FilePath "wpr.exe" -ArgumentList @("-start", "EbpfForWindows.wprp", "-filemode") -NoNewWindow -Wait
+
     Write-Log "Executing $Testname"
 
     # Execute Test.
@@ -129,6 +132,8 @@ function Invoke-Test
         Write-Log "$TestName passed" -ForegroundColor Green
     }
 
+    Write-Log "Stopping ETL tracing"
+    Start-Process -FilePath "wpr.exe" -ArgumentList @("-stop", $TestName + ".etl") -NoNewWindow -Wait
 }
 
 function Invoke-CICDTests
