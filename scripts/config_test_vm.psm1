@@ -201,7 +201,7 @@ function Import-ResultsFromVM
 
     foreach($VM in $VMList) {
         $VMName = $VM.Name
-        Write-Log "Importing Testlogs from $VMName"
+        Write-Log "Importing TestLogs from $VMName"
         $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
         $VMSession = New-PSSession -VMName $VMName -Credential $TestCredential
         if (!$VMSession) {
@@ -214,7 +214,7 @@ function Import-ResultsFromVM
         Write-Log ("Copy {0}_{1} from C:\eBPF on test VM to $pwd\TestLogs" -f $VMName, $LogFileName)
         Copy-Item -FromSession $VMSession ("C:\eBPF\{0}_{1}" -f $VMName, $LogFileName) -Destination ".\TestLogs" -Recurse -Force -ErrorAction Stop 2>&1 | Write-Log
 
-        # Move runner test logs to Testlogs folder.
+        # Move runner test logs to TestLogs folder.
         Move-Item $LogFileName -Destination ".\TestLogs" -Force -ErrorAction Stop 2>&1 | Write-Log
 
         # Copy ETL from Test VM.
@@ -223,7 +223,7 @@ function Import-ResultsFromVM
         Write-Log ("Copy {0}_{1} from C:\eBPF on test VM to $pwd\TestLogs" -f $VMName, $EtlFile)
         Copy-Item -FromSession $VMSession ("C:\eBPF\{0}_{1}" -f $VMName, $EtlFile) -Destination ".\TestLogs" -Recurse -Force -ErrorAction Stop 2>&1 | Write-Log
 
-        # Move runner test ETL to Testlogs folder.
+        # Move runner test ETL to TestLogs folder.
         Move-Item $EtlFile -Destination ".\TestLogs" -Force -ErrorAction Stop 2>&1 | Write-Log
     }
 }

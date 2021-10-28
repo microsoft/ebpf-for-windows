@@ -190,8 +190,8 @@ This application tests various XDP functionalities. It has the following tests:
    4. Unload the program from system under test by running `delete program <id>` on the netsh prompt, where <id> is the ID noted above.
 
 ### Capturing traces
-eBPF for Windows uses ETL for tracing. To capture a trace use the following commands:
-1) Start tracing: ```wpr -start ebpfforwindows.wprp -filemode```
+eBPF for Windows uses ETW for tracing. To capture a trace use the following commands:
+1) Start tracing: ```wpr.exe -start ebpfforwindows.wprp -filemode```
 2) Run the scenario to be traced.
 3) Stop tracing: ```wpr.exe -stop ebpfforwindows.etl```
 4) Convert the traces to human readable version: ```netsh trace convert ebpfforwindows.etl ebpfforwindows.csv csv```

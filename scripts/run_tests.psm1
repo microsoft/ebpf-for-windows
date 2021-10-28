@@ -71,7 +71,7 @@ function Register-eBPFComponents
 #
 function Start-eBPFComponents
 {
-    Write-Log "Starting ETL tracing"
+    Write-Log "Starting ETW tracing"
     Start-Process -FilePath "wpr.exe" -ArgumentList @("-start", "EbpfForWindows.wprp", "-filemode") -NoNewWindow -Wait
 
     # Start drivers.
@@ -108,7 +108,7 @@ function Stop-eBPFComponents
     }
 
     $EtlFile = $LogFileName.Substring(0, $LogFileName.IndexOf('.')) + ".etl";
-    Write-Log "Stopping ETL tracing, creating file: " + $EtlFile
+    Write-Log ("Stopping ETW tracing, creating file: " + $EtlFile)
     Start-Process -FilePath "wpr.exe" -ArgumentList @("-stop", $EtlFile) -NoNewWindow -Wait
 }
 

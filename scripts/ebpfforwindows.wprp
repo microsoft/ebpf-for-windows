@@ -15,7 +15,7 @@
     <Profile
         Id="EbpfForWindowsProvider.Verbose.File"
         Name="EbpfForWindowsProvider"
-        Description="Traces for all eBPF for Windows Providers"
+        Description="Traces for all eBPF for Windows providers"
         LoggingMode="File"
         DetailLevel="Verbose"
         Default="true">

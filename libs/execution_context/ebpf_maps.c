@@ -1383,7 +1383,7 @@ ebpf_map_create(
     }
 
     if (map_name->length >= BPF_OBJ_NAME_LEN) {
-        EBPF_LOG_MESSAGE_UINT64(EBPF_LEVEL_ERROR, EBPF_KEYWORD_MAP, "Map name to long", map_name->length);
+        EBPF_LOG_MESSAGE_UINT64(EBPF_LEVEL_ERROR, EBPF_KEYWORD_MAP, "Map name too long", map_name->length);
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
