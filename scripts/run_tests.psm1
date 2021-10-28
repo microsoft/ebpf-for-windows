@@ -71,6 +71,9 @@ function Register-eBPFComponents
 #
 function Start-eBPFComponents
 {
+    Write-Log "Starting ETL tracing"
+    Start-Process -FilePath "wpr.exe" -ArgumentList @("-start", "EbpfForWindows.wprp", "-filemode") -NoNewWindow -Wait
+
     # Start drivers.
     $EbpfDrivers.GetEnumerator() | ForEach-Object {
         Start-Service $_.Name -ErrorAction Stop 2>&1 | Write-Log
@@ -103,6 +106,9 @@ function Stop-eBPFComponents
     $EbpfDrivers.GetEnumerator() | ForEach-Object {
         Stop-Service $_.Name -ErrorAction Stop 2>&1 | Write-Log
     }
+
+    Write-Log "Stopping ETL tracing"
+    Start-Process -FilePath "wpr.exe" -ArgumentList @("-stop", $LogFileName.Substring(0, $LogFileName.IndexOf('.')) + ".etl") -NoNewWindow -Wait
 }
 
 #
@@ -113,8 +119,6 @@ function Invoke-Test
 {
     param([string] $TestName,[bool] $VerboseLogs)
 
-    Write-Log "Starting ETL tracing"
-    Start-Process -FilePath "wpr.exe" -ArgumentList @("-start", "EbpfForWindows.wprp", "-filemode") -NoNewWindow -Wait
 
     Write-Log "Executing $Testname"
 
@@ -132,8 +136,6 @@ function Invoke-Test
         Write-Log "$TestName passed" -ForegroundColor Green
     }
 
-    Write-Log "Stopping ETL tracing"
-    Start-Process -FilePath "wpr.exe" -ArgumentList @("-stop", $TestName + ".etl") -NoNewWindow -Wait
 }
 
 function Invoke-CICDTests

@@ -216,6 +216,15 @@ function Import-ResultsFromVM
 
         # Move runner test logs to Testlogs folder.
         Move-Item $LogFileName -Destination ".\TestLogs" -Force -ErrorAction Stop 2>&1 | Write-Log
+
+        # Copy ETL from Test VM.
+        $EtlFile = $LogFileName.Substring(0, $LogFileName.IndexOf('.')) + ".etl"
+
+        Write-Log ("Copy {0}_{1} from C:\eBPF on test VM to $pwd\TestLogs" -f $VMName, $EtlFile)
+        Copy-Item -FromSession $VMSession ("C:\eBPF\{0}_{1}" -f $VMName, $EtlFile) -Destination ".\TestLogs" -Recurse -Force -ErrorAction Stop 2>&1 | Write-Log
+
+        # Move runner test ETL to Testlogs folder.
+        Move-Item $EtlFile -Destination ".\TestLogs" -Force -ErrorAction Stop 2>&1 | Write-Log
     }
 }
 
