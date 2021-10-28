@@ -224,7 +224,7 @@ function Import-ResultsFromVM
         Copy-Item -FromSession $VMSession ("C:\eBPF\{0}_{1}" -f $VMName, $EtlFile) -Destination ".\TestLogs" -Recurse -Force -ErrorAction Stop 2>&1 | Write-Log
 
         # Move runner test ETL to TestLogs folder.
-        Move-Item $EtlFile -Destination ".\TestLogs" -Force -ErrorAction Stop 2>&1 | Write-Log
+        Move-Item ("{0}_{1}" -f $VMName, $EtlFile) -Destination ".\TestLogs" -Force -ErrorAction Stop 2>&1 | Write-Log
     }
 }
 
