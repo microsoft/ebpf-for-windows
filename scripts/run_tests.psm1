@@ -107,8 +107,9 @@ function Stop-eBPFComponents
         Stop-Service $_.Name -ErrorAction Stop 2>&1 | Write-Log
     }
 
-    Write-Log "Stopping ETL tracing"
-    Start-Process -FilePath "wpr.exe" -ArgumentList @("-stop", $LogFileName.Substring(0, $LogFileName.IndexOf('.')) + ".etl") -NoNewWindow -Wait
+    $EtlFile = $LogFileName.Substring(0, $LogFileName.IndexOf('.')) + ".etl";
+    Write-Log "Stopping ETL tracing, creating file: " + $EtlFile
+    Start-Process -FilePath "wpr.exe" -ArgumentList @("-stop", $EtlFile) -NoNewWindow -Wait
 }
 
 #
@@ -118,7 +119,6 @@ function Stop-eBPFComponents
 function Invoke-Test
 {
     param([string] $TestName,[bool] $VerboseLogs)
-
 
     Write-Log "Executing $Testname"
 
@@ -135,7 +135,6 @@ function Invoke-Test
     } else {
         Write-Log "$TestName passed" -ForegroundColor Green
     }
-
 }
 
 function Invoke-CICDTests
