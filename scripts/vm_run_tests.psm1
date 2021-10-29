@@ -26,6 +26,7 @@ function Invoke-CICDTestsOnVM
               [Parameter(Mandatory=$True)] [string] $LogFileName,
               [Parameter(Mandatory=$True)] [bool] $VerboseLogs)
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
+        Import-Module $WorkingDirectory\install_ebpf.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
         Import-Module $WorkingDirectory\run_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
         Invoke-CICDTests -VerboseLogs $VerboseLogs 2>&1 | Write-Log
     } -ArgumentList ("C:\eBPF", ("{0}_{1}" -f $VMName, $LogFileName), $VerboseLogs) -ErrorAction Stop
