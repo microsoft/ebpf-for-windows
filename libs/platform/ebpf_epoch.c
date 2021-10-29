@@ -128,6 +128,7 @@ _ebpf_epoch_update_thread_state(uint32_t cpu_id, uintptr_t thread_id, int64_t cu
 ebpf_result_t
 ebpf_epoch_initiate()
 {
+    EBPF_LOG_ENTRY();
     ebpf_result_t return_value = EBPF_SUCCESS;
     uint32_t cpu_id;
     uint32_t cpu_count;
@@ -176,12 +177,13 @@ ebpf_epoch_initiate()
 
 Error:
     ebpf_epoch_terminate();
-    return return_value;
+    EBPF_RETURN_RESULT(return_value);
 }
 
 void
 ebpf_epoch_terminate()
 {
+    EBPF_LOG_ENTRY();
     uint32_t cpu_id;
 
     ebpf_free_timer_work_item(_ebpf_flush_timer);
@@ -198,6 +200,7 @@ ebpf_epoch_terminate()
     _ebpf_epoch_cpu_count = 0;
 
     ebpf_free_cache_aligned(_ebpf_epoch_cpu_table);
+    EBPF_RETURN_VOID();
 }
 
 ebpf_result_t

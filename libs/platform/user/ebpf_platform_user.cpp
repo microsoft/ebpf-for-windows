@@ -31,6 +31,7 @@ ebpf_platform_terminate()
 ebpf_result_t
 ebpf_get_code_integrity_state(_Out_ ebpf_code_integrity_state_t* state)
 {
+    EBPF_LOG_ENTRY();
     if (_ebpf_platform_code_integrity_enabled) {
         EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_INFO, EBPF_TRACELOG_KEYWORD_BASE, "Code integrity enabled");
         *state = EBPF_CODE_INTEGRITY_HYPER_VISOR_KERNEL_MODE;
@@ -38,7 +39,7 @@ ebpf_get_code_integrity_state(_Out_ ebpf_code_integrity_state_t* state)
         EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_INFO, EBPF_TRACELOG_KEYWORD_BASE, "Code integrity disabled");
         *state = EBPF_CODE_INTEGRITY_DEFAULT;
     }
-    return EBPF_SUCCESS;
+    EBPF_RETURN_RESULT(EBPF_SUCCESS);
 }
 
 __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
@@ -265,8 +266,7 @@ Exit:
         UnmapViewOfFileEx(view2, 0);
     }
 
-    EBPF_LOG_EXIT();
-    return descriptor;
+    EBPF_RETURN_POINTER(ebpf_ring_descriptor_t*, descriptor);
 }
 
 void
@@ -278,7 +278,7 @@ ebpf_free_ring_buffer_memory(_Frees_ptr_opt_ ebpf_ring_descriptor_t* ring)
         UnmapViewOfFile(ring->secondary_view);
         ebpf_free(ring);
     }
-    EBPF_LOG_EXIT();
+    EBPF_RETURN_VOID();
 }
 
 void*
@@ -291,8 +291,7 @@ _Ret_maybenull_ void*
 ebpf_ring_map_readonly_user(_In_ ebpf_ring_descriptor_t* ring)
 {
     EBPF_LOG_ENTRY();
-    EBPF_LOG_EXIT();
-    return ebpf_ring_descriptor_get_base_address(ring);
+    EBPF_RETURN_POINTER(void*, ebpf_ring_descriptor_get_base_address(ring));
 }
 
 ebpf_result_t

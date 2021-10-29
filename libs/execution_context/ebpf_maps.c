@@ -1349,7 +1349,7 @@ _ebpf_map_delete(_In_ ebpf_object_t* object)
     ebpf_free(map->name.value);
     _ebpf_map_signal_async_contexts(map);
     ebpf_map_function_tables[map->ebpf_map_definition.type].delete_map(map);
-    EBPF_LOG_EXIT();
+    EBPF_RETURN_VOID();
 }
 
 ebpf_result_t

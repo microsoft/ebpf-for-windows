@@ -113,24 +113,21 @@ ebpf_map_memory(size_t length)
     } else {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, MmAllocatePagesForMdlEx, STATUS_NO_MEMORY);
     }
-    EBPF_LOG_EXIT();
-    return (ebpf_memory_descriptor_t*)memory_descriptor_list;
+    EBPF_RETURN_POINTER(ebpf_memory_descriptor_t*, memory_descriptor_list);
 }
 
 void
 ebpf_unmap_memory(_Frees_ptr_opt_ ebpf_memory_descriptor_t* memory_descriptor)
 {
     EBPF_LOG_ENTRY();
-    if (!memory_descriptor) {
-        EBPF_LOG_EXIT();
-        return;
-    }
+    if (!memory_descriptor)
+        EBPF_RETURN_VOID();
 
     MmUnmapLockedPages(
         ebpf_memory_descriptor_get_base_address(memory_descriptor), &memory_descriptor->memory_descriptor_list);
     MmFreePagesFromMdl(&memory_descriptor->memory_descriptor_list);
     ExFreePool(memory_descriptor);
-    EBPF_LOG_EXIT();
+    EBPF_RETURN_VOID();
 }
 
 ebpf_result_t
@@ -252,8 +249,7 @@ Done:
         }
     }
 
-    EBPF_LOG_EXIT();
-    return ring_descriptor;
+    EBPF_RETURN_POINTER(ebpf_ring_descriptor_t*, ring_descriptor);
 }
 
 void
@@ -261,8 +257,7 @@ ebpf_free_ring_buffer_memory(_Frees_ptr_opt_ ebpf_ring_descriptor_t* ring)
 {
     EBPF_LOG_ENTRY();
     if (!ring) {
-        EBPF_LOG_EXIT();
-        return;
+        EBPF_RETURN_VOID();
     }
 
     MmUnmapLockedPages(ring->base_address, ring->memory_descriptor_list);
@@ -270,7 +265,7 @@ ebpf_free_ring_buffer_memory(_Frees_ptr_opt_ ebpf_ring_descriptor_t* ring)
     IoFreeMdl(ring->memory_descriptor_list);
     ebpf_unmap_memory(ring->memory);
     ebpf_free(ring);
-    EBPF_LOG_EXIT();
+    EBPF_RETURN_VOID();
 }
 
 void*

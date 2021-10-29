@@ -3,6 +3,8 @@
 
 #include "ebpf_platform.h"
 
+#pragma warning(disable : 4127) // conditional expression is constant
+
 struct _ebpf_extension_client_binding_context;
 
 typedef struct _ebpf_extension_client
@@ -55,24 +57,33 @@ static void
 _ebpf_extension_client_notify_change(
     ebpf_extension_client_t* client_context, ebpf_extension_client_binding_context_t* client_binding_context)
 {
+    EBPF_LOG_ENTRY();
     if (client_context->extension_change_callback)
         client_context->extension_change_callback(
             client_context->extension_client_context,
             client_binding_context->provider_binding_context,
             client_binding_context->provider_data);
+    EBPF_RETURN_VOID();
 }
 
 NTSTATUS
 _ebpf_extension_client_attach_provider(
     HANDLE nmr_binding_handle, void* client_context, const NPI_REGISTRATION_INSTANCE* provider_registration_instance)
 {
+    EBPF_LOG_ENTRY();
     NTSTATUS status;
     ebpf_extension_client_t* local_client_context = (ebpf_extension_client_t*)client_context;
     ebpf_extension_client_binding_context_t* local_client_binding_context = NULL;
 
     // Only permit one provider to attach.
     if (local_client_context->client_binding_context != NULL) {
-        return STATUS_NOINTERFACE;
+        status = STATUS_NOINTERFACE;
+        EBPF_LOG_MESSAGE_GUID(
+            EBPF_TRACELOG_LEVEL_WARNING,
+            EBPF_TRACELOG_KEYWORD_BASE,
+            "Client already attached to provider",
+            *provider_registration_instance->NpiId)
+        goto Done;
     }
 
     // Check that the interface matches.
@@ -80,7 +91,14 @@ _ebpf_extension_client_attach_provider(
             provider_registration_instance->NpiId,
             &local_client_context->npi_id,
             sizeof(local_client_context->npi_id)) != 0) {
-        return STATUS_NOINTERFACE;
+        status = STATUS_NOINTERFACE;
+        EBPF_LOG_MESSAGE_GUID_GUID(
+            EBPF_TRACELOG_LEVEL_WARNING,
+            EBPF_TRACELOG_KEYWORD_BASE,
+            "Interface doesn't match",
+            *provider_registration_instance->NpiId,
+            local_client_context->npi_id);
+        goto Done;
     }
 
     local_client_binding_context =
@@ -109,14 +127,17 @@ _ebpf_extension_client_attach_provider(
 
     if (NT_SUCCESS(status))
         _ebpf_extension_client_notify_change(local_client_context, local_client_binding_context);
+    else
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, NmrClientAttachProvider, status);
 
 Done:
-    return status;
+    EBPF_RETURN_NTSTATUS(status);
 }
 
 NTSTATUS
 _ebpf_extension_client_detach_provider(void* client_binding_context)
 {
+    EBPF_LOG_ENTRY();
     ebpf_extension_client_binding_context_t* local_client_binding_context =
         (ebpf_extension_client_binding_context_t*)client_binding_context;
     ebpf_extension_client_t* local_client_context = local_client_binding_context->extension_client;
@@ -130,13 +151,15 @@ _ebpf_extension_client_detach_provider(void* client_binding_context)
     ebpf_free(local_client_binding_context);
     local_client_context->client_binding_context = NULL;
 
-    return STATUS_SUCCESS;
+    EBPF_RETURN_NTSTATUS(STATUS_SUCCESS);
 }
 
 void
 _ebpf_extension_client_cleanup_binding_context(void* client_binding_context)
 {
+    EBPF_LOG_ENTRY();
     UNREFERENCED_PARAMETER(client_binding_context);
+    EBPF_RETURN_VOID();
 }
 
 ebpf_result_t
@@ -151,6 +174,7 @@ ebpf_extension_load(
     _Outptr_opt_ const ebpf_extension_dispatch_table_t** provider_dispatch_table,
     _In_opt_ ebpf_extension_change_callback_t extension_changed)
 {
+    EBPF_LOG_ENTRY();
     ebpf_result_t return_value;
     ebpf_extension_client_t* local_client_context = NULL;
     ebpf_extension_client_binding_context_t* local_client_binding_context = NULL;
@@ -202,6 +226,7 @@ ebpf_extension_load(
 
     status = NmrRegisterClient(client_characteristics, local_client_context, &local_client_context->nmr_client_handle);
     if (!NT_SUCCESS(status)) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, NmrRegisterClient, status);
         return_value = EBPF_EXTENSION_FAILED_TO_LOAD;
         goto Done;
     }
@@ -209,6 +234,11 @@ ebpf_extension_load(
     local_client_binding_context = local_client_context->client_binding_context;
 
     if (local_client_binding_context == NULL) {
+        EBPF_LOG_MESSAGE_GUID(
+            EBPF_TRACELOG_LEVEL_WARNING,
+            EBPF_TRACELOG_KEYWORD_BASE,
+            "local_client_context->client_binding_context is NULL",
+            *interface_id);
         ebpf_extension_unload(local_client_context);
         local_client_context = NULL;
         return_value = EBPF_EXTENSION_FAILED_TO_LOAD;
@@ -216,6 +246,11 @@ ebpf_extension_load(
     }
 
     if (!local_client_binding_context->provider_is_attached) {
+        EBPF_LOG_MESSAGE_GUID(
+            EBPF_TRACELOG_LEVEL_WARNING,
+            EBPF_TRACELOG_KEYWORD_BASE,
+            "local_client_binding_context->provider_is_attached is FALSE",
+            *interface_id);
         ebpf_extension_unload(local_client_context);
         local_client_context = NULL;
         return_value = EBPF_EXTENSION_FAILED_TO_LOAD;
@@ -238,26 +273,34 @@ Done:
         ebpf_free(local_client_context->client_binding_context);
     ebpf_free(local_client_context);
     local_client_context = NULL;
-    return return_value;
+    EBPF_RETURN_RESULT(return_value);
 }
 
 void
 ebpf_extension_unload(_Frees_ptr_opt_ ebpf_extension_client_t* client_context)
 {
+    EBPF_LOG_ENTRY();
     NTSTATUS status;
     if (client_context) {
         status = NmrDeregisterClient(client_context->nmr_client_handle);
-        if (status == STATUS_PENDING)
-            NmrWaitForClientDeregisterComplete(client_context->nmr_client_handle);
+        if (status == STATUS_PENDING) {
+            status = NmrWaitForClientDeregisterComplete(client_context->nmr_client_handle);
+            if (!NT_SUCCESS(status)) {
+                EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, NmrWaitForClientDeregisterComplete, status);
+            }
+        } else
+            EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, NmrDeregisterClient, status);
     }
     if (client_context != NULL)
         ebpf_free(client_context->client_binding_context);
     ebpf_free(client_context);
+    EBPF_RETURN_VOID();
 }
 
 void*
 ebpf_extension_get_client_context(_In_ const void* extension_client_binding_context)
 {
+    EBPF_LOG_ENTRY();
     void* local_extension_client_context = NULL;
     ebpf_extension_client_binding_context_t* local_client_binding_context =
         (ebpf_extension_client_binding_context_t*)extension_client_binding_context;
@@ -265,7 +308,7 @@ ebpf_extension_get_client_context(_In_ const void* extension_client_binding_cont
     if (local_client_context != NULL)
         local_extension_client_context = local_client_context->extension_client_context;
 
-    return local_extension_client_context;
+    EBPF_RETURN_POINTER(void*, local_extension_client_context);
 }
 
 GUID
@@ -285,6 +328,7 @@ _ebpf_extension_provider_attach_client(
     void** provider_binding_context,
     const void** provider_dispatch)
 {
+    EBPF_LOG_ENTRY();
     NTSTATUS status;
     ebpf_result_t return_value;
     ebpf_extension_provider_t* local_provider_context = (ebpf_extension_provider_t*)provider_context;
@@ -295,6 +339,13 @@ _ebpf_extension_provider_attach_client(
             client_registration_instance->NpiId,
             &local_provider_context->npi_id,
             sizeof(local_provider_context->npi_id)) != 0) {
+
+        EBPF_LOG_MESSAGE_GUID_GUID(
+            EBPF_TRACELOG_LEVEL_WARNING,
+            EBPF_TRACELOG_KEYWORD_BASE,
+            "Interface doesn't match",
+            *client_registration_instance->NpiId,
+            local_provider_context->npi_id);
         status = STATUS_NOINTERFACE;
         goto Done;
     }
@@ -320,6 +371,11 @@ _ebpf_extension_provider_attach_client(
             (const ebpf_extension_dispatch_table_t*)client_dispatch);
 
         if (return_value != EBPF_SUCCESS) {
+            EBPF_LOG_MESSAGE_UINT64(
+                EBPF_TRACELOG_LEVEL_WARNING,
+                EBPF_TRACELOG_KEYWORD_BASE,
+                "client_attach_callback return failure",
+                return_value);
             status = STATUS_NOINTERFACE;
             goto Done;
         }
@@ -332,12 +388,13 @@ _ebpf_extension_provider_attach_client(
 
 Done:
     ebpf_free(local_provider_binding_context);
-    return status;
+    EBPF_RETURN_NTSTATUS(STATUS_SUCCESS);
 }
 
 NTSTATUS
 _ebpf_extension_provider_detach_client(void* provider_binding_context)
 {
+    EBPF_LOG_ENTRY();
     ebpf_extension_provider_binding_context* local_provider_binding_context =
         (ebpf_extension_provider_binding_context*)provider_binding_context;
 
@@ -345,13 +402,15 @@ _ebpf_extension_provider_detach_client(void* provider_binding_context)
         local_provider_binding_context->client_detach_callback(
             local_provider_binding_context->callback_context, &local_provider_binding_context->client_id);
 
-    return STATUS_SUCCESS;
+    EBPF_RETURN_NTSTATUS(STATUS_SUCCESS);
 }
 
 void
 _ebpf_extension_provider_cleanup_binding_context(void* provider_binding_context)
 {
+    EBPF_LOG_ENTRY();
     ebpf_free(provider_binding_context);
+    EBPF_RETURN_VOID();
 }
 
 ebpf_result_t
@@ -365,6 +424,7 @@ ebpf_provider_load(
     _In_opt_ ebpf_provider_client_attach_callback_t client_attach_callback,
     _In_opt_ ebpf_provider_client_detach_callback_t client_detach_callback)
 {
+    EBPF_LOG_ENTRY();
     ebpf_result_t return_value;
     ebpf_extension_provider_t* local_provider_context;
     NPI_PROVIDER_CHARACTERISTICS* provider_characteristics;
@@ -416,6 +476,7 @@ ebpf_provider_load(
         provider_characteristics, local_provider_context, &local_provider_context->nmr_provider_handle);
     if (!NT_SUCCESS(status)) {
         return_value = EBPF_EXTENSION_FAILED_TO_LOAD;
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, NmrRegisterProvider, status);
         goto Done;
     }
 
@@ -426,18 +487,24 @@ ebpf_provider_load(
 Done:
     ebpf_free(local_provider_context);
     local_provider_context = NULL;
-    return return_value;
+    EBPF_RETURN_RESULT(return_value);
 }
 
 void
 ebpf_provider_unload(_Frees_ptr_opt_ ebpf_extension_provider_t* provider_context)
 {
+    EBPF_LOG_ENTRY();
     NTSTATUS status;
     if (provider_context) {
         status = NmrDeregisterProvider(provider_context->nmr_provider_handle);
-        if (status == STATUS_PENDING)
-            NmrWaitForProviderDeregisterComplete(provider_context->nmr_provider_handle);
+        if (status == STATUS_PENDING) {
+            status = NmrWaitForProviderDeregisterComplete(provider_context->nmr_provider_handle);
+            if (!NT_SUCCESS(status))
+                EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, NmrWaitForProviderDeregisterComplete, status);
+        } else
+            EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, NmrDeregisterProvider, status);
     }
 
     ebpf_free(provider_context);
+    EBPF_RETURN_VOID();
 }

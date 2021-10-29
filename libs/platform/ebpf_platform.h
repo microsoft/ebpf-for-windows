@@ -970,7 +970,7 @@ extern "C"
 
 #define EBPF_TRACELOG_EVENT_SUCCESS "EbpfSuccess"
 #define EBPF_TRACELOG_EVENT_GENERIC_ERROR "EbpfGenericError"
-#define EBPF_EVENT_GENERIC_MESSAGE "EbpfGenericMessage"
+#define EBPF_TRACELOG_EVENT_GENERIC_MESSAGE "EbpfGenericMessage"
 #define EBPF_TRACELOG_EVENT_API_ERROR "EbpfApiError"
 
 #define EBPF_TRACELOG_KEYWORD_FUNCTION_ENTRY_EXIT 0x1
@@ -985,7 +985,7 @@ extern "C"
 #define EBPF_TRACELOG_LEVEL_LOG_ALWAYS WINEVENT_LEVEL_LOG_ALWAYS
 #define EBPF_TRACELOG_LEVEL_CRITICAL WINEVENT_LEVEL_CRITICAL
 #define EBPF_TRACELOG_LEVEL_ERROR WINEVENT_LEVEL_ERROR
-#define EBPF_TRACLOG_LEVEL_WARNING WINEVENT_LEVEL_WARNING
+#define EBPF_TRACELOG_LEVEL_WARNING WINEVENT_LEVEL_WARNING
 #define EBPF_TRACELOG_LEVEL_INFO WINEVENT_LEVEL_INFO
 #define EBPF_TRACELOG_LEVEL_VERBOSE WINEVENT_LEVEL_VERBOSE
 
@@ -1009,7 +1009,7 @@ extern "C"
 #define EBPF_LOG_ENTRY()                                                \
     TraceLoggingWrite(                                                  \
         ebpf_tracelog_provider,                                         \
-        EBPF_EVENT_GENERIC_MESSAGE,                                     \
+        EBPF_TRACELOG_EVENT_GENERIC_MESSAGE,                            \
         TraceLoggingLevel(WINEVENT_LEVEL_VERBOSE),                      \
         TraceLoggingKeyword(EBPF_TRACELOG_KEYWORD_FUNCTION_ENTRY_EXIT), \
         TraceLoggingOpcode(WINEVENT_OPCODE_START),                      \
@@ -1018,7 +1018,7 @@ extern "C"
 #define EBPF_LOG_EXIT()                                                 \
     TraceLoggingWrite(                                                  \
         ebpf_tracelog_provider,                                         \
-        EBPF_EVENT_GENERIC_MESSAGE,                                     \
+        EBPF_TRACELOG_EVENT_GENERIC_MESSAGE,                            \
         TraceLoggingLevel(WINEVENT_LEVEL_VERBOSE),                      \
         TraceLoggingKeyword(EBPF_TRACELOG_KEYWORD_FUNCTION_ENTRY_EXIT), \
         TraceLoggingOpcode(WINEVENT_OPCODE_STOP),                       \
@@ -1036,10 +1036,52 @@ extern "C"
         return local_result;                       \
     } while (false);
 
+#define EBPF_RETURN_NTSTATUS(status)               \
+    do {                                           \
+        ebpf_result_t local_result = (status);     \
+        if (!NT_SUCCESS(status)) {                 \
+            EBPF_LOG_FUNCTION_SUCCESS();           \
+        } else {                                   \
+            EBPF_LOG_FUNCTION_ERROR(local_result); \
+        }                                          \
+        EBPF_LOG_EXIT();                           \
+        return local_result;                       \
+    } while (false);
+
+#define EBPF_RETURN_POINTER(type, pointer)           \
+    do {                                             \
+        type local_result = (type)(pointer);         \
+        if (local_result != NULL) {                  \
+            EBPF_LOG_FUNCTION_SUCCESS();             \
+        } else {                                     \
+            EBPF_LOG_FUNCTION_ERROR(EBPF_NO_MEMORY); \
+        }                                            \
+        EBPF_LOG_EXIT();                             \
+        return local_result;                         \
+    } while (false);
+
+#define EBPF_RETURN_BOOL(flag)                    \
+    do {                                          \
+        bool local_result = (flag);               \
+        if (local_result) {                       \
+            EBPF_LOG_FUNCTION_SUCCESS();          \
+        } else {                                  \
+            EBPF_LOG_FUNCTION_ERROR(EBPF_FAILED); \
+        }                                         \
+        EBPF_LOG_EXIT();                          \
+        return local_result;                      \
+    } while (false);
+
+#define EBPF_RETURN_VOID() \
+    do {                   \
+        EBPF_LOG_EXIT();   \
+        return;            \
+    } while (false);
+
 #define EBPF_LOG_MESSAGE(trace_level, keyword, message) \
     TraceLoggingWrite(                                  \
         ebpf_tracelog_provider,                         \
-        EBPF_EVENT_GENERIC_MESSAGE,                     \
+        EBPF_TRACELOG_EVENT_GENERIC_MESSAGE,            \
         TraceLoggingLevel(trace_level),                 \
         TraceLoggingKeyword((keyword)),                 \
         TraceLoggingString(message, "Message"));
@@ -1047,7 +1089,7 @@ extern "C"
 #define EBPF_LOG_MESSAGE_UTF8_STRING(trace_level, keyword, message, string) \
     TraceLoggingWrite(                                                      \
         ebpf_tracelog_provider,                                             \
-        EBPF_EVENT_GENERIC_MESSAGE,                                         \
+        EBPF_TRACELOG_EVENT_GENERIC_MESSAGE,                                \
         TraceLoggingLevel(trace_level),                                     \
         TraceLoggingKeyword((keyword)),                                     \
         TraceLoggingString(message, "Message"),                             \
@@ -1056,7 +1098,7 @@ extern "C"
 #define EBPF_LOG_MESSAGE_UINT64(trace_level, keyword, message, value) \
     TraceLoggingWrite(                                                \
         ebpf_tracelog_provider,                                       \
-        EBPF_EVENT_GENERIC_MESSAGE,                                   \
+        EBPF_TRACELOG_EVENT_GENERIC_MESSAGE,                          \
         TraceLoggingLevel((trace_level)),                             \
         TraceLoggingKeyword((keyword)),                               \
         TraceLoggingString((message), "Message"),                     \
@@ -1065,7 +1107,7 @@ extern "C"
 #define EBPF_LOG_MESSAGE_UINT64_UINT64(trace_level, keyword, message, value1, value2) \
     TraceLoggingWrite(                                                                \
         ebpf_tracelog_provider,                                                       \
-        EBPF_EVENT_GENERIC_MESSAGE,                                                   \
+        EBPF_TRACELOG_EVENT_GENERIC_MESSAGE,                                          \
         TraceLoggingLevel((trace_level)),                                             \
         TraceLoggingKeyword((keyword)),                                               \
         TraceLoggingString((message), "Message"),                                     \
@@ -1075,7 +1117,7 @@ extern "C"
 #define EBPF_LOG_MESSAGE_POINTER_ENUM(trace_level, keyword, message, pointer, enum) \
     TraceLoggingWrite(                                                              \
         ebpf_tracelog_provider,                                                     \
-        EBPF_EVENT_GENERIC_MESSAGE,                                                 \
+        EBPF_TRACELOG_EVENT_GENERIC_MESSAGE,                                        \
         TraceLoggingLevel((trace_level)),                                           \
         TraceLoggingKeyword((keyword)),                                             \
         TraceLoggingString((message), "Message"),                                   \
@@ -1085,16 +1127,26 @@ extern "C"
 #define EBPF_LOG_MESSAGE_GUID(trace_level, keyword, message, guid) \
     TraceLoggingWrite(                                             \
         ebpf_tracelog_provider,                                    \
-        EBPF_EVENT_GENERIC_MESSAGE,                                \
+        EBPF_TRACELOG_EVENT_GENERIC_MESSAGE,                       \
         TraceLoggingLevel((trace_level)),                          \
         TraceLoggingKeyword((keyword)),                            \
         TraceLoggingString((message), "Message"),                  \
         TraceLoggingGuid((guid), (#guid)));
 
+#define EBPF_LOG_MESSAGE_GUID_GUID(trace_level, keyword, message, guid1, guid2) \
+    TraceLoggingWrite(                                                          \
+        ebpf_tracelog_provider,                                                 \
+        EBPF_TRACELOG_EVENT_GENERIC_MESSAGE,                                    \
+        TraceLoggingLevel((trace_level)),                                       \
+        TraceLoggingKeyword((keyword)),                                         \
+        TraceLoggingString((message), "Message"),                               \
+        TraceLoggingGuid((guid1), (#guid1)),                                    \
+        TraceLoggingGuid((guid2), (#guid2)));
+
 #define EBPF_LOG_MESSAGE_STRING(trace_level, keyword, message, string) \
     TraceLoggingWrite(                                                 \
         ebpf_tracelog_provider,                                        \
-        EBPF_EVENT_GENERIC_MESSAGE,                                    \
+        EBPF_TRACELOG_EVENT_GENERIC_MESSAGE,                           \
         TraceLoggingLevel(trace_level),                                \
         TraceLoggingKeyword((keyword)),                                \
         TraceLoggingString(message, "Message"),                        \
@@ -1115,7 +1167,7 @@ extern "C"
 #define EBPF_LOG_NTSTATUS_API_FAILURE(keyword, api, status) \
     TraceLoggingWrite(                                      \
         ebpf_tracelog_provider,                             \
-        EBPF_EVENT_GENERIC_MESSAGE,                         \
+        EBPF_TRACELOG_EVENT_GENERIC_MESSAGE,                \
         TraceLoggingLevel(EBPF_TRACELOG_LEVEL_ERROR),       \
         TraceLoggingKeyword((keyword)),                     \
         TraceLoggingString(#api, "api"),                    \

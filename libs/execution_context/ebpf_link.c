@@ -166,7 +166,7 @@ ebpf_link_detach_program(_Inout_ ebpf_link_t* link)
 
     ebpf_extension_unload(link->extension_client_context);
     ebpf_free(link->client_data.data);
-    EBPF_LOG_EXIT();
+    EBPF_RETURN_VOID();
 }
 
 static ebpf_result_t
@@ -179,7 +179,8 @@ _ebpf_link_instance_invoke(
 
     if (link == NULL) {
         GUID npi_id = ebpf_extension_get_provider_guid(extension_client_binding_context);
-        EBPF_LOG_MESSAGE_GUID(EBPF_TRACLOG_LEVEL_WARNING, EBPF_TRACELOG_KEYWORD_LINK, "Client context is null", npi_id);
+        EBPF_LOG_MESSAGE_GUID(
+            EBPF_TRACELOG_LEVEL_WARNING, EBPF_TRACELOG_KEYWORD_LINK, "Client context is null", npi_id);
         return_value = EBPF_FAILED;
         goto Exit;
     }

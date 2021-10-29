@@ -23,6 +23,7 @@ static uint32_t _ebpf_state_cpu_table_size = 0;
 ebpf_result_t
 ebpf_state_initiate()
 {
+    EBPF_LOG_ENTRY();
     ebpf_result_t return_value = EBPF_SUCCESS;
 
     _ebpf_state_next_index = 0;
@@ -50,11 +51,11 @@ ebpf_state_initiate()
         goto Error;
     }
 
-    return return_value;
+    EBPF_RETURN_RESULT(return_value);
 
 Error:
     ebpf_state_terminate();
-    return return_value;
+    EBPF_RETURN_RESULT(return_value);
 }
 
 /**
@@ -64,24 +65,28 @@ Error:
 void
 ebpf_state_terminate()
 {
+    EBPF_LOG_ENTRY();
     ebpf_hash_table_destroy(_ebpf_state_thread_table);
     ebpf_free_cache_aligned(_ebpf_state_cpu_table);
+    EBPF_RETURN_VOID();
 }
 
 ebpf_result_t
 ebpf_state_allocate_index(_Out_ size_t* new_index)
 {
+    EBPF_LOG_ENTRY();
     if (_ebpf_state_next_index >= EBPF_MAX_STATE_ENTRIES) {
-        return EBPF_NO_MEMORY;
+        EBPF_RETURN_RESULT(EBPF_NO_MEMORY);
     }
 
     *new_index = ebpf_interlocked_increment_int64(&_ebpf_state_next_index) - 1;
-    return EBPF_SUCCESS;
+    EBPF_RETURN_RESULT(EBPF_SUCCESS);
 }
 
 ebpf_result_t
 _ebpf_state_get_entry(_Out_ ebpf_state_entry_t** entry)
 {
+    // High frequency call, don't log entry/exit.
     ebpf_state_entry_t* local_entry = NULL;
 
     if (!ebpf_is_non_preemptible_work_item_supported() || ebpf_is_preemptible()) {
@@ -121,6 +126,7 @@ _ebpf_state_get_entry(_Out_ ebpf_state_entry_t** entry)
 ebpf_result_t
 ebpf_state_store(size_t index, uintptr_t value)
 {
+    // High frequency call, don't log entry/exit.
     ebpf_state_entry_t* entry = NULL;
     ebpf_result_t return_value;
 
@@ -134,6 +140,7 @@ ebpf_state_store(size_t index, uintptr_t value)
 ebpf_result_t
 ebpf_state_load(size_t index, _Out_ uintptr_t* value)
 {
+    // High frequency call, don't log entry/exit.
     ebpf_state_entry_t* entry = NULL;
     ebpf_result_t return_value;
 

@@ -101,7 +101,7 @@ ebpf_pinning_table_free(ebpf_pinning_table_t* pinning_table)
 
     ebpf_hash_table_destroy(pinning_table->hash_table);
     ebpf_free(pinning_table);
-    EBPF_LOG_EXIT();
+    EBPF_RETURN_VOID();
 }
 
 ebpf_result_t
@@ -365,7 +365,7 @@ ebpf_pinning_entries_release(uint16_t entry_count, _In_opt_count_(entry_count) e
     EBPF_LOG_ENTRY();
     uint16_t index;
     if (!pinning_entries)
-        return;
+        EBPF_RETURN_VOID();
 
     for (index = 0; index < entry_count; index++) {
         ebpf_pinning_entry_t* entry = &pinning_entries[index];
@@ -374,5 +374,5 @@ ebpf_pinning_entries_release(uint16_t entry_count, _In_opt_count_(entry_count) e
         ebpf_object_release_reference(entry->object);
     }
     ebpf_free(pinning_entries);
-    EBPF_LOG_EXIT();
+    EBPF_RETURN_VOID();
 }

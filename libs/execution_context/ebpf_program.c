@@ -86,7 +86,7 @@ _ebpf_program_detach_links(_Inout_ ebpf_program_t* program)
         ebpf_object_t* object = CONTAINING_RECORD(entry, ebpf_object_t, object_list_entry);
         ebpf_link_detach_program((ebpf_link_t*)object);
     }
-    EBPF_LOG_EXIT();
+    EBPF_RETURN_VOID();
 }
 
 static void
@@ -194,7 +194,7 @@ _ebpf_program_program_info_provider_changed(
 Exit:
     ebpf_free(provider_helper_function_ids);
     program->program_invalidated = (program->program_info_provider_data == NULL);
-    EBPF_LOG_EXIT();
+    EBPF_RETURN_VOID();
 }
 
 /**
@@ -209,10 +209,8 @@ _ebpf_program_free(ebpf_object_t* object)
     EBPF_LOG_ENTRY();
     size_t index;
     ebpf_program_t* program = (ebpf_program_t*)object;
-    if (!program) {
-        EBPF_LOG_EXIT();
-        return;
-    }
+    if (!program)
+        EBPF_RETURN_VOID();
 
     // Detach from all the attach points.
     _ebpf_program_detach_links(program);
@@ -222,7 +220,7 @@ _ebpf_program_free(ebpf_object_t* object)
         ebpf_object_release_reference((ebpf_object_t*)program->maps[index]);
 
     ebpf_epoch_schedule_work_item(program->cleanup_work_item);
-    EBPF_LOG_EXIT();
+    EBPF_RETURN_VOID();
 }
 
 static const ebpf_program_type_t*
@@ -272,7 +270,7 @@ _ebpf_program_epoch_free(void* context)
 
     ebpf_free(program->cleanup_work_item);
     ebpf_free(program);
-    EBPF_LOG_EXIT();
+    EBPF_RETURN_VOID();
 }
 
 static ebpf_result_t
@@ -978,7 +976,7 @@ ebpf_program_attach_link(_Inout_ ebpf_program_t* program, _Inout_ ebpf_link_t* l
     ebpf_list_insert_tail(&program->links, &((ebpf_object_t*)link)->object_list_entry);
     program->link_count++;
     ebpf_lock_unlock(&program->lock, state);
-    EBPF_LOG_EXIT();
+    EBPF_RETURN_VOID();
 }
 
 void
@@ -994,7 +992,7 @@ ebpf_program_detach_link(_Inout_ ebpf_program_t* program, _Inout_ ebpf_link_t* l
 
     // Release the "attach" reference.
     ebpf_object_release_reference((ebpf_object_t*)link);
-    EBPF_LOG_EXIT();
+    EBPF_RETURN_VOID();
 }
 
 ebpf_result_t
