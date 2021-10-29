@@ -32,10 +32,10 @@ ebpf_result_t
 ebpf_get_code_integrity_state(_Out_ ebpf_code_integrity_state_t* state)
 {
     if (_ebpf_platform_code_integrity_enabled) {
-        EBPF_LOG_MESSAGE(EBPF_LEVEL_INFO, EBPF_KEYWORD_BASE, "Code integrity enabled");
+        EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_INFO, EBPF_TRACELOG_KEYWORD_BASE, "Code integrity enabled");
         *state = EBPF_CODE_INTEGRITY_HYPER_VISOR_KERNEL_MODE;
     } else {
-        EBPF_LOG_MESSAGE(EBPF_LEVEL_INFO, EBPF_KEYWORD_BASE, "Code integrity disabled");
+        EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_INFO, EBPF_TRACELOG_KEYWORD_BASE, "Code integrity disabled");
         *state = EBPF_CODE_INTEGRITY_DEFAULT;
     }
     return EBPF_SUCCESS;
@@ -111,7 +111,7 @@ ebpf_map_memory(size_t length)
     descriptor->length = length;
 
     if (!descriptor->base) {
-        EBPF_LOG_WIN32_API_FAILURE(EBPF_KEYWORD_BASE, VirtualAlloc);
+        EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, VirtualAlloc);
         free(descriptor);
         descriptor = nullptr;
     }
@@ -123,7 +123,7 @@ ebpf_unmap_memory(_Frees_ptr_opt_ ebpf_memory_descriptor_t* memory_descriptor)
 {
     if (memory_descriptor) {
         if (!VirtualFree(memory_descriptor->base, 0, MEM_RELEASE)) {
-            EBPF_LOG_WIN32_API_FAILURE(EBPF_KEYWORD_BASE, VirtualFree);
+            EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, VirtualFree);
         }
         free(memory_descriptor);
     }
@@ -147,13 +147,16 @@ ebpf_allocate_ring_buffer_memory(size_t length)
     GetSystemInfo(&sysInfo);
 
     if (length == 0) {
-        EBPF_LOG_MESSAGE(EBPF_LEVEL_ERROR, EBPF_KEYWORD_BASE, "Ring buffer length is zero");
+        EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_BASE, "Ring buffer length is zero");
         return nullptr;
     }
 
     if ((length % sysInfo.dwAllocationGranularity) != 0) {
         EBPF_LOG_MESSAGE_UINT64(
-            EBPF_LEVEL_ERROR, EBPF_KEYWORD_BASE, "Ring buffer length doesn't match allocation granularity", length);
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_BASE,
+            "Ring buffer length doesn't match allocation granularity",
+            length);
         return nullptr;
     }
 
@@ -170,7 +173,7 @@ ebpf_allocate_ring_buffer_memory(size_t length)
         VirtualAlloc2(nullptr, nullptr, 2 * length, MEM_RESERVE | MEM_RESERVE_PLACEHOLDER, PAGE_NOACCESS, nullptr, 0));
 
     if (placeholder1 == nullptr) {
-        EBPF_LOG_WIN32_API_FAILURE(EBPF_KEYWORD_BASE, VirtualAlloc2);
+        EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, VirtualAlloc2);
         goto Exit;
     }
 
@@ -184,7 +187,7 @@ ebpf_allocate_ring_buffer_memory(size_t length)
     //
     result = VirtualFree(placeholder1, length, MEM_RELEASE | MEM_PRESERVE_PLACEHOLDER);
     if (result == FALSE) {
-        EBPF_LOG_WIN32_API_FAILURE(EBPF_KEYWORD_BASE, VirtualFree);
+        EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, VirtualFree);
         goto Exit;
     }
 #pragma warning(pop)
@@ -196,7 +199,7 @@ ebpf_allocate_ring_buffer_memory(size_t length)
 
     section = CreateFileMapping(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, 0, static_cast<DWORD>(length), nullptr);
     if (section == nullptr) {
-        EBPF_LOG_WIN32_API_FAILURE(EBPF_KEYWORD_BASE, CreateFileMapping);
+        EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, CreateFileMapping);
         goto Exit;
     }
 
@@ -206,7 +209,7 @@ ebpf_allocate_ring_buffer_memory(size_t length)
     view1 =
         MapViewOfFile3(section, nullptr, placeholder1, 0, length, MEM_REPLACE_PLACEHOLDER, PAGE_READWRITE, nullptr, 0);
     if (view1 == nullptr) {
-        EBPF_LOG_WIN32_API_FAILURE(EBPF_KEYWORD_BASE, MapViewOfFile3);
+        EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, MapViewOfFile3);
         goto Exit;
     }
 
@@ -221,7 +224,7 @@ ebpf_allocate_ring_buffer_memory(size_t length)
     view2 =
         MapViewOfFile3(section, nullptr, placeholder2, 0, length, MEM_REPLACE_PLACEHOLDER, PAGE_READWRITE, nullptr, 0);
     if (view2 == nullptr) {
-        EBPF_LOG_WIN32_API_FAILURE(EBPF_KEYWORD_BASE, MapViewOfFile3);
+        EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, MapViewOfFile3);
         goto Exit;
     }
 
@@ -314,7 +317,7 @@ ebpf_protect_memory(_In_ const ebpf_memory_descriptor_t* memory_descriptor, ebpf
 
     if (!VirtualProtect(
             memory_descriptor->base, memory_descriptor->length, mm_protection_state, &old_mm_protection_state)) {
-        EBPF_LOG_WIN32_API_FAILURE(EBPF_KEYWORD_BASE, VirtualProtect);
+        EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, VirtualProtect);
         EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
     }
 

@@ -157,7 +157,7 @@ ebpf_pinning_table_insert(ebpf_pinning_table_t* pinning_table, const ebpf_utf8_s
 Done:
     _ebpf_pinning_entry_free(new_pinning_entry);
     if (return_value == EBPF_SUCCESS) {
-        EBPF_LOG_MESSAGE_UTF8_STRING(EBPF_LEVEL_VERBOSE, EBPF_KEYWORD_BASE, "Pinned object", *path);
+        EBPF_LOG_MESSAGE_UTF8_STRING(EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_BASE, "Pinned object", *path);
     }
 
     EBPF_RETURN_RESULT(return_value);
@@ -209,7 +209,7 @@ ebpf_pinning_table_delete(ebpf_pinning_table_t* pinning_table, const ebpf_utf8_s
     ebpf_lock_unlock(&pinning_table->lock, state);
 
     if (return_value == EBPF_SUCCESS) {
-        EBPF_LOG_MESSAGE_UTF8_STRING(EBPF_LEVEL_VERBOSE, EBPF_KEYWORD_BASE, "Unpinned object", *path);
+        EBPF_LOG_MESSAGE_UTF8_STRING(EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_BASE, "Unpinned object", *path);
     }
     EBPF_RETURN_RESULT(return_value);
 }

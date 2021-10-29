@@ -93,13 +93,15 @@ ebpf_link_initialize(
         NULL);
 
     if (return_value != EBPF_SUCCESS) {
-        EBPF_LOG_MESSAGE_GUID(EBPF_LEVEL_ERROR, EBPF_KEYWORD_LINK, "No providers support attach type", attach_type);
+        EBPF_LOG_MESSAGE_GUID(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_LINK, "No providers support attach type", attach_type);
         goto Exit;
     }
 
     if ((provider_data->version != EBPF_ATTACH_PROVIDER_DATA_VERSION) || (!provider_data->data) ||
         (provider_data->size != sizeof(ebpf_attach_provider_data_t))) {
-        EBPF_LOG_MESSAGE_GUID(EBPF_LEVEL_ERROR, EBPF_KEYWORD_LINK, "Provider version not supported", attach_type);
+        EBPF_LOG_MESSAGE_GUID(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_LINK, "Provider version not supported", attach_type);
         return_value = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
@@ -127,7 +129,10 @@ ebpf_link_attach_program(ebpf_link_t* link, ebpf_program_t* program)
     const ebpf_program_type_t* program_type = ebpf_program_type(program);
     if (memcmp(program_type, &link->program_type, sizeof(link->program_type)) != 0) {
         EBPF_LOG_MESSAGE_GUID(
-            EBPF_LEVEL_ERROR, EBPF_KEYWORD_LINK, "Attach failed due to incorrect program type", *program_type);
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_LINK,
+            "Attach failed due to incorrect program type",
+            *program_type);
         return_value = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
@@ -174,7 +179,7 @@ _ebpf_link_instance_invoke(
 
     if (link == NULL) {
         GUID npi_id = ebpf_extension_get_provider_guid(extension_client_binding_context);
-        EBPF_LOG_MESSAGE_GUID(EBPF_LEVEL_WARNING, EBPF_KEYWORD_LINK, "Client context is null", npi_id);
+        EBPF_LOG_MESSAGE_GUID(EBPF_TRACLOG_LEVEL_WARNING, EBPF_TRACELOG_KEYWORD_LINK, "Client context is null", npi_id);
         return_value = EBPF_FAILED;
         goto Exit;
     }

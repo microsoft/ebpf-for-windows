@@ -182,8 +182,8 @@ _ebpf_core_protocol_load_code(_In_ const ebpf_operation_load_code_request_t* req
         if (_ebpf_core_code_integrity_state == EBPF_CODE_INTEGRITY_HYPER_VISOR_KERNEL_MODE) {
             retval = EBPF_BLOCKED_BY_POLICY;
             EBPF_LOG_MESSAGE(
-                EBPF_LEVEL_WARNING,
-                EBPF_KEYWORD_CORE,
+                EBPF_TRACLOG_LEVEL_WARNING,
+                EBPF_TRACELOG_KEYWORD_CORE,
                 "code_type == EBPF_CODE_NATIVE blocked by EBPF_CODE_INTEGRITY_HYPER_VISOR_KERNEL_MODE");
             goto Done;
         }

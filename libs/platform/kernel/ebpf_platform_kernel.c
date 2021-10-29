@@ -105,13 +105,13 @@ ebpf_map_memory(size_t length)
         void* address =
             MmMapLockedPagesSpecifyCache(memory_descriptor_list, KernelMode, MmCached, NULL, FALSE, NormalPagePriority);
         if (!address) {
-            EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_KEYWORD_BASE, MmMapLockedPagesSpecifyCache, STATUS_NO_MEMORY);
+            EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, MmMapLockedPagesSpecifyCache, STATUS_NO_MEMORY);
             MmFreePagesFromMdl(memory_descriptor_list);
             ExFreePool(memory_descriptor_list);
             memory_descriptor_list = NULL;
         }
     } else {
-        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_KEYWORD_BASE, MmAllocatePagesForMdlEx, STATUS_NO_MEMORY);
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, MmAllocatePagesForMdlEx, STATUS_NO_MEMORY);
     }
     EBPF_LOG_EXIT();
     return (ebpf_memory_descriptor_t*)memory_descriptor_list;
@@ -155,7 +155,7 @@ ebpf_protect_memory(_In_ const ebpf_memory_descriptor_t* memory_descriptor, ebpf
 
     status = MmProtectMdlSystemAddress((MDL*)&memory_descriptor->memory_descriptor_list, mm_protection_state);
     if (!NT_SUCCESS(status)) {
-        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_KEYWORD_BASE, MmProtectMdlSystemAddress, status);
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, MmProtectMdlSystemAddress, status);
         EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
     }
 
@@ -167,7 +167,7 @@ ebpf_memory_descriptor_get_base_address(ebpf_memory_descriptor_t* memory_descrip
 {
     void* address = MmGetSystemAddressForMdlSafe(&memory_descriptor->memory_descriptor_list, NormalPagePriority);
     if (!address) {
-        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_KEYWORD_BASE, MmGetSystemAddressForMdlSafe, STATUS_NO_MEMORY);
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, MmGetSystemAddressForMdlSafe, STATUS_NO_MEMORY);
     }
     return address;
 }
@@ -190,7 +190,10 @@ ebpf_allocate_ring_buffer_memory(size_t length)
     if (length % PAGE_SIZE != 0 || length > MAXUINT32 / 2) {
         status = STATUS_NO_MEMORY;
         EBPF_LOG_MESSAGE_UINT64(
-            EBPF_LEVEL_ERROR, EBPF_KEYWORD_BASE, "Ring buffer length doesn't match allocation granularity", length);
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_BASE,
+            "Ring buffer length doesn't match allocation granularity",
+            length);
         goto Done;
     }
 
@@ -210,7 +213,7 @@ ebpf_allocate_ring_buffer_memory(size_t length)
         FALSE,
         NULL);
     if (!ring_descriptor->memory_descriptor_list) {
-        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_KEYWORD_BASE, IoAllocateMdl, STATUS_NO_MEMORY);
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, IoAllocateMdl, STATUS_NO_MEMORY);
         status = STATUS_NO_MEMORY;
         goto Done;
     }
@@ -228,7 +231,7 @@ ebpf_allocate_ring_buffer_memory(size_t length)
     ring_descriptor->base_address = MmMapLockedPagesSpecifyCache(
         ring_descriptor->memory_descriptor_list, KernelMode, MmCached, NULL, FALSE, NormalPagePriority);
     if (!ring_descriptor->base_address) {
-        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_KEYWORD_BASE, MmMapLockedPagesSpecifyCache, STATUS_NO_MEMORY);
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, MmMapLockedPagesSpecifyCache, STATUS_NO_MEMORY);
         status = STATUS_NO_MEMORY;
         goto Done;
     }
@@ -283,7 +286,7 @@ ebpf_ring_map_readonly_user(_In_ ebpf_ring_descriptor_t* ring)
         return MmMapLockedPagesSpecifyCache(
             ring->memory_descriptor_list, UserMode, MmCached, NULL, FALSE, NormalPagePriority | MdlMappingNoWrite);
     } __except (EXCEPTION_EXECUTE_HANDLER) {
-        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_KEYWORD_BASE, MmMapLockedPagesSpecifyCache, STATUS_NO_MEMORY);
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, MmMapLockedPagesSpecifyCache, STATUS_NO_MEMORY);
         return NULL;
     }
 }
@@ -317,15 +320,15 @@ ebpf_get_code_integrity_state(_Out_ ebpf_code_integrity_state_t* state)
         SystemCodeIntegrityInformation, &code_integrity_information, system_information_length, &returned_length);
     if (NT_SUCCESS(status)) {
         if ((code_integrity_information.CodeIntegrityOptions & CODEINTEGRITY_OPTION_HVCI_KMCI_ENABLED) != 0) {
-            EBPF_LOG_MESSAGE(EBPF_LEVEL_INFO, EBPF_KEYWORD_BASE, "Code integrity enabled");
+            EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_INFO, EBPF_TRACELOG_KEYWORD_BASE, "Code integrity enabled");
             *state = EBPF_CODE_INTEGRITY_HYPER_VISOR_KERNEL_MODE;
         } else {
-            EBPF_LOG_MESSAGE(EBPF_LEVEL_INFO, EBPF_KEYWORD_BASE, "Code integrity disabled");
+            EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_INFO, EBPF_TRACELOG_KEYWORD_BASE, "Code integrity disabled");
             *state = EBPF_CODE_INTEGRITY_DEFAULT;
         }
         return EBPF_SUCCESS;
     } else {
-        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_KEYWORD_BASE, NtQuerySystemInformation, status);
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, NtQuerySystemInformation, status);
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
 }
@@ -579,7 +582,7 @@ ebpf_log_function(_In_ void* context, _In_z_ const char* format_string, ...)
 
     status = RtlStringCchVPrintfA(buffer, sizeof(buffer), format_string, arg_start);
     if (NT_SUCCESS(status)) {
-        EBPF_LOG_MESSAGE(EBPF_LEVEL_ERROR, EBPF_KEYWORD_ERROR, buffer);
+        EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_ERROR, buffer);
     }
 
     va_end(arg_start);

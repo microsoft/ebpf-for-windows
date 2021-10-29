@@ -109,8 +109,8 @@ _ebpf_program_program_info_provider_changed(
         ebpf_program_data_t* program_data = (ebpf_program_data_t*)provider_data->data;
         if (program_data == NULL) {
             EBPF_LOG_MESSAGE_GUID(
-                EBPF_LEVEL_ERROR,
-                EBPF_KEYWORD_PROGRAM,
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_PROGRAM,
                 "An extension cannot have empty program_data",
                 program->parameters.program_type);
             // An extension cannot have empty program_data.
@@ -123,8 +123,8 @@ _ebpf_program_program_info_provider_changed(
             (helper_function_addresses->helper_function_count != program->provider_helper_function_count)) {
 
             EBPF_LOG_MESSAGE_GUID(
-                EBPF_LEVEL_ERROR,
-                EBPF_KEYWORD_PROGRAM,
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_PROGRAM,
                 "A program info provider cannot modify helper function count upon reload",
                 program->parameters.program_type);
             // A program info provider cannot modify helper function count upon reload.
@@ -137,8 +137,8 @@ _ebpf_program_program_info_provider_changed(
             ebpf_assert(program_info != NULL);
             if (program_info->count_of_helpers != helper_function_addresses->helper_function_count) {
                 EBPF_LOG_MESSAGE_GUID(
-                    EBPF_LEVEL_ERROR,
-                    EBPF_KEYWORD_PROGRAM,
+                    EBPF_TRACELOG_LEVEL_ERROR,
+                    EBPF_TRACELOG_KEYWORD_PROGRAM,
                     "A program info provider cannot modify helper function count upon reload",
                     program->parameters.program_type);
                 return_value = EBPF_INVALID_ARGUMENT;
@@ -147,8 +147,8 @@ _ebpf_program_program_info_provider_changed(
             helper_prototypes = program_info->helper_prototype;
             if (helper_prototypes == NULL) {
                 EBPF_LOG_MESSAGE_GUID(
-                    EBPF_LEVEL_ERROR,
-                    EBPF_KEYWORD_PROGRAM,
+                    EBPF_TRACELOG_LEVEL_ERROR,
+                    EBPF_TRACELOG_KEYWORD_PROGRAM,
                     "program_info->helper_prototype can not be NULL",
                     program->parameters.program_type);
                 return_value = EBPF_INVALID_ARGUMENT;
@@ -298,8 +298,8 @@ ebpf_program_load_providers(ebpf_program_t* program)
 
     if (return_value != EBPF_SUCCESS) {
         EBPF_LOG_MESSAGE_GUID(
-            EBPF_LEVEL_ERROR,
-            EBPF_KEYWORD_PROGRAM,
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_PROGRAM,
             "Failed to load general helper functions",
             ebpf_general_helper_function_interface_id);
         goto Done;
@@ -307,8 +307,8 @@ ebpf_program_load_providers(ebpf_program_t* program)
 
     if (program->general_helper_provider_data == NULL) {
         EBPF_LOG_MESSAGE_GUID(
-            EBPF_LEVEL_ERROR,
-            EBPF_KEYWORD_PROGRAM,
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_PROGRAM,
             "program->general_helper_provider_data can not be NULL",
             ebpf_general_helper_function_interface_id);
         return_value = EBPF_INVALID_ARGUMENT;
@@ -318,8 +318,8 @@ ebpf_program_load_providers(ebpf_program_t* program)
     general_helper_program_data = (ebpf_program_data_t*)program->general_helper_provider_data->data;
     if (general_helper_program_data->helper_function_addresses == NULL) {
         EBPF_LOG_MESSAGE_GUID(
-            EBPF_LEVEL_ERROR,
-            EBPF_KEYWORD_PROGRAM,
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_PROGRAM,
             "general_helper_program_data->helper_function_addresses can not be NULL",
             ebpf_general_helper_function_interface_id);
         return_value = EBPF_INVALID_ARGUMENT;
@@ -339,8 +339,8 @@ ebpf_program_load_providers(ebpf_program_t* program)
 
     if (return_value != EBPF_SUCCESS) {
         EBPF_LOG_MESSAGE_GUID(
-            EBPF_LEVEL_ERROR,
-            EBPF_KEYWORD_PROGRAM,
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_PROGRAM,
             "Failed to load program information provider",
             program->parameters.program_type);
 
@@ -402,8 +402,8 @@ ebpf_program_initialize(ebpf_program_t* program, const ebpf_program_parameters_t
 
     if (program->parameters.code_type != EBPF_CODE_NONE) {
         EBPF_LOG_MESSAGE_UINT64(
-            EBPF_LEVEL_ERROR,
-            EBPF_KEYWORD_PROGRAM,
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_PROGRAM,
             "ebpf_program_initialize program->parameters.code_type must be EBPF_CODE_NONE",
             program->parameters.code_type);
         return_value = EBPF_INVALID_ARGUMENT;
@@ -411,8 +411,8 @@ ebpf_program_initialize(ebpf_program_t* program, const ebpf_program_parameters_t
     }
     if (program_parameters->program_name.length >= BPF_OBJ_NAME_LEN) {
         EBPF_LOG_MESSAGE_UINT64(
-            EBPF_LEVEL_ERROR,
-            EBPF_KEYWORD_PROGRAM,
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_PROGRAM,
             "Program name must be less than BPF_OBJ_NAME_LEN",
             program_parameters->program_name.length);
         return_value = EBPF_INVALID_ARGUMENT;
@@ -543,8 +543,8 @@ _ebpf_program_load_machine_code(
 
     if (program->parameters.code_type != EBPF_CODE_NATIVE) {
         EBPF_LOG_MESSAGE_UINT64(
-            EBPF_LEVEL_ERROR,
-            EBPF_KEYWORD_PROGRAM,
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_PROGRAM,
             "_ebpf_program_load_machine_code program->parameters.code_type must be EBPF_CODE_NATIVE",
             program->parameters.code_type);
         return_value = EBPF_INVALID_ARGUMENT;
@@ -613,7 +613,8 @@ _ebpf_program_register_helpers(ebpf_program_t* program)
             continue;
 
         if (ubpf_register(program->code_or_vm.vm, (unsigned int)index, NULL, (void*)helper) < 0) {
-            EBPF_LOG_MESSAGE_UINT64(EBPF_LEVEL_ERROR, EBPF_KEYWORD_PROGRAM, "ubpf_register failed", index);
+            EBPF_LOG_MESSAGE_UINT64(
+                EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_PROGRAM, "ubpf_register failed", index);
             result = EBPF_INVALID_ARGUMENT;
             goto Exit;
         }
@@ -633,8 +634,8 @@ _ebpf_program_load_byte_code(
 
     if (program->parameters.code_type != EBPF_CODE_EBPF) {
         EBPF_LOG_MESSAGE_UINT64(
-            EBPF_LEVEL_ERROR,
-            EBPF_KEYWORD_PROGRAM,
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_PROGRAM,
             "_ebpf_program_load_byte_code program->parameters.code_type must be EBPF_CODE_EBPF",
             program->parameters.code_type);
         return_value = EBPF_INVALID_ARGUMENT;
@@ -662,7 +663,8 @@ _ebpf_program_load_byte_code(
             instructions,
             (uint32_t)(instruction_count * sizeof(ebpf_instruction_t)),
             &error_message) != 0) {
-        EBPF_LOG_MESSAGE_STRING(EBPF_LEVEL_ERROR, EBPF_KEYWORD_PROGRAM, "ubpf_load failed", error_message);
+        EBPF_LOG_MESSAGE_STRING(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_PROGRAM, "ubpf_load failed", error_message);
         ebpf_free(error_message);
         return_value = EBPF_INVALID_ARGUMENT;
         goto Done;
@@ -691,8 +693,8 @@ ebpf_program_load_code(
             program, (const ebpf_instruction_t*)code, code_size / sizeof(ebpf_instruction_t));
     else {
         EBPF_LOG_MESSAGE_UINT64(
-            EBPF_LEVEL_ERROR,
-            EBPF_KEYWORD_PROGRAM,
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_PROGRAM,
             "ebpf_program_load_code unknown program->parameters.code_type",
             program->parameters.code_type);
 
@@ -845,8 +847,8 @@ ebpf_program_set_helper_function_ids(
 
     if (program->helper_function_ids != NULL) {
         EBPF_LOG_MESSAGE(
-            EBPF_LEVEL_ERROR,
-            EBPF_KEYWORD_PROGRAM,
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_PROGRAM,
             "ebpf_program_set_helper_function_ids - helper function IDs already set");
         // Helper function IDs already set.
         result = EBPF_INVALID_ARGUMENT;
