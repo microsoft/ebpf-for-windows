@@ -9,7 +9,7 @@ Push-Location $WorkingDirectory
 Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
 Import-Module .\install_ebpf.psm1 -Force -ArgumentList ($WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
 
-# eBPF Ddrivers.
+# eBPF drivers.
 $EbpfDrivers =
 @{
     "EbpfCore" = "ebpfcore.sys";
