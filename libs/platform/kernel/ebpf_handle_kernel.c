@@ -78,13 +78,12 @@ Done:
 ebpf_result_t
 ebpf_handle_close(ebpf_handle_t handle)
 {
-    EBPF_LOG_ENTRY();
     NTSTATUS status = ObCloseHandle((HANDLE)handle, UserMode);
     if (!NT_SUCCESS(status)) {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, ObCloseHandle, status);
-        EBPF_RETURN_RESULT(EBPF_INVALID_OBJECT);
+        return EBPF_INVALID_OBJECT;
     } else
-        EBPF_RETURN_RESULT(EBPF_SUCCESS);
+        return EBPF_SUCCESS;
 }
 
 ebpf_result_t

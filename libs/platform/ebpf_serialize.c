@@ -482,12 +482,6 @@ ebpf_deserialize_program_info(
 
     // Check if sufficient input buffer remaining.
     if (buffer_left < sizeof(ebpf_serialized_program_type_descriptor_t)) {
-        EBPF_LOG_MESSAGE_UINT64_UINT64(
-            EBPF_TRACELOG_LEVEL_WARNING,
-            EBPF_TRACELOG_KEYWORD_BASE,
-            "Insufficient input buffer remaining",
-            buffer_left,
-            sizeof(ebpf_serialized_program_type_descriptor_t));
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
@@ -510,10 +504,6 @@ ebpf_deserialize_program_info(
 
     // Allocate and deserialize program type descriptor name.
     if (serialized_program_type_descriptor->name_length == 0) {
-        EBPF_LOG_MESSAGE(
-            EBPF_TRACELOG_LEVEL_WARNING,
-            EBPF_TRACELOG_KEYWORD_BASE,
-            "serialized_program_type_descriptor->name_length is 0");
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
@@ -526,12 +516,6 @@ ebpf_deserialize_program_info(
 
     // Check if sufficient buffer is remaining for program type descriptor name.
     if (buffer_left < sizeof(serialized_program_type_descriptor->name_length)) {
-        EBPF_LOG_MESSAGE_UINT64_UINT64(
-            EBPF_TRACELOG_LEVEL_WARNING,
-            EBPF_TRACELOG_KEYWORD_BASE,
-            "Insufficient input buffer remaining",
-            buffer_left,
-            sizeof(serialized_program_type_descriptor->name_length));
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
@@ -563,12 +547,6 @@ ebpf_deserialize_program_info(
 
     // Check if sufficient buffer left for ebpf_serialized_helper_function_prototype_array_t.
     if (buffer_left < sizeof(ebpf_serialized_helper_function_prototype_array_t)) {
-        EBPF_LOG_MESSAGE_UINT64_UINT64(
-            EBPF_TRACELOG_LEVEL_WARNING,
-            EBPF_TRACELOG_KEYWORD_BASE,
-            "Insufficient input buffer remaining",
-            buffer_left,
-            sizeof(ebpf_serialized_helper_function_prototype_array_t));
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
@@ -579,10 +557,6 @@ ebpf_deserialize_program_info(
 
     if (helper_function_count == 0) {
         // Serialized buffer present for helper prototypes, but count is zero.
-        EBPF_LOG_MESSAGE(
-            EBPF_TRACELOG_LEVEL_WARNING,
-            EBPF_TRACELOG_KEYWORD_BASE,
-            "Serialized buffer present for helper prototypes, but count is zero");
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
@@ -617,12 +591,6 @@ ebpf_deserialize_program_info(
 
         // Check if sufficient input buffer left for ebpf_serialized_helper_function_prototype_t.
         if (buffer_left < sizeof(ebpf_serialized_helper_function_prototype_t)) {
-            EBPF_LOG_MESSAGE_UINT64_UINT64(
-                EBPF_TRACELOG_LEVEL_WARNING,
-                EBPF_TRACELOG_KEYWORD_BASE,
-                "Insufficient input buffer remaining",
-                buffer_left,
-                sizeof(ebpf_serialized_helper_function_prototype_t));
             result = EBPF_INVALID_ARGUMENT;
             goto Exit;
         }
@@ -641,12 +609,6 @@ ebpf_deserialize_program_info(
 
         // Check if enough buffer left for helper function name.
         if (buffer_left < serialized_helper_prototype->name_length) {
-            EBPF_LOG_MESSAGE_UINT64_UINT64(
-                EBPF_TRACELOG_LEVEL_WARNING,
-                EBPF_TRACELOG_KEYWORD_BASE,
-                "Insufficient input buffer remaining",
-                buffer_left,
-                serialized_helper_prototype->name_length);
             result = EBPF_INVALID_ARGUMENT;
             goto Exit;
         }
