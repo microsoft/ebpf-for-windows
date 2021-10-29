@@ -70,7 +70,6 @@ Done:
 ebpf_result_t
 ebpf_handle_close(ebpf_handle_t handle)
 {
-    EBPF_LOG_ENTRY();
     ebpf_lock_state_t state;
     ebpf_result_t return_value;
     state = ebpf_lock_lock(&_ebpf_handle_table_lock);
@@ -81,7 +80,7 @@ ebpf_handle_close(ebpf_handle_t handle)
     } else
         return_value = EBPF_INVALID_OBJECT;
     ebpf_lock_unlock(&_ebpf_handle_table_lock, state);
-    EBPF_RETURN_RESULT(return_value);
+    return return_value;
 }
 
 ebpf_result_t
