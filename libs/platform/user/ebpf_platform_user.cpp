@@ -153,7 +153,7 @@ ebpf_allocate_ring_buffer_memory(size_t length)
 
     if ((length % sysInfo.dwAllocationGranularity) != 0) {
         EBPF_LOG_MESSAGE_UINT64(
-            EBPF_LEVEL_ERROR, EBPF_KEYWORD_BASE, "Ring buffer length doesn't match allocaiton granularity", length);
+            EBPF_LEVEL_ERROR, EBPF_KEYWORD_BASE, "Ring buffer length doesn't match allocation granularity", length);
         return nullptr;
     }
 

@@ -194,4 +194,4 @@ eBPF for Windows uses ETW for tracing. To capture a trace use the following comm
 1) Start tracing: ```wpr.exe -start ebpfforwindows.wprp -filemode```
 2) Run the scenario to be traced.
 3) Stop tracing: ```wpr.exe -stop ebpfforwindows.etl```
-4) Convert the traces to human readable version: ```netsh trace convert ebpfforwindows.etl ebpfforwindows.csv csv```
+4) Convert the traces to a human readable version: ```netsh trace convert ebpfforwindows.etl ebpfforwindows.csv csv```
