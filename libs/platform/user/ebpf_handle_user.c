@@ -70,6 +70,7 @@ Done:
 ebpf_result_t
 ebpf_handle_close(ebpf_handle_t handle)
 {
+    // High volume call - Skip entry/exit logging.
     ebpf_lock_state_t state;
     ebpf_result_t return_value;
     state = ebpf_lock_lock(&_ebpf_handle_table_lock);

@@ -34,7 +34,7 @@ ebpf_get_code_integrity_state(_Out_ ebpf_code_integrity_state_t* state)
     EBPF_LOG_ENTRY();
     if (_ebpf_platform_code_integrity_enabled) {
         EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_INFO, EBPF_TRACELOG_KEYWORD_BASE, "Code integrity enabled");
-        *state = EBPF_CODE_INTEGRITY_HYPER_VISOR_KERNEL_MODE;
+        *state = EBPF_CODE_INTEGRITY_HYPERVISOR_KERNEL_MODE;
     } else {
         EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_INFO, EBPF_TRACELOG_KEYWORD_BASE, "Code integrity disabled");
         *state = EBPF_CODE_INTEGRITY_DEFAULT;

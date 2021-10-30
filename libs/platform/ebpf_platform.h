@@ -49,7 +49,7 @@ extern "C"
     typedef enum _ebpf_code_integrity_state
     {
         EBPF_CODE_INTEGRITY_DEFAULT = 0,
-        EBPF_CODE_INTEGRITY_HYPER_VISOR_KERNEL_MODE = 1
+        EBPF_CODE_INTEGRITY_HYPERVISOR_KERNEL_MODE = 1
     } ebpf_code_integrity_state_t;
 
     typedef struct _ebpf_non_preemptible_work_item ebpf_non_preemptible_work_item_t;

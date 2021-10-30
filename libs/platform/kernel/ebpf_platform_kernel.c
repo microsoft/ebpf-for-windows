@@ -316,7 +316,7 @@ ebpf_get_code_integrity_state(_Out_ ebpf_code_integrity_state_t* state)
     if (NT_SUCCESS(status)) {
         if ((code_integrity_information.CodeIntegrityOptions & CODEINTEGRITY_OPTION_HVCI_KMCI_ENABLED) != 0) {
             EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_INFO, EBPF_TRACELOG_KEYWORD_BASE, "Code integrity enabled");
-            *state = EBPF_CODE_INTEGRITY_HYPER_VISOR_KERNEL_MODE;
+            *state = EBPF_CODE_INTEGRITY_HYPERVISOR_KERNEL_MODE;
         } else {
             EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_INFO, EBPF_TRACELOG_KEYWORD_BASE, "Code integrity disabled");
             *state = EBPF_CODE_INTEGRITY_DEFAULT;

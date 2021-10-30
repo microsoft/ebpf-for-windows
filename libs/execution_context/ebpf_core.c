@@ -22,7 +22,7 @@ GUID ebpf_general_helper_function_interface_id = {/* 8d2a1d3f-9ce6-473d-b48e-17a
 static ebpf_pinning_table_t* _ebpf_core_map_pinning_table = NULL;
 
 // Assume enabled until we can query it.
-static ebpf_code_integrity_state_t _ebpf_core_code_integrity_state = EBPF_CODE_INTEGRITY_HYPER_VISOR_KERNEL_MODE;
+static ebpf_code_integrity_state_t _ebpf_core_code_integrity_state = EBPF_CODE_INTEGRITY_HYPERVISOR_KERNEL_MODE;
 
 // Map related helpers.
 static void*
@@ -179,12 +179,12 @@ _ebpf_core_protocol_load_code(_In_ const ebpf_operation_load_code_request_t* req
     size_t code_length = 0;
 
     if (request->code_type == EBPF_CODE_NATIVE) {
-        if (_ebpf_core_code_integrity_state == EBPF_CODE_INTEGRITY_HYPER_VISOR_KERNEL_MODE) {
+        if (_ebpf_core_code_integrity_state == EBPF_CODE_INTEGRITY_HYPERVISOR_KERNEL_MODE) {
             retval = EBPF_BLOCKED_BY_POLICY;
             EBPF_LOG_MESSAGE(
                 EBPF_TRACELOG_LEVEL_WARNING,
                 EBPF_TRACELOG_KEYWORD_CORE,
-                "code_type == EBPF_CODE_NATIVE blocked by EBPF_CODE_INTEGRITY_HYPER_VISOR_KERNEL_MODE");
+                "code_type == EBPF_CODE_NATIVE blocked by EBPF_CODE_INTEGRITY_HYPERVISOR_KERNEL_MODE");
             goto Done;
         }
     }

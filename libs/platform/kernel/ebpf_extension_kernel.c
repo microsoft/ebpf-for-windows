@@ -3,6 +3,7 @@
 
 #include "ebpf_platform.h"
 
+// EBPF_RETURN_NTSTATUS(STATUS_SUCCESS) and similar macro invocations trigger C4127.
 #pragma warning(disable : 4127) // conditional expression is constant
 
 struct _ebpf_extension_client_binding_context;
