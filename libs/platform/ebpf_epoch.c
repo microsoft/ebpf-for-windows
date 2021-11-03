@@ -128,6 +128,7 @@ _ebpf_epoch_update_thread_state(uint32_t cpu_id, uintptr_t thread_id, int64_t cu
 ebpf_result_t
 ebpf_epoch_initiate()
 {
+    EBPF_LOG_ENTRY();
     ebpf_result_t return_value = EBPF_SUCCESS;
     uint32_t cpu_id;
     uint32_t cpu_count;
@@ -176,12 +177,13 @@ ebpf_epoch_initiate()
 
 Error:
     ebpf_epoch_terminate();
-    return return_value;
+    EBPF_RETURN_RESULT(return_value);
 }
 
 void
 ebpf_epoch_terminate()
 {
+    EBPF_LOG_ENTRY();
     uint32_t cpu_id;
 
     ebpf_free_timer_work_item(_ebpf_flush_timer);
@@ -198,6 +200,7 @@ ebpf_epoch_terminate()
     _ebpf_epoch_cpu_count = 0;
 
     ebpf_free_cache_aligned(_ebpf_epoch_cpu_table);
+    EBPF_RETURN_VOID();
 }
 
 ebpf_result_t
@@ -249,6 +252,8 @@ ebpf_epoch_flush()
     int64_t released_epoch;
     ebpf_result_t return_value = _ebpf_epoch_get_release_epoch(&released_epoch);
     if (return_value == EBPF_SUCCESS) {
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_EPOCH, "_ebpf_release_epoch updated", released_epoch);
         _ebpf_release_epoch = released_epoch;
     }
 }
@@ -426,6 +431,11 @@ _ebpf_epoch_get_release_epoch(_Out_ int64_t* release_epoch)
     uint32_t cpu_id;
     ebpf_lock_state_t lock_state;
     ebpf_result_t return_value;
+    EBPF_LOG_MESSAGE_UINT64(
+        EBPF_TRACELOG_LEVEL_VERBOSE,
+        EBPF_TRACELOG_KEYWORD_EPOCH,
+        "Captured value of _ebpf_current_epoch",
+        lowest_epoch);
 
     for (cpu_id = 0; cpu_id < _ebpf_epoch_cpu_count; cpu_id++) {
         ebpf_epoch_state_t* thread_epoch_state = NULL;
@@ -526,6 +536,7 @@ _ebpf_epoch_update_thread_state(uint32_t cpu_id, uintptr_t thread_id, int64_t cu
     if (enter) {
         goto Exit;
     }
+    EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_EPOCH, "Thread state not found on current CPU");
 
     // If this is an exit call and the current CPU doesn't have the active entry
     // then scan all CPUs until we find it.

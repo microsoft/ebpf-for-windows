@@ -70,6 +70,7 @@ _ring_buffer_acquire_record(_Inout_ ebpf_ring_buffer_t* ring, size_t requested_l
 ebpf_result_t
 ebpf_ring_buffer_create(_Outptr_ ebpf_ring_buffer_t** ring, size_t capacity)
 {
+    EBPF_LOG_ENTRY();
     ebpf_result_t result;
     ebpf_ring_buffer_t* local_ring_buffer = ebpf_epoch_allocate(sizeof(ebpf_ring_buffer_t));
     if (!local_ring_buffer) {
@@ -98,16 +99,18 @@ ebpf_ring_buffer_create(_Outptr_ ebpf_ring_buffer_t** ring, size_t capacity)
 Error:
     ebpf_ring_buffer_destroy(local_ring_buffer);
     local_ring_buffer = NULL;
-    return result;
+    EBPF_RETURN_RESULT(result);
 }
 
 void
 ebpf_ring_buffer_destroy(_Frees_ptr_opt_ ebpf_ring_buffer_t* ring)
 {
+    EBPF_LOG_ENTRY();
     if (ring) {
         ebpf_free_ring_buffer_memory(ring->ring_descriptor);
         ebpf_epoch_free(ring);
     }
+    EBPF_RETURN_VOID();
 }
 
 ebpf_result_t
