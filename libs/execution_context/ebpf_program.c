@@ -11,7 +11,6 @@
 #include "ebpf_program_types.h"
 #include "ebpf_state.h"
 
-typedef struct _FILE FILE;
 #include "ubpf.h"
 
 static size_t _ebpf_program_state_index = MAXUINT64;
