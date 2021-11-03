@@ -20,6 +20,7 @@ ebpf_handle_table_terminate()
 ebpf_result_t
 ebpf_handle_create(ebpf_handle_t* handle, ebpf_object_t* object)
 {
+    EBPF_LOG_ENTRY();
     ebpf_result_t return_value;
     HANDLE file_handle = 0;
     OBJECT_ATTRIBUTES object_attributes;
@@ -46,12 +47,14 @@ ebpf_handle_create(ebpf_handle_t* handle, ebpf_object_t* object)
         0);
 
     if (!NT_SUCCESS(status)) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, ZwCreateFile, status);
         return_value = EBPF_OPERATION_NOT_SUPPORTED;
         goto Done;
     }
 
     status = ObReferenceObjectByHandle(file_handle, 0, NULL, UserMode, &file_object, NULL);
     if (!NT_SUCCESS(status)) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, ObReferenceObjectByHandle, status);
         return_value = EBPF_OPERATION_NOT_SUPPORTED;
         goto Done;
     }
@@ -69,16 +72,19 @@ Done:
     if (file_handle)
         ObCloseHandle(file_handle, UserMode);
 
-    return return_value;
+    EBPF_RETURN_RESULT(return_value);
 }
 
 ebpf_result_t
 ebpf_handle_close(ebpf_handle_t handle)
 {
-    if (!NT_SUCCESS(ObCloseHandle((HANDLE)handle, UserMode)))
-        return EBPF_INVALID_OBJECT;
-    else
-        return EBPF_SUCCESS;
+    EBPF_LOG_ENTRY();
+    NTSTATUS status = ObCloseHandle((HANDLE)handle, UserMode);
+    if (!NT_SUCCESS(status)) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, ObCloseHandle, status);
+        EBPF_RETURN_RESULT(EBPF_INVALID_OBJECT);
+    } else
+        EBPF_RETURN_RESULT(EBPF_SUCCESS);
 }
 
 ebpf_result_t
@@ -91,6 +97,7 @@ ebpf_reference_object_by_handle(ebpf_handle_t handle, ebpf_object_type_t object_
 
     status = ObReferenceObjectByHandle((HANDLE)handle, 0, NULL, UserMode, &file_object, NULL);
     if (!NT_SUCCESS(status)) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, ObReferenceObjectByHandle, status);
         return_value = EBPF_INVALID_OBJECT;
         goto Done;
     }

@@ -11,6 +11,7 @@
 #include <ntddk.h>
 #include <netioddk.h>
 #include <stdint.h>
+#include <wdm.h>
 
 #define bool BOOLEAN
 #define true 1

@@ -45,6 +45,7 @@ typedef struct _ebpf_serialized_helper_function_prototype_array
 void
 ebpf_map_info_array_free(uint16_t map_count, _In_opt_count_(map_count) _Post_ptr_invalid_ ebpf_map_info_t* map_info)
 {
+    EBPF_LOG_ENTRY();
     uint16_t map_index;
 
     if (map_info != NULL) {
@@ -54,6 +55,7 @@ ebpf_map_info_array_free(uint16_t map_count, _In_opt_count_(map_count) _Post_ptr
         }
         ebpf_free(map_info);
     }
+    EBPF_RETURN_VOID();
 }
 
 ebpf_result_t
@@ -65,6 +67,7 @@ ebpf_serialize_internal_map_info_array(
     _Out_ size_t* serialized_data_length,
     _Out_ size_t* required_length)
 {
+    EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
     uint16_t map_index;
     uint8_t* current = NULL;
@@ -88,6 +91,12 @@ ebpf_serialize_internal_map_info_array(
 
     // Output buffer too small.
     if (output_buffer_length < *required_length) {
+        EBPF_LOG_MESSAGE_UINT64_UINT64(
+            EBPF_TRACELOG_LEVEL_WARNING,
+            EBPF_TRACELOG_KEYWORD_BASE,
+            "Output buffer is too small",
+            output_buffer_length,
+            *required_length);
         result = EBPF_INSUFFICIENT_BUFFER;
         goto Exit;
     }
@@ -120,7 +129,7 @@ ebpf_serialize_internal_map_info_array(
     }
 
 Exit:
-    return result;
+    EBPF_RETURN_RESULT(result);
 }
 
 #pragma warning(push)
@@ -132,6 +141,7 @@ ebpf_deserialize_map_info_array(
     uint16_t map_count,
     _Outptr_result_buffer_maybenull_(map_count) ebpf_map_info_t** map_info)
 {
+    EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
     uint16_t map_index;
     size_t out_map_size;
@@ -164,6 +174,12 @@ ebpf_deserialize_map_info_array(
 
         // Check if sufficient input buffer remaining.
         if (buffer_left < sizeof(ebpf_serialized_map_info_t)) {
+            EBPF_LOG_MESSAGE_UINT64_UINT64(
+                EBPF_TRACELOG_LEVEL_WARNING,
+                EBPF_TRACELOG_KEYWORD_BASE,
+                "Insufficient input buffer remaining",
+                buffer_left,
+                sizeof(ebpf_serialized_map_info_t));
             result = EBPF_INVALID_ARGUMENT;
             goto Exit;
         }
@@ -185,6 +201,12 @@ ebpf_deserialize_map_info_array(
 
         // Check if sufficient input buffer remaining.
         if (buffer_left < source->pin_path_length) {
+            EBPF_LOG_MESSAGE_UINT64_UINT64(
+                EBPF_TRACELOG_LEVEL_WARNING,
+                EBPF_TRACELOG_KEYWORD_BASE,
+                "Insufficient input buffer remaining",
+                buffer_left,
+                source->pin_path_length);
             result = EBPF_INVALID_ARGUMENT;
             goto Exit;
         }
@@ -217,13 +239,14 @@ ebpf_deserialize_map_info_array(
 Exit:
     ebpf_map_info_array_free(map_count, out_map_info);
 
-    return result;
+    EBPF_RETURN_RESULT(result);
 }
 #pragma warning(pop)
 
 void
 ebpf_program_info_free(_In_opt_ _Post_invalid_ ebpf_program_info_t* program_info)
 {
+    EBPF_LOG_ENTRY();
     if (program_info != NULL) {
         ebpf_free(program_info->program_type_descriptor.context_descriptor);
         ebpf_free((void*)program_info->program_type_descriptor.name);
@@ -235,6 +258,7 @@ ebpf_program_info_free(_In_opt_ _Post_invalid_ ebpf_program_info_t* program_info
         ebpf_free(program_info->helper_prototype);
         ebpf_free(program_info);
     }
+    EBPF_RETURN_VOID();
 }
 
 ebpf_result_t
@@ -245,6 +269,7 @@ ebpf_serialize_program_info(
     _Out_ size_t* serialized_data_length,
     _Out_ size_t* required_length)
 {
+    EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
     uint8_t* current = NULL;
     const ebpf_program_type_descriptor_t* program_type_descriptor;
@@ -261,6 +286,8 @@ ebpf_serialize_program_info(
     program_type_descriptor = &program_info->program_type_descriptor;
 
     if (program_type_descriptor->name == NULL) {
+        EBPF_LOG_MESSAGE(
+            EBPF_TRACELOG_LEVEL_WARNING, EBPF_TRACELOG_KEYWORD_BASE, "program_type_descriptor->name is NULL");
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
@@ -268,12 +295,19 @@ ebpf_serialize_program_info(
     helper_prototype_array = program_info->helper_prototype;
     if (helper_prototype_array != NULL) {
         if (program_info->count_of_helpers == 0) {
+            EBPF_LOG_MESSAGE(
+                EBPF_TRACELOG_LEVEL_WARNING, EBPF_TRACELOG_KEYWORD_BASE, "program_info->count_of_helpers 0");
             result = EBPF_INVALID_ARGUMENT;
             goto Exit;
         }
         for (helper_prototype_index = 0; helper_prototype_index < program_info->count_of_helpers;
              helper_prototype_index++) {
             if (helper_prototype_array[helper_prototype_index].name == NULL) {
+                EBPF_LOG_MESSAGE_UINT64(
+                    EBPF_TRACELOG_LEVEL_WARNING,
+                    EBPF_TRACELOG_KEYWORD_BASE,
+                    "helper_prototype_array[helper_prototype_index].name is null",
+                    helper_prototype_index);
                 result = EBPF_INVALID_ARGUMENT;
                 goto Exit;
             }
@@ -343,6 +377,12 @@ ebpf_serialize_program_info(
 
     if (output_buffer_length < *required_length) {
         // Output buffer too small.
+        EBPF_LOG_MESSAGE_UINT64_UINT64(
+            EBPF_TRACELOG_LEVEL_WARNING,
+            EBPF_TRACELOG_KEYWORD_BASE,
+            "Output buffer is too small",
+            output_buffer_length,
+            *required_length);
         result = EBPF_INSUFFICIENT_BUFFER;
         goto Exit;
     }
@@ -404,7 +444,7 @@ ebpf_serialize_program_info(
     }
 
 Exit:
-    return result;
+    EBPF_RETURN_RESULT(result);
 }
 
 ebpf_result_t
@@ -413,6 +453,7 @@ ebpf_deserialize_program_info(
     _In_reads_bytes_(input_buffer_length) const uint8_t* input_buffer,
     _Outptr_ ebpf_program_info_t** program_info)
 {
+    EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_program_info_t* local_program_info;
     const uint8_t* current;
@@ -598,5 +639,5 @@ Exit:
         ebpf_program_info_free(local_program_info);
     }
 
-    return result;
+    EBPF_RETURN_RESULT(result);
 }

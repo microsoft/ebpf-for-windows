@@ -25,6 +25,7 @@ typedef struct _ebpf_trampoline_table
 ebpf_result_t
 ebpf_allocate_trampoline_table(size_t entry_count, _Outptr_ ebpf_trampoline_table_t** trampoline_table)
 {
+    EBPF_LOG_ENTRY();
     ebpf_result_t return_value;
     ebpf_trampoline_table_t* local_trampoline_table = NULL;
 
@@ -48,16 +49,18 @@ Exit:
     ebpf_free_trampoline_table(local_trampoline_table);
     // Set local_trampoline_table to satisfy the static analyzer.
     local_trampoline_table = NULL;
-    return return_value;
+    EBPF_RETURN_RESULT(return_value);
 }
 
 void
 ebpf_free_trampoline_table(_Frees_ptr_opt_ ebpf_trampoline_table_t* trampoline_table)
 {
+    EBPF_LOG_ENTRY();
     if (trampoline_table) {
         ebpf_unmap_memory(trampoline_table->memory_descriptor);
         ebpf_free(trampoline_table);
     }
+    EBPF_RETURN_VOID();
 }
 
 ebpf_result_t
@@ -67,6 +70,7 @@ ebpf_update_trampoline_table(
     _In_reads_(helper_function_count) const uint32_t* helper_function_ids,
     _In_ const ebpf_helper_function_addresses_t* helper_function_addresses)
 {
+    EBPF_LOG_ENTRY();
 #if defined(_AMD64_)
 
     size_t function_count = helper_function_addresses->helper_function_count;
@@ -108,17 +112,18 @@ ebpf_update_trampoline_table(
 
 Exit:
     return_value = ebpf_protect_memory(trampoline_table->memory_descriptor, EBPF_PAGE_PROTECT_READ_EXECUTE);
-    return return_value;
+    EBPF_RETURN_RESULT(return_value);
 #elif
     UNREFERENCED_PARAMETER(trampoline_table);
     UNREFERENCED_PARAMETER(dispatch_table);
-    return EBPF_OPERATION_NOT_SUPPORTED;
+    EBPF_RETURN_RESULT(EBPF_OPERATION_NOT_SUPPORTED);
 #endif
 }
 
 ebpf_result_t
 ebpf_get_trampoline_function(_In_ const ebpf_trampoline_table_t* trampoline_table, size_t index, _Out_ void** function)
 {
+    EBPF_LOG_ENTRY();
     ebpf_trampoline_entry_t* local_entries;
     ebpf_result_t return_value;
 
@@ -138,13 +143,14 @@ ebpf_get_trampoline_function(_In_ const ebpf_trampoline_table_t* trampoline_tabl
 
     return_value = EBPF_SUCCESS;
 Exit:
-    return return_value;
+    EBPF_RETURN_RESULT(return_value);
 }
 
 ebpf_result_t
 ebpf_get_trampoline_helper_address(
     _In_ const ebpf_trampoline_table_t* trampoline_table, size_t index, _Out_ void** helper_address)
 {
+    EBPF_LOG_ENTRY();
     ebpf_trampoline_entry_t* local_entries;
     ebpf_result_t return_value;
 
@@ -164,5 +170,5 @@ ebpf_get_trampoline_helper_address(
 
     return_value = EBPF_SUCCESS;
 Exit:
-    return return_value;
+    EBPF_RETURN_RESULT(return_value);
 }

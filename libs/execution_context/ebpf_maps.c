@@ -1340,6 +1340,7 @@ _ebpf_map_signal_async_contexts(_In_ ebpf_core_map_t* map)
 static void
 _ebpf_map_delete(_In_ ebpf_object_t* object)
 {
+    EBPF_LOG_ENTRY();
     ebpf_map_t* map = (ebpf_map_t*)object;
 
     if (map->inner_map_template != NULL) {
@@ -1348,6 +1349,7 @@ _ebpf_map_delete(_In_ ebpf_object_t* object)
     ebpf_free(map->name.value);
     _ebpf_map_signal_async_contexts(map);
     ebpf_map_function_tables[map->ebpf_map_definition.type].delete_map(map);
+    EBPF_RETURN_VOID();
 }
 
 ebpf_result_t
@@ -1357,6 +1359,7 @@ ebpf_map_create(
     ebpf_handle_t inner_map_handle,
     _Outptr_ ebpf_map_t** ebpf_map)
 {
+    EBPF_LOG_ENTRY();
     ebpf_map_t* local_map = NULL;
     ebpf_object_t* inner_map_template_object = NULL;
     ebpf_map_type_t type = ebpf_map_definition->type;
@@ -1373,17 +1376,32 @@ ebpf_map_create(
         break;
     }
 
-    if ((type >= EBPF_COUNT_OF(ebpf_map_function_tables)) || (map_name->length >= BPF_OBJ_NAME_LEN)) {
+    if (type >= EBPF_COUNT_OF(ebpf_map_function_tables)) {
+        EBPF_LOG_MESSAGE_UINT64(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Unsupported map type", type);
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
+
+    if (map_name->length >= BPF_OBJ_NAME_LEN) {
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Map name too long", map_name->length);
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
 
     if (!ebpf_map_function_tables[type].create_map) {
+        EBPF_LOG_MESSAGE_UINT64(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Unsupported map type", type);
         result = EBPF_OPERATION_NOT_SUPPORTED;
         goto Exit;
     }
 
     if (local_map_definition.size != sizeof(local_map_definition)) {
+        EBPF_LOG_MESSAGE_UINT64_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_MAP,
+            "Unsupported map definition size",
+            local_map_definition.size,
+            sizeof(local_map_definition));
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
@@ -1392,6 +1410,8 @@ ebpf_map_create(
         local_map_definition.type == BPF_MAP_TYPE_HASH_OF_MAPS) {
         if (inner_map_handle == ebpf_handle_invalid) {
             // Must have a valid inner_map_handle.
+            EBPF_LOG_MESSAGE(
+                EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Map in map must have a valid inner_map_handle");
             result = EBPF_INVALID_FD;
             goto Exit;
         }
@@ -1435,7 +1455,7 @@ Exit:
             ebpf_epoch_free(local_map);
         }
     }
-    return result;
+    EBPF_RETURN_RESULT(result);
 }
 
 ebpf_result_t
@@ -1447,12 +1467,25 @@ ebpf_map_find_entry(
     _Out_writes_(value_size) uint8_t* value,
     int flags)
 {
+    // High volume call - Skip entry/exit logging.
     uint8_t* return_value = NULL;
     if (!(flags & EBPF_MAP_FLAG_HELPER) && (key_size != map->ebpf_map_definition.key_size)) {
+        EBPF_LOG_MESSAGE_UINT64_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_MAP,
+            "Incorrect map key size",
+            key_size,
+            map->ebpf_map_definition.key_size);
         return EBPF_INVALID_ARGUMENT;
     }
 
     if (!(flags & EBPF_MAP_FLAG_HELPER) && (value_size != map->ebpf_map_definition.value_size)) {
+        EBPF_LOG_MESSAGE_UINT64_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_MAP,
+            "Incorrect map value size",
+            value_size,
+            map->ebpf_map_definition.value_size);
         return EBPF_INVALID_ARGUMENT;
     }
 
@@ -1461,6 +1494,8 @@ ebpf_map_find_entry(
 
         // Disallow reads to prog array maps from this helper call for now.
         if (type == BPF_MAP_TYPE_PROG_ARRAY) {
+            EBPF_LOG_MESSAGE(
+                EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Find not supported on BPF_MAP_TYPE_PROG_ARRAY");
             return EBPF_INVALID_ARGUMENT;
         }
 
@@ -1501,19 +1536,29 @@ ebpf_map_find_entry(
 ebpf_result_t
 ebpf_map_associate_program(_In_ ebpf_map_t* map, _In_ const ebpf_program_t* program)
 {
+    EBPF_LOG_ENTRY();
     if (ebpf_map_function_tables[map->ebpf_map_definition.type].associate_program)
         return ebpf_map_function_tables[map->ebpf_map_definition.type].associate_program(map, program);
-    return EBPF_SUCCESS;
+    EBPF_RETURN_RESULT(EBPF_SUCCESS);
 }
 
 _Ret_maybenull_ ebpf_program_t*
 ebpf_map_get_program_from_entry(_In_ ebpf_map_t* map, size_t key_size, _In_reads_(key_size) const uint8_t* key)
 {
+    // High volume call - Skip entry/exit logging.
     if (key_size != map->ebpf_map_definition.key_size) {
+        EBPF_LOG_MESSAGE_UINT64_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_MAP,
+            "Incorrect map key size",
+            key_size,
+            map->ebpf_map_definition.key_size);
         return NULL;
     }
     ebpf_map_type_t type = map->ebpf_map_definition.type;
     if (type != BPF_MAP_TYPE_PROG_ARRAY) {
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Operation not supported on map", type);
         return NULL;
     }
 
@@ -1533,17 +1578,35 @@ ebpf_map_update_entry(
     ebpf_map_option_t option,
     int flags)
 {
+    // High volume call - Skip entry/exit logging.
     ebpf_result_t result;
     if (!(flags & EBPF_MAP_FLAG_HELPER) && (key_size != map->ebpf_map_definition.key_size)) {
+        EBPF_LOG_MESSAGE_UINT64_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_MAP,
+            "Incorrect map key size",
+            key_size,
+            map->ebpf_map_definition.key_size);
         return EBPF_INVALID_ARGUMENT;
     }
 
     if (!(flags & EBPF_MAP_FLAG_HELPER) && (value_size != map->ebpf_map_definition.value_size)) {
+        EBPF_LOG_MESSAGE_UINT64_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_MAP,
+            "Incorrect map value size",
+            value_size,
+            map->ebpf_map_definition.value_size);
         return EBPF_INVALID_ARGUMENT;
     }
 
     if ((ebpf_map_function_tables[map->ebpf_map_definition.type].update_entry == NULL) ||
         (ebpf_map_function_tables[map->ebpf_map_definition.type].find_entry == NULL)) {
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_MAP,
+            "ebpf_map_update_entry not supported on map",
+            map->ebpf_map_definition.type);
         return EBPF_INVALID_ARGUMENT;
     }
 
@@ -1567,11 +1630,23 @@ ebpf_map_update_entry_with_handle(
     uintptr_t value_handle,
     ebpf_map_option_t option)
 {
+    // High volume call - Skip entry/exit logging.
     if (key_size != map->ebpf_map_definition.key_size) {
+        EBPF_LOG_MESSAGE_UINT64_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_MAP,
+            "Incorrect map key size",
+            key_size,
+            map->ebpf_map_definition.key_size);
         return EBPF_INVALID_ARGUMENT;
     }
 
     if (ebpf_map_function_tables[map->ebpf_map_definition.type].update_entry_with_handle == NULL) {
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_MAP,
+            "ebpf_map_update_entry_with_handle not supported on map",
+            map->ebpf_map_definition.type);
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
     return ebpf_map_function_tables[map->ebpf_map_definition.type].update_entry_with_handle(
@@ -1581,7 +1656,14 @@ ebpf_map_update_entry_with_handle(
 ebpf_result_t
 ebpf_map_delete_entry(_In_ ebpf_map_t* map, size_t key_size, _In_reads_(key_size) const uint8_t* key, int flags)
 {
+    // High volume call - Skip entry/exit logging.
     if (!(flags & EBPF_MAP_FLAG_HELPER) && (key_size != map->ebpf_map_definition.key_size)) {
+        EBPF_LOG_MESSAGE_UINT64_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_MAP,
+            "Incorrect map key size",
+            key_size,
+            map->ebpf_map_definition.key_size);
         return EBPF_INVALID_ARGUMENT;
     }
     ebpf_result_t result = ebpf_map_function_tables[map->ebpf_map_definition.type].delete_entry(map, key);
@@ -1598,7 +1680,14 @@ ebpf_map_next_key(
     _In_reads_opt_(key_size) const uint8_t* previous_key,
     _Out_writes_(key_size) uint8_t* next_key)
 {
+    // High volume call - Skip entry/exit logging.
     if (key_size != map->ebpf_map_definition.key_size) {
+        EBPF_LOG_MESSAGE_UINT64_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_MAP,
+            "Incorrect map key size",
+            key_size,
+            map->ebpf_map_definition.key_size);
         return EBPF_INVALID_ARGUMENT;
     }
     return ebpf_map_function_tables[map->ebpf_map_definition.type].next_key(map, previous_key, next_key);
@@ -1608,9 +1697,16 @@ ebpf_result_t
 ebpf_map_get_info(
     _In_ const ebpf_map_t* map, _Out_writes_to_(*info_size, *info_size) uint8_t* buffer, _Inout_ uint16_t* info_size)
 {
+    // High volume call - Skip entry/exit logging.
     struct bpf_map_info* info = (struct bpf_map_info*)buffer;
 
     if (*info_size < sizeof(*info)) {
+        EBPF_LOG_MESSAGE_UINT64_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_MAP,
+            "ebpf_map_get_info buffer too small",
+            *info_size,
+            sizeof(*info));
         return EBPF_INSUFFICIENT_BUFFER;
     }
 

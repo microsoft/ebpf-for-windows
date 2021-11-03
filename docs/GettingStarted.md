@@ -188,3 +188,10 @@ This application tests various XDP functionalities. It has the following tests:
    2. Load the test eBPF program by running the following commands: `netsh`, `ebpf`, `add program reflect_packet.o xdp` and note the ID.
    3. From a remote host, run xdp_tests.exe and in `--remote-ip` parameter pass an IPv4 or IPv6 address of an Ethernet-like interface on the system under test in string format.
    4. Unload the program from system under test by running `delete program <id>` on the netsh prompt, where <id> is the ID noted above.
+
+### Capturing traces
+eBPF for Windows uses ETW for tracing. To capture a trace use the following commands:
+1) Start tracing: ```wpr.exe -start ebpfforwindows.wprp -filemode```
+2) Run the scenario to be traced.
+3) Stop tracing: ```wpr.exe -stop ebpfforwindows.etl```
+4) Convert the traces to a human readable version: ```netsh trace convert ebpfforwindows.etl ebpfforwindows.csv csv```

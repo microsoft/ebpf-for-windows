@@ -16,28 +16,32 @@ static bool _ebpf_handle_table_initiated = false;
 ebpf_result_t
 ebpf_handle_table_initiate()
 {
+    EBPF_LOG_ENTRY();
     ebpf_lock_create(&_ebpf_handle_table_lock);
     memset(_ebpf_handle_table, 0, sizeof(_ebpf_handle_table));
     _ebpf_handle_table_initiated = true;
-    return EBPF_SUCCESS;
+    EBPF_RETURN_RESULT(EBPF_SUCCESS);
 }
 
 void
 ebpf_handle_table_terminate()
 {
+    EBPF_LOG_ENTRY();
     ebpf_handle_t handle;
     if (!_ebpf_handle_table_initiated)
-        return;
+        EBPF_RETURN_VOID();
 
     for (handle = 0; handle < EBPF_COUNT_OF(_ebpf_handle_table); handle++) {
         ebpf_handle_close(handle);
     }
     _ebpf_handle_table_initiated = false;
+    EBPF_RETURN_VOID();
 }
 
 ebpf_result_t
 ebpf_handle_create(ebpf_handle_t* handle, ebpf_object_t* object)
 {
+    EBPF_LOG_ENTRY();
     ebpf_handle_t new_handle;
     ebpf_result_t return_value;
     ebpf_lock_state_t state;
@@ -60,12 +64,13 @@ ebpf_handle_create(ebpf_handle_t* handle, ebpf_object_t* object)
 Done:
     ebpf_lock_unlock(&_ebpf_handle_table_lock, state);
 
-    return EBPF_SUCCESS;
+    EBPF_RETURN_RESULT(return_value);
 }
 
 ebpf_result_t
 ebpf_handle_close(ebpf_handle_t handle)
 {
+    // High volume call - Skip entry/exit logging.
     ebpf_lock_state_t state;
     ebpf_result_t return_value;
     state = ebpf_lock_lock(&_ebpf_handle_table_lock);
@@ -85,8 +90,10 @@ ebpf_reference_object_by_handle(ebpf_handle_t handle, ebpf_object_type_t object_
     ebpf_result_t return_value;
     ebpf_lock_state_t state;
 
-    if (handle >= EBPF_COUNT_OF(_ebpf_handle_table))
+    if (handle >= EBPF_COUNT_OF(_ebpf_handle_table)) {
+        EBPF_LOG_MESSAGE_UINT64(EBPF_TRACELOG_LEVEL_CRITICAL, EBPF_TRACELOG_KEYWORD_BASE, "Invalid handle", handle);
         return EBPF_INVALID_OBJECT;
+    }
 
     state = ebpf_lock_lock(&_ebpf_handle_table_lock);
     if ((_ebpf_handle_table[handle] != NULL) &&
