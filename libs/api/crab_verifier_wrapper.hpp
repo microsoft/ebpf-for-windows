@@ -11,5 +11,6 @@
 #pragma warning(disable : 26439) // This kind of function may not
                                  // throw. Declare it 'noexcept'
 #pragma warning(disable : 26495) // Always initialize a member variable
+#undef FALSE
 #include "crab_verifier.hpp"
 #pragma warning(pop)
