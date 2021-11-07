@@ -249,7 +249,8 @@ handle_ebpf_show_verification(
             std::cerr << error_message << std::endl;
         }
         if (report) {
-            std::cerr << "\nVerification report:\n" << report << std::endl;
+            std::cerr << "\nVerification report:\n" << report;
+            std::cerr << stats.total_warnings << " errors\n\n";
         }
         ebpf_free_string(error_message);
         ebpf_free_string(report);
