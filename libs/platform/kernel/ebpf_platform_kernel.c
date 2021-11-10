@@ -203,17 +203,19 @@ ebpf_allocate_ring_buffer_memory(size_t length)
     source_mdl = &ring_descriptor->memory->memory_descriptor_list;
 
     // Create a MDL big enough to double map the pages.
-    ring_descriptor->memory_descriptor_list = IoAllocateMdl(
-        ebpf_memory_descriptor_get_base_address(ring_descriptor->memory),
-        (uint32_t)(requested_page_count * 2 * PAGE_SIZE),
-        FALSE,
-        FALSE,
-        NULL);
+    ring_descriptor->memory_descriptor_list =
+        IoAllocateMdl(NULL, (uint32_t)(requested_page_count * 2 * PAGE_SIZE), FALSE, FALSE, NULL);
     if (!ring_descriptor->memory_descriptor_list) {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, IoAllocateMdl, STATUS_NO_MEMORY);
         status = STATUS_NO_MEMORY;
         goto Done;
     }
+
+#pragma warning(push)
+#pragma warning(disable : 28145) /* The opaque MDL structure should not be modified by a driver except for \
+                                    MDL_PAGES_LOCKED and MDL_MAPPING_CAN_FAIL. */
+    ring_descriptor->memory_descriptor_list->MdlFlags |= MDL_PAGES_LOCKED;
+#pragma warning(pop)
 
     memcpy(
         MmGetMdlPfnArray(ring_descriptor->memory_descriptor_list),
