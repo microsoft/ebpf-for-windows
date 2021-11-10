@@ -212,7 +212,7 @@ ebpf_allocate_ring_buffer_memory(size_t length)
     }
 
 #pragma warning(push)
-#pragma warning(disable : 28145) /* The opaque MDL structure should not be modified by a driver except for \
+#pragma warning(disable : 28145) /* The opaque MDL structure should not be modified by a driver except for
                                     MDL_PAGES_LOCKED and MDL_MAPPING_CAN_FAIL. */
     ring_descriptor->memory_descriptor_list->MdlFlags |= MDL_PAGES_LOCKED;
 #pragma warning(pop)
@@ -228,7 +228,12 @@ ebpf_allocate_ring_buffer_memory(size_t length)
         sizeof(PFN_NUMBER) * requested_page_count);
 
     ring_descriptor->base_address = MmMapLockedPagesSpecifyCache(
-        ring_descriptor->memory_descriptor_list, KernelMode, MmCached, NULL, FALSE, NormalPagePriority);
+        ring_descriptor->memory_descriptor_list,
+        KernelMode,
+        MmCached,
+        NULL,
+        FALSE,
+        NormalPagePriority | MdlMappingNoExecute);
     if (!ring_descriptor->base_address) {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, MmMapLockedPagesSpecifyCache, STATUS_NO_MEMORY);
         status = STATUS_NO_MEMORY;
