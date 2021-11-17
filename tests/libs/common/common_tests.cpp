@@ -92,11 +92,11 @@ verify_utility_helper_results(_In_ const bpf_object* object)
 }
 
 int
-ring_buffer_test_event_handler(void* ctx, _In_ void* data, size_t size)
+ring_buffer_test_event_handler(_In_ void* ctx, _In_ void* data, size_t size)
 {
     ring_buffer_test_event_context_t* event_context = reinterpret_cast<ring_buffer_test_event_context_t*>(ctx);
-    if ((event_context->cancelled) || (event_context->matched_entry_count == RING_BUFFER_TEST_EVENT_COUNT))
-        // Either ring buffer subscription is cancelled, or required number of event notifications already reserved.
+    if ((event_context->canceled) || (event_context->matched_entry_count == RING_BUFFER_TEST_EVENT_COUNT))
+        // Either ring buffer subscription is canceled, or required number of event notifications already reserved.
         // Simply return.
         return 0;
 
@@ -107,7 +107,7 @@ ring_buffer_test_event_handler(void* ctx, _In_ void* data, size_t size)
     if (it != records->end())
         event_context->matched_entry_count++;
     if (event_context->matched_entry_count == RING_BUFFER_TEST_EVENT_COUNT) {
-        // If all the entries in the app Id list was found, fulfill the promise.
+        // If all the entries in the app ID list was found, fulfill the promise.
         auto promise = event_context->ring_buffer_event_promise;
         promise->set_value();
     }
@@ -151,8 +151,8 @@ ring_buffer_api_test_helper(
     // Wait for event handler getting notifications for all RING_BUFFER_TEST_EVENT_COUNT events.
     REQUIRE(ring_buffer_event_callback.wait_for(1s) == std::future_status::ready);
 
-    // Mark the event context as cancelled, such that the loopback stops processing events.
-    context.cancelled = true;
+    // Mark the event context as canceled, such that the loop stops processing events.
+    context.canceled = true;
 
     // Unsubscribe.
     ring_buffer__free(ring_buffer);

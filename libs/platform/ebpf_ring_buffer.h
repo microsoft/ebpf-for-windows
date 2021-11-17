@@ -85,7 +85,7 @@ extern "C"
      * @retval EBPF_INVALID_ARGUMENT Unable to map the ring buffer.
      */
     ebpf_result_t
-    ebpf_ring_buffer_map_buffer(_In_ const ebpf_ring_buffer_t* ring_buffer, _Out_ uint8_t** buffer);
+    ebpf_ring_buffer_map_buffer(_In_ const ebpf_ring_buffer_t* ring_buffer, _Outptr_ uint8_t** buffer);
 
     /**
      * @brief Reserve a buffer in the ring buffer. Buffer is valid until either ebpf_ring_buffer_submit,

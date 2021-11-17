@@ -285,7 +285,7 @@ ring_buffer_api_test(ebpf_execution_type_t execution_type)
     fd_t process_map_fd = bpf_object__find_map_fd_by_name(object, "process_map");
     REQUIRE(process_map_fd > 0);
 
-    // Create a list of fake app Ids and set it to event context.
+    // Create a list of fake app IDs and set it to event context.
     std::wstring app_id = L"api_test.exe";
     std::vector<std::vector<char>> app_ids;
     char* p = reinterpret_cast<char*>(&app_id[0]);

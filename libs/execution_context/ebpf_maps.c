@@ -1265,11 +1265,8 @@ _create_ring_buffer_map(_In_ const ebpf_map_definition_in_memory_t* map_definiti
     ring_buffer_map = NULL;
 
 Exit:
-    if (ring_buffer != NULL)
-        ebpf_ring_buffer_destroy(ring_buffer);
-
-    if (ring_buffer_map != NULL)
-        ebpf_epoch_free(ring_buffer_map);
+    ebpf_ring_buffer_destroy(ring_buffer);
+    ebpf_epoch_free(ring_buffer_map);
 
     return core_map;
 }
@@ -1334,8 +1331,8 @@ Exit:
 
 ebpf_result_t
 ebpf_ring_buffer_map_async_query(
-    _Inout_ ebpf_map_t* map,
-    _In_ ebpf_ring_buffer_map_async_query_result_t* async_query_result,
+    _In_ ebpf_map_t* map,
+    _Inout_ ebpf_ring_buffer_map_async_query_result_t* async_query_result,
     _In_ void* async_context)
 {
     ebpf_result_t result = EBPF_PENDING;

@@ -201,7 +201,7 @@ extern "C"
     /**
      * @brief Return consumed buffer back to the ring buffer map.
      *
-     * @param[in,out] map Ring buffer map.
+     * @param[in] map Ring buffer map.
      * @param[in] length Length of bytes to return to the ring buffer.
      * @retval EPBF_SUCCESS Successfully returned records to the ring buffer.
      * @retval EBPF_INVALID_ARGUMENT Unable to return records to the ring buffer.
@@ -213,21 +213,21 @@ extern "C"
      * @brief Issue an asynchronous query to ring buffer map.
      *
      * @param[in] map Ring buffer map to issue the async query on.
-     * @param[in] async_query_result Pointer to structure for storing result of the async query.
+     * @param[in, out] async_query_result Pointer to structure for storing result of the async query.
      * @param[in] async_context Async context associated with the query.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Insufficient memory to complete this operation.
      */
     ebpf_result_t
     ebpf_ring_buffer_map_async_query(
-        _Inout_ ebpf_map_t* map,
-        _In_ ebpf_ring_buffer_map_async_query_result_t* async_query_result,
+        _In_ ebpf_map_t* map,
+        _Inout_ ebpf_ring_buffer_map_async_query_result_t* async_query_result,
         _In_ void* async_context);
 
     /**
      * @brief Write out a variable sized record to the ring buffer map.
      *
-     * @param[in,out] map Pointer to map of type EBPF_MAP_TYPE_RINGBUF.
+     * @param[in] map Pointer to map of type EBPF_MAP_TYPE_RINGBUF.
      * @param[in] data Data of record to write into ring buffer map.
      * @param[in] length Length of data.
      * @retval EPBF_SUCCESS Successfully wrote record into ring buffer.

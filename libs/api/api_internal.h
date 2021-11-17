@@ -517,7 +517,7 @@ ebpf_ring_buffer_map_subscribe(
 /**
  * @brief Unsubscribe from the ring buffer map event notifications.
  *
- * @param[in] subscription Pointer to ring buffer subscription to be cancelled.
+ * @param[in] subscription Pointer to ring buffer subscription to be canceled.
  */
 bool
 ebpf_ring_buffer_map_unsubscribe(_Inout_ _Post_invalid_ ring_buffer_subscription_t* subscription);

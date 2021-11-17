@@ -1376,6 +1376,7 @@ static int
 _ebpf_core_ring_buffer_output(
     _In_ ebpf_map_t* map, _In_reads_bytes_(length) uint8_t* data, size_t length, uint64_t flags)
 {
+    // This function implements bpf_ringbuf_output helper function, which returns negative error in case of failure.
     UNREFERENCED_PARAMETER(flags);
     return -ebpf_ring_buffer_map_output(map, data, length);
 }

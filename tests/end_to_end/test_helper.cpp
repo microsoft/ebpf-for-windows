@@ -285,8 +285,6 @@ Glue_close(int file_descriptor)
         if (!found)
             // No duplicates. Close the handle.
             ebpf_api_close_handle(it->second);
-        // else
-        //     // printf("Glue_close found dupe, not closing.\n");
         _fd_to_handle_map.erase(file_descriptor);
         return 0;
     }
@@ -310,7 +308,7 @@ _test_helper_end_to_end::_test_helper_end_to_end()
 
 _test_helper_end_to_end::~_test_helper_end_to_end()
 {
-    // Rundown duplicate handles, if any.
+    // Run down duplicate handles, if any.
     _duplicate_handles.rundown();
     // Verify that all maps were successfully removed.
     uint32_t id;

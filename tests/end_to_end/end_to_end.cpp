@@ -463,7 +463,7 @@ bindmonitor_ring_buffer_test(ebpf_execution_type_t execution_type)
 
     program_info_provider_t bind_program_info(EBPF_PROGRAM_TYPE_BIND);
 
-    // Load and attach a bind eBPF program that uses ring buffer map to notify about bind operations.
+    // Load and attach a bind eBPF program that uses a ring buffer map to notify about bind operations.
     result = ebpf_program_load(
         SAMPLE_PATH "bindmonitor_ringbuf.o", nullptr, nullptr, execution_type, &object, &program_fd, &error_message);
 
@@ -480,7 +480,7 @@ bindmonitor_ring_buffer_test(ebpf_execution_type_t execution_type)
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
     REQUIRE(hook.attach_link(program_fd, &link) == EBPF_SUCCESS);
 
-    // Create a list of fake app Ids and set it to event context.
+    // Create a list of fake app IDs and set it to event context.
     std::string fake_app_ids_prefix = "fake_app";
     std::vector<std::vector<char>> fake_app_ids;
     for (int i = 0; i < RING_BUFFER_TEST_EVENT_COUNT; i++) {

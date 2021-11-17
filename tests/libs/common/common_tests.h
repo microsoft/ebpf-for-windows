@@ -24,12 +24,12 @@ typedef struct _ring_buffer_test_event_context
 {
     std::promise<void>* ring_buffer_event_promise;
     std::vector<std::vector<char>>* records;
-    bool cancelled;
+    bool canceled;
     int matched_entry_count;
 } ring_buffer_test_event_context_t;
 
 int
-ring_buffer_test_event_handler(void* ctx, _In_ void* data, size_t size);
+ring_buffer_test_event_handler(_In_ void* ctx, _In_ void* data, size_t size);
 
 void
 ring_buffer_api_test_helper(

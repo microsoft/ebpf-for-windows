@@ -2304,7 +2304,7 @@ _ebpf_ring_buffer_map_async_query_completion(_Inout_opt_ void* completion_contex
         reinterpret_cast<ebpf_ring_buffer_subscription_t*>(completion_context);
 
     ebpf_result_t result = EBPF_SUCCESS;
-    // If user unsubscribed from ring buffer subscription or if the async operation was cancelled,
+    // If user unsubscribed from ring buffer subscription or if the async operation was canceled,
     // free the subscription and exit without initiating another async operation.
     if (subscription->unsubscribed)
         result = EBPF_CANCELLED;
@@ -2316,7 +2316,7 @@ _ebpf_ring_buffer_map_async_query_completion(_Inout_opt_ void* completion_contex
             // The user has unsubscribed. This is the final callback. Free the subscription context.
             _ebpf_ring_buffer_free_subscription(subscription);
         } else {
-            // async IOCTL completed with failure. Mark the subscription object as such, so that
+            // The async IOCTL completed with failure. Mark the subscription object as such, so that
             // it gets freed when the user eventually unsubscribes.
             auto lock_state = ebpf_lock_lock(&subscription->lock);
             subscription->async_ioctl_failed = true;
@@ -2367,7 +2367,7 @@ _ebpf_ring_buffer_map_async_query_completion(_Inout_opt_ void* completion_contex
         EBPF_RETURN_RESULT(result);
     }
 
-    // Cleanup the old async IOCTL completion context and create a new one.
+    // Clean up the old async IOCTL completion context and create a new one.
     async_ioctl_completion_t* old_ioctl_completion = subscription->async_ioctl_completion;
     async_ioctl_completion_t* new_ioctl_completion = nullptr;
     result = initialize_async_ioctl_operation(

@@ -114,7 +114,7 @@ initialize_async_ioctl_operation(
     _Outptr_ async_ioctl_completion_t** async_ioctl_completion)
 {
     ebpf_result_t result = EBPF_SUCCESS;
-    *async_ioctl_completion = NULL;
+    *async_ioctl_completion = nullptr;
 
     async_ioctl_completion_context_t* local_async_ioctl_completion =
         (async_ioctl_completion_context_t*)ebpf_allocate(sizeof(async_ioctl_completion_context_t));
@@ -149,7 +149,7 @@ initialize_async_ioctl_operation(
             local_async_ioctl_completion->callback(local_async_ioctl_completion->callback_context);
         },
         local_async_ioctl_completion,
-        NULL);
+        nullptr);
     if (local_async_ioctl_completion->wait == nullptr) {
         result = win32_error_code_to_ebpf_result(GetLastError());
         _Analysis_assume_(result != EBPF_SUCCESS);

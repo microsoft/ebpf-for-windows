@@ -186,7 +186,7 @@ Done:
 }
 
 ebpf_result_t
-ebpf_ring_buffer_map_buffer(_In_ const ebpf_ring_buffer_t* ring, _Out_ uint8_t** buffer)
+ebpf_ring_buffer_map_buffer(_In_ const ebpf_ring_buffer_t* ring, _Outptr_ uint8_t** buffer)
 {
     *buffer = ebpf_ring_map_readonly_user(ring->ring_descriptor);
     if (!*buffer) {

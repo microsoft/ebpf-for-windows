@@ -7,11 +7,11 @@
 #include "rpc_interface_h.h"
 
 std::function<decltype(_close)> close_handler;
-std::function<decltype(CreateFileW)> create_file_handler;
+std::function<decltype(CancelIoEx)> cancel_io_ex_handler;
 std::function<decltype(CloseHandle)> close_handle_handler;
+std::function<decltype(CreateFileW)> create_file_handler;
 std::function<decltype(DuplicateHandle)> duplicate_handle_handler;
 std::function<decltype(DeviceIoControl)> device_io_control_handler;
-std::function<decltype(CancelIoEx)> cancel_io_ex_handler;
 std::function<decltype(_get_osfhandle)> get_osfhandle_handler;
 std::function<decltype(_open_osfhandle)> open_osfhandle_handler;
 

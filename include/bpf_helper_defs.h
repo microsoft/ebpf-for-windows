@@ -137,7 +137,7 @@ EBPF_HELPER(int, bpf_csum_diff, (void* from, int from_size, void* to, int to_siz
  * @param[in,out] map Pointer to ring buffer map.
  * @param[in] data Data to copy into ring buffer map.
  * @param[in] size Length of data.
- * @param[in] flags Flags indicating if notification for new data availability be sent.
+ * @param[in] flags Flags indicating if notification for new data availability should be sent.
  * @returns 0 on success and a negative value on error.
  */
 EBPF_HELPER(int, bpf_ringbuf_output, (struct bpf_map * ring_buffer, void* data, uint64_t size, uint64_t flags));
