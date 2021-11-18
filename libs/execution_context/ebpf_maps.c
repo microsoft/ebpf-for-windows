@@ -1228,7 +1228,7 @@ _delete_ring_buffer_map(_In_ ebpf_core_map_t* map)
     for (ebpf_list_entry_t* temp_entry = temp_list.Flink; temp_entry != &temp_list; temp_entry = temp_entry->Flink) {
         ebpf_core_ring_buffer_map_async_query_context_t* context =
             EBPF_FROM_FIELD(ebpf_core_ring_buffer_map_async_query_context_t, entry, temp_entry);
-        ebpf_async_complete(context->async_context, 0, EBPF_CANCELLED);
+        ebpf_async_complete(context->async_context, 0, EBPF_CANCELED);
     }
     ebpf_epoch_free(ring_buffer_map);
 }
@@ -1302,7 +1302,7 @@ _ebpf_ring_buffer_map_cancel_async_query(_In_ _Frees_ptr_ void* cancel_context)
     ebpf_lock_state_t state = ebpf_lock_lock(&map->lock);
     ebpf_list_remove_entry(&context->entry);
     ebpf_lock_unlock(&map->lock, state);
-    ebpf_async_complete(context->async_context, 0, EBPF_CANCELLED);
+    ebpf_async_complete(context->async_context, 0, EBPF_CANCELED);
     ebpf_free(context);
     EBPF_LOG_EXIT();
 }

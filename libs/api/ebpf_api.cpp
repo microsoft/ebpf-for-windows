@@ -14,7 +14,7 @@
 #include "ebpf_ring_buffer.h"
 #include "ebpf_serialize.h"
 #pragma warning(push)
-#pragma warning(disable : 4200)
+#pragma warning(disable : 4200) // Zero-sized array in struct/union
 #include "libbpf.h"
 #pragma warning(pop)
 #include "map_descriptors.hpp"
@@ -2259,14 +2259,14 @@ ebpf_program_bind_map(fd_t program_fd, fd_t map_fd)
 typedef struct _ebpf_ring_buffer_subscription
 {
     ebpf_lock_t lock;
-    boolean unsubscribed;
+    _Write_guarded_by_(lock) boolean unsubscribed;
     ebpf_handle_t ring_buffer_map_handle;
     void* sample_callback_context;
     ring_buffer_sample_fn sample_callback;
     uint8_t* buffer;
     ebpf_operation_ring_buffer_map_async_query_reply_t reply;
-    async_ioctl_completion_t* async_ioctl_completion;
-    bool async_ioctl_failed;
+    _Write_guarded_by_(lock) async_ioctl_completion_t* async_ioctl_completion;
+    _Write_guarded_by_(lock) bool async_ioctl_failed;
 } ebpf_ring_buffer_subscription_t;
 
 static void
@@ -2307,12 +2307,12 @@ _ebpf_ring_buffer_map_async_query_completion(_Inout_opt_ void* completion_contex
     // If user unsubscribed from ring buffer subscription or if the async operation was canceled,
     // free the subscription and exit without initiating another async operation.
     if (subscription->unsubscribed)
-        result = EBPF_CANCELLED;
+        result = EBPF_CANCELED;
     else
         result = get_async_ioctl_result(subscription->async_ioctl_completion);
 
     if (result != EBPF_SUCCESS) {
-        if (result == EBPF_CANCELLED) {
+        if (result == EBPF_CANCELED) {
             // The user has unsubscribed. This is the final callback. Free the subscription context.
             _ebpf_ring_buffer_free_subscription(subscription);
         } else {
@@ -2360,7 +2360,7 @@ _ebpf_ring_buffer_map_async_query_completion(_Inout_opt_ void* completion_contex
     // If still subscribed, post the next async IOCTL call while holding the lock. It is safe to do so as the async call
     // is not blocking.
     if (subscription->unsubscribed) {
-        result = EBPF_CANCELLED;
+        result = EBPF_CANCELED;
         ebpf_lock_unlock(&subscription->lock, lock_state);
         // The user has unsubscribed. This is the final callback. Free the subscription context.
         _ebpf_ring_buffer_free_subscription(subscription);

@@ -105,7 +105,7 @@ extern "C"
         EBPF_OUT_OF_SPACE,
 
         // Operation was canceled.
-        EBPF_CANCELLED, // = 30
+        EBPF_CANCELED, // = 30
     } ebpf_result_t;
 
 #define EBPF_RESULT_COUNT (EBPF_OUT_OF_SPACE + 1)

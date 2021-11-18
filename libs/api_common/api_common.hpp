@@ -211,7 +211,7 @@ win32_error_code_to_ebpf_result(uint32_t error)
         break;
 
     case ERROR_OPERATION_ABORTED:
-        result = EBPF_CANCELLED;
+        result = EBPF_CANCELED;
         break;
 
     default:
