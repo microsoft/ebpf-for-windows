@@ -86,8 +86,19 @@ _net_ebpf_ext_allocate_cloned_nbl(_Inout_ net_ebpf_xdp_md_t* net_xdp_ctx, uint32
     }
     RtlZeroMemory(packet_buffer, cloned_net_buffer_length);
 
-    // Copy the contents of the old NBL into the packet_buffer at the offset after any unused header.
-    RtlCopyMemory(packet_buffer + unused_header_length, old_data, old_net_buffer->DataLength);
+    if (old_data != NULL) {
+        // Copy the contents of the old NBL into the packet_buffer at the offset after any unused header.
+        RtlCopyMemory(packet_buffer + unused_header_length, old_data, old_net_buffer->DataLength);
+    } else {
+        // This is the case when we received a NB with more than one MDL. Get contiguous data buffer
+        // from NB and copy to packet_buffer at the offset after any unused header.
+        uint8_t* buffer =
+            NdisGetDataBuffer(old_net_buffer, old_net_buffer->DataLength, packet_buffer + unused_header_length, 1, 0);
+        if (buffer == NULL) {
+            status = STATUS_INSUFFICIENT_RESOURCES;
+            goto Exit;
+        }
+    }
 
     // Adjust the XDP context data pointers.
     net_xdp_ctx->data = packet_buffer;
