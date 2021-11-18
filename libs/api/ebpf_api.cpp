@@ -2484,21 +2484,25 @@ ebpf_ring_buffer_map_unsubscribe(_Inout_ _Post_invalid_ ring_buffer_subscription
 {
     EBPF_LOG_ENTRY();
     boolean free_subscription = false;
-    boolean result = true;
+    boolean cancel_result = true;
 
     ebpf_lock_state_t lock_state = ebpf_lock_lock(&subscription->lock);
+    // Set the unsubscribed flag, such that the next completion callback does not issue another async IOCTL.
     subscription->unsubscribed = true;
-    // Attempt to cancel an ongoing async IOCTL if any. The final callback would clean up the subscription object.
-    if (subscription->async_ioctl_failed)
-        // This means that the last async IOCTL operation completed with a
-        // failure status. Free the subscription context.
-        free_subscription = true;
-    else
-        result = cancel_async_ioctl(get_async_ioctl_operation_overlapped(subscription->async_ioctl_completion));
+    // Attempt to cancel an ongoing async IOCTL if any.
+    cancel_result = cancel_async_ioctl(get_async_ioctl_operation_overlapped(subscription->async_ioctl_completion));
+    if (!cancel_result) {
+        // Failed to cancel async operation. This might mean completion callback has already been fired.
+        // Let the final callback free the subscription.
+        if (subscription->async_ioctl_failed)
+            // This means that the last async IOCTL operation completed with a
+            // failure status and there will not be any further callbacks. Free the subscription context inline.
+            free_subscription = true;
+    }
 
     ebpf_lock_unlock(&subscription->lock, lock_state);
     if (free_subscription)
         _ebpf_ring_buffer_free_subscription(subscription);
 
-    EBPF_RETURN_BOOL(result);
+    EBPF_RETURN_BOOL(cancel_result);
 }
