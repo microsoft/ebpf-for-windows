@@ -605,7 +605,13 @@ int32_t
 ebpf_log_function(_In_ void* context, _In_z_ const char* format_string, ...)
 {
     UNREFERENCED_PARAMETER(context);
-    UNREFERENCED_PARAMETER(format_string);
+
+    va_list arg_start;
+    va_start(arg_start, format_string);
+
+    vprintf(format_string, arg_start);
+
+    va_end(arg_start);
     return 0;
 }
 
