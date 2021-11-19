@@ -22,7 +22,8 @@ that exposes [Libbpf APIs](https://github.com/libbpf/libbpf),
 though this is still in progress.
 
 The eBPF bytecode is sent to a static verifier (the [PREVAIL verifier](https://github.com/vbpf/ebpf-verifier))
-that is hosted in secure user-mode environment such as a system service, enclave, or trusted VM.
+that is hosted in a secure user-mode environment such as a system service (which is the case at present),
+enclave, or trusted VM.
 If the bytecode passes all the verifier checks, it can be either loaded into
 an interpreter (from [uBPF](https://github.com/iovisor/ubpf) in the kernel-mode execution context), or
 JIT compiled (via the [uBPF](https://github.com/iovisor/ubpf) JIT compiler) and have native code load
