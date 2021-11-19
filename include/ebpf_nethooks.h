@@ -33,6 +33,7 @@ typedef enum _xdp_action
  * @param[in] context Packet metadata.
  * @retval XDP_PASS Allow the packet to pass.
  * @retval XDP_DROP Drop the packet.
+ * @retval XDP_TX Bounce the received packet back out the same NIC it arrived on.
  */
 typedef xdp_action_t
 xdp_hook_t(xdp_md_t* context);
