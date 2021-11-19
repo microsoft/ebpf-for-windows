@@ -153,7 +153,6 @@ _create_array_map_with_map_struct_size(
         goto Done;
     }
 
-    // allocate
     map = ebpf_epoch_allocate(full_map_size);
     if (map == NULL) {
         goto Done;
@@ -1243,7 +1242,6 @@ _create_ring_buffer_map(_In_ const ebpf_map_definition_in_memory_t* map_definiti
 
     EBPF_LOG_ENTRY();
 
-    // allocate
     ring_buffer_map = ebpf_epoch_allocate(sizeof(ebpf_core_ring_buffer_map_t));
     if (ring_buffer_map == NULL) {
         result = EBPF_NO_MEMORY;
@@ -1308,7 +1306,7 @@ _ebpf_ring_buffer_map_cancel_async_query(_In_ _Frees_ptr_ void* cancel_context)
 }
 
 ebpf_result_t
-ebpf_ring_buffer_map_query_buffer(_In_ const ebpf_map_t* map, _Out_ uint8_t** buffer)
+ebpf_ring_buffer_map_query_buffer(_In_ const ebpf_map_t* map, _Outptr_ uint8_t** buffer)
 {
     return ebpf_ring_buffer_map_buffer((ebpf_ring_buffer_t*)map->data, buffer);
 }
