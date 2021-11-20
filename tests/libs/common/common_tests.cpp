@@ -92,12 +92,22 @@ verify_utility_helper_results(_In_ const bpf_object* object)
 }
 
 int
-ring_buffer_test_event_handler(_In_ void* ctx, _In_ void* data, size_t size)
+ring_buffer_test_event_handler(_In_ void* ctx, _In_opt_ void* data, size_t size)
 {
     ring_buffer_test_event_context_t* event_context = reinterpret_cast<ring_buffer_test_event_context_t*>(ctx);
-    if ((event_context->canceled) || (event_context->matched_entry_count == RING_BUFFER_TEST_EVENT_COUNT))
-        // Either ring buffer subscription is canceled, or required number of event notifications already reserved.
-        // Simply return.
+
+    if (event_context->canceled) {
+        // Ring buffer subscription is canceled.
+        // Free the callack context and return.
+        delete event_context;
+        return 0;
+    }
+
+    if (event_context->matched_entry_count == RING_BUFFER_TEST_EVENT_COUNT)
+        // Required number of event notifications already reserved.
+        return 0;
+
+    if ((data == nullptr) || (size == 0))
         return 0;
 
     std::vector<char> event_record(reinterpret_cast<char*>(data), reinterpret_cast<char*>(data) + size);
@@ -121,10 +131,10 @@ ring_buffer_api_test_helper(
     fd_t ring_buffer_map, std::vector<std::vector<char>> expected_records, std::function<void(int)> generate_event)
 {
     // Ring buffer event callback context.
-    ring_buffer_test_event_context_t context{};
-    context.matched_entry_count = 0;
+    std::unique_ptr<ring_buffer_test_event_context_t> context = std::make_unique<ring_buffer_test_event_context_t>();
+    context->matched_entry_count = 0;
 
-    context.records = &expected_records;
+    context->records = &expected_records;
 
     // Generate events prior to subscribing for ring buffer events.
     for (int i = 0; i < RING_BUFFER_TEST_EVENT_COUNT / 2; i++) {
@@ -135,12 +145,12 @@ ring_buffer_api_test_helper(
     // once notifications for all events are received.
     std::promise<void> ring_buffer_event_promise;
     auto ring_buffer_event_callback = ring_buffer_event_promise.get_future();
-    context.ring_buffer_event_promise = &ring_buffer_event_promise;
+    context->ring_buffer_event_promise = &ring_buffer_event_promise;
 
     // Create a new ring buffer manager and subscribe to ring buffer events.
     // The notifications for the events that were generated before should occur after the subscribe call.
     struct ring_buffer* ring_buffer =
-        ring_buffer__new(ring_buffer_map, ring_buffer_test_event_handler, &context, nullptr);
+        ring_buffer__new(ring_buffer_map, ring_buffer_test_event_handler, context.get(), nullptr);
     REQUIRE(ring_buffer != nullptr);
 
     // Generate more events, post-subscription.
@@ -152,7 +162,10 @@ ring_buffer_api_test_helper(
     REQUIRE(ring_buffer_event_callback.wait_for(1s) == std::future_status::ready);
 
     // Mark the event context as canceled, such that the loop stops processing events.
-    context.canceled = true;
+    context->canceled = true;
+
+    // Release the raw pointer such that the final callback frees the callback context.
+    context.release();
 
     // Unsubscribe.
     ring_buffer__free(ring_buffer);

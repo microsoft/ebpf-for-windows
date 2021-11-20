@@ -29,7 +29,7 @@ typedef struct _ring_buffer_test_event_context
 } ring_buffer_test_event_context_t;
 
 int
-ring_buffer_test_event_handler(_In_ void* ctx, _In_ void* data, size_t size);
+ring_buffer_test_event_handler(_In_ void* ctx, _In_opt_ void* data, size_t size);
 
 void
 ring_buffer_api_test_helper(

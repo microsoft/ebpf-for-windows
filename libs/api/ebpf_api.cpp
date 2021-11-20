@@ -2303,69 +2303,78 @@ _ebpf_ring_buffer_map_async_query_completion(_Inout_opt_ void* completion_contex
     ebpf_ring_buffer_subscription_t* subscription =
         reinterpret_cast<ebpf_ring_buffer_subscription_t*>(completion_context);
 
+    size_t consumer = 0;
+    size_t producer = 0;
+
     ebpf_result_t result = EBPF_SUCCESS;
-    // If user unsubscribed from ring buffer subscription or if the async operation was canceled,
-    // free the subscription and exit without initiating another async operation.
-    if (subscription->unsubscribed)
-        result = EBPF_CANCELED;
-    else
-        result = get_async_ioctl_result(subscription->async_ioctl_completion);
+    // Check the result of the completed async IOCTL call.
+    result = get_async_ioctl_result(subscription->async_ioctl_completion);
 
     if (result != EBPF_SUCCESS) {
-        if (result == EBPF_CANCELED) {
-            // The user has unsubscribed. This is the final callback. Free the subscription context.
-            _ebpf_ring_buffer_free_subscription(subscription);
-        } else {
-            // The async IOCTL completed with failure. Mark the subscription object as such, so that
-            // it gets freed when the user eventually unsubscribes.
+        if (result != EBPF_CANCELED) {
+            // The async IOCTL was not canceled, but completed with a failure status. Mark the subscription object as
+            // such, so that it gets freed when the user eventually unsubscribes.
             auto lock_state = ebpf_lock_lock(&subscription->lock);
             subscription->async_ioctl_failed = true;
             ebpf_lock_unlock(&subscription->lock, lock_state);
+            EBPF_RETURN_RESULT(result);
+        } else {
+            // User has canceled subscription. Invoke user specified callback for the final time with NULL record. This
+            // will let the user app clean up its state.
+            subscription->sample_callback(subscription->sample_callback_context, nullptr, 0);
         }
-        EBPF_RETURN_RESULT(result);
+    } else {
+        // Async IOCTL operation returned with success status. Read the ring buffer records and indicate it to the
+        // subscriber.
+
+        size_t ring_buffer_size;
+        uint32_t dummy;
+
+        result = _get_map_descriptor_properties(
+            subscription->ring_buffer_map_handle,
+            &dummy,
+            &dummy,
+            &dummy,
+            reinterpret_cast<uint32_t*>(&ring_buffer_size));
+        if (result != EBPF_SUCCESS)
+            EBPF_RETURN_RESULT(result);
+
+        ebpf_operation_ring_buffer_map_async_query_reply_t* reply = &subscription->reply;
+        ebpf_ring_buffer_map_async_query_result_t* async_query_result = &reply->async_query_result;
+        consumer = async_query_result->consumer;
+        producer = async_query_result->producer;
+        for (;;) {
+            auto record = ebpf_ring_buffer_next_record(subscription->buffer, ring_buffer_size, consumer, producer);
+
+            if (record == nullptr)
+                // No more records.
+                break;
+
+            int callback_result = subscription->sample_callback(
+                subscription->sample_callback_context,
+                const_cast<void*>(reinterpret_cast<const void*>(record->data)),
+                record->header.length - EBPF_OFFSET_OF(ebpf_ring_buffer_record_t, data));
+            if (callback_result != 0)
+                break;
+
+            consumer += record->header.length;
+        }
     }
 
-    size_t ring_buffer_size;
-    uint32_t dummy;
-
-    result = _get_map_descriptor_properties(
-        subscription->ring_buffer_map_handle, &dummy, &dummy, &dummy, reinterpret_cast<uint32_t*>(&ring_buffer_size));
-    if (result != EBPF_SUCCESS)
-        EBPF_RETURN_RESULT(result);
-
-    ebpf_operation_ring_buffer_map_async_query_reply_t* reply = &subscription->reply;
-    ebpf_ring_buffer_map_async_query_result_t* async_query_result = &reply->async_query_result;
-    size_t consumer = async_query_result->consumer;
-    size_t producer = async_query_result->producer;
-    for (;;) {
-        auto record = ebpf_ring_buffer_next_record(subscription->buffer, ring_buffer_size, consumer, producer);
-
-        if (record == nullptr)
-            // No more records.
-            break;
-
-        int callback_result = subscription->sample_callback(
-            subscription->sample_callback_context,
-            const_cast<void*>(reinterpret_cast<const void*>(record->data)),
-            record->header.length - EBPF_OFFSET_OF(ebpf_ring_buffer_record_t, data));
-        if (callback_result != 0)
-            break;
-
-        consumer += record->header.length;
-    }
+    // Acquire the subscription lock and within the lock, check if the user has unsubscribed.
+    // If the user has unsubscribed. This is the final callback. Free the subscription context.
 
     auto lock_state = ebpf_lock_lock(&subscription->lock);
 
-    // Acquire the subscription lock and within the lock, check once more if the user has unsubscribed since last check.
-    // If still subscribed, post the next async IOCTL call while holding the lock. It is safe to do so as the async call
-    // is not blocking.
     if (subscription->unsubscribed) {
         result = EBPF_CANCELED;
         ebpf_lock_unlock(&subscription->lock, lock_state);
-        // The user has unsubscribed. This is the final callback. Free the subscription context.
         _ebpf_ring_buffer_free_subscription(subscription);
         EBPF_RETURN_RESULT(result);
     }
+
+    // If still subscribed, post the next async IOCTL call while holding the lock. It is safe to do so as the async call
+    // is not blocking.
 
     // Clean up the old async IOCTL completion context and create a new one.
     async_ioctl_completion_t* old_ioctl_completion = subscription->async_ioctl_completion;
@@ -2487,20 +2496,22 @@ ebpf_ring_buffer_map_unsubscribe(_Inout_ _Post_invalid_ ring_buffer_subscription
     boolean cancel_result = true;
 
     ebpf_lock_state_t lock_state = ebpf_lock_lock(&subscription->lock);
-    // Set the unsubscribed flag, such that the next completion callback does not issue another async IOCTL.
+    // Set the unsubscribed flag, so that if a completion callback is ongoing, it does not issue another async IOCTL.
     subscription->unsubscribed = true;
-    // Attempt to cancel an ongoing async IOCTL if any.
-    cancel_result = cancel_async_ioctl(get_async_ioctl_operation_overlapped(subscription->async_ioctl_completion));
-    if (!cancel_result) {
-        // Failed to cancel async operation. This might mean completion callback has already been fired.
-        // Let the final callback free the subscription.
-        if (subscription->async_ioctl_failed)
-            // This means that the last async IOCTL operation completed with a
-            // failure status and there will not be any further callbacks. Free the subscription context inline.
-            free_subscription = true;
+    // Check if an earlier async opeeration has failed. In that case a new async operation will not be queued. This is
+    // the only case in which the subscription object can be freed in this function.
+    if (subscription->async_ioctl_failed)
+        free_subscription = true;
+    else {
+        // Attempt to cancel an ongoing async IOCTL.
+        cancel_result = cancel_async_ioctl(get_async_ioctl_operation_overlapped(subscription->async_ioctl_completion));
+        // If the async operation could be canceled, a final completion callback would be invoked with EBPF_CANCELED
+        // status. If the async operation could not be canceled, that would mean a callback is ongoing which would
+        // eventually find out the subscription is canceled and will not post another async operation. In either case
+        // the final callback would free the subscription object.
     }
-
     ebpf_lock_unlock(&subscription->lock, lock_state);
+
     if (free_subscription)
         _ebpf_ring_buffer_free_subscription(subscription);
 
