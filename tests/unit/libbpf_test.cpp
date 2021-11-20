@@ -410,7 +410,7 @@ _ebpf_test_tail_call(_In_z_ const char* filename, int expected_result)
     REQUIRE(canary_map_fd >= 0);
 
     // First do some negative tests.
-    int index = 1;
+    int index = 10;
     error = bpf_map_update_elem(map_fd, (uint8_t*)&index, (uint8_t*)&callee_fd, 0);
     REQUIRE(error < 0);
     REQUIRE(errno == -error);
@@ -421,6 +421,7 @@ _ebpf_test_tail_call(_In_z_ const char* filename, int expected_result)
     REQUIRE(errno == -error);
 
     // Finally store the correct program fd.
+    index = 9;
     error = bpf_map_update_elem(map_fd, (uint8_t*)&index, (uint8_t*)&callee_fd, 0);
     REQUIRE(error == 0);
 

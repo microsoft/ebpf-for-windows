@@ -400,9 +400,6 @@ _update_array_map_entry_with_handle(
     if (index >= map->ebpf_map_definition.max_entries)
         return EBPF_INVALID_ARGUMENT;
 
-    // The following addition is safe since it was checked during map creation.
-    size_t actual_value_size = ((size_t)map->ebpf_map_definition.value_size) + sizeof(struct _ebpf_object*);
-
     ebpf_result_t result = EBPF_SUCCESS;
 
     ebpf_lock_state_t lock_state = ebpf_lock_lock(&map->lock);
@@ -414,7 +411,7 @@ _update_array_map_entry_with_handle(
     }
 
     // Release the reference on the old ID stored here, if any.
-    uint8_t* entry = &map->data[*key * actual_value_size];
+    uint8_t* entry = &map->data[*key * map->ebpf_map_definition.value_size];
     ebpf_id_t old_id = *(ebpf_id_t*)entry;
     if (old_id) {
         ebpf_object_dereference_by_id(old_id, value_type);
