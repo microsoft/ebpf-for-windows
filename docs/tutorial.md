@@ -31,8 +31,10 @@ anything.
 **Step 2)** Compile optimized code with clang as follows:
 
 ```
-> clang -target bpf -Werror -O2 -c bpf.c -o bpf.o
+> clang -I ../../include -target bpf -Werror -O2 -c bpf.c -o bpf.o
 ```
+
+but replace `../../include` with the path to the ebpf-for-windows ./include directory.
 
 This will compile bpf.c (into bpf.o in this example) using bpf as the assembly format,
 since eBPF has its own [instruction set architecture (ISA)](https://github.com/iovisor/bpf-docs/blob/master/eBPF.md).
@@ -61,7 +63,7 @@ for this walkthrough we will put the result into a separate .o file,
 bpf-d.o in this example:
 
 ```
-> clang -target bpf -Werror -g -O2 -c bpf.c -o bpf-d.o
+> clang -I ../../include -target bpf -Werror -g -O2 -c bpf.c -o bpf-d.o
 ```
 
 
@@ -264,20 +266,20 @@ the directory you used for part 1:
 
              Section    Type  # Maps    Size
 ====================  ======  ======  ======
-               .text       1       0       2
+               .text     xdp       0       2
 
 > netsh ebpf show sections bpf-d.o
 
              Section    Type  # Maps    Size
 ====================  ======  ======  ======
-               .text       1       0       2
+               .text     xdp       0       2
 
 > netsh ebpf show sections bpf2.o
 
              Section    Type  # Maps    Size
 ====================  ======  ======  ======
-              myprog       1       0       2
-             another       1       0       2
+              myprog     xdp       0       2
+             another     xdp       0       2
 ```
 
 Notice that it only lists non-empty TEXT sections, whereas `llvm-objdump -h`
@@ -294,6 +296,7 @@ things out for readability, but feel free to abbreviate to save typing.
 > netsh ebpf show verification bpf.o
 
 Verification succeeded
+Program terminates within 6 instructions
 ```
 
 The verification command succeeded because there was only one
@@ -305,6 +308,7 @@ multiple such sections, we get this:
 > netsh ebpf show verification bpf2.o
 
 Verification succeeded
+Program terminates within 6 instructions
 ```
 
 This is because the verifier ran on the *first* eBPF program it found,
@@ -315,10 +319,12 @@ specify the section to use as follows:
 > netsh ebpf show verification bpf2.o myprog
 
 Verification succeeded
+Program terminates within 6 instructions
 
 > netsh ebpf show verification bpf2.o another
 
 Verification succeeded
+Program terminates within 6 instructions
 ```
 
 **Step 2)** View disassembly
@@ -355,7 +361,7 @@ verification process, using the "level=verbose" option to "show section":
 > netsh ebpf show section bpf.o .text verbose
 
 Section      : .text
-Program Type : 1
+Program Type : xdp
 # Maps       : 0
 Size         : 2 instructions
 adjust_head  : 0
@@ -389,52 +395,90 @@ using the "level=verbose" option to "show verification":
 ```
 > netsh ebpf show verification bpf.o level=verbose
 
-Preconditions : {r10.value=[512, 2147418112], r10.offset=[512], r10.type=stack_pointer, r1.value=[1, 2147418112], r1.offset=[0], r1.type=ctx_pointer, packet_size=[0, 65534], meta_offset=[-4098, 0], instruction_count=[0]
- }
+Pre-invariant : [
+    instruction_count=0,
+    meta_offset=[-4098, 0],
+    packet_size=[0, 65534],
+    r1.offset=0, r1.type=ctx, r1.value=[1, 2147418112],
+    r10.offset=512, r10.region_size=512, r10.type=stack, r10.value=[512, 2147418112]]
 Stack: Numbers -> {}
 entry:
   goto 0;
 
-Postconditions: {r10.value=[512, 2147418112], r10.offset=[512], r10.type=stack_pointer, r1.value=[1, 2147418112], r1.offset=[0], r1.type=ctx_pointer, packet_size=[0, 65534], meta_offset=[-4098, 0], instruction_count=[1]
- }
+Post-invariant: [
+    instruction_count=1,
+    meta_offset=[-4098, 0],
+    packet_size=[0, 65534],
+    r1.offset=0, r1.type=ctx, r1.value=[1, 2147418112],
+    r10.offset=512, r10.region_size=512, r10.type=stack, r10.value=[512, 2147418112]]
 Stack: Numbers -> {}
 
-Preconditions : {r10.value=[512, 2147418112], r10.offset=[512], r10.type=stack_pointer, r1.value=[1, 2147418112], r1.offset=[0], r1.type=ctx_pointer, packet_size=[0, 65534], meta_offset=[-4098, 0], instruction_count=[1]
- }
+Pre-invariant : [
+    instruction_count=1,
+    meta_offset=[-4098, 0],
+    packet_size=[0, 65534],
+    r1.offset=0, r1.type=ctx, r1.value=[1, 2147418112],
+    r10.offset=512, r10.region_size=512, r10.type=stack, r10.value=[512, 2147418112]]
 Stack: Numbers -> {}
 0:
   r0 = 0;
   goto 1;
 
-Postconditions: {r10.value=[512, 2147418112], r10.offset=[512], r10.type=stack_pointer, r1.value=[1, 2147418112], r1.offset=[0], r1.type=ctx_pointer, packet_size=[0, 65534], meta_offset=[-4098, 0], instruction_count=[3], r0.value=[0], r0.type=number
- }
+Post-invariant: [
+    instruction_count=3,
+    meta_offset=[-4098, 0],
+    packet_size=[0, 65534],
+    r0.type=number, r0.value=0,
+    r1.offset=0, r1.type=ctx, r1.value=[1, 2147418112],
+    r10.offset=512, r10.region_size=512, r10.type=stack, r10.value=[512, 2147418112]]
 Stack: Numbers -> {}
 
-Preconditions : {r10.value=[512, 2147418112], r10.offset=[512], r10.type=stack_pointer, r1.value=[1, 2147418112], r1.offset=[0], r1.type=ctx_pointer, packet_size=[0, 65534], meta_offset=[-4098, 0], instruction_count=[3], r0.value=[0], r0.type=number
- }
+Pre-invariant : [
+    instruction_count=3,
+    meta_offset=[-4098, 0],
+    packet_size=[0, 65534],
+    r0.type=number, r0.value=0,
+    r1.offset=0, r1.type=ctx, r1.value=[1, 2147418112],
+    r10.offset=512, r10.region_size=512, r10.type=stack, r10.value=[512, 2147418112]]
 Stack: Numbers -> {}
 1:
-  assert r0 is number;
+  assert r0.type == number;
   exit;
   goto exit;
 
-Postconditions: {r10.value=[512, 2147418112], r10.offset=[512], r10.type=stack_pointer, r1.value=[1, 2147418112], r1.offset=[0], r1.type=ctx_pointer, packet_size=[0, 65534], meta_offset=[-4098, 0], instruction_count=[6], r0.value=[0], r0.type=number
- }
+Post-invariant: [
+    instruction_count=6,
+    meta_offset=[-4098, 0],
+    packet_size=[0, 65534],
+    r0.type=number, r0.value=0,
+    r1.offset=0, r1.type=ctx, r1.value=[1, 2147418112],
+    r10.offset=512, r10.region_size=512, r10.type=stack, r10.value=[512, 2147418112]]
 Stack: Numbers -> {}
 
-Preconditions : {r10.value=[512, 2147418112], r10.offset=[512], r10.type=stack_pointer, r1.value=[1, 2147418112], r1.offset=[0], r1.type=ctx_pointer, packet_size=[0, 65534], meta_offset=[-4098, 0], instruction_count=[6], r0.value=[0], r0.type=number
- }
+Pre-invariant : [
+    instruction_count=6,
+    meta_offset=[-4098, 0],
+    packet_size=[0, 65534],
+    r0.type=number, r0.value=0,
+    r1.offset=0, r1.type=ctx, r1.value=[1, 2147418112],
+    r10.offset=512, r10.region_size=512, r10.type=stack, r10.value=[512, 2147418112]]
 Stack: Numbers -> {}
 exit:
 
 
-Postconditions: {r10.value=[512, 2147418112], r10.offset=[512], r10.type=stack_pointer, r1.value=[1, 2147418112], r1.offset=[0], r1.type=ctx_pointer, packet_size=[0, 65534], meta_offset=[-4098, 0], instruction_count=[7], r0.value=[0], r0.type=number
- }
+Post-invariant: [
+    instruction_count=7,
+    meta_offset=[-4098, 0],
+    packet_size=[0, 65534],
+    r0.type=number, r0.value=0,
+    r1.offset=0, r1.type=ctx, r1.value=[1, 2147418112],
+    r10.offset=512, r10.region_size=512, r10.type=stack, r10.value=[512, 2147418112]]
 Stack: Numbers -> {}
 
 
-0 errors
 Verification succeeded
+Program terminates within 6 instructions
+
 ```
 
 Normally we wouldn't need to do this, but it is illustrative to see how the
@@ -448,7 +492,11 @@ pointer, r0 is used for return values, r1-5 are used to pass args to other
 functions, r6 is the 'ctx' pointer, etc.
 
 "meta_offset" is the number of bytes of packet metadata preceding (i.e.,
-with negative offset from) the start of the packet buffer.
+with negative offset from) the start of the packet buffer, packet_size
+shows the range of sizes that the packet is known to fall within. Looking
+at the last Post-invariant, we see that r0 contains the number 0, r0
+contains a pointer to the ctx (context) with offset 0, r10 points to the
+top of the stack, and nothing is known about the contents of the stack.
 
 # 6. Advanced Topics
 
@@ -474,59 +522,66 @@ structure which contains an arbitrary amount of data.  (Tail calls to
 programs can have more than one argument, but hooks put all the info in a
 hook-specific context structure passed as one argument.)
 
-Let's say that the "xdp" hook point has the following prototype:
+The "xdp" hook point has the following prototype in `ebpf_nethooks.h`:
 
 ```
-// xdp.h
-#include <stdint.h>
-
-typedef struct _ebpf_xdp_args
+typedef struct xdp_md
 {
-    void* data;
-    void* data_end;
-    uint64_t data_meta;
-} ebpf_xdp_args_t;
+    void* data;               // Pointer to start of packet data.
+    void* data_end;           // Pointer to end of packet data.
+    uint64_t data_meta;       // Packet metadata.
+    uint32_t ingress_ifindex; // Ingress interface index.
+} xdp_md_t;
 
-typedef int (*xdp_callout)(ebpf_xdp_args_t* args);
+typedef enum _xdp_action
+{
+    XDP_PASS = 1, // Allow the packet to pass.
+    XDP_DROP,     // Drop the packet.
+    XDP_TX        // Bounce the received packet back out the same NIC it arrived on.
+} xdp_action_t;
+
+typedef xdp_action_t xdp_hook_t(xdp_md_t* context);
 ```
 
 A sample eBPF program might look like this:
 
 ```
-#include "xdp.h"
+#include "bpf_helpers.h"
+#include "ebpf_nethooks.h"
 
 // Put "xdp" in the section name to specify XDP as the hook.
-// The __attribute__ below has the same effect as the
+// The SEC macro below has the same effect as the
 // clang pragma used in section 2 of this tutorial.
-__attribute__((section("xdp"), used))
-int my_xdp_parser(ebpf_xdp_args_t* args)
+SEC("xdp")
+int my_xdp_parser(xdp_md_t* ctx)
 {
-    int length = (char *)args->data_end - (char *)args->data;
+    int length = (char *)ctx->data_end - (char *)ctx->data;
 
     if (length > 1) {
-        return 1; // allow
+        return XDP_PASS;
     }
-    return 0;     // block
+    return XDP_DROP;
 }
 ```
 
 The verifier needs to be enlightened with the same prototype or all
 programs written for that hook will fail verification.  For Windows,
-this info is temporarily in the [windows_platform.cpp](../libs/api/windows_platform.cpp) file,
+this info is currently in the [windows_platform_common.cpp](../libs/api_common/windows_platform_common.cpp) file,
 which for the above prototype might have:
 
 ```
 const EbpfContextDescriptor g_xdp_context_descriptor = {
-    24, // Size of ctx struct.
-    0,  // Offset into ctx struct of pointer to data, or -1 if none.
-    8,  // Offset into ctx struct of pointer to end of data, or -1 if none.
-    16, // Offset into ctx struct of pointer to metadata, or -1 if none.
-};
+    sizeof(xdp_md_t),
+    EBPF_OFFSET_OF(xdp_md_t, data),
+    EBPF_OFFSET_OF(xdp_md_t, data_end),
+    EBPF_OFFSET_OF(xdp_md_t, data_meta)};
+
+const ebpf_windows_program_type_data_t windows_xdp_program_type_data = {EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP};
 
 const EbpfProgramType windows_xdp_program_type =
     PTYPE("xdp",    // Just for printing messages to users.
           &g_xdp_context_descriptor,
-          EBPF_PROG_TYPE_XDP,
+          (uint64_t)&windows_xdp_program_type_data,
           {"xdp"}); // Set of section name prefixes for matching.
 ```
 
@@ -542,14 +597,15 @@ With the above, our sample program will pass verification:
 > netsh ebpf show verification myxdp.o
 
 Verification succeeded
+Program terminates within 30 instructions
 ```
 
 What would have happened had the prototype not matched?  Let's say the
-verifier is the same as above but xdp.h instead had a different struct
+verifier is the same as above but XDP instead had a different struct
 definition:
 
 ```
-typedef struct _ebpf_xdp_args
+typedef struct _xdp_md_t
 {
     uint64_t more;
     uint64_t stuff;
@@ -557,7 +613,7 @@ typedef struct _ebpf_xdp_args
     void* data;
     void* data_end;
     uint64_t data_meta;
-} ebpf_xdp_args_t;
+} xdp_md_t;
 ```
 
 Now our sample program that checks the length would now be looking for
@@ -566,24 +622,22 @@ thinks the context structure size is, and the verifier fails the program:
 
 ```
 > netsh ebpf show verification myxdp.o
-error: Verification failed
+Verification failed
 
 Verification report:
 
-0: r2 = *(u64 *)(r1 + 24)
-  assertion failed: Upper bound must be at most 24 (valid_access(r1, 24:8))
-  Code is unreachable after 0
+1: Upper bound must be at most 32 (valid_access(r1.offset+32, width=8))
 
 1 errors
 ```
 
 Notice that the verifier is complaining about access to memory pointed to
 by r1 (since the first argument is in register R1) past the end of the
-valid buffer of size 24.  This illustrates why ideally the same header
-file (xdp.h in the above example) should be used by the eBPF program,
+valid buffer of size 32.  This illustrates why ideally the same header
+file (ebpf_nethooks.h in the above example) should be used by the eBPF program,
 the component exposing the hook, and the verifier itself, e.g., so that
-the size of the context struct could be `sizeof(ebpf_xdp_args_t)`
-rather than hardcoding the number 24 in the above example.
+the size of the context struct could be `sizeof(xdp_md_t)`
+rather than hardcoding the number 32 in the above example.
 
 ## 6.2. Helper functions and arguments
 
@@ -596,17 +650,15 @@ can vary by platform.  For comparison, helpers for Linux are documented in the
 Let's say the following helper function prototype is exposed by Windows:
 
 ```
-// helpers.h
-#include <stdint.h>
-struct bpf_map;
-static int (*bpf_map_update_elem)(struct bpf_map* map, const void* key, const void* value, uint64_t flags) = (void*) 2;
+#define EBPF_HELPER(return_type, name, args) typedef return_type(*name##_t) args
+EBPF_HELPER(int64_t, bpf_map_update_elem, (struct bpf_map * map, void* key, void* value, uint64_t flags));
 ```
 
 We'll cover in section 6.3 what this function does, but for now we only care about the prototype.
 We can create a sample (but, as we will see, invalid) program like so:
 
 ```
-#include "helpers.h"
+#include "bpf_helpers.h"
 
 int func()
 {
@@ -619,7 +671,7 @@ Let's compile it and see what it looks like.   Here we compile with `-g`
 to include source line info:
 
 ```
-> clang -target bpf -Werror -g -O2 -c helpers.c -o helpers.o
+> clang -I ../../include -target bpf -Werror -g -O2 -c helpers.c -o helpers.o
 
 > llvm-objdump --triple bpf -S helpers.o
 
@@ -645,27 +697,18 @@ value in a pointer argument).
 
 The verifier calls into a `get_helper_prototype(2)` API exposed by
 platform-specific code to query the prototype for a given helper function.
-The platform-specific code ([windows_helpers.cpp](../libs/api/windows_helpers.cpp)) will return an entry like this one:
+The platform-specific code ([ebpf_general_helpers.cpp](../libs/execution_context/ebpf_general_helpers.cpp))
+will return an entry like this one:
 
 ```
-    {// long ebpf_map_update_element(struct ebpf_map *map, const void *key,  const
-     // void *value, uint64_t flags);
-     .name = "ebpf_map_update_element",
-     .return_type = EbpfHelperReturnType::INTEGER,
-     .argument_type =
-         {
-             EbpfHelperArgumentType::PTR_TO_MAP,
-             EbpfHelperArgumentType::PTR_TO_MAP_KEY,
-             EbpfHelperArgumentType::PTR_TO_MAP_VALUE,
-             EbpfHelperArgumentType::ANYTHING,
-             EbpfHelperArgumentType::DONTCARE,
-         }},
+    {BPF_FUNC_map_update_elem,
+     "bpf_map_update_elem",
+     EBPF_RETURN_TYPE_INTEGER,
+     {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_VALUE}},
 ```
 
 The above helps the verifier know the type and semantics of the arguments
-and the return value.  It again illustrates some aliases, where
-"bpf_map" is an alias of "ebpf_map" and "bpf_map_update_elem" is an alias
-of "ebpf_map_update_element".
+and the return value.
 
 ```
 > netsh ebpf show disassembly helpers.o
@@ -673,20 +716,21 @@ of "ebpf_map_update_element".
        1:       r2 = 0
        2:       r3 = 0
        3:       r4 = 0
-       4:       r0 = ebpf_map_update_element:2(map_fd r1, map_key r2, map_value r3, uint64_t r4)
+       4:       r0 = bpf_map_update_elem:2(map_fd r1, map_key r2, map_value r3)
        5:       exit
 
 > netsh ebpf show verification helpers.o
-
-error: Verification failed
+Verification failed
 
 Verification report:
 
-4: r0 = ebpf_map_update_element:2(map_fd r1, map_key r2, map_value r3, uint64_t r4)
-  assertion failed: r1 is map_fd
-  Code is unreachable after 4
+4: r1.type == map_fd
+4: r2.type in {stack, packet}
+4: Map key size is not singleton
+4: r3.type in {stack, packet}
+4: Map value size is not singleton
 
-1 errors
+5 errors
 ```
 
 As shown above, the verifier understands the function name and prototype,
@@ -702,7 +746,7 @@ happens if we didn't compile with `-O2`?  The disassembly looks instead
 like this:
 
 ```
-> clang -target bpf -Werror -g -c helpers.c -o helpers.o
+> clang -I ../../include -target bpf -Werror -g -c helpers.c -o helpers.o
 
 > llvm-objdump --triple bpf -S helpers.o
 
@@ -777,7 +821,7 @@ To see how maps are exposed to eBPF programs, let's first start from a
 plain eBPF program:
 
 ```
-__attribute__((section("myprog"), used))
+SEC("myprog")
 int func()
 {
     return 0;
@@ -792,22 +836,13 @@ CPUs.
 
 
 ```
-#include <stdint.h>
+#include "../../include/bpf_helpers.h"
 
-struct bpf_map {
-    uint32_t size;
-    uint32_t type;
-    uint32_t key_size;
-    uint32_t value_size;
-    uint32_t max_entries;
-};
-#define BPF_MAP_TYPE_PERCPU_ARRAY 1
-
-__attribute__((section("maps"), used))
+SEC("maps")
 struct bpf_map map =
     {sizeof(struct bpf_map), BPF_MAP_TYPE_PERCPU_ARRAY, 2, 4, 512};
 
-__attribute__((section("myprog"), used))
+SEC("myprog")
 int func()
 {
     return 0;
@@ -821,7 +856,7 @@ using the map parameters specified.  We can see the fields encoded
 into the `maps` section as follows:
 
 ```
-> clang -target bpf -Werror -g -O2 -c maponly.c -o maponly.o
+> clang -I ../../include -target bpf -Werror -g -O2 -c maponly.c -o maponly.o
 > llvm-objdump -s -section maps maponly.o
 
 maponly.o:      file format ELF64-BPF
@@ -841,9 +876,9 @@ int bpf_map_delete_elem(struct bpf_map* map, const void* key);
 Let's update the program to write the value "42" to the map section for the
 current CPU, by changing the "myprog" section to the following:
 ```
-static int (*bpf_map_update_elem)(struct bpf_map *map, const void *key, const void *value, uint64_t flags) = (void*) 2;
+#include "bpf_helpers.h"
 
-__attribute__((section("myprog"), used))
+SEC("myprog")
 int func1()
 {
     uint32_t key = 0;
@@ -892,22 +927,19 @@ Above shows "call 2", but `netsh` shows more details
        5:       r2 += -4
        6:       r3 = r10
        7:       r3 += -8
-       8:       r1 = map_fd 1026
+       8:       r1 = map_fd 1
       10:       r4 = 0
-      11:       r0 = ebpf_map_update_element:2(map_fd r1, map_key r2, map_value r3, uint64_t r4)
+      11:       r0 = bpf_map_update_elem:2(map_fd r1, map_key r2, map_value r3)
       12:       exit
 ````
 
-Notice from instruction 11 that `netsh` understands that
-`ebpf_map_update_element()` (an alias of `bpf_map_update_elem()`) expects
-a map file descriptor (FD) in R1, a map key in R2, a map value in R3, and R4 can be
-anything.
+Notice from instruction 11 that `netsh` understands that `bpf_map_update_elem()` expects
+a map file descriptor (FD) in R1, a map key in R2, and a map value in R3.
 
-R1 was set in instruction 8 to a map FD value of 1026.  Where did that value
+R1 was set in instruction 8 to a map FD value of 1.  Where did that value
 come from, since the llvm-objdump disassembly didn't have it?  The
 create_map_crab() function in the Prevail verifier creates a dummy value
-based on (value_size * 256) + key_size.  Since we passed
-value_size = 4 and key_size = 2, this gives us 1026.  When installed,
+starting at 1.  When loaded into an execution context,
 this value gets replaced with a real map address.  Let's see how that happens.
 
 Now that we're actually using the map, rather than just defining it,
