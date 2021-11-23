@@ -85,10 +85,9 @@ class duplicate_handles_table_t
             shutting_down = true;
         }
         ebpf_lock_unlock(&lock, state);
-        if (duplicates_pending) {
+        if (duplicates_pending)
             // Wait for at most 1 second for all duplicate handles to be closed.
             REQUIRE(all_duplicate_handles_closed_callback.wait_for(1s) == std::future_status::ready);
-        }
     }
 
   private:

@@ -20,17 +20,9 @@ ebpf_test_pinned_map_enum();
 void
 verify_utility_helper_results(_In_ const bpf_object* object);
 
-typedef struct _ring_buffer_test_event_context
-{
-    std::promise<void>* ring_buffer_event_promise;
-    std::vector<std::vector<char>>* records;
-    bool canceled;
-    int matched_entry_count;
-} ring_buffer_test_event_context_t;
-
 int
 ring_buffer_test_event_handler(_In_ void* ctx, _In_opt_ void* data, size_t size);
 
 void
 ring_buffer_api_test_helper(
-    fd_t ring_buffer_map, std::vector<std::vector<char>> expected_records, std::function<void(int)> generate_event);
+    fd_t ring_buffer_map, std::vector<std::vector<char>>& expected_records, std::function<void(int)> generate_event);

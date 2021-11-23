@@ -91,6 +91,30 @@ verify_utility_helper_results(_In_ const bpf_object* object)
         (test_data[1].timestamp - test_data[0].timestamp));
 }
 
+typedef struct _ring_buffer_test_event_context
+{
+    std::promise<void> ring_buffer_event_promise;
+    struct ring_buffer* ring_buffer;
+    std::vector<std::vector<char>>* records;
+    bool canceled;
+    int matched_entry_count;
+    _ring_buffer_test_event_context() : ring_buffer(nullptr), records(nullptr), canceled(false), matched_entry_count(0)
+    {}
+    ~_ring_buffer_test_event_context()
+    {
+        if (ring_buffer != nullptr)
+            ring_buffer__free(ring_buffer);
+    }
+    void
+    unsubscribe()
+    {
+        struct ring_buffer* temp = ring_buffer;
+        ring_buffer = nullptr;
+        // Unsubscribe.
+        ring_buffer__free(temp);
+    }
+} ring_buffer_test_event_context_t;
+
 int
 ring_buffer_test_event_handler(_In_ void* ctx, _In_opt_ void* data, size_t size)
 {
@@ -118,17 +142,14 @@ ring_buffer_test_event_handler(_In_ void* ctx, _In_opt_ void* data, size_t size)
         event_context->matched_entry_count++;
     if (event_context->matched_entry_count == RING_BUFFER_TEST_EVENT_COUNT) {
         // If all the entries in the app ID list was found, fulfill the promise.
-        auto promise = event_context->ring_buffer_event_promise;
-        promise->set_value();
+        event_context->ring_buffer_event_promise.set_value();
     }
     return 0;
 }
 
-typedef struct _ebpf_ring_buffer_subscription ring_buffer_subscription_t;
-
 void
 ring_buffer_api_test_helper(
-    fd_t ring_buffer_map, std::vector<std::vector<char>> expected_records, std::function<void(int)> generate_event)
+    fd_t ring_buffer_map, std::vector<std::vector<char>>& expected_records, std::function<void(int)> generate_event)
 {
     // Ring buffer event callback context.
     std::unique_ptr<ring_buffer_test_event_context_t> context = std::make_unique<ring_buffer_test_event_context_t>();
@@ -141,17 +162,13 @@ ring_buffer_api_test_helper(
         generate_event(i);
     }
 
-    // Associate a promise object with ring buffer event context, which should be completed
+    // Get the std::future from the promise field in ring buffer event context, which should be in ready state
     // once notifications for all events are received.
-    std::promise<void> ring_buffer_event_promise;
-    auto ring_buffer_event_callback = ring_buffer_event_promise.get_future();
-    context->ring_buffer_event_promise = &ring_buffer_event_promise;
+    auto ring_buffer_event_callback = context->ring_buffer_event_promise.get_future();
 
     // Create a new ring buffer manager and subscribe to ring buffer events.
     // The notifications for the events that were generated before should occur after the subscribe call.
-    struct ring_buffer* ring_buffer =
-        ring_buffer__new(ring_buffer_map, ring_buffer_test_event_handler, context.get(), nullptr);
-    REQUIRE(ring_buffer != nullptr);
+    context->ring_buffer = ring_buffer__new(ring_buffer_map, ring_buffer_test_event_handler, context.get(), nullptr);
 
     // Generate more events, post-subscription.
     for (int i = RING_BUFFER_TEST_EVENT_COUNT / 2; i < RING_BUFFER_TEST_EVENT_COUNT; i++) {
@@ -161,12 +178,12 @@ ring_buffer_api_test_helper(
     // Wait for event handler getting notifications for all RING_BUFFER_TEST_EVENT_COUNT events.
     REQUIRE(ring_buffer_event_callback.wait_for(1s) == std::future_status::ready);
 
-    // Mark the event context as canceled, such that the loop stops processing events.
+    // Mark the event context as canceled, such that the event callback stops processing events.
     context->canceled = true;
 
     // Release the raw pointer such that the final callback frees the callback context.
-    context.release();
+    ring_buffer_test_event_context_t* raw_context = context.release();
 
     // Unsubscribe.
-    ring_buffer__free(ring_buffer);
+    raw_context->unsubscribe();
 }

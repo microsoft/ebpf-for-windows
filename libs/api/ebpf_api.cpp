@@ -2392,6 +2392,7 @@ _ebpf_ring_buffer_map_async_query_completion(_Inout_opt_ void* completion_contex
         EBPF_OPERATION_RING_BUFFER_MAP_ASYNC_QUERY,
         subscription->ring_buffer_map_handle,
         consumer};
+    memset(&subscription->reply, 0, sizeof(ebpf_operation_ring_buffer_map_async_query_reply_t));
     result = win32_error_code_to_ebpf_result(invoke_ioctl(
         async_query_request,
         subscription->reply,

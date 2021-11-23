@@ -1336,8 +1336,6 @@ ebpf_ring_buffer_map_async_query(
     ebpf_result_t result = EBPF_PENDING;
     EBPF_LOG_ENTRY();
 
-    ebpf_ring_buffer_query(
-        (ebpf_ring_buffer_t*)map->data, &async_query_result->consumer, &async_query_result->producer);
     ebpf_core_ring_buffer_map_t* ring_buffer_map = EBPF_FROM_FIELD(ebpf_core_ring_buffer_map_t, core_map, map);
 
     ebpf_lock_state_t state = ebpf_lock_lock(&ring_buffer_map->core_map.lock);
@@ -1366,6 +1364,9 @@ ebpf_ring_buffer_map_async_query(
     ring_buffer_map->async_contexts_trip_wire = true;
 
     // If there is already some data available in the ring buffer, indicate the results right away.
+    ebpf_ring_buffer_query(
+        (ebpf_ring_buffer_t*)map->data, &async_query_result->consumer, &async_query_result->producer);
+
     if (async_query_result->producer != async_query_result->consumer)
         _ebpf_ring_buffer_map_signal_async_query_complete(ring_buffer_map);
 
