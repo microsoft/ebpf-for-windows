@@ -22,7 +22,7 @@ typedef enum bpf_map_type
     BPF_MAP_TYPE_HASH_OF_MAPS = 6,     ///< Hash table, where the map value is another map.
     BPF_MAP_TYPE_ARRAY_OF_MAPS = 7,    ///< Array, where the map value is another map.
     BPF_MAP_TYPE_LRU_HASH = 8,         ///< Least-recently-used hash table.
-    BPF_MAP_TYPE_LPM_TRIE = 9,         ///< Longest prefix match table.
+    BPF_MAP_TYPE_LPM_TRIE = 9,         ///< Longest prefix match trie.
     BPF_MAP_TYPE_QUEUE = 10,           ///< Queue.
     BPF_MAP_TYPE_LRU_PERCPU_HASH = 11, ///< Per-CPU least-recently-used hash table.
     BPF_MAP_TYPE_STACK = 12,           ///< Stack.
