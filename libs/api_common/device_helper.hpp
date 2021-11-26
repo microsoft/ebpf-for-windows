@@ -41,7 +41,10 @@ ebpf_result_t
 initialize_async_ioctl_operation(
     _Inout_opt_ void* callback_context,
     _In_ const async_ioctl_completion_callback_t callback,
-    _Outptr_ async_ioctl_completion_t** ioctl_completion);
+    _Outptr_ async_ioctl_completion_t** async_ioctl_completion);
+
+ebpf_result_t
+register_wait_async_ioctl_operation(_Inout_ async_ioctl_completion_t* async_ioctl_completion);
 
 void
 cleanup_async_ioctl_completion(_Inout_opt_ _Post_invalid_ async_ioctl_completion_t* async_ioctl_completion);

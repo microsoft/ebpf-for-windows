@@ -2279,6 +2279,7 @@ _ebpf_ring_buffer_free_subscription(_Inout_ _Post_invalid_ ebpf_ring_buffer_subs
         Platform::CloseHandle(subscription->ring_buffer_map_handle);
     ebpf_lock_destroy(&subscription->lock);
     free(subscription);
+    EBPF_LOG_EXIT();
 }
 
 struct ebpf_ring_buffer_free_subscription
@@ -2376,17 +2377,12 @@ _ebpf_ring_buffer_map_async_query_completion(_Inout_opt_ void* completion_contex
     // If still subscribed, post the next async IOCTL call while holding the lock. It is safe to do so as the async call
     // is not blocking.
 
-    // Clean up the old async IOCTL completion context and create a new one.
-    async_ioctl_completion_t* old_ioctl_completion = subscription->async_ioctl_completion;
-    async_ioctl_completion_t* new_ioctl_completion = nullptr;
-    result = initialize_async_ioctl_operation(
-        subscription, _ebpf_ring_buffer_map_async_query_completion, &new_ioctl_completion);
+    // First, register wait for the new async IOCTL operation completion.
+    result = register_wait_async_ioctl_operation(subscription->async_ioctl_completion);
     if (result != EBPF_SUCCESS)
         EBPF_RETURN_RESULT(result);
-    subscription->async_ioctl_completion = new_ioctl_completion;
-    cleanup_async_ioctl_completion(old_ioctl_completion);
 
-    // Re-issue another async query IOCTL for ring buffer map events.
+    // Then, post the async IOCTL.
     ebpf_operation_ring_buffer_map_async_query_request_t async_query_request{
         sizeof(async_query_request),
         EBPF_OPERATION_RING_BUFFER_MAP_ASYNC_QUERY,

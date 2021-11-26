@@ -82,10 +82,55 @@ cleanup_async_ioctl_completion(_Inout_opt_ _Post_invalid_ async_ioctl_completion
         }
 
         if (async_ioctl_completion->overlapped.hEvent != nullptr)
-            CloseHandle(async_ioctl_completion->overlapped.hEvent);
+            ::CloseHandle(async_ioctl_completion->overlapped.hEvent);
 
         ebpf_free(async_ioctl_completion);
     }
+}
+
+ebpf_result_t
+register_wait_async_ioctl_operation(_Inout_ async_ioctl_completion_t* async_ioctl_completion)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+
+    EBPF_LOG_ENTRY();
+
+    // This function registers wait for the async IOCTL operation completion, by resetting
+    // the OVERLAPPED structure used for the async IOCTL, resetting the event object used in the previous call,
+    // and arming the threadpool object once more with the event handle.
+
+    // Save the overlapped event handle.
+    HANDLE event = async_ioctl_completion->overlapped.hEvent;
+
+    // Reset the overlapped object.
+    memset(&async_ioctl_completion->overlapped, 0, sizeof(OVERLAPPED));
+
+    if (event == nullptr) {
+        // Create a new event object for OVERLAPPED struct.
+        async_ioctl_completion->overlapped.hEvent = CreateEvent(nullptr, true /* manual reset */, false, nullptr);
+        if (async_ioctl_completion->overlapped.hEvent == nullptr) {
+            result = win32_error_code_to_ebpf_result(GetLastError());
+            _Analysis_assume_(result != EBPF_SUCCESS);
+            EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, CreateEvent);
+            goto Exit;
+        }
+    } else {
+        // Reset the event.
+        if (!ResetEvent(event)) {
+            result = win32_error_code_to_ebpf_result(GetLastError());
+            _Analysis_assume_(result != EBPF_SUCCESS);
+            EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, CreateEvent);
+            goto Exit;
+        }
+        async_ioctl_completion->overlapped.hEvent = event;
+    }
+
+    // Set the event on the thread-pool wait object.
+    ebpf_assert(async_ioctl_completion->wait != nullptr);
+    SetThreadpoolWait(async_ioctl_completion->wait, async_ioctl_completion->overlapped.hEvent, nullptr);
+
+Exit:
+    EBPF_RETURN_RESULT(result);
 }
 
 OVERLAPPED*
@@ -126,15 +171,6 @@ initialize_async_ioctl_operation(
     local_async_ioctl_completion->callback_context = callback_context;
     local_async_ioctl_completion->callback = callback;
 
-    // Create Event object for OVERLAPPED struct.
-    local_async_ioctl_completion->overlapped.hEvent = CreateEvent(nullptr, false, false, nullptr);
-    if (local_async_ioctl_completion->overlapped.hEvent == nullptr) {
-        result = win32_error_code_to_ebpf_result(GetLastError());
-        _Analysis_assume_(result != EBPF_SUCCESS);
-        EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, CreateEvent);
-        goto Exit;
-    }
-
     // Setup threadpool wait for the overlapped hEvent and pass the async completion context as wait callback context.
     local_async_ioctl_completion->wait = CreateThreadpoolWait(
         [](_In_ const PTP_CALLBACK_INSTANCE instance,
@@ -157,7 +193,10 @@ initialize_async_ioctl_operation(
         goto Exit;
     }
 
-    SetThreadpoolWait(local_async_ioctl_completion->wait, local_async_ioctl_completion->overlapped.hEvent, nullptr);
+    // Register for wait on the completion of the async IOCTL.
+    result = register_wait_async_ioctl_operation(local_async_ioctl_completion);
+    if (result != EBPF_SUCCESS)
+        goto Exit;
 
     *async_ioctl_completion = local_async_ioctl_completion;
 

@@ -20,10 +20,9 @@ static std::map<fd_t, ebpf_handle_t> _fd_to_handle_map;
 class duplicate_handles_table_t
 {
   public:
-    duplicate_handles_table_t()
+    duplicate_handles_table_t() : rundown_in_progress(false), all_duplicate_handles_closed(nullptr)
     {
         ebpf_lock_create(&lock);
-        shutting_down = false;
     }
     ~duplicate_handles_table_t() { ebpf_lock_destroy(&lock); }
 
@@ -32,7 +31,7 @@ class duplicate_handles_table_t
     {
         bool success = true;
         auto state = ebpf_lock_lock(&lock);
-        if (!shutting_down) {
+        if (!rundown_in_progress) {
             std::map<ebpf_handle_t, uint16_t>::iterator it = table.find(handle);
             if (it != table.end()) {
                 it->second++;
@@ -63,9 +62,10 @@ class duplicate_handles_table_t
                 table.erase(handle);
                 ebpf_api_close_handle(handle);
             }
-            if (shutting_down && table.size() == 0) {
+            if (rundown_in_progress && table.size() == 0) {
                 // All duplicate handles have been closed. Fulfill the promise.
-                all_duplicate_handles_closed.set_value();
+                REQUIRE(all_duplicate_handles_closed != nullptr);
+                all_duplicate_handles_closed->set_value();
             }
         }
 
@@ -81,21 +81,29 @@ class duplicate_handles_table_t
         bool duplicates_pending = false;
         if (table.size() > 0) {
             duplicates_pending = true;
-            all_duplicate_handles_closed_callback = all_duplicate_handles_closed.get_future();
-            shutting_down = true;
+            all_duplicate_handles_closed = new (std::nothrow) std::promise<void>();
+            REQUIRE(all_duplicate_handles_closed != nullptr);
+            all_duplicate_handles_closed_callback = all_duplicate_handles_closed->get_future();
+            rundown_in_progress = true;
         }
         ebpf_lock_unlock(&lock, state);
         if (duplicates_pending)
             // Wait for at most 1 second for all duplicate handles to be closed.
             REQUIRE(all_duplicate_handles_closed_callback.wait_for(1s) == std::future_status::ready);
+
+        state = ebpf_lock_lock(&lock);
+        rundown_in_progress = false;
+        delete all_duplicate_handles_closed;
+        all_duplicate_handles_closed = nullptr;
+        ebpf_lock_unlock(&lock, state);
     }
 
   private:
     ebpf_lock_t lock;
     // Map of handles to duplicate count.
     std::map<ebpf_handle_t, uint16_t> table;
-    std::promise<void> all_duplicate_handles_closed;
-    bool shutting_down;
+    bool rundown_in_progress;
+    std::promise<void>* all_duplicate_handles_closed;
 };
 
 static duplicate_handles_table_t _duplicate_handles;
