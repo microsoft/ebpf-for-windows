@@ -425,15 +425,24 @@ Enumerations</h2></td></tr>
 </td></tr>
 <tr><td class="fieldname"><a id="afd97ad5450067d01ec6b6cd3c30761a1ae1ec5cf07509595615d558884ba109b2"></a>BPF_MAP_TYPE_PROG_ARRAY&#160;</td><td class="fielddoc"><p>Array of program fds usable with bpf_tail_call, where the map key is the array index. </p>
 </td></tr>
-<tr><td class="fieldname"><a id="afd97ad5450067d01ec6b6cd3c30761a1aac824ca248203aa188381267bca59cc9"></a>BPF_MAP_TYPE_PERCPU_HASH&#160;</td><td class="fielddoc"></td></tr>
-<tr><td class="fieldname"><a id="afd97ad5450067d01ec6b6cd3c30761a1a2d7ebe3c4a82861bcd69b500d7f67de2"></a>BPF_MAP_TYPE_PERCPU_ARRAY&#160;</td><td class="fielddoc"></td></tr>
-<tr><td class="fieldname"><a id="afd97ad5450067d01ec6b6cd3c30761a1a6e2e8feb969aa5b9e78960e2986d6dcb"></a>BPF_MAP_TYPE_HASH_OF_MAPS&#160;</td><td class="fielddoc"></td></tr>
-<tr><td class="fieldname"><a id="afd97ad5450067d01ec6b6cd3c30761a1acb31e6ac8381a668a866a3e858a55199"></a>BPF_MAP_TYPE_ARRAY_OF_MAPS&#160;</td><td class="fielddoc"></td></tr>
-<tr><td class="fieldname"><a id="afd97ad5450067d01ec6b6cd3c30761a1a7c04b960c2f5df4afa341f56d2aded2d"></a>BPF_MAP_TYPE_LRU_HASH&#160;</td><td class="fielddoc"></td></tr>
-<tr><td class="fieldname"><a id="afd97ad5450067d01ec6b6cd3c30761a1a6d5d1b7c3c19ba3c7f5410cae73f9217"></a>BPF_MAP_TYPE_LPM_TRIE&#160;</td><td class="fielddoc"></td></tr>
-<tr><td class="fieldname"><a id="afd97ad5450067d01ec6b6cd3c30761a1a38707a4532f47ab48d8cd3bab66d57da"></a>BPF_MAP_TYPE_QUEUE&#160;</td><td class="fielddoc"></td></tr>
-<tr><td class="fieldname"><a id="afd97ad5450067d01ec6b6cd3c30761a1a50792b2295ea254d48127b85806d7a01"></a>BPF_MAP_TYPE_LRU_PERCPU_HASH&#160;</td><td class="fielddoc"></td></tr>
-<tr><td class="fieldname"><a id="afd97ad5450067d01ec6b6cd3c30761a1a21d83b1a1f388cc9c3c69e6fc8c00619"></a>BPF_MAP_TYPE_STACK&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="afd97ad5450067d01ec6b6cd3c30761a1aac824ca248203aa188381267bca59cc9"></a>BPF_MAP_TYPE_PERCPU_HASH&#160;</td><td class="fielddoc"><p>Per-CPU hash table. </p>
+</td></tr>
+<tr><td class="fieldname"><a id="afd97ad5450067d01ec6b6cd3c30761a1a2d7ebe3c4a82861bcd69b500d7f67de2"></a>BPF_MAP_TYPE_PERCPU_ARRAY&#160;</td><td class="fielddoc"><p>Per-CPU array. </p>
+</td></tr>
+<tr><td class="fieldname"><a id="afd97ad5450067d01ec6b6cd3c30761a1a6e2e8feb969aa5b9e78960e2986d6dcb"></a>BPF_MAP_TYPE_HASH_OF_MAPS&#160;</td><td class="fielddoc"><p>Hash table, where the map value is another map. </p>
+</td></tr>
+<tr><td class="fieldname"><a id="afd97ad5450067d01ec6b6cd3c30761a1acb31e6ac8381a668a866a3e858a55199"></a>BPF_MAP_TYPE_ARRAY_OF_MAPS&#160;</td><td class="fielddoc"><p>Array, where the map value is another map. </p>
+</td></tr>
+<tr><td class="fieldname"><a id="afd97ad5450067d01ec6b6cd3c30761a1a7c04b960c2f5df4afa341f56d2aded2d"></a>BPF_MAP_TYPE_LRU_HASH&#160;</td><td class="fielddoc"><p>Least-recently-used hash table. </p>
+</td></tr>
+<tr><td class="fieldname"><a id="afd97ad5450067d01ec6b6cd3c30761a1a6d5d1b7c3c19ba3c7f5410cae73f9217"></a>BPF_MAP_TYPE_LPM_TRIE&#160;</td><td class="fielddoc"><p>Longest prefix match trie. </p>
+</td></tr>
+<tr><td class="fieldname"><a id="afd97ad5450067d01ec6b6cd3c30761a1a38707a4532f47ab48d8cd3bab66d57da"></a>BPF_MAP_TYPE_QUEUE&#160;</td><td class="fielddoc"><p>Queue. </p>
+</td></tr>
+<tr><td class="fieldname"><a id="afd97ad5450067d01ec6b6cd3c30761a1a50792b2295ea254d48127b85806d7a01"></a>BPF_MAP_TYPE_LRU_PERCPU_HASH&#160;</td><td class="fielddoc"><p>Per-CPU least-recently-used hash table. </p>
+</td></tr>
+<tr><td class="fieldname"><a id="afd97ad5450067d01ec6b6cd3c30761a1a21d83b1a1f388cc9c3c69e6fc8c00619"></a>BPF_MAP_TYPE_STACK&#160;</td><td class="fielddoc"><p>Stack. </p>
+</td></tr>
 </table>
 
 </div>
@@ -495,9 +504,12 @@ Enumerations</h2></td></tr>
       </table>
 </div><div class="memdoc">
 <table class="fieldtable">
-<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="ad2aa050648c308e0be8329a2ade170fca81b09e155b84d31bab635410874a4835"></a>EBPF_ANY&#160;</td><td class="fielddoc"></td></tr>
-<tr><td class="fieldname"><a id="ad2aa050648c308e0be8329a2ade170fcafa5bcd34b76d7df6013bd9e972a2db45"></a>EBPF_NOEXIST&#160;</td><td class="fielddoc"></td></tr>
-<tr><td class="fieldname"><a id="ad2aa050648c308e0be8329a2ade170fca9ce0edc2520ca685ab2da7cf4eea5f70"></a>EBPF_EXIST&#160;</td><td class="fielddoc"></td></tr>
+<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="ad2aa050648c308e0be8329a2ade170fca81b09e155b84d31bab635410874a4835"></a>EBPF_ANY&#160;</td><td class="fielddoc"><p>Create a new element or update an existing element. </p>
+</td></tr>
+<tr><td class="fieldname"><a id="ad2aa050648c308e0be8329a2ade170fcafa5bcd34b76d7df6013bd9e972a2db45"></a>EBPF_NOEXIST&#160;</td><td class="fielddoc"><p>Create a new element only when it does not exist. </p>
+</td></tr>
+<tr><td class="fieldname"><a id="ad2aa050648c308e0be8329a2ade170fca9ce0edc2520ca685ab2da7cf4eea5f70"></a>EBPF_EXIST&#160;</td><td class="fielddoc"><p>Update an existing element. </p>
+</td></tr>
 </table>
 
 </div>
