@@ -62,11 +62,12 @@ We can see that both sections have issues.   We'll look at these one at a time.
 ```
 
 We see there are 3 instructions, numbered 0 through 2.  In eBPF programs,
-"r0" through "r10" are registers, where r10 is the stack pointer and
-r0 is used for return values. The hook context (ctx) structure
-pointer would be in r6, and at the start of the function is also in r1 since it is
-passed to the program as its first argument.  This program, however, only uses
-r1 as its input, and r0 for the return value.
+"r0" through "r10" are registers, where r0 is used for return values,
+r1 through r5 are used to pass arguments to functions, and
+r10 is the stack pointer.  This program, however, only uses
+r0 and r1, where r0 is for the return value and r1 holds
+the hook context (ctx) structure pointer it is
+passed to the program as its first argument.
 
 **Step 4)** To understand what went wrong, we can ask netsh for the verbose output by using "level=verbose":
 
@@ -287,9 +288,7 @@ We see there are 20 instructions, numbered 0 through 19.  As noted earlier,
 "r0" through "r10" are registers, where r10 is the stack pointer and
 r0 is used for return values (such as in instructions 13 and 18).
 r1 through r5 are used to pass arguments to other functions, such
-as r1 and r2 are used in instruction 13.  The hook context (ctx) structure
-pointer is in r6, and at the start of the function is also in r1 since it is
-passed to the program as its first argument.
+as r1 and r2 are used in instruction 13.
 
 The destination of jumps are shown after the goto.  For example, instruction
 3 will jump to instruction 19 if the condition is true.
