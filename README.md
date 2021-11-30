@@ -44,7 +44,7 @@ Feel free to take a look at our [Good First Issues](https://github.com/microsoft
 list if you're looking for somewhere to start.
 
 Want to chat with us?  We have a:
-* [Slack channel](https://slack.com/app_redirect?channel=ebpf-for-windows)
+* [Slack channel](https://cilium.slack.com/messages/ebpf-for-windows) (If you are new, sign up at http://slack.cilium.io/)
 * Zoom meeting for github issue triage: see [meeting info](https://github.com/microsoft/ebpf-for-windows/discussions/427)
 
 For tracking Q&A and general discussion, we use [Discussions](https://github.com/microsoft/ebpf-for-windows/discussions)
