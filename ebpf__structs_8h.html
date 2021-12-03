@@ -147,7 +147,8 @@ Enumerations</h2></td></tr>
 <a class="el" href="ebpf__structs_8h.html#afd97ad5450067d01ec6b6cd3c30761a1a38707a4532f47ab48d8cd3bab66d57da">BPF_MAP_TYPE_QUEUE</a> = 10, 
 <a class="el" href="ebpf__structs_8h.html#afd97ad5450067d01ec6b6cd3c30761a1a50792b2295ea254d48127b85806d7a01">BPF_MAP_TYPE_LRU_PERCPU_HASH</a> = 11, 
 <br />
-&#160;&#160;<a class="el" href="ebpf__structs_8h.html#afd97ad5450067d01ec6b6cd3c30761a1a21d83b1a1f388cc9c3c69e6fc8c00619">BPF_MAP_TYPE_STACK</a> = 12
+&#160;&#160;<a class="el" href="ebpf__structs_8h.html#afd97ad5450067d01ec6b6cd3c30761a1a21d83b1a1f388cc9c3c69e6fc8c00619">BPF_MAP_TYPE_STACK</a> = 12, 
+<a class="el" href="ebpf__structs_8h.html#afd97ad5450067d01ec6b6cd3c30761a1a28fe13cef2915973e91cf51c29536814">BPF_MAP_TYPE_RINGBUF</a> = 13
 <br />
  }</td></tr>
 <tr class="separator:afd97ad5450067d01ec6b6cd3c30761a1"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -174,7 +175,8 @@ Enumerations</h2></td></tr>
 <a class="el" href="ebpf__structs_8h.html#aa752b12bfaedda8a28a7a88c1b96f272a1ff4bcdf1da58693cf186a2211712bfd">BPF_FUNC_get_smp_processor_id</a> = 8, 
 <br />
 &#160;&#160;<a class="el" href="ebpf__structs_8h.html#aa752b12bfaedda8a28a7a88c1b96f272a12980dface372a7bd94731236043495e">BPF_FUNC_ktime_get_ns</a> = 9, 
-<a class="el" href="ebpf__structs_8h.html#aa752b12bfaedda8a28a7a88c1b96f272abe3e14bdf2b57c53e97bbd7ca9a37d22">BPF_FUNC_csum_diff</a> = 10
+<a class="el" href="ebpf__structs_8h.html#aa752b12bfaedda8a28a7a88c1b96f272abe3e14bdf2b57c53e97bbd7ca9a37d22">BPF_FUNC_csum_diff</a> = 10, 
+<a class="el" href="ebpf__structs_8h.html#aa752b12bfaedda8a28a7a88c1b96f272a4c14020067614befffb1cc69ef3832dd">BPF_FUNC_ringbuf_output</a> = 11
 <br />
  }</td></tr>
 <tr class="separator:aa752b12bfaedda8a28a7a88c1b96f272"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -443,6 +445,8 @@ Enumerations</h2></td></tr>
 </td></tr>
 <tr><td class="fieldname"><a id="afd97ad5450067d01ec6b6cd3c30761a1a21d83b1a1f388cc9c3c69e6fc8c00619"></a>BPF_MAP_TYPE_STACK&#160;</td><td class="fielddoc"><p>Stack. </p>
 </td></tr>
+<tr><td class="fieldname"><a id="afd97ad5450067d01ec6b6cd3c30761a1a28fe13cef2915973e91cf51c29536814"></a>BPF_MAP_TYPE_RINGBUF&#160;</td><td class="fielddoc"><p>Ring buffer. </p>
+</td></tr>
 </table>
 
 </div>
@@ -488,6 +492,7 @@ Enumerations</h2></td></tr>
 <tr><td class="fieldname"><a id="aa752b12bfaedda8a28a7a88c1b96f272a1ff4bcdf1da58693cf186a2211712bfd"></a>BPF_FUNC_get_smp_processor_id&#160;</td><td class="fielddoc"></td></tr>
 <tr><td class="fieldname"><a id="aa752b12bfaedda8a28a7a88c1b96f272a12980dface372a7bd94731236043495e"></a>BPF_FUNC_ktime_get_ns&#160;</td><td class="fielddoc"></td></tr>
 <tr><td class="fieldname"><a id="aa752b12bfaedda8a28a7a88c1b96f272abe3e14bdf2b57c53e97bbd7ca9a37d22"></a>BPF_FUNC_csum_diff&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="aa752b12bfaedda8a28a7a88c1b96f272a4c14020067614befffb1cc69ef3832dd"></a>BPF_FUNC_ringbuf_output&#160;</td><td class="fielddoc"></td></tr>
 </table>
 
 </div>

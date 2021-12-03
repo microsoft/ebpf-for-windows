@@ -226,6 +226,12 @@ Functions</h2></td></tr>
 <tr class="memitem:a952441cb1b1f252e10b100c2657e6242"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a952441cb1b1f252e10b100c2657e6242">libbpf_num_possible_cpus</a> (void)</td></tr>
 <tr class="memdesc:a952441cb1b1f252e10b100c2657e6242"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the number of processors on the current system.  <a href="libbpf_8h.html#a952441cb1b1f252e10b100c2657e6242">More...</a><br /></td></tr>
 <tr class="separator:a952441cb1b1f252e10b100c2657e6242"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aee16f65187ecdf7f55eccf24c6b4d138"><td class="memItemLeft" align="right" valign="top">struct ring_buffer *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#aee16f65187ecdf7f55eccf24c6b4d138">ring_buffer__new</a> (int map_fd, ring_buffer_sample_fn sample_cb, void *ctx, const struct ring_buffer_opts *opts)</td></tr>
+<tr class="memdesc:aee16f65187ecdf7f55eccf24c6b4d138"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a new ring buffer manager.  <a href="libbpf_8h.html#aee16f65187ecdf7f55eccf24c6b4d138">More...</a><br /></td></tr>
+<tr class="separator:aee16f65187ecdf7f55eccf24c6b4d138"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5ede3a39d4e4a364fac4155aca3303cc"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a5ede3a39d4e4a364fac4155aca3303cc">ring_buffer__free</a> (struct ring_buffer *rb)</td></tr>
+<tr class="memdesc:a5ede3a39d4e4a364fac4155aca3303cc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Frees a new ring buffer manager.  <a href="libbpf_8h.html#a5ede3a39d4e4a364fac4155aca3303cc">More...</a><br /></td></tr>
+<tr class="separator:a5ede3a39d4e4a364fac4155aca3303cc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Function Documentation</h2>
 <a id="ab10dd31881e90cb8ba93ffb77b92308b"></a>
@@ -2121,6 +2127,84 @@ bpf_object__unpin </dd></dl>
   </table>
   </dd>
 </dl>
+
+</div>
+</div>
+<a id="a5ede3a39d4e4a364fac4155aca3303cc"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a5ede3a39d4e4a364fac4155aca3303cc">&#9670;&nbsp;</a></span>ring_buffer__free()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void ring_buffer__free </td>
+          <td>(</td>
+          <td class="paramtype">struct ring_buffer *&#160;</td>
+          <td class="paramname"><em>rb</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Frees a new ring buffer manager. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">rb</td><td>Pointer to ring buffer to be freed. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="aee16f65187ecdf7f55eccf24c6b4d138"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aee16f65187ecdf7f55eccf24c6b4d138">&#9670;&nbsp;</a></span>ring_buffer__new()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">struct ring_buffer* ring_buffer__new </td>
+          <td>(</td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>map_fd</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">ring_buffer_sample_fn&#160;</td>
+          <td class="paramname"><em>sample_cb</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>ctx</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const struct ring_buffer_opts *&#160;</td>
+          <td class="paramname"><em>opts</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Creates a new ring buffer manager. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">map_fd</td><td>File descriptor to ring buffer map. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">sample_cb</td><td>Pointer to ring buffer notification callback function. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">ctx</td><td>Pointer to sample_cb callback function. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">opts</td><td>Ring buffer options.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>Pointer to ring buffer manager. </dd></dl>
 
 </div>
 </div>

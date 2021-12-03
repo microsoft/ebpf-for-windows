@@ -106,6 +106,9 @@ Functions</h2></td></tr>
 <tr class="memitem:a8925aebb6537b5d34b8cb28b04d34515"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#a8925aebb6537b5d34b8cb28b04d34515">bpf_csum_diff</a> (void *from, int from_size, void *to, int to_size, int seed)</td></tr>
 <tr class="memdesc:a8925aebb6537b5d34b8cb28b04d34515"><td class="mdescLeft">&#160;</td><td class="mdescRight">Computes difference of checksum values for two input raw buffers using 1's complement arithmetic.  <a href="bpf__helper__defs_8h.html#a8925aebb6537b5d34b8cb28b04d34515">More...</a><br /></td></tr>
 <tr class="separator:a8925aebb6537b5d34b8cb28b04d34515"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0939532bb795021d9cc85cd5dcfce983"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#a0939532bb795021d9cc85cd5dcfce983">bpf_ringbuf_output</a> (struct <a class="el" href="bpf__helpers__platform_8h.html#a1d98f863fc6ebf789b378348438181ca">bpf_map</a> *ring_buffer, void *data, uint64_t size, uint64_t flags)</td></tr>
+<tr class="memdesc:a0939532bb795021d9cc85cd5dcfce983"><td class="mdescLeft">&#160;</td><td class="mdescRight">Copy data into the ring buffer map.  <a href="bpf__helper__defs_8h.html#a0939532bb795021d9cc85cd5dcfce983">More...</a><br /></td></tr>
+<tr class="separator:a0939532bb795021d9cc85cd5dcfce983"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Function Documentation</h2>
 <a id="a8925aebb6537b5d34b8cb28b04d34515"></a>
@@ -422,6 +425,58 @@ Functions</h2></td></tr>
   </table>
   </dd>
 </dl>
+
+</div>
+</div>
+<a id="a0939532bb795021d9cc85cd5dcfce983"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a0939532bb795021d9cc85cd5dcfce983">&#9670;&nbsp;</a></span>bpf_ringbuf_output()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int bpf_ringbuf_output </td>
+          <td>(</td>
+          <td class="paramtype">struct <a class="el" href="bpf__helpers__platform_8h.html#a1d98f863fc6ebf789b378348438181ca">bpf_map</a> *&#160;</td>
+          <td class="paramname"><em>ring_buffer</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>data</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint64_t&#160;</td>
+          <td class="paramname"><em>size</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint64_t&#160;</td>
+          <td class="paramname"><em>flags</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Copy data into the ring buffer map. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">map</td><td>Pointer to ring buffer map. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">data</td><td>Data to copy into ring buffer map. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">size</td><td>Length of data. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">flags</td><td>Flags indicating if notification for new data availability should be sent. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>0 on success and a negative value on error. </dd></dl>
 
 </div>
 </div>
