@@ -713,6 +713,29 @@ libbpf_get_error(const void* ptr);
 int
 libbpf_num_possible_cpus(void);
 
+/* Ring buffer APIs */
+
+/**
+ * @brief Creates a new ring buffer manager.
+ *
+ * @param[in] map_fd File descriptor to ring buffer map.
+ * @param[in] sample_cb Pointer to ring buffer notification callback function.
+ * @param[in] ctx Pointer to sample_cb callback function.
+ * @param[in] opts Ring buffer options.
+ *
+ * @returns Pointer to ring buffer manager.
+ */
+struct ring_buffer*
+ring_buffer__new(int map_fd, ring_buffer_sample_fn sample_cb, void* ctx, const struct ring_buffer_opts* opts);
+
+/**
+ * @brief Frees a new ring buffer manager.
+ *
+ * @param[in] rb Pointer to ring buffer to be freed.
+ *
+ */
+void
+ring_buffer__free(struct ring_buffer* rb);
 /** @} */
 
 #else
