@@ -70,7 +70,7 @@ get_device_handle()
 }
 
 void
-cleanup_async_ioctl_completion(_Inout_opt_ _Post_invalid_ async_ioctl_completion_t* async_ioctl_completion)
+clean_up_async_ioctl_completion(_Inout_opt_ _Post_invalid_ async_ioctl_completion_t* async_ioctl_completion)
 {
     if (async_ioctl_completion != nullptr) {
         if (async_ioctl_completion->wait != nullptr) {
@@ -107,7 +107,11 @@ register_wait_async_ioctl_operation(_Inout_ async_ioctl_completion_t* async_ioct
 
     if (event == nullptr) {
         // Create a new event object for OVERLAPPED struct.
-        async_ioctl_completion->overlapped.hEvent = CreateEvent(nullptr, true /* manual reset */, false, nullptr);
+        async_ioctl_completion->overlapped.hEvent = CreateEvent(
+            nullptr,  // default security attributes
+            true,     // manual reset event
+            false,    // not signaled
+            nullptr); // no name
         if (async_ioctl_completion->overlapped.hEvent == nullptr) {
             result = win32_error_code_to_ebpf_result(GetLastError());
             _Analysis_assume_(result != EBPF_SUCCESS);
@@ -133,7 +137,7 @@ Exit:
     EBPF_RETURN_RESULT(result);
 }
 
-OVERLAPPED*
+_Ret_notnull_ OVERLAPPED*
 get_async_ioctl_operation_overlapped(_In_ const async_ioctl_completion_t* async_ioctl_completion)
 {
     return const_cast<OVERLAPPED*>(&async_ioctl_completion->overlapped);
@@ -202,7 +206,7 @@ initialize_async_ioctl_operation(
 
 Exit:
     if (result != EBPF_SUCCESS)
-        cleanup_async_ioctl_completion(local_async_ioctl_completion);
+        clean_up_async_ioctl_completion(local_async_ioctl_completion);
 
     EBPF_RETURN_RESULT(result);
 }

@@ -20,31 +20,31 @@ static std::map<fd_t, ebpf_handle_t> _fd_to_handle_map;
 class duplicate_handles_table_t
 {
   public:
-    duplicate_handles_table_t() : rundown_in_progress(false), all_duplicate_handles_closed(nullptr)
+    duplicate_handles_table_t() : _rundown_in_progress(false), _all_duplicate_handles_closed(nullptr)
     {
-        ebpf_lock_create(&lock);
+        ebpf_lock_create(&_lock);
     }
-    ~duplicate_handles_table_t() { ebpf_lock_destroy(&lock); }
+    ~duplicate_handles_table_t() { ebpf_lock_destroy(&_lock); }
 
     bool
     reference_or_add(ebpf_handle_t handle)
     {
         bool success = true;
-        auto state = ebpf_lock_lock(&lock);
-        if (!rundown_in_progress) {
-            std::map<ebpf_handle_t, uint16_t>::iterator it = table.find(handle);
-            if (it != table.end()) {
+        auto state = ebpf_lock_lock(&_lock);
+        if (!_rundown_in_progress) {
+            std::map<ebpf_handle_t, uint16_t>::iterator it = _duplicate_count_table.find(handle);
+            if (it != _duplicate_count_table.end()) {
                 it->second++;
             } else {
                 try {
                     // The reference count of newly inserted duplicate handle is 2 (for original + first duplicate).
-                    table.insert(std::pair<ebpf_handle_t, uint16_t>(handle, static_cast<uint16_t>(2)));
+                    _duplicate_count_table.insert(std::pair<ebpf_handle_t, uint16_t>(handle, static_cast<uint16_t>(2)));
                 } catch (...) {
                     success = false;
                 }
             }
         }
-        ebpf_lock_unlock(&lock, state);
+        ebpf_lock_unlock(&_lock, state);
         return success;
     }
 
@@ -53,57 +53,57 @@ class duplicate_handles_table_t
     {
         bool found = false;
 
-        auto state = ebpf_lock_lock(&lock);
-        std::map<ebpf_handle_t, uint16_t>::iterator it = table.find(handle);
-        if (it != table.end()) {
+        auto state = ebpf_lock_lock(&_lock);
+        std::map<ebpf_handle_t, uint16_t>::iterator it = _duplicate_count_table.find(handle);
+        if (it != _duplicate_count_table.end()) {
             found = true;
             // Dereference the handle. If the reference count drops to 0, close the handle.
             if (--it->second == 0) {
-                table.erase(handle);
+                _duplicate_count_table.erase(handle);
                 ebpf_api_close_handle(handle);
             }
-            if (rundown_in_progress && table.size() == 0) {
+            if (_rundown_in_progress && _duplicate_count_table.size() == 0) {
                 // All duplicate handles have been closed. Fulfill the promise.
-                REQUIRE(all_duplicate_handles_closed != nullptr);
-                all_duplicate_handles_closed->set_value();
+                REQUIRE(_all_duplicate_handles_closed != nullptr);
+                _all_duplicate_handles_closed->set_value();
             }
         }
 
-        ebpf_lock_unlock(&lock, state);
+        ebpf_lock_unlock(&_lock, state);
         return found;
     }
 
     void
     rundown()
     {
-        auto state = ebpf_lock_lock(&lock);
+        auto state = ebpf_lock_lock(&_lock);
         std::future<void> all_duplicate_handles_closed_callback;
         bool duplicates_pending = false;
-        if (table.size() > 0) {
+        if (_duplicate_count_table.size() > 0) {
             duplicates_pending = true;
-            all_duplicate_handles_closed = new (std::nothrow) std::promise<void>();
-            REQUIRE(all_duplicate_handles_closed != nullptr);
-            all_duplicate_handles_closed_callback = all_duplicate_handles_closed->get_future();
-            rundown_in_progress = true;
+            _all_duplicate_handles_closed = new (std::nothrow) std::promise<void>();
+            REQUIRE(_all_duplicate_handles_closed != nullptr);
+            all_duplicate_handles_closed_callback = _all_duplicate_handles_closed->get_future();
+            _rundown_in_progress = true;
         }
-        ebpf_lock_unlock(&lock, state);
+        ebpf_lock_unlock(&_lock, state);
         if (duplicates_pending)
             // Wait for at most 1 second for all duplicate handles to be closed.
             REQUIRE(all_duplicate_handles_closed_callback.wait_for(1s) == std::future_status::ready);
 
-        state = ebpf_lock_lock(&lock);
-        rundown_in_progress = false;
-        delete all_duplicate_handles_closed;
-        all_duplicate_handles_closed = nullptr;
-        ebpf_lock_unlock(&lock, state);
+        state = ebpf_lock_lock(&_lock);
+        _rundown_in_progress = false;
+        delete _all_duplicate_handles_closed;
+        _all_duplicate_handles_closed = nullptr;
+        ebpf_lock_unlock(&_lock, state);
     }
 
   private:
-    ebpf_lock_t lock;
+    ebpf_lock_t _lock;
     // Map of handles to duplicate count.
-    std::map<ebpf_handle_t, uint16_t> table;
-    bool rundown_in_progress;
-    std::promise<void>* all_duplicate_handles_closed;
+    std::map<ebpf_handle_t, uint16_t> _duplicate_count_table;
+    bool _rundown_in_progress;
+    std::promise<void>* _all_duplicate_handles_closed;
 };
 
 static duplicate_handles_table_t _duplicate_handles;

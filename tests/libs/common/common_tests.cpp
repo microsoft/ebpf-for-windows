@@ -122,7 +122,7 @@ ring_buffer_test_event_handler(_In_ void* ctx, _In_opt_ void* data, size_t size)
 
     if (event_context->canceled) {
         // Ring buffer subscription is canceled.
-        // Free the callack context and return.
+        // Free the callback context and return.
         delete event_context;
         return 0;
     }
@@ -169,6 +169,7 @@ ring_buffer_api_test_helper(
     // Create a new ring buffer manager and subscribe to ring buffer events.
     // The notifications for the events that were generated before should occur after the subscribe call.
     context->ring_buffer = ring_buffer__new(ring_buffer_map, ring_buffer_test_event_handler, context.get(), nullptr);
+    REQUIRE(context->ring_buffer != nullptr);
 
     // Generate more events, post-subscription.
     for (int i = RING_BUFFER_TEST_EVENT_COUNT / 2; i < RING_BUFFER_TEST_EVENT_COUNT; i++) {
