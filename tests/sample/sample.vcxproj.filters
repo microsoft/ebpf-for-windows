@@ -54,6 +54,9 @@
     <CustomBuild Include="tail_call_map.c">
       <Filter>Source Files</Filter>
     </CustomBuild>
+    <CustomBuild Include="tail_call_recursive.c">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
     <CustomBuild Include="test_sample_ebpf.c">
       <Filter>Source Files</Filter>
     </CustomBuild>
