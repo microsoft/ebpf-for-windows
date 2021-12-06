@@ -470,7 +470,7 @@ TEST_CASE("good tail_call", "[libbpf]")
 
 TEST_CASE("bad tail_call", "[libbpf]") { _ebpf_test_tail_call("tail_call_bad.o", -EBPF_INVALID_ARGUMENT); }
 
-TEST_CASE("recusrvice tail calls", "[libbpf]")
+TEST_CASE("multiple tail calls", "[libbpf]")
 {
     _test_helper_end_to_end test_helper;
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
@@ -480,7 +480,7 @@ TEST_CASE("recusrvice tail calls", "[libbpf]")
     int program_fd;
     int index;
 
-    int error = bpf_prog_load("tail_call_recursive.o", BPF_PROG_TYPE_XDP, &object, &program_fd);
+    int error = bpf_prog_load("tail_call_multiple.o", BPF_PROG_TYPE_XDP, &object, &program_fd);
     REQUIRE(error == 0);
     REQUIRE(object != nullptr);
 
