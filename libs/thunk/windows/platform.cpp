@@ -56,6 +56,12 @@ DeviceIoControl(
         overlapped);
 }
 
+bool
+CancelIoEx(_In_ ebpf_handle_t device_handle, _In_opt_ OVERLAPPED* overlapped)
+{
+    return ::CancelIoEx(reinterpret_cast<HANDLE>(device_handle), overlapped);
+}
+
 ebpf_handle_t
 CreateFileW(
     _In_z_ PCWSTR file_name,
@@ -80,6 +86,26 @@ bool
 CloseHandle(_In_ _Post_ptr_invalid_ ebpf_handle_t handle)
 {
     return ::CloseHandle(reinterpret_cast<HANDLE>(handle));
+}
+
+bool
+DuplicateHandle(
+    _In_ ebpf_handle_t source_process_handle,
+    _In_ ebpf_handle_t source_handle,
+    _In_ ebpf_handle_t target_process_handle,
+    _Out_ ebpf_handle_t* target_handle,
+    uint32_t desired_access,
+    bool inherit_handle,
+    uint32_t options)
+{
+    return ::DuplicateHandle(
+        reinterpret_cast<HANDLE>(source_process_handle),
+        reinterpret_cast<HANDLE>(source_handle),
+        reinterpret_cast<HANDLE>(target_process_handle),
+        reinterpret_cast<LPHANDLE>(target_handle),
+        desired_access,
+        inherit_handle,
+        options);
 }
 
 int

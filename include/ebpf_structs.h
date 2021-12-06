@@ -17,25 +17,23 @@ typedef enum bpf_map_type
     BPF_MAP_TYPE_ARRAY = 2,  ///< Array, where the map key is the array index.
     BPF_MAP_TYPE_PROG_ARRAY =
         3, ///< Array of program fds usable with bpf_tail_call, where the map key is the array index.
-    BPF_MAP_TYPE_PERCPU_HASH = 4,
-    BPF_MAP_TYPE_PERCPU_ARRAY = 5,
-    BPF_MAP_TYPE_HASH_OF_MAPS = 6,
-    BPF_MAP_TYPE_ARRAY_OF_MAPS = 7,
-    BPF_MAP_TYPE_LRU_HASH = 8,
-    BPF_MAP_TYPE_LPM_TRIE = 9,
-    BPF_MAP_TYPE_QUEUE = 10,
-    BPF_MAP_TYPE_LRU_PERCPU_HASH = 11,
-    BPF_MAP_TYPE_STACK = 12,
+    BPF_MAP_TYPE_PERCPU_HASH = 4,      ///< Per-CPU hash table.
+    BPF_MAP_TYPE_PERCPU_ARRAY = 5,     ///< Per-CPU array.
+    BPF_MAP_TYPE_HASH_OF_MAPS = 6,     ///< Hash table, where the map value is another map.
+    BPF_MAP_TYPE_ARRAY_OF_MAPS = 7,    ///< Array, where the map value is another map.
+    BPF_MAP_TYPE_LRU_HASH = 8,         ///< Least-recently-used hash table.
+    BPF_MAP_TYPE_LPM_TRIE = 9,         ///< Longest prefix match trie.
+    BPF_MAP_TYPE_QUEUE = 10,           ///< Queue.
+    BPF_MAP_TYPE_LRU_PERCPU_HASH = 11, ///< Per-CPU least-recently-used hash table.
+    BPF_MAP_TYPE_STACK = 12,           ///< Stack.
+    BPF_MAP_TYPE_RINGBUF = 13          ///< Ring buffer.
 } ebpf_map_type_t;
 
 typedef enum ebpf_map_option
 {
-    // Create a new element or update an existing element.
-    EBPF_ANY,
-    // Create a new element only when it does not exist.
-    EBPF_NOEXIST,
-    // Update an existing element.
-    EBPF_EXIST
+    EBPF_ANY,     ///< Create a new element or update an existing element.
+    EBPF_NOEXIST, ///< Create a new element only when it does not exist.
+    EBPF_EXIST    ///< Update an existing element.
 } ebpf_map_option_t;
 
 typedef enum ebpf_pin_type
@@ -100,7 +98,8 @@ typedef enum
     BPF_FUNC_ktime_get_boot_ns = 7,
     BPF_FUNC_get_smp_processor_id = 8,
     BPF_FUNC_ktime_get_ns = 9,
-    BPF_FUNC_csum_diff = 10
+    BPF_FUNC_csum_diff = 10,
+    BPF_FUNC_ringbuf_output = 11
 } ebpf_helper_id_t;
 
 // Cross-platform BPF program types.

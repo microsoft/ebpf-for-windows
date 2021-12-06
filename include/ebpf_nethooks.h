@@ -57,7 +57,7 @@ typedef enum
  * @param[in] delta Number of bytes to move the data pointer by.
  *
  * @retval 0 The operation was successful.
- * @retval <0 A failure occured.
+ * @retval <0 A failure occurred.
  */
 EBPF_HELPER(int, bpf_xdp_adjust_head, (xdp_md_t * ctx, int delta));
 #ifndef __doxygen

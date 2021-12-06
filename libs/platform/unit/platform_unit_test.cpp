@@ -726,7 +726,10 @@ TEST_CASE("async", "[platform]")
             bool cancelled;
         } cancellation_context = {false};
 
-        REQUIRE(ebpf_async_set_completion_callback(&async_context, [](_Inout_ void* context, ebpf_result_t result) {
+        REQUIRE(
+            ebpf_async_set_completion_callback(
+                &async_context, [](_Inout_ void* context, size_t output_buffer_length, ebpf_result_t result) {
+                    UNREFERENCED_PARAMETER(output_buffer_length);
                     auto async_context = reinterpret_cast<_async_context*>(context);
                     async_context->result = result;
                 }) == EBPF_SUCCESS);
@@ -739,7 +742,7 @@ TEST_CASE("async", "[platform]")
         REQUIRE(!cancellation_context.cancelled);
 
         if (complete) {
-            ebpf_async_complete(&async_context, EBPF_SUCCESS);
+            ebpf_async_complete(&async_context, 0, EBPF_SUCCESS);
             REQUIRE(async_context.result == EBPF_SUCCESS);
             REQUIRE(!cancellation_context.cancelled);
             REQUIRE(!ebpf_async_cancel(&async_context));
@@ -747,7 +750,7 @@ TEST_CASE("async", "[platform]")
             REQUIRE(ebpf_async_cancel(&async_context));
             REQUIRE(async_context.result == EBPF_PENDING);
             REQUIRE(cancellation_context.cancelled);
-            ebpf_async_complete(&async_context, EBPF_SUCCESS);
+            ebpf_async_complete(&async_context, 0, EBPF_SUCCESS);
         }
         ebpf_epoch_exit();
     };

@@ -58,7 +58,7 @@ extern "C"
         _Out_writes_bytes_opt_(output_buffer_length) void* output_buffer,
         uint16_t output_buffer_length,
         _In_opt_ void* async_context,
-        _In_opt_ void (*on_complete)(_In_ void* async_context, ebpf_result_t result));
+        _In_opt_ void (*on_complete)(_In_ void*, size_t, ebpf_result_t));
 
     /**
      * @brief Query properties about an operation.

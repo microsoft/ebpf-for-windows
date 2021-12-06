@@ -87,6 +87,17 @@ extern "C"
         return removed;
     }
 
+    inline void
+    ebpf_list_append_tail_list(_Inout_ ebpf_list_entry_t* list_head, _Inout_ ebpf_list_entry_t* list_to_append)
+    {
+        ebpf_list_entry_t* list_end = list_head->Blink;
+
+        list_head->Blink->Flink = list_to_append;
+        list_head->Blink = list_to_append->Blink;
+        list_to_append->Blink->Flink = list_head;
+        list_to_append->Blink = list_end;
+    }
+
 #ifdef __cplusplus
 }
 #endif

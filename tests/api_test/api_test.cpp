@@ -6,11 +6,16 @@
 #include <chrono>
 #include <mutex>
 #include <thread>
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <mstcpip.h>
+
 #include "api_test.h"
 #include "bpf/libbpf.h"
 #include "catch_wrapper.hpp"
 #include "common_tests.h"
 #include <io.h>
+#include "program_helper.h"
 #include "service_helper.h"
 #define SAMPLE_PATH ""
 
@@ -240,3 +245,59 @@ TEST_CASE("test_ebpf_map_next_previous", "[test_ebpf_map_next_previous]")
 
     ebpf_api_terminate();
 }
+
+void
+perform_socket_bind(const uint16_t test_port)
+{
+    WSAData data;
+    int error = WSAStartup(2, &data);
+    if (error != 0) {
+        FAIL("Unable to load Winsock: " << error);
+        return;
+    }
+
+    SOCKET _socket = INVALID_SOCKET;
+    _socket = WSASocket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP, nullptr, 0, 0);
+    REQUIRE(_socket != INVALID_SOCKET);
+    uint32_t ipv6_opt = 0;
+    REQUIRE(
+        setsockopt(_socket, IPPROTO_IPV6, IPV6_V6ONLY, reinterpret_cast<const char*>(&ipv6_opt), sizeof(ULONG)) == 0);
+    SOCKADDR_STORAGE sock_addr;
+    sock_addr.ss_family = AF_INET6;
+    INETADDR_SETANY((PSOCKADDR)&sock_addr);
+
+    // Perform bind operation.
+    ((PSOCKADDR_IN6)&sock_addr)->sin6_port = htons(test_port);
+    REQUIRE(bind(_socket, (PSOCKADDR)&sock_addr, sizeof(sock_addr)) == 0);
+
+    WSACleanup();
+}
+
+void
+ring_buffer_api_test(ebpf_execution_type_t execution_type)
+{
+    struct bpf_object* object = nullptr;
+    hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
+    program_load_attach_helper_t _helper(
+        "bindmonitor_ringbuf.o", EBPF_PROGRAM_TYPE_BIND, "bind_monitor", execution_type, hook, true);
+    object = _helper.get_object();
+
+    fd_t process_map_fd = bpf_object__find_map_fd_by_name(object, "process_map");
+    REQUIRE(process_map_fd > 0);
+
+    // Create a list of fake app IDs and set it to event context.
+    std::wstring app_id = L"api_test.exe";
+    std::vector<std::vector<char>> app_ids;
+    char* p = reinterpret_cast<char*>(&app_id[0]);
+    std::vector<char> temp(p, p + (app_id.size() + 1) * sizeof(wchar_t));
+    app_ids.push_back(temp);
+
+    ring_buffer_api_test_helper(process_map_fd, app_ids, [](int i) {
+        const uint16_t _test_port = 12345 + static_cast<uint16_t>(i);
+        perform_socket_bind(_test_port);
+    });
+}
+
+TEST_CASE("ringbuf_api_jit", "[test_ringbuf_api]") { ring_buffer_api_test(EBPF_EXECUTION_JIT); }
+
+TEST_CASE("ringbuf_api_interpret", "[test_ringbuf_api]") { ring_buffer_api_test(EBPF_EXECUTION_INTERPRET); }
