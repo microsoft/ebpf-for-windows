@@ -8,7 +8,8 @@ takes existing eBPF projects as submodules and adds the layer in between to make
 
 ## New to eBPF?
 
-See our [eBPF tutorial](docs/tutorial.md).
+See our [basic eBPF tutorial](docs/tutorial.md) and our
+[tutorial on debugging eBPF verification failures](docs/debugging.md).
 
 ## Architectural Overview
 
