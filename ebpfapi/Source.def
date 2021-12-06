@@ -91,7 +91,6 @@ EXPORTS
     ebpf_get_program_type_name
     ebpf_link_close
     ebpf_map_pin
-    ebpf_map_wait_for_update
     ebpf_object_get
     ebpf_object_unpin
     ebpf_program_attach
@@ -101,3 +100,5 @@ EXPORTS
     libbpf_get_error
     libbpf_num_possible_cpus
     libbpf_prog_type_by_name
+    ring_buffer__new
+    ring_buffer__free

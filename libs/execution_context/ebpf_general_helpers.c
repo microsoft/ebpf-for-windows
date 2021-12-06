@@ -42,6 +42,13 @@ ebpf_helper_function_prototype_t ebpf_core_helper_function_prototype_array[] = {
       EBPF_ARGUMENT_TYPE_CONST_SIZE_OR_ZERO,
       EBPF_ARGUMENT_TYPE_PTR_TO_MEM_OR_NULL,
       EBPF_ARGUMENT_TYPE_CONST_SIZE_OR_ZERO,
+      EBPF_ARGUMENT_TYPE_ANYTHING}},
+    {BPF_FUNC_ringbuf_output,
+     "bpf_ringbuf_output",
+     EBPF_RETURN_TYPE_INTEGER,
+     {EBPF_ARGUMENT_TYPE_PTR_TO_MAP,
+      EBPF_ARGUMENT_TYPE_PTR_TO_MEM,
+      EBPF_ARGUMENT_TYPE_CONST_SIZE,
       EBPF_ARGUMENT_TYPE_ANYTHING}}};
 
 #ifdef __cplusplus

@@ -207,19 +207,20 @@ _ebpf_driver_file_close(WDFFILEOBJECT wdf_file_object)
 }
 
 static void
-_ebpf_driver_io_device_control_complete(void* context, ebpf_result_t result)
+_ebpf_driver_io_device_control_complete(void* context, size_t output_buffer_length, ebpf_result_t result)
 {
     NTSTATUS status;
     WDFREQUEST request = (WDFREQUEST)context;
     status = WdfRequestUnmarkCancelable(request);
     UNREFERENCED_PARAMETER(status);
-    WdfRequestComplete(request, ebpf_result_to_ntstatus(result));
+    WdfRequestCompleteWithInformation(request, ebpf_result_to_ntstatus(result), output_buffer_length);
     WdfObjectDereference(request);
 }
 
 static void
 _ebpf_driver_io_device_control_cancel(WDFREQUEST request)
 {
+    // https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/wdfrequest/nc-wdfrequest-evt_wdf_request_cancel
     ebpf_core_cancel_protocol_handler(request);
 }
 
@@ -239,6 +240,7 @@ _ebpf_driver_io_device_control(
     size_t actual_output_length = 0;
     const struct _ebpf_operation_header* user_request = NULL;
     struct _ebpf_operation_header* user_reply = NULL;
+    bool async = false;
 
     device = WdfIoQueueGetDevice(queue);
 
@@ -268,7 +270,6 @@ _ebpf_driver_io_device_control(
             if (input_buffer != NULL) {
                 size_t minimum_request_size = 0;
                 size_t minimum_reply_size = 0;
-                bool async = false;
                 void* async_context = NULL;
 
                 user_request = input_buffer;
@@ -336,8 +337,14 @@ _ebpf_driver_io_device_control(
     }
 
 Done:
-    if (status != STATUS_PENDING)
+    if (status != STATUS_PENDING) {
+        if (async) {
+            ebpf_assert(status != STATUS_SUCCESS);
+            // Async operation failed. Remove cancellable marker.
+            (void)WdfRequestUnmarkCancelable(request);
+        }
         WdfRequestCompleteWithInformation(request, status, output_buffer_length);
+    }
     return;
 }
 

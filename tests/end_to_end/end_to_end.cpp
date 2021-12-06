@@ -373,9 +373,6 @@ set_bind_limit(fd_t map_fd, uint32_t limit)
     REQUIRE(bpf_map_update_elem(map_fd, &limit_key, &limit, EBPF_ANY) == EBPF_SUCCESS);
 }
 
-ebpf_result_t
-ebpf_map_wait_for_update(fd_t map_fd, _Inout_ OVERLAPPED* overlapped);
-
 void
 bindmonitor_test(ebpf_execution_type_t execution_type)
 {
@@ -403,13 +400,6 @@ bindmonitor_test(ebpf_execution_type_t execution_type)
     REQUIRE(limit_map_fd > 0);
     fd_t process_map_fd = bpf_object__find_map_fd_by_name(object, "process_map");
     REQUIRE(process_map_fd > 0);
-    OVERLAPPED overlapped{};
-    HANDLE event = CreateEvent(nullptr, false, false, nullptr);
-    REQUIRE(event != INVALID_HANDLE_VALUE);
-    REQUIRE(event != 0);
-    overlapped.hEvent = event;
-
-    REQUIRE(ebpf_map_wait_for_update(process_map_fd, &overlapped) == EBPF_PENDING);
 
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
 
@@ -421,10 +411,6 @@ bindmonitor_test(ebpf_execution_type_t execution_type)
     // Bind first port - success
     REQUIRE(emulate_bind(hook, fake_pid, "fake_app_1") == BIND_PERMIT);
     REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
-
-    if (event) {
-        REQUIRE(WaitForSingleObject(event, 0) == WAIT_OBJECT_0);
-    }
 
     // Bind second port - success
     REQUIRE(emulate_bind(hook, fake_pid, "fake_app_1") == BIND_PERMIT);
@@ -464,6 +450,60 @@ bindmonitor_test(ebpf_execution_type_t execution_type)
     bpf_object__close(object);
 }
 
+void
+bindmonitor_ring_buffer_test(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+
+    const char* error_message = nullptr;
+    ebpf_result_t result;
+    bpf_object* object = nullptr;
+    bpf_link* link = nullptr;
+    fd_t program_fd;
+
+    program_info_provider_t bind_program_info(EBPF_PROGRAM_TYPE_BIND);
+
+    // Load and attach a bind eBPF program that uses a ring buffer map to notify about bind operations.
+    result = ebpf_program_load(
+        SAMPLE_PATH "bindmonitor_ringbuf.o", nullptr, nullptr, execution_type, &object, &program_fd, &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free_string(error_message);
+        error_message = nullptr;
+    }
+    REQUIRE(result == EBPF_SUCCESS);
+
+    fd_t process_map_fd = bpf_object__find_map_fd_by_name(object, "process_map");
+    REQUIRE(process_map_fd > 0);
+
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
+    REQUIRE(hook.attach_link(program_fd, &link) == EBPF_SUCCESS);
+
+    // Create a list of fake app IDs and set it to event context.
+    std::string fake_app_ids_prefix = "fake_app";
+    std::vector<std::vector<char>> fake_app_ids;
+    for (int i = 0; i < RING_BUFFER_TEST_EVENT_COUNT; i++) {
+        std::string temp = fake_app_ids_prefix + std::to_string(i);
+        std::vector<char> fake_app_id(temp.begin(), temp.end());
+        fake_app_ids.push_back(fake_app_id);
+    }
+
+    uint64_t fake_pid = 12345;
+
+    ring_buffer_api_test_helper(process_map_fd, fake_app_ids, [&](int i) {
+        // Emulate bind operation.
+        std::vector<char> fake_app_id = fake_app_ids[i];
+        fake_app_id.push_back('\0');
+        REQUIRE(emulate_bind(hook, fake_pid + i, fake_app_id.data()) == BIND_PERMIT);
+    });
+
+    hook.detach_link(link);
+    hook.close_link(link);
+
+    bpf_object__close(object);
+}
+
 static void
 _utility_helper_functions_test(ebpf_execution_type_t execution_type)
 {
@@ -487,9 +527,11 @@ _utility_helper_functions_test(ebpf_execution_type_t execution_type)
 TEST_CASE("droppacket-jit", "[end_to_end]") { droppacket_test(EBPF_EXECUTION_JIT); }
 TEST_CASE("divide_by_zero_jit", "[end_to_end]") { divide_by_zero_test(EBPF_EXECUTION_JIT); }
 TEST_CASE("bindmonitor-jit", "[end_to_end]") { bindmonitor_test(EBPF_EXECUTION_JIT); }
+TEST_CASE("bindmonitor-ringbuf-jit", "[end_to_end]") { bindmonitor_ring_buffer_test(EBPF_EXECUTION_JIT); }
 TEST_CASE("droppacket-interpret", "[end_to_end]") { droppacket_test(EBPF_EXECUTION_INTERPRET); }
 TEST_CASE("divide_by_zero_interpret", "[end_to_end]") { divide_by_zero_test(EBPF_EXECUTION_INTERPRET); }
 TEST_CASE("bindmonitor-interpret", "[end_to_end]") { bindmonitor_test(EBPF_EXECUTION_INTERPRET); }
+TEST_CASE("bindmonitor-ringbuf-interpret", "[end_to_end]") { bindmonitor_ring_buffer_test(EBPF_EXECUTION_INTERPRET); }
 TEST_CASE("utility-helpers-jit", "[end_to_end]") { _utility_helper_functions_test(EBPF_EXECUTION_JIT); }
 TEST_CASE("utility-helpers-interpret", "[end_to_end]") { _utility_helper_functions_test(EBPF_EXECUTION_INTERPRET); }
 
