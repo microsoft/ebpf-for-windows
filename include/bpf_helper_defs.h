@@ -130,3 +130,17 @@ EBPF_HELPER(int, bpf_csum_diff, (void* from, int from_size, void* to, int to_siz
 #ifndef __doxygen
 #define bpf_csum_diff ((bpf_csum_diff_t)BPF_FUNC_csum_diff)
 #endif
+
+/**
+ * @brief Copy data into the ring buffer map.
+ *
+ * @param[in,out] map Pointer to ring buffer map.
+ * @param[in] data Data to copy into ring buffer map.
+ * @param[in] size Length of data.
+ * @param[in] flags Flags indicating if notification for new data availability should be sent.
+ * @returns 0 on success and a negative value on error.
+ */
+EBPF_HELPER(int, bpf_ringbuf_output, (struct bpf_map * ring_buffer, void* data, uint64_t size, uint64_t flags));
+#ifndef __doxygen
+#define bpf_ringbuf_output ((bpf_ringbuf_output_t)BPF_FUNC_ringbuf_output)
+#endif

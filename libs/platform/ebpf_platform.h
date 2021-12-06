@@ -981,6 +981,7 @@ extern "C"
 #define EBPF_TRACELOG_KEYWORD_LINK 0x20
 #define EBPF_TRACELOG_KEYWORD_MAP 0x40
 #define EBPF_TRACELOG_KEYWORD_PROGRAM 0x80
+#define EBPF_TRACELOG_KEYWORD_API 0x100
 
 #define EBPF_TRACELOG_LEVEL_LOG_ALWAYS WINEVENT_LEVEL_LOG_ALWAYS
 #define EBPF_TRACELOG_LEVEL_CRITICAL WINEVENT_LEVEL_CRITICAL
@@ -995,7 +996,7 @@ extern "C"
         EBPF_TRACELOG_EVENT_SUCCESS,                     \
         TraceLoggingLevel(WINEVENT_LEVEL_VERBOSE),       \
         TraceLoggingKeyword(EBPF_TRACELOG_KEYWORD_BASE), \
-        TraceLoggingString(__FUNCTION__ "returned success", "Message"));
+        TraceLoggingString(__FUNCTION__ " returned success", "Message"));
 
 #define EBPF_LOG_FUNCTION_ERROR(result)                                     \
     TraceLoggingWrite(                                                      \
@@ -1032,7 +1033,6 @@ extern "C"
         } else {                                   \
             EBPF_LOG_FUNCTION_ERROR(local_result); \
         }                                          \
-        EBPF_LOG_EXIT();                           \
         return local_result;                       \
     } while (false);
 
@@ -1044,7 +1044,6 @@ extern "C"
         } else {                                   \
             EBPF_LOG_FUNCTION_ERROR(local_result); \
         }                                          \
-        EBPF_LOG_EXIT();                           \
         return local_result;                       \
     } while (false);
 
@@ -1056,7 +1055,6 @@ extern "C"
         } else {                                     \
             EBPF_LOG_FUNCTION_ERROR(EBPF_NO_MEMORY); \
         }                                            \
-        EBPF_LOG_EXIT();                             \
         return local_result;                         \
     } while (false);
 
@@ -1068,7 +1066,6 @@ extern "C"
         } else {                                  \
             EBPF_LOG_FUNCTION_ERROR(EBPF_FAILED); \
         }                                         \
-        EBPF_LOG_EXIT();                          \
         return local_result;                      \
     } while (false);
 

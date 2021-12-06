@@ -7,8 +7,10 @@
 #include "rpc_interface_h.h"
 
 std::function<decltype(_close)> close_handler;
+std::function<decltype(CancelIoEx)> cancel_io_ex_handler;
 std::function<decltype(CloseHandle)> close_handle_handler;
 std::function<decltype(CreateFileW)> create_file_handler;
+std::function<decltype(DuplicateHandle)> duplicate_handle_handler;
 std::function<decltype(DeviceIoControl)> device_io_control_handler;
 std::function<decltype(_get_osfhandle)> get_osfhandle_handler;
 std::function<decltype(_open_osfhandle)> open_osfhandle_handler;
@@ -36,6 +38,12 @@ DeviceIoControl(
         overlapped);
 }
 
+bool
+CancelIoEx(_In_ ebpf_handle_t device_handle, _In_opt_ OVERLAPPED* overlapped)
+{
+    return cancel_io_ex_handler(reinterpret_cast<HANDLE>(device_handle), overlapped);
+}
+
 ebpf_handle_t
 CreateFileW(
     _In_ PCWSTR file_name,
@@ -60,6 +68,26 @@ bool
 CloseHandle(_In_ _Post_ptr_invalid_ ebpf_handle_t handle)
 {
     return close_handle_handler(reinterpret_cast<HANDLE>(handle));
+}
+
+bool
+DuplicateHandle(
+    _In_ ebpf_handle_t source_process_handle,
+    _In_ ebpf_handle_t source_handle,
+    _In_ ebpf_handle_t target_process_handle,
+    _Out_ ebpf_handle_t* target_handle,
+    uint32_t desired_access,
+    bool inherit_handle,
+    uint32_t options)
+{
+    return duplicate_handle_handler(
+        reinterpret_cast<HANDLE>(source_process_handle),
+        reinterpret_cast<HANDLE>(source_handle),
+        reinterpret_cast<HANDLE>(target_process_handle),
+        reinterpret_cast<LPHANDLE>(target_handle),
+        desired_access,
+        inherit_handle,
+        options);
 }
 
 int

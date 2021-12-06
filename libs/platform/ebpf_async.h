@@ -65,8 +65,7 @@ extern "C"
      *  operation.
      */
     ebpf_result_t
-    ebpf_async_set_completion_callback(
-        _In_ void* context, _In_ void (*on_complete)(_In_ void* context, ebpf_result_t result));
+    ebpf_async_set_completion_callback(_In_ void* context, _In_ void (*on_complete)(_In_ void*, size_t, ebpf_result_t));
 
     /**
      * @brief Set a cancellation function to be called when actions associated with this context are canceled.
@@ -95,10 +94,11 @@ extern "C"
      * @brief Complete the action associated with this context.
      *
      * @param[in] context Context associated with the action.
+     * @param[in] output_buffer_length Length (in bytes) of the buffer containing the result of the async operation.
      * @param[in] result The outcome of the action.
      */
     void
-    ebpf_async_complete(_In_ void* context, ebpf_result_t result);
+    ebpf_async_complete(_In_ void* context, size_t output_buffer_length, ebpf_result_t result);
 
 #ifdef __cplusplus
 }

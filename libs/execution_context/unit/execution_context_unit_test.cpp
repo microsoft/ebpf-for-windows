@@ -6,6 +6,7 @@
 #include <optional>
 #include "catch_wrapper.hpp"
 #include "ebpf_async.h"
+#include "ebpf_ring_buffer.h"
 #include "ebpf_core.h"
 #include "ebpf_maps.h"
 #include "ebpf_object.h"
@@ -658,11 +659,11 @@ TEST_CASE("test-csum-diff", "[execution_context]")
     REQUIRE(csum == 0xb861);
 }
 
-TEST_CASE("map_notification", "[execution_context]")
+TEST_CASE("ring_buffer_async_query", "[execution_context]")
 {
     _ebpf_core_initializer core;
     ebpf_map_definition_in_memory_t map_definition{
-        sizeof(ebpf_map_definition_in_memory_t), BPF_MAP_TYPE_QUEUE, 0, sizeof(uint64_t), 10};
+        sizeof(ebpf_map_definition_in_memory_t), BPF_MAP_TYPE_RINGBUF, 0, 0, 64 * 1024};
     map_ptr map;
     {
         ebpf_map_t* local_map;
@@ -674,21 +675,29 @@ TEST_CASE("map_notification", "[execution_context]")
 
     struct _completion
     {
-        bool completed = false;
+        uint8_t* buffer;
+        ebpf_ring_buffer_map_async_query_result_t async_query_result = {};
+        uint64_t value;
     } completion;
 
-    REQUIRE(ebpf_async_set_completion_callback(&completion, [](void* context, ebpf_result_t result) {
+    REQUIRE(ebpf_ring_buffer_map_query_buffer(map.get(), &completion.buffer) == EBPF_SUCCESS);
+
+    REQUIRE(
+        ebpf_async_set_completion_callback(
+            &completion, [](void* context, size_t output_buffer_length, ebpf_result_t result) {
+                UNREFERENCED_PARAMETER(output_buffer_length);
                 auto completion = reinterpret_cast<_completion*>(context);
-                completion->completed = true;
+                auto async_query_result = &completion->async_query_result;
+                auto record = ebpf_ring_buffer_next_record(
+                    completion->buffer, sizeof(uint64_t), async_query_result->consumer, async_query_result->producer);
+                completion->value = *(uint64_t*)(record->data);
                 REQUIRE(result == EBPF_SUCCESS);
             }) == EBPF_SUCCESS);
 
-    REQUIRE(ebpf_map_wait_for_update(map.get(), &completion) == EBPF_PENDING);
-    REQUIRE(completion.completed == false);
-    uint64_t value = 1;
-    REQUIRE(
-        ebpf_map_update_entry(map.get(), 0, nullptr, sizeof(value), reinterpret_cast<uint8_t*>(&value), EBPF_ANY, 0) ==
-        EBPF_SUCCESS);
+    REQUIRE(ebpf_ring_buffer_map_async_query(map.get(), &completion.async_query_result, &completion) == EBPF_PENDING);
 
-    REQUIRE(completion.completed == true);
+    uint64_t value = 1;
+    REQUIRE(ebpf_ring_buffer_map_output(map.get(), reinterpret_cast<uint8_t*>(&value), sizeof(value)) == EBPF_SUCCESS);
+
+    REQUIRE(completion.value == value);
 }

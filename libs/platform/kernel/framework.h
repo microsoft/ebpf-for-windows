@@ -25,3 +25,5 @@
 #define ebpf_list_is_empty IsListEmpty
 #define ebpf_list_insert_tail InsertTailList
 #define ebpf_list_remove_entry RemoveEntryList
+#define ebpf_list_remove_head_entry RemoveHeadList
+#define ebpf_list_append_tail_list AppendTailList
