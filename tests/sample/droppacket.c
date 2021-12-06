@@ -30,7 +30,7 @@ int
 DropPacket(xdp_md_t* ctx)
 {
     int rc = XDP_PASS;
-    ETHERNET_HEADER* eth = NULL;
+    ETHERNET_HEADER* ethernet_header = NULL;
     long key = 0;
 
     uint32_t* interface_index = bpf_map_lookup_elem(&interface_index_map, &key);
@@ -44,10 +44,10 @@ DropPacket(xdp_md_t* ctx)
     if ((char*)ctx->data + sizeof(ETHERNET_HEADER) + sizeof(IPV4_HEADER) + sizeof(UDP_HEADER) > (char*)ctx->data_end)
         goto Done;
 
-    eth = (ETHERNET_HEADER*)ctx->data;
-    if (ntohs(eth->Type) == 0x0800) {
+    ethernet_header = (ETHERNET_HEADER*)ctx->data;
+    if (ntohs(ethernet_header->Type) == 0x0800) {
         // IPv4.
-        IPV4_HEADER* ipv4_header = (IPV4_HEADER*)(eth + 1);
+        IPV4_HEADER* ipv4_header = (IPV4_HEADER*)(ethernet_header + 1);
         if (ipv4_header->Protocol == IPPROTO_UDP) {
             // UDP.
             char* next_header = (char*)ipv4_header + sizeof(uint32_t) * ipv4_header->HeaderLength;
