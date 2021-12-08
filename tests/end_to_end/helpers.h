@@ -223,10 +223,10 @@ typedef class xdp_md_helper : public xdp_md_t
                 _begin = 0;
                 _end += additional_space_needed;
             }
-            // Adjust xdp_md data pointers.
-            data = _packet->data();
-            data_end = _packet->data() + _packet->size();
         }
+        // Adjust xdp_md data pointers.
+        data = _packet->data() + _begin;
+        data_end = _packet->data() + _end;
     Done:
         return return_value;
     }

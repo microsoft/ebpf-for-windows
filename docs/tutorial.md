@@ -983,3 +983,8 @@ So, to summarize, the verifier operates on pseudo FDs, not actual
 FDs or addresses.  When the program is actually installed, the relocation
 section will be used to insert the actual map address into the executable
 code.
+
+# 7. Next steps
+
+Once you've completed this tutorial, you may want to check out our
+[tutorial on debugging eBPF verification failures](debugging.md).
