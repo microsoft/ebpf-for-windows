@@ -411,8 +411,8 @@ _update_array_map_entry_with_handle(
     ebpf_lock_state_t lock_state = ebpf_lock_lock(&map->lock);
 
     ebpf_object_t* value_object = NULL;
-    // If value_handle is ebpf_handle_invalid, we just need to clear the entry
-    // from the map.
+    // If value_handle is valid, resolve it to an object. Else we just need to clear
+    // the existing entry from the map.
     if (value_handle != (uintptr_t)ebpf_handle_invalid) {
         result = _get_map_value_object(map, value_handle, value_type, &value_object);
         if (result != EBPF_SUCCESS) {

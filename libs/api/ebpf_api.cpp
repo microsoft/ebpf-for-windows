@@ -479,7 +479,7 @@ ebpf_map_update_element(fd_t map_fd, _In_ const void* key, _In_ const void* valu
         (type == BPF_MAP_TYPE_ARRAY_OF_MAPS)) {
         fd_t fd = *(fd_t*)value;
         ebpf_handle_t handle = ebpf_handle_invalid;
-        // If fd is ebpf_fd_invalid, this call is to clear the fd from the map.
+        // If the fd is valid, resolve it to a handle, else pass ebpf_handle_invalid to the IOCTL.
         if (fd != ebpf_fd_invalid) {
             handle = _get_handle_from_file_descriptor(fd);
             if (handle == ebpf_handle_invalid) {
