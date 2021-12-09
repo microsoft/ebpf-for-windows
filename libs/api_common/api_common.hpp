@@ -257,6 +257,7 @@ ebpf_result_to_errno(ebpf_result_t result)
     case EBPF_FILE_NOT_FOUND:
     case EBPF_KEY_NOT_FOUND:
     case EBPF_NO_MORE_KEYS:
+    case EBPF_OBJECT_NOT_FOUND:
         error = ENOENT;
         break;
 
