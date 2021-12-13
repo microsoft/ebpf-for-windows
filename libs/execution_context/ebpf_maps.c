@@ -411,9 +411,13 @@ _update_array_map_entry_with_handle(
     ebpf_lock_state_t lock_state = ebpf_lock_lock(&map->lock);
 
     ebpf_object_t* value_object = NULL;
-    result = _get_map_value_object(map, value_handle, value_type, &value_object);
-    if (result != EBPF_SUCCESS) {
-        goto Done;
+    // If value_handle is valid, resolve it to an object. Else we just need to clear
+    // the existing entry from the map.
+    if (value_handle != (uintptr_t)ebpf_handle_invalid) {
+        result = _get_map_value_object(map, value_handle, value_type, &value_object);
+        if (result != EBPF_SUCCESS) {
+            goto Done;
+        }
     }
 
     // Release the reference on the old ID stored here, if any.
@@ -423,8 +427,10 @@ _update_array_map_entry_with_handle(
         ebpf_object_dereference_by_id(old_id, value_type);
     }
 
+    ebpf_id_t id = value_object ? value_object->id : 0;
+
     // Store the object ID as the value.
-    memcpy(entry, &value_object->id, map->ebpf_map_definition.value_size);
+    memcpy(entry, &id, map->ebpf_map_definition.value_size);
 
 Done:
     ebpf_lock_unlock(&map->lock, lock_state);

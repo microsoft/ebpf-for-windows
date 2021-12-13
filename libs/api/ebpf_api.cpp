@@ -478,9 +478,13 @@ ebpf_map_update_element(fd_t map_fd, _In_ const void* key, _In_ const void* valu
     if ((type == BPF_MAP_TYPE_PROG_ARRAY) || (type == BPF_MAP_TYPE_HASH_OF_MAPS) ||
         (type == BPF_MAP_TYPE_ARRAY_OF_MAPS)) {
         fd_t fd = *(fd_t*)value;
-        ebpf_handle_t handle = _get_handle_from_file_descriptor(fd);
-        if (handle == ebpf_handle_invalid) {
-            return EBPF_INVALID_FD;
+        ebpf_handle_t handle = ebpf_handle_invalid;
+        // If the fd is valid, resolve it to a handle, else pass ebpf_handle_invalid to the IOCTL.
+        if (fd != ebpf_fd_invalid) {
+            handle = _get_handle_from_file_descriptor(fd);
+            if (handle == ebpf_handle_invalid) {
+                return EBPF_INVALID_FD;
+            }
         }
 
         return _update_map_element_with_handle(map_handle, key_size, (const uint8_t*)key, handle, flags);

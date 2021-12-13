@@ -470,6 +470,95 @@ TEST_CASE("good tail_call", "[libbpf]")
 
 TEST_CASE("bad tail_call", "[libbpf]") { _ebpf_test_tail_call("tail_call_bad.o", -EBPF_INVALID_ARGUMENT); }
 
+TEST_CASE("multiple tail calls", "[libbpf]")
+{
+    _test_helper_end_to_end test_helper;
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
+    program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
+
+    struct bpf_object* object;
+    int program_fd;
+    int index;
+
+    int error = bpf_prog_load("tail_call_multiple.o", BPF_PROG_TYPE_XDP, &object, &program_fd);
+    REQUIRE(error == 0);
+    REQUIRE(object != nullptr);
+
+    struct bpf_program* caller = bpf_object__find_program_by_name(object, "caller");
+    REQUIRE(caller != nullptr);
+
+    struct bpf_program* callee0 = bpf_object__find_program_by_name(object, "callee0");
+    REQUIRE(callee0 != nullptr);
+
+    struct bpf_program* callee1 = bpf_object__find_program_by_name(object, "callee1");
+    REQUIRE(callee1 != nullptr);
+
+    struct bpf_map* map = bpf_map__next(nullptr, object);
+    REQUIRE(map != nullptr);
+
+    int callee0_fd = bpf_program__fd(callee0);
+    REQUIRE(callee0_fd >= 0);
+
+    int callee1_fd = bpf_program__fd(callee1);
+    REQUIRE(callee1_fd >= 0);
+
+    int map_fd = bpf_map__fd(map);
+    REQUIRE(map_fd >= 0);
+
+    // Store callee0 at index 0.
+    index = 0;
+    error = bpf_map_update_elem(map_fd, (uint8_t*)&index, (uint8_t*)&callee0_fd, 0);
+    REQUIRE(error == 0);
+
+    // Store callee1 at index 9
+    index = 9;
+    error = bpf_map_update_elem(map_fd, (uint8_t*)&index, (uint8_t*)&callee1_fd, 0);
+    REQUIRE(error == 0);
+
+    ebpf_id_t callee_id;
+    // Verify that we can read the values back.
+    index = 0;
+    REQUIRE(bpf_map_lookup_elem(map_fd, &index, &callee_id) == 0);
+
+    // Verify that we can convert the ID to a new fd, so we know it is actually
+    // a valid program ID.
+    int callee0_fd2 = bpf_prog_get_fd_by_id(callee_id);
+    REQUIRE(callee0_fd2 > 0);
+    Platform::_close(callee0_fd2);
+
+    index = 9;
+    REQUIRE(bpf_map_lookup_elem(map_fd, &index, &callee_id) == 0);
+
+    // Verify that we can convert the ID to a new fd, so we know it is actually
+    // a valid program ID.
+    int callee1_fd2 = bpf_prog_get_fd_by_id(callee_id);
+    REQUIRE(callee1_fd2 > 0);
+    Platform::_close(callee1_fd2);
+
+    bpf_link* link = bpf_program__attach_xdp(caller, 1);
+    REQUIRE(link != nullptr);
+
+    auto packet = prepare_udp_packet(0, ETHERNET_TYPE_IPV4);
+    xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
+    int result;
+    REQUIRE(hook.fire(&ctx, &result) == EBPF_SUCCESS);
+    REQUIRE(result == 3);
+
+    // Clear the prog array map entries. This is needed to release reference on the
+    // programs which are inserted in the prog array.
+    index = 0;
+    REQUIRE(bpf_map_update_elem(map_fd, (uint8_t*)&index, (uint8_t*)&ebpf_fd_invalid, 0) == 0);
+    REQUIRE(error == 0);
+
+    index = 9;
+    REQUIRE(bpf_map_update_elem(map_fd, (uint8_t*)&index, (uint8_t*)&ebpf_fd_invalid, 0) == 0);
+    REQUIRE(error == 0);
+
+    result = bpf_link__destroy(link);
+    REQUIRE(result == 0);
+    bpf_object__close(object);
+}
+
 TEST_CASE("disallow setting bind fd in xdp prog array", "[libbpf]")
 {
     _test_helper_end_to_end test_helper;
