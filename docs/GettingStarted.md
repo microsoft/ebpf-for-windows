@@ -5,7 +5,7 @@
 The following must be installed in order to build this project:
 
 1. Git (e.g., [Git for Windows 64-bit](https://git-scm.com/download/win))
-2. [Visual Studio 2019 version 16.11.7 onwards](https://visualstudio.microsoft.com/vs/), including
+2. [Visual Studio 2019 version 16.11.7 or later](https://visualstudio.microsoft.com/vs/), including
    the "MSVC v142 - VS 2019 C++ x64/x86 Spectre-mitigated libs (latest)"
    which must be selected as an Individual component in the VS installer
 3. [Visual Studio Build Tools 2019](https://aka.ms/vs/16/release/vs_buildtools.exe)
