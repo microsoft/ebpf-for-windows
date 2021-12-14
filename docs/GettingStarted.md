@@ -13,7 +13,7 @@ The following must be installed in order to build this project:
 5. [Clang for Windows 64-bit version 10.0.0](https://github.com/llvm/llvm-project/releases/download/llvmorg-10.0.0/LLVM-10.0.0-win64.exe) or [The latest release of Clang for Windows 64-bit](https://github.com/llvm/llvm-project/releases/latest)
 6. [nuget.exe](https://www.nuget.org/downloads)
    
-You should add paths of `git.exe`, `cmake.exe` and `nuget.exe` to Windows PATH environment variable after software packages above been installed.
+You should add the paths to `git.exe`, `cmake.exe` and `nuget.exe` to the Windows PATH environment variable after the software packages above have been installed.
 
 ## How to clone and build the project
 This section outlines the steps to build, prepare and build the eBPF-For-Windows project.
