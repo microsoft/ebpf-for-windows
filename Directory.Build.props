@@ -9,4 +9,9 @@
     <DisableAnalyzeExternal>true</DisableAnalyzeExternal>
     <CodeAnalysisRuleSet>$(SolutionDir)Analyze.default.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+  </ItemDefinitionGroup>
 </Project>
