@@ -65,11 +65,6 @@ static _Writable_elements_(_ebpf_epoch_cpu_count) ebpf_epoch_cpu_entry_t* _ebpf_
 static uint32_t _ebpf_epoch_cpu_count = 0;
 
 /**
- * @brief _ebpf_current_epoch indicates the newest active epoch. All memory free
- * operations were performed prior to this value.
- */
-static volatile int64_t _ebpf_current_epoch = 1;
-/**
  * @brief _ebpf_release_epoch indicates the newest inactive epoch. All memory
  * free operations performed prior to this value can be safely deleted.
  */
@@ -136,7 +131,7 @@ ebpf_epoch_initiate()
     cpu_count = ebpf_get_cpu_count();
     _ebpf_epoch_rundown = false;
 
-    _ebpf_current_epoch = 1;
+    //_ebpf_current_epoch = 1;
     _ebpf_release_epoch = 0;
     _ebpf_epoch_cpu_count = cpu_count;
 
@@ -149,7 +144,7 @@ ebpf_epoch_initiate()
     ebpf_assert(EBPF_CACHE_ALIGN_POINTER(_ebpf_epoch_cpu_table) == _ebpf_epoch_cpu_table);
 
     for (cpu_id = 0; cpu_id < _ebpf_epoch_cpu_count; cpu_id++) {
-        _ebpf_epoch_cpu_table[cpu_id].cpu_epoch_state.epoch = _ebpf_current_epoch;
+        _ebpf_epoch_cpu_table[cpu_id].cpu_epoch_state.epoch = ebpf_query_time_since_boot(true);
         _ebpf_epoch_cpu_table[cpu_id].cpu_epoch_state.active = false;
         ebpf_lock_create(&_ebpf_epoch_cpu_table[cpu_id].lock);
 
@@ -213,10 +208,11 @@ ebpf_epoch_enter()
     }
 
     if (ebpf_is_preemptible()) {
-        return _ebpf_epoch_update_thread_state(current_cpu, ebpf_get_current_thread_id(), _ebpf_current_epoch, true);
+        return _ebpf_epoch_update_thread_state(
+            current_cpu, ebpf_get_current_thread_id(), ebpf_query_time_since_boot(true), true);
     } else {
         ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_epoch_cpu_table[current_cpu].lock);
-        _ebpf_epoch_cpu_table[current_cpu].cpu_epoch_state.epoch = _ebpf_current_epoch;
+        _ebpf_epoch_cpu_table[current_cpu].cpu_epoch_state.epoch = ebpf_query_time_since_boot(true);
         _ebpf_epoch_cpu_table[current_cpu].cpu_epoch_state.active = true;
         ebpf_lock_unlock(&_ebpf_epoch_cpu_table[current_cpu].lock, state);
         return EBPF_SUCCESS;
@@ -232,10 +228,11 @@ ebpf_epoch_exit()
     }
 
     if (ebpf_is_preemptible()) {
-        _ebpf_epoch_update_thread_state(current_cpu, ebpf_get_current_thread_id(), _ebpf_current_epoch, false);
+        _ebpf_epoch_update_thread_state(
+            current_cpu, ebpf_get_current_thread_id(), ebpf_query_time_since_boot(true), false);
     } else {
         ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_epoch_cpu_table[current_cpu].lock);
-        _ebpf_epoch_cpu_table[current_cpu].cpu_epoch_state.epoch = _ebpf_current_epoch;
+        _ebpf_epoch_cpu_table[current_cpu].cpu_epoch_state.epoch = ebpf_query_time_since_boot(true);
         _ebpf_epoch_cpu_table[current_cpu].cpu_epoch_state.active = false;
         ebpf_lock_unlock(&_ebpf_epoch_cpu_table[current_cpu].lock, state);
     }
@@ -296,7 +293,7 @@ ebpf_epoch_free(_Frees_ptr_opt_ void* memory)
 
     // Items are inserted into the free list in increasing epoch order.
     lock_state = ebpf_lock_lock(&_ebpf_epoch_cpu_table[current_cpu].lock);
-    header->freed_epoch = ebpf_interlocked_increment_int64(&_ebpf_current_epoch) - 1;
+    header->freed_epoch = ebpf_query_time_since_boot(true);
     ebpf_list_insert_tail(&_ebpf_epoch_cpu_table[current_cpu].free_list, &header->list_entry);
     ebpf_lock_unlock(&_ebpf_epoch_cpu_table[current_cpu].lock, lock_state);
 }
@@ -333,7 +330,7 @@ ebpf_epoch_schedule_work_item(_In_ ebpf_epoch_work_item_t* work_item)
 
     // Items are inserted into the free list in increasing epoch order.
     lock_state = ebpf_lock_lock(&_ebpf_epoch_cpu_table[current_cpu].lock);
-    work_item->header.freed_epoch = ebpf_interlocked_increment_int64(&_ebpf_current_epoch) - 1;
+    work_item->header.freed_epoch = ebpf_query_time_since_boot(true);
     ebpf_list_insert_tail(&_ebpf_epoch_cpu_table[current_cpu].free_list, &work_item->header.list_entry);
     ebpf_lock_unlock(&_ebpf_epoch_cpu_table[current_cpu].lock, lock_state);
 }
@@ -427,7 +424,7 @@ _ebpf_epoch_get_release_epoch(_Out_ int64_t* release_epoch)
     // Note: If there are no active threads or non-preemptible work items then we need to assign
     // an epoch that is guaranteed to be older than any thread that starts after this point.
     // Grabbing the current epoch guarantees that, even if we have a stale value of _ebpf_current_epoch.
-    int64_t lowest_epoch = _ebpf_current_epoch;
+    int64_t lowest_epoch = ebpf_query_time_since_boot(true);
     uint32_t cpu_id;
     ebpf_lock_state_t lock_state;
     ebpf_result_t return_value;
