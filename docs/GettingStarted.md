@@ -35,44 +35,44 @@ The following steps need to be executed _once_ before the first build on a new c
 2. ```msbuild /m /p:Configuration=Debug /p:Platform=x64 ebpf-for-windows.sln```
 
 ### Building using Visual Studio IDE
-1. Open ebpf-for-windows.sln
+1. Open `ebpf-for-windows.sln`
 2. Switch to debug / x64
 3. Build solution
 
 This will build the following binaries:
 
-* ebpfcore.sys: The kernel-mode execution context in which eBPF programs run.
-* netebpfext.sys: The kernel-mode extension for WFP hooks.
-* ebpfapi.dll: A user-mode shared library exposing APIs for apps to call to perform operations such as
+* `ebpfcore.sys`: The kernel-mode execution context in which eBPF programs run.
+* `netebpfext.sys`: The kernel-mode extension for WFP hooks.
+* `ebpfapi.dll`: A user-mode shared library exposing APIs for apps to call to perform operations such as
                loading eBPF programs.
-* ebpfnetsh.dll: A plugin for the Windows netsh.exe command line tool that provides eBPF command line
+* `ebpfnetsh.dll`: A plugin for the Windows netsh.exe command line tool that provides eBPF command line
                  utility functionality.
-* ebpfsvc.exe: A user-mode service that verifies and loads an eBPF program in the execution context.
-* unit_tests.exe: A collection of tests using the Catch framework.  These tests are also run as part
+* `ebpfsvc.exe`: A user-mode service that verifies and loads an eBPF program in the execution context.
+* `unit_tests.exe`: A collection of tests using the Catch framework.  These tests are also run as part
                   of the Github CI/CD so should always pass.
-* ebpf_client.exe: A collection of program verification tests that exercises the RPC channel from client to ebpfsvc.
+* `ebpf_client.exe`: A collection of program verification tests that exercises the RPC channel from client to ebpfsvc.
                    These tests are also run as part of the Github CI/CD so should always pass.
-* api_test.exe: A collection of tests that exercises eBPF user mode APIs. This requires EbpSvc service to be running,
+* `api_test.exe`: A collection of tests that exercises eBPF user mode APIs. This requires EbpSvc service to be running,
                 and EbpCore and NetEbpfExt drivers to be loaded.
-* sample_ebpf_ext.sys: A sample eBPF extension driver that implements a test hook (for a test program type) and test helper functions.
-* sample_ext_app.exe : A sample application for testing the sample extension driver.
-* xdp_tests.exe : Application for testing various XDP functionalities.  This requires the EbpSvc service to be running,
+* `sample_ebpf_ext.sys`: A sample eBPF extension driver that implements a test hook (for a test program type) and test helper functions.
+* `sample_ext_app.exe`: A sample application for testing the sample extension driver.
+* `xdp_tests.exe`: Application for testing various XDP functionalities.  This requires the EbpSvc service to be running,
                 and the EbpCore and NetEbpfExt drivers to be loaded on a remote system to test.
 
 and a few binaries just used for demo'ing eBPF functionality, as in the demo walkthrough discussed below:
 
-* dnsflood.exe: A utility to send 0-byte DNS packets, to illustrate a case that the sample walkthrough uses eBPF
+* `dnsflood.exe`: A utility to send 0-byte DNS packets, to illustrate a case that the sample walkthrough uses eBPF
                 to defend against.
-* port_leak.exe: A "buggy" utility to illustrate the effect of an app that leaks ports.
-* port_quota.exe: A sample utility to illustrate using eBPF to manage port quotas to defend against port_leak.exe
+* `port_leak.exe`: A "buggy" utility to illustrate the effect of an app that leaks ports.
+* `port_quota.exe`: A sample utility to illustrate using eBPF to manage port quotas to defend against `port_leak.exe`
                   and similar "buggy" apps.
 
 ## Installing eBPF for Windows
 
 Windows requires that one of the following criteria be met prior to loading a driver:
-a. Driver is signed using a certificate that chains up to the Microsoft code signing root (aka a production signed driver).
-b. The OS is booted with a kernel debugger attached.
-c. The OS is running in [test-signing mode](https://docs.microsoft.com/en-us/windows-hardware/drivers/install/the-testsigning-boot-configuration-option), the [driver is test signed](https://docs.microsoft.com/en-us/windows-hardware/drivers/install/test-signing-a-driver-through-an-embedded-signature) and the [test certificate is installed](https://docs.microsoft.com/en-us/windows-hardware/drivers/install/installing-test-certificates).
+1. Driver is signed using a certificate that chains up to the Microsoft code signing root (aka a production signed driver).
+2. The OS is booted with a kernel debugger attached.
+3. The OS is running in [test-signing mode](https://docs.microsoft.com/en-us/windows-hardware/drivers/install/the-testsigning-boot-configuration-option), the [driver is test signed](https://docs.microsoft.com/en-us/windows-hardware/drivers/install/test-signing-a-driver-through-an-embedded-signature) and the [test certificate is installed](https://docs.microsoft.com/en-us/windows-hardware/drivers/install/installing-test-certificates).
 
 Since the binaries built above are not signed by Microsoft, they will only work on a machine with
 a kernel debugger (KD) attached and running, or test signing is enabled. (It is expected that official
@@ -88,7 +88,7 @@ If you're not already familiar with eBPF, or want a detailed walkthrough, see ou
 
 For API documentation, see https://microsoft.github.io/ebpf-for-windows/
 ### Port leak and bind observability demo
-This section shows how to use eBPF for Windows in a demo that lets us control a UDP port leak by attaching an eBPF program to the socket bind() call via the EBPF_ATTACH_TYPE_BIND hook.
+This section shows how to use eBPF for Windows in a demo that lets us control a UDP port leak by attaching an eBPF program to the socket `bind()` call via the `EBPF_ATTACH_TYPE_BIND` hook.
 #### Prep
 1. Build the ``port_leak`` and ``port_quota`` applications from under the tools project.
 2. Copy both the exe's to a machine that has eBPF installed. See
@@ -112,10 +112,10 @@ On a defender machine with [eBPF installed](#installing-ebpf-for-windows), do th
    [Installing eBPF for Windows](#installing-ebpf-for-windows), or the kernel debugger (KD) is attached and running.
 3. Install [clang](https://github.com/llvm/llvm-project/releases/download/llvmorg-11.0.0/LLVM-11.0.0-win64.exe)
    if not already installed on the defender machine.
-4. Copy droppacket.c and ebpf.h to a folder (such as c:\test).
+4. Copy `droppacket.c` and `ebpf.h` to a folder (such as `c:\test`).
 
 On the attacker machine, do the following:
-1. Copy DnsFlood.exe to attacker machine
+1. Copy `DnsFlood.exe` to attacker machine
 
 #### Demo
 ##### On the attacker machine
@@ -124,9 +124,9 @@ On the attacker machine, do the following:
 ##### On the defender machine
 1. Start performance monitor and add UDPv4 Datagrams/sec
 2. Show that 200K packets per second are being received
-3. Show & explain code of droppacket.c
-4. Compile droppacket.c ```clang -target bpf -O2 -Werror -c droppacket.c -o droppacket.o```
-5. Show eBPF byte code for droppacket.o ```netsh ebpf show disassembly droppacket.o xdp```
+3. Show & explain code of `droppacket.c`
+4. Compile `droppacket.c` ```clang -target bpf -O2 -Werror -c droppacket.c -o droppacket.o```
+5. Show eBPF byte code for `droppacket.o` ```netsh ebpf show disassembly droppacket.o xdp```
 6. Show that the verifier checks the code ```netsh ebpf show verification droppacket.o xdp```
 7. Launch netsh ```netsh```
 8. Switch to ebpf context ```ebpf```
@@ -134,8 +134,8 @@ On the attacker machine, do the following:
 10. Show UDP datagrams received drop to under 10 per second
 11. Unload program ```delete program <id>``` where <id> is the ID noted above.
 12. Show UDP datagrams received drop to back up to ~200K per second
-13. Modify droppacket.c to be unsafe - Comment out line 20 & 21
-14. Compile droppacket.c ```clang -target bpf -O2 -Werror -c droppacket.c -o droppacket.o```
+13. Modify `droppacket.c` to be unsafe - Comment out line 20 & 21
+14. Compile `droppacket.c` ```clang -target bpf -O2 -Werror -c droppacket.c -o droppacket.o```
 15. Show that the verifier rejects the code ```netsh ebpf show verification droppacket.o xdp```
 16. Show that loading the program fails ```netsh ebpf add program droppacket.o xdp```
 
@@ -160,7 +160,7 @@ and running.
 ### api_test.exe
 This test exercises various eBPF user mode eBPF APIs, including those to load programs,
 enumerate maps and programs etc. This test requires the eBPF user mode service (EbpfSvc), and the
-kernel execution context (EbpfCore.sys) and the Network Extension (NetEbpfExt.sys) to be running.
+kernel execution context (`EbpfCore.sys`) and the Network Extension (`NetEbpfExt.sys`) to be running.
 This test is currently *not* part of the CI pipeline. Developers must run this test manually before
 checking in changes.
 
@@ -178,15 +178,15 @@ behavior is to run all the tests and only print information about failing test
 cases.
 
 Other useful options include:
-1.	-s to list both passing and failing test cases
-2.	-b to break into the debugger on test failure
-3.	-l to list test cases
-4.	Test_name to run a single test
+1.	`-s` to list both passing and failing test cases
+2.	`-b` to break into the debugger on test failure
+3.	`-l` to list test cases
+4.	`Test_name` to run a single test
 
 ### xdp_tests.exe
 This application tests various XDP functionalities. It has the following tests:
 1. Reflection Test: This tests the XDP_TX functionality. The following steps show how to run the test:
-   1. On the system under test, install eBPF binaries (install-ebpf.bat).
+   1. On the system under test, install eBPF binaries (`install-ebpf.bat`).
    2. Load the test eBPF program by running the following commands: `netsh`, `ebpf`, `add program reflect_packet.o xdp` and note the ID.
    3. From a remote host, run xdp_tests.exe and in `--remote-ip` parameter pass an IPv4 or IPv6 address of an Ethernet-like interface on the system under test in string format.
    4. Unload the program from system under test by running `delete program <id>` on the netsh prompt, where <id> is the ID noted above.
