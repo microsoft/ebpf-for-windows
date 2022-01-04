@@ -464,6 +464,57 @@ bpf_object__unpin_programs(struct bpf_object* obj, const char* path);
  * @{
  */
 
+/*
+ * @brief Load (but do not attach) an eBPF program from eBPF instructions
+ * supplied by the caller.
+ *
+ * @param[in] type Program type to use.
+ * @param[in] insns Array of eBPF instructions.
+ * @param[in] insns_cnt Number of eBPF instructions in the array.
+ * @param[in] license License.
+ * @param[in] kern_version Kernel version.
+ * @param[out] log_buf Buffer in which to write any log messages.
+ * @param[in] log_buf_size Size in bytes of the log buffer.
+ *
+ * @returns File descriptor that refers to the program, or <0 on error.
+ * The caller should call _close() on the fd to close this when done.
+ *
+ * @exception EINVAL One or more parameters are incorrect.
+ * @exception ENOMEM Out of memory.
+ *
+ * @sa bpf_prog_load
+ * @sa bpf_load_program_xattr
+ */
+int
+bpf_load_program(
+    enum bpf_prog_type type,
+    const struct bpf_insn* insns,
+    size_t insns_cnt,
+    const char* license,
+    __u32 kern_version,
+    char* log_buf,
+    size_t log_buf_sz);
+
+/*
+ * @brief Load (but do not attach) an eBPF program from eBPF instructions
+ * supplied by the caller.
+ *
+ * @param[in] load_attr Parameters to use to load the eBPF program.
+ * @param[out] log_buf Buffer in which to write any log messages.
+ * @param[in] log_buf_size Size in bytes of the log buffer.
+ *
+ * @returns File descriptor that refers to the program, or <0 on error.
+ * The caller should call _close() on the fd to close this when done.
+ *
+ * @exception EINVAL One or more parameters are incorrect.
+ * @exception ENOMEM Out of memory.
+ *
+ * @sa bpf_prog_load
+ * @sa bpf_load_program
+ */
+int
+bpf_load_program_xattr(const struct bpf_load_program_attr* load_attr, char* log_buf, size_t log_buf_sz);
+
 /**
  * @brief Load (but do not attach) eBPF maps and programs from an ELF file.
  *
@@ -482,8 +533,10 @@ bpf_object__unpin_programs(struct bpf_object* obj, const char* path);
  * @exception EINVAL One or more parameters are incorrect.
  * @exception ENOMEM Out of memory.
  *
- * @sa bpf_program__attach
+ * @sa bpf_load_program
+ * @sa bpf_load_program_xattr
  * @sa bpf_object__close
+ * @sa bpf_program__attach
  */
 int
 bpf_prog_load(const char* file, enum bpf_prog_type type, struct bpf_object** pobj, int* prog_fd);

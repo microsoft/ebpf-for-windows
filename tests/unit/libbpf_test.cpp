@@ -3,12 +3,14 @@
 #include <io.h>
 #include <WinSock2.h>
 
+#define bpf_insn ebpf_inst
 #include "bpf/bpf.h"
 #pragma warning(push)
 #pragma warning(disable : 4200)
 #include "bpf/libbpf.h"
 #pragma warning(pop)
 #include "catch_wrapper.hpp"
+#include "ebpf_vm_isa.hpp"
 #include "helpers.h"
 #include "platform.h"
 #include "program_helper.h"
@@ -19,6 +21,61 @@
 // "The enum type 'bpf_attach_type' is unscoped.
 // Prefer 'enum class' over 'enum'"
 #pragma warning(disable : 26812)
+
+TEST_CASE("empty bpf_load_program", "[libbpf]")
+{
+    _test_helper_libbpf test_helper;
+
+    // An empty set of instructions is invalid.
+    int program_fd = bpf_load_program(BPF_PROG_TYPE_XDP, nullptr, 0, nullptr, 0, nullptr, 0);
+    REQUIRE(program_fd < 0);
+    REQUIRE(errno == EINVAL);
+}
+
+TEST_CASE("invalid bpf_load_program", "[libbpf]")
+{
+    _test_helper_libbpf test_helper;
+
+    // Try with an invalid set of instructions.
+    struct bpf_insn instructions[] = {
+        {INST_OP_EXIT}, // return r0
+    };
+
+    // Try to load and verify the eBPF program.
+    char log_buffer[1024];
+    int program_fd = bpf_load_program(
+        BPF_PROG_TYPE_XDP, instructions, _countof(instructions), nullptr, 0, log_buffer, sizeof(log_buffer));
+    REQUIRE(program_fd < 0);
+    REQUIRE(errno == EACCES);
+    REQUIRE(strcmp(log_buffer, "\n0: r0.type == number\n\n") == 0);
+}
+
+TEST_CASE("valid bpf_load_program", "[libbpf]")
+{
+    _test_helper_libbpf test_helper;
+
+    // Try with a valid set of instructions.
+    struct bpf_insn instructions[] = {
+        {0xb7, R0_RETURN_VALUE, 0}, // r0 = 0
+        {INST_OP_EXIT},             // return r0
+    };
+
+    // Load and verify the eBPF program.
+    int program_fd = bpf_load_program(BPF_PROG_TYPE_XDP, instructions, _countof(instructions), nullptr, 0, nullptr, 0);
+    REQUIRE(program_fd >= 0);
+
+    // Now query the program info and verify it matches what we set.
+    bpf_prog_info program_info;
+    uint32_t program_info_size = sizeof(program_info);
+    REQUIRE(bpf_obj_get_info_by_fd(program_fd, &program_info, &program_info_size) == 0);
+    REQUIRE(program_info_size == sizeof(program_info));
+    REQUIRE(program_info.nr_map_ids == 0);
+
+    // TODO(issue #223): change below to BPF_PROG_TYPE_XDP.
+    REQUIRE(program_info.type == BPF_PROG_TYPE_UNSPEC);
+
+    Platform::_close(program_fd);
+}
 
 TEST_CASE("libbpf program", "[libbpf]")
 {

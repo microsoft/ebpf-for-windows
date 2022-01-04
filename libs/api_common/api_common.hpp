@@ -264,6 +264,10 @@ ebpf_result_to_errno(ebpf_result_t result)
         error = EEXIST;
         break;
 
+    case EBPF_VERIFICATION_FAILED:
+        error = EACCES;
+        break;
+
     default:
         error = EOTHER;
         break;
