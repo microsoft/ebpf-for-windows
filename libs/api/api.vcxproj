@@ -173,6 +173,7 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="bpf_syscall.cpp" />
     <ClCompile Include="ebpf_api.cpp" />
     <ClCompile Include="libbpf_link.cpp" />
     <ClCompile Include="libbpf_object.cpp" />
