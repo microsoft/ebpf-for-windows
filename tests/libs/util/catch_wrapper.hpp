@@ -8,5 +8,6 @@
 #pragma warning(disable : 26495) // Always initialize a member variable
 #pragma warning(disable : 26812) // Prefer 'enum class' over 'enum'
 #pragma warning(disable : 26816) // The pointer points to memory allocated on the stack
+#define CATCH_CONFIG_COLOUR_NONE 1
 #include "catch2\catch.hpp"
 #pragma warning(pop)
