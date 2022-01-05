@@ -408,6 +408,7 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_INVALID_ARGUMENT One or more parameters are incorrect.
      * @retval EBPF_NO_MEMORY Out of memory.
+     * @retval EBPF_VERIFICATION_FAILED The program failed verification.
      * @retval EBPF_FAILED Some other error occured.
      */
     ebpf_result_t

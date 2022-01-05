@@ -479,6 +479,7 @@ bpf_object__unpin_programs(struct bpf_object* obj, const char* path);
  * @returns File descriptor that refers to the program, or <0 on error.
  * The caller should call _close() on the fd to close this when done.
  *
+ * @exception EACCES The program failed verification.
  * @exception EINVAL One or more parameters are incorrect.
  * @exception ENOMEM Out of memory.
  *
@@ -506,6 +507,7 @@ bpf_load_program(
  * @returns File descriptor that refers to the program, or <0 on error.
  * The caller should call _close() on the fd to close this when done.
  *
+ * @exception EACCES The program failed verification.
  * @exception EINVAL One or more parameters are incorrect.
  * @exception ENOMEM Out of memory.
  *
@@ -530,6 +532,7 @@ bpf_load_program_xattr(const struct bpf_load_program_attr* load_attr, char* log_
  * @retval 0 The operation was successful.
  * @retval <0 An error occured, and errno was set.
  *
+ * @exception EACCES The program failed verification.
  * @exception EINVAL One or more parameters are incorrect.
  * @exception ENOMEM Out of memory.
  *
