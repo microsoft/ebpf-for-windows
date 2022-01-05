@@ -25,6 +25,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+      with:
+        ref: ${{ github.event.workflow_run.head_branch }}
 
     - name: Download build artifact
       uses: dawidd6/action-download-artifact@v2
