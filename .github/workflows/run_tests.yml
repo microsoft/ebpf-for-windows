@@ -6,7 +6,7 @@ name: Run Tests
 on: pull_request
 
 jobs:
-  build:
+  run_tests:
     strategy:
       matrix:
         configurations: [Release]
