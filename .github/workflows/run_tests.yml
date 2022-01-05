@@ -5,7 +5,7 @@ name: Run Tests
 
 on:
   workflow_run:
-    workflows: ["MSBuild"]
+    workflows: ['MSBuild']
     types:
       - completed
 
