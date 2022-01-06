@@ -14,7 +14,7 @@ This document discusses the steps to set up such a selfhost-runner that can run 
    3) ```Invoke-WebRequest -Uri https://github.com/actions/runner/releases/download/v2.281.1/actions-runner-win-x64-2.281.1.zip -OutFile actions-runner-win-x64-2.281.1.zip```
    4) ```if((Get-FileHash -Path actions-runner-win-x64-2.281.1.zip -Algorithm SHA256).Hash.ToUpper() -ne 'b8dccfef39c5d696443d98edd1ee57881075066bb62adef0a344fcb11bd19f1b'.ToUpper()){ throw 'Computed checksum did not match' }```
    5) ```Add-Type -AssemblyName System.IO.Compression.FileSystem ; [System.IO.Compression.ZipFile]::ExtractToDirectory("$PWD/actions-runner-win-x64-2.281.1.zip", "$PWD")```
-3) Obtain an [authentication token](https://github.com/microsoft/ebpf-for-windows/settings/actions/runners/new). This requires administrator permissions in the project.
+3) Create a new selfhost runner for the fork. This requires administrator permissions in the project.
 4) Configure action runner as follows:
    ```./config.cmd --url https://github.com/microsoft/ebpf-for-windows --labels 'kernel_test_vm' --token <action runner token> --runasservice --windowslogonaccount <account> --windowslogonpassword <password> ```
    The `--runasservice` parameter makes the action runner run as a Windows service. The runner service runs as
