@@ -161,6 +161,9 @@ Functions</h2></td></tr>
 <tr class="memitem:aaef788607a4a4665866140af5f50e78c"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#aaef788607a4a4665866140af5f50e78c">ebpf_program_load</a> (const char *file_name, const <a class="el" href="ebpf__windows_8h.html#a7392ed9f9037688cd94f7069c523c251">ebpf_program_type_t</a> *program_type, const <a class="el" href="ebpf__windows_8h.html#a3f56868552f991b0f9eb6800d8f9a43c">ebpf_attach_type_t</a> *attach_type, <a class="el" href="ebpf__execution__type_8h.html#af58bcede64968a095964be4e78998658">ebpf_execution_type_t</a> execution_type, struct bpf_object **object, <a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> *program_fd, const char **log_buffer)</td></tr>
 <tr class="memdesc:aaef788607a4a4665866140af5f50e78c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Load eBPF programs from an ELF file based on default load attributes. This API does the following:  <a href="ebpf__api_8h.html#aaef788607a4a4665866140af5f50e78c">More...</a><br /></td></tr>
 <tr class="separator:aaef788607a4a4665866140af5f50e78c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0fe87738c8434930b24fbf28e2c10ffb"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a0fe87738c8434930b24fbf28e2c10ffb">ebpf_program_load_bytes</a> (const <a class="el" href="ebpf__windows_8h.html#a7392ed9f9037688cd94f7069c523c251">ebpf_program_type_t</a> *program_type, <a class="el" href="ebpf__execution__type_8h.html#af58bcede64968a095964be4e78998658">ebpf_execution_type_t</a> execution_type, _In_reads_(byte_code_size) const uint8_t *byte_code, uint32_t byte_code_size, _Out_writes_opt_(log_buf_sz) char *log_buf, size_t log_buf_sz, <a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> *program_fd)</td></tr>
+<tr class="memdesc:a0fe87738c8434930b24fbf28e2c10ffb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Load an eBPF programs from raw instructions.  <a href="ebpf__api_8h.html#a0fe87738c8434930b24fbf28e2c10ffb">More...</a><br /></td></tr>
+<tr class="separator:a0fe87738c8434930b24fbf28e2c10ffb"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac49d0596d90fcfb57ad393ef7d3bd395"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#ac49d0596d90fcfb57ad393ef7d3bd395">ebpf_program_attach</a> (struct bpf_program *program, const <a class="el" href="ebpf__windows_8h.html#a3f56868552f991b0f9eb6800d8f9a43c">ebpf_attach_type_t</a> *attach_type, _In_reads_bytes_opt_(attach_params_size) void *attach_parameters, size_t attach_params_size, struct bpf_link **link)</td></tr>
 <tr class="memdesc:ac49d0596d90fcfb57ad393ef7d3bd395"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attach an eBPF program.  <a href="ebpf__api_8h.html#ac49d0596d90fcfb57ad393ef7d3bd395">More...</a><br /></td></tr>
 <tr class="separator:ac49d0596d90fcfb57ad393ef7d3bd395"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -1550,6 +1553,88 @@ Variables</h2></td></tr>
     <tr><td class="paramname">EBPF_INVALID_ARGUMENT</td><td>One or more parameters are incorrect. </td></tr>
     <tr><td class="paramname">EBPF_NO_MEMORY</td><td>Out of memory. </td></tr>
     <tr><td class="paramname">EBPF_ELF_PARSING_FAILED</td><td>Failure in parsing ELF file. </td></tr>
+    <tr><td class="paramname">EBPF_FAILED</td><td>Some other error occured. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="a0fe87738c8434930b24fbf28e2c10ffb"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a0fe87738c8434930b24fbf28e2c10ffb">&#9670;&nbsp;</a></span>ebpf_program_load_bytes()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a> ebpf_program_load_bytes </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="ebpf__windows_8h.html#a7392ed9f9037688cd94f7069c523c251">ebpf_program_type_t</a> *&#160;</td>
+          <td class="paramname"><em>program_type</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="ebpf__execution__type_8h.html#af58bcede64968a095964be4e78998658">ebpf_execution_type_t</a>&#160;</td>
+          <td class="paramname"><em>execution_type</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">_In_reads_(byte_code_size) const uint8_t *&#160;</td>
+          <td class="paramname"><em>byte_code</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint32_t&#160;</td>
+          <td class="paramname"><em>byte_code_size</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">_Out_writes_opt_(log_buf_sz) char *&#160;</td>
+          <td class="paramname"><em>log_buf</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>log_buf_sz</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> *&#160;</td>
+          <td class="paramname"><em>program_fd</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Load an eBPF programs from raw instructions. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">program_type</td><td>The eBPF program type. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">execution_type</td><td>The execution type to use for this program. If EBPF_EXECUTION_ANY is specified, execution type will be decided by a system-wide policy. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">byte_code</td><td>The eBPF program byte code. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">byte_code_size</td><td>Size in bytes (not instruction count) of the eBPF program byte code. </td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">log_buf</td><td>The buffer in which to write log messages. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">log_buf_sz</td><td>Size in bytes of the caller's log buffer. </td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">program_fd</td><td>Returns a file descriptor for the program. The caller should call _close() on the fd to close this when done.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">EBPF_SUCCESS</td><td>The operation was successful. </td></tr>
+    <tr><td class="paramname">EBPF_INVALID_ARGUMENT</td><td>One or more parameters are incorrect. </td></tr>
+    <tr><td class="paramname">EBPF_NO_MEMORY</td><td>Out of memory. </td></tr>
+    <tr><td class="paramname">EBPF_VERIFICATION_FAILED</td><td>The program failed verification. </td></tr>
     <tr><td class="paramname">EBPF_FAILED</td><td>Some other error occured. </td></tr>
   </table>
   </dd>

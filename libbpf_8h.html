@@ -171,6 +171,10 @@ Functions</h2></td></tr>
 <tr class="memdesc:a707d517a9861144008ed57e717ac174a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Unpin all programs associated with an eBPF object from a specified path.  <a href="libbpf_8h.html#a707d517a9861144008ed57e717ac174a">More...</a><br /></td></tr>
 <tr class="separator:a707d517a9861144008ed57e717ac174a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr><td colspan="2"><div class="groupHeader">Program-related functions</div></td></tr>
+<tr class="memitem:ab69956e1b5ddb90e685db241857230e3"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#ab69956e1b5ddb90e685db241857230e3">bpf_load_program</a> (enum <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0">bpf_prog_type</a> type, const struct bpf_insn *insns, size_t insns_cnt, const char *license, <a class="el" href="bpf__helpers__platform_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a> kern_version, char *log_buf, size_t log_buf_sz)</td></tr>
+<tr class="separator:ab69956e1b5ddb90e685db241857230e3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af49249eba2a0e62fddb2a09f3a0c7833"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#af49249eba2a0e62fddb2a09f3a0c7833">bpf_load_program_xattr</a> (const struct bpf_load_program_attr *load_attr, char *log_buf, size_t log_buf_sz)</td></tr>
+<tr class="separator:af49249eba2a0e62fddb2a09f3a0c7833"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a37b9672527f744e7492797529f4f9a6a"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a37b9672527f744e7492797529f4f9a6a">bpf_prog_load</a> (const char *file, enum <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0">bpf_prog_type</a> type, struct bpf_object **pobj, int *prog_fd)</td></tr>
 <tr class="memdesc:a37b9672527f744e7492797529f4f9a6a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Load (but do not attach) eBPF maps and programs from an ELF file.  <a href="libbpf_8h.html#a37b9672527f744e7492797529f4f9a6a">More...</a><br /></td></tr>
 <tr class="separator:a37b9672527f744e7492797529f4f9a6a"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -410,6 +414,98 @@ Functions</h2></td></tr>
   </dd>
 </dl>
 <dl class="section see"><dt>See also</dt><dd><a class="el" href="libbpf_8h.html#acbb4641bef142d23ffcd8a349715a394" title="Pin a link to a specified path.">bpf_link__pin</a> </dd></dl>
+
+</div>
+</div>
+<a id="ab69956e1b5ddb90e685db241857230e3"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab69956e1b5ddb90e685db241857230e3">&#9670;&nbsp;</a></span>bpf_load_program()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int bpf_load_program </td>
+          <td>(</td>
+          <td class="paramtype">enum <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0">bpf_prog_type</a>&#160;</td>
+          <td class="paramname"><em>type</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const struct bpf_insn *&#160;</td>
+          <td class="paramname"><em>insns</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>insns_cnt</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>license</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="bpf__helpers__platform_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a>&#160;</td>
+          <td class="paramname"><em>kern_version</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">char *&#160;</td>
+          <td class="paramname"><em>log_buf</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>log_buf_sz</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="af49249eba2a0e62fddb2a09f3a0c7833"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af49249eba2a0e62fddb2a09f3a0c7833">&#9670;&nbsp;</a></span>bpf_load_program_xattr()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int bpf_load_program_xattr </td>
+          <td>(</td>
+          <td class="paramtype">const struct bpf_load_program_attr *&#160;</td>
+          <td class="paramname"><em>load_attr</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">char *&#160;</td>
+          <td class="paramname"><em>log_buf</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>log_buf_sz</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
 
 </div>
 </div>
@@ -1506,14 +1602,19 @@ bpf_object__unpin </dd></dl>
 </dl>
 <dl class="exception"><dt>Exceptions</dt><dd>
   <table class="exception">
+    <tr><td class="paramname">EACCES</td><td>The program failed verification. </td></tr>
     <tr><td class="paramname">EINVAL</td><td>One or more parameters are incorrect. </td></tr>
     <tr><td class="paramname">ENOMEM</td><td>Out of memory.</td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section see"><dt>See also</dt><dd><a class="el" href="libbpf_8h.html#adecb674c106a245b9bf857719a9c32d3" title="Attach an eBPF program to a hook associated with the program&#39;s expected attach type.">bpf_program__attach</a> </dd>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="libbpf_8h.html#ab69956e1b5ddb90e685db241857230e3">bpf_load_program</a> </dd>
 <dd>
-<a class="el" href="libbpf_8h.html#a473872ff7ab53d1ed593e7abd206f31a" title="Close an eBPF object.">bpf_object__close</a> </dd></dl>
+<a class="el" href="libbpf_8h.html#af49249eba2a0e62fddb2a09f3a0c7833">bpf_load_program_xattr</a> </dd>
+<dd>
+<a class="el" href="libbpf_8h.html#a473872ff7ab53d1ed593e7abd206f31a" title="Close an eBPF object.">bpf_object__close</a> </dd>
+<dd>
+<a class="el" href="libbpf_8h.html#adecb674c106a245b9bf857719a9c32d3" title="Attach an eBPF program to a hook associated with the program&#39;s expected attach type.">bpf_program__attach</a> </dd></dl>
 
 </div>
 </div>
