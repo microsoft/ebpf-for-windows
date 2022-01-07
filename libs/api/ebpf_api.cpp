@@ -1753,6 +1753,8 @@ ebpf_program_load_bytes(
     load_info.byte_code = const_cast<uint8_t*>(byte_code);
     load_info.byte_code_size = byte_code_size;
     load_info.execution_context = execution_context_kernel_mode;
+
+    // TODO(issue #714): resolve maps in byte code.  Compare _resolve_maps_in_byte_code() in ebpfsvc.
     load_info.map_count = 0;
 
     uint32_t error_message_size = 0;
@@ -1767,10 +1769,10 @@ ebpf_program_load_bytes(
     }
     ebpf_free_string(log_buffer_output);
 
-    if (result == EBPF_SUCCESS) {
-        *program_fd = _create_file_descriptor_for_handle(program_handle);
+    *program_fd = (result == EBPF_SUCCESS) ? _create_file_descriptor_for_handle(program_handle) : ebpf_fd_invalid;
+    if (*program_fd == ebpf_fd_invalid) {
+        CloseHandle(program_handle);
     }
-    CloseHandle(program_handle);
 
     return result;
 }
