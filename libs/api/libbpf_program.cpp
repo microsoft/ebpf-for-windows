@@ -62,6 +62,58 @@ _get_bpf_attach_type(const ebpf_attach_type_t* type)
 }
 
 int
+bpf_load_program_xattr(const struct bpf_load_program_attr* load_attr, char* log_buf, size_t log_buf_sz)
+{
+    size_t byte_code_size = load_attr->insns_cnt * sizeof(struct ebpf_inst);
+    if (byte_code_size < 1 || byte_code_size > UINT32_MAX) {
+        return libbpf_err(-EINVAL);
+    }
+
+    const ebpf_program_type_t* program_type = _get_ebpf_program_type(load_attr->prog_type);
+    if (program_type == nullptr) {
+        return libbpf_err(-EINVAL);
+    }
+
+    fd_t program_fd;
+    ebpf_result_t result = ebpf_program_load_bytes(
+        program_type,
+        EBPF_EXECUTION_ANY,
+        (const uint8_t*)load_attr->insns,
+        (uint32_t)byte_code_size,
+        log_buf,
+        log_buf_sz,
+        &program_fd);
+    if (result != EBPF_SUCCESS) {
+        return libbpf_result_err(result);
+    }
+    return program_fd;
+}
+
+int
+bpf_load_program(
+    enum bpf_prog_type type,
+    const struct bpf_insn* insns,
+    size_t insns_cnt,
+    const char* license,
+    __u32 kern_version,
+    char* log_buf,
+    size_t log_buf_sz)
+{
+    struct bpf_load_program_attr load_attr;
+
+    memset(&load_attr, 0, sizeof(struct bpf_load_program_attr));
+    load_attr.prog_type = type;
+    load_attr.expected_attach_type = BPF_ATTACH_TYPE_UNSPEC;
+    load_attr.name = nullptr;
+    load_attr.insns = insns;
+    load_attr.insns_cnt = insns_cnt;
+    load_attr.license = license;
+    load_attr.kern_version = kern_version;
+
+    return bpf_load_program_xattr(&load_attr, log_buf, log_buf_sz);
+}
+
+int
 bpf_prog_load(const char* file_name, enum bpf_prog_type type, struct bpf_object** object, int* program_fd)
 {
     const ebpf_program_type_t* program_type = _get_ebpf_program_type(type);
