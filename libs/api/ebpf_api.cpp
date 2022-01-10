@@ -1717,10 +1717,70 @@ _ebpf_object_create_maps(_Inout_ ebpf_object_t* object)
     return result;
 }
 
+ebpf_result_t
+ebpf_program_load_bytes(
+    _In_ const ebpf_program_type_t* program_type,
+    ebpf_execution_type_t execution_type,
+    _In_reads_(byte_code_size) const uint8_t* byte_code,
+    uint32_t byte_code_size,
+    _Out_writes_opt_(log_buffer_size) char* log_buffer,
+    size_t log_buffer_size,
+    _Out_ fd_t* program_fd)
+{
+    if ((log_buffer != nullptr) != (log_buffer_size > 0)) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    // Create a unique object/section/program name.
+    srand(static_cast<unsigned int>(time(nullptr)));
+    char unique_name[80];
+    sprintf_s(unique_name, sizeof(unique_name), "raw#%u", rand());
+
+    ebpf_handle_t program_handle;
+    ebpf_result_t result = _create_program(*program_type, unique_name, unique_name, unique_name, &program_handle);
+    if (result != EBPF_SUCCESS) {
+        return result;
+    }
+
+    // Populate load_info.
+    ebpf_program_load_info load_info = {0};
+    load_info.object_name = const_cast<char*>(unique_name);
+    load_info.section_name = const_cast<char*>(unique_name);
+    load_info.program_name = const_cast<char*>(unique_name);
+    load_info.program_type = *program_type;
+    load_info.program_handle = reinterpret_cast<file_handle_t>(program_handle);
+    load_info.execution_type = execution_type;
+    load_info.byte_code = const_cast<uint8_t*>(byte_code);
+    load_info.byte_code_size = byte_code_size;
+    load_info.execution_context = execution_context_kernel_mode;
+
+    // TODO(issue #714): resolve maps in byte code.  Compare _resolve_maps_in_byte_code() in ebpfsvc.
+    load_info.map_count = 0;
+
+    uint32_t error_message_size = 0;
+    const char* log_buffer_output;
+    result = ebpf_rpc_load_program(&load_info, &log_buffer_output, &error_message_size);
+
+    if (log_buffer_size > 0) {
+        log_buffer[0] = 0;
+        if (log_buffer_output) {
+            strcpy_s(log_buffer, log_buffer_size, log_buffer_output);
+        }
+    }
+    ebpf_free_string(log_buffer_output);
+
+    *program_fd = (result == EBPF_SUCCESS) ? _create_file_descriptor_for_handle(program_handle) : ebpf_fd_invalid;
+    if (*program_fd == ebpf_fd_invalid) {
+        CloseHandle(program_handle);
+    }
+
+    return result;
+}
+
 static ebpf_result_t
 _ebpf_object_load_programs(
     _Inout_ struct bpf_object* object,
-    _In_ ebpf_execution_type_t execution_type,
+    ebpf_execution_type_t execution_type,
     _Outptr_result_maybenull_z_ const char** log_buffer)
 {
     ebpf_result_t result = EBPF_SUCCESS;
