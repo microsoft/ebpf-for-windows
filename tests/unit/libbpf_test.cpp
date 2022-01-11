@@ -77,6 +77,82 @@ TEST_CASE("valid bpf_load_program", "[libbpf]")
     Platform::_close(program_fd);
 }
 
+// Define macros that appear in the Linux man page to values in ebpf_vm_isa.h.
+#define BPF_LD_MAP_FD(reg, fd) \
+    {INST_OP_LDDW_IMM, (reg), 1, 0, (fd)}, { 0 }
+#define BPF_ALU64_IMM(op, reg, imm)                                     \
+    {                                                                   \
+        INST_CLS_ALU64 | INST_SRC_IMM | ((op) << 4), (reg), 0, 0, (imm) \
+    }
+#define BPF_MOV64_IMM(reg, imm)                                  \
+    {                                                            \
+        INST_CLS_ALU64 | INST_SRC_IMM | 0xb0, (reg), 0, 0, (imm) \
+    }
+#define BPF_MOV64_REG(dst, src)                                  \
+    {                                                            \
+        INST_CLS_ALU64 | INST_SRC_REG | 0xb0, (dst), (src), 0, 0 \
+    }
+#define BPF_EXIT_INSN() \
+    {                   \
+        INST_OP_EXIT    \
+    }
+#define BPF_CALL_FUNC(imm)           \
+    {                                \
+        INST_OP_CALL, 0, 0, 0, (imm) \
+    }
+#define BPF_STX_MEM(sz, dst, src, off)                                \
+    {                                                                 \
+        INST_CLS_STX | (INST_MEM << 5) | (sz), (dst), (src), (off), 0 \
+    }
+#define BPF_W INST_SIZE_W
+#define BPF_REG_1 R1_ARG
+#define BPF_REG_2 R2_ARG
+#define BPF_REG_3 R3_ARG
+#define BPF_REG_4 R4_ARG
+#define BPF_REG_10 R10_STACK_POINTER
+#define BPF_ADD 0
+
+TEST_CASE("valid bpf_load_program with map", "[libbpf]")
+{
+    _test_helper_libbpf test_helper;
+
+    int map_fd = bpf_create_map(BPF_MAP_TYPE_ARRAY, sizeof(uint32_t), sizeof(uint32_t), 2, 0);
+    REQUIRE(map_fd >= 0);
+
+    // Try with a valid set of instructions.
+    struct bpf_insn instructions[] = {
+        BPF_MOV64_IMM(BPF_REG_1, 0),                   // r1 = 0
+        BPF_STX_MEM(BPF_W, BPF_REG_10, BPF_REG_1, -4), // *(u32 *)(r10 - 4) = r1
+        BPF_MOV64_IMM(BPF_REG_1, 42),                  // r1 = 42
+        BPF_STX_MEM(BPF_W, BPF_REG_10, BPF_REG_1, -8), // *(u32 *)(r10 - 8) = r1
+        BPF_MOV64_REG(BPF_REG_2, BPF_REG_10),          // r2 = r10
+        BPF_ALU64_IMM(BPF_ADD, BPF_REG_2, -4),         // r2 += -4
+        BPF_MOV64_REG(BPF_REG_3, BPF_REG_10),          // r3 = r10
+        BPF_ALU64_IMM(BPF_ADD, BPF_REG_3, -8),         // r3 += -8
+        BPF_LD_MAP_FD(BPF_REG_1, map_fd),              // r1 = map_fd ll
+        BPF_MOV64_IMM(BPF_REG_4, 0),                   // r4 = 0
+        BPF_CALL_FUNC(BPF_FUNC_map_update_elem),       // call map_lookup_elem
+        BPF_EXIT_INSN(),                               // return r0
+    };
+
+    // Load and verify the eBPF program.
+    int program_fd = bpf_load_program(BPF_PROG_TYPE_XDP, instructions, _countof(instructions), nullptr, 0, nullptr, 0);
+    REQUIRE(program_fd >= 0);
+
+    // Now query the program info and verify it matches what we set.
+    bpf_prog_info program_info;
+    uint32_t program_info_size = sizeof(program_info);
+    REQUIRE(bpf_obj_get_info_by_fd(program_fd, &program_info, &program_info_size) == 0);
+    REQUIRE(program_info_size == sizeof(program_info));
+    REQUIRE(program_info.nr_map_ids == 1);
+
+    // TODO(issue #223): change below to BPF_PROG_TYPE_XDP.
+    REQUIRE(program_info.type == BPF_PROG_TYPE_UNSPEC);
+
+    Platform::_close(program_fd);
+    Platform::_close(map_fd);
+}
+
 TEST_CASE("libbpf program", "[libbpf]")
 {
     _test_helper_libbpf test_helper;

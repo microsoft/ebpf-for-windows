@@ -121,6 +121,7 @@ _resolve_ec_function(ebpf_ec_function_t function, uint64_t* address)
     return EBPF_SUCCESS;
 }
 
+// Replace map handles with map addresses.
 static ebpf_result_t
 _resolve_maps_in_byte_code(ebpf_handle_t program_handle, ebpf_code_buffer_t& byte_code)
 {
@@ -319,7 +320,7 @@ ebpf_verify_and_load_program(
             goto Exit;
         }
 
-        // Verify the program
+        // Verify the program.
         result = verify_byte_code(program_type, byte_code, byte_code_size, error_message, error_message_size);
         if (result != EBPF_SUCCESS) {
             goto Exit;

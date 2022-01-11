@@ -1754,8 +1754,35 @@ ebpf_program_load_bytes(
     load_info.byte_code_size = byte_code_size;
     load_info.execution_context = execution_context_kernel_mode;
 
-    // TODO(issue #714): resolve maps in byte code.  Compare _resolve_maps_in_byte_code() in ebpfsvc.
-    load_info.map_count = 0;
+    // Resolve map handles in byte code.
+    std::vector<original_fd_handle_map_t> handle_map;
+    const ebpf_inst* instructions = reinterpret_cast<const ebpf_inst*>(byte_code);
+    const ebpf_inst* instruction_end = reinterpret_cast<const ebpf_inst*>(byte_code + byte_code_size);
+    for (size_t index = 0; index < byte_code_size / sizeof(ebpf_inst); index++) {
+        const ebpf_inst& first_instruction = instructions[index];
+        const ebpf_inst& second_instruction = instructions[index + 1];
+        if (first_instruction.opcode != INST_OP_LDDW_IMM) {
+            continue;
+        }
+        if (&instructions[index + 1] >= instruction_end) {
+            return EBPF_INVALID_ARGUMENT;
+        }
+        index++;
+
+        // Check for LD_MAP flag.
+        if (first_instruction.src != 1) {
+            continue;
+        }
+
+        // Get the real map_fd value and handle.
+        uint64_t imm =
+            static_cast<uint64_t>(first_instruction.imm) | (static_cast<uint64_t>(second_instruction.imm) << 32);
+        file_handle_t handle = (file_handle_t)Platform::_get_osfhandle((int)imm);
+        handle_map.emplace_back((uint32_t)imm, (uint32_t)imm, handle);
+    }
+
+    load_info.map_count = (uint32_t)handle_map.size();
+    load_info.handle_map = handle_map.data();
 
     uint32_t error_message_size = 0;
     const char* log_buffer_output;
