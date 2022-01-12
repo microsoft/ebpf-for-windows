@@ -66,9 +66,11 @@ $(function() {
 </div><!-- top -->
 <div class="header">
   <div class="summary">
+<a href="#nested-classes">Data Structures</a> &#124;
 <a href="#define-members">Macros</a> &#124;
 <a href="#typedef-members">Typedefs</a> &#124;
-<a href="#enum-members">Enumerations</a>  </div>
+<a href="#enum-members">Enumerations</a> &#124;
+<a href="#func-members">Functions</a>  </div>
   <div class="headertitle">
 <div class="title">bpf.h File Reference</div>  </div>
 </div><!--header-->
@@ -80,6 +82,21 @@ $(function() {
 </div>
 <p><a href="linux_2bpf_8h_source.html">Go to the source code of this file.</a></p>
 <table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="nested-classes"></a>
+Data Structures</h2></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structbpf__obj__info__attr__t.html">bpf_obj_info_attr_t</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attributes used by BPF_OBJ_GET_INFO_BY_FD.  <a href="structbpf__obj__info__attr__t.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structbpf__link__detach__attr__t.html">bpf_link_detach_attr_t</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attributes used by BPF_LINK_DETACH.  <a href="structbpf__link__detach__attr__t.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structbpf__prog__bind__map__attr__t.html">bpf_prog_bind_map_attr_t</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attributes used by BPF_PROG_BIND_MAP.  <a href="structbpf__prog__bind__map__attr__t.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">union &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="unionbpf__attr.html">bpf_attr</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Parameters used by the <a class="el" href="linux_2bpf_8h.html#ae2efe8134c5d52b7bfd982014f5d80c4">bpf()</a> API.  <a href="unionbpf__attr.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="define-members"></a>
 Macros</h2></td></tr>
 <tr class="memitem:abf2e376a832317e2b685e430a6fdb8a7"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="linux_2bpf_8h.html#abf2e376a832317e2b685e430a6fdb8a7">LIBBPF_API</a></td></tr>
@@ -108,8 +125,40 @@ Enumerations</h2></td></tr>
 <tr class="memitem:af8f453a20dddc8657d0e69f73ffe2879"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="linux_2bpf_8h.html#af8f453a20dddc8657d0e69f73ffe2879">bpf_stats_type</a> { <a class="el" href="linux_2bpf_8h.html#af8f453a20dddc8657d0e69f73ffe2879abc1dd3438f95108ae16a1387917b5c65">BPF_STATS_TYPE_UNKNOWN</a>
  }</td></tr>
 <tr class="separator:af8f453a20dddc8657d0e69f73ffe2879"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9cd4b69e2bbb3202f71b8b2b0eeede09"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="linux_2bpf_8h.html#a9cd4b69e2bbb3202f71b8b2b0eeede09">bpf_cmd_id</a> { <br />
+&#160;&#160;<a class="el" href="linux_2bpf_8h.html#a9cd4b69e2bbb3202f71b8b2b0eeede09a140fe776c318de4d35733c87a94b8f01">BPF_MAP_CREATE</a>, 
+<a class="el" href="linux_2bpf_8h.html#a9cd4b69e2bbb3202f71b8b2b0eeede09aeda0d0507e3a0f6cedc59bb34dd8eef8">BPF_MAP_LOOKUP_ELEM</a>, 
+<a class="el" href="linux_2bpf_8h.html#a9cd4b69e2bbb3202f71b8b2b0eeede09ae1b4efde0c228edbfa223a9c2a50febe">BPF_MAP_UPDATE_ELEM</a>, 
+<a class="el" href="linux_2bpf_8h.html#a9cd4b69e2bbb3202f71b8b2b0eeede09af464a87b245fda4ee7ec7073a2040262">BPF_MAP_DELETE_ELEM</a>, 
+<br />
+&#160;&#160;<a class="el" href="linux_2bpf_8h.html#a9cd4b69e2bbb3202f71b8b2b0eeede09aa64737ec5dbeaebadbe10c55cb3dbadb">BPF_MAP_GET_NEXT_KEY</a>, 
+<a class="el" href="linux_2bpf_8h.html#a9cd4b69e2bbb3202f71b8b2b0eeede09a326d2ede2c46021fa4f4e465cbc0ea18">BPF_PROG_LOAD</a>, 
+<a class="el" href="linux_2bpf_8h.html#a9cd4b69e2bbb3202f71b8b2b0eeede09a6abdc7140f3c0faf9adde20d6f01ac2d">BPF_OBJ_PIN</a>, 
+<a class="el" href="linux_2bpf_8h.html#a9cd4b69e2bbb3202f71b8b2b0eeede09a1c4511c9d4655065ab745612a7d5916a">BPF_OBJ_GET</a>, 
+<br />
+&#160;&#160;<a class="el" href="linux_2bpf_8h.html#a9cd4b69e2bbb3202f71b8b2b0eeede09a5e5d7957df15c05673e76c3b3302ac09">BPF_PROG_GET_NEXT_ID</a>, 
+<a class="el" href="linux_2bpf_8h.html#a9cd4b69e2bbb3202f71b8b2b0eeede09ace8b69c9b85d6110c435e43af257580f">BPF_MAP_GET_NEXT_ID</a>, 
+<a class="el" href="linux_2bpf_8h.html#a9cd4b69e2bbb3202f71b8b2b0eeede09a83a22d9bd7cab247e1ced4d5811ab978">BPF_LINK_GET_NEXT_ID</a>, 
+<a class="el" href="linux_2bpf_8h.html#a9cd4b69e2bbb3202f71b8b2b0eeede09abf5b1ac5c2f65bb56412fc478cfed02a">BPF_PROG_GET_FD_BY_ID</a>, 
+<br />
+&#160;&#160;<a class="el" href="linux_2bpf_8h.html#a9cd4b69e2bbb3202f71b8b2b0eeede09a7bde4b21c9f5532e54d14d83037b5945">BPF_MAP_GET_FD_BY_ID</a>, 
+<a class="el" href="linux_2bpf_8h.html#a9cd4b69e2bbb3202f71b8b2b0eeede09aba1b82aca4e658fdbabca289f5128eba">BPF_LINK_GET_FD_BY_ID</a>, 
+<a class="el" href="linux_2bpf_8h.html#a9cd4b69e2bbb3202f71b8b2b0eeede09ac91812af05cb4bd71159c8d2659b8784">BPF_OBJ_GET_INFO_BY_FD</a>, 
+<a class="el" href="linux_2bpf_8h.html#a9cd4b69e2bbb3202f71b8b2b0eeede09a89ad9c6e03007dd9310da8f5b49498dc">BPF_LINK_DETACH</a>, 
+<br />
+&#160;&#160;<a class="el" href="linux_2bpf_8h.html#a9cd4b69e2bbb3202f71b8b2b0eeede09a9e6f8dd9c9ddd605713477765ee28bca">BPF_PROG_BIND_MAP</a>
+<br />
+ }</td></tr>
+<tr class="separator:a9cd4b69e2bbb3202f71b8b2b0eeede09"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
+Functions</h2></td></tr>
+<tr class="memitem:ae2efe8134c5d52b7bfd982014f5d80c4"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="linux_2bpf_8h.html#ae2efe8134c5d52b7bfd982014f5d80c4">bpf</a> (int cmd, union <a class="el" href="unionbpf__attr.html">bpf_attr</a> *attr, unsigned int size)</td></tr>
+<tr class="separator:ae2efe8134c5d52b7bfd982014f5d80c4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
-<h2 class="groupheader">Macro Definition Documentation</h2>
+<a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
+<div class="textblock"><p>This file should be thought of as platform/bpf.h not Linux-specific per se. It is needed under this path though since the Libbpf bpf.h includes it as such. </p>
+</div><h2 class="groupheader">Macro Definition Documentation</h2>
 <a id="abf2e376a832317e2b685e430a6fdb8a7"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#abf2e376a832317e2b685e430a6fdb8a7">&#9670;&nbsp;</a></span>LIBBPF_API</h2>
 
@@ -214,6 +263,39 @@ Enumerations</h2></td></tr>
 </div>
 </div>
 <h2 class="groupheader">Enumeration Type Documentation</h2>
+<a id="a9cd4b69e2bbb3202f71b8b2b0eeede09"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a9cd4b69e2bbb3202f71b8b2b0eeede09">&#9670;&nbsp;</a></span>bpf_cmd_id</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">enum <a class="el" href="linux_2bpf_8h.html#a9cd4b69e2bbb3202f71b8b2b0eeede09">bpf_cmd_id</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<table class="fieldtable">
+<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="a9cd4b69e2bbb3202f71b8b2b0eeede09a140fe776c318de4d35733c87a94b8f01"></a>BPF_MAP_CREATE&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="a9cd4b69e2bbb3202f71b8b2b0eeede09aeda0d0507e3a0f6cedc59bb34dd8eef8"></a>BPF_MAP_LOOKUP_ELEM&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="a9cd4b69e2bbb3202f71b8b2b0eeede09ae1b4efde0c228edbfa223a9c2a50febe"></a>BPF_MAP_UPDATE_ELEM&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="a9cd4b69e2bbb3202f71b8b2b0eeede09af464a87b245fda4ee7ec7073a2040262"></a>BPF_MAP_DELETE_ELEM&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="a9cd4b69e2bbb3202f71b8b2b0eeede09aa64737ec5dbeaebadbe10c55cb3dbadb"></a>BPF_MAP_GET_NEXT_KEY&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="a9cd4b69e2bbb3202f71b8b2b0eeede09a326d2ede2c46021fa4f4e465cbc0ea18"></a>BPF_PROG_LOAD&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="a9cd4b69e2bbb3202f71b8b2b0eeede09a6abdc7140f3c0faf9adde20d6f01ac2d"></a>BPF_OBJ_PIN&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="a9cd4b69e2bbb3202f71b8b2b0eeede09a1c4511c9d4655065ab745612a7d5916a"></a>BPF_OBJ_GET&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="a9cd4b69e2bbb3202f71b8b2b0eeede09a5e5d7957df15c05673e76c3b3302ac09"></a>BPF_PROG_GET_NEXT_ID&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="a9cd4b69e2bbb3202f71b8b2b0eeede09ace8b69c9b85d6110c435e43af257580f"></a>BPF_MAP_GET_NEXT_ID&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="a9cd4b69e2bbb3202f71b8b2b0eeede09a83a22d9bd7cab247e1ced4d5811ab978"></a>BPF_LINK_GET_NEXT_ID&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="a9cd4b69e2bbb3202f71b8b2b0eeede09abf5b1ac5c2f65bb56412fc478cfed02a"></a>BPF_PROG_GET_FD_BY_ID&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="a9cd4b69e2bbb3202f71b8b2b0eeede09a7bde4b21c9f5532e54d14d83037b5945"></a>BPF_MAP_GET_FD_BY_ID&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="a9cd4b69e2bbb3202f71b8b2b0eeede09aba1b82aca4e658fdbabca289f5128eba"></a>BPF_LINK_GET_FD_BY_ID&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="a9cd4b69e2bbb3202f71b8b2b0eeede09ac91812af05cb4bd71159c8d2659b8784"></a>BPF_OBJ_GET_INFO_BY_FD&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="a9cd4b69e2bbb3202f71b8b2b0eeede09a89ad9c6e03007dd9310da8f5b49498dc"></a>BPF_LINK_DETACH&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="a9cd4b69e2bbb3202f71b8b2b0eeede09a9e6f8dd9c9ddd605713477765ee28bca"></a>BPF_PROG_BIND_MAP&#160;</td><td class="fielddoc"></td></tr>
+</table>
+
+</div>
+</div>
 <a id="a44524dd17e07ebef30256811df8b7ba4"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a44524dd17e07ebef30256811df8b7ba4">&#9670;&nbsp;</a></span>bpf_func_id</h2>
 
@@ -245,6 +327,41 @@ Enumerations</h2></td></tr>
 <table class="fieldtable">
 <tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="af8f453a20dddc8657d0e69f73ffe2879abc1dd3438f95108ae16a1387917b5c65"></a>BPF_STATS_TYPE_UNKNOWN&#160;</td><td class="fielddoc"></td></tr>
 </table>
+
+</div>
+</div>
+<h2 class="groupheader">Function Documentation</h2>
+<a id="ae2efe8134c5d52b7bfd982014f5d80c4"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae2efe8134c5d52b7bfd982014f5d80c4">&#9670;&nbsp;</a></span>bpf()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int bpf </td>
+          <td>(</td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>cmd</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">union <a class="el" href="unionbpf__attr.html">bpf_attr</a> *&#160;</td>
+          <td class="paramname"><em>attr</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">unsigned int&#160;</td>
+          <td class="paramname"><em>size</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
 
 </div>
 </div>

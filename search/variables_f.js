@@ -1,5 +1,7 @@
 var searchData=
 [
-  ['value_583',['value',['../struct__tlv__type__length__value.html#a8af4b70a001ab3dee6bbab949ca52e82',1,'_tlv_type_length_value']]],
-  ['value_5fsize_584',['value_size',['../struct__ebpf__map__definition__in__memory.html#af02753f2ddb2f223ea384e6af82fb807',1,'_ebpf_map_definition_in_memory::value_size()'],['../struct__ebpf__map__definition__in__file.html#a535dcc0239b781312d4ec1d63a0a0736',1,'_ebpf_map_definition_in_file::value_size()'],['../structbpf__map__info.html#ae9e8e322f0b9a8eb57816555834aab45',1,'bpf_map_info::value_size()']]]
+  ['size_637',['size',['../struct__ebpf__map__definition__in__memory.html#a2717a92e32bde09435caeb276e437f7f',1,'_ebpf_map_definition_in_memory::size()'],['../struct__ebpf__map__definition__in__file.html#a2f7d94747e0e9cb4c7cb675c8060eb55',1,'_ebpf_map_definition_in_file::size()']]],
+  ['socket_5faddress_638',['socket_address',['../struct__bind__md.html#a4e6ab6ab7b7b7e88e0c73ba99caa2e90',1,'_bind_md']]],
+  ['socket_5faddress_5flength_639',['socket_address_length',['../struct__bind__md.html#afe6ac1515f579d5f1b8667946ddac668',1,'_bind_md']]],
+  ['start_5fid_640',['start_id',['../unionbpf__attr.html#a5d5f66dac9e6ade3f6e4d532d6e1e899',1,'bpf_attr']]]
 ];
