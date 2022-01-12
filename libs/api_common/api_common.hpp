@@ -277,9 +277,14 @@ ebpf_result_to_errno(ebpf_result_t result)
 }
 
 ebpf_result_t
+ebpf_object_get_info(
+    ebpf_handle_t handle,
+    _Out_writes_bytes_to_(*info_size, *info_size) void* info,
+    _Inout_ uint32_t* info_size) noexcept;
+
+ebpf_result_t
 query_map_definition(
     ebpf_handle_t handle,
-    _Out_ uint32_t* size,
     _Out_ uint32_t* type,
     _Out_ uint32_t* key_size,
     _Out_ uint32_t* value_size,

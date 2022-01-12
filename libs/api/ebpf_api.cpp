@@ -314,9 +314,8 @@ _get_map_descriptor_properties(
     map = _get_ebpf_map_from_handle(handle);
     if (map == nullptr) {
         // Map is not present in the local cache. Query map descriptor from EC.
-        uint32_t size;
         ebpf_id_t inner_map_id;
-        result = query_map_definition(handle, &size, type, key_size, value_size, max_entries, &inner_map_id);
+        result = query_map_definition(handle, type, key_size, value_size, max_entries, &inner_map_id);
         if (result != EBPF_SUCCESS) {
             goto Exit;
         }
@@ -1421,8 +1420,16 @@ initialize_map(_Out_ ebpf_map_t* map, _In_ const map_cache_t& map_cache)
     map->map_definition.max_entries = map_cache.verifier_map_descriptor.max_entries;
     map->map_definition.pinning = map_cache.pinning;
 
-    // TODO(issue #396): fill in inner map id, if any.
-    map->map_definition.inner_map_id = (uint32_t)-1;
+    // Set the inner map ID if we have a real inner map fd.
+    map->map_definition.inner_map_id = EBPF_ID_NONE;
+    if (map_cache.verifier_map_descriptor.inner_map_fd != ebpf_fd_invalid) {
+        struct bpf_map_info info;
+        uint32_t info_size = (uint32_t)sizeof(info);
+        if (ebpf_object_get_info_by_fd(map_cache.verifier_map_descriptor.inner_map_fd, &info, &info_size) ==
+            EBPF_SUCCESS) {
+            map->map_definition.inner_map_id = info.id;
+        }
+    }
 
     map->inner_map_original_fd = map_cache.verifier_map_descriptor.inner_map_fd;
 
@@ -1760,7 +1767,6 @@ ebpf_program_load_bytes(
     const ebpf_inst* instruction_end = reinterpret_cast<const ebpf_inst*>(byte_code + byte_code_size);
     for (size_t index = 0; index < byte_code_size / sizeof(ebpf_inst); index++) {
         const ebpf_inst& first_instruction = instructions[index];
-        const ebpf_inst& second_instruction = instructions[index + 1];
         if (first_instruction.opcode != INST_OP_LDDW_IMM) {
             continue;
         }
@@ -1775,10 +1781,30 @@ ebpf_program_load_bytes(
         }
 
         // Get the real map_fd value and handle.
-        uint64_t imm =
-            static_cast<uint64_t>(first_instruction.imm) | (static_cast<uint64_t>(second_instruction.imm) << 32);
-        file_handle_t handle = (file_handle_t)Platform::_get_osfhandle((int)imm);
-        handle_map.emplace_back((uint32_t)imm, (uint32_t)imm, handle);
+        int map_fd = static_cast<int>(first_instruction.imm);
+        ebpf_handle_t handle = Platform::_get_osfhandle(map_fd);
+
+        // Look up inner map id.
+        uint32_t type;
+        uint32_t key_size;
+        uint32_t value_size;
+        uint32_t max_entries;
+        ebpf_id_t inner_map_id;
+        result = query_map_definition(handle, &type, &key_size, &value_size, &max_entries, &inner_map_id);
+        if (result != EBPF_SUCCESS) {
+            continue;
+        }
+
+        // Get a file descriptor for the inner map, if any.
+        int inner_map_fd = ebpf_fd_invalid;
+        if (inner_map_id != EBPF_ID_NONE) {
+            result = ebpf_get_map_fd_by_id(inner_map_id, &inner_map_fd);
+            if (result != EBPF_SUCCESS) {
+                continue;
+            }
+        }
+
+        handle_map.emplace_back((uint32_t)map_fd, (uint32_t)inner_map_fd, (file_handle_t)handle);
     }
 
     load_info.map_count = (uint32_t)handle_map.size();
@@ -1787,6 +1813,13 @@ ebpf_program_load_bytes(
     uint32_t error_message_size = 0;
     const char* log_buffer_output;
     result = ebpf_rpc_load_program(&load_info, &log_buffer_output, &error_message_size);
+
+    // Close any inner map fds.
+    for (original_fd_handle_map_t& entry : handle_map) {
+        if (entry.inner_map_original_fd != ebpf_fd_invalid) {
+            Platform::_close(entry.inner_map_original_fd);
+        }
+    }
 
     if (log_buffer_size > 0) {
         log_buffer[0] = 0;
@@ -2267,31 +2300,12 @@ ebpf_result_t
 ebpf_object_get_info_by_fd(
     fd_t bpf_fd, _Out_writes_bytes_to_(*info_size, *info_size) void* info, _Inout_ uint32_t* info_size)
 {
-    if (info == nullptr || info_size == nullptr) {
-        return EBPF_INVALID_ARGUMENT;
-    }
-
     ebpf_handle_t handle = _get_handle_from_file_descriptor(bpf_fd);
     if (handle == ebpf_handle_invalid) {
         return EBPF_INVALID_FD;
     }
 
-    ebpf_protocol_buffer_t request_buffer(sizeof(ebpf_operation_get_object_info_request_t));
-    ebpf_protocol_buffer_t reply_buffer(EBPF_OFFSET_OF(ebpf_operation_get_object_info_reply_t, info) + *info_size);
-    auto request = reinterpret_cast<ebpf_operation_get_object_info_request_t*>(request_buffer.data());
-    auto reply = reinterpret_cast<ebpf_operation_get_object_info_reply_t*>(reply_buffer.data());
-
-    request->header.length = static_cast<uint16_t>(request_buffer.size());
-    request->header.id = ebpf_operation_id_t::EBPF_OPERATION_GET_OBJECT_INFO;
-    request->handle = handle;
-
-    ebpf_result_t result = win32_error_code_to_ebpf_result(invoke_ioctl(request_buffer, reply_buffer));
-    if (result == EBPF_SUCCESS) {
-        *info_size = reply->header.length - EBPF_OFFSET_OF(ebpf_operation_get_object_info_reply_t, info);
-        memcpy(info, reply->info, *info_size);
-    }
-
-    return result;
+    return ebpf_object_get_info(handle, info, info_size);
 }
 
 ebpf_result_t

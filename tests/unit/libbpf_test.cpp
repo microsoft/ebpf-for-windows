@@ -162,7 +162,7 @@ TEST_CASE("libbpf program", "[libbpf]")
     int result = bpf_prog_load("droppacket.o", BPF_PROG_TYPE_XDP, &object, &program_fd);
     REQUIRE(result == 0);
     REQUIRE(object != nullptr);
-    REQUIRE(program_fd != -1);
+    REQUIRE(program_fd != ebpf_fd_invalid);
 
     const char* name = bpf_object__name(object);
     REQUIRE(strcmp(name, "droppacket.o") == 0);
