@@ -183,12 +183,13 @@ _create_array_map(
     ebpf_handle_t inner_map_handle,
     _Outptr_ ebpf_core_map_t** map)
 {
-    UNREFERENCED_PARAMETER(inner_map_handle);
+    if (inner_map_handle != ebpf_handle_invalid)
+        return EBPF_INVALID_ARGUMENT;
     return _create_array_map_with_map_struct_size(sizeof(ebpf_core_map_t), map_definition, map);
 }
 
 static void
-_delete_array_map(_In_ ebpf_core_map_t* map)
+_delete_array_map(_In_ _Post_invalid_ ebpf_core_map_t* map)
 {
     ebpf_epoch_free(map);
 }
@@ -305,7 +306,7 @@ Exit:
 }
 
 static void
-_delete_object_array_map(_In_ ebpf_core_map_t* map, ebpf_object_type_t value_type)
+_delete_object_array_map(_In_ _Post_invalid_ ebpf_core_map_t* map, ebpf_object_type_t value_type)
 {
     ebpf_core_object_map_t* object_map = EBPF_FROM_FIELD(ebpf_core_object_map_t, core_map, map);
 
@@ -357,13 +358,13 @@ Exit:
 }
 
 static void
-_delete_program_array_map(_In_ ebpf_core_map_t* map)
+_delete_program_array_map(_In_ _Post_invalid_ ebpf_core_map_t* map)
 {
     _delete_object_array_map(map, EBPF_OBJECT_PROGRAM);
 }
 
 static void
-_delete_map_array_map(_In_ ebpf_core_map_t* map)
+_delete_map_array_map(_In_ _Post_invalid_ ebpf_core_map_t* map)
 {
     _delete_object_array_map(map, EBPF_OBJECT_MAP);
 }
@@ -651,19 +652,20 @@ _create_hash_map(
     ebpf_handle_t inner_map_handle,
     _Outptr_ ebpf_core_map_t** map)
 {
-    UNREFERENCED_PARAMETER(inner_map_handle);
+    if (inner_map_handle != ebpf_handle_invalid)
+        return EBPF_INVALID_ARGUMENT;
     return _create_hash_map_internal(sizeof(ebpf_core_map_t), map_definition, NULL, map);
 }
 
 static void
-_delete_hash_map(_In_ ebpf_core_map_t* map)
+_delete_hash_map(_In_ _Post_invalid_ ebpf_core_map_t* map)
 {
     ebpf_hash_table_destroy((ebpf_hash_table_t*)map->data);
     ebpf_epoch_free(map);
 }
 
 static void
-_delete_object_hash_map(_In_ ebpf_core_map_t* map)
+_delete_object_hash_map(_In_ _Post_invalid_ ebpf_core_map_t* map)
 {
     ebpf_core_object_map_t* object_map = EBPF_FROM_FIELD(ebpf_core_object_map_t, core_map, map);
 
@@ -730,11 +732,14 @@ _create_lru_hash_map(
     ebpf_result_t retval = EBPF_SUCCESS;
     ebpf_core_lru_map_t* lru_map = NULL;
 
-    UNREFERENCED_PARAMETER(inner_map_handle);
-
     *map = NULL;
 
     EBPF_LOG_ENTRY();
+
+    if (inner_map_handle != ebpf_handle_invalid) {
+        retval = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
 
     retval = _create_hash_map_internal(sizeof(ebpf_core_lru_map_t), map_definition, NULL, (ebpf_core_map_t**)&lru_map);
     if (retval != EBPF_SUCCESS)
@@ -759,7 +764,8 @@ _create_lru_hash_map(
 
 Exit:
     if (retval != EBPF_SUCCESS) {
-        ebpf_hash_table_destroy((ebpf_hash_table_t*)lru_map->core_map.data);
+        if (lru_map && lru_map->core_map.data)
+            ebpf_hash_table_destroy((ebpf_hash_table_t*)lru_map->core_map.data);
         ebpf_epoch_free(lru_map);
         lru_map = NULL;
     }
@@ -768,7 +774,7 @@ Exit:
 }
 
 static void
-_delete_lru_hash_map(_In_ ebpf_core_map_t* map)
+_delete_lru_hash_map(_In_ _Post_invalid_ ebpf_core_map_t* map)
 {
     ebpf_core_lru_map_t* lru_map = EBPF_FROM_FIELD(ebpf_core_lru_map_t, core_map, map);
     ebpf_hash_table_destroy(lru_map->key_history);
@@ -1147,9 +1153,14 @@ _create_lpm_map(
     size_t max_prefix_length = (map_definition->key_size - sizeof(uint32_t)) * 8 + 1;
     ebpf_core_lpm_map_t* lpm_map = NULL;
 
-    UNREFERENCED_PARAMETER(inner_map_handle);
+    EBPF_LOG_ENTRY();
 
     *map = NULL;
+
+    if (inner_map_handle != ebpf_handle_invalid) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
 
     result = _create_hash_map_internal(
         EBPF_OFFSET_OF(ebpf_core_lpm_map_t, data) + ebpf_bitmap_size(max_prefix_length),
@@ -1164,7 +1175,7 @@ _create_lpm_map(
     *map = &lpm_map->core_map;
 
 Exit:
-    return result;
+    EBPF_RETURN_RESULT(result);
 }
 
 static ebpf_result_t
@@ -1219,14 +1230,15 @@ _create_queue_map(
     ebpf_handle_t inner_map_handle,
     _Outptr_ ebpf_core_map_t** map)
 {
-    UNREFERENCED_PARAMETER(inner_map_handle);
+    if (inner_map_handle != ebpf_handle_invalid)
+        return EBPF_INVALID_ARGUMENT;
     size_t queue_map_size =
         EBPF_OFFSET_OF(ebpf_core_queue_map_t, slots) + map_definition->max_entries * sizeof(uint8_t*);
     return _create_array_map_with_map_struct_size(queue_map_size, map_definition, map);
 }
 
 static void
-_delete_queue_map(_In_ ebpf_core_map_t* map)
+_delete_queue_map(_In_ _Post_invalid_ ebpf_core_map_t* map)
 {
     ebpf_core_queue_map_t* queue_map = EBPF_FROM_FIELD(ebpf_core_queue_map_t, core_map, map);
 
@@ -1301,14 +1313,15 @@ _create_stack_map(
     ebpf_handle_t inner_map_handle,
     _Outptr_ ebpf_core_map_t** map)
 {
-    UNREFERENCED_PARAMETER(inner_map_handle);
+    if (inner_map_handle != ebpf_handle_invalid)
+        return EBPF_INVALID_ARGUMENT;
     size_t stack_map_size =
         EBPF_OFFSET_OF(ebpf_core_stack_map_t, slots) + map_definition->max_entries * sizeof(uint8_t*);
     return _create_array_map_with_map_struct_size(stack_map_size, map_definition, map);
 }
 
 static void
-_delete_stack_map(_In_ ebpf_core_map_t* map)
+_delete_stack_map(_In_ _Post_invalid_ ebpf_core_map_t* map)
 {
     ebpf_core_stack_map_t* stack_map = EBPF_FROM_FIELD(ebpf_core_stack_map_t, core_map, map);
     // Free all the elements stored in the stack.
@@ -1399,7 +1412,7 @@ static _Requires_lock_held_(ring_buffer_map->lock) void _ebpf_ring_buffer_map_si
 }
 
 static void
-_delete_ring_buffer_map(_In_ ebpf_core_map_t* map)
+_delete_ring_buffer_map(_In_ _Post_invalid_ ebpf_core_map_t* map)
 {
     EBPF_LOG_ENTRY();
     // Free the ring buffer.
@@ -1435,11 +1448,14 @@ _create_ring_buffer_map(
     ebpf_core_ring_buffer_map_t* ring_buffer_map = NULL;
     ebpf_ring_buffer_t* ring_buffer = NULL;
 
-    UNREFERENCED_PARAMETER(inner_map_handle);
+    EBPF_LOG_ENTRY();
 
     *map = NULL;
 
-    EBPF_LOG_ENTRY();
+    if (inner_map_handle != ebpf_handle_invalid) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
 
     ring_buffer_map = ebpf_epoch_allocate(sizeof(ebpf_core_ring_buffer_map_t));
     if (ring_buffer_map == NULL) {
