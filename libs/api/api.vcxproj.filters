@@ -40,6 +40,9 @@
     <ClCompile Include="libbpf_system.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="bpf_syscall.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
