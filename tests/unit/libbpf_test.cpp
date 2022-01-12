@@ -1209,7 +1209,7 @@ TEST_CASE("bpf_object__load", "[libbpf]")
 // BPF_PROG_LOAD, BPF_OBJ_GET_INFO_BY_FD, BPF_PROG_GET_NEXT_ID,
 // BPF_MAP_CREATE, BPF_MAP_GET_NEXT_ID, BPF_PROG_BIND_MAP,
 // and BPF_MAP_GET_FD_BY_ID.
-TEST_CASE("BPF_PROG_BIND_MAP", "[libbpf]")
+TEST_CASE("BPF_PROG_BIND_MAP etc.", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
 
@@ -1283,7 +1283,7 @@ TEST_CASE("BPF_PROG_BIND_MAP", "[libbpf]")
 // Test bpf() with the following command ids:
 // BPF_MAP_CREATE, BPF_MAP_UPDATE_ELEM, BPF_MAP_LOOKUP_ELEM,
 // BPF_MAP_GET_NEXT_KEY, and BPF_MAP_DELETE_ELEM.
-TEST_CASE("BPF_MAP_GET_NEXT_KEY", "[libbpf]")
+TEST_CASE("BPF_MAP_GET_NEXT_KEY etc.", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
 
