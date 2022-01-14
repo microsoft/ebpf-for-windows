@@ -184,7 +184,7 @@ handle_ebpf_add_program(
 }
 
 // Given a program ID, unpin the program from all paths to which
-// // it is currently pinned.
+// it is currently pinned.
 static DWORD
 _unpin_program_by_id(ebpf_id_t id)
 {

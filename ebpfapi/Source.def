@@ -5,6 +5,7 @@
 
 LIBRARY
 EXPORTS
+    bpf
     bpf_create_map
     bpf_create_map_in_map
     bpf_create_map_xattr
