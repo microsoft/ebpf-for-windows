@@ -632,30 +632,6 @@ _ebpf_core_protocol_get_next_program(
 }
 
 static ebpf_result_t
-_ebpf_core_protocol_query_map_definition(
-    _In_ const struct _ebpf_operation_query_map_definition_request* request,
-    _Inout_ struct _ebpf_operation_query_map_definition_reply* reply,
-    uint16_t reply_length)
-{
-    EBPF_LOG_ENTRY();
-    UNREFERENCED_PARAMETER(reply_length);
-
-    ebpf_object_t* object;
-    ebpf_result_t result = ebpf_reference_object_by_handle(request->handle, EBPF_OBJECT_MAP, &object);
-    if (result != EBPF_SUCCESS) {
-        EBPF_RETURN_RESULT(result);
-    }
-
-    ebpf_map_t* map = (ebpf_map_t*)object;
-    reply->map_definition = *ebpf_map_get_definition(map);
-    reply->map_definition.value_size = ebpf_map_get_effective_value_size(map);
-
-    ebpf_object_release_reference(object);
-
-    EBPF_RETURN_RESULT(EBPF_SUCCESS);
-}
-
-static ebpf_result_t
 _ebpf_core_protocol_query_program_info(
     _In_ const struct _ebpf_operation_query_program_info_request* request,
     _Inout_ struct _ebpf_operation_query_program_info_reply* reply,
@@ -1456,11 +1432,6 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
     {(ebpf_result_t(__cdecl*)(const void*))_ebpf_core_protocol_get_next_program,
      sizeof(struct _ebpf_operation_get_next_program_request),
      sizeof(struct _ebpf_operation_get_next_program_reply)},
-
-    // EBPF_OPERATION_QUERY_MAP_DEFINITION
-    {(ebpf_result_t(__cdecl*)(const void*))_ebpf_core_protocol_query_map_definition,
-     sizeof(struct _ebpf_operation_query_map_definition_request),
-     sizeof(struct _ebpf_operation_query_map_definition_reply)},
 
     // EBPF_OPERATION_QUERY_PROGRAM_INFO
     {(ebpf_result_t(__cdecl*)(const void*))_ebpf_core_protocol_query_program_info,

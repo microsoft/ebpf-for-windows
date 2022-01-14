@@ -121,17 +121,18 @@ _resolve_ec_function(ebpf_ec_function_t function, uint64_t* address)
     return EBPF_SUCCESS;
 }
 
+// Replace map fds with map addresses.
 static ebpf_result_t
 _resolve_maps_in_byte_code(ebpf_handle_t program_handle, ebpf_code_buffer_t& byte_code)
 {
-    std::vector<size_t> instruction_offsets;
-    std::vector<uint64_t> map_handles;
+    // Create parallel vectors indexed by # of occurrence in the instructions.
+    std::vector<size_t> instruction_offsets; // 0-based instruction number.
+    std::vector<fd_t> map_fds;               // map_fd used in the bytecode.
 
     ebpf_inst* instructions = reinterpret_cast<ebpf_inst*>(byte_code.data());
     ebpf_inst* instruction_end = reinterpret_cast<ebpf_inst*>(byte_code.data() + byte_code.size());
     for (size_t index = 0; index < byte_code.size() / sizeof(ebpf_inst); index++) {
         ebpf_inst& first_instruction = instructions[index];
-        ebpf_inst& second_instruction = instructions[index + 1];
         if (first_instruction.opcode != INST_OP_LDDW_IMM) {
             continue;
         }
@@ -145,21 +146,20 @@ _resolve_maps_in_byte_code(ebpf_handle_t program_handle, ebpf_code_buffer_t& byt
             continue;
         }
 
-        uint64_t imm =
-            static_cast<uint64_t>(first_instruction.imm) | (static_cast<uint64_t>(second_instruction.imm) << 32);
+        fd_t map_fd = static_cast<fd_t>(first_instruction.imm);
         instruction_offsets.push_back(index - 1);
-        map_handles.push_back(imm);
+        map_fds.push_back(map_fd);
     }
 
-    if (map_handles.empty()) {
+    if (map_fds.empty()) {
         return EBPF_SUCCESS;
     }
 
     ebpf_protocol_buffer_t request_buffer(
-        offsetof(ebpf_operation_resolve_map_request_t, map_handle) + sizeof(uint64_t) * map_handles.size());
+        offsetof(ebpf_operation_resolve_map_request_t, map_handle) + sizeof(uint64_t) * map_fds.size());
 
     ebpf_protocol_buffer_t reply_buffer(
-        offsetof(ebpf_operation_resolve_map_reply_t, address) + sizeof(uint64_t) * map_handles.size());
+        offsetof(ebpf_operation_resolve_map_reply_t, address) + sizeof(uint64_t) * map_fds.size());
 
     auto request = reinterpret_cast<ebpf_operation_resolve_map_request_t*>(request_buffer.data());
     auto reply = reinterpret_cast<ebpf_operation_resolve_map_reply_t*>(reply_buffer.data());
@@ -167,11 +167,8 @@ _resolve_maps_in_byte_code(ebpf_handle_t program_handle, ebpf_code_buffer_t& byt
     request->header.length = static_cast<uint16_t>(request_buffer.size());
     request->program_handle = program_handle;
 
-    for (size_t index = 0; index < map_handles.size(); index++) {
-        if (map_handles[index] > get_map_descriptor_size()) {
-            return EBPF_INVALID_OBJECT;
-        }
-        request->map_handle[index] = (uint64_t)get_map_handle_at_index((int)map_handles[index] - 1);
+    for (size_t index = 0; index < map_fds.size(); index++) {
+        request->map_handle[index] = get_map_handle(map_fds[index]);
     }
 
     uint32_t result = invoke_ioctl(request_buffer, reply_buffer);
@@ -179,7 +176,7 @@ _resolve_maps_in_byte_code(ebpf_handle_t program_handle, ebpf_code_buffer_t& byt
         return win32_error_code_to_ebpf_result(result);
     }
 
-    for (size_t index = 0; index < map_handles.size(); index++) {
+    for (size_t index = 0; index < map_fds.size(); index++) {
         ebpf_inst& first_instruction = instructions[instruction_offsets[index]];
         ebpf_inst& second_instruction = instructions[instruction_offsets[index] + 1];
 
@@ -204,12 +201,10 @@ _query_and_cache_map_descriptors(
 
     if (handle_map_count > 0) {
         for (uint32_t i = 0; i < handle_map_count; i++) {
-            uint32_t size;
             descriptor = {0};
             ebpf_id_t inner_map_id;
             result = query_map_definition(
                 reinterpret_cast<ebpf_handle_t>(handle_map[i].handle),
-                &size,
                 &descriptor.type,
                 &descriptor.key_size,
                 &descriptor.value_size,
@@ -319,7 +314,7 @@ ebpf_verify_and_load_program(
             goto Exit;
         }
 
-        // Verify the program
+        // Verify the program.
         result = verify_byte_code(program_type, byte_code, byte_code_size, error_message, error_message_size);
         if (result != EBPF_SUCCESS) {
             goto Exit;
