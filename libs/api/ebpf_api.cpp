@@ -1771,7 +1771,8 @@ ebpf_program_load_bytes(
             continue;
         }
         if (&instructions[index + 1] >= instruction_end) {
-            return EBPF_INVALID_ARGUMENT;
+            result = EBPF_INVALID_ARGUMENT;
+            break;
         }
         index++;
 
@@ -1792,7 +1793,7 @@ ebpf_program_load_bytes(
         ebpf_id_t inner_map_id;
         result = query_map_definition(handle, &type, &key_size, &value_size, &max_entries, &inner_map_id);
         if (result != EBPF_SUCCESS) {
-            continue;
+            break;
         }
 
         // Get a file descriptor for the inner map, if any.
@@ -1800,19 +1801,21 @@ ebpf_program_load_bytes(
         if (inner_map_id != EBPF_ID_NONE) {
             result = ebpf_get_map_fd_by_id(inner_map_id, &inner_map_fd);
             if (result != EBPF_SUCCESS) {
-                continue;
+                break;
             }
         }
 
         handle_map.emplace_back((uint32_t)map_fd, (uint32_t)inner_map_fd, (file_handle_t)handle);
     }
 
-    load_info.map_count = (uint32_t)handle_map.size();
-    load_info.handle_map = handle_map.data();
+    const char* log_buffer_output = nullptr;
+    if (result == EBPF_SUCCESS) {
+        load_info.map_count = (uint32_t)handle_map.size();
+        load_info.handle_map = handle_map.data();
 
-    uint32_t error_message_size = 0;
-    const char* log_buffer_output;
-    result = ebpf_rpc_load_program(&load_info, &log_buffer_output, &error_message_size);
+        uint32_t error_message_size = 0;
+        result = ebpf_rpc_load_program(&load_info, &log_buffer_output, &error_message_size);
+    }
 
     // Close any inner map fds.
     for (original_fd_handle_map_t& entry : handle_map) {
