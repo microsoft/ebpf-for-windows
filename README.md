@@ -37,7 +37,7 @@ Many helpers already exist, and more hooks and helpers will be added over time.
 
 ## Getting Started
 
-This project supports eBPF on Windows 10, and on Windows Server 2016 or later.
+This project supports eBPF on Windows 10 or later, and on Windows Server 2019 or later.
 To try out this project, see our [Getting Started Guide](docs/GettingStarted.md).
 
 Want to help?  We welcome contributions!  See our [Contributing guidelines](CONTRIBUTING.md).
