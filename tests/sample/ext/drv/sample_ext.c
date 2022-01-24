@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 /**
- * @brief Implementation of eBPF Test extension hook and program information NPI providers registration and
+ * @brief Implementation of eBPF Sample extension hook and program information NPI providers registration and
  * unregistration.
  */
 
@@ -23,7 +23,7 @@
 // f788ef4a-207d-4dc3-85cf-0f2ea107213c
 DEFINE_GUID(EBPF_PROGRAM_TYPE_SAMPLE, 0xf788ef4a, 0x207d, 0x4dc3, 0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c);
 
-// Test Extension helper function addresses table.
+// Sample Extension helper function addresses table.
 static int64_t
 _sample_ebpf_extension_helper_function1(_In_ const sample_program_context_t* context);
 static int64_t
@@ -48,7 +48,7 @@ static ebpf_extension_data_t _sample_ebpf_extension_program_info_provider_data =
     sizeof(_sample_ebpf_extension_program_data),
     &_sample_ebpf_extension_program_data};
 
-// Test eBPF Extension Program Information NPI Provider Module GUID: ab3a3a18-b901-4a7e-96ad-034b8ddb24e5
+// Sample eBPF Extension Program Information NPI Provider Module GUID: ab3a3a18-b901-4a7e-96ad-034b8ddb24e5
 const NPI_MODULEID DECLSPEC_SELECTANY _sample_ebpf_extension_program_info_provider_moduleid = {
     sizeof(NPI_MODULEID), MIT_GUID, {0xab3a3a18, 0xb901, 0x4a7e, {0x96, 0xad, 0x03, 0x4b, 0x8d, 0xdb, 0x24, 0xe5}}};
 
@@ -87,7 +87,7 @@ _sample_ebpf_extension_program_info_provider_attach_client(
 NTSTATUS
 _sample_ebpf_extension_program_info_provider_detach_client(_In_ void* provider_binding_context);
 
-// Test eBPF extension Program Information NPI provider characteristics
+// Sample eBPF extension Program Information NPI provider characteristics
 
 const NPI_PROVIDER_CHARACTERISTICS _sample_ebpf_extension_program_info_provider_characteristics = {
     0,
@@ -129,7 +129,7 @@ static sample_ebpf_extension_program_info_provider_t _sample_ebpf_extension_prog
 // f788ef4b-207d-4dc3-85cf-0f2ea107213c
 DEFINE_GUID(EBPF_ATTACH_TYPE_SAMPLE, 0xf788ef4b, 0x207d, 0x4dc3, 0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c);
 
-// Test eBPF Extension Hook NPI Provider Module GUID: ab3a3a19-b901-4a7e-96ad-034b8ddb24e5
+// Sample eBPF Extension Hook NPI Provider Module GUID: ab3a3a19-b901-4a7e-96ad-034b8ddb24e5
 const NPI_MODULEID DECLSPEC_SELECTANY _sample_ebpf_extension_hook_provider_moduleid = {
     sizeof(NPI_MODULEID), MIT_GUID, {0xab3a3a19, 0xb901, 0x4a7e, {0x96, 0xad, 0x03, 0x4b, 0x8d, 0xdb, 0x24, 0xe5}}};
 
@@ -168,7 +168,7 @@ _sample_ebpf_extension_hook_provider_attach_client(
 NTSTATUS
 _sample_ebpf_extension_hook_provider_detach_client(_In_ void* provider_binding_context);
 
-// Test eBPF extension Hook NPI provider characteristics
+// Sample eBPF extension Hook NPI provider characteristics
 ebpf_attach_provider_data_t _sample_ebpf_extension_attach_provider_data;
 
 ebpf_extension_data_t _sample_ebpf_extension_hook_provider_data = {

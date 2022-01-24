@@ -2,12 +2,18 @@
 // SPDX-License-Identifier: MIT
 
 /**
- * @brief Header file for the test eBPF extension driver's device IOCTLs.
+ * @brief Header file for the sample eBPF extension driver's device IOCTLs.
  */
 
 #pragma once
 
-#define SAMPLE_EBPF_EXT_DEVICE_WIN32_NAME L"\\\\.\\SampleEbpfExtIoDevice"
+#define SAMPLE_EBPF_EXT_NAME_A "SampleEbpfExt"
+
+#define WIDEN2(x) L##x
+#define WIDEN(x) WIDEN2(x)
+#define SAMPLE_EBPF_EXT_NAME_W WIDEN(SAMPLE_EBPF_EXT_NAME_A)
+#define SAMPLE_EBPF_EXT_DEVICE_BASE_NAME SAMPLE_EBPF_EXT_NAME_W L"IoDevice"
+#define SAMPLE_EBPF_EXT_DEVICE_WIN32_NAME L"\\\\.\\" SAMPLE_EBPF_EXT_DEVICE_BASE_NAME
 
 //
 // IOCTL Codes

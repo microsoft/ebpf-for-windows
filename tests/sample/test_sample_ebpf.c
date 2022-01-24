@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 // Test eBPF program for EBPF_PROGRAM_TYPE_SAMPLE implemented in
-// the Test eBPF extension.
+// the Sample eBPF extension.
 
 #include "sample_common_routines.h"
 #include "sample_ext_helpers.h"

@@ -19,7 +19,7 @@ static ebpf_context_descriptor_t _sample_ebpf_context_descriptor = {
     EBPF_OFFSET_OF(sample_program_context_t, data_end),
     -1};
 
-// Test Extension Helper function prototype descriptors.
+// Sample Extension Helper function prototype descriptors.
 static ebpf_helper_function_prototype_t _sample_ebpf_extension_helper_function_prototype[] = {
     {SAMPLE_EXT_HELPER_FUNCTION_START + 1,
      "sample_ebpf_extension_helper_function1",
