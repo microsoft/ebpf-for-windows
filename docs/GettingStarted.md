@@ -5,7 +5,8 @@
 The following must be installed in order to build this project:
 
 1. Git (e.g., [Git for Windows 64-bit](https://git-scm.com/download/win))
-2. [Visual Studio 2019 version 16.11.7 or later](https://visualstudio.microsoft.com/vs/), including
+2. [Visual Studio 2019 version 16.11.7 or later](https://www.techspot.com/downloads/downloadnow/7241/?evp=70f51271955e6392571f575e301cd9a3&file=9642), including
+   the "Desktop development with C++" workload, and
    the "MSVC v142 - VS 2019 C++ x64/x86 Spectre-mitigated libs (latest)"
    which must be selected as an Individual component in the VS installer
 3. [Visual Studio Build Tools 2019](https://aka.ms/vs/16/release/vs_buildtools.exe)
@@ -18,7 +19,7 @@ You should add the paths to `git.exe`, `cmake.exe` and `nuget.exe` to the Window
 ## How to clone and build the project
 This section outlines the steps to build, prepare and build the eBPF-For-Windows project.
 
-### Cloning the Project
+### Cloning the project
 1. ```git clone --recurse-submodules https://github.com/microsoft/ebpf-for-windows.git```.
 By default this will clone the project under the `ebpf-for-windows` directory.
 
@@ -31,8 +32,9 @@ The following steps need to be executed _once_ before the first build on a new c
 5. ```del external\ebpf-verifier\build\obj\project.assets.json```
 
 ### Building using Developer Command Prompt for VS 2019
-1. `"C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\Common7\Tools\VsDevCmd.bat"`
-2. ```msbuild /m /p:Configuration=Debug /p:Platform=x64 ebpf-for-windows.sln```
+1. Launch `Developer Command Prompt for VS 2019`.
+2. Change directory to where the project is cloned, e.g. ```cd ebpf-for-windows```.
+3. ```msbuild /m /p:Configuration=Debug /p:Platform=x64 ebpf-for-windows.sln```
 
 ### Building using Visual Studio IDE
 1. Open `ebpf-for-windows.sln`
