@@ -15,8 +15,8 @@
 #include "sample_ext_helpers.h"
 #include "sample_ext_ioctls.h"
 
-#define SAMPLE_EBPF_EXT_DEVICE_NAME L"\\Device\\SampleEbpfExt"
-#define SAMPLE_EBPF_EXT_SYMBOLIC_DEVICE_NAME L"\\GLOBAL??\\SampleEbpfExtIoDevice"
+#define SAMPLE_EBPF_EXT_DEVICE_NAME L"\\Device\\" SAMPLE_EBPF_EXT_NAME_W
+#define SAMPLE_EBPF_EXT_SYMBOLIC_DEVICE_NAME L"\\GLOBAL??\\" SAMPLE_EBPF_EXT_DEVICE_BASE_NAME
 
 // Driver global variables
 static DEVICE_OBJECT* _sample_ebpf_ext_driver_device_object;
@@ -228,7 +228,12 @@ _sample_ebpf_ext_driver_io_device_control(
             );
 
             if (!NT_SUCCESS(status)) {
-                KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "SampleEbpfExt: Input buffer failure %d\n", status));
+                KdPrintEx(
+                    (DPFLTR_IHVDRIVER_ID,
+                     DPFLTR_INFO_LEVEL,
+                     "%s: Input buffer failure %d\n",
+                     SAMPLE_EBPF_EXT_NAME_A,
+                     status));
                 goto Done;
             }
 
@@ -255,7 +260,8 @@ _sample_ebpf_ext_driver_io_device_control(
                         KdPrintEx(
                             (DPFLTR_IHVDRIVER_ID,
                              DPFLTR_INFO_LEVEL,
-                             "SampleEbpfExt: Output buffer failure %d\n",
+                             "%s: Output buffer failure %d\n",
+                             SAMPLE_EBPF_EXT_NAME_A,
                              status));
                         goto Done;
                     }
@@ -299,7 +305,12 @@ _sample_ebpf_ext_driver_io_device_control(
         );
 
         if (!NT_SUCCESS(status)) {
-            KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "SampleEbpfExt: Input buffer failure %d\n", status));
+            KdPrintEx(
+                (DPFLTR_IHVDRIVER_ID,
+                 DPFLTR_INFO_LEVEL,
+                 "%s: Input buffer failure %d\n",
+                 SAMPLE_EBPF_EXT_NAME_A,
+                 status));
             goto Done;
         }
 
@@ -316,7 +327,12 @@ _sample_ebpf_ext_driver_io_device_control(
         // Retrieve output buffer associated with the request object.
         status = WdfRequestRetrieveOutputBuffer(request, output_buffer_length, &output_buffer, &actual_output_length);
         if (!NT_SUCCESS(status)) {
-            KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "SampleEbpfExt: Output buffer failure %d\n", status));
+            KdPrintEx(
+                (DPFLTR_IHVDRIVER_ID,
+                 DPFLTR_INFO_LEVEL,
+                 "%s: Output buffer failure %d\n",
+                 SAMPLE_EBPF_EXT_NAME_A,
+                 status));
             goto Done;
         }
 
