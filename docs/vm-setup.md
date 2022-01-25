@@ -26,21 +26,6 @@
     2. Do `bcdedit.exe -set TESTSIGNING ON`.
     3. Restart the VM so that the change will be applied.
 
-## Installing eBPF into a VM
-
-Once the one-time setup has been completed, the following steps will
-install or update the eBPF installation in the VM, from a machine that
-has already built the binaries for x64/Debug.
-
-1. Deploy the binaries to `C:\Temp` in your VM, as follows:
-    a. If you built the binaries from inside the VM, then from your ebpf-for-windows directory in the VM, do `.\scripts\deploy-ebpf -l`.  Otherwise,
-    b. If you built the binaries on the host machine, then from your ebpf-for-windows directory on the host machine, start an admin Powershell on the host machine and do `.\scripts\deploy-ebpf`.
-
-2. From within the VM, install the binaries as follows:
-    1. Start an admin command shell (cmd.exe).
-    2. Do 'cd C:\temp'.
-    3. Do 'install-ebpf.bat'.
-
 ## Debugging a VM
 
 To debug kernel-mode issues in the VM, see [Setting up a Connection to a Virtual Machine in Visual Studio](https://docs.microsoft.com/en-us/windows-hardware/drivers/debugger/setting-up-a-connection-to-a-virtual-machine-in-visual-studio).
