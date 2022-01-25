@@ -85,13 +85,14 @@ jobs:
       uses: fountainhead/action-wait-for-check@v1.0.0
       id: wait-for-build
       with:
-        timeoutSeconds: 900
+        timeoutSeconds: 1500
         intervalSeconds: 15
         token: ${{ secrets.GITHUB_TOKEN }}
         checkName: build_job (${{env.BUILD_CONFIGURATION}})
         ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
     - name: Download build artifact
+      if: success()
       uses: actions/download-artifact@v2.1.0
       with:
         name: Build x64 ${{ matrix.configurations }}
