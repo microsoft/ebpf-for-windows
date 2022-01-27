@@ -12,59 +12,6 @@ name: Kernel_Test_VM
 on: pull_request
 
 jobs:
-  build_job:
-    strategy:
-      matrix:
-        configurations: [Debug, Release]
-    runs-on: windows-latest
-    env:
-      # Path to the solution file relative to the root of the project.
-      SOLUTION_FILE_PATH: ebpf-for-windows.sln
-
-      # Configuration type to build.
-      # You can convert this to a build matrix if you need coverage of multiple configuration types.
-      # https://docs.github.com/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
-      BUILD_CONFIGURATION: ${{matrix.configurations}}
-
-      BUILD_PLATFORM: x64
-
-    steps:
-    - uses: actions/checkout@v2
-      with:
-        submodules: 'recursive'
-
-    - name: Add MSBuild to PATH
-      uses: microsoft/setup-msbuild@v1
-
-    - name: Install LLVM and Clang
-      working-directory: ${{env.GITHUB_WORKSPACE}}
-      run: |
-        curl -fsSL -o LLVM10.exe https://github.com/llvm/llvm-project/releases/download/llvmorg-10.0.0/LLVM-10.0.0-win64.exe
-        7z x LLVM10.exe -y -o"C:/Program Files/LLVM"
-        echo "C:\Program Files\LLVM\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-
-    - name: Restore NuGet packages
-      working-directory: ${{env.GITHUB_WORKSPACE}}
-      run: nuget restore ${{env.SOLUTION_FILE_PATH}}
-
-    - name: Create verifier project
-      working-directory: ${{env.GITHUB_WORKSPACE}}
-      run: |
-        cd external\ebpf-verifier
-        mkdir build
-        cmake -B build
-
-    - name: Build
-      working-directory: ${{env.GITHUB_WORKSPACE}}
-      run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{env.BUILD_PLATFORM}} ${{env.SOLUTION_FILE_PATH}}
-
-    - name: Upload Build Output
-      uses: actions/upload-artifact@v2.2.4
-      with:
-        name: Build x64 ${{ matrix.configurations }}
-        path: ${{ github.workspace }}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
-        retention-days: 5
-
   run_tests:
     strategy:
       matrix:
@@ -88,13 +35,20 @@ jobs:
         timeoutSeconds: 1500
         intervalSeconds: 15
         token: ${{ secrets.GITHUB_TOKEN }}
-        checkName: build_job (${{env.BUILD_CONFIGURATION}})
+        checkName: build (${{env.BUILD_CONFIGURATION}})
         ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
+    - name: wait for 1 minute.
+      run: sleep 60
+
     - name: Download build artifact
-      if: success()
-      uses: actions/download-artifact@v2.1.0
+      uses: dawidd6/action-download-artifact@v2.16.0
       with:
+        # Required, workflow file name or ID
+        workflow: build.yml
+        # workflow_conclusion: success
+        workflow_conclusion: ""
+        commit: ${{ github.event.pull_request.head.sha || github.sha }}
         name: Build x64 ${{ matrix.configurations }}
         path: ${{ github.workspace }}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
 
