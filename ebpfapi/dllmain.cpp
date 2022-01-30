@@ -12,7 +12,6 @@ DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)
     UNREFERENCED_PARAMETER(lpReserved);
     switch (ul_reason_for_call) {
     case DLL_PROCESS_ATTACH:
-        printf("DllMain: Calling ebpf_api_initiate\n");
         if (ebpf_api_initiate() != 0) {
             return FALSE;
         }

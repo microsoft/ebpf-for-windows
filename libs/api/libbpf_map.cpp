@@ -20,7 +20,6 @@ bpf_create_map_xattr(const struct bpf_create_map_attr* create_attr)
     fd_t map_fd;
     ebpf_result_t result = ebpf_create_map_xattr(create_attr, &map_fd);
     if (result != EBPF_SUCCESS) {
-        printf("ebpf_create_map_xattr failed with error %d\n", result);
         return libbpf_result_err(result);
     }
     return map_fd;
