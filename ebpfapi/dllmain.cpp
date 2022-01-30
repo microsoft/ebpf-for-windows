@@ -14,7 +14,6 @@ DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)
     case DLL_PROCESS_ATTACH:
         printf("DllMain: Calling ebpf_api_initiate\n");
         if (ebpf_api_initiate() != 0) {
-            printf("DllMain: ebpf_api_initiate failed\n");
             return FALSE;
         }
         break;
@@ -23,7 +22,6 @@ DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)
     case DLL_THREAD_DETACH:
         break;
     case DLL_PROCESS_DETACH:
-        printf("DllMain: Calling ebpf_api_terminate\n");
         ebpf_api_terminate();
         break;
     }
