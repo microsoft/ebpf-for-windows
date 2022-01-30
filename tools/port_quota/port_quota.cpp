@@ -184,12 +184,6 @@ print_usage(char* path)
 int
 main(int argc, char** argv)
 {
-    uint32_t result = ebpf_api_initiate();
-    if (result != ERROR_SUCCESS) {
-        fprintf(stderr, "ebpf_api_initiate failed: %d\n", result);
-        return 1;
-    }
-
     if (argc < 2) {
         print_usage(argv[0]);
         return 1;

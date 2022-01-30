@@ -15,8 +15,6 @@
 #include "programs.h"
 #include "resource.h"
 
-DWORD g_ApiDllInitialized = ERROR_SUCCESS;
-
 static const GUID g_EbpfHelperGuid = {/* 634d21b8-13f9-46a3-945f-885cbd661c13 */
                                       0x634d21b8,
                                       0x13f9,
@@ -116,12 +114,6 @@ __declspec(dllexport) DWORD InitHelperDll(DWORD netshVersion, void* reserved)
     attributes.pfnStart = EbpfStartHelper;
 
     DWORD status = RegisterHelper(NULL, &attributes);
-
-    if (status == ERROR_SUCCESS) {
-        // Allow for this to fail since some commands currently
-        // don't require the ebpf_api.
-        g_ApiDllInitialized = ebpf_api_initiate();
-    }
 
     return status;
 }

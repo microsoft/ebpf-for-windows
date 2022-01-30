@@ -17,8 +17,7 @@ typedef class _program_load_attach_helper
         ebpf_program_type_t program_type,
         _In_z_ const char* program_name,
         ebpf_execution_type_t execution_type,
-        hook_helper_t& hook,
-        bool initiate_api = false);
+        hook_helper_t& hook);
 
     ~_program_load_attach_helper();
 
@@ -32,5 +31,4 @@ typedef class _program_load_attach_helper
     ebpf_execution_type_t _execution_type;
     bpf_link* _link;
     bpf_object* _object;
-    bool _api_initialized;
 } program_load_attach_helper_t;

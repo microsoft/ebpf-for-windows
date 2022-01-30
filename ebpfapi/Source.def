@@ -73,8 +73,6 @@ EXPORTS
     bpf_program__set_type
     bpf_program__unload
     bpf_program__unpin
-    ebpf_api_initiate
-    ebpf_api_terminate
     ebpf_api_elf_enumerate_sections
     ebpf_api_elf_disassemble_section
     ebpf_api_elf_verify_section

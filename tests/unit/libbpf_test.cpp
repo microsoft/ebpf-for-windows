@@ -1125,9 +1125,9 @@ TEST_CASE("enumerate link IDs", "[libbpf]")
 
     // Load and attach some programs.
     program_load_attach_helper_t xdp_helper(
-        "droppacket.o", EBPF_PROGRAM_TYPE_XDP, "DropPacket", EBPF_EXECUTION_JIT, xdp_hook, false);
+        "droppacket.o", EBPF_PROGRAM_TYPE_XDP, "DropPacket", EBPF_EXECUTION_JIT, xdp_hook);
     program_load_attach_helper_t bind_helper(
-        "bindmonitor.o", EBPF_PROGRAM_TYPE_BIND, "BindMonitor", EBPF_EXECUTION_JIT, bind_hook, false);
+        "bindmonitor.o", EBPF_PROGRAM_TYPE_BIND, "BindMonitor", EBPF_EXECUTION_JIT, bind_hook);
 
     // Now enumerate the IDs.
     REQUIRE(bpf_link_get_next_id(0, &id1) == 0);
@@ -1152,7 +1152,7 @@ TEST_CASE("bpf_obj_get_info_by_fd", "[libbpf]")
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
     single_instance_hook_t xdp_hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_load_attach_helper_t xdp_helper(
-        "droppacket.o", EBPF_PROGRAM_TYPE_XDP, "DropPacket", EBPF_EXECUTION_JIT, xdp_hook, false);
+        "droppacket.o", EBPF_PROGRAM_TYPE_XDP, "DropPacket", EBPF_EXECUTION_JIT, xdp_hook);
 
     struct bpf_object* object = xdp_helper.get_object();
     REQUIRE(object != nullptr);

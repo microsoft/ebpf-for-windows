@@ -60,12 +60,15 @@ initialize_rpc_binding()
         RpcStringBindingCompose(nullptr, (RPC_WSTR)_protocol_sequence, nullptr, nullptr, nullptr, &_string_binding);
 
     if (status != RPC_S_OK) {
+        printf("initialize_rpc_binding: RpcStringBindingCompose status = %d\n", status);
         return status;
     }
 
     status = RpcBindingFromStringBinding(_string_binding, &ebpf_service_interface_handle);
     if (status == RPC_S_OK) {
         _binding_initialized = true;
+    } else {
+        printf("initialize_rpc_binding: RpcBindingFromStringBinding status = %d\n", status);
     }
 
     return status;

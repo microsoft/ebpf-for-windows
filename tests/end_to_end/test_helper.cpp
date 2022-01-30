@@ -7,7 +7,7 @@ using namespace std::chrono_literals;
 
 #include "bpf/bpf.h"
 #include "catch_wrapper.hpp"
-#include "ebpf_api.h"
+#include "api_internal.h"
 #include "ebpf_async.h"
 #include "ebpf_core.h"
 #include "helpers.h"
