@@ -4,7 +4,6 @@
  */
 #pragma once
 #include "ebpf_api.h"
-#include "ebpf_link.h"
 #include "ebpf_nethooks.h"
 #include "ebpf_platform.h"
 #include "ebpf_program_types.h"

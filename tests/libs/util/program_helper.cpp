@@ -9,19 +9,13 @@ _program_load_attach_helper::_program_load_attach_helper(
     ebpf_program_type_t program_type,
     _In_z_ const char* program_name,
     ebpf_execution_type_t execution_type,
-    hook_helper_t& hook,
-    bool initiate_api)
+    hook_helper_t& hook)
     : _file_name(file_name), _program_type(program_type), _program_name(program_name), _execution_type(execution_type),
-      _link(nullptr), _object(nullptr), _api_initialized(false)
+      _link(nullptr), _object(nullptr)
 {
     ebpf_result_t result;
     fd_t program_fd;
     const char* log_buffer = nullptr;
-
-    if (initiate_api) {
-        REQUIRE(ebpf_api_initiate() == EBPF_SUCCESS);
-        _api_initialized = true;
-    }
 
     // Load BPF object from ELF file.
     result = ebpf_program_load(
@@ -48,9 +42,6 @@ _program_load_attach_helper::~_program_load_attach_helper()
 {
     bpf_link__destroy(_link);
     bpf_object__close(_object);
-
-    if (_api_initialized)
-        ebpf_api_terminate();
 }
 
 struct bpf_object*

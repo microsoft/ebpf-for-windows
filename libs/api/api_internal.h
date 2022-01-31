@@ -72,6 +72,18 @@ typedef struct bpf_object
     bool loaded = false;
 } ebpf_object_t;
 
+/**
+ *  @brief Initialize the eBPF user mode library.
+ */
+uint32_t
+ebpf_api_initiate();
+
+/**
+ *  @brief Terminate the eBPF user mode library.
+ */
+void
+ebpf_api_terminate();
+
 ebpf_result_t
 ebpf_get_program_byte_code(
     _In_z_ const char* file_name,

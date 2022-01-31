@@ -114,7 +114,7 @@ TEST_CASE("jit_test", "[sample_ext_test]")
     struct bpf_object* object = nullptr;
     hook_helper_t hook(EBPF_ATTACH_TYPE_SAMPLE);
     program_load_attach_helper_t _helper(
-        "test_sample_ebpf.o", EBPF_PROGRAM_TYPE_SAMPLE, "test_program_entry", EBPF_EXECUTION_JIT, hook, true);
+        "test_sample_ebpf.o", EBPF_PROGRAM_TYPE_SAMPLE, "test_program_entry", EBPF_EXECUTION_JIT, hook);
 
     object = _helper.get_object();
 
@@ -126,7 +126,7 @@ TEST_CASE("interpret_test", "[sample_ext_test]")
     struct bpf_object* object = nullptr;
     hook_helper_t hook(EBPF_ATTACH_TYPE_SAMPLE);
     program_load_attach_helper_t _helper(
-        "test_sample_ebpf.o", EBPF_PROGRAM_TYPE_SAMPLE, "test_program_entry", EBPF_EXECUTION_INTERPRET, hook, true);
+        "test_sample_ebpf.o", EBPF_PROGRAM_TYPE_SAMPLE, "test_program_entry", EBPF_EXECUTION_INTERPRET, hook);
 
     object = _helper.get_object();
 
@@ -139,7 +139,7 @@ utility_helpers_test(ebpf_execution_type_t execution_type)
     struct bpf_object* object = nullptr;
     hook_helper_t hook(EBPF_ATTACH_TYPE_SAMPLE);
     program_load_attach_helper_t _helper(
-        "test_sample_ebpf.o", EBPF_PROGRAM_TYPE_SAMPLE, "test_utility_helpers", execution_type, hook, true);
+        "test_sample_ebpf.o", EBPF_PROGRAM_TYPE_SAMPLE, "test_utility_helpers", execution_type, hook);
     object = _helper.get_object();
 
     std::vector<char> dummy(1);
@@ -154,7 +154,6 @@ TEST_CASE("utility_helpers_test_interpret", "[sample_ext_test]") { utility_helpe
 TEST_CASE("utility_helpers_test_jit", "[sample_ext_test]") { utility_helpers_test(EBPF_EXECUTION_JIT); }
 TEST_CASE("netsh_add_program_test_sample_ebpf", "[sample_ext_test]")
 {
-    REQUIRE(ebpf_api_initiate() == EBPF_SUCCESS);
     int result;
     std::string output =
         _run_netsh_command(handle_ebpf_add_program, L"test_sample_ebpf.o", L"pinned=none", nullptr, &result);

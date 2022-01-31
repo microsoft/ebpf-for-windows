@@ -71,18 +71,6 @@ extern "C"
     struct bpf_link;
 
     /**
-     *  @brief Initialize the eBPF user mode library.
-     */
-    uint32_t
-    ebpf_api_initiate();
-
-    /**
-     *  @brief Terminate the eBPF user mode library.
-     */
-    void
-    ebpf_api_terminate();
-
-    /**
      * @brief Create an eBPF map with input parameters.
      *
      * @param[in] map_type Map type.

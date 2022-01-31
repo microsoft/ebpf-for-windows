@@ -184,18 +184,10 @@ _test_program_next_previous(const char* file_name, int expected_program_count)
     bpf_object__close(object);
 }
 
-TEST_CASE("pinned_map_enum", "[pinned_map_enum]")
-{
-    REQUIRE(ebpf_api_initiate() == EBPF_SUCCESS);
-
-    ebpf_test_pinned_map_enum();
-    ebpf_api_terminate();
-}
+TEST_CASE("pinned_map_enum", "[pinned_map_enum]") { ebpf_test_pinned_map_enum(); }
 
 TEST_CASE("test_ebpf_program_load", "[test_ebpf_program_load]")
 {
-    REQUIRE(ebpf_api_initiate() == EBPF_SUCCESS);
-
     // Load droppacket (JIT) without providing expected program type.
     _test_program_load("droppacket.o", nullptr, EBPF_EXECUTION_JIT, true);
 
@@ -222,28 +214,18 @@ TEST_CASE("test_ebpf_program_load", "[test_ebpf_program_load]")
 
     // Try to load an unsafe program.
     _test_program_load("droppacket_unsafe.o", nullptr, EBPF_EXECUTION_ANY, false);
-
-    ebpf_api_terminate();
 }
 
 TEST_CASE("test_ebpf_program_next_previous", "[test_ebpf_program_next_previous]")
 {
-    REQUIRE(ebpf_api_initiate() == EBPF_SUCCESS);
-
     _test_program_next_previous("droppacket.o", DROP_PACKET_PROGRAM_COUNT);
     _test_program_next_previous("bindmonitor.o", BIND_MONITOR_PROGRAM_COUNT);
-
-    ebpf_api_terminate();
 }
 
 TEST_CASE("test_ebpf_map_next_previous", "[test_ebpf_map_next_previous]")
 {
-    REQUIRE(ebpf_api_initiate() == EBPF_SUCCESS);
-
     _test_map_next_previous("droppacket.o", DROP_PACKET_MAP_COUNT);
     _test_map_next_previous("bindmonitor.o", BIND_MONITOR_MAP_COUNT);
-
-    ebpf_api_terminate();
 }
 
 void
@@ -279,7 +261,7 @@ ring_buffer_api_test(ebpf_execution_type_t execution_type)
     struct bpf_object* object = nullptr;
     hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
     program_load_attach_helper_t _helper(
-        "bindmonitor_ringbuf.o", EBPF_PROGRAM_TYPE_BIND, "bind_monitor", execution_type, hook, true);
+        "bindmonitor_ringbuf.o", EBPF_PROGRAM_TYPE_BIND, "bind_monitor", execution_type, hook);
     object = _helper.get_object();
 
     fd_t process_map_fd = bpf_object__find_map_fd_by_name(object, "process_map");
