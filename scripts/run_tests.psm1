@@ -62,7 +62,8 @@ function Invoke-CICDTests
             Invoke-Test -TestName "ebpf_performance.exe" -VerboseLogs $VerboseLogs
         }
     } catch {
-        # Do nothing.
+        Write-Log "One or more tests failed."
+        throw
     }
 
     # Stop the components, so that Driver Verifier can catch memory leaks etc.

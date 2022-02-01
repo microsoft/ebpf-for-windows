@@ -122,13 +122,13 @@ ring_buffer_test_event_handler(_In_ void* ctx, _In_opt_ void* data, size_t size)
 
     if (event_context->canceled) {
         // Ring buffer subscription is canceled.
-        // Free the callback context and return.
+        // Free the callback context and return error so that no further callback is made.
         delete event_context;
-        return 0;
+        return -1;
     }
 
     if (event_context->matched_entry_count == RING_BUFFER_TEST_EVENT_COUNT)
-        // Required number of event notifications already reserved.
+        // Required number of event notifications already received.
         return 0;
 
     if ((data == nullptr) || (size == 0))

@@ -183,8 +183,10 @@ _create_array_map(
     ebpf_handle_t inner_map_handle,
     _Outptr_ ebpf_core_map_t** map)
 {
-    if (inner_map_handle != ebpf_handle_invalid)
-        return EBPF_INVALID_ARGUMENT;
+
+    // Temporarily removing check for inner map handle until
+    // https://github.com/microsoft/ebpf-for-windows/issues/739 is fixed.
+    UNREFERENCED_PARAMETER(inner_map_handle);
     return _create_array_map_with_map_struct_size(sizeof(ebpf_core_map_t), map_definition, map);
 }
 
