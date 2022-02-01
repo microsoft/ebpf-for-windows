@@ -15,6 +15,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\external\bpftool\libbpf\src\hashmap.c" />
     <ClCompile Include="..\..\external\bpftool\src\btf.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -156,7 +157,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>BPFTOOL_VERSION="0.1";_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(SolutionDir)include;$(SolutionDir)external/bpftool/libbpf/src;$(SolutionDir)external/win-c/include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(SolutionDir)include;$(SolutionDir)external/bpftool/libbpf/src;$(SolutionDir)external/bpftool/libbpf/include;$(SolutionDir)external/win-c/include</AdditionalIncludeDirectories>
       <AdditionalOptions>/analyze:stacksize 163884 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -173,7 +174,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>BPFTOOL_VERSION="0.1";NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(SolutionDir)include;$(SolutionDir)external/bpftool/libbpf/src;$(SolutionDir)external/win-c/include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(SolutionDir)include;$(SolutionDir)external/bpftool/libbpf/src;$(SolutionDir)external/bpftool/libbpf/include;$(SolutionDir)external/win-c/include</AdditionalIncludeDirectories>
       <AdditionalOptions>/analyze:stacksize 163884 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>

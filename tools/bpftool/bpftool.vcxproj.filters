@@ -94,6 +94,9 @@
     <ClCompile Include="..\..\external\bpftool\src\cfg.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\external\bpftool\libbpf\src\hashmap.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\external\bpftool\src\skeleton\pid_iter.h">

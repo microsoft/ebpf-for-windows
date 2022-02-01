@@ -557,7 +557,7 @@ bpf_prog_load(const char* file, enum bpf_prog_type type, struct bpf_object** pob
  * @sa ebpf_link_close
  */
 struct bpf_link*
-bpf_program__attach(struct bpf_program* prog);
+bpf_program__attach(const struct bpf_program* prog);
 
 /**
  * @brief Attach an eBPF program to an XDP hook.

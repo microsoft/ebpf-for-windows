@@ -12,10 +12,16 @@
 // issue #351 until we can compile and use libbpf.c directly.
 
 int
-bpf_create_map_xattr(const struct bpf_create_map_attr* create_attr)
+bpf_map_create(
+    enum bpf_map_type map_type,
+    const char* map_name,
+    __u32 key_size,
+    __u32 value_size,
+    __u32 max_entries,
+    const struct bpf_map_create_opts* opts)
 {
     fd_t map_fd;
-    ebpf_result_t result = ebpf_create_map_xattr(create_attr, &map_fd);
+    ebpf_result_t result = ebpf_map_create(map_type, map_name, key_size, value_size, max_entries, opts, &map_fd);
     if (result != EBPF_SUCCESS) {
         return libbpf_result_err(result);
     }
@@ -23,44 +29,64 @@ bpf_create_map_xattr(const struct bpf_create_map_attr* create_attr)
 }
 
 int
+bpf_create_map_xattr(const struct bpf_create_map_attr* create_attr)
+{
+    LIBBPF_OPTS(bpf_map_create_opts, p);
+
+    p.map_flags = create_attr->map_flags;
+    p.numa_node = create_attr->numa_node;
+    p.btf_fd = create_attr->btf_fd;
+    p.btf_key_type_id = create_attr->btf_key_type_id;
+    p.btf_value_type_id = create_attr->btf_value_type_id;
+    p.map_ifindex = create_attr->map_ifindex;
+    p.inner_map_fd = create_attr->inner_map_fd;
+
+    return bpf_map_create(
+        create_attr->map_type,
+        create_attr->name,
+        create_attr->key_size,
+        create_attr->value_size,
+        create_attr->max_entries,
+        &p);
+}
+
+int
 bpf_create_map(enum bpf_map_type map_type, int key_size, int value_size, int max_entries, uint32_t map_flags)
 {
-    struct bpf_create_map_attr map_attr = {0};
+    LIBBPF_OPTS(bpf_map_create_opts, opts, .map_flags = map_flags);
 
-    map_attr.map_type = map_type;
-    map_attr.map_flags = map_flags;
-    map_attr.key_size = key_size;
-    map_attr.value_size = value_size;
-    map_attr.max_entries = max_entries;
-
-    return bpf_create_map_xattr(&map_attr);
+    return bpf_map_create(map_type, NULL, key_size, value_size, max_entries, &opts);
 }
 
 int
 bpf_create_map_in_map(
     enum bpf_map_type map_type, const char* name, int key_size, int inner_map_fd, int max_entries, __u32 map_flags)
 {
-    struct bpf_create_map_attr map_attr = {0};
+    LIBBPF_OPTS(bpf_map_create_opts, opts, .inner_map_fd = (uint32_t)inner_map_fd, .map_flags = map_flags, );
 
-    map_attr.map_type = map_type;
-    map_attr.name = name;
-    map_attr.key_size = key_size;
-    map_attr.value_size = sizeof(ebpf_id_t);
-    map_attr.inner_map_fd = inner_map_fd;
-    map_attr.max_entries = max_entries;
-    map_attr.map_flags = map_flags;
-
-    return bpf_create_map_xattr(&map_attr);
+    return bpf_map_create(map_type, name, key_size, 4, max_entries, &opts);
 }
 
 struct bpf_map*
-bpf_map__next(const struct bpf_map* previous, const struct bpf_object* object)
+bpf_map__next(const struct bpf_map* prev, const struct bpf_object* obj)
+{
+    return bpf_object__next_map(obj, prev);
+}
+
+struct bpf_map*
+bpf_object__next_map(const struct bpf_object* object, const struct bpf_map* previous)
 {
     return ebpf_map_next(previous, object);
 }
 
 struct bpf_map*
-bpf_map__prev(const struct bpf_map* next, const struct bpf_object* object)
+bpf_map__prev(const struct bpf_map* next, const struct bpf_object* obj)
+{
+    return bpf_object__prev_map(obj, next);
+}
+
+struct bpf_map*
+bpf_object__prev_map(const struct bpf_object* object, const struct bpf_map* next)
 {
     return ebpf_map_previous(next, object);
 }
