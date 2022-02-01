@@ -3,10 +3,7 @@
 
 #include "api_internal.h"
 #include "bpf.h"
-#pragma warning(push)
-#pragma warning(disable : 4200)
 #include "libbpf.h"
-#pragma warning(pop)
 #include "libbpf_internal.h"
 
 // This file implements APIs in LibBPF's libbpf.h and is based on code in external/libbpf/src/libbpf.c

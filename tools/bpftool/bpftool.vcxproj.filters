@@ -19,103 +19,103 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\external\bpftool\skeleton\pid_iter.bpf.c">
+    <ClCompile Include="..\..\external\bpftool\src\skeleton\pid_iter.bpf.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\external\bpftool\skeleton\profiler.bpf.c">
+    <ClCompile Include="..\..\external\bpftool\src\skeleton\profiler.bpf.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\external\bpftool\btf.c">
+    <ClCompile Include="..\..\external\bpftool\src\btf.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\external\bpftool\btf_dumper.c">
+    <ClCompile Include="..\..\external\bpftool\src\btf_dumper.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\external\bpftool\cgroup.c">
+    <ClCompile Include="..\..\external\bpftool\src\cgroup.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\external\bpftool\common.c">
+    <ClCompile Include="..\..\external\bpftool\src\common.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\external\bpftool\feature.c">
+    <ClCompile Include="..\..\external\bpftool\src\feature.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\external\bpftool\gen.c">
+    <ClCompile Include="..\..\external\bpftool\src\gen.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\external\bpftool\iter.c">
+    <ClCompile Include="..\..\external\bpftool\src\iter.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\external\bpftool\jit_disasm.c">
+    <ClCompile Include="..\..\external\bpftool\src\jit_disasm.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\external\bpftool\json_writer.c">
+    <ClCompile Include="..\..\external\bpftool\src\json_writer.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\external\bpftool\link.c">
+    <ClCompile Include="..\..\external\bpftool\src\link.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\external\bpftool\main.c">
+    <ClCompile Include="..\..\external\bpftool\src\main.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\external\bpftool\map.c">
+    <ClCompile Include="..\..\external\bpftool\src\map.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\external\bpftool\map_perf_ring.c">
+    <ClCompile Include="..\..\external\bpftool\src\map_perf_ring.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\external\bpftool\net.c">
+    <ClCompile Include="..\..\external\bpftool\src\net.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\external\bpftool\netlink_dumper.c">
+    <ClCompile Include="..\..\external\bpftool\src\netlink_dumper.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\external\bpftool\perf.c">
+    <ClCompile Include="..\..\external\bpftool\src\perf.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\external\bpftool\pids.c">
+    <ClCompile Include="..\..\external\bpftool\src\pids.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\external\bpftool\prog.c">
+    <ClCompile Include="..\..\external\bpftool\src\prog.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\external\bpftool\struct_ops.c">
+    <ClCompile Include="..\..\external\bpftool\src\struct_ops.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\external\bpftool\tracelog.c">
+    <ClCompile Include="..\..\external\bpftool\src\tracelog.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\external\bpftool\xlated_dumper.c">
+    <ClCompile Include="..\..\external\bpftool\src\xlated_dumper.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\external\win-c\source\getopt.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\external\bpftool\cfg.c">
+    <ClCompile Include="..\..\external\bpftool\src\cfg.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\external\bpftool\skeleton\pid_iter.h">
+    <ClInclude Include="..\..\external\bpftool\src\skeleton\pid_iter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\external\bpftool\cfg.h">
+    <ClInclude Include="..\..\external\bpftool\src\cfg.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\external\bpftool\json_writer.h">
+    <ClInclude Include="..\..\external\bpftool\src\json_writer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\external\bpftool\main.h">
+    <ClInclude Include="..\..\external\bpftool\src\main.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\external\bpftool\netlink_dumper.h">
+    <ClInclude Include="..\..\external\bpftool\src\netlink_dumper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\external\bpftool\xlated_dumper.h">
+    <ClInclude Include="..\..\external\bpftool\src\xlated_dumper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\external\bpftool\Makefile" />
+    <None Include="..\..\external\bpftool\src\Makefile" />
   </ItemGroup>
 </Project>

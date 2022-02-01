@@ -16,7 +16,7 @@
 // libbpf's bpf_helpers.h for the rest of the platform-agnostic
 // defines.
 #ifndef _MSC_VER
-#include "../external/libbpf/src/bpf_helpers.h"
+#include "../external/bpftool/libbpf/src/bpf_helpers.h"
 #endif
 
 #ifndef __doxygen

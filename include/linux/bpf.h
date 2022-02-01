@@ -13,6 +13,8 @@
 #include "libbpf_common.h"
 #undef LIBBPF_DEPRECATED
 #define LIBBPF_DEPRECATED(x)
+#define __SIZEOF_SIZE_T__ 8    /* only x64 is supported */
+#define __SIZEOF_LONG_LONG__ 8 /* only x64 is supported */
 
 typedef int32_t __s32;
 

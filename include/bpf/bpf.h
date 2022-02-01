@@ -314,6 +314,6 @@ bpf_prog_get_next_id(__u32 start_id, __u32* next_id);
 
 #else
 #pragma warning(push)
-#include "../external/libbpf/src/bpf.h"
+#include "../external/bpftool/libbpf/src/bpf.h"
 #pragma warning(pop)
 #endif

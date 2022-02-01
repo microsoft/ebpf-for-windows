@@ -797,6 +797,7 @@ ring_buffer__free(struct ring_buffer* rb);
 #else
 #pragma warning(push)
 #pragma warning(disable : 4200) // Zero-sized array in struct/union
-#include "../external/libbpf/src/libbpf.h"
+#pragma warning(disable : 4201) // Zero-sized array in struct/union
+#include "../external/bpftool/libbpf/src/libbpf.h"
 #pragma warning(pop)
 #endif
