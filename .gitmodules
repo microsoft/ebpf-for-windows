@@ -2,7 +2,6 @@
 	path = external/ebpf-verifier
 	url = https://github.com/dthaler/ebpf-verifier.git
 	branch = twostackvars
-
 [submodule "external/ubpf"]
 	path = external/ubpf
 	url = https://github.com/iovisor/ubpf.git
@@ -12,7 +11,8 @@
 	url = https://github.com/libbpf/libbpf.git
 [submodule "external/bpftool"]
 	path = external/bpftool
-	url = https://github.com/dthaler/bpftool.git
+	url = https://github.com/dthaler/bpftool-1.git
 [submodule "external/win-c"]
 	path = external/win-c
 	url = https://github.com/takamin/win-c.git
+	branch = windows
