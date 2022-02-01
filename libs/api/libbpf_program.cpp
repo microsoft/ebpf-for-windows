@@ -5,6 +5,7 @@
 #include "bpf.h"
 #include "libbpf.h"
 #include "libbpf_internal.h"
+#include "platform.h"
 
 // This file implements APIs in LibBPF's libbpf.h and is based on code in external/libbpf/src/libbpf.c
 // used under the BSD-2-Clause license, so the coding style tries to match the libbpf.c style to
@@ -421,4 +422,78 @@ bpf_prog_bind_map(int prog_fd, int map_fd, const struct bpf_prog_bind_opts* opts
     UNREFERENCED_PARAMETER(opts);
 
     return libbpf_result_err(ebpf_program_bind_map(prog_fd, map_fd));
+}
+
+static int
+__bpf_set_link_xdp_fd_replace(int ifindex, int fd, int old_fd, __u32 flags)
+{
+    if (flags != 0 || old_fd != -1) {
+        return libbpf_err(-ENOTSUP);
+    }
+    ebpf_result_t result = EBPF_SUCCESS;
+
+    // Look up the old program info to get the program ID.
+    struct bpf_prog_info prog_info;
+    uint32_t info_len = sizeof(prog_info);
+    int err = bpf_obj_get_info_by_fd(old_fd, &prog_info, &info_len);
+    if (err != 0) {
+        return err;
+    }
+
+    // Unlink the old program from the specified ifindex.
+    uint32_t link_id = 0;
+    while (bpf_link_get_next_id(link_id, &link_id) == 0) {
+        fd_t link_fd = bpf_link_get_fd_by_id(link_id);
+        if (link_fd < 0) {
+            continue;
+        }
+
+        struct bpf_link_info link_info;
+        info_len = sizeof(link_info);
+        if (bpf_obj_get_info_by_fd(link_fd, &link_info, &info_len) == 0) {
+            if (link_info.prog_id == prog_info.id && link_info.xdp.ifindex == (uint32_t)ifindex) {
+                if (bpf_link_detach(link_fd) < 0) {
+                    return libbpf_err(-errno);
+                }
+            }
+        }
+
+        Platform::_close(link_fd);
+    }
+
+    if (fd != -1) {
+        // Link the new program fd to the specified ifindex.
+        struct bpf_link* link;
+        result = ebpf_program_attach_by_fd(fd, &EBPF_ATTACH_TYPE_XDP, &ifindex, sizeof(ifindex), &link);
+    }
+    if (result != EBPF_SUCCESS) {
+        return libbpf_result_err(result);
+    }
+    return 0;
+}
+
+int
+bpf_xdp_attach(int ifindex, int prog_fd, __u32 flags, const struct bpf_xdp_attach_opts* opts)
+{
+    int old_prog_fd, err;
+
+    old_prog_fd = (opts) ? opts->old_prog_fd : ebpf_fd_invalid;
+
+    err = __bpf_set_link_xdp_fd_replace(ifindex, prog_fd, old_prog_fd, flags);
+    return libbpf_err(err);
+}
+
+int
+bpf_xdp_detach(int ifindex, __u32 flags, const struct bpf_xdp_attach_opts* opts)
+{
+    return bpf_xdp_attach(ifindex, -1, flags, opts);
+}
+
+int
+bpf_set_link_xdp_fd(int ifindex, int fd, __u32 flags)
+{
+    int ret;
+
+    ret = __bpf_set_link_xdp_fd_replace(ifindex, fd, 0, flags);
+    return libbpf_err(ret);
 }

@@ -441,7 +441,7 @@ extern "C"
      *  If attach type is not specified, then the earlier provided attach type
      *  or attach type derived from section prefix will be used to attach the
      *  program.
-     * @param[in] attach_params_size Size of the attach parameters.
+     * @param[in] attach_parameters_size Size of the attach parameters.
      * @param[in] attach_parameters Optionally, attach parameters. This is an
      *  opaque flat buffer containing the attach parameters which is interpreted
      *  by the extension provider.
@@ -453,8 +453,8 @@ extern "C"
     ebpf_program_attach_by_fd(
         fd_t program_fd,
         _In_opt_ const ebpf_attach_type_t* attach_type,
-        _In_reads_bytes_opt_(attach_params_size) void* attach_parameters,
-        _In_ size_t attach_params_size,
+        _In_reads_bytes_opt_(attach_parameters_size) void* attach_parameters,
+        _In_ size_t attach_parameters_size,
         _Outptr_ struct bpf_link** link);
 
     /**

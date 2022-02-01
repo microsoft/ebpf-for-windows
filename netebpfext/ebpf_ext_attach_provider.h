@@ -73,3 +73,13 @@ ebpf_ext_attach_unregister_provider(_Frees_ptr_opt_ ebpf_ext_attach_hook_provide
 ebpf_result_t
 ebpf_ext_attach_invoke_hook(
     _In_ ebpf_ext_attach_hook_provider_registration_t* registration, _In_ void* context, _Out_ uint32_t* result);
+
+/**
+ * @brief Get the hook-specific data for a given client registration.
+ *
+ * @param[in] registration Registration that owns the hook.
+ *
+ * @returns Hook-specific client data.
+ */
+const ebpf_extension_data_t*
+_ebpf_ext_get_client_data(ebpf_ext_attach_hook_provider_registration_t* registration);

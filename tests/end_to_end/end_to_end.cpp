@@ -292,6 +292,7 @@ typedef class _ip_in_ip_packet : public ip_packet_t
 } ip_in_ip_packet_t;
 
 #define SAMPLE_PATH ""
+#define TEST_IFINDEX 17
 
 void
 droppacket_test(ebpf_execution_type_t execution_type)
@@ -316,10 +317,13 @@ droppacket_test(ebpf_execution_type_t execution_type)
         error_message = nullptr;
     }
     REQUIRE(result == EBPF_SUCCESS);
+
     fd_t dropped_packet_map_fd = bpf_object__find_map_fd_by_name(object, "dropped_packet_map");
 
-    REQUIRE(hook.attach_link(program_fd, &link) == EBPF_SUCCESS);
+    uint32_t if_index = TEST_IFINDEX;
+    REQUIRE(hook.attach_link(program_fd, &if_index, sizeof(if_index), &link) == EBPF_SUCCESS);
 
+    // Create a 0-byte UDP packet.
     auto packet = prepare_udp_packet(0, ETHERNET_TYPE_IPV4);
 
     uint32_t key = 0;
@@ -327,11 +331,11 @@ droppacket_test(ebpf_execution_type_t execution_type)
     REQUIRE(bpf_map_update_elem(dropped_packet_map_fd, &key, &value, EBPF_ANY) == EBPF_SUCCESS);
 
     // Test that we drop the packet and increment the map
-    xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
+    xdp_md_t ctx{packet.data(), packet.data() + packet.size(), 0, TEST_IFINDEX};
 
     int hook_result;
     REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
-    REQUIRE(hook_result == 2);
+    REQUIRE(hook_result == XDP_DROP);
 
     REQUIRE(bpf_map_lookup_elem(dropped_packet_map_fd, &key, &value) == EBPF_SUCCESS);
     REQUIRE(value == 1001);
@@ -341,32 +345,16 @@ droppacket_test(ebpf_execution_type_t execution_type)
     REQUIRE(bpf_map_lookup_elem(dropped_packet_map_fd, &key, &value) == EBPF_SUCCESS);
     REQUIRE(value == 0);
 
+    // Create a normal (not 0-byte) UDP packet.
     packet = prepare_udp_packet(10, ETHERNET_TYPE_IPV4);
-    xdp_md_t ctx2{packet.data(), packet.data() + packet.size()};
+    xdp_md_t ctx2{packet.data(), packet.data() + packet.size(), 0, TEST_IFINDEX};
 
+    // Test that we don't drop the packet.
     REQUIRE(hook.fire(&ctx2, &hook_result) == EBPF_SUCCESS);
-    REQUIRE(hook_result == 1);
+    REQUIRE(hook_result == XDP_PASS);
 
     REQUIRE(bpf_map_lookup_elem(dropped_packet_map_fd, &key, &value) == EBPF_SUCCESS);
     REQUIRE(value == 0);
-
-    fd_t interface_index_map_fd = bpf_object__find_map_fd_by_name(object, "interface_index_map");
-    uint32_t if_index = 17;
-    REQUIRE(bpf_map_update_elem(interface_index_map_fd, &key, &if_index, EBPF_ANY) == EBPF_SUCCESS);
-
-    packet = prepare_udp_packet(0, ETHERNET_TYPE_IPV4);
-    // Fire a 0-length UDP packet on the interface index in the map, which should be dropped.
-    xdp_md_t ctx3{packet.data(), packet.data() + packet.size(), 0, if_index};
-    REQUIRE(hook.fire(&ctx3, &hook_result) == EBPF_SUCCESS);
-    REQUIRE(hook_result == 2);
-    REQUIRE(bpf_map_lookup_elem(dropped_packet_map_fd, &key, &value) == EBPF_SUCCESS);
-    REQUIRE(value == 1);
-    // Fire a 0-length packet on any interface that is not in the map, which should be allowed.
-    xdp_md_t ctx4{packet.data(), packet.data() + packet.size(), 0, if_index + 1};
-    REQUIRE(hook.fire(&ctx4, &hook_result) == EBPF_SUCCESS);
-    REQUIRE(hook_result == 1);
-    REQUIRE(bpf_map_lookup_elem(dropped_packet_map_fd, &key, &value) == EBPF_SUCCESS);
-    REQUIRE(value == 1);
 
     hook.detach_link(link);
     hook.close_link(link);
@@ -398,12 +386,13 @@ divide_by_zero_test(ebpf_execution_type_t execution_type)
     }
     REQUIRE(result == EBPF_SUCCESS);
 
-    REQUIRE(hook.attach_link(program_fd, &link) == EBPF_SUCCESS);
+    uint32_t ifindex = 0;
+    REQUIRE(hook.attach_link(program_fd, &ifindex, sizeof(ifindex), &link) == EBPF_SUCCESS);
 
     auto packet = prepare_udp_packet(0, ETHERNET_TYPE_IPV4);
 
     // Test that we drop the packet and increment the map
-    xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
+    xdp_md_t ctx{packet.data(), packet.data() + packet.size(), 0, TEST_IFINDEX};
 
     int hook_result;
     REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
@@ -493,7 +482,8 @@ bindmonitor_test(ebpf_execution_type_t execution_type)
 
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
 
-    REQUIRE(hook.attach_link(program_fd, &link) == EBPF_SUCCESS);
+    uint32_t ifindex = 0;
+    REQUIRE(hook.attach_link(program_fd, &ifindex, sizeof(ifindex), &link) == EBPF_SUCCESS);
 
     // Apply policy of maximum 2 binds per process
     set_bind_limit(limit_map_fd, 2);
@@ -568,7 +558,7 @@ bindmonitor_ring_buffer_test(ebpf_execution_type_t execution_type)
     REQUIRE(process_map_fd > 0);
 
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
-    REQUIRE(hook.attach_link(program_fd, &link) == EBPF_SUCCESS);
+    REQUIRE(hook.attach_link(program_fd, nullptr, 0, &link) == EBPF_SUCCESS);
 
     // Create a list of fake app IDs and set it to event context.
     std::string fake_app_ids_prefix = "fake_app";
@@ -600,8 +590,15 @@ _utility_helper_functions_test(ebpf_execution_type_t execution_type)
     _test_helper_end_to_end test_helper;
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
+    uint32_t ifindex = 0;
     program_load_attach_helper_t program_helper(
-        SAMPLE_PATH "test_utility_helpers.o", EBPF_PROGRAM_TYPE_XDP, "test_utility_helpers", execution_type, hook);
+        SAMPLE_PATH "test_utility_helpers.o",
+        EBPF_PROGRAM_TYPE_XDP,
+        "test_utility_helpers",
+        execution_type,
+        &ifindex,
+        sizeof(ifindex),
+        hook);
     bpf_object* object = program_helper.get_object();
 
     // Dummy context (not used by the eBPF program).
@@ -890,7 +887,8 @@ TEST_CASE("implicit_detach", "[end_to_end]")
     }
     REQUIRE(result == EBPF_SUCCESS);
 
-    REQUIRE(hook.attach_link(program_fd, &link) == EBPF_SUCCESS);
+    uint32_t ifindex = 0;
+    REQUIRE(hook.attach_link(program_fd, &ifindex, sizeof(ifindex), &link) == EBPF_SUCCESS);
 
     // Call bpf_object__close() which will close the program fd. That should
     // detach the program from the hook and unload the program.
@@ -936,7 +934,8 @@ TEST_CASE("implicit_detach_2", "[end_to_end]")
     }
     REQUIRE(result == EBPF_SUCCESS);
 
-    REQUIRE(hook.attach_link(program_fd, &link) == EBPF_SUCCESS);
+    uint32_t ifindex = 0;
+    REQUIRE(hook.attach_link(program_fd, &ifindex, sizeof(ifindex), &link) == EBPF_SUCCESS);
 
     // Call bpf_object__close() which will close the program fd. That should
     // detach the program from the hook and unload the program.
@@ -981,7 +980,8 @@ TEST_CASE("explicit_detach", "[end_to_end]")
     }
     REQUIRE(result == EBPF_SUCCESS);
 
-    REQUIRE(hook.attach_link(program_fd, &link) == EBPF_SUCCESS);
+    uint32_t ifindex = 0;
+    REQUIRE(hook.attach_link(program_fd, &ifindex, sizeof(ifindex), &link) == EBPF_SUCCESS);
 
     // Detach and close link handle.
     // ebpf_object_tracking_terminate() which is called when the test
@@ -1024,7 +1024,8 @@ TEST_CASE("implicit_explicit_detach", "[end_to_end]")
     }
     REQUIRE(result == EBPF_SUCCESS);
 
-    REQUIRE(hook.attach_link(program_fd, &link) == EBPF_SUCCESS);
+    uint32_t ifindex = 0;
+    REQUIRE(hook.attach_link(program_fd, &ifindex, sizeof(ifindex), &link) == EBPF_SUCCESS);
 
     // Close program handle. That should detach the program from the hook
     // and unload the program.
@@ -1109,18 +1110,25 @@ _xdp_reflect_packet_test(ebpf_execution_type_t execution_type, ADDRESS_FAMILY ad
     _test_helper_end_to_end test_helper;
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
+    uint32_t ifindex = 0;
     program_load_attach_helper_t program_helper(
-        SAMPLE_PATH "reflect_packet.o", EBPF_PROGRAM_TYPE_XDP, "reflect_packet", execution_type, hook);
+        SAMPLE_PATH "reflect_packet.o",
+        EBPF_PROGRAM_TYPE_XDP,
+        "reflect_packet",
+        execution_type,
+        &ifindex,
+        sizeof(ifindex),
+        hook);
 
     // Dummy UDP datagram with fake IP and MAC addresses.
     udp_packet_t packet(address_family);
     packet.set_destination_port(ntohs(REFLECTION_TEST_PORT));
 
-    xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
+    xdp_md_t ctx{packet.data(), packet.data() + packet.size(), 0, TEST_IFINDEX};
 
     int hook_result;
     REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
-    REQUIRE(hook_result == 3);
+    REQUIRE(hook_result == XDP_TX);
 
     ebpf::ETHERNET_HEADER* ethernet_header = reinterpret_cast<ebpf::ETHERNET_HEADER*>(ctx.data);
     REQUIRE(memcmp(ethernet_header->Destination, _test_source_mac.data(), sizeof(ethernet_header->Destination)) == 0);
@@ -1143,8 +1151,15 @@ _xdp_encap_reflect_packet_test(ebpf_execution_type_t execution_type, ADDRESS_FAM
     _test_helper_end_to_end test_helper;
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
+    uint32_t ifindex = 0;
     program_load_attach_helper_t program_helper(
-        SAMPLE_PATH "encap_reflect_packet.o", EBPF_PROGRAM_TYPE_XDP, "encap_reflect_packet", execution_type, hook);
+        SAMPLE_PATH "encap_reflect_packet.o",
+        EBPF_PROGRAM_TYPE_XDP,
+        "encap_reflect_packet",
+        execution_type,
+        &ifindex,
+        sizeof(ifindex),
+        hook);
 
     // Dummy UDP datagram with fake IP and MAC addresses.
     udp_packet_t packet(address_family);
@@ -1155,7 +1170,7 @@ _xdp_encap_reflect_packet_test(ebpf_execution_type_t execution_type, ADDRESS_FAM
 
     int hook_result;
     REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
-    REQUIRE(hook_result == 3);
+    REQUIRE(hook_result == XDP_TX);
 
     ebpf::ETHERNET_HEADER* ethernet_header = reinterpret_cast<ebpf::ETHERNET_HEADER*>(ctx.data);
     REQUIRE(memcmp(ethernet_header->Destination, _test_source_mac.data(), sizeof(ethernet_header->Destination)) == 0);
@@ -1202,8 +1217,15 @@ _xdp_decapsulate_permit_packet_test(ebpf_execution_type_t execution_type, ADDRES
     _test_helper_end_to_end test_helper;
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
+    uint32_t ifindex = 0;
     program_load_attach_helper_t program_helper(
-        SAMPLE_PATH "decap_permit_packet.o", EBPF_PROGRAM_TYPE_XDP, "decapsulate_permit_packet", execution_type, hook);
+        SAMPLE_PATH "decap_permit_packet.o",
+        EBPF_PROGRAM_TYPE_XDP,
+        "decapsulate_permit_packet",
+        execution_type,
+        &ifindex,
+        sizeof(ifindex),
+        hook);
 
     // Dummy IP in IP packet with fake IP and MAC addresses.
     ip_in_ip_packet_t packet(address_family);
@@ -1216,7 +1238,7 @@ _xdp_decapsulate_permit_packet_test(ebpf_execution_type_t execution_type, ADDRES
     int hook_result;
     xdp_md_helper_t ctx(packet.packet());
     REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
-    REQUIRE(hook_result == 1);
+    REQUIRE(hook_result == XDP_PASS);
 
     ebpf::ETHERNET_HEADER* ethernet_header = reinterpret_cast<ebpf::ETHERNET_HEADER*>(ctx.data);
 
@@ -1251,8 +1273,9 @@ TEST_CASE("link_tests", "[end_to_end]")
     _test_helper_end_to_end test_helper;
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
+    uint32_t ifindex = 0;
     program_load_attach_helper_t program_helper(
-        SAMPLE_PATH "bpf.o", EBPF_PROGRAM_TYPE_XDP, "func", EBPF_EXECUTION_INTERPRET, hook);
+        SAMPLE_PATH "bpf.o", EBPF_PROGRAM_TYPE_XDP, "func", EBPF_EXECUTION_INTERPRET, &ifindex, sizeof(ifindex), hook);
 
     // Dummy UDP datagram with fake IP and MAC addresses.
     udp_packet_t packet(AF_INET);
@@ -1307,11 +1330,18 @@ TEST_CASE("map_reuse", "[end_to_end]")
     error = bpf_map_update_elem(inner_map_fd, &key, &value, BPF_ANY);
     REQUIRE(error == 0);
 
+    uint32_t ifindex = 0;
     program_load_attach_helper_t program_helper(
-        SAMPLE_PATH "map_reuse.o", EBPF_PROGRAM_TYPE_XDP, "lookup_update", EBPF_EXECUTION_ANY, hook);
+        SAMPLE_PATH "map_reuse.o",
+        EBPF_PROGRAM_TYPE_XDP,
+        "lookup_update",
+        EBPF_EXECUTION_ANY,
+        &ifindex,
+        sizeof(ifindex),
+        hook);
 
     auto packet = prepare_udp_packet(10, ETHERNET_TYPE_IPV4);
-    xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
+    xdp_md_t ctx{packet.data(), packet.data() + packet.size(), 0, TEST_IFINDEX};
     int hook_result;
 
     REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
@@ -1338,8 +1368,15 @@ TEST_CASE("auto_pinned_maps", "[end_to_end]")
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
+    uint32_t ifindex = 0;
     program_load_attach_helper_t program_helper(
-        SAMPLE_PATH "map_reuse.o", EBPF_PROGRAM_TYPE_XDP, "lookup_update", EBPF_EXECUTION_ANY, hook);
+        SAMPLE_PATH "map_reuse.o",
+        EBPF_PROGRAM_TYPE_XDP,
+        "lookup_update",
+        EBPF_EXECUTION_ANY,
+        &ifindex,
+        sizeof(ifindex),
+        hook);
 
     fd_t outer_map_fd = bpf_obj_get("/ebpf/global/outer_map");
     REQUIRE(outer_map_fd > 0);
@@ -1361,7 +1398,7 @@ TEST_CASE("auto_pinned_maps", "[end_to_end]")
     REQUIRE(port_map_fd > 0);
 
     auto packet = prepare_udp_packet(10, ETHERNET_TYPE_IPV4);
-    xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
+    xdp_md_t ctx{packet.data(), packet.data() + packet.size(), 0, TEST_IFINDEX};
     int hook_result;
 
     REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
@@ -1421,7 +1458,7 @@ TEST_CASE("auto_pinned_maps_custom_path", "[end_to_end]")
     REQUIRE(port_map_fd > 0);
 
     auto packet = prepare_udp_packet(10, ETHERNET_TYPE_IPV4);
-    xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
+    xdp_md_t ctx{packet.data(), packet.data() + packet.size(), 0, TEST_IFINDEX};
     int hook_result;
 
     REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
@@ -1525,11 +1562,18 @@ TEST_CASE("map_reuse_2", "[end_to_end]")
     error = bpf_map_update_elem(inner_map_fd, &key, &value, BPF_ANY);
     REQUIRE(error == 0);
 
+    uint32_t ifindex = 0;
     program_load_attach_helper_t program_helper(
-        SAMPLE_PATH "map_reuse_2.o", EBPF_PROGRAM_TYPE_XDP, "lookup_update", EBPF_EXECUTION_ANY, hook);
+        SAMPLE_PATH "map_reuse_2.o",
+        EBPF_PROGRAM_TYPE_XDP,
+        "lookup_update",
+        EBPF_EXECUTION_ANY,
+        &ifindex,
+        sizeof(ifindex),
+        hook);
 
     auto packet = prepare_udp_packet(10, ETHERNET_TYPE_IPV4);
-    xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
+    xdp_md_t ctx{packet.data(), packet.data() + packet.size(), 0, TEST_IFINDEX};
     int hook_result;
 
     REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
@@ -1593,11 +1637,18 @@ TEST_CASE("map_reuse_3", "[end_to_end]")
     error = bpf_map_update_elem(inner_map_fd, &key, &value, BPF_ANY);
     REQUIRE(error == 0);
 
+    uint32_t ifindex = 0;
     program_load_attach_helper_t program_helper(
-        SAMPLE_PATH "map_reuse_2.o", EBPF_PROGRAM_TYPE_XDP, "lookup_update", EBPF_EXECUTION_ANY, hook);
+        SAMPLE_PATH "map_reuse_2.o",
+        EBPF_PROGRAM_TYPE_XDP,
+        "lookup_update",
+        EBPF_EXECUTION_ANY,
+        &ifindex,
+        sizeof(ifindex),
+        hook);
 
     auto packet = prepare_udp_packet(10, ETHERNET_TYPE_IPV4);
-    xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
+    xdp_md_t ctx{packet.data(), packet.data() + packet.size(), 0, TEST_IFINDEX};
     int hook_result;
 
     REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);

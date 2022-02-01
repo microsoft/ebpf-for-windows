@@ -78,7 +78,7 @@ ebpf_link_initialize(
             return_value = EBPF_NO_MEMORY;
             goto Exit;
         }
-        memcpy(&link->client_data.data, context_data, context_data_length);
+        memcpy(link->client_data.data, context_data, context_data_length);
     }
 
     return_value = ebpf_extension_load(
