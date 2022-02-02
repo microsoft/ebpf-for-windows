@@ -188,6 +188,12 @@ TEST_CASE("pinned_map_enum", "[pinned_map_enum]") { ebpf_test_pinned_map_enum();
 
 TEST_CASE("test_ebpf_program_load", "[test_ebpf_program_load]")
 {
+#if defined(EBPF_JIT_ALWAYS_ON)
+    const bool jit_only = true;
+#else
+    const bool jit_only = false;
+#endif
+
     // Load droppacket (JIT) without providing expected program type.
     _test_program_load("droppacket.o", nullptr, EBPF_EXECUTION_JIT, true);
 
@@ -195,16 +201,16 @@ TEST_CASE("test_ebpf_program_load", "[test_ebpf_program_load]")
     _test_program_load("droppacket.o", nullptr, EBPF_EXECUTION_ANY, true);
 
     // Load droppacket (INTERPRET) without providing expected program type.
-    _test_program_load("droppacket.o", nullptr, EBPF_EXECUTION_INTERPRET, true);
+    _test_program_load("droppacket.o", nullptr, EBPF_EXECUTION_INTERPRET, jit_only);
 
     // Load droppacket with providing expected program type.
-    _test_program_load("droppacket.o", &EBPF_PROGRAM_TYPE_XDP, EBPF_EXECUTION_INTERPRET, true);
+    _test_program_load("droppacket.o", &EBPF_PROGRAM_TYPE_XDP, EBPF_EXECUTION_INTERPRET, jit_only);
 
     // Load bindmonitor (JIT) without providing expected program type.
     _test_program_load("bindmonitor.o", nullptr, EBPF_EXECUTION_JIT, true);
 
     // Load bindmonitor (INTERPRET) without providing expected program type.
-    _test_program_load("bindmonitor.o", nullptr, EBPF_EXECUTION_INTERPRET, true);
+    _test_program_load("bindmonitor.o", nullptr, EBPF_EXECUTION_INTERPRET, jit_only);
 
     // Load bindmonitor with providing expected program type.
     _test_program_load("bindmonitor.o", &EBPF_PROGRAM_TYPE_BIND, EBPF_EXECUTION_JIT, true);
@@ -282,4 +288,6 @@ ring_buffer_api_test(ebpf_execution_type_t execution_type)
 
 TEST_CASE("ringbuf_api_jit", "[test_ringbuf_api]") { ring_buffer_api_test(EBPF_EXECUTION_JIT); }
 
+#if !defined(EBPF_JIT_ALWAYS_ON)
 TEST_CASE("ringbuf_api_interpret", "[test_ringbuf_api]") { ring_buffer_api_test(EBPF_EXECUTION_INTERPRET); }
+#endif

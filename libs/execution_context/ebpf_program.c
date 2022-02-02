@@ -693,10 +693,12 @@ ebpf_program_load_code(
     program->parameters.code_type = code_type;
     if (program->parameters.code_type == EBPF_CODE_NATIVE)
         result = _ebpf_program_load_machine_code(program, code, code_size);
-#if !defined(EBPF_JIT_ALWAYS_ON)
     else if (program->parameters.code_type == EBPF_CODE_EBPF)
+#if !defined(EBPF_JIT_ALWAYS_ON)
         result = _ebpf_program_load_byte_code(
             program, (const ebpf_instruction_t*)code, code_size / sizeof(ebpf_instruction_t));
+#else
+        result = EBPF_BLOCKED_BY_POLICY;
 #endif
     else {
         EBPF_LOG_MESSAGE_UINT64(
@@ -769,6 +771,8 @@ ebpf_program_invoke(_In_ const ebpf_program_t* program, _In_ void* context, _Out
             } else {
                 *result = (uint32_t)(out_value);
             }
+#else
+            *result = 0;
 #endif
         }
 
