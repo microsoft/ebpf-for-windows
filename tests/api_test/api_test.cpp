@@ -185,41 +185,44 @@ _test_program_next_previous(const char* file_name, int expected_program_count)
 
 TEST_CASE("pinned_map_enum", "[pinned_map_enum]") { ebpf_test_pinned_map_enum(); }
 
-TEST_CASE("test_ebpf_program_load", "[test_ebpf_program_load]")
-{
+#define DECLARE_LOAD_TEST_CASE(file, program_type, execution_type, expected_result)  \
+    TEST_CASE("test_ebpf_program_load-" #file "-" #program_type "-" #execution_type) \
+    {                                                                                \
+        _test_program_load(file, program_type, execution_type, expected_result);     \
+    }
+
 #if defined(CONFIG_BPF_JIT_ALWAYS_ON)
-    const ebpf_result_t interpret_load_result = EBPF_PROGRAM_LOAD_FAILED;
+#define INTERPRET_LOAD_RESULT EBPF_BLOCKED_BY_POLICY
 #else
-    const ebpf_result_t interpret_load_result = EBPF_SUCCESS;
+#define INTERPRET_LOAD_RESULT EBPF_SUCCESS
 #endif
 
-    // Load droppacket (JIT) without providing expected program type.
-    _test_program_load("droppacket.o", nullptr, EBPF_EXECUTION_JIT, EBPF_SUCCESS);
+// Load droppacket (JIT) without providing expected program type.
+DECLARE_LOAD_TEST_CASE("droppacket.o", nullptr, EBPF_EXECUTION_JIT, EBPF_SUCCESS);
 
-    // Load droppacket (ANY) without providing expected program type.
-    _test_program_load("droppacket.o", nullptr, EBPF_EXECUTION_ANY, EBPF_SUCCESS);
+// Load droppacket (ANY) without providing expected program type.
+DECLARE_LOAD_TEST_CASE("droppacket.o", nullptr, EBPF_EXECUTION_ANY, EBPF_SUCCESS);
 
-    // Load droppacket (INTERPRET) without providing expected program type.
-    _test_program_load("droppacket.o", nullptr, EBPF_EXECUTION_INTERPRET, interpret_load_result);
+// Load droppacket (INTERPRET) without providing expected program type.
+DECLARE_LOAD_TEST_CASE("droppacket.o", nullptr, EBPF_EXECUTION_INTERPRET, INTERPRET_LOAD_RESULT);
 
-    // Load droppacket with providing expected program type.
-    _test_program_load("droppacket.o", &EBPF_PROGRAM_TYPE_XDP, EBPF_EXECUTION_INTERPRET, interpret_load_result);
+// Load droppacket with providing expected program type.
+DECLARE_LOAD_TEST_CASE("droppacket.o", &EBPF_PROGRAM_TYPE_XDP, EBPF_EXECUTION_INTERPRET, INTERPRET_LOAD_RESULT);
 
-    // Load bindmonitor (JIT) without providing expected program type.
-    _test_program_load("bindmonitor.o", nullptr, EBPF_EXECUTION_JIT, EBPF_SUCCESS);
+// Load bindmonitor (JIT) without providing expected program type.
+DECLARE_LOAD_TEST_CASE("bindmonitor.o", nullptr, EBPF_EXECUTION_JIT, EBPF_SUCCESS);
 
-    // Load bindmonitor (INTERPRET) without providing expected program type.
-    _test_program_load("bindmonitor.o", nullptr, EBPF_EXECUTION_INTERPRET, interpret_load_result);
+// Load bindmonitor (INTERPRET) without providing expected program type.
+DECLARE_LOAD_TEST_CASE("bindmonitor.o", nullptr, EBPF_EXECUTION_INTERPRET, INTERPRET_LOAD_RESULT);
 
-    // Load bindmonitor with providing expected program type.
-    _test_program_load("bindmonitor.o", &EBPF_PROGRAM_TYPE_BIND, EBPF_EXECUTION_JIT, EBPF_SUCCESS);
+// Load bindmonitor with providing expected program type.
+DECLARE_LOAD_TEST_CASE("bindmonitor.o", &EBPF_PROGRAM_TYPE_BIND, EBPF_EXECUTION_JIT, EBPF_SUCCESS);
 
-    // Try to load bindmonitor with providing wrong program type.
-    _test_program_load("bindmonitor.o", &EBPF_PROGRAM_TYPE_XDP, EBPF_EXECUTION_ANY, EBPF_VERIFICATION_FAILED);
+// Try to load bindmonitor with providing wrong program type.
+DECLARE_LOAD_TEST_CASE("bindmonitor.o", &EBPF_PROGRAM_TYPE_XDP, EBPF_EXECUTION_ANY, EBPF_VERIFICATION_FAILED);
 
-    // Try to load an unsafe program.
-    _test_program_load("droppacket_unsafe.o", nullptr, EBPF_EXECUTION_ANY, EBPF_VERIFICATION_FAILED);
-}
+// Try to load an unsafe program.
+DECLARE_LOAD_TEST_CASE("droppacket_unsafe.o", nullptr, EBPF_EXECUTION_ANY, EBPF_VERIFICATION_FAILED);
 
 TEST_CASE("test_ebpf_program_next_previous", "[test_ebpf_program_next_previous]")
 {
