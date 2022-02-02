@@ -82,7 +82,7 @@ releases of eBPF for Windows will eventually be production signed at some point 
 security hardening is completed.)
 
 For basic testing, the simplest way to install eBPF for Windows is into a Windows VM with test signing enabled.
-Follow the [VM Installation Instructions](vm-setup.md) and [eBPF Installation Instructions](installEbpf.md) to do so.
+Follow the [VM Installation Instructions](vm-setup.md) and [eBPF Installation Instructions](InstallEbpf.md) to do so.
 
 ## Using eBPF for Windows
 
