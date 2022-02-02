@@ -19,9 +19,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <CopyFileToFolders Include="..\pre-commit">
-      <Filter>Source Files</Filter>
-    </CopyFileToFolders>
     <CopyFileToFolders Include="..\install-ebpf.bat">
       <Filter>Source Files</Filter>
     </CopyFileToFolders>
@@ -58,5 +55,11 @@
     <CopyFileToFolders Include="..\vm_list.json">
       <Filter>Source Files</Filter>
     </CopyFileToFolders>
+    <CopyFileToFolders Include="..\ebpfforwindows.wprp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\pre-commit">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
 </Project>
