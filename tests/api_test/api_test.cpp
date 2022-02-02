@@ -188,7 +188,7 @@ TEST_CASE("pinned_map_enum", "[pinned_map_enum]") { ebpf_test_pinned_map_enum();
 TEST_CASE("test_ebpf_program_load", "[test_ebpf_program_load]")
 {
 #if defined(CONFIG_BPF_JIT_ALWAYS_ON)
-    const ebpf_result_t interpret_load_result = EBPF_BLOCKED_BY_POLICY;
+    const ebpf_result_t interpret_load_result = EBPF_PROGRAM_LOAD_FAILED;
 #else
     const ebpf_result_t interpret_load_result = EBPF_SUCCESS;
 #endif
