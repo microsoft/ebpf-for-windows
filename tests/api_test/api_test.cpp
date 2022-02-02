@@ -188,7 +188,7 @@ TEST_CASE("pinned_map_enum", "[pinned_map_enum]") { ebpf_test_pinned_map_enum();
 
 TEST_CASE("test_ebpf_program_load", "[test_ebpf_program_load]")
 {
-#if defined(EBPF_JIT_ALWAYS_ON)
+#if defined(CONFIG_BPF_JIT_ALWAYS_ON)
     const bool jit_only = true;
 #else
     const bool jit_only = false;
@@ -288,6 +288,6 @@ ring_buffer_api_test(ebpf_execution_type_t execution_type)
 
 TEST_CASE("ringbuf_api_jit", "[test_ringbuf_api]") { ring_buffer_api_test(EBPF_EXECUTION_JIT); }
 
-#if !defined(EBPF_JIT_ALWAYS_ON)
+#if !defined(CONFIG_BPF_JIT_ALWAYS_ON)
 TEST_CASE("ringbuf_api_interpret", "[test_ringbuf_api]") { ring_buffer_api_test(EBPF_EXECUTION_INTERPRET); }
 #endif

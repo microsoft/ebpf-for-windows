@@ -38,7 +38,7 @@ The following steps need to be executed _once_ before the first build on a new c
 
 ### Setting compile time options when building from Developer Command Prompt
 To build with specific compile time options, append ```/p:DefineConstants=<option_name>```. Options available include:
-1. ```EBPF_JIT_ALWAYS_ON``` - Compile eBPF Execution Context without support for eBPF interpreter.
+1. ```CONFIG_BPF_JIT_ALWAYS_ON``` - Compile eBPF Execution Context without support for eBPF interpreter.
 
 ### Building using Visual Studio IDE
 1. Open `ebpf-for-windows.sln`
