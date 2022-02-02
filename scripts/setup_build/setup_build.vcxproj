@@ -23,7 +23,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <CopyFileToFolders Include="..\pre-commit">
+    <None Include="..\pre-commit">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">echo copy %(FullPath) $(SolutionDir).git\hooks</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(SolutionDir).git\hooks\%(Filename)</Outputs>
@@ -31,7 +31,7 @@
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir).git\hooks\%(Filename)</Outputs>
       <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(SolutionDir).git\hooks</DestinationFolders>
       <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir).git\hooks</DestinationFolders>
-    </CopyFileToFolders>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <CopyFileToFolders Include="..\install-ebpf.bat">
@@ -191,7 +191,8 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PreBuildEvent>
-      <Command>powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\generate-commitid.ps1 $(SolutionDir)\include
+      <Command>powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\copy_pre_commit.ps1 $(SolutionDir)scripts\pre-commit
+powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\generate-commitid.ps1 $(SolutionDir)\include
 copy "$(VC_DebugCppRuntimeFilesPath_x64)\Microsoft.VC142.DebugCRT\*" "$(OutDir)"
 copy "$(UniversalDebugCRT_ExecutablePath_x64)\ucrtbased.dll" "$(OutDir)"</Command>
     </PreBuildEvent>
@@ -212,7 +213,8 @@ copy "$(UniversalDebugCRT_ExecutablePath_x64)\ucrtbased.dll" "$(OutDir)"</Comman
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PreBuildEvent>
-      <Command>powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\generate-commitid.ps1 $(SolutionDir)\include
+      <Command>powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\copy_pre_commit.ps1 $(SolutionDir)scripts\pre-commit
+powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\generate-commitid.ps1 $(SolutionDir)\include
 copy "$(VC_CppRuntimeFilesPath_x64)\Microsoft.VC142.CRT" "$(OutDir)"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
