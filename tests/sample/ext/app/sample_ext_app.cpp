@@ -121,6 +121,7 @@ TEST_CASE("jit_test", "[sample_ext_test]")
     sample_ebpf_ext_test(object);
 }
 
+#if !defined(CONFIG_BPF_JIT_ALWAYS_ON)
 TEST_CASE("interpret_test", "[sample_ext_test]")
 {
     struct bpf_object* object = nullptr;
@@ -132,6 +133,7 @@ TEST_CASE("interpret_test", "[sample_ext_test]")
 
     sample_ebpf_ext_test(object);
 }
+#endif
 
 void
 utility_helpers_test(ebpf_execution_type_t execution_type)
@@ -150,7 +152,9 @@ utility_helpers_test(ebpf_execution_type_t execution_type)
     verify_utility_helper_results(object);
 }
 
+#if !defined(CONFIG_BPF_JIT_ALWAYS_ON)
 TEST_CASE("utility_helpers_test_interpret", "[sample_ext_test]") { utility_helpers_test(EBPF_EXECUTION_INTERPRET); }
+#endif
 TEST_CASE("utility_helpers_test_jit", "[sample_ext_test]") { utility_helpers_test(EBPF_EXECUTION_JIT); }
 TEST_CASE("netsh_add_program_test_sample_ebpf", "[sample_ext_test]")
 {
