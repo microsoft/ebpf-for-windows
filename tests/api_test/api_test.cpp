@@ -192,7 +192,7 @@ TEST_CASE("pinned_map_enum", "[pinned_map_enum]") { ebpf_test_pinned_map_enum();
     }
 
 #if defined(CONFIG_BPF_JIT_ALWAYS_ON)
-#define INTERPRET_LOAD_RESULT EBPF_BLOCKED_BY_POLICY
+#define INTERPRET_LOAD_RESULT EBPF_PROGRAM_LOAD_FAILED
 #else
 #define INTERPRET_LOAD_RESULT EBPF_SUCCESS
 #endif
