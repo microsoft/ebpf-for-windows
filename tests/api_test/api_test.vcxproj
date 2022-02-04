@@ -143,7 +143,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;CONFIG_BPF_JIT_ALWAYS_ON=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)libs\api;$(SolutionDir)tests\end_to_end;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)libs\execution_context;$(SolutionDir)libs\Platform;$(SolutionDir)libs\Platform\user;$(SolutionDir)libs\thunk;$(SolutionDir)\netebpfext;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>

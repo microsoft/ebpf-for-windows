@@ -36,10 +36,24 @@ The following steps need to be executed _once_ before the first build on a new c
 2. Change directory to where the project is cloned, e.g. ```cd ebpf-for-windows```.
 3. ```msbuild /m /p:Configuration=Debug /p:Platform=x64 ebpf-for-windows.sln```
 
+#### Setting compile time options when building from Developer Command Prompt
+To build with specific compile time options, append ```/p:DefineConstants=<option_name>```. Options available include:
+1. ```CONFIG_BPF_JIT_ALWAYS_ON``` - Compile eBPF Execution Context without support for eBPF interpreter.
+
 ### Building using Visual Studio IDE
 1. Open `ebpf-for-windows.sln`
 2. Switch to debug / x64
 3. Build solution
+
+#### Setting compile time options when building from Visual Studio IDE
+To build with specific compile time options:
+1. Select the project to modify from the Solution Explorer.
+2. Navigate to "C/C++" -> "Preprocessor" -> "Preprocessor Definitions"
+3. Add the option to the list of preprocessor options.
+
+Options available include:
+1. ```CONFIG_BPF_JIT_ALWAYS_ON``` - Compile eBPF Execution Context without support for eBPF interpreter.
+
 
 This will build the following binaries:
 
