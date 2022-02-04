@@ -45,6 +45,16 @@ To build with specific compile time options, append ```/p:DefineConstants=<optio
 2. Switch to debug / x64
 3. Build solution
 
+#### Setting compile time options when building from Visual Studio IDE
+To build with specific compile time options:
+1. Select the project to modify from the Solution Explorer.
+2. Navigate to "C/C++" -> "Preprocessor" -> "Preprocessor Definitions"
+3. Add the option to the list of preprocessor options.
+
+Options available include:
+1. ```CONFIG_BPF_JIT_ALWAYS_ON``` - Compile eBPF Execution Context without support for eBPF interpreter.
+
+
 This will build the following binaries:
 
 * `ebpfcore.sys`: The kernel-mode execution context in which eBPF programs run.
