@@ -101,7 +101,7 @@ bpf_load_program(
     memset(&load_attr, 0, sizeof(struct bpf_load_program_attr));
     load_attr.prog_type = type;
     load_attr.expected_attach_type = BPF_ATTACH_TYPE_UNSPEC;
-    load_attr.name = nullptr;
+    load_attr.name = NULL;
     load_attr.insns = insns;
     load_attr.insns_cnt = insns_cnt;
     load_attr.license = license;
@@ -135,9 +135,9 @@ bpf_program__fd(const struct bpf_program* program)
 }
 
 const char*
-bpf_program__name(const struct bpf_program* program)
+bpf_program__name(const struct bpf_program* prog)
 {
-    return program->program_name;
+    return prog->program_name;
 }
 
 const char*
@@ -196,9 +196,9 @@ bpf_program__next(struct bpf_program* prev, const struct bpf_object* obj)
 }
 
 struct bpf_program*
-bpf_object__next_program(const struct bpf_object* object, struct bpf_program* previous)
+bpf_object__next_program(const struct bpf_object* obj, struct bpf_program* prev)
 {
-    return ebpf_program_next(previous, object);
+    return ebpf_program_next(prev, obj);
 }
 
 struct bpf_program*
@@ -208,9 +208,9 @@ bpf_program__prev(struct bpf_program* next, const struct bpf_object* obj)
 }
 
 struct bpf_program*
-bpf_object__prev_program(const struct bpf_object* object, struct bpf_program* next)
+bpf_object__prev_program(const struct bpf_object* obj, struct bpf_program* next)
 {
-    return ebpf_program_previous(next, object);
+    return ebpf_program_previous(next, obj);
 }
 
 int
