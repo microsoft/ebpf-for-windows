@@ -3,14 +3,11 @@
 
 #include "api_internal.h"
 #include "bpf.h"
-#pragma warning(push)
-#pragma warning(disable : 4200)
 #include "libbpf.h"
-#pragma warning(pop)
 #include "libbpf_internal.h"
 
 // This file implements APIs in LibBPF's libbpf.h and is based on code in external/libbpf/src/libbpf.c
-// used under the BSD-2-Clause license , so the coding style tries to match the libbpf.c style to
+// used under the BSD-2-Clause license, so the coding style tries to match the libbpf.c style to
 // minimize diffs until libbpf becomes cross-platform capable.  This is a temporary workaround for
 // issue #351 until we can compile and use libbpf.c directly.
 
@@ -104,7 +101,7 @@ bpf_load_program(
     memset(&load_attr, 0, sizeof(struct bpf_load_program_attr));
     load_attr.prog_type = type;
     load_attr.expected_attach_type = BPF_ATTACH_TYPE_UNSPEC;
-    load_attr.name = nullptr;
+    load_attr.name = NULL;
     load_attr.insns = insns;
     load_attr.insns_cnt = insns_cnt;
     load_attr.license = license;
@@ -114,7 +111,7 @@ bpf_load_program(
 }
 
 int
-bpf_prog_load(const char* file_name, enum bpf_prog_type type, struct bpf_object** object, int* program_fd)
+bpf_prog_load_deprecated(const char* file_name, enum bpf_prog_type type, struct bpf_object** object, int* program_fd)
 {
     const ebpf_program_type_t* program_type = _get_ebpf_program_type(type);
 
@@ -138,9 +135,9 @@ bpf_program__fd(const struct bpf_program* program)
 }
 
 const char*
-bpf_program__name(const struct bpf_program* program)
+bpf_program__name(const struct bpf_program* prog)
 {
-    return program->program_name;
+    return prog->program_name;
 }
 
 const char*
@@ -156,7 +153,7 @@ bpf_program__size(const struct bpf_program* program)
 }
 
 struct bpf_link*
-bpf_program__attach(struct bpf_program* program)
+bpf_program__attach(const struct bpf_program* program)
 {
     if (program == nullptr) {
         errno = EINVAL;
@@ -173,7 +170,7 @@ bpf_program__attach(struct bpf_program* program)
 }
 
 struct bpf_link*
-bpf_program__attach_xdp(struct bpf_program* program, int ifindex)
+bpf_program__attach_xdp(const struct bpf_program* program, int ifindex)
 {
     if (program == nullptr) {
         errno = EINVAL;
@@ -193,15 +190,27 @@ bpf_program__attach_xdp(struct bpf_program* program, int ifindex)
 }
 
 struct bpf_program*
-bpf_program__next(struct bpf_program* previous, const struct bpf_object* object)
+bpf_program__next(struct bpf_program* prev, const struct bpf_object* obj)
 {
-    return ebpf_program_next(previous, object);
+    return bpf_object__next_program(obj, prev);
 }
 
 struct bpf_program*
-bpf_program__prev(struct bpf_program* next, const struct bpf_object* object)
+bpf_object__next_program(const struct bpf_object* obj, struct bpf_program* prev)
 {
-    return ebpf_program_previous(next, object);
+    return ebpf_program_next(prev, obj);
+}
+
+struct bpf_program*
+bpf_program__prev(struct bpf_program* next, const struct bpf_object* obj)
+{
+    return bpf_object__prev_program(obj, next);
+}
+
+struct bpf_program*
+bpf_object__prev_program(const struct bpf_object* obj, struct bpf_program* next)
+{
+    return ebpf_program_previous(next, obj);
 }
 
 int

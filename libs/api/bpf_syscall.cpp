@@ -1,10 +1,7 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 #include "bpf.h"
-#pragma warning(push)
-#pragma warning(disable : 4200)
 #include "libbpf.h"
-#pragma warning(pop)
 #include <linux/bpf.h>
 
 #define CHECK_SIZE(last_field_name)                                                         \

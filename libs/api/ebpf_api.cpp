@@ -158,14 +158,21 @@ Exit:
 }
 
 ebpf_result_t
-ebpf_create_map_xattr(_In_ const struct bpf_create_map_attr* create_attr, _Out_ fd_t* map_fd)
+ebpf_map_create(
+    enum bpf_map_type map_type,
+    _In_opt_z_ const char* map_name,
+    uint32_t key_size,
+    uint32_t value_size,
+    uint32_t max_entries,
+    _In_opt_ const struct bpf_map_create_opts* opts,
+    _Out_ fd_t* map_fd)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_handle_t map_handle = ebpf_handle_invalid;
     ebpf_handle_t inner_map_handle = ebpf_handle_invalid;
     ebpf_map_definition_in_memory_t map_definition = {0};
 
-    if (create_attr->map_flags != 0 || map_fd == nullptr) {
+    if ((opts && opts->map_flags != 0) || map_fd == nullptr) {
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
@@ -173,14 +180,14 @@ ebpf_create_map_xattr(_In_ const struct bpf_create_map_attr* create_attr, _Out_ 
 
     try {
         map_definition.size = sizeof(map_definition);
-        map_definition.type = create_attr->map_type;
-        map_definition.key_size = create_attr->key_size;
-        map_definition.value_size = create_attr->value_size;
-        map_definition.max_entries = create_attr->max_entries;
+        map_definition.type = map_type;
+        map_definition.key_size = key_size;
+        map_definition.value_size = value_size;
+        map_definition.max_entries = max_entries;
 
-        inner_map_handle = _get_handle_from_file_descriptor(create_attr->inner_map_fd);
+        inner_map_handle = (opts) ? _get_handle_from_file_descriptor(opts->inner_map_fd) : ebpf_handle_invalid;
 
-        result = _create_map(create_attr->name, &map_definition, inner_map_handle, &map_handle);
+        result = _create_map(map_name, &map_definition, inner_map_handle, &map_handle);
         if (result != EBPF_SUCCESS) {
             goto Exit;
         }
@@ -204,48 +211,6 @@ Exit:
         }
     }
     return result;
-}
-
-ebpf_result_t
-ebpf_create_map_name(
-    ebpf_map_type_t type,
-    _In_opt_z_ const char* name,
-    uint32_t key_size,
-    uint32_t value_size,
-    uint32_t max_entries,
-    uint32_t map_flags,
-    _Out_ fd_t* map_fd)
-{
-    struct bpf_create_map_attr map_attr = {0};
-
-    map_attr.name = name;
-    map_attr.map_type = type;
-    map_attr.map_flags = map_flags;
-    map_attr.key_size = key_size;
-    map_attr.value_size = value_size;
-    map_attr.max_entries = max_entries;
-
-    return ebpf_create_map_xattr(&map_attr, map_fd);
-}
-
-ebpf_result_t
-ebpf_create_map(
-    ebpf_map_type_t type,
-    uint32_t key_size,
-    uint32_t value_size,
-    uint32_t max_entries,
-    uint32_t map_flags,
-    _Out_ fd_t* map_fd)
-{
-    struct bpf_create_map_attr map_attr = {0};
-
-    map_attr.map_type = type;
-    map_attr.map_flags = map_flags;
-    map_attr.key_size = key_size;
-    map_attr.value_size = value_size;
-    map_attr.max_entries = max_entries;
-
-    return ebpf_create_map_xattr(&map_attr, map_fd);
 }
 
 static ebpf_result_t
@@ -1116,7 +1081,7 @@ ebpf_detach_link_by_fd(fd_t fd)
 
 ebpf_result_t
 ebpf_program_attach(
-    _In_ struct bpf_program* program,
+    _In_ const struct bpf_program* program,
     _In_opt_ const ebpf_attach_type_t* attach_type,
     _In_reads_bytes_opt_(attach_params_size) void* attach_parameters,
     _In_ size_t attach_params_size,
