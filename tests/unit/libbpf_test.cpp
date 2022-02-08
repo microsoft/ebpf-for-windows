@@ -180,7 +180,7 @@ TEST_CASE("libbpf program", "[libbpf]")
     REQUIRE(fd2 == program_fd);
 
     size_t size = bpf_program__size(program);
-    REQUIRE(size == 376);
+    REQUIRE(size == 280);
 
     REQUIRE(bpf_program__next(program, object) == nullptr);
     REQUIRE(bpf_program__prev(program, object) == nullptr);
@@ -293,11 +293,12 @@ TEST_CASE("libbpf program attach", "[libbpf]")
 
 TEST_CASE("libbpf map", "[libbpf]")
 {
+    program_info_provider_t bind_program_info(EBPF_PROGRAM_TYPE_BIND);
     _test_helper_libbpf test_helper;
 
     struct bpf_object* object;
     int program_fd;
-    int result = bpf_prog_load("droppacket.o", BPF_PROG_TYPE_XDP, &object, &program_fd);
+    int result = bpf_prog_load("bindmonitor.o", BPF_PROG_TYPE_BIND, &object, &program_fd);
     REQUIRE(result == 0);
     REQUIRE(object != nullptr);
 
@@ -317,16 +318,16 @@ TEST_CASE("libbpf map", "[libbpf]")
     REQUIRE(bpf_map__next(map2, object) == nullptr);
     REQUIRE(bpf_map__prev(nullptr, object) == map2);
 
-    const char* name = bpf_map__name(map);
-    REQUIRE(strcmp(name, "dropped_packet_map") == 0);
-    REQUIRE(bpf_map__type(map) == BPF_MAP_TYPE_ARRAY);
-    REQUIRE(bpf_map__key_size(map) == 4);
-    REQUIRE(bpf_map__value_size(map) == 8);
-    REQUIRE(bpf_map__max_entries(map) == 1);
-    int map_fd = bpf_map__fd(map);
+    const char* name = bpf_map__name(map2);
+    REQUIRE(strcmp(name, "limits_map") == 0);
+    REQUIRE(bpf_map__type(map2) == BPF_MAP_TYPE_ARRAY);
+    REQUIRE(bpf_map__key_size(map2) == 4);
+    REQUIRE(bpf_map__value_size(map2) == 4);
+    REQUIRE(bpf_map__max_entries(map2) == 1);
+    int map_fd = bpf_map__fd(map2);
     REQUIRE(map_fd > 0);
 
-    uint64_t value;
+    uint32_t value;
     uint32_t index = 2; // Past end of array.
 
     result = bpf_map_lookup_elem(map_fd, NULL, NULL);
@@ -1194,7 +1195,7 @@ TEST_CASE("bpf_obj_get_info_by_fd", "[libbpf]")
     REQUIRE(bpf_obj_get_info_by_fd(program_fd, &program_info, &program_info_size) == 0);
     REQUIRE(program_info_size == sizeof(program_info));
     REQUIRE(strcmp(program_info.name, program_name) == 0);
-    REQUIRE(program_info.nr_map_ids == 2);
+    REQUIRE(program_info.nr_map_ids == 1);
 
     // Fetch info about the attachment and verify it matches what we'd expect.
     uint32_t link_id;
