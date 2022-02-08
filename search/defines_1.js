@@ -1,8 +1,8 @@
 var searchData=
 [
-  ['ebpf_5fid_5fnone_819',['EBPF_ID_NONE',['../ebpf__structs_8h.html#a388fd28300caec17017c2fc514a162a6',1,'ebpf_structs.h']]],
-  ['ebpf_5fmax_5fhelper_5ffunction_5fname_5flength_820',['EBPF_MAX_HELPER_FUNCTION_NAME_LENGTH',['../ebpf__program__types_8h.html#adfa6f94ddf162a37941cbdecd8111c67',1,'ebpf_program_types.h']]],
-  ['ebpf_5fmax_5fpin_5fpath_5flength_821',['EBPF_MAX_PIN_PATH_LENGTH',['../ebpf__core__structs_8h.html#aae1786ca038916d3ec8af469fcdeeaa4',1,'ebpf_core_structs.h']]],
-  ['ebpf_5fmax_5fprogram_5fdescriptor_5fname_5flength_822',['EBPF_MAX_PROGRAM_DESCRIPTOR_NAME_LENGTH',['../ebpf__program__types_8h.html#a9848135b2a7f061ddeb32204a2ec511f',1,'ebpf_program_types.h']]],
-  ['ebpf_5fresult_5fcount_823',['EBPF_RESULT_COUNT',['../ebpf__result_8h.html#a02c846ac59536972540561451b0b3211',1,'ebpf_result.h']]]
+  ['bpf_5fany_831',['BPF_ANY',['../ebpf__structs_8h.html#a796578ca395aca4494d6a84c01cd3330',1,'ebpf_structs.h']]],
+  ['bpf_5fexist_832',['BPF_EXIST',['../ebpf__structs_8h.html#a4dd42c358e8becc9052bad912876f82c',1,'ebpf_structs.h']]],
+  ['bpf_5fmap_833',['bpf_map',['../bpf__helpers__platform_8h.html#a1d98f863fc6ebf789b378348438181ca',1,'bpf_helpers_platform.h']]],
+  ['bpf_5fnoexist_834',['BPF_NOEXIST',['../ebpf__structs_8h.html#a4e2941429633c74bc65f828949705337',1,'ebpf_structs.h']]],
+  ['bpf_5fobj_5fname_5flen_835',['BPF_OBJ_NAME_LEN',['../ebpf__structs_8h.html#abc5e07d826c22d4c2b46fd1fb5a2e93e',1,'ebpf_structs.h']]]
 ];

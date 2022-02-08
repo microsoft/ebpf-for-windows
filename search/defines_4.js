@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['xdp_5fext_5fhelper_5ffn_5fbase_828',['XDP_EXT_HELPER_FN_BASE',['../ebpf__nethooks_8h.html#acce2f548e179db8cc18c8173a4a7a6e6',1,'ebpf_nethooks.h']]]
+  ['max_5ftail_5fcall_5fcnt_843',['MAX_TAIL_CALL_CNT',['../bpf__helpers_8h.html#a4f6cc1f7a616eb436d2557c23229f3b9',1,'bpf_helpers.h']]],
+  ['midl_844',['MIDL',['../ebpf__program__types_8h.html#ac4c5b84afac4c8a0a6c0564c2ff50842',1,'ebpf_program_types.h']]]
 ];

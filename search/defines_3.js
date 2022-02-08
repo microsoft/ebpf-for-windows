@@ -1,5 +1,5 @@
 var searchData=
 [
-  ['max_5ftail_5fcall_5fcnt_826',['MAX_TAIL_CALL_CNT',['../bpf__helpers_8h.html#a4f6cc1f7a616eb436d2557c23229f3b9',1,'bpf_helpers.h']]],
-  ['midl_827',['MIDL',['../ebpf__program__types_8h.html#ac4c5b84afac4c8a0a6c0564c2ff50842',1,'ebpf_program_types.h']]]
+  ['libbpf_5fapi_841',['LIBBPF_API',['../linux_2bpf_8h.html#abf2e376a832317e2b685e430a6fdb8a7',1,'bpf.h']]],
+  ['libbpf_5fdeprecated_842',['LIBBPF_DEPRECATED',['../linux_2bpf_8h.html#aa54db9e919a5587064e975ca181cb8ca',1,'bpf.h']]]
 ];

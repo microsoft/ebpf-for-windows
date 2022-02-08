@@ -1,8 +1,6 @@
 var searchData=
 [
-  ['bpf_5fany_814',['BPF_ANY',['../ebpf__structs_8h.html#a796578ca395aca4494d6a84c01cd3330',1,'ebpf_structs.h']]],
-  ['bpf_5fexist_815',['BPF_EXIST',['../ebpf__structs_8h.html#a4dd42c358e8becc9052bad912876f82c',1,'ebpf_structs.h']]],
-  ['bpf_5fmap_816',['bpf_map',['../bpf__helpers__platform_8h.html#a1d98f863fc6ebf789b378348438181ca',1,'bpf_helpers_platform.h']]],
-  ['bpf_5fnoexist_817',['BPF_NOEXIST',['../ebpf__structs_8h.html#a4e2941429633c74bc65f828949705337',1,'ebpf_structs.h']]],
-  ['bpf_5fobj_5fname_5flen_818',['BPF_OBJ_NAME_LEN',['../ebpf__structs_8h.html#abc5e07d826c22d4c2b46fd1fb5a2e93e',1,'ebpf_structs.h']]]
+  ['_5f_5fsizeof_5flong_5f_5f_828',['__SIZEOF_LONG__',['../types_8h.html#aaa8084a56e3732008acafea8fd15eb2f',1,'types.h']]],
+  ['_5f_5fsizeof_5flong_5flong_5f_5f_829',['__SIZEOF_LONG_LONG__',['../types_8h.html#a68e0683c8f359f7d7e013706fbcc2040',1,'__SIZEOF_LONG_LONG__():&#160;types.h'],['../linux_2bpf_8h.html#a68e0683c8f359f7d7e013706fbcc2040',1,'__SIZEOF_LONG_LONG__():&#160;bpf.h']]],
+  ['_5f_5fsizeof_5fsize_5ft_5f_5f_830',['__SIZEOF_SIZE_T__',['../linux_2bpf_8h.html#ab6eb3d66486ef05ac7f1d489bfc675b4',1,'bpf.h']]]
 ];

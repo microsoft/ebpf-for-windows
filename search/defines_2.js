@@ -1,5 +1,8 @@
 var searchData=
 [
-  ['libbpf_5fapi_824',['LIBBPF_API',['../linux_2bpf_8h.html#abf2e376a832317e2b685e430a6fdb8a7',1,'bpf.h']]],
-  ['libbpf_5fdeprecated_825',['LIBBPF_DEPRECATED',['../linux_2bpf_8h.html#aa54db9e919a5587064e975ca181cb8ca',1,'bpf.h']]]
+  ['ebpf_5fid_5fnone_836',['EBPF_ID_NONE',['../ebpf__structs_8h.html#a388fd28300caec17017c2fc514a162a6',1,'ebpf_structs.h']]],
+  ['ebpf_5fmax_5fhelper_5ffunction_5fname_5flength_837',['EBPF_MAX_HELPER_FUNCTION_NAME_LENGTH',['../ebpf__program__types_8h.html#adfa6f94ddf162a37941cbdecd8111c67',1,'ebpf_program_types.h']]],
+  ['ebpf_5fmax_5fpin_5fpath_5flength_838',['EBPF_MAX_PIN_PATH_LENGTH',['../ebpf__core__structs_8h.html#aae1786ca038916d3ec8af469fcdeeaa4',1,'ebpf_core_structs.h']]],
+  ['ebpf_5fmax_5fprogram_5fdescriptor_5fname_5flength_839',['EBPF_MAX_PROGRAM_DESCRIPTOR_NAME_LENGTH',['../ebpf__program__types_8h.html#a9848135b2a7f061ddeb32204a2ec511f',1,'ebpf_program_types.h']]],
+  ['ebpf_5fresult_5fcount_840',['EBPF_RESULT_COUNT',['../ebpf__result_8h.html#a02c846ac59536972540561451b0b3211',1,'ebpf_result.h']]]
 ];
