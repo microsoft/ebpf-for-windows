@@ -7,7 +7,10 @@
 #include <vector>
 #include "ebpf.h"
 #include "ebpf_structs.h"
+#pragma warning(push)
+#pragma warning(disable : 4458) /* declaration of 'name' hides class member */
 #include "elfio/elfio.hpp"
+#pragma warning(pop)
 
 class bpf_code_generator
 {
@@ -78,7 +81,7 @@ class bpf_code_generator
     generate_labels();
 
     /**
-     * @brief Extrat list of helper functions called by this program.
+     * @brief Extract list of helper functions called by this program.
      *
      */
     void

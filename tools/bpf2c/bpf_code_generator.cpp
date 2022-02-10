@@ -53,9 +53,9 @@ static const std::string _predicate_format_string[] = {
     "(int64_t)%s >= (int64_t)inst.imm", // JSLE
 };
 
-#define ADD_OPCODE(X) \
-    {                 \
-        X, #X         \
+#define ADD_OPCODE(X)                            \
+    {                                            \
+        static_cast<uint8_t>(X), std::string(#X) \
     }
 static std::map<uint8_t, std::string> _opcode_name_strings = {
     ADD_OPCODE(EBPF_OP_ADD_IMM),    ADD_OPCODE(EBPF_OP_ADD_REG),   ADD_OPCODE(EBPF_OP_SUB_IMM),
@@ -151,10 +151,10 @@ bpf_code_generator::extract_relocations_and_maps()
                 ELFIO::Elf64_Addr value{};
                 ELFIO::Elf_Xword size{};
                 unsigned char bind{};
-                unsigned char type{};
+                unsigned char symbol_type{};
                 ELFIO::Elf_Half section_index{};
                 unsigned char other{};
-                if (!symbols.get_symbol(symbol, name, value, size, bind, type, section_index, other)) {
+                if (!symbols.get_symbol(symbol, name, value, size, bind, symbol_type, section_index, other)) {
                     throw std::runtime_error(
                         std::string("Can't perform relocation at offset ") + std::to_string(offset));
                 }
@@ -432,8 +432,8 @@ bpf_code_generator::emit_c_code()
     std::cout << "uint64_t " << desired_section.c_str() << "(void* context)" << std::endl;
     std::cout << "{" << std::endl;
 
-    // Emit prolog
-    std::cout << "\t//Prolog" << std::endl;
+    // Emit prologue
+    std::cout << "\t//Prologue" << std::endl;
     std::cout << "\tuint64_t stack[(UBPF_STACK_SIZE + 7) / 8];" << std::endl;
     for (const auto& r : _register_names) {
         std::cout << "\tregister uint64_t " << r.c_str() << ";" << std::endl;
@@ -460,7 +460,7 @@ bpf_code_generator::emit_c_code()
         std::cout << "\t" << output.line << std::endl;
     }
 
-    // Emit epilog
+    // Emit epilogue
     std::cout << "}" << std::endl;
 }
 
@@ -475,12 +475,18 @@ bpf_code_generator::format_string(
     std::string output(120, '\0');
     if (insert_2.empty()) {
         auto count = snprintf(output.data(), output.size(), format.c_str(), insert_1.c_str());
+        if (count < 0)
+            throw std::runtime_error("Error formatting string");
     } else if (insert_3.empty()) {
         auto count = snprintf(output.data(), output.size(), format.c_str(), insert_1.c_str(), insert_2.c_str());
+        if (count < 0)
+            throw std::runtime_error("Error formatting string");
     }
     if (insert_4.empty()) {
         auto count = snprintf(
             output.data(), output.size(), format.c_str(), insert_1.c_str(), insert_2.c_str(), insert_3.c_str());
+        if (count < 0)
+            throw std::runtime_error("Error formatting string");
     } else {
         auto count = snprintf(
             output.data(),
@@ -490,6 +496,8 @@ bpf_code_generator::format_string(
             insert_2.c_str(),
             insert_3.c_str(),
             insert_4.c_str());
+        if (count < 0)
+            throw std::runtime_error("Error formatting string");
     }
     output.resize(strlen(output.c_str()));
     return output;
