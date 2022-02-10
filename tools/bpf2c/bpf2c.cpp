@@ -2,6 +2,10 @@
 // SPDX-License-Identifier: MIT
 
 #include <iostream>
+#include <string>
+#include <map>
+#include <vector>
+#include <set>
 #include "elfio/elfio.hpp"
 #include "ebpf.h"
 
@@ -96,15 +100,12 @@ format_string(
     std::string output(120, '\0');
     if (insert_2.empty()) {
         auto count = snprintf(output.data(), output.size(), format.c_str(), insert_1.c_str());
-        output.resize(count + 1);
     } else if (insert_3.empty()) {
         auto count = snprintf(output.data(), output.size(), format.c_str(), insert_1.c_str(), insert_2.c_str());
-        output.resize(count + 1);
     }
     if (insert_4.empty()) {
         auto count = snprintf(
             output.data(), output.size(), format.c_str(), insert_1.c_str(), insert_2.c_str(), insert_3.c_str());
-        output.resize(count + 1);
     } else {
         auto count = snprintf(
             output.data(),
@@ -114,8 +115,8 @@ format_string(
             insert_2.c_str(),
             insert_3.c_str(),
             insert_4.c_str());
-        output.resize(count + 1);
     }
+    output.resize(strlen(output.c_str()));
     return output;
 }
 
@@ -125,6 +126,8 @@ main(int argc, char** argv)
     ELFIO::elfio reader;
     const std::string path = argv[1];
     const std::string desired_section = argv[2];
+    std::set<std::string> function_names;
+    std::set<std::string> map_names;
     if (!reader.load(path)) {
         throw std::runtime_error(std::string("Can't process ELF file ") + path);
     }
@@ -168,6 +171,11 @@ main(int argc, char** argv)
                         std::string("Can't perform relocation at offset ") + std::to_string(offset));
                 }
                 program_output[offset / sizeof(ebpf_inst)].relocation = name;
+                if (section_index == map_section->get_index()) {
+                    map_names.insert(name);
+                } else {
+                    function_names.insert(name);
+                }
             }
         }
     }
@@ -203,6 +211,24 @@ main(int argc, char** argv)
         case EBPF_CLS_ALU:
         case EBPF_CLS_ALU64: {
             std::string destination = reg[inst.dst];
+            // Special case for EBPF_OP_BE/EBPF_OP_LE
+            if (inst.opcode == EBPF_OP_BE) {
+                std::string swap_function;
+                switch (inst.imm) {
+                case 16:
+                    swap_function = "htobe16";
+                    break;
+                case 32:
+                    swap_function = "htobe32";
+                    break;
+                case 64:
+                    swap_function = "htobe64";
+                    break;
+                }
+                output.line = format_string("%s = %s(%s);", destination, swap_function, destination);
+                continue;
+            }
+
             std::string source;
             if (inst.opcode & EBPF_SRC_REG) {
                 source = reg[inst.src];
@@ -211,9 +237,9 @@ main(int argc, char** argv)
             }
             auto& [format, count] = alu_format_string[inst.opcode >> 4];
             if (count == 2)
-                output.line += format_string(format, destination, source);
+                output.line = format_string(format, destination, source);
             else if (count == 3)
-                output.line += format_string(format, destination, destination, source);
+                output.line = format_string(format, destination, destination, source);
             if ((inst.opcode & EBPF_CLS_MASK) == EBPF_CLS_ALU)
                 output.line += std::string("\n") + destination + std::string(" &= UINT32_MAX;\n");
         } break;
@@ -227,9 +253,9 @@ main(int argc, char** argv)
                 uint64_t imm = (uint64_t)inst.imm | (uint64_t)(program_output[i].instruction.imm) << 32;
                 std::string source;
                 source = std::string("IMMEDIATE(") + std::to_string(imm) + std::string(")");
-                output.line += format_string("%s = %s;", destination, source);
+                output.line = format_string("%s = %s;", destination, source);
             } else {
-                output.line += format_string("%s = POINTER(%s);", destination, output.relocation);
+                output.line = format_string("%s = POINTER(%s);", destination, output.relocation);
             }
         } break;
         case EBPF_CLS_LDX: {
@@ -251,7 +277,7 @@ main(int argc, char** argv)
                 size_type = std::string("uint64_t");
                 break;
             }
-            output.line += format_string("%s = *(%s *)(uintptr_t)(%s + %s);", destination, size_type, source, offset);
+            output.line = format_string("%s = *(%s *)(uintptr_t)(%s + %s);", destination, size_type, source, offset);
         } break;
         case EBPF_CLS_ST:
         case EBPF_CLS_STX: {
@@ -278,7 +304,7 @@ main(int argc, char** argv)
                 size_type = std::string("uint64_t");
                 break;
             }
-            output.line += format_string("*(%s *)(uintptr_t)(%s + %s) = %s;", size_type, destination, offset, source);
+            output.line = format_string("*(%s *)(uintptr_t)(%s + %s) = %s;", size_type, destination, offset, source);
         } break;
         case EBPF_CLS_JMP: {
             std::string destination = reg[inst.dst];
@@ -311,9 +337,38 @@ main(int argc, char** argv)
         } break;
         }
     }
+    std::cout << "// Do not alter this generated file." << std::endl;
+    std::cout << "// This file was generated from " << path.c_str() << std::endl << std::endl;
+    std::cout << "#include \"bpf2c.h\"" << std::endl << std::endl;
+    std::cout << "// Relocations" << std::endl;
+    for (const auto& name : map_names) {
+        std::cout << "extern struct ebpf_map_t " << name.c_str() << ";" << std::endl;
+    }
+    for (const auto& name : function_names) {
+        std::cout << "extern uint64_t " << name.c_str()
+                  << "(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5);" << std::endl;
+    }
+    std::cout << std::endl;
+    std::cout << "uint64_t " << desired_section.c_str() << "(void* context)" << std::endl;
+    std::cout << "{" << std::endl;
+    std::cout << "\t//Prolog" << std::endl;
+    std::cout << "\tuint64_t stack[(UBPF_STACK_SIZE + 7) / 8];" << std::endl;
+    for (const auto& r : reg) {
+        std::cout << "\tregister uint64_t " << r.c_str() << ";" << std::endl;
+    }
+    std::cout << std::endl;
+    std::cout << "\t" << reg[1] << " = (uintptr_t)context;" << std::endl;
+    std::cout << "\t" << reg[10] << " = (uintptr_t)((uint8_t*)stack + sizeof(stack));" << std::endl;
+    std::cout << std::endl;
+    // Emit final C code
     for (const auto& output : program_output) {
+        if (output.line.empty()) {
+            continue;
+        }
         if (!output.label.empty())
             std::cout << output.label << ":" << std::endl;
-        std::cout << output.line << std::endl;
+        std::cout << "\t" << output.line << std::endl;
     }
+
+    std::cout << "}" << std::endl;
 }
