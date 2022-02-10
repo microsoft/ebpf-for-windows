@@ -30,6 +30,7 @@ EXPORTS
     bpf_map__type
     bpf_map__unpin
     bpf_map__value_size
+    bpf_map_create
     bpf_map_delete_elem
     bpf_map_get_fd_by_id
     bpf_map_get_next_id
@@ -48,16 +49,20 @@ EXPORTS
     bpf_object__load_xattr
     bpf_object__name
     bpf_object__next
+    bpf_object__next_map
+    bpf_object__next_program
     bpf_object__open_file
     bpf_object__pin
     bpf_object__pin_maps
     bpf_object__pin_programs
+    bpf_object__prev_map
+    bpf_object__prev_program
     bpf_object__unload
     bpf_object__unpin_maps
     bpf_object__unpin_programs
     bpf_prog_bind_map
     bpf_prog_get_fd_by_id
-    bpf_prog_load
+    bpf_prog_load_deprecated
     bpf_prog_get_next_id
     bpf_program__attach
     bpf_program__attach_xdp
@@ -81,8 +86,6 @@ EXPORTS
     ebpf_api_close_handle
     ebpf_api_get_pinned_map_info
     ebpf_api_map_info_free
-    ebpf_create_map
-    ebpf_create_map_name
     ebpf_free_string
     ebpf_get_attach_type_name
     ebpf_get_next_map

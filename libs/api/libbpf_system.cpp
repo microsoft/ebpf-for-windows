@@ -2,10 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #include <windows.h>
-#pragma warning(push)
-#pragma warning(disable : 4200)
 #include "libbpf.h"
-#pragma warning(pop)
 
 long
 libbpf_get_error(const void* ptr)

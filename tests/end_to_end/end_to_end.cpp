@@ -1044,14 +1044,12 @@ TEST_CASE("create_map", "[end_to_end]")
 {
     _test_helper_end_to_end test_helper;
 
-    ebpf_result_t result;
     fd_t map_fd;
     uint32_t key = 0;
     uint64_t value = 10;
     int element_count = 2;
 
-    result = ebpf_create_map(BPF_MAP_TYPE_ARRAY, sizeof(uint32_t), sizeof(uint64_t), 5, 0, &map_fd);
-    REQUIRE(result == EBPF_SUCCESS);
+    map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, nullptr, sizeof(uint32_t), sizeof(uint64_t), 5, nullptr);
     REQUIRE(map_fd > 0);
 
     for (int i = 0; i < element_count; i++) {
@@ -1077,15 +1075,13 @@ TEST_CASE("create_map_name", "[end_to_end]")
 {
     _test_helper_end_to_end test_helper;
 
-    ebpf_result_t result;
     fd_t map_fd;
     uint32_t key = 0;
     uint64_t value = 10;
     int element_count = 2;
     const char* map_name = "array_map";
 
-    result = ebpf_create_map_name(BPF_MAP_TYPE_ARRAY, map_name, sizeof(uint32_t), sizeof(uint64_t), 5, 0, &map_fd);
-    REQUIRE(result == EBPF_SUCCESS);
+    map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, map_name, sizeof(uint32_t), sizeof(uint64_t), 5, nullptr);
     REQUIRE(map_fd > 0);
 
     for (int i = 0; i < element_count; i++) {

@@ -557,7 +557,7 @@ bpf_prog_load(const char* file, enum bpf_prog_type type, struct bpf_object** pob
  * @sa ebpf_link_close
  */
 struct bpf_link*
-bpf_program__attach(struct bpf_program* prog);
+bpf_program__attach(const struct bpf_program* prog);
 
 /**
  * @brief Attach an eBPF program to an XDP hook.
@@ -797,6 +797,7 @@ ring_buffer__free(struct ring_buffer* rb);
 #else
 #pragma warning(push)
 #pragma warning(disable : 4200) // Zero-sized array in struct/union
-#include "../external/libbpf/src/libbpf.h"
+#pragma warning(disable : 4201) // Zero-sized array in struct/union
+#include "../external/bpftool/libbpf/src/libbpf.h"
 #pragma warning(pop)
 #endif

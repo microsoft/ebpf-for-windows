@@ -427,7 +427,7 @@ extern "C"
      */
     ebpf_result_t
     ebpf_program_attach(
-        _In_ struct bpf_program* program,
+        _In_ const struct bpf_program* program,
         _In_opt_ const ebpf_attach_type_t* attach_type,
         _In_reads_bytes_opt_(attach_params_size) void* attach_parameters,
         _In_ size_t attach_params_size,
