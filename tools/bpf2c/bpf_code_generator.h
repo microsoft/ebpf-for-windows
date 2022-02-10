@@ -24,6 +24,14 @@ class bpf_code_generator
     bpf_code_generator(const std::string& path, const std::string& section);
 
     /**
+     * @brief Construct a new bpf code generator object from raw eBPF byte code
+     *
+     * @param instructions
+     * @param section
+     */
+    bpf_code_generator(const std::vector<ebpf_inst>& instructions, const std::string& section);
+
+    /**
      * @brief Parse the eBPF file.
      *
      */

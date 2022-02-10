@@ -98,19 +98,27 @@ bpf_code_generator::bpf_code_generator(const std::string& path, const std::strin
     }
 }
 
+bpf_code_generator::bpf_code_generator(const std::vector<ebpf_inst>& instructions, const std::string& section)
+    : desired_section(section)
+{
+    for (const auto& instruction : instructions) {
+        program_output.push_back({instruction});
+    }
+}
+
 void
 bpf_code_generator::parse()
 {
     extract_program();
     extract_relocations_and_maps();
-    generate_labels();
-    build_function_table();
-    encode_instructions();
 }
 
 void
 bpf_code_generator::generate()
 {
+    generate_labels();
+    build_function_table();
+    encode_instructions();
     emit_c_code();
 }
 
