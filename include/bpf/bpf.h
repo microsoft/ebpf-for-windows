@@ -113,6 +113,31 @@ int
 bpf_create_map_xattr(const struct bpf_create_map_attr* create_attr);
 
 /**
+ * @brief Create a new map.
+ *
+ * @param[in] map_type Type of outer map to create.
+ * @param[in] map_name Optionally, the name to use for the map.
+ * @param[in] key_size Size in bytes of keys.
+ * @param[in] value_size Size in bytes of values.
+ * @param[in] max_entries Maximum number of entries in the map.
+ * @param[in] opts Structure of options using which a map gets created.
+ *
+ * @returns A new file descriptor that refers to the map.  A negative
+ * value indicates an error occurred and errno was set.
+ *
+ * @exception EINVAL An invalid argument was provided.
+ * @exception ENOMEM Out of memory.
+ */
+int
+bpf_map_create(
+    enum bpf_map_type map_type,
+    const char* map_name,
+    __u32 key_size,
+    __u32 value_size,
+    __u32 max_entries,
+    const struct bpf_map_create_opts* opts);
+
+/**
  * @brief Look up and delete an element by key in a specified map.
  *
  * @param[in] fd File descriptor of map to update.
@@ -314,6 +339,6 @@ bpf_prog_get_next_id(__u32 start_id, __u32* next_id);
 
 #else
 #pragma warning(push)
-#include "../external/libbpf/src/bpf.h"
+#include "../external/bpftool/libbpf/src/bpf.h"
 #pragma warning(pop)
 #endif

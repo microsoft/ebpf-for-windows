@@ -184,7 +184,12 @@ ebpf_map_previous(_In_opt_ const struct bpf_map* next, _In_ const struct bpf_obj
 /**
  * @brief Create a new map.
  *
- * @param[in] create_attr Structure of attributes to create a map using.
+ * @param[in] map_type Type of outer map to create.
+ * @param[in] map_name Optionally, the name to use for the map.
+ * @param[in] key_size Size in bytes of keys.
+ * @param[in] value_size Size in bytes of values.
+ * @param[in] max_entries Maximum number of entries in the map.
+ * @param[in] opts Structure of options using which a map gets created.
  * @param[out] map_fd File descriptor for the created map. The caller needs to
  *  call _close() on the returned fd when done.
  *
@@ -193,7 +198,14 @@ ebpf_map_previous(_In_opt_ const struct bpf_map* next, _In_ const struct bpf_obj
  * @retval EBPF_NO_MEMORY Out of memory.
  */
 ebpf_result_t
-ebpf_create_map_xattr(_In_ const struct bpf_create_map_attr* create_attr, _Out_ fd_t* map_fd);
+ebpf_map_create(
+    enum bpf_map_type map_type,
+    _In_opt_z_ const char* map_name,
+    uint32_t key_size,
+    uint32_t value_size,
+    uint32_t max_entries,
+    _In_opt_ const struct bpf_map_create_opts* opts,
+    _Out_ fd_t* map_fd);
 
 /**
  * @brief Fetch fd for a program object.
