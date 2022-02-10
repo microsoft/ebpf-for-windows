@@ -152,6 +152,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="bpf2c.cpp" />
+    <ClCompile Include="bpf_code_generator.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\bpf2c.h">
@@ -160,6 +161,7 @@
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
     </ClInclude>
+    <ClInclude Include="bpf_code_generator.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
