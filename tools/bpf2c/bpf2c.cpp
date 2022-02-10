@@ -390,7 +390,7 @@ main(int argc, char** argv)
                     output.line += reg[2] + std::string(", ");
                     output.line += reg[3] + std::string(", ");
                     output.line += reg[4] + std::string(", ") + reg[5] + std::string(");\n");
-                    output.line += format_string("\tif ((%s.tail_call) && (%s == 0)) return;", function_name, reg[0]);
+                    output.line += format_string("\tif ((%s.tail_call) && (%s == 0)) return 0;", function_name, reg[0]);
                 } else if (inst.opcode == EBPF_OP_EXIT) {
                     output.line += std::string("return ") + reg[0] + std::string(";");
                 } else {
