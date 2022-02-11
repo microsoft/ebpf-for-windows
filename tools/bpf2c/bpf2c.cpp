@@ -15,7 +15,7 @@ main(int argc, char** argv)
 
         bpf_code_generator generator(argv[1], argv[2]);
         generator.parse();
-        generator.generate();
+        generator.generate(std::cout);
     } catch (std::runtime_error err) {
         std::cerr << err.what() << std::endl;
         return 1;

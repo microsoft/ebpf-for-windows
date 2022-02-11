@@ -43,7 +43,7 @@ class bpf_code_generator
      *
      */
     void
-    generate();
+    generate(std::ostream& output);
 
   private:
     typedef struct _output_instruction
@@ -107,7 +107,7 @@ class bpf_code_generator
      *
      */
     void
-    emit_c_code();
+    emit_c_code(std::ostream& output);
 
     /**
      * @brief Format a string and insert up to 4 strings in it.

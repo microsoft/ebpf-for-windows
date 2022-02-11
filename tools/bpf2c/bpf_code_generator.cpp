@@ -20,37 +20,37 @@ static const std::string _register_names[11] = {
 };
 
 static const std::tuple<std::string, size_t> _alu_format_string[] = {
-    {"%s += %s;", 2},
-    {"%s -= %s;", 2},
-    {"%s *= %s;", 2},
-    {"%s /= %s;", 2},
-    {"%s |= %s;", 2},
-    {"%s &= %s;", 2},
-    {"%s <<= %s;", 2},
-    {"%s <<= %s;", 2},
-    {"%s = u32(%s) >> %s;", 3},
-    {"%s = -(int64_t)%s;", 2},
-    {"%s ^= %s;", 2},
-    {"%s = %s;", 2},
-    {"%s = (int32_t)%s >> %s;", 3},
-    {"%s = swap(%s, %s);", 3},
+    {"%s += %s;", 2},               // ADD 0x0
+    {"%s -= %s;", 2},               // SUB 0x1
+    {"%s *= %s;", 2},               // MUL 0x2
+    {"%s /= %s;", 2},               // DIV 0x3
+    {"%s |= %s;", 2},               // OR 0x4
+    {"%s &= %s;", 2},               // AND 0x5
+    {"%s <<= %s;", 2},              // LSH 0x6
+    {"%s >>= %s;", 2},              // RSH 0x7
+    {"%s = -(int64_t)%s;", 2},      // NEG 0x8
+    {"%s = %s % %s;", 3},           // MOD 0x9
+    {"%s ^= %s;", 2},               // XOR 0xa
+    {"%s = %s;", 2},                // MOV 0xb
+    {"%s = (int32_t)%s >> %s;", 3}, // ASHR 0xc
+    {"%s = swap(%s, %s);", 3},      // BE 0xd
 };
 
 static const std::string _predicate_format_string[] = {
-    "",                                 // JA
-    "%s == %s",                         // JEQ
-    "%s > %s",                          // JGT
-    "%s >= %s",                         // JGE
-    "%s & %s",                          // JSET
-    "%s != %s",                         // JNE
-    "(int64_t)%s > (int64_t)inst.imm",  // JSGT
-    "(int64_t)%s >= (int64_t)inst.imm", // JSGE
-    "",                                 // CALL
-    "",                                 // EXIT
-    "%s < %s",                          // JLT
-    "%s <= %s",                         // JTE
-    "(int64_t)%s > (int64_t)inst.imm",  // JSLT
-    "(int64_t)%s >= (int64_t)inst.imm", // JSLE
+    "",                           // JA
+    "%s == %s",                   // JEQ
+    "%s > %s",                    // JGT
+    "%s >= %s",                   // JGE
+    "%s & %s",                    // JSET
+    "%s != %s",                   // JNE
+    "(int64_t)%s > (int64_t)%s",  // JSGT
+    "(int64_t)%s >= (int64_t)%s", // JSGE
+    "",                           // CALL
+    "",                           // EXIT
+    "%s < %s",                    // JLT
+    "%s <= %s",                   // JTE
+    "(int64_t)%s > (int64_t)%s",  // JSLT
+    "(int64_t)%s >= (int64_t)%s", // JSLE
 };
 
 #define ADD_OPCODE(X)                            \
@@ -114,12 +114,12 @@ bpf_code_generator::parse()
 }
 
 void
-bpf_code_generator::generate()
+bpf_code_generator::generate(std::ostream& output)
 {
     generate_labels();
     build_function_table();
     encode_instructions();
-    emit_c_code();
+    emit_c_code(output);
 }
 
 void
@@ -271,13 +271,18 @@ bpf_code_generator::encode_instructions()
             } else {
                 source = std::string("IMMEDIATE(") + std::to_string(inst.imm) + std::string(")");
             }
+
+            if ((inst.opcode >> 4) == 0x8) {
+                source = destination;
+            }
+
             auto& [format, count] = _alu_format_string[inst.opcode >> 4];
             if (count == 2)
                 output.line = format_string(format, destination, source);
             else if (count == 3)
                 output.line = format_string(format, destination, destination, source);
             if ((inst.opcode & EBPF_CLS_MASK) == EBPF_CLS_ALU)
-                output.line += std::string("\n") + destination + std::string(" &= UINT32_MAX;\n");
+                output.line += format_string("\n\t%s = (uint32_t)%s;", destination, destination);
         } break;
         case EBPF_CLS_LD: {
             i++;
@@ -394,62 +399,65 @@ bpf_code_generator::encode_instructions()
 }
 
 void
-bpf_code_generator::emit_c_code()
+bpf_code_generator::emit_c_code(std::ostream& output_stream)
 {
     // Emit C file
-    std::cout << "// Do not alter this generated file." << std::endl;
-    std::cout << "// This file was generated from " << path.c_str() << std::endl << std::endl;
-    std::cout << "#include \"bpf2c.h\"" << std::endl << std::endl;
+    output_stream << "// Do not alter this generated file." << std::endl;
+    output_stream << "// This file was generated from " << path.c_str() << std::endl << std::endl;
+    output_stream << "#include \"bpf2c.h\"" << std::endl << std::endl;
 
     // Emit import tables
-    std::cout << "static map_entry_t " << desired_section.c_str() << "_maps[] = {" << std::endl;
-    for (const auto& map : map_definitions) {
-        std::cout << "{ NULL, { ";
-        std::cout << map.second.definition.size << ", ";
-        std::cout << map.second.definition.type << ", ";
-        std::cout << map.second.definition.key_size << ", ";
-        std::cout << map.second.definition.value_size << ", ";
-        std::cout << map.second.definition.max_entries << ", ";
-        std::cout << " }, \"" << map.first.c_str() << "\" }," << std::endl;
+    if (map_definitions.size() > 0) {
+        output_stream << "static map_entry_t " << desired_section.c_str() << "_maps[] = {" << std::endl;
+        for (const auto& map : map_definitions) {
+            output_stream << "{ NULL, { ";
+            output_stream << map.second.definition.size << ", ";
+            output_stream << map.second.definition.type << ", ";
+            output_stream << map.second.definition.key_size << ", ";
+            output_stream << map.second.definition.value_size << ", ";
+            output_stream << map.second.definition.max_entries << ", ";
+            output_stream << " }, \"" << map.first.c_str() << "\" }," << std::endl;
+        }
+        output_stream << "};" << std::endl;
+        output_stream << std::endl;
+        output_stream << "void get_" << desired_section.c_str() << "_maps(map_entry_t** maps, size_t* count)"
+                      << std::endl;
+        output_stream << "{" << std::endl;
+        output_stream << "\t*maps = " << desired_section.c_str() << "_maps;" << std::endl;
+        output_stream << "\t*count = " << std::to_string(map_definitions.size()) << ";" << std::endl;
+        output_stream << "}" << std::endl;
+        output_stream << std::endl;
     }
-    std::cout << "};" << std::endl;
-    std::cout << std::endl;
-    std::cout << "static helper_function_entry_t " << desired_section.c_str() << "_helpers[] = {" << std::endl;
-    for (const auto& function : functions) {
-        std::cout << "{ NULL, " << function.second.id << ", \"" << function.first << "\"}," << std::endl;
+    if (functions.size() > 0) {
+        output_stream << "static helper_function_entry_t " << desired_section.c_str() << "_helpers[] = {" << std::endl;
+        for (const auto& function : functions) {
+            output_stream << "{ NULL, " << function.second.id << ", \"" << function.first << "\"}," << std::endl;
+        }
+        output_stream << "};" << std::endl;
+        output_stream << std::endl;
+        output_stream << "void get_" << desired_section.c_str()
+                      << "_helpers(helper_function_entry_t** helpers, size_t* count)" << std::endl;
+        output_stream << "{" << std::endl;
+        output_stream << "\t*helpers = " << desired_section.c_str() << "_helpers;" << std::endl;
+        output_stream << "\t*count = " << std::to_string(functions.size()) << ";" << std::endl;
+        output_stream << "}" << std::endl;
+        output_stream << std::endl;
     }
-    std::cout << "};" << std::endl;
-    std::cout << std::endl;
-
-    // Emit import table accessor functions
-    std::cout << "void get_" << desired_section.c_str() << "_maps(map_entry_t** maps, size_t* count)" << std::endl;
-    std::cout << "{" << std::endl;
-    std::cout << "\t*maps = " << desired_section.c_str() << "_maps;" << std::endl;
-    std::cout << "\t*count = " << std::to_string(map_definitions.size()) << ";" << std::endl;
-    std::cout << "}" << std::endl;
-    std::cout << std::endl;
-    std::cout << "void get_" << desired_section.c_str() << "_helpers(helper_function_entry_t** helpers, size_t* count)"
-              << std::endl;
-    std::cout << "{" << std::endl;
-    std::cout << "\t*helpers = " << desired_section.c_str() << "_helpers;" << std::endl;
-    std::cout << "\t*count = " << std::to_string(functions.size()) << ";" << std::endl;
-    std::cout << "}" << std::endl;
-    std::cout << std::endl;
 
     // Emit entry point
-    std::cout << "uint64_t " << desired_section.c_str() << "(void* context)" << std::endl;
-    std::cout << "{" << std::endl;
+    output_stream << "uint64_t " << desired_section.c_str() << "(void* context)" << std::endl;
+    output_stream << "{" << std::endl;
 
     // Emit prologue
-    std::cout << "\t//Prologue" << std::endl;
-    std::cout << "\tuint64_t stack[(UBPF_STACK_SIZE + 7) / 8];" << std::endl;
+    output_stream << "\t//Prologue" << std::endl;
+    output_stream << "\tuint64_t stack[(UBPF_STACK_SIZE + 7) / 8];" << std::endl;
     for (const auto& r : _register_names) {
-        std::cout << "\tregister uint64_t " << r.c_str() << ";" << std::endl;
+        output_stream << "\tregister uint64_t " << r.c_str() << ";" << std::endl;
     }
-    std::cout << std::endl;
-    std::cout << "\t" << _register_names[1] << " = (uintptr_t)context;" << std::endl;
-    std::cout << "\t" << _register_names[10] << " = (uintptr_t)((uint8_t*)stack + sizeof(stack));" << std::endl;
-    std::cout << std::endl;
+    output_stream << std::endl;
+    output_stream << "\t" << _register_names[1] << " = (uintptr_t)context;" << std::endl;
+    output_stream << "\t" << _register_names[10] << " = (uintptr_t)((uint8_t*)stack + sizeof(stack));" << std::endl;
+    output_stream << std::endl;
 
     // Emit encode intructions
     for (const auto& output : program_output) {
@@ -457,19 +465,19 @@ bpf_code_generator::emit_c_code()
             continue;
         }
         if (!output.label.empty())
-            std::cout << output.label << ":" << std::endl;
+            output_stream << output.label << ":" << std::endl;
 #if defined(_DEBUG)
-        std::cout << "\t// " << _opcode_name_strings[output.instruction.opcode]
-                  << " dst=" << _register_names[output.instruction.dst]
-                  << " src=" << _register_names[output.instruction.src]
-                  << " offset=" << std::to_string(output.instruction.offset)
-                  << " imm=" << std::to_string(output.instruction.imm) << std::endl;
+        output_stream << "\t// " << _opcode_name_strings[output.instruction.opcode]
+                      << " dst=" << _register_names[output.instruction.dst]
+                      << " src=" << _register_names[output.instruction.src]
+                      << " offset=" << std::to_string(output.instruction.offset)
+                      << " imm=" << std::to_string(output.instruction.imm) << std::endl;
 #endif
-        std::cout << "\t" << output.line << std::endl;
+        output_stream << "\t" << output.line << std::endl;
     }
 
     // Emit epilogue
-    std::cout << "}" << std::endl;
+    output_stream << "}" << std::endl;
 }
 
 std::string
