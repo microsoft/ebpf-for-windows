@@ -449,7 +449,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
     output_stream << "{" << std::endl;
 
     // Emit prologue
-    output_stream << "\t//Prologue" << std::endl;
+    output_stream << "\t// Prologue" << std::endl;
     output_stream << "\tuint64_t stack[(UBPF_STACK_SIZE + 7) / 8];" << std::endl;
     for (const auto& r : _register_names) {
         output_stream << "\tregister uint64_t " << r.c_str() << ";" << std::endl;
