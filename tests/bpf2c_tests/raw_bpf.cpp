@@ -81,7 +81,7 @@ run_test(const std::string& data_file)
         result = result.substr(result.find("0x") + 2);
     }
 
-    std::string assembler_command = std::string("c:\\python27\\python ..\\..\\external\\ubpf\\bin\\ubpf-assembler <") +
+    std::string assembler_command = std::string("python ..\\..\\external\\ubpf\\bin\\ubpf-assembler <") +
                                     std::string(temp_asm_name) + std::string(" >") + std::string(prefix) +
                                     std::string(".bc");
     REQUIRE(system(assembler_command.c_str()) == 0);
