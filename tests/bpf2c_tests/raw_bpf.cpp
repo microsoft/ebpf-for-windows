@@ -6,6 +6,12 @@
 #include "bpf_code_generator.h"
 #include "catch_wrapper.hpp"
 
+#define SEPERATOR "/"
+#define CC "g++"
+#define CXXFLAG "-g -O2"
+#define EXT ".out"
+#define PYTHON "python3"
+
 void
 run_test(const std::string& data_file)
 {
@@ -17,7 +23,7 @@ run_test(const std::string& data_file)
         state_result,
         state_memory,
     } state = state_ignore;
-    std::string prefix = data_file.substr(data_file.find_last_of("\\") + 1);
+    std::string prefix = data_file.substr(data_file.find_last_of(SEPERATOR) + 1);
 
     std::string temp_asm_name = std::string(prefix) + ".asm";
 
@@ -77,7 +83,7 @@ run_test(const std::string& data_file)
         result = result.substr(result.find("0x") + 2);
     }
 
-    std::string assembler_command = std::string("python ..\\..\\external\\ubpf\\bin\\ubpf-assembler <") +
+    std::string assembler_command = std::string(PYTHON " .." SEPERATOR ".." SEPERATOR "external" SEPERATOR "ubpf" SEPERATOR "bin" SEPERATOR "ubpf-assembler <") +
                                     std::string(temp_asm_name) + std::string(" >") + std::string(prefix) +
                                     std::string(".bc");
     REQUIRE(system(assembler_command.c_str()) == 0);
@@ -95,23 +101,23 @@ run_test(const std::string& data_file)
 
         bpf_code_generator code(program, "test");
         code.generate(c_file);
-    } catch (std::runtime_error err) {
+    } catch (std::runtime_error &err) {
         REQUIRE(err.what() == NULL);
     }
     c_file.flush();
     c_file.close();
 
-    std::string compile_command = std::string("cl /EHsc /nologo -I../../include  ") + std::string(prefix) +
+    std::string compile_command = std::string(CC " " CXXFLAG " -I.." SEPERATOR ".." SEPERATOR "include ") + std::string(prefix) +
                                   std::string(".c ") + std::string(" bpf_test.cpp >") + std::string(prefix) +
-                                  std::string(".log");
+                                  std::string(".log -o ") + std::string(prefix) + std::string(EXT);
     REQUIRE(system(compile_command.c_str()) == 0);
-    std::string test_command = std::string(prefix) + std::string(".exe ") + std::string(result) + std::string(" \"") +
+    std::string test_command = std::string("." SEPERATOR) + std::string(prefix) + std::string(EXT) + std::string(" ") + std::string(result) + std::string(" \"") +
                                std::string(mem) + std::string("\"");
     REQUIRE(system(test_command.c_str()) == 0);
 }
 
 #define DECLARE_TEST(FILE) \
-    TEST_CASE(FILE, "[raw_bpf_code_gen]") { run_test("..\\..\\external\\ubpf\\tests\\" FILE); }
+    TEST_CASE(FILE, "[raw_bpf_code_gen]") { run_test(".." SEPERATOR ".." SEPERATOR "external" SEPERATOR "ubpf" SEPERATOR "tests" SEPERATOR "" FILE); }
 
 DECLARE_TEST("add.data")
 DECLARE_TEST("alu-arith.data")
@@ -141,9 +147,9 @@ DECLARE_TEST("early-exit.data")
 DECLARE_TEST("exit-not-last.data")
 DECLARE_TEST("exit.data")
 DECLARE_TEST("ja.data")
-// DECLARE_TEST("jeq-imm.data")
-// DECLARE_TEST("jeq-reg.data")
-// DECLARE_TEST("jge-imm.data")
+DECLARE_TEST("jeq-imm.data")
+DECLARE_TEST("jeq-reg.data")
+DECLARE_TEST("jge-imm.data")
 DECLARE_TEST("jgt-imm.data")
 DECLARE_TEST("jgt-reg.data")
 DECLARE_TEST("jit-bounce.data")
@@ -151,7 +157,7 @@ DECLARE_TEST("jle-imm.data")
 DECLARE_TEST("jle-reg.data")
 DECLARE_TEST("jlt-imm.data")
 DECLARE_TEST("jlt-reg.data")
-// DECLARE_TEST("jne-reg.data")
+DECLARE_TEST("jne-reg.data")
 DECLARE_TEST("jset-imm.data")
 DECLARE_TEST("jset-reg.data")
 DECLARE_TEST("jsge-imm.data")
@@ -167,9 +173,8 @@ DECLARE_TEST("lddw2.data")
 DECLARE_TEST("ldxb-all.data")
 DECLARE_TEST("ldxb.data")
 DECLARE_TEST("ldxdw.data")
-// Unknown bug somewhere in Python module generates malformed eBFP byte code
-// DECLARE_TEST("ldxh-all.data")
-// DECLARE_TEST("ldxh-all2.data")
+DECLARE_TEST("ldxh-all.data")
+DECLARE_TEST("ldxh-all2.data")
 DECLARE_TEST("ldxh-same-reg.data")
 DECLARE_TEST("ldxh.data")
 DECLARE_TEST("ldxw-all.data")
@@ -193,9 +198,8 @@ DECLARE_TEST("neg.data")
 DECLARE_TEST("neg64.data")
 DECLARE_TEST("rsh-reg.data")
 DECLARE_TEST("rsh32.data")
-// Unknown bug somewhere in Python module generates malformed eBFP byte code
-// DECLARE_TEST("stack.data")
-// DECLARE_TEST("stack2.data")
+DECLARE_TEST("stack.data")
+//DECLARE_TEST("stack2.data")
 DECLARE_TEST("stb.data")
 DECLARE_TEST("stdw.data")
 DECLARE_TEST("sth.data")

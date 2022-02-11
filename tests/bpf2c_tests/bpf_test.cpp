@@ -1,13 +1,13 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include <cmath>
 #include <iostream>
 #include <map>
 #include <sstream>
-#include <stdbool.h>
-#include <stdint.h>
 #include <string>
 #include <vector>
+#include <string.h>
 
 extern "C"
 {
@@ -71,6 +71,12 @@ std::map<uint32_t, uint64_t (*)(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t 
     {4, strcmp_ext},
     {5, unwind},
 };
+
+extern "C" void
+division_by_zero(uint32_t address)
+{
+    
+}
 
 int
 main(int argc, char** argv)

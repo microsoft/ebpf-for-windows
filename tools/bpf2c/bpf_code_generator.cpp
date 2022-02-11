@@ -5,6 +5,10 @@
 
 #include "bpf_code_generator.h"
 
+#if !defined(_countof)
+#define _countof(array) (sizeof(array) / sizeof(array[0]))
+#endif
+
 static const std::string _register_names[11] = {
     "r0",
     "r1",

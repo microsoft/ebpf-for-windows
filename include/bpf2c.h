@@ -4,6 +4,7 @@
 #pragma once
 #include <stdint.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include "ebpf_structs.h"
 #define UBPF_STACK_SIZE 512
 
@@ -11,6 +12,7 @@
 #define OFFSET(X) (int16_t) X
 #define POINTER(X) (uint64_t)(X)
 
+#if!defined(htobe16)
 #define htobe16(X) swap16(X)
 #define htobe32(X) swap32(X)
 #define htobe64(X) swap64(X)
@@ -18,6 +20,7 @@
 #define htole16(X) (X)
 #define htole32(X) (X)
 #define htole64(X) (X)
+#endif
 
 typedef struct _helper_function_entry
 {
