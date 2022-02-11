@@ -32,12 +32,10 @@ jobs:
       run: |
         rm -rf include/asm include/linux
     
-    - name: Build tests
-      working-directory: ${{env.GITHUB_WORKSPACE}}/tests/bpf2c_tests
+    - name: Build & run tests
+      working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
+        cd tests/bpf2c_tests
         make
-    
-    - name: Run tests
-      working-directory: ${{env.GITHUB_WORKSPACE}}/tests/bpf2c_tests
-      run: |
         ./bpf2c_tests -s
+        
