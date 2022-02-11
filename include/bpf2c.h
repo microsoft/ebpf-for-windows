@@ -34,6 +34,13 @@ typedef struct _map_entry
     const char* name;
 } map_entry_t;
 
+typedef struct _meta_data_table
+{
+    uint64_t (*function)(void*);
+    void (*maps)(map_entry_t** maps, size_t* count);
+    void (*helpers)(helper_function_entry_t** helpers, size_t* count);
+} meta_data_table_t;
+
 inline uint16_t
 swap16(uint16_t value)
 {

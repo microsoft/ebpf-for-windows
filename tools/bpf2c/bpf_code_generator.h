@@ -106,7 +106,7 @@ class bpf_code_generator
     /**
      * @brief Emit the C code to a given output stream.
      *
-     * @param[in] output Output string to write code to.
+     * @param[in] output Output stream to write code to.
      */
     void
     emit_c_code(std::ostream& output);

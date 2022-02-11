@@ -11,12 +11,12 @@ run_test(const std::string& data_file)
 {
     enum
     {
-        state_begin,
+        state_ignore,
         state_assembly,
         state_raw,
         state_result,
         state_memory,
-    } state = state_begin;
+    } state = state_ignore;
     std::string prefix = data_file.substr(data_file.find_last_of("\\") + 1);
 
     std::string temp_asm_name = std::string(prefix) + ".asm";
@@ -42,6 +42,9 @@ run_test(const std::string& data_file)
             continue;
         } else if (line == "-- result") {
             state = state_result;
+            continue;
+        } else if (line == "-- no register offset") {
+            state = state_ignore;
             continue;
         } else if (line.find("--") != std::string::npos) {
             REQUIRE("" == line);
@@ -101,7 +104,6 @@ run_test(const std::string& data_file)
     std::string compile_command = std::string("cl /EHsc /nologo -I../../include  ") + std::string(prefix) +
                                   std::string(".c ") + std::string(" bpf_test.cpp >") + std::string(prefix) +
                                   std::string(".log");
-
     REQUIRE(system(compile_command.c_str()) == 0);
     std::string test_command = std::string(prefix) + std::string(".exe ") + std::string(result) + std::string(" \"") +
                                std::string(mem) + std::string("\"");
@@ -125,12 +127,11 @@ DECLARE_TEST("be16.data")
 DECLARE_TEST("be32-high.data")
 DECLARE_TEST("be32.data")
 DECLARE_TEST("be64.data")
-// FUTURE - register helper functions
-// DECLARE_TEST("call-memfrob.data")
-// DECLARE_TEST("call-save.data")
-// DECLARE_TEST("call.data")
-// DECLARE_TEST("call_unwind.data")
-// DECLARE_TEST("call_unwind_fail.data")
+DECLARE_TEST("call-memfrob.data")
+DECLARE_TEST("call-save.data")
+DECLARE_TEST("call.data")
+DECLARE_TEST("call_unwind.data")
+DECLARE_TEST("call_unwind_fail.data")
 DECLARE_TEST("div32-high-divisor.data")
 DECLARE_TEST("div32-imm.data")
 DECLARE_TEST("div32-reg.data")
@@ -177,7 +178,7 @@ DECLARE_TEST("le16.data")
 DECLARE_TEST("le32.data")
 DECLARE_TEST("le64.data")
 DECLARE_TEST("lsh-reg.data")
-// ebpf-for-windows doesn't path memory length as r2
+// ebpf-for-windows doesn't pass memory length as r2
 // DECLARE_TEST("mem-len.data")
 DECLARE_TEST("mod.data")
 DECLARE_TEST("mod32.data")

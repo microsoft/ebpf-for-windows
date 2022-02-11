@@ -519,6 +519,14 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         output_stream << "\t*count = " << std::to_string(map_definitions.size()) << ";" << std::endl;
         output_stream << "}" << std::endl;
         output_stream << std::endl;
+    } else {
+        output_stream << "void get_" << desired_section.c_str() << "_maps(map_entry_t** maps, size_t* count)"
+                      << std::endl;
+        output_stream << "{" << std::endl;
+        output_stream << "\t*maps = NULL;" << std::endl;
+        output_stream << "\t*count = 0;" << std::endl;
+        output_stream << "}" << std::endl;
+        output_stream << std::endl;
     }
     if (functions.size() > 0) {
         output_stream << "static helper_function_entry_t " << desired_section.c_str() << "_helpers[] = {" << std::endl;
@@ -534,10 +542,18 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         output_stream << "\t*count = " << std::to_string(functions.size()) << ";" << std::endl;
         output_stream << "}" << std::endl;
         output_stream << std::endl;
+    } else {
+        output_stream << "void get_" << desired_section.c_str()
+                      << "_helpers(helper_function_entry_t** helpers, size_t* count)" << std::endl;
+        output_stream << "{" << std::endl;
+        output_stream << "\t*helpers = NULL;" << std::endl;
+        output_stream << "\t*count = 0;" << std::endl;
+        output_stream << "}" << std::endl;
+        output_stream << std::endl;
     }
 
     // Emit entry point
-    output_stream << "uint64_t " << desired_section.c_str() << "(void* context)" << std::endl;
+    output_stream << "uint64_t " << desired_section.c_str() << "_entry(void* context)" << std::endl;
     output_stream << "{" << std::endl;
 
     // Emit prologue
@@ -571,6 +587,14 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
 
     // Emit epilogue
     output_stream << "}" << std::endl;
+
+    output_stream << std::endl;
+    output_stream << format_string(
+        "meta_data_table_t %s = { %s_entry, get_%s_maps, get_%s_helpers };",
+        desired_section.c_str(),
+        desired_section.c_str(),
+        desired_section.c_str(),
+        desired_section.c_str());
 }
 
 std::string
