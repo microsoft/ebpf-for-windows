@@ -51,3 +51,6 @@ swap64(uint64_t value)
 {
     return swap32(value >> 32) | ((uint64_t)swap32(value & ((1ull << 32ull) - 1))) << 32;
 }
+
+void
+division_by_zero(uint32_t address);

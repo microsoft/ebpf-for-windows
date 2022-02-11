@@ -1,15 +1,19 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include <stdint.h>
-#include <stdbool.h>
-#include <string>
-#include <sstream>
-#include <vector>
 #include <iostream>
+#include <sstream>
+#include <stdbool.h>
+#include <stdint.h>
+#include <string>
+#include <vector>
 
 extern "C" uint64_t
 test(void* data);
+
+extern "C" void
+division_by_zero(uint32_t address)
+{}
 
 int
 main(int argc, char** argv)
@@ -26,12 +30,15 @@ main(int argc, char** argv)
         std::string byte;
         std::stringstream data_string(argv[2]);
         while (std::getline(data_string, byte, ' ')) {
-            mem.push_back(static_cast<uint8_t>(std::stoi(byte)));
+            if (byte.empty())
+                continue;
+            mem.push_back(static_cast<uint8_t>(std::strtoul(byte.c_str(), NULL, 16)));
         }
     }
     uint64_t actual_result = test(mem.data());
     if (expected_result != actual_result) {
-        std::cerr << "Expected result = " << expected_result << " Actual result = " << actual_result << std::endl;
+        std::cerr << argv[0] << " Expected result = " << expected_result << " Actual result = " << actual_result
+                  << std::endl;
         return 1;
     }
     return 0;

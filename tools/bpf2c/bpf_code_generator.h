@@ -16,7 +16,7 @@ class bpf_code_generator
 {
   public:
     /**
-     * @brief Construct a new bpf code generator object
+     * @brief Construct a new bpf code generator object.
      *
      * @param[in] path Path to the eBPF file to parse.
      * @param[in] section Name of the section to generate code from.
@@ -24,10 +24,10 @@ class bpf_code_generator
     bpf_code_generator(const std::string& path, const std::string& section);
 
     /**
-     * @brief Construct a new bpf code generator object from raw eBPF byte code
+     * @brief Construct a new bpf code generator object from raw eBPF byte code.
      *
-     * @param instructions
-     * @param section
+     * @param[in] instructions Set of eBPF instructions to use.
+     * @param[in] section Name of the section to generate code from.
      */
     bpf_code_generator(const std::vector<ebpf_inst>& instructions, const std::string& section);
 
@@ -41,6 +41,7 @@ class bpf_code_generator
     /**
      * @brief Generate C code from the parsed eBPF file.
      *
+     * @param[in] output Output stream to write code to.
      */
     void
     generate(std::ostream& output);
@@ -51,7 +52,7 @@ class bpf_code_generator
         ebpf_inst instruction;
         bool jump_target;
         std::string label;
-        std::string line;
+        std::vector<std::string> lines;
         std::string relocation;
     } output_instruction_t;
 
@@ -103,8 +104,9 @@ class bpf_code_generator
     encode_instructions();
 
     /**
-     * @brief Emit the C code to cout stream.
+     * @brief Emit the C code to a given output stream.
      *
+     * @param[in] output Output string to write code to.
      */
     void
     emit_c_code(std::ostream& output);
@@ -112,7 +114,7 @@ class bpf_code_generator
     /**
      * @brief Format a string and insert up to 4 strings in it.
      *
-     * @param[in] format Format string
+     * @param[in] format Format string.
      * @param[in] insert_1 First string to insert.
      * @param[in] insert_2 Second string to insert or empty.
      * @param[in] insert_3 Third string to insert or empty.

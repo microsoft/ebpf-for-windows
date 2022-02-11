@@ -19,21 +19,22 @@ static const std::string _register_names[11] = {
     "r10",
 };
 
-static const std::tuple<std::string, size_t> _alu_format_string[] = {
-    {"%s += %s;", 2},               // ADD 0x0
-    {"%s -= %s;", 2},               // SUB 0x1
-    {"%s *= %s;", 2},               // MUL 0x2
-    {"%s /= %s;", 2},               // DIV 0x3
-    {"%s |= %s;", 2},               // OR 0x4
-    {"%s &= %s;", 2},               // AND 0x5
-    {"%s <<= %s;", 2},              // LSH 0x6
-    {"%s >>= %s;", 2},              // RSH 0x7
-    {"%s = -(int64_t)%s;", 2},      // NEG 0x8
-    {"%s = %s % %s;", 3},           // MOD 0x9
-    {"%s ^= %s;", 2},               // XOR 0xa
-    {"%s = %s;", 2},                // MOV 0xb
-    {"%s = (int32_t)%s >> %s;", 3}, // ASHR 0xc
-    {"%s = swap(%s, %s);", 3},      // BE 0xd
+enum class AluOperations
+{
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Or,
+    And,
+    Lsh,
+    Rsh,
+    Neg,
+    Mod,
+    Xor,
+    Mov,
+    Ashr,
+    ByteOrder,
 };
 
 static const std::string _predicate_format_string[] = {
@@ -49,8 +50,8 @@ static const std::string _predicate_format_string[] = {
     "",                           // EXIT
     "%s < %s",                    // JLT
     "%s <= %s",                   // JTE
-    "(int64_t)%s > (int64_t)%s",  // JSLT
-    "(int64_t)%s >= (int64_t)%s", // JSLE
+    "(int64_t)%s < (int64_t)%s",  // JSLT
+    "(int64_t)%s <= (int64_t)%s", // JSLE
 };
 
 #define ADD_OPCODE(X)                            \
@@ -89,6 +90,16 @@ static std::map<uint8_t, std::string> _opcode_name_strings = {
     ADD_OPCODE(EBPF_OP_JLE_IMM),    ADD_OPCODE(EBPF_OP_JLE_REG),   ADD_OPCODE(EBPF_OP_JSLT_IMM),
     ADD_OPCODE(EBPF_OP_JSLT_REG),   ADD_OPCODE(EBPF_OP_JSLE_IMM),  ADD_OPCODE(EBPF_OP_JSLE_REG),
 };
+
+std::string
+get_register_name(uint8_t id)
+{
+    if (id >= _countof(_register_names)) {
+        throw std::runtime_error("Invalid register id");
+    } else {
+        return _register_names[id];
+    }
+}
 
 bpf_code_generator::bpf_code_generator(const std::string& path, const std::string& section)
     : path(path), desired_section(section)
@@ -243,69 +254,146 @@ bpf_code_generator::encode_instructions()
     for (size_t i = 0; i < program_output.size(); i++) {
         auto& output = program_output[i];
         auto& inst = output.instruction;
+
         switch (inst.opcode & EBPF_CLS_MASK) {
         case EBPF_CLS_ALU:
         case EBPF_CLS_ALU64: {
-            std::string destination = _register_names[inst.dst];
-            // Special case for EBPF_OP_BE/EBPF_OP_LE
-            if (inst.opcode == EBPF_OP_BE) {
-                std::string swap_function;
-                switch (inst.imm) {
-                case 16:
-                    swap_function = "htobe16";
-                    break;
-                case 32:
-                    swap_function = "htobe32";
-                    break;
-                case 64:
-                    swap_function = "htobe64";
-                    break;
-                }
-                output.line = format_string("%s = %s(%s);", destination, swap_function, destination);
-                continue;
-            }
-
+            std::string destination = get_register_name(inst.dst);
             std::string source;
-            if (inst.opcode & EBPF_SRC_REG) {
-                source = _register_names[inst.src];
-            } else {
+            if (inst.opcode & EBPF_SRC_REG)
+                source = get_register_name(inst.src);
+            else
                 source = std::string("IMMEDIATE(") + std::to_string(inst.imm) + std::string(")");
+            bool is64bit = (inst.opcode & EBPF_CLS_MASK) == EBPF_CLS_ALU64;
+            AluOperations operation = static_cast<AluOperations>(inst.opcode >> 4);
+            std::string check_div_by_zero =
+                format_string("if (%s == 0) { division_by_zero(%s); return 0; }", source, std::to_string(i));
+            std::string swap_function;
+            switch (operation) {
+            case AluOperations::Add:
+                output.lines.push_back(format_string("%s += %s;", destination, source));
+                break;
+            case AluOperations::Sub:
+                output.lines.push_back(format_string("%s -= %s;", destination, source));
+                break;
+            case AluOperations::Mul:
+                output.lines.push_back(format_string("%s *= %s;", destination, source));
+                break;
+            case AluOperations::Div:
+                output.lines.push_back(check_div_by_zero);
+                if (is64bit)
+                    output.lines.push_back(format_string("%s /= %s;", destination, source));
+                else
+                    output.lines.push_back(
+                        format_string("%s = (uint32_t)%s / (uint32_t)%s;", destination, destination, source));
+                break;
+            case AluOperations::Or:
+                output.lines.push_back(format_string("%s |= %s;", destination, source));
+                break;
+            case AluOperations::And:
+                output.lines.push_back(format_string("%s &= %s;", destination, source));
+                break;
+            case AluOperations::Lsh:
+                output.lines.push_back(format_string("%s <<= %s;", destination, source));
+                break;
+            case AluOperations::Rsh:
+                if (is64bit)
+                    output.lines.push_back(format_string("%s >>= %s;", destination, source));
+                else
+                    output.lines.push_back(format_string("%s = (uint32_t)%s >> %s;", destination, destination, source));
+                break;
+            case AluOperations::Neg:
+                if (is64bit)
+                    output.lines.push_back(format_string("%s = -%s;", destination, destination));
+                else
+                    output.lines.push_back(format_string("%s = -(int64_t)%s;", destination, destination));
+                break;
+            case AluOperations::Mod:
+                output.lines.push_back(check_div_by_zero);
+                if (is64bit)
+                    output.lines.push_back(format_string("%s %%= %s;", destination, source));
+                else
+                    output.lines.push_back(
+                        format_string("%s = (uint32_t)%s %% (uint32_t)%s;", destination, destination, source));
+                break;
+            case AluOperations::Xor:
+                output.lines.push_back(format_string("%s ^= %s;", destination, source));
+                break;
+            case AluOperations::Mov:
+                output.lines.push_back(format_string("%s = %s;", destination, source));
+                break;
+            case AluOperations::Ashr:
+                if (is64bit)
+                    output.lines.push_back(
+                        format_string("%s = (int64_t)%s >> (uint32_t)%s;", destination, destination, source));
+                else
+                    output.lines.push_back(format_string("%s = (int32_t)%s >> %s;", destination, destination, source));
+                break;
+            case AluOperations::ByteOrder:
+                if (output.instruction.opcode & EBPF_SRC_REG) {
+                    switch (inst.imm) {
+                    case 16:
+                        swap_function = "htobe16";
+                        break;
+                    case 32:
+                        swap_function = "htobe32";
+                        break;
+                    case 64:
+                        is64bit = true;
+                        swap_function = "htobe64";
+                        break;
+                    default:
+                        throw std::runtime_error("invalid operand");
+                    }
+                } else {
+                    switch (inst.imm) {
+                    case 16:
+                        swap_function = "htole16";
+                        break;
+                    case 32:
+                        swap_function = "htole32";
+                        break;
+                    case 64:
+                        is64bit = true;
+                        swap_function = "htole64";
+                        break;
+                    default:
+                        throw std::runtime_error("invalid operand");
+                    }
+                }
+                output.lines.push_back(format_string("%s = %s(%s);", destination, swap_function, destination));
+                break;
+            default:
+                throw std::runtime_error("invalid operand");
             }
+            if (!is64bit)
+                output.lines.push_back(format_string("%s &= UINT32_MAX;", destination));
 
-            if ((inst.opcode >> 4) == 0x8) {
-                source = destination;
-            }
-
-            auto& [format, count] = _alu_format_string[inst.opcode >> 4];
-            if (count == 2)
-                output.line = format_string(format, destination, source);
-            else if (count == 3)
-                output.line = format_string(format, destination, destination, source);
-            if ((inst.opcode & EBPF_CLS_MASK) == EBPF_CLS_ALU)
-                output.line += format_string("\n\t%s = (uint32_t)%s;", destination, destination);
         } break;
         case EBPF_CLS_LD: {
             i++;
             if (inst.opcode != EBPF_OP_LDDW) {
                 throw std::runtime_error("invalid operand");
             }
-            std::string destination = _register_names[inst.dst];
+            std::string destination = get_register_name(inst.dst);
             if (output.relocation.empty()) {
-                uint64_t imm = (uint64_t)inst.imm | (uint64_t)(program_output[i].instruction.imm) << 32;
+                uint64_t imm = static_cast<uint32_t>(program_output[i].instruction.imm);
+                imm <<= 32;
+                imm |= static_cast<uint32_t>(output.instruction.imm);
                 std::string source;
-                source = std::string("IMMEDIATE(") + std::to_string(imm) + std::string(")");
-                output.line = format_string("%s = %s;", destination, source);
+                source = std::string("(uint64_t)") + std::to_string(imm);
+                output.lines.push_back(format_string("%s = %s;", destination, source));
             } else {
                 std::string source;
                 source = format_string(
                     "%s_maps[%s].address", desired_section, std::to_string(map_definitions[output.relocation].index));
-                output.line = format_string("%s = POINTER(%s);", destination, source);
+                output.lines.push_back(format_string("%s = POINTER(%s);", destination, source));
             }
         } break;
         case EBPF_CLS_LDX: {
             std::string size_type;
-            std::string destination = _register_names[inst.dst];
-            std::string source = _register_names[inst.src];
+            std::string destination = get_register_name(inst.dst);
+            std::string source = get_register_name(inst.src);
             std::string offset = std::string("OFFSET(") + std::to_string(inst.offset) + ")";
             switch (inst.opcode & EBPF_SIZE_DW) {
             case EBPF_SIZE_B:
@@ -321,17 +409,18 @@ bpf_code_generator::encode_instructions()
                 size_type = std::string("uint64_t");
                 break;
             }
-            output.line = format_string("%s = *(%s *)(uintptr_t)(%s + %s);", destination, size_type, source, offset);
+            output.lines.push_back(
+                format_string("%s = *(%s *)(uintptr_t)(%s + %s);", destination, size_type, source, offset));
         } break;
         case EBPF_CLS_ST:
         case EBPF_CLS_STX: {
             std::string size_type;
-            std::string destination = _register_names[inst.dst];
+            std::string destination = get_register_name(inst.dst);
             std::string source;
             if ((inst.opcode & EBPF_CLS_MASK) == EBPF_CLS_ST) {
                 source = std::string("IMMEDIATE(") + std::to_string(inst.imm) + std::string(")");
             } else {
-                source = _register_names[inst.src];
+                source = get_register_name(inst.src);
             }
             std::string offset = std::string("OFFSET(") + std::to_string(inst.offset) + ")";
             switch (inst.opcode & EBPF_SIZE_DW) {
@@ -348,20 +437,21 @@ bpf_code_generator::encode_instructions()
                 size_type = std::string("uint64_t");
                 break;
             }
-            output.line = format_string("*(%s *)(uintptr_t)(%s + %s) = %s;", size_type, destination, offset, source);
+            output.lines.push_back(
+                format_string("*(%s *)(uintptr_t)(%s + %s) = %s;", size_type, destination, offset, source));
         } break;
         case EBPF_CLS_JMP: {
-            std::string destination = _register_names[inst.dst];
+            std::string destination = get_register_name(inst.dst);
             std::string source;
             if (inst.opcode & EBPF_SRC_REG) {
-                source = _register_names[inst.src];
+                source = get_register_name(inst.src);
             } else {
                 source = std::string("IMMEDIATE(") + std::to_string(inst.imm) + std::string(")");
             }
             auto& format = _predicate_format_string[inst.opcode >> 4];
             if (inst.opcode == EBPF_OP_JA) {
                 std::string target = program_output[i + inst.offset + 1].label;
-                output.line = std::string("goto ") + target + std::string(";");
+                output.lines.push_back(std::string("goto ") + target + std::string(";"));
             } else if (inst.opcode == EBPF_OP_CALL) {
                 std::string function_name;
                 if (output.relocation.empty()) {
@@ -374,22 +464,24 @@ bpf_code_generator::encode_instructions()
                     function_name = format_string(
                         "%s_helpers[%s]", desired_section, std::to_string(functions[output.relocation].index));
                 }
-                output.line = _register_names[0] + std::string(" = ") + function_name + std::string(".address");
-                output.line += std::string("(") + _register_names[1] + std::string(", ");
-                output.line += _register_names[2] + std::string(", ");
-                output.line += _register_names[3] + std::string(", ");
-                output.line += _register_names[4] + std::string(", ") + _register_names[5] + std::string(");\n");
-                output.line +=
-                    format_string("\tif ((%s.tail_call) && (%s == 0)) return 0;", function_name, _register_names[0]);
+                output.lines.push_back(
+                    get_register_name(0) + std::string(" = ") + function_name + std::string(".address"));
+                output.lines.push_back(std::string("(") + get_register_name(1) + std::string(", "));
+                output.lines.push_back(get_register_name(2) + std::string(", "));
+                output.lines.push_back(get_register_name(3) + std::string(", "));
+                output.lines.push_back(get_register_name(4) + std::string(", "));
+                output.lines.push_back(get_register_name(5) + std::string(");"));
+                output.lines.push_back(
+                    format_string("\tif ((%s.tail_call) && (%s == 0)) return 0;", function_name, get_register_name(0)));
             } else if (inst.opcode == EBPF_OP_EXIT) {
-                output.line += std::string("return ") + _register_names[0] + std::string(";");
+                output.lines.push_back(std::string("return ") + get_register_name(0) + std::string(";"));
             } else {
                 std::string target = program_output[i + inst.offset + 1].label;
                 if (target.empty()) {
                     throw std::runtime_error("invalid jump target");
                 }
                 std::string predicate = format_string(format, destination, source);
-                output.line = format_string("if (%s) goto %s;", predicate, target);
+                output.lines.push_back(format_string("if (%s) goto %s;", predicate, target));
             }
         } break;
         default:
@@ -455,25 +547,26 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         output_stream << "\tregister uint64_t " << r.c_str() << ";" << std::endl;
     }
     output_stream << std::endl;
-    output_stream << "\t" << _register_names[1] << " = (uintptr_t)context;" << std::endl;
-    output_stream << "\t" << _register_names[10] << " = (uintptr_t)((uint8_t*)stack + sizeof(stack));" << std::endl;
+    output_stream << "\t" << get_register_name(1) << " = (uintptr_t)context;" << std::endl;
+    output_stream << "\t" << get_register_name(10) << " = (uintptr_t)((uint8_t*)stack + sizeof(stack));" << std::endl;
     output_stream << std::endl;
 
     // Emit encode intructions
     for (const auto& output : program_output) {
-        if (output.line.empty()) {
+        if (output.lines.empty()) {
             continue;
         }
         if (!output.label.empty())
             output_stream << output.label << ":" << std::endl;
 #if defined(_DEBUG)
         output_stream << "\t// " << _opcode_name_strings[output.instruction.opcode]
-                      << " dst=" << _register_names[output.instruction.dst]
-                      << " src=" << _register_names[output.instruction.src]
+                      << " dst=" << get_register_name(output.instruction.dst)
+                      << " src=" << get_register_name(output.instruction.src)
                       << " offset=" << std::to_string(output.instruction.offset)
                       << " imm=" << std::to_string(output.instruction.imm) << std::endl;
 #endif
-        output_stream << "\t" << output.line << std::endl;
+        for (const auto& line : output.lines)
+            output_stream << "\t" << line << std::endl;
     }
 
     // Emit epilogue
