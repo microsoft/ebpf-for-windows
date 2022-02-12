@@ -60,8 +60,8 @@ class bpf_code_generator
   private:
     typedef struct _output_instruction
     {
-        ebpf_inst instruction;
-        bool jump_target;
+        ebpf_inst instruction = {};
+        bool jump_target = false;
         std::string label;
         std::vector<std::string> lines;
         std::string relocation;

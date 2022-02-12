@@ -15,14 +15,14 @@
 void
 run_test(const std::string& data_file)
 {
-    enum
+    enum class _state
     {
         state_ignore,
         state_assembly,
         state_raw,
         state_result,
         state_memory,
-    } state = state_ignore;
+    } state = _state::state_ignore;
     std::string prefix = data_file.substr(data_file.find_last_of(SEPERATOR) + 1);
 
     std::string temp_asm_name = std::string(prefix) + ".asm";
@@ -35,22 +35,22 @@ run_test(const std::string& data_file)
     std::string line;
     while (std::getline(data_in, line)) {
         if (line == "-- asm") {
-            state = state_assembly;
+            state = _state::state_assembly;
             continue;
         } else if (line == "-- result") {
-            state = state_result;
+            state = _state::state_result;
             continue;
         } else if (line == "-- mem") {
-            state = state_memory;
+            state = _state::state_memory;
             continue;
         } else if (line == "-- raw") {
-            state = state_memory;
+            state = _state::state_memory;
             continue;
         } else if (line == "-- result") {
-            state = state_result;
+            state = _state::state_result;
             continue;
         } else if (line == "-- no register offset") {
-            state = state_ignore;
+            state = _state::state_ignore;
             continue;
         } else if (line.find("--") != std::string::npos) {
             REQUIRE("" == line);
@@ -60,16 +60,16 @@ run_test(const std::string& data_file)
         }
 
         switch (state) {
-        case state_assembly:
+        case _state::state_assembly:
             if (line.find("#") != std::string::npos) {
                 line = line.substr(0, line.find("#"));
             }
             data_out << line << std::endl;
             break;
-        case state_result:
+        case _state::state_result:
             result = line;
             break;
-        case state_memory:
+        case _state::state_memory:
             mem += std::string(" ") + line;
             break;
         default:
