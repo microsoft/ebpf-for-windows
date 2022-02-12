@@ -3,6 +3,7 @@
 
 #pragma once
 #include <map>
+#include <set>
 #include <string>
 #include <vector>
 #include "ebpf.h"
@@ -61,11 +62,18 @@ class bpf_code_generator
     typedef struct _output_instruction
     {
         ebpf_inst instruction = {};
+        uint32_t instruction_offset;
         bool jump_target = false;
         std::string label;
         std::vector<std::string> lines;
         std::string relocation;
     } output_instruction_t;
+
+    typedef struct _section
+    {
+        std::vector<output_instruction_t> output;
+        std::set<std::string> referenced_registers;
+    } section_t;
 
     typedef struct _helper_function
     {
@@ -84,14 +92,17 @@ class bpf_code_generator
      *
      */
     void
-    extract_program();
+    extract_program(const std::string& section_name);
 
     /**
      * @brief Extract the helper function and map relocation data from the eBPF file.
      *
      */
     void
-    extract_relocations_and_maps();
+    extract_relocations_and_maps(const std::string& section_name);
+
+    // TODO - Once https://github.com/microsoft/ebpf-for-windows/issues/630 is
+    // resolved, gather and emit corresponding C code if available.
 
     /**
      * @brief Assign a label to each jump target.
@@ -135,12 +146,15 @@ class bpf_code_generator
     std::string
     sanitize_name(const std::string& name);
 
-    std::vector<output_instruction_t> program_output;
-    std::map<std::string, std::vector<output_instruction_t>> programs;
+    std::string
+    get_register_name(uint8_t id);
+
+    std::map<std::string, section_t> sections;
+    section_t* current_section;
+
     ELFIO::elfio reader;
-    std::map<std::string, helper_function_t> functions;
+    std::map<std::string, helper_function_t> helper_functions;
     std::map<std::string, map_entry_t> map_definitions;
     std::string c_name;
     std::string path;
-    std::string section_name;
 };

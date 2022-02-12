@@ -10,10 +10,12 @@
 #include <WinSock2.h>
 #include <in6addr.h> // Must come after Winsock2.h
 
+#include "bpf2c.h"
 #include "bpf/bpf.h"
 #include "bpf/libbpf.h"
 #include "catch_wrapper.hpp"
 #include "common_tests.h"
+#include "dll_meta_data_table.h"
 #include "ebpf_bind_program_data.h"
 #include "ebpf_core.h"
 #include "ebpf_xdp_program_data.h"
@@ -1617,4 +1619,34 @@ TEST_CASE("map_reuse_3", "[end_to_end]")
     REQUIRE(ebpf_object_unpin("/ebpf/global/outer_map") == EBPF_SUCCESS);
     REQUIRE(ebpf_object_unpin("/ebpf/global/inner_map") == EBPF_SUCCESS);
     REQUIRE(ebpf_object_unpin("/ebpf/global/port_map") == EBPF_SUCCESS);
+}
+
+TEST_CASE("bpf2c_droppacket", "[bpf2c]")
+{
+    _test_helper_end_to_end test_helper;
+    dll_meta_data_table table("bpf2c_test_dll.dll", "droppacket");
+
+    auto packet = prepare_udp_packet(0, ETHERNET_TYPE_IPV4);
+    // Test that we drop the packet and increment the map
+    xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
+
+    REQUIRE(table.invoke("xdp", &ctx) == XDP_DROP);
+
+    packet = prepare_udp_packet(10, ETHERNET_TYPE_IPV4);
+    xdp_md_t ctx2{packet.data(), packet.data() + packet.size()};
+
+    REQUIRE(table.invoke("xdp", &ctx2) == XDP_PASS);
+}
+
+TEST_CASE("bpf2c_divide_by_zero", "[bpf2c]")
+{
+    _test_helper_end_to_end test_helper;
+    dll_meta_data_table table("bpf2c_test_dll.dll", "divide_by_zero");
+
+    auto packet = prepare_udp_packet(0, ETHERNET_TYPE_IPV4);
+    // Test that we drop the packet and increment the map
+    xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
+
+    // Verify the program doesn't crash
+    REQUIRE(table.invoke("xdp", &ctx) == 0);
 }

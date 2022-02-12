@@ -190,6 +190,9 @@
     <ProjectReference Include="..\..\rpc_interface\rpc_interface.vcxproj">
       <Project>{1423245d-0249-40fc-a077-ff7780acfe3f}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\..\tools\bpf2c\bpf2c.vcxproj">
+      <Project>{69b97e52-18dc-434e-a6e4-4c0f3e88c44a}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\libs\common\common_tests.vcxproj">
       <Project>{3617528a-cb85-418b-82c1-e9cfc16755f6}</Project>
     </ProjectReference>
