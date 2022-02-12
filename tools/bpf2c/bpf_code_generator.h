@@ -19,32 +19,43 @@ class bpf_code_generator
      * @brief Construct a new bpf code generator object.
      *
      * @param[in] path Path to the eBPF file to parse.
-     * @param[in] section Name of the section to generate code from.
+     * @param[in] c_name C compatible name to export this as.
      */
-    bpf_code_generator(const std::string& path, const std::string& section);
+    bpf_code_generator(const std::string& path, const std::string& c_name);
 
     /**
      * @brief Construct a new bpf code generator object from raw eBPF byte code.
      *
+     * @param[in] c_name C compatible name to export this as.
      * @param[in] instructions Set of eBPF instructions to use.
-     * @param[in] section Name of the section to generate code from.
      */
-    bpf_code_generator(const std::vector<ebpf_inst>& instructions, const std::string& section);
+    bpf_code_generator(const std::string& c_name, const std::vector<ebpf_inst>& instructions);
+
+    std::vector<std::string>
+    program_sections();
 
     /**
      * @brief Parse the eBPF file.
      *
+     * @param[in] section_name Section in the ELF file to parse.
      */
     void
-    parse();
+    parse(const std::string& section_name);
 
     /**
      * @brief Generate C code from the parsed eBPF file.
      *
+     */
+    void
+    generate();
+
+    /**
+     * @brief Emit the C code to a given output stream.
+     *
      * @param[in] output Output stream to write code to.
      */
     void
-    generate(std::ostream& output);
+    emit_c_code(std::ostream& output);
 
   private:
     typedef struct _output_instruction
@@ -104,14 +115,6 @@ class bpf_code_generator
     encode_instructions();
 
     /**
-     * @brief Emit the C code to a given output stream.
-     *
-     * @param[in] output Output stream to write code to.
-     */
-    void
-    emit_c_code(std::ostream& output);
-
-    /**
      * @brief Format a string and insert up to 4 strings in it.
      *
      * @param[in] format Format string.
@@ -129,10 +132,15 @@ class bpf_code_generator
         const std::string insert_3 = "",
         const std::string insert_4 = "");
 
+    std::string
+    sanitize_name(const std::string& name);
+
     std::vector<output_instruction_t> program_output;
+    std::map<std::string, std::vector<output_instruction_t>> programs;
     ELFIO::elfio reader;
     std::map<std::string, helper_function_t> functions;
     std::map<std::string, map_entry_t> map_definitions;
+    std::string c_name;
     std::string path;
-    std::string desired_section;
+    std::string section_name;
 };

@@ -12,7 +12,7 @@
 #define OFFSET(X) (int16_t) X
 #define POINTER(X) (uint64_t)(X)
 
-#if!defined(htobe16)
+#if !defined(htobe16)
 #define htobe16(X) swap16(X)
 #define htobe32(X) swap32(X)
 #define htobe64(X) swap64(X)
@@ -37,9 +37,15 @@ typedef struct _map_entry
     const char* name;
 } map_entry_t;
 
-typedef struct _meta_data_table
+typedef struct _program_entry
 {
     uint64_t (*function)(void*);
+    const char* name;
+} program_entry_t;
+
+typedef struct _meta_data_table
+{
+    void (*programs)(program_entry_t** programs, size_t* count);
     void (*maps)(map_entry_t** maps, size_t* count);
     void (*helpers)(helper_function_entry_t** helpers, size_t* count);
 } meta_data_table_t;

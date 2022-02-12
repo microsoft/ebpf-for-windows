@@ -15,10 +15,10 @@ extern "C"
 }
 
 #if !defined(SECTION)
-#define SECTION test
+#define C_NAME test
 #endif
 
-extern "C" meta_data_table_t SECTION;
+extern "C" meta_data_table_t C_NAME;
 
 static uint64_t
 gather_bytes(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)
@@ -74,9 +74,7 @@ std::map<uint32_t, uint64_t (*)(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t 
 
 extern "C" void
 division_by_zero(uint32_t address)
-{
-    
-}
+{}
 
 int
 main(int argc, char** argv)
@@ -100,12 +98,15 @@ main(int argc, char** argv)
     }
     helper_function_entry_t* helper_function_entries = nullptr;
     size_t helper_function_entry_count = 0;
-
     map_entry_t* map_entries = nullptr;
     size_t map_entry_count = 0;
+    program_entry_t* program_entries = nullptr;
+    size_t program_entry_count = 0;
 
-    SECTION.helpers(&helper_function_entries, &helper_function_entry_count);
-    SECTION.maps(&map_entries, &map_entry_count);
+    C_NAME.helpers(&helper_function_entries, &helper_function_entry_count);
+    C_NAME.maps(&map_entries, &map_entry_count);
+    C_NAME.programs(&program_entries, &program_entry_count);
+
     if (map_entry_count != 0) {
         std::cout << "bpf_test doesn't support maps yet." << std::endl;
         return -1;
@@ -127,7 +128,7 @@ main(int argc, char** argv)
         }
     }
 
-    uint64_t actual_result = SECTION.function(mem.data());
+    uint64_t actual_result = program_entries[0].function(mem.data());
     if (expected_result != actual_result) {
         std::cerr << argv[0] << " Expected result = " << expected_result << " Actual result = " << actual_result
                   << std::endl;
