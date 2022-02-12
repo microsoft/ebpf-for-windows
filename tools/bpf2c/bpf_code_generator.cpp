@@ -53,7 +53,7 @@ static const std::string _predicate_format_string[] = {
     "",                           // CALL
     "",                           // EXIT
     "%s < %s",                    // JLT
-    "%s <= %s",                   // JTE
+    "%s <= %s",                   // JLE
     "(int64_t)%s < (int64_t)%s",  // JSLT
     "(int64_t)%s <= (int64_t)%s", // JSLE
 };
