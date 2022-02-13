@@ -9,6 +9,9 @@
 #include "ebpf_platform.h"
 #include "ebpf_core_structs.h"
 #include "ebpf_core.h"
+#include "ebpf_handle.h"
+#include "ebpf_object.h"
+#include "platform.h"
 
 extern "C" meta_data_table_t*
 get_meta_data_table(const char* name);
@@ -21,9 +24,6 @@ ebpf_map_create(
     _Outptr_ ebpf_map_t** map);
 
 typedef struct _ebpf_object ebpf_object_t;
-
-extern "C" void
-ebpf_object_release_reference(ebpf_object_t* object);
 
 dll_meta_data_table::dll_meta_data_table(const std::string& dll_name, const std::string& table_name)
 {
@@ -62,6 +62,12 @@ dll_meta_data_table::invoke(const std::string& name, void* context)
         throw std::runtime_error("Can't find the program");
     }
     return program->second(context);
+}
+
+fd_t
+dll_meta_data_table::get_map(const std::string& name)
+{
+    return loaded_maps[name];
 }
 
 void
@@ -127,6 +133,12 @@ dll_meta_data_table::bind_meta_data_table()
                 reinterpret_cast<ebpf_map_t**>(&maps[i].address)) != EBPF_SUCCESS) {
             throw std::runtime_error("ebpf_extension_load failed for ebpf_general_helper_function_interface_id");
         }
+        ebpf_handle_t handle;
+        if (ebpf_handle_create(&handle, reinterpret_cast<ebpf_object_t*>(maps[i].address)) != EBPF_SUCCESS) {
+            throw std::runtime_error("ebpf_handle_create failed");
+        }
+        fd_t fd = Platform::_open_osfhandle(handle, 0);
+        loaded_maps[std::string(maps[i].name)] = fd;
     }
 }
 
@@ -147,6 +159,9 @@ dll_meta_data_table::unbind_meta_data_table()
     for (size_t i = 0; i < map_count; i++) {
         ebpf_object_release_reference(reinterpret_cast<ebpf_object_t*>(maps[i].address));
         maps[i].address = nullptr;
+    }
+    for (auto& [name, fd] : loaded_maps) {
+        Platform::_close(fd);
     }
     ebpf_extension_unload(client_context);
 }

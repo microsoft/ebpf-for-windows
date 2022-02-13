@@ -7,6 +7,7 @@
 
 #include "bpf2c.h"
 #include "ebpf_platform.h"
+typedef int32_t fd_t;
 
 #pragma once
 
@@ -38,6 +39,9 @@ class dll_meta_data_table
     uint64_t
     invoke(const std::string& name, void* context);
 
+    fd_t
+    get_map(const std::string& name);
+
   private:
     /**
      * @brief Use NMR to bind to helper function and create maps.
@@ -58,4 +62,5 @@ class dll_meta_data_table
     ebpf_extension_client_t* client_context;
 
     std::map<std::string, uint64_t (*)(void*)> loaded_programs;
+    std::map<std::string, fd_t> loaded_maps;
 };
