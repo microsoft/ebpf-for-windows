@@ -34,26 +34,33 @@ run_test(const std::string& data_file)
     std::string mem;
     std::string line;
     while (std::getline(data_in, line)) {
-        if (line == "-- asm") {
-            state = _state::state_assembly;
-            continue;
-        } else if (line == "-- result") {
-            state = _state::state_result;
-            continue;
-        } else if (line == "-- mem") {
-            state = _state::state_memory;
-            continue;
-        } else if (line == "-- raw") {
-            state = _state::state_memory;
-            continue;
-        } else if (line == "-- result") {
-            state = _state::state_result;
-            continue;
-        } else if (line == "-- no register offset") {
-            state = _state::state_ignore;
-            continue;
-        } else if (line.find("--") != std::string::npos) {
-            REQUIRE("" == line);
+        if (line.find("--") != std::string::npos) {
+            if (line.find("asm") != std::string::npos) {
+                state = _state::state_assembly;
+                continue;
+            } else if (line.find("result") != std::string::npos) {
+                state = _state::state_result;
+                continue;
+            } else if (line.find("mem") != std::string::npos) {
+                state = _state::state_memory;
+                continue;
+            } else if (line.find("raw") != std::string::npos) {
+                state = _state::state_ignore;
+                continue;
+            } else if (line.find("result") != std::string::npos) {
+                state = _state::state_result;
+                continue;
+            } else if (line.find("no register offset") != std::string::npos) {
+                state = _state::state_ignore;
+                continue;
+            } else if (line.find(" c") != std::string::npos) {
+                state = _state::state_ignore;
+                continue;
+            } else {
+                std::cout << "Unknown directive " << line << std::endl;
+                state = _state::state_ignore;
+                continue;
+            }
         }
         if (line.empty()) {
             continue;
@@ -122,98 +129,137 @@ run_test(const std::string& data_file)
 #define DECLARE_TEST(FILE)                                                                                       \
     TEST_CASE(FILE, "[raw_bpf_code_gen]")                                                                        \
     {                                                                                                            \
-        run_test(".." SEPERATOR ".." SEPERATOR "external" SEPERATOR "ubpf" SEPERATOR "tests" SEPERATOR "" FILE); \
+        run_test(".." SEPERATOR ".." SEPERATOR "external" SEPERATOR "ubpf" SEPERATOR "tests" SEPERATOR "" FILE ".data"); \
     }
 
-DECLARE_TEST("add.data")
-DECLARE_TEST("alu-arith.data")
-DECLARE_TEST("alu-bit.data")
-DECLARE_TEST("alu64-arith.data")
-DECLARE_TEST("alu64-bit.data")
-DECLARE_TEST("arsh-reg.data")
-DECLARE_TEST("arsh.data")
-DECLARE_TEST("arsh32-high-shift.data")
-DECLARE_TEST("arsh64.data")
-DECLARE_TEST("be16-high.data")
-DECLARE_TEST("be16.data")
-DECLARE_TEST("be32-high.data")
-DECLARE_TEST("be32.data")
-DECLARE_TEST("be64.data")
-DECLARE_TEST("call-memfrob.data")
-DECLARE_TEST("call-save.data")
-DECLARE_TEST("call.data")
-DECLARE_TEST("call_unwind.data")
-DECLARE_TEST("call_unwind_fail.data")
-DECLARE_TEST("div32-high-divisor.data")
-DECLARE_TEST("div32-imm.data")
-DECLARE_TEST("div32-reg.data")
-DECLARE_TEST("div64-imm.data")
-DECLARE_TEST("div64-reg.data")
-DECLARE_TEST("early-exit.data")
-DECLARE_TEST("exit-not-last.data")
-DECLARE_TEST("exit.data")
-DECLARE_TEST("ja.data")
-DECLARE_TEST("jeq-imm.data")
-DECLARE_TEST("jeq-reg.data")
-DECLARE_TEST("jge-imm.data")
-DECLARE_TEST("jgt-imm.data")
-DECLARE_TEST("jgt-reg.data")
-DECLARE_TEST("jit-bounce.data")
-DECLARE_TEST("jle-imm.data")
-DECLARE_TEST("jle-reg.data")
-DECLARE_TEST("jlt-imm.data")
-DECLARE_TEST("jlt-reg.data")
-DECLARE_TEST("jne-reg.data")
-DECLARE_TEST("jset-imm.data")
-DECLARE_TEST("jset-reg.data")
-DECLARE_TEST("jsge-imm.data")
-DECLARE_TEST("jsge-reg.data")
-DECLARE_TEST("jsgt-imm.data")
-DECLARE_TEST("jsgt-reg.data")
-DECLARE_TEST("jsle-imm.data")
-DECLARE_TEST("jsle-reg.data")
-DECLARE_TEST("jslt-imm.data")
-DECLARE_TEST("jslt-reg.data")
-DECLARE_TEST("lddw.data")
-DECLARE_TEST("lddw2.data")
-DECLARE_TEST("ldxb-all.data")
-DECLARE_TEST("ldxb.data")
-DECLARE_TEST("ldxdw.data")
-DECLARE_TEST("ldxh-all.data")
-DECLARE_TEST("ldxh-all2.data")
-DECLARE_TEST("ldxh-same-reg.data")
-DECLARE_TEST("ldxh.data")
-DECLARE_TEST("ldxw-all.data")
-DECLARE_TEST("ldxw.data")
-DECLARE_TEST("le16.data")
-DECLARE_TEST("le32.data")
-DECLARE_TEST("le64.data")
-DECLARE_TEST("lsh-reg.data")
-// ebpf-for-windows doesn't pass memory length as r2
-// DECLARE_TEST("mem-len.data")
-DECLARE_TEST("mod.data")
-DECLARE_TEST("mod32.data")
-DECLARE_TEST("mod64.data")
-DECLARE_TEST("mov.data")
-DECLARE_TEST("mul32-imm.data")
-DECLARE_TEST("mul32-reg-overflow.data")
-DECLARE_TEST("mul32-reg.data")
-DECLARE_TEST("mul64-imm.data")
-DECLARE_TEST("mul64-reg.data")
-DECLARE_TEST("neg.data")
-DECLARE_TEST("neg64.data")
-DECLARE_TEST("rsh-reg.data")
-DECLARE_TEST("rsh32.data")
-DECLARE_TEST("stack.data")
-DECLARE_TEST("stack2.data")
-DECLARE_TEST("stb.data")
-DECLARE_TEST("stdw.data")
-DECLARE_TEST("sth.data")
-DECLARE_TEST("stw.data")
-DECLARE_TEST("stxb-all.data")
-DECLARE_TEST("stxb-all2.data")
-DECLARE_TEST("stxb-chain.data")
-DECLARE_TEST("stxb.data")
-DECLARE_TEST("stxdw.data")
-DECLARE_TEST("stxh.data")
-DECLARE_TEST("stxw.data")
+DECLARE_TEST("add")
+DECLARE_TEST("alu-arith")
+DECLARE_TEST("alu-bit")
+// Test doesn't declare expected result.
+//DECLARE_TEST("alu")
+DECLARE_TEST("alu64-arith")
+DECLARE_TEST("alu64-bit")
+// Test doesn't declare expected result.
+//DECLARE_TEST("alu64")
+DECLARE_TEST("arsh-reg")
+DECLARE_TEST("arsh")
+DECLARE_TEST("arsh32-high-shift")
+DECLARE_TEST("arsh64")
+DECLARE_TEST("be16-high")
+DECLARE_TEST("be16")
+DECLARE_TEST("be32-high")
+DECLARE_TEST("be32")
+DECLARE_TEST("be64")
+DECLARE_TEST("call-memfrob")
+DECLARE_TEST("call-save")
+DECLARE_TEST("call")
+DECLARE_TEST("call_unwind")
+DECLARE_TEST("call_unwind_fail")
+DECLARE_TEST("div32-high-divisor")
+DECLARE_TEST("div32-imm")
+DECLARE_TEST("div32-reg")
+DECLARE_TEST("div64-imm")
+DECLARE_TEST("div64-reg")
+DECLARE_TEST("early-exit")
+// Malformed byte code tests - Verifier rejects prior to bpf2c.
+// DECLARE_TEST("err-call-bad-imm")
+// DECLARE_TEST("err-call-unreg")
+// DECLARE_TEST("err-div-by-zero-imm")
+// DECLARE_TEST("err-div-by-zero-reg")
+// DECLARE_TEST("err-div64-by-zero-reg")
+// DECLARE_TEST("err-endian-size")
+// DECLARE_TEST("err-incomplete-lddw")
+// DECLARE_TEST("err-incomplete-lddw2")
+// DECLARE_TEST("err-infinite-loop")
+// DECLARE_TEST("err-invalid-reg-dst")
+// DECLARE_TEST("err-invalid-reg-src")
+// DECLARE_TEST("err-jmp-lddw")
+// DECLARE_TEST("err-jmp-out")
+// DECLARE_TEST("err-mod-by-zero-reg")
+// DECLARE_TEST("err-mod64-by-zero-reg")
+// DECLARE_TEST("err-stack-oob")
+// DECLARE_TEST("err-too-many-instructions")
+// DECLARE_TEST("err-unknown-opcode")
+DECLARE_TEST("exit-not-last")
+DECLARE_TEST("exit")
+DECLARE_TEST("ja")
+DECLARE_TEST("jeq-imm")
+DECLARE_TEST("jeq-reg")
+DECLARE_TEST("jge-imm")
+DECLARE_TEST("jgt-imm")
+DECLARE_TEST("jgt-reg")
+DECLARE_TEST("jit-bounce")
+DECLARE_TEST("jle-imm")
+DECLARE_TEST("jle-reg")
+DECLARE_TEST("jlt-imm")
+DECLARE_TEST("jlt-reg")
+// Test doesn't declare expected result.
+//DECLARE_TEST("jmp")
+DECLARE_TEST("jne-reg")
+DECLARE_TEST("jset-imm")
+DECLARE_TEST("jset-reg")
+DECLARE_TEST("jsge-imm")
+DECLARE_TEST("jsge-reg")
+DECLARE_TEST("jsgt-imm")
+DECLARE_TEST("jsgt-reg")
+DECLARE_TEST("jsle-imm")
+DECLARE_TEST("jsle-reg")
+DECLARE_TEST("jslt-imm")
+DECLARE_TEST("jslt-reg")
+DECLARE_TEST("lddw")
+DECLARE_TEST("lddw2")
+// Test doesn't declare expected result.
+//DECLARE_TEST("ldx")
+DECLARE_TEST("ldxb-all")
+DECLARE_TEST("ldxb")
+DECLARE_TEST("ldxdw")
+DECLARE_TEST("ldxh-all")
+DECLARE_TEST("ldxh-all2")
+DECLARE_TEST("ldxh-same-reg")
+DECLARE_TEST("ldxh")
+DECLARE_TEST("ldxw-all")
+DECLARE_TEST("ldxw")
+DECLARE_TEST("le16")
+DECLARE_TEST("le32")
+DECLARE_TEST("le64")
+DECLARE_TEST("lsh-reg")
+// bpf2c generated code doesn't pass length as r2.
+//DECLARE_TEST("mem-len")
+DECLARE_TEST("mod")
+DECLARE_TEST("mod32")
+DECLARE_TEST("mod64")
+DECLARE_TEST("mov")
+DECLARE_TEST("mul-loop")
+DECLARE_TEST("mul32-imm")
+DECLARE_TEST("mul32-reg-overflow")
+DECLARE_TEST("mul32-reg")
+DECLARE_TEST("mul64-imm")
+DECLARE_TEST("mul64-reg")
+DECLARE_TEST("neg")
+DECLARE_TEST("neg64")
+DECLARE_TEST("prime")
+// Test doesn't support reload directive.
+//DECLARE_TEST("reload")
+DECLARE_TEST("rsh-reg")
+DECLARE_TEST("rsh32")
+// Test doesn't declare expected result.
+//DECLARE_TEST("st")
+DECLARE_TEST("stack")
+DECLARE_TEST("stack2")
+DECLARE_TEST("stb")
+DECLARE_TEST("stdw")
+DECLARE_TEST("sth")
+DECLARE_TEST("string-stack")
+DECLARE_TEST("stw")
+// Test doesn't declare expected result.
+//DECLARE_TEST("stx")
+DECLARE_TEST("stxb-all")
+DECLARE_TEST("stxb-all2")
+DECLARE_TEST("stxb-chain")
+DECLARE_TEST("stxb")
+DECLARE_TEST("stxdw")
+DECLARE_TEST("stxh")
+DECLARE_TEST("stxw")
+DECLARE_TEST("subnet")
+// Test doesn't support unload directive.
+//DECLARE_TEST("unload_reload")
