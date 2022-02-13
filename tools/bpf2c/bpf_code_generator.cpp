@@ -107,7 +107,7 @@ bpf_code_generator::get_register_name(uint8_t id)
 }
 
 bpf_code_generator::bpf_code_generator(const std::string& path, const std::string& c_name)
-    : c_name(c_name), path(path), current_section(nullptr)
+    : current_section(nullptr), c_name(c_name), path(path)
 {
     if (!reader.load(path)) {
         throw std::runtime_error(std::string("Can't process ELF file ") + path);
@@ -572,9 +572,18 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
 
     if (helper_functions.size() > 0) {
         output_stream << "static helper_function_entry_t _helpers[] = {" << std::endl;
+        
+        // Functions are emitted in the order in which they occur in the byte code.
+        std::vector<std::tuple<std::string, uint32_t>> index_ordered_helpers;
+        index_ordered_helpers.resize(helper_functions.size());
         for (const auto& function : helper_functions) {
-            output_stream << "{ NULL, " << function.second.id << ", \"" << function.first << "\"}," << std::endl;
+            index_ordered_helpers[function.second.index] = std::make_tuple(function.first, function.second.id);
         }
+
+        for (const auto& [name, id] : index_ordered_helpers) {
+            output_stream << "{ NULL, " << id << ", \"" << name.c_str() << "\"}," << std::endl;
+        }
+
         output_stream << "};" << std::endl;
         output_stream << std::endl;
         output_stream << "static void _get_helpers(helper_function_entry_t** helpers, size_t* count)" << std::endl;
