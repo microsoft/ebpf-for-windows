@@ -166,6 +166,8 @@ ebpf_link_detach_program(_Inout_ ebpf_link_t* link)
 
     ebpf_extension_unload(link->extension_client_context);
     ebpf_free(link->client_data.data);
+    link->client_data.data = NULL;
+    link->client_data.size = 0;
     EBPF_RETURN_VOID();
 }
 

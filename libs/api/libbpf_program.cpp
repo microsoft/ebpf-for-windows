@@ -541,7 +541,7 @@ bpf_xdp_query_id(int ifindex, int flags, __u32* prog_id)
         }
 
         if ((memcmp(&link_info.program_type_uuid, &EBPF_PROGRAM_TYPE_XDP, sizeof(link_info.program_type_uuid)) == 0) &&
-            (link_info.xdp.ifindex == (uint32_t)ifindex)) {
+            (link_info.xdp.ifindex == (uint32_t)ifindex) && (link_info.prog_id != EBPF_ID_NONE)) {
             *prog_id = link_info.prog_id;
             return 0;
         }
