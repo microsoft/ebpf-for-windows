@@ -6,7 +6,7 @@ While eBPF programs can work as is on systems where
 is not enabled, JIT compiled programs fail on systems where it is enabled.  This document
 proposes a mechanism for such systems, which should work on existing unmodified Windows.
 
-To permit the use of eBPF programs on systems where Hyper-Visor Code Integrity (HVCI) is enabled, the eBPF programs must be in a form that the Secure Kernel (SK) can verify their signature and load them. The only code format currently supported by SK is Portable Executable (PE) files in the form of Windows Drivers (.sys files) that have been signed by a trusted key.
+To permit the use of eBPF programs on systems where HVCI is enabled, the eBPF programs must be in a form that Windows' Secure Kernel (SK) can verify their signature and load them. The only code format currently supported by SK is Portable Executable (PE) files in the form of Windows Drivers (.sys files) that have been signed by a trusted key.
 
 This document proposes a procedure for generating signed PE files from eBPF programs in an automated fashion.
 
