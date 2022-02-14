@@ -20,23 +20,23 @@ Generation of a Windows Driver in PE format from an eBPF program can be broken d
 
 ## External - Step 1 - Generation of LLVM IR from high level eBPF program
 
-The first step of the process is identical to the traditional build pipeline. The eBPF program is provided as C or other high level language file and the normal LLVM / Clang tool chain is invoked, to produce a ELF file containing one or more program and zero or more map definitions.
+The first step of the process is identical to the traditional build pipeline. The eBPF program is provided as a C or other high level language file and the normal LLVM / Clang tool chain is invoked, to produce an ELF file containing one or more programs and zero or more map definitions.
 
 ## Step 2 – Verification of the eBPF program
 
-The second step is to use the Prevail verifier to determine if the resulting eBPF program conforms to the required safety requirements. This is identical to the process used to by eBPF for Windows today. Only once the Prevail verifier can prove the program is safe does the process proceed to the next step.
+The second step is to use the verifier to determine if the resulting eBPF program conforms to the required safety requirements. This is identical to the process used to by eBPF for Windows today. Only once the verifier can prove the program is safe does the process proceed to the next step.
 
 ## Step 3 – Generation of the C code from the eBPF byte code
 
-The third step is to generate C code that maps one to one with the eBPF instructions in the ELF file. The eBPF registers are mapped to local variables in the generated C function and each eBPF instruction is used to generate equivalent C operations. In addition, the generated C file also contains bindings for the any helper functions referenced by the eBPF program and any maps the eBPF program uses.
+The third step is to generate C code that maps one to one with the eBPF instructions in the ELF file. The eBPF registers are mapped to local variables in the generated C function and each eBPF instruction is used to generate equivalent C operations. In addition, the generated C file also contains bindings for any helper functions referenced by the eBPF program and any maps the eBPF program uses.
 
-## Step 4 – Compile generate C code into native COFF file
+## Step 4 – Compile generated C code into native COFF file
 
-The fourth step is to use the standard C compiler (GCC, MSVC, or Clang) to generate a x64/ARM64 COFF file with Windows calling conventions. The C file will expose a single top-level global variable that allows the skeleton code to find the helpers, maps, and programs contained in the file.
+The fourth step is to use a standard C compiler (GCC, MSVC, or Clang) to generate an x64/ARM64 COFF file with Windows calling conventions. The C file will expose a single top-level global variable that allows the skeleton code to find the helpers, maps, and programs contained in the file.
 
 ## Step 5 – Linking the COFF file into a PE image
 
-The fifth is to use the platform-specific linker to generate the final PE file. The linker consumed the object file from step 4, a generic DriverEntry skeleton.
+The fifth is to use the platform-specific linker to generate the final PE file. The linker consumes the object file from step 4, a generic DriverEntry skeleton.
 
 ## Step 6 – Signing the PE file
 
@@ -44,18 +44,18 @@ The last step is to use the standard PE signing tools to produce a signed PE fil
 
 # Stub files consumed by the linker
 
-Step 5 consumes a set of object files to generate the final PE image. The following section gives a of the driver skeleton.
+Step 5 consumes a set of object files to generate the final PE image. The following section gives a summary of the driver skeleton.
 
 ## DriverEntry skeleton
 
-All Windows Drivers need to export a static function labelled &quot;DriverEntry&quot; that is invoked by the OS (Operating System) during loading of the driver. In addition to the standard driver related functionality, the driver entry skeleton would also register three NMR contracts exposed by the other framework components (to export the program to the eBPF runtime, to create any maps required, and to import the helper functions).
+All Windows Drivers need to export a static function labelled &quot;DriverEntry&quot; that is invoked by the OS (Operating System) during loading of the driver. In addition to the standard driver related functionality, the driver entry skeleton would also register three [Network Module Registrar (NMR)](https://docs.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-the-network-module-registrar) contracts exposed by the other framework components (to export the program to the eBPF runtime, to create any maps required, and to import the helper functions).
 
 ## Global entry point for generated code
 
 Every generated C file will contain a single global entry point of type meta_data_table_t:
 
 ```
-typedef struct _meta_data_table
+typedef struct _metadata_table
 
 {
     void (*programs)(program_entry_t**programs, size_t*count);
@@ -122,7 +122,7 @@ static map_entry_t_maps[] = {
 
 The skeleton then uses NMR to either create an instance of the map or obtain the address of an existing map and then write the address into the address field. References to the maps in the generated code are then indirect via the address field.
 
-## Loading an EBPF program from a PE .sys file
+## Loading an eBPF program from a PE .sys file
 
 The process of loading an eBPF program is a series of interactions between the eBPF Execution Context and the generated .sys file.
 
@@ -132,7 +132,7 @@ The process of loading an eBPF program is a series of interactions between the e
 
 2) In response to the attach notification on the helper function NMR contract, the skeleton will query the address of each helper function the eBPF program used and write the address into the _helpers table.
 
-3) In response to the attach notification on the map resolve NMR contract, the skeleton call into the eBPF execution context to create the maps based on the definitions and write the addresses into the _maps table.
+3) In response to the attach notification on the map resolve NMR contract, the skeleton will call into the eBPF execution context to create the maps based on the definitions and write the addresses into the _maps table.
 
 4) Once both the map contract and the helper contract have been attached, the driver registers the program NMR contract.
 
