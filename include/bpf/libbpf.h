@@ -736,7 +736,8 @@ bpf_program__unpin(struct bpf_program* prog, const char* path);
  *
  * @param[in] ifindex The interface index to attach to, or -1 to detach.
  * @param[in] fd File descriptor of program to attach.
- * @param[in] flags Flags (currently 0).
+ * @param[in] flags Flags. Use XDP_FLAGS_REPLACE to replace any program previously attached to
+ *                  the specified interface index.
  *
  * @retval 0 The operation was successful.
  * @retval <0 An error occured, and errno was set.
