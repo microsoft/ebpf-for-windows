@@ -56,7 +56,6 @@ Every generated C file will contain a single global entry point of type meta_dat
 
 ```
 typedef struct _metadata_table
-
 {
     void (*programs)(program_entry_t**programs, size_t*count);
     void (*maps)(map_entry_t**maps, size_t*count);
