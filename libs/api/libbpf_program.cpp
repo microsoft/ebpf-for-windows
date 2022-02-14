@@ -432,6 +432,10 @@ __bpf_set_link_xdp_fd_replace(int ifindex, int fd, int old_fd, __u32 flags)
     }
     ebpf_result_t result = EBPF_SUCCESS;
 
+    // On Linux, the logic to detach the older program and attach the
+    // new program is present in kernel (the flag XDP_FLAGS_REPLACE is
+    // passed to the kernel).  Thus, we should consider moving this
+    // logic to the execution context.
     if (old_fd != ebpf_fd_invalid) {
         // Look up the old program info to get the program ID.
         struct bpf_prog_info prog_info;
