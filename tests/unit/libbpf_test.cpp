@@ -291,6 +291,61 @@ TEST_CASE("libbpf program attach", "[libbpf]")
     bpf_object__close(object);
 }
 
+void
+test_xdp_ifindex(uint32_t ifindex, int program_fd[2], bpf_prog_info program_info[2])
+{
+    // Verify there's no program attached to the specified ifindex.
+    uint32_t program_id;
+    REQUIRE(bpf_xdp_query_id(ifindex, 0, &program_id) < 0);
+    REQUIRE(errno == ENOENT);
+
+    // Attach the first program to the specified ifindex.
+    REQUIRE(bpf_xdp_attach(ifindex, program_fd[0], 0, nullptr) == 0);
+    REQUIRE(bpf_xdp_query_id(ifindex, 0, &program_id) == 0);
+    REQUIRE(program_id == program_info[0].id);
+
+    // Replace it with the second program.
+    REQUIRE(bpf_set_link_xdp_fd(ifindex, program_fd[1], XDP_FLAGS_REPLACE) == 0);
+    REQUIRE(bpf_xdp_query_id(ifindex, 0, &program_id) == 0);
+    REQUIRE(program_id == program_info[1].id);
+
+    // Detach the second program.
+    REQUIRE(bpf_xdp_detach(ifindex, XDP_FLAGS_REPLACE, nullptr) == 0);
+
+    // Verify there's no program attached to this ifindex.
+    REQUIRE(bpf_xdp_query_id(ifindex, 0, &program_id) < 0);
+    REQUIRE(errno == ENOENT);
+}
+
+#define TEST_IFINDEX 17
+
+TEST_CASE("bpf_set_link_xdp_fd", "[libbpf]")
+{
+    _test_helper_libbpf test_helper;
+
+    struct bpf_object* object[2];
+    struct bpf_program* program[2];
+    int program_fd[2];
+    bpf_prog_info program_info[2];
+
+    for (int i = 0; i < 2; i++) {
+        REQUIRE(bpf_prog_load("droppacket.o", BPF_PROG_TYPE_XDP, &object[i], &program_fd[i]) == 0);
+        REQUIRE(object[i] != nullptr);
+
+        program[i] = bpf_object__find_program_by_name(object[i], "DropPacket");
+        REQUIRE(program[i] != nullptr);
+
+        uint32_t program_info_size = sizeof(program_info[i]);
+        REQUIRE(bpf_obj_get_info_by_fd(program_fd[i], &program_info[i], &program_info_size) == 0);
+    }
+
+    test_xdp_ifindex(TEST_IFINDEX, program_fd, program_info);
+    test_xdp_ifindex(0, program_fd, program_info);
+
+    bpf_object__close(object[0]);
+    bpf_object__close(object[1]);
+}
+
 TEST_CASE("libbpf map", "[libbpf]")
 {
     _test_helper_libbpf test_helper;

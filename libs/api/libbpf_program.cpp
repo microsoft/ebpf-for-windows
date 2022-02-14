@@ -178,11 +178,8 @@ bpf_program__attach_xdp(const struct bpf_program* program, int ifindex)
         return nullptr;
     }
 
-    // TODO: use ifindex
-    UNREFERENCED_PARAMETER(ifindex);
-
     bpf_link* link = nullptr;
-    ebpf_result_t result = ebpf_program_attach(program, &EBPF_ATTACH_TYPE_XDP, nullptr, 0, &link);
+    ebpf_result_t result = ebpf_program_attach(program, &EBPF_ATTACH_TYPE_XDP, &ifindex, sizeof(ifindex), &link);
     if (result) {
         errno = ebpf_result_to_errno(result);
     }
@@ -427,48 +424,58 @@ bpf_prog_bind_map(int prog_fd, int map_fd, const struct bpf_prog_bind_opts* opts
 static int
 __bpf_set_link_xdp_fd_replace(int ifindex, int fd, int old_fd, __u32 flags)
 {
-    if (flags != 0) {
-        return libbpf_err(-ENOTSUP);
-    }
     ebpf_result_t result = EBPF_SUCCESS;
 
     // On Linux, the logic to detach the older program and attach the
     // new program is present in kernel (the flag XDP_FLAGS_REPLACE is
     // passed to the kernel).  Thus, we should consider moving this
     // logic to the execution context.
-    if (old_fd != ebpf_fd_invalid) {
+    if (flags & XDP_FLAGS_REPLACE) {
         // Look up the old program info to get the program ID.
-        struct bpf_prog_info prog_info;
-        uint32_t info_len = sizeof(prog_info);
-        int err = bpf_obj_get_info_by_fd(old_fd, &prog_info, &info_len);
-        if (err != 0) {
-            return err;
-        }
-
-        // Verify that the program is actually an XDP program.
-        if (prog_info.type != BPF_PROG_TYPE_XDP) {
-            return libbpf_err(-EINVAL);
-        }
-
-        // Unlink the old program from the specified ifindex.
-        uint32_t link_id = 0;
-        while (bpf_link_get_next_id(link_id, &link_id) == 0) {
-            fd_t link_fd = bpf_link_get_fd_by_id(link_id);
-            if (link_fd < 0) {
-                continue;
+        ebpf_id_t program_id = 0;
+        if (old_fd == 0 || old_fd == ebpf_fd_invalid) {
+            int err = bpf_xdp_query_id(ifindex, 0, &program_id);
+            if ((err < 0) && (errno != ENOENT)) {
+                return err;
+            }
+            // We found the right program_id.
+        } else {
+            struct bpf_prog_info prog_info;
+            uint32_t info_len = sizeof(prog_info);
+            int err = bpf_obj_get_info_by_fd(old_fd, &prog_info, &info_len);
+            if (err < 0) {
+                return err;
             }
 
-            struct bpf_link_info link_info;
-            info_len = sizeof(link_info);
-            if (bpf_obj_get_info_by_fd(link_fd, &link_info, &info_len) == 0) {
-                if (link_info.prog_id == prog_info.id && link_info.xdp.ifindex == (uint32_t)ifindex) {
-                    if (bpf_link_detach(link_fd) < 0) {
-                        return libbpf_err(-errno);
+            // Verify that the program is actually an XDP program.
+            if (prog_info.type != BPF_PROG_TYPE_XDP) {
+                return libbpf_err(-EINVAL);
+            }
+
+            program_id = prog_info.id;
+        }
+
+        if (program_id != 0) {
+            // Unlink the old program from the specified ifindex.
+            uint32_t link_id = 0;
+            while (bpf_link_get_next_id(link_id, &link_id) == 0) {
+                fd_t link_fd = bpf_link_get_fd_by_id(link_id);
+                if (link_fd < 0) {
+                    continue;
+                }
+
+                struct bpf_link_info link_info;
+                uint32_t info_len = sizeof(link_info);
+                if (bpf_obj_get_info_by_fd(link_fd, &link_info, &info_len) == 0) {
+                    if (link_info.prog_id == program_id && link_info.xdp.ifindex == (uint32_t)ifindex) {
+                        if (bpf_link_detach(link_fd) < 0) {
+                            return libbpf_err(-errno);
+                        }
                     }
                 }
-            }
 
-            Platform::_close(link_fd);
+                Platform::_close(link_fd);
+            }
         }
     }
 
@@ -507,4 +514,36 @@ bpf_set_link_xdp_fd(int ifindex, int fd, __u32 flags)
 
     ret = __bpf_set_link_xdp_fd_replace(ifindex, fd, 0, flags);
     return libbpf_err(ret);
+}
+
+int
+bpf_xdp_query_id(int ifindex, int flags, __u32* prog_id)
+{
+    UNREFERENCED_PARAMETER(flags);
+
+    *prog_id = 0;
+    for (uint32_t link_id = 0;;) {
+        int err = bpf_link_get_next_id(link_id, &link_id);
+        if (err < 0) {
+            return err;
+        }
+        fd_t link_fd = bpf_link_get_fd_by_id(link_id);
+        if (link_fd == ebpf_fd_invalid) {
+            return libbpf_err(-ENOENT);
+        }
+
+        struct bpf_link_info link_info;
+        uint32_t info_size = sizeof(link_info);
+        err = bpf_obj_get_info_by_fd(link_fd, &link_info, &info_size);
+        Platform::_close(link_fd);
+        if (err != 0) {
+            return err;
+        }
+
+        if ((memcmp(&link_info.program_type_uuid, &EBPF_PROGRAM_TYPE_XDP, sizeof(link_info.program_type_uuid)) == 0) &&
+            (link_info.xdp.ifindex == (uint32_t)ifindex)) {
+            *prog_id = link_info.prog_id;
+            return 0;
+        }
+    }
 }

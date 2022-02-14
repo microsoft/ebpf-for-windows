@@ -110,6 +110,8 @@ enum bpf_prog_type
     BPF_PROG_TYPE_BIND, // TODO(#333): replace with cross-platform program type
 };
 
+#define XDP_FLAGS_REPLACE 0x01
+
 // The link type is used to tell which union member is present
 // in the bpf_link_info struct.  There is exactly one non-zero value
 // per union member.
