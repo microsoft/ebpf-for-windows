@@ -441,6 +441,11 @@ __bpf_set_link_xdp_fd_replace(int ifindex, int fd, int old_fd, __u32 flags)
             return err;
         }
 
+        // Verify that the program is actually an XDP program.
+        if (prog_info.type != BPF_PROG_TYPE_XDP) {
+            return libbpf_err(-EINVAL);
+        }
+
         // Unlink the old program from the specified ifindex.
         uint32_t link_id = 0;
         while (bpf_link_get_next_id(link_id, &link_id) == 0) {
