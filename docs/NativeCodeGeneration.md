@@ -16,7 +16,7 @@ eBPF programs start in a higher level language (like C) that is then compiled us
 
 # Native Code Generation Pipeline
 
-Generation of Windows Driver in PE format from an eBPF program can be broken down into a series of steps. The first step is executed by the developer either on their own build machine or part of a pre-existing build pipeline. The remaining steps can be executed in a secure environment (production signed PE image) or a developer environment (test signed PE image).
+Generation of a Windows Driver in PE format from an eBPF program can be broken down into a series of steps. The first step is executed by the developer either on their own build machine or part of a pre-existing build pipeline. The remaining steps can be executed in a secure environment (production signed PE image) or a developer environment (test signed PE image).
 
 ## External - Step 1 - Generation of LLVM IR from high level eBPF program
 
