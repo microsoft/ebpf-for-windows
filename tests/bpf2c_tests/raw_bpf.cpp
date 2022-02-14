@@ -134,7 +134,7 @@ run_test(const std::string& data_file)
     }
 
 // Tests are dependent on the collateral from the https://github.com/iovisor/ubpf project.
-// Most of uBPF tests are declared as a block of assembly, an expected result and a block of memory
+// Most uBPF tests are declared as a block of assembly, an expected result and a block of memory
 // to be passed to the test, but some of the uBPF tests are not currently usable due to the
 // following reasons:
 // 1) They do not declare an expected result block.
@@ -144,7 +144,7 @@ run_test(const std::string& data_file)
 // These tests are included for completeness, but commented out as they are not supported.
 // Note on 2:
 // The intended flow has bpf2c execute after the BPF byte code has been verified by PREVAIL.
-// As such, these would be redundant. In addition, the test look for specific text error messages
+// As such, these would be redundant. In addition, the tests look for specific text error messages
 // from the uBPF JIT compiler which would not match.
 DECLARE_TEST("add")
 DECLARE_TEST("alu-arith")
