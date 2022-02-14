@@ -572,7 +572,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
 
     if (helper_functions.size() > 0) {
         output_stream << "static helper_function_entry_t _helpers[] = {" << std::endl;
-        
+
         // Functions are emitted in the order in which they occur in the byte code.
         std::vector<std::tuple<std::string, uint32_t>> index_ordered_helpers;
         index_ordered_helpers.resize(helper_functions.size());
@@ -661,7 +661,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
 
     output_stream << std::endl;
     output_stream << format_string(
-        "meta_data_table_t %s = { _get_programs, _get_maps, _get_helpers };\n", c_name.c_str());
+        "metadata_table_t %s = { _get_programs, _get_maps, _get_helpers };\n", c_name.c_str());
 }
 
 std::string

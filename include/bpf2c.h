@@ -49,12 +49,12 @@ extern "C"
         const char* name;
     } program_entry_t;
 
-    typedef struct _meta_data_table
+    typedef struct _metadata_table
     {
         void (*programs)(program_entry_t** programs, size_t* count);
         void (*maps)(map_entry_t** maps, size_t* count);
         void (*helpers)(helper_function_entry_t** helpers, size_t* count);
-    } meta_data_table_t;
+    } metadata_table_t;
 
     inline uint16_t
     swap16(uint16_t value)

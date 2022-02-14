@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include "dll_meta_data_table.h"
+#include "dll_metadata_table.h"
 
 #include <stdexcept>
 
@@ -13,8 +13,8 @@
 #include "ebpf_object.h"
 #include "platform.h"
 
-extern "C" meta_data_table_t*
-get_meta_data_table(const char* name);
+extern "C" metadata_table_t*
+get_metadata_table(const char* name);
 typedef struct _ebpf_core_map ebpf_map_t;
 extern "C" ebpf_result_t
 ebpf_map_create(
@@ -25,21 +25,21 @@ ebpf_map_create(
 
 typedef struct _ebpf_object ebpf_object_t;
 
-dll_meta_data_table::dll_meta_data_table(const std::string& dll_name, const std::string& table_name)
+dll_metadata_table::dll_metadata_table(const std::string& dll_name, const std::string& table_name)
 {
     dll = LoadLibraryA(dll_name.c_str());
     if (dll == nullptr) {
         throw std::runtime_error("Failed to load dll");
     }
-    auto get_function = reinterpret_cast<decltype(&get_meta_data_table)>(GetProcAddress(dll, "get_meta_data_table"));
+    auto get_function = reinterpret_cast<decltype(&get_metadata_table)>(GetProcAddress(dll, "get_metadata_table"));
     if (get_function == nullptr) {
-        throw std::runtime_error("Failed to find get_meta_data_table");
+        throw std::runtime_error("Failed to find get_metadata_table");
     }
     table = get_function(table_name.c_str());
     if (table == nullptr) {
         throw std::runtime_error("Failed to find table");
     }
-    bind_meta_data_table();
+    bind_metadata_table();
     program_entry_t* programs;
     size_t count;
     table->programs(&programs, &count);
@@ -48,14 +48,14 @@ dll_meta_data_table::dll_meta_data_table(const std::string& dll_name, const std:
     }
 }
 
-dll_meta_data_table::~dll_meta_data_table()
+dll_metadata_table::~dll_metadata_table()
 {
-    unbind_meta_data_table();
+    unbind_metadata_table();
     FreeLibrary(dll);
 }
 
 uint64_t
-dll_meta_data_table::invoke(const std::string& name, void* context)
+dll_metadata_table::invoke(const std::string& name, void* context)
 {
     auto program = loaded_programs.find(name);
     if (program == loaded_programs.end()) {
@@ -65,13 +65,13 @@ dll_meta_data_table::invoke(const std::string& name, void* context)
 }
 
 fd_t
-dll_meta_data_table::get_map(const std::string& name)
+dll_metadata_table::get_map(const std::string& name)
 {
     return loaded_maps[name];
 }
 
 void
-dll_meta_data_table::bind_meta_data_table()
+dll_metadata_table::bind_metadata_table()
 {
     helper_function_entry_t* helpers = nullptr;
     size_t helpers_count = 0;
@@ -143,7 +143,7 @@ dll_meta_data_table::bind_meta_data_table()
 }
 
 void
-dll_meta_data_table::unbind_meta_data_table()
+dll_metadata_table::unbind_metadata_table()
 {
     helper_function_entry_t* helpers = nullptr;
     size_t helpers_count = 0;

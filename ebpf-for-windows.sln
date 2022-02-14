@@ -112,6 +112,9 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test_util", "tests\libs\util\test_util.vcxproj", "{D6725F19-B9BF-435F-80F2-C5F3EF0F4B8F}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "unit_tests", "tests\unit\test.vcxproj", "{A4037E5D-B00C-4AF1-9398-76B3ECE95F62}"
+	ProjectSection(ProjectDependencies) = postProject
+		{7FF318D8-5B95-4ACB-921D-4BBB71149938} = {7FF318D8-5B95-4ACB-921D-4BBB71149938}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "netsh_static", "libs\ebpfnetsh\ebpfnetsh.vcxproj", "{370E7D53-C97F-4077-A3D5-620C4FD87EED}"
 EndProject
@@ -131,7 +134,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "bpf2c", "tools\bpf2c\bpf2c.
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "bpf2c_tests", "tests\bpf2c_tests\bpf2c_tests.vcxproj", "{61DF9973-81B9-4006-9148-52F58259BBCF}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "bpf2c_test_dll", "tests\bpf2c_test_dll\bpf2c_test_dll.vcxproj", "{7FF318D8-5B95-4ACB-921D-4BBB71149938}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "bpf2c_test_wrapper", "tests\bpf2c_test_wrapper\bpf2c_test_wrapper.vcxproj", "{7FF318D8-5B95-4ACB-921D-4BBB71149938}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

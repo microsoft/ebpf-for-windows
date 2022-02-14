@@ -18,7 +18,7 @@ extern "C"
 #define C_NAME test
 #endif
 
-extern "C" meta_data_table_t C_NAME;
+extern "C" metadata_table_t C_NAME;
 
 static uint64_t
 gather_bytes(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)

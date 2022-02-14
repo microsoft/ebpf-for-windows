@@ -15,7 +15,7 @@
 #include "bpf/libbpf.h"
 #include "catch_wrapper.hpp"
 #include "common_tests.h"
-#include "dll_meta_data_table.h"
+#include "dll_metadata_table.h"
 #include "ebpf_bind_program_data.h"
 #include "ebpf_core.h"
 #include "ebpf_xdp_program_data.h"
@@ -1630,7 +1630,7 @@ TEST_CASE("map_reuse_3", "[end_to_end]")
 TEST_CASE("bpf2c_droppacket", "[bpf2c]")
 {
     _test_helper_end_to_end test_helper;
-    dll_meta_data_table table("bpf2c_test_dll.dll", "droppacket");
+    dll_metadata_table table("bpf2c_test_wrapper.dll", "droppacket");
     uint32_t key = 0;
     uint64_t value = 0;
 
@@ -1656,7 +1656,7 @@ TEST_CASE("bpf2c_droppacket", "[bpf2c]")
 TEST_CASE("bpf2c_divide_by_zero", "[bpf2c]")
 {
     _test_helper_end_to_end test_helper;
-    dll_meta_data_table table("bpf2c_test_dll.dll", "divide_by_zero");
+    dll_metadata_table table("bpf2c_test_wrapper.dll", "divide_by_zero");
 
     auto packet = prepare_udp_packet(0, ETHERNET_TYPE_IPV4);
     // Test that we drop the packet and increment the map
@@ -1669,7 +1669,7 @@ TEST_CASE("bpf2c_divide_by_zero", "[bpf2c]")
 TEST_CASE("bpf2c_bindmonitor", "[bpf2c]")
 {
     _test_helper_end_to_end test_helper;
-    dll_meta_data_table table("bpf2c_test_dll.dll", "bindmonitor");
+    dll_metadata_table table("bpf2c_test_wrapper.dll", "bindmonitor");
 
     uint64_t fake_pid = 12345;
 

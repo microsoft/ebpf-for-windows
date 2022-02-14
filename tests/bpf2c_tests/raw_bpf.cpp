@@ -126,21 +126,35 @@ run_test(const std::string& data_file)
     REQUIRE(system(test_command.c_str()) == 0);
 }
 
-#define DECLARE_TEST(FILE)                                                                                       \
-    TEST_CASE(FILE, "[raw_bpf_code_gen]")                                                                        \
-    {                                                                                                            \
-        run_test(".." SEPERATOR ".." SEPERATOR "external" SEPERATOR "ubpf" SEPERATOR "tests" SEPERATOR "" FILE ".data"); \
+#define DECLARE_TEST(FILE)                                                                                     \
+    TEST_CASE(FILE, "[raw_bpf_code_gen]")                                                                      \
+    {                                                                                                          \
+        run_test(".." SEPERATOR ".." SEPERATOR "external" SEPERATOR "ubpf" SEPERATOR "tests" SEPERATOR "" FILE \
+                 ".data");                                                                                     \
     }
 
+// Tests are dependent on the collateral from the https://github.com/iovisor/ubpf project.
+// Most of uBPF tests are declared as a block of assembly, an expected result and a block of memory
+// to be passed to the test, but some of the uBPF tests are not currently usable due to the
+// following reasons:
+// 1) They do not declare an expected result block.
+// 2) They assume certain validations on malformed code are performed by bpf2c.
+// 3) They assume non-standard eBPF ISA behavior (r2 == length of memory as an example).
+// 4) They use directives that don't make sense in this context.
+// These tests are included for completeness, but commented out as they are not supported.
+// Note on 2:
+// The intended flow has bpf2c execute after the BPF byte code has been verified by PREVAIL.
+// As such, these would be redundant. In addition, the test look for specific text error messages
+// from the uBPF JIT compiler which would not match.
 DECLARE_TEST("add")
 DECLARE_TEST("alu-arith")
 DECLARE_TEST("alu-bit")
 // Test doesn't declare expected result.
-//DECLARE_TEST("alu")
+// DECLARE_TEST("alu")
 DECLARE_TEST("alu64-arith")
 DECLARE_TEST("alu64-bit")
 // Test doesn't declare expected result.
-//DECLARE_TEST("alu64")
+// DECLARE_TEST("alu64")
 DECLARE_TEST("arsh-reg")
 DECLARE_TEST("arsh")
 DECLARE_TEST("arsh32-high-shift")
@@ -194,7 +208,7 @@ DECLARE_TEST("jle-reg")
 DECLARE_TEST("jlt-imm")
 DECLARE_TEST("jlt-reg")
 // Test doesn't declare expected result.
-//DECLARE_TEST("jmp")
+// DECLARE_TEST("jmp")
 DECLARE_TEST("jne-reg")
 DECLARE_TEST("jset-imm")
 DECLARE_TEST("jset-reg")
@@ -209,7 +223,7 @@ DECLARE_TEST("jslt-reg")
 DECLARE_TEST("lddw")
 DECLARE_TEST("lddw2")
 // Test doesn't declare expected result.
-//DECLARE_TEST("ldx")
+// DECLARE_TEST("ldx")
 DECLARE_TEST("ldxb-all")
 DECLARE_TEST("ldxb")
 DECLARE_TEST("ldxdw")
@@ -224,7 +238,7 @@ DECLARE_TEST("le32")
 DECLARE_TEST("le64")
 DECLARE_TEST("lsh-reg")
 // bpf2c generated code doesn't pass length as r2.
-//DECLARE_TEST("mem-len")
+// DECLARE_TEST("mem-len")
 DECLARE_TEST("mod")
 DECLARE_TEST("mod32")
 DECLARE_TEST("mod64")
@@ -239,11 +253,11 @@ DECLARE_TEST("neg")
 DECLARE_TEST("neg64")
 DECLARE_TEST("prime")
 // Test doesn't support reload directive.
-//DECLARE_TEST("reload")
+// DECLARE_TEST("reload")
 DECLARE_TEST("rsh-reg")
 DECLARE_TEST("rsh32")
 // Test doesn't declare expected result.
-//DECLARE_TEST("st")
+// DECLARE_TEST("st")
 DECLARE_TEST("stack")
 DECLARE_TEST("stack2")
 DECLARE_TEST("stb")
@@ -252,7 +266,7 @@ DECLARE_TEST("sth")
 DECLARE_TEST("string-stack")
 DECLARE_TEST("stw")
 // Test doesn't declare expected result.
-//DECLARE_TEST("stx")
+// DECLARE_TEST("stx")
 DECLARE_TEST("stxb-all")
 DECLARE_TEST("stxb-all2")
 DECLARE_TEST("stxb-chain")
@@ -262,4 +276,4 @@ DECLARE_TEST("stxh")
 DECLARE_TEST("stxw")
 DECLARE_TEST("subnet")
 // Test doesn't support unload directive.
-//DECLARE_TEST("unload_reload")
+// DECLARE_TEST("unload_reload")

@@ -189,10 +189,6 @@ bpf2c.exe divide_by_zero.o &gt;divide_by_zero.c</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="framework.h" />
-    <ClInclude Include="pch.h" />
-  </ItemGroup>
-  <ItemGroup>
     <ClCompile Include="$(OutDir)bindmonitor_c.c" />
     <ClCompile Include="$(OutDir)divide_by_zero.c" />
     <ClCompile Include="$(OutDir)droppacket_c.c" />

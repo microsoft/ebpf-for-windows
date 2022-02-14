@@ -5,4 +5,4 @@
 
 LIBRARY
 EXPORTS
-	get_meta_data_table
+	get_metadata_table
