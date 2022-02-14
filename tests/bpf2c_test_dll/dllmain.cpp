@@ -31,7 +31,7 @@ DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)
 void
 division_by_zero(uint32_t address)
 {
-    std::cerr << "Divide by zero at addres " << address << std::endl;
+    std::cerr << "Divide by zero at address " << address << std::endl;
 }
 
 #define FIND_META_DATA_ENTRTY(NAME, X) \
