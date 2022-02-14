@@ -37,7 +37,7 @@ division_by_zero(uint32_t address)
 }
 
 #define FIND_METADATA_ENTRTY(NAME, X) \
-    if (std::string(NAME) == #X)       \
+    if (std::string(NAME) == #X)      \
         return &X;
 
 extern "C" metadata_table_t*
