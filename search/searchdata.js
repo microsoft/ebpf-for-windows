@@ -4,11 +4,12 @@ var indexSectionsWithContent =
   1: "_bex",
   2: "behlmpst",
   3: "belmrt",
-  4: "abcdefhiklmnoprstv",
+  4: "abcdefhiklmnoprstvx",
   5: "_befgptx",
   6: "_be",
   7: "_beipsux",
-  8: "_belmx"
+  8: "_belmx",
+  9: "d"
 };
 
 var indexSectionNames =
@@ -21,7 +22,8 @@ var indexSectionNames =
   5: "typedefs",
   6: "enums",
   7: "enumvalues",
-  8: "defines"
+  8: "defines",
+  9: "pages"
 };
 
 var indexSectionLabels =
@@ -34,6 +36,7 @@ var indexSectionLabels =
   5: "Typedefs",
   6: "Enumerations",
   7: "Enumerator",
-  8: "Macros"
+  8: "Macros",
+  9: "Pages"
 };
 

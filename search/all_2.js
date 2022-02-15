@@ -143,8 +143,12 @@ var searchData=
   ['bpf_5fprogram_5f_5funload_176',['bpf_program__unload',['../libbpf_8h.html#aa193a3941705024e16738bb5ed687fd7',1,'libbpf.h']]],
   ['bpf_5fprogram_5f_5funpin_177',['bpf_program__unpin',['../libbpf_8h.html#a3b5343605f1e4aff8008b4f3bba296bd',1,'libbpf.h']]],
   ['bpf_5fringbuf_5foutput_178',['bpf_ringbuf_output',['../bpf__helper__defs_8h.html#a0939532bb795021d9cc85cd5dcfce983',1,'bpf_helper_defs.h']]],
-  ['bpf_5fstats_5ftype_179',['bpf_stats_type',['../linux_2bpf_8h.html#af8f453a20dddc8657d0e69f73ffe2879',1,'bpf.h']]],
-  ['bpf_5fstats_5ftype_5funknown_180',['BPF_STATS_TYPE_UNKNOWN',['../linux_2bpf_8h.html#af8f453a20dddc8657d0e69f73ffe2879abc1dd3438f95108ae16a1387917b5c65',1,'bpf.h']]],
-  ['bpf_5ftail_5fcall_181',['bpf_tail_call',['../bpf__helper__defs_8h.html#af0a0db158b6d6cc4fdf93411e41431ef',1,'bpf_helper_defs.h']]],
-  ['bpf_5fxdp_5fadjust_5fhead_182',['bpf_xdp_adjust_head',['../ebpf__nethooks_8h.html#affc4b6ad0564d5788cf036749dff4e50',1,'ebpf_nethooks.h']]]
+  ['bpf_5fset_5flink_5fxdp_5ffd_179',['bpf_set_link_xdp_fd',['../libbpf_8h.html#a62d680951c5e380caef2d82d97f12d9d',1,'libbpf.h']]],
+  ['bpf_5fstats_5ftype_180',['bpf_stats_type',['../linux_2bpf_8h.html#af8f453a20dddc8657d0e69f73ffe2879',1,'bpf.h']]],
+  ['bpf_5fstats_5ftype_5funknown_181',['BPF_STATS_TYPE_UNKNOWN',['../linux_2bpf_8h.html#af8f453a20dddc8657d0e69f73ffe2879abc1dd3438f95108ae16a1387917b5c65',1,'bpf.h']]],
+  ['bpf_5ftail_5fcall_182',['bpf_tail_call',['../bpf__helper__defs_8h.html#af0a0db158b6d6cc4fdf93411e41431ef',1,'bpf_helper_defs.h']]],
+  ['bpf_5fxdp_5fadjust_5fhead_183',['bpf_xdp_adjust_head',['../ebpf__nethooks_8h.html#affc4b6ad0564d5788cf036749dff4e50',1,'ebpf_nethooks.h']]],
+  ['bpf_5fxdp_5fattach_184',['bpf_xdp_attach',['../libbpf_8h.html#a21804429f974038fb1d68004fe3aeea5',1,'libbpf.h']]],
+  ['bpf_5fxdp_5fdetach_185',['bpf_xdp_detach',['../libbpf_8h.html#a91e7564271ad3b6d0c9c67ffad32f03e',1,'libbpf.h']]],
+  ['bpf_5fxdp_5fquery_5fid_186',['bpf_xdp_query_id',['../libbpf_8h.html#ac3c161a9caa1a904f09980e89d51407f',1,'libbpf.h']]]
 ];

@@ -220,6 +220,18 @@ Functions</h2></td></tr>
 <tr class="memitem:a3b5343605f1e4aff8008b4f3bba296bd"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a3b5343605f1e4aff8008b4f3bba296bd">bpf_program__unpin</a> (struct bpf_program *prog, const char *path)</td></tr>
 <tr class="memdesc:a3b5343605f1e4aff8008b4f3bba296bd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Unpin a program.  <a href="libbpf_8h.html#a3b5343605f1e4aff8008b4f3bba296bd">More...</a><br /></td></tr>
 <tr class="separator:a3b5343605f1e4aff8008b4f3bba296bd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a62d680951c5e380caef2d82d97f12d9d"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a62d680951c5e380caef2d82d97f12d9d">bpf_set_link_xdp_fd</a> (int ifindex, int fd, <a class="el" href="types_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a> flags)</td></tr>
+<tr class="memdesc:a62d680951c5e380caef2d82d97f12d9d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attach an XDP program to a given interface.  <a href="libbpf_8h.html#a62d680951c5e380caef2d82d97f12d9d">More...</a><br /></td></tr>
+<tr class="separator:a62d680951c5e380caef2d82d97f12d9d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a21804429f974038fb1d68004fe3aeea5"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a21804429f974038fb1d68004fe3aeea5">bpf_xdp_attach</a> (int ifindex, int prog_fd, <a class="el" href="types_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a> flags, const struct bpf_xdp_attach_opts *opts)</td></tr>
+<tr class="memdesc:a21804429f974038fb1d68004fe3aeea5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attach an XDP program to a given interface.  <a href="libbpf_8h.html#a21804429f974038fb1d68004fe3aeea5">More...</a><br /></td></tr>
+<tr class="separator:a21804429f974038fb1d68004fe3aeea5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a91e7564271ad3b6d0c9c67ffad32f03e"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a91e7564271ad3b6d0c9c67ffad32f03e">bpf_xdp_detach</a> (int ifindex, <a class="el" href="types_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a> flags, const struct bpf_xdp_attach_opts *opts)</td></tr>
+<tr class="memdesc:a91e7564271ad3b6d0c9c67ffad32f03e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Detach an XDP program from a given interface.  <a href="libbpf_8h.html#a91e7564271ad3b6d0c9c67ffad32f03e">More...</a><br /></td></tr>
+<tr class="separator:a91e7564271ad3b6d0c9c67ffad32f03e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac3c161a9caa1a904f09980e89d51407f"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#ac3c161a9caa1a904f09980e89d51407f">bpf_xdp_query_id</a> (int ifindex, int flags, <a class="el" href="types_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a> *prog_id)</td></tr>
+<tr class="memdesc:ac3c161a9caa1a904f09980e89d51407f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the XDP program id attached to a given interface index.  <a href="libbpf_8h.html#ac3c161a9caa1a904f09980e89d51407f">More...</a><br /></td></tr>
+<tr class="separator:ac3c161a9caa1a904f09980e89d51407f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a64a0e9275ed02a9f30291ae5dd777452"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a64a0e9275ed02a9f30291ae5dd777452">libbpf_prog_type_by_name</a> (const char *name, enum <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0">bpf_prog_type</a> *prog_type, enum <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5a">bpf_attach_type</a> *expected_attach_type)</td></tr>
 <tr class="memdesc:a64a0e9275ed02a9f30291ae5dd777452"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get a program type and expected attach type by name.  <a href="libbpf_8h.html#a64a0e9275ed02a9f30291ae5dd777452">More...</a><br /></td></tr>
 <tr class="separator:a64a0e9275ed02a9f30291ae5dd777452"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -2129,6 +2141,233 @@ bpf_object__unpin </dd></dl>
 <dl class="section see"><dt>See also</dt><dd><a class="el" href="libbpf_8h.html#a707d517a9861144008ed57e717ac174a" title="Unpin all programs associated with an eBPF object from a specified path.">bpf_object__unpin_programs</a> </dd>
 <dd>
 <a class="el" href="libbpf_8h.html#afdd9d5fdcf93964e5cdee24c2c1ca89f" title="Pin a program to a specified path.">bpf_program__pin</a> </dd></dl>
+
+</div>
+</div>
+<a id="a62d680951c5e380caef2d82d97f12d9d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a62d680951c5e380caef2d82d97f12d9d">&#9670;&nbsp;</a></span>bpf_set_link_xdp_fd()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int bpf_set_link_xdp_fd </td>
+          <td>(</td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>ifindex</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>fd</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="types_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a>&#160;</td>
+          <td class="paramname"><em>flags</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Attach an XDP program to a given interface. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">ifindex</td><td>The interface index to attach to, or -1 to detach. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">fd</td><td>File descriptor of program to attach. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">flags</td><td>Flags. Use XDP_FLAGS_REPLACE to replace any program previously attached to the specified interface index.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
+    <tr><td class="paramname">&lt;0</td><td>An error occured, and errno was set.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000001">Deprecated:</a></b></dt><dd>Use <a class="el" href="libbpf_8h.html#a21804429f974038fb1d68004fe3aeea5" title="Attach an XDP program to a given interface.">bpf_xdp_attach()</a> instead.</dd></dl>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="libbpf_8h.html#add95958a8ad1c31b3f42a614625d20d1" title="Attach an eBPF program to an XDP hook.">bpf_program__attach_xdp</a> </dd>
+<dd>
+<a class="el" href="libbpf_8h.html#a21804429f974038fb1d68004fe3aeea5" title="Attach an XDP program to a given interface.">bpf_xdp_attach</a> </dd>
+<dd>
+<a class="el" href="libbpf_8h.html#a91e7564271ad3b6d0c9c67ffad32f03e" title="Detach an XDP program from a given interface.">bpf_xdp_detach</a> </dd></dl>
+
+</div>
+</div>
+<a id="a21804429f974038fb1d68004fe3aeea5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a21804429f974038fb1d68004fe3aeea5">&#9670;&nbsp;</a></span>bpf_xdp_attach()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int bpf_xdp_attach </td>
+          <td>(</td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>ifindex</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>prog_fd</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="types_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a>&#160;</td>
+          <td class="paramname"><em>flags</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const struct bpf_xdp_attach_opts *&#160;</td>
+          <td class="paramname"><em>opts</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Attach an XDP program to a given interface. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">ifindex</td><td>The interface index to attach to, or -1 to detach. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">prog_fd</td><td>File descriptor of program to attach. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">flags</td><td>Flags. Use XDP_FLAGS_REPLACE to replace any program previously attached to the specified interface index. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">opts</td><td>Options (currently unused).</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
+    <tr><td class="paramname">&lt;0</td><td>An error occured, and errno was set.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="libbpf_8h.html#add95958a8ad1c31b3f42a614625d20d1" title="Attach an eBPF program to an XDP hook.">bpf_program__attach_xdp</a> </dd>
+<dd>
+<a class="el" href="libbpf_8h.html#a91e7564271ad3b6d0c9c67ffad32f03e" title="Detach an XDP program from a given interface.">bpf_xdp_detach</a> </dd></dl>
+
+</div>
+</div>
+<a id="a91e7564271ad3b6d0c9c67ffad32f03e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a91e7564271ad3b6d0c9c67ffad32f03e">&#9670;&nbsp;</a></span>bpf_xdp_detach()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int bpf_xdp_detach </td>
+          <td>(</td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>ifindex</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="types_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a>&#160;</td>
+          <td class="paramname"><em>flags</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const struct bpf_xdp_attach_opts *&#160;</td>
+          <td class="paramname"><em>opts</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Detach an XDP program from a given interface. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">ifindex</td><td>The interface index to detach from. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">prog_fd</td><td>File descriptor of program to detach. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">flags</td><td>Flags. Use XDP_FLAGS_REPLACE to detach any program previously attached to the specified interface index. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">opts</td><td>Options (currently unused).</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
+    <tr><td class="paramname">&lt;0</td><td>An error occured, and errno was set.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="bpf_2bpf_8h.html#a9bd017a4caa22bd9d57426e43b3390e1" title="Detach a link.">bpf_link_detach</a> </dd>
+<dd>
+<a class="el" href="libbpf_8h.html#add95958a8ad1c31b3f42a614625d20d1" title="Attach an eBPF program to an XDP hook.">bpf_program__attach_xdp</a> </dd>
+<dd>
+<a class="el" href="libbpf_8h.html#a21804429f974038fb1d68004fe3aeea5" title="Attach an XDP program to a given interface.">bpf_xdp_attach</a> </dd></dl>
+
+</div>
+</div>
+<a id="ac3c161a9caa1a904f09980e89d51407f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac3c161a9caa1a904f09980e89d51407f">&#9670;&nbsp;</a></span>bpf_xdp_query_id()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int bpf_xdp_query_id </td>
+          <td>(</td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>ifindex</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>flags</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="types_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a> *&#160;</td>
+          <td class="paramname"><em>prog_id</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Get the XDP program id attached to a given interface index. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">ifindex</td><td>The interface index to query. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">flags</td><td>Flags (currently 0). </td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">prog_id</td><td>The ID of the program attached.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
+    <tr><td class="paramname">&lt;0</td><td>An error occured, and errno was set.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="libbpf_8h.html#a21804429f974038fb1d68004fe3aeea5" title="Attach an XDP program to a given interface.">bpf_xdp_attach</a> </dd></dl>
 
 </div>
 </div>
