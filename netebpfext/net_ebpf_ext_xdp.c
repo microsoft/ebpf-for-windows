@@ -328,6 +328,19 @@ net_ebpf_ext_layer_2_classify(
     net_xdp_ctx.ingress_ifindex =
         incoming_fixed_values->incomingValue[FWPS_FIELD_INBOUND_MAC_FRAME_NATIVE_INTERFACE_INDEX].value.uint32;
 
+    // TODO(issue #754): Support multiple clients and iterate through them.
+    // Also, the _ebpf_ext_get_client_data() function is used because currently
+    // the structure is opaque except inside ebpf_ext_attach_provider.c.  However,
+    // this results in a slightly longer cycle count in the hot path to get to
+    // the client data here.   In the future, the client data field should be
+    // exposed in the .h file for us to access here.
+    const ebpf_extension_data_t* client_data = _ebpf_ext_get_client_data(_ebpf_xdp_hook_provider_registration);
+    uint32_t client_ifindex = *(const uint32_t*)client_data->data;
+    if (client_ifindex != 0 && client_ifindex != net_xdp_ctx.ingress_ifindex) {
+        // The client is not interested in this ingress ifindex.
+        goto Done;
+    }
+
     net_xdp_ctx.original_nbl = nbl;
 
     net_buffer = NET_BUFFER_LIST_FIRST_NB(nbl);

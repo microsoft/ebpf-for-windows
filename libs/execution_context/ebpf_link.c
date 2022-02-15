@@ -78,7 +78,7 @@ ebpf_link_initialize(
             return_value = EBPF_NO_MEMORY;
             goto Exit;
         }
-        memcpy(&link->client_data.data, context_data, context_data_length);
+        memcpy(link->client_data.data, context_data, context_data_length);
     }
 
     return_value = ebpf_extension_load(
@@ -166,6 +166,8 @@ ebpf_link_detach_program(_Inout_ ebpf_link_t* link)
 
     ebpf_extension_unload(link->extension_client_context);
     ebpf_free(link->client_data.data);
+    link->client_data.data = NULL;
+    link->client_data.size = 0;
     EBPF_RETURN_VOID();
 }
 
@@ -212,6 +214,12 @@ ebpf_link_get_info(
     info->program_type_uuid = link->program_type;
     info->attach_type_uuid = link->attach_type;
     info->attach_type = BPF_ATTACH_TYPE_UNSPEC; // TODO(#223): get actual integer, and also return attach_type_uuid
+
+    // Copy any additional parameters.  Currently only XDP has such.
+    size_t size = sizeof(struct bpf_link_info) - FIELD_OFFSET(struct bpf_link_info, xdp);
+    if ((link->client_data.size > 0) && (link->client_data.size <= size)) {
+        memcpy(&info->xdp, link->client_data.data, link->client_data.size);
+    }
 
     *info_size = sizeof(*info);
     EBPF_RETURN_RESULT(EBPF_SUCCESS);

@@ -269,7 +269,7 @@ ring_buffer_api_test(ebpf_execution_type_t execution_type)
     struct bpf_object* object = nullptr;
     hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
     program_load_attach_helper_t _helper(
-        "bindmonitor_ringbuf.o", EBPF_PROGRAM_TYPE_BIND, "bind_monitor", execution_type, hook);
+        "bindmonitor_ringbuf.o", EBPF_PROGRAM_TYPE_BIND, "bind_monitor", execution_type, nullptr, 0, hook);
     object = _helper.get_object();
 
     fd_t process_map_fd = bpf_object__find_map_fd_by_name(object, "process_map");
