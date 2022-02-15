@@ -110,6 +110,8 @@ enum bpf_prog_type
     BPF_PROG_TYPE_BIND, // TODO(#333): replace with cross-platform program type
 };
 
+#define XDP_FLAGS_REPLACE 0x01
+
 // The link type is used to tell which union member is present
 // in the bpf_link_info struct.  There is exactly one non-zero value
 // per union member.
@@ -134,17 +136,18 @@ enum bpf_attach_type
 #pragma warning(disable : 4201) /* nameless struct/union */
 struct bpf_link_info
 {
-    ebpf_id_t id;            ///< Link ID.
-    ebpf_id_t prog_id;       ///< Program ID.
-    enum bpf_link_type type; ///< Link type.
+    ebpf_id_t id;                          ///< Link ID.
+    ebpf_id_t prog_id;                     ///< Program ID.
+    enum bpf_link_type type;               ///< Link type.
+    int attach_type;                       ///< Attach type integer.
+    ebpf_attach_type_t attach_type_uuid;   ///< Attach type UUID.
+    ebpf_program_type_t program_type_uuid; ///< Program type UUID.
     union
     {
         struct
         {
-            int attach_type;                       ///< Attach type integer.
-            ebpf_attach_type_t attach_type_uuid;   ///< Attach type UUID.
-            ebpf_program_type_t program_type_uuid; ///< Program type UUID.
-        };
+            uint32_t ifindex;
+        } xdp;
     };
 };
 #pragma warning(pop)

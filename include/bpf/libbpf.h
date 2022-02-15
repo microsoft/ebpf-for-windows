@@ -732,6 +732,78 @@ int
 bpf_program__unpin(struct bpf_program* prog, const char* path);
 
 /**
+ * @brief Attach an XDP program to a given interface.
+ *
+ * @param[in] ifindex The interface index to attach to, or -1 to detach.
+ * @param[in] fd File descriptor of program to attach.
+ * @param[in] flags Flags. Use XDP_FLAGS_REPLACE to replace any program previously attached to
+ *                  the specified interface index.
+ *
+ * @retval 0 The operation was successful.
+ * @retval <0 An error occured, and errno was set.
+ *
+ * @deprecated Use bpf_xdp_attach() instead.
+ *
+ * @sa bpf_program__attach_xdp
+ * @sa bpf_xdp_attach
+ * @sa bpf_xdp_detach
+ */
+int
+bpf_set_link_xdp_fd(int ifindex, int fd, __u32 flags);
+
+/**
+ * @brief Attach an XDP program to a given interface.
+ *
+ * @param[in] ifindex The interface index to attach to, or -1 to detach.
+ * @param[in] prog_fd File descriptor of program to attach.
+ * @param[in] flags Flags. Use XDP_FLAGS_REPLACE to replace any program previously attached to
+ *                  the specified interface index.
+ * @param[in] opts Options (currently unused).
+ *
+ * @retval 0 The operation was successful.
+ * @retval <0 An error occured, and errno was set.
+ *
+ * @sa bpf_program__attach_xdp
+ * @sa bpf_xdp_detach
+ */
+int
+bpf_xdp_attach(int ifindex, int prog_fd, __u32 flags, const struct bpf_xdp_attach_opts* opts);
+
+/**
+ * @brief Detach an XDP program from a given interface.
+ *
+ * @param[in] ifindex The interface index to detach from.
+ * @param[in] prog_fd File descriptor of program to detach.
+ * @param[in] flags Flags. Use XDP_FLAGS_REPLACE to detach any program previously attached to
+ *                  the specified interface index.
+ * @param[in] opts Options (currently unused).
+ *
+ * @retval 0 The operation was successful.
+ * @retval <0 An error occured, and errno was set.
+ *
+ * @sa bpf_link_detach
+ * @sa bpf_program__attach_xdp
+ * @sa bpf_xdp_attach
+ */
+int
+bpf_xdp_detach(int ifindex, __u32 flags, const struct bpf_xdp_attach_opts* opts);
+
+/**
+ * @brief Get the XDP program id attached to a given interface index.
+ *
+ * @param[in] ifindex The interface index to query.
+ * @param[in] flags Flags (currently 0).
+ * @param[out] prog_id The ID of the program attached.
+ *
+ * @retval 0 The operation was successful.
+ * @retval <0 An error occured, and errno was set.
+ *
+ * @sa bpf_xdp_attach
+ */
+int
+bpf_xdp_query_id(int ifindex, int flags, __u32* prog_id);
+
+/**
  * @brief Get a program type and expected attach type by name.
  *
  * @param[in] name Name, as if it were a section name in an ELF file.

@@ -78,6 +78,10 @@ EXPORTS
     bpf_program__set_type
     bpf_program__unload
     bpf_program__unpin
+    bpf_set_link_xdp_fd
+    bpf_xdp_attach
+    bpf_xdp_detach
+    bpf_xdp_query_id
     ebpf_api_elf_enumerate_sections
     ebpf_api_elf_disassemble_section
     ebpf_api_elf_verify_section
