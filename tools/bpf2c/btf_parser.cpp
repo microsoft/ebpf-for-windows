@@ -3,6 +3,7 @@
 
 #include "btf_parser.h"
 
+#include <cstring>
 #include <stdexcept>
 
 #include "btf.h"
