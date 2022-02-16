@@ -15,7 +15,7 @@ bpf_code_generator.o: ../../tools/bpf2c/bpf_code_generator.cpp
 raw_bpf.o: raw_bpf.cpp
 	${CC} ${CFLAG} ${INCLUDES} -c $<
 
-btf_parser.o: btf_parser.cpp
+btf_parser.o: ../../tools/bpf2c/btf_parser.cpp
 	${CC} ${CFLAG} ${INCLUDES} -c $<
 
 clean:
