@@ -25,12 +25,21 @@
     <ClCompile Include="..\..\tools\bpf2c\bpf_code_generator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\tools\bpf2c\btf_parser.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\tools\bpf2c\bpf_code_generator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\tools\bpf2c\btf.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\tools\bpf2c\btf_parser.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

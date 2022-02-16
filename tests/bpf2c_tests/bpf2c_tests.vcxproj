@@ -154,6 +154,7 @@
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
       <FileType>CppCode</FileType>
     </CopyFileToFolders>
+    <ClCompile Include="..\..\tools\bpf2c\btf_parser.cpp" />
     <ClCompile Include="raw_bpf.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -161,6 +162,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\tools\bpf2c\bpf_code_generator.h" />
+    <ClInclude Include="..\..\tools\bpf2c\btf.h" />
+    <ClInclude Include="..\..\tools\bpf2c\btf_parser.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />

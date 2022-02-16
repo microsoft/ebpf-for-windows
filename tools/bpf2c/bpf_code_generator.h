@@ -6,6 +6,8 @@
 #include <set>
 #include <string>
 #include <vector>
+
+#include "btf_parser.h"
 #include "ebpf.h"
 #include "ebpf_structs.h"
 #pragma warning(push)
@@ -32,6 +34,11 @@ class bpf_code_generator
      */
     bpf_code_generator(const std::string& c_name, const std::vector<ebpf_inst>& instructions);
 
+    /**
+     * @brief Retrieve a vector of section names.
+     *
+     * @return Vector of section names.
+     */
     std::vector<std::string>
     program_sections();
 
@@ -59,6 +66,18 @@ class bpf_code_generator
     emit_c_code(std::ostream& output);
 
   private:
+    typedef struct _helper_function
+    {
+        int32_t id;
+        size_t index;
+    } helper_function_t;
+
+    typedef struct _map_entry
+    {
+        ebpf_map_definition_in_file_t definition;
+        size_t index;
+    } map_entry_t;
+
     typedef struct _output_instruction
     {
         ebpf_inst instruction = {};
@@ -75,18 +94,6 @@ class bpf_code_generator
         std::set<std::string> referenced_registers;
     } section_t;
 
-    typedef struct _helper_function
-    {
-        int32_t id;
-        size_t index;
-    } helper_function_t;
-
-    typedef struct _map_entry
-    {
-        ebpf_map_definition_in_file_t definition;
-        size_t index;
-    } map_entry_t;
-
     /**
      * @brief Extract the eBPF byte code from the eBPF file.
      *
@@ -101,8 +108,12 @@ class bpf_code_generator
     void
     extract_relocations_and_maps(const std::string& section_name);
 
-    // TODO - Once https://github.com/microsoft/ebpf-for-windows/issues/630 is
-    // resolved, gather and emit corresponding C code if available.
+    /**
+     * @brief Extract the mapping from instruction offset to line number.
+     *
+     */
+    void
+    extract_btf_information();
 
     /**
      * @brief Assign a label to each jump target.
@@ -143,18 +154,39 @@ class bpf_code_generator
         const std::string insert_3 = "",
         const std::string insert_4 = "");
 
+    /**
+     * @brief Convert a name to a valid C identifier.
+     *
+     * @param[in] name Name to convert to C identifier.
+     * @return A valid C identifier
+     */
     std::string
     sanitize_name(const std::string& name);
 
+    /**
+     * @brief Replace all "\"" with "\\" in a string.
+     *
+     * @param[in] input String to escape.
+     * @return Escaped string.
+     */
+    std::string
+    escape_string(const std::string& input);
+
+    /**
+     * @brief Get the name of a register from its index.
+     *
+     * @param[in] id Register index.
+     * @return Register name
+     */
     std::string
     get_register_name(uint8_t id);
 
     std::map<std::string, section_t> sections;
     section_t* current_section;
-
     ELFIO::elfio reader;
     std::map<std::string, helper_function_t> helper_functions;
     std::map<std::string, map_entry_t> map_definitions;
     std::string c_name;
     std::string path;
+    btf_section_to_instruction_to_line_info_t section_line_info;
 };
