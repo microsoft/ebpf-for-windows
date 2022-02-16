@@ -10,5 +10,5 @@
 #pragma warning(disable : 26816) // The pointer points to memory allocated on the stack
 
 #define CATCH_CONFIG_COLOUR_NONE 1 // Disable color until https://github.com/catchorg/Catch2/issues/2345 is fixed.
-#include "catch2\catch.hpp"
+#include "catch2/catch.hpp"
 #pragma warning(pop)

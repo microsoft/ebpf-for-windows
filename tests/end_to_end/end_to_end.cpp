@@ -10,10 +10,12 @@
 #include <WinSock2.h>
 #include <in6addr.h> // Must come after Winsock2.h
 
+#include "bpf2c.h"
 #include "bpf/bpf.h"
 #include "bpf/libbpf.h"
 #include "catch_wrapper.hpp"
 #include "common_tests.h"
+#include "dll_metadata_table.h"
 #include "ebpf_bind_program_data.h"
 #include "ebpf_core.h"
 #include "ebpf_xdp_program_data.h"
@@ -443,7 +445,7 @@ get_bind_count_for_pid(fd_t map_fd, uint64_t pid)
 }
 
 bind_action_t
-emulate_bind(single_instance_hook_t& hook, uint64_t pid, const char* appid)
+emulate_bind(std::function<ebpf_result_t(void*, int*)>& invoke, uint64_t pid, const char* appid)
 {
     int result;
     std::string app_id = appid;
@@ -452,19 +454,19 @@ emulate_bind(single_instance_hook_t& hook, uint64_t pid, const char* appid)
     ctx.app_id_end = (uint8_t*)(app_id.c_str()) + app_id.size();
     ctx.process_id = pid;
     ctx.operation = BIND_OPERATION_BIND;
-    REQUIRE(hook.fire(&ctx, &result) == EBPF_SUCCESS);
+    REQUIRE(invoke(reinterpret_cast<void*>(&ctx), &result) == EBPF_SUCCESS);
     return static_cast<bind_action_t>(result);
 }
 
 void
-emulate_unbind(single_instance_hook_t& hook, uint64_t pid, const char* appid)
+emulate_unbind(std::function<ebpf_result_t(void*, int*)>& invoke, uint64_t pid, const char* appid)
 {
     int result;
     std::string app_id = appid;
     bind_md_t ctx{0};
     ctx.process_id = pid;
     ctx.operation = BIND_OPERATION_UNBIND;
-    REQUIRE(hook.fire(&ctx, &result) == EBPF_SUCCESS);
+    REQUIRE(invoke(&ctx, &result) == EBPF_SUCCESS);
 }
 
 void
@@ -510,32 +512,35 @@ bindmonitor_test(ebpf_execution_type_t execution_type)
     // Apply policy of maximum 2 binds per process
     set_bind_limit(limit_map_fd, 2);
 
+    std::function<ebpf_result_t(void*, int*)> invoke = [&hook](void* context, int* result) -> ebpf_result_t {
+        return hook.fire(context, result);
+    };
     // Bind first port - success
-    REQUIRE(emulate_bind(hook, fake_pid, "fake_app_1") == BIND_PERMIT);
+    REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_PERMIT);
     REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
 
     // Bind second port - success
-    REQUIRE(emulate_bind(hook, fake_pid, "fake_app_1") == BIND_PERMIT);
+    REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_PERMIT);
     REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 2);
 
     // Bind third port - blocked
-    REQUIRE(emulate_bind(hook, fake_pid, "fake_app_1") == BIND_DENY);
+    REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_DENY);
     REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 2);
 
     // Unbind second port
-    emulate_unbind(hook, fake_pid, "fake_app_1");
+    emulate_unbind(invoke, fake_pid, "fake_app_1");
     REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
 
     // Unbind first port
-    emulate_unbind(hook, fake_pid, "fake_app_1");
+    emulate_unbind(invoke, fake_pid, "fake_app_1");
     REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 0);
 
     // Bind from two apps to test enumeration
-    REQUIRE(emulate_bind(hook, fake_pid, "fake_app_1") == BIND_PERMIT);
+    REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_PERMIT);
     REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
 
     fake_pid = 54321;
-    REQUIRE(emulate_bind(hook, fake_pid, "fake_app_2") == BIND_PERMIT);
+    REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_2") == BIND_PERMIT);
     REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
 
     uint64_t pid;
@@ -592,12 +597,15 @@ bindmonitor_ring_buffer_test(ebpf_execution_type_t execution_type)
     }
 
     uint64_t fake_pid = 12345;
+    std::function<ebpf_result_t(void*, int*)> invoke = [&hook](void* context, int* result) -> ebpf_result_t {
+        return hook.fire(context, result);
+    };
 
     ring_buffer_api_test_helper(process_map_fd, fake_app_ids, [&](int i) {
         // Emulate bind operation.
         std::vector<char> fake_app_id = fake_app_ids[i];
         fake_app_id.push_back('\0');
-        REQUIRE(emulate_bind(hook, fake_pid + i, fake_app_id.data()) == BIND_PERMIT);
+        REQUIRE(emulate_bind(invoke, fake_pid + i, fake_app_id.data()) == BIND_PERMIT);
     });
 
     hook.detach_link(link);
@@ -1690,4 +1698,99 @@ TEST_CASE("map_reuse_3", "[end_to_end]")
     REQUIRE(ebpf_object_unpin("/ebpf/global/outer_map") == EBPF_SUCCESS);
     REQUIRE(ebpf_object_unpin("/ebpf/global/inner_map") == EBPF_SUCCESS);
     REQUIRE(ebpf_object_unpin("/ebpf/global/port_map") == EBPF_SUCCESS);
+}
+
+TEST_CASE("bpf2c_droppacket", "[bpf2c]")
+{
+    _test_helper_end_to_end test_helper;
+    dll_metadata_table table("bpf2c_test_wrapper.dll", "droppacket");
+    uint32_t key = 0;
+    uint64_t value = 0;
+
+    REQUIRE(bpf_map_lookup_elem(table.get_map("dropped_packet_map"), &key, &value) == 0);
+    REQUIRE(value == 0);
+
+    auto packet = prepare_udp_packet(0, ETHERNET_TYPE_IPV4);
+    // Test that we drop the packet and increment the map
+    xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
+
+    REQUIRE(table.invoke("xdp", &ctx) == XDP_DROP);
+    REQUIRE(bpf_map_lookup_elem(table.get_map("dropped_packet_map"), &key, &value) == 0);
+    REQUIRE(value == 1);
+
+    packet = prepare_udp_packet(10, ETHERNET_TYPE_IPV4);
+    xdp_md_t ctx2{packet.data(), packet.data() + packet.size()};
+
+    REQUIRE(table.invoke("xdp", &ctx2) == XDP_PASS);
+    REQUIRE(bpf_map_lookup_elem(table.get_map("dropped_packet_map"), &key, &value) == 0);
+    REQUIRE(value == 1);
+}
+
+TEST_CASE("bpf2c_divide_by_zero", "[bpf2c]")
+{
+    _test_helper_end_to_end test_helper;
+    dll_metadata_table table("bpf2c_test_wrapper.dll", "divide_by_zero");
+
+    auto packet = prepare_udp_packet(0, ETHERNET_TYPE_IPV4);
+    // Test that we drop the packet and increment the map
+    xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
+
+    // Verify the program doesn't crash
+    REQUIRE(table.invoke("xdp", &ctx) == 0);
+}
+
+TEST_CASE("bpf2c_bindmonitor", "[bpf2c]")
+{
+    _test_helper_end_to_end test_helper;
+    dll_metadata_table table("bpf2c_test_wrapper.dll", "bindmonitor");
+
+    uint64_t fake_pid = 12345;
+
+    fd_t limit_map_fd = table.get_map("limits_map");
+    REQUIRE(limit_map_fd > 0);
+    fd_t process_map_fd = table.get_map("process_map");
+    REQUIRE(process_map_fd > 0);
+
+    // Apply policy of maximum 2 binds per process
+    set_bind_limit(limit_map_fd, 2);
+
+    std::function<ebpf_result_t(void*, int*)> invoke = [&table](void* context, int* result) -> ebpf_result_t {
+        *result = static_cast<int>(table.invoke("bind", context));
+        return EBPF_SUCCESS;
+    };
+    // Bind first port - success
+    REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_PERMIT);
+    REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
+
+    // Bind second port - success
+    REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_PERMIT);
+    REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 2);
+
+    // Bind third port - blocked
+    REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_DENY);
+    REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 2);
+
+    // Unbind second port
+    emulate_unbind(invoke, fake_pid, "fake_app_1");
+    REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
+
+    // Unbind first port
+    emulate_unbind(invoke, fake_pid, "fake_app_1");
+    REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 0);
+
+    // Bind from two apps to test enumeration
+    REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_PERMIT);
+    REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
+
+    fake_pid = 54321;
+    REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_2") == BIND_PERMIT);
+    REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
+
+    uint64_t pid;
+    REQUIRE(bpf_map_get_next_key(process_map_fd, NULL, &pid) == 0);
+    REQUIRE(pid != 0);
+    REQUIRE(bpf_map_get_next_key(process_map_fd, &pid, &pid) == 0);
+    REQUIRE(pid != 0);
+    REQUIRE(bpf_map_get_next_key(process_map_fd, &pid, &pid) < 0);
+    REQUIRE(errno == ENOENT);
 }
