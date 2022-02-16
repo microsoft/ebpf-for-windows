@@ -101,5 +101,6 @@ btf_parse_line_information(const std::vector<uint8_t>& btf, const std::vector<ui
         offset += offsetof(btf_ext_info_sec_t, data) +
                   static_cast<size_t>(line_info_record_size) * static_cast<size_t>(section_info->num_info);
     }
+
     return section_line_info;
 }
