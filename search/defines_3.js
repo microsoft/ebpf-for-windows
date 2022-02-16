@@ -1,5 +1,9 @@
 var searchData=
 [
-  ['libbpf_5fapi_855',['LIBBPF_API',['../linux_2bpf_8h.html#abf2e376a832317e2b685e430a6fdb8a7',1,'bpf.h']]],
-  ['libbpf_5fdeprecated_856',['LIBBPF_DEPRECATED',['../linux_2bpf_8h.html#aa54db9e919a5587064e975ca181cb8ca',1,'bpf.h']]]
+  ['htobe16_903',['htobe16',['../bpf2c_8h.html#a02ba1fc05a319ff6fb0cd94006bb6717',1,'bpf2c.h']]],
+  ['htobe32_904',['htobe32',['../bpf2c_8h.html#a9d1d75301107082f82a490742fde3bba',1,'bpf2c.h']]],
+  ['htobe64_905',['htobe64',['../bpf2c_8h.html#a14f7cf2ac198f7ca55f6b1215919c352',1,'bpf2c.h']]],
+  ['htole16_906',['htole16',['../bpf2c_8h.html#a123798197cfdb18eda68d5e06d3935d3',1,'bpf2c.h']]],
+  ['htole32_907',['htole32',['../bpf2c_8h.html#ae7097d76cf5c7bb23224f24684898158',1,'bpf2c.h']]],
+  ['htole64_908',['htole64',['../bpf2c_8h.html#aa7a69f75140a2833eade65985ad2f258',1,'bpf2c.h']]]
 ];

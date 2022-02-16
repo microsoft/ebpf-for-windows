@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['pid_5ft_706',['pid_t',['../linux_2bpf_8h.html#a7a26cb7f5678736cec66712d6df1d4ed',1,'bpf.h']]]
+  ['helper_5ffunction_5fentry_5ft_750',['helper_function_entry_t',['../bpf2c_8h.html#a5a615dcc4f1c8b536fd125680aa93b72',1,'bpf2c.h']]]
 ];

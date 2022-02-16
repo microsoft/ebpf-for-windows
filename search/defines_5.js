@@ -1,5 +1,5 @@
 var searchData=
 [
-  ['xdp_5fext_5fhelper_5ffn_5fbase_859',['XDP_EXT_HELPER_FN_BASE',['../ebpf__nethooks_8h.html#acce2f548e179db8cc18c8173a4a7a6e6',1,'ebpf_nethooks.h']]],
-  ['xdp_5fflags_5freplace_860',['XDP_FLAGS_REPLACE',['../ebpf__structs_8h.html#a6895b7ffe1198b667b8d71b08b82b4a2',1,'ebpf_structs.h']]]
+  ['libbpf_5fapi_910',['LIBBPF_API',['../linux_2bpf_8h.html#abf2e376a832317e2b685e430a6fdb8a7',1,'bpf.h']]],
+  ['libbpf_5fdeprecated_911',['LIBBPF_DEPRECATED',['../linux_2bpf_8h.html#aa54db9e919a5587064e975ca181cb8ca',1,'bpf.h']]]
 ];
