@@ -81,5 +81,8 @@
     <CustomBuild Include="map_in_map_v2.c">
       <Filter>Source Files</Filter>
     </CustomBuild>
+    <CustomBuild Include="decap_permit_packet.c">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
   </ItemGroup>
 </Project>

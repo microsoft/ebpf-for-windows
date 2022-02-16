@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #include <iostream>
+#include <vector>
 
 #include "bpf_code_generator.h"
 
@@ -112,6 +113,8 @@ bpf_code_generator::bpf_code_generator(const std::string& path, const std::strin
     if (!reader.load(path)) {
         throw std::runtime_error(std::string("Can't process ELF file ") + path);
     }
+
+    extract_btf_information();
 }
 
 bpf_code_generator::bpf_code_generator(const std::string& c_name, const std::vector<ebpf_inst>& instructions)
@@ -224,6 +227,28 @@ bpf_code_generator::extract_relocations_and_maps(const std::string& section_name
     for (auto& map : map_definitions) {
         map.second.index = map_index++;
     }
+}
+
+void
+bpf_code_generator::extract_btf_information()
+{
+    auto btf = reader.sections[".BTF"];
+    auto btf_ext = reader.sections[".BTF.ext"];
+
+    if (btf == nullptr) {
+        return;
+    }
+
+    if (btf_ext == nullptr) {
+        return;
+    }
+    std::vector<uint8_t> btf_data(
+        reinterpret_cast<const uint8_t*>(btf->get_data()),
+        reinterpret_cast<const uint8_t*>(btf->get_data()) + btf->get_size());
+    std::vector<uint8_t> btf_ext_data(
+        reinterpret_cast<const uint8_t*>(btf_ext->get_data()),
+        reinterpret_cast<const uint8_t*>(btf_ext->get_data()) + btf_ext->get_size());
+    section_line_info = btf_parse_line_information(btf_data, btf_ext_data);
 }
 
 void
@@ -623,13 +648,21 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
                       << std::endl;
         output_stream << std::endl;
 
+        std::string source_file = "";
+        uint32_t source_line = 0;
         // Emit encode intructions
         for (const auto& output : section.output) {
+            auto& line_info = section_line_info[name];
             if (output.lines.empty()) {
                 continue;
             }
             if (!output.label.empty())
                 output_stream << output.label << ":" << std::endl;
+            auto current_line = line_info.find(output.instruction_offset);
+            if (current_line != line_info.end()) {
+                source_line = current_line->second.line_number;
+                source_file = current_line->second.file_name;
+            }
 #if defined(_DEBUG)
             output_stream << "\t// " << _opcode_name_strings[output.instruction.opcode]
                           << " pc=" << output.instruction_offset << " dst=" << get_register_name(output.instruction.dst)
@@ -637,10 +670,15 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
                           << " offset=" << std::to_string(output.instruction.offset)
                           << " imm=" << std::to_string(output.instruction.imm) << std::endl;
 #endif
-            for (const auto& line : output.lines)
+            for (const auto& line : output.lines) {
+                if (!source_file.empty()) {
+                    output_stream << "#line " << source_line << " \"" << escape_string(source_file.c_str()) << "\""
+                                  << std::endl;
+                }
                 output_stream << "\t" << line << std::endl;
+            }
         }
-
+        output_stream << "#line __LINE__ __FILE__" << std::endl;
         // Emit epilogue
         output_stream << "}" << std::endl << std::endl;
     }
@@ -713,4 +751,18 @@ bpf_code_generator::sanitize_name(const std::string& name)
         }
     }
     return safe_name;
+}
+
+std::string
+bpf_code_generator::escape_string(const std::string& input)
+{
+    std::string output;
+    for (const auto& c : input) {
+        if (c != '\\') {
+            output += c;
+        } else {
+            output += "\\\\";
+        }
+    }
+    return output;
 }
