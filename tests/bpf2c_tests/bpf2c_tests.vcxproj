@@ -158,6 +158,7 @@
     <ClCompile Include="raw_bpf.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Makefile" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>

@@ -31,6 +31,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+    <None Include="Makefile" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\tools\bpf2c\bpf_code_generator.h">
