@@ -4,7 +4,7 @@
 #include "btf_parser.h"
 
 #include <stdexcept>
-#include <iostream>
+#include <string.h>
 
 #include "btf.h"
 #include <ebpf.h>
