@@ -4,6 +4,7 @@
 #include "btf_parser.h"
 
 #include <stdexcept>
+#include <iostream>
 
 #include "btf.h"
 #include <ebpf.h>
@@ -55,11 +56,11 @@ btf_parse_line_information(const std::vector<uint8_t>& btf, const std::vector<ui
     if (bpf_ext_header->hdr_len < sizeof(btf_ext_header_t)) {
         throw std::runtime_error("Invalid .btf.ext section - wrong size");
     }
-    if (bpf_ext_header->line_info_off > btf.size()) {
+    if (bpf_ext_header->line_info_off > btf_ext.size()) {
         throw std::runtime_error("Invalid .btf.ex section - invalid line info offest");
     }
     if ((static_cast<size_t>(bpf_ext_header->line_info_off) + static_cast<size_t>(bpf_ext_header->line_info_len) +
-         static_cast<size_t>(bpf_ext_header->hdr_len)) > btf.size()) {
+         static_cast<size_t>(bpf_ext_header->hdr_len)) > btf_ext.size()) {
         throw std::runtime_error("Invalid .btf section - invalid string length");
     }
 
@@ -74,22 +75,22 @@ btf_parse_line_information(const std::vector<uint8_t>& btf, const std::vector<ui
         auto section_info = reinterpret_cast<const btf_ext_info_sec_t*>(btf_ext.data() + offset);
         auto section_name = string_table.find(section_info->sec_name_off);
         if (section_name == string_table.end()) {
-            throw std::runtime_error("Invalid .btf section - invalid string offset");
+            throw std::runtime_error(
+                std::string("Invalid .btf section - invalid string offset ") +
+                std::to_string(section_info->sec_name_off));
         }
         for (size_t index = 0; index < section_info->num_info; index++) {
             auto btf_line_info =
                 reinterpret_cast<const bpf_line_info_t*>(section_info->data + index * line_info_record_size);
             auto file_name = string_table.find(btf_line_info->file_name_off);
             auto source = string_table.find(btf_line_info->line_off);
-            if (file_name == string_table.end()) {
-                throw std::runtime_error("Invalid .btf section - invalid string offset");
-            }
-            if (source == string_table.end()) {
-                throw std::runtime_error("Invalid .btf section - invalid string offset");
-            }
             line_info_t line_info;
-            line_info.file_name = file_name->second;
-            line_info.source_line = source->second;
+            if (file_name != string_table.end()) {
+                line_info.file_name = file_name->second;
+            }
+            if (source != string_table.end()) {
+                line_info.source_line = source->second;
+            }
             line_info.line_number = BPF_LINE_INFO_LINE_NUM(btf_line_info->line_col);
             line_info.column_number = BPF_LINE_INFO_LINE_COL(btf_line_info->line_col);
             if (line_info.line_number == 0) {
