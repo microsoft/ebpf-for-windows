@@ -160,7 +160,7 @@ address field.
 The process of loading an eBPF program is a series of interactions between the eBPF Execution Context and the generated
 .sys file.
 
-### Lifecycle of a generaed PE .sys file
+### Lifecycle of a generated PE .sys file
 
 1) During driver entry, the generated DriverEntry will call [NmrRegisterClient](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/netioddk/nf-netioddk-nmrregisterclient)
 for the helper contract and the map contract.
