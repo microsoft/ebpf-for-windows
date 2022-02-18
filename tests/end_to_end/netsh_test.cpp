@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: MIT
 
 #include <windows.h>
-#include <filesystem>
 #include <netsh.h> // Must be included after windows.h
 #include <string.h>
+#include <sstream>
 #include <regex>
 #include "bpf/bpf.h"
 #pragma warning(push)
@@ -17,13 +17,16 @@
 #include "test_helper.hpp"
 
 std::string
-strip_solution_root(const std::string& orignal_string)
+strip_paths(const std::string& orignal_string)
 {
-    auto current_path = std::filesystem::current_path().generic_string();
-    current_path = std::regex_replace(current_path, std::regex("x64.*$"), "");
-    auto output = std::regex_replace(orignal_string, std::regex("\\\\"), "/");
-    output = std::regex_replace(output, std::regex(current_path), "./");
-    return output;
+    std::stringstream input_stream(orignal_string);
+    std::stringstream output_stream;
+    std::string line;
+    while (std::getline(input_stream, line)) {
+        auto output = std::regex_replace(line, std::regex("\\\\"), "/");
+        output_stream << std::regex_replace(output, std::regex("^.*tests/sample"), "; ./tests/sample") << "\n";
+    }
+    return output_stream.str();
 }
 
 TEST_CASE("show disassembly bpf.o", "[netsh][disassembly]")
@@ -31,7 +34,7 @@ TEST_CASE("show disassembly bpf.o", "[netsh][disassembly]")
     int result;
     std::string output = _run_netsh_command(handle_ebpf_show_disassembly, L"bpf.o", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
-    output = strip_solution_root(output);
+    output = strip_paths(output);
     REQUIRE(
         output == "; ./tests/sample/bpf.c:8\n"
                   ";     return 42;\n"
@@ -147,7 +150,7 @@ TEST_CASE("show verification droppacket_unsafe.o", "[netsh][verification]")
     std::string output =
         _run_netsh_command(handle_ebpf_show_verification, L"droppacket_unsafe.o", L"xdp", nullptr, &result);
     REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
-    output = strip_solution_root(output);
+    output = strip_paths(output);
     REQUIRE(
         output == "Verification failed\n"
                   "\n"
