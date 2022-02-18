@@ -305,7 +305,7 @@ net_ebpf_ext_layer_2_classify(
     net_ebpf_xdp_md_t net_xdp_ctx = {0};
     NTSTATUS status = STATUS_SUCCESS;
 
-    if (!ebpf_ext_attach_enter_rundown(_ebpf_xdp_hook_provider_registration))
+    if (!net_ebpf_ext_attach_enter_rundown(_ebpf_xdp_hook_provider_registration))
         goto Done;
 
     //
@@ -329,12 +329,12 @@ net_ebpf_ext_layer_2_classify(
         incoming_fixed_values->incomingValue[FWPS_FIELD_INBOUND_MAC_FRAME_NATIVE_INTERFACE_INDEX].value.uint32;
 
     // TODO(issue #754): Support multiple clients and iterate through them.
-    // Also, the _ebpf_ext_get_client_data() function is used because currently
+    // Also, the net_ebpf_ext_get_client_data() function is used because currently
     // the structure is opaque except inside ebpf_ext_attach_provider.c.  However,
     // this results in a slightly longer cycle count in the hot path to get to
     // the client data here.   In the future, the client data field should be
     // exposed in the .h file for us to access here.
-    const ebpf_extension_data_t* client_data = _ebpf_ext_get_client_data(_ebpf_xdp_hook_provider_registration);
+    const ebpf_extension_data_t* client_data = net_ebpf_ext_get_client_data(_ebpf_xdp_hook_provider_registration);
     if (client_data->data != NULL) {
         uint32_t client_ifindex = *(const uint32_t*)client_data->data;
         if (client_ifindex != 0 && client_ifindex != net_xdp_ctx.ingress_ifindex) {
@@ -364,7 +364,7 @@ net_ebpf_ext_layer_2_classify(
         net_xdp_ctx.data_end = packet_buffer + net_buffer->DataLength;
     }
 
-    if (ebpf_ext_attach_invoke_hook(_ebpf_xdp_hook_provider_registration, (xdp_md_t*)&net_xdp_ctx, &result) ==
+    if (net_ebpf_ext_attach_invoke_hook(_ebpf_xdp_hook_provider_registration, (xdp_md_t*)&net_xdp_ctx, &result) ==
         EBPF_SUCCESS) {
         switch (result) {
         case XDP_PASS:
@@ -401,21 +401,21 @@ net_ebpf_ext_layer_2_classify(
 Done:
     classify_output->actionType = action;
 
-    ebpf_ext_attach_leave_rundown(_ebpf_xdp_hook_provider_registration);
+    net_ebpf_ext_attach_leave_rundown(_ebpf_xdp_hook_provider_registration);
     return;
 }
 
 static void
 _net_ebpf_ext_xdp_hook_provider_unregister()
 {
-    ebpf_ext_attach_unregister_provider(_ebpf_xdp_hook_provider_registration);
+    net_ebpf_ext_attach_unregister_provider(_ebpf_xdp_hook_provider_registration);
 }
 
 static NTSTATUS
 _net_ebpf_ext_xdp_hook_provider_register()
 {
     ebpf_result_t return_value;
-    return_value = ebpf_ext_attach_register_provider(
+    return_value = net_ebpf_ext_attach_register_provider(
         &EBPF_PROGRAM_TYPE_XDP,
         &EBPF_ATTACH_TYPE_XDP,
         EBPF_EXT_HOOK_EXECUTION_DISPATCH,

@@ -22,7 +22,7 @@ typedef struct _ebpf_ext_attach_hook_provider_registration ebpf_ext_attach_hook_
  * @retval true The caller should proceed.
  * @retval false Rundown has occurred.
  */
-_Acquires_lock_(registration) bool ebpf_ext_attach_enter_rundown(
+_Acquires_lock_(registration) bool net_ebpf_ext_attach_enter_rundown(
     _In_ ebpf_ext_attach_hook_provider_registration_t* registration);
 
 /**
@@ -30,7 +30,7 @@ _Acquires_lock_(registration) bool ebpf_ext_attach_enter_rundown(
  *
  * @param[in] registration Registration to unprotect.
  */
-_Releases_lock_(registration) void ebpf_ext_attach_leave_rundown(
+_Releases_lock_(registration) void net_ebpf_ext_attach_leave_rundown(
     _In_ ebpf_ext_attach_hook_provider_registration_t* registration);
 
 /**
@@ -45,7 +45,7 @@ _Releases_lock_(registration) void ebpf_ext_attach_leave_rundown(
  * operation.
  */
 ebpf_result_t
-ebpf_ext_attach_register_provider(
+net_ebpf_ext_attach_register_provider(
     _In_ const ebpf_program_type_t* program_type,
     _In_ const ebpf_attach_type_t* attach_type,
     ebpf_ext_hook_execution_t execution_type,
@@ -57,11 +57,11 @@ ebpf_ext_attach_register_provider(
  * @param[in] registration Registration to cleanup.
  */
 void
-ebpf_ext_attach_unregister_provider(_Frees_ptr_opt_ ebpf_ext_attach_hook_provider_registration_t* registration);
+net_ebpf_ext_attach_unregister_provider(_Frees_ptr_opt_ ebpf_ext_attach_hook_provider_registration_t* registration);
 
 /**
  * @brief Invoke the eBPF program attached to this hook. This must be called
- * inside a ebpf_ext_attach_enter_rundown/ebpf_ext_attach_leave_rundown block.
+ * inside a net_ebpf_ext_attach_enter_rundown/net_ebpf_ext_attach_leave_rundown block.
  *
  * @param[in] registration Registration that owns the hook.
  * @param[in] context Context to pass to eBPF program.
@@ -71,7 +71,7 @@ ebpf_ext_attach_unregister_provider(_Frees_ptr_opt_ ebpf_ext_attach_hook_provide
  * operation.
  */
 ebpf_result_t
-ebpf_ext_attach_invoke_hook(
+net_ebpf_ext_attach_invoke_hook(
     _In_ ebpf_ext_attach_hook_provider_registration_t* registration, _In_ void* context, _Out_ uint32_t* result);
 
 /**
@@ -82,4 +82,4 @@ ebpf_ext_attach_invoke_hook(
  * @returns Hook-specific client data.
  */
 const ebpf_extension_data_t*
-_ebpf_ext_get_client_data(ebpf_ext_attach_hook_provider_registration_t* registration);
+net_ebpf_ext_get_client_data(ebpf_ext_attach_hook_provider_registration_t* registration);

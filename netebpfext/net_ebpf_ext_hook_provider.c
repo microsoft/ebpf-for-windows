@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include "ebpf_ext_attach_provider.h"
+#include "net_ebpf_ext_hook_provider.h"
 
 typedef ebpf_result_t (*ebpf_ext_attach_hook_function_t)(
     _In_ void* bind_context, _In_ void* context, _Out_ uint32_t* result);
@@ -29,6 +29,35 @@ typedef struct _ebpf_ext_attach_hook_provider_registration
         } passive;
     };
 } ebpf_ext_attach_hook_provider_registration_t;
+
+/**
+ *  @brief This is the only function in the eBPF hook NPI client dispatch table.
+ */
+typedef ebpf_result_t (*ebpf_invoke_program_function_t)(
+    _In_ const void* client_binding_context, _In_ const void* context, _Out_ uint32_t* result);
+
+/**
+ *  @brief This is the per client binding context for the eBPF Hook
+ *         NPI provider.
+ */
+typedef struct _net_ebpf_extension_hook_client
+{
+    HANDLE nmr_binding_handle;
+    GUID client_module_id;
+    const void* client_binding_context;
+    const ebpf_extension_data_t* client_data;
+    ebpf_invoke_program_function_t invoke_program;
+} net_ebpf_extension_hook_client_t;
+
+/**
+ *  @brief This is the provider context of eBPF Hook NPI provider that
+ *         maintains the provider registration state.
+ */
+typedef struct _net_ebpf_extension_hook_provider
+{
+    HANDLE nmr_provider_handle;
+    net_ebpf_extension_hook_client_t* attached_client;
+} net_ebpf_extension_hook_provider_t;
 
 /**
  * @brief Callback invoked when a client (an eBPF program) attaches.
@@ -164,7 +193,7 @@ _ebpf_ext_attach_provider_client_detach_callback(_In_ void* context, _In_ const 
     return EBPF_SUCCESS;
 }
 
-_Acquires_lock_(registration) bool ebpf_ext_attach_enter_rundown(
+_Acquires_lock_(registration) bool net_ebpf_ext_attach_enter_rundown(
     _In_ ebpf_ext_attach_hook_provider_registration_t* registration)
 {
     if (registration->execution_type == EBPF_EXT_HOOK_EXECUTION_PASSIVE) {
@@ -174,7 +203,7 @@ _Acquires_lock_(registration) bool ebpf_ext_attach_enter_rundown(
     return (registration->client_binding_context != NULL);
 }
 
-_Releases_lock_(registration) void ebpf_ext_attach_leave_rundown(
+_Releases_lock_(registration) void net_ebpf_ext_attach_leave_rundown(
     _In_ ebpf_ext_attach_hook_provider_registration_t* registration)
 {
     if (registration->execution_type == EBPF_EXT_HOOK_EXECUTION_PASSIVE) {
@@ -184,7 +213,7 @@ _Releases_lock_(registration) void ebpf_ext_attach_leave_rundown(
 }
 
 ebpf_result_t
-ebpf_ext_attach_register_provider(
+net_ebpf_ext_attach_register_provider(
     _In_ const ebpf_program_type_t* program_type,
     _In_ const ebpf_attach_type_t* attach_type,
     ebpf_ext_hook_execution_t execution_type,
@@ -227,14 +256,14 @@ ebpf_ext_attach_register_provider(
 Done:
     // Wrap in conditional to resolve C6101.
     if (return_value != EBPF_SUCCESS) {
-        ebpf_ext_attach_unregister_provider(local_registration);
+        net_ebpf_ext_attach_unregister_provider(local_registration);
     }
 
     return return_value;
 }
 
 void
-ebpf_ext_attach_unregister_provider(_Frees_ptr_opt_ ebpf_ext_attach_hook_provider_registration_t* registration)
+net_ebpf_ext_attach_unregister_provider(_Frees_ptr_opt_ ebpf_ext_attach_hook_provider_registration_t* registration)
 {
     if (registration) {
         ebpf_provider_unload(registration->provider);
@@ -243,7 +272,7 @@ ebpf_ext_attach_unregister_provider(_Frees_ptr_opt_ ebpf_ext_attach_hook_provide
 }
 
 ebpf_result_t
-ebpf_ext_attach_invoke_hook(
+net_ebpf_ext_attach_invoke_hook(
     _In_ ebpf_ext_attach_hook_provider_registration_t* registration, _In_ void* context, _Out_ uint32_t* result)
 {
     // Note:
@@ -262,7 +291,7 @@ ebpf_ext_attach_invoke_hook(
 }
 
 const ebpf_extension_data_t*
-_ebpf_ext_get_client_data(ebpf_ext_attach_hook_provider_registration_t* registration)
+net_ebpf_ext_get_client_data(ebpf_ext_attach_hook_provider_registration_t* registration)
 {
     return registration->client_data;
 }

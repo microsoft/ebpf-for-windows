@@ -35,12 +35,12 @@ Environment:
 #include <netiodef.h>
 #include <ntddk.h>
 
-#include "ebpf_ext_attach_provider.h"
 #include "ebpf_nethooks.h"
 #include "ebpf_platform.h"
 #include "ebpf_program_types.h"
 #include "ebpf_windows.h"
 
+#include "net_ebpf_ext_hook_provider.h"
 #include "net_ebpf_ext_program_info.h"
 
 #define NET_EBPF_EXTENSION_POOL_TAG 'Nfbe'

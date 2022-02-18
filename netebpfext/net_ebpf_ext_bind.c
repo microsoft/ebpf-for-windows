@@ -89,7 +89,7 @@ net_ebpf_ext_resource_allocation_classify(
     UNREFERENCED_PARAMETER(filter);
     UNREFERENCED_PARAMETER(flow_context);
 
-    if (!ebpf_ext_attach_enter_rundown(_ebpf_bind_hook_provider_registration)) {
+    if (!net_ebpf_ext_attach_enter_rundown(_ebpf_bind_hook_provider_registration)) {
         classify_output->actionType = FWP_ACTION_PERMIT;
         goto Exit;
     }
@@ -111,7 +111,7 @@ net_ebpf_ext_resource_allocation_classify(
         incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_ALE_APP_ID].value.byteBlob->size;
 
     _net_ebpf_ext_resource_truncate_appid(&ctx);
-    if (ebpf_ext_attach_invoke_hook(_ebpf_bind_hook_provider_registration, &ctx, &result) == EBPF_SUCCESS) {
+    if (net_ebpf_ext_attach_invoke_hook(_ebpf_bind_hook_provider_registration, &ctx, &result) == EBPF_SUCCESS) {
         switch (result) {
         case BIND_PERMIT:
         case BIND_REDIRECT:
@@ -123,7 +123,7 @@ net_ebpf_ext_resource_allocation_classify(
     }
 
 Exit:
-    ebpf_ext_attach_leave_rundown(_ebpf_bind_hook_provider_registration);
+    net_ebpf_ext_attach_leave_rundown(_ebpf_bind_hook_provider_registration);
     return;
 }
 
@@ -146,7 +146,7 @@ net_ebpf_ext_resource_release_classify(
     UNREFERENCED_PARAMETER(filter);
     UNREFERENCED_PARAMETER(flow_context);
 
-    if (!ebpf_ext_attach_enter_rundown(_ebpf_bind_hook_provider_registration)) {
+    if (!net_ebpf_ext_attach_enter_rundown(_ebpf_bind_hook_provider_registration)) {
         classify_output->actionType = FWP_ACTION_PERMIT;
         goto Exit;
     }
@@ -168,19 +168,19 @@ net_ebpf_ext_resource_release_classify(
 
     _net_ebpf_ext_resource_truncate_appid(&ctx);
 
-    ebpf_ext_attach_invoke_hook(_ebpf_bind_hook_provider_registration, &ctx, &result);
+    net_ebpf_ext_attach_invoke_hook(_ebpf_bind_hook_provider_registration, &ctx, &result);
 
     classify_output->actionType = FWP_ACTION_PERMIT;
 
 Exit:
-    ebpf_ext_attach_leave_rundown(_ebpf_bind_hook_provider_registration);
+    net_ebpf_ext_attach_leave_rundown(_ebpf_bind_hook_provider_registration);
     return;
 }
 
 static void
 _net_ebpf_ext_bind_hook_provider_unregister()
 {
-    ebpf_ext_attach_unregister_provider(_ebpf_bind_hook_provider_registration);
+    net_ebpf_ext_attach_unregister_provider(_ebpf_bind_hook_provider_registration);
 }
 
 static NTSTATUS
@@ -188,7 +188,7 @@ _net_ebpf_ext_bind_hook_provider_register()
 {
     ebpf_result_t return_value;
 
-    return_value = ebpf_ext_attach_register_provider(
+    return_value = net_ebpf_ext_attach_register_provider(
         &EBPF_PROGRAM_TYPE_BIND,
         &EBPF_ATTACH_TYPE_BIND,
         EBPF_EXT_HOOK_EXECUTION_PASSIVE,
