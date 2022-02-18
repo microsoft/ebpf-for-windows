@@ -2,8 +2,10 @@
 // SPDX-License-Identifier: MIT
 
 #include <windows.h>
+#include <filesystem>
 #include <netsh.h> // Must be included after windows.h
 #include <string.h>
+#include <regex>
 #include "bpf/bpf.h"
 #pragma warning(push)
 #pragma warning(disable : 4200)
@@ -14,13 +16,26 @@
 #include "platform.h"
 #include "test_helper.hpp"
 
+std::string
+strip_solution_root(const std::string& orignal_string)
+{
+    auto current_path = std::filesystem::current_path().generic_string();
+    current_path = std::regex_replace(current_path, std::regex("x64.*$"), "");
+    auto output = std::regex_replace(orignal_string, std::regex("\\\\"), "/");
+    output = std::regex_replace(output, std::regex(current_path), "./");
+    return output;
+}
+
 TEST_CASE("show disassembly bpf.o", "[netsh][disassembly]")
 {
     int result;
     std::string output = _run_netsh_command(handle_ebpf_show_disassembly, L"bpf.o", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
+    output = strip_solution_root(output);
     REQUIRE(
-        output == "       0:	r0 = 42\n"
+        output == "; ./tests/sample/bpf.c:8\n"
+                  ";     return 42;\n"
+                  "       0:	r0 = 42\n"
                   "       1:	exit\n\n");
 }
 
@@ -132,12 +147,17 @@ TEST_CASE("show verification droppacket_unsafe.o", "[netsh][verification]")
     std::string output =
         _run_netsh_command(handle_ebpf_show_verification, L"droppacket_unsafe.o", L"xdp", nullptr, &result);
     REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
+    output = strip_solution_root(output);
     REQUIRE(
         output == "Verification failed\n"
                   "\n"
                   "Verification report:\n"
                   "\n"
+                  "; ./tests/sample/droppacket_unsafe.c:29\n"
+                  ";     if (ip_header->Protocol == IPPROTO_UDP) {\n"
                   "2: Upper bound must be at most packet_size (valid_access(r1.offset+9, width=1))\n"
+                  "; ./tests/sample/droppacket_unsafe.c:30\n"
+                  ";         if (ntohs(udp_header->length) <= sizeof(UDP_HEADER)) {\n"
                   "4: Upper bound must be at most packet_size (valid_access(r1.offset+24, width=2))\n"
                   "\n"
                   "2 errors\n"
