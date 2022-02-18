@@ -8,14 +8,8 @@
 
 #define INITGUID
 
-// ebpf_bind_program_data.h has generated
-// headers. encode_program_info generates them from the structs
-// in ebpf_nethooks.h. This workaround exists due to the inability
-// to call RPC serialization services from kernel mode. Once we switch
-// to a different serializer, we can get rid of this workaround.
-#include "ebpf_bind_program_data.h"
-
 #include "net_ebpf_ext.h"
+#include "net_ebpf_ext_prog_info_provider.h"
 
 static ebpf_ext_attach_hook_provider_registration_t* _ebpf_bind_hook_provider_registration = NULL;
 static ebpf_extension_provider_t* _ebpf_bind_program_info_provider = NULL;
@@ -29,11 +23,37 @@ static ebpf_program_data_t _ebpf_bind_program_data = {&_ebpf_bind_program_info, 
 static ebpf_extension_data_t _ebpf_bind_program_info_provider_data = {
     NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_ebpf_bind_program_data), &_ebpf_bind_program_data};
 
-// b9707e04-8127-4c72-833e-05b1fb439496
-DEFINE_GUID(EBPF_ATTACH_TYPE_BIND, 0xb9707e04, 0x8127, 0x4c72, 0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96);
+// Net eBPF Extension Bind Program Information NPI Provider Module GUID: 6c8d3dbd-f1e3-4c42-abb8-cf7f095c9df3
+const NPI_MODULEID DECLSPEC_SELECTANY _ebpf_bind_program_info_provider_moduleid = {
+    sizeof(NPI_MODULEID), MIT_GUID, {0x6c8d3dbd, 0xf1e3, 0x4c42, {0xab, 0xb8, 0xcf, 0x7f, 0x09, 0x5c, 0x9d, 0xf3}}};
 
 // 608c517c-6c52-0x4a26-b677-bb01c34425adf
 DEFINE_GUID(EBPF_PROGRAM_TYPE_BIND, 0x608c517c, 0x6c52, 0x4a26, 0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf);
+
+// Sample eBPF extension Program Information NPI provider characteristics
+
+const NPI_PROVIDER_CHARACTERISTICS _ebpf_bind_program_info_provider_characteristics = {
+    0,
+    sizeof(NPI_PROVIDER_CHARACTERISTICS),
+    net_ebpf_extension_program_info_provider_attach_client,
+    net_ebpf_extension_program_info_provider_detach_client,
+    NULL,
+    {0,
+     sizeof(NPI_REGISTRATION_INSTANCE),
+     &EBPF_PROGRAM_TYPE_BIND,
+     &_ebpf_bind_program_info_provider_moduleid,
+     0,
+     &_ebpf_bind_program_info_provider_data},
+};
+
+static net_ebpf_extension_program_info_provider_t _ebpf_bind_program_info_provider_context = {0};
+
+//
+// Bind Hook Provider.
+//
+
+// b9707e04-8127-4c72-833e-05b1fb439496
+DEFINE_GUID(EBPF_ATTACH_TYPE_BIND, 0xb9707e04, 0x8127, 0x4c72, 0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96);
 
 static void
 _net_ebpf_ext_resource_truncate_appid(bind_md_t* ctx)
@@ -230,7 +250,8 @@ net_ebpf_ext_bind_register_providers()
 {
     NTSTATUS status = STATUS_SUCCESS;
 
-    status = _net_ebpf_ext_bind_program_info_provider_register();
+    status = net_ebpf_extension_program_info_provider_register(
+        &_ebpf_bind_program_info_provider_characteristics, &_ebpf_bind_program_info_provider_context);
     if (status != STATUS_SUCCESS)
         goto Exit;
 
