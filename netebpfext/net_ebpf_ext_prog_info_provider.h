@@ -5,15 +5,13 @@
 
 #include "net_ebpf_ext.h"
 
-typedef struct _net_ebpf_extension_program_info_provider
-{
-    HANDLE nmr_provider_handle;
-} net_ebpf_extension_program_info_provider_t;
+typedef struct _net_ebpf_extension_program_info_provider net_ebpf_extension_program_info_provider_t;
 
 /**
- * @brief Register hook NPI provider.
+ * @brief Register the program information NPI provider.
  *
- * @param[in,out] Pointer to the provider context being registered.
+ * @param[in] provider_characteristics Pointer to the NPI provider characteristics struct.
+ * @param[in,out] provider_context Pointer to the provider context being registered.
  *
  * @retval STATUS_SUCCESS Operation succeeded.
  * @retval STATUS_UNSUCCESSFUL Operation failed.
@@ -21,16 +19,16 @@ typedef struct _net_ebpf_extension_program_info_provider
 NTSTATUS
 net_ebpf_extension_program_info_provider_register(
     _In_ const NPI_PROVIDER_CHARACTERISTICS* provider_characteristics,
-    _Inout_ net_ebpf_extension_program_info_provider_t* provider_context);
+    _Outptr_ net_ebpf_extension_program_info_provider_t** provider_context);
 
 /**
- * @brief Unregister program information NPI provider.
+ * @brief Unregister the program information NPI provider.
  *
  * @param[in] provider_context Pointer to the provider context being un-registered.
  */
 void
 net_ebpf_extension_program_info_provider_unregister(
-    _In_ const net_ebpf_extension_program_info_provider_t* provider_context);
+    _Frees_ptr_opt_ net_ebpf_extension_program_info_provider_t* provider_context);
 
 /**
  * @brief Callback invoked when an eBPF Program Information NPI client attaches.

@@ -3,43 +3,28 @@
 
 #include "net_ebpf_ext_hook_provider.h"
 
-typedef ebpf_result_t (*ebpf_ext_attach_hook_function_t)(
-    _In_ void* bind_context, _In_ void* context, _Out_ uint32_t* result);
-
-typedef struct _ebpf_ext_attach_hook_provider_registration
-{
-    ebpf_extension_data_t provider_data;
-    ebpf_attach_provider_data_t attach_provider_data;
-    ebpf_extension_provider_t* provider;
-    GUID client_id;
-    volatile void* client_binding_context;
-    const ebpf_extension_data_t* client_data;
-    volatile ebpf_ext_attach_hook_function_t invoke_hook;
-    ebpf_ext_hook_execution_t execution_type;
-    union
-    {
-        struct
-        {
-            KDPC rundown_dpc;
-            KEVENT rundown_wait;
-        } dispatch;
-        struct
-        {
-            EX_PUSH_LOCK lock;
-        } passive;
-    };
-} ebpf_ext_attach_hook_provider_registration_t;
-
 /**
  *  @brief This is the only function in the eBPF hook NPI client dispatch table.
  */
 typedef ebpf_result_t (*ebpf_invoke_program_function_t)(
     _In_ const void* client_binding_context, _In_ const void* context, _Out_ uint32_t* result);
 
-/**
- *  @brief This is the per client binding context for the eBPF Hook
- *         NPI provider.
- */
+typedef struct _net_ebpf_ext_hook_client_rundown
+{
+    bool rundown_occurred;
+    struct
+    {
+        KDPC rundown_dpc;
+        KEVENT rundown_wait;
+    } dispatch;
+    struct
+    {
+        EX_PUSH_LOCK lock;
+    } passive;
+} net_ebpf_ext_hook_client_rundown_t;
+
+struct _net_ebpf_extension_hook_provider;
+
 typedef struct _net_ebpf_extension_hook_client
 {
     HANDLE nmr_binding_handle;
@@ -47,54 +32,16 @@ typedef struct _net_ebpf_extension_hook_client
     const void* client_binding_context;
     const ebpf_extension_data_t* client_data;
     ebpf_invoke_program_function_t invoke_program;
+    struct _net_ebpf_extension_hook_provider* provider_context;
+    net_ebpf_ext_hook_client_rundown_t rundown;
 } net_ebpf_extension_hook_client_t;
 
-/**
- *  @brief This is the provider context of eBPF Hook NPI provider that
- *         maintains the provider registration state.
- */
 typedef struct _net_ebpf_extension_hook_provider
 {
     HANDLE nmr_provider_handle;
+    ebpf_ext_hook_execution_t execution_type;
     net_ebpf_extension_hook_client_t* attached_client;
 } net_ebpf_extension_hook_provider_t;
-
-/**
- * @brief Callback invoked when a client (an eBPF program) attaches.
- *
- * @param[in] context Pointer to the ebpf_ext_attach_hook_provider_registration_t.
- * @param[in] client_id GUID identifying a eBPF program.
- * @param[in] client_binding_context Context used when invoking the hook.
- * @param[in] client_data Data about the client.
- * @param[in] client_dispatch_table Function table containing function pointer
- * to invoke eBPF program.
- * @retval EBPF_SUCCESS The operation succeeded.
- * @retval EBPF_EXTENSION_FAILED_TO_LOAD A client is already attached.
- */
-static ebpf_result_t
-_ebpf_ext_attach_provider_client_attach_callback(
-    _In_ void* context,
-    _In_ const GUID* client_id,
-    _In_ void* client_binding_context,
-    _In_ const ebpf_extension_data_t* client_data,
-    _In_ const ebpf_extension_dispatch_table_t* client_dispatch_table)
-{
-    ebpf_ext_attach_hook_provider_registration_t* hook_registration =
-        (ebpf_ext_attach_hook_provider_registration_t*)context;
-    if (hook_registration->client_binding_context)
-        return EBPF_EXTENSION_FAILED_TO_LOAD;
-
-    hook_registration->client_id = *client_id;
-    hook_registration->client_data = client_data;
-    hook_registration->invoke_hook = (ebpf_ext_attach_hook_function_t)client_dispatch_table->function[0];
-
-    hook_registration->client_binding_context = client_binding_context;
-
-    // After invoke_hook and client_binding_context are set, the eBPF program
-    // may be invoked.
-
-    return EBPF_SUCCESS;
-}
 
 static _Function_class_(KDEFERRED_ROUTINE) _IRQL_requires_max_(DISPATCH_LEVEL) _IRQL_requires_min_(DISPATCH_LEVEL)
     _IRQL_requires_(DISPATCH_LEVEL) _IRQL_requires_same_ void _ebpf_ext_attach_rundown(
@@ -103,47 +50,47 @@ static _Function_class_(KDEFERRED_ROUTINE) _IRQL_requires_max_(DISPATCH_LEVEL) _
         _In_opt_ void* system_argument_1,
         _In_opt_ void* system_argument_2)
 {
-    ebpf_ext_attach_hook_provider_registration_t* registration =
-        (ebpf_ext_attach_hook_provider_registration_t*)deferred_context;
+    net_ebpf_ext_hook_client_rundown_t* rundown = (net_ebpf_ext_hook_client_rundown_t*)deferred_context;
 
     UNREFERENCED_PARAMETER(dpc);
     UNREFERENCED_PARAMETER(system_argument_1);
     UNREFERENCED_PARAMETER(system_argument_2);
-    if (registration)
-        KeSetEvent(&registration->dispatch.rundown_wait, 0, FALSE);
+    if (rundown)
+        KeSetEvent(&rundown->dispatch.rundown_wait, 0, FALSE);
 }
 
 /**
- * @brief Initialize the rundown state in
- * ebpf_ext_attach_hook_provider_registration_t.
+ * @brief Initialize the hook client rundown state.
  *
- * @param registration Registration object to initialize.
+ * @param rundown Rundown object to initialize.
  * @param execution_type Type of rundown support required.
  */
 static void
 _ebpf_ext_attach_init_rundown(
-    _In_ ebpf_ext_attach_hook_provider_registration_t* registration, ebpf_ext_hook_execution_t execution_type)
+    _Inout_ net_ebpf_ext_hook_client_rundown_t* rundown, ebpf_ext_hook_execution_t execution_type)
 {
-    registration->execution_type = execution_type;
-    if (registration->execution_type == EBPF_EXT_HOOK_EXECUTION_PASSIVE) {
-        ExInitializePushLock(&registration->passive.lock);
+    if (execution_type == EBPF_EXT_HOOK_EXECUTION_PASSIVE) {
+        ExInitializePushLock(&rundown->passive.lock);
     } else {
-        KeInitializeEvent(&(registration->dispatch.rundown_wait), SynchronizationEvent, FALSE);
-        KeInitializeDpc(&(registration->dispatch.rundown_dpc), _ebpf_ext_attach_rundown, registration);
+        KeInitializeEvent(&(rundown->dispatch.rundown_wait), SynchronizationEvent, FALSE);
+        KeInitializeDpc(&(rundown->dispatch.rundown_dpc), _ebpf_ext_attach_rundown, rundown);
     }
+    rundown->rundown_occurred = FALSE;
 }
 
 /**
  * @brief Block execution of the thread until all invocations are completed.
  *
- * @param registration Registration object to wait for.
+ * @param rundown Rundown object to wait for.
  */
 static void
-_ebpf_ext_attach_wait_for_rundown(_In_ ebpf_ext_attach_hook_provider_registration_t* registration)
+_ebpf_ext_attach_wait_for_rundown(
+    _Inout_ net_ebpf_ext_hook_client_rundown_t* rundown, ebpf_ext_hook_execution_t execution_type)
 {
-    if (registration->execution_type == EBPF_EXT_HOOK_EXECUTION_PASSIVE) {
-        ExAcquirePushLockExclusive(&registration->passive.lock);
-        ExReleasePushLockExclusive(&registration->passive.lock);
+    rundown->rundown_occurred = TRUE;
+    if (execution_type == EBPF_EXT_HOOK_EXECUTION_PASSIVE) {
+        ExAcquirePushLockExclusive(&rundown->passive.lock);
+        ExReleasePushLockExclusive(&rundown->passive.lock);
     } else {
         // Queue a DPC to each CPU and wait for it to run.
         // After it has run on each CPU we can be sure that no
@@ -151,147 +98,183 @@ _ebpf_ext_attach_wait_for_rundown(_In_ ebpf_ext_attach_hook_provider_registratio
         uint32_t maximum_processor = KeQueryMaximumProcessorCount();
         uint32_t processor;
         for (processor = 0; processor < maximum_processor; processor++) {
-            KeSetTargetProcessorDpc(&registration->dispatch.rundown_dpc, (uint8_t)processor);
-            if (KeInsertQueueDpc(&registration->dispatch.rundown_dpc, NULL, NULL)) {
-                KeWaitForSingleObject(&registration->dispatch.rundown_wait, Executive, KernelMode, FALSE, NULL);
+            KeSetTargetProcessorDpc(&rundown->dispatch.rundown_dpc, (uint8_t)processor);
+            if (KeInsertQueueDpc(&rundown->dispatch.rundown_dpc, NULL, NULL)) {
+                KeWaitForSingleObject(&rundown->dispatch.rundown_wait, Executive, KernelMode, FALSE, NULL);
             }
         }
     }
 }
 
-/**
- * @brief Callback invoked when a client detaches. The client eBPF program
- * remains valid until this callback returns.
- *
- * @param context The ebpf_ext_attach_hook_provider_registration_t.
- * @param client_id Identity of the eBPF program detaching.
- * @retval EBPF_SUCCESS The operation succeeded.
- */
-static ebpf_result_t
-_ebpf_ext_attach_provider_client_detach_callback(_In_ void* context, _In_ const GUID* client_id)
+_Acquires_lock_(hook_client) bool net_ebpf_ext_attach_enter_rundown(
+    _In_ net_ebpf_extension_hook_client_t* hook_client, ebpf_ext_hook_execution_t execution_type)
 {
-    ebpf_ext_attach_hook_provider_registration_t* hook_registration =
-        (ebpf_ext_attach_hook_provider_registration_t*)context;
-    UNREFERENCED_PARAMETER(client_id);
+    net_ebpf_ext_hook_client_rundown_t* rundown = &hook_client->rundown;
+    if (execution_type == EBPF_EXT_HOOK_EXECUTION_PASSIVE) {
+        ExAcquirePushLockShared(&rundown->passive.lock);
+    }
 
-    // Prevent new callbacks from starting by setting client_binding_context and
-    // invoke_hook to NULL.
-    hook_registration->client_binding_context = NULL;
-    hook_registration->client_data = NULL;
-    hook_registration->invoke_hook = NULL;
-
-    // TODO: Issue https://github.com/microsoft/ebpf-for-windows/issues/270
-    // Client detach should return pending and then callback once invocations
-    // complete.
-
-    // Wait for any in progress callbacks to complete.
-    _ebpf_ext_attach_wait_for_rundown(hook_registration);
-
-    // At this point, no new invocations of the eBPF program will occur.
-
-    // Permit the EC to finish unloading the eBPF program.
-    return EBPF_SUCCESS;
+    return (rundown->rundown_occurred == FALSE);
 }
 
-_Acquires_lock_(registration) bool net_ebpf_ext_attach_enter_rundown(
-    _In_ ebpf_ext_attach_hook_provider_registration_t* registration)
+_Releases_lock_(hook_client) void net_ebpf_ext_attach_leave_rundown(
+    _In_ net_ebpf_extension_hook_client_t* hook_client, ebpf_ext_hook_execution_t execution_type)
 {
-    if (registration->execution_type == EBPF_EXT_HOOK_EXECUTION_PASSIVE) {
-        ExAcquirePushLockShared(&registration->passive.lock);
+    net_ebpf_ext_hook_client_rundown_t* rundown = &hook_client->rundown;
+    if (execution_type == EBPF_EXT_HOOK_EXECUTION_PASSIVE) {
+        _Analysis_assume_lock_held_(&rundown->passive.lock);
+        ExReleasePushLockShared(&rundown->passive.lock);
     }
-
-    return (registration->client_binding_context != NULL);
-}
-
-_Releases_lock_(registration) void net_ebpf_ext_attach_leave_rundown(
-    _In_ ebpf_ext_attach_hook_provider_registration_t* registration)
-{
-    if (registration->execution_type == EBPF_EXT_HOOK_EXECUTION_PASSIVE) {
-        _Analysis_assume_lock_held_(&registration->passive.lock);
-        ExReleasePushLockShared(&registration->passive.lock);
-    }
-}
-
-ebpf_result_t
-net_ebpf_ext_attach_register_provider(
-    _In_ const ebpf_program_type_t* program_type,
-    _In_ const ebpf_attach_type_t* attach_type,
-    ebpf_ext_hook_execution_t execution_type,
-    _Outptr_ ebpf_ext_attach_hook_provider_registration_t** registration)
-{
-    ebpf_result_t return_value;
-    ebpf_ext_attach_hook_provider_registration_t* local_registration = NULL;
-
-    local_registration = ebpf_allocate(sizeof(ebpf_ext_attach_hook_provider_registration_t));
-    if (!local_registration) {
-        return_value = EBPF_NO_MEMORY;
-        goto Done;
-    }
-
-    memset(local_registration, 0, sizeof(ebpf_ext_attach_hook_provider_registration_t));
-    local_registration->attach_provider_data.supported_program_type = *program_type;
-    local_registration->provider_data.version = EBPF_ATTACH_PROVIDER_DATA_VERSION;
-    local_registration->provider_data.size = sizeof(local_registration->attach_provider_data);
-    local_registration->provider_data.data = &local_registration->attach_provider_data;
-
-    _ebpf_ext_attach_init_rundown(local_registration, execution_type);
-
-    return_value = ebpf_provider_load(
-        &local_registration->provider,
-        attach_type,
-        local_registration,
-        &local_registration->provider_data,
-        NULL,
-        local_registration,
-        _ebpf_ext_attach_provider_client_attach_callback,
-        _ebpf_ext_attach_provider_client_detach_callback);
-
-    if (return_value != EBPF_SUCCESS) {
-        goto Done;
-    }
-
-    *registration = local_registration;
-    local_registration = NULL;
-
-Done:
-    // Wrap in conditional to resolve C6101.
-    if (return_value != EBPF_SUCCESS) {
-        net_ebpf_ext_attach_unregister_provider(local_registration);
-    }
-
-    return return_value;
-}
-
-void
-net_ebpf_ext_attach_unregister_provider(_Frees_ptr_opt_ ebpf_ext_attach_hook_provider_registration_t* registration)
-{
-    if (registration) {
-        ebpf_provider_unload(registration->provider);
-    }
-    ebpf_free(registration);
-}
-
-ebpf_result_t
-net_ebpf_ext_attach_invoke_hook(
-    _In_ ebpf_ext_attach_hook_provider_registration_t* registration, _In_ void* context, _Out_ uint32_t* result)
-{
-    // Note:
-    // Capture local copies of invoke_hook and client_binding_context.
-    ebpf_ext_attach_hook_function_t invoke_hook = (ebpf_ext_attach_hook_function_t)registration->invoke_hook;
-    void* client_binding_context = (void*)registration->client_binding_context;
-
-    // If either are NULL, then the client has detached already.
-    if (!invoke_hook || !client_binding_context) {
-        *result = 0;
-        return EBPF_SUCCESS;
-    }
-
-    // Run the eBPF program using cached copies of invoke_hook and client_binding_context.
-    return invoke_hook(client_binding_context, context, result);
 }
 
 const ebpf_extension_data_t*
-net_ebpf_ext_get_client_data(ebpf_ext_attach_hook_provider_registration_t* registration)
+net_ebpf_ext_get_client_data(net_ebpf_extension_hook_client_t* hook_client)
 {
-    return registration->client_data;
+    return hook_client->client_data;
+}
+
+ebpf_result_t
+net_ebpf_ext_hook_invoke_program(
+    _In_ net_ebpf_extension_hook_client_t* client, _In_ void* context, _Out_ uint32_t* result)
+{
+    ebpf_invoke_program_function_t invoke_program = client->invoke_program;
+    const void* client_binding_context = client->client_binding_context;
+
+    return invoke_program(client_binding_context, context, result);
+}
+
+NTSTATUS
+net_ebpf_extension_hook_provider_attach_client(
+    _In_ HANDLE nmr_binding_handle,
+    _In_ void* provider_context,
+    _In_ const NPI_REGISTRATION_INSTANCE* client_registration_instance,
+    _In_ void* client_binding_context,
+    _In_ const void* client_dispatch,
+    _Outptr_ void** provider_binding_context,
+    _Outptr_result_maybenull_ const void** provider_dispatch)
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    net_ebpf_extension_hook_provider_t* local_provider_context = (net_ebpf_extension_hook_provider_t*)provider_context;
+    net_ebpf_extension_hook_client_t* hook_client = NULL;
+    ebpf_extension_dispatch_table_t* client_dispatch_table;
+
+    if ((provider_binding_context == NULL) || (provider_dispatch == NULL)) {
+        status = STATUS_INVALID_PARAMETER;
+        goto Exit;
+    }
+
+    *provider_binding_context = NULL;
+    *provider_dispatch = NULL;
+
+    hook_client = (net_ebpf_extension_hook_client_t*)ExAllocatePoolUninitialized(
+        NonPagedPoolNx, sizeof(net_ebpf_extension_hook_client_t), NET_EBPF_EXTENSION_POOL_TAG);
+    if (hook_client == NULL) {
+        status = STATUS_NO_MEMORY;
+        goto Exit;
+    }
+
+    hook_client->nmr_binding_handle = nmr_binding_handle;
+    hook_client->client_module_id = client_registration_instance->ModuleId->Guid;
+    hook_client->client_binding_context = client_binding_context;
+    hook_client->client_data = client_registration_instance->NpiSpecificCharacteristics;
+    client_dispatch_table = (ebpf_extension_dispatch_table_t*)client_dispatch;
+    if (client_dispatch_table == NULL) {
+        status = STATUS_INVALID_PARAMETER;
+        goto Exit;
+    }
+    hook_client->invoke_program = (ebpf_invoke_program_function_t)client_dispatch_table->function[0];
+    hook_client->provider_context = local_provider_context;
+    local_provider_context->attached_client = hook_client;
+
+    _ebpf_ext_attach_init_rundown(&hook_client->rundown, local_provider_context->execution_type);
+Exit:
+
+    if (NT_SUCCESS(status)) {
+        *provider_binding_context = hook_client;
+        hook_client = NULL;
+    } else {
+        if (hook_client)
+            ExFreePool(hook_client);
+    }
+
+    return status;
+}
+
+NTSTATUS
+net_ebpf_extension_hook_provider_detach_client(_In_ void* provider_binding_context)
+{
+    NTSTATUS status = STATUS_SUCCESS;
+
+    net_ebpf_extension_hook_client_t* local_client_context =
+        (net_ebpf_extension_hook_client_t*)provider_binding_context;
+    net_ebpf_extension_hook_provider_t* provider_context = NULL;
+    net_ebpf_extension_hook_client_t* attached_client = NULL;
+
+    if (local_client_context == NULL) {
+        status = STATUS_INVALID_PARAMETER;
+        goto Exit;
+    }
+
+    provider_context = local_client_context->provider_context;
+    attached_client = provider_context->attached_client;
+    provider_context->attached_client = NULL;
+
+    // Wait for any in progress callbacks to complete.
+    _ebpf_ext_attach_wait_for_rundown(&attached_client->rundown, provider_context->execution_type);
+
+    if (local_client_context)
+        ExFreePool(local_client_context);
+
+Exit:
+    return status;
+}
+
+void
+net_ebpf_extension_hook_provider_unregister(_Frees_ptr_opt_ net_ebpf_extension_hook_provider_t* provider_context)
+{
+    if (provider_context != NULL) {
+        NTSTATUS status = NmrDeregisterProvider(provider_context->nmr_provider_handle);
+        if (status == STATUS_PENDING)
+            // Wait for clients to detach.
+            NmrWaitForProviderDeregisterComplete(provider_context->nmr_provider_handle);
+        ExFreePool(provider_context);
+    }
+}
+
+NTSTATUS
+net_ebpf_extension_hook_provider_register(
+    _In_ const NPI_PROVIDER_CHARACTERISTICS* provider_characteristics,
+    ebpf_ext_hook_execution_t execution_type,
+    _Outptr_ net_ebpf_extension_hook_provider_t** provider_context)
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    net_ebpf_extension_hook_provider_t* local_provider_context = NULL;
+
+    local_provider_context = (net_ebpf_extension_hook_provider_t*)ExAllocatePoolUninitialized(
+        NonPagedPoolNx, sizeof(net_ebpf_extension_hook_provider_t), NET_EBPF_EXTENSION_POOL_TAG);
+    if (local_provider_context == NULL) {
+        status = STATUS_NO_MEMORY;
+        goto Exit;
+    }
+
+    local_provider_context->execution_type = execution_type;
+    status = NmrRegisterProvider(
+        provider_characteristics, local_provider_context, &local_provider_context->nmr_provider_handle);
+    if (!NT_SUCCESS(status))
+        goto Exit;
+
+    *provider_context = local_provider_context;
+    local_provider_context = NULL;
+
+Exit:
+    if (!NT_SUCCESS(status))
+        net_ebpf_extension_hook_provider_unregister(local_provider_context);
+
+    return status;
+}
+
+net_ebpf_extension_hook_client_t*
+net_ebpf_ext_get_attached_client(_In_ const net_ebpf_extension_hook_provider_t* provider_context)
+{
+    return provider_context->attached_client;
 }

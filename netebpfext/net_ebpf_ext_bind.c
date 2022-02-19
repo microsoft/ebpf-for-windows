@@ -8,12 +8,11 @@
 
 #define INITGUID
 
-#include "net_ebpf_ext.h"
 #include "net_ebpf_ext_prog_info_provider.h"
 
-static ebpf_ext_attach_hook_provider_registration_t* _ebpf_bind_hook_provider_registration = NULL;
-static ebpf_extension_provider_t* _ebpf_bind_program_info_provider = NULL;
-
+//
+// Bind Program Information NPI Provider.
+//
 static ebpf_context_descriptor_t _ebpf_bind_context_descriptor = {
     sizeof(bind_md_t), EBPF_OFFSET_OF(bind_md_t, app_id_start), EBPF_OFFSET_OF(bind_md_t, app_id_end), -1};
 static ebpf_program_info_t _ebpf_bind_program_info = {{"bind", &_ebpf_bind_context_descriptor, {0}}, 0, NULL};
@@ -30,8 +29,6 @@ const NPI_MODULEID DECLSPEC_SELECTANY _ebpf_bind_program_info_provider_moduleid 
 // 608c517c-6c52-0x4a26-b677-bb01c34425adf
 DEFINE_GUID(EBPF_PROGRAM_TYPE_BIND, 0x608c517c, 0x6c52, 0x4a26, 0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf);
 
-// Sample eBPF extension Program Information NPI provider characteristics
-
 const NPI_PROVIDER_CHARACTERISTICS _ebpf_bind_program_info_provider_characteristics = {
     0,
     sizeof(NPI_PROVIDER_CHARACTERISTICS),
@@ -46,14 +43,74 @@ const NPI_PROVIDER_CHARACTERISTICS _ebpf_bind_program_info_provider_characterist
      &_ebpf_bind_program_info_provider_data},
 };
 
-static net_ebpf_extension_program_info_provider_t _ebpf_bind_program_info_provider_context = {0};
+static net_ebpf_extension_program_info_provider_t* _ebpf_bind_program_info_provider_context = NULL;
 
 //
-// Bind Hook Provider.
+// Bind Hook NPI Provider.
 //
+ebpf_attach_provider_data_t _net_ebpf_bind_hook_provider_data;
+
+ebpf_extension_data_t _net_ebpf_extension_bind_hook_provider_data = {
+    EBPF_ATTACH_PROVIDER_DATA_VERSION, sizeof(_net_ebpf_bind_hook_provider_data), &_net_ebpf_bind_hook_provider_data};
+
+// Net eBPF Extension Bind Hook NPI Provider Module GUID: eab8f3d9-ab6c-422e-994c-7a80943bc920
+const NPI_MODULEID DECLSPEC_SELECTANY _ebpf_bind_hook_provider_moduleid = {
+    sizeof(NPI_MODULEID), MIT_GUID, {0xeab8f3d9, 0xab6c, 0x422e, {0x99, 0x4c, 0x7a, 0x80, 0x94, 0x3b, 0xc9, 0x20}}};
 
 // b9707e04-8127-4c72-833e-05b1fb439496
 DEFINE_GUID(EBPF_ATTACH_TYPE_BIND, 0xb9707e04, 0x8127, 0x4c72, 0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96);
+
+const NPI_PROVIDER_CHARACTERISTICS _ebpf_bind_hook_provider_characteristics = {
+    0,
+    sizeof(NPI_PROVIDER_CHARACTERISTICS),
+    net_ebpf_extension_hook_provider_attach_client,
+    net_ebpf_extension_hook_provider_detach_client,
+    NULL,
+    {0,
+     sizeof(NPI_REGISTRATION_INSTANCE),
+     &EBPF_ATTACH_TYPE_BIND,
+     &_ebpf_bind_hook_provider_moduleid,
+     0,
+     &_net_ebpf_extension_bind_hook_provider_data},
+};
+
+static net_ebpf_extension_hook_provider_t* _ebpf_bind_hook_provider_context = NULL;
+
+//
+// NMR Registration Helper Routines.
+//
+
+NTSTATUS
+net_ebpf_ext_bind_register_providers()
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    _net_ebpf_bind_hook_provider_data.supported_program_type = EBPF_PROGRAM_TYPE_BIND;
+
+    status = net_ebpf_extension_program_info_provider_register(
+        &_ebpf_bind_program_info_provider_characteristics, &_ebpf_bind_program_info_provider_context);
+    if (status != STATUS_SUCCESS)
+        goto Exit;
+
+    status = net_ebpf_extension_hook_provider_register(
+        &_ebpf_bind_hook_provider_characteristics, EBPF_EXT_HOOK_EXECUTION_PASSIVE, &_ebpf_bind_hook_provider_context);
+    if (status != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
+Exit:
+    return status;
+}
+
+void
+net_ebpf_ext_bind_unregister_providers()
+{
+    net_ebpf_extension_hook_provider_unregister(_ebpf_bind_hook_provider_context);
+    net_ebpf_extension_program_info_provider_unregister(_ebpf_bind_program_info_provider_context);
+}
+
+//
+// WFP Classify Callbacks.
+//
 
 static void
 _net_ebpf_ext_resource_truncate_appid(bind_md_t* ctx)
@@ -83,13 +140,18 @@ net_ebpf_ext_resource_allocation_classify(
     SOCKADDR_IN addr = {AF_INET};
     uint32_t result;
     bind_md_t ctx;
+    net_ebpf_extension_hook_client_t* attached_client = NULL;
 
     UNREFERENCED_PARAMETER(layer_data);
     UNREFERENCED_PARAMETER(classify_context);
     UNREFERENCED_PARAMETER(filter);
     UNREFERENCED_PARAMETER(flow_context);
 
-    if (!net_ebpf_ext_attach_enter_rundown(_ebpf_bind_hook_provider_registration)) {
+    attached_client = net_ebpf_ext_get_attached_client(_ebpf_bind_hook_provider_context);
+    if (attached_client == NULL)
+        goto Exit;
+
+    if (!net_ebpf_ext_attach_enter_rundown(attached_client, EBPF_EXT_HOOK_EXECUTION_PASSIVE)) {
         classify_output->actionType = FWP_ACTION_PERMIT;
         goto Exit;
     }
@@ -111,7 +173,7 @@ net_ebpf_ext_resource_allocation_classify(
         incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_ALE_APP_ID].value.byteBlob->size;
 
     _net_ebpf_ext_resource_truncate_appid(&ctx);
-    if (net_ebpf_ext_attach_invoke_hook(_ebpf_bind_hook_provider_registration, &ctx, &result) == EBPF_SUCCESS) {
+    if (net_ebpf_ext_hook_invoke_program(attached_client, &ctx, &result) == EBPF_SUCCESS) {
         switch (result) {
         case BIND_PERMIT:
         case BIND_REDIRECT:
@@ -123,7 +185,7 @@ net_ebpf_ext_resource_allocation_classify(
     }
 
 Exit:
-    net_ebpf_ext_attach_leave_rundown(_ebpf_bind_hook_provider_registration);
+    net_ebpf_ext_attach_leave_rundown(attached_client, EBPF_EXT_HOOK_EXECUTION_PASSIVE);
     return;
 }
 
@@ -140,13 +202,18 @@ net_ebpf_ext_resource_release_classify(
     SOCKADDR_IN addr = {AF_INET};
     uint32_t result;
     bind_md_t ctx;
+    net_ebpf_extension_hook_client_t* attached_client = NULL;
 
     UNREFERENCED_PARAMETER(layer_data);
     UNREFERENCED_PARAMETER(classify_context);
     UNREFERENCED_PARAMETER(filter);
     UNREFERENCED_PARAMETER(flow_context);
 
-    if (!net_ebpf_ext_attach_enter_rundown(_ebpf_bind_hook_provider_registration)) {
+    attached_client = net_ebpf_ext_get_attached_client(_ebpf_bind_hook_provider_context);
+    if (attached_client == NULL)
+        goto Exit;
+
+    if (!net_ebpf_ext_attach_enter_rundown(attached_client, EBPF_EXT_HOOK_EXECUTION_PASSIVE)) {
         classify_output->actionType = FWP_ACTION_PERMIT;
         goto Exit;
     }
@@ -168,104 +235,11 @@ net_ebpf_ext_resource_release_classify(
 
     _net_ebpf_ext_resource_truncate_appid(&ctx);
 
-    net_ebpf_ext_attach_invoke_hook(_ebpf_bind_hook_provider_registration, &ctx, &result);
+    net_ebpf_ext_hook_invoke_program(attached_client, &ctx, &result);
 
     classify_output->actionType = FWP_ACTION_PERMIT;
 
 Exit:
-    net_ebpf_ext_attach_leave_rundown(_ebpf_bind_hook_provider_registration);
+    net_ebpf_ext_attach_leave_rundown(attached_client, EBPF_EXT_HOOK_EXECUTION_PASSIVE);
     return;
-}
-
-static void
-_net_ebpf_ext_bind_hook_provider_unregister()
-{
-    net_ebpf_ext_attach_unregister_provider(_ebpf_bind_hook_provider_registration);
-}
-
-static NTSTATUS
-_net_ebpf_ext_bind_hook_provider_register()
-{
-    ebpf_result_t return_value;
-
-    return_value = net_ebpf_ext_attach_register_provider(
-        &EBPF_PROGRAM_TYPE_BIND,
-        &EBPF_ATTACH_TYPE_BIND,
-        EBPF_EXT_HOOK_EXECUTION_PASSIVE,
-        &_ebpf_bind_hook_provider_registration);
-
-    if (return_value != EBPF_SUCCESS) {
-        goto Done;
-    }
-
-Done:
-    if (return_value != EBPF_SUCCESS) {
-        _net_ebpf_ext_bind_hook_provider_unregister();
-        return STATUS_UNSUCCESSFUL;
-    } else
-        return STATUS_SUCCESS;
-}
-
-static void
-_net_ebpf_ext_bind_program_info_provider_unregister()
-{
-    ebpf_provider_unload(_ebpf_bind_program_info_provider);
-}
-
-static NTSTATUS
-_net_ebpf_ext_bind_program_info_provider_register()
-{
-    ebpf_result_t return_value;
-    ebpf_extension_data_t* provider_data;
-    ebpf_program_data_t* program_data;
-
-    provider_data = &_ebpf_bind_program_info_provider_data;
-    program_data = (ebpf_program_data_t*)provider_data->data;
-    program_data->program_info->program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_BIND;
-
-    return_value = ebpf_provider_load(
-        &_ebpf_bind_program_info_provider,
-        &EBPF_PROGRAM_TYPE_BIND,
-        NULL,
-        &_ebpf_bind_program_info_provider_data,
-        NULL,
-        NULL,
-        NULL,
-        NULL);
-
-    if (return_value != EBPF_SUCCESS) {
-        goto Done;
-    }
-
-Done:
-    if (return_value != EBPF_SUCCESS) {
-        _net_ebpf_ext_bind_program_info_provider_unregister();
-        return STATUS_UNSUCCESSFUL;
-    } else
-        return STATUS_SUCCESS;
-}
-
-NTSTATUS
-net_ebpf_ext_bind_register_providers()
-{
-    NTSTATUS status = STATUS_SUCCESS;
-
-    status = net_ebpf_extension_program_info_provider_register(
-        &_ebpf_bind_program_info_provider_characteristics, &_ebpf_bind_program_info_provider_context);
-    if (status != STATUS_SUCCESS)
-        goto Exit;
-
-    status = _net_ebpf_ext_bind_hook_provider_register();
-    if (status != STATUS_SUCCESS)
-        goto Exit;
-
-Exit:
-    return status;
-}
-
-void
-net_ebpf_ext_bind_unregister_providers()
-{
-    _net_ebpf_ext_bind_hook_provider_unregister();
-    _net_ebpf_ext_bind_program_info_provider_unregister();
 }

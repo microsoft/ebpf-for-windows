@@ -41,6 +41,7 @@ Environment:
 #include "ebpf_windows.h"
 
 #include "net_ebpf_ext_hook_provider.h"
+#include "net_ebpf_ext_prog_info_provider.h"
 #include "net_ebpf_ext_program_info.h"
 
 #define NET_EBPF_EXTENSION_POOL_TAG 'Nfbe'
