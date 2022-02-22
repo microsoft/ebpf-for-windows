@@ -154,6 +154,9 @@
     <Link>
       <AdditionalDependencies>Netio.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <DriverSign>
+      <FileDigestAlgorithm>SHA256</FileDigestAlgorithm>
+    </DriverSign>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
     <PreBuildEvent>
@@ -231,6 +234,9 @@
     <Link>
       <AdditionalDependencies>Netio.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <DriverSign>
+      <FileDigestAlgorithm>SHA256</FileDigestAlgorithm>
+    </DriverSign>
   </ItemDefinitionGroup>
   <ItemGroup>
     <FilesToPackage Include="$(TargetPath)" />
