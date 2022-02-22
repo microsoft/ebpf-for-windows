@@ -69,7 +69,7 @@ bpf2c_query_npi_module_id(
 }
 
 NTSTATUS
-DriverEntry(_Inout_ DRIVER_OBJECT* driver_object, _In_ UNICODE_STRING* registry_path)
+DriverEntry(_In_ DRIVER_OBJECT* driver_object, _In_ UNICODE_STRING* registry_path)
 {
     NTSTATUS status;
     RTL_QUERY_REGISTRY_TABLE query_table[] = {
