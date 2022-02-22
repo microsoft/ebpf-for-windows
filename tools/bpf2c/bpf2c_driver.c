@@ -4,7 +4,7 @@
 #include <wdm.h>
 #include <wsk.h>
 
-#define BPF2C_DRIVER_CODE
+#define NO_CRT
 #include "bpf2c.h"
 
 DRIVER_INITIALIZE DriverEntry;
@@ -14,14 +14,16 @@ RTL_QUERY_REGISTRY_ROUTINE static _bpf2c_query_registry_routine;
 static NPI_MODULEID _bpf2c_module_id = {sizeof(_bpf2c_module_id), MIT_GUID, {0}};
 static HANDLE _bpf2c_nmr_client_handle;
 static HANDLE _bpf2c_nmr_provider_handle;
-metadata_table_t ___META_DATA_TABLE___;
+metadata_table_t ___METADATA_TABLE___;
 
 static NTSTATUS
 _bpf2c_npi_client_attach_provider(
-    HANDLE nmr_binding_handle, void* client_context, const NPI_REGISTRATION_INSTANCE* provider_registration_instance);
+    _In_ HANDLE nmr_binding_handle,
+    _In_ void* client_context,
+    _In_ const NPI_REGISTRATION_INSTANCE* provider_registration_instance);
 
 static NTSTATUS
-_bpf2c_npi_client_detach_provider(void* ClientBindingContext);
+_bpf2c_npi_client_detach_provider(_In_ void* ClientBindingContext);
 
 static const NPI_CLIENT_CHARACTERISTICS _bpf2c_npi_client_characteristics = {
     0,                                  // Version
@@ -31,14 +33,19 @@ static const NPI_CLIENT_CHARACTERISTICS _bpf2c_npi_client_characteristics = {
     NULL,
     {0,                                 // Version
      sizeof(NPI_REGISTRATION_INSTANCE), // Length
-     &bpf2c_npi_id,
+     &_bpf2c_npi_id,
      &_bpf2c_module_id,
      0,
-     &___META_DATA_TABLE___}};
+     &___METADATA_TABLE___}};
 
 NTSTATUS
 bpf2c_query_npi_module_id(
-    PWSTR ValueName, ULONG ValueType, PVOID ValueData, ULONG ValueLength, PVOID Context, PVOID EntryContext)
+    _In_ const wchar_t* ValueName,
+    unsigned long ValueType,
+    _In_ const void* ValueData,
+    unsigned long ValueLength,
+    _Inout_ void* Context,
+    _Inout_ void* EntryContext)
 {
     UNREFERENCED_PARAMETER(ValueName);
     UNREFERENCED_PARAMETER(Context);
@@ -56,7 +63,7 @@ bpf2c_query_npi_module_id(
 }
 
 NTSTATUS
-DriverEntry(DRIVER_OBJECT* driver_object, UNICODE_STRING* registry_path)
+DriverEntry(_Inout_ DRIVER_OBJECT* driver_object, _In_ UNICODE_STRING* registry_path)
 {
     NTSTATUS status;
     wchar_t parameter[] = L"\\Parameters";
@@ -91,7 +98,7 @@ Exit:
 }
 
 void
-DriverUnload(struct _DRIVER_OBJECT* DriverObject)
+DriverUnload(_In_ DRIVER_OBJECT* DriverObject)
 {
     NTSTATUS status = NmrDeregisterClient(_bpf2c_nmr_client_handle);
     if (status == STATUS_PENDING) {
@@ -102,7 +109,9 @@ DriverUnload(struct _DRIVER_OBJECT* DriverObject)
 
 NTSTATUS
 _bpf2c_npi_client_attach_provider(
-    HANDLE nmr_binding_handle, void* client_context, const NPI_REGISTRATION_INSTANCE* provider_registration_instance)
+    _In_ HANDLE nmr_binding_handle,
+    _In_ void* client_context,
+    _In_ const NPI_REGISTRATION_INSTANCE* provider_registration_instance)
 {
     UNREFERENCED_PARAMETER(client_context);
     UNREFERENCED_PARAMETER(provider_registration_instance);
@@ -114,7 +123,7 @@ _bpf2c_npi_client_attach_provider(
 }
 
 NTSTATUS
-_bpf2c_npi_client_detach_provider(void* ClientBindingContext)
+_bpf2c_npi_client_detach_provider(_In_ void* ClientBindingContext)
 {
     _bpf2c_nmr_provider_handle = NULL;
     UNREFERENCED_PARAMETER(ClientBindingContext);

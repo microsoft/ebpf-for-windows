@@ -20,16 +20,9 @@ const char bpf2c_dll[] =
     ;
 
 void
-emit_driver_skeleton(const std::string& c_name)
+emit_skeleton(const std::string& c_name, const std::string& code)
 {
-    std::cout << std::regex_replace(bpf2c_driver, std::regex(std::string("___META_DATA_TABLE___")), c_name)
-              << std::endl;
-}
-
-void
-emit_dll_skeleton(const std::string& c_name)
-{
-    std::cout << std::regex_replace(bpf2c_dll, std::regex(std::string("___META_DATA_TABLE___")), c_name) << std::endl;
+    std::cout << std::regex_replace(code, std::regex(std::string("___METADATA_TABLE___")), c_name) << std::endl;
 }
 
 int
@@ -54,10 +47,10 @@ main(int argc, char** argv)
                  {"Generate code for a Windows DLL",
                   [&](std::vector<std::string>::iterator&) { type = output_type::UserPE; }}},
                 {"--bpf",
-                 {"ELF file containing BPF byte code",
+                 {"Input ELF file containing BPF byte code",
                   [&](std::vector<std::string>::iterator& it) { file = *(++it); }}},
                 {"--section",
-                 {"List of sections to process ",
+                 {"Space seperated list of sections to process ",
                   [&](std::vector<std::string>::iterator& it) {
                       while ((*it).find("--") == std::string::npos)
                           sections.push_back(*(++it));
@@ -90,7 +83,7 @@ main(int argc, char** argv)
         }
 
         std::string c_name = file.substr(file.find_last_of("\\") + 1);
-        c_name = c_name.substr(0, file.find("."));
+        c_name = c_name.substr(0, c_name.find("."));
 
         bpf_code_generator generator(file, c_name);
 
@@ -108,10 +101,10 @@ main(int argc, char** argv)
         case output_type::Bare:
             break;
         case output_type::KernelPE:
-            emit_driver_skeleton(c_name);
+            emit_skeleton(c_name, bpf2c_driver);
             break;
         case output_type::UserPE:
-            emit_dll_skeleton(c_name);
+            emit_skeleton(c_name, bpf2c_dll);
             break;
         }
 

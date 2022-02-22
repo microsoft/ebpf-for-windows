@@ -6,7 +6,9 @@
 
 #pragma once
 
+#if !defined(NO_CRT)
 #include <stdint.h>
+#endif
 #include "../external/ebpf-verifier/src/ebpf_base.h"
 #include "ebpf_windows.h"
 

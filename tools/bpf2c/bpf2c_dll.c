@@ -5,16 +5,14 @@
 // Windows Header Files
 #include <windows.h>
 
-#include <cstdint>
-#include <iostream>
-#include <string>
+#include <stdio.h>
 
 #include "bpf2c.h"
 
-metadata_table_t ___META_DATA_TABLE___;
+metadata_table_t ___METADATA_TABLE___;
 
 BOOL APIENTRY
-DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)
+DllMain(_In_ HMODULE hModule, unsigned int ul_reason_for_call, _In_ void* lpReserved)
 {
     UNREFERENCED_PARAMETER(hModule);
     UNREFERENCED_PARAMETER(lpReserved);
@@ -31,15 +29,15 @@ DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)
 void
 division_by_zero(uint32_t address)
 {
-    std::cerr << "Divide by zero at address" << address << std::endl;
+    fprintf(stderr, "Divide by zero at address %d\n", address);
 }
 
 #define FIND_METADATA_ENTRTY(NAME, X) \
     if (std::string(NAME) == #X)      \
         return &X;
 
-extern "C" metadata_table_t*
+metadata_table_t*
 get_metadata_table()
 {
-    return ___META_DATA_TABLE___;
+    return &___METADATA_TABLE___;
 }
