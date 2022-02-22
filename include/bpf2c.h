@@ -21,15 +21,8 @@ typedef unsigned long long uint64_t;
 #include <stddef.h>
 #include <stdint.h>
 #endif
-#include <guiddef.h>
 
 #include "ebpf_structs.h"
-
-static GUID _bpf2c_npi_id = {/* c847aac8-a6f2-4b53-aea3-f4a94b9a80cb */
-                             0xc847aac8,
-                             0xa6f2,
-                             0x4b53,
-                             {0xae, 0xa3, 0xf4, 0xa9, 0x4b, 0x9a, 0x80, 0xcb}};
 
 #ifdef __cplusplus
 extern "C"

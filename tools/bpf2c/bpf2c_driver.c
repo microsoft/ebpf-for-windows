@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include <guiddef.h>
 #include <wdm.h>
 #include <wsk.h>
 
@@ -11,6 +12,11 @@ DRIVER_INITIALIZE DriverEntry;
 DRIVER_UNLOAD DriverUnload;
 RTL_QUERY_REGISTRY_ROUTINE static _bpf2c_query_registry_routine;
 
+static GUID _bpf2c_npi_id = {/* c847aac8-a6f2-4b53-aea3-f4a94b9a80cb */
+                             0xc847aac8,
+                             0xa6f2,
+                             0x4b53,
+                             {0xae, 0xa3, 0xf4, 0xa9, 0x4b, 0x9a, 0x80, 0xcb}};
 static NPI_MODULEID _bpf2c_module_id = {sizeof(_bpf2c_module_id), MIT_GUID, {0}};
 static HANDLE _bpf2c_nmr_client_handle;
 static HANDLE _bpf2c_nmr_provider_handle;
