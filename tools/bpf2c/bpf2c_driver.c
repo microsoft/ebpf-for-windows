@@ -72,9 +72,16 @@ NTSTATUS
 DriverEntry(_Inout_ DRIVER_OBJECT* driver_object, _In_ UNICODE_STRING* registry_path)
 {
     NTSTATUS status;
-    wchar_t parameter[] = L"\\Parameters";
-    wchar_t parameters_sub_key[512] = {0};
-    RTL_QUERY_REGISTRY_TABLE query_table[2] = {
+    RTL_QUERY_REGISTRY_TABLE query_table[] = {
+        {
+            NULL,                      // Query routine
+            RTL_QUERY_REGISTRY_SUBKEY, // Flags
+            L"Parameters",             // Name
+            NULL,                      // Entry contet
+            REG_NONE,                  // Default type
+            NULL,                      // Default data
+            0,                         // Default length
+        },
         {
             bpf2c_query_npi_module_id,   // Query routine
             RTL_QUERY_REGISTRY_REQUIRED, // Flags
@@ -85,10 +92,8 @@ DriverEntry(_Inout_ DRIVER_OBJECT* driver_object, _In_ UNICODE_STRING* registry_
             0,                           // Default length
         },
         {0}};
-    memcpy(parameters_sub_key, registry_path->Buffer, registry_path->Length);
-    wcsncat(parameters_sub_key, parameter, 512 - wcslen(parameters_sub_key));
 
-    status = RtlQueryRegistryValues(RTL_REGISTRY_ABSOLUTE, parameters_sub_key, query_table, NULL, NULL);
+    status = RtlQueryRegistryValues(RTL_REGISTRY_ABSOLUTE, registry_path->Buffer, query_table, NULL, NULL);
     if (!NT_SUCCESS(status)) {
         goto Exit;
     }
