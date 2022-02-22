@@ -43,4 +43,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="bpf2c_dll.c">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="bpf2c_driver.c">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
+  </ItemGroup>
 </Project>

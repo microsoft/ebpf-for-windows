@@ -149,9 +149,9 @@
     </Link>
     <PreBuildEvent>
       <Command>pushd $(OutDir)
-bpf2c.exe bindmonitor.o &gt;bindmonitor_c.c
-bpf2c.exe droppacket.o &gt;droppacket_c.c
-bpf2c.exe divide_by_zero.o &gt;divide_by_zero.c</Command>
+bpf2c.exe --bpf bindmonitor.o &gt;bindmonitor_c.c
+bpf2c.exe --bpf droppacket.o &gt;droppacket_c.c
+bpf2c.exe --bpf divide_by_zero.o &gt;divide_by_zero.c</Command>
     </PreBuildEvent>
     <PreBuildEvent>
       <Message>Run bpf2 over ELF files</Message>

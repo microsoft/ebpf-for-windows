@@ -2,15 +2,49 @@
 // SPDX-License-Identifier: MIT
 
 #pragma once
-#include <stdint.h>
+#if defined(BPF2C_DRIVER_CODE)
+#include <guiddef.h>
+
+typedef signed char int8_t;
+typedef short int16_t;
+typedef int int32_t;
+typedef long long int64_t;
+typedef unsigned char uint8_t;
+typedef unsigned short uint16_t;
+typedef unsigned int uint32_t;
+typedef unsigned long long uint64_t;
+#define bool _Bool
+#define false 0
+#define true 1
+#define UINT32_MAX ((uint32_t)0xFFFFFFFF)
+GUID bpf2c_npi_id = {/* c847aac8-a6f2-4b53-aea3-f4a94b9a80cb */
+                     0xc847aac8,
+                     0xa6f2,
+                     0x4b53,
+                     {0xae, 0xa3, 0xf4, 0xa9, 0x4b, 0x9a, 0x80, 0xcb}};
+
+#else
 #include <stdbool.h>
 #include <stddef.h>
-#include "ebpf_structs.h"
+#include <stdint.h>
+#endif
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
+
+    /**
+     * @brief eBPF Map Definition as it appears in the maps section of an ELF file.
+     */
+    typedef struct _ebpf_map_definition
+    {
+        uint32_t size;        ///< Size in bytes of the ebpf_map_definition_t structure.
+        uint32_t type;        ///< Type of map.
+        uint32_t key_size;    ///< Size in bytes of a map key.
+        uint32_t value_size;  ///< Size in bytes of a map value.
+        uint32_t max_entries; ///< Maximum number of entries allowed in the map.
+    } ebpf_map_definition_t;
 
 #define UBPF_STACK_SIZE 512
 
@@ -39,7 +73,7 @@ extern "C"
     typedef struct _map_entry
     {
         void* address;
-        ebpf_map_definition_in_file_t definition;
+        ebpf_map_definition_t definition;
         const char* name;
     } map_entry_t;
 
