@@ -1714,14 +1714,14 @@ TEST_CASE("bpf2c_droppacket", "[bpf2c]")
     // Test that we drop the packet and increment the map
     xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
 
-    REQUIRE(table.invoke("xdp", &ctx) == XDP_DROP);
+    REQUIRE(table.invoke("DropPacket", &ctx) == XDP_DROP);
     REQUIRE(bpf_map_lookup_elem(table.get_map("dropped_packet_map"), &key, &value) == 0);
     REQUIRE(value == 1);
 
     packet = prepare_udp_packet(10, ETHERNET_TYPE_IPV4);
     xdp_md_t ctx2{packet.data(), packet.data() + packet.size()};
 
-    REQUIRE(table.invoke("xdp", &ctx2) == XDP_PASS);
+    REQUIRE(table.invoke("DropPacket", &ctx2) == XDP_PASS);
     REQUIRE(bpf_map_lookup_elem(table.get_map("dropped_packet_map"), &key, &value) == 0);
     REQUIRE(value == 1);
 }
@@ -1736,7 +1736,7 @@ TEST_CASE("bpf2c_divide_by_zero", "[bpf2c]")
     xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
 
     // Verify the program doesn't crash
-    REQUIRE(table.invoke("xdp", &ctx) == 0);
+    REQUIRE(table.invoke("divide_by_zero", &ctx) == 0);
 }
 
 TEST_CASE("bpf2c_bindmonitor", "[bpf2c]")
@@ -1755,7 +1755,7 @@ TEST_CASE("bpf2c_bindmonitor", "[bpf2c]")
     set_bind_limit(limit_map_fd, 2);
 
     std::function<ebpf_result_t(void*, int*)> invoke = [&table](void* context, int* result) -> ebpf_result_t {
-        *result = static_cast<int>(table.invoke("bind", context));
+        *result = static_cast<int>(table.invoke("BindMonitor", context));
         return EBPF_SUCCESS;
     };
     // Bind first port - success

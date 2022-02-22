@@ -11,9 +11,9 @@
 
 #include "bpf2c.h"
 
-extern "C" metadata_table_t bindmonitor;
-extern "C" metadata_table_t divide_by_zero;
-extern "C" metadata_table_t droppacket;
+extern "C" metadata_table_t bindmonitor_metadata_table;
+extern "C" metadata_table_t divide_by_zero_metadata_table;
+extern "C" metadata_table_t droppacket_metadata_table;
 
 BOOL APIENTRY
 DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)
@@ -38,7 +38,7 @@ division_by_zero(uint32_t address)
 
 #define FIND_METADATA_ENTRTY(NAME, X) \
     if (std::string(NAME) == #X)      \
-        return &X;
+        return &X##_metadata_table;
 
 extern "C" metadata_table_t*
 get_metadata_table(const char* name)

@@ -92,6 +92,7 @@ class bpf_code_generator
     {
         std::vector<output_instruction_t> output;
         std::set<std::string> referenced_registers;
+        std::string function_name;
     } section_t;
 
     /**

@@ -14,8 +14,8 @@ extern "C"
 #include "bpf2c.h"
 }
 
-#if !defined(SECTION)
-#define C_NAME test
+#if !defined(C_NAME)
+#define C_NAME test_metadata_table
 #endif
 
 extern "C" metadata_table_t C_NAME;
