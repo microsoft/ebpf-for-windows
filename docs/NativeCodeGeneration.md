@@ -28,7 +28,7 @@ step is executed by the developer either on their own build machine or part of a
 remaining steps can be executed in a secure environment (production signed PE image) or a developer environment (test
 signed PE image).
 
-## External - Step 1 - Generation of LLVM IR from high level eBPF program
+## External - Step 1 - Generation of ELF from high level eBPF program
 
 The first step of the process is identical to the traditional build pipeline. The eBPF program is provided as a C or
 other high level language file and the normal LLVM / Clang tool chain is invoked, to produce an ELF file containing one
@@ -103,7 +103,9 @@ Each program in the generated C file is exported via a program_entry_t:
 typedef struct _program_entry
 {
     uint64_t (*function)(void*);
-    const char* name;
+    const char* section_name;
+    const char* function_name;
+    size_t bpf_instruction_count;
 } program_entry_t;
 ```
 
