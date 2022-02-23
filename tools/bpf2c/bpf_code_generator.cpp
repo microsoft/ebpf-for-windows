@@ -173,6 +173,25 @@ bpf_code_generator::extract_program(const std::string& section_name)
         reinterpret_cast<const ebpf_inst*>(program_section->get_data()),
         reinterpret_cast<const ebpf_inst*>(program_section->get_data() + program_section->get_size())};
 
+    ELFIO::const_symbol_section_accessor symbols{reader, reader.sections[".symtab"]};
+    for (ELFIO::Elf_Xword index = 0; index < symbols.get_symbols_num(); index++) {
+        std::string name{};
+        ELFIO::Elf64_Addr value{};
+        ELFIO::Elf_Xword size{};
+        unsigned char bind{};
+        unsigned char symbol_type{};
+        ELFIO::Elf_Half section_index{};
+        unsigned char other{};
+        symbols.get_symbol(index, name, value, size, bind, symbol_type, section_index, other);
+        if (name.empty()) {
+            continue;
+        }
+        if (section_index == program_section->get_index() && value == 0) {
+            current_section->function_name = name;
+            break;
+        }
+    }
+
     uint32_t offset = 0;
     for (const auto& instruction : program) {
         current_section->output.push_back({instruction, offset++});
@@ -627,9 +646,9 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
     }
 
     for (auto& [name, section] : sections) {
+        auto function_name = !section.function_name.empty() ? section.function_name : name;
         // Emit entry point
-        output_stream << format_string("static uint64_t _%s_program_entry(void* context)", sanitize_name(name))
-                      << std::endl;
+        output_stream << format_string("static uint64_t %s(void* context)", sanitize_name(function_name)) << std::endl;
         output_stream << "{" << std::endl;
 
         // Emit prologue
@@ -685,8 +704,10 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
 
     output_stream << "static program_entry_t _programs[] = {" << std::endl;
     for (auto& [name, program] : sections) {
-        output_stream << "\t{ " << format_string("_%s_program_entry", sanitize_name(name)) << ", "
-                      << "\"" << name.c_str() << "\"}," << std::endl;
+        auto function_name = !program.function_name.empty() ? program.function_name : name;
+        output_stream << "\t{ " << sanitize_name(function_name) << ", "
+                      << "\"" << name.c_str() << "\", "
+                      << "\"" << program.function_name.c_str() << "\", " << program.output.size() << "}," << std::endl;
     }
     output_stream << "};" << std::endl;
     output_stream << std::endl;
@@ -699,7 +720,8 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
 
     output_stream << std::endl;
     output_stream << format_string(
-        "metadata_table_t %s = { _get_programs, _get_maps, _get_helpers };\n", c_name.c_str());
+        "metadata_table_t %s = { _get_programs, _get_maps, _get_helpers };\n",
+        c_name.c_str() + std::string("_metadata_table"));
 }
 
 std::string

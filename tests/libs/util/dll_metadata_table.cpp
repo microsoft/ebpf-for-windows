@@ -44,7 +44,7 @@ dll_metadata_table::dll_metadata_table(const std::string& dll_name, const std::s
     size_t count;
     table->programs(&programs, &count);
     for (size_t i = 0; i < count; i++) {
-        loaded_programs[programs->name] = programs->function;
+        loaded_programs[programs->function_name] = programs->function;
     }
 }
 
