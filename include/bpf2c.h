@@ -63,7 +63,9 @@ extern "C"
     typedef struct _program_entry
     {
         uint64_t (*function)(void*);
-        const char* name;
+        const char* section_name;
+        const char* function_name;
+        size_t bpf_instruction_count;
     } program_entry_t;
 
     typedef struct _metadata_table
