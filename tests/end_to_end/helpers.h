@@ -58,9 +58,13 @@ typedef class _hook_helper
     _hook_helper(ebpf_attach_type_t attach_type) : _attach_type(attach_type) {}
 
     ebpf_result_t
-    attach_link(fd_t program_fd, bpf_link** link)
+    attach_link(
+        fd_t program_fd,
+        _In_reads_bytes_opt_(attach_parameters_size) void* attach_parameters,
+        _In_ size_t attach_parameters_size,
+        _Outptr_ bpf_link** link)
     {
-        return ebpf_program_attach_by_fd(program_fd, &_attach_type, nullptr, 0, link);
+        return ebpf_program_attach_by_fd(program_fd, &_attach_type, attach_parameters, attach_parameters_size, link);
     }
 
   private:

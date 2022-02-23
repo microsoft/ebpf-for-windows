@@ -33,6 +33,13 @@ DropPacket(xdp_md_t* ctx)
     ETHERNET_HEADER* ethernet_header = NULL;
     long key = 0;
 
+    // This part of the sample is an example of how one might use the ingress_ifindex
+    // field of the context.  Filtering by ifindex in this way is typically not
+    // needed since one can attach to one or more specific ifindex values and we
+    // will only be called if there is a match.  Indeed, this example causes a perf
+    // hit on every packet which is undesirable.  However, a real use might use
+    // the ifindex to log or to look up a more specific policy, or update per-interface
+    // statistics of some sort.
     uint32_t* interface_index = bpf_map_lookup_elem(&interface_index_map, &key);
     if (interface_index != NULL) {
         if (ctx->ingress_ifindex != *interface_index) {

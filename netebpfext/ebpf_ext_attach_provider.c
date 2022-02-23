@@ -260,3 +260,9 @@ ebpf_ext_attach_invoke_hook(
     // Run the eBPF program using cached copies of invoke_hook and client_binding_context.
     return invoke_hook(client_binding_context, context, result);
 }
+
+const ebpf_extension_data_t*
+_ebpf_ext_get_client_data(ebpf_ext_attach_hook_provider_registration_t* registration)
+{
+    return registration->client_data;
+}

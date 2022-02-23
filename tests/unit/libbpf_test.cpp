@@ -291,6 +291,61 @@ TEST_CASE("libbpf program attach", "[libbpf]")
     bpf_object__close(object);
 }
 
+void
+test_xdp_ifindex(uint32_t ifindex, int program_fd[2], bpf_prog_info program_info[2])
+{
+    // Verify there's no program attached to the specified ifindex.
+    uint32_t program_id;
+    REQUIRE(bpf_xdp_query_id(ifindex, 0, &program_id) < 0);
+    REQUIRE(errno == ENOENT);
+
+    // Attach the first program to the specified ifindex.
+    REQUIRE(bpf_xdp_attach(ifindex, program_fd[0], 0, nullptr) == 0);
+    REQUIRE(bpf_xdp_query_id(ifindex, 0, &program_id) == 0);
+    REQUIRE(program_id == program_info[0].id);
+
+    // Replace it with the second program.
+    REQUIRE(bpf_set_link_xdp_fd(ifindex, program_fd[1], XDP_FLAGS_REPLACE) == 0);
+    REQUIRE(bpf_xdp_query_id(ifindex, 0, &program_id) == 0);
+    REQUIRE(program_id == program_info[1].id);
+
+    // Detach the second program.
+    REQUIRE(bpf_xdp_detach(ifindex, XDP_FLAGS_REPLACE, nullptr) == 0);
+
+    // Verify there's no program attached to this ifindex.
+    REQUIRE(bpf_xdp_query_id(ifindex, 0, &program_id) < 0);
+    REQUIRE(errno == ENOENT);
+}
+
+#define TEST_IFINDEX 17
+
+TEST_CASE("bpf_set_link_xdp_fd", "[libbpf]")
+{
+    _test_helper_libbpf test_helper;
+
+    struct bpf_object* object[2];
+    struct bpf_program* program[2];
+    int program_fd[2];
+    bpf_prog_info program_info[2];
+
+    for (int i = 0; i < 2; i++) {
+        REQUIRE(bpf_prog_load("droppacket.o", BPF_PROG_TYPE_XDP, &object[i], &program_fd[i]) == 0);
+        REQUIRE(object[i] != nullptr);
+
+        program[i] = bpf_object__find_program_by_name(object[i], "DropPacket");
+        REQUIRE(program[i] != nullptr);
+
+        uint32_t program_info_size = sizeof(program_info[i]);
+        REQUIRE(bpf_obj_get_info_by_fd(program_fd[i], &program_info[i], &program_info_size) == 0);
+    }
+
+    test_xdp_ifindex(TEST_IFINDEX, program_fd, program_info);
+    test_xdp_ifindex(0, program_fd, program_info);
+
+    bpf_object__close(object[0]);
+    bpf_object__close(object[1]);
+}
+
 TEST_CASE("libbpf map", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
@@ -1124,10 +1179,11 @@ TEST_CASE("enumerate link IDs", "[libbpf]")
     REQUIRE(errno == ENOENT);
 
     // Load and attach some programs.
+    uint32_t ifindex = 0;
     program_load_attach_helper_t xdp_helper(
-        "droppacket.o", EBPF_PROGRAM_TYPE_XDP, "DropPacket", EBPF_EXECUTION_JIT, xdp_hook);
+        "droppacket.o", EBPF_PROGRAM_TYPE_XDP, "DropPacket", EBPF_EXECUTION_JIT, &ifindex, sizeof(ifindex), xdp_hook);
     program_load_attach_helper_t bind_helper(
-        "bindmonitor.o", EBPF_PROGRAM_TYPE_BIND, "BindMonitor", EBPF_EXECUTION_JIT, bind_hook);
+        "bindmonitor.o", EBPF_PROGRAM_TYPE_BIND, "BindMonitor", EBPF_EXECUTION_JIT, nullptr, 0, bind_hook);
 
     // Now enumerate the IDs.
     REQUIRE(bpf_link_get_next_id(0, &id1) == 0);
@@ -1151,8 +1207,9 @@ TEST_CASE("bpf_obj_get_info_by_fd", "[libbpf]")
     _test_helper_end_to_end test_helper;
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
     single_instance_hook_t xdp_hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
+    uint32_t ifindex = 0;
     program_load_attach_helper_t xdp_helper(
-        "droppacket.o", EBPF_PROGRAM_TYPE_XDP, "DropPacket", EBPF_EXECUTION_JIT, xdp_hook);
+        "droppacket.o", EBPF_PROGRAM_TYPE_XDP, "DropPacket", EBPF_EXECUTION_JIT, &ifindex, sizeof(ifindex), xdp_hook);
 
     struct bpf_object* object = xdp_helper.get_object();
     REQUIRE(object != nullptr);

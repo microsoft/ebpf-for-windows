@@ -9,6 +9,8 @@ _program_load_attach_helper::_program_load_attach_helper(
     ebpf_program_type_t program_type,
     _In_z_ const char* program_name,
     ebpf_execution_type_t execution_type,
+    _In_reads_bytes_opt_(attach_parameters_size) void* attach_parameters,
+    _In_ size_t attach_parameters_size,
     hook_helper_t& hook)
     : _file_name(file_name), _program_type(program_type), _program_name(program_name), _execution_type(execution_type),
       _link(nullptr), _object(nullptr)
@@ -33,7 +35,7 @@ _program_load_attach_helper::_program_load_attach_helper(
     REQUIRE(program_fd > 0);
 
     // Attach program to link.
-    REQUIRE(hook.attach_link(program_fd, &_link) == EBPF_SUCCESS);
+    REQUIRE(hook.attach_link(program_fd, attach_parameters, attach_parameters_size, &_link) == EBPF_SUCCESS);
 
     ebpf_free_string(log_buffer);
 }

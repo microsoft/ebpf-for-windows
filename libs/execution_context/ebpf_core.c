@@ -758,7 +758,8 @@ _ebpf_core_protocol_link_program(
     if (retval != EBPF_SUCCESS)
         goto Done;
 
-    retval = ebpf_link_initialize(link, request->attach_type, NULL, 0);
+    uint16_t data_length = request->header.length - FIELD_OFFSET(ebpf_operation_link_program_request_t, data);
+    retval = ebpf_link_initialize(link, request->attach_type, request->data, data_length);
     if (retval != EBPF_SUCCESS)
         goto Done;
 
