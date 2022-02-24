@@ -44,8 +44,8 @@ static const NPI_CLIENT_CHARACTERISTICS _bpf2c_npi_client_characteristics = {
      0,
      &___METADATA_TABLE___}};
 
-NTSTATUS
-bpf2c_query_npi_module_id(
+static NTSTATUS
+_bpf2c_query_npi_module_id(
     _In_ const wchar_t* value_name,
     unsigned long value_type,
     _In_ const void* value_data,
@@ -83,7 +83,7 @@ DriverEntry(_In_ DRIVER_OBJECT* driver_object, _In_ UNICODE_STRING* registry_pat
             0,                         // Default length
         },
         {
-            bpf2c_query_npi_module_id,   // Query routine
+            _bpf2c_query_npi_module_id,  // Query routine
             RTL_QUERY_REGISTRY_REQUIRED, // Flags
             L"NpiModuleId",              // Name
             NULL,                        // Entry contet
@@ -118,7 +118,7 @@ DriverUnload(_In_ DRIVER_OBJECT* driver_object)
     UNREFERENCED_PARAMETER(driver_object);
 }
 
-NTSTATUS
+static NTSTATUS
 _bpf2c_npi_client_attach_provider(
     _In_ HANDLE nmr_binding_handle,
     _In_ void* client_context,
@@ -133,7 +133,7 @@ _bpf2c_npi_client_attach_provider(
     return STATUS_SUCCESS;
 }
 
-NTSTATUS
+static NTSTATUS
 _bpf2c_npi_client_detach_provider(_In_ void* client_binding_context)
 {
     _bpf2c_nmr_provider_handle = NULL;
