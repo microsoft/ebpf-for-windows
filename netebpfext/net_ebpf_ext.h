@@ -51,6 +51,7 @@ Environment:
 extern NDIS_HANDLE _net_ebpf_ext_nbl_pool_handle;
 extern NDIS_HANDLE _net_ebpf_ext_ndis_handle;
 extern HANDLE _net_ebpf_ext_l2_injection_handle;
+extern DEVICE_OBJECT* _net_ebpf_ext_driver_device_object;
 
 //
 // Shared function prototypes.

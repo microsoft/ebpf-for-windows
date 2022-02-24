@@ -33,6 +33,8 @@ typedef struct _net_ebpf_extension_hook_client
     const ebpf_extension_data_t* client_data;
     ebpf_invoke_program_function_t invoke_program;
     struct _net_ebpf_extension_hook_provider* provider_context;
+    ebpf_ext_hook_execution_t execution_type;
+    PIO_WORKITEM detach_work_item;
     net_ebpf_ext_hook_client_rundown_t rundown;
 } net_ebpf_extension_hook_client_t;
 
@@ -64,11 +66,26 @@ static _Function_class_(KDEFERRED_ROUTINE) _IRQL_requires_max_(DISPATCH_LEVEL) _
  *
  * @param rundown Rundown object to initialize.
  * @param execution_type Type of rundown support required.
+ *
+ * @retval STATUS_SUCCESS Operation succeeded.
+ * @retval STATUS_INSUFFICIENT_RESOURCES IO work item could not be allocated.
  */
-static void
-_ebpf_ext_attach_init_rundown(
-    _Inout_ net_ebpf_ext_hook_client_rundown_t* rundown, ebpf_ext_hook_execution_t execution_type)
+static NTSTATUS
+_ebpf_ext_attach_init_rundown(net_ebpf_extension_hook_client_t* hook_client)
 {
+    NTSTATUS status = STATUS_SUCCESS;
+    net_ebpf_ext_hook_client_rundown_t* rundown = &hook_client->rundown;
+    ebpf_ext_hook_execution_t execution_type = hook_client->execution_type;
+
+    //
+    // Allocate work item for client detach processing.
+    //
+    hook_client->detach_work_item = IoAllocateWorkItem(_net_ebpf_ext_driver_device_object);
+    if (hook_client->detach_work_item == NULL) {
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto Exit;
+    }
+
     if (execution_type == EBPF_EXT_HOOK_EXECUTION_PASSIVE) {
         ExInitializePushLock(&rundown->passive.lock);
     } else {
@@ -76,6 +93,9 @@ _ebpf_ext_attach_init_rundown(
         KeInitializeDpc(&(rundown->dispatch.rundown_dpc), _ebpf_ext_attach_rundown, rundown);
     }
     rundown->rundown_occurred = FALSE;
+
+Exit:
+    return status;
 }
 
 /**
@@ -104,6 +124,32 @@ _ebpf_ext_attach_wait_for_rundown(
             }
         }
     }
+}
+
+/**
+ * @brief IO work item routine callback that waits on client rundown to complete.
+ *
+ * @param rundown Rundown object to wait for.
+ */
+void
+_net_ebpf_extension_detach_client_completion(_In_ PDEVICE_OBJECT device_object, _In_opt_ void* context)
+{
+    net_ebpf_extension_hook_client_t* hook_client = (net_ebpf_extension_hook_client_t*)context;
+
+    PAGED_CODE();
+
+    UNREFERENCED_PARAMETER(device_object);
+
+    ASSERT(hook_client != NULL);
+    _Analysis_assume_(hook_client != NULL);
+
+    // Wait for any in progress callbacks to complete.
+    _ebpf_ext_attach_wait_for_rundown(&hook_client->rundown, hook_client->execution_type);
+
+    NmrProviderDetachClientComplete(hook_client->nmr_binding_handle);
+
+    IoFreeWorkItem(hook_client->detach_work_item);
+    ExFreePool(hook_client);
 }
 
 _Acquires_lock_(hook_client) bool net_ebpf_ext_attach_enter_rundown(
@@ -184,9 +230,10 @@ net_ebpf_extension_hook_provider_attach_client(
     }
     hook_client->invoke_program = (ebpf_invoke_program_function_t)client_dispatch_table->function[0];
     hook_client->provider_context = local_provider_context;
+    hook_client->execution_type = local_provider_context->execution_type;
     local_provider_context->attached_client = hook_client;
 
-    _ebpf_ext_attach_init_rundown(&hook_client->rundown, local_provider_context->execution_type);
+    status = _ebpf_ext_attach_init_rundown(hook_client);
 Exit:
 
     if (NT_SUCCESS(status)) {
@@ -203,12 +250,11 @@ Exit:
 NTSTATUS
 net_ebpf_extension_hook_provider_detach_client(_In_ void* provider_binding_context)
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_PENDING;
 
     net_ebpf_extension_hook_client_t* local_client_context =
         (net_ebpf_extension_hook_client_t*)provider_binding_context;
     net_ebpf_extension_hook_provider_t* provider_context = NULL;
-    net_ebpf_extension_hook_client_t* attached_client = NULL;
 
     if (local_client_context == NULL) {
         status = STATUS_INVALID_PARAMETER;
@@ -216,14 +262,13 @@ net_ebpf_extension_hook_provider_detach_client(_In_ void* provider_binding_conte
     }
 
     provider_context = local_client_context->provider_context;
-    attached_client = provider_context->attached_client;
     provider_context->attached_client = NULL;
 
-    // Wait for any in progress callbacks to complete.
-    _ebpf_ext_attach_wait_for_rundown(&attached_client->rundown, provider_context->execution_type);
-
-    if (local_client_context)
-        ExFreePool(local_client_context);
+    IoQueueWorkItem(
+        local_client_context->detach_work_item,
+        _net_ebpf_extension_detach_client_completion,
+        DelayedWorkQueue,
+        (PVOID)local_client_context);
 
 Exit:
     return status;
