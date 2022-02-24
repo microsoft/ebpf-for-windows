@@ -192,6 +192,12 @@ ebpf_ext_attach_register_provider(
 {
     ebpf_result_t return_value;
     ebpf_ext_attach_hook_provider_registration_t* local_registration = NULL;
+    GUID module_id = {0};
+
+    return_value = ebpf_guid_create(&module_id);
+    if (return_value != EBPF_SUCCESS) {
+        goto Done;
+    }
 
     local_registration = ebpf_allocate(sizeof(ebpf_ext_attach_hook_provider_registration_t));
     if (!local_registration) {
@@ -210,6 +216,7 @@ ebpf_ext_attach_register_provider(
     return_value = ebpf_provider_load(
         &local_registration->provider,
         attach_type,
+        &module_id,
         local_registration,
         &local_registration->provider_data,
         NULL,

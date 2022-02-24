@@ -79,6 +79,12 @@ ebpf_result_t
 ebpf_core_initiate()
 {
     ebpf_result_t return_value;
+    GUID module_id = {0};
+
+    return_value = ebpf_guid_create(&module_id);
+    if (return_value != EBPF_SUCCESS) {
+        goto Done;
+    }
 
     return_value = ebpf_platform_initiate();
     if (return_value != EBPF_SUCCESS)
@@ -119,6 +125,7 @@ ebpf_core_initiate()
     return_value = ebpf_provider_load(
         &_ebpf_global_helper_function_provider_context,
         &ebpf_general_helper_function_interface_id,
+        &module_id,
         NULL,
         &_ebpf_global_helper_function_extension_data,
         NULL,

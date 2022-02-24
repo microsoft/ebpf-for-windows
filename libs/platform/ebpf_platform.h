@@ -696,6 +696,7 @@ extern "C"
     ebpf_extension_load(
         _Outptr_ ebpf_extension_client_t** client_context,
         _In_ const GUID* interface_id,
+        _In_ const GUID* module_id,
         _In_ void* extension_client_context,
         _In_opt_ const ebpf_extension_data_t* client_data,
         _In_opt_ const ebpf_extension_dispatch_table_t* client_dispatch_table,
@@ -730,7 +731,7 @@ extern "C"
 
     typedef ebpf_result_t (*ebpf_provider_client_attach_callback_t)(
         void* context,
-        const GUID* client_id,
+        const GUID* module_id,
         void* client_binding_context,
         const ebpf_extension_data_t* client_data,
         const ebpf_extension_dispatch_table_t* client_dispatch_table);
@@ -757,6 +758,7 @@ extern "C"
     ebpf_provider_load(
         _Outptr_ ebpf_extension_provider_t** provider_context,
         _In_ const GUID* interface_id,
+        _In_ const GUID* module_id,
         _In_opt_ void* provider_binding_context,
         _In_opt_ const ebpf_extension_data_t* provider_data,
         _In_opt_ const ebpf_extension_dispatch_table_t* provider_dispatch_table,

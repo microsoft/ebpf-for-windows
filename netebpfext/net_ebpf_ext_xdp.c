@@ -443,6 +443,12 @@ _net_ebpf_ext_xdp_program_info_provider_register()
     ebpf_result_t return_value;
     ebpf_extension_data_t* provider_data;
     ebpf_program_data_t* program_data;
+    GUID module_id = {0};
+
+    return_value = ebpf_guid_create(&module_id);
+    if (return_value != EBPF_SUCCESS) {
+        goto Done;
+    }
 
     provider_data = &_ebpf_xdp_program_info_provider_data;
     program_data = (ebpf_program_data_t*)provider_data->data;
@@ -451,6 +457,7 @@ _net_ebpf_ext_xdp_program_info_provider_register()
     return_value = ebpf_provider_load(
         &_ebpf_xdp_program_info_provider,
         &EBPF_PROGRAM_TYPE_XDP,
+        &module_id,
         NULL,
         &_ebpf_xdp_program_info_provider_data,
         NULL,
