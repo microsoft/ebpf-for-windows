@@ -63,4 +63,4 @@ net_ebpf_extension_program_info_provider_attach_client(
  * @retval STATUS_INVALID_PARAMETER One or more parameters are invalid.
  */
 NTSTATUS
-net_ebpf_extension_program_info_provider_detach_client(_In_ void* provider_binding_context);
+net_ebpf_extension_program_info_provider_detach_client(_Frees_ptr_opt_ void* provider_binding_context);

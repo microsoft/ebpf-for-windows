@@ -51,11 +51,11 @@ net_ebpf_extension_program_info_provider_attach_client(
 
     program_info_client = (net_ebpf_extension_program_info_client_t*)ExAllocatePoolUninitialized(
         NonPagedPoolNx, sizeof(net_ebpf_extension_program_info_client_t), NET_EBPF_EXTENSION_POOL_TAG);
-
     if (program_info_client == NULL) {
         status = STATUS_NO_MEMORY;
         goto Exit;
     }
+    memset(program_info_client, 0, sizeof(net_ebpf_extension_program_info_client_t));
 
     program_info_client->nmr_binding_handle = nmr_binding_handle;
     program_info_client->client_module_id = client_registration_instance->ModuleId->Guid;
@@ -110,6 +110,7 @@ net_ebpf_extension_program_info_provider_register(
         status = STATUS_NO_MEMORY;
         goto Exit;
     }
+    memset(local_provider_context, 0, sizeof(net_ebpf_extension_program_info_provider_t));
 
     // For program info NPI, the NPI ID is assigned as the program type. Set it to the program_type_descriptor.
     extension_data =

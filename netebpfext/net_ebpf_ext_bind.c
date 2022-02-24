@@ -185,7 +185,8 @@ net_ebpf_ext_resource_allocation_classify(
     }
 
 Exit:
-    net_ebpf_ext_attach_leave_rundown(attached_client, EBPF_EXT_HOOK_EXECUTION_PASSIVE);
+    if (attached_client)
+        net_ebpf_ext_attach_leave_rundown(attached_client, EBPF_EXT_HOOK_EXECUTION_PASSIVE);
     return;
 }
 
@@ -240,6 +241,7 @@ net_ebpf_ext_resource_release_classify(
     classify_output->actionType = FWP_ACTION_PERMIT;
 
 Exit:
-    net_ebpf_ext_attach_leave_rundown(attached_client, EBPF_EXT_HOOK_EXECUTION_PASSIVE);
+    if (attached_client)
+        net_ebpf_ext_attach_leave_rundown(attached_client, EBPF_EXT_HOOK_EXECUTION_PASSIVE);
     return;
 }

@@ -498,6 +498,8 @@ net_ebpf_ext_layer_2_classify(
 Done:
     classify_output->actionType = action;
 
-    net_ebpf_ext_attach_leave_rundown(attached_client, EBPF_EXT_HOOK_EXECUTION_DISPATCH);
+    if (attached_client)
+        net_ebpf_ext_attach_leave_rundown(attached_client, EBPF_EXT_HOOK_EXECUTION_DISPATCH);
+
     return;
 }

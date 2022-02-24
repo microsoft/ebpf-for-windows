@@ -126,6 +126,9 @@ _ebpf_ext_attach_wait_for_rundown(
     }
 }
 
+IO_WORKITEM_ROUTINE _net_ebpf_extension_detach_client_completion;
+#pragma alloc_text(PAGE, _net_ebpf_extension_detach_client_completion)
+
 /**
  * @brief IO work item routine callback that waits on client rundown to complete.
  *
@@ -153,7 +156,7 @@ _net_ebpf_extension_detach_client_completion(_In_ PDEVICE_OBJECT device_object, 
 }
 
 _Acquires_lock_(hook_client) bool net_ebpf_ext_attach_enter_rundown(
-    _In_ net_ebpf_extension_hook_client_t* hook_client, ebpf_ext_hook_execution_t execution_type)
+    _Inout_ net_ebpf_extension_hook_client_t* hook_client, ebpf_ext_hook_execution_t execution_type)
 {
     net_ebpf_ext_hook_client_rundown_t* rundown = &hook_client->rundown;
     if (execution_type == EBPF_EXT_HOOK_EXECUTION_PASSIVE) {
@@ -164,7 +167,7 @@ _Acquires_lock_(hook_client) bool net_ebpf_ext_attach_enter_rundown(
 }
 
 _Releases_lock_(hook_client) void net_ebpf_ext_attach_leave_rundown(
-    _In_ net_ebpf_extension_hook_client_t* hook_client, ebpf_ext_hook_execution_t execution_type)
+    _Inout_ net_ebpf_extension_hook_client_t* hook_client, ebpf_ext_hook_execution_t execution_type)
 {
     net_ebpf_ext_hook_client_rundown_t* rundown = &hook_client->rundown;
     if (execution_type == EBPF_EXT_HOOK_EXECUTION_PASSIVE) {
@@ -204,7 +207,7 @@ net_ebpf_extension_hook_provider_attach_client(
     net_ebpf_extension_hook_client_t* hook_client = NULL;
     ebpf_extension_dispatch_table_t* client_dispatch_table;
 
-    if ((provider_binding_context == NULL) || (provider_dispatch == NULL)) {
+    if ((provider_binding_context == NULL) || (provider_dispatch == NULL) || (local_provider_context == NULL)) {
         status = STATUS_INVALID_PARAMETER;
         goto Exit;
     }
@@ -218,6 +221,7 @@ net_ebpf_extension_hook_provider_attach_client(
         status = STATUS_NO_MEMORY;
         goto Exit;
     }
+    memset(hook_client, 0, sizeof(net_ebpf_extension_hook_client_t));
 
     hook_client->nmr_binding_handle = nmr_binding_handle;
     hook_client->client_module_id = client_registration_instance->ModuleId->Guid;
@@ -231,6 +235,8 @@ net_ebpf_extension_hook_provider_attach_client(
     hook_client->invoke_program = (ebpf_invoke_program_function_t)client_dispatch_table->function[0];
     hook_client->provider_context = local_provider_context;
     hook_client->execution_type = local_provider_context->execution_type;
+    // The following line can cause a leak if the provider has already an attached client.
+    // This will be fixed as part of issue #754.
     local_provider_context->attached_client = hook_client;
 
     status = _ebpf_ext_attach_init_rundown(hook_client);
@@ -301,6 +307,7 @@ net_ebpf_extension_hook_provider_register(
         status = STATUS_NO_MEMORY;
         goto Exit;
     }
+    memset(local_provider_context, 0, sizeof(net_ebpf_extension_hook_provider_t));
 
     local_provider_context->execution_type = execution_type;
     status = NmrRegisterProvider(
