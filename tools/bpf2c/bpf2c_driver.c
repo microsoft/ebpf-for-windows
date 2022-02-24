@@ -46,25 +46,25 @@ static const NPI_CLIENT_CHARACTERISTICS _bpf2c_npi_client_characteristics = {
 
 NTSTATUS
 bpf2c_query_npi_module_id(
-    _In_ const wchar_t* ValueName,
-    unsigned long ValueType,
-    _In_ const void* ValueData,
-    unsigned long ValueLength,
-    _Inout_ void* Context,
-    _Inout_ void* EntryContext)
+    _In_ const wchar_t* value_name,
+    unsigned long value_type,
+    _In_ const void* value_data,
+    unsigned long value_length,
+    _Inout_ void* context,
+    _Inout_ void* entry_context)
 {
-    UNREFERENCED_PARAMETER(ValueName);
-    UNREFERENCED_PARAMETER(Context);
-    UNREFERENCED_PARAMETER(EntryContext);
+    UNREFERENCED_PARAMETER(value_name);
+    UNREFERENCED_PARAMETER(context);
+    UNREFERENCED_PARAMETER(entry_context);
 
-    if (ValueType != REG_BINARY) {
+    if (value_type != REG_BINARY) {
         return STATUS_INVALID_PARAMETER;
     }
-    if (ValueLength != sizeof(_bpf2c_module_id.Guid)) {
+    if (value_length != sizeof(_bpf2c_module_id.Guid)) {
         return STATUS_INVALID_PARAMETER;
     }
 
-    memcpy(&_bpf2c_module_id.Guid, ValueData, ValueLength);
+    memcpy(&_bpf2c_module_id.Guid, value_data, value_length);
     return STATUS_SUCCESS;
 }
 
@@ -109,13 +109,13 @@ Exit:
 }
 
 void
-DriverUnload(_In_ DRIVER_OBJECT* DriverObject)
+DriverUnload(_In_ DRIVER_OBJECT* driver_object)
 {
     NTSTATUS status = NmrDeregisterClient(_bpf2c_nmr_client_handle);
     if (status == STATUS_PENDING) {
         NmrWaitForClientDeregisterComplete(_bpf2c_nmr_client_handle);
     }
-    UNREFERENCED_PARAMETER(DriverObject);
+    UNREFERENCED_PARAMETER(driver_object);
 }
 
 NTSTATUS
@@ -134,9 +134,9 @@ _bpf2c_npi_client_attach_provider(
 }
 
 NTSTATUS
-_bpf2c_npi_client_detach_provider(_In_ void* ClientBindingContext)
+_bpf2c_npi_client_detach_provider(_In_ void* client_binding_context)
 {
     _bpf2c_nmr_provider_handle = NULL;
-    UNREFERENCED_PARAMETER(ClientBindingContext);
+    UNREFERENCED_PARAMETER(client_binding_context);
     return STATUS_SUCCESS;
 }

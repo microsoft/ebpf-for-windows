@@ -50,7 +50,7 @@ main(int argc, char** argv)
                  {"Input ELF file containing BPF byte code",
                   [&](std::vector<std::string>::iterator& it) { file = *(++it); }}},
                 {"--section",
-                 {"Space seperated list of sections to process ",
+                 {"Space separated list of sections to process ",
                   [&](std::vector<std::string>::iterator& it) {
                       while ((*it).find("--") == std::string::npos)
                           sections.push_back(*(++it));
