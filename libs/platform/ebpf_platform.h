@@ -675,6 +675,7 @@ extern "C"
      *
      * @param[out] client_context Context used to unload the extension.
      * @param[in] interface_id GUID representing the identity of the interface.
+     * @param[in] client_module_id GUID representing the identity of the client.
      * @param[in] extension_client_context Opaque per-instance pointer passed to the extension.
      * @param[in] client_data Opaque client data passed to the extension or
         NULL if there is none.
@@ -696,7 +697,7 @@ extern "C"
     ebpf_extension_load(
         _Outptr_ ebpf_extension_client_t** client_context,
         _In_ const GUID* interface_id,
-        _In_ const GUID* module_id,
+        _In_ const GUID* client_module_id,
         _In_ void* extension_client_context,
         _In_opt_ const ebpf_extension_data_t* client_data,
         _In_opt_ const ebpf_extension_dispatch_table_t* client_dispatch_table,
@@ -731,7 +732,7 @@ extern "C"
 
     typedef ebpf_result_t (*ebpf_provider_client_attach_callback_t)(
         void* context,
-        const GUID* module_id,
+        const GUID* client_module_id,
         void* client_binding_context,
         const ebpf_extension_data_t* client_data,
         const ebpf_extension_dispatch_table_t* client_dispatch_table);
@@ -743,6 +744,7 @@ extern "C"
      *
      * @param[out] provider_context Context used to unload the provider.
      * @param[in] interface_id GUID representing the identity of the interface.
+     * @param[in] provider_module_id GUID representing the identity of the provider.
      * @param[in] provider_data Opaque provider data.
      * @param[in] provider_dispatch_table Table of function pointers the
      *  provider exposes.
@@ -758,7 +760,7 @@ extern "C"
     ebpf_provider_load(
         _Outptr_ ebpf_extension_provider_t** provider_context,
         _In_ const GUID* interface_id,
-        _In_ const GUID* module_id,
+        _In_ const GUID* provider_module_id,
         _In_opt_ void* provider_binding_context,
         _In_opt_ const ebpf_extension_data_t* provider_data,
         _In_opt_ const ebpf_extension_dispatch_table_t* provider_dispatch_table,

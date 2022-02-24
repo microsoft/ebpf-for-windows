@@ -8,7 +8,7 @@
 typedef struct _ebpf_extension_client
 {
     GUID npi_id;
-    GUID module_id;
+    GUID client_module_id;
     GUID interface_id;
     void* extension_client_context;
     const ebpf_extension_data_t* client_data;
@@ -18,7 +18,7 @@ typedef struct _ebpf_extension_client
 typedef struct _ebpf_extension_provider
 {
     GUID interface_id;
-    GUID module_id;
+    GUID provider_module_id;
     void* provider_binding_context;
     const ebpf_extension_data_t* provider_data;
     const ebpf_extension_dispatch_table_t* provider_dispatch_table;
@@ -35,7 +35,7 @@ ebpf_result_t
 ebpf_extension_load(
     _Outptr_ ebpf_extension_client_t** client_context,
     _In_ const GUID* interface_id,
-    _In_ const GUID* module_id,
+    _In_ const GUID* client_module_id,
     _In_ void* extension_client_context,
     _In_opt_ const ebpf_extension_data_t* client_data,
     _In_opt_ const ebpf_extension_dispatch_table_t* client_dispatch_table,
@@ -75,7 +75,7 @@ ebpf_extension_load(
     local_extension_client->client_dispatch_table = client_dispatch_table;
     local_extension_client->interface_id = *interface_id;
 
-    local_extension_client->module_id = *module_id;
+    local_extension_client->client_module_id = *client_module_id;
 
     return_value =
         ebpf_hash_table_find(_ebpf_provider_table, (const uint8_t*)interface_id, (uint8_t**)&hash_table_find_result);
@@ -89,7 +89,7 @@ ebpf_extension_load(
 
     return_value = ebpf_hash_table_update(
         local_extension_provider->client_table,
-        (const uint8_t*)&local_extension_client->module_id,
+        (const uint8_t*)&local_extension_client->client_module_id,
         (const uint8_t*)&local_extension_client,
         EBPF_HASH_TABLE_OPERATION_INSERT);
     if (return_value != EBPF_SUCCESS) {
@@ -101,7 +101,7 @@ ebpf_extension_load(
     if (local_extension_provider->client_attach_callback) {
         return_value = local_extension_provider->client_attach_callback(
             local_extension_provider->callback_context,
-            &local_extension_client->module_id,
+            &local_extension_client->client_module_id,
             local_extension_client,
             client_data,
             client_dispatch_table);
@@ -126,7 +126,7 @@ ebpf_extension_load(
 Done:
     if (local_extension_provider && local_extension_client) {
         ebpf_hash_table_delete(
-            local_extension_provider->client_table, (const uint8_t*)&local_extension_client->module_id);
+            local_extension_provider->client_table, (const uint8_t*)&local_extension_client->client_module_id);
     }
 
     ebpf_lock_unlock(&_ebpf_provider_table_lock, state);
@@ -160,9 +160,9 @@ ebpf_extension_unload(_Frees_ptr_opt_ ebpf_extension_client_t* client_context)
 
     if (local_extension_provider->client_detach_callback) {
         local_extension_provider->client_detach_callback(
-            local_extension_provider->callback_context, &client_context->module_id);
+            local_extension_provider->callback_context, &client_context->client_module_id);
     }
-    ebpf_hash_table_delete(local_extension_provider->client_table, (const uint8_t*)&client_context->module_id);
+    ebpf_hash_table_delete(local_extension_provider->client_table, (const uint8_t*)&client_context->client_module_id);
 
 Done:
     ebpf_free(client_context);
@@ -194,7 +194,7 @@ ebpf_result_t
 ebpf_provider_load(
     _Outptr_ ebpf_extension_provider_t** provider_context,
     _In_ const GUID* interface_id,
-    _In_ const GUID* module_id,
+    _In_ const GUID* provider_module_id,
     _In_opt_ void* provider_binding_context,
     _In_opt_ const ebpf_extension_data_t* provider_data,
     _In_opt_ const ebpf_extension_dispatch_table_t* provider_dispatch_table,
@@ -240,7 +240,7 @@ ebpf_provider_load(
     memset(local_extension_provider, 0, sizeof(ebpf_extension_provider_t));
 
     local_extension_provider->interface_id = *interface_id;
-    local_extension_provider->module_id = *module_id;
+    local_extension_provider->provider_module_id = *provider_module_id;
     local_extension_provider->provider_binding_context = provider_binding_context;
     local_extension_provider->provider_data = provider_data;
     local_extension_provider->provider_dispatch_table = provider_dispatch_table;

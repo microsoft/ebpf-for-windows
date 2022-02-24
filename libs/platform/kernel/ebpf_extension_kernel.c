@@ -12,7 +12,7 @@ typedef struct _ebpf_extension_client
 {
     NPIID npi_id;
     NPI_CLIENT_CHARACTERISTICS client_characteristics;
-    NPI_MODULEID module_id;
+    NPI_MODULEID client_module_id;
     // Opaque pointer to extension client context, such as eBPF program or eBPF Link.
     void* extension_client_context;
     // Per-provider binding context with client.
@@ -25,7 +25,7 @@ typedef struct _ebpf_extension_client
 
 typedef struct _ebpf_extension_client_binding_context
 {
-    NPI_MODULEID module_id;
+    NPI_MODULEID provider_module_id;
     void* provider_binding_context;
     ebpf_extension_data_t* provider_data;
     ebpf_extension_dispatch_table_t* provider_dispatch_table;
@@ -37,7 +37,7 @@ typedef struct _ebpf_extension_provider
 {
     NPIID npi_id;
     NPI_PROVIDER_CHARACTERISTICS provider_characteristics;
-    NPI_MODULEID module_id;
+    NPI_MODULEID provider_module_id;
     void* provider_binding_context;
     const ebpf_extension_data_t* provider_data;
     const ebpf_extension_dispatch_table_t* provider_dispatch_table;
@@ -49,7 +49,7 @@ typedef struct _ebpf_extension_provider
 
 typedef struct _ebpf_extension_provider_binding_context
 {
-    GUID module_id;
+    GUID client_module_id;
     void* callback_context;
     ebpf_provider_client_detach_callback_t client_detach_callback;
 } ebpf_extension_provider_binding_context;
@@ -110,7 +110,7 @@ _ebpf_extension_client_attach_provider(
         goto Done;
     }
 
-    local_client_binding_context->module_id = *provider_registration_instance->ModuleId;
+    local_client_binding_context->provider_module_id = *provider_registration_instance->ModuleId;
     local_client_binding_context->provider_data =
         (ebpf_extension_data_t*)provider_registration_instance->NpiSpecificCharacteristics;
     local_client_binding_context->extension_client = local_client_context;
@@ -167,7 +167,7 @@ ebpf_result_t
 ebpf_extension_load(
     _Outptr_ ebpf_extension_client_t** client_context,
     _In_ const GUID* interface_id,
-    _In_ const GUID* module_id,
+    _In_ const GUID* client_module_id,
     _In_ void* extension_client_context,
     _In_opt_ const ebpf_extension_data_t* client_data,
     _In_opt_ const ebpf_extension_dispatch_table_t* client_dispatch_table,
@@ -199,9 +199,9 @@ ebpf_extension_load(
     local_client_context->client_data = client_data;
     local_client_context->npi_id = *interface_id;
     local_client_context->extension_client_context = extension_client_context;
-    local_client_context->module_id.Length = sizeof(local_client_context->module_id);
-    local_client_context->module_id.Type = MIT_GUID;
-    local_client_context->module_id.Guid = *module_id;
+    local_client_context->client_module_id.Length = sizeof(local_client_context->client_module_id);
+    local_client_context->client_module_id.Type = MIT_GUID;
+    local_client_context->client_module_id.Guid = *client_module_id;
     local_client_context->client_dispatch_table = client_dispatch_table;
     local_client_context->extension_change_callback = extension_changed;
 
@@ -217,7 +217,7 @@ ebpf_extension_load(
     client_registration_instance->Version = 0;
     client_registration_instance->Size = sizeof(*client_registration_instance);
     client_registration_instance->NpiId = &local_client_context->npi_id;
-    client_registration_instance->ModuleId = &local_client_context->module_id;
+    client_registration_instance->ModuleId = &local_client_context->client_module_id;
 
     client_registration_instance->NpiSpecificCharacteristics = local_client_context->client_data;
 
@@ -355,14 +355,14 @@ _ebpf_extension_provider_attach_client(
         goto Done;
     }
 
-    local_provider_binding_context->module_id = client_registration_instance->ModuleId->Guid;
+    local_provider_binding_context->client_module_id = client_registration_instance->ModuleId->Guid;
     local_provider_binding_context->callback_context = local_provider_context->callback_context;
     local_provider_binding_context->client_detach_callback = local_provider_context->client_detach_callback;
 
     if (local_provider_context->client_attach_callback) {
         return_value = local_provider_context->client_attach_callback(
             local_provider_context->callback_context,
-            &local_provider_binding_context->module_id,
+            &local_provider_binding_context->client_module_id,
             client_binding_context,
             (const ebpf_extension_data_t*)client_registration_instance->NpiSpecificCharacteristics,
             (const ebpf_extension_dispatch_table_t*)client_dispatch);
@@ -397,7 +397,7 @@ _ebpf_extension_provider_detach_client(void* provider_binding_context)
 
     if (local_provider_binding_context->client_detach_callback)
         local_provider_binding_context->client_detach_callback(
-            local_provider_binding_context->callback_context, &local_provider_binding_context->module_id);
+            local_provider_binding_context->callback_context, &local_provider_binding_context->client_module_id);
 
     EBPF_RETURN_NTSTATUS(STATUS_SUCCESS);
 }
@@ -414,7 +414,7 @@ ebpf_result_t
 ebpf_provider_load(
     _Outptr_ ebpf_extension_provider_t** provider_context,
     _In_ const GUID* interface_id,
-    _In_ const GUID* module_id,
+    _In_ const GUID* provider_module_id,
     _In_opt_ void* provider_binding_context,
     _In_opt_ const ebpf_extension_data_t* provider_data,
     _In_opt_ const ebpf_extension_dispatch_table_t* provider_dispatch_table,
@@ -441,9 +441,9 @@ ebpf_provider_load(
     local_provider_context->provider_binding_context = provider_binding_context;
     local_provider_context->provider_data = provider_data;
     local_provider_context->npi_id = *interface_id;
-    local_provider_context->module_id.Length = sizeof(local_provider_context->module_id);
-    local_provider_context->module_id.Type = MIT_GUID;
-    local_provider_context->module_id.Guid = *module_id;
+    local_provider_context->provider_module_id.Length = sizeof(local_provider_context->provider_module_id);
+    local_provider_context->provider_module_id.Type = MIT_GUID;
+    local_provider_context->provider_module_id.Guid = *provider_module_id;
     local_provider_context->provider_dispatch_table = provider_dispatch_table;
     local_provider_context->callback_context = callback_context;
     local_provider_context->client_attach_callback = client_attach_callback;
@@ -461,7 +461,7 @@ ebpf_provider_load(
     provider_registration_instance->Version = 0;
     provider_registration_instance->Size = sizeof(*provider_registration_instance);
     provider_registration_instance->NpiId = &local_provider_context->npi_id;
-    provider_registration_instance->ModuleId = &local_provider_context->module_id;
+    provider_registration_instance->ModuleId = &local_provider_context->provider_module_id;
 
     provider_registration_instance->NpiSpecificCharacteristics = local_provider_context->provider_data;
 
