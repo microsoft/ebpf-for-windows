@@ -12,7 +12,7 @@ jobs:
     strategy:
       matrix:
         configurations: [Debug, Release]
-    runs-on: windows-latest
+    runs-on: windows-2019
     env:
       # Path to the solution file relative to the root of the project.
       SOLUTION_FILE_PATH: ebpf-for-windows.sln
