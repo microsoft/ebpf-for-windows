@@ -33,7 +33,7 @@ typedef struct _net_ebpf_extension_hook_client
     const ebpf_extension_data_t* client_data;
     ebpf_invoke_program_function_t invoke_program;
     struct _net_ebpf_extension_hook_provider* provider_context;
-    ebpf_ext_hook_execution_t execution_type;
+    net_ebpf_extension_hook_execution_t execution_type;
     PIO_WORKITEM detach_work_item;
     net_ebpf_ext_hook_client_rundown_t rundown;
 } net_ebpf_extension_hook_client_t;
@@ -41,7 +41,7 @@ typedef struct _net_ebpf_extension_hook_client
 typedef struct _net_ebpf_extension_hook_provider
 {
     HANDLE nmr_provider_handle;
-    ebpf_ext_hook_execution_t execution_type;
+    net_ebpf_extension_hook_execution_t execution_type;
     net_ebpf_extension_hook_client_t* attached_client;
 } net_ebpf_extension_hook_provider_t;
 
@@ -64,8 +64,7 @@ static _Function_class_(KDEFERRED_ROUTINE) _IRQL_requires_max_(DISPATCH_LEVEL) _
 /**
  * @brief Initialize the hook client rundown state.
  *
- * @param rundown Rundown object to initialize.
- * @param execution_type Type of rundown support required.
+ * @param[in, out] hook_client Pointer to the attached hook NPI client.
  *
  * @retval STATUS_SUCCESS Operation succeeded.
  * @retval STATUS_INSUFFICIENT_RESOURCES IO work item could not be allocated.
@@ -75,7 +74,7 @@ _ebpf_ext_attach_init_rundown(net_ebpf_extension_hook_client_t* hook_client)
 {
     NTSTATUS status = STATUS_SUCCESS;
     net_ebpf_ext_hook_client_rundown_t* rundown = &hook_client->rundown;
-    ebpf_ext_hook_execution_t execution_type = hook_client->execution_type;
+    net_ebpf_extension_hook_execution_t execution_type = hook_client->execution_type;
 
     //
     // Allocate work item for client detach processing.
@@ -86,7 +85,7 @@ _ebpf_ext_attach_init_rundown(net_ebpf_extension_hook_client_t* hook_client)
         goto Exit;
     }
 
-    if (execution_type == EBPF_EXT_HOOK_EXECUTION_PASSIVE) {
+    if (execution_type == EXECUTION_PASSIVE) {
         ExInitializePushLock(&rundown->passive.lock);
     } else {
         KeInitializeEvent(&(rundown->dispatch.rundown_wait), SynchronizationEvent, FALSE);
@@ -101,14 +100,16 @@ Exit:
 /**
  * @brief Block execution of the thread until all invocations are completed.
  *
- * @param rundown Rundown object to wait for.
+ * @param[in, out] rundown Rundown object to wait for.
+ * @param[in]  execution_type Execution type for the hook (passive or dispatch).
+ *
  */
 static void
 _ebpf_ext_attach_wait_for_rundown(
-    _Inout_ net_ebpf_ext_hook_client_rundown_t* rundown, ebpf_ext_hook_execution_t execution_type)
+    _Inout_ net_ebpf_ext_hook_client_rundown_t* rundown, net_ebpf_extension_hook_execution_t execution_type)
 {
     rundown->rundown_occurred = TRUE;
-    if (execution_type == EBPF_EXT_HOOK_EXECUTION_PASSIVE) {
+    if (execution_type == EXECUTION_PASSIVE) {
         ExAcquirePushLockExclusive(&rundown->passive.lock);
         ExReleasePushLockExclusive(&rundown->passive.lock);
     } else {
@@ -132,7 +133,9 @@ IO_WORKITEM_ROUTINE _net_ebpf_extension_detach_client_completion;
 /**
  * @brief IO work item routine callback that waits on client rundown to complete.
  *
- * @param rundown Rundown object to wait for.
+ * @param[in] device_object IO Device object.
+ * @param[in] context Pointer to work item context.
+ *
  */
 void
 _net_ebpf_extension_detach_client_completion(_In_ PDEVICE_OBJECT device_object, _In_opt_ void* context)
@@ -155,36 +158,36 @@ _net_ebpf_extension_detach_client_completion(_In_ PDEVICE_OBJECT device_object, 
     ExFreePool(hook_client);
 }
 
-_Acquires_lock_(hook_client) bool net_ebpf_ext_attach_enter_rundown(
-    _Inout_ net_ebpf_extension_hook_client_t* hook_client, ebpf_ext_hook_execution_t execution_type)
+_Acquires_lock_(hook_client) bool net_ebpf_extension_attach_enter_rundown(
+    _Inout_ net_ebpf_extension_hook_client_t* hook_client, net_ebpf_extension_hook_execution_t execution_type)
 {
     net_ebpf_ext_hook_client_rundown_t* rundown = &hook_client->rundown;
-    if (execution_type == EBPF_EXT_HOOK_EXECUTION_PASSIVE) {
+    if (execution_type == EXECUTION_PASSIVE) {
         ExAcquirePushLockShared(&rundown->passive.lock);
     }
 
     return (rundown->rundown_occurred == FALSE);
 }
 
-_Releases_lock_(hook_client) void net_ebpf_ext_attach_leave_rundown(
-    _Inout_ net_ebpf_extension_hook_client_t* hook_client, ebpf_ext_hook_execution_t execution_type)
+_Releases_lock_(hook_client) void net_ebpf_extension_attach_leave_rundown(
+    _Inout_ net_ebpf_extension_hook_client_t* hook_client, net_ebpf_extension_hook_execution_t execution_type)
 {
     net_ebpf_ext_hook_client_rundown_t* rundown = &hook_client->rundown;
-    if (execution_type == EBPF_EXT_HOOK_EXECUTION_PASSIVE) {
+    if (execution_type == EXECUTION_PASSIVE) {
         _Analysis_assume_lock_held_(&rundown->passive.lock);
         ExReleasePushLockShared(&rundown->passive.lock);
     }
 }
 
 const ebpf_extension_data_t*
-net_ebpf_ext_get_client_data(net_ebpf_extension_hook_client_t* hook_client)
+net_ebpf_extension_get_client_data(_In_ const net_ebpf_extension_hook_client_t* hook_client)
 {
     return hook_client->client_data;
 }
 
 ebpf_result_t
-net_ebpf_ext_hook_invoke_program(
-    _In_ net_ebpf_extension_hook_client_t* client, _In_ void* context, _Out_ uint32_t* result)
+net_ebpf_extension_hook_invoke_program(
+    _In_ const net_ebpf_extension_hook_client_t* client, _In_ void* context, _Out_ uint32_t* result)
 {
     ebpf_invoke_program_function_t invoke_program = client->invoke_program;
     const void* client_binding_context = client->client_binding_context;
@@ -295,7 +298,7 @@ net_ebpf_extension_hook_provider_unregister(_Frees_ptr_opt_ net_ebpf_extension_h
 NTSTATUS
 net_ebpf_extension_hook_provider_register(
     _In_ const NPI_PROVIDER_CHARACTERISTICS* provider_characteristics,
-    ebpf_ext_hook_execution_t execution_type,
+    net_ebpf_extension_hook_execution_t execution_type,
     _Outptr_ net_ebpf_extension_hook_provider_t** provider_context)
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -326,7 +329,7 @@ Exit:
 }
 
 net_ebpf_extension_hook_client_t*
-net_ebpf_ext_get_attached_client(_In_ const net_ebpf_extension_hook_provider_t* provider_context)
+net_ebpf_extension_get_attached_client(_In_ const net_ebpf_extension_hook_provider_t* provider_context)
 {
     return provider_context->attached_client;
 }

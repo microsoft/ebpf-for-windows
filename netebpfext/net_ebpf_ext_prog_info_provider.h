@@ -58,7 +58,7 @@ net_ebpf_extension_program_info_provider_attach_client(
 /**
  * @brief Callback invoked when a Program Information NPI client detaches.
  *
- * @param[in] client_binding_context Provider module's context for binding with the client.
+ * @param[in] provider_binding_context Provider module's context for binding with the client.
  * @retval STATUS_SUCCESS The operation succeeded.
  * @retval STATUS_INVALID_PARAMETER One or more parameters are invalid.
  */

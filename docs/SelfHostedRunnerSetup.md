@@ -23,13 +23,14 @@ This document discusses the steps to set up such a selfhosted actions-runner tha
    administrator privilege. So, the credentials of an account with administrator privilege must be supplied in
    `windowslogonaccount` and `windowslogonpassword` parameters.
 6) Follow the [VM Installation Instructions](vm-setup.md) to set up **two test VMs** and perform one-time setup steps. Then create a snapshot named **baseline** for each of the VMs.
-7) Connect the two test VMs using a private VMSwitch.
+7) Connect the two test VMs.
    1) Create a new VMSwitch instance: `New-VMSwitch -Name <VMSwitch Name> -SwitchType Private`
    2) Add a VM NIC on each VM and connect to the private VMSwitch: `Add-VMNetworkAdapter -VMName <VMName> -SwitchName <VMSwitch Name>`
    3) Assign IP address on the NICs on the VM (run from inside the VM): `New-NetIPAddress -InterfaceAlias <Interface Name> -IPAddress <IP address> -PrefixLength <Prefix length>`. The tests require one IPv4 and one IPv6 address on each of the VM NICs.
-   4) Edit `test_execution.json` file. Add the name of the one of the VMs in `BasicTest` section. Add the names of both the VMs in `MultiVMTest` section along with IPv4 and IPv6 addresses assigned in step (3) above.
-   5) Edit `vm_list.json` with the names of the two test VMs.
-8) Store the VM administrator credential:
+8) Edit test configuration JSON files.
+   1) Edit `test_execution.json` file. Add the name of the one of the VMs in `BasicTest` section. Add the names of both the VMs in `MultiVMTest` section along with IPv4 and IPv6 addresses assigned in step (3) above.
+   2) Edit `vm_list.json` with the names of the two test VMs.
+9) Store the VM administrator credential:
    1) `Install-Module CredentialManager -force`
    2) `New-StoredCredential -Target `**`TEST_VM`**` -Username <VM Administrator> -Password <VM Administrator account password> -Persist LocalMachine`
-9)  Reboot the runner.
+10) Reboot the runner.

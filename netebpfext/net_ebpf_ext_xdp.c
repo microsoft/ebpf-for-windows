@@ -30,9 +30,6 @@ static ebpf_extension_data_t _ebpf_xdp_program_info_provider_data = {
 const NPI_MODULEID DECLSPEC_SELECTANY _ebpf_xdp_program_info_provider_moduleid = {
     sizeof(NPI_MODULEID), MIT_GUID, {0xf4f7e1e4, 0x5f5a, 0x440f, {0x8a, 0x62, 0x28, 0x80, 0xc6, 0xdb, 0x0e, 0x87}}};
 
-// f1832a85-85d5-45b0-98a0-7069d63013b0
-DEFINE_GUID(EBPF_PROGRAM_TYPE_XDP, 0xf1832a85, 0x85d5, 0x45b0, 0x98, 0xa0, 0x70, 0x69, 0xd6, 0x30, 0x13, 0xb0);
-
 const NPI_PROVIDER_CHARACTERISTICS _ebpf_xdp_program_info_provider_characteristics = {
     0,
     sizeof(NPI_PROVIDER_CHARACTERISTICS),
@@ -61,9 +58,6 @@ ebpf_extension_data_t _net_ebpf_extension_xdp_hook_provider_data = {
 // Net eBPF Extension XDP Hook NPI Provider Module GUID: d8039b3a-bdaf-4c54-8d9e-9f88d692f4b9
 const NPI_MODULEID DECLSPEC_SELECTANY _ebpf_xdp_hook_provider_moduleid = {
     sizeof(NPI_MODULEID), MIT_GUID, {0xd8039b3a, 0xbdaf, 0x4c54, {0x8d, 0x9e, 0x9f, 0x88, 0xd6, 0x92, 0xf4, 0xb9}}};
-
-// 85e0d8ef-579e-4931-b072-8ee226bb2e9d
-DEFINE_GUID(EBPF_ATTACH_TYPE_XDP, 0x85e0d8ef, 0x579e, 0x4931, 0xb0, 0x72, 0x8e, 0xe2, 0x26, 0xbb, 0x2e, 0x9d);
 
 const NPI_PROVIDER_CHARACTERISTICS _ebpf_xdp_hook_provider_characteristics = {
     0,
@@ -97,7 +91,7 @@ net_ebpf_ext_xdp_register_providers()
         goto Exit;
 
     status = net_ebpf_extension_hook_provider_register(
-        &_ebpf_xdp_hook_provider_characteristics, EBPF_EXT_HOOK_EXECUTION_DISPATCH, &_ebpf_xdp_hook_provider_context);
+        &_ebpf_xdp_hook_provider_characteristics, EXECUTION_DISPATCH, &_ebpf_xdp_hook_provider_context);
     if (status != EBPF_SUCCESS) {
         goto Exit;
     }
@@ -399,11 +393,11 @@ net_ebpf_ext_layer_2_classify(
     UNREFERENCED_PARAMETER(filter);
     UNREFERENCED_PARAMETER(flow_context);
 
-    attached_client = net_ebpf_ext_get_attached_client(_ebpf_xdp_hook_provider_context);
+    attached_client = net_ebpf_extension_get_attached_client(_ebpf_xdp_hook_provider_context);
     if (attached_client == NULL)
         goto Done;
 
-    if (!net_ebpf_ext_attach_enter_rundown(attached_client, EBPF_EXT_HOOK_EXECUTION_DISPATCH))
+    if (!net_ebpf_extension_attach_enter_rundown(attached_client, EXECUTION_DISPATCH))
         goto Done;
 
     //
@@ -427,12 +421,12 @@ net_ebpf_ext_layer_2_classify(
         incoming_fixed_values->incomingValue[FWPS_FIELD_INBOUND_MAC_FRAME_NATIVE_INTERFACE_INDEX].value.uint32;
 
     // TODO(issue #754): Support multiple clients and iterate through them.
-    // Also, the net_ebpf_ext_get_client_data() function is used because currently
+    // Also, the net_ebpf_extension_get_client_data() function is used because currently
     // the structure is opaque except inside ebpf_ext_attach_provider.c.  However,
     // this results in a slightly longer cycle count in the hot path to get to
     // the client data here.   In the future, the client data field should be
     // exposed in the .h file for us to access here.
-    const ebpf_extension_data_t* client_data = net_ebpf_ext_get_client_data(attached_client);
+    const ebpf_extension_data_t* client_data = net_ebpf_extension_get_client_data(attached_client);
     if ((client_data != NULL) && (client_data->data != NULL)) {
         uint32_t client_ifindex = *(const uint32_t*)client_data->data;
         if (client_ifindex != 0 && client_ifindex != net_xdp_ctx.ingress_ifindex) {
@@ -462,7 +456,7 @@ net_ebpf_ext_layer_2_classify(
         net_xdp_ctx.data_end = packet_buffer + net_buffer->DataLength;
     }
 
-    if (net_ebpf_ext_hook_invoke_program(attached_client, &net_xdp_ctx, &result) == EBPF_SUCCESS) {
+    if (net_ebpf_extension_hook_invoke_program(attached_client, &net_xdp_ctx, &result) == EBPF_SUCCESS) {
         switch (result) {
         case XDP_PASS:
             if (net_xdp_ctx.cloned_nbl != NULL) {
@@ -499,7 +493,7 @@ Done:
     classify_output->actionType = action;
 
     if (attached_client)
-        net_ebpf_ext_attach_leave_rundown(attached_client, EBPF_EXT_HOOK_EXECUTION_DISPATCH);
+        net_ebpf_extension_attach_leave_rundown(attached_client, EXECUTION_DISPATCH);
 
     return;
 }

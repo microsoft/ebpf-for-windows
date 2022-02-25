@@ -26,9 +26,6 @@ static ebpf_extension_data_t _ebpf_bind_program_info_provider_data = {
 const NPI_MODULEID DECLSPEC_SELECTANY _ebpf_bind_program_info_provider_moduleid = {
     sizeof(NPI_MODULEID), MIT_GUID, {0x6c8d3dbd, 0xf1e3, 0x4c42, {0xab, 0xb8, 0xcf, 0x7f, 0x09, 0x5c, 0x9d, 0xf3}}};
 
-// 608c517c-6c52-0x4a26-b677-bb01c34425adf
-DEFINE_GUID(EBPF_PROGRAM_TYPE_BIND, 0x608c517c, 0x6c52, 0x4a26, 0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf);
-
 const NPI_PROVIDER_CHARACTERISTICS _ebpf_bind_program_info_provider_characteristics = {
     0,
     sizeof(NPI_PROVIDER_CHARACTERISTICS),
@@ -56,9 +53,6 @@ ebpf_extension_data_t _net_ebpf_extension_bind_hook_provider_data = {
 // Net eBPF Extension Bind Hook NPI Provider Module GUID: eab8f3d9-ab6c-422e-994c-7a80943bc920
 const NPI_MODULEID DECLSPEC_SELECTANY _ebpf_bind_hook_provider_moduleid = {
     sizeof(NPI_MODULEID), MIT_GUID, {0xeab8f3d9, 0xab6c, 0x422e, {0x99, 0x4c, 0x7a, 0x80, 0x94, 0x3b, 0xc9, 0x20}}};
-
-// b9707e04-8127-4c72-833e-05b1fb439496
-DEFINE_GUID(EBPF_ATTACH_TYPE_BIND, 0xb9707e04, 0x8127, 0x4c72, 0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96);
 
 const NPI_PROVIDER_CHARACTERISTICS _ebpf_bind_hook_provider_characteristics = {
     0,
@@ -92,7 +86,7 @@ net_ebpf_ext_bind_register_providers()
         goto Exit;
 
     status = net_ebpf_extension_hook_provider_register(
-        &_ebpf_bind_hook_provider_characteristics, EBPF_EXT_HOOK_EXECUTION_PASSIVE, &_ebpf_bind_hook_provider_context);
+        &_ebpf_bind_hook_provider_characteristics, EXECUTION_PASSIVE, &_ebpf_bind_hook_provider_context);
     if (status != EBPF_SUCCESS) {
         goto Exit;
     }
@@ -147,11 +141,11 @@ net_ebpf_ext_resource_allocation_classify(
     UNREFERENCED_PARAMETER(filter);
     UNREFERENCED_PARAMETER(flow_context);
 
-    attached_client = net_ebpf_ext_get_attached_client(_ebpf_bind_hook_provider_context);
+    attached_client = net_ebpf_extension_get_attached_client(_ebpf_bind_hook_provider_context);
     if (attached_client == NULL)
         goto Exit;
 
-    if (!net_ebpf_ext_attach_enter_rundown(attached_client, EBPF_EXT_HOOK_EXECUTION_PASSIVE)) {
+    if (!net_ebpf_extension_attach_enter_rundown(attached_client, EXECUTION_PASSIVE)) {
         classify_output->actionType = FWP_ACTION_PERMIT;
         goto Exit;
     }
@@ -173,7 +167,7 @@ net_ebpf_ext_resource_allocation_classify(
         incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_ALE_APP_ID].value.byteBlob->size;
 
     _net_ebpf_ext_resource_truncate_appid(&ctx);
-    if (net_ebpf_ext_hook_invoke_program(attached_client, &ctx, &result) == EBPF_SUCCESS) {
+    if (net_ebpf_extension_hook_invoke_program(attached_client, &ctx, &result) == EBPF_SUCCESS) {
         switch (result) {
         case BIND_PERMIT:
         case BIND_REDIRECT:
@@ -186,7 +180,7 @@ net_ebpf_ext_resource_allocation_classify(
 
 Exit:
     if (attached_client)
-        net_ebpf_ext_attach_leave_rundown(attached_client, EBPF_EXT_HOOK_EXECUTION_PASSIVE);
+        net_ebpf_extension_attach_leave_rundown(attached_client, EXECUTION_PASSIVE);
     return;
 }
 
@@ -210,11 +204,11 @@ net_ebpf_ext_resource_release_classify(
     UNREFERENCED_PARAMETER(filter);
     UNREFERENCED_PARAMETER(flow_context);
 
-    attached_client = net_ebpf_ext_get_attached_client(_ebpf_bind_hook_provider_context);
+    attached_client = net_ebpf_extension_get_attached_client(_ebpf_bind_hook_provider_context);
     if (attached_client == NULL)
         goto Exit;
 
-    if (!net_ebpf_ext_attach_enter_rundown(attached_client, EBPF_EXT_HOOK_EXECUTION_PASSIVE)) {
+    if (!net_ebpf_extension_attach_enter_rundown(attached_client, EXECUTION_PASSIVE)) {
         classify_output->actionType = FWP_ACTION_PERMIT;
         goto Exit;
     }
@@ -236,12 +230,12 @@ net_ebpf_ext_resource_release_classify(
 
     _net_ebpf_ext_resource_truncate_appid(&ctx);
 
-    net_ebpf_ext_hook_invoke_program(attached_client, &ctx, &result);
+    net_ebpf_extension_hook_invoke_program(attached_client, &ctx, &result);
 
     classify_output->actionType = FWP_ACTION_PERMIT;
 
 Exit:
     if (attached_client)
-        net_ebpf_ext_attach_leave_rundown(attached_client, EBPF_EXT_HOOK_EXECUTION_PASSIVE);
+        net_ebpf_extension_attach_leave_rundown(attached_client, EXECUTION_PASSIVE);
     return;
 }
