@@ -2,9 +2,26 @@
 // SPDX-License-Identifier: MIT
 
 #pragma once
-#include <stdint.h>
+#if defined(NO_CRT)
+typedef signed char int8_t;
+typedef short int16_t;
+typedef int int32_t;
+typedef long long int64_t;
+typedef unsigned char uint8_t;
+typedef unsigned short uint16_t;
+typedef unsigned int uint32_t;
+typedef unsigned long long uint64_t;
+#define bool _Bool
+#define false 0
+#define true 1
+#define UINT32_MAX ((uint32_t)0xFFFFFFFF)
+
+#else
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
+#endif
+
 #include "ebpf_structs.h"
 
 #ifdef __cplusplus
