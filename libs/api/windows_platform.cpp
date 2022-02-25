@@ -22,7 +22,6 @@ parse_maps_section_windows(
     const struct ebpf_platform_t*,
     ebpf_verifier_options_t)
 {
-    UNREFERENCED_PARAMETER(map_count);
     if (size % sizeof(ebpf_map_definition_in_file_t) != 0) {
         throw std::runtime_error(
             std::string("bad maps section size, must be a multiple of ") +
