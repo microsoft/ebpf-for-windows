@@ -65,7 +65,4 @@ function Invoke-CICDTests
         Write-Log "One or more tests failed."
         throw
     }
-
-    # Stop the components, so that Driver Verifier can catch memory leaks etc.
-    Stop-eBPFComponents
 }

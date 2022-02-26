@@ -33,8 +33,8 @@ Environment:
 
 // Driver global variables
 static WDFDEVICE _net_ebpf_ext_device = NULL;
-static DEVICE_OBJECT* _net_ebpf_ext_driver_device_object = NULL;
 static BOOLEAN _net_ebpf_ext_driver_unloading_flag = FALSE;
+DEVICE_OBJECT* _net_ebpf_ext_driver_device_object;
 
 //
 // Pre-Declarations

@@ -29,7 +29,7 @@ _bpf2c_npi_client_attach_provider(
     _In_ const NPI_REGISTRATION_INSTANCE* provider_registration_instance);
 
 static NTSTATUS
-_bpf2c_npi_client_detach_provider(_In_ void* ClientBindingContext);
+_bpf2c_npi_client_detach_provider(_In_ void* client_binding_context);
 
 static const NPI_CLIENT_CHARACTERISTICS _bpf2c_npi_client_characteristics = {
     0,                                  // Version
