@@ -8,18 +8,11 @@
 
 #define INITGUID
 
-// ebpf_xdp_program_data.h has generated
-// headers. encode_program_info generates them from the structs
-// in ebpf_nethooks.h. This workaround exists due to the inability
-// to call RPC serialization services from kernel mode. Once we switch
-// to a different serializer, we can get rid of this workaround.
-#include "ebpf_xdp_program_data.h"
-
 #include "net_ebpf_ext.h"
 
-static ebpf_ext_attach_hook_provider_registration_t* _ebpf_xdp_hook_provider_registration = NULL;
-static ebpf_extension_provider_t* _ebpf_xdp_program_info_provider = NULL;
-
+//
+// XDP Program Information NPI Provider.
+//
 static int
 _net_ebpf_xdp_adjust_head(_Inout_ xdp_md_t* ctx, int delta);
 
@@ -33,18 +26,100 @@ static ebpf_program_data_t _ebpf_xdp_program_data = {&_ebpf_xdp_program_info, &_
 static ebpf_extension_data_t _ebpf_xdp_program_info_provider_data = {
     NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_ebpf_xdp_program_data), &_ebpf_xdp_program_data};
 
-// 85e0d8ef-579e-4931-b072-8ee226bb2e9d
-DEFINE_GUID(EBPF_ATTACH_TYPE_XDP, 0x85e0d8ef, 0x579e, 0x4931, 0xb0, 0x72, 0x8e, 0xe2, 0x26, 0xbb, 0x2e, 0x9d);
+// Net eBPF Extension XDP Program Information NPI Provider Module GUID: f4f7e1e4-5f5a-440f-8a62-2880c6db0e87
+const NPI_MODULEID DECLSPEC_SELECTANY _ebpf_xdp_program_info_provider_moduleid = {
+    sizeof(NPI_MODULEID), MIT_GUID, {0xf4f7e1e4, 0x5f5a, 0x440f, {0x8a, 0x62, 0x28, 0x80, 0xc6, 0xdb, 0x0e, 0x87}}};
 
-// f1832a85-85d5-45b0-98a0-7069d63013b0
-DEFINE_GUID(EBPF_PROGRAM_TYPE_XDP, 0xf1832a85, 0x85d5, 0x45b0, 0x98, 0xa0, 0x70, 0x69, 0xd6, 0x30, 0x13, 0xb0);
+const NPI_PROVIDER_CHARACTERISTICS _ebpf_xdp_program_info_provider_characteristics = {
+    0,
+    sizeof(NPI_PROVIDER_CHARACTERISTICS),
+    net_ebpf_extension_program_info_provider_attach_client,
+    net_ebpf_extension_program_info_provider_detach_client,
+    NULL,
+    {0,
+     sizeof(NPI_REGISTRATION_INSTANCE),
+     &EBPF_PROGRAM_TYPE_XDP,
+     &_ebpf_xdp_program_info_provider_moduleid,
+     0,
+     &_ebpf_xdp_program_info_provider_data},
+};
 
+static net_ebpf_extension_program_info_provider_t* _ebpf_xdp_program_info_provider_context = NULL;
+
+//
+// XDP Hook NPI Provider.
+//
+
+ebpf_attach_provider_data_t _net_ebpf_xdp_hook_provider_data;
+
+ebpf_extension_data_t _net_ebpf_extension_xdp_hook_provider_data = {
+    EBPF_ATTACH_PROVIDER_DATA_VERSION, sizeof(_net_ebpf_xdp_hook_provider_data), &_net_ebpf_xdp_hook_provider_data};
+
+// Net eBPF Extension XDP Hook NPI Provider Module GUID: d8039b3a-bdaf-4c54-8d9e-9f88d692f4b9
+const NPI_MODULEID DECLSPEC_SELECTANY _ebpf_xdp_hook_provider_moduleid = {
+    sizeof(NPI_MODULEID), MIT_GUID, {0xd8039b3a, 0xbdaf, 0x4c54, {0x8d, 0x9e, 0x9f, 0x88, 0xd6, 0x92, 0xf4, 0xb9}}};
+
+const NPI_PROVIDER_CHARACTERISTICS _ebpf_xdp_hook_provider_characteristics = {
+    0,
+    sizeof(NPI_PROVIDER_CHARACTERISTICS),
+    net_ebpf_extension_hook_provider_attach_client,
+    net_ebpf_extension_hook_provider_detach_client,
+    NULL,
+    {0,
+     sizeof(NPI_REGISTRATION_INSTANCE),
+     &EBPF_ATTACH_TYPE_XDP,
+     &_ebpf_xdp_hook_provider_moduleid,
+     0,
+     &_net_ebpf_extension_xdp_hook_provider_data},
+};
+
+static net_ebpf_extension_hook_provider_t* _ebpf_xdp_hook_provider_context = NULL;
+
+//
+// NMR Registration Helper Routines.
+//
+
+NTSTATUS
+net_ebpf_ext_xdp_register_providers()
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    _net_ebpf_xdp_hook_provider_data.supported_program_type = EBPF_PROGRAM_TYPE_XDP;
+
+    status = net_ebpf_extension_program_info_provider_register(
+        &_ebpf_xdp_program_info_provider_characteristics, &_ebpf_xdp_program_info_provider_context);
+    if (status != STATUS_SUCCESS)
+        goto Exit;
+
+    status = net_ebpf_extension_hook_provider_register(
+        &_ebpf_xdp_hook_provider_characteristics, EXECUTION_DISPATCH, &_ebpf_xdp_hook_provider_context);
+    if (status != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
+Exit:
+    return status;
+}
+
+void
+net_ebpf_ext_xdp_unregister_providers()
+{
+    net_ebpf_extension_hook_provider_unregister(_ebpf_xdp_hook_provider_context);
+    net_ebpf_extension_program_info_provider_unregister(_ebpf_xdp_program_info_provider_context);
+}
+
+/**
+ *  @brief This is the internal data structure for XDP context.
+ */
 typedef struct _net_ebpf_xdp_md
 {
     xdp_md_t;
     NET_BUFFER_LIST* original_nbl;
     NET_BUFFER_LIST* cloned_nbl;
 } net_ebpf_xdp_md_t;
+
+//
+// NBL Clone Functions.
+//
 
 static void
 _net_ebpf_ext_free_nbl(_Inout_ NET_BUFFER_LIST* nbl);
@@ -133,6 +208,22 @@ Exit:
     return status;
 }
 
+static void
+_net_ebpf_ext_free_nbl(_Inout_ NET_BUFFER_LIST* nbl)
+{
+    NET_BUFFER* net_buffer = NET_BUFFER_LIST_FIRST_NB(nbl);
+    MDL* mdl_chain = NET_BUFFER_FIRST_MDL(net_buffer);
+    uint8_t* buffer = MmGetSystemAddressForMdlSafe(mdl_chain, NormalPagePriority);
+    if (buffer != NULL)
+        ExFreePool(buffer);
+    IoFreeMdl(mdl_chain);
+    FwpsFreeNetBufferList0(nbl);
+}
+
+//
+// XDP Helper Functions.
+//
+
 static int
 _net_ebpf_xdp_adjust_head(_Inout_ xdp_md_t* ctx, int delta)
 {
@@ -185,17 +276,9 @@ Exit:
     return return_value;
 }
 
-static void
-_net_ebpf_ext_free_nbl(_Inout_ NET_BUFFER_LIST* nbl)
-{
-    NET_BUFFER* net_buffer = NET_BUFFER_LIST_FIRST_NB(nbl);
-    MDL* mdl_chain = NET_BUFFER_FIRST_MDL(net_buffer);
-    uint8_t* buffer = MmGetSystemAddressForMdlSafe(mdl_chain, NormalPagePriority);
-    if (buffer != NULL)
-        ExFreePool(buffer);
-    IoFreeMdl(mdl_chain);
-    FwpsFreeNetBufferList0(nbl);
-}
+//
+// Packet Injection Routines.
+//
 
 static void
 _net_ebpf_ext_l2_receive_inject_complete(_In_ const void* context, _Inout_ NET_BUFFER_LIST* nbl, BOOLEAN dispatch_level)
@@ -282,6 +365,10 @@ Exit:
     return;
 }
 
+//
+// WFP Classify callback.
+//
+
 void
 net_ebpf_ext_layer_2_classify(
     _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values,
@@ -292,20 +379,25 @@ net_ebpf_ext_layer_2_classify(
     uint64_t flow_context,
     _Inout_ FWPS_CLASSIFY_OUT* classify_output)
 {
+    NTSTATUS status = STATUS_SUCCESS;
     FWP_ACTION_TYPE action = FWP_ACTION_PERMIT;
-
-    UNREFERENCED_PARAMETER(incoming_metadata_values);
-    UNREFERENCED_PARAMETER(classify_context);
-    UNREFERENCED_PARAMETER(filter);
-    UNREFERENCED_PARAMETER(flow_context);
     NET_BUFFER_LIST* nbl = (NET_BUFFER_LIST*)layer_data;
     NET_BUFFER* net_buffer = NULL;
     uint8_t* packet_buffer;
     uint32_t result = 0;
     net_ebpf_xdp_md_t net_xdp_ctx = {0};
-    NTSTATUS status = STATUS_SUCCESS;
+    net_ebpf_extension_hook_client_t* attached_client = NULL;
 
-    if (!ebpf_ext_attach_enter_rundown(_ebpf_xdp_hook_provider_registration))
+    UNREFERENCED_PARAMETER(incoming_metadata_values);
+    UNREFERENCED_PARAMETER(classify_context);
+    UNREFERENCED_PARAMETER(filter);
+    UNREFERENCED_PARAMETER(flow_context);
+
+    attached_client = net_ebpf_extension_get_attached_client(_ebpf_xdp_hook_provider_context);
+    if (attached_client == NULL)
+        goto Done;
+
+    if (!net_ebpf_extension_attach_enter_rundown(attached_client, EXECUTION_DISPATCH))
         goto Done;
 
     //
@@ -329,16 +421,18 @@ net_ebpf_ext_layer_2_classify(
         incoming_fixed_values->incomingValue[FWPS_FIELD_INBOUND_MAC_FRAME_NATIVE_INTERFACE_INDEX].value.uint32;
 
     // TODO(issue #754): Support multiple clients and iterate through them.
-    // Also, the _ebpf_ext_get_client_data() function is used because currently
+    // Also, the net_ebpf_extension_get_client_data() function is used because currently
     // the structure is opaque except inside ebpf_ext_attach_provider.c.  However,
     // this results in a slightly longer cycle count in the hot path to get to
     // the client data here.   In the future, the client data field should be
     // exposed in the .h file for us to access here.
-    const ebpf_extension_data_t* client_data = _ebpf_ext_get_client_data(_ebpf_xdp_hook_provider_registration);
-    uint32_t client_ifindex = *(const uint32_t*)client_data->data;
-    if (client_ifindex != 0 && client_ifindex != net_xdp_ctx.ingress_ifindex) {
-        // The client is not interested in this ingress ifindex.
-        goto Done;
+    const ebpf_extension_data_t* client_data = net_ebpf_extension_get_client_data(attached_client);
+    if ((client_data != NULL) && (client_data->data != NULL)) {
+        uint32_t client_ifindex = *(const uint32_t*)client_data->data;
+        if (client_ifindex != 0 && client_ifindex != net_xdp_ctx.ingress_ifindex) {
+            // The client is not interested in this ingress ifindex.
+            goto Done;
+        }
     }
 
     net_xdp_ctx.original_nbl = nbl;
@@ -362,8 +456,7 @@ net_ebpf_ext_layer_2_classify(
         net_xdp_ctx.data_end = packet_buffer + net_buffer->DataLength;
     }
 
-    if (ebpf_ext_attach_invoke_hook(_ebpf_xdp_hook_provider_registration, (xdp_md_t*)&net_xdp_ctx, &result) ==
-        EBPF_SUCCESS) {
+    if (net_ebpf_extension_hook_invoke_program(attached_client, &net_xdp_ctx, &result) == EBPF_SUCCESS) {
         switch (result) {
         case XDP_PASS:
             if (net_xdp_ctx.cloned_nbl != NULL) {
@@ -399,97 +492,8 @@ net_ebpf_ext_layer_2_classify(
 Done:
     classify_output->actionType = action;
 
-    ebpf_ext_attach_leave_rundown(_ebpf_xdp_hook_provider_registration);
+    if (attached_client)
+        net_ebpf_extension_attach_leave_rundown(attached_client, EXECUTION_DISPATCH);
+
     return;
-}
-
-static void
-_net_ebpf_ext_xdp_hook_provider_unregister()
-{
-    ebpf_ext_attach_unregister_provider(_ebpf_xdp_hook_provider_registration);
-}
-
-static NTSTATUS
-_net_ebpf_ext_xdp_hook_provider_register()
-{
-    ebpf_result_t return_value;
-    return_value = ebpf_ext_attach_register_provider(
-        &EBPF_PROGRAM_TYPE_XDP,
-        &EBPF_ATTACH_TYPE_XDP,
-        EBPF_EXT_HOOK_EXECUTION_DISPATCH,
-        &_ebpf_xdp_hook_provider_registration);
-
-    if (return_value != EBPF_SUCCESS) {
-        goto Done;
-    }
-
-Done:
-    if (return_value != EBPF_SUCCESS) {
-        _net_ebpf_ext_xdp_hook_provider_unregister();
-        return STATUS_UNSUCCESSFUL;
-    } else
-        return STATUS_SUCCESS;
-}
-
-static void
-_net_ebpf_ext_xdp_program_info_provider_unregister()
-{
-    ebpf_provider_unload(_ebpf_xdp_program_info_provider);
-}
-
-static NTSTATUS
-_net_ebpf_ext_xdp_program_info_provider_register()
-{
-    ebpf_result_t return_value;
-    ebpf_extension_data_t* provider_data;
-    ebpf_program_data_t* program_data;
-
-    provider_data = &_ebpf_xdp_program_info_provider_data;
-    program_data = (ebpf_program_data_t*)provider_data->data;
-    program_data->program_info->program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_XDP;
-
-    return_value = ebpf_provider_load(
-        &_ebpf_xdp_program_info_provider,
-        &EBPF_PROGRAM_TYPE_XDP,
-        NULL,
-        &_ebpf_xdp_program_info_provider_data,
-        NULL,
-        NULL,
-        NULL,
-        NULL);
-
-    if (return_value != EBPF_SUCCESS) {
-        goto Done;
-    }
-
-Done:
-    if (return_value != EBPF_SUCCESS) {
-        _net_ebpf_ext_xdp_program_info_provider_unregister();
-        return STATUS_UNSUCCESSFUL;
-    } else
-        return STATUS_SUCCESS;
-}
-
-NTSTATUS
-net_ebpf_ext_xdp_register_providers()
-{
-    NTSTATUS status = STATUS_SUCCESS;
-
-    status = _net_ebpf_ext_xdp_program_info_provider_register();
-    if (status != STATUS_SUCCESS)
-        goto Exit;
-
-    status = _net_ebpf_ext_xdp_hook_provider_register();
-    if (status != STATUS_SUCCESS)
-        goto Exit;
-
-Exit:
-    return status;
-}
-
-void
-net_ebpf_ext_xdp_unregister_providers()
-{
-    _net_ebpf_ext_xdp_hook_provider_unregister();
-    _net_ebpf_ext_xdp_program_info_provider_unregister();
 }
