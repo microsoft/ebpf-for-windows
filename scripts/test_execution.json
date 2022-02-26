@@ -1,0 +1,22 @@
+{
+    "license":["Copyright (c) Microsoft Corporation", "SPDX-License-Identifier: MIT"],
+
+    "BasicTest":
+    {
+        "Name": "vm1"
+    },
+
+    "MultiVMTest":
+    [
+        {
+            "Name": "vm1",
+            "V4Address": "20.0.0.1",
+            "V6Address": "2001:eb8f::1"
+        },
+        {
+            "Name": "vm2",
+            "V4Address": "20.0.0.3",
+            "V6Address": "2001:eb8f::3"
+        }
+    ]
+}

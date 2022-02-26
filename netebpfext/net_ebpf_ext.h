@@ -35,12 +35,14 @@ Environment:
 #include <netiodef.h>
 #include <ntddk.h>
 
-#include "ebpf_ext_attach_provider.h"
 #include "ebpf_nethooks.h"
 #include "ebpf_platform.h"
 #include "ebpf_program_types.h"
+#include "ebpf_program_attach_type_guids.h"
 #include "ebpf_windows.h"
 
+#include "net_ebpf_ext_hook_provider.h"
+#include "net_ebpf_ext_prog_info_provider.h"
 #include "net_ebpf_ext_program_info.h"
 
 #define NET_EBPF_EXTENSION_POOL_TAG 'Nfbe'
@@ -50,6 +52,7 @@ Environment:
 extern NDIS_HANDLE _net_ebpf_ext_nbl_pool_handle;
 extern NDIS_HANDLE _net_ebpf_ext_ndis_handle;
 extern HANDLE _net_ebpf_ext_l2_injection_handle;
+extern DEVICE_OBJECT* _net_ebpf_ext_driver_device_object;
 
 //
 // Shared function prototypes.
