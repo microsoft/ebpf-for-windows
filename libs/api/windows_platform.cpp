@@ -18,6 +18,7 @@ parse_maps_section_windows(
     std::vector<EbpfMapDescriptor>& verifier_map_descriptors,
     const char* data,
     size_t size,
+    int map_count,
     const struct ebpf_platform_t*,
     ebpf_verifier_options_t)
 {
@@ -32,7 +33,7 @@ parse_maps_section_windows(
     const int ORIGINAL_FD_OFFSET = 1;
 
     auto mapdefs = std::vector<ebpf_map_definition_in_file_t>(
-        (ebpf_map_definition_in_file_t*)data, (ebpf_map_definition_in_file_t*)(data + size));
+        (ebpf_map_definition_in_file_t*)data, (ebpf_map_definition_in_file_t*)(data + size * map_count));
     for (int i = 0; i < mapdefs.size(); i++) {
         auto& s = mapdefs[i];
         uint32_t section_offset = (i * sizeof(ebpf_map_definition_in_file_t));
