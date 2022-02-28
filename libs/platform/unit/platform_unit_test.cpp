@@ -326,10 +326,13 @@ TEST_CASE("extension_test", "[platform]")
     ebpf_guid_create(&interface_id);
     int callback_context = 0;
     int client_binding_context = 0;
+    GUID module_id = {};
+    REQUIRE(ebpf_guid_create(&module_id) == EBPF_SUCCESS);
     REQUIRE(
         ebpf_provider_load(
             &provider_context,
             &interface_id,
+            &module_id,
             nullptr,
             &provider_data,
             &provider_dispatch_table,
@@ -337,10 +340,12 @@ TEST_CASE("extension_test", "[platform]")
             provider_attach,
             provider_detach) == EBPF_SUCCESS);
 
+    REQUIRE(ebpf_guid_create(&module_id) == EBPF_SUCCESS);
     REQUIRE(
         ebpf_extension_load(
             &client_context,
             &interface_id,
+            &module_id,
             &client_binding_context,
             &client_data,
             &client_dispatch_table,
