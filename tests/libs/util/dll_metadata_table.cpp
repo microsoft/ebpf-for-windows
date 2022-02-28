@@ -87,9 +87,15 @@ dll_metadata_table::bind_metadata_table()
     const ebpf_extension_data_t* returned_provider_data;
     const ebpf_extension_dispatch_table_t* returned_provider_dispatch_table;
 
+    GUID module_id = {};
+    if (ebpf_guid_create(&module_id) != EBPF_SUCCESS) {
+        throw std::runtime_error("ebpf_guid_create failed");
+    }
+
     if (ebpf_extension_load(
             &client_context,
             &ebpf_general_helper_function_interface_id,
+            &module_id,
             &client_binding_context,
             &client_data,
             &client_dispatch_table,

@@ -68,6 +68,12 @@ ebpf_link_initialize(
     ebpf_result_t return_value;
     ebpf_extension_data_t* provider_data;
     ebpf_attach_provider_data_t* attach_provider_data;
+    GUID module_id = {0};
+
+    return_value = ebpf_guid_create(&module_id);
+    if (return_value != EBPF_SUCCESS) {
+        goto Exit;
+    }
 
     link->client_data.version = 0;
     link->client_data.size = context_data_length;
@@ -84,6 +90,7 @@ ebpf_link_initialize(
     return_value = ebpf_extension_load(
         &(link->extension_client_context),
         &attach_type,
+        &module_id,
         link,
         &link->client_data,
         (ebpf_extension_dispatch_table_t*)&_ebpf_link_dispatch_table,
