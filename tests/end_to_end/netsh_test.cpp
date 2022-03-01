@@ -29,17 +29,38 @@ strip_paths(const std::string& orignal_string)
     return output_stream.str();
 }
 
-TEST_CASE("show disassembly bpf.o", "[netsh][disassembly]")
+TEST_CASE("show disassembly bpf_call.o", "[netsh][disassembly]")
 {
+    // Start the test helper so the netsh command can get helper prototypes.
+    _test_helper_end_to_end test_helper;
+
     int result;
-    std::string output = _run_netsh_command(handle_ebpf_show_disassembly, L"bpf.o", nullptr, nullptr, &result);
+    std::string output = _run_netsh_command(handle_ebpf_show_disassembly, L"bpf_call.o", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
     output = strip_paths(output);
     REQUIRE(
-        output == "; ./tests/sample/bpf.c:8\n"
-                  ";     return 42;\n"
-                  "       0:	r0 = 42\n"
-                  "       1:	exit\n\n");
+        output == "; ./tests/sample/bpf_call.c:8\n"
+                  "; SEC(\"xdp_prog\") int func(struct xdp_md* ctx)\n"
+                  "       0:	r1 = 0\n"
+                  "; ./tests/sample/bpf_call.c:10\n"
+                  ";     uint32_t key = 0;\n"
+                  "       1:	*(u32 *)(r10 - 4) = r1\n"
+                  "       2:	r1 = 42\n"
+                  "; ./tests/sample/bpf_call.c:11\n"
+                  ";     uint32_t value = 42;\n"
+                  "       3:	*(u32 *)(r10 - 8) = r1\n"
+                  "       4:	r2 = r10\n"
+                  "       5:	r2 += -4\n"
+                  "       6:	r3 = r10\n"
+                  "       7:	r3 += -8\n"
+                  "; ./tests/sample/bpf_call.c:12\n"
+                  ";     int result = bpf_map_update_elem(&map, &key, &value, 0);\n"
+                  "       8:	r1 = map_fd 1\n"
+                  "      10:	r4 = 0\n"
+                  "      11:	r0 = bpf_map_update_elem:2(map_fd r1, map_key r2, map_value r3, uint64_t r4)\n"
+                  "; ./tests/sample/bpf_call.c:13\n"
+                  ";     return result;\n"
+                  "      12:	exit\n\n");
 }
 
 TEST_CASE("show disassembly bpf.o nosuchsection", "[netsh][disassembly]")

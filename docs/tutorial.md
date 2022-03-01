@@ -73,14 +73,33 @@ source lines as well:
 ```
 > llvm-objdump --triple=bpf -S bpf-d.o
 
-bpf.o:  file format ELF64-BPF
+bpf-d.o:        file format ELF64-BPF
+
 
 Disassembly of section .text:
-func:
-; {
-       0:       b7 00 00 00 00 00 00 00         r0 = 0
-; return 0;
-       1:       95 00 00 00 00 00 00 00         exit
+
+0000000000000000 func:
+;     return 0;
+       0:       b7 00 00 00 00 00 00 00 r0 = 0
+       1:       95 00 00 00 00 00 00 00 exit
+```
+
+Adding the `-l` option as well will also show the source file and line number above
+the source line itself.
+
+```
+>llvm-objdump --triple=bpf -S -l bpf-d.o
+
+bpf-d.o:        file format ELF64-BPF
+
+
+Disassembly of section .text:
+
+0000000000000000 func:
+; C:\your\path\here/bpf.c:3
+;     return 0;
+       0:       b7 00 00 00 00 00 00 00 r0 = 0
+       1:       95 00 00 00 00 00 00 00 exit
 ```
 
 **Step 4)** Learn how sections work
@@ -97,12 +116,10 @@ bpf.o:  file format ELF64-BPF
 Sections:
 Idx Name          Size      Address          Type
   0               00000000 0000000000000000
-  1 .strtab       0000003e 0000000000000000
+  1 .strtab       00000030 0000000000000000
   2 .text         00000010 0000000000000000 TEXT
-  3 .BTF          00000019 0000000000000000
-  4 .BTF.ext      00000020 0000000000000000
-  5 .llvm_addrsig 00000000 0000000000000000
-  6 .symtab       00000048 0000000000000000
+  3 .llvm_addrsig 00000000 0000000000000000
+  4 .symtab       00000048 0000000000000000
 ```
 
 Notice that the only section with actual code in it (i.e., with the "TEXT"
@@ -112,27 +129,26 @@ debug-enabled object file also contains various debugging info:
 ```
 > llvm-objdump --triple=bpf -h bpf-d.o
 
-bpf-d.o:  file format ELF64-BPF
+bpf-d.o:        file format ELF64-BPF
 
 Sections:
-Idx Name          Size      Address          Type
-  0               00000000 0000000000000000
-  1 .strtab       0000009b 0000000000000000
-  2 .text         00000010 0000000000000000 TEXT
-  3 .debug_str    00000052 0000000000000000
-  4 .debug_abbrev 00000034 0000000000000000
-  5 .debug_info   0000004b 0000000000000000
-  6 .rel.debug_info 00000090 0000000000000000
-  7 .debug_macinfo 00000001 0000000000000000
-  8 .BTF          0000007a 0000000000000000
-  9 .BTF.ext      00000048 0000000000000000
-  10 .rel.BTF.ext  00000020 0000000000000000
-  11 .debug_frame  00000028 0000000000000000
-  12 .rel.debug_frame 00000020 0000000000000000
-  13 .debug_line   0000003c 0000000000000000
-  14 .rel.debug_line 00000010 0000000000000000
-  15 .llvm_addrsig 00000000 0000000000000000
-  16 .symtab       00000120 0000000000000000
+Idx Name             Size     VMA              Type
+  0                  00000000 0000000000000000
+  1 .strtab          0000008c 0000000000000000
+  2 .text            00000010 0000000000000000 TEXT
+  3 .debug_str       00000073 0000000000000000
+  4 .debug_abbrev    00000037 0000000000000000
+  5 .debug_info      0000004b 0000000000000000
+  6 .rel.debug_info  00000090 0000000000000000
+  7 .BTF             000000b2 0000000000000000
+  8 .BTF.ext         00000050 0000000000000000
+  9 .rel.BTF.ext     00000020 0000000000000000
+ 10 .debug_frame     00000028 0000000000000000
+ 11 .rel.debug_frame 00000020 0000000000000000
+ 12 .debug_line      0000003c 0000000000000000
+ 13 .rel.debug_line  00000010 0000000000000000
+ 14 .llvm_addrsig    00000000 0000000000000000
+ 15 .symtab          00000120 0000000000000000
 ```
 
 The static verifier that checks the safety of eBPF programs also supports multiple TEXT sections, with custom
@@ -171,16 +187,14 @@ If we now compile the above code as before we can see the new list of sections.
 bpf2.o: file format ELF64-BPF
 
 Sections:
-Idx Name          Size      Address          Type
+Idx Name          Size     VMA              Type
   0               00000000 0000000000000000
-  1 .strtab       00000055 0000000000000000
+  1 .strtab       00000047 0000000000000000
   2 .text         00000000 0000000000000000 TEXT
   3 myprog        00000010 0000000000000000 TEXT
   4 another       00000010 0000000000000000 TEXT
-  5 .BTF          00000019 0000000000000000
-  6 .BTF.ext      00000020 0000000000000000
-  7 .llvm_addrsig 00000000 0000000000000000
-  8 .symtab       00000060 0000000000000000
+  5 .llvm_addrsig 00000000 0000000000000000
+  6 .symtab       00000060 0000000000000000
 ```
 
 Notice that there is still the .text section, but it has a size of 0,
@@ -336,6 +350,12 @@ We'll now do the same with netsh:
 > netsh ebpf show disassembly bpf.o
        0:       r0 = 0
        1:       exit
+
+> netsh ebpf show disassembly bpf-d.o
+; C:\your\path\here/bpf.c:3
+;     return 0;
+       0:       r0 = 0
+       1:       exit
 ```
 
 You can see that the two instructions match the two seen back in step 2 of
@@ -399,8 +419,8 @@ Pre-invariant : [
     instruction_count=0,
     meta_offset=[-4098, 0],
     packet_size=[0, 65534],
-    r1.offset=0, r1.type=ctx, r1.value=[1, 2147418112],
-    r10.offset=512, r10.region_size=512, r10.type=stack, r10.value=[512, 2147418112]]
+    r1.ctx_offset=0, r1.type=ctx, r1.value=[1, 2147418112],
+    r10.numeric_size=0, r10.stack_offset=512, r10.type=stack, r10.value=[512, 2147418112]]
 Stack: Numbers -> {}
 entry:
   goto 0;
@@ -409,16 +429,16 @@ Post-invariant: [
     instruction_count=1,
     meta_offset=[-4098, 0],
     packet_size=[0, 65534],
-    r1.offset=0, r1.type=ctx, r1.value=[1, 2147418112],
-    r10.offset=512, r10.region_size=512, r10.type=stack, r10.value=[512, 2147418112]]
+    r1.ctx_offset=0, r1.type=ctx, r1.value=[1, 2147418112],
+    r10.numeric_size=0, r10.stack_offset=512, r10.type=stack, r10.value=[512, 2147418112]]
 Stack: Numbers -> {}
 
 Pre-invariant : [
     instruction_count=1,
     meta_offset=[-4098, 0],
     packet_size=[0, 65534],
-    r1.offset=0, r1.type=ctx, r1.value=[1, 2147418112],
-    r10.offset=512, r10.region_size=512, r10.type=stack, r10.value=[512, 2147418112]]
+    r1.ctx_offset=0, r1.type=ctx, r1.value=[1, 2147418112],
+    r10.numeric_size=0, r10.stack_offset=512, r10.type=stack, r10.value=[512, 2147418112]]
 Stack: Numbers -> {}
 0:
   r0 = 0;
@@ -429,8 +449,8 @@ Post-invariant: [
     meta_offset=[-4098, 0],
     packet_size=[0, 65534],
     r0.type=number, r0.value=0,
-    r1.offset=0, r1.type=ctx, r1.value=[1, 2147418112],
-    r10.offset=512, r10.region_size=512, r10.type=stack, r10.value=[512, 2147418112]]
+    r1.ctx_offset=0, r1.type=ctx, r1.value=[1, 2147418112],
+    r10.numeric_size=0, r10.stack_offset=512, r10.type=stack, r10.value=[512, 2147418112]]
 Stack: Numbers -> {}
 
 Pre-invariant : [
@@ -438,8 +458,8 @@ Pre-invariant : [
     meta_offset=[-4098, 0],
     packet_size=[0, 65534],
     r0.type=number, r0.value=0,
-    r1.offset=0, r1.type=ctx, r1.value=[1, 2147418112],
-    r10.offset=512, r10.region_size=512, r10.type=stack, r10.value=[512, 2147418112]]
+    r1.ctx_offset=0, r1.type=ctx, r1.value=[1, 2147418112],
+    r10.numeric_size=0, r10.stack_offset=512, r10.type=stack, r10.value=[512, 2147418112]]
 Stack: Numbers -> {}
 1:
   assert r0.type == number;
@@ -451,8 +471,8 @@ Post-invariant: [
     meta_offset=[-4098, 0],
     packet_size=[0, 65534],
     r0.type=number, r0.value=0,
-    r1.offset=0, r1.type=ctx, r1.value=[1, 2147418112],
-    r10.offset=512, r10.region_size=512, r10.type=stack, r10.value=[512, 2147418112]]
+    r1.ctx_offset=0, r1.type=ctx, r1.value=[1, 2147418112],
+    r10.numeric_size=0, r10.stack_offset=512, r10.type=stack, r10.value=[512, 2147418112]]
 Stack: Numbers -> {}
 
 Pre-invariant : [
@@ -460,8 +480,8 @@ Pre-invariant : [
     meta_offset=[-4098, 0],
     packet_size=[0, 65534],
     r0.type=number, r0.value=0,
-    r1.offset=0, r1.type=ctx, r1.value=[1, 2147418112],
-    r10.offset=512, r10.region_size=512, r10.type=stack, r10.value=[512, 2147418112]]
+    r1.ctx_offset=0, r1.type=ctx, r1.value=[1, 2147418112],
+    r10.numeric_size=0, r10.stack_offset=512, r10.type=stack, r10.value=[512, 2147418112]]
 Stack: Numbers -> {}
 exit:
 
@@ -471,8 +491,8 @@ Post-invariant: [
     meta_offset=[-4098, 0],
     packet_size=[0, 65534],
     r0.type=number, r0.value=0,
-    r1.offset=0, r1.type=ctx, r1.value=[1, 2147418112],
-    r10.offset=512, r10.region_size=512, r10.type=stack, r10.value=[512, 2147418112]]
+    r1.ctx_offset=0, r1.type=ctx, r1.value=[1, 2147418112],
+    r10.numeric_size=0, r10.stack_offset=512, r10.type=stack, r10.value=[512, 2147418112]]
 Stack: Numbers -> {}
 
 
@@ -492,9 +512,9 @@ pointer, r0 is used for return values, r1-5 are used to pass args to other
 functions, r6 is the 'ctx' pointer, etc.
 
 "meta_offset" is the number of bytes of packet metadata preceding (i.e.,
-with negative offset from) the start of the packet buffer, packet_size
+with negative offset from) the start of the packet buffer, "packet_size"
 shows the range of sizes that the packet is known to fall within. Looking
-at the last Post-invariant, we see that r0 contains the number 0, r0
+at the last Post-invariant, we see that r0 contains the number 0, r1
 contains a pointer to the ctx (context) with offset 0, r10 points to the
 top of the stack, and nothing is known about the contents of the stack.
 
@@ -594,6 +614,8 @@ are safe to access start at offset 16.
 With the above, our sample program will pass verification:
 
 ```
+> clang -I ../../include -target bpf -Werror -O2 -c myxdp.c -o myxdp.o
+
 > netsh ebpf show verification myxdp.o
 
 Verification succeeded
@@ -712,11 +734,15 @@ and the return value.
 
 ```
 > netsh ebpf show disassembly helpers.o
+; C:\your\path\here/helpers.c:5
+;     int result = bpf_map_update_elem((struct bpf_map*)0, (uint32_t*)0, (uint32_t*)0, 0);
        0:       r1 = 0
        1:       r2 = 0
        2:       r3 = 0
        3:       r4 = 0
-       4:       r0 = bpf_map_update_elem:2(map_fd r1, map_key r2, map_value r3)
+       4:       r0 = bpf_map_update_elem:2(map_fd r1, map_key r2, map_value r3, uint64_t r4)
+; C:\your\path\here/helpers.c:6
+;     return result;
        5:       exit
 
 > netsh ebpf show verification helpers.o
@@ -724,10 +750,20 @@ Verification failed
 
 Verification report:
 
+; C:\your\path\here/helpers.c:5
+;     int result = bpf_map_update_elem((struct bpf_map*)0, (uint32_t*)0, (uint32_t*)0, 0);
 4: r1.type == map_fd
+; C:\your\path\here/helpers.c:5
+;     int result = bpf_map_update_elem((struct bpf_map*)0, (uint32_t*)0, (uint32_t*)0, 0);
 4: r2.type in {stack, packet}
+; C:\your\path\here/helpers.c:5
+;     int result = bpf_map_update_elem((struct bpf_map*)0, (uint32_t*)0, (uint32_t*)0, 0);
 4: Map key size is not singleton
+; C:\your\path\here/helpers.c:5
+;     int result = bpf_map_update_elem((struct bpf_map*)0, (uint32_t*)0, (uint32_t*)0, 0);
 4: r3.type in {stack, packet}
+; C:\your\path\here/helpers.c:5
+;     int result = bpf_map_update_elem((struct bpf_map*)0, (uint32_t*)0, (uint32_t*)0, 0);
 4: Map value size is not singleton
 
 5 errors
@@ -737,77 +773,6 @@ As shown above, the verifier understands the function name and prototype,
 and knows that the program is invalid because it is passing null instead
 of a valid value.  We'll come back to this in section 6.3 to see how to
 use the helper correctly.
-
-### 6.2.1. Why -O2?
-
-This section is a slight digression, so skip ahead if you prefer.  It's
-important that we compiled with `-O2` throughout this tutorial.  What
-happens if we didn't compile with `-O2`?  The disassembly looks instead
-like this:
-
-```
-> clang -I ../../include -target bpf -Werror -g -c helpers.c -o helpers.o
-
-> llvm-objdump --triple bpf -S helpers.o
-
-helpers.o:      file format ELF64-BPF
-
-Disassembly of section .text:
-0000000000000000 func:
-; {
-       0:       18 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00         r1 = 0 ll
-; int result = bpf_map_update_elem((struct bpf_map*)0, (uint32_t*)0, (uint32_t*)0, 0);
-       2:       79 11 00 00 00 00 00 00         r1 = *(u64 *)(r1 + 0)
-       3:       b7 02 00 00 00 00 00 00         r2 = 0
-       4:       7b 1a f0 ff 00 00 00 00         *(u64 *)(r10 - 16) = r1
-       5:       bf 21 00 00 00 00 00 00         r1 = r2
-       6:       7b 2a e8 ff 00 00 00 00         *(u64 *)(r10 - 24) = r2
-       7:       79 a3 e8 ff 00 00 00 00         r3 = *(u64 *)(r10 - 24)
-       8:       79 a4 e8 ff 00 00 00 00         r4 = *(u64 *)(r10 - 24)
-       9:       79 a5 f0 ff 00 00 00 00         r5 = *(u64 *)(r10 - 16)
-      10:       8d 00 00 00 05 00 00 00         callx 5
-      11:       63 0a fc ff 00 00 00 00         *(u32 *)(r10 - 4) = r0
-; return result;
-      12:       61 a0 fc ff 00 00 00 00         r0 = *(u32 *)(r10 - 4)
-      13:       95 00 00 00 00 00 00 00         exit
-```
-
-The helper function is called in line 10 via the `callx` instruction
-(0x8d), but importantly that instruction *is not listed in the
-[eBPF spec](https://github.com/iovisor/bpf-docs/blob/master/eBPF.md)*!
-Furthermore, the PREVAIL verifier's ELF parser also has problems with it.
-Let's see
-why.  Unlike the optimized disassembly where the helper id is encoded in
-the instruction, here the value 32 (0x20) is encoded in the data section:
-
-```
-> llvm-objdump --triple bpf -s helpers.o --section .data
-
-helpers.o:       file format ELF64-BPF
-
-Contents of section .data:
- 0000 02000000 00000000
-```
-
-An entry also appears in the relocation section, which we can see as follows.
-Since we compiled with `-g`, there are also relocation sections for debug
-symbols so we use `-section` to specify the code (i.e., text) section only,
-where without it llvm-objdump will dump all of them.
-
-```
-> llvm-objdump --triple bpf --section .rel.text -r helpers.o
-
-helpers.o:      file format ELF64-BPF
-
-RELOCATION RECORDS FOR [.rel.text]:
-0000000000000000 R_BPF_64_64 .data
-```
-
-However the verifier's ELF parser only handles relocation records for
-maps (which we'll cover next), not helper functions, since in "correct" eBPF bytecode (i.e.,
-bytecode conforming to the eBPF spec), relocation records are always for
-maps.  So if you forget to compile with -O2, it will fail elf parsing even
-before trying to verify the bytecode.
 
 ## 6.3. Maps
 
@@ -862,8 +827,9 @@ into the `maps` section as follows:
 maponly.o:      file format ELF64-BPF
 
 Contents of section maps:
- 0000 14000000 01000000 02000000 04000000  ................
- 0010 00020000                             ....
+ 0000 24000000 05000000 02000000 04000000  $...............
+ 0010 00020000 00000000 00000000 00000000  ................
+ 0020 00000000                             ....
 ```
 
 Now to make use of the map, we have to use helper functions to access it:
@@ -876,8 +842,6 @@ int bpf_map_delete_elem(struct bpf_map* map, const void* key);
 Let's update the program to write the value "42" to the map section for the
 current CPU, by changing the "myprog" section to the following:
 ```
-#include "bpf_helpers.h"
-
 SEC("myprog")
 int func1()
 {
@@ -919,17 +883,27 @@ func1:
 Above shows "call 2", but `netsh` shows more details
 ```
 > netsh ebpf show disassembly map.o
+; C:\your\path\here/map.c:8
+; int func1()
        0:       r1 = 0
+; C:\your\path\here/map.c:10
+;     uint32_t key = 0;
        1:       *(u32 *)(r10 - 4) = r1
        2:       r1 = 42
+; C:\your\path\here/map.c:11
+;     uint32_t value = 42;
        3:       *(u32 *)(r10 - 8) = r1
        4:       r2 = r10
        5:       r2 += -4
        6:       r3 = r10
        7:       r3 += -8
+; C:\your\path\here/map.c:12
+;     int result = bpf_map_update_elem(&map, &key, &value, 0);
        8:       r1 = map_fd 1
       10:       r4 = 0
-      11:       r0 = bpf_map_update_elem:2(map_fd r1, map_key r2, map_value r3)
+      11:       r0 = bpf_map_update_elem:2(map_fd r1, map_key r2, map_value r3, uint64_t r4)
+; C:\your\path\here/map.c:13
+;     return result;
       12:       exit
 ````
 

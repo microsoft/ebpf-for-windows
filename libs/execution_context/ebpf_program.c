@@ -283,12 +283,19 @@ ebpf_program_load_providers(ebpf_program_t* program)
     ebpf_result_t return_value;
     void* provider_binding_context;
     ebpf_program_data_t* general_helper_program_data = NULL;
+    GUID module_id = {0};
+
+    return_value = ebpf_guid_create(&module_id);
+    if (return_value != EBPF_SUCCESS) {
+        goto Done;
+    }
 
     program->program_invalidated = false;
 
     return_value = ebpf_extension_load(
         &program->general_helper_extension_client,
         &ebpf_general_helper_function_interface_id,
+        &module_id,
         program,
         NULL,
         NULL,
@@ -327,9 +334,15 @@ ebpf_program_load_providers(ebpf_program_t* program)
         goto Done;
     }
 
+    return_value = ebpf_guid_create(&module_id);
+    if (return_value != EBPF_SUCCESS) {
+        goto Done;
+    }
+
     return_value = ebpf_extension_load(
         &program->program_info_client,
         &program->parameters.program_type,
+        &module_id,
         program,
         NULL,
         NULL,

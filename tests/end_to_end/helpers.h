@@ -78,13 +78,20 @@ typedef class _single_instance_hook : public _hook_helper
         : _hook_helper{attach_type}, provider(nullptr), client_binding_context(nullptr), client_data(nullptr),
           client_dispatch_table(nullptr), link_handle(ebpf_handle_invalid), link_object(nullptr)
     {
+        GUID module_id = {};
+        if (ebpf_guid_create(&module_id) != EBPF_SUCCESS) {
+            throw std::runtime_error("ebpf_guid_create failed");
+        }
+
         ebpf_guid_create(&client_id);
         attach_provider_data.supported_program_type = program_type;
         this->attach_type = attach_type;
+
         REQUIRE(
             ebpf_provider_load(
                 &provider,
                 &attach_type,
+                &module_id,
                 nullptr,
                 &provider_data,
                 nullptr,
@@ -301,9 +308,12 @@ typedef class _program_info_provider
             program_data = (ebpf_program_data_t*)provider_data->data;
             program_data->program_info->program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_SAMPLE;
         }
+        GUID module_id = {};
+        REQUIRE(ebpf_guid_create(&module_id) == EBPF_SUCCESS);
 
         REQUIRE(
-            ebpf_provider_load(&provider, &program_type, nullptr, provider_data, nullptr, nullptr, nullptr, nullptr) ==
+            ebpf_provider_load(
+                &provider, &program_type, &module_id, nullptr, provider_data, nullptr, nullptr, nullptr, nullptr) ==
             EBPF_SUCCESS);
     }
     ~_program_info_provider() { ebpf_provider_unload(provider); }

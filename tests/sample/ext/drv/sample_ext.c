@@ -103,8 +103,6 @@ const NPI_PROVIDER_CHARACTERISTICS _sample_ebpf_extension_program_info_provider_
      &_sample_ebpf_extension_program_info_provider_data},
 };
 
-typedef struct _sample_ebpf_extension_program_info_provider_t sample_ebpf_extension_program_info_provider;
-
 /**
  *  @brief This is the per client binding context for program information
  *         NPI provider.
@@ -337,7 +335,13 @@ _sample_ebpf_extension_hook_provider_attach_client(
     sample_ebpf_extension_hook_client_t* hook_client = NULL;
     ebpf_extension_dispatch_table_t* client_dispatch_table;
 
-    if ((provider_binding_context == NULL) || (provider_dispatch == NULL)) {
+    if ((provider_binding_context == NULL) || (provider_dispatch == NULL) || (local_provider_context == NULL)) {
+        status = STATUS_INVALID_PARAMETER;
+        goto Exit;
+    }
+
+    if (local_provider_context->attached_client != NULL) {
+        // Currently only a single client is allowed to attach.
         status = STATUS_INVALID_PARAMETER;
         goto Exit;
     }
