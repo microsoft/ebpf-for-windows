@@ -120,8 +120,10 @@ __declspec(dllexport) DWORD InitHelperDll(DWORD netshVersion, void* reserved)
         // number instead of the correct netsh specific message.
         PrintError(NULL, status);
         if (status == ERROR_HELPER_ALREADY_REGISTERED) {
-            // Don't return an error or netsh will unregister
-            // the instance already registered.
+            // We must return NO_ERROR or netsh will unregister
+            // the instance already registered.  This will, however,
+            // cause netsh to add an extra "Ok." after the message,
+            // but removing that would require netsh to change.
             status = NO_ERROR;
         } else {
             // We've already shown the message for this error,
