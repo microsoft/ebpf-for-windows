@@ -3,28 +3,18 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
-#include <codecvt>
 #include <iomanip>
-#include <iostream>
 #include <locale>
 #include <netsh.h>
 #include "elf.h"
-#include "ebpf_api.h"
 #include "tlv.h"
 #include "tokens.h"
+#include "util.h"
 
 TOKEN_VALUE g_LevelEnum[2] = {
     {L"normal", VL_NORMAL},
     {L"verbose", VL_VERBOSE},
 };
-
-std::string
-down_cast_from_wstring(const std::wstring& wide_string)
-{
-    std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
-    return converter.to_bytes(wide_string);
-}
 
 DWORD
 handle_ebpf_show_disassembly(

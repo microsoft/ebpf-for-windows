@@ -5,9 +5,9 @@
 #include <netsh.h> // Must be included after windows.h
 #include <string.h>
 #include "bpf/bpf.h"
-#include "capture_helper.hpp"
 #include "catch_wrapper.hpp"
 #include "elf.h"
+#include "netsh_test_helper.h"
 
 #pragma region
 // Mock Netsh.exe APIs.
@@ -101,6 +101,12 @@ _run_netsh_command(
     _In_opt_z_ const wchar_t* arg3,
     _Out_ int* result)
 {
+    return run_netsh_command_va_arg(command, result, 3, arg1, arg2, arg3);
+}
+
+std::string
+run_netsh_command_va_arg(_In_ FN_HANDLE_CMD* command, _Out_ int* result, int arg_count, ...)
+{
     capture_helper_t capture;
     errno_t error = capture.begin_capture();
     if (error != NO_ERROR) {
@@ -108,20 +114,26 @@ _run_netsh_command(
         return "Couldn't capture output\n";
     }
 
-    // Copy args into an array.
-    PWSTR argv[3] = {};
+    va_list args;
     int argc = 0;
-    if (arg1 != nullptr) {
-        argv[argc++] = (PWSTR)arg1;
-    }
-    if (arg2 != nullptr) {
-        argv[argc++] = (PWSTR)arg2;
-    }
-    if (arg3 != nullptr) {
-        argv[argc++] = (PWSTR)arg3;
+
+    va_start(args, arg_count);
+
+    // Copy args into an array.
+    std::vector<const wchar_t*> argv;
+
+    for (int i = 0; i < arg_count; i++) {
+        const wchar_t* arg = va_arg(args, const wchar_t*);
+        if (arg != nullptr) {
+            argc++;
+            argv.push_back(arg);
+        }
     }
 
-    error = command(nullptr, argv, 0, argc, 0, 0, nullptr);
+    error = command(nullptr, (LPWSTR*)argv.data(), 0, argc, 0, 0, nullptr);
+
+    va_end(args);
+
     if (error != 0) {
         *result = error;
         return capture.get_stderr_contents();
