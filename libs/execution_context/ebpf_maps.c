@@ -458,7 +458,7 @@ _associate_program_with_prog_array_map(_In_ ebpf_core_map_t* map, _In_ const ebp
 
     // Validate that the program type is
     // not in conflict with the map's program type.
-    const ebpf_program_type_t* program_type = ebpf_program_type(program);
+    const ebpf_program_type_t* program_type = ebpf_program_type_uuid(program);
     ebpf_result_t result = EBPF_SUCCESS;
 
     ebpf_lock_state_t lock_state = ebpf_lock_lock(&program_array->lock);

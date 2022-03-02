@@ -75,6 +75,8 @@ extern "C"
     {
         ebpf_program_type_t supported_program_type;
     } ebpf_attach_provider_data_t;
+
+#define EBPF_ATTACH_CLIENT_DATA_VERSION 0
 #define EBPF_ATTACH_PROVIDER_DATA_VERSION 1
 
     typedef struct _ebpf_trampoline_table ebpf_trampoline_table_t;

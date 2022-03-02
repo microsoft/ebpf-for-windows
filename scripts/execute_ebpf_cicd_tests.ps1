@@ -23,7 +23,7 @@ foreach ($VM in $BasicTest) {
     Invoke-CICDTestsOnVM -VMName $VM.Name
 }
 
-Invoke-XDPTests($Config.MultiVMTest)
+Invoke-XDPTestsOnVM($Config.MultiVMTest)
 
 # Stop eBPF components on test VMs.
 foreach ($VM in $Config.MultiVMTest) {

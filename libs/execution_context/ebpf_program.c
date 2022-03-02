@@ -8,6 +8,7 @@
 #include "ebpf_link.h"
 #include "ebpf_object.h"
 #include "ebpf_program.h"
+#include "ebpf_program_attach_type_guids.h"
 #include "ebpf_program_types.h"
 #include "ebpf_state.h"
 
@@ -225,9 +226,28 @@ _ebpf_program_free(ebpf_core_object_t* object)
 }
 
 static const ebpf_program_type_t*
-_ebpf_program_get_program_type(_In_ const ebpf_core_object_t* object)
+_ebpf_program_get_program_type_uuid(_In_ const ebpf_core_object_t* object)
 {
-    return ebpf_program_type((const ebpf_program_t*)object);
+    return ebpf_program_type_uuid((const ebpf_program_t*)object);
+}
+
+static const bpf_prog_type_t
+_ebpf_program_get_program_type(_In_ const ebpf_program_t* program)
+{
+    // TODO(issue #223)
+    bpf_prog_type_t prog_type = BPF_PROG_TYPE_UNSPEC;
+    if (program->program_info_binding_context != NULL) {
+        const ebpf_program_type_t* prog_type_uuid = ebpf_program_type_uuid(program);
+        if (memcmp(prog_type_uuid, &EBPF_PROGRAM_TYPE_XDP, sizeof(*prog_type_uuid)) == 0) {
+            prog_type = BPF_PROG_TYPE_XDP;
+        } else if (memcmp(prog_type_uuid, &EBPF_PROGRAM_TYPE_BIND, sizeof(*prog_type_uuid)) == 0) {
+            prog_type = BPF_PROG_TYPE_BIND;
+        } else if (memcmp(prog_type_uuid, &EBPF_PROGRAM_TYPE_SAMPLE, sizeof(*prog_type_uuid)) == 0) {
+            prog_type = BPF_PROG_TYPE_SAMPLE;
+        }
+    }
+
+    return prog_type;
 }
 
 /**
@@ -389,7 +409,7 @@ ebpf_program_create(ebpf_program_t** program)
     ebpf_lock_create(&local_program->lock);
 
     retval = ebpf_object_initialize(
-        &local_program->object, EBPF_OBJECT_PROGRAM, _ebpf_program_free, _ebpf_program_get_program_type);
+        &local_program->object, EBPF_OBJECT_PROGRAM, _ebpf_program_free, _ebpf_program_get_program_type_uuid);
     if (retval != EBPF_SUCCESS) {
         goto Done;
     }
@@ -477,7 +497,7 @@ ebpf_program_get_parameters(_In_ const ebpf_program_t* program)
 }
 
 _Ret_notnull_ const ebpf_program_type_t*
-ebpf_program_type(_In_ const ebpf_program_t* program)
+ebpf_program_type_uuid(_In_ const ebpf_program_t* program)
 {
     return &ebpf_program_get_parameters(program)->program_type;
 }
@@ -1044,8 +1064,8 @@ ebpf_program_get_info(
         (char*)program->parameters.program_name.value,
         program->parameters.program_name.length);
     info->nr_map_ids = program->count_of_maps;
-    info->type = BPF_PROG_TYPE_UNSPEC; // TODO(issue #223): get integer if any.
-    info->type_uuid = *ebpf_program_type(program);
+    info->type = _ebpf_program_get_program_type(program);
+    info->type_uuid = *ebpf_program_type_uuid(program);
     info->pinned_path_count = program->object.pinned_path_count;
     info->link_count = program->link_count;
 
