@@ -671,6 +671,8 @@ _ebpf_program_load_byte_code(
     // failing.
     ubpf_toggle_bounds_check(program->code_or_vm.vm, false);
 
+    ubpf_set_error_print(program->code_or_vm.vm, ebpf_log_function);
+
     return_value = _ebpf_program_register_helpers(program);
     if (return_value != EBPF_SUCCESS)
         goto Done;
