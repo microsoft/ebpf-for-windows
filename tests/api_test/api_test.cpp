@@ -288,8 +288,24 @@ ring_buffer_api_test(ebpf_execution_type_t execution_type)
     });
 }
 
+void
+divide_by_zero_test(ebpf_execution_type_t execution_type)
+{
+    struct bpf_object* object = nullptr;
+    hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
+    program_load_attach_helper_t _helper(
+        "divide_by_zero.o", EBPF_PROGRAM_TYPE_BIND, "xdp", execution_type, nullptr, 0, hook);
+    object = _helper.get_object();
+
+    perform_socket_bind(0);
+
+    // If we don't bug-check, the test passed.
+}
+
 TEST_CASE("ringbuf_api_jit", "[test_ringbuf_api]") { ring_buffer_api_test(EBPF_EXECUTION_JIT); }
+TEST_CASE("divide_by_zero_jit", "[divide_by_zero]") { divide_by_zero_test(EBPF_EXECUTION_JIT); }
 
 #if !defined(CONFIG_BPF_JIT_ALWAYS_ON)
 TEST_CASE("ringbuf_api_interpret", "[test_ringbuf_api]") { ring_buffer_api_test(EBPF_EXECUTION_INTERPRET); }
+TEST_CASE("divide_by_zero_interpret", "[divide_by_zero]") { divide_by_zero_test(EBPF_EXECUTION_INTERPRET); }
 #endif
