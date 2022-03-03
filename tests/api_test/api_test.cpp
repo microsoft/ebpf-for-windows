@@ -292,6 +292,7 @@ ring_buffer_api_test(ebpf_execution_type_t execution_type)
     });
 }
 
+// See also divide_by_zero_test_um in end_to_end.cpp for the user-mode equivalent.
 void
 divide_by_zero_test_km(ebpf_execution_type_t execution_type)
 {
