@@ -101,11 +101,11 @@ _run_netsh_command(
     _In_opt_z_ const wchar_t* arg3,
     _Out_ int* result)
 {
-    return run_netsh_command_va_arg(command, result, 3, arg1, arg2, arg3);
+    return run_netsh_command_with_args(command, result, 3, arg1, arg2, arg3);
 }
 
 std::string
-run_netsh_command_va_arg(_In_ FN_HANDLE_CMD* command, _Out_ int* result, int arg_count, ...)
+run_netsh_command_with_args(_In_ FN_HANDLE_CMD* command, _Out_ int* result, int arg_count, ...)
 {
     capture_helper_t capture;
     errno_t error = capture.begin_capture();

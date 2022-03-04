@@ -9,7 +9,7 @@
 #include <ws2ipdef.h>
 // ws2def.h and ws2ipdef.h should be included prior to iphlpapi.h.
 #include <iphlpapi.h>
-#include "ebpf_result.hpp"
+#include "ebpf_util.h"
 #include "util.h"
 
 std::string
@@ -42,13 +42,16 @@ parse_ifindex(_In_z_ const wchar_t* arg, _Out_ uint32_t* if_index)
             error = GetIpInterfaceEntry(&row);
             if (error != ERROR_SUCCESS) {
                 // Try again with IPv6.
-                row.Family = AF_INET;
+                row.Family = AF_INET6;
                 error = GetIpInterfaceEntry(&row);
             }
         }
     } else {
         // Check if the input string is an interface alias.
         error = ConvertInterfaceAliasToLuid(arg, &if_luid);
+        if (error != ERROR_SUCCESS)
+            // Check if the input string is an interface name.
+            error = ConvertInterfaceNameToLuidW(arg, &if_luid);
         if (error == ERROR_SUCCESS)
             error = ConvertInterfaceLuidToIndex((const NET_LUID*)&if_luid, &local_if_index);
     }

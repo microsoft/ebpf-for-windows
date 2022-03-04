@@ -10,7 +10,7 @@ std::string
 down_cast_from_wstring(const std::wstring& wide_string);
 
 /**
- * @brief Parse input string (depicting either interface alias or index) and convert to interface index.
+ * @brief Parse input string (depicting either interface name, alias, or index) and convert to interface index.
  *
  * @param[in] arg Input string.
  * @param[out] if_index Interface index.

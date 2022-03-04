@@ -43,4 +43,4 @@ _run_netsh_command(
     _Out_ int* result);
 
 std::string
-run_netsh_command_va_arg(_In_ FN_HANDLE_CMD* command, _Out_ int* result, int argc, ...);
+run_netsh_command_with_args(_In_ FN_HANDLE_CMD* command, _Out_ int* result, int argc, ...);

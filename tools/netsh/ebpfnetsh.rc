@@ -73,7 +73,8 @@ BEGIN
 \n                  network interface to which an XDP program should be attached. \
 \n                  If the interface is not specified (or index is set to 0), \
 \n                  the XDP program is attached to all network interfaces.\
-\n                  This parameter is ignored for other program types.\
+\n                  The command fails if this parameter is specified for program types
+\n                  other than XDP.\
 \n      pinned    - One of the following values:\
 \n                   none: Load all programs without pinning any.\
 \n                   first: Pin the first program in the file.\
@@ -120,7 +121,8 @@ BEGIN
 \n                  network interface to which an XDP program should be attached. \
 \n                  If the interface is not specified (or index is set to 0), \
 \n                  the XDP program is attached to all network interfaces.\
-\n                  This parameter is ignored for other program types.\
+\n                  The command fails if this parameter is specified for program types
+\n                  other than XDP.\
 \n\
 \nRemarks: Pins, unpins, attaches, or detaches the specified\
 \n         program which must already be loaded.\

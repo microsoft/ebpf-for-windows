@@ -46,6 +46,38 @@ static TOKEN_VALUE _ebpf_pinned_type_enum[] = {
     {L"all", PT_ALL},
 };
 
+bool
+_prog_type_supports_interface(bpf_prog_type prog_type)
+{
+    return (prog_type == BPF_PROG_TYPE_XDP);
+}
+
+ebpf_result_t
+_process_interface_parameter(_In_ LPWSTR interface_parameter, bpf_prog_type prog_type, _Out_ uint32_t* if_index)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+    if (_prog_type_supports_interface(prog_type)) {
+        result = parse_ifindex(interface_parameter, if_index);
+        if (result != EBPF_SUCCESS)
+            std::cerr << "Interface parameter is invalid." << std::endl;
+    } else {
+        std::cerr << "Interface parameter is not allowed for program types that dont support interfaces." << std::endl;
+        result = EBPF_INVALID_ARGUMENT;
+    }
+    return result;
+}
+
+struct _program_unloader
+{
+    struct bpf_object* object;
+    int program_fd;
+    ~_program_unloader()
+    {
+        bpf_object__close(object);
+        Platform::_close(program_fd);
+    }
+};
+
 unsigned long
 handle_ebpf_add_program(
     LPCWSTR machine, LPWSTR* argv, DWORD current_index, DWORD argc, DWORD flags, LPCVOID data, BOOL* done)
@@ -78,11 +110,9 @@ handle_ebpf_add_program(
     std::string pinpath;
     ebpf_program_type_t program_type = EBPF_PROGRAM_TYPE_UNSPECIFIED;
     ebpf_attach_type_t attach_type = EBPF_ATTACH_TYPE_UNSPECIFIED;
-    uint32_t if_index = 0;
     pinned_type_t pinned_type = PT_FIRST; // Like bpftool, we default to pin first.
     ebpf_execution_type_t execution = EBPF_EXECUTION_JIT;
-    void* attach_params = nullptr;
-    size_t attach_params_size = 0;
+    LPWSTR interface_parameter = nullptr;
 
     for (int i = 0; (status == NO_ERROR) && ((i + current_index) < argc); i++) {
         switch (tag_type[i]) {
@@ -99,9 +129,7 @@ handle_ebpf_add_program(
             break;
         }
         case INTERFACE_INDEX: {
-            ebpf_result_t result = parse_ifindex(argv[current_index + i], &if_index);
-            if (result != EBPF_SUCCESS)
-                status = ERROR_INVALID_PARAMETER;
+            interface_parameter = argv[current_index + i];
             break;
         }
         case PINPATH_INDEX:
@@ -149,26 +177,40 @@ handle_ebpf_add_program(
         ebpf_free_string(error_message);
         return ERROR_SUPPRESS_OUTPUT;
     }
-
-    struct bpf_prog_info info;
-    uint32_t info_size = sizeof(info);
-    if (bpf_obj_get_info_by_fd(program_fd, &info, &info_size) < 0) {
-        std::cerr << "error " << errno << ": loaded program but could not get ID" << std::endl;
-        return ERROR_SUPPRESS_OUTPUT;
-    }
-
-    if (info.type == BPF_PROG_TYPE_XDP) {
-        attach_params = &if_index;
-        attach_params_size = sizeof(if_index);
-    }
+    // Program loaded. Populate the unloader with object pointer and program fd, such that
+    // the program gets unloaded automatically, if it fails to get attached.
+    struct _program_unloader unloader = {object, program_fd};
 
     struct bpf_program* program = bpf_program__next(nullptr, object);
+
+    uint32_t if_index;
+    void* attach_parameters = nullptr;
+    size_t attach_parameters_size = 0;
+    if (interface_parameter != nullptr) {
+        ebpf_result_t result =
+            _process_interface_parameter(interface_parameter, bpf_program__get_type(program), &if_index);
+        if (result == EBPF_SUCCESS) {
+            attach_parameters = &if_index;
+            attach_parameters_size = sizeof(if_index);
+        } else {
+            return ERROR_SUPPRESS_OUTPUT;
+        }
+    }
+
     struct bpf_link* link;
     result = ebpf_program_attach(
-        program, (tags[TYPE_INDEX].bPresent ? &attach_type : nullptr), attach_params, attach_params_size, &link);
+        program,
+        (tags[TYPE_INDEX].bPresent ? &attach_type : nullptr),
+        attach_parameters,
+        attach_parameters_size,
+        &link);
     if (result != EBPF_SUCCESS) {
         std::cerr << "error " << result << ": could not attach program" << std::endl;
         return ERROR_SUPPRESS_OUTPUT;
+    } else {
+        // Program successfully attached, reset unloader.
+        unloader.object = nullptr;
+        unloader.program_fd = ebpf_fd_invalid;
     }
 
     if (pinned_type == PT_FIRST) {
@@ -186,12 +228,17 @@ handle_ebpf_add_program(
         // This matches the "bpftool prog loadall" behavior.
         if (bpf_object__pin_programs(object, pinpath.c_str()) < 0) {
             std::cerr << "error " << errno << ": could not pin to " << pinpath << std::endl;
-            bpf_object__close(object);
             return ERROR_SUPPRESS_OUTPUT;
         }
     }
 
     // Get the ID and display it.
+    struct bpf_prog_info info;
+    uint32_t info_size = sizeof(info);
+    if (bpf_obj_get_info_by_fd(program_fd, &info, &info_size) < 0) {
+        std::cerr << "error " << errno << ": loaded program but could not get ID" << std::endl;
+        return ERROR_SUPPRESS_OUTPUT;
+    }
     std::cout << "Loaded with ID " << info.id << std::endl;
 
     ebpf_link_close(link);
@@ -309,20 +356,41 @@ handle_ebpf_delete_program(
 }
 
 ebpf_result_t
-_ebpf_program_attach_by_id(
-    ebpf_id_t program_id, ebpf_attach_type_t attach_type, _In_ void* attach_params, size_t attach_params_size)
+_ebpf_program_attach_by_id(ebpf_id_t program_id, ebpf_attach_type_t attach_type, _In_opt_ LPWSTR interface_parameter)
 {
+    ebpf_result_t result = EBPF_SUCCESS;
+    uint32_t if_index;
+    void* attach_parameters = nullptr;
+    size_t attach_parameters_size = 0;
+
     fd_t program_fd = bpf_prog_get_fd_by_id(program_id);
     if (program_fd < 0) {
         return EBPF_INVALID_ARGUMENT;
     }
 
+    if (interface_parameter != nullptr) {
+        struct bpf_prog_info info;
+        uint32_t info_size = sizeof(info);
+        if (bpf_obj_get_info_by_fd(program_fd, &info, &info_size) < 0) {
+            result = EBPF_INVALID_ARGUMENT;
+        } else {
+            result = _process_interface_parameter(interface_parameter, info.type, &if_index);
+            if (result == EBPF_SUCCESS) {
+                attach_parameters = &if_index;
+                attach_parameters_size = sizeof(if_index);
+            }
+        }
+    }
+
     struct bpf_link* link;
-    ebpf_result_t result =
-        ebpf_program_attach_by_fd(program_fd, &attach_type, attach_params, attach_params_size, &link);
+    if (result == EBPF_SUCCESS) {
+        ebpf_result_t result =
+            ebpf_program_attach_by_fd(program_fd, &attach_type, attach_parameters, attach_parameters_size, &link);
+        if (result == EBPF_SUCCESS)
+            ebpf_link_close(link);
+    }
 
     Platform::_close(program_fd);
-    ebpf_link_close(link);
     return result;
 }
 
@@ -373,9 +441,7 @@ handle_ebpf_set_program(
     const int INTERFACE_INDEX = 3;
 
     ULONG tag_type[_countof(tags)] = {0};
-    uint32_t if_index = 0;
-    void* attach_params = nullptr;
-    size_t attach_params_size = 0;
+    PWSTR interface_parameter = nullptr;
 
     ULONG status = PreprocessCommand(
         nullptr,
@@ -409,9 +475,7 @@ handle_ebpf_set_program(
             break;
         }
         case INTERFACE_INDEX: {
-            ebpf_result_t result = parse_ifindex(argv[current_index + i], &if_index);
-            if (result != EBPF_SUCCESS)
-                status = ERROR_INVALID_PARAMETER;
+            interface_parameter = argv[current_index + i];
             break;
         }
         case PINPATH_INDEX:
@@ -428,11 +492,7 @@ handle_ebpf_set_program(
 
     if (tags[ATTACHED_INDEX].bPresent) {
         if (memcmp(&attach_type, &EBPF_ATTACH_TYPE_UNSPECIFIED, sizeof(ebpf_attach_type_t)) != 0) {
-            if (memcmp(&attach_type, &EBPF_ATTACH_TYPE_XDP, sizeof(ebpf_attach_type_t)) == 0) {
-                attach_params = &if_index;
-                attach_params_size = sizeof(if_index);
-            }
-            ebpf_result_t result = _ebpf_program_attach_by_id(id, attach_type, attach_params, attach_params_size);
+            ebpf_result_t result = _ebpf_program_attach_by_id(id, attach_type, interface_parameter);
             if (result != NO_ERROR) {
                 std::cerr << "error " << result << ": could not attach program" << std::endl;
                 return ERROR_SUPPRESS_OUTPUT;

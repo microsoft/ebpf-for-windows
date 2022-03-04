@@ -542,8 +542,8 @@ TEST_CASE("xdp interface parameter", "[netsh][programs]")
     // Load a program pinned.
     int result;
 
-    // Load program with pinpath and loopback interface name.
-    std::string output = run_netsh_command_va_arg(
+    // Load program with pinpath and loopback interface alias.
+    std::string output = run_netsh_command_with_args(
         handle_ebpf_add_program, &result, 4, L"droppacket.o", L"xdp", L"mypinpath", L"Loopback Pseudo-Interface 1");
     REQUIRE(strcmp(output.c_str(), "Loaded with ID 196609\n") == 0);
     REQUIRE(result == NO_ERROR);
@@ -552,34 +552,54 @@ TEST_CASE("xdp interface parameter", "[netsh][programs]")
     REQUIRE(output == "Unpinned 196609 from mypinpath\n");
     REQUIRE(bpf_object__next(nullptr) == nullptr);
 
-    // Load program loopback interface index.
-    output = _run_netsh_command(handle_ebpf_add_program, L"droppacket.o", L"xdp", L"interface=1", &result);
+    // Load program with pinpath and loopback interface name.
+    output = run_netsh_command_with_args(
+        handle_ebpf_add_program, &result, 4, L"droppacket.o", L"xdp", L"mypinpath", L"loopback_0");
     REQUIRE(strcmp(output.c_str(), "Loaded with ID 196610\n") == 0);
     REQUIRE(result == NO_ERROR);
     output = _run_netsh_command(handle_ebpf_delete_program, L"196610", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
-    REQUIRE(output == "Unpinned 196610 from DropPacket\n");
+    REQUIRE(output == "Unpinned 196610 from mypinpath\n");
+    REQUIRE(bpf_object__next(nullptr) == nullptr);
+
+    // Load program loopback interface index.
+    output = _run_netsh_command(handle_ebpf_add_program, L"droppacket.o", L"xdp", L"interface=1", &result);
+    REQUIRE(strcmp(output.c_str(), "Loaded with ID 196611\n") == 0);
+    REQUIRE(result == NO_ERROR);
+    output = _run_netsh_command(handle_ebpf_delete_program, L"196611", nullptr, nullptr, &result);
+    REQUIRE(result == NO_ERROR);
+    REQUIRE(output == "Unpinned 196611 from DropPacket\n");
     REQUIRE(bpf_object__next(nullptr) == nullptr);
 
     // (Negative) Load program incorrect interface name.
     output = _run_netsh_command(handle_ebpf_add_program, L"droppacket.o", L"xdp", L"interface=foo", &result);
-    REQUIRE(output == "");
-    REQUIRE(result == ERROR_INVALID_PARAMETER);
+    REQUIRE(strcmp(output.c_str(), "Interface parameter is invalid.\n") == 0);
+    REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
     REQUIRE(bpf_object__next(nullptr) == nullptr);
 
-    // Load a program with no interface parameter, detach and re-attach with loopback interface index.
+    // (Negative) Load program with program type that does not support interface parameter.
+    output = _run_netsh_command(handle_ebpf_add_program, L"bindmonitor.o", L"bind", L"interface=1", &result);
+    REQUIRE(
+        strcmp(
+            output.c_str(), "Interface parameter is not allowed for program types that dont support interfaces.\n") ==
+        0);
+    REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
+    REQUIRE(bpf_object__next(nullptr) == nullptr);
+
+    // Add program with no interface parameter
     output = _run_netsh_command(handle_ebpf_add_program, L"droppacket.o", nullptr, nullptr, &result);
-    REQUIRE(strcmp(output.c_str(), "Loaded with ID 196611\n") == 0);
+    REQUIRE(strcmp(output.c_str(), "Loaded with ID 196614\n") == 0);
     REQUIRE(result == NO_ERROR);
-    output = _run_netsh_command(handle_ebpf_set_program, L"196611", L"", nullptr, &result);
+    // Detach the program.
+    output = _run_netsh_command(handle_ebpf_set_program, L"196614", L"", nullptr, &result);
     REQUIRE(output == "");
     REQUIRE(result == ERROR_OKAY);
     REQUIRE(bpf_object__next(nullptr) != nullptr);
-    // Attach the program.
-    output = _run_netsh_command(handle_ebpf_set_program, L"196611", nullptr, L"interface=1", &result);
+    // Re-attach the program with interface index parameter.
+    output = _run_netsh_command(handle_ebpf_set_program, L"196614", nullptr, L"interface=1", &result);
     REQUIRE(output == "");
     REQUIRE(result == ERROR_OKAY);
-    output = _run_netsh_command(handle_ebpf_delete_program, L"196611", nullptr, nullptr, &result);
+    output = _run_netsh_command(handle_ebpf_delete_program, L"196614", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
 
     ebpf_epoch_flush();
