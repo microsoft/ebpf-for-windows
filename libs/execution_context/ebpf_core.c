@@ -38,6 +38,8 @@ static uint64_t
 _ebpf_core_get_time_since_boot_ns();
 static uint64_t
 _ebpf_core_get_time_ns();
+static long
+_ebpf_core_trace_printk(_In_z_ const char* fmt, size_t fmt_size);
 static int
 _ebpf_core_ring_buffer_output(
     _In_ ebpf_map_t* map, _In_reads_bytes_(length) uint8_t* data, size_t length, uint64_t flags);
@@ -62,7 +64,8 @@ static const void* _ebpf_general_helpers[] = {
     (void*)&_ebpf_core_get_time_ns,
     (void*)&ebpf_core_csum_diff,
     // Ring buffer output.
-    (void*)&ebpf_ring_buffer_map_output};
+    (void*)&ebpf_ring_buffer_map_output,
+    (void*)&_ebpf_core_trace_printk};
 
 static ebpf_extension_provider_t* _ebpf_global_helper_function_provider_context = NULL;
 static ebpf_helper_function_addresses_t _ebpf_global_helper_function_dispatch_table = {
@@ -1322,6 +1325,12 @@ _ebpf_core_get_time_ns()
     // ebpf_query_time_since_boot returns time elapsed since
     // boot in units of 100 ns.
     return ebpf_query_time_since_boot(false) * 100;
+}
+
+long
+_ebpf_core_trace_printk(_In_ const char* fmt, size_t fmt_size)
+{
+    return ebpf_platform_printk(fmt, fmt_size);
 }
 
 int

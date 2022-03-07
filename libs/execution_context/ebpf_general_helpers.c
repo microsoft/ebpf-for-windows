@@ -52,7 +52,11 @@ ebpf_helper_function_prototype_t ebpf_core_helper_function_prototype_array[] = {
      {EBPF_ARGUMENT_TYPE_PTR_TO_MAP,
       EBPF_ARGUMENT_TYPE_PTR_TO_MEM,
       EBPF_ARGUMENT_TYPE_CONST_SIZE,
-      EBPF_ARGUMENT_TYPE_ANYTHING}}};
+      EBPF_ARGUMENT_TYPE_ANYTHING}},
+    {BPF_FUNC_trace_printk,
+     "bpf_trace_printk",
+     EBPF_RETURN_TYPE_INTEGER,
+     {EBPF_ARGUMENT_TYPE_PTR_TO_MEM, EBPF_ARGUMENT_TYPE_CONST_SIZE}}};
 
 #ifdef __cplusplus
 extern "C"

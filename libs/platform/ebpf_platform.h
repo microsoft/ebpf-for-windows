@@ -964,6 +964,17 @@ extern "C"
     uint32_t
     ebpf_result_to_win32_error_code(ebpf_result_t result);
 
+    /**
+     * @brief Output a debug message.
+     *
+     * @param[in] fmt Format string.
+     * @param[in] fmt_size Length in bytes of format string.
+     *
+     * @return Bytes written, or -1 on error.
+     */
+    long
+    ebpf_platform_printk(_In_reads_(fmt_size) const char* fmt, size_t fmt_size);
+
     TRACELOGGING_DECLARE_PROVIDER(ebpf_tracelog_provider);
 
     ebpf_result_t
@@ -986,6 +997,7 @@ extern "C"
 #define EBPF_TRACELOG_KEYWORD_MAP 0x40
 #define EBPF_TRACELOG_KEYWORD_PROGRAM 0x80
 #define EBPF_TRACELOG_KEYWORD_API 0x100
+#define EBPF_TRACELOG_KEYWORD_PRINTK 0x200
 
 #define EBPF_TRACELOG_LEVEL_LOG_ALWAYS WINEVENT_LEVEL_LOG_ALWAYS
 #define EBPF_TRACELOG_LEVEL_CRITICAL WINEVENT_LEVEL_CRITICAL

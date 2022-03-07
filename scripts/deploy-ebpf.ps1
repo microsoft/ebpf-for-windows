@@ -5,7 +5,7 @@
 ## Initialize parameters
 ##
 $build_directory=".\x64\Debug"
-[System.Collections.ArrayList]$built_files=@( "EbpfCore.sys", "EbpfApi.dll", "ebpfnetsh.dll", "ebpfsvc.exe", "NetEbpfExt.sys", "sample_ebpf_ext.sys", "sample_ext_app.exe", "ucrtbased.dll", "MSVCP140D.dll", "VCRUNTIME140D.dll", "VCRUNTIME140_1D.dll", "bpftool.exe", "bindmonitor.o", "bpf.o", "bpf_call.o", "divide_by_zero.o", "droppacket.o", "droppacket_unsafe.o", "map_in_map.o", "reflect_packet.o", "tail_call.o", "tail_call_bad.o", "tail_call_map.o", "test_sample_ebpf.o", "test_utility_helpers.o")
+[System.Collections.ArrayList]$built_files=@( "EbpfCore.sys", "EbpfApi.dll", "ebpfnetsh.dll", "ebpfsvc.exe", "NetEbpfExt.sys", "sample_ebpf_ext.sys", "sample_ext_app.exe", "ucrtbased.dll", "MSVCP140D.dll", "VCRUNTIME140D.dll", "VCRUNTIME140_1D.dll", "bpftool.exe", "bindmonitor.o", "bpf.o", "bpf_call.o", "divide_by_zero.o", "droppacket.o", "droppacket_unsafe.o", "map_in_map.o", "reflect_packet.o", "tail_call.o", "tail_call_bad.o", "tail_call_map.o", "test_sample_ebpf.o", "test_utility_helpers.o", "printk.o")
 $destination_directory="C:\Temp"
 $error.clear()
 $vm="Windows 10 dev environment"

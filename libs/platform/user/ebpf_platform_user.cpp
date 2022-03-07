@@ -713,3 +713,39 @@ ebpf_result_to_win32_error_code(ebpf_result_t result)
     }
     return RtlNtStatusToDosError(ebpf_result_to_ntstatus(result));
 }
+
+// Pick a limit on string size based on the size of the eBPF stack.
+#define MAX_PRINTK_STRING_SIZE 512
+
+long
+ebpf_platform_printk(_In_reads_(fmt_size) const char* fmt, size_t fmt_size)
+{
+    if (fmt_size > MAX_PRINTK_STRING_SIZE - 1) {
+        // Disallow large fmt_size values.
+        return -1;
+    }
+
+    // Make a copy of the original string.
+    char* output = (char*)ebpf_allocate(fmt_size + 1);
+    memcpy(output, fmt, fmt_size);
+
+    // Make sure the output is null-terminated.
+    // Remove the newline if not already present.
+    // A well-formed input should be null terminated,
+    // so look at the next-to-last byte.
+    char* end = output + fmt_size - 2;
+    if (*end != '\n') {
+        end++;
+    }
+    *end = '\0';
+
+    char* percent = strchr(output, '%');
+    if (percent != NULL) {
+        // We don't yet support %'s in format strings.
+        return -1;
+    }
+
+    puts(output);
+    ebpf_free(output);
+    return (long)(end - output + 1);
+}

@@ -13,6 +13,7 @@
 #include "bpf2c.h"
 #include "bpf/bpf.h"
 #include "bpf/libbpf.h"
+#include "capture_helper.hpp"
 #include "catch_wrapper.hpp"
 #include "common_tests.h"
 #include "dll_metadata_table.h"
@@ -1225,6 +1226,38 @@ _xdp_encap_reflect_packet_test(ebpf_execution_type_t execution_type, ADDRESS_FAM
         REQUIRE(memcmp(inner_ipv6->SourceAddress, &_test_destination_ipv6, sizeof(ebpf::ipv6_address_t)) == 0);
         REQUIRE(memcmp(inner_ipv6->DestinationAddress, &_test_source_ipv6, sizeof(ebpf::ipv6_address_t)) == 0);
     }
+}
+
+TEST_CASE("printk", "[end_to_end]")
+{
+    _test_helper_end_to_end test_helper;
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
+    program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
+    uint32_t ifindex = 0;
+    program_load_attach_helper_t program_helper(
+        SAMPLE_PATH "printk.o",
+        EBPF_PROGRAM_TYPE_XDP,
+        "func",
+        EBPF_EXECUTION_INTERPRET,
+        &ifindex,
+        sizeof(ifindex),
+        hook);
+
+    capture_helper_t capture;
+    errno_t error = capture.begin_capture();
+    REQUIRE(error == NO_ERROR);
+
+    udp_packet_t packet(AF_INET6);
+    xdp_md_helper_t ctx(packet.packet());
+    int hook_result;
+    REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
+
+    std::string output = capture.get_stdout_contents();
+    REQUIRE(
+        output == "Hello, world\n"
+                  "Hello, world\n");
+
+    REQUIRE(hook_result == output.length());
 }
 
 TEST_CASE("xdp-reflect-v4-jit", "[xdp_tests]") { _xdp_reflect_packet_test(EBPF_EXECUTION_JIT, AF_INET); }
