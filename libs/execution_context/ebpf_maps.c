@@ -14,7 +14,7 @@
 
 typedef struct _ebpf_core_map
 {
-    ebpf_object_t object;
+    ebpf_core_object_t object;
     ebpf_utf8_string_t name;
     ebpf_map_definition_in_memory_t ebpf_map_definition;
     uint32_t original_value_size;
@@ -99,7 +99,7 @@ typedef struct _ebpf_core_stack_map
 } ebpf_core_stack_map_t;
 
 _Ret_notnull_ static const ebpf_program_type_t*
-_get_map_program_type(_In_ const ebpf_object_t* object)
+_get_map_program_type(_In_ const ebpf_core_object_t* object)
 {
     const ebpf_core_object_map_t* map = (const ebpf_core_object_map_t*)object;
     return &map->program_type;
@@ -115,7 +115,7 @@ typedef struct _ebpf_map_function_table
     ebpf_result_t (*associate_program)(_In_ ebpf_map_t* map, _In_ const ebpf_program_t* program);
     ebpf_result_t (*find_entry)(
         _In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_ bool delete_on_success, _Outptr_ uint8_t** data);
-    ebpf_object_t* (*get_object_from_entry)(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key);
+    ebpf_core_object_t* (*get_object_from_entry)(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key);
     ebpf_result_t (*update_entry)(
         _In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_ const uint8_t* value, ebpf_map_option_t option);
     ebpf_result_t (*update_entry_with_handle)(
@@ -281,7 +281,7 @@ _associate_inner_map(_Inout_ ebpf_core_object_map_t* object_map, ebpf_handle_t i
 {
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_map_definition_in_memory_t local_map_definition = object_map->core_map.ebpf_map_definition;
-    ebpf_object_t* inner_map_template_object = NULL;
+    ebpf_core_object_t* inner_map_template_object = NULL;
 
     if (local_map_definition.type != BPF_MAP_TYPE_ARRAY_OF_MAPS &&
         local_map_definition.type != BPF_MAP_TYPE_HASH_OF_MAPS)
@@ -397,7 +397,7 @@ _associate_program_with_prog_array_map(_In_ ebpf_core_map_t* map, _In_ const ebp
 }
 
 static bool // Returns true if ok, false if not.
-_check_value_type(_In_ const ebpf_core_map_t* outer_map, _In_ const ebpf_object_t* value_object)
+_check_value_type(_In_ const ebpf_core_map_t* outer_map, _In_ const ebpf_core_object_t* value_object)
 {
     if (outer_map->ebpf_map_definition.type != BPF_MAP_TYPE_ARRAY_OF_MAPS &&
         outer_map->ebpf_map_definition.type != BPF_MAP_TYPE_HASH_OF_MAPS) {
@@ -424,10 +424,10 @@ _get_map_value_object(
     _In_ const ebpf_core_map_t* map,
     ebpf_handle_t value_handle,
     ebpf_object_type_t value_type,
-    _Outptr_ ebpf_object_t** value_object_result)
+    _Outptr_ ebpf_core_object_t** value_object_result)
 {
     // Convert value handle to an object pointer.
-    ebpf_object_t* value_object = NULL;
+    ebpf_core_object_t* value_object = NULL;
     ebpf_result_t result = ebpf_reference_object_by_handle(value_handle, value_type, &value_object);
     if (result != EBPF_SUCCESS)
         return result;
@@ -460,7 +460,7 @@ _get_map_value_object(
     return EBPF_SUCCESS;
 
 Error:
-    ebpf_object_release_reference((ebpf_object_t*)value_object);
+    ebpf_object_release_reference((ebpf_core_object_t*)value_object);
     return result;
 }
 
@@ -486,7 +486,7 @@ _update_array_map_entry_with_handle(
 
     ebpf_lock_state_t lock_state = ebpf_lock_lock(&object_map->lock);
 
-    ebpf_object_t* value_object = NULL;
+    ebpf_core_object_t* value_object = NULL;
     // If value_handle is valid, resolve it to an object. Else we just need to clear
     // the existing entry from the map.
     if (value_handle != (uintptr_t)ebpf_handle_invalid) {
@@ -570,7 +570,7 @@ _delete_map_array_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
  * @param[in] key Pointer to the key to search for.
  * @returns Object pointer, or NULL if none.
  */
-static _Ret_maybenull_ ebpf_object_t*
+static _Ret_maybenull_ ebpf_core_object_t*
 _get_object_from_array_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
 {
     uint32_t index = *(uint32_t*)key;
@@ -582,7 +582,7 @@ _get_object_from_array_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* 
 
     ebpf_lock_state_t lock_state = ebpf_lock_lock(&object_map->lock);
 
-    ebpf_object_t* object = NULL;
+    ebpf_core_object_t* object = NULL;
     uint8_t* value = NULL;
     if (_find_array_map_entry(map, (uint8_t*)&index, false, &value) == EBPF_SUCCESS) {
         ebpf_id_t id = *(ebpf_id_t*)&map->data[index * map->ebpf_map_definition.value_size];
@@ -892,7 +892,7 @@ _find_hash_map_entry(
  * @param[in] key Pointer to the key to search for.
  * @returns Object pointer, or NULL if none.
  */
-static _Ret_maybenull_ ebpf_object_t*
+static _Ret_maybenull_ ebpf_core_object_t*
 _get_object_from_hash_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
 {
     ebpf_core_object_map_t* object_map = EBPF_FROM_FIELD(ebpf_core_object_map_t, core_map, map);
@@ -902,7 +902,7 @@ _get_object_from_hash_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* k
     // might be trying to delete the entry we find.
     ebpf_lock_state_t lock_state = ebpf_lock_lock(&object_map->lock);
 
-    ebpf_object_t* object = NULL;
+    ebpf_core_object_t* object = NULL;
     uint8_t* value = NULL;
     if (_find_hash_map_entry(map, key, false, &value) == EBPF_SUCCESS) {
         ebpf_id_t id = *(ebpf_id_t*)value;
@@ -992,7 +992,7 @@ _update_hash_map_entry_with_handle(
     uint8_t* old_value = NULL;
     ebpf_result_t found_result = ebpf_hash_table_find((ebpf_hash_table_t*)map->data, key, &old_value);
     ebpf_id_t old_id = (old_value) ? *(ebpf_id_t*)old_value : 0;
-    ebpf_object_t* value_object = NULL;
+    ebpf_core_object_t* value_object = NULL;
 
     if ((entry_count == map->ebpf_map_definition.max_entries) && (found_result != EBPF_SUCCESS)) {
         // The hash table is already full.
@@ -1019,7 +1019,7 @@ _update_hash_map_entry_with_handle(
 
 Done:
     if ((result != EBPF_SUCCESS) && (value_object != NULL)) {
-        ebpf_object_release_reference((ebpf_object_t*)value_object);
+        ebpf_object_release_reference((ebpf_core_object_t*)value_object);
     }
     ebpf_lock_unlock(&object_map->lock, lock_state);
     return result;
@@ -1743,7 +1743,7 @@ ebpf_map_function_table_t ebpf_map_function_tables[] = {
 };
 
 static void
-_ebpf_map_delete(_In_ ebpf_object_t* object)
+_ebpf_map_delete(_In_ ebpf_core_object_t* object)
 {
     EBPF_LOG_ENTRY();
     ebpf_map_t* map = (ebpf_map_t*)object;
@@ -1879,7 +1879,7 @@ ebpf_map_find_entry(
             return EBPF_INVALID_ARGUMENT;
         }
 
-        ebpf_object_t* object = ebpf_map_function_tables[type].get_object_from_entry(map, key);
+        ebpf_core_object_t* object = ebpf_map_function_tables[type].get_object_from_entry(map, key);
 
         // Release the extra reference obtained.
         // REVIEW: is this safe?

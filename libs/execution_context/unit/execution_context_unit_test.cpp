@@ -28,7 +28,7 @@ template <typename T> class ebpf_object_deleter
     void
     operator()(T* object)
     {
-        ebpf_object_release_reference(reinterpret_cast<ebpf_object_t*>(object));
+        ebpf_object_release_reference(reinterpret_cast<ebpf_core_object_t*>(object));
     }
 };
 
@@ -570,9 +570,9 @@ TEST_CASE("program", "[execution_context]")
 
     ebpf_map_t* maps[] = {map.get()};
 
-    REQUIRE(((ebpf_object_t*)map.get())->reference_count == 1);
+    REQUIRE(((ebpf_core_object_t*)map.get())->reference_count == 1);
     REQUIRE(ebpf_program_associate_maps(program.get(), maps, EBPF_COUNT_OF(maps)) == EBPF_SUCCESS);
-    REQUIRE(((ebpf_object_t*)map.get())->reference_count == 2);
+    REQUIRE(((ebpf_core_object_t*)map.get())->reference_count == 2);
 
     ebpf_trampoline_table_t* table = NULL;
     ebpf_result_t (*test_function)();

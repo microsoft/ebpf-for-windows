@@ -10,7 +10,7 @@
 
 typedef struct _ebpf_link
 {
-    ebpf_object_t object;
+    ebpf_core_object_t object;
     ebpf_program_t* program;
 
     ebpf_attach_type_t attach_type;
@@ -33,7 +33,7 @@ static struct
 } _ebpf_link_dispatch_table = {1, {_ebpf_link_instance_invoke}};
 
 static void
-_ebpf_link_free(ebpf_object_t* object)
+_ebpf_link_free(ebpf_core_object_t* object)
 {
     ebpf_link_t* link = (ebpf_link_t*)object;
     ebpf_lock_destroy(&link->attach_lock);
@@ -216,7 +216,7 @@ ebpf_link_get_info(
     }
 
     info->id = link->object.id;
-    info->prog_id = (link->program) ? ((ebpf_object_t*)link->program)->id : EBPF_ID_NONE;
+    info->prog_id = (link->program) ? ((ebpf_core_object_t*)link->program)->id : EBPF_ID_NONE;
     info->type = BPF_LINK_TYPE_PLAIN;
     info->program_type_uuid = link->program_type;
     info->attach_type_uuid = link->attach_type;

@@ -3,7 +3,7 @@
 
 #include "ebpf_handle.h"
 
-typedef ebpf_object_t* ebpf_handle_entry_t;
+typedef ebpf_core_object_t* ebpf_handle_entry_t;
 
 // Simplified handle table implementation.
 // TODO: Replace this with the real Windows object manager handle table code.
@@ -39,7 +39,7 @@ ebpf_handle_table_terminate()
 }
 
 ebpf_result_t
-ebpf_handle_create(ebpf_handle_t* handle, ebpf_object_t* object)
+ebpf_handle_create(ebpf_handle_t* handle, ebpf_core_object_t* object)
 {
     EBPF_LOG_ENTRY();
     ebpf_handle_t new_handle;
@@ -85,7 +85,7 @@ ebpf_handle_close(ebpf_handle_t handle)
 }
 
 ebpf_result_t
-ebpf_reference_object_by_handle(ebpf_handle_t handle, ebpf_object_type_t object_type, ebpf_object_t** object)
+ebpf_reference_object_by_handle(ebpf_handle_t handle, ebpf_object_type_t object_type, ebpf_core_object_t** object)
 {
     ebpf_result_t return_value;
     ebpf_lock_state_t state;
