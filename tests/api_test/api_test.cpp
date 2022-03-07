@@ -237,7 +237,7 @@ TEST_CASE("test_ebpf_map_next_previous", "[test_ebpf_map_next_previous]")
 }
 
 void
-perform_socket_bind(const uint16_t test_port)
+perform_socket_bind(const uint16_t test_port, bool expect_success = true)
 {
     WSAData data;
     int error = WSAStartup(2, &data);
@@ -258,7 +258,11 @@ perform_socket_bind(const uint16_t test_port)
 
     // Perform bind operation.
     ((PSOCKADDR_IN6)&sock_addr)->sin6_port = htons(test_port);
-    REQUIRE(bind(_socket, (PSOCKADDR)&sock_addr, sizeof(sock_addr)) == 0);
+    if (expect_success) {
+        REQUIRE(bind(_socket, (PSOCKADDR)&sock_addr, sizeof(sock_addr)) == 0);
+    } else {
+        REQUIRE(bind(_socket, (PSOCKADDR)&sock_addr, sizeof(sock_addr)) != 0);
+    }
 
     WSACleanup();
 }
@@ -288,8 +292,25 @@ ring_buffer_api_test(ebpf_execution_type_t execution_type)
     });
 }
 
+// See also divide_by_zero_test_um in end_to_end.cpp for the user-mode equivalent.
+void
+divide_by_zero_test_km(ebpf_execution_type_t execution_type)
+{
+    struct bpf_object* object = nullptr;
+    hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
+    program_load_attach_helper_t _helper(
+        "divide_by_zero.o", EBPF_PROGRAM_TYPE_BIND, "divide_by_zero", execution_type, nullptr, 0, hook);
+    object = _helper.get_object();
+
+    perform_socket_bind(0, false);
+
+    // If we don't bug-check, the test passed.
+}
+
 TEST_CASE("ringbuf_api_jit", "[test_ringbuf_api]") { ring_buffer_api_test(EBPF_EXECUTION_JIT); }
+TEST_CASE("divide_by_zero_jit", "[divide_by_zero]") { divide_by_zero_test_km(EBPF_EXECUTION_JIT); }
 
 #if !defined(CONFIG_BPF_JIT_ALWAYS_ON)
 TEST_CASE("ringbuf_api_interpret", "[test_ringbuf_api]") { ring_buffer_api_test(EBPF_EXECUTION_INTERPRET); }
+TEST_CASE("divide_by_zero_interpret", "[divide_by_zero]") { divide_by_zero_test_km(EBPF_EXECUTION_INTERPRET); }
 #endif

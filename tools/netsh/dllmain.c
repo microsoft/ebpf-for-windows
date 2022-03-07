@@ -114,6 +114,23 @@ __declspec(dllexport) DWORD InitHelperDll(DWORD netshVersion, void* reserved)
     attributes.pfnStart = EbpfStartHelper;
 
     DWORD status = RegisterHelper(NULL, &attributes);
+    if (status != NO_ERROR) {
+        // Print the error message here since just returning
+        // it would instead print a generic message with the error
+        // number instead of the correct netsh specific message.
+        PrintError(NULL, status);
+        if (status == ERROR_HELPER_ALREADY_REGISTERED) {
+            // We must return NO_ERROR or netsh will unregister
+            // the instance already registered.  This will, however,
+            // cause netsh to add an extra "Ok." after the message,
+            // but removing that would require netsh to change.
+            status = NO_ERROR;
+        } else {
+            // We've already shown the message for this error,
+            // so tell netsh to skip adding another one.
+            status = ERROR_SUPPRESS_OUTPUT;
+        }
+    }
 
     return status;
 }

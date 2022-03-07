@@ -670,9 +670,8 @@ ebpf_query_time_since_boot(bool include_suspended_time)
 ebpf_result_t
 ebpf_guid_create(_Out_ GUID* new_guid)
 {
-    NTSTATUS status = ExUuidCreate(new_guid);
-    if (!NT_SUCCESS(status)) {
+    if (NT_SUCCESS(ExUuidCreate(new_guid)))
+        return EBPF_SUCCESS;
+    else
         return EBPF_OPERATION_NOT_SUPPORTED;
-    }
-    return EBPF_SUCCESS;
 }

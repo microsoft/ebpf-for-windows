@@ -128,11 +128,12 @@
     </DriverSign>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="net_ebpf_ext_drv.c" />
     <ClCompile Include="net_ebpf_ext.c" />
     <ClCompile Include="net_ebpf_ext_bind.c" />
+    <ClCompile Include="net_ebpf_ext_drv.c" />
+    <ClCompile Include="net_ebpf_ext_hook_provider.c" />
+    <ClCompile Include="net_ebpf_ext_prog_info_provider.c"/>
     <ClCompile Include="net_ebpf_ext_xdp.c" />
-    <ClCompile Include="ebpf_ext_attach_provider.c" />
   </ItemGroup>
   <ItemGroup>
     <Inf Include="NetEbpfExt.inf" />
@@ -145,14 +146,10 @@
     <ClInclude Include="net_ebpf_ext_bind.h" />
     <ClInclude Include="net_ebpf_ext_xdp.h" />
     <ClInclude Include="net_ebpf_ext_helpers.h" />
+    <ClInclude Include="net_ebpf_ext_hook_provider.h" />
     <ClInclude Include="net_ebpf_ext_program_info.h" />
-    <ClInclude Include="ebpf_ext_attach_provider.h" />
+    <ClInclude Include="net_ebpf_ext_prog_info_provider.h"/>
     <ClInclude Include="resource.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\libs\platform\kernel\platform_kernel.vcxproj">
-      <Project>{fc3f9998-4085-4767-8386-5453f07c3aad}</Project>
-    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="..\resource\ebpf_resource.rc" />
