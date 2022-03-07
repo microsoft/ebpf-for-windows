@@ -18,7 +18,7 @@ ebpf_handle_table_terminate()
 {}
 
 ebpf_result_t
-ebpf_handle_create(ebpf_handle_t* handle, ebpf_object_t* object)
+ebpf_handle_create(ebpf_handle_t* handle, ebpf_core_object_t* object)
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t return_value;
@@ -88,12 +88,12 @@ ebpf_handle_close(ebpf_handle_t handle)
 }
 
 ebpf_result_t
-ebpf_reference_object_by_handle(ebpf_handle_t handle, ebpf_object_type_t object_type, ebpf_object_t** object)
+ebpf_reference_object_by_handle(ebpf_handle_t handle, ebpf_object_type_t object_type, ebpf_core_object_t** object)
 {
     ebpf_result_t return_value;
     NTSTATUS status;
     FILE_OBJECT* file_object = NULL;
-    ebpf_object_t* local_object;
+    ebpf_core_object_t* local_object;
 
     status = ObReferenceObjectByHandle((HANDLE)handle, 0, NULL, UserMode, &file_object, NULL);
     if (!NT_SUCCESS(status)) {
@@ -107,7 +107,7 @@ ebpf_reference_object_by_handle(ebpf_handle_t handle, ebpf_object_type_t object_
         goto Done;
     }
 
-    local_object = (ebpf_object_t*)file_object->FsContext2;
+    local_object = (ebpf_core_object_t*)file_object->FsContext2;
     if (local_object == NULL) {
         return_value = EBPF_INVALID_OBJECT;
         goto Done;

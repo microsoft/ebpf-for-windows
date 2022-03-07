@@ -376,7 +376,7 @@ _ebpf_native_validate_map(_In_ ebpf_native_map_t* map, ebpf_handle_t original_ma
 {
     // Validate that the existing map definition matches with this new map.
     struct bpf_map_info info;
-    ebpf_object_t* object;
+    ebpf_core_object_t* object;
     ebpf_handle_t inner_map_handle = ebpf_handle_invalid;
     uint16_t info_size = (uint16_t)sizeof(info);
     ebpf_result_t result = ebpf_reference_object_by_handle(original_map_handle, EBPF_OBJECT_UNKNOWN, &object);

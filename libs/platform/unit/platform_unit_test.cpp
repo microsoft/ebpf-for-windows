@@ -215,7 +215,7 @@ TEST_CASE("pinning_test", "[platform]")
 
     typedef struct _some_object
     {
-        ebpf_object_t object{};
+        ebpf_core_object_t object{};
         std::string name;
     } some_object_t;
 
@@ -227,10 +227,10 @@ TEST_CASE("pinning_test", "[platform]")
 
     REQUIRE(
         ebpf_object_initialize(
-            &an_object.object, EBPF_OBJECT_MAP, [](ebpf_object_t*) {}, NULL) == EBPF_SUCCESS);
+            &an_object.object, EBPF_OBJECT_MAP, [](ebpf_core_object_t*) {}, NULL) == EBPF_SUCCESS);
     REQUIRE(
         ebpf_object_initialize(
-            &another_object.object, EBPF_OBJECT_MAP, [](ebpf_object_t*) {}, NULL) == EBPF_SUCCESS);
+            &another_object.object, EBPF_OBJECT_MAP, [](ebpf_core_object_t*) {}, NULL) == EBPF_SUCCESS);
 
     ebpf_pinning_table_t* pinning_table = nullptr;
     REQUIRE(ebpf_pinning_table_allocate(&pinning_table) == EBPF_SUCCESS);
@@ -239,7 +239,7 @@ TEST_CASE("pinning_test", "[platform]")
     REQUIRE(an_object.object.reference_count == 2);
     REQUIRE(ebpf_pinning_table_insert(pinning_table, &bar, &another_object.object) == EBPF_SUCCESS);
     REQUIRE(another_object.object.reference_count == 2);
-    REQUIRE(ebpf_pinning_table_find(pinning_table, &foo, (ebpf_object_t**)&some_object) == EBPF_SUCCESS);
+    REQUIRE(ebpf_pinning_table_find(pinning_table, &foo, (ebpf_core_object_t**)&some_object) == EBPF_SUCCESS);
     REQUIRE(an_object.object.reference_count == 3);
     REQUIRE(some_object == &an_object);
     ebpf_object_release_reference(&some_object->object);
