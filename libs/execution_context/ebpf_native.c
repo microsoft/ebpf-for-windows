@@ -222,6 +222,7 @@ ebpf_result_t
 ebpf_native_initiate()
 {
     ebpf_result_t return_value;
+    GUID provider_module_id;
     bool hash_table_created = false;
     return_value = ebpf_hash_table_create(
         &_ebpf_client_table,
@@ -236,9 +237,15 @@ ebpf_native_initiate()
     }
     hash_table_created = true;
 
+    return_value = ebpf_guid_create(&provider_module_id);
+    if (return_value != EBPF_SUCCESS) {
+        goto Done;
+    }
+
     return_value = ebpf_provider_load(
         &_ebpf_native_provider,
         &_ebpf_native_npi_id,
+        &provider_module_id,
         NULL,
         NULL,
         NULL,
