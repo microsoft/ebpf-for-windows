@@ -9,7 +9,7 @@
 #include "elf.h"
 #include "tlv.h"
 #include "tokens.h"
-#include "util.h"
+#include "utilities.h"
 
 TOKEN_VALUE g_LevelEnum[2] = {
     {L"normal", VL_NORMAL},

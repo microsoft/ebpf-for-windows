@@ -562,7 +562,7 @@ TEST_CASE("xdp interface parameter", "[netsh][programs]")
     REQUIRE(output == "Unpinned 196610 from mypinpath\n");
     REQUIRE(bpf_object__next(nullptr) == nullptr);
 
-    // Load program loopback interface index.
+    // Load program with loopback interface index.
     output = _run_netsh_command(handle_ebpf_add_program, L"droppacket.o", L"xdp", L"interface=1", &result);
     REQUIRE(strcmp(output.c_str(), "Loaded with ID 196611\n") == 0);
     REQUIRE(result == NO_ERROR);
@@ -571,7 +571,7 @@ TEST_CASE("xdp interface parameter", "[netsh][programs]")
     REQUIRE(output == "Unpinned 196611 from DropPacket\n");
     REQUIRE(bpf_object__next(nullptr) == nullptr);
 
-    // (Negative) Load program incorrect interface name.
+    // (Negative) Load program with incorrect interface name.
     output = _run_netsh_command(handle_ebpf_add_program, L"droppacket.o", L"xdp", L"interface=foo", &result);
     REQUIRE(strcmp(output.c_str(), "Interface parameter is invalid.\n") == 0);
     REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
@@ -581,12 +581,12 @@ TEST_CASE("xdp interface parameter", "[netsh][programs]")
     output = _run_netsh_command(handle_ebpf_add_program, L"bindmonitor.o", L"bind", L"interface=1", &result);
     REQUIRE(
         strcmp(
-            output.c_str(), "Interface parameter is not allowed for program types that dont support interfaces.\n") ==
+            output.c_str(), "Interface parameter is not allowed for program types that don't support interfaces.\n") ==
         0);
     REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
     REQUIRE(bpf_object__next(nullptr) == nullptr);
 
-    // Add program with no interface parameter
+    // Add program with no interface parameter.
     output = _run_netsh_command(handle_ebpf_add_program, L"droppacket.o", nullptr, nullptr, &result);
     REQUIRE(strcmp(output.c_str(), "Loaded with ID 196614\n") == 0);
     REQUIRE(result == NO_ERROR);

@@ -13,7 +13,7 @@
 #include "platform.h"
 #include "programs.h"
 #include "tokens.h"
-#include "util.h"
+#include "utilities.h"
 
 typedef enum
 {
@@ -57,11 +57,11 @@ _process_interface_parameter(_In_ LPWSTR interface_parameter, bpf_prog_type prog
 {
     ebpf_result_t result = EBPF_SUCCESS;
     if (_prog_type_supports_interface(prog_type)) {
-        result = parse_ifindex(interface_parameter, if_index);
+        result = parse_if_index(interface_parameter, if_index);
         if (result != EBPF_SUCCESS)
             std::cerr << "Interface parameter is invalid." << std::endl;
     } else {
-        std::cerr << "Interface parameter is not allowed for program types that dont support interfaces." << std::endl;
+        std::cerr << "Interface parameter is not allowed for program types that don't support interfaces." << std::endl;
         result = EBPF_INVALID_ARGUMENT;
     }
     return result;

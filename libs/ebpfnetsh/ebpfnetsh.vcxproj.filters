@@ -34,7 +34,7 @@
     <ClCompile Include="pins.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="util.cpp">
+    <ClCompile Include="utilities.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -57,7 +57,7 @@
     <ClInclude Include="pins.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="util.h">
+    <ClInclude Include="utilities.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
