@@ -77,7 +77,6 @@ _ebpf_native_unload(ebpf_native_t* native)
 void
 ebpf_native_acquire_reference(ebpf_native_t* native)
 {
-    ebpf_assert(object->marker == _ebpf_object_marker);
     ebpf_assert(native->reference_count != 0);
     ebpf_interlocked_increment_int32(&native->reference_count);
 }
@@ -406,7 +405,7 @@ _ebpf_native_validate_map(_In_ ebpf_native_map_t* map, ebpf_handle_t original_ma
     // Extra checks for map-in-map.
     if (_ebpf_native_is_map_in_map(map)) {
         ebpf_native_map_t* inner_map = map->inner_map;
-        ebpf_assert(inner_map != nullptr);
+        ebpf_assert(inner_map != NULL);
 
         if (info.inner_map_id == EBPF_ID_NONE) {
             // The original map is pinned but its template is not initialized yet.
