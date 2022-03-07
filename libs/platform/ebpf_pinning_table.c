@@ -105,7 +105,8 @@ ebpf_pinning_table_free(ebpf_pinning_table_t* pinning_table)
 }
 
 ebpf_result_t
-ebpf_pinning_table_insert(ebpf_pinning_table_t* pinning_table, const ebpf_utf8_string_t* path, ebpf_object_t* object)
+ebpf_pinning_table_insert(
+    ebpf_pinning_table_t* pinning_table, const ebpf_utf8_string_t* path, ebpf_core_object_t* object)
 {
     EBPF_LOG_ENTRY();
     ebpf_lock_state_t state;
@@ -164,7 +165,8 @@ Done:
 }
 
 ebpf_result_t
-ebpf_pinning_table_find(ebpf_pinning_table_t* pinning_table, const ebpf_utf8_string_t* path, ebpf_object_t** object)
+ebpf_pinning_table_find(
+    ebpf_pinning_table_t* pinning_table, const ebpf_utf8_string_t* path, ebpf_core_object_t** object)
 {
     EBPF_LOG_ENTRY();
     ebpf_lock_state_t state;

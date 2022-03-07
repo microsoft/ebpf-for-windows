@@ -17,7 +17,7 @@ extern "C"
     typedef struct _ebpf_pinning_entry
     {
         ebpf_utf8_string_t path;
-        ebpf_object_t* object;
+        ebpf_core_object_t* object;
     } ebpf_pinning_entry_t;
 
     /**
@@ -53,7 +53,7 @@ extern "C"
      */
     ebpf_result_t
     ebpf_pinning_table_insert(
-        ebpf_pinning_table_t* pinning_table, const ebpf_utf8_string_t* path, ebpf_object_t* object);
+        ebpf_pinning_table_t* pinning_table, const ebpf_utf8_string_t* path, ebpf_core_object_t* object);
 
     /**
      * @brief Find an entry in the pinning table and acquire a reference on the
@@ -68,7 +68,7 @@ extern "C"
      */
     ebpf_result_t
     ebpf_pinning_table_find(
-        ebpf_pinning_table_t* pinning_table, const ebpf_utf8_string_t* path, ebpf_object_t** object);
+        ebpf_pinning_table_t* pinning_table, const ebpf_utf8_string_t* path, ebpf_core_object_t** object);
 
     /**
      * @brief Find an entry in the pinning table, remove it and release a

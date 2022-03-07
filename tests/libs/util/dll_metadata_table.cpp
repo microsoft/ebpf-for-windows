@@ -23,7 +23,7 @@ ebpf_map_create(
     ebpf_handle_t inner_map_handle,
     _Outptr_ ebpf_map_t** map);
 
-typedef struct _ebpf_object ebpf_object_t;
+typedef struct _ebpf_core_object ebpf_core_object_t;
 
 dll_metadata_table::dll_metadata_table(const std::string& dll_name, const std::string& table_name)
 {
@@ -140,7 +140,7 @@ dll_metadata_table::bind_metadata_table()
             throw std::runtime_error("ebpf_extension_load failed for ebpf_general_helper_function_interface_id");
         }
         ebpf_handle_t handle;
-        if (ebpf_handle_create(&handle, reinterpret_cast<ebpf_object_t*>(maps[i].address)) != EBPF_SUCCESS) {
+        if (ebpf_handle_create(&handle, reinterpret_cast<ebpf_core_object_t*>(maps[i].address)) != EBPF_SUCCESS) {
             throw std::runtime_error("ebpf_handle_create failed");
         }
         fd_t fd = Platform::_open_osfhandle(handle, 0);
@@ -163,7 +163,7 @@ dll_metadata_table::unbind_metadata_table()
     }
 
     for (size_t i = 0; i < map_count; i++) {
-        ebpf_object_release_reference(reinterpret_cast<ebpf_object_t*>(maps[i].address));
+        ebpf_object_release_reference(reinterpret_cast<ebpf_core_object_t*>(maps[i].address));
         maps[i].address = nullptr;
     }
     for (auto& [name, fd] : loaded_maps) {
