@@ -12,5 +12,7 @@
                                  // throw. Declare it 'noexcept'
 #pragma warning(disable : 26495) // Always initialize a member variable
 #undef FALSE
+#undef min
+#undef max
 #include "crab_verifier.hpp"
 #pragma warning(pop)

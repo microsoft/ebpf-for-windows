@@ -386,8 +386,9 @@ droppacket_test(ebpf_execution_type_t execution_type)
     bpf_object__close(object);
 }
 
+// See also divide_by_zero_test_km in api_test.cpp for the kernel-mode equivalent.
 void
-divide_by_zero_test(ebpf_execution_type_t execution_type)
+divide_by_zero_test_um(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
 
@@ -642,11 +643,11 @@ _utility_helper_functions_test(ebpf_execution_type_t execution_type)
 }
 
 TEST_CASE("droppacket-jit", "[end_to_end]") { droppacket_test(EBPF_EXECUTION_JIT); }
-TEST_CASE("divide_by_zero_jit", "[end_to_end]") { divide_by_zero_test(EBPF_EXECUTION_JIT); }
+TEST_CASE("divide_by_zero_jit", "[end_to_end]") { divide_by_zero_test_um(EBPF_EXECUTION_JIT); }
 TEST_CASE("bindmonitor-jit", "[end_to_end]") { bindmonitor_test(EBPF_EXECUTION_JIT); }
 TEST_CASE("bindmonitor-ringbuf-jit", "[end_to_end]") { bindmonitor_ring_buffer_test(EBPF_EXECUTION_JIT); }
 TEST_CASE("droppacket-interpret", "[end_to_end]") { droppacket_test(EBPF_EXECUTION_INTERPRET); }
-TEST_CASE("divide_by_zero_interpret", "[end_to_end]") { divide_by_zero_test(EBPF_EXECUTION_INTERPRET); }
+TEST_CASE("divide_by_zero_interpret", "[end_to_end]") { divide_by_zero_test_um(EBPF_EXECUTION_INTERPRET); }
 TEST_CASE("bindmonitor-interpret", "[end_to_end]") { bindmonitor_test(EBPF_EXECUTION_INTERPRET); }
 TEST_CASE("bindmonitor-ringbuf-interpret", "[end_to_end]") { bindmonitor_ring_buffer_test(EBPF_EXECUTION_INTERPRET); }
 TEST_CASE("utility-helpers-jit", "[end_to_end]") { _utility_helper_functions_test(EBPF_EXECUTION_JIT); }

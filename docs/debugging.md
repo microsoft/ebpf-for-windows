@@ -32,7 +32,11 @@ Verification failed
 
 Verification report:
 
+; C:\your\path\ebpf-for-windows\tests\sample/./ebpf.h:15
+; ntohs(uint16_t us)
 1: r0.type == number
+; C:\your\path\ebpf-for-windows\tests\sample/./ebpf.h:17
+;     return us << 8 | us >> 8;
 2: r0.type == number
 
 2 errors
@@ -42,7 +46,11 @@ Verification failed
 
 Verification report:
 
+; C:\your\path\ebpf-for-windows\tests\sample/droppacket_unsafe.c:29
+;     if (ip_header->Protocol == IPPROTO_UDP) {
 2: Upper bound must be at most packet_size (valid_access(r1.offset+9, width=1))
+; C:\your\path\ebpf-for-windows\tests\sample/droppacket_unsafe.c:30
+;         if (ntohs(udp_header->length) <= sizeof(UDP_HEADER)) {
 4: Upper bound must be at most packet_size (valid_access(r1.offset+24, width=2))
 
 2 errors
@@ -55,8 +63,12 @@ We can see that both sections have issues.   We'll look at these one at a time.
 
 ```
 > netsh ebpf show disassembly droppacket_unsafe.o .text
+; C:\your\path\ebpf-for-windows\tests\sample/./ebpf.h:15
+; ntohs(uint16_t us)
        0:       r0 = r1
        1:       r0 = be16 r0
+; C:\your\path\ebpf-for-windows\tests\sample/./ebpf.h:17
+;     return us << 8 | us >> 8;
        2:       exit
 
 ```
@@ -66,7 +78,7 @@ We see there are 3 instructions, numbered 0 through 2.  In eBPF programs,
 r1 through r5 are used to pass arguments to functions, and
 r10 is the stack pointer.  This program, however, only uses
 r0 and r1, where r0 is for the return value and r1 holds
-the hook context (ctx) structure pointer it is
+the hook context (ctx) structure pointer that is
 passed to the program as its first argument.
 
 **Step 4)** To understand what went wrong, we can ask netsh for the verbose output by using "level=verbose":
@@ -81,8 +93,8 @@ Pre-invariant : [
     instruction_count=0,
     meta_offset=[-4098, 0],
     packet_size=[0, 65534],
-    r1.offset=0, r1.type=ctx, r1.value=[1, 2147418112],
-    r10.offset=512, r10.region_size=512, r10.type=stack, r10.value=[512, 2147418112]]
+    r1.ctx_offset=0, r1.type=ctx, r1.value=[1, 2147418112],
+    r10.numeric_size=0, r10.stack_offset=512, r10.type=stack, r10.value=[512, 2147418112]]
 Stack: Numbers -> {}
 entry:
   goto 0;
@@ -91,16 +103,16 @@ Post-invariant: [
     instruction_count=1,
     meta_offset=[-4098, 0],
     packet_size=[0, 65534],
-    r1.offset=0, r1.type=ctx, r1.value=[1, 2147418112],
-    r10.offset=512, r10.region_size=512, r10.type=stack, r10.value=[512, 2147418112]]
+    r1.ctx_offset=0, r1.type=ctx, r1.value=[1, 2147418112],
+    r10.numeric_size=0, r10.stack_offset=512, r10.type=stack, r10.value=[512, 2147418112]]
 Stack: Numbers -> {}
 
 Pre-invariant : [
     instruction_count=1,
     meta_offset=[-4098, 0],
     packet_size=[0, 65534],
-    r1.offset=0, r1.type=ctx, r1.value=[1, 2147418112],
-    r10.offset=512, r10.region_size=512, r10.type=stack, r10.value=[512, 2147418112]]
+    r1.ctx_offset=0, r1.type=ctx, r1.value=[1, 2147418112],
+    r10.numeric_size=0, r10.stack_offset=512, r10.type=stack, r10.value=[512, 2147418112]]
 Stack: Numbers -> {}
 0:
   r0 = r1;
@@ -110,18 +122,18 @@ Post-invariant: [
     instruction_count=3,
     meta_offset=[-4098, 0],
     packet_size=[0, 65534],
-    r0.offset=0, r0.region_size=r1.region_size, r0.type=ctx, r0.value=[1, 2147418112], r0.value=r1.value,
-    r1.offset=0, r1.type=ctx, r1.value=[1, 2147418112],
-    r10.offset=512, r10.region_size=512, r10.type=stack, r10.value=[512, 2147418112]]
+    r0.ctx_offset=0, r0.type=ctx, r0.value=[1, 2147418112], r0.value=r1.value,
+    r1.ctx_offset=0, r1.type=ctx, r1.value=[1, 2147418112],
+    r10.numeric_size=0, r10.stack_offset=512, r10.type=stack, r10.value=[512, 2147418112]]
 Stack: Numbers -> {}
 
 Pre-invariant : [
     instruction_count=3,
     meta_offset=[-4098, 0],
     packet_size=[0, 65534],
-    r0.offset=0, r0.region_size=r1.region_size, r0.type=ctx, r0.value=[1, 2147418112], r0.value=r1.value,
-    r1.offset=0, r1.type=ctx, r1.value=[1, 2147418112],
-    r10.offset=512, r10.region_size=512, r10.type=stack, r10.value=[512, 2147418112]]
+    r0.ctx_offset=0, r0.type=ctx, r0.value=[1, 2147418112], r0.value=r1.value,
+    r1.ctx_offset=0, r1.type=ctx, r1.value=[1, 2147418112],
+    r10.numeric_size=0, r10.stack_offset=512, r10.type=stack, r10.value=[512, 2147418112]]
 Stack: Numbers -> {}
 1:
   assert r0.type == number;
@@ -132,18 +144,18 @@ Post-invariant: [
     instruction_count=6,
     meta_offset=[-4098, 0],
     packet_size=[0, 65534],
-    r0.region_size=r1.region_size, r0.type=ctx,
-    r1.offset=0, r1.type=ctx, r1.value=[1, 2147418112],
-    r10.offset=512, r10.region_size=512, r10.type=stack, r10.value=[512, 2147418112]]
+    r0.type=ctx,
+    r1.ctx_offset=0, r1.type=ctx, r1.value=[1, 2147418112],
+    r10.numeric_size=0, r10.stack_offset=512, r10.type=stack, r10.value=[512, 2147418112]]
 Stack: Numbers -> {}
 
 Pre-invariant : [
     instruction_count=6,
     meta_offset=[-4098, 0],
     packet_size=[0, 65534],
-    r0.region_size=r1.region_size, r0.type=ctx,
-    r1.offset=0, r1.type=ctx, r1.value=[1, 2147418112],
-    r10.offset=512, r10.region_size=512, r10.type=stack, r10.value=[512, 2147418112]]
+    r0.type=ctx,
+    r1.ctx_offset=0, r1.type=ctx, r1.value=[1, 2147418112],
+    r10.numeric_size=0, r10.stack_offset=512, r10.type=stack, r10.value=[512, 2147418112]]
 Stack: Numbers -> {}
 2:
   assert r0.type == number;
@@ -154,18 +166,18 @@ Post-invariant: [
     instruction_count=9,
     meta_offset=[-4098, 0],
     packet_size=[0, 65534],
-    r0.region_size=r1.region_size, r0.type=ctx,
-    r1.offset=0, r1.type=ctx, r1.value=[1, 2147418112],
-    r10.offset=512, r10.region_size=512, r10.type=stack, r10.value=[512, 2147418112]]
+    r0.type=ctx,
+    r1.ctx_offset=0, r1.type=ctx, r1.value=[1, 2147418112],
+    r10.numeric_size=0, r10.stack_offset=512, r10.type=stack, r10.value=[512, 2147418112]]
 Stack: Numbers -> {}
 
 Pre-invariant : [
     instruction_count=9,
     meta_offset=[-4098, 0],
     packet_size=[0, 65534],
-    r0.region_size=r1.region_size, r0.type=ctx,
-    r1.offset=0, r1.type=ctx, r1.value=[1, 2147418112],
-    r10.offset=512, r10.region_size=512, r10.type=stack, r10.value=[512, 2147418112]]
+    r0.type=ctx,
+    r1.ctx_offset=0, r1.type=ctx, r1.value=[1, 2147418112],
+    r10.numeric_size=0, r10.stack_offset=512, r10.type=stack, r10.value=[512, 2147418112]]
 Stack: Numbers -> {}
 exit:
 
@@ -174,12 +186,16 @@ Post-invariant: [
     instruction_count=10,
     meta_offset=[-4098, 0],
     packet_size=[0, 65534],
-    r0.region_size=r1.region_size, r0.type=ctx,
-    r1.offset=0, r1.type=ctx, r1.value=[1, 2147418112],
-    r10.offset=512, r10.region_size=512, r10.type=stack, r10.value=[512, 2147418112]]
+    r0.type=ctx,
+    r1.ctx_offset=0, r1.type=ctx, r1.value=[1, 2147418112],
+    r10.numeric_size=0, r10.stack_offset=512, r10.type=stack, r10.value=[512, 2147418112]]
 Stack: Numbers -> {}
 
+; C:\your\path\ebpf-for-windows\tests\sample/./ebpf.h:15
+; ntohs(uint16_t us)
 1: r0.type == number
+; C:\your\path\ebpf-for-windows\tests\sample/./ebpf.h:17
+;     return us << 8 | us >> 8;
 2: r0.type == number
 
 2 errors
@@ -235,11 +251,11 @@ droppacket_unsafe.o:    file format ELF64-BPF
 Disassembly of section .text:
 
 0000000000000000 ntohs:
-; C:\Users\dthal\git\ebpf-for-windows\tests\sample\.\ebpf.h:16
+; C:\your\path\ebpf-for-windows\tests\sample\.\ebpf.h:16
 ; {
        0:       bf 10 00 00 00 00 00 00 r0 = r1
        1:       dc 00 00 00 10 00 00 00 r0 = be16 r0
-; C:\Users\dthal\git\ebpf-for-windows\tests\sample\.\ebpf.h:17
+; C:\your\path\ebpf-for-windows\tests\sample\.\ebpf.h:17
 ;     return us << 8 | us >> 8;
        2:       95 00 00 00 00 00 00 00 exit
 ```
@@ -263,24 +279,42 @@ to illustrate some basic steps.  So now let's move on to the real program in the
 ```
 
 > netsh ebpf show disassembly droppacket_unsafe.o xdp
+; C:\your\path\ebpf-for-windows\tests\sample/droppacket_unsafe.c:22
+; DropPacket(xdp_md_t* ctx)
        0:       r0 = 1
+; C:\your\path\ebpf-for-windows\tests\sample/droppacket_unsafe.c:24
+;     IPV4_HEADER* ip_header = (IPV4_HEADER*)ctx->data;
        1:       r1 = *(u64 *)(r1 + 0)
+; C:\your\path\ebpf-for-windows\tests\sample/droppacket_unsafe.c:29
+;     if (ip_header->Protocol == IPPROTO_UDP) {
        2:       r2 = *(u8 *)(r1 + 9)
        3:       if r2 != 17 goto +15 <19>
+; C:\your\path\ebpf-for-windows\tests\sample/droppacket_unsafe.c:30
+;         if (ntohs(udp_header->length) <= sizeof(UDP_HEADER)) {
        4:       r1 = *(u16 *)(r1 + 24)
        5:       r1 = be16 r1
        6:       if r1 > 8 goto +12 <19>
        7:       r1 = 0
+; C:\your\path\ebpf-for-windows\tests\sample/droppacket_unsafe.c:31
+;             long key = 0;
        8:       *(u64 *)(r10 - 8) = r1
        9:       r2 = r10
       10:       r2 += -8
+; C:\your\path\ebpf-for-windows\tests\sample/droppacket_unsafe.c:32
+;             long* count = bpf_map_lookup_elem(&port_map, &key);
       11:       r1 = map_fd 1
       13:       r0 = bpf_map_lookup_elem:1(map_fd r1, map_key r2)
+; C:\your\path\ebpf-for-windows\tests\sample/droppacket_unsafe.c:33
+;             if (count)
       14:       if r0 == 0 goto +3 <18>
+; C:\your\path\ebpf-for-windows\tests\sample/droppacket_unsafe.c:34
+;                 *count = (*count + 1);
       15:       r1 = *(u64 *)(r0 + 0)
       16:       r1 += 1
       17:       *(u64 *)(r0 + 0) = r1
       18:       r0 = 2
+; C:\your\path\ebpf-for-windows\tests\sample/droppacket_unsafe.c:38
+;     return rc;
       19:       exit
 ```
 
@@ -304,8 +338,8 @@ Pre-invariant : [
     meta_offset=[-4098, 0],
     packet_size=[0, 65534],
     r0.type=number, r0.value=1,
-    r1.offset=0, r1.type=ctx, r1.value=[1, 2147418112],
-    r10.offset=512, r10.region_size=512, r10.type=stack, r10.value=[512, 2147418112]]
+    r1.ctx_offset=0, r1.type=ctx, r1.value=[1, 2147418112],
+    r10.numeric_size=0, r10.stack_offset=512, r10.type=stack, r10.value=[512, 2147418112]]
 Stack: Numbers -> {}
 1:
   assert r1.type in {ctx, stack, packet, shared};
@@ -316,19 +350,19 @@ Stack: Numbers -> {}
 Post-invariant: [
     instruction_count=7,
     meta_offset=[-4098, 0],
-    packet_size=[0, 65534], packet_size=r1.region_size,
+    packet_size=[0, 65534], packet_size=r1.numeric_size,
     r0.type=number, r0.value=1,
-    r1.offset=0, r1.region_size=[0, 65534], r1.type=packet, r1.value=[4098, 2147418112],
-    r10.offset=512, r10.region_size=512, r10.type=stack, r10.value=[512, 2147418112]]
+    r1.numeric_size=[0, 65534], r1.packet_offset=0, r1.type=packet, r1.value=[4098, 2147418112],
+    r10.numeric_size=0, r10.stack_offset=512, r10.type=stack, r10.value=[512, 2147418112]]
 Stack: Numbers -> {}
 
 Pre-invariant : [
     instruction_count=7,
     meta_offset=[-4098, 0],
-    packet_size=[0, 65534], packet_size=r1.region_size,
+    packet_size=[0, 65534], packet_size=r1.numeric_size,
     r0.type=number, r0.value=1,
-    r1.offset=0, r1.region_size=[0, 65534], r1.type=packet, r1.value=[4098, 2147418112],
-    r10.offset=512, r10.region_size=512, r10.type=stack, r10.value=[512, 2147418112]]
+    r1.numeric_size=[0, 65534], r1.packet_offset=0, r1.type=packet, r1.value=[4098, 2147418112],
+    r10.numeric_size=0, r10.stack_offset=512, r10.type=stack, r10.value=[512, 2147418112]]
 Stack: Numbers -> {}
 2:
   assert r1.type in {ctx, stack, packet, shared};
@@ -339,19 +373,20 @@ Stack: Numbers -> {}
 Post-invariant: [
     instruction_count=11,
     meta_offset=[-4098, 0],
-    packet_size=[0, 65534], packet_size=r1.region_size,
+    packet_size=[0, 65534], packet_size=r1.numeric_size,
     r0.type=number, r0.value=1,
-    r1.offset=0, r1.region_size=[0, 65534], r1.type=packet, r1.value=[4098, 2147418112],
-    r10.offset=512, r10.region_size=512, r10.type=stack, r10.value=[512, 2147418112],
+    r1.numeric_size=[0, 65534], r1.packet_offset=0, r1.type=packet, r1.value=[4098, 2147418112],
+    r10.numeric_size=0, r10.stack_offset=512, r10.type=stack, r10.value=[512, 2147418112],
     r2.type=number, r2.value=[0, 255]]
 Stack: Numbers -> {}
+
 Pre-invariant : [
     instruction_count=11,
     meta_offset=[-4098, 0],
-    packet_size=[0, 65534], packet_size=r1.region_size,
+    packet_size=[0, 65534], packet_size=r1.numeric_size,
     r0.type=number, r0.value=1,
-    r1.offset=0, r1.region_size=[0, 65534], r1.type=packet, r1.value=[4098, 2147418112],
-    r10.offset=512, r10.region_size=512, r10.type=stack, r10.value=[512, 2147418112],
+    r1.numeric_size=[0, 65534], r1.packet_offset=0, r1.type=packet, r1.value=[4098, 2147418112],
+    r10.numeric_size=0, r10.stack_offset=512, r10.type=stack, r10.value=[512, 2147418112],
     r2.type=number, r2.value=[0, 255]]
 Stack: Numbers -> {}
 3:
@@ -361,20 +396,20 @@ Stack: Numbers -> {}
 Post-invariant: [
     instruction_count=13,
     meta_offset=[-4098, 0],
-    packet_size=[0, 65534], packet_size=r1.region_size,
+    packet_size=[0, 65534], packet_size=r1.numeric_size,
     r0.type=number, r0.value=1,
-    r1.offset=0, r1.region_size=[0, 65534], r1.type=packet, r1.value=[4098, 2147418112],
-    r10.offset=512, r10.region_size=512, r10.type=stack, r10.value=[512, 2147418112],
+    r1.numeric_size=[0, 65534], r1.packet_offset=0, r1.type=packet, r1.value=[4098, 2147418112],
+    r10.numeric_size=0, r10.stack_offset=512, r10.type=stack, r10.value=[512, 2147418112],
     r2.type=number, r2.value=[0, 255]]
 Stack: Numbers -> {}
 
 Pre-invariant : [
     instruction_count=13,
     meta_offset=[-4098, 0],
-    packet_size=[0, 65534], packet_size=r1.region_size,
+    packet_size=[0, 65534], packet_size=r1.numeric_size,
     r0.type=number, r0.value=1,
-    r1.offset=0, r1.region_size=[0, 65534], r1.type=packet, r1.value=[4098, 2147418112],
-    r10.offset=512, r10.region_size=512, r10.type=stack, r10.value=[512, 2147418112],
+    r1.numeric_size=[0, 65534], r1.packet_offset=0, r1.type=packet, r1.value=[4098, 2147418112],
+    r10.numeric_size=0, r10.stack_offset=512, r10.type=stack, r10.value=[512, 2147418112],
     r2.type=number, r2.value=[0, 255]]
 Stack: Numbers -> {}
 3:4:
@@ -384,20 +419,20 @@ Stack: Numbers -> {}
 Post-invariant: [
     instruction_count=15,
     meta_offset=[-4098, 0],
-    packet_size=[0, 65534], packet_size=r1.region_size,
+    packet_size=[0, 65534], packet_size=r1.numeric_size,
     r0.type=number, r0.value=1,
-    r1.offset=0, r1.region_size=[0, 65534], r1.type=packet, r1.value=[4098, 2147418112],
-    r10.offset=512, r10.region_size=512, r10.type=stack, r10.value=[512, 2147418112],
+    r1.numeric_size=[0, 65534], r1.packet_offset=0, r1.type=packet, r1.value=[4098, 2147418112],
+    r10.numeric_size=0, r10.stack_offset=512, r10.type=stack, r10.value=[512, 2147418112],
     r2.type=number, r2.value=17]
 Stack: Numbers -> {}
 
 Pre-invariant : [
     instruction_count=13,
     meta_offset=[-4098, 0],
-    packet_size=[0, 65534], packet_size=r1.region_size,
+    packet_size=[0, 65534], packet_size=r1.numeric_size,
     r0.type=number, r0.value=1,
-    r1.offset=0, r1.region_size=[0, 65534], r1.type=packet, r1.value=[4098, 2147418112],
-    r10.offset=512, r10.region_size=512, r10.type=stack, r10.value=[512, 2147418112],
+    r1.numeric_size=[0, 65534], r1.packet_offset=0, r1.type=packet, r1.value=[4098, 2147418112],
+    r10.numeric_size=0, r10.stack_offset=512, r10.type=stack, r10.value=[512, 2147418112],
     r2.type=number, r2.value=[0, 255]]
 Stack: Numbers -> {}
 3:19:
@@ -407,20 +442,20 @@ Stack: Numbers -> {}
 Post-invariant: [
     instruction_count=15,
     meta_offset=[-4098, 0],
-    packet_size=[0, 65534], packet_size=r1.region_size,
+    packet_size=[0, 65534], packet_size=r1.numeric_size,
     r0.type=number, r0.value=1,
-    r1.offset=0, r1.region_size=[0, 65534], r1.type=packet, r1.value=[4098, 2147418112],
-    r10.offset=512, r10.region_size=512, r10.type=stack, r10.value=[512, 2147418112],
+    r1.numeric_size=[0, 65534], r1.packet_offset=0, r1.type=packet, r1.value=[4098, 2147418112],
+    r10.numeric_size=0, r10.stack_offset=512, r10.type=stack, r10.value=[512, 2147418112],
     r2.type=number, r2.value=[0, 255]]
 Stack: Numbers -> {}
 
 Pre-invariant : [
     instruction_count=15,
     meta_offset=[-4098, 0],
-    packet_size=[0, 65534], packet_size=r1.region_size,
+    packet_size=[0, 65534], packet_size=r1.numeric_size,
     r0.type=number, r0.value=1,
-    r1.offset=0, r1.region_size=[0, 65534], r1.type=packet, r1.value=[4098, 2147418112],
-    r10.offset=512, r10.region_size=512, r10.type=stack, r10.value=[512, 2147418112],
+    r1.numeric_size=[0, 65534], r1.packet_offset=0, r1.type=packet, r1.value=[4098, 2147418112],
+    r10.numeric_size=0, r10.stack_offset=512, r10.type=stack, r10.value=[512, 2147418112],
     r2.type=number, r2.value=17]
 Stack: Numbers -> {}
 4:
@@ -432,14 +467,18 @@ Stack: Numbers -> {}
 Post-invariant: [
     instruction_count=19,
     meta_offset=[-4098, 0],
-    packet_size=[0, 65534], packet_size=r1.region_size,
+    packet_size=[0, 65534], packet_size=r1.numeric_size,
     r0.type=number, r0.value=1,
-    r1.region_size=[0, 65534], r1.type=number, r1.value=[0, 65535],
-    r10.offset=512, r10.region_size=512, r10.type=stack, r10.value=[512, 2147418112],
+    r1.numeric_size=[0, 65534], r1.type=number, r1.value=[0, 65535],
+    r10.numeric_size=0, r10.stack_offset=512, r10.type=stack, r10.value=[512, 2147418112],
     r2.type=number, r2.value=17]
 Stack: Numbers -> {}
 ...
+; C:\your\path\ebpf-for-windows\tests\sample/droppacket_unsafe.c:29
+;     if (ip_header->Protocol == IPPROTO_UDP) {
 2: Upper bound must be at most packet_size (valid_access(r1.offset+9, width=1))
+; C:\your\path\ebpf-for-windows\tests\sample/droppacket_unsafe.c:30
+;         if (ntohs(udp_header->length) <= sizeof(UDP_HEADER)) {
 4: Upper bound must be at most packet_size (valid_access(r1.offset+24, width=2))
 
 2 errors
@@ -470,13 +509,13 @@ Again we can see the source lines involved using llvm-objdump:
 > llvm-objdump -l -S droppacket_unsafe.o --section=xdp
 ...
 0000000000000000 DropPacket:
-; C:\Users\dthal\git\ebpf-for-windows\tests\sample\droppacket_unsafe.c:23
+; C:\your\path\ebpf-for-windows\tests\sample\droppacket_unsafe.c:23
 ; {
        0:       b7 00 00 00 01 00 00 00 r0 = 1
-; C:\Users\dthal\git\ebpf-for-windows\tests\sample\droppacket_unsafe.c:24
+; C:\your\path\ebpf-for-windows\tests\sample\droppacket_unsafe.c:24
 ;     IPV4_HEADER* ip_header = (IPV4_HEADER*)ctx->data;
        1:       79 11 00 00 00 00 00 00 r1 = *(u64 *)(r1 + 0)
-; C:\Users\dthal\git\ebpf-for-windows\tests\sample\droppacket_unsafe.c:29
+; C:\your\path\ebpf-for-windows\tests\sample\droppacket_unsafe.c:29
 ...
 
 ```
@@ -498,10 +537,10 @@ of the Post-invariants from all the instructions that could go to it:
 Post-invariant: [
     instruction_count=15,
     meta_offset=[-4098, 0],
-    packet_size=[0, 65534], packet_size=r1.region_size,
+    packet_size=[0, 65534], packet_size=r1.numeric_size,
     r0.type=number, r0.value=1,
-    r1.offset=0, r1.region_size=[0, 65534], r1.type=packet, r1.value=[4098, 2147418112],
-    r10.offset=512, r10.region_size=512, r10.type=stack, r10.value=[512, 2147418112],
+    r1.numeric_size=[0, 65534], r1.packet_offset=0, r1.type=packet, r1.value=[4098, 2147418112],
+    r10.numeric_size=0, r10.stack_offset=512, r10.type=stack, r10.value=[512, 2147418112],
     r2.type=number, r2.value=[0, 255]]
 ...
 6:19:
@@ -509,10 +548,10 @@ Post-invariant: [
 Post-invariant: [
     instruction_count=26,
     meta_offset=[-4098, 0],
-    packet_size=[0, 65534], packet_size=r1.region_size,
+    packet_size=[0, 65534],
     r0.type=number, r0.value=1,
-    r1.region_size=[0, 65534], r1.type=number, r1.value=[9, +oo],
-    r10.offset=512, r10.region_size=512, r10.type=stack, r10.value=[512, 2147418112],
+    r1.type=number, r1.value=[9, +oo],
+    r10.numeric_size=0, r10.stack_offset=512, r10.type=stack, r10.value=[512, 2147418112],
     r2.type=number, r2.value=17]
 ...
 18:
@@ -520,26 +559,24 @@ Post-invariant: [
 Post-invariant: [
     instruction_count=[49, 61],
     meta_offset=[-4098, 0],
-    packet_size=[0, 65534], packet_size=r1.region_size,
-    r0.region_size=8, r0.type=number, r0.value=2,
-    r1.region_size=[0, 65534],
-    r10.offset=512, r10.region_size=512, r10.type=stack, r10.value=[512, 2147418112],
-    r2.region_size=512,
+    packet_size=[0, 65534],
+    r0.type=number, r0.value=2,
+    r10.numeric_size=0, r10.stack_offset=512, r10.type=stack, r10.value=[512, 2147418112],
+    r2.numeric_size=8,
     s[504...511].value=0]
-
 ```
 
 The union of the above Post-invariants results in:
 
 ```
+...
 Pre-invariant : [
     instruction_count-r0.value<=59,
     instruction_count=[15, 61],
     meta_offset=[-4098, 0],
-    packet_size=[0, 65534], packet_size=r1.region_size,
+    packet_size=[0, 65534],
     r0.type=number, r0.value-instruction_count<=-14, r0.value=[1, 2],
-    r1.region_size=[0, 65534],
-    r10.offset=512, r10.region_size=512, r10.type=stack, r10.value=[512, 2147418112]]
+    r10.numeric_size=0, r10.stack_offset=512, r10.type=stack, r10.value=[512, 2147418112]]
 ...
 19:
 ```
@@ -567,10 +604,10 @@ understands this.
 Pre-invariant : [
     instruction_count=28,
     meta_offset=[-4098, 0],
-    packet_size=[0, 65534], packet_size=r1.region_size,
+    packet_size=[0, 65534],
     r0.type=number, r0.value=1,
-    r1.region_size=[0, 65534], r1.type=number, r1.value=0,
-    r10.offset=512, r10.region_size=512, r10.type=stack, r10.value=[512, 2147418112],
+    r1.type=number, r1.value=0,
+    r10.numeric_size=0, r10.stack_offset=512, r10.type=stack, r10.value=[512, 2147418112],
     r2.type=number, r2.value=17]
 Stack: Numbers -> {}
 8:
@@ -581,10 +618,10 @@ Stack: Numbers -> {}
 Post-invariant: [
     instruction_count=31,
     meta_offset=[-4098, 0],
-    packet_size=[0, 65534], packet_size=r1.region_size,
+    packet_size=[0, 65534],
     r0.type=number, r0.value=1,
-    r1.region_size=[0, 65534], r1.type=number, r1.value=0,
-    r10.offset=512, r10.region_size=512, r10.type=stack, r10.value=[512, 2147418112],
+    r1.type=number, r1.value=0,
+    r10.numeric_size=0, r10.stack_offset=512, r10.type=stack, r10.value=[512, 2147418112],
     r2.type=number, r2.value=17,
     s[504...511].value=0]
 Stack: Numbers -> {[504...511]}
@@ -592,10 +629,10 @@ Stack: Numbers -> {[504...511]}
 Pre-invariant : [
     instruction_count=31,
     meta_offset=[-4098, 0],
-    packet_size=[0, 65534], packet_size=r1.region_size,
+    packet_size=[0, 65534],
     r0.type=number, r0.value=1,
-    r1.region_size=[0, 65534], r1.type=number, r1.value=0,
-    r10.offset=512, r10.region_size=512, r10.type=stack, r10.value=[512, 2147418112],
+    r1.type=number, r1.value=0,
+    r10.numeric_size=0, r10.stack_offset=512, r10.type=stack, r10.value=[512, 2147418112],
     r2.type=number, r2.value=17,
     s[504...511].value=0]
 Stack: Numbers -> {[504...511]}
@@ -606,22 +643,22 @@ Stack: Numbers -> {[504...511]}
 Post-invariant: [
     instruction_count=33,
     meta_offset=[-4098, 0],
-    packet_size=[0, 65534], packet_size=r1.region_size,
+    packet_size=[0, 65534],
     r0.type=number, r0.value=1,
-    r1.region_size=[0, 65534], r1.type=number, r1.value=0,
-    r10.offset=512, r10.region_size=512, r10.type=stack, r10.value=[512, 2147418112], r10.value=r2.value,
-    r2.offset=512, r2.region_size=512, r2.type=stack, r2.value=[512, 2147418112],
+    r1.type=number, r1.value=0,
+    r10.numeric_size=0, r10.stack_offset=512, r10.type=stack, r10.value=[512, 2147418112], r10.value=r2.value,
+    r2.numeric_size=0, r2.stack_offset=512, r2.type=stack, r2.value=[512, 2147418112],
     s[504...511].value=0]
 Stack: Numbers -> {[504...511]}
 
 Pre-invariant : [
     instruction_count=33,
     meta_offset=[-4098, 0],
-    packet_size=[0, 65534], packet_size=r1.region_size,
+    packet_size=[0, 65534],
     r0.type=number, r0.value=1,
-    r1.region_size=[0, 65534], r1.type=number, r1.value=0,
-    r10.offset=512, r10.region_size=512, r10.type=stack, r10.value=[512, 2147418112], r10.value=r2.value,
-    r2.offset=512, r2.region_size=512, r2.type=stack, r2.value=[512, 2147418112],
+    r1.type=number, r1.value=0,
+    r10.numeric_size=0, r10.stack_offset=512, r10.type=stack, r10.value=[512, 2147418112], r10.value=r2.value,
+    r2.numeric_size=0, r2.stack_offset=512, r2.type=stack, r2.value=[512, 2147418112],
     s[504...511].value=0]
 Stack: Numbers -> {[504...511]}
 10:
@@ -632,22 +669,22 @@ Stack: Numbers -> {[504...511]}
 Post-invariant: [
     instruction_count=36,
     meta_offset=[-4098, 0],
-    packet_size=[0, 65534], packet_size=r1.region_size,
+    packet_size=[0, 65534],
     r0.type=number, r0.value=1,
-    r1.region_size=[0, 65534], r1.type=number, r1.value=0,
-    r10.offset=512, r10.region_size=512, r10.type=stack, r10.value=[512, 2147418112],
-    r2.offset=504, r2.region_size=512, r2.type=stack, r2.value=[504, 2147418104], r2.value=r10.value+8,
+    r1.type=number, r1.value=0,
+    r10.numeric_size=0, r10.stack_offset=512, r10.type=stack, r10.value=[512, 2147418112],
+    r2.numeric_size=8, r2.stack_offset=504, r2.type=stack, r2.value=[504, 2147418104], r2.value=r10.value+8,
     s[504...511].value=0]
 Stack: Numbers -> {[504...511]}
 
 Pre-invariant : [
     instruction_count=36,
     meta_offset=[-4098, 0],
-    packet_size=[0, 65534], packet_size=r1.region_size,
+    packet_size=[0, 65534],
     r0.type=number, r0.value=1,
-    r1.region_size=[0, 65534], r1.type=number, r1.value=0,
-    r10.offset=512, r10.region_size=512, r10.type=stack, r10.value=[512, 2147418112],
-    r2.offset=504, r2.region_size=512, r2.type=stack, r2.value=[504, 2147418104], r2.value=r10.value+8,
+    r1.type=number, r1.value=0,
+    r10.numeric_size=0, r10.stack_offset=512, r10.type=stack, r10.value=[512, 2147418112],
+    r2.numeric_size=8, r2.stack_offset=504, r2.type=stack, r2.value=[504, 2147418104], r2.value=r10.value+8,
     s[504...511].value=0]
 Stack: Numbers -> {[504...511]}
 11:
@@ -657,22 +694,22 @@ Stack: Numbers -> {[504...511]}
 Post-invariant: [
     instruction_count=38,
     meta_offset=[-4098, 0],
-    packet_size=[0, 65534], packet_size=r1.region_size,
+    packet_size=[0, 65534],
     r0.type=number, r0.value=1,
-    r1.offset=1, r1.region_size=[0, 65534], r1.type=map_fd, r1.value=[1, 2147418112],
-    r10.offset=512, r10.region_size=512, r10.type=stack, r10.value=[512, 2147418112],
-    r2.offset=504, r2.region_size=512, r2.type=stack, r2.value=[504, 2147418104], r2.value=r10.value+8,
+    r1.map_fd=1, r1.type=map_fd, r1.value=[1, 2147418112],
+    r10.numeric_size=0, r10.stack_offset=512, r10.type=stack, r10.value=[512, 2147418112],
+    r2.numeric_size=8, r2.stack_offset=504, r2.type=stack, r2.value=[504, 2147418104], r2.value=r10.value+8,
     s[504...511].value=0]
 Stack: Numbers -> {[504...511]}
 
 Pre-invariant : [
     instruction_count=38,
     meta_offset=[-4098, 0],
-    packet_size=[0, 65534], packet_size=r1.region_size,
+    packet_size=[0, 65534],
     r0.type=number, r0.value=1,
-    r1.offset=1, r1.region_size=[0, 65534], r1.type=map_fd, r1.value=[1, 2147418112],
-    r10.offset=512, r10.region_size=512, r10.type=stack, r10.value=[512, 2147418112],
-    r2.offset=504, r2.region_size=512, r2.type=stack, r2.value=[504, 2147418104], r2.value=r10.value+8,
+    r1.map_fd=1, r1.type=map_fd, r1.value=[1, 2147418112],
+    r10.numeric_size=0, r10.stack_offset=512, r10.type=stack, r10.value=[512, 2147418112],
+    r2.numeric_size=8, r2.stack_offset=504, r2.type=stack, r2.value=[504, 2147418104], r2.value=r10.value+8,
     s[504...511].value=0]
 Stack: Numbers -> {[504...511]}
 13:
@@ -685,11 +722,10 @@ Stack: Numbers -> {[504...511]}
 Post-invariant: [
     instruction_count=43,
     meta_offset=[-4098, 0],
-    packet_size=[0, 65534], packet_size=r1.region_size,
-    r0.offset=0, r0.region_size=8, r0.type=shared, r0.value=[0, 2147418112],
-    r1.region_size=[0, 65534],
-    r10.offset=512, r10.region_size=512, r10.type=stack, r10.value=[512, 2147418112],
-    r2.region_size=512,
+    packet_size=[0, 65534],
+    r0.numeric_size=8, r0.shared_offset=0, r0.shared_region_size=8, r0.type=shared, r0.value=[0, 2147418112],
+    r10.numeric_size=0, r10.stack_offset=512, r10.type=stack, r10.value=[512, 2147418112],
+    r2.numeric_size=8,
     s[504...511].value=0]
 Stack: Numbers -> {[504...511]}
 ...
