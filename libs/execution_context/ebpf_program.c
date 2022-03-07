@@ -18,7 +18,7 @@ static size_t _ebpf_program_state_index = MAXUINT64;
 
 typedef struct _ebpf_program
 {
-    ebpf_object_t object;
+    ebpf_core_object_t object;
 
     ebpf_program_parameters_t parameters;
 
@@ -90,7 +90,7 @@ _ebpf_program_detach_links(_Inout_ ebpf_program_t* program)
     EBPF_LOG_ENTRY();
     while (!ebpf_list_is_empty(&program->links)) {
         ebpf_list_entry_t* entry = program->links.Flink;
-        ebpf_object_t* object = CONTAINING_RECORD(entry, ebpf_object_t, object_list_entry);
+        ebpf_core_object_t* object = CONTAINING_RECORD(entry, ebpf_core_object_t, object_list_entry);
         ebpf_link_detach_program((ebpf_link_t*)object);
     }
     EBPF_RETURN_VOID();
@@ -207,13 +207,13 @@ Exit:
 }
 
 /**
- * @brief Free invoked by ebpf_object_t reference tracking. This schedules the
+ * @brief Free invoked by ebpf_core_object_t reference tracking. This schedules the
  * final delete of the ebpf_program_t once the current epoch ends.
  *
- * @param[in] object Pointer to ebpf_object_t whose ref-count reached zero.
+ * @param[in] object Pointer to ebpf_core_object_t whose ref-count reached zero.
  */
 static void
-_ebpf_program_free(ebpf_object_t* object)
+_ebpf_program_free(ebpf_core_object_t* object)
 {
     EBPF_LOG_ENTRY();
     size_t index;
@@ -226,14 +226,14 @@ _ebpf_program_free(ebpf_object_t* object)
     ebpf_assert(ebpf_list_is_empty(&program->links));
 
     for (index = 0; index < program->count_of_maps; index++)
-        ebpf_object_release_reference((ebpf_object_t*)program->maps[index]);
+        ebpf_object_release_reference((ebpf_core_object_t*)program->maps[index]);
 
     ebpf_epoch_schedule_work_item(program->cleanup_work_item);
     EBPF_RETURN_VOID();
 }
 
 static const ebpf_program_type_t*
-_ebpf_program_get_program_type(_In_ const ebpf_object_t* object)
+_ebpf_program_get_program_type(_In_ const ebpf_core_object_t* object)
 {
     return ebpf_program_type((const ebpf_program_t*)object);
 }
@@ -500,7 +500,7 @@ ebpf_program_associate_additional_map(ebpf_program_t* program, ebpf_map_t* map)
         goto Done;
     }
 
-    ebpf_object_acquire_reference((ebpf_object_t*)map);
+    ebpf_object_acquire_reference((ebpf_core_object_t*)map);
     program_maps[map_count - 1] = map;
     program->maps = program_maps;
     program->count_of_maps = map_count;
@@ -538,7 +538,7 @@ ebpf_program_associate_maps(ebpf_program_t* program, ebpf_map_t** maps, uint32_t
     program->maps = program_maps;
     program->count_of_maps = maps_count;
     for (index = 0; index < maps_count; index++) {
-        ebpf_object_acquire_reference((ebpf_object_t*)program_maps[index]);
+        ebpf_object_acquire_reference((ebpf_core_object_t*)program_maps[index]);
     }
 
     EBPF_RETURN_RESULT(EBPF_SUCCESS);
@@ -807,7 +807,7 @@ ebpf_program_invoke(_In_ const ebpf_program_t* program, _In_ void* context, _Out
         }
 
         if (state.count != 0) {
-            ebpf_object_release_reference((ebpf_object_t*)current_program);
+            ebpf_object_release_reference((ebpf_core_object_t*)current_program);
             current_program = NULL;
         }
 
@@ -1013,12 +1013,12 @@ ebpf_program_attach_link(_Inout_ ebpf_program_t* program, _Inout_ ebpf_link_t* l
 {
     EBPF_LOG_ENTRY();
     // Acquire "attach" reference on the link object.
-    ebpf_object_acquire_reference((ebpf_object_t*)link);
+    ebpf_object_acquire_reference((ebpf_core_object_t*)link);
 
     // Insert the link in the attach list.
     ebpf_lock_state_t state;
     state = ebpf_lock_lock(&program->lock);
-    ebpf_list_insert_tail(&program->links, &((ebpf_object_t*)link)->object_list_entry);
+    ebpf_list_insert_tail(&program->links, &((ebpf_core_object_t*)link)->object_list_entry);
     program->link_count++;
     ebpf_lock_unlock(&program->lock, state);
     EBPF_RETURN_VOID();
@@ -1031,12 +1031,12 @@ ebpf_program_detach_link(_Inout_ ebpf_program_t* program, _Inout_ ebpf_link_t* l
     // Remove the link from the attach list.
     ebpf_lock_state_t state;
     state = ebpf_lock_lock(&program->lock);
-    ebpf_list_remove_entry(&((ebpf_object_t*)link)->object_list_entry);
+    ebpf_list_remove_entry(&((ebpf_core_object_t*)link)->object_list_entry);
     program->link_count--;
     ebpf_lock_unlock(&program->lock, state);
 
     // Release the "attach" reference.
-    ebpf_object_release_reference((ebpf_object_t*)link);
+    ebpf_object_release_reference((ebpf_core_object_t*)link);
     EBPF_RETURN_VOID();
 }
 
@@ -1083,11 +1083,11 @@ ebpf_program_create_and_initialize(
     if (retval != EBPF_SUCCESS)
         goto Done;
 
-    retval = ebpf_handle_create(program_handle, (ebpf_object_t*)program);
+    retval = ebpf_handle_create(program_handle, (ebpf_core_object_t*)program);
     if (retval != EBPF_SUCCESS)
         goto Done;
 
 Done:
-    ebpf_object_release_reference((ebpf_object_t*)program);
+    ebpf_object_release_reference((ebpf_core_object_t*)program);
     return retval;
 }
