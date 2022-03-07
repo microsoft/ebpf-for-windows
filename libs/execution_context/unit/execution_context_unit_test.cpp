@@ -591,7 +591,8 @@ TEST_CASE("program", "[execution_context]")
 
     // Size of the actual function is unknown, but we know the allocation is on page granularity.
     REQUIRE(
-        ebpf_program_load_code(program.get(), EBPF_CODE_NATIVE, reinterpret_cast<uint8_t*>(test_function), PAGE_SIZE) ==
+        ebpf_program_load_code(
+            program.get(), EBPF_CODE_JIT, nullptr, reinterpret_cast<uint8_t*>(test_function), PAGE_SIZE) ==
         EBPF_SUCCESS);
     uint32_t result = 0;
     bind_md_t ctx{0};

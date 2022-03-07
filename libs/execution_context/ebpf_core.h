@@ -3,9 +3,11 @@
 
 #pragma once
 
+#include "ebpf_object.h"
 #include "ebpf_platform.h"
-#include "ebpf_protocol.h"
+// #include "ebpf_program.h"
 #include "ebpf_program_types.h"
+#include "ebpf_protocol.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -107,6 +109,63 @@ extern "C"
         _In_reads_bytes_opt_(to_size) const void* to,
         int to_size,
         int seed);
+
+    /**
+     * @brief Computes difference of checksum values for two input raw buffers using 1's complement arithmetic.
+     *
+     * @param[in] from Pointer to first raw buffer.
+     * @param[in] from_size Length of the "from" buffer. Must be a multiple of 4.
+     * @param[in] to Pointer to the second raw buffer, whose checksum will be subtracted from that of the "from" buffer.
+     * @param[in] to_size Length of the "to" buffer. Must be a multiple of 4.
+     * @param[in] seed  An optional integer that can be added to the value, which can be used to carry result of a
+     * previous csum_diff operation.
+     *
+     * @returns The checksum delta on success, or <0 on failure.
+     */
+    ebpf_result_t
+    ebpf_core_get_pinned_object(_In_ const ebpf_utf8_string_t* path, _Out_ ebpf_handle_t* handle);
+
+    ebpf_result_t
+    ebpf_core_update_pinning(const ebpf_handle_t handle, _In_ const ebpf_utf8_string_t* path);
+
+    ebpf_result_t
+    ebpf_core_create_map(
+        _In_ const ebpf_utf8_string_t* map_name,
+        _In_ const ebpf_map_definition_in_memory_t* ebpf_map_definition,
+        ebpf_handle_t inner_map_handle,
+        _Out_ ebpf_handle_t* map_handle);
+
+    /*
+    ebpf_result_t
+    ebpf_core_create_program(
+        _In_ const ebpf_program_parameters_t* parameters,
+        _Out_ ebpf_handle_t* program_handle);
+    */
+
+    ebpf_result_t
+    ebpf_core_load_code(
+        ebpf_handle_t program_handle,
+        ebpf_code_type_t code_type,
+        _In_opt_ const void* code_context,
+        _In_ const uint8_t* code,
+        size_t code_size);
+
+    ebpf_result_t
+    ebpf_core_get_handle_by_id(ebpf_object_type_t type, ebpf_id_t id, _Out_ ebpf_handle_t* handle);
+
+    ebpf_result_t
+    ebpf_core_resolve_maps(
+        ebpf_handle_t program_handle,
+        uint32_t count_of_maps,
+        _In_reads_(count_of_maps) const ebpf_handle_t* map_handles,
+        _Out_writes_(count_of_maps) uintptr_t* map_addresses);
+
+    ebpf_result_t
+    ebpf_core_resolve_helper(
+        ebpf_handle_t program_handle,
+        const size_t count_of_helpers,
+        _In_reads_(count_of_helpers) const uint32_t* helper_function_ids,
+        _Out_writes_(count_of_helpers) uint64_t* helper_function_addresses);
 
 #ifdef __cplusplus
 }

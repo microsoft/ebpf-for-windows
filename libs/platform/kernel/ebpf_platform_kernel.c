@@ -666,3 +666,13 @@ ebpf_query_time_since_boot(bool include_suspended_time)
         return KeQueryInterruptTimePrecise(&qpc_time);
     }
 }
+
+ebpf_result_t
+ebpf_guid_create(_Out_ GUID* new_guid)
+{
+    NTSTATUS status = ExUuidCreate(new_guid);
+    if (!NT_SUCCESS(status)) {
+        return EBPF_OPERATION_NOT_SUPPORTED;
+    }
+    return EBPF_SUCCESS;
+}

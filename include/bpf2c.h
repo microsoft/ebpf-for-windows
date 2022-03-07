@@ -51,6 +51,7 @@ extern "C"
         uint32_t helper_id;
         const char* name;
         bool tail_call;
+        GUID program_type;
     } helper_function_entry_t;
 
     typedef struct _map_entry
@@ -64,8 +65,14 @@ extern "C"
     {
         uint64_t (*function)(void*);
         const char* section_name;
-        const char* function_name;
+        const char* program_name;
+        uint16_t* referenced_map_indices;
+        uint16_t referenced_map_count;
+        uint16_t* referenced_helper_indices;
+        uint16_t referenced_helper_count;
         size_t bpf_instruction_count;
+        GUID program_type;
+        GUID attach_type;
     } program_entry_t;
 
     typedef struct _metadata_table

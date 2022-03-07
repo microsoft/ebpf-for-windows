@@ -92,7 +92,11 @@ class bpf_code_generator
     {
         std::vector<output_instruction_t> output;
         std::set<std::string> referenced_registers;
-        std::string function_name;
+        std::string program_name;
+        // Indices of the maps used in this section.
+        std::set<size_t> referenced_map_indices;
+        // Indices of the helper functions used in this section.
+        std::set<size_t> referenced_helper_indices;
     } section_t;
 
     /**

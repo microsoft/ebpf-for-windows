@@ -187,7 +187,7 @@ bpf_code_generator::extract_program(const std::string& section_name)
             continue;
         }
         if (section_index == program_section->get_index() && value == 0) {
-            current_section->function_name = name;
+            current_section->program_name = name;
             break;
         }
     }
@@ -475,6 +475,7 @@ bpf_code_generator::encode_instructions()
                 std::string source;
                 source = format_string("_maps[%s].address", std::to_string(map_definitions[output.relocation].index));
                 output.lines.push_back(format_string("%s = POINTER(%s);", destination, source));
+                current_section->referenced_map_indices.insert(map_definitions[output.relocation].index);
             }
         } break;
         case EBPF_CLS_LDX: {
@@ -551,6 +552,7 @@ bpf_code_generator::encode_instructions()
                 } else {
                     function_name =
                         format_string("_helpers[%s]", std::to_string(helper_functions[output.relocation].index));
+                    current_section->referenced_helper_indices.insert(helper_functions[output.relocation].index);
                 }
                 output.lines.push_back(
                     get_register_name(0) + std::string(" = ") + function_name + std::string(".address"));
@@ -595,6 +597,10 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             output_stream << map.second.definition.key_size << ", ";
             output_stream << map.second.definition.value_size << ", ";
             output_stream << map.second.definition.max_entries << ", ";
+            output_stream << map.second.definition.inner_map_idx << ", ";
+            output_stream << map.second.definition.pinning << ", ";
+            output_stream << map.second.definition.id << ", ";
+            output_stream << map.second.definition.inner_id << ", ";
             output_stream << " }, \"" << map.first.c_str() << "\" }," << std::endl;
         }
         output_stream << "};" << std::endl;
@@ -646,9 +652,32 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
     }
 
     for (auto& [name, section] : sections) {
-        auto function_name = !section.function_name.empty() ? section.function_name : name;
+        auto program_name = !section.program_name.empty() ? section.program_name : name;
+
+        if (section.referenced_map_indices.size() > 0) {
+            // Emit the array for the maps used.
+            std::string map_array_name = program_name + "_maps";
+            output_stream << format_string("static uint16_t %s[] = {", sanitize_name(map_array_name)) << std::endl;
+            for (const auto& map_index : section.referenced_map_indices) {
+                output_stream << std::to_string(map_index) << "," << std::endl;
+            }
+            output_stream << "};" << std::endl;
+            output_stream << std::endl;
+        }
+
+        if (section.referenced_helper_indices.size() > 0) {
+            // Emit the array for the helpers used.
+            std::string helper_array_name = program_name + "_helpers";
+            output_stream << format_string("static uint16_t %s[] = {", sanitize_name(helper_array_name)) << std::endl;
+            for (const auto& helper_index : section.referenced_helper_indices) {
+                output_stream << std::to_string(helper_index) << "," << std::endl;
+            }
+            output_stream << "};" << std::endl;
+            output_stream << std::endl;
+        }
+
         // Emit entry point
-        output_stream << format_string("static uint64_t %s(void* context)", sanitize_name(function_name)) << std::endl;
+        output_stream << format_string("static uint64_t %s(void* context)", sanitize_name(program_name)) << std::endl;
         output_stream << "{" << std::endl;
 
         // Emit prologue
@@ -704,10 +733,18 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
 
     output_stream << "static program_entry_t _programs[] = {" << std::endl;
     for (auto& [name, program] : sections) {
-        auto function_name = !program.function_name.empty() ? program.function_name : name;
-        output_stream << "\t{ " << sanitize_name(function_name) << ", "
+        auto program_name = !program.program_name.empty() ? program.program_name : name;
+        size_t map_count = program.referenced_map_indices.size();
+        size_t helper_count = program.referenced_helper_indices.size();
+        // printf("// ANUSA: map_count = %d, helper_count = %d", map_count, helper_count);
+        // const char* map_array_name = map_count ? (program_name + "_maps").c_str() : "NULL";
+        auto map_array_name = map_count ? (program_name + "_maps") : std::string("NULL");
+        auto helper_array_name = helper_count ? (program_name + "_helpers") : std::string("NULL");
+        output_stream << "\t{ " << sanitize_name(program_name) << ", "
                       << "\"" << name.c_str() << "\", "
-                      << "\"" << program.function_name.c_str() << "\", " << program.output.size() << "}," << std::endl;
+                      << "\"" << program.program_name.c_str() << "\", " << map_array_name.c_str() << ", "
+                      << program.referenced_map_indices.size() << ", " << helper_array_name.c_str() << ", "
+                      << program.referenced_helper_indices.size() << ", " << program.output.size() << "}," << std::endl;
     }
     output_stream << "};" << std::endl;
     output_stream << std::endl;

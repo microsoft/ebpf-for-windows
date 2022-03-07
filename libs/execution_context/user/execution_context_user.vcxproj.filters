@@ -22,7 +22,7 @@
     <ClCompile Include="..\ebpf_core.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-      <ClCompile Include="..\ebpf_general_helpers.c">
+    <ClCompile Include="..\ebpf_general_helpers.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\ebpf_link.c">
@@ -32,6 +32,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\ebpf_program.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ebpf_native.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -52,6 +55,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="pch.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\EBPF_NATIVE.H">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

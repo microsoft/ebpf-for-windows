@@ -6,6 +6,7 @@
 #include "ebpf_epoch.h"
 #include "ebpf_handle.h"
 #include "ebpf_link.h"
+#include "ebpf_native.h"
 #include "ebpf_object.h"
 #include "ebpf_program.h"
 #include "ebpf_program_types.h"
@@ -24,7 +25,7 @@ typedef struct _ebpf_program
     // determinant is parameters.code_type
     union
     {
-        // EBPF_CODE_NATIVE
+        // EBPF_CODE_JIT
         struct
         {
             ebpf_memory_descriptor_t* code_memory_descriptor;
@@ -33,6 +34,13 @@ typedef struct _ebpf_program
 
         // EBPF_CODE_EBPF
         struct ubpf_vm* vm;
+
+        // EBPF_CODE_NATIVE
+        struct
+        {
+            const ebpf_native_t* native_module;
+            const uint8_t* code_pointer;
+        } native;
     } code_or_vm;
 
     ebpf_extension_client_t* general_helper_extension_client;
@@ -249,7 +257,7 @@ _ebpf_program_epoch_free(void* context)
     ebpf_extension_unload(program->program_info_client);
 
     switch (program->parameters.code_type) {
-    case EBPF_CODE_NATIVE:
+    case EBPF_CODE_JIT:
         ebpf_unmap_memory(program->code_or_vm.code.code_memory_descriptor);
         break;
 #if !defined(CONFIG_BPF_JIT_ALWAYS_ON)
@@ -257,6 +265,9 @@ _ebpf_program_epoch_free(void* context)
         ubpf_destroy(program->code_or_vm.vm);
         break;
 #endif
+    case EBPF_CODE_NATIVE:
+        ebpf_native_release_reference((ebpf_native_t*)program->code_or_vm.native.native_module);
+        break;
     case EBPF_CODE_NONE:
         break;
     }
@@ -535,40 +546,52 @@ ebpf_program_associate_maps(ebpf_program_t* program, ebpf_map_t** maps, uint32_t
 
 static ebpf_result_t
 _ebpf_program_load_machine_code(
-    _Inout_ ebpf_program_t* program, _In_ const uint8_t* machine_code, size_t machine_code_size)
+    _Inout_ ebpf_program_t* program,
+    _In_opt_ const void* code_context,
+    _In_ const uint8_t* machine_code,
+    size_t machine_code_size)
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t return_value;
     uint8_t* local_machine_code = NULL;
     ebpf_memory_descriptor_t* local_code_memory_descriptor = NULL;
 
-    if (program->parameters.code_type != EBPF_CODE_NATIVE) {
+    if (program->parameters.code_type != EBPF_CODE_JIT && program->parameters.code_type != EBPF_CODE_NATIVE) {
         EBPF_LOG_MESSAGE_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_PROGRAM,
-            "_ebpf_program_load_machine_code program->parameters.code_type must be EBPF_CODE_NATIVE",
+            "_ebpf_program_load_machine_code program->parameters.code_type must be EBPF_CODE_JIT or EBPF_CODE_NATIVE",
             program->parameters.code_type);
         return_value = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
 
-    local_code_memory_descriptor = ebpf_map_memory(machine_code_size);
-    if (!local_code_memory_descriptor) {
-        return_value = EBPF_NO_MEMORY;
-        goto Done;
+    if (program->parameters.code_type == EBPF_CODE_JIT) {
+        local_code_memory_descriptor = ebpf_map_memory(machine_code_size);
+        if (!local_code_memory_descriptor) {
+            return_value = EBPF_NO_MEMORY;
+            goto Done;
+        }
+        local_machine_code = ebpf_memory_descriptor_get_base_address(local_code_memory_descriptor);
+
+        memcpy(local_machine_code, machine_code, machine_code_size);
+
+        return_value = ebpf_protect_memory(local_code_memory_descriptor, EBPF_PAGE_PROTECT_READ_EXECUTE);
+        if (return_value != EBPF_SUCCESS) {
+            goto Done;
+        }
+
+        program->code_or_vm.code.code_memory_descriptor = local_code_memory_descriptor;
+        program->code_or_vm.code.code_pointer = local_machine_code;
+        local_code_memory_descriptor = NULL;
+    } else {
+        ebpf_assert(machine_code_size == 0);
+        program->code_or_vm.native.native_module = code_context;
+        program->code_or_vm.native.code_pointer = machine_code;
+        // Acquire reference on the native module. This reference
+        // will be released when the ebpf_program is freed.
+        ebpf_native_acquire_reference((ebpf_native_t*)code_context);
     }
-    local_machine_code = ebpf_memory_descriptor_get_base_address(local_code_memory_descriptor);
-
-    memcpy(local_machine_code, machine_code, machine_code_size);
-
-    return_value = ebpf_protect_memory(local_code_memory_descriptor, EBPF_PAGE_PROTECT_READ_EXECUTE);
-    if (return_value != EBPF_SUCCESS) {
-        goto Done;
-    }
-
-    program->code_or_vm.code.code_memory_descriptor = local_code_memory_descriptor;
-    program->code_or_vm.code.code_pointer = local_machine_code;
-    local_code_memory_descriptor = NULL;
 
     return_value = EBPF_SUCCESS;
 
@@ -686,13 +709,20 @@ Done:
 
 ebpf_result_t
 ebpf_program_load_code(
-    _Inout_ ebpf_program_t* program, ebpf_code_type_t code_type, _In_ const uint8_t* code, size_t code_size)
+    _Inout_ ebpf_program_t* program,
+    ebpf_code_type_t code_type,
+    _In_opt_ const void* code_context,
+    _In_ const uint8_t* code,
+    size_t code_size)
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
     program->parameters.code_type = code_type;
-    if (program->parameters.code_type == EBPF_CODE_NATIVE)
-        result = _ebpf_program_load_machine_code(program, code, code_size);
+    ebpf_assert(
+        (code_type == EBPF_CODE_NATIVE && code_context != NULL) ||
+        (code_type != EBPF_CODE_NATIVE && code_context == NULL));
+    if (program->parameters.code_type == EBPF_CODE_JIT || program->parameters.code_type == EBPF_CODE_NATIVE)
+        result = _ebpf_program_load_machine_code(program, code_context, code, code_size);
     else if (program->parameters.code_type == EBPF_CODE_EBPF)
 #if !defined(CONFIG_BPF_JIT_ALWAYS_ON)
         result = _ebpf_program_load_byte_code(
@@ -758,7 +788,7 @@ ebpf_program_invoke(_In_ const ebpf_program_t* program, _In_ void* context, _Out
     }
 
     for (state.count = 0; state.count < MAX_TAIL_CALL_CNT; state.count++) {
-        if (current_program->parameters.code_type == EBPF_CODE_NATIVE) {
+        if (current_program->parameters.code_type == EBPF_CODE_JIT) {
             ebpf_program_entry_point_t function_pointer;
             function_pointer = (ebpf_program_entry_point_t)(current_program->code_or_vm.code.code_pointer);
             *result = (function_pointer)(context);
@@ -1036,4 +1066,28 @@ ebpf_program_get_info(
 
     *info_size = sizeof(*info);
     EBPF_RETURN_RESULT(EBPF_SUCCESS);
+}
+
+ebpf_result_t
+ebpf_program_create_and_initialize(
+    _In_ const ebpf_program_parameters_t* parameters, _Out_ ebpf_handle_t* program_handle)
+{
+    ebpf_result_t retval;
+    ebpf_program_t* program = NULL;
+
+    retval = ebpf_program_create(&program);
+    if (retval != EBPF_SUCCESS)
+        goto Done;
+
+    retval = ebpf_program_initialize(program, parameters);
+    if (retval != EBPF_SUCCESS)
+        goto Done;
+
+    retval = ebpf_handle_create(program_handle, (ebpf_object_t*)program);
+    if (retval != EBPF_SUCCESS)
+        goto Done;
+
+Done:
+    ebpf_object_release_reference((ebpf_object_t*)program);
+    return retval;
 }

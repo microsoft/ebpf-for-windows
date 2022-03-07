@@ -34,6 +34,9 @@
     <ClCompile Include="..\ebpf_program.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\ebpf_native.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\ebpf_core.h">
@@ -52,6 +55,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="pch.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\EBPF_NATIVE.H">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

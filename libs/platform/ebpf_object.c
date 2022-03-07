@@ -37,7 +37,7 @@ typedef struct _ebpf_id_entry
     uint16_t counter;
 
     // Pointer to object.
-    ebpf_object_t* object;
+    ebpf_core_object_t* object;
 } ebpf_id_entry_t;
 
 // Currently we allow a maximum of 1024 objects (links, maps,
@@ -75,7 +75,7 @@ _get_index_from_id(ebpf_id_t id, _Out_ uint32_t* index)
 }
 
 static ebpf_result_t
-_ebpf_object_tracking_list_insert(_Inout_ ebpf_object_t* object)
+_ebpf_object_tracking_list_insert(_Inout_ ebpf_core_object_t* object)
 {
     int new_index;
     ebpf_result_t return_value;
@@ -105,7 +105,7 @@ Done:
 }
 
 _Requires_lock_held_(&_ebpf_object_tracking_list_lock) static void _ebpf_object_tracking_list_remove(
-    ebpf_object_t* object)
+    ebpf_core_object_t* object)
 {
     uint32_t index;
     ebpf_result_t return_value = _get_index_from_id(object->id, &index);
@@ -135,7 +135,7 @@ ebpf_object_tracking_terminate()
 
 ebpf_result_t
 ebpf_object_initialize(
-    ebpf_object_t* object,
+    ebpf_core_object_t* object,
     ebpf_object_type_t object_type,
     ebpf_free_object_t free_function,
     ebpf_object_get_program_type_t get_program_type_function)
@@ -153,7 +153,7 @@ ebpf_object_initialize(
 }
 
 void
-ebpf_object_acquire_reference(ebpf_object_t* object)
+ebpf_object_acquire_reference(ebpf_core_object_t* object)
 {
     ebpf_assert(object->marker == _ebpf_object_marker);
     ebpf_assert(object->reference_count != 0);
@@ -161,7 +161,7 @@ ebpf_object_acquire_reference(ebpf_object_t* object)
 }
 
 _Requires_lock_held_(&_ebpf_object_tracking_list_lock) void _ebpf_object_release_reference_under_lock(
-    ebpf_object_t* object)
+    ebpf_core_object_t* object)
 {
     uint32_t new_ref_count;
 
@@ -184,7 +184,7 @@ _Requires_lock_held_(&_ebpf_object_tracking_list_lock) void _ebpf_object_release
 }
 
 void
-ebpf_object_release_reference(ebpf_object_t* object)
+ebpf_object_release_reference(ebpf_core_object_t* object)
 {
     uint32_t new_ref_count;
 
@@ -208,7 +208,7 @@ ebpf_object_release_reference(ebpf_object_t* object)
 }
 
 ebpf_object_type_t
-ebpf_object_get_type(ebpf_object_t* object)
+ebpf_object_get_type(ebpf_core_object_t* object)
 {
     return object->type;
 }
@@ -230,7 +230,18 @@ ebpf_duplicate_utf8_string(_Out_ ebpf_utf8_string_t* destination, _In_ const ebp
     }
 }
 
-_Requires_lock_held_(&_ebpf_object_tracking_list_lock) static ebpf_object_t* _get_next_object_by_id(
+/*
+wchar_t*
+ebpf_utf8_string_to_wide_char(_In_ const uint8_t* input, uint16_t size)
+{
+    uint16_t wide_char_string_size = 0;
+    int status = MultiByteToWideChar(CP_UTF8, )
+    // Create null terminated string
+
+}
+*/
+
+_Requires_lock_held_(&_ebpf_object_tracking_list_lock) static ebpf_core_object_t* _get_next_object_by_id(
     ebpf_id_t start_id, ebpf_object_type_t object_type)
 {
     // The start_id need not exist, so we can't call _get_index_from_id().
@@ -239,7 +250,7 @@ _Requires_lock_held_(&_ebpf_object_tracking_list_lock) static ebpf_object_t* _ge
         index++;
     }
     while (index < EBPF_COUNT_OF(_ebpf_id_table)) {
-        ebpf_object_t* object = _ebpf_id_table[index].object;
+        ebpf_core_object_t* object = _ebpf_id_table[index].object;
         if ((object != NULL) && (object->type == object_type)) {
             return object;
         }
@@ -255,7 +266,7 @@ ebpf_object_get_next_id(ebpf_id_t start_id, ebpf_object_type_t object_type, _Out
 
     ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_object_tracking_list_lock);
 
-    ebpf_object_t* object = _get_next_object_by_id(start_id, object_type);
+    ebpf_core_object_t* object = _get_next_object_by_id(start_id, object_type);
     if (object != NULL) {
         *next_id = object->id;
         return_value = EBPF_SUCCESS;
@@ -266,7 +277,8 @@ ebpf_object_get_next_id(ebpf_id_t start_id, ebpf_object_type_t object_type, _Out
 }
 
 void
-ebpf_object_reference_next_object(ebpf_object_t* previous_object, ebpf_object_type_t type, ebpf_object_t** next_object)
+ebpf_object_reference_next_object(
+    ebpf_core_object_t* previous_object, ebpf_object_type_t type, ebpf_core_object_t** next_object)
 {
     ebpf_lock_state_t state;
     *next_object = NULL;
@@ -274,7 +286,7 @@ ebpf_object_reference_next_object(ebpf_object_t* previous_object, ebpf_object_ty
     state = ebpf_lock_lock(&_ebpf_object_tracking_list_lock);
 
     ebpf_id_t start_id = (previous_object) ? previous_object->id : 0;
-    ebpf_object_t* object = _get_next_object_by_id(start_id, type);
+    ebpf_core_object_t* object = _get_next_object_by_id(start_id, type);
     if (object != NULL) {
         *next_object = object;
         ebpf_object_acquire_reference(object);
@@ -284,14 +296,14 @@ ebpf_object_reference_next_object(ebpf_object_t* previous_object, ebpf_object_ty
 }
 
 ebpf_result_t
-ebpf_object_reference_by_id(ebpf_id_t id, ebpf_object_type_t object_type, _Outptr_ ebpf_object_t** object)
+ebpf_object_reference_by_id(ebpf_id_t id, ebpf_object_type_t object_type, _Outptr_ ebpf_core_object_t** object)
 {
     ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_object_tracking_list_lock);
 
     uint32_t index;
     ebpf_result_t return_value = _get_index_from_id(id, &index);
     if (return_value == EBPF_SUCCESS) {
-        ebpf_object_t* found = _ebpf_id_table[index].object;
+        ebpf_core_object_t* found = _ebpf_id_table[index].object;
         if ((found != NULL) && (found->type == object_type)) {
             ebpf_object_acquire_reference(found);
             *object = found;
@@ -311,7 +323,7 @@ ebpf_object_dereference_by_id(ebpf_id_t id, ebpf_object_type_t object_type)
     uint32_t index;
     ebpf_result_t return_value = _get_index_from_id(id, &index);
     if (return_value == EBPF_SUCCESS) {
-        ebpf_object_t* found = _ebpf_id_table[index].object;
+        ebpf_core_object_t* found = _ebpf_id_table[index].object;
         if ((found != NULL) && (found->type == object_type)) {
             _ebpf_object_release_reference_under_lock(found);
         } else

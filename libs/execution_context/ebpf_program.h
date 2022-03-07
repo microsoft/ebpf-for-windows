@@ -7,6 +7,7 @@
 #include "ebpf_maps.h"
 #include "ebpf_platform.h"
 #include "ebpf_program_types.h"
+#include "ebpf_protocol.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -142,6 +143,7 @@ extern "C"
      *
      * @param[in, out] program Program instance to load the eBPF code into.
      * @param[in] code_type Specifies whether eBPF code is JIT compiled or byte code.
+     * @param[in] code_context Optionally, pointer to code context.
      * @param[in] code Pointer to memory containing the eBPF code.
      * @param[in] machine_size Size of the memory block containing the eBPF
      *  code.
@@ -151,7 +153,11 @@ extern "C"
      */
     ebpf_result_t
     ebpf_program_load_code(
-        _Inout_ ebpf_program_t* program, ebpf_code_type_t code_type, _In_ const uint8_t* code, size_t code_size);
+        _Inout_ ebpf_program_t* program,
+        ebpf_code_type_t code_type,
+        _In_opt_ const void* code_context,
+        _In_ const uint8_t* code,
+        size_t code_size);
 
     /**
      * @brief Invoke an ebpf_program_t instance.
@@ -243,6 +249,10 @@ extern "C"
         _In_ const ebpf_program_t* program,
         _Out_writes_to_(*info_size, *info_size) uint8_t* buffer,
         _Inout_ uint16_t* info_size);
+
+    ebpf_result_t
+    ebpf_program_create_and_initialize(
+        _In_ const ebpf_program_parameters_t* parameters, _Out_ ebpf_handle_t* program_handle);
 
 #ifdef __cplusplus
 }

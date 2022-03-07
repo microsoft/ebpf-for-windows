@@ -949,7 +949,7 @@ ebpf_program_query_info(
     local_file_name[file_name_length] = '\0';
     local_section_name[section_name_length] = '\0';
 
-    *execution_type = reply->code_type == EBPF_CODE_NATIVE ? EBPF_EXECUTION_JIT : EBPF_EXECUTION_INTERPRET;
+    *execution_type = reply->code_type == EBPF_CODE_JIT ? EBPF_EXECUTION_JIT : EBPF_EXECUTION_INTERPRET;
     *file_name = local_file_name;
     *section_name = local_section_name;
 
