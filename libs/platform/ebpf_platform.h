@@ -967,13 +967,10 @@ extern "C"
     /**
      * @brief Output a debug message.
      *
-     * @param[in] fmt Format string.
-     * @param[in] fmt_size Length in bytes of format string.
-     *
-     * @return Bytes written, or -1 on error.
+     * @param[in] output String to output.
      */
-    long
-    ebpf_platform_printk(_In_reads_(fmt_size) const char* fmt, size_t fmt_size);
+    void
+    ebpf_platform_printk(_In_z_ const char* output);
 
     TRACELOGGING_DECLARE_PROVIDER(ebpf_tracelog_provider);
 

@@ -1247,6 +1247,7 @@ TEST_CASE("printk", "[end_to_end]")
     errno_t error = capture.begin_capture();
     REQUIRE(error == NO_ERROR);
 
+    // The current bind hook only works with IPv4, so compose a sample IPv4 context.
     SOCKADDR_IN addr = {AF_INET};
     addr.sin_port = htons(80);
     bind_md_t ctx = {0};
