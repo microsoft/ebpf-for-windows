@@ -1345,8 +1345,8 @@ _ebpf_core_trace_printk(_In_reads_(fmt_size) const char* fmt, size_t fmt_size)
     }
     memcpy(output, fmt, fmt_size);
 
-    // Make sure the output is null-terminated.
-    // Remove the newline if not already present.
+    // Make sure the output is null-terminated, and
+    // remove the newline if present.
     // A well-formed input should be null terminated,
     // so look at the next-to-last byte.
     char* end = output + fmt_size - 2;
