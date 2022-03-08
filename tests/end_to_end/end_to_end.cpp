@@ -1243,24 +1243,24 @@ TEST_CASE("printk", "[end_to_end]")
         sizeof(ifindex),
         hook);
 
-    capture_helper_t capture;
-    errno_t error = capture.begin_capture();
-    REQUIRE(error == NO_ERROR);
-
     // The current bind hook only works with IPv4, so compose a sample IPv4 context.
     SOCKADDR_IN addr = {AF_INET};
     addr.sin_port = htons(80);
     bind_md_t ctx = {0};
     ctx.socket_address_length = sizeof(addr);
     memcpy(&ctx.socket_address, &addr, ctx.socket_address_length);
-    int hook_result;
-    hook.fire(&ctx, &hook_result);
 
-    std::string output = capture.get_stdout_contents();
+    capture_helper_t capture;
+    std::string output;
+    int hook_result;
+    errno_t error = capture.begin_capture();
+    if (error == NO_ERROR) {
+        hook.fire(&ctx, &hook_result);
+        output = capture.get_stdout_contents();
+    }
     REQUIRE(
         output == "Hello, world\n"
                   "Hello, world\n");
-
     REQUIRE(hook_result == output.length());
 }
 
