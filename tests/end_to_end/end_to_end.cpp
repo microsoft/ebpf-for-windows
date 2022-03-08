@@ -1231,12 +1231,12 @@ _xdp_encap_reflect_packet_test(ebpf_execution_type_t execution_type, ADDRESS_FAM
 TEST_CASE("printk", "[end_to_end]")
 {
     _test_helper_end_to_end test_helper;
-    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
-    program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
+    program_info_provider_t bind_program_info(EBPF_PROGRAM_TYPE_BIND);
     uint32_t ifindex = 0;
     program_load_attach_helper_t program_helper(
         SAMPLE_PATH "printk.o",
-        EBPF_PROGRAM_TYPE_XDP,
+        EBPF_PROGRAM_TYPE_BIND,
         "func",
         EBPF_EXECUTION_INTERPRET,
         &ifindex,
@@ -1247,10 +1247,13 @@ TEST_CASE("printk", "[end_to_end]")
     errno_t error = capture.begin_capture();
     REQUIRE(error == NO_ERROR);
 
-    udp_packet_t packet(AF_INET6);
-    xdp_md_helper_t ctx(packet.packet());
+    SOCKADDR_IN addr = {AF_INET};
+    addr.sin_port = htons(80);
+    bind_md_t ctx = {0};
+    ctx.socket_address_length = sizeof(addr);
+    memcpy(&ctx.socket_address, &addr, ctx.socket_address_length);
     int hook_result;
-    REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
+    hook.fire(&ctx, &hook_result);
 
     std::string output = capture.get_stdout_contents();
     REQUIRE(

@@ -3,7 +3,7 @@
 
 #include "bpf_helpers.h"
 
-SEC("xdp")
+SEC("bind")
 int
 func()
 {
