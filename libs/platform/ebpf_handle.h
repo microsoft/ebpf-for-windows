@@ -36,7 +36,7 @@ extern "C"
      *  operation.
      */
     ebpf_result_t
-    ebpf_handle_create(ebpf_handle_t* handle, struct _ebpf_object* object);
+    ebpf_handle_create(ebpf_handle_t* handle, struct _ebpf_core_object* object);
 
     /**
      * @brief Remove an existing handle from the handle table and release its
@@ -60,7 +60,8 @@ extern "C"
      * @retval EBPF_INVALID_OBJECT The provided handle is not valid.
      */
     ebpf_result_t
-    ebpf_reference_object_by_handle(ebpf_handle_t handle, ebpf_object_type_t object_type, struct _ebpf_object** object);
+    ebpf_reference_object_by_handle(
+        ebpf_handle_t handle, ebpf_object_type_t object_type, struct _ebpf_core_object** object);
 
 #ifdef __cplusplus
 }

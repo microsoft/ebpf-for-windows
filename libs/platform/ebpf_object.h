@@ -20,13 +20,11 @@ extern "C"
         EBPF_OBJECT_PROGRAM,
     } ebpf_object_type_t;
 
-    typedef struct _ebpf_object ebpf_object_t;
-    typedef void (*ebpf_free_object_t)(ebpf_object_t* object);
-    typedef const ebpf_program_type_t* (*ebpf_object_get_program_type_t)(_In_ const ebpf_object_t* object);
+    typedef struct _ebpf_core_object ebpf_core_object_t;
+    typedef void (*ebpf_free_object_t)(ebpf_core_object_t* object);
+    typedef const ebpf_program_type_t* (*ebpf_object_get_program_type_t)(_In_ const ebpf_core_object_t* object);
 
-    // This type probably ought to be renamed to avoid confusion with
-    // ebpf_object_t in libs\api\api_internal.h
-    typedef struct _ebpf_object
+    typedef struct _ebpf_core_object
     {
         uint32_t marker;
         volatile int32_t reference_count;
@@ -39,7 +37,7 @@ extern "C"
         ebpf_list_entry_t object_list_entry;
         // # of pinned paths, for diagnostic purposes.
         uint32_t pinned_path_count;
-    } ebpf_object_t;
+    } ebpf_core_object_t;
 
     /**
      * @brief Initiate object tracking.
@@ -56,9 +54,9 @@ extern "C"
     ebpf_object_tracking_terminate();
 
     /**
-     * @brief Initialize an ebpf_object_t structure.
+     * @brief Initialize an ebpf_core_object_t structure.
      *
-     * @param[in,out] object ebpf_object_t structure to initialize.
+     * @param[in,out] object ebpf_core_object_t structure to initialize.
      * @param[in] object_type The type of the object.
      * @param[in] free_function The function used to free the object.
      * @param[in] get_program_type_function The function used to get a program type, or NULL.  Each program
@@ -69,7 +67,7 @@ extern "C"
      */
     ebpf_result_t
     ebpf_object_initialize(
-        ebpf_object_t* object,
+        ebpf_core_object_t* object,
         ebpf_object_type_t object_type,
         ebpf_free_object_t free_function,
         ebpf_object_get_program_type_t get_program_type_function);
@@ -80,7 +78,7 @@ extern "C"
      * @param[in] object Object on which to acquire a reference.
      */
     void
-    ebpf_object_acquire_reference(ebpf_object_t* object);
+    ebpf_object_acquire_reference(ebpf_core_object_t* object);
 
     /**
      * @brief Release a reference on this object. If the reference count reaches
@@ -89,7 +87,7 @@ extern "C"
      * @param[in] object Object on which to release a reference.
      */
     void
-    ebpf_object_release_reference(ebpf_object_t* object);
+    ebpf_object_release_reference(ebpf_core_object_t* object);
 
     /**
      * @brief Query the stored type of the object.
@@ -98,7 +96,7 @@ extern "C"
      * @return Type of the object.
      */
     ebpf_object_type_t
-    ebpf_object_get_type(ebpf_object_t* object);
+    ebpf_object_get_type(ebpf_core_object_t* object);
 
     /**
      * @brief Find the next object that is of this type and acquire reference
@@ -112,7 +110,7 @@ extern "C"
      */
     void
     ebpf_object_reference_next_object(
-        ebpf_object_t* previous_object, ebpf_object_type_t type, ebpf_object_t** next_object);
+        ebpf_core_object_t* previous_object, ebpf_object_type_t type, ebpf_core_object_t** next_object);
 
     /**
      * @brief Find an ID in the ID table, verify the type matches,
@@ -125,7 +123,7 @@ extern "C"
      * @retval EBPF_KEY_NOT_FOUND The provided ID is not valid.
      */
     ebpf_result_t
-    ebpf_object_reference_by_id(ebpf_id_t id, ebpf_object_type_t object_type, _Outptr_ ebpf_object_t** object);
+    ebpf_object_reference_by_id(ebpf_id_t id, ebpf_object_type_t object_type, _Outptr_ ebpf_core_object_t** object);
 
     /**
      * @brief Find an ID in the ID table, verify the type matches,
