@@ -1362,9 +1362,10 @@ _ebpf_core_trace_printk(_In_reads_(fmt_size) const char* fmt, size_t fmt_size)
     }
 
     ebpf_platform_printk(output);
+    long bytes_written = (long)(end - output + 1);
 
     ebpf_free(output);
-    return (long)(end - output + 1);
+    return bytes_written;
 }
 
 int
