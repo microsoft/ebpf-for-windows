@@ -1247,6 +1247,8 @@ TEST_CASE("printk", "[end_to_end]")
     SOCKADDR_IN addr = {AF_INET};
     addr.sin_port = htons(80);
     bind_md_t ctx = {0};
+    ctx.process_id = 1;
+    ctx.protocol = 2;
     ctx.socket_address_length = sizeof(addr);
     memcpy(&ctx.socket_address, &addr, ctx.socket_address_length);
 
@@ -1260,7 +1262,10 @@ TEST_CASE("printk", "[end_to_end]")
     }
     REQUIRE(
         output == "Hello, world\n"
-                  "Hello, world\n");
+                  "Hello, world\n"
+                  "PID: 1\n"
+                  "PID: 1 PROTO: 2\n"
+                  "PID: 1 PROTO: 2 ADDRLEN: 16\n");
     REQUIRE(hook_result == output.length());
 }
 

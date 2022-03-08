@@ -53,10 +53,29 @@ ebpf_helper_function_prototype_t ebpf_core_helper_function_prototype_array[] = {
       EBPF_ARGUMENT_TYPE_PTR_TO_MEM,
       EBPF_ARGUMENT_TYPE_CONST_SIZE,
       EBPF_ARGUMENT_TYPE_ANYTHING}},
-    {BPF_FUNC_trace_printk,
-     "bpf_trace_printk",
+    {BPF_FUNC_trace_printk2,
+     "bpf_trace_printk2",
      EBPF_RETURN_TYPE_INTEGER,
-     {EBPF_ARGUMENT_TYPE_PTR_TO_MEM, EBPF_ARGUMENT_TYPE_CONST_SIZE}}};
+     {EBPF_ARGUMENT_TYPE_PTR_TO_MEM, EBPF_ARGUMENT_TYPE_CONST_SIZE}},
+    {BPF_FUNC_trace_printk3,
+     "bpf_trace_printk3",
+     EBPF_RETURN_TYPE_INTEGER,
+     {EBPF_ARGUMENT_TYPE_PTR_TO_MEM, EBPF_ARGUMENT_TYPE_CONST_SIZE, EBPF_ARGUMENT_TYPE_ANYTHING}},
+    {BPF_FUNC_trace_printk4,
+     "bpf_trace_printk4",
+     EBPF_RETURN_TYPE_INTEGER,
+     {EBPF_ARGUMENT_TYPE_PTR_TO_MEM,
+      EBPF_ARGUMENT_TYPE_CONST_SIZE,
+      EBPF_ARGUMENT_TYPE_ANYTHING,
+      EBPF_ARGUMENT_TYPE_ANYTHING}},
+    {BPF_FUNC_trace_printk5,
+     "bpf_trace_printk5",
+     EBPF_RETURN_TYPE_INTEGER,
+     {EBPF_ARGUMENT_TYPE_PTR_TO_MEM,
+      EBPF_ARGUMENT_TYPE_CONST_SIZE,
+      EBPF_ARGUMENT_TYPE_ANYTHING,
+      EBPF_ARGUMENT_TYPE_ANYTHING,
+      EBPF_ARGUMENT_TYPE_ANYTHING}}};
 
 #ifdef __cplusplus
 extern "C"

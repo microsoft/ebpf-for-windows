@@ -39,7 +39,14 @@ _ebpf_core_get_time_since_boot_ns();
 static uint64_t
 _ebpf_core_get_time_ns();
 static long
-_ebpf_core_trace_printk(_In_reads_(fmt_size) const char* fmt, size_t fmt_size);
+_ebpf_core_trace_printk2(_In_reads_(fmt_size) const char* fmt, size_t fmt_size);
+static long
+_ebpf_core_trace_printk3(_In_reads_(fmt_size) const char* fmt, size_t fmt_size, uint64_t arg3);
+static long
+_ebpf_core_trace_printk4(_In_reads_(fmt_size) const char* fmt, size_t fmt_size, uint64_t arg3, uint64_t arg4);
+static long
+_ebpf_core_trace_printk5(
+    _In_reads_(fmt_size) const char* fmt, size_t fmt_size, uint64_t arg3, uint64_t arg4, uint64_t arg5);
 static int
 _ebpf_core_ring_buffer_output(
     _In_ ebpf_map_t* map, _In_reads_bytes_(length) uint8_t* data, size_t length, uint64_t flags);
@@ -65,7 +72,10 @@ static const void* _ebpf_general_helpers[] = {
     (void*)&ebpf_core_csum_diff,
     // Ring buffer output.
     (void*)&ebpf_ring_buffer_map_output,
-    (void*)&_ebpf_core_trace_printk};
+    (void*)&_ebpf_core_trace_printk2,
+    (void*)&_ebpf_core_trace_printk3,
+    (void*)&_ebpf_core_trace_printk4,
+    (void*)&_ebpf_core_trace_printk5};
 
 static ebpf_extension_provider_t* _ebpf_global_helper_function_provider_context = NULL;
 static ebpf_helper_function_addresses_t _ebpf_global_helper_function_dispatch_table = {
@@ -1336,7 +1346,7 @@ _ebpf_core_get_time_ns()
 #define MAX_PRINTK_STRING_SIZE 512
 
 long
-_ebpf_core_trace_printk(_In_reads_(fmt_size) const char* fmt, size_t fmt_size)
+_ebpf_core_trace_printk2(_In_reads_(fmt_size) const char* fmt, size_t fmt_size)
 {
     if (fmt_size > MAX_PRINTK_STRING_SIZE - 1) {
         // Disallow large fmt_size values.
@@ -1371,6 +1381,34 @@ _ebpf_core_trace_printk(_In_reads_(fmt_size) const char* fmt, size_t fmt_size)
 
     ebpf_free(output);
     return bytes_written;
+}
+
+long
+_ebpf_core_trace_printk3(_In_reads_(fmt_size) const char* fmt, size_t fmt_size, uint64_t arg3)
+{
+    UNREFERENCED_PARAMETER(arg3);
+    // TODO: support arguments.
+    return _ebpf_core_trace_printk2(fmt, fmt_size);
+}
+
+long
+_ebpf_core_trace_printk4(_In_reads_(fmt_size) const char* fmt, size_t fmt_size, uint64_t arg3, uint64_t arg4)
+{
+    UNREFERENCED_PARAMETER(arg3);
+    UNREFERENCED_PARAMETER(arg4);
+    // TODO: support arguments.
+    return _ebpf_core_trace_printk2(fmt, fmt_size);
+}
+
+long
+_ebpf_core_trace_printk5(
+    _In_reads_(fmt_size) const char* fmt, size_t fmt_size, uint64_t arg3, uint64_t arg4, uint64_t arg5)
+{
+    UNREFERENCED_PARAMETER(arg3);
+    UNREFERENCED_PARAMETER(arg4);
+    UNREFERENCED_PARAMETER(arg5);
+    // TODO: support arguments.
+    return _ebpf_core_trace_printk2(fmt, fmt_size);
 }
 
 int

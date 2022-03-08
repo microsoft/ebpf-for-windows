@@ -188,6 +188,28 @@ TEST_CASE("show verification droppacket_unsafe.o", "[netsh][verification]")
                   "\n");
 }
 
+TEST_CASE("show verification printk_unsafe.o", "[netsh][verification]")
+{
+    _test_helper_libbpf test_helper;
+
+    int result;
+    std::string output =
+        _run_netsh_command(handle_ebpf_show_verification, L"printk_unsafe.o", L"bind", nullptr, &result);
+    REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
+    output = strip_paths(output);
+    REQUIRE(
+        output == "Verification failed\n"
+                  "\n"
+                  "Verification report:\n"
+                  "\n"
+                  "; ./tests/sample/printk_unsafe.c:13\n"
+                  ";     bpf_printk(\"ctx: %u\", (uint64_t)ctx);\n"
+                  "7: r3.type == number\n"
+                  "\n"
+                  "1 errors\n"
+                  "\n");
+}
+
 TEST_CASE("pin first program", "[netsh][programs]")
 {
     _test_helper_libbpf test_helper;
