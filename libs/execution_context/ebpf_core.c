@@ -39,7 +39,7 @@ _ebpf_core_get_time_since_boot_ns();
 static uint64_t
 _ebpf_core_get_time_ns();
 static long
-_ebpf_core_trace_printk(_In_z_ const char* fmt, size_t fmt_size);
+_ebpf_core_trace_printk(_In_reads_(fmt_size) const char* fmt, size_t fmt_size);
 static int
 _ebpf_core_ring_buffer_output(
     _In_ ebpf_map_t* map, _In_reads_bytes_(length) uint8_t* data, size_t length, uint64_t flags);
@@ -1331,7 +1331,7 @@ _ebpf_core_get_time_ns()
 #define MAX_PRINTK_STRING_SIZE 512
 
 long
-_ebpf_core_trace_printk(_In_ const char* fmt, size_t fmt_size)
+_ebpf_core_trace_printk(_In_reads_(fmt_size) const char* fmt, size_t fmt_size)
 {
     if (fmt_size > MAX_PRINTK_STRING_SIZE - 1) {
         // Disallow large fmt_size values.
@@ -1340,6 +1340,9 @@ _ebpf_core_trace_printk(_In_ const char* fmt, size_t fmt_size)
 
     // Make a copy of the original string.
     char* output = (char*)ebpf_allocate(fmt_size + 1);
+    if (output == NULL) {
+        return -1;
+    }
     memcpy(output, fmt, fmt_size);
 
     // Make sure the output is null-terminated.
