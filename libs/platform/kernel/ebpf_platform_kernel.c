@@ -679,5 +679,5 @@ ebpf_guid_create(_Out_ GUID* new_guid)
 void
 ebpf_platform_printk(_In_z_ const char* output)
 {
-    EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_INFO, EBPF_TRACELOG_KEYWORD_BASE, output);
+    EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_INFO, EBPF_TRACELOG_KEYWORD_PRINTK, output);
 }
