@@ -1267,7 +1267,10 @@ TEST_CASE("printk", "[end_to_end]")
                   "PID: 1 PROTO: 2\n"
                   "PID: 1 PROTO: 2 ADDRLEN: 16\n"
                   "100% done\n");
-    REQUIRE(hook_result == output.length());
+
+    // Six of the printf calls in the program should fail and return -1
+    // so subtract 6 from the length to get the expected return value.
+    REQUIRE(hook_result == output.length() - 6);
 }
 
 TEST_CASE("xdp-reflect-v4-jit", "[xdp_tests]") { _xdp_reflect_packet_test(EBPF_EXECUTION_JIT, AF_INET); }
