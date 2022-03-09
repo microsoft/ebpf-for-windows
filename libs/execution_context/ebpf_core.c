@@ -1345,15 +1345,15 @@ _ebpf_core_get_time_ns()
 // Pick a limit on string size based on the size of the eBPF stack.
 #define MAX_PRINTK_STRING_SIZE 512
 
-long
-_ebpf_core_trace_printk2(_In_reads_(fmt_size) const char* fmt, size_t fmt_size)
+static long
+_ebpf_core_trace_printk(_In_reads_(fmt_size) const char* fmt, size_t fmt_size, ...)
 {
     if (fmt_size > MAX_PRINTK_STRING_SIZE - 1) {
         // Disallow large fmt_size values.
         return -1;
     }
 
-    // Make a copy of the original string.
+    // Make a copy of the original format string.
     char* output = (char*)ebpf_allocate(fmt_size + 1);
     if (output == NULL) {
         return -1;
@@ -1370,45 +1370,38 @@ _ebpf_core_trace_printk2(_In_reads_(fmt_size) const char* fmt, size_t fmt_size)
     }
     *end = '\0';
 
-    char* percent = strchr(output, '%');
-    if (percent != NULL) {
-        // We don't yet support %'s in format strings.
-        return -1;
-    }
-
-    ebpf_platform_printk(output);
-    long bytes_written = (long)(end - output + 1);
+    va_list arg_list;
+    __va_start(&arg_list, fmt_size);
+    long bytes_written = ebpf_platform_printk(output, arg_list);
+    __va_end(&arg_list);
 
     ebpf_free(output);
     return bytes_written;
 }
 
 long
+_ebpf_core_trace_printk2(_In_reads_(fmt_size) const char* fmt, size_t fmt_size)
+{
+    return _ebpf_core_trace_printk(fmt, fmt_size);
+}
+
+long
 _ebpf_core_trace_printk3(_In_reads_(fmt_size) const char* fmt, size_t fmt_size, uint64_t arg3)
 {
-    UNREFERENCED_PARAMETER(arg3);
-    // TODO: support arguments.
-    return _ebpf_core_trace_printk2(fmt, fmt_size);
+    return _ebpf_core_trace_printk(fmt, fmt_size, arg3);
 }
 
 long
 _ebpf_core_trace_printk4(_In_reads_(fmt_size) const char* fmt, size_t fmt_size, uint64_t arg3, uint64_t arg4)
 {
-    UNREFERENCED_PARAMETER(arg3);
-    UNREFERENCED_PARAMETER(arg4);
-    // TODO: support arguments.
-    return _ebpf_core_trace_printk2(fmt, fmt_size);
+    return _ebpf_core_trace_printk(fmt, fmt_size, arg3, arg4);
 }
 
 long
 _ebpf_core_trace_printk5(
     _In_reads_(fmt_size) const char* fmt, size_t fmt_size, uint64_t arg3, uint64_t arg4, uint64_t arg5)
 {
-    UNREFERENCED_PARAMETER(arg3);
-    UNREFERENCED_PARAMETER(arg4);
-    UNREFERENCED_PARAMETER(arg5);
-    // TODO: support arguments.
-    return _ebpf_core_trace_printk2(fmt, fmt_size);
+    return _ebpf_core_trace_printk(fmt, fmt_size, arg3, arg4, arg5);
 }
 
 int
