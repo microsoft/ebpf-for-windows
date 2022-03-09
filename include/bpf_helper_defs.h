@@ -203,6 +203,7 @@ EBPF_HELPER(long, bpf_trace_printk5, (const char* fmt, uint32_t fmt_size, uint64
 #define bpf_trace_printk5 ((bpf_trace_printk5_t)BPF_FUNC_trace_printk5)
 #endif
 
+#ifndef __doxygen
 // The following macros allow bpf_printk to accept a variable number of arguments
 // while mapping to separate helper functions that each have a strict prototype
 // that can be understood by the verifier.
@@ -218,3 +219,15 @@ EBPF_HELPER(long, bpf_trace_printk5, (const char* fmt, uint32_t fmt_size, uint64
         char ____fmt[] = fmt;                                                           \
         EBPF_VA_ARGS_HELPER(bpf_trace_printk, ____fmt, sizeof(____fmt), ##__VA_ARGS__); \
     })
+#else
+/**
+ * @brief Print debug output.
+ *
+ * @param[in] fmt Printf-style format string.
+ * @param[in] ... Numeric arguments to be used by the format string.
+ *
+ * @returns The number of bytes written, or a negative error in case of failure.
+ */
+long
+bpf_printk(const char* fmt, ...);
+#endif
