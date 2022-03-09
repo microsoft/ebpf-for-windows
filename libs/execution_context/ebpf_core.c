@@ -38,6 +38,8 @@ static uint64_t
 _ebpf_core_get_time_since_boot_ns();
 static uint64_t
 _ebpf_core_get_time_ns();
+static long
+_ebpf_core_trace_printk(_In_reads_(fmt_size) const char* fmt, size_t fmt_size);
 static int
 _ebpf_core_ring_buffer_output(
     _In_ ebpf_map_t* map, _In_reads_bytes_(length) uint8_t* data, size_t length, uint64_t flags);
@@ -62,7 +64,8 @@ static const void* _ebpf_general_helpers[] = {
     (void*)&_ebpf_core_get_time_ns,
     (void*)&ebpf_core_csum_diff,
     // Ring buffer output.
-    (void*)&ebpf_ring_buffer_map_output};
+    (void*)&ebpf_ring_buffer_map_output,
+    (void*)&_ebpf_core_trace_printk};
 
 static ebpf_extension_provider_t* _ebpf_global_helper_function_provider_context = NULL;
 static ebpf_helper_function_addresses_t _ebpf_global_helper_function_dispatch_table = {
@@ -1327,6 +1330,47 @@ _ebpf_core_get_time_ns()
     // ebpf_query_time_since_boot returns time elapsed since
     // boot in units of 100 ns.
     return ebpf_query_time_since_boot(false) * 100;
+}
+
+// Pick a limit on string size based on the size of the eBPF stack.
+#define MAX_PRINTK_STRING_SIZE 512
+
+long
+_ebpf_core_trace_printk(_In_reads_(fmt_size) const char* fmt, size_t fmt_size)
+{
+    if (fmt_size > MAX_PRINTK_STRING_SIZE - 1) {
+        // Disallow large fmt_size values.
+        return -1;
+    }
+
+    // Make a copy of the original string.
+    char* output = (char*)ebpf_allocate(fmt_size + 1);
+    if (output == NULL) {
+        return -1;
+    }
+    memcpy(output, fmt, fmt_size);
+
+    // Make sure the output is null-terminated, and
+    // remove the newline if present.
+    // A well-formed input should be null terminated,
+    // so look at the next-to-last byte.
+    char* end = output + fmt_size - 2;
+    if (*end != '\n') {
+        end++;
+    }
+    *end = '\0';
+
+    char* percent = strchr(output, '%');
+    if (percent != NULL) {
+        // We don't yet support %'s in format strings.
+        return -1;
+    }
+
+    ebpf_platform_printk(output);
+    long bytes_written = (long)(end - output + 1);
+
+    ebpf_free(output);
+    return bytes_written;
 }
 
 int

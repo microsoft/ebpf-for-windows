@@ -84,5 +84,8 @@
     <CustomBuild Include="decap_permit_packet.c">
       <Filter>Source Files</Filter>
     </CustomBuild>
+    <CustomBuild Include="printk.c">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
   </ItemGroup>
 </Project>
