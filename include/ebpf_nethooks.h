@@ -92,7 +92,7 @@ typedef enum _bind_action
 } bind_action_t;
 
 /**
- * @brief Handle a socket bind() request.
+ * @brief Handle an AF_INET socket bind() request.
  *
  * Program type: \ref EBPF_PROGRAM_TYPE_BIND
  *

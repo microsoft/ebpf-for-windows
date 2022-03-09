@@ -144,3 +144,23 @@ EBPF_HELPER(int, bpf_ringbuf_output, (struct bpf_map * ring_buffer, void* data, 
 #ifndef __doxygen
 #define bpf_ringbuf_output ((bpf_ringbuf_output_t)BPF_FUNC_ringbuf_output)
 #endif
+
+/**
+ * @brief Print debug output.
+ *
+ * @param[in] fmt Printf-style format string.
+ * @param[in] fmt_size Size in bytes of *fmt*.
+ *
+ * @returns The number of bytes written, or a negative error in case of failure.
+ */
+EBPF_HELPER(long, bpf_trace_printk, (const char* fmt, uint32_t fmt_size, ...));
+#ifndef __doxygen
+#define bpf_trace_printk ((bpf_trace_printk_t)BPF_FUNC_trace_printk)
+#endif
+
+#undef bpf_printk
+#define bpf_printk(fmt, ...)                                       \
+    ({                                                             \
+        char ____fmt[] = fmt;                                      \
+        bpf_trace_printk(____fmt, sizeof(____fmt), ##__VA_ARGS__); \
+    })
