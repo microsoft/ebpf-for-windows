@@ -20,5 +20,20 @@ func(bind_md_t* ctx)
     bytes_written +=
         bpf_printk("PID: %u PROTO: %u ADDRLEN: %u", ctx->process_id, ctx->protocol, ctx->socket_address_length);
 
+    // Try some invalid format specifiers.
+    // These should each return -1.
+    bytes_written += bpf_printk("BAD1 %");
+    bytes_written += bpf_printk("BAD2 %ll");
+    bytes_written += bpf_printk("BAD3 %5d", ctx->process_id);
+    bytes_written += bpf_printk("BAD4 %p", ctx->process_id);
+
+    // Try some mismatched format specifiers.
+    // These should also return -1.
+    bytes_written += bpf_printk("BAD5", ctx->process_id);
+    bytes_written += bpf_printk("BAD6 %u");
+
+    // And try %%.
+    bytes_written += bpf_printk("100%% done");
+
     return bytes_written;
 }

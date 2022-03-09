@@ -1265,7 +1265,8 @@ TEST_CASE("printk", "[end_to_end]")
                   "Hello, world\n"
                   "PID: 1\n"
                   "PID: 1 PROTO: 2\n"
-                  "PID: 1 PROTO: 2 ADDRLEN: 16\n");
+                  "PID: 1 PROTO: 2 ADDRLEN: 16\n"
+                  "100% done\n");
     REQUIRE(hook_result == output.length());
 }
 

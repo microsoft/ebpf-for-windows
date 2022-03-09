@@ -1370,10 +1370,54 @@ _ebpf_core_trace_printk(_In_reads_(fmt_size) const char* fmt, size_t fmt_size, .
     }
     *end = '\0';
 
-    va_list arg_list;
-    __va_start(&arg_list, fmt_size);
-    long bytes_written = ebpf_platform_printk(output, arg_list);
-    __va_end(&arg_list);
+    /* Validate format string.
+     * The conversion specifiers are limited to:
+     * %d, %i, %u, %x, %ld, %li, %lu, %lx, %lld, %lli, %llu, %llx.
+     * No modifier (size of field, padding with zeroes, etc.) is available.
+     */
+    long bytes_written = -1;
+    const char* p;
+    for (p = output; *p; p++) {
+        if (*p != '%') {
+            continue;
+        }
+        if (p[1] == 0) {
+            break;
+        }
+
+        // We found a specifier.  Verify that it is in the legal set.
+        if (p[1] == '%' || strchr("diux", p[1])) {
+            // We found a legal one character specifier.
+            p++;
+            continue;
+        }
+
+        if (p[1] != 'l' || p[2] == 0) {
+            break;
+        }
+        if (strchr("diux", p[2])) {
+            // We found a legal two character specifier.
+            p += 2;
+            continue;
+        }
+
+        if (p[2] != 'l' || p[3] == 0) {
+            break;
+        }
+        if (strchr("diux", p[3])) {
+            // We found a legal three character specifier.
+            p += 3;
+            continue;
+        }
+        break;
+    }
+
+    if (*p == 0) {
+        va_list arg_list;
+        __va_start(&arg_list, fmt_size);
+        bytes_written = ebpf_platform_printk(output, arg_list);
+        __va_end(&arg_list);
+    }
 
     ebpf_free(output);
     return bytes_written;
