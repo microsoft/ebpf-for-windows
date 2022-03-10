@@ -69,6 +69,12 @@ BEGIN
 \n                  determine the program type and expected attach\
 \n                  type.  If not specified, the default is xdp.\
 \n      pinpath   - Optionally the name to pin the program to.\
+\n      interface - Optionally the friendly name or index of a \
+\n                  network interface to which an XDP program should be attached.\
+\n                  If the interface is not specified (or index is set to 0),\
+\n                  the XDP program is attached to all network interfaces.\
+\n                  The command fails if this parameter is specified for program types\
+\n                  other than XDP.\
 \n      pinned    - One of the following values:\
 \n                   none: Load all programs without pinning any.\
 \n                   first: Pin the first program in the file.\
@@ -111,6 +117,12 @@ BEGIN
 \n                  to detach it.\
 \n      pinpath   - The name to pin the program to, or if not\
 \n                  empty, unpin the program.\
+\n      interface - Optionally the friendly name or index of a \
+\n                  network interface to which an XDP program should be attached.\
+\n                  If the interface is not specified (or index is set to 0),\
+\n                  the XDP program is attached to all network interfaces.\
+\n                  The command fails if this parameter is specified for program types\
+\n                  other than XDP.\
 \n\
 \nRemarks: Pins, unpins, attaches, or detaches the specified\
 \n         program which must already be loaded.\

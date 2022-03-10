@@ -315,12 +315,15 @@ _test_helper_end_to_end::_test_helper_end_to_end()
 
 _test_helper_end_to_end::~_test_helper_end_to_end()
 {
-    // Run down duplicate handles, if any.
-    _duplicate_handles.rundown();
-    // Verify that all maps were successfully removed.
-    uint32_t id;
-    REQUIRE(bpf_map_get_next_id(0, &id) < 0);
-    REQUIRE(errno == ENOENT);
+    try {
+        // Run down duplicate handles, if any.
+        _duplicate_handles.rundown();
+        // Verify that all maps were successfully removed.
+        uint32_t id;
+        REQUIRE(bpf_map_get_next_id(0, &id) < 0);
+        REQUIRE(errno == ENOENT);
+    } catch (Catch::TestFailureException&) {
+    }
 
     if (api_initialized)
         ebpf_api_terminate();
@@ -337,11 +340,17 @@ _test_helper_end_to_end::~_test_helper_end_to_end()
 _test_helper_libbpf::_test_helper_libbpf()
 {
     xdp_program_info = new program_info_provider_t(EBPF_PROGRAM_TYPE_XDP);
-    hook = new single_instance_hook_t(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
+    xdp_hook = new single_instance_hook_t(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
+
+    bind_program_info = new program_info_provider_t(EBPF_PROGRAM_TYPE_BIND);
+    bind_hook = new single_instance_hook_t(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
 }
 
 _test_helper_libbpf::~_test_helper_libbpf()
 {
-    delete hook;
+    delete xdp_hook;
     delete xdp_program_info;
+
+    delete bind_hook;
+    delete bind_program_info;
 }
