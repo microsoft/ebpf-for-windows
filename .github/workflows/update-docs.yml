@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 # This action will run doxygen to update the documentation at https://microsoft.github.io/ebpf-for-windows/
-# which is a view of the gh-pages branch.  This action is done whenever the master branch is updated.
+# which is a view of the gh-pages branch.  This action is done whenever the main branch is updated.
 # For docs on gh-pages see https://pages.github.com/
 #
 # The following two links discuss steps similar to this action so may be useful reading
@@ -13,10 +13,10 @@
 name: Doxygen Action
 
 # Controls when the action will run. Triggers the workflow on push # events
-# but only for the master branch
+# but only for the main branch
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
 
 
 jobs:

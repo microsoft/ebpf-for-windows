@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 # This workflow depends on self-hosted runners. See the following document for details:
-# https://github.com/microsoft/ebpf-for-windows/blob/master/docs/SelfHostedRunnerSetup.md
+# https://github.com/microsoft/ebpf-for-windows/blob/main/docs/SelfHostedRunnerSetup.md
 #
 # For documentation on the syntax of this file, see
 # https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions

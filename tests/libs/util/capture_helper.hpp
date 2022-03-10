@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#pragma once
+
 #include <sal.h>
 #include <stdio.h>
 #include <string>

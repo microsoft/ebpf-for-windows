@@ -169,6 +169,7 @@
     <ClCompile Include="maps.cpp" />
     <ClCompile Include="pins.cpp" />
     <ClCompile Include="programs.cpp" />
+    <ClCompile Include="utilities.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="elf.h" />
@@ -177,6 +178,7 @@
     <ClInclude Include="pins.h" />
     <ClInclude Include="programs.h" />
     <ClInclude Include="tokens.h" />
+    <ClInclude Include="utilities.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

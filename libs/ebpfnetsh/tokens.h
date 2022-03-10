@@ -6,6 +6,7 @@
 #define TOKEN_EXECUTION L"execution"
 #define TOKEN_FILENAME L"filename"
 #define TOKEN_ID L"id"
+#define TOKEN_INTERFACE L"interface"
 #define TOKEN_LEVEL L"level"
 #define TOKEN_PINNED L"pinned"
 #define TOKEN_PINPATH L"pinpath"
