@@ -41,3 +41,6 @@ _run_netsh_command(
     _In_opt_z_ const wchar_t* arg2,
     _In_opt_z_ const wchar_t* arg3,
     _Out_ int* result);
+
+std::string
+run_netsh_command_with_args(_In_ FN_HANDLE_CMD* command, _Out_ int* result, int argc, ...);
