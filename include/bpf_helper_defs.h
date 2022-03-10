@@ -221,7 +221,9 @@ EBPF_HELPER(long, bpf_trace_printk5, (const char* fmt, uint32_t fmt_size, uint64
     })
 #else
 /**
- * @brief Print debug output.
+ * @brief Print debug output.  For instructions on viewing the output, see the
+ * <a href="https://github.com/microsoft/ebpf-for-windows/blob/main/docs/GettingStarted.md#using-tracing">Using
+ * tracing</a> section of Getting Started Guide for eBPF for Windows.
  *
  * @param[in] fmt Printf-style format string.
  * @param[in] ... Numeric arguments to be used by the format string.
