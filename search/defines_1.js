@@ -1,9 +1,8 @@
 var searchData=
 [
-  ['bpf_5fany_911',['BPF_ANY',['../ebpf__structs_8h.html#a796578ca395aca4494d6a84c01cd3330',1,'ebpf_structs.h']]],
-  ['bpf_5fexist_912',['BPF_EXIST',['../ebpf__structs_8h.html#a4dd42c358e8becc9052bad912876f82c',1,'ebpf_structs.h']]],
-  ['bpf_5fmap_913',['bpf_map',['../bpf__helpers__platform_8h.html#a1d98f863fc6ebf789b378348438181ca',1,'bpf_helpers_platform.h']]],
-  ['bpf_5fnoexist_914',['BPF_NOEXIST',['../ebpf__structs_8h.html#a4e2941429633c74bc65f828949705337',1,'ebpf_structs.h']]],
-  ['bpf_5fobj_5fname_5flen_915',['BPF_OBJ_NAME_LEN',['../ebpf__structs_8h.html#abc5e07d826c22d4c2b46fd1fb5a2e93e',1,'ebpf_structs.h']]],
-  ['bpf_5fprintk_916',['bpf_printk',['../bpf__helper__defs_8h.html#ada894887c472ccfe888bc2f6f2a8dc3c',1,'bpf_helper_defs.h']]]
+  ['bpf_5fany_924',['BPF_ANY',['../ebpf__structs_8h.html#a796578ca395aca4494d6a84c01cd3330',1,'ebpf_structs.h']]],
+  ['bpf_5fexist_925',['BPF_EXIST',['../ebpf__structs_8h.html#a4dd42c358e8becc9052bad912876f82c',1,'ebpf_structs.h']]],
+  ['bpf_5fmap_926',['bpf_map',['../bpf__helpers__platform_8h.html#a1d98f863fc6ebf789b378348438181ca',1,'bpf_helpers_platform.h']]],
+  ['bpf_5fnoexist_927',['BPF_NOEXIST',['../ebpf__structs_8h.html#a4e2941429633c74bc65f828949705337',1,'ebpf_structs.h']]],
+  ['bpf_5fobj_5fname_5flen_928',['BPF_OBJ_NAME_LEN',['../ebpf__structs_8h.html#abc5e07d826c22d4c2b46fd1fb5a2e93e',1,'ebpf_structs.h']]]
 ];

@@ -66,7 +66,6 @@ $(function() {
 </div><!-- top -->
 <div class="header">
   <div class="summary">
-<a href="#define-members">Macros</a> &#124;
 <a href="#func-members">Functions</a>  </div>
   <div class="headertitle">
 <div class="title">bpf_helper_defs.h File Reference</div>  </div>
@@ -75,11 +74,6 @@ $(function() {
 
 <p><a href="bpf__helper__defs_8h_source.html">Go to the source code of this file.</a></p>
 <table class="memberdecls">
-<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="define-members"></a>
-Macros</h2></td></tr>
-<tr class="memitem:ada894887c472ccfe888bc2f6f2a8dc3c"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#ada894887c472ccfe888bc2f6f2a8dc3c">bpf_printk</a>(fmt, ...)</td></tr>
-<tr class="separator:ada894887c472ccfe888bc2f6f2a8dc3c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-</table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
 <tr class="memitem:ade70ab5475a1a3c8ccb6834bb62d863a"><td class="memItemLeft" align="right" valign="top">void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#ade70ab5475a1a3c8ccb6834bb62d863a">bpf_map_lookup_elem</a> (struct <a class="el" href="bpf__helpers__platform_8h.html#a1d98f863fc6ebf789b378348438181ca">bpf_map</a> *map, void *key)</td></tr>
@@ -115,43 +109,22 @@ Functions</h2></td></tr>
 <tr class="memitem:a0939532bb795021d9cc85cd5dcfce983"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#a0939532bb795021d9cc85cd5dcfce983">bpf_ringbuf_output</a> (struct <a class="el" href="bpf__helpers__platform_8h.html#a1d98f863fc6ebf789b378348438181ca">bpf_map</a> *ring_buffer, void *data, uint64_t size, uint64_t flags)</td></tr>
 <tr class="memdesc:a0939532bb795021d9cc85cd5dcfce983"><td class="mdescLeft">&#160;</td><td class="mdescRight">Copy data into the ring buffer map.  <a href="bpf__helper__defs_8h.html#a0939532bb795021d9cc85cd5dcfce983">More...</a><br /></td></tr>
 <tr class="separator:a0939532bb795021d9cc85cd5dcfce983"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:adf5dc5075de11215e1e5e5ab85565a74"><td class="memItemLeft" align="right" valign="top">long&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#adf5dc5075de11215e1e5e5ab85565a74">bpf_trace_printk</a> (const char *fmt, uint32_t fmt_size,...)</td></tr>
-<tr class="memdesc:adf5dc5075de11215e1e5e5ab85565a74"><td class="mdescLeft">&#160;</td><td class="mdescRight">Print debug output.  <a href="bpf__helper__defs_8h.html#adf5dc5075de11215e1e5e5ab85565a74">More...</a><br /></td></tr>
-<tr class="separator:adf5dc5075de11215e1e5e5ab85565a74"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af5196af723f50668a4ee9f4d32962192"><td class="memItemLeft" align="right" valign="top">long&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#af5196af723f50668a4ee9f4d32962192">bpf_trace_printk2</a> (const char *fmt, uint32_t fmt_size)</td></tr>
+<tr class="memdesc:af5196af723f50668a4ee9f4d32962192"><td class="mdescLeft">&#160;</td><td class="mdescRight">Print debug output.  <a href="bpf__helper__defs_8h.html#af5196af723f50668a4ee9f4d32962192">More...</a><br /></td></tr>
+<tr class="separator:af5196af723f50668a4ee9f4d32962192"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7c9d78fb59b216295336750966998a08"><td class="memItemLeft" align="right" valign="top">long&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#a7c9d78fb59b216295336750966998a08">bpf_trace_printk3</a> (const char *fmt, uint32_t fmt_size, uint64_t arg3)</td></tr>
+<tr class="memdesc:a7c9d78fb59b216295336750966998a08"><td class="mdescLeft">&#160;</td><td class="mdescRight">Print debug output.  <a href="bpf__helper__defs_8h.html#a7c9d78fb59b216295336750966998a08">More...</a><br /></td></tr>
+<tr class="separator:a7c9d78fb59b216295336750966998a08"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a56a3b1bec62a48a1aa23726efa29aafa"><td class="memItemLeft" align="right" valign="top">long&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#a56a3b1bec62a48a1aa23726efa29aafa">bpf_trace_printk4</a> (const char *fmt, uint32_t fmt_size, uint64_t arg3, uint64_t arg4)</td></tr>
+<tr class="memdesc:a56a3b1bec62a48a1aa23726efa29aafa"><td class="mdescLeft">&#160;</td><td class="mdescRight">Print debug output.  <a href="bpf__helper__defs_8h.html#a56a3b1bec62a48a1aa23726efa29aafa">More...</a><br /></td></tr>
+<tr class="separator:a56a3b1bec62a48a1aa23726efa29aafa"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a33414688f945bad0bd0a834b49d1c04e"><td class="memItemLeft" align="right" valign="top">long&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#a33414688f945bad0bd0a834b49d1c04e">bpf_trace_printk5</a> (const char *fmt, uint32_t fmt_size, uint64_t arg3, uint64_t arg4, uint64_t arg5)</td></tr>
+<tr class="memdesc:a33414688f945bad0bd0a834b49d1c04e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Print debug output.  <a href="bpf__helper__defs_8h.html#a33414688f945bad0bd0a834b49d1c04e">More...</a><br /></td></tr>
+<tr class="separator:a33414688f945bad0bd0a834b49d1c04e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aae337e68db96b4b9470f8c519386cbec"><td class="memItemLeft" align="right" valign="top">long&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#aae337e68db96b4b9470f8c519386cbec">bpf_printk</a> (const char *fmt,...)</td></tr>
+<tr class="memdesc:aae337e68db96b4b9470f8c519386cbec"><td class="mdescLeft">&#160;</td><td class="mdescRight">Print debug output.  <a href="bpf__helper__defs_8h.html#aae337e68db96b4b9470f8c519386cbec">More...</a><br /></td></tr>
+<tr class="separator:aae337e68db96b4b9470f8c519386cbec"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
-<h2 class="groupheader">Macro Definition Documentation</h2>
-<a id="ada894887c472ccfe888bc2f6f2a8dc3c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ada894887c472ccfe888bc2f6f2a8dc3c">&#9670;&nbsp;</a></span>bpf_printk</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define bpf_printk</td>
-          <td>(</td>
-          <td class="paramtype">&#160;</td>
-          <td class="paramname">fmt, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">&#160;</td>
-          <td class="paramname"><em>...</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<b>Value:</b><div class="fragment"><div class="line">    ({                                                             \</div>
-<div class="line">        char ____fmt[] = fmt;                                      \</div>
-<div class="line">        bpf_trace_printk(____fmt, <span class="keyword">sizeof</span>(____fmt), ##__VA_ARGS__); \</div>
-<div class="line">    })</div>
-</div><!-- fragment -->
-</div>
-</div>
 <h2 class="groupheader">Function Documentation</h2>
 <a id="a8925aebb6537b5d34b8cb28b04d34515"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a8925aebb6537b5d34b8cb28b04d34515">&#9670;&nbsp;</a></span>bpf_csum_diff()</h2>
@@ -470,6 +443,44 @@ Functions</h2></td></tr>
 
 </div>
 </div>
+<a id="aae337e68db96b4b9470f8c519386cbec"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aae337e68db96b4b9470f8c519386cbec">&#9670;&nbsp;</a></span>bpf_printk()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">long bpf_printk </td>
+          <td>(</td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>fmt</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname"><em>...</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Print debug output. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">fmt</td><td>Printf-style format string. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">...</td><td>Numeric arguments to be used by the format string.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The number of bytes written, or a negative error in case of failure. </dd></dl>
+
+</div>
+</div>
 <a id="a0939532bb795021d9cc85cd5dcfce983"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a0939532bb795021d9cc85cd5dcfce983">&#9670;&nbsp;</a></span>bpf_ringbuf_output()</h2>
 
@@ -573,14 +584,14 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="adf5dc5075de11215e1e5e5ab85565a74"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#adf5dc5075de11215e1e5e5ab85565a74">&#9670;&nbsp;</a></span>bpf_trace_printk()</h2>
+<a id="af5196af723f50668a4ee9f4d32962192"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af5196af723f50668a4ee9f4d32962192">&#9670;&nbsp;</a></span>bpf_trace_printk2()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">long bpf_trace_printk </td>
+          <td class="memname">long bpf_trace_printk2 </td>
           <td>(</td>
           <td class="paramtype">const char *&#160;</td>
           <td class="paramname"><em>fmt</em>, </td>
@@ -589,13 +600,7 @@ Functions</h2></td></tr>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">uint32_t&#160;</td>
-          <td class="paramname"><em>fmt_size</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">&#160;</td>
-          <td class="paramname"><em>...</em>&#160;</td>
+          <td class="paramname"><em>fmt_size</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -610,6 +615,162 @@ Functions</h2></td></tr>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">fmt</td><td>Printf-style format string. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">fmt_size</td><td>Size in bytes of <em>fmt</em>.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The number of bytes written, or a negative error in case of failure. </dd></dl>
+
+</div>
+</div>
+<a id="a7c9d78fb59b216295336750966998a08"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a7c9d78fb59b216295336750966998a08">&#9670;&nbsp;</a></span>bpf_trace_printk3()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">long bpf_trace_printk3 </td>
+          <td>(</td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>fmt</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint32_t&#160;</td>
+          <td class="paramname"><em>fmt_size</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint64_t&#160;</td>
+          <td class="paramname"><em>arg3</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Print debug output. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">fmt</td><td>Printf-style format string. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">fmt_size</td><td>Size in bytes of <em>fmt</em>. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">arg3</td><td>Numeric argument to be used by the format string.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The number of bytes written, or a negative error in case of failure. </dd></dl>
+
+</div>
+</div>
+<a id="a56a3b1bec62a48a1aa23726efa29aafa"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a56a3b1bec62a48a1aa23726efa29aafa">&#9670;&nbsp;</a></span>bpf_trace_printk4()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">long bpf_trace_printk4 </td>
+          <td>(</td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>fmt</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint32_t&#160;</td>
+          <td class="paramname"><em>fmt_size</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint64_t&#160;</td>
+          <td class="paramname"><em>arg3</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint64_t&#160;</td>
+          <td class="paramname"><em>arg4</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Print debug output. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">fmt</td><td>Printf-style format string. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">fmt_size</td><td>Size in bytes of <em>fmt</em>. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">arg3</td><td>Numeric argument to be used by the format string. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">arg4</td><td>Numeric argument to be used by the format string.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The number of bytes written, or a negative error in case of failure. </dd></dl>
+
+</div>
+</div>
+<a id="a33414688f945bad0bd0a834b49d1c04e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a33414688f945bad0bd0a834b49d1c04e">&#9670;&nbsp;</a></span>bpf_trace_printk5()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">long bpf_trace_printk5 </td>
+          <td>(</td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>fmt</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint32_t&#160;</td>
+          <td class="paramname"><em>fmt_size</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint64_t&#160;</td>
+          <td class="paramname"><em>arg3</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint64_t&#160;</td>
+          <td class="paramname"><em>arg4</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint64_t&#160;</td>
+          <td class="paramname"><em>arg5</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Print debug output. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">fmt</td><td>Printf-style format string. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">fmt_size</td><td>Size in bytes of <em>fmt</em>. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">arg3</td><td>Numeric argument to be used by the format string. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">arg4</td><td>Numeric argument to be used by the format string. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">arg5</td><td>Numeric argument to be used by the format string.</td></tr>
   </table>
   </dd>
 </dl>
