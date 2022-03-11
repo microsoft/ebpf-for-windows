@@ -117,6 +117,7 @@ test_PUSH_POP_map(struct _ebpf_map_definition_in_file* map)
 {
     int i;
     PEEK_VALUE(map, 0, -7);
+    POP_VALUE(map, 0, -7);
 
     for (i = 0; i < 10; i++) {
         PUSH_VALUE(map, i, FALSE, 0);
@@ -132,6 +133,7 @@ test_PUSH_POP_map(struct _ebpf_map_definition_in_file* map)
     }
 
     PEEK_VALUE(map, 0, -7);
+    POP_VALUE(map, 0, -7);
 
     return 0;
 }

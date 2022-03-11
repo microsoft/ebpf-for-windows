@@ -450,7 +450,7 @@ TEST_CASE("map_crud_operations_queue", "[execution_context]")
         ebpf_map_push_entry(map.get(), sizeof(extra_value), reinterpret_cast<uint8_t*>(&extra_value), BPF_EXIST) ==
         EBPF_SUCCESS);
 
-    // Peek the first element.
+    // Peek at first element.
     REQUIRE(
         ebpf_map_peek_entry(map.get(), sizeof(return_value), reinterpret_cast<uint8_t*>(&return_value), 0) ==
         EBPF_SUCCESS);
@@ -502,7 +502,7 @@ TEST_CASE("map_crud_operations_stack", "[execution_context]")
         ebpf_map_push_entry(map.get(), sizeof(extra_value), reinterpret_cast<uint8_t*>(&extra_value), BPF_EXIST) ==
         EBPF_SUCCESS);
 
-    // Peek the first element.
+    // Peek at first element.
     REQUIRE(
         ebpf_map_peek_entry(map.get(), sizeof(return_value), reinterpret_cast<uint8_t*>(&return_value), 0) ==
         EBPF_SUCCESS);
