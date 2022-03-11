@@ -72,7 +72,7 @@ typedef struct _ebpf_core_ring_buffer_map_async_query_context
  * ebpf_core_circular_map_t stores an array of uint8_t* pointers. Each pointer
  * stores a version of a value that has been pushed to the queue or stack. The
  * structure can't store the map values directly as the caller expects items
- * returned  from peek to remain unmodified. If items are stored directly in
+ * returned from peek to remain unmodified. If items are stored directly in
  * the array, then a sequence of:
  * 1) push
  * 2) peek
