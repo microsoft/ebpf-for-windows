@@ -967,10 +967,13 @@ extern "C"
     /**
      * @brief Output a debug message.
      *
-     * @param[in] output String to output.
+     * @param[in] format Format string.
+     * @param[in] arg_list Argument list.
+     *
+     * @returns Number of bytes written, or -1 on error.
      */
-    void
-    ebpf_platform_printk(_In_z_ const char* output);
+    long
+    ebpf_platform_printk(_In_z_ const char* format, va_list arg_list);
 
     TRACELOGGING_DECLARE_PROVIDER(ebpf_tracelog_provider);
 

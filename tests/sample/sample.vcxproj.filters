@@ -87,5 +87,8 @@
     <CustomBuild Include="printk.c">
       <Filter>Source Files</Filter>
     </CustomBuild>
+    <CustomBuild Include="printk_unsafe.c">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
   </ItemGroup>
 </Project>

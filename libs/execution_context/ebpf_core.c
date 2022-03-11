@@ -39,7 +39,14 @@ _ebpf_core_get_time_since_boot_ns();
 static uint64_t
 _ebpf_core_get_time_ns();
 static long
-_ebpf_core_trace_printk(_In_reads_(fmt_size) const char* fmt, size_t fmt_size);
+_ebpf_core_trace_printk2(_In_reads_(fmt_size) const char* fmt, size_t fmt_size);
+static long
+_ebpf_core_trace_printk3(_In_reads_(fmt_size) const char* fmt, size_t fmt_size, uint64_t arg3);
+static long
+_ebpf_core_trace_printk4(_In_reads_(fmt_size) const char* fmt, size_t fmt_size, uint64_t arg3, uint64_t arg4);
+static long
+_ebpf_core_trace_printk5(
+    _In_reads_(fmt_size) const char* fmt, size_t fmt_size, uint64_t arg3, uint64_t arg4, uint64_t arg5);
 static int
 _ebpf_core_ring_buffer_output(
     _In_ ebpf_map_t* map, _In_reads_bytes_(length) uint8_t* data, size_t length, uint64_t flags);
@@ -65,7 +72,10 @@ static const void* _ebpf_general_helpers[] = {
     (void*)&ebpf_core_csum_diff,
     // Ring buffer output.
     (void*)&ebpf_ring_buffer_map_output,
-    (void*)&_ebpf_core_trace_printk};
+    (void*)&_ebpf_core_trace_printk2,
+    (void*)&_ebpf_core_trace_printk3,
+    (void*)&_ebpf_core_trace_printk4,
+    (void*)&_ebpf_core_trace_printk5};
 
 static ebpf_extension_provider_t* _ebpf_global_helper_function_provider_context = NULL;
 static ebpf_helper_function_addresses_t _ebpf_global_helper_function_dispatch_table = {
@@ -1335,15 +1345,18 @@ _ebpf_core_get_time_ns()
 // Pick a limit on string size based on the size of the eBPF stack.
 #define MAX_PRINTK_STRING_SIZE 512
 
-long
-_ebpf_core_trace_printk(_In_reads_(fmt_size) const char* fmt, size_t fmt_size)
+// Only integers are currently supported.
+#define PRINTK_SPECIFIER_CHARS "diux"
+
+static long
+_ebpf_core_trace_printk(_In_reads_(fmt_size) const char* fmt, size_t fmt_size, int arg_count, ...)
 {
     if (fmt_size > MAX_PRINTK_STRING_SIZE - 1) {
         // Disallow large fmt_size values.
         return -1;
     }
 
-    // Make a copy of the original string.
+    // Make a copy of the original format string.
     char* output = (char*)ebpf_allocate(fmt_size + 1);
     if (output == NULL) {
         return -1;
@@ -1360,17 +1373,91 @@ _ebpf_core_trace_printk(_In_reads_(fmt_size) const char* fmt, size_t fmt_size)
     }
     *end = '\0';
 
-    char* percent = strchr(output, '%');
-    if (percent != NULL) {
-        // We don't yet support %'s in format strings.
-        return -1;
+    /* Validate format string.
+     * The conversion specifiers are limited to:
+     * %d, %i, %u, %x, %ld, %li, %lu, %lx, %lld, %lli, %llu, %llx.
+     * No modifier (size of field, padding with zeroes, etc.) is available.
+     */
+    long bytes_written = -1;
+    const char* p;
+    int specifier_count = 0;
+    for (p = output; *p; p++) {
+        if (*p != '%') {
+            continue;
+        }
+        if (p[1] == 0) {
+            break;
+        }
+        if (p[1] == '%') {
+            // Allow a %% escape.
+            p++;
+            continue;
+        }
+
+        // We found a specifier.  Verify that it is in the legal set.
+        if (strchr(PRINTK_SPECIFIER_CHARS, p[1])) {
+            // We found a legal one character specifier.
+            p++;
+            specifier_count++;
+            continue;
+        }
+
+        if (p[1] != 'l' || p[2] == 0) {
+            break;
+        }
+        if (strchr(PRINTK_SPECIFIER_CHARS, p[2])) {
+            // We found a legal two character specifier.
+            p += 2;
+            specifier_count++;
+            continue;
+        }
+
+        if (p[2] != 'l' || p[3] == 0) {
+            break;
+        }
+        if (strchr(PRINTK_SPECIFIER_CHARS, p[3])) {
+            // We found a legal three character specifier.
+            p += 3;
+            specifier_count++;
+            continue;
+        }
+        break;
     }
 
-    ebpf_platform_printk(output);
-    long bytes_written = (long)(end - output + 1);
+    if ((*p == 0) && (arg_count == specifier_count)) {
+        va_list arg_list;
+        __va_start(&arg_list, arg_count);
+        bytes_written = ebpf_platform_printk(output, arg_list);
+        __va_end(&arg_list);
+    }
 
     ebpf_free(output);
     return bytes_written;
+}
+
+long
+_ebpf_core_trace_printk2(_In_reads_(fmt_size) const char* fmt, size_t fmt_size)
+{
+    return _ebpf_core_trace_printk(fmt, fmt_size, 0);
+}
+
+long
+_ebpf_core_trace_printk3(_In_reads_(fmt_size) const char* fmt, size_t fmt_size, uint64_t arg3)
+{
+    return _ebpf_core_trace_printk(fmt, fmt_size, 1, arg3);
+}
+
+long
+_ebpf_core_trace_printk4(_In_reads_(fmt_size) const char* fmt, size_t fmt_size, uint64_t arg3, uint64_t arg4)
+{
+    return _ebpf_core_trace_printk(fmt, fmt_size, 2, arg3, arg4);
+}
+
+long
+_ebpf_core_trace_printk5(
+    _In_reads_(fmt_size) const char* fmt, size_t fmt_size, uint64_t arg3, uint64_t arg4, uint64_t arg5)
+{
+    return _ebpf_core_trace_printk(fmt, fmt_size, 3, arg3, arg4, arg5);
 }
 
 int

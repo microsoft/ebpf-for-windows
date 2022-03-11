@@ -153,14 +153,81 @@ EBPF_HELPER(int, bpf_ringbuf_output, (struct bpf_map * ring_buffer, void* data, 
  *
  * @returns The number of bytes written, or a negative error in case of failure.
  */
-EBPF_HELPER(long, bpf_trace_printk, (const char* fmt, uint32_t fmt_size, ...));
+EBPF_HELPER(long, bpf_trace_printk2, (const char* fmt, uint32_t fmt_size));
 #ifndef __doxygen
-#define bpf_trace_printk ((bpf_trace_printk_t)BPF_FUNC_trace_printk)
+#define bpf_trace_printk2 ((bpf_trace_printk2_t)BPF_FUNC_trace_printk2)
 #endif
 
+/**
+ * @brief Print debug output.
+ *
+ * @param[in] fmt Printf-style format string.
+ * @param[in] fmt_size Size in bytes of *fmt*.
+ * @param[in] arg3 Numeric argument to be used by the format string.
+ *
+ * @returns The number of bytes written, or a negative error in case of failure.
+ */
+EBPF_HELPER(long, bpf_trace_printk3, (const char* fmt, uint32_t fmt_size, uint64_t arg3));
+#ifndef __doxygen
+#define bpf_trace_printk3 ((bpf_trace_printk3_t)BPF_FUNC_trace_printk3)
+#endif
+
+/**
+ * @brief Print debug output.
+ *
+ * @param[in] fmt Printf-style format string.
+ * @param[in] fmt_size Size in bytes of *fmt*.
+ * @param[in] arg3 Numeric argument to be used by the format string.
+ * @param[in] arg4 Numeric argument to be used by the format string.
+ *
+ * @returns The number of bytes written, or a negative error in case of failure.
+ */
+EBPF_HELPER(long, bpf_trace_printk4, (const char* fmt, uint32_t fmt_size, uint64_t arg3, uint64_t arg4));
+#ifndef __doxygen
+#define bpf_trace_printk4 ((bpf_trace_printk4_t)BPF_FUNC_trace_printk4)
+#endif
+
+/**
+ * @brief Print debug output.
+ *
+ * @param[in] fmt Printf-style format string.
+ * @param[in] fmt_size Size in bytes of *fmt*.
+ * @param[in] arg3 Numeric argument to be used by the format string.
+ * @param[in] arg4 Numeric argument to be used by the format string.
+ * @param[in] arg5 Numeric argument to be used by the format string.
+ *
+ * @returns The number of bytes written, or a negative error in case of failure.
+ */
+EBPF_HELPER(long, bpf_trace_printk5, (const char* fmt, uint32_t fmt_size, uint64_t arg3, uint64_t arg4, uint64_t arg5));
+#ifndef __doxygen
+#define bpf_trace_printk5 ((bpf_trace_printk5_t)BPF_FUNC_trace_printk5)
+#endif
+
+#ifndef __doxygen
+// The following macros allow bpf_printk to accept a variable number of arguments
+// while mapping to separate helper functions that each have a strict prototype
+// that can be understood by the verifier.
+#define EBPF_CONCATENATE(X, Y) X##Y
+#define EBPF_MAKE_HELPER_NAME(PREFIX, ARG_COUNT) EBPF_CONCATENATE(PREFIX, ARG_COUNT)
+#define EBPF_GET_NTH_ARG(_1, _2, _3, _4, _5, N, ...) N
+#define EBPF_COUNT_VA_ARGS(...) EBPF_GET_NTH_ARG(__VA_ARGS__, 5, 4, 3, 2, 1)
+#define EBPF_VA_ARGS_HELPER(PREFIX, ...) EBPF_MAKE_HELPER_NAME(PREFIX, EBPF_COUNT_VA_ARGS(__VA_ARGS__))(__VA_ARGS__)
+
 #undef bpf_printk
-#define bpf_printk(fmt, ...)                                       \
-    ({                                                             \
-        char ____fmt[] = fmt;                                      \
-        bpf_trace_printk(____fmt, sizeof(____fmt), ##__VA_ARGS__); \
+#define bpf_printk(fmt, ...)                                                            \
+    ({                                                                                  \
+        char ____fmt[] = fmt;                                                           \
+        EBPF_VA_ARGS_HELPER(bpf_trace_printk, ____fmt, sizeof(____fmt), ##__VA_ARGS__); \
     })
+#else
+/**
+ * @brief Print debug output.
+ *
+ * @param[in] fmt Printf-style format string.
+ * @param[in] ... Numeric arguments to be used by the format string.
+ *
+ * @returns The number of bytes written, or a negative error in case of failure.
+ */
+long
+bpf_printk(const char* fmt, ...);
+#endif

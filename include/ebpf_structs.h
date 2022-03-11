@@ -102,7 +102,10 @@ typedef enum
     BPF_FUNC_ktime_get_ns = 9,
     BPF_FUNC_csum_diff = 10,
     BPF_FUNC_ringbuf_output = 11,
-    BPF_FUNC_trace_printk = 12,
+    BPF_FUNC_trace_printk2 = 12,
+    BPF_FUNC_trace_printk3 = 13,
+    BPF_FUNC_trace_printk4 = 14,
+    BPF_FUNC_trace_printk5 = 15,
 } ebpf_helper_id_t;
 
 // Cross-platform BPF program types.
