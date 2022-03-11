@@ -430,39 +430,42 @@ TEST_CASE("map_crud_operations_queue", "[execution_context]")
             ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
         map.reset(local_map);
     }
-    for (uint32_t value = 0; value < 9; value++) {
-        REQUIRE(
-            ebpf_map_update_entry(map.get(), 0, NULL, sizeof(value), reinterpret_cast<uint8_t*>(&value), EBPF_ANY, 0) ==
-            EBPF_SUCCESS);
+    uint32_t return_value = MAXUINT32;
+
+    // Should be empty.
+    REQUIRE(
+        ebpf_map_pop_entry(map.get(), sizeof(return_value), reinterpret_cast<uint8_t*>(&return_value), 0) ==
+        EBPF_OBJECT_NOT_FOUND);
+
+    for (uint32_t value = 0; value < 10; value++) {
+        REQUIRE(ebpf_map_push_entry(map.get(), sizeof(value), reinterpret_cast<uint8_t*>(&value), 0) == EBPF_SUCCESS);
     }
     uint32_t extra_value = 10;
     REQUIRE(
-        ebpf_map_update_entry(
-            map.get(), 0, NULL, sizeof(extra_value), reinterpret_cast<uint8_t*>(&extra_value), EBPF_ANY, 0) ==
+        ebpf_map_push_entry(map.get(), sizeof(extra_value), reinterpret_cast<uint8_t*>(&extra_value), 0) ==
         EBPF_OUT_OF_SPACE);
 
-    // Peek the first element.
-    uint32_t return_value = MAXUINT32;
+    // Replace the oldest entry.
     REQUIRE(
-        ebpf_map_find_entry(map.get(), 0, NULL, sizeof(return_value), reinterpret_cast<uint8_t*>(&return_value), 0) ==
+        ebpf_map_push_entry(map.get(), sizeof(extra_value), reinterpret_cast<uint8_t*>(&extra_value), BPF_EXIST) ==
         EBPF_SUCCESS);
 
-    REQUIRE(return_value == 0);
+    // Peek the first element.
+    REQUIRE(
+        ebpf_map_peek_entry(map.get(), sizeof(return_value), reinterpret_cast<uint8_t*>(&return_value), 0) ==
+        EBPF_SUCCESS);
 
-    for (uint32_t value = 0; value < 9; value++) {
+    REQUIRE(return_value == 1);
+
+    for (uint32_t value = 1; value < 11; value++) {
         REQUIRE(
-            ebpf_map_find_entry(
-                map.get(),
-                0,
-                NULL,
-                sizeof(return_value),
-                reinterpret_cast<uint8_t*>(&return_value),
-                EPBF_MAP_FIND_FLAG_DELETE) == EBPF_SUCCESS);
+            ebpf_map_pop_entry(map.get(), sizeof(return_value), reinterpret_cast<uint8_t*>(&return_value), 0) ==
+            EBPF_SUCCESS);
         REQUIRE(return_value == value);
     }
 
     REQUIRE(
-        ebpf_map_find_entry(map.get(), 0, NULL, sizeof(return_value), reinterpret_cast<uint8_t*>(&return_value), 0) ==
+        ebpf_map_pop_entry(map.get(), sizeof(return_value), reinterpret_cast<uint8_t*>(&return_value), 0) ==
         EBPF_OBJECT_NOT_FOUND);
 }
 
@@ -483,41 +486,38 @@ TEST_CASE("map_crud_operations_stack", "[execution_context]")
 
     // Should be empty.
     REQUIRE(
-        ebpf_map_find_entry(map.get(), 0, NULL, sizeof(return_value), reinterpret_cast<uint8_t*>(&return_value), 0) ==
+        ebpf_map_pop_entry(map.get(), sizeof(return_value), reinterpret_cast<uint8_t*>(&return_value), 0) ==
         EBPF_OBJECT_NOT_FOUND);
 
-    for (uint32_t value = 0; value < 10; value++) {
-        REQUIRE(
-            ebpf_map_update_entry(map.get(), 0, NULL, sizeof(value), reinterpret_cast<uint8_t*>(&value), EBPF_ANY, 0) ==
-            EBPF_SUCCESS);
+    for (uint32_t value = 1; value < 11; value++) {
+        REQUIRE(ebpf_map_push_entry(map.get(), sizeof(value), reinterpret_cast<uint8_t*>(&value), 0) == EBPF_SUCCESS);
     }
-    uint32_t extra_value = 10;
+    uint32_t extra_value = 11;
     REQUIRE(
-        ebpf_map_update_entry(
-            map.get(), 0, NULL, sizeof(extra_value), reinterpret_cast<uint8_t*>(&extra_value), EBPF_ANY, 0) ==
+        ebpf_map_push_entry(map.get(), sizeof(extra_value), reinterpret_cast<uint8_t*>(&extra_value), 0) ==
         EBPF_OUT_OF_SPACE);
+
+    // Replace the oldest entry.
+    REQUIRE(
+        ebpf_map_push_entry(map.get(), sizeof(extra_value), reinterpret_cast<uint8_t*>(&extra_value), BPF_EXIST) ==
+        EBPF_SUCCESS);
 
     // Peek the first element.
     REQUIRE(
-        ebpf_map_find_entry(map.get(), 0, NULL, sizeof(return_value), reinterpret_cast<uint8_t*>(&return_value), 0) ==
+        ebpf_map_peek_entry(map.get(), sizeof(return_value), reinterpret_cast<uint8_t*>(&return_value), 0) ==
         EBPF_SUCCESS);
 
-    REQUIRE(return_value == 9);
+    REQUIRE(return_value == 11);
 
-    for (uint32_t value = 0; value < 10; value++) {
+    for (uint32_t value = 11; value > 1; value--) {
         REQUIRE(
-            ebpf_map_find_entry(
-                map.get(),
-                0,
-                NULL,
-                sizeof(return_value),
-                reinterpret_cast<uint8_t*>(&return_value),
-                EPBF_MAP_FIND_FLAG_DELETE) == EBPF_SUCCESS);
-        REQUIRE(return_value == 9 - value);
+            ebpf_map_pop_entry(map.get(), sizeof(return_value), reinterpret_cast<uint8_t*>(&return_value), 0) ==
+            EBPF_SUCCESS);
+        REQUIRE(return_value == value);
     }
 
     REQUIRE(
-        ebpf_map_find_entry(map.get(), 0, NULL, sizeof(return_value), reinterpret_cast<uint8_t*>(&return_value), 0) ==
+        ebpf_map_peek_entry(map.get(), sizeof(return_value), reinterpret_cast<uint8_t*>(&return_value), 0) ==
         EBPF_OBJECT_NOT_FOUND);
 }
 

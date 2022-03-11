@@ -231,3 +231,49 @@ EBPF_HELPER(long, bpf_trace_printk5, (const char* fmt, uint32_t fmt_size, uint64
 long
 bpf_printk(const char* fmt, ...);
 #endif
+
+/**
+ * @brief Insert an element at the end of the map (only valid for stack and queue).
+ *
+ * @param[in] map Map to update.
+ * @param[in] value Value to insert into the map.
+ * @param[in] flags Map flags - BPF_EXIST: If the map is full, the entry at the start of the map is discarded.
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval -EBPF_NO_MEMORY Unable to allocate resources for this
+ *  entry.
+ * @retval -EBPF_OUT_OF_SPACE Map is full and BPF_EXIST was not supplied.
+ */
+EBPF_HELPER(int64_t, bpf_map_push_elem, (struct bpf_map * map, void* value, uint64_t flags));
+#ifndef __doxygen
+#define bpf_map_push_elem ((bpf_map_push_elem_t)BPF_FUNC_map_push_elem)
+#endif
+
+/**
+ * @brief Copy an entry from the map and remove it from the map (only valid for stack and queue).
+ * Queue pops from the beginning of the map.
+ * Stack pops from the end of the map.
+ *
+ * @param[in] map Map to search.
+ * @param[out] value Value buffer to copy value from map into.
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval -EBPF_OBJECT_NOT_FOUND The map is empty.
+ */
+EBPF_HELPER(int64_t, bpf_map_pop_elem, (struct bpf_map * map, void* value));
+#ifndef __doxygen
+#define bpf_map_pop_elem ((bpf_map_pop_elem_t)BPF_FUNC_map_pop_elem)
+#endif
+
+/**
+ * @brief Copy an entry from the map (only valid for stack and queue).
+ * Queue peeks at the beginning of the map.
+ * Stack peeks at the end of the map.
+ *
+ * @param[in] map Map to search.
+ * @param[out] value Value buffer to copy value from map into.
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval -EBPF_OBJECT_NOT_FOUND The map is empty.
+ */
+EBPF_HELPER(int64_t, bpf_map_peek_elem, (struct bpf_map * map, void* value));
+#ifndef __doxygen
+#define bpf_map_peek_elem ((bpf_map_pop_elem_t)BPF_FUNC_map_peek_elem)
+#endif
