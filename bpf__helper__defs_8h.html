@@ -124,6 +124,15 @@ Functions</h2></td></tr>
 <tr class="memitem:aae337e68db96b4b9470f8c519386cbec"><td class="memItemLeft" align="right" valign="top">long&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#aae337e68db96b4b9470f8c519386cbec">bpf_printk</a> (const char *fmt,...)</td></tr>
 <tr class="memdesc:aae337e68db96b4b9470f8c519386cbec"><td class="mdescLeft">&#160;</td><td class="mdescRight">Print debug output. For instructions on viewing the output, see the <a href="https://github.com/microsoft/ebpf-for-windows/blob/main/docs/GettingStarted.md#using-tracing">Using tracing</a> section of the Getting Started Guide for eBPF for Windows.  <a href="bpf__helper__defs_8h.html#aae337e68db96b4b9470f8c519386cbec">More...</a><br /></td></tr>
 <tr class="separator:aae337e68db96b4b9470f8c519386cbec"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac3be0cf41cceb8e411b227a40bdb4e4f"><td class="memItemLeft" align="right" valign="top">int64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#ac3be0cf41cceb8e411b227a40bdb4e4f">bpf_map_push_elem</a> (struct <a class="el" href="bpf__helpers__platform_8h.html#a1d98f863fc6ebf789b378348438181ca">bpf_map</a> *map, void *value, uint64_t flags)</td></tr>
+<tr class="memdesc:ac3be0cf41cceb8e411b227a40bdb4e4f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Insert an element at the end of the map (only valid for stack and queue).  <a href="bpf__helper__defs_8h.html#ac3be0cf41cceb8e411b227a40bdb4e4f">More...</a><br /></td></tr>
+<tr class="separator:ac3be0cf41cceb8e411b227a40bdb4e4f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa872e50496c062c71919c3a18b7263b5"><td class="memItemLeft" align="right" valign="top">int64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#aa872e50496c062c71919c3a18b7263b5">bpf_map_pop_elem</a> (struct <a class="el" href="bpf__helpers__platform_8h.html#a1d98f863fc6ebf789b378348438181ca">bpf_map</a> *map, void *value)</td></tr>
+<tr class="memdesc:aa872e50496c062c71919c3a18b7263b5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Copy an entry from the map and remove it from the map (only valid for stack and queue). Queue pops from the beginning of the map. Stack pops from the end of the map.  <a href="bpf__helper__defs_8h.html#aa872e50496c062c71919c3a18b7263b5">More...</a><br /></td></tr>
+<tr class="separator:aa872e50496c062c71919c3a18b7263b5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa54e81971eaeff2533ea044722670c25"><td class="memItemLeft" align="right" valign="top">int64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#aa54e81971eaeff2533ea044722670c25">bpf_map_peek_elem</a> (struct <a class="el" href="bpf__helpers__platform_8h.html#a1d98f863fc6ebf789b378348438181ca">bpf_map</a> *map, void *value)</td></tr>
+<tr class="memdesc:aa54e81971eaeff2533ea044722670c25"><td class="mdescLeft">&#160;</td><td class="mdescRight">Copy an entry from the map (only valid for stack and queue). Queue peeks at the beginning of the map. Stack peeks at the end of the map.  <a href="bpf__helper__defs_8h.html#aa54e81971eaeff2533ea044722670c25">More...</a><br /></td></tr>
+<tr class="separator:aa54e81971eaeff2533ea044722670c25"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Function Documentation</h2>
 <a id="a8925aebb6537b5d34b8cb28b04d34515"></a>
@@ -382,6 +391,146 @@ Functions</h2></td></tr>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>Pointer to the value if found or NULL. </dd></dl>
+
+</div>
+</div>
+<a id="aa54e81971eaeff2533ea044722670c25"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa54e81971eaeff2533ea044722670c25">&#9670;&nbsp;</a></span>bpf_map_peek_elem()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int64_t bpf_map_peek_elem </td>
+          <td>(</td>
+          <td class="paramtype">struct <a class="el" href="bpf__helpers__platform_8h.html#a1d98f863fc6ebf789b378348438181ca">bpf_map</a> *&#160;</td>
+          <td class="paramname"><em>map</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>value</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Copy an entry from the map (only valid for stack and queue). Queue peeks at the beginning of the map. Stack peeks at the end of the map. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">map</td><td>Map to search. </td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">value</td><td>Value buffer to copy value from map into. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">EBPF_SUCCESS</td><td>The operation was successful. </td></tr>
+    <tr><td class="paramname">-EBPF_OBJECT_NOT_FOUND</td><td>The map is empty. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="aa872e50496c062c71919c3a18b7263b5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa872e50496c062c71919c3a18b7263b5">&#9670;&nbsp;</a></span>bpf_map_pop_elem()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int64_t bpf_map_pop_elem </td>
+          <td>(</td>
+          <td class="paramtype">struct <a class="el" href="bpf__helpers__platform_8h.html#a1d98f863fc6ebf789b378348438181ca">bpf_map</a> *&#160;</td>
+          <td class="paramname"><em>map</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>value</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Copy an entry from the map and remove it from the map (only valid for stack and queue). Queue pops from the beginning of the map. Stack pops from the end of the map. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">map</td><td>Map to search. </td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">value</td><td>Value buffer to copy value from map into. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">EBPF_SUCCESS</td><td>The operation was successful. </td></tr>
+    <tr><td class="paramname">-EBPF_OBJECT_NOT_FOUND</td><td>The map is empty. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="ac3be0cf41cceb8e411b227a40bdb4e4f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac3be0cf41cceb8e411b227a40bdb4e4f">&#9670;&nbsp;</a></span>bpf_map_push_elem()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int64_t bpf_map_push_elem </td>
+          <td>(</td>
+          <td class="paramtype">struct <a class="el" href="bpf__helpers__platform_8h.html#a1d98f863fc6ebf789b378348438181ca">bpf_map</a> *&#160;</td>
+          <td class="paramname"><em>map</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>value</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint64_t&#160;</td>
+          <td class="paramname"><em>flags</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Insert an element at the end of the map (only valid for stack and queue). </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">map</td><td>Map to update. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">value</td><td>Value to insert into the map. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">flags</td><td>Map flags - BPF_EXIST: If the map is full, the entry at the start of the map is discarded. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">EBPF_SUCCESS</td><td>The operation was successful. </td></tr>
+    <tr><td class="paramname">-EBPF_NO_MEMORY</td><td>Unable to allocate resources for this entry. </td></tr>
+    <tr><td class="paramname">-EBPF_OUT_OF_SPACE</td><td>Map is full and BPF_EXIST was not supplied. </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>
