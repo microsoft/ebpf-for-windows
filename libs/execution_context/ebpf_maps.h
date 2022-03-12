@@ -236,6 +236,50 @@ extern "C"
     ebpf_result_t
     ebpf_ring_buffer_map_output(_In_ ebpf_map_t* map, _In_reads_bytes_(length) uint8_t* data, size_t length);
 
+    /**
+     * @brief Insert an element at the end of the map (only valid for stack and queue).
+     *
+     * @param[in] map Map to update.
+     * @param[in] value_size Size of value to insert into the map.
+     * @param[in] value Value to insert into the map.
+     * @param[in] flags Map flags - BPF_EXIST: If the map is full, the entry at the start of the map is discarded.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
+     *  entry.
+     * @retval EBPF_OUT_OF_SPACE Map is full and BPF_EXIST was not supplied.
+     */
+    ebpf_result_t
+    ebpf_map_push_entry(
+        _In_ ebpf_map_t* map, size_t value_size, _In_reads_(value_size) const uint8_t* value, int flags);
+
+    /**
+     * @brief Copy an entry from the map and remove it from the map (only valid for stack and queue).
+     * Queue pops from the beginning of the map.
+     * Stack pops from the end of the map.
+     *
+     * @param[in] map Map to search.
+     * @param[in] value_size Size of the value buffer to copy value from map into.
+     * @param[out] value Value buffer to copy value from map into.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_OBJECT_NOT_FOUND The map is empty.
+     */
+    ebpf_result_t
+    ebpf_map_pop_entry(_In_ ebpf_map_t* map, size_t value_size, _Out_writes_(value_size) uint8_t* value, int flags);
+
+    /**
+     * @brief Copy an entry from the map (only valid for stack and queue).
+     * Queue peeks at the beginning of the map.
+     * Stack peeks at the end of the map.
+     *
+     * @param[in] map Map to search.
+     * @param[in] value_size Size of the value buffer to copy value from map into.
+     * @param[out] value Value buffer to copy value from map into.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_OBJECT_NOT_FOUND The map is empty.
+     */
+    ebpf_result_t
+    ebpf_map_peek_entry(_In_ ebpf_map_t* map, size_t value_size, _Out_writes_(value_size) uint8_t* value, int flags);
+
 #ifdef __cplusplus
 }
 #endif

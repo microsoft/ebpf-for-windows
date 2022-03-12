@@ -50,6 +50,12 @@ _ebpf_core_trace_printk5(
 static int
 _ebpf_core_ring_buffer_output(
     _In_ ebpf_map_t* map, _In_reads_bytes_(length) uint8_t* data, size_t length, uint64_t flags);
+static uint64_t
+_ebpf_core_map_push_elem(_In_ ebpf_map_t* map, _In_ const uint8_t* value, uint64_t flags);
+static uint64_t
+_ebpf_core_map_pop_elem(_In_ ebpf_map_t* map, _Out_ uint8_t* value);
+static uint64_t
+_ebpf_core_map_peek_elem(_In_ ebpf_map_t* map, _Out_ uint8_t* value);
 
 #define EBPF_CORE_GLOBAL_HELPER_EXTENSION_VERSION 0
 
@@ -75,7 +81,11 @@ static const void* _ebpf_general_helpers[] = {
     (void*)&_ebpf_core_trace_printk2,
     (void*)&_ebpf_core_trace_printk3,
     (void*)&_ebpf_core_trace_printk4,
-    (void*)&_ebpf_core_trace_printk5};
+    (void*)&_ebpf_core_trace_printk5,
+    (void*)&_ebpf_core_map_push_elem,
+    (void*)&_ebpf_core_map_pop_elem,
+    (void*)&_ebpf_core_map_peek_elem,
+};
 
 static ebpf_extension_provider_t* _ebpf_global_helper_function_provider_context = NULL;
 static ebpf_helper_function_addresses_t _ebpf_global_helper_function_dispatch_table = {
@@ -1498,6 +1508,24 @@ _ebpf_core_ring_buffer_output(
     // This function implements bpf_ringbuf_output helper function, which returns negative error in case of failure.
     UNREFERENCED_PARAMETER(flags);
     return -ebpf_ring_buffer_map_output(map, data, length);
+}
+
+static uint64_t
+_ebpf_core_map_push_elem(_In_ ebpf_map_t* map, _In_ const uint8_t* value, uint64_t flags)
+{
+    return -ebpf_map_push_entry(map, 0, value, (int)flags | EBPF_MAP_FLAG_HELPER);
+}
+
+static uint64_t
+_ebpf_core_map_pop_elem(_In_ ebpf_map_t* map, _Out_ uint8_t* value)
+{
+    return -ebpf_map_pop_entry(map, 0, value, EBPF_MAP_FLAG_HELPER);
+}
+
+static uint64_t
+_ebpf_core_map_peek_elem(_In_ ebpf_map_t* map, _Out_ uint8_t* value)
+{
+    return -ebpf_map_peek_entry(map, 0, value, EBPF_MAP_FLAG_HELPER);
 }
 
 typedef struct _ebpf_protocol_handler
