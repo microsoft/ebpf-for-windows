@@ -226,13 +226,13 @@ _ebpf_program_free(ebpf_core_object_t* object)
 }
 
 static const ebpf_program_type_t*
-_ebpf_program_get_program_type_uuid(_In_ const ebpf_core_object_t* object)
+_ebpf_program_get_program_type(_In_ const ebpf_core_object_t* object)
 {
     return ebpf_program_type_uuid((const ebpf_program_t*)object);
 }
 
 static const bpf_prog_type_t
-_ebpf_program_get_program_type(_In_ const ebpf_program_t* program)
+_ebpf_program_get_bpf_prog_type(_In_ const ebpf_program_t* program)
 {
     // TODO(issue #223)
     bpf_prog_type_t prog_type = BPF_PROG_TYPE_UNSPEC;
@@ -409,7 +409,7 @@ ebpf_program_create(ebpf_program_t** program)
     ebpf_lock_create(&local_program->lock);
 
     retval = ebpf_object_initialize(
-        &local_program->object, EBPF_OBJECT_PROGRAM, _ebpf_program_free, _ebpf_program_get_program_type_uuid);
+        &local_program->object, EBPF_OBJECT_PROGRAM, _ebpf_program_free, _ebpf_program_get_program_type);
     if (retval != EBPF_SUCCESS) {
         goto Done;
     }
@@ -1064,7 +1064,7 @@ ebpf_program_get_info(
         (char*)program->parameters.program_name.value,
         program->parameters.program_name.length);
     info->nr_map_ids = program->count_of_maps;
-    info->type = _ebpf_program_get_program_type(program);
+    info->type = _ebpf_program_get_bpf_prog_type(program);
     info->type_uuid = *ebpf_program_type_uuid(program);
     info->pinned_path_count = program->object.pinned_path_count;
     info->link_count = program->link_count;

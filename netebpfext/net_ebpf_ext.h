@@ -49,25 +49,19 @@ Environment:
 #define NET_EBPF_EXTENSION_POOL_TAG 'Nfbe'
 #define NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION 0
 
-typedef struct _net_ebpf_extension_wfp_filter_ids
-{
-    uint32_t count;
-    uint64_t ids[1];
-} net_ebpf_extension_wfp_filter_ids_t;
-
 typedef struct _net_ebpf_extension_wfp_filter_parameters
 {
     const GUID* layer_guid;     ///< GUID of WFP layer to which this filter is associated.
     const GUID* callout_guid;   ///< GUID of WFP callout to which this filter is associated.
     const wchar_t* name;        ///< Display name of filter.
-    const wchar_t* description; ///< Descrition of filter.
+    const wchar_t* description; ///< Description of filter.
 } net_ebpf_extension_wfp_filter_parameters_t;
 
 /**
  * @brief Add WFP filters with specified conditions at specified layers.
  *
  * @param[in]  filter_count Count of filters to be added.
- * @param[in]  filter Parameters Filer parameters.
+ * @param[in]  filter Parameters Filter parameters.
  * @param[in]  condition_count Count of filter conditions.
  * @param[in]  conditions Common filter conditions to be applied to each filter.
  * @param[in]  raw_context Caller supplied context to be associated with the WFP filter.

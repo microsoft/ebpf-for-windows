@@ -40,7 +40,7 @@ _Releases_lock_(hook_client) void net_ebpf_extension_hook_client_leave_rundown(
     _Inout_ net_ebpf_extension_hook_client_t* hook_client, net_ebpf_extension_hook_execution_t execution_type);
 
 /**
- * @brief Get the attach parameters for the input client..
+ * @brief Get the attach parameters for the input client.
  *
  * @param[in] hook_client Pointer to attached hook NPI client.
  *
@@ -53,7 +53,7 @@ net_ebpf_extension_hook_client_get_client_data(_In_ const net_ebpf_extension_hoo
  * @brief Set the hook-specific provider data for the attached client.
  *
  * @param[in] hook_client Pointer to attached hook NPI client.
- * @param[in] hook-specific provider data.
+ * @returns hook-specific provider data.
  *
  */
 void
@@ -161,8 +161,8 @@ net_ebpf_extension_hook_get_attached_client(_In_ net_ebpf_extension_hook_provide
  * @brief Return the next client attached to the hook NPI provider.
  * @param[in] provider_context Provider module's context.
  * @param[in] client_context Caller supplied pointer to client_context. May be NULL.
- * @returns The client next to the one passed in client_context parameter. If the input client context is NULL, then the
- * first attached client context (if any) is returned.
+ * @returns The next client after the one passed in client_context parameter. If the input client context is NULL, then
+ * the first attached client context (if any) is returned.
  */
 net_ebpf_extension_hook_client_t*
 net_ebpf_extension_hook_get_next_attached_client(

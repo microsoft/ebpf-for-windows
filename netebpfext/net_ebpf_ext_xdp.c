@@ -17,18 +17,27 @@ NTSTATUS
 _net_ebpf_extension_xdp_validate_if_index(uint32_t if_index)
 {
     NTSTATUS status = STATUS_SUCCESS;
-    MIB_IPINTERFACE_ROW row = {0};
-    InitializeIpInterfaceEntry(&row);
-    row.InterfaceIndex = if_index;
-    // Try IPv4 first.
-    row.Family = AF_INET;
-    status = GetIpInterfaceEntry(&row);
-    if (!NT_SUCCESS(status)) {
-        // Try again with IPv6.
-        row.Family = AF_INET6;
-        status = GetIpInterfaceEntry(&row);
+    PMIB_IF_TABLE2 table;
+    ULONG i;
+    bool valid_if_index = FALSE;
+
+    status = GetIfTable2(&table);
+    if (!NT_SUCCESS(status))
+        goto Exit;
+
+    for (i = 0; i < table->NumEntries; i++) {
+        if (table->Table[i].InterfaceIndex == if_index) {
+            valid_if_index = TRUE;
+            break;
+        }
     }
 
+    if (!valid_if_index)
+        status = STATUS_INVALID_PARAMETER;
+
+Exit:
+    if (table != NULL)
+        FreeMibTable(table);
     return status;
 }
 
@@ -46,7 +55,14 @@ const net_ebpf_extension_wfp_filter_parameters_t _net_ebpf_extension_xdp_wfp_fil
      L"net eBPF xdp hook",
      L"net eBPF xdp hook WFP filter"}};
 
-uint64_t _net_ebpf_extension_xdp_wfp_filter_ids[2] = {0};
+#define NET_EBPF_XDP_FILTER_COUNT EBPF_COUNT_OF(_net_ebpf_extension_xdp_wfp_filter_parameters)
+
+typedef struct _net_ebpf_extension_xdp_wfp_filter_context
+{
+    const net_ebpf_extension_hook_client_t* client_context;
+    uint32_t if_index;
+    uint64_t filter_ids[NET_EBPF_XDP_FILTER_COUNT];
+} net_ebpf_extension_xdp_wfp_filter_context_t;
 
 //
 // XDP Program Information NPI Provider.
@@ -89,16 +105,15 @@ static net_ebpf_extension_hook_provider_t* _ebpf_xdp_hook_provider_context = NUL
 // NMR Registration Helper Routines.
 //
 
-ebpf_result_t
+static ebpf_result_t
 net_ebpf_extension_xdp_on_client_attach(_In_ const net_ebpf_extension_hook_client_t* attaching_client)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     const ebpf_extension_data_t* client_data = net_ebpf_extension_hook_client_get_client_data(attaching_client);
     uint32_t if_index;
     uint32_t filter_count;
-    size_t filter_ids_buffer_size;
     FWPM_FILTER_CONDITION condition = {0};
-    net_ebpf_extension_wfp_filter_ids_t* filter_ids = NULL;
+    net_ebpf_extension_xdp_wfp_filter_context_t* filter_context = NULL;
 
     // XDP hook clients must always provide data.
     if (client_data == NULL) {
@@ -106,7 +121,7 @@ net_ebpf_extension_xdp_on_client_attach(_In_ const net_ebpf_extension_hook_clien
         goto Exit;
     }
 
-    // validate client data.
+    // Validate client data.
     if (client_data->version != EBPF_ATTACH_CLIENT_DATA_VERSION) {
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
@@ -158,50 +173,51 @@ net_ebpf_extension_xdp_on_client_attach(_In_ const net_ebpf_extension_hook_clien
         condition.conditionValue.uint32 = if_index;
     }
 
-    // Allocate buffer to hold WFP filter Ids.
-    filter_count = EBPF_COUNT_OF(_net_ebpf_extension_xdp_wfp_filter_parameters);
-    filter_ids_buffer_size = EBPF_OFFSET_OF(net_ebpf_extension_wfp_filter_ids_t, ids) + sizeof(uint64_t) * filter_count;
-    filter_ids =
-        (void*)ExAllocatePoolUninitialized(NonPagedPoolNx, filter_ids_buffer_size, NET_EBPF_EXTENSION_POOL_TAG);
-    if (filter_ids == NULL) {
+    // Allocate buffer for WFP filter context.
+    filter_context = (void*)ExAllocatePoolUninitialized(
+        NonPagedPoolNx, sizeof(net_ebpf_extension_xdp_wfp_filter_context_t), NET_EBPF_EXTENSION_POOL_TAG);
+    if (filter_context == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
     }
-    memset(filter_ids, 0, filter_ids_buffer_size);
-    filter_ids->count = filter_count;
+    memset(filter_context, 0, sizeof(net_ebpf_extension_xdp_wfp_filter_context_t));
+    filter_context->client_context = attaching_client;
+    filter_context->if_index = if_index;
 
     // Add WFP filters at appropriate layers and set the hook NPI client as the filter's raw context.
+    filter_count = NET_EBPF_XDP_FILTER_COUNT;
     result = net_ebpf_extension_add_wfp_filters(
         filter_count,
         _net_ebpf_extension_xdp_wfp_filter_parameters,
         (if_index == 0) ? 0 : 1,
         (if_index == 0) ? NULL : &condition,
-        attaching_client,
-        filter_ids->ids);
+        filter_context,
+        filter_context->filter_ids);
     if (result != EBPF_SUCCESS)
         goto Exit;
 
-    // Set the filter ids in the client context's provider data.
-    net_ebpf_extension_hook_client_set_provider_data((net_ebpf_extension_hook_client_t*)attaching_client, filter_ids);
+    // Set the filter context as the client context's provider data.
+    net_ebpf_extension_hook_client_set_provider_data(
+        (net_ebpf_extension_hook_client_t*)attaching_client, filter_context);
 
 Exit:
     if (result != EBPF_SUCCESS) {
-        if (filter_ids != NULL)
-            ExFreePool(filter_ids);
+        if (filter_context != NULL)
+            ExFreePool(filter_context);
     }
 
     return result;
 }
 
-void
-net_ebpf_extension_xdp_on_client_detach(_In_ const net_ebpf_extension_hook_client_t* detaching_client)
+static void
+_net_ebpf_extension_xdp_on_client_detach(_In_ const net_ebpf_extension_hook_client_t* detaching_client)
 {
-    net_ebpf_extension_wfp_filter_ids_t* filter_ids =
-        (net_ebpf_extension_wfp_filter_ids_t*)net_ebpf_extension_hook_client_get_provider_data(detaching_client);
-    ASSERT(filter_ids->count != 0);
-    ASSERT(filter_ids->ids != NULL);
-    net_ebpf_extension_delete_wfp_filters(filter_ids->count, filter_ids->ids);
-    ExFreePool(filter_ids);
+    net_ebpf_extension_xdp_wfp_filter_context_t* filter_context =
+        (net_ebpf_extension_xdp_wfp_filter_context_t*)net_ebpf_extension_hook_client_get_provider_data(
+            detaching_client);
+    ASSERT(filter_context != NULL);
+    net_ebpf_extension_delete_wfp_filters(NET_EBPF_XDP_FILTER_COUNT, filter_context->filter_ids);
+    ExFreePool(filter_context);
 }
 
 NTSTATUS
@@ -226,7 +242,7 @@ net_ebpf_ext_xdp_register_providers()
     status = net_ebpf_extension_hook_provider_register(
         &hook_provider_parameters,
         net_ebpf_extension_xdp_on_client_attach,
-        net_ebpf_extension_xdp_on_client_detach,
+        _net_ebpf_extension_xdp_on_client_detach,
         &_ebpf_xdp_hook_provider_context);
     if (status != EBPF_SUCCESS) {
         goto Exit;
@@ -522,7 +538,9 @@ net_ebpf_ext_layer_2_classify(
     uint8_t* packet_buffer;
     uint32_t result = 0;
     net_ebpf_xdp_md_t net_xdp_ctx = {0};
+    net_ebpf_extension_xdp_wfp_filter_context_t* filter_context = NULL;
     net_ebpf_extension_hook_client_t* attached_client = NULL;
+    uint32_t client_if_index;
 
     UNREFERENCED_PARAMETER(incoming_metadata_values);
     UNREFERENCED_PARAMETER(classify_context);
@@ -540,7 +558,10 @@ net_ebpf_ext_layer_2_classify(
     if (incoming_fixed_values->layerId == FWPS_LAYER_OUTBOUND_MAC_FRAME_NATIVE)
         goto Done;
 
-    attached_client = (net_ebpf_extension_hook_client_t*)filter->context;
+    filter_context = (net_ebpf_extension_xdp_wfp_filter_context_t*)filter->context;
+    ASSERT(filter_context != NULL);
+
+    attached_client = (net_ebpf_extension_hook_client_t*)filter_context->client_context;
     ASSERT(attached_client != NULL);
     if (attached_client == NULL)
         goto Done;
@@ -556,14 +577,11 @@ net_ebpf_ext_layer_2_classify(
     net_xdp_ctx.ingress_ifindex =
         incoming_fixed_values->incomingValue[FWPS_FIELD_INBOUND_MAC_FRAME_NATIVE_INTERFACE_INDEX].value.uint32;
 
-    const ebpf_extension_data_t* client_data = net_ebpf_extension_hook_client_get_client_data(attached_client);
-    if ((client_data != NULL) && (client_data->data != NULL)) {
-        uint32_t client_ifindex = *(const uint32_t*)client_data->data;
-        ASSERT((client_ifindex == 0) || (client_ifindex == net_xdp_ctx.ingress_ifindex));
-        if (client_ifindex != 0 && client_ifindex != net_xdp_ctx.ingress_ifindex) {
-            // The client is not interested in this ingress ifindex.
-            goto Done;
-        }
+    client_if_index = filter_context->if_index;
+    ASSERT((client_if_index == 0) || (client_if_index == net_xdp_ctx.ingress_ifindex));
+    if (client_if_index != 0 && client_if_index != net_xdp_ctx.ingress_ifindex) {
+        // The client is not interested in this ingress ifindex.
+        goto Done;
     }
 
     net_xdp_ctx.original_nbl = nbl;

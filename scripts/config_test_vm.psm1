@@ -186,7 +186,8 @@ function Export-BuildArtifactsToVMs
                 }
             }
         }
-        Copy-Item -ToSession $VMSession -Path "$pwd\*" -Destination "C:\eBPF\" -Recurse -Force 2>&1 -ErrorAction Stop | Write-Log
+        Copy-Item -ToSession $VMSession -Path "$pwd\*" -Exclude "*.pdb" -Destination "C:\eBPF\" -Recurse -Force 2>&1 -ErrorAction Stop | Write-Log
+
         Write-Log "Export completed." -ForegroundColor Green
     }
 }
@@ -241,4 +242,41 @@ function Install-eBPFComponentsOnVM
         Install-eBPFComponents
     } -ArgumentList ("C:\eBPF", ("{0}_{1}" -f $VMName, $LogFileName)) -ErrorAction Stop
     Write-Log "eBPF components installed on $VMName" -ForegroundColor Green
+}
+
+function Initialize-NetworkInterfacesOnVMs
+{
+    param([parameter(Mandatory=$true)] $MultiVMTestConfig)
+
+    foreach ($VM in $MultiVMTestConfig)
+    {
+        $VMName = $VM.Name
+        $Interfaces = $VM.Interfaces
+
+        Write-Log "Initializing network interfaces on $VMName"
+        $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
+
+        Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
+            param([Parameter(Mandatory=$True)] $InterfaceList,
+                  [Parameter(Mandatory=$True)] [string] $WorkingDirectory,
+                  [Parameter(Mandatory=$True)] [string] $LogFileName)
+
+            Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
+
+            foreach ($Interface in $InterfaceList) {
+                $InterfaceAlias = $Interface.Alias
+                $V4Address = $Interface.V4Address
+                Write-Log "Adding $V4Address on $InterfaceAlias"
+                Remove-NetIPAddress -ifAlias "$InterfaceAlias" -IPAddress $V4Address -PolicyStore "All" -Confirm:$false -ErrorAction Ignore | Out-Null
+                New-NetIPAddress -ifAlias "$InterfaceAlias" -IPAddress $V4Address -PrefixLength 24 -ErrorAction Stop | Out-Null
+                Write-Log "Address configured."
+
+                $V6Address = $Interface.V6Address
+                Write-Log "Adding $V6Address on $InterfaceAlias"
+                Remove-NetIPAddress -ifAlias "$InterfaceAlias" -IPAddress $V6Address* -PolicyStore "All" -Confirm:$false -ErrorAction Ignore | Out-Null
+                New-NetIPAddress -ifAlias "$InterfaceAlias" -IPAddress $V6Address -PrefixLength 64 -ErrorAction Stop | Out-Null
+                Write-Log "Address configured."
+            }
+        } -ArgumentList ($Interfaces, "C:\eBPF", ("{0}_{1}" -f $VMName, $LogFileName)) -ErrorAction Stop
+    }
 }

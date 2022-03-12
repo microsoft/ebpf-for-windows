@@ -14,7 +14,7 @@ $TestVMCredential = Get-StoredCredential -Target $Target -ErrorAction Stop
 Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
 Import-Module .\vm_run_tests.psm1  -Force -ArgumentList ($TestVMCredential.UserName, $TestVMCredential.Password, $WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
 
-# Read the config json.
+# Read the test execution json.
 $Config = Get-Content ("{0}\{1}" -f $PSScriptRoot, $TestExecutionJsonFileName) | ConvertFrom-Json
 $BasicTest = $Config.BasicTest
 
@@ -23,7 +23,7 @@ foreach ($VM in $BasicTest) {
     Invoke-CICDTestsOnVM -VMName $VM.Name
 }
 
-Invoke-XDPTestsOnVM($Config.MultiVMTest)
+Invoke-XDPTestsOnVM $Config.MultiVMTest
 
 # Stop eBPF components on test VMs.
 foreach ($VM in $Config.MultiVMTest) {

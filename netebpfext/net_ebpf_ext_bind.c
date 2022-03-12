@@ -32,7 +32,9 @@ const net_ebpf_extension_wfp_filter_parameters_t _net_ebpf_extension_bind_wfp_fi
      L"net eBPF bind hook",
      L"net eBPF bind hook WFP filter"}};
 
-uint64_t _net_ebpf_extension_bind_wfp_filter_ids[4] = {0};
+#define NET_EBPF_BIND_FILTER_COUNT EBPF_COUNT_OF(_net_ebpf_extension_bind_wfp_filter_parameters)
+
+uint64_t _net_ebpf_extension_bind_wfp_filter_ids[NET_EBPF_BIND_FILTER_COUNT] = {0};
 
 //
 // Bind Program Information NPI Provider.
@@ -70,8 +72,8 @@ static net_ebpf_extension_hook_provider_t* _ebpf_bind_hook_provider_context = NU
 // Client attach/detach handler routines.
 //
 
-ebpf_result_t
-net_ebpf_extension_bind_on_client_attach(_In_ const net_ebpf_extension_hook_client_t* attaching_client)
+static ebpf_result_t
+_net_ebpf_extension_bind_on_client_attach(_In_ const net_ebpf_extension_hook_client_t* attaching_client)
 {
     ebpf_result_t result = EBPF_SUCCESS;
 
@@ -96,14 +98,13 @@ Exit:
     return result;
 }
 
-void
-net_ebpf_extension_bind_on_client_detach(_In_ const net_ebpf_extension_hook_client_t* detaching_client)
+static void
+_net_ebpf_extension_bind_on_client_detach(_In_ const net_ebpf_extension_hook_client_t* detaching_client)
 {
     UNREFERENCED_PARAMETER(detaching_client);
 
     // Delete the WFP filters.
-    net_ebpf_extension_delete_wfp_filters(
-        EBPF_COUNT_OF(_net_ebpf_extension_bind_wfp_filter_ids), _net_ebpf_extension_bind_wfp_filter_ids);
+    net_ebpf_extension_delete_wfp_filters(NET_EBPF_BIND_FILTER_COUNT, _net_ebpf_extension_bind_wfp_filter_ids);
     memset(_net_ebpf_extension_bind_wfp_filter_ids, 0, sizeof(_net_ebpf_extension_bind_wfp_filter_ids));
 }
 
@@ -131,8 +132,8 @@ net_ebpf_ext_bind_register_providers()
     _net_ebpf_bind_hook_provider_data.supported_program_type = EBPF_PROGRAM_TYPE_BIND;
     status = net_ebpf_extension_hook_provider_register(
         &hook_provider_parameters,
-        net_ebpf_extension_bind_on_client_attach,
-        net_ebpf_extension_bind_on_client_detach,
+        _net_ebpf_extension_bind_on_client_attach,
+        _net_ebpf_extension_bind_on_client_detach,
         &_ebpf_bind_hook_provider_context);
     if (status != EBPF_SUCCESS) {
         goto Exit;

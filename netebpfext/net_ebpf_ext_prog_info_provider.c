@@ -141,7 +141,7 @@ net_ebpf_extension_program_info_provider_register(
     characteristics->ProviderAttachClient = net_ebpf_extension_program_info_provider_attach_client;
     characteristics->ProviderDetachClient = net_ebpf_extension_program_info_provider_detach_client;
     characteristics->ProviderRegistrationInstance.Size = sizeof(NPI_REGISTRATION_INSTANCE);
-    // #772: NpiId should be a well known GUID. ModuleId should be program type.
+    // TODO(issue #772): NpiId should be a well known GUID. ModuleId should be program type.
     characteristics->ProviderRegistrationInstance.NpiId = parameters->program_type;
     characteristics->ProviderRegistrationInstance.ModuleId = parameters->provider_module_id;
     characteristics->ProviderRegistrationInstance.NpiSpecificCharacteristics = parameters->provider_data;

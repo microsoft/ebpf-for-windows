@@ -54,18 +54,17 @@ function Invoke-Test
 
     # Execute Test.
     if ($VerboseLogs -eq $true) {
-        &$TestName "-s" 2>&1
+        $Output = &$TestName "-s"
     } else {
-        &$TestName 2>&1
+        $Output = &$TestName
     }
 
     # Check for errors.
-    if ($LASTEXITCODE -ne 0) {
-        throw ("$TestName returned error.")
-    } else {
-        Write-Log "$TestName Passed" -ForegroundColor Green
-    }
+    Out-String -InputObject $Output | Write-Log
+    $ParsedOutput = $Output.Split(" ")
+    if (($LASTEXITCODE -ne 0) -or ($ParsedOutput[$ParsedOutput.Length -2] -eq "failed")) { throw ("$TestName Test Failed.") }
 
+    Write-Log "$TestName Passed" -ForegroundColor Green
 }
 
 function Invoke-CICDTests
