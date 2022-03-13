@@ -4,12 +4,12 @@
 #include <ctype.h>
 #include <iostream>
 #include <stdio.h>
+#include <sddl.h>
 #include <stdlib.h>
 #include <windows.h>
 #include "ebpf_api.h"
 #include "ebpf_platform.h"
 #include "rpc_interface_c.c"
-#include <sddl.h>
 
 #pragma comment(lib, "Rpcrt4.lib")
 

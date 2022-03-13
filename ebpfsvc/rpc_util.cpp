@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: MIT
 
 #include <malloc.h>
+#include <sddl.h>
 #include "rpc_interface_s.c"
 #include "svc_common.h"
-#include <sddl.h>
 
 #pragma comment(lib, "Rpcrt4.lib")
 
