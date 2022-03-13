@@ -121,6 +121,10 @@ ebpf_core_initiate()
     if (return_value != EBPF_SUCCESS)
         goto Done;
 
+    return_value = ebpf_native_initiate();
+    if (return_value != EBPF_SUCCESS)
+        goto Done;
+
     _ebpf_global_helper_program_info.count_of_helpers = ebpf_core_helper_functions_count;
     _ebpf_global_helper_program_info.helper_prototype = ebpf_core_helper_function_prototype;
     return_value = ebpf_provider_load(
@@ -152,6 +156,8 @@ ebpf_core_terminate()
 {
     ebpf_provider_unload(_ebpf_global_helper_function_provider_context);
     _ebpf_global_helper_function_provider_context = NULL;
+
+    ebpf_native_terminate();
 
     ebpf_program_terminate();
 
@@ -490,27 +496,53 @@ Done:
     EBPF_RETURN_RESULT(retval);
 }
 
-// ANUSA TODO: Add a function which will iterate over all the programs and cleanup those
-// which are native programs.
-// There is one possible issue we may need to fix: We may need to somehow ensure that the
-// reference from program --> native module is freed only when the epoch for the program
-// has expired.
+ebpf_result_t
+ebpf_core_disable_native_programs(_In_ const void* native_module)
+{
+    ebpf_result_t result;
+    uint32_t start_id = 0;
+    uint32_t next_id = 0;
+    ebpf_handle_t program_handle;
+    ebpf_program_t* program = NULL;
+
+    for (;;) {
+        result = ebpf_object_get_next_id(start_id, EBPF_OBJECT_PROGRAM, &next_id);
+        if (result == EBPF_NO_MORE_KEYS) {
+            result = EBPF_SUCCESS;
+            break;
+        }
+        if (result != EBPF_SUCCESS) {
+            break;
+        }
+        result = ebpf_core_get_handle_by_id(EBPF_OBJECT_PROGRAM, next_id, &program_handle);
+        if (result != EBPF_SUCCESS) {
+            // It is possible the program object gets deleted by the time we reach here.
+            continue;
+        }
+        result = ebpf_reference_object_by_handle(program_handle, EBPF_OBJECT_PROGRAM, (ebpf_core_object_t**)&program);
+        if (result != EBPF_SUCCESS) {
+            break;
+        }
+
+        // "Disable" the program.
+        ebpf_program_disable_native(program, native_module);
+
+        start_id = next_id;
+    }
+
+    return result;
+}
 
 static ebpf_result_t
-_ebpf_core_protocol_load_native_programs(
-    _In_ const ebpf_operation_load_native_programs_request_t* request,
-    _Inout_ ebpf_operation_load_native_programs_reply_t* reply,
+_ebpf_core_protocol_load_native_module(
+    _In_ const ebpf_operation_load_native_module_request_t* request,
+    _Inout_ ebpf_operation_load_native_module_reply_t* reply,
     uint16_t reply_length)
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result;
-    wchar_t* service_name = NULL;
-    // ebpf_native_t* native = NULL;
+    // wchar_t* service_name = NULL;
     size_t service_name_length = 0;
-    ebpf_handle_t* map_handles = NULL;
-    uint32_t count_of_map_handles = 0;
-    ebpf_handle_t* program_handles = NULL;
-    uint32_t count_of_program_handles = 0;
 
     // ANUSA TODO: Need to return program and map information to user mode.
     UNREFERENCED_PARAMETER(reply_length);
@@ -525,24 +557,103 @@ _ebpf_core_protocol_load_native_programs(
         goto Done;
     }
 
-    service_name = ebpf_allocate(service_name_length + 2);
-    if (service_name == NULL) {
-        result = EBPF_NO_MEMORY;
-        goto Done;
-    }
-    memcpy(service_name, (uint8_t*)request->data, service_name_length);
+    /*
+        service_name = ebpf_allocate(service_name_length + 2);
+        if (service_name == NULL) {
+            result = EBPF_NO_MEMORY;
+            goto Done;
+        }
+        memcpy(service_name, (uint8_t*)request->data, service_name_length);
+    */
 
     result = ebpf_native_load(
         (wchar_t*)request->data,
         (uint16_t)service_name_length,
         &request->module_id,
-        &count_of_map_handles,
-        map_handles,
-        &count_of_program_handles,
-        program_handles);
+        &reply->count_of_maps,
+        &reply->count_of_programs);
     if (result != EBPF_SUCCESS) {
         goto Done;
     }
+
+Done:
+    EBPF_RETURN_RESULT(result);
+}
+
+// ANUSA TODO: Add a function which will iterate over all the programs and cleanup those
+// which are native programs.
+// There is one possible issue we may need to fix: We may need to somehow ensure that the
+// reference from program --> native module is freed only when the epoch for the program
+// has expired.
+
+static ebpf_result_t
+_ebpf_core_protocol_load_native_programs(
+    _In_ const ebpf_operation_load_native_programs_request_t* request,
+    _Inout_ ebpf_operation_load_native_programs_reply_t* reply,
+    uint16_t reply_length)
+{
+    EBPF_LOG_ENTRY();
+    ebpf_result_t result;
+    // wchar_t* service_name = NULL;
+    // ebpf_native_t* native = NULL;
+    // size_t service_name_length = 0;
+    ebpf_handle_t* map_handles = NULL;
+    size_t count_of_map_handles = 0;
+    ebpf_handle_t* program_handles = NULL;
+    size_t count_of_program_handles = 0;
+    size_t required_reply_length = 0;
+    size_t map_handles_size = 0;
+    size_t program_handles_size = 0;
+
+    // ANUSA TODO: Need to return program and map information to user mode.
+    UNREFERENCED_PARAMETER(reply_length);
+    UNREFERENCED_PARAMETER(reply);
+
+    // Validate that the reply length is sufficient.
+    result = ebpf_native_get_count_of_maps(&request->module_id, &count_of_map_handles);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
+
+    result = ebpf_native_get_count_of_programs(&request->module_id, &count_of_program_handles);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
+
+    result = ebpf_safe_size_t_multiply(count_of_map_handles, sizeof(ebpf_handle_t), &map_handles_size);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
+    result = ebpf_safe_size_t_multiply(count_of_program_handles, sizeof(ebpf_handle_t), &program_handles_size);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
+
+    result = ebpf_safe_size_t_add(map_handles_size, program_handles_size, &required_reply_length);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
+    result = ebpf_safe_size_t_add(
+        EBPF_OFFSET_OF(ebpf_operation_load_native_programs_reply_t, data),
+        required_reply_length,
+        &required_reply_length);
+
+    if (reply_length < required_reply_length) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
+
+    result = ebpf_native_load_programs(
+        &request->module_id, &count_of_map_handles, &map_handles, &count_of_program_handles, &program_handles);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
+
+    reply->map_handle_count = count_of_map_handles;
+    reply->program_handle_count = count_of_program_handles;
+
+    memcpy(reply->data, map_handles, map_handles_size);
+    memcpy(reply->data + map_handles_size, program_handles, program_handles_size);
 
 Done:
     EBPF_RETURN_RESULT(result);
@@ -925,6 +1036,11 @@ _ebpf_core_protocol_link_program(
         ebpf_reference_object_by_handle(request->program_handle, EBPF_OBJECT_PROGRAM, (ebpf_core_object_t**)&program);
     if (retval != EBPF_SUCCESS)
         goto Done;
+
+    if (ebpf_program_disabled(program)) {
+        retval = EBPF_EXTENSION_FAILED_TO_LOAD;
+        goto Done;
+    }
 
     retval = ebpf_link_create(&link);
     if (retval != EBPF_SUCCESS)
@@ -1712,6 +1828,11 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
      sizeof(ebpf_operation_ring_buffer_map_async_query_request_t),
      sizeof(ebpf_operation_ring_buffer_map_async_query_reply_t),
      true},
+
+    // EBPF_OPERATION_LOAD_NATIVE_MODULE
+    {(ebpf_result_t(__cdecl*)(const void*))_ebpf_core_protocol_load_native_module,
+     sizeof(ebpf_operation_load_native_module_request_t),
+     sizeof(ebpf_operation_load_native_module_reply_t)},
 
     // EBPF_OPERATION_LOAD_NATIVE_PROGRAMS
     {(ebpf_result_t(__cdecl*)(const void*))_ebpf_core_protocol_load_native_programs,

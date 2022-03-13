@@ -51,4 +51,19 @@ _get_osfhandle(int file_descriptor);
 int
 _close(int file_descriptor);
 
+bool
+_is_native_program(const char* file_name);
+
+uint32_t
+_ebpf_create_registry_key(HKEY root_key, _In_ const wchar_t* path);
+
+uint32_t
+_ebpf_update_registry_value(
+    HKEY root_key,
+    _In_ const wchar_t* sub_key,
+    DWORD type,
+    _In_ const wchar_t* value_name,
+    _In_ const void* value,
+    uint32_t value_size);
+
 } // namespace Platform

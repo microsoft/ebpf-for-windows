@@ -167,6 +167,9 @@ extern "C"
         _In_reads_(count_of_helpers) const uint32_t* helper_function_ids,
         _Out_writes_(count_of_helpers) uint64_t* helper_function_addresses);
 
+    ebpf_result_t
+    ebpf_core_disable_native_programs(_In_ const void* native_module);
+
 #ifdef __cplusplus
 }
 #endif

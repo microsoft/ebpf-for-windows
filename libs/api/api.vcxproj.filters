@@ -43,6 +43,9 @@
     <ClCompile Include="bpf_syscall.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="service_helper.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -64,6 +67,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\thunk\platform.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="service_helper.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

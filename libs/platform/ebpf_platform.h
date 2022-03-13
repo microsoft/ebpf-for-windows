@@ -2,12 +2,16 @@
 // SPDX-License-Identifier: MIT
 
 #pragma once
+// #include "ebpf_core_structs.h"
 #include "ebpf_result.h"
 #include "ebpf_windows.h"
 #include "framework.h"
 
 #include <TraceLoggingProvider.h>
 #include <winmeta.h>
+
+// typedef HANDLE ebpf_handle_t;
+typedef intptr_t ebpf_handle_t;
 
 #ifdef __cplusplus
 extern "C"
@@ -731,6 +735,7 @@ extern "C"
     ebpf_extension_unload(_Frees_ptr_opt_ ebpf_extension_client_t* client_context);
 
     typedef ebpf_result_t (*ebpf_provider_client_attach_callback_t)(
+        ebpf_handle_t client_binding_handle,
         void* context,
         const GUID* client_module_id,
         void* client_binding_context,
@@ -775,6 +780,9 @@ extern "C"
      */
     void
     ebpf_provider_unload(_Frees_ptr_opt_ ebpf_extension_provider_t* provider_context);
+
+    void
+    ebpf_provider_detach_client_complete(_In_ const GUID* interface_id, ebpf_handle_t client_binding_handle);
 
     ebpf_result_t
     ebpf_guid_create(_Out_ GUID* new_guid);

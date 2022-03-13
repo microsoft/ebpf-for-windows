@@ -162,6 +162,7 @@ typedef class _single_instance_hook : public _hook_helper
   private:
     static ebpf_result_t
     client_attach_callback(
+        ebpf_handle_t nmr_binding_handle,
         void* context,
         const GUID* client_id,
         void* client_binding_context,
@@ -172,6 +173,7 @@ typedef class _single_instance_hook : public _hook_helper
         if (hook->client_binding_context != nullptr) {
             return EBPF_OPERATION_NOT_SUPPORTED;
         }
+        UNREFERENCED_PARAMETER(nmr_binding_handle);
         hook->client_id = *client_id;
         hook->client_binding_context = client_binding_context;
         hook->client_data = client_data;

@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <crtdbg.h> // For _CrtSetReportMode
 #include "ebpf_api.h"
+#include <string>
 
 class _invalid_parameter_suppression
 {
@@ -127,5 +128,51 @@ _close(int file_descriptor)
 {
     _invalid_parameter_suppression suppress;
     return ::_close(file_descriptor);
+}
+
+bool
+_is_native_program(_In_ const char* file_name)
+{
+    std::string file_name_string(file_name);
+    std::string file_extension = file_name_string.substr(file_name_string.find_last_of(".") + 1);
+    if (file_extension == "sys") {
+        return true;
+    }
+
+    return false;
+}
+
+uint32_t
+_ebpf_create_registry_key(HKEY root_key, _In_ const wchar_t* path)
+{
+    HKEY key = nullptr;
+    uint32_t error;
+    error = RegCreateKeyEx(root_key, path, 0, NULL, 0, KEY_WRITE | DELETE | KEY_READ, NULL, &key, NULL);
+
+    if (key != nullptr) {
+        RegCloseKey(key);
+    }
+
+    return error;
+}
+
+uint32_t
+_ebpf_update_registry_value(
+    HKEY root_key,
+    _In_ const wchar_t* sub_key,
+    DWORD type,
+    _In_ const wchar_t* value_name,
+    _In_ const void* value,
+    uint32_t value_size)
+{
+    HKEY key = nullptr;
+    uint32_t error = RegOpenKeyEx(root_key, sub_key, 0, KEY_WRITE | DELETE | KEY_READ, &key);
+    if (error != ERROR_SUCCESS) {
+        return error;
+    }
+    error = RegSetValueEx(key, value_name, 0, type, (PBYTE)value, value_size);
+    RegCloseKey(key);
+
+    return error;
 }
 } // namespace Platform

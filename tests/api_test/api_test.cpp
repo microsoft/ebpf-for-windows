@@ -200,6 +200,8 @@ TEST_CASE("pinned_map_enum", "[pinned_map_enum]") { ebpf_test_pinned_map_enum();
 // Load droppacket (JIT) without providing expected program type.
 DECLARE_LOAD_TEST_CASE("droppacket.o", nullptr, EBPF_EXECUTION_JIT, EBPF_SUCCESS);
 
+DECLARE_LOAD_TEST_CASE("droppacket_km.sys", nullptr, EBPF_EXECUTION_JIT, EBPF_SUCCESS);
+
 // Load droppacket (ANY) without providing expected program type.
 DECLARE_LOAD_TEST_CASE("droppacket.o", nullptr, EBPF_EXECUTION_ANY, EBPF_SUCCESS);
 

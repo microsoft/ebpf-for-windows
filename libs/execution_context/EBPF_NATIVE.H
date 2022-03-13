@@ -53,10 +53,22 @@ extern "C"
         _In_ const wchar_t* service_name,
         uint16_t service_name_length,
         _In_ const GUID* module_id,
-        _Out_ uint32_t* count_of_map_handles,
-        _Out_ ebpf_handle_t* map_handles,
-        _Out_ uint32_t* count_of_program_handles,
-        _Out_ ebpf_handle_t* program_handles);
+        _Out_ size_t* count_of_maps,
+        _Out_ size_t* count_of_programs);
+
+    ebpf_result_t
+    ebpf_native_load_programs(
+        _In_ const GUID* module_id,
+        _Out_ size_t* count_of_map_handles,
+        _Out_ ebpf_handle_t** map_handles,
+        _Out_ size_t* count_of_program_handles,
+        _Out_ ebpf_handle_t** program_handles);
+
+    ebpf_result_t
+    ebpf_native_get_count_of_programs(_In_ const GUID* module_id, _Out_ size_t* count_of_programs);
+
+    ebpf_result_t
+    ebpf_native_get_count_of_maps(_In_ const GUID* module_id, _Out_ size_t* count_of_maps);
 
     /**
      * @brief Get a list of maps associated with the eBPF program.

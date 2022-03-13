@@ -61,6 +61,7 @@ typedef struct _ebpf_program
     uint32_t* helper_function_ids;
 
     ebpf_epoch_work_item_t* cleanup_work_item;
+    ebpf_epoch_work_item_t* disable_work_item;
 
     // Lock protecting the fields below.
     ebpf_lock_t lock;
@@ -69,6 +70,7 @@ typedef struct _ebpf_program
     uint32_t link_count;
     ebpf_map_t** maps;
     uint32_t count_of_maps;
+    volatile bool program_disabled;
 } ebpf_program_t;
 
 static ebpf_result_t
@@ -246,6 +248,31 @@ _ebpf_program_get_program_type(_In_ const ebpf_core_object_t* object)
  * work-item.
  */
 static void
+_ebpf_program_epoch_disable(void* context)
+{
+    EBPF_LOG_ENTRY();
+    ebpf_program_t* program = (ebpf_program_t*)context;
+
+    if (program->parameters.code_type != EBPF_CODE_NATIVE) {
+        EBPF_RETURN_VOID();
+    }
+
+    // Free reference to the native module.
+    ebpf_native_release_reference((ebpf_native_t*)program->code_or_vm.native.native_module);
+
+    ebpf_free(program->disable_work_item);
+    program->disable_work_item = NULL;
+    EBPF_RETURN_VOID();
+}
+
+/**
+ * @brief Free invoked when the current epoch ends. Scheduled by
+ * _ebpf_program_free.
+ *
+ * @param[in] context Pointer to the ebpf_program_t passed as context in the
+ * work-item.
+ */
+static void
 _ebpf_program_epoch_free(void* context)
 {
     EBPF_LOG_ENTRY();
@@ -266,7 +293,8 @@ _ebpf_program_epoch_free(void* context)
         break;
 #endif
     case EBPF_CODE_NATIVE:
-        ebpf_native_release_reference((ebpf_native_t*)program->code_or_vm.native.native_module);
+        if (!program->program_disabled)
+            ebpf_native_release_reference((ebpf_native_t*)program->code_or_vm.native.native_module);
         break;
     case EBPF_CODE_NONE:
         break;
@@ -283,6 +311,7 @@ _ebpf_program_epoch_free(void* context)
     ebpf_free(program->helper_function_ids);
 
     ebpf_free(program->cleanup_work_item);
+    ebpf_free(program->disable_work_item);
     ebpf_free(program);
     EBPF_RETURN_VOID();
 }
@@ -396,6 +425,12 @@ ebpf_program_create(ebpf_program_t** program)
         goto Done;
     }
 
+    local_program->disable_work_item = ebpf_epoch_allocate_work_item(local_program, _ebpf_program_epoch_disable);
+    if (!local_program->disable_work_item) {
+        retval = EBPF_NO_MEMORY;
+        goto Done;
+    }
+
     ebpf_list_initialize(&local_program->links);
     ebpf_lock_create(&local_program->lock);
 
@@ -414,6 +449,19 @@ Done:
         _ebpf_program_epoch_free(local_program);
 
     EBPF_RETURN_RESULT(retval);
+}
+
+bool
+ebpf_program_disabled(_In_ ebpf_program_t* program)
+{
+    bool return_value = false;
+    ebpf_lock_state_t state = ebpf_lock_lock(&program->lock);
+    if (program->program_disabled) {
+        return_value = true;
+    }
+    ebpf_lock_unlock(&program->lock, state);
+
+    return return_value;
 }
 
 ebpf_result_t
@@ -466,6 +514,7 @@ ebpf_program_initialize(ebpf_program_t* program, const ebpf_program_parameters_t
     local_file_name.value = NULL;
 
     program->parameters.code_type = EBPF_CODE_NONE;
+    program->program_disabled = false;
 
     return_value = ebpf_program_load_providers(program);
     if (return_value != EBPF_SUCCESS) {
@@ -722,6 +771,24 @@ Done:
 }
 #endif
 
+void
+ebpf_program_disable_native(_Inout_ ebpf_program_t* program, _In_ const void* native_module)
+{
+    ebpf_lock_state_t state = ebpf_lock_lock(&program->lock);
+    if (program->parameters.code_type != EBPF_CODE_NATIVE ||
+        program->code_or_vm.native.native_module != (ebpf_native_t*)native_module) {
+        goto Exit;
+    }
+
+    // Detach the program from all the attach points.
+    program->program_disabled = true;
+    _ebpf_program_detach_links(program);
+    ebpf_epoch_schedule_work_item(program->disable_work_item);
+
+Exit:
+    ebpf_lock_unlock(&program->lock, state);
+}
+
 ebpf_result_t
 ebpf_program_load_code(
     _Inout_ ebpf_program_t* program,
@@ -792,7 +859,7 @@ ebpf_program_invoke(_In_ const ebpf_program_t* program, _In_ void* context, _Out
     ebpf_program_tail_call_state_t state = {0};
     const ebpf_program_t* current_program = program;
 
-    if (!program || program->program_invalidated) {
+    if (!program || program->program_invalidated || program->program_disabled) {
         *result = 0;
         return;
     }

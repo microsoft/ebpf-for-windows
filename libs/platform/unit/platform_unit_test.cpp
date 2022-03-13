@@ -291,11 +291,13 @@ TEST_CASE("extension_test", "[platform]")
 
     auto client_function = []() { return EBPF_SUCCESS; };
     auto provider_function = []() { return EBPF_SUCCESS; };
-    auto provider_attach = [](void* context,
+    auto provider_attach = [](ebpf_handle_t client_binding_handle,
+                              void* context,
                               const GUID* client_id,
                               void* client_binding_context,
                               const ebpf_extension_data_t* client_data,
                               const ebpf_extension_dispatch_table_t* client_dispatch_table) {
+        UNREFERENCED_PARAMETER(client_binding_handle);
         UNREFERENCED_PARAMETER(context);
         UNREFERENCED_PARAMETER(client_id);
         UNREFERENCED_PARAMETER(client_data);

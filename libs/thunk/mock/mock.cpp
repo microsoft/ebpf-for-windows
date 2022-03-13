@@ -108,6 +108,45 @@ _close(int file_handle)
     return close_handler(file_handle);
 }
 
+bool
+_is_native_program(_In_ const char* file_name)
+{
+    std::string file_name_string(file_name);
+    std::string file_extension = file_name_string.substr(file_name_string.find_last_of(".") + 1);
+    if (file_extension == "dll") {
+        return true;
+    }
+
+    return false;
+}
+
+uint32_t
+_ebpf_create_registry_key(HKEY root_key, _In_ const wchar_t* path)
+{
+    UNREFERENCED_PARAMETER(root_key);
+    UNREFERENCED_PARAMETER(path);
+    return ERROR_SUCCESS;
+}
+
+uint32_t
+_ebpf_update_registry_value(
+    HKEY root_key,
+    _In_ const wchar_t* sub_key,
+    DWORD type,
+    _In_ const wchar_t* value_name,
+    _In_ const void* value,
+    uint32_t value_size)
+{
+    UNREFERENCED_PARAMETER(root_key);
+    UNREFERENCED_PARAMETER(sub_key);
+    UNREFERENCED_PARAMETER(type);
+    UNREFERENCED_PARAMETER(value_name);
+    UNREFERENCED_PARAMETER(value);
+    UNREFERENCED_PARAMETER(value_size);
+
+    return ERROR_SUCCESS;
+}
+
 } // namespace Platform
 
 // RPC related mock functions.

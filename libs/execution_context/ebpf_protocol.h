@@ -41,6 +41,7 @@ typedef enum _ebpf_operation_id
     EBPF_OPERATION_BIND_MAP,
     EBPF_OPERATION_RING_BUFFER_MAP_QUERY_BUFFER,
     EBPF_OPERATION_RING_BUFFER_MAP_ASYNC_QUERY,
+    EBPF_OPERATION_LOAD_NATIVE_MODULE,
     EBPF_OPERATION_LOAD_NATIVE_PROGRAMS,
 } ebpf_operation_id_t;
 
@@ -385,13 +386,26 @@ typedef struct _ebpf_operation_ring_buffer_map_async_query_reply
     ebpf_ring_buffer_map_async_query_result_t async_query_result;
 } ebpf_operation_ring_buffer_map_async_query_reply_t;
 
+typedef struct _ebpf_operation_load_native_module_request
+{
+    struct _ebpf_operation_header header;
+    GUID module_id;
+    // Service name (UTF16)
+    uint8_t data[1];
+} ebpf_operation_load_native_module_request_t;
+
+typedef struct _ebpf_operation_load_native_module_reply
+{
+    struct _ebpf_operation_header header;
+    size_t count_of_maps;
+    size_t count_of_programs;
+} ebpf_operation_load_native_module_reply_t;
+
 typedef struct _ebpf_operation_load_native_programs_request
 {
     struct _ebpf_operation_header header;
     ebpf_program_type_t program_type;
     GUID module_id;
-    // Service name (UTF16)
-    uint8_t data[1];
 } ebpf_operation_load_native_programs_request_t;
 
 typedef struct _ebpf_program_information
@@ -419,8 +433,9 @@ typedef struct _ebpf_map_information
 typedef struct _ebpf_operation_load_native_programs_reply
 {
     struct _ebpf_operation_header header;
-    uint16_t program_count;
-    uint16_t map_count;
-    uint16_t map_info_offset;
+    size_t program_handle_count;
+    size_t map_handle_count;
+    // uint16_t map_info_offset;
+    // Map handles followed by program handles.
     uint8_t data[1];
 } ebpf_operation_load_native_programs_reply_t;
