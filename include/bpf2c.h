@@ -71,8 +71,8 @@ extern "C"
         uint16_t* referenced_helper_indices;
         uint16_t referenced_helper_count;
         size_t bpf_instruction_count;
-        GUID program_type;
-        GUID attach_type;
+        GUID* program_type;
+        GUID* expected_attach_type;
     } program_entry_t;
 
     typedef struct _metadata_table

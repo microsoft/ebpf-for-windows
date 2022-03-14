@@ -656,6 +656,9 @@ _ebpf_core_protocol_load_native_programs(
     memcpy(reply->data + map_handles_size, program_handles, program_handles_size);
 
 Done:
+    // TODO: If this call failed, stop the native driver. ebpfapi will create a
+    // new service for the driver in the next attempt.
+
     EBPF_RETURN_RESULT(result);
 }
 

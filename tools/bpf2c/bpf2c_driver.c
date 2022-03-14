@@ -12,6 +12,8 @@ DRIVER_INITIALIZE DriverEntry;
 DRIVER_UNLOAD DriverUnload;
 RTL_QUERY_REGISTRY_ROUTINE static _bpf2c_query_registry_routine;
 
+#define metadata_table ___METADATA_TABLE___##_metadata_table
+
 static GUID _bpf2c_npi_id = {/* c847aac8-a6f2-4b53-aea3-f4a94b9a80cb */
                              0xc847aac8,
                              0xa6f2,
@@ -20,7 +22,7 @@ static GUID _bpf2c_npi_id = {/* c847aac8-a6f2-4b53-aea3-f4a94b9a80cb */
 static NPI_MODULEID _bpf2c_module_id = {sizeof(_bpf2c_module_id), MIT_GUID, {0}};
 static HANDLE _bpf2c_nmr_client_handle;
 static HANDLE _bpf2c_nmr_provider_handle;
-metadata_table_t ___METADATA_TABLE___;
+extern metadata_table_t metadata_table;
 
 static NTSTATUS
 _bpf2c_npi_client_attach_provider(
@@ -42,7 +44,7 @@ static const NPI_CLIENT_CHARACTERISTICS _bpf2c_npi_client_characteristics = {
      &_bpf2c_npi_id,
      &_bpf2c_module_id,
      0,
-     &___METADATA_TABLE___}};
+     &metadata_table}};
 
 static NTSTATUS
 _bpf2c_query_npi_module_id(
@@ -124,13 +126,27 @@ _bpf2c_npi_client_attach_provider(
     _In_ void* client_context,
     _In_ const NPI_REGISTRATION_INSTANCE* provider_registration_instance)
 {
+    NTSTATUS status = STATUS_SUCCESS;
+    void* provider_binding_context = NULL;
+    void* provider_dispatch_table = NULL;
+
     UNREFERENCED_PARAMETER(client_context);
     UNREFERENCED_PARAMETER(provider_registration_instance);
+
     if (_bpf2c_nmr_provider_handle != NULL) {
         return STATUS_INVALID_PARAMETER;
     }
+
+    status =
+        NmrClientAttachProvider(nmr_binding_handle, NULL, NULL, &provider_binding_context, &provider_dispatch_table);
+    if (status != STATUS_SUCCESS) {
+        goto Done;
+    }
+
     _bpf2c_nmr_provider_handle = nmr_binding_handle;
-    return STATUS_SUCCESS;
+
+Done:
+    return status;
 }
 
 static NTSTATUS

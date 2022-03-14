@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "bpf_code_generator.h"
+#include "ebpf_api.h"
 
 #if !defined(_countof)
 #define _countof(array) (sizeof(array) / sizeof(array[0]))
@@ -153,8 +154,16 @@ bpf_code_generator::parse(const std::string& section_name)
     get_register_name(1);
     get_register_name(10);
 
+    get_program_and_attach_type(section_name);
     extract_program(section_name);
     extract_relocations_and_maps(section_name);
+}
+
+void
+bpf_code_generator::get_program_and_attach_type(const std::string& section_name)
+{
+    ebpf_get_program_type_by_name(
+        section_name.c_str(), &current_section->program_type, &current_section->expected_attach_type);
 }
 
 void
@@ -654,6 +663,21 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
     for (auto& [name, section] : sections) {
         auto program_name = !section.program_name.empty() ? section.program_name : name;
 
+        // Emit the program and attach type GUID.
+        std::string program_type_name = program_name + "_program_type_guid";
+        std::string attach_type_name = program_name + "_attach_type_guid";
+
+        output_stream << format_string(
+                             "static GUID %s = %s;",
+                             sanitize_name(program_type_name),
+                             format_guid(&section.program_type))
+                      << std::endl;
+        output_stream << format_string(
+                             "static GUID %s = %s;",
+                             sanitize_name(attach_type_name),
+                             format_guid(&section.expected_attach_type))
+                      << std::endl;
+
         if (section.referenced_map_indices.size() > 0) {
             // Emit the array for the maps used.
             std::string map_array_name = program_name + "_maps";
@@ -740,11 +764,16 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         // const char* map_array_name = map_count ? (program_name + "_maps").c_str() : "NULL";
         auto map_array_name = map_count ? (program_name + "_maps") : std::string("NULL");
         auto helper_array_name = helper_count ? (program_name + "_helpers") : std::string("NULL");
+        auto program_type_guid_name = program_name + "_program_type_guid";
+        auto attach_type_guid_name = program_name + "_attach_type_guid";
         output_stream << "\t{ " << sanitize_name(program_name) << ", "
                       << "\"" << name.c_str() << "\", "
                       << "\"" << program.program_name.c_str() << "\", " << map_array_name.c_str() << ", "
                       << program.referenced_map_indices.size() << ", " << helper_array_name.c_str() << ", "
-                      << program.referenced_helper_indices.size() << ", " << program.output.size() << "}," << std::endl;
+                      << program.referenced_helper_indices.size() << ", " << program.output.size() << ", "
+                      << "&" << sanitize_name(program_type_guid_name) << ", "
+                      << "&" << sanitize_name(attach_type_guid_name) << ", "
+                      << "}," << std::endl;
     }
     output_stream << "};" << std::endl;
     output_stream << std::endl;
@@ -759,6 +788,35 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
     output_stream << format_string(
         "metadata_table_t %s = { _get_programs, _get_maps, _get_helpers };\n",
         c_name.c_str() + std::string("_metadata_table"));
+}
+
+std::string
+bpf_code_generator::format_guid(_In_ const GUID* guid)
+{
+    std::string output(100, '\0');
+    std::string format_string = "{0x%08x, 0x%04x, 0x%04x, {0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x}}";
+    auto count = snprintf(
+        output.data(),
+        output.size(),
+        format_string.c_str(),
+        guid->Data1,
+        guid->Data2,
+        guid->Data3,
+        guid->Data4[0],
+        guid->Data4[1],
+        guid->Data4[2],
+        guid->Data4[3],
+        guid->Data4[4],
+        guid->Data4[5],
+        guid->Data4[6],
+        guid->Data4[7]);
+
+    if (count < 0) {
+        throw std::runtime_error("Error formatting GUID");
+    }
+
+    output.resize(strlen(output.c_str()));
+    return output;
 }
 
 std::string

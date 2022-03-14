@@ -93,6 +93,8 @@ class bpf_code_generator
         std::vector<output_instruction_t> output;
         std::set<std::string> referenced_registers;
         std::string program_name;
+        GUID program_type;
+        GUID expected_attach_type;
         // Indices of the maps used in this section.
         std::set<size_t> referenced_map_indices;
         // Indices of the helper functions used in this section.
@@ -105,6 +107,13 @@ class bpf_code_generator
      */
     void
     extract_program(const std::string& section_name);
+
+    /**
+     * @brief Get the program and attach type from the section name.
+     *
+     */
+    void
+    get_program_and_attach_type(const std::string& section_name);
 
     /**
      * @brief Extract the helper function and map relocation data from the eBPF file.
@@ -158,6 +167,15 @@ class bpf_code_generator
         const std::string insert_2 = "",
         const std::string insert_3 = "",
         const std::string insert_4 = "");
+
+    /**
+     * @brief Format a GUID as a string.
+     *
+     * @param[in] Pointer to the GUID to be formatted.
+     * @return The formatted string.
+     */
+    std::string
+    format_guid(_In_ const GUID* guid);
 
     /**
      * @brief Convert a name to a valid C identifier.

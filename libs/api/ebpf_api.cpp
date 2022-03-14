@@ -2046,7 +2046,7 @@ Done:
 static ebpf_result_t
 _load_native_programs(
     _In_ const GUID* module_id,
-    _In_ const ebpf_program_type_t* program_type,
+    _In_opt_ const ebpf_program_type_t* program_type,
     size_t count_of_maps,
     size_t count_of_programs)
 {
@@ -2064,9 +2064,9 @@ _load_native_programs(
     request.header.id = EBPF_OPERATION_LOAD_NATIVE_PROGRAMS;
     request.header.length = sizeof(ebpf_operation_load_native_programs_request_t);
     request.module_id = *module_id;
-    request.program_type = *program_type;
+    request.program_type = program_type ? *program_type : GUID_NULL;
 
-    error = invoke_ioctl(request, *reply);
+    error = invoke_ioctl(request, reply_buffer);
     if (error != ERROR_SUCCESS) {
         result = win32_error_code_to_ebpf_result(error);
         goto Done;
@@ -2152,7 +2152,8 @@ _ebpf_program_load_native(
 
 Done:
     // TODO: Add all the above code in try catch.
-    delete_service(service_handle);
+    // ANUSA TODO: delete_service is commented for debugging purpose. Uncomment it later.
+    // delete_service(service_handle);
     return result;
 }
 
