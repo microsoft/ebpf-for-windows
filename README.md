@@ -1,4 +1,4 @@
-<img src="https://user-images.githubusercontent.com/22178676/158223145-b0fd4151-41e9-4fc3-8b0d-0bf3c37fc772.svg" width=75 height=75 align=left />
+<img src="https://github.com/dahavey/ebpf-for-windows/blob/main/docs/eBPF%20logo%20png%20800px.png" width=75 height=75 align=left />
 
 # eBPF for Windows<br>
 eBPF is a well-known technology for providing programmability and agility, especially for extending an
