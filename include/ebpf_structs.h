@@ -117,7 +117,10 @@ enum bpf_prog_type
     BPF_PROG_TYPE_UNSPEC,
     BPF_PROG_TYPE_XDP,
     BPF_PROG_TYPE_BIND, // TODO(#333): replace with cross-platform program type
+    BPF_PROG_TYPE_SAMPLE = 999
 };
+
+typedef enum bpf_prog_type bpf_prog_type_t;
 
 #define XDP_FLAGS_REPLACE 0x01
 

@@ -25,10 +25,9 @@ This document discusses the steps to set up such a selfhosted actions-runner tha
 6) Follow the [VM Installation Instructions](vm-setup.md) to set up **two test VMs** and perform one-time setup steps. Then create a snapshot named **baseline** for each of the VMs.
 7) Connect the two test VMs.
    1) Create a new VMSwitch instance: `New-VMSwitch -Name <VMSwitch Name> -SwitchType Private`
-   2) Add a VM NIC on each VM and connect to the private VMSwitch: `Add-VMNetworkAdapter -VMName <VMName> -SwitchName <VMSwitch Name>`
-   3) Assign IP address on the NICs on the VM (run from inside the VM): `New-NetIPAddress -InterfaceAlias <Interface Name> -IPAddress <IP address> -PrefixLength <Prefix length>`. The tests require one IPv4 and one IPv6 address on each of the VM NICs.
+   2) Add two VM NICs on the first VM and one VM NIC on the other VM. Connect the NICs to the private VMSwitch: `Add-VMNetworkAdapter -VMName <VMName> -SwitchName <VMSwitch Name>`
 8) Edit test configuration JSON files.
-   1) Edit `test_execution.json` file. Add the name of the one of the VMs in `BasicTest` section. Add the names of both the VMs in `MultiVMTest` section along with IPv4 and IPv6 addresses assigned in step (3) above.
+   1) Edit `test_execution.json` file. Add the name of the one of the VMs in `BasicTest` section. Add the names of both the VMs in `MultiVMTest` section along with the "Interfaces" section that must contain information about the network interfaces created in step 7.2 Above. This section must contain the interface alias, and IPv4 and IPv6 addresses. The CICD test automation would apply these IP addresses on the NICs of the test VM.
    2) Edit `vm_list.json` with the names of the two test VMs.
 9) Store the VM administrator credential:
    1) `Install-Module CredentialManager -force`

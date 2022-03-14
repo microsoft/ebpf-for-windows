@@ -71,8 +71,7 @@ TEST_CASE("valid bpf_load_program", "[libbpf]")
     REQUIRE(program_info_size == sizeof(program_info));
     REQUIRE(program_info.nr_map_ids == 0);
 
-    // TODO(issue #223): change below to BPF_PROG_TYPE_XDP.
-    REQUIRE(program_info.type == BPF_PROG_TYPE_UNSPEC);
+    REQUIRE(program_info.type == BPF_PROG_TYPE_XDP);
 
     Platform::_close(program_fd);
 }
@@ -146,8 +145,7 @@ TEST_CASE("valid bpf_load_program with map", "[libbpf]")
     REQUIRE(program_info_size == sizeof(program_info));
     REQUIRE(program_info.nr_map_ids == 1);
 
-    // TODO(issue #223): change below to BPF_PROG_TYPE_XDP.
-    REQUIRE(program_info.type == BPF_PROG_TYPE_UNSPEC);
+    REQUIRE(program_info.type == BPF_PROG_TYPE_XDP);
 
     Platform::_close(program_fd);
     Platform::_close(map_fd);
@@ -1368,7 +1366,7 @@ TEST_CASE("BPF_PROG_BIND_MAP etc.", "[libbpf]")
     REQUIRE(bpf(BPF_OBJ_GET_INFO_BY_FD, &attr, sizeof(attr)) == 0);
     REQUIRE(attr.info.info_len == sizeof(program_info));
     REQUIRE(program_info.nr_map_ids == 0);
-    REQUIRE(program_info.type == BPF_PROG_TYPE_UNSPEC); // TODO(issue #223): change to BPF_PROG_TYPE_XDP.
+    REQUIRE(program_info.type == BPF_PROG_TYPE_XDP);
 
     // Verify we can enumerate the program id.
     memset(&attr, 0, sizeof(attr));

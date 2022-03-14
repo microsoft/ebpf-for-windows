@@ -560,7 +560,7 @@ TEST_CASE("program", "[execution_context]")
 
     REQUIRE(ebpf_program_initialize(program.get(), &program_parameters) == EBPF_SUCCESS);
 
-    const ebpf_program_type_t* returned_program_type = ebpf_program_type(program.get());
+    const ebpf_program_type_t* returned_program_type = ebpf_program_type_uuid(program.get());
     REQUIRE(
         memcmp(&program_parameters.program_type, returned_program_type, sizeof(program_parameters.program_type)) == 0);
 
