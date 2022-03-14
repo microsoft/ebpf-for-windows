@@ -13,31 +13,23 @@
 //
 // Utility functions.
 //
-NTSTATUS
+__forceinline static NTSTATUS
 _net_ebpf_extension_xdp_validate_if_index(uint32_t if_index)
 {
     NTSTATUS status = STATUS_SUCCESS;
-    PMIB_IF_TABLE2 table;
-    ULONG i;
-    bool valid_if_index = FALSE;
-
-    status = GetIfTable2(&table);
-    if (!NT_SUCCESS(status))
+    MIB_IF_ROW2* if_row = NULL;
+    if_row =
+        (MIB_IF_ROW2*)ExAllocatePoolUninitialized(NonPagedPoolNx, sizeof(MIB_IF_ROW2), NET_EBPF_EXTENSION_POOL_TAG);
+    if (if_row == NULL) {
+        status = STATUS_NO_MEMORY;
         goto Exit;
-
-    for (i = 0; i < table->NumEntries; i++) {
-        if (table->Table[i].InterfaceIndex == if_index) {
-            valid_if_index = TRUE;
-            break;
-        }
     }
-
-    if (!valid_if_index)
-        status = STATUS_INVALID_PARAMETER;
-
+    memset(if_row, 0, sizeof(MIB_IF_ROW2));
+    if_row->InterfaceIndex = if_index;
+    status = GetIfEntry2(if_row);
 Exit:
-    if (table != NULL)
-        FreeMibTable(table);
+    if (if_row != NULL)
+        ExFreePool(if_row);
     return status;
 }
 
@@ -145,7 +137,7 @@ net_ebpf_extension_xdp_on_client_attach(_In_ const net_ebpf_extension_hook_clien
             goto Exit;
         }
     } else {
-        if (_net_ebpf_extension_xdp_validate_if_index(if_index) != STATUS_SUCCESS) {
+        if (!NT_SUCCESS(_net_ebpf_extension_xdp_validate_if_index(if_index))) {
             result = EBPF_INVALID_ARGUMENT;
             goto Exit;
         }
@@ -174,7 +166,7 @@ net_ebpf_extension_xdp_on_client_attach(_In_ const net_ebpf_extension_hook_clien
     }
 
     // Allocate buffer for WFP filter context.
-    filter_context = (void*)ExAllocatePoolUninitialized(
+    filter_context = (net_ebpf_extension_xdp_wfp_filter_context_t*)ExAllocatePoolUninitialized(
         NonPagedPoolNx, sizeof(net_ebpf_extension_xdp_wfp_filter_context_t), NET_EBPF_EXTENSION_POOL_TAG);
     if (filter_context == NULL) {
         result = EBPF_NO_MEMORY;

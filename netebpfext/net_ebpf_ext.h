@@ -88,7 +88,7 @@ net_ebpf_extension_add_wfp_filters(
 void
 net_ebpf_extension_delete_wfp_filters(uint32_t filter_count, _In_count_(filter_count) uint64_t* filter_ids);
 
-// eBPF Hook WFP Sublayer GUID.
+// eBPF WFP Sublayer GUID.
 // 7c7b3fb9-3331-436a-98e1-b901df457fff
 DEFINE_GUID(EBPF_SUBLAYER, 0x7c7b3fb9, 0x3331, 0x436a, 0x98, 0xe1, 0xb9, 0x01, 0xdf, 0x45, 0x7f, 0xff);
 

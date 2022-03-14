@@ -210,7 +210,6 @@ void
 net_ebpf_extension_hook_client_set_provider_data(_In_ net_ebpf_extension_hook_client_t* hook_client, const void* data)
 {
     hook_client->provider_data = (void*)data;
-    ;
 }
 
 const void*

@@ -349,7 +349,7 @@ net_ebpf_extension_initialize_wfp_components(_Inout_ void* device_object)
     RtlZeroMemory(&ebpf_hook_sub_layer, sizeof(FWPM_SUBLAYER));
 
     ebpf_hook_sub_layer.subLayerKey = EBPF_SUBLAYER;
-    ebpf_hook_sub_layer.displayData.name = L"EBPF hook Sub-Layer";
+    ebpf_hook_sub_layer.displayData.name = L"EBPF Sub-Layer";
     ebpf_hook_sub_layer.displayData.description = L"Sub-Layer for use by EBPF callouts";
     ebpf_hook_sub_layer.flags = 0;
     ebpf_hook_sub_layer.weight = FWP_EMPTY; // auto-weight.;
