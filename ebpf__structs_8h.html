@@ -128,6 +128,8 @@ Typedefs</h2></td></tr>
 <tr class="memitem:ab8db12973e5e476b352a3a3c7470a635"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__ebpf__map__definition__in__file.html">_ebpf_map_definition_in_file</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__structs_8h.html#ab8db12973e5e476b352a3a3c7470a635">ebpf_map_definition_in_file_t</a></td></tr>
 <tr class="memdesc:ab8db12973e5e476b352a3a3c7470a635"><td class="mdescLeft">&#160;</td><td class="mdescRight">eBPF Map Definition as it appears in the maps section of an ELF file.  <a href="ebpf__structs_8h.html#ab8db12973e5e476b352a3a3c7470a635">More...</a><br /></td></tr>
 <tr class="separator:ab8db12973e5e476b352a3a3c7470a635"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a35a5dda657202d3aa5cdbc41f809714f"><td class="memItemLeft" align="right" valign="top">typedef enum <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0">bpf_prog_type</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__structs_8h.html#a35a5dda657202d3aa5cdbc41f809714f">bpf_prog_type_t</a></td></tr>
+<tr class="separator:a35a5dda657202d3aa5cdbc41f809714f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a148e0524861ec2c26aa4a73343c245c2"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__ebpf__windows__program__type__data.html">_ebpf_windows_program_type_data</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__structs_8h.html#a148e0524861ec2c26aa4a73343c245c2">ebpf_windows_program_type_data_t</a></td></tr>
 <tr class="separator:a148e0524861ec2c26aa4a73343c245c2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
@@ -193,7 +195,8 @@ Enumerations</h2></td></tr>
 <tr class="separator:aa752b12bfaedda8a28a7a88c1b96f272"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0f8242763b15ec665eaa47c6add861a0"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0">bpf_prog_type</a> { <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0a958e0e8697a05086ba164ab5fea3eeb7">BPF_PROG_TYPE_UNSPEC</a>, 
 <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0a1945ca3d46bd1e589c4d0effe14f18d6">BPF_PROG_TYPE_XDP</a>, 
-<a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0a2af8d41961c186b1a62fcc54a29446d2">BPF_PROG_TYPE_BIND</a>
+<a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0a2af8d41961c186b1a62fcc54a29446d2">BPF_PROG_TYPE_BIND</a>, 
+<a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0af7ae714d5dd03e2489ec472fd252165c">BPF_PROG_TYPE_SAMPLE</a> = 999
  }</td></tr>
 <tr class="separator:a0f8242763b15ec665eaa47c6add861a0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a354e84389719f1a5541fbca272618eaf"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__structs_8h.html#a354e84389719f1a5541fbca272618eaf">bpf_link_type</a> { <a class="el" href="ebpf__structs_8h.html#a354e84389719f1a5541fbca272618eafa0de2e37582b89cb7fe3a05433604fbec">BPF_LINK_TYPE_UNSPEC</a>, 
@@ -292,6 +295,20 @@ Enumerations</h2></td></tr>
 </div>
 </div>
 <h2 class="groupheader">Typedef Documentation</h2>
+<a id="a35a5dda657202d3aa5cdbc41f809714f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a35a5dda657202d3aa5cdbc41f809714f">&#9670;&nbsp;</a></span>bpf_prog_type_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef enum <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0">bpf_prog_type</a> <a class="el" href="ebpf__structs_8h.html#a35a5dda657202d3aa5cdbc41f809714f">bpf_prog_type_t</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <a id="aa03abb9b99ca6cfa2fa19f2fb8140df8"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#aa03abb9b99ca6cfa2fa19f2fb8140df8">&#9670;&nbsp;</a></span>ebpf_id_t</h2>
 
@@ -491,6 +508,7 @@ Enumerations</h2></td></tr>
 <tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="a0f8242763b15ec665eaa47c6add861a0a958e0e8697a05086ba164ab5fea3eeb7"></a>BPF_PROG_TYPE_UNSPEC&#160;</td><td class="fielddoc"></td></tr>
 <tr><td class="fieldname"><a id="a0f8242763b15ec665eaa47c6add861a0a1945ca3d46bd1e589c4d0effe14f18d6"></a>BPF_PROG_TYPE_XDP&#160;</td><td class="fielddoc"></td></tr>
 <tr><td class="fieldname"><a id="a0f8242763b15ec665eaa47c6add861a0a2af8d41961c186b1a62fcc54a29446d2"></a>BPF_PROG_TYPE_BIND&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="a0f8242763b15ec665eaa47c6add861a0af7ae714d5dd03e2489ec472fd252165c"></a>BPF_PROG_TYPE_SAMPLE&#160;</td><td class="fielddoc"></td></tr>
 </table>
 
 </div>
