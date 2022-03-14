@@ -118,7 +118,7 @@ static HANDLE _fwp_engine_handle;
 void
 net_ebpf_extension_delete_wfp_filters(uint32_t filter_count, _In_count_(filter_count) uint64_t* filter_ids)
 {
-    for (uint32_t index = 0; index <= filter_count; index++)
+    for (uint32_t index = 0; index < filter_count; index++)
         FwpmFilterDeleteById(_fwp_engine_handle, filter_ids[index]);
 }
 
