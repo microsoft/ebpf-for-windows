@@ -1,5 +1,6 @@
-# eBPF for Windows
+<img src="docs/eBPF%20logo%20png%20800px.png" width=75 height=75 align=left />
 
+# eBPF for Windows<br>
 eBPF is a well-known technology for providing programmability and agility, especially for extending an
 OS kernel, for use cases such as DoS protection and observability. This project is a work-in-progress that
 allows using existing eBPF
