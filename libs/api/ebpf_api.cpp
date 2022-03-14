@@ -92,6 +92,7 @@ ebpf_api_initiate()
 {
     uint32_t result;
 
+    ebpf_trace_initiate();
     // This is best effort. If device handle does not initialize,
     // it will be re-attempted before an IOCTL call is made.
     initialize_device_handle();
@@ -111,6 +112,7 @@ ebpf_api_terminate()
     _clean_up_ebpf_objects();
     clean_up_device_handle();
     clean_up_rpc_binding();
+    ebpf_trace_terminate();
 }
 
 static ebpf_result_t
