@@ -90,7 +90,7 @@
       <ConformanceMode>true</ConformanceMode>
       <RuntimeLibrary>MultiThreadedDebugDll</RuntimeLibrary>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)libs\api;$(SolutionDir)libs\ebpfnetsh;$(SolutionDir)libs\execution_context;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\user;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)tests\end_to_end;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(SolutionDir)tests\sample;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)\netebpfext;$(OutDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)libs\api;$(SolutionDir)libs\ebpfnetsh;$(SolutionDir)libs\execution_context;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\user;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)tests\end_to_end;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(SolutionDir)tests\sample;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)\netebpfext;$(OutDir);$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <TreatWarningAsError>true</TreatWarningAsError>
       <SupportJustMyCode>false</SupportJustMyCode>
@@ -109,7 +109,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;CONFIG_BPF_JIT_ALWAYS_ON=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)libs\api;$(SolutionDir)libs\ebpfnetsh;$(SolutionDir)libs\execution_context;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\user;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)tests\end_to_end;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(SolutionDir)tests\sample;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)\netebpfext;$(OutDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)libs\api;$(SolutionDir)libs\ebpfnetsh;$(SolutionDir)libs\execution_context;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\user;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)tests\end_to_end;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(SolutionDir)tests\sample;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)\netebpfext;$(OutDir);$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <TreatWarningAsError>true</TreatWarningAsError>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
@@ -137,6 +137,9 @@
     </ProjectReference>
     <ProjectReference Include="$(SolutionDir)tests\libs\util\test_util.vcxproj">
       <Project>{d6725f19-b9bf-435f-80f2-c5f3ef0f4b8f}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\..\external\Catch2\build\src\Catch2WithMain.vcxproj">
+      <Project>{8bd3552a-2cfb-4a59-ab15-2031b97ada1e}</Project>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
