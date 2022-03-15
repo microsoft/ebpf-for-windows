@@ -502,7 +502,7 @@ ebpf_core_disable_native_programs(_In_ const void* native_module)
     ebpf_result_t result;
     uint32_t start_id = 0;
     uint32_t next_id = 0;
-    ebpf_handle_t program_handle;
+    // ebpf_handle_t program_handle;
     ebpf_program_t* program = NULL;
 
     for (;;) {
@@ -514,6 +514,14 @@ ebpf_core_disable_native_programs(_In_ const void* native_module)
         if (result != EBPF_SUCCESS) {
             break;
         }
+
+        result = ebpf_object_reference_by_id(next_id, EBPF_OBJECT_PROGRAM, (ebpf_core_object_t**)&program);
+        if (result != EBPF_SUCCESS) {
+            // It is possible the program object gets deleted by the time we reach here.
+            continue;
+        }
+
+        /*
         result = ebpf_core_get_handle_by_id(EBPF_OBJECT_PROGRAM, next_id, &program_handle);
         if (result != EBPF_SUCCESS) {
             // It is possible the program object gets deleted by the time we reach here.
@@ -523,9 +531,12 @@ ebpf_core_disable_native_programs(_In_ const void* native_module)
         if (result != EBPF_SUCCESS) {
             break;
         }
+        */
 
         // "Disable" the program.
         ebpf_program_disable_native(program, native_module);
+
+        ebpf_object_release_reference((ebpf_core_object_t*)program);
 
         start_id = next_id;
     }
@@ -594,9 +605,6 @@ _ebpf_core_protocol_load_native_programs(
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result;
-    // wchar_t* service_name = NULL;
-    // ebpf_native_t* native = NULL;
-    // size_t service_name_length = 0;
     ebpf_handle_t* map_handles = NULL;
     size_t count_of_map_handles = 0;
     ebpf_handle_t* program_handles = NULL;
@@ -658,6 +666,9 @@ _ebpf_core_protocol_load_native_programs(
 Done:
     // TODO: If this call failed, stop the native driver. ebpfapi will create a
     // new service for the driver in the next attempt.
+    if (result != EBPF_SUCCESS) {
+        ebpf_native_unload(&request->module_id);
+    }
 
     EBPF_RETURN_RESULT(result);
 }

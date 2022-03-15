@@ -70,6 +70,9 @@ extern "C"
     ebpf_result_t
     ebpf_native_get_count_of_maps(_In_ const GUID* module_id, _Out_ size_t* count_of_maps);
 
+    ebpf_result_t
+    ebpf_native_unload(_In_ const GUID* module_id);
+
     /**
      * @brief Get a list of maps associated with the eBPF program.
      *

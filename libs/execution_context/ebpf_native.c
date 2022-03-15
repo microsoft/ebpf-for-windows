@@ -43,6 +43,7 @@ typedef struct _ebpf_native
     bool cleanup_initiated;
     wchar_t* service_name;
     bool detaching;
+    bool unloading;
     ebpf_lock_t lock;
     // ebpf_free_native_t free_function;
     ebpf_native_map_t* maps;
@@ -471,8 +472,9 @@ _ebpf_native_initialize_maps(_In_ ebpf_native_map_t* native_maps, _In_ map_entry
         if (maps[i].definition.pinning == PIN_GLOBAL_NS) {
             // Construct the pin path.
             size_t prefix_length = strnlen(DEFAULT_PIN_ROOT_PATH, EBPF_MAX_PIN_PATH_LENGTH);
-            size_t name_length = strnlen(maps[i].name, EBPF_MAX_PIN_PATH_LENGTH);
-            if (prefix_length + name_length + 1 >= EBPF_MAX_PIN_PATH_LENGTH) {
+            size_t name_length = strnlen_s(maps[i].name, BPF_OBJ_NAME_LEN);
+            if (name_length == 0 || name_length >= BPF_OBJ_NAME_LEN ||
+                prefix_length + name_length + 1 >= EBPF_MAX_PIN_PATH_LENGTH) {
                 result = EBPF_INVALID_ARGUMENT;
                 goto Done;
             }
@@ -692,6 +694,7 @@ Done:
     if (result != EBPF_SUCCESS) {
         _ebpf_native_cleanup_maps(native_module->maps, native_module->map_count);
         native_module->maps = NULL;
+        native_module->map_count = 0;
     }
     if (map_name.value != NULL) {
         ebpf_free(map_name.value);
@@ -865,9 +868,10 @@ static _Requires_lock_held_(native_module->lock) ebpf_result_t
         program_entry_t* program = native_program->entry;
         ebpf_program_parameters_t parameters = {0};
 
-        program_name_length = strnlen_s(program->program_name, EBPF_MAX_PIN_PATH_LENGTH);
-        section_name_length = strnlen_s(program->section_name, EBPF_MAX_PIN_PATH_LENGTH);
-        if (program_name_length >= EBPF_MAX_PIN_PATH_LENGTH || section_name_length >= EBPF_MAX_PIN_PATH_LENGTH) {
+        program_name_length = strnlen_s(program->program_name, BPF_OBJ_NAME_LEN);
+        section_name_length = strnlen_s(program->section_name, BPF_OBJ_NAME_LEN);
+        if (program_name_length == 0 || program_name_length >= BPF_OBJ_NAME_LEN || section_name_length == 0 ||
+            section_name_length >= BPF_OBJ_NAME_LEN) {
             result = EBPF_INVALID_ARGUMENT;
             break;
         }
@@ -929,6 +933,7 @@ static _Requires_lock_held_(native_module->lock) ebpf_result_t
     if (result != EBPF_SUCCESS) {
         _ebpf_native_cleanup_programs(native_module->programs, native_module->program_count);
         native_module->programs = NULL;
+        native_module->program_count = 0;
     }
 
     ebpf_free(program_name);
@@ -1097,11 +1102,6 @@ ebpf_native_load_programs(
     ebpf_lock_unlock(&local_client_context->lock, native_state);
     native_lock_acquired = false;
 
-    // Release the initial reference on the native module,
-    // once the programs have been loaded.
-    ebpf_native_release_reference(local_client_context);
-
-    // TODO: Return the list of all the map and program handles back to the caller.
     *map_handles = ebpf_allocate(sizeof(ebpf_handle_t) * local_client_context->map_count);
     if (*map_handles == NULL) {
         result = EBPF_NO_MEMORY;
@@ -1114,12 +1114,14 @@ ebpf_native_load_programs(
         goto Done;
     }
 
+    *count_of_map_handles = local_client_context->map_count;
     for (int i = 0; i < local_client_context->map_count; i++) {
-        *map_handles[i] = local_client_context->maps[i].handle;
+        (*map_handles)[i] = local_client_context->maps[i].handle;
     }
 
+    *count_of_program_handles = local_client_context->program_count;
     for (int i = 0; i < local_client_context->program_count; i++) {
-        *program_handles[i] = local_client_context->programs[i].handle;
+        (*program_handles)[i] = local_client_context->programs[i].handle;
     }
 
 Done:
@@ -1135,6 +1137,8 @@ Done:
         ebpf_free(local_service_name);
         ebpf_free(*map_handles);
         ebpf_free(*program_handles);
+        *map_handles = NULL;
+        *program_handles = NULL;
     }
 
     return result;
@@ -1181,5 +1185,42 @@ ebpf_native_get_count_of_maps(_In_ const GUID* module_id, _Out_ size_t* count_of
 
 Done:
     ebpf_lock_unlock(&_ebpf_client_table_lock, state);
+    return result;
+}
+
+ebpf_result_t
+ebpf_native_unload(_In_ const GUID* module_id)
+{
+    ebpf_result_t result;
+    ebpf_lock_state_t state = 0;
+    ebpf_lock_state_t native_state = 0;
+    bool lock_acquired = false;
+    ebpf_native_t** existing_native_module = NULL;
+    ebpf_native_t* local_client_context = NULL;
+
+    // Find the native entry in hash table.
+    state = ebpf_lock_lock(&_ebpf_client_table_lock);
+    lock_acquired = true;
+    result = ebpf_hash_table_find(_ebpf_client_table, (const uint8_t*)module_id, (uint8_t**)&existing_native_module);
+    if (result != EBPF_SUCCESS) {
+        result = EBPF_OBJECT_NOT_FOUND;
+        goto Done;
+    }
+    local_client_context = *existing_native_module;
+    native_state = ebpf_lock_lock(&local_client_context->lock);
+    local_client_context->unloading = true;
+    ebpf_lock_unlock(&local_client_context->lock, native_state);
+
+    ebpf_lock_unlock(&_ebpf_client_table_lock, state);
+    lock_acquired = false;
+
+    ebpf_native_unload_module(local_client_context->service_name);
+
+Done:
+    if (lock_acquired) {
+        ebpf_lock_unlock(&_ebpf_client_table_lock, state);
+        lock_acquired = false;
+    }
+
     return result;
 }

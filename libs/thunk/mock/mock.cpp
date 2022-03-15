@@ -121,7 +121,7 @@ _is_native_program(_In_ const char* file_name)
 }
 
 uint32_t
-_ebpf_create_registry_key(HKEY root_key, _In_ const wchar_t* path)
+_create_registry_key(HKEY root_key, _In_ const wchar_t* path)
 {
     UNREFERENCED_PARAMETER(root_key);
     UNREFERENCED_PARAMETER(path);
@@ -129,7 +129,7 @@ _ebpf_create_registry_key(HKEY root_key, _In_ const wchar_t* path)
 }
 
 uint32_t
-_ebpf_update_registry_value(
+_update_registry_value(
     HKEY root_key,
     _In_ const wchar_t* sub_key,
     DWORD type,

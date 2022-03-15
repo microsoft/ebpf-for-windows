@@ -65,6 +65,24 @@ _get_handle_from_file_descriptor(fd_t fd)
     return Platform::_get_osfhandle(fd);
 }
 
+inline static int
+_ebpf_create_registry_key(HKEY root_key, _In_ const wchar_t* path)
+{
+    return Platform::_create_registry_key(root_key, path);
+}
+
+inline static int
+_ebpf_update_registry_value(
+    HKEY root_key,
+    _In_ const wchar_t* sub_key,
+    DWORD type,
+    _In_ const wchar_t* value_name,
+    _In_ const void* value,
+    uint32_t value_size)
+{
+    return Platform::_update_registry_value(root_key, sub_key, type, value_name, value, value_size);
+}
+
 std::wstring
 get_wstring_from_string(std::string& text)
 {
@@ -1421,6 +1439,159 @@ initialize_map(_Out_ ebpf_map_t* map, _In_ const map_cache_t& map_cache)
 }
 
 static ebpf_result_t
+_initialize_ebpf_maps_native(
+    size_t count_of_maps, _In_reads_(count_of_maps) ebpf_handle_t* map_handles, _Inout_ std::vector<ebpf_map_t*>& maps)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_map_t* map = nullptr;
+
+    for (int i = 0; i < count_of_maps; i++) {
+        if (map_handles[i] == ebpf_handle_invalid) {
+            result = EBPF_INVALID_ARGUMENT;
+            goto Exit;
+        }
+        struct bpf_map_info info;
+        uint32_t info_size = (uint32_t)sizeof(info);
+        result = ebpf_object_get_info(map_handles[i], &info, &info_size);
+        if (result != EBPF_SUCCESS) {
+            goto Exit;
+        }
+
+        map = (ebpf_map_t*)calloc(1, sizeof(ebpf_map_t));
+        if (map == nullptr) {
+            result = EBPF_NO_MEMORY;
+            goto Exit;
+        }
+
+        map->map_definition.size = sizeof(map->map_definition);
+        map->map_definition.type = info.type;
+        map->map_definition.key_size = info.key_size;
+        map->map_definition.value_size = info.value_size;
+        map->map_definition.max_entries = info.max_entries;
+        map->map_definition.inner_map_id = info.inner_map_id;
+        map->map_fd = _create_file_descriptor_for_handle(map_handles[i]);
+        if (map->map_fd == ebpf_fd_invalid) {
+            result = EBPF_NO_MEMORY;
+            goto Exit;
+        }
+        map->map_handle = map_handles[i];
+        map_handles[i] = ebpf_handle_invalid;
+        map->name = _strdup(info.name);
+        if (map->name == nullptr) {
+            result = EBPF_NO_MEMORY;
+            goto Exit;
+        }
+
+        maps.emplace_back(map);
+        map = nullptr;
+    }
+
+Exit:
+    if (result != EBPF_SUCCESS) {
+        if (map != nullptr) {
+            clean_up_ebpf_map(map);
+            map = nullptr;
+        }
+
+        clean_up_ebpf_maps(maps);
+    }
+    return result;
+}
+
+static ebpf_result_t
+_initialize_ebpf_programs_native(
+    size_t count_of_programs,
+    _In_reads_(count_of_programs) ebpf_handle_t* program_handles,
+    _Inout_ std::vector<ebpf_program_t*>& programs)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_program_t* program = nullptr;
+
+    for (int i = 0; i < count_of_programs; i++) {
+        if (program_handles[i] == ebpf_handle_invalid) {
+            result = EBPF_INVALID_ARGUMENT;
+            goto Exit;
+        }
+        struct bpf_prog_info info;
+        uint32_t info_size = (uint32_t)sizeof(info);
+        result = ebpf_object_get_info(program_handles[i], &info, &info_size);
+        if (result != EBPF_SUCCESS) {
+            goto Exit;
+        }
+
+        program = (ebpf_program_t*)calloc(1, sizeof(ebpf_program_t));
+        if (program == nullptr) {
+            result = EBPF_NO_MEMORY;
+            goto Exit;
+        }
+
+        program->fd = _create_file_descriptor_for_handle(program_handles[i]);
+        if (program->fd == ebpf_fd_invalid) {
+            result = EBPF_NO_MEMORY;
+            goto Exit;
+        }
+        program->handle = program_handles[i];
+        program_handles[i] = ebpf_handle_invalid;
+        program->program_name = _strdup(info.name);
+        if (program->program_name == nullptr) {
+            result = EBPF_NO_MEMORY;
+            goto Exit;
+        }
+        program->program_type = info.type_uuid;
+        // TODO: Change ebpf_object_get_info to also get section name from EC.
+
+        programs.emplace_back(program);
+        program = nullptr;
+    }
+
+Exit:
+    if (result != EBPF_SUCCESS) {
+        if (program != nullptr) {
+            clean_up_ebpf_program(program);
+            program = nullptr;
+        }
+
+        clean_up_ebpf_programs(programs);
+    }
+    return result;
+}
+
+static ebpf_result_t
+_initialize_ebpf_object_native(
+    _In_z_ const char* file_name,
+    size_t count_of_maps,
+    _In_reads_(count_of_maps) ebpf_handle_t* map_handles,
+    size_t count_of_programs,
+    _In_reads_(count_of_programs) ebpf_handle_t* program_handles,
+    _Out_ ebpf_object_t& object) noexcept
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+
+    result = _initialize_ebpf_programs_native(count_of_programs, program_handles, object.programs);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
+    result = _initialize_ebpf_maps_native(count_of_maps, map_handles, object.maps);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
+    object.object_name = _strdup(file_name);
+    if (object.object_name == nullptr) {
+        result = EBPF_NO_MEMORY;
+        goto Exit;
+    }
+
+Exit:
+    if (result != EBPF_SUCCESS) {
+        clean_up_ebpf_programs(object.programs);
+        clean_up_ebpf_maps(object.maps);
+    }
+    return result;
+}
+
+static ebpf_result_t
 _initialize_ebpf_object_from_elf(
     _In_z_ const char* file_name,
     _In_opt_z_ const char* object_name,
@@ -1962,43 +2133,6 @@ ebpf_program_unload(_In_ struct bpf_program* program)
     return EBPF_SUCCESS;
 }
 
-/*
-static bool
-_is_native_program(_In_ const char* file_name)
-{
-    std::string file_name_string(file_name);
-    std::string file_extension = file_name_string.substr(file_name_string.find_last_of(".") + 1);
-    if (file_extension == "sys")
-        return true;
-#ifdef _DEBUG
-    if (file_extension == "dll")
-        return true;
-#endif
-    return false;
-}
-*/
-
-/*
-static ebpf_result_t
-_ebpf_update_registry_value(
-    HKEY root_key,
-    _In_ const wchar_t* sub_key,
-    DWORD type,
-    _In_ const wchar_t* value_name,
-    _In_ const void* value,
-    uint32_t value_size)
-{
-    HKEY key = nullptr;
-    uint32_t error = RegOpenKeyEx(root_key, sub_key, 0, KEY_WRITE | DELETE | KEY_READ, &key);
-    if (error != ERROR_SUCCESS) {
-        return win32_error_code_to_ebpf_result(error);
-    }
-    error = RegSetValueEx(key, value_name, 0, type, (PBYTE)value, value_size);
-
-    return win32_error_code_to_ebpf_result(error);
-}
-*/
-
 static ebpf_result_t
 _load_native_module(
     _In_ const std::wstring& service_path,
@@ -2048,14 +2182,18 @@ _load_native_programs(
     _In_ const GUID* module_id,
     _In_opt_ const ebpf_program_type_t* program_type,
     size_t count_of_maps,
-    size_t count_of_programs)
+    _Out_writes_(count_of_maps) ebpf_handle_t* map_handles,
+    size_t count_of_programs,
+    _Out_writes_(count_of_programs) ebpf_handle_t* program_handles)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     uint32_t error = ERROR_SUCCESS;
     ebpf_protocol_buffer_t reply_buffer;
     ebpf_operation_load_native_programs_request_t request;
     ebpf_operation_load_native_programs_reply_t* reply;
-    size_t handles_size = (count_of_maps + count_of_programs) * sizeof(ebpf_handle_t);
+    size_t map_handles_size = count_of_maps * sizeof(ebpf_handle_t);
+    size_t program_handles_size = count_of_programs * sizeof(ebpf_handle_t);
+    size_t handles_size = map_handles_size + program_handles_size;
 
     size_t buffer_size = offsetof(ebpf_operation_load_native_programs_reply_t, data) + handles_size;
     reply_buffer.resize(buffer_size);
@@ -2073,7 +2211,13 @@ _load_native_programs(
     }
 
     ebpf_assert(reply->header.id == ebpf_operation_id_t::EBPF_OPERATION_LOAD_NATIVE_PROGRAMS);
-    // TODO: Copy the handles returned by ioctl to the caller.
+    if (reply->map_handle_count != count_of_maps || reply->program_handle_count != count_of_programs) {
+        result = EBPF_FAILED;
+        goto Done;
+    }
+
+    memcpy(map_handles, reply->data, map_handles_size);
+    memcpy(program_handles, reply->data + map_handles_size, program_handles_size);
 
 Done:
     return result;
@@ -2100,13 +2244,12 @@ _ebpf_program_load_native(
     ebpf_protocol_buffer_t request_buffer;
     size_t count_of_maps = 0;
     size_t count_of_programs = 0;
+    ebpf_handle_t* map_handles = nullptr;
+    ebpf_handle_t* program_handles = nullptr;
+    ebpf_object_t* new_object = nullptr;
 
-    UNREFERENCED_PARAMETER(file_name);
-    UNREFERENCED_PARAMETER(program_type);
     UNREFERENCED_PARAMETER(attach_type);
     UNREFERENCED_PARAMETER(execution_type);
-    UNREFERENCED_PARAMETER(object);
-    UNREFERENCED_PARAMETER(program_fd);
 
     if (UuidCreate(&service_name_guid) != RPC_S_OK) {
         return EBPF_OPERATION_NOT_SUPPORTED;
@@ -2115,45 +2258,105 @@ _ebpf_program_load_native(
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
 
-    // 1. Create a driver service with a random name.
-    // TODO: Can also use UuidToString()
-    service_name = guid_to_wide_string(&service_name_guid);
+    try {
+        // 1. Create a driver service with a random name.
+        // TODO: Can also use UuidToString()
+        service_name = guid_to_wide_string(&service_name_guid);
 
-    result =
-        create_service(service_name.c_str(), get_wstring_from_string(file_name_string).c_str(), true, &service_handle);
-    if (result != EBPF_SUCCESS) {
-        goto Done;
-    }
+        result = create_service(
+            service_name.c_str(), get_wstring_from_string(file_name_string).c_str(), true, &service_handle);
+        if (result != EBPF_SUCCESS) {
+            goto Done;
+        }
 
-    // 2. Create registry path and update module ID in the service path.
-    paramaters_path = paramaters_path + service_name.c_str() + L"\\" + SERVICE_PARAMETERS;
-    error = Platform::_ebpf_create_registry_key(HKEY_LOCAL_MACHINE, paramaters_path.c_str());
-    if (error != ERROR_SUCCESS) {
-        result = win32_error_code_to_ebpf_result(error);
-        goto Done;
-    }
-    error = Platform::_ebpf_update_registry_value(
-        HKEY_LOCAL_MACHINE, paramaters_path.c_str(), REG_BINARY, NPI_MODULE_ID, &provider_module_id, sizeof(GUID));
-    if (error != ERROR_SUCCESS) {
-        result = win32_error_code_to_ebpf_result(error);
-        goto Done;
-    }
+        // 2. Create registry path and update module ID in the service path.
+        paramaters_path = paramaters_path + service_name.c_str() + L"\\" + SERVICE_PARAMETERS;
+        error = _ebpf_create_registry_key(HKEY_LOCAL_MACHINE, paramaters_path.c_str());
+        if (error != ERROR_SUCCESS) {
+            result = win32_error_code_to_ebpf_result(error);
+            goto Done;
+        }
+        error = _ebpf_update_registry_value(
+            HKEY_LOCAL_MACHINE, paramaters_path.c_str(), REG_BINARY, NPI_MODULE_ID, &provider_module_id, sizeof(GUID));
+        if (error != ERROR_SUCCESS) {
+            result = win32_error_code_to_ebpf_result(error);
+            goto Done;
+        }
 
-    service_path = service_path + service_name.c_str();
-    result = _load_native_module(service_path, &provider_module_id, &count_of_maps, &count_of_programs);
-    if (result != EBPF_SUCCESS) {
-        goto Done;
-    }
+        service_path = service_path + service_name.c_str();
+        result = _load_native_module(service_path, &provider_module_id, &count_of_maps, &count_of_programs);
+        if (result != EBPF_SUCCESS) {
+            goto Done;
+        }
 
-    result = _load_native_programs(&provider_module_id, program_type, count_of_maps, count_of_programs);
-    if (result != EBPF_SUCCESS) {
+        // Allocate buffer for program and map handles.
+        program_handles = (ebpf_handle_t*)calloc(count_of_programs, sizeof(ebpf_handle_t));
+        if (program_handles == nullptr) {
+            result = EBPF_NO_MEMORY;
+            goto Done;
+        }
+
+        if (count_of_maps > 0) {
+            map_handles = (ebpf_handle_t*)calloc(count_of_maps, sizeof(ebpf_handle_t));
+            if (map_handles == nullptr) {
+                result = EBPF_NO_MEMORY;
+                goto Done;
+            }
+        }
+
+        result = _load_native_programs(
+            &provider_module_id, program_type, count_of_maps, map_handles, count_of_programs, program_handles);
+        if (result != EBPF_SUCCESS) {
+            goto Done;
+        }
+
+        // Programs have been loaded and we have the program and map handles.
+        new_object = new (std::nothrow) ebpf_object_t();
+        if (new_object == nullptr) {
+            result = EBPF_NO_MEMORY;
+            goto Done;
+        }
+
+        result = _initialize_ebpf_object_native(
+            file_name, count_of_maps, map_handles, count_of_programs, program_handles, *new_object);
+        if (result != EBPF_SUCCESS) {
+            goto Done;
+        }
+
+        *object = new_object;
+        *program_fd = new_object->programs[0]->fd;
+    } catch (const std::bad_alloc&) {
+        result = EBPF_NO_MEMORY;
+        goto Done;
+    } catch (...) {
+        result = EBPF_FAILED;
         goto Done;
     }
 
 Done:
     // TODO: Add all the above code in try catch.
-    // ANUSA TODO: delete_service is commented for debugging purpose. Uncomment it later.
-    // delete_service(service_handle);
+    if (result != EBPF_SUCCESS) {
+        _clean_up_ebpf_object(new_object);
+        if (map_handles != nullptr) {
+            for (int i = 0; i < count_of_maps; i++) {
+                if (map_handles[i] != ebpf_handle_invalid && map_handles[i] != 0) {
+                    Platform::CloseHandle(map_handles[i]);
+                }
+            }
+        }
+
+        for (int i = 0; i < count_of_programs; i++) {
+            if (program_handles[i] != ebpf_handle_invalid && program_handles[i] != 0) {
+                Platform::CloseHandle(program_handles[i]);
+            }
+        }
+
+        stop_service(service_handle);
+    }
+    free(map_handles);
+    free(program_handles);
+
+    delete_service(service_handle);
     return result;
 }
 
@@ -2186,13 +2389,13 @@ ebpf_program_load(
 
     clear_map_descriptors();
 
-    // If this is a native driver file, load programs from native driver.
-    if (Platform::_is_native_program(file_name)) {
-        *log_buffer = nullptr;
-        return _ebpf_program_load_native(file_name, program_type, attach_type, execution_type, object, program_fd);
-    }
-
     try {
+        // If this is a native driver file, load programs from native driver.
+        if (Platform::_is_native_program(file_name)) {
+            *log_buffer = nullptr;
+            return _ebpf_program_load_native(file_name, program_type, attach_type, execution_type, object, program_fd);
+        }
+
         result = ebpf_object_open(file_name, nullptr, nullptr, program_type, attach_type, &new_object, log_buffer);
         if (result != EBPF_SUCCESS) {
             goto Done;

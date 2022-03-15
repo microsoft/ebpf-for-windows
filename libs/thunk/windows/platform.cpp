@@ -143,7 +143,7 @@ _is_native_program(_In_ const char* file_name)
 }
 
 uint32_t
-_ebpf_create_registry_key(HKEY root_key, _In_ const wchar_t* path)
+_create_registry_key(HKEY root_key, _In_ const wchar_t* path)
 {
     HKEY key = nullptr;
     uint32_t error;
@@ -157,7 +157,7 @@ _ebpf_create_registry_key(HKEY root_key, _In_ const wchar_t* path)
 }
 
 uint32_t
-_ebpf_update_registry_value(
+_update_registry_value(
     HKEY root_key,
     _In_ const wchar_t* sub_key,
     DWORD type,
@@ -175,4 +175,73 @@ _ebpf_update_registry_value(
 
     return error;
 }
+
+/*
+int
+_create_service(
+    _In_ const wchar_t* service_name, _In_ const wchar_t* file_path, bool kernel_mode, _Out_ SC_HANDLE* service_handle)
+{
+    SC_HANDLE local_service_handle = nullptr;
+    SC_HANDLE scm_handle = nullptr;
+    int error;
+    *service_handle = nullptr;
+    DWORD service_type = kernel_mode ? SERVICE_KERNEL_DRIVER : SERVICE_WIN32_OWN_PROCESS;
+
+    scm_handle = OpenSCManager(nullptr, nullptr, SC_MANAGER_ALL_ACCESS);
+    if (scm_handle == nullptr) {
+        return GetLastError();
+    }
+
+    WCHAR full_file_path[MAX_PATH] = {0};
+    error = GetFullPathName(file_path, MAX_PATH, full_file_path, nullptr);
+    if (error == 0) {
+        error = GetLastError();
+        goto Done;
+    }
+
+    // Install the driver service.
+    local_service_handle = CreateService(
+        scm_handle,           // SCM database
+        service_name,         // name of service
+        service_name,         // service name to display
+        SERVICE_ALL_ACCESS,   // desired access
+        service_type,         // service type
+        SERVICE_DEMAND_START, // start type
+        SERVICE_ERROR_NORMAL, // error control type
+        full_file_path,       // path to service's binary
+        nullptr,              // no load ordering group
+        nullptr,              // no tag identifier
+        nullptr,              // no dependencies
+        nullptr,              // No service start name
+        nullptr);             // no password
+
+    if (local_service_handle == nullptr) {
+        return GetLastError();
+    }
+    *service_handle = local_service_handle;
+
+Done:
+    if (scm_handle != nullptr) {
+        CloseServiceHandle(scm_handle);
+    }
+    return error;
+}
+
+int
+_delete_service(SC_HANDLE service_handle)
+{
+    if (!service_handle) {
+        return EBPF_SUCCESS;
+    }
+
+    int error = ERROR_SUCCESS;
+    if (!DeleteService(service_handle)) {
+        return GetLastError();
+    }
+
+    CloseServiceHandle(service_handle);
+
+    return error;
+}
+*/
 } // namespace Platform

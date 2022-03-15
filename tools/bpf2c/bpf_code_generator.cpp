@@ -793,8 +793,9 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
 std::string
 bpf_code_generator::format_guid(_In_ const GUID* guid)
 {
-    std::string output(100, '\0');
-    std::string format_string = "{0x%08x, 0x%04x, 0x%04x, {0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x}}";
+    std::string output(120, '\0');
+    std::string format_string =
+        "{0x%08x, 0x%04x, 0x%04x, {0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x}}";
     auto count = snprintf(
         output.data(),
         output.size(),
@@ -827,7 +828,7 @@ bpf_code_generator::format_string(
     const std::string insert_3,
     const std::string insert_4)
 {
-    std::string output(120, '\0');
+    std::string output(200, '\0');
     if (insert_2.empty()) {
         auto count = snprintf(output.data(), output.size(), format.c_str(), insert_1.c_str());
         if (count < 0)

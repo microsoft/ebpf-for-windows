@@ -55,15 +55,27 @@ bool
 _is_native_program(const char* file_name);
 
 uint32_t
-_ebpf_create_registry_key(HKEY root_key, _In_ const wchar_t* path);
+_create_registry_key(HKEY root_key, _In_ const wchar_t* path);
 
 uint32_t
-_ebpf_update_registry_value(
+_update_registry_value(
     HKEY root_key,
     _In_ const wchar_t* sub_key,
     DWORD type,
     _In_ const wchar_t* value_name,
     _In_ const void* value,
     uint32_t value_size);
+
+/*
+int
+_create_service(
+    _In_ const wchar_t* service_name,
+    _In_ const wchar_t* file_path,
+    bool kernel_mode,
+    _Out_ SC_HANDLE* service_handle);
+
+int
+    _delete_service(SC_HANDLE service_handle);
+*/
 
 } // namespace Platform

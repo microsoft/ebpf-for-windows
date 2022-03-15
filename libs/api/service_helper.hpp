@@ -27,3 +27,6 @@ create_service(
 
 ebpf_result_t
 delete_service(SC_HANDLE service_handle);
+
+ebpf_result_t
+stop_service(SC_HANDLE service_handle);

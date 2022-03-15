@@ -18,6 +18,9 @@
 
 using namespace std;
 
+#define MAX_RETRY_COUNT 20
+#define WAIT_TIME 500 // in ms.
+
 wstring
 guid_to_wide_string(GUID* guid)
 {
@@ -96,6 +99,10 @@ Done:
 ebpf_result_t
 delete_service(SC_HANDLE service_handle)
 {
+    if (!service_handle) {
+        return EBPF_SUCCESS;
+    }
+
     int error;
     ebpf_result_t result = EBPF_SUCCESS;
     if (!DeleteService(service_handle)) {
@@ -106,4 +113,55 @@ delete_service(SC_HANDLE service_handle)
     CloseServiceHandle(service_handle);
 
     return result;
+}
+
+static bool
+_check_service_state(SC_HANDLE service_handle, DWORD expected_state, DWORD* final_state)
+{
+    int retry_count = 0;
+    bool status = false;
+    int error;
+    SERVICE_STATUS service_status = {0};
+
+    // Query service state.
+    while (retry_count < MAX_RETRY_COUNT) {
+        if (!QueryServiceStatus(service_handle, &service_status)) {
+            error = GetLastError();
+            break;
+        } else if (service_status.dwCurrentState == expected_state) {
+            status = true;
+            break;
+        } else {
+            Sleep(WAIT_TIME);
+            retry_count++;
+        }
+    }
+
+    *final_state = service_status.dwCurrentState;
+    return status;
+}
+
+ebpf_result_t
+stop_service(SC_HANDLE service_handle)
+{
+    SERVICE_STATUS status;
+    bool service_stopped = false;
+    DWORD service_state;
+    int error = ERROR_SUCCESS;
+
+    if (service_handle == nullptr) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    if (!ControlService(service_handle, SERVICE_CONTROL_STOP, &status)) {
+        error = GetLastError();
+        return win32_error_code_to_ebpf_result(error);
+    }
+
+    service_stopped = _check_service_state(service_handle, SERVICE_STOPPED, &service_state);
+    if (!service_stopped) {
+        error = ERROR_SERVICE_REQUEST_TIMEOUT;
+    }
+
+    return win32_error_code_to_ebpf_result(error);
 }
