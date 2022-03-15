@@ -61,7 +61,7 @@ typedef struct _ebpf_program
     uint32_t* helper_function_ids;
 
     ebpf_epoch_work_item_t* cleanup_work_item;
-    ebpf_epoch_work_item_t* disable_work_item;
+    // ebpf_epoch_work_item_t* disable_work_item;
 
     // Lock protecting the fields below.
     ebpf_lock_t lock;
@@ -247,6 +247,7 @@ _ebpf_program_get_program_type(_In_ const ebpf_core_object_t* object)
  * @param[in] context Pointer to the ebpf_program_t passed as context in the
  * work-item.
  */
+/*
 static void
 _ebpf_program_epoch_disable(void* context)
 {
@@ -264,6 +265,7 @@ _ebpf_program_epoch_disable(void* context)
     program->disable_work_item = NULL;
     EBPF_RETURN_VOID();
 }
+*/
 
 /**
  * @brief Free invoked when the current epoch ends. Scheduled by
@@ -311,7 +313,7 @@ _ebpf_program_epoch_free(void* context)
     ebpf_free(program->helper_function_ids);
 
     ebpf_free(program->cleanup_work_item);
-    ebpf_free(program->disable_work_item);
+    // ebpf_free(program->disable_work_item);
     ebpf_free(program);
     EBPF_RETURN_VOID();
 }
@@ -425,11 +427,13 @@ ebpf_program_create(ebpf_program_t** program)
         goto Done;
     }
 
-    local_program->disable_work_item = ebpf_epoch_allocate_work_item(local_program, _ebpf_program_epoch_disable);
-    if (!local_program->disable_work_item) {
-        retval = EBPF_NO_MEMORY;
-        goto Done;
-    }
+    /*
+        local_program->disable_work_item = ebpf_epoch_allocate_work_item(local_program, _ebpf_program_epoch_disable);
+        if (!local_program->disable_work_item) {
+            retval = EBPF_NO_MEMORY;
+            goto Done;
+        }
+    */
 
     ebpf_list_initialize(&local_program->links);
     ebpf_lock_create(&local_program->lock);
@@ -451,6 +455,7 @@ Done:
     EBPF_RETURN_RESULT(retval);
 }
 
+/*
 bool
 ebpf_program_disabled(_In_ ebpf_program_t* program)
 {
@@ -463,6 +468,7 @@ ebpf_program_disabled(_In_ ebpf_program_t* program)
 
     return return_value;
 }
+*/
 
 ebpf_result_t
 ebpf_program_initialize(ebpf_program_t* program, const ebpf_program_parameters_t* program_parameters)
@@ -771,6 +777,7 @@ Done:
 }
 #endif
 
+/*
 void
 ebpf_program_disable_native(_Inout_ ebpf_program_t* program, _In_ const void* native_module)
 {
@@ -788,6 +795,7 @@ ebpf_program_disable_native(_Inout_ ebpf_program_t* program, _In_ const void* na
 Exit:
     ebpf_lock_unlock(&program->lock, state);
 }
+*/
 
 ebpf_result_t
 ebpf_program_load_code(

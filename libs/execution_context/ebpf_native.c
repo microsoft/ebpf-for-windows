@@ -149,12 +149,14 @@ ebpf_native_release_reference(ebpf_native_t* native)
     }
 }
 
+/*
 void
 _ebpf_native_unload(ebpf_native_t* native_module)
 {
     // 1. "Disable" all the programs loaded from this native module
     ebpf_core_disable_native_programs(native_module);
 }
+*/
 
 void
 ebpf_native_terminate()
@@ -305,7 +307,7 @@ _ebpf_native_client_detach_callback(_In_ void* context, _In_ const GUID* client_
     state = ebpf_lock_lock(&native_module->lock);
     native_module->detaching = true;
     ebpf_lock_unlock(&native_module->lock, state);
-    _ebpf_native_unload(native_module);
+    // _ebpf_native_unload(native_module);
     ebpf_native_release_reference(native_module);
 
 Done:

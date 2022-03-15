@@ -496,6 +496,7 @@ Done:
     EBPF_RETURN_RESULT(retval);
 }
 
+/*
 ebpf_result_t
 ebpf_core_disable_native_programs(_In_ const void* native_module)
 {
@@ -521,18 +522,6 @@ ebpf_core_disable_native_programs(_In_ const void* native_module)
             continue;
         }
 
-        /*
-        result = ebpf_core_get_handle_by_id(EBPF_OBJECT_PROGRAM, next_id, &program_handle);
-        if (result != EBPF_SUCCESS) {
-            // It is possible the program object gets deleted by the time we reach here.
-            continue;
-        }
-        result = ebpf_reference_object_by_handle(program_handle, EBPF_OBJECT_PROGRAM, (ebpf_core_object_t**)&program);
-        if (result != EBPF_SUCCESS) {
-            break;
-        }
-        */
-
         // "Disable" the program.
         ebpf_program_disable_native(program, native_module);
 
@@ -543,6 +532,7 @@ ebpf_core_disable_native_programs(_In_ const void* native_module)
 
     return result;
 }
+*/
 
 static ebpf_result_t
 _ebpf_core_protocol_load_native_module(
@@ -1051,10 +1041,12 @@ _ebpf_core_protocol_link_program(
     if (retval != EBPF_SUCCESS)
         goto Done;
 
-    if (ebpf_program_disabled(program)) {
-        retval = EBPF_EXTENSION_FAILED_TO_LOAD;
-        goto Done;
-    }
+    /*
+        if (ebpf_program_disabled(program)) {
+            retval = EBPF_EXTENSION_FAILED_TO_LOAD;
+            goto Done;
+        }
+    */
 
     retval = ebpf_link_create(&link);
     if (retval != EBPF_SUCCESS)
