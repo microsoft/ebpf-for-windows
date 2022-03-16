@@ -39,9 +39,24 @@ static uint64_t
 _ebpf_core_get_time_since_boot_ns();
 static uint64_t
 _ebpf_core_get_time_ns();
+static long
+_ebpf_core_trace_printk2(_In_reads_(fmt_size) const char* fmt, size_t fmt_size);
+static long
+_ebpf_core_trace_printk3(_In_reads_(fmt_size) const char* fmt, size_t fmt_size, uint64_t arg3);
+static long
+_ebpf_core_trace_printk4(_In_reads_(fmt_size) const char* fmt, size_t fmt_size, uint64_t arg3, uint64_t arg4);
+static long
+_ebpf_core_trace_printk5(
+    _In_reads_(fmt_size) const char* fmt, size_t fmt_size, uint64_t arg3, uint64_t arg4, uint64_t arg5);
 static int
 _ebpf_core_ring_buffer_output(
     _In_ ebpf_map_t* map, _In_reads_bytes_(length) uint8_t* data, size_t length, uint64_t flags);
+static uint64_t
+_ebpf_core_map_push_elem(_In_ ebpf_map_t* map, _In_ const uint8_t* value, uint64_t flags);
+static uint64_t
+_ebpf_core_map_pop_elem(_In_ ebpf_map_t* map, _Out_ uint8_t* value);
+static uint64_t
+_ebpf_core_map_peek_elem(_In_ ebpf_map_t* map, _Out_ uint8_t* value);
 
 #define EBPF_CORE_GLOBAL_HELPER_EXTENSION_VERSION 0
 
@@ -63,7 +78,15 @@ static const void* _ebpf_general_helpers[] = {
     (void*)&_ebpf_core_get_time_ns,
     (void*)&ebpf_core_csum_diff,
     // Ring buffer output.
-    (void*)&ebpf_ring_buffer_map_output};
+    (void*)&ebpf_ring_buffer_map_output,
+    (void*)&_ebpf_core_trace_printk2,
+    (void*)&_ebpf_core_trace_printk3,
+    (void*)&_ebpf_core_trace_printk4,
+    (void*)&_ebpf_core_trace_printk5,
+    (void*)&_ebpf_core_map_push_elem,
+    (void*)&_ebpf_core_map_pop_elem,
+    (void*)&_ebpf_core_map_peek_elem,
+};
 
 static ebpf_extension_provider_t* _ebpf_global_helper_function_provider_context = NULL;
 static ebpf_helper_function_addresses_t _ebpf_global_helper_function_dispatch_table = {
@@ -1639,6 +1662,124 @@ _ebpf_core_get_time_ns()
     return ebpf_query_time_since_boot(false) * 100;
 }
 
+// Pick a limit on string size based on the size of the eBPF stack.
+#define MAX_PRINTK_STRING_SIZE 512
+
+// Only integers are currently supported.
+#define PRINTK_SPECIFIER_CHARS "diux"
+
+static long
+_ebpf_core_trace_printk(_In_reads_(fmt_size) const char* fmt, size_t fmt_size, int arg_count, ...)
+{
+    if (fmt_size > MAX_PRINTK_STRING_SIZE - 1) {
+        // Disallow large fmt_size values.
+        return -1;
+    }
+
+    // Make a copy of the original format string.
+    char* output = (char*)ebpf_allocate(fmt_size + 1);
+    if (output == NULL) {
+        return -1;
+    }
+    memcpy(output, fmt, fmt_size);
+
+    // Make sure the output is null-terminated, and
+    // remove the newline if present.
+    // A well-formed input should be null terminated,
+    // so look at the next-to-last byte.
+    char* end = output + fmt_size - 2;
+    if (*end != '\n') {
+        end++;
+    }
+    *end = '\0';
+
+    /* Validate format string.
+     * The conversion specifiers are limited to:
+     * %d, %i, %u, %x, %ld, %li, %lu, %lx, %lld, %lli, %llu, %llx.
+     * No modifier (size of field, padding with zeroes, etc.) is available.
+     */
+    long bytes_written = -1;
+    const char* p;
+    int specifier_count = 0;
+    for (p = output; *p; p++) {
+        if (*p != '%') {
+            continue;
+        }
+        if (p[1] == 0) {
+            break;
+        }
+        if (p[1] == '%') {
+            // Allow a %% escape.
+            p++;
+            continue;
+        }
+
+        // We found a specifier.  Verify that it is in the legal set.
+        if (strchr(PRINTK_SPECIFIER_CHARS, p[1])) {
+            // We found a legal one character specifier.
+            p++;
+            specifier_count++;
+            continue;
+        }
+
+        if (p[1] != 'l' || p[2] == 0) {
+            break;
+        }
+        if (strchr(PRINTK_SPECIFIER_CHARS, p[2])) {
+            // We found a legal two character specifier.
+            p += 2;
+            specifier_count++;
+            continue;
+        }
+
+        if (p[2] != 'l' || p[3] == 0) {
+            break;
+        }
+        if (strchr(PRINTK_SPECIFIER_CHARS, p[3])) {
+            // We found a legal three character specifier.
+            p += 3;
+            specifier_count++;
+            continue;
+        }
+        break;
+    }
+
+    if ((*p == 0) && (arg_count == specifier_count)) {
+        va_list arg_list;
+        __va_start(&arg_list, arg_count);
+        bytes_written = ebpf_platform_printk(output, arg_list);
+        __va_end(&arg_list);
+    }
+
+    ebpf_free(output);
+    return bytes_written;
+}
+
+long
+_ebpf_core_trace_printk2(_In_reads_(fmt_size) const char* fmt, size_t fmt_size)
+{
+    return _ebpf_core_trace_printk(fmt, fmt_size, 0);
+}
+
+long
+_ebpf_core_trace_printk3(_In_reads_(fmt_size) const char* fmt, size_t fmt_size, uint64_t arg3)
+{
+    return _ebpf_core_trace_printk(fmt, fmt_size, 1, arg3);
+}
+
+long
+_ebpf_core_trace_printk4(_In_reads_(fmt_size) const char* fmt, size_t fmt_size, uint64_t arg3, uint64_t arg4)
+{
+    return _ebpf_core_trace_printk(fmt, fmt_size, 2, arg3, arg4);
+}
+
+long
+_ebpf_core_trace_printk5(
+    _In_reads_(fmt_size) const char* fmt, size_t fmt_size, uint64_t arg3, uint64_t arg4, uint64_t arg5)
+{
+    return _ebpf_core_trace_printk(fmt, fmt_size, 3, arg3, arg4, arg5);
+}
+
 int
 ebpf_core_csum_diff(
     _In_reads_bytes_opt_(from_size) const void* from,
@@ -1677,6 +1818,24 @@ _ebpf_core_ring_buffer_output(
     // This function implements bpf_ringbuf_output helper function, which returns negative error in case of failure.
     UNREFERENCED_PARAMETER(flags);
     return -ebpf_ring_buffer_map_output(map, data, length);
+}
+
+static uint64_t
+_ebpf_core_map_push_elem(_In_ ebpf_map_t* map, _In_ const uint8_t* value, uint64_t flags)
+{
+    return -ebpf_map_push_entry(map, 0, value, (int)flags | EBPF_MAP_FLAG_HELPER);
+}
+
+static uint64_t
+_ebpf_core_map_pop_elem(_In_ ebpf_map_t* map, _Out_ uint8_t* value)
+{
+    return -ebpf_map_pop_entry(map, 0, value, EBPF_MAP_FLAG_HELPER);
+}
+
+static uint64_t
+_ebpf_core_map_peek_elem(_In_ ebpf_map_t* map, _Out_ uint8_t* value)
+{
+    return -ebpf_map_peek_entry(map, 0, value, EBPF_MAP_FLAG_HELPER);
 }
 
 typedef struct _ebpf_protocol_handler

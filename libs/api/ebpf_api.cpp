@@ -1386,12 +1386,13 @@ _clean_up_ebpf_object(_In_opt_ _Post_invalid_ ebpf_object_t* object)
 static void
 _remove_ebpf_object_from_globals(_In_ const ebpf_object_t* object)
 {
-    for (int i = 0; i < _ebpf_objects.size(); i++) {
-        if (_ebpf_objects[i] == object) {
-            _ebpf_objects[i] = nullptr;
+    int index;
+    for (index = 0; index < _ebpf_objects.size(); index++) {
+        if (_ebpf_objects[index] == object)
             break;
-        }
     }
+    assert(index < _ebpf_objects.size());
+    _ebpf_objects.erase(_ebpf_objects.begin() + index);
 }
 
 static void

@@ -144,3 +144,138 @@ EBPF_HELPER(int, bpf_ringbuf_output, (struct bpf_map * ring_buffer, void* data, 
 #ifndef __doxygen
 #define bpf_ringbuf_output ((bpf_ringbuf_output_t)BPF_FUNC_ringbuf_output)
 #endif
+
+/**
+ * @brief Print debug output.
+ *
+ * @param[in] fmt Printf-style format string.
+ * @param[in] fmt_size Size in bytes of *fmt*.
+ *
+ * @returns The number of bytes written, or a negative error in case of failure.
+ */
+EBPF_HELPER(long, bpf_trace_printk2, (const char* fmt, uint32_t fmt_size));
+#ifndef __doxygen
+#define bpf_trace_printk2 ((bpf_trace_printk2_t)BPF_FUNC_trace_printk2)
+#endif
+
+/**
+ * @brief Print debug output.
+ *
+ * @param[in] fmt Printf-style format string.
+ * @param[in] fmt_size Size in bytes of *fmt*.
+ * @param[in] arg3 Numeric argument to be used by the format string.
+ *
+ * @returns The number of bytes written, or a negative error in case of failure.
+ */
+EBPF_HELPER(long, bpf_trace_printk3, (const char* fmt, uint32_t fmt_size, uint64_t arg3));
+#ifndef __doxygen
+#define bpf_trace_printk3 ((bpf_trace_printk3_t)BPF_FUNC_trace_printk3)
+#endif
+
+/**
+ * @brief Print debug output.
+ *
+ * @param[in] fmt Printf-style format string.
+ * @param[in] fmt_size Size in bytes of *fmt*.
+ * @param[in] arg3 Numeric argument to be used by the format string.
+ * @param[in] arg4 Numeric argument to be used by the format string.
+ *
+ * @returns The number of bytes written, or a negative error in case of failure.
+ */
+EBPF_HELPER(long, bpf_trace_printk4, (const char* fmt, uint32_t fmt_size, uint64_t arg3, uint64_t arg4));
+#ifndef __doxygen
+#define bpf_trace_printk4 ((bpf_trace_printk4_t)BPF_FUNC_trace_printk4)
+#endif
+
+/**
+ * @brief Print debug output.
+ *
+ * @param[in] fmt Printf-style format string.
+ * @param[in] fmt_size Size in bytes of *fmt*.
+ * @param[in] arg3 Numeric argument to be used by the format string.
+ * @param[in] arg4 Numeric argument to be used by the format string.
+ * @param[in] arg5 Numeric argument to be used by the format string.
+ *
+ * @returns The number of bytes written, or a negative error in case of failure.
+ */
+EBPF_HELPER(long, bpf_trace_printk5, (const char* fmt, uint32_t fmt_size, uint64_t arg3, uint64_t arg4, uint64_t arg5));
+#ifndef __doxygen
+#define bpf_trace_printk5 ((bpf_trace_printk5_t)BPF_FUNC_trace_printk5)
+#endif
+
+#ifndef __doxygen
+// The following macros allow bpf_printk to accept a variable number of arguments
+// while mapping to separate helper functions that each have a strict prototype
+// that can be understood by the verifier.
+#define EBPF_CONCATENATE(X, Y) X##Y
+#define EBPF_MAKE_HELPER_NAME(PREFIX, ARG_COUNT) EBPF_CONCATENATE(PREFIX, ARG_COUNT)
+#define EBPF_GET_NTH_ARG(_1, _2, _3, _4, _5, N, ...) N
+#define EBPF_COUNT_VA_ARGS(...) EBPF_GET_NTH_ARG(__VA_ARGS__, 5, 4, 3, 2, 1)
+#define EBPF_VA_ARGS_HELPER(PREFIX, ...) EBPF_MAKE_HELPER_NAME(PREFIX, EBPF_COUNT_VA_ARGS(__VA_ARGS__))(__VA_ARGS__)
+
+#undef bpf_printk
+#define bpf_printk(fmt, ...)                                                            \
+    ({                                                                                  \
+        char ____fmt[] = fmt;                                                           \
+        EBPF_VA_ARGS_HELPER(bpf_trace_printk, ____fmt, sizeof(____fmt), ##__VA_ARGS__); \
+    })
+#else
+/**
+ * @brief Print debug output.  For instructions on viewing the output, see the
+ * <a href="https://github.com/microsoft/ebpf-for-windows/blob/main/docs/GettingStarted.md#using-tracing">Using
+ * tracing</a> section of the Getting Started Guide for eBPF for Windows.
+ *
+ * @param[in] fmt Printf-style format string.
+ * @param[in] ... Numeric arguments to be used by the format string.
+ *
+ * @returns The number of bytes written, or a negative error in case of failure.
+ */
+long
+bpf_printk(const char* fmt, ...);
+#endif
+
+/**
+ * @brief Insert an element at the end of the map (only valid for stack and queue).
+ *
+ * @param[in] map Map to update.
+ * @param[in] value Value to insert into the map.
+ * @param[in] flags Map flags - BPF_EXIST: If the map is full, the entry at the start of the map is discarded.
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval -EBPF_NO_MEMORY Unable to allocate resources for this
+ *  entry.
+ * @retval -EBPF_OUT_OF_SPACE Map is full and BPF_EXIST was not supplied.
+ */
+EBPF_HELPER(int64_t, bpf_map_push_elem, (struct bpf_map * map, void* value, uint64_t flags));
+#ifndef __doxygen
+#define bpf_map_push_elem ((bpf_map_push_elem_t)BPF_FUNC_map_push_elem)
+#endif
+
+/**
+ * @brief Copy an entry from the map and remove it from the map (only valid for stack and queue).
+ * Queue pops from the beginning of the map.
+ * Stack pops from the end of the map.
+ *
+ * @param[in] map Map to search.
+ * @param[out] value Value buffer to copy value from map into.
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval -EBPF_OBJECT_NOT_FOUND The map is empty.
+ */
+EBPF_HELPER(int64_t, bpf_map_pop_elem, (struct bpf_map * map, void* value));
+#ifndef __doxygen
+#define bpf_map_pop_elem ((bpf_map_pop_elem_t)BPF_FUNC_map_pop_elem)
+#endif
+
+/**
+ * @brief Copy an entry from the map (only valid for stack and queue).
+ * Queue peeks at the beginning of the map.
+ * Stack peeks at the end of the map.
+ *
+ * @param[in] map Map to search.
+ * @param[out] value Value buffer to copy value from map into.
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval -EBPF_OBJECT_NOT_FOUND The map is empty.
+ */
+EBPF_HELPER(int64_t, bpf_map_peek_elem, (struct bpf_map * map, void* value));
+#ifndef __doxygen
+#define bpf_map_peek_elem ((bpf_map_pop_elem_t)BPF_FUNC_map_peek_elem)
+#endif

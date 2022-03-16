@@ -713,3 +713,14 @@ ebpf_result_to_win32_error_code(ebpf_result_t result)
     }
     return RtlNtStatusToDosError(ebpf_result_to_ntstatus(result));
 }
+
+long
+ebpf_platform_printk(_In_z_ const char* format, va_list arg_list)
+{
+    int bytes_written = vprintf(format, arg_list);
+    if (bytes_written >= 0) {
+        putchar('\n');
+        bytes_written++;
+    }
+    return bytes_written;
+}
