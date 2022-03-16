@@ -93,8 +93,8 @@ class bpf_code_generator
         std::vector<output_instruction_t> output;
         std::set<std::string> referenced_registers;
         std::string program_name;
-        GUID program_type;
-        GUID expected_attach_type;
+        GUID program_type = {0};
+        GUID expected_attach_type = {0};
         // Indices of the maps used in this section.
         std::set<size_t> referenced_map_indices;
         // Indices of the helper functions used in this section.

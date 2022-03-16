@@ -137,12 +137,15 @@ _bpf2c_npi_client_attach_provider(
         return STATUS_INVALID_PARAMETER;
     }
 
-    status =
-        NmrClientAttachProvider(nmr_binding_handle, NULL, NULL, &provider_binding_context, &provider_dispatch_table);
+#pragma warning(push)
+#pragma warning(disable : 6387)
+    // As per MSDN, client dispatch can be NULL, but SAL does not allow it.
+    status = NmrClientAttachProvider(
+        nmr_binding_handle, client_context, NULL, &provider_binding_context, &provider_dispatch_table);
     if (status != STATUS_SUCCESS) {
         goto Done;
     }
-
+#pragma warning(pop)
     _bpf2c_nmr_provider_handle = nmr_binding_handle;
 
 Done:
