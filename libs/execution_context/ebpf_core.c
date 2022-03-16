@@ -635,6 +635,9 @@ _ebpf_core_protocol_load_native_programs(
         EBPF_OFFSET_OF(ebpf_operation_load_native_programs_reply_t, data),
         required_reply_length,
         &required_reply_length);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
 
     if (reply_length < required_reply_length) {
         result = EBPF_INVALID_ARGUMENT;

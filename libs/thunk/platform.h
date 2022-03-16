@@ -66,16 +66,13 @@ _update_registry_value(
     _In_ const void* value,
     uint32_t value_size);
 
-/*
-int
-_create_service(
-    _In_ const wchar_t* service_name,
-    _In_ const wchar_t* file_path,
-    bool kernel_mode,
-    _Out_ SC_HANDLE* service_handle);
+uint32_t
+_create_service(_In_ const wchar_t* service_name, _In_ const wchar_t* file_path, _Out_ SC_HANDLE* service_handle);
 
-int
-    _delete_service(SC_HANDLE service_handle);
-*/
+uint32_t
+_delete_service(SC_HANDLE service_handle);
+
+uint32_t
+_stop_service(SC_HANDLE service_handle);
 
 } // namespace Platform

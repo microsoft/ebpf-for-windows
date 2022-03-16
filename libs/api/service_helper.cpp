@@ -44,6 +44,7 @@ guid_to_wide_string(GUID* guid)
     return wstring(guid_string);
 }
 
+/*
 ebpf_result_t
 create_service(
     _In_ const wchar_t* service_name, _In_ const wchar_t* file_path, bool kernel_mode, _Out_ SC_HANDLE* service_handle)
@@ -165,3 +166,4 @@ stop_service(SC_HANDLE service_handle)
 
     return win32_error_code_to_ebpf_result(error);
 }
+*/

@@ -17,7 +17,7 @@
 #include "ebpf_protocol.h"
 #include "ebpf_ring_buffer.h"
 #include "ebpf_serialize.h"
-#include "service_helper.hpp"
+// #include "service_helper.hpp"
 #pragma warning(push)
 #pragma warning(disable : 4200) // Zero-sized array in struct/union
 #include "libbpf.h"
@@ -2223,6 +2223,29 @@ Done:
     return result;
 }
 
+std::wstring
+_guid_to_wide_string(GUID* guid)
+{
+    wchar_t guid_string[37] = {0};
+    swprintf(
+        guid_string,
+        sizeof(guid_string) / sizeof(guid_string[0]),
+        L"%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x",
+        guid->Data1,
+        guid->Data2,
+        guid->Data3,
+        guid->Data4[0],
+        guid->Data4[1],
+        guid->Data4[2],
+        guid->Data4[3],
+        guid->Data4[4],
+        guid->Data4[5],
+        guid->Data4[6],
+        guid->Data4[7]);
+
+    return std::wstring(guid_string);
+}
+
 static ebpf_result_t
 _ebpf_program_load_native(
     _In_z_ const char* file_name,
@@ -2261,11 +2284,12 @@ _ebpf_program_load_native(
     try {
         // 1. Create a driver service with a random name.
         // TODO: Can also use UuidToString()
-        service_name = guid_to_wide_string(&service_name_guid);
+        service_name = _guid_to_wide_string(&service_name_guid);
 
-        result = create_service(
-            service_name.c_str(), get_wstring_from_string(file_name_string).c_str(), true, &service_handle);
-        if (result != EBPF_SUCCESS) {
+        error = Platform::_create_service(
+            service_name.c_str(), get_wstring_from_string(file_name_string).c_str(), &service_handle);
+        if (error != ERROR_SUCCESS) {
+            result = win32_error_code_to_ebpf_result(error);
             goto Done;
         }
 
@@ -2351,12 +2375,12 @@ Done:
             }
         }
 
-        stop_service(service_handle);
+        Platform::_stop_service(service_handle);
     }
     free(map_handles);
     free(program_handles);
 
-    delete_service(service_handle);
+    Platform::_delete_service(service_handle);
     return result;
 }
 

@@ -181,7 +181,6 @@
     <ClCompile Include="libbpf_program.cpp" />
     <ClCompile Include="libbpf_map.cpp" />
     <ClCompile Include="libbpf_system.cpp" />
-    <ClCompile Include="service_helper.cpp" />
     <ClCompile Include="Verifier.cpp" />
     <ClCompile Include="windows_platform.cpp" />
   </ItemGroup>
@@ -190,7 +189,6 @@
     <ClInclude Include="api_internal.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="rpc_client.h" />
-    <ClInclude Include="service_helper.hpp" />
     <ClInclude Include="tlv.h" />
     <ClInclude Include="Verifier.h" />
     <ClInclude Include="windows_platform.hpp" />

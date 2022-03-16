@@ -176,16 +176,43 @@ _update_registry_value(
     return error;
 }
 
-/*
-int
-_create_service(
-    _In_ const wchar_t* service_name, _In_ const wchar_t* file_path, bool kernel_mode, _Out_ SC_HANDLE* service_handle)
+static bool
+_check_service_state(SC_HANDLE service_handle, DWORD expected_state, DWORD* final_state)
+{
+#define MAX_RETRY_COUNT 20
+#define WAIT_TIME 500 // in ms.
+
+    int retry_count = 0;
+    bool status = false;
+    int error;
+    SERVICE_STATUS service_status = {0};
+
+    // Query service state.
+    while (retry_count < MAX_RETRY_COUNT) {
+        if (!QueryServiceStatus(service_handle, &service_status)) {
+            error = GetLastError();
+            break;
+        } else if (service_status.dwCurrentState == expected_state) {
+            status = true;
+            break;
+        } else {
+            Sleep(WAIT_TIME);
+            retry_count++;
+        }
+    }
+
+    *final_state = service_status.dwCurrentState;
+    return status;
+}
+
+uint32_t
+_create_service(_In_ const wchar_t* service_name, _In_ const wchar_t* file_path, _Out_ SC_HANDLE* service_handle)
 {
     SC_HANDLE local_service_handle = nullptr;
     SC_HANDLE scm_handle = nullptr;
-    int error;
+    int error = ERROR_SUCCESS;
     *service_handle = nullptr;
-    DWORD service_type = kernel_mode ? SERVICE_KERNEL_DRIVER : SERVICE_WIN32_OWN_PROCESS;
+    DWORD service_type = SERVICE_KERNEL_DRIVER;
 
     scm_handle = OpenSCManager(nullptr, nullptr, SC_MANAGER_ALL_ACCESS);
     if (scm_handle == nullptr) {
@@ -216,7 +243,8 @@ _create_service(
         nullptr);             // no password
 
     if (local_service_handle == nullptr) {
-        return GetLastError();
+        error = GetLastError();
+        goto Done;
     }
     *service_handle = local_service_handle;
 
@@ -227,7 +255,7 @@ Done:
     return error;
 }
 
-int
+uint32_t
 _delete_service(SC_HANDLE service_handle)
 {
     if (!service_handle) {
@@ -236,12 +264,35 @@ _delete_service(SC_HANDLE service_handle)
 
     int error = ERROR_SUCCESS;
     if (!DeleteService(service_handle)) {
-        return GetLastError();
+        error = GetLastError();
     }
 
     CloseServiceHandle(service_handle);
+    return error;
+}
+
+uint32_t
+_stop_service(SC_HANDLE service_handle)
+{
+    SERVICE_STATUS status;
+    bool service_stopped = false;
+    DWORD service_state;
+    int error = ERROR_SUCCESS;
+
+    if (service_handle == nullptr) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    if (!ControlService(service_handle, SERVICE_CONTROL_STOP, &status)) {
+        return GetLastError();
+    }
+
+    service_stopped = _check_service_state(service_handle, SERVICE_STOPPED, &service_state);
+    if (!service_stopped) {
+        error = ERROR_SERVICE_REQUEST_TIMEOUT;
+    }
 
     return error;
 }
-*/
+
 } // namespace Platform

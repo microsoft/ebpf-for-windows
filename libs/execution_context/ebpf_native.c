@@ -72,14 +72,16 @@ void
 ebpf_native_unload_module(_In_z_ const wchar_t* service_name);
 
 static void
-_ebpf_native_cleanup_maps(_In_ ebpf_native_map_t* maps, size_t map_count)
+_ebpf_native_cleanup_maps(_In_reads_(map_count) _Frees_ptr_ ebpf_native_map_t* maps, size_t map_count)
 {
     for (uint32_t count = 0; count < map_count; count++) {
         ebpf_native_map_t* map = &maps[count];
         if (map->pin_path.value && map->pinned && !map->reused) {
             ebpf_core_update_pinning(UINT64_MAX, &map->pin_path);
         }
-        ebpf_free(map->pin_path.value);
+        if (map->pin_path.value) {
+            ebpf_free(map->pin_path.value);
+        }
         if (map->handle != ebpf_handle_invalid) {
             ebpf_handle_close(map->handle);
         }
@@ -750,7 +752,7 @@ static _Requires_lock_held_(native_module->lock) ebpf_result_t
     }
 
     // Iterate over the map indices to get all the handles.
-    for (uint32_t i = 0; i < map_count; i++) {
+    for (uint16_t i = 0; i < map_count; i++) {
         map_handles[i] = native_maps[map_indices[i]].handle;
     }
 
@@ -760,7 +762,7 @@ static _Requires_lock_held_(native_module->lock) ebpf_result_t
     }
 
     // Update the addresses in the map entries.
-    for (uint32_t i = 0; i < map_count; i++) {
+    for (uint16_t i = 0; i < map_count; i++) {
         // Same map can be used in multiple programs and hence resolved multiple times.
         // Verify that the address of a map does not change.
         if (native_maps[map_indices[i]].entry->address != NULL &&
@@ -812,7 +814,7 @@ static _Requires_lock_held_(native_module->lock) ebpf_result_t
     }
 
     // Iterate over the helper indices to get all the helper ids.
-    for (uint32_t i = 0; i < helper_count; i++) {
+    for (uint16_t i = 0; i < helper_count; i++) {
         helper_ids[i] = helpers[helper_indices[i]].helper_id;
     }
 
@@ -822,7 +824,7 @@ static _Requires_lock_held_(native_module->lock) ebpf_result_t
     }
 
     // Update the addresses in the helper entries.
-    for (uint32_t i = 0; i < helper_count; i++) {
+    for (uint16_t i = 0; i < helper_count; i++) {
         // Same helper can be used in multiple programs and hence resolved multiple times.
         // Verify that the address of a helper function does not change.
         if (helpers[helper_indices[i]].address != NULL && helpers[helper_indices[i]].address != helper_addresses[i]) {
@@ -991,7 +993,7 @@ ebpf_native_load(
     ebpf_native_t** existing_native_module = NULL;
     wchar_t* local_service_name = NULL;
 
-    local_service_name = ebpf_allocate(service_name_length + 2);
+    local_service_name = ebpf_allocate((size_t)service_name_length + 2);
     if (local_service_name == NULL) {
         result = EBPF_NO_MEMORY;
         goto Done;
@@ -1111,7 +1113,7 @@ ebpf_native_load_programs(
     }
 
     *program_handles = ebpf_allocate(sizeof(ebpf_handle_t) * local_client_context->program_count);
-    if (program_handles == NULL) {
+    if (*program_handles == NULL) {
         result = EBPF_NO_MEMORY;
         goto Done;
     }
