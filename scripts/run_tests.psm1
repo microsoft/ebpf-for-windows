@@ -71,6 +71,8 @@ function Invoke-CICDTests
 {
     param([parameter(Mandatory=$true)][bool] $VerboseLogs)
 
+    pushd $WorkingDirectory
+
     try {
 
          $TestList = @(
@@ -90,6 +92,8 @@ function Invoke-CICDTests
         Write-Log "One or more tests failed."
         throw
     }
+
+    popd
 }
 
 function Invoke-XDPTest
@@ -119,3 +123,5 @@ function Invoke-XDPTest
 
     popd
 }
+
+Pop-Location
