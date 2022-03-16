@@ -80,7 +80,10 @@ _ebpf_native_cleanup_maps(_In_reads_(map_count) _Frees_ptr_ ebpf_native_map_t* m
             ebpf_core_update_pinning(UINT64_MAX, &map->pin_path);
         }
         if (map->pin_path.value) {
+#pragma warning(push)
+#pragma warning(disable : 6001)
             ebpf_free(map->pin_path.value);
+#pragma warning(pop)
         }
         if (map->handle != ebpf_handle_invalid) {
             ebpf_handle_close(map->handle);
@@ -1044,10 +1047,10 @@ Done:
 ebpf_result_t
 ebpf_native_load_programs(
     _In_ const GUID* module_id,
-    _Out_ size_t* count_of_map_handles,
-    _Out_ ebpf_handle_t** map_handles,
-    _Out_ size_t* count_of_program_handles,
-    _Out_ ebpf_handle_t** program_handles)
+    size_t count_of_map_handles,
+    _Out_writes_(count_of_map_handles) ebpf_handle_t* map_handles,
+    size_t count_of_program_handles,
+    _Out_writes_(count_of_program_handles) ebpf_handle_t* program_handles)
 {
     // NTSTATUS status;
     ebpf_result_t result;
@@ -1059,10 +1062,10 @@ ebpf_native_load_programs(
     ebpf_native_t* local_client_context = NULL;
     wchar_t* local_service_name = NULL;
 
-    *count_of_map_handles = 0;
-    *count_of_program_handles = 0;
-    *map_handles = NULL;
-    *program_handles = NULL;
+    // *count_of_map_handles = 0;
+    // *count_of_program_handles = 0;
+    // *map_handles = NULL;
+    // *program_handles = NULL;
 
     // Find the native entry in hash table.
     state = ebpf_lock_lock(&_ebpf_client_table_lock);
@@ -1106,26 +1109,31 @@ ebpf_native_load_programs(
     ebpf_lock_unlock(&local_client_context->lock, native_state);
     native_lock_acquired = false;
 
-    *map_handles = ebpf_allocate(sizeof(ebpf_handle_t) * local_client_context->map_count);
-    if (*map_handles == NULL) {
-        result = EBPF_NO_MEMORY;
-        goto Done;
+    /*
+        *map_handles = ebpf_allocate(sizeof(ebpf_handle_t) * local_client_context->map_count);
+        if (*map_handles == NULL) {
+            result = EBPF_NO_MEMORY;
+            goto Done;
+        }
+
+        *program_handles = ebpf_allocate(sizeof(ebpf_handle_t) * local_client_context->program_count);
+        if (*program_handles == NULL) {
+            result = EBPF_NO_MEMORY;
+            goto Done;
+        }
+    */
+
+    ebpf_assert(count_of_map_handles == local_client_context->map_count);
+    ebpf_assert(count_of_program_handles == local_client_context->program_count);
+
+    // *count_of_map_handles = local_client_context->map_count;
+    for (int i = 0; i < count_of_map_handles; i++) {
+        map_handles[i] = local_client_context->maps[i].handle;
     }
 
-    *program_handles = ebpf_allocate(sizeof(ebpf_handle_t) * local_client_context->program_count);
-    if (*program_handles == NULL) {
-        result = EBPF_NO_MEMORY;
-        goto Done;
-    }
-
-    *count_of_map_handles = local_client_context->map_count;
-    for (int i = 0; i < local_client_context->map_count; i++) {
-        (*map_handles)[i] = local_client_context->maps[i].handle;
-    }
-
-    *count_of_program_handles = local_client_context->program_count;
-    for (int i = 0; i < local_client_context->program_count; i++) {
-        (*program_handles)[i] = local_client_context->programs[i].handle;
+    // *count_of_program_handles = local_client_context->program_count;
+    for (int i = 0; i < count_of_program_handles; i++) {
+        program_handles[i] = local_client_context->programs[i].handle;
     }
 
 Done:
@@ -1139,10 +1147,10 @@ Done:
     }
     if (result != EBPF_SUCCESS) {
         ebpf_free(local_service_name);
-        ebpf_free(*map_handles);
-        ebpf_free(*program_handles);
-        *map_handles = NULL;
-        *program_handles = NULL;
+        // ebpf_free(*map_handles);
+        // ebpf_free(*program_handles);
+        // *map_handles = NULL;
+        // *program_handles = NULL;
     }
 
     return result;

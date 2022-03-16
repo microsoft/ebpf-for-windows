@@ -2147,6 +2147,9 @@ _load_native_module(
     ebpf_operation_load_native_module_reply_t reply;
     size_t service_path_size = service_path.size() * 2;
 
+    *count_of_maps = 0;
+    *count_of_programs = 0;
+
     size_t buffer_size = offsetof(ebpf_operation_load_native_module_request_t, data) + service_path_size;
     request_buffer.resize(buffer_size);
 
@@ -2313,6 +2316,11 @@ _ebpf_program_load_native(
             goto Done;
         }
 
+        if (count_of_programs == 0) {
+            result = EBPF_INVALID_OBJECT;
+            goto Done;
+        }
+
         // Allocate buffer for program and map handles.
         program_handles = (ebpf_handle_t*)calloc(count_of_programs, sizeof(ebpf_handle_t));
         if (program_handles == nullptr) {
@@ -2369,11 +2377,16 @@ Done:
             }
         }
 
-        for (int i = 0; i < count_of_programs; i++) {
-            if (program_handles[i] != ebpf_handle_invalid && program_handles[i] != 0) {
-                Platform::CloseHandle(program_handles[i]);
+#pragma warning(push)
+#pragma warning(disable : 6001)
+        if (program_handles != nullptr) {
+            for (int i = 0; i < count_of_programs; i++) {
+                if (program_handles[i] != ebpf_handle_invalid && program_handles[i] != 0) {
+                    Platform::CloseHandle(program_handles[i]);
+                }
             }
         }
+#pragma warning(pop)
 
         Platform::_stop_service(service_handle);
     }

@@ -59,10 +59,10 @@ extern "C"
     ebpf_result_t
     ebpf_native_load_programs(
         _In_ const GUID* module_id,
-        _Out_ size_t* count_of_map_handles,
-        _Out_ ebpf_handle_t** map_handles,
-        _Out_ size_t* count_of_program_handles,
-        _Out_ ebpf_handle_t** program_handles);
+        size_t count_of_map_handles,
+        _Out_writes_(count_of_map_handles) ebpf_handle_t* map_handles,
+        size_t count_of_program_handles,
+        _Out_writes_(count_of_program_handles) ebpf_handle_t* program_handles);
 
     ebpf_result_t
     ebpf_native_get_count_of_programs(_In_ const GUID* module_id, _Out_ size_t* count_of_programs);

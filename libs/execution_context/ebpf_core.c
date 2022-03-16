@@ -644,8 +644,20 @@ _ebpf_core_protocol_load_native_programs(
         goto Done;
     }
 
+    map_handles = ebpf_allocate(sizeof(ebpf_handle_t) * count_of_map_handles);
+    if (map_handles == NULL) {
+        result = EBPF_NO_MEMORY;
+        goto Done;
+    }
+
+    program_handles = ebpf_allocate(sizeof(ebpf_handle_t) * count_of_program_handles);
+    if (program_handles == NULL) {
+        result = EBPF_NO_MEMORY;
+        goto Done;
+    }
+
     result = ebpf_native_load_programs(
-        &request->module_id, &count_of_map_handles, &map_handles, &count_of_program_handles, &program_handles);
+        &request->module_id, count_of_map_handles, map_handles, count_of_program_handles, program_handles);
     if (result != EBPF_SUCCESS) {
         goto Done;
     }
@@ -657,7 +669,10 @@ _ebpf_core_protocol_load_native_programs(
     memcpy(reply->data + map_handles_size, program_handles, program_handles_size);
 
 Done:
-    // TODO: If this call failed, stop the native driver. ebpfapi will create a
+    ebpf_free(map_handles);
+    ebpf_free(program_handles);
+
+    // If this call failed, stop the native driver. ebpfapi will create a
     // new service for the driver in the next attempt.
     if (result != EBPF_SUCCESS) {
         ebpf_native_unload(&request->module_id);
