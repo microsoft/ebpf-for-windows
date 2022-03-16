@@ -8,6 +8,10 @@
 
 volatile ebpf_handle_t next_handle = 1;
 
+#ifndef GUID_NULL
+const GUID GUID_NULL = {0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0}};
+#endif
+
 static ebpf_handle_t
 _ebpf_get_next_handle()
 {
@@ -197,7 +201,8 @@ ebpf_provider_detach_client_complete(_In_ const GUID* interface_id, ebpf_handle_
     ebpf_lock_state_t state;
     ebpf_extension_provider_t** hash_table_find_result = NULL;
     ebpf_extension_provider_t* local_extension_provider = NULL;
-    GUID* module_id = NULL;
+    // GUID* module_id = NULL;
+    GUID module_id = GUID_NULL;
     ebpf_extension_client_t* client = NULL;
 
     state = ebpf_lock_lock(&_ebpf_provider_table_lock);
@@ -215,7 +220,10 @@ ebpf_provider_detach_client_complete(_In_ const GUID* interface_id, ebpf_handle_
 
     for (;;) {
         return_value = ebpf_hash_table_next_key_and_value(
-            local_extension_provider->client_table, (const uint8_t*)module_id, (uint8_t*)module_id, (uint8_t**)&client);
+            local_extension_provider->client_table,
+            (const uint8_t*)(IsEqualGUID(&module_id, &GUID_NULL) ? NULL : &module_id),
+            (uint8_t*)&module_id,
+            (uint8_t**)&client);
 
         if (return_value != EBPF_SUCCESS) {
             break;
