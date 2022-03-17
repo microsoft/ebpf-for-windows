@@ -27,7 +27,7 @@ $MultiVMTestConfig = $TestExecutionConfig.MultiVMTest
 Remove-Item "$PSScriptRoot\$LogFileName" -ErrorAction SilentlyContinue
 foreach($VM in $VMList) {
     $VMName = $VM.Name
-    Remove-Item ("$PSScriptRoot\{0}_{1}" -f $VMName, $LogFileName) -ErrorAction SilentlyContinue
+    Remove-Item $PSScriptRoot\$LogFileName -ErrorAction SilentlyContinue
 }
 Remove-Item ".\TestLogs" -Recurse -Confirm:$false -ErrorAction SilentlyContinue
 

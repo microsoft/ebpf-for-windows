@@ -25,10 +25,12 @@ function Invoke-CICDTestsOnVM
         param([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
               [Parameter(Mandatory=$True)] [string] $LogFileName,
               [Parameter(Mandatory=$True)] [bool] $VerboseLogs)
+        $WorkingDirectory = "$Env:SystemDrive\$WorkingDirectory"
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
         Import-Module $WorkingDirectory\run_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
+
         Invoke-CICDTests -VerboseLogs $VerboseLogs 2>&1 | Write-Log
-    } -ArgumentList ("C:\eBPF", ("{0}_{1}" -f $VMName, $LogFileName), $VerboseLogs) -ErrorAction Stop
+    } -ArgumentList ("eBPF", $LogFileName, $VerboseLogs) -ErrorAction Stop
 }
 
 function Add-eBPFProgramOnVM
@@ -47,19 +49,20 @@ function Add-eBPFProgramOnVM
               [string] $Interface,
               [Parameter(Mandatory=$True)] [string] $WorkingDirectory,
               [Parameter(Mandatory=$True)] [string] $LogFileName)
-            Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
-            Import-Module $WorkingDirectory\run_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
+        $WorkingDirectory = "$Env:SystemDrive\$WorkingDirectory"
+        Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
+        Import-Module $WorkingDirectory\run_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
 
-            if ([System.String]::IsNullOrEmpty($Interface)){
-                Write-Log "Loading $Program on $VM."
-                $ProgId = Invoke-NetshEbpfCommand -Arguments "add program $WorkingDirectory\$Program"
-            } else {
-                Write-Log "Loading $Program on interface $Interface on $VM."
-                $ProgId = Invoke-NetshEbpfCommand -Arguments "add program $WorkingDirectory\$Program interface=""$Interface"""
-            }
-            Write-Log "Loaded $Program with $ProgId" -ForegroundColor Green
-            return $ProgId
-    } -ArgumentList ($VM, $Program, $Interface, "C:\eBPF", ("{0}_{1}" -f $VM, $LogFileName)) -ErrorAction Stop
+        if ([System.String]::IsNullOrEmpty($Interface)){
+            Write-Log "Loading $Program on $VM."
+            $ProgId = Invoke-NetshEbpfCommand -Arguments "add program $WorkingDirectory\$Program"
+        } else {
+            Write-Log "Loading $Program on interface $Interface on $VM."
+            $ProgId = Invoke-NetshEbpfCommand -Arguments "add program $WorkingDirectory\$Program interface=""$Interface"""
+        }
+        Write-Log "Loaded $Program with $ProgId" -ForegroundColor Green
+        return $ProgId
+    } -ArgumentList ($VM, $Program, $Interface, "eBPF", $LogFileName) -ErrorAction Stop
 
     return $ProgId
 }
@@ -80,11 +83,13 @@ function Set-eBPFProgramOnVM
               [parameter(Mandatory=$true)] [string] $Interface,
               [Parameter(Mandatory=$True)] [string] $WorkingDirectory,
               [Parameter(Mandatory=$True)] [string] $LogFileName)
-            Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
-            Import-Module $WorkingDirectory\run_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
-            Write-Log "Setting program $ProgId at interface $Interface on $VM."
-            Invoke-NetshEbpfCommand -Arguments "set program $ProgId xdp interface=""$Interface"""
-    } -ArgumentList ($VM, $ProgId, $Interface, "C:\eBPF", ("{0}_{1}" -f $VM, $LogFileName)) -ErrorAction Stop
+        $WorkingDirectory = "$Env:SystemDrive\$WorkingDirectory"
+        Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
+        Import-Module $WorkingDirectory\run_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
+
+        Write-Log "Setting program $ProgId at interface $Interface on $VM."
+        Invoke-NetshEbpfCommand -Arguments "set program $ProgId xdp interface=""$Interface"""
+    } -ArgumentList ($VM, $ProgId, $Interface, "eBPF", $LogFileName) -ErrorAction Stop
 }
 function Remove-eBPFProgramFromVM
 {
@@ -100,12 +105,14 @@ function Remove-eBPFProgramFromVM
               [Parameter(Mandatory=$True)] $ProgId,
               [Parameter(Mandatory=$True)] [string] $WorkingDirectory,
               [Parameter(Mandatory=$True)] [string] $LogFileName)
-            Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
-            Import-Module $WorkingDirectory\run_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
-            Write-Log "Unloading program $ProgId from $VM."
-            Invoke-NetshEbpfCommand -Arguments "del program $ProgId"
-            return $ProgId
-    } -ArgumentList ($VM, $ProgId, "C:\eBPF", ("{0}_{1}" -f $VM, $LogFileName)) -ErrorAction Stop
+        $WorkingDirectory = "$Env:SystemDrive\$WorkingDirectory"
+        Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
+        Import-Module $WorkingDirectory\run_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
+
+        Write-Log "Unloading program $ProgId from $VM."
+        Invoke-NetshEbpfCommand -Arguments "del program $ProgId"
+        return $ProgId
+    } -ArgumentList ($VM, $ProgId, "eBPF", $LogFileName) -ErrorAction Stop
 }
 
 function Invoke-XDPTestOnVM
@@ -125,11 +132,14 @@ function Invoke-XDPTestOnVM
               [Parameter(Mandatory=$True)] [string] $RemoteIPV6Address,
               [Parameter(Mandatory=$True)] [string] $WorkingDirectory,
               [Parameter(Mandatory=$True)] [string] $LogFileName)
-            Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
-            Import-Module $WorkingDirectory\run_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
-            Write-Log "Invoking $XDPTestName on $VM"
-            Invoke-XDPTest $RemoteIPV4Address $RemoteIPV6Address $XDPTestName $WorkingDirectory
-    } -ArgumentList ($VM, $XDPTestName, $RemoteIPV4Address, $RemoteIPV6Address, "C:\eBPF", ("{0}_{1}" -f $VM, $LogFileName)) -ErrorAction Stop
+
+        $WorkingDirectory = "$Env:SystemDrive\$WorkingDirectory"
+        Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
+        Import-Module $WorkingDirectory\run_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
+
+        Write-Log "Invoking $XDPTestName on $VM"
+        Invoke-XDPTest $RemoteIPV4Address $RemoteIPV6Address $XDPTestName $WorkingDirectory
+    } -ArgumentList ($VM, $XDPTestName, $RemoteIPV4Address, $RemoteIPV6Address, "eBPF", $LogFileName) -ErrorAction Stop
 }
 
 function Add-XDPTestFirewallRuleOnVM {
@@ -143,10 +153,12 @@ function Add-XDPTestFirewallRuleOnVM {
         param([Parameter(Mandatory=$True)] [string] $VM,
               [Parameter(Mandatory=$True)] [string] $WorkingDirectory,
               [Parameter(Mandatory=$True)] [string] $LogFileName)
-            Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
-            Write-Log "Allowing XDP test app through firewall on $VM."
-            New-NetFirewallRule -DisplayName "XDP_Test" -Program "$WorkingDirectory\xdp_tests.exe" -Direction Inbound -Action Allow
-    } -ArgumentList ($VM, "C:\eBPF", ("{0}_{1}" -f $VM, $LogFileName)) -ErrorAction Stop
+        $WorkingDirectory = "$Env:SystemDrive\$WorkingDirectory"
+        Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
+
+        Write-Log "Allowing XDP test app through firewall on $VM."
+        New-NetFirewallRule -DisplayName "XDP_Test" -Program "$WorkingDirectory\xdp_tests.exe" -Direction Inbound -Action Allow
+    } -ArgumentList ($VM, "eBPF", $LogFileName) -ErrorAction Stop
 }
 
 function Invoke-XDPTest1
@@ -299,10 +311,12 @@ function Stop-eBPFComponentsOnVM
     Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
         param([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
               [Parameter(Mandatory=$True)] [string] $LogFileName)
+        $WorkingDirectory = "$Env:SystemDrive\$WorkingDirectory"
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
         Import-Module $WorkingDirectory\install_ebpf.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
+
         Stop-eBPFComponents
-    } -ArgumentList ("C:\eBPF", ("{0}_{1}" -f $VMName, $LogFileName)) -ErrorAction Stop
+    } -ArgumentList ("eBPF", $LogFileName) -ErrorAction Stop
 }
 
 Pop-Location
