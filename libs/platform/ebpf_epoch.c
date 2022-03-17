@@ -475,6 +475,7 @@ _ebpf_epoch_get_release_epoch(_Out_ int64_t* release_epoch)
     uint32_t cpu_id;
     ebpf_lock_state_t lock_state;
     ebpf_result_t return_value;
+    bool stale_items = false;
     EBPF_LOG_MESSAGE_UINT64(
         EBPF_TRACELOG_LEVEL_VERBOSE,
         EBPF_TRACELOG_KEYWORD_EPOCH,
@@ -506,6 +507,7 @@ _ebpf_epoch_get_release_epoch(_Out_ int64_t* release_epoch)
             } else {
                 _ebpf_set_per_cpu_flag(&_ebpf_epoch_cpu_table[cpu_id], EBPF_EPOCH_PER_CPU_STALE, true);
             }
+            stale_items = true;
         }
 
         if (_ebpf_epoch_cpu_table[cpu_id].cpu_epoch_state.active) {
@@ -539,7 +541,9 @@ _ebpf_epoch_get_release_epoch(_Out_ int64_t* release_epoch)
     return_value = EBPF_SUCCESS;
 
 Exit:
-
+    if (stale_items) {
+        ebpf_schedule_timer_work_item(_ebpf_flush_timer, EBPF_EPOCH_FLUSH_DELAY_IN_MICROSECONDS);
+    }
     *release_epoch = lowest_epoch - 1;
     return return_value;
 }
