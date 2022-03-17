@@ -142,7 +142,7 @@ typedef enum _ebpf_epoch_per_cpu_flags
 static bool
 _ebpf_get_per_cpu_flag(_In_ const ebpf_epoch_cpu_entry_t* cpu_entry, ebpf_epoch_per_cpu_flags_t flag)
 {
-    return cpu_entry->flags & flag;
+    return (cpu_entry->flags & flag) != 0;
 }
 
 static void
