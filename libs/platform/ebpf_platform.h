@@ -667,6 +667,66 @@ extern "C"
     ebpf_interlocked_compare_exchange_pointer(
         _Inout_ void* volatile* destination, _In_opt_ const void* exchange, _In_opt_ const void* comperand);
 
+    /**
+     * @brief Performs an atomic OR of the value stored at destination with mask and stores the result in destination.
+     *
+     * @param[in,out] destination A pointer to the memory for this operation to be applied to.
+     * @param[in] mask Value to be applied to the value stored at the destination.
+     * @return The original value stored at destination.
+     */
+    int32_t
+    ebpf_interlocked_or_int32(_Inout_ volatile int32_t* destination, int32_t mask);
+
+    /**
+     * @brief Performs an atomic AND of the value stored at destination with mask and stores the result in destination.
+     *
+     * @param[in,out] destination A pointer to the memory for this operation to be applied to.
+     * @param[in] mask Value to be applied to the value stored at the destination.
+     * @return The original value stored at destination.
+     */
+    int32_t
+    ebpf_interlocked_and_int32(_Inout_ volatile int32_t* destination, int32_t mask);
+
+    /**
+     * @brief Performs an atomic XOR of the value stored at destination with mask and stores the result in destination.
+     *
+     * @param[in,out] destination A pointer to the memory for this operation to be applied to.
+     * @param[in] mask Value to be applied to the value stored at the destination.
+     * @return The original value stored at destination.
+     */
+    int32_t
+    ebpf_interlocked_xor_int32(_Inout_ volatile int32_t* destination, int32_t mask);
+
+    /**
+     * @brief Performs an atomic OR of the value stored at destination with mask and stores the result in destination.
+     *
+     * @param[in,out] destination A pointer to the memory for this operation to be applied to.
+     * @param[in] mask Value to be applied to the value stored at the destination.
+     * @return The original value stored at destination.
+     */
+    int64_t
+    ebpf_interlocked_or_int64(_Inout_ volatile int64_t* destination, int64_t mask);
+
+    /**
+     * @brief Performs an atomic AND of the value stored at destination with mask and stores the result in destination.
+     *
+     * @param[in,out] destination A pointer to the memory for this operation to be applied to.
+     * @param[in] mask Value to be applied to the value stored at the destination.
+     * @return The original value stored at destination.
+     */
+    int64_t
+    ebpf_interlocked_and_int64(_Inout_ volatile int64_t* destination, int64_t mask);
+
+    /**
+     * @brief Performs an atomic XOR of the value stored at destination with mask and stores the result in destination.
+     *
+     * @param[in,out] destination A pointer to the memory for this operation to be applied to.
+     * @param[in] mask Value to be applied to the value stored at the destination.
+     * @return The original value stored at destination.
+     */
+    int64_t
+    ebpf_interlocked_xor_int64(_Inout_ volatile int64_t* destination, int64_t mask);
+
     typedef void (*ebpf_extension_change_callback_t)(
         _In_ void* client_binding_context,
         _In_ const void* provider_binding_context,
