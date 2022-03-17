@@ -112,17 +112,10 @@ jobs:
         ./execute_ebpf_cicd_tests.ps1
 
     - name: Clean up CI/CD Tests
+      if: always()
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
       run: |
         ./cleanup_ebpf_cicd_tests.ps1
-
-    - name: Upload any crash dumps
-      uses: actions/upload-artifact@v2
-      if: failure()
-      with:
-        name: Crash-Dumps-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}
-        path: c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
-        retention-days: 5
 
     - name: Upload log files
       if: always()

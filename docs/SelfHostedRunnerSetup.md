@@ -32,4 +32,10 @@ This document discusses the steps to set up such a selfhosted actions-runner tha
 9) Store the VM administrator credential:
    1) `Install-Module CredentialManager -force`
    2) `New-StoredCredential -Target `**`TEST_VM`**` -Username <VM Administrator> -Password <VM Administrator account password> -Persist LocalMachine`
-10) Reboot the runner.
+10) Install procdump on the two test VMs and configure as follows:
+    1) Download Procdump.zip from https://download.sysinternals.com/files/Procdump.zip
+    2) Extract the files into "C:\Program Files\ProcDump"
+    3) $env:Path += ";C:\Program Files\ProcDump"
+    4) Create two directories c:\dumps\x64\Release and c:\dumps\x64\Debug
+    5) Run: `procdump64.exe -accepteula -i -r -ma <path>` once for each of the two directories above, substituting `path` for the directory path.
+11) Reboot the runner.
