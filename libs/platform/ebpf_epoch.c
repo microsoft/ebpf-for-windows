@@ -498,8 +498,10 @@ _ebpf_epoch_get_release_epoch(_Out_ int64_t* release_epoch)
                     if (ebpf_allocate_non_preemptible_work_item(
                             &_ebpf_epoch_cpu_table[cpu_id].stale_worker, cpu_id, _ebpf_epoch_stale_worker, NULL) ==
                         EBPF_SUCCESS) {
-                        ebpf_queue_non_preemptible_work_item(_ebpf_epoch_cpu_table[cpu_id].stale_worker, NULL);
                     }
+                }
+                if (_ebpf_epoch_cpu_table[cpu_id].stale_worker) {
+                    ebpf_queue_non_preemptible_work_item(_ebpf_epoch_cpu_table[cpu_id].stale_worker, NULL);
                 }
             } else {
                 _ebpf_set_per_cpu_flag(&_ebpf_epoch_cpu_table[cpu_id], EBPF_EPOCH_PER_CPU_STALE, true);
