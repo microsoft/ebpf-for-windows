@@ -135,14 +135,14 @@ _ebpf_epoch_update_thread_state(uint32_t cpu_id, uintptr_t thread_id, int64_t cu
 
 typedef enum _ebpf_epoch_per_cpu_flags
 {
-    EBPF_EPOCH_PER_CPU_TIMER_ARMED = 0,
-    EBPF_EPOCH_PER_CPU_STALE,
+    EBPF_EPOCH_PER_CPU_TIMER_ARMED = (1 << 0),
+    EBPF_EPOCH_PER_CPU_STALE = (1 << 1),
 } ebpf_epoch_per_cpu_flags_t;
 
 static bool
 _ebpf_get_per_cpu_flag(_In_ const ebpf_epoch_cpu_entry_t* cpu_entry, ebpf_epoch_per_cpu_flags_t flag)
 {
-    return cpu_entry->flags & (1 << (uint32_t)flag);
+    return cpu_entry->flags & flag;
 }
 
 static void
@@ -152,9 +152,9 @@ _ebpf_set_per_cpu_flag(_In_ ebpf_epoch_cpu_entry_t* cpu_entry, ebpf_epoch_per_cp
         int32_t old_flag_value = cpu_entry->flags;
         int32_t new_flag_value = old_flag_value;
         if (state) {
-            new_flag_value |= (1 << (uint32_t)flag);
+            new_flag_value |= flag;
         } else {
-            new_flag_value &= ~(1 << (uint32_t)flag);
+            new_flag_value &= flag;
         }
         if (ebpf_interlocked_compare_exchange_int32(&cpu_entry->flags, new_flag_value, old_flag_value) ==
             old_flag_value) {
