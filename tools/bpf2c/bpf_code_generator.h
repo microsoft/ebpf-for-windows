@@ -110,11 +110,10 @@ class bpf_code_generator
     void
     extract_program(const std::string& section_name);
 
-    /*
-        /**
-         * @brief Set the program and attach type foe the current section.
-         *
-         */
+    /**
+     * @brief Set the program and attach type for the current section.
+     *
+     */
     void
     set_program_and_attach_type(const GUID& program_type, const GUID& attach_type);
 

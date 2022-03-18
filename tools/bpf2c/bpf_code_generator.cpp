@@ -161,8 +161,10 @@ bpf_code_generator::parse(const std::string& section_name, const GUID& program_t
 void
 bpf_code_generator::set_program_and_attach_type(const GUID& program_type, const GUID& attach_type)
 {
-    current_section->program_type = program_type;
-    current_section->expected_attach_type = attach_type;
+    memcpy(&current_section->program_type, &program_type, sizeof(GUID));
+    memcpy(&current_section->expected_attach_type, &attach_type, sizeof(GUID));
+    // current_section->program_type = program_type;
+    // current_section->expected_attach_type = attach_type;
 }
 
 void
@@ -792,7 +794,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
 }
 
 std::string
-bpf_code_generator::format_guid(_In_ const GUID* guid)
+bpf_code_generator::format_guid(const GUID* guid)
 {
     std::string output(120, '\0');
     std::string format_string =
