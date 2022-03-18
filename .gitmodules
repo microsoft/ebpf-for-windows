@@ -15,4 +15,4 @@
 	branch = windows
 [submodule "external/Catch2"]
 	path = external/Catch2
-	url = https://github.com/Alan-Jowett/Catch2.git
+	url = https://github.com/catchorg/Catch2.git
