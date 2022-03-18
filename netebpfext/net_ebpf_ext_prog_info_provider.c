@@ -12,8 +12,8 @@
  */
 typedef struct _net_ebpf_extension_program_info_client
 {
-    HANDLE nmr_binding_handle;
-    GUID client_module_id;
+    HANDLE nmr_binding_handle; ///< NMR binding handle.
+    GUID client_module_id;     ///< NMR module Id.
 } net_ebpf_extension_program_info_client_t;
 
 /**
@@ -21,9 +21,25 @@ typedef struct _net_ebpf_extension_program_info_client
  */
 typedef struct _net_ebpf_extension_program_info_provider
 {
-    HANDLE nmr_provider_handle;
+    NPI_PROVIDER_CHARACTERISTICS characteristics; ///< NPI Provider characteristics.
+    HANDLE nmr_provider_handle;                   ///< NMR binding handle.
 } net_ebpf_extension_program_info_provider_t;
 
+/**
+ * @brief Callback invoked when an eBPF Program Information NPI client attaches.
+ *
+ * @param[in] nmr_binding_handle NMR binding between the client module and the provider module.
+ * @param[in] provider_context Provider module's context.
+ * @param[in] client_registration_instance Client module's registration data.
+ * @param[in] client_binding_context Client module's context for binding with provider.
+ * @param[in] client_dispatch Client module's dispatch table. Contains the function pointer
+ * to invoke the eBPF program.
+ * @param[out] provider_binding_context Pointer to provider module's binding context with the client module.
+ * @param[out] provider_dispatch Pointer to provider module's dispatch table.
+ * @retval STATUS_SUCCESS The operation succeeded.
+ * @retval STATUS_NO_MEMORY Failed to allocate provider binding context.
+ * @retval STATUS_INVALID_PARAMETER One or more arguments are incorrect.
+ */
 NTSTATUS
 net_ebpf_extension_program_info_provider_attach_client(
     _In_ HANDLE nmr_binding_handle,
@@ -71,6 +87,13 @@ Exit:
     return status;
 }
 
+/**
+ * @brief Callback invoked when a Program Information NPI client detaches.
+ *
+ * @param[in] provider_binding_context Provider module's context for binding with the client.
+ * @retval STATUS_SUCCESS The operation succeeded.
+ * @retval STATUS_INVALID_PARAMETER One or more parameters are invalid.
+ */
 NTSTATUS
 net_ebpf_extension_program_info_provider_detach_client(_Frees_ptr_opt_ void* provider_binding_context)
 {
@@ -96,12 +119,13 @@ net_ebpf_extension_program_info_provider_unregister(
 
 NTSTATUS
 net_ebpf_extension_program_info_provider_register(
-    _In_ const NPI_PROVIDER_CHARACTERISTICS* provider_characteristics,
+    _In_ const net_ebpf_extension_program_info_provider_parameters_t* parameters,
     _Outptr_ net_ebpf_extension_program_info_provider_t** provider_context)
 {
-    ebpf_extension_data_t* extension_data;
+    const ebpf_extension_data_t* extension_data = parameters->provider_data;
     ebpf_program_data_t* program_data;
     net_ebpf_extension_program_info_provider_t* local_provider_context = NULL;
+    NPI_PROVIDER_CHARACTERISTICS* characteristics;
     NTSTATUS status = STATUS_SUCCESS;
 
     local_provider_context = (net_ebpf_extension_program_info_provider_t*)ExAllocatePoolUninitialized(
@@ -112,15 +136,21 @@ net_ebpf_extension_program_info_provider_register(
     }
     memset(local_provider_context, 0, sizeof(net_ebpf_extension_program_info_provider_t));
 
-    // For program info NPI, the NPI ID is assigned as the program type. Set it to the program_type_descriptor.
-    extension_data =
-        (ebpf_extension_data_t*)provider_characteristics->ProviderRegistrationInstance.NpiSpecificCharacteristics;
-    program_data = (ebpf_program_data_t*)extension_data->data;
-    program_data->program_info->program_type_descriptor.program_type =
-        *(GUID*)provider_characteristics->ProviderRegistrationInstance.NpiId;
+    characteristics = &local_provider_context->characteristics;
+    characteristics->Length = sizeof(NPI_PROVIDER_CHARACTERISTICS);
+    characteristics->ProviderAttachClient = net_ebpf_extension_program_info_provider_attach_client;
+    characteristics->ProviderDetachClient = net_ebpf_extension_program_info_provider_detach_client;
+    characteristics->ProviderRegistrationInstance.Size = sizeof(NPI_REGISTRATION_INSTANCE);
+    // TODO(issue #772): NpiId should be a well known GUID. ModuleId should be program type.
+    characteristics->ProviderRegistrationInstance.NpiId = parameters->program_type;
+    characteristics->ProviderRegistrationInstance.ModuleId = parameters->provider_module_id;
+    characteristics->ProviderRegistrationInstance.NpiSpecificCharacteristics = parameters->provider_data;
 
-    status = NmrRegisterProvider(
-        provider_characteristics, local_provider_context, &local_provider_context->nmr_provider_handle);
+    // For program info NPI, the NPI ID is assigned as the program type. Set it to the program_type_descriptor.
+    program_data = (ebpf_program_data_t*)extension_data->data;
+    program_data->program_info->program_type_descriptor.program_type = *(GUID*)parameters->program_type;
+
+    status = NmrRegisterProvider(characteristics, local_provider_context, &local_provider_context->nmr_provider_handle);
     if (!NT_SUCCESS(status))
         goto Exit;
 

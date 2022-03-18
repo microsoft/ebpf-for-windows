@@ -174,19 +174,22 @@ function Export-BuildArtifactsToVMs
 
     foreach($VM in $VMList) {
         $VMName = $VM.Name
-        Write-Log "Exporting all files in $pwd to c:\eBPF\ on $VMName"
         $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
         $VMSession = New-PSSession -VMName $VMName -Credential $TestCredential
         if (!$VMSession) {
             throw "Failed to create PowerShell session on $VMName."
         } else {
             Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
-                if(!(Test-Path "C:\eBPF")) {
-                    New-Item -ItemType Directory -Path "C:\eBPF"
+                if(!(Test-Path "$Env:SystemDrive\eBPF")) {
+                    New-Item -ItemType Directory -Path "$Env:SystemDrive\eBPF"
                 }
+                return $Env:SystemDrive
             }
+            $VMSystemDrive = Invoke-Command -Session $VMSession -ScriptBlock {return $Env:SystemDrive}
         }
-        Copy-Item -ToSession $VMSession -Path "$pwd\*" -Destination "C:\eBPF\" -Recurse -Force 2>&1 -ErrorAction Stop | Write-Log
+        Write-Log "Exporting all files in $pwd to $VMSystemDrive\eBPF on $VMName"
+        Copy-Item -ToSession $VMSession -Path "$pwd\*" -Exclude "*.pdb" -Destination "$VMSystemDrive\eBPF" -Recurse -Force 2>&1 -ErrorAction Stop | Write-Log
+
         Write-Log "Export completed." -ForegroundColor Green
     }
 }
@@ -199,31 +202,58 @@ function Import-ResultsFromVM
 {
     param([Parameter(Mandatory=$True)] $VMList)
 
+    # Wait for all VMs to be in ready state, in case the test run caused any VM to crash.
+    Wait-AllVMsToInitialize -VMList $VMList -UserName $Admin -AdminPassword $AdminPassword
+
     foreach($VM in $VMList) {
         $VMName = $VM.Name
         Write-Log "Importing TestLogs from $VMName"
+        if (!(Test-Path ".\TestLogs\$VMName")) {
+            New-Item -ItemType Directory -Path ".\TestLogs\$VMName"
+        }
+
         $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
         $VMSession = New-PSSession -VMName $VMName -Credential $TestCredential
         if (!$VMSession) {
             throw "Failed to create PowerShell session on $VMName."
         }
-        if (!(Test-Path ".\TestLogs")) {
-            New-Item -ItemType Directory -Path ".\TestLogs"
-        }
-        # Copy logs from Test VM.
-        Write-Log ("Copy {0}_{1} from C:\eBPF on test VM to $pwd\TestLogs" -f $VMName, $LogFileName)
-        Copy-Item -FromSession $VMSession ("C:\eBPF\{0}_{1}" -f $VMName, $LogFileName) -Destination ".\TestLogs" -Recurse -Force -ErrorAction Stop 2>&1 | Write-Log
+        $VMSystemDrive = Invoke-Command -Session $VMSession -ScriptBlock {return $Env:SystemDrive}
 
-        # Move runner test logs to TestLogs folder.
-        Move-Item $LogFileName -Destination ".\TestLogs" -Force -ErrorAction Stop 2>&1 | Write-Log
+        # Copy kernel crash dumps if any.
+        if (!(Test-Path ".\TestLogs\$VMName\KernelDumps\")) {
+            New-Item -ItemType Directory -Path ".\TestLogs\$VMName\KernelDumps"
+        }
+
+        Invoke-Command -Session $VMSession -ScriptBlock {
+            if (!(Test-Path "$Env:SystemDrive\KernelDumps")) {
+                New-Item -ItemType Directory -Path "$Env:SystemDrive\KernelDumps"
+            }
+            Move-Item $Env:WinDir\*.dmp $Env:SystemDrive\KernelDumps -ErrorAction Ignore
+        }
+        Copy-Item -FromSession $VMSession "$VMSystemDrive\KernelDumps" -Destination ".\TestLogs\$VMName\KernelDumps" -Force -ErrorAction Ignore 2>&1 | Write-Log
+
+        # Copy user mode crash dumps if any.
+        if (!(Test-Path ".\TestLogs\$VMName\UMDumps\")) {
+            New-Item -ItemType Directory -Path ".\TestLogs\$VMName\UMDumps"
+        }
+
+        Copy-Item -FromSession $VMSession "$VMSystemDrive\dumps\x64" -Destination ".\TestLogs\$VMName\UMDumps" -Recurse -Force -ErrorAction Ignore 2>&1 | Write-Log
+
+        # Copy logs from Test VM.
+        if (!(Test-Path ".\TestLogs\$VMName\Logs")) {
+            New-Item -ItemType Directory -Path ".\TestLogs\$VMName\Logs"
+        }
+
+        Write-Log ("Copy $LogFileName from eBPF on $VMName to $pwd\TestLogs")
+        Copy-Item -FromSession $VMSession "$VMSystemDrive\eBPF\$LogFileName" -Destination ".\TestLogs\$VMName\Logs" -Recurse -Force -ErrorAction Stop 2>&1 | Write-Log
 
         # Copy ETL from Test VM.
         $EtlFile = $LogFileName.Substring(0, $LogFileName.IndexOf('.')) + ".etl"
-
-        Write-Log ("Copy {0}_{1} from C:\eBPF on test VM to $pwd\TestLogs" -f $VMName, $EtlFile)
-        Copy-Item -FromSession $VMSession ("C:\eBPF\{0}_{1}" -f $VMName, $EtlFile) -Destination ".\TestLogs" -Recurse -Force -ErrorAction Stop 2>&1 | Write-Log
-
+        Write-Log ("Copy $EtlFile from eBPF on $VMName to $pwd\TestLogs")
+        Copy-Item -FromSession $VMSession -Path "$VMSystemDrive\eBPF\$EtlFile" -Destination ".\TestLogs\$VMName\Logs" -Recurse -Force -ErrorAction Stop 2>&1 | Write-Log
     }
+    # Move runner test logs to TestLogs folder.
+    Move-Item $LogFileName -Destination ".\TestLogs" -Force -ErrorAction Stop 2>&1 | Write-Log
 }
 
 function Install-eBPFComponentsOnVM
@@ -236,9 +266,48 @@ function Install-eBPFComponentsOnVM
     Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
         param([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
               [Parameter(Mandatory=$True)] [string] $LogFileName)
+        $WorkingDirectory = "$env:SystemDrive\$WorkingDirectory"
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
         Import-Module $WorkingDirectory\install_ebpf.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
+
         Install-eBPFComponents
-    } -ArgumentList ("C:\eBPF", ("{0}_{1}" -f $VMName, $LogFileName)) -ErrorAction Stop
+    } -ArgumentList ("eBPF", $LogFileName) -ErrorAction Stop
     Write-Log "eBPF components installed on $VMName" -ForegroundColor Green
+}
+
+function Initialize-NetworkInterfacesOnVMs
+{
+    param([parameter(Mandatory=$true)] $MultiVMTestConfig)
+
+    foreach ($VM in $MultiVMTestConfig)
+    {
+        $VMName = $VM.Name
+        $Interfaces = $VM.Interfaces
+
+        Write-Log "Initializing network interfaces on $VMName"
+        $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
+
+        Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
+            param([Parameter(Mandatory=$True)] $InterfaceList,
+                  [Parameter(Mandatory=$True)] [string] $WorkingDirectory,
+                  [Parameter(Mandatory=$True)] [string] $LogFileName)
+            $WorkingDirectory = "$env:SystemDrive\$WorkingDirectory"
+            Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
+
+            foreach ($Interface in $InterfaceList) {
+                $InterfaceAlias = $Interface.Alias
+                $V4Address = $Interface.V4Address
+                Write-Log "Adding $V4Address on $InterfaceAlias"
+                Remove-NetIPAddress -ifAlias "$InterfaceAlias" -IPAddress $V4Address -PolicyStore "All" -Confirm:$false -ErrorAction Ignore | Out-Null
+                New-NetIPAddress -ifAlias "$InterfaceAlias" -IPAddress $V4Address -PrefixLength 24 -ErrorAction Stop | Out-Null
+                Write-Log "Address configured."
+
+                $V6Address = $Interface.V6Address
+                Write-Log "Adding $V6Address on $InterfaceAlias"
+                Remove-NetIPAddress -ifAlias "$InterfaceAlias" -IPAddress $V6Address* -PolicyStore "All" -Confirm:$false -ErrorAction Ignore | Out-Null
+                New-NetIPAddress -ifAlias "$InterfaceAlias" -IPAddress $V6Address -PrefixLength 64 -ErrorAction Stop | Out-Null
+                Write-Log "Address configured."
+            }
+        } -ArgumentList ($Interfaces, "eBPF", $LogFileName) -ErrorAction Stop
+    }
 }

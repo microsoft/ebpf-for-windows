@@ -88,7 +88,7 @@ extern "C"
     ebpf_program_get_parameters(_In_ const ebpf_program_t* program);
 
     _Ret_notnull_ const ebpf_program_type_t*
-    ebpf_program_type(_In_ const ebpf_program_t* program);
+    ebpf_program_type_uuid(_In_ const ebpf_program_t* program);
 
     _Ret_notnull_ const ebpf_attach_type_t*
     ebpf_expected_attach_type(_In_ const ebpf_program_t* program);
