@@ -19,9 +19,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
     <ClCompile Include="..\end_to_end\end_to_end.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

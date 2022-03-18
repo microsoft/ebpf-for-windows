@@ -7,6 +7,7 @@
 
 #define CATCH_CONFIG_RUNNER
 
+#define NUGET_CATCH
 #include "catch_wrapper.hpp"
 #include "xdp_tests.h"
 #include "xdp_tests_common.h"
