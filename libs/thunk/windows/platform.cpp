@@ -211,6 +211,7 @@ _create_service(_In_ const wchar_t* service_name, _In_ const wchar_t* file_path,
     SC_HANDLE local_service_handle = nullptr;
     SC_HANDLE scm_handle = nullptr;
     int error = ERROR_SUCCESS;
+    int count;
     *service_handle = nullptr;
     DWORD service_type = SERVICE_KERNEL_DRIVER;
 
@@ -220,8 +221,8 @@ _create_service(_In_ const wchar_t* service_name, _In_ const wchar_t* file_path,
     }
 
     WCHAR full_file_path[MAX_PATH] = {0};
-    error = GetFullPathName(file_path, MAX_PATH, full_file_path, nullptr);
-    if (error == 0) {
+    count = GetFullPathName(file_path, MAX_PATH, full_file_path, nullptr);
+    if (count == 0) {
         error = GetLastError();
         goto Done;
     }

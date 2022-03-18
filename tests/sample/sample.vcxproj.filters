@@ -94,4 +94,12 @@
       <Filter>Source Files</Filter>
     </CustomBuild>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="porttracker.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="porttracker_tailcall.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
 </Project>

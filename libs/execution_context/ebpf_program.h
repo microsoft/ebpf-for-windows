@@ -27,6 +27,7 @@ extern "C"
     typedef struct _ebpf_program_parameters
     {
         ebpf_program_type_t program_type;
+        ebpf_attach_type_t expected_attach_type;
         ebpf_utf8_string_t program_name;
         ebpf_utf8_string_t section_name;
         ebpf_utf8_string_t file_name;
@@ -88,6 +89,9 @@ extern "C"
 
     _Ret_notnull_ const ebpf_program_type_t*
     ebpf_program_type(_In_ const ebpf_program_t* program);
+
+    _Ret_notnull_ const ebpf_attach_type_t*
+    ebpf_expected_attach_type(_In_ const ebpf_program_t* program);
 
     /**
      * @brief Get the program info from the program info extension.

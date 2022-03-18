@@ -555,7 +555,8 @@ TEST_CASE("program", "[execution_context]")
     const ebpf_utf8_string_t section_name{(uint8_t*)("bar"), 3};
     program_info_provider_t program_info_provider(EBPF_PROGRAM_TYPE_BIND);
 
-    const ebpf_program_parameters_t program_parameters{EBPF_PROGRAM_TYPE_BIND, program_name, section_name};
+    const ebpf_program_parameters_t program_parameters{
+        EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND, program_name, section_name};
     ebpf_program_info_t* program_info;
 
     REQUIRE(ebpf_program_initialize(program.get(), &program_parameters) == EBPF_SUCCESS);
@@ -626,7 +627,8 @@ TEST_CASE("name size", "[execution_context]")
     const ebpf_utf8_string_t oversize_name{
         (uint8_t*)("a234567890123456789012345678901234567890123456789012345678901234"), 64};
     const ebpf_utf8_string_t section_name{(uint8_t*)("bar"), 3};
-    const ebpf_program_parameters_t program_parameters{EBPF_PROGRAM_TYPE_BIND, oversize_name, section_name};
+    const ebpf_program_parameters_t program_parameters{
+        EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND, oversize_name, section_name};
 
     REQUIRE(ebpf_program_initialize(program.get(), &program_parameters) == EBPF_INVALID_ARGUMENT);
 

@@ -5,7 +5,6 @@
 #include <vector>
 
 #include "bpf_code_generator.h"
-#include "ebpf_api.h"
 
 #if !defined(_countof)
 #define _countof(array) (sizeof(array) / sizeof(array[0]))
@@ -147,23 +146,23 @@ bpf_code_generator::program_sections()
 }
 
 void
-bpf_code_generator::parse(const std::string& section_name)
+bpf_code_generator::parse(const std::string& section_name, const GUID& program_type, const GUID& attach_type)
 {
     current_section = &sections[section_name];
     get_register_name(0);
     get_register_name(1);
     get_register_name(10);
 
-    get_program_and_attach_type(section_name);
+    set_program_and_attach_type(program_type, attach_type);
     extract_program(section_name);
     extract_relocations_and_maps(section_name);
 }
 
 void
-bpf_code_generator::get_program_and_attach_type(const std::string& section_name)
+bpf_code_generator::set_program_and_attach_type(const GUID& program_type, const GUID& attach_type)
 {
-    ebpf_get_program_type_by_name(
-        section_name.c_str(), &current_section->program_type, &current_section->expected_attach_type);
+    current_section->program_type = program_type;
+    current_section->expected_attach_type = attach_type;
 }
 
 void
@@ -558,6 +557,8 @@ bpf_code_generator::encode_instructions()
                         std::to_string(
                             helper_functions[std::string("helper_id_") + std::to_string(output.instruction.imm)]
                                 .index));
+                    current_section->referenced_helper_indices.insert(
+                        helper_functions[std::string("helper_id_") + std::to_string(output.instruction.imm)].index);
                 } else {
                     function_name =
                         format_string("_helpers[%s]", std::to_string(helper_functions[output.relocation].index));

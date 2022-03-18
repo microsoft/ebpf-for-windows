@@ -180,8 +180,6 @@ ebpf_core_terminate()
     ebpf_provider_unload(_ebpf_global_helper_function_provider_context);
     _ebpf_global_helper_function_provider_context = NULL;
 
-    ebpf_native_terminate();
-
     ebpf_program_terminate();
 
     ebpf_handle_table_terminate();
@@ -196,6 +194,12 @@ ebpf_core_terminate()
     // Note: Some objects may only be released on epoch termination.
     ebpf_epoch_flush();
     ebpf_epoch_terminate();
+
+    // Terminate native module. This is a blocking call and will return only when
+    // all the native drivers have been detached and unloaded. Hence this needs
+    // to be called after ebpf_epoch_terminate() to ensure all the program epoch
+    // cleanup workitems have been executed by this time.
+    ebpf_native_terminate();
 
     // Verify that all ebpf_core_object_t objects have been freed.
     ebpf_object_tracking_terminate();

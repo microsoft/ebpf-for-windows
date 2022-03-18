@@ -151,6 +151,8 @@
       <Command>pushd $(OutDir)
 bpf2c.exe --bpf bindmonitor.o &gt;bindmonitor_c.c
 bpf2c.exe --bpf droppacket.o &gt;droppacket_c.c
+bpf2c.exe --bpf porttracker.o &gt;porttracker_c.c
+bpf2c.exe --bpf porttracker_tailcall.o &gt;porttracker_tailcall_c.c
 bpf2c.exe --bpf divide_by_zero.o &gt;divide_by_zero.c</Command>
     </PreBuildEvent>
     <PreBuildEvent>

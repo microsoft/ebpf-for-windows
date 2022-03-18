@@ -1539,6 +1539,7 @@ _initialize_ebpf_programs_native(
             goto Exit;
         }
         program->program_type = info.type_uuid;
+        program->attach_type = info.attach_type_uuid;
         // TODO: Change ebpf_object_get_info to also get section name from EC.
 
         programs.emplace_back(program);

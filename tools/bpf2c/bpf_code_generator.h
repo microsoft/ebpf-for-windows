@@ -46,9 +46,11 @@ class bpf_code_generator
      * @brief Parse the eBPF file.
      *
      * @param[in] section_name Section in the ELF file to parse.
+     * @param[in] program_type Program type GUID for the section.
+     * @param[in] attach_type Expected attach type GUID for the section.
      */
     void
-    parse(const std::string& section_name);
+    parse(const std::string& section_name, const GUID& program_type, const GUID& attach_type);
 
     /**
      * @brief Generate C code from the parsed eBPF file.
@@ -108,12 +110,13 @@ class bpf_code_generator
     void
     extract_program(const std::string& section_name);
 
-    /**
-     * @brief Get the program and attach type from the section name.
-     *
-     */
+    /*
+        /**
+         * @brief Set the program and attach type foe the current section.
+         *
+         */
     void
-    get_program_and_attach_type(const std::string& section_name);
+    set_program_and_attach_type(const GUID& program_type, const GUID& attach_type);
 
     /**
      * @brief Extract the helper function and map relocation data from the eBPF file.
@@ -175,7 +178,7 @@ class bpf_code_generator
      * @return The formatted string.
      */
     std::string
-    format_guid(_In_ const GUID* guid);
+    format_guid(const GUID* guid);
 
     /**
      * @brief Convert a name to a valid C identifier.

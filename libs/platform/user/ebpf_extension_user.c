@@ -9,7 +9,7 @@
 volatile ebpf_handle_t next_handle = 1;
 
 #ifndef GUID_NULL
-const GUID GUID_NULL = {0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0}};
+static const GUID GUID_NULL = {0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0}};
 #endif
 
 static ebpf_handle_t

@@ -173,8 +173,10 @@ handle_ebpf_add_program(
         &error_message);
     if (result != EBPF_SUCCESS) {
         std::cerr << "error " << result << ": could not load program" << std::endl;
-        std::cerr << error_message << std::endl;
-        ebpf_free_string(error_message);
+        if (error_message != nullptr) {
+            std::cerr << error_message << std::endl;
+            ebpf_free_string(error_message);
+        }
         return ERROR_SUPPRESS_OUTPUT;
     }
     // Program loaded. Populate the unloader with object pointer and program fd, such that

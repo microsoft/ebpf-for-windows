@@ -166,11 +166,6 @@
     <ClInclude Include="..\..\tools\bpf2c\btf.h" />
     <ClInclude Include="..\..\tools\bpf2c\btf_parser.h" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\ebpfapi\ebpfapi.vcxproj">
-      <Project>{75fe223a-3e45-4b0e-a2e8-04285e52e440}</Project>
-    </ProjectReference>
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

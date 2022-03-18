@@ -36,17 +36,20 @@ extern "C"
     ebpf_native_terminate();
 
     /**
-     * @brief Load and bind to native eBPF code and optionally re-use existing maps. Caller is responsible for calling
-     * ebpf_object_release_reference when they no longer need this object.
+     * @brief Load driver and bind to the native module.
      *
-     * @param[in] module_id Identifier of the native eBPF code to load.
-     * @param[out] native Pointer to the object tracking the native eBPF code.
-     * @param[in] maps List of maps to re-use with the native eBPF code.
-     * @param[in] count_of_maps Count of maps in maps list.
+     * @param[in] service_name Name of the service for the native module.
+     * @param[in] service_name_length Length of service_name.
+     * @param[in] module_id Identifier of the native eBPF module to load.
+     * @param[out] count_of_maps Count of maps in the native module.
+     * @param[out] count_of_programs Count of programs in the native module.
+     *
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  operation.
      * @retval EBPF_OBJECT_NOT_FOUND No native program exists with that module ID.
+     * @retval EBPF_OBJECT_ALREADY_EXISTS Native module for this module ID is already
+     *  initialized.
      */
     ebpf_result_t
     ebpf_native_load(
@@ -56,6 +59,24 @@ extern "C"
         _Out_ size_t* count_of_maps,
         _Out_ size_t* count_of_programs);
 
+    /**
+     * @brief Load programs, create maps and resolve map and helper addresses for
+     *  already loaded native module.
+     *
+     * @param[in] module_id Identifier of the native eBPF module to load programs
+     *  and maps from.
+     * @param[in] count_of_map_handles Count of maps in this module.
+     * @param[out] map_handles Array of handles of the maps created.
+     * @param[in] count_of_program_handles Count of programs in the native module.
+     * @param[out] program_handles Array of handles for the programs created.
+     *
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
+     *  operation.
+     * @retval EBPF_OBJECT_NOT_FOUND No native program exists with that module ID.
+     * @retval EBPF_OBJECT_ALREADY_EXISTS Native module for this module ID is already
+     *  initialized.
+     */
     ebpf_result_t
     ebpf_native_load_programs(
         _In_ const GUID* module_id,
@@ -64,12 +85,38 @@ extern "C"
         size_t count_of_program_handles,
         _Out_writes_(count_of_program_handles) ebpf_handle_t* program_handles);
 
+    /**
+     * @brief Get count of programs in the native module.
+     *
+     * @param[in] module_id Pointer to module id.
+     * @param[out] count_of_maps Count of programs.
+     *
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_OBJECT_NOT_FOUND Specified module was not found.
+     */
     ebpf_result_t
     ebpf_native_get_count_of_programs(_In_ const GUID* module_id, _Out_ size_t* count_of_programs);
 
+    /**
+     * @brief Get count of maps in the native module.
+     *
+     * @param[in] module_id Pointer to module id.
+     * @param[out] count_of_maps Count of maps.
+     *
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_OBJECT_NOT_FOUND Specified module was not found.
+     */
     ebpf_result_t
     ebpf_native_get_count_of_maps(_In_ const GUID* module_id, _Out_ size_t* count_of_maps);
 
+    /**
+     * @brief Unload driver for the specified module id.
+     *
+     * @param[in] module_id Pointer to module id whose driver is to be unloaded.
+     *
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MEMORY Unable to allocate memory for service name.
+     */
     ebpf_result_t
     ebpf_native_unload(_In_ const GUID* module_id);
 

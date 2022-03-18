@@ -548,6 +548,12 @@ ebpf_program_type(_In_ const ebpf_program_t* program)
     return &ebpf_program_get_parameters(program)->program_type;
 }
 
+_Ret_notnull_ const ebpf_attach_type_t*
+ebpf_expected_attach_type(_In_ const ebpf_program_t* program)
+{
+    return &ebpf_program_get_parameters(program)->expected_attach_type;
+}
+
 ebpf_result_t
 ebpf_program_associate_additional_map(ebpf_program_t* program, ebpf_map_t* map)
 {
@@ -878,7 +884,8 @@ ebpf_program_invoke(_In_ const ebpf_program_t* program, _In_ void* context, _Out
     }
 
     for (state.count = 0; state.count < MAX_TAIL_CALL_CNT; state.count++) {
-        if (current_program->parameters.code_type == EBPF_CODE_JIT) {
+        if (current_program->parameters.code_type == EBPF_CODE_JIT ||
+            current_program->parameters.code_type == EBPF_CODE_NATIVE) {
             ebpf_program_entry_point_t function_pointer;
             function_pointer = (ebpf_program_entry_point_t)(current_program->code_or_vm.code.code_pointer);
             *result = (function_pointer)(context);
@@ -1151,6 +1158,7 @@ ebpf_program_get_info(
     info->nr_map_ids = program->count_of_maps;
     info->type = BPF_PROG_TYPE_UNSPEC; // TODO(issue #223): get integer if any.
     info->type_uuid = *ebpf_program_type(program);
+    info->attach_type_uuid = *ebpf_expected_attach_type(program);
     info->pinned_path_count = program->object.pinned_path_count;
     info->link_count = program->link_count;
 
