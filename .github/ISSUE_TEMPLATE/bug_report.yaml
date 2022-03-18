@@ -1,7 +1,7 @@
 name: 🐛 Bug report
 description: Report a bug or unexpected behavior
 title: "Bug title"
-labels: []
+labels: bug
 body:
   - type: textarea
     validations:
@@ -18,7 +18,9 @@ body:
       description: What operating systems are affected by this bug?
       options:
         - label: Windows Server 2022
+        - label: Windows Server 2019
         - label: Windows 11
+        - label: Windows 10
         - label: Windows Insider Preview (specify affected build below)
         - label: Other (specify below)
   - type: textarea
