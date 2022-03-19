@@ -5,7 +5,9 @@
 
 #include "ebpf_platform.h"
 
+#pragma warning(disable : 4013)
 #pragma warning(disable : 4018)
+#pragma warning(disable : 4090)
 #pragma warning(disable : 4146)
 #pragma warning(disable : 4214)
 #pragma warning(disable : 4242)
