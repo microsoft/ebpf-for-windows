@@ -9,6 +9,9 @@
     <DisableAnalyzeExternal>true</DisableAnalyzeExternal>
     <CodeAnalysisRuleSet>$(SolutionDir)Analyze.default.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(AddressSanitizer)'=='True'">
+    <EnableASAN>true</EnableASAN>
+  </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
