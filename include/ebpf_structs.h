@@ -106,6 +106,9 @@ typedef enum
     BPF_FUNC_trace_printk3 = 13,
     BPF_FUNC_trace_printk4 = 14,
     BPF_FUNC_trace_printk5 = 15,
+    BPF_FUNC_map_push_elem = 16,
+    BPF_FUNC_map_pop_elem = 17,
+    BPF_FUNC_map_peek_elem = 18,
 } ebpf_helper_id_t;
 
 // Cross-platform BPF program types.
@@ -114,7 +117,10 @@ enum bpf_prog_type
     BPF_PROG_TYPE_UNSPEC,
     BPF_PROG_TYPE_XDP,
     BPF_PROG_TYPE_BIND, // TODO(#333): replace with cross-platform program type
+    BPF_PROG_TYPE_SAMPLE = 999
 };
+
+typedef enum bpf_prog_type bpf_prog_type_t;
 
 #define XDP_FLAGS_REPLACE 0x01
 

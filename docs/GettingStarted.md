@@ -28,8 +28,9 @@ The following steps need to be executed _once_ before the first build on a new c
 1. Launch `Developer Command Prompt for VS 2019` by running `"C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\Common7\Tools\VsDevCmd.bat"`.
 2. Change directory to where the project is cloned, e.g. ```cd ebpf-for-windows```.
 3. ```cmake -G "Visual Studio 16 2019" -S external\ebpf-verifier -B external\ebpf-verifier\build```
-4. ```nuget restore ebpf-for-windows.sln```
-5. ```del external\ebpf-verifier\build\obj\project.assets.json```
+4. ```cmake -G "Visual Studio 16 2019" -S external\catch2 -B external\catch2\build -DBUILD_TESTING=OFF```
+5. ```nuget restore ebpf-for-windows.sln```
+6. ```del external\ebpf-verifier\build\obj\project.assets.json```
 
 ### Building using Developer Command Prompt for VS 2019
 1. Launch `Developer Command Prompt for VS 2019`.
