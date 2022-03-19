@@ -63,9 +63,12 @@ jobs:
     - name: Create verifier project
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
-        cd external\ebpf-verifier
-        mkdir build
-        cmake -B build
+        cmake -G "Visual Studio 16 2019" -S external\ebpf-verifier -B external\ebpf-verifier\build
+
+    - name: Create catch2 project
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      run: |
+        cmake -G "Visual Studio 16 2019" -S external\catch2 -B external\catch2\build -DBUILD_TESTING=OFF
 
     - name: Build
       working-directory: ${{env.GITHUB_WORKSPACE}}
