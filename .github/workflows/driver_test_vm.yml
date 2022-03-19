@@ -11,6 +11,9 @@ name: Kernel_Test_VM
 
 on: pull_request
 
+permissions:
+  contents: read
+
 jobs:
   build_job:
     strategy:
