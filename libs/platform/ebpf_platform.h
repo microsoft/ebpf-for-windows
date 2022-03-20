@@ -57,6 +57,7 @@ extern "C"
     } ebpf_code_integrity_state_t;
 
     typedef struct _ebpf_non_preemptible_work_item ebpf_non_preemptible_work_item_t;
+    typedef struct _ebpf_preemptible_work_item ebpf_preemptible_work_item_t;
     typedef struct _ebpf_timer_work_item ebpf_timer_work_item_t;
     typedef struct _ebpf_extension_client ebpf_extension_client_t;
     typedef struct _ebpf_extension_provider ebpf_extension_provider_t;
@@ -418,6 +419,41 @@ extern "C"
      */
     bool
     ebpf_queue_non_preemptible_work_item(_In_ ebpf_non_preemptible_work_item_t* work_item, _In_opt_ void* parameter_1);
+
+    /**
+     * @brief Query the platform to determine if preemptible work items are
+     *   supported.
+     *
+     * @retval true Preemptible work items are supported.
+     * @retval false Preemptible work items are not supported.
+     */
+    bool
+    ebpf_is_preemptible_work_item_supported();
+
+    /**
+     * @brief Create a preemptible work item.
+     *
+     * @param[out] work_item Pointer to memory that will contain the pointer to
+     *  the preemptible work item on success.
+     * @param[in] work_item_routine Routine to execute as a work item.
+     * @param[in] work_item_context Context to pass to the routine.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
+     *  work item.
+     */
+    ebpf_result_t
+    ebpf_allocate_preemptible_work_item(
+        _Out_ ebpf_preemptible_work_item_t** work_item,
+        _In_ void (*work_item_routine)(void* work_item_context),
+        _In_opt_ void* work_item_context);
+
+    /**
+     * @brief Schedule a preemptible work item to run.
+     *
+     * @param[in] work_item Work item to schedule.
+     */
+    void
+    ebpf_queue_preemptible_work_item(_In_ ebpf_preemptible_work_item_t* work_item);
 
     /**
      * @brief Allocate a timer to run a non-preemptible work item.

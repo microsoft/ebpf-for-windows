@@ -799,6 +799,7 @@ bpf_code_generator::format_guid(const GUID* guid)
     std::string output(120, '\0');
     std::string format_string =
         "{0x%08x, 0x%04x, 0x%04x, {0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x}}";
+#if defined(_MSC_VER)
     auto count = snprintf(
         output.data(),
         output.size(),
@@ -814,7 +815,26 @@ bpf_code_generator::format_guid(const GUID* guid)
         guid->Data4[5],
         guid->Data4[6],
         guid->Data4[7]);
-
+#else
+    uint32_t data1 = *(uint32_t*)guid;
+    uint16_t data2 = *(uint16_t*)(guid + sizeof(uint32_t));
+    uint16_t data3 = *(uint16_t*)(guid + sizeof(uint32_t) + sizeof(uint16_t));
+    auto count = snprintf(
+        output.data(),
+        output.size(),
+        format_string.c_str(),
+        data1,
+        data2,
+        data3,
+        guid[8],
+        guid[9],
+        guid[10],
+        guid[11],
+        guid[12],
+        guid[13],
+        guid[14],
+        guid[15]);
+#endif
     if (count < 0) {
         throw std::runtime_error("Error formatting GUID");
     }

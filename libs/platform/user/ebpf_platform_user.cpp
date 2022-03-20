@@ -441,6 +441,12 @@ ebpf_is_non_preemptible_work_item_supported()
     return false;
 }
 
+bool
+ebpf_is_preemptible_work_item_supported()
+{
+    return false;
+}
+
 uint32_t
 ebpf_get_current_cpu()
 {
@@ -479,6 +485,24 @@ ebpf_queue_non_preemptible_work_item(_In_ ebpf_non_preemptible_work_item_t* work
     UNREFERENCED_PARAMETER(work_item);
     UNREFERENCED_PARAMETER(parameter_1);
     return false;
+}
+
+void
+ebpf_queue_preemptible_work_item(_In_ ebpf_preemptible_work_item_t* work_item)
+{
+    UNREFERENCED_PARAMETER(work_item);
+}
+
+ebpf_result_t
+ebpf_allocate_preemptible_work_item(
+    _Out_ ebpf_preemptible_work_item_t** work_item,
+    _In_ void (*work_item_routine)(void* work_item_context),
+    _In_opt_ void* work_item_context)
+{
+    UNREFERENCED_PARAMETER(work_item);
+    UNREFERENCED_PARAMETER(work_item_routine);
+    UNREFERENCED_PARAMETER(work_item_context);
+    return EBPF_OPERATION_NOT_SUPPORTED;
 }
 
 typedef struct _ebpf_timer_work_item
