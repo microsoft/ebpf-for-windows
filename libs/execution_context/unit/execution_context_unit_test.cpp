@@ -238,14 +238,14 @@ MAP_TEST(BPF_MAP_TYPE_LRU_PERCPU_HASH);
 TEST_CASE("map_crud_operations_lpm_trie_32", "[execution_context]")
 {
     _ebpf_core_initializer core;
-
+    const size_t max_string = 16;
     typedef struct _lpm_trie_key
     {
         uint32_t prefix_length;
         uint8_t value[4];
     } lpm_trie_key_t;
     ebpf_map_definition_in_memory_t map_definition{
-        sizeof(ebpf_map_definition_in_memory_t), BPF_MAP_TYPE_LPM_TRIE, sizeof(lpm_trie_key_t), 16, 10};
+        sizeof(ebpf_map_definition_in_memory_t), BPF_MAP_TYPE_LPM_TRIE, sizeof(lpm_trie_key_t), max_string, 10};
     map_ptr map;
     {
         ebpf_map_t* local_map;
@@ -280,6 +280,8 @@ TEST_CASE("map_crud_operations_lpm_trie_32", "[execution_context]")
     };
 
     for (auto& [key, value] : keys) {
+        std::string local_value = value;
+        local_value.resize(max_string);
         REQUIRE(
             ebpf_map_update_entry(
                 map.get(),
