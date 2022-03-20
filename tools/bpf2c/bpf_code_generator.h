@@ -170,6 +170,7 @@ class bpf_code_generator
         const std::string insert_3 = "",
         const std::string insert_4 = "");
 
+#if defined(_MSC_VER)
     /**
      * @brief Format a GUID as a string.
      *
@@ -178,6 +179,7 @@ class bpf_code_generator
      */
     std::string
     format_guid(const GUID* guid);
+#endif
 
     /**
      * @brief Convert a name to a valid C identifier.

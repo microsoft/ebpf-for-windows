@@ -99,7 +99,8 @@ _test_program_load(
         execution_type = EBPF_EXECUTION_JIT;
     }
     REQUIRE(program_execution_type == execution_type);
-    REQUIRE(strcmp(program_file_name, file_name) == 0);
+    if (execution_type != EBPF_EXECUTION_NATIVE)
+        REQUIRE(strcmp(program_file_name, file_name) == 0);
 
     // Next program should not be present.
     previous_fd = next_fd;

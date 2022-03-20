@@ -491,6 +491,7 @@ void
 ebpf_queue_preemptible_work_item(_In_ ebpf_preemptible_work_item_t* work_item)
 {
     UNREFERENCED_PARAMETER(work_item);
+    // TODO: Add support for creating threads to queue preemptible work items in user mode.
 }
 
 ebpf_result_t

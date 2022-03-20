@@ -2360,6 +2360,8 @@ _ebpf_program_load_native(
         }
 
         *object = new_object;
+        _ebpf_objects.emplace_back(*object);
+
         *program_fd = new_object->programs[0]->fd;
     } catch (const std::bad_alloc&) {
         result = EBPF_NO_MEMORY;

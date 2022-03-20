@@ -670,6 +670,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         std::string program_type_name = program_name + "_program_type_guid";
         std::string attach_type_name = program_name + "_attach_type_guid";
 
+#if defined(_MSC_VER)
         output_stream << format_string(
                              "static GUID %s = %s;",
                              sanitize_name(program_type_name),
@@ -680,6 +681,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
                              sanitize_name(attach_type_name),
                              format_guid(&section.expected_attach_type))
                       << std::endl;
+#endif
 
         if (section.referenced_map_indices.size() > 0) {
             // Emit the array for the maps used.
@@ -767,15 +769,24 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         // const char* map_array_name = map_count ? (program_name + "_maps").c_str() : "NULL";
         auto map_array_name = map_count ? (program_name + "_maps") : std::string("NULL");
         auto helper_array_name = helper_count ? (program_name + "_helpers") : std::string("NULL");
+#if defined(_MSC_VER)
         auto program_type_guid_name = program_name + "_program_type_guid";
         auto attach_type_guid_name = program_name + "_attach_type_guid";
+#else
+        auto program_type_guid_name = std::string("NULL");
+        auto attach_type_guid_name = std::string("NULL");
+#endif
         output_stream << "\t{ " << sanitize_name(program_name) << ", "
                       << "\"" << name.c_str() << "\", "
                       << "\"" << program.program_name.c_str() << "\", " << map_array_name.c_str() << ", "
                       << program.referenced_map_indices.size() << ", " << helper_array_name.c_str() << ", "
                       << program.referenced_helper_indices.size() << ", " << program.output.size() << ", "
+#if defined(_MSC_VER)
                       << "&" << sanitize_name(program_type_guid_name) << ", "
                       << "&" << sanitize_name(attach_type_guid_name) << ", "
+#else
+                      << sanitize_name(program_type_guid_name) << ", " << sanitize_name(attach_type_guid_name) << ", "
+#endif
                       << "}," << std::endl;
     }
     output_stream << "};" << std::endl;
@@ -793,13 +804,13 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         c_name.c_str() + std::string("_metadata_table"));
 }
 
+#if defined(_MSC_VER)
 std::string
 bpf_code_generator::format_guid(const GUID* guid)
 {
     std::string output(120, '\0');
     std::string format_string =
         "{0x%08x, 0x%04x, 0x%04x, {0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x}}";
-#if defined(_MSC_VER)
     auto count = snprintf(
         output.data(),
         output.size(),
@@ -815,26 +826,6 @@ bpf_code_generator::format_guid(const GUID* guid)
         guid->Data4[5],
         guid->Data4[6],
         guid->Data4[7]);
-#else
-    uint32_t data1 = *(uint32_t*)guid;
-    uint16_t data2 = *(uint16_t*)(guid + sizeof(uint32_t));
-    uint16_t data3 = *(uint16_t*)(guid + sizeof(uint32_t) + sizeof(uint16_t));
-    auto count = snprintf(
-        output.data(),
-        output.size(),
-        format_string.c_str(),
-        data1,
-        data2,
-        data3,
-        guid[8],
-        guid[9],
-        guid[10],
-        guid[11],
-        guid[12],
-        guid[13],
-        guid[14],
-        guid[15]);
-#endif
     if (count < 0) {
         throw std::runtime_error("Error formatting GUID");
     }
@@ -842,6 +833,7 @@ bpf_code_generator::format_guid(const GUID* guid)
     output.resize(strlen(output.c_str()));
     return output;
 }
+#endif
 
 std::string
 bpf_code_generator::format_string(
