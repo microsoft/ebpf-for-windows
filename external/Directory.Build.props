@@ -4,20 +4,10 @@
   SPDX-License-Identifier: MIT
 -->
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" TreatAsLocalProperty="Platform">
-  <Import Project="..\Directory.Build.props"/>
   <!-- Override the rules for projects that are not under control of this project -->
-  <PropertyGroup>
+  <PropertyGroup Condition="'$(Analysis)'=='True'">
+    <DisableAnalyzeExternal>true</DisableAnalyzeExternal>
+    <RunCodeAnalysis>true</RunCodeAnalysis>
     <CodeAnalysisRuleSet>..\external\Analyze.external.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
-  <ItemDefinitionGroup>
-    <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <TreatWarningAsError>false</TreatWarningAsError>
-      <!--
-        src\asm_files.cpp(98,45): error C4996: 'strerror': This function or variable may be unsafe. Consider using strerror_s instead.
-        radix_tree\radix_tree_it.hpp(12,35): error C4996: 'std::iterator<std::forward_iterator_tag,std::pair<K,T>,ptrdiff_t,std::pair<K,T> *,std::pair<K,T> &>': warning STL4015: The std::iterator class template (used as a base class to provide typedefs) is deprecated in C++17. (The <iterator> header is NOT deprecated.) The C++ Standard has never required user-defined iterators to derive from std::iterator. To fix this warning, stop deriving from std::iterator and start providing publicly accessible typedefs named iterator_category, value_type, difference_type, pointer, and reference. Note that value_type is required to be non-const, even for constant iterators.
-      -->
-      <PreprocessorDefinitions>%(PreprocessorDefinitions);_SILENCE_CXX17_ITERATOR_BASE_CLASS_DEPRECATION_WARNING;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
-    </ClCompile>
-  </ItemDefinitionGroup>
 </Project>
