@@ -1258,7 +1258,7 @@ _ebpf_core_protocol_ring_buffer_map_async_query(
 {
     UNREFERENCED_PARAMETER(reply_length);
 
-    ebpf_map_t* map;
+    ebpf_map_t* map = NULL;
     bool reference_taken = FALSE;
 
     ebpf_result_t result =
