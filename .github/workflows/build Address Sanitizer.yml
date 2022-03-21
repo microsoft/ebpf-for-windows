@@ -42,7 +42,6 @@ jobs:
         7z x Procdump.zip -y -o"C:/Program Files/ProcDump"
         echo "C:\Program Files\ProcDump" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
         mkdir c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
-        echo "test" > c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/test.txt
 
     - name: Set AeDebug registry key
       working-directory: c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
