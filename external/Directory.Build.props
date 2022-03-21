@@ -8,6 +8,6 @@
   <PropertyGroup Condition="'$(Analysis)'=='True'">
     <DisableAnalyzeExternal>true</DisableAnalyzeExternal>
     <RunCodeAnalysis>true</RunCodeAnalysis>
-    <CodeAnalysisRuleSet>..\external\Analyze.external.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRuleSet>$(SolutionDir)external\Analyze.external.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
 </Project>
