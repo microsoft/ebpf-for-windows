@@ -288,7 +288,7 @@ TEST_CASE("map_crud_operations_lpm_trie_32", "[execution_context]")
                 0,
                 reinterpret_cast<const uint8_t*>(&key),
                 0,
-                reinterpret_cast<const uint8_t*>(value),
+                reinterpret_cast<const uint8_t*>(local_value.c_str()),
                 EBPF_ANY,
                 EBPF_MAP_FLAG_HELPER) == EBPF_SUCCESS);
     }
