@@ -50,9 +50,12 @@ jobs:
     - name: Create verifier project
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
-        cd external\ebpf-verifier
-        mkdir build
-        cmake -B build
+        cmake -G "Visual Studio 16 2019" -S external\ebpf-verifier -B external\ebpf-verifier\build
+
+    - name: Create catch2 project
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      run: |
+        cmake -G "Visual Studio 16 2019" -S external\catch2 -B external\catch2\build -DBUILD_TESTING=OFF
 
     - name: Build
       working-directory: ${{env.GITHUB_WORKSPACE}}
@@ -93,7 +96,7 @@ jobs:
 
     - name: Download build artifact
       if: success()
-      uses: actions/download-artifact@v2.1.0
+      uses: actions/download-artifact@v3
       with:
         name: Build x64 ${{ matrix.configurations }}
         path: ${{ github.workspace }}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
@@ -109,17 +112,10 @@ jobs:
         ./execute_ebpf_cicd_tests.ps1
 
     - name: Clean up CI/CD Tests
+      if: always()
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
       run: |
         ./cleanup_ebpf_cicd_tests.ps1
-
-    - name: Upload any crash dumps
-      uses: actions/upload-artifact@v2
-      if: failure()
-      with:
-        name: Crash-Dumps-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}
-        path: c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
-        retention-days: 5
 
     - name: Upload log files
       if: always()

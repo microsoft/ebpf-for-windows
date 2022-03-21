@@ -8,7 +8,33 @@
 
 #define INITGUID
 
-#include "net_ebpf_ext_prog_info_provider.h"
+#include "net_ebpf_ext_bind.h"
+
+//
+// WFP bind layer filter related globals.
+//
+
+const net_ebpf_extension_wfp_filter_parameters_t _net_ebpf_extension_bind_wfp_filter_parameters[] = {
+    {&FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V4,
+     &EBPF_HOOK_ALE_RESOURCE_ALLOC_V4_CALLOUT,
+     L"net eBPF bind hook",
+     L"net eBPF bind hook WFP filter"},
+    {&FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V6,
+     &EBPF_HOOK_ALE_RESOURCE_ALLOC_V6_CALLOUT,
+     L"net eBPF bind hook",
+     L"net eBPF bind hook WFP filter"},
+    {&FWPM_LAYER_ALE_RESOURCE_RELEASE_V4,
+     &EBPF_HOOK_ALE_RESOURCE_RELEASE_V4_CALLOUT,
+     L"net eBPF bind hook",
+     L"net eBPF bind hook WFP filter"},
+    {&FWPM_LAYER_ALE_RESOURCE_RELEASE_V6,
+     &EBPF_HOOK_ALE_RESOURCE_RELEASE_V6_CALLOUT,
+     L"net eBPF bind hook",
+     L"net eBPF bind hook WFP filter"}};
+
+#define NET_EBPF_BIND_FILTER_COUNT EBPF_COUNT_OF(_net_ebpf_extension_bind_wfp_filter_parameters)
+
+uint64_t _net_ebpf_extension_bind_wfp_filter_ids[NET_EBPF_BIND_FILTER_COUNT] = {0};
 
 //
 // Bind Program Information NPI Provider.
@@ -26,20 +52,6 @@ static ebpf_extension_data_t _ebpf_bind_program_info_provider_data = {
 const NPI_MODULEID DECLSPEC_SELECTANY _ebpf_bind_program_info_provider_moduleid = {
     sizeof(NPI_MODULEID), MIT_GUID, {0x6c8d3dbd, 0xf1e3, 0x4c42, {0xab, 0xb8, 0xcf, 0x7f, 0x09, 0x5c, 0x9d, 0xf3}}};
 
-const NPI_PROVIDER_CHARACTERISTICS _ebpf_bind_program_info_provider_characteristics = {
-    0,
-    sizeof(NPI_PROVIDER_CHARACTERISTICS),
-    net_ebpf_extension_program_info_provider_attach_client,
-    net_ebpf_extension_program_info_provider_detach_client,
-    NULL,
-    {0,
-     sizeof(NPI_REGISTRATION_INSTANCE),
-     &EBPF_PROGRAM_TYPE_BIND,
-     &_ebpf_bind_program_info_provider_moduleid,
-     0,
-     &_ebpf_bind_program_info_provider_data},
-};
-
 static net_ebpf_extension_program_info_provider_t* _ebpf_bind_program_info_provider_context = NULL;
 
 //
@@ -54,21 +66,47 @@ ebpf_extension_data_t _net_ebpf_extension_bind_hook_provider_data = {
 const NPI_MODULEID DECLSPEC_SELECTANY _ebpf_bind_hook_provider_moduleid = {
     sizeof(NPI_MODULEID), MIT_GUID, {0xeab8f3d9, 0xab6c, 0x422e, {0x99, 0x4c, 0x7a, 0x80, 0x94, 0x3b, 0xc9, 0x20}}};
 
-const NPI_PROVIDER_CHARACTERISTICS _ebpf_bind_hook_provider_characteristics = {
-    0,
-    sizeof(NPI_PROVIDER_CHARACTERISTICS),
-    net_ebpf_extension_hook_provider_attach_client,
-    net_ebpf_extension_hook_provider_detach_client,
-    NULL,
-    {0,
-     sizeof(NPI_REGISTRATION_INSTANCE),
-     &EBPF_ATTACH_TYPE_BIND,
-     &_ebpf_bind_hook_provider_moduleid,
-     0,
-     &_net_ebpf_extension_bind_hook_provider_data},
-};
-
 static net_ebpf_extension_hook_provider_t* _ebpf_bind_hook_provider_context = NULL;
+
+//
+// Client attach/detach handler routines.
+//
+
+static ebpf_result_t
+_net_ebpf_extension_bind_on_client_attach(_In_ const net_ebpf_extension_hook_client_t* attaching_client)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+
+    // Bind hook allows only one client at a time.
+    if (net_ebpf_extension_hook_get_next_attached_client(_ebpf_bind_hook_provider_context, NULL) != NULL) {
+        result = EBPF_ACCESS_DENIED;
+        goto Exit;
+    }
+
+    // Add WFP filters at appropriate layers and set the hook NPI client as the filter's raw context.
+    result = net_ebpf_extension_add_wfp_filters(
+        EBPF_COUNT_OF(_net_ebpf_extension_bind_wfp_filter_parameters),
+        _net_ebpf_extension_bind_wfp_filter_parameters,
+        0,
+        NULL,
+        attaching_client,
+        _net_ebpf_extension_bind_wfp_filter_ids);
+    if (result != EBPF_SUCCESS)
+        goto Exit;
+
+Exit:
+    return result;
+}
+
+static void
+_net_ebpf_extension_bind_on_client_detach(_In_ const net_ebpf_extension_hook_client_t* detaching_client)
+{
+    UNREFERENCED_PARAMETER(detaching_client);
+
+    // Delete the WFP filters.
+    net_ebpf_extension_delete_wfp_filters(NET_EBPF_BIND_FILTER_COUNT, _net_ebpf_extension_bind_wfp_filter_ids);
+    memset(_net_ebpf_extension_bind_wfp_filter_ids, 0, sizeof(_net_ebpf_extension_bind_wfp_filter_ids));
+}
 
 //
 // NMR Registration Helper Routines.
@@ -78,15 +116,25 @@ NTSTATUS
 net_ebpf_ext_bind_register_providers()
 {
     NTSTATUS status = STATUS_SUCCESS;
-    _net_ebpf_bind_hook_provider_data.supported_program_type = EBPF_PROGRAM_TYPE_BIND;
+    const net_ebpf_extension_program_info_provider_parameters_t program_info_provider_parameters = {
+        &EBPF_PROGRAM_TYPE_BIND, &_ebpf_bind_program_info_provider_moduleid, &_ebpf_bind_program_info_provider_data};
+    const net_ebpf_extension_hook_provider_parameters_t hook_provider_parameters = {
+        &EBPF_ATTACH_TYPE_BIND,
+        &_ebpf_bind_hook_provider_moduleid,
+        &_net_ebpf_extension_bind_hook_provider_data,
+        EXECUTION_PASSIVE};
 
     status = net_ebpf_extension_program_info_provider_register(
-        &_ebpf_bind_program_info_provider_characteristics, &_ebpf_bind_program_info_provider_context);
+        &program_info_provider_parameters, &_ebpf_bind_program_info_provider_context);
     if (status != STATUS_SUCCESS)
         goto Exit;
 
+    _net_ebpf_bind_hook_provider_data.supported_program_type = EBPF_PROGRAM_TYPE_BIND;
     status = net_ebpf_extension_hook_provider_register(
-        &_ebpf_bind_hook_provider_characteristics, EXECUTION_PASSIVE, &_ebpf_bind_hook_provider_context);
+        &hook_provider_parameters,
+        _net_ebpf_extension_bind_on_client_attach,
+        _net_ebpf_extension_bind_on_client_detach,
+        &_ebpf_bind_hook_provider_context);
     if (status != EBPF_SUCCESS) {
         goto Exit;
     }
@@ -138,14 +186,14 @@ net_ebpf_ext_resource_allocation_classify(
 
     UNREFERENCED_PARAMETER(layer_data);
     UNREFERENCED_PARAMETER(classify_context);
-    UNREFERENCED_PARAMETER(filter);
     UNREFERENCED_PARAMETER(flow_context);
 
-    attached_client = net_ebpf_extension_get_attached_client(_ebpf_bind_hook_provider_context);
+    attached_client = (net_ebpf_extension_hook_client_t*)filter->context;
+    ASSERT(attached_client != NULL);
     if (attached_client == NULL)
         goto Exit;
 
-    if (!net_ebpf_extension_attach_enter_rundown(attached_client, EXECUTION_PASSIVE)) {
+    if (!net_ebpf_extension_hook_client_enter_rundown(attached_client, EXECUTION_PASSIVE)) {
         classify_output->actionType = FWP_ACTION_PERMIT;
         goto Exit;
     }
@@ -180,7 +228,7 @@ net_ebpf_ext_resource_allocation_classify(
 
 Exit:
     if (attached_client)
-        net_ebpf_extension_attach_leave_rundown(attached_client, EXECUTION_PASSIVE);
+        net_ebpf_extension_hook_client_leave_rundown(attached_client, EXECUTION_PASSIVE);
     return;
 }
 
@@ -201,14 +249,14 @@ net_ebpf_ext_resource_release_classify(
 
     UNREFERENCED_PARAMETER(layer_data);
     UNREFERENCED_PARAMETER(classify_context);
-    UNREFERENCED_PARAMETER(filter);
     UNREFERENCED_PARAMETER(flow_context);
 
-    attached_client = net_ebpf_extension_get_attached_client(_ebpf_bind_hook_provider_context);
+    attached_client = (net_ebpf_extension_hook_client_t*)filter->context;
+    ASSERT(attached_client != NULL);
     if (attached_client == NULL)
         goto Exit;
 
-    if (!net_ebpf_extension_attach_enter_rundown(attached_client, EXECUTION_PASSIVE)) {
+    if (!net_ebpf_extension_hook_client_enter_rundown(attached_client, EXECUTION_PASSIVE)) {
         classify_output->actionType = FWP_ACTION_PERMIT;
         goto Exit;
     }
@@ -236,6 +284,6 @@ net_ebpf_ext_resource_release_classify(
 
 Exit:
     if (attached_client)
-        net_ebpf_extension_attach_leave_rundown(attached_client, EXECUTION_PASSIVE);
+        net_ebpf_extension_hook_client_leave_rundown(attached_client, EXECUTION_PASSIVE);
     return;
 }
