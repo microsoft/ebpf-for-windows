@@ -89,12 +89,6 @@ jobs:
         copy "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Tools\MSVC\14.29.30133\bin\Hostx64\x64\clang*" .
         ./unit_tests.exe -s
 
-    - name: Run RPC Client Tests
-      working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
-      run: |
-        copy "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Tools\MSVC\14.29.30133\bin\Hostx64\x64\clang*" .
-        ./ebpf_client.exe -s
-
     - name: Check for crash dumps
       working-directory: c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
       run: if (Test-Path *.dmp) { exit 1 }
