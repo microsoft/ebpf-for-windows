@@ -350,8 +350,7 @@ bindmonitor_test(_In_ struct bpf_object* object)
 
     WSAData data;
     SOCKET sockets[3];
-    error = WSAStartup(2, &data);
-    REQUIRE(error == 0);
+    REQUIRE(WSAStartup(2, &data) == 0);
 
     // First and second binds should succeed.
     REQUIRE(perform_bind(&sockets[0], 30000) == 0);

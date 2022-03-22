@@ -9,6 +9,8 @@
 
 #include <ntstrsafe.h>
 
+IO_WORKITEM_ROUTINE _ebpf_preemptible_routine;
+
 extern DEVICE_OBJECT*
 ebpf_driver_get_device_object();
 
@@ -485,10 +487,11 @@ typedef struct _ebpf_preemptible_work_item
     void* work_item_context;
 } ebpf_preemptible_work_item_t;
 
-static void
+void
 _ebpf_preemptible_routine(PDEVICE_OBJECT device_object, PVOID context)
 {
     UNREFERENCED_PARAMETER(device_object);
+    __analysis_assume(context != NULL);
     ebpf_preemptible_work_item_t* work_item = (ebpf_preemptible_work_item_t*)context;
     work_item->work_item_routine(work_item->work_item_context);
 
