@@ -121,7 +121,7 @@ _is_native_program(_In_ const char* file_name)
 }
 
 uint32_t
-_create_registry_key(HKEY root_key, _In_ const wchar_t* path)
+_create_registry_key(HKEY root_key, _In_z_ const wchar_t* path)
 {
     UNREFERENCED_PARAMETER(root_key);
     UNREFERENCED_PARAMETER(path);

@@ -17,7 +17,6 @@
 #include "ebpf_protocol.h"
 #include "ebpf_ring_buffer.h"
 #include "ebpf_serialize.h"
-// #include "service_helper.hpp"
 #pragma warning(push)
 #pragma warning(disable : 4200) // Zero-sized array in struct/union
 #include "libbpf.h"
@@ -2174,10 +2173,6 @@ _load_native_module(
         (char*)service_path.c_str(),
         service_path_size);
 
-    // std::copy(
-    //     service.begin(), service.end(), request_buffer.begin() +
-    //     offsetof(ebpf_operation_load_native_module_request_t, data));
-
     error = invoke_ioctl(request_buffer, reply);
     if (error != ERROR_SUCCESS) {
         result = win32_error_code_to_ebpf_result(error);
@@ -2297,7 +2292,7 @@ _ebpf_program_load_native(
     }
 
     try {
-        // 1. Create a driver service with a random name.
+        // Create a driver service with a random name.
         // TODO: Can also use UuidToString()
         service_name = _guid_to_wide_string(&service_name_guid);
 
@@ -2308,7 +2303,7 @@ _ebpf_program_load_native(
             goto Done;
         }
 
-        // 2. Create registry path and update module ID in the service path.
+        // Create registry path and update module ID in the service path.
         paramaters_path = paramaters_path + service_name.c_str() + L"\\" + SERVICE_PARAMETERS;
         error = _ebpf_create_registry_key(HKEY_LOCAL_MACHINE, paramaters_path.c_str());
         if (error != ERROR_SUCCESS) {
@@ -2380,7 +2375,6 @@ _ebpf_program_load_native(
     }
 
 Done:
-    // TODO: Add all the above code in try catch.
     if (result != EBPF_SUCCESS) {
         _clean_up_ebpf_object(new_object);
         if (map_handles != nullptr) {
@@ -2392,7 +2386,7 @@ Done:
         }
 
 #pragma warning(push)
-#pragma warning(disable : 6001)
+#pragma warning(disable : 6001) // Using uninitialized memory '*program_handles'
         if (program_handles != nullptr) {
             for (int i = 0; i < count_of_programs; i++) {
                 if (program_handles[i] != ebpf_handle_invalid && program_handles[i] != 0) {

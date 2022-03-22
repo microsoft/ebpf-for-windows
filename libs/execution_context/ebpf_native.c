@@ -47,12 +47,10 @@ typedef struct _ebpf_native
     volatile int32_t reference_count;
     bool initialized;
     bool loaded;
-    // bool cleanup_initiated;
     wchar_t* service_name;
     bool detaching;
     bool unloading;
     ebpf_lock_t lock;
-    // ebpf_free_native_t free_function;
     ebpf_native_map_t* maps;
     size_t map_count;
     ebpf_native_program_t* programs;
@@ -72,7 +70,6 @@ static ebpf_extension_provider_t* _ebpf_native_provider = NULL;
 #define EBPF_CLIENT_TABLE_BUCKET_COUNT 64
 static ebpf_lock_t _ebpf_client_table_lock = {0};
 static _Requires_lock_held_(&_ebpf_client_table_lock) ebpf_hash_table_t* _ebpf_client_table = NULL;
-// static _Requires_lock_held_(&_ebpf_client_table_lock) ebpf_hash_table_t* _
 
 ebpf_result_t
 ebpf_native_load_driver(_In_z_ const wchar_t* service_name);
@@ -116,7 +113,6 @@ _ebpf_native_cleanup_programs(_In_ ebpf_native_program_t* programs, size_t count
 static void
 _ebpf_native_cleanup_module(_In_ ebpf_native_t* native_module)
 {
-    // ebpf_provider_detach_client_complete(&_ebpf_native_npi_id, native_module->client_binding_handle);
     _ebpf_native_cleanup_maps(native_module->maps, native_module->map_count);
     _ebpf_native_cleanup_programs(native_module->programs, native_module->program_count);
 
@@ -244,44 +240,6 @@ ebpf_native_terminate()
 
     ebpf_hash_table_destroy(_ebpf_client_table);
     ebpf_lock_destroy(&_ebpf_client_table_lock);
-
-    /*
-        if (_ebpf_client_table != NULL) {
-            // TODO: Use "ebpf_hash_table_next_key" to iterate over
-            // all the entries from the table, and delete them.
-            ebpf_result_t result;
-            GUID next_key;
-            GUID* previous_key = NULL;
-            ebpf_native_t* native_module = NULL;
-            ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_client_table_lock);
-            for (;;)
-            {
-                result = ebpf_hash_table_next_key_and_value(
-                    _ebpf_client_table,
-                    (const uint8_t*)previous_key,
-                    (uint8_t*)&next_key,
-                    &native_module);
-                if (result = EBPF_NO_MORE_KEYS) {
-                    result = EBPF_SUCCESS;
-                    break;
-                }
-                if (result != EBPF_SUCCESS) {
-                    break;
-                }
-
-                _ebpf_native_unload(native_module);
-
-                previous_key = &next_key;
-            }
-
-            ebpf_assert(ebpf_hash_table_key_count(_ebpf_client_table) == 0);
-            ebpf_hash_table_destroy(_ebpf_client_table);
-            _ebpf_client_table = NULL;
-            ebpf_lock_unlock(&_ebpf_client_table_lock, state);
-        }
-        ebpf_lock_destroy(&_ebpf_client_table_lock);
-        ebpf_provider_unload(_ebpf_native_provider);
-    */
 }
 
 static ebpf_result_t
@@ -353,18 +311,11 @@ Done:
 static ebpf_result_t
 _ebpf_native_client_detach_callback(_In_ void* context, _In_ const GUID* client_id)
 {
-    // ANUSA TODO:
-    // Call a function exposed from ebpf_core which will iterate over all the
-    // programs and check which programs have the pointer to this ebpf_native.
-    // Then mark those programs as "inactive". and release the reference to the
-    // ebpf_native.
-
     UNREFERENCED_PARAMETER(context);
 
     // 1. Find the entry in the hash table using "client_id"
-    // 2. Call _ebpf_native_unload()
-    // 3. Release the "attach" reference on the native module.
-    // 4. Return EBPF_PENDING
+    // 2. Release the "attach" reference on the native module.
+    // 3. Return EBPF_PENDING
     ebpf_result_t result = EBPF_PENDING;
     ebpf_native_t** existing_native_module = NULL;
     ebpf_native_t* native_module = NULL;
@@ -382,7 +333,6 @@ _ebpf_native_client_detach_callback(_In_ void* context, _In_ const GUID* client_
     ebpf_assert(native_module->detaching == false);
     native_module->detaching = true;
     ebpf_lock_unlock(&native_module->lock, state);
-    // _ebpf_native_unload(native_module);
     ebpf_native_release_reference(native_module);
 
 Done:
@@ -390,50 +340,6 @@ Done:
         ebpf_lock_unlock(&_ebpf_client_table_lock, state);
     }
     return result;
-
-    /*
-    ebpf_result_t result = EBPF_SUCCESS;
-    ebpf_lock_state_t state = 0;
-    ebpf_native_t* native_module = NULL;
-    bool lock_acquired = false;
-
-    state = ebpf_lock_lock(&_ebpf_client_table_lock);
-    lock_acquired = true;
-    result = ebpf_hash_table_find(_ebpf_client_table, (const uint8_t*)client_id, (uint8_t**)&native_module);
-    if (result != EBPF_SUCCESS) {
-        result = EBPF_KEY_NOT_FOUND;
-        goto Done;
-    }
-    */
-
-    // TODO: Call a ebpf_core function to iterate all the programs which are attached
-    // to this module and unload those programs
-
-    /*
-    ebpf_ext_attach_hook_provider_registration_t* hook_registration =
-        (ebpf_ext_attach_hook_provider_registration_t*)context;
-    UNREFERENCED_PARAMETER(client_id);
-
-    // Prevent new callbacks from starting by setting client_binding_context and
-    // invoke_hook to NULL.
-    hook_registration->client_binding_context = NULL;
-    hook_registration->client_data = NULL;
-    hook_registration->invoke_hook = NULL;
-
-    // TODO: Issue https://github.com/microsoft/ebpf-for-windows/issues/270
-    // Client detach should return pending and then callback once invocations
-    // complete.
-
-    // Wait for any in progress callbacks to complete.
-    _ebpf_ext_attach_wait_for_rundown(hook_registration);
-
-    // At this point, no new invocations of the eBPF program will occur.
-
-    // Permit the EC to finish unloading the eBPF program.
-    return EBPF_SUCCESS;
-    */
-
-    // return EBPF_SUCCESS;
 }
 
 ebpf_result_t
@@ -900,8 +806,6 @@ Done:
     return result;
 }
 
-// static _Requires_lock_held_(native_module->lock) void _ebpf_native_initialize_helpers(_In_reads_(count_of_helpers)
-// helper_function_entry_t* helpers, size_t count_of_helpers)
 static _Requires_lock_held_(native_module->lock) void _ebpf_native_initialize_helpers_for_program(
     _In_ ebpf_native_t* native_module, _In_ ebpf_native_program_t* program)
 {
@@ -973,14 +877,15 @@ static _Requires_lock_held_(native_module->lock) ebpf_result_t
         // ANUSA TODO: Free the duplicate strings being created below.
         parameters.program_type = *program->program_type;
         parameters.expected_attach_type = (program->expected_attach_type ? *program->expected_attach_type : GUID_NULL);
-        // memcpy(parameters.program_name.value, program_name, program_name_length);
+
         memcpy(program_name, program->program_name, program_name_length);
         parameters.program_name.value = program_name;
         parameters.program_name.length = program_name_length;
-        // memcpy(parameters.section_name.value, section_name, section_name_length);
+
         memcpy(section_name, program->section_name, section_name_length);
         parameters.section_name.value = section_name;
         parameters.section_name.length = section_name_length;
+
         parameters.file_name.value = NULL;
         parameters.file_name.length = 0;
 
@@ -1123,7 +1028,6 @@ ebpf_native_load_programs(
     size_t count_of_program_handles,
     _Out_writes_(count_of_program_handles) ebpf_handle_t* program_handles)
 {
-    // NTSTATUS status;
     ebpf_result_t result;
     ebpf_lock_state_t state = 0;
     ebpf_lock_state_t native_state = 0;
@@ -1132,11 +1036,6 @@ ebpf_native_load_programs(
     ebpf_native_t** existing_native_module = NULL;
     ebpf_native_t* native_module = NULL;
     wchar_t* local_service_name = NULL;
-
-    // *count_of_map_handles = 0;
-    // *count_of_program_handles = 0;
-    // *map_handles = NULL;
-    // *program_handles = NULL;
 
     // Find the native entry in hash table.
     state = ebpf_lock_lock(&_ebpf_client_table_lock);
@@ -1177,30 +1076,14 @@ ebpf_native_load_programs(
     ebpf_lock_unlock(&native_module->lock, native_state);
     native_lock_acquired = false;
 
-    /*
-        *map_handles = ebpf_allocate(sizeof(ebpf_handle_t) * native_module->map_count);
-        if (*map_handles == NULL) {
-            result = EBPF_NO_MEMORY;
-            goto Done;
-        }
-
-        *program_handles = ebpf_allocate(sizeof(ebpf_handle_t) * native_module->program_count);
-        if (*program_handles == NULL) {
-            result = EBPF_NO_MEMORY;
-            goto Done;
-        }
-    */
-
     ebpf_assert(count_of_map_handles == native_module->map_count);
     ebpf_assert(count_of_program_handles == native_module->program_count);
 
-    // *count_of_map_handles = native_module->map_count;
     for (int i = 0; i < count_of_map_handles; i++) {
         map_handles[i] = native_module->maps[i].handle;
         native_module->maps[i].handle = ebpf_handle_invalid;
     }
 
-    // *count_of_program_handles = native_module->program_count;
     for (int i = 0; i < count_of_program_handles; i++) {
         program_handles[i] = native_module->programs[i].handle;
         native_module->programs[i].handle = ebpf_handle_invalid;
@@ -1217,10 +1100,6 @@ Done:
     }
     if (result != EBPF_SUCCESS) {
         ebpf_free(local_service_name);
-        // ebpf_free(*map_handles);
-        // ebpf_free(*program_handles);
-        // *map_handles = NULL;
-        // *program_handles = NULL;
     }
 
     return result;
@@ -1295,7 +1174,6 @@ ebpf_native_unload(_In_ const GUID* module_id)
     native_module = *existing_native_module;
     native_state = ebpf_lock_lock(&native_module->lock);
     module_lock_acquired = true;
-    // ebpf_assert(native_module->unloading == false);
     if (native_module->unloading) {
         // If module is already unloading, skip unloading it again.
         result = EBPF_SUCCESS;

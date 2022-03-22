@@ -230,17 +230,6 @@ ebpf_duplicate_utf8_string(_Out_ ebpf_utf8_string_t* destination, _In_ const ebp
     }
 }
 
-/*
-wchar_t*
-ebpf_utf8_string_to_wide_char(_In_ const uint8_t* input, uint16_t size)
-{
-    uint16_t wide_char_string_size = 0;
-    int status = MultiByteToWideChar(CP_UTF8, )
-    // Create null terminated string
-
-}
-*/
-
 _Requires_lock_held_(&_ebpf_object_tracking_list_lock) static ebpf_core_object_t* _get_next_object_by_id(
     ebpf_id_t start_id, ebpf_object_type_t object_type)
 {

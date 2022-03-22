@@ -386,7 +386,6 @@ _ebpf_core_protocol_resolve_map(
         sizeof(request->map_handle[0]);
     size_t required_reply_length =
         EBPF_OFFSET_OF(ebpf_operation_resolve_map_reply_t, address) + count_of_maps * sizeof(reply->address[0]);
-    // uint32_t map_index;
     ebpf_result_t return_value;
 
     if (reply_length < required_reply_length) {
@@ -453,33 +452,6 @@ _ebpf_core_protocol_create_map(
     EBPF_RETURN_RESULT(retval);
 }
 
-/*
-ebpf_result_t
-ebpf_core_create_program(
-    _In_ const ebpf_program_parameters_t* parameters,
-    _Out_ ebpf_handle_t* program_handle)
-{
-    ebpf_result_t retval;
-    ebpf_program_t* program = NULL;
-
-    retval = ebpf_program_create(&program);
-    if (retval != EBPF_SUCCESS)
-        goto Done;
-
-    retval = ebpf_program_initialize(program, parameters);
-    if (retval != EBPF_SUCCESS)
-        goto Done;
-
-    retval = ebpf_handle_create(program_handle, (ebpf_core_object_t*)program);
-    if (retval != EBPF_SUCCESS)
-        goto Done;
-
-Done:
-    ebpf_object_release_reference((ebpf_core_object_t*)program);
-    return retval;
-}
-*/
-
 static ebpf_result_t
 _ebpf_core_protocol_create_program(
     _In_ const ebpf_operation_create_program_request_t* request,
@@ -523,44 +495,6 @@ Done:
     EBPF_RETURN_RESULT(retval);
 }
 
-/*
-ebpf_result_t
-ebpf_core_disable_native_programs(_In_ const void* native_module)
-{
-    ebpf_result_t result;
-    uint32_t start_id = 0;
-    uint32_t next_id = 0;
-    // ebpf_handle_t program_handle;
-    ebpf_program_t* program = NULL;
-
-    for (;;) {
-        result = ebpf_object_get_next_id(start_id, EBPF_OBJECT_PROGRAM, &next_id);
-        if (result == EBPF_NO_MORE_KEYS) {
-            result = EBPF_SUCCESS;
-            break;
-        }
-        if (result != EBPF_SUCCESS) {
-            break;
-        }
-
-        result = ebpf_object_reference_by_id(next_id, EBPF_OBJECT_PROGRAM, (ebpf_core_object_t**)&program);
-        if (result != EBPF_SUCCESS) {
-            // It is possible the program object gets deleted by the time we reach here.
-            continue;
-        }
-
-        // "Disable" the program.
-        ebpf_program_disable_native(program, native_module);
-
-        ebpf_object_release_reference((ebpf_core_object_t*)program);
-
-        start_id = next_id;
-    }
-
-    return result;
-}
-*/
-
 static ebpf_result_t
 _ebpf_core_protocol_load_native_module(
     _In_ const ebpf_operation_load_native_module_request_t* request,
@@ -569,14 +503,11 @@ _ebpf_core_protocol_load_native_module(
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result;
-    // wchar_t* service_name = NULL;
     size_t service_name_length = 0;
 
-    // ANUSA TODO: Need to return program and map information to user mode.
     UNREFERENCED_PARAMETER(reply_length);
     UNREFERENCED_PARAMETER(reply);
 
-    // service_name = (wchar_t*)request->data;
     service_name_length = ((uint8_t*)request) + request->header.length - (uint8_t*)request->data;
 
     // Service name is wide char
@@ -584,15 +515,6 @@ _ebpf_core_protocol_load_native_module(
         result = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
-
-    /*
-        service_name = ebpf_allocate(service_name_length + 2);
-        if (service_name == NULL) {
-            result = EBPF_NO_MEMORY;
-            goto Done;
-        }
-        memcpy(service_name, (uint8_t*)request->data, service_name_length);
-    */
 
     result = ebpf_native_load(
         (wchar_t*)request->data,
@@ -607,12 +529,6 @@ _ebpf_core_protocol_load_native_module(
 Done:
     EBPF_RETURN_RESULT(result);
 }
-
-// ANUSA TODO: Add a function which will iterate over all the programs and cleanup those
-// which are native programs.
-// There is one possible issue we may need to fix: We may need to somehow ensure that the
-// reference from program --> native module is freed only when the epoch for the program
-// has expired.
 
 static ebpf_result_t
 _ebpf_core_protocol_load_native_programs(
@@ -630,7 +546,6 @@ _ebpf_core_protocol_load_native_programs(
     size_t map_handles_size = 0;
     size_t program_handles_size = 0;
 
-    // ANUSA TODO: Need to return program and map information to user mode.
     UNREFERENCED_PARAMETER(reply_length);
     UNREFERENCED_PARAMETER(reply);
 
@@ -1018,7 +933,6 @@ _ebpf_core_protocol_update_pinning(_In_ const struct _ebpf_operation_update_map_
     const ebpf_utf8_string_t path = {
         (uint8_t*)request->path,
         request->header.length - EBPF_OFFSET_OF(ebpf_operation_update_pinning_request_t, path)};
-    // ebpf_core_object_t* object = NULL;
 
     if (path.length == 0) {
         retval = EBPF_INVALID_ARGUMENT;
@@ -1085,13 +999,6 @@ _ebpf_core_protocol_link_program(
         ebpf_reference_object_by_handle(request->program_handle, EBPF_OBJECT_PROGRAM, (ebpf_core_object_t**)&program);
     if (retval != EBPF_SUCCESS)
         goto Done;
-
-    /*
-        if (ebpf_program_disabled(program)) {
-            retval = EBPF_EXTENSION_FAILED_TO_LOAD;
-            goto Done;
-        }
-    */
 
     retval = ebpf_link_create(&link);
     if (retval != EBPF_SUCCESS)

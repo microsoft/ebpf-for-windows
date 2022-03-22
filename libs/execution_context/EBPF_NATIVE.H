@@ -5,7 +5,6 @@
 
 #include "ebpf_core_structs.h"
 #include "ebpf_maps.h"
-// #include "ebpf_platform.h"
 #include "bpf2c.h"
 
 #ifdef __cplusplus
@@ -13,10 +12,6 @@ extern "C"
 {
 #endif
     typedef struct _ebpf_native ebpf_native_t;
-
-    // typedef program_entry_t ebpf_native_program_t;
-    // typedef helper_function_entry_t ebpf_native_helper_entry_t;
-    // typedef map_entry_t ebpf_native_map_t;
 
     /**
      * @brief Initialize the eBPF native code module.
@@ -119,54 +114,6 @@ extern "C"
      */
     ebpf_result_t
     ebpf_native_unload(_In_ const GUID* module_id);
-
-    /**
-     * @brief Get a list of maps associated with the eBPF program.
-     *
-     * @param[in] native The object tracking the native eBPF code.
-     * @param[out] maps List of maps to associated with the native eBPF code.
-     * @param[out] count_of_maps Count of maps in returned map list.
-     */
-    // void ebpf_native_get_maps(_In_ const ebpf_native_t* native, _Out_ ebpf_native_map_t** maps, _Out_ size_t*
-    // count_of_maps);
-
-    /**
-     * @brief Retrieve a pointer to the native eBPF program code block.
-     *
-     * @param[in] native The object tracking the native eBPF code.
-     * @param[in] name Name of the eBPF native code block to retrieve.
-     * @param[out] program Pointer to the program code block.
-     * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_OBJECT_NOT_FOUND No native program exists with that name.
-     */
-    // ebpf_result_t ebpf_native_get_programs(_In_ ebpf_native_t* native, _Out_ ebpf_native_program_t** programs, _Out_
-    // size_t* count_of_programs);
-
-    // ebpf_result_t ebpf_native_get_helpers(_In_ ebpf_native_t* native, _Out_ ebpf_native_program_t** programs, _Out_
-    // size_t* count_of_programs);
-
-    /**
-     * @brief Retrieve information about the eBPF program code block.
-     *
-     * @param[in] native The object tracking the native eBPF code.
-     * @param[in] name Name of the eBPF native code block to retrieve.
-     * @param[out] program_type Type of the native eBPF code.
-     * @param[out] program_name Function name of the native eBPF code.
-     * @param[out] section_name Section name of the native eBPF code.
-     * @param[out] file_name Original ELF file name.
-     * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_OBJECT_NOT_FOUND No native program exists with that name.
-     */
-    /*
-    ebpf_result_t
-        ebpf_native_get_program_information(
-            _In_ ebpf_native_t* native,
-            _In_ ebpf_utf8_string_t* name,
-            _Out_ ebpf_program_type_t* program_type,
-            _Out_ ebpf_utf8_string_t* program_name,
-            _Out_ ebpf_utf8_string_t* section_name,
-            _Out_ ebpf_utf8_string_t* file_name);
-    */
 
     void
     ebpf_native_acquire_reference(ebpf_native_t* native);

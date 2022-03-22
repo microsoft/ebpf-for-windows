@@ -258,16 +258,6 @@ extern "C"
     ebpf_program_create_and_initialize(
         _In_ const ebpf_program_parameters_t* parameters, _Out_ ebpf_handle_t* program_handle);
 
-    /*
-        void
-        ebpf_program_disable_native(_Inout_ ebpf_program_t* program, _In_ const void* native_module);
-    */
-
-    /*
-        bool
-        ebpf_program_disabled(_In_ ebpf_program_t* program);
-    */
-
 #ifdef __cplusplus
 }
 #endif

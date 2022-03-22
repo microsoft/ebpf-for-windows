@@ -5,7 +5,6 @@
 
 #include "ebpf_object.h"
 #include "ebpf_platform.h"
-// #include "ebpf_program.h"
 #include "ebpf_program_types.h"
 #include "ebpf_protocol.h"
 
@@ -135,13 +134,6 @@ extern "C"
         ebpf_handle_t inner_map_handle,
         _Out_ ebpf_handle_t* map_handle);
 
-    /*
-    ebpf_result_t
-    ebpf_core_create_program(
-        _In_ const ebpf_program_parameters_t* parameters,
-        _Out_ ebpf_handle_t* program_handle);
-    */
-
     ebpf_result_t
     ebpf_core_load_code(
         ebpf_handle_t program_handle,
@@ -166,9 +158,6 @@ extern "C"
         const size_t count_of_helpers,
         _In_reads_(count_of_helpers) const uint32_t* helper_function_ids,
         _Out_writes_(count_of_helpers) uint64_t* helper_function_addresses);
-
-    ebpf_result_t
-    ebpf_core_disable_native_programs(_In_ const void* native_module);
 
 #ifdef __cplusplus
 }

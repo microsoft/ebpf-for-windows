@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-// #include "ebpf_core_structs.h"
 #include "ebpf_platform.h"
 
 #define EBPF_EXTENSION_TABLE_BUCKET_COUNT 64
@@ -201,7 +200,6 @@ ebpf_provider_detach_client_complete(_In_ const GUID* interface_id, ebpf_handle_
     ebpf_lock_state_t state;
     ebpf_extension_provider_t** hash_table_find_result = NULL;
     ebpf_extension_provider_t* local_extension_provider = NULL;
-    // GUID* module_id = NULL;
     GUID module_id = GUID_NULL;
     ebpf_extension_client_t* client = NULL;
 

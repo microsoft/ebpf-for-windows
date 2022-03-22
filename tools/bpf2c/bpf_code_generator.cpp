@@ -163,8 +163,6 @@ bpf_code_generator::set_program_and_attach_type(const GUID& program_type, const 
 {
     memcpy(&current_section->program_type, &program_type, sizeof(GUID));
     memcpy(&current_section->expected_attach_type, &attach_type, sizeof(GUID));
-    // current_section->program_type = program_type;
-    // current_section->expected_attach_type = attach_type;
 }
 
 void

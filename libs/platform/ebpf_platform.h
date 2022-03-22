@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: MIT
 
 #pragma once
-// #include "ebpf_core_structs.h"
 #include "ebpf_result.h"
 #include "ebpf_windows.h"
 #include "framework.h"
@@ -10,7 +9,6 @@
 #include <TraceLoggingProvider.h>
 #include <winmeta.h>
 
-// typedef HANDLE ebpf_handle_t;
 typedef intptr_t ebpf_handle_t;
 
 #ifdef __cplusplus

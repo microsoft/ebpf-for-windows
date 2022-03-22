@@ -55,7 +55,7 @@ bool
 _is_native_program(const char* file_name);
 
 uint32_t
-_create_registry_key(HKEY root_key, _In_ const wchar_t* path);
+_create_registry_key(HKEY root_key, _In_z_ const wchar_t* path);
 
 uint32_t
 _update_registry_value(
