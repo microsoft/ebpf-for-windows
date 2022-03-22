@@ -637,39 +637,6 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         output_stream << std::endl;
     }
 
-    /*
-        if (helper_functions.size() > 0) {
-            output_stream << "static helper_function_entry_t _helpers[] = {" << std::endl;
-
-            // Functions are emitted in the order in which they occur in the byte code.
-            std::vector<std::tuple<std::string, uint32_t>> index_ordered_helpers;
-            index_ordered_helpers.resize(helper_functions.size());
-            for (const auto& function : helper_functions) {
-                index_ordered_helpers[function.second.index] = std::make_tuple(function.first, function.second.id);
-            }
-
-            for (const auto& [name, id] : index_ordered_helpers) {
-                output_stream << "{ NULL, " << id << ", \"" << name.c_str() << "\"}," << std::endl;
-            }
-
-            output_stream << "};" << std::endl;
-            output_stream << std::endl;
-            output_stream << "static void _get_helpers(helper_function_entry_t** helpers, size_t* count)" << std::endl;
-            output_stream << "{" << std::endl;
-            output_stream << "\t*helpers = _helpers;" << std::endl;
-            output_stream << "\t*count = " << std::to_string(helper_functions.size()) << ";" << std::endl;
-            output_stream << "}" << std::endl;
-            output_stream << std::endl;
-        } else {
-            output_stream << "static void _get_helpers(helper_function_entry_t** helpers, size_t* count)" << std::endl;
-            output_stream << "{" << std::endl;
-            output_stream << "\t*helpers = NULL;" << std::endl;
-            output_stream << "\t*count = 0;" << std::endl;
-            output_stream << "}" << std::endl;
-            output_stream << std::endl;
-        }
-    */
-
     for (auto& [name, section] : sections) {
         auto program_name = !section.program_name.empty() ? section.program_name : name;
 
@@ -722,20 +689,6 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             output_stream << std::endl;
         }
 
-        /*
-                if (section.referenced_helper_indices.size() > 0) {
-                    // Emit the array for the helpers used.
-                    std::string helper_array_name = program_name + "_helpers";
-                    output_stream << format_string("static uint16_t %s[] = {", sanitize_name(helper_array_name)) <<
-           std::endl; for (const auto& helper_index : section.referenced_helper_indices) { output_stream <<
-           std::to_string(helper_index) << "," << std::endl;
-                    }
-                    output_stream << "};" << std::endl;
-                    output_stream << std::endl;
-                }
-        */
-
-    for (auto& [name, section] : sections) {
         auto& line_info = section_line_info[name];
         auto first_line_info = line_info.find(section.output.front().instruction_offset);
         std::string prolog_line_info;
