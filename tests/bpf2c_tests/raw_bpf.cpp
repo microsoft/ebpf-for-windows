@@ -4,6 +4,7 @@
 #define CATCH_CONFIG_MAIN
 
 #include "bpf_code_generator.h"
+#define NUGET_CATCH
 #include "catch_wrapper.hpp"
 
 #define SEPERATOR "/"

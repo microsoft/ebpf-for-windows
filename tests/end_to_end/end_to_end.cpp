@@ -1297,7 +1297,7 @@ TEST_CASE("printk", "[end_to_end]")
 
     capture_helper_t capture;
     std::string output;
-    int hook_result;
+    int hook_result = 0;
     errno_t error = capture.begin_capture();
     if (error == NO_ERROR) {
         hook.fire(&ctx, &hook_result);

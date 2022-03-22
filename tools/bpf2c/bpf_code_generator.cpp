@@ -735,40 +735,50 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
                 }
         */
 
+    for (auto& [name, section] : sections) {
+        auto& line_info = section_line_info[name];
+        auto first_line_info = line_info.find(section.output.front().instruction_offset);
+        std::string prolog_line_info;
+        if (first_line_info != line_info.end() && !first_line_info->second.file_name.empty()) {
+            prolog_line_info = format_string(
+                "#line %s \"%s\"\n",
+                std::to_string(first_line_info->second.line_number),
+                escape_string(first_line_info->second.file_name));
+        }
+
         // Emit entry point
         output_stream << format_string("static uint64_t %s(void* context)", sanitize_name(program_name)) << std::endl;
         output_stream << "{" << std::endl;
 
         // Emit prologue
-        output_stream << "\t// Prologue" << std::endl;
-        output_stream << "\tuint64_t stack[(UBPF_STACK_SIZE + 7) / 8];" << std::endl;
+        output_stream << prolog_line_info << "\t// Prologue" << std::endl;
+        output_stream << prolog_line_info << "\tuint64_t stack[(UBPF_STACK_SIZE + 7) / 8];" << std::endl;
         for (const auto& r : _register_names) {
             // Skip unused registers
             if (section.referenced_registers.find(r) == section.referenced_registers.end()) {
                 continue;
             }
-            output_stream << "\tregister uint64_t " << r.c_str() << " = 0;" << std::endl;
+            output_stream << prolog_line_info << "\tregister uint64_t " << r.c_str() << " = 0;" << std::endl;
         }
         output_stream << std::endl;
-        output_stream << "\t" << get_register_name(1) << " = (uintptr_t)context;" << std::endl;
-        output_stream << "\t" << get_register_name(10) << " = (uintptr_t)((uint8_t*)stack + sizeof(stack));"
-                      << std::endl;
+        output_stream << prolog_line_info << "\t" << get_register_name(1) << " = (uintptr_t)context;" << std::endl;
+        output_stream << prolog_line_info << "\t" << get_register_name(10)
+                      << " = (uintptr_t)((uint8_t*)stack + sizeof(stack));" << std::endl;
         output_stream << std::endl;
 
-        std::string source_file = "";
-        uint32_t source_line = 0;
-        // Emit encode intructions
+        // Emit encoded instructions.
         for (const auto& output : section.output) {
-            auto& line_info = section_line_info[name];
             if (output.lines.empty()) {
                 continue;
             }
             if (!output.label.empty())
                 output_stream << output.label << ":" << std::endl;
             auto current_line = line_info.find(output.instruction_offset);
-            if (current_line != line_info.end()) {
-                source_line = current_line->second.line_number;
-                source_file = current_line->second.file_name;
+            if (current_line != line_info.end() && !current_line->second.file_name.empty()) {
+                prolog_line_info = format_string(
+                    "#line %s \"%s\"\n",
+                    std::to_string(current_line->second.line_number),
+                    escape_string(current_line->second.file_name));
             }
 #if defined(_DEBUG)
             output_stream << "\t// " << _opcode_name_strings[output.instruction.opcode]
@@ -778,16 +788,12 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
                           << " imm=" << std::to_string(output.instruction.imm) << std::endl;
 #endif
             for (const auto& line : output.lines) {
-                if (!source_file.empty()) {
-                    output_stream << "#line " << source_line << " \"" << escape_string(source_file.c_str()) << "\""
-                                  << std::endl;
-                }
-                output_stream << "\t" << line << std::endl;
+                output_stream << prolog_line_info << "\t" << line << std::endl;
             }
         }
-        output_stream << "#line __LINE__ __FILE__" << std::endl;
         // Emit epilogue
-        output_stream << "}" << std::endl << std::endl;
+        output_stream << prolog_line_info << "}" << std::endl;
+        output_stream << "#line __LINE__ __FILE__" << std::endl << std::endl;
     }
 
     output_stream << "static program_entry_t _programs[] = {" << std::endl;
