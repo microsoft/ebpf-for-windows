@@ -152,7 +152,7 @@ class bpf_code_generator
      *
      */
     void
-    encode_instructions();
+    encode_instructions(const std::string& section_name);
 
     /**
      * @brief Format a string and insert up to 4 strings in it.

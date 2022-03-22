@@ -174,7 +174,7 @@ bpf_code_generator::generate(const std::string& section_name)
 
     generate_labels();
     build_function_table();
-    encode_instructions();
+    encode_instructions(section_name);
 }
 
 void
@@ -338,10 +338,10 @@ bpf_code_generator::build_function_table()
 }
 
 void
-bpf_code_generator::encode_instructions()
+bpf_code_generator::encode_instructions(const std::string& section_name)
 {
     std::vector<output_instruction_t>& program_output = current_section->output;
-    auto program_name = current_section->program_name;
+    auto program_name = !current_section->program_name.empty() ? current_section->program_name : section_name;
     auto helper_array_prefix = program_name + "_helpers[%s]";
 
     // Encode instructions
