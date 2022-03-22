@@ -55,9 +55,10 @@ class bpf_code_generator
     /**
      * @brief Generate C code from the parsed eBPF file.
      *
+     * @param[in] section_name Section in the ELF file to generate C code for.
      */
     void
-    generate();
+    generate(const std::string& section_name);
 
     /**
      * @brief Emit the C code to a given output stream.
@@ -100,7 +101,8 @@ class bpf_code_generator
         // Indices of the maps used in this section.
         std::set<size_t> referenced_map_indices;
         // Indices of the helper functions used in this section.
-        std::set<size_t> referenced_helper_indices;
+        // std::set<size_t> referenced_helper_indices;
+        std::map<std::string, helper_function_t> helper_functions;
     } section_t;
 
     /**
@@ -211,7 +213,7 @@ class bpf_code_generator
     std::map<std::string, section_t> sections;
     section_t* current_section;
     ELFIO::elfio reader;
-    std::map<std::string, helper_function_t> helper_functions;
+    // std::map<std::string, helper_function_t> helper_functions;
     std::map<std::string, map_entry_t> map_definitions;
     std::string c_name;
     std::string path;

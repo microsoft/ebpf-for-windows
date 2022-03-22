@@ -1587,6 +1587,14 @@ _initialize_ebpf_object_native(
         goto Exit;
     }
 
+    for (auto& program : object.programs) {
+        program->object = &object;
+    }
+    for (auto& map : object.maps) {
+        map->object = &object;
+    }
+    object.loaded = true;
+
 Exit:
     if (result != EBPF_SUCCESS) {
         clean_up_ebpf_programs(object.programs);

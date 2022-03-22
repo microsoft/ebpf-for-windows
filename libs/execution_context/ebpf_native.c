@@ -137,6 +137,8 @@ ebpf_native_release_reference(ebpf_native_t* native_module)
     uint32_t new_ref_count;
     GUID* module_id = NULL;
     ebpf_result_t result = EBPF_SUCCESS;
+    bool lock_acquired = false;
+    ebpf_lock_state_t module_lock_state = 0;
 
     if (!native_module)
         return;
@@ -150,19 +152,22 @@ ebpf_native_release_reference(ebpf_native_t* native_module)
         // is the case, explicitly unload the driver, if it is safe to do so.
         if (ebpf_is_preemptible_work_item_supported()) {
             bool unload = false;
-            ebpf_lock_state_t state = ebpf_lock_lock(&native_module->lock);
+            module_lock_state = ebpf_lock_lock(&native_module->lock);
+            lock_acquired = true;
             if (!native_module->detaching && !native_module->unloading) {
                 // If the module is not yet unloading or detaching, and reference
                 // count is 1, it means all the program references have been
                 // released.
                 module_id = (GUID*)ebpf_allocate(sizeof(GUID));
                 if (module_id == NULL) {
+                    result = EBPF_NO_MEMORY;
                     goto Done;
                 }
                 unload = true;
                 *module_id = native_module->client_id;
             }
-            ebpf_lock_unlock(&native_module->lock, state);
+            ebpf_lock_unlock(&native_module->lock, module_lock_state);
+            lock_acquired = false;
             if (unload) {
                 ebpf_preemptible_work_item_t* work_item = NULL;
                 result = ebpf_allocate_preemptible_work_item(&work_item, _ebpf_native_unload_workitem, module_id);
@@ -186,6 +191,9 @@ ebpf_native_release_reference(ebpf_native_t* native_module)
     }
 
 Done:
+    if (lock_acquired) {
+        ebpf_lock_unlock(&native_module->lock, module_lock_state);
+    }
     if (result != EBPF_SUCCESS) {
         ebpf_free(module_id);
     }
@@ -301,7 +309,7 @@ _ebpf_native_client_attach_callback(
         goto Done;
     }
     table = (metadata_table_t*)client_data;
-    if (!table->programs || !table->maps || !table->helpers) {
+    if (!table->programs || !table->maps) {
         result = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
@@ -847,23 +855,16 @@ Done:
 static _Requires_lock_held_(native_module->lock) ebpf_result_t
     _ebpf_native_resolve_helpers_for_program(_In_ ebpf_native_t* native_module, _In_ ebpf_native_program_t* program)
 {
+    UNREFERENCED_PARAMETER(native_module);
     ebpf_result_t result;
     uint32_t* helper_ids = NULL;
     helper_function_address* helper_addresses = NULL;
-    uint16_t* helper_indices = program->entry->referenced_helper_indices;
-    uint16_t helper_count = program->entry->referenced_helper_count;
-    helper_function_entry_t* helpers = native_module->helpers;
+    uint16_t helper_count = program->entry->helper_count;
+    helper_function_entry_t* helpers = program->entry->helpers;
 
     if (helper_count == 0) {
         // No helpers called by this program.
         return EBPF_SUCCESS;
-    }
-
-    // Validate all helper indices are within range.
-    for (uint32_t i = 0; i < helper_count; i++) {
-        if (helper_indices[i] >= native_module->helper_count) {
-            return EBPF_INVALID_ARGUMENT;
-        }
     }
 
     helper_ids = ebpf_allocate(helper_count * sizeof(uint32_t));
@@ -880,7 +881,7 @@ static _Requires_lock_held_(native_module->lock) ebpf_result_t
 
     // Iterate over the helper indices to get all the helper ids.
     for (uint16_t i = 0; i < helper_count; i++) {
-        helper_ids[i] = helpers[helper_indices[i]].helper_id;
+        helper_ids[i] = helpers[i].helper_id;
     }
 
     result = ebpf_core_resolve_helper(program->handle, helper_count, helper_ids, (uint64_t*)helper_addresses);
@@ -890,19 +891,30 @@ static _Requires_lock_held_(native_module->lock) ebpf_result_t
 
     // Update the addresses in the helper entries.
     for (uint16_t i = 0; i < helper_count; i++) {
-        // Same helper can be used in multiple programs and hence resolved multiple times.
-        // Verify that the address of a helper function does not change.
-        if (helpers[helper_indices[i]].address != NULL && helpers[helper_indices[i]].address != helper_addresses[i]) {
-            result = EBPF_INVALID_ARGUMENT;
-            goto Done;
-        }
-        helpers[helper_indices[i]].address = helper_addresses[i];
+        helpers[i].address = helper_addresses[i];
     }
 
 Done:
     ebpf_free(helper_ids);
     ebpf_free(helper_addresses);
     return result;
+}
+
+// static _Requires_lock_held_(native_module->lock) void _ebpf_native_initialize_helpers(_In_reads_(count_of_helpers)
+// helper_function_entry_t* helpers, size_t count_of_helpers)
+static _Requires_lock_held_(native_module->lock) void _ebpf_native_initialize_helpers_for_program(
+    _In_ ebpf_native_t* native_module, _In_ ebpf_native_program_t* program)
+{
+    UNREFERENCED_PARAMETER(native_module);
+    size_t helper_count = program->entry->helper_count;
+    helper_function_entry_t* helpers = program->entry->helpers;
+    // Initialize the helper entries.
+    for (size_t i = 0; i < helper_count; i++) {
+        helpers[i].address = NULL;
+        if (helpers[i].helper_id == BPF_FUNC_tail_call) {
+            helpers[i].tail_call = true;
+        }
+    }
 }
 
 static _Requires_lock_held_(native_module->lock) ebpf_result_t
@@ -936,6 +948,8 @@ static _Requires_lock_held_(native_module->lock) ebpf_result_t
         ebpf_native_program_t* native_program = &native_programs[count];
         program_entry_t* program = native_program->entry;
         ebpf_program_parameters_t parameters = {0};
+
+        _ebpf_native_initialize_helpers_for_program(native_module, native_program);
 
         program_name_length = strnlen_s(program->program_name, BPF_OBJ_NAME_LEN);
         section_name_length = strnlen_s(program->section_name, BPF_OBJ_NAME_LEN);
@@ -1009,18 +1023,6 @@ static _Requires_lock_held_(native_module->lock) ebpf_result_t
     ebpf_free(program_name);
     ebpf_free(section_name);
     return result;
-}
-
-static _Requires_lock_held_(native_module->lock) void _ebpf_native_initialize_helpers(_In_ ebpf_native_t* native_module)
-{
-    // Get the helper entries.
-    native_module->table->helpers(&(native_module->helpers), &native_module->helper_count);
-    for (uint32_t i = 0; i < native_module->helper_count; i++) {
-        native_module->helpers[i].address = NULL;
-        if (native_module->helpers[i].helper_id == BPF_FUNC_tail_call) {
-            native_module->helpers[i].tail_call = true;
-        }
-    }
 }
 
 size_t
@@ -1163,9 +1165,6 @@ ebpf_native_load_programs(
     if (result != EBPF_SUCCESS) {
         goto Done;
     }
-
-    // Initialize helpers.
-    _ebpf_native_initialize_helpers(native_module);
 
     // Create programs.
     result = _ebpf_native_load_programs(native_module);

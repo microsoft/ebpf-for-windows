@@ -98,7 +98,10 @@ main(int argc, char** argv)
             ebpf_attach_type_t attach_type;
             ebpf_get_program_type_by_name(section.c_str(), &program_type, &attach_type);
             generator.parse(section, program_type, attach_type);
-            generator.generate();
+        }
+
+        for (const auto& section : sections) {
+            generator.generate(section);
         }
 
         switch (type) {

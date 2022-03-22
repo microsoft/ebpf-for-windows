@@ -168,8 +168,10 @@ bpf_code_generator::set_program_and_attach_type(const GUID& program_type, const 
 }
 
 void
-bpf_code_generator::generate()
+bpf_code_generator::generate(const std::string& section_name)
 {
+    current_section = &sections[section_name];
+
     generate_labels();
     build_function_table();
     encode_instructions();
@@ -329,8 +331,8 @@ bpf_code_generator::build_function_table()
             name += std::to_string(output.instruction.imm);
         }
 
-        if (helper_functions.find(name) == helper_functions.end()) {
-            helper_functions[name] = {output.instruction.imm, index++};
+        if (current_section->helper_functions.find(name) == current_section->helper_functions.end()) {
+            current_section->helper_functions[name] = {output.instruction.imm, index++};
         }
     }
 }
@@ -339,6 +341,8 @@ void
 bpf_code_generator::encode_instructions()
 {
     std::vector<output_instruction_t>& program_output = current_section->output;
+    auto program_name = current_section->program_name;
+    auto helper_array_prefix = program_name + "_helpers[%s]";
 
     // Encode instructions
     for (size_t i = 0; i < program_output.size(); i++) {
@@ -555,16 +559,19 @@ bpf_code_generator::encode_instructions()
                 std::string function_name;
                 if (output.relocation.empty()) {
                     function_name = format_string(
-                        "_helpers[%s]",
+                        helper_array_prefix,
                         std::to_string(
-                            helper_functions[std::string("helper_id_") + std::to_string(output.instruction.imm)]
+                            current_section
+                                ->helper_functions[std::string("helper_id_") + std::to_string(output.instruction.imm)]
                                 .index));
-                    current_section->referenced_helper_indices.insert(
-                        helper_functions[std::string("helper_id_") + std::to_string(output.instruction.imm)].index);
+                    // current_section->referenced_helper_indices.insert(
+                    //     current_section->helper_functions[std::string("helper_id_") +
+                    //     std::to_string(output.instruction.imm)].index);
                 } else {
-                    function_name =
-                        format_string("_helpers[%s]", std::to_string(helper_functions[output.relocation].index));
-                    current_section->referenced_helper_indices.insert(helper_functions[output.relocation].index);
+                    function_name = format_string(
+                        helper_array_prefix,
+                        std::to_string(current_section->helper_functions[output.relocation].index));
+                    // current_section->referenced_helper_indices.insert(current_section->helper_functions[output.relocation].index);
                 }
                 output.lines.push_back(
                     get_register_name(0) + std::string(" = ") + function_name + std::string(".address"));
@@ -632,39 +639,62 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         output_stream << std::endl;
     }
 
-    if (helper_functions.size() > 0) {
-        output_stream << "static helper_function_entry_t _helpers[] = {" << std::endl;
+    /*
+        if (helper_functions.size() > 0) {
+            output_stream << "static helper_function_entry_t _helpers[] = {" << std::endl;
 
-        // Functions are emitted in the order in which they occur in the byte code.
-        std::vector<std::tuple<std::string, uint32_t>> index_ordered_helpers;
-        index_ordered_helpers.resize(helper_functions.size());
-        for (const auto& function : helper_functions) {
-            index_ordered_helpers[function.second.index] = std::make_tuple(function.first, function.second.id);
+            // Functions are emitted in the order in which they occur in the byte code.
+            std::vector<std::tuple<std::string, uint32_t>> index_ordered_helpers;
+            index_ordered_helpers.resize(helper_functions.size());
+            for (const auto& function : helper_functions) {
+                index_ordered_helpers[function.second.index] = std::make_tuple(function.first, function.second.id);
+            }
+
+            for (const auto& [name, id] : index_ordered_helpers) {
+                output_stream << "{ NULL, " << id << ", \"" << name.c_str() << "\"}," << std::endl;
+            }
+
+            output_stream << "};" << std::endl;
+            output_stream << std::endl;
+            output_stream << "static void _get_helpers(helper_function_entry_t** helpers, size_t* count)" << std::endl;
+            output_stream << "{" << std::endl;
+            output_stream << "\t*helpers = _helpers;" << std::endl;
+            output_stream << "\t*count = " << std::to_string(helper_functions.size()) << ";" << std::endl;
+            output_stream << "}" << std::endl;
+            output_stream << std::endl;
+        } else {
+            output_stream << "static void _get_helpers(helper_function_entry_t** helpers, size_t* count)" << std::endl;
+            output_stream << "{" << std::endl;
+            output_stream << "\t*helpers = NULL;" << std::endl;
+            output_stream << "\t*count = 0;" << std::endl;
+            output_stream << "}" << std::endl;
+            output_stream << std::endl;
         }
-
-        for (const auto& [name, id] : index_ordered_helpers) {
-            output_stream << "{ NULL, " << id << ", \"" << name.c_str() << "\"}," << std::endl;
-        }
-
-        output_stream << "};" << std::endl;
-        output_stream << std::endl;
-        output_stream << "static void _get_helpers(helper_function_entry_t** helpers, size_t* count)" << std::endl;
-        output_stream << "{" << std::endl;
-        output_stream << "\t*helpers = _helpers;" << std::endl;
-        output_stream << "\t*count = " << std::to_string(helper_functions.size()) << ";" << std::endl;
-        output_stream << "}" << std::endl;
-        output_stream << std::endl;
-    } else {
-        output_stream << "static void _get_helpers(helper_function_entry_t** helpers, size_t* count)" << std::endl;
-        output_stream << "{" << std::endl;
-        output_stream << "\t*helpers = NULL;" << std::endl;
-        output_stream << "\t*count = 0;" << std::endl;
-        output_stream << "}" << std::endl;
-        output_stream << std::endl;
-    }
+    */
 
     for (auto& [name, section] : sections) {
         auto program_name = !section.program_name.empty() ? section.program_name : name;
+
+        // Emit section specific helper function array.
+        if (section.helper_functions.size() > 0) {
+            std::string helper_array_name = program_name + "_helpers";
+            output_stream << "static helper_function_entry_t " << sanitize_name(helper_array_name) << "[] = {"
+                          << std::endl;
+
+            // Functions are emitted in the order in which they occur in the byte code.
+            std::vector<std::tuple<std::string, uint32_t>> index_ordered_helpers;
+            index_ordered_helpers.resize(section.helper_functions.size());
+            for (const auto& function : section.helper_functions) {
+                index_ordered_helpers[function.second.index] = std::make_tuple(function.first, function.second.id);
+            }
+
+            for (const auto& [helper_name, id] : index_ordered_helpers) {
+                output_stream << "{ NULL, " << id << ", \"" << helper_name.c_str() << "\"}," << std::endl;
+            }
+
+            output_stream << "};" << std::endl;
+            output_stream << std::endl;
+        }
 
         // Emit the program and attach type GUID.
         std::string program_type_name = program_name + "_program_type_guid";
@@ -694,16 +724,18 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             output_stream << std::endl;
         }
 
-        if (section.referenced_helper_indices.size() > 0) {
-            // Emit the array for the helpers used.
-            std::string helper_array_name = program_name + "_helpers";
-            output_stream << format_string("static uint16_t %s[] = {", sanitize_name(helper_array_name)) << std::endl;
-            for (const auto& helper_index : section.referenced_helper_indices) {
-                output_stream << std::to_string(helper_index) << "," << std::endl;
-            }
-            output_stream << "};" << std::endl;
-            output_stream << std::endl;
-        }
+        /*
+                if (section.referenced_helper_indices.size() > 0) {
+                    // Emit the array for the helpers used.
+                    std::string helper_array_name = program_name + "_helpers";
+                    output_stream << format_string("static uint16_t %s[] = {", sanitize_name(helper_array_name)) <<
+           std::endl; for (const auto& helper_index : section.referenced_helper_indices) { output_stream <<
+           std::to_string(helper_index) << "," << std::endl;
+                    }
+                    output_stream << "};" << std::endl;
+                    output_stream << std::endl;
+                }
+        */
 
         // Emit entry point
         output_stream << format_string("static uint64_t %s(void* context)", sanitize_name(program_name)) << std::endl;
@@ -764,9 +796,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
     for (auto& [name, program] : sections) {
         auto program_name = !program.program_name.empty() ? program.program_name : name;
         size_t map_count = program.referenced_map_indices.size();
-        size_t helper_count = program.referenced_helper_indices.size();
-        // printf("// ANUSA: map_count = %d, helper_count = %d", map_count, helper_count);
-        // const char* map_array_name = map_count ? (program_name + "_maps").c_str() : "NULL";
+        size_t helper_count = program.helper_functions.size();
         auto map_array_name = map_count ? (program_name + "_maps") : std::string("NULL");
         auto helper_array_name = helper_count ? (program_name + "_helpers") : std::string("NULL");
 #if defined(_MSC_VER)
@@ -780,7 +810,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
                       << "\"" << name.c_str() << "\", "
                       << "\"" << program.program_name.c_str() << "\", " << map_array_name.c_str() << ", "
                       << program.referenced_map_indices.size() << ", " << helper_array_name.c_str() << ", "
-                      << program.referenced_helper_indices.size() << ", " << program.output.size() << ", "
+                      << program.helper_functions.size() << ", " << program.output.size() << ", "
 #if defined(_MSC_VER)
                       << "&" << sanitize_name(program_type_guid_name) << ", "
                       << "&" << sanitize_name(attach_type_guid_name) << ", "
@@ -800,8 +830,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
 
     output_stream << std::endl;
     output_stream << format_string(
-        "metadata_table_t %s = { _get_programs, _get_maps, _get_helpers };\n",
-        c_name.c_str() + std::string("_metadata_table"));
+        "metadata_table_t %s = { _get_programs, _get_maps };\n", c_name.c_str() + std::string("_metadata_table"));
 }
 
 #if defined(_MSC_VER)

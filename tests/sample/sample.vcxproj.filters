@@ -30,6 +30,9 @@
     <CustomBuild Include="bindmonitor_ringbuf.c">
       <Filter>Source Files</Filter>
     </CustomBuild>
+	<CustomBuild Include="bindmonitor_tailcall.c">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
     <CustomBuild Include="bpf.c">
       <Filter>Source Files</Filter>
     </CustomBuild>
@@ -93,13 +96,11 @@
     <CustomBuild Include="map.c">
       <Filter>Source Files</Filter>
     </CustomBuild>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="porttracker.c">
+    <CustomBuild Include="porttracker.c">
       <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="porttracker_tailcall.c">
+    </CustomBuild>
+    <CustomBuild Include="porttracker_tailcall.c">
       <Filter>Source Files</Filter>
-    </ClCompile>
+    </CustomBuild>
   </ItemGroup>
 </Project>

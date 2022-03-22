@@ -68,8 +68,8 @@ extern "C"
         const char* program_name;
         uint16_t* referenced_map_indices;
         uint16_t referenced_map_count;
-        uint16_t* referenced_helper_indices;
-        uint16_t referenced_helper_count;
+        helper_function_entry_t* helpers;
+        uint16_t helper_count;
         size_t bpf_instruction_count;
         GUID* program_type;
         GUID* expected_attach_type;
@@ -79,7 +79,6 @@ extern "C"
     {
         void (*programs)(program_entry_t** programs, size_t* count);
         void (*maps)(map_entry_t** maps, size_t* count);
-        void (*helpers)(helper_function_entry_t** helpers, size_t* count);
     } metadata_table_t;
 
     inline uint16_t
