@@ -52,7 +52,7 @@ int
 _close(int file_descriptor);
 
 bool
-_is_native_program(const char* file_name);
+_is_native_program(_In_z_ const char* file_name);
 
 uint32_t
 _create_registry_key(HKEY root_key, _In_z_ const wchar_t* path);
@@ -63,11 +63,11 @@ _update_registry_value(
     _In_z_ const wchar_t* sub_key,
     DWORD type,
     _In_z_ const wchar_t* value_name,
-    _In_ const void* value,
+    _In_reads_bytes_(value_size) const void* value,
     uint32_t value_size);
 
 uint32_t
-_create_service(_In_ const wchar_t* service_name, _In_ const wchar_t* file_path, _Out_ SC_HANDLE* service_handle);
+_create_service(_In_z_ const wchar_t* service_name, _In_z_ const wchar_t* file_path, _Out_ SC_HANDLE* service_handle);
 
 uint32_t
 _delete_service(SC_HANDLE service_handle);

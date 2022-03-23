@@ -131,7 +131,7 @@ _close(int file_descriptor)
 }
 
 bool
-_is_native_program(_In_ const char* file_name)
+_is_native_program(_In_z_ const char* file_name)
 {
     std::string file_name_string(file_name);
     std::string file_extension = file_name_string.substr(file_name_string.find_last_of(".") + 1);
@@ -162,7 +162,7 @@ _update_registry_value(
     _In_z_ const wchar_t* sub_key,
     DWORD type,
     _In_z_ const wchar_t* value_name,
-    _In_ const void* value,
+    _In_reads_bytes_(value_size) const void* value,
     uint32_t value_size)
 {
     HKEY key = nullptr;
@@ -206,7 +206,7 @@ _check_service_state(SC_HANDLE service_handle, DWORD expected_state, DWORD* fina
 }
 
 uint32_t
-_create_service(_In_ const wchar_t* service_name, _In_ const wchar_t* file_path, _Out_ SC_HANDLE* service_handle)
+_create_service(_In_z_ const wchar_t* service_name, _In_z_ const wchar_t* file_path, _Out_ SC_HANDLE* service_handle)
 {
     SC_HANDLE local_service_handle = nullptr;
     SC_HANDLE scm_handle = nullptr;

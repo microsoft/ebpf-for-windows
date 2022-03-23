@@ -76,7 +76,7 @@ _ebpf_update_registry_value(
     _In_z_ const wchar_t* sub_key,
     DWORD type,
     _In_z_ const wchar_t* value_name,
-    _In_ const void* value,
+    _In_reads_bytes_(value_size) const void* value,
     uint32_t value_size)
 {
     return Platform::_update_registry_value(root_key, sub_key, type, value_name, value, value_size);

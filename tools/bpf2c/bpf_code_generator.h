@@ -113,6 +113,8 @@ class bpf_code_generator
     /**
      * @brief Set the program and attach type for the current section.
      *
+     * @param[in] program_type Program type GUID.
+     * @param[in] attach_type Attach type GUID.
      */
     void
     set_program_and_attach_type(const GUID& program_type, const GUID& attach_type);
@@ -174,7 +176,7 @@ class bpf_code_generator
     /**
      * @brief Format a GUID as a string.
      *
-     * @param[in] Pointer to the GUID to be formatted.
+     * @param[in] guid Pointer to the GUID to be formatted.
      * @return The formatted string.
      */
     std::string

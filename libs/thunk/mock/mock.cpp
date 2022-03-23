@@ -134,7 +134,7 @@ _update_registry_value(
     _In_z_ const wchar_t* sub_key,
     DWORD type,
     _In_z_ const wchar_t* value_name,
-    _In_ const void* value,
+    _In_reads_bytes_(value_size) const void* value,
     uint32_t value_size)
 {
     UNREFERENCED_PARAMETER(root_key);
@@ -148,7 +148,7 @@ _update_registry_value(
 }
 
 uint32_t
-_create_service(_In_ const wchar_t* service_name, _In_ const wchar_t* file_path, _Out_ SC_HANDLE* service_handle)
+_create_service(_In_z_ const wchar_t* service_name, _In_z_ const wchar_t* file_path, _Out_ SC_HANDLE* service_handle)
 {
     // TODO: Just a stub currently in order to compile.
     // Will be replaced by a proper mock.
