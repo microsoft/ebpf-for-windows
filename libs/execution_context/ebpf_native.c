@@ -55,8 +55,6 @@ typedef struct _ebpf_native
     size_t map_count;
     ebpf_native_program_t* programs;
     size_t program_count;
-    helper_function_entry_t* helpers;
-    size_t helper_count;
     ebpf_handle_t client_binding_handle;
 } ebpf_native_t;
 
@@ -86,7 +84,7 @@ _ebpf_native_cleanup_maps(_In_reads_(map_count) _Frees_ptr_ ebpf_native_map_t* m
         }
         if (map->pin_path.value) {
 #pragma warning(push)
-#pragma warning(disable : 6001)
+#pragma warning(disable : 6001) // Using uninitialized memory '*maps.pin_path.value'
             ebpf_free(map->pin_path.value);
 #pragma warning(pop)
         }

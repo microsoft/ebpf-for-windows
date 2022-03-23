@@ -562,14 +562,10 @@ bpf_code_generator::encode_instructions(const std::string& section_name)
                             current_section
                                 ->helper_functions[std::string("helper_id_") + std::to_string(output.instruction.imm)]
                                 .index));
-                    // current_section->referenced_helper_indices.insert(
-                    //     current_section->helper_functions[std::string("helper_id_") +
-                    //     std::to_string(output.instruction.imm)].index);
                 } else {
                     function_name = format_string(
                         helper_array_prefix,
                         std::to_string(current_section->helper_functions[output.relocation].index));
-                    // current_section->referenced_helper_indices.insert(current_section->helper_functions[output.relocation].index);
                 }
                 output.lines.push_back(
                     get_register_name(0) + std::string(" = ") + function_name + std::string(".address"));
