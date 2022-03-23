@@ -131,9 +131,9 @@ _create_registry_key(HKEY root_key, _In_z_ const wchar_t* path)
 uint32_t
 _update_registry_value(
     HKEY root_key,
-    _In_ const wchar_t* sub_key,
+    _In_z_ const wchar_t* sub_key,
     DWORD type,
-    _In_ const wchar_t* value_name,
+    _In_z_ const wchar_t* value_name,
     _In_ const void* value,
     uint32_t value_size)
 {

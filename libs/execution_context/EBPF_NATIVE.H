@@ -31,7 +31,7 @@ extern "C"
     ebpf_native_terminate();
 
     /**
-     * @brief Load driver and bind to the native module.
+     * @brief Load native module driver and bind to the native module.
      *
      * @param[in] service_name Name of the service for the native module.
      * @param[in] service_name_length Length of service_name.
@@ -42,7 +42,7 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  operation.
-     * @retval EBPF_OBJECT_NOT_FOUND No native program exists with that module ID.
+     * @retval EBPF_OBJECT_NOT_FOUND Native module for that module ID not found.
      * @retval EBPF_OBJECT_ALREADY_EXISTS Native module for this module ID is already
      *  initialized.
      */
@@ -60,7 +60,7 @@ extern "C"
      *
      * @param[in] module_id Identifier of the native eBPF module to load programs
      *  and maps from.
-     * @param[in] count_of_map_handles Count of maps in this module.
+     * @param[in] count_of_map_handles Count of maps in the native module.
      * @param[out] map_handles Array of handles of the maps created.
      * @param[in] count_of_program_handles Count of programs in the native module.
      * @param[out] program_handles Array of handles for the programs created.
@@ -68,9 +68,9 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
      *  operation.
-     * @retval EBPF_OBJECT_NOT_FOUND No native program exists with that module ID.
+     * @retval EBPF_OBJECT_NOT_FOUND No native module exists with that module ID.
      * @retval EBPF_OBJECT_ALREADY_EXISTS Native module for this module ID is already
-     *  initialized.
+     *  loaded.
      */
     ebpf_result_t
     ebpf_native_load_programs(
@@ -115,11 +115,21 @@ extern "C"
     ebpf_result_t
     ebpf_native_unload(_In_ const GUID* module_id);
 
+    /**
+     * @brief Acquire reference on the native module.
+     *
+     * @param[in] native_module Pointer to native module.
+     */
     void
-    ebpf_native_acquire_reference(ebpf_native_t* native);
+    ebpf_native_acquire_reference(_In_ ebpf_native_t* native_module);
 
+    /**
+     * @brief Release reference to the native module.
+     *
+     * @param[in] native_module Optionally, pointer to native module.
+     */
     void
-    ebpf_native_release_reference(ebpf_native_t* native);
+    ebpf_native_release_reference(_In_opt_ ebpf_native_t* native_module);
 
 #ifdef __cplusplus
 }

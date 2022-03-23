@@ -50,7 +50,7 @@
     <ClInclude Include="..\ebpf_core.h" />
     <ClInclude Include="..\ebpf_link.h" />
     <ClInclude Include="..\ebpf_maps.h" />
-    <ClInclude Include="..\EBPF_NATIVE.H" />
+    <ClInclude Include="..\ebpf_native.h" />
     <ClInclude Include="..\ebpf_program.h" />
     <ClInclude Include="..\ebpf_protocol.h" />
     <ClInclude Include="pch.h" />

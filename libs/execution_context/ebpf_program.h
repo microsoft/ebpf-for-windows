@@ -149,7 +149,7 @@ extern "C"
      * @param[in] code_type Specifies whether eBPF code is JIT compiled or byte code.
      * @param[in] code_context Optionally, pointer to code context.
      * @param[in] code Pointer to memory containing the eBPF code.
-     * @param[in] machine_size Size of the memory block containing the eBPF
+     * @param[in] code_size Size of the memory block containing the eBPF
      *  code.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
@@ -254,6 +254,18 @@ extern "C"
         _Out_writes_to_(*info_size, *info_size) uint8_t* buffer,
         _Inout_ uint16_t* info_size);
 
+    /**
+     * @brief Create a new program instance and initialize the instance from
+     *  the provided program parameters.
+     *
+     * @param[in] parameters Program parameters to be used to initialize
+     *  the program instance.
+     * @param[out] program_handle Handle to the created program instance.
+     *
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
+     *  program instance.
+     */
     ebpf_result_t
     ebpf_program_create_and_initialize(
         _In_ const ebpf_program_parameters_t* parameters, _Out_ ebpf_handle_t* program_handle);

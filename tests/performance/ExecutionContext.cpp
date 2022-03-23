@@ -50,8 +50,11 @@ typedef class _ebpf_program_test_state
         machine_code.resize(machine_code_size);
         REQUIRE(
             ebpf_program_load_code(
-                program, EBPF_CODE_JIT, NULL, machine_code.data(), machine_code.size() * sizeof(ebpf_instruction_t)) ==
-            EBPF_SUCCESS);
+                program,
+                EBPF_CODE_JIT,
+                nullptr,
+                machine_code.data(),
+                machine_code.size() * sizeof(ebpf_instruction_t)) == EBPF_SUCCESS);
     }
 
     void
@@ -61,7 +64,7 @@ typedef class _ebpf_program_test_state
             ebpf_program_load_code(
                 program,
                 EBPF_CODE_EBPF,
-                NULL,
+                nullptr,
                 reinterpret_cast<uint8_t*>(byte_code.data()),
                 byte_code.size() * sizeof(ebpf_instruction_t)) == EBPF_SUCCESS);
     }

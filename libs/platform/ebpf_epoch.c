@@ -358,7 +358,6 @@ ebpf_epoch_schedule_work_item(_In_ ebpf_epoch_work_item_t* work_item)
     uint32_t current_cpu;
     current_cpu = ebpf_get_current_cpu();
     if (current_cpu >= _ebpf_epoch_cpu_count) {
-        // work_item->callback(work_item->callback_context);
         return;
     }
 

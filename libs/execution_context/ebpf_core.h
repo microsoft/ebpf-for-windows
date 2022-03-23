@@ -110,23 +110,44 @@ extern "C"
         int seed);
 
     /**
-     * @brief Computes difference of checksum values for two input raw buffers using 1's complement arithmetic.
+     * @brief Return a handle to the object which is pinned at the
+     *  supplied pin path.
      *
-     * @param[in] from Pointer to first raw buffer.
-     * @param[in] from_size Length of the "from" buffer. Must be a multiple of 4.
-     * @param[in] to Pointer to the second raw buffer, whose checksum will be subtracted from that of the "from" buffer.
-     * @param[in] to_size Length of the "to" buffer. Must be a multiple of 4.
-     * @param[in] seed  An optional integer that can be added to the value, which can be used to carry result of a
-     * previous csum_diff operation.
+     * @param[in] path Path at which the object is pinned.
+     * @param[out] handle Handle to the pinned object.
      *
-     * @returns The checksum delta on success, or <0 on failure.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NOT_FOUND No object was pinned to the provided path.
      */
     ebpf_result_t
     ebpf_core_get_pinned_object(_In_ const ebpf_utf8_string_t* path, _Out_ ebpf_handle_t* handle);
 
+    /**
+     * @brief Pin or unpin an object to the provided path. If supplied handle is
+     *  ebpf_handle_invalid, any object already pinned to the provided path is
+     *  unpinned from the path.
+     *
+     * @param[in] handle Handle of the object to be pinned.
+     * @param[in] path Pin path.
+     *
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this operation.
+     * @retval EBPF_NOT_FOUND No object was pinned to the provided path.
+     */
     ebpf_result_t
     ebpf_core_update_pinning(const ebpf_handle_t handle, _In_ const ebpf_utf8_string_t* path);
 
+    /**
+     * @brief Create a new map object.
+     *
+     * @param[in] map_name Name of the map to be created.
+     * @param[in] ebpf_map_definition Map definition structure.
+     * @param[in] inner_map_handle Handle to the inner map object, if any.
+     * @param[out] map_handle Handle to the created map object.
+     *
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this operation.
+     */
     ebpf_result_t
     ebpf_core_create_map(
         _In_ const ebpf_utf8_string_t* map_name,
@@ -134,6 +155,18 @@ extern "C"
         ebpf_handle_t inner_map_handle,
         _Out_ ebpf_handle_t* map_handle);
 
+    /**
+     * @brief Load a block of eBPF code into the program instance.
+     *
+     * @param[in] program_handle Handle to the program object to load the eBPF code into.
+     * @param[in] code_type Specifies whether eBPF code is JIT compiled, byte code or native code.
+     * @param[in] code_context Optionally, pointer to code context.
+     * @param[in] code Pointer to memory containing the eBPF code.
+     * @param[in] code_size Size of the memory block containing the eBPF code.
+     *
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this operation.
+     */
     ebpf_result_t
     ebpf_core_load_code(
         ebpf_handle_t program_handle,
@@ -142,9 +175,36 @@ extern "C"
         _In_ const uint8_t* code,
         size_t code_size);
 
+    /**
+     * @brief Returns a handle to an object identified by the id.
+     *
+     * @param[in] type Type of the object to get handle of.
+     * @param[in] id Specifies the ID of the object.
+     * @param[out] handle Handle to the object.
+     *
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_KEY_NOT_FOUND The provided ID is not valid.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
+     *  operation.
+     */
     ebpf_result_t
     ebpf_core_get_handle_by_id(ebpf_object_type_t type, ebpf_id_t id, _Out_ ebpf_handle_t* handle);
 
+    /**
+     * @brief Resolve the provided map handles to map addresses and associate the
+     *  maps to the program object.
+     *
+     * @param[in] program_handle Handle of the program to associate maps with.
+     * @param[in] count_of_maps Number of map handles.
+     * @param[in] map_handles Array of map handles containing "count_of_maps" handles.
+     * @param[out] map_addresses Array of map addresses of size "count_of_maps"
+     *
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INVALID_OBJECT The provided handle is not valid.
+     * @retval EBPF_KEY_NOT_FOUND The provided ID is not valid.
+     * @retval EBPF_INVALID_FD The program is incompatible with the map.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this operation.
+     */
     ebpf_result_t
     ebpf_core_resolve_maps(
         ebpf_handle_t program_handle,
@@ -152,6 +212,20 @@ extern "C"
         _In_reads_(count_of_maps) const ebpf_handle_t* map_handles,
         _Out_writes_(count_of_maps) uintptr_t* map_addresses);
 
+    /**
+     * @brief Resolve addresses for the provided helper function IDs and associate
+     *  the helper IDs with the program object.
+     *
+     * @param[in] program_handle Handle of the program to associate maps with.
+     * @param[in] count_of_helpers Number of helper function IDs.
+     * @param[in] helper_function_ids Array of helper function IDs containing "count_of_helpers" IDs.
+     * @param[out] helper_function_addresses Array of helper function addresses of size "count_of_helpers"
+     *
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INVALID_OBJECT The provided handle is not valid.
+     * @retval EBPF_INVALID_ARGUMENT An invalid argument was supplied.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this operation.
+     */
     ebpf_result_t
     ebpf_core_resolve_helper(
         ebpf_handle_t program_handle,

@@ -265,33 +265,6 @@ _ebpf_program_get_bpf_prog_type(_In_ const ebpf_program_t* program)
  * @param[in] context Pointer to the ebpf_program_t passed as context in the
  * work-item.
  */
-/*
-static void
-_ebpf_program_epoch_disable(void* context)
-{
-    EBPF_LOG_ENTRY();
-    ebpf_program_t* program = (ebpf_program_t*)context;
-
-    if (program->parameters.code_type != EBPF_CODE_NATIVE) {
-        EBPF_RETURN_VOID();
-    }
-
-    // Free reference to the native module.
-    ebpf_native_release_reference((ebpf_native_t*)program->code_or_vm.native.native_module);
-
-    ebpf_free(program->disable_work_item);
-    program->disable_work_item = NULL;
-    EBPF_RETURN_VOID();
-}
-*/
-
-/**
- * @brief Free invoked when the current epoch ends. Scheduled by
- * _ebpf_program_free.
- *
- * @param[in] context Pointer to the ebpf_program_t passed as context in the
- * work-item.
- */
 static void
 _ebpf_program_epoch_free(void* context)
 {
@@ -330,7 +303,6 @@ _ebpf_program_epoch_free(void* context)
     ebpf_free(program->helper_function_ids);
 
     ebpf_free(program->cleanup_work_item);
-    // ebpf_free(program->disable_work_item);
     ebpf_free(program);
     EBPF_RETURN_VOID();
 }
@@ -443,14 +415,6 @@ ebpf_program_create(ebpf_program_t** program)
         retval = EBPF_NO_MEMORY;
         goto Done;
     }
-
-    /*
-        local_program->disable_work_item = ebpf_epoch_allocate_work_item(local_program, _ebpf_program_epoch_disable);
-        if (!local_program->disable_work_item) {
-            retval = EBPF_NO_MEMORY;
-            goto Done;
-        }
-    */
 
     ebpf_list_initialize(&local_program->links);
     ebpf_lock_create(&local_program->lock);
@@ -661,6 +625,10 @@ _ebpf_program_load_machine_code(
         local_code_memory_descriptor = NULL;
     } else {
         ebpf_assert(machine_code_size == 0);
+        if (code_context == NULL) {
+            return_value = EBPF_INVALID_ARGUMENT;
+            goto Done;
+        }
         program->code_or_vm.native.native_module = code_context;
         program->code_or_vm.native.code_pointer = machine_code;
         // Acquire reference on the native module. This reference

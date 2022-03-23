@@ -159,9 +159,9 @@ _create_registry_key(HKEY root_key, _In_z_ const wchar_t* path)
 uint32_t
 _update_registry_value(
     HKEY root_key,
-    _In_ const wchar_t* sub_key,
+    _In_z_ const wchar_t* sub_key,
     DWORD type,
-    _In_ const wchar_t* value_name,
+    _In_z_ const wchar_t* value_name,
     _In_ const void* value,
     uint32_t value_size)
 {
@@ -180,7 +180,7 @@ static bool
 _check_service_state(SC_HANDLE service_handle, DWORD expected_state, DWORD* final_state)
 {
 #define MAX_RETRY_COUNT 20
-#define WAIT_TIME 500 // in ms.
+#define WAIT_TIME_IN_MS 500
 
     int retry_count = 0;
     bool status = false;
@@ -196,7 +196,7 @@ _check_service_state(SC_HANDLE service_handle, DWORD expected_state, DWORD* fina
             status = true;
             break;
         } else {
-            Sleep(WAIT_TIME);
+            Sleep(WAIT_TIME_IN_MS);
             retry_count++;
         }
     }

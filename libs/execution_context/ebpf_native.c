@@ -121,14 +121,14 @@ _ebpf_native_cleanup_module(_In_ ebpf_native_t* native_module)
 }
 
 void
-ebpf_native_acquire_reference(ebpf_native_t* native_module)
+ebpf_native_acquire_reference(_In_ ebpf_native_t* native_module)
 {
     ebpf_assert(native_module->reference_count != 0);
     ebpf_interlocked_increment_int32(&native_module->reference_count);
 }
 
 void
-ebpf_native_release_reference(ebpf_native_t* native_module)
+ebpf_native_release_reference(_In_opt_ ebpf_native_t* native_module)
 {
     uint32_t new_ref_count;
     GUID* module_id = NULL;
@@ -640,8 +640,6 @@ static _Requires_lock_held_(native_module->lock) ebpf_result_t
         }
 
         ebpf_handle_t inner_map_handle = (native_map->inner_map) ? native_map->inner_map->handle : ebpf_handle_invalid;
-        // map_name.value = native_map->entry->name;
-        // ANUSA TODO: Make sure to free the string copy being created below.
         map_name.length = strlen(native_map->entry->name);
         map_name.value = (uint8_t*)ebpf_allocate(map_name.length);
         if (map_name.value == NULL) {
@@ -874,7 +872,6 @@ static _Requires_lock_held_(native_module->lock) ebpf_result_t
             break;
         }
 
-        // ANUSA TODO: Free the duplicate strings being created below.
         parameters.program_type = *program->program_type;
         parameters.expected_attach_type = (program->expected_attach_type ? *program->expected_attach_type : GUID_NULL);
 
@@ -973,10 +970,7 @@ ebpf_native_load(
     }
     memcpy(local_service_name, (uint8_t*)service_name, service_name_length);
 
-    result = ebpf_native_load_driver(local_service_name);
-    if (result != EBPF_SUCCESS) {
-        goto Done;
-    }
+    ebpf_native_load_driver(local_service_name);
 
     // Find the native entry in hash table.
     hash_table_state = ebpf_lock_lock(&_ebpf_client_table_lock);

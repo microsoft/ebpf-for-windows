@@ -435,7 +435,6 @@ typedef struct _ebpf_operation_load_native_programs_reply
     struct _ebpf_operation_header header;
     size_t program_handle_count;
     size_t map_handle_count;
-    // uint16_t map_info_offset;
     // Map handles followed by program handles.
     uint8_t data[1];
 } ebpf_operation_load_native_programs_reply_t;

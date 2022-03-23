@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-// #include "ebpf_native.h"
 #include "ebpf_result.h"
 #include "ebpf_handle.h"
 #include "framework.h"
