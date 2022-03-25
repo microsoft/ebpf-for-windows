@@ -1,5 +1,11 @@
 # Copyright (c) Microsoft Corporation
 # SPDX-License-Identifier: MIT
+#
+# For documentation on the github environment, see
+# https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners
+#
+# For documentation on the syntax of this file, see
+# https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions
 
 # This action will run doxygen to update the documentation at https://microsoft.github.io/ebpf-for-windows/
 # which is a view of the gh-pages branch.  This action is done whenever the main branch is updated.
@@ -12,15 +18,19 @@
 
 name: Doxygen Action
 
-# Controls when the action will run. Triggers the workflow on push # events
-# but only for the main branch
+# Controls when the action will run. Triggers the workflow on push events
+# but only for the main branch.
 on:
   push:
     branches: [ main ]
 
+# Declare default permissions as read only.
+permissions: read-all
 
 jobs:
-  build:
+  build-and-deploy:
+    permissions:
+      contents: write  # Needed to git push.
     runs-on: ubuntu-latest
 
     steps:
@@ -29,21 +39,21 @@ jobs:
       run: |
         sudo apt install doxygen
 
-    - uses: actions/checkout@v2
+    # Check out (non-recurisvely) the ebpf-for-windows main branch.
+    - name: Checkout
+      uses: actions/checkout@v3
 
-    - name: Clone docs
-      run: |
-        git config --global user.email 'ebpf-for-windows@users.noreply.github.com'
-        git config --global user.name 'Github Action'
-        git clone --branch gh-pages https://github.com/microsoft/ebpf-for-windows.git docs/html
-
-    - name: Update docs
+    # Create doxygen docs under the docs/html subdirectory.
+    - name: Build docs
       run: |
         doxygen
-        cd docs/html
-        git add .
-        if [ -n "$(git status --porcelain)" ]; then
-        git commit -s -m "Updated documentation"
-        git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/microsoft/ebpf-for-windows.git
-        git push
-        fi
+
+    # Check docs into the gh-pages branch to deploy them to the live website.
+    - name: Deploy
+      uses: JamesIves/github-pages-deploy-action@v4.2.5
+      with:
+        branch: gh-pages # The branch the action should deploy to.
+        folder: docs/html # The folder the action should deploy.
+        token: ${{ secrets.GITHUB_TOKEN }}
+        git-config-name: Github Action
+        git-config-email: ebpf-for-windows@users.noreply.github.com
