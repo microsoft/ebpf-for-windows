@@ -1,5 +1,5 @@
 # Copyright (c) Microsoft Corporation
 # SPDX-License-Identifier: MIT
-parcon == 0.1.25 --hash=sha256:82d2eba2a24bd348b3885e1b2c89f27fcf326a6f5e1eb758008916f582b3874d
+pip @ git+https://github.com/javawizard/parcon.git@1e4e5422c1339658fd0977998ae811662307bc46
 nose == 1.3.1 --hash=sha256:85273b87ab3db9307e3b1452b071e25c1db1cc812bc337d2a97ea0b0cf2ab6ba
 pyelftools == 0.27 --hash=sha256:5609aa6da1123fccfae2e8431a67b4146aa7fad5b3889f808df12b110f230937
