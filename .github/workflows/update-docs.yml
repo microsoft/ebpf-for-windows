@@ -20,6 +20,9 @@ on:
 
 permissions: read-all
 
+permissions:
+  contents: read
+
 jobs:
   build:
     permissions:
@@ -28,11 +31,16 @@ jobs:
 
     steps:
 
+    - name: Harden Runner
+      uses: step-security/harden-runner@9b0655f430fba8c7001d4e38f8d4306db5c6e0ab # v1
+      with:
+        egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+
     - name: Install doxygen
       run: |
         sudo apt install doxygen
 
-    - uses: actions/checkout@629c2de402a417ea7690ca6ce3f33229e27606a5
+    - uses: actions/checkout@b0e28b5ac45a892f91e7d036f8200cf5ed489415 # v3
 
     - name: Clone docs
       run: |
