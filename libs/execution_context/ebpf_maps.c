@@ -69,34 +69,113 @@ typedef struct _ebpf_core_ring_buffer_map_async_query_context
 
 /**
  * Core map structure for BPF_MAP_TYPE_QUEUE and BPF_MAP_TYPE_STACK
- * ebpf_core_queue_map_t and ebpf_core_stack_map_t store arrays of uint8_t*
- * pointers. Each pointer stores a version of a value that has been pushed to
- * the queue or stack. The structure can't store the map values directly as the
- * caller expects items returned from find_and_delete to remain unmodified. If
- * items are stored directly in the array, then a sequence of:
- * 1) update
- * 2) find_and_delete
- * 3) update
- * 4) find_and_delete
+ * ebpf_core_circular_map_t stores an array of uint8_t* pointers. Each pointer
+ * stores a version of a value that has been pushed to the queue or stack. The
+ * structure can't store the map values directly as the caller expects items
+ * returned from peek to remain unmodified. If items are stored directly in
+ * the array, then a sequence of:
+ * 1) push
+ * 2) peek
+ * 3) pop
+ * 4) push
  * can result in aliasing the record, which would result in unexpected behavior.
  */
 
-typedef struct _ebpf_core_queue_map
+typedef struct _ebpf_core_circular_map
 {
     ebpf_core_map_t core_map;
     ebpf_lock_t lock;
-    size_t start;
+    size_t begin;
     size_t end;
+    enum
+    {
+        EBPF_CORE_QUEUE = 1,
+        EBPF_CORE_STACK = 2,
+    } type;
     uint8_t* slots[1];
-} ebpf_core_queue_map_t;
+} ebpf_core_circular_map_t;
 
-typedef struct _ebpf_core_stack_map
+static size_t
+_ebpf_core_circular_map_add(_In_ ebpf_core_circular_map_t* map, size_t value, int delta)
 {
-    ebpf_core_map_t core_map;
-    ebpf_lock_t lock;
-    size_t top_of_stack; // Points to the next empty slot.
-    uint8_t* slots[1];
-} ebpf_core_stack_map_t;
+    return (map->core_map.ebpf_map_definition.max_entries + value + (size_t)delta) %
+           map->core_map.ebpf_map_definition.max_entries;
+}
+
+static uint8_t*
+_ebpf_core_circular_map_peek_or_pop(_In_ ebpf_core_circular_map_t* map, bool pop)
+{
+    uint8_t* return_value = NULL;
+
+    if (map->type == EBPF_CORE_QUEUE) {
+        // Remove from the beginning.
+        return_value = map->slots[map->begin];
+        if (return_value == NULL) {
+            ebpf_assert(map->begin == map->end);
+            goto Done;
+        }
+        if (pop) {
+            map->slots[map->begin] = NULL;
+            map->begin = _ebpf_core_circular_map_add(map, map->begin, 1);
+        }
+    } else {
+        // Remove from the end.
+        size_t new_end = _ebpf_core_circular_map_add(map, map->end, -1);
+        return_value = map->slots[new_end];
+        if (return_value == NULL) {
+            ebpf_assert(map->begin == map->end);
+            goto Done;
+        }
+        if (pop) {
+            map->slots[new_end] = NULL;
+            map->end = new_end;
+        }
+    }
+Done:
+    return return_value;
+}
+
+static ebpf_result_t
+_ebpf_core_circular_map_push(_In_ ebpf_core_circular_map_t* map, _In_ const uint8_t* data, bool replace)
+{
+    ebpf_result_t return_value;
+    uint8_t* new_data = NULL;
+    uint8_t* old_data = NULL;
+    new_data = ebpf_epoch_allocate(map->core_map.ebpf_map_definition.value_size);
+    if (new_data == NULL) {
+        return_value = EBPF_NO_MEMORY;
+        goto Done;
+    }
+    memcpy(new_data, data, map->core_map.ebpf_map_definition.value_size);
+
+    if (map->slots[map->end] != NULL) {
+        ebpf_assert(map->begin == map->end);
+        if (replace) {
+            old_data = map->slots[map->end];
+            map->slots[map->end] = NULL;
+            map->begin = _ebpf_core_circular_map_add(map, map->begin, 1);
+        } else {
+            return_value = EBPF_OUT_OF_SPACE;
+            goto Done;
+        }
+    }
+
+    // Insert at the end.
+    map->slots[map->end] = new_data;
+    new_data = NULL;
+    map->end = _ebpf_core_circular_map_add(map, map->end, 1);
+
+    return_value = EBPF_SUCCESS;
+
+Done:
+    if (new_data) {
+        ebpf_epoch_free(new_data);
+    }
+    if (old_data) {
+        ebpf_epoch_free(old_data);
+    }
+    return return_value;
+}
 
 _Ret_notnull_ static const ebpf_program_type_t*
 _get_map_program_type(_In_ const ebpf_core_object_t* object)
@@ -379,7 +458,7 @@ _associate_program_with_prog_array_map(_In_ ebpf_core_map_t* map, _In_ const ebp
 
     // Validate that the program type is
     // not in conflict with the map's program type.
-    const ebpf_program_type_t* program_type = ebpf_program_type(program);
+    const ebpf_program_type_t* program_type = ebpf_program_type_uuid(program);
     ebpf_result_t result = EBPF_SUCCESS;
 
     ebpf_lock_state_t lock_state = ebpf_lock_lock(&program_array->lock);
@@ -1232,80 +1311,16 @@ _create_queue_map(
     ebpf_handle_t inner_map_handle,
     _Outptr_ ebpf_core_map_t** map)
 {
+    ebpf_result_t result;
     if (inner_map_handle != ebpf_handle_invalid)
         return EBPF_INVALID_ARGUMENT;
-    size_t queue_map_size =
-        EBPF_OFFSET_OF(ebpf_core_queue_map_t, slots) + map_definition->max_entries * sizeof(uint8_t*);
-    return _create_array_map_with_map_struct_size(queue_map_size, map_definition, map);
-}
-
-static void
-_delete_queue_map(_In_ _Post_invalid_ ebpf_core_map_t* map)
-{
-    ebpf_core_queue_map_t* queue_map = EBPF_FROM_FIELD(ebpf_core_queue_map_t, core_map, map);
-
-    // Free all the elements stored in the queue.
-    for (size_t i = 0; i < queue_map->core_map.ebpf_map_definition.max_entries; i++) {
-        ebpf_epoch_free(queue_map->slots[i]);
+    size_t circular_map_size =
+        EBPF_OFFSET_OF(ebpf_core_circular_map_t, slots) + map_definition->max_entries * sizeof(uint8_t*);
+    result = _create_array_map_with_map_struct_size(circular_map_size, map_definition, map);
+    if (result == EBPF_SUCCESS) {
+        ebpf_core_circular_map_t* circular_map = EBPF_FROM_FIELD(ebpf_core_circular_map_t, core_map, *map);
+        circular_map->type = EBPF_CORE_QUEUE;
     }
-    ebpf_epoch_free(queue_map);
-}
-
-static ebpf_result_t
-_find_queue_map_entry(
-    _In_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, _In_ bool delete_on_success, _Outptr_ uint8_t** data)
-{
-    // Queue uses no key, so key must be NULL.
-    if (!map || key)
-        return EBPF_INVALID_ARGUMENT;
-
-    ebpf_core_queue_map_t* queue_map = EBPF_FROM_FIELD(ebpf_core_queue_map_t, core_map, map);
-    ebpf_lock_state_t state = ebpf_lock_lock(&queue_map->lock);
-    if (queue_map->start == queue_map->end) {
-        *data = NULL;
-    } else {
-        *data = queue_map->slots[queue_map->start];
-        if (delete_on_success) {
-            ebpf_epoch_free(queue_map->slots[queue_map->start]);
-            queue_map->slots[queue_map->start] = NULL;
-            queue_map->start = (queue_map->start + 1) % queue_map->core_map.ebpf_map_definition.max_entries;
-        }
-    }
-    ebpf_lock_unlock(&queue_map->lock, state);
-    return *data == NULL ? EBPF_OBJECT_NOT_FOUND : EBPF_SUCCESS;
-}
-
-static ebpf_result_t
-_update_queue_map_entry(
-    _In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_opt_ const uint8_t* data, ebpf_map_option_t option)
-{
-    ebpf_result_t result;
-    // Queue uses no key, so key must be NULL.
-    if (!map || key || (option == EBPF_NOEXIST) || !data)
-        return EBPF_INVALID_ARGUMENT;
-
-    ebpf_core_queue_map_t* queue_map = EBPF_FROM_FIELD(ebpf_core_queue_map_t, core_map, map);
-    ebpf_lock_state_t state = ebpf_lock_lock(&queue_map->lock);
-
-    // Check for queue full.
-    if (queue_map->start == ((queue_map->end + 1) % queue_map->core_map.ebpf_map_definition.max_entries)) {
-        result = EBPF_OUT_OF_SPACE;
-        goto Done;
-    }
-
-    uint8_t* value = ebpf_epoch_allocate(queue_map->core_map.ebpf_map_definition.value_size);
-    if (!value) {
-        result = EBPF_NO_MEMORY;
-        goto Done;
-    }
-    memcpy(value, data, queue_map->core_map.ebpf_map_definition.value_size);
-    queue_map->slots[queue_map->end] = value;
-
-    queue_map->end = (queue_map->end + 1) % queue_map->core_map.ebpf_map_definition.max_entries;
-    result = EBPF_SUCCESS;
-
-Done:
-    ebpf_lock_unlock(&queue_map->lock, state);
     return result;
 }
 
@@ -1315,78 +1330,58 @@ _create_stack_map(
     ebpf_handle_t inner_map_handle,
     _Outptr_ ebpf_core_map_t** map)
 {
+    ebpf_result_t result;
     if (inner_map_handle != ebpf_handle_invalid)
         return EBPF_INVALID_ARGUMENT;
-    size_t stack_map_size =
-        EBPF_OFFSET_OF(ebpf_core_stack_map_t, slots) + map_definition->max_entries * sizeof(uint8_t*);
-    return _create_array_map_with_map_struct_size(stack_map_size, map_definition, map);
+    size_t circular_map_size =
+        EBPF_OFFSET_OF(ebpf_core_circular_map_t, slots) + map_definition->max_entries * sizeof(uint8_t*);
+    result = _create_array_map_with_map_struct_size(circular_map_size, map_definition, map);
+    if (result == EBPF_SUCCESS) {
+        ebpf_core_circular_map_t* circular_map = EBPF_FROM_FIELD(ebpf_core_circular_map_t, core_map, *map);
+        circular_map->type = EBPF_CORE_STACK;
+    }
+    return result;
 }
 
 static void
-_delete_stack_map(_In_ _Post_invalid_ ebpf_core_map_t* map)
+_delete_circular_map(_In_ _Post_invalid_ ebpf_core_map_t* map)
 {
-    ebpf_core_stack_map_t* stack_map = EBPF_FROM_FIELD(ebpf_core_stack_map_t, core_map, map);
+    ebpf_core_circular_map_t* circular_map = EBPF_FROM_FIELD(ebpf_core_circular_map_t, core_map, map);
     // Free all the elements stored in the stack.
-    for (size_t i = 0; i < stack_map->core_map.ebpf_map_definition.max_entries; i++) {
-        ebpf_epoch_free(stack_map->slots[i]);
+    for (size_t i = 0; i < circular_map->core_map.ebpf_map_definition.max_entries; i++) {
+        ebpf_epoch_free(circular_map->slots[i]);
     }
-    ebpf_epoch_free(stack_map);
+    ebpf_epoch_free(circular_map);
 }
 
 static ebpf_result_t
-_find_stack_map_entry(
+_find_circular_map_entry(
     _In_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, _In_ bool delete_on_success, _Outptr_ uint8_t** data)
 {
-    // Stack uses no key, so key must be NULL.
+    // Queue uses no key, so key must be NULL.
     if (!map || key)
         return EBPF_INVALID_ARGUMENT;
 
-    ebpf_core_stack_map_t* stack_map = EBPF_FROM_FIELD(ebpf_core_stack_map_t, core_map, map);
-    ebpf_lock_state_t state = ebpf_lock_lock(&stack_map->lock);
-    if (stack_map->top_of_stack == 0) {
-        *data = NULL;
-    } else {
-        *data = stack_map->slots[stack_map->top_of_stack - 1];
-        if (delete_on_success) {
-            ebpf_epoch_free(stack_map->slots[stack_map->top_of_stack - 1]);
-            stack_map->slots[stack_map->top_of_stack - 1] = NULL;
-            stack_map->top_of_stack--;
-        }
-    }
-    ebpf_lock_unlock(&stack_map->lock, state);
+    ebpf_core_circular_map_t* circular_map = EBPF_FROM_FIELD(ebpf_core_circular_map_t, core_map, map);
+    ebpf_lock_state_t state = ebpf_lock_lock(&circular_map->lock);
+    *data = _ebpf_core_circular_map_peek_or_pop(circular_map, delete_on_success);
+    ebpf_lock_unlock(&circular_map->lock, state);
     return *data == NULL ? EBPF_OBJECT_NOT_FOUND : EBPF_SUCCESS;
 }
 
 static ebpf_result_t
-_update_stack_map_entry(
+_update_circular_map_entry(
     _In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_opt_ const uint8_t* data, ebpf_map_option_t option)
 {
     ebpf_result_t result;
-    // Stack uses no key, so key must be NULL.
-    if (!map || key || (option == EBPF_NOEXIST) || !data)
+    // Queue uses no key, so key must be NULL.
+    if (!map || key || !data)
         return EBPF_INVALID_ARGUMENT;
 
-    ebpf_core_stack_map_t* stack_map = EBPF_FROM_FIELD(ebpf_core_stack_map_t, core_map, map);
-    ebpf_lock_state_t state = ebpf_lock_lock(&stack_map->lock);
-
-    // Check for stack full.
-    if (stack_map->top_of_stack >= stack_map->core_map.ebpf_map_definition.max_entries) {
-        result = EBPF_OUT_OF_SPACE;
-        goto Done;
-    }
-
-    uint8_t* value = ebpf_epoch_allocate(stack_map->core_map.ebpf_map_definition.value_size);
-    if (!value) {
-        result = EBPF_NO_MEMORY;
-        goto Done;
-    }
-    memcpy(value, data, stack_map->core_map.ebpf_map_definition.value_size);
-    stack_map->slots[stack_map->top_of_stack] = value;
-    stack_map->top_of_stack++;
-    result = EBPF_SUCCESS;
-
-Done:
-    ebpf_lock_unlock(&stack_map->lock, state);
+    ebpf_core_circular_map_t* circular_map = EBPF_FROM_FIELD(ebpf_core_circular_map_t, core_map, map);
+    ebpf_lock_state_t state = ebpf_lock_lock(&circular_map->lock);
+    result = _ebpf_core_circular_map_push(circular_map, data, option & BPF_EXIST);
+    ebpf_lock_unlock(&circular_map->lock, state);
     return result;
 }
 
@@ -1698,11 +1693,11 @@ ebpf_map_function_table_t ebpf_map_function_tables[] = {
      _next_hash_map_key},
     {// BPF_MAP_TYPE_QUEUE
      _create_queue_map,
-     _delete_queue_map,
+     _delete_circular_map,
      NULL,
-     _find_queue_map_entry,
+     _find_circular_map_entry,
      NULL,
-     _update_queue_map_entry,
+     _update_circular_map_entry,
      NULL,
      NULL,
      NULL,
@@ -1720,11 +1715,11 @@ ebpf_map_function_table_t ebpf_map_function_tables[] = {
      _next_hash_map_key},
     {// BPF_MAP_TYPE_STACK
      _create_stack_map,
-     _delete_stack_map,
+     _delete_circular_map,
      NULL,
-     _find_stack_map_entry,
+     _find_circular_map_entry,
      NULL,
-     _update_stack_map_entry,
+     _update_circular_map_entry,
      NULL,
      NULL,
      NULL,
@@ -1770,6 +1765,7 @@ ebpf_map_create(
     switch (local_map_definition.type) {
     case BPF_MAP_TYPE_PERCPU_HASH:
     case BPF_MAP_TYPE_PERCPU_ARRAY:
+    case BPF_MAP_TYPE_LRU_PERCPU_HASH:
         local_map_definition.value_size = cpu_count * PAD_CACHE(local_map_definition.value_size);
         break;
     default:
@@ -1957,14 +1953,30 @@ ebpf_map_update_entry(
 {
     // High volume call - Skip entry/exit logging.
     ebpf_result_t result;
-    if (!(flags & EBPF_MAP_FLAG_HELPER) && (key_size != map->ebpf_map_definition.key_size)) {
-        EBPF_LOG_MESSAGE_UINT64_UINT64(
-            EBPF_TRACELOG_LEVEL_ERROR,
-            EBPF_TRACELOG_KEYWORD_MAP,
-            "Incorrect map key size",
-            key_size,
-            map->ebpf_map_definition.key_size);
-        return EBPF_INVALID_ARGUMENT;
+
+    switch (map->ebpf_map_definition.type) {
+    case BPF_MAP_TYPE_QUEUE:
+    case BPF_MAP_TYPE_STACK:
+        if (key_size != 0 || key != NULL) {
+            EBPF_LOG_MESSAGE_UINT64(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_MAP,
+                "Map doesn't support keys",
+                map->ebpf_map_definition.type);
+            return EBPF_INVALID_ARGUMENT;
+        }
+        break;
+    default:
+        if (!(flags & EBPF_MAP_FLAG_HELPER) && (key_size != map->ebpf_map_definition.key_size)) {
+            EBPF_LOG_MESSAGE_UINT64_UINT64(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_MAP,
+                "Incorrect map key size",
+                key_size,
+                map->ebpf_map_definition.key_size);
+            return EBPF_INVALID_ARGUMENT;
+        }
+        break;
     }
 
     if (!(flags & EBPF_MAP_FLAG_HELPER) && (value_size != map->ebpf_map_definition.value_size)) {
@@ -2097,5 +2109,60 @@ ebpf_map_get_info(
     strncpy_s(info->name, sizeof(info->name), (char*)map->name.value, map->name.length);
 
     *info_size = sizeof(*info);
+    return EBPF_SUCCESS;
+}
+
+ebpf_result_t
+ebpf_map_push_entry(_In_ ebpf_map_t* map, size_t value_size, _In_reads_(value_size) const uint8_t* value, int flags)
+{
+    if (!(flags & EBPF_MAP_FLAG_HELPER) && (value_size != map->ebpf_map_definition.value_size)) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    if (ebpf_map_function_tables[map->ebpf_map_definition.type].update_entry == NULL) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    return ebpf_map_function_tables[map->ebpf_map_definition.type].update_entry(map, NULL, value, flags);
+}
+
+ebpf_result_t
+ebpf_map_pop_entry(_In_ ebpf_map_t* map, size_t value_size, _Out_writes_(value_size) uint8_t* value, int flags)
+{
+    uint8_t* return_value;
+    if (!(flags & EBPF_MAP_FLAG_HELPER) && (value_size != map->ebpf_map_definition.value_size)) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    if (ebpf_map_function_tables[map->ebpf_map_definition.type].find_entry == NULL) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    ebpf_result_t result =
+        ebpf_map_function_tables[map->ebpf_map_definition.type].find_entry(map, NULL, true, &return_value);
+    if (result != EBPF_SUCCESS) {
+        return result;
+    }
+
+    memcpy(value, return_value, map->ebpf_map_definition.value_size);
+    ebpf_epoch_free(return_value);
+    return EBPF_SUCCESS;
+}
+
+ebpf_result_t
+ebpf_map_peek_entry(_In_ ebpf_map_t* map, size_t value_size, _Out_writes_(value_size) uint8_t* value, int flags)
+{
+    uint8_t* return_value;
+    if (!(flags & EBPF_MAP_FLAG_HELPER) && (value_size != map->ebpf_map_definition.value_size)) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    ebpf_result_t result =
+        ebpf_map_function_tables[map->ebpf_map_definition.type].find_entry(map, NULL, false, &return_value);
+    if (result != EBPF_SUCCESS) {
+        return result;
+    }
+
+    memcpy(value, return_value, map->ebpf_map_definition.value_size);
     return EBPF_SUCCESS;
 }

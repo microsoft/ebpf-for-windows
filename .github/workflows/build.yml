@@ -25,7 +25,7 @@ jobs:
       BUILD_PLATFORM: x64
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         submodules: 'recursive'
 
@@ -60,9 +60,12 @@ jobs:
     - name: Create verifier project
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
-        cd external\ebpf-verifier
-        mkdir build
-        cmake -B build
+        cmake -G "Visual Studio 16 2019" -S external\ebpf-verifier -B external\ebpf-verifier\build
+
+    - name: Create catch2 project
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      run: |
+        cmake -G "Visual Studio 16 2019" -S external\catch2 -B external\catch2\build -DBUILD_TESTING=OFF
 
     - name: Build
       working-directory: ${{env.GITHUB_WORKSPACE}}
@@ -71,7 +74,7 @@ jobs:
       run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{env.BUILD_PLATFORM}} /p:Analysis='True' ${{env.SOLUTION_FILE_PATH}}
 
     - name: Upload Build Output
-      uses: actions/upload-artifact@v2.2.4
+      uses: actions/upload-artifact@v3
       with:
         name: Build x64 ${{ matrix.configurations }}
         path: ${{ github.workspace }}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
@@ -90,7 +93,7 @@ jobs:
       run: if (Test-Path *.dmp) { exit 1 }
 
     - name: Upload any crash dumps
-      uses: actions/upload-artifact@v2.2.4
+      uses: actions/upload-artifact@v3
       if: failure()
       with:
         name: Crash-Dumps-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}

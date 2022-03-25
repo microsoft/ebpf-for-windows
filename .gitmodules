@@ -9,7 +9,11 @@
 [submodule "external/bpftool"]
 	path = external/bpftool
 	url = https://github.com/dthaler/bpftool-1.git
+	branch = windows
 [submodule "external/win-c"]
 	path = external/win-c
 	url = https://github.com/takamin/win-c.git
 	branch = windows
+[submodule "external/Catch2"]
+	path = external/Catch2
+	url = https://github.com/catchorg/Catch2.git

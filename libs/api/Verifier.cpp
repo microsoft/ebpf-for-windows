@@ -419,7 +419,7 @@ ebpf_api_elf_disassemble_section(
             return 1;
         }
         auto& program = std::get<InstructionSeq>(programOrError);
-        print(program, output, {});
+        print(program, output, {}, true);
         *disassembly = allocate_string(output.str());
     } catch (std::runtime_error e) {
         error << "error: " << e.what();
@@ -456,6 +456,7 @@ ebpf_api_elf_verify_section(
         verifier_options.print_invariants = verbose;
         verifier_options.print_failures = true;
         verifier_options.mock_map_fds = true;
+        verifier_options.print_line_info = true;
 
         auto raw_programs = read_elf(file, section, &verifier_options, platform);
         raw_program raw_program = raw_programs.back();

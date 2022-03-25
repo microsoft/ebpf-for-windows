@@ -1,10 +1,12 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include <wdm.h>
 #include "net_ebpf_ext_hook_provider.h"
 
 /**
- *  @brief This is the only function in the eBPF hook NPI client dispatch table.
+ * @brief Pointer to function to invoke the eBPF program associated with the hook NPI client.
+ * This is the only function in the client's dispatch table.
  */
 typedef ebpf_result_t (*ebpf_invoke_program_function_t)(
     _In_ const void* client_binding_context, _In_ const void* context, _Out_ uint32_t* result);
@@ -25,24 +27,43 @@ typedef struct _net_ebpf_ext_hook_client_rundown
 
 struct _net_ebpf_extension_hook_provider;
 
+/**
+ * @brief Data structure representing a hook NPI client (attached eBPF program). This is returned
+ * as the provider binding context in the NMR client attach callback.
+ */
 typedef struct _net_ebpf_extension_hook_client
 {
-    HANDLE nmr_binding_handle;
-    GUID client_module_id;
-    const void* client_binding_context;
-    const ebpf_extension_data_t* client_data;
-    ebpf_invoke_program_function_t invoke_program;
-    struct _net_ebpf_extension_hook_provider* provider_context;
-    net_ebpf_extension_hook_execution_t execution_type;
-    PIO_WORKITEM detach_work_item;
-    net_ebpf_ext_hook_client_rundown_t rundown;
+    LIST_ENTRY link;                               ///< Link to next client (if any).
+    HANDLE nmr_binding_handle;                     ///< NMR binding handle.
+    GUID client_module_id;                         ///< NMR module Id.
+    const void* client_binding_context;            ///< Client supplied context to be passed when invoking eBPF program.
+    const ebpf_extension_data_t* client_data;      ///< Client supplied attach parameters.
+    ebpf_invoke_program_function_t invoke_program; ///< Pointer to function to invoke eBPF program.
+    void* provider_data; ///< Opaque pointer to hook specific data associated with this client.
+    struct _net_ebpf_extension_hook_provider* provider_context; ///< Pointer to the hook NPI provider context.
+    net_ebpf_extension_hook_execution_t execution_type;         ///< eBPF hook execution type - PASSIVE or DISPATCH.
+    PIO_WORKITEM detach_work_item;              ///< Pointer to IO work item that is invoked to detach the client.
+    net_ebpf_ext_hook_client_rundown_t rundown; ///< Pointer to rundown object used to synchronize detach operation.
 } net_ebpf_extension_hook_client_t;
+
+typedef struct _net_ebpf_extension_hook_clients_list
+{
+    EX_PUSH_LOCK lock;
+    LIST_ENTRY attached_clients_list;
+} net_ebpf_extension_hook_clients_list_t;
 
 typedef struct _net_ebpf_extension_hook_provider
 {
-    HANDLE nmr_provider_handle;
-    net_ebpf_extension_hook_execution_t execution_type;
-    net_ebpf_extension_hook_client_t* attached_client;
+    NPI_PROVIDER_CHARACTERISTICS characteristics;             ///< NPI Provider characteristics.
+    HANDLE nmr_provider_handle;                               ///< NMR binding handle.
+    net_ebpf_extension_hook_execution_t execution_type;       ///< Hook execution type (PASSIVE or DISPATCH).
+    EX_PUSH_LOCK lock;                                        ///< Lock for synchronization.
+    net_ebpf_extension_hook_on_client_attach attach_callback; /*!< Pointer to hook specific callback to be invoked
+                                                                  when a client attaches. */
+    net_ebpf_extension_hook_on_client_detach detach_callback; /*!< Pointer to hook specific callback to be invoked
+                                                                  when a client detaches. */
+    _Guarded_by_(lock)
+        LIST_ENTRY attached_clients_list; ///< Linked list of hook NPI clients that are attached to this provider.
 } net_ebpf_extension_hook_provider_t;
 
 static _Function_class_(KDEFERRED_ROUTINE) _IRQL_requires_max_(DISPATCH_LEVEL) _IRQL_requires_min_(DISPATCH_LEVEL)
@@ -158,7 +179,7 @@ _net_ebpf_extension_detach_client_completion(_In_ PDEVICE_OBJECT device_object, 
     ExFreePool(hook_client);
 }
 
-_Acquires_lock_(hook_client) bool net_ebpf_extension_attach_enter_rundown(
+_Acquires_lock_(hook_client) bool net_ebpf_extension_hook_client_enter_rundown(
     _Inout_ net_ebpf_extension_hook_client_t* hook_client, net_ebpf_extension_hook_execution_t execution_type)
 {
     net_ebpf_ext_hook_client_rundown_t* rundown = &hook_client->rundown;
@@ -169,7 +190,7 @@ _Acquires_lock_(hook_client) bool net_ebpf_extension_attach_enter_rundown(
     return (rundown->rundown_occurred == FALSE);
 }
 
-_Releases_lock_(hook_client) void net_ebpf_extension_attach_leave_rundown(
+_Releases_lock_(hook_client) void net_ebpf_extension_hook_client_leave_rundown(
     _Inout_ net_ebpf_extension_hook_client_t* hook_client, net_ebpf_extension_hook_execution_t execution_type)
 {
     net_ebpf_ext_hook_client_rundown_t* rundown = &hook_client->rundown;
@@ -180,9 +201,21 @@ _Releases_lock_(hook_client) void net_ebpf_extension_attach_leave_rundown(
 }
 
 const ebpf_extension_data_t*
-net_ebpf_extension_get_client_data(_In_ const net_ebpf_extension_hook_client_t* hook_client)
+net_ebpf_extension_hook_client_get_client_data(_In_ const net_ebpf_extension_hook_client_t* hook_client)
 {
     return hook_client->client_data;
+}
+
+void
+net_ebpf_extension_hook_client_set_provider_data(_In_ net_ebpf_extension_hook_client_t* hook_client, const void* data)
+{
+    hook_client->provider_data = (void*)data;
+}
+
+const void*
+net_ebpf_extension_hook_client_get_provider_data(_In_ const net_ebpf_extension_hook_client_t* hook_client)
+{
+    return hook_client->provider_data;
 }
 
 ebpf_result_t
@@ -195,6 +228,21 @@ net_ebpf_extension_hook_invoke_program(
     return invoke_program(client_binding_context, context, result);
 }
 
+/**
+ * @brief Callback invoked when an eBPF hook NPI client (a.k.a eBPF link object) attaches.
+ *
+ * @param[in] nmr_binding_handle NMR binding between the client module and the provider module.
+ * @param[in] provider_context Provider module's context.
+ * @param[in] client_registration_instance Client module's registration data.
+ * @param[in] client_binding_context Client module's context for binding with provider.
+ * @param[in] client_dispatch Client module's dispatch table. Contains the function pointer
+ * to invoke the eBPF program.
+ * @param[out] provider_binding_context Pointer to provider module's binding context with the client module.
+ * @param[out] provider_dispatch Pointer to provider module's dispatch table.
+ * @retval STATUS_SUCCESS The operation succeeded.
+ * @retval STATUS_NO_MEMORY Failed to allocate provider binding context.
+ * @retval STATUS_INVALID_PARAMETER One or more arguments are incorrect.
+ */
 NTSTATUS
 net_ebpf_extension_hook_provider_attach_client(
     _In_ HANDLE nmr_binding_handle,
@@ -209,6 +257,7 @@ net_ebpf_extension_hook_provider_attach_client(
     net_ebpf_extension_hook_provider_t* local_provider_context = (net_ebpf_extension_hook_provider_t*)provider_context;
     net_ebpf_extension_hook_client_t* hook_client = NULL;
     ebpf_extension_dispatch_table_t* client_dispatch_table;
+    ebpf_result_t result = EBPF_SUCCESS;
 
     if ((provider_binding_context == NULL) || (provider_dispatch == NULL) || (local_provider_context == NULL)) {
         status = STATUS_INVALID_PARAMETER;
@@ -238,11 +287,21 @@ net_ebpf_extension_hook_provider_attach_client(
     hook_client->invoke_program = (ebpf_invoke_program_function_t)client_dispatch_table->function[0];
     hook_client->provider_context = local_provider_context;
     hook_client->execution_type = local_provider_context->execution_type;
-    // The following line can cause a leak if the provider has already an attached client.
-    // This will be fixed as part of issue #754.
-    local_provider_context->attached_client = hook_client;
 
-    status = _ebpf_ext_attach_init_rundown(hook_client);
+    // Invoke the hook specific callback to process client attach.
+    result = local_provider_context->attach_callback(hook_client);
+
+    if (result == EBPF_SUCCESS) {
+        status = _ebpf_ext_attach_init_rundown(hook_client);
+        if (status == STATUS_SUCCESS) {
+            ExAcquirePushLockExclusive(&local_provider_context->lock);
+            InsertTailList(&local_provider_context->attached_clients_list, &hook_client->link);
+            ExReleasePushLockExclusive(&local_provider_context->lock);
+        }
+    } else {
+        status = STATUS_ACCESS_DENIED;
+    }
+
 Exit:
 
     if (NT_SUCCESS(status)) {
@@ -256,6 +315,13 @@ Exit:
     return status;
 }
 
+/**
+ * @brief Callback invoked when a hook NPI client (a.k.a eBPF link object) detaches.
+ *
+ * @param[in] provider_binding_context Provider module's context for binding with the client.
+ * @retval STATUS_SUCCESS The operation succeeded.
+ * @retval STATUS_INVALID_PARAMETER One or more parameters are invalid.
+ */
 NTSTATUS
 net_ebpf_extension_hook_provider_detach_client(_In_ void* provider_binding_context)
 {
@@ -263,15 +329,20 @@ net_ebpf_extension_hook_provider_detach_client(_In_ void* provider_binding_conte
 
     net_ebpf_extension_hook_client_t* local_client_context =
         (net_ebpf_extension_hook_client_t*)provider_binding_context;
-    net_ebpf_extension_hook_provider_t* provider_context = NULL;
+
+    net_ebpf_extension_hook_provider_t* local_provider_context = local_client_context->provider_context;
 
     if (local_client_context == NULL) {
         status = STATUS_INVALID_PARAMETER;
         goto Exit;
     }
 
-    provider_context = local_client_context->provider_context;
-    provider_context->attached_client = NULL;
+    // Invoke hook specific handler for processing client detach.
+    local_provider_context->detach_callback(local_client_context);
+
+    ExAcquirePushLockExclusive(&local_provider_context->lock);
+    RemoveEntryList(&local_client_context->link);
+    ExReleasePushLockExclusive(&local_provider_context->lock);
 
     IoQueueWorkItem(
         local_client_context->detach_work_item,
@@ -297,12 +368,14 @@ net_ebpf_extension_hook_provider_unregister(_Frees_ptr_opt_ net_ebpf_extension_h
 
 NTSTATUS
 net_ebpf_extension_hook_provider_register(
-    _In_ const NPI_PROVIDER_CHARACTERISTICS* provider_characteristics,
-    net_ebpf_extension_hook_execution_t execution_type,
+    _In_ const net_ebpf_extension_hook_provider_parameters_t* parameters,
+    _In_ net_ebpf_extension_hook_on_client_attach attach_callback,
+    _In_ net_ebpf_extension_hook_on_client_detach detach_callback,
     _Outptr_ net_ebpf_extension_hook_provider_t** provider_context)
 {
     NTSTATUS status = STATUS_SUCCESS;
     net_ebpf_extension_hook_provider_t* local_provider_context = NULL;
+    NPI_PROVIDER_CHARACTERISTICS* characteristics;
 
     local_provider_context = (net_ebpf_extension_hook_provider_t*)ExAllocatePoolUninitialized(
         NonPagedPoolNx, sizeof(net_ebpf_extension_hook_provider_t), NET_EBPF_EXTENSION_POOL_TAG);
@@ -311,10 +384,24 @@ net_ebpf_extension_hook_provider_register(
         goto Exit;
     }
     memset(local_provider_context, 0, sizeof(net_ebpf_extension_hook_provider_t));
+    ExInitializePushLock(&local_provider_context->lock);
+    InitializeListHead(&local_provider_context->attached_clients_list);
 
-    local_provider_context->execution_type = execution_type;
-    status = NmrRegisterProvider(
-        provider_characteristics, local_provider_context, &local_provider_context->nmr_provider_handle);
+    characteristics = &local_provider_context->characteristics;
+    characteristics->Length = sizeof(NPI_PROVIDER_CHARACTERISTICS);
+    characteristics->ProviderAttachClient = net_ebpf_extension_hook_provider_attach_client;
+    characteristics->ProviderDetachClient = net_ebpf_extension_hook_provider_detach_client;
+    characteristics->ProviderRegistrationInstance.Size = sizeof(NPI_REGISTRATION_INSTANCE);
+    // TODO (issue: #772): NpiId should be a well known GUID. ModuleId should be attach type.
+    characteristics->ProviderRegistrationInstance.NpiId = parameters->attach_type;
+    characteristics->ProviderRegistrationInstance.ModuleId = parameters->provider_module_id;
+    characteristics->ProviderRegistrationInstance.NpiSpecificCharacteristics = parameters->provider_data;
+
+    local_provider_context->execution_type = parameters->execution_type;
+    local_provider_context->attach_callback = attach_callback;
+    local_provider_context->detach_callback = detach_callback;
+
+    status = NmrRegisterProvider(characteristics, local_provider_context, &local_provider_context->nmr_provider_handle);
     if (!NT_SUCCESS(status))
         goto Exit;
 
@@ -329,7 +416,37 @@ Exit:
 }
 
 net_ebpf_extension_hook_client_t*
-net_ebpf_extension_get_attached_client(_In_ const net_ebpf_extension_hook_provider_t* provider_context)
+net_ebpf_extension_hook_get_attached_client(_In_ net_ebpf_extension_hook_provider_t* provider_context)
 {
-    return provider_context->attached_client;
+    net_ebpf_extension_hook_client_t* client_context = NULL;
+    ExAcquirePushLockShared(&provider_context->lock);
+    if (!IsListEmpty(&provider_context->attached_clients_list))
+        client_context = (net_ebpf_extension_hook_client_t*)CONTAINING_RECORD(
+            provider_context->attached_clients_list.Flink, net_ebpf_extension_hook_client_t, link);
+    ExReleasePushLockShared(&provider_context->lock);
+    return client_context;
+}
+
+net_ebpf_extension_hook_client_t*
+net_ebpf_extension_hook_get_next_attached_client(
+    _In_ net_ebpf_extension_hook_provider_t* provider_context,
+    _In_opt_ const net_ebpf_extension_hook_client_t* client_context)
+{
+    net_ebpf_extension_hook_client_t* next_client = NULL;
+    ExAcquirePushLockShared(&provider_context->lock);
+    if (client_context == NULL) {
+        // Return the first attached client (if any).
+        if (!IsListEmpty(&provider_context->attached_clients_list))
+            next_client = (net_ebpf_extension_hook_client_t*)CONTAINING_RECORD(
+                provider_context->attached_clients_list.Flink, net_ebpf_extension_hook_client_t, link);
+
+    } else {
+        // Return the next client, unless this is the last one.
+        if (client_context->link.Flink != &provider_context->attached_clients_list) {
+            next_client = (net_ebpf_extension_hook_client_t*)CONTAINING_RECORD(
+                client_context->link.Flink, net_ebpf_extension_hook_client_t, link);
+        }
+    }
+    ExReleasePushLockShared(&provider_context->lock);
+    return next_client;
 }

@@ -1,7 +1,13 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+// Windows.h needs to be included before other headers.
+// It has a #define for WINAPI_FAMILY_PARTITION among others that control
+// the behavior of other Windows headers.
+#include <windows.h>
+
 #include <malloc.h>
+#include <sddl.h>
 #include "rpc_interface_s.c"
 #include "svc_common.h"
 
@@ -9,6 +15,7 @@
 
 #define ANNOTATION L"ebpfsvc rpc server"
 #define EBPF_SERVICE_INTERFACE_HANDLE ebpf_server_ebpf_service_interface_v1_0_s_ifspec
+#define MAX_RPC_CALL_SIZE 1024 * 1024
 
 static const WCHAR* _protocol_sequence = L"ncalrpc";
 static bool _rpc_server_initialized = false;
@@ -19,14 +26,30 @@ initialize_rpc_server()
     RPC_STATUS status;
     bool registered = false;
     RPC_BINDING_VECTOR* binding_vector = nullptr;
+    void* security_descriptor = nullptr;
+
+    // Only permit access from SDDL_BUILTIN_ADMINISTRATORS.
+    if (!ConvertStringSecurityDescriptorToSecurityDescriptorA(
+            "D:(A;;FA;;;BA)", SDDL_REVISION_1, &security_descriptor, nullptr)) {
+        status = GetLastError();
+        goto Exit;
+    }
 
     status = RpcServerUseProtseq((RPC_WSTR)_protocol_sequence, RPC_C_PROTSEQ_MAX_REQS_DEFAULT, nullptr);
     if (status != RPC_S_OK) {
         goto Exit;
     }
 
-    status = RpcServerRegisterIfEx(
-        EBPF_SERVICE_INTERFACE_HANDLE, nullptr, nullptr, RPC_IF_AUTOLISTEN, RPC_C_LISTEN_MAX_CALLS_DEFAULT, nullptr);
+    status = RpcServerRegisterIf3(
+        EBPF_SERVICE_INTERFACE_HANDLE,
+        nullptr,
+        nullptr,
+        RPC_IF_AUTOLISTEN,
+        RPC_C_LISTEN_MAX_CALLS_DEFAULT,
+        MAX_RPC_CALL_SIZE,
+        nullptr,
+        security_descriptor);
+    LocalFree(security_descriptor);
     if (status != RPC_S_OK) {
         goto Exit;
     }

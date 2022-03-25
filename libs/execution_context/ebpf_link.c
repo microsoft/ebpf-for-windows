@@ -133,7 +133,7 @@ ebpf_link_attach_program(ebpf_link_t* link, ebpf_program_t* program)
         goto Done;
     }
 
-    const ebpf_program_type_t* program_type = ebpf_program_type(program);
+    const ebpf_program_type_t* program_type = ebpf_program_type_uuid(program);
     if (memcmp(program_type, &link->program_type, sizeof(link->program_type)) != 0) {
         EBPF_LOG_MESSAGE_GUID(
             EBPF_TRACELOG_LEVEL_ERROR,
