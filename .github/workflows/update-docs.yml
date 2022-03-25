@@ -22,7 +22,7 @@ name: Doxygen Action
 # but only for the main branch.
 on:
   push:
-    branches: [ main ]
+    branches: [ main doxygen ]
 
 # Declare default permissions as read only.
 permissions: read-all
