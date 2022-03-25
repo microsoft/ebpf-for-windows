@@ -220,24 +220,16 @@ function Import-ResultsFromVM
         $VMSystemDrive = Invoke-Command -Session $VMSession -ScriptBlock {return $Env:SystemDrive}
 
         # Copy kernel crash dumps if any.
-        if (!(Test-Path ".\TestLogs\$VMName\KernelDumps\")) {
-            New-Item -ItemType Directory -Path ".\TestLogs\$VMName\KernelDumps"
-        }
-
         Invoke-Command -Session $VMSession -ScriptBlock {
             if (!(Test-Path "$Env:SystemDrive\KernelDumps")) {
                 New-Item -ItemType Directory -Path "$Env:SystemDrive\KernelDumps"
             }
             Move-Item $Env:WinDir\*.dmp $Env:SystemDrive\KernelDumps -ErrorAction Ignore
         }
-        Copy-Item -FromSession $VMSession "$VMSystemDrive\KernelDumps" -Destination ".\TestLogs\$VMName\KernelDumps" -Force -ErrorAction Ignore 2>&1 | Write-Log
+        Copy-Item -FromSession $VMSession "$VMSystemDrive\KernelDumps" -Destination ".\TestLogs\$VMName" -Recurse -Force -ErrorAction Ignore 2>&1 | Write-Log
 
         # Copy user mode crash dumps if any.
-        if (!(Test-Path ".\TestLogs\$VMName\UMDumps\")) {
-            New-Item -ItemType Directory -Path ".\TestLogs\$VMName\UMDumps"
-        }
-
-        Copy-Item -FromSession $VMSession "$VMSystemDrive\dumps\x64" -Destination ".\TestLogs\$VMName\UMDumps" -Recurse -Force -ErrorAction Ignore 2>&1 | Write-Log
+        Copy-Item -FromSession $VMSession "$VMSystemDrive\dumps\x64" -Destination ".\TestLogs\$VMName" -Recurse -Force -ErrorAction Ignore 2>&1 | Write-Log
 
         # Copy logs from Test VM.
         if (!(Test-Path ".\TestLogs\$VMName\Logs")) {

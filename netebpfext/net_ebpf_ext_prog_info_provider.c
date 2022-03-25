@@ -123,6 +123,7 @@ net_ebpf_extension_program_info_provider_register(
     _Outptr_ net_ebpf_extension_program_info_provider_t** provider_context)
 {
     const ebpf_extension_data_t* extension_data = parameters->provider_data;
+    NPI_MODULEID* provider_module_id = parameters->provider_module_id;
     ebpf_program_data_t* program_data;
     net_ebpf_extension_program_info_provider_t* local_provider_context = NULL;
     NPI_PROVIDER_CHARACTERISTICS* characteristics;
@@ -141,12 +142,13 @@ net_ebpf_extension_program_info_provider_register(
     characteristics->ProviderAttachClient = net_ebpf_extension_program_info_provider_attach_client;
     characteristics->ProviderDetachClient = net_ebpf_extension_program_info_provider_detach_client;
     characteristics->ProviderRegistrationInstance.Size = sizeof(NPI_REGISTRATION_INSTANCE);
-    // TODO(issue #772): NpiId should be a well known GUID. ModuleId should be program type.
-    characteristics->ProviderRegistrationInstance.NpiId = parameters->program_type;
-    characteristics->ProviderRegistrationInstance.ModuleId = parameters->provider_module_id;
+    characteristics->ProviderRegistrationInstance.NpiId = &EBPF_PROGRAM_INFO_EXTENSION_IID;
     characteristics->ProviderRegistrationInstance.NpiSpecificCharacteristics = parameters->provider_data;
 
-    // For program info NPI, the NPI ID is assigned as the program type. Set it to the program_type_descriptor.
+    // Set the program type as the provider module id.
+    provider_module_id->Guid = *parameters->program_type;
+    characteristics->ProviderRegistrationInstance.ModuleId = parameters->provider_module_id;
+
     program_data = (ebpf_program_data_t*)extension_data->data;
     program_data->program_info->program_type_descriptor.program_type = *(GUID*)parameters->program_type;
 

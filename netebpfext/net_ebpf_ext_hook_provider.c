@@ -374,6 +374,7 @@ net_ebpf_extension_hook_provider_register(
     _Outptr_ net_ebpf_extension_hook_provider_t** provider_context)
 {
     NTSTATUS status = STATUS_SUCCESS;
+    NPI_MODULEID* provider_module_id = parameters->provider_module_id;
     net_ebpf_extension_hook_provider_t* local_provider_context = NULL;
     NPI_PROVIDER_CHARACTERISTICS* characteristics;
 
@@ -392,10 +393,12 @@ net_ebpf_extension_hook_provider_register(
     characteristics->ProviderAttachClient = net_ebpf_extension_hook_provider_attach_client;
     characteristics->ProviderDetachClient = net_ebpf_extension_hook_provider_detach_client;
     characteristics->ProviderRegistrationInstance.Size = sizeof(NPI_REGISTRATION_INSTANCE);
-    // TODO (issue: #772): NpiId should be a well known GUID. ModuleId should be attach type.
-    characteristics->ProviderRegistrationInstance.NpiId = parameters->attach_type;
-    characteristics->ProviderRegistrationInstance.ModuleId = parameters->provider_module_id;
+    characteristics->ProviderRegistrationInstance.NpiId = &EBPF_HOOK_EXTENSION_IID;
     characteristics->ProviderRegistrationInstance.NpiSpecificCharacteristics = parameters->provider_data;
+
+    // Set the attach type as the provider module id.
+    provider_module_id->Guid = *parameters->attach_type;
+    characteristics->ProviderRegistrationInstance.ModuleId = parameters->provider_module_id;
 
     local_provider_context->execution_type = parameters->execution_type;
     local_provider_context->attach_callback = attach_callback;
