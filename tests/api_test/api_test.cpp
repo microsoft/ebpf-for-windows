@@ -368,7 +368,7 @@ TEST_CASE("tailcall_load_test", "[tailcall_load_test]")
 
     REQUIRE(program_fd > 0);
 
-    // Setup tail calls.
+    // Set up tail calls.
     struct bpf_program* callee0 = bpf_object__find_program_by_name(object, "callee0");
     REQUIRE(callee0 != nullptr);
     fd_t callee0_fd = bpf_program__fd(callee0);
