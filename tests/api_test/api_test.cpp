@@ -318,7 +318,7 @@ TEST_CASE("divide_by_zero_interpret", "[divide_by_zero]") { divide_by_zero_test_
 void
 _test_nested_maps(bpf_map_type type)
 {
-    // Create 2 inner maps.
+    // Create first inner map.
     fd_t inner1 = bpf_create_map(BPF_MAP_TYPE_ARRAY, sizeof(uint32_t), sizeof(uint32_t), 1, 0);
     REQUIRE(inner1 > 0);
 
@@ -326,6 +326,7 @@ _test_nested_maps(bpf_map_type type)
     fd_t outer_map_fd = bpf_create_map_in_map(type, "outer_map", sizeof(uint32_t), inner1, 10, 0);
     REQUIRE(outer_map_fd > 0);
 
+    // Create second inner map.
     fd_t inner2 = bpf_create_map(BPF_MAP_TYPE_ARRAY, sizeof(uint32_t), sizeof(uint32_t), 1, 0);
     REQUIRE(inner2 > 0);
 

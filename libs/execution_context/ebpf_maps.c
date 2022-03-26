@@ -497,11 +497,11 @@ _check_value_type(_In_ const ebpf_core_map_t* outer_map, _In_ const ebpf_core_ob
 }
 
 // Validate that a value object is appropriate for this map.
-static ebpf_result_t
-_validate_map_value_object(
-    _In_ const ebpf_core_map_t* map, ebpf_object_type_t value_type, _In_ ebpf_core_object_t* value_object)
+static _Requires_lock_held_(object_map->lock) ebpf_result_t _validate_map_value_object(
+    _In_ const ebpf_core_object_map_t* object_map, ebpf_object_type_t value_type, _In_ ebpf_core_object_t* value_object)
 {
     ebpf_result_t result = EBPF_SUCCESS;
+    const ebpf_core_map_t* map = &object_map->core_map;
 
     const ebpf_program_type_t* value_program_type =
         (value_object->get_program_type) ? value_object->get_program_type(value_object) : NULL;
@@ -517,7 +517,7 @@ _validate_map_value_object(
     // Validate that the value's program type (if any) is
     // not in conflict with the map's program type.
     if (value_program_type != NULL) {
-        ebpf_core_object_map_t* map_of_objects = (ebpf_core_object_map_t*)map;
+        ebpf_core_object_map_t* map_of_objects = (ebpf_core_object_map_t*)object_map;
         if (!map_of_objects->is_program_type_set) {
             map_of_objects->is_program_type_set = TRUE;
             map_of_objects->program_type = *value_program_type;
@@ -564,7 +564,7 @@ _update_array_map_entry_with_handle(
     ebpf_lock_state_t lock_state = ebpf_lock_lock(&object_map->lock);
 
     if (value_handle != (uintptr_t)ebpf_handle_invalid) {
-        result = _validate_map_value_object(map, value_type, value_object);
+        result = _validate_map_value_object(object_map, value_type, value_object);
         if (result != EBPF_SUCCESS) {
             goto Done;
         }
@@ -1081,7 +1081,7 @@ _update_hash_map_entry_with_handle(
         goto Done;
     }
 
-    result = _validate_map_value_object(map, value_type, value_object);
+    result = _validate_map_value_object(object_map, value_type, value_object);
     if (result != EBPF_SUCCESS) {
         goto Done;
     }
