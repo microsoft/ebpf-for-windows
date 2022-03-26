@@ -496,20 +496,12 @@ _check_value_type(_In_ const ebpf_core_map_t* outer_map, _In_ const ebpf_core_ob
     return allowed;
 }
 
-// Validate that a value handle is appropriate for this map,
-// and if so, return a pointer to the object with that handle.
+// Validate that a value object is appropriate for this map.
 static ebpf_result_t
-_get_map_value_object(
-    _In_ const ebpf_core_map_t* map,
-    ebpf_handle_t value_handle,
-    ebpf_object_type_t value_type,
-    _Outptr_ ebpf_core_object_t** value_object_result)
+_validate_map_value_object(
+    _In_ const ebpf_core_map_t* map, ebpf_object_type_t value_type, _In_ ebpf_core_object_t* value_object)
 {
-    // Convert value handle to an object pointer.
-    ebpf_core_object_t* value_object = NULL;
-    ebpf_result_t result = ebpf_reference_object_by_handle(value_handle, value_type, &value_object);
-    if (result != EBPF_SUCCESS)
-        return result;
+    ebpf_result_t result = EBPF_SUCCESS;
 
     const ebpf_program_type_t* value_program_type =
         (value_object->get_program_type) ? value_object->get_program_type(value_object) : NULL;
@@ -535,11 +527,9 @@ _get_map_value_object(
         }
     }
 
-    *value_object_result = value_object;
     return EBPF_SUCCESS;
 
 Error:
-    ebpf_object_release_reference((ebpf_core_object_t*)value_object);
     return result;
 }
 
@@ -562,14 +552,19 @@ _update_array_map_entry_with_handle(
     ebpf_result_t result = EBPF_SUCCESS;
 
     ebpf_core_object_map_t* object_map = EBPF_FROM_FIELD(ebpf_core_object_map_t, core_map, map);
+    ebpf_core_object_t* value_object = NULL;
+
+    if (value_handle != (uintptr_t)ebpf_handle_invalid) {
+        result = ebpf_reference_object_by_handle(value_handle, value_type, &value_object);
+        if (result != EBPF_SUCCESS) {
+            return result;
+        }
+    }
 
     ebpf_lock_state_t lock_state = ebpf_lock_lock(&object_map->lock);
 
-    ebpf_core_object_t* value_object = NULL;
-    // If value_handle is valid, resolve it to an object. Else we just need to clear
-    // the existing entry from the map.
     if (value_handle != (uintptr_t)ebpf_handle_invalid) {
-        result = _get_map_value_object(map, value_handle, value_type, &value_object);
+        result = _validate_map_value_object(map, value_type, value_object);
         if (result != EBPF_SUCCESS) {
             goto Done;
         }
@@ -589,6 +584,9 @@ _update_array_map_entry_with_handle(
 
 Done:
     ebpf_lock_unlock(&object_map->lock, lock_state);
+    if (result != EBPF_SUCCESS && value_object != NULL) {
+        ebpf_object_release_reference((ebpf_core_object_t*)value_object);
+    }
 
     return result;
 }
@@ -1063,6 +1061,11 @@ _update_hash_map_entry_with_handle(
     }
 
     ebpf_core_object_map_t* object_map = EBPF_FROM_FIELD(ebpf_core_object_map_t, core_map, map);
+    ebpf_core_object_t* value_object = NULL;
+    result = ebpf_reference_object_by_handle(value_handle, value_type, &value_object);
+    if (result != EBPF_SUCCESS) {
+        return result;
+    }
 
     ebpf_lock_state_t lock_state = ebpf_lock_lock(&object_map->lock);
 
@@ -1071,7 +1074,6 @@ _update_hash_map_entry_with_handle(
     uint8_t* old_value = NULL;
     ebpf_result_t found_result = ebpf_hash_table_find((ebpf_hash_table_t*)map->data, key, &old_value);
     ebpf_id_t old_id = (old_value) ? *(ebpf_id_t*)old_value : 0;
-    ebpf_core_object_t* value_object = NULL;
 
     if ((entry_count == map->ebpf_map_definition.max_entries) && (found_result != EBPF_SUCCESS)) {
         // The hash table is already full.
@@ -1079,7 +1081,7 @@ _update_hash_map_entry_with_handle(
         goto Done;
     }
 
-    result = _get_map_value_object(map, value_handle, value_type, &value_object);
+    result = _validate_map_value_object(map, value_type, value_object);
     if (result != EBPF_SUCCESS) {
         goto Done;
     }

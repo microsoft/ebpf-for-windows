@@ -61,7 +61,7 @@ extern "C"
      */
     ebpf_result_t
     ebpf_reference_object_by_handle(
-        ebpf_handle_t handle, ebpf_object_type_t object_type, struct _ebpf_core_object** object);
+        ebpf_handle_t handle, ebpf_object_type_t object_type, _Outptr_ struct _ebpf_core_object** object);
 
 #ifdef __cplusplus
 }
