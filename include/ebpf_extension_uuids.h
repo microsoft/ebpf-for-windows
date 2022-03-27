@@ -12,7 +12,6 @@ extern "C"
 #endif
     /** @brief NPI ID for eBPF program information extension.
      */
-
     /* 2934ad50-2154-44b6-9622-6c528c068411 */
     __declspec(selectany) GUID EBPF_PROGRAM_INFO_EXTENSION_IID = {
         0x2934ad50, 0x2154, 0x44b6, {0x96, 0x22, 0x6c, 0x52, 0x8c, 0x06, 0x84, 0x11}};

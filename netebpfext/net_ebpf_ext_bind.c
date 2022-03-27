@@ -113,19 +113,21 @@ net_ebpf_ext_bind_register_providers()
 {
     NTSTATUS status = STATUS_SUCCESS;
     const net_ebpf_extension_program_info_provider_parameters_t program_info_provider_parameters = {
-        &EBPF_PROGRAM_TYPE_BIND, &_ebpf_bind_program_info_provider_moduleid, &_ebpf_bind_program_info_provider_data};
+        &_ebpf_bind_program_info_provider_moduleid, &_ebpf_bind_program_info_provider_data};
     const net_ebpf_extension_hook_provider_parameters_t hook_provider_parameters = {
-        &EBPF_ATTACH_TYPE_BIND,
-        &_ebpf_bind_hook_provider_moduleid,
-        &_net_ebpf_extension_bind_hook_provider_data,
-        EXECUTION_PASSIVE};
+        &_ebpf_bind_hook_provider_moduleid, &_net_ebpf_extension_bind_hook_provider_data, EXECUTION_PASSIVE};
 
+    _ebpf_bind_program_info.program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_BIND;
+    // Set the program type as the provider module id.
+    _ebpf_bind_program_info_provider_moduleid.Guid = EBPF_PROGRAM_TYPE_BIND;
     status = net_ebpf_extension_program_info_provider_register(
         &program_info_provider_parameters, &_ebpf_bind_program_info_provider_context);
     if (status != STATUS_SUCCESS)
         goto Exit;
 
     _net_ebpf_bind_hook_provider_data.supported_program_type = EBPF_PROGRAM_TYPE_BIND;
+    // Set the attach type as the provider module id.
+    _ebpf_bind_hook_provider_moduleid.Guid = EBPF_ATTACH_TYPE_BIND;
     status = net_ebpf_extension_hook_provider_register(
         &hook_provider_parameters,
         _net_ebpf_extension_bind_on_client_attach,

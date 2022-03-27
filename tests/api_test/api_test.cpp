@@ -118,14 +118,14 @@ _test_program_load(
 
 struct _ebpf_program_load_test_parameters
 {
-    const char* file_name;
+    _Field_z_ const char* file_name;
     ebpf_program_type_t* program_type;
 };
 
 static void
 _test_multiple_programs_load(
     int program_count,
-    _In_count_(program_count) struct _ebpf_program_load_test_parameters* parameters,
+    _In_reads_(program_count) const struct _ebpf_program_load_test_parameters* parameters,
     ebpf_execution_type_t execution_type)
 {
     ebpf_result_t result;

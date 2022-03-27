@@ -3,6 +3,7 @@
 
 #include "net_ebpf_ext_prog_info_provider.h"
 
+#include "ebpf_extension_uuids.h"
 #include "ebpf_platform.h"
 #include "ebpf_program_types.h"
 
@@ -122,9 +123,6 @@ net_ebpf_extension_program_info_provider_register(
     _In_ const net_ebpf_extension_program_info_provider_parameters_t* parameters,
     _Outptr_ net_ebpf_extension_program_info_provider_t** provider_context)
 {
-    const ebpf_extension_data_t* extension_data = parameters->provider_data;
-    NPI_MODULEID* provider_module_id = parameters->provider_module_id;
-    ebpf_program_data_t* program_data;
     net_ebpf_extension_program_info_provider_t* local_provider_context = NULL;
     NPI_PROVIDER_CHARACTERISTICS* characteristics;
     NTSTATUS status = STATUS_SUCCESS;
@@ -144,13 +142,7 @@ net_ebpf_extension_program_info_provider_register(
     characteristics->ProviderRegistrationInstance.Size = sizeof(NPI_REGISTRATION_INSTANCE);
     characteristics->ProviderRegistrationInstance.NpiId = &EBPF_PROGRAM_INFO_EXTENSION_IID;
     characteristics->ProviderRegistrationInstance.NpiSpecificCharacteristics = parameters->provider_data;
-
-    // Set the program type as the provider module id.
-    provider_module_id->Guid = *parameters->program_type;
     characteristics->ProviderRegistrationInstance.ModuleId = parameters->provider_module_id;
-
-    program_data = (ebpf_program_data_t*)extension_data->data;
-    program_data->program_info->program_type_descriptor.program_type = *(GUID*)parameters->program_type;
 
     status = NmrRegisterProvider(characteristics, local_provider_context, &local_provider_context->nmr_provider_handle);
     if (!NT_SUCCESS(status))

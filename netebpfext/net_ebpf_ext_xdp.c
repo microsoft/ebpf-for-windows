@@ -214,19 +214,21 @@ net_ebpf_ext_xdp_register_providers()
 {
     NTSTATUS status = STATUS_SUCCESS;
     const net_ebpf_extension_program_info_provider_parameters_t program_info_provider_parameters = {
-        &EBPF_PROGRAM_TYPE_XDP, &_ebpf_xdp_program_info_provider_moduleid, &_ebpf_xdp_program_info_provider_data};
+        &_ebpf_xdp_program_info_provider_moduleid, &_ebpf_xdp_program_info_provider_data};
     const net_ebpf_extension_hook_provider_parameters_t hook_provider_parameters = {
-        &EBPF_ATTACH_TYPE_XDP,
-        &_ebpf_xdp_hook_provider_moduleid,
-        &_net_ebpf_extension_xdp_hook_provider_data,
-        EXECUTION_DISPATCH};
+        &_ebpf_xdp_hook_provider_moduleid, &_net_ebpf_extension_xdp_hook_provider_data, EXECUTION_DISPATCH};
 
+    _ebpf_xdp_program_info.program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_XDP;
+    // Set the program type as the provider module id.
+    _ebpf_xdp_program_info_provider_moduleid.Guid = EBPF_PROGRAM_TYPE_XDP;
     status = net_ebpf_extension_program_info_provider_register(
         &program_info_provider_parameters, &_ebpf_xdp_program_info_provider_context);
     if (status != STATUS_SUCCESS)
         goto Exit;
 
     _net_ebpf_xdp_hook_provider_data.supported_program_type = EBPF_PROGRAM_TYPE_XDP;
+    // Set the attach type as the provider module id.
+    _ebpf_xdp_hook_provider_moduleid.Guid = EBPF_ATTACH_TYPE_XDP;
     status = net_ebpf_extension_hook_provider_register(
         &hook_provider_parameters,
         net_ebpf_extension_xdp_on_client_attach,

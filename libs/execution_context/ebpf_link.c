@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include "ebpf_epoch.h"
 #include "ebpf_core.h"
+#include "ebpf_epoch.h"
 #include "ebpf_handle.h"
 #include "ebpf_link.h"
 #include "ebpf_object.h"
