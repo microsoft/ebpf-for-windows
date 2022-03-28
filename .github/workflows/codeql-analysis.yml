@@ -32,18 +32,13 @@ jobs:
         language: [ 'cpp' ]
 
     steps:
-    - name: Harden Runner
-      uses: step-security/harden-runner@9b0655f430fba8c7001d4e38f8d4306db5c6e0ab # v1
-      with:
-        egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
-
-    - uses: actions/checkout@b0e28b5ac45a892f91e7d036f8200cf5ed489415 # v3
+    - uses: actions/checkout@b0e28b5ac45a892f91e7d036f8200cf5ed489415
       with:
         submodules: 'recursive'
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@883476649888a9e8e219d5b2e6b789dc024f690c # v1
+      uses: github/codeql-action/init@883476649888a9e8e219d5b2e6b789dc024f690c
       with:
         languages: ${{ matrix.language }}
         # If you wish to specify custom queries, you can do so here or in a config file.
@@ -52,7 +47,7 @@ jobs:
         # queries: ./path/to/local/query, your-org/your-repo/queries@main
 
     - name: Add MSBuild to PATH
-      uses: microsoft/setup-msbuild@becb80cf9a036187bb1e07e74eb64e25850d757a # v1
+      uses: microsoft/setup-msbuild@becb80cf9a036187bb1e07e74eb64e25850d757a
 
     - name: Install LLVM and Clang
       working-directory: ${{env.GITHUB_WORKSPACE}}
@@ -82,4 +77,4 @@ jobs:
       run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{env.BUILD_PLATFORM}} ${{env.SOLUTION_FILE_PATH}}
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@883476649888a9e8e219d5b2e6b789dc024f690c # v1
+      uses: github/codeql-action/analyze@883476649888a9e8e219d5b2e6b789dc024f690c

@@ -32,17 +32,12 @@ jobs:
       BUILD_PLATFORM: x64
 
     steps:
-    - name: Harden Runner
-      uses: step-security/harden-runner@9b0655f430fba8c7001d4e38f8d4306db5c6e0ab # v1
-      with:
-        egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
-
-    - uses: actions/checkout@b0e28b5ac45a892f91e7d036f8200cf5ed489415 # v3
+    - uses: actions/checkout@b0e28b5ac45a892f91e7d036f8200cf5ed489415
       with:
         submodules: 'recursive'
 
     - name: Add MSBuild to PATH
-      uses: microsoft/setup-msbuild@becb80cf9a036187bb1e07e74eb64e25850d757a # v1
+      uses: microsoft/setup-msbuild@becb80cf9a036187bb1e07e74eb64e25850d757a
 
     - name: Install LLVM and Clang
       working-directory: ${{env.GITHUB_WORKSPACE}}
@@ -70,7 +65,7 @@ jobs:
       run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{env.BUILD_PLATFORM}} ${{env.SOLUTION_FILE_PATH}}
 
     - name: Upload Build Output
-      uses: actions/upload-artifact@6673cd052c4cd6fcf4b4e6e60ea986c889389535 # v3
+      uses: actions/upload-artifact@6673cd052c4cd6fcf4b4e6e60ea986c889389535
       with:
         name: Build x64 ${{ matrix.configurations }}
         path: ${{ github.workspace }}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
@@ -91,17 +86,12 @@ jobs:
       BUILD_PLATFORM: x64
 
     steps:
-    - name: Harden Runner
-      uses: step-security/harden-runner@9b0655f430fba8c7001d4e38f8d4306db5c6e0ab # v1
-      with:
-        egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
-
-    - uses: actions/checkout@b0e28b5ac45a892f91e7d036f8200cf5ed489415 # v3
+    - uses: actions/checkout@b0e28b5ac45a892f91e7d036f8200cf5ed489415
       with:
         ref: ${{ github.event.workflow_run.head_branch }}
 
     - name: Wait for build to succeed
-      uses: fountainhead/action-wait-for-check@507b029e31edbe1a72d4de429476e1f4efe98869 # v1.0.0
+      uses: fountainhead/action-wait-for-check@507b029e31edbe1a72d4de429476e1f4efe98869
       id: wait-for-build
       with:
         timeoutSeconds: 1500
@@ -112,7 +102,7 @@ jobs:
 
     - name: Download build artifact
       if: success()
-      uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741 # v3
+      uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
       with:
         name: Build x64 ${{ matrix.configurations }}
         path: ${{ github.workspace }}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
@@ -135,7 +125,7 @@ jobs:
 
     - name: Upload log files
       if: always()
-      uses: actions/upload-artifact@6673cd052c4cd6fcf4b4e6e60ea986c889389535 # v3
+      uses: actions/upload-artifact@6673cd052c4cd6fcf4b4e6e60ea986c889389535
       with:
         name: Test-Logs-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}
         path: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/TestLogs
