@@ -47,7 +47,7 @@ typedef struct _ebpf_native
     bool initialized;
     bool loading;
     bool loaded;
-    wchar_t* service_name;
+    _Field_z_ wchar_t* service_name;
     bool detaching;
     bool unloading;
     ebpf_lock_t lock;
@@ -97,7 +97,7 @@ _ebpf_native_cleanup_maps(_In_reads_(map_count) _Frees_ptr_ ebpf_native_map_t* m
 }
 
 static void
-_ebpf_native_cleanup_programs(_In_ ebpf_native_program_t* programs, size_t count_of_programs)
+_ebpf_native_cleanup_programs(_In_reads_(count_of_programs) ebpf_native_program_t* programs, size_t count_of_programs)
 {
     for (uint32_t i = 0; i < count_of_programs; i++) {
         if (programs[i].handle != ebpf_handle_invalid) {
@@ -119,7 +119,7 @@ _ebpf_native_cleanup_module(_In_ ebpf_native_t* native_module)
 }
 
 void
-ebpf_native_acquire_reference(_In_ ebpf_native_t* native_module)
+ebpf_native_acquire_reference(_Inout_ ebpf_native_t* native_module)
 {
     ebpf_assert(native_module->reference_count != 0);
     ebpf_interlocked_increment_int32(&native_module->reference_count);
@@ -180,7 +180,7 @@ ebpf_native_release_reference(_In_opt_ ebpf_native_t* native_module)
         // All references to the module have been released. Safe to complete the detach callback.
         ebpf_provider_detach_client_complete(&_ebpf_native_npi_id, native_module->client_binding_handle);
 
-        // Cleanup the native module.
+        // Clean up the native module.
         _ebpf_native_cleanup_module(native_module);
     }
 

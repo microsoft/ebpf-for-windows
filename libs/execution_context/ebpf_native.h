@@ -48,7 +48,7 @@ extern "C"
      */
     ebpf_result_t
     ebpf_native_load(
-        _In_ const wchar_t* service_name,
+        _In_reads_(service_name_length) const wchar_t* service_name,
         uint16_t service_name_length,
         _In_ const GUID* module_id,
         _Out_ size_t* count_of_maps,
