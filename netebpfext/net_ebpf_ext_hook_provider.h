@@ -108,7 +108,6 @@ typedef void (*net_ebpf_extension_hook_on_client_detach)(_In_ const net_ebpf_ext
  */
 typedef struct _net_ebpf_extension_hook_provider_parameters
 {
-    const ebpf_attach_type_t* attach_type;              ///< Hook attach type (GUID).
     const NPI_MODULEID* provider_module_id;             ///< NPI provider module ID.
     const ebpf_extension_data_t* provider_data;         ///< Hook provider data (contains supported program types).
     net_ebpf_extension_hook_execution_t execution_type; ///< Hook execution type (PASSIVE or DISPATCH).

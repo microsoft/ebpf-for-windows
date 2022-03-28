@@ -3,6 +3,7 @@
 
 #include <wdm.h>
 #include "net_ebpf_ext_hook_provider.h"
+#include "ebpf_extension_uuids.h"
 
 /**
  * @brief Pointer to function to invoke the eBPF program associated with the hook NPI client.
@@ -392,10 +393,9 @@ net_ebpf_extension_hook_provider_register(
     characteristics->ProviderAttachClient = net_ebpf_extension_hook_provider_attach_client;
     characteristics->ProviderDetachClient = net_ebpf_extension_hook_provider_detach_client;
     characteristics->ProviderRegistrationInstance.Size = sizeof(NPI_REGISTRATION_INSTANCE);
-    // TODO (issue: #772): NpiId should be a well known GUID. ModuleId should be attach type.
-    characteristics->ProviderRegistrationInstance.NpiId = parameters->attach_type;
-    characteristics->ProviderRegistrationInstance.ModuleId = parameters->provider_module_id;
+    characteristics->ProviderRegistrationInstance.NpiId = &EBPF_HOOK_EXTENSION_IID;
     characteristics->ProviderRegistrationInstance.NpiSpecificCharacteristics = parameters->provider_data;
+    characteristics->ProviderRegistrationInstance.ModuleId = parameters->provider_module_id;
 
     local_provider_context->execution_type = parameters->execution_type;
     local_provider_context->attach_callback = attach_callback;
