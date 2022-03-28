@@ -9,6 +9,9 @@ on:
   schedule:
     - cron: '00 21 * * *'
 
+permissions:
+  contents: read
+
 jobs:
   analyze:
     name: Analyze
@@ -29,13 +32,13 @@ jobs:
         language: [ 'cpp' ]
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@629c2de402a417ea7690ca6ce3f33229e27606a5
       with:
         submodules: 'recursive'
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v1
+      uses: github/codeql-action/init@883476649888a9e8e219d5b2e6b789dc024f690c
       with:
         languages: ${{ matrix.language }}
         # If you wish to specify custom queries, you can do so here or in a config file.
@@ -44,7 +47,7 @@ jobs:
         # queries: ./path/to/local/query, your-org/your-repo/queries@main
 
     - name: Add MSBuild to PATH
-      uses: microsoft/setup-msbuild@v1
+      uses: microsoft/setup-msbuild@becb80cf9a036187bb1e07e74eb64e25850d757a
 
     - name: Install LLVM and Clang
       working-directory: ${{env.GITHUB_WORKSPACE}}
@@ -74,4 +77,4 @@ jobs:
       run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{env.BUILD_PLATFORM}} ${{env.SOLUTION_FILE_PATH}}
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v1
+      uses: github/codeql-action/analyze@883476649888a9e8e219d5b2e6b789dc024f690c

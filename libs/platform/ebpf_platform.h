@@ -774,7 +774,8 @@ extern "C"
      * @brief Load an extension and get its dispatch table.
      *
      * @param[out] client_context Context used to unload the extension.
-     * @param[in] interface_id GUID representing the identity of the interface.
+     * @param[in] interface_id GUID representing the identity of the extension interface.
+     * @param[in] expected_provider_module_id GUID representing the expected identity of the provider.
      * @param[in] client_module_id GUID representing the identity of the client.
      * @param[in] extension_client_context Opaque per-instance pointer passed to the extension.
      * @param[in] client_data Opaque client data passed to the extension or
@@ -797,6 +798,7 @@ extern "C"
     ebpf_extension_load(
         _Outptr_ ebpf_extension_client_t** client_context,
         _In_ const GUID* interface_id,
+        _In_ const GUID* expected_provider_module_id,
         _In_ const GUID* client_module_id,
         _In_ void* extension_client_context,
         _In_opt_ const ebpf_extension_data_t* client_data,
