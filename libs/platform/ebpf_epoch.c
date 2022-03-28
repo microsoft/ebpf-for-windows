@@ -77,7 +77,7 @@ static volatile int64_t _ebpf_release_epoch = 0;
 /**
  * @brief Flag to indicate that eBPF epoch tracker is shutting down.
  */
-static bool _ebpf_epoch_rundown = false;
+static volatile bool _ebpf_epoch_rundown = false;
 
 /**
  * @brief Timer used to update _ebpf_release_epoch.
@@ -216,10 +216,8 @@ ebpf_epoch_terminate()
     EBPF_LOG_ENTRY();
     uint32_t cpu_id;
 
-    ebpf_free_timer_work_item(_ebpf_flush_timer);
-    _ebpf_flush_timer = NULL;
-
     _ebpf_epoch_rundown = true;
+
     for (cpu_id = 0; cpu_id < _ebpf_epoch_cpu_count; cpu_id++) {
         _ebpf_epoch_release_free_list(&_ebpf_epoch_cpu_table[cpu_id], MAXINT64);
         ebpf_assert(ebpf_list_is_empty(&_ebpf_epoch_cpu_table[cpu_id].free_list));
@@ -229,6 +227,9 @@ ebpf_epoch_terminate()
         ebpf_free_non_preemptible_work_item(_ebpf_epoch_cpu_table[cpu_id].stale_worker);
     }
     _ebpf_epoch_cpu_count = 0;
+
+    ebpf_free_timer_work_item(_ebpf_flush_timer);
+    _ebpf_flush_timer = NULL;
 
     ebpf_free_cache_aligned(_ebpf_epoch_cpu_table);
     EBPF_RETURN_VOID();
@@ -275,9 +276,11 @@ ebpf_epoch_exit()
         ebpf_lock_unlock(&_ebpf_epoch_cpu_table[current_cpu].lock, state);
     }
 
-    // Reap the free list.
-    if (!ebpf_list_is_empty(&_ebpf_epoch_cpu_table[current_cpu].free_list)) {
-        _ebpf_epoch_release_free_list(&_ebpf_epoch_cpu_table[current_cpu], _ebpf_release_epoch);
+    if (!_ebpf_epoch_rundown) {
+        // Reap the free list.
+        if (!ebpf_list_is_empty(&_ebpf_epoch_cpu_table[current_cpu].free_list)) {
+            _ebpf_epoch_release_free_list(&_ebpf_epoch_cpu_table[current_cpu], _ebpf_release_epoch);
+        }
     }
 }
 
