@@ -366,3 +366,84 @@ TEST_CASE("divide_by_zero_jit", "[divide_by_zero]") { divide_by_zero_test_km(EBP
 TEST_CASE("ringbuf_api_interpret", "[test_ringbuf_api]") { ring_buffer_api_test(EBPF_EXECUTION_INTERPRET); }
 TEST_CASE("divide_by_zero_interpret", "[divide_by_zero]") { divide_by_zero_test_km(EBPF_EXECUTION_INTERPRET); }
 #endif
+
+void
+_test_nested_maps(bpf_map_type type)
+{
+    // Create first inner map.
+    fd_t inner1 = bpf_create_map(BPF_MAP_TYPE_ARRAY, sizeof(uint32_t), sizeof(uint32_t), 1, 0);
+    REQUIRE(inner1 > 0);
+
+    // Create outer map.
+    fd_t outer_map_fd = bpf_create_map_in_map(type, "outer_map", sizeof(uint32_t), inner1, 10, 0);
+    REQUIRE(outer_map_fd > 0);
+
+    // Create second inner map.
+    fd_t inner2 = bpf_create_map(BPF_MAP_TYPE_ARRAY, sizeof(uint32_t), sizeof(uint32_t), 1, 0);
+    REQUIRE(inner2 > 0);
+
+    // Insert both inner maps in outer map.
+    uint32_t key = 1;
+    uint32_t result = bpf_map_update_elem(outer_map_fd, &key, &inner1, 0);
+    REQUIRE(result == ERROR_SUCCESS);
+
+    key = 2;
+    result = bpf_map_update_elem(outer_map_fd, &key, &inner1, 0);
+    REQUIRE(result == ERROR_SUCCESS);
+
+    // Remove the inner maps from outer map.
+    key = 1;
+    result = bpf_map_delete_elem(outer_map_fd, &key);
+    REQUIRE(result == ERROR_SUCCESS);
+    key = 2;
+    result = bpf_map_delete_elem(outer_map_fd, &key);
+    REQUIRE(result == ERROR_SUCCESS);
+
+    _close(inner1);
+    _close(inner2);
+    _close(outer_map_fd);
+}
+
+TEST_CASE("array_of_maps", "[map_in_map]") { _test_nested_maps(BPF_MAP_TYPE_ARRAY_OF_MAPS); }
+
+TEST_CASE("hash_of_maps", "[map_in_map]") { _test_nested_maps(BPF_MAP_TYPE_HASH_OF_MAPS); }
+
+TEST_CASE("tailcall_load_test", "[tailcall_load_test]")
+{
+    ebpf_result_t result;
+    struct bpf_object* object = nullptr;
+    fd_t program_fd;
+
+    result =
+        _program_load_helper("tail_call_multiple.o", &EBPF_PROGRAM_TYPE_XDP, EBPF_EXECUTION_ANY, &object, &program_fd);
+    REQUIRE(result == EBPF_SUCCESS);
+
+    REQUIRE(program_fd > 0);
+
+    // Set up tail calls.
+    struct bpf_program* callee0 = bpf_object__find_program_by_name(object, "callee0");
+    REQUIRE(callee0 != nullptr);
+    fd_t callee0_fd = bpf_program__fd(callee0);
+    REQUIRE(callee0_fd > 0);
+
+    struct bpf_program* callee1 = bpf_object__find_program_by_name(object, "callee1");
+    REQUIRE(callee1 != nullptr);
+    fd_t callee1_fd = bpf_program__fd(callee1);
+    REQUIRE(callee1_fd > 0);
+
+    fd_t prog_map_fd = bpf_object__find_map_fd_by_name(object, "map");
+    REQUIRE(prog_map_fd > 0);
+
+    uint32_t index = 0;
+    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &callee0_fd, 0) == 0);
+    index = 1;
+    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &callee1_fd, 0) == 0);
+
+    // Cleanup tail calls.
+    index = 0;
+    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0) == 0);
+    index = 1;
+    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0) == 0);
+
+    bpf_object__close(object);
+}
