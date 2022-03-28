@@ -15,7 +15,7 @@ typedef struct _process_entry
     uint8_t name[64];
 } process_entry_t;
 
-#pragma clang section data = "maps"
+SEC("maps")
 ebpf_map_definition_in_file_t process_map = {
     .size = sizeof(ebpf_map_definition_in_file_t),
     .type = BPF_MAP_TYPE_HASH,
