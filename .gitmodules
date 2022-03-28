@@ -9,6 +9,7 @@
 [submodule "external/bpftool"]
 	path = external/bpftool
 	url = https://github.com/dthaler/bpftool-1.git
+	branch = windows
 [submodule "external/win-c"]
 	path = external/win-c
 	url = https://github.com/takamin/win-c.git
