@@ -6,6 +6,7 @@
 #include <chrono>
 #include <mutex>
 #include <thread>
+#include <vector>
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <mstcpip.h>
@@ -113,6 +114,42 @@ _test_program_load(
     // We have closed both handles to the program. Program should be unloaded now.
     REQUIRE(ebpf_get_next_program(previous_fd, &next_fd) == ERROR_SUCCESS);
     REQUIRE(next_fd == ebpf_fd_invalid);
+}
+
+struct _ebpf_program_load_test_parameters
+{
+    _Field_z_ const char* file_name;
+    ebpf_program_type_t* program_type;
+};
+
+static void
+_test_multiple_programs_load(
+    int program_count,
+    _In_reads_(program_count) const struct _ebpf_program_load_test_parameters* parameters,
+    ebpf_execution_type_t execution_type)
+{
+    ebpf_result_t result;
+    std::vector<struct bpf_object*> objects;
+    std::vector<fd_t> fds;
+
+    for (int i = 0; i < program_count; i++) {
+        const char* file_name = parameters[i].file_name;
+        const ebpf_program_type_t* program_type = parameters[i].program_type;
+        struct bpf_object* object;
+        fd_t program_fd;
+
+        result = _program_load_helper(file_name, program_type, execution_type, &object, &program_fd);
+        REQUIRE(result == EBPF_SUCCESS);
+        REQUIRE(program_fd > 0);
+
+        objects.push_back(object);
+        fds.push_back(program_fd);
+    }
+
+    for (int i = 0; i < program_count; i++) {
+        _close(fds[i]);
+        bpf_object__close(objects[i]);
+    }
 }
 
 static void
@@ -223,6 +260,21 @@ DECLARE_LOAD_TEST_CASE("bindmonitor.o", &EBPF_PROGRAM_TYPE_XDP, EBPF_EXECUTION_A
 
 // Try to load an unsafe program.
 DECLARE_LOAD_TEST_CASE("droppacket_unsafe.o", nullptr, EBPF_EXECUTION_ANY, EBPF_VERIFICATION_FAILED);
+
+// Try to load multiple programs of different program types
+TEST_CASE("test_ebpf_multiple_programs_load_jit")
+{
+    struct _ebpf_program_load_test_parameters test_parameters[] = {
+        {"droppacket.o", &EBPF_PROGRAM_TYPE_XDP}, {"bindmonitor.o", &EBPF_PROGRAM_TYPE_BIND}};
+    _test_multiple_programs_load(_countof(test_parameters), test_parameters, EBPF_EXECUTION_JIT);
+}
+
+TEST_CASE("test_ebpf_multiple_programs_load_interpret")
+{
+    struct _ebpf_program_load_test_parameters test_parameters[] = {
+        {"droppacket.o", &EBPF_PROGRAM_TYPE_XDP}, {"bindmonitor.o", &EBPF_PROGRAM_TYPE_BIND}};
+    _test_multiple_programs_load(_countof(test_parameters), test_parameters, EBPF_EXECUTION_INTERPRET);
+}
 
 TEST_CASE("test_ebpf_program_next_previous", "[test_ebpf_program_next_previous]")
 {

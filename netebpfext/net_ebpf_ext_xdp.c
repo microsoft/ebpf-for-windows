@@ -72,9 +72,7 @@ static ebpf_program_data_t _ebpf_xdp_program_data = {&_ebpf_xdp_program_info, &_
 static ebpf_extension_data_t _ebpf_xdp_program_info_provider_data = {
     NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_ebpf_xdp_program_data), &_ebpf_xdp_program_data};
 
-// Net eBPF Extension XDP Program Information NPI Provider Module GUID: f4f7e1e4-5f5a-440f-8a62-2880c6db0e87
-const NPI_MODULEID DECLSPEC_SELECTANY _ebpf_xdp_program_info_provider_moduleid = {
-    sizeof(NPI_MODULEID), MIT_GUID, {0xf4f7e1e4, 0x5f5a, 0x440f, {0x8a, 0x62, 0x28, 0x80, 0xc6, 0xdb, 0x0e, 0x87}}};
+NPI_MODULEID DECLSPEC_SELECTANY _ebpf_xdp_program_info_provider_moduleid = {sizeof(NPI_MODULEID), MIT_GUID, {0}};
 
 static net_ebpf_extension_program_info_provider_t* _ebpf_xdp_program_info_provider_context = NULL;
 
@@ -88,8 +86,7 @@ ebpf_extension_data_t _net_ebpf_extension_xdp_hook_provider_data = {
     EBPF_ATTACH_PROVIDER_DATA_VERSION, sizeof(_net_ebpf_xdp_hook_provider_data), &_net_ebpf_xdp_hook_provider_data};
 
 // Net eBPF Extension XDP Hook NPI Provider Module GUID: d8039b3a-bdaf-4c54-8d9e-9f88d692f4b9
-const NPI_MODULEID DECLSPEC_SELECTANY _ebpf_xdp_hook_provider_moduleid = {
-    sizeof(NPI_MODULEID), MIT_GUID, {0xd8039b3a, 0xbdaf, 0x4c54, {0x8d, 0x9e, 0x9f, 0x88, 0xd6, 0x92, 0xf4, 0xb9}}};
+NPI_MODULEID DECLSPEC_SELECTANY _ebpf_xdp_hook_provider_moduleid = {sizeof(NPI_MODULEID), MIT_GUID, {0}};
 
 static net_ebpf_extension_hook_provider_t* _ebpf_xdp_hook_provider_context = NULL;
 
@@ -217,28 +214,29 @@ net_ebpf_ext_xdp_register_providers()
 {
     NTSTATUS status = STATUS_SUCCESS;
     const net_ebpf_extension_program_info_provider_parameters_t program_info_provider_parameters = {
-        &EBPF_PROGRAM_TYPE_XDP, &_ebpf_xdp_program_info_provider_moduleid, &_ebpf_xdp_program_info_provider_data};
+        &_ebpf_xdp_program_info_provider_moduleid, &_ebpf_xdp_program_info_provider_data};
     const net_ebpf_extension_hook_provider_parameters_t hook_provider_parameters = {
-        &EBPF_ATTACH_TYPE_XDP,
-        &_ebpf_xdp_hook_provider_moduleid,
-        &_net_ebpf_extension_xdp_hook_provider_data,
-        EXECUTION_DISPATCH};
+        &_ebpf_xdp_hook_provider_moduleid, &_net_ebpf_extension_xdp_hook_provider_data, EXECUTION_DISPATCH};
 
+    _ebpf_xdp_program_info.program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_XDP;
+    // Set the program type as the provider module id.
+    _ebpf_xdp_program_info_provider_moduleid.Guid = EBPF_PROGRAM_TYPE_XDP;
     status = net_ebpf_extension_program_info_provider_register(
         &program_info_provider_parameters, &_ebpf_xdp_program_info_provider_context);
     if (status != STATUS_SUCCESS)
         goto Exit;
 
     _net_ebpf_xdp_hook_provider_data.supported_program_type = EBPF_PROGRAM_TYPE_XDP;
-
+    // Set the attach type as the provider module id.
+    _ebpf_xdp_hook_provider_moduleid.Guid = EBPF_ATTACH_TYPE_XDP;
     status = net_ebpf_extension_hook_provider_register(
         &hook_provider_parameters,
         net_ebpf_extension_xdp_on_client_attach,
         _net_ebpf_extension_xdp_on_client_detach,
         &_ebpf_xdp_hook_provider_context);
-    if (status != EBPF_SUCCESS) {
+
+    if (status != EBPF_SUCCESS)
         goto Exit;
-    }
 
 Exit:
     return status;
