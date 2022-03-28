@@ -1374,11 +1374,21 @@ clean_up_ebpf_maps(_Inout_ std::vector<ebpf_map_t*>& maps)
 }
 
 static void
-_clean_up_ebpf_object(_In_opt_ _Post_invalid_ ebpf_object_t* object)
+_clean_up_ebpf_object(_In_opt_ ebpf_object_t* object)
 {
     if (object != nullptr) {
         clean_up_ebpf_programs(object->programs);
         clean_up_ebpf_maps(object->maps);
+
+        free(object->object_name);
+    }
+}
+
+static void
+_delete_ebpf_object(_In_opt_ _Post_invalid_ ebpf_object_t* object)
+{
+    if (object != nullptr) {
+        _clean_up_ebpf_object(object);
 
         delete object;
     }
@@ -1400,7 +1410,7 @@ static void
 _clean_up_ebpf_objects()
 {
     for (auto& object : _ebpf_objects) {
-        _clean_up_ebpf_object(object);
+        _delete_ebpf_object(object);
     }
 
     _ebpf_objects.resize(0);
@@ -1597,10 +1607,7 @@ _initialize_ebpf_object_native(
 
 Exit:
     if (result != EBPF_SUCCESS) {
-        clean_up_ebpf_programs(object.programs);
-        clean_up_ebpf_maps(object.maps);
-
-        ebpf_free(object.object_name);
+        _clean_up_ebpf_object(&object);
     }
     return result;
 }
@@ -2331,7 +2338,6 @@ _ebpf_program_load_native(
 
     try {
         // Create a driver service with a random name.
-        // TODO: Can also use UuidToString()
         service_name = _guid_to_wide_string(&service_name_guid);
 
         error = Platform::_create_service(
@@ -2414,7 +2420,7 @@ _ebpf_program_load_native(
 
 Done:
     if (result != EBPF_SUCCESS) {
-        _clean_up_ebpf_object(new_object);
+        _delete_ebpf_object(new_object);
         if (map_handles != nullptr) {
             for (int i = 0; i < count_of_maps; i++) {
                 if (map_handles[i] != ebpf_handle_invalid && map_handles[i] != 0) {
@@ -2657,7 +2663,7 @@ ebpf_object_close(_In_opt_ _Post_invalid_ struct bpf_object* object)
     }
 
     _remove_ebpf_object_from_globals(object);
-    _clean_up_ebpf_object(object);
+    _delete_ebpf_object(object);
 }
 
 static ebpf_result_t

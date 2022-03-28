@@ -118,10 +118,10 @@ extern "C"
     /**
      * @brief Acquire reference on the native module.
      *
-     * @param[in] native_module Pointer to native module.
+     * @param[inout] native_module Pointer to native module.
      */
     void
-    ebpf_native_acquire_reference(_In_ ebpf_native_t* native_module);
+    ebpf_native_acquire_reference(_Inout_ ebpf_native_t* native_module);
 
     /**
      * @brief Release reference to the native module.

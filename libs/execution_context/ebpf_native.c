@@ -500,7 +500,7 @@ Done:
 }
 
 static inline bool
-_ebpf_native_is_map_in_map(ebpf_native_map_t* map)
+_ebpf_native_is_map_in_map(_In_ const ebpf_native_map_t* map)
 {
     if (map->entry->definition.type == BPF_MAP_TYPE_HASH_OF_MAPS ||
         map->entry->definition.type == BPF_MAP_TYPE_ARRAY_OF_MAPS) {
@@ -693,7 +693,7 @@ _ebpf_native_initialize_programs(
 }
 
 static ebpf_result_t
-_ebpf_native_resolve_maps_for_program(_In_ ebpf_native_t* native_module, _In_ ebpf_native_program_t* program)
+_ebpf_native_resolve_maps_for_program(_In_ ebpf_native_t* native_module, _In_ const ebpf_native_program_t* program)
 {
     ebpf_result_t result;
     ebpf_handle_t* map_handles = NULL;
@@ -947,7 +947,7 @@ _ebpf_native_get_count_of_programs(_In_ const ebpf_native_t* native_module)
 
 ebpf_result_t
 ebpf_native_load(
-    _In_ const wchar_t* service_name,
+    _In_reads_(service_name_length) const wchar_t* service_name,
     uint16_t service_name_length,
     _In_ const GUID* module_id,
     _Out_ size_t* count_of_maps,

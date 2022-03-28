@@ -172,7 +172,7 @@ extern "C"
         ebpf_handle_t program_handle,
         ebpf_code_type_t code_type,
         _In_opt_ const void* code_context,
-        _In_ const uint8_t* code,
+        _In_reads_(code_size) const uint8_t* code,
         size_t code_size);
 
     /**
