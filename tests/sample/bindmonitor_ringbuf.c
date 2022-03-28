@@ -8,7 +8,7 @@
 ebpf_map_definition_in_file_t process_map = {
     .size = sizeof(ebpf_map_definition_in_file_t), .type = BPF_MAP_TYPE_RINGBUF, .max_entries = 256 * 1024};
 
-#pragma clang section text = "bind"
+SEC("bind")
 bind_action_t
 bind_monitor(bind_md_t* ctx)
 {

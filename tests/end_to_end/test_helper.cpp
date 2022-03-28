@@ -224,7 +224,7 @@ GlueDeviceIoControl(
         *lpBytesReturned = user_reply->length;
     }
 
-    // TODO: Intercept the call to perform any IOCTL specific _pre_ tasks.
+    // TODO: (Issue# 852) Intercept the call to perform any IOCTL specific _pre_ tasks.
 
     result = ebpf_core_invoke_protocol_handler(
         request_id,

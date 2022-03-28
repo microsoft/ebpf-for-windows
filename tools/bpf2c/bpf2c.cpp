@@ -96,7 +96,9 @@ main(int argc, char** argv)
         for (const auto& section : sections) {
             ebpf_program_type_t program_type;
             ebpf_attach_type_t attach_type;
-            ebpf_get_program_type_by_name(section.c_str(), &program_type, &attach_type);
+            if (ebpf_get_program_type_by_name(section.c_str(), &program_type, &attach_type) != EBPF_SUCCESS) {
+                throw std::runtime_error(std::string("Cannot get program / attach type for section ") + section);
+            }
             generator.parse(section, program_type, attach_type);
         }
 

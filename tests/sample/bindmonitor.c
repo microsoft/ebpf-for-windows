@@ -67,7 +67,7 @@ find_or_create_process_entry(bind_md_t* ctx)
 // would complain when the function is actually defined below.
 bind_hook_t BindMonitor;
 
-#pragma clang section text = "bind"
+SEC("bind")
 bind_action_t
 BindMonitor(bind_md_t* ctx)
 {

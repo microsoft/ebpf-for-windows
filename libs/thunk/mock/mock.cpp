@@ -150,7 +150,7 @@ _update_registry_value(
 uint32_t
 _create_service(_In_z_ const wchar_t* service_name, _In_z_ const wchar_t* file_path, _Out_ SC_HANDLE* service_handle)
 {
-    // TODO: Just a stub currently in order to compile.
+    // TODO: (Issue# 852) Just a stub currently in order to compile.
     // Will be replaced by a proper mock.
 
     UNREFERENCED_PARAMETER(service_name);
@@ -163,7 +163,7 @@ _create_service(_In_z_ const wchar_t* service_name, _In_z_ const wchar_t* file_p
 uint32_t
 _delete_service(SC_HANDLE service_handle)
 {
-    // TODO: Just a stub currently in order to compile.
+    // TODO: (Issue# 852) Just a stub currently in order to compile.
     // Will be replaced by a proper mock.
 
     UNREFERENCED_PARAMETER(service_handle);
@@ -173,7 +173,7 @@ _delete_service(SC_HANDLE service_handle)
 uint32_t
 _stop_service(SC_HANDLE service_handle)
 {
-    // TODO: Just a stub currently in order to compile.
+    // TODO: (Issue# 852) Just a stub currently in order to compile.
     // Will be replaced by a proper mock.
 
     UNREFERENCED_PARAMETER(service_handle);
