@@ -41,7 +41,7 @@ jobs:
 
     # Check out (non-recurisvely) the ebpf-for-windows main branch.
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@629c2de402a417ea7690ca6ce3f33229e27606a5
 
     # Create doxygen docs under the docs/html subdirectory.
     - name: Build docs
