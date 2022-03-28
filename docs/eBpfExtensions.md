@@ -47,8 +47,8 @@ The following sections describe these steps in detail.
 
 ### 2.1 Program Information NPI Provider Registration
 When registering itself to the NMR, the Program Information NPI Provider should have the [`NPI_REGISTRATION_INSTANCE`](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/netioddk/ns-netioddk-_npi_registration_instance) initialized as follows:
-* `NpiId`: This should be set to a GUID that uniquely identifies the eBPF program type.
-* `ModuleId`: This should be a unique GUID identifying the provider module.
+* `NpiId`: This should be set to `EBPF_PROGRAM_INFO_EXTENSION_IID` defined in `ebpf_extension_uuids.h`.
+* `ModuleId`: This should be set to the eBPF program type GUID.
 * `NpiSpecificCharacteristics`: Pointer to structure of type `ebpf_extension_data_t`.
   * The `data` field of this structure should point to a structure of type `ebpf_program_data_t`.
 
@@ -147,8 +147,8 @@ The eBPF Execution Context registers a Program Information NPI client module wit
 
 ### 2.3 Hook NPI Provider Registration
 When registering itself to the NMR, the Hook NPI provider should have the [`NPI_REGISTRATION_INSTANCE`](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/netioddk/ns-netioddk-_npi_registration_instance) initialized as follows:
-* `NpiId`: This should be set to a unique GUID identifying the eBPF attach type.
-* `ModuleId`: This should be a unique GUID identifying the provider module.
+* `NpiId`: This should be set to `EBPF_HOOK_EXTENSION_IID` defined in `ebpf_extension_uuids.h`.
+* `ModuleId`: This should be set to the attach type GUID.
 * `NpiSpecificCharacteristics`: Pointer to structure of type `ebpf_extension_data_t`.
   * The `data` field of this structure should point to a structure of type `ebpf_attach_provider_data_t`.
 
@@ -192,7 +192,7 @@ An extension can provide an implementation of helper functions that can be invok
 1. Program-Type specific: These helper functions can only be invoked by eBPF programs of a given program type. Usually, an extension may provide implementations for hooks of certain program types and provide helper functions that are associated with those helper functions. The Program Information NPI provider must then provide the prototypes and addresses for those functions. For these type of helpers, the helper function Id must be greater that 65535 (0xFFFF) for program type specific helper functions.
 2. General: The general helper functions can be invoked by eBPF programs of all types. Examples of this type of helper functions are the eBPF Map helper functions. These helper functions are implemented by the eBPF Execution Context itself. However, if a program type so chooses, it may provide implementations for general helper functions. For that the extension would have to provide another Program Information NPI provider, which *does not* provide any program context descriptor. Instead, it only supplies the prototypes and addresses of the general helper functions. The NPI ID of this module defined as:
 ```
-GUID ebpf_general_helper_function_interface_id = {/* 8d2a1d3f-9ce6-473d-b48e-17aa5c5581fe */
+GUID ebpf_general_helper_function_module_id = {/* 8d2a1d3f-9ce6-473d-b48e-17aa5c5581fe */
                                                   0x8d2a1d3f,
                                                   0x9ce6,
                                                   0x473d,
