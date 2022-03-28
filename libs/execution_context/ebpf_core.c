@@ -498,15 +498,17 @@ Done:
 static ebpf_result_t
 _ebpf_core_protocol_load_native_module(
     _In_ const ebpf_operation_load_native_module_request_t* request,
-    _Inout_ ebpf_operation_load_native_module_reply_t* reply,
+    _Inout_updates_bytes_(reply_length) ebpf_operation_load_native_module_reply_t* reply,
     uint16_t reply_length)
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result;
     size_t service_name_length = 0;
 
-    UNREFERENCED_PARAMETER(reply_length);
-    UNREFERENCED_PARAMETER(reply);
+    if (reply_length < sizeof(*reply)) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
 
     service_name_length = ((uint8_t*)request) + request->header.length - (uint8_t*)request->data;
 
@@ -533,7 +535,7 @@ Done:
 static ebpf_result_t
 _ebpf_core_protocol_load_native_programs(
     _In_ const ebpf_operation_load_native_programs_request_t* request,
-    _Inout_ ebpf_operation_load_native_programs_reply_t* reply,
+    _Inout_updates_bytes_(reply_length) ebpf_operation_load_native_programs_reply_t* reply,
     uint16_t reply_length)
 {
     EBPF_LOG_ENTRY();
@@ -545,9 +547,6 @@ _ebpf_core_protocol_load_native_programs(
     size_t required_reply_length = 0;
     size_t map_handles_size = 0;
     size_t program_handles_size = 0;
-
-    UNREFERENCED_PARAMETER(reply_length);
-    UNREFERENCED_PARAMETER(reply);
 
     // Validate that the reply length is sufficient.
     result = ebpf_native_get_count_of_maps(&request->module_id, &count_of_map_handles);

@@ -4,10 +4,10 @@
 #define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
 #include "pch.h"
 
+#include <codecvt>
 #include <fcntl.h>
 #include <io.h>
 #include <mutex>
-#include <codecvt>
 
 #include "api_internal.h"
 #include "bpf.h"
@@ -1541,7 +1541,8 @@ _initialize_ebpf_programs_native(
         }
         program->program_type = info.type_uuid;
         program->attach_type = info.attach_type_uuid;
-        // TODO: Change ebpf_object_get_info to also get section name from EC.
+        // TODO: (Issue# 851) Change ebpf_object_get_info to also get section name from EC.
+        // https://github.com/microsoft/ebpf-for-windows/issues/851
 
         programs.emplace_back(program);
         program = nullptr;
@@ -1598,6 +1599,8 @@ Exit:
     if (result != EBPF_SUCCESS) {
         clean_up_ebpf_programs(object.programs);
         clean_up_ebpf_maps(object.maps);
+
+        ebpf_free(object.object_name);
     }
     return result;
 }
@@ -2144,6 +2147,21 @@ ebpf_program_unload(_In_ struct bpf_program* program)
     return EBPF_SUCCESS;
 }
 
+/**
+ * @brief Load native module for the specified driver service.
+ *
+ * @param[in] service_path Path to the driver service.
+ * @param[in] module_id Module ID corresponding to the native module.
+ * @param[out] count_of_maps Count of maps present in the native module.
+ * @param[out] count_of_programs Count of programs present in the native module.
+ *
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_NO_MEMORY Unable to allocate resources for this
+ *  operation.
+ * @retval EBPF_OBJECT_NOT_FOUND Native module for that module ID not found.
+ * @retval EBPF_OBJECT_ALREADY_EXISTS Native module for this module ID is already
+ *  initialized.
+ */
 static ebpf_result_t
 _load_native_module(
     _In_ const std::wstring& service_path,
@@ -2187,6 +2205,26 @@ Done:
     return result;
 }
 
+/**
+ * @brief Create maps and load programs from a loaded native module.
+ *
+ * @param[in] module_id Module ID corresponding to the native module.
+ * @param[in] program_type Optionally, the program type to use when loading
+ *  the eBPF program. If program type is not supplied, it is derived from
+ *  the section prefix in the ELF file.
+ * @param[in] count_of_maps Count of maps present in the native module.
+ * @param[out] map_handles Array of size count_of_maps which contains the map handles.
+ * @param[in] count_of_programs Count of programs present in the native module.
+ * @param[out] program_handles Array of size count_of_programs which contains the program handles.
+ *
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_NO_MEMORY Unable to allocate resources for this
+ *  operation.
+ * @retval EBPF_OBJECT_NOT_FOUND No native module exists with that module ID.
+ * @retval EBPF_OBJECT_ALREADY_EXISTS Native module for this module ID is already
+ *  loaded.
+ * @retval EBPF_ARITHMETIC_OVERFLOW An arithmetic overflow has occurred.
+ */
 static ebpf_result_t
 _load_native_programs(
     _In_ const GUID* module_id,

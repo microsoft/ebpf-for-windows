@@ -2,11 +2,11 @@
 // SPDX-License-Identifier: MIT
 
 #include "ebpf_core.h"
+#include "ebpf_handle.h"
 #include "ebpf_native.h"
 #include "ebpf_object.h"
 #include "ebpf_program.h"
 #include "ebpf_protocol.h"
-#include "ebpf_handle.h"
 
 #define DEFAULT_PIN_ROOT_PATH "/ebpf/global"
 #define EBPF_MAX_PIN_PATH_LENGTH 256
@@ -16,7 +16,6 @@ static const GUID GUID_NULL = {0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0}};
 #endif
 
 typedef uint64_t (*helper_function_address)(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5);
-typedef void (*ebpf_free_native_t)(ebpf_native_t* native_object);
 
 static void
 _ebpf_native_unload_workitem(_In_ const void* module_id);
@@ -46,6 +45,7 @@ typedef struct _ebpf_native
     metadata_table_t* table;
     volatile int32_t reference_count;
     bool initialized;
+    bool loading;
     bool loaded;
     wchar_t* service_name;
     bool detaching;
@@ -591,8 +591,8 @@ Exit:
     return result;
 }
 
-static _Requires_lock_held_(native_module->lock) ebpf_result_t
-    _ebpf_native_create_maps(_In_ ebpf_native_t* native_module)
+static ebpf_result_t
+_ebpf_native_create_maps(_In_ ebpf_native_t* native_module)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_native_map_t* native_maps = NULL;
@@ -692,8 +692,8 @@ _ebpf_native_initialize_programs(
     }
 }
 
-static _Requires_lock_held_(native_module->lock) ebpf_result_t
-    _ebpf_native_resolve_maps_for_program(_In_ ebpf_native_t* native_module, _In_ ebpf_native_program_t* program)
+static ebpf_result_t
+_ebpf_native_resolve_maps_for_program(_In_ ebpf_native_t* native_module, _In_ ebpf_native_program_t* program)
 {
     ebpf_result_t result;
     ebpf_handle_t* map_handles = NULL;
@@ -754,8 +754,8 @@ Done:
     return result;
 }
 
-static _Requires_lock_held_(native_module->lock) ebpf_result_t
-    _ebpf_native_resolve_helpers_for_program(_In_ ebpf_native_t* native_module, _In_ ebpf_native_program_t* program)
+static ebpf_result_t
+_ebpf_native_resolve_helpers_for_program(_In_ ebpf_native_t* native_module, _In_ ebpf_native_program_t* program)
 {
     UNREFERENCED_PARAMETER(native_module);
     ebpf_result_t result;
@@ -802,8 +802,8 @@ Done:
     return result;
 }
 
-static _Requires_lock_held_(native_module->lock) void _ebpf_native_initialize_helpers_for_program(
-    _In_ ebpf_native_t* native_module, _In_ ebpf_native_program_t* program)
+static void
+_ebpf_native_initialize_helpers_for_program(_In_ ebpf_native_t* native_module, _In_ ebpf_native_program_t* program)
 {
     UNREFERENCED_PARAMETER(native_module);
     size_t helper_count = program->entry->helper_count;
@@ -817,8 +817,8 @@ static _Requires_lock_held_(native_module->lock) void _ebpf_native_initialize_he
     }
 }
 
-static _Requires_lock_held_(native_module->lock) ebpf_result_t
-    _ebpf_native_load_programs(_In_ ebpf_native_t* native_module)
+static ebpf_result_t
+_ebpf_native_load_programs(_In_ ebpf_native_t* native_module)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_native_program_t* native_programs = NULL;
@@ -1029,6 +1029,7 @@ ebpf_native_load_programs(
     ebpf_native_t** existing_native_module = NULL;
     ebpf_native_t* native_module = NULL;
     wchar_t* local_service_name = NULL;
+    bool module_referenced = false;
 
     // Find the native entry in hash table.
     state = ebpf_lock_lock(&_ebpf_native_client_table_lock);
@@ -1042,7 +1043,7 @@ ebpf_native_load_programs(
     native_module = *existing_native_module;
     native_state = ebpf_lock_lock(&native_module->lock);
     native_lock_acquired = true;
-    if (native_module->loaded) {
+    if (native_module->loading || native_module->loaded) {
         // This client has already been loaded.
         result = EBPF_OBJECT_ALREADY_EXISTS;
         goto Done;
@@ -1052,6 +1053,20 @@ ebpf_native_load_programs(
         result = EBPF_EXTENSION_FAILED_TO_LOAD;
         goto Done;
     }
+
+    native_module->loading = true;
+
+    // Take a reference on the native module before releasing the lock.
+    // This will ensure the driver cannot unload while we are processing this request.
+    ebpf_native_acquire_reference(native_module);
+    module_referenced = true;
+
+    ebpf_lock_unlock(&native_module->lock, native_state);
+    native_lock_acquired = false;
+
+    // Release hash table lock.
+    ebpf_lock_unlock(&_ebpf_native_client_table_lock, state);
+    lock_acquired = false;
 
     // Create maps.
     result = _ebpf_native_create_maps(native_module);
@@ -1064,6 +1079,9 @@ ebpf_native_load_programs(
     if (result != EBPF_SUCCESS) {
         goto Done;
     }
+
+    native_state = ebpf_lock_lock(&native_module->lock);
+    native_lock_acquired = true;
 
     native_module->loaded = true;
 
@@ -1084,6 +1102,10 @@ ebpf_native_load_programs(
     }
 
 Done:
+    if (module_referenced) {
+        ebpf_native_release_reference(native_module);
+        module_referenced = false;
+    }
     if (native_lock_acquired) {
         ebpf_lock_unlock(&native_module->lock, native_state);
         native_lock_acquired = false;

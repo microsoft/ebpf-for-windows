@@ -109,7 +109,7 @@ _close(int file_handle)
 }
 
 bool
-_is_native_program(_In_ const char* file_name)
+_is_native_program(_In_z_ const char* file_name)
 {
     std::string file_name_string(file_name);
     std::string file_extension = file_name_string.substr(file_name_string.find_last_of(".") + 1);
