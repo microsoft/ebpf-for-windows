@@ -116,6 +116,8 @@ _ebpf_native_cleanup_module(_In_ ebpf_native_t* native_module)
 
     ebpf_free(native_module->service_name);
     ebpf_lock_destroy(&native_module->lock);
+
+    ebpf_free(native_module);
 }
 
 void

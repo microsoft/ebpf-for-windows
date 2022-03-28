@@ -441,7 +441,7 @@ extern "C"
      */
     ebpf_result_t
     ebpf_allocate_preemptible_work_item(
-        _Out_ ebpf_preemptible_work_item_t** work_item,
+        _Outptr_ ebpf_preemptible_work_item_t** work_item,
         _In_ void (*work_item_routine)(void* work_item_context),
         _In_opt_ void* work_item_context);
 
