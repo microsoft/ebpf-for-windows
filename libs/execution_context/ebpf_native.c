@@ -436,7 +436,10 @@ _ebpf_native_get_next_map_to_create(_In_ ebpf_native_map_t* maps, size_t map_cou
 }
 
 static ebpf_result_t
-_ebpf_native_initialize_maps(_In_ ebpf_native_map_t* native_maps, _In_ map_entry_t* maps, size_t map_count)
+_ebpf_native_initialize_maps(
+    _Out_writes_(map_count) ebpf_native_map_t* native_maps,
+    _Inout_updates_(map_count) map_entry_t* maps,
+    size_t map_count)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     const int ORIGINAL_FD_OFFSET = 1;
@@ -511,7 +514,7 @@ _ebpf_native_is_map_in_map(_In_ const ebpf_native_map_t* map)
 }
 
 static ebpf_result_t
-_ebpf_native_validate_map(_In_ ebpf_native_map_t* map, ebpf_handle_t original_map_handle)
+_ebpf_native_validate_map(_In_ const ebpf_native_map_t* map, ebpf_handle_t original_map_handle)
 {
     // Validate that the existing map definition matches with this new map.
     struct bpf_map_info info;
@@ -562,7 +565,7 @@ Exit:
 }
 
 static ebpf_result_t
-_ebpf_native_reuse_map(_In_ ebpf_native_map_t* map)
+_ebpf_native_reuse_map(_Inout_ ebpf_native_map_t* map)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_handle_t handle = ebpf_handle_invalid;
@@ -592,7 +595,7 @@ Exit:
 }
 
 static ebpf_result_t
-_ebpf_native_create_maps(_In_ ebpf_native_t* native_module)
+_ebpf_native_create_maps(_Inout_ ebpf_native_t* native_module)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_native_map_t* native_maps = NULL;
@@ -684,7 +687,9 @@ Done:
 
 static void
 _ebpf_native_initialize_programs(
-    _In_ ebpf_native_program_t* native_programs, _In_ program_entry_t* programs, size_t program_count)
+    _Out_writes_(program_count) ebpf_native_program_t* native_programs,
+    _In_reads_(program_count) program_entry_t* programs,
+    size_t program_count)
 {
     for (uint32_t i = 0; i < program_count; i++) {
         native_programs[i].entry = &programs[i];
@@ -1202,7 +1207,7 @@ ebpf_native_unload(_In_ const GUID* module_id)
     // It is possible that the module is also detaching at the same time and
     // the module memory can be freed immediately after the hash table lock is
     // released. Create a copy of the service name to use later to unload driver.
-    service_name_length = (wcslen(native_module->service_name) * 2) + 2;
+    service_name_length = (wcslen(native_module->service_name) + 1) * sizeof(wchar_t);
     service_name = ebpf_allocate(service_name_length);
     if (service_name == NULL) {
         result = EBPF_NO_MEMORY;
