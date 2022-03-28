@@ -177,7 +177,7 @@ _update_registry_value(
 }
 
 static bool
-_check_service_state(SC_HANDLE service_handle, DWORD expected_state, DWORD* final_state)
+_check_service_state(SC_HANDLE service_handle, DWORD expected_state, _Out_ DWORD* final_state)
 {
 #define MAX_RETRY_COUNT 20
 #define WAIT_TIME_IN_MS 500
