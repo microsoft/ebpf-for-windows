@@ -18,9 +18,12 @@ on:
   push:
     branches: [ main ]
 
+permissions: read-all
 
 jobs:
   build:
+    permissions:
+      contents: write  # for Git to git push
     runs-on: ubuntu-latest
 
     steps:
@@ -29,7 +32,7 @@ jobs:
       run: |
         sudo apt install doxygen
 
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@629c2de402a417ea7690ca6ce3f33229e27606a5
 
     - name: Clone docs
       run: |
