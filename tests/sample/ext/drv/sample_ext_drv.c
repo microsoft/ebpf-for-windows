@@ -28,7 +28,7 @@ static BOOLEAN _sample_ebpf_ext_driver_unloading_flag = FALSE;
 static EVT_WDF_IO_QUEUE_IO_DEVICE_CONTROL _sample_ebpf_ext_driver_io_device_control;
 DRIVER_INITIALIZE DriverEntry;
 
-DEVICE_OBJECT*
+_Ret_notnull_ DEVICE_OBJECT*
 ebpf_driver_get_device_object()
 {
     return _sample_ebpf_ext_driver_device_object;
