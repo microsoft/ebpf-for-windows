@@ -75,7 +75,7 @@ void
 ebpf_native_unload_driver(_In_z_ const wchar_t* service_name);
 
 static void
-_ebpf_native_cleanup_maps(_In_reads_(map_count) _Frees_ptr_ ebpf_native_map_t* maps, size_t map_count)
+_ebpf_native_clean_up_maps(_In_reads_(map_count) _Frees_ptr_ ebpf_native_map_t* maps, size_t map_count)
 {
     for (uint32_t count = 0; count < map_count; count++) {
         ebpf_native_map_t* map = &maps[count];
@@ -97,7 +97,7 @@ _ebpf_native_cleanup_maps(_In_reads_(map_count) _Frees_ptr_ ebpf_native_map_t* m
 }
 
 static void
-_ebpf_native_cleanup_programs(_In_reads_(count_of_programs) ebpf_native_program_t* programs, size_t count_of_programs)
+_ebpf_native_clean_up_programs(_In_reads_(count_of_programs) ebpf_native_program_t* programs, size_t count_of_programs)
 {
     for (uint32_t i = 0; i < count_of_programs; i++) {
         if (programs[i].handle != ebpf_handle_invalid) {
@@ -109,7 +109,7 @@ _ebpf_native_cleanup_programs(_In_reads_(count_of_programs) ebpf_native_program_
 }
 
 static void
-_ebpf_native_cleanup_module(_In_ ebpf_native_t* native_module)
+_ebpf_native_clean_up_module(_In_ ebpf_native_t* native_module)
 {
     _ebpf_native_cleanup_maps(native_module->maps, native_module->map_count);
     _ebpf_native_cleanup_programs(native_module->programs, native_module->program_count);
@@ -175,7 +175,7 @@ ebpf_native_release_reference(_In_opt_ ebpf_native_t* native_module)
         }
     } else if (new_ref_count == 0) {
         ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_native_client_table_lock);
-        // Delete entry from hash table
+        // Delete entry from hash table.
         ebpf_hash_table_delete(_ebpf_native_client_table, (const uint8_t*)&native_module->client_id);
         ebpf_lock_unlock(&_ebpf_native_client_table_lock, state);
 
