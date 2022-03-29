@@ -23,6 +23,7 @@ ebpf_map_definition_in_file_t process_map = {
     .value_size = sizeof(process_entry_t),
     .max_entries = 1024};
 
+SEC("maps")
 ebpf_map_definition_in_file_t limits_map = {
     .size = sizeof(ebpf_map_definition_in_file_t),
     .type = BPF_MAP_TYPE_ARRAY,
@@ -30,6 +31,7 @@ ebpf_map_definition_in_file_t limits_map = {
     .value_size = sizeof(uint32_t),
     .max_entries = 1};
 
+SEC("maps")
 ebpf_map_definition_in_file_t prog_array_map = {
     .size = sizeof(ebpf_map_definition_in_file_t),
     .type = BPF_MAP_TYPE_PROG_ARRAY,
@@ -37,6 +39,7 @@ ebpf_map_definition_in_file_t prog_array_map = {
     .value_size = sizeof(uint32_t),
     .max_entries = 2};
 
+SEC("maps")
 // Dummy map. Should not be populated by UM.
 ebpf_map_definition_in_file_t dummy_map = {
     .size = sizeof(ebpf_map_definition_in_file_t),
