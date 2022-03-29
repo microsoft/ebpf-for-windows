@@ -20,6 +20,9 @@ DWORD
 handle_ebpf_show_links(
     LPCWSTR machine, LPWSTR* argv, DWORD current_index, DWORD argc, DWORD flags, LPCVOID data, BOOL* done)
 {
+    UNREFERENCED_PARAMETER(argv);
+    UNREFERENCED_PARAMETER(current_index);
+    UNREFERENCED_PARAMETER(argc);
     UNREFERENCED_PARAMETER(machine);
     UNREFERENCED_PARAMETER(flags);
     UNREFERENCED_PARAMETER(data);
