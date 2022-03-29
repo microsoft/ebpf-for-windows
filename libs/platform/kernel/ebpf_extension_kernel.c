@@ -13,6 +13,7 @@ typedef struct _ebpf_extension_client
     NPIID npi_id;
     NPI_CLIENT_CHARACTERISTICS client_characteristics;
     NPI_MODULEID client_module_id;
+    NPI_MODULEID expected_provider_module_id;
     // Opaque pointer to extension client context, such as eBPF program or eBPF Link.
     void* extension_client_context;
     // Per-provider binding context with client.
@@ -87,18 +88,19 @@ _ebpf_extension_client_attach_provider(
         goto Done;
     }
 
-    // Check that the interface matches.
+    // Check that the provider module Id matches the client's expected provider module Id.
+    ebpf_assert(provider_registration_instance->ModuleId != NULL);
     if (memcmp(
-            provider_registration_instance->NpiId,
-            &local_client_context->npi_id,
-            sizeof(local_client_context->npi_id)) != 0) {
+            &provider_registration_instance->ModuleId->Guid,
+            &local_client_context->expected_provider_module_id.Guid,
+            sizeof(local_client_context->expected_provider_module_id.Guid)) != 0) {
         status = STATUS_NOINTERFACE;
         EBPF_LOG_MESSAGE_GUID_GUID(
             EBPF_TRACELOG_LEVEL_WARNING,
             EBPF_TRACELOG_KEYWORD_BASE,
             "Interface doesn't match",
-            *provider_registration_instance->NpiId,
-            local_client_context->npi_id);
+            provider_registration_instance->ModuleId->Guid,
+            local_client_context->expected_provider_module_id.Guid);
         goto Done;
     }
 
@@ -167,6 +169,7 @@ ebpf_result_t
 ebpf_extension_load(
     _Outptr_ ebpf_extension_client_t** client_context,
     _In_ const GUID* interface_id,
+    _In_ const GUID* expected_provider_module_id,
     _In_ const GUID* client_module_id,
     _In_ void* extension_client_context,
     _In_opt_ const ebpf_extension_data_t* client_data,
@@ -202,6 +205,10 @@ ebpf_extension_load(
     local_client_context->client_module_id.Length = sizeof(local_client_context->client_module_id);
     local_client_context->client_module_id.Type = MIT_GUID;
     local_client_context->client_module_id.Guid = *client_module_id;
+    local_client_context->expected_provider_module_id.Length =
+        sizeof(local_client_context->expected_provider_module_id);
+    local_client_context->expected_provider_module_id.Type = MIT_GUID;
+    local_client_context->expected_provider_module_id.Guid = *expected_provider_module_id;
     local_client_context->client_dispatch_table = client_dispatch_table;
     local_client_context->extension_change_callback = extension_changed;
 

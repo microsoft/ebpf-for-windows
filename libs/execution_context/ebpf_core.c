@@ -5,6 +5,7 @@
 #include "ebpf_async.h"
 #include "ebpf_core.h"
 #include "ebpf_epoch.h"
+#include "ebpf_extension_uuids.h"
 #include "ebpf_handle.h"
 #include "ebpf_link.h"
 #include "ebpf_maps.h"
@@ -13,11 +14,14 @@
 #include "ebpf_serialize.h"
 #include "ebpf_state.h"
 
-GUID ebpf_general_helper_function_interface_id = {/* 8d2a1d3f-9ce6-473d-b48e-17aa5c5581fe */
-                                                  0x8d2a1d3f,
-                                                  0x9ce6,
-                                                  0x473d,
-                                                  {0xb4, 0x8e, 0x17, 0xaa, 0x5c, 0x55, 0x81, 0xfe}};
+GUID ebpf_program_information_extension_interface_id;
+GUID ebpf_hook_extension_interface_id;
+
+GUID ebpf_general_helper_function_module_id = {/* 8d2a1d3f-9ce6-473d-b48e-17aa5c5581fe */
+                                               0x8d2a1d3f,
+                                               0x9ce6,
+                                               0x473d,
+                                               {0xb4, 0x8e, 0x17, 0xaa, 0x5c, 0x55, 0x81, 0xfe}};
 
 static ebpf_pinning_table_t* _ebpf_core_map_pinning_table = NULL;
 
@@ -102,12 +106,9 @@ ebpf_result_t
 ebpf_core_initiate()
 {
     ebpf_result_t return_value;
-    GUID module_id = {0};
 
-    return_value = ebpf_guid_create(&module_id);
-    if (return_value != EBPF_SUCCESS) {
-        goto Done;
-    }
+    ebpf_program_information_extension_interface_id = EBPF_PROGRAM_INFO_EXTENSION_IID;
+    ebpf_hook_extension_interface_id = EBPF_HOOK_EXTENSION_IID;
 
     return_value = ebpf_platform_initiate();
     if (return_value != EBPF_SUCCESS)
@@ -147,8 +148,8 @@ ebpf_core_initiate()
     _ebpf_global_helper_program_info.helper_prototype = ebpf_core_helper_function_prototype;
     return_value = ebpf_provider_load(
         &_ebpf_global_helper_function_provider_context,
-        &ebpf_general_helper_function_interface_id,
-        &module_id,
+        &ebpf_program_information_extension_interface_id,
+        &ebpf_general_helper_function_module_id,
         NULL,
         &_ebpf_global_helper_function_extension_data,
         NULL,
