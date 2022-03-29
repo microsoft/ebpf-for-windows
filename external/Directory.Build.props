@@ -4,9 +4,10 @@
   SPDX-License-Identifier: MIT
 -->
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" TreatAsLocalProperty="Platform">
-  <Import Project="$(SolutionDir)Directory.Build.props"/>
   <!-- Override the rules for projects that are not under control of this project -->
-  <PropertyGroup>
+  <PropertyGroup Condition="'$(Analysis)'=='True'">
+    <DisableAnalyzeExternal>true</DisableAnalyzeExternal>
+    <RunCodeAnalysis>true</RunCodeAnalysis>
     <CodeAnalysisRuleSet>$(SolutionDir)external\Analyze.external.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
 </Project>
