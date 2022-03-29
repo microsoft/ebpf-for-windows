@@ -218,6 +218,7 @@ ebpf_core_load_code(
     _In_reads_(code_size) const uint8_t* code,
     size_t code_size)
 {
+    EBPF_LOG_ENTRY();
     ebpf_result_t retval;
     ebpf_program_t* program = NULL;
     retval = ebpf_reference_object_by_handle(program_handle, EBPF_OBJECT_PROGRAM, (ebpf_core_object_t**)&program);
@@ -230,7 +231,7 @@ ebpf_core_load_code(
 
 Done:
     ebpf_object_release_reference((ebpf_core_object_t*)program);
-    return retval;
+    EBPF_RETURN_RESULT(retval);
 }
 
 static ebpf_result_t
@@ -277,6 +278,7 @@ ebpf_core_resolve_helper(
     _In_reads_(count_of_helpers) const uint32_t* helper_function_ids,
     _Out_writes_(count_of_helpers) uint64_t* helper_function_addresses)
 {
+    EBPF_LOG_ENTRY();
     ebpf_program_t* program = NULL;
     ebpf_result_t return_value =
         ebpf_reference_object_by_handle(program_handle, EBPF_OBJECT_PROGRAM, (ebpf_core_object_t**)&program);
@@ -293,7 +295,7 @@ ebpf_core_resolve_helper(
 
 Done:
     ebpf_object_release_reference((ebpf_core_object_t*)program);
-    return return_value;
+    EBPF_RETURN_RESULT(return_value);
 }
 
 static ebpf_result_t
@@ -349,6 +351,7 @@ ebpf_core_resolve_maps(
     _In_reads_(count_of_maps) const ebpf_handle_t* map_handles,
     _Out_writes_(count_of_maps) uintptr_t* map_addresses)
 {
+    EBPF_LOG_ENTRY();
     ebpf_program_t* program = NULL;
     ebpf_result_t return_value =
         ebpf_reference_object_by_handle(program_handle, EBPF_OBJECT_PROGRAM, (ebpf_core_object_t**)&program);
@@ -372,7 +375,7 @@ ebpf_core_resolve_maps(
 
 Done:
     ebpf_object_release_reference((ebpf_core_object_t*)program);
-    return return_value;
+    EBPF_RETURN_RESULT(return_value);
 }
 
 static ebpf_result_t
@@ -411,6 +414,7 @@ ebpf_core_create_map(
     ebpf_handle_t inner_map_handle,
     _Out_ ebpf_handle_t* map_handle)
 {
+    EBPF_LOG_ENTRY();
     ebpf_result_t retval;
     ebpf_map_t* map = NULL;
 
@@ -429,7 +433,7 @@ ebpf_core_create_map(
 
 Done:
     ebpf_object_release_reference(map_object);
-    return retval;
+    EBPF_RETURN_RESULT(retval);
 }
 
 static ebpf_result_t
@@ -906,6 +910,7 @@ Done:
 ebpf_result_t
 ebpf_core_update_pinning(const ebpf_handle_t handle, _In_ const ebpf_utf8_string_t* path)
 {
+    EBPF_LOG_ENTRY();
     ebpf_result_t retval = EBPF_SUCCESS;
     ebpf_core_object_t* object = NULL;
 
@@ -922,7 +927,7 @@ ebpf_core_update_pinning(const ebpf_handle_t handle, _In_ const ebpf_utf8_string
 Done:
     ebpf_object_release_reference((ebpf_core_object_t*)object);
 
-    return retval;
+    EBPF_RETURN_RESULT(retval);
 }
 
 static ebpf_result_t
@@ -948,6 +953,7 @@ Done:
 ebpf_result_t
 ebpf_core_get_pinned_object(_In_ const ebpf_utf8_string_t* path, _Out_ ebpf_handle_t* handle)
 {
+    EBPF_LOG_ENTRY();
     ebpf_result_t retval;
     ebpf_core_object_t* object = NULL;
     retval = ebpf_pinning_table_find(_ebpf_core_map_pinning_table, path, (ebpf_core_object_t**)&object);
@@ -958,7 +964,7 @@ ebpf_core_get_pinned_object(_In_ const ebpf_utf8_string_t* path, _Out_ ebpf_hand
 
 Done:
     ebpf_object_release_reference((ebpf_core_object_t*)object);
-    return retval;
+    EBPF_RETURN_RESULT(retval);
 }
 
 static ebpf_result_t
@@ -1253,6 +1259,7 @@ Exit:
 ebpf_result_t
 ebpf_core_get_handle_by_id(ebpf_object_type_t type, ebpf_id_t id, _Out_ ebpf_handle_t* handle)
 {
+    EBPF_LOG_ENTRY();
     ebpf_core_object_t* object;
     ebpf_result_t result = ebpf_object_reference_by_id(id, type, &object);
     if (result != EBPF_SUCCESS) {
@@ -1262,7 +1269,7 @@ ebpf_core_get_handle_by_id(ebpf_object_type_t type, ebpf_id_t id, _Out_ ebpf_han
     result = ebpf_handle_create(handle, object);
     ebpf_object_release_reference(object);
 
-    return result;
+    EBPF_RETURN_RESULT(result);
 }
 
 static ebpf_result_t
