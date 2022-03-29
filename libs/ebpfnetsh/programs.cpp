@@ -187,8 +187,7 @@ handle_ebpf_add_program(
     void* attach_parameters = nullptr;
     size_t attach_parameters_size = 0;
     if (interface_parameter != nullptr) {
-        ebpf_result_t result =
-            _process_interface_parameter(interface_parameter, bpf_program__get_type(program), &if_index);
+        result = _process_interface_parameter(interface_parameter, bpf_program__get_type(program), &if_index);
         if (result == EBPF_SUCCESS) {
             attach_parameters = &if_index;
             attach_parameters_size = sizeof(if_index);
@@ -384,9 +383,9 @@ _ebpf_program_attach_by_id(ebpf_id_t program_id, ebpf_attach_type_t attach_type,
 
     struct bpf_link* link;
     if (result == EBPF_SUCCESS) {
-        ebpf_result_t result =
+        ebpf_result_t local_result =
             ebpf_program_attach_by_fd(program_fd, &attach_type, attach_parameters, attach_parameters_size, &link);
-        if (result == EBPF_SUCCESS)
+        if (local_result == EBPF_SUCCESS)
             ebpf_link_close(link);
     }
 
@@ -454,7 +453,7 @@ handle_ebpf_set_program(
         3, // Two required tags plus at least one optional tag.
         tag_type);
 
-    uint32_t id;
+    uint32_t id = 0;
     std::string pinpath;
     ebpf_attach_type_t attach_type = EBPF_ATTACH_TYPE_UNSPECIFIED;
     for (int i = 0; (status == NO_ERROR) && ((i + current_index) < argc); i++) {
