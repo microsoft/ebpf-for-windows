@@ -314,7 +314,8 @@ ebpf_program_load_providers(ebpf_program_t* program)
 
     return_value = ebpf_extension_load(
         &program->general_helper_extension_client,
-        &ebpf_general_helper_function_interface_id,
+        &ebpf_program_information_extension_interface_id, // Load program information extension.
+        &ebpf_general_helper_function_module_id,          // Expected provider module Id.
         &module_id,
         program,
         NULL,
@@ -329,7 +330,7 @@ ebpf_program_load_providers(ebpf_program_t* program)
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_PROGRAM,
             "Failed to load general helper functions",
-            ebpf_general_helper_function_interface_id);
+            ebpf_general_helper_function_module_id);
         goto Done;
     }
 
@@ -338,7 +339,7 @@ ebpf_program_load_providers(ebpf_program_t* program)
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_PROGRAM,
             "program->general_helper_provider_data can not be NULL",
-            ebpf_general_helper_function_interface_id);
+            ebpf_general_helper_function_module_id);
         return_value = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
@@ -349,7 +350,7 @@ ebpf_program_load_providers(ebpf_program_t* program)
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_PROGRAM,
             "general_helper_program_data->helper_function_addresses can not be NULL",
-            ebpf_general_helper_function_interface_id);
+            ebpf_general_helper_function_module_id);
         return_value = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
@@ -361,7 +362,8 @@ ebpf_program_load_providers(ebpf_program_t* program)
 
     return_value = ebpf_extension_load(
         &program->program_info_client,
-        &program->parameters.program_type,
+        &ebpf_program_information_extension_interface_id, // Load program information extension.
+        &program->parameters.program_type,                // Program type is the expected provider module Id.
         &module_id,
         program,
         NULL,
