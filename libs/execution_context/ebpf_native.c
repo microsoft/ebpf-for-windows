@@ -342,7 +342,7 @@ _ebpf_native_client_detach_callback(_In_ void* context, _In_ const GUID* client_
     UNREFERENCED_PARAMETER(context);
 
     EBPF_LOG_MESSAGE_GUID(
-        EBPF_TRACELOG_LEVEL_ERROR,
+        EBPF_TRACELOG_LEVEL_INFO,
         EBPF_TRACELOG_KEYWORD_NATIVE,
         "_ebpf_native_client_detach_callback: Called for",
         *client_id);
