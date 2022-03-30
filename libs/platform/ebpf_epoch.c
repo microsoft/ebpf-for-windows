@@ -77,7 +77,7 @@ static volatile int64_t _ebpf_release_epoch = 0;
 /**
  * @brief Flag to indicate that eBPF epoch tracker is shutting down.
  */
-static bool _ebpf_epoch_rundown = false;
+static volatile bool _ebpf_epoch_rundown = false;
 
 /**
  * @brief Timer used to update _ebpf_release_epoch.
@@ -137,6 +137,7 @@ typedef enum _ebpf_epoch_per_cpu_flags
 {
     EBPF_EPOCH_PER_CPU_TIMER_ARMED = (1 << 0),
     EBPF_EPOCH_PER_CPU_STALE = (1 << 1),
+    EBPF_EPOCH_PER_CPU_SHUTDOWN = (1 << 2),
 } ebpf_epoch_per_cpu_flags_t;
 
 static bool
@@ -216,10 +217,20 @@ ebpf_epoch_terminate()
     EBPF_LOG_ENTRY();
     uint32_t cpu_id;
 
+    _ebpf_epoch_rundown = true;
+
+    for (cpu_id = 0; cpu_id < _ebpf_epoch_cpu_count; cpu_id++) {
+        ebpf_lock_state_t lock_state = ebpf_lock_lock(&_ebpf_epoch_cpu_table[cpu_id].lock);
+
+        // Set the shutdown flag.
+        _ebpf_set_per_cpu_flag(&_ebpf_epoch_cpu_table[cpu_id], EBPF_EPOCH_PER_CPU_SHUTDOWN, true);
+
+        ebpf_lock_unlock(&_ebpf_epoch_cpu_table[cpu_id].lock, lock_state);
+    }
+
     ebpf_free_timer_work_item(_ebpf_flush_timer);
     _ebpf_flush_timer = NULL;
 
-    _ebpf_epoch_rundown = true;
     for (cpu_id = 0; cpu_id < _ebpf_epoch_cpu_count; cpu_id++) {
         _ebpf_epoch_release_free_list(&_ebpf_epoch_cpu_table[cpu_id], MAXINT64);
         ebpf_assert(ebpf_list_is_empty(&_ebpf_epoch_cpu_table[cpu_id].free_list));
@@ -275,7 +286,6 @@ ebpf_epoch_exit()
         ebpf_lock_unlock(&_ebpf_epoch_cpu_table[current_cpu].lock, state);
     }
 
-    // Reap the free list.
     if (!ebpf_list_is_empty(&_ebpf_epoch_cpu_table[current_cpu].free_list)) {
         _ebpf_epoch_release_free_list(&_ebpf_epoch_cpu_table[current_cpu], _ebpf_release_epoch);
     }
@@ -420,9 +430,11 @@ _ebpf_epoch_release_free_list(_In_ ebpf_epoch_cpu_entry_t* cpu_entry, int64_t re
             break;
         }
     }
-    // If there are still items in the free list, schedule a timer to reap them in the future.
+    // If epoch shutdown has not started and there are still items in the free list,
+    // schedule a timer to reap them in the future.
     if (!ebpf_list_is_empty(&cpu_entry->free_list) &&
-        !_ebpf_get_per_cpu_flag(cpu_entry, EBPF_EPOCH_PER_CPU_TIMER_ARMED)) {
+        !_ebpf_get_per_cpu_flag(cpu_entry, EBPF_EPOCH_PER_CPU_TIMER_ARMED) &&
+        !_ebpf_get_per_cpu_flag(cpu_entry, EBPF_EPOCH_PER_CPU_SHUTDOWN)) {
         // We will arm the timer once per CPU that sees entries it can't release.
         // That's acceptable as arming the timer is idempotent.
         _ebpf_set_per_cpu_flag(cpu_entry, EBPF_EPOCH_PER_CPU_TIMER_ARMED, true);
