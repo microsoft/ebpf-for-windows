@@ -1,14 +1,17 @@
+# Copyright (c) Microsoft Corporation
+# SPDX-License-Identifier: MIT
+
 # For documentation on the github environment, see
 # https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners
 #
 # For documentation on the syntax of this file, see
 # https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions
-name: MSBuild
-
-on: pull_request
+name: Address Sanitizer Build
 
 permissions:
   contents: read
+  
+on: pull_request
 
 jobs:
   build:
@@ -28,7 +31,7 @@ jobs:
       BUILD_PLATFORM: x64
 
     steps:
-    - uses: actions/checkout@b0e28b5ac45a892f91e7d036f8200cf5ed489415
+    - uses: actions/checkout@629c2de402a417ea7690ca6ce3f33229e27606a5
       with:
         submodules: 'recursive'
 
@@ -42,7 +45,6 @@ jobs:
         7z x Procdump.zip -y -o"C:/Program Files/ProcDump"
         echo "C:\Program Files\ProcDump" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
         mkdir c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
-        echo "test" > c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/test.txt
 
     - name: Set AeDebug registry key
       working-directory: c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
@@ -74,10 +76,10 @@ jobs:
       working-directory: ${{env.GITHUB_WORKSPACE}}
       # Add additional options to the MSBuild command line here (like platform or verbosity level).
       # See https://docs.microsoft.com/visualstudio/msbuild/msbuild-command-line-reference
-      run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{env.BUILD_PLATFORM}} /p:Analysis='True' ${{env.SOLUTION_FILE_PATH}}
+      run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{env.BUILD_PLATFORM}} ${{env.SOLUTION_FILE_PATH}} /p:AddressSanitizer='True' /t:tests\unit_tests:Rebuild /t:tests\ebpf_client:Rebuild
 
     - name: Upload Build Output
-      uses: actions/upload-artifact@6673cd052c4cd6fcf4b4e6e60ea986c889389535
+      uses: actions/upload-artifact@27121b0bdffd731efa15d66772be8dc71245d074
       with:
         name: Build x64 ${{ matrix.configurations }}
         path: ${{ github.workspace }}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
@@ -85,18 +87,16 @@ jobs:
 
     - name: Run Unit Tests
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
-      run: ./unit_tests.exe -s
-
-    - name: Run RPC Client Tests
-      working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
-      run: ./ebpf_client.exe -s
+      run: |
+        copy "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Tools\MSVC\14.29.30133\bin\Hostx64\x64\clang*" .
+        ./unit_tests.exe -s
 
     - name: Check for crash dumps
       working-directory: c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
       run: if (Test-Path *.dmp) { exit 1 }
 
     - name: Upload any crash dumps
-      uses: actions/upload-artifact@6673cd052c4cd6fcf4b4e6e60ea986c889389535
+      uses: actions/upload-artifact@27121b0bdffd731efa15d66772be8dc71245d074
       if: failure()
       with:
         name: Crash-Dumps-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}

@@ -9,6 +9,7 @@
 #if !defined(_countof)
 #define _countof(array) (sizeof(array) / sizeof(array[0]))
 #endif
+#include <cassert>
 
 static const std::string _register_names[11] = {
     "r0",
@@ -473,7 +474,11 @@ bpf_code_generator::encode_instructions()
                 output.lines.push_back(format_string("%s = %s;", destination, source));
             } else {
                 std::string source;
-                source = format_string("_maps[%s].address", std::to_string(map_definitions[output.relocation].index));
+                auto map_definition = map_definitions.find(output.relocation);
+                if (map_definition == map_definitions.end()) {
+                    throw std::runtime_error(std::string("Map ") + output.relocation + std::string(" doesn't exist"));
+                }
+                source = format_string("_maps[%s].address", std::to_string(map_definition->second.index));
                 output.lines.push_back(format_string("%s = POINTER(%s);", destination, source));
             }
         } break;
@@ -549,6 +554,8 @@ bpf_code_generator::encode_instructions()
                             helper_functions[std::string("helper_id_") + std::to_string(output.instruction.imm)]
                                 .index));
                 } else {
+                    auto helper_function = helper_functions.find(output.relocation);
+                    assert(helper_function != helper_functions.end());
                     function_name =
                         format_string("_helpers[%s]", std::to_string(helper_functions[output.relocation].index));
                 }
