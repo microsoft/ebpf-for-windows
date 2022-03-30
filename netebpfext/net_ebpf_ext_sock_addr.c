@@ -199,7 +199,6 @@ net_ebpf_ext_sock_addr_register_providers()
 
     _net_ebpf_sock_addr_hook_provider_data.supported_program_type = EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR;
     for (int i = 0; i < NET_EBPF_SOCK_ADDR_HOOK_PROVIDER_COUNT; i++) {
-        // Set the attach type as the provider module id.
         const net_ebpf_extension_hook_provider_parameters_t hook_provider_parameters = {
             &_ebpf_sock_addr_hook_provider_moduleid[i],
             &_net_ebpf_extension_sock_addr_hook_provider_data,
