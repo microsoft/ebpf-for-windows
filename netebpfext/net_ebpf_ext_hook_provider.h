@@ -63,6 +63,7 @@ net_ebpf_extension_hook_client_set_provider_data(_In_ net_ebpf_extension_hook_cl
  * @brief Get the hook-specific provider data for the attached client.
  *
  * @param[in] hook_client Pointer to attached hook NPI client.
+ * @param[in] data hook-specific provider data.
  *
  * @returns Pointer to hook-specific provider data for the attached client.
  */
