@@ -526,6 +526,7 @@ ebpf_free_timer_work_item(_Frees_ptr_opt_ ebpf_timer_work_item_t* work_item)
 
     KeCancelTimer(&work_item->timer);
     KeRemoveQueueDpc(&work_item->deferred_procedure_call);
+    KeFlushQueuedDpcs();
     ebpf_free(work_item);
 }
 
