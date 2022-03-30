@@ -22,8 +22,8 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get -y install python3 python3-pip python3-setuptools python3-wheel nuget
-        python3 -m pip install --upgrade "pip<21.0"
-        python3 -m pip install -r external/ubpf/requirements.txt
+        python3 -m pip install external/parcon
+        python3 -m pip install --require-hash -r tests/bpf2c_tests/requirements.txt
 
     - name: Restore nuget packages
       working-directory: ${{env.GITHUB_WORKSPACE}}
