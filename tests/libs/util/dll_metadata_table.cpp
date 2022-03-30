@@ -94,7 +94,8 @@ dll_metadata_table::bind_metadata_table()
 
     if (ebpf_extension_load(
             &client_context,
-            &ebpf_general_helper_function_interface_id,
+            &ebpf_program_information_extension_interface_id,
+            &ebpf_general_helper_function_module_id,
             &module_id,
             &client_binding_context,
             &client_data,
@@ -103,18 +104,18 @@ dll_metadata_table::bind_metadata_table()
             &returned_provider_data,
             &returned_provider_dispatch_table,
             nullptr) != EBPF_SUCCESS) {
-        throw std::runtime_error("ebpf_extension_load failed for ebpf_general_helper_function_interface_id");
+        throw std::runtime_error("ebpf_extension_load failed for ebpf_general_helper_function_module_id");
     }
 
     ebpf_program_data_t* general_helper_program_data = NULL;
     general_helper_program_data = (ebpf_program_data_t*)returned_provider_data->data;
     if (general_helper_program_data == nullptr) {
-        throw std::runtime_error("ebpf_extension_load failed for ebpf_general_helper_function_interface_id");
+        throw std::runtime_error("ebpf_extension_load failed for ebpf_general_helper_function_module_id");
     }
 
     for (size_t i = 0; i < helpers_count; i++) {
         if (helpers[i].helper_id >= general_helper_program_data->helper_function_addresses->helper_function_count) {
-            throw std::runtime_error("ebpf_extension_load failed for ebpf_general_helper_function_interface_id");
+            throw std::runtime_error("ebpf_extension_load failed for ebpf_general_helper_function_module_id");
         }
         helpers[i].address = reinterpret_cast<decltype(helpers[i].address)>(
             general_helper_program_data->helper_function_addresses->helper_function_address[helpers[i].helper_id]);
@@ -137,7 +138,7 @@ dll_metadata_table::bind_metadata_table()
                 &mem_map_definition,
                 ebpf_handle_invalid,
                 reinterpret_cast<ebpf_map_t**>(&maps[i].address)) != EBPF_SUCCESS) {
-            throw std::runtime_error("ebpf_extension_load failed for ebpf_general_helper_function_interface_id");
+            throw std::runtime_error("ebpf_extension_load failed for ebpf_general_helper_function_module_id");
         }
         ebpf_handle_t handle;
         if (ebpf_handle_create(&handle, reinterpret_cast<ebpf_core_object_t*>(maps[i].address)) != EBPF_SUCCESS) {

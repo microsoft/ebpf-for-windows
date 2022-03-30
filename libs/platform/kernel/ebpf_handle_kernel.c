@@ -87,8 +87,8 @@ ebpf_handle_close(ebpf_handle_t handle)
         EBPF_RETURN_RESULT(EBPF_SUCCESS);
 }
 
-ebpf_result_t
-ebpf_reference_object_by_handle(ebpf_handle_t handle, ebpf_object_type_t object_type, ebpf_core_object_t** object)
+_IRQL_requires_max_(PASSIVE_LEVEL) ebpf_result_t ebpf_reference_object_by_handle(
+    ebpf_handle_t handle, ebpf_object_type_t object_type, _Outptr_ ebpf_core_object_t** object)
 {
     ebpf_result_t return_value;
     NTSTATUS status;

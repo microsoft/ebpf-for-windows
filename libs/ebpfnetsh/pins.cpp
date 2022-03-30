@@ -21,6 +21,9 @@ DWORD
 handle_ebpf_show_pins(
     LPCWSTR machine, LPWSTR* argv, DWORD current_index, DWORD argc, DWORD flags, LPCVOID data, BOOL* done)
 {
+    UNREFERENCED_PARAMETER(argv);
+    UNREFERENCED_PARAMETER(current_index);
+    UNREFERENCED_PARAMETER(argc);
     UNREFERENCED_PARAMETER(machine);
     UNREFERENCED_PARAMETER(flags);
     UNREFERENCED_PARAMETER(data);
@@ -39,8 +42,8 @@ handle_ebpf_show_pins(
     }
 
     // Now walk through all paths in code point order.
-    for (auto pinpath : paths) {
-        int program_fd = bpf_obj_get(pinpath.c_str());
+    for (auto path : paths) {
+        int program_fd = bpf_obj_get(path.c_str());
         if (program_fd < 0) {
             continue;
         }
@@ -48,7 +51,7 @@ handle_ebpf_show_pins(
         struct bpf_prog_info info;
         uint32_t info_size = (uint32_t)sizeof(info);
         if (bpf_obj_get_info_by_fd(program_fd, &info, &info_size) == 0) {
-            printf("%7u  Program  %s\n", info.id, pinpath.c_str());
+            printf("%7u  Program  %s\n", info.id, path.c_str());
         }
 
         Platform::_close(program_fd);
