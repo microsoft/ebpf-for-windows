@@ -34,7 +34,7 @@ Exit:
 }
 
 //
-// WFP XDP layer filter related types & globals.
+// WFP filter related types & globals for XDP hook.
 //
 
 const net_ebpf_extension_wfp_filter_parameters_t _net_ebpf_extension_xdp_wfp_filter_parameters[] = {
@@ -95,11 +95,14 @@ static net_ebpf_extension_hook_provider_t* _ebpf_xdp_hook_provider_context = NUL
 //
 
 static ebpf_result_t
-net_ebpf_extension_xdp_on_client_attach(_In_ const net_ebpf_extension_hook_client_t* attaching_client)
+net_ebpf_extension_xdp_on_client_attach(
+    _In_ const net_ebpf_extension_hook_client_t* attaching_client,
+    _In_ const net_ebpf_extension_hook_provider_t* provider_context)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     const ebpf_extension_data_t* client_data = net_ebpf_extension_hook_client_get_client_data(attaching_client);
     uint32_t if_index;
+    uint32_t wild_card_if_index = 0;
     uint32_t filter_count;
     FWPM_FILTER_CONDITION condition = {0};
     net_ebpf_extension_xdp_wfp_filter_context_t* filter_context = NULL;
@@ -110,49 +113,24 @@ net_ebpf_extension_xdp_on_client_attach(_In_ const net_ebpf_extension_hook_clien
         goto Exit;
     }
 
-    // Validate client data.
-    if (client_data->version != EBPF_ATTACH_CLIENT_DATA_VERSION) {
-        result = EBPF_INVALID_ARGUMENT;
-        goto Exit;
-    }
-
     if (client_data->size > 0) {
-        if ((client_data->size < sizeof(uint32_t)) || (client_data->data == NULL)) {
+        if ((client_data->size != sizeof(uint32_t)) || (client_data->data == NULL)) {
             result = EBPF_INVALID_ARGUMENT;
             goto Exit;
         }
         if_index = *(uint32_t*)client_data->data;
     } else {
         // If the client did not specify any attach parameters, we treat that as a wildcard interface index.
-        if_index = 0;
+        if_index = wild_card_if_index;
     }
 
-    if (if_index == 0) {
-        // Client requested wildcard interface. This will only be allowed if there are no other clients attached.
-        if (net_ebpf_extension_hook_get_next_attached_client(_ebpf_xdp_hook_provider_context, NULL) != NULL) {
-            result = EBPF_ACCESS_DENIED;
-            goto Exit;
-        }
-    } else {
-        if (!NT_SUCCESS(_net_ebpf_extension_xdp_validate_if_index(if_index))) {
-            result = EBPF_INVALID_ARGUMENT;
-            goto Exit;
-        }
-        // Ensure there are no other clients with interface index 0 or with the same interface index as the
-        // requesting client.
-        net_ebpf_extension_hook_client_t* next_client =
-            net_ebpf_extension_hook_get_next_attached_client(_ebpf_xdp_hook_provider_context, NULL);
-        while (next_client != NULL) {
-            const ebpf_extension_data_t* next_client_data = net_ebpf_extension_hook_client_get_client_data(next_client);
-            uint32_t next_client_if_index = (next_client_data->data == NULL) ? 0 : *(uint32_t*)next_client_data->data;
-            if ((next_client_if_index == 0) || (if_index == next_client_if_index)) {
-                result = EBPF_ACCESS_DENIED;
-                goto Exit;
-            }
-            next_client =
-                net_ebpf_extension_hook_get_next_attached_client(_ebpf_xdp_hook_provider_context, next_client);
-        }
-    }
+    result = net_ebpf_extension_hook_check_attach_parameter(
+        sizeof(if_index), &if_index, &wild_card_if_index, (net_ebpf_extension_hook_provider_t*)provider_context);
+    if (result != EBPF_SUCCESS)
+        goto Exit;
+
+    if (client_data->data != NULL)
+        if_index = *(uint32_t*)client_data->data;
 
     // Set interface index (if non-zero) as WFP filter condition.
     if (if_index != 0) {
@@ -233,6 +211,7 @@ net_ebpf_ext_xdp_register_providers()
         &hook_provider_parameters,
         net_ebpf_extension_xdp_on_client_attach,
         _net_ebpf_extension_xdp_on_client_detach,
+        NULL,
         &_ebpf_xdp_hook_provider_context);
 
     if (status != EBPF_SUCCESS)
