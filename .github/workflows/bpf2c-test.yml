@@ -13,7 +13,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@629c2de402a417ea7690ca6ce3f33229e27606a5
+    - name: Harden Runner
+      uses: step-security/harden-runner@9b0655f430fba8c7001d4e38f8d4306db5c6e0ab
+      with:
+        egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+
+    - uses: actions/checkout@b0e28b5ac45a892f91e7d036f8200cf5ed489415
       with:
         submodules: 'recursive'
 
@@ -22,8 +27,8 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get -y install python3 python3-pip python3-setuptools python3-wheel nuget
-        python3 -m pip install --upgrade "pip<21.0"
-        python3 -m pip install -r external/ubpf/requirements.txt
+        python3 -m pip install external/parcon
+        python3 -m pip install --require-hash -r tests/bpf2c_tests/requirements.txt
 
     - name: Restore nuget packages
       working-directory: ${{env.GITHUB_WORKSPACE}}

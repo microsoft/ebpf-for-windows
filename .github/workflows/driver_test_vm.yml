@@ -32,7 +32,7 @@ jobs:
       BUILD_PLATFORM: x64
 
     steps:
-    - uses: actions/checkout@629c2de402a417ea7690ca6ce3f33229e27606a5
+    - uses: actions/checkout@b0e28b5ac45a892f91e7d036f8200cf5ed489415
       with:
         submodules: 'recursive'
 
@@ -65,13 +65,16 @@ jobs:
       run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{env.BUILD_PLATFORM}} ${{env.SOLUTION_FILE_PATH}}
 
     - name: Upload Build Output
-      uses: actions/upload-artifact@27121b0bdffd731efa15d66772be8dc71245d074
+      uses: actions/upload-artifact@6673cd052c4cd6fcf4b4e6e60ea986c889389535
       with:
         name: Build x64 ${{ matrix.configurations }}
         path: ${{ github.workspace }}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
         retention-days: 5
 
   run_tests:
+    permissions:
+      checks: read  # for fountainhead/action-wait-for-check to wait for another GitHub check to complete
+      contents: read  # for actions/checkout to fetch code
     strategy:
       matrix:
         configurations: [Debug, Release]
@@ -83,7 +86,7 @@ jobs:
       BUILD_PLATFORM: x64
 
     steps:
-    - uses: actions/checkout@629c2de402a417ea7690ca6ce3f33229e27606a5
+    - uses: actions/checkout@b0e28b5ac45a892f91e7d036f8200cf5ed489415
       with:
         ref: ${{ github.event.workflow_run.head_branch }}
 
@@ -122,7 +125,7 @@ jobs:
 
     - name: Upload log files
       if: always()
-      uses: actions/upload-artifact@82c141cc518b40d92cc801eee768e7aafc9c2fa2
+      uses: actions/upload-artifact@6673cd052c4cd6fcf4b4e6e60ea986c889389535
       with:
         name: Test-Logs-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}
         path: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/TestLogs
