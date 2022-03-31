@@ -1293,6 +1293,16 @@ extern "C"
         TraceLoggingString(#api, "api"),                    \
         TraceLoggingNTStatus(status));
 
+#define EBPF_LOG_NTSTATUS_WSTRING_API(keyword, wstring, api, status) \
+    TraceLoggingWrite(                                               \
+        ebpf_tracelog_provider,                                      \
+        EBPF_TRACELOG_EVENT_GENERIC_MESSAGE,                         \
+        TraceLoggingLevel(EBPF_TRACELOG_LEVEL_INFO),                 \
+        TraceLoggingKeyword((keyword)),                              \
+        TraceLoggingWideString(wstring, "Message"),                  \
+        TraceLoggingString(#api, "api"),                             \
+        TraceLoggingNTStatus(status));
+
 #ifdef __cplusplus
 }
 #endif

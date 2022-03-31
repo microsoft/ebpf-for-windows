@@ -2445,6 +2445,9 @@ Done:
     free(map_handles);
     free(program_handles);
 
+    // TODO:
+    // TODO: (Isse# ) On Server 2019, ZwUnloadDriver fails for services which have
+    // been marked for deletion. As a workaround for this, not deleting the service.
     // Platform::_delete_service(service_handle);
     return result;
 }

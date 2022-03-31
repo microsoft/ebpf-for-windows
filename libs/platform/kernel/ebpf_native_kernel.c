@@ -14,6 +14,7 @@ ebpf_native_load_driver(_In_z_ const wchar_t* service_name)
 
     RtlInitUnicodeString(&driver_service_name, service_name);
     status = ZwLoadDriver(&driver_service_name);
+    EBPF_LOG_NTSTATUS_WSTRING_API(EBPF_TRACELOG_KEYWORD_NATIVE, service_name, ZwLoadDriver, status);
     if (status != STATUS_SUCCESS) {
         result = EBPF_FAILED;
     }
@@ -24,7 +25,9 @@ ebpf_native_load_driver(_In_z_ const wchar_t* service_name)
 void
 ebpf_native_unload_driver(_In_z_ const wchar_t* service_name)
 {
+    NTSTATUS status;
     UNICODE_STRING driver_service_name;
     RtlInitUnicodeString(&driver_service_name, service_name);
-    ZwUnloadDriver(&driver_service_name);
+    status = ZwUnloadDriver(&driver_service_name);
+    EBPF_LOG_NTSTATUS_WSTRING_API(EBPF_TRACELOG_KEYWORD_NATIVE, service_name, ZwUnloadDriver, status);
 }

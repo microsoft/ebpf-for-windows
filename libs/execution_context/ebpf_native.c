@@ -58,6 +58,7 @@ typedef struct _ebpf_native
     ebpf_native_program_t* programs;
     size_t program_count;
     ebpf_handle_t client_binding_handle;
+    ebpf_list_entry_t list_entry;
 } ebpf_native_t;
 
 static GUID _ebpf_native_npi_id = {/* c847aac8-a6f2-4b53-aea3-f4a94b9a80cb */
@@ -216,25 +217,39 @@ static void
 _ebpf_native_unload_all()
 {
     EBPF_LOG_ENTRY();
-    ebpf_result_t result;
+    ebpf_result_t result = EBPF_SUCCESS;
     ebpf_lock_state_t state;
-    bool lock_acquired = false;
+    ebpf_list_entry_t free_list;
+    ebpf_list_entry_t* entry;
+    GUID module_id = GUID_NULL;
+    ebpf_native_t** module = NULL;
 
-    for (;;) {
-        GUID module_id;
-        state = ebpf_lock_lock(&_ebpf_native_client_table_lock);
-        lock_acquired = true;
-        result = ebpf_hash_table_next_key(_ebpf_native_client_table, (const uint8_t*)NULL, (uint8_t*)&module_id);
+    ebpf_list_initialize(&free_list);
+
+    // Add all the modules in a free list.
+    state = ebpf_lock_lock(&_ebpf_native_client_table_lock);
+    while (true) {
+        result = ebpf_hash_table_next_key_and_value(
+            _ebpf_native_client_table,
+            (const uint8_t*)(IsEqualGUID(&module_id, &GUID_NULL) ? NULL : &module_id),
+            (uint8_t*)&module_id,
+            (uint8_t**)&module);
         if (result != EBPF_SUCCESS) {
             ebpf_assert(result == EBPF_NO_MORE_KEYS);
             break;
         }
-        ebpf_lock_unlock(&_ebpf_native_client_table_lock, state);
-        ebpf_native_unload(&module_id);
-    }
 
-    if (lock_acquired) {
-        ebpf_lock_unlock(&_ebpf_native_client_table_lock, state);
+        // Add the module to the free list.
+        ebpf_list_insert_tail(&free_list, &((*module)->list_entry));
+    }
+    ebpf_lock_unlock(&_ebpf_native_client_table_lock, state);
+
+    while (!ebpf_list_is_empty(&free_list)) {
+        entry = free_list.Flink;
+        ebpf_native_t* free_module = CONTAINING_RECORD(entry, ebpf_native_t, list_entry);
+        ebpf_list_remove_entry(entry);
+
+        ebpf_native_unload(&free_module->client_id);
     }
 
     EBPF_RETURN_VOID();
