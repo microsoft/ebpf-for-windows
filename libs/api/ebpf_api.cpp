@@ -2279,7 +2279,7 @@ Done:
 }
 
 std::wstring
-_guid_to_wide_string(GUID* guid)
+_guid_to_wide_string(_In_ const GUID* guid)
 {
     wchar_t guid_string[37] = {0};
     swprintf(
@@ -2445,7 +2445,7 @@ Done:
     free(map_handles);
     free(program_handles);
 
-    Platform::_delete_service(service_handle);
+    // Platform::_delete_service(service_handle);
     return result;
 }
 
