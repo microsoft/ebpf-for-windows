@@ -568,8 +568,8 @@ bpf_code_generator::encode_instructions(const std::string& section_name)
                                 ->helper_functions[std::string("helper_id_") + std::to_string(output.instruction.imm)]
                                 .index));
                 } else {
-                    auto helper_function = helper_functions.find(output.relocation);
-                    assert(helper_function != helper_functions.end());
+                    auto helper_function = current_section->helper_functions.find(output.relocation);
+                    assert(helper_function != current_section->helper_functions.end());
                     function_name = format_string(
                         helper_array_prefix,
                         std::to_string(current_section->helper_functions[output.relocation].index));
