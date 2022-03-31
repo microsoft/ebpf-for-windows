@@ -14,6 +14,8 @@ using namespace std::chrono_literals;
 #include "mock.h"
 #include "test_helper.hpp"
 
+extern "C" bool ebpf_fuzzing_enabled;
+
 static uint64_t _ebpf_file_descriptor_counter = 0;
 static std::map<fd_t, ebpf_handle_t> _fd_to_handle_map;
 
@@ -188,7 +190,6 @@ GlueDeviceIoControl(
     OVERLAPPED* lpOverlapped)
 {
     UNREFERENCED_PARAMETER(hDevice);
-    UNREFERENCED_PARAMETER(nInBufferSize);
     UNREFERENCED_PARAMETER(dwIoControlCode);
 
     ebpf_result_t result;
@@ -229,6 +230,7 @@ GlueDeviceIoControl(
     result = ebpf_core_invoke_protocol_handler(
         request_id,
         user_request,
+        static_cast<uint16_t>(nInBufferSize),
         user_reply,
         static_cast<uint16_t>(nOutBufferSize),
         lpOverlapped,
@@ -322,8 +324,10 @@ _test_helper_end_to_end::~_test_helper_end_to_end()
         _duplicate_handles.rundown();
         // Verify that all maps were successfully removed.
         uint32_t id;
-        REQUIRE(bpf_map_get_next_id(0, &id) < 0);
-        REQUIRE(errno == ENOENT);
+        if (!ebpf_fuzzing_enabled) {
+            REQUIRE(bpf_map_get_next_id(0, &id) < 0);
+            REQUIRE(errno == ENOENT);
+        }
     } catch (Catch::TestFailureException&) {
     }
 
