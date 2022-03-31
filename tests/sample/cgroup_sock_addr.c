@@ -8,11 +8,7 @@ typedef struct _ip_address
 {
     union
     {
-        struct
-        {
-            uint32_t ipv4;
-            uint32_t pad[3];
-        };
+        uint32_t ipv4;
         uint32_t ipv6[4];
     };
 } ip_address_t;

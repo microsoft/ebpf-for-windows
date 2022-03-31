@@ -133,6 +133,6 @@ typedef struct bpf_sock_addr
         uint16_t user_port; ///< Destination port in network byte order.
     };
     uint32_t protocol;       ///< IP protocol.
-    uint32_t compartment_id; ///< Network compartment Id corresponding to the pod.
+    uint32_t compartment_id; ///< Network compartment Id.
 } bpf_sock_addr_t;
 #pragma warning(pop)

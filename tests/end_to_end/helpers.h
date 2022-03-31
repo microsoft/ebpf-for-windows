@@ -123,7 +123,10 @@ typedef class _single_instance_hook : public _hook_helper
     }
 
     uint32_t
-    attach(_In_ const bpf_program* program, _In_ void* attach_parameters, size_t attach_parameters_size)
+    attach(
+        _In_ const bpf_program* program,
+        _In_reads_bytes_(attach_parameters_size) void* attach_parameters,
+        size_t attach_parameters_size)
     {
         return ebpf_program_attach(program, &attach_type, attach_parameters, attach_parameters_size, &link_object);
     }
