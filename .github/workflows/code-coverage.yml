@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 name: Code-Coverage
 
-on: pull_request
+on: push
 
 permissions:
   contents: read
