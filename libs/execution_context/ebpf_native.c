@@ -18,7 +18,7 @@ static const GUID GUID_NULL = {0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0}};
 typedef uint64_t (*helper_function_address)(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5);
 
 static void
-_ebpf_native_unload_workitem(_In_ const void* module_id);
+_ebpf_native_unload_workitem(_In_opt_ const void* module_id);
 
 typedef struct _ebpf_native_map
 {
@@ -76,6 +76,17 @@ ebpf_result_t
 ebpf_native_load_driver(_In_z_ const wchar_t* service_name);
 void
 ebpf_native_unload_driver(_In_z_ const wchar_t* service_name);
+
+static inline bool
+_ebpf_native_is_map_in_map(_In_ const ebpf_native_map_t* map)
+{
+    if (map->entry->definition.type == BPF_MAP_TYPE_HASH_OF_MAPS ||
+        map->entry->definition.type == BPF_MAP_TYPE_ARRAY_OF_MAPS) {
+        return true;
+    }
+
+    return false;
+}
 
 static void
 _ebpf_native_clean_up_maps(_In_reads_(map_count) _Frees_ptr_ ebpf_native_map_t* maps, size_t map_count)
@@ -453,8 +464,7 @@ _ebpf_native_get_next_map_to_create(_In_ ebpf_native_map_t* maps, size_t map_cou
             // Already created.
             continue;
         }
-        if (map->entry->definition.type != BPF_MAP_TYPE_ARRAY_OF_MAPS &&
-            map->entry->definition.type != BPF_MAP_TYPE_HASH_OF_MAPS) {
+        if (!_ebpf_native_is_map_in_map(map)) {
             return map;
         }
         if (map->inner_map == NULL) {
@@ -540,7 +550,7 @@ _ebpf_native_initialize_maps(
     for (uint32_t i = 0; i < map_count; i++) {
         ebpf_map_definition_in_file_t* definition = &(native_maps[i].entry->definition);
         int32_t inner_map_original_fd = -1;
-        if (definition->type == BPF_MAP_TYPE_ARRAY_OF_MAPS || definition->type == BPF_MAP_TYPE_HASH_OF_MAPS) {
+        if (_ebpf_native_is_map_in_map(&native_maps[i])) {
             if (definition->inner_map_idx != 0) {
                 inner_map_original_fd = definition->inner_map_idx + ORIGINAL_FD_OFFSET;
             } else if (definition->inner_id != 0) {
@@ -558,17 +568,6 @@ _ebpf_native_initialize_maps(
 
 Done:
     EBPF_RETURN_RESULT(result);
-}
-
-static inline bool
-_ebpf_native_is_map_in_map(_In_ const ebpf_native_map_t* map)
-{
-    if (map->entry->definition.type == BPF_MAP_TYPE_HASH_OF_MAPS ||
-        map->entry->definition.type == BPF_MAP_TYPE_ARRAY_OF_MAPS) {
-        return true;
-    }
-
-    return false;
 }
 
 static ebpf_result_t
@@ -1374,7 +1373,9 @@ Done:
 }
 
 static void
-_ebpf_native_unload_workitem(_In_ const void* module_id)
+_ebpf_native_unload_workitem(_In_opt_ const void* module_id)
 {
-    ebpf_native_unload((GUID*)module_id);
+    if (module_id != NULL) {
+        ebpf_native_unload((GUID*)module_id);
+    }
 }

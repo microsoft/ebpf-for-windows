@@ -452,9 +452,8 @@ TEST_CASE("tailcall_load_test", "[tailcall_load_test]")
 }
 
 int
-perform_bind(SOCKET* socket, uint16_t port_number)
+perform_bind(_Out_ SOCKET* socket, uint16_t port_number)
 {
-    *socket = INVALID_SOCKET;
     *socket = WSASocket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP, nullptr, 0, 0);
     REQUIRE(*socket != INVALID_SOCKET);
     SOCKADDR_STORAGE sock_addr;

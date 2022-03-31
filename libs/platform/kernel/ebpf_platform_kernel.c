@@ -483,12 +483,12 @@ ebpf_queue_non_preemptible_work_item(_In_ ebpf_non_preemptible_work_item_t* work
 typedef struct _ebpf_preemptible_work_item
 {
     PIO_WORKITEM io_work_item;
-    void (*work_item_routine)(void* work_item_context);
+    void (*work_item_routine)(_In_opt_ void* work_item_context);
     void* work_item_context;
 } ebpf_preemptible_work_item_t;
 
 void
-_ebpf_preemptible_routine(PDEVICE_OBJECT device_object, PVOID context)
+_ebpf_preemptible_routine(_In_ PDEVICE_OBJECT device_object, _In_opt_ PVOID context)
 {
     UNREFERENCED_PARAMETER(device_object);
     if (context == NULL) {
@@ -505,7 +505,7 @@ _ebpf_preemptible_routine(PDEVICE_OBJECT device_object, PVOID context)
 ebpf_result_t
 ebpf_allocate_preemptible_work_item(
     _Outptr_ ebpf_preemptible_work_item_t** work_item,
-    _In_ void (*work_item_routine)(_In_ const void* work_item_context),
+    _In_ void (*work_item_routine)(_In_opt_ const void* work_item_context),
     _In_opt_ void* work_item_context)
 {
     ebpf_result_t result = EBPF_SUCCESS;
