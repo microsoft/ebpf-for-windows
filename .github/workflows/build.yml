@@ -5,7 +5,11 @@
 # https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions
 name: MSBuild
 
-on: pull_request
+# Run on push so we can capture the baseline code coverage for any squash commit.
+on:
+  push:
+    branches: [ master ]
+  pull_request:
 
 permissions:
   contents: read
