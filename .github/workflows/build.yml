@@ -60,6 +60,12 @@ jobs:
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: nuget restore ${{env.SOLUTION_FILE_PATH}}
 
+    - name: Setup OpenCppCoverage and add to PATH
+      id: setup_opencppcoverage
+      run: |
+        choco install OpenCppCoverage -y
+        echo "C:\Program Files\OpenCppCoverage" >> $env:GITHUB_PATH
+
     - name: Create verifier project
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
@@ -90,6 +96,21 @@ jobs:
     - name: Run RPC Client Tests
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
       run: ./ebpf_client.exe -s
+
+    # Run unit_tests.exe and generate unit_tests.cov
+    - name: Generate Report - Unit test
+      run: OpenCppCoverage.exe --sources $PWD --excluded_sources $PWD\external\Catch2 --export_type binary:unit_tests.cov --working_dir ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -- ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\unit_tests.exe -s
+
+    # Run ebpf_client.exe, merge unit_tests.cov and generate ebpf_for_windows.xml
+    - name: Generate Report - RPC Client Tests
+      run: OpenCppCoverage.exe --sources $PWD --excluded_sources $PWD\external\Catch2 --input_coverage unit_tests.cov --export_type cobertura:ebpf_for_windows_${{env.BUILD_CONFIGURATION}}.xml --working_dir ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -- ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\ebpf_client.exe -s
+
+    - name: Upload Report to Codecov
+      uses: codecov/codecov-action@v2
+      with:
+        files: ebpf_for_windows_${{env.BUILD_CONFIGURATION}}.xml
+        fail_ci_if_error: true
+        functionalities: fix
 
     - name: Check for crash dumps
       working-directory: c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
