@@ -93,6 +93,10 @@ main(int argc, char** argv)
             sections = generator.program_sections();
         }
 
+        // Parse global data.
+        generator.parse();
+
+        // Parse per-section data.
         for (const auto& section : sections) {
             ebpf_program_type_t program_type;
             ebpf_attach_type_t attach_type;
