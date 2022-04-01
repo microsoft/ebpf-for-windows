@@ -754,6 +754,64 @@ TEST_CASE("verify section", "[end_to_end]")
     ebpf_free_string(report);
 }
 
+static void
+_cgroup_sock_addr_load_test(
+    _In_z_ const char* file,
+    _In_z_ const char* name,
+    ebpf_attach_type_t& attach_type,
+    ebpf_execution_type_t execution_type)
+{
+    ebpf_result_t result;
+    const char* error_message = nullptr;
+    bpf_object* object = nullptr;
+    fd_t program_fd;
+
+    _test_helper_end_to_end test_helper;
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, attach_type);
+    program_info_provider_t program_info(EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR);
+
+    result = ebpf_program_load(file, nullptr, nullptr, execution_type, &object, &program_fd, &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free_string(error_message);
+        error_message = nullptr;
+    }
+
+    REQUIRE(result == EBPF_SUCCESS);
+
+    bpf_program* program = bpf_object__find_program_by_name(object, name);
+    REQUIRE(program != nullptr);
+
+    uint32_t compartment_id = 0;
+    REQUIRE(hook.attach(program, &compartment_id, sizeof(compartment_id)) == EBPF_SUCCESS);
+
+    hook.detach();
+
+    bpf_object__close(object);
+}
+
+#define DECLARE_CGROUP_SOCK_ADDR_LOAD_TEST(file, name, attach_type, execution_type)                          \
+    TEST_CASE("cgroup_sockaddr_load_test_" #name "_" #attach_type "_" #execution_type, "[cgroup_sock_addr]") \
+    {                                                                                                        \
+        _cgroup_sock_addr_load_test(file, name, attach_type, execution_type);                                \
+    }
+
+DECLARE_CGROUP_SOCK_ADDR_LOAD_TEST(
+    SAMPLE_PATH "cgroup_sock_addr.o", "authorize_connect4", EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT, EBPF_EXECUTION_JIT);
+DECLARE_CGROUP_SOCK_ADDR_LOAD_TEST(
+    SAMPLE_PATH "cgroup_sock_addr.o", "authorize_connect6", EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT, EBPF_EXECUTION_JIT);
+DECLARE_CGROUP_SOCK_ADDR_LOAD_TEST(
+    SAMPLE_PATH "cgroup_sock_addr.o",
+    "authorize_recv_accept4",
+    EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT,
+    EBPF_EXECUTION_JIT);
+DECLARE_CGROUP_SOCK_ADDR_LOAD_TEST(
+    SAMPLE_PATH "cgroup_sock_addr.o",
+    "authorize_recv_accept6",
+    EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT,
+    EBPF_EXECUTION_JIT);
+
 TEST_CASE("verify_test0", "[sample_extension]")
 {
     _test_helper_end_to_end test_helper;
