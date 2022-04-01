@@ -253,6 +253,7 @@ net_ebpf_ext_authorize_connection_classify(
     SOCKADDR_IN addr = {AF_INET};
     uint32_t result;
     net_ebpf_extension_hook_client_t* attached_client = NULL;
+    bpf_sock_addr_t sock_addr_ctx = {0};
 
     UNREFERENCED_PARAMETER(incoming_metadata_values);
     UNREFERENCED_PARAMETER(layer_data);
@@ -273,7 +274,7 @@ net_ebpf_ext_authorize_connection_classify(
     addr.sin_addr.S_un.S_addr =
         incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_AUTH_CONNECT_V4_IP_LOCAL_ADDRESS].value.uint32;
 
-    net_ebpf_extension_hook_invoke_program(attached_client, NULL, &result);
+    net_ebpf_extension_hook_invoke_program(attached_client, &sock_addr_ctx, &result);
 
     classify_output->actionType = FWP_ACTION_PERMIT;
 
