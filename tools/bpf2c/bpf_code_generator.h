@@ -60,13 +60,6 @@ class bpf_code_generator
     parse();
 
     /**
-     * @brief Parse global data (currently map information) in the eBPF file.
-     *
-     */
-    void
-    parse();
-
-    /**
      * @brief Generate C code from the parsed eBPF file.
      *
      * @param[in] section_name Section in the ELF file to generate C code for.
