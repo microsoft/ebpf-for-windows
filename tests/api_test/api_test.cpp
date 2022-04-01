@@ -534,9 +534,24 @@ TEST_CASE("bindmonitor_tailcall_native_test", "[native_tests]")
 
     bindmonitor_test(object);
 
+    auto cleanup = [prog_map_fd, &index]() {
+        index = 0;
+        REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0) == 0);
+        index = 1;
+        REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0) == 0);
+    };
+
+    // Test map-in-maps.
+    struct bpf_map* outer_map = bpf_object__find_map_by_name(object, "dummy_outer_map");
+    if (outer_map == nullptr)
+        cleanup();
+    REQUIRE(outer_map != nullptr);
+
+    int outer_map_fd = bpf_map__fd(outer_map);
+    if (outer_map_fd <= 0)
+        cleanup();
+    REQUIRE(outer_map_fd > 0);
+
     // Cleanup tail calls.
-    index = 0;
-    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0) == 0);
-    index = 1;
-    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0) == 0);
+    cleanup();
 }

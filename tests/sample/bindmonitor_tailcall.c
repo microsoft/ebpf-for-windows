@@ -9,6 +9,8 @@
 #include "bpf_helpers.h"
 #include "ebpf_nethooks.h"
 
+#define INNER_MAP_ID 10
+
 typedef struct _process_entry
 {
     uint32_t count;
@@ -47,6 +49,23 @@ ebpf_map_definition_in_file_t dummy_map = {
     .key_size = sizeof(uint32_t),
     .value_size = sizeof(uint32_t),
     .max_entries = 1000};
+
+SEC("maps")
+struct _ebpf_map_definition_in_file dummy_outer_map = {
+    .type = BPF_MAP_TYPE_ARRAY_OF_MAPS,
+    .key_size = sizeof(uint32_t),
+    .value_size = sizeof(uint32_t),
+    .max_entries = 1,
+    // inner_id refers to the id of the inner map in the same ELF object.
+    .inner_id = INNER_MAP_ID};
+
+SEC("maps")
+struct _ebpf_map_definition_in_file dummy_inner_map = {
+    .type = BPF_MAP_TYPE_HASH,
+    .key_size = sizeof(uint32_t),
+    .value_size = sizeof(uint32_t),
+    .max_entries = 1,
+    .id = INNER_MAP_ID};
 
 inline process_entry_t*
 find_or_create_process_entry(bind_md_t* ctx)

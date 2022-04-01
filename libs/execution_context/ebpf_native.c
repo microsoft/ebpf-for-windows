@@ -22,13 +22,12 @@ _ebpf_native_unload_workitem(_In_opt_ const void* module_id);
 
 typedef struct _ebpf_native_map
 {
-    const struct _ebpf_native* module;
     map_entry_t* entry;
     struct _ebpf_native_map* inner_map;
     ebpf_handle_t handle;
     ebpf_handle_t inner_map_handle;
-    int32_t original_fd;
-    int32_t inner_map_original_fd;
+    int32_t original_id;
+    int32_t inner_map_original_id;
     ebpf_utf8_string_t pin_path;
     bool reused;
     bool pinned;
@@ -36,7 +35,6 @@ typedef struct _ebpf_native_map
 
 typedef struct _ebpf_native_program
 {
-    struct _ebpf_native* module;
     program_entry_t* entry;
     ebpf_handle_t handle;
 } ebpf_native_program_t;
@@ -470,11 +468,11 @@ _ebpf_native_get_next_map_to_create(_In_ ebpf_native_map_t* maps, size_t map_cou
         if (map->inner_map == NULL) {
             // This map requires an inner map template, look up which one.
             for (uint32_t j = 0; j < map_count; j++) {
-                ebpf_native_map_t* inner_map = &maps[i];
+                ebpf_native_map_t* inner_map = &maps[j];
                 if (!inner_map) {
                     continue;
                 }
-                if (inner_map->original_fd == map->inner_map_original_fd) {
+                if (inner_map->original_id == map->inner_map_original_id) {
                     map->inner_map = inner_map;
                     break;
                 }
@@ -505,14 +503,14 @@ _ebpf_native_initialize_maps(
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
-    const int ORIGINAL_FD_OFFSET = 1;
+    const int ORIGINAL_ID_OFFSET = 1;
     for (uint32_t i = 0; i < map_count; i++) {
         if (maps[i].definition.pinning != PIN_NONE && maps[i].definition.pinning != PIN_GLOBAL_NS) {
             result = EBPF_INVALID_ARGUMENT;
             goto Done;
         }
         native_maps[i].entry = &maps[i];
-        native_maps[i].original_fd = i + ORIGINAL_FD_OFFSET;
+        native_maps[i].original_id = i + ORIGINAL_ID_OFFSET;
         native_maps[i].handle = ebpf_handle_invalid;
         maps[i].address = NULL;
 
@@ -549,21 +547,21 @@ _ebpf_native_initialize_maps(
     // Populate inner map fd.
     for (uint32_t i = 0; i < map_count; i++) {
         ebpf_map_definition_in_file_t* definition = &(native_maps[i].entry->definition);
-        int32_t inner_map_original_fd = -1;
+        int32_t inner_map_original_id = -1;
         if (_ebpf_native_is_map_in_map(&native_maps[i])) {
             if (definition->inner_map_idx != 0) {
-                inner_map_original_fd = definition->inner_map_idx + ORIGINAL_FD_OFFSET;
+                inner_map_original_id = definition->inner_map_idx + ORIGINAL_ID_OFFSET;
             } else if (definition->inner_id != 0) {
                 for (uint32_t j = 0; j < map_count; j++) {
                     ebpf_map_definition_in_file_t* inner_definition = &(native_maps[j].entry->definition);
                     if (inner_definition->id == definition->inner_id && i != j) {
-                        inner_map_original_fd = j + ORIGINAL_FD_OFFSET;
+                        inner_map_original_id = j + ORIGINAL_ID_OFFSET;
                         break;
                     }
                 }
             }
         }
-        native_maps[i].inner_map_original_fd = inner_map_original_fd;
+        native_maps[i].inner_map_original_id = inner_map_original_id;
     }
 
 Done:
