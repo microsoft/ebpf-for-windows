@@ -43,7 +43,7 @@ jobs:
     - name: Build & run tests
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
-        export CFLAGS="--coverage -g -O0"
+        export CXXFLAGS="--coverage -g -O0"
         cd tests/bpf2c_tests
         make
         ./bpf2c_tests -s
