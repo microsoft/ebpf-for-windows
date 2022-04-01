@@ -92,6 +92,10 @@ main(int argc, char** argv)
             sections = generator.program_sections();
         }
 
+        // Parse global data.
+        generator.parse();
+
+        // Parse per-section data.
         for (const auto& section : sections) {
             generator.parse(section);
             generator.generate();

@@ -200,6 +200,49 @@ bpf_code_generator::extract_program(const std::string& section_name)
 }
 
 void
+bpf_code_generator::parse()
+{
+    auto map_section = reader.sections["maps"];
+    ELFIO::const_symbol_section_accessor symbols{reader, reader.sections[".symtab"]};
+
+    if (map_section) {
+        for (ELFIO::Elf_Xword i = 0; i < symbols.get_symbols_num(); i++) {
+            std::string symbol_name;
+            ELFIO::Elf64_Addr symbol_value{};
+            unsigned char symbol_bind{};
+            unsigned char symbol_type{};
+            ELFIO::Elf_Half symbol_section_index{};
+            unsigned char symbol_other{};
+            ELFIO::Elf_Xword symbol_size{};
+
+            symbols.get_symbol(
+                i,
+                symbol_name,
+                symbol_value,
+                symbol_size,
+                symbol_bind,
+                symbol_type,
+                symbol_section_index,
+                symbol_other);
+
+            if (symbol_section_index == map_section->get_index()) {
+                if (symbol_size != sizeof(ebpf_map_definition_in_file_t)) {
+                    throw std::runtime_error("invalid map size");
+                }
+                map_definitions[symbol_name].definition =
+                    *reinterpret_cast<const ebpf_map_definition_in_file_t*>(map_section->get_data() + symbol_value);
+            }
+        }
+    }
+
+    // Assign index to each map
+    size_t map_index = 0;
+    for (auto& map : map_definitions) {
+        map.second.index = map_index++;
+    }
+}
+
+void
 bpf_code_generator::extract_relocations_and_maps(const std::string& section_name)
 {
     auto map_section = reader.sections["maps"];
@@ -232,20 +275,13 @@ bpf_code_generator::extract_relocations_and_maps(const std::string& section_name
                 }
                 current_section->output[offset / sizeof(ebpf_inst)].relocation = name;
                 if (map_section && section_index == map_section->get_index()) {
-                    if (size != sizeof(ebpf_map_definition_in_file_t)) {
-                        throw std::runtime_error("invalid map size");
+                    // Check that the map exists in the list of map definitions.
+                    if (map_definitions.find(name) == map_definitions.end()) {
+                        throw std::runtime_error(std::string("map not found in map definitions: ") + name);
                     }
-                    map_definitions[name].definition =
-                        *reinterpret_cast<const ebpf_map_definition_in_file_t*>(map_section->get_data() + value);
                 }
             }
         }
-    }
-
-    // Assign index to each map
-    size_t map_index = 0;
-    for (auto& map : map_definitions) {
-        map.second.index = map_index++;
     }
 }
 
