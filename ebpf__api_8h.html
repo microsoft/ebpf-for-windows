@@ -1474,7 +1474,7 @@ Variables</h2></td></tr>
 <p>If the caller supplies a program type and/or attach type, that supplied value takes precedence over the derived program/attach type.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">file_name</td><td>ELF file name with full path. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">file_name</td><td>When loading from an ELF file, ELF file name with full path. When loading from a native driver, driver file name with full path. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">program_type</td><td>Optionally, the program type to use when loading the eBPF program. If program type is not supplied, it is derived from the section prefix in the ELF file. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">attach_type</td><td>Optionally, the attach type to use for the loaded eBPF program. If attach type is not supplied, it is derived from the section prefix in the ELF file. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">execution_type</td><td>The execution type to use for this program. If EBPF_EXECUTION_ANY is specified, execution type will be decided by a system-wide policy. </td></tr>
