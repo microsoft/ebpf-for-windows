@@ -4,6 +4,7 @@
 
 ![CodeQL](https://github.com/microsoft/ebpf-for-windows/workflows/CodeQL/badge.svg?branch=main)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/5742/badge)](https://bestpractices.coreinfrastructure.org/projects/5742)
+[![codecov](https://codecov.io/gh/microsoft/ebpf-for-windows/branch/master/graph/badge.svg)](https://codecov.io/gh/microsoft/ebpf-for-windows)
 
 eBPF is a well-known technology for providing programmability and agility, especially for extending an
 OS kernel, for use cases such as DoS protection and observability. This project is a work-in-progress that
