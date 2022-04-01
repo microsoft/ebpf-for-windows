@@ -62,6 +62,7 @@ ebpf_object_get_info(
     _Out_writes_bytes_to_(*info_size, *info_size) void* info,
     _Inout_ uint32_t* info_size) noexcept
 {
+    EBPF_LOG_ENTRY();
     if (info == nullptr || info_size == nullptr) {
         return EBPF_INVALID_ARGUMENT;
     }
@@ -85,7 +86,7 @@ ebpf_object_get_info(
         memcpy(info, reply->info, *info_size);
     }
 
-    return result;
+    EBPF_RETURN_RESULT(result);
 }
 
 ebpf_result_t

@@ -1454,6 +1454,7 @@ static ebpf_result_t
 _initialize_ebpf_maps_native(
     size_t count_of_maps, _In_reads_(count_of_maps) ebpf_handle_t* map_handles, _Inout_ std::vector<ebpf_map_t*>& maps)
 {
+    EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_map_t* map = nullptr;
 
@@ -1507,7 +1508,7 @@ Exit:
 
         clean_up_ebpf_maps(maps);
     }
-    return result;
+    EBPF_RETURN_RESULT(result);
 }
 
 static ebpf_result_t
@@ -1516,6 +1517,7 @@ _initialize_ebpf_programs_native(
     _In_reads_(count_of_programs) ebpf_handle_t* program_handles,
     _Inout_ std::vector<ebpf_program_t*>& programs)
 {
+    EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_program_t* program = nullptr;
 
@@ -1567,7 +1569,7 @@ Exit:
 
         clean_up_ebpf_programs(programs);
     }
-    return result;
+    EBPF_RETURN_RESULT(result);
 }
 
 static ebpf_result_t
@@ -1579,6 +1581,7 @@ _initialize_ebpf_object_native(
     _In_reads_(count_of_programs) ebpf_handle_t* program_handles,
     _Out_ ebpf_object_t& object) noexcept
 {
+    EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
 
     result = _initialize_ebpf_programs_native(count_of_programs, program_handles, object.programs);
@@ -1609,7 +1612,7 @@ Exit:
     if (result != EBPF_SUCCESS) {
         _clean_up_ebpf_object(&object);
     }
-    return result;
+    EBPF_RETURN_RESULT(result);
 }
 
 static ebpf_result_t
@@ -2176,6 +2179,7 @@ _load_native_module(
     _Out_ size_t* count_of_maps,
     _Out_ size_t* count_of_programs)
 {
+    EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
     uint32_t error = ERROR_SUCCESS;
     ebpf_protocol_buffer_t request_buffer;
@@ -2201,6 +2205,7 @@ _load_native_module(
     error = invoke_ioctl(request_buffer, reply);
     if (error != ERROR_SUCCESS) {
         result = win32_error_code_to_ebpf_result(error);
+        EBPF_LOG_WIN32_WSTRING_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, service_path.c_str(), invoke_ioctl);
         goto Done;
     }
 
@@ -2209,7 +2214,7 @@ _load_native_module(
     *count_of_programs = reply.count_of_programs;
 
 Done:
-    return result;
+    EBPF_RETURN_RESULT(result);
 }
 
 /**
@@ -2241,6 +2246,7 @@ _load_native_programs(
     size_t count_of_programs,
     _Out_writes_(count_of_programs) ebpf_handle_t* program_handles)
 {
+    EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
     uint32_t error = ERROR_SUCCESS;
     ebpf_protocol_buffer_t reply_buffer;
@@ -2262,12 +2268,17 @@ _load_native_programs(
     error = invoke_ioctl(request, reply_buffer);
     if (error != ERROR_SUCCESS) {
         result = win32_error_code_to_ebpf_result(error);
+        EBPF_LOG_WIN32_GUID_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, *module_id, invoke_ioctl);
         goto Done;
     }
 
     ebpf_assert(reply->header.id == ebpf_operation_id_t::EBPF_OPERATION_LOAD_NATIVE_PROGRAMS);
     if (reply->map_handle_count != count_of_maps || reply->program_handle_count != count_of_programs) {
         result = EBPF_FAILED;
+        EBPF_LOG_MESSAGE(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_API,
+            "_load_native_programs: Program or map count does not match the expected count");
         goto Done;
     }
 
@@ -2310,6 +2321,7 @@ _ebpf_program_load_native(
     _Outptr_ struct bpf_object** object,
     _Out_ fd_t* program_fd)
 {
+    EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
     uint32_t error;
     GUID service_name_guid;
@@ -2330,11 +2342,19 @@ _ebpf_program_load_native(
     UNREFERENCED_PARAMETER(execution_type);
 
     if (UuidCreate(&service_name_guid) != RPC_S_OK) {
-        return EBPF_OPERATION_NOT_SUPPORTED;
+        EBPF_RETURN_RESULT(EBPF_OPERATION_NOT_SUPPORTED);
     }
     if (UuidCreate(&provider_module_id) != RPC_S_OK) {
-        return EBPF_OPERATION_NOT_SUPPORTED;
+        EBPF_RETURN_RESULT(EBPF_OPERATION_NOT_SUPPORTED);
     }
+
+    EBPF_LOG_MESSAGE_GUID_GUID_STRING(
+        EBPF_TRACELOG_LEVEL_INFO,
+        EBPF_TRACELOG_KEYWORD_API,
+        "_ebpf_program_load_native",
+        file_name,
+        service_name_guid,
+        provider_module_id);
 
     try {
         // Create a driver service with a random name.
@@ -2344,6 +2364,7 @@ _ebpf_program_load_native(
             service_name.c_str(), get_wstring_from_string(file_name_string).c_str(), &service_handle);
         if (error != ERROR_SUCCESS) {
             result = win32_error_code_to_ebpf_result(error);
+            EBPF_LOG_WIN32_STRING_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, file_name, _create_service);
             goto Done;
         }
 
@@ -2352,12 +2373,14 @@ _ebpf_program_load_native(
         error = _ebpf_create_registry_key(HKEY_LOCAL_MACHINE, paramaters_path.c_str());
         if (error != ERROR_SUCCESS) {
             result = win32_error_code_to_ebpf_result(error);
+            EBPF_LOG_WIN32_STRING_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, file_name, _ebpf_create_registry_key);
             goto Done;
         }
         error = _ebpf_update_registry_value(
             HKEY_LOCAL_MACHINE, paramaters_path.c_str(), REG_BINARY, NPI_MODULE_ID, &provider_module_id, sizeof(GUID));
         if (error != ERROR_SUCCESS) {
             result = win32_error_code_to_ebpf_result(error);
+            EBPF_LOG_WIN32_STRING_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, file_name, _ebpf_update_registry_value);
             goto Done;
         }
 
@@ -2369,6 +2392,11 @@ _ebpf_program_load_native(
 
         if (count_of_programs == 0) {
             result = EBPF_INVALID_OBJECT;
+            EBPF_LOG_MESSAGE_STRING(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_API,
+                "_ebpf_program_load_native: O programs found",
+                file_name);
             goto Done;
         }
 
@@ -2449,7 +2477,7 @@ Done:
     // TODO: (Isse# 867) On Server 2019, ZwUnloadDriver fails for services which have
     // been marked for deletion. As a workaround for this, not deleting the service.
     // Platform::_delete_service(service_handle);
-    return result;
+    EBPF_RETURN_RESULT(result);
 }
 
 ebpf_result_t
@@ -2462,6 +2490,7 @@ ebpf_program_load(
     _Out_ fd_t* program_fd,
     _Outptr_result_maybenull_z_ const char** log_buffer)
 {
+    EBPF_LOG_ENTRY();
     ebpf_object_t* new_object = nullptr;
     ebpf_protocol_buffer_t request_buffer;
     std::vector<uintptr_t> handles;
@@ -2485,7 +2514,9 @@ ebpf_program_load(
         // If this is a native driver file, load programs from native driver.
         if (Platform::_is_native_program(file_name)) {
             *log_buffer = nullptr;
-            return _ebpf_program_load_native(file_name, program_type, attach_type, execution_type, object, program_fd);
+            result =
+                _ebpf_program_load_native(file_name, program_type, attach_type, execution_type, object, program_fd);
+            EBPF_RETURN_RESULT(result);
         }
 
         result = ebpf_object_open(file_name, nullptr, nullptr, program_type, attach_type, &new_object, log_buffer);
@@ -2513,7 +2544,7 @@ Done:
         ebpf_object_close(new_object);
     }
     clear_map_descriptors();
-    return result;
+    EBPF_RETURN_RESULT(result);
 }
 
 _Ret_maybenull_ struct bpf_object*
