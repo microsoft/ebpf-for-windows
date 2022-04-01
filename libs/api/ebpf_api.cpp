@@ -2288,10 +2288,10 @@ ebpf_get_program_type_by_name(
     }
 
     EbpfProgramType type = get_program_type_windows(name, name);
-    ebpf_windows_program_type_data_t* data = (ebpf_windows_program_type_data_t*)type.platform_specific_data;
+    ebpf_program_type_t* program_type_uuid = (ebpf_program_type_t*)type.platform_specific_data;
 
-    *program_type = data->program_type_uuid;
-    *expected_attach_type = data->attach_type_uuid;
+    *program_type = *program_type_uuid;
+    *expected_attach_type = *(get_attach_type_windows(name));
 
     return EBPF_SUCCESS;
 }

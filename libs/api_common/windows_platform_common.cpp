@@ -29,25 +29,30 @@
 // the preprocessor treat a prefix list as one macro argument.
 #define COMMA ,
 
+//
+// XDP program type.
+//
 const ebpf_context_descriptor_t g_xdp_context_descriptor = {
     sizeof(xdp_md_t),
     EBPF_OFFSET_OF(xdp_md_t, data),
     EBPF_OFFSET_OF(xdp_md_t, data_end),
     EBPF_OFFSET_OF(xdp_md_t, data_meta)};
 
-const ebpf_windows_program_type_data_t windows_xdp_program_type_data = {EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP};
-
 const EbpfProgramType windows_xdp_program_type =
-    PTYPE("xdp", &g_xdp_context_descriptor, (uint64_t)&windows_xdp_program_type_data, {"xdp"});
+    PTYPE("xdp", &g_xdp_context_descriptor, (uint64_t)&EBPF_PROGRAM_TYPE_XDP, {"xdp"});
 
-const ebpf_windows_program_type_data_t windows_bind_program_type_data = {EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND};
-
+//
+// Bind program type.
+//
 const ebpf_context_descriptor_t g_bind_context_descriptor = {
     sizeof(bind_md_t), EBPF_OFFSET_OF(bind_md_t, app_id_start), EBPF_OFFSET_OF(bind_md_t, app_id_end), -1};
 
 const EbpfProgramType windows_bind_program_type =
-    PTYPE("bind", &g_bind_context_descriptor, (uint64_t)&windows_bind_program_type_data, {"bind"});
+    PTYPE("bind", &g_bind_context_descriptor, (uint64_t)&EBPF_PROGRAM_TYPE_BIND, {"bind"});
 
+//
+// eBPF Sample extensions program type.
+//
 const ebpf_context_descriptor_t g_sample_ext_context_descriptor = {
     sizeof(sample_program_context_t),
     EBPF_OFFSET_OF(sample_program_context_t, data_start),
@@ -55,23 +60,77 @@ const ebpf_context_descriptor_t g_sample_ext_context_descriptor = {
     -1, // Offset into ctx struct for pointer to metadata, or -1 if none.
 };
 
-const ebpf_windows_program_type_data_t windows_sample_program_type_data = {
-    EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE};
-
 const EbpfProgramType windows_sample_ext_program_type =
-    PTYPE("sample_ext", &g_sample_ext_context_descriptor, (uint64_t)&windows_sample_program_type_data, {"sample_ext"});
+    PTYPE("sample_ext", &g_sample_ext_context_descriptor, (uint64_t)&EBPF_PROGRAM_TYPE_SAMPLE, {"sample_ext"});
+
+//
+// CGROUP_SOCK_ADDR.
+//
+const ebpf_context_descriptor_t g_sock_addr_context_descriptor = {
+    sizeof(bpf_sock_addr_t),
+    -1, // Offset into ctx struct for pointer to data, or -1 if none.
+    -1, // Offset into ctx struct for pointer to data, or -1 if none.
+    -1, // Offset into ctx struct for pointer to metadata, or -1 if none.
+};
+
+const EbpfProgramType windows_sock_addr_program_type = {
+    "sock_addr",
+    &g_sock_addr_context_descriptor,
+    (uint64_t)&EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR,
+    {"cgroup/connect4", "cgroup/connect6", "cgroup/recv_accept4", "cgroup/recv_accept6"}};
+
+//
+// Global lists and vectors of program and attach types.
+//
 
 const std::vector<EbpfProgramType> windows_program_types = {
     PTYPE("unspecified", {0}, 0, {}),
     windows_xdp_program_type,
     windows_bind_program_type,
+    windows_sock_addr_program_type,
     windows_sample_ext_program_type};
 
-const std::map<ebpf_program_type_t*, ebpf_attach_type_t*> windows_program_type_to_attach_type = {
-    {&EBPF_PROGRAM_TYPE_XDP, &EBPF_ATTACH_TYPE_XDP},
-    {&EBPF_PROGRAM_TYPE_BIND, &EBPF_ATTACH_TYPE_BIND},
-    {&EBPF_PROGRAM_TYPE_SAMPLE, &EBPF_ATTACH_TYPE_SAMPLE},
+typedef struct _ebpf_section_definition
+{
+    _Field_z_ const char* section_prefix;
+    ebpf_program_type_t* prog_type;
+    ebpf_attach_type_t* attach_type;
+} ebpf_section_definition_t;
+
+const std::vector<ebpf_section_definition_t> windows_section_definitions = {
+    // XDP.
+    {"xdp", &EBPF_PROGRAM_TYPE_XDP, &EBPF_ATTACH_TYPE_XDP},
+    // Bind.
+    {"bind", &EBPF_PROGRAM_TYPE_BIND, &EBPF_ATTACH_TYPE_BIND},
+    // socket connect v4.
+    {"cgroup/connect4", &EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, &EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT},
+    // socket connect v6.
+    {"cgroup/connect4", &EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, &EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT},
+    // socket recv/accept v4.
+    {"cgroup/recv_accept4", &EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, &EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT},
+    // socket recv/accept v6.
+    {"cgroup/recv_accept6", &EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, &EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT},
+    // Sample Extension.
+    {"sample_ext", &EBPF_PROGRAM_TYPE_SAMPLE, &EBPF_ATTACH_TYPE_SAMPLE},
 };
+
+struct ebpf_attach_type_compare
+{
+    bool
+    operator()(const ebpf_attach_type_t& lhs, const ebpf_attach_type_t& rhs) const
+    {
+        return (memcmp(&lhs, &rhs, sizeof(ebpf_attach_type_t)) < 0);
+    }
+};
+
+const std::map<ebpf_attach_type_t, const char*, ebpf_attach_type_compare> windows_section_names = {
+    {EBPF_ATTACH_TYPE_XDP, "xdp"},
+    {EBPF_ATTACH_TYPE_BIND, "bind"},
+    {EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT, "sock_connect4"},
+    {EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT, "sock_connect6"},
+    {EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT, "sock_recv_accept4"},
+    {EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT, "sock_recv_accept6"},
+    {EBPF_ATTACH_TYPE_SAMPLE, "sample_ext"}};
 
 const EbpfProgramType&
 get_program_type_windows(const GUID& program_type)
@@ -80,8 +139,8 @@ get_program_type_windows(const GUID& program_type)
     //       info and then fill the EbpfProgramType struct.
     for (const EbpfProgramType& t : windows_program_types) {
         if (t.platform_specific_data != 0) {
-            ebpf_windows_program_type_data_t* data = (ebpf_windows_program_type_data_t*)t.platform_specific_data;
-            if (IsEqualGUID(data->program_type_uuid, program_type)) {
+            ebpf_program_type_t* program_type_uuid = (ebpf_program_type_t*)t.platform_specific_data;
+            if (IsEqualGUID(*program_type_uuid, program_type)) {
                 return t;
             }
         }
@@ -101,8 +160,8 @@ get_program_type_windows(const std::string& section, const std::string&)
     for (const EbpfProgramType& t : windows_program_types) {
         if (program_type != nullptr) {
             if (t.platform_specific_data != 0) {
-                ebpf_windows_program_type_data_t* data = (ebpf_windows_program_type_data_t*)t.platform_specific_data;
-                if (IsEqualGUID(data->program_type_uuid, *program_type)) {
+                ebpf_program_type_t* program_type_uuid = (ebpf_program_type_t*)t.platform_specific_data;
+                if (IsEqualGUID(*program_type_uuid, *program_type)) {
                     return t;
                 }
             }
@@ -159,18 +218,10 @@ get_attach_type_windows(const std::string& section)
 {
     // TODO: (Issue #223) Read the registry to fetch all the section
     //       prefixes and corresponding program and attach types.
-    for (const EbpfProgramType& t : windows_program_types) {
-        for (const std::string prefix : t.section_prefixes) {
-            if (section.find(prefix) == 0) {
-                for (auto& [program_type, attach_type] : windows_program_type_to_attach_type) {
-                    ebpf_windows_program_type_data_t* data =
-                        (ebpf_windows_program_type_data_t*)t.platform_specific_data;
-                    if (IsEqualGUID(data->attach_type_uuid, *attach_type)) {
-                        return attach_type;
-                    }
-                }
-            }
-        }
+
+    for (const ebpf_section_definition_t& t : windows_section_definitions) {
+        if (section.find(t.section_prefix) == 0)
+            return t.attach_type;
     }
 
     return &EBPF_ATTACH_TYPE_UNSPECIFIED;
@@ -180,12 +231,9 @@ _Ret_maybenull_z_ const char*
 get_attach_type_name(_In_ const ebpf_attach_type_t* attach_type)
 {
     // TODO: (Issue #223) Read the registry to fetch attach types.
-    for (const EbpfProgramType& t : windows_program_types) {
-        ebpf_windows_program_type_data_t* data = (ebpf_windows_program_type_data_t*)t.platform_specific_data;
-        if ((data != nullptr) && IsEqualGUID(data->attach_type_uuid, *attach_type)) {
-            return t.name.c_str();
-        }
-    }
+    auto it = windows_section_names.find(*attach_type);
+    if (it != windows_section_names.end())
+        return it->second;
 
     return nullptr;
 }
