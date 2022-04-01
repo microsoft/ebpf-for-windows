@@ -524,10 +524,8 @@ ebpf_allocate_preemptible_work_item(
 
 Done:
     if (result != EBPF_SUCCESS) {
-        if (*work_item != NULL) {
-            ebpf_free(*work_item);
-            *work_item = NULL;
-        }
+        ebpf_free(*work_item);
+        *work_item = NULL;
     }
     return result;
 }
