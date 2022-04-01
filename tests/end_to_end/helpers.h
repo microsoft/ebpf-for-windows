@@ -122,6 +122,15 @@ typedef class _single_instance_hook : public _hook_helper
         return ebpf_program_attach(program, &attach_type, nullptr, 0, &link_object);
     }
 
+    uint32_t
+    attach(
+        _In_ const bpf_program* program,
+        _In_reads_bytes_(attach_parameters_size) void* attach_parameters,
+        size_t attach_parameters_size)
+    {
+        return ebpf_program_attach(program, &attach_type, attach_parameters, attach_parameters_size, &link_object);
+    }
+
     void
     detach()
     {
@@ -265,6 +274,9 @@ typedef class _test_xdp_helper
 
 #define TEST_NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION 0
 
+// program info provider data for various program types.
+
+// XDP.
 static const void* _test_ebpf_xdp_helper_functions[] = {(void*)&test_xdp_helper_t::adjust_head};
 
 static ebpf_helper_function_addresses_t _test_ebpf_xdp_helper_function_address_table = {
@@ -276,15 +288,19 @@ static ebpf_program_data_t _ebpf_xdp_program_data = {
 static ebpf_extension_data_t _ebpf_xdp_program_info_provider_data = {
     TEST_NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_ebpf_xdp_program_data), &_ebpf_xdp_program_data};
 
-static ebpf_context_descriptor_t _ebpf_bind_context_descriptor = {
-    sizeof(bind_md_t), EBPF_OFFSET_OF(bind_md_t, app_id_start), EBPF_OFFSET_OF(bind_md_t, app_id_end), -1};
-static ebpf_program_info_t _ebpf_bind_program_info = {{"bind", &_ebpf_bind_context_descriptor, {0}}, 0, NULL};
-
+// Bind.
 static ebpf_program_data_t _ebpf_bind_program_data = {&_ebpf_bind_program_info, NULL};
 
 static ebpf_extension_data_t _ebpf_bind_program_info_provider_data = {
     TEST_NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_ebpf_bind_program_data), &_ebpf_bind_program_data};
 
+// CGROUP_SOCK_ADDR.
+static ebpf_program_data_t _ebpf_sock_addr_program_data = {&_ebpf_sock_addr_program_info, NULL};
+
+static ebpf_extension_data_t _ebpf_sock_addr_program_info_provider_data = {
+    TEST_NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_ebpf_sock_addr_program_data), &_ebpf_sock_addr_program_data};
+
+// Sample extension.
 static ebpf_program_data_t _test_ebpf_sample_extension_program_data = {&_sample_ebpf_extension_program_info, NULL};
 
 #define TEST_EBPF_SAMPLE_EXTENSION_NPI_PROVIDER_VERSION 0
@@ -312,6 +328,10 @@ typedef class _program_info_provider
             provider_data = &_test_ebpf_sample_extension_program_info_provider_data;
             program_data = (ebpf_program_data_t*)provider_data->data;
             program_data->program_info->program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_SAMPLE;
+        } else if (program_type == EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR) {
+            provider_data = &_ebpf_sock_addr_program_info_provider_data;
+            program_data = (ebpf_program_data_t*)provider_data->data;
+            program_data->program_info->program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR;
         }
 
         REQUIRE(

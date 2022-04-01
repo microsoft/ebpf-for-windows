@@ -39,10 +39,6 @@ uint64_t _net_ebpf_extension_bind_wfp_filter_ids[NET_EBPF_BIND_FILTER_COUNT] = {
 //
 // Bind Program Information NPI Provider.
 //
-static ebpf_context_descriptor_t _ebpf_bind_context_descriptor = {
-    sizeof(bind_md_t), EBPF_OFFSET_OF(bind_md_t, app_id_start), EBPF_OFFSET_OF(bind_md_t, app_id_end), -1};
-static ebpf_program_info_t _ebpf_bind_program_info = {{"bind", &_ebpf_bind_context_descriptor, {0}}, 0, NULL};
-
 static ebpf_program_data_t _ebpf_bind_program_data = {&_ebpf_bind_program_info, NULL};
 
 static ebpf_extension_data_t _ebpf_bind_program_info_provider_data = {
