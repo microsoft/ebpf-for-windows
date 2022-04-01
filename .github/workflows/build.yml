@@ -8,7 +8,7 @@ name: MSBuild
 # Run on push so we can capture the baseline code coverage for any squash commit.
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
   pull_request:
 
 permissions:
@@ -84,7 +84,7 @@ jobs:
       working-directory: ${{env.GITHUB_WORKSPACE}}
       # Add additional options to the MSBuild command line here (like platform or verbosity level).
       # See https://docs.microsoft.com/visualstudio/msbuild/msbuild-command-line-reference
-      run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{env.BUILD_PLATFORM}} /p:Analysis='True' ${{env.SOLUTION_FILE_PATH}}
+      run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{env.BUILD_PLATFORM}} /p:Analysis='True' /p:CodeCoverage='True' ${{env.SOLUTION_FILE_PATH}}
 
     - name: Upload Build Output
       uses: actions/upload-artifact@6673cd052c4cd6fcf4b4e6e60ea986c889389535
