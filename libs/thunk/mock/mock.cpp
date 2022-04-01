@@ -108,6 +108,78 @@ _close(int file_handle)
     return close_handler(file_handle);
 }
 
+bool
+_is_native_program(_In_z_ const char* file_name)
+{
+    std::string file_name_string(file_name);
+    std::string file_extension = file_name_string.substr(file_name_string.find_last_of(".") + 1);
+    if (file_extension == "dll") {
+        return true;
+    }
+
+    return false;
+}
+
+uint32_t
+_create_registry_key(HKEY root_key, _In_z_ const wchar_t* path)
+{
+    UNREFERENCED_PARAMETER(root_key);
+    UNREFERENCED_PARAMETER(path);
+    return ERROR_SUCCESS;
+}
+
+uint32_t
+_update_registry_value(
+    HKEY root_key,
+    _In_z_ const wchar_t* sub_key,
+    DWORD type,
+    _In_z_ const wchar_t* value_name,
+    _In_reads_bytes_(value_size) const void* value,
+    uint32_t value_size)
+{
+    UNREFERENCED_PARAMETER(root_key);
+    UNREFERENCED_PARAMETER(sub_key);
+    UNREFERENCED_PARAMETER(type);
+    UNREFERENCED_PARAMETER(value_name);
+    UNREFERENCED_PARAMETER(value);
+    UNREFERENCED_PARAMETER(value_size);
+
+    return ERROR_SUCCESS;
+}
+
+uint32_t
+_create_service(_In_z_ const wchar_t* service_name, _In_z_ const wchar_t* file_path, _Out_ SC_HANDLE* service_handle)
+{
+    // TODO: (Issue# 852) Just a stub currently in order to compile.
+    // Will be replaced by a proper mock.
+
+    UNREFERENCED_PARAMETER(service_name);
+    UNREFERENCED_PARAMETER(file_path);
+    *service_handle = (SC_HANDLE)1;
+
+    return ERROR_SUCCESS;
+}
+
+uint32_t
+_delete_service(SC_HANDLE service_handle)
+{
+    // TODO: (Issue# 852) Just a stub currently in order to compile.
+    // Will be replaced by a proper mock.
+
+    UNREFERENCED_PARAMETER(service_handle);
+    return ERROR_SUCCESS;
+}
+
+uint32_t
+_stop_service(SC_HANDLE service_handle)
+{
+    // TODO: (Issue# 852) Just a stub currently in order to compile.
+    // Will be replaced by a proper mock.
+
+    UNREFERENCED_PARAMETER(service_handle);
+    return ERROR_SUCCESS;
+}
+
 } // namespace Platform
 
 // RPC related mock functions.

@@ -560,7 +560,8 @@ TEST_CASE("program", "[execution_context]")
     const ebpf_utf8_string_t section_name{(uint8_t*)("bar"), 3};
     program_info_provider_t program_info_provider(EBPF_PROGRAM_TYPE_BIND);
 
-    const ebpf_program_parameters_t program_parameters{EBPF_PROGRAM_TYPE_BIND, program_name, section_name};
+    const ebpf_program_parameters_t program_parameters{
+        EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND, program_name, section_name};
     ebpf_program_info_t* program_info;
 
     REQUIRE(ebpf_program_initialize(program.get(), &program_parameters) == EBPF_SUCCESS);
@@ -596,7 +597,8 @@ TEST_CASE("program", "[execution_context]")
 
     // Size of the actual function is unknown, but we know the allocation is on page granularity.
     REQUIRE(
-        ebpf_program_load_code(program.get(), EBPF_CODE_NATIVE, reinterpret_cast<uint8_t*>(test_function), PAGE_SIZE) ==
+        ebpf_program_load_code(
+            program.get(), EBPF_CODE_JIT, nullptr, reinterpret_cast<uint8_t*>(test_function), PAGE_SIZE) ==
         EBPF_SUCCESS);
     uint32_t result = 0;
     bind_md_t ctx{0};
@@ -630,7 +632,8 @@ TEST_CASE("name size", "[execution_context]")
     const ebpf_utf8_string_t oversize_name{
         (uint8_t*)("a234567890123456789012345678901234567890123456789012345678901234"), 64};
     const ebpf_utf8_string_t section_name{(uint8_t*)("bar"), 3};
-    const ebpf_program_parameters_t program_parameters{EBPF_PROGRAM_TYPE_BIND, oversize_name, section_name};
+    const ebpf_program_parameters_t program_parameters{
+        EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND, oversize_name, section_name};
 
     REQUIRE(ebpf_program_initialize(program.get(), &program_parameters) == EBPF_INVALID_ARGUMENT);
 

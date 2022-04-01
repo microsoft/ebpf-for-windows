@@ -43,7 +43,16 @@ jobs:
     - name: Build & run tests
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
+        export CXXFLAGS="--coverage -g -O0"
         cd tests/bpf2c_tests
         make
         ./bpf2c_tests -s
+        gcovr -r ../.. --cobertura ../../bpf2c.xml --gcov-ignore-parse-errors
+
+    - name: Upload Report to Codecov
+      uses: codecov/codecov-action@f32b3a3741e1053eb607407145bc9619351dc93b
+      with:
+        files: bpf2c.xml
+        fail_ci_if_error: true
+        functionalities: fix
 

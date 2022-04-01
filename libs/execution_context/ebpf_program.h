@@ -7,6 +7,7 @@
 #include "ebpf_maps.h"
 #include "ebpf_platform.h"
 #include "ebpf_program_types.h"
+#include "ebpf_protocol.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -26,6 +27,7 @@ extern "C"
     typedef struct _ebpf_program_parameters
     {
         ebpf_program_type_t program_type;
+        ebpf_attach_type_t expected_attach_type;
         ebpf_utf8_string_t program_name;
         ebpf_utf8_string_t section_name;
         ebpf_utf8_string_t file_name;
@@ -88,6 +90,9 @@ extern "C"
     _Ret_notnull_ const ebpf_program_type_t*
     ebpf_program_type_uuid(_In_ const ebpf_program_t* program);
 
+    _Ret_notnull_ const ebpf_attach_type_t*
+    ebpf_expected_attach_type(_In_ const ebpf_program_t* program);
+
     /**
      * @brief Get the program info from the program info extension.
      *
@@ -142,8 +147,9 @@ extern "C"
      *
      * @param[in, out] program Program instance to load the eBPF code into.
      * @param[in] code_type Specifies whether eBPF code is JIT compiled or byte code.
+     * @param[in] code_context Optionally, pointer to code context.
      * @param[in] code Pointer to memory containing the eBPF code.
-     * @param[in] machine_size Size of the memory block containing the eBPF
+     * @param[in] code_size Size of the memory block containing the eBPF
      *  code.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this
@@ -151,7 +157,11 @@ extern "C"
      */
     ebpf_result_t
     ebpf_program_load_code(
-        _Inout_ ebpf_program_t* program, ebpf_code_type_t code_type, _In_ const uint8_t* code, size_t code_size);
+        _Inout_ ebpf_program_t* program,
+        ebpf_code_type_t code_type,
+        _In_opt_ const void* code_context,
+        _In_reads_(code_size) const uint8_t* code,
+        size_t code_size);
 
     /**
      * @brief Invoke an ebpf_program_t instance.
@@ -243,6 +253,22 @@ extern "C"
         _In_ const ebpf_program_t* program,
         _Out_writes_to_(*info_size, *info_size) uint8_t* buffer,
         _Inout_ uint16_t* info_size);
+
+    /**
+     * @brief Create a new program instance and initialize the instance from
+     *  the provided program parameters.
+     *
+     * @param[in] parameters Program parameters to be used to initialize
+     *  the program instance.
+     * @param[out] program_handle Handle to the created program instance.
+     *
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
+     *  program instance.
+     */
+    ebpf_result_t
+    ebpf_program_create_and_initialize(
+        _In_ const ebpf_program_parameters_t* parameters, _Out_ ebpf_handle_t* program_handle);
 
 #ifdef __cplusplus
 }

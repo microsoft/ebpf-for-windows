@@ -298,7 +298,8 @@ extern "C"
      * If the caller supplies a program type and/or attach type, that
      * supplied value takes precedence over the derived program/attach type.
      *
-     * @param[in] file_name ELF file name with full path.
+     * @param[in] file_name When loading from an ELF file, ELF file name with full path.
+     *  When loading from a native driver, driver file name with full path.
      * @param[in] program_type Optionally, the program type to use when loading
      *  the eBPF program. If program type is not supplied, it is derived from
      *  the section prefix in the ELF file.

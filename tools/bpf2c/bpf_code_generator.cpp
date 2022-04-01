@@ -147,23 +147,33 @@ bpf_code_generator::program_sections()
 }
 
 void
-bpf_code_generator::parse(const std::string& section_name)
+bpf_code_generator::parse(const std::string& section_name, const GUID& program_type, const GUID& attach_type)
 {
     current_section = &sections[section_name];
     get_register_name(0);
     get_register_name(1);
     get_register_name(10);
 
+    set_program_and_attach_type(program_type, attach_type);
     extract_program(section_name);
     extract_relocations_and_maps(section_name);
 }
 
 void
-bpf_code_generator::generate()
+bpf_code_generator::set_program_and_attach_type(const GUID& program_type, const GUID& attach_type)
 {
+    memcpy(&current_section->program_type, &program_type, sizeof(GUID));
+    memcpy(&current_section->expected_attach_type, &attach_type, sizeof(GUID));
+}
+
+void
+bpf_code_generator::generate(const std::string& section_name)
+{
+    current_section = &sections[section_name];
+
     generate_labels();
     build_function_table();
-    encode_instructions();
+    encode_instructions(section_name);
 }
 
 void
@@ -188,7 +198,7 @@ bpf_code_generator::extract_program(const std::string& section_name)
             continue;
         }
         if (section_index == program_section->get_index() && value == 0) {
-            current_section->function_name = name;
+            current_section->program_name = name;
             break;
         }
     }
@@ -196,6 +206,49 @@ bpf_code_generator::extract_program(const std::string& section_name)
     uint32_t offset = 0;
     for (const auto& instruction : program) {
         current_section->output.push_back({instruction, offset++});
+    }
+}
+
+void
+bpf_code_generator::parse()
+{
+    auto map_section = reader.sections["maps"];
+    ELFIO::const_symbol_section_accessor symbols{reader, reader.sections[".symtab"]};
+
+    if (map_section) {
+        for (ELFIO::Elf_Xword i = 0; i < symbols.get_symbols_num(); i++) {
+            std::string symbol_name;
+            ELFIO::Elf64_Addr symbol_value{};
+            unsigned char symbol_bind{};
+            unsigned char symbol_type{};
+            ELFIO::Elf_Half symbol_section_index{};
+            unsigned char symbol_other{};
+            ELFIO::Elf_Xword symbol_size{};
+
+            symbols.get_symbol(
+                i,
+                symbol_name,
+                symbol_value,
+                symbol_size,
+                symbol_bind,
+                symbol_type,
+                symbol_section_index,
+                symbol_other);
+
+            if (symbol_section_index == map_section->get_index()) {
+                if (symbol_size != sizeof(ebpf_map_definition_in_file_t)) {
+                    throw std::runtime_error("invalid map size");
+                }
+                map_definitions[symbol_name].definition =
+                    *reinterpret_cast<const ebpf_map_definition_in_file_t*>(map_section->get_data() + symbol_value);
+            }
+        }
+    }
+
+    // Assign index to each map
+    size_t map_index = 0;
+    for (auto& map : map_definitions) {
+        map.second.index = map_index++;
     }
 }
 
@@ -232,20 +285,13 @@ bpf_code_generator::extract_relocations_and_maps(const std::string& section_name
                 }
                 current_section->output[offset / sizeof(ebpf_inst)].relocation = name;
                 if (map_section && section_index == map_section->get_index()) {
-                    if (size != sizeof(ebpf_map_definition_in_file_t)) {
-                        throw std::runtime_error("invalid map size");
+                    // Check that the map exists in the list of map definitions.
+                    if (map_definitions.find(name) == map_definitions.end()) {
+                        throw std::runtime_error(std::string("map not found in map definitions: ") + name);
                     }
-                    map_definitions[name].definition =
-                        *reinterpret_cast<const ebpf_map_definition_in_file_t*>(map_section->get_data() + value);
                 }
             }
         }
-    }
-
-    // Assign index to each map
-    size_t map_index = 0;
-    for (auto& map : map_definitions) {
-        map.second.index = map_index++;
     }
 }
 
@@ -320,16 +366,18 @@ bpf_code_generator::build_function_table()
             name += std::to_string(output.instruction.imm);
         }
 
-        if (helper_functions.find(name) == helper_functions.end()) {
-            helper_functions[name] = {output.instruction.imm, index++};
+        if (current_section->helper_functions.find(name) == current_section->helper_functions.end()) {
+            current_section->helper_functions[name] = {output.instruction.imm, index++};
         }
     }
 }
 
 void
-bpf_code_generator::encode_instructions()
+bpf_code_generator::encode_instructions(const std::string& section_name)
 {
     std::vector<output_instruction_t>& program_output = current_section->output;
+    auto program_name = !current_section->program_name.empty() ? current_section->program_name : section_name;
+    auto helper_array_prefix = program_name + "_helpers[%s]";
 
     // Encode instructions
     for (size_t i = 0; i < program_output.size(); i++) {
@@ -480,6 +528,7 @@ bpf_code_generator::encode_instructions()
                 }
                 source = format_string("_maps[%s].address", std::to_string(map_definition->second.index));
                 output.lines.push_back(format_string("%s = POINTER(%s);", destination, source));
+                current_section->referenced_map_indices.insert(map_definitions[output.relocation].index);
             }
         } break;
         case EBPF_CLS_LDX: {
@@ -549,15 +598,17 @@ bpf_code_generator::encode_instructions()
                 std::string function_name;
                 if (output.relocation.empty()) {
                     function_name = format_string(
-                        "_helpers[%s]",
+                        helper_array_prefix,
                         std::to_string(
-                            helper_functions[std::string("helper_id_") + std::to_string(output.instruction.imm)]
+                            current_section
+                                ->helper_functions[std::string("helper_id_") + std::to_string(output.instruction.imm)]
                                 .index));
                 } else {
-                    auto helper_function = helper_functions.find(output.relocation);
-                    assert(helper_function != helper_functions.end());
-                    function_name =
-                        format_string("_helpers[%s]", std::to_string(helper_functions[output.relocation].index));
+                    auto helper_function = current_section->helper_functions.find(output.relocation);
+                    assert(helper_function != current_section->helper_functions.end());
+                    function_name = format_string(
+                        helper_array_prefix,
+                        std::to_string(current_section->helper_functions[output.relocation].index));
                 }
                 output.lines.push_back(
                     get_register_name(0) + std::string(" = ") + function_name + std::string(".address"));
@@ -602,6 +653,10 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             output_stream << map.second.definition.key_size << ", ";
             output_stream << map.second.definition.value_size << ", ";
             output_stream << map.second.definition.max_entries << ", ";
+            output_stream << map.second.definition.inner_map_idx << ", ";
+            output_stream << map.second.definition.pinning << ", ";
+            output_stream << map.second.definition.id << ", ";
+            output_stream << map.second.definition.inner_id << ", ";
             output_stream << " }, \"" << map.first.c_str() << "\" }," << std::endl;
         }
         output_stream << "};" << std::endl;
@@ -621,38 +676,58 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         output_stream << std::endl;
     }
 
-    if (helper_functions.size() > 0) {
-        output_stream << "static helper_function_entry_t _helpers[] = {" << std::endl;
-
-        // Functions are emitted in the order in which they occur in the byte code.
-        std::vector<std::tuple<std::string, uint32_t>> index_ordered_helpers;
-        index_ordered_helpers.resize(helper_functions.size());
-        for (const auto& function : helper_functions) {
-            index_ordered_helpers[function.second.index] = std::make_tuple(function.first, function.second.id);
-        }
-
-        for (const auto& [name, id] : index_ordered_helpers) {
-            output_stream << "{ NULL, " << id << ", \"" << name.c_str() << "\"}," << std::endl;
-        }
-
-        output_stream << "};" << std::endl;
-        output_stream << std::endl;
-        output_stream << "static void _get_helpers(helper_function_entry_t** helpers, size_t* count)" << std::endl;
-        output_stream << "{" << std::endl;
-        output_stream << "\t*helpers = _helpers;" << std::endl;
-        output_stream << "\t*count = " << std::to_string(helper_functions.size()) << ";" << std::endl;
-        output_stream << "}" << std::endl;
-        output_stream << std::endl;
-    } else {
-        output_stream << "static void _get_helpers(helper_function_entry_t** helpers, size_t* count)" << std::endl;
-        output_stream << "{" << std::endl;
-        output_stream << "\t*helpers = NULL;" << std::endl;
-        output_stream << "\t*count = 0;" << std::endl;
-        output_stream << "}" << std::endl;
-        output_stream << std::endl;
-    }
-
     for (auto& [name, section] : sections) {
+        auto program_name = !section.program_name.empty() ? section.program_name : name;
+
+        // Emit section specific helper function array.
+        if (section.helper_functions.size() > 0) {
+            std::string helper_array_name = program_name + "_helpers";
+            output_stream << "static helper_function_entry_t " << sanitize_name(helper_array_name) << "[] = {"
+                          << std::endl;
+
+            // Functions are emitted in the order in which they occur in the byte code.
+            std::vector<std::tuple<std::string, uint32_t>> index_ordered_helpers;
+            index_ordered_helpers.resize(section.helper_functions.size());
+            for (const auto& function : section.helper_functions) {
+                index_ordered_helpers[function.second.index] = std::make_tuple(function.first, function.second.id);
+            }
+
+            for (const auto& [helper_name, id] : index_ordered_helpers) {
+                output_stream << "{ NULL, " << id << ", \"" << helper_name.c_str() << "\"}," << std::endl;
+            }
+
+            output_stream << "};" << std::endl;
+            output_stream << std::endl;
+        }
+
+        // Emit the program and attach type GUID.
+        std::string program_type_name = program_name + "_program_type_guid";
+        std::string attach_type_name = program_name + "_attach_type_guid";
+
+#if defined(_MSC_VER)
+        output_stream << format_string(
+                             "static GUID %s = %s;",
+                             sanitize_name(program_type_name),
+                             format_guid(&section.program_type))
+                      << std::endl;
+        output_stream << format_string(
+                             "static GUID %s = %s;",
+                             sanitize_name(attach_type_name),
+                             format_guid(&section.expected_attach_type))
+                      << std::endl;
+#endif
+
+        if (section.referenced_map_indices.size() > 0) {
+            // Emit the array for the maps used.
+            std::string map_array_name = program_name + "_maps";
+            output_stream << format_string("static uint16_t %s[] = {", sanitize_name(map_array_name)) << std::endl;
+            for (const auto& map_index : section.referenced_map_indices) {
+                output_stream << std::to_string(map_index) << "," << std::endl;
+            }
+            output_stream << "};" << std::endl;
+            output_stream << std::endl;
+        }
+
         auto& line_info = section_line_info[name];
         auto first_line_info = line_info.find(section.output.front().instruction_offset);
         std::string prolog_line_info;
@@ -663,12 +738,9 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
                 escape_string(first_line_info->second.file_name));
         }
 
-        auto function_name = !section.function_name.empty() ? section.function_name : name;
         // Emit entry point
-
-        output_stream << prolog_line_info
-                      << format_string("static uint64_t %s(void* context)", sanitize_name(function_name)) << std::endl;
-        output_stream << prolog_line_info << "{" << std::endl;
+        output_stream << format_string("static uint64_t %s(void* context)", sanitize_name(program_name)) << std::endl;
+        output_stream << "{" << std::endl;
 
         // Emit prologue
         output_stream << prolog_line_info << "\t// Prologue" << std::endl;
@@ -718,10 +790,30 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
 
     output_stream << "static program_entry_t _programs[] = {" << std::endl;
     for (auto& [name, program] : sections) {
-        auto function_name = !program.function_name.empty() ? program.function_name : name;
-        output_stream << "\t{ " << sanitize_name(function_name) << ", "
+        auto program_name = !program.program_name.empty() ? program.program_name : name;
+        size_t map_count = program.referenced_map_indices.size();
+        size_t helper_count = program.helper_functions.size();
+        auto map_array_name = map_count ? (program_name + "_maps") : std::string("NULL");
+        auto helper_array_name = helper_count ? (program_name + "_helpers") : std::string("NULL");
+#if defined(_MSC_VER)
+        auto program_type_guid_name = program_name + "_program_type_guid";
+        auto attach_type_guid_name = program_name + "_attach_type_guid";
+#else
+        auto program_type_guid_name = std::string("NULL");
+        auto attach_type_guid_name = std::string("NULL");
+#endif
+        output_stream << "\t{ " << sanitize_name(program_name) << ", "
                       << "\"" << name.c_str() << "\", "
-                      << "\"" << program.function_name.c_str() << "\", " << program.output.size() << "}," << std::endl;
+                      << "\"" << program.program_name.c_str() << "\", " << map_array_name.c_str() << ", "
+                      << program.referenced_map_indices.size() << ", " << helper_array_name.c_str() << ", "
+                      << program.helper_functions.size() << ", " << program.output.size() << ", "
+#if defined(_MSC_VER)
+                      << "&" << sanitize_name(program_type_guid_name) << ", "
+                      << "&" << sanitize_name(attach_type_guid_name) << ", "
+#else
+                      << sanitize_name(program_type_guid_name) << ", " << sanitize_name(attach_type_guid_name) << ", "
+#endif
+                      << "}," << std::endl;
     }
     output_stream << "};" << std::endl;
     output_stream << std::endl;
@@ -734,9 +826,39 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
 
     output_stream << std::endl;
     output_stream << format_string(
-        "metadata_table_t %s = { _get_programs, _get_maps, _get_helpers };\n",
-        c_name.c_str() + std::string("_metadata_table"));
+        "metadata_table_t %s = { _get_programs, _get_maps };\n", c_name.c_str() + std::string("_metadata_table"));
 }
+
+#if defined(_MSC_VER)
+std::string
+bpf_code_generator::format_guid(const GUID* guid)
+{
+    std::string output(120, '\0');
+    std::string format_string =
+        "{0x%08x, 0x%04x, 0x%04x, {0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x}}";
+    auto count = snprintf(
+        output.data(),
+        output.size(),
+        format_string.c_str(),
+        guid->Data1,
+        guid->Data2,
+        guid->Data3,
+        guid->Data4[0],
+        guid->Data4[1],
+        guid->Data4[2],
+        guid->Data4[3],
+        guid->Data4[4],
+        guid->Data4[5],
+        guid->Data4[6],
+        guid->Data4[7]);
+    if (count < 0) {
+        throw std::runtime_error("Error formatting GUID");
+    }
+
+    output.resize(strlen(output.c_str()));
+    return output;
+}
+#endif
 
 std::string
 bpf_code_generator::format_string(
@@ -746,7 +868,7 @@ bpf_code_generator::format_string(
     const std::string insert_3,
     const std::string insert_4)
 {
-    std::string output(120, '\0');
+    std::string output(200, '\0');
     if (insert_2.empty()) {
         auto count = snprintf(output.data(), output.size(), format.c_str(), insert_1.c_str());
         if (count < 0)

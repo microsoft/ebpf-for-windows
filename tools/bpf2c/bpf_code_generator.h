@@ -46,16 +46,26 @@ class bpf_code_generator
      * @brief Parse the eBPF file.
      *
      * @param[in] section_name Section in the ELF file to parse.
+     * @param[in] program_type Program type GUID for the section.
+     * @param[in] attach_type Expected attach type GUID for the section.
      */
     void
-    parse(const std::string& section_name);
+    parse(const std::string& section_name, const GUID& program_type, const GUID& attach_type);
+
+    /**
+     * @brief Parse global data (currently map information) in the eBPF file.
+     *
+     */
+    void
+    parse();
 
     /**
      * @brief Generate C code from the parsed eBPF file.
      *
+     * @param[in] section_name Section in the ELF file to generate C code for.
      */
     void
-    generate();
+    generate(const std::string& section_name);
 
     /**
      * @brief Emit the C code to a given output stream.
@@ -92,7 +102,12 @@ class bpf_code_generator
     {
         std::vector<output_instruction_t> output;
         std::set<std::string> referenced_registers;
-        std::string function_name;
+        std::string program_name;
+        GUID program_type = {0};
+        GUID expected_attach_type = {0};
+        // Indices of the maps used in this section.
+        std::set<size_t> referenced_map_indices;
+        std::map<std::string, helper_function_t> helper_functions;
     } section_t;
 
     /**
@@ -101,6 +116,15 @@ class bpf_code_generator
      */
     void
     extract_program(const std::string& section_name);
+
+    /**
+     * @brief Set the program and attach type for the current section.
+     *
+     * @param[in] program_type Program type GUID.
+     * @param[in] attach_type Attach type GUID.
+     */
+    void
+    set_program_and_attach_type(const GUID& program_type, const GUID& attach_type);
 
     /**
      * @brief Extract the helper function and map relocation data from the eBPF file.
@@ -135,7 +159,7 @@ class bpf_code_generator
      *
      */
     void
-    encode_instructions();
+    encode_instructions(const std::string& section_name);
 
     /**
      * @brief Format a string and insert up to 4 strings in it.
@@ -154,6 +178,17 @@ class bpf_code_generator
         const std::string insert_2 = "",
         const std::string insert_3 = "",
         const std::string insert_4 = "");
+
+#if defined(_MSC_VER)
+    /**
+     * @brief Format a GUID as a string.
+     *
+     * @param[in] guid Pointer to the GUID to be formatted.
+     * @return The formatted string.
+     */
+    std::string
+    format_guid(const GUID* guid);
+#endif
 
     /**
      * @brief Convert a name to a valid C identifier.
@@ -185,7 +220,6 @@ class bpf_code_generator
     std::map<std::string, section_t> sections;
     section_t* current_section;
     ELFIO::elfio reader;
-    std::map<std::string, helper_function_t> helper_functions;
     std::map<std::string, map_entry_t> map_definitions;
     std::string c_name;
     std::string path;

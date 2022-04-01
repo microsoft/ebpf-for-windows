@@ -173,8 +173,10 @@ handle_ebpf_add_program(
         &error_message);
     if (result != EBPF_SUCCESS) {
         std::cerr << "error " << result << ": could not load program" << std::endl;
-        std::cerr << error_message << std::endl;
-        ebpf_free_string(error_message);
+        if (error_message != nullptr) {
+            std::cerr << error_message << std::endl;
+            ebpf_free_string(error_message);
+        }
         return ERROR_SUPPRESS_OUTPUT;
     }
     // Program loaded. Populate the unloader with object pointer and program fd, such that
@@ -699,7 +701,17 @@ handle_ebpf_show_programs(
 
         if (filename.empty() || strcmp(program_file_name, filename.c_str()) == 0) {
             if (section.empty() || strcmp(program_section_name, section.c_str()) == 0) {
-                execution_type_name = program_execution_type == EBPF_EXECUTION_JIT ? "JIT" : "INTERPRET";
+                switch (program_execution_type) {
+                case EBPF_EXECUTION_JIT:
+                    execution_type_name = "JIT";
+                    break;
+                case EBPF_EXECUTION_INTERPRET:
+                    execution_type_name = "INTERPRET";
+                    break;
+                default:
+                    execution_type_name = "NATIVE";
+                    break;
+                }
                 const char* program_type_name = ebpf_get_program_type_name(&info.type_uuid);
 
                 if (level == VL_NORMAL) {

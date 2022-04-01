@@ -195,7 +195,9 @@ struct bpf_prog_info
     char name[BPF_OBJ_NAME_LEN]; ///< Null-terminated program name.
 
     // Windows-specific fields.
-    ebpf_program_type_t type_uuid; ///< Program type UUID.
-    uint32_t pinned_path_count;    ///< Number of pinned paths.
-    uint32_t link_count;           ///< Number of attached links.
+    ebpf_program_type_t type_uuid;       ///< Program type UUID.
+    ebpf_attach_type_t attach_type_uuid; ///< Attach type UUID.
+    uint32_t pinned_path_count;          ///< Number of pinned paths.
+    uint32_t link_count;                 ///< Number of attached links.
 };
+
