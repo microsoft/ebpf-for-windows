@@ -109,7 +109,7 @@ run_test(const std::string& data_file)
     try {
 
         bpf_code_generator code("test", program);
-        code.generate();
+        code.generate("test");
         code.emit_c_code(c_file);
     } catch (std::runtime_error& err) {
         REQUIRE(err.what() == NULL);

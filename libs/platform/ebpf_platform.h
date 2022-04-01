@@ -9,6 +9,8 @@
 #include <TraceLoggingProvider.h>
 #include <winmeta.h>
 
+typedef intptr_t ebpf_handle_t;
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -53,6 +55,7 @@ extern "C"
     } ebpf_code_integrity_state_t;
 
     typedef struct _ebpf_non_preemptible_work_item ebpf_non_preemptible_work_item_t;
+    typedef struct _ebpf_preemptible_work_item ebpf_preemptible_work_item_t;
     typedef struct _ebpf_timer_work_item ebpf_timer_work_item_t;
     typedef struct _ebpf_extension_client ebpf_extension_client_t;
     typedef struct _ebpf_extension_provider ebpf_extension_provider_t;
@@ -414,6 +417,41 @@ extern "C"
      */
     bool
     ebpf_queue_non_preemptible_work_item(_In_ ebpf_non_preemptible_work_item_t* work_item, _In_opt_ void* parameter_1);
+
+    /**
+     * @brief Query the platform to determine if preemptible work items are
+     *   supported.
+     *
+     * @retval true Preemptible work items are supported.
+     * @retval false Preemptible work items are not supported.
+     */
+    bool
+    ebpf_is_preemptible_work_item_supported();
+
+    /**
+     * @brief Create a preemptible work item.
+     *
+     * @param[out] work_item Pointer to memory that will contain the pointer to
+     *  the preemptible work item on success.
+     * @param[in] work_item_routine Routine to execute as a work item.
+     * @param[in] work_item_context Context to pass to the routine.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
+     *  work item.
+     */
+    ebpf_result_t
+    ebpf_allocate_preemptible_work_item(
+        _Outptr_ ebpf_preemptible_work_item_t** work_item,
+        _In_ void (*work_item_routine)(_In_opt_ const void* work_item_context),
+        _In_opt_ void* work_item_context);
+
+    /**
+     * @brief Schedule a preemptible work item to run.
+     *
+     * @param[in] work_item Work item to schedule.
+     */
+    void
+    ebpf_queue_preemptible_work_item(_In_ ebpf_preemptible_work_item_t* work_item);
 
     /**
      * @brief Allocate a timer to run a non-preemptible work item.
@@ -795,6 +833,7 @@ extern "C"
     ebpf_extension_unload(_Frees_ptr_opt_ ebpf_extension_client_t* client_context);
 
     typedef ebpf_result_t (*ebpf_provider_client_attach_callback_t)(
+        ebpf_handle_t client_binding_handle,
         void* context,
         const GUID* client_module_id,
         void* client_binding_context,
@@ -839,6 +878,9 @@ extern "C"
      */
     void
     ebpf_provider_unload(_Frees_ptr_opt_ ebpf_extension_provider_t* provider_context);
+
+    void
+    ebpf_provider_detach_client_complete(_In_ const GUID* interface_id, ebpf_handle_t client_binding_handle);
 
     ebpf_result_t
     ebpf_guid_create(_Out_ GUID* new_guid);
@@ -1062,6 +1104,7 @@ extern "C"
 #define EBPF_TRACELOG_KEYWORD_PROGRAM 0x80
 #define EBPF_TRACELOG_KEYWORD_API 0x100
 #define EBPF_TRACELOG_KEYWORD_PRINTK 0x200
+#define EBPF_TRACELOG_KEYWORD_NATIVE 0x400
 
 #define EBPF_TRACELOG_LEVEL_LOG_ALWAYS WINEVENT_LEVEL_LOG_ALWAYS
 #define EBPF_TRACELOG_LEVEL_CRITICAL WINEVENT_LEVEL_CRITICAL
@@ -1220,6 +1263,17 @@ extern "C"
         TraceLoggingGuid((guid1), (#guid1)),                                    \
         TraceLoggingGuid((guid2), (#guid2)));
 
+#define EBPF_LOG_MESSAGE_GUID_GUID_STRING(trace_level, keyword, message, string, guid1, guid2) \
+    TraceLoggingWrite(                                                                         \
+        ebpf_tracelog_provider,                                                                \
+        EBPF_TRACELOG_EVENT_GENERIC_MESSAGE,                                                   \
+        TraceLoggingLevel((trace_level)),                                                      \
+        TraceLoggingKeyword((keyword)),                                                        \
+        TraceLoggingString((message), "Message"),                                              \
+        TraceLoggingString(string, #string),                                                   \
+        TraceLoggingGuid((guid1), (#guid1)),                                                   \
+        TraceLoggingGuid((guid2), (#guid2)));
+
 #define EBPF_LOG_MESSAGE_STRING(trace_level, keyword, message, string) \
     TraceLoggingWrite(                                                 \
         ebpf_tracelog_provider,                                        \
@@ -1241,6 +1295,45 @@ extern "C"
             TraceLoggingWinError(last_error));            \
     } while (false);
 
+#define EBPF_LOG_WIN32_STRING_API_FAILURE(keyword, message, api) \
+    do {                                                         \
+        DWORD last_error = GetLastError();                       \
+        TraceLoggingWrite(                                       \
+            ebpf_tracelog_provider,                              \
+            EBPF_TRACELOG_EVENT_API_ERROR,                       \
+            TraceLoggingLevel(EBPF_TRACELOG_LEVEL_ERROR),        \
+            TraceLoggingKeyword((keyword)),                      \
+            TraceLoggingString(message, "Message"),              \
+            TraceLoggingString(#api, "Api"),                     \
+            TraceLoggingWinError(last_error));                   \
+    } while (false);
+
+#define EBPF_LOG_WIN32_WSTRING_API_FAILURE(keyword, wstring, api) \
+    do {                                                          \
+        DWORD last_error = GetLastError();                        \
+        TraceLoggingWrite(                                        \
+            ebpf_tracelog_provider,                               \
+            EBPF_TRACELOG_EVENT_API_ERROR,                        \
+            TraceLoggingLevel(EBPF_TRACELOG_LEVEL_ERROR),         \
+            TraceLoggingKeyword((keyword)),                       \
+            TraceLoggingWideString(wstring, "Message"),           \
+            TraceLoggingString(#api, "Api"),                      \
+            TraceLoggingWinError(last_error));                    \
+    } while (false);
+
+#define EBPF_LOG_WIN32_GUID_API_FAILURE(keyword, guid, api) \
+    do {                                                    \
+        DWORD last_error = GetLastError();                  \
+        TraceLoggingWrite(                                  \
+            ebpf_tracelog_provider,                         \
+            EBPF_TRACELOG_EVENT_API_ERROR,                  \
+            TraceLoggingLevel(EBPF_TRACELOG_LEVEL_ERROR),   \
+            TraceLoggingKeyword((keyword)),                 \
+            TraceLoggingGuid((guid), (#guid)),              \
+            TraceLoggingString(#api, "Api"),                \
+            TraceLoggingWinError(last_error));              \
+    } while (false);
+
 #define EBPF_LOG_NTSTATUS_API_FAILURE(keyword, api, status) \
     TraceLoggingWrite(                                      \
         ebpf_tracelog_provider,                             \
@@ -1248,6 +1341,16 @@ extern "C"
         TraceLoggingLevel(EBPF_TRACELOG_LEVEL_ERROR),       \
         TraceLoggingKeyword((keyword)),                     \
         TraceLoggingString(#api, "api"),                    \
+        TraceLoggingNTStatus(status));
+
+#define EBPF_LOG_NTSTATUS_WSTRING_API(keyword, wstring, api, status) \
+    TraceLoggingWrite(                                               \
+        ebpf_tracelog_provider,                                      \
+        EBPF_TRACELOG_EVENT_GENERIC_MESSAGE,                         \
+        TraceLoggingLevel(EBPF_TRACELOG_LEVEL_INFO),                 \
+        TraceLoggingKeyword((keyword)),                              \
+        TraceLoggingWideString(wstring, "Message"),                  \
+        TraceLoggingString(#api, "api"),                             \
         TraceLoggingNTStatus(status));
 
 #ifdef __cplusplus

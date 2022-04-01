@@ -100,7 +100,8 @@ _test_program_load(
         execution_type = EBPF_EXECUTION_JIT;
     }
     REQUIRE(program_execution_type == execution_type);
-    REQUIRE(strcmp(program_file_name, file_name) == 0);
+    if (execution_type != EBPF_EXECUTION_NATIVE)
+        REQUIRE(strcmp(program_file_name, file_name) == 0);
 
     // Next program should not be present.
     previous_fd = next_fd;
@@ -236,6 +237,8 @@ TEST_CASE("pinned_map_enum", "[pinned_map_enum]") { ebpf_test_pinned_map_enum();
 
 // Load droppacket (JIT) without providing expected program type.
 DECLARE_LOAD_TEST_CASE("droppacket.o", nullptr, EBPF_EXECUTION_JIT, EBPF_SUCCESS);
+
+DECLARE_LOAD_TEST_CASE("droppacket_km.sys", nullptr, EBPF_EXECUTION_NATIVE, EBPF_SUCCESS);
 
 // Load droppacket (ANY) without providing expected program type.
 DECLARE_LOAD_TEST_CASE("droppacket.o", nullptr, EBPF_EXECUTION_ANY, EBPF_SUCCESS);
@@ -446,4 +449,109 @@ TEST_CASE("tailcall_load_test", "[tailcall_load_test]")
     REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0) == 0);
 
     bpf_object__close(object);
+}
+
+int
+perform_bind(_Out_ SOCKET* socket, uint16_t port_number)
+{
+    *socket = WSASocket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP, nullptr, 0, 0);
+    REQUIRE(*socket != INVALID_SOCKET);
+    SOCKADDR_STORAGE sock_addr;
+    sock_addr.ss_family = AF_INET6;
+    INETADDR_SETANY((PSOCKADDR)&sock_addr);
+
+    // Perform bind operation.
+    ((PSOCKADDR_IN6)&sock_addr)->sin6_port = htons(port_number);
+    return (bind(*socket, (PSOCKADDR)&sock_addr, sizeof(sock_addr)));
+}
+
+void
+bindmonitor_test(_In_ struct bpf_object* object)
+{
+    fd_t process_map_fd = bpf_object__find_map_fd_by_name(object, "process_map");
+    REQUIRE(process_map_fd > 0);
+
+    fd_t limits_map_fd = bpf_object__find_map_fd_by_name(object, "limits_map");
+    REQUIRE(limits_map_fd > 0);
+
+    // Set the limit to 2. Third bind from same app should fail.
+    uint32_t key = 0;
+    uint32_t value = 2;
+    int error = bpf_map_update_elem(limits_map_fd, &key, &value, 0);
+    REQUIRE(error == 0);
+
+    WSAData data;
+    SOCKET sockets[3];
+    REQUIRE(WSAStartup(2, &data) == 0);
+
+    // First and second binds should succeed.
+    REQUIRE(perform_bind(&sockets[0], 30000) == 0);
+    REQUIRE(perform_bind(&sockets[1], 30001) == 0);
+
+    // Third bind from the same app should fail.
+    REQUIRE(perform_bind(&sockets[2], 30002) != 0);
+
+    WSACleanup();
+}
+
+TEST_CASE("bindmonitor_native_test", "[native_tests]")
+{
+    struct bpf_object* object = nullptr;
+    hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
+    program_load_attach_helper_t _helper(
+        "bindmonitor_km.sys", EBPF_PROGRAM_TYPE_BIND, "BindMonitor", EBPF_EXECUTION_NATIVE, nullptr, 0, hook);
+    object = _helper.get_object();
+
+    bindmonitor_test(object);
+}
+
+TEST_CASE("bindmonitor_tailcall_native_test", "[native_tests]")
+{
+    struct bpf_object* object = nullptr;
+    hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
+    program_load_attach_helper_t _helper(
+        "bindmonitor_tailcall_km.sys", EBPF_PROGRAM_TYPE_BIND, "BindMonitor", EBPF_EXECUTION_JIT, nullptr, 0, hook);
+    object = _helper.get_object();
+
+    // Setup tail calls.
+    struct bpf_program* callee0 = bpf_object__find_program_by_name(object, "BindMonitor_Callee0");
+    REQUIRE(callee0 != nullptr);
+    fd_t callee0_fd = bpf_program__fd(callee0);
+    REQUIRE(callee0_fd > 0);
+
+    struct bpf_program* callee1 = bpf_object__find_program_by_name(object, "BindMonitor_Callee1");
+    REQUIRE(callee1 != nullptr);
+    fd_t callee1_fd = bpf_program__fd(callee1);
+    REQUIRE(callee1_fd > 0);
+
+    fd_t prog_map_fd = bpf_object__find_map_fd_by_name(object, "prog_array_map");
+    REQUIRE(prog_map_fd > 0);
+
+    uint32_t index = 0;
+    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &callee0_fd, 0) == 0);
+    index = 1;
+    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &callee1_fd, 0) == 0);
+
+    bindmonitor_test(object);
+
+    auto cleanup = [prog_map_fd, &index]() {
+        index = 0;
+        REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0) == 0);
+        index = 1;
+        REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0) == 0);
+    };
+
+    // Test map-in-maps.
+    struct bpf_map* outer_map = bpf_object__find_map_by_name(object, "dummy_outer_map");
+    if (outer_map == nullptr)
+        cleanup();
+    REQUIRE(outer_map != nullptr);
+
+    int outer_map_fd = bpf_map__fd(outer_map);
+    if (outer_map_fd <= 0)
+        cleanup();
+    REQUIRE(outer_map_fd > 0);
+
+    // Cleanup tail calls.
+    cleanup();
 }

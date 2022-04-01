@@ -44,7 +44,7 @@ dll_metadata_table::dll_metadata_table(const std::string& dll_name, const std::s
     size_t count;
     table->programs(&programs, &count);
     for (size_t i = 0; i < count; i++) {
-        loaded_programs[programs->function_name] = programs->function;
+        loaded_programs[programs->program_name] = programs->function;
     }
 }
 
@@ -77,7 +77,9 @@ dll_metadata_table::bind_metadata_table()
     size_t helpers_count = 0;
     map_entry_t* maps = nullptr;
     size_t map_count = 0;
-    table->helpers(&helpers, &helpers_count);
+    program_entry_t* programs = nullptr;
+    size_t program_count = 0;
+    table->programs(&programs, &program_count);
     table->maps(&maps, &map_count);
 
     int client_binding_context = 0;
@@ -113,12 +115,16 @@ dll_metadata_table::bind_metadata_table()
         throw std::runtime_error("ebpf_extension_load failed for ebpf_general_helper_function_module_id");
     }
 
-    for (size_t i = 0; i < helpers_count; i++) {
-        if (helpers[i].helper_id >= general_helper_program_data->helper_function_addresses->helper_function_count) {
-            throw std::runtime_error("ebpf_extension_load failed for ebpf_general_helper_function_module_id");
+    for (size_t i = 0; i < program_count; i++) {
+        helpers = programs[i].helpers;
+        helpers_count = programs[i].helper_count;
+        for (size_t j = 0; j < helpers_count; j++) {
+            if (helpers[j].helper_id >= general_helper_program_data->helper_function_addresses->helper_function_count) {
+                throw std::runtime_error("ebpf_extension_load failed for ebpf_general_helper_function_module_id");
+            }
+            helpers[j].address = reinterpret_cast<decltype(helpers[j].address)>(
+                general_helper_program_data->helper_function_addresses->helper_function_address[helpers[j].helper_id]);
         }
-        helpers[i].address = reinterpret_cast<decltype(helpers[i].address)>(
-            general_helper_program_data->helper_function_addresses->helper_function_address[helpers[i].helper_id]);
     }
 
     for (size_t i = 0; i < map_count; i++) {
@@ -156,11 +162,17 @@ dll_metadata_table::unbind_metadata_table()
     size_t helpers_count = 0;
     map_entry_t* maps = nullptr;
     size_t map_count = 0;
-    table->helpers(&helpers, &helpers_count);
+    program_entry_t* programs = nullptr;
+    size_t program_count = 0;
+    table->programs(&programs, &program_count);
     table->maps(&maps, &map_count);
 
-    for (size_t i = 0; i < helpers_count; i++) {
-        helpers[i].address = nullptr;
+    for (size_t i = 0; i < program_count; i++) {
+        helpers = programs[i].helpers;
+        helpers_count = programs[i].helper_count;
+        for (size_t j = 0; j < helpers_count; j++) {
+            helpers[j].address = nullptr;
+        }
     }
 
     for (size_t i = 0; i < map_count; i++) {

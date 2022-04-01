@@ -70,6 +70,9 @@
     <ClCompile Include="..\ebpf_etw.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ebpf_native_user.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\ebpf_interlocked.c">
       <Filter>Source Files</Filter>
     </ClCompile>

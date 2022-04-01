@@ -10,6 +10,7 @@
 #include <tuple>
 #include <vector>
 #include "bpf_code_generator.h"
+#include "ebpf_api.h"
 
 const char bpf2c_driver[] =
 #include "bpf2c_driver.template"
@@ -97,8 +98,16 @@ main(int argc, char** argv)
 
         // Parse per-section data.
         for (const auto& section : sections) {
-            generator.parse(section);
-            generator.generate();
+            ebpf_program_type_t program_type;
+            ebpf_attach_type_t attach_type;
+            if (ebpf_get_program_type_by_name(section.c_str(), &program_type, &attach_type) != EBPF_SUCCESS) {
+                throw std::runtime_error(std::string("Cannot get program / attach type for section ") + section);
+            }
+            generator.parse(section, program_type, attach_type);
+        }
+
+        for (const auto& section : sections) {
+            generator.generate(section);
         }
 
         switch (type) {
