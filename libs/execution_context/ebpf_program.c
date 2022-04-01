@@ -589,7 +589,7 @@ static ebpf_result_t
 _ebpf_program_load_machine_code(
     _Inout_ ebpf_program_t* program,
     _In_opt_ const void* code_context,
-    _In_ const uint8_t* machine_code,
+    _In_reads_(machine_code_size) const uint8_t* machine_code,
     size_t machine_code_size)
 {
     EBPF_LOG_ENTRY();
@@ -759,7 +759,7 @@ ebpf_program_load_code(
     _Inout_ ebpf_program_t* program,
     ebpf_code_type_t code_type,
     _In_opt_ const void* code_context,
-    _In_ const uint8_t* code,
+    _In_reads_(code_size) const uint8_t* code,
     size_t code_size)
 {
     EBPF_LOG_ENTRY();
