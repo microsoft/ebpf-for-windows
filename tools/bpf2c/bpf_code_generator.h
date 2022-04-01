@@ -51,6 +51,13 @@ class bpf_code_generator
     parse(const std::string& section_name);
 
     /**
+     * @brief Parse global data (currently map information) in the eBPF file.
+     *
+     */
+    void
+    parse();
+
+    /**
      * @brief Generate C code from the parsed eBPF file.
      *
      */
