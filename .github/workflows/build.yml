@@ -64,7 +64,7 @@ jobs:
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: nuget restore ${{env.SOLUTION_FILE_PATH}}
 
-    - name: Setup OpenCppCoverage and add to PATH
+    - name: Set up OpenCppCoverage and add to PATH
       id: setup_opencppcoverage
       run: |
         choco install OpenCppCoverage -y
