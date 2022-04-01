@@ -378,7 +378,7 @@ TEST_CASE("set program", "[netsh][programs]")
     REQUIRE(UuidToStringW(&EBPF_ATTACH_TYPE_XDP, &attach_type_string) == 0);
 
     // Attach the program.
-    output = _run_netsh_command(handle_ebpf_set_program, L"196609", (PCWSTR)attach_type_string, nullptr, &result);
+    output = _run_netsh_command(handle_ebpf_set_program, L"196609", L"xdp", nullptr, &result);
     REQUIRE(output == "");
     REQUIRE(result == ERROR_OKAY);
 

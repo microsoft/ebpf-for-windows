@@ -103,3 +103,36 @@ typedef enum _bind_action
  */
 typedef bind_action_t
 bind_hook_t(bind_md_t* context);
+
+//
+// CGROUP_SOCK_ADDR.
+//
+#pragma warning(push)
+#pragma warning(disable : 4201)
+typedef struct bpf_sock_addr
+{
+    uint32_t family; ///< IP address family.
+    struct
+    {
+        union
+        {
+            uint32_t msg_src_ip4;
+            uint32_t msg_src_ip6[4];
+        };                     ///< Source IP address in network byte order.
+                               ///< Local for ingress, remote for egress.
+        uint16_t msg_src_port; ///< Source port in network byte order.
+    };
+    struct
+    {
+        union
+        {
+            uint32_t user_ip4;
+            uint32_t user_ip6[4];
+        };                  ///< Destination IP address in network byte order.
+                            ///< Local for egress, remote for ingress.
+        uint16_t user_port; ///< Destination port in network byte order.
+    };
+    uint32_t protocol;       ///< IP protocol.
+    uint32_t compartment_id; ///< Network compartment Id.
+} bpf_sock_addr_t;
+#pragma warning(pop)
