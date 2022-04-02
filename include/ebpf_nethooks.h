@@ -107,6 +107,10 @@ bind_hook_t(bind_md_t* context);
 //
 // CGROUP_SOCK_ADDR.
 //
+
+#define VERDICT_REJECT 0
+#define VERDICT_PROCEED 1
+
 #pragma warning(push)
 #pragma warning(disable : 4201)
 typedef struct bpf_sock_addr
