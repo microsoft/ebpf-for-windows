@@ -16,6 +16,9 @@ on:
       build_options:
         required: false
         type: string
+      generate_release_package:
+        required: false
+        type: boolean
       build_codeql:
         required: false
         type: boolean
@@ -104,6 +107,37 @@ jobs:
         name: ${{inputs.build_artifact}} ${{matrix.configurations}}
         path: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
         retention-days: 5
+
+    - name: Generate the package data
+      if: matrix.configurations == 'Release' && inputs.generate_release_package == true
+      shell: cmd
+      working-directory: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+      env:
+        SOURCE_DIR: ${{github.workspace}}
+      run: |
+        ${{github.workspace}}/scripts/create_package_data.bat
+
+    - name: Generate the MSI release package
+      if: matrix.configurations == 'Release' && inputs.generate_release_package == true
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      run: |
+        cmake -S packaging -B package -DEBPFFORWINDOWS_PROGRAM_DATA="${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\package_data" "-DEBPFFORWINDOWS_VERSION=1.0.0" -DCPACK_GENERATOR=WIX
+        cmake --build package --target package
+
+    - name: Locate the packages
+      if: matrix.configurations == 'Release' && inputs.generate_release_package == true
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      id: packages
+      shell: bash
+      run: |
+        echo ::set-output name=REL_MSI_PACKAGE_PATH::$(ls package/*.msi)
+
+    - name: Upload the MSI package
+      if: matrix.configurations == 'Release' && inputs.generate_release_package == true
+      uses: actions/upload-artifact@6673cd052c4cd6fcf4b4e6e60ea986c889389535
+      with:
+        name: ebpf-for-windows.msi
+        path: ${{ steps.packages.outputs.REL_MSI_PACKAGE_PATH }}
 
     - name: Perform CodeQL Analysis
       if: inputs.build_codeql == true
