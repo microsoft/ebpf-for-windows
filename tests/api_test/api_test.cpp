@@ -127,7 +127,8 @@ static void
 _test_multiple_programs_load(
     int program_count,
     _In_reads_(program_count) const struct _ebpf_program_load_test_parameters* parameters,
-    ebpf_execution_type_t execution_type)
+    ebpf_execution_type_t execution_type,
+    ebpf_result_t expected_load_result)
 {
     ebpf_result_t result;
     std::vector<struct bpf_object*> objects;
@@ -140,11 +141,19 @@ _test_multiple_programs_load(
         fd_t program_fd;
 
         result = _program_load_helper(file_name, program_type, execution_type, &object, &program_fd);
-        REQUIRE(result == EBPF_SUCCESS);
-        REQUIRE(program_fd > 0);
+        REQUIRE(expected_load_result == result);
+        if (expected_load_result == EBPF_SUCCESS) {
+            REQUIRE(program_fd > 0);
+        } else {
+            continue;
+        }
 
         objects.push_back(object);
         fds.push_back(program_fd);
+    }
+
+    if (expected_load_result != EBPF_SUCCESS) {
+        return;
     }
 
     for (int i = 0; i < program_count; i++) {
@@ -269,14 +278,15 @@ TEST_CASE("test_ebpf_multiple_programs_load_jit")
 {
     struct _ebpf_program_load_test_parameters test_parameters[] = {
         {"droppacket.o", &EBPF_PROGRAM_TYPE_XDP}, {"bindmonitor.o", &EBPF_PROGRAM_TYPE_BIND}};
-    _test_multiple_programs_load(_countof(test_parameters), test_parameters, EBPF_EXECUTION_JIT);
+    _test_multiple_programs_load(_countof(test_parameters), test_parameters, EBPF_EXECUTION_JIT, EBPF_SUCCESS);
 }
 
 TEST_CASE("test_ebpf_multiple_programs_load_interpret")
 {
     struct _ebpf_program_load_test_parameters test_parameters[] = {
         {"droppacket.o", &EBPF_PROGRAM_TYPE_XDP}, {"bindmonitor.o", &EBPF_PROGRAM_TYPE_BIND}};
-    _test_multiple_programs_load(_countof(test_parameters), test_parameters, EBPF_EXECUTION_INTERPRET);
+    _test_multiple_programs_load(
+        _countof(test_parameters), test_parameters, EBPF_EXECUTION_INTERPRET, INTERPRET_LOAD_RESULT);
 }
 
 TEST_CASE("test_ebpf_program_next_previous", "[test_ebpf_program_next_previous]")

@@ -1,0 +1,6 @@
+# Copyright (c) Microsoft Corporation
+# SPDX-License-Identifier: MIT
+
+codecov:
+  notify:
+    wait_for_ci: yes
