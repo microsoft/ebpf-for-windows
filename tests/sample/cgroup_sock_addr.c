@@ -60,7 +60,7 @@ authorize_v6(bpf_sock_addr_t* ctx)
 
     verdict = bpf_map_lookup_elem(&connection_policy_map, &tuple_key);
 
-    return (verdict != NULL) ? *verdict : 1;
+    return (verdict != NULL) ? *verdict : VERDICT_PROCEED;
 }
 
 SEC("cgroup/connect4")

@@ -85,7 +85,6 @@ ebpf_attach_provider_data_t _net_ebpf_xdp_hook_provider_data;
 ebpf_extension_data_t _net_ebpf_extension_xdp_hook_provider_data = {
     EBPF_ATTACH_PROVIDER_DATA_VERSION, sizeof(_net_ebpf_xdp_hook_provider_data), &_net_ebpf_xdp_hook_provider_data};
 
-// Net eBPF Extension XDP Hook NPI Provider Module GUID: d8039b3a-bdaf-4c54-8d9e-9f88d692f4b9
 NPI_MODULEID DECLSPEC_SELECTANY _ebpf_xdp_hook_provider_moduleid = {sizeof(NPI_MODULEID), MIT_GUID, {0}};
 
 static net_ebpf_extension_hook_provider_t* _ebpf_xdp_hook_provider_context = NULL;

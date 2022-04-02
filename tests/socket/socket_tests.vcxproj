@@ -25,8 +25,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{07dc6181-84a2-4a14-a806-5e9af6c929c2}</ProjectGuid>
-    <RootNamespace>xdp_tests</RootNamespace>
+    <ProjectGuid>{eed9dac6-8b98-4c33-969a-e8cede8e985e}</ProjectGuid>
+    <RootNamespace>socket_tests</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -136,7 +136,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="xdp_tests.cpp" />
+    <ClCompile Include="socket_tests.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="$(SolutionDir)ebpfapi\ebpfapi.vcxproj">
@@ -151,9 +151,6 @@
     <ProjectReference Include="..\..\external\Catch2\build\src\Catch2.vcxproj">
       <Project>{8d538cbe-01bf-4a2e-a98a-6c368fdf13d7}</Project>
     </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -79,7 +79,8 @@ function Invoke-CICDTests
             "unit_tests.exe",
             "ebpf_client.exe",
             "api_test.exe",
-            "sample_ext_app.exe")
+            "sample_ext_app.exe",
+            "socket_tests.exe")
 
         foreach ($Test in $TestList) {
             Invoke-Test -TestName $Test -VerboseLogs $VerboseLogs
