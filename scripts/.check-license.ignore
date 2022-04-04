@@ -10,6 +10,7 @@
 
 # Generated files
 tools/netsh/resource.h
+spec/*
 
 # Other Files
 LICENSE.txt

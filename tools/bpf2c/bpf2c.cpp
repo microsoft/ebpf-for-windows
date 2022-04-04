@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include <filesystem>
 #include <functional>
-#include <fstream>
 #include <iostream>
 #include <map>
 #include <regex>
@@ -11,6 +11,7 @@
 #include <vector>
 #include "bpf_code_generator.h"
 #include "ebpf_api.h"
+#include "elfwrapper.h"
 
 const char bpf2c_driver[] =
 #include "bpf2c_driver.template"
@@ -20,10 +21,32 @@ const char bpf2c_dll[] =
 #include "bpf2c_dll.template"
     ;
 
+#define elf_ever_parse_error ElfEverParseError
+
 void
 emit_skeleton(const std::string& c_name, const std::string& code)
 {
     std::cout << std::regex_replace(code, std::regex(std::string("___METADATA_TABLE___")), c_name) << std::endl;
+}
+
+extern "C" void
+elf_ever_parse_error(const char* struct_name, const char* field_name, const char* reason)
+{
+    std::cerr << "Validation failure: struct_name=" << struct_name << " field_name=" << field_name
+              << " reason=" << reason << std::endl;
+}
+
+std::unique_ptr<std::istream>
+load_and_validate_elf(const std::filesystem::path& path)
+{
+    std::ifstream input(path, std::ios::binary);
+    std::vector<char> data(std::filesystem::file_size(path));
+    input.read(data.data(), data.size());
+    if (!ElfCheckElf(data.size(), reinterpret_cast<uint8_t*>(data.data()), static_cast<uint32_t>(data.size()))) {
+        throw std::runtime_error(std::string("ELF file ") + path.string() + " is malformed");
+    }
+    std::string str(data.data(), data.size());
+    return std::make_unique<std::istringstream>(str);
 }
 
 int
@@ -86,7 +109,8 @@ main(int argc, char** argv)
         std::string c_name = file.substr(file.find_last_of("\\") + 1);
         c_name = c_name.substr(0, c_name.find("."));
 
-        bpf_code_generator generator(file, c_name);
+        auto input_stream = load_and_validate_elf(file);
+        bpf_code_generator generator(*input_stream, c_name);
 
         // Special case of no section name.
         if (sections.size() == 0) {

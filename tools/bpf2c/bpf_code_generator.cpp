@@ -108,11 +108,11 @@ bpf_code_generator::get_register_name(uint8_t id)
     }
 }
 
-bpf_code_generator::bpf_code_generator(const std::string& path, const std::string& c_name)
+bpf_code_generator::bpf_code_generator(std::istream& stream, const std::string& c_name)
     : current_section(nullptr), c_name(c_name), path(path)
 {
-    if (!reader.load(path)) {
-        throw std::runtime_error(std::string("Can't process ELF file ") + path);
+    if (!reader.load(stream)) {
+        throw std::runtime_error(std::string("Can't process ELF file "));
     }
 
     extract_btf_information();

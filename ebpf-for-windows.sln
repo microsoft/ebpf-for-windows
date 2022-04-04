@@ -152,12 +152,20 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "droppacket_km", "tests\samp
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "bindmonitor_km", "tests\sample\generated\sys\bindmonitor_km\bindmonitor_sys.vcxproj", "{34481DE6-D212-41A6-8F46-34959FF66B9A}"
+	ProjectSection(ProjectDependencies) = postProject
+		{69B97E52-18DC-434E-A6E4-4C0F3E88C44A} = {69B97E52-18DC-434E-A6E4-4C0F3E88C44A}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "bindmonitor_tailcall_km", "tests\sample\generated\sys\bindmonitor_tailcall_km\bindmonitor_tailcall_sys.vcxproj", "{2B51E0EF-4589-430B-9CCC-D09A4E6FD8B2}"
+	ProjectSection(ProjectDependencies) = postProject
+		{69B97E52-18DC-434E-A6E4-4C0F3E88C44A} = {69B97E52-18DC-434E-A6E4-4C0F3E88C44A}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Catch2WithMain", "external\Catch2\build\src\Catch2WithMain.vcxproj", "{8BD3552A-2CFB-4A59-AB15-2031B97ADA1E}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Catch2", "external\Catch2\build\src\Catch2.vcxproj", "{8D538CBE-01BF-4A2E-A98A-6C368FDF13D7}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "spec_elf", "spec\elf\elf.vcxproj", "{E2B1C5CE-99D2-4732-ACFB-0133F31A450F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -1493,6 +1501,34 @@ Global
 		{8D538CBE-01BF-4A2E-A98A-6C368FDF13D7}.RelWithDebInfo|x64.ActiveCfg = RelWithDebInfo|x64
 		{8D538CBE-01BF-4A2E-A98A-6C368FDF13D7}.RelWithDebInfo|x64.Build.0 = RelWithDebInfo|x64
 		{8D538CBE-01BF-4A2E-A98A-6C368FDF13D7}.RelWithDebInfo|x86.ActiveCfg = RelWithDebInfo|x64
+		{E2B1C5CE-99D2-4732-ACFB-0133F31A450F}.Debug|ARM.ActiveCfg = Debug|Win32
+		{E2B1C5CE-99D2-4732-ACFB-0133F31A450F}.Debug|ARM64.ActiveCfg = Debug|Win32
+		{E2B1C5CE-99D2-4732-ACFB-0133F31A450F}.Debug|x64.ActiveCfg = Debug|x64
+		{E2B1C5CE-99D2-4732-ACFB-0133F31A450F}.Debug|x64.Build.0 = Debug|x64
+		{E2B1C5CE-99D2-4732-ACFB-0133F31A450F}.Debug|x86.ActiveCfg = Debug|Win32
+		{E2B1C5CE-99D2-4732-ACFB-0133F31A450F}.Debug|x86.Build.0 = Debug|Win32
+		{E2B1C5CE-99D2-4732-ACFB-0133F31A450F}.MinSizeRel|ARM.ActiveCfg = Debug|Win32
+		{E2B1C5CE-99D2-4732-ACFB-0133F31A450F}.MinSizeRel|ARM.Build.0 = Debug|Win32
+		{E2B1C5CE-99D2-4732-ACFB-0133F31A450F}.MinSizeRel|ARM64.ActiveCfg = Debug|Win32
+		{E2B1C5CE-99D2-4732-ACFB-0133F31A450F}.MinSizeRel|ARM64.Build.0 = Debug|Win32
+		{E2B1C5CE-99D2-4732-ACFB-0133F31A450F}.MinSizeRel|x64.ActiveCfg = Debug|x64
+		{E2B1C5CE-99D2-4732-ACFB-0133F31A450F}.MinSizeRel|x64.Build.0 = Debug|x64
+		{E2B1C5CE-99D2-4732-ACFB-0133F31A450F}.MinSizeRel|x86.ActiveCfg = Debug|Win32
+		{E2B1C5CE-99D2-4732-ACFB-0133F31A450F}.MinSizeRel|x86.Build.0 = Debug|Win32
+		{E2B1C5CE-99D2-4732-ACFB-0133F31A450F}.Release|ARM.ActiveCfg = Release|Win32
+		{E2B1C5CE-99D2-4732-ACFB-0133F31A450F}.Release|ARM64.ActiveCfg = Release|Win32
+		{E2B1C5CE-99D2-4732-ACFB-0133F31A450F}.Release|x64.ActiveCfg = Release|x64
+		{E2B1C5CE-99D2-4732-ACFB-0133F31A450F}.Release|x64.Build.0 = Release|x64
+		{E2B1C5CE-99D2-4732-ACFB-0133F31A450F}.Release|x86.ActiveCfg = Release|Win32
+		{E2B1C5CE-99D2-4732-ACFB-0133F31A450F}.Release|x86.Build.0 = Release|Win32
+		{E2B1C5CE-99D2-4732-ACFB-0133F31A450F}.RelWithDebInfo|ARM.ActiveCfg = Debug|Win32
+		{E2B1C5CE-99D2-4732-ACFB-0133F31A450F}.RelWithDebInfo|ARM.Build.0 = Debug|Win32
+		{E2B1C5CE-99D2-4732-ACFB-0133F31A450F}.RelWithDebInfo|ARM64.ActiveCfg = Debug|Win32
+		{E2B1C5CE-99D2-4732-ACFB-0133F31A450F}.RelWithDebInfo|ARM64.Build.0 = Debug|Win32
+		{E2B1C5CE-99D2-4732-ACFB-0133F31A450F}.RelWithDebInfo|x64.ActiveCfg = Release|x64
+		{E2B1C5CE-99D2-4732-ACFB-0133F31A450F}.RelWithDebInfo|x64.Build.0 = Release|x64
+		{E2B1C5CE-99D2-4732-ACFB-0133F31A450F}.RelWithDebInfo|x86.ActiveCfg = Release|Win32
+		{E2B1C5CE-99D2-4732-ACFB-0133F31A450F}.RelWithDebInfo|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1546,6 +1582,7 @@ Global
 		{2B51E0EF-4589-430B-9CCC-D09A4E6FD8B2} = {5C9E1337-D8EF-41AB-815D-E1990D19E4E0}
 		{8BD3552A-2CFB-4A59-AB15-2031B97ADA1E} = {492C9B22-9237-4996-9E33-CA14D3533616}
 		{8D538CBE-01BF-4A2E-A98A-6C368FDF13D7} = {492C9B22-9237-4996-9E33-CA14D3533616}
+		{E2B1C5CE-99D2-4732-ACFB-0133F31A450F} = {69CDB6A1-434D-4BC9-9BFF-D12DF7EDBB6B}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {3D5F862D-74C6-4357-9F95-0B152E33B7B8}

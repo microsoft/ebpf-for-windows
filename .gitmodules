@@ -20,3 +20,6 @@
 [submodule "external/parcon"]
 	path = external/parcon
 	url = https://github.com/javawizard/parcon.git
+[submodule "external/everparse"]
+	path = external/everparse
+	url = https://github.com/project-everest/everparse.git
