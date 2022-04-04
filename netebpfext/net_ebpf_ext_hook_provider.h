@@ -53,8 +53,7 @@ net_ebpf_extension_hook_client_get_client_data(_In_ const net_ebpf_extension_hoo
  * @brief Set the hook-specific provider data for the attached client.
  *
  * @param[in] hook_client Pointer to attached hook NPI client.
- *
- * @returns hook-specific provider data.
+ * @param[in] data hook-specific provider data.
  *
  */
 void
@@ -66,6 +65,7 @@ net_ebpf_extension_hook_client_set_provider_data(_In_ net_ebpf_extension_hook_cl
  * @param[in] hook_client Pointer to attached hook NPI client.
  * @param[in] data hook-specific provider data.
  *
+ * @returns Pointer to hook-specific provider data for the attached client.
  */
 const void*
 net_ebpf_extension_hook_client_get_provider_data(_In_ const net_ebpf_extension_hook_client_t* hook_client);
@@ -79,6 +79,8 @@ typedef struct _net_ebpf_extension_hook_provider net_ebpf_extension_hook_provide
  * @brief Get the hook-specific custom data from the provider.
  *
  * @param[in] provider_context Pointer to hook NPI provider.
+ *
+ * @returns Pointer to the hook-specific custom data from the provider.
  *
  */
 const void*

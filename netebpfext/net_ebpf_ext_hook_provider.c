@@ -269,7 +269,6 @@ net_ebpf_extension_hook_check_attach_parameter(
                 (net_ebpf_extension_hook_client_t*)CONTAINING_RECORD(link, net_ebpf_extension_hook_client_t, link);
 
             const ebpf_extension_data_t* next_client_data = next_client->client_data;
-            ;
             void* next_client_attach_parameter =
                 (next_client_data->data == NULL) ? wild_card_attach_parameter : next_client_data->data;
             if (((memcmp(wild_card_attach_parameter, next_client_attach_parameter, attach_parameter_size) == 0)) ||
