@@ -19,8 +19,8 @@ Environment:
 
 #include "net_ebpf_ext.h"
 #include "net_ebpf_ext_bind.h"
-#include "net_ebpf_ext_xdp.h"
 #include "net_ebpf_ext_sock_addr.h"
+#include "net_ebpf_ext_xdp.h"
 
 // Globals.
 NDIS_HANDLE _net_ebpf_ext_ndis_handle = NULL;
