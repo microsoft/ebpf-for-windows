@@ -19,8 +19,8 @@ Environment:
 
 #include "net_ebpf_ext.h"
 #include "net_ebpf_ext_bind.h"
-#include "net_ebpf_ext_xdp.h"
 #include "net_ebpf_ext_sock_addr.h"
+#include "net_ebpf_ext_xdp.h"
 
 // Globals.
 NDIS_HANDLE _net_ebpf_ext_ndis_handle = NULL;
@@ -130,7 +130,7 @@ static net_ebpf_ext_wfp_callout_state_t _net_ebpf_ext_wfp_callout_state[] = {
     },
     {
         &EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V4_CALLOUT,
-        &FWPM_LAYER_ALE_AUTH_CONNECT_V4,
+        &FWPM_LAYER_ALE_AUTH_RECV_ACCEPT_V4,
         net_ebpf_ext_authorize_connection_classify,
         _net_ebpf_ext_filter_change_notify,
         _net_ebpf_ext_flow_delete,
@@ -140,7 +140,7 @@ static net_ebpf_ext_wfp_callout_state_t _net_ebpf_ext_wfp_callout_state[] = {
     },
     {
         &EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V6_CALLOUT,
-        &FWPM_LAYER_ALE_AUTH_CONNECT_V6,
+        &FWPM_LAYER_ALE_AUTH_RECV_ACCEPT_V6,
         net_ebpf_ext_authorize_connection_classify,
         _net_ebpf_ext_filter_change_notify,
         _net_ebpf_ext_flow_delete,

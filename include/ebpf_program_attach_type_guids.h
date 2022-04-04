@@ -44,8 +44,8 @@ extern "C"
 
     /** @brief The programs attached to the INETx_RECV_ACCEPT hook will get invoked for
      *  TCP accept() calls or for the first unicast UDP packet from a unique remote
-     *  address/port tuple. May be scoped to a network compartment. The programs return 0 to permit the connection, and
-     * a negative integer to block them.
+     *  address/port tuple. May be scoped to a network compartment. The programs return 1 to permit a connection, and
+     * a 0 to block it.
      */
     __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT = {
         0xa82e37b3, 0xaee7, 0x11ec, {0x9a, 0x30, 0x18, 0x60, 0x24, 0x89, 0xbe, 0xee}};

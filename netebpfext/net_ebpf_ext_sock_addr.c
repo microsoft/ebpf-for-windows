@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 /**
- * @file This file implements the hook for CGROUP_SOCK_ADDR program type and associated attach types, on eBPF for
+ * @file This file implements the hook for the CGROUP_SOCK_ADDR program type and associated attach types, on eBPF for
  * Windows.
  *
  */
@@ -15,18 +15,10 @@
 // WFP filter related types & globals for SOCK_ADDR hook.
 //
 
-typedef enum _net_ebpf_extension_sock_addr_hook_id
-{
-    EBPF_HOOK_SOCK_ADDR_CONNECT_V4 = 0,
-    EBPF_HOOK_SOCK_ADDR_CONNECT_V6,
-    EBPF_HOOK_SOCK_ADDR_RECV_ACCEPT_V4,
-    EBPF_HOOK_SOCK_ADDR_RECV_ACCEPT_V6,
-} net_ebpf_extension_sock_addr_hook_id_t;
-
 const ebpf_attach_type_t* _net_ebpf_extension_sock_addr_attach_types[] = {
     &EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT,
-    &EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT,
     &EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT,
+    &EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT,
     &EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT};
 
 #define NET_EBPF_SOCK_ADDR_HOOK_PROVIDER_COUNT EBPF_COUNT_OF(_net_ebpf_extension_sock_addr_attach_types)
@@ -80,8 +72,7 @@ ebpf_extension_data_t _net_ebpf_extension_sock_addr_hook_provider_data = {
     sizeof(_net_ebpf_sock_addr_hook_provider_data),
     &_net_ebpf_sock_addr_hook_provider_data};
 
-// Net eBPF Extension SOCK_ADDR Hook NPI Provider Module GUID: d8039b3a-bdaf-4c54-8d9e-9f88d692f4b9
-NPI_MODULEID DECLSPEC_SELECTANY _ebpf_sock_addr_hook_provider_moduleid = {sizeof(NPI_MODULEID), MIT_GUID, {0}};
+NPI_MODULEID DECLSPEC_SELECTANY _ebpf_sock_addr_hook_provider_moduleid[NET_EBPF_SOCK_ADDR_HOOK_PROVIDER_COUNT] = {0};
 
 static net_ebpf_extension_hook_provider_t*
     _ebpf_sock_addr_hook_provider_context[NET_EBPF_SOCK_ADDR_HOOK_PROVIDER_COUNT] = {0};
@@ -197,8 +188,6 @@ net_ebpf_ext_sock_addr_register_providers()
     NTSTATUS status = STATUS_SUCCESS;
     const net_ebpf_extension_program_info_provider_parameters_t program_info_provider_parameters = {
         &_ebpf_sock_addr_program_info_provider_moduleid, &_ebpf_sock_addr_program_info_provider_data};
-    const net_ebpf_extension_hook_provider_parameters_t hook_provider_parameters = {
-        &_ebpf_sock_addr_hook_provider_moduleid, &_net_ebpf_extension_sock_addr_hook_provider_data, EXECUTION_DISPATCH};
 
     _ebpf_sock_addr_program_info.program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR;
     // Set the program type as the provider module id.
@@ -211,7 +200,16 @@ net_ebpf_ext_sock_addr_register_providers()
     _net_ebpf_sock_addr_hook_provider_data.supported_program_type = EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR;
     for (int i = 0; i < NET_EBPF_SOCK_ADDR_HOOK_PROVIDER_COUNT; i++) {
         // Set the attach type as the provider module id.
-        _ebpf_sock_addr_hook_provider_moduleid.Guid = *_net_ebpf_extension_sock_addr_attach_types[i];
+        const net_ebpf_extension_hook_provider_parameters_t hook_provider_parameters = {
+            &_ebpf_sock_addr_hook_provider_moduleid[i],
+            &_net_ebpf_extension_sock_addr_hook_provider_data,
+            EXECUTION_DISPATCH};
+
+        // Set the attach type as the provider module id.
+        _ebpf_sock_addr_hook_provider_moduleid[i].Length = sizeof(NPI_MODULEID);
+        _ebpf_sock_addr_hook_provider_moduleid[i].Type = MIT_GUID;
+        _ebpf_sock_addr_hook_provider_moduleid[i].Guid = *_net_ebpf_extension_sock_addr_attach_types[i];
+
         // Register the provider context and pass the pointer to the WFP filter parameters
         // corresponding to this hook type as custom data.
         status = net_ebpf_extension_hook_provider_register(
