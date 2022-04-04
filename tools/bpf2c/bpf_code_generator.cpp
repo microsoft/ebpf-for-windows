@@ -216,6 +216,14 @@ bpf_code_generator::parse()
     ELFIO::const_symbol_section_accessor symbols{reader, reader.sections[".symtab"]};
 
     if (map_section) {
+        size_t data_size = map_section->get_size();
+
+        if (data_size % sizeof(ebpf_map_definition_in_file_t) != 0) {
+            throw std::runtime_error(
+                std::string("bad maps section size, must be a multiple of ") +
+                std::to_string(sizeof(ebpf_map_definition_in_file_t)));
+        }
+
         for (ELFIO::Elf_Xword i = 0; i < symbols.get_symbols_num(); i++) {
             std::string symbol_name;
             ELFIO::Elf64_Addr symbol_value{};
@@ -241,14 +249,10 @@ bpf_code_generator::parse()
                 }
                 map_definitions[symbol_name].definition =
                     *reinterpret_cast<const ebpf_map_definition_in_file_t*>(map_section->get_data() + symbol_value);
+
+                map_definitions[symbol_name].index = symbol_value / sizeof(ebpf_map_definition_in_file_t);
             }
         }
-    }
-
-    // Assign index to each map
-    size_t map_index = 0;
-    for (auto& map : map_definitions) {
-        map.second.index = map_index++;
     }
 }
 
@@ -646,18 +650,27 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
     // Emit import tables
     if (map_definitions.size() > 0) {
         output_stream << "static map_entry_t _maps[] = {" << std::endl;
-        for (const auto& map : map_definitions) {
-            output_stream << "{ NULL, { ";
-            output_stream << map.second.definition.size << ", ";
-            output_stream << map.second.definition.type << ", ";
-            output_stream << map.second.definition.key_size << ", ";
-            output_stream << map.second.definition.value_size << ", ";
-            output_stream << map.second.definition.max_entries << ", ";
-            output_stream << map.second.definition.inner_map_idx << ", ";
-            output_stream << map.second.definition.pinning << ", ";
-            output_stream << map.second.definition.id << ", ";
-            output_stream << map.second.definition.inner_id << ", ";
-            output_stream << " }, \"" << map.first.c_str() << "\" }," << std::endl;
+        size_t map_size = map_definitions.size();
+        size_t current_index = 0;
+        while (current_index < map_size) {
+            for (const auto& [name, entry] : map_definitions) {
+                if (entry.index == current_index) {
+                    output_stream << "{ NULL, { ";
+                    output_stream << entry.definition.size << ", ";
+                    output_stream << entry.definition.type << ", ";
+                    output_stream << entry.definition.key_size << ", ";
+                    output_stream << entry.definition.value_size << ", ";
+                    output_stream << entry.definition.max_entries << ", ";
+                    output_stream << entry.definition.inner_map_idx << ", ";
+                    output_stream << entry.definition.pinning << ", ";
+                    output_stream << entry.definition.id << ", ";
+                    output_stream << entry.definition.inner_id << ", ";
+                    output_stream << " }, \"" << name.c_str() << "\" }," << std::endl;
+
+                    current_index++;
+                    break;
+                }
+            }
         }
         output_stream << "};" << std::endl;
         output_stream << std::endl;

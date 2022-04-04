@@ -562,6 +562,17 @@ TEST_CASE("bindmonitor_tailcall_native_test", "[native_tests]")
         cleanup();
     REQUIRE(outer_map_fd > 0);
 
+    // Test map-in-maps.
+    struct bpf_map* outer_idx_map = bpf_object__find_map_by_name(object, "dummy_outer_idx_map");
+    if (outer_idx_map == nullptr)
+        cleanup();
+    REQUIRE(outer_idx_map != nullptr);
+
+    int outer_idx_map_fd = bpf_map__fd(outer_idx_map);
+    if (outer_idx_map_fd <= 0)
+        cleanup();
+    REQUIRE(outer_idx_map_fd > 0);
+
     // Cleanup tail calls.
     cleanup();
 }
