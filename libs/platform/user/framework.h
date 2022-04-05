@@ -16,6 +16,8 @@
 
 #pragma comment(lib, "rpcrt4")
 
+#define ebpf_assert(x) assert(x)
+
 #if !defined(UNREFERENCED_PARAMETER)
 #define UNREFERENCED_PARAMETER(X) (X)
 #endif
@@ -27,8 +29,6 @@ extern "C"
 {
 #endif
     extern bool ebpf_fuzzing_enabled;
-
-#define ebpf_assert(x) assert((x) || ebpf_fuzzing_enabled)
 
     typedef LIST_ENTRY ebpf_list_entry_t;
 
