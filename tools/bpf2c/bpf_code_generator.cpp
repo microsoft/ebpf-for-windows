@@ -4,6 +4,7 @@
 #include <iostream>
 #include <vector>
 
+#include "btf_parser.h"
 #include "bpf_code_generator.h"
 
 #if !defined(_countof)
@@ -318,7 +319,20 @@ bpf_code_generator::extract_btf_information()
     std::vector<uint8_t> btf_ext_data(
         reinterpret_cast<const uint8_t*>(btf_ext->get_data()),
         reinterpret_cast<const uint8_t*>(btf_ext->get_data()) + btf_ext->get_size());
-    section_line_info = btf_parse_line_information(btf_data, btf_ext_data);
+
+    btf_parse_line_information(
+        btf_data,
+        btf_ext_data,
+        [&section_line_info = this->section_line_info](
+            const std::string& section,
+            uint32_t instruction_offset,
+            const std::string& file_name,
+            const std::string& source,
+            uint32_t line_number,
+            uint32_t column_number) {
+            line_info_t info{file_name, source, line_number, column_number};
+            section_line_info[section].emplace(instruction_offset, info);
+        });
 }
 
 void
