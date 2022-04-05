@@ -796,7 +796,8 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             if (!output.label.empty())
                 output_stream << output.label << ":" << std::endl;
             auto current_line = line_info.find(output.instruction_offset);
-            if (current_line != line_info.end() && !current_line->second.file_name.empty() && current_line->second.line_number != 0) {
+            if (current_line != line_info.end() && !current_line->second.file_name.empty() &&
+                current_line->second.line_number != 0) {
                 prolog_line_info = format_string(
                     "#line %s \"%s\"\n",
                     std::to_string(current_line->second.line_number),
