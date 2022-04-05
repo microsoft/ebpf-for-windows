@@ -2,34 +2,25 @@
 // SPDX-License-Identifier: MIT
 
 #include "bpf_helpers.h"
-
-typedef struct _ip_address
-{
-    union
-    {
-        uint32_t ipv4;
-        uint32_t ipv6[4];
-    };
-} ip_address_t;
-
-typedef struct _connection_tuple
-{
-    ip_address_t src_ip;
-    uint16_t src_port;
-    ip_address_t dst_ip;
-    uint16_t dst_port;
-    uint32_t protocol;
-} connection_tuple_t;
+#include "ebpf.h"
+#include "socket_tests_common.h"
 
 SEC("maps")
-struct bpf_map_def connection_policy_map = {
+struct bpf_map_def ingress_connection_policy_map = {
+    .type = BPF_MAP_TYPE_HASH,
+    .key_size = sizeof(connection_tuple_t),
+    .value_size = sizeof(uint32_t),
+    .max_entries = 1};
+
+SEC("maps")
+struct bpf_map_def egress_connection_policy_map = {
     .type = BPF_MAP_TYPE_HASH,
     .key_size = sizeof(connection_tuple_t),
     .value_size = sizeof(uint32_t),
     .max_entries = 1};
 
 __inline int
-authorize_v4(bpf_sock_addr_t* ctx)
+authorize_v4(bpf_sock_addr_t* ctx, struct bpf_map_def* connection_policy_map)
 {
     connection_tuple_t tuple_key = {0};
     int* verdict = NULL;
@@ -40,13 +31,13 @@ authorize_v4(bpf_sock_addr_t* ctx)
     tuple_key.dst_port = ctx->user_port;
     tuple_key.protocol = ctx->protocol;
 
-    verdict = bpf_map_lookup_elem(&connection_policy_map, &tuple_key);
+    verdict = bpf_map_lookup_elem(connection_policy_map, &tuple_key);
 
     return (verdict != NULL) ? *verdict : BPF_SOCK_ADDR_VERDICT_PROCEED;
 }
 
 __inline int
-authorize_v6(bpf_sock_addr_t* ctx)
+authorize_v6(bpf_sock_addr_t* ctx, struct bpf_map_def* connection_policy_map)
 {
     connection_tuple_t tuple_key = {0};
     int* verdict;
@@ -56,7 +47,7 @@ authorize_v6(bpf_sock_addr_t* ctx)
     tuple_key.dst_port = ctx->user_port;
     tuple_key.protocol = ctx->protocol;
 
-    verdict = bpf_map_lookup_elem(&connection_policy_map, &tuple_key);
+    verdict = bpf_map_lookup_elem(connection_policy_map, &tuple_key);
 
     return (verdict != NULL) ? *verdict : BPF_SOCK_ADDR_VERDICT_PROCEED;
 }
@@ -65,26 +56,26 @@ SEC("cgroup/connect4")
 int
 authorize_connect4(bpf_sock_addr_t* ctx)
 {
-    return authorize_v4(ctx);
+    return authorize_v4(ctx, &egress_connection_policy_map);
 }
 
 SEC("cgroup/connect6")
 int
 authorize_connect6(bpf_sock_addr_t* ctx)
 {
-    return authorize_v6(ctx);
+    return authorize_v6(ctx, &egress_connection_policy_map);
 }
 
 SEC("cgroup/recv_accept4")
 int
 authorize_recv_accept4(bpf_sock_addr_t* ctx)
 {
-    return authorize_v4(ctx);
+    return authorize_v4(ctx, &ingress_connection_policy_map);
 }
 
 SEC("cgroup/recv_accept6")
 int
 authorize_recv_accept6(bpf_sock_addr_t* ctx)
 {
-    return authorize_v6(ctx);
+    return authorize_v6(ctx, &ingress_connection_policy_map);
 }

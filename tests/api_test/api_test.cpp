@@ -367,7 +367,7 @@ divide_by_zero_test_km(ebpf_execution_type_t execution_type)
         "divide_by_zero.o", EBPF_PROGRAM_TYPE_BIND, "divide_by_zero", execution_type, nullptr, 0, hook);
     object = _helper.get_object();
 
-    perform_socket_bind(0, false);
+    perform_socket_bind(0, true);
 
     // If we don't bug-check, the test passed.
 }
