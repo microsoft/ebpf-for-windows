@@ -561,7 +561,7 @@ bindmonitor_test(ebpf_execution_type_t execution_type)
 }
 
 void
-bindmonitor_tailcall_test()
+bindmonitor_tailcall_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
 
@@ -574,8 +574,9 @@ bindmonitor_tailcall_test()
 
     program_info_provider_t bind_program_info(EBPF_PROGRAM_TYPE_BIND);
 
-    result = ebpf_program_load(
-        "bindmonitor_tailcall_um.dll", nullptr, nullptr, EBPF_EXECUTION_NATIVE, &object, &program_fd, &error_message);
+    const char* file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "bindmonitor_tailcall_um.dll" : "bindmonitor_tailcall.o");
+    result = ebpf_program_load(file_name, nullptr, nullptr, execution_type, &object, &program_fd, &error_message);
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
@@ -801,7 +802,8 @@ TEST_CASE("droppacket-jit", "[end_to_end]") { droppacket_test(EBPF_EXECUTION_JIT
 TEST_CASE("divide_by_zero_jit", "[end_to_end]") { divide_by_zero_test_um(EBPF_EXECUTION_JIT); }
 TEST_CASE("bindmonitor-jit", "[end_to_end]") { bindmonitor_test(EBPF_EXECUTION_JIT); }
 TEST_CASE("bindmonitor-native", "[end_to_end]") { bindmonitor_test(EBPF_EXECUTION_NATIVE); }
-TEST_CASE("bindmonitor-tailcall-native", "[end_to_end]") { bindmonitor_tailcall_test(); }
+TEST_CASE("bindmonitor-tailcall-jit", "[end_to_end]") { bindmonitor_tailcall_test(EBPF_EXECUTION_JIT); }
+TEST_CASE("bindmonitor-tailcall-native", "[end_to_end]") { bindmonitor_tailcall_test(EBPF_EXECUTION_NATIVE); }
 TEST_CASE("bindmonitor-ringbuf-jit", "[end_to_end]") { bindmonitor_ring_buffer_test(EBPF_EXECUTION_JIT); }
 TEST_CASE("droppacket-interpret", "[end_to_end]") { droppacket_test(EBPF_EXECUTION_INTERPRET); }
 TEST_CASE("divide_by_zero_interpret", "[end_to_end]") { divide_by_zero_test_um(EBPF_EXECUTION_INTERPRET); }
