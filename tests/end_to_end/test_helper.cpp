@@ -228,7 +228,6 @@ _unload_all_native_modules()
 static void
 _load_native_module(_Inout_ service_context_t* context)
 {
-    // 1. LoadLibrary.
     context->dll = LoadLibraryW(context->file_path.c_str());
     REQUIRE(context->dll != nullptr);
 
@@ -243,7 +242,7 @@ _load_native_module(_Inout_ service_context_t* context)
     const ebpf_extension_data_t* returned_provider_data;
     const ebpf_extension_dispatch_table_t* returned_provider_dispatch_table;
 
-    // Register as client
+    // Register as client.
     ebpf_result_t result = ebpf_extension_load(
         &context->binding_context,
         &_bpf2c_npi_id,
