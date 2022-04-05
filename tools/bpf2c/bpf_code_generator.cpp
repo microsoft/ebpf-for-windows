@@ -331,7 +331,7 @@ bpf_code_generator::extract_btf_information()
             uint32_t line_number,
             uint32_t column_number) {
             line_info_t info{file_name, source, line_number, column_number};
-            section_line_info[section].emplace(instruction_offset, info);
+            section_line_info[section].emplace(instruction_offset / sizeof(ebpf_inst), info);
         });
 }
 
@@ -796,7 +796,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             if (!output.label.empty())
                 output_stream << output.label << ":" << std::endl;
             auto current_line = line_info.find(output.instruction_offset);
-            if (current_line != line_info.end() && !current_line->second.file_name.empty()) {
+            if (current_line != line_info.end() && !current_line->second.file_name.empty() && current_line->second.line_number != 0) {
                 prolog_line_info = format_string(
                     "#line %s \"%s\"\n",
                     std::to_string(current_line->second.line_number),
