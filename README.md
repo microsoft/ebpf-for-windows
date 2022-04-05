@@ -8,7 +8,7 @@
 
 eBPF is a well-known technology for providing programmability and agility, especially for extending an
 OS kernel, for use cases such as DoS protection and observability. This project is a work-in-progress that
-allows using existing eBPF
+allows existing eBPF
 toolchains and APIs familiar in the Linux ecosystem to be used on top of Windows.  That is, this project
 takes existing eBPF projects as submodules and adds the layer in between to make them run on top of Windows.
 

@@ -10,10 +10,7 @@
 #include "btf_parser.h"
 #include "ebpf.h"
 #include "ebpf_structs.h"
-#pragma warning(push)
-#pragma warning(disable : 4458) /* declaration of 'name' hides class member */
-#include "elfio/elfio.hpp"
-#pragma warning(pop)
+#include "elfio_wrapper.hpp"
 
 class bpf_code_generator
 {
