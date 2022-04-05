@@ -152,8 +152,14 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "droppacket_km", "tests\samp
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "bindmonitor_km", "tests\sample\generated\sys\bindmonitor_km\bindmonitor_sys.vcxproj", "{34481DE6-D212-41A6-8F46-34959FF66B9A}"
+	ProjectSection(ProjectDependencies) = postProject
+		{69B97E52-18DC-434E-A6E4-4C0F3E88C44A} = {69B97E52-18DC-434E-A6E4-4C0F3E88C44A}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "bindmonitor_tailcall_km", "tests\sample\generated\sys\bindmonitor_tailcall_km\bindmonitor_tailcall_sys.vcxproj", "{2B51E0EF-4589-430B-9CCC-D09A4E6FD8B2}"
+	ProjectSection(ProjectDependencies) = postProject
+		{69B97E52-18DC-434E-A6E4-4C0F3E88C44A} = {69B97E52-18DC-434E-A6E4-4C0F3E88C44A}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Catch2WithMain", "external\Catch2\build\src\Catch2WithMain.vcxproj", "{8BD3552A-2CFB-4A59-AB15-2031B97ADA1E}"
 EndProject

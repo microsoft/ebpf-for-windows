@@ -1995,7 +1995,7 @@ ebpf_core_invoke_protocol_handler(
     }
 
     header = (ebpf_operation_header_t*)input_buffer;
-    if (header->length != input_buffer_length) {
+    if (header->length > input_buffer_length) {
         return EBPF_INVALID_ARGUMENT;
     }
 
