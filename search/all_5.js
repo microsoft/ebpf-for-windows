@@ -128,6 +128,7 @@ var searchData=
   ['ebpf_5futilities_2eh_347',['ebpf_utilities.h',['../ebpf__utilities_8h.html',1,'']]],
   ['ebpf_5fverification_5ffailed_348',['EBPF_VERIFICATION_FAILED',['../ebpf__result_8h.html#a916ce31f9038720787b441792c088372ae6a0aab27de3861a3be1e6b5f86c031d',1,'ebpf_result.h']]],
   ['ebpf_5fwindows_2eh_349',['ebpf_windows.h',['../ebpf__windows_8h.html',1,'']]],
-  ['errno_2eh_350',['errno.h',['../errno_8h.html',1,'']]],
-  ['expected_5fattach_5ftype_351',['expected_attach_type',['../struct__program__entry.html#a8bec8c2bc3d2b71f16ca3bfe06dd24ef',1,'_program_entry']]]
+  ['elfio_5fwrapper_2ehpp_350',['elfio_wrapper.hpp',['../elfio__wrapper_8hpp.html',1,'']]],
+  ['errno_2eh_351',['errno.h',['../errno_8h.html',1,'']]],
+  ['expected_5fattach_5ftype_352',['expected_attach_type',['../struct__program__entry.html#a8bec8c2bc3d2b71f16ca3bfe06dd24ef',1,'_program_entry']]]
 ];
