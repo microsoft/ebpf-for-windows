@@ -28,8 +28,6 @@
 extern "C"
 {
 #endif
-    extern bool ebpf_fuzzing_enabled;
-
     typedef LIST_ENTRY ebpf_list_entry_t;
 
     inline void

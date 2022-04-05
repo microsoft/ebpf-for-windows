@@ -9,6 +9,8 @@
 
 #include <ntstrsafe.h>
 
+bool ebpf_fuzzing_enabled = false;
+
 IO_WORKITEM_ROUTINE _ebpf_preemptible_routine;
 
 extern DEVICE_OBJECT*

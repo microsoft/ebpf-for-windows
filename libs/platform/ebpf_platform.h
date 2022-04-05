@@ -94,6 +94,8 @@ extern "C"
 
     typedef struct _ebpf_helper_function_addresses ebpf_helper_function_addresses_t;
 
+    extern bool ebpf_fuzzing_enabled;
+
     typedef enum _ebpf_hash_table_operations
     {
         EBPF_HASH_TABLE_OPERATION_ANY = 0,
