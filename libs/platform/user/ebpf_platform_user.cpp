@@ -28,8 +28,7 @@ ebpf_platform_initiate()
 
 void
 ebpf_platform_terminate()
-{
-}
+{}
 
 ebpf_result_t
 ebpf_get_code_integrity_state(_Out_ ebpf_code_integrity_state_t* state)
@@ -365,9 +364,7 @@ ebpf_lock_destroy(_In_ ebpf_lock_t* lock)
 }
 
 _Requires_lock_not_held_(*lock) _Acquires_lock_(*lock) _IRQL_requires_max_(DISPATCH_LEVEL) _IRQL_saves_
-    _IRQL_raises_(DISPATCH_LEVEL)
-ebpf_lock_state_t
-ebpf_lock_lock(_In_ ebpf_lock_t* lock)
+    _IRQL_raises_(DISPATCH_LEVEL) ebpf_lock_state_t ebpf_lock_lock(_In_ ebpf_lock_t* lock)
 {
     AcquireSRWLockExclusive(reinterpret_cast<PSRWLOCK>(lock));
     return 0;
