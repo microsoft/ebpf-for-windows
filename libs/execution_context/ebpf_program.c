@@ -143,6 +143,7 @@ _ebpf_program_program_info_provider_changed(
             ebpf_program_info_t* program_info = program_data->program_info;
             ebpf_helper_function_prototype_t* helper_prototypes = NULL;
             ebpf_assert(program_info != NULL);
+            _Analysis_assume_(program_info != NULL);
             if (program_info->count_of_helpers != helper_function_addresses->helper_function_count) {
                 EBPF_LOG_MESSAGE_GUID(
                     EBPF_TRACELOG_LEVEL_ERROR,
@@ -887,6 +888,7 @@ _ebpf_program_get_helper_function_address(
         *address = (uint64_t)function_address;
     } else {
         ebpf_assert(program->general_helper_provider_data != NULL);
+        _Analysis_assume_(program->general_helper_provider_data != NULL);
         ebpf_program_data_t* general_helper_program_data =
             (ebpf_program_data_t*)program->general_helper_provider_data->data;
 
@@ -894,6 +896,7 @@ _ebpf_program_get_helper_function_address(
             general_helper_program_data->helper_function_addresses;
 
         ebpf_assert(general_helper_function_addresses != NULL);
+        _Analysis_assume_(general_helper_function_addresses != NULL);
         if (helper_function_id > general_helper_function_addresses->helper_function_count) {
             return EBPF_INVALID_ARGUMENT;
         }

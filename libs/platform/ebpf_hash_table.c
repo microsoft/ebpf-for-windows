@@ -287,6 +287,7 @@ _ebpf_hash_table_replace_bucket(
                 ebpf_hash_bucket_entry_t* entry =
                     _ebpf_hash_table_bucket_entry(hash_table->key_size, old_bucket, index);
                 ebpf_assert(entry);
+                _Analysis_assume_(entry != NULL);
                 if (_ebpf_hash_table_compare(hash_table, key, entry->key) == 0) {
                     // If old_data exists, remove it.
                     old_data = entry->data;

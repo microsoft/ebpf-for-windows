@@ -14,15 +14,15 @@
 #include <thread>
 #include <vector>
 
+#include "api_internal.h"
+#include "bpf/libbpf.h"
 #include "catch_wrapper.hpp"
+#include "device_helper.hpp"
+#include "helpers.h"
+#include "ebpf_core.h"
 #include "mock.h"
 #include "platform.h"
 #include "test_helper.hpp"
-#include "device_helper.hpp"
-#include "ebpf_core.h"
-#include <api_internal.h>
-#include <helpers.h>
-#include <bpf/libbpf.h>
 
 std::vector<ebpf_handle_t>
 get_handles()
@@ -135,11 +135,16 @@ TEST_CASE("execution_context_direct", "[fuzz]")
 
         ebpf_core_get_protocol_handler_properties(operation_id, &minimum_request_size, &minimum_reply_size, &async);
 
-        // Future - Add support for fuzzing async requests.
+        // TODO - Add support for fuzzing async requests.
+        // https://github.com/microsoft/ebpf-for-windows/issues/897
         if (async) {
             continue;
         }
 
+        // The strategy for fuzzing this API surface is:
+        // 1. Create an input buffer of size minimum_request_size + [0,1023].
+        // 2. Fill buffer with random values.
+        // 3. Insert a handle value at offset 0 in the request.
         request.resize(minimum_request_size + mt() % 1024);
         for (auto& b : request) {
             b = static_cast<uint8_t>(mt());
