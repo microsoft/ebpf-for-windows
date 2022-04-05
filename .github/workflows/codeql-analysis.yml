@@ -38,7 +38,7 @@ jobs:
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@883476649888a9e8e219d5b2e6b789dc024f690c
+      uses: github/codeql-action/init@28eead240834b314f7def40f6fcba65d100d99b1
       with:
         languages: ${{ matrix.language }}
         # If you wish to specify custom queries, you can do so here or in a config file.
@@ -77,4 +77,4 @@ jobs:
       run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{env.BUILD_PLATFORM}} ${{env.SOLUTION_FILE_PATH}}
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@883476649888a9e8e219d5b2e6b789dc024f690c
+      uses: github/codeql-action/analyze@28eead240834b314f7def40f6fcba65d100d99b1
