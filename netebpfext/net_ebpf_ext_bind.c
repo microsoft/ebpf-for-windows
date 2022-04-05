@@ -11,7 +11,7 @@
 #include "net_ebpf_ext_bind.h"
 
 //
-// WFP bind layer filter related globals.
+// WFP filter related globals for bind hook.
 //
 
 const net_ebpf_extension_wfp_filter_parameters_t _net_ebpf_extension_bind_wfp_filter_parameters[] = {
@@ -65,12 +65,15 @@ static net_ebpf_extension_hook_provider_t* _ebpf_bind_hook_provider_context = NU
 //
 
 static ebpf_result_t
-_net_ebpf_extension_bind_on_client_attach(_In_ const net_ebpf_extension_hook_client_t* attaching_client)
+_net_ebpf_extension_bind_on_client_attach(
+    _In_ const net_ebpf_extension_hook_client_t* attaching_client,
+    _In_ const net_ebpf_extension_hook_provider_t* provider_context)
 {
     ebpf_result_t result = EBPF_SUCCESS;
 
     // Bind hook allows only one client at a time.
-    if (net_ebpf_extension_hook_get_next_attached_client(_ebpf_bind_hook_provider_context, NULL) != NULL) {
+    if (net_ebpf_extension_hook_get_next_attached_client((net_ebpf_extension_hook_provider_t*)provider_context, NULL) !=
+        NULL) {
         result = EBPF_ACCESS_DENIED;
         goto Exit;
     }
@@ -128,6 +131,7 @@ net_ebpf_ext_bind_register_providers()
         &hook_provider_parameters,
         _net_ebpf_extension_bind_on_client_attach,
         _net_ebpf_extension_bind_on_client_detach,
+        NULL,
         &_ebpf_bind_hook_provider_context);
     if (status != EBPF_SUCCESS) {
         goto Exit;
