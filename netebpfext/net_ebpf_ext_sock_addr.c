@@ -123,7 +123,7 @@ net_ebpf_extension_sock_addr_on_client_attach(
         compartment_id = *(uint32_t*)client_data->data;
 
     // Set compartment id (if not UNSPECIFIED_COMPARTMENT_ID) as WFP filter condition.
-    if (compartment_id != 0) {
+    if (compartment_id != UNSPECIFIED_COMPARTMENT_ID) {
         condition.fieldKey = FWPM_CONDITION_COMPARTMENT_ID;
         condition.matchType = FWP_MATCH_EQUAL;
         condition.conditionValue.type = FWP_UINT32;
