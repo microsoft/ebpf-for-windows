@@ -214,10 +214,11 @@ EBPF_HELPER(long, bpf_trace_printk5, (const char* fmt, uint32_t fmt_size, uint64
 #define EBPF_VA_ARGS_HELPER(PREFIX, ...) EBPF_MAKE_HELPER_NAME(PREFIX, EBPF_COUNT_VA_ARGS(__VA_ARGS__))(__VA_ARGS__)
 
 #undef bpf_printk
-#define bpf_printk(fmt, ...)                                                            \
-    ({                                                                                  \
-        char ____fmt[] = fmt;                                                           \
-        EBPF_VA_ARGS_HELPER(bpf_trace_printk, ____fmt, sizeof(____fmt), ##__VA_ARGS__); \
+#define bpf_trace_printk(fmt, fmtsz, ...) ({ EBPF_VA_ARGS_HELPER(bpf_trace_printk, fmt, fmtsz, ##__VA_ARGS__); })
+#define bpf_printk(fmt, ...)                                       \
+    ({                                                             \
+        char ____fmt[] = fmt;                                      \
+        bpf_trace_printk(____fmt, sizeof(____fmt), ##__VA_ARGS__); \
     })
 #else
 /**
