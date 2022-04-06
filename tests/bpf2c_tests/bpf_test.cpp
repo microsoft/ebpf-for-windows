@@ -40,15 +40,15 @@ static uint64_t
 trash_registers(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)
 {
     /* Overwrite all caller-save registers */
-    asm("mov $0xf0, %rax;"
-        "mov $0xf1, %rcx;"
-        "mov $0xf2, %rdx;"
-        "mov $0xf3, %rsi;"
-        "mov $0xf4, %rdi;"
-        "mov $0xf5, %r8;"
-        "mov $0xf6, %r9;"
-        "mov $0xf7, %r10;"
-        "mov $0xf8, %r11;");
+    // asm("mov $0xf0, %rax;"
+    //     "mov $0xf1, %rcx;"
+    //     "mov $0xf2, %rdx;"
+    //     "mov $0xf3, %rsi;"
+    //     "mov $0xf4, %rdi;"
+    //     "mov $0xf5, %r8;"
+    //     "mov $0xf6, %r9;"
+    //     "mov $0xf7, %r10;"
+    //     "mov $0xf8, %r11;");
     return 0;
 }
 
