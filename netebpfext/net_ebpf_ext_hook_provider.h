@@ -53,7 +53,7 @@ net_ebpf_extension_hook_client_get_client_data(_In_ const net_ebpf_extension_hoo
  * @brief Set the hook-specific provider data for the attached client.
  *
  * @param[in] hook_client Pointer to attached hook NPI client.
- * @returns hook-specific provider data.
+ * @param[in] data hook-specific provider data.
  *
  */
 void
@@ -64,7 +64,7 @@ net_ebpf_extension_hook_client_set_provider_data(_In_ net_ebpf_extension_hook_cl
  *
  * @param[in] hook_client Pointer to attached hook NPI client.
  *
- * @returns Hook-specific provider data.
+ * @returns Pointer to hook-specific provider data for the attached client.
  */
 const void*
 net_ebpf_extension_hook_client_get_provider_data(_In_ const net_ebpf_extension_hook_client_t* hook_client);
@@ -73,6 +73,17 @@ net_ebpf_extension_hook_client_get_provider_data(_In_ const net_ebpf_extension_h
  *  @brief This is the provider context of eBPF Hook NPI provider.
  */
 typedef struct _net_ebpf_extension_hook_provider net_ebpf_extension_hook_provider_t;
+
+/**
+ * @brief Get the hook-specific custom data from the provider.
+ *
+ * @param[in] provider_context Pointer to hook NPI provider.
+ *
+ * @returns Pointer to the hook-specific custom data from the provider.
+ *
+ */
+const void*
+net_ebpf_extension_hook_provider_get_custom_data(_In_ const net_ebpf_extension_hook_provider_t* provider_context);
 
 /**
  * @brief Unregister the hook NPI provider.
@@ -87,13 +98,15 @@ net_ebpf_extension_hook_provider_unregister(_Frees_ptr_opt_ net_ebpf_extension_h
  * is attempting to attach to the hook NPI provider. The hook NPI client is allowed to attach only if the API returns
  * success.
  * @param attaching_client Pointer to context of the hook NPI client that is requesting to be attached.
+ * @param provider_context Pointer to the hook NPI provider context to which the client is being attached.
  *
  * @retval EBPF_SUCCESS The operation succeeded.
  * @retval EBPF_ACCESS_DENIED Request to attach client is denied by the provider.
  * @retval EBPF_INVALID_ARGUMENT One or more parameters are incorrect.
  */
 typedef ebpf_result_t (*net_ebpf_extension_hook_on_client_attach)(
-    _In_ const net_ebpf_extension_hook_client_t* attaching_client);
+    _In_ const net_ebpf_extension_hook_client_t* attaching_client,
+    _In_ const net_ebpf_extension_hook_provider_t* provider_context);
 
 /**
  * @brief This callback function should be implemented by hook modules. This callback is invoked when a hook NPI client
@@ -119,6 +132,7 @@ typedef struct _net_ebpf_extension_hook_provider_parameters
  * @param[in] parameters Pointer to the NPI provider characteristics struct.
  * @param[in] attach_callback Pointer to callback function to be invoked when a client attaches.
  * @param[in] detach_callback Pointer to callback function to be invoked when a client detaches.
+ * @param[in] custom_data (Optional) Opaque pointer to hook-specific custom data.
  * @param[in,out] provider_context Pointer to the provider context being registered.
  *
  * @retval STATUS_SUCCESS Operation succeeded.
@@ -129,6 +143,7 @@ net_ebpf_extension_hook_provider_register(
     _In_ const net_ebpf_extension_hook_provider_parameters_t* parameters,
     _In_ net_ebpf_extension_hook_on_client_attach attach_callback,
     _In_ net_ebpf_extension_hook_on_client_detach detach_callback,
+    _In_opt_ const void* custom_data,
     _Outptr_ net_ebpf_extension_hook_provider_t** provider_context);
 
 /**
@@ -167,3 +182,21 @@ net_ebpf_extension_hook_client_t*
 net_ebpf_extension_hook_get_next_attached_client(
     _In_ net_ebpf_extension_hook_provider_t* provider_context,
     _In_opt_ const net_ebpf_extension_hook_client_t* client_context);
+
+/**
+ * @brief Utility function called from net_ebpf_extension_hook_on_client_attach callback of hook providers, that
+ * determines if the attach parameter provided by an attaching client is compatible with the existing clients.
+ * @param[in] attach_parameter_size The expected length (in bytes) of attach parameter for this type of hook.
+ * @param[in] attach_parameter The attach parameter supplied by the client requesting to be attached.
+ * @param[in] wild_card_attach_parameter Pointer to wild card parameter for this type of hook.
+ * @param[in] provider_context Provider module's context.
+ * @retval EBPF_SUCCESS The operation succeeded.
+ * @retval EBPF_ACCESS_DENIED Request to attach client is denied by the provider.
+ * @retval EBPF_INVALID_ARGUMENT One or more parameters are incorrect.
+ */
+ebpf_result_t
+net_ebpf_extension_hook_check_attach_parameter(
+    size_t attach_parameter_size,
+    _In_reads_(attach_parameter_size) const void* attach_parameter,
+    _In_reads_(attach_parameter_size) const void* wild_card_attach_parameter,
+    _In_ net_ebpf_extension_hook_provider_t* provider_context);
