@@ -117,6 +117,13 @@ jobs:
       run: |
         ./execute_ebpf_cicd_tests.ps1
 
+    - name: Upload Report to Codecov
+      uses: codecov/codecov-action@f32b3a3741e1053eb607407145bc9619351dc93b
+      with:
+        files: ebpf_for_windows.xml
+        fail_ci_if_error: true
+        functionalities: fix
+
     - name: Clean up CI/CD Tests
       if: always()
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}

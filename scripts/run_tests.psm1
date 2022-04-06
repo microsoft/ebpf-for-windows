@@ -46,18 +46,27 @@ function Invoke-NetshEbpfCommand
 function Invoke-Test
 {
     param([Parameter(Mandatory=$True)][string] $TestName,
-          [Parameter(Mandatory=$True)][bool] $VerboseLogs)
+          [Parameter(Mandatory=$True)][bool] $VerboseLogs,
+          [Parameter(Mandatory=$False)][bool] $Coverage)
 
     Write-Log "Executing $Testname"
 
     $LASTEXITCODE = 0
 
+    $OriginalTestName = $TestName
+    $ArgumentsList = @()
+
+    if ($Coverage) {
+        $ArgumentsList += @('--export_type', ('binary:' + $TestName + '.cov'), '--', $TestName)
+        $TestName = 'OpenCppCoverage'
+    }
     # Execute Test.
     if ($VerboseLogs -eq $true) {
-        $Output = &$TestName "-s"
-    } else {
-        $Output = &$TestName
+        $ArgumentsList += '-s'
     }
+
+    $Output = &$TestName $ArgumentsList
+    $TestName = $OriginalTestName
 
     # Check for errors.
     Out-String -InputObject $Output | Write-Log
@@ -69,26 +78,44 @@ function Invoke-Test
 
 function Invoke-CICDTests
 {
-    param([parameter(Mandatory=$true)][bool] $VerboseLogs)
+    param([parameter(Mandatory = $true)][bool] $VerboseLogs,
+          [parameter(Mandatory = $false)][bool] $Coverage = $false)
 
     pushd $WorkingDirectory
 
     try {
-
-         $TestList = @(
-            "unit_tests.exe",
+        if ($Coverage) {
+            Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+            choco install -y --requirechecksum=true --checksum=2295A733DA39412C61E4F478677519DD0BB1893D88313CE56B468C9E50517888 --checksum-type=sha256 OpenCppCoverage
+            if (!$env:PATH.Contains('C:\Program Files\OpenCppCoverage\')) {
+                $env:PATH += 'C:\Program Files\OpenCppCoverage\;'
+            }
+        }
+        $TestList = @(
             "ebpf_client.exe",
             "api_test.exe",
             "sample_ext_app.exe")
 
         foreach ($Test in $TestList) {
-            Invoke-Test -TestName $Test -VerboseLogs $VerboseLogs
+            Invoke-Test -TestName $Test -VerboseLogs $VerboseLogs -Coverage $Coverage
+        }
+
+        if ($Coverage) {
+            # Combine code coverage reports
+            $ArgumentsList += @()
+            foreach ($Test in $TestList) {
+                $ArgumentsList += @('--input_coverage', ($Test + '.cov'))
+            }
+            $ArgumentsList += @('--export_type', 'cobertura:ebpf_for_windows.xml', '--')
+            $Output = &OpenCppCoverage $ArgumentsList
+            Out-String -InputObject $Output | Write-Log
         }
 
         if ($Env:BUILD_CONFIGURATION -eq "Release") {
             Invoke-Test -TestName "ebpf_performance.exe" -VerboseLogs $VerboseLogs
         }
-    } catch {
+    }
+    catch {
         Write-Log "One or more tests failed."
         throw
     }
