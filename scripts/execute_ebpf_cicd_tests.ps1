@@ -23,7 +23,7 @@ $BasicTest = $Config.BasicTest
 foreach ($VM in $BasicTest) {
     Invoke-CICDTestsOnVM -VMName $VM.Name -Coverage $Coverage
     if ($Coverage) {
-        Copy-VMFile -VM $VM -SourcePath ($WorkingDirectory + '\ebpf_for_windows.xml') -DestinationPath ($WorkingDirectory + '\ebpf_for_windows.xml')
+        Copy-VMFile -Credential $TestVMCredential -VM $VM -SourcePath ($WorkingDirectory + '\ebpf_for_windows.xml') -DestinationPath ($WorkingDirectory + '\ebpf_for_windows.xml')
     }
 }
 
