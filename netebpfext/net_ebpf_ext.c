@@ -19,6 +19,7 @@ Environment:
 
 #include "net_ebpf_ext.h"
 #include "net_ebpf_ext_bind.h"
+#include "net_ebpf_ext_sock_addr.h"
 #include "net_ebpf_ext_xdp.h"
 
 // Globals.
@@ -105,6 +106,46 @@ static net_ebpf_ext_wfp_callout_state_t _net_ebpf_ext_wfp_callout_state[] = {
         _net_ebpf_ext_flow_delete,
         L"Resource Release eBPF Callout v6",
         L"Resource Release callout for eBPF",
+        FWP_ACTION_CALLOUT_TERMINATING,
+    },
+    {
+        &EBPF_HOOK_ALE_AUTH_CONNECT_V4_CALLOUT,
+        &FWPM_LAYER_ALE_AUTH_CONNECT_V4,
+        net_ebpf_ext_authorize_connection_classify,
+        _net_ebpf_ext_filter_change_notify,
+        _net_ebpf_ext_flow_delete,
+        L"ALE Authorize Connect eBPF Callout v4",
+        L"ALE Authorize Connect callout for eBPF",
+        FWP_ACTION_CALLOUT_TERMINATING,
+    },
+    {
+        &EBPF_HOOK_ALE_AUTH_CONNECT_V6_CALLOUT,
+        &FWPM_LAYER_ALE_AUTH_CONNECT_V6,
+        net_ebpf_ext_authorize_connection_classify,
+        _net_ebpf_ext_filter_change_notify,
+        _net_ebpf_ext_flow_delete,
+        L"ALE Authorize Connect eBPF Callout v6",
+        L"ALE Authorize Connect callout for eBPF",
+        FWP_ACTION_CALLOUT_TERMINATING,
+    },
+    {
+        &EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V4_CALLOUT,
+        &FWPM_LAYER_ALE_AUTH_RECV_ACCEPT_V4,
+        net_ebpf_ext_authorize_connection_classify,
+        _net_ebpf_ext_filter_change_notify,
+        _net_ebpf_ext_flow_delete,
+        L"ALE Authorize Receive or Accept eBPF Callout v4",
+        L"ALE Authorize Receive or Accept callout for eBPF",
+        FWP_ACTION_CALLOUT_TERMINATING,
+    },
+    {
+        &EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V6_CALLOUT,
+        &FWPM_LAYER_ALE_AUTH_RECV_ACCEPT_V6,
+        net_ebpf_ext_authorize_connection_classify,
+        _net_ebpf_ext_filter_change_notify,
+        _net_ebpf_ext_flow_delete,
+        L"ALE Authorize Receive or Accept eBPF Callout v6",
+        L"ALE Authorize Receive or Accept callout for eBPF",
         FWP_ACTION_CALLOUT_TERMINATING,
     }};
 
@@ -456,6 +497,10 @@ net_ebpf_ext_register_providers()
     if (status != STATUS_SUCCESS)
         goto Exit;
 
+    status = net_ebpf_ext_sock_addr_register_providers();
+    if (status != STATUS_SUCCESS)
+        goto Exit;
+
 Exit:
     return status;
 }
@@ -465,4 +510,5 @@ net_ebpf_ext_unregister_providers()
 {
     net_ebpf_ext_xdp_unregister_providers();
     net_ebpf_ext_bind_unregister_providers();
+    net_ebpf_ext_sock_addr_unregister_providers();
 }

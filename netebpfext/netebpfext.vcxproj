@@ -132,6 +132,7 @@
     <ClCompile Include="net_ebpf_ext_drv.c" />
     <ClCompile Include="net_ebpf_ext_hook_provider.c" />
     <ClCompile Include="net_ebpf_ext_prog_info_provider.c"/>
+    <ClCompile Include="net_ebpf_ext_sock_addr.c" />
     <ClCompile Include="net_ebpf_ext_xdp.c" />
   </ItemGroup>
   <ItemGroup>
@@ -143,11 +144,12 @@
   <ItemGroup>
     <ClInclude Include="net_ebpf_ext.h" />
     <ClInclude Include="net_ebpf_ext_bind.h" />
-    <ClInclude Include="net_ebpf_ext_xdp.h" />
     <ClInclude Include="net_ebpf_ext_helpers.h" />
     <ClInclude Include="net_ebpf_ext_hook_provider.h" />
     <ClInclude Include="net_ebpf_ext_program_info.h" />
     <ClInclude Include="net_ebpf_ext_prog_info_provider.h"/>
+    <ClInclude Include="net_ebpf_ext_sock_addr.h" />
+    <ClInclude Include="net_ebpf_ext_xdp.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
