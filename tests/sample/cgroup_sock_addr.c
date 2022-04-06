@@ -23,8 +23,7 @@ typedef struct _connection_tuple
 } connection_tuple_t;
 
 SEC("maps")
-ebpf_map_definition_in_file_t connection_policy_map = {
-    .size = sizeof(ebpf_map_definition_in_file_t),
+struct bpf_map_def connection_policy_map = {
     .type = BPF_MAP_TYPE_HASH,
     .key_size = sizeof(connection_tuple_t),
     .value_size = sizeof(uint32_t),

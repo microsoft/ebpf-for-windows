@@ -4,7 +4,7 @@
 #include "bpf_helpers.h"
 
 SEC("maps")
-struct bpf_map map = {sizeof(struct bpf_map), BPF_MAP_TYPE_PROG_ARRAY, sizeof(uint32_t), sizeof(uint32_t), 10};
+struct bpf_map map = {BPF_MAP_TYPE_PROG_ARRAY, sizeof(uint32_t), sizeof(uint32_t), 10};
 
 SEC("xdp_prog") int caller(struct xdp_md* ctx)
 {

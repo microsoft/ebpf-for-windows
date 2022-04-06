@@ -10,20 +10,12 @@
 #include "ebpf.h"
 
 SEC("maps")
-ebpf_map_definition_in_file_t dropped_packet_map = {
-    .size = sizeof(ebpf_map_definition_in_file_t),
-    .type = BPF_MAP_TYPE_ARRAY,
-    .key_size = sizeof(uint32_t),
-    .value_size = sizeof(uint64_t),
-    .max_entries = 1};
+struct bpf_map_def dropped_packet_map = {
+    .type = BPF_MAP_TYPE_ARRAY, .key_size = sizeof(uint32_t), .value_size = sizeof(uint64_t), .max_entries = 1};
 
 SEC("maps")
-ebpf_map_definition_in_file_t interface_index_map = {
-    .size = sizeof(ebpf_map_definition_in_file_t),
-    .type = BPF_MAP_TYPE_ARRAY,
-    .key_size = sizeof(uint32_t),
-    .value_size = sizeof(uint32_t),
-    .max_entries = 1};
+struct bpf_map_def interface_index_map = {
+    .type = BPF_MAP_TYPE_ARRAY, .key_size = sizeof(uint32_t), .value_size = sizeof(uint32_t), .max_entries = 1};
 
 SEC("xdp")
 int

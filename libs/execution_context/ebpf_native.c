@@ -710,7 +710,6 @@ _ebpf_native_create_maps(_Inout_ ebpf_native_module_t* module)
             break;
         }
         memcpy(map_name.value, native_map->entry->name, map_name.length);
-        map_definition.size = sizeof(map_definition);
         map_definition.type = native_map->entry->definition.type;
         map_definition.key_size = native_map->entry->definition.key_size;
         map_definition.value_size = native_map->entry->definition.value_size;

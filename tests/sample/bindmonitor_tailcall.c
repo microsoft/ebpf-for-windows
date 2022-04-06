@@ -18,37 +18,24 @@ typedef struct _process_entry
 } process_entry_t;
 
 SEC("maps")
-ebpf_map_definition_in_file_t process_map = {
-    .size = sizeof(ebpf_map_definition_in_file_t),
+struct bpf_map_def process_map = {
     .type = BPF_MAP_TYPE_HASH,
     .key_size = sizeof(uint64_t),
     .value_size = sizeof(process_entry_t),
     .max_entries = 1024};
 
 SEC("maps")
-ebpf_map_definition_in_file_t limits_map = {
-    .size = sizeof(ebpf_map_definition_in_file_t),
-    .type = BPF_MAP_TYPE_ARRAY,
-    .key_size = sizeof(uint32_t),
-    .value_size = sizeof(uint32_t),
-    .max_entries = 1};
+struct bpf_map_def limits_map = {
+    .type = BPF_MAP_TYPE_ARRAY, .key_size = sizeof(uint32_t), .value_size = sizeof(uint32_t), .max_entries = 1};
 
 SEC("maps")
-ebpf_map_definition_in_file_t prog_array_map = {
-    .size = sizeof(ebpf_map_definition_in_file_t),
-    .type = BPF_MAP_TYPE_PROG_ARRAY,
-    .key_size = sizeof(uint32_t),
-    .value_size = sizeof(uint32_t),
-    .max_entries = 2};
+struct bpf_map_def prog_array_map = {
+    .type = BPF_MAP_TYPE_PROG_ARRAY, .key_size = sizeof(uint32_t), .value_size = sizeof(uint32_t), .max_entries = 2};
 
 SEC("maps")
 // Dummy map. Should not be populated by UM.
-ebpf_map_definition_in_file_t dummy_map = {
-    .size = sizeof(ebpf_map_definition_in_file_t),
-    .type = BPF_MAP_TYPE_HASH,
-    .key_size = sizeof(uint32_t),
-    .value_size = sizeof(uint32_t),
-    .max_entries = 1000};
+struct bpf_map_def dummy_map = {
+    .type = BPF_MAP_TYPE_HASH, .key_size = sizeof(uint32_t), .value_size = sizeof(uint32_t), .max_entries = 1000};
 
 SEC("maps")
 struct _ebpf_map_definition_in_file dummy_outer_map = {
