@@ -37,7 +37,7 @@ memfrob(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)
 };
 
 static uint64_t
-trash_registers(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)
+no_op(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)
 {
     return 0;
 }
@@ -63,7 +63,7 @@ unwind(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)
 std::map<uint32_t, uint64_t (*)(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5)> helper_functions = {
     {0, gather_bytes},
     {1, memfrob},
-    {2, trash_registers},
+    {2, no_op},
     {3, sqrti},
     {4, strcmp_ext},
     {5, unwind},

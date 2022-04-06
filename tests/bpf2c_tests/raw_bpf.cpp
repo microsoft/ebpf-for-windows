@@ -7,7 +7,7 @@
 #include "catch_wrapper.hpp"
 #include "bpf_assembler.h"
 
-#define SEPERATOR "\\"
+#define SEPARATOR "\\"
 
 std::string
 env_or_default(const char* environment_variable, const char* default_value)
@@ -39,7 +39,7 @@ run_test(const std::string& data_file)
         state_result,
         state_memory,
     } state = _state::state_ignore;
-    std::string prefix = data_file.substr(data_file.find_last_of(SEPERATOR) + 1);
+    std::string prefix = data_file.substr(data_file.find_last_of(SEPARATOR) + 1);
 
     std::stringstream data_out;
     std::ifstream data_in(data_file);
@@ -117,11 +117,11 @@ run_test(const std::string& data_file)
     c_file.close();
 
     std::string compile_command = cc + std::string(" ") + cxxflags +
-                                  std::string(" -I.." SEPERATOR ".." SEPERATOR "include ") + std::string(prefix) +
+                                  std::string(" -I.." SEPARATOR ".." SEPARATOR "include ") + std::string(prefix) +
                                   std::string(".c ") + std::string(" bpf_test.cpp >") + std::string(prefix) +
                                   std::string(".log");
     REQUIRE(system(compile_command.c_str()) == 0);
-    std::string test_command = std::string("." SEPERATOR) + std::string(prefix) + std::string(" ") +
+    std::string test_command = std::string("." SEPARATOR) + std::string(prefix) + std::string(" ") +
                                std::string(result) + std::string(" \"") + std::string(mem) + std::string("\"");
     REQUIRE(system(test_command.c_str()) == 0);
 }
@@ -129,7 +129,7 @@ run_test(const std::string& data_file)
 #define DECLARE_TEST(FILE)                                                                                     \
     TEST_CASE(FILE, "[raw_bpf_code_gen]")                                                                      \
     {                                                                                                          \
-        run_test(".." SEPERATOR ".." SEPERATOR "external" SEPERATOR "ubpf" SEPERATOR "tests" SEPERATOR "" FILE \
+        run_test(".." SEPARATOR ".." SEPARATOR "external" SEPARATOR "ubpf" SEPARATOR "tests" SEPARATOR "" FILE \
                  ".data");                                                                                     \
     }
 
