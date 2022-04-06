@@ -85,8 +85,6 @@ function Invoke-CICDTests
 
     try {
         if ($Coverage) {
-            Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
-            choco install -y --requirechecksum=true --checksum=2295A733DA39412C61E4F478677519DD0BB1893D88313CE56B468C9E50517888 --checksum-type=sha256 OpenCppCoverage
             if (!$env:PATH.Contains('C:\Program Files\OpenCppCoverage\')) {
                 $env:PATH += 'C:\Program Files\OpenCppCoverage\;'
             }

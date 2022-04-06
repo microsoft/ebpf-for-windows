@@ -38,4 +38,7 @@ This document discusses the steps to set up such a selfhosted actions-runner tha
     3) $env:Path += ";C:\Program Files\ProcDump"
     4) Create two directories c:\dumps\x64\Release and c:\dumps\x64\Debug
     5) Run: `procdump64.exe -accepteula -i -r -ma <path>` once for each of the two directories above, substituting `path` for the directory path.
-11) Reboot the runner.
+11) Install the [Chocolatey installer](https://chocolatey.org/install).
+12) Install CppCoverage:
+```choco install -y --requirechecksum=true --checksum=2295A733DA39412C61E4F478677519DD0BB1893D88313CE56B468C9E50517888 --checksum-type=sha256 OpenCppCoverage```
+13) Reboot the runner.
