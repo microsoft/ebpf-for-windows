@@ -61,6 +61,7 @@ jobs:
     - name: Generate Report - bpf2c Tests
       shell: cmd
       run: |
+        set CC="C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Tools\MSVC\14.29.30133\bin\HostX64\x64\CL.exe"
         OpenCppCoverage.exe --sources %CD% --excluded_sources %CD%\external\Catch2 --export_type cobertura:ebpf_for_windows_%BUILD_CONFIGURATION%.xml --working_dir %BUILD_PLATFORM%\%BUILD_CONFIGURATION% -- %BUILD_PLATFORM%\%BUILD_CONFIGURATION%\bpf2c_tests.exe -s
 
     - name: Upload Report to Codecov
