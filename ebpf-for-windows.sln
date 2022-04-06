@@ -168,8 +168,15 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "fuzz", "tests\fuzz\fuzz.vcxproj", "{D88F9CE2-8DA2-44FB-AF7C-06466A180F31}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "bindmonitor_um", "tests\sample\generated\dll\bindmonitor_um\bindmonitor_dll.vcxproj", "{128660AB-71BD-480B-AB39-D1AB3AE811B5}"
+	ProjectSection(ProjectDependencies) = postProject
+		{69B97E52-18DC-434E-A6E4-4C0F3E88C44A} = {69B97E52-18DC-434E-A6E4-4C0F3E88C44A}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "bindmonitor_tailcall_um", "tests\sample\generated\dll\bindmonitor_tailcall_um\bindmonitor_tailcall_dll.vcxproj", "{FD1A4291-5BCA-4C11-916C-90BFEA2A1881}"
+	ProjectSection(ProjectDependencies) = postProject
+		{69B97E52-18DC-434E-A6E4-4C0F3E88C44A} = {69B97E52-18DC-434E-A6E4-4C0F3E88C44A}
+	EndProjectSection
+EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "socket_tests", "tests\socket\socket_tests.vcxproj", "{EED9DAC6-8B98-4C33-969A-E8CEDE8E985E}"
 EndProject
 Global

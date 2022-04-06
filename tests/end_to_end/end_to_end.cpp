@@ -877,11 +877,12 @@ TEST_CASE("verify section", "[end_to_end]")
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
     ebpf_api_verifier_stats_t stats;
-    REQUIRE((
-        result = ebpf_api_elf_verify_section(SAMPLE_PATH "droppacket.o", "xdp", false, &report, &error_message, &stats),
-        ebpf_free_string(error_message),
-        error_message = nullptr,
-        result == 0));
+    REQUIRE(
+        (result = ebpf_api_elf_verify_section_from_file(
+             SAMPLE_PATH "droppacket.o", "xdp", false, &report, &error_message, &stats),
+         ebpf_free_string(error_message),
+         error_message = nullptr,
+         result == 0));
     REQUIRE(report != nullptr);
     ebpf_free_string(report);
 }
@@ -980,7 +981,7 @@ TEST_CASE("verify_test0", "[sample_extension]")
 
     ebpf_api_verifier_stats_t stats;
     REQUIRE(
-        (result = ebpf_api_elf_verify_section(
+        (result = ebpf_api_elf_verify_section_from_file(
              SAMPLE_PATH "test_sample_ebpf.o", "sample_ext", false, &report, &error_message, &stats),
          ebpf_free_string(error_message),
          error_message = nullptr,
@@ -1001,7 +1002,7 @@ TEST_CASE("verify_test1", "[sample_extension]")
     ebpf_api_verifier_stats_t stats;
 
     REQUIRE(
-        (result = ebpf_api_elf_verify_section(
+        (result = ebpf_api_elf_verify_section_from_file(
              SAMPLE_PATH "test_sample_ebpf.o", "sample_ext/utility", false, &report, &error_message, &stats),
          ebpf_free_string(error_message),
          error_message = nullptr,

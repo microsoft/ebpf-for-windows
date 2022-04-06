@@ -433,9 +433,10 @@ ebpf_api_elf_disassemble_section(
     return 0;
 }
 
-uint32_t
-ebpf_api_elf_verify_section(
-    const char* file,
+static uint32_t
+_ebpf_api_elf_verify_section_from_stream(
+    std::istream& stream,
+    const char* stream_name,
     const char* section,
     bool verbose,
     const char** report,
@@ -445,7 +446,6 @@ ebpf_api_elf_verify_section(
     std::ostringstream error;
     std::ostringstream output;
     struct _thread_local_storage_cache tls_cache;
-
     *report = nullptr;
     *error_message = nullptr;
 
@@ -457,8 +457,10 @@ ebpf_api_elf_verify_section(
         verifier_options.print_failures = true;
         verifier_options.mock_map_fds = true;
         verifier_options.print_line_info = true;
-
-        auto raw_programs = read_elf(file, section, &verifier_options, platform);
+        if (!stream) {
+            throw std::runtime_error(std::string("No such file or directory opening ") + stream_name);
+        }
+        auto raw_programs = read_elf(stream, stream_name, section, &verifier_options, platform);
         raw_program raw_program = raw_programs.back();
         std::variant<InstructionSeq, std::string> programOrError = unmarshal(raw_program);
         if (std::holds_alternative<std::string>(programOrError)) {
@@ -486,12 +488,39 @@ ebpf_api_elf_verify_section(
         *error_message = allocate_string(error.str());
         return 1;
     } catch (std::exception ex) {
-        error << "Failed to load eBPF program from " << file;
+        error << "Failed to load eBPF program from " << stream_name;
         *error_message = allocate_string(error.str());
         return 1;
     }
 
     return 0;
+}
+
+uint32_t
+ebpf_api_elf_verify_section_from_file(
+    const char* file,
+    const char* section,
+    bool verbose,
+    const char** report,
+    const char** error_message,
+    ebpf_api_verifier_stats_t* stats)
+{
+    std::ifstream stream{file, std::ios::in | std::ios::binary};
+    return _ebpf_api_elf_verify_section_from_stream(stream, file, section, verbose, report, error_message, stats);
+}
+
+uint32_t
+ebpf_api_elf_verify_section_from_memory(
+    const char* data,
+    size_t data_length,
+    const char* section,
+    bool verbose,
+    const char** report,
+    const char** error_message,
+    ebpf_api_verifier_stats_t* stats)
+{
+    std::stringstream stream(std::string(data, data_length));
+    return _ebpf_api_elf_verify_section_from_stream(stream, "memory", section, verbose, report, error_message, stats);
 }
 
 void

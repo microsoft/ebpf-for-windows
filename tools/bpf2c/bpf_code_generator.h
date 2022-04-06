@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #pragma once
+#include <fstream>
 #include <map>
 #include <set>
 #include <string>
@@ -17,10 +18,10 @@ class bpf_code_generator
     /**
      * @brief Construct a new bpf code generator object.
      *
-     * @param[in] path Path to the eBPF file to parse.
+     * @param[in] stream Input stream containing the eBPF file to parse.
      * @param[in] c_name C compatible name to export this as.
      */
-    bpf_code_generator(const std::string& path, const std::string& c_name);
+    bpf_code_generator(std::istream& stream, const std::string& c_name);
 
     /**
      * @brief Construct a new bpf code generator object from raw eBPF byte code.
