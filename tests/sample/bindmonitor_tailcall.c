@@ -60,6 +60,14 @@ struct _ebpf_map_definition_in_file dummy_outer_map = {
     .inner_id = INNER_MAP_ID};
 
 SEC("maps")
+struct _ebpf_map_definition_in_file dummy_outer_idx_map = {
+    .type = BPF_MAP_TYPE_HASH_OF_MAPS,
+    .key_size = sizeof(uint32_t),
+    .value_size = sizeof(uint32_t),
+    .max_entries = 10,
+    .inner_map_idx = 6};
+
+SEC("maps")
 struct _ebpf_map_definition_in_file dummy_inner_map = {
     .type = BPF_MAP_TYPE_HASH,
     .key_size = sizeof(uint32_t),
