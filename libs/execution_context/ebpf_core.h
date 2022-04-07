@@ -58,7 +58,8 @@ extern "C"
     ebpf_result_t
     ebpf_core_invoke_protocol_handler(
         ebpf_operation_id_t operation_id,
-        _In_ const void* input_buffer,
+        _In_reads_bytes_(input_buffer_length) const void* input_buffer,
+        uint16_t input_buffer_length,
         _Out_writes_bytes_opt_(output_buffer_length) void* output_buffer,
         uint16_t output_buffer_length,
         _In_opt_ void* async_context,

@@ -612,7 +612,6 @@ _ebpf_native_validate_map(_In_ const ebpf_native_map_t* map, ebpf_handle_t origi
             result = EBPF_INVALID_ARGUMENT;
             goto Exit;
         }
-
         result = _ebpf_native_validate_map(inner_map, inner_map_handle);
     }
 

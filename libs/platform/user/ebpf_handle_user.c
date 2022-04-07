@@ -73,8 +73,9 @@ ebpf_handle_close(ebpf_handle_t handle)
     // High volume call - Skip entry/exit logging.
     ebpf_lock_state_t state;
     ebpf_result_t return_value;
+
     state = ebpf_lock_lock(&_ebpf_handle_table_lock);
-    if (_ebpf_handle_table[handle] != NULL) {
+    if (((size_t)handle < EBPF_COUNT_OF(_ebpf_handle_table)) && _ebpf_handle_table[handle] != NULL) {
         ebpf_object_release_reference(_ebpf_handle_table[handle]);
         _ebpf_handle_table[handle] = NULL;
         return_value = EBPF_SUCCESS;
