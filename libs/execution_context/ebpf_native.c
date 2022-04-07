@@ -64,6 +64,13 @@ static GUID _ebpf_native_npi_id = {/* c847aac8-a6f2-4b53-aea3-f4a94b9a80cb */
                                    0xa6f2,
                                    0x4b53,
                                    {0xae, 0xa3, 0xf4, 0xa9, 0x4b, 0x9a, 0x80, 0xcb}};
+
+static GUID _ebpf_native_provider_id = {/* 5e24d2f5-f799-42c3-a945-87feefd930a7 */
+                                        0x5e24d2f5,
+                                        0xf799,
+                                        0x42c3,
+                                        {0xa9, 0x45, 0x87, 0xfe, 0xef, 0xd9, 0x30, 0xa7}};
+
 static ebpf_extension_provider_t* _ebpf_native_provider = NULL;
 
 #define EBPF_CLIENT_TABLE_BUCKET_COUNT 64
@@ -404,7 +411,6 @@ ebpf_native_initiate()
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t return_value;
-    GUID provider_module_id;
     bool hash_table_created = false;
 
     ebpf_lock_create(&_ebpf_native_client_table_lock);
@@ -422,15 +428,10 @@ ebpf_native_initiate()
     }
     hash_table_created = true;
 
-    return_value = ebpf_guid_create(&provider_module_id);
-    if (return_value != EBPF_SUCCESS) {
-        goto Done;
-    }
-
     return_value = ebpf_provider_load(
         &_ebpf_native_provider,
         &_ebpf_native_npi_id,
-        &provider_module_id,
+        &_ebpf_native_provider_id,
         NULL,
         NULL,
         NULL,
@@ -611,7 +612,6 @@ _ebpf_native_validate_map(_In_ const ebpf_native_map_t* map, ebpf_handle_t origi
             result = EBPF_INVALID_ARGUMENT;
             goto Exit;
         }
-
         result = _ebpf_native_validate_map(inner_map, inner_map_handle);
     }
 
