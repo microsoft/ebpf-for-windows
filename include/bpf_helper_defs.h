@@ -213,8 +213,26 @@ EBPF_HELPER(long, bpf_trace_printk5, (const char* fmt, uint32_t fmt_size, uint64
 #define EBPF_COUNT_VA_ARGS(...) EBPF_GET_NTH_ARG(__VA_ARGS__, 5, 4, 3, 2, 1)
 #define EBPF_VA_ARGS_HELPER(PREFIX, ...) EBPF_MAKE_HELPER_NAME(PREFIX, EBPF_COUNT_VA_ARGS(__VA_ARGS__))(__VA_ARGS__)
 
+#undef bpf_trace_printk
+#define bpf_trace_printk(fmt, size, ...) ({ EBPF_VA_ARGS_HELPER(bpf_trace_printk, fmt, size, ##__VA_ARGS__); })
+#else
+/**
+ * @brief Print debug output.  For instructions on viewing the output, see the
+ * <a href="https://github.com/microsoft/ebpf-for-windows/blob/main/docs/GettingStarted.md#using-tracing">Using
+ * tracing</a> section of the Getting Started Guide for eBPF for Windows.
+ *
+ * @param[in] fmt Printf-style format string.
+ * @param[in] size Size in bytes of the format string.
+ * @param[in] ... Numeric arguments to be used by the format string.
+ *
+ * @returns The number of bytes written, or a negative error in case of failure.
+ */
+long
+bpf_trace_printk(const char* fmt, uint32_t size, ...);
+#endif
+
+#ifndef __doxygen
 #undef bpf_printk
-#define bpf_trace_printk(fmt, fmtsz, ...) ({ EBPF_VA_ARGS_HELPER(bpf_trace_printk, fmt, fmtsz, ##__VA_ARGS__); })
 #define bpf_printk(fmt, ...)                                       \
     ({                                                             \
         char ____fmt[] = fmt;                                      \
