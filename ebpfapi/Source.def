@@ -92,7 +92,6 @@ EXPORTS
     ebpf_api_map_info_free
     ebpf_free_string
     ebpf_get_attach_type_name
-    ebpf_get_next_map
     ebpf_get_next_pinned_program_path
     ebpf_get_next_program
     ebpf_get_program_type_by_name
