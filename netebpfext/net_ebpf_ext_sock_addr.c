@@ -378,39 +378,47 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
     _Inout_ FWPS_CLASSIFY_OUT* classify_output)
 {
     uint32_t result;
+    net_ebpf_extension_sock_addr_wfp_filter_context_t* filter_context = NULL;
     net_ebpf_extension_hook_client_t* attached_client = NULL;
     net_ebpf_extension_hook_execution_t execution_type =
         (KeGetCurrentIrql() < DISPATCH_LEVEL) ? EXECUTION_PASSIVE : EXECUTION_DISPATCH;
-    FWP_ACTION_TYPE action = FWP_ACTION_PERMIT;
     bpf_sock_addr_t sock_addr_ctx = {0};
+    uint32_t compartment_id = UNSPECIFIED_COMPARTMENT_ID;
 
     UNREFERENCED_PARAMETER(incoming_metadata_values);
     UNREFERENCED_PARAMETER(layer_data);
     UNREFERENCED_PARAMETER(classify_context);
     UNREFERENCED_PARAMETER(flow_context);
 
-    attached_client = (net_ebpf_extension_hook_client_t*)filter->context;
+    classify_output->actionType = FWP_ACTION_PERMIT;
+
+    filter_context = (net_ebpf_extension_sock_addr_wfp_filter_context_t*)filter->context;
+    ASSERT(filter_context != NULL);
+
+    attached_client = (net_ebpf_extension_hook_client_t*)filter_context->client_context;
     ASSERT(attached_client != NULL);
     if (attached_client == NULL)
         goto Exit;
 
-    if (!net_ebpf_extension_hook_client_enter_rundown(attached_client, execution_type)) {
-        classify_output->actionType = FWP_ACTION_PERMIT;
+    if (!net_ebpf_extension_hook_client_enter_rundown(attached_client, execution_type))
         goto Exit;
-    }
 
     _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(incoming_fixed_values, &sock_addr_ctx);
+
+    compartment_id = filter_context->compartment_id;
+    ASSERT((compartment_id == UNSPECIFIED_COMPARTMENT_ID) || (compartment_id == sock_addr_ctx.compartment_id));
+    if (compartment_id != UNSPECIFIED_COMPARTMENT_ID && compartment_id != sock_addr_ctx.compartment_id) {
+        // The client is not interested in this compartment Id.
+        goto Exit;
+    }
 
     if (net_ebpf_extension_hook_invoke_program(attached_client, &sock_addr_ctx, &result) != EBPF_SUCCESS)
         goto Exit;
 
-    action = (result == VERDICT_PROCEED) ? FWP_ACTION_PERMIT : FWP_ACTION_BLOCK;
+    classify_output->actionType = (result == VERDICT_PROCEED) ? FWP_ACTION_PERMIT : FWP_ACTION_BLOCK;
+    classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
 
 Exit:
     if (attached_client)
         net_ebpf_extension_hook_client_leave_rundown(attached_client, execution_type);
-
-    classify_output->actionType = action;
-
-    return;
 }
