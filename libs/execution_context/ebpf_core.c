@@ -1471,6 +1471,10 @@ _ebpf_core_protocol_ring_buffer_map_query_buffer(
         return result;
     }
 
+    if (ebpf_map_get_definition(map)->type != BPF_MAP_TYPE_RINGBUF) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
     result = ebpf_ring_buffer_map_query_buffer(map, (uint8_t**)(uintptr_t*)&reply->buffer_address);
 
     ebpf_object_release_reference((ebpf_core_object_t*)map);
@@ -1494,6 +1498,10 @@ _ebpf_core_protocol_ring_buffer_map_async_query(
     if (result != EBPF_SUCCESS)
         goto Exit;
     reference_taken = TRUE;
+
+    if (ebpf_map_get_definition(map)->type != BPF_MAP_TYPE_RINGBUF) {
+        return EBPF_INVALID_ARGUMENT;
+    }
 
     // Return buffer already consumed by caller in previous notification.
     result = ebpf_ring_buffer_map_return_buffer(map, request->consumer_offset);
@@ -1966,7 +1974,8 @@ ebpf_core_get_protocol_handler_properties(
 ebpf_result_t
 ebpf_core_invoke_protocol_handler(
     ebpf_operation_id_t operation_id,
-    _In_ const void* input_buffer,
+    _In_reads_bytes_(input_buffer_length) const void* input_buffer,
+    uint16_t input_buffer_length,
     _Out_writes_bytes_opt_(output_buffer_length) void* output_buffer,
     uint16_t output_buffer_length,
     _In_opt_ void* async_context,
@@ -1975,9 +1984,19 @@ ebpf_core_invoke_protocol_handler(
     ebpf_result_t retval;
     bool epoch_entered = false;
     bool affinity_set = false;
+    ebpf_operation_header_t* header;
 
     if (operation_id >= EBPF_COUNT_OF(_ebpf_protocol_handlers) || operation_id < EBPF_OPERATION_RESOLVE_HELPER) {
         return EBPF_OPERATION_NOT_SUPPORTED;
+    }
+
+    if (input_buffer_length < sizeof(ebpf_operation_header_t)) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    header = (ebpf_operation_header_t*)input_buffer;
+    if (header->length > input_buffer_length) {
+        return EBPF_INVALID_ARGUMENT;
     }
 
     if (async_context && !on_complete) {

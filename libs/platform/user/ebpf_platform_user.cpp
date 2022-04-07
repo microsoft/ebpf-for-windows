@@ -18,6 +18,8 @@ bool _ebpf_platform_code_integrity_enabled = false;
 // Permit the test to simulate non-preemptible execution.
 bool _ebpf_platform_is_preemptible = true;
 
+extern "C" bool ebpf_fuzzing_enabled = false;
+
 ebpf_result_t
 ebpf_platform_initiate()
 {

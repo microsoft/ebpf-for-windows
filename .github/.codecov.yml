@@ -4,3 +4,6 @@
 codecov:
   notify:
     wait_for_ci: yes
+    after_n_builds: 2
+comment:
+    after_n_builds: 2

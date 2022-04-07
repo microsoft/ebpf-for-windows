@@ -8,14 +8,49 @@ using namespace std::chrono_literals;
 #include "bpf/bpf.h"
 #include "catch_wrapper.hpp"
 #include "api_internal.h"
+#include "bpf2c.h"
 #include "ebpf_async.h"
 #include "ebpf_core.h"
+#include "ebpf_platform.h"
 #include "helpers.h"
 #include "mock.h"
 #include "test_helper.hpp"
 
+extern "C" bool ebpf_fuzzing_enabled;
+
+#define SERVICE_PATH_PREFIX L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\"
+
+static GUID _bpf2c_npi_id = {/* c847aac8-a6f2-4b53-aea3-f4a94b9a80cb */
+                             0xc847aac8,
+                             0xa6f2,
+                             0x4b53,
+                             {0xae, 0xa3, 0xf4, 0xa9, 0x4b, 0x9a, 0x80, 0xcb}};
+
+static GUID _ebpf_native_provider_id = {/* 5e24d2f5-f799-42c3-a945-87feefd930a7 */
+                                        0x5e24d2f5,
+                                        0xf799,
+                                        0x42c3,
+                                        {0xa9, 0x45, 0x87, 0xfe, 0xef, 0xd9, 0x30, 0xa7}};
+
+metadata_table_t*
+get_metadata_table();
+
+typedef struct _service_context
+{
+    std::wstring name;
+    std::wstring file_path;
+    intptr_t handle{};
+    GUID module_id{};
+    HMODULE dll;
+    bool loaded;
+    ebpf_extension_client_t* binding_context;
+} service_context_t;
+
 static uint64_t _ebpf_file_descriptor_counter = 0;
 static std::map<fd_t, ebpf_handle_t> _fd_to_handle_map;
+
+static uint32_t _ebpf_service_handle_counter = 0;
+static std::map<std::wstring, service_context_t*> _service_path_to_context_map;
 
 class duplicate_handles_table_t
 {
@@ -176,6 +211,88 @@ GlueCancelIoEx(_In_ HANDLE hFile, _In_opt_ LPOVERLAPPED lpOverlapped)
     return return_value;
 }
 
+#pragma warning(push)
+#pragma warning(disable : 6001) // Using uninitialized memory 'context'
+static void
+_unload_all_native_modules()
+{
+    for (auto& [path, context] : _service_path_to_context_map) {
+        if (context->loaded) {
+            // Deregister client.
+            ebpf_extension_unload(context->binding_context);
+        }
+        ebpf_free(context);
+    }
+    _service_path_to_context_map.clear();
+}
+#pragma warning(pop)
+
+static void
+_load_native_module(_Inout_ service_context_t* context)
+{
+    context->dll = LoadLibraryW(context->file_path.c_str());
+    REQUIRE(context->dll != nullptr);
+
+    auto get_function =
+        reinterpret_cast<decltype(&get_metadata_table)>(GetProcAddress(context->dll, "get_metadata_table"));
+    REQUIRE(get_function != nullptr);
+    metadata_table_t* table = get_function();
+    REQUIRE(table != nullptr);
+
+    int client_binding_context = 0;
+    void* provider_binding_context = nullptr;
+    const ebpf_extension_data_t* returned_provider_data;
+    const ebpf_extension_dispatch_table_t* returned_provider_dispatch_table;
+
+    // Register as client.
+    ebpf_result_t result = ebpf_extension_load(
+        &context->binding_context,
+        &_bpf2c_npi_id,
+        &_ebpf_native_provider_id,
+        &context->module_id,
+        &client_binding_context,
+        (const ebpf_extension_data_t*)table,
+        nullptr,
+        &provider_binding_context,
+        &returned_provider_data,
+        &returned_provider_dispatch_table,
+        nullptr);
+
+    REQUIRE(result == EBPF_SUCCESS);
+
+    context->loaded = true;
+}
+
+static void
+_preprocess_ioctl(_In_ const ebpf_operation_header_t* user_request)
+{
+    switch (user_request->id) {
+    case EBPF_OPERATION_LOAD_NATIVE_MODULE: {
+        try {
+            const ebpf_operation_load_native_module_request_t* request =
+                (ebpf_operation_load_native_module_request_t*)user_request;
+            size_t service_name_length = ((uint8_t*)request) + request->header.length - (uint8_t*)request->data;
+            REQUIRE(((service_name_length % 2 == 0) || ebpf_fuzzing_enabled));
+
+            std::wstring service_path;
+            service_path.assign((wchar_t*)request->data, service_name_length / 2);
+            auto context = _service_path_to_context_map.find(service_path);
+            if (context != _service_path_to_context_map.end()) {
+                context->second->module_id = request->module_id;
+
+                // Load the module.
+                _load_native_module(context->second);
+            }
+        } catch (...) {
+            // Ignore.
+        }
+        break;
+    }
+    default:
+        break;
+    }
+}
+
 BOOL
 GlueDeviceIoControl(
     HANDLE hDevice,
@@ -188,7 +305,6 @@ GlueDeviceIoControl(
     OVERLAPPED* lpOverlapped)
 {
     UNREFERENCED_PARAMETER(hDevice);
-    UNREFERENCED_PARAMETER(nInBufferSize);
     UNREFERENCED_PARAMETER(dwIoControlCode);
 
     ebpf_result_t result;
@@ -224,11 +340,13 @@ GlueDeviceIoControl(
         *lpBytesReturned = user_reply->length;
     }
 
-    // TODO: (Issue# 852) Intercept the call to perform any IOCTL specific _pre_ tasks.
+    // Intercept the call to perform any IOCTL specific _pre_ tasks.
+    _preprocess_ioctl(user_request);
 
     result = ebpf_core_invoke_protocol_handler(
         request_id,
         user_request,
+        static_cast<uint16_t>(nInBufferSize),
         user_reply,
         static_cast<uint16_t>(nOutBufferSize),
         lpOverlapped,
@@ -299,6 +417,47 @@ Glue_close(int file_descriptor)
     }
 }
 
+uint32_t
+Glue_create_service(
+    _In_z_ const wchar_t* service_name, _In_z_ const wchar_t* file_path, _Out_ SC_HANDLE* service_handle)
+{
+    *service_handle = (SC_HANDLE)0;
+    try {
+        std::wstring service_path(SERVICE_PATH_PREFIX);
+        service_path = service_path + service_name;
+
+        service_context_t* context = new (std::nothrow) service_context_t();
+        if (context == nullptr) {
+            return ERROR_NOT_ENOUGH_MEMORY;
+        }
+
+        context->name.assign(service_name);
+        context->file_path.assign(file_path);
+
+        _service_path_to_context_map.insert(std::pair<std::wstring, service_context_t*>(service_path, context));
+        context->handle = InterlockedIncrement64((int64_t*)&_ebpf_service_handle_counter);
+
+        *service_handle = (SC_HANDLE)context->handle;
+    } catch (...) {
+        return ERROR_NOT_ENOUGH_MEMORY;
+    }
+
+    return ERROR_SUCCESS;
+}
+
+uint32_t
+Glue_delete_service(SC_HANDLE handle)
+{
+    for (auto& [path, context] : _service_path_to_context_map) {
+        if (context->handle == (intptr_t)handle) {
+            _service_path_to_context_map.erase(path);
+            break;
+        }
+    }
+
+    return ERROR_SUCCESS;
+}
+
 _test_helper_end_to_end::_test_helper_end_to_end()
 {
     device_io_control_handler = GlueDeviceIoControl;
@@ -309,6 +468,8 @@ _test_helper_end_to_end::_test_helper_end_to_end()
     open_osfhandle_handler = Glue_open_osfhandle;
     get_osfhandle_handler = Glue_get_osfhandle;
     close_handler = Glue_close;
+    create_service_handler = Glue_create_service;
+    delete_service_handler = Glue_delete_service;
     REQUIRE(ebpf_core_initiate() == EBPF_SUCCESS);
     ec_initialized = true;
     REQUIRE(ebpf_api_initiate() == EBPF_SUCCESS);
@@ -322,8 +483,13 @@ _test_helper_end_to_end::~_test_helper_end_to_end()
         _duplicate_handles.rundown();
         // Verify that all maps were successfully removed.
         uint32_t id;
-        REQUIRE(bpf_map_get_next_id(0, &id) < 0);
-        REQUIRE(errno == ENOENT);
+        if (!ebpf_fuzzing_enabled) {
+            REQUIRE(bpf_map_get_next_id(0, &id) < 0);
+            REQUIRE(errno == ENOENT);
+        }
+
+        // Detach all the native module clients.
+        _unload_all_native_modules();
     } catch (Catch::TestFailureException&) {
     }
 
