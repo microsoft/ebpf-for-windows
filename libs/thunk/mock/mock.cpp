@@ -14,6 +14,8 @@ std::function<decltype(DuplicateHandle)> duplicate_handle_handler;
 std::function<decltype(DeviceIoControl)> device_io_control_handler;
 std::function<decltype(_get_osfhandle)> get_osfhandle_handler;
 std::function<decltype(_open_osfhandle)> open_osfhandle_handler;
+std::function<decltype(_create_service)> create_service_handler;
+std::function<decltype(_delete_service)> delete_service_handler;
 
 namespace Platform {
 bool
@@ -150,24 +152,13 @@ _update_registry_value(
 uint32_t
 _create_service(_In_z_ const wchar_t* service_name, _In_z_ const wchar_t* file_path, _Out_ SC_HANDLE* service_handle)
 {
-    // TODO: (Issue# 852) Just a stub currently in order to compile.
-    // Will be replaced by a proper mock.
-
-    UNREFERENCED_PARAMETER(service_name);
-    UNREFERENCED_PARAMETER(file_path);
-    *service_handle = (SC_HANDLE)1;
-
-    return ERROR_SUCCESS;
+    return create_service_handler(service_name, file_path, service_handle);
 }
 
 uint32_t
 _delete_service(SC_HANDLE service_handle)
 {
-    // TODO: (Issue# 852) Just a stub currently in order to compile.
-    // Will be replaced by a proper mock.
-
-    UNREFERENCED_PARAMETER(service_handle);
-    return ERROR_SUCCESS;
+    return delete_service_handler(service_handle);
 }
 
 uint32_t

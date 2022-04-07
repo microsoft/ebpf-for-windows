@@ -9,7 +9,8 @@
 
 #include "bpf2c.h"
 
-metadata_table_t ___METADATA_TABLE___;
+#define metadata_table ___METADATA_TABLE___##_metadata_table
+extern metadata_table_t metadata_table;
 
 BOOL APIENTRY
 DllMain(_In_ HMODULE hModule, unsigned int ul_reason_for_call, _In_ void* lpReserved)
@@ -39,5 +40,5 @@ division_by_zero(uint32_t address)
 metadata_table_t*
 get_metadata_table()
 {
-    return &___METADATA_TABLE___;
+    return &metadata_table;
 }
