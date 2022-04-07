@@ -314,6 +314,7 @@ _ebpf_driver_io_device_control(
                 status = ebpf_result_to_ntstatus(ebpf_core_invoke_protocol_handler(
                     user_request->id,
                     user_request,
+                    (uint16_t)actual_input_length,
                     user_reply,
                     (uint16_t)actual_output_length,
                     async_context,

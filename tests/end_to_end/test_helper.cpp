@@ -16,6 +16,8 @@ using namespace std::chrono_literals;
 #include "mock.h"
 #include "test_helper.hpp"
 
+extern "C" bool ebpf_fuzzing_enabled;
+
 #define SERVICE_PATH_PREFIX L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\"
 
 static GUID _bpf2c_npi_id = {/* c847aac8-a6f2-4b53-aea3-f4a94b9a80cb */
@@ -270,15 +272,17 @@ _preprocess_ioctl(_In_ const ebpf_operation_header_t* user_request)
             const ebpf_operation_load_native_module_request_t* request =
                 (ebpf_operation_load_native_module_request_t*)user_request;
             size_t service_name_length = ((uint8_t*)request) + request->header.length - (uint8_t*)request->data;
-            REQUIRE(service_name_length % 2 == 0);
+            REQUIRE(((service_name_length % 2 == 0) || ebpf_fuzzing_enabled));
 
             std::wstring service_path;
             service_path.assign((wchar_t*)request->data, service_name_length / 2);
-            auto context = _service_path_to_context_map[service_path];
-            context->module_id = request->module_id;
+            auto context = _service_path_to_context_map.find(service_path);
+            if (context != _service_path_to_context_map.end()) {
+                context->second->module_id = request->module_id;
 
-            // Load the module.
-            _load_native_module(context);
+                // Load the module.
+                _load_native_module(context->second);
+            }
         } catch (...) {
             // Ignore.
         }
@@ -301,7 +305,6 @@ GlueDeviceIoControl(
     OVERLAPPED* lpOverlapped)
 {
     UNREFERENCED_PARAMETER(hDevice);
-    UNREFERENCED_PARAMETER(nInBufferSize);
     UNREFERENCED_PARAMETER(dwIoControlCode);
 
     ebpf_result_t result;
@@ -343,6 +346,7 @@ GlueDeviceIoControl(
     result = ebpf_core_invoke_protocol_handler(
         request_id,
         user_request,
+        static_cast<uint16_t>(nInBufferSize),
         user_reply,
         static_cast<uint16_t>(nOutBufferSize),
         lpOverlapped,
@@ -479,8 +483,10 @@ _test_helper_end_to_end::~_test_helper_end_to_end()
         _duplicate_handles.rundown();
         // Verify that all maps were successfully removed.
         uint32_t id;
-        REQUIRE(bpf_map_get_next_id(0, &id) < 0);
-        REQUIRE(errno == ENOENT);
+        if (!ebpf_fuzzing_enabled) {
+            REQUIRE(bpf_map_get_next_id(0, &id) < 0);
+            REQUIRE(errno == ENOENT);
+        }
 
         // Detach all the native module clients.
         _unload_all_native_modules();
