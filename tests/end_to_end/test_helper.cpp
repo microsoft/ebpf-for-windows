@@ -272,15 +272,17 @@ _preprocess_ioctl(_In_ const ebpf_operation_header_t* user_request)
             const ebpf_operation_load_native_module_request_t* request =
                 (ebpf_operation_load_native_module_request_t*)user_request;
             size_t service_name_length = ((uint8_t*)request) + request->header.length - (uint8_t*)request->data;
-            REQUIRE(service_name_length % 2 == 0);
+            REQUIRE(((service_name_length % 2 == 0) || ebpf_fuzzing_enabled));
 
             std::wstring service_path;
             service_path.assign((wchar_t*)request->data, service_name_length / 2);
-            auto context = _service_path_to_context_map[service_path];
-            context->module_id = request->module_id;
+            auto context = _service_path_to_context_map.find(service_path);
+            if (context != _service_path_to_context_map.end()) {
+                context->second->module_id = request->module_id;
 
-            // Load the module.
-            _load_native_module(context);
+                // Load the module.
+                _load_native_module(context->second);
+            }
         } catch (...) {
             // Ignore.
         }
