@@ -4,7 +4,7 @@
 
 #include <stdint.h>
 
-inline uint16_t
+inline __attribute__((always_inline)) uint16_t
 bpf_ntohs(uint16_t us)
 {
     return us << 8 | us >> 8;
