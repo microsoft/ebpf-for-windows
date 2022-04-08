@@ -21,9 +21,10 @@ on:
         required: true
         type: string
       # The environment to run this test on.
-      test_environment:
-        required: true
+      environment:
+        description: 'Environment to run tests against'
         type: environment
+        required: true
       # Set to true to gather code coverage when this test runs.
       code_coverage:
         required: false
@@ -44,7 +45,7 @@ jobs:
     strategy:
       matrix:
         configurations: [Debug, Release]
-    runs-on: ${{inputs.test_environment}}
+    runs-on: ${{inputs.environment}}
     env:
       # Configuration type to build.
       BUILD_CONFIGURATION: ${{matrix.configurations}}

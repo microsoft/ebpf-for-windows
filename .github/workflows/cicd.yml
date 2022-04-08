@@ -41,7 +41,7 @@ jobs:
       test_command: .\unit_tests.exe -s
       build_job: regular / build
       build_artifact: Build x64
-      test_environment: windows-2019
+      environment: windows-2019
       code_coverage: true
       gather_dumps: true
 
@@ -52,7 +52,7 @@ jobs:
       test_command: .\ebpf_client.exe -s
       build_job: regular / build
       build_artifact: Build x64
-      test_environment: windows-2019
+      environment: windows-2019
       code_coverage: true
       gather_dumps: true
 
@@ -63,7 +63,7 @@ jobs:
       test_command: .\fuzz.exe -s
       build_job: regular / build
       build_artifact: Build x64
-      test_environment: windows-2019
+      environment: windows-2019
       code_coverage: true
       gather_dumps: true
 
@@ -74,7 +74,7 @@ jobs:
       test_command: .\bpf2c_tests.exe -s
       build_job: regular / build
       build_artifact: Build x64
-      test_environment: windows-2019
+      environment: windows-2019
       code_coverage: true
       gather_dumps: true
 
@@ -85,4 +85,4 @@ jobs:
       test_command: ./setup_ebpf_cicd_tests.ps1; ./execute_ebpf_cicd_tests.ps1; ./cleanup_ebpf_cicd_tests.ps1
       build_job: regular / build
       build_artifact: Build x64
-      test_environment: windows, ebpf_cicd_tests
+      environment: windows, ebpf_cicd_tests
