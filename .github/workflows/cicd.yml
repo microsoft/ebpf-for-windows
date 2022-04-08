@@ -31,6 +31,9 @@ jobs:
       build_artifact: Build x64 - Analyze
       build_options: /p:Analysis='True'
 
+  # TODO: Add sanitize build once #912 is fixed.
+  # https://github.com/microsoft/ebpf-for-windows/issues/912
+
   # Run the unit tests in GitHub
   unit_tests:
     uses: ./.github/workflows/reusable-test.yml

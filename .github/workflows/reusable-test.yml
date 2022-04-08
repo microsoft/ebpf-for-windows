@@ -33,13 +33,14 @@ on:
         required: false
         type: boolean
 
+permissions:
+  checks: read  # for fountainhead/action-wait-for-check to wait for another GitHub check to complete
+  contents: read  # for actions/checkout to fetch code
+
 jobs:
   run_test:
     timeout-minutes: 30
 
-    permissions:
-      checks: read  # for fountainhead/action-wait-for-check to wait for another GitHub check to complete
-      contents: read  # for actions/checkout to fetch code
     strategy:
       matrix:
         configurations: [Debug, Release]
@@ -127,7 +128,7 @@ jobs:
         retention-days: 5
 
     - name: Check for TestLogs
-      uses: andstor/file-existence-action@v1
+      uses: andstor/file-existence-action@f02338908d150e00a4b8bebc2dad18bd9e5229b0
       id: check_logs
       with:
         files: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/TestLogs
