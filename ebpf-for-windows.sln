@@ -170,6 +170,7 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "bindmonitor_um", "tests\sample\generated\dll\bindmonitor_um\bindmonitor_dll.vcxproj", "{128660AB-71BD-480B-AB39-D1AB3AE811B5}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "bindmonitor_tailcall_um", "tests\sample\generated\dll\bindmonitor_tailcall_um\bindmonitor_tailcall_dll.vcxproj", "{FD1A4291-5BCA-4C11-916C-90BFEA2A1881}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "socket_tests", "tests\socket\socket_tests.vcxproj", "{EED9DAC6-8B98-4C33-969A-E8CEDE8E985E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -1589,6 +1590,34 @@ Global
 		{FD1A4291-5BCA-4C11-916C-90BFEA2A1881}.RelWithDebInfo|x64.Build.0 = Release|x64
 		{FD1A4291-5BCA-4C11-916C-90BFEA2A1881}.RelWithDebInfo|x86.ActiveCfg = Release|Win32
 		{FD1A4291-5BCA-4C11-916C-90BFEA2A1881}.RelWithDebInfo|x86.Build.0 = Release|Win32
+		{EED9DAC6-8B98-4C33-969A-E8CEDE8E985E}.Debug|ARM.ActiveCfg = Debug|Win32
+		{EED9DAC6-8B98-4C33-969A-E8CEDE8E985E}.Debug|ARM64.ActiveCfg = Debug|Win32
+		{EED9DAC6-8B98-4C33-969A-E8CEDE8E985E}.Debug|x64.ActiveCfg = Debug|x64
+		{EED9DAC6-8B98-4C33-969A-E8CEDE8E985E}.Debug|x64.Build.0 = Debug|x64
+		{EED9DAC6-8B98-4C33-969A-E8CEDE8E985E}.Debug|x86.ActiveCfg = Debug|Win32
+		{EED9DAC6-8B98-4C33-969A-E8CEDE8E985E}.Debug|x86.Build.0 = Debug|Win32
+		{EED9DAC6-8B98-4C33-969A-E8CEDE8E985E}.MinSizeRel|ARM.ActiveCfg = Debug|Win32
+		{EED9DAC6-8B98-4C33-969A-E8CEDE8E985E}.MinSizeRel|ARM.Build.0 = Debug|Win32
+		{EED9DAC6-8B98-4C33-969A-E8CEDE8E985E}.MinSizeRel|ARM64.ActiveCfg = Debug|Win32
+		{EED9DAC6-8B98-4C33-969A-E8CEDE8E985E}.MinSizeRel|ARM64.Build.0 = Debug|Win32
+		{EED9DAC6-8B98-4C33-969A-E8CEDE8E985E}.MinSizeRel|x64.ActiveCfg = Debug|x64
+		{EED9DAC6-8B98-4C33-969A-E8CEDE8E985E}.MinSizeRel|x64.Build.0 = Debug|x64
+		{EED9DAC6-8B98-4C33-969A-E8CEDE8E985E}.MinSizeRel|x86.ActiveCfg = Debug|Win32
+		{EED9DAC6-8B98-4C33-969A-E8CEDE8E985E}.MinSizeRel|x86.Build.0 = Debug|Win32
+		{EED9DAC6-8B98-4C33-969A-E8CEDE8E985E}.Release|ARM.ActiveCfg = Release|Win32
+		{EED9DAC6-8B98-4C33-969A-E8CEDE8E985E}.Release|ARM64.ActiveCfg = Release|Win32
+		{EED9DAC6-8B98-4C33-969A-E8CEDE8E985E}.Release|x64.ActiveCfg = Release|x64
+		{EED9DAC6-8B98-4C33-969A-E8CEDE8E985E}.Release|x64.Build.0 = Release|x64
+		{EED9DAC6-8B98-4C33-969A-E8CEDE8E985E}.Release|x86.ActiveCfg = Release|Win32
+		{EED9DAC6-8B98-4C33-969A-E8CEDE8E985E}.Release|x86.Build.0 = Release|Win32
+		{EED9DAC6-8B98-4C33-969A-E8CEDE8E985E}.RelWithDebInfo|ARM.ActiveCfg = Debug|Win32
+		{EED9DAC6-8B98-4C33-969A-E8CEDE8E985E}.RelWithDebInfo|ARM.Build.0 = Debug|Win32
+		{EED9DAC6-8B98-4C33-969A-E8CEDE8E985E}.RelWithDebInfo|ARM64.ActiveCfg = Debug|Win32
+		{EED9DAC6-8B98-4C33-969A-E8CEDE8E985E}.RelWithDebInfo|ARM64.Build.0 = Debug|Win32
+		{EED9DAC6-8B98-4C33-969A-E8CEDE8E985E}.RelWithDebInfo|x64.ActiveCfg = Release|x64
+		{EED9DAC6-8B98-4C33-969A-E8CEDE8E985E}.RelWithDebInfo|x64.Build.0 = Release|x64
+		{EED9DAC6-8B98-4C33-969A-E8CEDE8E985E}.RelWithDebInfo|x86.ActiveCfg = Release|Win32
+		{EED9DAC6-8B98-4C33-969A-E8CEDE8E985E}.RelWithDebInfo|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1645,6 +1674,7 @@ Global
 		{D88F9CE2-8DA2-44FB-AF7C-06466A180F31} = {492C9B22-9237-4996-9E33-CA14D3533616}
 		{128660AB-71BD-480B-AB39-D1AB3AE811B5} = {54A59EC4-862D-4DEF-AB6B-4D69792FD212}
 		{FD1A4291-5BCA-4C11-916C-90BFEA2A1881} = {54A59EC4-862D-4DEF-AB6B-4D69792FD212}
+		{EED9DAC6-8B98-4C33-969A-E8CEDE8E985E} = {492C9B22-9237-4996-9E33-CA14D3533616}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {3D5F862D-74C6-4357-9F95-0B152E33B7B8}

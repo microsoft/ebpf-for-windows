@@ -107,8 +107,15 @@ bind_hook_t(bind_md_t* context);
 //
 // CGROUP_SOCK_ADDR.
 //
+
+#define BPF_SOCK_ADDR_VERDICT_REJECT 0
+#define BPF_SOCK_ADDR_VERDICT_PROCEED 1
+
 #pragma warning(push)
 #pragma warning(disable : 4201)
+/**
+ *  @brief Data structure used as context for BPF_PROG_TYPE_CGROUP_SOCK_ADDR program type.
+ */
 typedef struct bpf_sock_addr
 {
     uint32_t family; ///< IP address family.
@@ -136,3 +143,23 @@ typedef struct bpf_sock_addr
     uint32_t compartment_id; ///< Network compartment Id.
 } bpf_sock_addr_t;
 #pragma warning(pop)
+
+/**
+ * @brief Handle socket operation. Currently supports ingress/egress connection initialization.
+ *
+ * Program type: \ref EBPF_PROGRAM_TYPE_BIND
+ *
+ * Attach type(s):
+ *  \ref EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT
+ *  \ref EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT
+ *  \ref EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT
+ *  \ref EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT
+ *
+ * @param[in] context \ref bpf_sock_addr_t
+ * @retval BPF_SOCK_ADDR_VERDICT_PROCEED Block the socket operation.
+ * @retval BPF_SOCK_ADDR_VERDICT_REJECT Allow the socket operation.
+ *
+ * Any other return value other than the two mentioned above is treated as BPF_SOCK_ADDR_VERDICT_REJECT.
+ */
+typedef int
+sock_addr_hook_t(bpf_sock_addr_t* context);

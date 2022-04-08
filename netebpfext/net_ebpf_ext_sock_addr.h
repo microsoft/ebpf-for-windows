@@ -51,7 +51,7 @@ DEFINE_GUID(
  *
  */
 void
-net_ebpf_ext_authorize_connection_classify(
+net_ebpf_extension_sock_addr_authorize_connection_classify(
     _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values,
     _In_ const FWPS_INCOMING_METADATA_VALUES* incoming_metadata_values,
     _Inout_opt_ void* layer_data,

@@ -60,6 +60,7 @@ EXPORTS
     bpf_object__unload
     bpf_object__unpin_maps
     bpf_object__unpin_programs
+    bpf_prog_attach
     bpf_prog_bind_map
     bpf_prog_get_fd_by_id
     bpf_prog_load_deprecated
