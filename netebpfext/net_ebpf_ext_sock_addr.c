@@ -415,7 +415,7 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
     if (net_ebpf_extension_hook_invoke_program(attached_client, &sock_addr_ctx, &result) != EBPF_SUCCESS)
         goto Exit;
 
-    classify_output->actionType = (result == VERDICT_PROCEED) ? FWP_ACTION_PERMIT : FWP_ACTION_BLOCK;
+    classify_output->actionType = (result == BPF_SOCK_ADDR_VERDICT_PROCEED) ? FWP_ACTION_PERMIT : FWP_ACTION_BLOCK;
     classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
 
 Exit:
