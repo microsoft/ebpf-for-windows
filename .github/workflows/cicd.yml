@@ -1,0 +1,74 @@
+# Copyright (c) Microsoft Corporation
+# SPDX-License-Identifier: MIT
+
+# This is the top-level workflow that runs on each pull request and push to main.
+# It invokes other jobs to perform builds and run tests.
+# All jobs run in parallel, using build artifacts to synchronize jobs.
+
+name: CI/CD
+
+# Run on push so we can capture the baseline code coverage for any squash commit.
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+permissions:
+  contents: read
+  checks: read  # reusable-test.yml
+
+jobs:
+  # Perform the regular build.
+  regular:
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      build_artifact: Build x64
+
+  # Build with C++ static analyzer
+  analyze:
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      build_artifact: Build x64 - Analyze
+      build_options: /p:Analysis='True'
+
+  # Run the unit tests in GitHub
+  unit_tests:
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      test_command: .\unit_tests.exe -s
+      build_job: regular / build
+      build_artifact: Build x64
+      test_environment: windows-2019
+      code_coverage: true
+      gather_dumps: true
+
+  # Run the API tests in GitHub
+  ebpf_client:
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      test_command: .\ebpf_client.exe -s
+      build_job: regular / build
+      build_artifact: Build x64
+      test_environment: windows-2019
+      code_coverage: true
+      gather_dumps: true
+
+  # Run the fuzzing tests in GitHub
+  fuzzing:
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      test_command: .\fuzz.exe -s
+      build_job: regular / build
+      build_artifact: Build x64
+      test_environment: windows-2019
+      code_coverage: true
+      gather_dumps: true
+
+  # Run the driver tests on self-hosted runners.
+  driver:
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      test_command: ./setup_ebpf_cicd_tests.ps1; ./execute_ebpf_cicd_tests.ps1; ./cleanup_ebpf_cicd_tests.ps1
+      build_job: regular / build
+      build_artifact: Build x64
+      test_environment: "[windows, ebpf_cicd_tests]"

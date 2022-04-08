@@ -10,7 +10,7 @@ name: Address Sanitizer Build
 
 permissions:
   contents: read
-  
+
 on: pull_request
 
 jobs:

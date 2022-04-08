@@ -1,0 +1,142 @@
+# Copyright (c) Microsoft Corporation
+# SPDX-License-Identifier: MIT
+
+# This workflow executes a single test, optionally gathering code coverage and logs.
+
+name: Reusable Test Workflow
+
+on:
+  workflow_call:
+    inputs:
+      # The test command to invoke.
+      test_command:
+        required: true
+        type: string
+      # The name of the build job to wait for.
+      build_job:
+        required: true
+        type: string
+      # The name of the build artifact to download.
+      build_artifact:
+        required: true
+        type: string
+      # The environment to run this test on.
+      test_environment:
+        required: true
+        type: string
+      # Set to true to gather code coverage when this test runs.
+      code_coverage:
+        required: false
+        type: boolean
+      #  Set to true to gather memory and upload dumps if a test process crashes.
+      gather_dumps:
+        required: false
+        type: boolean
+
+jobs:
+  run_test:
+    timeout-minutes: 30
+
+    permissions:
+      checks: read  # for fountainhead/action-wait-for-check to wait for another GitHub check to complete
+      contents: read  # for actions/checkout to fetch code
+    strategy:
+      matrix:
+        configurations: [Debug, Release]
+    runs-on: ${{inputs.test_environment}}
+    env:
+      # Configuration type to build.
+      BUILD_CONFIGURATION: ${{matrix.configurations}}
+      BUILD_PLATFORM: x64
+      TEST_COMMAND: ${{inputs.test_command}}
+
+    # Checking out the branch is needed to gather correct code coverage data.
+    steps:
+    - uses: actions/checkout@b0e28b5ac45a892f91e7d036f8200cf5ed489415
+      with:
+        ref: ${{ github.event.workflow_run.head_branch }}
+
+    - name: Set up OpenCppCoverage and add to PATH
+      id: set_up_opencppcoverage
+      if: inputs.code_coverage == true
+      run: |
+        choco install -y --requirechecksum=true --checksum=2295A733DA39412C61E4F478677519DD0BB1893D88313CE56B468C9E50517888 --checksum-type=sha256 OpenCppCoverage
+        echo "C:\Program Files\OpenCppCoverage" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+    - name: Set up ProcDump and add to PATH
+      id: set_up_procdump
+      if: inputs.gather_dumps == true
+      run: |
+        choco install -y procdump
+        echo "C:\Program Files\ProcDump" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        mkdir c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+        echo "test" > c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/test.txt
+        procdump64.exe -accepteula -i -r -ma c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+
+    - name: Wait for build to succeed
+      uses: fountainhead/action-wait-for-check@507b029e31edbe1a72d4de429476e1f4efe98869
+      id: wait_for_build
+      with:
+        timeoutSeconds: 1500
+        intervalSeconds: 30
+        token: ${{secrets.GITHUB_TOKEN}}
+        checkName: ${{inputs.build_job}} (${{env.BUILD_CONFIGURATION}})
+        ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+    - name: Download build artifact
+      if: success()
+      uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
+      id: download_artifact
+      with:
+        name: ${{inputs.build_artifact}} ${{matrix.configurations}}
+        path: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+
+    - name: Run test with Code Coverage
+      if: inputs.code_coverage == true
+      id: run_test_with_code_coverage
+      run: OpenCppCoverage.exe --sources $PWD --excluded_sources $PWD\external\Catch2 --export_type cobertura:ebpf_for_windows_${{env.BUILD_CONFIGURATION}}.xml --working_dir ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -- ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\${{env.TEST_COMMAND}}
+
+    - name: Run test without Code Coverage
+      if: inputs.code_coverage == false
+      id: run_test_without_code_coverage
+      working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+      run: ${{env.TEST_COMMAND}}
+
+    - name: Upload Report to Codecov
+      if: inputs.code_coverage == true
+      uses: codecov/codecov-action@f32b3a3741e1053eb607407145bc9619351dc93b
+      id: upload_code_coverage_report
+      with:
+        files: ebpf_for_windows_${{env.BUILD_CONFIGURATION}}.xml
+        fail_ci_if_error: true
+        functionalities: fix
+
+    - name: Check for crash dumps
+      if: inputs.gather_dumps == true
+      working-directory: c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+      id: check_for_crash_dumps
+      run: if (Test-Path *.dmp) { exit 1 }
+
+    - name: Upload any crash dumps
+      if: failure()
+      uses: actions/upload-artifact@6673cd052c4cd6fcf4b4e6e60ea986c889389535
+      id: upload_crash_dumps
+      with:
+        name: Crash-Dumps-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}
+        path: c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+        retention-days: 5
+
+    - name: Check for TestLogs
+      uses: andstor/file-existence-action@v1
+      id: check_logs
+      with:
+        files: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/TestLogs
+
+    - name: Upload log files
+      if: steps.check_logs.outputs.files_exists == 'true'
+      id: upload_logs
+      uses: actions/upload-artifact@6673cd052c4cd6fcf4b4e6e60ea986c889389535
+      with:
+        name: Test-Logs-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}
+        path: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/TestLogs
+        retention-days: 5
