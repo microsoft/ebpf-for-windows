@@ -13,7 +13,13 @@ The following must be installed in order to build this project:
 4. [WDK for Windows 10, version 2004](https://go.microsoft.com/fwlink/?linkid=2128854)
 5. [Clang for Windows 64-bit version 10.0.0](https://github.com/llvm/llvm-project/releases/download/llvmorg-10.0.0/LLVM-10.0.0-win64.exe) or [The latest release of Clang for Windows 64-bit](https://github.com/llvm/llvm-project/releases/latest)
 6. [nuget.exe](https://www.nuget.org/downloads)
-   
+
+Optional:
+These tools can be installed via the Chocolatey installer.
+```
+choco install -y visualstudio2019community cmake llvm git windowsdriverkit11 nuget.commandline
+```
+
 You should add the paths to `git.exe`, `cmake.exe` and `nuget.exe` to the Windows PATH environment variable after the software packages above have been installed.
 
 ## How to clone and build the project
