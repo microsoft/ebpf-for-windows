@@ -72,8 +72,9 @@ jobs:
         choco install -y procdump
         echo "C:\Program Files\ProcDump" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
         mkdir c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+        cd c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
         echo "test" > c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/test.txt
-        procdump64.exe -accepteula -i -r -ma c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+        procdump64.exe -accepteula -i -r -ma
 
     - name: Wait for build to succeed
       uses: fountainhead/action-wait-for-check@507b029e31edbe1a72d4de429476e1f4efe98869
