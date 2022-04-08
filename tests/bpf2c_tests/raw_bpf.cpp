@@ -4,18 +4,33 @@
 #define CATCH_CONFIG_MAIN
 
 #include "bpf_code_generator.h"
-#define NUGET_CATCH
 #include "catch_wrapper.hpp"
+#include "bpf_assembler.h"
 
-#define SEPERATOR "/"
-#define CC "g++"
-#define CXXFLAG "-g -O2"
-#define EXT ".out"
-#define PYTHON "python3"
+#define SEPARATOR "\\"
+
+std::string
+env_or_default(const char* environment_variable, const char* default_value)
+{
+    std::string return_value = default_value;
+    char* buffer = nullptr;
+    size_t buffer_size = 0;
+    if (_dupenv_s(&buffer, &buffer_size, environment_variable) == 0) {
+        if (buffer != nullptr) {
+            return_value = buffer;
+        }
+        free(buffer);
+    }
+
+    return return_value;
+}
 
 void
 run_test(const std::string& data_file)
 {
+    std::string cc = env_or_default("CC", "cl.exe");
+    std::string cxxflags = env_or_default("CXXFLAGS", "/EHsc /nologo");
+
     enum class _state
     {
         state_ignore,
@@ -24,11 +39,9 @@ run_test(const std::string& data_file)
         state_result,
         state_memory,
     } state = _state::state_ignore;
-    std::string prefix = data_file.substr(data_file.find_last_of(SEPERATOR) + 1);
+    std::string prefix = data_file.substr(data_file.find_last_of(SEPARATOR) + 1);
 
-    std::string temp_asm_name = std::string(prefix) + ".asm";
-
-    std::ofstream data_out(temp_asm_name);
+    std::stringstream data_out;
     std::ifstream data_in(data_file);
 
     std::string result;
@@ -84,31 +97,17 @@ run_test(const std::string& data_file)
             continue;
         }
     }
-    data_out.flush();
-    data_out.close();
 
     if (result.find("0x") != std::string::npos) {
         result = result.substr(result.find("0x") + 2);
     }
-
-    std::string assembler_command = std::string(PYTHON " .." SEPERATOR ".." SEPERATOR "external" SEPERATOR
-                                                       "ubpf" SEPERATOR "bin" SEPERATOR "ubpf-assembler <") +
-                                    std::string(temp_asm_name) + std::string(" >") + std::string(prefix) +
-                                    std::string(".bc");
-    REQUIRE(system(assembler_command.c_str()) == 0);
-
-    std::ifstream bytcode_in(std::string(prefix) + std::string(".bc"), std::ios_base::in | std::ios_base::binary);
-    std::vector<ebpf_inst> program;
-    ebpf_inst instruction;
-    while (bytcode_in.read(reinterpret_cast<char*>(&instruction), sizeof(instruction))) {
-        program.push_back(instruction);
-    }
-    bytcode_in.close();
+    data_out.seekg(0);
+    auto intstructions = bpf_assembler(data_out);
 
     std::ofstream c_file(std::string(prefix) + std::string(".c"));
     try {
 
-        bpf_code_generator code("test", program);
+        bpf_code_generator code("test", intstructions);
         code.generate("test");
         code.emit_c_code(c_file);
     } catch (std::runtime_error& err) {
@@ -117,12 +116,12 @@ run_test(const std::string& data_file)
     c_file.flush();
     c_file.close();
 
-    std::string compile_command = std::string(CC " " CXXFLAG " -I.." SEPERATOR ".." SEPERATOR "include ") +
-                                  std::string(prefix) + std::string(".c ") + std::string(" bpf_test.cpp >") +
-                                  std::string(prefix) + std::string(".log -o ") + std::string(prefix) +
-                                  std::string(EXT);
+    std::string compile_command = cc + std::string(" ") + cxxflags +
+                                  std::string(" -I.." SEPARATOR ".." SEPARATOR "include ") + std::string(prefix) +
+                                  std::string(".c ") + std::string(" bpf_test.cpp >") + std::string(prefix) +
+                                  std::string(".log");
     REQUIRE(system(compile_command.c_str()) == 0);
-    std::string test_command = std::string("." SEPERATOR) + std::string(prefix) + std::string(EXT) + std::string(" ") +
+    std::string test_command = std::string("." SEPARATOR) + std::string(prefix) + std::string(" ") +
                                std::string(result) + std::string(" \"") + std::string(mem) + std::string("\"");
     REQUIRE(system(test_command.c_str()) == 0);
 }
@@ -130,7 +129,7 @@ run_test(const std::string& data_file)
 #define DECLARE_TEST(FILE)                                                                                     \
     TEST_CASE(FILE, "[raw_bpf_code_gen]")                                                                      \
     {                                                                                                          \
-        run_test(".." SEPERATOR ".." SEPERATOR "external" SEPERATOR "ubpf" SEPERATOR "tests" SEPERATOR "" FILE \
+        run_test(".." SEPARATOR ".." SEPARATOR "external" SEPARATOR "ubpf" SEPARATOR "tests" SEPARATOR "" FILE \
                  ".data");                                                                                     \
     }
 

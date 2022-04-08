@@ -656,7 +656,6 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             for (const auto& [name, entry] : map_definitions) {
                 if (entry.index == current_index) {
                     output_stream << "{ NULL, { ";
-                    output_stream << entry.definition.size << ", ";
                     output_stream << entry.definition.type << ", ";
                     output_stream << entry.definition.key_size << ", ";
                     output_stream << entry.definition.value_size << ", ";

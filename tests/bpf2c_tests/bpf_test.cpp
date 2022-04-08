@@ -37,18 +37,8 @@ memfrob(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)
 };
 
 static uint64_t
-trash_registers(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)
+no_op(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)
 {
-    /* Overwrite all caller-save registers */
-    asm("mov $0xf0, %rax;"
-        "mov $0xf1, %rcx;"
-        "mov $0xf2, %rdx;"
-        "mov $0xf3, %rsi;"
-        "mov $0xf4, %rdi;"
-        "mov $0xf5, %r8;"
-        "mov $0xf6, %r9;"
-        "mov $0xf7, %r10;"
-        "mov $0xf8, %r11;");
     return 0;
 }
 
@@ -73,7 +63,7 @@ unwind(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)
 std::map<uint32_t, uint64_t (*)(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5)> helper_functions = {
     {0, gather_bytes},
     {1, memfrob},
-    {2, trash_registers},
+    {2, no_op},
     {3, sqrti},
     {4, strcmp_ext},
     {5, unwind},

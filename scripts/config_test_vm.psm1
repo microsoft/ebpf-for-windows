@@ -31,7 +31,7 @@ function Wait-AllVMsToInitialize
                 if ($HeartBeat -eq "OK") {
                     $ReadyList += @{$VMName = $True}
                 } else {
-                    break
+                    continue
                 }
                 Write-Log "Heartbeat OK on $VMName" -ForegroundColor Green
             }
@@ -62,7 +62,7 @@ function Wait-AllVMsToInitialize
                 if ($ret -eq $True) {
                     $ReadyList += @{$VMName = $True}
                 } else {
-                    break
+                    continue
                 }
                 Write-Log "VM $VMName is ready" -ForegroundColor Green
             }

@@ -2,11 +2,9 @@
 // SPDX-License-Identifier: MIT
 
 #include "bpf_helpers.h"
-#include "ebpf_nethooks.h"
 
-#pragma clang section data = "maps"
-ebpf_map_definition_in_file_t process_map = {
-    .size = sizeof(ebpf_map_definition_in_file_t), .type = BPF_MAP_TYPE_RINGBUF, .max_entries = 256 * 1024};
+SEC("maps")
+struct bpf_map_def process_map = {.type = BPF_MAP_TYPE_RINGBUF, .max_entries = 256 * 1024};
 
 SEC("bind")
 bind_action_t
