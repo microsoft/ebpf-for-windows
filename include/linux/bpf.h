@@ -14,7 +14,7 @@
 #include "ebpf_program_types.h"
 #include "ebpf_api.h"
 #define LIBBPF_API
-#include "libbpf_common.h"
+#include "../external/bpftool/libbpf/src/libbpf_common.h"
 #undef LIBBPF_DEPRECATED
 #define LIBBPF_DEPRECATED(x)
 #else
