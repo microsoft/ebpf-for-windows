@@ -4,8 +4,6 @@
 // This file is included by sample eBPF programs that need
 // definitions for Ethernet and IPv4/IPv6 headers.
 
-#include "ebpf_nethooks.h"
-
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4201) // nonstandard extension used : nameless struct/union

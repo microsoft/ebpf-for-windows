@@ -4,8 +4,6 @@
 // This file is included by sample eBPF programs that need
 // definitions for UDP headers.
 
-#include "ebpf_nethooks.h"
-
 typedef struct UDP_HEADER_
 {
     uint16_t srcPort;

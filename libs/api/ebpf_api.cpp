@@ -215,7 +215,6 @@ ebpf_map_create(
     *map_fd = ebpf_fd_invalid;
 
     try {
-        map_definition.size = sizeof(map_definition);
         map_definition.type = map_type;
         map_definition.key_size = key_size;
         map_definition.value_size = value_size;
@@ -1425,7 +1424,6 @@ initialize_map(_Out_ ebpf_map_t* map, _In_ const map_cache_t& map_cache)
     // Initialize handle to ebpf_handle_invalid.
     map->map_handle = ebpf_handle_invalid;
     map->original_fd = map_cache.verifier_map_descriptor.original_fd;
-    map->map_definition.size = sizeof(map->map_definition);
     map->map_definition.type = (ebpf_map_type_t)map_cache.verifier_map_descriptor.type;
     map->map_definition.key_size = map_cache.verifier_map_descriptor.key_size;
     map->map_definition.value_size = map_cache.verifier_map_descriptor.value_size;
@@ -1476,7 +1474,6 @@ _initialize_ebpf_maps_native(
             goto Exit;
         }
 
-        map->map_definition.size = sizeof(map->map_definition);
         map->map_definition.type = info.type;
         map->map_definition.key_size = info.key_size;
         map->map_definition.value_size = info.value_size;

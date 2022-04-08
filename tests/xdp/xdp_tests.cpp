@@ -7,7 +7,6 @@
 
 #define CATCH_CONFIG_RUNNER
 
-#define NUGET_CATCH
 #include "catch_wrapper.hpp"
 #include "xdp_tests.h"
 #include "xdp_tests_common.h"
@@ -276,7 +275,7 @@ main(int argc, char* argv[])
     Catch::Session session;
 
     // Use Catch's composite command line parser.
-    using namespace Catch::clara;
+    using namespace Catch::Clara;
     auto cli = session.cli() |
                Opt(_remote_ip, "remote IP address")["-rip"]["--remote-ip"]("remote host's IP address in string format");
 
