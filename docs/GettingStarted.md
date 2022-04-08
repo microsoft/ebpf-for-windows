@@ -15,7 +15,7 @@ The following must be installed in order to build this project:
 6. [nuget.exe](https://www.nuget.org/downloads)
 
 Optional:
-These tools can be installed via the Chocolatey installer.
+These tools can be installed via the [Chocolatey](https://chocolatey.org/install) installer.
 ```
 choco install -y visualstudio2019community cmake llvm git windowsdriverkit11 nuget.commandline
 ```
