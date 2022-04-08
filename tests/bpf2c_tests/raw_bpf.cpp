@@ -39,7 +39,7 @@ run_test(const std::string& data_file)
         state_result,
         state_memory,
     } state = _state::state_ignore;
-    std::string prefix = data_file.substr(0, data_file.find_first_of("."));
+    std::string prefix = data_file.substr(data_file.find_last_of(SEPARATOR) + 1);
 
     std::stringstream data_out;
     std::ifstream data_in(data_file);
@@ -120,19 +120,18 @@ run_test(const std::string& data_file)
                                   std::string(" -I.." SEPARATOR ".." SEPARATOR "include ") + std::string(prefix) +
                                   std::string(".c ") + std::string(" bpf_test.cpp >") + std::string(prefix) +
                                   std::string(".log");
-    auto compile_result = system(compile_command.c_str());
-    if (compile_result != 0) {
-        auto dump_log = std::string("type ") + std::string(prefix) + std::string(".log");
-        system(dump_log.c_str());
-        REQUIRE(compile_result == 0);
-    }
-    std::string test_command = std::string(prefix) + std::string(".exe ") + std::string(result) + std::string(" \"") +
-                               std::string(mem) + std::string("\"");
+    REQUIRE(system(compile_command.c_str()) == 0);
+    std::string test_command = std::string("." SEPARATOR) + std::string(prefix) + std::string(" ") +
+                               std::string(result) + std::string(" \"") + std::string(mem) + std::string("\"");
     REQUIRE(system(test_command.c_str()) == 0);
 }
 
-#define DECLARE_TEST(FILE) \
-    TEST_CASE(FILE, "[raw_bpf_code_gen]") { run_test(FILE ".data"); }
+#define DECLARE_TEST(FILE)                                                                                     \
+    TEST_CASE(FILE, "[raw_bpf_code_gen]")                                                                      \
+    {                                                                                                          \
+        run_test(".." SEPARATOR ".." SEPARATOR "external" SEPARATOR "ubpf" SEPARATOR "tests" SEPARATOR "" FILE \
+                 ".data");                                                                                     \
+    }
 
 // Tests are dependent on the collateral from the https://github.com/iovisor/ubpf project.
 // Most uBPF tests are declared as a block of assembly, an expected result and a block of memory

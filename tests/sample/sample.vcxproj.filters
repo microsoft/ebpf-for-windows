@@ -96,11 +96,5 @@
     <CustomBuild Include="map.c">
       <Filter>Source Files</Filter>
     </CustomBuild>
-    <CustomBuild Include="cgroup_sock_addr.c">
-      <Filter>Source Files</Filter>
-    </CustomBuild>
-    <CustomBuild Include="printk_legacy.c">
-      <Filter>Source Files</Filter>
-    </CustomBuild>
   </ItemGroup>
 </Project>
