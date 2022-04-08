@@ -33,7 +33,10 @@ on:
       gather_dumps:
         required: false
         type: boolean
-      prep_test:
+      pre_test:
+        required: false
+        type: string
+      post_test:
         required: false
         type: string
 
@@ -54,7 +57,8 @@ jobs:
       BUILD_CONFIGURATION: ${{matrix.configurations}}
       BUILD_PLATFORM: x64
       TEST_COMMAND: ${{inputs.test_command}}
-      PREP_COMMAND: ${{inputs.prep_test}}
+      PRE_COMMAND: ${{inputs.set_up_test}}
+      POST_COMMAND: ${{inputs.post_up_test}}
 
     # Checking out the branch is needed to gather correct code coverage data.
     steps:
@@ -103,8 +107,9 @@ jobs:
       id: run_test_with_code_coverage
       shell: cmd
       run: |
-        ${{env.PREP_COMMAND}}
+        ${{env.PRE_COMMAND}}
         OpenCppCoverage.exe --sources $PWD --excluded_sources $PWD\external\Catch2 --export_type cobertura:ebpf_for_windows_${{env.BUILD_CONFIGURATION}}.xml --working_dir ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -- ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\${{env.TEST_COMMAND}}
+        ${{env.POST_COMMAND}}
 
     - name: Run test without Code Coverage
       if: inputs.code_coverage == false
@@ -112,8 +117,9 @@ jobs:
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
       shell: cmd
       run: |
-        ${{env.PREP_COMMAND}}
+        ${{env.PRE_COMMAND}}
         ${{env.TEST_COMMAND}}
+        ${{env.POST_COMMAND}}
 
     - name: Upload Report to Codecov
       if: inputs.code_coverage == true

@@ -67,12 +67,13 @@ jobs:
       code_coverage: true
       gather_dumps: true
 
-  # Run the fuzzing tests in GitHub
+  # Run the bpf2c tests in GitHub
   bpf2c:
     uses: ./.github/workflows/reusable-test.yml
     with:
-      prep_test: call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat"
+      pre_test: call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat"
       test_command: .\bpf2c_tests.exe -s
+      post_test: mkdir ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\TestLogs && copy ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\* ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\TestLogs
       build_job: regular / build
       build_artifact: Build x64
       environment: windows-2019
