@@ -64,6 +64,17 @@ jobs:
       code_coverage: true
       gather_dumps: true
 
+  # Run the fuzzing tests in GitHub
+  bpf2c:
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      test_command: .\bpf2c_tests.exe -s
+      build_job: regular / build
+      build_artifact: Build x64
+      test_environment: windows-2019
+      code_coverage: true
+      gather_dumps: true
+
   # Run the driver tests on self-hosted runners.
   driver:
     uses: ./.github/workflows/reusable-test.yml
