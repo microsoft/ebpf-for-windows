@@ -23,7 +23,7 @@ on:
       # The environment to run this test on.
       environment:
         description: 'Environment to run tests against'
-        type: environment
+        type: string
         required: true
       # Set to true to gather code coverage when this test runs.
       code_coverage:
