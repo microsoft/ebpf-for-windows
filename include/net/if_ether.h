@@ -6,7 +6,6 @@ typedef uint8_t mac_address_t[6];
 
 #define ETHERNET_TYPE_IPV4 0x0800
 #define ETHERNET_TYPE_IPV6 0x86dd
-#define ETH_P_IP ETHERNET_TYPE_IPV4
 
 #if defined(_MSC_VER)
 #pragma warning(push)
@@ -26,6 +25,7 @@ typedef struct _ETHERNET_HEADER
 #pragma warning(pop)
 #endif
 
-// Linux mappings.
+// Linux mappings for cross-platform eBPF programs.
 #define h_proto Type
 #define ethhdr _ETHERNET_HEADER
+#define ETH_P_IP ETHERNET_TYPE_IPV4
