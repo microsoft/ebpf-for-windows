@@ -1793,17 +1793,6 @@ ebpf_map_create(
         goto Exit;
     }
 
-    if (local_map_definition.size != sizeof(local_map_definition)) {
-        EBPF_LOG_MESSAGE_UINT64_UINT64(
-            EBPF_TRACELOG_LEVEL_ERROR,
-            EBPF_TRACELOG_KEYWORD_MAP,
-            "Unsupported map definition size",
-            local_map_definition.size,
-            sizeof(local_map_definition));
-        result = EBPF_INVALID_ARGUMENT;
-        goto Exit;
-    }
-
     result = ebpf_map_function_tables[type].create_map(&local_map_definition, inner_map_handle, &local_map);
     if (result != EBPF_SUCCESS)
         goto Exit;
