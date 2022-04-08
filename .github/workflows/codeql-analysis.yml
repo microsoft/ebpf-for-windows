@@ -14,13 +14,6 @@ permissions:
 
 jobs:
   analyze:
-    name: Analyze
-    runs-on: windows-2019
-    env:
-      SOLUTION_FILE_PATH: ebpf-for-windows.sln
-      BUILD_CONFIGURATION: Release
-      BUILD_PLATFORM: x64
-
     permissions:
       actions: read
       contents: read
@@ -46,35 +39,10 @@ jobs:
         # Prefix the list here with "+" to use these queries and those in the config file.
         # queries: ./path/to/local/query, your-org/your-repo/queries@main
 
-    - name: Add MSBuild to PATH
-      uses: microsoft/setup-msbuild@becb80cf9a036187bb1e07e74eb64e25850d757a
-
-    - name: Install LLVM and Clang
-      working-directory: ${{env.GITHUB_WORKSPACE}}
-      run: |
-        curl -fsSL -o LLVM10.exe https://github.com/llvm/llvm-project/releases/download/llvmorg-10.0.0/LLVM-10.0.0-win64.exe
-        7z x LLVM10.exe -y -o"C:/Program Files/LLVM"
-        echo "C:\Program Files\LLVM\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-
-    - name: Restore NuGet packages
-      working-directory: ${{env.GITHUB_WORKSPACE}}
-      run: nuget restore ${{env.SOLUTION_FILE_PATH}}
-
-    - name: Create verifier project
-      working-directory: ${{env.GITHUB_WORKSPACE}}
-      run: |
-        cmake -G "Visual Studio 16 2019" -S external\ebpf-verifier -B external\ebpf-verifier\build
-
-    - name: Create catch2 project
-      working-directory: ${{env.GITHUB_WORKSPACE}}
-      run: |
-        cmake -G "Visual Studio 16 2019" -S external\catch2 -B external\catch2\build -DBUILD_TESTING=OFF
-
     - name: Build
-      working-directory: ${{env.GITHUB_WORKSPACE}}
-      # Add additional options to the MSBuild command line here (like platform or verbosity level).
-      # See https://docs.microsoft.com/visualstudio/msbuild/msbuild-command-line-reference
-      run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{env.BUILD_PLATFORM}} ${{env.SOLUTION_FILE_PATH}}
+      uses: ./.github/workflows/reusable-build.yml
+      with:
+        build_artifact: Build-x64-codeql
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@28eead240834b314f7def40f6fcba65d100d99b1
