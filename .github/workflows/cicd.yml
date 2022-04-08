@@ -15,7 +15,7 @@ on:
 
 permissions:
   contents: read
-  checks: read  # reusable-test.yml
+  checks: read  # Required by reusable-test.yml to check build status.
 
 jobs:
   # Perform the regular build.
@@ -24,21 +24,21 @@ jobs:
     with:
       build_artifact: Build-x64
 
-  # Build with C++ static analyzer
+  # Build with C++ static analyzer.
   analyze:
     uses: ./.github/workflows/reusable-build.yml
     with:
       build_artifact: Build-x64-Analyze
       build_options: /p:Analysis='True'
 
-  # Build with C++ address sanitizer
+  # Build with C++ address sanitizer.
   sanitize:
     uses: ./.github/workflows/reusable-build.yml
     with:
       build_artifact: Build-x64-Sanitize
       build_options: /p:Sanitizer='True'
 
-  # Run the unit tests in GitHub
+  # Run the unit tests in GitHub.
   unit_tests:
     uses: ./.github/workflows/reusable-test.yml
     with:
@@ -50,7 +50,7 @@ jobs:
       code_coverage: true
       gather_dumps: true
 
-  # Run the API tests in GitHub
+  # Run the API tests in GitHub.
   ebpf_client:
     uses: ./.github/workflows/reusable-test.yml
     with:
@@ -62,7 +62,7 @@ jobs:
       code_coverage: true
       gather_dumps: true
 
-  # Run the fuzzing tests in GitHub
+  # Run the fuzzing tests in GitHub.
   fuzzing:
     uses: ./.github/workflows/reusable-test.yml
     with:
@@ -74,7 +74,7 @@ jobs:
       code_coverage: true
       gather_dumps: true
 
-  # Run the bpf2c tests in GitHub
+  # Run the bpf2c tests in GitHub.
   bpf2c:
     uses: ./.github/workflows/reusable-test.yml
     with:
@@ -97,7 +97,7 @@ jobs:
       build_artifact: Build-x64
       environment: ebpf_cicd_tests
 
-  # Run the unit tests in GitHub with address sanitizer
+  # Run the unit tests in GitHub with address sanitizer.
   sanitize_unit_tests:
     uses: ./.github/workflows/reusable-test.yml
     with:

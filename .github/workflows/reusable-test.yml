@@ -25,14 +25,14 @@ on:
         type: string
       # The environment to run this test on.
       environment:
-        description: 'Environment to run tests against'
+        description: 'Environment to run tests on'
         type: string
         required: true
       # Set to true to gather code coverage when this test runs.
       code_coverage:
         required: false
         type: boolean
-      #  Set to true to gather memory and upload dumps if a test process crashes.
+      # Set to true to gather and upload memory dumps if a test process crashes.
       gather_dumps:
         required: false
         type: boolean
@@ -44,8 +44,8 @@ on:
         type: string
 
 permissions:
-  checks: read  # for fountainhead/action-wait-for-check to wait for another GitHub check to complete
-  contents: read  # for actions/checkout to fetch code
+  checks: read  # Required by fountainhead/action-wait-for-check to wait for another GitHub check to complete.
+  contents: read  # Required by actions/checkout to fetch code.
 
 jobs:
   run_test:
