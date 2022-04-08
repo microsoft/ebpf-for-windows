@@ -71,6 +71,7 @@ jobs:
   bpf2c:
     uses: ./.github/workflows/reusable-test.yml
     with:
+      prep_test: "call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat"
       test_command: .\bpf2c_tests.exe -s
       build_job: regular / build
       build_artifact: Build x64
