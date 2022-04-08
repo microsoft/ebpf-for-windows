@@ -91,11 +91,14 @@ jobs:
   driver:
     uses: ./.github/workflows/reusable-test.yml
     with:
-      test_command: powershell ".\setup_ebpf_cicd_tests.ps1; .\execute_ebpf_cicd_tests.ps1; .\cleanup_ebpf_cicd_tests.ps1"
+      pre_test: powershell ".\setup_ebpf_cicd_tests.ps1;"
+      test_command: powershell ".\execute_ebpf_cicd_tests.ps1"
+      post_test: powershell ".\cleanup_ebpf_cicd_tests.ps1"
       name: driver
       build_job: regular / build
       build_artifact: Build-x64
       environment: ebpf_cicd_tests
+      gather_dumps: true
 
   # Run the unit tests in GitHub with address sanitizer.
   sanitize_unit_tests:
