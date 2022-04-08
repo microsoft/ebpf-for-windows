@@ -1,5 +1,4 @@
 var searchData=
 [
-  ['max_5ftail_5fcall_5fcnt_1021',['MAX_TAIL_CALL_CNT',['../bpf__helpers_8h.html#a4f6cc1f7a616eb436d2557c23229f3b9',1,'bpf_helpers.h']]],
-  ['midl_1022',['MIDL',['../ebpf__program__types_8h.html#ac4c5b84afac4c8a0a6c0564c2ff50842',1,'ebpf_program_types.h']]]
+  ['offset_1027',['OFFSET',['../bpf2c_8h.html#ac8bd2a1944f0a8ee4c3c876688b77508',1,'bpf2c.h']]]
 ];
