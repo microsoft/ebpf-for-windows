@@ -85,4 +85,4 @@ jobs:
       test_command: ./setup_ebpf_cicd_tests.ps1; ./execute_ebpf_cicd_tests.ps1; ./cleanup_ebpf_cicd_tests.ps1
       build_job: regular / build
       build_artifact: Build x64
-      test_environment: "[windows, ebpf_cicd_tests]"
+      test_environment: windows, ebpf_cicd_tests
