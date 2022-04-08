@@ -105,9 +105,6 @@ Functions</h2></td></tr>
 <tr class="memitem:ab660ef9c16c8546333ded0a44141f31c"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#ab660ef9c16c8546333ded0a44141f31c">ebpf_create_map_name</a> (<a class="el" href="ebpf__structs_8h.html#a4834bac82ca5ec846765b1a43f086a11">ebpf_map_type_t</a> type, _In_opt_z_ const char *name, uint32_t key_size, uint32_t value_size, uint32_t max_entries, uint32_t map_flags, <a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> *map_fd)</td></tr>
 <tr class="memdesc:ab660ef9c16c8546333ded0a44141f31c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create an eBPF map with input parameters.  <a href="ebpf__api_8h.html#ab660ef9c16c8546333ded0a44141f31c">More...</a><br /></td></tr>
 <tr class="separator:ab660ef9c16c8546333ded0a44141f31c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a8a64245708e8b9a15bfa8c3aabdb275a"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a8a64245708e8b9a15bfa8c3aabdb275a">ebpf_get_next_map</a> (<a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> previous_fd, <a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> *next_fd)</td></tr>
-<tr class="memdesc:a8a64245708e8b9a15bfa8c3aabdb275a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get file descriptor to the next eBPF map.  <a href="ebpf__api_8h.html#a8a64245708e8b9a15bfa8c3aabdb275a">More...</a><br /></td></tr>
-<tr class="separator:a8a64245708e8b9a15bfa8c3aabdb275a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac51d3d3fb9bf564c248c675cab6282e1"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#ac51d3d3fb9bf564c248c675cab6282e1">ebpf_get_next_program</a> (<a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> previous_fd, <a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> *next_fd)</td></tr>
 <tr class="memdesc:ac51d3d3fb9bf564c248c675cab6282e1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get file descriptor to the next eBPF program.  <a href="ebpf__api_8h.html#ac51d3d3fb9bf564c248c675cab6282e1">More...</a><br /></td></tr>
 <tr class="separator:ac51d3d3fb9bf564c248c675cab6282e1"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -969,49 +966,6 @@ Variables</h2></td></tr>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>Name of the attach type, or NULL if not found. </dd></dl>
-
-</div>
-</div>
-<a id="a8a64245708e8b9a15bfa8c3aabdb275a"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a8a64245708e8b9a15bfa8c3aabdb275a">&#9670;&nbsp;</a></span>ebpf_get_next_map()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname"><a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a> ebpf_get_next_map </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a>&#160;</td>
-          <td class="paramname"><em>previous_fd</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype"><a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> *&#160;</td>
-          <td class="paramname"><em>next_fd</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Get file descriptor to the next eBPF map. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">previous_fd</td><td>FD to previous eBPF map or ebpf_fd_invalid to start enumeration. </td></tr>
-    <tr><td class="paramdir">[out]</td><td class="paramname">next_fd</td><td>FD to the next eBPF map or ebpf_fd_invalid if this is the last map. </td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="retval"><dt>Return values</dt><dd>
-  <table class="retval">
-    <tr><td class="paramname">EBPF_SUCCESS</td><td>The operation was successful. </td></tr>
-  </table>
-  </dd>
-</dl>
 
 </div>
 </div>
