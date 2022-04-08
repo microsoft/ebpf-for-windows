@@ -6,13 +6,25 @@
 //! This file should be thought of as platform/bpf.h not Linux-specific per se.
 //! It is needed under this path though since the Libbpf bpf.h includes it as such.
 
+#include <stdint.h>
+#include "ebpf_structs.h"
+
+#ifdef _MSC_VER
+// This file is being included by a user-mode Windows application.
 #include "ebpf_program_types.h"
 #include "ebpf_api.h"
-#include "ebpf_structs.h"
 #define LIBBPF_API
 #include "libbpf_common.h"
 #undef LIBBPF_DEPRECATED
 #define LIBBPF_DEPRECATED(x)
+#else
+// This file is being included by an eBPF program.
+typedef int32_t s32;
+typedef uint8_t u8;
+typedef uint32_t u32;
+typedef uint64_t u64;
+#endif
+
 #define __SIZEOF_SIZE_T__ 8    /* only x64 is supported */
 #define __SIZEOF_LONG_LONG__ 8 /* only x64 is supported */
 

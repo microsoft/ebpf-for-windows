@@ -54,7 +54,6 @@ typedef uint32_t ebpf_id_t;
  */
 typedef struct _ebpf_map_definition_in_memory
 {
-    uint32_t size;        ///< Size in bytes of the ebpf_map_definition_t structure.
     ebpf_map_type_t type; ///< Type of map.
     uint32_t key_size;    ///< Size in bytes of a map key.
     uint32_t value_size;  ///< Size in bytes of a map value.
@@ -68,7 +67,6 @@ typedef struct _ebpf_map_definition_in_memory
  */
 typedef struct _ebpf_map_definition_in_file
 {
-    uint32_t size;        ///< Size in bytes of the ebpf_map_definition_t structure.
     ebpf_map_type_t type; ///< Type of map.
     uint32_t key_size;    ///< Size in bytes of a map key.
     uint32_t value_size;  ///< Size in bytes of a map value.
@@ -117,6 +115,7 @@ enum bpf_prog_type
     BPF_PROG_TYPE_UNSPEC,
     BPF_PROG_TYPE_XDP,
     BPF_PROG_TYPE_BIND, // TODO(#333): replace with cross-platform program type
+    BPF_PROG_TYPE_CGROUP_SOCK_ADDR,
     BPF_PROG_TYPE_SAMPLE = 999
 };
 
@@ -137,6 +136,10 @@ enum bpf_attach_type
 {
     BPF_ATTACH_TYPE_UNSPEC,
     BPF_ATTACH_TYPE_XDP,
+    BPF_CGROUP_INET4_CONNECT,
+    BPF_CGROUP_INET6_CONNECT,
+    BPF_CGROUP_INET4_RECV_ACCEPT,
+    BPF_CGROUP_INET6_RECV_ACCEPT,
     __MAX_BPF_ATTACH_TYPE,
 };
 
@@ -200,4 +203,3 @@ struct bpf_prog_info
     uint32_t pinned_path_count;          ///< Number of pinned paths.
     uint32_t link_count;                 ///< Number of attached links.
 };
-
