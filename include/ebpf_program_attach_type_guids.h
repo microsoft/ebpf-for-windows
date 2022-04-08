@@ -33,8 +33,9 @@ extern "C"
 
     /** @brief The programs attached to the INETx_CONNECT hook will be invoked for
      * connect() calls on TCP or UDP sockets or when a UDP socket calls sendto() to
-     * a unique remote address/port tuple. May be scoped to a network compartment. The programs return 1 to permit a
-     * connection, and 0 to block it.
+     * a unique remote address/port tuple.
+     *
+     * Program type: \ref EBPF_PROGRAM_TYPE_BIND
      */
     __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT = {
         0xa82e37b1, 0xaee7, 0x11ec, {0x9a, 0x30, 0x18, 0x60, 0x24, 0x89, 0xbe, 0xee}};
@@ -44,8 +45,10 @@ extern "C"
 
     /** @brief The programs attached to the INETx_RECV_ACCEPT hook will get invoked for
      *  TCP accept() calls or for the first unicast UDP packet from a unique remote
-     *  address/port tuple. May be scoped to a network compartment. The programs return 1 to permit a connection, and
-     *  0 to block it.
+     *  address/port tuple.
+     *
+     * Program type: \ref EBPF_PROGRAM_TYPE_BIND
+     *
      */
     __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT = {
         0xa82e37b3, 0xaee7, 0x11ec, {0x9a, 0x30, 0x18, 0x60, 0x24, 0x89, 0xbe, 0xee}};
@@ -87,6 +90,8 @@ extern "C"
         0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
 
     /** @brief Program type for handling various socket operations such as connect(), accept() etc.
+     *
+     * eBPF program prototype: \ref sock_addr_hook_t
      *
      * Attach type(s):
      *  \ref EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT

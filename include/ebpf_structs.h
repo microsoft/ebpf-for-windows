@@ -115,6 +115,7 @@ enum bpf_prog_type
     BPF_PROG_TYPE_UNSPEC,
     BPF_PROG_TYPE_XDP,
     BPF_PROG_TYPE_BIND, // TODO(#333): replace with cross-platform program type
+    BPF_PROG_TYPE_CGROUP_SOCK_ADDR,
     BPF_PROG_TYPE_SAMPLE = 999
 };
 
@@ -135,6 +136,10 @@ enum bpf_attach_type
 {
     BPF_ATTACH_TYPE_UNSPEC,
     BPF_ATTACH_TYPE_XDP,
+    BPF_CGROUP_INET4_CONNECT,
+    BPF_CGROUP_INET6_CONNECT,
+    BPF_CGROUP_INET4_RECV_ACCEPT,
+    BPF_CGROUP_INET6_RECV_ACCEPT,
     __MAX_BPF_ATTACH_TYPE,
 };
 

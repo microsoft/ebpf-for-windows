@@ -111,7 +111,7 @@ static net_ebpf_ext_wfp_callout_state_t _net_ebpf_ext_wfp_callout_state[] = {
     {
         &EBPF_HOOK_ALE_AUTH_CONNECT_V4_CALLOUT,
         &FWPM_LAYER_ALE_AUTH_CONNECT_V4,
-        net_ebpf_ext_authorize_connection_classify,
+        net_ebpf_extension_sock_addr_authorize_connection_classify,
         _net_ebpf_ext_filter_change_notify,
         _net_ebpf_ext_flow_delete,
         L"ALE Authorize Connect eBPF Callout v4",
@@ -121,7 +121,7 @@ static net_ebpf_ext_wfp_callout_state_t _net_ebpf_ext_wfp_callout_state[] = {
     {
         &EBPF_HOOK_ALE_AUTH_CONNECT_V6_CALLOUT,
         &FWPM_LAYER_ALE_AUTH_CONNECT_V6,
-        net_ebpf_ext_authorize_connection_classify,
+        net_ebpf_extension_sock_addr_authorize_connection_classify,
         _net_ebpf_ext_filter_change_notify,
         _net_ebpf_ext_flow_delete,
         L"ALE Authorize Connect eBPF Callout v6",
@@ -131,7 +131,7 @@ static net_ebpf_ext_wfp_callout_state_t _net_ebpf_ext_wfp_callout_state[] = {
     {
         &EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V4_CALLOUT,
         &FWPM_LAYER_ALE_AUTH_RECV_ACCEPT_V4,
-        net_ebpf_ext_authorize_connection_classify,
+        net_ebpf_extension_sock_addr_authorize_connection_classify,
         _net_ebpf_ext_filter_change_notify,
         _net_ebpf_ext_flow_delete,
         L"ALE Authorize Receive or Accept eBPF Callout v4",
@@ -141,7 +141,7 @@ static net_ebpf_ext_wfp_callout_state_t _net_ebpf_ext_wfp_callout_state[] = {
     {
         &EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V6_CALLOUT,
         &FWPM_LAYER_ALE_AUTH_RECV_ACCEPT_V6,
-        net_ebpf_ext_authorize_connection_classify,
+        net_ebpf_extension_sock_addr_authorize_connection_classify,
         _net_ebpf_ext_filter_change_notify,
         _net_ebpf_ext_flow_delete,
         L"ALE Authorize Receive or Accept eBPF Callout v6",
