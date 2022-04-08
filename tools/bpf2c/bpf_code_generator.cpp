@@ -692,6 +692,10 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
     for (auto& [name, section] : sections) {
         auto program_name = !section.program_name.empty() ? section.program_name : name;
 
+        if (section.output.size() == 0) {
+            continue;
+        }
+
         // Emit section specific helper function array.
         if (section.helper_functions.size() > 0) {
             std::string helper_array_name = program_name + "_helpers";

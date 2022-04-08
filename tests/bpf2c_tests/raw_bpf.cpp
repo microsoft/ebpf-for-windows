@@ -126,12 +126,8 @@ run_test(const std::string& data_file)
     REQUIRE(system(test_command.c_str()) == 0);
 }
 
-#define DECLARE_TEST(FILE)                                                                                     \
-    TEST_CASE(FILE, "[raw_bpf_code_gen]")                                                                      \
-    {                                                                                                          \
-        run_test(".." SEPARATOR ".." SEPARATOR "external" SEPARATOR "ubpf" SEPARATOR "tests" SEPARATOR "" FILE \
-                 ".data");                                                                                     \
-    }
+#define DECLARE_TEST(FILE) \
+    TEST_CASE(FILE, "[raw_bpf_code_gen]") { run_test(FILE ".data"); }
 
 // Tests are dependent on the collateral from the https://github.com/iovisor/ubpf project.
 // Most uBPF tests are declared as a block of assembly, an expected result and a block of memory
