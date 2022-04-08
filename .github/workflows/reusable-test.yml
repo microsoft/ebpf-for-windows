@@ -33,6 +33,9 @@ on:
       gather_dumps:
         required: false
         type: boolean
+      prep_test:
+        required: false
+        type: string
 
 permissions:
   checks: read  # for fountainhead/action-wait-for-check to wait for another GitHub check to complete
@@ -97,13 +100,17 @@ jobs:
     - name: Run test with Code Coverage
       if: inputs.code_coverage == true
       id: run_test_with_code_coverage
-      run: OpenCppCoverage.exe --sources $PWD --excluded_sources $PWD\external\Catch2 --export_type cobertura:ebpf_for_windows_${{env.BUILD_CONFIGURATION}}.xml --working_dir ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -- ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\${{env.TEST_COMMAND}}
+      run: |
+        ${{env.INPUT_PREP_TEST}}
+        OpenCppCoverage.exe --sources $PWD --excluded_sources $PWD\external\Catch2 --export_type cobertura:ebpf_for_windows_${{env.BUILD_CONFIGURATION}}.xml --working_dir ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -- ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\${{env.TEST_COMMAND}}
 
     - name: Run test without Code Coverage
       if: inputs.code_coverage == false
       id: run_test_without_code_coverage
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
-      run: ${{env.TEST_COMMAND}}
+      run: |
+        ${{env.INPUT_PREP_TEST}}
+        ${{env.TEST_COMMAND}}
 
     - name: Upload Report to Codecov
       if: inputs.code_coverage == true
