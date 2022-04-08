@@ -10,12 +10,8 @@
 #include "ebpf.h"
 
 SEC("maps")
-ebpf_map_definition_in_file_t test_map = {
-    .size = sizeof(ebpf_map_definition_in_file_t),
-    .type = BPF_MAP_TYPE_ARRAY,
-    .key_size = sizeof(uint32_t),
-    .value_size = sizeof(uint32_t),
-    .max_entries = 1};
+struct bpf_map_def test_map = {
+    .type = BPF_MAP_TYPE_ARRAY, .key_size = sizeof(uint32_t), .value_size = sizeof(uint32_t), .max_entries = 1};
 
 SEC("xdp")
 uint32_t

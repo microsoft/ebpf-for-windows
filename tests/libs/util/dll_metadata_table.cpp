@@ -131,7 +131,6 @@ dll_metadata_table::bind_metadata_table()
         const ebpf_utf8_string_t map_name{
             reinterpret_cast<uint8_t*>(const_cast<char*>(maps[i].name)), strlen(maps[i].name)};
         ebpf_map_definition_in_memory_t mem_map_definition{
-            sizeof(mem_map_definition),
             static_cast<ebpf_map_type_t>(maps[i].definition.type),
             maps[i].definition.key_size,
             maps[i].definition.value_size,

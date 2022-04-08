@@ -96,8 +96,7 @@ _test_crud_operations(ebpf_map_type_t map_type)
         dpc = {emulate_dpc_t(1)};
     }
 
-    ebpf_map_definition_in_memory_t map_definition{
-        sizeof(ebpf_map_definition_in_memory_t), map_type, sizeof(uint32_t), sizeof(uint64_t), 10};
+    ebpf_map_definition_in_memory_t map_definition{map_type, sizeof(uint32_t), sizeof(uint64_t), 10};
     map_ptr map;
     {
         ebpf_map_t* local_map;
@@ -244,8 +243,7 @@ TEST_CASE("map_crud_operations_lpm_trie_32", "[execution_context]")
         uint32_t prefix_length;
         uint8_t value[4];
     } lpm_trie_key_t;
-    ebpf_map_definition_in_memory_t map_definition{
-        sizeof(ebpf_map_definition_in_memory_t), BPF_MAP_TYPE_LPM_TRIE, sizeof(lpm_trie_key_t), max_string, 10};
+    ebpf_map_definition_in_memory_t map_definition{BPF_MAP_TYPE_LPM_TRIE, sizeof(lpm_trie_key_t), max_string, 10};
     map_ptr map;
     {
         ebpf_map_t* local_map;
@@ -329,8 +327,7 @@ TEST_CASE("map_crud_operations_lpm_trie_128", "[execution_context]")
         uint8_t value[16];
     } lpm_trie_key_t;
 
-    ebpf_map_definition_in_memory_t map_definition{
-        sizeof(ebpf_map_definition_in_memory_t), BPF_MAP_TYPE_LPM_TRIE, sizeof(lpm_trie_key_t), max_string, 10};
+    ebpf_map_definition_in_memory_t map_definition{BPF_MAP_TYPE_LPM_TRIE, sizeof(lpm_trie_key_t), max_string, 10};
     map_ptr map;
     {
         ebpf_map_t* local_map;
@@ -425,8 +422,7 @@ TEST_CASE("map_crud_operations_lpm_trie_128", "[execution_context]")
 TEST_CASE("map_crud_operations_queue", "[execution_context]")
 {
     _ebpf_core_initializer core;
-    ebpf_map_definition_in_memory_t map_definition{
-        sizeof(ebpf_map_definition_in_memory_t), BPF_MAP_TYPE_QUEUE, 0, sizeof(uint32_t), 10};
+    ebpf_map_definition_in_memory_t map_definition{BPF_MAP_TYPE_QUEUE, 0, sizeof(uint32_t), 10};
     map_ptr map;
     {
         ebpf_map_t* local_map;
@@ -477,8 +473,7 @@ TEST_CASE("map_crud_operations_queue", "[execution_context]")
 TEST_CASE("map_crud_operations_stack", "[execution_context]")
 {
     _ebpf_core_initializer core;
-    ebpf_map_definition_in_memory_t map_definition{
-        sizeof(ebpf_map_definition_in_memory_t), BPF_MAP_TYPE_STACK, 0, sizeof(uint32_t), 10};
+    ebpf_map_definition_in_memory_t map_definition{BPF_MAP_TYPE_STACK, 0, sizeof(uint32_t), 10};
     map_ptr map;
     {
         ebpf_map_t* local_map;
@@ -545,8 +540,7 @@ TEST_CASE("program", "[execution_context]")
         program.reset(local_program);
     }
 
-    ebpf_map_definition_in_memory_t map_definition{
-        sizeof(ebpf_map_definition_in_memory_t), BPF_MAP_TYPE_HASH, sizeof(uint32_t), sizeof(uint64_t), 10};
+    ebpf_map_definition_in_memory_t map_definition{BPF_MAP_TYPE_HASH, sizeof(uint32_t), sizeof(uint64_t), 10};
     map_ptr map;
     {
         ebpf_map_t* local_map;
@@ -637,8 +631,7 @@ TEST_CASE("name size", "[execution_context]")
 
     REQUIRE(ebpf_program_initialize(program.get(), &program_parameters) == EBPF_INVALID_ARGUMENT);
 
-    ebpf_map_definition_in_memory_t map_definition{
-        sizeof(ebpf_map_definition_in_memory_t), BPF_MAP_TYPE_HASH, sizeof(uint32_t), sizeof(uint64_t), 10};
+    ebpf_map_definition_in_memory_t map_definition{BPF_MAP_TYPE_HASH, sizeof(uint32_t), sizeof(uint64_t), 10};
     ebpf_map_t* local_map;
     REQUIRE(
         ebpf_map_create(&oversize_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) ==
@@ -670,8 +663,7 @@ TEST_CASE("test-csum-diff", "[execution_context]")
 TEST_CASE("ring_buffer_async_query", "[execution_context]")
 {
     _ebpf_core_initializer core;
-    ebpf_map_definition_in_memory_t map_definition{
-        sizeof(ebpf_map_definition_in_memory_t), BPF_MAP_TYPE_RINGBUF, 0, 0, 64 * 1024};
+    ebpf_map_definition_in_memory_t map_definition{BPF_MAP_TYPE_RINGBUF, 0, 0, 64 * 1024};
     map_ptr map;
     {
         ebpf_map_t* local_map;

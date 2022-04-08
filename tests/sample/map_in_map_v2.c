@@ -6,7 +6,7 @@
 #define INNER_MAP_ID 10
 
 SEC("maps")
-struct _ebpf_map_definition_in_file outer_map = {
+struct bpf_map_def outer_map = {
     .type = BPF_MAP_TYPE_ARRAY_OF_MAPS,
     .key_size = sizeof(uint32_t),
     .value_size = sizeof(uint32_t),
@@ -15,7 +15,7 @@ struct _ebpf_map_definition_in_file outer_map = {
     .inner_id = INNER_MAP_ID}; // (uint32_t)&inner_map
 
 SEC("maps")
-struct _ebpf_map_definition_in_file inner_map = {
+struct bpf_map_def inner_map = {
     .type = BPF_MAP_TYPE_HASH,
     .key_size = sizeof(uint32_t),
     .value_size = sizeof(uint32_t),

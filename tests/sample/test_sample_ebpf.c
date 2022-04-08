@@ -11,12 +11,8 @@
 #define VALUE_SIZE 32
 
 SEC("maps")
-ebpf_map_definition_in_file_t test_map = {
-    .size = sizeof(ebpf_map_definition_in_file_t),
-    .type = BPF_MAP_TYPE_ARRAY,
-    .key_size = sizeof(uint32_t),
-    .value_size = VALUE_SIZE,
-    .max_entries = 2};
+struct bpf_map test_map = {
+    .type = BPF_MAP_TYPE_ARRAY, .key_size = sizeof(uint32_t), .value_size = VALUE_SIZE, .max_entries = 2};
 
 SEC("sample_ext")
 int
@@ -57,7 +53,6 @@ Exit:
 
 SEC("maps")
 struct bpf_map utility_map = {
-    .size = sizeof(struct bpf_map),
     .type = BPF_MAP_TYPE_ARRAY,
     .key_size = sizeof(uint32_t),
     .value_size = sizeof(ebpf_utility_helpers_data_t),

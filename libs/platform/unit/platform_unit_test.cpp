@@ -532,7 +532,6 @@ TEST_CASE("serialize_map_test", "[platform]")
 
     for (int i = 0; i < map_count; i++) {
         ebpf_map_info_internal_t* map_info = &internal_map_info_array[i];
-        map_info->definition.size = (i + 1) * 32;
         map_info->definition.type = static_cast<ebpf_map_type_t>(i % (BPF_MAP_TYPE_ARRAY + 1));
         map_info->definition.key_size = i + 1;
         map_info->definition.value_size = (i + 1) * (i + 1);
