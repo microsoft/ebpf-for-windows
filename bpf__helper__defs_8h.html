@@ -121,6 +121,9 @@ Functions</h2></td></tr>
 <tr class="memitem:a33414688f945bad0bd0a834b49d1c04e"><td class="memItemLeft" align="right" valign="top">long&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#a33414688f945bad0bd0a834b49d1c04e">bpf_trace_printk5</a> (const char *fmt, uint32_t fmt_size, uint64_t arg3, uint64_t arg4, uint64_t arg5)</td></tr>
 <tr class="memdesc:a33414688f945bad0bd0a834b49d1c04e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Print debug output.  <a href="bpf__helper__defs_8h.html#a33414688f945bad0bd0a834b49d1c04e">More...</a><br /></td></tr>
 <tr class="separator:a33414688f945bad0bd0a834b49d1c04e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a992316ef9a6e6bcf762ca033a4e01f1a"><td class="memItemLeft" align="right" valign="top">long&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#a992316ef9a6e6bcf762ca033a4e01f1a">bpf_trace_printk</a> (const char *fmt, uint32_t size,...)</td></tr>
+<tr class="memdesc:a992316ef9a6e6bcf762ca033a4e01f1a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Print debug output. For instructions on viewing the output, see the <a href="https://github.com/microsoft/ebpf-for-windows/blob/main/docs/GettingStarted.md#using-tracing">Using tracing</a> section of the Getting Started Guide for eBPF for Windows.  <a href="bpf__helper__defs_8h.html#a992316ef9a6e6bcf762ca033a4e01f1a">More...</a><br /></td></tr>
+<tr class="separator:a992316ef9a6e6bcf762ca033a4e01f1a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aae337e68db96b4b9470f8c519386cbec"><td class="memItemLeft" align="right" valign="top">long&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#aae337e68db96b4b9470f8c519386cbec">bpf_printk</a> (const char *fmt,...)</td></tr>
 <tr class="memdesc:aae337e68db96b4b9470f8c519386cbec"><td class="mdescLeft">&#160;</td><td class="mdescRight">Print debug output. For instructions on viewing the output, see the <a href="https://github.com/microsoft/ebpf-for-windows/blob/main/docs/GettingStarted.md#using-tracing">Using tracing</a> section of the Getting Started Guide for eBPF for Windows.  <a href="bpf__helper__defs_8h.html#aae337e68db96b4b9470f8c519386cbec">More...</a><br /></td></tr>
 <tr class="separator:aae337e68db96b4b9470f8c519386cbec"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -730,6 +733,51 @@ Functions</h2></td></tr>
   </table>
   </dd>
 </dl>
+
+</div>
+</div>
+<a id="a992316ef9a6e6bcf762ca033a4e01f1a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a992316ef9a6e6bcf762ca033a4e01f1a">&#9670;&nbsp;</a></span>bpf_trace_printk()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">long bpf_trace_printk </td>
+          <td>(</td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>fmt</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint32_t&#160;</td>
+          <td class="paramname"><em>size</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname"><em>...</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Print debug output. For instructions on viewing the output, see the <a href="https://github.com/microsoft/ebpf-for-windows/blob/main/docs/GettingStarted.md#using-tracing">Using tracing</a> section of the Getting Started Guide for eBPF for Windows. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">fmt</td><td>Printf-style format string. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">size</td><td>Size in bytes of the format string. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">...</td><td>Numeric arguments to be used by the format string.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The number of bytes written, or a negative error in case of failure. </dd></dl>
 
 </div>
 </div>
