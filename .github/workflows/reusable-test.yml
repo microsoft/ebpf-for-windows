@@ -68,7 +68,7 @@ jobs:
     steps:
     - uses: actions/checkout@b0e28b5ac45a892f91e7d036f8200cf5ed489415
       # Only check out source code if code coverage is being gathered.
-      if: code_coverage == true
+      if: inputs.code_coverage == true
       with:
         submodules: 'recursive'
         ref: ${{ github.event.workflow_run.head_branch }}
