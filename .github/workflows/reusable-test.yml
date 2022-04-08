@@ -54,6 +54,7 @@ jobs:
       BUILD_CONFIGURATION: ${{matrix.configurations}}
       BUILD_PLATFORM: x64
       TEST_COMMAND: ${{inputs.test_command}}
+      PREP_COMMAND: ${{inputs.prep_test}}
 
     # Checking out the branch is needed to gather correct code coverage data.
     steps:
@@ -101,7 +102,7 @@ jobs:
       if: inputs.code_coverage == true
       id: run_test_with_code_coverage
       run: |
-        ${{env.INPUT_PREP_TEST}}
+        ${{env.PREP_COMMAND}}
         OpenCppCoverage.exe --sources $PWD --excluded_sources $PWD\external\Catch2 --export_type cobertura:ebpf_for_windows_${{env.BUILD_CONFIGURATION}}.xml --working_dir ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -- ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\${{env.TEST_COMMAND}}
 
     - name: Run test without Code Coverage
@@ -109,7 +110,7 @@ jobs:
       id: run_test_without_code_coverage
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
       run: |
-        ${{env.INPUT_PREP_TEST}}
+        ${{env.PREP_COMMAND}}
         ${{env.TEST_COMMAND}}
 
     - name: Upload Report to Codecov
