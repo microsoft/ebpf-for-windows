@@ -17,7 +17,7 @@ The following must be installed in order to build this project:
 Optional:
 These tools can be installed via the [Chocolatey](https://chocolatey.org/install) installer.
 ```
-choco install -y visualstudio2019community cmake llvm git windowsdriverkit11 nuget.commandline visualstudio2019buildtools
+choco install -y visualstudio2019community cmake.portable llvm git windowsdriverkit11 nuget.commandline visualstudio2019buildtools
 ```
 
 You should add the paths to `git.exe`, `cmake.exe` and `nuget.exe` to the Windows PATH environment variable after the software packages above have been installed.
