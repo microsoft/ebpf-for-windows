@@ -189,19 +189,30 @@ Enumerations</h2></td></tr>
 <br />
  }</td></tr>
 <tr class="separator:aa752b12bfaedda8a28a7a88c1b96f272"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a0f8242763b15ec665eaa47c6add861a0"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0">bpf_prog_type</a> { <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0a958e0e8697a05086ba164ab5fea3eeb7">BPF_PROG_TYPE_UNSPEC</a>, 
+<tr class="memitem:a0f8242763b15ec665eaa47c6add861a0"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0">bpf_prog_type</a> { <br />
+&#160;&#160;<a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0a958e0e8697a05086ba164ab5fea3eeb7">BPF_PROG_TYPE_UNSPEC</a>, 
 <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0a1945ca3d46bd1e589c4d0effe14f18d6">BPF_PROG_TYPE_XDP</a>, 
 <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0a2af8d41961c186b1a62fcc54a29446d2">BPF_PROG_TYPE_BIND</a>, 
-<a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0af7ae714d5dd03e2489ec472fd252165c">BPF_PROG_TYPE_SAMPLE</a> = 999
+<a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0a372b7fa48277e8bd73784c4193ed8517">BPF_PROG_TYPE_CGROUP_SOCK_ADDR</a>, 
+<br />
+&#160;&#160;<a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0af7ae714d5dd03e2489ec472fd252165c">BPF_PROG_TYPE_SAMPLE</a> = 999
+<br />
  }</td></tr>
 <tr class="separator:a0f8242763b15ec665eaa47c6add861a0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a354e84389719f1a5541fbca272618eaf"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__structs_8h.html#a354e84389719f1a5541fbca272618eaf">bpf_link_type</a> { <a class="el" href="ebpf__structs_8h.html#a354e84389719f1a5541fbca272618eafa0de2e37582b89cb7fe3a05433604fbec">BPF_LINK_TYPE_UNSPEC</a>, 
 <a class="el" href="ebpf__structs_8h.html#a354e84389719f1a5541fbca272618eafabc44149b391f00ddd4f2b980191940c7">BPF_LINK_TYPE_PLAIN</a>
  }</td></tr>
 <tr class="separator:a354e84389719f1a5541fbca272618eaf"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aac6b4c09fa267f53c1d213551e0ccd5a"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5a">bpf_attach_type</a> { <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aa68aee7490a9031b8e3838919541d51dc">BPF_ATTACH_TYPE_UNSPEC</a>, 
+<tr class="memitem:aac6b4c09fa267f53c1d213551e0ccd5a"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5a">bpf_attach_type</a> { <br />
+&#160;&#160;<a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aa68aee7490a9031b8e3838919541d51dc">BPF_ATTACH_TYPE_UNSPEC</a>, 
 <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aaeafe93685e394bfefc0b0dab079d95ae">BPF_ATTACH_TYPE_XDP</a>, 
+<a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aae5e0f2387eb5917087c2cbf8bea83bcc">BPF_CGROUP_INET4_CONNECT</a>, 
+<a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aa140bb255d4ce2b545609b4fce5d3a7f8">BPF_CGROUP_INET6_CONNECT</a>, 
+<br />
+&#160;&#160;<a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aae06c2887f0d67c0b69c5be7916e017d2">BPF_CGROUP_INET4_RECV_ACCEPT</a>, 
+<a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aaa9d0918dbc3488965b2074af9c92ca36">BPF_CGROUP_INET6_RECV_ACCEPT</a>, 
 <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aa7bb29441638f2e3966fa94ebd4aeb82a">__MAX_BPF_ATTACH_TYPE</a>
+<br />
  }</td></tr>
 <tr class="separator:aac6b4c09fa267f53c1d213551e0ccd5a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
@@ -408,6 +419,10 @@ Enumerations</h2></td></tr>
 <table class="fieldtable">
 <tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="aac6b4c09fa267f53c1d213551e0ccd5aa68aee7490a9031b8e3838919541d51dc"></a>BPF_ATTACH_TYPE_UNSPEC&#160;</td><td class="fielddoc"></td></tr>
 <tr><td class="fieldname"><a id="aac6b4c09fa267f53c1d213551e0ccd5aaeafe93685e394bfefc0b0dab079d95ae"></a>BPF_ATTACH_TYPE_XDP&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="aac6b4c09fa267f53c1d213551e0ccd5aae5e0f2387eb5917087c2cbf8bea83bcc"></a>BPF_CGROUP_INET4_CONNECT&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="aac6b4c09fa267f53c1d213551e0ccd5aa140bb255d4ce2b545609b4fce5d3a7f8"></a>BPF_CGROUP_INET6_CONNECT&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="aac6b4c09fa267f53c1d213551e0ccd5aae06c2887f0d67c0b69c5be7916e017d2"></a>BPF_CGROUP_INET4_RECV_ACCEPT&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="aac6b4c09fa267f53c1d213551e0ccd5aaa9d0918dbc3488965b2074af9c92ca36"></a>BPF_CGROUP_INET6_RECV_ACCEPT&#160;</td><td class="fielddoc"></td></tr>
 <tr><td class="fieldname"><a id="aac6b4c09fa267f53c1d213551e0ccd5aa7bb29441638f2e3966fa94ebd4aeb82a"></a>__MAX_BPF_ATTACH_TYPE&#160;</td><td class="fielddoc"></td></tr>
 </table>
 
@@ -490,6 +505,7 @@ Enumerations</h2></td></tr>
 <tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="a0f8242763b15ec665eaa47c6add861a0a958e0e8697a05086ba164ab5fea3eeb7"></a>BPF_PROG_TYPE_UNSPEC&#160;</td><td class="fielddoc"></td></tr>
 <tr><td class="fieldname"><a id="a0f8242763b15ec665eaa47c6add861a0a1945ca3d46bd1e589c4d0effe14f18d6"></a>BPF_PROG_TYPE_XDP&#160;</td><td class="fielddoc"></td></tr>
 <tr><td class="fieldname"><a id="a0f8242763b15ec665eaa47c6add861a0a2af8d41961c186b1a62fcc54a29446d2"></a>BPF_PROG_TYPE_BIND&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="a0f8242763b15ec665eaa47c6add861a0a372b7fa48277e8bd73784c4193ed8517"></a>BPF_PROG_TYPE_CGROUP_SOCK_ADDR&#160;</td><td class="fielddoc"></td></tr>
 <tr><td class="fieldname"><a id="a0f8242763b15ec665eaa47c6add861a0af7ae714d5dd03e2489ec472fd252165c"></a>BPF_PROG_TYPE_SAMPLE&#160;</td><td class="fielddoc"></td></tr>
 </table>
 
