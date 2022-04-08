@@ -15,14 +15,20 @@
 static const ebpf_program_type_t*
 _get_ebpf_program_type(enum bpf_prog_type type)
 {
+    const ebpf_program_type_t* program_type = nullptr;
     // TODO(issue #223): read this mapping from the registry
     switch (type) {
     case BPF_PROG_TYPE_XDP:
-        return &EBPF_PROGRAM_TYPE_XDP;
+        program_type = &EBPF_PROGRAM_TYPE_XDP;
+        break;
     case BPF_PROG_TYPE_BIND:
-        return &EBPF_PROGRAM_TYPE_BIND;
+        program_type = &EBPF_PROGRAM_TYPE_BIND;
+        break;
+    case BPF_PROG_TYPE_CGROUP_SOCK_ADDR:
+        program_type = &EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR;
+        break;
     }
-    return nullptr;
+    return program_type;
 }
 
 static enum bpf_prog_type
@@ -41,12 +47,28 @@ _get_bpf_program_type(const ebpf_program_type_t* type)
 static const ebpf_attach_type_t*
 _get_ebpf_attach_type(enum bpf_attach_type type)
 {
+    const ebpf_attach_type_t* attach_type = nullptr;
+
     // TODO(issue #223): read this mapping from the registry
     switch (type) {
     case BPF_ATTACH_TYPE_XDP:
-        return &EBPF_ATTACH_TYPE_XDP;
+        attach_type = &EBPF_ATTACH_TYPE_XDP;
+        break;
+    case BPF_CGROUP_INET4_CONNECT:
+        attach_type = &EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT;
+        break;
+    case BPF_CGROUP_INET6_CONNECT:
+        attach_type = &EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT;
+        break;
+    case BPF_CGROUP_INET4_RECV_ACCEPT:
+        attach_type = &EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT;
+        break;
+    case BPF_CGROUP_INET6_RECV_ACCEPT:
+        attach_type = &EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT;
+        break;
     }
-    return nullptr;
+
+    return attach_type;
 }
 
 static enum bpf_attach_type
@@ -185,6 +207,44 @@ bpf_program__attach_xdp(const struct bpf_program* program, int ifindex)
     }
 
     return link;
+}
+
+static bool
+_does_attach_type_support_attachable_fd(enum bpf_attach_type type)
+{
+    bool supported = FALSE;
+
+    switch (type) {
+    case BPF_CGROUP_INET4_CONNECT:
+    case BPF_CGROUP_INET6_CONNECT:
+    case BPF_CGROUP_INET4_RECV_ACCEPT:
+    case BPF_CGROUP_INET6_RECV_ACCEPT:
+        supported = TRUE;
+        break;
+    }
+
+    return supported;
+}
+
+int
+bpf_prog_attach(int prog_fd, int attachable_fd, enum bpf_attach_type type, unsigned int flags)
+{
+    bpf_link* link = nullptr;
+    ebpf_result_t result = EBPF_SUCCESS;
+
+    UNREFERENCED_PARAMETER(flags);
+
+    if (_does_attach_type_support_attachable_fd(type)) {
+        result = ebpf_program_attach_by_fd(
+            prog_fd, _get_ebpf_attach_type(type), &attachable_fd, sizeof(attachable_fd), &link);
+    } else {
+        result = EBPF_OPERATION_NOT_SUPPORTED;
+    }
+
+    if (result != EBPF_SUCCESS)
+        errno = ebpf_result_to_errno(result);
+
+    return (result == EBPF_SUCCESS) ? 0 : -1;
 }
 
 struct bpf_program*

@@ -23,8 +23,7 @@ typedef struct _connection_tuple
 } connection_tuple_t;
 
 SEC("maps")
-ebpf_map_definition_in_file_t connection_policy_map = {
-    .size = sizeof(ebpf_map_definition_in_file_t),
+struct bpf_map_def connection_policy_map = {
     .type = BPF_MAP_TYPE_HASH,
     .key_size = sizeof(connection_tuple_t),
     .value_size = sizeof(uint32_t),
@@ -44,7 +43,7 @@ authorize_v4(bpf_sock_addr_t* ctx)
 
     verdict = bpf_map_lookup_elem(&connection_policy_map, &tuple_key);
 
-    return (verdict != NULL) ? *verdict : 1;
+    return (verdict != NULL) ? *verdict : BPF_SOCK_ADDR_VERDICT_PROCEED;
 }
 
 __inline int
@@ -60,7 +59,7 @@ authorize_v6(bpf_sock_addr_t* ctx)
 
     verdict = bpf_map_lookup_elem(&connection_policy_map, &tuple_key);
 
-    return (verdict != NULL) ? *verdict : 1;
+    return (verdict != NULL) ? *verdict : BPF_SOCK_ADDR_VERDICT_PROCEED;
 }
 
 SEC("cgroup/connect4")
