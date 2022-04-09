@@ -215,7 +215,6 @@ ebpf_map_create(
     *map_fd = ebpf_fd_invalid;
 
     try {
-        map_definition.size = sizeof(map_definition);
         map_definition.type = map_type;
         map_definition.key_size = key_size;
         map_definition.value_size = value_size;
@@ -871,40 +870,6 @@ ebpf_object_get(_In_z_ const char* path)
 }
 
 ebpf_result_t
-ebpf_get_next_map(fd_t previous_fd, _Out_ fd_t* next_fd)
-{
-    if (next_fd == nullptr) {
-        return EBPF_INVALID_ARGUMENT;
-    }
-    fd_t local_fd = previous_fd;
-    *next_fd = ebpf_fd_invalid;
-
-    ebpf_handle_t previous_handle = _get_handle_from_file_descriptor(local_fd);
-    ebpf_operation_get_next_map_request_t request{
-        sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_MAP, previous_handle};
-
-    ebpf_operation_get_next_map_reply_t reply;
-
-    uint32_t retval = invoke_ioctl(request, reply);
-    if (retval == ERROR_SUCCESS) {
-        ebpf_handle_t next_handle = reply.next_handle;
-        if (next_handle != ebpf_handle_invalid) {
-            fd_t fd = _create_file_descriptor_for_handle(next_handle);
-            if (fd == ebpf_fd_invalid) {
-                // Some error getting fd for the handle.
-                Platform::CloseHandle(next_handle);
-                retval = ERROR_OUTOFMEMORY;
-            } else {
-                *next_fd = fd;
-            }
-        } else {
-            *next_fd = ebpf_fd_invalid;
-        }
-    }
-    return win32_error_code_to_ebpf_result(retval);
-}
-
-ebpf_result_t
 ebpf_get_next_program(fd_t previous_fd, _Out_ fd_t* next_fd)
 {
     if (next_fd == nullptr) {
@@ -1425,7 +1390,6 @@ initialize_map(_Out_ ebpf_map_t* map, _In_ const map_cache_t& map_cache)
     // Initialize handle to ebpf_handle_invalid.
     map->map_handle = ebpf_handle_invalid;
     map->original_fd = map_cache.verifier_map_descriptor.original_fd;
-    map->map_definition.size = sizeof(map->map_definition);
     map->map_definition.type = (ebpf_map_type_t)map_cache.verifier_map_descriptor.type;
     map->map_definition.key_size = map_cache.verifier_map_descriptor.key_size;
     map->map_definition.value_size = map_cache.verifier_map_descriptor.value_size;
@@ -1476,7 +1440,6 @@ _initialize_ebpf_maps_native(
             goto Exit;
         }
 
-        map->map_definition.size = sizeof(map->map_definition);
         map->map_definition.type = info.type;
         map->map_definition.key_size = info.key_size;
         map->map_definition.value_size = info.value_size;

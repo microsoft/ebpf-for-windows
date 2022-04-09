@@ -2,6 +2,14 @@
 // SPDX-License-Identifier: MIT
 
 #include "bpf_helpers.h"
+#include "ebpf_nethooks.h"
+
+// Prior to Linux 5.3, it was common for eBPF programs to define bpf_printk themselves.
+#define bpf_printk(fmt, ...)                                       \
+    ({                                                             \
+        char ____fmt[] = fmt;                                      \
+        bpf_trace_printk(____fmt, sizeof(____fmt), ##__VA_ARGS__); \
+    })
 
 SEC("bind")
 int

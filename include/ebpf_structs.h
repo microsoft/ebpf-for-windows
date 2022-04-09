@@ -54,7 +54,6 @@ typedef uint32_t ebpf_id_t;
  */
 typedef struct _ebpf_map_definition_in_memory
 {
-    uint32_t size;        ///< Size in bytes of the ebpf_map_definition_t structure.
     ebpf_map_type_t type; ///< Type of map.
     uint32_t key_size;    ///< Size in bytes of a map key.
     uint32_t value_size;  ///< Size in bytes of a map value.
@@ -68,7 +67,6 @@ typedef struct _ebpf_map_definition_in_memory
  */
 typedef struct _ebpf_map_definition_in_file
 {
-    uint32_t size;        ///< Size in bytes of the ebpf_map_definition_t structure.
     ebpf_map_type_t type; ///< Type of map.
     uint32_t key_size;    ///< Size in bytes of a map key.
     uint32_t value_size;  ///< Size in bytes of a map value.
