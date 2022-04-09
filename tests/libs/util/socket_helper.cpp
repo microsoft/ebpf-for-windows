@@ -41,12 +41,12 @@ _base_socket::_base_socket(int _sock_type, int _protocol, uint16_t _port)
     socket = WSASocket(AF_INET6, sock_type, protocol, nullptr, 0, WSA_FLAG_OVERLAPPED);
     if (socket == INVALID_SOCKET)
         FAIL("Failed to create socket with error: " << WSAGetLastError());
-    uint32_t ipv6_opt = 0;
-    error = setsockopt(socket, IPPROTO_IPV6, IPV6_V6ONLY, reinterpret_cast<const char*>(&ipv6_opt), sizeof(ULONG));
+    uint32_t ipv6_option = 0;
+    error = setsockopt(socket, IPPROTO_IPV6, IPV6_V6ONLY, reinterpret_cast<const char*>(&ipv6_option), sizeof(ULONG));
     if (error != 0)
         FAIL("Could not enable dual family endpoint: " << WSAGetLastError());
 
-    // Bind it to the any address and supplied port.
+    // Bind it to the wildcard address and supplied port.
     SOCKADDR_STORAGE local_addr;
     local_addr.ss_family = AF_INET6;
     INETADDR_SETANY((PSOCKADDR)&local_addr);
@@ -79,8 +79,8 @@ _datagram_sender_socket::_datagram_sender_socket(int _sock_type, int _protocol, 
 {
     if (!(sock_type == SOCK_DGRAM || sock_type == SOCK_RAW) &&
         !(protocol == IPPROTO_UDP || protocol == IPPROTO_IPV4 || protocol == IPPROTO_IPV6))
-        FAIL("datagram_socket only supports these combinations (SOCK_DGRAM, IPPROTO_UDP) and (SOCK_RAW, "
-             "IPPROTO_IPV4/IPV6)");
+        FAIL("datagram_sender_socket class only supports sockets of type SOCK_DGRAM or SOCK_RAW and protocols of type "
+             "IPPROTO_UDP, IPPROTO_IPV4 or IPPROTO_IPV6)");
 }
 
 void
@@ -189,7 +189,7 @@ _receiver_socket::complete_async_receive(bool timeout_expected)
                 reinterpret_cast<LPDWORD>(&bytes_received),
                 FALSE,
                 reinterpret_cast<LPDWORD>(&recv_flags)))
-            FAIL("WSArecvFrom on the receiver socket failed with error: " << WSAGetLastError());
+            FAIL("WSARecvFrom on the receiver socket failed with error: " << WSAGetLastError());
         WSACloseEvent(overlapped.hEvent);
     } else {
         if (error == WSA_WAIT_TIMEOUT) {
@@ -202,7 +202,7 @@ _receiver_socket::complete_async_receive(bool timeout_expected)
 }
 
 void
-_receiver_socket::get_received_message(uint32_t& message_size, _Out_ char*& message)
+_receiver_socket::get_received_message(uint32_t& message_size, _Outptr_result_z_ char*& message)
 {
     message_size = bytes_received;
     message = recv_buffer.data();
@@ -214,8 +214,8 @@ _datagram_receiver_socket::_datagram_receiver_socket(int _sock_type, int _protoc
 {
     if (!(sock_type == SOCK_DGRAM || sock_type == SOCK_RAW) &&
         !(protocol == IPPROTO_UDP || protocol == IPPROTO_IPV4 || protocol == IPPROTO_IPV6))
-        FAIL("datagram_socket only supports these combinations (SOCK_DGRAM, IPPROTO_UDP) and (SOCK_RAW, "
-             "IPPROTO_IPV4/IPV6)");
+        FAIL("datagram_sender_socket class only supports sockets of type SOCK_DGRAM or SOCK_RAW and protocols of type "
+             "IPPROTO_UDP, IPPROTO_IPV4 or IPPROTO_IPV6)");
 }
 
 void
@@ -283,9 +283,9 @@ _stream_receiver_socket::_stream_receiver_socket(int _sock_type, int _protocol, 
 
     // Create accept socket.
     accept_socket = WSASocket(AF_INET6, sock_type, protocol, nullptr, 0, WSA_FLAG_OVERLAPPED);
-    uint32_t ipv6_opt = 0;
-    error =
-        setsockopt(accept_socket, IPPROTO_IPV6, IPV6_V6ONLY, reinterpret_cast<const char*>(&ipv6_opt), sizeof(ULONG));
+    uint32_t ipv6_option = 0;
+    error = setsockopt(
+        accept_socket, IPPROTO_IPV6, IPV6_V6ONLY, reinterpret_cast<const char*>(&ipv6_option), sizeof(ULONG));
     if (error != 0)
         FAIL("Could not enable dual family endpoint on accept socket: " << WSAGetLastError());
 }

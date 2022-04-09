@@ -75,7 +75,7 @@ This will build the following binaries:
 * `sample_ext_app.exe`: A sample application for testing the sample extension driver.
 * `xdp_tests.exe`: Application for testing various XDP functionalities.  This requires the EbpSvc service to be running,
                 and the EbpCore and NetEbpfExt drivers to be loaded on a remote system to test.
-* `socket_tests.exe`: Application for testing hook for BPF_CGROUP_SOCK_ADDR program type and related attach types.
+* `socket_tests.exe`: Application for testing the hook for the BPF_CGROUP_SOCK_ADDR program type and related attach types.
 
 and a few binaries just used for demo'ing eBPF functionality, as in the demo walkthrough discussed below:
 
@@ -210,7 +210,7 @@ This application tests various XDP functionalities. It has the following tests:
    4. Unload the program from system under test by running `delete program <id>` on the netsh prompt, where <id> is the ID noted above.
 
 ### socket_tests.exe
-This application loads `cgroup_sock_addr.o` eBPF program and attaches to hooks to handle various socket operations. Currently it tests authorizing ingress and egress connections based on entry in a map passed to the program.
+This application loads the `cgroup_sock_addr.o` eBPF program and attaches to hooks to handle various socket operations. Currently it tests authorizing ingress and egress connections based on entry in a map passed to the program.
 
 ### Using tracing
 eBPF for Windows uses ETW for tracing.  A trace can be captured in a file, or viewed in real-time.

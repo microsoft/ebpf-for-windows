@@ -100,12 +100,12 @@ typedef class _receiver_socket : public _base_socket
     void
     complete_async_receive(bool timeout_expected = false);
     void
-    get_received_message(uint32_t& message_size, _Out_ char*& message);
+    get_received_message(uint32_t& message_size, _Outptr_result_z_ char*& message);
 
     virtual void
     post_async_receive() = 0;
     virtual void
-    get_sender_address(PSOCKADDR& from, int& from_length) = 0;
+    get_sender_address(_Out_ PSOCKADDR& from, _Out_ int& from_length) = 0;
 
   protected:
     WSAOVERLAPPED overlapped;
@@ -125,7 +125,7 @@ typedef class _datagram_receiver_socket : public _receiver_socket
     void
     post_async_receive();
     void
-    get_sender_address(PSOCKADDR& from, int& from_length);
+    get_sender_address(_Out_ PSOCKADDR& from, _Out_ int& from_length);
 
   private:
     sockaddr_storage sender_address;
@@ -143,7 +143,7 @@ typedef class _stream_receiver_socket : public _receiver_socket
     void
     post_async_receive();
     void
-    get_sender_address(PSOCKADDR& from, int& from_length);
+    get_sender_address(_Out_ PSOCKADDR& from, _Out_ int& from_length);
 
   private:
     LPFN_ACCEPTEX acceptex;
