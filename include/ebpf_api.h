@@ -76,17 +76,6 @@ extern "C"
         _Out_ fd_t* map_fd);
 
     /**
-     * @brief Get file descriptor to the next eBPF map.
-     * @param[in] previous_fd FD to previous eBPF map or ebpf_fd_invalid to
-     *  start enumeration.
-     * @param[out] next_fd FD to the next eBPF map or ebpf_fd_invalid if this
-     *  is the last map.
-     * @retval EBPF_SUCCESS The operation was successful.
-     */
-    ebpf_result_t
-    ebpf_get_next_map(fd_t previous_fd, _Out_ fd_t* next_fd);
-
-    /**
      * @brief Get file descriptor to the next eBPF program.
      * @param[in] previous_fd File descriptor of the previous eBPF program or ebpf_fd_invalid to
      *  start enumeration.
