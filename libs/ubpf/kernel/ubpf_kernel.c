@@ -27,9 +27,33 @@
 #define _countof(_Array) (sizeof(_Array) / sizeof(_Array[0]))
 #endif
 
+#undef stderr
 #define stderr 0
-#define fprintf NULL
+#define fprintf place_holder_fprintf
+#define strerror place_holder_stderror
+#define errno (place_holder_errno())
+
+inline int
+fprintf(void* stream, const char* format, ...)
+{
+    return -1;
+}
+
+inline char* __cdecl place_holder_stderror(_In_ int error) { return NULL; }
+
+inline int
+place_holder_errno()
+{
+    return -1;
+}
 
 #define UBPF_STACK_SIZE 512
 
+static enum Registers
+map_register(int r)
+{
+    return 0;
+}
+
 #include "ubpf_vm.c"
+#include "ubpf_jit.c"
