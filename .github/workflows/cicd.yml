@@ -9,8 +9,8 @@ name: CI/CD
 
 # Run on push so we can capture the baseline code coverage for any squash commit.
 on:
-  push:
-    branches: [ main ]
+  schedule:
+    - cron: '00 21 * * *'
   pull_request:
 
 permissions:
@@ -27,7 +27,6 @@ jobs:
   # Build with C++ static analyzer.
   analyze:
     uses: ./.github/workflows/reusable-build.yml
-    if: ${{github.event.issue.pull_request}}
     with:
       build_artifact: Build-x64-Analyze
       build_options: /p:Analysis='True'
@@ -35,7 +34,6 @@ jobs:
   # Build with C++ address sanitizer.
   sanitize:
     uses: ./.github/workflows/reusable-build.yml
-    if: ${{github.event.issue.pull_request}}
     with:
       build_artifact: Build-x64-Sanitize
       build_options: /p:Sanitizer='True'
@@ -93,7 +91,7 @@ jobs:
   driver:
     uses: ./.github/workflows/reusable-test.yml
     # Only run this on repos that have self-host runners.
-    if: github.repository == 'microsoft/ebpf-for-windows' && ${{github.event.issue.pull_request}}
+    if: github.repository == 'microsoft/ebpf-for-windows'
     with:
       pre_test: powershell ".\setup_ebpf_cicd_tests.ps1;"
       test_command: powershell ".\execute_ebpf_cicd_tests.ps1"
@@ -108,7 +106,6 @@ jobs:
   # Run the unit tests in GitHub with address sanitizer.
   sanitize_unit_tests:
     uses: ./.github/workflows/reusable-test.yml
-    if: ${{github.event.issue.pull_request}}
     with:
       name: unit_tests
       test_command: unit_tests.exe -s
