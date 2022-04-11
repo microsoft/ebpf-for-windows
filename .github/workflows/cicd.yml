@@ -15,7 +15,7 @@ on:
 
 concurrency:
   # Cancel any CI/CD workflow currently in progress for the same PR.
-  # Allow running concurrently for with any other commits.
+  # Allow running concurrently with any other commits.
   group: cicd-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
 
