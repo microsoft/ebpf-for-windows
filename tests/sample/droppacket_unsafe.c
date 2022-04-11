@@ -6,8 +6,10 @@
 // For bpf code: clang -target bpf -O2 -Werror -c droppacket_unsafe.c -o droppacket_unsafe.o
 // this passes the checker
 
+#include "bpf_endian.h"
 #include "bpf_helpers.h"
-#include "ebpf.h"
+#include "net/ip.h"
+#include "net/udp.h"
 
 SEC("maps")
 struct bpf_map_def port_map = {

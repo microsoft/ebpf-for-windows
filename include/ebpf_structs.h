@@ -9,7 +9,6 @@
 #if !defined(NO_CRT)
 #include <stdint.h>
 #endif
-#include "../external/ebpf-verifier/src/ebpf_base.h"
 #include "ebpf_windows.h"
 
 typedef enum bpf_map_type
@@ -147,8 +146,10 @@ enum bpf_attach_type
 // care what fields they have.  Applications such as bpftool on the other
 // hand depend on fields of specific names and types.
 
+#ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4201) /* nameless struct/union */
+#endif
 struct bpf_link_info
 {
     ebpf_id_t id;                          ///< Link ID.
@@ -165,7 +166,9 @@ struct bpf_link_info
         } xdp;
     };
 };
+#ifdef _MSC_VER
 #pragma warning(pop)
+#endif
 
 #define BPF_OBJ_NAME_LEN 64
 
