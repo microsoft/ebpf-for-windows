@@ -9,8 +9,8 @@ name: CI/CD
 
 # Run on push so we can capture the baseline code coverage for any squash commit.
 on:
-  push:
-    branches: [ main ]
+  schedule:
+    - cron: '00 21 * * *'
   pull_request:
 
 concurrency:

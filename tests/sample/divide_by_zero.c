@@ -7,7 +7,6 @@
 // this passes the checker
 
 #include "bpf_helpers.h"
-#include "ebpf.h"
 
 SEC("maps")
 struct bpf_map_def test_map = {
