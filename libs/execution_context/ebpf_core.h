@@ -3,9 +3,10 @@
 
 #pragma once
 
+#include "ebpf_object.h"
 #include "ebpf_platform.h"
-#include "ebpf_protocol.h"
 #include "ebpf_program_types.h"
+#include "ebpf_protocol.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -16,7 +17,10 @@ extern "C"
     extern ebpf_helper_function_prototype_t* ebpf_core_helper_function_prototype;
     extern uint32_t ebpf_core_helper_functions_count;
 
-    extern GUID ebpf_general_helper_function_interface_id;
+    extern GUID ebpf_program_information_extension_interface_id;
+    extern GUID ebpf_hook_extension_interface_id;
+
+    extern GUID ebpf_general_helper_function_module_id;
 
     typedef uint32_t(__stdcall* ebpf_hook_function)(uint8_t*);
 
@@ -54,7 +58,8 @@ extern "C"
     ebpf_result_t
     ebpf_core_invoke_protocol_handler(
         ebpf_operation_id_t operation_id,
-        _In_ const void* input_buffer,
+        _In_reads_bytes_(input_buffer_length) const void* input_buffer,
+        uint16_t input_buffer_length,
         _Out_writes_bytes_opt_(output_buffer_length) void* output_buffer,
         uint16_t output_buffer_length,
         _In_opt_ void* async_context,
@@ -107,6 +112,130 @@ extern "C"
         _In_reads_bytes_opt_(to_size) const void* to,
         int to_size,
         int seed);
+
+    /**
+     * @brief Return a handle to the object which is pinned at the
+     *  supplied pin path.
+     *
+     * @param[in] path Path at which the object is pinned.
+     * @param[out] handle Handle to the pinned object.
+     *
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NOT_FOUND No object was pinned to the provided path.
+     */
+    ebpf_result_t
+    ebpf_core_get_pinned_object(_In_ const ebpf_utf8_string_t* path, _Out_ ebpf_handle_t* handle);
+
+    /**
+     * @brief Pin or unpin an object to the provided path. If supplied handle is
+     *  ebpf_handle_invalid, any object already pinned to the provided path is
+     *  unpinned from the path.
+     *
+     * @param[in] handle Handle of the object to be pinned.
+     * @param[in] path Pin path.
+     *
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this operation.
+     * @retval EBPF_NOT_FOUND No object was pinned to the provided path.
+     */
+    ebpf_result_t
+    ebpf_core_update_pinning(const ebpf_handle_t handle, _In_ const ebpf_utf8_string_t* path);
+
+    /**
+     * @brief Create a new map object.
+     *
+     * @param[in] map_name Name of the map to be created.
+     * @param[in] ebpf_map_definition Map definition structure.
+     * @param[in] inner_map_handle Handle to the inner map object, if any.
+     * @param[out] map_handle Handle to the created map object.
+     *
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this operation.
+     */
+    ebpf_result_t
+    ebpf_core_create_map(
+        _In_ const ebpf_utf8_string_t* map_name,
+        _In_ const ebpf_map_definition_in_memory_t* ebpf_map_definition,
+        ebpf_handle_t inner_map_handle,
+        _Out_ ebpf_handle_t* map_handle);
+
+    /**
+     * @brief Load a block of eBPF code into the program instance.
+     *
+     * @param[in] program_handle Handle to the program object to load the eBPF code into.
+     * @param[in] code_type Specifies whether eBPF code is JIT compiled, byte code or native code.
+     * @param[in] code_context Optionally, pointer to code context.
+     * @param[in] code Pointer to memory containing the eBPF code.
+     * @param[in] code_size Size of the memory block containing the eBPF code.
+     *
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this operation.
+     */
+    ebpf_result_t
+    ebpf_core_load_code(
+        ebpf_handle_t program_handle,
+        ebpf_code_type_t code_type,
+        _In_opt_ const void* code_context,
+        _In_reads_(code_size) const uint8_t* code,
+        size_t code_size);
+
+    /**
+     * @brief Returns a handle to an object identified by the id.
+     *
+     * @param[in] type Type of the object to get handle of.
+     * @param[in] id Specifies the ID of the object.
+     * @param[out] handle Handle to the object.
+     *
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_KEY_NOT_FOUND The provided ID is not valid.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
+     *  operation.
+     */
+    ebpf_result_t
+    ebpf_core_get_handle_by_id(ebpf_object_type_t type, ebpf_id_t id, _Out_ ebpf_handle_t* handle);
+
+    /**
+     * @brief Resolve the provided map handles to map addresses and associate the
+     *  maps to the program object.
+     *
+     * @param[in] program_handle Handle of the program to associate maps with.
+     * @param[in] count_of_maps Number of map handles.
+     * @param[in] map_handles Array of map handles containing "count_of_maps" handles.
+     * @param[out] map_addresses Array of map addresses of size "count_of_maps"
+     *
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INVALID_OBJECT The provided handle is not valid.
+     * @retval EBPF_KEY_NOT_FOUND The provided ID is not valid.
+     * @retval EBPF_INVALID_FD The program is incompatible with the map.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this operation.
+     */
+    ebpf_result_t
+    ebpf_core_resolve_maps(
+        ebpf_handle_t program_handle,
+        uint32_t count_of_maps,
+        _In_reads_(count_of_maps) const ebpf_handle_t* map_handles,
+        _Out_writes_(count_of_maps) uintptr_t* map_addresses);
+
+    /**
+     * @brief Resolve addresses for the provided helper function IDs and associate
+     *  the helper IDs with the program object.
+     *
+     * @param[in] program_handle Handle of the program to associate maps with.
+     * @param[in] count_of_helpers Number of helper function IDs.
+     * @param[in] helper_function_ids Array of helper function IDs containing "count_of_helpers" IDs.
+     * @param[out] helper_function_addresses Array of helper function addresses of size "count_of_helpers"
+     *
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INVALID_OBJECT The provided handle is not valid.
+     * @retval EBPF_INVALID_ARGUMENT An invalid argument was supplied.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this operation.
+     */
+    ebpf_result_t
+    ebpf_core_resolve_helper(
+        ebpf_handle_t program_handle,
+        const size_t count_of_helpers,
+        _In_reads_(count_of_helpers) const uint32_t* helper_function_ids,
+        _Out_writes_(count_of_helpers) uint64_t* helper_function_addresses);
 
 #ifdef __cplusplus
 }

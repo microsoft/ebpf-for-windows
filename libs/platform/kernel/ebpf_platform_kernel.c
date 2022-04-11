@@ -9,6 +9,13 @@
 
 #include <ntstrsafe.h>
 
+bool ebpf_fuzzing_enabled = false;
+
+IO_WORKITEM_ROUTINE _ebpf_preemptible_routine;
+
+extern DEVICE_OBJECT*
+ebpf_driver_get_device_object();
+
 typedef struct _ebpf_memory_descriptor
 {
     MDL memory_descriptor_list;
@@ -406,6 +413,12 @@ ebpf_is_non_preemptible_work_item_supported()
     return true;
 }
 
+bool
+ebpf_is_preemptible_work_item_supported()
+{
+    return true;
+}
+
 uint32_t
 ebpf_get_current_cpu()
 {
@@ -469,6 +482,62 @@ ebpf_queue_non_preemptible_work_item(_In_ ebpf_non_preemptible_work_item_t* work
     return KeInsertQueueDpc(&work_item->deferred_procedure_call, parameter_1, NULL);
 }
 
+typedef struct _ebpf_preemptible_work_item
+{
+    PIO_WORKITEM io_work_item;
+    void (*work_item_routine)(_In_opt_ void* work_item_context);
+    void* work_item_context;
+} ebpf_preemptible_work_item_t;
+
+void
+_ebpf_preemptible_routine(_In_ PDEVICE_OBJECT device_object, _In_opt_ PVOID context)
+{
+    UNREFERENCED_PARAMETER(device_object);
+    if (context == NULL) {
+        return;
+    }
+    ebpf_preemptible_work_item_t* work_item = (ebpf_preemptible_work_item_t*)context;
+    work_item->work_item_routine(work_item->work_item_context);
+
+    IoFreeWorkItem(work_item->io_work_item);
+    ebpf_free(work_item->work_item_context);
+    ebpf_free(work_item);
+}
+
+ebpf_result_t
+ebpf_allocate_preemptible_work_item(
+    _Outptr_ ebpf_preemptible_work_item_t** work_item,
+    _In_ void (*work_item_routine)(_In_opt_ const void* work_item_context),
+    _In_opt_ void* work_item_context)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+    *work_item = ebpf_allocate(sizeof(ebpf_preemptible_work_item_t));
+    if (*work_item == NULL) {
+        return EBPF_NO_MEMORY;
+    }
+
+    (*work_item)->io_work_item = IoAllocateWorkItem(ebpf_driver_get_device_object());
+    if ((*work_item)->io_work_item == NULL) {
+        result = EBPF_NO_MEMORY;
+        goto Done;
+    }
+    (*work_item)->work_item_routine = work_item_routine;
+    (*work_item)->work_item_context = work_item_context;
+
+Done:
+    if (result != EBPF_SUCCESS) {
+        ebpf_free(*work_item);
+        *work_item = NULL;
+    }
+    return result;
+}
+
+void
+ebpf_queue_preemptible_work_item(_In_ ebpf_preemptible_work_item_t* work_item)
+{
+    IoQueueWorkItem(work_item->io_work_item, _ebpf_preemptible_routine, DelayedWorkQueue, work_item);
+}
+
 typedef struct _ebpf_timer_work_item
 {
     KDPC deferred_procedure_call;
@@ -526,6 +595,7 @@ ebpf_free_timer_work_item(_Frees_ptr_opt_ ebpf_timer_work_item_t* work_item)
 
     KeCancelTimer(&work_item->timer);
     KeRemoveQueueDpc(&work_item->deferred_procedure_call);
+    KeFlushQueuedDpcs();
     ebpf_free(work_item);
 }
 

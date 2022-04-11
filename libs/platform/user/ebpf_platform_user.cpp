@@ -18,6 +18,8 @@ bool _ebpf_platform_code_integrity_enabled = false;
 // Permit the test to simulate non-preemptible execution.
 bool _ebpf_platform_is_preemptible = true;
 
+extern "C" bool ebpf_fuzzing_enabled = false;
+
 ebpf_result_t
 ebpf_platform_initiate()
 {
@@ -441,6 +443,14 @@ ebpf_is_non_preemptible_work_item_supported()
     return false;
 }
 
+bool
+ebpf_is_preemptible_work_item_supported()
+{
+    // TODO: (Issue# 854) Add support for creating threads to queue preemptible work items in user mode.
+    // https://github.com/microsoft/ebpf-for-windows/issues/854
+    return false;
+}
+
 uint32_t
 ebpf_get_current_cpu()
 {
@@ -479,6 +489,28 @@ ebpf_queue_non_preemptible_work_item(_In_ ebpf_non_preemptible_work_item_t* work
     UNREFERENCED_PARAMETER(work_item);
     UNREFERENCED_PARAMETER(parameter_1);
     return false;
+}
+
+void
+ebpf_queue_preemptible_work_item(_In_ ebpf_preemptible_work_item_t* work_item)
+{
+    UNREFERENCED_PARAMETER(work_item);
+    // TODO: (Issue# 854) Add support for creating threads to queue preemptible work items in user mode.
+    // https://github.com/microsoft/ebpf-for-windows/issues/854
+}
+
+ebpf_result_t
+ebpf_allocate_preemptible_work_item(
+    _Outptr_ ebpf_preemptible_work_item_t** work_item,
+    _In_ void (*work_item_routine)(_In_opt_ const void* work_item_context),
+    _In_opt_ void* work_item_context)
+{
+    UNREFERENCED_PARAMETER(work_item);
+    UNREFERENCED_PARAMETER(work_item_routine);
+    UNREFERENCED_PARAMETER(work_item_context);
+    // TODO: (Issue# 854) Add support for creating threads to queue preemptible work items in user mode.
+    // https://github.com/microsoft/ebpf-for-windows/issues/854
+    return EBPF_OPERATION_NOT_SUPPORTED;
 }
 
 typedef struct _ebpf_timer_work_item

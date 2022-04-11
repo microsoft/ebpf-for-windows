@@ -23,6 +23,16 @@ typedef std::unique_ptr<uint8_t, ebpf_free_memory_t> ebpf_memory_t;
 
 extern bool _ebpf_platform_is_preemptible;
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+    extern GUID ebpf_program_information_extension_interface_id;
+    extern GUID ebpf_hook_extension_interface_id;
+#ifdef __cplusplus
+}
+#endif
+
 typedef class _emulate_dpc
 {
   public:
@@ -78,11 +88,6 @@ typedef class _single_instance_hook : public _hook_helper
         : _hook_helper{attach_type}, provider(nullptr), client_binding_context(nullptr), client_data(nullptr),
           client_dispatch_table(nullptr), link_handle(ebpf_handle_invalid), link_object(nullptr)
     {
-        GUID module_id = {};
-        if (ebpf_guid_create(&module_id) != EBPF_SUCCESS) {
-            throw std::runtime_error("ebpf_guid_create failed");
-        }
-
         ebpf_guid_create(&client_id);
         attach_provider_data.supported_program_type = program_type;
         this->attach_type = attach_type;
@@ -90,8 +95,8 @@ typedef class _single_instance_hook : public _hook_helper
         REQUIRE(
             ebpf_provider_load(
                 &provider,
+                &ebpf_hook_extension_interface_id,
                 &attach_type,
-                &module_id,
                 nullptr,
                 &provider_data,
                 nullptr,
@@ -115,6 +120,15 @@ typedef class _single_instance_hook : public _hook_helper
     attach(bpf_program* program)
     {
         return ebpf_program_attach(program, &attach_type, nullptr, 0, &link_object);
+    }
+
+    uint32_t
+    attach(
+        _In_ const bpf_program* program,
+        _In_reads_bytes_(attach_parameters_size) void* attach_parameters,
+        size_t attach_parameters_size)
+    {
+        return ebpf_program_attach(program, &attach_type, attach_parameters, attach_parameters_size, &link_object);
     }
 
     void
@@ -162,6 +176,7 @@ typedef class _single_instance_hook : public _hook_helper
   private:
     static ebpf_result_t
     client_attach_callback(
+        ebpf_handle_t nmr_binding_handle,
         void* context,
         const GUID* client_id,
         void* client_binding_context,
@@ -172,6 +187,7 @@ typedef class _single_instance_hook : public _hook_helper
         if (hook->client_binding_context != nullptr) {
             return EBPF_OPERATION_NOT_SUPPORTED;
         }
+        UNREFERENCED_PARAMETER(nmr_binding_handle);
         hook->client_id = *client_id;
         hook->client_binding_context = client_binding_context;
         hook->client_data = client_data;
@@ -260,6 +276,9 @@ typedef class _test_xdp_helper
 
 #define TEST_NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION 0
 
+// program info provider data for various program types.
+
+// XDP.
 static const void* _test_ebpf_xdp_helper_functions[] = {(void*)&test_xdp_helper_t::adjust_head};
 
 static ebpf_helper_function_addresses_t _test_ebpf_xdp_helper_function_address_table = {
@@ -271,15 +290,19 @@ static ebpf_program_data_t _ebpf_xdp_program_data = {
 static ebpf_extension_data_t _ebpf_xdp_program_info_provider_data = {
     TEST_NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_ebpf_xdp_program_data), &_ebpf_xdp_program_data};
 
-static ebpf_context_descriptor_t _ebpf_bind_context_descriptor = {
-    sizeof(bind_md_t), EBPF_OFFSET_OF(bind_md_t, app_id_start), EBPF_OFFSET_OF(bind_md_t, app_id_end), -1};
-static ebpf_program_info_t _ebpf_bind_program_info = {{"bind", &_ebpf_bind_context_descriptor, {0}}, 0, NULL};
-
+// Bind.
 static ebpf_program_data_t _ebpf_bind_program_data = {&_ebpf_bind_program_info, NULL};
 
 static ebpf_extension_data_t _ebpf_bind_program_info_provider_data = {
     TEST_NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_ebpf_bind_program_data), &_ebpf_bind_program_data};
 
+// CGROUP_SOCK_ADDR.
+static ebpf_program_data_t _ebpf_sock_addr_program_data = {&_ebpf_sock_addr_program_info, NULL};
+
+static ebpf_extension_data_t _ebpf_sock_addr_program_info_provider_data = {
+    TEST_NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_ebpf_sock_addr_program_data), &_ebpf_sock_addr_program_data};
+
+// Sample extension.
 static ebpf_program_data_t _test_ebpf_sample_extension_program_data = {&_sample_ebpf_extension_program_info, NULL};
 
 #define TEST_EBPF_SAMPLE_EXTENSION_NPI_PROVIDER_VERSION 0
@@ -307,14 +330,23 @@ typedef class _program_info_provider
             provider_data = &_test_ebpf_sample_extension_program_info_provider_data;
             program_data = (ebpf_program_data_t*)provider_data->data;
             program_data->program_info->program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_SAMPLE;
+        } else if (program_type == EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR) {
+            provider_data = &_ebpf_sock_addr_program_info_provider_data;
+            program_data = (ebpf_program_data_t*)provider_data->data;
+            program_data->program_info->program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR;
         }
-        GUID module_id = {};
-        REQUIRE(ebpf_guid_create(&module_id) == EBPF_SUCCESS);
 
         REQUIRE(
             ebpf_provider_load(
-                &provider, &program_type, &module_id, nullptr, provider_data, nullptr, nullptr, nullptr, nullptr) ==
-            EBPF_SUCCESS);
+                &provider,
+                &ebpf_program_information_extension_interface_id,
+                &program_type,
+                nullptr,
+                provider_data,
+                nullptr,
+                nullptr,
+                nullptr,
+                nullptr) == EBPF_SUCCESS);
     }
     ~_program_info_provider() { ebpf_provider_unload(provider); }
 

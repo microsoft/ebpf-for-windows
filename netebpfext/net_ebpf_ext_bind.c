@@ -11,7 +11,7 @@
 #include "net_ebpf_ext_bind.h"
 
 //
-// WFP bind layer filter related globals.
+// WFP filter related globals for bind hook.
 //
 
 const net_ebpf_extension_wfp_filter_parameters_t _net_ebpf_extension_bind_wfp_filter_parameters[] = {
@@ -39,18 +39,12 @@ uint64_t _net_ebpf_extension_bind_wfp_filter_ids[NET_EBPF_BIND_FILTER_COUNT] = {
 //
 // Bind Program Information NPI Provider.
 //
-static ebpf_context_descriptor_t _ebpf_bind_context_descriptor = {
-    sizeof(bind_md_t), EBPF_OFFSET_OF(bind_md_t, app_id_start), EBPF_OFFSET_OF(bind_md_t, app_id_end), -1};
-static ebpf_program_info_t _ebpf_bind_program_info = {{"bind", &_ebpf_bind_context_descriptor, {0}}, 0, NULL};
-
 static ebpf_program_data_t _ebpf_bind_program_data = {&_ebpf_bind_program_info, NULL};
 
 static ebpf_extension_data_t _ebpf_bind_program_info_provider_data = {
     NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_ebpf_bind_program_data), &_ebpf_bind_program_data};
 
-// Net eBPF Extension Bind Program Information NPI Provider Module GUID: 6c8d3dbd-f1e3-4c42-abb8-cf7f095c9df3
-const NPI_MODULEID DECLSPEC_SELECTANY _ebpf_bind_program_info_provider_moduleid = {
-    sizeof(NPI_MODULEID), MIT_GUID, {0x6c8d3dbd, 0xf1e3, 0x4c42, {0xab, 0xb8, 0xcf, 0x7f, 0x09, 0x5c, 0x9d, 0xf3}}};
+NPI_MODULEID DECLSPEC_SELECTANY _ebpf_bind_program_info_provider_moduleid = {sizeof(NPI_MODULEID), MIT_GUID, {0}};
 
 static net_ebpf_extension_program_info_provider_t* _ebpf_bind_program_info_provider_context = NULL;
 
@@ -62,9 +56,7 @@ ebpf_attach_provider_data_t _net_ebpf_bind_hook_provider_data;
 ebpf_extension_data_t _net_ebpf_extension_bind_hook_provider_data = {
     EBPF_ATTACH_PROVIDER_DATA_VERSION, sizeof(_net_ebpf_bind_hook_provider_data), &_net_ebpf_bind_hook_provider_data};
 
-// Net eBPF Extension Bind Hook NPI Provider Module GUID: eab8f3d9-ab6c-422e-994c-7a80943bc920
-const NPI_MODULEID DECLSPEC_SELECTANY _ebpf_bind_hook_provider_moduleid = {
-    sizeof(NPI_MODULEID), MIT_GUID, {0xeab8f3d9, 0xab6c, 0x422e, {0x99, 0x4c, 0x7a, 0x80, 0x94, 0x3b, 0xc9, 0x20}}};
+NPI_MODULEID DECLSPEC_SELECTANY _ebpf_bind_hook_provider_moduleid = {sizeof(NPI_MODULEID), MIT_GUID, {0}};
 
 static net_ebpf_extension_hook_provider_t* _ebpf_bind_hook_provider_context = NULL;
 
@@ -73,12 +65,15 @@ static net_ebpf_extension_hook_provider_t* _ebpf_bind_hook_provider_context = NU
 //
 
 static ebpf_result_t
-_net_ebpf_extension_bind_on_client_attach(_In_ const net_ebpf_extension_hook_client_t* attaching_client)
+_net_ebpf_extension_bind_on_client_attach(
+    _In_ const net_ebpf_extension_hook_client_t* attaching_client,
+    _In_ const net_ebpf_extension_hook_provider_t* provider_context)
 {
     ebpf_result_t result = EBPF_SUCCESS;
 
     // Bind hook allows only one client at a time.
-    if (net_ebpf_extension_hook_get_next_attached_client(_ebpf_bind_hook_provider_context, NULL) != NULL) {
+    if (net_ebpf_extension_hook_get_next_attached_client((net_ebpf_extension_hook_provider_t*)provider_context, NULL) !=
+        NULL) {
         result = EBPF_ACCESS_DENIED;
         goto Exit;
     }
@@ -117,23 +112,26 @@ net_ebpf_ext_bind_register_providers()
 {
     NTSTATUS status = STATUS_SUCCESS;
     const net_ebpf_extension_program_info_provider_parameters_t program_info_provider_parameters = {
-        &EBPF_PROGRAM_TYPE_BIND, &_ebpf_bind_program_info_provider_moduleid, &_ebpf_bind_program_info_provider_data};
+        &_ebpf_bind_program_info_provider_moduleid, &_ebpf_bind_program_info_provider_data};
     const net_ebpf_extension_hook_provider_parameters_t hook_provider_parameters = {
-        &EBPF_ATTACH_TYPE_BIND,
-        &_ebpf_bind_hook_provider_moduleid,
-        &_net_ebpf_extension_bind_hook_provider_data,
-        EXECUTION_PASSIVE};
+        &_ebpf_bind_hook_provider_moduleid, &_net_ebpf_extension_bind_hook_provider_data, EXECUTION_PASSIVE};
 
+    _ebpf_bind_program_info.program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_BIND;
+    // Set the program type as the provider module id.
+    _ebpf_bind_program_info_provider_moduleid.Guid = EBPF_PROGRAM_TYPE_BIND;
     status = net_ebpf_extension_program_info_provider_register(
         &program_info_provider_parameters, &_ebpf_bind_program_info_provider_context);
     if (status != STATUS_SUCCESS)
         goto Exit;
 
     _net_ebpf_bind_hook_provider_data.supported_program_type = EBPF_PROGRAM_TYPE_BIND;
+    // Set the attach type as the provider module id.
+    _ebpf_bind_hook_provider_moduleid.Guid = EBPF_ATTACH_TYPE_BIND;
     status = net_ebpf_extension_hook_provider_register(
         &hook_provider_parameters,
         _net_ebpf_extension_bind_on_client_attach,
         _net_ebpf_extension_bind_on_client_detach,
+        NULL,
         &_ebpf_bind_hook_provider_context);
     if (status != EBPF_SUCCESS) {
         goto Exit;

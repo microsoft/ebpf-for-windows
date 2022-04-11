@@ -50,8 +50,11 @@ typedef class _ebpf_program_test_state
         machine_code.resize(machine_code_size);
         REQUIRE(
             ebpf_program_load_code(
-                program, EBPF_CODE_NATIVE, machine_code.data(), machine_code.size() * sizeof(ebpf_instruction_t)) ==
-            EBPF_SUCCESS);
+                program,
+                EBPF_CODE_JIT,
+                nullptr,
+                machine_code.data(),
+                machine_code.size() * sizeof(ebpf_instruction_t)) == EBPF_SUCCESS);
     }
 
     void
@@ -61,6 +64,7 @@ typedef class _ebpf_program_test_state
             ebpf_program_load_code(
                 program,
                 EBPF_CODE_EBPF,
+                nullptr,
                 reinterpret_cast<uint8_t*>(byte_code.data()),
                 byte_code.size() * sizeof(ebpf_instruction_t)) == EBPF_SUCCESS);
     }
@@ -87,11 +91,7 @@ typedef class _ebpf_map_test_state
     {
         ebpf_utf8_string_t name{(uint8_t*)"test", 4};
         ebpf_map_definition_in_memory_t definition{
-            sizeof(ebpf_map_definition_in_memory_t),
-            type,
-            sizeof(uint32_t),
-            sizeof(uint64_t),
-            map_size.has_value() ? map_size.value() : ebpf_get_cpu_count()};
+            type, sizeof(uint32_t), sizeof(uint64_t), map_size.has_value() ? map_size.value() : ebpf_get_cpu_count()};
 
         REQUIRE(ebpf_core_initiate() == EBPF_SUCCESS);
         REQUIRE(ebpf_map_create(&name, &definition, ebpf_handle_invalid, &map) == EBPF_SUCCESS);
@@ -165,11 +165,7 @@ typedef class _ebpf_map_lpm_trie_test_state
     {
         ebpf_utf8_string_t name{(uint8_t*)"ipv4_route_table", 11};
         ebpf_map_definition_in_memory_t definition{
-            sizeof(ebpf_map_definition_in_memory_t),
-            BPF_MAP_TYPE_LPM_TRIE,
-            sizeof(uint32_t) * 2,
-            sizeof(uint64_t),
-            static_cast<uint32_t>(route_count)};
+            BPF_MAP_TYPE_LPM_TRIE, sizeof(uint32_t) * 2, sizeof(uint64_t), static_cast<uint32_t>(route_count)};
 
         REQUIRE(ebpf_map_create(&name, &definition, ebpf_handle_invalid, &map) == EBPF_SUCCESS);
 

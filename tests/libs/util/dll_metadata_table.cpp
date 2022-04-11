@@ -44,7 +44,7 @@ dll_metadata_table::dll_metadata_table(const std::string& dll_name, const std::s
     size_t count;
     table->programs(&programs, &count);
     for (size_t i = 0; i < count; i++) {
-        loaded_programs[programs->function_name] = programs->function;
+        loaded_programs[programs->program_name] = programs->function;
     }
 }
 
@@ -77,7 +77,9 @@ dll_metadata_table::bind_metadata_table()
     size_t helpers_count = 0;
     map_entry_t* maps = nullptr;
     size_t map_count = 0;
-    table->helpers(&helpers, &helpers_count);
+    program_entry_t* programs = nullptr;
+    size_t program_count = 0;
+    table->programs(&programs, &program_count);
     table->maps(&maps, &map_count);
 
     int client_binding_context = 0;
@@ -94,7 +96,8 @@ dll_metadata_table::bind_metadata_table()
 
     if (ebpf_extension_load(
             &client_context,
-            &ebpf_general_helper_function_interface_id,
+            &ebpf_program_information_extension_interface_id,
+            &ebpf_general_helper_function_module_id,
             &module_id,
             &client_binding_context,
             &client_data,
@@ -103,28 +106,31 @@ dll_metadata_table::bind_metadata_table()
             &returned_provider_data,
             &returned_provider_dispatch_table,
             nullptr) != EBPF_SUCCESS) {
-        throw std::runtime_error("ebpf_extension_load failed for ebpf_general_helper_function_interface_id");
+        throw std::runtime_error("ebpf_extension_load failed for ebpf_general_helper_function_module_id");
     }
 
     ebpf_program_data_t* general_helper_program_data = NULL;
     general_helper_program_data = (ebpf_program_data_t*)returned_provider_data->data;
     if (general_helper_program_data == nullptr) {
-        throw std::runtime_error("ebpf_extension_load failed for ebpf_general_helper_function_interface_id");
+        throw std::runtime_error("ebpf_extension_load failed for ebpf_general_helper_function_module_id");
     }
 
-    for (size_t i = 0; i < helpers_count; i++) {
-        if (helpers[i].helper_id >= general_helper_program_data->helper_function_addresses->helper_function_count) {
-            throw std::runtime_error("ebpf_extension_load failed for ebpf_general_helper_function_interface_id");
+    for (size_t i = 0; i < program_count; i++) {
+        helpers = programs[i].helpers;
+        helpers_count = programs[i].helper_count;
+        for (size_t j = 0; j < helpers_count; j++) {
+            if (helpers[j].helper_id >= general_helper_program_data->helper_function_addresses->helper_function_count) {
+                throw std::runtime_error("ebpf_extension_load failed for ebpf_general_helper_function_module_id");
+            }
+            helpers[j].address = reinterpret_cast<decltype(helpers[j].address)>(
+                general_helper_program_data->helper_function_addresses->helper_function_address[helpers[j].helper_id]);
         }
-        helpers[i].address = reinterpret_cast<decltype(helpers[i].address)>(
-            general_helper_program_data->helper_function_addresses->helper_function_address[helpers[i].helper_id]);
     }
 
     for (size_t i = 0; i < map_count; i++) {
         const ebpf_utf8_string_t map_name{
             reinterpret_cast<uint8_t*>(const_cast<char*>(maps[i].name)), strlen(maps[i].name)};
         ebpf_map_definition_in_memory_t mem_map_definition{
-            sizeof(mem_map_definition),
             static_cast<ebpf_map_type_t>(maps[i].definition.type),
             maps[i].definition.key_size,
             maps[i].definition.value_size,
@@ -137,7 +143,7 @@ dll_metadata_table::bind_metadata_table()
                 &mem_map_definition,
                 ebpf_handle_invalid,
                 reinterpret_cast<ebpf_map_t**>(&maps[i].address)) != EBPF_SUCCESS) {
-            throw std::runtime_error("ebpf_extension_load failed for ebpf_general_helper_function_interface_id");
+            throw std::runtime_error("ebpf_extension_load failed for ebpf_general_helper_function_module_id");
         }
         ebpf_handle_t handle;
         if (ebpf_handle_create(&handle, reinterpret_cast<ebpf_core_object_t*>(maps[i].address)) != EBPF_SUCCESS) {
@@ -155,11 +161,17 @@ dll_metadata_table::unbind_metadata_table()
     size_t helpers_count = 0;
     map_entry_t* maps = nullptr;
     size_t map_count = 0;
-    table->helpers(&helpers, &helpers_count);
+    program_entry_t* programs = nullptr;
+    size_t program_count = 0;
+    table->programs(&programs, &program_count);
     table->maps(&maps, &map_count);
 
-    for (size_t i = 0; i < helpers_count; i++) {
-        helpers[i].address = nullptr;
+    for (size_t i = 0; i < program_count; i++) {
+        helpers = programs[i].helpers;
+        helpers_count = programs[i].helper_count;
+        for (size_t j = 0; j < helpers_count; j++) {
+            helpers[j].address = nullptr;
+        }
     }
 
     for (size_t i = 0; i < map_count; i++) {

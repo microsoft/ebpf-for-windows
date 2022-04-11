@@ -1,9 +1,14 @@
 <img src="docs/eBPF%20logo%20png%20800px.png" width=75 height=75 align=left />
 
-# eBPF for Windows<br>
+# eBPF for Windows
+
+![CodeQL](https://github.com/microsoft/ebpf-for-windows/workflows/CodeQL/badge.svg?branch=main)
+[![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/5742/badge)](https://bestpractices.coreinfrastructure.org/projects/5742)
+[![codecov](https://codecov.io/gh/microsoft/ebpf-for-windows/branch/main/graph/badge.svg?token=TXa0UAMvYf)](https://codecov.io/gh/microsoft/ebpf-for-windows)
+
 eBPF is a well-known technology for providing programmability and agility, especially for extending an
 OS kernel, for use cases such as DoS protection and observability. This project is a work-in-progress that
-allows using existing eBPF
+allows existing eBPF
 toolchains and APIs familiar in the Linux ecosystem to be used on top of Windows.  That is, this project
 takes existing eBPF projects as submodules and adds the layer in between to make them run on top of Windows.
 

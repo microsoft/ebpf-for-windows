@@ -96,8 +96,7 @@ _test_crud_operations(ebpf_map_type_t map_type)
         dpc = {emulate_dpc_t(1)};
     }
 
-    ebpf_map_definition_in_memory_t map_definition{
-        sizeof(ebpf_map_definition_in_memory_t), map_type, sizeof(uint32_t), sizeof(uint64_t), 10};
+    ebpf_map_definition_in_memory_t map_definition{map_type, sizeof(uint32_t), sizeof(uint64_t), 10};
     map_ptr map;
     {
         ebpf_map_t* local_map;
@@ -238,14 +237,13 @@ MAP_TEST(BPF_MAP_TYPE_LRU_PERCPU_HASH);
 TEST_CASE("map_crud_operations_lpm_trie_32", "[execution_context]")
 {
     _ebpf_core_initializer core;
-
+    const size_t max_string = 16;
     typedef struct _lpm_trie_key
     {
         uint32_t prefix_length;
         uint8_t value[4];
     } lpm_trie_key_t;
-    ebpf_map_definition_in_memory_t map_definition{
-        sizeof(ebpf_map_definition_in_memory_t), BPF_MAP_TYPE_LPM_TRIE, sizeof(lpm_trie_key_t), 16, 10};
+    ebpf_map_definition_in_memory_t map_definition{BPF_MAP_TYPE_LPM_TRIE, sizeof(lpm_trie_key_t), max_string, 10};
     map_ptr map;
     {
         ebpf_map_t* local_map;
@@ -280,13 +278,15 @@ TEST_CASE("map_crud_operations_lpm_trie_32", "[execution_context]")
     };
 
     for (auto& [key, value] : keys) {
+        std::string local_value = value;
+        local_value.resize(max_string);
         REQUIRE(
             ebpf_map_update_entry(
                 map.get(),
                 0,
                 reinterpret_cast<const uint8_t*>(&key),
                 0,
-                reinterpret_cast<const uint8_t*>(value),
+                reinterpret_cast<const uint8_t*>(local_value.c_str()),
                 EBPF_ANY,
                 EBPF_MAP_FLAG_HELPER) == EBPF_SUCCESS);
     }
@@ -320,14 +320,14 @@ TEST_CASE("map_crud_operations_lpm_trie_128", "[execution_context]")
 {
     _ebpf_core_initializer core;
 
+    const size_t max_string = 20;
     typedef struct _lpm_trie_key
     {
         uint32_t prefix_length;
         uint8_t value[16];
     } lpm_trie_key_t;
 
-    ebpf_map_definition_in_memory_t map_definition{
-        sizeof(ebpf_map_definition_in_memory_t), BPF_MAP_TYPE_LPM_TRIE, sizeof(lpm_trie_key_t), 20, 10};
+    ebpf_map_definition_in_memory_t map_definition{BPF_MAP_TYPE_LPM_TRIE, sizeof(lpm_trie_key_t), max_string, 10};
     map_ptr map;
     {
         ebpf_map_t* local_map;
@@ -392,13 +392,15 @@ TEST_CASE("map_crud_operations_lpm_trie_128", "[execution_context]")
     }
 
     for (auto& [key, value] : keys) {
+        std::string local_value = value;
+        local_value.resize(max_string);
         REQUIRE(
             ebpf_map_update_entry(
                 map.get(),
                 0,
                 reinterpret_cast<const uint8_t*>(&key),
                 0,
-                reinterpret_cast<const uint8_t*>(value),
+                reinterpret_cast<const uint8_t*>(local_value.c_str()),
                 EBPF_ANY,
                 EBPF_MAP_FLAG_HELPER) == EBPF_SUCCESS);
     }
@@ -420,8 +422,7 @@ TEST_CASE("map_crud_operations_lpm_trie_128", "[execution_context]")
 TEST_CASE("map_crud_operations_queue", "[execution_context]")
 {
     _ebpf_core_initializer core;
-    ebpf_map_definition_in_memory_t map_definition{
-        sizeof(ebpf_map_definition_in_memory_t), BPF_MAP_TYPE_QUEUE, 0, sizeof(uint32_t), 10};
+    ebpf_map_definition_in_memory_t map_definition{BPF_MAP_TYPE_QUEUE, 0, sizeof(uint32_t), 10};
     map_ptr map;
     {
         ebpf_map_t* local_map;
@@ -472,8 +473,7 @@ TEST_CASE("map_crud_operations_queue", "[execution_context]")
 TEST_CASE("map_crud_operations_stack", "[execution_context]")
 {
     _ebpf_core_initializer core;
-    ebpf_map_definition_in_memory_t map_definition{
-        sizeof(ebpf_map_definition_in_memory_t), BPF_MAP_TYPE_STACK, 0, sizeof(uint32_t), 10};
+    ebpf_map_definition_in_memory_t map_definition{BPF_MAP_TYPE_STACK, 0, sizeof(uint32_t), 10};
     map_ptr map;
     {
         ebpf_map_t* local_map;
@@ -540,8 +540,7 @@ TEST_CASE("program", "[execution_context]")
         program.reset(local_program);
     }
 
-    ebpf_map_definition_in_memory_t map_definition{
-        sizeof(ebpf_map_definition_in_memory_t), BPF_MAP_TYPE_HASH, sizeof(uint32_t), sizeof(uint64_t), 10};
+    ebpf_map_definition_in_memory_t map_definition{BPF_MAP_TYPE_HASH, sizeof(uint32_t), sizeof(uint64_t), 10};
     map_ptr map;
     {
         ebpf_map_t* local_map;
@@ -555,7 +554,8 @@ TEST_CASE("program", "[execution_context]")
     const ebpf_utf8_string_t section_name{(uint8_t*)("bar"), 3};
     program_info_provider_t program_info_provider(EBPF_PROGRAM_TYPE_BIND);
 
-    const ebpf_program_parameters_t program_parameters{EBPF_PROGRAM_TYPE_BIND, program_name, section_name};
+    const ebpf_program_parameters_t program_parameters{
+        EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND, program_name, section_name};
     ebpf_program_info_t* program_info;
 
     REQUIRE(ebpf_program_initialize(program.get(), &program_parameters) == EBPF_SUCCESS);
@@ -591,7 +591,8 @@ TEST_CASE("program", "[execution_context]")
 
     // Size of the actual function is unknown, but we know the allocation is on page granularity.
     REQUIRE(
-        ebpf_program_load_code(program.get(), EBPF_CODE_NATIVE, reinterpret_cast<uint8_t*>(test_function), PAGE_SIZE) ==
+        ebpf_program_load_code(
+            program.get(), EBPF_CODE_JIT, nullptr, reinterpret_cast<uint8_t*>(test_function), PAGE_SIZE) ==
         EBPF_SUCCESS);
     uint32_t result = 0;
     bind_md_t ctx{0};
@@ -625,12 +626,12 @@ TEST_CASE("name size", "[execution_context]")
     const ebpf_utf8_string_t oversize_name{
         (uint8_t*)("a234567890123456789012345678901234567890123456789012345678901234"), 64};
     const ebpf_utf8_string_t section_name{(uint8_t*)("bar"), 3};
-    const ebpf_program_parameters_t program_parameters{EBPF_PROGRAM_TYPE_BIND, oversize_name, section_name};
+    const ebpf_program_parameters_t program_parameters{
+        EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND, oversize_name, section_name};
 
     REQUIRE(ebpf_program_initialize(program.get(), &program_parameters) == EBPF_INVALID_ARGUMENT);
 
-    ebpf_map_definition_in_memory_t map_definition{
-        sizeof(ebpf_map_definition_in_memory_t), BPF_MAP_TYPE_HASH, sizeof(uint32_t), sizeof(uint64_t), 10};
+    ebpf_map_definition_in_memory_t map_definition{BPF_MAP_TYPE_HASH, sizeof(uint32_t), sizeof(uint64_t), 10};
     ebpf_map_t* local_map;
     REQUIRE(
         ebpf_map_create(&oversize_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) ==
@@ -662,8 +663,7 @@ TEST_CASE("test-csum-diff", "[execution_context]")
 TEST_CASE("ring_buffer_async_query", "[execution_context]")
 {
     _ebpf_core_initializer core;
-    ebpf_map_definition_in_memory_t map_definition{
-        sizeof(ebpf_map_definition_in_memory_t), BPF_MAP_TYPE_RINGBUF, 0, 0, 64 * 1024};
+    ebpf_map_definition_in_memory_t map_definition{BPF_MAP_TYPE_RINGBUF, 0, 0, 64 * 1024};
     map_ptr map;
     {
         ebpf_map_t* local_map;

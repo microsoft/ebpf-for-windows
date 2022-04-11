@@ -3,6 +3,7 @@
 
 #include <wdm.h>
 #include "net_ebpf_ext_hook_provider.h"
+#include "ebpf_extension_uuids.h"
 
 /**
  * @brief Pointer to function to invoke the eBPF program associated with the hook NPI client.
@@ -59,9 +60,10 @@ typedef struct _net_ebpf_extension_hook_provider
     net_ebpf_extension_hook_execution_t execution_type;       ///< Hook execution type (PASSIVE or DISPATCH).
     EX_PUSH_LOCK lock;                                        ///< Lock for synchronization.
     net_ebpf_extension_hook_on_client_attach attach_callback; /*!< Pointer to hook specific callback to be invoked
-                                                                  when a client attaches. */
+                                                              when a client attaches. */
     net_ebpf_extension_hook_on_client_detach detach_callback; /*!< Pointer to hook specific callback to be invoked
-                                                                  when a client detaches. */
+                                                              when a client detaches. */
+    const void* custom_data; ///< Opaque pointer to hook specific data associated for this provider.
     _Guarded_by_(lock)
         LIST_ENTRY attached_clients_list; ///< Linked list of hook NPI clients that are attached to this provider.
 } net_ebpf_extension_hook_provider_t;
@@ -218,6 +220,12 @@ net_ebpf_extension_hook_client_get_provider_data(_In_ const net_ebpf_extension_h
     return hook_client->provider_data;
 }
 
+const void*
+net_ebpf_extension_hook_provider_get_custom_data(_In_ const net_ebpf_extension_hook_provider_t* provider_context)
+{
+    return provider_context->custom_data;
+}
+
 ebpf_result_t
 net_ebpf_extension_hook_invoke_program(
     _In_ const net_ebpf_extension_hook_client_t* client, _In_ void* context, _Out_ uint32_t* result)
@@ -226,6 +234,58 @@ net_ebpf_extension_hook_invoke_program(
     const void* client_binding_context = client->client_binding_context;
 
     return invoke_program(client_binding_context, context, result);
+}
+
+ebpf_result_t
+net_ebpf_extension_hook_check_attach_parameter(
+    size_t attach_parameter_size,
+    _In_reads_(attach_parameter_size) const void* attach_parameter,
+    _In_reads_(attach_parameter_size) const void* wild_card_attach_parameter,
+    _In_ net_ebpf_extension_hook_provider_t* provider_context)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+    bool using_wild_card_attach_parameter = FALSE;
+    bool lock_held = FALSE;
+
+    if (memcmp(attach_parameter, wild_card_attach_parameter, attach_parameter_size) == 0)
+        using_wild_card_attach_parameter = TRUE;
+
+    ExAcquirePushLockShared(&provider_context->lock);
+    lock_held = TRUE;
+    if (using_wild_card_attach_parameter) {
+        // Client requested wild card attach parameter. This will only be allowed if there are no other clients
+        // attached.
+        if (!IsListEmpty(&provider_context->attached_clients_list)) {
+            result = EBPF_ACCESS_DENIED;
+            goto Exit;
+        }
+    } else {
+        // Ensure there are no other clients with wild card attach parameter or with the same attach parameter as the
+        // requesting client.
+
+        LIST_ENTRY* link = provider_context->attached_clients_list.Flink;
+        while (link != &provider_context->attached_clients_list) {
+            net_ebpf_extension_hook_client_t* next_client =
+                (net_ebpf_extension_hook_client_t*)CONTAINING_RECORD(link, net_ebpf_extension_hook_client_t, link);
+
+            const ebpf_extension_data_t* next_client_data = next_client->client_data;
+            void* next_client_attach_parameter =
+                (next_client_data->data == NULL) ? wild_card_attach_parameter : next_client_data->data;
+            if (((memcmp(wild_card_attach_parameter, next_client_attach_parameter, attach_parameter_size) == 0)) ||
+                (memcmp(attach_parameter, next_client_attach_parameter, attach_parameter_size) == 0)) {
+                result = EBPF_ACCESS_DENIED;
+                goto Exit;
+            }
+
+            link = link->Flink;
+        }
+    }
+
+Exit:
+    if (lock_held)
+        ExReleasePushLockShared(&provider_context->lock);
+
+    return result;
 }
 
 /**
@@ -289,7 +349,7 @@ net_ebpf_extension_hook_provider_attach_client(
     hook_client->execution_type = local_provider_context->execution_type;
 
     // Invoke the hook specific callback to process client attach.
-    result = local_provider_context->attach_callback(hook_client);
+    result = local_provider_context->attach_callback(hook_client, local_provider_context);
 
     if (result == EBPF_SUCCESS) {
         status = _ebpf_ext_attach_init_rundown(hook_client);
@@ -371,6 +431,7 @@ net_ebpf_extension_hook_provider_register(
     _In_ const net_ebpf_extension_hook_provider_parameters_t* parameters,
     _In_ net_ebpf_extension_hook_on_client_attach attach_callback,
     _In_ net_ebpf_extension_hook_on_client_detach detach_callback,
+    _In_opt_ const void* custom_data,
     _Outptr_ net_ebpf_extension_hook_provider_t** provider_context)
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -392,14 +453,14 @@ net_ebpf_extension_hook_provider_register(
     characteristics->ProviderAttachClient = net_ebpf_extension_hook_provider_attach_client;
     characteristics->ProviderDetachClient = net_ebpf_extension_hook_provider_detach_client;
     characteristics->ProviderRegistrationInstance.Size = sizeof(NPI_REGISTRATION_INSTANCE);
-    // TODO (issue: #772): NpiId should be a well known GUID. ModuleId should be attach type.
-    characteristics->ProviderRegistrationInstance.NpiId = parameters->attach_type;
-    characteristics->ProviderRegistrationInstance.ModuleId = parameters->provider_module_id;
+    characteristics->ProviderRegistrationInstance.NpiId = &EBPF_HOOK_EXTENSION_IID;
     characteristics->ProviderRegistrationInstance.NpiSpecificCharacteristics = parameters->provider_data;
+    characteristics->ProviderRegistrationInstance.ModuleId = parameters->provider_module_id;
 
     local_provider_context->execution_type = parameters->execution_type;
     local_provider_context->attach_callback = attach_callback;
     local_provider_context->detach_callback = detach_callback;
+    local_provider_context->custom_data = custom_data;
 
     status = NmrRegisterProvider(characteristics, local_provider_context, &local_provider_context->nmr_provider_handle);
     if (!NT_SUCCESS(status))

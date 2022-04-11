@@ -177,10 +177,10 @@ TEST_CASE("show verification droppacket_unsafe.o", "[netsh][verification]")
                   "\n"
                   "Verification report:\n"
                   "\n"
-                  "; ./tests/sample/droppacket_unsafe.c:29\n"
+                  "; ./tests/sample/droppacket_unsafe.c:27\n"
                   ";     if (ip_header->Protocol == IPPROTO_UDP) {\n"
                   "2: Upper bound must be at most packet_size (valid_access(r1.offset+9, width=1))\n"
-                  "; ./tests/sample/droppacket_unsafe.c:30\n"
+                  "; ./tests/sample/droppacket_unsafe.c:28\n"
                   ";         if (ntohs(udp_header->length) <= sizeof(UDP_HEADER)) {\n"
                   "4: Upper bound must be at most packet_size (valid_access(r1.offset+24, width=2))\n"
                   "\n"
@@ -202,7 +202,7 @@ TEST_CASE("show verification printk_unsafe.o", "[netsh][verification]")
                   "\n"
                   "Verification report:\n"
                   "\n"
-                  "; ./tests/sample/printk_unsafe.c:13\n"
+                  "; ./tests/sample/printk_unsafe.c:12\n"
                   ";     bpf_printk(\"ctx: %u\", (uint64_t)ctx);\n"
                   "7: r3.type == number\n"
                   "\n"
@@ -378,7 +378,7 @@ TEST_CASE("set program", "[netsh][programs]")
     REQUIRE(UuidToStringW(&EBPF_ATTACH_TYPE_XDP, &attach_type_string) == 0);
 
     // Attach the program.
-    output = _run_netsh_command(handle_ebpf_set_program, L"196609", (PCWSTR)attach_type_string, nullptr, &result);
+    output = _run_netsh_command(handle_ebpf_set_program, L"196609", L"xdp", nullptr, &result);
     REQUIRE(output == "");
     REQUIRE(result == ERROR_OKAY);
 

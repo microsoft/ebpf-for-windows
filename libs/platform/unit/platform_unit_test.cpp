@@ -291,11 +291,13 @@ TEST_CASE("extension_test", "[platform]")
 
     auto client_function = []() { return EBPF_SUCCESS; };
     auto provider_function = []() { return EBPF_SUCCESS; };
-    auto provider_attach = [](void* context,
+    auto provider_attach = [](ebpf_handle_t client_binding_handle,
+                              void* context,
                               const GUID* client_id,
                               void* client_binding_context,
                               const ebpf_extension_data_t* client_data,
                               const ebpf_extension_dispatch_table_t* client_dispatch_table) {
+        UNREFERENCED_PARAMETER(client_binding_handle);
         UNREFERENCED_PARAMETER(context);
         UNREFERENCED_PARAMETER(client_id);
         UNREFERENCED_PARAMETER(client_data);
@@ -326,13 +328,15 @@ TEST_CASE("extension_test", "[platform]")
     ebpf_guid_create(&interface_id);
     int callback_context = 0;
     int client_binding_context = 0;
-    GUID module_id = {};
-    REQUIRE(ebpf_guid_create(&module_id) == EBPF_SUCCESS);
+    GUID client_module_id = {};
+    GUID provider_module_id = {};
+    REQUIRE(ebpf_guid_create(&client_module_id) == EBPF_SUCCESS);
+    REQUIRE(ebpf_guid_create(&provider_module_id) == EBPF_SUCCESS);
     REQUIRE(
         ebpf_provider_load(
             &provider_context,
             &interface_id,
-            &module_id,
+            &provider_module_id,
             nullptr,
             &provider_data,
             &provider_dispatch_table,
@@ -340,12 +344,12 @@ TEST_CASE("extension_test", "[platform]")
             provider_attach,
             provider_detach) == EBPF_SUCCESS);
 
-    REQUIRE(ebpf_guid_create(&module_id) == EBPF_SUCCESS);
     REQUIRE(
         ebpf_extension_load(
             &client_context,
             &interface_id,
-            &module_id,
+            &provider_module_id,
+            &client_module_id,
             &client_binding_context,
             &client_data,
             &client_dispatch_table,
@@ -528,7 +532,6 @@ TEST_CASE("serialize_map_test", "[platform]")
 
     for (int i = 0; i < map_count; i++) {
         ebpf_map_info_internal_t* map_info = &internal_map_info_array[i];
-        map_info->definition.size = (i + 1) * 32;
         map_info->definition.type = static_cast<ebpf_map_type_t>(i % (BPF_MAP_TYPE_ARRAY + 1));
         map_info->definition.key_size = i + 1;
         map_info->definition.value_size = (i + 1) * (i + 1);

@@ -73,8 +73,9 @@ ebpf_handle_close(ebpf_handle_t handle)
     // High volume call - Skip entry/exit logging.
     ebpf_lock_state_t state;
     ebpf_result_t return_value;
+
     state = ebpf_lock_lock(&_ebpf_handle_table_lock);
-    if (_ebpf_handle_table[handle] != NULL) {
+    if (((size_t)handle < EBPF_COUNT_OF(_ebpf_handle_table)) && _ebpf_handle_table[handle] != NULL) {
         ebpf_object_release_reference(_ebpf_handle_table[handle]);
         _ebpf_handle_table[handle] = NULL;
         return_value = EBPF_SUCCESS;
@@ -84,8 +85,8 @@ ebpf_handle_close(ebpf_handle_t handle)
     return return_value;
 }
 
-ebpf_result_t
-ebpf_reference_object_by_handle(ebpf_handle_t handle, ebpf_object_type_t object_type, ebpf_core_object_t** object)
+_IRQL_requires_max_(PASSIVE_LEVEL) ebpf_result_t ebpf_reference_object_by_handle(
+    ebpf_handle_t handle, ebpf_object_type_t object_type, _Outptr_ ebpf_core_object_t** object)
 {
     ebpf_result_t return_value;
     ebpf_lock_state_t state;

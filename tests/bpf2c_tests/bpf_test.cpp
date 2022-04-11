@@ -37,18 +37,8 @@ memfrob(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)
 };
 
 static uint64_t
-trash_registers(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)
+no_op(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)
 {
-    /* Overwrite all caller-save registers */
-    asm("mov $0xf0, %rax;"
-        "mov $0xf1, %rcx;"
-        "mov $0xf2, %rdx;"
-        "mov $0xf3, %rsi;"
-        "mov $0xf4, %rdi;"
-        "mov $0xf5, %r8;"
-        "mov $0xf6, %r9;"
-        "mov $0xf7, %r10;"
-        "mov $0xf8, %r11;");
     return 0;
 }
 
@@ -73,7 +63,7 @@ unwind(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)
 std::map<uint32_t, uint64_t (*)(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5)> helper_functions = {
     {0, gather_bytes},
     {1, memfrob},
-    {2, trash_registers},
+    {2, no_op},
     {3, sqrti},
     {4, strcmp_ext},
     {5, unwind},
@@ -112,7 +102,6 @@ main(int argc, char** argv)
     program_entry_t* program_entries = nullptr;
     size_t program_entry_count = 0;
 
-    C_NAME.helpers(&helper_function_entries, &helper_function_entry_count);
     C_NAME.maps(&map_entries, &map_entry_count);
     C_NAME.programs(&program_entries, &program_entry_count);
 
@@ -121,18 +110,23 @@ main(int argc, char** argv)
         return -1;
     }
 
-    for (size_t index = 0; index < helper_function_entry_count; index++) {
-        if (helper_function_entries[index].helper_id == -1) {
-            std::cout << "bpf_test doesn't support resolving helpers by name yet." << std::endl;
-            return -1;
-        }
-        if (helper_functions.find(helper_function_entries[index].helper_id) == helper_functions.end()) {
-            std::cout << "bpf_test doesn't support helper id=" << helper_function_entries[index].helper_id << std::endl;
-            return -1;
-        } else {
-            helper_function_entries[index].address = helper_functions[helper_function_entries[index].helper_id];
-            if (helper_function_entries[index].address == unwind) {
-                helper_function_entries[index].tail_call = true;
+    for (size_t i = 0; i < program_entry_count; i++) {
+        helper_function_entries = program_entries[i].helpers;
+        helper_function_entry_count = program_entries[i].helper_count;
+
+        for (size_t j = 0; j < helper_function_entry_count; j++) {
+            if (helper_function_entries[j].helper_id == -1) {
+                std::cout << "bpf_test doesn't support resolving helpers by name yet." << std::endl;
+                return -1;
+            }
+            if (helper_functions.find(helper_function_entries[j].helper_id) == helper_functions.end()) {
+                std::cout << "bpf_test doesn't support helper id=" << helper_function_entries[j].helper_id << std::endl;
+                return -1;
+            } else {
+                helper_function_entries[j].address = helper_functions[helper_function_entries[j].helper_id];
+                if (helper_function_entries[j].address == unwind) {
+                    helper_function_entries[j].tail_call = true;
+                }
             }
         }
     }

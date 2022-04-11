@@ -173,8 +173,10 @@ handle_ebpf_add_program(
         &error_message);
     if (result != EBPF_SUCCESS) {
         std::cerr << "error " << result << ": could not load program" << std::endl;
-        std::cerr << error_message << std::endl;
-        ebpf_free_string(error_message);
+        if (error_message != nullptr) {
+            std::cerr << error_message << std::endl;
+            ebpf_free_string(error_message);
+        }
         return ERROR_SUPPRESS_OUTPUT;
     }
     // Program loaded. Populate the unloader with object pointer and program fd, such that
@@ -187,8 +189,7 @@ handle_ebpf_add_program(
     void* attach_parameters = nullptr;
     size_t attach_parameters_size = 0;
     if (interface_parameter != nullptr) {
-        ebpf_result_t result =
-            _process_interface_parameter(interface_parameter, bpf_program__get_type(program), &if_index);
+        result = _process_interface_parameter(interface_parameter, bpf_program__get_type(program), &if_index);
         if (result == EBPF_SUCCESS) {
             attach_parameters = &if_index;
             attach_parameters_size = sizeof(if_index);
@@ -384,9 +385,9 @@ _ebpf_program_attach_by_id(ebpf_id_t program_id, ebpf_attach_type_t attach_type,
 
     struct bpf_link* link;
     if (result == EBPF_SUCCESS) {
-        ebpf_result_t result =
+        ebpf_result_t local_result =
             ebpf_program_attach_by_fd(program_fd, &attach_type, attach_parameters, attach_parameters_size, &link);
-        if (result == EBPF_SUCCESS)
+        if (local_result == EBPF_SUCCESS)
             ebpf_link_close(link);
     }
 
@@ -454,7 +455,7 @@ handle_ebpf_set_program(
         3, // Two required tags plus at least one optional tag.
         tag_type);
 
-    uint32_t id;
+    uint32_t id = 0;
     std::string pinpath;
     ebpf_attach_type_t attach_type = EBPF_ATTACH_TYPE_UNSPECIFIED;
     for (int i = 0; (status == NO_ERROR) && ((i + current_index) < argc); i++) {
@@ -700,7 +701,17 @@ handle_ebpf_show_programs(
 
         if (filename.empty() || strcmp(program_file_name, filename.c_str()) == 0) {
             if (section.empty() || strcmp(program_section_name, section.c_str()) == 0) {
-                execution_type_name = program_execution_type == EBPF_EXECUTION_JIT ? "JIT" : "INTERPRET";
+                switch (program_execution_type) {
+                case EBPF_EXECUTION_JIT:
+                    execution_type_name = "JIT";
+                    break;
+                case EBPF_EXECUTION_INTERPRET:
+                    execution_type_name = "INTERPRET";
+                    break;
+                default:
+                    execution_type_name = "NATIVE";
+                    break;
+                }
                 const char* program_type_name = ebpf_get_program_type_name(&info.type_uuid);
 
                 if (level == VL_NORMAL) {

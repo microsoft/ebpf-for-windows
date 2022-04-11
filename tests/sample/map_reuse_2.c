@@ -7,10 +7,9 @@
 // this passes the checker
 
 #include "bpf_helpers.h"
-#include "ebpf.h"
 
 SEC("maps")
-struct _ebpf_map_definition_in_file outer_map = {
+struct bpf_map_def outer_map = {
     .type = BPF_MAP_TYPE_HASH_OF_MAPS,
     .key_size = sizeof(uint32_t),
     .value_size = sizeof(uint32_t),
@@ -20,7 +19,7 @@ struct _ebpf_map_definition_in_file outer_map = {
     .inner_map_idx = 1}; // (uint32_t)&inner_map
 
 SEC("maps")
-struct _ebpf_map_definition_in_file inner_map = {
+struct bpf_map_def inner_map = {
     .type = BPF_MAP_TYPE_ARRAY,
     .key_size = sizeof(uint32_t),
     .value_size = sizeof(uint32_t),
@@ -28,8 +27,7 @@ struct _ebpf_map_definition_in_file inner_map = {
     .pinning = PIN_GLOBAL_NS};
 
 SEC("maps")
-ebpf_map_definition_in_file_t port_map = {
-    .size = sizeof(ebpf_map_definition_in_file_t),
+struct bpf_map_def port_map = {
     .type = BPF_MAP_TYPE_ARRAY,
     .key_size = sizeof(uint32_t),
     .value_size = sizeof(uint32_t),

@@ -30,10 +30,9 @@
 #include "xdp_tests_common.h"
 
 namespace ebpf {
-#pragma warning(push)
-#pragma warning(disable : 4201) // nonstandard extension used : nameless struct/union
-#include "../sample/ebpf.h"
-#pragma warning(pop)
+#include "net/if_ether.h"
+#include "net/ip.h"
+#include "net/udp.h"
 }; // namespace ebpf
 
 std::vector<uint8_t>
@@ -492,8 +491,9 @@ bindmonitor_test(ebpf_execution_type_t execution_type)
 
     program_info_provider_t bind_program_info(EBPF_PROGRAM_TYPE_BIND);
 
-    result = ebpf_program_load(
-        SAMPLE_PATH "bindmonitor.o", nullptr, nullptr, execution_type, &object, &program_fd, &error_message);
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "bindmonitor_um.dll" : "bindmonitor.o");
+
+    result = ebpf_program_load(file_name, nullptr, nullptr, execution_type, &object, &program_fd, &error_message);
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
@@ -555,6 +555,119 @@ bindmonitor_test(ebpf_execution_type_t execution_type)
 
     hook.detach_link(link);
     hook.close_link(link);
+
+    bpf_object__close(object);
+}
+
+void
+bindmonitor_tailcall_test(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+
+    const char* error_message = nullptr;
+    uint64_t fake_pid = 12345;
+    ebpf_result_t result;
+    bpf_object* object = nullptr;
+    bpf_link* link = nullptr;
+    fd_t program_fd;
+
+    program_info_provider_t bind_program_info(EBPF_PROGRAM_TYPE_BIND);
+
+    const char* file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "bindmonitor_tailcall_um.dll" : "bindmonitor_tailcall.o");
+    result = ebpf_program_load(file_name, nullptr, nullptr, execution_type, &object, &program_fd, &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free_string(error_message);
+        error_message = nullptr;
+    }
+    REQUIRE(result == EBPF_SUCCESS);
+    fd_t limit_map_fd = bpf_object__find_map_fd_by_name(object, "limits_map");
+    REQUIRE(limit_map_fd > 0);
+    fd_t process_map_fd = bpf_object__find_map_fd_by_name(object, "process_map");
+    REQUIRE(process_map_fd > 0);
+
+    // Setup tail calls.
+    struct bpf_program* callee0 = bpf_object__find_program_by_name(object, "BindMonitor_Callee0");
+    REQUIRE(callee0 != nullptr);
+    fd_t callee0_fd = bpf_program__fd(callee0);
+    REQUIRE(callee0_fd > 0);
+
+    struct bpf_program* callee1 = bpf_object__find_program_by_name(object, "BindMonitor_Callee1");
+    REQUIRE(callee1 != nullptr);
+    fd_t callee1_fd = bpf_program__fd(callee1);
+    REQUIRE(callee1_fd > 0);
+
+    fd_t prog_map_fd = bpf_object__find_map_fd_by_name(object, "prog_array_map");
+    REQUIRE(prog_map_fd > 0);
+
+    uint32_t index = 0;
+    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &callee0_fd, 0) == 0);
+    index = 1;
+    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &callee1_fd, 0) == 0);
+
+    // Test map-in-maps.
+    struct bpf_map* outer_map = bpf_object__find_map_by_name(object, "dummy_outer_map");
+    REQUIRE(outer_map != nullptr);
+
+    int outer_map_fd = bpf_map__fd(outer_map);
+    REQUIRE(outer_map_fd > 0);
+
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
+
+    uint32_t ifindex = 0;
+    REQUIRE(hook.attach_link(program_fd, &ifindex, sizeof(ifindex), &link) == EBPF_SUCCESS);
+
+    // Apply policy of maximum 2 binds per process
+    set_bind_limit(limit_map_fd, 2);
+
+    std::function<ebpf_result_t(void*, int*)> invoke = [&hook](void* context, int* result) -> ebpf_result_t {
+        return hook.fire(context, result);
+    };
+    // Bind first port - success
+    REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_PERMIT);
+    REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
+
+    // Bind second port - success
+    REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_PERMIT);
+    REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 2);
+
+    // Bind third port - blocked
+    REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_DENY);
+    REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 2);
+
+    // Unbind second port
+    emulate_unbind(invoke, fake_pid, "fake_app_1");
+    REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
+
+    // Unbind first port
+    emulate_unbind(invoke, fake_pid, "fake_app_1");
+    REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 0);
+
+    // Bind from two apps to test enumeration
+    REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_PERMIT);
+    REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
+
+    fake_pid = 54321;
+    REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_2") == BIND_PERMIT);
+    REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
+
+    uint64_t pid;
+    REQUIRE(bpf_map_get_next_key(process_map_fd, NULL, &pid) == 0);
+    REQUIRE(pid != 0);
+    REQUIRE(bpf_map_get_next_key(process_map_fd, &pid, &pid) == 0);
+    REQUIRE(pid != 0);
+    REQUIRE(bpf_map_get_next_key(process_map_fd, &pid, &pid) < 0);
+    REQUIRE(errno == ENOENT);
+
+    hook.detach_link(link);
+    hook.close_link(link);
+
+    index = 0;
+    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0) == 0);
+    index = 1;
+    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0) == 0);
 
     bpf_object__close(object);
 }
@@ -687,6 +800,9 @@ map_test(ebpf_execution_type_t execution_type)
 TEST_CASE("droppacket-jit", "[end_to_end]") { droppacket_test(EBPF_EXECUTION_JIT); }
 TEST_CASE("divide_by_zero_jit", "[end_to_end]") { divide_by_zero_test_um(EBPF_EXECUTION_JIT); }
 TEST_CASE("bindmonitor-jit", "[end_to_end]") { bindmonitor_test(EBPF_EXECUTION_JIT); }
+TEST_CASE("bindmonitor-native", "[end_to_end]") { bindmonitor_test(EBPF_EXECUTION_NATIVE); }
+TEST_CASE("bindmonitor-tailcall-jit", "[end_to_end]") { bindmonitor_tailcall_test(EBPF_EXECUTION_JIT); }
+TEST_CASE("bindmonitor-tailcall-native", "[end_to_end]") { bindmonitor_tailcall_test(EBPF_EXECUTION_NATIVE); }
 TEST_CASE("bindmonitor-ringbuf-jit", "[end_to_end]") { bindmonitor_ring_buffer_test(EBPF_EXECUTION_JIT); }
 TEST_CASE("droppacket-interpret", "[end_to_end]") { droppacket_test(EBPF_EXECUTION_INTERPRET); }
 TEST_CASE("divide_by_zero_interpret", "[end_to_end]") { divide_by_zero_test_um(EBPF_EXECUTION_INTERPRET); }
@@ -753,6 +869,64 @@ TEST_CASE("verify section", "[end_to_end]")
     REQUIRE(report != nullptr);
     ebpf_free_string(report);
 }
+
+static void
+_cgroup_sock_addr_load_test(
+    _In_z_ const char* file,
+    _In_z_ const char* name,
+    ebpf_attach_type_t& attach_type,
+    ebpf_execution_type_t execution_type)
+{
+    ebpf_result_t result;
+    const char* error_message = nullptr;
+    bpf_object* object = nullptr;
+    fd_t program_fd;
+
+    _test_helper_end_to_end test_helper;
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, attach_type);
+    program_info_provider_t program_info(EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR);
+
+    result = ebpf_program_load(file, nullptr, nullptr, execution_type, &object, &program_fd, &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free_string(error_message);
+        error_message = nullptr;
+    }
+
+    REQUIRE(result == EBPF_SUCCESS);
+
+    bpf_program* program = bpf_object__find_program_by_name(object, name);
+    REQUIRE(program != nullptr);
+
+    uint32_t compartment_id = 0;
+    REQUIRE(hook.attach(program, &compartment_id, sizeof(compartment_id)) == EBPF_SUCCESS);
+
+    hook.detach();
+
+    bpf_object__close(object);
+}
+
+#define DECLARE_CGROUP_SOCK_ADDR_LOAD_TEST(file, name, attach_type, execution_type)                          \
+    TEST_CASE("cgroup_sockaddr_load_test_" #name "_" #attach_type "_" #execution_type, "[cgroup_sock_addr]") \
+    {                                                                                                        \
+        _cgroup_sock_addr_load_test(file, name, attach_type, execution_type);                                \
+    }
+
+DECLARE_CGROUP_SOCK_ADDR_LOAD_TEST(
+    SAMPLE_PATH "cgroup_sock_addr.o", "authorize_connect4", EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT, EBPF_EXECUTION_JIT);
+DECLARE_CGROUP_SOCK_ADDR_LOAD_TEST(
+    SAMPLE_PATH "cgroup_sock_addr.o", "authorize_connect6", EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT, EBPF_EXECUTION_JIT);
+DECLARE_CGROUP_SOCK_ADDR_LOAD_TEST(
+    SAMPLE_PATH "cgroup_sock_addr.o",
+    "authorize_recv_accept4",
+    EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT,
+    EBPF_EXECUTION_JIT);
+DECLARE_CGROUP_SOCK_ADDR_LOAD_TEST(
+    SAMPLE_PATH "cgroup_sock_addr.o",
+    "authorize_recv_accept6",
+    EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT,
+    EBPF_EXECUTION_JIT);
 
 TEST_CASE("verify_test0", "[sample_extension]")
 {

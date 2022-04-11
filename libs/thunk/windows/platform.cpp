@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #define WIN32_LEAN_AND_MEAN // Exclude rarely-used stuff from Windows headers
+#include <string>
 #include <Windows.h>
 #include <io.h>
 #include <stdint.h>
@@ -128,4 +129,171 @@ _close(int file_descriptor)
     _invalid_parameter_suppression suppress;
     return ::_close(file_descriptor);
 }
+
+bool
+_is_native_program(_In_z_ const char* file_name)
+{
+    std::string file_name_string(file_name);
+    std::string file_extension = file_name_string.substr(file_name_string.find_last_of(".") + 1);
+    if (file_extension == "sys") {
+        return true;
+    }
+
+    return false;
+}
+
+uint32_t
+_create_registry_key(HKEY root_key, _In_z_ const wchar_t* path)
+{
+    HKEY key = nullptr;
+    uint32_t error;
+    error = RegCreateKeyEx(root_key, path, 0, NULL, 0, KEY_WRITE | DELETE | KEY_READ, NULL, &key, NULL);
+
+    if (key != nullptr) {
+        RegCloseKey(key);
+    }
+
+    return error;
+}
+
+uint32_t
+_update_registry_value(
+    HKEY root_key,
+    _In_z_ const wchar_t* sub_key,
+    DWORD type,
+    _In_z_ const wchar_t* value_name,
+    _In_reads_bytes_(value_size) const void* value,
+    uint32_t value_size)
+{
+    HKEY key = nullptr;
+    uint32_t error = RegOpenKeyEx(root_key, sub_key, 0, KEY_WRITE | DELETE | KEY_READ, &key);
+    if (error != ERROR_SUCCESS) {
+        return error;
+    }
+    error = RegSetValueEx(key, value_name, 0, type, (PBYTE)value, value_size);
+    RegCloseKey(key);
+
+    return error;
+}
+
+static bool
+_check_service_state(SC_HANDLE service_handle, DWORD expected_state, _Out_ DWORD* final_state)
+{
+#define MAX_RETRY_COUNT 20
+#define WAIT_TIME_IN_MS 500
+
+    int retry_count = 0;
+    bool status = false;
+    int error;
+    SERVICE_STATUS service_status = {0};
+
+    // Query service state.
+    while (retry_count < MAX_RETRY_COUNT) {
+        if (!QueryServiceStatus(service_handle, &service_status)) {
+            error = GetLastError();
+            break;
+        } else if (service_status.dwCurrentState == expected_state) {
+            status = true;
+            break;
+        } else {
+            Sleep(WAIT_TIME_IN_MS);
+            retry_count++;
+        }
+    }
+
+    *final_state = service_status.dwCurrentState;
+    return status;
+}
+
+uint32_t
+_create_service(_In_z_ const wchar_t* service_name, _In_z_ const wchar_t* file_path, _Out_ SC_HANDLE* service_handle)
+{
+    SC_HANDLE local_service_handle = nullptr;
+    SC_HANDLE scm_handle = nullptr;
+    int error = ERROR_SUCCESS;
+    int count;
+    *service_handle = nullptr;
+    DWORD service_type = SERVICE_KERNEL_DRIVER;
+
+    scm_handle = OpenSCManager(nullptr, nullptr, SC_MANAGER_ALL_ACCESS);
+    if (scm_handle == nullptr) {
+        return GetLastError();
+    }
+
+    WCHAR full_file_path[MAX_PATH] = {0};
+    count = GetFullPathName(file_path, MAX_PATH, full_file_path, nullptr);
+    if (count == 0) {
+        error = GetLastError();
+        goto Done;
+    }
+
+    // Install the driver service.
+    local_service_handle = CreateService(
+        scm_handle,           // SCM database
+        service_name,         // name of service
+        service_name,         // service name to display
+        SERVICE_ALL_ACCESS,   // desired access
+        service_type,         // service type
+        SERVICE_DEMAND_START, // start type
+        SERVICE_ERROR_NORMAL, // error control type
+        full_file_path,       // path to service's binary
+        nullptr,              // no load ordering group
+        nullptr,              // no tag identifier
+        nullptr,              // no dependencies
+        nullptr,              // No service start name
+        nullptr);             // no password
+
+    if (local_service_handle == nullptr) {
+        error = GetLastError();
+        goto Done;
+    }
+    *service_handle = local_service_handle;
+
+Done:
+    if (scm_handle != nullptr) {
+        CloseServiceHandle(scm_handle);
+    }
+    return error;
+}
+
+uint32_t
+_delete_service(SC_HANDLE service_handle)
+{
+    if (!service_handle) {
+        return EBPF_SUCCESS;
+    }
+
+    int error = ERROR_SUCCESS;
+    if (!DeleteService(service_handle)) {
+        error = GetLastError();
+    }
+
+    CloseServiceHandle(service_handle);
+    return error;
+}
+
+uint32_t
+_stop_service(SC_HANDLE service_handle)
+{
+    SERVICE_STATUS status;
+    bool service_stopped = false;
+    DWORD service_state;
+    int error = ERROR_SUCCESS;
+
+    if (service_handle == nullptr) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    if (!ControlService(service_handle, SERVICE_CONTROL_STOP, &status)) {
+        return GetLastError();
+    }
+
+    service_stopped = _check_service_state(service_handle, SERVICE_STOPPED, &service_state);
+    if (!service_stopped) {
+        error = ERROR_SERVICE_REQUEST_TIMEOUT;
+    }
+
+    return error;
+}
+
 } // namespace Platform

@@ -103,3 +103,67 @@ typedef enum _bind_action
  */
 typedef bind_action_t
 bind_hook_t(bind_md_t* context);
+
+//
+// CGROUP_SOCK_ADDR.
+//
+
+#define BPF_SOCK_ADDR_VERDICT_REJECT 0
+#define BPF_SOCK_ADDR_VERDICT_PROCEED 1
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4201)
+#endif
+/**
+ *  @brief Data structure used as context for BPF_PROG_TYPE_CGROUP_SOCK_ADDR program type.
+ */
+typedef struct bpf_sock_addr
+{
+    uint32_t family; ///< IP address family.
+    struct
+    {
+        union
+        {
+            uint32_t msg_src_ip4;
+            uint32_t msg_src_ip6[4];
+        };                     ///< Source IP address in network byte order.
+                               ///< Local for ingress, remote for egress.
+        uint16_t msg_src_port; ///< Source port in network byte order.
+    };
+    struct
+    {
+        union
+        {
+            uint32_t user_ip4;
+            uint32_t user_ip6[4];
+        };                  ///< Destination IP address in network byte order.
+                            ///< Local for egress, remote for ingress.
+        uint16_t user_port; ///< Destination port in network byte order.
+    };
+    uint32_t protocol;       ///< IP protocol.
+    uint32_t compartment_id; ///< Network compartment Id.
+} bpf_sock_addr_t;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+/**
+ * @brief Handle socket operation. Currently supports ingress/egress connection initialization.
+ *
+ * Program type: \ref EBPF_PROGRAM_TYPE_BIND
+ *
+ * Attach type(s):
+ *  \ref EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT
+ *  \ref EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT
+ *  \ref EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT
+ *  \ref EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT
+ *
+ * @param[in] context \ref bpf_sock_addr_t
+ * @retval BPF_SOCK_ADDR_VERDICT_PROCEED Block the socket operation.
+ * @retval BPF_SOCK_ADDR_VERDICT_REJECT Allow the socket operation.
+ *
+ * Any other return value other than the two mentioned above is treated as BPF_SOCK_ADDR_VERDICT_REJECT.
+ */
+typedef int
+sock_addr_hook_t(bpf_sock_addr_t* context);

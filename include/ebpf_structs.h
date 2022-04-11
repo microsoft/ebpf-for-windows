@@ -9,7 +9,6 @@
 #if !defined(NO_CRT)
 #include <stdint.h>
 #endif
-#include "../external/ebpf-verifier/src/ebpf_base.h"
 #include "ebpf_windows.h"
 
 typedef enum bpf_map_type
@@ -54,7 +53,6 @@ typedef uint32_t ebpf_id_t;
  */
 typedef struct _ebpf_map_definition_in_memory
 {
-    uint32_t size;        ///< Size in bytes of the ebpf_map_definition_t structure.
     ebpf_map_type_t type; ///< Type of map.
     uint32_t key_size;    ///< Size in bytes of a map key.
     uint32_t value_size;  ///< Size in bytes of a map value.
@@ -68,7 +66,6 @@ typedef struct _ebpf_map_definition_in_memory
  */
 typedef struct _ebpf_map_definition_in_file
 {
-    uint32_t size;        ///< Size in bytes of the ebpf_map_definition_t structure.
     ebpf_map_type_t type; ///< Type of map.
     uint32_t key_size;    ///< Size in bytes of a map key.
     uint32_t value_size;  ///< Size in bytes of a map value.
@@ -117,6 +114,7 @@ enum bpf_prog_type
     BPF_PROG_TYPE_UNSPEC,
     BPF_PROG_TYPE_XDP,
     BPF_PROG_TYPE_BIND, // TODO(#333): replace with cross-platform program type
+    BPF_PROG_TYPE_CGROUP_SOCK_ADDR,
     BPF_PROG_TYPE_SAMPLE = 999
 };
 
@@ -137,6 +135,10 @@ enum bpf_attach_type
 {
     BPF_ATTACH_TYPE_UNSPEC,
     BPF_ATTACH_TYPE_XDP,
+    BPF_CGROUP_INET4_CONNECT,
+    BPF_CGROUP_INET6_CONNECT,
+    BPF_CGROUP_INET4_RECV_ACCEPT,
+    BPF_CGROUP_INET6_RECV_ACCEPT,
     __MAX_BPF_ATTACH_TYPE,
 };
 
@@ -144,8 +146,10 @@ enum bpf_attach_type
 // care what fields they have.  Applications such as bpftool on the other
 // hand depend on fields of specific names and types.
 
+#ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4201) /* nameless struct/union */
+#endif
 struct bpf_link_info
 {
     ebpf_id_t id;                          ///< Link ID.
@@ -162,7 +166,9 @@ struct bpf_link_info
         } xdp;
     };
 };
+#ifdef _MSC_VER
 #pragma warning(pop)
+#endif
 
 #define BPF_OBJ_NAME_LEN 64
 
@@ -195,13 +201,8 @@ struct bpf_prog_info
     char name[BPF_OBJ_NAME_LEN]; ///< Null-terminated program name.
 
     // Windows-specific fields.
-    ebpf_program_type_t type_uuid; ///< Program type UUID.
-    uint32_t pinned_path_count;    ///< Number of pinned paths.
-    uint32_t link_count;           ///< Number of attached links.
+    ebpf_program_type_t type_uuid;       ///< Program type UUID.
+    ebpf_attach_type_t attach_type_uuid; ///< Attach type UUID.
+    uint32_t pinned_path_count;          ///< Number of pinned paths.
+    uint32_t link_count;                 ///< Number of attached links.
 };
-
-typedef struct _ebpf_windows_program_type_data
-{
-    ebpf_program_type_t program_type_uuid; ///< Program type UUID.
-    ebpf_attach_type_t attach_type_uuid;   ///< Attach type UUID.
-} ebpf_windows_program_type_data_t;

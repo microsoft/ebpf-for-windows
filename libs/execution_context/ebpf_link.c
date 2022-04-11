@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include "ebpf_core.h"
 #include "ebpf_epoch.h"
 #include "ebpf_handle.h"
 #include "ebpf_link.h"
@@ -89,7 +90,8 @@ ebpf_link_initialize(
 
     return_value = ebpf_extension_load(
         &(link->extension_client_context),
-        &attach_type,
+        &ebpf_hook_extension_interface_id, // Load hook extension.
+        &attach_type,                      // Attach type is the expected provider module Id.
         &module_id,
         link,
         &link->client_data,

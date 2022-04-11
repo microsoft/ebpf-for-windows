@@ -596,12 +596,10 @@ const EbpfContextDescriptor g_xdp_context_descriptor = {
     EBPF_OFFSET_OF(xdp_md_t, data_end),
     EBPF_OFFSET_OF(xdp_md_t, data_meta)};
 
-const ebpf_windows_program_type_data_t windows_xdp_program_type_data = {EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP};
-
 const EbpfProgramType windows_xdp_program_type =
     PTYPE("xdp",    // Just for printing messages to users.
           &g_xdp_context_descriptor,
-          (uint64_t)&windows_xdp_program_type_data,
+          (uint64_t)&EBPF_PROGRAM_TYPE_XDP,
           {"xdp"}); // Set of section name prefixes for matching.
 ```
 

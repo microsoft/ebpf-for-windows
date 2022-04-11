@@ -4,7 +4,6 @@
   SPDX-License-Identifier: MIT
 -->
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="..\..\packages\CatchOrg.Catch.2.8.0\build\native\CatchOrg.Catch.props" Condition="Exists('..\..\packages\CatchOrg.Catch.2.8.0\build\native\CatchOrg.Catch.props')" />
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
@@ -89,8 +88,6 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <WarningLevel>Level4</WarningLevel>
-      <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
@@ -101,10 +98,6 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
@@ -117,12 +110,9 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <WarningLevel>Level4</WarningLevel>
-      <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(OutDir);$(SolutionDir)tools\bpf2c;$(SolutionDir)external\ubpf\vm;$(SolutionDir)external\ebpf-verifier\external\ELFIO;$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -131,14 +121,9 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(OutDir);$(SolutionDir)tools\bpf2c;$(SolutionDir)external\ubpf\vm;$(SolutionDir)external\ebpf-verifier\external\ELFIO;$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -155,16 +140,14 @@
       <FileType>CppCode</FileType>
     </CopyFileToFolders>
     <ClCompile Include="..\..\tools\bpf2c\btf_parser.cpp" />
+    <ClCompile Include="bpf_assembler.cpp" />
     <ClCompile Include="raw_bpf.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Makefile" />
-    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\tools\bpf2c\bpf_code_generator.h" />
     <ClInclude Include="..\..\tools\bpf2c\btf.h" />
     <ClInclude Include="..\..\tools\bpf2c\btf_parser.h" />
+    <ClInclude Include="bpf_assembler.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\external\Catch2\build\src\Catch2WithMain.vcxproj">
@@ -173,10 +156,4 @@
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />
-  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
-    <PropertyGroup>
-      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
-    </PropertyGroup>
-    <Error Condition="!Exists('..\..\packages\CatchOrg.Catch.2.8.0\build\native\CatchOrg.Catch.props')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\CatchOrg.Catch.2.8.0\build\native\CatchOrg.Catch.props'))" />
-  </Target>
 </Project>

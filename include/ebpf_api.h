@@ -76,17 +76,6 @@ extern "C"
         _Out_ fd_t* map_fd);
 
     /**
-     * @brief Get file descriptor to the next eBPF map.
-     * @param[in] previous_fd FD to previous eBPF map or ebpf_fd_invalid to
-     *  start enumeration.
-     * @param[out] next_fd FD to the next eBPF map or ebpf_fd_invalid if this
-     *  is the last map.
-     * @retval EBPF_SUCCESS The operation was successful.
-     */
-    ebpf_result_t
-    ebpf_get_next_map(fd_t previous_fd, _Out_ fd_t* next_fd);
-
-    /**
      * @brief Get file descriptor to the next eBPF program.
      * @param[in] previous_fd File descriptor of the previous eBPF program or ebpf_fd_invalid to
      *  start enumeration.
@@ -298,7 +287,8 @@ extern "C"
      * If the caller supplies a program type and/or attach type, that
      * supplied value takes precedence over the derived program/attach type.
      *
-     * @param[in] file_name ELF file name with full path.
+     * @param[in] file_name When loading from an ELF file, ELF file name with full path.
+     *  When loading from a native driver, driver file name with full path.
      * @param[in] program_type Optionally, the program type to use when loading
      *  the eBPF program. If program type is not supplied, it is derived from
      *  the section prefix in the ELF file.

@@ -64,15 +64,20 @@ extern "C"
     {
         uint64_t (*function)(void*);
         const char* section_name;
-        const char* function_name;
+        const char* program_name;
+        uint16_t* referenced_map_indices;
+        uint16_t referenced_map_count;
+        helper_function_entry_t* helpers;
+        uint16_t helper_count;
         size_t bpf_instruction_count;
+        ebpf_program_type_t* program_type;
+        ebpf_attach_type_t* expected_attach_type;
     } program_entry_t;
 
     typedef struct _metadata_table
     {
         void (*programs)(program_entry_t** programs, size_t* count);
         void (*maps)(map_entry_t** maps, size_t* count);
-        void (*helpers)(helper_function_entry_t** helpers, size_t* count);
     } metadata_table_t;
 
     inline uint16_t

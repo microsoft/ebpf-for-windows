@@ -17,6 +17,8 @@
 // defines.
 #ifndef _MSC_VER
 #include "../external/bpftool/libbpf/src/bpf_helpers.h"
+#define bpf_map_def _ebpf_map_definition_in_file
+#include "ebpf_nethooks.h"
 #endif
 
 #ifndef __doxygen

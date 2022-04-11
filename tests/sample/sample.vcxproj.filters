@@ -30,6 +30,9 @@
     <CustomBuild Include="bindmonitor_ringbuf.c">
       <Filter>Source Files</Filter>
     </CustomBuild>
+    <CustomBuild Include="bindmonitor_tailcall.c">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
     <CustomBuild Include="bpf.c">
       <Filter>Source Files</Filter>
     </CustomBuild>
@@ -91,6 +94,12 @@
       <Filter>Source Files</Filter>
     </CustomBuild>
     <CustomBuild Include="map.c">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="cgroup_sock_addr.c">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="printk_legacy.c">
       <Filter>Source Files</Filter>
     </CustomBuild>
   </ItemGroup>

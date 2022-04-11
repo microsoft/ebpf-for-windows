@@ -92,14 +92,11 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <WarningLevel>Level4</WarningLevel>
-      <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;BPF2CTESTDLL_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(SolutionDir)include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -110,16 +107,11 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <WarningLevel>Level4</WarningLevel>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;BPF2CTESTDLL_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(SolutionDir)include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -132,14 +124,11 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <WarningLevel>Level4</WarningLevel>
-      <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;BPF2CTESTDLL_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(SolutionDir)include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -148,27 +137,16 @@
       <ModuleDefinitionFile>source.def</ModuleDefinitionFile>
     </Link>
     <PreBuildEvent>
-      <Command>pushd $(OutDir)
-bpf2c.exe --bpf bindmonitor.o &gt;bindmonitor_c.c
-bpf2c.exe --bpf droppacket.o &gt;droppacket_c.c
-bpf2c.exe --bpf divide_by_zero.o &gt;divide_by_zero.c</Command>
-    </PreBuildEvent>
-    <PreBuildEvent>
       <Message>Run bpf2 over ELF files</Message>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <WarningLevel>Level4</WarningLevel>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;BPF2CTESTDLL_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(SolutionDir)include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -178,12 +156,6 @@ bpf2c.exe --bpf divide_by_zero.o &gt;divide_by_zero.c</Command>
       <EnableUAC>false</EnableUAC>
       <ModuleDefinitionFile>source.def</ModuleDefinitionFile>
     </Link>
-    <PreBuildEvent>
-      <Command>pushd $(OutDir)
-bpf2c.exe --bpf bindmonitor.o &gt;bindmonitor_c.c
-bpf2c.exe --bpf droppacket.o &gt;droppacket_c.c
-bpf2c.exe --bpf divide_by_zero.o &gt;divide_by_zero.c</Command>
-    </PreBuildEvent>
     <PreBuildEvent>
       <Message>Run bpf2 over ELF files</Message>
     </PreBuildEvent>
@@ -208,4 +180,26 @@ bpf2c.exe --bpf divide_by_zero.o &gt;divide_by_zero.c</Command>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+  <ItemDefinitionGroup Condition="'$(CodeCoverage)'!='True'">
+    <PreBuildEvent>
+      <Command>
+        pushd $(OutDir)
+        bpf2c.exe --bpf bindmonitor.o &gt;bindmonitor_c.c
+        bpf2c.exe --bpf droppacket.o &gt;droppacket_c.c
+        bpf2c.exe --bpf divide_by_zero.o &gt;divide_by_zero.c
+      </Command>
+    </PreBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(CodeCoverage)'=='True'">
+    <PreBuildEvent>
+      <Command>
+        pushd $(OutDir)
+        OpenCppCoverage.exe --sources $(SolutionDir) --export_type binary:$(OutDir)bpf2c_bindmonitor.cov --working_dir $(OutDir) -- bpf2c.exe --bpf bindmonitor.o &gt;bindmonitor_c.c
+        OpenCppCoverage.exe --sources $(SolutionDir) --export_type binary:$(OutDir)bpf2c_droppacket.cov --working_dir $(OutDir) -- bpf2c.exe --bpf droppacket.o &gt;droppacket_c.c
+        OpenCppCoverage.exe --sources $(SolutionDir) --input_coverage $(OutDir)bpf2c_bindmonitor.cov --input_coverage $(OutDir)bpf2c_droppacket.cov --export_type cobertura:$(OutDir)bpf2c.xml --working_dir $(OutDir) -- bpf2c.exe --bpf divide_by_zero.o &gt;divide_by_zero.c
+      </Command>
+    </PreBuildEvent>
+  </ItemDefinitionGroup>
 </Project>

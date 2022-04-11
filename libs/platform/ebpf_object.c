@@ -129,7 +129,7 @@ void
 ebpf_object_tracking_terminate()
 {
     for (int index = 0; index < EBPF_COUNT_OF(_ebpf_id_table); index++) {
-        ebpf_assert(_ebpf_id_table[index].object == NULL);
+        ebpf_assert(_ebpf_id_table[index].object == NULL || ebpf_fuzzing_enabled);
     }
 }
 

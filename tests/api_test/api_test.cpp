@@ -6,6 +6,7 @@
 #include <chrono>
 #include <mutex>
 #include <thread>
+#include <vector>
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <mstcpip.h>
@@ -99,7 +100,8 @@ _test_program_load(
         execution_type = EBPF_EXECUTION_JIT;
     }
     REQUIRE(program_execution_type == execution_type);
-    REQUIRE(strcmp(program_file_name, file_name) == 0);
+    if (execution_type != EBPF_EXECUTION_NATIVE)
+        REQUIRE(strcmp(program_file_name, file_name) == 0);
 
     // Next program should not be present.
     previous_fd = next_fd;
@@ -113,6 +115,51 @@ _test_program_load(
     // We have closed both handles to the program. Program should be unloaded now.
     REQUIRE(ebpf_get_next_program(previous_fd, &next_fd) == ERROR_SUCCESS);
     REQUIRE(next_fd == ebpf_fd_invalid);
+}
+
+struct _ebpf_program_load_test_parameters
+{
+    _Field_z_ const char* file_name;
+    ebpf_program_type_t* program_type;
+};
+
+static void
+_test_multiple_programs_load(
+    int program_count,
+    _In_reads_(program_count) const struct _ebpf_program_load_test_parameters* parameters,
+    ebpf_execution_type_t execution_type,
+    ebpf_result_t expected_load_result)
+{
+    ebpf_result_t result;
+    std::vector<struct bpf_object*> objects;
+    std::vector<fd_t> fds;
+
+    for (int i = 0; i < program_count; i++) {
+        const char* file_name = parameters[i].file_name;
+        const ebpf_program_type_t* program_type = parameters[i].program_type;
+        struct bpf_object* object;
+        fd_t program_fd;
+
+        result = _program_load_helper(file_name, program_type, execution_type, &object, &program_fd);
+        REQUIRE(expected_load_result == result);
+        if (expected_load_result == EBPF_SUCCESS) {
+            REQUIRE(program_fd > 0);
+        } else {
+            continue;
+        }
+
+        objects.push_back(object);
+        fds.push_back(program_fd);
+    }
+
+    if (expected_load_result != EBPF_SUCCESS) {
+        return;
+    }
+
+    for (int i = 0; i < program_count; i++) {
+        _close(fds[i]);
+        bpf_object__close(objects[i]);
+    }
 }
 
 static void
@@ -200,6 +247,8 @@ TEST_CASE("pinned_map_enum", "[pinned_map_enum]") { ebpf_test_pinned_map_enum();
 // Load droppacket (JIT) without providing expected program type.
 DECLARE_LOAD_TEST_CASE("droppacket.o", nullptr, EBPF_EXECUTION_JIT, EBPF_SUCCESS);
 
+DECLARE_LOAD_TEST_CASE("droppacket_km.sys", nullptr, EBPF_EXECUTION_NATIVE, EBPF_SUCCESS);
+
 // Load droppacket (ANY) without providing expected program type.
 DECLARE_LOAD_TEST_CASE("droppacket.o", nullptr, EBPF_EXECUTION_ANY, EBPF_SUCCESS);
 
@@ -223,6 +272,22 @@ DECLARE_LOAD_TEST_CASE("bindmonitor.o", &EBPF_PROGRAM_TYPE_XDP, EBPF_EXECUTION_A
 
 // Try to load an unsafe program.
 DECLARE_LOAD_TEST_CASE("droppacket_unsafe.o", nullptr, EBPF_EXECUTION_ANY, EBPF_VERIFICATION_FAILED);
+
+// Try to load multiple programs of different program types
+TEST_CASE("test_ebpf_multiple_programs_load_jit")
+{
+    struct _ebpf_program_load_test_parameters test_parameters[] = {
+        {"droppacket.o", &EBPF_PROGRAM_TYPE_XDP}, {"bindmonitor.o", &EBPF_PROGRAM_TYPE_BIND}};
+    _test_multiple_programs_load(_countof(test_parameters), test_parameters, EBPF_EXECUTION_JIT, EBPF_SUCCESS);
+}
+
+TEST_CASE("test_ebpf_multiple_programs_load_interpret")
+{
+    struct _ebpf_program_load_test_parameters test_parameters[] = {
+        {"droppacket.o", &EBPF_PROGRAM_TYPE_XDP}, {"bindmonitor.o", &EBPF_PROGRAM_TYPE_BIND}};
+    _test_multiple_programs_load(
+        _countof(test_parameters), test_parameters, EBPF_EXECUTION_INTERPRET, INTERPRET_LOAD_RESULT);
+}
 
 TEST_CASE("test_ebpf_program_next_previous", "[test_ebpf_program_next_previous]")
 {
@@ -314,3 +379,200 @@ TEST_CASE("divide_by_zero_jit", "[divide_by_zero]") { divide_by_zero_test_km(EBP
 TEST_CASE("ringbuf_api_interpret", "[test_ringbuf_api]") { ring_buffer_api_test(EBPF_EXECUTION_INTERPRET); }
 TEST_CASE("divide_by_zero_interpret", "[divide_by_zero]") { divide_by_zero_test_km(EBPF_EXECUTION_INTERPRET); }
 #endif
+
+void
+_test_nested_maps(bpf_map_type type)
+{
+    // Create first inner map.
+    fd_t inner1 = bpf_create_map(BPF_MAP_TYPE_ARRAY, sizeof(uint32_t), sizeof(uint32_t), 1, 0);
+    REQUIRE(inner1 > 0);
+
+    // Create outer map.
+    fd_t outer_map_fd = bpf_create_map_in_map(type, "outer_map", sizeof(uint32_t), inner1, 10, 0);
+    REQUIRE(outer_map_fd > 0);
+
+    // Create second inner map.
+    fd_t inner2 = bpf_create_map(BPF_MAP_TYPE_ARRAY, sizeof(uint32_t), sizeof(uint32_t), 1, 0);
+    REQUIRE(inner2 > 0);
+
+    // Insert both inner maps in outer map.
+    uint32_t key = 1;
+    uint32_t result = bpf_map_update_elem(outer_map_fd, &key, &inner1, 0);
+    REQUIRE(result == ERROR_SUCCESS);
+
+    key = 2;
+    result = bpf_map_update_elem(outer_map_fd, &key, &inner1, 0);
+    REQUIRE(result == ERROR_SUCCESS);
+
+    // Remove the inner maps from outer map.
+    key = 1;
+    result = bpf_map_delete_elem(outer_map_fd, &key);
+    REQUIRE(result == ERROR_SUCCESS);
+    key = 2;
+    result = bpf_map_delete_elem(outer_map_fd, &key);
+    REQUIRE(result == ERROR_SUCCESS);
+
+    _close(inner1);
+    _close(inner2);
+    _close(outer_map_fd);
+}
+
+TEST_CASE("array_of_maps", "[map_in_map]") { _test_nested_maps(BPF_MAP_TYPE_ARRAY_OF_MAPS); }
+
+TEST_CASE("hash_of_maps", "[map_in_map]") { _test_nested_maps(BPF_MAP_TYPE_HASH_OF_MAPS); }
+
+TEST_CASE("tailcall_load_test", "[tailcall_load_test]")
+{
+    ebpf_result_t result;
+    struct bpf_object* object = nullptr;
+    fd_t program_fd;
+
+    result =
+        _program_load_helper("tail_call_multiple.o", &EBPF_PROGRAM_TYPE_XDP, EBPF_EXECUTION_ANY, &object, &program_fd);
+    REQUIRE(result == EBPF_SUCCESS);
+
+    REQUIRE(program_fd > 0);
+
+    // Set up tail calls.
+    struct bpf_program* callee0 = bpf_object__find_program_by_name(object, "callee0");
+    REQUIRE(callee0 != nullptr);
+    fd_t callee0_fd = bpf_program__fd(callee0);
+    REQUIRE(callee0_fd > 0);
+
+    struct bpf_program* callee1 = bpf_object__find_program_by_name(object, "callee1");
+    REQUIRE(callee1 != nullptr);
+    fd_t callee1_fd = bpf_program__fd(callee1);
+    REQUIRE(callee1_fd > 0);
+
+    fd_t prog_map_fd = bpf_object__find_map_fd_by_name(object, "map");
+    REQUIRE(prog_map_fd > 0);
+
+    uint32_t index = 0;
+    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &callee0_fd, 0) == 0);
+    index = 1;
+    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &callee1_fd, 0) == 0);
+
+    // Cleanup tail calls.
+    index = 0;
+    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0) == 0);
+    index = 1;
+    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0) == 0);
+
+    bpf_object__close(object);
+}
+
+int
+perform_bind(_Out_ SOCKET* socket, uint16_t port_number)
+{
+    *socket = WSASocket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP, nullptr, 0, 0);
+    REQUIRE(*socket != INVALID_SOCKET);
+    SOCKADDR_STORAGE sock_addr;
+    sock_addr.ss_family = AF_INET6;
+    INETADDR_SETANY((PSOCKADDR)&sock_addr);
+
+    // Perform bind operation.
+    ((PSOCKADDR_IN6)&sock_addr)->sin6_port = htons(port_number);
+    return (bind(*socket, (PSOCKADDR)&sock_addr, sizeof(sock_addr)));
+}
+
+void
+bindmonitor_test(_In_ struct bpf_object* object)
+{
+    fd_t process_map_fd = bpf_object__find_map_fd_by_name(object, "process_map");
+    REQUIRE(process_map_fd > 0);
+
+    fd_t limits_map_fd = bpf_object__find_map_fd_by_name(object, "limits_map");
+    REQUIRE(limits_map_fd > 0);
+
+    // Set the limit to 2. Third bind from same app should fail.
+    uint32_t key = 0;
+    uint32_t value = 2;
+    int error = bpf_map_update_elem(limits_map_fd, &key, &value, 0);
+    REQUIRE(error == 0);
+
+    WSAData data;
+    SOCKET sockets[3];
+    REQUIRE(WSAStartup(2, &data) == 0);
+
+    // First and second binds should succeed.
+    REQUIRE(perform_bind(&sockets[0], 30000) == 0);
+    REQUIRE(perform_bind(&sockets[1], 30001) == 0);
+
+    // Third bind from the same app should fail.
+    REQUIRE(perform_bind(&sockets[2], 30002) != 0);
+
+    WSACleanup();
+}
+
+TEST_CASE("bindmonitor_native_test", "[native_tests]")
+{
+    struct bpf_object* object = nullptr;
+    hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
+    program_load_attach_helper_t _helper(
+        "bindmonitor_km.sys", EBPF_PROGRAM_TYPE_BIND, "BindMonitor", EBPF_EXECUTION_NATIVE, nullptr, 0, hook);
+    object = _helper.get_object();
+
+    bindmonitor_test(object);
+}
+
+TEST_CASE("bindmonitor_tailcall_native_test", "[native_tests]")
+{
+    struct bpf_object* object = nullptr;
+    hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
+    program_load_attach_helper_t _helper(
+        "bindmonitor_tailcall_km.sys", EBPF_PROGRAM_TYPE_BIND, "BindMonitor", EBPF_EXECUTION_JIT, nullptr, 0, hook);
+    object = _helper.get_object();
+
+    // Setup tail calls.
+    struct bpf_program* callee0 = bpf_object__find_program_by_name(object, "BindMonitor_Callee0");
+    REQUIRE(callee0 != nullptr);
+    fd_t callee0_fd = bpf_program__fd(callee0);
+    REQUIRE(callee0_fd > 0);
+
+    struct bpf_program* callee1 = bpf_object__find_program_by_name(object, "BindMonitor_Callee1");
+    REQUIRE(callee1 != nullptr);
+    fd_t callee1_fd = bpf_program__fd(callee1);
+    REQUIRE(callee1_fd > 0);
+
+    fd_t prog_map_fd = bpf_object__find_map_fd_by_name(object, "prog_array_map");
+    REQUIRE(prog_map_fd > 0);
+
+    uint32_t index = 0;
+    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &callee0_fd, 0) == 0);
+    index = 1;
+    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &callee1_fd, 0) == 0);
+
+    bindmonitor_test(object);
+
+    auto cleanup = [prog_map_fd, &index]() {
+        index = 0;
+        REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0) == 0);
+        index = 1;
+        REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0) == 0);
+    };
+
+    // Test map-in-maps.
+    struct bpf_map* outer_map = bpf_object__find_map_by_name(object, "dummy_outer_map");
+    if (outer_map == nullptr)
+        cleanup();
+    REQUIRE(outer_map != nullptr);
+
+    int outer_map_fd = bpf_map__fd(outer_map);
+    if (outer_map_fd <= 0)
+        cleanup();
+    REQUIRE(outer_map_fd > 0);
+
+    // Test map-in-maps.
+    struct bpf_map* outer_idx_map = bpf_object__find_map_by_name(object, "dummy_outer_idx_map");
+    if (outer_idx_map == nullptr)
+        cleanup();
+    REQUIRE(outer_idx_map != nullptr);
+
+    int outer_idx_map_fd = bpf_map__fd(outer_idx_map);
+    if (outer_idx_map_fd <= 0)
+        cleanup();
+    REQUIRE(outer_idx_map_fd > 0);
+
+    // Clean up tail calls.
+    cleanup();
+}
