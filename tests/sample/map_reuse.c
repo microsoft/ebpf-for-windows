@@ -7,7 +7,6 @@
 // this passes the checker
 
 #include "bpf_helpers.h"
-#include "ebpf.h"
 
 #define PIN_NONE 0
 #define PIN_GLOBAL_NS 2

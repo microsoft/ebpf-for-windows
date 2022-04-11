@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: MIT
 
 #include "bpf_helpers.h"
-#include "ebpf.h"
 
 typedef struct _ip_address
 {
