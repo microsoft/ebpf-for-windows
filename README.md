@@ -80,7 +80,7 @@ to provide source code compatibility for applications that interact with eBPF pr
 
 ### 3. Will eBPF work with HyperVisor-enforced Code Integrity (HVCI)?
 
-Yes. With HVCI enabled eBPF programs can be run natively using a JIT compiler. The interpreter is disabled in release builds and only supported in debug mode.
+Yes. With HVCI enabled eBPF programs can be run natively and interpreted mode, however, the interpreter is disabled in release builds and only supported in debug mode.
 
 [HyperVisor-enforced Code Integrity (HVCI)](https://techcommunity.microsoft.com/t5/windows-insider-program/virtualization-based-security-vbs-and-hypervisor-enforced-code/m-p/240571)
 is a mechanism
