@@ -82,7 +82,7 @@ jobs:
 
     - name: Set up ProcDump and add to PATH
       id: set_up_procdump
-      if: inputs.environment != 'ebpf_cicd_tests'
+      if: inputs.gather_dumps == true
       run: |
         choco install -y procdump
         echo "C:\Program Files\ProcDump" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
