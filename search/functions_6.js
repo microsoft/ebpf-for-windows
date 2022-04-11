@@ -1,6 +1,4 @@
 var searchData=
 [
-  ['swap16_684',['swap16',['../bpf2c_8h.html#a7cf3526e1af5c8642d2ec02caecf99bc',1,'bpf2c.h']]],
-  ['swap32_685',['swap32',['../bpf2c_8h.html#a5bdbc60a02db00841f567d1ade52f877',1,'bpf2c.h']]],
-  ['swap64_686',['swap64',['../bpf2c_8h.html#a27634689306157c465da8414fabf1df2',1,'bpf2c.h']]]
+  ['midl_773',['MIDL',['../struct__ebpf__program__info.html#a1790ac66e704de97367583bd59348c85',1,'_ebpf_program_info::MIDL()'],['../struct__ebpf__helper__function__addresses.html#a75d6a19ec98050c548f3a22c4ead1c93',1,'_ebpf_helper_function_addresses::MIDL()']]]
 ];

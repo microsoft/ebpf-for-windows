@@ -1,5 +1,6 @@
 var searchData=
 [
-  ['map_5fentry_5ft_844',['map_entry_t',['../bpf2c_8h.html#a4fe28d06b61887b8c086b1e132383707',1,'bpf2c.h']]],
-  ['metadata_5ftable_5ft_845',['metadata_table_t',['../bpf2c_8h.html#ae777b2c463d86d373db6806421ee42ff',1,'bpf2c.h']]]
+  ['ipv4_5fheader_981',['IPV4_HEADER',['../net_2ip_8h.html#add08aeb38e8ee89701851da1d8b5c9f6',1,'ip.h']]],
+  ['ipv6_5faddress_5ft_982',['ipv6_address_t',['../net_2ip_8h.html#ab46affcc1c63d671eed08ed463b618f5',1,'ip.h']]],
+  ['ipv6_5fheader_983',['IPV6_HEADER',['../net_2ip_8h.html#a284ab94e873b13d04da1cdc55892d995',1,'ip.h']]]
 ];

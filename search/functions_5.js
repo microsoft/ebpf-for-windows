@@ -1,5 +1,6 @@
 var searchData=
 [
-  ['ring_5fbuffer_5f_5ffree_682',['ring_buffer__free',['../libbpf_8h.html#a5ede3a39d4e4a364fac4155aca3303cc',1,'libbpf.h']]],
-  ['ring_5fbuffer_5f_5fnew_683',['ring_buffer__new',['../libbpf_8h.html#aee16f65187ecdf7f55eccf24c6b4d138',1,'libbpf.h']]]
+  ['libbpf_5fget_5ferror_770',['libbpf_get_error',['../libbpf_8h.html#a6ae394e7b2a465a2bf7f30e2a5b4c4bd',1,'libbpf.h']]],
+  ['libbpf_5fnum_5fpossible_5fcpus_771',['libbpf_num_possible_cpus',['../libbpf_8h.html#a952441cb1b1f252e10b100c2657e6242',1,'libbpf.h']]],
+  ['libbpf_5fprog_5ftype_5fby_5fname_772',['libbpf_prog_type_by_name',['../libbpf_8h.html#a64a0e9275ed02a9f30291ae5dd777452',1,'libbpf.h']]]
 ];

@@ -1,5 +1,6 @@
 var searchData=
 [
-  ['pid_5ft_846',['pid_t',['../linux_2bpf_8h.html#a7a26cb7f5678736cec66712d6df1d4ed',1,'bpf.h']]],
-  ['program_5fentry_5ft_847',['program_entry_t',['../bpf2c_8h.html#aa90fb1b455357ca56d50c4eaab83f7a0',1,'bpf2c.h']]]
+  ['mac_5faddress_5ft_984',['mac_address_t',['../net_2if__ether_8h.html#adc690d5482e1f77b787c207a74911c4a',1,'if_ether.h']]],
+  ['map_5fentry_5ft_985',['map_entry_t',['../bpf2c_8h.html#a4fe28d06b61887b8c086b1e132383707',1,'bpf2c.h']]],
+  ['metadata_5ftable_5ft_986',['metadata_table_t',['../bpf2c_8h.html#ae777b2c463d86d373db6806421ee42ff',1,'bpf2c.h']]]
 ];

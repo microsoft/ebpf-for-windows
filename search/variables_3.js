@@ -1,7 +1,9 @@
 var searchData=
 [
-  ['data_704',['data',['../structxdp__md.html#a406069f5e60c2a7e215a687cc1006536',1,'xdp_md']]],
-  ['data_5fend_705',['data_end',['../structxdp__md.html#a1d3ff4db051fabdeded36bbd54365fdb',1,'xdp_md']]],
-  ['data_5fmeta_706',['data_meta',['../structxdp__md.html#aab2cd6e1307c5b8714b5139bf3d2c750',1,'xdp_md']]],
-  ['definition_707',['definition',['../struct__map__entry.html#a31187c769688bcf5b135c31b2fee8b97',1,'_map_entry::definition()'],['../struct__ebpf__map__info.html#a21e7aa731086c040ff1f1977b86b80fb',1,'_ebpf_map_info::definition()']]]
+  ['checksum_796',['checksum',['../structtcphdr.html#af6ae74d535f884731b9039e4a2e711eb',1,'tcphdr::checksum()'],['../struct_u_d_p___h_e_a_d_e_r__.html#ab091c38f659ae770593e5d44f998a04c',1,'UDP_HEADER_::checksum()']]],
+  ['compartment_5fid_797',['compartment_id',['../structbpf__sock__addr.html#a932a6d53e83862428535b601286a70f1',1,'bpf_sock_addr']]],
+  ['consumer_798',['consumer',['../struct__ebpf__ring__buffer__map__async__query__result.html#ad852ce5ff7c9bfbd883121efc4f0d79d',1,'_ebpf_ring_buffer_map_async_query_result']]],
+  ['context_5fdescriptor_799',['context_descriptor',['../struct__ebpf__program__type__descriptor.html#a96b4a2cc58ac7f1cdc12c4a57585b794',1,'_ebpf_program_type_descriptor']]],
+  ['count_5fof_5fhelpers_800',['count_of_helpers',['../struct__ebpf__program__info.html#a47cc7a213e8f92d73af70df122fc25fe',1,'_ebpf_program_info']]],
+  ['cwr_801',['cwr',['../structtcphdr.html#a0d9296ee404181ec6bb4844034a205cc',1,'tcphdr']]]
 ];

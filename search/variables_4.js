@@ -1,21 +1,15 @@
 var searchData=
 [
-  ['ebpf_5fattach_5ftype_5fbind_708',['EBPF_ATTACH_TYPE_BIND',['../ebpf__program__attach__type__guids_8h.html#abfe13edb5136e2739c015dc7ede56073',1,'ebpf_program_attach_type_guids.h']]],
-  ['ebpf_5fattach_5ftype_5fcgroup_5finet4_5fconnect_709',['EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT',['../ebpf__program__attach__type__guids_8h.html#aaa35c1d16dc23ca2f9bc1db993ab039b',1,'ebpf_program_attach_type_guids.h']]],
-  ['ebpf_5fattach_5ftype_5fcgroup_5finet4_5frecv_5faccept_710',['EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT',['../ebpf__program__attach__type__guids_8h.html#ac54908adeb179df4240bf68998663148',1,'ebpf_program_attach_type_guids.h']]],
-  ['ebpf_5fattach_5ftype_5fcgroup_5finet6_5fconnect_711',['EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT',['../ebpf__program__attach__type__guids_8h.html#a2de51e8e61c2553ff487d89dda5d6139',1,'ebpf_program_attach_type_guids.h']]],
-  ['ebpf_5fattach_5ftype_5fcgroup_5finet6_5frecv_5faccept_712',['EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT',['../ebpf__program__attach__type__guids_8h.html#a7067b91755778f46f88d44c18d01c397',1,'ebpf_program_attach_type_guids.h']]],
-  ['ebpf_5fattach_5ftype_5fsample_713',['EBPF_ATTACH_TYPE_SAMPLE',['../ebpf__program__attach__type__guids_8h.html#a6f38cc0b725b2533c5f5134a21960d22',1,'ebpf_program_attach_type_guids.h']]],
-  ['ebpf_5fattach_5ftype_5funspecified_714',['EBPF_ATTACH_TYPE_UNSPECIFIED',['../ebpf__program__attach__type__guids_8h.html#aa27a08efa8687528ffd326c27361faf0',1,'ebpf_program_attach_type_guids.h']]],
-  ['ebpf_5fattach_5ftype_5fxdp_715',['EBPF_ATTACH_TYPE_XDP',['../ebpf__program__attach__type__guids_8h.html#a718ad43a2eaff162adfd9119e6618355',1,'ebpf_program_attach_type_guids.h']]],
-  ['ebpf_5ffd_5finvalid_716',['ebpf_fd_invalid',['../ebpf__api_8h.html#acb6a7f4388cfb294444793fb9bbdaf35',1,'ebpf_api.h']]],
-  ['ebpf_5fhandle_5finvalid_717',['ebpf_handle_invalid',['../ebpf__core__structs_8h.html#a0584fa3dd32523977315bcbc05af2b97',1,'ebpf_core_structs.h']]],
-  ['ebpf_5fhook_5fextension_5fiid_718',['EBPF_HOOK_EXTENSION_IID',['../ebpf__extension__uuids_8h.html#a4b09ac234ca80342c753e12a897d296b',1,'ebpf_extension_uuids.h']]],
-  ['ebpf_5fprogram_5finfo_5fextension_5fiid_719',['EBPF_PROGRAM_INFO_EXTENSION_IID',['../ebpf__extension__uuids_8h.html#ac98f7be2f127a3e32795d2921616d931',1,'ebpf_extension_uuids.h']]],
-  ['ebpf_5fprogram_5ftype_5fbind_720',['EBPF_PROGRAM_TYPE_BIND',['../ebpf__program__attach__type__guids_8h.html#ab3f482055c69dbcf858e5aac2ab042ec',1,'ebpf_program_attach_type_guids.h']]],
-  ['ebpf_5fprogram_5ftype_5fcgroup_5fsock_5faddr_721',['EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR',['../ebpf__program__attach__type__guids_8h.html#afc537e477316cb69c5b989f0d944fb8b',1,'ebpf_program_attach_type_guids.h']]],
-  ['ebpf_5fprogram_5ftype_5fsample_722',['EBPF_PROGRAM_TYPE_SAMPLE',['../ebpf__program__attach__type__guids_8h.html#aa3366836c559140590a7501b8f4a4d9a',1,'ebpf_program_attach_type_guids.h']]],
-  ['ebpf_5fprogram_5ftype_5funspecified_723',['EBPF_PROGRAM_TYPE_UNSPECIFIED',['../ebpf__program__attach__type__guids_8h.html#aff7e133ecb6c918377e2648790de5f6f',1,'ebpf_program_attach_type_guids.h']]],
-  ['ebpf_5fprogram_5ftype_5fxdp_724',['EBPF_PROGRAM_TYPE_XDP',['../ebpf__program__attach__type__guids_8h.html#a2f642bba5fbe57aa899d778e9f650303',1,'ebpf_program_attach_type_guids.h']]],
-  ['expected_5fattach_5ftype_725',['expected_attach_type',['../struct__program__entry.html#a8bec8c2bc3d2b71f16ca3bfe06dd24ef',1,'_program_entry']]]
+  ['data_802',['data',['../structxdp__md.html#a406069f5e60c2a7e215a687cc1006536',1,'xdp_md']]],
+  ['data_5fend_803',['data_end',['../structxdp__md.html#a1d3ff4db051fabdeded36bbd54365fdb',1,'xdp_md']]],
+  ['data_5fmeta_804',['data_meta',['../structxdp__md.html#aab2cd6e1307c5b8714b5139bf3d2c750',1,'xdp_md']]],
+  ['data_5foffset_805',['data_offset',['../structtcphdr.html#a1ae394f381a97529240c8b4b1c04d59a',1,'tcphdr']]],
+  ['definition_806',['definition',['../struct__map__entry.html#a31187c769688bcf5b135c31b2fee8b97',1,'_map_entry::definition()'],['../struct__ebpf__map__info.html#a21e7aa731086c040ff1f1977b86b80fb',1,'_ebpf_map_info::definition()']]],
+  ['dest_807',['dest',['../structtcphdr.html#a17be797aab557d501e27898ae010188b',1,'tcphdr']]],
+  ['destination_808',['Destination',['../struct___e_t_h_e_r_n_e_t___h_e_a_d_e_r.html#a86a29bdb64ac5ceb5097a05742cb68d8',1,'_ETHERNET_HEADER']]],
+  ['destinationaddress_809',['DestinationAddress',['../struct___i_p_v4___h_e_a_d_e_r.html#af5c82f8f860ee0ae1646d54e5493c0bb',1,'_IPV4_HEADER::DestinationAddress()'],['../struct___i_p_v6___h_e_a_d_e_r.html#a9a2b4db136146b1ce55611f0c8b69f8c',1,'_IPV6_HEADER::DestinationAddress()']]],
+  ['destport_810',['destPort',['../struct_u_d_p___h_e_a_d_e_r__.html#acf9f04171ebdc187e4815d0834de5aea',1,'UDP_HEADER_']]],
+  ['dontfragment_811',['DontFragment',['../struct___i_p_v4___h_e_a_d_e_r.html#a84c8e217177556cf62251e7d3cc73ab8',1,'_IPV4_HEADER']]],
+  ['dontuse1_812',['DontUse1',['../struct___i_p_v4___h_e_a_d_e_r.html#a9dd752d7cbc3a6238bd9912f624bffb2',1,'_IPV4_HEADER']]],
+  ['dontuse2_813',['DontUse2',['../struct___i_p_v4___h_e_a_d_e_r.html#aa483859be0c8230595192a5d112577d7',1,'_IPV4_HEADER']]]
 ];

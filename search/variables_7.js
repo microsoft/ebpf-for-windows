@@ -1,14 +1,11 @@
 var searchData=
 [
-  ['id_734',['id',['../struct__ebpf__map__definition__in__file.html#ac9a38cca019c84ea3d49845db60bbe99',1,'_ebpf_map_definition_in_file::id()'],['../structbpf__link__info.html#af38c04d5b8713678bd18719734398a73',1,'bpf_link_info::id()'],['../structbpf__map__info.html#abadc9741409bc738b2b7c290a505034e',1,'bpf_map_info::id()'],['../structbpf__prog__info.html#ac93577683e5e340b94b9fca9b12efd02',1,'bpf_prog_info::id()']]],
-  ['ifindex_735',['ifindex',['../structbpf__link__info.html#a99a3d3bc732e8b2a052058d1ee1178f6',1,'bpf_link_info']]],
-  ['info_736',['info',['../structbpf__obj__info__attr__t.html#abab916a0a3a758fedcdbb5fd03b4c6ec',1,'bpf_obj_info_attr_t::info()'],['../unionbpf__attr.html#ab55018c05b15b605d48ae9f55ab8c060',1,'bpf_attr::info()']]],
-  ['info_5flen_737',['info_len',['../structbpf__obj__info__attr__t.html#a38dcccde5119d691892422b8b10483c4',1,'bpf_obj_info_attr_t']]],
-  ['ingress_5fifindex_738',['ingress_ifindex',['../structxdp__md.html#aed8d30ce88a012cdd83404980512ef1e',1,'xdp_md']]],
-  ['inner_5fid_739',['inner_id',['../struct__ebpf__map__definition__in__file.html#a0bb84e3cada95d12d3cc0a1c24061aa6',1,'_ebpf_map_definition_in_file']]],
-  ['inner_5fmap_5fid_740',['inner_map_id',['../struct__ebpf__map__definition__in__memory.html#a3b8e470365252209c395e43a6f6268e5',1,'_ebpf_map_definition_in_memory::inner_map_id()'],['../structbpf__map__info.html#aefd5ad96b9dac363133f7eec528241d9',1,'bpf_map_info::inner_map_id()']]],
-  ['inner_5fmap_5fidx_741',['inner_map_idx',['../struct__ebpf__map__definition__in__file.html#a1bc0c265be49ca02958cad64cd952a46',1,'_ebpf_map_definition_in_file']]],
-  ['insn_5fcnt_742',['insn_cnt',['../unionbpf__attr.html#a05b01ad0d596faa1988d6c213c301e8c',1,'bpf_attr']]],
-  ['insns_743',['insns',['../unionbpf__attr.html#a710ff83ea658eb8bede97bc8baa7981c',1,'bpf_attr']]],
-  ['is_5fprivileged_744',['is_privileged',['../struct__ebpf__program__type__descriptor.html#aafa9c2f4ceef8b382998f6e445c38121',1,'_ebpf_program_type_descriptor']]]
+  ['headerchecksum_839',['HeaderChecksum',['../struct___i_p_v4___h_e_a_d_e_r.html#ae68f2ff6668a5ba66d6df5ca224608b0',1,'_IPV4_HEADER']]],
+  ['headerlength_840',['HeaderLength',['../struct___i_p_v4___h_e_a_d_e_r.html#adcb69d9bdae00b6e3903b0766be5e83f',1,'_IPV4_HEADER']]],
+  ['helper_5fcount_841',['helper_count',['../struct__program__entry.html#a08509b97061f0f1faad15f8620876911',1,'_program_entry']]],
+  ['helper_5ffunction_5faddresses_842',['helper_function_addresses',['../struct__ebpf__program__data.html#a00f714762e415357b4199ce3d09787e3',1,'_ebpf_program_data']]],
+  ['helper_5ffunction_5fcount_843',['helper_function_count',['../struct__ebpf__helper__function__addresses.html#a8d8d99e7ecece4fa5299f363050ec9fa',1,'_ebpf_helper_function_addresses']]],
+  ['helper_5fid_844',['helper_id',['../struct__helper__function__entry.html#aa72b8f458285de9cdb64ed93df0e1a39',1,'_helper_function_entry::helper_id()'],['../struct__ebpf__helper__function__prototype.html#a69f15009a0fd600af05bfca606b2b894',1,'_ebpf_helper_function_prototype::helper_id()']]],
+  ['helpers_845',['helpers',['../struct__program__entry.html#aed27522d23e258cb3e255abd2f4576f9',1,'_program_entry']]],
+  ['hoplimit_846',['HopLimit',['../struct___i_p_v6___h_e_a_d_e_r.html#ae45a5d97e2825a7d87d9331f38afe011',1,'_IPV6_HEADER']]]
 ];

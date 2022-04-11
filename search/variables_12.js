@@ -1,5 +1,8 @@
 var searchData=
 [
-  ['value_804',['value',['../unionbpf__attr.html#ac259def2ef0f55384c3250b00fb313aa',1,'bpf_attr::value()'],['../struct__tlv__type__length__value.html#a8af4b70a001ab3dee6bbab949ca52e82',1,'_tlv_type_length_value::value()']]],
-  ['value_5fsize_805',['value_size',['../struct__ebpf__map__definition__in__memory.html#af02753f2ddb2f223ea384e6af82fb807',1,'_ebpf_map_definition_in_memory::value_size()'],['../struct__ebpf__map__definition__in__file.html#a535dcc0239b781312d4ec1d63a0a0736',1,'_ebpf_map_definition_in_file::value_size()'],['../structbpf__map__info.html#ae9e8e322f0b9a8eb57816555834aab45',1,'bpf_map_info::value_size()'],['../unionbpf__attr.html#aa5a4922cd66e373dad23163014c2ef7c',1,'bpf_attr::value_size()']]]
+  ['urg_931',['urg',['../structtcphdr.html#a9010866a569f8f44bd2c9be5c8b729f3',1,'tcphdr']]],
+  ['urgent_5fpointer_932',['urgent_pointer',['../structtcphdr.html#a38e9bc808f317992d41134d4b991b168',1,'tcphdr']]],
+  ['user_5fip4_933',['user_ip4',['../structbpf__sock__addr.html#a75b18b64ba5ca3c5103f4687c4ac71d9',1,'bpf_sock_addr']]],
+  ['user_5fip6_934',['user_ip6',['../structbpf__sock__addr.html#a878b15685a0755644919dab26852fcfd',1,'bpf_sock_addr']]],
+  ['user_5fport_935',['user_port',['../structbpf__sock__addr.html#a15476adb83c1817cf7f69cba43e2d0bc',1,'bpf_sock_addr']]]
 ];

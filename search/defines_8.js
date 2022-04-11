@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['ubpf_5fstack_5fsize_1029',['UBPF_STACK_SIZE',['../bpf2c_8h.html#ab41a6986b0045cc2e5c84a75d08c7a12',1,'bpf2c.h']]]
+  ['offset_1186',['OFFSET',['../bpf2c_8h.html#ac8bd2a1944f0a8ee4c3c876688b77508',1,'bpf2c.h']]]
 ];
