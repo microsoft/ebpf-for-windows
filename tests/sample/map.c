@@ -7,7 +7,6 @@
 // this passes the checker
 
 #include "bpf_helpers.h"
-#include "ebpf.h"
 
 #define FALSE 0
 #define TRUE 1
