@@ -1,8 +1,11 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include "bpf_endian.h"
 #include "bpf_helpers.h"
-#include "ebpf.h"
+#include "net/if_ether.h"
+#include "net/ip.h"
+#include "net/udp.h"
 #include "xdp_tests_common.h"
 
 inline void

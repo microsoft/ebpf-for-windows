@@ -36,10 +36,12 @@ an interpreter (from [uBPF](https://github.com/iovisor/ubpf) in the kernel-mode 
 JIT compiled (via the [uBPF](https://github.com/iovisor/ubpf) JIT compiler) and have native code load
 into the kernel-mode execution context (but see the FAQ at bottom about HVCI).
 
-eBPF programs installed into the kernel-mode execution context can attach to various hooks (currently
-two hooks so far: an XDP hook that integrates with the Windows Filtering Platform (WFP) [layer 2 filtering](https://docs.microsoft.com/en-us/windows-hardware/drivers/network/using-layer-2-filtering), and a socket bind hook) and call various helper APIs exposed by the eBPF shim,
+eBPF programs installed into the kernel-mode execution context can attach to various
+[hooks](https://microsoft.github.io/ebpf-for-windows/ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0)
+and call various helper APIs exposed by the eBPF shim,
 which internally wraps public Windows kernel APIs, allowing the use of eBPF on existing versions of Windows.
-Many helpers already exist, and more hooks and helpers will be added over time.
+Many [helpers](https://microsoft.github.io/ebpf-for-windows/bpf__helper__defs_8h.html)
+already exist, and more hooks and helpers will be added over time.
 
 ## Getting Started
 
@@ -85,7 +87,7 @@ to provide source code compatibility for applications that interact with eBPF pr
 
 ### 3. Will eBPF work with HyperVisor-enforced Code Integrity (HVCI)?
 
-eBPF programs can be run either in an interpreter or natively using a JIT compiler.
+Yes. With HVCI enabled, eBPF programs can be run either natively or in interpreted mode.  However, the interpreter is disabled in release builds and is only supported in debug builds.
 
 [HyperVisor-enforced Code Integrity (HVCI)](https://techcommunity.microsoft.com/t5/windows-insider-program/virtualization-based-security-vbs-and-hypervisor-enforced-code/m-p/240571)
 is a mechanism

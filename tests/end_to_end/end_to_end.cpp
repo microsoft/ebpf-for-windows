@@ -30,10 +30,9 @@
 #include "xdp_tests_common.h"
 
 namespace ebpf {
-#pragma warning(push)
-#pragma warning(disable : 4201) // nonstandard extension used : nameless struct/union
-#include "../sample/ebpf.h"
-#pragma warning(pop)
+#include "net/if_ether.h"
+#include "net/ip.h"
+#include "net/udp.h"
 }; // namespace ebpf
 
 std::vector<uint8_t>

@@ -65,7 +65,7 @@ foreach ($opt in $args)
 
     { @("-s", "--staged") -contains $_ }
         {
-            $userFiles=(git diff --cached --name-only --diff-filter=ACMR);
+            $userFiles=@(git diff --cached --name-only --diff-filter=ACMR);
             break;
         }
 
