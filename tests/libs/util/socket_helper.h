@@ -100,7 +100,7 @@ typedef class _receiver_socket : public _base_socket
     void
     complete_async_receive(bool timeout_expected = false);
     void
-    get_received_message(_Out_ uint32_t& message_size, _Outptr_result_z_ char*& message);
+    get_received_message(_Out_ uint32_t& message_size, _Outref_result_buffer_(message_size) char*& message);
 
     virtual void
     post_async_receive() = 0;

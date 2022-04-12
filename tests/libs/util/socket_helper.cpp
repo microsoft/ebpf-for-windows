@@ -202,7 +202,8 @@ _receiver_socket::complete_async_receive(bool timeout_expected)
 }
 
 void
-_receiver_socket::get_received_message(_Out_ uint32_t& message_size, _Outptr_result_z_ char*& message)
+_receiver_socket::get_received_message(
+    _Out_ uint32_t& message_size, _Outref_result_buffer_(message_size) char*& message)
 {
     message_size = bytes_received;
     message = recv_buffer.data();

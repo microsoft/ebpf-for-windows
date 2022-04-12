@@ -75,7 +75,7 @@ This will build the following binaries:
 * `sample_ext_app.exe`: A sample application for testing the sample extension driver.
 * `xdp_tests.exe`: Application for testing various XDP functionalities.  This requires the EbpSvc service to be running,
                 and the EbpCore and NetEbpfExt drivers to be loaded on a remote system to test.
-* `socket_tests.exe`: Application for testing the hook for the BPF_CGROUP_SOCK_ADDR program type and related attach types.
+* `socket_tests.exe`: Application for testing the eBPF extension that implements the BPF_CGROUP_SOCK_ADDR program type and related attach types.
 
 and a few binaries just used for demo'ing eBPF functionality, as in the demo walkthrough discussed below:
 
