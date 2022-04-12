@@ -14,8 +14,11 @@ on:
         type: string
       # Additional options passed to msbuild.
       build_options:
-        required: False
+        required: false
         type: string
+      build_codeql:
+        required: false
+        type: boolean
 
 permissions:
   contents: read
