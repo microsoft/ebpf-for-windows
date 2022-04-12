@@ -9,6 +9,7 @@ name: CI/CD
 
 # Run on push so we can capture the baseline code coverage for any squash commit.
 on:
+  push:
   schedule:
     - cron: '00 21 * * *'
   pull_request:
@@ -43,6 +44,13 @@ jobs:
     with:
       build_artifact: Build-x64-Sanitize
       build_options: /p:Sanitizer='True'
+
+  codeql:
+    if: github.event_name != 'pull_request'
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      build_artifact: Build-x64-CodeQl
+      build_codeql: true
 
   # Run the unit tests in GitHub.
   unit_tests:
