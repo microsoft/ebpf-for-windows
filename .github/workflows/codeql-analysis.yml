@@ -14,6 +14,7 @@ permissions:
 
 jobs:
   analyze:
+    runs-on: windows-2019
     permissions:
       actions: read
       contents: read
