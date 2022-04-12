@@ -4,9 +4,6 @@
 // Do not alter this generated file.
 // This file was generated from printk_unsafe.o
 
-// Copyright (c) Microsoft Corporation
-// SPDX-License-Identifier: MIT
-
 #include <guiddef.h>
 #include <wdm.h>
 #include <wsk.h>

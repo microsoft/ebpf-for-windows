@@ -26,8 +26,8 @@ void
 emit_skeleton(const std::string& c_name, const std::string& code)
 {
     auto output = std::regex_replace(code, std::regex(std::string("___METADATA_TABLE___")), c_name);
-    output = std::regex_replace(code, std::regex(std::string(copyright_notice)), "");
-    std::cout << std::regex_replace(code, std::regex(std::string("___METADATA_TABLE___")), c_name) << std::endl;
+    output = output.substr(strlen(copyright_notice) + 1);
+    std::cout << output << std::endl;
 }
 
 int

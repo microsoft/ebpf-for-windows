@@ -4,9 +4,6 @@
 // Do not alter this generated file.
 // This file was generated from map_in_map.o
 
-// Copyright (c) Microsoft Corporation
-// SPDX-License-Identifier: MIT
-
 #define WIN32_LEAN_AND_MEAN // Exclude rarely-used stuff from Windows headers
 // Windows Header Files
 #include <windows.h>
