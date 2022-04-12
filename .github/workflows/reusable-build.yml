@@ -14,8 +14,11 @@ on:
         type: string
       # Additional options passed to msbuild.
       build_options:
-        required: False
+        required: false
         type: string
+      build_codeql:
+        required: false
+        type: boolean
 
 permissions:
   contents: read
@@ -40,6 +43,12 @@ jobs:
     - uses: actions/checkout@b0e28b5ac45a892f91e7d036f8200cf5ed489415
       with:
         submodules: 'recursive'
+
+    - name: Initialize CodeQL
+      if: inputs.build_codeql == true
+      uses: github/codeql-action/init@28eead240834b314f7def40f6fcba65d100d99b1
+      with:
+        languages: 'cpp'
 
     - name: Add MSBuild to PATH
       uses: microsoft/setup-msbuild@becb80cf9a036187bb1e07e74eb64e25850d757a
@@ -86,3 +95,7 @@ jobs:
         name: ${{inputs.build_artifact}} ${{matrix.configurations}}
         path: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
         retention-days: 5
+
+    - name: Perform CodeQL Analysis
+      if: inputs.build_codeql == true
+      uses: github/codeql-action/analyze@28eead240834b314f7def40f6fcba65d100d99b1
