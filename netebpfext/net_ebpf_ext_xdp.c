@@ -500,7 +500,6 @@ net_ebpf_ext_layer_2_classify(
     _Inout_ FWPS_CLASSIFY_OUT* classify_output)
 {
     NTSTATUS status = STATUS_SUCCESS;
-    FWP_ACTION_TYPE action = FWP_ACTION_PERMIT;
     NET_BUFFER_LIST* nbl = (NET_BUFFER_LIST*)layer_data;
     NET_BUFFER* net_buffer = NULL;
     uint8_t* packet_buffer;
@@ -513,6 +512,8 @@ net_ebpf_ext_layer_2_classify(
     UNREFERENCED_PARAMETER(incoming_metadata_values);
     UNREFERENCED_PARAMETER(classify_context);
     UNREFERENCED_PARAMETER(flow_context);
+
+    classify_output->actionType = FWP_ACTION_PERMIT;
 
     //
     // WFP MAC layers are implemented using NDIS light-weight filters (LWF).
@@ -577,8 +578,9 @@ net_ebpf_ext_layer_2_classify(
         switch (result) {
         case XDP_PASS:
             if (net_xdp_ctx.cloned_nbl != NULL) {
-                // Drop the orignal NBL.
-                action = FWP_ACTION_BLOCK;
+                // Drop the original NBL.
+                classify_output->actionType = FWP_ACTION_BLOCK;
+                classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
 
                 // Inject the cloned NBL in receive path.
                 status = _net_ebpf_ext_receive_inject_cloned_nbl(net_xdp_ctx.cloned_nbl, incoming_fixed_values);
@@ -593,11 +595,13 @@ net_ebpf_ext_layer_2_classify(
         case XDP_TX:
             _net_ebpf_ext_handle_xdp_tx(&net_xdp_ctx, incoming_fixed_values);
             // Absorb the original NBL.
-            action = FWP_ACTION_BLOCK;
+            classify_output->actionType = FWP_ACTION_BLOCK;
+            classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
             classify_output->flags |= FWPS_CLASSIFY_OUT_FLAG_ABSORB;
             break;
         case XDP_DROP:
-            action = FWP_ACTION_BLOCK;
+            classify_output->actionType = FWP_ACTION_BLOCK;
+            classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
             // Do not audit XDP drops.
             classify_output->flags |= FWPS_CLASSIFY_OUT_FLAG_ABSORB;
             // Free cloned NBL, if any.
@@ -607,7 +611,6 @@ net_ebpf_ext_layer_2_classify(
         }
     }
 Done:
-    classify_output->actionType = action;
 
     if (attached_client)
         net_ebpf_extension_hook_client_leave_rundown(attached_client, EXECUTION_DISPATCH);
