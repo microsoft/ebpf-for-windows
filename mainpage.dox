@@ -14,12 +14,8 @@
  *  <a href="https://github.com/microsoft/ebpf-for-windows#architectural-overview">Architectural Overview</a>.
  *
  *  @section hooks eBPF Program Reference
- *  The following hooks are currently exposed to eBPF programs that include ebpf_nethooks.h:
- *  <ul>
- *   <li>\ref EBPF_PROGRAM_TYPE_BIND : Program type for handling socket bind() requests.</li>
- *   <li>\ref EBPF_PROGRAM_TYPE_XDP : Program type for handling incoming packets as early as possible.</li>
- *  </ul>
- *  More hooks will be added over time.
+ *  A number of hooks are currently exposed to eBPF programs that include ebpf_nethooks.h.
+ *  Refer to the list of \ref bpf_prog_type values for details.
  *
  *  eBPF programs can also call helper APIs to do additional processing.  There are two types of helpers:
  *  <ul>
@@ -27,7 +23,7 @@
  *   <li>Helpers specific to a given program type and declared in other headers.
  *  </ul>
  *  The documentation for each program type will list which helper header files can be used for that program type.
- *  Similarly such documentation for each program type will give the API prototype to implement, and the list
+ *  Similarly such documentation for each \ref bpf_prog_type value will give the API prototype to implement, and the list
  *  of supported attach types that can be used when attaching an eBPF program.  Most program types have only
  *  a single attach type, but some may support multiple places to which the same type of program can be attached.
  *
