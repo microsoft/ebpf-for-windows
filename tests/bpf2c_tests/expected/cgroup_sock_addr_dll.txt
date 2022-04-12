@@ -1,3 +1,6 @@
+// Do not alter this generated file.
+// This file was generated from cgroup_sock_addr.o
+
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
@@ -43,16 +46,13 @@ get_metadata_table()
     return &metadata_table;
 }
 
-// Do not alter this generated file.
-// This file was generated from cgroup_sock_addr.o
-
 #include "bpf2c.h"
 
 static map_entry_t _maps[] = {
 { NULL, { 1, 44, 4, 1, 0, 0, 0, 0,  }, "connection_policy_map" },
 };
 
-static void _get_maps(map_entry_t** maps, size_t* count)
+static void _get_maps(_Outptr_result_buffer_(*count) map_entry_t** maps, _Out_ size_t* count)
 {
 	*maps = _maps;
 	*count = 1;
@@ -641,7 +641,7 @@ static program_entry_t _programs[] = {
 	{ authorize_recv_accept6, "cgroup/recv_accept6", "authorize_recv_accept6", authorize_recv_accept6_maps, 1, authorize_recv_accept6_helpers, 1, 38, &authorize_recv_accept6_program_type_guid, &authorize_recv_accept6_attach_type_guid, },
 };
 
-static void _get_programs(program_entry_t** programs, size_t* count)
+static void _get_programs(_Outptr_result_buffer_(*count) program_entry_t** programs, _Out_ size_t* count)
 {
 	*programs = _programs;
 	*count = 4;

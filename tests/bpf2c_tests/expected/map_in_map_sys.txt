@@ -1,3 +1,6 @@
+// Do not alter this generated file.
+// This file was generated from map_in_map.o
+
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
@@ -162,9 +165,6 @@ _bpf2c_npi_client_detach_provider(_In_ void* client_binding_context)
     return STATUS_SUCCESS;
 }
 
-// Do not alter this generated file.
-// This file was generated from map_in_map.o
-
 #include "bpf2c.h"
 
 static map_entry_t _maps[] = {
@@ -172,7 +172,7 @@ static map_entry_t _maps[] = {
 { NULL, { 1, 4, 4, 1, 0, 0, 0, 0,  }, "inner_map" },
 };
 
-static void _get_maps(map_entry_t** maps, size_t* count)
+static void _get_maps(_Outptr_result_buffer_(*count) map_entry_t** maps, _Out_ size_t* count)
 {
 	*maps = _maps;
 	*count = 2;
@@ -288,7 +288,7 @@ static program_entry_t _programs[] = {
 	{ lookup, "xdp_prog", "lookup", lookup_maps, 1, lookup_helpers, 1, 19, &lookup_program_type_guid, &lookup_attach_type_guid, },
 };
 
-static void _get_programs(program_entry_t** programs, size_t* count)
+static void _get_programs(_Outptr_result_buffer_(*count) program_entry_t** programs, _Out_ size_t* count)
 {
 	*programs = _programs;
 	*count = 1;

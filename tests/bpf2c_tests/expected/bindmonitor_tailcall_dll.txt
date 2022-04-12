@@ -1,3 +1,6 @@
+// Do not alter this generated file.
+// This file was generated from bindmonitor_tailcall.o
+
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
@@ -43,9 +46,6 @@ get_metadata_table()
     return &metadata_table;
 }
 
-// Do not alter this generated file.
-// This file was generated from bindmonitor_tailcall.o
-
 #include "bpf2c.h"
 
 static map_entry_t _maps[] = {
@@ -58,7 +58,7 @@ static map_entry_t _maps[] = {
 { NULL, { 1, 4, 4, 1, 0, 0, 10, 0,  }, "dummy_inner_map" },
 };
 
-static void _get_maps(map_entry_t** maps, size_t* count)
+static void _get_maps(_Outptr_result_buffer_(*count) map_entry_t** maps, _Out_ size_t* count)
 {
 	*maps = _maps;
 	*count = 7;
@@ -607,7 +607,7 @@ static program_entry_t _programs[] = {
 	{ BindMonitor_Callee1, "bind/1", "BindMonitor_Callee1", BindMonitor_Callee1_maps, 2, BindMonitor_Callee1_helpers, 3, 94, &BindMonitor_Callee1_program_type_guid, &BindMonitor_Callee1_attach_type_guid, },
 };
 
-static void _get_programs(program_entry_t** programs, size_t* count)
+static void _get_programs(_Outptr_result_buffer_(*count) program_entry_t** programs, _Out_ size_t* count)
 {
 	*programs = _programs;
 	*count = 3;

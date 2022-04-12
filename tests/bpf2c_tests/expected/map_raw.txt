@@ -14,7 +14,7 @@ static map_entry_t _maps[] = {
 { NULL, { 10, 4, 4, 10, 0, 0, 0, 0,  }, "QUEUE_map" },
 };
 
-static void _get_maps(map_entry_t** maps, size_t* count)
+static void _get_maps(_Outptr_result_buffer_(*count) map_entry_t** maps, _Out_ size_t* count)
 {
 	*maps = _maps;
 	*count = 8;
@@ -6033,7 +6033,7 @@ static program_entry_t _programs[] = {
 	{ test_maps, "xdp_prog", "test_maps", test_maps_maps, 8, test_maps_helpers, 10, 2156, &test_maps_program_type_guid, &test_maps_attach_type_guid, },
 };
 
-static void _get_programs(program_entry_t** programs, size_t* count)
+static void _get_programs(_Outptr_result_buffer_(*count) program_entry_t** programs, _Out_ size_t* count)
 {
 	*programs = _programs;
 	*count = 1;

@@ -7,7 +7,7 @@ static map_entry_t _maps[] = {
 { NULL, { 2, 4, 32, 2, 0, 0, 0, 0,  }, "utility_map" },
 };
 
-static void _get_maps(map_entry_t** maps, size_t* count)
+static void _get_maps(_Outptr_result_buffer_(*count) map_entry_t** maps, _Out_ size_t* count)
 {
 	*maps = _maps;
 	*count = 1;
@@ -209,7 +209,7 @@ static program_entry_t _programs[] = {
 	{ test_utility_helpers, "xdp", "test_utility_helpers", test_utility_helpers_maps, 1, test_utility_helpers_helpers, 4, 40, &test_utility_helpers_program_type_guid, &test_utility_helpers_attach_type_guid, },
 };
 
-static void _get_programs(program_entry_t** programs, size_t* count)
+static void _get_programs(_Outptr_result_buffer_(*count) program_entry_t** programs, _Out_ size_t* count)
 {
 	*programs = _programs;
 	*count = 1;

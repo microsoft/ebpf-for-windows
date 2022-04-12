@@ -1,3 +1,6 @@
+// Do not alter this generated file.
+// This file was generated from decap_permit_packet.o
+
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
@@ -43,12 +46,9 @@ get_metadata_table()
     return &metadata_table;
 }
 
-// Do not alter this generated file.
-// This file was generated from decap_permit_packet.o
-
 #include "bpf2c.h"
 
-static void _get_maps(map_entry_t** maps, size_t* count)
+static void _get_maps(_Outptr_result_buffer_(*count) map_entry_t** maps, _Out_ size_t* count)
 {
 	*maps = NULL;
 	*count = 0;
@@ -435,7 +435,7 @@ static program_entry_t _programs[] = {
 	{ decapsulate_permit_packet, "xdp/decapsulate_reflect", "decapsulate_permit_packet", NULL, 0, decapsulate_permit_packet_helpers, 1, 110, &decapsulate_permit_packet_program_type_guid, &decapsulate_permit_packet_attach_type_guid, },
 };
 
-static void _get_programs(program_entry_t** programs, size_t* count)
+static void _get_programs(_Outptr_result_buffer_(*count) program_entry_t** programs, _Out_ size_t* count)
 {
 	*programs = _programs;
 	*count = 1;

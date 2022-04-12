@@ -657,8 +657,6 @@ void
 bpf_code_generator::emit_c_code(std::ostream& output_stream)
 {
     // Emit C file
-    output_stream << "// Do not alter this generated file." << std::endl;
-    output_stream << "// This file was generated from " << path.c_str() << std::endl << std::endl;
     output_stream << "#include \"bpf2c.h\"" << std::endl << std::endl;
 
     // Emit import tables
@@ -687,14 +685,16 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         }
         output_stream << "};" << std::endl;
         output_stream << std::endl;
-        output_stream << "static void _get_maps(map_entry_t** maps, size_t* count)" << std::endl;
+        output_stream << "static void _get_maps(_Outptr_result_buffer_(*count) map_entry_t** maps, _Out_ size_t* count)"
+                      << std::endl;
         output_stream << "{" << std::endl;
         output_stream << "\t*maps = _maps;" << std::endl;
         output_stream << "\t*count = " << std::to_string(map_definitions.size()) << ";" << std::endl;
         output_stream << "}" << std::endl;
         output_stream << std::endl;
     } else {
-        output_stream << "static void _get_maps(map_entry_t** maps, size_t* count)" << std::endl;
+        output_stream << "static void _get_maps(_Outptr_result_buffer_(*count) map_entry_t** maps, _Out_ size_t* count)"
+                      << std::endl;
         output_stream << "{" << std::endl;
         output_stream << "\t*maps = NULL;" << std::endl;
         output_stream << "\t*count = 0;" << std::endl;
@@ -848,7 +848,9 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
     }
     output_stream << "};" << std::endl;
     output_stream << std::endl;
-    output_stream << "static void _get_programs(program_entry_t** programs, size_t* count)" << std::endl;
+    output_stream
+        << "static void _get_programs(_Outptr_result_buffer_(*count) program_entry_t** programs, _Out_ size_t* count)"
+        << std::endl;
     output_stream << "{" << std::endl;
     output_stream << "\t*programs = _programs;" << std::endl;
     output_stream << "\t*count = " << std::to_string(sections.size()) << ";" << std::endl;

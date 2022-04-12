@@ -1,3 +1,6 @@
+// Do not alter this generated file.
+// This file was generated from test_sample_ebpf.o
+
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
@@ -162,9 +165,6 @@ _bpf2c_npi_client_detach_provider(_In_ void* client_binding_context)
     return STATUS_SUCCESS;
 }
 
-// Do not alter this generated file.
-// This file was generated from test_sample_ebpf.o
-
 #include "bpf2c.h"
 
 static map_entry_t _maps[] = {
@@ -172,7 +172,7 @@ static map_entry_t _maps[] = {
 { NULL, { 2, 4, 32, 2, 0, 0, 0, 0,  }, "utility_map" },
 };
 
-static void _get_maps(map_entry_t** maps, size_t* count)
+static void _get_maps(_Outptr_result_buffer_(*count) map_entry_t** maps, _Out_ size_t* count)
 {
 	*maps = _maps;
 	*count = 2;
@@ -561,7 +561,7 @@ static program_entry_t _programs[] = {
 	{ test_utility_helpers, "sample_ext/utility", "test_utility_helpers", test_utility_helpers_maps, 1, test_utility_helpers_helpers, 4, 40, &test_utility_helpers_program_type_guid, &test_utility_helpers_attach_type_guid, },
 };
 
-static void _get_programs(program_entry_t** programs, size_t* count)
+static void _get_programs(_Outptr_result_buffer_(*count) program_entry_t** programs, _Out_ size_t* count)
 {
 	*programs = _programs;
 	*count = 2;

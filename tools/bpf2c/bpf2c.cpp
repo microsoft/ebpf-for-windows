@@ -110,6 +110,8 @@ main(int argc, char** argv)
             generator.generate(section);
         }
 
+        std::cout << "// Do not alter this generated file." << std::endl;
+        std::cout << "// This file was generated from " << file << std::endl << std::endl;
         switch (type) {
         case output_type::Bare:
             break;
@@ -120,7 +122,6 @@ main(int argc, char** argv)
             emit_skeleton(c_name, bpf2c_dll);
             break;
         }
-
         generator.emit_c_code(std::cout);
     } catch (std::runtime_error err) {
         std::cerr << err.what() << std::endl;

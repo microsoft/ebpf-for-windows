@@ -1,3 +1,6 @@
+// Do not alter this generated file.
+// This file was generated from tail_call_bad.o
+
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
@@ -43,9 +46,6 @@ get_metadata_table()
     return &metadata_table;
 }
 
-// Do not alter this generated file.
-// This file was generated from tail_call_bad.o
-
 #include "bpf2c.h"
 
 static map_entry_t _maps[] = {
@@ -53,7 +53,7 @@ static map_entry_t _maps[] = {
 { NULL, { 2, 4, 4, 1, 0, 0, 0, 0,  }, "canary" },
 };
 
-static void _get_maps(map_entry_t** maps, size_t* count)
+static void _get_maps(_Outptr_result_buffer_(*count) map_entry_t** maps, _Out_ size_t* count)
 {
 	*maps = _maps;
 	*count = 2;
@@ -198,7 +198,7 @@ static program_entry_t _programs[] = {
 	{ callee, "xdp_prog/0", "callee", NULL, 0, NULL, 0, 2, &callee_program_type_guid, &callee_attach_type_guid, },
 };
 
-static void _get_programs(program_entry_t** programs, size_t* count)
+static void _get_programs(_Outptr_result_buffer_(*count) program_entry_t** programs, _Out_ size_t* count)
 {
 	*programs = _programs;
 	*count = 2;
