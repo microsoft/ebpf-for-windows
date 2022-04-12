@@ -12,6 +12,8 @@
 #include "bpf_code_generator.h"
 #include "ebpf_api.h"
 
+const char copyright_notice[] = "// Copyright (c) Microsoft Corporation\n// SPDX-License-Identifier: MIT\n";
+
 const char bpf2c_driver[] =
 #include "bpf2c_driver.template"
     ;
@@ -23,6 +25,8 @@ const char bpf2c_dll[] =
 void
 emit_skeleton(const std::string& c_name, const std::string& code)
 {
+    auto output = std::regex_replace(code, std::regex(std::string("___METADATA_TABLE___")), c_name);
+    output = std::regex_replace(code, std::regex(std::string(copyright_notice)), "");
     std::cout << std::regex_replace(code, std::regex(std::string("___METADATA_TABLE___")), c_name) << std::endl;
 }
 
@@ -110,6 +114,7 @@ main(int argc, char** argv)
             generator.generate(section);
         }
 
+        std::cout << copyright_notice << std::endl;
         std::cout << "// Do not alter this generated file." << std::endl;
         std::cout << "// This file was generated from " << file << std::endl << std::endl;
         switch (type) {

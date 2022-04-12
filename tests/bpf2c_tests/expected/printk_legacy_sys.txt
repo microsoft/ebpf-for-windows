@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation
+// SPDX-License-Identifier: MIT
+
 // Do not alter this generated file.
 // This file was generated from printk_legacy.o
 
