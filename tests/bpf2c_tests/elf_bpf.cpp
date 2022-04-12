@@ -16,16 +16,29 @@
 
 template <typename stream_t>
 std::vector<std::string>
-read_contents(const std::string& source)
+read_contents(const std::string& source, std::function<std::string(const std::string&)> transform)
 {
     std::vector<std::string> return_value;
     std::string line;
     stream_t input(source);
 
     while (std::getline(input, line)) {
-        return_value.push_back(line);
+        return_value.push_back(transform(line));
     }
     return return_value;
+}
+
+std::string
+transform_line_directives(const std::string& string)
+{
+    if (!string.starts_with("#line")) {
+        return string;
+    }
+    if (string.find("\"") == std::string::npos) {
+        return string;
+    }
+
+    return string.substr(0, string.find("\"") + 1) + string.substr(string.find_last_of("\\") + 1);
 }
 
 std::string
@@ -52,16 +65,16 @@ run_test_elf(const std::string& elf_file)
     argv.push_back("--bpf");
     argv.push_back(elf_file.c_str());
 
-    auto raw_output = read_contents<std::ifstream>(name + "_raw.txt");
-    auto raw_result = read_contents<std::istringstream>(run_test_main(argv));
+    auto raw_output = read_contents<std::ifstream>(name + "_raw.txt", transform_line_directives);
+    auto raw_result = read_contents<std::istringstream>(run_test_main(argv), transform_line_directives);
     REQUIRE(raw_result.size() == raw_output.size());
     for (size_t i = 0; i < raw_result.size(); i++) {
         REQUIRE(raw_output[i] == raw_result[i]);
     }
 
     argv.push_back("--dll");
-    auto dll_output = read_contents<std::ifstream>(name + "_dll.txt");
-    auto dll_result = read_contents<std::istringstream>(run_test_main(argv));
+    auto dll_output = read_contents<std::ifstream>(name + "_dll.txt", transform_line_directives);
+    auto dll_result = read_contents<std::istringstream>(run_test_main(argv), transform_line_directives);
     REQUIRE(dll_result.size() == dll_output.size());
     for (size_t i = 0; i < dll_result.size(); i++) {
         REQUIRE(dll_output[i] == dll_result[i]);
@@ -69,8 +82,8 @@ run_test_elf(const std::string& elf_file)
     argv.pop_back();
 
     argv.push_back("--sys");
-    auto sys_output = read_contents<std::ifstream>(name + "_sys.txt");
-    auto sys_result = read_contents<std::istringstream>(run_test_main(argv));
+    auto sys_output = read_contents<std::ifstream>(name + "_sys.txt", transform_line_directives);
+    auto sys_result = read_contents<std::istringstream>(run_test_main(argv), transform_line_directives);
     REQUIRE(sys_result.size() == sys_output.size());
     for (size_t i = 0; i < sys_result.size(); i++) {
         REQUIRE(sys_output[i] == sys_result[i]);
