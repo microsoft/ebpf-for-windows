@@ -13,6 +13,12 @@ on:
     - cron: '00 21 * * *'
   pull_request:
 
+concurrency:
+  # Cancel any CI/CD workflow currently in progress for the same PR.
+  # Allow running concurrently with any other commits.
+  group: cicd-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
   checks: read  # Required by reusable-test.yml to check build status.
