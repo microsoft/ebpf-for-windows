@@ -27,7 +27,7 @@ function Invoke-CICDTestsOnVM
               [Parameter(Mandatory=$True)] [bool] $VerboseLogs)
         $WorkingDirectory = "$Env:SystemDrive\$WorkingDirectory"
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
-        Import-Module $WorkingDirectory\run_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
+        Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
 
         Invoke-CICDTests -VerboseLogs $VerboseLogs 2>&1 | Write-Log
     } -ArgumentList ("eBPF", $LogFileName, $VerboseLogs) -ErrorAction Stop
@@ -51,7 +51,7 @@ function Add-eBPFProgramOnVM
               [Parameter(Mandatory=$True)] [string] $LogFileName)
         $WorkingDirectory = "$Env:SystemDrive\$WorkingDirectory"
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
-        Import-Module $WorkingDirectory\run_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
+        Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
 
         if ([System.String]::IsNullOrEmpty($Interface)){
             Write-Log "Loading $Program on $VM."
@@ -85,7 +85,7 @@ function Set-eBPFProgramOnVM
               [Parameter(Mandatory=$True)] [string] $LogFileName)
         $WorkingDirectory = "$Env:SystemDrive\$WorkingDirectory"
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
-        Import-Module $WorkingDirectory\run_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
+        Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
 
         Write-Log "Setting program $ProgId at interface $Interface on $VM."
         Invoke-NetshEbpfCommand -Arguments "set program $ProgId xdp interface=""$Interface"""
@@ -107,7 +107,7 @@ function Remove-eBPFProgramFromVM
               [Parameter(Mandatory=$True)] [string] $LogFileName)
         $WorkingDirectory = "$Env:SystemDrive\$WorkingDirectory"
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
-        Import-Module $WorkingDirectory\run_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
+        Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
 
         Write-Log "Unloading program $ProgId from $VM."
         Invoke-NetshEbpfCommand -Arguments "del program $ProgId"
@@ -135,7 +135,7 @@ function Invoke-XDPTestOnVM
 
         $WorkingDirectory = "$Env:SystemDrive\$WorkingDirectory"
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
-        Import-Module $WorkingDirectory\run_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
+        Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
 
         Write-Log "Invoking $XDPTestName on $VM"
         Invoke-XDPTest $RemoteIPV4Address $RemoteIPV6Address $XDPTestName $WorkingDirectory
