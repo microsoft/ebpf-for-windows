@@ -803,7 +803,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
                     std::to_string(current_line->second.line_number),
                     escape_string(current_line->second.file_name));
             }
-#if defined(_DEBUG)
+#if defined(_DEBUG) || defined(BPF2C_VERBOSE)
             output_stream << "\t// " << _opcode_name_strings[output.instruction.opcode]
                           << " pc=" << output.instruction_offset << " dst=" << get_register_name(output.instruction.dst)
                           << " src=" << get_register_name(output.instruction.src)
