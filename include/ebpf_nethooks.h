@@ -121,22 +121,27 @@ typedef struct bpf_sock_addr
     uint32_t family; ///< IP address family.
     struct
     {
+        /**
+         * @brief Source IP address in network byte order.
+         * Local for ingress, remote for egress.
+         */
         union
         {
             uint32_t msg_src_ip4;
             uint32_t msg_src_ip6[4];
-        };                     ///< Source IP address in network byte order.
-                               ///< Local for ingress, remote for egress.
+        };
         uint16_t msg_src_port; ///< Source port in network byte order.
     };
     struct
     {
+        /* @brief Destination IP address in network byte order.
+         * Local for egress, remote for ingress.
+         */
         union
         {
             uint32_t user_ip4;
             uint32_t user_ip6[4];
-        };                  ///< Destination IP address in network byte order.
-                            ///< Local for egress, remote for ingress.
+        };
         uint16_t user_port; ///< Destination port in network byte order.
     };
     uint32_t protocol;       ///< IP protocol.
