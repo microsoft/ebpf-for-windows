@@ -44,6 +44,7 @@ jobs:
     uses: ./.github/workflows/reusable-build.yml
     with:
       build_artifact: Build-x64-CodeQl
+      build_codeql: true
 
   # Run the unit tests in GitHub.
   unit_tests:
