@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: MIT
 
 #include "bpf_helpers.h"
-#include "ebpf.h"
 #include "socket_tests_common.h"
 
 SEC("maps")

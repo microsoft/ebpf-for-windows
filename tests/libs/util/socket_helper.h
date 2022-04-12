@@ -33,7 +33,7 @@ typedef class _base_socket
     ~_base_socket();
 
     void
-    get_local_address(PSOCKADDR& address, int& address_length);
+    get_local_address(_Out_ PSOCKADDR& address, _Out_ int& address_length);
 
   protected:
     SOCKET socket;
@@ -100,7 +100,7 @@ typedef class _receiver_socket : public _base_socket
     void
     complete_async_receive(bool timeout_expected = false);
     void
-    get_received_message(uint32_t& message_size, _Outptr_result_z_ char*& message);
+    get_received_message(_Out_ uint32_t& message_size, _Outptr_result_z_ char*& message);
 
     virtual void
     post_async_receive() = 0;

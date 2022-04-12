@@ -210,7 +210,7 @@ This application tests various XDP functionalities. It has the following tests:
    4. Unload the program from system under test by running `delete program <id>` on the netsh prompt, where <id> is the ID noted above.
 
 ### socket_tests.exe
-This application loads the `cgroup_sock_addr.o` eBPF program and attaches to hooks to handle various socket operations. Currently it tests authorizing ingress and egress connections based on entry in a map passed to the program.
+This application loads the `cgroup_sock_addr.o` eBPF program and attaches to hooks to handle various socket operations. Currently it tests authorizing ingress and egress connections based on entries in a map passed to the program.
 
 ### Using tracing
 eBPF for Windows uses ETW for tracing.  A trace can be captured in a file, or viewed in real-time.

@@ -64,7 +64,7 @@ _base_socket::_base_socket(int _sock_type, int _protocol, uint16_t _port)
 _base_socket::~_base_socket() { closesocket(socket); }
 
 void
-_base_socket::get_local_address(PSOCKADDR& address, int& address_length)
+_base_socket::get_local_address(_Out_ PSOCKADDR& address, _Out_ int& address_length)
 {
     address = (PSOCKADDR)&local_address;
     address_length = local_address_size;
@@ -202,7 +202,7 @@ _receiver_socket::complete_async_receive(bool timeout_expected)
 }
 
 void
-_receiver_socket::get_received_message(uint32_t& message_size, _Outptr_result_z_ char*& message)
+_receiver_socket::get_received_message(_Out_ uint32_t& message_size, _Outptr_result_z_ char*& message)
 {
     message_size = bytes_received;
     message = recv_buffer.data();
@@ -249,7 +249,7 @@ _datagram_receiver_socket::post_async_receive()
 }
 
 void
-_datagram_receiver_socket::get_sender_address(PSOCKADDR& from, int& from_length)
+_datagram_receiver_socket::get_sender_address(_Out_ PSOCKADDR& from, _Out_ int& from_length)
 {
     from = (PSOCKADDR)&sender_address;
     from_length = sender_address_size;
@@ -319,7 +319,7 @@ _stream_receiver_socket::post_async_receive()
 }
 
 void
-_stream_receiver_socket::get_sender_address(PSOCKADDR& from, int& from_length)
+_stream_receiver_socket::get_sender_address(_Out_ PSOCKADDR& from, _Out_ int& from_length)
 {
     from = (PSOCKADDR)(recv_buffer.data() + message_length);
     from_length = sizeof(sockaddr_storage);
