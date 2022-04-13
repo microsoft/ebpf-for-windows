@@ -320,8 +320,6 @@ _preprocess_ioctl(_In_ const ebpf_operation_header_t* user_request)
     }
 }
 
-#define min(a, b) (((a) < (b)) ? (a) : (b))
-
 BOOL
 GlueDeviceIoControl(
     HANDLE hDevice,
