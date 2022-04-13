@@ -320,6 +320,8 @@ _preprocess_ioctl(_In_ const ebpf_operation_header_t* user_request)
     }
 }
 
+#define min(a, b) (((a) < (b)) ? (a) : (b))
+
 BOOL
 GlueDeviceIoControl(
     HANDLE hDevice,
@@ -364,7 +366,6 @@ GlueDeviceIoControl(
         }
         user_reply->length = static_cast<uint16_t>(nOutBufferSize);
         user_reply->id = user_request->id;
-        *lpBytesReturned = user_reply->length;
     }
 
     // Intercept the call to perform any IOCTL specific _pre_ tasks.
@@ -379,9 +380,18 @@ GlueDeviceIoControl(
         lpOverlapped,
         _complete_overlapped);
 
+    // Fill out the rest of the out buffer after processing the input
+    // buffer.
+    if (user_reply) {
+        user_reply->length = min((uint16_t)nOutBufferSize, user_reply->length);
+    }
+
     if (result != EBPF_SUCCESS)
         goto Fail;
 
+    if (user_reply) {
+        *lpBytesReturned = user_reply->length;
+    }
     return TRUE;
 
 Fail:

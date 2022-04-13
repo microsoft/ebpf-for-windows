@@ -1282,7 +1282,7 @@ _get_handle_by_id(
     if (reply_length < sizeof(*reply)) {
         return EBPF_INVALID_ARGUMENT;
     }
-    reply->header.length = sizeof(reply->header);
+    reply->header.length = sizeof(*reply);
     ebpf_result_t result = ebpf_core_get_handle_by_id(type, request->id, &reply->handle);
 
     return result;

@@ -303,6 +303,8 @@ _ebpf_driver_io_device_control(
                         goto Done;
                     }
                     user_reply = output_buffer;
+                    user_reply->length = (uint16_t)actual_output_length;
+                    user_reply->id = user_request->id;
                 }
 
                 if (async) {
@@ -322,10 +324,10 @@ _ebpf_driver_io_device_control(
 
                 // Fill out the rest of the out buffer after processing the input
                 // buffer.
-                if (status == STATUS_SUCCESS && user_reply) {
-                    user_reply->id = user_request->id;
+                if (user_reply) {
                     user_reply->length = min((uint16_t)actual_output_length, user_reply->length);
                 }
+
                 goto Done;
             }
         } else {
