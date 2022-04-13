@@ -92,19 +92,19 @@ extern "C"
         /// The enumeration found no more keys.
         EBPF_NO_MORE_KEYS, // = 25
 
-        // The requested key is already present.
+        /// The requested key is already present.
         EBPF_KEY_ALREADY_EXISTS,
 
         /// Caller has reached tail call limit.
         EBPF_NO_MORE_TAIL_CALLS,
 
-        // Requested action is still pending.
+        /// Requested action is still pending.
         EBPF_PENDING,
 
-        // The container can not hold additional elements.
+        /// The container can not hold additional elements.
         EBPF_OUT_OF_SPACE,
 
-        // Operation was canceled.
+        /// Operation was canceled.
         EBPF_CANCELED, // = 30
     } ebpf_result_t;
 
