@@ -22,10 +22,11 @@ on:
 
 permissions:
   contents: read
+  security-events: write # Required by codeql task
 
 jobs:
   build:
-    timeout-minutes: 30
+    timeout-minutes: 60
 
     strategy:
       matrix:
