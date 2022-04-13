@@ -111,8 +111,10 @@ bind_hook_t(bind_md_t* context);
 #define BPF_SOCK_ADDR_VERDICT_REJECT 0
 #define BPF_SOCK_ADDR_VERDICT_PROCEED 1
 
+#ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4201)
+#endif
 /**
  *  @brief Data structure used as context for BPF_PROG_TYPE_CGROUP_SOCK_ADDR program type.
  */
@@ -147,7 +149,9 @@ typedef struct bpf_sock_addr
     uint32_t protocol;       ///< IP protocol.
     uint32_t compartment_id; ///< Network compartment Id.
 } bpf_sock_addr_t;
+#ifdef _MSC_VER
 #pragma warning(pop)
+#endif
 
 /**
  * @brief Handle socket operation. Currently supports ingress/egress connection initialization.

@@ -14,7 +14,7 @@
 #include "ebpf_program_types.h"
 #include "ebpf_api.h"
 #define LIBBPF_API
-#include "libbpf_common.h"
+#include "../external/bpftool/libbpf/src/libbpf_common.h"
 #undef LIBBPF_DEPRECATED
 #define LIBBPF_DEPRECATED(x)
 #else
@@ -93,8 +93,10 @@ typedef struct
     uint32_t flags;   ///< Flags affecting the bind operation.
 } bpf_prog_bind_map_attr_t;
 
+#ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4201) // nonstandard extension used: nameless struct/union
+#endif
 /// Parameters used by the bpf() API.
 union bpf_attr
 {
@@ -172,7 +174,9 @@ union bpf_attr
     // BPF_PROG_BIND_MAP
     bpf_prog_bind_map_attr_t prog_bind_map; ///< Attributes used by BPF_PROG_BIND_MAP.
 };
+#ifdef _MSC_VER
 #pragma warning(pop)
+#endif
 
 int
 bpf(int cmd, union bpf_attr* attr, unsigned int size);
