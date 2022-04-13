@@ -51,7 +51,7 @@ _get_ebpf_attach_type(enum bpf_attach_type type)
 
     // TODO(issue #223): read this mapping from the registry
     switch (type) {
-    case BPF_ATTACH_TYPE_XDP:
+    case BPF_XDP:
         attach_type = &EBPF_ATTACH_TYPE_XDP;
         break;
     case BPF_CGROUP_INET4_CONNECT:
@@ -76,7 +76,7 @@ _get_bpf_attach_type(const ebpf_attach_type_t* type)
 {
     // TODO(issue #223): read this mapping from the registry
     if (memcmp(type, &EBPF_ATTACH_TYPE_XDP, sizeof(*type)) == 0) {
-        return BPF_ATTACH_TYPE_XDP;
+        return BPF_XDP;
     }
     return BPF_ATTACH_TYPE_UNSPEC;
 }
@@ -451,7 +451,7 @@ libbpf_prog_type_by_name(const char* name, enum bpf_prog_type* prog_type, enum b
     // TODO(issue #223): get info from registry.
     if (memcmp(&program_type_uuid, &EBPF_PROGRAM_TYPE_XDP, sizeof(program_type_uuid)) == 0) {
         *prog_type = BPF_PROG_TYPE_XDP;
-        *expected_attach_type = BPF_ATTACH_TYPE_XDP;
+        *expected_attach_type = BPF_XDP;
         return 0;
     }
     if (memcmp(&program_type_uuid, &EBPF_PROGRAM_TYPE_BIND, sizeof(program_type_uuid)) == 0) {
