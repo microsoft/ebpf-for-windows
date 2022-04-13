@@ -71,8 +71,12 @@ typedef struct
 {
     uint32_t bpf_fd;   ///< File descriptor referring to an eBPF object.
     uint64_t info;     ///< Pointer to memory in which to write the info obtained.
-    uint32_t info_len; ///< On input, contains the maximum number of bytes to write into the info. On output, contains
-                       ///< the actual number of bytes written.
+
+    /**
+     * @brief On input, contains the maximum number of bytes to write into the info. On output, contains
+     * the actual number of bytes written.
+     */
+    uint32_t info_len;
 } bpf_obj_info_attr_t;
 
 /// Attributes used by BPF_LINK_DETACH.
