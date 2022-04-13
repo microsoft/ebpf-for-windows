@@ -46,7 +46,7 @@
     <CopyFileToFolders Include="..\install_ebpf.psm1">
       <Filter>Source Files</Filter>
     </CopyFileToFolders>
-    <CopyFileToFolders Include="..\run_tests.psm1">
+    <CopyFileToFolders Include="..\run_driver_tests.psm1">
       <Filter>Source Files</Filter>
     </CopyFileToFolders>
     <CopyFileToFolders Include="..\vm_run_tests.psm1">

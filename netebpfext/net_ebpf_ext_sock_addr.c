@@ -345,8 +345,8 @@ _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
     // Copy IP address fields.
     if ((hook_id == EBPF_HOOK_SOCK_ADDR_CONNECT_V4) || (hook_id == EBPF_HOOK_SOCK_ADDR_RECV_ACCEPT_V4)) {
         sock_addr_ctx->family = AF_INET;
-        sock_addr_ctx->msg_src_ip4 = incoming_values[source_ip_address_field].value.uint32;
-        sock_addr_ctx->user_ip4 = incoming_values[destination_ip_address_field].value.uint32;
+        sock_addr_ctx->msg_src_ip4 = htonl(incoming_values[source_ip_address_field].value.uint32);
+        sock_addr_ctx->user_ip4 = htonl(incoming_values[destination_ip_address_field].value.uint32);
     } else {
         sock_addr_ctx->family = AF_INET6;
         RtlCopyMemory(
@@ -358,8 +358,8 @@ _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
             incoming_values[destination_ip_address_field].value.byteArray16,
             sizeof(FWP_BYTE_ARRAY16));
     }
-    sock_addr_ctx->msg_src_port = incoming_values[source_port_field].value.uint16;
-    sock_addr_ctx->user_port = incoming_values[destination_port_field].value.uint16;
+    sock_addr_ctx->msg_src_port = htons(incoming_values[source_port_field].value.uint16);
+    sock_addr_ctx->user_port = htons(incoming_values[destination_port_field].value.uint16);
     sock_addr_ctx->protocol = incoming_values[fields->protocol_field].value.uint8;
     sock_addr_ctx->compartment_id = incoming_values[fields->compartment_id_field].value.uint32;
 }

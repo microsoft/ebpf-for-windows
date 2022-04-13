@@ -76,7 +76,6 @@ function Invoke-CICDTests
     try {
 
          $TestList = @(
-            "unit_tests.exe",
             "ebpf_client.exe",
             "api_test.exe",
             "sample_ext_app.exe",
