@@ -106,7 +106,7 @@ jobs:
     with:
       name: stress
       # Until there is a dedicated stress test, re-use the perf test.
-      test_command: ebpf_performance.exe -s
+      test_command: ebpf_performance.exe
       build_job: regular / build
       build_artifact: Build-x64
       environment: windows-2019
