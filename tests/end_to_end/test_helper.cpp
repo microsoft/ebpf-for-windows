@@ -364,8 +364,6 @@ GlueDeviceIoControl(
             result = EBPF_INVALID_ARGUMENT;
             goto Fail;
         }
-        user_reply->length = static_cast<uint16_t>(nOutBufferSize);
-        user_reply->id = user_request->id;
     }
 
     // Intercept the call to perform any IOCTL specific _pre_ tasks.
@@ -379,12 +377,6 @@ GlueDeviceIoControl(
         static_cast<uint16_t>(nOutBufferSize),
         lpOverlapped,
         _complete_overlapped);
-
-    // Fill out the rest of the out buffer after processing the input
-    // buffer.
-    if (user_reply) {
-        user_reply->length = min((uint16_t)nOutBufferSize, user_reply->length);
-    }
 
     if (result != EBPF_SUCCESS)
         goto Fail;
