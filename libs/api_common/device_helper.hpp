@@ -111,12 +111,6 @@ invoke_ioctl(request_t& request, reply_t& reply = _empty_reply, _Inout_opt_ OVER
         goto Exit;
     }
 
-    // Actual reply size cannot be smaller than minimum expected reply size.
-    if (actual_reply_size < reply_size) {
-        return_value = ERROR_INVALID_PARAMETER;
-        goto Exit;
-    }
-
     if (actual_reply_size != reply_size && !variable_reply_size) {
         return_value = ERROR_INVALID_PARAMETER;
         goto Exit;
