@@ -25,13 +25,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="capture_helper.cpp" />
-    <ClCompile Include="dll_metadata_table.cpp" />
     <ClCompile Include="netsh_helper.cpp" />
     <ClCompile Include="service_helper.cpp" />
     <ClCompile Include="program_helper.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="dll_metadata_table.h" />
     <ClInclude Include="service_helper.h" />
     <ClInclude Include="program_helper.h" />
   </ItemGroup>

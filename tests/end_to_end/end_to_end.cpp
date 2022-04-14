@@ -16,7 +16,6 @@
 #include "capture_helper.hpp"
 #include "catch_wrapper.hpp"
 #include "common_tests.h"
-#include "dll_metadata_table.h"
 #include "ebpf_bind_program_data.h"
 #include "ebpf_core.h"
 #include "ebpf_xdp_program_data.h"
@@ -34,6 +33,18 @@ namespace ebpf {
 #include "net/ip.h"
 #include "net/udp.h"
 }; // namespace ebpf
+
+#define CONCAT(s1, s2) s1 s2
+#define DECLARE_ALL_TEST_CASES(_name, _group, _function)                              \
+                                                                                      \
+    TEST_CASE(CONCAT(_name, "-jit"), _group) { _function(EBPF_EXECUTION_JIT); }       \
+    TEST_CASE(CONCAT(_name, "-native"), _group) { _function(EBPF_EXECUTION_NATIVE); } \
+    TEST_CASE(CONCAT(_name, "-interpret"), _group) { _function(EBPF_EXECUTION_INTERPRET); }
+
+#define DECLARE_JIT_TEST_CASES(_name, _group, _function)                        \
+                                                                                \
+    TEST_CASE(CONCAT(_name, "-jit"), _group) { _function(EBPF_EXECUTION_JIT); } \
+    TEST_CASE(CONCAT(_name, "-native"), _group) { _function(EBPF_EXECUTION_NATIVE); }
 
 std::vector<uint8_t>
 prepare_ip_packet(uint16_t ethernet_type)
@@ -310,8 +321,9 @@ droppacket_test(ebpf_execution_type_t execution_type)
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
-    result = ebpf_program_load(
-        SAMPLE_PATH "droppacket.o", nullptr, nullptr, execution_type, &object, &program_fd, &error_message);
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "droppacket.dll" : "droppacket.o");
+
+    result = ebpf_program_load(file_name, nullptr, nullptr, execution_type, &object, &program_fd, &error_message);
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
@@ -401,8 +413,9 @@ divide_by_zero_test_um(ebpf_execution_type_t execution_type)
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
-    result = ebpf_program_load(
-        SAMPLE_PATH "divide_by_zero.o", nullptr, nullptr, execution_type, &object, &program_fd, &error_message);
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "divide_by_zero.dll" : "divide_by_zero.o");
+
+    result = ebpf_program_load(file_name, nullptr, nullptr, execution_type, &object, &program_fd, &error_message);
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
@@ -491,7 +504,7 @@ bindmonitor_test(ebpf_execution_type_t execution_type)
 
     program_info_provider_t bind_program_info(EBPF_PROGRAM_TYPE_BIND);
 
-    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "bindmonitor_um.dll" : "bindmonitor.o");
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "bindmonitor.dll" : "bindmonitor.o");
 
     result = ebpf_program_load(file_name, nullptr, nullptr, execution_type, &object, &program_fd, &error_message);
 
@@ -574,7 +587,7 @@ bindmonitor_tailcall_test(ebpf_execution_type_t execution_type)
     program_info_provider_t bind_program_info(EBPF_PROGRAM_TYPE_BIND);
 
     const char* file_name =
-        (execution_type == EBPF_EXECUTION_NATIVE ? "bindmonitor_tailcall_um.dll" : "bindmonitor_tailcall.o");
+        (execution_type == EBPF_EXECUTION_NATIVE ? "bindmonitor_tailcall.dll" : "bindmonitor_tailcall.o");
     result = ebpf_program_load(file_name, nullptr, nullptr, execution_type, &object, &program_fd, &error_message);
 
     if (error_message) {
@@ -607,12 +620,21 @@ bindmonitor_tailcall_test(ebpf_execution_type_t execution_type)
     index = 1;
     REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &callee1_fd, 0) == 0);
 
-    // Test map-in-maps.
+    // Validate various maps.
+
+    // Validate map-in-maps with "inner_id"
     struct bpf_map* outer_map = bpf_object__find_map_by_name(object, "dummy_outer_map");
     REQUIRE(outer_map != nullptr);
 
     int outer_map_fd = bpf_map__fd(outer_map);
     REQUIRE(outer_map_fd > 0);
+
+    // Validate map-in-maps with "inner_idx"
+    struct bpf_map* outer_idx_map = bpf_object__find_map_by_name(object, "dummy_outer_idx_map");
+    REQUIRE(outer_idx_map != nullptr);
+
+    int outer_idx_map_fd = bpf_map__fd(outer_idx_map);
+    REQUIRE(outer_idx_map_fd > 0);
 
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
 
@@ -685,9 +707,11 @@ bindmonitor_ring_buffer_test(ebpf_execution_type_t execution_type)
 
     program_info_provider_t bind_program_info(EBPF_PROGRAM_TYPE_BIND);
 
+    const char* file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "bindmonitor_ringbuf.dll" : "bindmonitor_ringbuf.o");
+
     // Load and attach a bind eBPF program that uses a ring buffer map to notify about bind operations.
-    result = ebpf_program_load(
-        SAMPLE_PATH "bindmonitor_ringbuf.o", nullptr, nullptr, execution_type, &object, &program_fd, &error_message);
+    result = ebpf_program_load(file_name, nullptr, nullptr, execution_type, &object, &program_fd, &error_message);
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
@@ -736,14 +760,10 @@ _utility_helper_functions_test(ebpf_execution_type_t execution_type)
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
     uint32_t ifindex = 0;
+    const char* file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "test_utility_helpers.dll" : "test_utility_helpers.o");
     program_load_attach_helper_t program_helper(
-        SAMPLE_PATH "test_utility_helpers.o",
-        EBPF_PROGRAM_TYPE_XDP,
-        "test_utility_helpers",
-        execution_type,
-        &ifindex,
-        sizeof(ifindex),
-        hook);
+        file_name, EBPF_PROGRAM_TYPE_XDP, "test_utility_helpers", execution_type, &ifindex, sizeof(ifindex), hook);
     bpf_object* object = program_helper.get_object();
 
     // Dummy context (not used by the eBPF program).
@@ -770,8 +790,9 @@ map_test(ebpf_execution_type_t execution_type)
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
-    result =
-        ebpf_program_load(SAMPLE_PATH "map.o", nullptr, nullptr, execution_type, &object, &program_fd, &error_message);
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map.dll" : "map.o");
+
+    result = ebpf_program_load(file_name, nullptr, nullptr, execution_type, &object, &program_fd, &error_message);
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
@@ -797,21 +818,13 @@ map_test(ebpf_execution_type_t execution_type)
     bpf_object__close(object);
 }
 
-TEST_CASE("droppacket-jit", "[end_to_end]") { droppacket_test(EBPF_EXECUTION_JIT); }
-TEST_CASE("divide_by_zero_jit", "[end_to_end]") { divide_by_zero_test_um(EBPF_EXECUTION_JIT); }
-TEST_CASE("bindmonitor-jit", "[end_to_end]") { bindmonitor_test(EBPF_EXECUTION_JIT); }
-TEST_CASE("bindmonitor-native", "[end_to_end]") { bindmonitor_test(EBPF_EXECUTION_NATIVE); }
-TEST_CASE("bindmonitor-tailcall-jit", "[end_to_end]") { bindmonitor_tailcall_test(EBPF_EXECUTION_JIT); }
-TEST_CASE("bindmonitor-tailcall-native", "[end_to_end]") { bindmonitor_tailcall_test(EBPF_EXECUTION_NATIVE); }
-TEST_CASE("bindmonitor-ringbuf-jit", "[end_to_end]") { bindmonitor_ring_buffer_test(EBPF_EXECUTION_JIT); }
-TEST_CASE("droppacket-interpret", "[end_to_end]") { droppacket_test(EBPF_EXECUTION_INTERPRET); }
-TEST_CASE("divide_by_zero_interpret", "[end_to_end]") { divide_by_zero_test_um(EBPF_EXECUTION_INTERPRET); }
-TEST_CASE("bindmonitor-interpret", "[end_to_end]") { bindmonitor_test(EBPF_EXECUTION_INTERPRET); }
-TEST_CASE("bindmonitor-ringbuf-interpret", "[end_to_end]") { bindmonitor_ring_buffer_test(EBPF_EXECUTION_INTERPRET); }
-TEST_CASE("utility-helpers-jit", "[end_to_end]") { _utility_helper_functions_test(EBPF_EXECUTION_JIT); }
-TEST_CASE("utility-helpers-interpret", "[end_to_end]") { _utility_helper_functions_test(EBPF_EXECUTION_INTERPRET); }
-TEST_CASE("map-interpret", "[end_to_end]") { map_test(EBPF_EXECUTION_INTERPRET); }
-TEST_CASE("map-jit", "[end_to_end]") { map_test(EBPF_EXECUTION_INTERPRET); }
+DECLARE_ALL_TEST_CASES("droppacket", "[end_to_end]", droppacket_test);
+DECLARE_ALL_TEST_CASES("divide_by_zero", "[end_to_end]", divide_by_zero_test_um);
+DECLARE_ALL_TEST_CASES("bindmonitor", "[end_to_end]", bindmonitor_test);
+DECLARE_ALL_TEST_CASES("bindmonitor-tailcall", "[end_to_end]", bindmonitor_tailcall_test);
+DECLARE_ALL_TEST_CASES("bindmonitor-ringbuf", "[end_to_end]", bindmonitor_ring_buffer_test);
+DECLARE_ALL_TEST_CASES("utility-helpers", "[end_to_end]", _utility_helper_functions_test);
+DECLARE_ALL_TEST_CASES("map", "[end_to_end]", map_test);
 
 TEST_CASE("enum section", "[end_to_end]")
 {
@@ -907,26 +920,30 @@ _cgroup_sock_addr_load_test(
     bpf_object__close(object);
 }
 
-#define DECLARE_CGROUP_SOCK_ADDR_LOAD_TEST(file, name, attach_type, execution_type)                          \
-    TEST_CASE("cgroup_sockaddr_load_test_" #name "_" #attach_type "_" #execution_type, "[cgroup_sock_addr]") \
-    {                                                                                                        \
-        _cgroup_sock_addr_load_test(file, name, attach_type, execution_type);                                \
+#define DECLARE_CGROUP_SOCK_ADDR_LOAD_TEST(file, name, attach_type)                         \
+    TEST_CASE(                                                                              \
+        "cgroup_sockaddr_load_test_" #name "_" #attach_type "_"                             \
+        "jit",                                                                              \
+        "[cgroup_sock_addr]")                                                               \
+    {                                                                                       \
+        _cgroup_sock_addr_load_test(file ".o", name, attach_type, EBPF_EXECUTION_JIT);      \
+    }                                                                                       \
+    TEST_CASE(                                                                              \
+        "cgroup_sockaddr_load_test_" #name "_" #attach_type "_"                             \
+        "native",                                                                           \
+        "[cgroup_sock_addr]")                                                               \
+    {                                                                                       \
+        _cgroup_sock_addr_load_test(file ".dll", name, attach_type, EBPF_EXECUTION_NATIVE); \
     }
 
 DECLARE_CGROUP_SOCK_ADDR_LOAD_TEST(
-    SAMPLE_PATH "cgroup_sock_addr.o", "authorize_connect4", EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT, EBPF_EXECUTION_JIT);
+    SAMPLE_PATH "cgroup_sock_addr", "authorize_connect4", EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT);
 DECLARE_CGROUP_SOCK_ADDR_LOAD_TEST(
-    SAMPLE_PATH "cgroup_sock_addr.o", "authorize_connect6", EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT, EBPF_EXECUTION_JIT);
+    SAMPLE_PATH "cgroup_sock_addr", "authorize_connect6", EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT);
 DECLARE_CGROUP_SOCK_ADDR_LOAD_TEST(
-    SAMPLE_PATH "cgroup_sock_addr.o",
-    "authorize_recv_accept4",
-    EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT,
-    EBPF_EXECUTION_JIT);
+    SAMPLE_PATH "cgroup_sock_addr", "authorize_recv_accept4", EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT);
 DECLARE_CGROUP_SOCK_ADDR_LOAD_TEST(
-    SAMPLE_PATH "cgroup_sock_addr.o",
-    "authorize_recv_accept6",
-    EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT,
-    EBPF_EXECUTION_JIT);
+    SAMPLE_PATH "cgroup_sock_addr", "authorize_recv_accept6", EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT);
 
 TEST_CASE("verify_test0", "[sample_extension]")
 {
@@ -1589,11 +1606,14 @@ TEST_CASE("link_tests", "[end_to_end]")
     hook.detach();
 }
 
-TEST_CASE("map_reuse", "[end_to_end]")
+static void
+_map_reuse_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
+
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_reuse.dll" : "map_reuse.o");
 
     // First create and pin the maps manually.
     int inner_map_fd = bpf_create_map(BPF_MAP_TYPE_ARRAY, sizeof(__u32), sizeof(__u32), 1, 0);
@@ -1626,13 +1646,7 @@ TEST_CASE("map_reuse", "[end_to_end]")
 
     uint32_t ifindex = 0;
     program_load_attach_helper_t program_helper(
-        SAMPLE_PATH "map_reuse.o",
-        EBPF_PROGRAM_TYPE_XDP,
-        "lookup_update",
-        EBPF_EXECUTION_ANY,
-        &ifindex,
-        sizeof(ifindex),
-        hook);
+        file_name, EBPF_PROGRAM_TYPE_XDP, "lookup_update", EBPF_EXECUTION_ANY, &ifindex, sizeof(ifindex), hook);
 
     auto packet = prepare_udp_packet(10, ETHERNET_TYPE_IPV4);
     xdp_md_t ctx{packet.data(), packet.data() + packet.size(), 0, TEST_IFINDEX};
@@ -1656,21 +1670,20 @@ TEST_CASE("map_reuse", "[end_to_end]")
     REQUIRE(ebpf_object_unpin("/ebpf/global/port_map") == EBPF_SUCCESS);
 }
 
-TEST_CASE("auto_pinned_maps", "[end_to_end]")
+DECLARE_JIT_TEST_CASES("map_reuse", "[end_to_end]", _map_reuse_test);
+
+static void
+_auto_pinned_maps_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_reuse.dll" : "map_reuse.o");
+
     uint32_t ifindex = 0;
     program_load_attach_helper_t program_helper(
-        SAMPLE_PATH "map_reuse.o",
-        EBPF_PROGRAM_TYPE_XDP,
-        "lookup_update",
-        EBPF_EXECUTION_ANY,
-        &ifindex,
-        sizeof(ifindex),
-        hook);
+        file_name, EBPF_PROGRAM_TYPE_XDP, "lookup_update", EBPF_EXECUTION_ANY, &ifindex, sizeof(ifindex), hook);
 
     fd_t outer_map_fd = bpf_obj_get("/ebpf/global/outer_map");
     REQUIRE(outer_map_fd > 0);
@@ -1710,6 +1723,8 @@ TEST_CASE("auto_pinned_maps", "[end_to_end]")
     REQUIRE(ebpf_object_unpin("/ebpf/global/outer_map") == EBPF_SUCCESS);
     REQUIRE(ebpf_object_unpin("/ebpf/global/port_map") == EBPF_SUCCESS);
 }
+
+DECLARE_JIT_TEST_CASES("auto_pinned_maps", "[end_to_end]", _auto_pinned_maps_test);
 
 TEST_CASE("auto_pinned_maps_custom_path", "[end_to_end]")
 {
@@ -1776,7 +1791,8 @@ TEST_CASE("auto_pinned_maps_custom_path", "[end_to_end]")
     bpf_object__close(object);
 }
 
-TEST_CASE("map_reuse_invalid", "[end_to_end]")
+static void
+_map_reuse_invalid_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
@@ -1802,14 +1818,9 @@ TEST_CASE("map_reuse_invalid", "[end_to_end]")
     struct bpf_object* object = nullptr;
     fd_t program_fd;
     const char* log_buffer = nullptr;
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_reuse.dll" : "map_reuse.o");
     ebpf_result_t result = ebpf_program_load(
-        SAMPLE_PATH "map_reuse.o",
-        &EBPF_PROGRAM_TYPE_XDP,
-        nullptr,
-        EBPF_EXECUTION_ANY,
-        &object,
-        &program_fd,
-        &log_buffer);
+        file_name, &EBPF_PROGRAM_TYPE_XDP, nullptr, EBPF_EXECUTION_ANY, &object, &program_fd, &log_buffer);
 
     ebpf_free_string(log_buffer);
     REQUIRE(result == EBPF_INVALID_ARGUMENT);
@@ -1821,11 +1832,16 @@ TEST_CASE("map_reuse_invalid", "[end_to_end]")
     REQUIRE(ebpf_object_unpin("/ebpf/global/port_map") == EBPF_SUCCESS);
 }
 
-TEST_CASE("map_reuse_2", "[end_to_end]")
+DECLARE_JIT_TEST_CASES("map_reuse_invalid", "[end_to_end]", _map_reuse_invalid_test);
+
+static void
+_map_reuse_2_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
+
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_reuse_2.dll" : "map_reuse_2.o");
 
     // First create and pin the maps manually.
     int inner_map_fd = bpf_create_map(BPF_MAP_TYPE_ARRAY, sizeof(__u32), sizeof(__u32), 1, 0);
@@ -1858,13 +1874,7 @@ TEST_CASE("map_reuse_2", "[end_to_end]")
 
     uint32_t ifindex = 0;
     program_load_attach_helper_t program_helper(
-        SAMPLE_PATH "map_reuse_2.o",
-        EBPF_PROGRAM_TYPE_XDP,
-        "lookup_update",
-        EBPF_EXECUTION_ANY,
-        &ifindex,
-        sizeof(ifindex),
-        hook);
+        file_name, EBPF_PROGRAM_TYPE_XDP, "lookup_update", EBPF_EXECUTION_ANY, &ifindex, sizeof(ifindex), hook);
 
     auto packet = prepare_udp_packet(10, ETHERNET_TYPE_IPV4);
     xdp_md_t ctx{packet.data(), packet.data() + packet.size(), 0, TEST_IFINDEX};
@@ -1892,7 +1902,10 @@ TEST_CASE("map_reuse_2", "[end_to_end]")
     REQUIRE(ebpf_object_unpin("/ebpf/global/inner_map") == EBPF_SUCCESS);
 }
 
-TEST_CASE("map_reuse_3", "[end_to_end]")
+DECLARE_JIT_TEST_CASES("map_reuse_2", "[end_to_end]", _map_reuse_2_test);
+
+static void
+_map_reuse_3_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
@@ -1931,15 +1944,11 @@ TEST_CASE("map_reuse_3", "[end_to_end]")
     error = bpf_map_update_elem(inner_map_fd, &key, &value, BPF_ANY);
     REQUIRE(error == 0);
 
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_reuse_2.dll" : "map_reuse_2.o");
+
     uint32_t ifindex = 0;
     program_load_attach_helper_t program_helper(
-        SAMPLE_PATH "map_reuse_2.o",
-        EBPF_PROGRAM_TYPE_XDP,
-        "lookup_update",
-        EBPF_EXECUTION_ANY,
-        &ifindex,
-        sizeof(ifindex),
-        hook);
+        file_name, EBPF_PROGRAM_TYPE_XDP, "lookup_update", EBPF_EXECUTION_ANY, &ifindex, sizeof(ifindex), hook);
 
     auto packet = prepare_udp_packet(10, ETHERNET_TYPE_IPV4);
     xdp_md_t ctx{packet.data(), packet.data() + packet.size(), 0, TEST_IFINDEX};
@@ -1964,97 +1973,4 @@ TEST_CASE("map_reuse_3", "[end_to_end]")
     REQUIRE(ebpf_object_unpin("/ebpf/global/port_map") == EBPF_SUCCESS);
 }
 
-TEST_CASE("bpf2c_droppacket", "[bpf2c]")
-{
-    _test_helper_end_to_end test_helper;
-    dll_metadata_table table("bpf2c_test_wrapper.dll", "droppacket");
-    uint32_t key = 0;
-    uint64_t value = 0;
-
-    REQUIRE(bpf_map_lookup_elem(table.get_map("dropped_packet_map"), &key, &value) == 0);
-    REQUIRE(value == 0);
-
-    auto packet = prepare_udp_packet(0, ETHERNET_TYPE_IPV4);
-    // Test that we drop the packet and increment the map
-    xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
-
-    REQUIRE(table.invoke("DropPacket", &ctx) == XDP_DROP);
-    REQUIRE(bpf_map_lookup_elem(table.get_map("dropped_packet_map"), &key, &value) == 0);
-    REQUIRE(value == 1);
-
-    packet = prepare_udp_packet(10, ETHERNET_TYPE_IPV4);
-    xdp_md_t ctx2{packet.data(), packet.data() + packet.size()};
-
-    REQUIRE(table.invoke("DropPacket", &ctx2) == XDP_PASS);
-    REQUIRE(bpf_map_lookup_elem(table.get_map("dropped_packet_map"), &key, &value) == 0);
-    REQUIRE(value == 1);
-}
-
-TEST_CASE("bpf2c_divide_by_zero", "[bpf2c]")
-{
-    _test_helper_end_to_end test_helper;
-    dll_metadata_table table("bpf2c_test_wrapper.dll", "divide_by_zero");
-
-    auto packet = prepare_udp_packet(0, ETHERNET_TYPE_IPV4);
-    // Test that we drop the packet and increment the map
-    xdp_md_t ctx{packet.data(), packet.data() + packet.size()};
-
-    // Verify the program doesn't crash
-    REQUIRE(table.invoke("divide_by_zero", &ctx) == 0);
-}
-
-TEST_CASE("bpf2c_bindmonitor", "[bpf2c]")
-{
-    _test_helper_end_to_end test_helper;
-    dll_metadata_table table("bpf2c_test_wrapper.dll", "bindmonitor");
-
-    uint64_t fake_pid = 12345;
-
-    fd_t limit_map_fd = table.get_map("limits_map");
-    REQUIRE(limit_map_fd > 0);
-    fd_t process_map_fd = table.get_map("process_map");
-    REQUIRE(process_map_fd > 0);
-
-    // Apply policy of maximum 2 binds per process
-    set_bind_limit(limit_map_fd, 2);
-
-    std::function<ebpf_result_t(void*, int*)> invoke = [&table](void* context, int* result) -> ebpf_result_t {
-        *result = static_cast<int>(table.invoke("BindMonitor", context));
-        return EBPF_SUCCESS;
-    };
-    // Bind first port - success
-    REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_PERMIT);
-    REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
-
-    // Bind second port - success
-    REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_PERMIT);
-    REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 2);
-
-    // Bind third port - blocked
-    REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_DENY);
-    REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 2);
-
-    // Unbind second port
-    emulate_unbind(invoke, fake_pid, "fake_app_1");
-    REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
-
-    // Unbind first port
-    emulate_unbind(invoke, fake_pid, "fake_app_1");
-    REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 0);
-
-    // Bind from two apps to test enumeration
-    REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_PERMIT);
-    REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
-
-    fake_pid = 54321;
-    REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_2") == BIND_PERMIT);
-    REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
-
-    uint64_t pid;
-    REQUIRE(bpf_map_get_next_key(process_map_fd, NULL, &pid) == 0);
-    REQUIRE(pid != 0);
-    REQUIRE(bpf_map_get_next_key(process_map_fd, &pid, &pid) == 0);
-    REQUIRE(pid != 0);
-    REQUIRE(bpf_map_get_next_key(process_map_fd, &pid, &pid) < 0);
-    REQUIRE(errno == ENOENT);
-}
+DECLARE_JIT_TEST_CASES("map_reuse_3", "[end_to_end]", _map_reuse_3_test);

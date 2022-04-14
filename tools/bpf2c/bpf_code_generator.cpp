@@ -400,7 +400,7 @@ bpf_code_generator::encode_instructions(const std::string& section_name)
             bool is64bit = (inst.opcode & EBPF_CLS_MASK) == EBPF_CLS_ALU64;
             AluOperations operation = static_cast<AluOperations>(inst.opcode >> 4);
             std::string check_div_by_zero =
-                format_string("if (%s == 0) { division_by_zero(%s); return 0; }", source, std::to_string(i));
+                format_string("if (%s == 0) { division_by_zero(%s); return -1; }", source, std::to_string(i));
             std::string swap_function;
             switch (operation) {
             case AluOperations::Add:
