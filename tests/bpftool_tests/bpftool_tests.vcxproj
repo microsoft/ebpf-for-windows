@@ -137,7 +137,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)tests\libs\util;$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)tests\libs\util;$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
