@@ -34,8 +34,6 @@ function generate_expected_output
     $sample_path = $ps_root + "\..\tests\sample"
     $expected_output_path = $ps_root + "\..\tests\bpf2c_tests\expected"
     $bpf2c_command = ".\bpf2c.exe"
-    $bpf_option = "--bpf"
-    $sys_option = "--sys"
 
     $current_location = Get-Location
 
