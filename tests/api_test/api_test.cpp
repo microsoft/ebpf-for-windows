@@ -314,9 +314,10 @@ perform_socket_bind(const uint16_t test_port, bool expect_success = true)
     SOCKET _socket = INVALID_SOCKET;
     _socket = WSASocket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP, nullptr, 0, 0);
     REQUIRE(_socket != INVALID_SOCKET);
-    uint32_t ipv6_opt = 0;
+    uint32_t ipv6_option = 0;
     REQUIRE(
-        setsockopt(_socket, IPPROTO_IPV6, IPV6_V6ONLY, reinterpret_cast<const char*>(&ipv6_opt), sizeof(ULONG)) == 0);
+        setsockopt(_socket, IPPROTO_IPV6, IPV6_V6ONLY, reinterpret_cast<const char*>(&ipv6_option), sizeof(ULONG)) ==
+        0);
     SOCKADDR_STORAGE sock_addr;
     sock_addr.ss_family = AF_INET6;
     INETADDR_SETANY((PSOCKADDR)&sock_addr);
@@ -367,7 +368,7 @@ divide_by_zero_test_km(ebpf_execution_type_t execution_type)
         "divide_by_zero.o", EBPF_PROGRAM_TYPE_BIND, "divide_by_zero", execution_type, nullptr, 0, hook);
     object = _helper.get_object();
 
-    perform_socket_bind(0, false);
+    perform_socket_bind(0, true);
 
     // If we don't bug-check, the test passed.
 }

@@ -27,10 +27,12 @@
     <ClCompile Include="capture_helper.cpp" />
     <ClCompile Include="netsh_helper.cpp" />
     <ClCompile Include="service_helper.cpp" />
+    <ClCompile Include="socket_helper.cpp" />
     <ClCompile Include="program_helper.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="service_helper.h" />
+    <ClInclude Include="socket_helper.h" />
     <ClInclude Include="program_helper.h" />
   </ItemGroup>
   <ItemGroup>
@@ -130,7 +132,7 @@
     <ClCompile>
       <PreprocessorDefinitions>_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)libs\api_common;$(SolutionDir)libs\ebpfnetsh;$(SolutionDir)libs\execution_context;$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\user;$(SolutionDir)tests\end_to_end;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)\netebpfext;$(SolutionDir)libs\thunk;$(OutDir);$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)libs\api_common;$(SolutionDir)libs\ebpfnetsh;$(SolutionDir)libs\execution_context;$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\user;$(SolutionDir)tests\end_to_end;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)\netebpfext;$(SolutionDir)libs\thunk;$(OutDir);$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)tests\sample;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -142,7 +144,7 @@
     <ClCompile>
       <PreprocessorDefinitions>NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)libs\api_common;$(SolutionDir)libs\ebpfnetsh;$(SolutionDir)libs\execution_context;$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\user;$(SolutionDir)tests\end_to_end;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)\netebpfext;$(SolutionDir)libs\thunk;$(OutDir);$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)libs\api_common;$(SolutionDir)libs\ebpfnetsh;$(SolutionDir)libs\execution_context;$(SolutionDir)include;$(SolutionDir)libs\platform;$(SolutionDir)libs\platform\user;$(SolutionDir)tests\end_to_end;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)\netebpfext;$(SolutionDir)libs\thunk;$(OutDir);$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)tests\sample;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>

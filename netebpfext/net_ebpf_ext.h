@@ -49,6 +49,9 @@ Environment:
 #define NET_EBPF_EXTENSION_POOL_TAG 'Nfbe'
 #define NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION 0
 
+#define htonl(x) _byteswap_ulong(x)
+#define htons(x) _byteswap_ushort(x)
+
 typedef struct _net_ebpf_extension_wfp_filter_parameters
 {
     const GUID* layer_guid;     ///< GUID of WFP layer to which this filter is associated.
