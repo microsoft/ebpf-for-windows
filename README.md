@@ -2,7 +2,7 @@
 
 # eBPF for Windows
 
-![CodeQL](https://github.com/microsoft/ebpf-for-windows/workflows/CodeQL/badge.svg?branch=main)
+![CodeQL](https://github.com/microsoft/ebpf-for-windows/workflows/CI/CD/badge.svg?branch=main&event=schedule)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/5742/badge)](https://bestpractices.coreinfrastructure.org/projects/5742)
 [![codecov](https://codecov.io/gh/microsoft/ebpf-for-windows/branch/main/graph/badge.svg?token=TXa0UAMvYf)](https://codecov.io/gh/microsoft/ebpf-for-windows)
 
