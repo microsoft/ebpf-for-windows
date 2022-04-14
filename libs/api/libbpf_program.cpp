@@ -68,6 +68,7 @@ _get_ebpf_attach_type(enum bpf_attach_type type)
         break;
     case BPF_CGROUP_INET6_RECV_ACCEPT:
         attach_type = &EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT;
+        break;
     case BPF_CGROUP_SOCK_OPS:
         attach_type = &EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS;
         break;

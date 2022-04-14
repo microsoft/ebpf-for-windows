@@ -172,16 +172,12 @@ sock_addr_hook_t(bpf_sock_addr_t* context);
 
 typedef enum _bpf_sock_op_type
 {
-    BPF_SOCK_OPS_ACTIVE_ESTABLISHED_CB,  ///< Calls BPF program when an
-                                         ///< active (outbound) connection is
-                                         ///< established
-                                         ///<
-    BPF_SOCK_OPS_PASSIVE_ESTABLISHED_CB, ///< Calls BPF program when a
-                                         ///< passive (inbound) connection is
-                                         ///< established
-
-    BPF_SOCK_OPS_CONNECTION_DELETED_CB, ///< Calls BPF program when a
-                                        ///< connection is deleted.
+    /** @brief Indicates when an active (outbound) connection is established. **/
+    BPF_SOCK_OPS_ACTIVE_ESTABLISHED_CB,
+    /** @brief Indicates when a passive (inbound) connection is established. **/
+    BPF_SOCK_OPS_PASSIVE_ESTABLISHED_CB,
+    /** @brief Indicates when a connection is deleted. **/
+    BPF_SOCK_OPS_CONNECTION_DELETED_CB
 } bpf_sock_op_type_t;
 
 typedef struct _bpf_sock_ops

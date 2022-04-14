@@ -7,8 +7,8 @@
 #pragma once
 
 #if !defined(NO_CRT)
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 #endif
 #include "ebpf_windows.h"
 
