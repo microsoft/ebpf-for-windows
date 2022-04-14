@@ -46,18 +46,27 @@ function Invoke-NetshEbpfCommand
 function Invoke-Test
 {
     param([Parameter(Mandatory=$True)][string] $TestName,
-          [Parameter(Mandatory=$True)][bool] $VerboseLogs)
+          [Parameter(Mandatory=$True)][bool] $VerboseLogs,
+          [Parameter(Mandatory=$False)][bool] $Coverage)
 
     Write-Log "Executing $Testname"
 
     $LASTEXITCODE = 0
 
+    $OriginalTestName = $TestName
+    $ArgumentsList = @()
+
+    if ($Coverage) {
+        $ArgumentsList += @('--modules=C:\eBPF', '--export_type', ('binary:' + $TestName + '.cov'), '--', $TestName)
+        $TestName = 'C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe'
+    }
     # Execute Test.
     if ($VerboseLogs -eq $true) {
-        $Output = &$TestName "-s"
-    } else {
-        $Output = &$TestName
+        $ArgumentsList += '-s'
     }
+
+    $Output = &$TestName $ArgumentsList
+    $TestName = $OriginalTestName
 
     # Check for errors.
     Out-String -InputObject $Output | Write-Log
@@ -69,26 +78,44 @@ function Invoke-Test
 
 function Invoke-CICDTests
 {
-    param([parameter(Mandatory=$true)][bool] $VerboseLogs)
+    param([parameter(Mandatory = $true)][bool] $VerboseLogs,
+          [parameter(Mandatory = $false)][bool] $Coverage = $false)
 
     pushd $WorkingDirectory
 
     try {
-
-         $TestList = @(
+        if ($Coverage) {
+            if (!$env:PATH.Contains('C:\Program Files\OpenCppCoverage\')) {
+                $env:PATH += 'C:\Program Files\OpenCppCoverage\;'
+            }
+        }
+        $TestList = @(
             "ebpf_client.exe",
             "api_test.exe",
             "sample_ext_app.exe",
             "socket_tests.exe")
 
         foreach ($Test in $TestList) {
-            Invoke-Test -TestName $Test -VerboseLogs $VerboseLogs
+            Invoke-Test -TestName $Test -VerboseLogs $VerboseLogs -Coverage $Coverage
+        }
+
+        if ($Coverage) {
+            # Combine code coverage reports
+            $ArgumentsList += @()
+            foreach ($Test in $TestList) {
+                $ArgumentsList += @('--input_coverage', ($Test + '.cov'))
+            }
+            $CodeCoverage = 'C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe'
+            $ArgumentsList += @('--export_type', 'cobertura:c:\eBPF\ebpf_for_windows.xml', '--')
+            $Output = &$CodeCoverage $ArgumentsList
+            Out-String -InputObject $Output | Write-Log
         }
 
         if ($Env:BUILD_CONFIGURATION -eq "Release") {
             Invoke-Test -TestName "ebpf_performance.exe" -VerboseLogs $VerboseLogs
         }
-    } catch {
+    }
+    catch {
         Write-Log "One or more tests failed."
         throw
     }
