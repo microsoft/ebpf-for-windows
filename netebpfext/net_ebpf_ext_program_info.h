@@ -41,3 +41,13 @@ static ebpf_context_descriptor_t _ebpf_sock_addr_context_descriptor = {
 };
 static ebpf_program_info_t _ebpf_sock_addr_program_info = {
     {"sock_addr", &_ebpf_sock_addr_context_descriptor, {0}}, 0, NULL};
+
+// SOCK_OPS program information.
+static ebpf_context_descriptor_t _ebpf_sock_ops_context_descriptor = {
+    sizeof(bpf_sock_ops_t),
+    -1, // Offset into ctx struct for pointer to data, or -1 if none.
+    -1, // Offset into ctx struct for pointer to data, or -1 if none.
+    -1, // Offset into ctx struct for pointer to metadata, or -1 if none.
+};
+static ebpf_program_info_t _ebpf_sock_ops_program_info = {
+    {"sockops", &_ebpf_sock_ops_context_descriptor, {0}}, 0, NULL};
