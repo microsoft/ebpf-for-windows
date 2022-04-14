@@ -22,6 +22,7 @@ concurrency:
 permissions:
   contents: read
   checks: read  # Required by reusable-test.yml to check build status.
+  security-events: write # Required by codeql task
 
 jobs:
   # Perform the regular build.
@@ -43,6 +44,13 @@ jobs:
     with:
       build_artifact: Build-x64-Sanitize
       build_options: /p:Sanitizer='True'
+
+  codeql:
+    if: github.event_name != 'pull_request'
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      build_artifact: Build-x64-CodeQl
+      build_codeql: true
 
   # Run the unit tests in GitHub.
   unit_tests:
@@ -91,6 +99,20 @@ jobs:
       build_artifact: Build-x64
       environment: windows-2019
       code_coverage: true
+      gather_dumps: true
+
+  # Run the quick stress tests in GitHub.
+  stress:
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: stress
+      # Until there is a dedicated stress test, re-use the perf test.
+      test_command: ebpf_performance.exe
+      build_job: regular / build
+      build_artifact: Build-x64
+      environment: windows-2019
+      # No code coverage on stress.
+      code_coverage: false
       gather_dumps: true
 
   # Run the driver tests on self-hosted runners.

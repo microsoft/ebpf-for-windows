@@ -4,6 +4,7 @@
 #include <iostream>
 #include <vector>
 
+#include "btf_parser.h"
 #include "bpf_code_generator.h"
 
 #if !defined(_countof)
@@ -318,7 +319,20 @@ bpf_code_generator::extract_btf_information()
     std::vector<uint8_t> btf_ext_data(
         reinterpret_cast<const uint8_t*>(btf_ext->get_data()),
         reinterpret_cast<const uint8_t*>(btf_ext->get_data()) + btf_ext->get_size());
-    section_line_info = btf_parse_line_information(btf_data, btf_ext_data);
+
+    btf_parse_line_information(
+        btf_data,
+        btf_ext_data,
+        [&section_line_info = this->section_line_info](
+            const std::string& section,
+            uint32_t instruction_offset,
+            const std::string& file_name,
+            const std::string& source,
+            uint32_t line_number,
+            uint32_t column_number) {
+            line_info_t info{file_name, source, line_number, column_number};
+            section_line_info[section].emplace(instruction_offset / sizeof(ebpf_inst), info);
+        });
 }
 
 void
@@ -643,8 +657,6 @@ void
 bpf_code_generator::emit_c_code(std::ostream& output_stream)
 {
     // Emit C file
-    output_stream << "// Do not alter this generated file." << std::endl;
-    output_stream << "// This file was generated from " << path.c_str() << std::endl << std::endl;
     output_stream << "#include \"bpf2c.h\"" << std::endl << std::endl;
 
     // Emit import tables
@@ -673,14 +685,16 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         }
         output_stream << "};" << std::endl;
         output_stream << std::endl;
-        output_stream << "static void _get_maps(map_entry_t** maps, size_t* count)" << std::endl;
+        output_stream << "static void _get_maps(_Outptr_result_buffer_(*count) map_entry_t** maps, _Out_ size_t* count)"
+                      << std::endl;
         output_stream << "{" << std::endl;
         output_stream << "\t*maps = _maps;" << std::endl;
         output_stream << "\t*count = " << std::to_string(map_definitions.size()) << ";" << std::endl;
         output_stream << "}" << std::endl;
         output_stream << std::endl;
     } else {
-        output_stream << "static void _get_maps(map_entry_t** maps, size_t* count)" << std::endl;
+        output_stream << "static void _get_maps(_Outptr_result_buffer_(*count) map_entry_t** maps, _Out_ size_t* count)"
+                      << std::endl;
         output_stream << "{" << std::endl;
         output_stream << "\t*maps = NULL;" << std::endl;
         output_stream << "\t*count = 0;" << std::endl;
@@ -782,13 +796,14 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             if (!output.label.empty())
                 output_stream << output.label << ":" << std::endl;
             auto current_line = line_info.find(output.instruction_offset);
-            if (current_line != line_info.end() && !current_line->second.file_name.empty()) {
+            if (current_line != line_info.end() && !current_line->second.file_name.empty() &&
+                current_line->second.line_number != 0) {
                 prolog_line_info = format_string(
                     "#line %s \"%s\"\n",
                     std::to_string(current_line->second.line_number),
                     escape_string(current_line->second.file_name));
             }
-#if defined(_DEBUG)
+#if defined(_DEBUG) || defined(BPF2C_VERBOSE)
             output_stream << "\t// " << _opcode_name_strings[output.instruction.opcode]
                           << " pc=" << output.instruction_offset << " dst=" << get_register_name(output.instruction.dst)
                           << " src=" << get_register_name(output.instruction.src)
@@ -833,7 +848,9 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
     }
     output_stream << "};" << std::endl;
     output_stream << std::endl;
-    output_stream << "static void _get_programs(program_entry_t** programs, size_t* count)" << std::endl;
+    output_stream
+        << "static void _get_programs(_Outptr_result_buffer_(*count) program_entry_t** programs, _Out_ size_t* count)"
+        << std::endl;
     output_stream << "{" << std::endl;
     output_stream << "\t*programs = _programs;" << std::endl;
     output_stream << "\t*count = " << std::to_string(sections.size()) << ";" << std::endl;

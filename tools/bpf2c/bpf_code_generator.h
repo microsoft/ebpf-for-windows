@@ -7,7 +7,6 @@
 #include <string>
 #include <vector>
 
-#include "btf_parser.h"
 #include "ebpf.h"
 #include "ebpf_structs.h"
 #include "elfio_wrapper.hpp"
@@ -107,6 +106,15 @@ class bpf_code_generator
         std::map<std::string, helper_function_t> helper_functions;
     } section_t;
 
+    typedef struct _line_info
+    {
+        std::string file_name;
+        std::string source_line;
+        uint32_t line_number = {};
+        uint32_t column_number = {};
+    } line_info_t;
+
+    typedef std::map<std::string, std::map<size_t, line_info_t>> btf_section_to_instruction_to_line_info_t;
     /**
      * @brief Extract the eBPF byte code from the eBPF file.
      *
