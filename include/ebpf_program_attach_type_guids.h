@@ -67,6 +67,13 @@ extern "C"
     __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT = {
         0xa82e37b4, 0xaee7, 0x11ec, {0x9a, 0x30, 0x18, 0x60, 0x24, 0x89, 0xbe, 0xee}};
 
+    /** @brief Attach type for handling socket event notifications.
+     *
+     * Program type: \ref EBPF_PROGRAM_TYPE_SOCK_OPS
+     */
+    __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS = {
+        0x837d02cd, 0x3251, 0x4632, {0x8d, 0x94, 0x60, 0xd3, 0xb4, 0x57, 0x69, 0xf2}};
+
     /** @brief Attach type implemented by eBPF Sample Extension driver, used for testing.
      *
      * Program type: \ref EBPF_PROGRAM_TYPE_SAMPLE
@@ -114,6 +121,13 @@ extern "C"
      */
     __declspec(selectany) ebpf_program_type_t EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR = {
         0x92ec8e39, 0xaeec, 0x11ec, {0x9a, 0x30, 0x18, 0x60, 0x24, 0x89, 0xbe, 0xee}};
+
+    /** @brief Program type for handling socket event notifications.
+     *
+     * Attach type(s): \ref EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS
+     */
+    __declspec(selectany) ebpf_program_type_t EBPF_PROGRAM_TYPE_SOCK_OPS = {
+        0x43fb224d, 0x68f8, 0x46d6, {0xaa, 0x3f, 0xc8, 0x56, 0x51, 0x8c, 0xbb, 0x32}};
 
     /** @brief Program type for handling calls from the eBPF sample extension. Used for
      * testing.

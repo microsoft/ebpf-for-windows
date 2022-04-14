@@ -80,6 +80,19 @@ const EbpfProgramType windows_sock_addr_program_type = {
     {"cgroup/connect4", "cgroup/connect6", "cgroup/recv_accept4", "cgroup/recv_accept6"}};
 
 //
+// SOCK_OPS.
+//
+const ebpf_context_descriptor_t g_sock_ops_context_descriptor = {
+    sizeof(bpf_sock_ops_t),
+    -1, // Offset into ctx struct for pointer to data, or -1 if none.
+    -1, // Offset into ctx struct for pointer to data, or -1 if none.
+    -1, // Offset into ctx struct for pointer to metadata, or -1 if none.
+};
+
+const EbpfProgramType windows_sock_ops_program_type = {
+    "sockops", &g_sock_ops_context_descriptor, (uint64_t)&EBPF_PROGRAM_TYPE_SOCK_OPS, {"sockops"}};
+
+//
 // Global lists and vectors of program and attach types.
 //
 
@@ -88,6 +101,7 @@ const std::vector<EbpfProgramType> windows_program_types = {
     windows_xdp_program_type,
     windows_bind_program_type,
     windows_sock_addr_program_type,
+    windows_sock_ops_program_type,
     windows_sample_ext_program_type};
 
 typedef struct _ebpf_section_definition
@@ -110,6 +124,8 @@ const std::vector<ebpf_section_definition_t> windows_section_definitions = {
     {"cgroup/recv_accept4", &EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, &EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT},
     // socket recv/accept v6.
     {"cgroup/recv_accept6", &EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, &EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT},
+    // sockops.
+    {"sockops", &EBPF_PROGRAM_TYPE_SOCK_OPS, &EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS},
     // Sample Extension.
     {"sample_ext", &EBPF_PROGRAM_TYPE_SAMPLE, &EBPF_ATTACH_TYPE_SAMPLE},
 };
@@ -126,10 +142,11 @@ struct ebpf_attach_type_compare
 const std::map<ebpf_attach_type_t, const char*, ebpf_attach_type_compare> windows_section_names = {
     {EBPF_ATTACH_TYPE_XDP, "xdp"},
     {EBPF_ATTACH_TYPE_BIND, "bind"},
-    {EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT, "sock_connect4"},
-    {EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT, "sock_connect6"},
-    {EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT, "sock_recv_accept4"},
-    {EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT, "sock_recv_accept6"},
+    {EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT, "cgroup/connect4"},
+    {EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT, "cgroup/connect6"},
+    {EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT, "cgroup/recv_accept4"},
+    {EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT, "cgroup/recv_accept6"},
+    {EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS, "sockops"},
     {EBPF_ATTACH_TYPE_SAMPLE, "sample_ext"}};
 
 const EbpfProgramType&

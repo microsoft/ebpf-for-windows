@@ -871,9 +871,10 @@ TEST_CASE("verify section", "[end_to_end]")
 }
 
 static void
-_cgroup_sock_addr_load_test(
+_cgroup_load_test(
     _In_z_ const char* file,
     _In_z_ const char* name,
+    ebpf_program_type_t& program_type,
     ebpf_attach_type_t& attach_type,
     ebpf_execution_type_t execution_type)
 {
@@ -883,8 +884,8 @@ _cgroup_sock_addr_load_test(
     fd_t program_fd;
 
     _test_helper_end_to_end test_helper;
-    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, attach_type);
-    program_info_provider_t program_info(EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR);
+    single_instance_hook_t hook(program_type, attach_type);
+    program_info_provider_t program_info(program_type);
 
     result = ebpf_program_load(file, nullptr, nullptr, execution_type, &object, &program_fd, &error_message);
 
@@ -907,6 +908,16 @@ _cgroup_sock_addr_load_test(
     bpf_object__close(object);
 }
 
+static void
+_cgroup_sock_addr_load_test(
+    _In_z_ const char* file,
+    _In_z_ const char* name,
+    ebpf_attach_type_t& attach_type,
+    ebpf_execution_type_t execution_type)
+{
+    _cgroup_load_test(file, name, EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, attach_type, execution_type);
+}
+
 #define DECLARE_CGROUP_SOCK_ADDR_LOAD_TEST(file, name, attach_type, execution_type)                          \
     TEST_CASE("cgroup_sockaddr_load_test_" #name "_" #attach_type "_" #execution_type, "[cgroup_sock_addr]") \
     {                                                                                                        \
@@ -927,6 +938,16 @@ DECLARE_CGROUP_SOCK_ADDR_LOAD_TEST(
     "authorize_recv_accept6",
     EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT,
     EBPF_EXECUTION_JIT);
+
+TEST_CASE("cgroup_sockops_load_test", "[cgroup_sockops]")
+{
+    _cgroup_load_test(
+        "sockops.o",
+        "connection_monitor",
+        EBPF_PROGRAM_TYPE_SOCK_OPS,
+        EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS,
+        EBPF_EXECUTION_JIT);
+}
 
 TEST_CASE("verify_test0", "[sample_extension]")
 {

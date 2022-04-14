@@ -8,6 +8,7 @@
 #define CATCH_CONFIG_RUNNER
 
 #include "catch_wrapper.hpp"
+#include "ebpf_udp.h"
 #include "socket_helper.h"
 #include "xdp_tests_common.h"
 

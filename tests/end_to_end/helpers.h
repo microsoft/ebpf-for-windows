@@ -302,6 +302,12 @@ static ebpf_program_data_t _ebpf_sock_addr_program_data = {&_ebpf_sock_addr_prog
 static ebpf_extension_data_t _ebpf_sock_addr_program_info_provider_data = {
     TEST_NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_ebpf_sock_addr_program_data), &_ebpf_sock_addr_program_data};
 
+// SOCK_OPS.
+static ebpf_program_data_t _ebpf_sock_ops_program_data = {&_ebpf_sock_ops_program_info, NULL};
+
+static ebpf_extension_data_t _ebpf_sock_ops_program_info_provider_data = {
+    TEST_NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_ebpf_sock_ops_program_data), &_ebpf_sock_ops_program_data};
+
 // Sample extension.
 static ebpf_program_data_t _test_ebpf_sample_extension_program_data = {&_sample_ebpf_extension_program_info, NULL};
 
@@ -317,24 +323,19 @@ typedef class _program_info_provider
   public:
     _program_info_provider(ebpf_program_type_t program_type) : program_type(program_type)
     {
-        ebpf_program_data_t* program_data;
         if (program_type == EBPF_PROGRAM_TYPE_XDP) {
             provider_data = &_ebpf_xdp_program_info_provider_data;
-            program_data = (ebpf_program_data_t*)provider_data->data;
-            program_data->program_info->program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_XDP;
         } else if (program_type == EBPF_PROGRAM_TYPE_BIND) {
             provider_data = &_ebpf_bind_program_info_provider_data;
-            program_data = (ebpf_program_data_t*)provider_data->data;
-            program_data->program_info->program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_BIND;
-        } else if (program_type == EBPF_PROGRAM_TYPE_SAMPLE) {
-            provider_data = &_test_ebpf_sample_extension_program_info_provider_data;
-            program_data = (ebpf_program_data_t*)provider_data->data;
-            program_data->program_info->program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_SAMPLE;
         } else if (program_type == EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR) {
             provider_data = &_ebpf_sock_addr_program_info_provider_data;
-            program_data = (ebpf_program_data_t*)provider_data->data;
-            program_data->program_info->program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR;
+        } else if (program_type == EBPF_PROGRAM_TYPE_SOCK_OPS) {
+            provider_data = &_ebpf_sock_ops_program_info_provider_data;
+        } else if (program_type == EBPF_PROGRAM_TYPE_SAMPLE) {
+            provider_data = &_test_ebpf_sample_extension_program_info_provider_data;
         }
+        ebpf_program_data_t* program_data = (ebpf_program_data_t*)provider_data->data;
+        program_data->program_info->program_type_descriptor.program_type = program_type;
 
         REQUIRE(
             ebpf_provider_load(
