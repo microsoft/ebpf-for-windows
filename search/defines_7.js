@@ -1,5 +1,5 @@
 var searchData=
 [
-  ['ntohl_1196',['ntohl',['../bpf__endian_8h.html#a6a20f63e739c4f61a0f7f74cf1963c3b',1,'bpf_endian.h']]],
-  ['ntohs_1197',['ntohs',['../bpf__endian_8h.html#a118e9d76568ab81ad97f138d4ea1ddd2',1,'bpf_endian.h']]]
+  ['max_5ftail_5fcall_5fcnt_1236',['MAX_TAIL_CALL_CNT',['../bpf__helpers_8h.html#a4f6cc1f7a616eb436d2557c23229f3b9',1,'bpf_helpers.h']]],
+  ['midl_1237',['MIDL',['../ebpf__program__types_8h.html#ac4c5b84afac4c8a0a6c0564c2ff50842',1,'ebpf_program_types.h']]]
 ];

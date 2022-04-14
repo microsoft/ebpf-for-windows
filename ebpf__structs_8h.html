@@ -74,7 +74,8 @@ $(function() {
 <div class="title">ebpf_structs.h File Reference</div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><code>#include &lt;stdint.h&gt;</code><br />
+<div class="textblock"><code>#include &lt;stdbool.h&gt;</code><br />
+<code>#include &lt;stdint.h&gt;</code><br />
 <code>#include &quot;<a class="el" href="ebpf__windows_8h_source.html">ebpf_windows.h</a>&quot;</code><br />
 </div>
 <p><a href="ebpf__structs_8h_source.html">Go to the source code of this file.</a></p>
@@ -197,7 +198,8 @@ Enumerations</h2></td></tr>
 <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0a2af8d41961c186b1a62fcc54a29446d2">BPF_PROG_TYPE_BIND</a>, 
 <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0a372b7fa48277e8bd73784c4193ed8517">BPF_PROG_TYPE_CGROUP_SOCK_ADDR</a>, 
 <br />
-&#160;&#160;<a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0af7ae714d5dd03e2489ec472fd252165c">BPF_PROG_TYPE_SAMPLE</a> = 999
+&#160;&#160;<a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0ab7bb9c16241ddbb34e2aba2b71a24420">BPF_PROG_TYPE_SOCK_OPS</a>, 
+<a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0af7ae714d5dd03e2489ec472fd252165c">BPF_PROG_TYPE_SAMPLE</a> = 999
 <br />
  }</td></tr>
 <tr class="separator:a0f8242763b15ec665eaa47c6add861a0"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -214,9 +216,10 @@ Enumerations</h2></td></tr>
 &#160;&#160;<a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aa140bb255d4ce2b545609b4fce5d3a7f8">BPF_CGROUP_INET6_CONNECT</a>, 
 <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aae06c2887f0d67c0b69c5be7916e017d2">BPF_CGROUP_INET4_RECV_ACCEPT</a>, 
 <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aaa9d0918dbc3488965b2074af9c92ca36">BPF_CGROUP_INET6_RECV_ACCEPT</a>, 
-<a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aac73facab23b5d6e53a3115bdfc6e1e9c">BPF_ATTACH_TYPE_SAMPLE</a>, 
+<a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aad1e53bd093b70f07e0e67df7bbeb6c1e">BPF_CGROUP_SOCK_OPS</a>, 
 <br />
-&#160;&#160;<a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aa7bb29441638f2e3966fa94ebd4aeb82a">__MAX_BPF_ATTACH_TYPE</a>
+&#160;&#160;<a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aac73facab23b5d6e53a3115bdfc6e1e9c">BPF_ATTACH_TYPE_SAMPLE</a>, 
+<a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aa7bb29441638f2e3966fa94ebd4aeb82a">__MAX_BPF_ATTACH_TYPE</a>
 <br />
  }</td></tr>
 <tr class="separator:aac6b4c09fa267f53c1d213551e0ccd5a"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -442,6 +445,9 @@ Enumerations</h2></td></tr>
 <tr><td class="fieldname"><a id="aac6b4c09fa267f53c1d213551e0ccd5aaa9d0918dbc3488965b2074af9c92ca36"></a>BPF_CGROUP_INET6_RECV_ACCEPT&#160;</td><td class="fielddoc"><p>Attach type for handling IPv6 TCP accept() or on receiving the first unicast UDP packet from a unique remote address/port tuple. </p>
 <p><b>Program type:</b> <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0a372b7fa48277e8bd73784c4193ed8517">BPF_PROG_TYPE_CGROUP_SOCK_ADDR</a> </p>
 </td></tr>
+<tr><td class="fieldname"><a id="aac6b4c09fa267f53c1d213551e0ccd5aad1e53bd093b70f07e0e67df7bbeb6c1e"></a>BPF_CGROUP_SOCK_OPS&#160;</td><td class="fielddoc"><p>Attach type for handling various socket event notifications. </p>
+<p><b>Program type:</b> <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0ab7bb9c16241ddbb34e2aba2b71a24420">BPF_PROG_TYPE_SOCK_OPS</a> </p>
+</td></tr>
 <tr><td class="fieldname"><a id="aac6b4c09fa267f53c1d213551e0ccd5aac73facab23b5d6e53a3115bdfc6e1e9c"></a>BPF_ATTACH_TYPE_SAMPLE&#160;</td><td class="fielddoc"><p>Attach type implemented by eBPF Sample Extension driver, used for testing. </p>
 <p><b>Program type:</b> <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0af7ae714d5dd03e2489ec472fd252165c">BPF_PROG_TYPE_SAMPLE</a> </p>
 </td></tr>
@@ -541,6 +547,11 @@ Enumerations</h2></td></tr>
 <tr><td class="fieldname"><a id="a0f8242763b15ec665eaa47c6add861a0a372b7fa48277e8bd73784c4193ed8517"></a>BPF_PROG_TYPE_CGROUP_SOCK_ADDR&#160;</td><td class="fielddoc"><p>Program type for handling various socket operations such as connect(), accept() etc. </p>
 <p><b>eBPF program prototype:</b> <a class="el" href="ebpf__nethooks_8h.html#a464b2acd358e923d2bbcf7b0edffd267">sock_addr_hook_t</a></p>
 <p><b>Attach type(s):</b> <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aae5e0f2387eb5917087c2cbf8bea83bcc">BPF_CGROUP_INET4_CONNECT</a> <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aa140bb255d4ce2b545609b4fce5d3a7f8">BPF_CGROUP_INET6_CONNECT</a> <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aae06c2887f0d67c0b69c5be7916e017d2">BPF_CGROUP_INET4_RECV_ACCEPT</a> <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aaa9d0918dbc3488965b2074af9c92ca36">BPF_CGROUP_INET6_RECV_ACCEPT</a></p>
+<p><b>Helpers available:</b> all helpers defined in <a class="el" href="bpf__helpers_8h.html">bpf_helpers.h</a> </p>
+</td></tr>
+<tr><td class="fieldname"><a id="a0f8242763b15ec665eaa47c6add861a0ab7bb9c16241ddbb34e2aba2b71a24420"></a>BPF_PROG_TYPE_SOCK_OPS&#160;</td><td class="fielddoc"><p>Program type for handling various socket event notifications such as connection established etc. </p>
+<p><b>eBPF program prototype:</b> <a class="el" href="ebpf__nethooks_8h.html#a4b054df7a5983fb3c6be479448013b44">sock_ops_hook_t</a></p>
+<p><b>Attach type(s):</b> <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aad1e53bd093b70f07e0e67df7bbeb6c1e">BPF_CGROUP_SOCK_OPS</a></p>
 <p><b>Helpers available:</b> all helpers defined in <a class="el" href="bpf__helpers_8h.html">bpf_helpers.h</a> </p>
 </td></tr>
 <tr><td class="fieldname"><a id="a0f8242763b15ec665eaa47c6add861a0af7ae714d5dd03e2489ec472fd252165c"></a>BPF_PROG_TYPE_SAMPLE&#160;</td><td class="fielddoc"><p>Program type for handling calls from the eBPF sample extension. Used for testing. </p>

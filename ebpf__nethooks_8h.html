@@ -88,6 +88,8 @@ Data Structures</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structbpf__sock__addr.html">bpf_sock_addr</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Data structure used as context for BPF_PROG_TYPE_CGROUP_SOCK_ADDR program type.  <a href="structbpf__sock__addr.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__bpf__sock__ops.html">_bpf_sock_ops</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="define-members"></a>
 Macros</h2></td></tr>
@@ -122,6 +124,13 @@ Typedefs</h2></td></tr>
 <tr class="memitem:a464b2acd358e923d2bbcf7b0edffd267"><td class="memItemLeft" align="right" valign="top">typedef int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#a464b2acd358e923d2bbcf7b0edffd267">sock_addr_hook_t</a>(<a class="el" href="ebpf__nethooks_8h.html#ab2c7c42768b8ecf6dd6ee52c302a10a0">bpf_sock_addr_t</a> *context)</td></tr>
 <tr class="memdesc:a464b2acd358e923d2bbcf7b0edffd267"><td class="mdescLeft">&#160;</td><td class="mdescRight">Handle socket operation. Currently supports ingress/egress connection initialization.  <a href="ebpf__nethooks_8h.html#a464b2acd358e923d2bbcf7b0edffd267">More...</a><br /></td></tr>
 <tr class="separator:a464b2acd358e923d2bbcf7b0edffd267"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3fe3512916a92a4073c475cbae9299d9"><td class="memItemLeft" align="right" valign="top">typedef enum <a class="el" href="ebpf__nethooks_8h.html#ab1d2513464cb18a40a430026238606f6">_bpf_sock_op_type</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#a3fe3512916a92a4073c475cbae9299d9">bpf_sock_op_type_t</a></td></tr>
+<tr class="separator:a3fe3512916a92a4073c475cbae9299d9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aebf60907274448aa9047f1716c2aef00"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__bpf__sock__ops.html">_bpf_sock_ops</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#aebf60907274448aa9047f1716c2aef00">bpf_sock_ops_t</a></td></tr>
+<tr class="separator:aebf60907274448aa9047f1716c2aef00"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4b054df7a5983fb3c6be479448013b44"><td class="memItemLeft" align="right" valign="top">typedef int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#a4b054df7a5983fb3c6be479448013b44">sock_ops_hook_t</a>(<a class="el" href="ebpf__nethooks_8h.html#aebf60907274448aa9047f1716c2aef00">bpf_sock_ops_t</a> *context)</td></tr>
+<tr class="memdesc:a4b054df7a5983fb3c6be479448013b44"><td class="mdescLeft">&#160;</td><td class="mdescRight">Handle socket event notification. Currently notifies ingress/egress connection establishment and tear down.  <a href="ebpf__nethooks_8h.html#a4b054df7a5983fb3c6be479448013b44">More...</a><br /></td></tr>
+<tr class="separator:a4b054df7a5983fb3c6be479448013b44"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="enum-members"></a>
 Enumerations</h2></td></tr>
@@ -143,6 +152,11 @@ Enumerations</h2></td></tr>
 <a class="el" href="ebpf__nethooks_8h.html#a9e5d69be705b1f7503ab2fd752c41d02a070e43983c9e259ec6e076c87586710a">BIND_REDIRECT</a>
  }</td></tr>
 <tr class="separator:a9e5d69be705b1f7503ab2fd752c41d02"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab1d2513464cb18a40a430026238606f6"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#ab1d2513464cb18a40a430026238606f6">_bpf_sock_op_type</a> { <a class="el" href="ebpf__nethooks_8h.html#ab1d2513464cb18a40a430026238606f6afb55f456c9926e60bdb1923bba9b03df">BPF_SOCK_OPS_ACTIVE_ESTABLISHED_CB</a>, 
+<a class="el" href="ebpf__nethooks_8h.html#ab1d2513464cb18a40a430026238606f6a22483fefd1e8cc2952b59b53bb0dd7ae">BPF_SOCK_OPS_PASSIVE_ESTABLISHED_CB</a>, 
+<a class="el" href="ebpf__nethooks_8h.html#ab1d2513464cb18a40a430026238606f6afc3c038227fcdb37c94d67b653cbc123">BPF_SOCK_OPS_CONNECTION_DELETED_CB</a>
+ }</td></tr>
+<tr class="separator:ab1d2513464cb18a40a430026238606f6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
@@ -283,6 +297,34 @@ Functions</h2></td></tr>
 
 </div>
 </div>
+<a id="a3fe3512916a92a4073c475cbae9299d9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a3fe3512916a92a4073c475cbae9299d9">&#9670;&nbsp;</a></span>bpf_sock_op_type_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef enum <a class="el" href="ebpf__nethooks_8h.html#ab1d2513464cb18a40a430026238606f6">_bpf_sock_op_type</a> <a class="el" href="ebpf__nethooks_8h.html#a3fe3512916a92a4073c475cbae9299d9">bpf_sock_op_type_t</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="aebf60907274448aa9047f1716c2aef00"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aebf60907274448aa9047f1716c2aef00">&#9670;&nbsp;</a></span>bpf_sock_ops_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef struct <a class="el" href="struct__bpf__sock__ops.html">_bpf_sock_ops</a> <a class="el" href="ebpf__nethooks_8h.html#aebf60907274448aa9047f1716c2aef00">bpf_sock_ops_t</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <a id="a464b2acd358e923d2bbcf7b0edffd267"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a464b2acd358e923d2bbcf7b0edffd267">&#9670;&nbsp;</a></span>sock_addr_hook_t</h2>
 
@@ -312,6 +354,31 @@ Functions</h2></td></tr>
   </dd>
 </dl>
 <p>Any other return value other than the two mentioned above is treated as BPF_SOCK_ADDR_VERDICT_REJECT. </p>
+
+</div>
+</div>
+<a id="a4b054df7a5983fb3c6be479448013b44"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4b054df7a5983fb3c6be479448013b44">&#9670;&nbsp;</a></span>sock_ops_hook_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef int sock_ops_hook_t(<a class="el" href="ebpf__nethooks_8h.html#aebf60907274448aa9047f1716c2aef00">bpf_sock_ops_t</a> *context)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Handle socket event notification. Currently notifies ingress/egress connection establishment and tear down. </p>
+<p>Program type: <a class="el" href="ebpf__program__attach__type__guids_8h.html#af25d6100816189e45a6946e01a4c7d3b">EBPF_PROGRAM_TYPE_SOCK_OPS</a></p>
+<p>Attach type(s): <a class="el" href="ebpf__program__attach__type__guids_8h.html#a0509c44a32d8e30cdca7e5de1d3c0ce5">EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS</a></p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">context</td><td><a class="el" href="ebpf__nethooks_8h.html#aebf60907274448aa9047f1716c2aef00">bpf_sock_ops_t</a> </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>0 on success, or a negative error in case of failure. </dd></dl>
 
 </div>
 </div>
@@ -414,6 +481,28 @@ Functions</h2></td></tr>
 <tr><td class="fieldname"><a id="a814187ca47e221594a21bde5324d86fcaf72e75e5344e6aa667decfe3ac7a3021"></a>BIND_OPERATION_POST_BIND&#160;</td><td class="fielddoc"><p>After port allocation. </p>
 </td></tr>
 <tr><td class="fieldname"><a id="a814187ca47e221594a21bde5324d86fca831fe936535d0c3c26d5b47484c3ac7e"></a>BIND_OPERATION_UNBIND&#160;</td><td class="fielddoc"><p>Release port. </p>
+</td></tr>
+</table>
+
+</div>
+</div>
+<a id="ab1d2513464cb18a40a430026238606f6"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab1d2513464cb18a40a430026238606f6">&#9670;&nbsp;</a></span>_bpf_sock_op_type</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">enum <a class="el" href="ebpf__nethooks_8h.html#ab1d2513464cb18a40a430026238606f6">_bpf_sock_op_type</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<table class="fieldtable">
+<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="ab1d2513464cb18a40a430026238606f6afb55f456c9926e60bdb1923bba9b03df"></a>BPF_SOCK_OPS_ACTIVE_ESTABLISHED_CB&#160;</td><td class="fielddoc"><p>Indicates when an active (outbound) connection is established. </p>
+</td></tr>
+<tr><td class="fieldname"><a id="ab1d2513464cb18a40a430026238606f6a22483fefd1e8cc2952b59b53bb0dd7ae"></a>BPF_SOCK_OPS_PASSIVE_ESTABLISHED_CB&#160;</td><td class="fielddoc"><p>Indicates when a passive (inbound) connection is established. </p>
+</td></tr>
+<tr><td class="fieldname"><a id="ab1d2513464cb18a40a430026238606f6afc3c038227fcdb37c94d67b653cbc123"></a>BPF_SOCK_OPS_CONNECTION_DELETED_CB&#160;</td><td class="fielddoc"><p>Indicates when a connection is deleted. </p>
 </td></tr>
 </table>
 

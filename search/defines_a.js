@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['ubpf_5fstack_5fsize_1200',['UBPF_STACK_SIZE',['../bpf2c_8h.html#ab41a6986b0045cc2e5c84a75d08c7a12',1,'bpf2c.h']]]
+  ['pointer_1241',['POINTER',['../bpf2c_8h.html#ad33ea4fd38a55e663830db71ceb504f8',1,'bpf2c.h']]]
 ];
