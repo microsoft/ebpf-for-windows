@@ -117,7 +117,7 @@ enum bpf_prog_type
      *
      * **eBPF program prototype:** \ref xdp_hook_t
      *
-     * **Attach type(s):** \ref BPF_ATTACH_TYPE_XDP
+     * **Attach type(s):** \ref BPF_XDP
      *
      * **Helpers available:** all helpers defined in bpf_helpers.h
      */
@@ -178,7 +178,7 @@ enum bpf_attach_type
      *
      * **Program type:** \ref BPF_PROG_TYPE_XDP
      */
-    BPF_ATTACH_TYPE_XDP,
+    BPF_XDP,
 
     /** @brief Attach type for handling socket bind() requests.
      *
