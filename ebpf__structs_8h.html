@@ -207,7 +207,7 @@ Enumerations</h2></td></tr>
 <tr class="separator:a354e84389719f1a5541fbca272618eaf"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aac6b4c09fa267f53c1d213551e0ccd5a"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5a">bpf_attach_type</a> { <br />
 &#160;&#160;<a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aa68aee7490a9031b8e3838919541d51dc">BPF_ATTACH_TYPE_UNSPEC</a>, 
-<a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aaeafe93685e394bfefc0b0dab079d95ae">BPF_ATTACH_TYPE_XDP</a>, 
+<a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aa11c288aaa5ce8590e2c8a22e5d54446e">BPF_XDP</a>, 
 <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aa864be97a1886953dbdfe608688fb19d4">BPF_ATTACH_TYPE_BIND</a>, 
 <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aae5e0f2387eb5917087c2cbf8bea83bcc">BPF_CGROUP_INET4_CONNECT</a>, 
 <br />
@@ -424,7 +424,7 @@ Enumerations</h2></td></tr>
 <table class="fieldtable">
 <tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="aac6b4c09fa267f53c1d213551e0ccd5aa68aee7490a9031b8e3838919541d51dc"></a>BPF_ATTACH_TYPE_UNSPEC&#160;</td><td class="fielddoc"><p>Unspecified attach type. </p>
 </td></tr>
-<tr><td class="fieldname"><a id="aac6b4c09fa267f53c1d213551e0ccd5aaeafe93685e394bfefc0b0dab079d95ae"></a>BPF_ATTACH_TYPE_XDP&#160;</td><td class="fielddoc"><p>Attach type for handling incoming packets as early as possible. </p>
+<tr><td class="fieldname"><a id="aac6b4c09fa267f53c1d213551e0ccd5aa11c288aaa5ce8590e2c8a22e5d54446e"></a>BPF_XDP&#160;</td><td class="fielddoc"><p>Attach type for handling incoming packets as early as possible. </p>
 <p><b>Program type:</b> <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0a1945ca3d46bd1e589c4d0effe14f18d6">BPF_PROG_TYPE_XDP</a> </p>
 </td></tr>
 <tr><td class="fieldname"><a id="aac6b4c09fa267f53c1d213551e0ccd5aa864be97a1886953dbdfe608688fb19d4"></a>BPF_ATTACH_TYPE_BIND&#160;</td><td class="fielddoc"><p>Attach type for handling socket bind() requests. </p>
@@ -530,7 +530,7 @@ Enumerations</h2></td></tr>
 </td></tr>
 <tr><td class="fieldname"><a id="a0f8242763b15ec665eaa47c6add861a0a1945ca3d46bd1e589c4d0effe14f18d6"></a>BPF_PROG_TYPE_XDP&#160;</td><td class="fielddoc"><p>Program type for handling incoming packets as early as possible. </p>
 <p><b>eBPF program prototype:</b> <a class="el" href="ebpf__nethooks_8h.html#a8d57424dbe0e0cab6cb166f25557d6d6">xdp_hook_t</a></p>
-<p><b>Attach type(s):</b> <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aaeafe93685e394bfefc0b0dab079d95ae">BPF_ATTACH_TYPE_XDP</a></p>
+<p><b>Attach type(s):</b> <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aa11c288aaa5ce8590e2c8a22e5d54446e">BPF_XDP</a></p>
 <p><b>Helpers available:</b> all helpers defined in <a class="el" href="bpf__helpers_8h.html">bpf_helpers.h</a> </p>
 </td></tr>
 <tr><td class="fieldname"><a id="a0f8242763b15ec665eaa47c6add861a0a2af8d41961c186b1a62fcc54a29446d2"></a>BPF_PROG_TYPE_BIND&#160;</td><td class="fielddoc"><p>Program type for handling socket bind() requests. </p>
