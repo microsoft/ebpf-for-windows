@@ -281,10 +281,10 @@ TEST_CASE("libbpf program attach", "[libbpf]")
     enum bpf_attach_type type = bpf_program__get_expected_attach_type(program);
     REQUIRE(type == BPF_ATTACH_TYPE_UNSPEC);
 
-    bpf_program__set_expected_attach_type(program, BPF_ATTACH_TYPE_XDP);
+    bpf_program__set_expected_attach_type(program, BPF_XDP);
 
     type = bpf_program__get_expected_attach_type(program);
-    REQUIRE(type == BPF_ATTACH_TYPE_XDP);
+    REQUIRE(type == BPF_XDP);
 
     bpf_link* link = bpf_program__attach(program);
     REQUIRE(link != nullptr);
@@ -1324,7 +1324,7 @@ TEST_CASE("libbpf_prog_type_by_name", "[libbpf]")
     // Try a cross-platform type.
     REQUIRE(libbpf_prog_type_by_name("xdp", &prog_type, &expected_attach_type) == 0);
     REQUIRE(prog_type == BPF_PROG_TYPE_XDP);
-    REQUIRE(expected_attach_type == BPF_ATTACH_TYPE_XDP);
+    REQUIRE(expected_attach_type == BPF_XDP);
 
     // Try a Windows-specific type.
     REQUIRE(libbpf_prog_type_by_name("bind", &prog_type, &expected_attach_type) == 0);
@@ -1334,7 +1334,7 @@ TEST_CASE("libbpf_prog_type_by_name", "[libbpf]")
     // Try something that will fall back to the default.
     REQUIRE(libbpf_prog_type_by_name("default", &prog_type, &expected_attach_type) == 0);
     REQUIRE(prog_type == BPF_PROG_TYPE_XDP);
-    REQUIRE(expected_attach_type == BPF_ATTACH_TYPE_XDP);
+    REQUIRE(expected_attach_type == BPF_XDP);
 }
 
 TEST_CASE("libbpf_get_error", "[libbpf]")
