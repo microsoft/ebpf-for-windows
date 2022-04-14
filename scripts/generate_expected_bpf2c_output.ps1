@@ -74,4 +74,3 @@ function generate_expected_output
 }
 
 generate_expected_output $args[0]
-##generate_expected_output E:\git\github\ebpf-for-windows-1\x64\Debug
