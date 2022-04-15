@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation
+// Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
 // Do not alter this generated file.

@@ -26,7 +26,7 @@ function filter_and_emit_output
     $output_buffer > $output_file
 
     # Change output file format to UTF-8
-    (Get-Content -path $output_file) | Set-Content -Encoding UTF8 -Path $output_file
+    (Get-Content -path $output_file) | Set-Content -Encoding Ascii -Path $output_file
 }
 
 function generate_expected_output
