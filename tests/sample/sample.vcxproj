@@ -195,6 +195,16 @@
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutputPath)%(Filename).o</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutputPath)%(Filename).o</Outputs>
     </CustomBuild>
+    <CustomBuild Include="sockops.c">
+      <FileType>CppCode</FileType>
+      <Command>clang -target bpf -O2 -Werror -c %(Filename).c -o %(Filename).o</Command>
+      <Outputs>%(Filename).o;%(Outputs)</Outputs>
+      <TreatOutputAsContent>true</TreatOutputAsContent>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">clang -g -target bpf -O2 -Werror -I../../include -I../socket -c %(Filename).c -o $(OutputPath)%(Filename).o</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">clang -g -target bpf -O2 -Werror -I../../include -I../socket -c %(Filename).c -o $(OutputPath)%(Filename).o</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutputPath)%(Filename).o</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutputPath)%(Filename).o</Outputs>
+    </CustomBuild>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ebpf.h" />
