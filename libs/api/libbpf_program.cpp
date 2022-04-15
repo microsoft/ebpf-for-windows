@@ -27,6 +27,9 @@ _get_ebpf_program_type(enum bpf_prog_type type)
     case BPF_PROG_TYPE_CGROUP_SOCK_ADDR:
         program_type = &EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR;
         break;
+    case BPF_PROG_TYPE_SOCK_OPS:
+        program_type = &EBPF_PROGRAM_TYPE_SOCK_OPS;
+        break;
     }
     return program_type;
 }
@@ -65,6 +68,9 @@ _get_ebpf_attach_type(enum bpf_attach_type type)
         break;
     case BPF_CGROUP_INET6_RECV_ACCEPT:
         attach_type = &EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT;
+        break;
+    case BPF_CGROUP_SOCK_OPS:
+        attach_type = &EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS;
         break;
     }
 
@@ -219,6 +225,7 @@ _does_attach_type_support_attachable_fd(enum bpf_attach_type type)
     case BPF_CGROUP_INET6_CONNECT:
     case BPF_CGROUP_INET4_RECV_ACCEPT:
     case BPF_CGROUP_INET6_RECV_ACCEPT:
+    case BPF_CGROUP_SOCK_OPS:
         supported = TRUE;
         break;
     }

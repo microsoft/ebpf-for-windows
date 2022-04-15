@@ -13,8 +13,6 @@
 #include <mstcpip.h>
 #include <Mswsock.h>
 
-#include "ebpf_udp.h"
-
 /**
  * @brief Helper function that converts an IP address string into a sockaddr_storage with address family 6, unspecified
  * scope and port set to zero. A v4 mapped IPv6 address is returned if the input address string is IPv4.

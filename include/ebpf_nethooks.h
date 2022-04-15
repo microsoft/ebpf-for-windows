@@ -149,9 +149,6 @@ typedef struct bpf_sock_addr
     uint32_t protocol;       ///< IP protocol.
     uint32_t compartment_id; ///< Network compartment Id.
 } bpf_sock_addr_t;
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
 
 /**
  * @brief Handle socket operation. Currently supports ingress/egress connection initialization.
@@ -172,3 +169,57 @@ typedef struct bpf_sock_addr
  */
 typedef int
 sock_addr_hook_t(bpf_sock_addr_t* context);
+
+typedef enum _bpf_sock_op_type
+{
+    /** @brief Indicates when an active (outbound) connection is established. **/
+    BPF_SOCK_OPS_ACTIVE_ESTABLISHED_CB,
+    /** @brief Indicates when a passive (inbound) connection is established. **/
+    BPF_SOCK_OPS_PASSIVE_ESTABLISHED_CB,
+    /** @brief Indicates when a connection is deleted. **/
+    BPF_SOCK_OPS_CONNECTION_DELETED_CB
+} bpf_sock_op_type_t;
+
+typedef struct _bpf_sock_ops
+{
+    bpf_sock_op_type_t op;
+    uint32_t family; ///< IP address family.
+    struct
+    {
+        union
+        {
+            uint32_t local_ip4;
+            uint32_t local_ip6[4];
+        }; ///< Local IP address.
+        uint32_t local_port;
+    }; ///< Local IP address and port stored in network byte order.
+    struct
+    {
+        union
+        {
+            uint32_t remote_ip4;
+            uint32_t remote_ip6[4];
+        }; ///< Remote IP address.
+        uint32_t remote_port;
+    };                ///< Remote IP address and port stored in network byte order.
+    uint8_t protocol; ///< IP protocol.
+} bpf_sock_ops_t;
+
+/**
+ * @brief Handle socket event notification. Currently notifies ingress/egress connection establishment and tear down.
+ *
+ * Program type: \ref EBPF_PROGRAM_TYPE_SOCK_OPS
+ *
+ * Attach type(s):
+ *  \ref EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS
+ *
+ * @param[in] context \ref bpf_sock_ops_t
+ * @return 0 on success, or a negative error in case of failure.
+ *
+ */
+typedef int
+sock_ops_hook_t(bpf_sock_ops_t* context);
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif

@@ -884,9 +884,10 @@ TEST_CASE("verify section", "[end_to_end]")
 }
 
 static void
-_cgroup_sock_addr_load_test(
+_cgroup_load_test(
     _In_z_ const char* file,
     _In_z_ const char* name,
+    ebpf_program_type_t& program_type,
     ebpf_attach_type_t& attach_type,
     ebpf_execution_type_t execution_type)
 {
@@ -896,8 +897,8 @@ _cgroup_sock_addr_load_test(
     fd_t program_fd;
 
     _test_helper_end_to_end test_helper;
-    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, attach_type);
-    program_info_provider_t program_info(EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR);
+    single_instance_hook_t hook(program_type, attach_type);
+    program_info_provider_t program_info(program_type);
 
     result = ebpf_program_load(file, nullptr, nullptr, execution_type, &object, &program_fd, &error_message);
 
@@ -944,6 +945,16 @@ DECLARE_CGROUP_SOCK_ADDR_LOAD_TEST(
     SAMPLE_PATH "cgroup_sock_addr", "authorize_recv_accept4", EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT);
 DECLARE_CGROUP_SOCK_ADDR_LOAD_TEST(
     SAMPLE_PATH "cgroup_sock_addr", "authorize_recv_accept6", EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT);
+
+TEST_CASE("cgroup_sockops_load_test", "[cgroup_sockops]")
+{
+    _cgroup_load_test(
+        "sockops.o",
+        "connection_monitor",
+        EBPF_PROGRAM_TYPE_SOCK_OPS,
+        EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS,
+        EBPF_EXECUTION_JIT);
+}
 
 TEST_CASE("verify_test0", "[sample_extension]")
 {

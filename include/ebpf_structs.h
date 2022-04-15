@@ -7,6 +7,7 @@
 #pragma once
 
 #if !defined(NO_CRT)
+#include <stdbool.h>
 #include <stdint.h>
 #endif
 #include "ebpf_windows.h"
@@ -147,6 +148,17 @@ enum bpf_prog_type
      */
     BPF_PROG_TYPE_CGROUP_SOCK_ADDR,
 
+    /** @brief Program type for handling various socket event notifications such as connection established etc.
+     *
+     * **eBPF program prototype:** \ref sock_ops_hook_t
+     *
+     * **Attach type(s):**
+     *  \ref BPF_CGROUP_SOCK_OPS
+     *
+     * **Helpers available:** all helpers defined in bpf_helpers.h
+     */
+    BPF_PROG_TYPE_SOCK_OPS,
+
     /** @brief Program type for handling calls from the eBPF sample extension. Used for
      * testing.
      *
@@ -213,6 +225,12 @@ enum bpf_attach_type
      * **Program type:** \ref BPF_PROG_TYPE_CGROUP_SOCK_ADDR
      */
     BPF_CGROUP_INET6_RECV_ACCEPT,
+
+    /** @brief Attach type for handling various socket event notifications.
+     *
+     * **Program type:** \ref BPF_PROG_TYPE_SOCK_OPS
+     */
+    BPF_CGROUP_SOCK_OPS,
 
     /** @brief Attach type implemented by eBPF Sample Extension driver, used for testing.
      *
