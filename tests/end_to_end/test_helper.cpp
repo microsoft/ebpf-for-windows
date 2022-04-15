@@ -20,7 +20,10 @@ using namespace std::chrono_literals;
 extern "C" bool ebpf_fuzzing_enabled;
 
 extern "C" metadata_table_t*
-get_metadata_table(const char* name);
+get_metadata_table_common(const char* name);
+
+extern "C" metadata_table_t*
+get_metadata_table();
 
 #define SERVICE_PATH_PREFIX L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\"
 #define NATIVE_DLL_NAME "bpf2c_test_wrapper.dll"
@@ -223,6 +226,9 @@ _unload_all_native_modules()
             // Deregister client.
             ebpf_extension_unload(context->binding_context);
         }
+        if (context->dll != nullptr) {
+            FreeLibrary(context->dll);
+        }
         ebpf_free(context);
     }
     _service_path_to_context_map.clear();
@@ -232,18 +238,29 @@ _unload_all_native_modules()
 static void
 _load_native_module(_Inout_ service_context_t* context)
 {
-    // For user mode tests, all the sample programs are compiled into a single DLL file.
+    // For user mode tests, most of the sample programs are compiled into a single DLL file.
+    // First try loading from there.
     context->dll = LoadLibraryA(NATIVE_DLL_NAME);
-    // context->dll = LoadLibraryW(context->file_path.c_str());
     REQUIRE(context->dll != nullptr);
 
     // Get file name from the file path
     std::string file_name = std::filesystem::path(context->file_path).filename().stem().string();
 
-    auto get_function =
-        reinterpret_cast<decltype(&get_metadata_table)>(GetProcAddress(context->dll, "get_metadata_table"));
-    REQUIRE(get_function != nullptr);
-    metadata_table_t* table = get_function(file_name.c_str());
+    auto get_function_common =
+        reinterpret_cast<decltype(&get_metadata_table_common)>(GetProcAddress(context->dll, "get_metadata_table"));
+    REQUIRE(get_function_common != nullptr);
+    metadata_table_t* table = get_function_common(file_name.c_str());
+    if (table == nullptr) {
+        // Possibly this sample program in not in the common DLL file. Try loading the actual DLL.
+        FreeLibrary(context->dll);
+        context->dll = LoadLibraryW(context->file_path.c_str());
+        REQUIRE(context->dll != nullptr);
+
+        auto get_function =
+            reinterpret_cast<decltype(&get_metadata_table)>(GetProcAddress(context->dll, "get_metadata_table"));
+        REQUIRE(get_function != nullptr);
+        table = get_function();
+    }
     REQUIRE(table != nullptr);
 
     int client_binding_context = 0;

@@ -791,7 +791,10 @@ _test_bind_fd_to_prog_array(ebpf_execution_type_t execution_type)
     // Load a program of any other type.
     struct bpf_object* bind_object;
     int bind_object_fd;
-    const char* another_file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "bindmonitor.dll" : "bindmonitor.o");
+    // Note: We are deliberately using "bindmonitor_um.dll" here as we want the programs to be loaded from
+    // the individual dll, instead of the combined DLL. This helps in testing the DLL stub which is generated
+    // bpf2c.exe tool.
+    const char* another_file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "bindmonitor_um.dll" : "bindmonitor.o");
     error = bpf_prog_load(another_file_name, BPF_PROG_TYPE_BIND, &bind_object, &bind_object_fd);
     REQUIRE(error == 0);
     REQUIRE(bind_object != nullptr);

@@ -921,6 +921,16 @@ _cgroup_load_test(
     bpf_object__close(object);
 }
 
+static void
+_cgroup_sock_addr_load_test(
+    _In_z_ const char* file,
+    _In_z_ const char* name,
+    ebpf_attach_type_t& attach_type,
+    ebpf_execution_type_t execution_type)
+{
+    _cgroup_load_test(file, name, EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, attach_type, execution_type);
+}
+
 #define DECLARE_CGROUP_SOCK_ADDR_LOAD_TEST(file, name, attach_type)                         \
     TEST_CASE(                                                                              \
         "cgroup_sockaddr_load_test_" #name "_" #attach_type "_"                             \

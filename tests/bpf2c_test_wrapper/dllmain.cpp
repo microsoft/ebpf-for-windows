@@ -11,7 +11,6 @@
 
 #include "bpf2c.h"
 
-extern "C" metadata_table_t bindmonitor_metadata_table;
 extern "C" metadata_table_t divide_by_zero_metadata_table;
 extern "C" metadata_table_t droppacket_metadata_table;
 extern "C" metadata_table_t bindmonitor_tailcall_metadata_table;
@@ -55,7 +54,6 @@ division_by_zero(uint32_t address)
 extern "C" metadata_table_t*
 get_metadata_table(const char* name)
 {
-    FIND_METADATA_ENTRY(name, bindmonitor);
     FIND_METADATA_ENTRY(name, divide_by_zero);
     FIND_METADATA_ENTRY(name, droppacket);
     FIND_METADATA_ENTRY(name, bindmonitor_tailcall);
