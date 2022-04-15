@@ -1,6 +1,15 @@
 # Copyright (c) Microsoft Corporation
 # SPDX-License-Identifier: MIT
 
+# Whenever either the BPF2C code changes or any of the sample programs changes,
+# bpf2c_tests will fail unless the expected files in tests\bpf2c_tests\expected
+# are updated. This script can be used to regenerate the expected files.
+#
+# Usage:
+# .\scripts\generate_expected_bpf2c_output.ps1 <build_output_path>
+# Example:
+# .\scripts\generate_expected_bpf2c_output.ps1 .\x64\Debug\
+
 function filter_and_emit_output
 {
     param([String[]] $input_buffer, [String]$output_file)

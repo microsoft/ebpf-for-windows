@@ -73,34 +73,34 @@ static uint16_t test_utility_helpers_maps[] = {
 
 static uint64_t test_utility_helpers(void* context)
 {
-#line 21 "sample/test_utility_helpers.c"
+#line 31 "sample/test_utility_helpers.c"
 	// Prologue
-#line 21 "sample/test_utility_helpers.c"
+#line 31 "sample/test_utility_helpers.c"
 	uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
-#line 21 "sample/test_utility_helpers.c"
+#line 31 "sample/test_utility_helpers.c"
 	register uint64_t r0 = 0;
-#line 21 "sample/test_utility_helpers.c"
+#line 31 "sample/test_utility_helpers.c"
 	register uint64_t r1 = 0;
-#line 21 "sample/test_utility_helpers.c"
+#line 31 "sample/test_utility_helpers.c"
 	register uint64_t r2 = 0;
-#line 21 "sample/test_utility_helpers.c"
+#line 31 "sample/test_utility_helpers.c"
 	register uint64_t r3 = 0;
-#line 21 "sample/test_utility_helpers.c"
+#line 31 "sample/test_utility_helpers.c"
 	register uint64_t r4 = 0;
-#line 21 "sample/test_utility_helpers.c"
+#line 31 "sample/test_utility_helpers.c"
 	register uint64_t r5 = 0;
-#line 21 "sample/test_utility_helpers.c"
+#line 31 "sample/test_utility_helpers.c"
 	register uint64_t r6 = 0;
-#line 21 "sample/test_utility_helpers.c"
+#line 31 "sample/test_utility_helpers.c"
 	register uint64_t r10 = 0;
 
-#line 21 "sample/test_utility_helpers.c"
+#line 31 "sample/test_utility_helpers.c"
 	r1 = (uintptr_t)context;
-#line 21 "sample/test_utility_helpers.c"
+#line 31 "sample/test_utility_helpers.c"
 	r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
 	// EBPF_OP_LDDW pc=0 dst=r1 src=r0 offset=0 imm=0
-#line 21 "sample/test_utility_helpers.c"
+#line 31 "sample/test_utility_helpers.c"
 	r1 = (uint64_t)4294967296;
 	// EBPF_OP_STXDW pc=2 dst=r10 src=r1 offset=-8 imm=0
 #line 12 "sample/./sample_common_routines.h"
@@ -241,12 +241,12 @@ static uint64_t test_utility_helpers(void* context)
 #line 45 "sample/./sample_common_routines.h"
 	if ((test_utility_helpers_helpers[3].tail_call) && (r0 == 0)) return 0;
 	// EBPF_OP_MOV64_IMM pc=38 dst=r0 src=r0 offset=0 imm=0
-#line 23 "sample/test_utility_helpers.c"
+#line 33 "sample/test_utility_helpers.c"
 	r0 = IMMEDIATE(0);
 	// EBPF_OP_EXIT pc=39 dst=r0 src=r0 offset=0 imm=0
-#line 23 "sample/test_utility_helpers.c"
+#line 33 "sample/test_utility_helpers.c"
 	return r0;
-#line 23 "sample/test_utility_helpers.c"
+#line 33 "sample/test_utility_helpers.c"
 }
 #line __LINE__ __FILE__
 
