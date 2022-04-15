@@ -10,50 +10,61 @@
 # Example:
 # .\scripts\generate_expected_bpf2c_output.ps1 .\x64\Debug\
 
-function filter_and_emit_output
+<#
+TrimAndExport-Output does the following:
+1. Parses the buffer and converts the absolute file path present in "#line" pragma statements
+   to relative paths. This helps reducing churn in the generated files.
+2. Exports the buffer to the provided output file.
+3. Changes the encoding of the output file to Ascii.
+#>
+function TrimAndExport-Output
 {
-    param([String[]] $input_buffer, [String]$output_file)
+    param([String[]] $InputBuffer, [String]$OutputFile)
 
-    $output_buffer = New-Object System.Collections.ArrayList
-    foreach ($line in $input_buffer)
+    $OutputBuffer = New-Object System.Collections.ArrayList
+    foreach ($line in $InputBuffer)
     {
         if (!$line.StartsWith("#line"))
         {
-            [void]$output_buffer.Add($line)
+            [void]$OutputBuffer.Add($line)
             continue
         }
 
         if ($line.IndexOf('"') -eq -1)
         {
-            [void]$output_buffer.Add($line)
+            [void]$OutputBuffer.Add($line)
             continue
         }
 
-        [void]$output_buffer.Add($line.Substring(0, $line.IndexOf('"') + 1) +   $line.Substring($line.LastIndexOf('\\') + 2));
+        [void]$OutputBuffer.Add($line.Substring(0, $line.IndexOf('"') + 1) +   $line.Substring($line.LastIndexOf('\\') + 2));
     }
 
-    $output_buffer > $output_file
+    $OutputBuffer > $OutputFile
 
-    # Change output file format to UTF-8
-    (Get-Content -path $output_file) | Set-Content -Encoding Ascii -Path $output_file
+    # Change output file format to Ascii.
+    (Get-Content -Path $OutputFile) | Set-Content -Encoding Ascii -Path $OutputFile
 }
 
-function generate_expected_output
+<#
+Update-ExpectedOutput updates the expected result files (raw, sys, dll) for all the
+sample programs present in test\samples.
+#>
+function Update-ExpectedOutput
 {
-    param([string]$build_path)
+    param([string]$BuildPath)
 
-    $ps_root = $PSScriptRoot
-    $sample_path = $ps_root + "\..\tests\sample"
-    $expected_output_path = $ps_root + "\..\tests\bpf2c_tests\expected"
-    $bpf2c_command = ".\bpf2c.exe"
+    $PSRoot = $PSScriptRoot
+    $SamplePath = $PSRoot + "\..\tests\sample"
+    $ExpectedOutputPath = $PSRoot + "\..\tests\bpf2c_tests\expected"
+    $Bpf2cCommand = ".\bpf2c.exe"
 
-    $current_location = Get-Location
+    $CurrentLocation = Get-Location
 
     ## Get all files in the sample path
-    $sample_files = Get-ChildItem -Path $sample_path | Where-Object {$_.PSIsContainer -eq $false} | Select-Object -Property Name
+    $SampleFiles = Get-ChildItem -Path $SamplePath | Where-Object {$_.PSIsContainer -eq $false} | Select-Object -Property Name
 
-    Set-Location $build_path
-    foreach ($file in $sample_files)
+    Set-Location $BuildPath
+    foreach ($file in $SampleFiles)
     {
         $ext = [System.IO.Path]::GetExtension($file.Name)
         if (($ext -ne ".c") -and ($ext -ne ".C"))
@@ -61,26 +72,26 @@ function generate_expected_output
             continue
         }
 
-        $file_name = [System.IO.Path]::GetFileNameWithoutExtension($file.Name)
-        $object_file_with_path = $file_name + ".o"
-        Write-Host "Generating output for $object_file_with_path"
-        $expected_file_with_path_sys = $expected_output_path + "\" + $file_name + "_sys.txt"
-        $expected_file_with_path_dll = $expected_output_path + "\" + $file_name + "_dll.txt"
-        $expected_file_with_path_raw = $expected_output_path + "\" + $file_name + "_raw.txt"
+        $FileName = [System.IO.Path]::GetFileNameWithoutExtension($file.Name)
+        $ObjectFileWithPath = $FileName + ".o"
+        Write-Host "Generating output for $ObjectFileWithPath"
+        $ExpectedSysFileWithPath = $ExpectedOutputPath + "\" + $FileName + "_sys.txt"
+        $ExpectedDllFileWithPath = $ExpectedOutputPath + "\" + $FileName + "_dll.txt"
+        $ExpectedRawFileWithPath = $ExpectedOutputPath + "\" + $FileName + "_raw.txt"
 
-        $sys_command = $bpf2c_command + " --bpf " + $object_file_with_path + " --sys"
-        $output = Invoke-Expression $sys_command
-        filter_and_emit_output -input_buffer $output -output_file $expected_file_with_path_sys
+        $SysCommand = $Bpf2cCommand + " --bpf " + $ObjectFileWithPath + " --sys"
+        $Output = Invoke-Expression $SysCommand
+        TrimAndExport-Output -InputBuffer $Output -OutputFile $ExpectedSysFileWithPath
 
-        $dll_command = $bpf2c_command + " --bpf " + $object_file_with_path + " --dll"
-        $output = Invoke-Expression $dll_command
-        filter_and_emit_output -input_buffer $output -output_file $expected_file_with_path_dll
+        $DllCommand = $Bpf2cCommand + " --bpf " + $ObjectFileWithPath + " --dll"
+        $Output = Invoke-Expression $DllCommand
+        TrimAndExport-Output -InputBuffer $Output -OutputFile $ExpectedDllFileWithPath
 
-        $raw_command = $bpf2c_command + " --bpf " + $object_file_with_path
-        $output = Invoke-Expression $raw_command
-        filter_and_emit_output -input_buffer $output -output_file $expected_file_with_path_raw
+        $RawCommand = $Bpf2cCommand + " --bpf " + $ObjectFileWithPath
+        $Output = Invoke-Expression $RawCommand
+        TrimAndExport-Output -InputBuffer $Output -OutputFile $ExpectedRawFileWithPath
     }
-    Set-Location $current_location
+    Set-Location $CurrentLocation
 }
 
-generate_expected_output $args[0]
+Update-ExpectedOutput $args[0]
