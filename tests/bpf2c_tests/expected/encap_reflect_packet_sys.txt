@@ -486,17 +486,17 @@ static uint64_t encap_reflect_packet(void* context)
 #line 54 "sample/encap_reflect_packet.c"
 	r1 = *(uint16_t *)(uintptr_t)(r6 + OFFSET(36));
 	// EBPF_OP_BE pc=92 dst=r1 src=r0 offset=0 imm=16
-#line 54 "sample/encap_reflect_packet.c"
+#line 10 "bpf_endian.h"
 	r1 = htobe16((uint16_t)r1);
-#line 54 "sample/encap_reflect_packet.c"
+#line 10 "bpf_endian.h"
 	r1 &= UINT32_MAX;
 	// EBPF_OP_ADD64_IMM pc=93 dst=r1 src=r0 offset=0 imm=20
 #line 54 "sample/encap_reflect_packet.c"
 	r1 += IMMEDIATE(20);
 	// EBPF_OP_BE pc=94 dst=r1 src=r0 offset=0 imm=16
-#line 54 "sample/encap_reflect_packet.c"
+#line 10 "bpf_endian.h"
 	r1 = htobe16((uint16_t)r1);
-#line 54 "sample/encap_reflect_packet.c"
+#line 10 "bpf_endian.h"
 	r1 &= UINT32_MAX;
 	// EBPF_OP_STXH pc=95 dst=r6 src=r1 offset=16 imm=0
 #line 54 "sample/encap_reflect_packet.c"
@@ -569,21 +569,21 @@ label_1:
 	// EBPF_OP_JGT_REG pc=116 dst=r3 src=r1 offset=180 imm=0
 #line 154 "sample/encap_reflect_packet.c"
 	if (r3 > r1) goto label_3;
-	// EBPF_OP_MOV64_REG pc=117 dst=r3 src=r2 offset=0 imm=0
-#line 160 "sample/encap_reflect_packet.c"
+	// EBPF_OP_LDXB pc=117 dst=r3 src=r2 offset=20 imm=0
+#line 159 "sample/encap_reflect_packet.c"
+	r3 = *(uint8_t *)(uintptr_t)(r2 + OFFSET(20));
+	// EBPF_OP_JNE_IMM pc=118 dst=r3 src=r0 offset=178 imm=17
+#line 159 "sample/encap_reflect_packet.c"
+	if (r3 != IMMEDIATE(17)) goto label_3;
+	// EBPF_OP_MOV64_REG pc=119 dst=r3 src=r2 offset=0 imm=0
+#line 159 "sample/encap_reflect_packet.c"
 	r3 = r2;
-	// EBPF_OP_ADD64_IMM pc=118 dst=r3 src=r0 offset=0 imm=62
-#line 160 "sample/encap_reflect_packet.c"
+	// EBPF_OP_ADD64_IMM pc=120 dst=r3 src=r0 offset=0 imm=62
+#line 159 "sample/encap_reflect_packet.c"
 	r3 += IMMEDIATE(62);
-	// EBPF_OP_JGT_REG pc=119 dst=r3 src=r1 offset=177 imm=0
+	// EBPF_OP_JGT_REG pc=121 dst=r3 src=r1 offset=175 imm=0
 #line 159 "sample/encap_reflect_packet.c"
 	if (r3 > r1) goto label_3;
-	// EBPF_OP_LDXB pc=120 dst=r1 src=r2 offset=20 imm=0
-#line 159 "sample/encap_reflect_packet.c"
-	r1 = *(uint8_t *)(uintptr_t)(r2 + OFFSET(20));
-	// EBPF_OP_JNE_IMM pc=121 dst=r1 src=r0 offset=175 imm=17
-#line 159 "sample/encap_reflect_packet.c"
-	if (r1 != IMMEDIATE(17)) goto label_3;
 	// EBPF_OP_LDXH pc=122 dst=r1 src=r2 offset=56 imm=0
 #line 164 "sample/encap_reflect_packet.c"
 	r1 = *(uint16_t *)(uintptr_t)(r2 + OFFSET(56));
@@ -1096,17 +1096,17 @@ label_1:
 #line 113 "sample/encap_reflect_packet.c"
 	r2 = *(uint16_t *)(uintptr_t)(r1 + OFFSET(58));
 	// EBPF_OP_BE pc=292 dst=r2 src=r0 offset=0 imm=16
-#line 113 "sample/encap_reflect_packet.c"
+#line 10 "bpf_endian.h"
 	r2 = htobe16((uint16_t)r2);
-#line 113 "sample/encap_reflect_packet.c"
+#line 10 "bpf_endian.h"
 	r2 &= UINT32_MAX;
 	// EBPF_OP_ADD64_IMM pc=293 dst=r2 src=r0 offset=0 imm=40
 #line 113 "sample/encap_reflect_packet.c"
 	r2 += IMMEDIATE(40);
 	// EBPF_OP_BE pc=294 dst=r2 src=r0 offset=0 imm=16
-#line 113 "sample/encap_reflect_packet.c"
+#line 10 "bpf_endian.h"
 	r2 = htobe16((uint16_t)r2);
-#line 113 "sample/encap_reflect_packet.c"
+#line 10 "bpf_endian.h"
 	r2 &= UINT32_MAX;
 	// EBPF_OP_STXH pc=295 dst=r1 src=r2 offset=18 imm=0
 #line 113 "sample/encap_reflect_packet.c"
