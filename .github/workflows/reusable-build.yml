@@ -72,7 +72,7 @@ jobs:
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: nuget restore ${{env.SOLUTION_FILE_PATH}}
 
-    - name: Cache verifier projects
+    - name: Cache verifier project
       uses: actions/cache@f63a711791a8e7cc2d5463afc081136e00085800
       env:
         cache-name: cache-verifier-project
