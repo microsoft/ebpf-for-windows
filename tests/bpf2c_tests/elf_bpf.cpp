@@ -37,6 +37,10 @@ transform_line_directives(const std::string& string)
     if (string.find("\"") == std::string::npos) {
         return string;
     }
+    if (string.find("\\") == std::string::npos) {
+        // Already trimmed.
+        return string;
+    }
 
     return string.substr(0, string.find("\"") + 1) + string.substr(string.find_last_of("\\") + 1);
 }
@@ -120,3 +124,4 @@ DECLARE_TEST("tail_call_map")
 DECLARE_TEST("tail_call_multiple")
 DECLARE_TEST("test_sample_ebpf")
 DECLARE_TEST("test_utility_helpers")
+DECLARE_TEST("sockops")
