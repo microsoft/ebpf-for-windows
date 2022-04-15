@@ -9,6 +9,8 @@ Push-Location $WorkingDirectory
 Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
 Import-Module .\install_ebpf.psm1 -Force -ArgumentList ($WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
 
+$CodeCoverage = 'C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe'
+
 #
 # Execute tests on VM.
 #
@@ -58,7 +60,7 @@ function Invoke-Test
 
     if ($Coverage) {
         $ArgumentsList += @('--modules=C:\eBPF', '--export_type', ('binary:' + $TestName + '.cov'), '--', $TestName)
-        $TestName = 'C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe'
+        $TestName = $CodeCoverage
     }
     # Execute Test.
     if ($VerboseLogs -eq $true) {
@@ -84,11 +86,6 @@ function Invoke-CICDTests
     pushd $WorkingDirectory
 
     try {
-        if ($Coverage) {
-            if (!$env:PATH.Contains('C:\Program Files\OpenCppCoverage\')) {
-                $env:PATH += 'C:\Program Files\OpenCppCoverage\;'
-            }
-        }
         $TestList = @(
             "ebpf_client.exe",
             "api_test.exe",
@@ -105,7 +102,6 @@ function Invoke-CICDTests
             foreach ($Test in $TestList) {
                 $ArgumentsList += @('--input_coverage', ($Test + '.cov'))
             }
-            $CodeCoverage = 'C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe'
             $ArgumentsList += @('--export_type', 'cobertura:c:\eBPF\ebpf_for_windows.xml', '--')
             $Output = &$CodeCoverage $ArgumentsList
             Out-String -InputObject $Output | Write-Log
