@@ -52,6 +52,17 @@ Environment:
 #define htonl(x) _byteswap_ulong(x)
 #define htons(x) _byteswap_ushort(x)
 
+typedef struct _wfp_ale_layer_fields
+{
+    uint16_t local_ip_address_field;
+    uint16_t local_port_field;
+    uint16_t remote_ip_address_field;
+    uint16_t remote_port_field;
+    uint16_t protocol_field;
+    uint32_t direction_field;
+    uint16_t compartment_id_field;
+} wfp_ale_layer_fields_t;
+
 typedef struct _net_ebpf_extension_wfp_filter_parameters
 {
     const GUID* layer_guid;     ///< GUID of WFP layer to which this filter is associated.
@@ -59,6 +70,42 @@ typedef struct _net_ebpf_extension_wfp_filter_parameters
     const wchar_t* name;        ///< Display name of filter.
     const wchar_t* description; ///< Description of filter.
 } net_ebpf_extension_wfp_filter_parameters_t;
+
+typedef enum _net_ebpf_extension_hook_id
+{
+    EBPF_HOOK_OUTBOUND_L2 = 0,
+    EBPF_HOOK_INBOUND_L2,
+    EBPF_HOOK_ALE_RESOURCE_ALLOC_V4,
+    EBPF_HOOK_ALE_RESOURCE_ALLOC_V6,
+    EBPF_HOOK_ALE_RESOURCE_RELEASE_V4,
+    EBPF_HOOK_ALE_RESOURCE_RELEASE_V6, // 5
+    EBPF_HOOK_ALE_AUTH_CONNECT_V4,
+    EBPF_HOOK_ALE_AUTH_CONNECT_V6,
+    EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V4,
+    EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V6,
+    EBPF_HOOK_ALE_FLOW_ESTABLISHED_V4, // 10
+    EBPF_HOOK_ALE_FLOW_ESTABLISHED_V6
+} net_ebpf_extension_hook_id_t;
+
+/**
+ * @brief Helper function to return the eBPF network extension hook Id for the input WFP layer Id.
+ *
+ * @param[in] wfp_layer_id WFP layer Id.
+ *
+ * @returns eBPF network extension hook Id for the input WFP layer Id.
+ */
+net_ebpf_extension_hook_id_t
+net_ebpf_extension_get_hook_id_from_wfp_layer_id(uint16_t wfp_layer_id);
+
+/**
+ * @brief Helper function to return the assigned Id for the WFP callout corresponding to the eBPF hook.
+ *
+ * @param[in] hook_id eBPF network extension hook id.
+ *
+ * @returns assigned Id for the WFP callout corresponding to the eBPF hook.
+ */
+uint32_t
+net_ebpf_extension_get_callout_id_for_hook(net_ebpf_extension_hook_id_t hook_id);
 
 /**
  * @brief Add WFP filters with specified conditions at specified layers.

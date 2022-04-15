@@ -55,6 +55,8 @@ typedef class _sender_socket : public _base_socket
     send_message_to_remote_host(_In_z_ const char* message, sockaddr_storage& remote_address, uint16_t remote_port) = 0;
     virtual void
     cancel_send_message() = 0;
+    void
+    close();
 } sender_socket_t;
 
 /**
@@ -104,6 +106,8 @@ typedef class _receiver_socket : public _base_socket
     post_async_receive() = 0;
     virtual void
     get_sender_address(_Out_ PSOCKADDR& from, _Out_ int& from_length) = 0;
+    virtual void
+    close() = 0;
 
   protected:
     WSAOVERLAPPED overlapped;
@@ -124,6 +128,8 @@ typedef class _datagram_receiver_socket : public _receiver_socket
     post_async_receive();
     void
     get_sender_address(_Out_ PSOCKADDR& from, _Out_ int& from_length);
+    void
+    close();
 
   private:
     sockaddr_storage sender_address;
@@ -142,6 +148,8 @@ typedef class _stream_receiver_socket : public _receiver_socket
     post_async_receive();
     void
     get_sender_address(_Out_ PSOCKADDR& from, _Out_ int& from_length);
+    void
+    close();
 
   private:
     LPFN_ACCEPTEX acceptex;

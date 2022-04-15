@@ -15,13 +15,6 @@ struct bpf_map_def connection_map = {
 SEC("maps")
 struct bpf_map_def audit_map = {.type = BPF_MAP_TYPE_RINGBUF, .max_entries = 256 * 1024};
 
-typedef struct _audit_entry
-{
-    connection_tuple_t tuple;
-    bool outbound : 1;
-    bool connected : 1;
-} audit_entry_t;
-
 int
 handle_v4(bpf_sock_ops_t* ctx, bool outbound, bool connected)
 {

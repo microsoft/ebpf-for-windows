@@ -20,6 +20,7 @@ Environment:
 #include "net_ebpf_ext.h"
 #include "net_ebpf_ext_bind.h"
 #include "net_ebpf_ext_sock_addr.h"
+#include "net_ebpf_ext_sock_ops.h"
 #include "net_ebpf_ext_xdp.h"
 
 // Globals.
@@ -28,7 +29,7 @@ NDIS_HANDLE _net_ebpf_ext_nbl_pool_handle = NULL;
 HANDLE _net_ebpf_ext_l2_injection_handle = NULL;
 
 static void
-_net_ebpf_ext_flow_delete(uint16_t layer_id, uint32_t fwpm_callout_id, uint64_t flow_context);
+_net_ebpf_ext_flow_delete(uint16_t layer_id, uint32_t callout_id, uint64_t flow_context);
 
 static NTSTATUS
 _net_ebpf_ext_filter_change_notify(
@@ -48,6 +49,7 @@ typedef struct _net_ebpf_ext_wfp_callout_state
 } net_ebpf_ext_wfp_callout_state_t;
 
 static net_ebpf_ext_wfp_callout_state_t _net_ebpf_ext_wfp_callout_state[] = {
+    // EBPF_HOOK_OUTBOUND_L2
     {
         &EBPF_HOOK_OUTBOUND_L2_CALLOUT,
         &FWPM_LAYER_OUTBOUND_MAC_FRAME_NATIVE,
@@ -58,6 +60,7 @@ static net_ebpf_ext_wfp_callout_state_t _net_ebpf_ext_wfp_callout_state[] = {
         L"L2 Outbound Callout for eBPF",
         FWP_ACTION_CALLOUT_TERMINATING,
     },
+    // EBPF_HOOK_INBOUND_L2
     {
         &EBPF_HOOK_INBOUND_L2_CALLOUT,
         &FWPM_LAYER_INBOUND_MAC_FRAME_NATIVE,
@@ -68,6 +71,7 @@ static net_ebpf_ext_wfp_callout_state_t _net_ebpf_ext_wfp_callout_state[] = {
         L"L2 Inbound Callout for eBPF",
         FWP_ACTION_CALLOUT_TERMINATING,
     },
+    // EBPF_HOOK_ALE_RESOURCE_ALLOC_V4
     {
         &EBPF_HOOK_ALE_RESOURCE_ALLOC_V4_CALLOUT,
         &FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V4,
@@ -78,6 +82,7 @@ static net_ebpf_ext_wfp_callout_state_t _net_ebpf_ext_wfp_callout_state[] = {
         L"Resource Allocation v4 callout for eBPF",
         FWP_ACTION_CALLOUT_TERMINATING,
     },
+    // EBPF_HOOK_ALE_RESOURCE_RELEASE_V4
     {
         &EBPF_HOOK_ALE_RESOURCE_RELEASE_V4_CALLOUT,
         &FWPM_LAYER_ALE_RESOURCE_RELEASE_V4,
@@ -88,6 +93,7 @@ static net_ebpf_ext_wfp_callout_state_t _net_ebpf_ext_wfp_callout_state[] = {
         L"Resource Release v4 callout for eBPF",
         FWP_ACTION_CALLOUT_TERMINATING,
     },
+    // EBPF_HOOK_ALE_RESOURCE_ALLOC_V6
     {
         &EBPF_HOOK_ALE_RESOURCE_ALLOC_V6_CALLOUT,
         &FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V6,
@@ -98,6 +104,7 @@ static net_ebpf_ext_wfp_callout_state_t _net_ebpf_ext_wfp_callout_state[] = {
         L"Resource Allocation v6 callout for eBPF",
         FWP_ACTION_CALLOUT_TERMINATING,
     },
+    // EBPF_HOOK_ALE_RESOURCE_RELEASE_V6
     {
         &EBPF_HOOK_ALE_RESOURCE_RELEASE_V6_CALLOUT,
         &FWPM_LAYER_ALE_RESOURCE_RELEASE_V6,
@@ -108,6 +115,7 @@ static net_ebpf_ext_wfp_callout_state_t _net_ebpf_ext_wfp_callout_state[] = {
         L"Resource Release callout for eBPF",
         FWP_ACTION_CALLOUT_TERMINATING,
     },
+    // EBPF_HOOK_ALE_AUTH_CONNECT_V4
     {
         &EBPF_HOOK_ALE_AUTH_CONNECT_V4_CALLOUT,
         &FWPM_LAYER_ALE_AUTH_CONNECT_V4,
@@ -118,6 +126,7 @@ static net_ebpf_ext_wfp_callout_state_t _net_ebpf_ext_wfp_callout_state[] = {
         L"ALE Authorize Connect callout for eBPF",
         FWP_ACTION_CALLOUT_TERMINATING,
     },
+    // EBPF_HOOK_ALE_AUTH_CONNECT_V6
     {
         &EBPF_HOOK_ALE_AUTH_CONNECT_V6_CALLOUT,
         &FWPM_LAYER_ALE_AUTH_CONNECT_V6,
@@ -128,6 +137,7 @@ static net_ebpf_ext_wfp_callout_state_t _net_ebpf_ext_wfp_callout_state[] = {
         L"ALE Authorize Connect callout for eBPF",
         FWP_ACTION_CALLOUT_TERMINATING,
     },
+    // EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V4
     {
         &EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V4_CALLOUT,
         &FWPM_LAYER_ALE_AUTH_RECV_ACCEPT_V4,
@@ -138,6 +148,7 @@ static net_ebpf_ext_wfp_callout_state_t _net_ebpf_ext_wfp_callout_state[] = {
         L"ALE Authorize Receive or Accept callout for eBPF",
         FWP_ACTION_CALLOUT_TERMINATING,
     },
+    // EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V6
     {
         &EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V6_CALLOUT,
         &FWPM_LAYER_ALE_AUTH_RECV_ACCEPT_V6,
@@ -146,6 +157,28 @@ static net_ebpf_ext_wfp_callout_state_t _net_ebpf_ext_wfp_callout_state[] = {
         _net_ebpf_ext_flow_delete,
         L"ALE Authorize Receive or Accept eBPF Callout v6",
         L"ALE Authorize Receive or Accept callout for eBPF",
+        FWP_ACTION_CALLOUT_TERMINATING,
+    },
+    // EBPF_HOOK_ALE_FLOW_ESTABLISHED_V4
+    {
+        &EBPF_HOOK_ALE_FLOW_ESTABLISHED_V4_CALLOUT,
+        &FWPM_LAYER_ALE_FLOW_ESTABLISHED_V4,
+        net_ebpf_extension_sock_ops_flow_established_classify,
+        _net_ebpf_ext_filter_change_notify,
+        net_ebpf_extension_sock_ops_flow_delete,
+        L"ALE Flow Established Callout v4",
+        L"ALE Flow Established callout for eBPF",
+        FWP_ACTION_CALLOUT_TERMINATING,
+    },
+    // EBPF_HOOK_ALE_FLOW_ESTABLISHED_V6
+    {
+        &EBPF_HOOK_ALE_FLOW_ESTABLISHED_V6_CALLOUT,
+        &FWPM_LAYER_ALE_FLOW_ESTABLISHED_V6,
+        net_ebpf_extension_sock_ops_flow_established_classify,
+        _net_ebpf_ext_filter_change_notify,
+        net_ebpf_extension_sock_ops_flow_delete,
+        L"ALE Flow Established Callout v4",
+        L"ALE Flow Established callout for eBPF",
         FWP_ACTION_CALLOUT_TERMINATING,
     }};
 
@@ -156,6 +189,72 @@ static HANDLE _fwp_engine_handle;
 // WFP component management related utility functions.
 //
 
+net_ebpf_extension_hook_id_t
+net_ebpf_extension_get_hook_id_from_wfp_layer_id(uint16_t wfp_layer_id)
+{
+    net_ebpf_extension_hook_id_t hook_id = 0;
+    ASSERT(
+        (wfp_layer_id == FWPS_LAYER_OUTBOUND_MAC_FRAME_NATIVE) ||
+        (wfp_layer_id == FWPS_LAYER_INBOUND_MAC_FRAME_NATIVE) ||
+        (wfp_layer_id == FWPS_LAYER_ALE_RESOURCE_ASSIGNMENT_V4) ||
+        (wfp_layer_id == FWPS_LAYER_ALE_RESOURCE_ASSIGNMENT_V6) ||
+        (wfp_layer_id == FWPS_LAYER_ALE_RESOURCE_RELEASE_V4) || (wfp_layer_id == FWPS_LAYER_ALE_RESOURCE_RELEASE_V6) ||
+        (wfp_layer_id == FWPS_LAYER_ALE_AUTH_CONNECT_V4) || (wfp_layer_id == FWPS_LAYER_ALE_AUTH_CONNECT_V6) ||
+        (wfp_layer_id == FWPS_LAYER_ALE_AUTH_RECV_ACCEPT_V4) || (wfp_layer_id == FWPS_LAYER_ALE_AUTH_RECV_ACCEPT_V6) ||
+        (wfp_layer_id == FWPS_LAYER_ALE_FLOW_ESTABLISHED_V4) || (wfp_layer_id == FWPS_LAYER_ALE_FLOW_ESTABLISHED_V6));
+
+    switch (wfp_layer_id) {
+    case FWPS_LAYER_OUTBOUND_MAC_FRAME_NATIVE:
+        hook_id = EBPF_HOOK_OUTBOUND_L2;
+        break;
+    case FWPS_LAYER_INBOUND_MAC_FRAME_NATIVE:
+        hook_id = EBPF_HOOK_INBOUND_L2;
+        break;
+    case FWPS_LAYER_ALE_RESOURCE_ASSIGNMENT_V4:
+        hook_id = EBPF_HOOK_ALE_RESOURCE_ALLOC_V4;
+        break;
+    case FWPS_LAYER_ALE_RESOURCE_ASSIGNMENT_V6:
+        hook_id = EBPF_HOOK_ALE_RESOURCE_ALLOC_V6;
+        break;
+    case FWPS_LAYER_ALE_RESOURCE_RELEASE_V4:
+        hook_id = EBPF_HOOK_ALE_RESOURCE_RELEASE_V4;
+        break;
+    case FWPS_LAYER_ALE_RESOURCE_RELEASE_V6:
+        hook_id = EBPF_HOOK_ALE_RESOURCE_RELEASE_V6;
+        break;
+    case FWPS_LAYER_ALE_AUTH_CONNECT_V4:
+        hook_id = EBPF_HOOK_ALE_AUTH_CONNECT_V4;
+        break;
+    case FWPS_LAYER_ALE_AUTH_RECV_ACCEPT_V4:
+        hook_id = EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V4;
+        break;
+    case FWPS_LAYER_ALE_AUTH_CONNECT_V6:
+        hook_id = EBPF_HOOK_ALE_AUTH_CONNECT_V6;
+        break;
+    case FWPS_LAYER_ALE_AUTH_RECV_ACCEPT_V6:
+        hook_id = EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V6;
+        break;
+    case FWPS_LAYER_ALE_FLOW_ESTABLISHED_V4:
+        hook_id = EBPF_HOOK_ALE_FLOW_ESTABLISHED_V4;
+        break;
+    case FWPS_LAYER_ALE_FLOW_ESTABLISHED_V6:
+        hook_id = EBPF_HOOK_ALE_FLOW_ESTABLISHED_V6;
+        break;
+    }
+
+    return hook_id;
+}
+
+uint32_t
+net_ebpf_extension_get_callout_id_for_hook(net_ebpf_extension_hook_id_t hook_id)
+{
+    uint32_t callout_id = 0;
+
+    if (hook_id < EBPF_COUNT_OF(_net_ebpf_ext_wfp_callout_state))
+        callout_id = _net_ebpf_ext_wfp_callout_state[hook_id].assigned_callout_id;
+
+    return callout_id;
+}
 void
 net_ebpf_extension_delete_wfp_filters(uint32_t filter_count, _In_count_(filter_count) uint64_t* filter_ids)
 {
@@ -471,7 +570,7 @@ _net_ebpf_ext_filter_change_notify(
 }
 
 static void
-_net_ebpf_ext_flow_delete(uint16_t layer_id, uint32_t fwpm_callout_id, uint64_t flow_context)
+_net_ebpf_ext_flow_delete(uint16_t layer_id, uint32_t callout_id, uint64_t flow_context)
 /* ++
 
    This is the flowDeleteFn function of the L2 callout.
@@ -479,7 +578,7 @@ _net_ebpf_ext_flow_delete(uint16_t layer_id, uint32_t fwpm_callout_id, uint64_t 
 -- */
 {
     UNREFERENCED_PARAMETER(layer_id);
-    UNREFERENCED_PARAMETER(fwpm_callout_id);
+    UNREFERENCED_PARAMETER(callout_id);
     UNREFERENCED_PARAMETER(flow_context);
     return;
 }
@@ -501,6 +600,10 @@ net_ebpf_ext_register_providers()
     if (status != STATUS_SUCCESS)
         goto Exit;
 
+    status = net_ebpf_ext_sock_ops_register_providers();
+    if (status != STATUS_SUCCESS)
+        goto Exit;
+
 Exit:
     return status;
 }
@@ -511,4 +614,5 @@ net_ebpf_ext_unregister_providers()
     net_ebpf_ext_xdp_unregister_providers();
     net_ebpf_ext_bind_unregister_providers();
     net_ebpf_ext_sock_addr_unregister_providers();
+    net_ebpf_ext_sock_ops_unregister_providers();
 }

@@ -233,40 +233,6 @@ net_ebpf_ext_sock_addr_unregister_providers()
     net_ebpf_extension_program_info_provider_unregister(_ebpf_sock_addr_program_info_provider_context);
 }
 
-typedef enum _net_ebpf_extension_sock_addr_hook_id
-{
-    EBPF_HOOK_SOCK_ADDR_CONNECT_V4 = 0,
-    EBPF_HOOK_SOCK_ADDR_RECV_ACCEPT_V4,
-    EBPF_HOOK_SOCK_ADDR_CONNECT_V6,
-    EBPF_HOOK_SOCK_ADDR_RECV_ACCEPT_V6,
-} net_ebpf_extension_sock_addr_hook_id_t;
-
-static net_ebpf_extension_sock_addr_hook_id_t
-_net_ebpf_extension_sock_addr_get_hook_id_from_wfp_layer_id(uint16_t wfp_layer_id)
-{
-    net_ebpf_extension_sock_addr_hook_id_t hook_id = 0;
-    ASSERT(
-        ((wfp_layer_id == FWPS_LAYER_ALE_AUTH_CONNECT_V4) || (wfp_layer_id == FWPS_LAYER_ALE_AUTH_CONNECT_V6) ||
-         (wfp_layer_id == FWPS_LAYER_ALE_AUTH_RECV_ACCEPT_V4) || (wfp_layer_id == FWPS_LAYER_ALE_AUTH_RECV_ACCEPT_V6)));
-
-    switch (wfp_layer_id) {
-    case FWPS_LAYER_ALE_AUTH_CONNECT_V4:
-        hook_id = EBPF_HOOK_SOCK_ADDR_CONNECT_V4;
-        break;
-    case FWPS_LAYER_ALE_AUTH_RECV_ACCEPT_V4:
-        hook_id = EBPF_HOOK_SOCK_ADDR_RECV_ACCEPT_V4;
-        break;
-    case FWPS_LAYER_ALE_AUTH_CONNECT_V6:
-        hook_id = EBPF_HOOK_SOCK_ADDR_CONNECT_V6;
-        break;
-    case FWPS_LAYER_ALE_AUTH_RECV_ACCEPT_V6:
-        hook_id = EBPF_HOOK_SOCK_ADDR_RECV_ACCEPT_V6;
-        break;
-    }
-
-    return hook_id;
-}
-
 typedef enum _net_ebpf_extension_sock_addr_connection_direction
 {
     EBPF_HOOK_SOCK_ADDR_INGRESS = 0,
@@ -274,62 +240,59 @@ typedef enum _net_ebpf_extension_sock_addr_connection_direction
 } net_ebpf_extension_sock_addr_connection_direction_t;
 
 static net_ebpf_extension_sock_addr_connection_direction_t
-_net_ebpf_extension_sock_addr_get_connection_direction_from_hook_id(net_ebpf_extension_sock_addr_hook_id_t hook_id)
+_net_ebpf_extension_sock_addr_get_connection_direction_from_hook_id(net_ebpf_extension_hook_id_t hook_id)
 {
-    return ((hook_id == EBPF_HOOK_SOCK_ADDR_CONNECT_V4) || (hook_id == EBPF_HOOK_SOCK_ADDR_CONNECT_V6))
+    return ((hook_id == EBPF_HOOK_ALE_AUTH_CONNECT_V4) || (hook_id == EBPF_HOOK_ALE_AUTH_CONNECT_V6))
                ? EBPF_HOOK_SOCK_ADDR_EGRESS
                : EBPF_HOOK_SOCK_ADDR_INGRESS;
 }
 
-typedef struct _wfp_connection_fields
-{
-    uint16_t local_ip_address_field;
-    uint16_t local_port_field;
-    uint16_t remote_ip_address_field;
-    uint16_t remote_port_field;
-    uint16_t protocol_field;
-    uint16_t compartment_id_field;
-} wfp_connection_fields_t;
-
-wfp_connection_fields_t wfp_connection_fields[] = {
-    // EBPF_HOOK_SOCK_ADDR_CONNECT_V4
+wfp_ale_layer_fields_t wfp_connection_fields[] = {
+    // EBPF_HOOK_ALE_AUTH_CONNECT_V4
     {FWPS_FIELD_ALE_AUTH_CONNECT_V4_IP_LOCAL_ADDRESS,
      FWPS_FIELD_ALE_AUTH_CONNECT_V4_IP_LOCAL_PORT,
      FWPS_FIELD_ALE_AUTH_CONNECT_V4_IP_REMOTE_ADDRESS,
      FWPS_FIELD_ALE_AUTH_CONNECT_V4_IP_REMOTE_PORT,
      FWPS_FIELD_ALE_AUTH_CONNECT_V4_IP_PROTOCOL,
+     0, // No direction field in this layer.
      FWPS_FIELD_ALE_AUTH_CONNECT_V4_COMPARTMENT_ID},
-    // EBPF_HOOK_SOCK_ADDR_RECV_ACCEPT_V4
-    {FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_LOCAL_ADDRESS,
-     FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_LOCAL_PORT,
-     FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_REMOTE_ADDRESS,
-     FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_REMOTE_PORT,
-     FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_PROTOCOL,
-     FWPS_FIELD_ALE_AUTH_CONNECT_V4_COMPARTMENT_ID},
-    // EBPF_HOOK_SOCK_ADDR_CONNECT_V6
+
+    // EBPF_HOOK_ALE_AUTH_CONNECT_V6
     {FWPS_FIELD_ALE_AUTH_CONNECT_V6_IP_LOCAL_ADDRESS,
      FWPS_FIELD_ALE_AUTH_CONNECT_V6_IP_LOCAL_PORT,
      FWPS_FIELD_ALE_AUTH_CONNECT_V6_IP_REMOTE_ADDRESS,
      FWPS_FIELD_ALE_AUTH_CONNECT_V6_IP_REMOTE_PORT,
      FWPS_FIELD_ALE_AUTH_CONNECT_V6_IP_PROTOCOL,
+     0, // No direction field in this layer.
      FWPS_FIELD_ALE_AUTH_CONNECT_V6_COMPARTMENT_ID},
-    // EBPF_HOOK_SOCK_ADDR_RECV_ACCEPT_V6
+
+    // EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V4
+    {FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_LOCAL_ADDRESS,
+     FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_LOCAL_PORT,
+     FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_REMOTE_ADDRESS,
+     FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_REMOTE_PORT,
+     FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_PROTOCOL,
+     0, // No direction field in this layer.
+     FWPS_FIELD_ALE_AUTH_CONNECT_V4_COMPARTMENT_ID},
+
+    // EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V6
     {FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_IP_LOCAL_ADDRESS,
      FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_IP_LOCAL_PORT,
      FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_IP_REMOTE_ADDRESS,
      FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_IP_REMOTE_PORT,
      FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_IP_PROTOCOL,
+     0, // No direction field in this layer.
      FWPS_FIELD_ALE_AUTH_CONNECT_V6_COMPARTMENT_ID}};
 
 static void
 _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
     _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values, _Out_ bpf_sock_addr_t* sock_addr_ctx)
 {
-    net_ebpf_extension_sock_addr_hook_id_t hook_id =
-        _net_ebpf_extension_sock_addr_get_hook_id_from_wfp_layer_id(incoming_fixed_values->layerId);
+    net_ebpf_extension_hook_id_t hook_id =
+        net_ebpf_extension_get_hook_id_from_wfp_layer_id(incoming_fixed_values->layerId);
     net_ebpf_extension_sock_addr_connection_direction_t direction =
         _net_ebpf_extension_sock_addr_get_connection_direction_from_hook_id(hook_id);
-    wfp_connection_fields_t* fields = &wfp_connection_fields[hook_id];
+    wfp_ale_layer_fields_t* fields = &wfp_connection_fields[hook_id - EBPF_HOOK_ALE_AUTH_CONNECT_V4];
 
     uint16_t source_ip_address_field =
         (direction == EBPF_HOOK_SOCK_ADDR_EGRESS) ? fields->local_ip_address_field : fields->remote_ip_address_field;
@@ -343,7 +306,7 @@ _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
     FWPS_INCOMING_VALUE0* incoming_values = incoming_fixed_values->incomingValue;
 
     // Copy IP address fields.
-    if ((hook_id == EBPF_HOOK_SOCK_ADDR_CONNECT_V4) || (hook_id == EBPF_HOOK_SOCK_ADDR_RECV_ACCEPT_V4)) {
+    if ((hook_id == EBPF_HOOK_ALE_AUTH_CONNECT_V4) || (hook_id == EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V4)) {
         sock_addr_ctx->family = AF_INET;
         sock_addr_ctx->msg_src_ip4 = htonl(incoming_values[source_ip_address_field].value.uint32);
         sock_addr_ctx->user_ip4 = htonl(incoming_values[destination_ip_address_field].value.uint32);
@@ -416,7 +379,8 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
         goto Exit;
 
     classify_output->actionType = (result == BPF_SOCK_ADDR_VERDICT_PROCEED) ? FWP_ACTION_PERMIT : FWP_ACTION_BLOCK;
-    classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
+    if (classify_output->actionType == FWP_ACTION_BLOCK)
+        classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
 
 Exit:
     if (attached_client)
