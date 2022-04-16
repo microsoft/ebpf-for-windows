@@ -504,7 +504,10 @@ bindmonitor_test(ebpf_execution_type_t execution_type)
 
     program_info_provider_t bind_program_info(EBPF_PROGRAM_TYPE_BIND);
 
-    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "bindmonitor.dll" : "bindmonitor.o");
+    // Note: We are deliberately using "bindmonitor_um.dll" here as we want the programs to be loaded from
+    // the individual dll, instead of the combined DLL. This helps in testing the DLL stub which is generated
+    // bpf2c.exe tool.
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "bindmonitor_um.dll" : "bindmonitor.o");
 
     result = ebpf_program_load(file_name, nullptr, nullptr, execution_type, &object, &program_fd, &error_message);
 
