@@ -2292,6 +2292,7 @@ _ebpf_program_load_native(
     std::wstring service_name;
     std::string file_name_string(file_name);
     SC_HANDLE service_handle = nullptr;
+    SERVICE_STATUS status = {0};
     std::wstring service_path(SERVICE_PATH_PREFIX);
     std::wstring paramaters_path(PARAMETERS_PATH_PREFIX);
     ebpf_protocol_buffer_t request_buffer;
@@ -2436,10 +2437,18 @@ Done:
     free(map_handles);
     free(program_handles);
 
-    // https://github.com/microsoft/ebpf-for-windows/issues/867
-    // TODO: (Isse# 867) On Server 2019, ZwUnloadDriver fails for services which have
-    // been marked for deletion. As a workaround for this, not deleting the service.
-    // Platform::_delete_service(service_handle);
+    // Workaround: Querying service status hydrates service reference count in SCM.
+    // This ensures that when _delete_service() is called, the service is marked
+    // pending for delete, and a later call to ZwUnloadDriver() by ebpfcore does not
+    // fail. One side effect of this approach still is that the stale service entries
+    // in the registry will not be cleaned up till the next reboot.
+    Platform::_query_service_status(service_handle, &status);
+    EBPF_LOG_MESSAGE_WSTRING(
+        EBPF_TRACELOG_LEVEL_INFO,
+        EBPF_TRACELOG_KEYWORD_API,
+        "_ebpf_program_load_native: Deleting service",
+        service_name.c_str());
+    Platform::_delete_service(service_handle);
     EBPF_RETURN_RESULT(result);
 }
 
