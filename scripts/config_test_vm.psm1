@@ -172,6 +172,11 @@ function Export-BuildArtifactsToVMs
 {
     param([Parameter(Mandatory=$True)] $VMList)
 
+    $tempFileName = [System.IO.Path]::GetTempFileName() + ".tgz"
+    Write-Log "Creating $tempFileName containing files in $pwd"
+    &tar @("cfz", "$tempFileName", "*")
+    Write-Log "Created $tempFileName containing files in $pwd"
+
     foreach($VM in $VMList) {
         $VMName = $VM.Name
         $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
@@ -187,11 +192,20 @@ function Export-BuildArtifactsToVMs
             }
             $VMSystemDrive = Invoke-Command -Session $VMSession -ScriptBlock {return $Env:SystemDrive}
         }
-        Write-Log "Exporting all files in $pwd to $VMSystemDrive\eBPF on $VMName"
-        Copy-Item -ToSession $VMSession -Path "$pwd\*" -Exclude "*.pdb" -Destination "$VMSystemDrive\eBPF" -Recurse -Force 2>&1 -ErrorAction Stop | Write-Log
+        Write-Log "Copying $tempFileName to $VMSystemDrive\eBPF on $VMName"
+        Copy-Item -ToSession $VMSession -Path $tempFileName -Destination "$VMSystemDrive\eBPF\ebpf.tgz" -Force 2>&1 -ErrorAction Stop | Write-Log
+        Write-Log "Copied $tempFileName to $VMSystemDrive\eBPF on $VMName"
 
+        Write-Log "Unpacking $tempFileName to $VMSystemDrive\eBPF on $VMName"
+        Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
+            cd $Env:SystemDrive\eBPF
+            &tar @("xf", "ebpf.tgz")
+        }
+        Write-Log "Unpacked $tempFileName to $VMSystemDrive\eBPF on $VMName"
         Write-Log "Export completed." -ForegroundColor Green
     }
+
+    Remove-Item -Force $tempFileName
 }
 
 #
