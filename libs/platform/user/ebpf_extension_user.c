@@ -161,11 +161,13 @@ ebpf_extension_unload(_Frees_ptr_opt_ ebpf_extension_client_t* client_context)
     ebpf_lock_state_t state;
     ebpf_extension_provider_t** hash_table_find_result = NULL;
     ebpf_extension_provider_t* local_extension_provider = NULL;
+    bool lock_acquired = false;
 
     if (!client_context)
         EBPF_RETURN_VOID();
 
     state = ebpf_lock_lock(&_ebpf_provider_table_lock);
+    lock_acquired = true;
 
     if (!_ebpf_provider_table) {
         goto Done;
@@ -180,18 +182,26 @@ ebpf_extension_unload(_Frees_ptr_opt_ ebpf_extension_client_t* client_context)
     }
     local_extension_provider = *hash_table_find_result;
 
+    ebpf_lock_unlock(&_ebpf_provider_table_lock, state);
+    lock_acquired = false;
+
     if (local_extension_provider->client_detach_callback) {
         return_value = local_extension_provider->client_detach_callback(
             local_extension_provider->callback_context, &client_context->client_module_id);
     }
     if (return_value != EBPF_PENDING) {
+        state = ebpf_lock_lock(&_ebpf_provider_table_lock);
+        lock_acquired = true;
+
         ebpf_hash_table_delete(
             local_extension_provider->client_table, (const uint8_t*)&client_context->client_module_id);
     }
 
 Done:
     ebpf_free(client_context);
-    ebpf_lock_unlock(&_ebpf_provider_table_lock, state);
+    if (lock_acquired) {
+        ebpf_lock_unlock(&_ebpf_provider_table_lock, state);
+    }
     EBPF_RETURN_VOID();
 }
 

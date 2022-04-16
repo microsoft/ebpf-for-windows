@@ -2482,6 +2482,11 @@ ebpf_program_load(
             EBPF_RETURN_RESULT(result);
         }
 
+        if (execution_type == EBPF_EXECUTION_NATIVE) {
+            result = EBPF_INVALID_ARGUMENT;
+            goto Done;
+        }
+
         result = ebpf_object_open(file_name, nullptr, nullptr, program_type, attach_type, &new_object, log_buffer);
         if (result != EBPF_SUCCESS) {
             goto Done;

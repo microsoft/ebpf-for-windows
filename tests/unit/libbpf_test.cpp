@@ -22,6 +22,18 @@
 // Prefer 'enum class' over 'enum'"
 #pragma warning(disable : 26812)
 
+#define CONCAT(s1, s2) s1 s2
+#define DECLARE_ALL_TEST_CASES(_name, _group, _function)                              \
+                                                                                      \
+    TEST_CASE(CONCAT(_name, "-jit"), _group) { _function(EBPF_EXECUTION_JIT); }       \
+    TEST_CASE(CONCAT(_name, "-native"), _group) { _function(EBPF_EXECUTION_NATIVE); } \
+    TEST_CASE(CONCAT(_name, "-interpret"), _group) { _function(EBPF_EXECUTION_INTERPRET); }
+
+#define DECLARE_JIT_TEST_CASES(_name, _group, _function)                        \
+                                                                                \
+    TEST_CASE(CONCAT(_name, "-jit"), _group) { _function(EBPF_EXECUTION_JIT); } \
+    TEST_CASE(CONCAT(_name, "-native"), _group) { _function(EBPF_EXECUTION_NATIVE); }
+
 TEST_CASE("empty bpf_load_program", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
@@ -648,15 +660,24 @@ _ebpf_test_tail_call(_In_z_ const char* filename, int expected_result)
     bpf_object__close(object);
 }
 
-TEST_CASE("good tail_call", "[libbpf]")
+TEST_CASE("good_tail_call-jit", "[libbpf]")
 {
     // Verify that 42 is returned, which is done by the callee.
     _ebpf_test_tail_call("tail_call.o", 42);
 }
 
-TEST_CASE("bad tail_call", "[libbpf]") { _ebpf_test_tail_call("tail_call_bad.o", -EBPF_INVALID_ARGUMENT); }
+TEST_CASE("good_tail_call-native", "[libbpf]")
+{
+    // Verify that 42 is returned, which is done by the callee.
+    _ebpf_test_tail_call("tail_call.dll", 42);
+}
 
-TEST_CASE("multiple tail calls", "[libbpf]")
+TEST_CASE("bad_tail_call-jit", "[libbpf]") { _ebpf_test_tail_call("tail_call_bad.o", -EBPF_INVALID_ARGUMENT); }
+
+TEST_CASE("bad_tail_call-native", "[libbpf]") { _ebpf_test_tail_call("tail_call_bad.dll", -EBPF_INVALID_ARGUMENT); }
+
+static void
+_multiple_tail_calls_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
@@ -666,7 +687,10 @@ TEST_CASE("multiple tail calls", "[libbpf]")
     int program_fd;
     int index;
 
-    int error = bpf_prog_load("tail_call_multiple.o", BPF_PROG_TYPE_XDP, &object, &program_fd);
+    const char* file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "tail_call_multiple.dll" : "tail_call_multiple.o");
+
+    int error = bpf_prog_load(file_name, BPF_PROG_TYPE_XDP, &object, &program_fd);
     REQUIRE(error == 0);
     REQUIRE(object != nullptr);
 
@@ -745,7 +769,10 @@ TEST_CASE("multiple tail calls", "[libbpf]")
     bpf_object__close(object);
 }
 
-TEST_CASE("disallow setting bind fd in xdp prog array", "[libbpf]")
+DECLARE_JIT_TEST_CASES("multiple tail calls", "[libbpf]", _multiple_tail_calls_test);
+
+static void
+_test_bind_fd_to_prog_array(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
     program_info_provider_t bind_program_info(EBPF_PROGRAM_TYPE_BIND);
@@ -753,7 +780,8 @@ TEST_CASE("disallow setting bind fd in xdp prog array", "[libbpf]")
 
     struct bpf_object* xdp_object;
     int xdp_object_fd;
-    int error = bpf_prog_load("tail_call.o", BPF_PROG_TYPE_XDP, &xdp_object, &xdp_object_fd);
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "tail_call.dll" : "tail_call.o");
+    int error = bpf_prog_load(file_name, BPF_PROG_TYPE_XDP, &xdp_object, &xdp_object_fd);
     REQUIRE(error == 0);
     REQUIRE(xdp_object != nullptr);
 
@@ -763,7 +791,11 @@ TEST_CASE("disallow setting bind fd in xdp prog array", "[libbpf]")
     // Load a program of any other type.
     struct bpf_object* bind_object;
     int bind_object_fd;
-    error = bpf_prog_load("bindmonitor.o", BPF_PROG_TYPE_BIND, &bind_object, &bind_object_fd);
+    // Note: We are deliberately using "bindmonitor_um.dll" here as we want the programs to be loaded from
+    // the individual dll, instead of the combined DLL. This helps in testing the DLL stub which is generated
+    // bpf2c.exe tool.
+    const char* another_file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "bindmonitor_um.dll" : "bindmonitor.o");
+    error = bpf_prog_load(another_file_name, BPF_PROG_TYPE_BIND, &bind_object, &bind_object_fd);
     REQUIRE(error == 0);
     REQUIRE(bind_object != nullptr);
 
@@ -786,6 +818,8 @@ TEST_CASE("disallow setting bind fd in xdp prog array", "[libbpf]")
     bpf_object__close(bind_object);
     bpf_object__close(xdp_object);
 }
+
+DECLARE_ALL_TEST_CASES("disallow setting bind fd in xdp prog array", "[libbpf]", _test_bind_fd_to_prog_array);
 
 TEST_CASE("disallow prog_array mixed program type values", "[libbpf]")
 {
@@ -825,7 +859,8 @@ TEST_CASE("disallow prog_array mixed program type values", "[libbpf]")
     bpf_object__close(xdp_object);
 }
 
-TEST_CASE("enumerate program IDs", "[libbpf]")
+static void
+_enumerate_program_ids_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
@@ -841,7 +876,8 @@ TEST_CASE("enumerate program IDs", "[libbpf]")
     // Load a file with multiple programs.
     struct bpf_object* xdp_object;
     int xdp_object_fd;
-    int error = bpf_prog_load("tail_call.o", BPF_PROG_TYPE_XDP, &xdp_object, &xdp_object_fd);
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "tail_call.dll" : "tail_call.o");
+    int error = bpf_prog_load(file_name, BPF_PROG_TYPE_XDP, &xdp_object, &xdp_object_fd);
     REQUIRE(error == 0);
     REQUIRE(xdp_object != nullptr);
 
@@ -863,6 +899,8 @@ TEST_CASE("enumerate program IDs", "[libbpf]")
 
     bpf_object__close(xdp_object);
 }
+
+DECLARE_JIT_TEST_CASES("enumerate program IDs", "[libbpf]", _enumerate_program_ids_test);
 
 static void
 _ebpf_test_map_in_map(ebpf_map_type_t type)
@@ -934,7 +972,8 @@ TEST_CASE("simple array of maps", "[libbpf]") { _ebpf_test_map_in_map(BPF_MAP_TY
 TEST_CASE("simple hash of maps", "[libbpf]") { _ebpf_test_map_in_map(BPF_MAP_TYPE_HASH_OF_MAPS); }
 
 // Verify an app can communicate with an eBPF program via an array of maps.
-TEST_CASE("array of maps", "[libbpf]")
+static void
+_array_of_maps_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
@@ -942,7 +981,8 @@ TEST_CASE("array of maps", "[libbpf]")
 
     struct bpf_object* xdp_object;
     int xdp_object_fd;
-    int error = bpf_prog_load("map_in_map.o", BPF_PROG_TYPE_XDP, &xdp_object, &xdp_object_fd);
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_in_map.dll" : "map_in_map.o");
+    int error = bpf_prog_load(file_name, BPF_PROG_TYPE_XDP, &xdp_object, &xdp_object_fd);
     REQUIRE(error == 0);
     REQUIRE(xdp_object != nullptr);
 
@@ -985,9 +1025,12 @@ TEST_CASE("array of maps", "[libbpf]")
     Platform::_close(inner_map_fd);
     bpf_object__close(xdp_object);
 }
+
+DECLARE_JIT_TEST_CASES("array of maps", "[libbpf]", _array_of_maps_test);
 
 // Create a map-in-map using id and inner_id.
-TEST_CASE("array of maps2", "[libbpf]")
+static void
+_array_of_maps2_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
@@ -995,7 +1038,8 @@ TEST_CASE("array of maps2", "[libbpf]")
 
     struct bpf_object* xdp_object;
     int xdp_object_fd;
-    int error = bpf_prog_load("map_in_map_v2.o", BPF_PROG_TYPE_XDP, &xdp_object, &xdp_object_fd);
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_in_map_v2.dll" : "map_in_map_v2.o");
+    int error = bpf_prog_load(file_name, BPF_PROG_TYPE_XDP, &xdp_object, &xdp_object_fd);
     REQUIRE(error == 0);
     REQUIRE(xdp_object != nullptr);
 
@@ -1039,14 +1083,18 @@ TEST_CASE("array of maps2", "[libbpf]")
     bpf_object__close(xdp_object);
 }
 
-TEST_CASE("disallow wrong inner map types", "[libbpf]")
+DECLARE_JIT_TEST_CASES("array of maps2", "[libbpf]", _array_of_maps2_test);
+
+static void
+_wrong_inner_map_types_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
     struct bpf_object* xdp_object;
     int xdp_object_fd;
-    int error = bpf_prog_load("map_in_map.o", BPF_PROG_TYPE_XDP, &xdp_object, &xdp_object_fd);
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_in_map.dll" : "map_in_map.o");
+    int error = bpf_prog_load(file_name, BPF_PROG_TYPE_XDP, &xdp_object, &xdp_object_fd);
     REQUIRE(error == 0);
     REQUIRE(xdp_object != nullptr);
 
@@ -1094,6 +1142,8 @@ TEST_CASE("disallow wrong inner map types", "[libbpf]")
 
     bpf_object__close(xdp_object);
 }
+
+DECLARE_JIT_TEST_CASES("disallow wrong inner map types", "[libbpf]", _wrong_inner_map_types_test);
 
 TEST_CASE("create map with name", "[libbpf]")
 {

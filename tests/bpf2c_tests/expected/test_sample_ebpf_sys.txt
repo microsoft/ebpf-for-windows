@@ -165,6 +165,12 @@ _bpf2c_npi_client_detach_provider(_In_ void* client_binding_context)
     return STATUS_SUCCESS;
 }
 
+void
+division_by_zero(uint32_t address)
+{
+    UNREFERENCED_PARAMETER(address);
+}
+
 #include "bpf2c.h"
 
 static map_entry_t _maps[] = {
@@ -172,7 +178,7 @@ static map_entry_t _maps[] = {
 { NULL, { 2, 4, 32, 2, 0, 0, 0, 0,  }, "utility_map" },
 };
 
-static void _get_maps(_Outptr_result_buffer_(*count) map_entry_t** maps, _Out_ size_t* count)
+static void _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ size_t* count)
 {
 	*maps = _maps;
 	*count = 2;

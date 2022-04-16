@@ -424,7 +424,7 @@ bpf_code_generator::encode_instructions(const std::string& section_name)
             bool is64bit = (inst.opcode & EBPF_CLS_MASK) == EBPF_CLS_ALU64;
             AluOperations operation = static_cast<AluOperations>(inst.opcode >> 4);
             std::string check_div_by_zero =
-                format_string("if (%s == 0) { division_by_zero(%s); return 0; }", source, std::to_string(i));
+                format_string("if (%s == 0) { division_by_zero(%s); return -1; }", source, std::to_string(i));
             std::string swap_function;
             switch (operation) {
             case AluOperations::Add:
@@ -695,16 +695,18 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         }
         output_stream << "};" << std::endl;
         output_stream << std::endl;
-        output_stream << "static void _get_maps(_Outptr_result_buffer_(*count) map_entry_t** maps, _Out_ size_t* count)"
-                      << std::endl;
+        output_stream
+            << "static void _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ size_t* count)"
+            << std::endl;
         output_stream << "{" << std::endl;
         output_stream << "\t*maps = _maps;" << std::endl;
         output_stream << "\t*count = " << std::to_string(map_definitions.size()) << ";" << std::endl;
         output_stream << "}" << std::endl;
         output_stream << std::endl;
     } else {
-        output_stream << "static void _get_maps(_Outptr_result_buffer_(*count) map_entry_t** maps, _Out_ size_t* count)"
-                      << std::endl;
+        output_stream
+            << "static void _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ size_t* count)"
+            << std::endl;
         output_stream << "{" << std::endl;
         output_stream << "\t*maps = NULL;" << std::endl;
         output_stream << "\t*count = 0;" << std::endl;

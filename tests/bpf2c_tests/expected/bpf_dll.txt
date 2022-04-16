@@ -48,7 +48,7 @@ get_metadata_table()
 
 #include "bpf2c.h"
 
-static void _get_maps(_Outptr_result_buffer_(*count) map_entry_t** maps, _Out_ size_t* count)
+static void _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ size_t* count)
 {
 	*maps = NULL;
 	*count = 0;
