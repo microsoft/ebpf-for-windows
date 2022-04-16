@@ -28,22 +28,13 @@
     <ClCompile Include="$(OutDir)bindmonitor_tailcall_c.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="$(OutDir)divide_by_zero.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="$(OutDir)droppacket_c.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="$(OutDir)bindmonitor_ringbuf_c.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="$(OutDir)cgroup_sock_addr_c.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="$(OutDir)decap_permit_packet_c.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="$(OutDir)droppacket_unsafe_c.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="$(OutDir)map_c.c">
@@ -67,10 +58,43 @@
     <ClCompile Include="$(OutDir)tail_call_bad_c.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="$(OutDir)tail_call_multiple_c.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(OutDir)test_utility_helpers_c.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(OutDir)bpf_c.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(OutDir)bpf_call_c.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(OutDir)cgroup_sock_addr_c.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(OutDir)divide_by_zero_c.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(OutDir)encap_reflect_packet_c.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(OutDir)printk_c.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(OutDir)printk_legacy_c.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(OutDir)reflect_packet_c.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(OutDir)sockops_c.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="$(OutDir)tail_call_map_c.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="$(OutDir)tail_call_multiple_c.c">
+    <ClCompile Include="$(OutDir)test_sample_ebpf_c.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

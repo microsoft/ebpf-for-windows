@@ -925,6 +925,7 @@ _cgroup_load_test(
     bpf_object__close(object);
 }
 
+#if defined(_DEBUG)
 static void
 _cgroup_sock_addr_load_test(
     _In_z_ const char* file,
@@ -959,6 +960,7 @@ DECLARE_CGROUP_SOCK_ADDR_LOAD_TEST(
     SAMPLE_PATH "cgroup_sock_addr", "authorize_recv_accept4", EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT);
 DECLARE_CGROUP_SOCK_ADDR_LOAD_TEST(
     SAMPLE_PATH "cgroup_sock_addr", "authorize_recv_accept6", EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT);
+#endif
 
 TEST_CASE("cgroup_sockops_load_test", "[cgroup_sockops]")
 {

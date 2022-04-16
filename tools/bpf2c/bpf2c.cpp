@@ -6,8 +6,8 @@
 #include <iostream>
 #include <map>
 #include <regex>
-#include <string>
 #include <sstream>
+#include <string>
 #include <tuple>
 #include <vector>
 
@@ -74,7 +74,7 @@ main(int argc, char** argv)
                   [&](std::vector<std::string>::iterator&) { type = output_type::UserPE; }}},
 #if defined(ENABLE_SKIP_VERIFY)
                 {"--no-verify",
-                 {"Skip validate code using verifier",
+                 {"Skip validating code using verifier",
                   [&](std::vector<std::string>::iterator&) { verify_programs = false; }}},
 #endif
                 {"--bpf",
