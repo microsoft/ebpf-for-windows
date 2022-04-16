@@ -49,12 +49,8 @@ typedef class _ebpf_program_test_state
         REQUIRE(ubpf_translate(vm, machine_code.data(), &machine_code_size, &error_message) == 0);
         machine_code.resize(machine_code_size);
         REQUIRE(
-            ebpf_program_load_code(
-                program,
-                EBPF_CODE_JIT,
-                nullptr,
-                machine_code.data(),
-                machine_code.size() * sizeof(ebpf_instruction_t)) == EBPF_SUCCESS);
+            ebpf_program_load_code(program, EBPF_CODE_JIT, nullptr, machine_code.data(), machine_code.size()) ==
+            EBPF_SUCCESS);
     }
 
     void
