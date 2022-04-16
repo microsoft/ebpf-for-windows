@@ -49,6 +49,7 @@ typedef struct _service_context
     HMODULE dll;
     bool loaded;
     ebpf_extension_client_t* binding_context;
+    bool delete_pending = false;
 } service_context_t;
 
 static uint64_t _ebpf_file_descriptor_counter = 0;
@@ -226,6 +227,8 @@ _unload_all_native_modules()
             // Deregister client.
             ebpf_extension_unload(context->binding_context);
         }
+        // The service should have been marked for deletion till now.
+        REQUIRE(context->delete_pending);
         if (context->dll != nullptr) {
             FreeLibrary(context->dll);
         }
@@ -236,14 +239,14 @@ _unload_all_native_modules()
 #pragma warning(pop)
 
 static void
-_load_native_module(_Inout_ service_context_t* context)
+_preprocess_load_native_module(_Inout_ service_context_t* context)
 {
     // For user mode tests, most of the sample programs are compiled into a single DLL file.
     // First try loading from there.
     context->dll = LoadLibraryA(NATIVE_DLL_NAME);
     REQUIRE(context->dll != nullptr);
 
-    // Get file name from the file path
+    // Get file name from the file path.
     std::string file_name = std::filesystem::path(context->file_path).filename().stem().string();
 
     auto get_function_common =
@@ -305,7 +308,7 @@ _preprocess_ioctl(_In_ const ebpf_operation_header_t* user_request)
                 context->second->module_id = request->module_id;
 
                 // Load the module.
-                _load_native_module(context->second);
+                _preprocess_load_native_module(context->second);
             }
         } catch (...) {
             // Ignore.
@@ -474,7 +477,14 @@ Glue_delete_service(SC_HANDLE handle)
 {
     for (auto& [path, context] : _service_path_to_context_map) {
         if (context->handle == (intptr_t)handle) {
-            _service_path_to_context_map.erase(path);
+            // Delete the service if it has not been loaded yet. Otherwise
+            // mark it pending for delete.
+            if (!context->loaded) {
+                _service_path_to_context_map.erase(path);
+                ebpf_free(context);
+            } else {
+                context->delete_pending = true;
+            }
             break;
         }
     }
