@@ -2292,7 +2292,7 @@ _ebpf_program_load_native(
     std::wstring service_name;
     std::string file_name_string(file_name);
     SC_HANDLE service_handle = nullptr;
-    SERVICE_STATUS status;
+    SERVICE_STATUS status = {0};
     std::wstring service_path(SERVICE_PATH_PREFIX);
     std::wstring paramaters_path(PARAMETERS_PATH_PREFIX);
     ebpf_protocol_buffer_t request_buffer;
