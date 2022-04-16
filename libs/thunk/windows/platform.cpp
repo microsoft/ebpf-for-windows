@@ -256,6 +256,12 @@ Done:
     return error;
 }
 
+bool
+_query_service_status(SC_HANDLE service_handle, _Inout_ SERVICE_STATUS* status)
+{
+    return QueryServiceStatus(service_handle, status);
+}
+
 uint32_t
 _delete_service(SC_HANDLE service_handle)
 {

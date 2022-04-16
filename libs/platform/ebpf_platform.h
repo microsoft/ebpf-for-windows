@@ -332,7 +332,9 @@ extern "C"
      * @returns - The previous lock_state required for unlock.
      */
     _Requires_lock_not_held_(*lock) _Acquires_lock_(*lock) _IRQL_requires_max_(DISPATCH_LEVEL) _IRQL_saves_
-        _IRQL_raises_(DISPATCH_LEVEL) ebpf_lock_state_t ebpf_lock_lock(_In_ ebpf_lock_t* lock);
+        _IRQL_raises_(DISPATCH_LEVEL)
+    ebpf_lock_state_t
+    ebpf_lock_lock(_In_ ebpf_lock_t* lock);
 
     /**
      * @brief Release exclusive access to the lock.
@@ -1284,6 +1286,15 @@ extern "C"
         TraceLoggingKeyword((keyword)),                                \
         TraceLoggingString(message, "Message"),                        \
         TraceLoggingString(string, #string));
+
+#define EBPF_LOG_MESSAGE_WSTRING(trace_level, keyword, message, wstring) \
+    TraceLoggingWrite(                                                   \
+        ebpf_tracelog_provider,                                          \
+        EBPF_TRACELOG_EVENT_GENERIC_MESSAGE,                             \
+        TraceLoggingLevel(trace_level),                                  \
+        TraceLoggingKeyword((keyword)),                                  \
+        TraceLoggingString(message, "Message"),                          \
+        TraceLoggingWideString(wstring, #wstring));
 
 #define EBPF_LOG_WIN32_API_FAILURE(keyword, api)          \
     do {                                                  \
