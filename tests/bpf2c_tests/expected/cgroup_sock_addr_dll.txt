@@ -53,7 +53,7 @@ static map_entry_t _maps[] = {
 { NULL, { 1, 44, 4, 1, 0, 0, 0, 0,  }, "egress_connection_policy_map" },
 };
 
-static void _get_maps(_Outptr_result_buffer_(*count) map_entry_t** maps, _Out_ size_t* count)
+static void _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ size_t* count)
 {
 	*maps = _maps;
 	*count = 2;

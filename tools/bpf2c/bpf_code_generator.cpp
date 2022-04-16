@@ -695,16 +695,18 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         }
         output_stream << "};" << std::endl;
         output_stream << std::endl;
-        output_stream << "static void _get_maps(_Outptr_result_buffer_(*count) map_entry_t** maps, _Out_ size_t* count)"
-                      << std::endl;
+        output_stream
+            << "static void _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ size_t* count)"
+            << std::endl;
         output_stream << "{" << std::endl;
         output_stream << "\t*maps = _maps;" << std::endl;
         output_stream << "\t*count = " << std::to_string(map_definitions.size()) << ";" << std::endl;
         output_stream << "}" << std::endl;
         output_stream << std::endl;
     } else {
-        output_stream << "static void _get_maps(_Outptr_result_buffer_(*count) map_entry_t** maps, _Out_ size_t* count)"
-                      << std::endl;
+        output_stream
+            << "static void _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ size_t* count)"
+            << std::endl;
         output_stream << "{" << std::endl;
         output_stream << "\t*maps = NULL;" << std::endl;
         output_stream << "\t*count = 0;" << std::endl;
