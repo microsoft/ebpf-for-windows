@@ -2043,10 +2043,11 @@ ebpf_core_invoke_protocol_handler(
             input_buffer, output_buffer, output_buffer_length, async_context);
     else if (output_buffer == NULL)
         retval = _ebpf_protocol_handlers[operation_id].dispatch.protocol_handler_no_reply(input_buffer);
-    else {
+    else
         retval = _ebpf_protocol_handlers[operation_id].dispatch.protocol_handler_with_reply(
             input_buffer, output_buffer, output_buffer_length);
 
+    if (output_buffer != NULL) {
         user_reply->id = operation_id;
         if (_ebpf_protocol_handlers[operation_id].variable_size_reply) {
             // The handler is responsible for filling in the user_reply->length already.
