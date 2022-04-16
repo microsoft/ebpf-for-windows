@@ -236,14 +236,14 @@ _unload_all_native_modules()
 #pragma warning(pop)
 
 static void
-_load_native_module(_Inout_ service_context_t* context)
+_preprocess_load_native_module(_Inout_ service_context_t* context)
 {
     // For user mode tests, most of the sample programs are compiled into a single DLL file.
     // First try loading from there.
     context->dll = LoadLibraryA(NATIVE_DLL_NAME);
     REQUIRE(context->dll != nullptr);
 
-    // Get file name from the file path
+    // Get file name from the file path.
     std::string file_name = std::filesystem::path(context->file_path).filename().stem().string();
 
     auto get_function_common =
@@ -305,7 +305,7 @@ _preprocess_ioctl(_In_ const ebpf_operation_header_t* user_request)
                 context->second->module_id = request->module_id;
 
                 // Load the module.
-                _load_native_module(context->second);
+                _preprocess_load_native_module(context->second);
             }
         } catch (...) {
             // Ignore.

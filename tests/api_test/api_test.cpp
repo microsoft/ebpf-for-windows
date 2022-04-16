@@ -35,6 +35,8 @@
 #define DROP_PACKET_MAP_COUNT 2
 #define BIND_MONITOR_MAP_COUNT 2
 
+#define WAIT_TIME_IN_MS 5000
+
 static service_install_helper
     _ebpf_core_driver_helper(EBPF_CORE_DRIVER_NAME, EBPF_CORE_DRIVER_BINARY_NAME, SERVICE_KERNEL_DRIVER);
 
@@ -238,6 +240,15 @@ TEST_CASE("pinned_map_enum", "[pinned_map_enum]") { ebpf_test_pinned_map_enum();
         _test_program_load(file, program_type, execution_type, expected_result);     \
     }
 
+// Duplicate tests sleep for WAIT_TIME_IN_MS seconds. This ensures the previous driver is
+// unloaded by the time the test is re-run.
+#define DECLARE_DUPLICATE_LOAD_TEST_CASE(file, program_type, execution_type, instance, expected_result) \
+    TEST_CASE("test_ebpf_program_load-" #file "-" #program_type "-" #execution_type "-" #instance)      \
+    {                                                                                                   \
+        Sleep(WAIT_TIME_IN_MS);                                                                         \
+        _test_program_load(file, program_type, execution_type, expected_result);                        \
+    }
+
 #if defined(CONFIG_BPF_JIT_ALWAYS_ON)
 #define INTERPRET_LOAD_RESULT EBPF_PROGRAM_LOAD_FAILED
 #else
@@ -248,6 +259,10 @@ TEST_CASE("pinned_map_enum", "[pinned_map_enum]") { ebpf_test_pinned_map_enum();
 DECLARE_LOAD_TEST_CASE("droppacket.o", nullptr, EBPF_EXECUTION_JIT, EBPF_SUCCESS);
 
 DECLARE_LOAD_TEST_CASE("droppacket_km.sys", nullptr, EBPF_EXECUTION_NATIVE, EBPF_SUCCESS);
+
+// Declare a duplicate test case. This will ensure that the earlier driver is actually unloaded,
+// else this test case will fail.
+DECLARE_DUPLICATE_LOAD_TEST_CASE("droppacket_km.sys", nullptr, EBPF_EXECUTION_NATIVE, 2, EBPF_SUCCESS);
 
 // Load droppacket (ANY) without providing expected program type.
 DECLARE_LOAD_TEST_CASE("droppacket.o", nullptr, EBPF_EXECUTION_ANY, EBPF_SUCCESS);
