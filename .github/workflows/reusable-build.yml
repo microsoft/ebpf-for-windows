@@ -47,7 +47,7 @@ jobs:
 
     - name: Initialize CodeQL
       if: inputs.build_codeql == true
-      uses: github/codeql-action/init@28eead240834b314f7def40f6fcba65d100d99b1
+      uses: github/codeql-action/init@1ed1437484560351c5be56cf73a48a279d116b78
       with:
         languages: 'cpp'
 
@@ -61,7 +61,7 @@ jobs:
         echo "C:\Program Files\LLVM\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
     - name: Cache nuget packages
-      uses: actions/cache@f63a711791a8e7cc2d5463afc081136e00085800
+      uses: actions/cache@48af2dc4a9e8278b89d7fa154b955c30c6aaab09
       env:
         cache-name: cache-nuget-modules
       with:
@@ -107,4 +107,4 @@ jobs:
 
     - name: Perform CodeQL Analysis
       if: inputs.build_codeql == true
-      uses: github/codeql-action/analyze@28eead240834b314f7def40f6fcba65d100d99b1
+      uses: github/codeql-action/analyze@1ed1437484560351c5be56cf73a48a279d116b78
