@@ -94,12 +94,17 @@ _ebpf_native_is_map_in_map(_In_ const ebpf_native_map_t* map)
 }
 
 static void
-_ebpf_native_clean_up_maps(_In_reads_(map_count) _Frees_ptr_ ebpf_native_map_t* maps, size_t map_count)
+_ebpf_native_clean_up_maps(_In_reads_(map_count) _Frees_ptr_ ebpf_native_map_t* maps, size_t map_count, bool unpin)
 {
     for (uint32_t count = 0; count < map_count; count++) {
         ebpf_native_map_t* map = &maps[count];
-        if (map->pin_path.value && map->pinned && !map->reused) {
-            ebpf_core_update_pinning(UINT64_MAX, &map->pin_path);
+
+        if (unpin) {
+            // Map should only be unpinned if this is a failure case, and the map
+            // was created and pinned while loading the native module.
+            if (map->pin_path.value && map->pinned && !map->reused) {
+                ebpf_core_update_pinning(UINT64_MAX, &map->pin_path);
+            }
         }
         if (map->pin_path.value) {
 #pragma warning(push)
@@ -130,7 +135,7 @@ _ebpf_native_clean_up_programs(_In_reads_(count_of_programs) ebpf_native_program
 static void
 _ebpf_native_clean_up_module(_In_ ebpf_native_module_t* module)
 {
-    _ebpf_native_clean_up_maps(module->maps, module->map_count);
+    _ebpf_native_clean_up_maps(module->maps, module->map_count, false);
     _ebpf_native_clean_up_programs(module->programs, module->program_count);
 
     ebpf_free(module->service_name);
@@ -613,6 +618,7 @@ _ebpf_native_validate_map(_In_ const ebpf_native_map_t* map, ebpf_handle_t origi
             goto Exit;
         }
         result = _ebpf_native_validate_map(inner_map, inner_map_handle);
+        ebpf_handle_close(inner_map_handle);
     }
 
 Exit:
@@ -735,7 +741,7 @@ _ebpf_native_create_maps(_Inout_ ebpf_native_module_t* module)
 
 Done:
     if (result != EBPF_SUCCESS) {
-        _ebpf_native_clean_up_maps(module->maps, module->map_count);
+        _ebpf_native_clean_up_maps(module->maps, module->map_count, true);
         module->maps = NULL;
         module->map_count = 0;
     }
