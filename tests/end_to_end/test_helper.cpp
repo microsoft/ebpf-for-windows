@@ -49,6 +49,7 @@ typedef struct _service_context
     HMODULE dll;
     bool loaded;
     ebpf_extension_client_t* binding_context;
+    bool delete_pending = false;
 } service_context_t;
 
 static uint64_t _ebpf_file_descriptor_counter = 0;
@@ -226,6 +227,8 @@ _unload_all_native_modules()
             // Deregister client.
             ebpf_extension_unload(context->binding_context);
         }
+        // The service should have been marked for deletion till now.
+        REQUIRE(context->delete_pending);
         if (context->dll != nullptr) {
             FreeLibrary(context->dll);
         }
@@ -474,7 +477,14 @@ Glue_delete_service(SC_HANDLE handle)
 {
     for (auto& [path, context] : _service_path_to_context_map) {
         if (context->handle == (intptr_t)handle) {
-            _service_path_to_context_map.erase(path);
+            // Delete the service if it has not been loaded yet. Otherwise
+            // mark it pending for delete.
+            if (!context->loaded) {
+                _service_path_to_context_map.erase(path);
+                ebpf_free(context);
+            } else {
+                context->delete_pending = true;
+            }
             break;
         }
     }
