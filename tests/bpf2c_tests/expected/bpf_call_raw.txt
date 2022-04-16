@@ -10,7 +10,7 @@ static map_entry_t _maps[] = {
 { NULL, { 2, 2, 4, 512, 0, 0, 0, 0,  }, "map" },
 };
 
-static void _get_maps(_Outptr_result_buffer_(*count) map_entry_t** maps, _Out_ size_t* count)
+static void _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ size_t* count)
 {
 	*maps = _maps;
 	*count = 1;

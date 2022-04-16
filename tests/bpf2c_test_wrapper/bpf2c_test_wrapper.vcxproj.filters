@@ -25,10 +25,52 @@
     <ClCompile Include="$(OutDir)bindmonitor_c.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="$(OutDir)bindmonitor_tailcall_c.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="$(OutDir)divide_by_zero.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="$(OutDir)droppacket_c.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(OutDir)bindmonitor_ringbuf_c.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(OutDir)cgroup_sock_addr_c.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(OutDir)decap_permit_packet_c.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(OutDir)droppacket_unsafe_c.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(OutDir)map_c.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(OutDir)map_in_map_c.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(OutDir)map_in_map_v2_c.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(OutDir)map_reuse_c.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(OutDir)map_reuse_2_c.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(OutDir)tail_call_c.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(OutDir)tail_call_bad_c.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(OutDir)tail_call_map_c.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(OutDir)tail_call_multiple_c.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
