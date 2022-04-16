@@ -604,7 +604,7 @@ bindmonitor_tailcall_test(ebpf_execution_type_t execution_type)
     fd_t process_map_fd = bpf_object__find_map_fd_by_name(object, "process_map");
     REQUIRE(process_map_fd > 0);
 
-    // Setup tail calls.
+    // Set up tail calls.
     struct bpf_program* callee0 = bpf_object__find_program_by_name(object, "BindMonitor_Callee0");
     REQUIRE(callee0 != nullptr);
     fd_t callee0_fd = bpf_program__fd(callee0);
@@ -625,14 +625,14 @@ bindmonitor_tailcall_test(ebpf_execution_type_t execution_type)
 
     // Validate various maps.
 
-    // Validate map-in-maps with "inner_id"
+    // Validate map-in-maps with "inner_id".
     struct bpf_map* outer_map = bpf_object__find_map_by_name(object, "dummy_outer_map");
     REQUIRE(outer_map != nullptr);
 
     int outer_map_fd = bpf_map__fd(outer_map);
     REQUIRE(outer_map_fd > 0);
 
-    // Validate map-in-maps with "inner_idx"
+    // Validate map-in-maps with "inner_idx".
     struct bpf_map* outer_idx_map = bpf_object__find_map_by_name(object, "dummy_outer_idx_map");
     REQUIRE(outer_idx_map != nullptr);
 
