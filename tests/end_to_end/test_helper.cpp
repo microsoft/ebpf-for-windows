@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 #include <chrono>
+#include <filesystem>
 #include <future>
 #include <map>
 using namespace std::chrono_literals;
@@ -18,7 +19,14 @@ using namespace std::chrono_literals;
 
 extern "C" bool ebpf_fuzzing_enabled;
 
+extern "C" metadata_table_t*
+get_metadata_table_common(const char* name);
+
+extern "C" metadata_table_t*
+get_metadata_table();
+
 #define SERVICE_PATH_PREFIX L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\"
+#define NATIVE_DLL_NAME "bpf2c_test_wrapper.dll"
 
 static GUID _bpf2c_npi_id = {/* c847aac8-a6f2-4b53-aea3-f4a94b9a80cb */
                              0xc847aac8,
@@ -31,9 +39,6 @@ static GUID _ebpf_native_provider_id = {/* 5e24d2f5-f799-42c3-a945-87feefd930a7 
                                         0xf799,
                                         0x42c3,
                                         {0xa9, 0x45, 0x87, 0xfe, 0xef, 0xd9, 0x30, 0xa7}};
-
-metadata_table_t*
-get_metadata_table();
 
 typedef struct _service_context
 {
@@ -221,6 +226,9 @@ _unload_all_native_modules()
             // Deregister client.
             ebpf_extension_unload(context->binding_context);
         }
+        if (context->dll != nullptr) {
+            FreeLibrary(context->dll);
+        }
         ebpf_free(context);
     }
     _service_path_to_context_map.clear();
@@ -230,13 +238,29 @@ _unload_all_native_modules()
 static void
 _load_native_module(_Inout_ service_context_t* context)
 {
-    context->dll = LoadLibraryW(context->file_path.c_str());
+    // For user mode tests, most of the sample programs are compiled into a single DLL file.
+    // First try loading from there.
+    context->dll = LoadLibraryA(NATIVE_DLL_NAME);
     REQUIRE(context->dll != nullptr);
 
-    auto get_function =
-        reinterpret_cast<decltype(&get_metadata_table)>(GetProcAddress(context->dll, "get_metadata_table"));
-    REQUIRE(get_function != nullptr);
-    metadata_table_t* table = get_function();
+    // Get file name from the file path
+    std::string file_name = std::filesystem::path(context->file_path).filename().stem().string();
+
+    auto get_function_common =
+        reinterpret_cast<decltype(&get_metadata_table_common)>(GetProcAddress(context->dll, "get_metadata_table"));
+    REQUIRE(get_function_common != nullptr);
+    metadata_table_t* table = get_function_common(file_name.c_str());
+    if (table == nullptr) {
+        // Possibly this sample program in not in the common DLL file. Try loading the actual DLL.
+        FreeLibrary(context->dll);
+        context->dll = LoadLibraryW(context->file_path.c_str());
+        REQUIRE(context->dll != nullptr);
+
+        auto get_function =
+            reinterpret_cast<decltype(&get_metadata_table)>(GetProcAddress(context->dll, "get_metadata_table"));
+        REQUIRE(get_function != nullptr);
+        table = get_function();
+    }
     REQUIRE(table != nullptr);
 
     int client_binding_context = 0;

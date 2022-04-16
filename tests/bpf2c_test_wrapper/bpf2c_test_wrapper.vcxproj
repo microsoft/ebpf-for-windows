@@ -137,7 +137,7 @@
       <ModuleDefinitionFile>source.def</ModuleDefinitionFile>
     </Link>
     <PreBuildEvent>
-      <Message>Run bpf2 over ELF files</Message>
+      <Message>Run bpf2c over ELF files</Message>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -157,13 +157,28 @@
       <ModuleDefinitionFile>source.def</ModuleDefinitionFile>
     </Link>
     <PreBuildEvent>
-      <Message>Run bpf2 over ELF files</Message>
+      <Message>Run bpf2c over ELF files</Message>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="$(OutDir)bindmonitor_c.c" />
+    <ClCompile Include="$(OutDir)bindmonitor_ringbuf_c.c" />
+    <ClCompile Include="$(OutDir)bindmonitor_tailcall_c.c" />
+    <ClCompile Include="$(OutDir)cgroup_sock_addr_c.c" />
+    <ClCompile Include="$(OutDir)decap_permit_packet_c.c" />
     <ClCompile Include="$(OutDir)divide_by_zero.c" />
     <ClCompile Include="$(OutDir)droppacket_c.c" />
+    <ClCompile Include="$(OutDir)droppacket_unsafe_c.c" />
+    <ClCompile Include="$(OutDir)map_c.c" />
+    <ClCompile Include="$(OutDir)map_in_map_c.c" />
+    <ClCompile Include="$(OutDir)map_in_map_v2_c.c" />
+    <ClCompile Include="$(OutDir)map_reuse_c.c" />
+    <ClCompile Include="$(OutDir)map_reuse_2_c.c" />
+    <ClCompile Include="$(OutDir)tail_call_c.c" />
+    <ClCompile Include="$(OutDir)tail_call_bad_c.c" />
+    <ClCompile Include="$(OutDir)tail_call_map_c.c" />
+    <ClCompile Include="$(OutDir)tail_call_multiple_c.c" />
+    <ClCompile Include="$(OutDir)test_utility_helpers_c.c" />
     <ClCompile Include="dllmain.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -187,18 +202,54 @@
       <Command>
         pushd $(OutDir)
         bpf2c.exe --bpf bindmonitor.o &gt;bindmonitor_c.c
-        bpf2c.exe --bpf droppacket.o &gt;droppacket_c.c
+        bpf2c.exe --bpf bindmonitor_ringbuf.o &gt;bindmonitor_ringbuf_c.c
+        bpf2c.exe --bpf bindmonitor_tailcall.o &gt;bindmonitor_tailcall_c.c
+	bpf2c.exe --bpf cgroup_sock_addr.o &gt;cgroup_sock_addr_c.c
+	bpf2c.exe --bpf decap_permit_packet.o &gt;decap_permit_packet_c.c
         bpf2c.exe --bpf divide_by_zero.o &gt;divide_by_zero.c
+	bpf2c.exe --bpf droppacket.o &gt;droppacket_c.c
+	bpf2c.exe --bpf droppacket_unsafe.o &gt;droppacket_unsafe_c.c
+	bpf2c.exe --bpf map.o &gt;map_c.c
+	bpf2c.exe --bpf map_in_map.o &gt;map_in_map_c.c
+	bpf2c.exe --bpf map_in_map_v2.o &gt;map_in_map_v2_c.c
+	bpf2c.exe --bpf map_reuse.o &gt;map_reuse_c.c
+	bpf2c.exe --bpf map_reuse_2.o &gt;map_reuse_2_c.c
+	bpf2c.exe --bpf tail_call.o &gt;tail_call_c.c
+	bpf2c.exe --bpf tail_call_bad.o &gt;tail_call_bad_c.c
+	bpf2c.exe --bpf tail_call_map.o &gt;tail_call_map_c.c
+	bpf2c.exe --bpf tail_call_multiple.o &gt;tail_call_multiple_c.c
+        bpf2c.exe --bpf test_utility_helpers.o &gt;test_utility_helpers_c.c
       </Command>
     </PreBuildEvent>
+    <ClCompile>
+      <DisableSpecificWarnings Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">4189;4245;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+    </ClCompile>
+    <ClCompile>
+      <DisableSpecificWarnings Condition="'$(Configuration)|$(Platform)'=='Release|x64'">4189;4245;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+    </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(CodeCoverage)'=='True'">
     <PreBuildEvent>
       <Command>
         pushd $(OutDir)
         OpenCppCoverage.exe --sources $(SolutionDir) --export_type binary:$(OutDir)bpf2c_bindmonitor.cov --working_dir $(OutDir) -- bpf2c.exe --bpf bindmonitor.o &gt;bindmonitor_c.c
+	OpenCppCoverage.exe --sources $(SolutionDir) --export_type binary:$(OutDir)bpf2c_bindmonitor_ringbuf.cov --working_dir $(OutDir) -- bpf2c.exe --bpf bindmonitor_ringbuf.o &gt;bindmonitor_ringbuf_c.c
+        OpenCppCoverage.exe --sources $(SolutionDir) --export_type binary:$(OutDir)bpf2c_bindmonitor_tailcall.cov --working_dir $(OutDir) -- bpf2c.exe --bpf bindmonitor_tailcall.o &gt;bindmonitor_tailcall_c.c
+	OpenCppCoverage.exe --sources $(SolutionDir) --export_type binary:$(OutDir)bpf2c_cgroup_sock_addr.cov --working_dir $(OutDir) -- bpf2c.exe --bpf cgroup_sock_addr.o &gt;cgroup_sock_addr_c.c
+	OpenCppCoverage.exe --sources $(SolutionDir) --export_type binary:$(OutDir)bpf2c_decap_permit_packet.cov --working_dir $(OutDir) -- bpf2c.exe --bpf decap_permit_packet.o &gt;decap_permit_packet_c.c
         OpenCppCoverage.exe --sources $(SolutionDir) --export_type binary:$(OutDir)bpf2c_droppacket.cov --working_dir $(OutDir) -- bpf2c.exe --bpf droppacket.o &gt;droppacket_c.c
-        OpenCppCoverage.exe --sources $(SolutionDir) --input_coverage $(OutDir)bpf2c_bindmonitor.cov --input_coverage $(OutDir)bpf2c_droppacket.cov --export_type cobertura:$(OutDir)bpf2c.xml --working_dir $(OutDir) -- bpf2c.exe --bpf divide_by_zero.o &gt;divide_by_zero.c
+	OpenCppCoverage.exe --sources $(SolutionDir) --export_type binary:$(OutDir)bpf2c_droppacket_unsafe.cov --working_dir $(OutDir) -- bpf2c.exe --bpf droppacket_unsafe.o &gt;droppacket_unsafe_c.c
+	OpenCppCoverage.exe --sources $(SolutionDir) --export_type binary:$(OutDir)bpf2c_map.cov --working_dir $(OutDir) -- bpf2c.exe --bpf map.o &gt;map_c.c
+	OpenCppCoverage.exe --sources $(SolutionDir) --export_type binary:$(OutDir)bpf2c_map_in_map.cov --working_dir $(OutDir) -- bpf2c.exe --bpf map_in_map.o &gt;map_in_map_c.c
+	OpenCppCoverage.exe --sources $(SolutionDir) --export_type binary:$(OutDir)bpf2c_map_in_map_v2.cov --working_dir $(OutDir) -- bpf2c.exe --bpf map_in_map_v2.o &gt;map_in_map_v2_c.c
+	OpenCppCoverage.exe --sources $(SolutionDir) --export_type binary:$(OutDir)bpf2c_map_reuse.cov --working_dir $(OutDir) -- bpf2c.exe --bpf map_reuse.o &gt;map_reuse_c.c
+	OpenCppCoverage.exe --sources $(SolutionDir) --export_type binary:$(OutDir)bpf2c_map_reuse_2.cov --working_dir $(OutDir) -- bpf2c.exe --bpf map_reuse_2.o &gt;map_reuse_2_c.c
+	OpenCppCoverage.exe --sources $(SolutionDir) --export_type binary:$(OutDir)bpf2c_tail_call.cov --working_dir $(OutDir) -- bpf2c.exe --bpf tail_call.o &gt;tail_call_c.c
+	OpenCppCoverage.exe --sources $(SolutionDir) --export_type binary:$(OutDir)bpf2c_tail_call_bad.cov --working_dir $(OutDir) -- bpf2c.exe --bpf tail_call_bad.o &gt;tail_call_bad_c.c
+	OpenCppCoverage.exe --sources $(SolutionDir) --export_type binary:$(OutDir)bpf2c_tail_call_map.cov --working_dir $(OutDir) -- bpf2c.exe --bpf tail_call_map.o &gt;tail_call_map_c.c
+	OpenCppCoverage.exe --sources $(SolutionDir) --export_type binary:$(OutDir)bpf2c_tail_call_multiple.cov --working_dir $(OutDir) -- bpf2c.exe --bpf tail_call_multiple.o &gt;tail_call_multiple_c.c
+	OpenCppCoverage.exe --sources $(SolutionDir) --export_type binary:$(OutDir)bpf2c_test_utility_helpers.cov --working_dir $(OutDir) -- bpf2c.exe --bpf test_utility_helpers.o &gt;test_utility_helpers_c.c
+        OpenCppCoverage.exe --sources $(SolutionDir) --input_coverage $(OutDir)bpf2c_bindmonitor.cov --input_coverage $(OutDir)bpf2c_bindmonitor_ringbuf.cov --input_coverage $(OutDir)bpf2c_bindmonitor_tailcall.cov --input_coverage $(OutDir)bpf2c_cgroup_sock_addr.cov --input_coverage $(OutDir)bpf2c_decap_permit_packet.cov --input_coverage $(OutDir)bpf2c_droppacket.cov --input_coverage $(OutDir)bpf2c_droppacket_unsafe.cov --input_coverage $(OutDir)bpf2c_map.cov --input_coverage $(OutDir)bpf2c_map_in_map.cov --input_coverage $(OutDir)bpf2c_map_in_map_v2.cov --input_coverage $(OutDir)bpf2c_map_reuse.cov --input_coverage $(OutDir)bpf2c_map_reuse_2.cov --input_coverage $(OutDir)bpf2c_tail_call.cov --input_coverage $(OutDir)bpf2c_tail_call_bad.cov --input_coverage $(OutDir)bpf2c_tail_call_map.cov --input_coverage $(OutDir)bpf2c_tail_call_multiple.cov --input-coverage $(OutDir)bpf2c_test_utility_helpers.cov --export_type cobertura:$(OutDir)bpf2c.xml --working_dir $(OutDir) -- bpf2c.exe --bpf divide_by_zero.o &gt;divide_by_zero.c
       </Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
