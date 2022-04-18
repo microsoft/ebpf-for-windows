@@ -362,9 +362,6 @@ GlueDeviceIoControl(
             result = EBPF_INVALID_ARGUMENT;
             goto Fail;
         }
-        user_reply->length = static_cast<uint16_t>(nOutBufferSize);
-        user_reply->id = user_request->id;
-        *lpBytesReturned = user_reply->length;
     }
 
     // Intercept the call to perform any IOCTL specific _pre_ tasks.
@@ -382,6 +379,9 @@ GlueDeviceIoControl(
     if (result != EBPF_SUCCESS)
         goto Fail;
 
+    if (user_reply) {
+        *lpBytesReturned = user_reply->length;
+    }
     return TRUE;
 
 Fail:

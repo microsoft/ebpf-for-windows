@@ -6,9 +6,11 @@
 #include <iostream>
 #include <map>
 #include <regex>
+#include <sstream>
 #include <string>
 #include <tuple>
 #include <vector>
+
 #include "bpf_code_generator.h"
 #include "ebpf_api.h"
 
@@ -30,6 +32,24 @@ emit_skeleton(const std::string& c_name, const std::string& code)
     std::cout << output << std::endl;
 }
 
+std::string
+load_file_to_memory(const std::string& path)
+{
+    struct stat st;
+    if (stat(path.c_str(), &st)) {
+        throw std::runtime_error(std::string("Failed to read file: ") + path);
+    }
+    if (std::ifstream stream{path, std::ios::in | std::ios::binary}) {
+        std::string data;
+        data.resize(st.st_size);
+        if (!stream.read(data.data(), data.size())) {
+            throw std::runtime_error(std::string("Failed to read file: ") + path);
+        }
+        return data;
+    }
+    throw std::runtime_error(std::string("Failed to read file: ") + path);
+}
+
 int
 main(int argc, char** argv)
 {
@@ -43,6 +63,7 @@ main(int argc, char** argv)
         std::string verifier_output_file;
         std::string file;
         std::vector<std::string> sections;
+        bool verify_programs = true;
         std::map<std::string, std::tuple<std::string, std::function<void(std::vector<std::string>::iterator&)>>>
             options = {
                 {"--sys",
@@ -51,6 +72,11 @@ main(int argc, char** argv)
                 {"--dll",
                  {"Generate code for a Windows DLL",
                   [&](std::vector<std::string>::iterator&) { type = output_type::UserPE; }}},
+#if defined(ENABLE_SKIP_VERIFY)
+                {"--no-verify",
+                 {"Skip validating code using verifier",
+                  [&](std::vector<std::string>::iterator&) { verify_programs = false; }}},
+#endif
                 {"--bpf",
                  {"Input ELF file containing BPF byte code",
                   [&](std::vector<std::string>::iterator& it) { file = *(++it); }}},
@@ -89,8 +115,10 @@ main(int argc, char** argv)
 
         std::string c_name = file.substr(file.find_last_of("\\") + 1);
         c_name = c_name.substr(0, c_name.find("."));
-
-        bpf_code_generator generator(file, c_name);
+        auto data = load_file_to_memory(file);
+        auto stream = std::stringstream(data);
+        // TODO: Issue #834 - validate the ELF is well formed
+        bpf_code_generator generator(stream, c_name);
 
         // Special case of no section name.
         if (sections.size() == 0) {
@@ -106,6 +134,16 @@ main(int argc, char** argv)
             ebpf_attach_type_t attach_type;
             if (ebpf_get_program_type_by_name(section.c_str(), &program_type, &attach_type) != EBPF_SUCCESS) {
                 throw std::runtime_error(std::string("Cannot get program / attach type for section ") + section);
+            }
+            const char* report = nullptr;
+            const char* error_message = nullptr;
+            ebpf_api_verifier_stats_t stats;
+            if (verify_programs &&
+                ebpf_api_elf_verify_section_from_memory(
+                    data.c_str(), data.size(), section.c_str(), false, &report, &error_message, &stats) != 0) {
+                throw std::runtime_error(
+                    std::string("Verification failed for ") + section + std::string(" with error ") +
+                    std::string(error_message) + std::string("\n Report:\n") + std::string(report));
             }
             generator.parse(section, program_type, attach_type);
         }
