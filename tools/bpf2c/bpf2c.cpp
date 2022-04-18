@@ -141,6 +141,7 @@ main(int argc, char** argv)
             if (verify_programs &&
                 ebpf_api_elf_verify_section_from_memory(
                     data.c_str(), data.size(), section.c_str(), false, &report, &error_message, &stats) != 0) {
+                report = ((report == nullptr) ? "" : report);
                 throw std::runtime_error(
                     std::string("Verification failed for ") + section + std::string(" with error ") +
                     std::string(error_message) + std::string("\n Report:\n") + std::string(report));
