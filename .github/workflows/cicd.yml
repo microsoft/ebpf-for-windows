@@ -121,7 +121,7 @@ jobs:
     # Only run this on repos that have self-host runners.
     if: github.repository == 'microsoft/ebpf-for-windows'
     with:
-      pre_test: powershell ".\setup_ebpf_cicd_tests.ps1;"
+      pre_test: powershell ".\setup_ebpf_cicd_tests.ps1"
       test_command: powershell ".\execute_ebpf_cicd_tests.ps1"
       post_test: powershell ".\cleanup_ebpf_cicd_tests.ps1"
       name: driver
