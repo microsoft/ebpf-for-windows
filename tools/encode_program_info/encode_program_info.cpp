@@ -44,9 +44,21 @@ _encode_program_info(const EbpfProgramType& input_program_type)
         &context_descriptor,
         *reinterpret_cast<GUID*>(input_program_type.platform_specific_data)};
     ebpf_program_info_t program_info = {program_type, 0, NULL};
+    std::vector<ebpf_helper_function_prototype_t> _helper_function_prototypes;
+    _helper_function_prototypes.assign(
+        ebpf_core_helper_function_prototype, ebpf_core_helper_function_prototype + ebpf_core_helper_functions_count);
 
-    program_info.count_of_helpers = ebpf_core_helper_functions_count;
-    program_info.helper_prototype = ebpf_core_helper_function_prototype;
+    auto program_type_specific = program_type_specific_helper_functions.find(
+        *reinterpret_cast<GUID*>(input_program_type.platform_specific_data));
+
+    if (program_type_specific != program_type_specific_helper_functions.end()) {
+        for (size_t i = 0; i < program_type_specific->second.count; i++) {
+            _helper_function_prototypes.push_back(program_type_specific->second.data[i]);
+        }
+    }
+
+    program_info.count_of_helpers = static_cast<uint32_t>(_helper_function_prototypes.size());
+    program_info.helper_prototype = _helper_function_prototypes.data();
     return_value = ebpf_program_info_encode(&program_info, &buffer, &buffer_size);
     if (return_value != EBPF_SUCCESS)
         goto Done;

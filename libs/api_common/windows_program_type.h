@@ -4,8 +4,11 @@
 #pragma once
 
 #include "crab_verifier_wrapper.hpp"
+#include "ebpf_program_types.h"
 #include "ebpf_nethooks.h"
+#include "net_ebpf_ext_program_info.h"
 #include "sample_ext_helpers.h"
+#include "sample_ext_program_info.h"
 
 #define PTYPE(name, descr, native_type, prefixes) \
     {                                             \
@@ -140,3 +143,16 @@ const std::map<ebpf_attach_type_t, const char*, ebpf_attach_type_compare> window
     {EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT, "cgroup/recv_accept6"},
     {EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS, "sockops"},
     {EBPF_ATTACH_TYPE_SAMPLE, "sample_ext"}};
+
+struct helper_function_info_t
+{
+    template <typename T> helper_function_info_t(const T& t) : count(EBPF_COUNT_OF(t)), data(t) {}
+    const size_t count;
+    const ebpf_helper_function_prototype_t* data;
+};
+
+const std::map<ebpf_program_type_t, helper_function_info_t, ebpf_attach_type_compare>
+    program_type_specific_helper_functions = {
+        {EBPF_PROGRAM_TYPE_XDP, _xdp_ebpf_extension_helper_function_prototype},
+        {EBPF_PROGRAM_TYPE_SAMPLE, _sample_ebpf_extension_helper_function_prototype},
+};

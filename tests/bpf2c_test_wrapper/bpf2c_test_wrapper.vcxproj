@@ -166,6 +166,7 @@
     <ClCompile Include="$(OutDir)bindmonitor_tailcall_c.c" />
     <ClCompile Include="$(OutDir)bpf_c.c" />
     <ClCompile Include="$(OutDir)bpf_call_c.c" />
+    <ClCompile Include="$(OutDir)cgroup_sock_addr_c.c" />
     <ClCompile Include="$(OutDir)decap_permit_packet_c.c" />
     <ClCompile Include="$(OutDir)divide_by_zero_c.c" />
     <ClCompile Include="$(OutDir)droppacket_c.c" />
@@ -178,9 +179,11 @@
     <ClCompile Include="$(OutDir)printk_c.c" />
     <ClCompile Include="$(OutDir)printk_legacy_c.c" />
     <ClCompile Include="$(OutDir)reflect_packet_c.c" />
+    <ClCompile Include="$(OutDir)sockops_c.c" />
     <ClCompile Include="$(OutDir)tail_call_c.c" />
     <ClCompile Include="$(OutDir)tail_call_bad_c.c" />
     <ClCompile Include="$(OutDir)tail_call_multiple_c.c" />
+    <ClCompile Include="$(OutDir)test_sample_ebpf_c.c" />
     <ClCompile Include="$(OutDir)test_utility_helpers_c.c" />
     <ClCompile Include="dllmain.cpp" />
   </ItemGroup>
@@ -237,6 +240,7 @@
         bpf2c --bpf bindmonitor_tailcall.o &gt;bindmonitor_tailcall_c.c
         bpf2c --bpf bpf.o &gt;bpf_c.c
         bpf2c --bpf bpf_call.o &gt;bpf_call_c.c
+        bpf2c --bpf cgroup_sock_addr.o &gt;cgroup_sock_addr_c.c
         bpf2c --bpf decap_permit_packet.o &gt;decap_permit_packet_c.c
         bpf2c --bpf divide_by_zero.o &gt;divide_by_zero_c.c
         bpf2c --bpf droppacket.o &gt;droppacket_c.c
@@ -249,9 +253,11 @@
         bpf2c --bpf printk.o &gt;printk_c.c
         bpf2c --bpf printk_legacy.o &gt;printk_legacy_c.c
         bpf2c --bpf reflect_packet.o &gt;reflect_packet_c.c
+        bpf2c --bpf sockops.o &gt;sockops_c.c
         bpf2c --bpf tail_call.o &gt;tail_call_c.c
         bpf2c --bpf tail_call_bad.o &gt;tail_call_bad_c.c
         bpf2c --bpf tail_call_multiple.o &gt;tail_call_multiple_c.c
+        bpf2c --bpf test_sample_ebpf.o &gt;test_sample_ebpf_c.c
         bpf2c --bpf test_utility_helpers.o &gt;test_utility_helpers_c.c
         popd
       </Command>
@@ -269,7 +275,7 @@
         bpf2c --bpf bindmonitor_tailcall.o &gt;bindmonitor_tailcall_c.c
         bpf2c --bpf bpf.o &gt;bpf_c.c
         bpf2c --bpf bpf_call.o &gt;bpf_call_c.c
-        bpf2c --no-verify --bpf cgroup_sock_addr.o &gt;cgroup_sock_addr_c.c
+        bpf2c --bpf cgroup_sock_addr.o &gt;cgroup_sock_addr_c.c
         bpf2c --bpf decap_permit_packet.o &gt;decap_permit_packet_c.c
         bpf2c --bpf divide_by_zero.o &gt;divide_by_zero_c.c
         bpf2c --bpf droppacket.o &gt;droppacket_c.c
@@ -282,12 +288,12 @@
         bpf2c --bpf printk.o &gt;printk_c.c
         bpf2c --bpf printk_legacy.o &gt;printk_legacy_c.c
         bpf2c --bpf reflect_packet.o &gt;reflect_packet_c.c
-        bpf2c --no-verify --bpf sockops.o &gt;sockops_c.c
+        bpf2c --bpf sockops.o &gt;sockops_c.c
         bpf2c --bpf tail_call.o &gt;tail_call_c.c
         bpf2c --bpf tail_call_bad.o &gt;tail_call_bad_c.c
         bpf2c --no-verify --bpf tail_call_map.o &gt;tail_call_map_c.c
         bpf2c --bpf tail_call_multiple.o &gt;tail_call_multiple_c.c
-        bpf2c --no-verify --bpf test_sample_ebpf.o &gt;test_sample_ebpf_c.c
+        bpf2c --bpf test_sample_ebpf.o &gt;test_sample_ebpf_c.c
         bpf2c --bpf test_utility_helpers.o &gt;test_utility_helpers_c.c
         popd
       </Command>
