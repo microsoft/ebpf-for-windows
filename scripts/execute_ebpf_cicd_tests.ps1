@@ -4,7 +4,8 @@
 param ([parameter(Mandatory=$false)][string] $Target = "TEST_VM",
        [parameter(Mandatory=$false)][string] $LogFileName = "TestLog.log",
        [parameter(Mandatory=$false)][string] $WorkingDirectory = $pwd.ToString(),
-       [parameter(Mandatory=$false)][string] $TestExecutionJsonFileName = "test_execution.json")
+       [parameter(Mandatory=$false)][string] $TestExecutionJsonFileName = "test_execution.json",
+       [parameter(Mandatory=$false)][bool] $Coverage = $true)
 
 Push-Location $WorkingDirectory
 
@@ -20,7 +21,7 @@ $BasicTest = $Config.BasicTest
 
 # Run tests on test VMs.
 foreach ($VM in $BasicTest) {
-    Invoke-CICDTestsOnVM -VMName $VM.Name
+    Invoke-CICDTestsOnVM -VMName $VM.Name -Coverage $Coverage
 }
 
 # Run XDP Tests.

@@ -17,20 +17,22 @@ Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction S
 function Invoke-CICDTestsOnVM
 {
     param([parameter(Mandatory=$true)] [string] $VMName,
-          [parameter(Mandatory=$false)] [bool] $VerboseLogs = $false)
+          [parameter(Mandatory=$false)] [bool] $VerboseLogs = $false,
+          [parameter(Mandatory=$false)] [bool] $Coverage = $false)
     Write-Log "Running eBPF CI/CD tests on $VMName"
     $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
 
     Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
         param([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
               [Parameter(Mandatory=$True)] [string] $LogFileName,
-              [Parameter(Mandatory=$True)] [bool] $VerboseLogs)
+              [Parameter(Mandatory=$True)] [bool] $VerboseLogs,
+              [Parameter(Mandatory=$True)] [bool] $Coverage)
         $WorkingDirectory = "$Env:SystemDrive\$WorkingDirectory"
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
         Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
 
-        Invoke-CICDTests -VerboseLogs $VerboseLogs 2>&1 | Write-Log
-    } -ArgumentList ("eBPF", $LogFileName, $VerboseLogs) -ErrorAction Stop
+        Invoke-CICDTests -VerboseLogs $VerboseLogs -Coverage $Coverage 2>&1 | Write-Log
+    } -ArgumentList ("eBPF", $LogFileName, $VerboseLogs, $Coverage) -ErrorAction Stop
 }
 
 function Add-eBPFProgramOnVM
