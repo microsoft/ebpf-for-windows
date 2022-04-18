@@ -924,7 +924,7 @@ _cgroup_load_test(
 
     bpf_object__close(object);
 }
-
+// TODO: Re-enable this once https://github.com/microsoft/ebpf-for-windows/issues/971 is resolved.
 #if defined(_DEBUG)
 static void
 _cgroup_sock_addr_load_test(
