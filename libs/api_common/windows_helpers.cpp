@@ -12,7 +12,10 @@
 #include "ebpf_program_types.h"
 #include "ebpf_protocol.h"
 #include "ebpf_result.h"
+#include "ebpf_sample_ext_program_data.h"
 #include "ebpf_serialize.h"
+#include "ebpf_sockops_program_data.h"
+#include "ebpf_sock_addr_program_data.h"
 #include "ebpf_xdp_program_data.h"
 #include "platform.h"
 #include "platform.hpp"
@@ -41,6 +44,21 @@ static thread_local std::map<GUID, ebpf_program_info_ptr_t, guid_compare> _progr
 static thread_local std::map<GUID, ebpf_helper::ebpf_memory_ptr, guid_compare> _static_program_info_cache;
 
 static thread_local ebpf_handle_t _program_under_verification = ebpf_handle_invalid;
+
+struct encode_program_info_t
+{
+    template <typename T> encode_program_info_t(const T& t) : size(sizeof(t)), data(t) {}
+    const size_t size;
+    const uint8_t* data;
+};
+
+static std::map<GUID, encode_program_info_t, guid_compare> _encoded_program_info = {
+    {EBPF_PROGRAM_TYPE_BIND, _ebpf_encoded_bind_program_info_data},
+    {EBPF_PROGRAM_TYPE_SAMPLE, _ebpf_encoded_sample_ext_program_info_data},
+    {EBPF_PROGRAM_TYPE_SOCK_OPS, _ebpf_encoded_sockops_program_info_data},
+    {EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, _ebpf_encoded_sock_addr_program_info_data},
+    {EBPF_PROGRAM_TYPE_XDP, _ebpf_encoded_xdp_program_info_data},
+};
 
 void
 set_program_under_verification(ebpf_handle_t program)
@@ -123,13 +141,10 @@ get_program_type_info(const ebpf_program_info_t** info)
         // TODO: remove this in the future.
         auto iter = _static_program_info_cache.find(*program_type);
         if (iter == _static_program_info_cache.end()) {
-            if (memcmp(program_type, &EBPF_PROGRAM_TYPE_XDP, sizeof(*program_type)) == 0) {
-                encoded_data = _ebpf_encoded_xdp_program_info_data;
-                encoded_data_size = sizeof(_ebpf_encoded_xdp_program_info_data);
-            } else if (memcmp(program_type, &EBPF_PROGRAM_TYPE_BIND, sizeof(*program_type)) == 0) {
-                encoded_data = _ebpf_encoded_bind_program_info_data;
-                encoded_data_size = sizeof(_ebpf_encoded_bind_program_info_data);
-            }
+            auto encoded_program_info = _encoded_program_info.find(*program_type);
+            ebpf_assert(encoded_program_info != _encoded_program_info.end());
+            encoded_data = encoded_program_info->second.data;
+            encoded_data_size = encoded_program_info->second.size;
             ebpf_assert(encoded_data != nullptr);
 
             result = ebpf_program_info_decode(&program_info, encoded_data, (unsigned long)encoded_data_size);
