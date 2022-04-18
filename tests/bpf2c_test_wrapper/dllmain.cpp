@@ -32,13 +32,10 @@ extern "C" metadata_table_t reflect_packet_metadata_table;
 extern "C" metadata_table_t sockops_metadata_table;
 extern "C" metadata_table_t tail_call_metadata_table;
 extern "C" metadata_table_t tail_call_bad_metadata_table;
+extern "C" metadata_table_t tail_call_map_metadata_table;
 extern "C" metadata_table_t tail_call_multiple_metadata_table;
 extern "C" metadata_table_t test_sample_ebpf_metadata_table;
 extern "C" metadata_table_t test_utility_helpers_metadata_table;
-
-#if defined(_DEBUG)
-extern "C" metadata_table_t tail_call_map_metadata_table;
-#endif
 
 BOOL APIENTRY
 DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)
@@ -89,11 +86,9 @@ get_metadata_table(const char* name)
     FIND_METADATA_ENTRY(name, sockops);
     FIND_METADATA_ENTRY(name, tail_call);
     FIND_METADATA_ENTRY(name, tail_call_bad);
+    FIND_METADATA_ENTRY(name, tail_call_map);
     FIND_METADATA_ENTRY(name, tail_call_multiple);
     FIND_METADATA_ENTRY(name, test_sample_ebpf);
     FIND_METADATA_ENTRY(name, test_utility_helpers);
-#if defined(_DEBUG)
-    FIND_METADATA_ENTRY(name, tail_call_map);
-#endif
     return nullptr;
 }
