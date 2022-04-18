@@ -1282,7 +1282,7 @@ _get_handle_by_id(
     if (reply_length < sizeof(*reply)) {
         return EBPF_INVALID_ARGUMENT;
     }
-    reply->header.length = sizeof(reply->header);
+    reply->header.length = sizeof(*reply);
     ebpf_result_t result = ebpf_core_get_handle_by_id(type, request->id, &reply->handle);
 
     return result;
@@ -1781,6 +1781,11 @@ typedef struct _ebpf_protocol_handler
     } dispatch;
     size_t minimum_request_size;
     size_t minimum_reply_size;
+
+    // If set, the protocol handler is responsible for filling in the user_reply->length.
+    // If clear, it will be automatically set to minimum_request_size.
+    bool variable_size_reply;
+
     bool async;
 } const ebpf_protocol_handler_t;
 
@@ -1844,7 +1849,8 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
     // EBPF_OPERATION_QUERY_PROGRAM_INFO
     {(ebpf_result_t(__cdecl*)(const void*))_ebpf_core_protocol_query_program_info,
      sizeof(struct _ebpf_operation_query_program_info_request),
-     EBPF_OFFSET_OF(ebpf_operation_query_program_info_reply_t, data)},
+     EBPF_OFFSET_OF(ebpf_operation_query_program_info_reply_t, data),
+     true}, // Variable-size reply.
 
     // EBPF_OPERATION_UPDATE_PINNING
     {_ebpf_core_protocol_update_pinning, EBPF_OFFSET_OF(ebpf_operation_update_pinning_request_t, path), 0},
@@ -1915,14 +1921,20 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
      sizeof(ebpf_operation_get_next_id_reply_t)},
 
     // EBPF_OPERATION_GET_OBJECT_INFO
-    {(ebpf_result_t(__cdecl*)(const void*))_ebpf_core_protocol_get_object_info,
-     sizeof(ebpf_operation_get_object_info_request_t),
-     sizeof(ebpf_operation_get_object_info_reply_t)},
+    {
+        (ebpf_result_t(__cdecl*)(const void*))_ebpf_core_protocol_get_object_info,
+        sizeof(ebpf_operation_get_object_info_request_t),
+        sizeof(ebpf_operation_get_object_info_reply_t),
+        true, // Variable size reply.
+    },
 
-    // EBPF_OPERATION_GET_NEXT_PINNED_PROGRAM_NAME
-    {(ebpf_result_t(__cdecl*)(const void*))_ebpf_core_protocol_get_next_pinned_program_path,
-     EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_path_request_t, start_path),
-     EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_path_reply_t, next_path)},
+    // EBPF_OPERATION_GET_NEXT_PINNED_PROGRAM_PATH
+    {
+        (ebpf_result_t(__cdecl*)(const void*))_ebpf_core_protocol_get_next_pinned_program_path,
+        EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_path_request_t, start_path),
+        EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_path_reply_t, next_path),
+        true, // Variable size reply.
+    },
 
     // EBPF_OPERATION_BIND_MAP
     {(ebpf_result_t(__cdecl*)(const void*))_ebpf_core_protocol_bind_map, sizeof(ebpf_operation_bind_map_request_t), 0},
@@ -1936,7 +1948,8 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
     {(ebpf_result_t(__cdecl*)(const void*))_ebpf_core_protocol_ring_buffer_map_async_query,
      sizeof(ebpf_operation_ring_buffer_map_async_query_request_t),
      sizeof(ebpf_operation_ring_buffer_map_async_query_reply_t),
-     true},
+     false, // Fixed-size reply.
+     true}, // Async.
 
     // EBPF_OPERATION_LOAD_NATIVE_MODULE
     {(ebpf_result_t(__cdecl*)(const void*))_ebpf_core_protocol_load_native_module,
@@ -1985,6 +1998,7 @@ ebpf_core_invoke_protocol_handler(
     bool epoch_entered = false;
     bool affinity_set = false;
     ebpf_operation_header_t* header;
+    struct _ebpf_operation_header* user_reply = output_buffer;
 
     if (operation_id >= EBPF_COUNT_OF(_ebpf_protocol_handlers) || operation_id < EBPF_OPERATION_RESOLVE_HELPER) {
         return EBPF_OPERATION_NOT_SUPPORTED;
@@ -2032,6 +2046,16 @@ ebpf_core_invoke_protocol_handler(
     else
         retval = _ebpf_protocol_handlers[operation_id].dispatch.protocol_handler_with_reply(
             input_buffer, output_buffer, output_buffer_length);
+
+    if (output_buffer != NULL) {
+        user_reply->id = operation_id;
+        if (_ebpf_protocol_handlers[operation_id].variable_size_reply) {
+            // The handler is responsible for filling in the user_reply->length already.
+        } else {
+            // Fixed length reply, for which the handler need not fill in anything.
+            user_reply->length = (uint16_t)_ebpf_protocol_handlers[operation_id].minimum_reply_size;
+        }
+    }
 
 Done:
     if (epoch_entered)
