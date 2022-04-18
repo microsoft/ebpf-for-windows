@@ -35,6 +35,11 @@ if %install% == 1 (
 @echo =================================
 .\sample_ext_app.exe
 @if ERRORLEVEL 1 goto EOF
+@echo ====================
+@echo Executing Bpftool Tests.
+@echo ====================
+.\bpftool_tests.exe
+@if ERRORLEVEL 1 goto EOF
 goto EOF
 :USAGE
 @echo Usage: run_tests /noinstall

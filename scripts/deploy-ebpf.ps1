@@ -5,7 +5,76 @@
 ## Initialize parameters
 ##
 $build_directory=".\x64\Debug"
-[System.Collections.ArrayList]$built_files=@( "EbpfCore.sys", "EbpfApi.dll", "EbpfApi.pdb", "ebpfnetsh.dll", "ebpfsvc.exe", "NetEbpfExt.sys", "sample_ebpf_ext.sys", "sample_ext_app.exe", "ucrtbased.dll", "MSVCP140D.dll", "VCRUNTIME140D.dll", "VCRUNTIME140_1D.dll", "bpftool.exe", "bpftool.pdb", "bindmonitor.o", "bpf.o", "bpf_call.o", "divide_by_zero.o", "droppacket.o", "droppacket_unsafe.o", "map_in_map.o", "reflect_packet.o", "tail_call.o", "tail_call_bad.o", "tail_call_map.o", "test_sample_ebpf.o", "test_utility_helpers.o", "printk.o", "ebpfforwindows.wprp", "ebpf-all.guid", "ebpf-printk.guid", "bpftool_tests.exe")
+
+# The following files should be installed on all platforms.
+[System.Collections.ArrayList]$runtime_files=@(
+    "bpftool.exe",
+    "ebpf-all.guid",
+    "ebpf-printk.guid",
+    "EbpfApi.dll",
+    "EbpfCore.sys",
+    "ebpfforwindows.wprp",
+    "ebpfnetsh.dll",
+    "ebpfsvc.exe",
+    "MSVCP140D.dll",
+    "NetEbpfExt.sys",
+    "ucrtbased.dll",
+    "VCRUNTIME140_1D.dll",
+    "VCRUNTIME140D.dll")
+
+# The following files are only needed for testing and debugging.
+[System.Collections.ArrayList]$test_files=@(
+    "api_test.exe",
+    "api_test.pdb",
+    "bindmonitor_um.dll",
+    "bindmonitor_um.pdb",
+    "bpf2c_test_wrapper.dll",
+    "bpf2c_test_wrapper.pdb",
+    "bpftool.pdb",
+    "bpftool_tests.exe",
+    "bpftool_tests.pdb",
+    "bindmonitor.o",
+    "bindmonitor_km.sys",
+    "bindmonitor_ringbuf.o",
+    "bindmonitor_tailcall.o",
+    "bindmonitor_tailcall_km.sys",
+    "bpf.o",
+    "bpf_call.o",
+    "cgroup_sock_addr.o",
+    "decap_permit_packet.o",
+    "divide_by_zero.o",
+    "droppacket.o",
+    "droppacket_km.sys",
+    "droppacket_unsafe.o",
+    "ebpf_client.exe",
+    "ebpf_client.pdb",
+    "EbpfApi.pdb",
+    "encap_reflect_packet.o",
+    "map.o",
+    "map_in_map.o",
+    "map_in_map_v2.o",
+    "map_reuse.o",
+    "map_reuse_2.o",
+    "printk.o",
+    "printk_unsafe.o",
+    "reflect_packet.o",
+    "run_tests.bat",
+    "tail_call.o",
+    "tail_call_bad.o",
+    "tail_call_map.o",
+    "tail_call_multiple.o",
+    "sample_ebpf_ext.sys",
+    "sample_ext_app.exe",
+    "sample_ext_app.pdb",
+    "socket_tests.exe",
+    "socket_tests.pdb",
+    "sockops.o",
+    "test_sample_ebpf.o",
+    "test_utility_helpers.o",
+    "unit_tests.exe",
+    "unit_tests.pdb")
+
+[System.Collections.ArrayList]$built_files= $runtime_files
 $destination_directory="C:\Temp"
 $error.clear()
 $vm="Windows 10 dev environment"
@@ -23,11 +92,12 @@ OVERVIEW:
 
 Copies eBPF framework files into a temp directory on the local machine or into a VM
 
-    $ deploy-ebpf [-h] [-l] [--vm="..."]
+    $ deploy-ebpf [-h] [-l] [-t] [--vm="..."]
 
 OPTIONS:
     -h, --help     Print this help message.
     -l, --local    Copies files to the local temp directory instead of into a VM
+    -t, --test     Includes files needed only for testing and debugging
     --vm           Specifies the VM name, which defaults to "Windows 10 dev environment"
 
 '@
@@ -43,6 +113,11 @@ OPTIONS:
             Clear-Variable -name vm
             break
         }
+    { @("-t", "--test") -contains $_ }
+        {
+            $built_files= $runtime_files + $test_files
+            break
+        }
     default
         {
             Write-Error "unknown option: $arg"
@@ -54,7 +129,7 @@ OPTIONS:
 if ($vm -eq $null) {
    Write-Host "Copying files from `"$build_directory`" to `"$destination_directory`""
 
-   foreach ( $file in $built_files ) {
+   foreach ( $file in $all_files ) {
       $source_path = "$build_directory\$file"
       $destination_path = "$destination_directory\$file"
       Write-Host " $file"
