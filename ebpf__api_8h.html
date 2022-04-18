@@ -117,9 +117,12 @@ Functions</h2></td></tr>
 <tr class="memitem:ae4fbdf4fbbb9196651fd40fd0640c3c9"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#ae4fbdf4fbbb9196651fd40fd0640c3c9">ebpf_api_elf_disassemble_section</a> (const char *file, const char *section, const char **disassembly, const char **error_message)</td></tr>
 <tr class="memdesc:ae4fbdf4fbbb9196651fd40fd0640c3c9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Convert an eBPF program to human readable byte code.  <a href="ebpf__api_8h.html#ae4fbdf4fbbb9196651fd40fd0640c3c9">More...</a><br /></td></tr>
 <tr class="separator:ae4fbdf4fbbb9196651fd40fd0640c3c9"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a5d9dba4c9d7ffc6a29b64bd76b4d40d9"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a5d9dba4c9d7ffc6a29b64bd76b4d40d9">ebpf_api_elf_verify_section</a> (const char *file, const char *section, bool verbose, const char **report, const char **error_message, <a class="el" href="structebpf__api__verifier__stats__t.html">ebpf_api_verifier_stats_t</a> *stats)</td></tr>
-<tr class="memdesc:a5d9dba4c9d7ffc6a29b64bd76b4d40d9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Convert an eBPF program to human readable byte code.  <a href="ebpf__api_8h.html#a5d9dba4c9d7ffc6a29b64bd76b4d40d9">More...</a><br /></td></tr>
-<tr class="separator:a5d9dba4c9d7ffc6a29b64bd76b4d40d9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4959fe09f3a3b6c1de59b9d3c98ba9b0"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a4959fe09f3a3b6c1de59b9d3c98ba9b0">ebpf_api_elf_verify_section_from_file</a> (const char *file, const char *section, bool verbose, const char **report, const char **error_message, <a class="el" href="structebpf__api__verifier__stats__t.html">ebpf_api_verifier_stats_t</a> *stats)</td></tr>
+<tr class="memdesc:a4959fe09f3a3b6c1de59b9d3c98ba9b0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Verify that the program is safe to execute.  <a href="ebpf__api_8h.html#a4959fe09f3a3b6c1de59b9d3c98ba9b0">More...</a><br /></td></tr>
+<tr class="separator:a4959fe09f3a3b6c1de59b9d3c98ba9b0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a61eea875ef852128558d8dbe8be3c7bc"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a61eea875ef852128558d8dbe8be3c7bc">ebpf_api_elf_verify_section_from_memory</a> (const char *data, size_t data_length, const char *section, bool verbose, const char **report, const char **error_message, <a class="el" href="structebpf__api__verifier__stats__t.html">ebpf_api_verifier_stats_t</a> *stats)</td></tr>
+<tr class="memdesc:a61eea875ef852128558d8dbe8be3c7bc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Verify that the program is safe to execute.  <a href="ebpf__api_8h.html#a61eea875ef852128558d8dbe8be3c7bc">More...</a><br /></td></tr>
+<tr class="separator:a61eea875ef852128558d8dbe8be3c7bc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:afe38ca942567ba2335a2612460576156"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#afe38ca942567ba2335a2612460576156">ebpf_api_elf_free</a> (const <a class="el" href="ebpf__api_8h.html#a2f716f8d7c1f8c5f04be07e15fd421d3">tlv_type_length_value_t</a> *data)</td></tr>
 <tr class="memdesc:afe38ca942567ba2335a2612460576156"><td class="mdescLeft">&#160;</td><td class="mdescRight">Free a TLV returned from <a class="el" href="ebpf__api_8h.html#a121da5428db28e72b9cee7f22b94a3df">ebpf_api_elf_enumerate_sections</a>.  <a href="ebpf__api_8h.html#afe38ca942567ba2335a2612460576156">More...</a><br /></td></tr>
 <tr class="separator:afe38ca942567ba2335a2612460576156"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -418,14 +421,14 @@ Variables</h2></td></tr>
 
 </div>
 </div>
-<a id="a5d9dba4c9d7ffc6a29b64bd76b4d40d9"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a5d9dba4c9d7ffc6a29b64bd76b4d40d9">&#9670;&nbsp;</a></span>ebpf_api_elf_verify_section()</h2>
+<a id="a4959fe09f3a3b6c1de59b9d3c98ba9b0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4959fe09f3a3b6c1de59b9d3c98ba9b0">&#9670;&nbsp;</a></span>ebpf_api_elf_verify_section_from_file()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">uint32_t ebpf_api_elf_verify_section </td>
+          <td class="memname">uint32_t ebpf_api_elf_verify_section_from_file </td>
           <td>(</td>
           <td class="paramtype">const char *&#160;</td>
           <td class="paramname"><em>file</em>, </td>
@@ -468,10 +471,82 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Convert an eBPF program to human readable byte code. </p>
+<p>Verify that the program is safe to execute. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">file</td><td>Name of ELF file containing eBPF program. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">section</td><td>The name of the section to query. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">verbose</td><td>Obtain additional info about the programs. </td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">report</td><td>Points to a text section describing why the program failed verification. </td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">error_message</td><td>On failure points to a text description of the error. </td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">stats</td><td>If non-NULL, returns verification statistics. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="a61eea875ef852128558d8dbe8be3c7bc"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a61eea875ef852128558d8dbe8be3c7bc">&#9670;&nbsp;</a></span>ebpf_api_elf_verify_section_from_memory()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint32_t ebpf_api_elf_verify_section_from_memory </td>
+          <td>(</td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>data</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>data_length</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>section</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">bool&#160;</td>
+          <td class="paramname"><em>verbose</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char **&#160;</td>
+          <td class="paramname"><em>report</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char **&#160;</td>
+          <td class="paramname"><em>error_message</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="structebpf__api__verifier__stats__t.html">ebpf_api_verifier_stats_t</a> *&#160;</td>
+          <td class="paramname"><em>stats</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Verify that the program is safe to execute. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">data</td><td>Memory containing the ELF file containing eBPF program. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">data_length</td><td>Length of data. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">section</td><td>The name of the section to query. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">verbose</td><td>Obtain additional info about the programs. </td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">report</td><td>Points to a text section describing why the program failed verification. </td></tr>
