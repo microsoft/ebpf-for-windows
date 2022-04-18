@@ -4,9 +4,8 @@
 #include <vector>
 
 #include "ebpf_api.h"
-#include "ebpf_nethooks.h"
 #include "encode_program_info.h"
-#include "net_ebpf_ext_program_info.h"
+#include "windows_program_type.h"
 
 static ebpf_result_t
 _emit_program_info_file(const char* file_name, const char* symbol_name, uint8_t* buffer, unsigned long buffer_size)
@@ -32,24 +31,27 @@ _emit_program_info_file(const char* file_name, const char* symbol_name, uint8_t*
 }
 
 static ebpf_result_t
-_encode_bind()
+_encode_program_info(const EbpfProgramType& input_program_type)
 {
     ebpf_result_t return_value;
+    std::string file_name = std::string("ebpf_") + input_program_type.name + std::string("_program_data.h");
+    std::string type_name = std::string("_ebpf_encoded_") + input_program_type.name + std::string("_program_info_data");
     uint8_t* buffer = NULL;
     unsigned long buffer_size = 0;
-    ebpf_context_descriptor_t bind_context_descriptor = {
-        sizeof(bind_md_t), EBPF_OFFSET_OF(bind_md_t, app_id_start), EBPF_OFFSET_OF(bind_md_t, app_id_end), -1};
-    ebpf_program_type_descriptor_t bind_program_type = {"bind", &bind_context_descriptor, EBPF_PROGRAM_TYPE_BIND};
-    ebpf_program_info_t bind_program_info = {bind_program_type, 0, NULL};
+    ebpf_context_descriptor_t context_descriptor = *input_program_type.context_descriptor;
+    ebpf_program_type_descriptor_t program_type = {
+        input_program_type.name.c_str(),
+        &context_descriptor,
+        *reinterpret_cast<GUID*>(input_program_type.platform_specific_data)};
+    ebpf_program_info_t program_info = {program_type, 0, NULL};
 
-    bind_program_info.count_of_helpers = ebpf_core_helper_functions_count;
-    bind_program_info.helper_prototype = ebpf_core_helper_function_prototype;
-    return_value = ebpf_program_info_encode(&bind_program_info, &buffer, &buffer_size);
+    program_info.count_of_helpers = ebpf_core_helper_functions_count;
+    program_info.helper_prototype = ebpf_core_helper_function_prototype;
+    return_value = ebpf_program_info_encode(&program_info, &buffer, &buffer_size);
     if (return_value != EBPF_SUCCESS)
         goto Done;
 
-    return_value = _emit_program_info_file(
-        "ebpf_bind_program_data.h", "_ebpf_encoded_bind_program_info_data", buffer, buffer_size);
+    return_value = _emit_program_info_file(file_name.c_str(), type_name.c_str(), buffer, buffer_size);
     if (return_value != EBPF_SUCCESS)
         goto Done;
 
@@ -57,54 +59,17 @@ _encode_bind()
 
 Done:
     ebpf_free(buffer);
-
-    return return_value;
-}
-
-static ebpf_result_t
-_encode_xdp()
-{
-    ebpf_result_t return_value;
-    uint8_t* buffer = NULL;
-    unsigned long buffer_size = 0;
-    ebpf_context_descriptor_t xdp_context_descriptor = {
-        sizeof(xdp_md_t),
-        EBPF_OFFSET_OF(xdp_md_t, data),
-        EBPF_OFFSET_OF(xdp_md_t, data_end),
-        EBPF_OFFSET_OF(xdp_md_t, data_meta)};
-    ebpf_program_type_descriptor_t xdp_program_type = {"xdp", &xdp_context_descriptor, EBPF_PROGRAM_TYPE_XDP};
-    ebpf_program_info_t xdp_program_info = {xdp_program_type, 0, NULL};
-    xdp_program_info.count_of_helpers =
-        ebpf_core_helper_functions_count + EBPF_COUNT_OF(_xdp_ebpf_extension_helper_function_prototype);
-    std::vector<ebpf_helper_function_prototype_t> _helper_function_prototypes;
-    _helper_function_prototypes.assign(
-        ebpf_core_helper_function_prototype, ebpf_core_helper_function_prototype + ebpf_core_helper_functions_count);
-    _helper_function_prototypes.insert(
-        _helper_function_prototypes.end(),
-        _xdp_ebpf_extension_helper_function_prototype,
-        _xdp_ebpf_extension_helper_function_prototype + EBPF_COUNT_OF(_xdp_ebpf_extension_helper_function_prototype));
-    xdp_program_info.helper_prototype = _helper_function_prototypes.data();
-    return_value = ebpf_program_info_encode(&xdp_program_info, &buffer, &buffer_size);
-    if (return_value != EBPF_SUCCESS)
-        goto Done;
-
-    return_value =
-        _emit_program_info_file("ebpf_xdp_program_data.h", "_ebpf_encoded_xdp_program_info_data", buffer, buffer_size);
-    if (return_value != EBPF_SUCCESS)
-        goto Done;
-
-    return_value = EBPF_SUCCESS;
-
-Done:
-    ebpf_free(buffer);
-
     return return_value;
 }
 
 int
 main()
 {
-    if (_encode_xdp() != EBPF_SUCCESS || _encode_bind() != EBPF_SUCCESS)
-        return 1;
+    for (const auto& program_type : windows_program_types) {
+        if (program_type.platform_specific_data == 0) {
+            continue;
+        }
+        _encode_program_info(program_type);
+    }
     return 0;
 }
