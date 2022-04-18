@@ -253,6 +253,9 @@ function Import-ResultsFromVM
         Write-Log ("Copy $LogFileName from eBPF on $VMName to $pwd\TestLogs")
         Copy-Item -FromSession $VMSession "$VMSystemDrive\eBPF\$LogFileName" -Destination ".\TestLogs\$VMName\Logs" -Recurse -Force -ErrorAction Stop 2>&1 | Write-Log
 
+        Write-Log ("Copy CodeCoverage from eBPF on $VMName to $pwd\..\..")
+        Copy-Item -FromSession $VMSession "$VMSystemDrive\eBPF\ebpf_for_windows.xml" -Destination "$pwd\..\.." -Recurse -Force -ErrorAction Ignore 2>&1 | Write-Log
+
         # Copy ETL from Test VM.
         $EtlFile = $LogFileName.Substring(0, $LogFileName.IndexOf('.')) + ".etl"
         Write-Log ("Copy $EtlFile from eBPF on $VMName to $pwd\TestLogs")
