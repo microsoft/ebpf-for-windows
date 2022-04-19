@@ -24,6 +24,8 @@
 #include "platform.h"
 #include "test_helper.hpp"
 
+#define ONE_MB_IN_BYTE (1024 * 1024)
+
 std::vector<ebpf_handle_t>
 get_handles()
 {
@@ -125,10 +127,20 @@ seed_random_engine()
 TEST_CASE("execution_context_direct", "[fuzz]")
 {
     _test_helper_end_to_end test_helper;
-    const size_t iterations = 30000000;
+    const size_t iterations = 10000000;
     auto handles = get_handles();
     ebpf_fuzzing_enabled = true;
     auto mt = seed_random_engine();
+
+    // Limit this processes memory to 50Mb
+    HANDLE job = CreateJobObject(nullptr, nullptr);
+    JOBOBJECT_EXTENDED_LIMIT_INFORMATION limits{};
+    limits.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_PROCESS_MEMORY;
+    limits.ProcessMemoryLimit = 50 * ONE_MB_IN_BYTE;
+    REQUIRE(job != INVALID_HANDLE_VALUE);
+
+    REQUIRE(SetInformationJobObject(job, JobObjectExtendedLimitInformation, &limits, sizeof(limits)));
+    REQUIRE(AssignProcessToJobObject(job, GetCurrentProcess()));
 
     ebpf_protocol_buffer_t request;
     ebpf_protocol_buffer_t reply;

@@ -12,10 +12,6 @@
 
 #define PAD_CACHE(X) ((X + EBPF_CACHE_LINE_SIZE - 1) & ~(EBPF_CACHE_LINE_SIZE - 1))
 
-#define MAX_KEY_SIZE 4096
-#define MAX_VALUE_SIZE 4096
-#define MAX_ENTRY_COUNT 1024 * 1024
-
 typedef struct _ebpf_core_map
 {
     ebpf_core_object_t object;
@@ -750,6 +746,10 @@ _delete_hash_map(_In_ _Post_invalid_ ebpf_core_map_t* map)
 static void
 _delete_object_hash_map(_In_ _Post_invalid_ ebpf_core_map_t* map)
 {
+    if (!map) {
+        return;
+    }
+
     ebpf_core_object_map_t* object_map = EBPF_FROM_FIELD(ebpf_core_object_map_t, core_map, map);
 
     // Release all entry references.
@@ -1776,36 +1776,6 @@ ebpf_map_create(
         break;
     default:
         break;
-    }
-
-    if (ebpf_map_definition->key_size > MAX_KEY_SIZE) {
-        EBPF_LOG_MESSAGE_UINT64(
-            EBPF_TRACELOG_LEVEL_ERROR,
-            EBPF_TRACELOG_KEYWORD_MAP,
-            "Unsupported key size",
-            ebpf_map_definition->key_size);
-        result = EBPF_INVALID_ARGUMENT;
-        goto Exit;
-    }
-
-    if (ebpf_map_definition->value_size > MAX_VALUE_SIZE) {
-        EBPF_LOG_MESSAGE_UINT64(
-            EBPF_TRACELOG_LEVEL_ERROR,
-            EBPF_TRACELOG_KEYWORD_MAP,
-            "Unsupported value size",
-            ebpf_map_definition->value_size);
-        result = EBPF_INVALID_ARGUMENT;
-        goto Exit;
-    }
-
-    if (ebpf_map_definition->max_entries > MAX_ENTRY_COUNT) {
-        EBPF_LOG_MESSAGE_UINT64(
-            EBPF_TRACELOG_LEVEL_ERROR,
-            EBPF_TRACELOG_KEYWORD_MAP,
-            "Unsupported entry count",
-            ebpf_map_definition->max_entries);
-        result = EBPF_INVALID_ARGUMENT;
-        goto Exit;
     }
 
     if (type >= EBPF_COUNT_OF(ebpf_map_function_tables)) {
