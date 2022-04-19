@@ -104,7 +104,6 @@ run_test_elf(const std::string& elf_file, bool verify, bool expect_failure = fal
 #define DECLARE_TEST(FILE, VERIFY) \
     TEST_CASE(FILE, "[elf_bpf_code_gen]") { run_test_elf(FILE ".o", VERIFY); }
 
-
 #define DECLARE_TEST_VERIFICATION_FAILURE(FILE) \
     TEST_CASE(FILE " verification failure", "[elf_bpf_code_gen]") { run_test_elf(FILE ".o", true, true); }
 
@@ -113,12 +112,12 @@ DECLARE_TEST("bindmonitor_ringbuf", true)
 DECLARE_TEST("bindmonitor_tailcall", true)
 DECLARE_TEST("bpf", true)
 DECLARE_TEST("bpf_call", true)
-DECLARE_TEST("cgroup_sock_addr", false)
+DECLARE_TEST("cgroup_sock_addr", true)
 DECLARE_TEST("decap_permit_packet", true)
 DECLARE_TEST("divide_by_zero", true)
 DECLARE_TEST("droppacket", true)
 DECLARE_TEST("encap_reflect_packet", true)
-DECLARE_TEST("map", true)
+DECLARE_TEST("map", false)
 DECLARE_TEST("map_in_map", true)
 DECLARE_TEST("map_in_map_v2", true)
 DECLARE_TEST("map_reuse", true)
@@ -128,11 +127,11 @@ DECLARE_TEST("printk_legacy", true)
 DECLARE_TEST("reflect_packet", true)
 DECLARE_TEST("tail_call", true)
 DECLARE_TEST("tail_call_bad", true)
-DECLARE_TEST("tail_call_map", false)
+DECLARE_TEST("tail_call_map", true)
 DECLARE_TEST("tail_call_multiple", true)
-DECLARE_TEST("test_sample_ebpf", false)
+DECLARE_TEST("test_sample_ebpf", true)
 DECLARE_TEST("test_utility_helpers", true)
-DECLARE_TEST("sockops", false)
+DECLARE_TEST("sockops", true)
 
 DECLARE_TEST_VERIFICATION_FAILURE("droppacket_unsafe")
 DECLARE_TEST_VERIFICATION_FAILURE("printk_unsafe")
