@@ -19,7 +19,7 @@ See our [basic eBPF tutorial](docs/tutorial.md) and our
 
 ## Architectural Overview
 
-The following diagram shows the architecture of this project and related components:
+The following diagram shows the basic architecture of this project and related components:
 
 ![Architectural Overview](docs/ArchitectureDiagram.png)
 
@@ -31,10 +31,12 @@ though this is still in progress.
 The eBPF bytecode is sent to a static verifier (the [PREVAIL verifier](https://github.com/vbpf/ebpf-verifier))
 that is hosted in a secure user-mode environment such as a system service (which is the case at present),
 enclave, or trusted VM.
-If the bytecode passes all the verifier checks, it can be either loaded into
-an interpreter (from [uBPF](https://github.com/iovisor/ubpf) in the kernel-mode execution context), or
-JIT compiled (via the [uBPF](https://github.com/iovisor/ubpf) JIT compiler) and have native code load
-into the kernel-mode execution context (but see the FAQ at bottom about HVCI).
+If the eBPF program passes all the verifier checks, it can be loaded into the kernel-mode execution context.
+Typically this is done by being JIT compiled (via the [uBPF](https://github.com/iovisor/ubpf) JIT compiler) into native code that is passed to the execution context.  In a debug build,
+the byte code can instead be directly loaded into
+an interpreter (from [uBPF](https://github.com/iovisor/ubpf) in the kernel-mode execution context) though
+the interpreter is not present in a release build as it is considered less secure.  See also the HVCI FAQ answer
+below.
 
 eBPF programs installed into the kernel-mode execution context can attach to various
 [hooks](https://microsoft.github.io/ebpf-for-windows/ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0)
@@ -87,7 +89,9 @@ to provide source code compatibility for applications that interact with eBPF pr
 
 ### 3. Will eBPF work with HyperVisor-enforced Code Integrity (HVCI)?
 
-Yes. With HVCI enabled, eBPF programs can be run either natively or in interpreted mode.  However, the interpreter is disabled in release builds and is only supported in debug builds.
+Yes. With HVCI enabled, eBPF programs cannot be JIT compiled, but can be run either natively or in interpreted mode
+(but the interpreter is disabled in release builds and is only supported in debug builds). To understand
+why JIT compiled mode does not work, we must first understand what HVCI does.
 
 [HyperVisor-enforced Code Integrity (HVCI)](https://techcommunity.microsoft.com/t5/windows-insider-program/virtualization-based-security-vbs-and-hypervisor-enforced-code/m-p/240571)
 is a mechanism
@@ -98,4 +102,10 @@ maintained by the hypervisor.
 
 Since a hypervisor doing such code integrity checks will refuse to accept code pages that aren't signed by
 a key that the hypervisor trusts, this does impact eBPF programs running natively.  As such, when HVCI
-is enabled, eBPF programs work fine in interpreted mode, but not when using JIT compilation.
+is enabled, eBPF programs work fine in interpreted mode, but not when using JIT compilation because the JIT
+compiler does not have a key that the hypervisor trusts.  And since interpreted
+mode is absent in release builds, neither mode will work on an HVCI-enabled production system.
+
+Instead, a third mode is also supported by eBPF for Windows, in addition to JIT compiled and interpreted modes.
+This third mode entails compiling eBPF programs into regular Windows drivers that can be accepted by HVCI.
+For more discussion, see the [Native Code Generation documentation](docs/NativeCodeGeneration.md).
