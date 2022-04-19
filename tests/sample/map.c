@@ -30,6 +30,15 @@
         .max_entries = 10,                             \
     };
 
+#define DECLARE_MAP_NO_KEY(TYPE)                       \
+    SEC("maps")                                        \
+    struct _ebpf_map_definition_in_file TYPE##_map = { \
+        .type = BPF_MAP_TYPE_##TYPE,                   \
+        .key_size = 0,                                 \
+        .value_size = sizeof(uint32_t),                \
+        .max_entries = 10,                             \
+    };
+
 #define TEST_MAP(TYPE, TEST)                                                \
     result = test_##TEST##_map(&TYPE##_map);                                \
     if (result < 0) {                                                       \
@@ -157,9 +166,9 @@ DECLARE_MAP(PERCPU_ARRAY);
 DECLARE_MAP(LRU_HASH);
 DECLARE_MAP(LRU_PERCPU_HASH);
 
-// Push/pop maps
-DECLARE_MAP(QUEUE);
-DECLARE_MAP(STACK);
+// Push/pop maps that have no key
+DECLARE_MAP_NO_KEY(QUEUE);
+DECLARE_MAP_NO_KEY(STACK);
 
 SEC("xdp_prog") int test_maps(struct xdp_md* ctx)
 {
