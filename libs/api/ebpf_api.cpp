@@ -581,7 +581,10 @@ ebpf_map_get_next_key(fd_t map_fd, _In_opt_ const void* previous_key, _Out_ void
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
-    assert(key_size != 0);
+    if (key_size == 0) {
+        result = EBPF_OPERATION_NOT_SUPPORTED;
+        goto Exit;
+    }
     assert(value_size != 0);
 
     try {
