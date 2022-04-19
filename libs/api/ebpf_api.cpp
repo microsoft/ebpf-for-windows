@@ -256,7 +256,7 @@ _map_lookup_element(
     ebpf_handle_t handle,
     bool find_and_delete,
     uint32_t key_size,
-    _In_ const uint8_t* key,
+    _In_reads_opt_(key_size) const uint8_t* key,
     uint32_t value_size,
     _Out_ uint8_t* value) noexcept
 {
@@ -273,7 +273,9 @@ _map_lookup_element(
         request->header.id = ebpf_operation_id_t::EBPF_OPERATION_MAP_FIND_ELEMENT;
         request->find_and_delete = find_and_delete;
         request->handle = handle;
-        std::copy(key, key + key_size, request->key);
+        if (key_size > 0) {
+            std::copy(key, key + key_size, request->key);
+        }
 
         result = win32_error_code_to_ebpf_result(invoke_ioctl(request_buffer, reply_buffer));
 
@@ -496,6 +498,8 @@ ebpf_map_update_element(fd_t map_fd, _In_opt_ const void* key, _In_ const void* 
             }
         }
 
+        assert(key_size != 0);
+        __analysis_assume(key_size != 0);
         return _update_map_element_with_handle(map_handle, key_size, (const uint8_t*)key, handle, flags);
     } else {
         return _update_map_element(map_handle, key, key_size, value, value_size, flags);
@@ -612,12 +616,12 @@ ebpf_map_get_next_key(fd_t map_fd, _In_opt_ const void* previous_key, _Out_ void
 
         result = win32_error_code_to_ebpf_result(invoke_ioctl(request_buffer, reply_buffer));
 
-        if (reply->header.id != ebpf_operation_id_t::EBPF_OPERATION_MAP_GET_NEXT_KEY) {
-            result = EBPF_INVALID_ARGUMENT;
-            goto Exit;
-        }
-
         if (result == EBPF_SUCCESS) {
+            if (reply->header.id != ebpf_operation_id_t::EBPF_OPERATION_MAP_GET_NEXT_KEY) {
+                result = EBPF_INVALID_ARGUMENT;
+                goto Exit;
+            }
+
             std::copy(reply->next_key, reply->next_key + key_size, (uint8_t*)next_key);
         }
     } catch (const std::bad_alloc&) {
