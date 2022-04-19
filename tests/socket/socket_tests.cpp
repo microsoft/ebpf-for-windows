@@ -87,7 +87,7 @@ connection_test(
     if (address_family == AF_INET)
         IN6ADDR_SETV4MAPPED((PSOCKADDR_IN6)&destination_address, &in4addr_loopback, scopeid_unspecified, 0);
     else
-        INETADDR_SETSOCKADDR(AF_INET6, (PSOCKADDR)&destination_address, &in6addr_loopback, scopeid_unspecified, 0);
+        IN6ADDR_SETLOOPBACK((PSOCKADDR_IN6)&destination_address);
     sender_socket.send_message_to_remote_host(message, destination_address, SOCKET_TEST_PORT);
 
     // The packet should be blocked by the connect program.
@@ -287,7 +287,7 @@ connection_monitor_test(
     if (address_family == AF_INET)
         IN6ADDR_SETV4MAPPED((PSOCKADDR_IN6)&destination_address, &in4addr_loopback, scopeid_unspecified, 0);
     else
-        INETADDR_SETSOCKADDR(AF_INET6, (PSOCKADDR)&destination_address, &in6addr_loopback, scopeid_unspecified, 0);
+        IN6ADDR_SETLOOPBACK((PSOCKADDR_IN6)&destination_address);
     sender_socket.send_message_to_remote_host(message, destination_address, SOCKET_TEST_PORT);
     // Receive the packet on test port.
     receiver_socket.complete_async_receive();

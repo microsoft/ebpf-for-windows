@@ -22,7 +22,7 @@ struct _net_ebpf_extension_sock_ops_wfp_filter_context;
  */
 typedef struct _net_ebpf_extension_sock_ops_wfp_flow_context
 {
-    LIST_ENTRY link;     ///< link to next flow context.
+    LIST_ENTRY link;     ///< Link to next flow context.
     uint64_t flow_id;    ///< WFP flow Id.
     uint16_t layer_id;   ///< WFP layer Id that this flow is associated to.
     uint32_t callout_id; ///< WFP callout Id that this flow is associated to.
@@ -192,9 +192,9 @@ _net_ebpf_extension_sock_ops_on_client_detach(_In_ const net_ebpf_extension_hook
         net_ebpf_extension_sock_ops_wfp_flow_context_t* flow_context =
             CONTAINING_RECORD(entry, net_ebpf_extension_sock_ops_wfp_flow_context_t, link);
         // https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/fwpsk/nf-fwpsk-fwpsflowremovecontext0
-        // Calling FwpsFlowRemoveContext may cause flowDeleteFn callback on the callout to be invoked synchronously.
-        // The net_ebpf_extension_sock_ops_flow_delete function invokes eBPF program. Since the client
-        // is deteaching, the eBPF program should not be invoked. The filter_context field is set to NULL
+        // Calling FwpsFlowRemoveContext may cause the flowDeleteFn callback on the callout to be invoked synchronously.
+        // The net_ebpf_extension_sock_ops_flow_delete function invokes the eBPF program. Since the client
+        // is detaching, the eBPF program should not be invoked. The filter_context field is set to NULL
         // for that reason.
         // The net_ebpf_extension_sock_ops_flow_delete function frees the flow context memory.
         flow_context->filter_context = NULL;
@@ -274,7 +274,7 @@ wfp_ale_layer_fields_t wfp_flow_established_fields[] = {
 static void
 _net_ebpf_extension_sock_ops_copy_wfp_connection_fields(
     _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values,
-    _Out_ bpf_sock_ops_t* sock_ops_ctx,
+    _Out_ bpf_sock_ops_t* sock_ops_context,
     _Out_ uint32_t* compartment_id)
 {
     uint16_t wfp_layer_id = incoming_fixed_values->layerId;
@@ -283,29 +283,29 @@ _net_ebpf_extension_sock_ops_copy_wfp_connection_fields(
 
     FWPS_INCOMING_VALUE0* incoming_values = incoming_fixed_values->incomingValue;
 
-    sock_ops_ctx->op = (incoming_values[fields->direction_field].value.uint32 == FWP_DIRECTION_OUTBOUND)
-                           ? BPF_SOCK_OPS_ACTIVE_ESTABLISHED_CB
-                           : BPF_SOCK_OPS_PASSIVE_ESTABLISHED_CB;
+    sock_ops_context->op = (incoming_values[fields->direction_field].value.uint32 == FWP_DIRECTION_OUTBOUND)
+                               ? BPF_SOCK_OPS_ACTIVE_ESTABLISHED_CB
+                               : BPF_SOCK_OPS_PASSIVE_ESTABLISHED_CB;
 
     // Copy IP address fields.
     if (hook_id == EBPF_HOOK_ALE_FLOW_ESTABLISHED_V4) {
-        sock_ops_ctx->family = AF_INET;
-        sock_ops_ctx->local_ip4 = htonl(incoming_values[fields->local_ip_address_field].value.uint32);
-        sock_ops_ctx->remote_ip4 = htonl(incoming_values[fields->remote_ip_address_field].value.uint32);
+        sock_ops_context->family = AF_INET;
+        sock_ops_context->local_ip4 = htonl(incoming_values[fields->local_ip_address_field].value.uint32);
+        sock_ops_context->remote_ip4 = htonl(incoming_values[fields->remote_ip_address_field].value.uint32);
     } else {
-        sock_ops_ctx->family = AF_INET6;
+        sock_ops_context->family = AF_INET6;
         RtlCopyMemory(
-            sock_ops_ctx->local_ip6,
+            sock_ops_context->local_ip6,
             incoming_values[fields->local_ip_address_field].value.byteArray16,
             sizeof(FWP_BYTE_ARRAY16));
         RtlCopyMemory(
-            sock_ops_ctx->remote_ip6,
+            sock_ops_context->remote_ip6,
             incoming_values[fields->remote_ip_address_field].value.byteArray16,
             sizeof(FWP_BYTE_ARRAY16));
     }
-    sock_ops_ctx->local_port = htons(incoming_values[fields->local_port_field].value.uint16);
-    sock_ops_ctx->remote_port = htons(incoming_values[fields->remote_port_field].value.uint16);
-    sock_ops_ctx->protocol = incoming_values[fields->protocol_field].value.uint8;
+    sock_ops_context->local_port = htons(incoming_values[fields->local_port_field].value.uint16);
+    sock_ops_context->remote_port = htons(incoming_values[fields->remote_port_field].value.uint16);
+    sock_ops_context->protocol = incoming_values[fields->protocol_field].value.uint8;
     *compartment_id = incoming_values[fields->compartment_id_field].value.uint32;
 }
 
@@ -329,7 +329,7 @@ net_ebpf_extension_sock_ops_flow_established_classify(
     net_ebpf_extension_hook_execution_t execution_type =
         (KeGetCurrentIrql() < DISPATCH_LEVEL) ? EXECUTION_PASSIVE : EXECUTION_DISPATCH;
     net_ebpf_extension_sock_ops_wfp_flow_context_t* local_flow_context = NULL;
-    bpf_sock_ops_t* sock_ops_ctx = NULL;
+    bpf_sock_ops_t* sock_ops_context = NULL;
     uint32_t client_compartment_id = UNSPECIFIED_COMPARTMENT_ID;
     uint32_t compartment_id = UNSPECIFIED_COMPARTMENT_ID;
     net_ebpf_extension_hook_id_t hook_id =
@@ -363,8 +363,8 @@ net_ebpf_extension_sock_ops_flow_established_classify(
 
     local_flow_context->filter_context = filter_context;
 
-    sock_ops_ctx = &local_flow_context->context;
-    _net_ebpf_extension_sock_ops_copy_wfp_connection_fields(incoming_fixed_values, sock_ops_ctx, &compartment_id);
+    sock_ops_context = &local_flow_context->context;
+    _net_ebpf_extension_sock_ops_copy_wfp_connection_fields(incoming_fixed_values, sock_ops_context, &compartment_id);
 
     client_compartment_id = filter_context->compartment_id;
     ASSERT((client_compartment_id == UNSPECIFIED_COMPARTMENT_ID) || (client_compartment_id == compartment_id));
@@ -377,7 +377,7 @@ net_ebpf_extension_sock_ops_flow_established_classify(
     local_flow_context->layer_id = incoming_fixed_values->layerId;
     local_flow_context->callout_id = net_ebpf_extension_get_callout_id_for_hook(hook_id);
 
-    if (net_ebpf_extension_hook_invoke_program(attached_client, sock_ops_ctx, &result) != EBPF_SUCCESS)
+    if (net_ebpf_extension_hook_invoke_program(attached_client, sock_ops_context, &result) != EBPF_SUCCESS)
         goto Exit;
 
     status = FwpsFlowAssociateContext(
@@ -411,7 +411,7 @@ net_ebpf_extension_sock_ops_flow_delete(uint16_t layer_id, uint32_t callout_id, 
         (net_ebpf_extension_sock_ops_wfp_flow_context_t*)(uintptr_t)flow_context;
     net_ebpf_extension_sock_ops_wfp_filter_context_t* filter_context;
     net_ebpf_extension_hook_client_t* attached_client = NULL;
-    bpf_sock_ops_t* sock_ops_ctx = NULL;
+    bpf_sock_ops_t* sock_ops_context = NULL;
     uint32_t result;
     net_ebpf_extension_hook_execution_t execution_type =
         (KeGetCurrentIrql() < DISPATCH_LEVEL) ? EXECUTION_PASSIVE : EXECUTION_DISPATCH;
@@ -439,9 +439,9 @@ net_ebpf_extension_sock_ops_flow_delete(uint16_t layer_id, uint32_t callout_id, 
     KeReleaseSpinLock(&filter_context->flow_context_list.lock, irql);
 
     // Invoke eBPF program with connection deleted socket event.
-    sock_ops_ctx = &local_flow_context->context;
-    sock_ops_ctx->op = BPF_SOCK_OPS_CONNECTION_DELETED_CB;
-    if (net_ebpf_extension_hook_invoke_program(attached_client, sock_ops_ctx, &result) != EBPF_SUCCESS)
+    sock_ops_context = &local_flow_context->context;
+    sock_ops_context->op = BPF_SOCK_OPS_CONNECTION_DELETED_CB;
+    if (net_ebpf_extension_hook_invoke_program(attached_client, sock_ops_context, &result) != EBPF_SUCCESS)
         goto Exit;
 
 Exit:

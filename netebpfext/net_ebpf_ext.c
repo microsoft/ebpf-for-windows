@@ -193,15 +193,6 @@ net_ebpf_extension_hook_id_t
 net_ebpf_extension_get_hook_id_from_wfp_layer_id(uint16_t wfp_layer_id)
 {
     net_ebpf_extension_hook_id_t hook_id = 0;
-    ASSERT(
-        (wfp_layer_id == FWPS_LAYER_OUTBOUND_MAC_FRAME_NATIVE) ||
-        (wfp_layer_id == FWPS_LAYER_INBOUND_MAC_FRAME_NATIVE) ||
-        (wfp_layer_id == FWPS_LAYER_ALE_RESOURCE_ASSIGNMENT_V4) ||
-        (wfp_layer_id == FWPS_LAYER_ALE_RESOURCE_ASSIGNMENT_V6) ||
-        (wfp_layer_id == FWPS_LAYER_ALE_RESOURCE_RELEASE_V4) || (wfp_layer_id == FWPS_LAYER_ALE_RESOURCE_RELEASE_V6) ||
-        (wfp_layer_id == FWPS_LAYER_ALE_AUTH_CONNECT_V4) || (wfp_layer_id == FWPS_LAYER_ALE_AUTH_CONNECT_V6) ||
-        (wfp_layer_id == FWPS_LAYER_ALE_AUTH_RECV_ACCEPT_V4) || (wfp_layer_id == FWPS_LAYER_ALE_AUTH_RECV_ACCEPT_V6) ||
-        (wfp_layer_id == FWPS_LAYER_ALE_FLOW_ESTABLISHED_V4) || (wfp_layer_id == FWPS_LAYER_ALE_FLOW_ESTABLISHED_V6));
 
     switch (wfp_layer_id) {
     case FWPS_LAYER_OUTBOUND_MAC_FRAME_NATIVE:
@@ -239,6 +230,9 @@ net_ebpf_extension_get_hook_id_from_wfp_layer_id(uint16_t wfp_layer_id)
         break;
     case FWPS_LAYER_ALE_FLOW_ESTABLISHED_V6:
         hook_id = EBPF_HOOK_ALE_FLOW_ESTABLISHED_V6;
+        break;
+    default:
+        ASSERT(FALSE);
         break;
     }
 
