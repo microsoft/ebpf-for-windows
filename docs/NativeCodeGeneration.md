@@ -77,9 +77,9 @@ driver skeleton.
 
 All Windows Drivers need to export a static function labelled &quot;DriverEntry&quot; that is invoked by the OS
 (Operating System) during loading of the driver. In addition to the standard driver related functionality, the driver
-entry skeleton also registers three [Network Module Registrar (NMR)](https://docs.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-the-network-module-registrar)
-contracts exposed by the other framework components (to export the program to the eBPF runtime, to create any maps
-required, and to import the helper functions).
+entry skeleton also registers as a [Network Module Registrar (NMR)](https://docs.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-the-network-module-registrar) client
+to export the program to the eBPF runtime, to create any maps
+required, and to import the helper functions.
 
 ## Global entry point for generated code
 
@@ -88,16 +88,15 @@ Every generated C file contains a single global entry point of type metadata_tab
 ```
 typedef struct _metadata_table
 {
-    void (*programs)(program_entry_t**programs, size_t*count);
-    void (*maps)(map_entry_t**maps, size_t*count);
-    void (*helpers)(helper_function_entry_t**helpers, size_t*count);
+    void (*programs)(program_entry_t** programs, size_t* count);
+    void (*maps)(map_entry_t** maps, size_t* count);
 } metadata_table_t;
 
-metadata_table_t xdp = { _get_programs, _get_maps, _get_helpers };
+metadata_table_t myprogram_metadata_table = { _get_programs, _get_maps };
 ```
 
-The meta-data table provides pointers to three functions that permit querying the list of programs, the list of maps,
-and the list of helper functions. The table name is derived from the ELF file name, with _ replacing any character that
+The metadata table provides pointers to three functions that permit querying the list of programs and the list of maps.
+The table name prefix is derived from the ELF file name, with _ replacing any character that
 is not valid in a C variable name. This variable is the only globally visible variable in the generated C code.
 
 ## Exported programs
@@ -108,8 +107,14 @@ typedef struct _program_entry
 {
     uint64_t (*function)(void*);
     const char* section_name;
-    const char* function_name;
+    const char* program_name;
+    uint16_t* referenced_map_indices;
+    uint16_t referenced_map_count;
+    helper_function_entry_t* helpers;
+    uint16_t helper_count;
     size_t bpf_instruction_count;
+    ebpf_program_type_t* program_type;
+    ebpf_attach_type_t* expected_attach_type;
 } program_entry_t;
 ```
 
