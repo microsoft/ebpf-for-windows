@@ -273,13 +273,13 @@ ebpf_map_set_pin_path(_In_ struct bpf_map* map, _In_ const char* path);
  * @brief Update value for the specified key in an eBPF map.
  *
  * @param[in] map_fd File descriptor for the eBPF map.
- * @param[in] key Pointer to buffer containing key.
+ * @param[in] key Pointer to buffer containing key, or NULL for a map with no keys.
  * @param[out] value Pointer to buffer containing value.
  *
  * @retval EBPF_SUCCESS The operation was successful.
  */
 ebpf_result_t
-ebpf_map_update_element(fd_t map_fd, _In_ const void* key, _In_ const void* value, uint64_t flags);
+ebpf_map_update_element(fd_t map_fd, _In_opt_ const void* key, _In_ const void* value, uint64_t flags);
 
 /**
  * @brief Delete an element in an eBPF map.
@@ -313,13 +313,13 @@ ebpf_map_lookup_element(fd_t map_fd, _In_ const void* key, _Out_ void* value);
  *  On successful lookup, the element is removed from the map.
  *
  * @param[in] map_fd File descriptor for the eBPF map.
- * @param[in] key Pointer to buffer containing key.
+ * @param[in] key Pointer to buffer containing key, or NULL for a map with no keys.
  * @param[out] value Pointer to buffer that contains value on success.
  *
  * @retval EBPF_SUCCESS The operation was successful.
  */
 ebpf_result_t
-ebpf_map_lookup_and_delete_element(fd_t map_fd, _In_ const void* key, _Out_ void* value);
+ebpf_map_lookup_and_delete_element(fd_t map_fd, _In_opt_ const void* key, _Out_ void* value);
 
 /**
  * @brief Return the next key in an eBPF map.

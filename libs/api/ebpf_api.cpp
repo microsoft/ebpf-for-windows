@@ -334,7 +334,7 @@ Exit:
 }
 
 static ebpf_result_t
-_ebpf_map_lookup_element_helper(fd_t map_fd, bool find_and_delete, _In_ const void* key, _Out_ void* value)
+_ebpf_map_lookup_element_helper(fd_t map_fd, bool find_and_delete, _In_opt_ const void* key, _Out_ void* value)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_handle_t map_handle;
@@ -343,7 +343,7 @@ _ebpf_map_lookup_element_helper(fd_t map_fd, bool find_and_delete, _In_ const vo
     uint32_t max_entries = 0;
     uint32_t type;
 
-    if (map_fd <= 0 || key == nullptr || value == nullptr) {
+    if (map_fd <= 0 || value == nullptr) {
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
@@ -360,7 +360,10 @@ _ebpf_map_lookup_element_helper(fd_t map_fd, bool find_and_delete, _In_ const vo
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
-    assert(key_size != 0);
+    if ((key == nullptr) != (key_size == 0)) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
     assert(value_size != 0);
 
     result = _map_lookup_element(map_handle, find_and_delete, key_size, (uint8_t*)key, value_size, (uint8_t*)value);
@@ -376,7 +379,7 @@ ebpf_map_lookup_element(fd_t map_fd, _In_ const void* key, _Out_ void* value)
 }
 
 ebpf_result_t
-ebpf_map_lookup_and_delete_element(fd_t map_fd, _In_ const void* key, _Out_ void* value)
+ebpf_map_lookup_and_delete_element(fd_t map_fd, _In_opt_ const void* key, _Out_ void* value)
 {
     return _ebpf_map_lookup_element_helper(map_fd, true, key, value);
 }
@@ -384,7 +387,7 @@ ebpf_map_lookup_and_delete_element(fd_t map_fd, _In_ const void* key, _Out_ void
 static ebpf_result_t
 _update_map_element(
     ebpf_handle_t map_handle,
-    _In_ const void* key,
+    _In_opt_ const void* key,
     uint32_t key_size,
     _In_ const void* value,
     uint32_t value_size,
@@ -402,7 +405,9 @@ _update_map_element(
         request->header.id = ebpf_operation_id_t::EBPF_OPERATION_MAP_UPDATE_ELEMENT;
         request->handle = (uint64_t)map_handle;
         request->option = static_cast<ebpf_map_option_t>(flags);
-        std::copy((uint8_t*)key, (uint8_t*)key + key_size, request->data);
+        if (key_size > 0) {
+            std::copy((uint8_t*)key, (uint8_t*)key + key_size, request->data);
+        }
         std::copy((uint8_t*)value, (uint8_t*)value + value_size, request->data + key_size);
 
         result = win32_error_code_to_ebpf_result(invoke_ioctl(request_buffer));
@@ -441,7 +446,7 @@ _update_map_element_with_handle(
 }
 
 ebpf_result_t
-ebpf_map_update_element(fd_t map_fd, _In_ const void* key, _In_ const void* value, uint64_t flags)
+ebpf_map_update_element(fd_t map_fd, _In_opt_ const void* key, _In_ const void* value, uint64_t flags)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_handle_t map_handle;
@@ -450,7 +455,7 @@ ebpf_map_update_element(fd_t map_fd, _In_ const void* key, _In_ const void* valu
     uint32_t max_entries = 0;
     uint32_t type;
 
-    if (map_fd <= 0 || key == nullptr || value == nullptr) {
+    if (map_fd <= 0 || value == nullptr) {
         return EBPF_INVALID_ARGUMENT;
     }
 
@@ -473,7 +478,9 @@ ebpf_map_update_element(fd_t map_fd, _In_ const void* key, _In_ const void* valu
     if (result != EBPF_SUCCESS) {
         return result;
     }
-    assert(key_size != 0);
+    if ((key == nullptr) != (key_size == 0)) {
+        return EBPF_INVALID_ARGUMENT;
+    }
     assert(value_size != 0);
     assert(type != 0);
 
