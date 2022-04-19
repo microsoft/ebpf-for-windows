@@ -512,9 +512,14 @@ TEST_CASE("delete pinned program", "[netsh][programs]")
     REQUIRE(result == ERROR_OKAY);
     REQUIRE(output == "");
 
+    // Pin the program to a second path.
+    output = _run_netsh_command(handle_ebpf_set_program, L"196609", L"pinpath=mypinname2", nullptr, &result);
+    REQUIRE(result == ERROR_OKAY);
+    REQUIRE(output == "");
+
     // Verify we can delete a pinned program.
     output = _run_netsh_command(handle_ebpf_delete_program, L"196609", nullptr, nullptr, &result);
-    REQUIRE(output == "Unpinned 196609 from mypinname\n");
+    REQUIRE(output == "Unpinned 196609 from mypinname\nUnpinned 196609 from mypinname2\n");
     REQUIRE(result == NO_ERROR);
     REQUIRE(bpf_object__next(nullptr) == nullptr);
 
