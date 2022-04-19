@@ -27,17 +27,27 @@
 std::vector<ebpf_handle_t>
 get_handles()
 {
+    std::vector<ebpf_handle_t> handles;
     ebpf_result_t result;
     const char* error_message = nullptr;
     bpf_object* object = nullptr;
     bpf_link* link;
     fd_t program_fd;
+    std::vector<std::string> map_names{
+        "HASH",
+        "PERCPU_HASH",
+        "ARRAY",
+        "PERCPU_ARRAY",
+        "LRU_HASH",
+        "LRU_PERCPU_HASH",
+        "QUEUE",
+        "STACK",
+    };
 
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
-    result =
-        ebpf_program_load("droppacket.o", nullptr, nullptr, EBPF_EXECUTION_ANY, &object, &program_fd, &error_message);
+    result = ebpf_program_load("map.o", nullptr, nullptr, EBPF_EXECUTION_ANY, &object, &program_fd, &error_message);
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
@@ -45,17 +55,19 @@ get_handles()
         error_message = nullptr;
     }
     REQUIRE(result == EBPF_SUCCESS);
-    fd_t dropped_packet_map_fd = bpf_object__find_map_fd_by_name(object, "dropped_packet_map");
+    for (const auto& name : map_names) {
+        fd_t map_fd = bpf_object__find_map_fd_by_name(object, (name + "_map").c_str());
+        handles.push_back(Platform::_get_osfhandle(map_fd));
+    }
     uint32_t if_index = 1;
 
     // Attach only to the single interface being tested.
     REQUIRE(hook.attach_link(program_fd, &if_index, sizeof(if_index), &link) == EBPF_SUCCESS);
     fd_t link_fd = bpf_link__fd(link);
 
-    return {
-        Platform::_get_osfhandle(dropped_packet_map_fd),
-        Platform::_get_osfhandle(program_fd),
-        Platform::_get_osfhandle(link_fd)};
+    handles.push_back(Platform::_get_osfhandle(program_fd));
+    handles.push_back(Platform::_get_osfhandle(link_fd));
+    return handles;
 }
 
 extern "C" bool ebpf_fuzzing_enabled;
@@ -113,7 +125,7 @@ seed_random_engine()
 TEST_CASE("execution_context_direct", "[fuzz]")
 {
     _test_helper_end_to_end test_helper;
-    const size_t iterations = 10000000;
+    const size_t iterations = 30000000;
     auto handles = get_handles();
     ebpf_fuzzing_enabled = true;
     auto mt = seed_random_engine();
