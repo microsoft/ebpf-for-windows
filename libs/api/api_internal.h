@@ -217,15 +217,6 @@ fd_t
 ebpf_program_get_fd(_In_ const struct bpf_program* program);
 
 /**
- * @brief Fetch fd for a map object.
- *
- * @param[in] map Pointer to eBPF map.
- * @return fd for the map on success, ebpf_fd_invalid on failure.
- */
-fd_t
-ebpf_map_get_fd(_In_ const struct bpf_map* map);
-
-/**
  * @brief Clean up ebpf_object. Also delete all the sub objects
  * (maps, programs) and close the related file descriptors.
  *

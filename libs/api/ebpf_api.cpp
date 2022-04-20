@@ -974,29 +974,6 @@ ebpf_program_query_info(
     return win32_error_code_to_ebpf_result(retval);
 }
 
-uint32_t
-ebpf_api_link_program(ebpf_handle_t program_handle, ebpf_attach_type_t attach_type, ebpf_handle_t* link_handle)
-{
-    ebpf_operation_link_program_request_t request = {
-        EBPF_OFFSET_OF(ebpf_operation_link_program_request_t, data),
-        EBPF_OPERATION_LINK_PROGRAM,
-        program_handle,
-        attach_type};
-    ebpf_operation_link_program_reply_t reply;
-
-    uint32_t retval = invoke_ioctl(request, reply);
-    if (retval != ERROR_SUCCESS) {
-        return retval;
-    }
-
-    if (reply.header.id != ebpf_operation_id_t::EBPF_OPERATION_LINK_PROGRAM) {
-        return ERROR_INVALID_PARAMETER;
-    }
-
-    *link_handle = reply.link_handle;
-    return retval;
-}
-
 static ebpf_result_t
 _link_ebpf_program(
     ebpf_handle_t program_handle,
@@ -2672,15 +2649,6 @@ ebpf_program_get_fd(_In_ const struct bpf_program* program)
         return ebpf_fd_invalid;
     }
     return program->fd;
-}
-
-fd_t
-ebpf_map_get_fd(_In_ const struct bpf_map* map)
-{
-    if (map == nullptr) {
-        return ebpf_fd_invalid;
-    }
-    return map->map_fd;
 }
 
 void
