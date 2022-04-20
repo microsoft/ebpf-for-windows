@@ -57,7 +57,7 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: unit_tests
-      test_command: unit_tests.exe -s
+      test_command: unit_tests.exe -d yes
       build_job: regular / build
       build_artifact: Build-x64
       environment: windows-2019
@@ -69,7 +69,7 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: ebpf_client
-      test_command: ebpf_client.exe -s
+      test_command: ebpf_client.exe -d yes
       build_job: regular / build
       build_artifact: Build-x64
       environment: windows-2019
@@ -81,7 +81,7 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: fuzzing
-      test_command: fuzz.exe -s
+      test_command: fuzz.exe -d yes
       build_job: regular / build
       build_artifact: Build-x64
       environment: windows-2019
@@ -93,7 +93,7 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       pre_test: call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat"
-      test_command: bpf2c_tests.exe -s
+      test_command: bpf2c_tests.exe -d yes
       name: bpf2c
       build_job: regular / build
       build_artifact: Build-x64
@@ -136,7 +136,7 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: unit_tests
-      test_command: unit_tests.exe -s
+      test_command: unit_tests.exe -d yes
       build_job: sanitize / build
       build_artifact: Build-x64-Sanitize
       environment: windows-2019

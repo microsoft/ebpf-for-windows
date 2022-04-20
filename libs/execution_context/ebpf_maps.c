@@ -262,10 +262,9 @@ _create_array_map(
     ebpf_handle_t inner_map_handle,
     _Outptr_ ebpf_core_map_t** map)
 {
-
-    // Temporarily removing check for inner map handle until
-    // https://github.com/microsoft/ebpf-for-windows/issues/739 is fixed.
-    UNREFERENCED_PARAMETER(inner_map_handle);
+    if (inner_map_handle != ebpf_handle_invalid) {
+        return EBPF_INVALID_ARGUMENT;
+    }
     return _create_array_map_with_map_struct_size(sizeof(ebpf_core_map_t), map_definition, map);
 }
 
@@ -1318,7 +1317,7 @@ _create_queue_map(
     _Outptr_ ebpf_core_map_t** map)
 {
     ebpf_result_t result;
-    if (inner_map_handle != ebpf_handle_invalid)
+    if (inner_map_handle != ebpf_handle_invalid || map_definition->key_size != 0)
         return EBPF_INVALID_ARGUMENT;
     size_t circular_map_size =
         EBPF_OFFSET_OF(ebpf_core_circular_map_t, slots) + map_definition->max_entries * sizeof(uint8_t*);
@@ -1337,7 +1336,7 @@ _create_stack_map(
     _Outptr_ ebpf_core_map_t** map)
 {
     ebpf_result_t result;
-    if (inner_map_handle != ebpf_handle_invalid)
+    if (inner_map_handle != ebpf_handle_invalid || map_definition->key_size != 0)
         return EBPF_INVALID_ARGUMENT;
     size_t circular_map_size =
         EBPF_OFFSET_OF(ebpf_core_circular_map_t, slots) + map_definition->max_entries * sizeof(uint8_t*);
@@ -1455,7 +1454,7 @@ _create_ring_buffer_map(
 
     *map = NULL;
 
-    if (inner_map_handle != ebpf_handle_invalid) {
+    if (inner_map_handle != ebpf_handle_invalid || map_definition->key_size != 0) {
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
@@ -2067,6 +2066,9 @@ ebpf_map_next_key(
             key_size,
             map->ebpf_map_definition.key_size);
         return EBPF_INVALID_ARGUMENT;
+    }
+    if (ebpf_map_function_tables[map->ebpf_map_definition.type].next_key == NULL) {
+        return EBPF_OPERATION_NOT_SUPPORTED;
     }
     return ebpf_map_function_tables[map->ebpf_map_definition.type].next_key(map, previous_key, next_key);
 }

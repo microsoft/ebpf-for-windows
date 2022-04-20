@@ -220,7 +220,10 @@ ebpf_map_create(
         map_definition.value_size = value_size;
         map_definition.max_entries = max_entries;
 
-        inner_map_handle = (opts) ? _get_handle_from_file_descriptor(opts->inner_map_fd) : ebpf_handle_invalid;
+        // bpf_map_create_opts has inner_map_fd defined as __u32, so it cannot be set to
+        // ebpf_fd_invalid (-1). Hence treat inner_map_fd = 0 as ebpf_fd_invalid.
+        inner_map_handle = (opts && opts->inner_map_fd != 0) ? _get_handle_from_file_descriptor(opts->inner_map_fd)
+                                                             : ebpf_handle_invalid;
 
         result = _create_map(map_name, &map_definition, inner_map_handle, &map_handle);
         if (result != EBPF_SUCCESS) {
@@ -578,7 +581,10 @@ ebpf_map_get_next_key(fd_t map_fd, _In_opt_ const void* previous_key, _Out_ void
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
-    assert(key_size != 0);
+    if (key_size == 0) {
+        result = EBPF_OPERATION_NOT_SUPPORTED;
+        goto Exit;
+    }
     assert(value_size != 0);
 
     try {
