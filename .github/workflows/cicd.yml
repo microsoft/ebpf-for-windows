@@ -64,6 +64,18 @@ jobs:
       code_coverage: true
       gather_dumps: true
 
+  # Run the API tests in GitHub.
+  ebpf_client:
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: ebpf_client
+      test_command: ebpf_client.exe -d yes
+      build_job: regular / build
+      build_artifact: Build-x64
+      environment: windows-2019
+      code_coverage: true
+      gather_dumps: true
+
   # Run the fuzzing tests in GitHub.
   fuzzing:
     uses: ./.github/workflows/reusable-test.yml
@@ -89,16 +101,17 @@ jobs:
       code_coverage: true
       gather_dumps: true
 
-  # Run the performance tests in GitHub.
-  performance:
+  # Run the quick stress tests in GitHub.
+  stress:
     uses: ./.github/workflows/reusable-test.yml
     with:
-      name: performance
+      name: stress
+      # Until there is a dedicated stress test, re-use the perf test.
       test_command: ebpf_performance.exe
       build_job: regular / build
       build_artifact: Build-x64
       environment: windows-2019
-      # No code coverage on performance tests.
+      # No code coverage on stress.
       code_coverage: false
       gather_dumps: true
 
