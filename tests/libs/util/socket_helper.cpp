@@ -61,7 +61,11 @@ _base_socket::_base_socket(int _sock_type, int _protocol, uint16_t _port)
         FAIL("Failed to query local address of socket with error: " << WSAGetLastError());
 }
 
-_base_socket::~_base_socket() { closesocket(socket); }
+_base_socket::~_base_socket()
+{
+    if (socket != INVALID_SOCKET)
+        closesocket(socket);
+}
 
 void
 _base_socket::get_local_address(_Out_ PSOCKADDR& address, _Out_ int& address_length)
@@ -73,6 +77,13 @@ _base_socket::get_local_address(_Out_ PSOCKADDR& address, _Out_ int& address_len
 _sender_socket::_sender_socket(int _sock_type, int _protocol, uint16_t _port)
     : _base_socket{_sock_type, _protocol, _port}
 {}
+
+void
+_sender_socket::close()
+{
+    if (socket != INVALID_SOCKET)
+        closesocket(socket);
+}
 
 _datagram_sender_socket::_datagram_sender_socket(int _sock_type, int _protocol, uint16_t _port)
     : _sender_socket{_sock_type, _protocol, _port}
@@ -169,9 +180,15 @@ _stream_sender_socket::cancel_send_message()
 
 _receiver_socket::_receiver_socket(int _sock_type, int _protocol, uint16_t _port)
     : _base_socket{_sock_type, _protocol, _port}, overlapped{}, recv_buffer(std::vector<char>(1024)), recv_flags(0)
-{}
+{
+    overlapped.hEvent = INVALID_HANDLE_VALUE;
+}
 
-_receiver_socket::~_receiver_socket() { WSACloseEvent(overlapped.hEvent); }
+_receiver_socket::~_receiver_socket()
+{
+    if (overlapped.hEvent != INVALID_HANDLE_VALUE)
+        WSACloseEvent(overlapped.hEvent);
+}
 
 void
 _receiver_socket::complete_async_receive(bool timeout_expected)
@@ -191,6 +208,7 @@ _receiver_socket::complete_async_receive(bool timeout_expected)
                 reinterpret_cast<LPDWORD>(&recv_flags)))
             FAIL("WSARecvFrom on the receiver socket failed with error: " << WSAGetLastError());
         WSACloseEvent(overlapped.hEvent);
+        overlapped.hEvent = INVALID_HANDLE_VALUE;
     } else {
         if (error == WSA_WAIT_TIMEOUT) {
             if (!timeout_expected)
@@ -256,8 +274,15 @@ _datagram_receiver_socket::get_sender_address(_Out_ PSOCKADDR& from, _Out_ int& 
     from_length = sender_address_size;
 }
 
+void
+_datagram_receiver_socket::close()
+{
+    if (socket != INVALID_SOCKET)
+        closesocket(socket);
+}
+
 _stream_receiver_socket::_stream_receiver_socket(int _sock_type, int _protocol, uint16_t _port)
-    : _receiver_socket{_sock_type, _protocol, _port}, acceptex(nullptr), accept_socket(0),
+    : _receiver_socket{_sock_type, _protocol, _port}, acceptex(nullptr), accept_socket(INVALID_SOCKET),
       message_length(recv_buffer.size() - 2 * (sizeof(sockaddr_storage) + 16))
 {
     if ((sock_type != SOCK_STREAM) || (protocol != IPPROTO_TCP))
@@ -291,7 +316,11 @@ _stream_receiver_socket::_stream_receiver_socket(int _sock_type, int _protocol, 
         FAIL("Could not enable dual family endpoint on accept socket: " << WSAGetLastError());
 }
 
-_stream_receiver_socket::~_stream_receiver_socket() { closesocket(accept_socket); }
+_stream_receiver_socket::~_stream_receiver_socket()
+{
+    if (accept_socket != INVALID_SOCKET)
+        closesocket(accept_socket);
+}
 
 void
 _stream_receiver_socket::post_async_receive()
@@ -324,4 +353,11 @@ _stream_receiver_socket::get_sender_address(_Out_ PSOCKADDR& from, _Out_ int& fr
 {
     from = (PSOCKADDR)(recv_buffer.data() + message_length);
     from_length = sizeof(sockaddr_storage);
+}
+
+void
+_stream_receiver_socket::close()
+{
+    if (accept_socket != INVALID_SOCKET)
+        closesocket(accept_socket);
 }
