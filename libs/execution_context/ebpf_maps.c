@@ -745,10 +745,6 @@ _delete_hash_map(_In_ _Post_invalid_ ebpf_core_map_t* map)
 static void
 _delete_object_hash_map(_In_ _Post_invalid_ ebpf_core_map_t* map)
 {
-    if (!map) {
-        return;
-    }
-
     ebpf_core_object_map_t* object_map = EBPF_FROM_FIELD(ebpf_core_object_map_t, core_map, map);
 
     // Release all entry references.
@@ -797,7 +793,7 @@ _create_object_hash_map(
     local_map = NULL;
 
 Exit:
-    if (result != EBPF_SUCCESS) {
+    if (result != EBPF_SUCCESS && local_map) {
         _delete_object_hash_map(local_map);
         local_map = NULL;
     }

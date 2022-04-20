@@ -36,12 +36,12 @@ get_handles()
     bpf_link* link;
     fd_t program_fd;
     std::vector<std::string> map_names{
-        "HASH",
-        "PERCPU_HASH",
         "ARRAY",
-        "PERCPU_ARRAY",
+        "HASH",
         "LRU_HASH",
         "LRU_PERCPU_HASH",
+        "PERCPU_ARRAY",
+        "PERCPU_HASH",
         "QUEUE",
         "STACK",
     };
@@ -132,7 +132,7 @@ TEST_CASE("execution_context_direct", "[fuzz]")
     ebpf_fuzzing_enabled = true;
     auto mt = seed_random_engine();
 
-    // Limit this processes memory to 50Mb
+    // Limit this processes memory to 50MB
     HANDLE job = CreateJobObject(nullptr, nullptr);
     JOBOBJECT_EXTENDED_LIMIT_INFORMATION limits{};
     limits.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_PROCESS_MEMORY;
