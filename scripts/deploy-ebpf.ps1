@@ -129,7 +129,7 @@ OPTIONS:
 if ($vm -eq $null) {
    Write-Host "Copying files from `"$build_directory`" to `"$destination_directory`""
 
-   foreach ( $file in $all_files ) {
+   foreach ( $file in $built_files ) {
       $source_path = "$build_directory\$file"
       $destination_path = "$destination_directory\$file"
       Write-Host " $file"
