@@ -138,9 +138,6 @@ Functions</h2></td></tr>
 <tr class="memitem:af1636518b704a50a14f868545197dca7"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#af1636518b704a50a14f868545197dca7">ebpf_api_get_pinned_map</a> (const uint8_t *name, uint32_t name_length, <a class="el" href="ebpf__api_8h.html#abb41989791fe081530c8719049ad1c35">ebpf_handle_t</a> *handle)</td></tr>
 <tr class="memdesc:af1636518b704a50a14f868545197dca7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Find a map given its associated name.  <a href="ebpf__api_8h.html#af1636518b704a50a14f868545197dca7">More...</a><br /></td></tr>
 <tr class="separator:af1636518b704a50a14f868545197dca7"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa9830656da56c0b0b7e980dc9ad012e7"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#aa9830656da56c0b0b7e980dc9ad012e7">ebpf_api_link_program</a> (<a class="el" href="ebpf__api_8h.html#abb41989791fe081530c8719049ad1c35">ebpf_handle_t</a> program_handle, <a class="el" href="ebpf__windows_8h.html#a3f56868552f991b0f9eb6800d8f9a43c">ebpf_attach_type_t</a> attach_type, <a class="el" href="ebpf__api_8h.html#abb41989791fe081530c8719049ad1c35">ebpf_handle_t</a> *link_handle)</td></tr>
-<tr class="memdesc:aa9830656da56c0b0b7e980dc9ad012e7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Bind a program to an attach point and return a handle representing the link.  <a href="ebpf__api_8h.html#aa9830656da56c0b0b7e980dc9ad012e7">More...</a><br /></td></tr>
-<tr class="separator:aa9830656da56c0b0b7e980dc9ad012e7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aecda75bf2d796bb5f3e02314501aa492"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#aecda75bf2d796bb5f3e02314501aa492">ebpf_api_unlink_program</a> (<a class="el" href="ebpf__api_8h.html#abb41989791fe081530c8719049ad1c35">ebpf_handle_t</a> link_handle)</td></tr>
 <tr class="memdesc:aecda75bf2d796bb5f3e02314501aa492"><td class="mdescLeft">&#160;</td><td class="mdescRight">Detach the eBPF program from the link.  <a href="ebpf__api_8h.html#aecda75bf2d796bb5f3e02314501aa492">More...</a><br /></td></tr>
 <tr class="separator:aecda75bf2d796bb5f3e02314501aa492"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -641,57 +638,6 @@ Variables</h2></td></tr>
     <tr><td class="paramname">EBPF_SUCCESS</td><td>The API suceeded. </td></tr>
     <tr><td class="paramname">EBPF_NO_MEMORY</td><td>Out of memory. </td></tr>
     <tr><td class="paramname">EBPF_INVALID_ARGUMENT</td><td>One or more parameters are wrong. </td></tr>
-  </table>
-  </dd>
-</dl>
-
-</div>
-</div>
-<a id="aa9830656da56c0b0b7e980dc9ad012e7"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aa9830656da56c0b0b7e980dc9ad012e7">&#9670;&nbsp;</a></span>ebpf_api_link_program()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">uint32_t ebpf_api_link_program </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="ebpf__api_8h.html#abb41989791fe081530c8719049ad1c35">ebpf_handle_t</a>&#160;</td>
-          <td class="paramname"><em>program_handle</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype"><a class="el" href="ebpf__windows_8h.html#a3f56868552f991b0f9eb6800d8f9a43c">ebpf_attach_type_t</a>&#160;</td>
-          <td class="paramname"><em>attach_type</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype"><a class="el" href="ebpf__api_8h.html#abb41989791fe081530c8719049ad1c35">ebpf_handle_t</a> *&#160;</td>
-          <td class="paramname"><em>link_handle</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Bind a program to an attach point and return a handle representing the link. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">program_handle</td><td>Handle to program to attach. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">attach_type</td><td>Attach point to attach program to. </td></tr>
-    <tr><td class="paramdir">[out]</td><td class="paramname">link_handle</td><td>Pointer to memory that contains the link handle on success. </td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="retval"><dt>Return values</dt><dd>
-  <table class="retval">
-    <tr><td class="paramname">ERROR_SUCCESS</td><td>The operations succeeded. </td></tr>
-    <tr><td class="paramname">ERROR_INVALID_PARAMETER</td><td>One or more parameters are incorrect. </td></tr>
   </table>
   </dd>
 </dl>
