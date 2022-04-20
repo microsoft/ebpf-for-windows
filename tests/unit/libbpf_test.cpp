@@ -470,6 +470,24 @@ TEST_CASE("libbpf create queue", "[libbpf]")
     int err = bpf_map_get_next_key(map_fd, NULL, &next_key);
     REQUIRE(err == -ENOTSUP);
 
+    // Push 2 elements.
+    uint32_t value = 1;
+    REQUIRE(bpf_map_update_elem(map_fd, nullptr, &value, 0) == 0);
+    value = 2;
+    REQUIRE(bpf_map_update_elem(map_fd, nullptr, &value, 0) == 0);
+
+    // Pop elements.
+    REQUIRE(bpf_map_lookup_elem(map_fd, nullptr, &value) == 0);
+    REQUIRE(value == 1);
+    REQUIRE(bpf_map_lookup_and_delete_elem(map_fd, nullptr, &value) == 0);
+    REQUIRE(value == 1);
+    REQUIRE(bpf_map_lookup_elem(map_fd, nullptr, &value) == 0);
+    REQUIRE(value == 2);
+    REQUIRE(bpf_map_lookup_and_delete_elem(map_fd, nullptr, &value) == 0);
+    REQUIRE(value == 2);
+    REQUIRE(bpf_map_lookup_elem(map_fd, nullptr, &value) == -ENOENT);
+    REQUIRE(bpf_map_lookup_and_delete_elem(map_fd, nullptr, &value) == -ENOENT);
+
     Platform::_close(map_fd);
 }
 
