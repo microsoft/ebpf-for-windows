@@ -22,10 +22,8 @@ struct _net_ebpf_extension_sock_ops_wfp_filter_context;
  */
 typedef struct _net_ebpf_extension_sock_ops_wfp_flow_context
 {
-    LIST_ENTRY link;     ///< Link to next flow context.
-    uint64_t flow_id;    ///< WFP flow Id.
-    uint16_t layer_id;   ///< WFP layer Id that this flow is associated to.
-    uint32_t callout_id; ///< WFP callout Id that this flow is associated to.
+    LIST_ENTRY link;                                         ///< Link to next flow context.
+    net_ebpf_extension_flow_context_parameters_t parameters; ///< WFP flow parameters.
     struct _net_ebpf_extension_sock_ops_wfp_filter_context*
         filter_context;     ///< WFP filter context associated with this flow.
     bpf_sock_ops_t context; ///< sock_ops context.
@@ -33,8 +31,8 @@ typedef struct _net_ebpf_extension_sock_ops_wfp_flow_context
 
 typedef struct _net_ebpf_extension_sock_ops_wfp_flow_context_list
 {
-    KSPIN_LOCK lock;                         ///< Lock for synchronization.
-    _Guarded_by_(lock) LIST_ENTRY list_head; ///< List of WFP flow contexts.
+    uint32_t count;       ///< Number of flow contexts in the list.
+    LIST_ENTRY list_head; ///< Head to the list of WFP flow contexts.
 } net_ebpf_extension_sock_ops_wfp_flow_context_list_t;
 
 const net_ebpf_extension_wfp_filter_parameters_t _net_ebpf_extension_sock_ops_wfp_filter_parameters[] = {
@@ -51,10 +49,11 @@ const net_ebpf_extension_wfp_filter_parameters_t _net_ebpf_extension_sock_ops_wf
 
 typedef struct _net_ebpf_extension_sock_ops_wfp_filter_context
 {
-    const net_ebpf_extension_hook_client_t* client_context;
-    uint32_t compartment_id;
-    uint64_t filter_ids[NET_EBPF_SOCK_OPS_FILTER_COUNT];
-    net_ebpf_extension_sock_ops_wfp_flow_context_list_t flow_context_list;
+    net_ebpf_extension_wfp_filter_context_t;
+    uint32_t compartment_id; ///< Compartment Id condition value for the filters (if any).
+    KSPIN_LOCK lock;         ///< Lock for synchronization.
+    _Guarded_by_(lock) net_ebpf_extension_sock_ops_wfp_flow_context_list_t
+        flow_context_list; ///< List of flow contexts associated with WFP flows.
 } net_ebpf_extension_sock_ops_wfp_filter_context_t;
 
 //
@@ -138,19 +137,14 @@ net_ebpf_extension_sock_ops_on_client_attach(
         condition.conditionValue.uint32 = compartment_id;
     }
 
-    // Allocate buffer for WFP filter context.
-    filter_context = (net_ebpf_extension_sock_ops_wfp_filter_context_t*)ExAllocatePoolUninitialized(
-        NonPagedPoolNx, sizeof(net_ebpf_extension_sock_ops_wfp_filter_context_t), NET_EBPF_EXTENSION_POOL_TAG);
-    if (filter_context == NULL) {
-        result = EBPF_NO_MEMORY;
+    result = net_ebpf_extension_wfp_filter_context_create(
+        sizeof(net_ebpf_extension_sock_ops_wfp_filter_context_t),
+        attaching_client,
+        (net_ebpf_extension_wfp_filter_context_t**)&filter_context);
+    if (result != EBPF_SUCCESS)
         goto Exit;
-    }
-    memset(filter_context, 0, sizeof(net_ebpf_extension_sock_ops_wfp_filter_context_t));
-    filter_context->client_context = attaching_client;
     filter_context->compartment_id = compartment_id;
-
-    // Initialize the flow contexts list.
-    KeInitializeSpinLock(&filter_context->flow_context_list.lock);
+    KeInitializeSpinLock(&filter_context->lock);
     InitializeListHead(&filter_context->flow_context_list.list_head);
 
     // Add WFP filters at appropriate layers and set the hook NPI client as the filter's raw context.
@@ -160,8 +154,8 @@ net_ebpf_extension_sock_ops_on_client_attach(
         _net_ebpf_extension_sock_ops_wfp_filter_parameters,
         (compartment_id == UNSPECIFIED_COMPARTMENT_ID) ? 0 : 1,
         (compartment_id == UNSPECIFIED_COMPARTMENT_ID) ? NULL : &condition,
-        filter_context,
-        filter_context->filter_ids);
+        (net_ebpf_extension_wfp_filter_context_t*)filter_context,
+        &filter_context->filter_ids);
     if (result != EBPF_SUCCESS)
         goto Exit;
 
@@ -184,28 +178,61 @@ _net_ebpf_extension_sock_ops_on_client_detach(_In_ const net_ebpf_extension_hook
     net_ebpf_extension_sock_ops_wfp_filter_context_t* filter_context =
         (net_ebpf_extension_sock_ops_wfp_filter_context_t*)net_ebpf_extension_hook_client_get_provider_data(
             detaching_client);
+    net_ebpf_extension_flow_context_parameters_t* flow_parameters_array = NULL;
+    uint32_t flow_count = 0;
+    uint32_t flow_index = 0;
+    KIRQL irql;
+    bool lock_held = FALSE;
     ASSERT(filter_context != NULL);
     net_ebpf_extension_delete_wfp_filters(NET_EBPF_SOCK_OPS_FILTER_COUNT, filter_context->filter_ids);
-    // Remove any remaining flow contexts. A lock is not needed at this time.
-    while (!IsListEmpty(&filter_context->flow_context_list.list_head)) {
-        LIST_ENTRY* entry = RemoveHeadList(&filter_context->flow_context_list.list_head);
-        net_ebpf_extension_sock_ops_wfp_flow_context_t* flow_context =
-            CONTAINING_RECORD(entry, net_ebpf_extension_sock_ops_wfp_flow_context_t, link);
+
+    KeAcquireSpinLock(&filter_context->lock, &irql);
+    lock_held = TRUE;
+    flow_count = filter_context->flow_context_list.count;
+    if (flow_count > 0) {
+        flow_parameters_array = (net_ebpf_extension_flow_context_parameters_t*)ExAllocatePoolUninitialized(
+            NonPagedPoolNx,
+            sizeof(net_ebpf_extension_flow_context_parameters_t) * flow_count,
+            NET_EBPF_EXTENSION_POOL_TAG);
+        if (flow_parameters_array == NULL)
+            goto Exit;
+        // Remove any remaining flow contexts and copy their flow parameters.
+        while (!IsListEmpty(&filter_context->flow_context_list.list_head)) {
+            LIST_ENTRY* entry = RemoveHeadList(&filter_context->flow_context_list.list_head);
+            InitializeListHead(entry);
+            net_ebpf_extension_sock_ops_wfp_flow_context_t* flow_context =
+                CONTAINING_RECORD(entry, net_ebpf_extension_sock_ops_wfp_flow_context_t, link);
+            _Analysis_assume_(flow_index < flow_count);
+            flow_parameters_array[flow_index++] = flow_context->parameters;
+        }
+        filter_context->flow_context_list.count = 0;
+    }
+    KeReleaseSpinLock(&filter_context->lock, irql);
+    lock_held = FALSE;
+
+    // Remove the flow context associated with the WFP flows.
+    for (flow_index = 0; flow_index < flow_count; flow_index++) {
+        net_ebpf_extension_flow_context_parameters_t* flow_parameters = &flow_parameters_array[flow_index];
         // https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/fwpsk/nf-fwpsk-fwpsflowremovecontext0
         // Calling FwpsFlowRemoveContext may cause the flowDeleteFn callback on the callout to be invoked synchronously.
-        // The net_ebpf_extension_sock_ops_flow_delete function invokes the eBPF program. Since the client
-        // is detaching, the eBPF program should not be invoked. The filter_context field is set to NULL
-        // for that reason.
-        // The net_ebpf_extension_sock_ops_flow_delete function frees the flow context memory.
-        flow_context->filter_context = NULL;
+        // The net_ebpf_extension_sock_ops_flow_delete function frees the flow context memory and
+        // releases reference on the filter_context.
 #pragma warning(push)
 #pragma warning(disable : 4189) // 'status': local variable is initialized but not referenced
         NTSTATUS status =
-            FwpsFlowRemoveContext(flow_context->flow_id, flow_context->layer_id, flow_context->callout_id);
+            FwpsFlowRemoveContext(flow_parameters->flow_id, flow_parameters->layer_id, flow_parameters->callout_id);
         ASSERT(status == STATUS_SUCCESS);
 #pragma warning(pop)
     }
-    ExFreePool(filter_context);
+
+Exit:
+    if (lock_held)
+        KeReleaseSpinLock(&filter_context->lock, irql);
+
+    if (flow_parameters_array != NULL)
+        ExFreePool(flow_parameters_array);
+
+    net_ebpf_extension_wfp_filter_context_cleanup((net_ebpf_extension_wfp_filter_context_t*)filter_context);
 }
 
 NTSTATUS
@@ -344,9 +371,10 @@ net_ebpf_extension_sock_ops_flow_established_classify(
 
     filter_context = (net_ebpf_extension_sock_ops_wfp_filter_context_t*)filter->context;
     ASSERT(filter_context != NULL);
+    if (filter_context == NULL)
+        goto Exit;
 
     attached_client = (net_ebpf_extension_hook_client_t*)filter_context->client_context;
-    ASSERT(attached_client != NULL);
     if (attached_client == NULL)
         goto Exit;
 
@@ -361,6 +389,8 @@ net_ebpf_extension_sock_ops_flow_established_classify(
     }
     memset(local_flow_context, 0, sizeof(net_ebpf_extension_sock_ops_wfp_flow_context_t));
 
+    // Associate the filter context with the filter context.
+    REFERENCE_FILTER_CONTEXT(filter_context);
     local_flow_context->filter_context = filter_context;
 
     sock_ops_context = &local_flow_context->context;
@@ -373,24 +403,25 @@ net_ebpf_extension_sock_ops_flow_established_classify(
         goto Exit;
     }
 
-    local_flow_context->flow_id = incoming_metadata_values->flowHandle;
-    local_flow_context->layer_id = incoming_fixed_values->layerId;
-    local_flow_context->callout_id = net_ebpf_extension_get_callout_id_for_hook(hook_id);
+    local_flow_context->parameters.flow_id = incoming_metadata_values->flowHandle;
+    local_flow_context->parameters.layer_id = incoming_fixed_values->layerId;
+    local_flow_context->parameters.callout_id = net_ebpf_extension_get_callout_id_for_hook(hook_id);
 
     if (net_ebpf_extension_hook_invoke_program(attached_client, sock_ops_context, &result) != EBPF_SUCCESS)
         goto Exit;
 
     status = FwpsFlowAssociateContext(
-        local_flow_context->flow_id,
-        local_flow_context->layer_id,
-        local_flow_context->callout_id,
+        local_flow_context->parameters.flow_id,
+        local_flow_context->parameters.layer_id,
+        local_flow_context->parameters.callout_id,
         (uint64_t)(uintptr_t)local_flow_context);
     if (!NT_SUCCESS(status))
         goto Exit;
 
-    KeAcquireSpinLock(&filter_context->flow_context_list.lock, &irql);
+    KeAcquireSpinLock(&filter_context->lock, &irql);
     InsertTailList(&filter_context->flow_context_list.list_head, &local_flow_context->link);
-    KeReleaseSpinLock(&filter_context->flow_context_list.lock, irql);
+    filter_context->flow_context_list.count++;
+    KeReleaseSpinLock(&filter_context->lock, irql);
     local_flow_context = NULL;
 
     classify_output->actionType = (result == 0) ? FWP_ACTION_PERMIT : FWP_ACTION_BLOCK;
@@ -409,17 +440,18 @@ net_ebpf_extension_sock_ops_flow_delete(uint16_t layer_id, uint32_t callout_id, 
 {
     net_ebpf_extension_sock_ops_wfp_flow_context_t* local_flow_context =
         (net_ebpf_extension_sock_ops_wfp_flow_context_t*)(uintptr_t)flow_context;
-    net_ebpf_extension_sock_ops_wfp_filter_context_t* filter_context;
+    net_ebpf_extension_sock_ops_wfp_filter_context_t* filter_context = NULL;
     net_ebpf_extension_hook_client_t* attached_client = NULL;
     bpf_sock_ops_t* sock_ops_context = NULL;
     uint32_t result;
     net_ebpf_extension_hook_execution_t execution_type =
         (KeGetCurrentIrql() < DISPATCH_LEVEL) ? EXECUTION_PASSIVE : EXECUTION_DISPATCH;
-    KIRQL irql;
+    KIRQL irql = 0;
 
     UNREFERENCED_PARAMETER(layer_id);
     UNREFERENCED_PARAMETER(callout_id);
 
+    ASSERT(local_flow_context != NULL);
     if (local_flow_context == NULL)
         goto Exit;
 
@@ -429,14 +461,16 @@ net_ebpf_extension_sock_ops_flow_delete(uint16_t layer_id, uint32_t callout_id, 
 
     attached_client = (net_ebpf_extension_hook_client_t*)filter_context->client_context;
     if (attached_client == NULL)
+        // This means that the eBPF program is detached and there is nothing to notify.
         goto Exit;
 
     if (!net_ebpf_extension_hook_client_enter_rundown(attached_client, execution_type))
         goto Exit;
 
-    KeAcquireSpinLock(&filter_context->flow_context_list.lock, &irql);
+    KeAcquireSpinLock(&filter_context->lock, &irql);
     RemoveEntryList(&local_flow_context->link);
-    KeReleaseSpinLock(&filter_context->flow_context_list.lock, irql);
+    filter_context->flow_context_list.count--;
+    KeReleaseSpinLock(&filter_context->lock, irql);
 
     // Invoke eBPF program with connection deleted socket event.
     sock_ops_context = &local_flow_context->context;
@@ -445,6 +479,7 @@ net_ebpf_extension_sock_ops_flow_delete(uint16_t layer_id, uint32_t callout_id, 
         goto Exit;
 
 Exit:
+    DEREFERENCE_FILTER_CONTEXT(filter_context);
     if (local_flow_context != NULL)
         ExFreePool(local_flow_context);
     if (attached_client != NULL)

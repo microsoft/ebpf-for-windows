@@ -59,7 +59,7 @@ function Invoke-Test
     $ArgumentsList = @()
 
     if ($Coverage) {
-        $ArgumentsList += @('--modules=C:\eBPF', '--export_type', ('binary:' + $TestName + '.cov'), '--', $TestName)
+        $ArgumentsList += @('-q', '--modules=C:\eBPF', '--export_type', ('binary:' + $TestName + '.cov'), '--', $TestName)
         $TestName = $CodeCoverage
     }
     # Execute Test.
@@ -67,6 +67,7 @@ function Invoke-Test
         $ArgumentsList += '-s'
     }
 
+    Write-Log "$TestName $ArgumentsList"
     $Output = &$TestName $ArgumentsList
     $TestName = $OriginalTestName
 

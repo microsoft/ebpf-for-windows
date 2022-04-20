@@ -51,9 +51,8 @@ const net_ebpf_extension_wfp_filter_parameters_t _net_ebpf_extension_xdp_wfp_fil
 
 typedef struct _net_ebpf_extension_xdp_wfp_filter_context
 {
-    const net_ebpf_extension_hook_client_t* client_context;
+    net_ebpf_extension_wfp_filter_context_t;
     uint32_t if_index;
-    uint64_t filter_ids[NET_EBPF_XDP_FILTER_COUNT];
 } net_ebpf_extension_xdp_wfp_filter_context_t;
 
 //
@@ -139,15 +138,12 @@ net_ebpf_extension_xdp_on_client_attach(
         condition.conditionValue.uint32 = if_index;
     }
 
-    // Allocate buffer for WFP filter context.
-    filter_context = (net_ebpf_extension_xdp_wfp_filter_context_t*)ExAllocatePoolUninitialized(
-        NonPagedPoolNx, sizeof(net_ebpf_extension_xdp_wfp_filter_context_t), NET_EBPF_EXTENSION_POOL_TAG);
-    if (filter_context == NULL) {
-        result = EBPF_NO_MEMORY;
+    result = net_ebpf_extension_wfp_filter_context_create(
+        sizeof(net_ebpf_extension_xdp_wfp_filter_context_t),
+        attaching_client,
+        (net_ebpf_extension_wfp_filter_context_t**)&filter_context);
+    if (result != EBPF_SUCCESS)
         goto Exit;
-    }
-    memset(filter_context, 0, sizeof(net_ebpf_extension_xdp_wfp_filter_context_t));
-    filter_context->client_context = attaching_client;
     filter_context->if_index = if_index;
 
     // Add WFP filters at appropriate layers and set the hook NPI client as the filter's raw context.
@@ -157,8 +153,8 @@ net_ebpf_extension_xdp_on_client_attach(
         _net_ebpf_extension_xdp_wfp_filter_parameters,
         (if_index == 0) ? 0 : 1,
         (if_index == 0) ? NULL : &condition,
-        filter_context,
-        filter_context->filter_ids);
+        (net_ebpf_extension_wfp_filter_context_t*)filter_context,
+        &filter_context->filter_ids);
     if (result != EBPF_SUCCESS)
         goto Exit;
 
@@ -183,7 +179,7 @@ _net_ebpf_extension_xdp_on_client_detach(_In_ const net_ebpf_extension_hook_clie
             detaching_client);
     ASSERT(filter_context != NULL);
     net_ebpf_extension_delete_wfp_filters(NET_EBPF_XDP_FILTER_COUNT, filter_context->filter_ids);
-    ExFreePool(filter_context);
+    net_ebpf_extension_wfp_filter_context_cleanup((net_ebpf_extension_wfp_filter_context_t*)filter_context);
 }
 
 NTSTATUS
@@ -529,9 +525,10 @@ net_ebpf_ext_layer_2_classify(
 
     filter_context = (net_ebpf_extension_xdp_wfp_filter_context_t*)filter->context;
     ASSERT(filter_context != NULL);
+    if (filter_context == NULL)
+        goto Done;
 
     attached_client = (net_ebpf_extension_hook_client_t*)filter_context->client_context;
-    ASSERT(attached_client != NULL);
     if (attached_client == NULL)
         goto Done;
 

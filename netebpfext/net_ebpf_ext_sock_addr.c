@@ -43,9 +43,8 @@ const net_ebpf_extension_wfp_filter_parameters_t _net_ebpf_extension_sock_addr_w
 
 typedef struct _net_ebpf_extension_sock_addr_wfp_filter_context
 {
-    const net_ebpf_extension_hook_client_t* client_context;
+    net_ebpf_extension_wfp_filter_context_t;
     uint32_t compartment_id;
-    uint64_t filter_id;
 } net_ebpf_extension_sock_addr_wfp_filter_context_t;
 
 //
@@ -130,15 +129,12 @@ net_ebpf_extension_sock_addr_on_client_attach(
         condition.conditionValue.uint32 = compartment_id;
     }
 
-    // Allocate buffer for WFP filter context.
-    filter_context = (net_ebpf_extension_sock_addr_wfp_filter_context_t*)ExAllocatePoolUninitialized(
-        NonPagedPoolNx, sizeof(net_ebpf_extension_sock_addr_wfp_filter_context_t), NET_EBPF_EXTENSION_POOL_TAG);
-    if (filter_context == NULL) {
-        result = EBPF_NO_MEMORY;
+    result = net_ebpf_extension_wfp_filter_context_create(
+        sizeof(net_ebpf_extension_sock_addr_wfp_filter_context_t),
+        attaching_client,
+        (net_ebpf_extension_wfp_filter_context_t**)&filter_context);
+    if (result != EBPF_SUCCESS)
         goto Exit;
-    }
-    memset(filter_context, 0, sizeof(net_ebpf_extension_sock_addr_wfp_filter_context_t));
-    filter_context->client_context = attaching_client;
     filter_context->compartment_id = compartment_id;
 
     // Get the WFP filter parameters for this hook type.
@@ -153,8 +149,8 @@ net_ebpf_extension_sock_addr_on_client_attach(
         filter_parameters,
         (compartment_id == UNSPECIFIED_COMPARTMENT_ID) ? 0 : 1,
         (compartment_id == UNSPECIFIED_COMPARTMENT_ID) ? NULL : &condition,
-        filter_context,
-        &filter_context->filter_id);
+        (net_ebpf_extension_wfp_filter_context_t*)filter_context,
+        &filter_context->filter_ids);
     if (result != EBPF_SUCCESS)
         goto Exit;
 
@@ -178,8 +174,8 @@ _net_ebpf_extension_sock_addr_on_client_detach(_In_ const net_ebpf_extension_hoo
         (net_ebpf_extension_sock_addr_wfp_filter_context_t*)net_ebpf_extension_hook_client_get_provider_data(
             detaching_client);
     ASSERT(filter_context != NULL);
-    net_ebpf_extension_delete_wfp_filters(1, &filter_context->filter_id);
-    ExFreePool(filter_context);
+    net_ebpf_extension_delete_wfp_filters(1, filter_context->filter_ids);
+    net_ebpf_extension_wfp_filter_context_cleanup((net_ebpf_extension_wfp_filter_context_t*)filter_context);
 }
 
 NTSTATUS
@@ -357,9 +353,10 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
 
     filter_context = (net_ebpf_extension_sock_addr_wfp_filter_context_t*)filter->context;
     ASSERT(filter_context != NULL);
+    if (filter_context == NULL)
+        goto Exit;
 
     attached_client = (net_ebpf_extension_hook_client_t*)filter_context->client_context;
-    ASSERT(attached_client != NULL);
     if (attached_client == NULL)
         goto Exit;
 

@@ -189,6 +189,49 @@ static HANDLE _fwp_engine_handle;
 // WFP component management related utility functions.
 //
 
+ebpf_result_t
+net_ebpf_extension_wfp_filter_context_create(
+    size_t filter_context_size,
+    _In_ const net_ebpf_extension_hook_client_t* client_context,
+    _Outptr_ net_ebpf_extension_wfp_filter_context_t** filter_context)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+    net_ebpf_extension_wfp_filter_context_t* local_filter_context = NULL;
+
+    *filter_context = NULL;
+
+    // Allocate buffer for WFP filter context.
+    local_filter_context = (net_ebpf_extension_wfp_filter_context_t*)ExAllocatePoolUninitialized(
+        NonPagedPoolNx, filter_context_size, NET_EBPF_EXTENSION_POOL_TAG);
+    if (local_filter_context == NULL) {
+        result = EBPF_NO_MEMORY;
+        goto Exit;
+    }
+    memset(local_filter_context, 0, filter_context_size);
+    local_filter_context->reference_count = 1; // Initial reference.
+    local_filter_context->client_context = client_context;
+
+    *filter_context = local_filter_context;
+    local_filter_context = NULL;
+Exit:
+    if (local_filter_context != NULL)
+        ExFreePool(local_filter_context);
+
+    return result;
+}
+
+void
+net_ebpf_extension_wfp_filter_context_cleanup(_Frees_ptr_ net_ebpf_extension_wfp_filter_context_t* filter_context)
+{
+    // Since the hook client is detaching, the eBPF program should not be invoked any further.
+    // The client_context field in filter_context is set to NULL for this reason. This way any
+    // lingering WFP classify callbacks will exit as it would not find any hook client associated with the filter
+    // context. This is best effort & no locks are held.
+    filter_context->client_context = NULL;
+    filter_context->filter_ids = NULL;
+    DEREFERENCE_FILTER_CONTEXT(filter_context);
+}
+
 net_ebpf_extension_hook_id_t
 net_ebpf_extension_get_hook_id_from_wfp_layer_id(uint16_t wfp_layer_id)
 {
@@ -250,10 +293,11 @@ net_ebpf_extension_get_callout_id_for_hook(net_ebpf_extension_hook_id_t hook_id)
     return callout_id;
 }
 void
-net_ebpf_extension_delete_wfp_filters(uint32_t filter_count, _In_count_(filter_count) uint64_t* filter_ids)
+net_ebpf_extension_delete_wfp_filters(uint32_t filter_count, _Frees_ptr_ _In_count_(filter_count) uint64_t* filter_ids)
 {
     for (uint32_t index = 0; index < filter_count; index++)
         FwpmFilterDeleteById(_fwp_engine_handle, filter_ids[index]);
+    ExFreePool(filter_ids);
 }
 
 ebpf_result_t
@@ -262,12 +306,27 @@ net_ebpf_extension_add_wfp_filters(
     _In_count_(filter_count) const net_ebpf_extension_wfp_filter_parameters_t* parameters,
     uint32_t condition_count,
     _In_opt_count_(condition_count) const FWPM_FILTER_CONDITION* conditions,
-    _In_ const void* raw_context,
-    _Out_writes_(filter_count) uint64_t* filter_ids)
+    _In_ net_ebpf_extension_wfp_filter_context_t* filter_context,
+    _Outptr_result_buffer_maybenull_(filter_count) uint64_t** filter_ids)
 {
     NTSTATUS status = STATUS_SUCCESS;
     ebpf_result_t result = EBPF_SUCCESS;
     BOOL is_in_transaction = FALSE;
+    uint64_t* local_filter_ids = NULL;
+    *filter_ids = NULL;
+
+    if (filter_count == 0) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
+
+    local_filter_ids = (uint64_t*)ExAllocatePoolUninitialized(
+        NonPagedPoolNx, sizeof(uint64_t) * filter_count, NET_EBPF_EXTENSION_POOL_TAG);
+    if (local_filter_ids == NULL) {
+        result = EBPF_NO_MEMORY;
+        goto Exit;
+    }
+    memset(local_filter_ids, 0, sizeof(uint64_t) * filter_count);
 
     status = FwpmTransactionBegin(_fwp_engine_handle, 0);
     if (!NT_SUCCESS(status)) {
@@ -293,9 +352,10 @@ net_ebpf_extension_add_wfp_filters(
         filter.numFilterConditions = condition_count;
         filter.subLayerKey = EBPF_SUBLAYER;
         filter.weight.type = FWP_EMPTY; // auto-weight.
-        filter.rawContext = (uint64_t)(uintptr_t)raw_context;
+        REFERENCE_FILTER_CONTEXT(filter_context);
+        filter.rawContext = (uint64_t)(uintptr_t)filter_context;
 
-        status = FwpmFilterAdd(_fwp_engine_handle, &filter, NULL, &filter_ids[index]);
+        status = FwpmFilterAdd(_fwp_engine_handle, &filter, NULL, &local_filter_ids[index]);
 
         if (!NT_SUCCESS(status)) {
             KdPrintEx(
@@ -320,8 +380,12 @@ net_ebpf_extension_add_wfp_filters(
     }
     is_in_transaction = FALSE;
 
+    *filter_ids = local_filter_ids;
+
 Exit:
     if (!NT_SUCCESS(status)) {
+        if (local_filter_ids != NULL)
+            ExFreePool(local_filter_ids);
         if (is_in_transaction)
             FwpmTransactionAbort(_fwp_engine_handle);
     }
@@ -556,9 +620,12 @@ static NTSTATUS
 _net_ebpf_ext_filter_change_notify(
     FWPS_CALLOUT_NOTIFY_TYPE callout_notification_type, _In_ const GUID* filter_key, _Inout_ const FWPS_FILTER* filter)
 {
-    UNREFERENCED_PARAMETER(callout_notification_type);
     UNREFERENCED_PARAMETER(filter_key);
-    UNREFERENCED_PARAMETER(filter);
+    if (callout_notification_type == FWPS_CALLOUT_NOTIFY_DELETE_FILTER) {
+        net_ebpf_extension_wfp_filter_context_t* filter_context =
+            (net_ebpf_extension_wfp_filter_context_t*)(uintptr_t)filter->context;
+        DEREFERENCE_FILTER_CONTEXT((filter_context));
+    }
 
     return STATUS_SUCCESS;
 }

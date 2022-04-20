@@ -52,6 +52,8 @@ Environment:
 #define htonl(x) _byteswap_ulong(x)
 #define htons(x) _byteswap_ushort(x)
 
+struct _net_ebpf_extension_hook_client;
+
 typedef struct _wfp_ale_layer_fields
 {
     uint16_t local_ip_address_field;
@@ -70,6 +72,62 @@ typedef struct _net_ebpf_extension_wfp_filter_parameters
     const wchar_t* name;        ///< Display name of filter.
     const wchar_t* description; ///< Description of filter.
 } net_ebpf_extension_wfp_filter_parameters_t;
+
+/**
+ * "Base class" for all WFP filter contexts used by net ebpf extension hooks.
+ */
+typedef struct _net_ebpf_extension_wfp_filter_context
+{
+    volatile long reference_count;                                ///< Reference count.
+    const struct _net_ebpf_extension_hook_client* client_context; ///< Pointer to hook NPI client.
+    uint64_t* filter_ids;                                         // Array of WFP filter Ids.
+} net_ebpf_extension_wfp_filter_context_t;
+
+#define REFERENCE_FILTER_CONTEXT(filter_context) \
+    if ((filter_context) != NULL)                \
+        InterlockedIncrement(&(filter_context)->reference_count);
+
+#define DEREFERENCE_FILTER_CONTEXT(filter_context)                         \
+    if ((filter_context) != NULL)                                          \
+        if (InterlockedDecrement(&(filter_context)->reference_count) == 0) \
+            ExFreePool((filter_context));
+
+/**
+ * @brief This function allocates and initializes a net ebpf extension WFP filter context. This should be invoked when
+ * the hook client is being attached.
+ *
+ * @param[in] filter_context_size Size in bytes of the filter context.
+ * @param[in] client_context Pointer to hook client being attached. This would be associated with the filter context.
+ * @param[out] filter_context Pointer to created filter_context.
+ *
+ * @retval EBPF_SUCCESS The filter context was created successfully.
+ * @retval EBPF_NO_MEMORY Out of memory.
+ */
+ebpf_result_t
+net_ebpf_extension_wfp_filter_context_create(
+    size_t filter_context_size,
+    _In_ const struct _net_ebpf_extension_hook_client* client_context,
+    _Outptr_ net_ebpf_extension_wfp_filter_context_t** filter_context);
+
+/**
+ * @brief This function cleans up the input ebpf extension WFP filter context. This should be invoked when the hook
+ * client is being detached.
+ *
+ * @param[out] filter_context Pointer to filter_context to clean up.
+ *
+ */
+void
+net_ebpf_extension_wfp_filter_context_cleanup(_Frees_ptr_ net_ebpf_extension_wfp_filter_context_t* filter_context);
+
+/**
+ * @brief Structure for WFP flow Id parameters.
+ */
+typedef struct _net_ebpf_extension_flow_context_parameters
+{
+    uint64_t flow_id;    ///< WFP flow Id.
+    uint16_t layer_id;   ///< WFP layer Id that this flow is associated to.
+    uint32_t callout_id; ///< WFP callout Id that this flow is associated to.
+} net_ebpf_extension_flow_context_parameters_t;
 
 typedef enum _net_ebpf_extension_hook_id
 {
@@ -126,8 +184,8 @@ net_ebpf_extension_add_wfp_filters(
     _In_count_(filter_count) const net_ebpf_extension_wfp_filter_parameters_t* parameters,
     uint32_t condition_count,
     _In_opt_count_(condition_count) const FWPM_FILTER_CONDITION* conditions,
-    _In_ const void* raw_context,
-    _Out_writes_(filter_count) uint64_t* filter_ids);
+    _In_ net_ebpf_extension_wfp_filter_context_t* filter_context,
+    _Outptr_result_buffer_maybenull_(filter_count) uint64_t** filter_ids);
 
 /**
  * @brief Deletes WFP filters with specified filter IDs.
@@ -136,7 +194,7 @@ net_ebpf_extension_add_wfp_filters(
  * @param[in]  filter_ids ID of the filter being deleted.
  */
 void
-net_ebpf_extension_delete_wfp_filters(uint32_t filter_count, _In_count_(filter_count) uint64_t* filter_ids);
+net_ebpf_extension_delete_wfp_filters(uint32_t filter_count, _Frees_ptr_ _In_count_(filter_count) uint64_t* filter_ids);
 
 // eBPF WFP Sublayer GUID.
 // 7c7b3fb9-3331-436a-98e1-b901df457fff
