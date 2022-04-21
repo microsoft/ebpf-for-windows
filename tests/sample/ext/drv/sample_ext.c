@@ -67,7 +67,7 @@ NPI_MODULEID DECLSPEC_SELECTANY _sample_ebpf_extension_program_info_provider_mod
  * @retval STATUS_NO_MEMORY Failed to allocate provider binding context.
  * @retval STATUS_INVALID_PARAMETER One or more arguments are incorrect.
  */
-NTSTATUS
+static NTSTATUS
 _sample_ebpf_extension_program_info_provider_attach_client(
     _In_ HANDLE nmr_binding_handle,
     _In_ void* provider_context,
@@ -84,7 +84,7 @@ _sample_ebpf_extension_program_info_provider_attach_client(
  * @retval STATUS_SUCCESS The operation succeeded.
  * @retval STATUS_INVALID_PARAMETER One or more parameters are invalid.
  */
-NTSTATUS
+static NTSTATUS
 _sample_ebpf_extension_program_info_provider_detach_client(_In_ void* provider_binding_context);
 
 /**
@@ -92,7 +92,7 @@ _sample_ebpf_extension_program_info_provider_detach_client(_In_ void* provider_b
  *
  * @param[in] provider_binding_context Provider module's context for binding with the client.
  */
-void
+static void
 _sample_ebpf_extension_program_info_provider_cleanup_binding_context(_Frees_ptr_ void* provider_binding_context);
 
 // Sample eBPF extension Program Information NPI provider characteristics
@@ -152,7 +152,7 @@ NPI_MODULEID DECLSPEC_SELECTANY _sample_ebpf_extension_hook_provider_moduleid = 
  * @retval STATUS_NO_MEMORY Failed to allocate provider binding context.
  * @retval STATUS_INVALID_PARAMETER One or more arguments are incorrect.
  */
-NTSTATUS
+static NTSTATUS
 _sample_ebpf_extension_hook_provider_attach_client(
     _In_ HANDLE nmr_binding_handle,
     _In_ void* provider_context,
@@ -169,7 +169,7 @@ _sample_ebpf_extension_hook_provider_attach_client(
  * @retval STATUS_SUCCESS The operation succeeded.
  * @retval STATUS_INVALID_PARAMETER One or more parameters are invalid.
  */
-NTSTATUS
+static NTSTATUS
 _sample_ebpf_extension_hook_provider_detach_client(_In_ void* provider_binding_context);
 
 /**
@@ -177,7 +177,7 @@ _sample_ebpf_extension_hook_provider_detach_client(_In_ void* provider_binding_c
  *
  * @param[in] provider_binding_context Provider module's context for binding with the client.
  */
-void
+static void
 _sample_ebpf_extension_hook_provider_cleanup_binding_context(_Frees_ptr_ void* provider_binding_context);
 
 // Sample eBPF extension Hook NPI provider characteristics
@@ -234,7 +234,7 @@ typedef struct _sample_ebpf_extension_hook_provider
 
 static sample_ebpf_extension_hook_provider_t _sample_ebpf_extension_hook_provider_context = {0};
 
-NTSTATUS
+static NTSTATUS
 _sample_ebpf_extension_program_info_provider_attach_client(
     _In_ HANDLE nmr_binding_handle,
     _In_ void* provider_context,
@@ -279,7 +279,7 @@ Exit:
     return status;
 }
 
-NTSTATUS
+static NTSTATUS
 _sample_ebpf_extension_program_info_provider_detach_client(_In_ void* provider_binding_context)
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -289,7 +289,7 @@ _sample_ebpf_extension_program_info_provider_detach_client(_In_ void* provider_b
     return status;
 }
 
-void
+static void
 _sample_ebpf_extension_program_info_provider_cleanup_binding_context(_Frees_ptr_ void* provider_binding_context)
 {
     ebpf_free(provider_binding_context);
@@ -340,7 +340,7 @@ Exit:
 // Hook Provider.
 //
 
-NTSTATUS
+static NTSTATUS
 _sample_ebpf_extension_hook_provider_attach_client(
     _In_ HANDLE nmr_binding_handle,
     _In_ void* provider_context,
@@ -401,7 +401,7 @@ Exit:
     return status;
 }
 
-NTSTATUS
+static NTSTATUS
 _sample_ebpf_extension_hook_provider_detach_client(_In_ void* provider_binding_context)
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -422,7 +422,7 @@ Exit:
     return status;
 }
 
-void
+static void
 _sample_ebpf_extension_hook_provider_cleanup_binding_context(_Frees_ptr_ void* provider_binding_context)
 {
     ebpf_free(provider_binding_context);
