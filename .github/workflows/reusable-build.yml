@@ -78,7 +78,7 @@ jobs:
         # https://github.com/actions/download-artifact#download-all-artifacts
         name: x64-${{ matrix.configurations }}-cilium-xdp
         # Optional, directory where to extract artifact(s), defaults to current directory
-        path: ${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+        path: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
         # Optional, defaults to current repo
         repo: microsoft/ebpf-for-windows-demo
         # Optional, check the workflow run whether it has an artifact
@@ -91,6 +91,15 @@ jobs:
         # Optional, choose to skip unpacking the downloaded artifact(s)
         # default false
         skip_unpack: false
+
+    - name: DIR workspace
+      run: |
+        echo "DIR current folder ..."
+        dir
+        echo "DIR working dir ..."
+        dir ${{github.workspace}}
+        echo "DIR build dir ..."
+        dir ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
 
     - name: Initialize CodeQL
       if: inputs.build_codeql == true
