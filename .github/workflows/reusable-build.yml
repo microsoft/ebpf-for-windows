@@ -47,6 +47,7 @@ jobs:
 
     - name: Download artifact
       uses: dawidd6/action-download-artifact@v2.19.0
+      working-directory: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
       with:
         # Optional, GitHub token, a Personal Access Token with `public_repo` scope if needed
         # Required, if artifact is from a different repo
