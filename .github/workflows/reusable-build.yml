@@ -131,7 +131,8 @@ jobs:
         # https://github.com/actions/download-artifact#download-all-artifacts
         name: x64-${{ matrix.configurations }}-cilium-xdp
         # Optional, directory where to extract artifact(s), defaults to current directory
-        path: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+        ## path: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+        path: ${{github.workspace}}
         # Optional, defaults to current repo
         repo: microsoft/ebpf-for-windows-demo
         # Optional, check the workflow run whether it has an artifact
@@ -144,6 +145,14 @@ jobs:
         # Optional, choose to skip unpacking the downloaded artifact(s)
         # default false
         skip_unpack: false
+
+    - name: Extract artifacts to build path
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      run: |
+        dir
+        7z x x64-${{ matrix.configurations }}-cilium-xdp.zip -y -o ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+        cd ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+        dir
 
     - name: Upload Build Output
       uses: actions/upload-artifact@6673cd052c4cd6fcf4b4e6e60ea986c889389535
