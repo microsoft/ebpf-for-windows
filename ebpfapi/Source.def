@@ -88,7 +88,6 @@ EXPORTS
     ebpf_api_elf_verify_section_from_file
     ebpf_api_elf_verify_section_from_memory
     ebpf_api_elf_free
-    ebpf_api_link_program
     ebpf_api_close_handle
     ebpf_api_get_pinned_map_info
     ebpf_api_map_info_free

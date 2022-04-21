@@ -497,7 +497,7 @@ __bpf_set_link_xdp_fd_replace(int ifindex, int fd, int old_fd, __u32 flags)
     // new program is present in kernel (the flag XDP_FLAGS_REPLACE is
     // passed to the kernel).  Thus, we should consider moving this
     // logic to the execution context.
-    if (flags & XDP_FLAGS_REPLACE) {
+    if ((flags & XDP_FLAGS_REPLACE) || (fd == ebpf_fd_invalid)) {
         // Look up the old program info to get the program ID.
         ebpf_id_t program_id = 0;
         if (old_fd == 0 || old_fd == ebpf_fd_invalid) {

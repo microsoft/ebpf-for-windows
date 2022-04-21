@@ -34,8 +34,6 @@ const net_ebpf_extension_wfp_filter_parameters_t _net_ebpf_extension_bind_wfp_fi
 
 #define NET_EBPF_BIND_FILTER_COUNT EBPF_COUNT_OF(_net_ebpf_extension_bind_wfp_filter_parameters)
 
-uint64_t _net_ebpf_extension_bind_wfp_filter_ids[NET_EBPF_BIND_FILTER_COUNT] = {0};
-
 //
 // Bind Program Information NPI Provider.
 //
@@ -70,6 +68,7 @@ _net_ebpf_extension_bind_on_client_attach(
     _In_ const net_ebpf_extension_hook_provider_t* provider_context)
 {
     ebpf_result_t result = EBPF_SUCCESS;
+    net_ebpf_extension_wfp_filter_context_t* filter_context = NULL;
 
     // Bind hook allows only one client at a time.
     if (net_ebpf_extension_hook_get_next_attached_client((net_ebpf_extension_hook_provider_t*)provider_context, NULL) !=
@@ -78,16 +77,25 @@ _net_ebpf_extension_bind_on_client_attach(
         goto Exit;
     }
 
+    result = net_ebpf_extension_wfp_filter_context_create(
+        sizeof(net_ebpf_extension_wfp_filter_context_t), attaching_client, &filter_context);
+    if (result != EBPF_SUCCESS)
+        goto Exit;
+
     // Add WFP filters at appropriate layers and set the hook NPI client as the filter's raw context.
     result = net_ebpf_extension_add_wfp_filters(
         EBPF_COUNT_OF(_net_ebpf_extension_bind_wfp_filter_parameters),
         _net_ebpf_extension_bind_wfp_filter_parameters,
         0,
         NULL,
-        attaching_client,
-        _net_ebpf_extension_bind_wfp_filter_ids);
+        filter_context,
+        &filter_context->filter_ids);
     if (result != EBPF_SUCCESS)
         goto Exit;
+
+    // Set the filter context as the client context's provider data.
+    net_ebpf_extension_hook_client_set_provider_data(
+        (net_ebpf_extension_hook_client_t*)attaching_client, filter_context);
 
 Exit:
     return result;
@@ -96,11 +104,13 @@ Exit:
 static void
 _net_ebpf_extension_bind_on_client_detach(_In_ const net_ebpf_extension_hook_client_t* detaching_client)
 {
-    UNREFERENCED_PARAMETER(detaching_client);
+    net_ebpf_extension_wfp_filter_context_t* filter_context =
+        (net_ebpf_extension_wfp_filter_context_t*)net_ebpf_extension_hook_client_get_provider_data(detaching_client);
+    ASSERT(filter_context != NULL);
 
     // Delete the WFP filters.
-    net_ebpf_extension_delete_wfp_filters(NET_EBPF_BIND_FILTER_COUNT, _net_ebpf_extension_bind_wfp_filter_ids);
-    memset(_net_ebpf_extension_bind_wfp_filter_ids, 0, sizeof(_net_ebpf_extension_bind_wfp_filter_ids));
+    net_ebpf_extension_delete_wfp_filters(NET_EBPF_BIND_FILTER_COUNT, filter_context->filter_ids);
+    net_ebpf_extension_wfp_filter_context_cleanup((net_ebpf_extension_wfp_filter_context_t*)filter_context);
 }
 
 //
@@ -180,6 +190,7 @@ net_ebpf_ext_resource_allocation_classify(
     SOCKADDR_IN addr = {AF_INET};
     uint32_t result;
     bind_md_t ctx;
+    net_ebpf_extension_wfp_filter_context_t* filter_context = NULL;
     net_ebpf_extension_hook_client_t* attached_client = NULL;
 
     UNREFERENCED_PARAMETER(layer_data);
@@ -188,8 +199,12 @@ net_ebpf_ext_resource_allocation_classify(
 
     classify_output->actionType = FWP_ACTION_PERMIT;
 
-    attached_client = (net_ebpf_extension_hook_client_t*)filter->context;
-    ASSERT(attached_client != NULL);
+    filter_context = (net_ebpf_extension_wfp_filter_context_t*)filter->context;
+    ASSERT(filter_context != NULL);
+    if (filter_context == NULL)
+        goto Exit;
+
+    attached_client = (net_ebpf_extension_hook_client_t*)filter_context->client_context;
     if (attached_client == NULL)
         goto Exit;
 
@@ -245,14 +260,19 @@ net_ebpf_ext_resource_release_classify(
     SOCKADDR_IN addr = {AF_INET};
     uint32_t result;
     bind_md_t ctx;
+    net_ebpf_extension_wfp_filter_context_t* filter_context = NULL;
     net_ebpf_extension_hook_client_t* attached_client = NULL;
 
     UNREFERENCED_PARAMETER(layer_data);
     UNREFERENCED_PARAMETER(classify_context);
     UNREFERENCED_PARAMETER(flow_context);
 
-    attached_client = (net_ebpf_extension_hook_client_t*)filter->context;
-    ASSERT(attached_client != NULL);
+    filter_context = (net_ebpf_extension_wfp_filter_context_t*)filter->context;
+    ASSERT(filter_context != NULL);
+    if (filter_context == NULL)
+        goto Exit;
+
+    attached_client = (net_ebpf_extension_hook_client_t*)filter_context->client_context;
     if (attached_client == NULL)
         goto Exit;
 
