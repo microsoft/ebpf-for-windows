@@ -18,7 +18,7 @@
 struct _net_ebpf_extension_sock_ops_wfp_filter_context;
 
 /**
- * @brief Custom context associated with WFP flows that are notified to eBPF programs
+ * @brief Custom context associated with WFP flows that are notified to eBPF programs.
  */
 typedef struct _net_ebpf_extension_sock_ops_wfp_flow_context
 {
@@ -447,6 +447,7 @@ net_ebpf_extension_sock_ops_flow_delete(uint16_t layer_id, uint32_t callout_id, 
     net_ebpf_extension_hook_execution_t execution_type =
         (KeGetCurrentIrql() < DISPATCH_LEVEL) ? EXECUTION_PASSIVE : EXECUTION_DISPATCH;
     KIRQL irql = 0;
+    bool lock_held = FALSE;
 
     UNREFERENCED_PARAMETER(layer_id);
     UNREFERENCED_PARAMETER(callout_id);
@@ -468,9 +469,16 @@ net_ebpf_extension_sock_ops_flow_delete(uint16_t layer_id, uint32_t callout_id, 
         goto Exit;
 
     KeAcquireSpinLock(&filter_context->lock, &irql);
+    lock_held = TRUE;
+    if (IsListEmpty(&local_flow_context->link)) {
+        // The flow context is not in the filter context's list. This means the flow context is not associated with the
+        // flow, and the hook client has detached. So the function will exit without invoking the hook client.
+        goto Exit;
+    }
     RemoveEntryList(&local_flow_context->link);
     filter_context->flow_context_list.count--;
     KeReleaseSpinLock(&filter_context->lock, irql);
+    lock_held = FALSE;
 
     // Invoke eBPF program with connection deleted socket event.
     sock_ops_context = &local_flow_context->context;
@@ -479,6 +487,9 @@ net_ebpf_extension_sock_ops_flow_delete(uint16_t layer_id, uint32_t callout_id, 
         goto Exit;
 
 Exit:
+    if (lock_held)
+        KeReleaseSpinLock(&filter_context->lock, irql);
+
     DEREFERENCE_FILTER_CONTEXT(filter_context);
     if (local_flow_context != NULL)
         ExFreePool(local_flow_context);
