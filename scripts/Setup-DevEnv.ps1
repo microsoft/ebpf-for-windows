@@ -9,6 +9,7 @@ choco install visualstudio2019community --version 16.11.12.0 -y
 choco install visualstudio2019-workload-nativedesktop --version 1.0.1 -y
 choco install visualstudio2019buildtools --version 16.11.12.0 -y
 choco install windowsdriverkit10 --version 10.0.19041.685 -y
+choco install windowsdriverkit11 --version 10.0.22000.1 -y
 choco install llvm --version 13.0.1 -y
 choco install nuget.commandline --version 6.1.0 -y
 choco install cmake.portable --version 3.23.1 -y
