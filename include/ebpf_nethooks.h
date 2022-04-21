@@ -214,7 +214,7 @@ typedef struct _bpf_sock_ops
  *  \ref EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS
  *
  * @param[in] context \ref bpf_sock_ops_t
- * @return 0 on success, or a negative error in case of failure.
+ * @return 0 on success, or error value in case of failure.
  *
  */
 typedef int
