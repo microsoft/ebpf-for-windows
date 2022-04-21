@@ -47,7 +47,6 @@ jobs:
 
     - name: Download artifact
       uses: dawidd6/action-download-artifact@v2.19.0
-      working-directory: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
       with:
         # Optional, GitHub token, a Personal Access Token with `public_repo` scope if needed
         # Required, if artifact is from a different repo
@@ -79,7 +78,7 @@ jobs:
         # https://github.com/actions/download-artifact#download-all-artifacts
         name: x64-${{ matrix.configurations }}-cilium-xdp
         # Optional, directory where to extract artifact(s), defaults to current directory
-        ## path: extract_here
+        path: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
         # Optional, defaults to current repo
         repo: microsoft/ebpf-for-windows-demo
         # Optional, check the workflow run whether it has an artifact
