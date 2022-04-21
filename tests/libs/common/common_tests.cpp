@@ -91,29 +91,22 @@ verify_utility_helper_results(_In_ const bpf_object* object)
         (test_data[1].timestamp - test_data[0].timestamp));
 }
 
-typedef struct _ring_buffer_test_event_context
+ring_buffer_test_event_context_t::_ring_buffer_test_event_context()
+    : ring_buffer(nullptr), records(nullptr), canceled(false), matched_entry_count(0), test_event_count(0)
+{}
+ring_buffer_test_event_context_t::~_ring_buffer_test_event_context()
 {
-    std::promise<void> ring_buffer_event_promise;
-    struct ring_buffer* ring_buffer;
-    std::vector<std::vector<char>>* records;
-    bool canceled;
-    int matched_entry_count;
-    _ring_buffer_test_event_context() : ring_buffer(nullptr), records(nullptr), canceled(false), matched_entry_count(0)
-    {}
-    ~_ring_buffer_test_event_context()
-    {
-        if (ring_buffer != nullptr)
-            ring_buffer__free(ring_buffer);
-    }
-    void
-    unsubscribe()
-    {
-        struct ring_buffer* temp = ring_buffer;
-        ring_buffer = nullptr;
-        // Unsubscribe.
-        ring_buffer__free(temp);
-    }
-} ring_buffer_test_event_context_t;
+    if (ring_buffer != nullptr)
+        ring_buffer__free(ring_buffer);
+}
+void
+ring_buffer_test_event_context_t::unsubscribe()
+{
+    struct ring_buffer* temp = ring_buffer;
+    ring_buffer = nullptr;
+    // Unsubscribe.
+    ring_buffer__free(temp);
+}
 
 int
 ring_buffer_test_event_handler(_In_ void* ctx, _In_opt_ void* data, size_t size)
@@ -122,12 +115,13 @@ ring_buffer_test_event_handler(_In_ void* ctx, _In_opt_ void* data, size_t size)
 
     if (event_context->canceled) {
         // Ring buffer subscription is canceled.
+        // The test handler expects this callback due to unsubscribe call.
         // Free the callback context and return error so that no further callback is made.
         delete event_context;
         return -1;
     }
 
-    if (event_context->matched_entry_count == RING_BUFFER_TEST_EVENT_COUNT)
+    if (event_context->matched_entry_count == event_context->test_event_count)
         // Required number of event notifications already received.
         return 0;
 
@@ -135,12 +129,12 @@ ring_buffer_test_event_handler(_In_ void* ctx, _In_opt_ void* data, size_t size)
         return 0;
 
     std::vector<char> event_record(reinterpret_cast<char*>(data), reinterpret_cast<char*>(data) + size);
-    // Check if indicated event record matches an entry in the context app_ids list.
+    // Check if indicated event record matches an entry in the context records.
     auto records = event_context->records;
     auto it = std::find(records->begin(), records->end(), event_record);
     if (it != records->end())
         event_context->matched_entry_count++;
-    if (event_context->matched_entry_count == RING_BUFFER_TEST_EVENT_COUNT) {
+    if (event_context->matched_entry_count == event_context->test_event_count) {
         // If all the entries in the app ID list was found, fulfill the promise.
         event_context->ring_buffer_event_promise.set_value();
     }
@@ -153,7 +147,7 @@ ring_buffer_api_test_helper(
 {
     // Ring buffer event callback context.
     std::unique_ptr<ring_buffer_test_event_context_t> context = std::make_unique<ring_buffer_test_event_context_t>();
-    context->matched_entry_count = 0;
+    context->test_event_count = RING_BUFFER_TEST_EVENT_COUNT;
 
     context->records = &expected_records;
 
