@@ -14,6 +14,7 @@
 #include "programs.h"
 #include "tokens.h"
 #include "utilities.h"
+#include <set>
 
 typedef enum
 {
@@ -254,14 +255,18 @@ _unpin_program_by_id(ebpf_id_t id)
 {
     ebpf_result_t result;
     DWORD status = NO_ERROR;
-    char path[EBPF_MAX_PIN_PATH_LENGTH] = {0};
 
-    for (;;) {
-        result = ebpf_get_next_pinned_program_path(path, path);
-        if (result != EBPF_SUCCESS) {
-            break;
-        }
-        int fd = bpf_obj_get(path);
+    // Read all pin paths.  Currently we get them in a non-deterministic
+    // order, so we use a std::set to sort them in code point order.
+    char pinpath[EBPF_MAX_PIN_PATH_LENGTH] = "";
+    std::set<std::string> paths;
+    while (ebpf_get_next_pinned_program_path(pinpath, pinpath) == EBPF_SUCCESS) {
+        paths.insert(pinpath);
+    }
+
+    // Now walk through all paths in code point order.
+    for (auto path : paths) {
+        int fd = bpf_obj_get(path.c_str());
         if (fd < 0) {
             continue;
         }
@@ -269,12 +274,12 @@ _unpin_program_by_id(ebpf_id_t id)
         uint32_t info_size = sizeof(info);
         if (bpf_obj_get_info_by_fd(fd, &info, &info_size) == 0) {
             if (id == info.id) {
-                result = ebpf_object_unpin(path);
+                result = ebpf_object_unpin(path.c_str());
                 if (result != EBPF_SUCCESS) {
-                    printf("Error %d unpinning %d from %s\n", result, id, path);
+                    printf("Error %d unpinning %d from %s\n", result, id, path.c_str());
                     status = ERROR_SUPPRESS_OUTPUT;
                 } else {
-                    printf("Unpinned %d from %s\n", id, path);
+                    printf("Unpinned %d from %s\n", id, path.c_str());
                 }
             }
         }
@@ -317,6 +322,13 @@ handle_ebpf_delete_program(
         return status;
     }
 
+    int program_fd = bpf_prog_get_fd_by_id(id);
+    if (program_fd == ebpf_fd_invalid) {
+        std::cout << "Program not found\n";
+        return ERROR_SUPPRESS_OUTPUT;
+    }
+    Platform::_close(program_fd);
+
     // If the program is pinned, unpin the specified program.
     status = _unpin_program_by_id(id);
     if (status != NO_ERROR) {
@@ -332,7 +344,7 @@ handle_ebpf_delete_program(
         bpf_program* program;
         bpf_object__for_each_program(program, object)
         {
-            int program_fd = bpf_program__fd(program);
+            program_fd = bpf_program__fd(program);
             struct bpf_prog_info info;
             uint32_t info_size = sizeof(info);
             if (bpf_obj_get_info_by_fd(program_fd, &info, &info_size) < 0) {
@@ -340,11 +352,7 @@ handle_ebpf_delete_program(
             }
             if (info.id == id) {
                 bpf_object__close(object);
-
-                // TODO: see if the program is still loaded, in which case some other process holds
-                // a reference. Get the PID of that process and display it.
-
-                return NO_ERROR;
+                break;
             }
         }
     }
@@ -352,8 +360,7 @@ handle_ebpf_delete_program(
     // TODO: see if the program is still loaded, in which case some other process holds
     // a reference. Get the PID of that process and display it.
 
-    std::cout << "Program not found\n";
-    return ERROR_SUPPRESS_OUTPUT;
+    return NO_ERROR;
 }
 
 ebpf_result_t

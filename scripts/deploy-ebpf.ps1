@@ -49,6 +49,7 @@ $build_directory=".\x64\Debug"
     "ebpf_client.exe",
     "ebpf_client.pdb",
     "EbpfApi.pdb",
+    "ebpfnetsh.pdb",
     "encap_reflect_packet.o",
     "map.o",
     "map_in_map.o",

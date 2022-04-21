@@ -130,15 +130,12 @@ run_netsh_command_with_args(_In_ FN_HANDLE_CMD* command, _Out_ int* result, int 
         }
     }
 
-    error = command(nullptr, (LPWSTR*)argv.data(), 0, argc, 0, 0, nullptr);
+    *result = command(nullptr, (LPWSTR*)argv.data(), 0, argc, 0, 0, nullptr);
 
     va_end(args);
 
-    if (error != 0) {
-        *result = error;
-        return capture.get_stderr_contents();
-    }
+    std::string stderr_contents = capture.get_stderr_contents();
+    std::string stdout_contents = capture.get_stdout_contents();
 
-    *result = NO_ERROR;
-    return capture.get_stdout_contents();
+    return stdout_contents + stderr_contents;
 }
