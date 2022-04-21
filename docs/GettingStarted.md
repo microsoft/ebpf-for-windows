@@ -21,7 +21,7 @@ Alternative install steps:
 ```
 Set-ExecutionPolicy Bypass -Scope Process -Force
 Invoke-WebRequest 'https://github.com/microsoft/ebpf-for-windows/tree/main/scripts/Setup-DevEnv.ps1' -OutFile $env:TEMP\Setup-DeveEnv.ps1
-if ((get-filehash $env:TEMP\Setup-DeveEnv.ps1).Hash -eq '5CC7246BD8738522D19BE6DAAB6852DE240F2C0359B1504216FC018AEC5C4D51') { &"$env:TEMP\Setup-DeveEnv.ps1" }
+if ((get-filehash $env:TEMP\Setup-DeveEnv.ps1).Hash -eq 'B3AC377E7265EBA6AF98BADD6B79F955CCB4704648B7DB067E7D9F6AEC0694D3') { &"$env:TEMP\Setup-DeveEnv.ps1" }
 ```
 3. Launch Visual Studio Installer and select "MSVC v142 - VS 2019 C++ x64/x86 Spectre-mitigated libs (latest)"
 
