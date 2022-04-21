@@ -793,7 +793,7 @@ _create_object_hash_map(
     local_map = NULL;
 
 Exit:
-    if (result != EBPF_SUCCESS) {
+    if (result != EBPF_SUCCESS && local_map) {
         _delete_object_hash_map(local_map);
         local_map = NULL;
     }
