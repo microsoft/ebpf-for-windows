@@ -41,7 +41,7 @@ typedef struct _net_ebpf_extension_program_info_provider
  * @retval STATUS_NO_MEMORY Failed to allocate provider binding context.
  * @retval STATUS_INVALID_PARAMETER One or more arguments are incorrect.
  */
-NTSTATUS
+static NTSTATUS
 _net_ebpf_extension_program_info_provider_attach_client(
     _In_ HANDLE nmr_binding_handle,
     _In_ void* provider_context,
@@ -95,7 +95,7 @@ Exit:
  * @retval STATUS_SUCCESS The operation succeeded.
  * @retval STATUS_INVALID_PARAMETER One or more parameters are invalid.
  */
-NTSTATUS
+static NTSTATUS
 _net_ebpf_extension_program_info_provider_detach_client(_In_ void* provider_binding_context)
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -105,7 +105,7 @@ _net_ebpf_extension_program_info_provider_detach_client(_In_ void* provider_bind
     return status;
 }
 
-void
+static void
 _net_ebpf_extension_program_info_provider_cleanup_binding_context(_Frees_ptr_ void* provider_binding_context)
 {
     ExFreePool(provider_binding_context);
