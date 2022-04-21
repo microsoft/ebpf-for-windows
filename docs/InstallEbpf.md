@@ -8,7 +8,7 @@ has already built the binaries for x64/Debug or x64/Release.
 ## Method 1
 1. Deploy the binaries to `C:\Temp` in your VM, as follows:
     a. If you built the binaries from inside the VM, then from your ebpf-for-windows directory in the VM, do `.\scripts\deploy-ebpf -l`.  Otherwise,
-    b. If you built the binaries on the host machine, then from your ebpf-for-windows directory on the host machine, start an admin Powershell on the host machine and do `.\scripts\deploy-ebpf`.
+    b. If you built the binaries on the host machine, then from your ebpf-for-windows directory on the host machine, start an admin Powershell on the host machine and do `.\scripts\deploy-ebpf`, or to also copy files needed to run various tests, do `.\scripts\deploy-ebpf -t`.
 
 2. From within the VM, install the binaries as follows:
     1. Start an admin command shell (cmd.exe).

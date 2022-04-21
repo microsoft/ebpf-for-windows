@@ -793,7 +793,7 @@ _create_object_hash_map(
     local_map = NULL;
 
 Exit:
-    if (result != EBPF_SUCCESS) {
+    if (result != EBPF_SUCCESS && local_map) {
         _delete_object_hash_map(local_map);
         local_map = NULL;
     }
@@ -1313,7 +1313,7 @@ _create_queue_map(
     _Outptr_ ebpf_core_map_t** map)
 {
     ebpf_result_t result;
-    if (inner_map_handle != ebpf_handle_invalid)
+    if (inner_map_handle != ebpf_handle_invalid || map_definition->key_size != 0)
         return EBPF_INVALID_ARGUMENT;
     size_t circular_map_size =
         EBPF_OFFSET_OF(ebpf_core_circular_map_t, slots) + map_definition->max_entries * sizeof(uint8_t*);
@@ -1332,7 +1332,7 @@ _create_stack_map(
     _Outptr_ ebpf_core_map_t** map)
 {
     ebpf_result_t result;
-    if (inner_map_handle != ebpf_handle_invalid)
+    if (inner_map_handle != ebpf_handle_invalid || map_definition->key_size != 0)
         return EBPF_INVALID_ARGUMENT;
     size_t circular_map_size =
         EBPF_OFFSET_OF(ebpf_core_circular_map_t, slots) + map_definition->max_entries * sizeof(uint8_t*);
@@ -1359,9 +1359,12 @@ static ebpf_result_t
 _find_circular_map_entry(
     _In_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, _In_ bool delete_on_success, _Outptr_ uint8_t** data)
 {
-    // Queue uses no key, so key must be NULL.
-    if (!map || key)
+    if (!map)
         return EBPF_INVALID_ARGUMENT;
+
+    // Queue uses no key, but the caller always passes in a non-null pointer (with a 0 key size)
+    // so we cannot require key to be null.
+    UNREFERENCED_PARAMETER(key);
 
     ebpf_core_circular_map_t* circular_map = EBPF_FROM_FIELD(ebpf_core_circular_map_t, core_map, map);
     ebpf_lock_state_t state = ebpf_lock_lock(&circular_map->lock);
@@ -1375,9 +1378,13 @@ _update_circular_map_entry(
     _In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_opt_ const uint8_t* data, ebpf_map_option_t option)
 {
     ebpf_result_t result;
-    // Queue uses no key, so key must be NULL.
-    if (!map || key || !data)
+
+    if (!map || !data)
         return EBPF_INVALID_ARGUMENT;
+
+    // Queue uses no key, but the caller always passes in a non-null pointer (with a 0 key size)
+    // so we cannot require key to be null.
+    UNREFERENCED_PARAMETER(key);
 
     ebpf_core_circular_map_t* circular_map = EBPF_FROM_FIELD(ebpf_core_circular_map_t, core_map, map);
     ebpf_lock_state_t state = ebpf_lock_lock(&circular_map->lock);
@@ -1450,7 +1457,7 @@ _create_ring_buffer_map(
 
     *map = NULL;
 
-    if (inner_map_handle != ebpf_handle_invalid) {
+    if (inner_map_handle != ebpf_handle_invalid || map_definition->key_size != 0) {
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
@@ -1947,7 +1954,7 @@ ebpf_map_update_entry(
     switch (map->ebpf_map_definition.type) {
     case BPF_MAP_TYPE_QUEUE:
     case BPF_MAP_TYPE_STACK:
-        if (key_size != 0 || key != NULL) {
+        if (key_size != 0) {
             EBPF_LOG_MESSAGE_UINT64(
                 EBPF_TRACELOG_LEVEL_ERROR,
                 EBPF_TRACELOG_KEYWORD_MAP,
@@ -2062,6 +2069,9 @@ ebpf_map_next_key(
             key_size,
             map->ebpf_map_definition.key_size);
         return EBPF_INVALID_ARGUMENT;
+    }
+    if (ebpf_map_function_tables[map->ebpf_map_definition.type].next_key == NULL) {
+        return EBPF_OPERATION_NOT_SUPPORTED;
     }
     return ebpf_map_function_tables[map->ebpf_map_definition.type].next_key(map, previous_key, next_key);
 }

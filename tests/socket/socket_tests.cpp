@@ -5,12 +5,17 @@
 
 #define CATCH_CONFIG_RUNNER
 
+#include <chrono>
+#include <future>
+using namespace std::chrono_literals;
+
 #include "bpf/bpf.h"
 #pragma warning(push)
 #pragma warning(disable : 4200)
 #include "bpf/libbpf.h"
 #pragma warning(pop)
 #include "catch_wrapper.hpp"
+#include "common_tests.h"
 #include "ebpf_nethooks.h"
 #include "ebpf_structs.h"
 #include "socket_helper.h"
@@ -82,7 +87,7 @@ connection_test(
     if (address_family == AF_INET)
         IN6ADDR_SETV4MAPPED((PSOCKADDR_IN6)&destination_address, &in4addr_loopback, scopeid_unspecified, 0);
     else
-        INETADDR_SETSOCKADDR(AF_INET6, (PSOCKADDR)&destination_address, &in6addr_loopback, scopeid_unspecified, 0);
+        IN6ADDR_SETLOOPBACK((PSOCKADDR_IN6)&destination_address);
     sender_socket.send_message_to_remote_host(message, destination_address, SOCKET_TEST_PORT);
 
     // The packet should be blocked by the connect program.
@@ -119,14 +124,14 @@ connection_test(
     bpf_object__close(object);
 }
 
-TEST_CASE("connection_test_udp_v4", "[socket_tests]")
+TEST_CASE("connection_test_udp_v4", "[sock_addr_tests]")
 {
     datagram_sender_socket_t datagram_sender_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
     datagram_receiver_socket_t datagram_receiver_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
 
     connection_test(AF_INET, datagram_sender_socket, datagram_receiver_socket, IPPROTO_UDP);
 }
-TEST_CASE("connection_test_udp_v6", "[socket_tests]")
+TEST_CASE("connection_test_udp_v6", "[sock_addr_tests]")
 {
     datagram_sender_socket_t datagram_sender_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
     datagram_receiver_socket_t datagram_receiver_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
@@ -134,14 +139,14 @@ TEST_CASE("connection_test_udp_v6", "[socket_tests]")
     connection_test(AF_INET6, datagram_sender_socket, datagram_receiver_socket, IPPROTO_UDP);
 }
 
-TEST_CASE("connection_test_tcp_v4", "[socket_tests]")
+TEST_CASE("connection_test_tcp_v4", "[sock_addr_tests]")
 {
     stream_sender_socket_t stream_sender_socket(SOCK_STREAM, IPPROTO_TCP, 0);
     stream_receiver_socket_t stream_receiver_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
 
     connection_test(AF_INET, stream_sender_socket, stream_receiver_socket, IPPROTO_TCP);
 }
-TEST_CASE("connection_test_tcp_v6", "[socket_tests]")
+TEST_CASE("connection_test_tcp_v6", "[sock_addr_tests]")
 {
     stream_sender_socket_t stream_sender_socket(SOCK_STREAM, IPPROTO_TCP, 0);
     stream_receiver_socket_t stream_receiver_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
@@ -149,7 +154,7 @@ TEST_CASE("connection_test_tcp_v6", "[socket_tests]")
     connection_test(AF_INET6, stream_sender_socket, stream_receiver_socket, IPPROTO_TCP);
 }
 
-TEST_CASE("attach_programs", "[socket_tests]")
+TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
 {
     struct bpf_object* object;
     int program_fd;
@@ -183,6 +188,202 @@ TEST_CASE("attach_programs", "[socket_tests]")
 
     result = bpf_prog_attach(
         bpf_program__fd(const_cast<const bpf_program*>(recv_accept6_program)), 0, BPF_CGROUP_INET6_RECV_ACCEPT, 0);
+    REQUIRE(result == 0);
+
+    bpf_object__close(object);
+}
+
+void
+connection_monitor_test(
+    ADDRESS_FAMILY address_family,
+    sender_socket_t& sender_socket,
+    receiver_socket_t& receiver_socket,
+    uint32_t protocol,
+    bool disconnect)
+{
+    struct bpf_object* object;
+    int program_fd;
+    int result = bpf_prog_load("sockops.o", BPF_PROG_TYPE_SOCK_OPS, &object, &program_fd);
+    REQUIRE(result == 0);
+    REQUIRE(object != nullptr);
+
+    // Ring buffer event callback context.
+    std::unique_ptr<ring_buffer_test_event_context_t> context = std::make_unique<ring_buffer_test_event_context_t>();
+    context->test_event_count = disconnect ? 4 : 2;
+
+    bpf_program* _program = bpf_object__find_program_by_name(object, "connection_monitor");
+    REQUIRE(_program != nullptr);
+
+    PSOCKADDR local_address = nullptr;
+    int local_address_length = 0;
+    sender_socket.get_local_address(local_address, local_address_length);
+
+    connection_tuple_t tuple{};
+    if (address_family == AF_INET) {
+        tuple.src_ip.ipv4 = htonl(INADDR_LOOPBACK);
+        tuple.dst_ip.ipv4 = htonl(INADDR_LOOPBACK);
+    } else {
+        memcpy(tuple.src_ip.ipv6, &in6addr_loopback, sizeof(tuple.src_ip.ipv6));
+        memcpy(tuple.dst_ip.ipv6, &in6addr_loopback, sizeof(tuple.src_ip.ipv6));
+    }
+    tuple.src_port = INETADDR_PORT(local_address);
+    tuple.dst_port = htons(SOCKET_TEST_PORT);
+    tuple.protocol = protocol;
+
+    std::vector<std::vector<char>> audit_entry_list;
+    audit_entry_t audit_entries[3] = {0};
+
+    // Connect outbound.
+    audit_entries[0].tuple = tuple;
+    audit_entries[0].connected = true;
+    audit_entries[0].outbound = true;
+    char* p = reinterpret_cast<char*>(&audit_entries[0]);
+    audit_entry_list.push_back(std::vector<char>(p, p + sizeof(audit_entry_t)));
+
+    // Connect inbound.
+    audit_entries[1].tuple = tuple;
+    audit_entries[1].connected = true;
+    audit_entries[1].outbound = false;
+    p = reinterpret_cast<char*>(&audit_entries[1]);
+    audit_entry_list.push_back(std::vector<char>(p, p + sizeof(audit_entry_t)));
+
+    // Disconnect.
+    audit_entries[2].tuple = tuple;
+    audit_entries[2].connected = false;
+    audit_entries[2].outbound = false;
+    p = reinterpret_cast<char*>(&audit_entries[2]);
+    audit_entry_list.push_back(std::vector<char>(p, p + sizeof(audit_entry_t)));
+
+    context->records = &audit_entry_list;
+
+    // Get the std::future from the promise field in ring buffer event context, which should be in ready state
+    // once notifications for all events are received.
+    auto ring_buffer_event_callback = context->ring_buffer_event_promise.get_future();
+
+    // Create a new ring buffer manager and subscribe to ring buffer events.
+    bpf_map* ring_buffer_map = bpf_object__find_map_by_name(object, "audit_map");
+    REQUIRE(ring_buffer_map != nullptr);
+    context->ring_buffer =
+        ring_buffer__new(bpf_map__fd(ring_buffer_map), ring_buffer_test_event_handler, context.get(), nullptr);
+    REQUIRE(context->ring_buffer != nullptr);
+
+    bpf_map* connection_map = bpf_object__find_map_by_name(object, "connection_map");
+    REQUIRE(connection_map != nullptr);
+
+    // Update connection map with loopback packet tuple.
+    uint32_t verdict = BPF_SOCK_ADDR_VERDICT_REJECT;
+    REQUIRE(bpf_map_update_elem(bpf_map__fd(connection_map), &tuple, &verdict, EBPF_ANY) == 0);
+
+    // Post an asynchronous receive on the receiver socket.
+    receiver_socket.post_async_receive();
+
+    // Attach the sockops program.
+    result = bpf_prog_attach(bpf_program__fd(const_cast<const bpf_program*>(_program)), 0, BPF_CGROUP_SOCK_OPS, 0);
+    REQUIRE(result == 0);
+
+    // Send loopback message to test port.
+    const char* message = "eBPF for Windows!";
+    sockaddr_storage destination_address{};
+    if (address_family == AF_INET)
+        IN6ADDR_SETV4MAPPED((PSOCKADDR_IN6)&destination_address, &in4addr_loopback, scopeid_unspecified, 0);
+    else
+        IN6ADDR_SETLOOPBACK((PSOCKADDR_IN6)&destination_address);
+    sender_socket.send_message_to_remote_host(message, destination_address, SOCKET_TEST_PORT);
+    // Receive the packet on test port.
+    receiver_socket.complete_async_receive();
+
+    if (disconnect) {
+        sender_socket.close();
+        receiver_socket.close();
+    }
+
+    // Wait for event handler getting notifications for all connection audit events.
+    REQUIRE(ring_buffer_event_callback.wait_for(1s) == std::future_status::ready);
+
+    // Mark the event context as canceled, such that the event callback stops processing events.
+    context->canceled = true;
+
+    // Release the raw pointer such that the final callback frees the callback context.
+    ring_buffer_test_event_context_t* raw_context = context.release();
+
+    // Unsubscribe.
+    raw_context->unsubscribe();
+
+    bpf_object__close(object);
+}
+
+TEST_CASE("connection_monitor_test_udp_v4", "[sock_ops_tests]")
+{
+    datagram_sender_socket_t datagram_sender_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
+    datagram_receiver_socket_t datagram_receiver_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
+
+    connection_monitor_test(AF_INET, datagram_sender_socket, datagram_receiver_socket, IPPROTO_UDP, false);
+}
+TEST_CASE("connection_monitor_test_disconnect_udp_v4", "[sock_ops_tests]")
+{
+    datagram_sender_socket_t datagram_sender_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
+    datagram_receiver_socket_t datagram_receiver_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
+
+    connection_monitor_test(AF_INET, datagram_sender_socket, datagram_receiver_socket, IPPROTO_UDP, true);
+}
+
+TEST_CASE("connection_monitor_test_udp_v6", "[sock_ops_tests]")
+{
+    datagram_sender_socket_t datagram_sender_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
+    datagram_receiver_socket_t datagram_receiver_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
+
+    connection_monitor_test(AF_INET6, datagram_sender_socket, datagram_receiver_socket, IPPROTO_UDP, false);
+}
+TEST_CASE("connection_monitor_test_disconnect_udp_v6", "[sock_ops_tests]")
+{
+    datagram_sender_socket_t datagram_sender_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
+    datagram_receiver_socket_t datagram_receiver_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
+
+    connection_monitor_test(AF_INET6, datagram_sender_socket, datagram_receiver_socket, IPPROTO_UDP, true);
+}
+
+TEST_CASE("connection_monitor_test_tcp_v4", "[sock_ops_tests]")
+{
+    stream_sender_socket_t stream_sender_socket(SOCK_STREAM, IPPROTO_TCP, 0);
+    stream_receiver_socket_t stream_receiver_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
+
+    connection_monitor_test(AF_INET, stream_sender_socket, stream_receiver_socket, IPPROTO_TCP, false);
+}
+TEST_CASE("connection_monitor_test_disconnect_tcp_v4", "[sock_ops_tests]")
+{
+    stream_sender_socket_t stream_sender_socket(SOCK_STREAM, IPPROTO_TCP, 0);
+    stream_receiver_socket_t stream_receiver_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
+
+    connection_monitor_test(AF_INET, stream_sender_socket, stream_receiver_socket, IPPROTO_TCP, true);
+}
+
+TEST_CASE("connection_monitor_test_tcp_v6", "[sock_ops_tests]")
+{
+    stream_sender_socket_t stream_sender_socket(SOCK_STREAM, IPPROTO_TCP, 0);
+    stream_receiver_socket_t stream_receiver_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
+
+    connection_monitor_test(AF_INET6, stream_sender_socket, stream_receiver_socket, IPPROTO_TCP, false);
+}
+TEST_CASE("connection_monitor_test_disconnect_tcp_v6", "[sock_ops_tests]")
+{
+    stream_sender_socket_t stream_sender_socket(SOCK_STREAM, IPPROTO_TCP, 0);
+    stream_receiver_socket_t stream_receiver_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
+
+    connection_monitor_test(AF_INET6, stream_sender_socket, stream_receiver_socket, IPPROTO_TCP, true);
+}
+
+TEST_CASE("attach_sockops_programs", "[sock_ops_tests]")
+{
+    struct bpf_object* object;
+    int program_fd;
+    int result = bpf_prog_load("sockops.o", BPF_PROG_TYPE_SOCK_OPS, &object, &program_fd);
+    REQUIRE(result == 0);
+    REQUIRE(object != nullptr);
+
+    bpf_program* _program = bpf_object__find_program_by_name(object, "connection_monitor");
+    REQUIRE(_program != nullptr);
+
+    result = bpf_prog_attach(bpf_program__fd(const_cast<const bpf_program*>(_program)), 0, BPF_CGROUP_SOCK_OPS, 0);
     REQUIRE(result == 0);
 
     bpf_object__close(object);
