@@ -45,62 +45,6 @@ jobs:
       with:
         submodules: 'recursive'
 
-    - name: Download artifact
-      uses: dawidd6/action-download-artifact@v2.19.0
-      with:
-        # Optional, GitHub token, a Personal Access Token with `public_repo` scope if needed
-        # Required, if artifact is from a different repo
-        # Required, if repo is private a Personal Access Token with `repo` scope is needed
-        github_token: ${{secrets.GITHUB_TOKEN}}
-        # Required, workflow file name or ID
-        workflow: cicd.yml
-        # Optional, the status or conclusion of a completed workflow to search for
-        # Can be one of a workflow conclusion:
-        #   "failure", "success", "neutral", "cancelled", "skipped", "timed_out", "action_required"
-        # Or a workflow status:
-        #   "completed", "in_progress", "queued"
-        workflow_conclusion: success
-        # Optional, will get head commit SHA
-        ## pr: ${{github.event.pull_request.number}}
-        # Optional, no need to specify if PR is
-        ## commit: ${{github.event.pull_request.head.sha}}
-        # Optional, will use the branch
-        ## branch: main
-        # Optional, defaults to all types
-        ## event: push
-        # Optional, will use specified workflow run
-        ## run_id: 1122334455
-        # Optional, run number from the workflow
-        ## run_number: 34
-        # Optional, uploaded artifact name,
-        # will download all artifacts if not specified
-        # and extract them in respective subdirectories
-        # https://github.com/actions/download-artifact#download-all-artifacts
-        name: x64-${{ matrix.configurations }}-cilium-xdp
-        # Optional, directory where to extract artifact(s), defaults to current directory
-        path: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
-        # Optional, defaults to current repo
-        repo: microsoft/ebpf-for-windows-demo
-        # Optional, check the workflow run whether it has an artifact
-        # then will get the last available artifact from previous workflow
-        # default false, just try to download from the last one
-        check_artifacts:  false
-        # Optional, search for the last workflow run whose stored an artifact named as in `name` input
-        # default false
-        search_artifacts: false
-        # Optional, choose to skip unpacking the downloaded artifact(s)
-        # default false
-        skip_unpack: false
-
-    - name: DIR workspace
-      run: |
-        echo "DIR current folder ..."
-        dir
-        echo "DIR working dir ..."
-        dir ${{github.workspace}}
-        echo "DIR build dir ..."
-        dir ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
-
     - name: Initialize CodeQL
       if: inputs.build_codeql == true
       uses: github/codeql-action/init@1ed1437484560351c5be56cf73a48a279d116b78
@@ -153,6 +97,53 @@ jobs:
     - name: Copy VC Libs for Sanitizer
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
       run: copy "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Tools\MSVC\14.29.30133\bin\Hostx64\x64\clang*" .
+
+    - name: Download demo repository artifacts
+      uses: dawidd6/action-download-artifact@v2.19.0
+      with:
+        # Optional, GitHub token, a Personal Access Token with `public_repo` scope if needed
+        # Required, if artifact is from a different repo
+        # Required, if repo is private a Personal Access Token with `repo` scope is needed
+        github_token: ${{secrets.GITHUB_TOKEN}}
+        # Required, workflow file name or ID
+        workflow: cicd.yml
+        # Optional, the status or conclusion of a completed workflow to search for
+        # Can be one of a workflow conclusion:
+        #   "failure", "success", "neutral", "cancelled", "skipped", "timed_out", "action_required"
+        # Or a workflow status:
+        #   "completed", "in_progress", "queued"
+        workflow_conclusion: success
+        # Optional, will get head commit SHA
+        ## pr: ${{github.event.pull_request.number}}
+        # Optional, no need to specify if PR is
+        ## commit: ${{github.event.pull_request.head.sha}}
+        # Optional, will use the branch
+        ## branch: main
+        # Optional, defaults to all types
+        ## event: push
+        # Optional, will use specified workflow run
+        ## run_id: 1122334455
+        # Optional, run number from the workflow
+        ## run_number: 34
+        # Optional, uploaded artifact name,
+        # will download all artifacts if not specified
+        # and extract them in respective subdirectories
+        # https://github.com/actions/download-artifact#download-all-artifacts
+        name: x64-${{ matrix.configurations }}-cilium-xdp
+        # Optional, directory where to extract artifact(s), defaults to current directory
+        path: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+        # Optional, defaults to current repo
+        repo: microsoft/ebpf-for-windows-demo
+        # Optional, check the workflow run whether it has an artifact
+        # then will get the last available artifact from previous workflow
+        # default false, just try to download from the last one
+        check_artifacts:  false
+        # Optional, search for the last workflow run whose stored an artifact named as in `name` input
+        # default false
+        search_artifacts: false
+        # Optional, choose to skip unpacking the downloaded artifact(s)
+        # default false
+        skip_unpack: false
 
     - name: Upload Build Output
       uses: actions/upload-artifact@6673cd052c4cd6fcf4b4e6e60ea986c889389535
