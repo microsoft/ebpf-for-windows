@@ -76,9 +76,13 @@ capture_helper_t::end_fd_capture(_In_ FILE* fp, _Inout_ int* original_fd, _In_z_
     // Read the contents of the temporary file.
     std::ifstream stdout_fs(temporary_filename);
     std::string contents((std::istreambuf_iterator<char>(stdout_fs)), std::istreambuf_iterator<char>());
+    stdout_fs.close();
 
     // Clean up the temporary file.
-    _unlink(temporary_filename);
+    int ret = _unlink(temporary_filename);
+    if (ret) {
+        printf("Error %d unlinking %s\n", errno, temporary_filename);
+    }
 
     return contents;
 }
@@ -103,8 +107,13 @@ capture_helper_t::begin_capture(void)
 void
 capture_helper_t::end_capture(void)
 {
-    _stdout_contents = end_fd_capture(stdout, &_original_stdout_fd, TEMPORARY_STDOUT_FILENAME);
-    _stderr_contents = end_fd_capture(stderr, &_original_stderr_fd, TEMPORARY_STDERR_FILENAME);
+    if (_original_stdout_fd != -1) {
+        _stdout_contents = end_fd_capture(stdout, &_original_stdout_fd, TEMPORARY_STDOUT_FILENAME);
+    }
+
+    if (_original_stderr_fd != -1) {
+        _stderr_contents = end_fd_capture(stderr, &_original_stderr_fd, TEMPORARY_STDERR_FILENAME);
+    }
 }
 
 capture_helper_t::~capture_helper_t(void) { end_capture(); }
