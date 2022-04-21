@@ -80,8 +80,7 @@ jobs:
         # Optional, directory where to extract artifact(s), defaults to current directory
         ## path: extract_here
         # Optional, defaults to current repo
-        ## repo: https://github.com/microsoft/ebpf-for-windows-demo
-        repo: ${{github.repository}}
+        repo: microsoft/ebpf-for-windows-demo
         # Optional, check the workflow run whether it has an artifact
         # then will get the last available artifact from previous workflow
         # default false, just try to download from the last one
