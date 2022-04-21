@@ -1834,7 +1834,8 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
     // EBPF_OPERATION_MAP_GET_NEXT_KEY
     {(ebpf_result_t(__cdecl*)(const void*))_ebpf_core_protocol_map_get_next_key,
      EBPF_OFFSET_OF(ebpf_operation_map_get_next_key_request_t, previous_key),
-     EBPF_OFFSET_OF(ebpf_operation_map_get_next_key_reply_t, next_key)},
+     EBPF_OFFSET_OF(ebpf_operation_map_get_next_key_reply_t, next_key),
+     true}, // Variable-size reply.
 
     // EBPF_OPERATION_GET_NEXT_MAP
     {(ebpf_result_t(__cdecl*)(const void*))_ebpf_core_protocol_get_next_map,

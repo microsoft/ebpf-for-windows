@@ -111,12 +111,6 @@ typedef class _single_instance_hook : public _hook_helper
     }
 
     uint32_t
-    attach(ebpf_handle_t program_handle)
-    {
-        return ebpf_api_link_program(program_handle, attach_type, &link_handle);
-    }
-
-    uint32_t
     attach(bpf_program* program)
     {
         return ebpf_program_attach(program, &attach_type, nullptr, 0, &link_object);

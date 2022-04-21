@@ -439,6 +439,58 @@ TEST_CASE("libbpf map", "[libbpf]")
     bpf_object__close(object);
 }
 
+TEST_CASE("libbpf create queue", "[libbpf]")
+{
+    _test_helper_libbpf test_helper;
+
+    bpf_map_create_opts opts = {0};
+    const uint32_t max_entries = 2;
+    const uint32_t value_size = sizeof(uint32_t);
+    int map_fd = bpf_map_create(BPF_MAP_TYPE_QUEUE, "MapName", sizeof(uint32_t), value_size, max_entries, &opts);
+    REQUIRE(map_fd < 0);
+
+    map_fd = bpf_map_create(BPF_MAP_TYPE_QUEUE, "MapName", 0, value_size, max_entries, &opts);
+    REQUIRE(map_fd > 0);
+
+    bpf_map_info info;
+    uint32_t info_size = sizeof(info);
+    REQUIRE(bpf_obj_get_info_by_fd(map_fd, &info, &info_size) == 0);
+
+    REQUIRE(info.type == BPF_MAP_TYPE_QUEUE);
+    REQUIRE(info.key_size == 0);
+    REQUIRE(info.value_size == value_size);
+    REQUIRE(info.max_entries == max_entries);
+    REQUIRE(info.map_flags == 0);
+    REQUIRE(info.inner_map_id == -1);
+    REQUIRE(info.pinned_path_count == 0);
+    REQUIRE(info.id > 0);
+    REQUIRE(strcmp(info.name, "MapName") == 0);
+
+    uint32_t next_key;
+    int err = bpf_map_get_next_key(map_fd, NULL, &next_key);
+    REQUIRE(err == -ENOTSUP);
+
+    // Push 2 elements.
+    uint32_t value = 1;
+    REQUIRE(bpf_map_update_elem(map_fd, nullptr, &value, 0) == 0);
+    value = 2;
+    REQUIRE(bpf_map_update_elem(map_fd, nullptr, &value, 0) == 0);
+
+    // Pop elements.
+    REQUIRE(bpf_map_lookup_elem(map_fd, nullptr, &value) == 0);
+    REQUIRE(value == 1);
+    REQUIRE(bpf_map_lookup_and_delete_elem(map_fd, nullptr, &value) == 0);
+    REQUIRE(value == 1);
+    REQUIRE(bpf_map_lookup_elem(map_fd, nullptr, &value) == 0);
+    REQUIRE(value == 2);
+    REQUIRE(bpf_map_lookup_and_delete_elem(map_fd, nullptr, &value) == 0);
+    REQUIRE(value == 2);
+    REQUIRE(bpf_map_lookup_elem(map_fd, nullptr, &value) == -ENOENT);
+    REQUIRE(bpf_map_lookup_and_delete_elem(map_fd, nullptr, &value) == -ENOENT);
+
+    Platform::_close(map_fd);
+}
+
 TEST_CASE("libbpf map binding", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
