@@ -70,8 +70,6 @@ $build_directory=".\x64\Debug"
     "droppacket_um.pdb",
     "droppacket.sys",
     "droppacket_unsafe.o",
-    "ebpf_client.exe",
-    "ebpf_client.pdb",
     "EbpfApi.pdb",
     "ebpfnetsh.pdb",
     "encap_reflect_packet.o",

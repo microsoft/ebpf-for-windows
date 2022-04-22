@@ -230,47 +230,6 @@ _query_and_cache_map_descriptors(
 }
 
 ebpf_result_t
-ebpf_verify_program(
-    const GUID* program_type,
-    ebpf_execution_context_t execution_context,
-    uint32_t map_descriptors_count,
-    EbpfMapDescriptor* map_descriptors,
-    uint32_t byte_code_size,
-    uint8_t* byte_code,
-    const char** logs,
-    uint32_t* logs_size) noexcept
-{
-    ebpf_result_t result = EBPF_SUCCESS;
-
-    // Only kernel execution context supported currently.
-    if (execution_context == execution_context_user_mode) {
-        return EBPF_INVALID_ARGUMENT;
-    }
-
-    clear_map_descriptors();
-
-    try {
-        if (map_descriptors_count != 0) {
-            cache_map_original_file_descriptors(map_descriptors, map_descriptors_count);
-        }
-
-        // Verify the program.
-        result = verify_byte_code(program_type, byte_code, byte_code_size, logs, logs_size);
-    } catch (const std::bad_alloc&) {
-        result = EBPF_NO_MEMORY;
-    } catch (std::runtime_error& err) {
-        auto message = err.what();
-        *logs = allocate_string(message, logs_size);
-
-        result = EBPF_VERIFICATION_FAILED;
-    } catch (...) {
-        result = EBPF_FAILED;
-    }
-
-    return result;
-}
-
-ebpf_result_t
 ebpf_verify_and_load_program(
     const GUID* program_type,
     ebpf_handle_t program_handle,

@@ -4,9 +4,9 @@
 codecov:
   notify:
     wait_for_ci: yes
-    after_n_builds: 8 # (unit_tests, ebpf_client, fuzzing, bpf2c) * (Debug, Release)
+    after_n_builds: 6 # (unit_tests, fuzzing, bpf2c) * (Debug, Release)
 comment:
-    after_n_builds: 8 # (unit_tests, ebpf_client, fuzzing, bpf2c) * (Debug, Release)
+    after_n_builds: 6 # (unit_tests,  fuzzing, bpf2c) * (Debug, Release)
 coverage:
   status:
     project:
