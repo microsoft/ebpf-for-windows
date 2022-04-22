@@ -26,7 +26,6 @@ extern "C" metadata_table_t*
 get_metadata_table();
 
 #define SERVICE_PATH_PREFIX L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\"
-#define NATIVE_DLL_NAME "bpf2c_test_wrapper.dll"
 
 static GUID _bpf2c_npi_id = {/* c847aac8-a6f2-4b53-aea3-f4a94b9a80cb */
                              0xc847aac8,
