@@ -18,15 +18,16 @@
 struct _net_ebpf_extension_sock_ops_wfp_filter_context;
 
 /**
- * @brief Custom context associated with WFP flows that are notified to eBPF programs
+ * @brief Custom context associated with WFP flows that are notified to eBPF programs.
  */
 typedef struct _net_ebpf_extension_sock_ops_wfp_flow_context
 {
     LIST_ENTRY link;                                         ///< Link to next flow context.
     net_ebpf_extension_flow_context_parameters_t parameters; ///< WFP flow parameters.
     struct _net_ebpf_extension_sock_ops_wfp_filter_context*
-        filter_context;     ///< WFP filter context associated with this flow.
-    bpf_sock_ops_t context; ///< sock_ops context.
+        filter_context;       ///< WFP filter context associated with this flow.
+    bool client_detached : 1; ///< Flag indicating that the hook client has detached.
+    bpf_sock_ops_t context;   ///< sock_ops context.
 } net_ebpf_extension_sock_ops_wfp_flow_context_t;
 
 typedef struct _net_ebpf_extension_sock_ops_wfp_flow_context_list
@@ -202,6 +203,7 @@ _net_ebpf_extension_sock_ops_on_client_detach(_In_ const net_ebpf_extension_hook
             InitializeListHead(entry);
             net_ebpf_extension_sock_ops_wfp_flow_context_t* flow_context =
                 CONTAINING_RECORD(entry, net_ebpf_extension_sock_ops_wfp_flow_context_t, link);
+            flow_context->client_detached = TRUE;
             _Analysis_assume_(flow_index < flow_count);
             flow_parameters_array[flow_index++] = flow_context->parameters;
         }
@@ -455,6 +457,10 @@ net_ebpf_extension_sock_ops_flow_delete(uint16_t layer_id, uint32_t callout_id, 
     if (local_flow_context == NULL)
         goto Exit;
 
+    if (local_flow_context->client_detached)
+        // Since the hook client is detached, exit the function.
+        goto Exit;
+
     filter_context = local_flow_context->filter_context;
     if (filter_context == NULL)
         goto Exit;
@@ -479,6 +485,7 @@ net_ebpf_extension_sock_ops_flow_delete(uint16_t layer_id, uint32_t callout_id, 
         goto Exit;
 
 Exit:
+
     DEREFERENCE_FILTER_CONTEXT(filter_context);
     if (local_flow_context != NULL)
         ExFreePool(local_flow_context);

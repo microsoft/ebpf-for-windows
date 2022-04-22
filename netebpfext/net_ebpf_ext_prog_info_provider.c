@@ -41,8 +41,8 @@ typedef struct _net_ebpf_extension_program_info_provider
  * @retval STATUS_NO_MEMORY Failed to allocate provider binding context.
  * @retval STATUS_INVALID_PARAMETER One or more arguments are incorrect.
  */
-NTSTATUS
-net_ebpf_extension_program_info_provider_attach_client(
+static NTSTATUS
+_net_ebpf_extension_program_info_provider_attach_client(
     _In_ HANDLE nmr_binding_handle,
     _In_ void* provider_context,
     _In_ const NPI_REGISTRATION_INSTANCE* client_registration_instance,
@@ -95,15 +95,20 @@ Exit:
  * @retval STATUS_SUCCESS The operation succeeded.
  * @retval STATUS_INVALID_PARAMETER One or more parameters are invalid.
  */
-NTSTATUS
-net_ebpf_extension_program_info_provider_detach_client(_Frees_ptr_opt_ void* provider_binding_context)
+static NTSTATUS
+_net_ebpf_extension_program_info_provider_detach_client(_In_ void* provider_binding_context)
 {
     NTSTATUS status = STATUS_SUCCESS;
 
-    if (provider_binding_context)
-        ExFreePool(provider_binding_context);
+    UNREFERENCED_PARAMETER(provider_binding_context);
 
     return status;
+}
+
+static void
+_net_ebpf_extension_program_info_provider_cleanup_binding_context(_Frees_ptr_ void* provider_binding_context)
+{
+    ExFreePool(provider_binding_context);
 }
 
 void
@@ -137,8 +142,9 @@ net_ebpf_extension_program_info_provider_register(
 
     characteristics = &local_provider_context->characteristics;
     characteristics->Length = sizeof(NPI_PROVIDER_CHARACTERISTICS);
-    characteristics->ProviderAttachClient = net_ebpf_extension_program_info_provider_attach_client;
-    characteristics->ProviderDetachClient = net_ebpf_extension_program_info_provider_detach_client;
+    characteristics->ProviderAttachClient = _net_ebpf_extension_program_info_provider_attach_client;
+    characteristics->ProviderDetachClient = _net_ebpf_extension_program_info_provider_detach_client;
+    characteristics->ProviderCleanupBindingContext = _net_ebpf_extension_program_info_provider_cleanup_binding_context;
     characteristics->ProviderRegistrationInstance.Size = sizeof(NPI_REGISTRATION_INSTANCE);
     characteristics->ProviderRegistrationInstance.NpiId = &EBPF_PROGRAM_INFO_EXTENSION_IID;
     characteristics->ProviderRegistrationInstance.NpiSpecificCharacteristics = parameters->provider_data;

@@ -152,9 +152,6 @@ _ebpf_extension_client_detach_provider(void* client_binding_context)
 
     _ebpf_extension_client_notify_change(local_client_context, local_client_binding_context);
 
-    ebpf_free(local_client_binding_context);
-    local_client_context->client_binding_context = NULL;
-
     EBPF_RETURN_NTSTATUS(STATUS_SUCCESS);
 }
 
@@ -162,7 +159,13 @@ void
 _ebpf_extension_client_cleanup_binding_context(void* client_binding_context)
 {
     EBPF_LOG_ENTRY();
-    UNREFERENCED_PARAMETER(client_binding_context);
+    ebpf_extension_client_binding_context_t* local_client_binding_context =
+        (ebpf_extension_client_binding_context_t*)client_binding_context;
+    ebpf_extension_client_t* local_client_context = local_client_binding_context->extension_client;
+
+    ebpf_free(local_client_binding_context);
+    local_client_context->client_binding_context = NULL;
+
     EBPF_RETURN_VOID();
 }
 
