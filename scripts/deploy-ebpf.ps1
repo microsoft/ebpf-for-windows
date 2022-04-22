@@ -99,6 +99,7 @@ $build_directory=".\x64\Debug"
     "map_um.dll_um.pdb",
     "map_um.dll_um.pdb.sys",
     "printk.o",
+    "printk_legacy.o",
     "printk_legacy_um.dll",
     "printk_legacy_um.dll_um.pdb",
     "printk_legacy_um.dll_um.pdb.sys",
