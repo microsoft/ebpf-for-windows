@@ -80,7 +80,7 @@ typedef struct _net_ebpf_extension_wfp_filter_context
 {
     volatile long reference_count;                                ///< Reference count.
     const struct _net_ebpf_extension_hook_client* client_context; ///< Pointer to hook NPI client.
-    uint64_t* filter_ids;                                         // Array of WFP filter Ids.
+    uint64_t* filter_ids;                                         ///< Array of WFP filter Ids.
 } net_ebpf_extension_wfp_filter_context_t;
 
 #define REFERENCE_FILTER_CONTEXT(filter_context) \
