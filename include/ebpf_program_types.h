@@ -14,7 +14,7 @@ typedef unsigned long long uint64_t;
 #include <guiddef.h>
 #include <stdint.h>
 #endif
-#include "../external/ebpf-verifier/src/ebpf_base.h"
+#include "ebpf_base.h"
 
 #define EBPF_MAX_PROGRAM_DESCRIPTOR_NAME_LENGTH 256
 #define EBPF_MAX_HELPER_FUNCTION_NAME_LENGTH 256
