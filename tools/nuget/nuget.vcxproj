@@ -154,6 +154,9 @@
     <ProjectReference Include="..\..\ebpfapi\ebpfapi.vcxproj">
       <Project>{75fe223a-3e45-4b0e-a2e8-04285e52e440}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\bpf2c\bpf2c.vcxproj">
+      <Project>{69b97e52-18dc-434e-a6e4-4c0f3e88c44a}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

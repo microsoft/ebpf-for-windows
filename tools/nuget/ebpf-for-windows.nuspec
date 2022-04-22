@@ -18,6 +18,7 @@
   </metadata>
 
   <files>
+    <file src="..\..\x64\Release\bpf2c.exe"                   target="native\bin"     />
     <file src="..\..\x64\Release\ebpfapi.lib"                 target="native\lib"     />
     <file src="..\..\external\bpftool\libbpf\include\**\*.*"  target="native\include" />
     <file src="..\..\include\**\*.*"                          target="native\include" />
