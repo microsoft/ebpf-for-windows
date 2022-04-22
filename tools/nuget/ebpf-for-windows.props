@@ -15,7 +15,8 @@
     <EbpfLibraries>@(EbpfLibs)</EbpfLibraries>
   </PropertyGroup>
     <ItemDefinitionGroup>
-    <ClCompile>   <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)\include</AdditionalIncludeDirectories>
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <AdditionalDependencies>$(EbpfLibraries);%(AdditionalDependencies)</AdditionalDependencies>
