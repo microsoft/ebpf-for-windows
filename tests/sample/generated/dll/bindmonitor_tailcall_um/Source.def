@@ -1,8 +1,0 @@
-;
-;  Copyright (c) Microsoft Corporation
-;  SPDX-License-Identifier: MIT
-;
-
-LIBRARY
-EXPORTS
-	get_metadata_table
