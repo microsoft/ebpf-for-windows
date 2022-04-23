@@ -89,6 +89,18 @@ jobs:
       code_coverage: true
       gather_dumps: true
 
+  # Run Cilium regression tests in GitHub.
+  cilium_tests:
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: cilium_tests
+      test_command: cilium_tests.exe -d yes
+      build_job: regular / build
+      build_artifact: Build-x64
+      environment: windows-2019
+      code_coverage: true
+      gather_dumps: true
+
   # Run the quick stress tests in GitHub.
   stress:
     uses: ./.github/workflows/reusable-test.yml
@@ -101,18 +113,6 @@ jobs:
       environment: windows-2019
       # No code coverage on stress.
       code_coverage: false
-      gather_dumps: true
-
-  # Run Cilium regression tests in GitHub.
-  stress:
-    uses: ./.github/workflows/reusable-test.yml
-    with:
-      name: stress
-      test_command: cilium_tests.exe
-      build_job: regular / build
-      build_artifact: Build-x64
-      environment: windows-2019
-      code_coverage: true
       gather_dumps: true
 
   # Run the driver tests on self-hosted runners.
