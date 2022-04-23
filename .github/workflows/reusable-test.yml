@@ -107,6 +107,11 @@ jobs:
         checkName: ${{inputs.build_job}} (${{env.BUILD_CONFIGURATION}})
         ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
+    - name: Remove artifacts
+      shell: cmd
+      run: |
+        rd /s /q ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}
+
     - name: Download build artifact
       if: success()
       uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
