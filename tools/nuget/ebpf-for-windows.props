@@ -13,10 +13,11 @@
   </ItemGroup>
   <PropertyGroup>
     <EbpfLibraries>@(EbpfLibs)</EbpfLibraries>
+    <ClangIncludes>-I $(MSBuildThisFileDirectory)include -I $(MSBuildThisFileDirectory)include/uapi</ClangIncludes>
   </PropertyGroup>
-    <ItemDefinitionGroup>
+  <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)include;$(MSBuildThisFileDirectory)include/uapi</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <AdditionalDependencies>$(EbpfLibraries);%(AdditionalDependencies)</AdditionalDependencies>
