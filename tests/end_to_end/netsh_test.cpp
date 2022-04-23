@@ -177,10 +177,10 @@ TEST_CASE("show verification droppacket_unsafe.o", "[netsh][verification]")
                   "\n"
                   "Verification report:\n"
                   "\n"
-                  "; ./tests/sample/droppacket_unsafe.c:37\n"
+                  "; ./tests/sample/unsafe/droppacket_unsafe.c:37\n"
                   ";     if (ip_header->Protocol == IPPROTO_UDP) {\n"
                   "2: Upper bound must be at most packet_size (valid_access(r1.offset+9, width=1))\n"
-                  "; ./tests/sample/droppacket_unsafe.c:38\n"
+                  "; ./tests/sample/unsafe/droppacket_unsafe.c:38\n"
                   ";         if (ntohs(udp_header->length) <= sizeof(UDP_HEADER)) {\n"
                   "4: Upper bound must be at most packet_size (valid_access(r1.offset+24, width=2))\n"
                   "\n"
@@ -202,7 +202,7 @@ TEST_CASE("show verification printk_unsafe.o", "[netsh][verification]")
                   "\n"
                   "Verification report:\n"
                   "\n"
-                  "; ./tests/sample/printk_unsafe.c:22\n"
+                  "; ./tests/sample/unsafe/printk_unsafe.c:22\n"
                   ";     bpf_printk(\"ctx: %u\", (uint64_t)ctx);\n"
                   "7: r3.type == number\n"
                   "\n"
@@ -512,9 +512,14 @@ TEST_CASE("delete pinned program", "[netsh][programs]")
     REQUIRE(result == ERROR_OKAY);
     REQUIRE(output == "");
 
+    // Pin the program to a second path.
+    output = _run_netsh_command(handle_ebpf_set_program, L"196609", L"pinpath=mypinname2", nullptr, &result);
+    REQUIRE(result == ERROR_OKAY);
+    REQUIRE(output == "");
+
     // Verify we can delete a pinned program.
     output = _run_netsh_command(handle_ebpf_delete_program, L"196609", nullptr, nullptr, &result);
-    REQUIRE(output == "Unpinned 196609 from mypinname\n");
+    REQUIRE(output == "Unpinned 196609 from mypinname\nUnpinned 196609 from mypinname2\n");
     REQUIRE(result == NO_ERROR);
     REQUIRE(bpf_object__next(nullptr) == nullptr);
 

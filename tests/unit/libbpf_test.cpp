@@ -721,12 +721,12 @@ TEST_CASE("good_tail_call-jit", "[libbpf]")
 TEST_CASE("good_tail_call-native", "[libbpf]")
 {
     // Verify that 42 is returned, which is done by the callee.
-    _ebpf_test_tail_call("tail_call.dll", 42);
+    _ebpf_test_tail_call("tail_call_um.dll", 42);
 }
 
 TEST_CASE("bad_tail_call-jit", "[libbpf]") { _ebpf_test_tail_call("tail_call_bad.o", -EBPF_INVALID_ARGUMENT); }
 
-TEST_CASE("bad_tail_call-native", "[libbpf]") { _ebpf_test_tail_call("tail_call_bad.dll", -EBPF_INVALID_ARGUMENT); }
+TEST_CASE("bad_tail_call-native", "[libbpf]") { _ebpf_test_tail_call("tail_call_bad_um.dll", -EBPF_INVALID_ARGUMENT); }
 
 static void
 _multiple_tail_calls_test(ebpf_execution_type_t execution_type)
@@ -740,7 +740,7 @@ _multiple_tail_calls_test(ebpf_execution_type_t execution_type)
     int index;
 
     const char* file_name =
-        (execution_type == EBPF_EXECUTION_NATIVE ? "tail_call_multiple.dll" : "tail_call_multiple.o");
+        (execution_type == EBPF_EXECUTION_NATIVE ? "tail_call_multiple_um.dll" : "tail_call_multiple.o");
 
     int error = bpf_prog_load(file_name, BPF_PROG_TYPE_XDP, &object, &program_fd);
     REQUIRE(error == 0);
@@ -832,7 +832,7 @@ _test_bind_fd_to_prog_array(ebpf_execution_type_t execution_type)
 
     struct bpf_object* xdp_object;
     int xdp_object_fd;
-    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "tail_call.dll" : "tail_call.o");
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "tail_call_um.dll" : "tail_call.o");
     int error = bpf_prog_load(file_name, BPF_PROG_TYPE_XDP, &xdp_object, &xdp_object_fd);
     REQUIRE(error == 0);
     REQUIRE(xdp_object != nullptr);
@@ -928,7 +928,7 @@ _enumerate_program_ids_test(ebpf_execution_type_t execution_type)
     // Load a file with multiple programs.
     struct bpf_object* xdp_object;
     int xdp_object_fd;
-    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "tail_call.dll" : "tail_call.o");
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "tail_call_um.dll" : "tail_call.o");
     int error = bpf_prog_load(file_name, BPF_PROG_TYPE_XDP, &xdp_object, &xdp_object_fd);
     REQUIRE(error == 0);
     REQUIRE(xdp_object != nullptr);
@@ -1033,7 +1033,7 @@ _array_of_maps_test(ebpf_execution_type_t execution_type)
 
     struct bpf_object* xdp_object;
     int xdp_object_fd;
-    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_in_map.dll" : "map_in_map.o");
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_in_map_um.dll" : "map_in_map.o");
     int error = bpf_prog_load(file_name, BPF_PROG_TYPE_XDP, &xdp_object, &xdp_object_fd);
     REQUIRE(error == 0);
     REQUIRE(xdp_object != nullptr);
@@ -1090,7 +1090,7 @@ _array_of_maps2_test(ebpf_execution_type_t execution_type)
 
     struct bpf_object* xdp_object;
     int xdp_object_fd;
-    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_in_map_v2.dll" : "map_in_map_v2.o");
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_in_map_v2_um.dll" : "map_in_map_v2.o");
     int error = bpf_prog_load(file_name, BPF_PROG_TYPE_XDP, &xdp_object, &xdp_object_fd);
     REQUIRE(error == 0);
     REQUIRE(xdp_object != nullptr);
@@ -1145,7 +1145,7 @@ _wrong_inner_map_types_test(ebpf_execution_type_t execution_type)
 
     struct bpf_object* xdp_object;
     int xdp_object_fd;
-    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_in_map.dll" : "map_in_map.o");
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_in_map_um.dll" : "map_in_map.o");
     int error = bpf_prog_load(file_name, BPF_PROG_TYPE_XDP, &xdp_object, &xdp_object_fd);
     REQUIRE(error == 0);
     REQUIRE(xdp_object != nullptr);

@@ -321,7 +321,7 @@ droppacket_test(ebpf_execution_type_t execution_type)
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
-    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "droppacket.dll" : "droppacket.o");
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "droppacket_um.dll" : "droppacket.o");
 
     result = ebpf_program_load(file_name, nullptr, nullptr, execution_type, &object, &program_fd, &error_message);
 
@@ -413,7 +413,7 @@ divide_by_zero_test_um(ebpf_execution_type_t execution_type)
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
-    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "divide_by_zero.dll" : "divide_by_zero.o");
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "divide_by_zero_um.dll" : "divide_by_zero.o");
 
     result = ebpf_program_load(file_name, nullptr, nullptr, execution_type, &object, &program_fd, &error_message);
 
@@ -590,7 +590,7 @@ bindmonitor_tailcall_test(ebpf_execution_type_t execution_type)
     program_info_provider_t bind_program_info(EBPF_PROGRAM_TYPE_BIND);
 
     const char* file_name =
-        (execution_type == EBPF_EXECUTION_NATIVE ? "bindmonitor_tailcall.dll" : "bindmonitor_tailcall.o");
+        (execution_type == EBPF_EXECUTION_NATIVE ? "bindmonitor_tailcall_um.dll" : "bindmonitor_tailcall.o");
     result = ebpf_program_load(file_name, nullptr, nullptr, execution_type, &object, &program_fd, &error_message);
 
     if (error_message) {
@@ -711,7 +711,7 @@ bindmonitor_ring_buffer_test(ebpf_execution_type_t execution_type)
     program_info_provider_t bind_program_info(EBPF_PROGRAM_TYPE_BIND);
 
     const char* file_name =
-        (execution_type == EBPF_EXECUTION_NATIVE ? "bindmonitor_ringbuf.dll" : "bindmonitor_ringbuf.o");
+        (execution_type == EBPF_EXECUTION_NATIVE ? "bindmonitor_ringbuf_um.dll" : "bindmonitor_ringbuf.o");
 
     // Load and attach a bind eBPF program that uses a ring buffer map to notify about bind operations.
     result = ebpf_program_load(file_name, nullptr, nullptr, execution_type, &object, &program_fd, &error_message);
@@ -764,7 +764,7 @@ _utility_helper_functions_test(ebpf_execution_type_t execution_type)
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
     uint32_t ifindex = 0;
     const char* file_name =
-        (execution_type == EBPF_EXECUTION_NATIVE ? "test_utility_helpers.dll" : "test_utility_helpers.o");
+        (execution_type == EBPF_EXECUTION_NATIVE ? "test_utility_helpers_um.dll" : "test_utility_helpers.o");
     program_load_attach_helper_t program_helper(
         file_name, EBPF_PROGRAM_TYPE_XDP, "test_utility_helpers", execution_type, &ifindex, sizeof(ifindex), hook);
     bpf_object* object = program_helper.get_object();
@@ -793,7 +793,7 @@ map_test(ebpf_execution_type_t execution_type)
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
-    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map.dll" : "map.o");
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_um.dll" : "map.o");
 
     result = ebpf_program_load(file_name, nullptr, nullptr, execution_type, &object, &program_fd, &error_message);
 
@@ -934,20 +934,20 @@ _cgroup_sock_addr_load_test(
     _cgroup_load_test(file, name, EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, attach_type, execution_type);
 }
 
-#define DECLARE_CGROUP_SOCK_ADDR_LOAD_TEST(file, name, attach_type)                         \
-    TEST_CASE(                                                                              \
-        "cgroup_sockaddr_load_test_" #name "_" #attach_type "_"                             \
-        "jit",                                                                              \
-        "[cgroup_sock_addr]")                                                               \
-    {                                                                                       \
-        _cgroup_sock_addr_load_test(file ".o", name, attach_type, EBPF_EXECUTION_JIT);      \
-    }                                                                                       \
-    TEST_CASE(                                                                              \
-        "cgroup_sockaddr_load_test_" #name "_" #attach_type "_"                             \
-        "native",                                                                           \
-        "[cgroup_sock_addr]")                                                               \
-    {                                                                                       \
-        _cgroup_sock_addr_load_test(file ".dll", name, attach_type, EBPF_EXECUTION_NATIVE); \
+#define DECLARE_CGROUP_SOCK_ADDR_LOAD_TEST(file, name, attach_type)                            \
+    TEST_CASE(                                                                                 \
+        "cgroup_sockaddr_load_test_" #name "_" #attach_type "_"                                \
+        "jit",                                                                                 \
+        "[cgroup_sock_addr]")                                                                  \
+    {                                                                                          \
+        _cgroup_sock_addr_load_test(file ".o", name, attach_type, EBPF_EXECUTION_JIT);         \
+    }                                                                                          \
+    TEST_CASE(                                                                                 \
+        "cgroup_sockaddr_load_test_" #name "_" #attach_type "_"                                \
+        "native",                                                                              \
+        "[cgroup_sock_addr]")                                                                  \
+    {                                                                                          \
+        _cgroup_sock_addr_load_test(file "_um.dll", name, attach_type, EBPF_EXECUTION_NATIVE); \
     }
 
 DECLARE_CGROUP_SOCK_ADDR_LOAD_TEST(
@@ -1637,7 +1637,7 @@ _map_reuse_test(ebpf_execution_type_t execution_type)
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
-    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_reuse.dll" : "map_reuse.o");
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_reuse_um.dll" : "map_reuse.o");
 
     // First create and pin the maps manually.
     int inner_map_fd = bpf_create_map(BPF_MAP_TYPE_ARRAY, sizeof(__u32), sizeof(__u32), 1, 0);
@@ -1703,7 +1703,7 @@ _auto_pinned_maps_test(ebpf_execution_type_t execution_type)
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
-    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_reuse.dll" : "map_reuse.o");
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_reuse_um.dll" : "map_reuse.o");
 
     uint32_t ifindex = 0;
     program_load_attach_helper_t program_helper(
@@ -1842,7 +1842,7 @@ _map_reuse_invalid_test(ebpf_execution_type_t execution_type)
     struct bpf_object* object = nullptr;
     fd_t program_fd;
     const char* log_buffer = nullptr;
-    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_reuse.dll" : "map_reuse.o");
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_reuse_um.dll" : "map_reuse.o");
     ebpf_result_t result = ebpf_program_load(
         file_name, &EBPF_PROGRAM_TYPE_XDP, nullptr, EBPF_EXECUTION_ANY, &object, &program_fd, &log_buffer);
 
@@ -1865,7 +1865,7 @@ _map_reuse_2_test(ebpf_execution_type_t execution_type)
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
-    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_reuse_2.dll" : "map_reuse_2.o");
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_reuse_2_um.dll" : "map_reuse_2.o");
 
     // First create and pin the maps manually.
     int inner_map_fd = bpf_create_map(BPF_MAP_TYPE_ARRAY, sizeof(__u32), sizeof(__u32), 1, 0);
@@ -1968,7 +1968,7 @@ _map_reuse_3_test(ebpf_execution_type_t execution_type)
     error = bpf_map_update_elem(inner_map_fd, &key, &value, BPF_ANY);
     REQUIRE(error == 0);
 
-    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_reuse_2.dll" : "map_reuse_2.o");
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_reuse_2_um.dll" : "map_reuse_2.o");
 
     uint32_t ifindex = 0;
     program_load_attach_helper_t program_helper(

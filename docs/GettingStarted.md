@@ -3,7 +3,6 @@
 ## Prerequisites
 
 The following must be installed in order to build this project:
-
 1. Git (e.g., [Git for Windows 64-bit](https://git-scm.com/download/win))
 2. [Visual Studio 2019 version 16.11.7 or later](https://www.techspot.com/downloads/downloadnow/7241/?evp=70f51271955e6392571f575e301cd9a3&file=9642), including
    the "Desktop development with C++" workload, and
@@ -13,8 +12,18 @@ The following must be installed in order to build this project:
 4. [WDK for Windows 10, version 2004](https://go.microsoft.com/fwlink/?linkid=2128854)
 5. [Clang for Windows 64-bit version 10.0.0](https://github.com/llvm/llvm-project/releases/download/llvmorg-10.0.0/LLVM-10.0.0-win64.exe) or [The latest release of Clang for Windows 64-bit](https://github.com/llvm/llvm-project/releases/latest)
 6. [nuget.exe](https://www.nuget.org/downloads)
-   
+
 You should add the paths to `git.exe`, `cmake.exe` and `nuget.exe` to the Windows PATH environment variable after the software packages above have been installed.
+
+Alternative install steps:
+1. Launch an elevated PowerShell session.
+2. Run:
+```
+Set-ExecutionPolicy Bypass -Scope Process -Force
+Invoke-WebRequest 'https://raw.githubusercontent.com/microsoft/ebpf-for-windows/main/scripts/Setup-DevEnv.ps1' -OutFile $env:TEMP\Setup-DeveEnv.ps1
+if ((get-filehash $env:TEMP\Setup-DeveEnv.ps1).Hash -eq 'C0632C7015BE9BF78AD36A8F9039B16CBF78068BAC8D23EA3C02422DBA90D0B9') { &"$env:TEMP\Setup-DeveEnv.ps1" }
+```
+3. Launch Visual Studio Installer and select "MSVC v142 - VS 2019 C++ x64/x86 Spectre-mitigated libs (latest)"
 
 ## How to clone and build the project
 This section outlines the steps to build, prepare and build the eBPF-For-Windows project.

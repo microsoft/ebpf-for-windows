@@ -102,5 +102,8 @@
     <CustomBuild Include="printk_legacy.c">
       <Filter>Source Files</Filter>
     </CustomBuild>
+    <CustomBuild Include="sockops.c">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
   </ItemGroup>
 </Project>

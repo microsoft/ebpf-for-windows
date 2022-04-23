@@ -21,6 +21,15 @@ The verifier accepts an eBPF program compiled into an Executable Linux Format (E
 response depending on whether it can prove the program is safe. The verified ELF file can then be used to generate a PE
 image that can be loaded and used as an eBPF program.
 
+# Usage
+
+From the root of the eBPF-For-Windows project (from a VS Developer Command Prompt), after building the project, run:
+```
+powershell scripts\Convert-BpfToNative.ps1 -ProgramName my_program
+```
+Where my_program is the name of your BPF program without the extension. This will produce a native image in x64\Release
+with name of my_program.sys.
+
 # Native Code Generation Pipeline
 
 The following diagram shows the steps in the pipeline:
