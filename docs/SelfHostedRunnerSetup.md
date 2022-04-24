@@ -38,4 +38,5 @@ This document discusses the steps to set up such a selfhosted actions-runner tha
     3) $env:Path += ";C:\Program Files\ProcDump"
     4) Create two directories c:\dumps\x64\Release and c:\dumps\x64\Debug
     5) Run: `procdump64.exe -accepteula -i -r -ma <path>` once for each of the two directories above, substituting `path` for the directory path.
+11) Setup Windows Error Reporting [Local Dump Collection](https://docs.microsoft.com/en-us/windows/win32/wer/collecting-user-mode-dumps).
 11) Reboot the runner.

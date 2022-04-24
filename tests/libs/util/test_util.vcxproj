@@ -29,6 +29,7 @@
     <ClCompile Include="service_helper.cpp" />
     <ClCompile Include="socket_helper.cpp" />
     <ClCompile Include="program_helper.cpp" />
+    <ClCompile Include="wer_report.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="service_helper.h" />

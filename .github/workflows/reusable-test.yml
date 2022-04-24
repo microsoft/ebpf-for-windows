@@ -96,6 +96,10 @@ jobs:
         cd c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
         echo "test" > c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/test.txt
         procdump64.exe -accepteula -i -r -ma
+        $env:EBPF_ENABLE_WER_REPORT = "yes"
+        New-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -ErrorAction SilentlyContinue
+        New-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -Name "DumpType" -Value 2 -PropertyType DWord -ErrorAction SilentlyContinue
+        New-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -Name "DumpFolder" -Value "c:\dumps\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}" -PropertyType ExpandString -ErrorAction SilentlyContinue
 
     - name: Wait for build to succeed
       uses: fountainhead/action-wait-for-check@507b029e31edbe1a72d4de429476e1f4efe98869
