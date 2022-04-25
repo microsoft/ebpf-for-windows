@@ -204,7 +204,7 @@ TEST_CASE("show verification printk_unsafe.o", "[netsh][verification]")
                   "\n"
                   "; ./tests/sample/unsafe/printk_unsafe.c:22\n"
                   ";     bpf_printk(\"ctx: %u\", (uint64_t)ctx);\n"
-                  "7: r3.type == number\n"
+                  "7:  (r3.type == number)\n"
                   "\n"
                   "1 errors\n"
                   "\n");
