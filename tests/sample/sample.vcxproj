@@ -96,8 +96,8 @@
       <FileType>CppCode</FileType>
       <Command>
         clang -g -target bpf -O2 -Werror -I../../include -I../xdp -I../socket -I./ext/inc -c %(Filename).c -o $(OutputPath)%(Filename).o
-        powershell $(SolutionDir)scripts\Convert-BpfToNative.ps1 -ProgramName %(Filename) -SolutionDir $(SolutionDir) -Platform $(Platform) -Configuration $(Configuration) -KernelMode $true
-        powershell $(SolutionDir)scripts\Convert-BpfToNative.ps1 -ProgramName %(Filename) -SolutionDir $(SolutionDir) -Platform $(Platform) -Configuration $(Configuration) -KernelMode $false
+        powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Convert-BpfToNative.ps1 -ProgramName %(Filename) -SolutionDir $(SolutionDir) -Platform $(Platform) -Configuration $(Configuration) -KernelMode $true
+        powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Convert-BpfToNative.ps1 -ProgramName %(Filename) -SolutionDir $(SolutionDir) -Platform $(Platform) -Configuration $(Configuration) -KernelMode $false
       </Command>
       <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
     </CustomBuild>
