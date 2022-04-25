@@ -82,7 +82,7 @@ $(function() {
 <div class="line"><a name="l00014"></a><span class="lineno">   14</span>&#160;<span class="preprocessor">#include &quot;<a class="code" href="ebpf__program__types_8h.html">ebpf_program_types.h</a>&quot;</span></div>
 <div class="line"><a name="l00015"></a><span class="lineno">   15</span>&#160;<span class="preprocessor">#include &quot;<a class="code" href="ebpf__api_8h.html">ebpf_api.h</a>&quot;</span></div>
 <div class="line"><a name="l00016"></a><span class="lineno">   16</span>&#160;<span class="preprocessor">#define LIBBPF_API</span></div>
-<div class="line"><a name="l00017"></a><span class="lineno">   17</span>&#160;<span class="preprocessor">#include &quot;../external/bpftool/libbpf/src/libbpf_common.h&quot;</span></div>
+<div class="line"><a name="l00017"></a><span class="lineno">   17</span>&#160;<span class="preprocessor">#include &quot;libbpf/src/libbpf_common.h&quot;</span></div>
 <div class="line"><a name="l00018"></a><span class="lineno">   18</span>&#160;<span class="preprocessor">#undef LIBBPF_DEPRECATED</span></div>
 <div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160;<span class="preprocessor">#define LIBBPF_DEPRECATED(x)</span></div>
 <div class="line"><a name="l00020"></a><span class="lineno">   20</span>&#160;<span class="preprocessor">#else</span></div>
@@ -136,8 +136,8 @@ $(function() {
 <div class="line"><a name="l00068"></a><span class="lineno">   68</span>&#160; </div>
 <div class="line"><a name="l00070"></a><span class="lineno"><a class="line" href="structbpf__obj__info__attr__t.html">   70</a></span>&#160;<span class="keyword">typedef</span> <span class="keyword">struct</span></div>
 <div class="line"><a name="l00071"></a><span class="lineno">   71</span>&#160;{</div>
-<div class="line"><a name="l00072"></a><span class="lineno"><a class="line" href="structbpf__obj__info__attr__t.html#a68475d8d3df76ca4d548c07372d4cfd7">   72</a></span>&#160;    uint32_t <a class="code" href="structbpf__obj__info__attr__t.html#a68475d8d3df76ca4d548c07372d4cfd7">bpf_fd</a>;   </div>
-<div class="line"><a name="l00073"></a><span class="lineno"><a class="line" href="structbpf__obj__info__attr__t.html#abab916a0a3a758fedcdbb5fd03b4c6ec">   73</a></span>&#160;    uint64_t <a class="code" href="structbpf__obj__info__attr__t.html#abab916a0a3a758fedcdbb5fd03b4c6ec">info</a>;     </div>
+<div class="line"><a name="l00072"></a><span class="lineno"><a class="line" href="structbpf__obj__info__attr__t.html#a68475d8d3df76ca4d548c07372d4cfd7">   72</a></span>&#160;    uint32_t <a class="code" href="structbpf__obj__info__attr__t.html#a68475d8d3df76ca4d548c07372d4cfd7">bpf_fd</a>; </div>
+<div class="line"><a name="l00073"></a><span class="lineno"><a class="line" href="structbpf__obj__info__attr__t.html#abab916a0a3a758fedcdbb5fd03b4c6ec">   73</a></span>&#160;    uint64_t <a class="code" href="structbpf__obj__info__attr__t.html#abab916a0a3a758fedcdbb5fd03b4c6ec">info</a>;   </div>
 <div class="line"><a name="l00074"></a><span class="lineno">   74</span>&#160; </div>
 <div class="line"><a name="l00079"></a><span class="lineno"><a class="line" href="structbpf__obj__info__attr__t.html#a38dcccde5119d691892422b8b10483c4">   79</a></span>&#160;    uint32_t <a class="code" href="structbpf__obj__info__attr__t.html#a38dcccde5119d691892422b8b10483c4">info_len</a>;</div>
 <div class="line"><a name="l00080"></a><span class="lineno">   80</span>&#160;} <a class="code" href="structbpf__obj__info__attr__t.html">bpf_obj_info_attr_t</a>;</div>
