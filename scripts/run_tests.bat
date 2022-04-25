@@ -20,11 +20,6 @@ if %install% == 1 (
 @echo =====================
 .\unit_tests.exe
 @if ERRORLEVEL 1 goto EOF
-@echo ===========================
-@echo Executing RPC Client Tests.
-@echo ===========================
-.\ebpf_client.exe
-@if ERRORLEVEL 1 goto EOF
 @echo ====================
 @echo Executing API Tests.
 @echo ====================
