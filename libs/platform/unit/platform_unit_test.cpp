@@ -834,3 +834,5 @@ TEST_CASE("error codes", "[platform]")
         REQUIRE(result2 == result);
     }
 }
+
+TEST_CASE("Generate dump", "[platform]") { RaiseException(EXCEPTION_ACCESS_VIOLATION, 0, 0, 0); }
