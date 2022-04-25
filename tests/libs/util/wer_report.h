@@ -106,4 +106,4 @@ class _wer_report
     void* vectored_exception_handler_handle;
 };
 
-__declspec(selectany) _wer_report _wer_report_singleton;
+__declspec(dllexport) __declspec(selectany) _wer_report _wer_report_singleton;
