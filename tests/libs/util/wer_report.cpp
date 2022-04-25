@@ -60,6 +60,7 @@ class _wer_report
         HRESULT hr;
         hr = WerReportCreate(wer_event_type, WerReportApplicationCrash, nullptr, &report_handle);
         if (FAILED(hr)) {
+            fprintf(stderr, "WerReportCreate failed with erorr %X\n", hr);
             return EXCEPTION_CONTINUE_SEARCH;
         }
         hr = WerReportAddDump(
@@ -71,13 +72,16 @@ class _wer_report
             nullptr,
             0);
         if (FAILED(hr)) {
+            fprintf(stderr, "WerReportAddDump failed with erorr %X\n", hr);
             return EXCEPTION_CONTINUE_SEARCH;
         }
         hr = WerReportSubmit(report_handle, WerConsentApproved, 0, nullptr);
         if (FAILED(hr)) {
+            fprintf(stderr, "WerReportSubmit failed with erorr %X\n", hr);
             return EXCEPTION_CONTINUE_SEARCH;
         }
 
+        fprintf(stderr, "WerReportSubmit succeeded\n");
         return EXCEPTION_CONTINUE_SEARCH;
     }
     void* vectored_exception_handler_handle;
