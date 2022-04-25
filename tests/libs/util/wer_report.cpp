@@ -9,6 +9,9 @@
 #include <werapi.h>
 
 #pragma comment(lib, "wer.lib")
+
+bool _wer_report_enabled = false;
+
 /**
  * @brief Class to automatically capture WER Report / Triage crash dump on fatal application exception.
  * Exceptions are only logged if the environment variable EBPF_ENABLE_WER_REPORT is set to "yes".
@@ -35,6 +38,7 @@ class _wer_report
             throw std::runtime_error("SetThreadStackGuarantee failed");
         }
         vectored_exception_handler_handle = AddVectoredExceptionHandler(TRUE, _wer_report::vectored_exception_handler);
+        _wer_report_enabled = true;
     }
     ~_wer_report()
     {
