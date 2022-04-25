@@ -32,6 +32,7 @@
     <ProjectGuid>{b4ad72e3-754e-40ca-9cea-d3f2c9170e51}</ProjectGuid>
     <RootNamespace>sample</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ClangFlags>-g -target bpf -O2 -Werror -I../../include -I../../external/bpftool</ClangFlags>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
@@ -95,7 +96,7 @@
     <CustomBuild Include="*.c">
       <FileType>CppCode</FileType>
       <Command>
-        clang -g -target bpf -O2 -Werror -I../../include -I../xdp -I../socket -I./ext/inc -c %(Filename).c -o $(OutputPath)%(Filename).o
+        clang $(ClangFlags) -I../xdp -I../socket -I./ext/inc -c %(Filename).c -o $(OutputPath)%(Filename).o
         powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Convert-BpfToNative.ps1 -ProgramName %(Filename) -SolutionDir $(SolutionDir) -Platform $(Platform) -Configuration $(Configuration) -KernelMode $true
         powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Convert-BpfToNative.ps1 -ProgramName %(Filename) -SolutionDir $(SolutionDir) -Platform $(Platform) -Configuration $(Configuration) -KernelMode $false
       </Command>
@@ -106,8 +107,9 @@
   <ItemGroup>
     <CustomBuild Include="unsafe\*.c">
       <FileType>CppCode</FileType>
+      <Command>clang $(ClangFlags) -c %(Filename).c -o $(OutputPath)%(Filename).o</Command>
       <Command>
-        clang -g -target bpf -O2 -Werror -I../../include -I../xdp -I../socket -I./ext/inc -c unsafe\%(Filename).c -o $(OutputPath)%(Filename).o
+        clang $(ClangFlags) -I../xdp -I../socket -I./ext/inc -c unsafe\%(Filename).c -o $(OutputPath)%(Filename).o
       </Command>
       <Outputs>$(OutputPath)%(Filename).o</Outputs>
     </CustomBuild>

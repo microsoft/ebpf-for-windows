@@ -75,10 +75,4 @@ import "wtypes.idl";
             [ in, ref ] ebpf_program_load_info * info,
             [ out, ref ] uint32_t * logs_size,
             [ out, size_is(, *logs_size), ref ] char** logs);
-
-        ebpf_result_t verify_program([ in, ref ] ebpf_program_verify_info * info, [out] uint32_t * logs_size, [
-            out,
-            size_is(, *logs_size),
-            ref
-        ] char** logs);
     }

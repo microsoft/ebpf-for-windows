@@ -11,7 +11,7 @@ The following must be installed in order to build this project:
 3. [Visual Studio Build Tools 2019](https://aka.ms/vs/16/release/vs_buildtools.exe)
 4. [WDK for Windows 10, version 2004](https://go.microsoft.com/fwlink/?linkid=2128854)
 5. [Clang for Windows 64-bit version 10.0.0](https://github.com/llvm/llvm-project/releases/download/llvmorg-10.0.0/LLVM-10.0.0-win64.exe) or [The latest release of Clang for Windows 64-bit](https://github.com/llvm/llvm-project/releases/latest)
-6. [nuget.exe](https://www.nuget.org/downloads)
+6. [nuget.exe](https://www.nuget.org/downloads) installed to a location such as "C:\Program Files (x86)\NuGet\"
 
 You should add the paths to `git.exe`, `cmake.exe` and `nuget.exe` to the Windows PATH environment variable after the software packages above have been installed.
 
@@ -76,8 +76,6 @@ This will build the following binaries:
 * `ebpfsvc.exe`: A user-mode service that verifies and loads an eBPF program in the execution context.
 * `unit_tests.exe`: A collection of tests using the Catch framework.  These tests are also run as part
                   of the Github CI/CD so should always pass.
-* `ebpf_client.exe`: A collection of program verification tests that exercises the RPC channel from client to ebpfsvc.
-                   These tests are also run as part of the Github CI/CD so should always pass.
 * `api_test.exe`: A collection of tests that exercises eBPF user mode APIs. This requires EbpSvc service to be running,
                 and EbpCore and NetEbpfExt drivers to be loaded.
 * `sample_ebpf_ext.sys`: A sample eBPF extension driver that implements a test hook (for a test program type) and test helper functions.
@@ -175,14 +173,6 @@ This test uses a mocking layer to bind the user mode components to the kernel mo
 components via a Mock IOCTL interface. The tests initialize the user mode and kernel
 mode components, load an eBPF program from an ELF file, and then run the eBPF program
 by having the mocked extensions emit events.
-
-### ebpf_client.exe
-This test does verification for different sample programs by parsing the ELF file and
-sending the verification request to ebpfsvc. For the cases when the verification fails,
-the test receives and prints the verifier failure message.
-If ebpfsvc is not already installed, this test tries to install and start the service before
-executing the tests, hence this test should be run as admin if ebpfsvc is not already installed
-and running.
 
 ### api_test.exe
 This test exercises various eBPF user mode eBPF APIs, including those to load programs,

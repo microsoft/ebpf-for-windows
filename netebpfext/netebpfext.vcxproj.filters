@@ -41,6 +41,12 @@
     <ClCompile Include="net_ebpf_ext_prog_info_provider.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="net_ebpf_ext_sock_addr.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="net_ebpf_ext_sock_ops.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="net_ebpf_ext.h">
@@ -61,10 +67,16 @@
     <ClInclude Include="net_ebpf_ext_program_info.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClCompile Include="net_ebpf_ext_prog_info_provider.h">
-      <Filter>Header Files</Filter>
-    </ClCompile>
     <ClInclude Include="resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="net_ebpf_ext_prog_info_provider.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="net_ebpf_ext_sock_addr.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="net_ebpf_ext_sock_ops.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

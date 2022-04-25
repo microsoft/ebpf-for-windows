@@ -107,6 +107,11 @@ jobs:
         checkName: ${{inputs.build_job}} (${{env.BUILD_CONFIGURATION}})
         ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
+    - name: Remove existing artifacts
+      if: inputs.environment == 'ebpf_cicd_tests'
+      run: |
+        Remove-Item -Path ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -Recurse -Force -ErrorAction SilentlyContinue
+
     - name: Download build artifact
       if: success()
       uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
