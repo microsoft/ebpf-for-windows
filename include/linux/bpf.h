@@ -14,7 +14,7 @@
 #include "ebpf_program_types.h"
 #include "ebpf_api.h"
 #define LIBBPF_API
-#include "../external/bpftool/libbpf/src/libbpf_common.h"
+#include "libbpf/src/libbpf_common.h"
 #undef LIBBPF_DEPRECATED
 #define LIBBPF_DEPRECATED(x)
 #else
@@ -69,8 +69,8 @@ enum bpf_cmd_id
 /// Attributes used by BPF_OBJ_GET_INFO_BY_FD.
 typedef struct
 {
-    uint32_t bpf_fd;   ///< File descriptor referring to an eBPF object.
-    uint64_t info;     ///< Pointer to memory in which to write the info obtained.
+    uint32_t bpf_fd; ///< File descriptor referring to an eBPF object.
+    uint64_t info;   ///< Pointer to memory in which to write the info obtained.
 
     /**
      * @brief On input, contains the maximum number of bytes to write into the info. On output, contains
