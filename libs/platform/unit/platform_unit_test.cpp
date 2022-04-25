@@ -834,9 +834,5 @@ TEST_CASE("error codes", "[platform]")
         REQUIRE(result2 == result);
     }
 }
-extern bool _wer_report_enabled;
-TEST_CASE("Generate dump", "[platform]")
-{
-    REQUIRE(_wer_report_enabled);
-    RaiseException(EXCEPTION_ACCESS_VIOLATION, 0, 0, 0);
-}
+
+TEST_CASE("Generate dump", "[platform]") { RaiseException(EXCEPTION_ACCESS_VIOLATION, 0, 0, 0); }
