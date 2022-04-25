@@ -24,10 +24,11 @@ class _wer_report
         size_t size = 0;
         _dupenv_s(&buffer, &size, environment_variable_name);
         if (size == 0 || !buffer || _stricmp(environment_variable_value, buffer) != 0) {
-            fprintf(stderr, "%s env value not found or not yes, %s\n", environment_variable_name, buffer);
+            printf("%s env value not found or not yes, %s\n", environment_variable_name, buffer);
             free(buffer);
             return;
         }
+        printf("%s env value found %s\n", environment_variable_name, buffer);
         free(buffer);
 
         if (!SetThreadStackGuarantee(&guaranteed_stack_size)) {
