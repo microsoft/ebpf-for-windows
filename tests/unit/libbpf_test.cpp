@@ -59,7 +59,7 @@ TEST_CASE("invalid bpf_load_program", "[libbpf]")
         BPF_PROG_TYPE_XDP, instructions, _countof(instructions), nullptr, 0, log_buffer, sizeof(log_buffer));
     REQUIRE(program_fd < 0);
     REQUIRE(errno == EACCES);
-    REQUIRE(strcmp(log_buffer, "\n0: r0.type == number\n\n") == 0);
+    REQUIRE(strcmp(log_buffer, "\n0:  (r0.type == number)\n\n") == 0);
 }
 
 TEST_CASE("valid bpf_load_program", "[libbpf]")
