@@ -130,6 +130,8 @@ jobs:
       environment: ebpf_cicd_tests
       # driver test copies dumps to testlog folder.
       gather_dumps: false
+      # driver tests manually gather code coverage
+      code_coverage: false
 
   # Run the unit tests in GitHub with address sanitizer.
   sanitize_unit_tests:

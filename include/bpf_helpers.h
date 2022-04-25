@@ -16,7 +16,7 @@
 // libbpf's bpf_helpers.h for the rest of the platform-agnostic
 // defines.
 #ifndef _MSC_VER
-#include "../external/bpftool/libbpf/src/bpf_helpers.h"
+#include "libbpf/src/bpf_helpers.h"
 #define bpf_map_def _ebpf_map_definition_in_file
 #include "ebpf_nethooks.h"
 #endif
