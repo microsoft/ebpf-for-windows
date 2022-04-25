@@ -20,9 +20,6 @@ using namespace std::chrono_literals;
 extern "C" bool ebpf_fuzzing_enabled;
 
 extern "C" metadata_table_t*
-get_metadata_table_common(const char* name);
-
-extern "C" metadata_table_t*
 get_metadata_table();
 
 #define SERVICE_PATH_PREFIX L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\"

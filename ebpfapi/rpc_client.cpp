@@ -21,25 +21,6 @@ static const WCHAR* _protocol_sequence = L"ncalrpc";
 static bool _binding_initialized = false;
 
 ebpf_result_t
-ebpf_rpc_verify_program(
-    _In_ ebpf_program_verify_info* info,
-    _Outptr_result_maybenull_z_ const char** logs,
-    _Out_ uint32_t* logs_size) noexcept
-{
-    ebpf_result_t result;
-
-    RpcTryExcept { result = ebpf_client_verify_program(info, logs_size, const_cast<char**>(logs)); }
-    RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
-    {
-        // TODO: (Issue# 247) Add tracing for the RpcExceptionCode() that is returned.
-        result = EBPF_RPC_EXCEPTION;
-    }
-    RpcEndExcept
-
-        return result;
-}
-
-ebpf_result_t
 ebpf_rpc_load_program(
     _In_ ebpf_program_load_info* info,
     _Outptr_result_maybenull_z_ const char** logs,
