@@ -120,6 +120,11 @@ jobs:
         name: ${{inputs.build_artifact}} ${{matrix.configurations}}
         path: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
 
+    - name: Start ETW tracing
+      id: start_etw_tracing
+      shell: cmd
+      run: wpr.exe -start ${{github.workspace}}\${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}\ebpfforwindows.wprp -filemode
+
     - name: Run test with Code Coverage
       if: inputs.code_coverage == true
       id: run_test_with_code_coverage
@@ -209,6 +214,11 @@ jobs:
         if ($${{ steps.test.upload_code_coverage_report_3!='failure' }}) { exit 0 }
         if ($${{ steps.test.upload_code_coverage_report_4!='failure' }}) { exit 0 }
         exit 1
+
+    - name: Stop ETW tracing
+      id: start_etw_tracing
+      shell: cmd
+      run: wpr.exe -stop ${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}\TestLogs\ebpfforwindows.etl
 
     - name: Check for crash dumps
       if: inputs.gather_dumps == true
