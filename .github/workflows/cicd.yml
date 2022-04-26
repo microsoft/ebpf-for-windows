@@ -30,6 +30,13 @@ jobs:
     uses: ./.github/workflows/reusable-build.yml
     with:
       build_artifact: Build-x64
+      generate_release_package: true
+
+  cmake:
+    if: github.event_name != 'pull_request'
+    uses: ./.github/workflows/reusable-cmake-build.yml
+    with:
+      build_artifact: Build-x64
 
   # Build with C++ static analyzer.
   analyze:
