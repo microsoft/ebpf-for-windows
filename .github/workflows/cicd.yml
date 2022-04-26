@@ -70,6 +70,7 @@ jobs:
       environment: windows-2019
       code_coverage: true
       gather_dumps: true
+      capture_etw: true
 
   # Run the fuzzing tests in GitHub.
   fuzzing:
@@ -95,6 +96,7 @@ jobs:
       environment: windows-2019
       code_coverage: true
       gather_dumps: true
+      capture_etw: true
 
   # Run Cilium regression tests in GitHub.
   cilium_tests:
@@ -151,3 +153,4 @@ jobs:
       environment: windows-2019
       code_coverage: false
       gather_dumps: true
+      capture_etw: true
