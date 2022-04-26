@@ -30,6 +30,13 @@ jobs:
     uses: ./.github/workflows/reusable-build.yml
     with:
       build_artifact: Build-x64
+      generate_release_package: true
+
+  cmake:
+    if: github.event_name != 'pull_request'
+    uses: ./.github/workflows/reusable-cmake-build.yml
+    with:
+      build_artifact: Build-x64
 
   # Build with C++ static analyzer.
   analyze:
@@ -63,6 +70,7 @@ jobs:
       environment: windows-2019
       code_coverage: true
       gather_dumps: true
+      capture_etw: true
 
   # Run the fuzzing tests in GitHub.
   fuzzing:
@@ -87,6 +95,19 @@ jobs:
       build_artifact: Build-x64
       environment: windows-2019
       code_coverage: true
+      gather_dumps: true
+      capture_etw: true
+
+  # Run Cilium regression tests in GitHub.
+  cilium_tests:
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: cilium_tests
+      test_command: cilium_tests.exe -d yes
+      build_job: regular / build
+      build_artifact: Build-x64
+      environment: windows-2019
+      code_coverage: false
       gather_dumps: true
 
   # Run the quick stress tests in GitHub.
@@ -132,3 +153,4 @@ jobs:
       environment: windows-2019
       code_coverage: false
       gather_dumps: true
+      capture_etw: true

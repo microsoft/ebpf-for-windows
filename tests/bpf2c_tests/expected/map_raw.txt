@@ -92,9 +92,9 @@ static uint64_t test_maps(void* context)
 	// EBPF_OP_MOV64_IMM pc=2 dst=r1 src=r0 offset=0 imm=1
 #line 52 "sample/map.c"
 	r1 = IMMEDIATE(1);
-	// EBPF_OP_STXW pc=3 dst=r10 src=r1 offset=-8 imm=0
+	// EBPF_OP_STXW pc=3 dst=r10 src=r1 offset=-68 imm=0
 #line 53 "sample/map.c"
-	*(uint32_t *)(uintptr_t)(r10 + OFFSET(-8)) = (uint32_t)r1;
+	*(uint32_t *)(uintptr_t)(r10 + OFFSET(-68)) = (uint32_t)r1;
 	// EBPF_OP_MOV64_REG pc=4 dst=r2 src=r10 offset=0 imm=0
 #line 53 "sample/map.c"
 	r2 = r10;
@@ -104,9 +104,9 @@ static uint64_t test_maps(void* context)
 	// EBPF_OP_MOV64_REG pc=6 dst=r3 src=r10 offset=0 imm=0
 #line 53 "sample/map.c"
 	r3 = r10;
-	// EBPF_OP_ADD64_IMM pc=7 dst=r3 src=r0 offset=0 imm=-8
+	// EBPF_OP_ADD64_IMM pc=7 dst=r3 src=r0 offset=0 imm=-68
 #line 53 "sample/map.c"
-	r3 += IMMEDIATE(-8);
+	r3 += IMMEDIATE(-68);
 	// EBPF_OP_LDDW pc=8 dst=r1 src=r0 offset=0 imm=0
 #line 56 "sample/map.c"
 	r1 = POINTER(_maps[1].address);
@@ -378,9 +378,9 @@ label_7:
 	// EBPF_OP_MOV64_IMM pc=106 dst=r1 src=r0 offset=0 imm=1
 #line 52 "sample/map.c"
 	r1 = IMMEDIATE(1);
-	// EBPF_OP_STXW pc=107 dst=r10 src=r1 offset=-8 imm=0
+	// EBPF_OP_STXW pc=107 dst=r10 src=r1 offset=-68 imm=0
 #line 53 "sample/map.c"
-	*(uint32_t *)(uintptr_t)(r10 + OFFSET(-8)) = (uint32_t)r1;
+	*(uint32_t *)(uintptr_t)(r10 + OFFSET(-68)) = (uint32_t)r1;
 	// EBPF_OP_MOV64_REG pc=108 dst=r2 src=r10 offset=0 imm=0
 #line 53 "sample/map.c"
 	r2 = r10;
@@ -390,9 +390,9 @@ label_7:
 	// EBPF_OP_MOV64_REG pc=110 dst=r3 src=r10 offset=0 imm=0
 #line 53 "sample/map.c"
 	r3 = r10;
-	// EBPF_OP_ADD64_IMM pc=111 dst=r3 src=r0 offset=0 imm=-8
+	// EBPF_OP_ADD64_IMM pc=111 dst=r3 src=r0 offset=0 imm=-68
 #line 53 "sample/map.c"
-	r3 += IMMEDIATE(-8);
+	r3 += IMMEDIATE(-68);
 	// EBPF_OP_LDDW pc=112 dst=r1 src=r0 offset=0 imm=0
 #line 56 "sample/map.c"
 	r1 = POINTER(_maps[2].address);
@@ -658,9 +658,9 @@ label_12:
 	// EBPF_OP_MOV64_IMM pc=211 dst=r1 src=r0 offset=0 imm=1
 #line 52 "sample/map.c"
 	r1 = IMMEDIATE(1);
-	// EBPF_OP_STXW pc=212 dst=r10 src=r1 offset=-8 imm=0
+	// EBPF_OP_STXW pc=212 dst=r10 src=r1 offset=-68 imm=0
 #line 53 "sample/map.c"
-	*(uint32_t *)(uintptr_t)(r10 + OFFSET(-8)) = (uint32_t)r1;
+	*(uint32_t *)(uintptr_t)(r10 + OFFSET(-68)) = (uint32_t)r1;
 	// EBPF_OP_MOV64_REG pc=213 dst=r2 src=r10 offset=0 imm=0
 #line 53 "sample/map.c"
 	r2 = r10;
@@ -670,9 +670,9 @@ label_12:
 	// EBPF_OP_MOV64_REG pc=215 dst=r3 src=r10 offset=0 imm=0
 #line 53 "sample/map.c"
 	r3 = r10;
-	// EBPF_OP_ADD64_IMM pc=216 dst=r3 src=r0 offset=0 imm=-8
+	// EBPF_OP_ADD64_IMM pc=216 dst=r3 src=r0 offset=0 imm=-68
 #line 53 "sample/map.c"
-	r3 += IMMEDIATE(-8);
+	r3 += IMMEDIATE(-68);
 	// EBPF_OP_LDDW pc=217 dst=r1 src=r0 offset=0 imm=0
 #line 56 "sample/map.c"
 	r1 = POINTER(_maps[3].address);
@@ -938,9 +938,9 @@ label_17:
 	// EBPF_OP_MOV64_IMM pc=315 dst=r1 src=r0 offset=0 imm=1
 #line 52 "sample/map.c"
 	r1 = IMMEDIATE(1);
-	// EBPF_OP_STXW pc=316 dst=r10 src=r1 offset=-8 imm=0
+	// EBPF_OP_STXW pc=316 dst=r10 src=r1 offset=-68 imm=0
 #line 53 "sample/map.c"
-	*(uint32_t *)(uintptr_t)(r10 + OFFSET(-8)) = (uint32_t)r1;
+	*(uint32_t *)(uintptr_t)(r10 + OFFSET(-68)) = (uint32_t)r1;
 	// EBPF_OP_MOV64_REG pc=317 dst=r2 src=r10 offset=0 imm=0
 #line 53 "sample/map.c"
 	r2 = r10;
@@ -950,9 +950,9 @@ label_17:
 	// EBPF_OP_MOV64_REG pc=319 dst=r3 src=r10 offset=0 imm=0
 #line 53 "sample/map.c"
 	r3 = r10;
-	// EBPF_OP_ADD64_IMM pc=320 dst=r3 src=r0 offset=0 imm=-8
+	// EBPF_OP_ADD64_IMM pc=320 dst=r3 src=r0 offset=0 imm=-68
 #line 53 "sample/map.c"
-	r3 += IMMEDIATE(-8);
+	r3 += IMMEDIATE(-68);
 	// EBPF_OP_LDDW pc=321 dst=r1 src=r0 offset=0 imm=0
 #line 56 "sample/map.c"
 	r1 = POINTER(_maps[4].address);
@@ -1218,9 +1218,9 @@ label_22:
 	// EBPF_OP_MOV64_IMM pc=420 dst=r1 src=r0 offset=0 imm=1
 #line 52 "sample/map.c"
 	r1 = IMMEDIATE(1);
-	// EBPF_OP_STXW pc=421 dst=r10 src=r1 offset=-8 imm=0
+	// EBPF_OP_STXW pc=421 dst=r10 src=r1 offset=-68 imm=0
 #line 53 "sample/map.c"
-	*(uint32_t *)(uintptr_t)(r10 + OFFSET(-8)) = (uint32_t)r1;
+	*(uint32_t *)(uintptr_t)(r10 + OFFSET(-68)) = (uint32_t)r1;
 	// EBPF_OP_MOV64_REG pc=422 dst=r2 src=r10 offset=0 imm=0
 #line 53 "sample/map.c"
 	r2 = r10;
@@ -1230,9 +1230,9 @@ label_22:
 	// EBPF_OP_MOV64_REG pc=424 dst=r3 src=r10 offset=0 imm=0
 #line 53 "sample/map.c"
 	r3 = r10;
-	// EBPF_OP_ADD64_IMM pc=425 dst=r3 src=r0 offset=0 imm=-8
+	// EBPF_OP_ADD64_IMM pc=425 dst=r3 src=r0 offset=0 imm=-68
 #line 53 "sample/map.c"
-	r3 += IMMEDIATE(-8);
+	r3 += IMMEDIATE(-68);
 	// EBPF_OP_LDDW pc=426 dst=r1 src=r0 offset=0 imm=0
 #line 56 "sample/map.c"
 	r1 = POINTER(_maps[5].address);
@@ -1492,9 +1492,9 @@ label_27:
 	// EBPF_OP_MOV64_IMM pc=523 dst=r1 src=r0 offset=0 imm=1
 #line 52 "sample/map.c"
 	r1 = IMMEDIATE(1);
-	// EBPF_OP_STXW pc=524 dst=r10 src=r1 offset=-8 imm=0
+	// EBPF_OP_STXW pc=524 dst=r10 src=r1 offset=-68 imm=0
 #line 53 "sample/map.c"
-	*(uint32_t *)(uintptr_t)(r10 + OFFSET(-8)) = (uint32_t)r1;
+	*(uint32_t *)(uintptr_t)(r10 + OFFSET(-68)) = (uint32_t)r1;
 	// EBPF_OP_MOV64_REG pc=525 dst=r2 src=r10 offset=0 imm=0
 #line 53 "sample/map.c"
 	r2 = r10;
@@ -1504,9 +1504,9 @@ label_27:
 	// EBPF_OP_MOV64_REG pc=527 dst=r3 src=r10 offset=0 imm=0
 #line 53 "sample/map.c"
 	r3 = r10;
-	// EBPF_OP_ADD64_IMM pc=528 dst=r3 src=r0 offset=0 imm=-8
+	// EBPF_OP_ADD64_IMM pc=528 dst=r3 src=r0 offset=0 imm=-68
 #line 53 "sample/map.c"
-	r3 += IMMEDIATE(-8);
+	r3 += IMMEDIATE(-68);
 	// EBPF_OP_LDDW pc=529 dst=r1 src=r0 offset=0 imm=0
 #line 56 "sample/map.c"
 	r1 = POINTER(_maps[6].address);
@@ -1772,9 +1772,9 @@ label_32:
 	// EBPF_OP_MOV64_IMM pc=629 dst=r1 src=r0 offset=0 imm=1
 #line 181 "sample/map.c"
 	r1 = IMMEDIATE(1);
-	// EBPF_OP_STXW pc=630 dst=r10 src=r1 offset=-8 imm=0
+	// EBPF_OP_STXW pc=630 dst=r10 src=r1 offset=-68 imm=0
 #line 81 "sample/map.c"
-	*(uint32_t *)(uintptr_t)(r10 + OFFSET(-8)) = (uint32_t)r1;
+	*(uint32_t *)(uintptr_t)(r10 + OFFSET(-68)) = (uint32_t)r1;
 	// EBPF_OP_MOV64_IMM pc=631 dst=r9 src=r0 offset=0 imm=11
 #line 81 "sample/map.c"
 	r9 = IMMEDIATE(11);
@@ -1788,9 +1788,9 @@ label_33:
 	// EBPF_OP_MOV64_REG pc=634 dst=r3 src=r10 offset=0 imm=0
 #line 81 "sample/map.c"
 	r3 = r10;
-	// EBPF_OP_ADD64_IMM pc=635 dst=r3 src=r0 offset=0 imm=-8
+	// EBPF_OP_ADD64_IMM pc=635 dst=r3 src=r0 offset=0 imm=-68
 #line 81 "sample/map.c"
-	r3 += IMMEDIATE(-8);
+	r3 += IMMEDIATE(-68);
 	// EBPF_OP_LDDW pc=636 dst=r1 src=r0 offset=0 imm=0
 #line 86 "sample/map.c"
 	r1 = POINTER(_maps[5].address);
@@ -1846,9 +1846,9 @@ label_33:
 	// EBPF_OP_MOV64_IMM pc=653 dst=r1 src=r0 offset=0 imm=1
 #line 85 "sample/map.c"
 	r1 = IMMEDIATE(1);
-	// EBPF_OP_STXW pc=654 dst=r10 src=r1 offset=-8 imm=0
+	// EBPF_OP_STXW pc=654 dst=r10 src=r1 offset=-68 imm=0
 #line 81 "sample/map.c"
-	*(uint32_t *)(uintptr_t)(r10 + OFFSET(-8)) = (uint32_t)r1;
+	*(uint32_t *)(uintptr_t)(r10 + OFFSET(-68)) = (uint32_t)r1;
 	// EBPF_OP_MOV64_IMM pc=655 dst=r9 src=r0 offset=0 imm=11
 #line 81 "sample/map.c"
 	r9 = IMMEDIATE(11);
@@ -1862,9 +1862,9 @@ label_34:
 	// EBPF_OP_MOV64_REG pc=658 dst=r3 src=r10 offset=0 imm=0
 #line 81 "sample/map.c"
 	r3 = r10;
-	// EBPF_OP_ADD64_IMM pc=659 dst=r3 src=r0 offset=0 imm=-8
+	// EBPF_OP_ADD64_IMM pc=659 dst=r3 src=r0 offset=0 imm=-68
 #line 81 "sample/map.c"
-	r3 += IMMEDIATE(-8);
+	r3 += IMMEDIATE(-68);
 	// EBPF_OP_LDDW pc=660 dst=r1 src=r0 offset=0 imm=0
 #line 86 "sample/map.c"
 	r1 = POINTER(_maps[6].address);

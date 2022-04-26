@@ -42,6 +42,9 @@ on:
       post_test:
         required: false
         type: string
+      capture_etw:
+        required: false
+        type: boolean
 
 permissions:
   checks: read  # Required by fountainhead/action-wait-for-check to wait for another GitHub check to complete.
@@ -117,6 +120,14 @@ jobs:
       with:
         name: ${{inputs.build_artifact}} ${{matrix.configurations}}
         path: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+
+    - name: Start ETW tracing
+      id: start_etw_tracing
+      if: inputs.capture_etw == true
+      shell: cmd
+      run: |
+        mkdir ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\TestLogs
+        wpr.exe -start ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\ebpfforwindows.wprp -filemode
 
     - name: Run test with Code Coverage
       if: inputs.code_coverage == true
@@ -208,6 +219,12 @@ jobs:
         if ($${{ steps.test.upload_code_coverage_report_3!='failure' }}) { exit 0 }
         if ($${{ steps.test.upload_code_coverage_report_4!='failure' }}) { exit 0 }
         exit 1
+
+    - name: Stop ETW tracing
+      id: stop_etw_tracing
+      if: inputs.capture_etw == true
+      shell: cmd
+      run: wpr.exe -stop ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\TestLogs\ebpfforwindows.etl
 
     - name: Check for crash dumps
       uses: andstor/file-existence-action@f02338908d150e00a4b8bebc2dad18bd9e5229b0
