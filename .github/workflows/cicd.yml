@@ -98,7 +98,7 @@ jobs:
       build_job: regular / build
       build_artifact: Build-x64
       environment: windows-2019
-      code_coverage: true
+      code_coverage: false
       gather_dumps: true
 
   # Run the quick stress tests in GitHub.
