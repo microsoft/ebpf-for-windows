@@ -216,7 +216,7 @@ jobs:
         exit 1
 
     - name: Stop ETW tracing
-      id: start_etw_tracing
+      id: stop_etw_tracing
       shell: cmd
       run: wpr.exe -stop ${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}\TestLogs\ebpfforwindows.etl
 
