@@ -10,7 +10,7 @@ The following must be installed in order to build this project:
    which must be selected as an Individual component in the VS installer
 3. [Visual Studio Build Tools 2019](https://aka.ms/vs/16/release/vs_buildtools.exe)
 4. [WDK for Windows 10, version 2004](https://go.microsoft.com/fwlink/?linkid=2128854)
-5. [Clang for Windows 64-bit version 10.0.0](https://github.com/llvm/llvm-project/releases/download/llvmorg-10.0.0/LLVM-10.0.0-win64.exe) or [The latest release of Clang for Windows 64-bit](https://github.com/llvm/llvm-project/releases/latest)
+5. [Clang for Windows 64-bit version 11.0.1](https://github.com/llvm/llvm-project/releases/download/llvmorg-11.0.1/LLVM-11.0.1-win64.exe) or [The latest release of Clang for Windows 64-bit](https://github.com/llvm/llvm-project/releases/latest)
 6. [nuget.exe](https://www.nuget.org/downloads) installed to a location such as "C:\Program Files (x86)\NuGet\"
 
 You should add the paths to `git.exe`, `cmake.exe` and `nuget.exe` to the Windows PATH environment variable after the software packages above have been installed.
@@ -177,7 +177,7 @@ On a defender machine with [eBPF installed](#installing-ebpf-for-windows), do th
 1. Install and set up a DNS server.
 2. Make sure that either test signing was enabled as discussed in
    [Installing eBPF for Windows](#installing-ebpf-for-windows), or the kernel debugger (KD) is attached and running.
-3. Install [clang](https://github.com/llvm/llvm-project/releases/download/llvmorg-11.0.0/LLVM-11.0.0-win64.exe)
+3. Install [clang](https://github.com/llvm/llvm-project/releases/download/llvmorg-11.0.1/LLVM-11.0.1-win64.exe)
    if not already installed on the defender machine.
 4. Copy `droppacket.c` and `ebpf.h` to a folder (such as `c:\test`).
 
