@@ -5,16 +5,16 @@
 
 #include <iostream>
 
-#include "ebpf_api.h"
 #include "bpf/libbpf.h"
 #include "catch_wrapper.hpp"
+#include "ebpf_api.h"
 
 #define SAMPLE_PATH ""
 #define CILIUM_XDP_SECTIONS_SNAT 10
 #define CILIUM_XDP_SECTIONS_DSR 12
 
 void
-verify_program(_In_ const char* file, uint32_t expected_section_count)
+verify_program(_In_z_ const char* file, uint32_t expected_section_count)
 {
     struct bpf_object_open_opts opts = {0};
     bpf_program* program = nullptr;
