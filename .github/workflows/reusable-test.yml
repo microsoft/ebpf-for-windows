@@ -218,7 +218,7 @@ jobs:
     - name: Stop ETW tracing
       id: stop_etw_tracing
       shell: cmd
-      run: wpr.exe -stop ${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}\TestLogs\ebpfforwindows.etl
+      run: wpr.exe -stop ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\TestLogs\ebpfforwindows.etl
 
     - name: Check for crash dumps
       if: inputs.gather_dumps == true
