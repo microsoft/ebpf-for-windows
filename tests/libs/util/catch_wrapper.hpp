@@ -19,4 +19,4 @@
 #endif
 #pragma warning(pop)
 
-#include "wer_report.h"
+#include "wer_report.hpp"
