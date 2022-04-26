@@ -42,6 +42,9 @@ on:
       post_test:
         required: false
         type: string
+      capture_etw:
+        required: false
+        type: boolean
 
 permissions:
   checks: read  # Required by fountainhead/action-wait-for-check to wait for another GitHub check to complete.
@@ -122,7 +125,7 @@ jobs:
 
     - name: Start ETW tracing
       id: start_etw_tracing
-      if: inputs.environment != 'ebpf_cicd_tests'
+      if: inputs.capture_etw == true
       shell: cmd
       run: |
         mkdir ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\TestLogs
@@ -220,7 +223,7 @@ jobs:
 
     - name: Stop ETW tracing
       id: stop_etw_tracing
-      if: inputs.environment != 'ebpf_cicd_tests'
+      if: inputs.capture_etw == true
       shell: cmd
       run: wpr.exe -stop ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\TestLogs\ebpfforwindows.etl
 

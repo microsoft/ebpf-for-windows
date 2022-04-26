@@ -70,6 +70,7 @@ jobs:
       environment: windows-2019
       code_coverage: true
       gather_dumps: true
+      capture_etw: true
 
   # Run the fuzzing tests in GitHub.
   fuzzing:
@@ -95,6 +96,7 @@ jobs:
       environment: windows-2019
       code_coverage: true
       gather_dumps: true
+      capture_etw: true
 
   # Run the quick stress tests in GitHub.
   stress:
@@ -139,3 +141,4 @@ jobs:
       environment: windows-2019
       code_coverage: false
       gather_dumps: true
+      capture_etw: true
