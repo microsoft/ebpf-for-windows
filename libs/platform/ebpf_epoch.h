@@ -93,6 +93,16 @@ extern "C"
     void
     ebpf_epoch_free_work_item(_Frees_ptr_opt_ ebpf_epoch_work_item_t* work_item);
 
+    /**
+     * @brief Check the state of the free list on a CPU.
+     *
+     * @param[in] cpu_id CPU to check.
+     * @retval true Free list is empty.
+     * @retval false Free list is not empty.
+     */
+    bool
+    ebpf_epoch_is_free_list_empty(uint32_t cpu_id);
+
 #ifdef __cplusplus
 }
 #endif

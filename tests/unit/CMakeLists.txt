@@ -17,6 +17,8 @@ add_executable("unit_tests"
 
   ../end_to_end/test_helper.hpp
   ../end_to_end/test_helper.cpp
+  
+  wer_report_test_wrapper.cpp
 )
 
 target_include_directories("unit_tests" PRIVATE

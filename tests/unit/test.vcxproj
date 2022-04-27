@@ -195,6 +195,7 @@
     <ClInclude Include="..\..\libs\thunk\mock\mock.h" />
     <ClInclude Include="..\end_to_end\helpers.h" />
     <ClInclude Include="..\end_to_end\test_helper.hpp" />
+    <ClCompile Include="wer_report_test_wrapper.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />

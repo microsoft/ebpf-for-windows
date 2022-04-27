@@ -402,6 +402,16 @@ ebpf_epoch_free_work_item(_Frees_ptr_opt_ ebpf_epoch_work_item_t* work_item)
     ebpf_free(work_item);
 }
 
+bool
+ebpf_epoch_is_free_list_empty(uint32_t cpu_id)
+{
+    bool is_free_list_empty = false;
+    ebpf_lock_state_t lock_state = ebpf_lock_lock(&_ebpf_epoch_cpu_table[cpu_id].lock);
+    is_free_list_empty = ebpf_list_is_empty(&_ebpf_epoch_cpu_table[cpu_id].free_list);
+    ebpf_lock_unlock(&_ebpf_epoch_cpu_table[cpu_id].lock, lock_state);
+    return is_free_list_empty;
+}
+
 /**
  * @brief Remove all entries from the per-CPU free list that have an epoch that is before released_epoch.
  *
