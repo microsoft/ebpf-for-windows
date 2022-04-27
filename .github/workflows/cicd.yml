@@ -112,6 +112,14 @@ jobs:
       # driver tests manually gather code coverage
       code_coverage: false
 
+  ossar:
+    # Always run this job.
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push'
+    uses: ./.github/workflows/ossar-scan.yml
+    with:
+      build_job: regular / build
+      build_artifact: Build-x64
+
   # Additional jobs to run on pull and schedule only (skip push).
   # ---------------------------------------------------------------------------
   # Build with C++ static analyzer.
