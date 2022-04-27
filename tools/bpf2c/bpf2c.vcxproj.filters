@@ -45,4 +45,11 @@
       <Filter>Source Files</Filter>
     </CustomBuild>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="templates\kernel_mode_bpf2c.vcxproj" />
+    <None Include="templates\sources.def">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="templates\user_mode_bpf2c.vcxproj" />
+  </ItemGroup>
 </Project>
