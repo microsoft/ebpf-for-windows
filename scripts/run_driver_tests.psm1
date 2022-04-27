@@ -85,6 +85,7 @@ function Invoke-CICDTests
           [parameter(Mandatory = $false)][bool] $Coverage = $false)
 
     pushd $WorkingDirectory
+    $env:EBPF_ENABLE_WER_REPORT = "yes"
 
     try {
         $TestList = @(
