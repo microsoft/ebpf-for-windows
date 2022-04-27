@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #include "ebpf_platform.h"
+#include "ebpf_utilities.h"
 #include <intsafe.h>
 #include <map>
 #include <mutex>
@@ -20,15 +21,78 @@ bool _ebpf_platform_is_preemptible = true;
 
 extern "C" bool ebpf_fuzzing_enabled = false;
 
+// Thread pool related globals.
+static TP_CALLBACK_ENVIRON _callback_environment;
+static PTP_POOL _pool = NULL;
+static PTP_CLEANUP_GROUP _cleanup_group = NULL;
+
+static ebpf_result_t
+_initialize_thread_pool()
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+    bool cleanup_group_created = false;
+    bool return_value;
+
+    InitializeThreadpoolEnvironment(&_callback_environment);
+    _pool = CreateThreadpool(NULL);
+    if (NULL == _pool) {
+        result = win32_error_code_to_ebpf_result(GetLastError());
+        goto Exit;
+    }
+
+    SetThreadpoolThreadMaximum(_pool, 1);
+    return_value = SetThreadpoolThreadMinimum(_pool, 1);
+    if (!return_value) {
+        result = win32_error_code_to_ebpf_result(GetLastError());
+        goto Exit;
+    }
+
+    _cleanup_group = CreateThreadpoolCleanupGroup();
+    if (_cleanup_group == NULL) {
+        result = win32_error_code_to_ebpf_result(GetLastError());
+        goto Exit;
+    }
+    cleanup_group_created = true;
+
+    SetThreadpoolCallbackPool(&_callback_environment, _pool);
+    SetThreadpoolCallbackCleanupGroup(&_callback_environment, _cleanup_group, NULL);
+
+Exit:
+    if (result != EBPF_SUCCESS) {
+        if (cleanup_group_created) {
+            CloseThreadpoolCleanupGroup(_cleanup_group);
+        }
+        if (_pool) {
+            CloseThreadpool(_pool);
+            _pool = NULL;
+        }
+    }
+    return result;
+}
+
+static void
+_clean_up_thread_pool()
+{
+    if (!_pool) {
+        return;
+    }
+
+    CloseThreadpoolCleanupGroupMembers(_cleanup_group, false, NULL);
+    CloseThreadpoolCleanupGroup(_cleanup_group);
+    CloseThreadpool(_pool);
+}
+
 ebpf_result_t
 ebpf_platform_initiate()
 {
-    return EBPF_SUCCESS;
+    return _initialize_thread_pool();
 }
 
 void
 ebpf_platform_terminate()
-{}
+{
+    _clean_up_thread_pool();
+}
 
 ebpf_result_t
 ebpf_get_code_integrity_state(_Out_ ebpf_code_integrity_state_t* state)
@@ -364,7 +428,9 @@ ebpf_lock_destroy(_In_ ebpf_lock_t* lock)
 }
 
 _Requires_lock_not_held_(*lock) _Acquires_lock_(*lock) _IRQL_requires_max_(DISPATCH_LEVEL) _IRQL_saves_
-    _IRQL_raises_(DISPATCH_LEVEL) ebpf_lock_state_t ebpf_lock_lock(_In_ ebpf_lock_t* lock)
+    _IRQL_raises_(DISPATCH_LEVEL)
+ebpf_lock_state_t
+ebpf_lock_lock(_In_ ebpf_lock_t* lock)
 {
     AcquireSRWLockExclusive(reinterpret_cast<PSRWLOCK>(lock));
     return 0;
@@ -446,9 +512,7 @@ ebpf_is_non_preemptible_work_item_supported()
 bool
 ebpf_is_preemptible_work_item_supported()
 {
-    // TODO: (Issue# 854) Add support for creating threads to queue preemptible work items in user mode.
-    // https://github.com/microsoft/ebpf-for-windows/issues/854
-    return false;
+    return true;
 }
 
 uint32_t
@@ -491,12 +555,34 @@ ebpf_queue_non_preemptible_work_item(_In_ ebpf_non_preemptible_work_item_t* work
     return false;
 }
 
+typedef struct _ebpf_preemptible_work_item
+{
+    PTP_WORK work;
+    void (*work_item_routine)(_In_opt_ const void* work_item_context);
+    void* work_item_context;
+} ebpf_preemptible_work_item_t;
+
+static void
+_ebpf_preemptible_routine(_Inout_ PTP_CALLBACK_INSTANCE instance, _In_opt_ PVOID parameter, _Inout_ PTP_WORK work)
+{
+    UNREFERENCED_PARAMETER(instance);
+    UNREFERENCED_PARAMETER(work);
+
+    if (parameter == nullptr) {
+        return;
+    }
+
+    ebpf_preemptible_work_item_t* work_item = (ebpf_preemptible_work_item_t*)parameter;
+    work_item->work_item_routine(work_item->work_item_context);
+
+    ebpf_free(work_item->work_item_context);
+    ebpf_free(work_item);
+}
+
 void
 ebpf_queue_preemptible_work_item(_In_ ebpf_preemptible_work_item_t* work_item)
 {
-    UNREFERENCED_PARAMETER(work_item);
-    // TODO: (Issue# 854) Add support for creating threads to queue preemptible work items in user mode.
-    // https://github.com/microsoft/ebpf-for-windows/issues/854
+    SubmitThreadpoolWork(work_item->work);
 }
 
 ebpf_result_t
@@ -505,12 +591,26 @@ ebpf_allocate_preemptible_work_item(
     _In_ void (*work_item_routine)(_In_opt_ const void* work_item_context),
     _In_opt_ void* work_item_context)
 {
-    UNREFERENCED_PARAMETER(work_item);
-    UNREFERENCED_PARAMETER(work_item_routine);
-    UNREFERENCED_PARAMETER(work_item_context);
-    // TODO: (Issue# 854) Add support for creating threads to queue preemptible work items in user mode.
-    // https://github.com/microsoft/ebpf-for-windows/issues/854
-    return EBPF_OPERATION_NOT_SUPPORTED;
+    ebpf_result_t result = EBPF_SUCCESS;
+    *work_item = (ebpf_preemptible_work_item_t*)ebpf_allocate(sizeof(ebpf_preemptible_work_item_t));
+    if (*work_item == NULL) {
+        return EBPF_NO_MEMORY;
+    }
+
+    (*work_item)->work = CreateThreadpoolWork(_ebpf_preemptible_routine, *work_item, &_callback_environment);
+    if ((*work_item)->work == NULL) {
+        result = win32_error_code_to_ebpf_result(GetLastError());
+        goto Done;
+    }
+    (*work_item)->work_item_routine = work_item_routine;
+    (*work_item)->work_item_context = work_item_context;
+
+Done:
+    if (result != EBPF_SUCCESS) {
+        ebpf_free(*work_item);
+        *work_item = NULL;
+    }
+    return result;
 }
 
 typedef struct _ebpf_timer_work_item
