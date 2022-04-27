@@ -1,6 +1,9 @@
 # Copyright (c) Microsoft Corporation
 # SPDX-License-Identifier: MIT
 
+set(CMAKE_SYSTEM_VERSION 10.0.19041.0)
+set(CMAKE_CXX_STANDARD 20)
+
 option(EBPFFORWINDOWS_ENABLE_TESTS "Set to true to enable tests" true)
 option(EBPFFORWINDOWS_ENABLE_INSTALL "Set to true to enable the install target")
 option(EBPFFORWINDOWS_ENABLE_DISABLE_EBPF_INTERPRETER "Set to true to compile with the interpreter always disabled")
