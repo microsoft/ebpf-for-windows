@@ -30,7 +30,7 @@ jobs:
       BUILD_ARTIFACT_NAME: ${{inputs.build_artifact}}
       BUILD_CONFIGURATION: ${{matrix.configurations}}
       BUILD_PLATFORM: x64
-      CMAKE_GENERATOR: Visual Studio 12 2022
+      CMAKE_GENERATOR: Visual Studio 17 2022
       PLATFORM_TOOLSET: v143
 
     steps:
