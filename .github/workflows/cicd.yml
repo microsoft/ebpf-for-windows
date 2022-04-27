@@ -33,7 +33,7 @@ jobs:
       generate_release_package: true
 
   cmake:
-    if: github.event_name != 'pull_request'
+    #if: github.event_name != 'pull_request'
     uses: ./.github/workflows/reusable-cmake-build.yml
     with:
       build_artifact: Build-x64

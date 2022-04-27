@@ -24,14 +24,14 @@ jobs:
       matrix:
         configurations: [Debug, Release]
 
-    runs-on: windows-2019
+    runs-on: windows-latest
 
     env:
       BUILD_ARTIFACT_NAME: ${{inputs.build_artifact}}
       BUILD_CONFIGURATION: ${{matrix.configurations}}
       BUILD_PLATFORM: x64
-      CMAKE_GENERATOR: Visual Studio 16 2019
-      PLATFORM_TOOLSET: v142
+      CMAKE_GENERATOR: Visual Studio 12 2022
+      PLATFORM_TOOLSET: v143
 
     steps:
     - uses: actions/checkout@b0e28b5ac45a892f91e7d036f8200cf5ed489415
