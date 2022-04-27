@@ -1,0 +1,59 @@
+# Copyright (c) Microsoft Corporation
+# SPDX-License-Identifier: MIT
+
+# This workflow performs a CMake-based build of the project.
+
+name: Reusable CMake Workflow
+
+on:
+  workflow_call:
+    inputs:
+      # Name associated with the output of this build.
+      build_artifact:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    timeout-minutes: 60
+
+    strategy:
+      matrix:
+        configurations: [Debug, Release]
+
+    runs-on: windows-2019
+
+    env:
+      BUILD_ARTIFACT_NAME: ${{inputs.build_artifact}}
+      BUILD_CONFIGURATION: ${{matrix.configurations}}
+      BUILD_PLATFORM: x64
+      CMAKE_GENERATOR: Visual Studio 16 2019
+      PLATFORM_TOOLSET: v142
+
+    steps:
+    - uses: actions/checkout@b0e28b5ac45a892f91e7d036f8200cf5ed489415
+      with:
+        submodules: 'recursive'
+
+    - name: Cache nuget packages
+      uses: actions/cache@f63a711791a8e7cc2d5463afc081136e00085800
+      env:
+        cache-name: cache-nuget-modules
+      with:
+        path: packages
+        key: ${{ runner.os }}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}-${{env.BUILD_ARTIFACT_NAME}}-${{ hashFiles('**/packages.config') }}
+
+    - name: Configure the project
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      shell: cmd
+      run: |
+        cmake -S . -B build -G "${{env.CMAKE_GENERATOR}}" -A ${{env.BUILD_PLATFORM}} -T ${{env.PLATFORM_TOOLSET}}
+
+    - name: Build the project
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      shell: cmd
+      run: |
+        cmake --build build --config ${{env.BUILD_CONFIGURATION }}

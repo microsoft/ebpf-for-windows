@@ -18,3 +18,5 @@
 #include "catch2/catch_all.hpp"
 #endif
 #pragma warning(pop)
+
+#include "wer_report.hpp"

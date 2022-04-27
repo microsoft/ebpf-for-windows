@@ -34,6 +34,7 @@
     <ClInclude Include="service_helper.h" />
     <ClInclude Include="socket_helper.h" />
     <ClInclude Include="program_helper.h" />
+    <ClInclude Include="wer_report.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\external\Catch2\build\src\Catch2WithMain.vcxproj">
