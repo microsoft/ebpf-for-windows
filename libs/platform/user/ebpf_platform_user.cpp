@@ -23,8 +23,8 @@ extern "C" bool ebpf_fuzzing_enabled = false;
 
 // Thread pool related globals.
 static TP_CALLBACK_ENVIRON _callback_environment;
-static PTP_POOL _pool = NULL;
-static PTP_CLEANUP_GROUP _cleanup_group = NULL;
+static PTP_POOL _pool = nullptr;
+static PTP_CLEANUP_GROUP _cleanup_group = nullptr;
 
 static ebpf_result_t
 _initialize_thread_pool()
@@ -34,8 +34,8 @@ _initialize_thread_pool()
     bool return_value;
 
     InitializeThreadpoolEnvironment(&_callback_environment);
-    _pool = CreateThreadpool(NULL);
-    if (NULL == _pool) {
+    _pool = CreateThreadpool(nullptr);
+    if (_pool == nullptr) {
         result = win32_error_code_to_ebpf_result(GetLastError());
         goto Exit;
     }
@@ -48,14 +48,14 @@ _initialize_thread_pool()
     }
 
     _cleanup_group = CreateThreadpoolCleanupGroup();
-    if (_cleanup_group == NULL) {
+    if (_cleanup_group == nullptr) {
         result = win32_error_code_to_ebpf_result(GetLastError());
         goto Exit;
     }
     cleanup_group_created = true;
 
     SetThreadpoolCallbackPool(&_callback_environment, _pool);
-    SetThreadpoolCallbackCleanupGroup(&_callback_environment, _cleanup_group, NULL);
+    SetThreadpoolCallbackCleanupGroup(&_callback_environment, _cleanup_group, nullptr);
 
 Exit:
     if (result != EBPF_SUCCESS) {
@@ -64,7 +64,7 @@ Exit:
         }
         if (_pool) {
             CloseThreadpool(_pool);
-            _pool = NULL;
+            _pool = nullptr;
         }
     }
     return result;
@@ -77,7 +77,7 @@ _clean_up_thread_pool()
         return;
     }
 
-    CloseThreadpoolCleanupGroupMembers(_cleanup_group, false, NULL);
+    CloseThreadpoolCleanupGroupMembers(_cleanup_group, false, nullptr);
     CloseThreadpoolCleanupGroup(_cleanup_group);
     CloseThreadpool(_pool);
 }
@@ -593,12 +593,12 @@ ebpf_allocate_preemptible_work_item(
 {
     ebpf_result_t result = EBPF_SUCCESS;
     *work_item = (ebpf_preemptible_work_item_t*)ebpf_allocate(sizeof(ebpf_preemptible_work_item_t));
-    if (*work_item == NULL) {
+    if (*work_item == nullptr) {
         return EBPF_NO_MEMORY;
     }
 
     (*work_item)->work = CreateThreadpoolWork(_ebpf_preemptible_routine, *work_item, &_callback_environment);
-    if ((*work_item)->work == NULL) {
+    if ((*work_item)->work == nullptr) {
         result = win32_error_code_to_ebpf_result(GetLastError());
         goto Done;
     }
@@ -608,7 +608,7 @@ ebpf_allocate_preemptible_work_item(
 Done:
     if (result != EBPF_SUCCESS) {
         ebpf_free(*work_item);
-        *work_item = NULL;
+        *work_item = nullptr;
     }
     return result;
 }
@@ -638,11 +638,11 @@ ebpf_allocate_timer_work_item(
 {
     *work_item = (ebpf_timer_work_item_t*)ebpf_allocate(sizeof(ebpf_timer_work_item_t));
 
-    if (*work_item == NULL)
+    if (*work_item == nullptr)
         goto Error;
 
-    (*work_item)->threadpool_timer = CreateThreadpoolTimer(_ebpf_timer_callback, *work_item, NULL);
-    if ((*work_item)->threadpool_timer == NULL)
+    (*work_item)->threadpool_timer = CreateThreadpoolTimer(_ebpf_timer_callback, *work_item, nullptr);
+    if ((*work_item)->threadpool_timer == nullptr)
         goto Error;
 
     (*work_item)->work_item_routine = work_item_routine;
@@ -651,8 +651,8 @@ ebpf_allocate_timer_work_item(
     return EBPF_SUCCESS;
 
 Error:
-    if (*work_item != NULL) {
-        if ((*work_item)->threadpool_timer != NULL)
+    if (*work_item != nullptr) {
+        if ((*work_item)->threadpool_timer != nullptr)
             CloseThreadpoolTimer((*work_item)->threadpool_timer);
 
         ebpf_free(*work_item);
@@ -797,7 +797,7 @@ Done:
 uint32_t
 ebpf_result_to_win32_error_code(ebpf_result_t result)
 {
-    static uint32_t (*RtlNtStatusToDosError)(NTSTATUS Status) = NULL;
+    static uint32_t (*RtlNtStatusToDosError)(NTSTATUS Status) = nullptr;
     if (!RtlNtStatusToDosError) {
         HMODULE ntdll = LoadLibrary(L"ntdll.dll");
         if (!ntdll) {
