@@ -80,7 +80,7 @@ the default Visual Studio style. See [clang-format style options](
 http://releases.llvm.org/3.6.0/tools/clang/docs/ClangFormatStyleOptions.html)
 for details.
 
-If you see unexpected formatting changes in the code, verify that you are running version 10 or higher of the LLVM tool-chain.
+If you see unexpected formatting changes in the code, verify that you are running version 11 or higher of the LLVM tool-chain.
 
 ### License Header
 
