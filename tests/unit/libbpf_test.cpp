@@ -1302,6 +1302,89 @@ TEST_CASE("enumerate link IDs", "[libbpf]")
     REQUIRE(errno == ENOENT);
 }
 
+TEST_CASE("bpf_prog_attach", "[libbpf]")
+{
+    _test_helper_libbpf test_helper;
+
+    struct bpf_object_open_opts opts = {0};
+    struct bpf_object* object = bpf_object__open_file("cgroup_sock_addr.o", &opts);
+    REQUIRE(object != nullptr);
+
+    struct bpf_program* program = bpf_object__find_program_by_name(object, "authorize_connect4");
+    REQUIRE(program != nullptr);
+
+    REQUIRE(bpf_object__load(object) == 0);
+
+    int program_fd = bpf_program__fd(program);
+    REQUIRE(program_fd > 0);
+
+    // Verify we can't attach the program to an attach type that doesn't work with this API.
+    REQUIRE(bpf_prog_attach(program_fd, 0, BPF_XDP, 0) == -ENOTSUP);
+
+    // Verify we can't use an illegal program fd.
+    REQUIRE(bpf_prog_attach(ebpf_fd_invalid, 0, BPF_CGROUP_INET4_CONNECT, 0) == -EBADF);
+
+    // TODO (issue #1028): Currently one can pass an invalid attachable fd and bpf_prog_attach
+    // will succeed because it's temporarily just treated as a compartment id. The following
+    // should instead return errors.
+    REQUIRE(bpf_prog_attach(program_fd, ebpf_fd_invalid, BPF_CGROUP_INET4_CONNECT, 0) == 0);
+    uint32_t link_id;
+    REQUIRE(bpf_link_get_next_id(0, &link_id) == 0);
+    fd_t link_fd = bpf_link_get_fd_by_id(link_id);
+    REQUIRE(link_fd >= 0);
+    REQUIRE(bpf_link_detach(link_fd) == 0);
+    REQUIRE(bpf_prog_attach(program_fd, program_fd, BPF_CGROUP_INET4_CONNECT, 0) == 0);
+
+    bpf_object__close(object);
+}
+
+TEST_CASE("bpf_link__pin", "[libbpf]")
+{
+    _test_helper_libbpf test_helper;
+
+    struct bpf_object_open_opts opts = {0};
+    struct bpf_object* object = bpf_object__open_file("droppacket.o", &opts);
+    REQUIRE(object != nullptr);
+
+    struct bpf_program* program = bpf_object__find_program_by_name(object, "DropPacket");
+    REQUIRE(program != nullptr);
+
+    // Load and pin the program.
+    REQUIRE(bpf_object__load(object) == 0);
+    const char* program_pin_name = "ProgramPinName";
+    REQUIRE(bpf_program__pin(program, program_pin_name) == 0);
+    int program_fd = bpf_program__fd(program);
+    REQUIRE(program_fd > 0);
+
+    // Verify we can't attach the program to a different attach type.
+    REQUIRE(bpf_prog_attach(program_fd, 0, BPF_CGROUP_INET4_CONNECT, 0) == -EINVAL);
+
+    // Attach the program so we get a link object.
+    bpf_link* link = bpf_program__attach(program);
+    REQUIRE(link != nullptr);
+
+    // Verify that unpinning an unpinned link fails.
+    REQUIRE(bpf_link__unpin(link) == -ENOENT);
+
+    // Verify that pinning a link to an already-in-use path fails.
+    REQUIRE(bpf_link__pin(link, program_pin_name) == -EEXIST);
+
+    // Verify that pinning a link to a new path works.
+    REQUIRE(bpf_link__pin(link, "MyPath") == 0);
+
+    // Verify that pinning an already-pinned link fails.
+    REQUIRE(bpf_link__pin(link, "MyPath2") == -EBUSY);
+
+    REQUIRE(bpf_link__unpin(link) == 0);
+
+    REQUIRE(bpf_link__destroy(link) == 0);
+    REQUIRE(bpf_program__unpin(program, program_pin_name) == 0);
+
+    bpf_program__unload(program);
+
+    bpf_object__close(object);
+}
+
 TEST_CASE("bpf_obj_get_info_by_fd", "[libbpf]")
 {
     _test_helper_end_to_end test_helper;
@@ -1581,4 +1664,10 @@ TEST_CASE("BPF_MAP_GET_NEXT_KEY etc.", "[libbpf]")
     REQUIRE(errno == ENOENT);
 
     Platform::_close(map_fd);
+}
+
+TEST_CASE("libbpf_num_possible_cpus", "[libbpf]")
+{
+    int cpu_count = libbpf_num_possible_cpus();
+    REQUIRE(cpu_count > 0);
 }
