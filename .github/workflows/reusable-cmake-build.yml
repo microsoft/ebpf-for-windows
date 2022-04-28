@@ -57,3 +57,10 @@ jobs:
       shell: cmd
       run: |
         cmake --build build --config ${{env.BUILD_CONFIGURATION }}
+
+    - name: Upload Build Output
+      uses: actions/upload-artifact@6673cd052c4cd6fcf4b4e6e60ea986c889389535
+      with:
+        name: ${{inputs.build_artifact}} ${{matrix.configurations}}
+        path: ${{github.workspace}}/build/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+        retention-days: 5
