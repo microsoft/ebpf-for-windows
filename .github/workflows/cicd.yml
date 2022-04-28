@@ -12,6 +12,8 @@ on:
   schedule:
     - cron: '00 21 * * *'
   pull_request:
+  push:
+    branches: [ main ]
 
 concurrency:
   # Cancel any CI/CD workflow currently in progress for the same PR.
@@ -33,7 +35,7 @@ jobs:
       generate_release_package: true
 
   cmake:
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'schedule'
     uses: ./.github/workflows/reusable-cmake-build.yml
     with:
       build_artifact: Build-x64
