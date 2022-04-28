@@ -435,7 +435,7 @@ extern "C"
      * @sa bpf_link_detach
      */
     ebpf_result_t
-    ebpf_link_close(_In_ struct bpf_link* link);
+    ebpf_link_close(_In_ _Post_invalid_ struct bpf_link* link);
 
     /**
      * @brief Close a file descriptor. Also close the underlying handle.

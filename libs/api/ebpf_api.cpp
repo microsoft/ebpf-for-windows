@@ -1161,7 +1161,7 @@ ebpf_link_detach(_In_ struct bpf_link* link)
 }
 
 ebpf_result_t
-ebpf_link_close(_In_ struct bpf_link* link)
+ebpf_link_close(_In_ _Post_invalid_ struct bpf_link* link)
 {
     if (link == nullptr) {
         return EBPF_INVALID_ARGUMENT;

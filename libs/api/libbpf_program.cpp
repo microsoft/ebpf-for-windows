@@ -239,9 +239,7 @@ bpf_prog_attach(int prog_fd, int attachable_fd, enum bpf_attach_type type, unsig
     bpf_link* link = nullptr;
     ebpf_result_t result = EBPF_SUCCESS;
 
-    UNREFERENCED_PARAMETER(flags);
-
-    if (_does_attach_type_support_attachable_fd(type)) {
+    if (_does_attach_type_support_attachable_fd(type) && (flags == 0)) {
         result = ebpf_program_attach_by_fd(
             prog_fd, _get_ebpf_attach_type(type), &attachable_fd, sizeof(attachable_fd), &link);
     } else {
@@ -249,9 +247,8 @@ bpf_prog_attach(int prog_fd, int attachable_fd, enum bpf_attach_type type, unsig
     }
 
     if (result != EBPF_SUCCESS)
-        errno = ebpf_result_to_errno(result);
-
-    return (result == EBPF_SUCCESS) ? 0 : -1;
+        return libbpf_result_err(result);
+    return 0;
 }
 
 struct bpf_program*

@@ -33,7 +33,7 @@ bpf_link__unpin(struct bpf_link* link)
     ebpf_result_t result;
 
     if (!link->pin_path)
-        return libbpf_err(-EINVAL);
+        return libbpf_err(-ENOENT);
 
     result = ebpf_object_unpin(link->pin_path);
     if (result != EBPF_SUCCESS) {

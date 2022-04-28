@@ -28,4 +28,6 @@ class _test_helper_libbpf
     _single_instance_hook* xdp_hook;
     _program_info_provider* bind_program_info;
     _single_instance_hook* bind_hook;
+    _program_info_provider* cgroup_sock_addr_program_info;
+    _single_instance_hook* cgroup_inet4_connect_hook;
 };
