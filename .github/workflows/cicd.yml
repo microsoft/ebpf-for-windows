@@ -89,10 +89,9 @@ jobs:
   # Run the driver tests on self-hosted runners.
   driver:
     # Always run this job.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push'
-    uses: ./.github/workflows/reusable-test.yml
     # Only run this on repos that have self-host runners.
     if: github.repository == 'microsoft/ebpf-for-windows'
+    uses: ./.github/workflows/reusable-test.yml
     with:
       pre_test: powershell ".\setup_ebpf_cicd_tests.ps1"
       test_command: powershell ".\execute_ebpf_cicd_tests.ps1"
