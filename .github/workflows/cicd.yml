@@ -63,20 +63,6 @@ jobs:
       gather_dumps: true
       capture_etw: true
 
-  # Run the fuzzing tests in GitHub.
-  fuzzing:
-    # Always run this job.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push'
-    uses: ./.github/workflows/reusable-test.yml
-    with:
-      name: fuzzing
-      test_command: fuzz.exe -d yes
-      build_job: regular / build
-      build_artifact: Build-x64
-      environment: windows-2019
-      code_coverage: true
-      gather_dumps: true
-
   # Run the bpf2c tests in GitHub.
   bpf2c:
     # Always run this job.
@@ -139,6 +125,20 @@ jobs:
     with:
       build_artifact: Build-x64-Sanitize
       build_options: /p:Sanitizer='True'
+
+  # Run the fuzzing tests in GitHub.
+  fuzzing:
+    # Always run this job.
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: fuzzing
+      test_command: fuzz.exe -d yes
+      build_job: sanitize / build
+      build_artifact: Build-x64-Sanitize
+      environment: windows-2019
+      code_coverage: false
+      gather_dumps: true
 
   # Run Cilium regression tests in GitHub.
   cilium_tests:
