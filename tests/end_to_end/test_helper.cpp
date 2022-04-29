@@ -22,6 +22,8 @@ extern "C" bool ebpf_fuzzing_enabled;
 extern "C" metadata_table_t*
 get_metadata_table();
 
+static bool _expect_native_module_load_failures = false;
+
 #define SERVICE_PATH_PREFIX L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\"
 
 static GUID _bpf2c_npi_id = {/* c847aac8-a6f2-4b53-aea3-f4a94b9a80cb */
@@ -224,7 +226,7 @@ _unload_all_native_modules()
             ebpf_extension_unload(context->binding_context);
         }
         // The service should have been marked for deletion till now.
-        REQUIRE(context->delete_pending);
+        REQUIRE((context->delete_pending || _expect_native_module_load_failures));
         if (context->dll != nullptr) {
             FreeLibrary(context->dll);
         }
@@ -238,7 +240,11 @@ static void
 _preprocess_load_native_module(_Inout_ service_context_t* context)
 {
     context->dll = LoadLibraryW(context->file_path.c_str());
-    REQUIRE(context->dll != nullptr);
+    REQUIRE((context->dll != nullptr || _expect_native_module_load_failures));
+
+    if (context->dll == nullptr) {
+        return;
+    }
 
     auto get_function =
         reinterpret_cast<decltype(&get_metadata_table)>(GetProcAddress(context->dll, "get_metadata_table"));
@@ -288,8 +294,11 @@ _preprocess_ioctl(_In_ const ebpf_operation_header_t* user_request)
             if (context != _service_path_to_context_map.end()) {
                 context->second->module_id = request->module_id;
 
-                // Load the module.
-                _preprocess_load_native_module(context->second);
+                if (context->second->loaded) {
+                    REQUIRE(_expect_native_module_load_failures);
+                } else {
+                    _preprocess_load_native_module(context->second);
+                }
             }
         } catch (...) {
             // Ignore.
@@ -518,6 +527,8 @@ _test_helper_end_to_end::~_test_helper_end_to_end()
     create_file_handler = nullptr;
     close_handle_handler = nullptr;
     duplicate_handle_handler = nullptr;
+
+    _expect_native_module_load_failures = false;
 }
 
 _test_helper_libbpf::_test_helper_libbpf()
@@ -543,4 +554,25 @@ _test_helper_libbpf::~_test_helper_libbpf()
 
     delete cgroup_inet4_connect_hook;
     delete cgroup_sock_addr_program_info;
+}
+
+void
+set_native_module_failures(bool expected)
+{
+    _expect_native_module_load_failures = expected;
+}
+
+ebpf_result_t
+get_service_details_for_file(
+    _In_ const std::wstring& file_path, _Out_ const wchar_t** service_name, _Out_ GUID* provider_guid)
+{
+    for (auto& [path, context] : _service_path_to_context_map) {
+        if (context->file_path == file_path) {
+            *service_name = context->name.c_str();
+            *provider_guid = context->module_id;
+            return EBPF_SUCCESS;
+        }
+    }
+
+    return EBPF_OBJECT_NOT_FOUND;
 }

@@ -20,6 +20,7 @@
 #include "ebpf_core.h"
 #include "ebpf_xdp_program_data.h"
 #include "helpers.h"
+#include "ioctl_helper.h"
 #include "mock.h"
 #include "platform.h"
 #include "program_helper.h"
@@ -33,6 +34,13 @@ namespace ebpf {
 #include "net/ip.h"
 #include "net/udp.h"
 }; // namespace ebpf
+
+#define NATIVE_DRIVER_SERVICE_NAME L"test_service"
+#define NATIVE_DRIVER_SERVICE_NAME_2 L"test_service2"
+#define SERVICE_PATH_PREFIX L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\"
+#define PARAMETERS_PATH_PREFIX L"System\\CurrentControlSet\\Services\\"
+#define SERVICE_PARAMETERS L"Parameters"
+#define NPI_MODULE_ID L"NpiModuleId"
 
 #define CONCAT(s1, s2) s1 s2
 #define DECLARE_ALL_TEST_CASES(_name, _group, _function)                              \
@@ -1998,3 +2006,192 @@ _map_reuse_3_test(ebpf_execution_type_t execution_type)
 }
 
 DECLARE_JIT_TEST_CASES("map_reuse_3", "[end_to_end]", _map_reuse_3_test);
+
+static void
+_create_service_helper(
+    _In_z_ const wchar_t* file_name,
+    _In_z_ const wchar_t* service_name,
+    _In_ const GUID* provider_module_id,
+    _Out_ SC_HANDLE* service_handle)
+{
+    std::wstring paramaters_path(PARAMETERS_PATH_PREFIX);
+
+    REQUIRE(Platform::_create_service(service_name, file_name, service_handle) == ERROR_SUCCESS);
+
+    paramaters_path = paramaters_path + service_name + L"\\" + SERVICE_PARAMETERS;
+    REQUIRE(Platform::_create_registry_key(HKEY_LOCAL_MACHINE, paramaters_path.c_str()) == ERROR_SUCCESS);
+
+    REQUIRE(
+        Platform::_update_registry_value(
+            HKEY_LOCAL_MACHINE, paramaters_path.c_str(), REG_BINARY, NPI_MODULE_ID, provider_module_id, sizeof(GUID)) ==
+        ERROR_SUCCESS);
+}
+
+// Load a native module with non-existing driver.
+TEST_CASE("load_native_program_negative", "[end-to-end]")
+{
+    _test_helper_end_to_end test_helper;
+
+    GUID provider_module_id;
+    SC_HANDLE service_handle = nullptr;
+    std::wstring service_path(SERVICE_PATH_PREFIX);
+    size_t count_of_maps = 0;
+    size_t count_of_programs = 0;
+    set_native_module_failures(true);
+
+    REQUIRE(UuidCreate(&provider_module_id) == RPC_S_OK);
+
+    // Creating valid service with non-existing driver.
+    _create_service_helper(L"fake_program.dll", NATIVE_DRIVER_SERVICE_NAME, &provider_module_id, &service_handle);
+
+    // Load native module. It should fail.
+    service_path = service_path + NATIVE_DRIVER_SERVICE_NAME;
+    REQUIRE(
+        test_ioctl_load_native_module(service_path, &provider_module_id, &count_of_maps, &count_of_programs) ==
+        ERROR_PATH_NOT_FOUND);
+}
+
+// Load native module by passing invalid service name to EC
+TEST_CASE("load_native_program_negative2", "[end-to-end]")
+{
+    _test_helper_end_to_end test_helper;
+
+    GUID provider_module_id;
+    SC_HANDLE service_handle = nullptr;
+    std::wstring service_path(L"");
+    size_t count_of_maps = 0;
+    size_t count_of_programs = 0;
+    set_native_module_failures(true);
+
+    REQUIRE(UuidCreate(&provider_module_id) == RPC_S_OK);
+
+    _create_service_helper(L"droppacket_um.dll", NATIVE_DRIVER_SERVICE_NAME, &provider_module_id, &service_handle);
+
+    // Create invalid service path and pass to EC.
+    service_path += NATIVE_DRIVER_SERVICE_NAME_2;
+
+    // Load native module. It should fail.
+    REQUIRE(
+        test_ioctl_load_native_module(service_path, &provider_module_id, &count_of_maps, &count_of_programs) ==
+        ERROR_PATH_NOT_FOUND);
+}
+
+// Load native module and then try to reload the same module.
+TEST_CASE("load_native_program_negative3", "[end-to-end]")
+{
+#define MAP_COUNT 2
+#define PROGRAM_COUNT 1
+    _test_helper_end_to_end test_helper;
+
+    GUID provider_module_id = GUID_NULL;
+    std::wstring service_path(SERVICE_PATH_PREFIX);
+    size_t count_of_maps = 0;
+    size_t count_of_programs = 0;
+    ebpf_result_t result;
+    const char* error_message = nullptr;
+    bpf_object* object = nullptr;
+    fd_t program_fd;
+    std::wstring file_path(L"droppacket_um.dll");
+    const wchar_t* service_name = nullptr;
+    ebpf_handle_t map_handles[MAP_COUNT];
+    ebpf_handle_t program_handles[PROGRAM_COUNT];
+
+    program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
+
+    // Load a valid native module.
+    result = ebpf_program_load(
+        "droppacket_um.dll", nullptr, nullptr, EBPF_EXECUTION_NATIVE, &object, &program_fd, &error_message);
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free_string(error_message);
+        error_message = nullptr;
+    }
+    REQUIRE(result == EBPF_SUCCESS);
+
+    // Get the service name that was created.
+    result = get_service_details_for_file(file_path, &service_name, &provider_module_id);
+    REQUIRE(result == EBPF_SUCCESS);
+
+    set_native_module_failures(true);
+
+    // Try to reload the same native module. It should fail.
+    service_path = service_path + service_name;
+    REQUIRE(
+        test_ioctl_load_native_module(service_path, &provider_module_id, &count_of_maps, &count_of_programs) ==
+        ERROR_OBJECT_ALREADY_EXISTS);
+
+    // Try to load the programs from the same module again. It should fail.
+    REQUIRE(
+        test_ioctl_load_native_programs(
+            &provider_module_id, nullptr, MAP_COUNT, map_handles, PROGRAM_COUNT, program_handles) ==
+        ERROR_OBJECT_ALREADY_EXISTS);
+
+    bpf_object__close(object);
+}
+
+// Load native module and then try to load programs with incorrect params.
+TEST_CASE("load_native_program_negative4", "[end-to-end]")
+{
+#define INCORRECT_MAP_COUNT 1
+#define PROGRAM_COUNT 1
+    _test_helper_end_to_end test_helper;
+
+    GUID provider_module_id = GUID_NULL;
+    SC_HANDLE service_handle = nullptr;
+    std::wstring service_path(SERVICE_PATH_PREFIX);
+    size_t count_of_maps = 0;
+    size_t count_of_programs = 0;
+    std::wstring file_path(L"droppacket_um.dll");
+    ebpf_handle_t map_handles[INCORRECT_MAP_COUNT];
+    ebpf_handle_t program_handles[PROGRAM_COUNT];
+
+    REQUIRE(UuidCreate(&provider_module_id) == RPC_S_OK);
+
+    // Creating valid service with valid driver.
+    _create_service_helper(L"droppacket_um.dll", NATIVE_DRIVER_SERVICE_NAME, &provider_module_id, &service_handle);
+
+    // Load native module. It should succeed.
+    service_path = service_path + NATIVE_DRIVER_SERVICE_NAME;
+    REQUIRE(
+        test_ioctl_load_native_module(service_path, &provider_module_id, &count_of_maps, &count_of_programs) ==
+        ERROR_SUCCESS);
+
+    // Try to load the programs by passing wrong map and program handles size. This should fail.
+    REQUIRE(
+        test_ioctl_load_native_programs(
+            &provider_module_id, nullptr, INCORRECT_MAP_COUNT, map_handles, PROGRAM_COUNT, program_handles) !=
+        ERROR_SUCCESS);
+
+    // Delete the created service.
+    Platform::_delete_service(service_handle);
+}
+
+static void
+_load_invalid_program(_In_z_ const char* file_name, ebpf_execution_type_t execution_type, ebpf_result_t expected_result)
+{
+    _test_helper_end_to_end test_helper;
+
+    ebpf_result_t result;
+    const char* error_message = nullptr;
+    bpf_object* object = nullptr;
+    fd_t program_fd;
+
+    program_info_provider_t bind_program_info(EBPF_PROGRAM_TYPE_BIND);
+
+    result = ebpf_program_load(file_name, nullptr, nullptr, execution_type, &object, &program_fd, &error_message);
+    ebpf_free_string(error_message);
+    REQUIRE(result == expected_result);
+}
+
+TEST_CASE("load_native_program_invalid1", "[end-to-end]")
+{
+    _load_invalid_program("invalid_maps1_um.dll", EBPF_EXECUTION_NATIVE, EBPF_INVALID_OBJECT);
+}
+TEST_CASE("load_native_program_invalid2", "[end-to-end]")
+{
+    _load_invalid_program("invalid_maps2_um.dll", EBPF_EXECUTION_NATIVE, EBPF_INVALID_ARGUMENT);
+}
+TEST_CASE("load_native_program_invalid3", "[end-to-end]")
+{
+    _load_invalid_program("invalid_helpers_um.dll", EBPF_EXECUTION_NATIVE, EBPF_INVALID_ARGUMENT);
+}
