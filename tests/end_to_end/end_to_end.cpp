@@ -2166,6 +2166,10 @@ TEST_CASE("load_native_program_negative4", "[end-to-end]")
     Platform::_delete_service(service_handle);
 }
 
+// The below tests try to load native drivers for invalid programs (that will fail verification).
+// Since verification can be skipped in bpf2c for only Debug builds, these tests are applicable
+// only for Debug build.
+#ifdef _DEBUG
 static void
 _load_invalid_program(_In_z_ const char* file_name, ebpf_execution_type_t execution_type, ebpf_result_t expected_result)
 {
@@ -2183,10 +2187,6 @@ _load_invalid_program(_In_z_ const char* file_name, ebpf_execution_type_t execut
     REQUIRE(result == expected_result);
 }
 
-#ifdef _DEBUG
-// The below tests try to load native drivers for invalid programs (that will fail verification).
-// Since verification can be skipped in bpf2c for only Debug builds, these tests are applicable
-// only for Debug build.
 TEST_CASE("load_native_program_invalid1", "[end-to-end]")
 {
     _load_invalid_program("invalid_maps1_um.dll", EBPF_EXECUTION_NATIVE, EBPF_INVALID_OBJECT);

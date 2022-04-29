@@ -505,17 +505,18 @@ _test_helper_end_to_end::~_test_helper_end_to_end()
     try {
         // Run down duplicate handles, if any.
         _duplicate_handles.rundown();
-        // Verify that all maps were successfully removed.
-        uint32_t id;
-        if (!ebpf_fuzzing_enabled) {
-            REQUIRE(bpf_map_get_next_id(0, &id) < 0);
-            REQUIRE(errno == ENOENT);
-        }
-
-        // Detach all the native module clients.
-        _unload_all_native_modules();
     } catch (Catch::TestFailureException&) {
     }
+
+    // Verify that all maps were successfully removed.
+    uint32_t id;
+    if (!ebpf_fuzzing_enabled) {
+        REQUIRE(bpf_map_get_next_id(0, &id) < 0);
+        REQUIRE(errno == ENOENT);
+    }
+
+    // Detach all the native module clients.
+    _unload_all_native_modules();
 
     if (api_initialized)
         ebpf_api_terminate();
