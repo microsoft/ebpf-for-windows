@@ -7,11 +7,15 @@
 
 name: CI/CD
 
-# Run on push so we can capture the baseline code coverage for any squash commit.
 on:
+  # Run on a daily schedule to perform the full set of tests.
   schedule:
     - cron: '00 21 * * *'
+  # Run on pull request to validate code changes.
   pull_request:
+  # Run on push so we can capture the baseline code coverage.
+  push:
+    branches: [ main ]
 
 concurrency:
   # Cancel any CI/CD workflow currently in progress for the same PR.
@@ -25,42 +29,22 @@ permissions:
   security-events: write # Required by codeql task
 
 jobs:
+  # Jobs to run on pull, push, and schedule.
+  # ---------------------------------------------------------------------------
+
   # Perform the regular build.
   regular:
+    # Always run this job.
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push'
     uses: ./.github/workflows/reusable-build.yml
     with:
       build_artifact: Build-x64
       generate_release_package: true
 
-  cmake:
-    if: github.event_name != 'pull_request'
-    uses: ./.github/workflows/reusable-cmake-build.yml
-    with:
-      build_artifact: Build-x64
-
-  # Build with C++ static analyzer.
-  analyze:
-    uses: ./.github/workflows/reusable-build.yml
-    with:
-      build_artifact: Build-x64-Analyze
-      build_options: /p:Analysis='True'
-
-  # Build with C++ address sanitizer.
-  sanitize:
-    uses: ./.github/workflows/reusable-build.yml
-    with:
-      build_artifact: Build-x64-Sanitize
-      build_options: /p:Sanitizer='True'
-
-  codeql:
-    if: github.event_name != 'pull_request'
-    uses: ./.github/workflows/reusable-build.yml
-    with:
-      build_artifact: Build-x64-CodeQl
-      build_codeql: true
-
   # Run the unit tests in GitHub.
   unit_tests:
+    # Always run this job.
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: unit_tests
@@ -74,6 +58,8 @@ jobs:
 
   # Run the fuzzing tests in GitHub.
   fuzzing:
+    # Always run this job.
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: fuzzing
@@ -86,6 +72,8 @@ jobs:
 
   # Run the bpf2c tests in GitHub.
   bpf2c:
+    # Always run this job.
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push'
     uses: ./.github/workflows/reusable-test.yml
     with:
       pre_test: call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat"
@@ -98,37 +86,12 @@ jobs:
       gather_dumps: true
       capture_etw: true
 
-  # Run Cilium regression tests in GitHub.
-  cilium_tests:
-    uses: ./.github/workflows/reusable-test.yml
-    with:
-      name: cilium_tests
-      test_command: cilium_tests.exe -d yes
-      build_job: regular / build
-      build_artifact: Build-x64
-      environment: windows-2019
-      code_coverage: false
-      gather_dumps: true
-
-  # Run the quick stress tests in GitHub.
-  stress:
-    uses: ./.github/workflows/reusable-test.yml
-    with:
-      name: stress
-      # Until there is a dedicated stress test, re-use the perf test.
-      test_command: ebpf_performance.exe
-      build_job: regular / build
-      build_artifact: Build-x64
-      environment: windows-2019
-      # No code coverage on stress.
-      code_coverage: false
-      gather_dumps: true
-
   # Run the driver tests on self-hosted runners.
   driver:
-    uses: ./.github/workflows/reusable-test.yml
+    # Always run this job.
     # Only run this on repos that have self-host runners.
     if: github.repository == 'microsoft/ebpf-for-windows'
+    uses: ./.github/workflows/reusable-test.yml
     with:
       pre_test: powershell ".\setup_ebpf_cicd_tests.ps1"
       test_command: powershell ".\execute_ebpf_cicd_tests.ps1"
@@ -142,8 +105,60 @@ jobs:
       # driver tests manually gather code coverage
       code_coverage: false
 
+  # Additional jobs to run on pull and schedule only (skip push).
+  # ---------------------------------------------------------------------------
+  # Build with C++ static analyzer.
+  analyze:
+    # Skip for push request.
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request'
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      build_artifact: Build-x64-Analyze
+      build_options: /p:Analysis='True'
+
+  # Build with C++ address sanitizer.
+  sanitize:
+    # Skip for push request.
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request'
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      build_artifact: Build-x64-Sanitize
+      build_options: /p:Sanitizer='True'
+
+  # Run Cilium regression tests in GitHub.
+  cilium_tests:
+    # Only run on schedule and pull request.
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: cilium_tests
+      test_command: cilium_tests.exe -d yes
+      build_job: regular / build
+      build_artifact: Build-x64
+      environment: windows-2019
+      code_coverage: false
+      gather_dumps: true
+
+  # Run the quick stress tests in GitHub.
+  stress:
+    # Only run on schedule and pull request.
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: stress
+      # Until there is a dedicated stress test, re-use the perf test.
+      test_command: ebpf_performance.exe
+      build_job: regular / build
+      build_artifact: Build-x64
+      environment: windows-2019
+      # No code coverage on stress.
+      code_coverage: false
+      gather_dumps: true
+
   # Run the unit tests in GitHub with address sanitizer.
   sanitize_unit_tests:
+    # Only run on schedule and pull request.
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: unit_tests
@@ -154,3 +169,20 @@ jobs:
       code_coverage: false
       gather_dumps: true
       capture_etw: true
+
+  # Additional jobs to on a schedule only (skip push and pull request).
+  # ---------------------------------------------------------------------------
+  cmake:
+    # For now, only run during daily scheduled run. Fixed in PR #1027.
+    if: github.event_name == 'schedule'
+    uses: ./.github/workflows/reusable-cmake-build.yml
+    with:
+      build_artifact: Build-x64
+
+  codeql:
+    # Only run daily.
+    if: github.event_name == 'schedule'
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      build_artifact: Build-x64-CodeQl
+      build_codeql: true
