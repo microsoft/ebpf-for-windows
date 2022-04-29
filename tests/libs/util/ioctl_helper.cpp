@@ -1,7 +1,5 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
-// #include <chrono>
-// #include <filesystem>
 #include <future>
 #include <map>
 using namespace std::chrono_literals;

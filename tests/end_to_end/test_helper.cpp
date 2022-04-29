@@ -240,7 +240,7 @@ static void
 _preprocess_load_native_module(_Inout_ service_context_t* context)
 {
     context->dll = LoadLibraryW(context->file_path.c_str());
-    REQUIRE((context->dll != nullptr || _expect_native_module_load_failures));
+    REQUIRE((context->dll != nullptr) || (_expect_native_module_load_failures));
 
     if (context->dll == nullptr) {
         return;

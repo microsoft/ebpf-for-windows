@@ -2051,7 +2051,7 @@ TEST_CASE("load_native_program_negative", "[end-to-end]")
         ERROR_PATH_NOT_FOUND);
 }
 
-// Load native module by passing invalid service name to EC
+// Load native module by passing invalid service name to EC.
 TEST_CASE("load_native_program_negative2", "[end-to-end]")
 {
     _test_helper_end_to_end test_helper;
