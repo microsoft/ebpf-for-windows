@@ -2183,6 +2183,10 @@ _load_invalid_program(_In_z_ const char* file_name, ebpf_execution_type_t execut
     REQUIRE(result == expected_result);
 }
 
+#ifdef _DEBUG
+// The below tests try to load native drivers for invalid programs (that will fail verification).
+// Since verification can be skipped in bpf2c for only Debug builds, these tests are applicable
+// only for Debug build.
 TEST_CASE("load_native_program_invalid1", "[end-to-end]")
 {
     _load_invalid_program("invalid_maps1_um.dll", EBPF_EXECUTION_NATIVE, EBPF_INVALID_OBJECT);
@@ -2195,3 +2199,4 @@ TEST_CASE("load_native_program_invalid3", "[end-to-end]")
 {
     _load_invalid_program("invalid_helpers_um.dll", EBPF_EXECUTION_NATIVE, EBPF_INVALID_ARGUMENT);
 }
+#endif
