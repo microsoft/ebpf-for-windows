@@ -94,7 +94,7 @@ typedef struct _ebpf_non_preemptible_work_item
     void* context;
     _ebpf_emulated_dpc* queue;
     void* parameter_1;
-    void (*work_item_routine)(void* work_item_context, void* parameter_1);
+    void (*work_item_routine)(_In_ void* work_item_context, _In_opt_ void* parameter_1);
 } ebpf_non_preemptible_work_item_t;
 
 class _ebpf_emulated_dpc;
