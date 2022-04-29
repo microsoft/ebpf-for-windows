@@ -29,3 +29,10 @@ class _test_helper_libbpf
     _program_info_provider* bind_program_info;
     _single_instance_hook* bind_hook;
 };
+
+void
+set_native_module_failures(bool expected);
+
+ebpf_result_t
+get_service_details_for_file(
+    _In_ const std::wstring& file_path, _Out_ const wchar_t** service_name, _Out_ GUID* provider_guid);

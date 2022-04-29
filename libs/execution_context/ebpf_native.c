@@ -138,6 +138,11 @@ _ebpf_native_clean_up_module(_In_ ebpf_native_module_t* module)
     _ebpf_native_clean_up_maps(module->maps, module->map_count, false);
     _ebpf_native_clean_up_programs(module->programs, module->program_count);
 
+    module->maps = NULL;
+    module->map_count = 0;
+    module->programs = NULL;
+    module->program_count = 0;
+
     ebpf_free(module->service_name);
     ebpf_lock_destroy(&module->lock);
 
@@ -1132,6 +1137,7 @@ ebpf_native_load_programs(
     ebpf_native_module_t* module = NULL;
     wchar_t* local_service_name = NULL;
     bool module_referenced = false;
+    bool maps_created = false;
 
     // Find the native entry in hash table.
     state = ebpf_lock_lock(&_ebpf_native_client_table_lock);
@@ -1194,6 +1200,7 @@ ebpf_native_load_programs(
             *module_id);
         goto Done;
     }
+    maps_created = true;
 
     // Create programs.
     result = _ebpf_native_load_programs(module);
@@ -1228,10 +1235,6 @@ ebpf_native_load_programs(
     }
 
 Done:
-    if (module_referenced) {
-        ebpf_native_release_reference(module);
-        module_referenced = false;
-    }
     if (native_lock_acquired) {
         ebpf_lock_unlock(&module->lock, module_state);
         native_lock_acquired = false;
@@ -1241,7 +1244,16 @@ Done:
         lock_acquired = false;
     }
     if (result != EBPF_SUCCESS) {
+        if (maps_created) {
+            _ebpf_native_clean_up_maps(module->maps, module->map_count, true);
+            module->maps = NULL;
+            module->map_count = 0;
+        }
         ebpf_free(local_service_name);
+    }
+    if (module_referenced) {
+        ebpf_native_release_reference(module);
+        module_referenced = false;
     }
 
     EBPF_RETURN_RESULT(result);

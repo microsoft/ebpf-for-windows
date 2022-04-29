@@ -71,7 +71,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup>
     <PreBuildEvent>
-      <Command>$(OutDir)bpf2c --bpf $(OutDir)$(ProgramName).o --sys &gt;$(OutDir)$(ProgramName)_driver.c</Command>
+      <Command>$(OutDir)bpf2c --bpf $(OutDir)$(ProgramName).o --sys $(AdditionalOptions) &gt;$(OutDir)$(ProgramName)_driver.c</Command>
     </PreBuildEvent>
     <ClCompile>
       <AdditionalIncludeDirectories>$(SolutionDir)include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
