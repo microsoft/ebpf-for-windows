@@ -28,8 +28,10 @@ jobs:
 
     strategy:
       matrix:
-        # For now only run on release as debug builds of the MSVC are built without /Qspectre
+        # For now only run on release as debug builds of the MSVC are built without /Qspectre.
         configurations: [Release]
+
+    # github/ossar-action doesn't run on windows-2019, requires windows-latest.
     runs-on: windows-latest
     env:
       # Configuration type to build.
