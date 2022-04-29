@@ -41,6 +41,13 @@ jobs:
       build_artifact: Build-x64
       generate_release_package: true
 
+  cmake:
+    # Always run this job.
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push'
+    uses: ./.github/workflows/reusable-cmake-build.yml
+    with:
+      build_artifact: Build-x64-cmake
+
   # Run the unit tests in GitHub.
   unit_tests:
     # Always run this job.
@@ -109,7 +116,7 @@ jobs:
   # ---------------------------------------------------------------------------
   # Build with C++ static analyzer.
   analyze:
-    # Skip for push request.
+    # Only run on schedule and pull request.
     if: github.event_name == 'schedule' || github.event_name == 'pull_request'
     uses: ./.github/workflows/reusable-build.yml
     with:
@@ -118,7 +125,7 @@ jobs:
 
   # Build with C++ address sanitizer.
   sanitize:
-    # Skip for push request.
+    # Only run on schedule and pull request.
     if: github.event_name == 'schedule' || github.event_name == 'pull_request'
     uses: ./.github/workflows/reusable-build.yml
     with:
@@ -172,15 +179,8 @@ jobs:
 
   # Additional jobs to on a schedule only (skip push and pull request).
   # ---------------------------------------------------------------------------
-  cmake:
-    # For now, only run during daily scheduled run. Fixed in PR #1027.
-    if: github.event_name == 'schedule'
-    uses: ./.github/workflows/reusable-cmake-build.yml
-    with:
-      build_artifact: Build-x64
-
   codeql:
-    # Only run daily.
+    # Only run during daily scheduled run
     if: github.event_name == 'schedule'
     uses: ./.github/workflows/reusable-build.yml
     with:

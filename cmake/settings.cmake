@@ -50,6 +50,4 @@ target_link_libraries("ebpf_for_windows_cpp_settings" INTERFACE
   "ebpf_for_windows_common_settings"
 )
 
-target_compile_features("ebpf_for_windows_cpp_settings" INTERFACE
-  cxx_std_17
-)
+set(CMAKE_CXX_STANDARD 20)
