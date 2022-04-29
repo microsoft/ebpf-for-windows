@@ -1,0 +1,78 @@
+# Copyright (c) Microsoft Corporation
+# SPDX-License-Identifier: MIT
+
+# This workflow executes the OSSAR action.
+
+name: ossar-scan
+
+on:
+  workflow_call:
+    inputs:
+      # The name of the build job to wait for.
+      build_job:
+        required: true
+        type: string
+      # The name of the build artifact to download.
+      build_artifact:
+        required: true
+        type: string
+
+permissions:
+  checks: read  # Required by fountainhead/action-wait-for-check to wait for another GitHub check to complete.
+  contents: read  # Required by actions/checkout to fetch code.
+  security-events: write # Required by codeql task
+
+jobs:
+  scan:
+    timeout-minutes: 30
+
+    strategy:
+      matrix:
+        # For now only run on release as debug builds of the MSVC are built without /Qspectre.
+        configurations: [Release]
+
+    # github/ossar-action doesn't run on windows-2019, requires windows-latest.
+    runs-on: windows-latest
+    env:
+      # Configuration type to build.
+      BUILD_CONFIGURATION: ${{matrix.configurations}}
+      BUILD_PLATFORM: x64
+
+    # Checking out the branch is needed to gather correct code coverage data.
+    steps:
+    - uses: actions/checkout@b0e28b5ac45a892f91e7d036f8200cf5ed489415
+      with:
+        submodules: 'recursive'
+        ref: ${{ github.event.workflow_run.head_branch }}
+
+    - name: Wait for build to succeed
+      uses: fountainhead/action-wait-for-check@507b029e31edbe1a72d4de429476e1f4efe98869
+      id: wait_for_build
+      with:
+        timeoutSeconds: 1500
+        intervalSeconds: 30
+        token: ${{secrets.GITHUB_TOKEN}}
+        checkName: ${{inputs.build_job}} (${{env.BUILD_CONFIGURATION}})
+        ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+    - name: Download build artifact
+      if: success()
+      uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741
+      id: download_artifact
+      with:
+        name: ${{inputs.build_artifact}} ${{matrix.configurations}}
+        path: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+
+    - name: Exclude external files
+      run: |
+        pushd ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+        Remove-Item @("clang_rt.*", "concrt*", "msvc*", "ucrt*", "vc*") -ErrorAction SilentlyContinue
+
+    - name: Run OSSAR (Open Source Static Analysis Runner)
+      uses: github/ossar-action@c757d32d66bea728bc64e67e7d6de9696f7f37d3
+      id: ossar
+
+    - name: Upload results to Security tab
+      uses: github/codeql-action/upload-sarif@1ed1437484560351c5be56cf73a48a279d116b78
+      with:
+        sarif_file: ${{ steps.ossar.outputs.sarifFile }}
