@@ -4,6 +4,9 @@
 add_library("test_util" STATIC
   capture_helper.cpp
 
+  ioctl_helper.h
+  ioctl_helper.cpp
+
   netsh_helper.cpp
 
   program_helper.h
