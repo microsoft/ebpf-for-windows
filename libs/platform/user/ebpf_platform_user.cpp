@@ -428,9 +428,7 @@ ebpf_lock_destroy(_In_ ebpf_lock_t* lock)
 }
 
 _Requires_lock_not_held_(*lock) _Acquires_lock_(*lock) _IRQL_requires_max_(DISPATCH_LEVEL) _IRQL_saves_
-    _IRQL_raises_(DISPATCH_LEVEL)
-ebpf_lock_state_t
-ebpf_lock_lock(_In_ ebpf_lock_t* lock)
+    _IRQL_raises_(DISPATCH_LEVEL) ebpf_lock_state_t ebpf_lock_lock(_In_ ebpf_lock_t* lock)
 {
     AcquireSRWLockExclusive(reinterpret_cast<PSRWLOCK>(lock));
     return 0;
@@ -512,7 +510,7 @@ ebpf_is_non_preemptible_work_item_supported()
 bool
 ebpf_is_preemptible_work_item_supported()
 {
-    return true;
+    return false;
 }
 
 uint32_t
