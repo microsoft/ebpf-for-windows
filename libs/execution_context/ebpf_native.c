@@ -170,37 +170,31 @@ ebpf_native_release_reference(_In_opt_ ebpf_native_module_t* module)
     if (new_ref_count == 1) {
         // Check if all the program references have been released. If that
         // is the case, explicitly unload the driver, if it is safe to do so.
-        if (ebpf_is_preemptible_work_item_supported()) {
-            bool unload = false;
-            module_lock_state = ebpf_lock_lock(&module->lock);
-            lock_acquired = true;
-            if (!module->detaching && !module->unloading) {
-                // If the module is not yet unloading or detaching, and reference
-                // count is 1, it means all the program references have been
-                // released.
-                EBPF_LOG_MESSAGE_GUID(
-                    EBPF_TRACELOG_LEVEL_INFO,
-                    EBPF_TRACELOG_KEYWORD_NATIVE,
-                    "ebpf_native_release_reference: all program references released. Unloading module",
-                    module->client_id);
-                module_id = (GUID*)ebpf_allocate(sizeof(GUID));
-                if (module_id == NULL) {
-                    result = EBPF_NO_MEMORY;
-                    goto Done;
-                }
-                unload = true;
-                *module_id = module->client_id;
+        bool unload = false;
+        module_lock_state = ebpf_lock_lock(&module->lock);
+        lock_acquired = true;
+        if (!module->detaching) {
+            // If the module is not yet marked as detaching, and reference
+            // count is 1, it means all the program references have been
+            // released.
+            EBPF_LOG_MESSAGE_GUID(
+                EBPF_TRACELOG_LEVEL_INFO,
+                EBPF_TRACELOG_KEYWORD_NATIVE,
+                "ebpf_native_release_reference: all program references released. Unloading module",
+                module->client_id);
+            module_id = (GUID*)ebpf_allocate(sizeof(GUID));
+            if (module_id == NULL) {
+                result = EBPF_NO_MEMORY;
+                goto Done;
             }
-            ebpf_lock_unlock(&module->lock, module_lock_state);
-            lock_acquired = false;
-            if (unload) {
-                ebpf_preemptible_work_item_t* work_item = NULL;
-                result = ebpf_allocate_preemptible_work_item(&work_item, _ebpf_native_unload_workitem, module_id);
-                if (result != EBPF_SUCCESS) {
-                    goto Done;
-                }
-                ebpf_queue_preemptible_work_item(work_item);
-            }
+            unload = true;
+            *module_id = module->client_id;
+        }
+        ebpf_lock_unlock(&module->lock, module_lock_state);
+        lock_acquired = false;
+        if (unload) {
+            ebpf_native_unload(module_id);
+            ebpf_free(module_id);
         }
     } else if (new_ref_count == 0) {
         ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_native_client_table_lock);
@@ -1306,7 +1300,8 @@ ebpf_native_unload(_In_ const GUID* module_id)
     ebpf_native_module_t* module = NULL;
     wchar_t* service_name = NULL;
     size_t service_name_length;
-    bool unload_module = false;
+    bool queue_workitem = false;
+    ebpf_preemptible_work_item_t* work_item = NULL;
 
     // Find the native entry in hash table.
     state = ebpf_lock_lock(&_ebpf_native_client_table_lock);
@@ -1334,8 +1329,6 @@ ebpf_native_unload(_In_ const GUID* module_id)
         result = EBPF_SUCCESS;
         goto Done;
     }
-    module->unloading = true;
-    unload_module = true;
 
     // It is possible that the module is also detaching at the same time and
     // the module memory can be freed immediately after the hash table lock is
@@ -1349,13 +1342,26 @@ ebpf_native_unload(_In_ const GUID* module_id)
 
     memcpy(service_name, module->service_name, service_name_length);
 
+    // Create a workitem if we are running at DISPATCH
+    if (!ebpf_is_preemptible()) {
+        result = ebpf_allocate_preemptible_work_item(&work_item, _ebpf_native_unload_workitem, service_name);
+        if (result != EBPF_SUCCESS) {
+            goto Done;
+        }
+        queue_workitem = true;
+    }
+    module->unloading = true;
+
     ebpf_lock_unlock(&module->lock, module_state);
     module_lock_acquired = false;
     ebpf_lock_unlock(&_ebpf_native_client_table_lock, state);
     lock_acquired = false;
 
-    if (unload_module)
+    if (queue_workitem) {
+        ebpf_queue_preemptible_work_item(work_item);
+    } else {
         ebpf_native_unload_driver(service_name);
+    }
 
 Done:
     if (module_lock_acquired) {
@@ -1367,15 +1373,18 @@ Done:
         lock_acquired = false;
     }
 
-    ebpf_free(service_name);
+    if (!queue_workitem) {
+        ebpf_free(service_name);
+    }
 
     EBPF_RETURN_RESULT(result);
 }
 
 static void
-_ebpf_native_unload_workitem(_In_opt_ const void* module_id)
+_ebpf_native_unload_workitem(_In_opt_ const void* service)
 {
-    if (module_id != NULL) {
-        ebpf_native_unload((GUID*)module_id);
+    // Do not free "service" here. It is freed by platform.
+    if (service != NULL) {
+        ebpf_native_unload_driver((const wchar_t*)service);
     }
 }
