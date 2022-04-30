@@ -46,6 +46,10 @@ bpf(int cmd, union bpf_attr* attr, unsigned int size)
         return bpf_map_update_elem(attr->map_fd, (const void*)attr->key, (const void*)attr->value, attr->flags);
     case BPF_OBJ_GET:
         CHECK_SIZE(bpf_fd);
+        if (attr->bpf_fd != 0) {
+            errno = EINVAL;
+            return -1;
+        }
         return bpf_obj_get((const char*)attr->pathname);
     case BPF_OBJ_GET_INFO_BY_FD:
         CHECK_SIZE(info.info_len);
