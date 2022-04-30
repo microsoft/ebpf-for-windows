@@ -17,9 +17,6 @@ static const GUID GUID_NULL = {0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0}};
 
 typedef uint64_t (*helper_function_address)(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5);
 
-static void
-_ebpf_native_unload_workitem(_In_opt_ const void* module_id);
-
 typedef struct _ebpf_native_map
 {
     map_entry_t* entry;
@@ -81,6 +78,15 @@ ebpf_result_t
 ebpf_native_load_driver(_In_z_ const wchar_t* service_name);
 void
 ebpf_native_unload_driver(_In_z_ const wchar_t* service_name);
+
+static void
+_ebpf_native_unload_work_item(_In_opt_ const void* service)
+{
+    // Do not free "service" here. It is freed by platform.
+    if (service != NULL) {
+        ebpf_native_unload_driver((const wchar_t*)service);
+    }
+}
 
 static inline bool
 _ebpf_native_is_map_in_map(_In_ const ebpf_native_map_t* map)
@@ -1300,7 +1306,7 @@ ebpf_native_unload(_In_ const GUID* module_id)
     ebpf_native_module_t* module = NULL;
     wchar_t* service_name = NULL;
     size_t service_name_length;
-    bool queue_workitem = false;
+    bool queue_work_item = false;
     ebpf_preemptible_work_item_t* work_item = NULL;
 
     // Find the native entry in hash table.
@@ -1342,13 +1348,13 @@ ebpf_native_unload(_In_ const GUID* module_id)
 
     memcpy(service_name, module->service_name, service_name_length);
 
-    // Create a workitem if we are running at DISPATCH
+    // Create a work item if we are running at DISPATCH.
     if (!ebpf_is_preemptible()) {
-        result = ebpf_allocate_preemptible_work_item(&work_item, _ebpf_native_unload_workitem, service_name);
+        result = ebpf_allocate_preemptible_work_item(&work_item, _ebpf_native_unload_work_item, service_name);
         if (result != EBPF_SUCCESS) {
             goto Done;
         }
-        queue_workitem = true;
+        queue_work_item = true;
     }
     module->unloading = true;
 
@@ -1357,7 +1363,7 @@ ebpf_native_unload(_In_ const GUID* module_id)
     ebpf_lock_unlock(&_ebpf_native_client_table_lock, state);
     lock_acquired = false;
 
-    if (queue_workitem) {
+    if (queue_work_item) {
         ebpf_queue_preemptible_work_item(work_item);
     } else {
         ebpf_native_unload_driver(service_name);
@@ -1373,18 +1379,9 @@ Done:
         lock_acquired = false;
     }
 
-    if (!queue_workitem) {
+    if (!queue_work_item) {
         ebpf_free(service_name);
     }
 
     EBPF_RETURN_RESULT(result);
-}
-
-static void
-_ebpf_native_unload_workitem(_In_opt_ const void* service)
-{
-    // Do not free "service" here. It is freed by platform.
-    if (service != NULL) {
-        ebpf_native_unload_driver((const wchar_t*)service);
-    }
 }
