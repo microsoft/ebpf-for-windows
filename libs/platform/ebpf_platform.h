@@ -332,9 +332,7 @@ extern "C"
      * @returns - The previous lock_state required for unlock.
      */
     _Requires_lock_not_held_(*lock) _Acquires_lock_(*lock) _IRQL_requires_max_(DISPATCH_LEVEL) _IRQL_saves_
-        _IRQL_raises_(DISPATCH_LEVEL)
-    ebpf_lock_state_t
-    ebpf_lock_lock(_In_ ebpf_lock_t* lock);
+        _IRQL_raises_(DISPATCH_LEVEL) ebpf_lock_state_t ebpf_lock_lock(_In_ ebpf_lock_t* lock);
 
     /**
      * @brief Release exclusive access to the lock.
@@ -421,16 +419,6 @@ extern "C"
      */
     bool
     ebpf_queue_non_preemptible_work_item(_In_ ebpf_non_preemptible_work_item_t* work_item, _In_opt_ void* parameter_1);
-
-    /**
-     * @brief Query the platform to determine if preemptible work items are
-     *   supported.
-     *
-     * @retval true Preemptible work items are supported.
-     * @retval false Preemptible work items are not supported.
-     */
-    bool
-    ebpf_is_preemptible_work_item_supported();
 
     /**
      * @brief Create a preemptible work item.

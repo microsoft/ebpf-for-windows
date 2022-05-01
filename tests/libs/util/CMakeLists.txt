@@ -4,6 +4,9 @@
 add_library("test_util" STATIC
   capture_helper.cpp
 
+  ioctl_helper.h
+  ioctl_helper.cpp
+
   netsh_helper.cpp
 
   program_helper.h
@@ -18,6 +21,7 @@ add_library("test_util" STATIC
 
 target_include_directories("test_util" PRIVATE
   "${CMAKE_SOURCE_DIR}/libs/api_common"
+  "${CMAKE_SOURCE_DIR}/libs/api"
   "${CMAKE_SOURCE_DIR}/libs/ebpfnetsh"
   "${CMAKE_SOURCE_DIR}/libs/execution_context"
   "${CMAKE_SOURCE_DIR}/include"

@@ -103,8 +103,20 @@
       <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
     </CustomBuild>
   </ItemGroup>
-  <!-- Build BPF programs that fail verification, but do not build native images for them. -->
-  <ItemGroup>
+  <!-- For BPF programs that fail verification, build native images without verification only for Debug build. -->
+  <ItemGroup Condition="'$(Configuration)'=='Debug'">
+    <CustomBuild Include="unsafe\*.c">
+      <FileType>CppCode</FileType>
+      <Command>clang $(ClangFlags) -c %(Filename).c -o $(OutputPath)%(Filename).o</Command>
+      <Command>
+        clang $(ClangFlags) -I../xdp -I../socket -I./ext/inc -c unsafe\%(Filename).c -o $(OutputPath)%(Filename).o
+        powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Convert-BpfToNative.ps1 -ProgramName %(Filename) -SolutionDir $(SolutionDir) -Platform $(Platform) -Configuration $(Configuration) -KernelMode $true -SkipVerification $true
+        powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Convert-BpfToNative.ps1 -ProgramName %(Filename) -SolutionDir $(SolutionDir) -Platform $(Platform) -Configuration $(Configuration) -KernelMode $false -SkipVerification $true
+      </Command>
+      <Outputs>$(OutputPath)%(Filename).o</Outputs>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup Condition="'$(Configuration)'=='Release'">
     <CustomBuild Include="unsafe\*.c">
       <FileType>CppCode</FileType>
       <Command>clang $(ClangFlags) -c %(Filename).c -o $(OutputPath)%(Filename).o</Command>
