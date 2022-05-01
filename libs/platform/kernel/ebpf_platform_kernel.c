@@ -413,12 +413,6 @@ ebpf_is_non_preemptible_work_item_supported()
     return true;
 }
 
-bool
-ebpf_is_preemptible_work_item_supported()
-{
-    return true;
-}
-
 uint32_t
 ebpf_get_current_cpu()
 {
