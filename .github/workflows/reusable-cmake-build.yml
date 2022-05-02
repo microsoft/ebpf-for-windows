@@ -49,16 +49,12 @@ jobs:
     - name: Configure the project
       working-directory: ${{env.GITHUB_WORKSPACE}}
       shell: cmd
-      env:
-        CXXFLAGS: /Qspectre /ZH:SHA_256 /W4 /WX /D_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
       run: |
         cmake -S . -B build -G "${{env.CMAKE_GENERATOR}}" -A ${{env.BUILD_PLATFORM}} -T ${{env.PLATFORM_TOOLSET}}
 
     - name: Build the project
       working-directory: ${{env.GITHUB_WORKSPACE}}
       shell: cmd
-      env:
-        CXXFLAGS: /Qspectre /ZH:SHA_256 /W4 /WX /D_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
       run: |
         cmake --build build --config ${{env.BUILD_CONFIGURATION }}
 
