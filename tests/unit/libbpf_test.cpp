@@ -1302,6 +1302,113 @@ TEST_CASE("enumerate link IDs", "[libbpf]")
     REQUIRE(errno == ENOENT);
 }
 
+TEST_CASE("enumerate link IDs with bpf", "[libbpf]")
+{
+    _test_helper_end_to_end test_helper;
+    program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
+    program_info_provider_t bind_program_info(EBPF_PROGRAM_TYPE_BIND);
+    single_instance_hook_t xdp_hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
+    single_instance_hook_t bind_hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
+
+    // Verify the enumeration is empty.
+    union bpf_attr attr;
+    memset(&attr, 0, sizeof(attr));
+    REQUIRE(bpf(BPF_LINK_GET_NEXT_ID, &attr, sizeof(attr)) < 0);
+    REQUIRE(errno == ENOENT);
+
+    memset(&attr, 0, sizeof(attr));
+    attr.link_id = EBPF_ID_NONE;
+    REQUIRE(bpf(BPF_LINK_GET_NEXT_ID, &attr, sizeof(attr)) < 0);
+    REQUIRE(errno == ENOENT);
+
+    // Load and attach some programs.
+    uint32_t ifindex = 1;
+    program_load_attach_helper_t xdp_helper(
+        "droppacket.o", EBPF_PROGRAM_TYPE_XDP, "DropPacket", EBPF_EXECUTION_JIT, &ifindex, sizeof(ifindex), xdp_hook);
+    program_load_attach_helper_t bind_helper(
+        "bindmonitor.o", EBPF_PROGRAM_TYPE_BIND, "BindMonitor", EBPF_EXECUTION_JIT, nullptr, 0, bind_hook);
+
+    // Now enumerate the IDs.
+    memset(&attr, 0, sizeof(attr));
+    REQUIRE(bpf(BPF_LINK_GET_NEXT_ID, &attr, sizeof(attr)) == 0);
+    uint32_t id1 = attr.next_id;
+
+    memset(&attr, 0, sizeof(attr));
+    attr.link_id = id1;
+    fd_t fd1 = bpf(BPF_LINK_GET_FD_BY_ID, &attr, sizeof(attr));
+    REQUIRE(fd1 >= 0);
+
+    REQUIRE(bpf(BPF_LINK_GET_NEXT_ID, &attr, sizeof(attr)) == 0);
+    uint32_t id2 = attr.next_id;
+
+    memset(&attr, 0, sizeof(attr));
+    attr.link_id = id2;
+    fd_t fd2 = bpf(BPF_LINK_GET_FD_BY_ID, &attr, sizeof(attr));
+    REQUIRE(fd2 >= 0);
+
+    REQUIRE(bpf(BPF_LINK_GET_NEXT_ID, &attr, sizeof(attr)) < 0);
+    REQUIRE(errno == ENOENT);
+
+    // Get info on the first link.
+    memset(&attr, 0, sizeof(attr));
+    bpf_link_info info;
+    attr.info.bpf_fd = fd1;
+    attr.info.info = (uintptr_t)&info;
+    attr.info.info_len = sizeof(info);
+    REQUIRE(bpf(BPF_OBJ_GET_INFO_BY_FD, &attr, sizeof(attr)) == 0);
+    REQUIRE(info.attach_type_uuid == EBPF_ATTACH_TYPE_XDP);
+    REQUIRE(info.xdp.ifindex == ifindex);
+
+    // Detach the first link.
+    memset(&attr, 0, sizeof(attr));
+    attr.link_detach.link_fd = fd1;
+    REQUIRE(bpf(BPF_LINK_DETACH, &attr, sizeof(attr)) == 0);
+
+    // Get info on the detached link.
+    memset(&attr, 0, sizeof(attr));
+    attr.info.bpf_fd = fd1;
+    attr.info.info = (uintptr_t)&info;
+    attr.info.info_len = sizeof(info);
+    REQUIRE(bpf(BPF_OBJ_GET_INFO_BY_FD, &attr, sizeof(attr)) == 0);
+    REQUIRE(info.attach_type_uuid == EBPF_ATTACH_TYPE_XDP);
+    REQUIRE(info.xdp.ifindex == 0);
+
+    // Pin the detached link.
+    memset(&attr, 0, sizeof(attr));
+    attr.bpf_fd = fd1;
+    attr.pathname = (uintptr_t) "MyPath";
+    REQUIRE(bpf(BPF_OBJ_PIN, &attr, sizeof(attr)) == 0);
+
+    // Verify that bpf_fd must be 0 when calling BPF_OBJ_GET.
+    REQUIRE(bpf(BPF_OBJ_GET, &attr, sizeof(attr)) < 0);
+    REQUIRE(errno == EINVAL);
+
+    // Retrieve a new fd from the pin path.
+    attr.bpf_fd = 0;
+    fd_t fd3 = bpf(BPF_OBJ_GET, &attr, sizeof(attr));
+    REQUIRE(fd3 > 0);
+
+    // Get info on the new fd.
+    memset(&attr, 0, sizeof(attr));
+    attr.info.bpf_fd = fd3;
+    attr.info.info = (uintptr_t)&info;
+    attr.info.info_len = sizeof(info);
+    REQUIRE(bpf(BPF_OBJ_GET_INFO_BY_FD, &attr, sizeof(attr)) == 0);
+    REQUIRE(info.id == id1);
+    REQUIRE(info.xdp.ifindex == 0);
+
+    // And for completeness, try an invalid bpf() call.
+    REQUIRE(bpf(-1, &attr, sizeof(attr)) < 0);
+    REQUIRE(errno == EINVAL);
+
+    // Unpin the link.
+    REQUIRE(ebpf_object_unpin("MyPath") == EBPF_SUCCESS);
+
+    Platform::_close(fd1);
+    Platform::_close(fd2);
+    Platform::_close(fd3);
+}
+
 TEST_CASE("bpf_prog_attach", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
@@ -1524,7 +1631,7 @@ TEST_CASE("bpf_object__load", "[libbpf]")
 // Test bpf() with the following command ids:
 // BPF_PROG_LOAD, BPF_OBJ_GET_INFO_BY_FD, BPF_PROG_GET_NEXT_ID,
 // BPF_MAP_CREATE, BPF_MAP_GET_NEXT_ID, BPF_PROG_BIND_MAP,
-// and BPF_MAP_GET_FD_BY_ID.
+// BPF_PROG_GET_FD_BY_ID, BPF_MAP_GET_FD_BY_ID, and BPF_MAP_GET_FD_BY_ID.
 TEST_CASE("BPF_PROG_BIND_MAP etc.", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
@@ -1559,6 +1666,13 @@ TEST_CASE("BPF_PROG_BIND_MAP etc.", "[libbpf]")
     REQUIRE(bpf(BPF_PROG_GET_NEXT_ID, &attr, sizeof(attr)) == 0);
     REQUIRE(attr.next_id == program_info.id);
 
+    // Verify we can convert the program id to an fd.
+    memset(&attr, 0, sizeof(attr));
+    attr.prog_id = program_info.id;
+    int prog_fd2 = bpf(BPF_PROG_GET_FD_BY_ID, &attr, sizeof(attr));
+    REQUIRE(prog_fd2 > 0);
+    Platform::_close(prog_fd2);
+
     // Create a map.
     memset(&attr, 0, sizeof(attr));
     attr.map_type = BPF_MAP_TYPE_ARRAY;
@@ -1583,6 +1697,13 @@ TEST_CASE("BPF_PROG_BIND_MAP etc.", "[libbpf]")
     attr.start_id = 0;
     REQUIRE(bpf(BPF_MAP_GET_NEXT_ID, &attr, sizeof(attr)) == 0);
     REQUIRE(attr.next_id == map_id);
+
+    // Verify we can convert the map id to an fd.
+    memset(&attr, 0, sizeof(attr));
+    attr.map_id = map_id;
+    int map_fd2 = bpf(BPF_MAP_GET_FD_BY_ID, &attr, sizeof(attr));
+    REQUIRE(map_fd2 > 0);
+    Platform::_close(map_fd2);
 
     // Bind it to the program.
     memset(&attr, 0, sizeof(attr));
