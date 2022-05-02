@@ -3,7 +3,6 @@
 
 #include <Windows.h>
 #include <bcrypt.h>
-#define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
 #include <codecvt>
 #include <functional>
 #include <fstream>
