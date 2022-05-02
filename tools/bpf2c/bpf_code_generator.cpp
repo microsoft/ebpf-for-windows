@@ -119,8 +119,9 @@ bpf_code_generator::get_register_name(uint8_t id)
     }
 }
 
-bpf_code_generator::bpf_code_generator(std::istream& stream, const std::string& c_name)
-    : current_section(nullptr), c_name(c_name), path(path)
+bpf_code_generator::bpf_code_generator(
+    std::istream& stream, const std::string& c_name, const std::optional<std::vector<uint8_t>>& elf_file_hash)
+    : current_section(nullptr), c_name(c_name), path(path), elf_file_hash(elf_file_hash)
 {
     if (!reader.load(stream)) {
         throw std::runtime_error(std::string("Can't process ELF file ") + c_name);
@@ -669,6 +670,30 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
     // Emit C file
     output_stream << "#include \"bpf2c.h\"" << std::endl << std::endl;
 
+    output_stream
+        << "static void _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ size_t* size)"
+        << std::endl;
+    output_stream << "{" << std::endl;
+    if (elf_file_hash.has_value()) {
+        output_stream << "\tconst uint8_t hash_buffer[] = {" << std::endl;
+        for (size_t i = 0; i < elf_file_hash.value().size(); i++) {
+            if (i % 16 == 0) {
+                output_stream << "\t";
+            }
+            output_stream << std::to_string(elf_file_hash.value().at(i)) << ", ";
+            if (i % 16 == 15) {
+                output_stream << std::endl;
+            }
+        }
+        output_stream << "\t};" << std::endl;
+        output_stream << "\t*hash = hash_buffer;" << std::endl;
+        output_stream << "\t*size = sizeof(hash_buffer);" << std::endl;
+    } else {
+        output_stream << "\t*hash = NULL;" << std::endl;
+        output_stream << "\t*size = 0;" << std::endl;
+    }
+    output_stream << "}" << std::endl;
+
     // Emit import tables
     if (map_definitions.size() > 0) {
         output_stream << "static map_entry_t _maps[] = {" << std::endl;
@@ -871,7 +896,8 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
 
     output_stream << std::endl;
     output_stream << format_string(
-        "metadata_table_t %s = { _get_programs, _get_maps };\n", c_name.c_str() + std::string("_metadata_table"));
+        "metadata_table_t %s = { _get_programs, _get_maps, _get_hash };\n",
+        c_name.c_str() + std::string("_metadata_table"));
 }
 
 #if defined(_MSC_VER)

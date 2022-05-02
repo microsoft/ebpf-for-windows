@@ -78,6 +78,7 @@ extern "C"
     {
         void (*programs)(program_entry_t** programs, size_t* count);
         void (*maps)(map_entry_t** maps, size_t* count);
+        void (*hash)(uint8_t** hash, size_t* size);
     } metadata_table_t;
 
     inline uint16_t
