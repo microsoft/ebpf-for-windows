@@ -193,8 +193,12 @@ main(int argc, char** argv)
         std::string c_name = file.substr(file.find_last_of("\\") + 1);
         c_name = c_name.substr(0, c_name.find("."));
         auto data = load_file_to_memory(file);
-        _hash hash(hash_algorithm);
-        auto hash_value = hash.hash_string(data);
+        std::optional<std::vector<uint8_t>> hash_value;
+        if (hash_algorithm != "none") {
+
+            _hash hash(hash_algorithm);
+            hash_value = hash.hash_string(data);
+        }
         auto stream = std::stringstream(data);
         // TODO: Issue #834 - validate the ELF is well formed
         bpf_code_generator generator(stream, c_name, {hash_value});

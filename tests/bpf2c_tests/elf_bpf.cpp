@@ -75,6 +75,8 @@ run_test_elf(const std::string& elf_file, bool verify, bool expect_failure = fal
     }
     argv.push_back("--bpf");
     argv.push_back(elf_file.c_str());
+    argv.push_back("--hash");
+    argv.push_back("none");
 
     auto test = [&](const char* option, const char* suffix) {
         if (option) {

@@ -173,6 +173,11 @@ division_by_zero(uint32_t address)
 
 #include "bpf2c.h"
 
+static void _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ size_t* size)
+{
+	*hash = NULL;
+	*size = 0;
+}
 static void _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ size_t* count)
 {
 	*maps = NULL;
@@ -409,21 +414,21 @@ label_1:
 	// EBPF_OP_JGT_REG pc=66 dst=r3 src=r2 offset=142 imm=0
 #line 52 "sample/reflect_packet.c"
 	if (r3 > r2) goto label_3;
-	// EBPF_OP_MOV64_REG pc=67 dst=r3 src=r1 offset=0 imm=0
-#line 52 "sample/reflect_packet.c"
+	// EBPF_OP_LDXB pc=67 dst=r3 src=r1 offset=20 imm=0
+#line 57 "sample/reflect_packet.c"
+	r3 = *(uint8_t *)(uintptr_t)(r1 + OFFSET(20));
+	// EBPF_OP_JNE_IMM pc=68 dst=r3 src=r0 offset=140 imm=17
+#line 57 "sample/reflect_packet.c"
+	if (r3 != IMMEDIATE(17)) goto label_3;
+	// EBPF_OP_MOV64_REG pc=69 dst=r3 src=r1 offset=0 imm=0
+#line 57 "sample/reflect_packet.c"
 	r3 = r1;
-	// EBPF_OP_ADD64_IMM pc=68 dst=r3 src=r0 offset=0 imm=62
-#line 52 "sample/reflect_packet.c"
+	// EBPF_OP_ADD64_IMM pc=70 dst=r3 src=r0 offset=0 imm=62
+#line 57 "sample/reflect_packet.c"
 	r3 += IMMEDIATE(62);
-	// EBPF_OP_JGT_REG pc=69 dst=r3 src=r2 offset=139 imm=0
+	// EBPF_OP_JGT_REG pc=71 dst=r3 src=r2 offset=137 imm=0
 #line 57 "sample/reflect_packet.c"
 	if (r3 > r2) goto label_3;
-	// EBPF_OP_LDXB pc=70 dst=r2 src=r1 offset=20 imm=0
-#line 57 "sample/reflect_packet.c"
-	r2 = *(uint8_t *)(uintptr_t)(r1 + OFFSET(20));
-	// EBPF_OP_JNE_IMM pc=71 dst=r2 src=r0 offset=137 imm=17
-#line 57 "sample/reflect_packet.c"
-	if (r2 != IMMEDIATE(17)) goto label_3;
 	// EBPF_OP_LDXH pc=72 dst=r2 src=r1 offset=56 imm=0
 #line 62 "sample/reflect_packet.c"
 	r2 = *(uint16_t *)(uintptr_t)(r1 + OFFSET(56));
@@ -838,9 +843,9 @@ label_2:
 	r0 = IMMEDIATE(3);
 label_3:
 	// EBPF_OP_EXIT pc=209 dst=r0 src=r0 offset=0 imm=0
-#line 34 "sample/./xdp_common.h"
+#line 73 "sample/reflect_packet.c"
 	return r0;
-#line 34 "sample/./xdp_common.h"
+#line 73 "sample/reflect_packet.c"
 }
 #line __LINE__ __FILE__
 
@@ -855,4 +860,4 @@ static void _get_programs(_Outptr_result_buffer_(*count) program_entry_t** progr
 }
 
 
-metadata_table_t reflect_packet_metadata_table = { _get_programs, _get_maps };
+metadata_table_t reflect_packet_metadata_table = { _get_programs, _get_maps, _get_hash };

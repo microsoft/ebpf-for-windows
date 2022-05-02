@@ -6,6 +6,11 @@
 
 #include "bpf2c.h"
 
+static void _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ size_t* size)
+{
+	*hash = NULL;
+	*size = 0;
+}
 static map_entry_t _maps[] = {
 { NULL, { 2, 4, 32, 2, 0, 0, 0, 0,  }, "test_map" },
 { NULL, { 2, 4, 32, 2, 0, 0, 0, 0,  }, "utility_map" },
@@ -109,18 +114,18 @@ static uint64_t test_program_entry(void* context)
 	// EBPF_OP_MOV64_REG pc=15 dst=r7 src=r0 offset=0 imm=0
 #line 36 "sample/test_sample_ebpf.c"
 	r7 = r0;
-	// EBPF_OP_JEQ_IMM pc=16 dst=r8 src=r0 offset=17 imm=0
-#line 38 "sample/test_sample_ebpf.c"
-	if (r8 == IMMEDIATE(0)) goto label_1;
-	// EBPF_OP_LDXDW pc=17 dst=r1 src=r6 offset=0 imm=0
+	// EBPF_OP_LDXDW pc=16 dst=r1 src=r6 offset=0 imm=0
 #line 38 "sample/test_sample_ebpf.c"
 	r1 = *(uint64_t *)(uintptr_t)(r6 + OFFSET(0));
-	// EBPF_OP_LDXDW pc=18 dst=r2 src=r6 offset=8 imm=0
+	// EBPF_OP_LDXDW pc=17 dst=r2 src=r6 offset=8 imm=0
 #line 38 "sample/test_sample_ebpf.c"
 	r2 = *(uint64_t *)(uintptr_t)(r6 + OFFSET(8));
-	// EBPF_OP_JGE_REG pc=19 dst=r1 src=r2 offset=14 imm=0
+	// EBPF_OP_JGE_REG pc=18 dst=r1 src=r2 offset=15 imm=0
 #line 38 "sample/test_sample_ebpf.c"
 	if (r1 >= r2) goto label_1;
+	// EBPF_OP_JEQ_IMM pc=19 dst=r8 src=r0 offset=14 imm=0
+#line 38 "sample/test_sample_ebpf.c"
+	if (r8 == IMMEDIATE(0)) goto label_1;
 	// EBPF_OP_SUB64_REG pc=20 dst=r2 src=r1 offset=0 imm=0
 #line 43 "sample/test_sample_ebpf.c"
 	r2 -= r1;
@@ -407,4 +412,4 @@ static void _get_programs(_Outptr_result_buffer_(*count) program_entry_t** progr
 }
 
 
-metadata_table_t test_sample_ebpf_metadata_table = { _get_programs, _get_maps };
+metadata_table_t test_sample_ebpf_metadata_table = { _get_programs, _get_maps, _get_hash };
