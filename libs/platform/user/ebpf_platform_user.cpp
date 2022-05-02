@@ -4,8 +4,10 @@
 #include "ebpf_platform.h"
 #include "ebpf_utilities.h"
 #include <intsafe.h>
+#include <functional>
 #include <map>
 #include <mutex>
+#include <queue>
 #include <random>
 #include <set>
 #include <stdbool.h>
@@ -82,9 +84,137 @@ _clean_up_thread_pool()
     CloseThreadpool(_pool);
 }
 
+class _ebpf_emulated_dpc;
+
+thread_local static bool _ebpf_non_preemptible = false;
+
+typedef struct _ebpf_non_preemptible_work_item
+{
+    ebpf_list_entry_t entry;
+    void* context;
+    _ebpf_emulated_dpc* queue;
+    void* parameter_1;
+    void (*work_item_routine)(_In_ void* work_item_context, _In_opt_ void* parameter_1);
+} ebpf_non_preemptible_work_item_t;
+
+class _ebpf_emulated_dpc;
+static std::vector<std::shared_ptr<_ebpf_emulated_dpc>> _ebpf_emulated_dpcs;
+
+/**
+ * @brief This class emulates kernel mode DPCs by maintaining a per-CPU thread running at maximum priority.
+ * Work items can be queued to this thread, which then executes them without being interrupted by lower
+ * priority threads.
+ */
+class _ebpf_emulated_dpc
+{
+  public:
+    _ebpf_emulated_dpc() = delete;
+
+    /**
+     * @brief Construct a new ebpf emulated dpc object for CPU i.
+     *
+     * @param[in] i CPU to run on.
+     */
+    _ebpf_emulated_dpc(size_t i) : head({}), terminate(false)
+    {
+        ebpf_list_initialize(&head);
+        thread = std::thread([i, this]() {
+            _ebpf_non_preemptible = true;
+            std::unique_lock<std::mutex> l(mutex);
+            uintptr_t old_thread_affinity;
+            ebpf_set_current_thread_affinity(1ull << i, &old_thread_affinity);
+            SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
+            for (;;) {
+                if (terminate) {
+                    return;
+                }
+                if (!ebpf_list_is_empty(&head)) {
+                    auto entry = ebpf_list_remove_head_entry(&head);
+                    if (entry == &flush_entry) {
+                        ebpf_list_initialize(&flush_entry);
+                        condition_variable.notify_all();
+                    } else {
+                        l.unlock();
+                        auto work_item = reinterpret_cast<ebpf_non_preemptible_work_item_t*>(entry);
+                        work_item->work_item_routine(work_item->context, work_item->parameter_1);
+                        l.lock();
+                    }
+                }
+                condition_variable.wait(l, [this]() { return terminate || !ebpf_list_is_empty(&head); });
+            }
+        });
+    }
+
+    /**
+     * @brief Destroy the ebpf emulated dpc object.
+     *
+     */
+    ~_ebpf_emulated_dpc()
+    {
+        terminate = true;
+        condition_variable.notify_all();
+        thread.join();
+    }
+
+    /**
+     * @brief Wait for all currently queued work items to complete.
+     *
+     */
+    void
+    flush_queue()
+    {
+        std::unique_lock<std::mutex> l(mutex);
+        // Insert a marker in the queue.
+        ebpf_list_initialize(&flush_entry);
+        ebpf_list_insert_tail(&head, &flush_entry);
+        condition_variable.notify_all();
+        // Wait until the marker is processed.
+        condition_variable.wait(l, [this]() { return terminate || ebpf_list_is_empty(&flush_entry); });
+    }
+
+    /**
+     * @brief Insert a work item into its associated queue.
+     *
+     * @param[in] work_item Work item to be enqueued.
+     * @param[in] parameter_1 Parameter to pass to worker function.
+     * @retval true Work item wasn't already queued.
+     * @retval false Work item is already queued.
+     */
+    static bool
+    insert(_In_ ebpf_non_preemptible_work_item_t* work_item, _In_opt_ void* parameter_1)
+    {
+        auto& dpc_queue = *(work_item->queue);
+        std::unique_lock<std::mutex> l(dpc_queue.mutex);
+        if (!ebpf_list_is_empty(&work_item->entry)) {
+            return false;
+        } else {
+            work_item->parameter_1 = parameter_1;
+            ebpf_list_insert_tail(&dpc_queue.head, &work_item->entry);
+            dpc_queue.condition_variable.notify_all();
+            return true;
+        }
+    }
+
+  private:
+    ebpf_list_entry_t flush_entry;
+    ebpf_list_entry_t head;
+    std::thread thread;
+    std::mutex mutex;
+    std::condition_variable condition_variable;
+    bool terminate;
+};
+
 ebpf_result_t
 ebpf_platform_initiate()
 {
+    try {
+        for (size_t i = 0; i < ebpf_get_cpu_count(); i++) {
+            _ebpf_emulated_dpcs.push_back(std::make_shared<_ebpf_emulated_dpc>(i));
+        }
+    } catch (...) {
+        return EBPF_NO_MEMORY;
+    }
+
     return _initialize_thread_pool();
 }
 
@@ -92,6 +222,7 @@ void
 ebpf_platform_terminate()
 {
     _clean_up_thread_pool();
+    _ebpf_emulated_dpcs.resize(0);
 }
 
 ebpf_result_t
@@ -498,13 +629,13 @@ _Ret_range_(>, 0) uint32_t ebpf_get_cpu_count()
 bool
 ebpf_is_preemptible()
 {
-    return _ebpf_platform_is_preemptible;
+    return !_ebpf_non_preemptible;
 }
 
 bool
 ebpf_is_non_preemptible_work_item_supported()
 {
-    return false;
+    return true;
 }
 
 uint32_t
@@ -526,25 +657,30 @@ ebpf_allocate_non_preemptible_work_item(
     _In_ void (*work_item_routine)(void* work_item_context, void* parameter_1),
     _In_opt_ void* work_item_context)
 {
-    UNREFERENCED_PARAMETER(work_item);
-    UNREFERENCED_PARAMETER(cpu_id);
-    UNREFERENCED_PARAMETER(work_item_routine);
-    UNREFERENCED_PARAMETER(work_item_context);
-    return EBPF_OPERATION_NOT_SUPPORTED;
+    auto local_work_item =
+        reinterpret_cast<ebpf_non_preemptible_work_item_t*>(ebpf_allocate(sizeof(ebpf_non_preemptible_work_item_t)));
+    if (!local_work_item) {
+        return EBPF_NO_MEMORY;
+    }
+    ebpf_list_initialize(&local_work_item->entry);
+    local_work_item->queue = _ebpf_emulated_dpcs[cpu_id].get();
+    local_work_item->work_item_routine = work_item_routine;
+    local_work_item->context = work_item_context;
+    *work_item = local_work_item;
+    local_work_item = nullptr;
+    return EBPF_SUCCESS;
 }
 
 void
 ebpf_free_non_preemptible_work_item(_Frees_ptr_opt_ ebpf_non_preemptible_work_item_t* work_item)
 {
-    UNREFERENCED_PARAMETER(work_item);
+    ebpf_free(work_item);
 }
 
 bool
 ebpf_queue_non_preemptible_work_item(_In_ ebpf_non_preemptible_work_item_t* work_item, _In_opt_ void* parameter_1)
 {
-    UNREFERENCED_PARAMETER(work_item);
-    UNREFERENCED_PARAMETER(parameter_1);
-    return false;
+    return _ebpf_emulated_dpc::insert(work_item, parameter_1);
 }
 
 typedef struct _ebpf_preemptible_work_item
@@ -676,6 +812,9 @@ ebpf_free_timer_work_item(_Frees_ptr_opt_ ebpf_timer_work_item_t* work_item)
 
     WaitForThreadpoolTimerCallbacks(work_item->threadpool_timer, true);
     CloseThreadpoolTimer(work_item->threadpool_timer);
+    for (auto& dpc : _ebpf_emulated_dpcs) {
+        dpc->flush_queue();
+    }
     ebpf_free(work_item);
 }
 

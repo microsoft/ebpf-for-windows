@@ -54,7 +54,10 @@ class _wer_report
         EXCEPTION_ILLEGAL_INSTRUCTION,
         EXCEPTION_STACK_OVERFLOW,
         EXCEPTION_ACCESS_VIOLATION,
-        EXCEPTION_INT_DIVIDE_BY_ZERO};
+        EXCEPTION_INT_DIVIDE_BY_ZERO,
+        STATUS_HEAP_CORRUPTION,
+        STATUS_ASSERTION_FAILURE,
+        STATUS_BREAKPOINT};
 
     static constexpr size_t minimum_stack_size_for_wer = 32 * 1024;
 

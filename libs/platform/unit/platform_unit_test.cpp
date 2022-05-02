@@ -6,6 +6,7 @@
 #include <Windows.h>
 
 #include <chrono>
+#include <condition_variable>
 #include <mutex>
 #include <thread>
 #include <sddl.h>
@@ -283,6 +284,80 @@ TEST_CASE("epoch_test_two_threads", "[platform]")
     std::thread thread_2(epoch);
     thread_1.join();
     thread_2.join();
+}
+
+extern bool _ebpf_platform_is_preemptible;
+
+class _signal
+{
+  public:
+    void
+    wait()
+    {
+        std::unique_lock l(lock);
+        condition_variable.wait(l, [&]() { return signaled; });
+    }
+    void
+    signal()
+    {
+        std::unique_lock l(lock);
+        signaled = true;
+        condition_variable.notify_all();
+    }
+
+  private:
+    std::mutex lock;
+    std::condition_variable condition_variable;
+    bool signaled = false;
+};
+
+/**
+ * @brief Verify that the stale item worker runs.
+ * Epoch free can leave items on a CPU's free list until the next epoch exit.
+ * To avoid holding onto freed items indefinetely, epoch schedules a work item
+ * to call epoch_enter/epoch_exit on a CPU to releasing the free list.
+ */
+TEST_CASE("epoch_test_stale_items", "[platform]")
+{
+    _ebpf_platform_is_preemptible = false;
+
+    _test_helper test_helper;
+    _signal signal_1;
+    _signal signal_2;
+
+    if (ebpf_get_cpu_count() < 2) {
+        return;
+    }
+
+    auto t1 = [&]() {
+        uintptr_t old_thread_affinity;
+        ebpf_set_current_thread_affinity(1, &old_thread_affinity);
+        ebpf_epoch_enter();
+        void* memory = ebpf_epoch_allocate(10);
+        signal_2.signal();
+        signal_1.wait();
+        ebpf_epoch_free(memory);
+        ebpf_epoch_exit();
+    };
+    auto t2 = [&]() {
+        uintptr_t old_thread_affinity;
+        ebpf_set_current_thread_affinity(2, &old_thread_affinity);
+        signal_2.wait();
+        ebpf_epoch_enter();
+        void* memory = ebpf_epoch_allocate(10);
+        ebpf_epoch_free(memory);
+        ebpf_epoch_exit();
+        signal_1.signal();
+    };
+
+    std::thread thread_1(t1);
+    std::thread thread_2(t2);
+
+    thread_1.join();
+    thread_2.join();
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    REQUIRE(ebpf_epoch_is_free_list_empty(0));
+    REQUIRE(ebpf_epoch_is_free_list_empty(1));
 }
 
 TEST_CASE("extension_test", "[platform]")
@@ -675,7 +750,7 @@ TEST_CASE("state_test", "[state]")
     ebpf_state_terminate();
 }
 
-template <size_t bit_count>
+template <size_t bit_count, bool interlocked>
 void
 bitmap_test()
 {
@@ -684,9 +759,14 @@ bitmap_test()
     ebpf_bitmap_t* bitmap = reinterpret_cast<ebpf_bitmap_t*>(data.data());
     ebpf_bitmap_initialize(bitmap, bit_count);
 
-    // Set every even bit interlocked.
-    for (size_t i = 0; i < bit_count; i += 2) {
-        ebpf_bitmap_set_bit(bitmap, i, true);
+    // Set every bit.
+    for (size_t i = 0; i < bit_count; i++) {
+        ebpf_bitmap_set_bit(bitmap, i, interlocked);
+    }
+
+    // Clear odd bits.
+    for (size_t i = 1; i < bit_count; i += 2) {
+        ebpf_bitmap_reset_bit(bitmap, i, interlocked);
     }
 
     // Verify every even bit is set via ebpf_bitmap_test_bit.
@@ -710,13 +790,13 @@ bitmap_test()
     REQUIRE(ebpf_bitmap_reverse_search_next_bit(&cursor) == MAXSIZE_T);
 }
 
-#define BIT_MASK_TEST(X) \
-    TEST_CASE("bitmap_test:" #X, "[platform]") { bitmap_test<X>(); }
+#define BIT_MASK_TEST(X, Y) \
+    TEST_CASE("bitmap_test:" #X, "[platform]") { bitmap_test<X, Y>(); }
 
-BIT_MASK_TEST(33);
-BIT_MASK_TEST(65);
-BIT_MASK_TEST(129);
-BIT_MASK_TEST(1025);
+BIT_MASK_TEST(33, true);
+BIT_MASK_TEST(65, false);
+BIT_MASK_TEST(129, true);
+BIT_MASK_TEST(1025, false);
 
 TEST_CASE("async", "[platform]")
 {
@@ -770,7 +850,7 @@ TEST_CASE("async", "[platform]")
     test(false);
 }
 
-TEST_CASE("ring_buffer", "[platform]")
+TEST_CASE("ring_buffer_output", "[platform]")
 {
     _test_helper test_helper;
     size_t consumer;
@@ -826,6 +906,49 @@ TEST_CASE("ring_buffer", "[platform]")
     ring_buffer = nullptr;
 }
 
+TEST_CASE("ring_buffer_reserve_submit_discard", "[platform]")
+{
+    _test_helper test_helper;
+    size_t consumer;
+    size_t producer;
+    ebpf_ring_buffer_t* ring_buffer;
+
+    uint8_t* buffer;
+    std::vector<uint8_t> data(10);
+    size_t size = 64 * 1024;
+
+    REQUIRE(ebpf_ring_buffer_create(&ring_buffer, size) == EBPF_SUCCESS);
+    REQUIRE(ebpf_ring_buffer_map_buffer(ring_buffer, &buffer) == EBPF_SUCCESS);
+
+    ebpf_ring_buffer_query(ring_buffer, &consumer, &producer);
+
+    // Ring is empty.
+    REQUIRE(producer == consumer);
+    REQUIRE(consumer == 0);
+
+    uint8_t* mem1 = nullptr;
+    REQUIRE(ebpf_ring_buffer_reserve(ring_buffer, &mem1, 10) == EBPF_SUCCESS);
+    _Analysis_assume_(mem1 != nullptr);
+    ebpf_ring_buffer_submit(mem1);
+
+    uint8_t* mem2 = nullptr;
+    REQUIRE(ebpf_ring_buffer_reserve(ring_buffer, &mem2, 10) == EBPF_SUCCESS);
+    _Analysis_assume_(mem2 != nullptr);
+    ebpf_ring_buffer_discard(mem2);
+
+    uint8_t* mem3 = nullptr;
+    REQUIRE(ebpf_ring_buffer_reserve(ring_buffer, &mem3, size + 1) == EBPF_INVALID_ARGUMENT);
+
+    ebpf_ring_buffer_query(ring_buffer, &consumer, &producer);
+
+    // Ring is not empty.
+    REQUIRE(producer != consumer);
+    REQUIRE(consumer == 0);
+
+    ebpf_ring_buffer_destroy(ring_buffer);
+    ring_buffer = nullptr;
+}
+
 TEST_CASE("error codes", "[platform]")
 {
     for (ebpf_result_t result = EBPF_SUCCESS; result < EBPF_RESULT_COUNT; result = (ebpf_result_t)(result + 1)) {
@@ -833,4 +956,32 @@ TEST_CASE("error codes", "[platform]")
         ebpf_result_t result2 = win32_error_code_to_ebpf_result(error);
         REQUIRE(result2 == result);
     }
+}
+
+TEST_CASE("interlocked operations", "[platform]")
+{
+    volatile int32_t value32 = 0;
+    ebpf_interlocked_or_int32(&value32, 0xffff);
+    REQUIRE(value32 == 0xffff);
+    ebpf_interlocked_and_int32(&value32, 0xff);
+    REQUIRE(value32 == 0xff);
+    ebpf_interlocked_xor_int32(&value32, 0xff);
+    REQUIRE(value32 == 0);
+    volatile int64_t value64 = 0;
+    ebpf_interlocked_or_int64(&value64, 0xffff);
+    REQUIRE(value64 == 0xffff);
+    ebpf_interlocked_and_int64(&value64, 0xff);
+    REQUIRE(value64 == 0xff);
+    ebpf_interlocked_xor_int64(&value64, 0xff);
+    REQUIRE(value64 == 0);
+
+    value32 = 1;
+    REQUIRE(ebpf_interlocked_compare_exchange_int32(&value32, 2, 1) == 1);
+    REQUIRE(ebpf_interlocked_compare_exchange_int32(&value32, 2, 1) == 2);
+
+    int a = 0;
+    int b = 0;
+    void* p = &a;
+    REQUIRE(ebpf_interlocked_compare_exchange_pointer(&p, &b, &a) == &a);
+    REQUIRE(ebpf_interlocked_compare_exchange_pointer(&p, &b, &a) == &b);
 }

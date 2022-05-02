@@ -98,7 +98,8 @@ extern "C"
      * @retval EBPF_INVALID_ARGUMENT Unable to reserve space in the ring buffer.
      */
     ebpf_result_t
-    ebpf_ring_buffer_reserve(_Inout_ ebpf_ring_buffer_t* ring_buffer, _Outptr_ uint8_t** data, size_t length);
+    ebpf_ring_buffer_reserve(
+        _Inout_ ebpf_ring_buffer_t* ring_buffer, _Outptr_result_bytebuffer_(length) uint8_t** data, size_t length);
 
     /**
      * @brief Mark a previously reserved buffer as available.

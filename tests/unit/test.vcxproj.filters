@@ -40,6 +40,9 @@
     <ClCompile Include="..\..\libs\thunk\mock\mock.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="wer_report_test_wrapper.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\end_to_end\helpers.h">
