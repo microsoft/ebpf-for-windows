@@ -64,29 +64,42 @@ run_test_main(std::vector<const char*> argv)
         return_value};
 }
 
+enum class _test_mode
+{
+    Verify,
+    NoVerify,
+    VerifyFail,
+    UseHash,
+    FileNotFound,
+};
+
 void
-run_test_elf(const std::string& elf_file, bool verify, bool expect_failure = false)
+run_test_elf(const std::string& elf_file, _test_mode test_mode)
 {
     std::vector<const char*> argv;
     auto name = elf_file.substr(0, elf_file.find('.'));
     argv.push_back("bpf2c.exe");
-    if (!verify) {
+    if (test_mode == _test_mode::NoVerify) {
         argv.push_back("--no-verify");
     }
     argv.push_back("--bpf");
     argv.push_back(elf_file.c_str());
-    argv.push_back("--hash");
-    argv.push_back("none");
+    if (test_mode == _test_mode::UseHash) {
+        argv.push_back("--hash");
+        argv.push_back("SHA256");
+    } else {
+        argv.push_back("--hash");
+        argv.push_back("none");
+    }
 
     auto test = [&](const char* option, const char* suffix) {
         if (option) {
             argv.push_back(option);
         }
         auto [out, err, result_value] = run_test_main(argv);
-        if (expect_failure) {
-            REQUIRE(result_value != 0);
-            REQUIRE(err != "");
-        } else {
+        switch (test_mode) {
+        case _test_mode::Verify:
+        case _test_mode::NoVerify: {
             auto raw_output = read_contents<std::ifstream>(name + suffix, transform_line_directives);
             auto raw_result = read_contents<std::istringstream>(out, transform_line_directives);
 
@@ -94,6 +107,15 @@ run_test_elf(const std::string& elf_file, bool verify, bool expect_failure = fal
             for (size_t i = 0; i < raw_result.size(); i++) {
                 REQUIRE(raw_output[i] == raw_result[i]);
             }
+        } break;
+        case _test_mode::VerifyFail:
+        case _test_mode::FileNotFound: {
+            REQUIRE(result_value != 0);
+            REQUIRE(err != "");
+        } break;
+        case _test_mode::UseHash:
+            REQUIRE(result_value == 0);
+            REQUIRE(out != "");
         }
         if (option) {
             argv.pop_back();
@@ -105,37 +127,36 @@ run_test_elf(const std::string& elf_file, bool verify, bool expect_failure = fal
     test("--sys", "_sys.txt");
 }
 
-#define DECLARE_TEST(FILE, VERIFY) \
-    TEST_CASE(FILE, "[elf_bpf_code_gen]") { run_test_elf(FILE ".o", VERIFY); }
+#define DECLARE_TEST(FILE, MODE) \
+    TEST_CASE(FILE " " #MODE, "[elf_bpf_code_gen]") { run_test_elf(FILE ".o", MODE); }
 
-#define DECLARE_TEST_VERIFICATION_FAILURE(FILE) \
-    TEST_CASE(FILE " verification failure", "[elf_bpf_code_gen]") { run_test_elf(FILE ".o", true, true); }
+DECLARE_TEST("bindmonitor", _test_mode::Verify)
+DECLARE_TEST("bindmonitor_ringbuf", _test_mode::Verify)
+DECLARE_TEST("bindmonitor_tailcall", _test_mode::Verify)
+DECLARE_TEST("bpf", _test_mode::Verify)
+DECLARE_TEST("bpf_call", _test_mode::Verify)
+DECLARE_TEST("cgroup_sock_addr", _test_mode::Verify)
+DECLARE_TEST("decap_permit_packet", _test_mode::Verify)
+DECLARE_TEST("divide_by_zero", _test_mode::Verify)
+DECLARE_TEST("droppacket", _test_mode::Verify)
+DECLARE_TEST("encap_reflect_packet", _test_mode::Verify)
+DECLARE_TEST("map", _test_mode::NoVerify)
+DECLARE_TEST("map_in_map", _test_mode::Verify)
+DECLARE_TEST("map_in_map_v2", _test_mode::Verify)
+DECLARE_TEST("map_reuse", _test_mode::Verify)
+DECLARE_TEST("map_reuse_2", _test_mode::Verify)
+DECLARE_TEST("printk", _test_mode::Verify)
+DECLARE_TEST("printk_legacy", _test_mode::Verify)
+DECLARE_TEST("reflect_packet", _test_mode::Verify)
+DECLARE_TEST("tail_call", _test_mode::Verify)
+DECLARE_TEST("tail_call_bad", _test_mode::Verify)
+DECLARE_TEST("tail_call_map", _test_mode::Verify)
+DECLARE_TEST("tail_call_multiple", _test_mode::Verify)
+DECLARE_TEST("test_sample_ebpf", _test_mode::Verify)
+DECLARE_TEST("test_utility_helpers", _test_mode::Verify)
+DECLARE_TEST("sockops", _test_mode::Verify)
 
-DECLARE_TEST("bindmonitor", true)
-DECLARE_TEST("bindmonitor_ringbuf", true)
-DECLARE_TEST("bindmonitor_tailcall", true)
-DECLARE_TEST("bpf", true)
-DECLARE_TEST("bpf_call", true)
-DECLARE_TEST("cgroup_sock_addr", true)
-DECLARE_TEST("decap_permit_packet", true)
-DECLARE_TEST("divide_by_zero", true)
-DECLARE_TEST("droppacket", true)
-DECLARE_TEST("encap_reflect_packet", true)
-DECLARE_TEST("map", false)
-DECLARE_TEST("map_in_map", true)
-DECLARE_TEST("map_in_map_v2", true)
-DECLARE_TEST("map_reuse", true)
-DECLARE_TEST("map_reuse_2", true)
-DECLARE_TEST("printk", true)
-DECLARE_TEST("printk_legacy", true)
-DECLARE_TEST("reflect_packet", true)
-DECLARE_TEST("tail_call", true)
-DECLARE_TEST("tail_call_bad", true)
-DECLARE_TEST("tail_call_map", true)
-DECLARE_TEST("tail_call_multiple", true)
-DECLARE_TEST("test_sample_ebpf", true)
-DECLARE_TEST("test_utility_helpers", true)
-DECLARE_TEST("sockops", true)
-
-DECLARE_TEST_VERIFICATION_FAILURE("droppacket_unsafe")
-DECLARE_TEST_VERIFICATION_FAILURE("printk_unsafe")
+DECLARE_TEST("droppacket_unsafe", _test_mode::VerifyFail)
+DECLARE_TEST("printk_unsafe", _test_mode::VerifyFail)
+DECLARE_TEST("no_such_file", _test_mode::FileNotFound)
+DECLARE_TEST("bpf", _test_mode::UseHash)
