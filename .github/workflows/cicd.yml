@@ -69,7 +69,10 @@ jobs:
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push'
     uses: ./.github/workflows/reusable-test.yml
     with:
-      pre_test: call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat"
+      pre_test: |
+        powershell choco install -y llvm --version 11.0.1 --allow-downgrade
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat"
+
       test_command: bpf2c_tests.exe -d yes
       name: bpf2c
       build_job: regular / build
