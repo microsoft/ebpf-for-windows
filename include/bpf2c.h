@@ -76,9 +76,9 @@ extern "C"
 
     typedef struct _metadata_table
     {
-        void (*programs)(program_entry_t** programs, size_t* count);
-        void (*maps)(map_entry_t** maps, size_t* count);
-        void (*hash)(uint8_t** hash, size_t* size);
+        void (*programs)(_Outptr_result_buffer_maybenull_(*count) program_entry_t** programs, _Out_ size_t* count);
+        void (*maps)(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ size_t* count);
+        void (*hash)(_Outptr_result_buffer_maybenull_(*size) uint8_t** hash, _Out_ size_t* size);
     } metadata_table_t;
 
     inline uint16_t
