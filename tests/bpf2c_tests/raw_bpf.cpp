@@ -102,12 +102,12 @@ run_test(const std::string& data_file)
         result = result.substr(result.find("0x") + 2);
     }
     data_out.seekg(0);
-    auto intstructions = bpf_assembler(data_out);
+    auto instructions = bpf_assembler(data_out);
 
     std::ofstream c_file(std::string(prefix) + std::string(".c"));
     try {
 
-        bpf_code_generator code("test", intstructions);
+        bpf_code_generator code("test", instructions);
         code.generate("test");
         code.emit_c_code(c_file);
     } catch (std::runtime_error& err) {
@@ -277,3 +277,91 @@ DECLARE_TEST("stxw")
 DECLARE_TEST("subnet")
 // Test doesn't support unload directive.
 // DECLARE_TEST("unload_reload")
+
+void
+verify_invalid_opcode_sequence(const std::vector<ebpf_inst>& instructions, const std::string& error)
+{
+    bpf_code_generator code("test", instructions);
+    try {
+        code.generate("test");
+        FAIL("bpf_code_generator permitted invalid sequence");
+    } catch (const std::runtime_error& ex) {
+        REQUIRE(ex.what() == error);
+    }
+}
+
+TEST_CASE("BE/LE", "[raw_bpf_code_gen][negative]")
+{
+    // EBPF_OP_LE/EBPF_OP_BE only supports imm == {16,32,64}
+    verify_invalid_opcode_sequence({{EBPF_OP_LE, 0, 0, 0, 15}}, "invalid operand");
+    verify_invalid_opcode_sequence({{EBPF_OP_BE, 0, 0, 0, 15}}, "invalid operand");
+}
+
+TEST_CASE("div/mod by imm 0", "[raw_bpf_code_gen][negative]")
+{
+    // Division by immediate value of 0 is invalid.
+    verify_invalid_opcode_sequence({{EBPF_OP_DIV_IMM, 0, 0, 0, 0}}, "invalid instruction - constant division by zero");
+    verify_invalid_opcode_sequence({{EBPF_OP_MOD_IMM, 0, 0, 0, 0}}, "invalid instruction - constant division by zero");
+}
+
+TEST_CASE("unknown op-class", "[raw_bpf_code_gen][negative]")
+{
+    // EBPF_CLS_JMP+1 isn't a valid op class
+    verify_invalid_opcode_sequence({{EBPF_CLS_JMP + 1, 0, 0, 0, 0}}, "invalid operand");
+}
+
+TEST_CASE("unknown EBPF_CLS_ALU operation", "[raw_bpf_code_gen][negative]")
+{
+    // EBPF_CLS_ALU + operations 0xe0 doesn't exist
+    verify_invalid_opcode_sequence({{(EBPF_CLS_ALU | EBPF_SRC_IMM | 0xe0), 0, 0, 0, 0}}, "invalid operand");
+}
+
+TEST_CASE("unknown EBPF_CLS_ALU64 operation", "[raw_bpf_code_gen][negative]")
+{
+    // EBPF_CLS_ALU64 + operations 0xe0 doesn't exist
+    verify_invalid_opcode_sequence({{(EBPF_CLS_ALU64 | EBPF_SRC_IMM | 0xe0), 0, 0, 0, 0}}, "invalid operand");
+}
+
+TEST_CASE("unknown EBPF_CLS_LD operation", "[raw_bpf_code_gen][negative]")
+{
+    // EBPF_CLS_LD is only valid with immediate and size _DW
+    verify_invalid_opcode_sequence({{(EBPF_CLS_LD | EBPF_MODE_MEM | EBPF_SIZE_DW), 0, 0, 0, 0}}, "invalid operand");
+    verify_invalid_opcode_sequence({{(EBPF_CLS_LD | EBPF_MODE_IMM | EBPF_SIZE_W), 0, 0, 0, 0}}, "invalid operand");
+}
+
+TEST_CASE("malformed EBPF_CLS_LD operation", "[raw_bpf_code_gen][negative]")
+{
+    // EBPF_CLS_LD is always 2 instructions wide
+    verify_invalid_opcode_sequence({{(EBPF_CLS_LD | EBPF_MODE_IMM | EBPF_SIZE_DW), 0, 0, 0, 0}}, "invalid operand");
+}
+
+TEST_CASE("EBPF_CLS_JMP invalid target", "[raw_bpf_code_gen][negative]")
+{
+    // Offset > end of program
+    verify_invalid_opcode_sequence({{EBPF_OP_JA, 0, 0, 1, 0}}, "invalid jump target");
+}
+
+TEST_CASE("EBPF_CLS_JMP invalid operation", "[raw_bpf_code_gen][negative]")
+{
+    // 0xf0 is an invalid jump operation
+    verify_invalid_opcode_sequence(
+        {{(EBPF_CLS_JMP | 0xf0), 0, 0, 0, 0}, {EBPF_OP_EXIT, 0, 0, 0, 0}}, "invalid operand");
+}
+
+TEST_CASE("invalid register", "[raw_bpf_code_gen][negative]")
+{
+    // Division by immediate value of 0 is invalid.
+    verify_invalid_opcode_sequence({{EBPF_OP_DIV_REG, 15, 14, 0, 0}}, "invalid register id");
+}
+
+TEST_CASE("invalid ELF stream", "[raw_bpf_code_gen][negative]")
+{
+    std::string str;
+    std::stringstream stream(str);
+    try {
+        bpf_code_generator code(stream, "test");
+        FAIL("bpf_code_generator failed to detect error");
+    } catch (const std::runtime_error& ex) {
+        REQUIRE(ex.what() == std::string("can't process ELF file test"));
+    }
+}

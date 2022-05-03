@@ -112,7 +112,7 @@ std::string
 bpf_code_generator::get_register_name(uint8_t id)
 {
     if (id >= _countof(_register_names)) {
-        throw std::runtime_error("Invalid register id");
+        throw std::runtime_error("invalid register id");
     } else {
         current_section->referenced_registers.insert(_register_names[id]);
         return _register_names[id];
@@ -124,7 +124,7 @@ bpf_code_generator::bpf_code_generator(
     : current_section(nullptr), c_name(c_name), path(path), elf_file_hash(elf_file_hash)
 {
     if (!reader.load(stream)) {
-        throw std::runtime_error(std::string("Can't process ELF file ") + c_name);
+        throw std::runtime_error(std::string("can't process ELF file ") + c_name);
     }
 
     extract_btf_information();
@@ -363,6 +363,9 @@ bpf_code_generator::generate_labels()
         if (output.instruction.opcode == EBPF_OP_EXIT) {
             continue;
         }
+        if ((i + output.instruction.offset + 1) >= program_output.size()) {
+            throw std::runtime_error("invalid jump target");
+        }
         program_output[i + output.instruction.offset + 1].jump_target = true;
     }
 
@@ -468,7 +471,11 @@ bpf_code_generator::encode_instructions(const std::string& section_name)
                 output.lines.push_back(format_string("%s = -(int64_t)%s;", destination, destination));
                 break;
             case AluOperations::Mod:
-                output.lines.push_back(check_div_by_zero);
+                if (inst.opcode & EBPF_SRC_REG) {
+                    output.lines.push_back(check_div_by_zero);
+                } else if (inst.imm == 0) {
+                    throw std::runtime_error("invalid instruction - constant division by zero");
+                }
                 if (is64bit)
                     output.lines.push_back(format_string("%s %%= %s;", destination, source));
                 else
@@ -540,6 +547,9 @@ bpf_code_generator::encode_instructions(const std::string& section_name)
         case EBPF_CLS_LD: {
             i++;
             if (inst.opcode != EBPF_OP_LDDW) {
+                throw std::runtime_error("invalid operand");
+            }
+            if (i >= program_output.size()) {
                 throw std::runtime_error("invalid operand");
             }
             std::string destination = get_register_name(inst.dst);
@@ -619,6 +629,9 @@ bpf_code_generator::encode_instructions(const std::string& section_name)
                 source = get_register_name(inst.src);
             } else {
                 source = std::string("IMMEDIATE(") + std::to_string(inst.imm) + std::string(")");
+            }
+            if ((inst.opcode >> 4) >= _countof(_predicate_format_string)) {
+                throw std::runtime_error("invalid operand");
             }
             auto& format = _predicate_format_string[inst.opcode >> 4];
             if (inst.opcode == EBPF_OP_JA) {
