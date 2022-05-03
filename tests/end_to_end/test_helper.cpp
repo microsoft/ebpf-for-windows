@@ -18,6 +18,9 @@ using namespace std::chrono_literals;
 #include "test_helper.hpp"
 
 extern "C" bool ebpf_fuzzing_enabled;
+extern bool _ebpf_platform_is_preemptible;
+
+static bool _is_platform_preemptible = false;
 
 extern "C" metadata_table_t*
 get_metadata_table();
@@ -239,6 +242,12 @@ _unload_all_native_modules()
 static void
 _preprocess_load_native_module(_Inout_ service_context_t* context)
 {
+    // Every time a native module is loaded, flip the bit for _ebpf_platform_is_preemptible.
+    // This ensures both the code paths are executed in the native module code, when the
+    // test cases are executed.
+    _ebpf_platform_is_preemptible = _is_platform_preemptible;
+    _is_platform_preemptible = !_is_platform_preemptible;
+
     context->dll = LoadLibraryW(context->file_path.c_str());
     REQUIRE(((context->dll != nullptr) || (_expect_native_module_load_failures)));
 
@@ -530,6 +539,9 @@ _test_helper_end_to_end::~_test_helper_end_to_end()
     duplicate_handle_handler = nullptr;
 
     _expect_native_module_load_failures = false;
+
+    // Change back to original value.
+    _ebpf_platform_is_preemptible = true;
 }
 
 _test_helper_libbpf::_test_helper_libbpf()
