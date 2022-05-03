@@ -44,12 +44,6 @@ target_compile_options("bpf2c_tests" PRIVATE
   "/WX-"
 )
 
-configure_file(
-  bpf_test.cpp
-  "${CMAKE_CURRENT_BINARY_DIR}/bpf_test.cpp"
-  COPYONLY
-)
-
 add_test(
   NAME "bpf2c_tests"
   COMMAND "${CMAKE_COMMAND}" -E env "PATH=$<TARGET_FILE_DIR:EbpfApi>;$ENV{PATH}" "$<TARGET_FILE:bpf2c_tests>"
@@ -139,10 +133,25 @@ set(expected_file_list
   test_utility_helpers_sys.c
 )
 
-foreach(expected_file ${expected_file_list})
-  configure_file(
-    "expected/${expected_file}"
-    "${CMAKE_CURRENT_BINARY_DIR}/${expected_file}"
-    COPYONLY
-  )
+set (input_bpf_test_cpp ${CMAKE_CURRENT_SOURCE_DIR}/bpf_test.cpp)
+set (output_bpf_test_cpp ${output_dir}/bpf_test.cpp)
+
+foreach(file ${expected_file_list})
+  set( input_expected_files ${input_expected_files} ${CMAKE_CURRENT_SOURCE_DIR}/expected/${file})
+  set( output_expected_files ${output_expected_files} ${output_dir}/${file})
 endforeach()
+
+add_custom_target(bpf2c_tests_expected_files ALL DEPENDS ${output_bpf_test_cpp} ${output_expected_files} SOURCES ${input_bpf_test_cpp} ${input_expected_files})
+
+add_custom_command(
+  OUTPUT
+    "${output_expected_files}"
+  COMMAND
+    ${CMAKE_COMMAND} -E make_directory "${output_dir}/expected"
+  COMMAND
+    ${CMAKE_COMMAND} -E copy ${input_bpf_test_cpp} ${output_bpf_test_cpp}
+  COMMAND
+    ${CMAKE_COMMAND} -E copy ${input_expected_files} ${output_dir}/expected
+  DEPENDS
+    ${input_bpf_test_cpp} ${input_expected_files}
+)
