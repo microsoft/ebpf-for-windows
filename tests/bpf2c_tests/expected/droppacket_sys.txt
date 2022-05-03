@@ -173,6 +173,11 @@ division_by_zero(uint32_t address)
 
 #include "bpf2c.h"
 
+static void _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ size_t* size)
+{
+	*hash = NULL;
+	*size = 0;
+}
 static map_entry_t _maps[] = {
 { NULL, { 2, 4, 8, 1, 0, 0, 0, 0,  }, "dropped_packet_map" },
 { NULL, { 2, 4, 4, 1, 0, 0, 0, 0,  }, "interface_index_map" },
@@ -385,4 +390,4 @@ static void _get_programs(_Outptr_result_buffer_(*count) program_entry_t** progr
 }
 
 
-metadata_table_t droppacket_metadata_table = { _get_programs, _get_maps };
+metadata_table_t droppacket_metadata_table = { _get_programs, _get_maps, _get_hash };

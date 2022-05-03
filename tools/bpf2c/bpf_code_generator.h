@@ -4,6 +4,7 @@
 #pragma once
 #include <fstream>
 #include <map>
+#include <optional>
 #include <set>
 #include <string>
 #include <vector>
@@ -20,8 +21,10 @@ class bpf_code_generator
      *
      * @param[in] stream Input stream containing the eBPF file to parse.
      * @param[in] c_name C compatible name to export this as.
+     * @param[in] elf_file_hash Optional bytes containing hash of the ELF file.
      */
-    bpf_code_generator(std::istream& stream, const std::string& c_name);
+    bpf_code_generator(
+        std::istream& stream, const std::string& c_name, const std::optional<std::vector<uint8_t>>& elf_file_hash = {});
 
     /**
      * @brief Construct a new bpf code generator object from raw eBPF byte code.
@@ -230,4 +233,5 @@ class bpf_code_generator
     std::string c_name;
     std::string path;
     btf_section_to_instruction_to_line_info_t section_line_info;
+    std::optional<std::vector<uint8_t>> elf_file_hash;
 };

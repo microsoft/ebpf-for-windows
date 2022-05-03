@@ -79,15 +79,15 @@ function Update-ExpectedOutput
         $ExpectedDllFileWithPath = $ExpectedOutputPath + "\" + $FileName + "_dll.txt"
         $ExpectedRawFileWithPath = $ExpectedOutputPath + "\" + $FileName + "_raw.txt"
 
-        $SysCommand = $Bpf2cCommand + " --bpf " + $ObjectFileWithPath + " --sys"
+        $SysCommand = $Bpf2cCommand + " --bpf " + $ObjectFileWithPath + " --sys" + " --hash none"
         $Output = Invoke-Expression $SysCommand
         TrimAndExport-Output -InputBuffer $Output -OutputFile $ExpectedSysFileWithPath
 
-        $DllCommand = $Bpf2cCommand + " --bpf " + $ObjectFileWithPath + " --dll"
+        $DllCommand = $Bpf2cCommand + " --bpf " + $ObjectFileWithPath + " --dll" + " --hash none"
         $Output = Invoke-Expression $DllCommand
         TrimAndExport-Output -InputBuffer $Output -OutputFile $ExpectedDllFileWithPath
 
-        $RawCommand = $Bpf2cCommand + " --bpf " + $ObjectFileWithPath
+        $RawCommand = $Bpf2cCommand + " --bpf " + $ObjectFileWithPath + " --hash none"
         $Output = Invoke-Expression $RawCommand
         TrimAndExport-Output -InputBuffer $Output -OutputFile $ExpectedRawFileWithPath
     }
