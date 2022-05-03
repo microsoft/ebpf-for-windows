@@ -43,7 +43,7 @@ That step can be done from the *Host* as follows:
 
 After this point, use "\\.\pipe\DebugVM" in the rest of the instructions as the pipe name.
 
-Alternatively, debugging over IP rather than named pipes can be used, as disussec in
+Alternatively, debugging over IP rather than named pipes can be used, as discussed in
 [Setting Up Network Debugging of a Virtual Machine - KDNET](https://docs.microsoft.com/en-us/windows-hardware/drivers/debugger/setting-up-network-debugging-of-a-virtual-machine-host).
 
 
