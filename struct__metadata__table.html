@@ -72,34 +72,50 @@ $(function() {
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Data Fields</h2></td></tr>
-<tr class="memitem:a6c1ff0a8e19eb2f8282c0200e2c97779"><td class="memItemLeft" align="right" valign="top">void(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__metadata__table.html#a6c1ff0a8e19eb2f8282c0200e2c97779">programs</a> )(<a class="el" href="bpf2c_8h.html#aa90fb1b455357ca56d50c4eaab83f7a0">program_entry_t</a> **programs, size_t *count)</td></tr>
-<tr class="separator:a6c1ff0a8e19eb2f8282c0200e2c97779"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a9c6aa13afdaa750d04169fd8d85bc6bc"><td class="memItemLeft" align="right" valign="top">void(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__metadata__table.html#a9c6aa13afdaa750d04169fd8d85bc6bc">maps</a> )(<a class="el" href="bpf2c_8h.html#a4fe28d06b61887b8c086b1e132383707">map_entry_t</a> **maps, size_t *count)</td></tr>
-<tr class="separator:a9c6aa13afdaa750d04169fd8d85bc6bc"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6f52bf71d3bcb5ddd1066f0fd7a9df07"><td class="memItemLeft" align="right" valign="top">void(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__metadata__table.html#a6f52bf71d3bcb5ddd1066f0fd7a9df07">programs</a> )((*count) <a class="el" href="bpf2c_8h.html#aa90fb1b455357ca56d50c4eaab83f7a0">program_entry_t</a> **programs, size_t *count)</td></tr>
+<tr class="separator:a6f52bf71d3bcb5ddd1066f0fd7a9df07"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac54d0c39c8fef470699b9f3c6a662ab5"><td class="memItemLeft" align="right" valign="top">void(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__metadata__table.html#ac54d0c39c8fef470699b9f3c6a662ab5">maps</a> )((*count) <a class="el" href="bpf2c_8h.html#a4fe28d06b61887b8c086b1e132383707">map_entry_t</a> **maps, size_t *count)</td></tr>
+<tr class="separator:ac54d0c39c8fef470699b9f3c6a662ab5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a62c2161261a53cc28acb215f369cf366"><td class="memItemLeft" align="right" valign="top">void(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__metadata__table.html#a62c2161261a53cc28acb215f369cf366">hash</a> )((*size) uint8_t **hash, size_t *size)</td></tr>
+<tr class="separator:a62c2161261a53cc28acb215f369cf366"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Field Documentation</h2>
-<a id="a9c6aa13afdaa750d04169fd8d85bc6bc"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a9c6aa13afdaa750d04169fd8d85bc6bc">&#9670;&nbsp;</a></span>maps</h2>
+<a id="a62c2161261a53cc28acb215f369cf366"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a62c2161261a53cc28acb215f369cf366">&#9670;&nbsp;</a></span>hash</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">void(* _metadata_table::maps) (<a class="el" href="bpf2c_8h.html#a4fe28d06b61887b8c086b1e132383707">map_entry_t</a> **maps, size_t *count)</td>
+          <td class="memname">void(* _metadata_table::hash) ((*size) uint8_t **hash, size_t *size)</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
 </div>
 </div>
-<a id="a6c1ff0a8e19eb2f8282c0200e2c97779"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a6c1ff0a8e19eb2f8282c0200e2c97779">&#9670;&nbsp;</a></span>programs</h2>
+<a id="ac54d0c39c8fef470699b9f3c6a662ab5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac54d0c39c8fef470699b9f3c6a662ab5">&#9670;&nbsp;</a></span>maps</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">void(* _metadata_table::programs) (<a class="el" href="bpf2c_8h.html#aa90fb1b455357ca56d50c4eaab83f7a0">program_entry_t</a> **programs, size_t *count)</td>
+          <td class="memname">void(* _metadata_table::maps) ((*count) <a class="el" href="bpf2c_8h.html#a4fe28d06b61887b8c086b1e132383707">map_entry_t</a> **maps, size_t *count)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a6f52bf71d3bcb5ddd1066f0fd7a9df07"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6f52bf71d3bcb5ddd1066f0fd7a9df07">&#9670;&nbsp;</a></span>programs</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void(* _metadata_table::programs) ((*count) <a class="el" href="bpf2c_8h.html#aa90fb1b455357ca56d50c4eaab83f7a0">program_entry_t</a> **programs, size_t *count)</td>
         </tr>
       </table>
 </div><div class="memdoc">
