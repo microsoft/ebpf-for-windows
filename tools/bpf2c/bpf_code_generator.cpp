@@ -424,8 +424,8 @@ bpf_code_generator::encode_instructions(const std::string& section_name)
                 source = std::string("IMMEDIATE(") + std::to_string(inst.imm) + std::string(")");
             bool is64bit = (inst.opcode & EBPF_CLS_MASK) == EBPF_CLS_ALU64;
             AluOperations operation = static_cast<AluOperations>(inst.opcode >> 4);
-            std::string check_div_by_zero =
-                format_string("if (%s == 0) { division_by_zero(%s); return -1; }", source, std::to_string(i));
+            std::string check_div_by_zero = format_string(
+                "if (%s == 0) { division_by_zero(%s); return 0xffffffffffffffffui64; }", source, std::to_string(i));
             std::string swap_function;
             switch (operation) {
             case AluOperations::Add:
@@ -438,7 +438,11 @@ bpf_code_generator::encode_instructions(const std::string& section_name)
                 output.lines.push_back(format_string("%s *= %s;", destination, source));
                 break;
             case AluOperations::Div:
-                output.lines.push_back(check_div_by_zero);
+                if (inst.opcode & EBPF_SRC_REG) {
+                    output.lines.push_back(check_div_by_zero);
+                } else if (inst.imm == 0) {
+                    throw std::runtime_error("invalid instruction - constant division by zero");
+                }
                 if (is64bit)
                     output.lines.push_back(format_string("%s /= %s;", destination, source));
                 else
@@ -461,10 +465,7 @@ bpf_code_generator::encode_instructions(const std::string& section_name)
                     output.lines.push_back(format_string("%s = (uint32_t)%s >> %s;", destination, destination, source));
                 break;
             case AluOperations::Neg:
-                if (is64bit)
-                    output.lines.push_back(format_string("%s = -%s;", destination, destination));
-                else
-                    output.lines.push_back(format_string("%s = -(int64_t)%s;", destination, destination));
+                output.lines.push_back(format_string("%s = -(int64_t)%s;", destination, destination));
                 break;
             case AluOperations::Mod:
                 output.lines.push_back(check_div_by_zero);
