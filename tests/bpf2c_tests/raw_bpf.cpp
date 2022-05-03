@@ -350,12 +350,13 @@ TEST_CASE("EBPF_CLS_JMP invalid operation", "[raw_bpf_code_gen][negative]")
 
 TEST_CASE("invalid register", "[raw_bpf_code_gen][negative]")
 {
-    // Division by immediate value of 0 is invalid.
+    // 14 and 15 aren't valid registers.
     verify_invalid_opcode_sequence({{EBPF_OP_DIV_REG, 15, 14, 0, 0}}, "invalid register id");
 }
 
 TEST_CASE("invalid ELF stream", "[raw_bpf_code_gen][negative]")
 {
+    // An empty stream is not valid
     std::string str;
     std::stringstream stream(str);
     try {
