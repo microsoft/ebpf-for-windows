@@ -193,10 +193,11 @@ class bpf_code_generator
      * @brief Format a GUID as a string.
      *
      * @param[in] guid Pointer to the GUID to be formatted.
+     * @param[in] split Split the string at the open {.
      * @return The formatted string.
      */
     std::string
-    format_guid(const GUID* guid);
+    format_guid(const GUID* guid, bool split);
 #endif
 
     /**

@@ -22,6 +22,8 @@
 #endif
 #include <cassert>
 
+#define INDENT "    "
+
 static const std::string _register_names[11] = {
     "r0",
     "r1",
@@ -591,7 +593,7 @@ bpf_code_generator::encode_instructions(const std::string& section_name)
                 break;
             }
             output.lines.push_back(
-                format_string("%s = *(%s *)(uintptr_t)(%s + %s);", destination, size_type, source, offset));
+                format_string("%s = *(%s*)(uintptr_t)(%s + %s);", destination, size_type, source, offset));
         } break;
         case EBPF_CLS_ST:
         case EBPF_CLS_STX: {
@@ -620,7 +622,7 @@ bpf_code_generator::encode_instructions(const std::string& section_name)
             }
             source = std::string("(") + size_type + std::string(")") + source;
             output.lines.push_back(
-                format_string("*(%s *)(uintptr_t)(%s + %s) = %s;", size_type, destination, offset, source));
+                format_string("*(%s*)(uintptr_t)(%s + %s) = %s;", size_type, destination, offset, source));
         } break;
         case EBPF_CLS_JMP: {
             std::string destination = get_register_name(inst.dst);
@@ -656,11 +658,12 @@ bpf_code_generator::encode_instructions(const std::string& section_name)
                 output.lines.push_back(
                     get_register_name(0) + std::string(" = ") + function_name + std::string(".address"));
                 output.lines.push_back(
-                    std::string("(") + get_register_name(1) + std::string(", ") + get_register_name(2) +
+                    std::string(INDENT " (") + get_register_name(1) + std::string(", ") + get_register_name(2) +
                     std::string(", ") + get_register_name(3) + std::string(", ") + get_register_name(4) +
                     std::string(", ") + get_register_name(5) + std::string(");"));
                 output.lines.push_back(
-                    format_string("if ((%s.tail_call) && (%s == 0)) return 0;", function_name, get_register_name(0)));
+                    format_string("if ((%s.tail_call) && (%s == 0))", function_name, get_register_name(0)));
+                output.lines.push_back(INDENT "return 0;");
             } else if (inst.opcode == EBPF_OP_EXIT) {
                 output.lines.push_back(std::string("return ") + get_register_name(0) + std::string(";"));
             } else {
@@ -669,7 +672,8 @@ bpf_code_generator::encode_instructions(const std::string& section_name)
                     throw std::runtime_error("invalid jump target");
                 }
                 std::string predicate = format_string(format, destination, source);
-                output.lines.push_back(format_string("if (%s) goto %s;", predicate, target));
+                output.lines.push_back(format_string("if (%s)", predicate));
+                output.lines.push_back(format_string(INDENT "goto %s;", target));
             }
         } break;
         default:
@@ -684,27 +688,27 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
     // Emit C file
     output_stream << "#include \"bpf2c.h\"" << std::endl << std::endl;
 
-    output_stream
-        << "static void _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ size_t* size)"
-        << std::endl;
+    output_stream << "static void" << std::endl
+                  << "_get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ size_t* size)"
+                  << std::endl;
     output_stream << "{" << std::endl;
     if (elf_file_hash.has_value()) {
-        output_stream << "\tconst uint8_t hash_buffer[] = {" << std::endl;
+        output_stream << INDENT "const uint8_t hash_buffer[] = {" << std::endl;
         for (size_t i = 0; i < elf_file_hash.value().size(); i++) {
             if (i % 16 == 0) {
-                output_stream << "\t";
+                output_stream << INDENT "";
             }
             output_stream << std::to_string(elf_file_hash.value().at(i)) << ", ";
             if (i % 16 == 15) {
                 output_stream << std::endl;
             }
         }
-        output_stream << "\t};" << std::endl;
-        output_stream << "\t*hash = hash_buffer;" << std::endl;
-        output_stream << "\t*size = sizeof(hash_buffer);" << std::endl;
+        output_stream << INDENT "};" << std::endl;
+        output_stream << INDENT "*hash = hash_buffer;" << std::endl;
+        output_stream << INDENT "*size = sizeof(hash_buffer);" << std::endl;
     } else {
-        output_stream << "\t*hash = NULL;" << std::endl;
-        output_stream << "\t*size = 0;" << std::endl;
+        output_stream << INDENT "*hash = NULL;" << std::endl;
+        output_stream << INDENT "*size = 0;" << std::endl;
     }
     output_stream << "}" << std::endl;
 
@@ -716,16 +720,18 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         while (current_index < map_size) {
             for (const auto& [name, entry] : map_definitions) {
                 if (entry.index == current_index) {
-                    output_stream << "{ NULL, { ";
-                    output_stream << entry.definition.type << ", ";
-                    output_stream << entry.definition.key_size << ", ";
-                    output_stream << entry.definition.value_size << ", ";
-                    output_stream << entry.definition.max_entries << ", ";
-                    output_stream << entry.definition.inner_map_idx << ", ";
-                    output_stream << entry.definition.pinning << ", ";
-                    output_stream << entry.definition.id << ", ";
-                    output_stream << entry.definition.inner_id << ", ";
-                    output_stream << " }, \"" << name.c_str() << "\" }," << std::endl;
+                    output_stream << INDENT "{NULL," << std::endl;
+                    output_stream << INDENT " {" << std::endl;
+                    output_stream << INDENT INDENT " " << entry.definition.type << "," << std::endl;
+                    output_stream << INDENT INDENT " " << entry.definition.key_size << "," << std::endl;
+                    output_stream << INDENT INDENT " " << entry.definition.value_size << "," << std::endl;
+                    output_stream << INDENT INDENT " " << entry.definition.max_entries << "," << std::endl;
+                    output_stream << INDENT INDENT " " << entry.definition.inner_map_idx << "," << std::endl;
+                    output_stream << INDENT INDENT " " << entry.definition.pinning << "," << std::endl;
+                    output_stream << INDENT INDENT " " << entry.definition.id << "," << std::endl;
+                    output_stream << INDENT INDENT " " << entry.definition.inner_id << "," << std::endl;
+                    output_stream << INDENT " }," << std::endl;
+                    output_stream << INDENT " \"" << name.c_str() << "\"}," << std::endl;
 
                     current_index++;
                     break;
@@ -734,21 +740,21 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         }
         output_stream << "};" << std::endl;
         output_stream << std::endl;
-        output_stream
-            << "static void _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ size_t* count)"
-            << std::endl;
+        output_stream << "static void" << std::endl
+                      << "_get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ size_t* count)"
+                      << std::endl;
         output_stream << "{" << std::endl;
-        output_stream << "\t*maps = _maps;" << std::endl;
-        output_stream << "\t*count = " << std::to_string(map_definitions.size()) << ";" << std::endl;
+        output_stream << INDENT "*maps = _maps;" << std::endl;
+        output_stream << INDENT "*count = " << std::to_string(map_definitions.size()) << ";" << std::endl;
         output_stream << "}" << std::endl;
         output_stream << std::endl;
     } else {
-        output_stream
-            << "static void _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ size_t* count)"
-            << std::endl;
+        output_stream << "static void" << std::endl
+                      << "_get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ size_t* count)"
+                      << std::endl;
         output_stream << "{" << std::endl;
-        output_stream << "\t*maps = NULL;" << std::endl;
-        output_stream << "\t*count = 0;" << std::endl;
+        output_stream << INDENT "*maps = NULL;" << std::endl;
+        output_stream << INDENT "*count = 0;" << std::endl;
         output_stream << "}" << std::endl;
         output_stream << std::endl;
     }
@@ -774,7 +780,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             }
 
             for (const auto& [helper_name, id] : index_ordered_helpers) {
-                output_stream << "{ NULL, " << id << ", \"" << helper_name.c_str() << "\"}," << std::endl;
+                output_stream << INDENT "{NULL, " << id << ", \"" << helper_name.c_str() << "\"}," << std::endl;
             }
 
             output_stream << "};" << std::endl;
@@ -786,16 +792,29 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         std::string attach_type_name = program_name + "_attach_type_guid";
 
 #if defined(_MSC_VER)
-        output_stream << format_string(
-                             "static GUID %s = %s;",
-                             sanitize_name(program_type_name),
-                             format_guid(&section.program_type))
-                      << std::endl;
-        output_stream << format_string(
-                             "static GUID %s = %s;",
-                             sanitize_name(attach_type_name),
-                             format_guid(&section.expected_attach_type))
-                      << std::endl;
+        auto guid_declaration = format_string(
+            "static GUID %s = %s;", sanitize_name(program_type_name), format_guid(&section.program_type, false));
+
+        if (guid_declaration.length() < 120) {
+            output_stream << guid_declaration << std::endl;
+        } else {
+            output_stream << format_string(
+                                 "static GUID %s = %s;",
+                                 sanitize_name(program_type_name),
+                                 format_guid(&section.program_type, true))
+                          << std::endl;
+        }
+        guid_declaration = format_string(
+            "static GUID %s = %s;", sanitize_name(attach_type_name), format_guid(&section.expected_attach_type, false));
+        if (guid_declaration.length() < 120) {
+            output_stream << guid_declaration << std::endl;
+        } else {
+            output_stream << format_string(
+                                 "static GUID %s = %s;",
+                                 sanitize_name(attach_type_name),
+                                 format_guid(&section.expected_attach_type, true))
+                          << std::endl;
+        }
 #endif
 
         if (section.referenced_map_indices.size() > 0) {
@@ -803,7 +822,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             std::string map_array_name = program_name + "_maps";
             output_stream << format_string("static uint16_t %s[] = {", sanitize_name(map_array_name)) << std::endl;
             for (const auto& map_index : section.referenced_map_indices) {
-                output_stream << std::to_string(map_index) << "," << std::endl;
+                output_stream << INDENT << std::to_string(map_index) << "," << std::endl;
             }
             output_stream << "};" << std::endl;
             output_stream << std::endl;
@@ -820,22 +839,22 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         }
 
         // Emit entry point
-        output_stream << format_string("static uint64_t %s(void* context)", sanitize_name(program_name)) << std::endl;
+        output_stream << format_string("static uint64_t\n%s(void* context)", sanitize_name(program_name)) << std::endl;
         output_stream << "{" << std::endl;
 
         // Emit prologue
-        output_stream << prolog_line_info << "\t// Prologue" << std::endl;
-        output_stream << prolog_line_info << "\tuint64_t stack[(UBPF_STACK_SIZE + 7) / 8];" << std::endl;
+        output_stream << prolog_line_info << INDENT "// Prologue" << std::endl;
+        output_stream << prolog_line_info << INDENT "uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];" << std::endl;
         for (const auto& r : _register_names) {
             // Skip unused registers
             if (section.referenced_registers.find(r) == section.referenced_registers.end()) {
                 continue;
             }
-            output_stream << prolog_line_info << "\tregister uint64_t " << r.c_str() << " = 0;" << std::endl;
+            output_stream << prolog_line_info << INDENT "register uint64_t " << r.c_str() << " = 0;" << std::endl;
         }
         output_stream << std::endl;
-        output_stream << prolog_line_info << "\t" << get_register_name(1) << " = (uintptr_t)context;" << std::endl;
-        output_stream << prolog_line_info << "\t" << get_register_name(10)
+        output_stream << prolog_line_info << INDENT "" << get_register_name(1) << " = (uintptr_t)context;" << std::endl;
+        output_stream << prolog_line_info << INDENT "" << get_register_name(10)
                       << " = (uintptr_t)((uint8_t*)stack + sizeof(stack));" << std::endl;
         output_stream << std::endl;
 
@@ -855,14 +874,14 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
                     escape_string(current_line->second.file_name));
             }
 #if defined(_DEBUG) || defined(BPF2C_VERBOSE)
-            output_stream << "\t// " << _opcode_name_strings[output.instruction.opcode]
+            output_stream << INDENT "// " << _opcode_name_strings[output.instruction.opcode]
                           << " pc=" << output.instruction_offset << " dst=" << get_register_name(output.instruction.dst)
                           << " src=" << get_register_name(output.instruction.src)
                           << " offset=" << std::to_string(output.instruction.offset)
                           << " imm=" << std::to_string(output.instruction.imm) << std::endl;
 #endif
             for (const auto& line : output.lines) {
-                output_stream << prolog_line_info << "\t" << line << std::endl;
+                output_stream << prolog_line_info << INDENT "" << line << std::endl;
             }
         }
         // Emit epilogue
@@ -884,43 +903,51 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         auto program_type_guid_name = std::string("NULL");
         auto attach_type_guid_name = std::string("NULL");
 #endif
-        output_stream << "\t{ " << sanitize_name(program_name) << ", "
-                      << "\"" << name.c_str() << "\", "
-                      << "\"" << program.program_name.c_str() << "\", " << map_array_name.c_str() << ", "
-                      << program.referenced_map_indices.size() << ", " << helper_array_name.c_str() << ", "
-                      << program.helper_functions.size() << ", " << program.output.size() << ", "
+        output_stream << INDENT "{" << std::endl;
+        output_stream << INDENT INDENT << sanitize_name(program_name) << "," << std::endl;
+        output_stream << INDENT INDENT "\"" << name.c_str() << "\"," << std::endl;
+        output_stream << INDENT INDENT "\"" << program.program_name.c_str() << "\"," << std::endl;
+        output_stream << INDENT INDENT << map_array_name.c_str() << "," << std::endl;
+        output_stream << INDENT INDENT << program.referenced_map_indices.size() << "," << std::endl;
+        output_stream << INDENT INDENT << helper_array_name.c_str() << "," << std::endl;
+        output_stream << INDENT INDENT << program.helper_functions.size() << "," << std::endl;
+        output_stream << INDENT INDENT << program.output.size() << "," << std::endl;
 #if defined(_MSC_VER)
-                      << "&" << sanitize_name(program_type_guid_name) << ", "
-                      << "&" << sanitize_name(attach_type_guid_name) << ", "
+        output_stream << INDENT INDENT "&" << sanitize_name(program_type_guid_name) << "," << std::endl;
+        output_stream << INDENT INDENT "&" << sanitize_name(attach_type_guid_name) << "," << std::endl;
 #else
-                      << sanitize_name(program_type_guid_name) << ", " << sanitize_name(attach_type_guid_name) << ", "
+        << sanitize_name(program_type_guid_name) << ", " << sanitize_name(attach_type_guid_name) << ", "
 #endif
-                      << "}," << std::endl;
+        output_stream << INDENT "}," << std::endl;
     }
     output_stream << "};" << std::endl;
     output_stream << std::endl;
-    output_stream
-        << "static void _get_programs(_Outptr_result_buffer_(*count) program_entry_t** programs, _Out_ size_t* count)"
-        << std::endl;
+    output_stream << "static void" << std::endl
+                  << "_get_programs(_Outptr_result_buffer_(*count) program_entry_t** programs, _Out_ size_t* count)"
+                  << std::endl;
     output_stream << "{" << std::endl;
-    output_stream << "\t*programs = _programs;" << std::endl;
-    output_stream << "\t*count = " << std::to_string(sections.size()) << ";" << std::endl;
+    output_stream << INDENT "*programs = _programs;" << std::endl;
+    output_stream << INDENT "*count = " << std::to_string(sections.size()) << ";" << std::endl;
     output_stream << "}" << std::endl;
     output_stream << std::endl;
 
-    output_stream << std::endl;
     output_stream << format_string(
-        "metadata_table_t %s = { _get_programs, _get_maps, _get_hash };\n",
+        "metadata_table_t %s = {_get_programs, _get_maps, _get_hash};\n",
         c_name.c_str() + std::string("_metadata_table"));
 }
 
 #if defined(_MSC_VER)
 std::string
-bpf_code_generator::format_guid(const GUID* guid)
+bpf_code_generator::format_guid(const GUID* guid, bool split)
 {
     std::string output(120, '\0');
-    std::string format_string =
-        "{0x%08x, 0x%04x, 0x%04x, {0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x}}";
+    std::string format_string;
+    if (split) {
+        format_string =
+            "{\n" INDENT "0x%08x, 0x%04x, 0x%04x, {0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x}}";
+    } else {
+        format_string = "{0x%08x, 0x%04x, 0x%04x, {0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x}}";
+    }
     auto count = snprintf(
         output.data(),
         output.size(),
