@@ -23,6 +23,7 @@
 #include <cassert>
 
 #define INDENT "    "
+#define LINE_BREAK_WIDTH 120
 
 static const std::string _register_names[11] = {
     "r0",
@@ -798,7 +799,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         auto guid_declaration = format_string(
             "static GUID %s = %s;", sanitize_name(program_type_name), format_guid(&section.program_type, false));
 
-        if (guid_declaration.length() < 120) {
+        if (guid_declaration.length() <= LINE_BREAK_WIDTH) {
             output_stream << guid_declaration << std::endl;
         } else {
             output_stream << format_string(
@@ -809,7 +810,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         }
         guid_declaration = format_string(
             "static GUID %s = %s;", sanitize_name(attach_type_name), format_guid(&section.expected_attach_type, false));
-        if (guid_declaration.length() < 120) {
+        if (guid_declaration.length() <= LINE_BREAK_WIDTH) {
             output_stream << guid_declaration << std::endl;
         } else {
             output_stream << format_string(
