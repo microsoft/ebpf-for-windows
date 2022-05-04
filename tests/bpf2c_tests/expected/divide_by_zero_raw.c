@@ -114,7 +114,7 @@ divide_by_zero(void* context)
 #line 32 "sample/divide_by_zero.c"
     if (r1 == 0) {
         division_by_zero(10);
-        return -1;
+        return 0xffffffffffffffffui64;
     }
 #line 32 "sample/divide_by_zero.c"
     r6 /= r1;
