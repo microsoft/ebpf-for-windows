@@ -75,9 +75,9 @@ function Update-ExpectedOutput
         $FileName = [System.IO.Path]::GetFileNameWithoutExtension($file.Name)
         $ObjectFileWithPath = $FileName + ".o"
         Write-Host "Generating output for $ObjectFileWithPath"
-        $ExpectedSysFileWithPath = $ExpectedOutputPath + "\" + $FileName + "_sys.txt"
-        $ExpectedDllFileWithPath = $ExpectedOutputPath + "\" + $FileName + "_dll.txt"
-        $ExpectedRawFileWithPath = $ExpectedOutputPath + "\" + $FileName + "_raw.txt"
+        $ExpectedSysFileWithPath = $ExpectedOutputPath + "\" + $FileName + "_sys.c"
+        $ExpectedDllFileWithPath = $ExpectedOutputPath + "\" + $FileName + "_dll.c"
+        $ExpectedRawFileWithPath = $ExpectedOutputPath + "\" + $FileName + "_raw.c"
 
         $SysCommand = $Bpf2cCommand + " --bpf " + $ObjectFileWithPath + " --sys" + " --hash none"
         $Output = Invoke-Expression $SysCommand

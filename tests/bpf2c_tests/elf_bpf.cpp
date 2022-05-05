@@ -17,16 +17,21 @@
 #include "bpf2c.cpp"
 #undef main
 
+#define INDENT "    "
+
 template <typename stream_t>
 std::vector<std::string>
-read_contents(const std::string& source, std::function<std::string(const std::string&)> transform)
+read_contents(const std::string& source, std::vector<std::function<std::string(const std::string&)>> transforms)
 {
     std::vector<std::string> return_value;
     std::string line;
     stream_t input(source);
 
     while (std::getline(input, line)) {
-        return_value.push_back(transform(line));
+        for (auto& transform : transforms) {
+            line = transform(line);
+        }
+        return_value.push_back(line);
     }
     return return_value;
 }
@@ -46,6 +51,17 @@ transform_line_directives(const std::string& string)
     }
 
     return string.substr(0, string.find("\"") + 1) + string.substr(string.find_last_of("\\") + 1);
+}
+
+// Workaround for: https://github.com/microsoft/ebpf-for-windows/issues/1060
+std::string
+transform_fix_opcode_comment(const std::string& string)
+{
+    if (!string.starts_with(INDENT INDENT "// EBPF_OP_")) {
+        return string;
+    } else {
+        return string.substr(sizeof(INDENT) - 1);
+    }
 }
 
 std::tuple<std::string, std::string, int>
@@ -100,8 +116,9 @@ run_test_elf(const std::string& elf_file, _test_mode test_mode)
         switch (test_mode) {
         case _test_mode::Verify:
         case _test_mode::NoVerify: {
-            auto raw_output = read_contents<std::ifstream>(name + suffix, transform_line_directives);
-            auto raw_result = read_contents<std::istringstream>(out, transform_line_directives);
+            auto raw_output =
+                read_contents<std::ifstream>(name + suffix, {transform_line_directives, transform_fix_opcode_comment});
+            auto raw_result = read_contents<std::istringstream>(out, {transform_line_directives});
 
             REQUIRE(raw_result.size() == raw_output.size());
             for (size_t i = 0; i < raw_result.size(); i++) {
@@ -122,9 +139,9 @@ run_test_elf(const std::string& elf_file, _test_mode test_mode)
         }
     };
 
-    test(nullptr, "_raw.txt");
-    test("--dll", "_dll.txt");
-    test("--sys", "_sys.txt");
+    test(nullptr, "_raw.c");
+    test("--dll", "_dll.c");
+    test("--sys", "_sys.c");
 }
 
 #define DECLARE_TEST(FILE, MODE) \
