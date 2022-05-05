@@ -112,6 +112,25 @@ static std::map<uint8_t, std::string> _opcode_name_strings = {
     ADD_OPCODE(EBPF_OP_JSLT_REG),   ADD_OPCODE(EBPF_OP_JSLE_IMM),  ADD_OPCODE(EBPF_OP_JSLE_REG),
 };
 
+static const std::string _map_type_names[]{
+    "BPF_MAP_TYPE_UNSPEC",
+    "BPF_MAP_TYPE_HASH",
+    "BPF_MAP_TYPE_ARRAY",
+    "BPF_MAP_TYPE_PROG_ARRAY",
+    "BPF_MAP_TYPE_PERCPU_HASH",
+    "BPF_MAP_TYPE_PERCPU_ARRAY",
+    "BPF_MAP_TYPE_HASH_OF_MAPS",
+    "BPF_MAP_TYPE_ARRAY_OF_MAPS",
+    "BPF_MAP_TYPE_LRU_HASH",
+    "BPF_MAP_TYPE_LPM_TRIE",
+    "BPF_MAP_TYPE_QUEUE",
+    "BPF_MAP_TYPE_LRU_PERCPU_HASH",
+    "BPF_MAP_TYPE_STACK",
+    "BPF_MAP_TYPE_RINGBUF",
+};
+
+static const std::string _pin_enum_names[]{"PIN_NONE", "PIN_OBJECT_NS", "PIN_GLOBAL_NS", "PIN_CUSTOM_NS"};
+
 std::string
 bpf_code_generator::get_register_name(uint8_t id)
 {
@@ -725,13 +744,21 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         while (current_index < map_size) {
             for (const auto& [name, entry] : map_definitions) {
                 if (entry.index == current_index) {
+                    if (entry.definition.type > _countof(_map_type_names)) {
+                        throw std::runtime_error("Unknown map type");
+                    }
+                    if (entry.definition.pinning > _countof(_pin_enum_names)) {
+                        throw std::runtime_error("Unknown pinning type");
+                    }
                     double width = 0;
-                    width = std::max(width, std::log10((size_t)entry.definition.type));
+                    width = std::max(width, (double)_map_type_names[entry.definition.type].size() - 1);
                     width = std::max(width, std::log10((size_t)entry.definition.key_size));
                     width = std::max(width, std::log10((size_t)entry.definition.value_size));
                     width = std::max(width, std::log10((size_t)entry.definition.max_entries));
                     width = std::max(width, std::log10((size_t)entry.definition.inner_map_idx));
+                    width = std::max(width, (double)_pin_enum_names[entry.definition.pinning].size() - 1);
                     width = std::max(width, std::log10((size_t)entry.definition.id));
+
                     width = std::max(width, std::log10((size_t)entry.definition.inner_id));
                     auto stream_width = static_cast<std::streamsize>(std::floor(width) + 1);
                     stream_width += 2; // Add space for the trailing ", "
@@ -739,7 +766,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
                     output_stream << INDENT "{NULL," << std::endl;
                     output_stream << INDENT " {" << std::endl;
                     output_stream << INDENT INDENT " " << std::left << std::setw(stream_width)
-                                  << std::to_string(entry.definition.type) + ","
+                                  << _map_type_names[entry.definition.type] + ","
                                   << "// Type of map." << std::endl;
                     output_stream << INDENT INDENT " " << std::left << std::setw(stream_width)
                                   << std::to_string(entry.definition.key_size) + ","
@@ -754,7 +781,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
                                   << std::to_string(entry.definition.inner_map_idx) + ","
                                   << "// Inner map index." << std::endl;
                     output_stream << INDENT INDENT " " << std::left << std::setw(stream_width)
-                                  << std::to_string(entry.definition.pinning) + ","
+                                  << _pin_enum_names[entry.definition.pinning] + ","
                                   << "// Pinning type for the map." << std::endl;
                     output_stream << INDENT INDENT " " << std::left << std::setw(stream_width)
                                   << std::to_string(entry.definition.id) + ","
