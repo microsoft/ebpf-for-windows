@@ -35,3 +35,20 @@ bpf_ntohl(uint32_t x)
 #ifndef htonl
 #define htonl bpf_htonl
 #endif
+
+inline __attribute__((always_inline)) uint64_t
+bpf_ntohll(uint64_t x)
+{
+    uint64_t upper = bpf_ntohl(x >> 32);
+    uint64_t lower = (uint64_t)bpf_ntohl(x & 0xFFFFFFFF) << 32;
+    return upper | lower;
+}
+
+#define bpf_htonll(x) bpf_ntohll(x)
+
+#ifndef ntohll
+#define ntohll bpf_ntohll
+#endif
+#ifndef htonll
+#define htonll bpf_htonll
+#endif
