@@ -138,56 +138,78 @@ main(int argc, char** argv)
         std::vector<std::string> sections;
         std::string hash_algorithm = "SHA256";
         bool verify_programs = true;
-        std::map<std::string, std::tuple<std::string, std::function<void(std::vector<std::string>::iterator&)>>>
-            options = {
-                {"--sys",
-                 {"Generate code for a Windows driver",
-                  [&](std::vector<std::string>::iterator&) { type = output_type::KernelPE; }}},
-                {"--dll",
-                 {"Generate code for a Windows DLL",
-                  [&](std::vector<std::string>::iterator&) { type = output_type::UserPE; }}},
-#if defined(ENABLE_SKIP_VERIFY)
-                {"--no-verify",
-                 {"Skip validating code using verifier",
-                  [&](std::vector<std::string>::iterator&) { verify_programs = false; }}},
-#endif
-                {"--bpf",
-                 {"Input ELF file containing BPF byte code",
-                  [&](std::vector<std::string>::iterator& it) { file = *(++it); }}},
-                {"--hash",
-                 {"Algorithm used to hash ELF file",
-                  [&](std::vector<std::string>::iterator& it) { hash_algorithm = *(++it); }}},
-                {"--section",
-                 {"Space separated list of sections to process ",
-                  [&](std::vector<std::string>::iterator& it) {
-                      while ((*it).find("--") == std::string::npos)
-                          sections.push_back(*(++it));
-                  }}},
-                {"--help",
-                 {"This help menu",
-                  [&](std::vector<std::string>::iterator&) {
-                      std::cout << argv[0]
-                                << " is a tool to generate C code"
-                                   "from an ELF file containing BPF byte code."
-                                << std::endl;
-                      std::cout << "Options are:" << std::endl;
-                      for (auto [option, tuple] : options) {
-                          auto [help, _] = tuple;
-                          std::cout << option.c_str() << "\t" << help.c_str() << std::endl;
-                      }
-                      return 1;
-                  }}},
-            };
-
         std::vector<std::string> parameters(argv + 1, argv + argc);
+        auto iter = parameters.begin();
+        auto iter_end = parameters.end();
+        std::map<std::string, std::tuple<std::string, std::function<bool()>>> options = {
+            {"--sys",
+             {"Generate code for a Windows driver",
+              [&]() {
+                  type = output_type::KernelPE;
+                  return true;
+              }}},
+            {"--dll",
+             {"Generate code for a Windows DLL",
+              [&]() {
+                  type = output_type::UserPE;
+                  return true;
+              }}},
+#if defined(ENABLE_SKIP_VERIFY)
+            {"--no-verify",
+             {"Skip validating code using verifier",
+              [&]() {
+                  verify_programs = false;
+                  return true;
+              }}},
+#endif
+            {"--bpf",
+             {"Input ELF file containing BPF byte code",
+              [&]() {
+                  ++iter;
+                  if (iter == iter_end) {
+                      std::cerr << "Invalid --bpf option" << std::endl;
+                      return false;
+                  } else {
+                      file = *iter;
+                      return true;
+                  }
+              }}},
+            {"--hash",
+             {"Algorithm used to hash ELF file",
+              [&]() {
+                  if (iter == iter_end) {
+                      std::cerr << "Invalid --hash option" << std::endl;
+                      return false;
+                  } else {
+                      hash_algorithm = *iter;
+                      return true;
+                  }
+              }}},
+            {"--help",
+             {"This help menu",
+              [&]() {
+                  std::cerr << argv[0]
+                            << " is a tool to generate C code"
+                               "from an ELF file containing BPF byte code."
+                            << std::endl;
+                  std::cerr << "Options are:" << std::endl;
+                  for (auto [option, tuple] : options) {
+                      auto [help, _] = tuple;
+                      std::cerr << option.c_str() << "\t" << help.c_str() << std::endl;
+                  }
+                  return false;
+              }}},
+        };
 
-        for (auto iter = parameters.begin(); iter < parameters.end(); ++iter) {
+        for (; iter != iter_end; ++iter) {
             auto option = options.find(*iter);
             if (option == options.end()) {
                 option = options.find("--help");
             }
             auto [_, function] = option->second;
-            function(iter);
+            if (!function()) {
+                return 1;
+            }
         }
 
         std::string c_name = file.substr(file.find_last_of("\\") + 1);
@@ -203,10 +225,8 @@ main(int argc, char** argv)
         // TODO: Issue #834 - validate the ELF is well formed
         bpf_code_generator generator(stream, c_name, {hash_value});
 
-        // Special case of no section name.
-        if (sections.size() == 0) {
-            sections = generator.program_sections();
-        }
+        // Capture list of sections.
+        sections = generator.program_sections();
 
         // Parse global data.
         generator.parse();

@@ -177,3 +177,39 @@ DECLARE_TEST("droppacket_unsafe", _test_mode::VerifyFail)
 DECLARE_TEST("printk_unsafe", _test_mode::VerifyFail)
 DECLARE_TEST("no_such_file", _test_mode::FileNotFound)
 DECLARE_TEST("bpf", _test_mode::UseHash)
+
+TEST_CASE("help", "[bpf2c_cli]")
+{
+    std::vector<const char*> argv;
+    argv.push_back("bpf2c.exe");
+    argv.push_back("--help");
+
+    auto [out, err, result_value] = run_test_main(argv);
+    REQUIRE(result_value != 0);
+    std::vector<std::string> options = {"--sys", "--dll", "--no-verify", "--bpf", "--hash", "--help"};
+    for (const auto& option : options) {
+        REQUIRE(err.find(option) != std::string::npos);
+    }
+}
+
+TEST_CASE("bad --bpf", "[bpf2c_cli]")
+{
+    std::vector<const char*> argv;
+    argv.push_back("bpf2c.exe");
+    argv.push_back("--bpf");
+
+    auto [out, err, result_value] = run_test_main(argv);
+    REQUIRE(result_value != 0);
+    REQUIRE(!err.empty());
+}
+
+TEST_CASE("bad --hash", "[bpf2c_cli]")
+{
+    std::vector<const char*> argv;
+    argv.push_back("bpf2c.exe");
+    argv.push_back("--hash");
+
+    auto [out, err, result_value] = run_test_main(argv);
+    REQUIRE(result_value != 0);
+    REQUIRE(!err.empty());
+}
