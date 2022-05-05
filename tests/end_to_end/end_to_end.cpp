@@ -5,10 +5,13 @@
 
 #include <array>
 #include <chrono>
+#include <iostream>
 #include <mutex>
 #include <thread>
 #include <WinSock2.h>
 #include <in6addr.h> // Must come after Winsock2.h
+#include <ip2string.h>
+#include <mstcpip.h>
 
 #include "bpf2c.h"
 #include "bpf/bpf.h"
@@ -34,6 +37,8 @@ namespace ebpf {
 #include "net/ip.h"
 #include "net/udp.h"
 }; // namespace ebpf
+
+#pragma comment(lib, "ntdll.lib")
 
 #define NATIVE_DRIVER_SERVICE_NAME L"test_service"
 #define NATIVE_DRIVER_SERVICE_NAME_2 L"test_service2"
@@ -829,6 +834,173 @@ map_test(ebpf_execution_type_t execution_type)
     bpf_object__close(object);
 }
 
+bpf_sock_ops_t
+populate_bpf_sock_ops(
+    bpf_sock_op_type_t op,
+    uint8_t address_family,
+    const std::string& source_address,
+    uint16_t source_port,
+    const std::string& destination_address,
+    uint16_t destination_port,
+    uint8_t ip_protocol)
+{
+    bpf_sock_ops_t return_value{op, address_family};
+    const char* terminator;
+    if (address_family == AF_INET) {
+        in_addr source_ip_address;
+        in_addr destination_ip_address;
+        REQUIRE(RtlIpv4StringToAddressA(source_address.c_str(), false, &terminator, &source_ip_address) == 0);
+        REQUIRE(RtlIpv4StringToAddressA(destination_address.c_str(), false, &terminator, &destination_ip_address) == 0);
+        return_value.local_ip4 = source_ip_address.S_un.S_addr;
+        return_value.remote_ip4 = destination_ip_address.S_un.S_addr;
+    } else if (address_family == AF_INET6) {
+        in_addr6 source_ip_address;
+        in_addr6 destination_ip_address;
+        REQUIRE(RtlIpv6StringToAddressA(source_address.c_str(), &terminator, &source_ip_address) == 0);
+        REQUIRE(RtlIpv6StringToAddressA(destination_address.c_str(), &terminator, &destination_ip_address) == 0);
+        memcpy(return_value.local_ip6, source_ip_address.u.Byte, sizeof(return_value.local_ip6));
+        memcpy(return_value.remote_ip6, destination_ip_address.u.Byte, sizeof(return_value.remote_ip6));
+    }
+    return_value.local_port = htons(source_port);
+    return_value.remote_port = htons(destination_port);
+    return_value.protocol = ip_protocol;
+    return return_value;
+}
+
+typedef struct _ip_address
+{
+    union
+    {
+        uint32_t ipv4;
+        uint32_t ipv6[4];
+    };
+} ip_address_t;
+
+typedef struct _connection_tuple
+{
+    ip_address_t src_ip;
+    uint16_t src_port;
+    ip_address_t dst_ip;
+    uint16_t dst_port;
+    uint32_t protocol;
+} connection_tuple_t;
+
+typedef struct _connection_history
+{
+    connection_tuple_t tuple;
+    bool ipv4;
+    uint64_t start_time;
+    uint64_t end_time;
+} connection_history_t;
+
+std::string
+ip_address_to_string(bool ipv4, const ip_address_t& ip_address)
+{
+    std::string buffer;
+    if (ipv4) {
+        buffer.resize(16);
+        in_addr addr;
+        addr.S_un.S_addr = ip_address.ipv4;
+        RtlIpv4AddressToStringA(&addr, buffer.data());
+
+    } else {
+        buffer.resize(46);
+        in_addr6 addr;
+        memcpy(addr.u.Byte, ip_address.ipv6, sizeof(ip_address.ipv6));
+        RtlIpv6AddressToStringA(&addr, buffer.data());
+        buffer = "[" + buffer + "]";
+    }
+    return buffer;
+}
+
+void
+conn_track_test(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+
+    ebpf_result_t result;
+    const char* error_message = nullptr;
+    bpf_object* object = nullptr;
+    fd_t program_fd;
+    bpf_link* link;
+
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SOCK_OPS, EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS);
+    program_info_provider_t sock_ops_program_info(EBPF_PROGRAM_TYPE_SOCK_OPS);
+
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "conn_track_um.dll" : "conn_track.o");
+
+    result = ebpf_program_load(file_name, nullptr, nullptr, execution_type, &object, &program_fd, &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free_string(error_message);
+        error_message = nullptr;
+    }
+
+    fd_t history_map_fd = bpf_object__find_map_fd_by_name(object, "history_map");
+    ring_buffer_opts opts{sizeof(opts)};
+    auto rb_handler = ring_buffer__new(
+        history_map_fd,
+        [](_In_ void* ctx, _In_ void* data, size_t size) -> int {
+            UNREFERENCED_PARAMETER(ctx);
+            if (size != sizeof(connection_history_t)) {
+                return 1;
+            }
+            connection_history_t* history = reinterpret_cast<connection_history_t*>(data);
+            double duration = (double)(history->end_time - history->start_time);
+            duration /= 1e9;
+            std::cout << "'" << ip_address_to_string(history->ipv4, history->tuple.src_ip) << ":"
+                      << std::to_string(ntohs(history->tuple.src_port)) << "'==>'"
+                      << ip_address_to_string(history->ipv4, history->tuple.dst_ip) << ":"
+                      << std::to_string(ntohs(history->tuple.dst_port)) << "' duration=" << std::to_string(duration)
+                      << "s" << std::endl;
+            return 0;
+        },
+        nullptr,
+        &opts);
+
+    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(hook.attach_link(program_fd, nullptr, 0, &link) == EBPF_SUCCESS);
+
+    bpf_sock_ops_t sock_op_ctx =
+        populate_bpf_sock_ops(BPF_SOCK_OPS_ACTIVE_ESTABLISHED_CB, AF_INET, "1.1.1.1", 12345, "2.2.2.2", 56789, 6);
+    int hook_result;
+    REQUIRE(hook.fire(&sock_op_ctx, &hook_result) == EBPF_SUCCESS);
+
+    sock_op_ctx =
+        populate_bpf_sock_ops(BPF_SOCK_OPS_CONNECTION_DELETED_CB, AF_INET, "1.1.1.1", 12345, "2.2.2.2", 56789, 6);
+    REQUIRE(hook.fire(&sock_op_ctx, &hook_result) == EBPF_SUCCESS);
+
+    sock_op_ctx = populate_bpf_sock_ops(
+        BPF_SOCK_OPS_ACTIVE_ESTABLISHED_CB,
+        AF_INET6,
+        "fe80::7494:5209:d949:2167",
+        12345,
+        "fe80::7494:5209:d949:2168",
+        56789,
+        6);
+    REQUIRE(hook.fire(&sock_op_ctx, &hook_result) == EBPF_SUCCESS);
+
+    sock_op_ctx = populate_bpf_sock_ops(
+        BPF_SOCK_OPS_CONNECTION_DELETED_CB,
+        AF_INET6,
+        "fe80::7494:5209:d949:2167",
+        12345,
+        "fe80::7494:5209:d949:2168",
+        56789,
+        6);
+    REQUIRE(hook.fire(&sock_op_ctx, &hook_result) == EBPF_SUCCESS);
+
+    Sleep(1000);
+
+    ring_buffer__free(rb_handler);
+
+    hook.detach_link(link);
+    hook.close_link(link);
+
+    bpf_object__close(object);
+}
+
 DECLARE_ALL_TEST_CASES("droppacket", "[end_to_end]", droppacket_test);
 DECLARE_ALL_TEST_CASES("divide_by_zero", "[end_to_end]", divide_by_zero_test_um);
 DECLARE_ALL_TEST_CASES("bindmonitor", "[end_to_end]", bindmonitor_test);
@@ -836,6 +1008,7 @@ DECLARE_ALL_TEST_CASES("bindmonitor-tailcall", "[end_to_end]", bindmonitor_tailc
 DECLARE_ALL_TEST_CASES("bindmonitor-ringbuf", "[end_to_end]", bindmonitor_ring_buffer_test);
 DECLARE_ALL_TEST_CASES("utility-helpers", "[end_to_end]", _utility_helper_functions_test);
 DECLARE_ALL_TEST_CASES("map", "[end_to_end]", map_test);
+DECLARE_ALL_TEST_CASES("conn_track_test", "[end_to_end]", conn_track_test);
 
 TEST_CASE("enum section", "[end_to_end]")
 {
