@@ -744,19 +744,25 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         while (current_index < map_size) {
             for (const auto& [name, entry] : map_definitions) {
                 if (entry.index == current_index) {
-                    if (entry.definition.type > _countof(_map_type_names)) {
-                        throw std::runtime_error("Unknown map type");
+                    std::string map_type;
+                    std::string map_pinning;
+                    if (entry.definition.type < _countof(_map_type_names)) {
+                        map_type = _map_type_names[entry.definition.type];
+                    } else {
+                        map_type = std::to_string(entry.definition.type);
                     }
-                    if (entry.definition.pinning > _countof(_pin_enum_names)) {
-                        throw std::runtime_error("Unknown pinning type");
+                    if (entry.definition.pinning < _countof(_pin_enum_names)) {
+                        map_pinning = _pin_enum_names[entry.definition.pinning];
+                    } else {
+                        map_pinning = std::to_string(entry.definition.pinning);
                     }
                     double width = 0;
-                    width = std::max(width, (double)_map_type_names[entry.definition.type].size() - 1);
+                    width = std::max(width, (double)map_type.size() - 1);
                     width = std::max(width, std::log10((size_t)entry.definition.key_size));
                     width = std::max(width, std::log10((size_t)entry.definition.value_size));
                     width = std::max(width, std::log10((size_t)entry.definition.max_entries));
                     width = std::max(width, std::log10((size_t)entry.definition.inner_map_idx));
-                    width = std::max(width, (double)_pin_enum_names[entry.definition.pinning].size() - 1);
+                    width = std::max(width, (double)map_pinning.size() - 1);
                     width = std::max(width, std::log10((size_t)entry.definition.id));
 
                     width = std::max(width, std::log10((size_t)entry.definition.inner_id));
@@ -765,8 +771,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
 
                     output_stream << INDENT "{NULL," << std::endl;
                     output_stream << INDENT " {" << std::endl;
-                    output_stream << INDENT INDENT " " << std::left << std::setw(stream_width)
-                                  << _map_type_names[entry.definition.type] + ","
+                    output_stream << INDENT INDENT " " << std::left << std::setw(stream_width) << map_type + ","
                                   << "// Type of map." << std::endl;
                     output_stream << INDENT INDENT " " << std::left << std::setw(stream_width)
                                   << std::to_string(entry.definition.key_size) + ","
@@ -780,8 +785,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
                     output_stream << INDENT INDENT " " << std::left << std::setw(stream_width)
                                   << std::to_string(entry.definition.inner_map_idx) + ","
                                   << "// Inner map index." << std::endl;
-                    output_stream << INDENT INDENT " " << std::left << std::setw(stream_width)
-                                  << _pin_enum_names[entry.definition.pinning] + ","
+                    output_stream << INDENT INDENT " " << std::left << std::setw(stream_width) << map_pinning + ","
                                   << "// Pinning type for the map." << std::endl;
                     output_stream << INDENT INDENT " " << std::left << std::setw(stream_width)
                                   << std::to_string(entry.definition.id) + ","
