@@ -15,14 +15,14 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 static map_entry_t _maps[] = {
     {NULL,
      {
-         3,
-         4,
-         4,
-         10,
-         0,
-         0,
-         0,
-         0,
+         3,  // Type of map.
+         4,  // Size in bytes of a map key.
+         4,  // Size in bytes of a map value.
+         10, // Maximum number of entries allowed in the map.
+         0,  // Inner map index.
+         0,  // Pinning type for the map.
+         0,  // Identifier for a map template.
+         0,  // The id of the inner map template.
      },
      "map"},
 };

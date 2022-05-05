@@ -15,98 +15,98 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 static map_entry_t _maps[] = {
     {NULL,
      {
-         12,
-         0,
-         4,
-         10,
-         0,
-         0,
-         0,
-         0,
+         12, // Type of map.
+         0,  // Size in bytes of a map key.
+         4,  // Size in bytes of a map value.
+         10, // Maximum number of entries allowed in the map.
+         0,  // Inner map index.
+         0,  // Pinning type for the map.
+         0,  // Identifier for a map template.
+         0,  // The id of the inner map template.
      },
      "STACK_map"},
     {NULL,
      {
-         1,
-         4,
-         4,
-         10,
-         0,
-         0,
-         0,
-         0,
+         1,  // Type of map.
+         4,  // Size in bytes of a map key.
+         4,  // Size in bytes of a map value.
+         10, // Maximum number of entries allowed in the map.
+         0,  // Inner map index.
+         0,  // Pinning type for the map.
+         0,  // Identifier for a map template.
+         0,  // The id of the inner map template.
      },
      "HASH_map"},
     {NULL,
      {
-         4,
-         4,
-         4,
-         10,
-         0,
-         0,
-         0,
-         0,
+         4,  // Type of map.
+         4,  // Size in bytes of a map key.
+         4,  // Size in bytes of a map value.
+         10, // Maximum number of entries allowed in the map.
+         0,  // Inner map index.
+         0,  // Pinning type for the map.
+         0,  // Identifier for a map template.
+         0,  // The id of the inner map template.
      },
      "PERCPU_HASH_map"},
     {NULL,
      {
-         2,
-         4,
-         4,
-         10,
-         0,
-         0,
-         0,
-         0,
+         2,  // Type of map.
+         4,  // Size in bytes of a map key.
+         4,  // Size in bytes of a map value.
+         10, // Maximum number of entries allowed in the map.
+         0,  // Inner map index.
+         0,  // Pinning type for the map.
+         0,  // Identifier for a map template.
+         0,  // The id of the inner map template.
      },
      "ARRAY_map"},
     {NULL,
      {
-         5,
-         4,
-         4,
-         10,
-         0,
-         0,
-         0,
-         0,
+         5,  // Type of map.
+         4,  // Size in bytes of a map key.
+         4,  // Size in bytes of a map value.
+         10, // Maximum number of entries allowed in the map.
+         0,  // Inner map index.
+         0,  // Pinning type for the map.
+         0,  // Identifier for a map template.
+         0,  // The id of the inner map template.
      },
      "PERCPU_ARRAY_map"},
     {NULL,
      {
-         8,
-         4,
-         4,
-         10,
-         0,
-         0,
-         0,
-         0,
+         8,  // Type of map.
+         4,  // Size in bytes of a map key.
+         4,  // Size in bytes of a map value.
+         10, // Maximum number of entries allowed in the map.
+         0,  // Inner map index.
+         0,  // Pinning type for the map.
+         0,  // Identifier for a map template.
+         0,  // The id of the inner map template.
      },
      "LRU_HASH_map"},
     {NULL,
      {
-         11,
-         4,
-         4,
-         10,
-         0,
-         0,
-         0,
-         0,
+         11, // Type of map.
+         4,  // Size in bytes of a map key.
+         4,  // Size in bytes of a map value.
+         10, // Maximum number of entries allowed in the map.
+         0,  // Inner map index.
+         0,  // Pinning type for the map.
+         0,  // Identifier for a map template.
+         0,  // The id of the inner map template.
      },
      "LRU_PERCPU_HASH_map"},
     {NULL,
      {
-         10,
-         0,
-         4,
-         10,
-         0,
-         0,
-         0,
-         0,
+         10, // Type of map.
+         0,  // Size in bytes of a map key.
+         4,  // Size in bytes of a map value.
+         10, // Maximum number of entries allowed in the map.
+         0,  // Inner map index.
+         0,  // Pinning type for the map.
+         0,  // Identifier for a map template.
+         0,  // The id of the inner map template.
      },
      "QUEUE_map"},
 };
