@@ -177,6 +177,7 @@ main(int argc, char** argv)
             {"--hash",
              {"Algorithm used to hash ELF file",
               [&]() {
+                  ++iter;
                   if (iter == iter_end) {
                       std::cerr << "Invalid --hash option" << std::endl;
                       return false;
