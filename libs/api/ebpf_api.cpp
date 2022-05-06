@@ -1633,6 +1633,7 @@ _get_next_map_to_create(std::vector<ebpf_map_t*>& maps)
     return nullptr;
 }
 
+// TODO: update to look more like bpf_object__open_xattr
 ebpf_result_t
 ebpf_object_open(
     _In_z_ const char* path,
@@ -1653,8 +1654,25 @@ ebpf_object_open(
         return EBPF_NO_MEMORY;
     }
 
-    ebpf_result_t result = _initialize_ebpf_object_from_elf(
-        path, object_name, pin_root_path, program_type, attach_type, *new_object, error_message);
+    ebpf_result_t result;
+    if (Platform::_is_native_program(path)) {
+#if 0
+        result = _initialize_ebpf_object_native(
+            path,
+
+        XXX
+            size_t count_of_maps,
+            _In_reads_(count_of_maps) ebpf_handle_t* map_handles,
+            size_t count_of_programs,
+            _In_reads_(count_of_programs) ebpf_handle_t* program_handles,
+            _Out_ ebpf_object_t& object);
+#else
+        result = EBPF_OPERATION_NOT_SUPPORTED;
+#endif
+    } else {
+        result = _initialize_ebpf_object_from_elf(
+            path, object_name, pin_root_path, program_type, attach_type, *new_object, error_message);
+    }
     if (result != EBPF_SUCCESS) {
         goto Done;
     }
