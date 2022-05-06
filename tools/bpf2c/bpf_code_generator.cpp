@@ -13,6 +13,8 @@
 
 #include <iostream>
 #include <vector>
+#include <windows.h>
+#undef max
 
 #include "btf_parser.h"
 #include "bpf_code_generator.h"
@@ -719,6 +721,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
 
     // Emit import tables
     if (map_definitions.size() > 0) {
+        output_stream << "#pragma data_seg(push, \"maps\")" << std::endl;
         output_stream << "static map_entry_t _maps[] = {" << std::endl;
         size_t map_size = map_definitions.size();
         size_t current_index = 0;
@@ -783,6 +786,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             }
         }
         output_stream << "};" << std::endl;
+        output_stream << "#pragma data_seg(pop)" << std::endl;
         output_stream << std::endl;
         output_stream << "static void" << std::endl
                       << "_get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ size_t* count)"
@@ -881,6 +885,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         }
 
         // Emit entry point
+        output_stream << "#pragma code_seg(push, \"" << pe_section_name(name) << "\")" << std::endl;
         output_stream << format_string("static uint64_t\n%s(void* context)", sanitize_name(program_name)) << std::endl;
         output_stream << "{" << std::endl;
 
@@ -928,6 +933,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         }
         // Emit epilogue
         output_stream << prolog_line_info << "}" << std::endl;
+        output_stream << "#pragma code_seg(pop)" << std::endl;
         output_stream << "#line __LINE__ __FILE__" << std::endl << std::endl;
     }
 
@@ -1040,6 +1046,25 @@ bpf_code_generator::format_string(
     }
     output.resize(strlen(output.c_str()));
     return output;
+}
+
+std::string
+bpf_code_generator::pe_section_name(const std::string& elf_section_name)
+{
+    static int counter = 0;
+    if (elf_section_name.length() <= 8) {
+        return elf_section_name;
+    }
+
+    // Name is too long for PE, so generate a short name.
+    // Subtract 3 so there is space for the tilde, the last counter digit,
+    // and a null terminator.
+    counter++;
+    char shortname[9];
+    int prefix_length = sizeof(shortname) - 3 - (int)(log10(counter));
+    strncpy_s(shortname, sizeof(shortname), elf_section_name.c_str(), prefix_length);
+    sprintf_s(shortname + prefix_length, sizeof(shortname) - prefix_length, "~%d", counter);
+    return std::string(shortname);
 }
 
 std::string
