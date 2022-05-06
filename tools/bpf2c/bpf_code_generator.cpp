@@ -21,6 +21,7 @@
 #define _countof(array) (sizeof(array) / sizeof(array[0]))
 #endif
 #include <cassert>
+#include <iomanip>
 
 #define INDENT "    "
 #define LINE_BREAK_WIDTH 120
@@ -724,16 +725,55 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         while (current_index < map_size) {
             for (const auto& [name, entry] : map_definitions) {
                 if (entry.index == current_index) {
+                    std::string map_type;
+                    std::string map_pinning;
+                    if (entry.definition.type < _countof(_ebpf_map_type_names)) {
+                        map_type = _ebpf_map_type_names[entry.definition.type];
+                    } else {
+                        map_type = std::to_string(entry.definition.type);
+                    }
+                    if (entry.definition.pinning < _countof(_ebpf_pin_type_names)) {
+                        map_pinning = _ebpf_pin_type_names[entry.definition.pinning];
+                    } else {
+                        map_pinning = std::to_string(entry.definition.pinning);
+                    }
+                    double width = 0;
+                    width = std::max(width, (double)map_type.size() - 1);
+                    width = std::max(width, std::log10((size_t)entry.definition.key_size));
+                    width = std::max(width, std::log10((size_t)entry.definition.value_size));
+                    width = std::max(width, std::log10((size_t)entry.definition.max_entries));
+                    width = std::max(width, std::log10((size_t)entry.definition.inner_map_idx));
+                    width = std::max(width, (double)map_pinning.size() - 1);
+                    width = std::max(width, std::log10((size_t)entry.definition.id));
+
+                    width = std::max(width, std::log10((size_t)entry.definition.inner_id));
+                    auto stream_width = static_cast<std::streamsize>(std::floor(width) + 1);
+                    stream_width += 2; // Add space for the trailing ", "
+
                     output_stream << INDENT "{NULL," << std::endl;
                     output_stream << INDENT " {" << std::endl;
-                    output_stream << INDENT INDENT " " << entry.definition.type << "," << std::endl;
-                    output_stream << INDENT INDENT " " << entry.definition.key_size << "," << std::endl;
-                    output_stream << INDENT INDENT " " << entry.definition.value_size << "," << std::endl;
-                    output_stream << INDENT INDENT " " << entry.definition.max_entries << "," << std::endl;
-                    output_stream << INDENT INDENT " " << entry.definition.inner_map_idx << "," << std::endl;
-                    output_stream << INDENT INDENT " " << entry.definition.pinning << "," << std::endl;
-                    output_stream << INDENT INDENT " " << entry.definition.id << "," << std::endl;
-                    output_stream << INDENT INDENT " " << entry.definition.inner_id << "," << std::endl;
+                    output_stream << INDENT INDENT " " << std::left << std::setw(stream_width) << map_type + ","
+                                  << "// Type of map." << std::endl;
+                    output_stream << INDENT INDENT " " << std::left << std::setw(stream_width)
+                                  << std::to_string(entry.definition.key_size) + ","
+                                  << "// Size in bytes of a map key." << std::endl;
+                    output_stream << INDENT INDENT " " << std::left << std::setw(stream_width)
+                                  << std::to_string(entry.definition.value_size) + ","
+                                  << "// Size in bytes of a map value." << std::endl;
+                    output_stream << INDENT INDENT " " << std::left << std::setw(stream_width)
+                                  << std::to_string(entry.definition.max_entries) + ","
+                                  << "// Maximum number of entries allowed in the map." << std::endl;
+                    output_stream << INDENT INDENT " " << std::left << std::setw(stream_width)
+                                  << std::to_string(entry.definition.inner_map_idx) + ","
+                                  << "// Inner map index." << std::endl;
+                    output_stream << INDENT INDENT " " << std::left << std::setw(stream_width) << map_pinning + ","
+                                  << "// Pinning type for the map." << std::endl;
+                    output_stream << INDENT INDENT " " << std::left << std::setw(stream_width)
+                                  << std::to_string(entry.definition.id) + ","
+                                  << "// Identifier for a map template." << std::endl;
+                    output_stream << INDENT INDENT " " << std::left << std::setw(stream_width)
+                                  << std::to_string(entry.definition.inner_id) + ","
+                                  << "// The id of the inner map template." << std::endl;
                     output_stream << INDENT " }," << std::endl;
                     output_stream << INDENT " \"" << name.c_str() << "\"}," << std::endl;
 
@@ -795,7 +835,6 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         std::string program_type_name = program_name + "_program_type_guid";
         std::string attach_type_name = program_name + "_attach_type_guid";
 
-#if defined(_MSC_VER)
         auto guid_declaration = format_string(
             "static GUID %s = %s;", sanitize_name(program_type_name), format_guid(&section.program_type, false));
 
@@ -819,7 +858,6 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
                                  format_guid(&section.expected_attach_type, true))
                           << std::endl;
         }
-#endif
 
         if (section.referenced_map_indices.size() > 0) {
             // Emit the array for the maps used.
@@ -900,13 +938,8 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         size_t helper_count = program.helper_functions.size();
         auto map_array_name = map_count ? (program_name + "_maps") : std::string("NULL");
         auto helper_array_name = helper_count ? (program_name + "_helpers") : std::string("NULL");
-#if defined(_MSC_VER)
         auto program_type_guid_name = program_name + "_program_type_guid";
         auto attach_type_guid_name = program_name + "_attach_type_guid";
-#else
-        auto program_type_guid_name = std::string("NULL");
-        auto attach_type_guid_name = std::string("NULL");
-#endif
         output_stream << INDENT "{" << std::endl;
         output_stream << INDENT INDENT << sanitize_name(program_name) << "," << std::endl;
         output_stream << INDENT INDENT "\"" << name.c_str() << "\"," << std::endl;
@@ -916,12 +949,8 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         output_stream << INDENT INDENT << helper_array_name.c_str() << "," << std::endl;
         output_stream << INDENT INDENT << program.helper_functions.size() << "," << std::endl;
         output_stream << INDENT INDENT << program.output.size() << "," << std::endl;
-#if defined(_MSC_VER)
         output_stream << INDENT INDENT "&" << sanitize_name(program_type_guid_name) << "," << std::endl;
         output_stream << INDENT INDENT "&" << sanitize_name(attach_type_guid_name) << "," << std::endl;
-#else
-        << sanitize_name(program_type_guid_name) << ", " << sanitize_name(attach_type_guid_name) << ", "
-#endif
         output_stream << INDENT "}," << std::endl;
     }
     output_stream << "};" << std::endl;
@@ -940,7 +969,6 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         c_name.c_str() + std::string("_metadata_table"));
 }
 
-#if defined(_MSC_VER)
 std::string
 bpf_code_generator::format_guid(const GUID* guid, bool split)
 {
@@ -974,7 +1002,6 @@ bpf_code_generator::format_guid(const GUID* guid, bool split)
     output.resize(strlen(output.c_str()));
     return output;
 }
-#endif
 
 std::string
 bpf_code_generator::format_string(

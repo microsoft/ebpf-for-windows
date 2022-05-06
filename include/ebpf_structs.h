@@ -12,6 +12,8 @@
 #endif
 #include "ebpf_windows.h"
 
+#define BPF_ENUM_TO_STRING(X) #X
+
 typedef enum bpf_map_type
 {
     BPF_MAP_TYPE_UNSPEC = 0, ///< Unspecified map type.
@@ -31,6 +33,40 @@ typedef enum bpf_map_type
     BPF_MAP_TYPE_RINGBUF = 13          ///< Ring buffer.
 } ebpf_map_type_t;
 
+static const char* const _ebpf_map_type_names[] = {
+    BPF_ENUM_TO_STRING(BPF_MAP_TYPE_UNSPEC),
+    BPF_ENUM_TO_STRING(BPF_MAP_TYPE_HASH),
+    BPF_ENUM_TO_STRING(BPF_MAP_TYPE_ARRAY),
+    BPF_ENUM_TO_STRING(BPF_MAP_TYPE_PROG_ARRAY),
+    BPF_ENUM_TO_STRING(BPF_MAP_TYPE_PERCPU_HASH),
+    BPF_ENUM_TO_STRING(BPF_MAP_TYPE_PERCPU_ARRAY),
+    BPF_ENUM_TO_STRING(BPF_MAP_TYPE_HASH_OF_MAPS),
+    BPF_ENUM_TO_STRING(BPF_MAP_TYPE_ARRAY_OF_MAPS),
+    BPF_ENUM_TO_STRING(BPF_MAP_TYPE_LRU_HASH),
+    BPF_ENUM_TO_STRING(BPF_MAP_TYPE_LPM_TRIE),
+    BPF_ENUM_TO_STRING(BPF_MAP_TYPE_QUEUE),
+    BPF_ENUM_TO_STRING(BPF_MAP_TYPE_LRU_PERCPU_HASH),
+    BPF_ENUM_TO_STRING(BPF_MAP_TYPE_STACK),
+    BPF_ENUM_TO_STRING(BPF_MAP_TYPE_RINGBUF),
+};
+
+static const char* const _ebpf_map_display_names[] = {
+    "Other",
+    "Hash",
+    "Array",
+    "Program array",
+    "Per-CPU hash table",
+    "Per-CPU array",
+    "Hash of maps",
+    "Array of maps",
+    "LRU hash table",
+    "LPM trie",
+    "Queue",
+    "LRU Per-CPU hash table",
+    "Stack",
+    "Ring-buffer",
+};
+
 typedef enum ebpf_map_option
 {
     EBPF_ANY,     ///< Create a new element or update an existing element.
@@ -45,6 +81,13 @@ typedef enum ebpf_pin_type
     PIN_GLOBAL_NS, ///< Pinning with a global namespace.
     PIN_CUSTOM_NS  ///< Pinning with a custom path given as section parameter.
 } ebpf_pin_type_t;
+
+static const char* const _ebpf_pin_type_names[] = {
+    BPF_ENUM_TO_STRING(PIN_NONE),
+    BPF_ENUM_TO_STRING(PIN_OBJECT_NS),
+    BPF_ENUM_TO_STRING(PIN_GLOBAL_NS),
+    BPF_ENUM_TO_STRING(PIN_CUSTOM_NS),
+};
 
 typedef uint32_t ebpf_id_t;
 #define EBPF_ID_NONE UINT32_MAX

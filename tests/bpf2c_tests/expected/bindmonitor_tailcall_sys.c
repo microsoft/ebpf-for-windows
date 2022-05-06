@@ -182,86 +182,86 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 static map_entry_t _maps[] = {
     {NULL,
      {
-         1,
-         8,
-         68,
-         1024,
-         0,
-         0,
-         0,
-         0,
+         BPF_MAP_TYPE_HASH, // Type of map.
+         8,                 // Size in bytes of a map key.
+         68,                // Size in bytes of a map value.
+         1024,              // Maximum number of entries allowed in the map.
+         0,                 // Inner map index.
+         PIN_NONE,          // Pinning type for the map.
+         0,                 // Identifier for a map template.
+         0,                 // The id of the inner map template.
      },
      "process_map"},
     {NULL,
      {
-         2,
-         4,
-         4,
-         1,
-         0,
-         0,
-         0,
-         0,
+         BPF_MAP_TYPE_ARRAY, // Type of map.
+         4,                  // Size in bytes of a map key.
+         4,                  // Size in bytes of a map value.
+         1,                  // Maximum number of entries allowed in the map.
+         0,                  // Inner map index.
+         PIN_NONE,           // Pinning type for the map.
+         0,                  // Identifier for a map template.
+         0,                  // The id of the inner map template.
      },
      "limits_map"},
     {NULL,
      {
-         3,
-         4,
-         4,
-         2,
-         0,
-         0,
-         0,
-         0,
+         BPF_MAP_TYPE_PROG_ARRAY, // Type of map.
+         4,                       // Size in bytes of a map key.
+         4,                       // Size in bytes of a map value.
+         2,                       // Maximum number of entries allowed in the map.
+         0,                       // Inner map index.
+         PIN_NONE,                // Pinning type for the map.
+         0,                       // Identifier for a map template.
+         0,                       // The id of the inner map template.
      },
      "prog_array_map"},
     {NULL,
      {
-         1,
-         4,
-         4,
-         1000,
-         0,
-         0,
-         0,
-         0,
+         BPF_MAP_TYPE_HASH, // Type of map.
+         4,                 // Size in bytes of a map key.
+         4,                 // Size in bytes of a map value.
+         1000,              // Maximum number of entries allowed in the map.
+         0,                 // Inner map index.
+         PIN_NONE,          // Pinning type for the map.
+         0,                 // Identifier for a map template.
+         0,                 // The id of the inner map template.
      },
      "dummy_map"},
     {NULL,
      {
-         7,
-         4,
-         4,
-         1,
-         0,
-         0,
-         0,
-         10,
+         BPF_MAP_TYPE_ARRAY_OF_MAPS, // Type of map.
+         4,                          // Size in bytes of a map key.
+         4,                          // Size in bytes of a map value.
+         1,                          // Maximum number of entries allowed in the map.
+         0,                          // Inner map index.
+         PIN_NONE,                   // Pinning type for the map.
+         0,                          // Identifier for a map template.
+         10,                         // The id of the inner map template.
      },
      "dummy_outer_map"},
     {NULL,
      {
-         6,
-         4,
-         4,
-         10,
-         6,
-         0,
-         0,
-         0,
+         BPF_MAP_TYPE_HASH_OF_MAPS, // Type of map.
+         4,                         // Size in bytes of a map key.
+         4,                         // Size in bytes of a map value.
+         10,                        // Maximum number of entries allowed in the map.
+         6,                         // Inner map index.
+         PIN_NONE,                  // Pinning type for the map.
+         0,                         // Identifier for a map template.
+         0,                         // The id of the inner map template.
      },
      "dummy_outer_idx_map"},
     {NULL,
      {
-         1,
-         4,
-         4,
-         1,
-         0,
-         0,
-         10,
-         0,
+         BPF_MAP_TYPE_HASH, // Type of map.
+         4,                 // Size in bytes of a map key.
+         4,                 // Size in bytes of a map value.
+         1,                 // Maximum number of entries allowed in the map.
+         0,                 // Inner map index.
+         PIN_NONE,          // Pinning type for the map.
+         10,                // Identifier for a map template.
+         0,                 // The id of the inner map template.
      },
      "dummy_inner_map"},
 };
