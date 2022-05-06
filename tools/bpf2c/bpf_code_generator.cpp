@@ -112,25 +112,6 @@ static std::map<uint8_t, std::string> _opcode_name_strings = {
     ADD_OPCODE(EBPF_OP_JSLT_REG),   ADD_OPCODE(EBPF_OP_JSLE_IMM),  ADD_OPCODE(EBPF_OP_JSLE_REG),
 };
 
-static const std::string _map_type_names[]{
-    "BPF_MAP_TYPE_UNSPEC",
-    "BPF_MAP_TYPE_HASH",
-    "BPF_MAP_TYPE_ARRAY",
-    "BPF_MAP_TYPE_PROG_ARRAY",
-    "BPF_MAP_TYPE_PERCPU_HASH",
-    "BPF_MAP_TYPE_PERCPU_ARRAY",
-    "BPF_MAP_TYPE_HASH_OF_MAPS",
-    "BPF_MAP_TYPE_ARRAY_OF_MAPS",
-    "BPF_MAP_TYPE_LRU_HASH",
-    "BPF_MAP_TYPE_LPM_TRIE",
-    "BPF_MAP_TYPE_QUEUE",
-    "BPF_MAP_TYPE_LRU_PERCPU_HASH",
-    "BPF_MAP_TYPE_STACK",
-    "BPF_MAP_TYPE_RINGBUF",
-};
-
-static const std::string _pin_enum_names[]{"PIN_NONE", "PIN_OBJECT_NS", "PIN_GLOBAL_NS", "PIN_CUSTOM_NS"};
-
 std::string
 bpf_code_generator::get_register_name(uint8_t id)
 {
@@ -746,13 +727,13 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
                 if (entry.index == current_index) {
                     std::string map_type;
                     std::string map_pinning;
-                    if (entry.definition.type < _countof(_map_type_names)) {
-                        map_type = _map_type_names[entry.definition.type];
+                    if (entry.definition.type < _countof(_ebpf_map_type_names)) {
+                        map_type = _ebpf_map_type_names[entry.definition.type];
                     } else {
                         map_type = std::to_string(entry.definition.type);
                     }
-                    if (entry.definition.pinning < _countof(_pin_enum_names)) {
-                        map_pinning = _pin_enum_names[entry.definition.pinning];
+                    if (entry.definition.pinning < _countof(_ebpf_pin_type_names)) {
+                        map_pinning = _ebpf_pin_type_names[entry.definition.pinning];
                     } else {
                         map_pinning = std::to_string(entry.definition.pinning);
                     }
