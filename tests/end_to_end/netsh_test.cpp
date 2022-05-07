@@ -130,6 +130,7 @@ TEST_CASE("show sections bpf.o xdp_prog", "[netsh][sections]")
                   "store        : 0\n");
 }
 
+// Test a .sys file.
 TEST_CASE("show sections bpf.sys", "[netsh][sections]")
 {
     int result;
@@ -139,23 +140,42 @@ TEST_CASE("show sections bpf.sys", "[netsh][sections]")
         output == "\n"
                   "             Section       Type  # Maps    Size\n"
                   "====================  =========  ======  ======\n"
-                  "                INIT        xdp       0     512\n"
-                  "            xdp_prog        xdp       0     512\n"
-                  "               .text        xdp       0    2048\n");
+                  "                INIT        xdp       0     432\n"
+                  "            xdp_prog        xdp       0     118\n"
+                  "               .text        xdp       0    1624\n");
 }
 
-TEST_CASE("show sections tail_call_um.dll", "[netsh][sections]")
+// Test a DLL with multiple maps in the map section.
+TEST_CASE("show sections map_reuse_um.dll", "[netsh][sections]")
 {
     int result;
-    std::string output = _run_netsh_command(handle_ebpf_show_sections, L"tail_call_um.dll", nullptr, nullptr, &result);
+    std::string output = _run_netsh_command(handle_ebpf_show_sections, L"map_reuse_um.dll", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
     REQUIRE(
         output == "\n"
                   "             Section       Type  # Maps    Size\n"
                   "====================  =========  ======  ======\n"
-                  "            xdp_pr~1        xdp       0     512\n"
-                  "            xdp_prog        xdp       0    1024\n"
-                  "               .text        xdp       0   14336\n");
+                  "            xdp_prog        xdp       3    1087\n"
+                  "               .text        xdp       3   14317\n");
+}
+
+// Test a .sys file with multiple programs, including ones with long names.
+TEST_CASE("show sections cgroup_sock_addr.sys", "[netsh][sections]")
+{
+    int result;
+    std::string output =
+        _run_netsh_command(handle_ebpf_show_sections, L"cgroup_sock_addr.sys", nullptr, nullptr, &result);
+    REQUIRE(result == NO_ERROR);
+    REQUIRE(
+        output == "\n"
+                  "             Section       Type  # Maps    Size\n"
+                  "====================  =========  ======  ======\n"
+                  "                INIT        xdp       2     432\n"
+                  "            cgroup~4  sock_addr       2     728\n"
+                  "            cgroup~3  sock_addr       2     594\n"
+                  "            cgroup~2  sock_addr       2     728\n"
+                  "            cgroup~1  sock_addr       2     594\n"
+                  "               .text        xdp       2    1624\n");
 }
 
 TEST_CASE("show verification nosuchfile.o", "[netsh][verification]")

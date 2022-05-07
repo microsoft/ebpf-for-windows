@@ -11,6 +11,7 @@
 
 #include "api_internal.h"
 #include "bpf.h"
+#include "bpf2c.h"
 #include "device_helper.hpp"
 #include "ebpf_api.h"
 #include "ebpf_platform.h"
@@ -1662,19 +1663,56 @@ ebpf_free_sections(_In_opt_ ebpf_section_info_t* infos)
     }
 }
 
-static int
-_ebpf_add_pe_section(
-    _Inout_ void* context,
-    _In_ const VA& va,
-    _In_ const std::string& section_name,
-    _In_ const image_section_header& section_header,
-    _In_ const bounded_buffer* buffer)
+typedef struct _ebpf_pe_context
 {
+    ebpf_section_info_t* infos;
+    int map_count;
+} ebpf_pe_context_t;
+
+static int
+_ebpf_pe_get_map_count(
+    void* context,
+    const VA& va,
+    const std::string& section_name,
+    const image_section_header& section_header,
+    const bounded_buffer* buffer)
+{
+    UNREFERENCED_PARAMETER(va);
+    UNREFERENCED_PARAMETER(buffer);
+
+    ebpf_pe_context_t* pe_context = (ebpf_pe_context_t*)context;
+    if (section_name == "maps") {
+        // bpf2c generates sections that have map names as strings at the
+        // start of the section.  Skip over them looking for the map_entry_t
+        // which starts with a 16-byte-aligned NULL pointer.
+        uint32_t map_offset = 0;
+        uint64_t zero = 0;
+        while (map_offset < section_header.Misc.VirtualSize &&
+               memcmp(buffer->buf + map_offset, &zero, sizeof(zero)) != 0) {
+            map_offset += 16;
+        }
+        pe_context->map_count = (section_header.Misc.VirtualSize - map_offset) / sizeof(map_entry_t);
+    }
+
+    return 0;
+}
+
+static int
+_ebpf_pe_add_section(
+    void* context,
+    const VA& va,
+    const std::string& section_name,
+    const image_section_header& section_header,
+    const bounded_buffer* buffer)
+{
+    UNREFERENCED_PARAMETER(va);
+    UNREFERENCED_PARAMETER(buffer);
+
     if (!(section_header.Characteristics & IMAGE_SCN_CNT_CODE)) {
         // Not a code section.
         return 0;
     }
-    ebpf_section_info_t** infos = (ebpf_section_info_t**)context;
+    ebpf_pe_context_t* pe_context = (ebpf_pe_context_t*)context;
 
     ebpf_section_info_t* info = (ebpf_section_info_t*)malloc(sizeof(*info));
     if (info == nullptr) {
@@ -1686,19 +1724,18 @@ _ebpf_add_pe_section(
     EbpfProgramType program_type = get_program_type_windows(section_name, std::string());
 
     info->program_type_name = _strdup(program_type.name.c_str());
-    info->raw_data_size = section_header.SizeOfRawData;
-    info->raw_data = (char*)malloc(section_header.SizeOfRawData);
+    info->raw_data_size = section_header.Misc.VirtualSize;
+    info->raw_data = (char*)malloc(section_header.Misc.VirtualSize);
+    info->map_count = pe_context->map_count;
     if (info->raw_data == nullptr || info->program_type_name == nullptr || info->section_name == nullptr) {
         _ebpf_free_section_info(info);
         return 1;
     }
-    memcpy(info->raw_data, buffer->buf, section_header.SizeOfRawData);
+    memcpy(info->raw_data, buffer->buf, section_header.Misc.VirtualSize);
 
-    info->next = *infos;
-    *infos = info;
+    info->next = pe_context->infos;
+    pe_context->infos = info;
 
-    (void)va;
-    (void)buffer;
     return 0;
 }
 
@@ -1716,10 +1753,13 @@ _ebpf_enumerate_native_sections(
         return EBPF_FILE_NOT_FOUND;
     }
 
-    IterSec(pe, _ebpf_add_pe_section, infos);
+    ebpf_pe_context_t context = {};
+    IterSec(pe, _ebpf_pe_get_map_count, &context);
+    IterSec(pe, _ebpf_pe_add_section, &context);
 
     DestructParsedPE(pe);
 
+    *infos = context.infos;
     return EBPF_SUCCESS;
 }
 
