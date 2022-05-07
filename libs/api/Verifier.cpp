@@ -16,7 +16,6 @@
 #include "ebpf_xdp_program_data.h"
 #include "elfio_wrapper.hpp"
 #include "platform.hpp"
-#include "tlv.h"
 #include "windows_platform.hpp"
 #include "windows_platform_common.hpp"
 #include "Verifier.h"
@@ -343,13 +342,30 @@ Exit:
     return result;
 }
 
+static void
+_ebpf_add_stat(_Inout_ ebpf_section_info_t* info, std::string key, int value)
+{
+    ebpf_stat_t* stat = (ebpf_stat_t*)malloc(sizeof(*stat));
+    if (stat == nullptr) {
+        throw std::runtime_error("Out of memory");
+    }
+    stat->key = _strdup(key.c_str());
+    if (stat->key == nullptr) {
+        free(stat);
+        throw std::runtime_error("Out of memory");
+    }
+    stat->value = value;
+    stat->next = info->stats;
+    info->stats = stat;
+}
+
 uint32_t
 ebpf_api_elf_enumerate_sections(
-    const char* file,
-    const char* section,
+    _In_z_ const char* file,
+    _In_opt_z_ const char* section,
     bool verbose,
-    const struct _tlv_type_length_value** data,
-    const char** error_message)
+    _Outptr_ ebpf_section_info_t** infos,
+    _Outptr_result_maybenull_z_ const char** error_message)
 {
     ebpf_verifier_options_t verifier_options{false, false, false, false, true};
     const ebpf_platform_t* platform = &g_ebpf_platform_windows;
@@ -358,38 +374,49 @@ ebpf_api_elf_enumerate_sections(
 
     try {
         auto raw_programs = read_elf(file, section ? std::string(section) : std::string(), &verifier_options, platform);
-        tlv_sequence sequence;
+        *infos = nullptr;
         for (const auto& raw_program : raw_programs) {
-            tlv_sequence stats_sequence;
+            ebpf_section_info_t* info = (ebpf_section_info_t*)malloc(sizeof(*info));
+            if (info == nullptr) {
+                throw std::runtime_error("Out of memory");
+            }
+            memset(info, 0, sizeof(*info));
+
             if (verbose) {
                 std::variant<InstructionSeq, std::string> programOrError = unmarshal(raw_program);
                 if (std::holds_alternative<std::string>(programOrError)) {
                     std::cout << "parse failure: " << std::get<std::string>(programOrError) << "\n";
+                    free(info);
                     return 1;
                 }
                 auto& program = std::get<InstructionSeq>(programOrError);
                 cfg_t controlFlowGraph = prepare_cfg(program, raw_program.info, true);
                 std::map<std::string, int> stats = collect_stats(controlFlowGraph);
-                for (const auto& [key, value] : stats) {
-                    stats_sequence.emplace_back(tlv_pack<tlv_sequence>({tlv_pack(key.c_str()), tlv_pack(value)}));
+                for (auto it = stats.rbegin(); it != stats.rend(); ++it) {
+                    _ebpf_add_stat(info, it->first, it->second);
                 }
+                _ebpf_add_stat(info, "Instructions", (int)raw_program.prog.size());
             }
 
-            sequence.emplace_back(tlv_pack<tlv_sequence>(
-                {tlv_pack(raw_program.section.c_str()),
-                 tlv_pack(raw_program.info.type.name.c_str()),
-                 tlv_pack(raw_program.info.map_descriptors.size()),
-                 tlv_pack(convert_ebpf_program_to_bytes(raw_program.prog)),
-                 tlv_pack(stats_sequence)}));
+            info->section_name = _strdup(raw_program.section.c_str());
+            info->program_type_name = _strdup(raw_program.info.type.name.c_str());
+            info->map_count = raw_program.info.map_descriptors.size();
+
+            std::vector<uint8_t> raw_data = convert_ebpf_program_to_bytes(raw_program.prog);
+            info->raw_data_size = raw_data.size();
+            info->raw_data = (char*)malloc(info->raw_data_size);
+            if (info->raw_data == nullptr || info->section_name == nullptr || info->program_type_name == nullptr) {
+                free((void*)info->section_name);
+                free((void*)info->program_type_name);
+                free((void*)info->raw_data);
+                free(info);
+                throw std::runtime_error("Out of memory");
+            }
+            memcpy(info->raw_data, raw_data.data(), info->raw_data_size);
+
+            info->next = *infos;
+            *infos = info;
         }
-
-        auto retval = tlv_pack(sequence);
-        auto local_data = reinterpret_cast<tlv_type_length_value_t*>(malloc(retval.size()));
-        if (!local_data)
-            throw std::runtime_error("Out of memory");
-
-        memcpy(local_data, retval.data(), retval.size());
-        *data = local_data;
     } catch (std::runtime_error e) {
         str << "error: " << e.what();
         *error_message = allocate_string(str.str());
@@ -521,10 +548,4 @@ ebpf_api_elf_verify_section_from_memory(
 {
     std::stringstream stream(std::string(data, data_length));
     return _ebpf_api_elf_verify_section_from_stream(stream, "memory", section, verbose, report, error_message, stats);
-}
-
-void
-ebpf_api_elf_free(const tlv_type_length_value_t* data)
-{
-    free(const_cast<tlv_type_length_value_t*>(data));
 }

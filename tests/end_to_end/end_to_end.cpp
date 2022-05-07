@@ -26,7 +26,6 @@
 #include "program_helper.h"
 #include "sample_test_common.h"
 #include "test_helper.hpp"
-#include "tlv.h"
 #include "xdp_tests_common.h"
 
 namespace ebpf {
@@ -842,37 +841,21 @@ TEST_CASE("enum section", "[end_to_end]")
     _test_helper_end_to_end test_helper;
 
     const char* error_message = nullptr;
-    const tlv_type_length_value_t* section_data = nullptr;
+    ebpf_section_info_t* section_data = nullptr;
     uint32_t result;
 
     REQUIRE(
-        (result =
-             ebpf_api_elf_enumerate_sections(SAMPLE_PATH "droppacket.o", nullptr, true, &section_data, &error_message),
+        (result = ebpf_enumerate_sections(SAMPLE_PATH "droppacket.o", true, &section_data, &error_message),
          ebpf_free_string(error_message),
          error_message = nullptr,
          result == 0));
-    for (auto current_section = tlv_child(section_data); current_section != tlv_next(section_data);
-         current_section = tlv_next(current_section)) {
-        auto section_name = tlv_child(current_section);
-        auto type = tlv_next(section_name);
-        auto map_count = tlv_next(type);
-        auto program_bytes = tlv_next(map_count);
-        auto stats_secton = tlv_next(program_bytes);
-
-        REQUIRE(static_cast<tlv_type_t>(section_name->type) == tlv_type_t::STRING);
-        REQUIRE(static_cast<tlv_type_t>(type->type) == tlv_type_t::STRING);
-        REQUIRE(static_cast<tlv_type_t>(map_count->type) == tlv_type_t::UINT);
-        REQUIRE(static_cast<tlv_type_t>(program_bytes->type) == tlv_type_t::BLOB);
-        REQUIRE(static_cast<tlv_type_t>(stats_secton->type) == tlv_type_t::SEQUENCE);
-
-        for (auto current_stat = tlv_child(stats_secton); current_stat != tlv_next(stats_secton);
-             current_stat = tlv_next(current_stat)) {
-            auto name = tlv_child(current_stat);
-            auto value = tlv_next(name);
-            REQUIRE(static_cast<tlv_type_t>(name->type) == tlv_type_t::STRING);
-            REQUIRE(static_cast<tlv_type_t>(value->type) == tlv_type_t::UINT);
-        }
+    for (auto current_section = section_data; current_section != nullptr; current_section = current_section->next) {
+        ebpf_stat_t* stat = current_section->stats;
+        REQUIRE(strcmp(stat->key, "Instructions") == 0);
+        REQUIRE(stat->value == 47);
     }
+    ebpf_free_sections(section_data);
+    ebpf_free_string(error_message);
 }
 
 TEST_CASE("verify section", "[end_to_end]")

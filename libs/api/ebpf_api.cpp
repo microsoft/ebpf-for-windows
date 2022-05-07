@@ -22,6 +22,9 @@
 #include "libbpf.h"
 #pragma warning(pop)
 #include "map_descriptors.hpp"
+#define _PEPARSE_WINDOWS_CONFLICTS
+#include "pe-parse/parse.h"
+
 #include "rpc_client.h"
 extern "C"
 {
@@ -30,6 +33,7 @@ extern "C"
 #include "Verifier.h"
 #include "windows_platform_common.hpp"
 
+using namespace peparse;
 using namespace Platform;
 
 #ifndef GUID_NULL
@@ -1633,7 +1637,111 @@ _get_next_map_to_create(std::vector<ebpf_map_t*>& maps)
     return nullptr;
 }
 
-// TODO: update to look more like bpf_object__open_xattr
+static void
+_ebpf_free_section_info(_In_ _Frees_ptr_ ebpf_section_info_t* info)
+{
+    while (info->stats != nullptr) {
+        ebpf_stat_t* stat = info->stats;
+        info->stats = stat->next;
+        free((void*)stat->key);
+        free(stat);
+    }
+    free((void*)info->section_name);
+    free((void*)info->program_type_name);
+    free(info->raw_data);
+    free(info);
+}
+
+void
+ebpf_free_sections(_In_opt_ ebpf_section_info_t* infos)
+{
+    while (infos != nullptr) {
+        ebpf_section_info_t* info = infos;
+        infos = info->next;
+        _ebpf_free_section_info(info);
+    }
+}
+
+static int
+_ebpf_add_pe_section(
+    _Inout_ void* context,
+    _In_ const VA& va,
+    _In_ const std::string& section_name,
+    _In_ const image_section_header& section_header,
+    _In_ const bounded_buffer* buffer)
+{
+    if (!(section_header.Characteristics & IMAGE_SCN_CNT_CODE)) {
+        // Not a code section.
+        return 0;
+    }
+    ebpf_section_info_t** infos = (ebpf_section_info_t**)context;
+
+    ebpf_section_info_t* info = (ebpf_section_info_t*)malloc(sizeof(*info));
+    if (info == nullptr) {
+        return 1;
+    }
+    memset(info, 0, sizeof(*info));
+    info->section_name = _strdup(section_name.c_str());
+
+    EbpfProgramType program_type = get_program_type_windows(section_name, std::string());
+
+    info->program_type_name = _strdup(program_type.name.c_str());
+    info->raw_data_size = section_header.SizeOfRawData;
+    info->raw_data = (char*)malloc(section_header.SizeOfRawData);
+    if (info->raw_data == nullptr || info->program_type_name == nullptr || info->section_name == nullptr) {
+        _ebpf_free_section_info(info);
+        return 1;
+    }
+    memcpy(info->raw_data, buffer->buf, section_header.SizeOfRawData);
+
+    info->next = *infos;
+    *infos = info;
+
+    (void)va;
+    (void)buffer;
+    return 0;
+}
+
+static ebpf_result_t
+_ebpf_enumerate_native_sections(
+    _In_z_ const char* file,
+    _Outptr_ ebpf_section_info_t** infos,
+    _Outptr_result_maybenull_z_ const char** error_message)
+{
+    *infos = nullptr;
+    *error_message = nullptr;
+
+    parsed_pe* pe = ParsePEFromFile(file);
+    if (pe == nullptr) {
+        return EBPF_FILE_NOT_FOUND;
+    }
+
+    IterSec(pe, _ebpf_add_pe_section, infos);
+
+    DestructParsedPE(pe);
+
+    return EBPF_SUCCESS;
+}
+
+ebpf_result_t
+ebpf_enumerate_sections(
+    _In_z_ const char* file,
+    bool verbose,
+    _Outptr_ ebpf_section_info_t** infos,
+    _Outptr_result_maybenull_z_ const char** error_message)
+{
+    std::string file_name_string(file);
+    std::string file_extension = file_name_string.substr(file_name_string.find_last_of(".") + 1);
+    if (file_extension == "dll" || file_extension == "sys") {
+        // Verbose is currently unused.
+        return _ebpf_enumerate_native_sections(file, infos, error_message);
+    } else {
+        return ebpf_api_elf_enumerate_sections(file, nullptr, verbose, infos, error_message) ? EBPF_FAILED
+                                                                                             : EBPF_SUCCESS;
+    }
+}
+
+// TODO (issue #951): update to look more like bpf_object__open_xattr
 ebpf_result_t
 ebpf_object_open(
     _In_z_ const char* path,
@@ -1656,19 +1764,8 @@ ebpf_object_open(
 
     ebpf_result_t result;
     if (Platform::_is_native_program(path)) {
-#if 0
-        result = _initialize_ebpf_object_native(
-            path,
-
-        XXX
-            size_t count_of_maps,
-            _In_reads_(count_of_maps) ebpf_handle_t* map_handles,
-            size_t count_of_programs,
-            _In_reads_(count_of_programs) ebpf_handle_t* program_handles,
-            _Out_ ebpf_object_t& object);
-#else
+        // TODO(issue #951): support native programs.
         result = EBPF_OPERATION_NOT_SUPPORTED;
-#endif
     } else {
         result = _initialize_ebpf_object_from_elf(
             path, object_name, pin_root_path, program_type, attach_type, *new_object, error_message);

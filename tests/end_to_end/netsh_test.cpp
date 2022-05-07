@@ -96,7 +96,7 @@ TEST_CASE("show sections bpf.o", "[netsh][sections]")
         output == "\n"
                   "             Section       Type  # Maps    Size\n"
                   "====================  =========  ======  ======\n"
-                  "            xdp_prog        xdp       0       2\n");
+                  "            xdp_prog        xdp       0      16\n");
 }
 
 TEST_CASE("show sections bpf.o xdp_prog", "[netsh][sections]")
@@ -109,7 +109,8 @@ TEST_CASE("show sections bpf.o xdp_prog", "[netsh][sections]")
                   "Section      : xdp_prog\n"
                   "Program Type : xdp\n"
                   "# Maps       : 0\n"
-                  "Size         : 2 instructions\n"
+                  "Size         : 16 bytes\n"
+                  "Instructions : 2\n"
                   "adjust_head  : 0\n"
                   "arith        : 0\n"
                   "arith32      : 0\n"
@@ -127,6 +128,34 @@ TEST_CASE("show sections bpf.o xdp_prog", "[netsh][sections]")
                   "other        : 2\n"
                   "packet_access: 0\n"
                   "store        : 0\n");
+}
+
+TEST_CASE("show sections bpf.sys", "[netsh][sections]")
+{
+    int result;
+    std::string output = _run_netsh_command(handle_ebpf_show_sections, L"bpf.sys", nullptr, nullptr, &result);
+    REQUIRE(result == NO_ERROR);
+    REQUIRE(
+        output == "\n"
+                  "             Section       Type  # Maps    Size\n"
+                  "====================  =========  ======  ======\n"
+                  "                INIT        xdp       0     512\n"
+                  "            xdp_prog        xdp       0     512\n"
+                  "               .text        xdp       0    2048\n");
+}
+
+TEST_CASE("show sections tail_call_um.dll", "[netsh][sections]")
+{
+    int result;
+    std::string output = _run_netsh_command(handle_ebpf_show_sections, L"tail_call_um.dll", nullptr, nullptr, &result);
+    REQUIRE(result == NO_ERROR);
+    REQUIRE(
+        output == "\n"
+                  "             Section       Type  # Maps    Size\n"
+                  "====================  =========  ======  ======\n"
+                  "            xdp_pr~1        xdp       0     512\n"
+                  "            xdp_prog        xdp       0    1024\n"
+                  "               .text        xdp       0   14336\n");
 }
 
 TEST_CASE("show verification nosuchfile.o", "[netsh][verification]")

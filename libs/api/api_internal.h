@@ -526,3 +526,20 @@ ebpf_ring_buffer_map_subscribe(
  */
 bool
 ebpf_ring_buffer_map_unsubscribe(_Inout_ _Post_invalid_ ring_buffer_subscription_t* subscription);
+
+/**
+ * @brief Get list of programs and stats in an ELF eBPF file.
+ * @param[in] file Name of ELF file containing eBPF program.
+ * @param[in] section Optionally, the name of the section to query.
+ * @param[in] verbose Obtain additional info about the programs.
+ * @param[out] data On success points to a list of eBPF programs.
+ * @param[out] error_message On failure points to a text description of
+ *  the error.
+ */
+uint32_t
+ebpf_api_elf_enumerate_sections(
+    _In_z_ const char* file,
+    _In_opt_z_ const char* section,
+    bool verbose,
+    _Outptr_ ebpf_section_info_t** infos,
+    _Outptr_result_maybenull_z_ const char** error_message);

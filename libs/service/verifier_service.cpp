@@ -11,7 +11,6 @@
 #include "ebpf_verifier_wrapper.hpp"
 #include "platform.hpp"
 #include "Verifier.h"
-#include "tlv.h"
 #include "windows_platform_service.hpp"
 
 static ebpf_result_t
