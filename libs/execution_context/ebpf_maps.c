@@ -1770,6 +1770,30 @@ ebpf_map_create(
     uint32_t cpu_count;
     cpu_count = ebpf_get_cpu_count();
     ebpf_map_definition_in_memory_t local_map_definition = *ebpf_map_definition;
+    if (ebpf_map_definition->key_size == 0) {
+        switch (local_map_definition.type) {
+        case BPF_MAP_TYPE_QUEUE:
+        case BPF_MAP_TYPE_STACK:
+        case BPF_MAP_TYPE_RINGBUF:
+            break;
+        default:
+            result = EBPF_INVALID_ARGUMENT;
+            goto Exit;
+        }
+    }
+    if (ebpf_map_definition->value_size == 0) {
+        switch (local_map_definition.type) {
+        case BPF_MAP_TYPE_RINGBUF:
+            break;
+        default:
+            result = EBPF_INVALID_ARGUMENT;
+            goto Exit;
+        }
+    }
+    if (ebpf_map_definition->max_entries == 0) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
     switch (local_map_definition.type) {
     case BPF_MAP_TYPE_PERCPU_HASH:
     case BPF_MAP_TYPE_PERCPU_ARRAY:

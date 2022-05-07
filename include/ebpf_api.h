@@ -390,10 +390,7 @@ extern "C"
      * @brief Attach an eBPF program by program file descriptor.
      *
      * @param[in] program_fd An eBPF program file descriptor.
-     * @param[in] attach_type Optionally, the attach type for attaching the program.
-     *  If attach type is not specified, then the earlier provided attach type
-     *  or attach type derived from section prefix will be used to attach the
-     *  program.
+     * @param[in] attach_type The attach type for attaching the program.
      * @param[in] attach_parameters_size Size of the attach parameters.
      * @param[in] attach_parameters Optionally, attach parameters. This is an
      *  opaque flat buffer containing the attach parameters which is interpreted
@@ -405,7 +402,7 @@ extern "C"
     ebpf_result_t
     ebpf_program_attach_by_fd(
         fd_t program_fd,
-        _In_opt_ const ebpf_attach_type_t* attach_type,
+        _In_ const ebpf_attach_type_t* attach_type,
         _In_reads_bytes_opt_(attach_parameters_size) void* attach_parameters,
         _In_ size_t attach_parameters_size,
         _Outptr_ struct bpf_link** link);
