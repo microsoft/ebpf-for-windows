@@ -34,6 +34,8 @@
     TEST_CASE(CONCAT(_name, "-jit"), _group) { _function(EBPF_EXECUTION_JIT); } \
     TEST_CASE(CONCAT(_name, "-native"), _group) { _function(EBPF_EXECUTION_NATIVE); }
 
+const int non_existant_fd = 12345678;
+
 TEST_CASE("empty bpf_load_program", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
@@ -424,7 +426,7 @@ TEST_CASE("libbpf map", "[libbpf]")
     REQUIRE(errno == EINVAL);
 
     // Invalid fd
-    result = bpf_map_update_elem(-1, NULL, NULL, 0);
+    result = bpf_map_update_elem(non_existant_fd, &index, &value, 0);
     REQUIRE(result < 0);
     REQUIRE(errno == EINVAL);
 
@@ -454,7 +456,7 @@ TEST_CASE("libbpf map", "[libbpf]")
     REQUIRE(errno == EINVAL);
 
     // Invalid fd.
-    result = bpf_map_delete_elem(-1, &index);
+    result = bpf_map_delete_elem(non_existant_fd, &index);
     REQUIRE(result < 0);
     REQUIRE(errno == EINVAL);
 
@@ -538,8 +540,25 @@ TEST_CASE("libbpf map", "[libbpf]")
     REQUIRE(result < 0);
     REQUIRE(errno == EINVAL);
 
+    // Invalid options - bad flags
+    opts = {
+        sizeof(opts), // sz
+        0,            // btf_fd
+        0,            // btf_key_type_id
+        0,            // btf_value_type_id
+        0,            // btf_vmlinux_value_type_id
+        0,            // inner_map_fd
+        UINT32_MAX,   // map_flags
+        0,            // map_extra
+        0,            // numa_node
+        0,            // map_ifindex
+    };
+    result = bpf_map_create(BPF_MAP_TYPE_HASH_OF_MAPS, "bad_opts", 1, 1, 1, &opts);
+    REQUIRE(result < 0);
+    REQUIRE(errno == EINVAL);
+
     // Invalid FD
-    result = bpf_map_get_next_key(-1, NULL, NULL);
+    result = bpf_map_get_next_key(non_existant_fd, NULL, &value);
     REQUIRE(result < 0);
     REQUIRE(errno == EINVAL);
 
