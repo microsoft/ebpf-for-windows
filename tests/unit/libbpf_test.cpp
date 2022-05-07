@@ -198,6 +198,9 @@ TEST_CASE("libbpf program", "[libbpf]")
     struct bpf_program* program = bpf_object__find_program_by_name(object, "DropPacket");
     REQUIRE(program != nullptr);
 
+    REQUIRE(bpf_object__find_program_by_name(object, "not_a_valid_name") == NULL);
+    REQUIRE(errno == ENOENT);
+
     name = bpf_program__section_name(program);
     REQUIRE(strcmp(name, "xdp") == 0);
 
@@ -428,7 +431,7 @@ TEST_CASE("libbpf map", "[libbpf]")
     // Invalid fd
     result = bpf_map_update_elem(non_existant_fd, &index, &value, 0);
     REQUIRE(result < 0);
-    REQUIRE(errno == EINVAL);
+    REQUIRE(errno == EBADF);
 
     // NULL key.
     result = bpf_map_lookup_elem(map_fd, NULL, &value);
@@ -458,7 +461,7 @@ TEST_CASE("libbpf map", "[libbpf]")
     // Invalid fd.
     result = bpf_map_delete_elem(non_existant_fd, &index);
     REQUIRE(result < 0);
-    REQUIRE(errno == EINVAL);
+    REQUIRE(errno == EBADF);
 
     // NULL key and value
     result = bpf_map_update_elem(map_fd, NULL, NULL, 0);
@@ -560,7 +563,7 @@ TEST_CASE("libbpf map", "[libbpf]")
     // Invalid FD
     result = bpf_map_get_next_key(non_existant_fd, NULL, &value);
     REQUIRE(result < 0);
-    REQUIRE(errno == EINVAL);
+    REQUIRE(errno == EBADF);
 
     // FD not a map
     result = bpf_map_get_next_key(program_fd, NULL, NULL);
