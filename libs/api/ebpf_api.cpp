@@ -82,8 +82,8 @@ _ebpf_update_registry_value(
     return Platform::_update_registry_value(root_key, sub_key, type, value_name, value, value_size);
 }
 
-std::wstring
-get_wstring_from_string(std::string& text)
+static std::wstring
+_get_wstring_from_string(std::string& text)
 {
     std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
     std::wstring wide = converter.from_bytes(text);
@@ -94,9 +94,8 @@ get_wstring_from_string(std::string& text)
 inline static ebpf_map_t*
 _get_ebpf_map_from_handle(ebpf_handle_t map_handle)
 {
-    if (map_handle == ebpf_handle_invalid) {
-        return nullptr;
-    }
+    ebpf_assert(map_handle != ebpf_handle_invalid);
+
     ebpf_map_t* map = nullptr;
     std::map<ebpf_handle_t, ebpf_map_t*>::iterator it = _ebpf_maps.find(map_handle);
     if (it != _ebpf_maps.end()) {
@@ -104,21 +103,6 @@ _get_ebpf_map_from_handle(ebpf_handle_t map_handle)
     }
 
     return map;
-}
-
-inline static ebpf_program_t*
-_get_ebpf_program_from_handle(ebpf_handle_t program_handle)
-{
-    if (program_handle == ebpf_handle_invalid) {
-        return nullptr;
-    }
-    ebpf_program_t* program = nullptr;
-    std::map<ebpf_handle_t, ebpf_program_t*>::iterator it = _ebpf_programs.find(program_handle);
-    if (it != _ebpf_programs.end()) {
-        program = it->second;
-    }
-
-    return program;
 }
 
 uint32_t
@@ -322,6 +306,7 @@ _get_map_descriptor_properties(
         ebpf_id_t inner_map_id;
         result = query_map_definition(handle, type, key_size, value_size, max_entries, &inner_map_id);
         if (result != EBPF_SUCCESS) {
+            result = EBPF_INVALID_ARGUMENT;
             goto Exit;
         }
     } else {
@@ -534,7 +519,10 @@ ebpf_map_delete_element(fd_t map_fd, _In_ const void* key)
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
-    assert(key_size != 0);
+    if (key_size == 0) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
     assert(value_size != 0);
 
     try {
@@ -676,56 +664,6 @@ _create_program(
 
 Exit:
     return win32_error_code_to_ebpf_result(error);
-}
-
-ebpf_result_t
-ebpf_get_program_byte_code(
-    _In_z_ const char* file_name,
-    _In_z_ const char* section_name,
-    bool mock_map_fd,
-    std::vector<ebpf_program_t*>& programs,
-    _Outptr_result_maybenull_ EbpfMapDescriptor** map_descriptors,
-    _Out_ int* map_descriptors_count,
-    _Outptr_result_maybenull_ const char** error_message)
-{
-    ebpf_result_t result = EBPF_SUCCESS;
-    std::vector<ebpf_map_t*> maps;
-
-    clear_map_descriptors();
-    *map_descriptors = nullptr;
-
-    ebpf_verifier_options_t verifier_options{false, false, false, false, mock_map_fd};
-    result = load_byte_code(
-        file_name, section_name, &verifier_options, DEFAULT_PIN_ROOT_PATH, programs, maps, error_message);
-    if (result != EBPF_SUCCESS) {
-        goto Done;
-    }
-
-    if (programs.size() != 1) {
-        result = EBPF_FAILED;
-        goto Done;
-    }
-
-    // Copy map file descriptors (if any) to output buffer.
-    *map_descriptors_count = (int)get_map_descriptor_size();
-    if (*map_descriptors_count > 0) {
-        *map_descriptors = new EbpfMapDescriptor[*map_descriptors_count];
-        if (*map_descriptors == nullptr) {
-            result = EBPF_NO_MEMORY;
-            goto Done;
-        }
-        for (int i = 0; i < *map_descriptors_count; i++) {
-            *(*map_descriptors + i) = get_map_descriptor_at_index(i);
-        }
-    }
-
-Done:
-    if (result != EBPF_SUCCESS) {
-        clean_up_ebpf_programs(programs);
-    }
-    clean_up_ebpf_maps(maps);
-    clear_map_descriptors();
-    return result;
 }
 
 void
@@ -1115,7 +1053,7 @@ Exit:
 ebpf_result_t
 ebpf_program_attach_by_fd(
     fd_t program_fd,
-    _In_opt_ const ebpf_attach_type_t* attach_type,
+    _In_ const ebpf_attach_type_t* attach_type,
     _In_reads_bytes_opt_(attach_parameters_size) void* attach_parameters,
     _In_ size_t attach_parameters_size,
     _Outptr_ struct bpf_link** link)
@@ -1123,21 +1061,14 @@ ebpf_program_attach_by_fd(
     if (link == nullptr) {
         return EBPF_INVALID_ARGUMENT;
     }
+    if (attach_type == nullptr) {
+        return EBPF_INVALID_ARGUMENT;
+    }
     *link = nullptr;
 
     ebpf_handle_t program_handle = _get_handle_from_file_descriptor(program_fd);
     if (program_handle == ebpf_handle_invalid) {
         return EBPF_INVALID_FD;
-    }
-
-    if (attach_type == nullptr) {
-        // We can only use an unspecified attach_type if we can find an ebpf_program_t.
-        ebpf_program_t* program = _get_ebpf_program_from_handle(program_handle);
-        if (program == nullptr) {
-            return EBPF_INVALID_ARGUMENT;
-        }
-
-        return ebpf_program_attach(program, attach_type, attach_parameters, attach_parameters_size, link);
     }
 
     return _link_ebpf_program(program_handle, attach_type, link, (uint8_t*)attach_parameters, attach_parameters_size);
@@ -2319,7 +2250,7 @@ _ebpf_program_load_native(
         service_name = _guid_to_wide_string(&service_name_guid);
 
         error = Platform::_create_service(
-            service_name.c_str(), get_wstring_from_string(file_name_string).c_str(), &service_handle);
+            service_name.c_str(), _get_wstring_from_string(file_name_string).c_str(), &service_handle);
         if (error != ERROR_SUCCESS) {
             result = win32_error_code_to_ebpf_result(error);
             EBPF_LOG_WIN32_STRING_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, file_name, _create_service);
