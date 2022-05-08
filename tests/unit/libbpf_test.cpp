@@ -890,7 +890,6 @@ TEST_CASE("libbpf obj pinning", "[libbpf]")
 
     // No corresponding bpf_obj_unpin?
     REQUIRE(ebpf_object_unpin(pin_path) == EBPF_SUCCESS);
-    REQUIRE(ebpf_object_unpin(NULL) == EBPF_INVALID_ARGUMENT);
 
     result = bpf_obj_pin(-1, "invalid_fd");
     REQUIRE(result < 0);
