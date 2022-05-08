@@ -1604,11 +1604,11 @@ TEST_CASE("bpf_object__load", "[libbpf]")
     REQUIRE(program != nullptr);
 
     REQUIRE(bpf_program__fd(program) == ebpf_fd_invalid);
-    REQUIRE(bpf_program__get_type(program) == BPF_PROG_TYPE_XDP);
+    REQUIRE(bpf_program__type(program) == BPF_PROG_TYPE_XDP);
 
     // Make sure we can override the program type if desired.
     bpf_program__set_type(program, BPF_PROG_TYPE_BIND);
-    REQUIRE(bpf_program__get_type(program) == BPF_PROG_TYPE_BIND);
+    REQUIRE(bpf_program__type(program) == BPF_PROG_TYPE_BIND);
 
     bpf_program__set_type(program, BPF_PROG_TYPE_XDP);
 

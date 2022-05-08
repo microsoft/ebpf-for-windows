@@ -460,6 +460,9 @@ TEST_CASE("tailcall_load_test", "[tailcall_load_test]")
     fd_t callee1_fd = bpf_program__fd(callee1);
     REQUIRE(callee1_fd > 0);
 
+    // Test a legacy libbpf api alias.
+    REQUIRE(bpf_program__get_type(callee0) == BPF_PROG_TYPE_XDP);
+
     fd_t prog_map_fd = bpf_object__find_map_fd_by_name(object, "map");
     REQUIRE(prog_map_fd > 0);
 
