@@ -769,7 +769,7 @@ ebpf_map_set_pin_path(_In_ struct bpf_map* map, _In_ const char* path)
 }
 
 ebpf_result_t
-ebpf_map_unpin(_In_ struct bpf_map* map, _In_opt_z_ const char* path)
+ebpf_map_unpin(_In_opt_ struct bpf_map* map, _In_opt_z_ const char* path)
 {
     if (map == nullptr) {
         return EBPF_INVALID_ARGUMENT;
