@@ -236,7 +236,7 @@ ebpf_map_pin(_In_ struct bpf_map* map, _In_opt_z_ const char* path);
  * @retval EBPF_SUCCESS The operation was successful.
  */
 ebpf_result_t
-ebpf_map_unpin(_In_ struct bpf_map* map, _In_opt_z_ const char* path);
+ebpf_map_unpin(_In_opt_ struct bpf_map* map, _In_opt_z_ const char* path);
 
 /**
  * @brief Set pin path for an eBPF map.

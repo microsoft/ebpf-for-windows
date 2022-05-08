@@ -316,6 +316,14 @@ TEST_CASE("libbpf program attach", "[libbpf]")
     result = bpf_link_detach(link_fd);
     REQUIRE(result == 0);
 
+    // Second detach is idempotent.
+    result = bpf_link_detach(link_fd);
+    REQUIRE(result == 0);
+
+    result = bpf_link_detach(ebpf_handle_invalid);
+    REQUIRE(result < 0);
+    REQUIRE(errno == EBADF);
+
     result = bpf_link__destroy(link);
     REQUIRE(result == 0);
 
@@ -429,7 +437,7 @@ TEST_CASE("libbpf map", "[libbpf]")
     REQUIRE(errno == EINVAL);
 
     // Invalid fd
-    result = bpf_map_update_elem(non_existant_fd, &index, &value, 0);
+    result = bpf_map_lookup_elem(non_existant_fd, &index, &value);
     REQUIRE(result < 0);
     REQUIRE(errno == EBADF);
 
@@ -484,6 +492,16 @@ TEST_CASE("libbpf map", "[libbpf]")
     REQUIRE(errno == EINVAL);
 
     index = 0;
+    // Invalid fd
+    result = bpf_map_update_elem(non_existant_fd, &index, &value, 0);
+    REQUIRE(result < 0);
+    REQUIRE(errno == EBADF);
+
+    // Wrong fd type.
+    result = bpf_map_update_elem(program_fd, &index, &value, 0);
+    REQUIRE(result < 0);
+    REQUIRE(errno == EINVAL);
+
     REQUIRE(bpf_map_lookup_elem(map_fd, &index, &value) == 0);
     REQUIRE(value == 0);
 
@@ -566,7 +584,7 @@ TEST_CASE("libbpf map", "[libbpf]")
     REQUIRE(errno == EBADF);
 
     // FD not a map
-    result = bpf_map_get_next_key(program_fd, NULL, NULL);
+    result = bpf_map_get_next_key(program_fd, NULL, &value);
     REQUIRE(result < 0);
     REQUIRE(errno == EINVAL);
 
@@ -752,6 +770,11 @@ TEST_CASE("libbpf map pinning", "[libbpf]")
 
     REQUIRE(bpf_map__is_pinned(map) == false);
 
+    // Invalid map object.
+    result = bpf_map__pin(NULL, pin_path);
+    REQUIRE(result < 0);
+    REQUIRE(errno == EINVAL);
+
     // Try to pin the map.
     result = bpf_map__pin(map, pin_path);
     REQUIRE(result == 0);
@@ -768,14 +791,42 @@ TEST_CASE("libbpf map pinning", "[libbpf]")
 
     REQUIRE(bpf_map__is_pinned(map) == false);
 
+    // Make sure pinning with a different name fails.
+    result = bpf_map__pin(map, "second_pin_path");
+    REQUIRE(result < 0);
+    REQUIRE(errno == EINVAL);
+
+    // Make sure an invalid path fails.
+    result = bpf_map__unpin(map, NULL);
+    REQUIRE(result < 0);
+    REQUIRE(errno == ENOENT);
+
     // Make sure a duplicate unpin fails.
     result = bpf_map__unpin(map, pin_path);
     REQUIRE(result < 0);
     REQUIRE(errno == ENOENT);
 
+    // Make sure an invalid map fails.
+    result = bpf_map__unpin(NULL, pin_path);
+    REQUIRE(result < 0);
+    REQUIRE(errno == EINVAL);
+
     // Clear pin path for the map.
     result = bpf_map__set_pin_path(map, nullptr);
     REQUIRE(result == 0);
+
+    // Set pin path for the map.
+    result = bpf_map__set_pin_path(map, pin_path);
+    REQUIRE(result == 0);
+
+    // Clear pin path for the map.
+    result = bpf_map__set_pin_path(map, nullptr);
+    REQUIRE(result == 0);
+
+    // Clear pin path for the map with invalid map.
+    result = bpf_map__set_pin_path(NULL, NULL);
+    REQUIRE(result < 0);
+    REQUIRE(errno == EINVAL);
 
     // Try to pin all (1) maps in the object.
     result = bpf_object__pin_maps(object, pin_path);
@@ -813,6 +864,45 @@ TEST_CASE("libbpf map pinning", "[libbpf]")
     REQUIRE(result == 0);
 
     REQUIRE(bpf_map__is_pinned(map) == false);
+
+    bpf_object__close(object);
+}
+
+TEST_CASE("libbpf obj pinning", "[libbpf]")
+{
+    _test_helper_libbpf test_helper;
+    const char* pin_path = "\\temp\\test";
+
+    struct bpf_object* object;
+    int program_fd;
+    int result = bpf_prog_load("droppacket.o", BPF_PROG_TYPE_XDP, &object, &program_fd);
+    REQUIRE(result == 0);
+    REQUIRE(object != nullptr);
+
+    struct bpf_map* map = bpf_map__next(nullptr, object);
+    REQUIRE(map != nullptr);
+
+    int map_fd = bpf_map__fd(map);
+    REQUIRE(map_fd > 0);
+
+    result = bpf_obj_pin(map_fd, pin_path);
+    REQUIRE(result == 0);
+
+    // No corresponding bpf_obj_unpin?
+    REQUIRE(ebpf_object_unpin(pin_path) == EBPF_SUCCESS);
+    REQUIRE(ebpf_object_unpin(NULL) == EBPF_INVALID_ARGUMENT);
+
+    result = bpf_obj_pin(-1, "invalid_fd");
+    REQUIRE(result < 0);
+    REQUIRE(errno == EINVAL);
+
+    result = bpf_obj_pin(map_fd, NULL);
+    REQUIRE(result < 0);
+    REQUIRE(errno == EINVAL);
+
+    result = bpf_obj_pin(non_existant_fd, "not_a_real_fd");
+    REQUIRE(result < 0);
+    REQUIRE(errno == EBADF);
 
     bpf_object__close(object);
 }
