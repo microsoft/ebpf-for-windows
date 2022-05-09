@@ -431,12 +431,12 @@ TEST_CASE("libbpf map", "[libbpf]")
     REQUIRE(result < 0);
     REQUIRE(errno == EINVAL);
 
-    // Wrong fd type
+    // Wrong fd type.
     result = bpf_map_lookup_elem(program_fd, &index, &value);
     REQUIRE(result < 0);
     REQUIRE(errno == EINVAL);
 
-    // Invalid fd
+    // Invalid fd.
     result = bpf_map_lookup_elem(non_existant_fd, &index, &value);
     REQUIRE(result < 0);
     REQUIRE(errno == EBADF);
@@ -446,12 +446,12 @@ TEST_CASE("libbpf map", "[libbpf]")
     REQUIRE(result < 0);
     REQUIRE(errno == EINVAL);
 
-    // NULL value
+    // NULL value.
     result = bpf_map_lookup_elem(map_fd, &index, NULL);
     REQUIRE(result < 0);
     REQUIRE(errno == EINVAL);
 
-    // NULL key
+    // NULL key.
     result = bpf_map_delete_elem(map_fd, NULL);
     REQUIRE(result < 0);
     REQUIRE(errno == EINVAL);
@@ -471,28 +471,28 @@ TEST_CASE("libbpf map", "[libbpf]")
     REQUIRE(result < 0);
     REQUIRE(errno == EBADF);
 
-    // NULL key and value
+    // NULL key and value.
     result = bpf_map_update_elem(map_fd, NULL, NULL, 0);
     REQUIRE(result < 0);
     REQUIRE(errno == EINVAL);
 
-    // NULL key
+    // NULL key.
     result = bpf_map_update_elem(map_fd, NULL, &value, 0);
     REQUIRE(result < 0);
     REQUIRE(errno == EINVAL);
 
-    // NULL value
+    // NULL value.
     result = bpf_map_update_elem(map_fd, &index, NULL, 0);
     REQUIRE(result < 0);
     REQUIRE(errno == EINVAL);
 
-    // Invalid key
+    // Invalid key.
     result = bpf_map_update_elem(map_fd, &index, &value, 0);
     REQUIRE(result < 0);
     REQUIRE(errno == EINVAL);
 
     index = 0;
-    // Invalid fd
+    // Invalid fd.
     result = bpf_map_update_elem(non_existant_fd, &index, &value, 0);
     REQUIRE(result < 0);
     REQUIRE(errno == EBADF);
@@ -510,7 +510,7 @@ TEST_CASE("libbpf map", "[libbpf]")
     value = 12345;
     REQUIRE(bpf_map_update_elem(map_fd, &index, &value, 0) == 0);
 
-    // Wrong flags
+    // Wrong flags.
     result = bpf_map_update_elem(map_fd, &index, &value, UINT64_MAX);
     REQUIRE(result < 0);
     REQUIRE(errno == EINVAL);
@@ -524,27 +524,27 @@ TEST_CASE("libbpf map", "[libbpf]")
     REQUIRE(bpf_map_lookup_elem(map_fd, &index, &value) == 0);
     REQUIRE(value == 0);
 
-    // Invalid map type
+    // Invalid map type.
     result = bpf_map_create(BPF_MAP_TYPE_UNSPEC, "BPF_MAP_TYPE_UNSPEC", 1, 1, 1, NULL);
     REQUIRE(result < 0);
     REQUIRE(errno == ENOTSUP);
 
-    // Invalid key size
+    // Invalid key size.
     result = bpf_map_create(BPF_MAP_TYPE_HASH, "no_key", 0, 1, 1, NULL);
     REQUIRE(result < 0);
     REQUIRE(errno == EINVAL);
 
-    // Invalid value size
+    // Invalid value size.
     result = bpf_map_create(BPF_MAP_TYPE_HASH, "no_value", 1, 0, 1, NULL);
     REQUIRE(result < 0);
     REQUIRE(errno == EINVAL);
 
-    // Invalid entry count
+    // Invalid entry count.
     result = bpf_map_create(BPF_MAP_TYPE_HASH, "no_entries", 1, 1, 0, NULL);
     REQUIRE(result < 0);
     REQUIRE(errno == EINVAL);
 
-    // Invalid options - bad inner_map_fd
+    // Invalid options - bad inner_map_fd.
     bpf_map_create_opts opts{
         sizeof(opts),         // sz
         0,                    // btf_fd
@@ -561,7 +561,7 @@ TEST_CASE("libbpf map", "[libbpf]")
     REQUIRE(result < 0);
     REQUIRE(errno == EINVAL);
 
-    // Invalid options - bad flags
+    // Invalid options - bad flags.
     opts = {
         sizeof(opts), // sz
         0,            // btf_fd
@@ -578,17 +578,17 @@ TEST_CASE("libbpf map", "[libbpf]")
     REQUIRE(result < 0);
     REQUIRE(errno == EINVAL);
 
-    // Invalid FD
+    // Invalid fd.
     result = bpf_map_get_next_key(non_existant_fd, NULL, &value);
     REQUIRE(result < 0);
     REQUIRE(errno == EBADF);
 
-    // FD not a map
+    // FD not a map.
     result = bpf_map_get_next_key(program_fd, NULL, &value);
     REQUIRE(result < 0);
     REQUIRE(errno == EINVAL);
 
-    // NULL next key
+    // NULL next key.
     result = bpf_map_get_next_key(map_fd, NULL, NULL);
     REQUIRE(result < 0);
     REQUIRE(errno == EINVAL);
@@ -656,11 +656,11 @@ TEST_CASE("libbpf create ringbuf", "[libbpf]")
     const uint32_t max_entries = 128 * 1024;
     const uint32_t value_size = sizeof(uint32_t);
 
-    // Wrong key and value size
+    // Wrong key and value size.
     int map_fd = bpf_map_create(BPF_MAP_TYPE_RINGBUF, "MapName", sizeof(uint32_t), value_size, max_entries, &opts);
     REQUIRE(map_fd < 0);
 
-    // Max_entries too small
+    // Max_entries too small.
     map_fd = bpf_map_create(BPF_MAP_TYPE_RINGBUF, "MapName", 0, 0, 1024, &opts);
     REQUIRE(map_fd < 0);
 
@@ -1052,7 +1052,7 @@ _multiple_tail_calls_test(ebpf_execution_type_t execution_type)
     error = bpf_map_update_elem(map_fd, (uint8_t*)&index, (uint8_t*)&callee0_fd, 0);
     REQUIRE(error == 0);
 
-    // Store callee1 at index 9
+    // Store callee1 at index 9.
     index = 9;
     error = bpf_map_update_elem(map_fd, (uint8_t*)&index, (uint8_t*)&callee1_fd, 0);
     REQUIRE(error == 0);
@@ -1277,7 +1277,7 @@ _ebpf_test_map_in_map(ebpf_map_type_t type)
     REQUIRE(errno == EBADF);
 
     if (type == BPF_MAP_TYPE_HASH_OF_MAPS) {
-        // Try deleting outer key that doesn't exist
+        // Try deleting outer key that doesn't exist.
         error = bpf_map_delete_elem(outer_map_fd, &outer_key);
         REQUIRE(error < 0);
         REQUIRE(errno == ENOENT);
