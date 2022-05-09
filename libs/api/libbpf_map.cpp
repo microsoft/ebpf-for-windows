@@ -94,18 +94,12 @@ bpf_object__prev_map(const struct bpf_object* object, const struct bpf_map* next
 int
 bpf_map__unpin(struct bpf_map* map, const char* path)
 {
-    if (!map) {
-        return libbpf_result_err(EBPF_INVALID_ARGUMENT);
-    }
     return libbpf_result_err(ebpf_map_unpin(map, path));
 }
 
 int
 bpf_map__pin(struct bpf_map* map, const char* path)
 {
-    if (!map) {
-        return libbpf_result_err(EBPF_INVALID_ARGUMENT);
-    }
     return libbpf_result_err(ebpf_map_pin(map, path));
 }
 
@@ -252,55 +246,36 @@ bpf_object__find_map_fd_by_name(const struct bpf_object* obj, const char* name)
 int
 bpf_map__set_pin_path(struct bpf_map* map, const char* path)
 {
-    if (!map) {
-        return libbpf_result_err(EBPF_INVALID_ARGUMENT);
-    }
     return libbpf_result_err(ebpf_map_set_pin_path(map, path));
 }
 
 int
 bpf_map_update_elem(int fd, const void* key, const void* value, uint64_t flags)
 {
-    if (!value) {
-        return libbpf_result_err(EBPF_INVALID_ARGUMENT);
-    }
-
     return libbpf_result_err(ebpf_map_update_element(fd, key, value, flags));
 }
 
 int
 bpf_map_delete_elem(int fd, const void* key)
 {
-    if (!key) {
-        return libbpf_result_err(EBPF_INVALID_ARGUMENT);
-    }
     return libbpf_result_err(ebpf_map_delete_element(fd, key));
 }
 
 int
 bpf_map_lookup_elem(int fd, const void* key, void* value)
 {
-    if (!value) {
-        return libbpf_result_err(EBPF_INVALID_ARGUMENT);
-    }
     return libbpf_result_err(ebpf_map_lookup_element(fd, key, value));
 }
 
 int
 bpf_map_lookup_and_delete_elem(int fd, const void* key, void* value)
 {
-    if (!value) {
-        return libbpf_result_err(EBPF_INVALID_ARGUMENT);
-    }
     return libbpf_result_err(ebpf_map_lookup_and_delete_element(fd, key, value));
 }
 
 int
 bpf_map_get_next_key(int fd, const void* key, void* next_key)
 {
-    if (!next_key) {
-        return libbpf_result_err(EBPF_INVALID_ARGUMENT);
-    }
     return libbpf_result_err(ebpf_map_get_next_key(fd, key, next_key));
 }
 

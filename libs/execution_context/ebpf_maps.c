@@ -211,7 +211,10 @@ typedef struct _ebpf_map_metadata_table
         _In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_ const uint8_t* value, ebpf_map_option_t option);
     ebpf_result_t (*delete_entry)(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key);
     ebpf_result_t (*next_key)(_In_ ebpf_core_map_t* map, _In_ const uint8_t* previous_key, _Out_ uint8_t* next_key);
-    uint64_t flags;
+    int zero_length_key : 1;
+    int zero_length_value : 1;
+    int per_cpu : 1;
+    int key_history : 1;
 } ebpf_map_metadata_table_t;
 
 ebpf_map_metadata_table_t ebpf_map_metadata_tables[];
@@ -874,7 +877,7 @@ _update_key_history(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key, bool rem
 {
     uint64_t now;
     ebpf_core_lru_map_t* lru_map;
-    if (!(ebpf_map_metadata_tables[map->ebpf_map_definition.type].flags & EBPF_MAP_PROPERTY_KEY_HISTORY)) {
+    if (!(ebpf_map_metadata_tables[map->ebpf_map_definition.type].key_history)) {
         return EBPF_SUCCESS;
     }
 
@@ -899,7 +902,7 @@ _reap_oldest_map_entry(_In_ ebpf_core_map_t* map)
     ebpf_result_t result;
     ebpf_core_lru_map_t* lru_map;
 
-    if (!(ebpf_map_metadata_tables[map->ebpf_map_definition.type].flags & EBPF_MAP_PROPERTY_KEY_HISTORY)) {
+    if (!(ebpf_map_metadata_tables[map->ebpf_map_definition.type].key_history)) {
         return EBPF_SUCCESS;
     }
 
@@ -1162,7 +1165,7 @@ _ebpf_adjust_value_pointer(_In_ ebpf_map_t* map, _Inout_ uint8_t** value)
     uint32_t current_cpu;
     uint32_t max_cpu = map->ebpf_map_definition.value_size / PAD_CACHE(map->original_value_size);
 
-    if (!(ebpf_map_metadata_tables[map->ebpf_map_definition.type].flags & EBPF_MAP_PROPERTY_PER_CPU)) {
+    if (!(ebpf_map_metadata_tables[map->ebpf_map_definition.type].per_cpu)) {
         return EBPF_SUCCESS;
     }
 
@@ -1610,6 +1613,10 @@ ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
         NULL,
         _delete_hash_map_entry,
         _next_hash_map_key,
+        false, // Zero length key.
+        false, // Zero length value.
+        false, // Per-cpu.
+        false, // Key history,
     },
     {
         // BPF_MAP_TYPE_ARRAY
@@ -1623,6 +1630,10 @@ ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
         NULL,
         _delete_array_map_entry,
         _next_array_map_key,
+        false, // Zero length key.
+        false, // Zero length value.
+        false, // Per-cpu.
+        false, // Key history,
     },
     {
         // BPF_MAP_TYPE_PROG_ARRAY
@@ -1636,6 +1647,10 @@ ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
         NULL,
         _delete_program_array_map_entry,
         _next_array_map_key,
+        false, // Zero length key.
+        false, // Zero length value.
+        false, // Per-cpu.
+        false, // Key history,
     },
     {
         // BPF_MAP_TYPE_PERCPU_HASH
@@ -1649,7 +1664,10 @@ ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
         _update_entry_per_cpu,
         _delete_hash_map_entry,
         _next_hash_map_key,
-        EBPF_MAP_PROPERTY_PER_CPU,
+        false, // Zero length key.
+        false, // Zero length value.
+        true,  // Per-cpu.
+        false, // Key history,
     },
     {
         // BPF_MAP_TYPE_PERCPU_ARRAY
@@ -1663,7 +1681,10 @@ ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
         _update_entry_per_cpu,
         _delete_array_map_entry,
         _next_array_map_key,
-        EBPF_MAP_PROPERTY_PER_CPU,
+        false, // Zero length key.
+        false, // Zero length value.
+        true,  // Per-cpu.
+        false, // Key history,
     },
     {
         // BPF_MAP_TYPE_HASH_OF_MAPS
@@ -1677,6 +1698,10 @@ ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
         NULL,
         _delete_map_hash_map_entry,
         _next_array_map_key,
+        false, // Zero length key.
+        false, // Zero length value.
+        false, // Per-cpu.
+        false, // Key history,
     },
     {
         // BPF_MAP_TYPE_ARRAY_OF_MAPS
@@ -1690,6 +1715,10 @@ ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
         NULL,
         _delete_map_array_map_entry,
         _next_array_map_key,
+        false, // Zero length key.
+        false, // Zero length value.
+        false, // Per-cpu.
+        false, // Key history,
     },
     {
         // BPF_MAP_TYPE_LRU_HASH
@@ -1703,7 +1732,10 @@ ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
         NULL,
         _delete_hash_map_entry,
         _next_hash_map_key,
-        EBPF_MAP_PROPERTY_KEY_HISTORY,
+        false, // Zero length key.
+        false, // Zero length value.
+        false, // Per-cpu.
+        true,  // Key history,
     },
     // LPM_TRIE is currently a hash-map with special behavior for find.
     {
@@ -1718,6 +1750,10 @@ ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
         NULL,
         _delete_hash_map_entry,
         _next_hash_map_key,
+        false, // Zero length key.
+        false, // Zero length value.
+        false, // Per-cpu.
+        false, // Key history,
     },
     {
         // BPF_MAP_TYPE_QUEUE
@@ -1731,7 +1767,10 @@ ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
         NULL,
         NULL,
         NULL,
-        EBPF_MAP_PROPERTY_ZERO_LENGTH_KEY,
+        true,  // Zero length key.
+        false, // Zero length value.
+        false, // Per-cpu.
+        false, // Key history,
     },
     {
         // BPF_MAP_TYPE_LRU_PERCPU_HASH
@@ -1745,7 +1784,10 @@ ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
         _update_entry_per_cpu,
         _delete_hash_map_entry,
         _next_hash_map_key,
-        EBPF_MAP_PROPERTY_PER_CPU | EBPF_MAP_PROPERTY_KEY_HISTORY,
+        false, // Zero length key.
+        false, // Zero length value.
+        true,  // Per-cpu.
+        true,  // Key history,
     },
     {
         // BPF_MAP_TYPE_STACK
@@ -1759,7 +1801,10 @@ ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
         NULL,
         NULL,
         NULL,
-        EBPF_MAP_PROPERTY_ZERO_LENGTH_KEY,
+        true,  // Zero length key.
+        false, // Zero length value.
+        false, // Per-cpu.
+        false, // Key history,
     },
     {
         // BPF_MAP_TYPE_RINGBUF
@@ -1773,7 +1818,10 @@ ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
         NULL,
         NULL,
         NULL,
-        EBPF_MAP_PROPERTY_ZERO_LENGTH_KEY | EBPF_MAP_PROPERTY_ZERO_LENGTH_VALUE,
+        true,  // Zero length key.
+        true,  // Zero length value.
+        false, // Per-cpu.
+        false, // Key history,
     },
 };
 
@@ -1809,13 +1857,11 @@ ebpf_map_create(
         goto Exit;
     }
 
-    if (ebpf_map_definition->key_size == 0 &&
-        !(ebpf_map_metadata_tables[type].flags & EBPF_MAP_PROPERTY_ZERO_LENGTH_KEY)) {
+    if (ebpf_map_definition->key_size == 0 && !(ebpf_map_metadata_tables[type].zero_length_key)) {
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
-    if (ebpf_map_definition->value_size == 0 &&
-        !(ebpf_map_metadata_tables[type].flags & EBPF_MAP_PROPERTY_ZERO_LENGTH_VALUE)) {
+    if (ebpf_map_definition->value_size == 0 && !(ebpf_map_metadata_tables[type].zero_length_value)) {
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
@@ -1824,7 +1870,7 @@ ebpf_map_create(
         goto Exit;
     }
 
-    if (ebpf_map_metadata_tables[type].flags & EBPF_MAP_PROPERTY_PER_CPU) {
+    if (ebpf_map_metadata_tables[type].per_cpu) {
         local_map_definition.value_size = cpu_count * PAD_CACHE(local_map_definition.value_size);
     }
 
@@ -1993,7 +2039,7 @@ ebpf_map_update_entry(
     // High volume call - Skip entry/exit logging.
     ebpf_result_t result;
 
-    if (ebpf_map_metadata_tables[map->ebpf_map_definition.type].flags & EBPF_MAP_PROPERTY_ZERO_LENGTH_KEY) {
+    if (ebpf_map_metadata_tables[map->ebpf_map_definition.type].zero_length_key) {
         if (key_size != 0) {
             EBPF_LOG_MESSAGE_UINT64(
                 EBPF_TRACELOG_LEVEL_ERROR,

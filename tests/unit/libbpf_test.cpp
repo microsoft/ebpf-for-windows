@@ -423,10 +423,6 @@ TEST_CASE("libbpf map", "[libbpf]")
     uint64_t value;
     uint32_t index = 2; // Past end of array.
 
-    result = bpf_map_lookup_elem(map_fd, NULL, NULL);
-    REQUIRE(result < 0);
-    REQUIRE(errno == EINVAL);
-
     result = bpf_map_lookup_elem(map_fd, &index, &value);
     REQUIRE(result < 0);
     REQUIRE(errno == EINVAL);
@@ -446,16 +442,6 @@ TEST_CASE("libbpf map", "[libbpf]")
     REQUIRE(result < 0);
     REQUIRE(errno == EINVAL);
 
-    // NULL value.
-    result = bpf_map_lookup_elem(map_fd, &index, NULL);
-    REQUIRE(result < 0);
-    REQUIRE(errno == EINVAL);
-
-    // NULL key.
-    result = bpf_map_delete_elem(map_fd, NULL);
-    REQUIRE(result < 0);
-    REQUIRE(errno == EINVAL);
-
     // Invalid key.
     result = bpf_map_delete_elem(map_fd, &index);
     REQUIRE(result < 0);
@@ -471,18 +457,8 @@ TEST_CASE("libbpf map", "[libbpf]")
     REQUIRE(result < 0);
     REQUIRE(errno == EBADF);
 
-    // NULL key and value.
-    result = bpf_map_update_elem(map_fd, NULL, NULL, 0);
-    REQUIRE(result < 0);
-    REQUIRE(errno == EINVAL);
-
     // NULL key.
     result = bpf_map_update_elem(map_fd, NULL, &value, 0);
-    REQUIRE(result < 0);
-    REQUIRE(errno == EINVAL);
-
-    // NULL value.
-    result = bpf_map_update_elem(map_fd, &index, NULL, 0);
     REQUIRE(result < 0);
     REQUIRE(errno == EINVAL);
 
@@ -585,11 +561,6 @@ TEST_CASE("libbpf map", "[libbpf]")
 
     // FD not a map.
     result = bpf_map_get_next_key(program_fd, NULL, &value);
-    REQUIRE(result < 0);
-    REQUIRE(errno == EINVAL);
-
-    // NULL next key.
-    result = bpf_map_get_next_key(map_fd, NULL, NULL);
     REQUIRE(result < 0);
     REQUIRE(errno == EINVAL);
 
@@ -770,11 +741,6 @@ TEST_CASE("libbpf map pinning", "[libbpf]")
 
     REQUIRE(bpf_map__is_pinned(map) == false);
 
-    // Invalid map object.
-    result = bpf_map__pin(NULL, pin_path);
-    REQUIRE(result < 0);
-    REQUIRE(errno == EINVAL);
-
     // Try to pin the map.
     result = bpf_map__pin(map, pin_path);
     REQUIRE(result == 0);
@@ -806,11 +772,6 @@ TEST_CASE("libbpf map pinning", "[libbpf]")
     REQUIRE(result < 0);
     REQUIRE(errno == ENOENT);
 
-    // Make sure an invalid map fails.
-    result = bpf_map__unpin(NULL, pin_path);
-    REQUIRE(result < 0);
-    REQUIRE(errno == EINVAL);
-
     // Clear pin path for the map.
     result = bpf_map__set_pin_path(map, nullptr);
     REQUIRE(result == 0);
@@ -822,11 +783,6 @@ TEST_CASE("libbpf map pinning", "[libbpf]")
     // Clear pin path for the map.
     result = bpf_map__set_pin_path(map, nullptr);
     REQUIRE(result == 0);
-
-    // Clear pin path for the map with invalid map.
-    result = bpf_map__set_pin_path(NULL, NULL);
-    REQUIRE(result < 0);
-    REQUIRE(errno == EINVAL);
 
     // Try to pin all (1) maps in the object.
     result = bpf_object__pin_maps(object, pin_path);
