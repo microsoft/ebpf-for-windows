@@ -28,6 +28,7 @@ target_link_libraries("ebpfnetsh" PRIVATE
   "git_commit_id"
   "Iphlpapi.lib"
   "Netsh.lib"
+  "pe_parse"
 )
 
 target_compile_definitions("ebpfnetsh" PRIVATE
