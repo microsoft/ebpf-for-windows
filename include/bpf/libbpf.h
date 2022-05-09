@@ -619,7 +619,10 @@ bpf_program__get_expected_attach_type(const struct bpf_program* prog);
  *
  * @returns Program type.
  *
+ * @deprecated Use bpf_program__type() instead.
+ *
  * @sa bpf_program__get_expected_attach_type
+ * @sa bpf_program__type
  */
 enum bpf_prog_type
 bpf_program__get_type(const struct bpf_program* prog);
@@ -713,9 +716,22 @@ bpf_program__set_expected_attach_type(struct bpf_program* prog, enum bpf_attach_
  * @param[in] type Program type to set.
  *
  * @sa bpf_program__set_expected_attach_type
+ * @sa bpf_program__type
  */
 void
 bpf_program__set_type(struct bpf_program* prog, enum bpf_prog_type type);
+
+/**
+ * @brief Get the program type for an eBPF program.
+ *
+ * @param[in] prog Program to check.
+ *
+ * @returns Program type.
+ *
+ * @sa bpf_program__get_expected_attach_type
+ */
+enum bpf_prog_type
+bpf_program__type(const struct bpf_program* prog);
 
 /**
  * @brief Unload a program.
