@@ -326,7 +326,7 @@ extern "C"
         _In_z_ const char* file_name,
         _In_opt_ const ebpf_program_type_t* program_type,
         _In_opt_ const ebpf_attach_type_t* attach_type,
-        _In_ ebpf_execution_type_t execution_type,
+        ebpf_execution_type_t execution_type,
         _Outptr_ struct bpf_object** object,
         _Out_ fd_t* program_fd,
         _Outptr_result_maybenull_z_ const char** log_buffer);

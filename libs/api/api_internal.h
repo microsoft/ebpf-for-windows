@@ -236,7 +236,7 @@ ebpf_map_pin(_In_ struct bpf_map* map, _In_opt_z_ const char* path);
  * @retval EBPF_SUCCESS The operation was successful.
  */
 ebpf_result_t
-ebpf_map_unpin(_In_opt_ struct bpf_map* map, _In_opt_z_ const char* path);
+ebpf_map_unpin(_In_ struct bpf_map* map, _In_opt_z_ const char* path);
 
 /**
  * @brief Set pin path for an eBPF map.
@@ -248,7 +248,7 @@ ebpf_map_unpin(_In_opt_ struct bpf_map* map, _In_opt_z_ const char* path);
  * @retval EBPF_INVALID_ARGUMENT One or more parameters are wrong.
  */
 ebpf_result_t
-ebpf_map_set_pin_path(_In_ struct bpf_map* map, _In_ const char* path);
+ebpf_map_set_pin_path(_In_ struct bpf_map* map, _In_opt_z_ const char* path);
 
 /**
  * @brief Update value for the specified key in an eBPF map.
@@ -285,7 +285,7 @@ ebpf_map_delete_element(fd_t map_fd, _In_ const void* key);
  * @retval EBPF_SUCCESS The operation was successful.
  */
 ebpf_result_t
-ebpf_map_lookup_element(fd_t map_fd, _In_ const void* key, _Out_ void* value);
+ebpf_map_lookup_element(fd_t map_fd, _In_opt_ const void* key, _Out_ void* value);
 
 /**
  * @brief Look up an element in an eBPF map.
