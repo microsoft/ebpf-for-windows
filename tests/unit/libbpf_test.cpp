@@ -888,7 +888,7 @@ TEST_CASE("libbpf obj pinning", "[libbpf]")
     result = bpf_obj_pin(map_fd, pin_path);
     REQUIRE(result == 0);
 
-    // No corresponding bpf_obj_unpin?
+    // Linux lacks a bpf_object_unpin, so call the ebpf_ variety.
     REQUIRE(ebpf_object_unpin(pin_path) == EBPF_SUCCESS);
 
     result = bpf_obj_pin(-1, "invalid_fd");
