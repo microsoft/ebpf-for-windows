@@ -13,3 +13,7 @@ add_library("pe_parse" STATIC
 target_include_directories("pe_parse" PRIVATE
   "${CMAKE_SOURCE_DIR}/external/pe-parse/pe-parser-library/include"
 )
+
+target_compile_options("pe_parse" PRIVATE
+  /w
+)
