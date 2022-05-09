@@ -86,14 +86,14 @@ jobs:
     - name: Create verifier project
       working-directory: ${{env.GITHUB_WORKSPACE}}
       env:
-        CXXFLAGS: /Qspectre /ZH:SHA_256 /W4 /WX
+        CXXFLAGS: /Qspectre /ZH:SHA_256
       run: |
         cmake -G "Visual Studio 16 2019" -S external\ebpf-verifier -B external\ebpf-verifier\build
 
     - name: Create catch2 project
       working-directory: ${{env.GITHUB_WORKSPACE}}
       env:
-        CXXFLAGS: /Qspectre /ZH:SHA_256 /W4 /WX
+        CXXFLAGS: /Qspectre /ZH:SHA_256
       run: |
         cmake -G "Visual Studio 16 2019" -S external\catch2 -B external\catch2\build -DBUILD_TESTING=OFF
 
