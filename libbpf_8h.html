@@ -217,6 +217,9 @@ Functions</h2></td></tr>
 <tr class="memitem:a2df33ac2a14774448fc5083c47e2012c"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a2df33ac2a14774448fc5083c47e2012c">bpf_program__set_type</a> (struct bpf_program *prog, enum <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0">bpf_prog_type</a> type)</td></tr>
 <tr class="memdesc:a2df33ac2a14774448fc5083c47e2012c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the program type for an eBPF program.  <a href="libbpf_8h.html#a2df33ac2a14774448fc5083c47e2012c">More...</a><br /></td></tr>
 <tr class="separator:a2df33ac2a14774448fc5083c47e2012c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a789393546ed103be96e012387b12bdcf"><td class="memItemLeft" align="right" valign="top">enum <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0">bpf_prog_type</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a789393546ed103be96e012387b12bdcf">bpf_program__type</a> (const struct bpf_program *prog)</td></tr>
+<tr class="memdesc:a789393546ed103be96e012387b12bdcf"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the program type for an eBPF program.  <a href="libbpf_8h.html#a789393546ed103be96e012387b12bdcf">More...</a><br /></td></tr>
+<tr class="separator:a789393546ed103be96e012387b12bdcf"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa193a3941705024e16738bb5ed687fd7"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#aa193a3941705024e16738bb5ed687fd7">bpf_program__unload</a> (struct bpf_program *prog)</td></tr>
 <tr class="memdesc:aa193a3941705024e16738bb5ed687fd7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Unload a program.  <a href="libbpf_8h.html#aa193a3941705024e16738bb5ed687fd7">More...</a><br /></td></tr>
 <tr class="separator:aa193a3941705024e16738bb5ed687fd7"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -1849,7 +1852,10 @@ bpf_object__unpin </dd></dl>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>Program type.</dd></dl>
-<dl class="section see"><dt>See also</dt><dd><a class="el" href="libbpf_8h.html#a533e13b68a34e8228fbadeecf63b658a" title="Get the expected attach type for an eBPF program.">bpf_program__get_expected_attach_type</a> </dd></dl>
+<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000001">Deprecated:</a></b></dt><dd>Use <a class="el" href="libbpf_8h.html#a789393546ed103be96e012387b12bdcf" title="Get the program type for an eBPF program.">bpf_program__type()</a> instead.</dd></dl>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="libbpf_8h.html#a533e13b68a34e8228fbadeecf63b658a" title="Get the expected attach type for an eBPF program.">bpf_program__get_expected_attach_type</a> </dd>
+<dd>
+<a class="el" href="libbpf_8h.html#a789393546ed103be96e012387b12bdcf" title="Get the program type for an eBPF program.">bpf_program__type</a> </dd></dl>
 
 </div>
 </div>
@@ -2118,7 +2124,37 @@ bpf_object__unpin </dd></dl>
   </table>
   </dd>
 </dl>
-<dl class="section see"><dt>See also</dt><dd><a class="el" href="libbpf_8h.html#a6a1f42b57d26d244246d4b7d4118f5e1" title="Set the expected attach type for an eBPF program.">bpf_program__set_expected_attach_type</a> </dd></dl>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="libbpf_8h.html#a6a1f42b57d26d244246d4b7d4118f5e1" title="Set the expected attach type for an eBPF program.">bpf_program__set_expected_attach_type</a> </dd>
+<dd>
+<a class="el" href="libbpf_8h.html#a789393546ed103be96e012387b12bdcf" title="Get the program type for an eBPF program.">bpf_program__type</a> </dd></dl>
+
+</div>
+</div>
+<a id="a789393546ed103be96e012387b12bdcf"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a789393546ed103be96e012387b12bdcf">&#9670;&nbsp;</a></span>bpf_program__type()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">enum <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0">bpf_prog_type</a> bpf_program__type </td>
+          <td>(</td>
+          <td class="paramtype">const struct bpf_program *&#160;</td>
+          <td class="paramname"><em>prog</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Get the program type for an eBPF program. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">prog</td><td>Program to check.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>Program type.</dd></dl>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="libbpf_8h.html#a533e13b68a34e8228fbadeecf63b658a" title="Get the expected attach type for an eBPF program.">bpf_program__get_expected_attach_type</a> </dd></dl>
 
 </div>
 </div>
@@ -2253,7 +2289,7 @@ bpf_object__unpin </dd></dl>
   </table>
   </dd>
 </dl>
-<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000001">Deprecated:</a></b></dt><dd>Use <a class="el" href="libbpf_8h.html#a21804429f974038fb1d68004fe3aeea5" title="Attach an XDP program to a given interface.">bpf_xdp_attach()</a> instead.</dd></dl>
+<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000002">Deprecated:</a></b></dt><dd>Use <a class="el" href="libbpf_8h.html#a21804429f974038fb1d68004fe3aeea5" title="Attach an XDP program to a given interface.">bpf_xdp_attach()</a> instead.</dd></dl>
 <dl class="section see"><dt>See also</dt><dd><a class="el" href="libbpf_8h.html#add95958a8ad1c31b3f42a614625d20d1" title="Attach an eBPF program to an XDP hook.">bpf_program__attach_xdp</a> </dd>
 <dd>
 <a class="el" href="libbpf_8h.html#a21804429f974038fb1d68004fe3aeea5" title="Attach an XDP program to a given interface.">bpf_xdp_attach</a> </dd>

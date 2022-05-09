@@ -238,71 +238,74 @@ $(function() {
 <div class="line"><a name="l00612"></a><span class="lineno">  612</span>&#160;<span class="keyword">enum</span> <a class="code" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5a">bpf_attach_type</a></div>
 <div class="line"><a name="l00613"></a><span class="lineno">  613</span>&#160;<a class="code" href="libbpf_8h.html#a533e13b68a34e8228fbadeecf63b658a">bpf_program__get_expected_attach_type</a>(<span class="keyword">const</span> <span class="keyword">struct</span> bpf_program* prog);</div>
 <div class="line"><a name="l00614"></a><span class="lineno">  614</span>&#160; </div>
-<div class="line"><a name="l00624"></a><span class="lineno">  624</span>&#160;<span class="keyword">enum</span> <a class="code" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0">bpf_prog_type</a></div>
-<div class="line"><a name="l00625"></a><span class="lineno">  625</span>&#160;<a class="code" href="libbpf_8h.html#a6a801e0d961347b9ca550a111b4b1148">bpf_program__get_type</a>(<span class="keyword">const</span> <span class="keyword">struct</span> bpf_program* prog);</div>
-<div class="line"><a name="l00626"></a><span class="lineno">  626</span>&#160; </div>
-<div class="line"><a name="l00637"></a><span class="lineno">  637</span>&#160;<span class="keyword">const</span> <span class="keywordtype">char</span>*</div>
-<div class="line"><a name="l00638"></a><span class="lineno">  638</span>&#160;<a class="code" href="libbpf_8h.html#a5bc9a44c10c7fc330c09b3fd127beee3">bpf_program__name</a>(<span class="keyword">const</span> <span class="keyword">struct</span> bpf_program* prog);</div>
-<div class="line"><a name="l00639"></a><span class="lineno">  639</span>&#160; </div>
-<div class="line"><a name="l00650"></a><span class="lineno">  650</span>&#160;<span class="keyword">struct </span>bpf_program*</div>
-<div class="line"><a name="l00651"></a><span class="lineno">  651</span>&#160;<a class="code" href="libbpf_8h.html#a9a2443d60cdf9ff89b4249981ed08aa6">bpf_program__next</a>(<span class="keyword">struct</span> bpf_program* prog, <span class="keyword">const</span> <span class="keyword">struct</span> bpf_object* obj);</div>
-<div class="line"><a name="l00652"></a><span class="lineno">  652</span>&#160; </div>
-<div class="line"><a name="l00671"></a><span class="lineno">  671</span>&#160;<span class="keywordtype">int</span></div>
-<div class="line"><a name="l00672"></a><span class="lineno">  672</span>&#160;<a class="code" href="libbpf_8h.html#afdd9d5fdcf93964e5cdee24c2c1ca89f">bpf_program__pin</a>(<span class="keyword">struct</span> bpf_program* prog, <span class="keyword">const</span> <span class="keywordtype">char</span>* path);</div>
-<div class="line"><a name="l00673"></a><span class="lineno">  673</span>&#160; </div>
-<div class="line"><a name="l00684"></a><span class="lineno">  684</span>&#160;<span class="keyword">struct </span>bpf_program*</div>
-<div class="line"><a name="l00685"></a><span class="lineno">  685</span>&#160;<a class="code" href="libbpf_8h.html#ad9c582090bb19257e82fe5120aac35f2">bpf_program__prev</a>(<span class="keyword">struct</span> bpf_program* prog, <span class="keyword">const</span> <span class="keyword">struct</span> bpf_object* obj);</div>
-<div class="line"><a name="l00686"></a><span class="lineno">  686</span>&#160; </div>
-<div class="line"><a name="l00694"></a><span class="lineno">  694</span>&#160;<span class="keyword">const</span> <span class="keywordtype">char</span>*</div>
-<div class="line"><a name="l00695"></a><span class="lineno">  695</span>&#160;<a class="code" href="libbpf_8h.html#a26150fd9e12b1d6b33a76345af3b30cf">bpf_program__section_name</a>(<span class="keyword">const</span> <span class="keyword">struct</span> bpf_program* prog);</div>
-<div class="line"><a name="l00696"></a><span class="lineno">  696</span>&#160; </div>
-<div class="line"><a name="l00706"></a><span class="lineno">  706</span>&#160;<span class="keywordtype">void</span></div>
-<div class="line"><a name="l00707"></a><span class="lineno">  707</span>&#160;<a class="code" href="libbpf_8h.html#a6a1f42b57d26d244246d4b7d4118f5e1">bpf_program__set_expected_attach_type</a>(<span class="keyword">struct</span> bpf_program* prog, <span class="keyword">enum</span> <a class="code" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5a">bpf_attach_type</a> type);</div>
-<div class="line"><a name="l00708"></a><span class="lineno">  708</span>&#160; </div>
-<div class="line"><a name="l00717"></a><span class="lineno">  717</span>&#160;<span class="keywordtype">void</span></div>
-<div class="line"><a name="l00718"></a><span class="lineno">  718</span>&#160;<a class="code" href="libbpf_8h.html#a2df33ac2a14774448fc5083c47e2012c">bpf_program__set_type</a>(<span class="keyword">struct</span> bpf_program* prog, <span class="keyword">enum</span> <a class="code" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0">bpf_prog_type</a> type);</div>
-<div class="line"><a name="l00719"></a><span class="lineno">  719</span>&#160; </div>
-<div class="line"><a name="l00728"></a><span class="lineno">  728</span>&#160;<span class="keywordtype">void</span></div>
-<div class="line"><a name="l00729"></a><span class="lineno">  729</span>&#160;<a class="code" href="libbpf_8h.html#aa193a3941705024e16738bb5ed687fd7">bpf_program__unload</a>(<span class="keyword">struct</span> bpf_program* prog);</div>
-<div class="line"><a name="l00730"></a><span class="lineno">  730</span>&#160; </div>
-<div class="line"><a name="l00746"></a><span class="lineno">  746</span>&#160;<span class="keywordtype">int</span></div>
-<div class="line"><a name="l00747"></a><span class="lineno">  747</span>&#160;<a class="code" href="libbpf_8h.html#a3b5343605f1e4aff8008b4f3bba296bd">bpf_program__unpin</a>(<span class="keyword">struct</span> bpf_program* prog, <span class="keyword">const</span> <span class="keywordtype">char</span>* path);</div>
-<div class="line"><a name="l00748"></a><span class="lineno">  748</span>&#160; </div>
-<div class="line"><a name="l00766"></a><span class="lineno">  766</span>&#160;<span class="keywordtype">int</span></div>
-<div class="line"><a name="l00767"></a><span class="lineno">  767</span>&#160;<a class="code" href="libbpf_8h.html#a62d680951c5e380caef2d82d97f12d9d">bpf_set_link_xdp_fd</a>(<span class="keywordtype">int</span> ifindex, <span class="keywordtype">int</span> fd, <a class="code" href="types_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a> flags);</div>
-<div class="line"><a name="l00768"></a><span class="lineno">  768</span>&#160; </div>
-<div class="line"><a name="l00784"></a><span class="lineno">  784</span>&#160;<span class="keywordtype">int</span></div>
-<div class="line"><a name="l00785"></a><span class="lineno">  785</span>&#160;<a class="code" href="libbpf_8h.html#a21804429f974038fb1d68004fe3aeea5">bpf_xdp_attach</a>(<span class="keywordtype">int</span> ifindex, <span class="keywordtype">int</span> prog_fd, <a class="code" href="types_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a> flags, <span class="keyword">const</span> <span class="keyword">struct</span> bpf_xdp_attach_opts* opts);</div>
-<div class="line"><a name="l00786"></a><span class="lineno">  786</span>&#160; </div>
-<div class="line"><a name="l00803"></a><span class="lineno">  803</span>&#160;<span class="keywordtype">int</span></div>
-<div class="line"><a name="l00804"></a><span class="lineno">  804</span>&#160;<a class="code" href="libbpf_8h.html#a91e7564271ad3b6d0c9c67ffad32f03e">bpf_xdp_detach</a>(<span class="keywordtype">int</span> ifindex, <a class="code" href="types_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a> flags, <span class="keyword">const</span> <span class="keyword">struct</span> bpf_xdp_attach_opts* opts);</div>
-<div class="line"><a name="l00805"></a><span class="lineno">  805</span>&#160; </div>
-<div class="line"><a name="l00818"></a><span class="lineno">  818</span>&#160;<span class="keywordtype">int</span></div>
-<div class="line"><a name="l00819"></a><span class="lineno">  819</span>&#160;<a class="code" href="libbpf_8h.html#ac3c161a9caa1a904f09980e89d51407f">bpf_xdp_query_id</a>(<span class="keywordtype">int</span> ifindex, <span class="keywordtype">int</span> flags, <a class="code" href="types_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a>* prog_id);</div>
-<div class="line"><a name="l00820"></a><span class="lineno">  820</span>&#160; </div>
-<div class="line"><a name="l00831"></a><span class="lineno">  831</span>&#160;<span class="keywordtype">int</span></div>
-<div class="line"><a name="l00832"></a><span class="lineno">  832</span>&#160;<a class="code" href="libbpf_8h.html#a64a0e9275ed02a9f30291ae5dd777452">libbpf_prog_type_by_name</a>(<span class="keyword">const</span> <span class="keywordtype">char</span>* name, <span class="keyword">enum</span> <a class="code" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0">bpf_prog_type</a>* prog_type, <span class="keyword">enum</span> <a class="code" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5a">bpf_attach_type</a>* expected_attach_type);</div>
-<div class="line"><a name="l00833"></a><span class="lineno">  833</span>&#160; </div>
-<div class="line"><a name="l00848"></a><span class="lineno">  848</span>&#160;<span class="keywordtype">long</span></div>
-<div class="line"><a name="l00849"></a><span class="lineno">  849</span>&#160;<a class="code" href="libbpf_8h.html#a6ae394e7b2a465a2bf7f30e2a5b4c4bd">libbpf_get_error</a>(<span class="keyword">const</span> <span class="keywordtype">void</span>* ptr);</div>
-<div class="line"><a name="l00850"></a><span class="lineno">  850</span>&#160; </div>
-<div class="line"><a name="l00856"></a><span class="lineno">  856</span>&#160;<span class="keywordtype">int</span></div>
-<div class="line"><a name="l00857"></a><span class="lineno">  857</span>&#160;<a class="code" href="libbpf_8h.html#a952441cb1b1f252e10b100c2657e6242">libbpf_num_possible_cpus</a>(<span class="keywordtype">void</span>);</div>
-<div class="line"><a name="l00858"></a><span class="lineno">  858</span>&#160; </div>
-<div class="line"><a name="l00859"></a><span class="lineno">  859</span>&#160;<span class="comment">/* Ring buffer APIs */</span></div>
-<div class="line"><a name="l00860"></a><span class="lineno">  860</span>&#160; </div>
-<div class="line"><a name="l00871"></a><span class="lineno">  871</span>&#160;<span class="keyword">struct </span>ring_buffer*</div>
-<div class="line"><a name="l00872"></a><span class="lineno">  872</span>&#160;<a class="code" href="libbpf_8h.html#aee16f65187ecdf7f55eccf24c6b4d138">ring_buffer__new</a>(<span class="keywordtype">int</span> map_fd, ring_buffer_sample_fn sample_cb, <span class="keywordtype">void</span>* ctx, <span class="keyword">const</span> <span class="keyword">struct</span> ring_buffer_opts* opts);</div>
-<div class="line"><a name="l00873"></a><span class="lineno">  873</span>&#160; </div>
-<div class="line"><a name="l00880"></a><span class="lineno">  880</span>&#160;<span class="keywordtype">void</span></div>
-<div class="line"><a name="l00881"></a><span class="lineno">  881</span>&#160;<a class="code" href="libbpf_8h.html#a5ede3a39d4e4a364fac4155aca3303cc">ring_buffer__free</a>(<span class="keyword">struct</span> ring_buffer* rb);</div>
-<div class="line"><a name="l00884"></a><span class="lineno">  884</span>&#160;<span class="preprocessor">#else</span></div>
-<div class="line"><a name="l00885"></a><span class="lineno">  885</span>&#160;<span class="preprocessor">#pragma warning(push)</span></div>
-<div class="line"><a name="l00886"></a><span class="lineno">  886</span>&#160;<span class="preprocessor">#pragma warning(disable : 4200) // Zero-sized array in struct/union</span></div>
-<div class="line"><a name="l00887"></a><span class="lineno">  887</span>&#160;<span class="preprocessor">#pragma warning(disable : 4201) // Zero-sized array in struct/union</span></div>
-<div class="line"><a name="l00888"></a><span class="lineno">  888</span>&#160;<span class="preprocessor">#include &quot;libbpf/src/libbpf.h&quot;</span></div>
-<div class="line"><a name="l00889"></a><span class="lineno">  889</span>&#160;<span class="preprocessor">#pragma warning(pop)</span></div>
-<div class="line"><a name="l00890"></a><span class="lineno">  890</span>&#160;<span class="preprocessor">#endif</span></div>
+<div class="line"><a name="l00627"></a><span class="lineno">  627</span>&#160;<span class="keyword">enum</span> <a class="code" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0">bpf_prog_type</a></div>
+<div class="line"><a name="l00628"></a><span class="lineno">  628</span>&#160;<a class="code" href="libbpf_8h.html#a6a801e0d961347b9ca550a111b4b1148">bpf_program__get_type</a>(<span class="keyword">const</span> <span class="keyword">struct</span> bpf_program* prog);</div>
+<div class="line"><a name="l00629"></a><span class="lineno">  629</span>&#160; </div>
+<div class="line"><a name="l00640"></a><span class="lineno">  640</span>&#160;<span class="keyword">const</span> <span class="keywordtype">char</span>*</div>
+<div class="line"><a name="l00641"></a><span class="lineno">  641</span>&#160;<a class="code" href="libbpf_8h.html#a5bc9a44c10c7fc330c09b3fd127beee3">bpf_program__name</a>(<span class="keyword">const</span> <span class="keyword">struct</span> bpf_program* prog);</div>
+<div class="line"><a name="l00642"></a><span class="lineno">  642</span>&#160; </div>
+<div class="line"><a name="l00653"></a><span class="lineno">  653</span>&#160;<span class="keyword">struct </span>bpf_program*</div>
+<div class="line"><a name="l00654"></a><span class="lineno">  654</span>&#160;<a class="code" href="libbpf_8h.html#a9a2443d60cdf9ff89b4249981ed08aa6">bpf_program__next</a>(<span class="keyword">struct</span> bpf_program* prog, <span class="keyword">const</span> <span class="keyword">struct</span> bpf_object* obj);</div>
+<div class="line"><a name="l00655"></a><span class="lineno">  655</span>&#160; </div>
+<div class="line"><a name="l00674"></a><span class="lineno">  674</span>&#160;<span class="keywordtype">int</span></div>
+<div class="line"><a name="l00675"></a><span class="lineno">  675</span>&#160;<a class="code" href="libbpf_8h.html#afdd9d5fdcf93964e5cdee24c2c1ca89f">bpf_program__pin</a>(<span class="keyword">struct</span> bpf_program* prog, <span class="keyword">const</span> <span class="keywordtype">char</span>* path);</div>
+<div class="line"><a name="l00676"></a><span class="lineno">  676</span>&#160; </div>
+<div class="line"><a name="l00687"></a><span class="lineno">  687</span>&#160;<span class="keyword">struct </span>bpf_program*</div>
+<div class="line"><a name="l00688"></a><span class="lineno">  688</span>&#160;<a class="code" href="libbpf_8h.html#ad9c582090bb19257e82fe5120aac35f2">bpf_program__prev</a>(<span class="keyword">struct</span> bpf_program* prog, <span class="keyword">const</span> <span class="keyword">struct</span> bpf_object* obj);</div>
+<div class="line"><a name="l00689"></a><span class="lineno">  689</span>&#160; </div>
+<div class="line"><a name="l00697"></a><span class="lineno">  697</span>&#160;<span class="keyword">const</span> <span class="keywordtype">char</span>*</div>
+<div class="line"><a name="l00698"></a><span class="lineno">  698</span>&#160;<a class="code" href="libbpf_8h.html#a26150fd9e12b1d6b33a76345af3b30cf">bpf_program__section_name</a>(<span class="keyword">const</span> <span class="keyword">struct</span> bpf_program* prog);</div>
+<div class="line"><a name="l00699"></a><span class="lineno">  699</span>&#160; </div>
+<div class="line"><a name="l00709"></a><span class="lineno">  709</span>&#160;<span class="keywordtype">void</span></div>
+<div class="line"><a name="l00710"></a><span class="lineno">  710</span>&#160;<a class="code" href="libbpf_8h.html#a6a1f42b57d26d244246d4b7d4118f5e1">bpf_program__set_expected_attach_type</a>(<span class="keyword">struct</span> bpf_program* prog, <span class="keyword">enum</span> <a class="code" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5a">bpf_attach_type</a> type);</div>
+<div class="line"><a name="l00711"></a><span class="lineno">  711</span>&#160; </div>
+<div class="line"><a name="l00721"></a><span class="lineno">  721</span>&#160;<span class="keywordtype">void</span></div>
+<div class="line"><a name="l00722"></a><span class="lineno">  722</span>&#160;<a class="code" href="libbpf_8h.html#a2df33ac2a14774448fc5083c47e2012c">bpf_program__set_type</a>(<span class="keyword">struct</span> bpf_program* prog, <span class="keyword">enum</span> <a class="code" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0">bpf_prog_type</a> type);</div>
+<div class="line"><a name="l00723"></a><span class="lineno">  723</span>&#160; </div>
+<div class="line"><a name="l00733"></a><span class="lineno">  733</span>&#160;<span class="keyword">enum</span> <a class="code" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0">bpf_prog_type</a></div>
+<div class="line"><a name="l00734"></a><span class="lineno">  734</span>&#160;<a class="code" href="libbpf_8h.html#a789393546ed103be96e012387b12bdcf">bpf_program__type</a>(<span class="keyword">const</span> <span class="keyword">struct</span> bpf_program* prog);</div>
+<div class="line"><a name="l00735"></a><span class="lineno">  735</span>&#160; </div>
+<div class="line"><a name="l00744"></a><span class="lineno">  744</span>&#160;<span class="keywordtype">void</span></div>
+<div class="line"><a name="l00745"></a><span class="lineno">  745</span>&#160;<a class="code" href="libbpf_8h.html#aa193a3941705024e16738bb5ed687fd7">bpf_program__unload</a>(<span class="keyword">struct</span> bpf_program* prog);</div>
+<div class="line"><a name="l00746"></a><span class="lineno">  746</span>&#160; </div>
+<div class="line"><a name="l00762"></a><span class="lineno">  762</span>&#160;<span class="keywordtype">int</span></div>
+<div class="line"><a name="l00763"></a><span class="lineno">  763</span>&#160;<a class="code" href="libbpf_8h.html#a3b5343605f1e4aff8008b4f3bba296bd">bpf_program__unpin</a>(<span class="keyword">struct</span> bpf_program* prog, <span class="keyword">const</span> <span class="keywordtype">char</span>* path);</div>
+<div class="line"><a name="l00764"></a><span class="lineno">  764</span>&#160; </div>
+<div class="line"><a name="l00782"></a><span class="lineno">  782</span>&#160;<span class="keywordtype">int</span></div>
+<div class="line"><a name="l00783"></a><span class="lineno">  783</span>&#160;<a class="code" href="libbpf_8h.html#a62d680951c5e380caef2d82d97f12d9d">bpf_set_link_xdp_fd</a>(<span class="keywordtype">int</span> ifindex, <span class="keywordtype">int</span> fd, <a class="code" href="types_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a> flags);</div>
+<div class="line"><a name="l00784"></a><span class="lineno">  784</span>&#160; </div>
+<div class="line"><a name="l00800"></a><span class="lineno">  800</span>&#160;<span class="keywordtype">int</span></div>
+<div class="line"><a name="l00801"></a><span class="lineno">  801</span>&#160;<a class="code" href="libbpf_8h.html#a21804429f974038fb1d68004fe3aeea5">bpf_xdp_attach</a>(<span class="keywordtype">int</span> ifindex, <span class="keywordtype">int</span> prog_fd, <a class="code" href="types_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a> flags, <span class="keyword">const</span> <span class="keyword">struct</span> bpf_xdp_attach_opts* opts);</div>
+<div class="line"><a name="l00802"></a><span class="lineno">  802</span>&#160; </div>
+<div class="line"><a name="l00819"></a><span class="lineno">  819</span>&#160;<span class="keywordtype">int</span></div>
+<div class="line"><a name="l00820"></a><span class="lineno">  820</span>&#160;<a class="code" href="libbpf_8h.html#a91e7564271ad3b6d0c9c67ffad32f03e">bpf_xdp_detach</a>(<span class="keywordtype">int</span> ifindex, <a class="code" href="types_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a> flags, <span class="keyword">const</span> <span class="keyword">struct</span> bpf_xdp_attach_opts* opts);</div>
+<div class="line"><a name="l00821"></a><span class="lineno">  821</span>&#160; </div>
+<div class="line"><a name="l00834"></a><span class="lineno">  834</span>&#160;<span class="keywordtype">int</span></div>
+<div class="line"><a name="l00835"></a><span class="lineno">  835</span>&#160;<a class="code" href="libbpf_8h.html#ac3c161a9caa1a904f09980e89d51407f">bpf_xdp_query_id</a>(<span class="keywordtype">int</span> ifindex, <span class="keywordtype">int</span> flags, <a class="code" href="types_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a>* prog_id);</div>
+<div class="line"><a name="l00836"></a><span class="lineno">  836</span>&#160; </div>
+<div class="line"><a name="l00847"></a><span class="lineno">  847</span>&#160;<span class="keywordtype">int</span></div>
+<div class="line"><a name="l00848"></a><span class="lineno">  848</span>&#160;<a class="code" href="libbpf_8h.html#a64a0e9275ed02a9f30291ae5dd777452">libbpf_prog_type_by_name</a>(<span class="keyword">const</span> <span class="keywordtype">char</span>* name, <span class="keyword">enum</span> <a class="code" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0">bpf_prog_type</a>* prog_type, <span class="keyword">enum</span> <a class="code" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5a">bpf_attach_type</a>* expected_attach_type);</div>
+<div class="line"><a name="l00849"></a><span class="lineno">  849</span>&#160; </div>
+<div class="line"><a name="l00864"></a><span class="lineno">  864</span>&#160;<span class="keywordtype">long</span></div>
+<div class="line"><a name="l00865"></a><span class="lineno">  865</span>&#160;<a class="code" href="libbpf_8h.html#a6ae394e7b2a465a2bf7f30e2a5b4c4bd">libbpf_get_error</a>(<span class="keyword">const</span> <span class="keywordtype">void</span>* ptr);</div>
+<div class="line"><a name="l00866"></a><span class="lineno">  866</span>&#160; </div>
+<div class="line"><a name="l00872"></a><span class="lineno">  872</span>&#160;<span class="keywordtype">int</span></div>
+<div class="line"><a name="l00873"></a><span class="lineno">  873</span>&#160;<a class="code" href="libbpf_8h.html#a952441cb1b1f252e10b100c2657e6242">libbpf_num_possible_cpus</a>(<span class="keywordtype">void</span>);</div>
+<div class="line"><a name="l00874"></a><span class="lineno">  874</span>&#160; </div>
+<div class="line"><a name="l00875"></a><span class="lineno">  875</span>&#160;<span class="comment">/* Ring buffer APIs */</span></div>
+<div class="line"><a name="l00876"></a><span class="lineno">  876</span>&#160; </div>
+<div class="line"><a name="l00887"></a><span class="lineno">  887</span>&#160;<span class="keyword">struct </span>ring_buffer*</div>
+<div class="line"><a name="l00888"></a><span class="lineno">  888</span>&#160;<a class="code" href="libbpf_8h.html#aee16f65187ecdf7f55eccf24c6b4d138">ring_buffer__new</a>(<span class="keywordtype">int</span> map_fd, ring_buffer_sample_fn sample_cb, <span class="keywordtype">void</span>* ctx, <span class="keyword">const</span> <span class="keyword">struct</span> ring_buffer_opts* opts);</div>
+<div class="line"><a name="l00889"></a><span class="lineno">  889</span>&#160; </div>
+<div class="line"><a name="l00896"></a><span class="lineno">  896</span>&#160;<span class="keywordtype">void</span></div>
+<div class="line"><a name="l00897"></a><span class="lineno">  897</span>&#160;<a class="code" href="libbpf_8h.html#a5ede3a39d4e4a364fac4155aca3303cc">ring_buffer__free</a>(<span class="keyword">struct</span> ring_buffer* rb);</div>
+<div class="line"><a name="l00900"></a><span class="lineno">  900</span>&#160;<span class="preprocessor">#else</span></div>
+<div class="line"><a name="l00901"></a><span class="lineno">  901</span>&#160;<span class="preprocessor">#pragma warning(push)</span></div>
+<div class="line"><a name="l00902"></a><span class="lineno">  902</span>&#160;<span class="preprocessor">#pragma warning(disable : 4200) // Zero-sized array in struct/union</span></div>
+<div class="line"><a name="l00903"></a><span class="lineno">  903</span>&#160;<span class="preprocessor">#pragma warning(disable : 4201) // Zero-sized array in struct/union</span></div>
+<div class="line"><a name="l00904"></a><span class="lineno">  904</span>&#160;<span class="preprocessor">#include &quot;libbpf/src/libbpf.h&quot;</span></div>
+<div class="line"><a name="l00905"></a><span class="lineno">  905</span>&#160;<span class="preprocessor">#pragma warning(pop)</span></div>
+<div class="line"><a name="l00906"></a><span class="lineno">  906</span>&#160;<span class="preprocessor">#endif</span></div>
 </div><!-- fragment --></div><!-- contents -->
 <div class="ttc" id="alibbpf_8h_html_a6a1f42b57d26d244246d4b7d4118f5e1"><div class="ttname"><a href="libbpf_8h.html#a6a1f42b57d26d244246d4b7d4118f5e1">bpf_program__set_expected_attach_type</a></div><div class="ttdeci">void bpf_program__set_expected_attach_type(struct bpf_program *prog, enum bpf_attach_type type)</div><div class="ttdoc">Set the expected attach type for an eBPF program.</div></div>
 <div class="ttc" id="alibbpf_8h_html_a7882d9c82434e07205b6385586f8a075"><div class="ttname"><a href="libbpf_8h.html#a7882d9c82434e07205b6385586f8a075">bpf_map__fd</a></div><div class="ttdeci">int bpf_map__fd(const struct bpf_map *map)</div><div class="ttdoc">Get a file descriptor that refers to a map.</div></div>
@@ -311,6 +314,7 @@ $(function() {
 <div class="ttc" id="alibbpf_8h_html_a8ee480e1b45d468710fd35a2f43aeed3"><div class="ttname"><a href="libbpf_8h.html#a8ee480e1b45d468710fd35a2f43aeed3">bpf_program__fd</a></div><div class="ttdeci">int bpf_program__fd(const struct bpf_program *prog)</div><div class="ttdoc">Get a file descriptor that refers to a program.</div></div>
 <div class="ttc" id="alibbpf_8h_html_a707d517a9861144008ed57e717ac174a"><div class="ttname"><a href="libbpf_8h.html#a707d517a9861144008ed57e717ac174a">bpf_object__unpin_programs</a></div><div class="ttdeci">int bpf_object__unpin_programs(struct bpf_object *obj, const char *path)</div><div class="ttdoc">Unpin all programs associated with an eBPF object from a specified path.</div></div>
 <div class="ttc" id="alibbpf_8h_html_a62d680951c5e380caef2d82d97f12d9d"><div class="ttname"><a href="libbpf_8h.html#a62d680951c5e380caef2d82d97f12d9d">bpf_set_link_xdp_fd</a></div><div class="ttdeci">int bpf_set_link_xdp_fd(int ifindex, int fd, __u32 flags)</div><div class="ttdoc">Attach an XDP program to a given interface.</div></div>
+<div class="ttc" id="alibbpf_8h_html_a789393546ed103be96e012387b12bdcf"><div class="ttname"><a href="libbpf_8h.html#a789393546ed103be96e012387b12bdcf">bpf_program__type</a></div><div class="ttdeci">enum bpf_prog_type bpf_program__type(const struct bpf_program *prog)</div><div class="ttdoc">Get the program type for an eBPF program.</div></div>
 <div class="ttc" id="alibbpf_8h_html_a33a41f94f254e17a56b5059bb5983bff"><div class="ttname"><a href="libbpf_8h.html#a33a41f94f254e17a56b5059bb5983bff">bpf_object__unload</a></div><div class="ttdeci">int bpf_object__unload(struct bpf_object *obj)</div><div class="ttdoc">Unload all the programs in a given object.</div></div>
 <div class="ttc" id="alibbpf_8h_html_a0dba5a39c1e6994fec70ec41183acde2"><div class="ttname"><a href="libbpf_8h.html#a0dba5a39c1e6994fec70ec41183acde2">bpf_object__open_file</a></div><div class="ttdeci">struct bpf_object * bpf_object__open_file(const char *path, const struct bpf_object_open_opts *opts)</div><div class="ttdoc">Open a file without loading the programs.</div></div>
 <div class="ttc" id="alibbpf_8h_html_a854b1fd0041c09fd70dbfa6103483216"><div class="ttname"><a href="libbpf_8h.html#a854b1fd0041c09fd70dbfa6103483216">bpf_object__pin</a></div><div class="ttdeci">int bpf_object__pin(struct bpf_object *object, const char *path)</div><div class="ttdoc">Pin an eBPF object to a specified path.</div></div>
