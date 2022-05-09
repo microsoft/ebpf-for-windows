@@ -408,7 +408,7 @@ bpf_program__set_expected_attach_type(struct bpf_program* program, enum bpf_atta
 }
 
 enum bpf_prog_type
-bpf_program__get_type(const struct bpf_program* program)
+bpf_program__type(const struct bpf_program* program)
 {
     return _get_bpf_program_type(&program->program_type);
 }
