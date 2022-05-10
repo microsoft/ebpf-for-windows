@@ -34,7 +34,7 @@
     TEST_CASE(CONCAT(_name, "-jit"), _group) { _function(EBPF_EXECUTION_JIT); } \
     TEST_CASE(CONCAT(_name, "-native"), _group) { _function(EBPF_EXECUTION_NATIVE); }
 
-const int nonexistant_fd = 12345678;
+const int nonexistent_fd = 12345678;
 
 TEST_CASE("empty bpf_load_program", "[libbpf]")
 {
@@ -433,7 +433,7 @@ TEST_CASE("libbpf map", "[libbpf]")
     REQUIRE(errno == EINVAL);
 
     // Invalid fd.
-    result = bpf_map_lookup_elem(nonexistant_fd, &index, &value);
+    result = bpf_map_lookup_elem(nonexistent_fd, &index, &value);
     REQUIRE(result < 0);
     REQUIRE(errno == EBADF);
 
@@ -453,7 +453,7 @@ TEST_CASE("libbpf map", "[libbpf]")
     REQUIRE(errno == EINVAL);
 
     // Invalid fd.
-    result = bpf_map_delete_elem(nonexistant_fd, &index);
+    result = bpf_map_delete_elem(nonexistent_fd, &index);
     REQUIRE(result < 0);
     REQUIRE(errno == EBADF);
 
@@ -469,7 +469,7 @@ TEST_CASE("libbpf map", "[libbpf]")
 
     index = 0;
     // Invalid fd.
-    result = bpf_map_update_elem(nonexistant_fd, &index, &value, 0);
+    result = bpf_map_update_elem(nonexistent_fd, &index, &value, 0);
     REQUIRE(result < 0);
     REQUIRE(errno == EBADF);
 
@@ -555,7 +555,7 @@ TEST_CASE("libbpf map", "[libbpf]")
     REQUIRE(errno == EINVAL);
 
     // Invalid fd.
-    result = bpf_map_get_next_key(nonexistant_fd, NULL, &value);
+    result = bpf_map_get_next_key(nonexistent_fd, NULL, &value);
     REQUIRE(result < 0);
     REQUIRE(errno == EBADF);
 
@@ -855,7 +855,7 @@ TEST_CASE("libbpf obj pinning", "[libbpf]")
     REQUIRE(result < 0);
     REQUIRE(errno == EINVAL);
 
-    result = bpf_obj_pin(nonexistant_fd, "not_a_real_fd");
+    result = bpf_obj_pin(nonexistent_fd, "not_a_real_fd");
     REQUIRE(result < 0);
     REQUIRE(errno == EBADF);
 
