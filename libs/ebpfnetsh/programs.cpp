@@ -190,7 +190,7 @@ handle_ebpf_add_program(
     void* attach_parameters = nullptr;
     size_t attach_parameters_size = 0;
     if (interface_parameter != nullptr) {
-        result = _process_interface_parameter(interface_parameter, bpf_program__get_type(program), &if_index);
+        result = _process_interface_parameter(interface_parameter, bpf_program__type(program), &if_index);
         if (result == EBPF_SUCCESS) {
             attach_parameters = &if_index;
             attach_parameters_size = sizeof(if_index);
