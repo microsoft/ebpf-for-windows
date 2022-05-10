@@ -184,14 +184,6 @@ _get_map_program_type(_In_ const ebpf_core_object_t* object)
     return &map->program_type;
 }
 
-typedef enum _ebpf_map_properties_flags
-{
-    EBPF_MAP_PROPERTY_ZERO_LENGTH_KEY = 0x1,
-    EBPF_MAP_PROPERTY_ZERO_LENGTH_VALUE = 0x2,
-    EBPF_MAP_PROPERTY_PER_CPU = 0x4,
-    EBPF_MAP_PROPERTY_KEY_HISTORY = 0x8,
-} ebpf_map_properties_flags_t;
-
 typedef struct _ebpf_map_metadata_table
 {
     ebpf_result_t (*create_map)(
