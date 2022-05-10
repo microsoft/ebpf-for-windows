@@ -130,32 +130,6 @@ test_LRU_map(struct _ebpf_map_definition_in_file* map)
 
 struct _ebpf_map_definition_in_file STACK_map;
 
-__attribute__((always_inline)) int
-test_PUSH_POP_map(struct _ebpf_map_definition_in_file* map)
-{
-    int i;
-    PEEK_VALUE(map, 0, -7);
-    POP_VALUE(map, 0, -7);
-
-    for (i = 0; i < 10; i++) {
-        PUSH_VALUE(map, i, FALSE, 0);
-    }
-
-    PUSH_VALUE(map, 10, FALSE, -29);
-    PUSH_VALUE(map, 10, TRUE, 0);
-
-    PEEK_VALUE(map, (map == &STACK_map) ? 10 : 1, 0);
-
-    for (i = 0; i < 10; i++) {
-        POP_VALUE(map, (map == &STACK_map) ? 10 - i : i + 1, 0);
-    }
-
-    PEEK_VALUE(map, 0, -7);
-    POP_VALUE(map, 0, -7);
-
-    return 0;
-}
-
 // General purpose maps
 DECLARE_MAP(HASH);
 DECLARE_MAP(PERCPU_HASH);
@@ -183,7 +157,51 @@ SEC("xdp_prog") int test_maps(struct xdp_md* ctx)
     TEST_MAP(LRU_HASH, LRU);
     TEST_MAP(LRU_PERCPU_HASH, LRU);
 
-    TEST_MAP(QUEUE, PUSH_POP);
-    TEST_MAP(STACK, PUSH_POP);
+    // TEST_MAP(QUEUE, PUSH_POP) is too large for clang to inline, so inline manually.
+    {
+        PEEK_VALUE(&QUEUE_map, 0, -7);
+        POP_VALUE(&QUEUE_map, 0, -7);
+
+        int i;
+        for (i = 0; i < 10; i++) {
+            PUSH_VALUE(&QUEUE_map, i, FALSE, 0);
+        }
+
+        PUSH_VALUE(&QUEUE_map, 10, FALSE, -29);
+        PUSH_VALUE(&QUEUE_map, 10, TRUE, 0);
+
+        PEEK_VALUE(&QUEUE_map, 1, 0);
+
+        for (i = 0; i < 10; i++) {
+            POP_VALUE(&QUEUE_map, i + 1, 0);
+        }
+
+        PEEK_VALUE(&QUEUE_map, 0, -7);
+        POP_VALUE(&QUEUE_map, 0, -7);
+    }
+
+    // TEST_MAP(STACK, PUSH_POP) is too large for clang to inline, so inline manually.
+    {
+        PEEK_VALUE(&STACK_map, 0, -7);
+        POP_VALUE(&STACK_map, 0, -7);
+
+        int i;
+        for (i = 0; i < 10; i++) {
+            PUSH_VALUE(&STACK_map, i, FALSE, 0);
+        }
+
+        PUSH_VALUE(&STACK_map, 10, FALSE, -29);
+        PUSH_VALUE(&STACK_map, 10, TRUE, 0);
+
+        PEEK_VALUE(&STACK_map, 10, 0);
+
+        for (i = 0; i < 10; i++) {
+            POP_VALUE(&STACK_map, 10 - i, 0);
+        }
+
+        PEEK_VALUE(&QUEUE_map, 0, -7);
+        POP_VALUE(&QUEUE_map, 0, -7);
+    }
+
     return 0;
 }
