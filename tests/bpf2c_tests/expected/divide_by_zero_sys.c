@@ -179,6 +179,7 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
     *hash = NULL;
     *size = 0;
 }
+#pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
     {NULL,
      {
@@ -193,6 +194,7 @@ static map_entry_t _maps[] = {
      },
      "test_map"},
 };
+#pragma data_seg(pop)
 
 static void
 _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ size_t* count)
@@ -213,6 +215,7 @@ static uint16_t divide_by_zero_maps[] = {
     0,
 };
 
+#pragma code_seg(push, "xdp")
 static uint64_t
 divide_by_zero(void* context)
 {
@@ -266,12 +269,12 @@ divide_by_zero(void* context)
     if ((divide_by_zero_helpers[0].tail_call) && (r0 == 0))
 #line 30 "sample/divide_by_zero.c"
         return 0;
-        // EBPF_OP_JEQ_IMM pc=7 dst=r0 src=r0 offset=3 imm=0
+    // EBPF_OP_JEQ_IMM pc=7 dst=r0 src=r0 offset=3 imm=0
 #line 31 "sample/divide_by_zero.c"
     if (r0 == IMMEDIATE(0))
 #line 31 "sample/divide_by_zero.c"
         goto label_1;
-        // EBPF_OP_LDXW pc=8 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDXW pc=8 dst=r1 src=r0 offset=0 imm=0
 #line 32 "sample/divide_by_zero.c"
     r1 = *(uint32_t*)(uintptr_t)(r0 + OFFSET(0));
     // EBPF_OP_MOV64_IMM pc=9 dst=r6 src=r0 offset=0 imm=100000
@@ -294,11 +297,15 @@ label_1:
     return r0;
 #line 35 "sample/divide_by_zero.c"
 }
+#pragma code_seg(pop)
 #line __LINE__ __FILE__
 
+#pragma data_seg(push, "programs")
 static program_entry_t _programs[] = {
     {
+        0,
         divide_by_zero,
+        "xdp",
         "xdp",
         "divide_by_zero",
         divide_by_zero_maps,
@@ -310,6 +317,7 @@ static program_entry_t _programs[] = {
         &divide_by_zero_attach_type_guid,
     },
 };
+#pragma data_seg(pop)
 
 static void
 _get_programs(_Outptr_result_buffer_(*count) program_entry_t** programs, _Out_ size_t* count)

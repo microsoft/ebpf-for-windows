@@ -54,6 +54,7 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
     *hash = NULL;
     *size = 0;
 }
+#pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
     {NULL,
      {
@@ -80,6 +81,7 @@ static map_entry_t _maps[] = {
      },
      "audit_map"},
 };
+#pragma data_seg(pop)
 
 static void
 _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ size_t* count)
@@ -102,6 +104,7 @@ static uint16_t connection_monitor_maps[] = {
     1,
 };
 
+#pragma code_seg(push, "sockops")
 static uint64_t
 connection_monitor(void* context)
 {
@@ -151,12 +154,12 @@ connection_monitor(void* context)
     if (r2 == IMMEDIATE(0))
 #line 70 "sample/sockops.c"
         goto label_2;
-        // EBPF_OP_JEQ_IMM pc=4 dst=r2 src=r0 offset=5 imm=2
+    // EBPF_OP_JEQ_IMM pc=4 dst=r2 src=r0 offset=5 imm=2
 #line 70 "sample/sockops.c"
     if (r2 == IMMEDIATE(2))
 #line 70 "sample/sockops.c"
         goto label_1;
-        // EBPF_OP_LDDW pc=5 dst=r6 src=r0 offset=0 imm=-1
+    // EBPF_OP_LDDW pc=5 dst=r6 src=r0 offset=0 imm=-1
 #line 70 "sample/sockops.c"
     r6 = (uint64_t)4294967295;
     // EBPF_OP_JNE_IMM pc=7 dst=r2 src=r0 offset=214 imm=1
@@ -164,7 +167,7 @@ connection_monitor(void* context)
     if (r2 != IMMEDIATE(1))
 #line 70 "sample/sockops.c"
         goto label_13;
-        // EBPF_OP_MOV64_IMM pc=8 dst=r4 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=8 dst=r4 src=r0 offset=0 imm=0
 #line 70 "sample/sockops.c"
     r4 = IMMEDIATE(0);
     // EBPF_OP_JA pc=9 dst=r0 src=r0 offset=2 imm=0
@@ -186,7 +189,7 @@ label_2:
     if (r2 != IMMEDIATE(2))
 #line 87 "sample/sockops.c"
         goto label_7;
-        // EBPF_OP_MOV64_IMM pc=14 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=14 dst=r6 src=r0 offset=0 imm=0
 #line 87 "sample/sockops.c"
     r6 = IMMEDIATE(0);
     // EBPF_OP_STXW pc=15 dst=r10 src=r6 offset=-4 imm=0
@@ -233,7 +236,7 @@ label_2:
     if (r4 != IMMEDIATE(0))
 #line 24 "sample/sockops.c"
         goto label_3;
-        // EBPF_OP_MOV64_IMM pc=29 dst=r5 src=r0 offset=0 imm=28
+    // EBPF_OP_MOV64_IMM pc=29 dst=r5 src=r0 offset=0 imm=28
 #line 24 "sample/sockops.c"
     r5 = IMMEDIATE(28);
 label_3:
@@ -260,7 +263,7 @@ label_3:
     if (r4 != IMMEDIATE(0))
 #line 25 "sample/sockops.c"
         goto label_4;
-        // EBPF_OP_MOV64_IMM pc=37 dst=r3 src=r0 offset=0 imm=44
+    // EBPF_OP_MOV64_IMM pc=37 dst=r3 src=r0 offset=0 imm=44
 #line 25 "sample/sockops.c"
     r3 = IMMEDIATE(44);
 label_4:
@@ -281,7 +284,7 @@ label_4:
     if (r4 != IMMEDIATE(0))
 #line 27 "sample/sockops.c"
         goto label_5;
-        // EBPF_OP_MOV64_IMM pc=43 dst=r0 src=r0 offset=0 imm=24
+    // EBPF_OP_MOV64_IMM pc=43 dst=r0 src=r0 offset=0 imm=24
 #line 27 "sample/sockops.c"
     r0 = IMMEDIATE(24);
 label_5:
@@ -290,7 +293,7 @@ label_5:
     if (r4 != IMMEDIATE(0))
 #line 26 "sample/sockops.c"
         goto label_6;
-        // EBPF_OP_MOV64_IMM pc=45 dst=r2 src=r0 offset=0 imm=8
+    // EBPF_OP_MOV64_IMM pc=45 dst=r2 src=r0 offset=0 imm=8
 #line 26 "sample/sockops.c"
     r2 = IMMEDIATE(8);
 label_6:
@@ -348,12 +351,12 @@ label_6:
     if ((connection_monitor_helpers[0].tail_call) && (r0 == 0))
 #line 32 "sample/sockops.c"
         return 0;
-        // EBPF_OP_JEQ_IMM pc=63 dst=r0 src=r0 offset=158 imm=0
+    // EBPF_OP_JEQ_IMM pc=63 dst=r0 src=r0 offset=158 imm=0
 #line 32 "sample/sockops.c"
     if (r0 == IMMEDIATE(0))
 #line 32 "sample/sockops.c"
         goto label_13;
-        // EBPF_OP_JA pc=64 dst=r0 src=r0 offset=149 imm=0
+    // EBPF_OP_JA pc=64 dst=r0 src=r0 offset=149 imm=0
 #line 32 "sample/sockops.c"
     goto label_12;
 label_7:
@@ -398,7 +401,7 @@ label_7:
     if (r4 != IMMEDIATE(0))
 #line 46 "sample/sockops.c"
         goto label_8;
-        // EBPF_OP_MOV64_REG pc=78 dst=r0 src=r3 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=78 dst=r0 src=r3 offset=0 imm=0
 #line 46 "sample/sockops.c"
     r0 = r3;
 label_8:
@@ -473,7 +476,7 @@ label_8:
     if (r4 != IMMEDIATE(0))
 #line 48 "sample/sockops.c"
         goto label_9;
-        // EBPF_OP_LDXDW pc=102 dst=r3 src=r10 offset=-104 imm=0
+    // EBPF_OP_LDXDW pc=102 dst=r3 src=r10 offset=-104 imm=0
 #line 48 "sample/sockops.c"
     r3 = *(uint64_t*)(uintptr_t)(r10 + OFFSET(-104));
 label_9:
@@ -518,7 +521,7 @@ label_9:
     if (r4 != IMMEDIATE(0))
 #line 48 "sample/sockops.c"
         goto label_10;
-        // EBPF_OP_MOV64_IMM pc=116 dst=r1 src=r0 offset=0 imm=44
+    // EBPF_OP_MOV64_IMM pc=116 dst=r1 src=r0 offset=0 imm=44
 #line 48 "sample/sockops.c"
     r1 = IMMEDIATE(44);
     // EBPF_OP_STXDW pc=117 dst=r10 src=r1 offset=-64 imm=0
@@ -548,7 +551,7 @@ label_10:
     if (r4 != IMMEDIATE(0))
 #line 51 "sample/sockops.c"
         goto label_11;
-        // EBPF_OP_MOV64_IMM pc=125 dst=r1 src=r0 offset=0 imm=24
+    // EBPF_OP_MOV64_IMM pc=125 dst=r1 src=r0 offset=0 imm=24
 #line 51 "sample/sockops.c"
     r1 = IMMEDIATE(24);
     // EBPF_OP_STXDW pc=126 dst=r10 src=r1 offset=-72 imm=0
@@ -813,7 +816,7 @@ label_11:
     if ((connection_monitor_helpers[0].tail_call) && (r0 == 0))
 #line 56 "sample/sockops.c"
         return 0;
-        // EBPF_OP_MOV64_IMM pc=212 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=212 dst=r6 src=r0 offset=0 imm=0
 #line 56 "sample/sockops.c"
     r6 = IMMEDIATE(0);
     // EBPF_OP_JEQ_IMM pc=213 dst=r0 src=r0 offset=8 imm=0
@@ -846,7 +849,7 @@ label_12:
     if ((connection_monitor_helpers[1].tail_call) && (r0 == 0))
 #line 56 "sample/sockops.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=221 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=221 dst=r6 src=r0 offset=0 imm=0
 #line 56 "sample/sockops.c"
     r6 = r0;
 label_13:
@@ -858,11 +861,15 @@ label_13:
     return r0;
 #line 89 "sample/sockops.c"
 }
+#pragma code_seg(pop)
 #line __LINE__ __FILE__
 
+#pragma data_seg(push, "programs")
 static program_entry_t _programs[] = {
     {
+        0,
         connection_monitor,
+        "sockops",
         "sockops",
         "connection_monitor",
         connection_monitor_maps,
@@ -874,6 +881,7 @@ static program_entry_t _programs[] = {
         &connection_monitor_attach_type_guid,
     },
 };
+#pragma data_seg(pop)
 
 static void
 _get_programs(_Outptr_result_buffer_(*count) program_entry_t** programs, _Out_ size_t* count)

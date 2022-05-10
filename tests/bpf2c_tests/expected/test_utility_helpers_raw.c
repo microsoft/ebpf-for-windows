@@ -12,6 +12,7 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
     *hash = NULL;
     *size = 0;
 }
+#pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
     {NULL,
      {
@@ -26,6 +27,7 @@ static map_entry_t _maps[] = {
      },
      "utility_map"},
 };
+#pragma data_seg(pop)
 
 static void
 _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ size_t* count)
@@ -49,6 +51,7 @@ static uint16_t test_utility_helpers_maps[] = {
     0,
 };
 
+#pragma code_seg(push, "xdp")
 static uint64_t
 test_utility_helpers(void* context)
 {
@@ -108,7 +111,7 @@ test_utility_helpers(void* context)
     if ((test_utility_helpers_helpers[0].tail_call) && (r0 == 0))
 #line 16 "sample/./sample_common_routines.h"
         return 0;
-        // EBPF_OP_STXW pc=9 dst=r10 src=r0 offset=-40 imm=0
+    // EBPF_OP_STXW pc=9 dst=r10 src=r0 offset=-40 imm=0
 #line 16 "sample/./sample_common_routines.h"
     *(uint32_t*)(uintptr_t)(r10 + OFFSET(-40)) = (uint32_t)r0;
     // EBPF_OP_CALL pc=10 dst=r0 src=r0 offset=0 imm=7
@@ -120,7 +123,7 @@ test_utility_helpers(void* context)
     if ((test_utility_helpers_helpers[1].tail_call) && (r0 == 0))
 #line 24 "sample/./sample_common_routines.h"
         return 0;
-        // EBPF_OP_STXDW pc=11 dst=r10 src=r0 offset=-24 imm=0
+    // EBPF_OP_STXDW pc=11 dst=r10 src=r0 offset=-24 imm=0
 #line 24 "sample/./sample_common_routines.h"
     *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r0;
     // EBPF_OP_CALL pc=12 dst=r0 src=r0 offset=0 imm=7
@@ -132,7 +135,7 @@ test_utility_helpers(void* context)
     if ((test_utility_helpers_helpers[1].tail_call) && (r0 == 0))
 #line 27 "sample/./sample_common_routines.h"
         return 0;
-        // EBPF_OP_STXDW pc=13 dst=r10 src=r0 offset=-32 imm=0
+    // EBPF_OP_STXDW pc=13 dst=r10 src=r0 offset=-32 imm=0
 #line 27 "sample/./sample_common_routines.h"
     *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r0;
     // EBPF_OP_CALL pc=14 dst=r0 src=r0 offset=0 imm=8
@@ -144,7 +147,7 @@ test_utility_helpers(void* context)
     if ((test_utility_helpers_helpers[2].tail_call) && (r0 == 0))
 #line 30 "sample/./sample_common_routines.h"
         return 0;
-        // EBPF_OP_STXW pc=15 dst=r10 src=r0 offset=-16 imm=0
+    // EBPF_OP_STXW pc=15 dst=r10 src=r0 offset=-16 imm=0
 #line 30 "sample/./sample_common_routines.h"
     *(uint32_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint32_t)r0;
     // EBPF_OP_MOV64_REG pc=16 dst=r2 src=r10 offset=0 imm=0
@@ -177,7 +180,7 @@ test_utility_helpers(void* context)
     if ((test_utility_helpers_helpers[3].tail_call) && (r0 == 0))
 #line 33 "sample/./sample_common_routines.h"
         return 0;
-        // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=6
+    // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=6
 #line 36 "sample/./sample_common_routines.h"
     r0 = test_utility_helpers_helpers[0].address
 #line 36 "sample/./sample_common_routines.h"
@@ -186,7 +189,7 @@ test_utility_helpers(void* context)
     if ((test_utility_helpers_helpers[0].tail_call) && (r0 == 0))
 #line 36 "sample/./sample_common_routines.h"
         return 0;
-        // EBPF_OP_STXW pc=26 dst=r10 src=r0 offset=-40 imm=0
+    // EBPF_OP_STXW pc=26 dst=r10 src=r0 offset=-40 imm=0
 #line 36 "sample/./sample_common_routines.h"
     *(uint32_t*)(uintptr_t)(r10 + OFFSET(-40)) = (uint32_t)r0;
     // EBPF_OP_CALL pc=27 dst=r0 src=r0 offset=0 imm=7
@@ -198,7 +201,7 @@ test_utility_helpers(void* context)
     if ((test_utility_helpers_helpers[1].tail_call) && (r0 == 0))
 #line 39 "sample/./sample_common_routines.h"
         return 0;
-        // EBPF_OP_STXDW pc=28 dst=r10 src=r0 offset=-32 imm=0
+    // EBPF_OP_STXDW pc=28 dst=r10 src=r0 offset=-32 imm=0
 #line 39 "sample/./sample_common_routines.h"
     *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r0;
     // EBPF_OP_CALL pc=29 dst=r0 src=r0 offset=0 imm=7
@@ -210,7 +213,7 @@ test_utility_helpers(void* context)
     if ((test_utility_helpers_helpers[1].tail_call) && (r0 == 0))
 #line 42 "sample/./sample_common_routines.h"
         return 0;
-        // EBPF_OP_STXDW pc=30 dst=r10 src=r0 offset=-24 imm=0
+    // EBPF_OP_STXDW pc=30 dst=r10 src=r0 offset=-24 imm=0
 #line 42 "sample/./sample_common_routines.h"
     *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r0;
     // EBPF_OP_MOV64_REG pc=31 dst=r2 src=r10 offset=0 imm=0
@@ -237,7 +240,7 @@ test_utility_helpers(void* context)
     if ((test_utility_helpers_helpers[3].tail_call) && (r0 == 0))
 #line 45 "sample/./sample_common_routines.h"
         return 0;
-        // EBPF_OP_MOV64_IMM pc=38 dst=r0 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=38 dst=r0 src=r0 offset=0 imm=0
 #line 33 "sample/test_utility_helpers.c"
     r0 = IMMEDIATE(0);
     // EBPF_OP_EXIT pc=39 dst=r0 src=r0 offset=0 imm=0
@@ -245,11 +248,15 @@ test_utility_helpers(void* context)
     return r0;
 #line 33 "sample/test_utility_helpers.c"
 }
+#pragma code_seg(pop)
 #line __LINE__ __FILE__
 
+#pragma data_seg(push, "programs")
 static program_entry_t _programs[] = {
     {
+        0,
         test_utility_helpers,
+        "xdp",
         "xdp",
         "test_utility_helpers",
         test_utility_helpers_maps,
@@ -261,6 +268,7 @@ static program_entry_t _programs[] = {
         &test_utility_helpers_attach_type_guid,
     },
 };
+#pragma data_seg(pop)
 
 static void
 _get_programs(_Outptr_result_buffer_(*count) program_entry_t** programs, _Out_ size_t* count)
