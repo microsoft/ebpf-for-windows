@@ -260,7 +260,6 @@ main(int argc, char** argv)
         std::cout << copyright_notice << std::endl;
         std::cout << "// Do not alter this generated file." << std::endl;
         std::cout << "// This file was generated from " << file << std::endl << std::endl;
-        std::cout << "#pragma code_seg(\"skeleton\")" << std::endl;
         switch (type) {
         case output_type::Bare:
             break;

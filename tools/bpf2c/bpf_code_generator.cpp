@@ -172,6 +172,7 @@ bpf_code_generator::parse(const std::string& section_name, const GUID& program_t
     get_register_name(1);
     get_register_name(10);
 
+    set_pe_section_name(section_name);
     set_program_and_attach_type(program_type, attach_type);
     extract_program(section_name);
     extract_relocations_and_maps(section_name);
@@ -885,7 +886,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         }
 
         // Emit entry point
-        output_stream << "#pragma code_seg(push, \"" << pe_section_name(name) << "\")" << std::endl;
+        output_stream << "#pragma code_seg(push, \"" << section.pe_section_name << "\")" << std::endl;
         output_stream << format_string("static uint64_t\n%s(void* context)", sanitize_name(program_name)) << std::endl;
         output_stream << "{" << std::endl;
 
@@ -937,6 +938,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         output_stream << "#line __LINE__ __FILE__" << std::endl << std::endl;
     }
 
+    output_stream << "#pragma data_seg(push, \"programs\")" << std::endl;
     output_stream << "static program_entry_t _programs[] = {" << std::endl;
     for (auto& [name, program] : sections) {
         auto program_name = !program.program_name.empty() ? program.program_name : name;
@@ -947,7 +949,9 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         auto program_type_guid_name = program_name + "_program_type_guid";
         auto attach_type_guid_name = program_name + "_attach_type_guid";
         output_stream << INDENT "{" << std::endl;
+        output_stream << INDENT INDENT << "0," << std::endl;
         output_stream << INDENT INDENT << sanitize_name(program_name) << "," << std::endl;
+        output_stream << INDENT INDENT "\"" << program.pe_section_name.c_str() << "\"," << std::endl;
         output_stream << INDENT INDENT "\"" << name.c_str() << "\"," << std::endl;
         output_stream << INDENT INDENT "\"" << program.program_name.c_str() << "\"," << std::endl;
         output_stream << INDENT INDENT << map_array_name.c_str() << "," << std::endl;
@@ -960,6 +964,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         output_stream << INDENT "}," << std::endl;
     }
     output_stream << "};" << std::endl;
+    output_stream << "#pragma data_seg(pop)" << std::endl;
     output_stream << std::endl;
     output_stream << "static void" << std::endl
                   << "_get_programs(_Outptr_result_buffer_(*count) program_entry_t** programs, _Out_ size_t* count)"
@@ -1048,23 +1053,23 @@ bpf_code_generator::format_string(
     return output;
 }
 
-std::string
-bpf_code_generator::pe_section_name(const std::string& elf_section_name)
+void
+bpf_code_generator::set_pe_section_name(const std::string& elf_section_name)
 {
-    static int counter = 0;
     if (elf_section_name.length() <= 8) {
-        return elf_section_name;
+        current_section->pe_section_name = elf_section_name;
+        return;
     }
 
     // Name is too long for PE, so generate a short name.
     // Subtract 3 so there is space for the tilde, the last counter digit,
     // and a null terminator.
-    counter++;
+    pe_section_name_counter++;
     char shortname[9];
-    int prefix_length = sizeof(shortname) - 3 - (int)(log10(counter));
+    int prefix_length = sizeof(shortname) - 3 - (int)(log10(pe_section_name_counter));
     strncpy_s(shortname, sizeof(shortname), elf_section_name.c_str(), prefix_length);
-    sprintf_s(shortname + prefix_length, sizeof(shortname) - prefix_length, "~%d", counter);
-    return std::string(shortname);
+    sprintf_s(shortname + prefix_length, sizeof(shortname) - prefix_length, "~%d", pe_section_name_counter);
+    current_section->pe_section_name = shortname;
 }
 
 std::string

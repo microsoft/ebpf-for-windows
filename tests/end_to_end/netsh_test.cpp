@@ -142,9 +142,7 @@ TEST_CASE("show sections bpf.sys", "[netsh][sections]")
         output == "\n"
                   "             Section       Type  # Maps    Size\n"
                   "====================  =========  ======  ======\n"
-                  "                INIT       none       0     432\n"
-                  "               .text        xdp       0     422\n"
-                  "            skeleton       none       0    1320\n");
+                  "               .text        xdp       0     422\n");
 }
 
 // Test a DLL with multiple maps in the map section.
@@ -153,25 +151,11 @@ TEST_CASE("show sections map_reuse_um.dll", "[netsh][sections]")
     int result;
     std::string output = _run_netsh_command(handle_ebpf_show_sections, L"map_reuse_um.dll", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
-
-    // Debug and release binaries have different sizes.
-#ifdef _DEBUG
     REQUIRE(
         output == "\n"
                   "             Section       Type  # Maps    Size\n"
                   "====================  =========  ======  ======\n"
-                  "               .text        xdp       3   13565\n"
-                  "            xdp_prog        xdp       3    1087\n"
-                  "            skeleton       none       3     747\n");
-#else
-    REQUIRE(
-        output == "\n"
-                  "             Section       Type  # Maps    Size\n"
-                  "====================  =========  ======  ======\n"
-                  "               .text        xdp       3    6360\n"
-                  "            xdp_prog        xdp       3    1087\n"
-                  "            skeleton       none       3     777\n");
-#endif
+                  "            xdp_prog        xdp       3    1087\n");
 }
 
 // Test a .sys file with multiple programs, including ones with long names.
@@ -181,18 +165,14 @@ TEST_CASE("show sections cgroup_sock_addr.sys", "[netsh][sections]")
     std::string output =
         _run_netsh_command(handle_ebpf_show_sections, L"cgroup_sock_addr.sys", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
-
     REQUIRE(
         output == "\n"
                   "             Section       Type  # Maps    Size\n"
                   "====================  =========  ======  ======\n"
-                  "                INIT       none       2     432\n"
-                  "               .text        xdp       2     294\n"
-                  "            cgroup~4  sock_addr       2     728\n"
-                  "            cgroup~3  sock_addr       2     594\n"
-                  "            cgroup~2  sock_addr       2     728\n"
-                  "            cgroup~1  sock_addr       2     594\n"
-                  "            skeleton       none       2    1320\n");
+                  " cgroup/recv_accept6  sock_addr       2     728\n"
+                  " cgroup/recv_accept4  sock_addr       2     594\n"
+                  "     cgroup/connect6  sock_addr       2     728\n"
+                  "     cgroup/connect4  sock_addr       2     594\n");
 }
 
 TEST_CASE("show verification nosuchfile.o", "[netsh][verification]")

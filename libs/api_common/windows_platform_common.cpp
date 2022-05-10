@@ -32,16 +32,6 @@ get_program_type_windows(const GUID& program_type)
     return windows_xdp_program_type;
 }
 
-static int
-_get_common_prefix_length(const std::string& section, const std::string& prefix)
-{
-    for (int length = 0;; length++) {
-        if (length == section.length() || length == prefix.length() || section[length] != prefix[length]) {
-            return length;
-        }
-    }
-}
-
 EbpfProgramType
 get_program_type_windows(const std::string& section, const std::string&)
 {
@@ -50,8 +40,6 @@ get_program_type_windows(const std::string& section, const std::string&)
 
     // TODO: (Issue #223) Read the registry to fetch all the section
     //       prefixes and corresponding program and attach types.
-    const EbpfProgramType* best_type = &windows_xdp_program_type;
-    int best_match_length = 0;
     for (const EbpfProgramType& t : windows_program_types) {
         if (program_type != nullptr) {
             if (t.platform_specific_data != 0) {
@@ -62,16 +50,13 @@ get_program_type_windows(const std::string& section, const std::string&)
             }
         } else {
             for (const std::string prefix : t.section_prefixes) {
-                int common_prefix_length = _get_common_prefix_length(section, prefix);
-                if (best_match_length < common_prefix_length) {
-                    best_match_length = common_prefix_length;
-                    best_type = &t;
-                }
+                if (section.find(prefix) == 0)
+                    return t;
             }
         }
     }
 
-    return *best_type;
+    return windows_xdp_program_type;
 }
 
 #define BPF_MAP_TYPE(x) BPF_MAP_TYPE_##x, #x
