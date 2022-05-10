@@ -1721,9 +1721,12 @@ _ebpf_pe_add_section(
     memset(info, 0, sizeof(*info));
     info->section_name = _strdup(section_name.c_str());
 
-    EbpfProgramType program_type = get_program_type_windows(section_name, std::string());
+    std::string program_type_name = "none";
+    if (section_name != "skeleton" && section_name != "INIT") {
+        program_type_name = get_program_type_windows(section_name, std::string()).name;
+    }
 
-    info->program_type_name = _strdup(program_type.name.c_str());
+    info->program_type_name = _strdup(program_type_name.c_str());
     info->raw_data_size = section_header.Misc.VirtualSize;
     info->raw_data = (char*)malloc(section_header.Misc.VirtualSize);
     info->map_count = pe_context->map_count;

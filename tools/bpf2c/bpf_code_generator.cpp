@@ -155,7 +155,7 @@ bpf_code_generator::program_sections()
     std::vector<std::string> section_names;
     for (const auto& section : reader.sections) {
         std::string name = section->get_name();
-        if (name.empty() || name[0] == '.')
+        if (name.empty() || (section->get_size() == 0))
             continue;
         if ((section->get_type() == 1) && (section->get_flags() == 6)) {
             section_names.push_back(section->get_name());
