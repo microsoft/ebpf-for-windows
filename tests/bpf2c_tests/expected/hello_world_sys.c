@@ -186,16 +186,16 @@ _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ siz
     *count = 0;
 }
 
-static helper_function_entry_t HelloWorld_helpers[] = {
+static helper_function_entry_t hello_world_helpers[] = {
     {NULL, 12, "helper_id_12"},
 };
 
-static GUID HelloWorld_program_type_guid = {
+static GUID hello_world_program_type_guid = {
     0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
-static GUID HelloWorld_attach_type_guid = {
+static GUID hello_world_attach_type_guid = {
     0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
 static uint64_t
-HelloWorld(void* context)
+hello_world(void* context)
 {
 #line 18 "sample/hello_world.c"
     // Prologue
@@ -250,11 +250,11 @@ HelloWorld(void* context)
     r2 = IMMEDIATE(13);
     // EBPF_OP_CALL pc=10 dst=r0 src=r0 offset=0 imm=12
 #line 20 "sample/hello_world.c"
-    r0 = HelloWorld_helpers[0].address
+    r0 = hello_world_helpers[0].address
 #line 20 "sample/hello_world.c"
          (r1, r2, r3, r4, r5);
 #line 20 "sample/hello_world.c"
-    if ((HelloWorld_helpers[0].tail_call) && (r0 == 0))
+    if ((hello_world_helpers[0].tail_call) && (r0 == 0))
 #line 20 "sample/hello_world.c"
         return 0;
         // EBPF_OP_MOV64_IMM pc=11 dst=r0 src=r0 offset=0 imm=0
@@ -269,16 +269,16 @@ HelloWorld(void* context)
 
 static program_entry_t _programs[] = {
     {
-        HelloWorld,
+        hello_world,
         "bind",
-        "HelloWorld",
+        "hello_world",
         NULL,
         0,
-        HelloWorld_helpers,
+        hello_world_helpers,
         1,
         13,
-        &HelloWorld_program_type_guid,
-        &HelloWorld_attach_type_guid,
+        &hello_world_program_type_guid,
+        &hello_world_attach_type_guid,
     },
 };
 
