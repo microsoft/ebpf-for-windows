@@ -1074,7 +1074,7 @@ Exit:
 ebpf_result_t
 ebpf_program_attach_by_fd(
     fd_t program_fd,
-    _In_ const ebpf_attach_type_t* attach_type,
+    _In_opt_ const ebpf_attach_type_t* attach_type,
     _In_reads_bytes_opt_(attach_parameters_size) void* attach_parameters,
     _In_ size_t attach_parameters_size,
     _Outptr_ struct bpf_link** link)
