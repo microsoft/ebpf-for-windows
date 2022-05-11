@@ -176,9 +176,9 @@ load_byte_code(
         }
 
         // read_elf() also returns a section with name ".text".
-        // Remove that section from the list of programs returned.
+        // Remove that section from the list of programs returned unless it's the only one.
         for (int i = 0; i < raw_programs.size(); i++) {
-            if (raw_programs[i].section == ".text") {
+            if (raw_programs[i].section == ".text" && raw_programs.size() > 1) {
                 raw_programs.erase(raw_programs.begin() + i);
                 break;
             }
