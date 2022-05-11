@@ -38,11 +38,11 @@ jobs:
       BUILD_CONFIGURATION: ${{matrix.configurations}}
       BUILD_PLATFORM: x64
 
-    # Checking out the branch is needed to gather correct code coverage data.
     steps:
+    # Checking out the branch is needed to correctly log security alerts.
     - uses: actions/checkout@b0e28b5ac45a892f91e7d036f8200cf5ed489415
       with:
-        submodules: 'recursive'
+        # Only check out main repo, not submodules.
         ref: ${{ github.event.workflow_run.head_branch }}
 
     - name: Wait for build to succeed
