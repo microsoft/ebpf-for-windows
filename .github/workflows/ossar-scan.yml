@@ -38,13 +38,6 @@ jobs:
       BUILD_CONFIGURATION: ${{matrix.configurations}}
       BUILD_PLATFORM: x64
 
-    # Checking out the branch is needed to gather correct code coverage data.
-    steps:
-    - uses: actions/checkout@b0e28b5ac45a892f91e7d036f8200cf5ed489415
-      with:
-        submodules: 'recursive'
-        ref: ${{ github.event.workflow_run.head_branch }}
-
     - name: Wait for build to succeed
       uses: fountainhead/action-wait-for-check@507b029e31edbe1a72d4de429476e1f4efe98869
       id: wait_for_build
