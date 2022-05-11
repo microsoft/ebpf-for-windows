@@ -71,6 +71,9 @@ bpf_obj_get_info_by_fd(int bpf_fd, void* info, __u32* info_len)
 int
 bpf_obj_pin(int fd, const char* pathname)
 {
+    if (!pathname) {
+        return libbpf_result_err(EBPF_INVALID_ARGUMENT);
+    }
     return libbpf_result_err(ebpf_object_pin((fd_t)fd, pathname));
 }
 
