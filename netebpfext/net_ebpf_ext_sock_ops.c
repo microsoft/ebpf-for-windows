@@ -457,12 +457,12 @@ net_ebpf_extension_sock_ops_flow_delete(uint16_t layer_id, uint32_t callout_id, 
     if (local_flow_context == NULL)
         goto Exit;
 
-    if (local_flow_context->client_detached)
-        // Since the hook client is detached, exit the function.
-        goto Exit;
-
     filter_context = local_flow_context->filter_context;
     if (filter_context == NULL)
+        goto Exit;
+
+    if (local_flow_context->client_detached)
+        // Since the hook client is detached, exit the function.
         goto Exit;
 
     attached_client = (net_ebpf_extension_hook_client_t*)filter_context->client_context;
