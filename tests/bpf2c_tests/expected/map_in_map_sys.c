@@ -179,6 +179,7 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
     *hash = NULL;
     *size = 0;
 }
+#pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
     {NULL,
      {
@@ -205,6 +206,7 @@ static map_entry_t _maps[] = {
      },
      "inner_map"},
 };
+#pragma data_seg(pop)
 
 static void
 _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ size_t* count)
@@ -223,6 +225,7 @@ static uint16_t lookup_maps[] = {
     0,
 };
 
+#pragma code_seg(push, "xdp_prog")
 static uint64_t
 lookup(void* context)
 {
@@ -276,12 +279,12 @@ lookup(void* context)
     if ((lookup_helpers[0].tail_call) && (r0 == 0))
 #line 32 "sample/map_in_map.c"
         return 0;
-        // EBPF_OP_JEQ_IMM pc=7 dst=r0 src=r0 offset=9 imm=0
+    // EBPF_OP_JEQ_IMM pc=7 dst=r0 src=r0 offset=9 imm=0
 #line 33 "sample/map_in_map.c"
     if (r0 == IMMEDIATE(0))
 #line 33 "sample/map_in_map.c"
         goto label_2;
-        // EBPF_OP_MOV64_IMM pc=8 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=8 dst=r6 src=r0 offset=0 imm=0
 #line 33 "sample/map_in_map.c"
     r6 = IMMEDIATE(0);
     // EBPF_OP_STXW pc=9 dst=r10 src=r6 offset=-8 imm=0
@@ -305,12 +308,12 @@ lookup(void* context)
     if ((lookup_helpers[0].tail_call) && (r0 == 0))
 #line 35 "sample/map_in_map.c"
         return 0;
-        // EBPF_OP_JNE_IMM pc=14 dst=r0 src=r0 offset=1 imm=0
+    // EBPF_OP_JNE_IMM pc=14 dst=r0 src=r0 offset=1 imm=0
 #line 36 "sample/map_in_map.c"
     if (r0 != IMMEDIATE(0))
 #line 36 "sample/map_in_map.c"
         goto label_1;
-        // EBPF_OP_JA pc=15 dst=r0 src=r0 offset=1 imm=0
+    // EBPF_OP_JA pc=15 dst=r0 src=r0 offset=1 imm=0
 #line 36 "sample/map_in_map.c"
     goto label_2;
 label_1:
@@ -326,11 +329,15 @@ label_2:
     return r0;
 #line 41 "sample/map_in_map.c"
 }
+#pragma code_seg(pop)
 #line __LINE__ __FILE__
 
+#pragma data_seg(push, "programs")
 static program_entry_t _programs[] = {
     {
+        0,
         lookup,
+        "xdp_prog",
         "xdp_prog",
         "lookup",
         lookup_maps,
@@ -342,6 +349,7 @@ static program_entry_t _programs[] = {
         &lookup_attach_type_guid,
     },
 };
+#pragma data_seg(pop)
 
 static void
 _get_programs(_Outptr_result_buffer_(*count) program_entry_t** programs, _Out_ size_t* count)

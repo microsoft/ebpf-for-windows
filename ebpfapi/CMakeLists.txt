@@ -29,6 +29,7 @@ target_link_libraries("EbpfApi" PRIVATE
   "api"
   "api_common"
   "external::ebpfverifier"
+  "pe_parse"
   "platform_user"
   "ubpf_user"
   "rpc_interface"

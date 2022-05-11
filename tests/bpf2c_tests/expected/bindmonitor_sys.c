@@ -179,6 +179,7 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
     *hash = NULL;
     *size = 0;
 }
+#pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
     {NULL,
      {
@@ -205,6 +206,7 @@ static map_entry_t _maps[] = {
      },
      "limits_map"},
 };
+#pragma data_seg(pop)
 
 static void
 _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ size_t* count)
@@ -228,6 +230,7 @@ static uint16_t BindMonitor_maps[] = {
     1,
 };
 
+#pragma code_seg(push, "bind")
 static uint64_t
 BindMonitor(void* context)
 {
@@ -290,7 +293,7 @@ BindMonitor(void* context)
     if ((BindMonitor_helpers[0].tail_call) && (r0 == 0))
 #line 82 "sample/bindmonitor.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=8 dst=r7 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=8 dst=r7 src=r0 offset=0 imm=0
 #line 82 "sample/bindmonitor.c"
     r7 = r0;
     // EBPF_OP_JEQ_IMM pc=9 dst=r7 src=r0 offset=82 imm=0
@@ -298,7 +301,7 @@ BindMonitor(void* context)
     if (r7 == IMMEDIATE(0))
 #line 83 "sample/bindmonitor.c"
         goto label_9;
-        // EBPF_OP_LDXW pc=10 dst=r1 src=r7 offset=0 imm=0
+    // EBPF_OP_LDXW pc=10 dst=r1 src=r7 offset=0 imm=0
 #line 83 "sample/bindmonitor.c"
     r1 = *(uint32_t*)(uintptr_t)(r7 + OFFSET(0));
     // EBPF_OP_JEQ_IMM pc=11 dst=r1 src=r0 offset=80 imm=0
@@ -306,7 +309,7 @@ BindMonitor(void* context)
     if (r1 == IMMEDIATE(0))
 #line 83 "sample/bindmonitor.c"
         goto label_9;
-        // EBPF_OP_LDXDW pc=12 dst=r1 src=r6 offset=16 imm=0
+    // EBPF_OP_LDXDW pc=12 dst=r1 src=r6 offset=16 imm=0
 #line 42 "sample/bindmonitor.c"
     r1 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(16));
     // EBPF_OP_STXDW pc=13 dst=r10 src=r1 offset=-8 imm=0
@@ -360,12 +363,12 @@ BindMonitor(void* context)
     if ((BindMonitor_helpers[0].tail_call) && (r0 == 0))
 #line 47 "sample/bindmonitor.c"
         return 0;
-        // EBPF_OP_JEQ_IMM pc=29 dst=r0 src=r0 offset=1 imm=0
+    // EBPF_OP_JEQ_IMM pc=29 dst=r0 src=r0 offset=1 imm=0
 #line 48 "sample/bindmonitor.c"
     if (r0 == IMMEDIATE(0))
 #line 48 "sample/bindmonitor.c"
         goto label_1;
-        // EBPF_OP_JA pc=30 dst=r0 src=r0 offset=33 imm=0
+    // EBPF_OP_JA pc=30 dst=r0 src=r0 offset=33 imm=0
 #line 48 "sample/bindmonitor.c"
     goto label_3;
 label_1:
@@ -377,7 +380,7 @@ label_1:
     if (r1 != IMMEDIATE(0))
 #line 51 "sample/bindmonitor.c"
         goto label_8;
-        // EBPF_OP_LDXDW pc=33 dst=r1 src=r6 offset=0 imm=0
+    // EBPF_OP_LDXDW pc=33 dst=r1 src=r6 offset=0 imm=0
 #line 54 "sample/bindmonitor.c"
     r1 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(0));
     // EBPF_OP_JEQ_IMM pc=34 dst=r1 src=r0 offset=56 imm=0
@@ -385,7 +388,7 @@ label_1:
     if (r1 == IMMEDIATE(0))
 #line 54 "sample/bindmonitor.c"
         goto label_8;
-        // EBPF_OP_LDXDW pc=35 dst=r1 src=r6 offset=8 imm=0
+    // EBPF_OP_LDXDW pc=35 dst=r1 src=r6 offset=8 imm=0
 #line 54 "sample/bindmonitor.c"
     r1 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(8));
     // EBPF_OP_JEQ_IMM pc=36 dst=r1 src=r0 offset=54 imm=0
@@ -393,7 +396,7 @@ label_1:
     if (r1 == IMMEDIATE(0))
 #line 54 "sample/bindmonitor.c"
         goto label_8;
-        // EBPF_OP_MOV64_REG pc=37 dst=r8 src=r10 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=37 dst=r8 src=r10 offset=0 imm=0
 #line 54 "sample/bindmonitor.c"
     r8 = r10;
     // EBPF_OP_ADD64_IMM pc=38 dst=r8 src=r0 offset=0 imm=-8
@@ -426,7 +429,7 @@ label_1:
     if ((BindMonitor_helpers[1].tail_call) && (r0 == 0))
 #line 57 "sample/bindmonitor.c"
         return 0;
-        // EBPF_OP_LDDW pc=47 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=47 dst=r1 src=r0 offset=0 imm=0
 #line 58 "sample/bindmonitor.c"
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_MOV64_REG pc=49 dst=r2 src=r8 offset=0 imm=0
@@ -441,12 +444,12 @@ label_1:
     if ((BindMonitor_helpers[0].tail_call) && (r0 == 0))
 #line 58 "sample/bindmonitor.c"
         return 0;
-        // EBPF_OP_JEQ_IMM pc=51 dst=r0 src=r0 offset=39 imm=0
+    // EBPF_OP_JEQ_IMM pc=51 dst=r0 src=r0 offset=39 imm=0
 #line 59 "sample/bindmonitor.c"
     if (r0 == IMMEDIATE(0))
 #line 59 "sample/bindmonitor.c"
         goto label_8;
-        // EBPF_OP_MOV64_REG pc=52 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=52 dst=r1 src=r0 offset=0 imm=0
 #line 59 "sample/bindmonitor.c"
     r1 = r0;
     // EBPF_OP_ADD64_IMM pc=53 dst=r1 src=r0 offset=0 imm=4
@@ -467,7 +470,7 @@ label_2:
     if (r2 >= r3)
 #line 63 "sample/bindmonitor.c"
         goto label_3;
-        // EBPF_OP_MOV64_REG pc=58 dst=r3 src=r1 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=58 dst=r3 src=r1 offset=0 imm=0
 #line 66 "sample/bindmonitor.c"
     r3 = r1;
     // EBPF_OP_ADD64_REG pc=59 dst=r3 src=r9 offset=0 imm=0
@@ -496,12 +499,12 @@ label_3:
     if (r1 == IMMEDIATE(0))
 #line 92 "sample/bindmonitor.c"
         goto label_4;
-        // EBPF_OP_JEQ_IMM pc=66 dst=r1 src=r0 offset=9 imm=2
+    // EBPF_OP_JEQ_IMM pc=66 dst=r1 src=r0 offset=9 imm=2
 #line 92 "sample/bindmonitor.c"
     if (r1 == IMMEDIATE(2))
 #line 92 "sample/bindmonitor.c"
         goto label_5;
-        // EBPF_OP_LDXW pc=67 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDXW pc=67 dst=r1 src=r0 offset=0 imm=0
 #line 108 "sample/bindmonitor.c"
     r1 = *(uint32_t*)(uintptr_t)(r0 + OFFSET(0));
     // EBPF_OP_JA pc=68 dst=r0 src=r0 offset=11 imm=0
@@ -522,7 +525,7 @@ label_4:
     if (r1 >= r2)
 #line 94 "sample/bindmonitor.c"
         goto label_9;
-        // EBPF_OP_ADD64_IMM pc=73 dst=r1 src=r0 offset=0 imm=1
+    // EBPF_OP_ADD64_IMM pc=73 dst=r1 src=r0 offset=0 imm=1
 #line 98 "sample/bindmonitor.c"
     r1 += IMMEDIATE(1);
     // EBPF_OP_STXW pc=74 dst=r0 src=r1 offset=0 imm=0
@@ -540,7 +543,7 @@ label_5:
     if (r1 == IMMEDIATE(0))
 #line 101 "sample/bindmonitor.c"
         goto label_7;
-        // EBPF_OP_ADD64_IMM pc=78 dst=r1 src=r0 offset=0 imm=-1
+    // EBPF_OP_ADD64_IMM pc=78 dst=r1 src=r0 offset=0 imm=-1
 #line 102 "sample/bindmonitor.c"
     r1 += IMMEDIATE(-1);
     // EBPF_OP_STXW pc=79 dst=r0 src=r1 offset=0 imm=0
@@ -599,11 +602,15 @@ label_9:
     return r0;
 #line 114 "sample/bindmonitor.c"
 }
+#pragma code_seg(pop)
 #line __LINE__ __FILE__
 
+#pragma data_seg(push, "programs")
 static program_entry_t _programs[] = {
     {
+        0,
         BindMonitor,
+        "bind",
         "bind",
         "BindMonitor",
         BindMonitor_maps,
@@ -615,6 +622,7 @@ static program_entry_t _programs[] = {
         &BindMonitor_attach_type_guid,
     },
 };
+#pragma data_seg(pop)
 
 static void
 _get_programs(_Outptr_result_buffer_(*count) program_entry_t** programs, _Out_ size_t* count)

@@ -102,6 +102,7 @@ class bpf_code_generator
     {
         std::vector<output_instruction_t> output;
         std::set<std::string> referenced_registers;
+        std::string pe_section_name;
         std::string program_name;
         GUID program_type = {0};
         GUID expected_attach_type = {0};
@@ -210,6 +211,14 @@ class bpf_code_generator
     sanitize_name(const std::string& name);
 
     /**
+     * @brief Convert an ELF section name to a valid PE section name.
+     *
+     * @param[in] name Name to convert to PE section name.
+     */
+    void
+    set_pe_section_name(const std::string& elf_section_name);
+
+    /**
      * @brief Replace all "\"" with "\\" in a string.
      *
      * @param[in] input String to escape.
@@ -227,6 +236,7 @@ class bpf_code_generator
     std::string
     get_register_name(uint8_t id);
 
+    int pe_section_name_counter;
     std::map<std::string, section_t> sections;
     section_t* current_section;
     ELFIO::elfio reader;

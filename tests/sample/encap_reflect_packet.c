@@ -13,7 +13,7 @@
 
 #include "xdp_common.h"
 
-__attribute__((always_inline)) int
+inline int
 encapsulate_ipv4_reflect_packet(xdp_md_t* ctx)
 {
     int rc = XDP_DROP;
@@ -73,7 +73,7 @@ Done:
     return rc;
 }
 
-__attribute__((always_inline)) int
+inline int
 encapsulate_ipv6_reflect_packet(xdp_md_t* ctx)
 {
     int rc = XDP_DROP;

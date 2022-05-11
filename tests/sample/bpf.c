@@ -11,7 +11,6 @@
 // Example:
 // .\scripts\generate_expected_bpf2c_output.ps1 .\x64\Debug\
 
-#pragma clang section text = "xdp_prog"
 int
 func()
 {

@@ -12,6 +12,7 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
     *hash = NULL;
     *size = 0;
 }
+#pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
     {NULL,
      {
@@ -26,6 +27,7 @@ static map_entry_t _maps[] = {
      },
      "map"},
 };
+#pragma data_seg(pop)
 
 static void
 _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ size_t* count)
@@ -44,6 +46,7 @@ static uint16_t func_maps[] = {
     0,
 };
 
+#pragma code_seg(push, "xdp_prog")
 static uint64_t
 func(void* context)
 {
@@ -110,16 +113,20 @@ func(void* context)
     if ((func_helpers[0].tail_call) && (r0 == 0))
 #line 22 "sample/bpf_call.c"
         return 0;
-        // EBPF_OP_EXIT pc=12 dst=r0 src=r0 offset=0 imm=0
+    // EBPF_OP_EXIT pc=12 dst=r0 src=r0 offset=0 imm=0
 #line 23 "sample/bpf_call.c"
     return r0;
 #line 23 "sample/bpf_call.c"
 }
+#pragma code_seg(pop)
 #line __LINE__ __FILE__
 
+#pragma data_seg(push, "programs")
 static program_entry_t _programs[] = {
     {
+        0,
         func,
+        "xdp_prog",
         "xdp_prog",
         "func",
         func_maps,
@@ -131,6 +138,7 @@ static program_entry_t _programs[] = {
         &func_attach_type_guid,
     },
 };
+#pragma data_seg(pop)
 
 static void
 _get_programs(_Outptr_result_buffer_(*count) program_entry_t** programs, _Out_ size_t* count)
