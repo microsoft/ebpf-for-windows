@@ -182,6 +182,7 @@ void
 _net_ebpf_extension_detach_client_completion(_In_ PDEVICE_OBJECT device_object, _In_opt_ void* context)
 {
     net_ebpf_extension_hook_client_t* hook_client = (net_ebpf_extension_hook_client_t*)context;
+    PIO_WORKITEM work_item;
 
     PAGED_CODE();
 
@@ -190,12 +191,15 @@ _net_ebpf_extension_detach_client_completion(_In_ PDEVICE_OBJECT device_object, 
     ASSERT(hook_client != NULL);
     _Analysis_assume_(hook_client != NULL);
 
+    work_item = hook_client->detach_work_item;
+
     // Wait for any in progress callbacks to complete.
     _ebpf_ext_attach_wait_for_rundown(&hook_client->rundown, hook_client->execution_type);
 
+    // Note: This frees the provider binding context (hook_client).
     NmrProviderDetachClientComplete(hook_client->nmr_binding_handle);
 
-    IoFreeWorkItem(hook_client->detach_work_item);
+    IoFreeWorkItem(work_item);
 }
 
 _Acquires_lock_(hook_client) bool net_ebpf_extension_hook_client_enter_rundown(
