@@ -116,8 +116,8 @@ run_test_elf(const std::string& elf_file, _test_mode test_mode)
         switch (test_mode) {
         case _test_mode::Verify:
         case _test_mode::NoVerify: {
-            auto raw_output =
-                read_contents<std::ifstream>(name + suffix, {transform_line_directives, transform_fix_opcode_comment});
+            auto raw_output = read_contents<std::ifstream>(
+                std::string("expected\\") + name + suffix, {transform_line_directives, transform_fix_opcode_comment});
             auto raw_result = read_contents<std::istringstream>(out, {transform_line_directives});
 
             REQUIRE(raw_result.size() == raw_output.size());
