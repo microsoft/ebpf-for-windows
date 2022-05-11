@@ -208,16 +208,16 @@ On the attacker machine, do the following:
 
 ### Connection Tracking Demo with Native BPF program
 #### Prep
-1. Setup a test machine with [HVCI enabled](https://docs.microsoft.com/en-us/windows/security/threat-protection/device-guard/enable-virtualization-based-protection-of-code-integrity) and [test signing enabled](https://docs.microsoft.com/en-us/windows-hardware/drivers/install/the-testsigning-boot-configuration-option).
+1. Set up a test machine with [HVCI enabled](https://docs.microsoft.com/en-us/windows/security/threat-protection/device-guard/enable-virtualization-based-protection-of-code-integrity) and [test signing enabled](https://docs.microsoft.com/en-us/windows-hardware/drivers/install/the-testsigning-boot-configuration-option).
 2. Build the conn_track.c BPF program ```clang -g -target bpf -O2 -Werror -Iinclude -Iexternal/bpftool -Itests/socket -c tests/sample/conn_track.c -o x64\Release\conn_track.o```.
 3. Build the native BPF program ```powershell scripts\Convert-BpfToNative.ps1 conn_track.o```.
 4. Build the conn_tracker.exe program ```msbuild /m /p:Configuration=Release /p:Platform=x64 ebpf-for-windows.sln /target:"tools\conn_track"```.
 5. Copy conn_track.sys and conn_tracker.exe to the test machine (with eBPF-for-Windows installed).
 
 #### Demo
-1. Launch the conn_tracker.exe with no arguments.
-2. Launch Edge and browse to some website.
-3. Observe that it emits a line in the form "[source_IP]:src_port==>[dest_ip]:dest_port   Protocol  Duration"
+1. Launch conn_tracker.exe with no arguments.
+2. Launch a browser and browse to some website.
+3. Observe that the connection tracker emits a line in the form "[source_IP]:src_port==>[dest_ip]:dest_port   Protocol  Duration"
 4. Start a real time trace with ```tracelog -start MyTrace -guid ebpf-printk.guid -rt```
 5. View the real time bpf_printk output with ```tracefmt -rt MyTrace -displayonly -jsonMeta 0```
 6. Stop the real time trace with ```tracelog -stop MyTrace```
