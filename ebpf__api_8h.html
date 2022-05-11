@@ -85,6 +85,10 @@ $(function() {
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="nested-classes"></a>
 Data Structures</h2></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__stat.html">_ebpf_stat</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__section__info.html">_ebpf_section_info</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structebpf__api__verifier__stats__t.html">ebpf_api_verifier_stats_t</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
@@ -94,8 +98,10 @@ Typedefs</h2></td></tr>
 <tr class="separator:a90a344fbc365e792f103e07afeca9a7b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abb41989791fe081530c8719049ad1c35"><td class="memItemLeft" align="right" valign="top">typedef intptr_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#abb41989791fe081530c8719049ad1c35">ebpf_handle_t</a></td></tr>
 <tr class="separator:abb41989791fe081530c8719049ad1c35"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a2f716f8d7c1f8c5f04be07e15fd421d3"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__tlv__type__length__value.html">_tlv_type_length_value</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a2f716f8d7c1f8c5f04be07e15fd421d3">tlv_type_length_value_t</a></td></tr>
-<tr class="separator:a2f716f8d7c1f8c5f04be07e15fd421d3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a03e330e1ab6b5c901410d1ffbe0196a1"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__ebpf__stat.html">_ebpf_stat</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a03e330e1ab6b5c901410d1ffbe0196a1">ebpf_stat_t</a></td></tr>
+<tr class="separator:a03e330e1ab6b5c901410d1ffbe0196a1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a87ea605d393a9719bf6ca18530adb006"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__ebpf__section__info.html">_ebpf_section_info</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a87ea605d393a9719bf6ca18530adb006">ebpf_section_info_t</a></td></tr>
+<tr class="separator:a87ea605d393a9719bf6ca18530adb006"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
@@ -111,9 +117,12 @@ Functions</h2></td></tr>
 <tr class="memitem:af7aab54ea32e2032072e765b982a3c17"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#af7aab54ea32e2032072e765b982a3c17">ebpf_program_query_info</a> (<a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> fd, <a class="el" href="ebpf__execution__type_8h.html#af58bcede64968a095964be4e78998658">ebpf_execution_type_t</a> *execution_type, _Outptr_result_z_ const char **file_name, _Outptr_result_z_ const char **section_name)</td></tr>
 <tr class="memdesc:af7aab54ea32e2032072e765b982a3c17"><td class="mdescLeft">&#160;</td><td class="mdescRight">Query info about an eBPF program.  <a href="ebpf__api_8h.html#af7aab54ea32e2032072e765b982a3c17">More...</a><br /></td></tr>
 <tr class="separator:af7aab54ea32e2032072e765b982a3c17"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a121da5428db28e72b9cee7f22b94a3df"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a121da5428db28e72b9cee7f22b94a3df">ebpf_api_elf_enumerate_sections</a> (const char *file, const char *section, bool verbose, const <a class="el" href="ebpf__api_8h.html#a2f716f8d7c1f8c5f04be07e15fd421d3">tlv_type_length_value_t</a> **data, const char **error_message)</td></tr>
-<tr class="memdesc:a121da5428db28e72b9cee7f22b94a3df"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get list of programs and stats in an ELF eBPF file.  <a href="ebpf__api_8h.html#a121da5428db28e72b9cee7f22b94a3df">More...</a><br /></td></tr>
-<tr class="separator:a121da5428db28e72b9cee7f22b94a3df"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7f6411e678077e56979d551bcd5370a6"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a7f6411e678077e56979d551bcd5370a6">ebpf_enumerate_sections</a> (const char *file, bool verbose, _Outptr_result_maybenull_ <a class="el" href="ebpf__api_8h.html#a87ea605d393a9719bf6ca18530adb006">ebpf_section_info_t</a> **infos, const char **error_message)</td></tr>
+<tr class="memdesc:a7f6411e678077e56979d551bcd5370a6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get list of programs and stats in an eBPF file.  <a href="ebpf__api_8h.html#a7f6411e678077e56979d551bcd5370a6">More...</a><br /></td></tr>
+<tr class="separator:a7f6411e678077e56979d551bcd5370a6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1c3da23f50b88bb49d5ef0bf9c3e77f6"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a1c3da23f50b88bb49d5ef0bf9c3e77f6">ebpf_free_sections</a> (<a class="el" href="ebpf__api_8h.html#a87ea605d393a9719bf6ca18530adb006">ebpf_section_info_t</a> *infos)</td></tr>
+<tr class="memdesc:a1c3da23f50b88bb49d5ef0bf9c3e77f6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Free memory returned from <a class="el" href="ebpf__api_8h.html#a7f6411e678077e56979d551bcd5370a6">ebpf_enumerate_sections</a>.  <a href="ebpf__api_8h.html#a1c3da23f50b88bb49d5ef0bf9c3e77f6">More...</a><br /></td></tr>
+<tr class="separator:a1c3da23f50b88bb49d5ef0bf9c3e77f6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae4fbdf4fbbb9196651fd40fd0640c3c9"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#ae4fbdf4fbbb9196651fd40fd0640c3c9">ebpf_api_elf_disassemble_section</a> (const char *file, const char *section, const char **disassembly, const char **error_message)</td></tr>
 <tr class="memdesc:ae4fbdf4fbbb9196651fd40fd0640c3c9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Convert an eBPF program to human readable byte code.  <a href="ebpf__api_8h.html#ae4fbdf4fbbb9196651fd40fd0640c3c9">More...</a><br /></td></tr>
 <tr class="separator:ae4fbdf4fbbb9196651fd40fd0640c3c9"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -123,9 +132,6 @@ Functions</h2></td></tr>
 <tr class="memitem:a61eea875ef852128558d8dbe8be3c7bc"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a61eea875ef852128558d8dbe8be3c7bc">ebpf_api_elf_verify_section_from_memory</a> (const char *data, size_t data_length, const char *section, bool verbose, const char **report, const char **error_message, <a class="el" href="structebpf__api__verifier__stats__t.html">ebpf_api_verifier_stats_t</a> *stats)</td></tr>
 <tr class="memdesc:a61eea875ef852128558d8dbe8be3c7bc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Verify that the program is safe to execute.  <a href="ebpf__api_8h.html#a61eea875ef852128558d8dbe8be3c7bc">More...</a><br /></td></tr>
 <tr class="separator:a61eea875ef852128558d8dbe8be3c7bc"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:afe38ca942567ba2335a2612460576156"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#afe38ca942567ba2335a2612460576156">ebpf_api_elf_free</a> (const <a class="el" href="ebpf__api_8h.html#a2f716f8d7c1f8c5f04be07e15fd421d3">tlv_type_length_value_t</a> *data)</td></tr>
-<tr class="memdesc:afe38ca942567ba2335a2612460576156"><td class="mdescLeft">&#160;</td><td class="mdescRight">Free a TLV returned from <a class="el" href="ebpf__api_8h.html#a121da5428db28e72b9cee7f22b94a3df">ebpf_api_elf_enumerate_sections</a>.  <a href="ebpf__api_8h.html#afe38ca942567ba2335a2612460576156">More...</a><br /></td></tr>
-<tr class="separator:afe38ca942567ba2335a2612460576156"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a90cbc93764ecd96f2a84fd659e517851"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a90cbc93764ecd96f2a84fd659e517851">ebpf_free_string</a> (const char *string)</td></tr>
 <tr class="memdesc:a90cbc93764ecd96f2a84fd659e517851"><td class="mdescLeft">&#160;</td><td class="mdescRight">Free memory for a string returned from an eBPF API.  <a href="ebpf__api_8h.html#a90cbc93764ecd96f2a84fd659e517851">More...</a><br /></td></tr>
 <tr class="separator:a90cbc93764ecd96f2a84fd659e517851"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -203,6 +209,34 @@ Variables</h2></td></tr>
 
 </div>
 </div>
+<a id="a87ea605d393a9719bf6ca18530adb006"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a87ea605d393a9719bf6ca18530adb006">&#9670;&nbsp;</a></span>ebpf_section_info_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef struct <a class="el" href="struct__ebpf__section__info.html">_ebpf_section_info</a> <a class="el" href="ebpf__api_8h.html#a87ea605d393a9719bf6ca18530adb006">ebpf_section_info_t</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a03e330e1ab6b5c901410d1ffbe0196a1"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a03e330e1ab6b5c901410d1ffbe0196a1">&#9670;&nbsp;</a></span>ebpf_stat_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef struct <a class="el" href="struct__ebpf__stat.html">_ebpf_stat</a> <a class="el" href="ebpf__api_8h.html#a03e330e1ab6b5c901410d1ffbe0196a1">ebpf_stat_t</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <a id="a90a344fbc365e792f103e07afeca9a7b"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a90a344fbc365e792f103e07afeca9a7b">&#9670;&nbsp;</a></span>fd_t</h2>
 
@@ -211,20 +245,6 @@ Variables</h2></td></tr>
       <table class="memname">
         <tr>
           <td class="memname">typedef int32_t <a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="a2f716f8d7c1f8c5f04be07e15fd421d3"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a2f716f8d7c1f8c5f04be07e15fd421d3">&#9670;&nbsp;</a></span>tlv_type_length_value_t</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">typedef struct <a class="el" href="struct__tlv__type__length__value.html">_tlv_type_length_value</a> <a class="el" href="ebpf__api_8h.html#a2f716f8d7c1f8c5f04be07e15fd421d3">tlv_type_length_value_t</a></td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -310,108 +330,6 @@ Variables</h2></td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">section</td><td>The name of the section to query. </td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">disassembly</td><td>On success points text version of the program. </td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">error_message</td><td>On failure points to a text description of the error. </td></tr>
-  </table>
-  </dd>
-</dl>
-
-</div>
-</div>
-<a id="a121da5428db28e72b9cee7f22b94a3df"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a121da5428db28e72b9cee7f22b94a3df">&#9670;&nbsp;</a></span>ebpf_api_elf_enumerate_sections()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">uint32_t ebpf_api_elf_enumerate_sections </td>
-          <td>(</td>
-          <td class="paramtype">const char *&#160;</td>
-          <td class="paramname"><em>file</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">const char *&#160;</td>
-          <td class="paramname"><em>section</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">bool&#160;</td>
-          <td class="paramname"><em>verbose</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">const <a class="el" href="ebpf__api_8h.html#a2f716f8d7c1f8c5f04be07e15fd421d3">tlv_type_length_value_t</a> **&#160;</td>
-          <td class="paramname"><em>data</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">const char **&#160;</td>
-          <td class="paramname"><em>error_message</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Get list of programs and stats in an ELF eBPF file. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">file</td><td>Name of ELF file containing eBPF program. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">section</td><td>Optionally, the name of the section to query. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">verbose</td><td>Obtain additional info about the programs. </td></tr>
-    <tr><td class="paramdir">[out]</td><td class="paramname">data</td><td>On success points to a list of eBPF programs. </td></tr>
-    <tr><td class="paramdir">[out]</td><td class="paramname">error_message</td><td>On failure points to a text description of the error.</td></tr>
-  </table>
-  </dd>
-</dl>
-<p>The list of eBPF programs from this function is TLV formatted as follows:<br  />
- sections ::= SEQUENCE {<br  />
- section SEQUENCE of section<br  />
- }<br  />
-<br  />
- section ::= SEQUENCE {<br  />
- name STRING<br  />
- platform_specific_data INTEGER<br  />
- count_of_maps INTEGER<br  />
- byte_code BLOB<br  />
- statistic SEQUENCE of statistic<br  />
- }<br  />
-<br  />
- statistic ::= SEQUENCE {<br  />
- name STRING<br  />
- value INTEGER<br  />
- }<br  />
-</p>
-
-</div>
-</div>
-<a id="afe38ca942567ba2335a2612460576156"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#afe38ca942567ba2335a2612460576156">&#9670;&nbsp;</a></span>ebpf_api_elf_free()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">void ebpf_api_elf_free </td>
-          <td>(</td>
-          <td class="paramtype">const <a class="el" href="ebpf__api_8h.html#a2f716f8d7c1f8c5f04be07e15fd421d3">tlv_type_length_value_t</a> *&#160;</td>
-          <td class="paramname"><em>data</em></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Free a TLV returned from <a class="el" href="ebpf__api_8h.html#a121da5428db28e72b9cee7f22b94a3df">ebpf_api_elf_enumerate_sections</a>. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">data</td><td>Memory to free. </td></tr>
   </table>
   </dd>
 </dl>
@@ -931,6 +849,105 @@ Variables</h2></td></tr>
     <tr><td class="paramname">EBPF_SUCCESS</td><td>Map created successfully. </td></tr>
     <tr><td class="paramname">EBPF_ERROR_NOT_SUPPORTED</td><td>Unsupported map type. </td></tr>
     <tr><td class="paramname">EBPF_INVALID_ARGUMENT</td><td>One or more parameters are incorrect. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="a7f6411e678077e56979d551bcd5370a6"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a7f6411e678077e56979d551bcd5370a6">&#9670;&nbsp;</a></span>ebpf_enumerate_sections()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a> ebpf_enumerate_sections </td>
+          <td>(</td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>file</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">bool&#160;</td>
+          <td class="paramname"><em>verbose</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">_Outptr_result_maybenull_ <a class="el" href="ebpf__api_8h.html#a87ea605d393a9719bf6ca18530adb006">ebpf_section_info_t</a> **&#160;</td>
+          <td class="paramname"><em>infos</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char **&#160;</td>
+          <td class="paramname"><em>error_message</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Get list of programs and stats in an eBPF file. </p>
+<ul>
+<li>*- *<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">file</td><td>Name of file containing eBPF programs.</td></tr>
+  </table>
+  </dd>
+</dl>
+</li>
+<li>*<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">verbose</td><td>Obtain additional info about the programs.</td></tr>
+  </table>
+  </dd>
+</dl>
+</li>
+<li>*<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[out]</td><td class="paramname">infos</td><td>On success points to a list of eBPF programs.</td></tr>
+  </table>
+  </dd>
+</dl>
+</li>
+<li>*<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[out]</td><td class="paramname">error_message</td><td>On failure points to a text description of</td></tr>
+  </table>
+  </dd>
+</dl>
+</li>
+<li>* the error. </li>
+</ul>
+
+</div>
+</div>
+<a id="a1c3da23f50b88bb49d5ef0bf9c3e77f6"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1c3da23f50b88bb49d5ef0bf9c3e77f6">&#9670;&nbsp;</a></span>ebpf_free_sections()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void ebpf_free_sections </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="ebpf__api_8h.html#a87ea605d393a9719bf6ca18530adb006">ebpf_section_info_t</a> *&#160;</td>
+          <td class="paramname"><em>infos</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Free memory returned from <a class="el" href="ebpf__api_8h.html#a7f6411e678077e56979d551bcd5370a6">ebpf_enumerate_sections</a>. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">data</td><td>Memory to free. </td></tr>
   </table>
   </dd>
 </dl>

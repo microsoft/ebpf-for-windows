@@ -5,6 +5,5 @@ var searchData=
   ['_5fbpf_5fsock_5fop_5ftype_1052',['_bpf_sock_op_type',['../ebpf__nethooks_8h.html#ab1d2513464cb18a40a430026238606f6',1,'ebpf_nethooks.h']]],
   ['_5febpf_5fexecution_5ftype_1053',['_ebpf_execution_type',['../ebpf__execution__type_8h.html#a5c71fd3591cdd9c7f91f3908c0099b72',1,'ebpf_execution_type.h']]],
   ['_5febpf_5fhelper_5ffunction_1054',['_ebpf_helper_function',['../ebpf__windows_8h.html#a653f667ffc6571d5f67b1b81d612a0cd',1,'ebpf_windows.h']]],
-  ['_5ftlv_5ftype_1055',['_tlv_type',['../tlv_8h.html#a50a469b7a3bd57834902b2d2f67a9c94',1,'tlv.h']]],
-  ['_5fxdp_5faction_1056',['_xdp_action',['../ebpf__nethooks_8h.html#a5aff0d5d670941126cebc5687d5e280d',1,'ebpf_nethooks.h']]]
+  ['_5fxdp_5faction_1055',['_xdp_action',['../ebpf__nethooks_8h.html#a5aff0d5d670941126cebc5687d5e280d',1,'ebpf_nethooks.h']]]
 ];
