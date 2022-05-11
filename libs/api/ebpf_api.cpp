@@ -1643,8 +1643,12 @@ _ebpf_free_section_info(_In_ _Frees_ptr_ ebpf_section_info_t* info)
 {
     while (info->stats != nullptr) {
         ebpf_stat_t* stat = info->stats;
+#pragma warning(push)
+#pragma warning(disable : 6001)
+        // MSVC incorrectly reports this as using uninitialized memory.
         info->stats = stat->next;
         free((void*)stat->key);
+#pragma warning(pop)
         free(stat);
     }
     free((void*)info->section_name);
@@ -1812,7 +1816,7 @@ _ebpf_pe_add_section(
 static ebpf_result_t
 _ebpf_enumerate_native_sections(
     _In_z_ const char* file,
-    _Outptr_ ebpf_section_info_t** infos,
+    _Outptr_result_maybenull_ ebpf_section_info_t** infos,
     _Outptr_result_maybenull_z_ const char** error_message)
 {
     *infos = nullptr;
@@ -1838,7 +1842,7 @@ ebpf_result_t
 ebpf_enumerate_sections(
     _In_z_ const char* file,
     bool verbose,
-    _Outptr_ ebpf_section_info_t** infos,
+    _Outptr_result_maybenull_ ebpf_section_info_t** infos,
     _Outptr_result_maybenull_z_ const char** error_message)
 {
     std::string file_name_string(file);
