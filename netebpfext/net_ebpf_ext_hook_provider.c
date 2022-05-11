@@ -215,7 +215,7 @@ _Releases_lock_(hook_client) void net_ebpf_extension_hook_client_leave_rundown(
     net_ebpf_ext_hook_client_rundown_t* rundown = &hook_client->rundown;
     if (execution_type == EXECUTION_PASSIVE) {
         _Analysis_assume_lock_held_(&rundown->passive.lock);
-        ExReleasePushLockShared(&rundown->passive.lock);
+        RELEASE_PUSH_LOCK_SHARED(&rundown->passive.lock);
     }
 }
 
@@ -300,7 +300,7 @@ net_ebpf_extension_hook_check_attach_parameter(
 
 Exit:
     if (lock_held)
-        ExReleasePushLockShared(&provider_context->lock);
+        RELEASE_PUSH_LOCK_SHARED(&provider_context->lock);
 
     return result;
 }
