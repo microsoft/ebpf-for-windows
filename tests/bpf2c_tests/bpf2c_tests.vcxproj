@@ -119,7 +119,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PreBuildEvent>
-      <Command>copy $(ProjectDir)expected\* $(OutDir)</Command>
+      <Command>xcopy /y $(ProjectDir)expected\* $(OutDir)\expected\*</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -135,7 +135,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PreBuildEvent>
-      <Command>copy $(ProjectDir)expected\* $(OutDir)</Command>
+      <Command>xcopy /y $(ProjectDir)expected\* $(OutDir)\expected\*</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
