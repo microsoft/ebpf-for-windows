@@ -54,6 +54,7 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
     *hash = NULL;
     *size = 0;
 }
+#pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
     {NULL,
      {
@@ -80,6 +81,7 @@ static map_entry_t _maps[] = {
      },
      "history_map"},
 };
+#pragma data_seg(pop)
 
 static void
 _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ size_t* count)
@@ -106,8 +108,10 @@ static uint16_t connection_tracker_maps[] = {
     1,
 };
 
+#pragma code_seg(push, "sockops")
 static uint64_t
 connection_tracker(void* context)
+#line 91 "sample/conn_track.c"
 {
 #line 91 "sample/conn_track.c"
     // Prologue
@@ -909,11 +913,15 @@ label_10:
     return r0;
 #line 111 "sample/conn_track.c"
 }
+#pragma code_seg(pop)
 #line __LINE__ __FILE__
 
+#pragma data_seg(push, "programs")
 static program_entry_t _programs[] = {
     {
+        0,
         connection_tracker,
+        "sockops",
         "sockops",
         "connection_tracker",
         connection_tracker_maps,
@@ -925,6 +933,7 @@ static program_entry_t _programs[] = {
         &connection_tracker_attach_type_guid,
     },
 };
+#pragma data_seg(pop)
 
 static void
 _get_programs(_Outptr_result_buffer_(*count) program_entry_t** programs, _Out_ size_t* count)

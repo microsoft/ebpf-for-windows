@@ -66,6 +66,7 @@ static GUID func_attach_type_guid = {0x00000000, 0x0000, 0x0000, {0x00, 0x00, 0x
 #pragma code_seg(push, ".text")
 static uint64_t
 func(void* context)
+#line 17 "sample/bpf.c"
 {
 #line 17 "sample/bpf.c"
     // Prologue

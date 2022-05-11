@@ -194,8 +194,10 @@ static GUID hello_world_program_type_guid = {
     0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
 static GUID hello_world_attach_type_guid = {
     0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
+#pragma code_seg(push, "bind")
 static uint64_t
 hello_world(void* context)
+#line 18 "sample/hello_world.c"
 {
 #line 18 "sample/hello_world.c"
     // Prologue
@@ -265,11 +267,15 @@ hello_world(void* context)
     return r0;
 #line 21 "sample/hello_world.c"
 }
+#pragma code_seg(pop)
 #line __LINE__ __FILE__
 
+#pragma data_seg(push, "programs")
 static program_entry_t _programs[] = {
     {
+        0,
         hello_world,
+        "bind",
         "bind",
         "hello_world",
         NULL,
@@ -281,6 +287,7 @@ static program_entry_t _programs[] = {
         &hello_world_attach_type_guid,
     },
 };
+#pragma data_seg(pop)
 
 static void
 _get_programs(_Outptr_result_buffer_(*count) program_entry_t** programs, _Out_ size_t* count)
