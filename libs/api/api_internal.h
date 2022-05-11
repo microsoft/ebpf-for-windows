@@ -85,16 +85,6 @@ void
 ebpf_api_terminate();
 
 ebpf_result_t
-ebpf_get_program_byte_code(
-    _In_z_ const char* file_name,
-    _In_z_ const char* section_name,
-    bool mock_map_fd,
-    std::vector<ebpf_program_t*>& programs,
-    _Outptr_result_maybenull_ EbpfMapDescriptor** map_descriptors,
-    _Out_ int* map_descriptors_count,
-    _Outptr_result_maybenull_ const char** error_message);
-
-ebpf_result_t
 get_program_info_data(ebpf_program_type_t program_type, _Outptr_ ebpf_program_info_t** program_info);
 
 void
@@ -258,7 +248,7 @@ ebpf_map_unpin(_In_ struct bpf_map* map, _In_opt_z_ const char* path);
  * @retval EBPF_INVALID_ARGUMENT One or more parameters are wrong.
  */
 ebpf_result_t
-ebpf_map_set_pin_path(_In_ struct bpf_map* map, _In_ const char* path);
+ebpf_map_set_pin_path(_In_ struct bpf_map* map, _In_opt_z_ const char* path);
 
 /**
  * @brief Update value for the specified key in an eBPF map.
@@ -295,7 +285,7 @@ ebpf_map_delete_element(fd_t map_fd, _In_ const void* key);
  * @retval EBPF_SUCCESS The operation was successful.
  */
 ebpf_result_t
-ebpf_map_lookup_element(fd_t map_fd, _In_ const void* key, _Out_ void* value);
+ebpf_map_lookup_element(fd_t map_fd, _In_opt_ const void* key, _Out_ void* value);
 
 /**
  * @brief Look up an element in an eBPF map.
