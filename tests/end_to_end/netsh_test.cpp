@@ -142,7 +142,7 @@ TEST_CASE("show sections bpf.sys", "[netsh][sections]")
         output == "\n"
                   "             Section       Type  # Maps    Size\n"
                   "====================  =========  ======  ======\n"
-                  "               .text        xdp       0     422\n");
+                  "               .text        xdp       0    1752\n");
 }
 
 // Test a DLL with multiple maps in the map section.
