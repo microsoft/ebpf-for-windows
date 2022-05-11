@@ -1672,10 +1672,14 @@ typedef struct _ebpf_pe_context
     uintptr_t image_base;
     ebpf_section_info_t* infos;
     std::map<std::string, std::string> section_names;
+    std::map<std::string, GUID> section_program_types;
     int map_count;
     uintptr_t rdata_base;
     size_t rdata_size;
     const bounded_buffer* rdata_buffer;
+    uintptr_t data_base;
+    size_t data_size;
+    const bounded_buffer* data_buffer;
 } ebpf_pe_context_t;
 
 static int
@@ -1701,11 +1705,14 @@ _ebpf_pe_get_map_count(
             map_offset += 16;
         }
         pe_context->map_count = (section_header.Misc.VirtualSize - map_offset) / sizeof(map_entry_t);
-    }
-    if (section_name == ".rdata") {
+    } else if (section_name == ".rdata") {
         pe_context->rdata_base = pe_context->image_base + section_header.VirtualAddress;
         pe_context->rdata_size = section_header.Misc.VirtualSize;
         pe_context->rdata_buffer = buffer;
+    } else if (section_name == ".data") {
+        pe_context->data_base = pe_context->image_base + section_header.VirtualAddress;
+        pe_context->data_size = section_header.Misc.VirtualSize;
+        pe_context->data_buffer = buffer;
     }
 
     return 0;
@@ -1760,6 +1767,13 @@ _ebpf_pe_get_section_names(
             const char* elf_section_name =
                 _ebpf_get_section_string(pe_context, (uintptr_t)program->section_name, section_header, buffer);
             pe_context->section_names[pe_section_name] = elf_section_name;
+
+            uintptr_t program_type_guid_address = (uintptr_t)program->program_type;
+            ebpf_assert(
+                program_type_guid_address >= pe_context->data_base &&
+                program_type_guid_address < pe_context->data_base + pe_context->data_size);
+            uintptr_t offset = program_type_guid_address - pe_context->data_base;
+            pe_context->section_program_types[pe_section_name] = *(GUID*)(pe_context->data_buffer->buf + offset);
         }
     }
 
@@ -1796,8 +1810,8 @@ _ebpf_pe_add_section(
     }
     memset(info, 0, sizeof(*info));
     info->section_name = _strdup(elf_section_name.c_str());
-
-    info->program_type_name = _strdup(get_program_type_windows(elf_section_name, std::string()).name.c_str());
+    info->program_type_name =
+        _strdup(get_program_type_windows(pe_context->section_program_types[pe_section_name]).name.c_str());
     info->raw_data_size = section_header.Misc.VirtualSize;
     info->raw_data = (char*)malloc(section_header.Misc.VirtualSize);
     info->map_count = pe_context->map_count;
