@@ -81,19 +81,20 @@ jobs:
         cache-name: cache-verifier-project
       with:
         path: external/ebpf-verifier/build
-        key: ${{ runner.os }}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}-${{env.BUILD_ARTIFACT_NAME}}-${{ hashFiles('.git/modules/external/ebpf-verifier/HEAD') }}
+        # Increase the version of the cache each time the CXXFLAGS are modified to invalidate the cache.
+        key: ${{ runner.os }}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}-${{env.BUILD_ARTIFACT_NAME}}-${{ hashFiles('.git/modules/external/ebpf-verifier/HEAD') }}-v1
 
     - name: Create verifier project
       working-directory: ${{env.GITHUB_WORKSPACE}}
       env:
-        CXXFLAGS: /Qspectre /ZH:SHA_256
+        CXXFLAGS: /ZH:SHA_256
       run: |
         cmake -G "Visual Studio 16 2019" -S external\ebpf-verifier -B external\ebpf-verifier\build
 
     - name: Create catch2 project
       working-directory: ${{env.GITHUB_WORKSPACE}}
       env:
-        CXXFLAGS: /Qspectre /ZH:SHA_256
+        CXXFLAGS: /ZH:SHA_256
       run: |
         cmake -G "Visual Studio 16 2019" -S external\catch2 -B external\catch2\build -DBUILD_TESTING=OFF
 
