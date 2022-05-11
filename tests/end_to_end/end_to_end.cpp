@@ -834,6 +834,8 @@ map_test(ebpf_execution_type_t execution_type)
     bpf_object__close(object);
 }
 
+// This function assumes IPv6 addresses are global and doesn't parse scope and
+// scope ID parameters.
 bpf_sock_ops_t
 populate_bpf_sock_ops(
     bpf_sock_op_type_t op,
@@ -914,7 +916,7 @@ ip_address_to_string(bool ipv4, const ip_address_t& ip_address)
 }
 
 void
-conn_track_test(ebpf_execution_type_t execution_type)
+connection_tracking_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
 
@@ -1008,7 +1010,7 @@ DECLARE_ALL_TEST_CASES("bindmonitor-tailcall", "[end_to_end]", bindmonitor_tailc
 DECLARE_ALL_TEST_CASES("bindmonitor-ringbuf", "[end_to_end]", bindmonitor_ring_buffer_test);
 DECLARE_ALL_TEST_CASES("utility-helpers", "[end_to_end]", _utility_helper_functions_test);
 DECLARE_ALL_TEST_CASES("map", "[end_to_end]", map_test);
-DECLARE_ALL_TEST_CASES("conn_track_test", "[end_to_end]", conn_track_test);
+DECLARE_ALL_TEST_CASES("connection_tracking_test", "[end_to_end]", connection_tracking_test);
 
 TEST_CASE("enum section", "[end_to_end]")
 {
