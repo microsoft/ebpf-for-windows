@@ -36,6 +36,7 @@ target_include_directories("api" PRIVATE
   "${CMAKE_SOURCE_DIR}/external/ubpf/vm"
   "${CMAKE_SOURCE_DIR}/external/ubpf/vm/inc"
   "${CMAKE_SOURCE_DIR}/libs/thunk"
+  "${CMAKE_SOURCE_DIR}/external/pe-parse/pe-parser-library/include"
 )
 
 target_link_libraries("api" PRIVATE

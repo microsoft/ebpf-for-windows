@@ -53,6 +53,7 @@ target_link_libraries("unit_tests" PRIVATE
   "netsh_static"
   "external::ebpfverifier"
   "execution_context_user"
+  "pe_parse"
   "platform_user"
   "rpc_interface"
   "service"

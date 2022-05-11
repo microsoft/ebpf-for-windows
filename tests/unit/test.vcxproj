@@ -157,6 +157,9 @@
     <ProjectReference Include="..\..\libs\execution_context\user\execution_context_user.vcxproj">
       <Project>{18127b0d-8381-4afe-9a3a-cf53241992d3}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\..\libs\pe-parse\pe-parse.vcxproj">
+      <Project>{fe4fea79-bfbb-4822-abcb-0d3beea240a7}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\..\libs\platform\user\platform_user.vcxproj">
       <Project>{c26cb6a9-158c-4a9e-a243-755ddd98e5fe}</Project>
     </ProjectReference>
