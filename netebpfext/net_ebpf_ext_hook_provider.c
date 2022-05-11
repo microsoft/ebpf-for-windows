@@ -68,33 +68,23 @@ typedef struct _net_ebpf_extension_hook_provider
         LIST_ENTRY attached_clients_list; ///< Linked list of hook NPI clients that are attached to this provider.
 } net_ebpf_extension_hook_provider_t;
 
-static void
-_ebpf_ext_acquire_push_lock(_Inout_ PEX_PUSH_LOCK lock, bool exclusive)
-{
-    KeEnterCriticalRegion();
-    if (exclusive) {
-        ExAcquirePushLockExclusive(lock);
-    } else {
-        ExAcquirePushLockShared(lock);
+#define _ACQUIRE_PUSH_LOCK(lock, mode) \
+    {                                  \
+        KeEnterCriticalRegion();       \
+        ExAcquirePushLock##mode(lock); \
     }
-}
 
-static void
-_ebpf_ext_release_push_lock(_Inout_ PEX_PUSH_LOCK lock, bool exclusive)
-{
-    if (exclusive) {
-        ExReleasePushLockExclusive(lock);
-    } else {
-        ExReleasePushLockShared(lock);
+#define _RELEASE_PUSH_LOCK(lock, mode) \
+    {                                  \
+        ExReleasePushLock##mode(lock); \
+        KeLeaveCriticalRegion();       \
     }
-    KeLeaveCriticalRegion();
-}
 
-#define ACQUIRE_PUSH_LOCK_EXCLUSIVE(lock) _ebpf_ext_acquire_push_lock(lock, true)
-#define ACQUIRE_PUSH_LOCK_SHARED(lock) _ebpf_ext_acquire_push_lock(lock, false)
+#define ACQUIRE_PUSH_LOCK_EXCLUSIVE(lock) _ACQUIRE_PUSH_LOCK(lock, Exclusive)
+#define ACQUIRE_PUSH_LOCK_SHARED(lock) _ACQUIRE_PUSH_LOCK(lock, Shared)
 
-#define RELEASE_PUSH_LOCK_EXCLUSIVE(lock) _ebpf_ext_release_push_lock(lock, true)
-#define RELEASE_PUSH_LOCK_SHARED(lock) _ebpf_ext_release_push_lock(lock, false)
+#define RELEASE_PUSH_LOCK_EXCLUSIVE(lock) _RELEASE_PUSH_LOCK(lock, Exclusive)
+#define RELEASE_PUSH_LOCK_SHARED(lock) _RELEASE_PUSH_LOCK(lock, Shared)
 
 static _Function_class_(KDEFERRED_ROUTINE) _IRQL_requires_max_(DISPATCH_LEVEL) _IRQL_requires_min_(DISPATCH_LEVEL)
     _IRQL_requires_(DISPATCH_LEVEL) _IRQL_requires_same_ void _ebpf_ext_attach_rundown(
