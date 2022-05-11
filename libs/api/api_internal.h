@@ -541,5 +541,5 @@ ebpf_api_elf_enumerate_sections(
     _In_z_ const char* file,
     _In_opt_z_ const char* section,
     bool verbose,
-    _Outptr_ ebpf_section_info_t** infos,
+    _Outptr_result_maybenull_ ebpf_section_info_t** infos,
     _Outptr_result_maybenull_z_ const char** error_message);

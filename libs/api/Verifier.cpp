@@ -364,7 +364,7 @@ ebpf_api_elf_enumerate_sections(
     _In_z_ const char* file,
     _In_opt_z_ const char* section,
     bool verbose,
-    _Outptr_ ebpf_section_info_t** infos,
+    _Outptr_result_maybenull_ ebpf_section_info_t** infos,
     _Outptr_result_maybenull_z_ const char** error_message)
 {
     ebpf_verifier_options_t verifier_options{false, false, false, false, true};
@@ -372,9 +372,11 @@ ebpf_api_elf_enumerate_sections(
     std::ostringstream str;
     struct _thread_local_storage_cache tls_cache;
 
+    *infos = nullptr;
+    *error_message = nullptr;
+
     try {
         auto raw_programs = read_elf(file, section ? std::string(section) : std::string(), &verifier_options, platform);
-        *infos = nullptr;
         for (const auto& raw_program : raw_programs) {
             ebpf_section_info_t* info = (ebpf_section_info_t*)malloc(sizeof(*info));
             if (info == nullptr) {
