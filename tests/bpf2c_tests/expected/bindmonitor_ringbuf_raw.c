@@ -12,6 +12,7 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
     *hash = NULL;
     *size = 0;
 }
+#pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
     {NULL,
      {
@@ -26,6 +27,7 @@ static map_entry_t _maps[] = {
      },
      "process_map"},
 };
+#pragma data_seg(pop)
 
 static void
 _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ size_t* count)
@@ -46,6 +48,7 @@ static uint16_t bind_monitor_maps[] = {
     0,
 };
 
+#pragma code_seg(push, "bind")
 static uint64_t
 bind_monitor(void* context)
 {
@@ -81,7 +84,7 @@ bind_monitor(void* context)
     if (r2 != IMMEDIATE(0))
 #line 23 "sample/bindmonitor_ringbuf.c"
         goto label_1;
-        // EBPF_OP_LDXDW pc=2 dst=r2 src=r1 offset=0 imm=0
+    // EBPF_OP_LDXDW pc=2 dst=r2 src=r1 offset=0 imm=0
 #line 25 "sample/bindmonitor_ringbuf.c"
     r2 = *(uint64_t*)(uintptr_t)(r1 + OFFSET(0));
     // EBPF_OP_LDXDW pc=3 dst=r3 src=r1 offset=8 imm=0
@@ -92,7 +95,7 @@ bind_monitor(void* context)
     if (r2 >= r3)
 #line 25 "sample/bindmonitor_ringbuf.c"
         goto label_1;
-        // EBPF_OP_SUB64_REG pc=5 dst=r3 src=r2 offset=0 imm=0
+    // EBPF_OP_SUB64_REG pc=5 dst=r3 src=r2 offset=0 imm=0
 #line 26 "sample/bindmonitor_ringbuf.c"
     r3 -= r2;
     // EBPF_OP_LDDW pc=6 dst=r1 src=r0 offset=0 imm=0
@@ -119,11 +122,15 @@ label_1:
     return r0;
 #line 32 "sample/bindmonitor_ringbuf.c"
 }
+#pragma code_seg(pop)
 #line __LINE__ __FILE__
 
+#pragma data_seg(push, "programs")
 static program_entry_t _programs[] = {
     {
+        0,
         bind_monitor,
+        "bind",
         "bind",
         "bind_monitor",
         bind_monitor_maps,
@@ -135,6 +142,7 @@ static program_entry_t _programs[] = {
         &bind_monitor_attach_type_guid,
     },
 };
+#pragma data_seg(pop)
 
 static void
 _get_programs(_Outptr_result_buffer_(*count) program_entry_t** programs, _Out_ size_t* count)

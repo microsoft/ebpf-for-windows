@@ -62,7 +62,13 @@ extern "C"
 
     typedef struct _program_entry
     {
+        // DLLs put the strings into the same section, so add a marker
+        // at the start of a program entry to make it easy to find
+        // entries in the programs section.
+        uint64_t zero;
+
         uint64_t (*function)(void*);
+        const char* pe_section_name;
         const char* section_name;
         const char* program_name;
         uint16_t* referenced_map_indices;

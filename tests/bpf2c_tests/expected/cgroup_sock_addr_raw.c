@@ -12,6 +12,7 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
     *hash = NULL;
     *size = 0;
 }
+#pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
     {NULL,
      {
@@ -38,6 +39,7 @@ static map_entry_t _maps[] = {
      },
      "egress_connection_policy_map"},
 };
+#pragma data_seg(pop)
 
 static void
 _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ size_t* count)
@@ -58,6 +60,7 @@ static uint16_t authorize_connect4_maps[] = {
     1,
 };
 
+#pragma code_seg(push, "cgroup~1")
 static uint64_t
 authorize_connect4(void* context)
 {
@@ -163,7 +166,7 @@ authorize_connect4(void* context)
     if ((authorize_connect4_helpers[0].tail_call) && (r0 == 0))
 #line 43 "sample/cgroup_sock_addr.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=25 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=25 dst=r1 src=r0 offset=0 imm=0
 #line 43 "sample/cgroup_sock_addr.c"
     r1 = r0;
     // EBPF_OP_MOV64_IMM pc=26 dst=r0 src=r0 offset=0 imm=1
@@ -174,7 +177,7 @@ authorize_connect4(void* context)
     if (r1 == IMMEDIATE(0))
 #line 45 "sample/cgroup_sock_addr.c"
         goto label_1;
-        // EBPF_OP_LDXW pc=28 dst=r0 src=r1 offset=0 imm=0
+    // EBPF_OP_LDXW pc=28 dst=r0 src=r1 offset=0 imm=0
 #line 45 "sample/cgroup_sock_addr.c"
     r0 = *(uint32_t*)(uintptr_t)(r1 + OFFSET(0));
 label_1:
@@ -183,6 +186,7 @@ label_1:
     return r0;
 #line 68 "sample/cgroup_sock_addr.c"
 }
+#pragma code_seg(pop)
 #line __LINE__ __FILE__
 
 static helper_function_entry_t authorize_connect6_helpers[] = {
@@ -197,6 +201,7 @@ static uint16_t authorize_connect6_maps[] = {
     1,
 };
 
+#pragma code_seg(push, "cgroup~2")
 static uint64_t
 authorize_connect6(void* context)
 {
@@ -326,7 +331,7 @@ authorize_connect6(void* context)
     if ((authorize_connect6_helpers[0].tail_call) && (r0 == 0))
 #line 59 "sample/cgroup_sock_addr.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=33 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=33 dst=r1 src=r0 offset=0 imm=0
 #line 59 "sample/cgroup_sock_addr.c"
     r1 = r0;
     // EBPF_OP_MOV64_IMM pc=34 dst=r0 src=r0 offset=0 imm=1
@@ -337,7 +342,7 @@ authorize_connect6(void* context)
     if (r1 == IMMEDIATE(0))
 #line 61 "sample/cgroup_sock_addr.c"
         goto label_1;
-        // EBPF_OP_LDXW pc=36 dst=r0 src=r1 offset=0 imm=0
+    // EBPF_OP_LDXW pc=36 dst=r0 src=r1 offset=0 imm=0
 #line 61 "sample/cgroup_sock_addr.c"
     r0 = *(uint32_t*)(uintptr_t)(r1 + OFFSET(0));
 label_1:
@@ -346,6 +351,7 @@ label_1:
     return r0;
 #line 75 "sample/cgroup_sock_addr.c"
 }
+#pragma code_seg(pop)
 #line __LINE__ __FILE__
 
 static helper_function_entry_t authorize_recv_accept4_helpers[] = {
@@ -360,6 +366,7 @@ static uint16_t authorize_recv_accept4_maps[] = {
     0,
 };
 
+#pragma code_seg(push, "cgroup~3")
 static uint64_t
 authorize_recv_accept4(void* context)
 {
@@ -465,7 +472,7 @@ authorize_recv_accept4(void* context)
     if ((authorize_recv_accept4_helpers[0].tail_call) && (r0 == 0))
 #line 43 "sample/cgroup_sock_addr.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=25 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=25 dst=r1 src=r0 offset=0 imm=0
 #line 43 "sample/cgroup_sock_addr.c"
     r1 = r0;
     // EBPF_OP_MOV64_IMM pc=26 dst=r0 src=r0 offset=0 imm=1
@@ -476,7 +483,7 @@ authorize_recv_accept4(void* context)
     if (r1 == IMMEDIATE(0))
 #line 45 "sample/cgroup_sock_addr.c"
         goto label_1;
-        // EBPF_OP_LDXW pc=28 dst=r0 src=r1 offset=0 imm=0
+    // EBPF_OP_LDXW pc=28 dst=r0 src=r1 offset=0 imm=0
 #line 45 "sample/cgroup_sock_addr.c"
     r0 = *(uint32_t*)(uintptr_t)(r1 + OFFSET(0));
 label_1:
@@ -485,6 +492,7 @@ label_1:
     return r0;
 #line 82 "sample/cgroup_sock_addr.c"
 }
+#pragma code_seg(pop)
 #line __LINE__ __FILE__
 
 static helper_function_entry_t authorize_recv_accept6_helpers[] = {
@@ -499,6 +507,7 @@ static uint16_t authorize_recv_accept6_maps[] = {
     0,
 };
 
+#pragma code_seg(push, "cgroup~4")
 static uint64_t
 authorize_recv_accept6(void* context)
 {
@@ -628,7 +637,7 @@ authorize_recv_accept6(void* context)
     if ((authorize_recv_accept6_helpers[0].tail_call) && (r0 == 0))
 #line 59 "sample/cgroup_sock_addr.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=33 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=33 dst=r1 src=r0 offset=0 imm=0
 #line 59 "sample/cgroup_sock_addr.c"
     r1 = r0;
     // EBPF_OP_MOV64_IMM pc=34 dst=r0 src=r0 offset=0 imm=1
@@ -639,7 +648,7 @@ authorize_recv_accept6(void* context)
     if (r1 == IMMEDIATE(0))
 #line 61 "sample/cgroup_sock_addr.c"
         goto label_1;
-        // EBPF_OP_LDXW pc=36 dst=r0 src=r1 offset=0 imm=0
+    // EBPF_OP_LDXW pc=36 dst=r0 src=r1 offset=0 imm=0
 #line 61 "sample/cgroup_sock_addr.c"
     r0 = *(uint32_t*)(uintptr_t)(r1 + OFFSET(0));
 label_1:
@@ -648,11 +657,15 @@ label_1:
     return r0;
 #line 89 "sample/cgroup_sock_addr.c"
 }
+#pragma code_seg(pop)
 #line __LINE__ __FILE__
 
+#pragma data_seg(push, "programs")
 static program_entry_t _programs[] = {
     {
+        0,
         authorize_connect4,
+        "cgroup~1",
         "cgroup/connect4",
         "authorize_connect4",
         authorize_connect4_maps,
@@ -664,7 +677,9 @@ static program_entry_t _programs[] = {
         &authorize_connect4_attach_type_guid,
     },
     {
+        0,
         authorize_connect6,
+        "cgroup~2",
         "cgroup/connect6",
         "authorize_connect6",
         authorize_connect6_maps,
@@ -676,7 +691,9 @@ static program_entry_t _programs[] = {
         &authorize_connect6_attach_type_guid,
     },
     {
+        0,
         authorize_recv_accept4,
+        "cgroup~3",
         "cgroup/recv_accept4",
         "authorize_recv_accept4",
         authorize_recv_accept4_maps,
@@ -688,7 +705,9 @@ static program_entry_t _programs[] = {
         &authorize_recv_accept4_attach_type_guid,
     },
     {
+        0,
         authorize_recv_accept6,
+        "cgroup~4",
         "cgroup/recv_accept6",
         "authorize_recv_accept6",
         authorize_recv_accept6_maps,
@@ -700,6 +719,7 @@ static program_entry_t _programs[] = {
         &authorize_recv_accept6_attach_type_guid,
     },
 };
+#pragma data_seg(pop)
 
 static void
 _get_programs(_Outptr_result_buffer_(*count) program_entry_t** programs, _Out_ size_t* count)

@@ -11,6 +11,7 @@
 
 #include "api_internal.h"
 #include "bpf.h"
+#include "bpf2c.h"
 #include "device_helper.hpp"
 #include "ebpf_api.h"
 #include "ebpf_platform.h"
@@ -22,6 +23,9 @@
 #include "libbpf.h"
 #pragma warning(pop)
 #include "map_descriptors.hpp"
+#define _PEPARSE_WINDOWS_CONFLICTS
+#include "pe-parse/parse.h"
+
 #include "rpc_client.h"
 extern "C"
 {
@@ -30,6 +34,7 @@ extern "C"
 #include "Verifier.h"
 #include "windows_platform_common.hpp"
 
+using namespace peparse;
 using namespace Platform;
 
 #ifndef GUID_NULL
@@ -207,7 +212,7 @@ ebpf_map_create(
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_handle_t map_handle = ebpf_handle_invalid;
     ebpf_handle_t inner_map_handle = ebpf_handle_invalid;
-    ebpf_map_definition_in_memory_t map_definition = {0};
+    ebpf_map_definition_in_memory_t map_definition = {};
 
     ebpf_assert(map_fd);
 
@@ -1633,6 +1638,239 @@ _get_next_map_to_create(std::vector<ebpf_map_t*>& maps)
     return nullptr;
 }
 
+static void
+_ebpf_free_section_info(_In_ _Frees_ptr_ ebpf_section_info_t* info)
+{
+    while (info->stats != nullptr) {
+        ebpf_stat_t* stat = info->stats;
+#pragma warning(push)
+#pragma warning(disable : 6001)
+        // MSVC incorrectly reports this as using uninitialized memory.
+        info->stats = stat->next;
+        free((void*)stat->key);
+#pragma warning(pop)
+        free(stat);
+    }
+    free((void*)info->section_name);
+    free((void*)info->program_type_name);
+    free(info->raw_data);
+    free(info);
+}
+
+void
+ebpf_free_sections(_In_opt_ ebpf_section_info_t* infos)
+{
+    while (infos != nullptr) {
+        ebpf_section_info_t* info = infos;
+        infos = info->next;
+        _ebpf_free_section_info(info);
+    }
+}
+
+typedef struct _ebpf_pe_context
+{
+    uintptr_t image_base;
+    ebpf_section_info_t* infos;
+    std::map<std::string, std::string> section_names;
+    std::map<std::string, GUID> section_program_types;
+    int map_count;
+    uintptr_t rdata_base;
+    size_t rdata_size;
+    const bounded_buffer* rdata_buffer;
+    uintptr_t data_base;
+    size_t data_size;
+    const bounded_buffer* data_buffer;
+} ebpf_pe_context_t;
+
+static int
+_ebpf_pe_get_map_count(
+    void* context,
+    const VA& va,
+    const std::string& section_name,
+    const image_section_header& section_header,
+    const bounded_buffer* buffer)
+{
+    UNREFERENCED_PARAMETER(va);
+    UNREFERENCED_PARAMETER(buffer);
+
+    ebpf_pe_context_t* pe_context = (ebpf_pe_context_t*)context;
+    if (section_name == "maps") {
+        // bpf2c generates a section that has map names as strings at the
+        // start of the section.  Skip over them looking for the map_entry_t
+        // which starts with a 16-byte-aligned NULL pointer.
+        uint32_t map_offset = 0;
+        uint64_t zero = 0;
+        while (map_offset < section_header.Misc.VirtualSize &&
+               memcmp(buffer->buf + map_offset, &zero, sizeof(zero)) != 0) {
+            map_offset += 16;
+        }
+        pe_context->map_count = (section_header.Misc.VirtualSize - map_offset) / sizeof(map_entry_t);
+    } else if (section_name == ".rdata") {
+        pe_context->rdata_base = pe_context->image_base + section_header.VirtualAddress;
+        pe_context->rdata_size = section_header.Misc.VirtualSize;
+        pe_context->rdata_buffer = buffer;
+    } else if (section_name == ".data") {
+        pe_context->data_base = pe_context->image_base + section_header.VirtualAddress;
+        pe_context->data_size = section_header.Misc.VirtualSize;
+        pe_context->data_buffer = buffer;
+    }
+
+    return 0;
+}
+
+const char*
+_ebpf_get_section_string(
+    _In_ const ebpf_pe_context_t* pe_context,
+    uintptr_t address,
+    _In_ const image_section_header& section_header,
+    _In_ const bounded_buffer* buffer)
+{
+    if (address >= pe_context->rdata_base && address < pe_context->rdata_base + pe_context->rdata_size) {
+        // String is in rdata section (.sys files do this).
+        uintptr_t offset = address - pe_context->rdata_base;
+        return (const char*)(pe_context->rdata_buffer->buf + offset);
+    } else {
+        // String is in programs section (.dll files do this).
+        uintptr_t base = pe_context->image_base + section_header.VirtualAddress;
+        ebpf_assert(address >= base && address < base + section_header.Misc.VirtualSize);
+        uintptr_t offset = address - base;
+        return (const char*)(buffer->buf + offset);
+    }
+}
+
+static int
+_ebpf_pe_get_section_names(
+    void* context,
+    const VA& va,
+    const std::string& section_name,
+    const image_section_header& section_header,
+    const bounded_buffer* buffer)
+{
+    UNREFERENCED_PARAMETER(va);
+
+    ebpf_pe_context_t* pe_context = (ebpf_pe_context_t*)context;
+    if (section_name == "programs") {
+        // bpf2c generates a section that has ELF section names as strings at the
+        // start of the section.  Skip over them looking for the program_entry_t
+        // which starts with a 16-byte-aligned NULL pointer.
+        uint32_t program_offset = 0;
+        uint64_t zero = 0;
+        while (program_offset < section_header.Misc.VirtualSize &&
+               memcmp(buffer->buf + program_offset, &zero, sizeof(zero)) != 0) {
+            program_offset += 16;
+        }
+        int program_count = (section_header.Misc.VirtualSize - program_offset) / sizeof(program_entry_t);
+        for (int i = 0; i < program_count; i++) {
+            program_entry_t* program = (program_entry_t*)(buffer->buf + program_offset + i * sizeof(program_entry_t));
+            const char* pe_section_name =
+                _ebpf_get_section_string(pe_context, (uintptr_t)program->pe_section_name, section_header, buffer);
+            const char* elf_section_name =
+                _ebpf_get_section_string(pe_context, (uintptr_t)program->section_name, section_header, buffer);
+            pe_context->section_names[pe_section_name] = elf_section_name;
+
+            uintptr_t program_type_guid_address = (uintptr_t)program->program_type;
+            ebpf_assert(
+                program_type_guid_address >= pe_context->data_base &&
+                program_type_guid_address < pe_context->data_base + pe_context->data_size);
+            uintptr_t offset = program_type_guid_address - pe_context->data_base;
+            pe_context->section_program_types[pe_section_name] = *(GUID*)(pe_context->data_buffer->buf + offset);
+        }
+    }
+
+    return 0;
+}
+
+static int
+_ebpf_pe_add_section(
+    void* context,
+    const VA& va,
+    const std::string& pe_section_name,
+    const image_section_header& section_header,
+    const bounded_buffer* buffer)
+{
+    UNREFERENCED_PARAMETER(va);
+    UNREFERENCED_PARAMETER(buffer);
+
+    if (!(section_header.Characteristics & IMAGE_SCN_CNT_CODE)) {
+        // Not a code section.
+        return 0;
+    }
+    ebpf_pe_context_t* pe_context = (ebpf_pe_context_t*)context;
+
+    // Get ELF section name.
+    if (!pe_context->section_names.contains(pe_section_name)) {
+        // Not an eBPF program section.
+        return 0;
+    }
+    std::string elf_section_name = pe_context->section_names[pe_section_name];
+
+    ebpf_section_info_t* info = (ebpf_section_info_t*)malloc(sizeof(*info));
+    if (info == nullptr) {
+        return 1;
+    }
+    memset(info, 0, sizeof(*info));
+    info->section_name = _strdup(elf_section_name.c_str());
+    info->program_type_name =
+        _strdup(get_program_type_windows(pe_context->section_program_types[pe_section_name]).name.c_str());
+    info->raw_data_size = section_header.Misc.VirtualSize;
+    info->raw_data = (char*)malloc(section_header.Misc.VirtualSize);
+    info->map_count = pe_context->map_count;
+    if (info->raw_data == nullptr || info->program_type_name == nullptr || info->section_name == nullptr) {
+        _ebpf_free_section_info(info);
+        return 1;
+    }
+    memcpy(info->raw_data, buffer->buf, section_header.Misc.VirtualSize);
+
+    info->next = pe_context->infos;
+    pe_context->infos = info;
+
+    return 0;
+}
+
+static ebpf_result_t
+_ebpf_enumerate_native_sections(
+    _In_z_ const char* file,
+    _Outptr_result_maybenull_ ebpf_section_info_t** infos,
+    _Outptr_result_maybenull_z_ const char** error_message)
+{
+    *infos = nullptr;
+    *error_message = nullptr;
+
+    parsed_pe* pe = ParsePEFromFile(file);
+    if (pe == nullptr) {
+        return EBPF_FILE_NOT_FOUND;
+    }
+
+    ebpf_pe_context_t context = {.image_base = pe->peHeader.nt.OptionalHeader64.ImageBase};
+    IterSec(pe, _ebpf_pe_get_map_count, &context);
+    IterSec(pe, _ebpf_pe_get_section_names, &context);
+    IterSec(pe, _ebpf_pe_add_section, &context);
+
+    DestructParsedPE(pe);
+
+    *infos = context.infos;
+    return EBPF_SUCCESS;
+}
+
+ebpf_result_t
+ebpf_enumerate_sections(
+    _In_z_ const char* file,
+    bool verbose,
+    _Outptr_result_maybenull_ ebpf_section_info_t** infos,
+    _Outptr_result_maybenull_z_ const char** error_message)
+{
+    std::string file_name_string(file);
+    std::string file_extension = file_name_string.substr(file_name_string.find_last_of(".") + 1);
+    if (file_extension == "dll" || file_extension == "sys") {
+        // Verbose is currently unused.
+        return _ebpf_enumerate_native_sections(file, infos, error_message);
+    } else {
+        return ebpf_api_elf_enumerate_sections(file, nullptr, verbose, infos, error_message) ? EBPF_FAILED
+                                                                                             : EBPF_SUCCESS;
+    }
+}
+
+// TODO (issue #951): update to look more like bpf_object__open_xattr
 ebpf_result_t
 ebpf_object_open(
     _In_z_ const char* path,
@@ -1653,8 +1891,14 @@ ebpf_object_open(
         return EBPF_NO_MEMORY;
     }
 
-    ebpf_result_t result = _initialize_ebpf_object_from_elf(
-        path, object_name, pin_root_path, program_type, attach_type, *new_object, error_message);
+    ebpf_result_t result;
+    if (Platform::_is_native_program(path)) {
+        // TODO(issue #951): support native programs.
+        result = EBPF_OPERATION_NOT_SUPPORTED;
+    } else {
+        result = _initialize_ebpf_object_from_elf(
+            path, object_name, pin_root_path, program_type, attach_type, *new_object, error_message);
+    }
     if (result != EBPF_SUCCESS) {
         goto Done;
     }

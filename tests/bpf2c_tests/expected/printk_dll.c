@@ -70,6 +70,7 @@ static helper_function_entry_t func_helpers[] = {
 
 static GUID func_program_type_guid = {0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
 static GUID func_attach_type_guid = {0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
+#pragma code_seg(push, "bind")
 static uint64_t
 func(void* context)
 {
@@ -144,7 +145,7 @@ func(void* context)
     if ((func_helpers[0].tail_call) && (r0 == 0))
 #line 23 "sample/printk.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=12 dst=r8 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=12 dst=r8 src=r0 offset=0 imm=0
 #line 23 "sample/printk.c"
     r8 = r0;
     // EBPF_OP_MOV64_IMM pc=13 dst=r1 src=r0 offset=0 imm=10
@@ -177,7 +178,7 @@ func(void* context)
     if ((func_helpers[0].tail_call) && (r0 == 0))
 #line 24 "sample/printk.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=21 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=21 dst=r6 src=r0 offset=0 imm=0
 #line 24 "sample/printk.c"
     r6 = r0;
     // EBPF_OP_LDDW pc=22 dst=r1 src=r0 offset=0 imm=977553744
@@ -210,7 +211,7 @@ func(void* context)
     if ((func_helpers[1].tail_call) && (r0 == 0))
 #line 27 "sample/printk.c"
         return 0;
-        // EBPF_OP_ADD64_REG pc=31 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_ADD64_REG pc=31 dst=r6 src=r0 offset=0 imm=0
 #line 27 "sample/printk.c"
     r6 += r0;
     // EBPF_OP_MOV64_IMM pc=32 dst=r8 src=r0 offset=0 imm=117
@@ -255,7 +256,7 @@ func(void* context)
     if ((func_helpers[2].tail_call) && (r0 == 0))
 #line 28 "sample/printk.c"
         return 0;
-        // EBPF_OP_STXH pc=46 dst=r10 src=r8 offset=-4 imm=0
+    // EBPF_OP_STXH pc=46 dst=r10 src=r8 offset=-4 imm=0
 #line 30 "sample/printk.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint16_t)r8;
     // EBPF_OP_MOV64_IMM pc=47 dst=r1 src=r0 offset=0 imm=622869070
@@ -309,7 +310,7 @@ func(void* context)
     if ((func_helpers[3].tail_call) && (r0 == 0))
 #line 30 "sample/printk.c"
         return 0;
-        // EBPF_OP_MOV64_IMM pc=64 dst=r1 src=r0 offset=0 imm=9504
+    // EBPF_OP_MOV64_IMM pc=64 dst=r1 src=r0 offset=0 imm=9504
 #line 30 "sample/printk.c"
     r1 = IMMEDIATE(9504);
     // EBPF_OP_STXH pc=65 dst=r10 src=r1 offset=-28 imm=0
@@ -348,7 +349,7 @@ func(void* context)
     if ((func_helpers[0].tail_call) && (r0 == 0))
 #line 34 "sample/printk.c"
         return 0;
-        // EBPF_OP_LDDW pc=75 dst=r1 src=r0 offset=0 imm=843333954
+    // EBPF_OP_LDDW pc=75 dst=r1 src=r0 offset=0 imm=843333954
 #line 34 "sample/printk.c"
     r1 = (uint64_t)7812660273793483074;
     // EBPF_OP_STXDW pc=77 dst=r10 src=r1 offset=-32 imm=0
@@ -381,7 +382,7 @@ func(void* context)
     if ((func_helpers[0].tail_call) && (r0 == 0))
 #line 35 "sample/printk.c"
         return 0;
-        // EBPF_OP_LDDW pc=85 dst=r1 src=r0 offset=0 imm=860111170
+    // EBPF_OP_LDDW pc=85 dst=r1 src=r0 offset=0 imm=860111170
 #line 35 "sample/printk.c"
     r1 = (uint64_t)7220718397787750722;
     // EBPF_OP_STXDW pc=87 dst=r10 src=r1 offset=-32 imm=0
@@ -414,7 +415,7 @@ func(void* context)
     if ((func_helpers[1].tail_call) && (r0 == 0))
 #line 36 "sample/printk.c"
         return 0;
-        // EBPF_OP_LDDW pc=95 dst=r1 src=r0 offset=0 imm=876888386
+    // EBPF_OP_LDDW pc=95 dst=r1 src=r0 offset=0 imm=876888386
 #line 36 "sample/printk.c"
     r1 = (uint64_t)31566017637663042;
     // EBPF_OP_STXDW pc=97 dst=r10 src=r1 offset=-32 imm=0
@@ -444,7 +445,7 @@ func(void* context)
     if ((func_helpers[1].tail_call) && (r0 == 0))
 #line 37 "sample/printk.c"
         return 0;
-        // EBPF_OP_MOV64_IMM pc=104 dst=r1 src=r0 offset=0 imm=893665602
+    // EBPF_OP_MOV64_IMM pc=104 dst=r1 src=r0 offset=0 imm=893665602
 #line 37 "sample/printk.c"
     r1 = IMMEDIATE(893665602);
     // EBPF_OP_STXW pc=105 dst=r10 src=r1 offset=-32 imm=0
@@ -477,7 +478,7 @@ func(void* context)
     if ((func_helpers[1].tail_call) && (r0 == 0))
 #line 41 "sample/printk.c"
         return 0;
-        // EBPF_OP_LDDW pc=113 dst=r1 src=r0 offset=0 imm=910442818
+    // EBPF_OP_LDDW pc=113 dst=r1 src=r0 offset=0 imm=910442818
 #line 41 "sample/printk.c"
     r1 = (uint64_t)32973392554770754;
     // EBPF_OP_STXDW pc=115 dst=r10 src=r1 offset=-32 imm=0
@@ -504,7 +505,7 @@ func(void* context)
     if ((func_helpers[0].tail_call) && (r0 == 0))
 #line 42 "sample/printk.c"
         return 0;
-        // EBPF_OP_STXB pc=121 dst=r10 src=r8 offset=-22 imm=0
+    // EBPF_OP_STXB pc=121 dst=r10 src=r8 offset=-22 imm=0
 #line 45 "sample/printk.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-22)) = (uint8_t)r8;
     // EBPF_OP_MOV64_IMM pc=122 dst=r1 src=r0 offset=0 imm=25966
@@ -540,7 +541,7 @@ func(void* context)
     if ((func_helpers[0].tail_call) && (r0 == 0))
 #line 45 "sample/printk.c"
         return 0;
-        // EBPF_OP_ADD64_REG pc=132 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_ADD64_REG pc=132 dst=r6 src=r0 offset=0 imm=0
 #line 45 "sample/printk.c"
     r6 += r0;
     // EBPF_OP_MOV64_REG pc=133 dst=r0 src=r6 offset=0 imm=0
@@ -551,11 +552,15 @@ func(void* context)
     return r0;
 #line 47 "sample/printk.c"
 }
+#pragma code_seg(pop)
 #line __LINE__ __FILE__
 
+#pragma data_seg(push, "programs")
 static program_entry_t _programs[] = {
     {
+        0,
         func,
+        "bind",
         "bind",
         "func",
         NULL,
@@ -567,6 +572,7 @@ static program_entry_t _programs[] = {
         &func_attach_type_guid,
     },
 };
+#pragma data_seg(pop)
 
 static void
 _get_programs(_Outptr_result_buffer_(*count) program_entry_t** programs, _Out_ size_t* count)

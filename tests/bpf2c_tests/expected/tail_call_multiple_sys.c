@@ -179,6 +179,7 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
     *hash = NULL;
     *size = 0;
 }
+#pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
     {NULL,
      {
@@ -193,6 +194,7 @@ static map_entry_t _maps[] = {
      },
      "map"},
 };
+#pragma data_seg(pop)
 
 static void
 _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ size_t* count)
@@ -211,6 +213,7 @@ static uint16_t caller_maps[] = {
     0,
 };
 
+#pragma code_seg(push, "xdp_prog")
 static uint64_t
 caller(void* context)
 {
@@ -253,7 +256,7 @@ caller(void* context)
     if ((caller_helpers[0].tail_call) && (r0 == 0))
 #line 24 "sample/tail_call_multiple.c"
         return 0;
-        // EBPF_OP_MOV64_IMM pc=4 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=4 dst=r0 src=r0 offset=0 imm=1
 #line 27 "sample/tail_call_multiple.c"
     r0 = IMMEDIATE(1);
     // EBPF_OP_EXIT pc=5 dst=r0 src=r0 offset=0 imm=0
@@ -261,6 +264,7 @@ caller(void* context)
     return r0;
 #line 27 "sample/tail_call_multiple.c"
 }
+#pragma code_seg(pop)
 #line __LINE__ __FILE__
 
 static helper_function_entry_t callee0_helpers[] = {
@@ -273,6 +277,7 @@ static uint16_t callee0_maps[] = {
     0,
 };
 
+#pragma code_seg(push, "xdp_pr~1")
 static uint64_t
 callee0(void* context)
 {
@@ -315,7 +320,7 @@ callee0(void* context)
     if ((callee0_helpers[0].tail_call) && (r0 == 0))
 #line 35 "sample/tail_call_multiple.c"
         return 0;
-        // EBPF_OP_MOV64_IMM pc=4 dst=r0 src=r0 offset=0 imm=2
+    // EBPF_OP_MOV64_IMM pc=4 dst=r0 src=r0 offset=0 imm=2
 #line 38 "sample/tail_call_multiple.c"
     r0 = IMMEDIATE(2);
     // EBPF_OP_EXIT pc=5 dst=r0 src=r0 offset=0 imm=0
@@ -323,10 +328,12 @@ callee0(void* context)
     return r0;
 #line 38 "sample/tail_call_multiple.c"
 }
+#pragma code_seg(pop)
 #line __LINE__ __FILE__
 
 static GUID callee1_program_type_guid = {0xf1832a85, 0x85d5, 0x45b0, {0x98, 0xa0, 0x70, 0x69, 0xd6, 0x30, 0x13, 0xb0}};
 static GUID callee1_attach_type_guid = {0x85e0d8ef, 0x579e, 0x4931, {0xb0, 0x72, 0x8e, 0xe2, 0x26, 0xbb, 0x2e, 0x9d}};
+#pragma code_seg(push, "xdp_pr~2")
 static uint64_t
 callee1(void* context)
 {
@@ -358,11 +365,15 @@ callee1(void* context)
     return r0;
 #line 41 "sample/tail_call_multiple.c"
 }
+#pragma code_seg(pop)
 #line __LINE__ __FILE__
 
+#pragma data_seg(push, "programs")
 static program_entry_t _programs[] = {
     {
+        0,
         caller,
+        "xdp_prog",
         "xdp_prog",
         "caller",
         caller_maps,
@@ -374,7 +385,9 @@ static program_entry_t _programs[] = {
         &caller_attach_type_guid,
     },
     {
+        0,
         callee0,
+        "xdp_pr~1",
         "xdp_prog/0",
         "callee0",
         callee0_maps,
@@ -386,7 +399,9 @@ static program_entry_t _programs[] = {
         &callee0_attach_type_guid,
     },
     {
+        0,
         callee1,
+        "xdp_pr~2",
         "xdp_prog/1",
         "callee1",
         NULL,
@@ -398,6 +413,7 @@ static program_entry_t _programs[] = {
         &callee1_attach_type_guid,
     },
 };
+#pragma data_seg(pop)
 
 static void
 _get_programs(_Outptr_result_buffer_(*count) program_entry_t** programs, _Out_ size_t* count)

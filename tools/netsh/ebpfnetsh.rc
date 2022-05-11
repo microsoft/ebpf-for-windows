@@ -180,7 +180,7 @@ BEGIN
 \n\
 \nRemarks: Shows the disassembly of the specified eBPF program.\
 \n"
-    HLP_EBPF_SHOW_SECTIONS  "Shows sections of an ELF file.\n"
+    HLP_EBPF_SHOW_SECTIONS  "Shows sections of an eBPF file.\n"
     HLP_EBPF_SHOW_SECTIONS_EX "\
 \nUsage: %1!s! [filename=]<string> [[section=]<string>]\
 \n                     [[level=]normal|verbose]\
@@ -188,7 +188,7 @@ BEGIN
 \nParameters:\
 \n\
 \n      Tag         Value\
-\n      filename  - Filename or path to ELF file.\
+\n      filename  - Filename or path to .o, .dll, or .sys file.\
 \n      section   - Optionally the name of a section.\
 \n      level     - One of the following values:\
 \n                   normal: Display one line per section.  This\
@@ -196,9 +196,10 @@ BEGIN
 \n                           given.\
 \n                   verbose: Display statistics on each section.\
 \n                            This is the default when a section\
-\n                            name is given.\
+\n                            name is given. Statistics are only\
+\n                            shown for .o files, not .dll or .sys.\
 \n\
-\nRemarks: Lists the code sections in the specified ELF file.\
+\nRemarks: Lists the code sections in the specified eBPF file.\
 \n"
     HLP_EBPF_SHOW_VERIFICATION
                             "Shows results of trying to verify an eBPF program.\n"

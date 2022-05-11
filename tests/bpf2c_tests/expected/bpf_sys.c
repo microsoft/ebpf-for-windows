@@ -187,40 +187,45 @@ _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ siz
 }
 
 static GUID func_program_type_guid = {0xf1832a85, 0x85d5, 0x45b0, {0x98, 0xa0, 0x70, 0x69, 0xd6, 0x30, 0x13, 0xb0}};
-static GUID func_attach_type_guid = {0x85e0d8ef, 0x579e, 0x4931, {0xb0, 0x72, 0x8e, 0xe2, 0x26, 0xbb, 0x2e, 0x9d}};
+static GUID func_attach_type_guid = {0x00000000, 0x0000, 0x0000, {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}};
+#pragma code_seg(push, ".text")
 static uint64_t
 func(void* context)
 {
-#line 18 "sample/bpf.c"
+#line 17 "sample/bpf.c"
     // Prologue
-#line 18 "sample/bpf.c"
+#line 17 "sample/bpf.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
-#line 18 "sample/bpf.c"
+#line 17 "sample/bpf.c"
     register uint64_t r0 = 0;
-#line 18 "sample/bpf.c"
+#line 17 "sample/bpf.c"
     register uint64_t r1 = 0;
-#line 18 "sample/bpf.c"
+#line 17 "sample/bpf.c"
     register uint64_t r10 = 0;
 
-#line 18 "sample/bpf.c"
+#line 17 "sample/bpf.c"
     r1 = (uintptr_t)context;
-#line 18 "sample/bpf.c"
+#line 17 "sample/bpf.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
     // EBPF_OP_MOV64_IMM pc=0 dst=r0 src=r0 offset=0 imm=42
-#line 18 "sample/bpf.c"
+#line 17 "sample/bpf.c"
     r0 = IMMEDIATE(42);
     // EBPF_OP_EXIT pc=1 dst=r0 src=r0 offset=0 imm=0
-#line 18 "sample/bpf.c"
+#line 17 "sample/bpf.c"
     return r0;
-#line 18 "sample/bpf.c"
+#line 17 "sample/bpf.c"
 }
+#pragma code_seg(pop)
 #line __LINE__ __FILE__
 
+#pragma data_seg(push, "programs")
 static program_entry_t _programs[] = {
     {
+        0,
         func,
-        "xdp_prog",
+        ".text",
+        ".text",
         "func",
         NULL,
         0,
@@ -231,6 +236,7 @@ static program_entry_t _programs[] = {
         &func_attach_type_guid,
     },
 };
+#pragma data_seg(pop)
 
 static void
 _get_programs(_Outptr_result_buffer_(*count) program_entry_t** programs, _Out_ size_t* count)

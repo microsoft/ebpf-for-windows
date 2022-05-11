@@ -54,6 +54,7 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
     *hash = NULL;
     *size = 0;
 }
+#pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
     {NULL,
      {
@@ -80,6 +81,7 @@ static map_entry_t _maps[] = {
      },
      "interface_index_map"},
 };
+#pragma data_seg(pop)
 
 static void
 _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ size_t* count)
@@ -101,6 +103,7 @@ static uint16_t DropPacket_maps[] = {
     1,
 };
 
+#pragma code_seg(push, "xdp")
 static uint64_t
 DropPacket(void* context)
 {
@@ -157,7 +160,7 @@ DropPacket(void* context)
     if ((DropPacket_helpers[0].tail_call) && (r0 == 0))
 #line 48 "sample/droppacket.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=8 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=8 dst=r1 src=r0 offset=0 imm=0
 #line 48 "sample/droppacket.c"
     r1 = r0;
     // EBPF_OP_JEQ_IMM pc=9 dst=r1 src=r0 offset=4 imm=0
@@ -165,7 +168,7 @@ DropPacket(void* context)
     if (r1 == IMMEDIATE(0))
 #line 49 "sample/droppacket.c"
         goto label_1;
-        // EBPF_OP_MOV64_IMM pc=10 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=10 dst=r0 src=r0 offset=0 imm=1
 #line 49 "sample/droppacket.c"
     r0 = IMMEDIATE(1);
     // EBPF_OP_LDXW pc=11 dst=r1 src=r1 offset=0 imm=0
@@ -200,7 +203,7 @@ label_1:
     if (r3 > r2)
 #line 56 "sample/droppacket.c"
         goto label_2;
-        // EBPF_OP_LDXH pc=20 dst=r3 src=r1 offset=12 imm=0
+    // EBPF_OP_LDXH pc=20 dst=r3 src=r1 offset=12 imm=0
 #line 60 "sample/droppacket.c"
     r3 = *(uint16_t*)(uintptr_t)(r1 + OFFSET(12));
     // EBPF_OP_JNE_IMM pc=21 dst=r3 src=r0 offset=24 imm=8
@@ -208,7 +211,7 @@ label_1:
     if (r3 != IMMEDIATE(8))
 #line 60 "sample/droppacket.c"
         goto label_2;
-        // EBPF_OP_LDXB pc=22 dst=r3 src=r1 offset=23 imm=0
+    // EBPF_OP_LDXB pc=22 dst=r3 src=r1 offset=23 imm=0
 #line 63 "sample/droppacket.c"
     r3 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(23));
     // EBPF_OP_JNE_IMM pc=23 dst=r3 src=r0 offset=22 imm=17
@@ -216,7 +219,7 @@ label_1:
     if (r3 != IMMEDIATE(17))
 #line 63 "sample/droppacket.c"
         goto label_2;
-        // EBPF_OP_ADD64_IMM pc=24 dst=r1 src=r0 offset=0 imm=14
+    // EBPF_OP_ADD64_IMM pc=24 dst=r1 src=r0 offset=0 imm=14
 #line 63 "sample/droppacket.c"
     r1 += IMMEDIATE(14);
     // EBPF_OP_LDXB pc=25 dst=r3 src=r1 offset=0 imm=0
@@ -242,7 +245,7 @@ label_1:
     if (r3 > r2)
 #line 66 "sample/droppacket.c"
         goto label_2;
-        // EBPF_OP_LDXH pc=32 dst=r1 src=r1 offset=4 imm=0
+    // EBPF_OP_LDXH pc=32 dst=r1 src=r1 offset=4 imm=0
 #line 69 "sample/droppacket.c"
     r1 = *(uint16_t*)(uintptr_t)(r1 + OFFSET(4));
     // EBPF_OP_BE pc=33 dst=r1 src=r0 offset=0 imm=16
@@ -255,7 +258,7 @@ label_1:
     if (r1 > IMMEDIATE(8))
 #line 69 "sample/droppacket.c"
         goto label_2;
-        // EBPF_OP_MOV64_REG pc=35 dst=r2 src=r10 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=35 dst=r2 src=r10 offset=0 imm=0
 #line 69 "sample/droppacket.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=36 dst=r2 src=r0 offset=0 imm=-8
@@ -273,7 +276,7 @@ label_1:
     if ((DropPacket_helpers[0].tail_call) && (r0 == 0))
 #line 70 "sample/droppacket.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=40 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=40 dst=r1 src=r0 offset=0 imm=0
 #line 70 "sample/droppacket.c"
     r1 = r0;
     // EBPF_OP_MOV64_IMM pc=41 dst=r0 src=r0 offset=0 imm=2
@@ -284,7 +287,7 @@ label_1:
     if (r1 == IMMEDIATE(0))
 #line 71 "sample/droppacket.c"
         goto label_2;
-        // EBPF_OP_LDXDW pc=43 dst=r2 src=r1 offset=0 imm=0
+    // EBPF_OP_LDXDW pc=43 dst=r2 src=r1 offset=0 imm=0
 #line 72 "sample/droppacket.c"
     r2 = *(uint64_t*)(uintptr_t)(r1 + OFFSET(0));
     // EBPF_OP_ADD64_IMM pc=44 dst=r2 src=r0 offset=0 imm=1
@@ -299,11 +302,15 @@ label_2:
     return r0;
 #line 79 "sample/droppacket.c"
 }
+#pragma code_seg(pop)
 #line __LINE__ __FILE__
 
+#pragma data_seg(push, "programs")
 static program_entry_t _programs[] = {
     {
+        0,
         DropPacket,
+        "xdp",
         "xdp",
         "DropPacket",
         DropPacket_maps,
@@ -315,6 +322,7 @@ static program_entry_t _programs[] = {
         &DropPacket_attach_type_guid,
     },
 };
+#pragma data_seg(pop)
 
 static void
 _get_programs(_Outptr_result_buffer_(*count) program_entry_t** programs, _Out_ size_t* count)

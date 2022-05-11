@@ -18,7 +18,6 @@ extern "C"
     typedef int32_t fd_t;
     extern __declspec(selectany) const fd_t ebpf_fd_invalid = -1;
     typedef intptr_t ebpf_handle_t;
-    typedef struct _tlv_type_length_value tlv_type_length_value_t;
 
     struct bpf_object;
     struct bpf_program;
@@ -101,41 +100,45 @@ extern "C"
         _Outptr_result_z_ const char** file_name,
         _Outptr_result_z_ const char** section_name);
 
+    typedef struct _ebpf_stat
+    {
+        struct _ebpf_stat* next;
+        _Field_z_ const char* key;
+        int value;
+    } ebpf_stat_t;
+
+    typedef struct _ebpf_section_info
+    {
+        struct _ebpf_section_info* next;
+        _Field_z_ const char* section_name;
+        _Field_z_ const char* program_type_name;
+        size_t map_count;
+        size_t raw_data_size;
+        _Field_size_(raw_data_size) char* raw_data;
+        ebpf_stat_t* stats;
+    } ebpf_section_info_t;
+
     /**
-     * @brief Get list of programs and stats in an ELF eBPF file.
-     * @param[in] file Name of ELF file containing eBPF program.
-     * @param[in] section Optionally, the name of the section to query.
-     * @param[in] verbose Obtain additional info about the programs.
-     * @param[out] data On success points to a list of eBPF programs.
-     * @param[out] error_message On failure points to a text description of
-     *  the error.
-     *
-     * The list of eBPF programs from this function is TLV formatted as follows:\n
-     *
-     *   sections ::= SEQUENCE {\n
-     *      section    SEQUENCE of section\n
-     *    }\n
-     * \n
-     *   section ::= SEQUENCE {\n
-     *      name       STRING\n
-     *      platform_specific_data INTEGER\n
-     *      count_of_maps INTEGER\n
-     *      byte_code   BLOB\n
-     *      statistic SEQUENCE of statistic\n
-     *   }\n
-     * \n
-     *   statistic ::= SEQUENCE {\n
-     *      name      STRING\n
-     *      value     INTEGER\n
-     *   }\n
-     */
-    uint32_t
-    ebpf_api_elf_enumerate_sections(
-        const char* file,
-        const char* section,
+-     * @brief Get list of programs and stats in an eBPF file.
+-     * @param[in] file Name of file containing eBPF programs.
+-     * @param[in] verbose Obtain additional info about the programs.
+-     * @param[out] infos On success points to a list of eBPF programs.
+-     * @param[out] error_message On failure points to a text description of
+-     *  the error.
+      */
+    ebpf_result_t
+    ebpf_enumerate_sections(
+        _In_z_ const char* file,
         bool verbose,
-        const tlv_type_length_value_t** data,
-        const char** error_message);
+        _Outptr_result_maybenull_ ebpf_section_info_t** infos,
+        _Outptr_result_maybenull_z_ const char** error_message);
+
+    /**
+     * @brief Free memory returned from \ref ebpf_enumerate_sections.
+     * @param[in] data Memory to free.
+     */
+    void
+    ebpf_free_sections(_In_opt_ ebpf_section_info_t* infos);
 
     /**
      * @brief Convert an eBPF program to human readable byte code.
@@ -197,13 +200,6 @@ extern "C"
         const char** report,
         const char** error_message,
         ebpf_api_verifier_stats_t* stats);
-
-    /**
-     * @brief Free a TLV returned from \ref ebpf_api_elf_enumerate_sections
-     * @param[in] data Memory to free.
-     */
-    void
-    ebpf_api_elf_free(const tlv_type_length_value_t* data);
 
     /**
      * @brief Free memory for a string returned from an eBPF API.
