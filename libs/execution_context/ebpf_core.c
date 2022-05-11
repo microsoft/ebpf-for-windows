@@ -1510,6 +1510,8 @@ _ebpf_core_protocol_ring_buffer_map_async_query(
     if (result != EBPF_SUCCESS)
         goto Exit;
 
+    reply->header.id = EBPF_OPERATION_RING_BUFFER_MAP_ASYNC_QUERY;
+    reply->header.length = sizeof(ebpf_operation_ring_buffer_map_async_query_reply_t);
     result = ebpf_ring_buffer_map_async_query(map, &reply->async_query_result, async_context);
 
 Exit:
@@ -2050,7 +2052,8 @@ ebpf_core_invoke_protocol_handler(
         retval = _ebpf_protocol_handlers[operation_id].dispatch.protocol_handler_with_reply(
             input_buffer, output_buffer, output_buffer_length);
 
-    if (output_buffer != NULL) {
+    // Async operations are responsible for setting the reply operation code and size.
+    if (!async_context && output_buffer != NULL) {
         user_reply->id = operation_id;
         if (_ebpf_protocol_handlers[operation_id].variable_size_reply) {
             // The handler is responsible for filling in the user_reply->length already.
