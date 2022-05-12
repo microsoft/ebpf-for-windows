@@ -6,6 +6,14 @@ param ([parameter(Mandatory = $true)][uri] $URL,
     [parameter(Mandatory = $false)][string] $PackageName,
     [parameter(Mandatory = $true)][string] $PackageRoot)
 
+Function Get-FileHashTSO([String] $FileName, $HashName = "SHA256") {
+    $FileStream = New-Object System.IO.FileStream($FileName, [System.IO.FileMode]::Open)
+    $StringBuilder = New-Object System.Text.StringBuilder
+    [System.Security.Cryptography.HashAlgorithm]::Create($HashName).ComputeHash($FileStream) | % { [Void]$StringBuilder.Append($_.ToString("x2")) }
+    $FileStream.Close()
+    $StringBuilder.ToString()
+}
+
 
 $FileName = $Url.Segments[$Url.Segments.Count - 1]
 
@@ -20,7 +28,7 @@ if ($FileExists -ne $true) {
 }
 
 Write-Host "Checking hash of file " $PackageRoot\downloads\$FileName
-$DownloadHash = (Get-FileHash -Path $PackageRoot\downloads\$FileName).Hash
+$DownloadHash = (Get-FileHashTSO -FileName $PackageRoot\downloads\$FileName)
 if ($DownloadHash -ne $PackageHash) {
     throw "Downloaded copy of " + $PackageName + " hash wrong hash"
 }
