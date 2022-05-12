@@ -110,7 +110,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions);_X86_</PreprocessorDefinitions>
-      <DisableSpecificWarnings>4456;4100</DisableSpecificWarnings>
+      <DisableSpecificWarnings>4456;4100;26451</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -124,7 +124,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions);_X86_</PreprocessorDefinitions>
-      <DisableSpecificWarnings>4456;4100</DisableSpecificWarnings>
+      <DisableSpecificWarnings>4456;4100;26451</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -140,7 +140,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <PreprocessorDefinitions>_DEBUG;_LIB;%(PreprocessorDefinitions);_AMD64_</PreprocessorDefinitions>
-      <DisableSpecificWarnings>4456;4100</DisableSpecificWarnings>
+      <DisableSpecificWarnings>4456;4100;26451</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -154,7 +154,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <PreprocessorDefinitions>NDEBUG;_LIB;%(PreprocessorDefinitions);_AMD64_</PreprocessorDefinitions>
-      <DisableSpecificWarnings>4456;4100</DisableSpecificWarnings>
+      <DisableSpecificWarnings>4456;4100;26451</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>
