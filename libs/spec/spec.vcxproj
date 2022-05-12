@@ -35,10 +35,10 @@
   <ItemGroup>
     <CustomBuild Include="Elf.3d">
       <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pushd $(OutDir)
+      <Command>pushd $(OutDir)
 $(SolutionDir)packages\everparse\everparse.cmd $(ProjectDir)Elf.3d
 popd</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)Elf.h;$(OutDir)ElfWrapper.h;$(OutDir)EverParse.h;$(OutDir)Elf.c;$(OutDir)\ElfWrapper.c;%(Outputs)</Outputs>
+      <Outputs>$(OutDir)Elf.h;$(OutDir)ElfWrapper.h;$(OutDir)EverParse.h;$(OutDir)Elf.c;$(OutDir)\ElfWrapper.c;%(Outputs)</Outputs>
     </CustomBuild>
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -115,14 +115,6 @@ popd</Command>
       </SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
-    <CustomBuildStep>
-      <Command>pushd $(OutDir)
-$(SolutionDir)packages\everparse\everparse.cmd $(ProjectDir)Elf.3d
-popd</Command>
-    </CustomBuildStep>
-    <CustomBuildStep>
-      <Outputs>$(OutDir)Elf.h;$(OutDir)ElfWrapper.h;$(OutDir)EverParse.h;$(OutDir)Elf.c;$(OutDir)\ElfWrapper.c;%(Outputs)</Outputs>
-    </CustomBuildStep>
     <PreBuildEvent>
       <Command>powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Install-Tool.ps1 -URL 'https://github.com/project-everest/everparse/releases/download/v2022.05.10/everparse_v2022.05.10_Windows_NT_x86_64.zip' -PackageHash 'A6D14F80ED901DC41932C422D8FD07B8D695A463C9F688DCDC5E4764E1530BD3' -PackageName everparse -PackageRoot E:\ebpf-for-windows\packages</Command>
     </PreBuildEvent>
@@ -139,14 +131,6 @@ popd</Command>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
-    <CustomBuildStep>
-      <Command>pushd $(OutDir)
-$(SolutionDir)packages\everparse\everparse.cmd $(ProjectDir)Elf.3d
-popd</Command>
-    </CustomBuildStep>
-    <CustomBuildStep>
-      <Outputs>$(OutDir)Elf.h;$(OutDir)ElfWrapper.h;$(OutDir)EverParse.h;$(OutDir)Elf.c;$(OutDir)\ElfWrapper.c;%(Outputs)</Outputs>
-    </CustomBuildStep>
     <PreBuildEvent>
       <Command>powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Install-Tool.ps1 -URL 'https://github.com/project-everest/everparse/releases/download/v2022.05.10/everparse_v2022.05.10_Windows_NT_x86_64.zip' -PackageHash 'A6D14F80ED901DC41932C422D8FD07B8D695A463C9F688DCDC5E4764E1530BD3' -PackageName everparse -PackageRoot E:\ebpf-for-windows\packages</Command>
     </PreBuildEvent>
@@ -161,14 +145,6 @@ popd</Command>
       </SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
-    <CustomBuildStep>
-      <Command>pushd $(OutDir)
-$(SolutionDir)packages\everparse\everparse.cmd $(ProjectDir)Elf.3d
-popd</Command>
-    </CustomBuildStep>
-    <CustomBuildStep>
-      <Outputs>$(OutDir)Elf.h;$(OutDir)ElfWrapper.h;$(OutDir)EverParse.h;$(OutDir)Elf.c;$(OutDir)\ElfWrapper.c;%(Outputs)</Outputs>
-    </CustomBuildStep>
     <PreBuildEvent>
       <Command>powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Install-Tool.ps1 -URL 'https://github.com/project-everest/everparse/releases/download/v2022.05.10/everparse_v2022.05.10_Windows_NT_x86_64.zip' -PackageHash 'A6D14F80ED901DC41932C422D8FD07B8D695A463C9F688DCDC5E4764E1530BD3' -PackageName everparse -PackageRoot E:\ebpf-for-windows\packages</Command>
     </PreBuildEvent>
@@ -185,14 +161,6 @@ popd</Command>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
-    <CustomBuildStep>
-      <Command>pushd $(OutDir)
-$(SolutionDir)packages\everparse\everparse.cmd $(ProjectDir)Elf.3d
-popd</Command>
-    </CustomBuildStep>
-    <CustomBuildStep>
-      <Outputs>$(OutDir)Elf.h;$(OutDir)ElfWrapper.h;$(OutDir)EverParse.h;$(OutDir)Elf.c;$(OutDir)\ElfWrapper.c;%(Outputs)</Outputs>
-    </CustomBuildStep>
     <PreBuildEvent>
       <Command>powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Install-Tool.ps1 -URL 'https://github.com/project-everest/everparse/releases/download/v2022.05.10/everparse_v2022.05.10_Windows_NT_x86_64.zip' -PackageHash 'A6D14F80ED901DC41932C422D8FD07B8D695A463C9F688DCDC5E4764E1530BD3' -PackageName everparse -PackageRoot E:\ebpf-for-windows\packages</Command>
     </PreBuildEvent>
