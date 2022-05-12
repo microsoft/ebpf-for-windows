@@ -148,7 +148,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PreBuildEvent>
-      <Command>powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Install-Tool.ps1 -URL 'https://github.com/project-everest/everparse/releases/download/v2022.05.10/everparse_v2022.05.10_Windows_NT_x86_64.zip' -PackageHash 'A6D14F80ED901DC41932C422D8FD07B8D695A463C9F688DCDC5E4764E1530BD3' -PackageName everparse -PackageRoot E:\ebpf-for-windows\packages</Command>
+      <Command>powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Install-Tool.ps1 -URL 'https://github.com/project-everest/everparse/releases/download/v2022.05.10/everparse_v2022.05.10_Windows_NT_x86_64.zip' -PackageHash 'A6D14F80ED901DC41932C422D8FD07B8D695A463C9F688DCDC5E4764E1530BD3' -PackageName everparse -PackageRoot $(SolutionDir)packages</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -164,7 +164,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PreBuildEvent>
-      <Command>powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Install-Tool.ps1 -URL 'https://github.com/project-everest/everparse/releases/download/v2022.05.10/everparse_v2022.05.10_Windows_NT_x86_64.zip' -PackageHash 'A6D14F80ED901DC41932C422D8FD07B8D695A463C9F688DCDC5E4764E1530BD3' -PackageName everparse -PackageRoot E:\ebpf-for-windows\packages</Command>
+      <Command>powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Install-Tool.ps1 -URL 'https://github.com/project-everest/everparse/releases/download/v2022.05.10/everparse_v2022.05.10_Windows_NT_x86_64.zip' -PackageHash 'A6D14F80ED901DC41932C422D8FD07B8D695A463C9F688DCDC5E4764E1530BD3' -PackageName everparse -PackageRoot $(SolutionDir)packages</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
