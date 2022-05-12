@@ -336,7 +336,7 @@ Functions</h2></td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>File descriptor that refers to the link. </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>File descriptor that refers to the link. The caller should not call _close() on the fd. </dd></dl>
 
 </div>
 </div>
@@ -550,7 +550,7 @@ Functions</h2></td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>File descriptor that refers to the map. </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>File descriptor that refers to the map. The caller should not call _close() on the fd. </dd></dl>
 
 </div>
 </div>
@@ -1014,7 +1014,7 @@ Functions</h2></td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>A file descriptor referring to the map found, or a negative value if none.</dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>A file descriptor referring to the map found, or a negative value if none. The caller should not call _close() on the fd.</dd></dl>
 <dl class="section see"><dt>See also</dt><dd><a class="el" href="libbpf_8h.html#a7882d9c82434e07205b6385586f8a075" title="Get a file descriptor that refers to a map.">bpf_map__fd</a> </dd></dl>
 
 </div>
@@ -1053,7 +1053,7 @@ Functions</h2></td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>A file descriptor referring to the program found, or a negative value if none.</dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>The program found, or NULL if none.</dd></dl>
 <dl class="section see"><dt>See also</dt><dd><a class="el" href="libbpf_8h.html#a5bc9a44c10c7fc330c09b3fd127beee3" title="Get the function name of an eBPF program.">bpf_program__name</a> </dd></dl>
 
 </div>
@@ -1794,7 +1794,7 @@ bpf_object__unpin </dd></dl>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>File descriptor that refers to the program. </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>File descriptor that refers to the program. The caller should not call _close() on the fd. </dd></dl>
 
 </div>
 </div>

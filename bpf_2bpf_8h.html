@@ -192,7 +192,7 @@ Functions</h2></td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>A new file descriptor that refers to the map. A negative value indicates an error occurred and errno was set.</dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>A new file descriptor that refers to the map. The caller should call _close() on the fd to close this when done. A negative value indicates an error occurred and errno was set.</dd></dl>
 <dl class="exception"><dt>Exceptions</dt><dd>
   <table class="exception">
     <tr><td class="paramname">EINVAL</td><td>An invalid argument was provided. </td></tr>
@@ -265,7 +265,7 @@ Functions</h2></td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>A new file descriptor that refers to the map. A negative value indicates an error occurred and errno was set.</dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>A new file descriptor that refers to the map. The caller should call _close() on the fd to close this when done. A negative value indicates an error occurred and errno was set.</dd></dl>
 <dl class="exception"><dt>Exceptions</dt><dd>
   <table class="exception">
     <tr><td class="paramname">EBADF</td><td>The file descriptor was not found. </td></tr>
@@ -300,7 +300,7 @@ Functions</h2></td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>A new file descriptor that refers to the map. A negative value indicates an error occurred and errno was set.</dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>A new file descriptor that refers to the map. The caller should call _close() on the fd to close this when done. A negative value indicates an error occurred and errno was set.</dd></dl>
 <dl class="exception"><dt>Exceptions</dt><dd>
   <table class="exception">
     <tr><td class="paramname">EINVAL</td><td>An invalid argument was provided. </td></tr>
@@ -376,7 +376,7 @@ Functions</h2></td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>A new file descriptor that refers to the link. A negative value indicates an error occurred and errno was set.</dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>A new file descriptor that refers to the link. The caller should call _close() on the fd to close this when done. A negative value indicates an error occurred and errno was set.</dd></dl>
 <dl class="exception"><dt>Exceptions</dt><dd>
   <table class="exception">
     <tr><td class="paramname">ENOENT</td><td>No link with the specified ID was found. </td></tr>
@@ -498,7 +498,7 @@ Functions</h2></td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>A new file descriptor that refers to the map. A negative value indicates an error occurred and errno was set.</dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>A new file descriptor that refers to the map. The caller should call _close() on the fd to close this when done. A negative value indicates an error occurred and errno was set.</dd></dl>
 <dl class="exception"><dt>Exceptions</dt><dd>
   <table class="exception">
     <tr><td class="paramname">EINVAL</td><td>An invalid argument was provided. </td></tr>
@@ -584,7 +584,7 @@ Functions</h2></td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>A new file descriptor that refers to the map. A negative value indicates an error occurred and errno was set.</dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>A new file descriptor that refers to the map. The caller should call _close() on the fd to close this when done. A negative value indicates an error occurred and errno was set.</dd></dl>
 <dl class="exception"><dt>Exceptions</dt><dd>
   <table class="exception">
     <tr><td class="paramname">ENOENT</td><td>No map with the specified ID was found. </td></tr>
@@ -844,7 +844,7 @@ Functions</h2></td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>file descriptor for the pinned object, or -1 if not found. </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>A new file descriptor for the pinned object. The caller should call _close() on the fd to close this when done. A negative value indicates an error occurred and errno was set. </dd></dl>
 
 </div>
 </div>
@@ -1022,7 +1022,7 @@ Functions</h2></td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>A new file descriptor that refers to the program. A negative value indicates an error occurred and errno was set.</dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>A new file descriptor that refers to the program. The caller should call _close() on the fd to close this when done. A negative value indicates an error occurred and errno was set.</dd></dl>
 <dl class="exception"><dt>Exceptions</dt><dd>
   <table class="exception">
     <tr><td class="paramname">ENOENT</td><td>No program with the specified ID was found. </td></tr>
