@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (c) Microsoft Corporation
+  SPDX-License-Identifier: MIT
+-->
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="$(OutDir)\Elf.c" />
+    <ClCompile Include="$(OutDir)\ElfWrapper.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="$(OutDir)\Elf.h" />
+    <ClInclude Include="$(OutDir)\ElfWrapper.h" />
+    <ClInclude Include="$(OutDir)\EverParse.h" />
+    <ClInclude Include="$(OutDir)\EverParseEndianness.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="Elf.3d">
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pushd $(OutDir)
+$(SolutionDir)packages\everparse\everparse.cmd $(ProjectDir)Elf.3d
+popd</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)Elf.h;$(OutDir)ElfWrapper.h;$(OutDir)EverParse.h;$(OutDir)Elf.c;$(OutDir)\ElfWrapper.c;%(Outputs)</Outputs>
+    </CustomBuild>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>16.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{c3d2cd73-bf4c-47df-8808-2a9996124d5b}</ProjectGuid>
+    <RootNamespace>spec</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions);_X86_</PreprocessorDefinitions>
+      <DisableSpecificWarnings>4456;4100</DisableSpecificWarnings>
+    </ClCompile>
+    <Link>
+      <SubSystem>
+      </SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+    <CustomBuildStep>
+      <Command>pushd $(OutDir)
+$(SolutionDir)packages\everparse\everparse.cmd $(ProjectDir)Elf.3d
+popd</Command>
+    </CustomBuildStep>
+    <CustomBuildStep>
+      <Outputs>$(OutDir)Elf.h;$(OutDir)ElfWrapper.h;$(OutDir)EverParse.h;$(OutDir)Elf.c;$(OutDir)\ElfWrapper.c;%(Outputs)</Outputs>
+    </CustomBuildStep>
+    <PreBuildEvent>
+      <Command>powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Install-Tool.ps1 -URL 'https://github.com/project-everest/everparse/releases/download/v2022.05.10/everparse_v2022.05.10_Windows_NT_x86_64.zip' -PackageHash 'A6D14F80ED901DC41932C422D8FD07B8D695A463C9F688DCDC5E4764E1530BD3' -PackageName everparse -PackageRoot E:\ebpf-for-windows\packages</Command>
+    </PreBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions);_X86_</PreprocessorDefinitions>
+      <DisableSpecificWarnings>4456;4100</DisableSpecificWarnings>
+    </ClCompile>
+    <Link>
+      <SubSystem>
+      </SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+    <CustomBuildStep>
+      <Command>pushd $(OutDir)
+$(SolutionDir)packages\everparse\everparse.cmd $(ProjectDir)Elf.3d
+popd</Command>
+    </CustomBuildStep>
+    <CustomBuildStep>
+      <Outputs>$(OutDir)Elf.h;$(OutDir)ElfWrapper.h;$(OutDir)EverParse.h;$(OutDir)Elf.c;$(OutDir)\ElfWrapper.c;%(Outputs)</Outputs>
+    </CustomBuildStep>
+    <PreBuildEvent>
+      <Command>powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Install-Tool.ps1 -URL 'https://github.com/project-everest/everparse/releases/download/v2022.05.10/everparse_v2022.05.10_Windows_NT_x86_64.zip' -PackageHash 'A6D14F80ED901DC41932C422D8FD07B8D695A463C9F688DCDC5E4764E1530BD3' -PackageName everparse -PackageRoot E:\ebpf-for-windows\packages</Command>
+    </PreBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <PreprocessorDefinitions>_DEBUG;_LIB;%(PreprocessorDefinitions);_AMD64_</PreprocessorDefinitions>
+      <DisableSpecificWarnings>4456;4100</DisableSpecificWarnings>
+    </ClCompile>
+    <Link>
+      <SubSystem>
+      </SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+    <CustomBuildStep>
+      <Command>pushd $(OutDir)
+$(SolutionDir)packages\everparse\everparse.cmd $(ProjectDir)Elf.3d
+popd</Command>
+    </CustomBuildStep>
+    <CustomBuildStep>
+      <Outputs>$(OutDir)Elf.h;$(OutDir)ElfWrapper.h;$(OutDir)EverParse.h;$(OutDir)Elf.c;$(OutDir)\ElfWrapper.c;%(Outputs)</Outputs>
+    </CustomBuildStep>
+    <PreBuildEvent>
+      <Command>powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Install-Tool.ps1 -URL 'https://github.com/project-everest/everparse/releases/download/v2022.05.10/everparse_v2022.05.10_Windows_NT_x86_64.zip' -PackageHash 'A6D14F80ED901DC41932C422D8FD07B8D695A463C9F688DCDC5E4764E1530BD3' -PackageName everparse -PackageRoot E:\ebpf-for-windows\packages</Command>
+    </PreBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <PreprocessorDefinitions>NDEBUG;_LIB;%(PreprocessorDefinitions);_AMD64_</PreprocessorDefinitions>
+      <DisableSpecificWarnings>4456;4100</DisableSpecificWarnings>
+    </ClCompile>
+    <Link>
+      <SubSystem>
+      </SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+    <CustomBuildStep>
+      <Command>pushd $(OutDir)
+$(SolutionDir)packages\everparse\everparse.cmd $(ProjectDir)Elf.3d
+popd</Command>
+    </CustomBuildStep>
+    <CustomBuildStep>
+      <Outputs>$(OutDir)Elf.h;$(OutDir)ElfWrapper.h;$(OutDir)EverParse.h;$(OutDir)Elf.c;$(OutDir)\ElfWrapper.c;%(Outputs)</Outputs>
+    </CustomBuildStep>
+    <PreBuildEvent>
+      <Command>powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Install-Tool.ps1 -URL 'https://github.com/project-everest/everparse/releases/download/v2022.05.10/everparse_v2022.05.10_Windows_NT_x86_64.zip' -PackageHash 'A6D14F80ED901DC41932C422D8FD07B8D695A463C9F688DCDC5E4764E1530BD3' -PackageName everparse -PackageRoot E:\ebpf-for-windows\packages</Command>
+    </PreBuildEvent>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
