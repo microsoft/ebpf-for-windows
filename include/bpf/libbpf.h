@@ -38,6 +38,7 @@ bpf_link__disconnect(struct bpf_link* link);
  * @param[in] link Link to get a file descriptor for.
  *
  * @returns File descriptor that refers to the link.
+ * The caller should not call _close() on the fd.
  */
 int
 bpf_link__fd(const struct bpf_link* link);
@@ -90,6 +91,7 @@ bpf_link__unpin(struct bpf_link* link);
  * @param[in] map Map to get a file descriptor for.
  *
  * @returns File descriptor that refers to the map.
+ * The caller should not call _close() on the fd.
  */
 int
 bpf_map__fd(const struct bpf_map* map);
@@ -258,6 +260,7 @@ bpf_object__find_map_by_name(const struct bpf_object* obj, const char* name);
  * @param[in] name The name to look for.
  *
  * @returns A file descriptor referring to the map found, or a negative value if none.
+ * The caller should not call _close() on the fd.
  *
  * @sa bpf_map__fd
  */
@@ -270,7 +273,7 @@ bpf_object__find_map_fd_by_name(const struct bpf_object* obj, const char* name);
  * @param[in] obj The object to check.
  * @param[in] name The name to look for.
  *
- * @returns A file descriptor referring to the program found, or a negative value if none.
+ * @returns The program found, or NULL if none.
  *
  * @sa bpf_program__name
  */
@@ -595,6 +598,7 @@ bpf_prog_attach(int prog_fd, int attachable_fd, enum bpf_attach_type type, unsig
  * @param[in] prog Program to get a file descriptor for.
  *
  * @returns File descriptor that refers to the program.
+ * The caller should not call _close() on the fd.
  */
 int
 bpf_program__fd(const struct bpf_program* prog);

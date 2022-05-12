@@ -30,8 +30,9 @@ bpf_link_detach(int link_fd);
  *
  * @param[in] id ID of link to find.
  *
- * @returns A new file descriptor that refers to the link.  A negative
- * value indicates an error occurred and errno was set.
+ * @returns A new file descriptor that refers to the link.
+ * The caller should call _close() on the fd to close this when done.
+ * A negative value indicates an error occurred and errno was set.
  *
  * @exception ENOENT No link with the specified ID was found.
  */
@@ -68,8 +69,9 @@ bpf_link_get_next_id(__u32 start_id, __u32* next_id);
  * @param[in] max_entries Maximum number of entries in the map.
  * @param[in] map_flags Flags (currently 0).
  *
- * @returns A new file descriptor that refers to the map.  A negative
- * value indicates an error occurred and errno was set.
+ * @returns A new file descriptor that refers to the map.
+ * The caller should call _close() on the fd to close this when done.
+ * A negative value indicates an error occurred and errno was set.
  *
  * @exception EINVAL An invalid argument was provided.
  * @exception ENOMEM Out of memory.
@@ -87,8 +89,9 @@ bpf_create_map(enum bpf_map_type map_type, int key_size, int value_size, int max
  * @param[in] max_entries Maximum number of entries in the map.
  * @param[in] map_flags Flags (currently 0).
  *
- * @returns A new file descriptor that refers to the map.  A negative
- * value indicates an error occurred and errno was set.
+ * @returns A new file descriptor that refers to the map.
+ * The caller should call _close() on the fd to close this when done.
+ * A negative value indicates an error occurred and errno was set.
  *
  * @exception EBADF The file descriptor was not found.
  * @exception EINVAL An invalid argument was provided.
@@ -103,8 +106,9 @@ bpf_create_map_in_map(
  *
  * @param[in] create_attr Structure of attributes using which a map gets created.
  *
- * @returns A new file descriptor that refers to the map.  A negative
- * value indicates an error occurred and errno was set.
+ * @returns A new file descriptor that refers to the map.
+ * The caller should call _close() on the fd to close this when done.
+ * A negative value indicates an error occurred and errno was set.
  *
  * @exception EINVAL An invalid argument was provided.
  * @exception ENOMEM Out of memory.
@@ -122,8 +126,9 @@ bpf_create_map_xattr(const struct bpf_create_map_attr* create_attr);
  * @param[in] max_entries Maximum number of entries in the map.
  * @param[in] opts Structure of options using which a map gets created.
  *
- * @returns A new file descriptor that refers to the map.  A negative
- * value indicates an error occurred and errno was set.
+ * @returns A new file descriptor that refers to the map.
+ * The caller should call _close() on the fd to close this when done.
+ * A negative value indicates an error occurred and errno was set.
  *
  * @exception EINVAL An invalid argument was provided.
  * @exception ENOMEM Out of memory.
@@ -159,8 +164,9 @@ bpf_map_delete_elem(int fd, const void* key);
  *
  * @param[in] id ID of map to find.
  *
- * @returns A new file descriptor that refers to the map.  A negative
- * value indicates an error occurred and errno was set.
+ * @returns A new file descriptor that refers to the map.
+ * The caller should call _close() on the fd to close this when done.
+ * A negative value indicates an error occurred and errno was set.
  *
  * @exception ENOENT No map with the specified ID was found.
  */
@@ -247,7 +253,9 @@ bpf_map_update_elem(int fd, const void* key, const void* value, __u64 flags);
  * @brief Get a file descriptor for a pinned object by pin path.
  * @param[in] pathname Pin path for the object.
  *
- * @return file descriptor for the pinned object, or -1 if not found.
+ * @return A new file descriptor for the pinned object.
+ * The caller should call _close() on the fd to close this when done.
+ * A negative value indicates an error occurred and errno was set.
  */
 int
 bpf_obj_get(const char* pathname);
@@ -313,8 +321,9 @@ bpf_prog_bind_map(int prog_fd, int map_fd, const struct bpf_prog_bind_opts* opts
  *
  * @param[in] id ID of program to find.
  *
- * @returns A new file descriptor that refers to the program.  A negative
- * value indicates an error occurred and errno was set.
+ * @returns A new file descriptor that refers to the program.
+ * The caller should call _close() on the fd to close this when done.
+ * A negative value indicates an error occurred and errno was set.
  *
  * @exception ENOENT No program with the specified ID was found.
  */
