@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: ebpf-for-windows
+  namespace: kube-system
+  labels:
+    k8s-app: ebpf-for-windows
+spec:
+  selector:
+    matchLabels:
+      k8s-app: ebpf-for-windows
+  template:
+    metadata:
+      labels:
+        k8s-app: ebpf-for-windows
+    spec:
+      tolerations:
+      - operator: Exists
+      securityContext:
+        windowsOptions:
+          hostProcess: true
+          runAsUserName: "NT AUTHORITY\\system"
+      hostNetwork: true
+      containers:
+      - name: ebpf-for-windows
+        image: docker.io/songtjiang/ebpfwin-install:01
+        imagePullPolicy: Always
+        args:
+        - ".\\install-ebpf-for-windows.ps1"
+      nodeSelector:
+        kubernetes.io/os: windows
