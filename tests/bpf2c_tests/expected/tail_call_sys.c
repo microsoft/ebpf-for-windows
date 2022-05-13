@@ -230,6 +230,7 @@ static uint16_t caller_maps[] = {
 #pragma code_seg(push, "xdp_prog")
 static uint64_t
 caller(void* context)
+#line 21 "sample/tail_call.c"
 {
 #line 21 "sample/tail_call.c"
     // Prologue
@@ -276,7 +277,7 @@ caller(void* context)
     if ((caller_helpers[0].tail_call) && (r0 == 0))
 #line 26 "sample/tail_call.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=6 dst=r2 src=r10 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=6 dst=r2 src=r10 offset=0 imm=0
 #line 26 "sample/tail_call.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=7 dst=r2 src=r0 offset=0 imm=-4
@@ -294,12 +295,12 @@ caller(void* context)
     if ((caller_helpers[1].tail_call) && (r0 == 0))
 #line 29 "sample/tail_call.c"
         return 0;
-    // EBPF_OP_JEQ_IMM pc=11 dst=r0 src=r0 offset=2 imm=0
+        // EBPF_OP_JEQ_IMM pc=11 dst=r0 src=r0 offset=2 imm=0
 #line 30 "sample/tail_call.c"
     if (r0 == IMMEDIATE(0))
 #line 30 "sample/tail_call.c"
         goto label_1;
-    // EBPF_OP_MOV64_IMM pc=12 dst=r1 src=r0 offset=0 imm=1
+        // EBPF_OP_MOV64_IMM pc=12 dst=r1 src=r0 offset=0 imm=1
 #line 30 "sample/tail_call.c"
     r1 = IMMEDIATE(1);
     // EBPF_OP_STXW pc=13 dst=r0 src=r1 offset=0 imm=0
@@ -322,6 +323,7 @@ static GUID callee_attach_type_guid = {0x85e0d8ef, 0x579e, 0x4931, {0xb0, 0x72, 
 #pragma code_seg(push, "xdp_pr~1")
 static uint64_t
 callee(void* context)
+#line 37 "sample/tail_call.c"
 {
 #line 37 "sample/tail_call.c"
     // Prologue

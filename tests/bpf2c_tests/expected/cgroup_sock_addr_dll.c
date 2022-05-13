@@ -105,6 +105,7 @@ static uint16_t authorize_connect4_maps[] = {
 #pragma code_seg(push, "cgroup~1")
 static uint64_t
 authorize_connect4(void* context)
+#line 66 "sample/cgroup_sock_addr.c"
 {
 #line 66 "sample/cgroup_sock_addr.c"
     // Prologue
@@ -208,7 +209,7 @@ authorize_connect4(void* context)
     if ((authorize_connect4_helpers[0].tail_call) && (r0 == 0))
 #line 43 "sample/cgroup_sock_addr.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=25 dst=r1 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=25 dst=r1 src=r0 offset=0 imm=0
 #line 43 "sample/cgroup_sock_addr.c"
     r1 = r0;
     // EBPF_OP_MOV64_IMM pc=26 dst=r0 src=r0 offset=0 imm=1
@@ -219,7 +220,7 @@ authorize_connect4(void* context)
     if (r1 == IMMEDIATE(0))
 #line 45 "sample/cgroup_sock_addr.c"
         goto label_1;
-    // EBPF_OP_LDXW pc=28 dst=r0 src=r1 offset=0 imm=0
+        // EBPF_OP_LDXW pc=28 dst=r0 src=r1 offset=0 imm=0
 #line 45 "sample/cgroup_sock_addr.c"
     r0 = *(uint32_t*)(uintptr_t)(r1 + OFFSET(0));
 label_1:
@@ -246,6 +247,7 @@ static uint16_t authorize_connect6_maps[] = {
 #pragma code_seg(push, "cgroup~2")
 static uint64_t
 authorize_connect6(void* context)
+#line 73 "sample/cgroup_sock_addr.c"
 {
 #line 73 "sample/cgroup_sock_addr.c"
     // Prologue
@@ -373,7 +375,7 @@ authorize_connect6(void* context)
     if ((authorize_connect6_helpers[0].tail_call) && (r0 == 0))
 #line 59 "sample/cgroup_sock_addr.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=33 dst=r1 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=33 dst=r1 src=r0 offset=0 imm=0
 #line 59 "sample/cgroup_sock_addr.c"
     r1 = r0;
     // EBPF_OP_MOV64_IMM pc=34 dst=r0 src=r0 offset=0 imm=1
@@ -384,7 +386,7 @@ authorize_connect6(void* context)
     if (r1 == IMMEDIATE(0))
 #line 61 "sample/cgroup_sock_addr.c"
         goto label_1;
-    // EBPF_OP_LDXW pc=36 dst=r0 src=r1 offset=0 imm=0
+        // EBPF_OP_LDXW pc=36 dst=r0 src=r1 offset=0 imm=0
 #line 61 "sample/cgroup_sock_addr.c"
     r0 = *(uint32_t*)(uintptr_t)(r1 + OFFSET(0));
 label_1:
@@ -411,6 +413,7 @@ static uint16_t authorize_recv_accept4_maps[] = {
 #pragma code_seg(push, "cgroup~3")
 static uint64_t
 authorize_recv_accept4(void* context)
+#line 80 "sample/cgroup_sock_addr.c"
 {
 #line 80 "sample/cgroup_sock_addr.c"
     // Prologue
@@ -514,7 +517,7 @@ authorize_recv_accept4(void* context)
     if ((authorize_recv_accept4_helpers[0].tail_call) && (r0 == 0))
 #line 43 "sample/cgroup_sock_addr.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=25 dst=r1 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=25 dst=r1 src=r0 offset=0 imm=0
 #line 43 "sample/cgroup_sock_addr.c"
     r1 = r0;
     // EBPF_OP_MOV64_IMM pc=26 dst=r0 src=r0 offset=0 imm=1
@@ -525,7 +528,7 @@ authorize_recv_accept4(void* context)
     if (r1 == IMMEDIATE(0))
 #line 45 "sample/cgroup_sock_addr.c"
         goto label_1;
-    // EBPF_OP_LDXW pc=28 dst=r0 src=r1 offset=0 imm=0
+        // EBPF_OP_LDXW pc=28 dst=r0 src=r1 offset=0 imm=0
 #line 45 "sample/cgroup_sock_addr.c"
     r0 = *(uint32_t*)(uintptr_t)(r1 + OFFSET(0));
 label_1:
@@ -552,6 +555,7 @@ static uint16_t authorize_recv_accept6_maps[] = {
 #pragma code_seg(push, "cgroup~4")
 static uint64_t
 authorize_recv_accept6(void* context)
+#line 87 "sample/cgroup_sock_addr.c"
 {
 #line 87 "sample/cgroup_sock_addr.c"
     // Prologue
@@ -679,7 +683,7 @@ authorize_recv_accept6(void* context)
     if ((authorize_recv_accept6_helpers[0].tail_call) && (r0 == 0))
 #line 59 "sample/cgroup_sock_addr.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=33 dst=r1 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=33 dst=r1 src=r0 offset=0 imm=0
 #line 59 "sample/cgroup_sock_addr.c"
     r1 = r0;
     // EBPF_OP_MOV64_IMM pc=34 dst=r0 src=r0 offset=0 imm=1
@@ -690,7 +694,7 @@ authorize_recv_accept6(void* context)
     if (r1 == IMMEDIATE(0))
 #line 61 "sample/cgroup_sock_addr.c"
         goto label_1;
-    // EBPF_OP_LDXW pc=36 dst=r0 src=r1 offset=0 imm=0
+        // EBPF_OP_LDXW pc=36 dst=r0 src=r1 offset=0 imm=0
 #line 61 "sample/cgroup_sock_addr.c"
     r0 = *(uint32_t*)(uintptr_t)(r1 + OFFSET(0));
 label_1:

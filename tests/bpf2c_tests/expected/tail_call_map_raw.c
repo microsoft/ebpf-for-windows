@@ -62,6 +62,7 @@ static uint16_t caller_maps[] = {
 #pragma code_seg(push, "xdp_prog")
 static uint64_t
 caller(void* context)
+#line 29 "sample/tail_call_map.c"
 {
 #line 29 "sample/tail_call_map.c"
     // Prologue
@@ -116,7 +117,7 @@ caller(void* context)
     if ((caller_helpers[0].tail_call) && (r0 == 0))
 #line 32 "sample/tail_call_map.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=8 dst=r1 src=r6 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=8 dst=r1 src=r6 offset=0 imm=0
 #line 34 "sample/tail_call_map.c"
     r1 = r6;
     // EBPF_OP_MOV64_REG pc=9 dst=r2 src=r0 offset=0 imm=0
@@ -134,7 +135,7 @@ caller(void* context)
     if ((caller_helpers[1].tail_call) && (r0 == 0))
 #line 34 "sample/tail_call_map.c"
         return 0;
-    // EBPF_OP_MOV64_IMM pc=12 dst=r0 src=r0 offset=0 imm=6
+        // EBPF_OP_MOV64_IMM pc=12 dst=r0 src=r0 offset=0 imm=6
 #line 37 "sample/tail_call_map.c"
     r0 = IMMEDIATE(6);
     // EBPF_OP_EXIT pc=13 dst=r0 src=r0 offset=0 imm=0
@@ -150,6 +151,7 @@ static GUID callee_attach_type_guid = {0x85e0d8ef, 0x579e, 0x4931, {0xb0, 0x72, 
 #pragma code_seg(push, "xdp_pr~1")
 static uint64_t
 callee(void* context)
+#line 40 "sample/tail_call_map.c"
 {
 #line 40 "sample/tail_call_map.c"
     // Prologue
