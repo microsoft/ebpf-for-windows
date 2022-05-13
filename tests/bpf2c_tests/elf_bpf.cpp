@@ -36,7 +36,6 @@ read_contents(const std::string& source, std::vector<std::function<std::string(c
     return return_value;
 }
 
-template <char seperator>
 std::string
 transform_line_directives(const std::string& string)
 {
@@ -46,12 +45,12 @@ transform_line_directives(const std::string& string)
     if (string.find("\"") == std::string::npos) {
         return string;
     }
-    if (string.find(seperator) == std::string::npos) {
+    if (string.find("\\") == std::string::npos) {
         // Already trimmed.
         return string;
     }
 
-    return string.substr(0, string.find("\"") + 1) + string.substr(string.find_last_of(seperator) + 1);
+    return string.substr(0, string.find("\"") + 1) + string.substr(string.find_last_of("\\") + 1);
 }
 
 // Workaround for: https://github.com/microsoft/ebpf-for-windows/issues/1060
@@ -118,10 +117,8 @@ run_test_elf(const std::string& elf_file, _test_mode test_mode)
         case _test_mode::Verify:
         case _test_mode::NoVerify: {
             auto raw_output = read_contents<std::ifstream>(
-                std::string("expected\\") + name + suffix,
-                {transform_line_directives<'/'>, transform_line_directives<'\\'>, transform_fix_opcode_comment});
-            auto raw_result = read_contents<std::istringstream>(
-                out, {transform_line_directives<'/'>, transform_line_directives<'\\'>});
+                std::string("expected\\") + name + suffix, {transform_line_directives, transform_fix_opcode_comment});
+            auto raw_result = read_contents<std::istringstream>(out, {transform_line_directives});
 
             REQUIRE(raw_result.size() == raw_output.size());
             for (size_t i = 0; i < raw_result.size(); i++) {
