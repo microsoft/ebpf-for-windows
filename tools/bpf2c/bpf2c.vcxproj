@@ -122,11 +122,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PreBuildEvent>
-      <!--
-      This powershell command is base64 encoded to solve the use of | in the command which breaks the command processing.
-      (Get-Content .\scripts\Convert-BpfToNative.ps1.template).Replace('___KERNEL_MODE_VCXPROJ___', (Get-Content .\tools\bpf2c\templates\kernel_mode_bpf2c.vcxproj).Replace("'", "''")).Replace('___USER_MODE_VCXPROJ___', (Get-Content .\tools\bpf2c\templates\user_mode_bpf2c.vcxproj).Replace("'", "''")) | Set-Content .\x64\debug\Convert-BpfToNative.ps1
-      -->
-      <Command>pushd $(SolutionDir) &amp;&amp; powershell -EncodedCommand KABHAGUAdAAtAEMAbwBuAHQAZQBuAHQAIAAuAFwAcwBjAHIAaQBwAHQAcwBcAEMAbwBuAHYAZQByAHQALQBCAHAAZgBUAG8ATgBhAHQAaQB2AGUALgBwAHMAMQAuAHQAZQBtAHAAbABhAHQAZQApAC4AUgBlAHAAbABhAGMAZQAoACcAXwBfAF8ASwBFAFIATgBFAEwAXwBNAE8ARABFAF8AVgBDAFgAUABSAE8ASgBfAF8AXwAnACwAIAAoAEcAZQB0AC0AQwBvAG4AdABlAG4AdAAgAC4AXAB0AG8AbwBsAHMAXABiAHAAZgAyAGMAXAB0AGUAbQBwAGwAYQB0AGUAcwBcAGsAZQByAG4AZQBsAF8AbQBvAGQAZQBfAGIAcABmADIAYwAuAHYAYwB4AHAAcgBvAGoAKQAuAFIAZQBwAGwAYQBjAGUAKAAiACcAIgAsACAAIgAnACcAIgApACkALgBSAGUAcABsAGEAYwBlACgAJwBfAF8AXwBVAFMARQBSAF8ATQBPAEQARQBfAFYAQwBYAFAAUgBPAEoAXwBfAF8AJwAsACAAKABHAGUAdAAtAEMAbwBuAHQAZQBuAHQAIAAuAFwAdABvAG8AbABzAFwAYgBwAGYAMgBjAFwAdABlAG0AcABsAGEAdABlAHMAXAB1AHMAZQByAF8AbQBvAGQAZQBfAGIAcABmADIAYwAuAHYAYwB4AHAAcgBvAGoAKQAuAFIAZQBwAGwAYQBjAGUAKAAiACcAIgAsACAAIgAnACcAIgApACkAIAB8ACAAUwBlAHQALQBDAG8AbgB0AGUAbgB0ACAALgBcAHgANgA0AFwAZABlAGIAdQBnAFwAQwBvAG4AdgBlAHIAdAAtAEIAcABmAFQAbwBOAGEAdABpAHYAZQAuAHAAcwAxAA== &amp;&amp; popd</Command>
+      <Command>powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Process-File.ps1 -InputFile Convert-BpfToNative.ps1.template -OutputFile $(OutDir)Convert-BpfToNative.ps1 -ConfigFile replacements.json</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -143,11 +139,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PreBuildEvent>
-      <!--
-      This powershell command is base64 encoded to solve the use of | in the command which breaks the command processing.
-      (Get-Content .\scripts\Convert-BpfToNative.ps1.template).Replace('___KERNEL_MODE_VCXPROJ___', (Get-Content .\tools\bpf2c\templates\kernel_mode_bpf2c.vcxproj).Replace("'", "''")).Replace('___USER_MODE_VCXPROJ___', (Get-Content .\tools\bpf2c\templates\user_mode_bpf2c.vcxproj).Replace("'", "''")) | Set-Content .\x64\release\Convert-BpfToNative.ps1
-      -->
-      <Command>pushd $(SolutionDir) &amp;&amp; powershell -EncodedCommand KABHAGUAdAAtAEMAbwBuAHQAZQBuAHQAIAAuAFwAcwBjAHIAaQBwAHQAcwBcAEMAbwBuAHYAZQByAHQALQBCAHAAZgBUAG8ATgBhAHQAaQB2AGUALgBwAHMAMQAuAHQAZQBtAHAAbABhAHQAZQApAC4AUgBlAHAAbABhAGMAZQAoACcAXwBfAF8ASwBFAFIATgBFAEwAXwBNAE8ARABFAF8AVgBDAFgAUABSAE8ASgBfAF8AXwAnACwAIAAoAEcAZQB0AC0AQwBvAG4AdABlAG4AdAAgAC4AXAB0AG8AbwBsAHMAXABiAHAAZgAyAGMAXAB0AGUAbQBwAGwAYQB0AGUAcwBcAGsAZQByAG4AZQBsAF8AbQBvAGQAZQBfAGIAcABmADIAYwAuAHYAYwB4AHAAcgBvAGoAKQAuAFIAZQBwAGwAYQBjAGUAKAAiACcAIgAsACAAIgAnACcAIgApACkALgBSAGUAcABsAGEAYwBlACgAJwBfAF8AXwBVAFMARQBSAF8ATQBPAEQARQBfAFYAQwBYAFAAUgBPAEoAXwBfAF8AJwAsACAAKABHAGUAdAAtAEMAbwBuAHQAZQBuAHQAIAAuAFwAdABvAG8AbABzAFwAYgBwAGYAMgBjAFwAdABlAG0AcABsAGEAdABlAHMAXAB1AHMAZQByAF8AbQBvAGQAZQBfAGIAcABmADIAYwAuAHYAYwB4AHAAcgBvAGoAKQAuAFIAZQBwAGwAYQBjAGUAKAAiACcAIgAsACAAIgAnACcAIgApACkAIAB8ACAAUwBlAHQALQBDAG8AbgB0AGUAbgB0ACAALgBcAHgANgA0AFwAcgBlAGwAZQBhAHMAZQBcAEMAbwBuAHYAZQByAHQALQBCAHAAZgBUAG8ATgBhAHQAaQB2AGUALgBwAHMAMQA= &amp;&amp; popd</Command>
+      <Command>powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Process-File.ps1 -InputFile Convert-BpfToNative.ps1.template -OutputFile $(OutDir)Convert-BpfToNative.ps1 -ConfigFile replacements.json</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>

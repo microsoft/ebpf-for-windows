@@ -4,10 +4,13 @@
 param([parameter(Mandatory = $true)] [string] $ProgramName,
     [parameter(Mandatory = $false)] [string] $IncludeDir = "$PSScriptRoot\..\include",
     [parameter(Mandatory = $false)] [string] $BinDir = "$PSScriptRoot",
+    [parameter(Mandatory = $false)] [string] $OutDir = "$PWD",
     [parameter(Mandatory = $false)] [string] $Platform = "x64",
     [ValidateSet("Release", "Debug")][parameter(Mandatory = $false)] [string] $Configuration = "Release",
     [parameter(Mandatory = $false)] [bool] $SkipVerification = $false,
     [parameter(Mandatory = $false)] [bool] $KernelMode = $true)
+
+Push-Location $OutDir
 
 $KernelModeProject = '___KERNEL_MODE_VCXPROJ___'
 $UserModeProject = '___USER_MODE_VCXPROJ___'
