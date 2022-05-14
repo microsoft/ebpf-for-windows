@@ -3,6 +3,7 @@
 
 param([parameter(Mandatory = $true)] [string] $ProgramName,
     [parameter(Mandatory = $false)] [string] $SolutionDir = $Pwd,
+    [parameter(Mandatory = $false)] [string] $OutputDir = $Pwd,
     [parameter(Mandatory = $false)] [string] $Platform = "x64",
     [ValidateSet("Release", "Debug")][parameter(Mandatory = $false)] [string] $Configuration = "Release",
     [parameter(Mandatory = $false)] [bool] $SkipVerification = $false,
@@ -22,9 +23,9 @@ if ($null -eq (Get-Command 'msbuild.exe' -ErrorAction SilentlyContinue)) {
     throw "Unable to locate msbuild.exe. This command needs to run within a 'Developer Command Prompt'"
 }
 
-$fileExists = Test-Path -Path ("$SolutionDir\$Platform\$Configuration\$ProgramName.o")
+$fileExists = Test-Path -Path ("$OutputDir\$ProgramName.o")
 if (!$fileExists) {
-    $errorString = "Can't find program file: " + "$SolutionDir\$Platform\$Configuration\$ProgramName.o"
+    $errorString = "Can't find program file: " + "$OutputDir\$ProgramName.o"
     throw $errorString
 }
 
@@ -37,8 +38,10 @@ if (!$KernelMode) {
 
 $AdditionalOptions = If ($SkipVerification) {"--no-verify"} Else {""}
 
-msbuild /p:SolutionDir="$SolutionDir\" /p:OutDir="$SolutionDir\$Platform\$Configuration\" /p:Configuration="$Configuration" /p:Platform="$Platform" /p:ProgramName="$ProgramName" /p:AdditionalOptions="$AdditionalOptions" $ProjectFile
+msbuild /p:SolutionDir="$SolutionDir\" /p:OutDir="$OutputDir" /p:Configuration="$Configuration" /p:Platform="$Platform" /p:ProgramName="$ProgramName" /p:AdditionalOptions="$AdditionalOptions" $ProjectFile
 
 if ($LASTEXITCODE -ne 0) {
     throw "Build failed for $ProgramName.o"
 }
+
+Pop-Location

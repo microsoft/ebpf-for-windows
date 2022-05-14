@@ -23,6 +23,7 @@ target_link_libraries("bpf2c" PRIVATE
 )
 
 target_compile_definitions("bpf2c" PRIVATE
+  $<$<CONFIG:DEBUG>:ENABLE_SKIP_VERIFY>
   _CONSOLE
 )
 

@@ -38,7 +38,7 @@ jobs:
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push'
     uses: ./.github/workflows/reusable-build.yml
     with:
-      build_artifact: Build-x64
+      build_artifact: Build-x64-vcxproj
       generate_release_package: true
 
   cmake:
@@ -46,7 +46,7 @@ jobs:
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push'
     uses: ./.github/workflows/reusable-cmake-build.yml
     with:
-      build_artifact: Build-x64-cmake
+      build_artifact: Build-x64
 
   # Run the unit tests in GitHub.
   unit_tests:
@@ -56,7 +56,7 @@ jobs:
     with:
       name: unit_tests
       test_command: unit_tests.exe -d yes
-      build_job: regular / build
+      build_job: cmake / build
       build_artifact: Build-x64
       environment: windows-2019
       code_coverage: true
@@ -72,7 +72,7 @@ jobs:
       pre_test: call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat"
       test_command: bpf2c_tests.exe -d yes
       name: bpf2c
-      build_job: regular / build
+      build_job: cmake / build
       build_artifact: Build-x64
       environment: windows-2019
       code_coverage: true
@@ -90,7 +90,7 @@ jobs:
       test_command: powershell ".\execute_ebpf_cicd_tests.ps1"
       post_test: powershell ".\cleanup_ebpf_cicd_tests.ps1"
       name: driver
-      build_job: regular / build
+      build_job: cmake / build
       build_artifact: Build-x64
       environment: ebpf_cicd_tests
       # driver test copies dumps to testlog folder.
@@ -103,7 +103,7 @@ jobs:
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push'
     uses: ./.github/workflows/ossar-scan.yml
     with:
-      build_job: regular / build
+      build_job: cmake / build
       build_artifact: Build-x64
 
   # Additional jobs to run on pull and schedule only (skip push).
@@ -148,7 +148,7 @@ jobs:
     with:
       name: cilium_tests
       test_command: cilium_tests.exe -d yes
-      build_job: regular / build
+      build_job: cmake / build
       build_artifact: Build-x64
       environment: windows-2019
       code_coverage: false
@@ -163,7 +163,7 @@ jobs:
       name: stress
       # Until there is a dedicated stress test, re-use the perf test.
       test_command: ebpf_performance.exe
-      build_job: regular / build
+      build_job: cmake / build
       build_artifact: Build-x64
       environment: windows-2019
       # No code coverage on stress.

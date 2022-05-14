@@ -22,6 +22,7 @@ add_executable("unit_tests"
 )
 
 target_include_directories("unit_tests" PRIVATE
+  "${CMAKE_BINARY_DIR}"
   "${CMAKE_SOURCE_DIR}/libs/api_common"
   "${CMAKE_SOURCE_DIR}/include"
   "${CMAKE_SOURCE_DIR}/libs/api"

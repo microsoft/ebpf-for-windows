@@ -24,6 +24,7 @@ add_library("api" STATIC
 )
 
 target_include_directories("api" PRIVATE
+  "${CMAKE_BINARY_DIR}"
   "${CMAKE_SOURCE_DIR}/libs/api_common"
   "${CMAKE_SOURCE_DIR}/libs/api"
   "${CMAKE_SOURCE_DIR}/rpc_interface"

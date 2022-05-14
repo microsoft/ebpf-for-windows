@@ -1,6 +1,8 @@
 # Copyright (c) Microsoft Corporation
 # SPDX-License-Identifier: MIT
 
+set (output_dir PUBLIC ${CMAKE_BINARY_DIR}/x64/$<$<CONFIG:Debug>:Debug>$<$<CONFIG:Release>:Release>)
+
 # Some targets do not play well with the default definitions (such
 # as bpftool and /DWIN32). Remove them from the variables for now
 set(settings_variable_list
@@ -38,6 +40,10 @@ target_link_libraries("ebpf_for_windows_common_settings" INTERFACE
   "ebpf_for_windows_base_definitions"
 )
 
+
+target_link_options("ebpf_for_windows_common_settings" INTERFACE
+  /DEBUG:Full
+)
 
 if(EBPFFORWINDOWS_ENABLE_DISABLE_EBPF_INTERPRETER)
   target_compile_definitions("ebpf_for_windows_common_settings" INTERFACE
