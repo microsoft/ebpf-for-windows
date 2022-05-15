@@ -6,6 +6,7 @@ add_executable("xdp_tests"
 )
 
 target_include_directories("xdp_tests" PRIVATE
+  "${CMAKE_BINARY_DIR}"
   "${CMAKE_SOURCE_DIR}/include"
   "${CMAKE_SOURCE_DIR}/libs/api"
   "${CMAKE_SOURCE_DIR}/libs/execution_context"

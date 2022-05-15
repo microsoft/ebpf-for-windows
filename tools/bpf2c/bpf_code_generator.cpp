@@ -891,7 +891,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         // Emit entry point
         output_stream << "#pragma code_seg(push, \"" << section.pe_section_name << "\")" << std::endl;
         output_stream << format_string("static uint64_t\n%s(void* context)", sanitize_name(program_name)) << std::endl;
-        output_stream << "{" << std::endl;
+        output_stream << prolog_line_info << "{" << std::endl;
 
         // Emit prologue
         output_stream << prolog_line_info << INDENT "// Prologue" << std::endl;
