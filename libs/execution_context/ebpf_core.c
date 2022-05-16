@@ -299,7 +299,7 @@ Done:
 }
 
 ebpf_result_t
-ebpf_core_release_object_reference_in_epoch(void* ebpf_object)
+ebpf_core_release_object_reference_in_epoch(_In_ void* ebpf_object)
 {
     uintptr_t old_affinity_mask = 0;
     bool affinity_set = false;
