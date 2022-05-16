@@ -37,8 +37,4 @@ division_by_zero(uint32_t address)
     if (std::string(NAME) == #X)      \
         return &X;
 
-metadata_table_t*
-get_metadata_table()
-{
-    return &metadata_table;
-}
+__declspec(dllexport) metadata_table_t* get_metadata_table() { return &metadata_table; }

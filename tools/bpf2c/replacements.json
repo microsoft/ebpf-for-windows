@@ -1,0 +1,23 @@
+{
+    "Copyright Notice" : [
+        "Copyright (c) Microsoft Corporation",
+        "SPDX-License-Identifier: MIT"
+    ],
+    "Description" : "This file controls the replacement of symbols with escaped strings",
+    "Files": [
+        {
+            "Symbol": "___KERNEL_MODE_VCXPROJ___",
+            "FileName": "templates\\kernel_mode_bpf2c.vcxproj"
+        },
+        {
+            "Symbol": "___USER_MODE_VCXPROJ___",
+            "FileName": "templates\\user_mode_bpf2c.vcxproj"
+        }
+    ],
+    "EscapeCharacters": [
+        {
+            "Char": "'",
+            "Escape": "''"
+        }
+    ]
+}

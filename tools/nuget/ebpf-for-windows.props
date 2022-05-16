@@ -14,6 +14,8 @@
   <PropertyGroup>
     <EbpfLibraries>@(EbpfLibs)</EbpfLibraries>
     <ClangIncludes>-I $(MSBuildThisFileDirectory)include -I $(MSBuildThisFileDirectory)include/uapi</ClangIncludes>
+    <EbpfBinPath>$(MSBuildThisFileDirectory)bin</EbpfBinPath>
+    <EbpfIncludePath>$(MSBuildThisFileDirectory)include</EbpfIncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
