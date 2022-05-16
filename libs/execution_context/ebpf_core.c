@@ -849,17 +849,6 @@ _ebpf_core_protocol_get_next_map(
 }
 
 static ebpf_result_t
-_ebpf_core_protocol_get_next_program(
-    _In_ const struct _ebpf_operation_get_next_program_request* request,
-    _Inout_ struct _ebpf_operation_get_next_program_reply* reply,
-    uint16_t reply_length)
-{
-    EBPF_LOG_ENTRY();
-    UNREFERENCED_PARAMETER(reply_length);
-    EBPF_RETURN_RESULT(_ebpf_core_get_next_handle(request->previous_handle, EBPF_OBJECT_PROGRAM, &reply->next_handle));
-}
-
-static ebpf_result_t
 _ebpf_core_protocol_query_program_info(
     _In_ const struct _ebpf_operation_query_program_info_request* request,
     _Inout_ struct _ebpf_operation_query_program_info_reply* reply,
@@ -1845,11 +1834,6 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
     {(ebpf_result_t(__cdecl*)(const void*))_ebpf_core_protocol_get_next_map,
      sizeof(struct _ebpf_operation_get_next_map_request),
      sizeof(struct _ebpf_operation_get_next_map_reply)},
-
-    // EBPF_OPERATION_GET_NEXT_PROGRAM
-    {(ebpf_result_t(__cdecl*)(const void*))_ebpf_core_protocol_get_next_program,
-     sizeof(struct _ebpf_operation_get_next_program_request),
-     sizeof(struct _ebpf_operation_get_next_program_reply)},
 
     // EBPF_OPERATION_QUERY_PROGRAM_INFO
     {(ebpf_result_t(__cdecl*)(const void*))_ebpf_core_protocol_query_program_info,

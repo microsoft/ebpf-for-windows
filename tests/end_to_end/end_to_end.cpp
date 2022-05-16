@@ -1059,8 +1059,8 @@ TEST_CASE("enumerate_and_query_programs", "[end_to_end]")
 {
     _test_helper_end_to_end test_helper;
 
-    fd_t program_fd;
-    fd_t next_program_fd;
+    uint32_t program_id;
+    uint32_t next_program_id;
     const char* error_message = nullptr;
     ebpf_result_t result;
     const char* file_name = nullptr;
@@ -1097,11 +1097,13 @@ TEST_CASE("enumerate_and_query_programs", "[end_to_end]")
     REQUIRE(result == EBPF_SUCCESS);
 
     ebpf_execution_type_t type;
-    program_fd = ebpf_fd_invalid;
-    REQUIRE(ebpf_get_next_program(program_fd, &next_program_fd) == EBPF_SUCCESS);
-    REQUIRE(next_program_fd != ebpf_fd_invalid);
-    program_fd = next_program_fd;
+    program_id = 0;
+    REQUIRE(bpf_prog_get_next_id(program_id, &next_program_id) == 0);
+    program_id = next_program_id;
+    fd_t program_fd = bpf_prog_get_fd_by_id(program_id);
+    REQUIRE(program_fd > 0);
     REQUIRE(ebpf_program_query_info(program_fd, &type, &file_name, &section_name) == EBPF_SUCCESS);
+    Platform::_close(program_fd);
     REQUIRE(type == EBPF_EXECUTION_JIT);
     REQUIRE(strcmp(file_name, SAMPLE_PATH "droppacket.o") == 0);
     ebpf_free_string(file_name);
@@ -1110,11 +1112,12 @@ TEST_CASE("enumerate_and_query_programs", "[end_to_end]")
     ebpf_free_string(section_name);
     section_name = nullptr;
 
-    REQUIRE(ebpf_get_next_program(program_fd, &next_program_fd) == EBPF_SUCCESS);
-    REQUIRE(next_program_fd != ebpf_fd_invalid);
-    Platform::_close(program_fd);
-    program_fd = next_program_fd;
+    REQUIRE(bpf_prog_get_next_id(program_id, &next_program_id) == 0);
+    program_id = next_program_id;
+    program_fd = bpf_prog_get_fd_by_id(program_id);
+    REQUIRE(program_fd > 0);
     REQUIRE(ebpf_program_query_info(program_fd, &type, &file_name, &section_name) == EBPF_SUCCESS);
+    Platform::_close(program_fd);
     REQUIRE(type == EBPF_EXECUTION_INTERPRET);
     REQUIRE(strcmp(file_name, SAMPLE_PATH "droppacket.o") == 0);
     REQUIRE(strcmp(section_name, "xdp") == 0);
@@ -1123,9 +1126,7 @@ TEST_CASE("enumerate_and_query_programs", "[end_to_end]")
     file_name = nullptr;
     section_name = nullptr;
 
-    REQUIRE(ebpf_get_next_program(program_fd, &next_program_fd) == EBPF_SUCCESS);
-    REQUIRE(next_program_fd == ebpf_fd_invalid);
-    Platform::_close(program_fd);
+    REQUIRE(bpf_prog_get_next_id(program_id, &next_program_id) == -ENOENT);
 
     for (int i = 0; i < _countof(object); i++) {
         bpf_object__close(object[i]);
@@ -1175,9 +1176,8 @@ TEST_CASE("implicit_detach", "[end_to_end]")
     // detach the program from the hook and unload the program.
     bpf_object__close(object);
 
-    program_fd = ebpf_fd_invalid;
-    REQUIRE(ebpf_get_next_program(program_fd, &program_fd) == EBPF_SUCCESS);
-    REQUIRE(program_fd == ebpf_fd_invalid);
+    uint32_t program_id;
+    REQUIRE(bpf_prog_get_next_id(0, &program_id) == -ENOENT);
 
     // Close link handle (without detaching). This should delete the link
     // object. ebpf_object_tracking_terminate() which is called when the test
@@ -1222,9 +1222,8 @@ TEST_CASE("implicit_detach_2", "[end_to_end]")
     // detach the program from the hook and unload the program.
     bpf_object__close(object);
 
-    program_fd = ebpf_fd_invalid;
-    REQUIRE(ebpf_get_next_program(program_fd, &program_fd) == EBPF_SUCCESS);
-    REQUIRE(program_fd == ebpf_fd_invalid);
+    uint32_t program_id;
+    REQUIRE(bpf_prog_get_next_id(0, &program_id) == -ENOENT);
 
     // Close link handle (without detaching). This should delete the link
     // object. ebpf_object_tracking_terminate() which is called when the test
@@ -1272,9 +1271,8 @@ TEST_CASE("explicit_detach", "[end_to_end]")
 
     // Close program handle.
     bpf_object__close(object);
-    program_fd = ebpf_fd_invalid;
-    REQUIRE(ebpf_get_next_program(program_fd, &program_fd) == EBPF_SUCCESS);
-    REQUIRE(program_fd == ebpf_fd_invalid);
+    uint32_t program_id;
+    REQUIRE(bpf_prog_get_next_id(0, &program_id) == -ENOENT);
 }
 
 TEST_CASE("implicit_explicit_detach", "[end_to_end]")
@@ -1311,9 +1309,8 @@ TEST_CASE("implicit_explicit_detach", "[end_to_end]")
     // Close program handle. That should detach the program from the hook
     // and unload the program.
     bpf_object__close(object);
-    program_fd = ebpf_fd_invalid;
-    REQUIRE(ebpf_get_next_program(program_fd, &program_fd) == EBPF_SUCCESS);
-    REQUIRE(program_fd == ebpf_fd_invalid);
+    uint32_t program_id;
+    REQUIRE(bpf_prog_get_next_id(0, &program_id) == -ENOENT);
 
     // Detach and close link handle.
     // ebpf_object_tracking_terminate() which is called when the test

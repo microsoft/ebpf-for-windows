@@ -75,17 +75,6 @@ extern "C"
         _Out_ fd_t* map_fd);
 
     /**
-     * @brief Get file descriptor to the next eBPF program.
-     * @param[in] previous_fd File descriptor of the previous eBPF program or ebpf_fd_invalid to
-     *  start enumeration.
-     * @param[out] next_fd File descriptor of the next eBPF program or ebpf_fd_invalid if
-     *  this is the last program.
-     * @retval EBPF_SUCCESS The operation was successful.
-     */
-    ebpf_result_t
-    ebpf_get_next_program(fd_t previous_fd, _Out_ fd_t* next_fd);
-
-    /**
      * @brief Query info about an eBPF program.
      * @param[in] fd File descriptor of an eBPF program.
      * @param[out] execution_type On success, contains the execution type.
