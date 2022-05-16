@@ -237,6 +237,16 @@ extern "C"
         _In_reads_(count_of_helpers) const uint32_t* helper_function_ids,
         _Out_writes_(count_of_helpers) uint64_t* helper_function_addresses);
 
+    /**
+     * @brief Call ebpf_epoch_enter, release ref-count, and call ebpf_epoch exit.
+     *
+     * @param[in] ebpf_object Object with ref-count to decrement.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this operation.
+     */
+    ebpf_result_t
+    ebpf_core_release_object_reference_in_epoch(_In_ void* ebpf_object);
+
 #ifdef __cplusplus
 }
 #endif

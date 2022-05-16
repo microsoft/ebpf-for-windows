@@ -298,6 +298,36 @@ Done:
     EBPF_RETURN_RESULT(return_value);
 }
 
+ebpf_result_t
+ebpf_core_release_object_reference_in_epoch(void* ebpf_object)
+{
+    uintptr_t old_affinity_mask = 0;
+    bool affinity_set = false;
+    bool epoch_entered = false;
+
+    ebpf_result_t retval;
+    retval = ebpf_set_current_thread_affinity((uintptr_t)1 << ebpf_get_current_cpu(), &old_affinity_mask);
+    if (retval != EBPF_SUCCESS) {
+        goto Done;
+    }
+    affinity_set = true;
+
+    retval = ebpf_epoch_enter();
+    if (retval != EBPF_SUCCESS) {
+        goto Done;
+    }
+    epoch_entered = true;
+    ebpf_object_release_reference((ebpf_core_object_t*)ebpf_object);
+
+Done:
+    if (epoch_entered)
+        ebpf_epoch_exit();
+
+    if (affinity_set)
+        ebpf_restore_current_thread_affinity(old_affinity_mask);
+    return retval;
+}
+
 static ebpf_result_t
 _ebpf_core_protocol_resolve_helper(
     _In_ const struct _ebpf_operation_resolve_helper_request* request,

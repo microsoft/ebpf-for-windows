@@ -13,14 +13,10 @@
 //
 // ebpf_epoch_enter:
 // The current epoch is recorded in either a per thread (preemptible) or per CPU (non-preemptible) ebpf_epoch_state_t
-// and it is marked as active.
+// (only if the active count is zero) and the active count is incremented.
 //
 // ebpf_epoch_exit:
-// First:
-// The current epoch is recorded in either a per thread or per CPU ebpf_epoch_state_t and it is marked as inactive.
-// For the per-thread case, the current CPUs per-thread table is first checked for an active epoch record. If not
-// found then each CPUs per-thread table is checked until the active record is found. This deals with the case where
-// a thread may switch CPUs between enter and exit.
+// The active count for the current epoch is decremented.
 //
 // Second:
 // Any entries in the per CPU free-list with epoch older than _ebpf_release_epoch are freed.
@@ -43,7 +39,7 @@
 typedef struct _ebpf_epoch_state
 {
     int64_t epoch;
-    bool active;
+    int64_t active;
 } ebpf_epoch_state_t;
 
 // Table to track per CPU state.
@@ -181,7 +177,7 @@ ebpf_epoch_initiate()
 
     for (cpu_id = 0; cpu_id < _ebpf_epoch_cpu_count; cpu_id++) {
         _ebpf_epoch_cpu_table[cpu_id].cpu_epoch_state.epoch = _ebpf_current_epoch;
-        _ebpf_epoch_cpu_table[cpu_id].cpu_epoch_state.active = false;
+        _ebpf_epoch_cpu_table[cpu_id].cpu_epoch_state.active = 0;
         ebpf_lock_create(&_ebpf_epoch_cpu_table[cpu_id].lock);
 
         ebpf_list_initialize(&_ebpf_epoch_cpu_table[cpu_id].free_list);
@@ -258,8 +254,10 @@ ebpf_epoch_enter()
         return _ebpf_epoch_update_thread_state(current_cpu, ebpf_get_current_thread_id(), _ebpf_current_epoch, true);
     } else {
         ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_epoch_cpu_table[current_cpu].lock);
-        _ebpf_epoch_cpu_table[current_cpu].cpu_epoch_state.epoch = _ebpf_current_epoch;
-        _ebpf_epoch_cpu_table[current_cpu].cpu_epoch_state.active = true;
+        if (!_ebpf_epoch_cpu_table[current_cpu].cpu_epoch_state.active) {
+            _ebpf_epoch_cpu_table[current_cpu].cpu_epoch_state.epoch = _ebpf_current_epoch;
+        }
+        _ebpf_epoch_cpu_table[current_cpu].cpu_epoch_state.active++;
         ebpf_lock_unlock(&_ebpf_epoch_cpu_table[current_cpu].lock, state);
         return EBPF_SUCCESS;
     }
@@ -278,11 +276,11 @@ ebpf_epoch_exit()
     }
 
     if (ebpf_is_preemptible()) {
-        _ebpf_epoch_update_thread_state(current_cpu, ebpf_get_current_thread_id(), _ebpf_current_epoch, false);
+        _ebpf_epoch_update_thread_state(current_cpu, ebpf_get_current_thread_id(), 0, false);
     } else {
         ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_epoch_cpu_table[current_cpu].lock);
-        _ebpf_epoch_cpu_table[current_cpu].cpu_epoch_state.epoch = _ebpf_current_epoch;
-        _ebpf_epoch_cpu_table[current_cpu].cpu_epoch_state.active = false;
+        ebpf_assert(_ebpf_epoch_cpu_table[current_cpu].cpu_epoch_state.active > 0);
+        _ebpf_epoch_cpu_table[current_cpu].cpu_epoch_state.active--;
         ebpf_lock_unlock(&_ebpf_epoch_cpu_table[current_cpu].lock, state);
     }
 
@@ -579,60 +577,41 @@ _ebpf_epoch_update_thread_state(uint32_t cpu_id, uintptr_t thread_id, int64_t cu
     ebpf_result_t return_value;
     ebpf_lock_state_t lock_state;
     ebpf_epoch_state_t* thread_epoch;
-    ebpf_epoch_state_t local_thread_epoch = {current_epoch, true};
+    ebpf_epoch_state_t local_thread_epoch = {current_epoch, 1};
     bool active_entry_found = false;
     lock_state = ebpf_lock_lock(&_ebpf_epoch_cpu_table[cpu_id].lock);
     return_value = ebpf_hash_table_find(
         _ebpf_epoch_cpu_table[cpu_id].thread_table, (uint8_t*)&thread_id, (uint8_t**)&thread_epoch);
     if (return_value == EBPF_SUCCESS) {
         if (enter) {
-            thread_epoch->epoch = current_epoch;
-            thread_epoch->active = true;
+            if (!thread_epoch->active) {
+                thread_epoch->epoch = current_epoch;
+            }
+            thread_epoch->active++;
         } else {
             // https://github.com/microsoft/ebpf-for-windows/issues/437
             // Consider pruning inactive entries.
             if (thread_epoch->active) {
-                thread_epoch->active = false;
+                ebpf_assert(thread_epoch->active > 0);
+                thread_epoch->active--;
                 active_entry_found = true;
             }
         }
         return_value = EBPF_SUCCESS;
     } else if (return_value == EBPF_KEY_NOT_FOUND) {
-        return_value = ebpf_hash_table_update(
-            _ebpf_epoch_cpu_table[cpu_id].thread_table,
-            (const uint8_t*)&thread_id,
-            (const uint8_t*)&local_thread_epoch,
-            EBPF_HASH_TABLE_OPERATION_INSERT);
+        if (enter) {
+            return_value = ebpf_hash_table_update(
+                _ebpf_epoch_cpu_table[cpu_id].thread_table,
+                (const uint8_t*)&thread_id,
+                (const uint8_t*)&local_thread_epoch,
+                EBPF_HASH_TABLE_OPERATION_INSERT);
+        } else {
+            // ebpf_epoch_enter/ebpf_epoch_exit should always be called on a thread with affinity set to a single CPU.
+            ebpf_assert(!"epoch operation on unaffinitized thread");
+            return_value = EBPF_FAILED;
+        }
     }
     ebpf_lock_unlock(&_ebpf_epoch_cpu_table[cpu_id].lock, lock_state);
 
-    if (return_value == EBPF_SUCCESS) {
-        goto Exit;
-    }
-
-    if (enter) {
-        goto Exit;
-    }
-    EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_EPOCH, "Thread state not found on current CPU");
-
-    // If this is an exit call and the current CPU doesn't have the active entry
-    // then scan all CPUs until we find it.
-    if (!active_entry_found) {
-        for (cpu_id = 0; cpu_id < _ebpf_epoch_cpu_count; cpu_id++) {
-            lock_state = ebpf_lock_lock(&_ebpf_epoch_cpu_table[cpu_id].lock);
-            return_value = ebpf_hash_table_find(
-                _ebpf_epoch_cpu_table[cpu_id].thread_table, (uint8_t*)&thread_id, (uint8_t**)&thread_epoch);
-            ebpf_lock_unlock(&_ebpf_epoch_cpu_table[cpu_id].lock, lock_state);
-
-            if (return_value == EBPF_SUCCESS && thread_epoch->active) {
-                thread_epoch->active = false;
-                active_entry_found = true;
-                break;
-            }
-        }
-    }
-    ebpf_assert(active_entry_found);
-
-Exit:
     return return_value;
 }
