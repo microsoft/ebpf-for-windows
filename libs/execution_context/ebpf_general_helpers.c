@@ -88,6 +88,7 @@ ebpf_helper_function_prototype_t ebpf_core_helper_function_prototype_array[] = {
      "bpf_map_peek_elem",
      EBPF_RETURN_TYPE_INTEGER,
      {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_VALUE}},
+    {BPF_FUNC_get_current_pid_tgid, "bpf_get_current_pid_tgid", EBPF_RETURN_TYPE_INTEGER, {0}},
 };
 
 #ifdef __cplusplus

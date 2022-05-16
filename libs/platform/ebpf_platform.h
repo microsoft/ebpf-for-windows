@@ -1073,6 +1073,22 @@ extern "C"
     long
     ebpf_platform_printk(_In_z_ const char* format, va_list arg_list);
 
+    /**
+     * @brief Get the current process ID.
+     *
+     * @returns Process ID.
+     */
+    uint32_t
+    ebpf_platform_process_id();
+
+    /**
+     * @brief Get the current thread ID.
+     *
+     * @returns Thread ID.
+     */
+    uint32_t
+    ebpf_platform_thread_id();
+
     TRACELOGGING_DECLARE_PROVIDER(ebpf_tracelog_provider);
 
     ebpf_result_t

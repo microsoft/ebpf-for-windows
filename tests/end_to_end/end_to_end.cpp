@@ -1493,7 +1493,7 @@ TEST_CASE("printk", "[end_to_end]")
     SOCKADDR_IN addr = {AF_INET};
     addr.sin_port = htons(80);
     bind_md_t ctx = {0};
-    ctx.process_id = 1;
+    ctx.process_id = GetCurrentProcessId();
     ctx.protocol = 2;
     ctx.socket_address_length = sizeof(addr);
     memcpy(&ctx.socket_address, &addr, ctx.socket_address_length);
@@ -1506,13 +1506,19 @@ TEST_CASE("printk", "[end_to_end]")
         hook.fire(&ctx, &hook_result);
         output = capture.get_stdout_contents();
     }
-    REQUIRE(
-        output == "Hello, world\n"
-                  "Hello, world\n"
-                  "PID: 1\n"
-                  "PID: 1 PROTO: 2\n"
-                  "PID: 1 PROTO: 2 ADDRLEN: 16\n"
-                  "100% done\n");
+    std::string expected_output = "Hello, world\n"
+                                  "Hello, world\n"
+                                  "PID: " +
+                                  std::to_string(ctx.process_id) +
+                                  "\n"
+                                  "PID: " +
+                                  std::to_string(ctx.process_id) +
+                                  " PROTO: 2\n"
+                                  "PID: " +
+                                  std::to_string(ctx.process_id) +
+                                  " PROTO: 2 ADDRLEN: 16\n"
+                                  "100% done\n";
+    REQUIRE(output == expected_output);
 
     // Six of the printf calls in the program should fail and return -1
     // so subtract 6 from the length to get the expected return value.

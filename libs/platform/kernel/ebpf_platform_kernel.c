@@ -725,3 +725,15 @@ ebpf_platform_printk(_In_z_ const char* format, va_list arg_list)
     ebpf_free(output);
     return bytes_written;
 }
+
+uint32_t
+ebpf_platform_process_id()
+{
+    return (uint32_t)(uintptr_t)PsGetCurrentProcessId();
+}
+
+uint32_t
+ebpf_platform_thread_id()
+{
+    return (uint32_t)(uintptr_t)PsGetCurrentThreadId();
+}
