@@ -72,8 +72,6 @@ _test_program_load(
     ebpf_result_t result;
     struct bpf_object* object = nullptr;
     fd_t program_fd;
-    fd_t previous_fd = ebpf_fd_invalid;
-    fd_t next_fd = ebpf_fd_invalid;
 
     result = _program_load_helper(file_name, program_type, execution_type, &object, &program_fd);
     REQUIRE(result == expected_load_result);
@@ -84,9 +82,12 @@ _test_program_load(
         return;
     }
 
+    uint32_t next_id;
+    REQUIRE(bpf_prog_get_next_id(0, &next_id) == 0);
+
     // Query loaded programs to verify this program is loaded.
-    REQUIRE(ebpf_get_next_program(previous_fd, &next_fd) == EBPF_SUCCESS);
-    REQUIRE(next_fd != ebpf_fd_invalid);
+    program_fd = bpf_prog_get_fd_by_id(next_id);
+    REQUIRE(program_fd > 0);
 
     const char* program_file_name;
     const char* program_section_name;
@@ -94,6 +95,7 @@ _test_program_load(
     REQUIRE(
         ebpf_program_query_info(program_fd, &program_execution_type, &program_file_name, &program_section_name) ==
         EBPF_SUCCESS);
+    _close(program_fd);
 
     // Set the default execution type to JIT. This will eventually
     // be decided by a system-wide policy. TODO(Issue #288): Configure
@@ -106,17 +108,13 @@ _test_program_load(
         REQUIRE(strcmp(program_file_name, file_name) == 0);
 
     // Next program should not be present.
-    previous_fd = next_fd;
-    REQUIRE(ebpf_get_next_program(previous_fd, &next_fd) == EBPF_SUCCESS);
-    REQUIRE(next_fd == ebpf_fd_invalid);
+    uint32_t previous_id = next_id;
+    REQUIRE(bpf_prog_get_next_id(previous_id, &next_id) == -ENOENT);
 
-    _close(previous_fd);
-    previous_fd = ebpf_fd_invalid;
     bpf_object__close(object);
 
     // We have closed both handles to the program. Program should be unloaded now.
-    REQUIRE(ebpf_get_next_program(previous_fd, &next_fd) == ERROR_SUCCESS);
-    REQUIRE(next_fd == ebpf_fd_invalid);
+    REQUIRE(bpf_prog_get_next_id(0, &next_id) == -ENOENT);
 }
 
 struct _ebpf_program_load_test_parameters

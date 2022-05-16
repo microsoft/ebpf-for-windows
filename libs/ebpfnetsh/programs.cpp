@@ -649,26 +649,23 @@ handle_ebpf_show_programs(
         std::cout << "======  ====  =====  =========  =============  ====================\n";
     }
 
+    uint32_t program_id = 0;
     fd_t program_fd = ebpf_fd_invalid;
     for (;;) {
         const char* program_file_name;
         const char* program_section_name;
         const char* execution_type_name;
         ebpf_execution_type_t program_execution_type;
-        fd_t next_program_fd;
-        status = ebpf_get_next_program(program_fd, &next_program_fd);
-        if (status != ERROR_SUCCESS) {
+        uint32_t next_program_id;
+        if (bpf_prog_get_next_id(program_id, &next_program_id) < 0) {
             break;
         }
+        program_id = next_program_id;
 
         if (program_fd != ebpf_fd_invalid) {
             Platform::_close(program_fd);
         }
-        program_fd = next_program_fd;
-
-        if (program_fd == ebpf_fd_invalid) {
-            break;
-        }
+        program_fd = bpf_prog_get_fd_by_id(program_id);
 
         struct bpf_prog_info info;
         uint32_t info_size = (uint32_t)sizeof(info);
