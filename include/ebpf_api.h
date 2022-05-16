@@ -228,10 +228,10 @@ extern "C"
      *
      * @param[in] link_handle Handle to the link.
      *
-     * @retval ERROR_SUCCESS The operations succeeded.
-     * @retval ERROR_INVALID_PARAMETER The link handle is invalid.
+     * @retval EBPF_SUCCESS The operations succeeded.
+     * @retval EBPF_INVALID_ARGUMENT The link handle is invalid.
      */
-    uint32_t
+    ebpf_result_t
     ebpf_api_unlink_program(ebpf_handle_t link_handle);
 
     /**

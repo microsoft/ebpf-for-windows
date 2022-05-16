@@ -1200,6 +1200,17 @@ extern "C"
         return local_result;                      \
     } while (false);
 
+#define EBPF_RETURN_FD(fd)                     \
+    do {                                       \
+        fd_t local_fd = (fd);                  \
+        if (local_fd != EBPF_INVALID_FD) {     \
+            EBPF_LOG_FUNCTION_SUCCESS();       \
+        } else {                               \
+            EBPF_LOG_FUNCTION_ERROR(local_fd); \
+        }                                      \
+        return local_fd;                       \
+    } while (false);
+
 #define EBPF_RETURN_VOID() \
     do {                   \
         EBPF_LOG_EXIT();   \
