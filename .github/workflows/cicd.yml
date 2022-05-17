@@ -38,7 +38,7 @@ jobs:
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push'
     uses: ./.github/workflows/reusable-build.yml
     with:
-      build_artifact: Build-x64-vcxproj
+      build_artifact: Build-x64
       generate_release_package: true
       build_nuget: true
 
@@ -47,7 +47,7 @@ jobs:
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push'
     uses: ./.github/workflows/reusable-cmake-build.yml
     with:
-      build_artifact: Build-x64
+      build_artifact: Build-x64-cmake
 
   # Run the unit tests in GitHub.
   unit_tests:
