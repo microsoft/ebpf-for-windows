@@ -238,7 +238,11 @@ void
 bpf_code_generator::parse()
 {
     auto map_section = reader.sections["maps"];
-    ELFIO::const_symbol_section_accessor symbols{reader, reader.sections[".symtab"]};
+    auto symbtab_section = reader.sections[".symtab"];
+    if (!symbtab_section) {
+        throw std::runtime_error("ELF file is missing .symtab section");
+    }
+    ELFIO::const_symbol_section_accessor symbols{reader, symbtab_section};
 
     if (map_section) {
         size_t data_size = map_section->get_size();
@@ -333,10 +337,17 @@ bpf_code_generator::extract_btf_information()
     if (btf == nullptr) {
         return;
     }
+    if (!btf->get_data()) {
+        return;
+    }
 
     if (btf_ext == nullptr) {
         return;
     }
+    if (!btf_ext->get_data()) {
+        return;
+    }
+
     std::vector<uint8_t> btf_data(
         reinterpret_cast<const uint8_t*>(btf->get_data()),
         reinterpret_cast<const uint8_t*>(btf->get_data()) + btf->get_size());
