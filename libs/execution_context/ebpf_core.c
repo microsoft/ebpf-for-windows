@@ -567,6 +567,11 @@ _ebpf_core_protocol_load_native_programs(
         goto Done;
     }
 
+    if (count_of_program_handles == 0) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
+
     result = ebpf_safe_size_t_multiply(count_of_map_handles, sizeof(ebpf_handle_t), &map_handles_size);
     if (result != EBPF_SUCCESS) {
         goto Done;
@@ -593,10 +598,12 @@ _ebpf_core_protocol_load_native_programs(
         goto Done;
     }
 
-    map_handles = ebpf_allocate(sizeof(ebpf_handle_t) * count_of_map_handles);
-    if (map_handles == NULL) {
-        result = EBPF_NO_MEMORY;
-        goto Done;
+    if (count_of_map_handles) {
+        map_handles = ebpf_allocate(sizeof(ebpf_handle_t) * count_of_map_handles);
+        if (map_handles == NULL) {
+            result = EBPF_NO_MEMORY;
+            goto Done;
+        }
     }
 
     program_handles = ebpf_allocate(sizeof(ebpf_handle_t) * count_of_program_handles);
@@ -614,7 +621,9 @@ _ebpf_core_protocol_load_native_programs(
     reply->map_handle_count = count_of_map_handles;
     reply->program_handle_count = count_of_program_handles;
 
-    memcpy(reply->data, map_handles, map_handles_size);
+    if (map_handles) {
+        memcpy(reply->data, map_handles, map_handles_size);
+    }
     memcpy(reply->data + map_handles_size, program_handles, program_handles_size);
 
 Done:
