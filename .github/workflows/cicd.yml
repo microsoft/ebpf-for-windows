@@ -52,12 +52,12 @@ jobs:
   # Run the unit tests in GitHub.
   unit_tests:
     # Always run this job.
+    needs: regular
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: unit_tests
       test_command: unit_tests.exe -d yes
-      build_job: cmake / build
       build_artifact: Build-x64
       environment: windows-2019
       code_coverage: true
@@ -67,13 +67,13 @@ jobs:
   # Run the bpf2c tests in GitHub.
   bpf2c:
     # Always run this job.
+    needs: regular
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push'
     uses: ./.github/workflows/reusable-test.yml
     with:
       pre_test: call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat"
       test_command: bpf2c_tests.exe -d yes
       name: bpf2c
-      build_job: cmake / build
       build_artifact: Build-x64
       environment: windows-2019
       code_coverage: true
@@ -84,6 +84,7 @@ jobs:
   driver:
     # Always run this job.
     # Only run this on repos that have self-host runners.
+    needs: regular
     if: github.repository == 'microsoft/ebpf-for-windows'
     uses: ./.github/workflows/reusable-test.yml
     with:
@@ -91,7 +92,6 @@ jobs:
       test_command: powershell ".\execute_ebpf_cicd_tests.ps1"
       post_test: powershell ".\cleanup_ebpf_cicd_tests.ps1"
       name: driver
-      build_job: cmake / build
       build_artifact: Build-x64
       environment: ebpf_cicd_tests
       # driver test copies dumps to testlog folder.
@@ -101,10 +101,10 @@ jobs:
 
   ossar:
     # Always run this job.
+    needs: regular
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push'
     uses: ./.github/workflows/ossar-scan.yml
     with:
-      build_job: cmake / build
       build_artifact: Build-x64
 
   # Additional jobs to run on pull and schedule only (skip push).
@@ -129,13 +129,13 @@ jobs:
 
   # Run the fuzzing tests in GitHub.
   fuzzing:
+    needs: sanitize
     # Always run this job.
     if: github.event_name == 'schedule' || github.event_name == 'pull_request'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: fuzzing
       test_command: fuzz.exe -d yes
-      build_job: sanitize / build
       build_artifact: Build-x64-Sanitize
       environment: windows-2019
       code_coverage: false
@@ -143,13 +143,13 @@ jobs:
 
   # Run Cilium regression tests in GitHub.
   cilium_tests:
+    needs: regular
     # Only run on schedule and pull request.
     if: github.event_name == 'schedule' || github.event_name == 'pull_request'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: cilium_tests
       test_command: cilium_tests.exe -d yes
-      build_job: cmake / build
       build_artifact: Build-x64
       environment: windows-2019
       code_coverage: false
@@ -157,6 +157,7 @@ jobs:
 
   # Run the quick stress tests in GitHub.
   stress:
+    needs: regular
     # Only run on schedule and pull request.
     if: github.event_name == 'schedule' || github.event_name == 'pull_request'
     uses: ./.github/workflows/reusable-test.yml
@@ -164,7 +165,6 @@ jobs:
       name: stress
       # Until there is a dedicated stress test, re-use the perf test.
       test_command: ebpf_performance.exe
-      build_job: cmake / build
       build_artifact: Build-x64
       environment: windows-2019
       # No code coverage on stress.
@@ -173,13 +173,13 @@ jobs:
 
   # Run the unit tests in GitHub with address sanitizer.
   sanitize_unit_tests:
+    needs: sanitize
     # Only run on schedule and pull request.
     if: github.event_name == 'schedule' || github.event_name == 'pull_request'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: unit_tests
       test_command: unit_tests.exe -d yes
-      build_job: sanitize / build
       build_artifact: Build-x64-Sanitize
       environment: windows-2019
       code_coverage: false
