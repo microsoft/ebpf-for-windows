@@ -2,10 +2,10 @@
 # SPDX-License-Identifier: MIT
 
 wdk_add_driver("sample_ebpf_ext" WINVER "${EBPFFORWINDOWS_WDK_WINVER}" KMDF "${EBPFFORWINDOWS_WDK_KMDF_VERSION}"
-  sample_ext.h
-  sample_ext.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/sample_ext.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/sample_ext.c
 
-  sample_ext_drv.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/sample_ext_drv.c
 )
 
 target_include_directories("sample_ebpf_ext" PRIVATE

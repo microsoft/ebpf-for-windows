@@ -38,7 +38,7 @@ jobs:
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push'
     uses: ./.github/workflows/reusable-build.yml
     with:
-      build_artifact: Build-x64
+      build_artifact: Build-x64-vcxproj
       generate_release_package: true
       build_nuget: true
 
@@ -47,7 +47,7 @@ jobs:
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push'
     uses: ./.github/workflows/reusable-cmake-build.yml
     with:
-      build_artifact: Build-x64-cmake
+      build_artifact: Build-x64
 
   # Perform the libfuzzer build.
   libfuzzer:
@@ -63,7 +63,7 @@ jobs:
   # Run the unit tests in GitHub.
   unit_tests:
     # Always run this job.
-    needs: regular
+    needs: cmake
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push'
     uses: ./.github/workflows/reusable-test.yml
     with:
@@ -78,7 +78,7 @@ jobs:
   # Run the bpf2c tests in GitHub.
   bpf2c:
     # Always run this job.
-    needs: regular
+    needs: cmake
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push'
     uses: ./.github/workflows/reusable-test.yml
     with:
@@ -95,7 +95,7 @@ jobs:
   driver:
     # Always run this job.
     # Only run this on repos that have self-host runners.
-    needs: regular
+    needs: cmake
     if: github.repository == 'microsoft/ebpf-for-windows'
     uses: ./.github/workflows/reusable-test.yml
     with:
@@ -112,7 +112,7 @@ jobs:
 
   ossar:
     # Always run this job.
-    needs: regular
+    needs: cmake
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push'
     uses: ./.github/workflows/ossar-scan.yml
     with:
@@ -154,7 +154,7 @@ jobs:
 
   # Run Cilium regression tests in GitHub.
   cilium_tests:
-    needs: regular
+    needs: cmake
     # Only run on schedule and pull request.
     if: github.event_name == 'schedule' || github.event_name == 'pull_request'
     uses: ./.github/workflows/reusable-test.yml
@@ -168,7 +168,7 @@ jobs:
 
   # Run the quick stress tests in GitHub.
   stress:
-    needs: regular
+    needs: cmake
     # Only run on schedule and pull request.
     if: github.event_name == 'schedule' || github.event_name == 'pull_request'
     uses: ./.github/workflows/reusable-test.yml

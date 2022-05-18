@@ -25,7 +25,7 @@ wdk_add_driver("NetEbpfExt" WINVER "${EBPFFORWINDOWS_WDK_WINVER}" KMDF "${EBPFFO
 
   net_ebpf_ext_program_info.h
   resource.h
-  
+
   net_ebpf_ext_drv.c
 )
 

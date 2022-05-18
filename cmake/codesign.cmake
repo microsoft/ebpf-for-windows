@@ -2,10 +2,6 @@
 # SPDX-License-Identifier: MIT
 
 function(codeSign target_name)
-  if(NOT EXISTS "${EBPFFORWINDOWS_CODESIGN_CERTIFICATE_PATH}")
-    return()
-  endif()
-
   if(NOT EBPFFORWINDOWS_CODESIGN_PASSWORD_ENV_VAR STREQUAL "")
     set(optional_cert_password
       "-Dpassword_env_var:STRING=${EBPFFORWINDOWS_CODESIGN_PASSWORD_ENV_VAR}"

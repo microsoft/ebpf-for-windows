@@ -101,6 +101,9 @@ set(expected_file_list
   map_reuse_raw.c
   map_reuse_sys.c
   map_sys.c
+  pidtgid_dll.c
+  pidtgid_raw.c
+  pidtgid_sys.c
   printk_dll.c
   printk_legacy_dll.c
   printk_legacy_raw.c
