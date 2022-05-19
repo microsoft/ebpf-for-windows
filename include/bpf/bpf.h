@@ -344,6 +344,67 @@ bpf_prog_get_fd_by_id(__u32 id);
 int
 bpf_prog_get_next_id(__u32 start_id, __u32* next_id);
 
+/**
+ * @brief Load (but do not attach) an eBPF programs.
+ *
+ * @param[in] prog_type Program type to use for loading eBPF programs.
+ * @param[in] prog_name Program name.
+ * @param[in] license License string (unused).
+ * @param[in] insns Array of eBPF instructions.
+ * @param[in] insn_cnt Count of instructions in the array.
+ * @param[in] opts Additional options.
+ *
+ * @returns A new file descriptor that refers to the program.
+ * The caller should call _close() on the fd to close this when done.
+ * A negative value indicates an error occurred and errno was set.
+ *
+ * @exception EACCES The program failed verification.
+ * @exception EINVAL One or more parameters are incorrect.
+ * @exception ENOMEM Out of memory.
+ *
+ * @sa bpf_load_program
+ * @sa bpf_load_program_xattr
+ * @sa bpf_object__close
+ * @sa bpf_program__attach
+ */
+int
+bpf_prog_load(
+    enum bpf_prog_type prog_type,
+    const char* prog_name,
+    const char* license,
+    const struct bpf_insn* insns,
+    size_t insn_cnt,
+    const struct bpf_prog_load_opts* opts);
+
+/**
+ * @brief Load (but do not attach) eBPF maps and programs from an ELF file.
+ *
+ * @param[in] file Path name to an ELF file.
+ * @param[in] type Program type to use for loading eBPF programs.  If BPF_PROG_TYPE_UNKNOWN,
+ * the program type is derived from the section prefix in the ELF file.
+ * @param[out] pobj Pointer to where to store the eBPF object loaded. The caller
+ * is expected to call bpf_object__close() to free the object.
+ * @param[out] prog_fd Returns a file descriptor for the first program.
+ * The caller should not call _close() on the fd, but should instead use
+ * bpf_object__close() on the object returned.
+ *
+ * @retval 0 The operation was successful.
+ * @retval <0 An error occured, and errno was set.
+ *
+ * @deprecated Use bpf_prog_load() instead.
+ *
+ * @exception EACCES The program failed verification.
+ * @exception EINVAL One or more parameters are incorrect.
+ * @exception ENOMEM Out of memory.
+ *
+ * @sa bpf_load_program
+ * @sa bpf_load_program_xattr
+ * @sa bpf_object__close
+ * @sa bpf_program__attach
+ */
+int
+bpf_prog_load_deprecated(const char* file, enum bpf_prog_type type, struct bpf_object** pobj, int* prog_fd);
+
 /** @} */
 
 #else

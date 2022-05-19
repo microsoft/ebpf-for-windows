@@ -2239,6 +2239,7 @@ _ebpf_object_create_maps(_Inout_ ebpf_object_t* object)
 ebpf_result_t
 ebpf_program_load_bytes(
     _In_ const ebpf_program_type_t* program_type,
+    _In_opt_z_ const char* program_name,
     ebpf_execution_type_t execution_type,
     _In_reads_(byte_code_size) const uint8_t* byte_code,
     uint32_t byte_code_size,
@@ -2256,22 +2257,25 @@ ebpf_program_load_bytes(
         EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
     }
 
-    // Create a unique object/section/program name.
-    srand(static_cast<unsigned int>(time(nullptr)));
     char unique_name[80];
-    sprintf_s(unique_name, sizeof(unique_name), "raw#%u", rand());
+    if (program_name == nullptr) {
+        // Create a unique object/section/program name.
+        srand(static_cast<unsigned int>(time(nullptr)));
+        sprintf_s(unique_name, sizeof(unique_name), "raw#%u", rand());
+        program_name = unique_name;
+    }
 
     ebpf_handle_t program_handle;
-    ebpf_result_t result = _create_program(*program_type, unique_name, unique_name, unique_name, &program_handle);
+    ebpf_result_t result = _create_program(*program_type, program_name, program_name, program_name, &program_handle);
     if (result != EBPF_SUCCESS) {
         EBPF_RETURN_RESULT(result);
     }
 
     // Populate load_info.
     ebpf_program_load_info load_info = {0};
-    load_info.object_name = const_cast<char*>(unique_name);
-    load_info.section_name = const_cast<char*>(unique_name);
-    load_info.program_name = const_cast<char*>(unique_name);
+    load_info.object_name = const_cast<char*>(program_name);
+    load_info.section_name = const_cast<char*>(program_name);
+    load_info.program_name = const_cast<char*>(program_name);
     load_info.program_type = *program_type;
     load_info.program_handle = reinterpret_cast<file_handle_t>(program_handle);
     load_info.execution_type = execution_type;
