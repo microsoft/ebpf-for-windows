@@ -223,7 +223,7 @@ _test_crud_operations(ebpf_map_type_t map_type)
     retrieved_map_definition.value_size = ebpf_map_get_effective_value_size(map.get());
     REQUIRE(memcmp(&retrieved_map_definition, &map_definition, sizeof(map_definition)) == 0);
 
-    // Negative test for key size
+    // Negative test for key size.
     uint32_t key = 0;
     REQUIRE(
         ebpf_map_next_key(
@@ -748,7 +748,7 @@ TEST_CASE("ring_buffer_async_query", "[execution_context]")
             ebpf_map_update_entry(map.get(), sizeof(key), reinterpret_cast<uint8_t*>(&key), 0, nullptr, EBPF_ANY, 0) ==
             EBPF_INVALID_ARGUMENT);
 
-        // Negative test cases
+        // Negative test cases.
         REQUIRE(
             ebpf_map_update_entry(
                 map.get(), 0, nullptr, sizeof(value2), reinterpret_cast<uint8_t*>(&value2), EBPF_ANY, 0) ==
@@ -767,5 +767,10 @@ TEST_CASE("ring_buffer_async_query", "[execution_context]")
             EBPF_INVALID_ARGUMENT);
 
         REQUIRE(ebpf_map_find_entry(map.get(), 0, nullptr, 0, nullptr, 0) == EBPF_OPERATION_NOT_SUPPORTED);
+        REQUIRE(ebpf_map_delete_entry(map.get(), 0, nullptr, 0) == EBPF_INVALID_ARGUMENT);
+        REQUIRE(ebpf_map_next_key(map.get(), 0, nullptr, nullptr) == EBPF_OPERATION_NOT_SUPPORTED);
+        REQUIRE(ebpf_map_push_entry(map.get(), 0, nullptr, 0) == EBPF_OPERATION_NOT_SUPPORTED);
+        REQUIRE(ebpf_map_pop_entry(map.get(), 0, nullptr, 0) == EBPF_OPERATION_NOT_SUPPORTED);
+        REQUIRE(ebpf_map_peek_entry(map.get(), 0, nullptr, 0) == EBPF_OPERATION_NOT_SUPPORTED);
     }
 }
