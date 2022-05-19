@@ -136,6 +136,9 @@ Functions</h2></td></tr>
 <tr class="memitem:aa54e81971eaeff2533ea044722670c25"><td class="memItemLeft" align="right" valign="top">int64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#aa54e81971eaeff2533ea044722670c25">bpf_map_peek_elem</a> (struct <a class="el" href="bpf__helpers__platform_8h.html#a1d98f863fc6ebf789b378348438181ca">bpf_map</a> *map, void *value)</td></tr>
 <tr class="memdesc:aa54e81971eaeff2533ea044722670c25"><td class="mdescLeft">&#160;</td><td class="mdescRight">Copy an entry from the map (only valid for stack and queue). Queue peeks at the beginning of the map. Stack peeks at the end of the map.  <a href="bpf__helper__defs_8h.html#aa54e81971eaeff2533ea044722670c25">More...</a><br /></td></tr>
 <tr class="separator:aa54e81971eaeff2533ea044722670c25"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a19d6848ceb9191760aced858b95ce22e"><td class="memItemLeft" align="right" valign="top">uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#a19d6848ceb9191760aced858b95ce22e">bpf_get_current_pid_tgid</a> ()</td></tr>
+<tr class="memdesc:a19d6848ceb9191760aced858b95ce22e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the current thread ID (PID) and process ID (TGID).  <a href="bpf__helper__defs_8h.html#a19d6848ceb9191760aced858b95ce22e">More...</a><br /></td></tr>
+<tr class="separator:a19d6848ceb9191760aced858b95ce22e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Function Documentation</h2>
 <a id="a8925aebb6537b5d34b8cb28b04d34515"></a>
@@ -194,6 +197,26 @@ Functions</h2></td></tr>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The checksum delta on success, or &lt;0 on failure. </dd></dl>
+
+</div>
+</div>
+<a id="a19d6848ceb9191760aced858b95ce22e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a19d6848ceb9191760aced858b95ce22e">&#9670;&nbsp;</a></span>bpf_get_current_pid_tgid()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint64_t bpf_get_current_pid_tgid </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Get the current thread ID (PID) and process ID (TGID). </p>
+<dl class="section return"><dt>Returns</dt><dd>A 64-bit integer containing the current process ID and thread ID, and created as such: (process ID &lt;&lt; 32) | (thread ID). </dd></dl>
 
 </div>
 </div>
