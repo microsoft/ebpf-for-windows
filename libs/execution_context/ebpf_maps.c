@@ -1939,6 +1939,11 @@ ebpf_map_find_entry(
     }
 
     if (ebpf_map_metadata_tables[map->ebpf_map_definition.type].find_entry == NULL) {
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_MAP,
+            "ebpf_map_find_entry not supported on map",
+            map->ebpf_map_definition.type);
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
 
@@ -2006,13 +2011,12 @@ ebpf_map_get_program_from_entry(_In_ ebpf_map_t* map, size_t key_size, _In_reads
         return NULL;
     }
     ebpf_map_type_t type = map->ebpf_map_definition.type;
-    if (type != BPF_MAP_TYPE_PROG_ARRAY) {
-        EBPF_LOG_MESSAGE_UINT64(
-            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Operation not supported on map", type);
-        return NULL;
-    }
-
     if (ebpf_map_metadata_tables[type].get_object_from_entry == NULL) {
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_MAP,
+            "ebpf_map_get_program_from_entry not supported on map",
+            map->ebpf_map_definition.type);
         return NULL;
     }
     return (ebpf_program_t*)ebpf_map_metadata_tables[type].get_object_from_entry(map, key);
@@ -2125,6 +2129,16 @@ ebpf_map_delete_entry(_In_ ebpf_map_t* map, size_t key_size, _In_reads_(key_size
             map->ebpf_map_definition.key_size);
         return EBPF_INVALID_ARGUMENT;
     }
+
+    if (ebpf_map_metadata_tables[map->ebpf_map_definition.type].delete_entry == NULL) {
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_MAP,
+            "ebpf_map_delete_entry not supported on map",
+            map->ebpf_map_definition.type);
+        return EBPF_OPERATION_NOT_SUPPORTED;
+    }
+
     ebpf_result_t result = ebpf_map_metadata_tables[map->ebpf_map_definition.type].delete_entry(map, key);
     return result;
 }
@@ -2147,6 +2161,11 @@ ebpf_map_next_key(
         return EBPF_INVALID_ARGUMENT;
     }
     if (ebpf_map_metadata_tables[map->ebpf_map_definition.type].next_key == NULL) {
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_MAP,
+            "ebpf_map_next_key not supported on map",
+            map->ebpf_map_definition.type);
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
     return ebpf_map_metadata_tables[map->ebpf_map_definition.type].next_key(map, previous_key, next_key);
@@ -2196,7 +2215,12 @@ ebpf_map_push_entry(_In_ ebpf_map_t* map, size_t value_size, _In_reads_(value_si
     }
 
     if (ebpf_map_metadata_tables[map->ebpf_map_definition.type].update_entry == NULL) {
-        return EBPF_INVALID_ARGUMENT;
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_MAP,
+            "ebpf_map_push_entry not supported on map",
+            map->ebpf_map_definition.type);
+        return EBPF_OPERATION_NOT_SUPPORTED;
     }
 
     return ebpf_map_metadata_tables[map->ebpf_map_definition.type].update_entry(map, NULL, value, flags);
@@ -2211,7 +2235,12 @@ ebpf_map_pop_entry(_In_ ebpf_map_t* map, size_t value_size, _Out_writes_(value_s
     }
 
     if (ebpf_map_metadata_tables[map->ebpf_map_definition.type].find_entry == NULL) {
-        return EBPF_INVALID_ARGUMENT;
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_MAP,
+            "ebpf_map_pop_entry not supported on map",
+            map->ebpf_map_definition.type);
+        return EBPF_OPERATION_NOT_SUPPORTED;
     }
 
     ebpf_result_t result =
@@ -2231,6 +2260,15 @@ ebpf_map_peek_entry(_In_ ebpf_map_t* map, size_t value_size, _Out_writes_(value_
     uint8_t* return_value;
     if (!(flags & EBPF_MAP_FLAG_HELPER) && (value_size != map->ebpf_map_definition.value_size)) {
         return EBPF_INVALID_ARGUMENT;
+    }
+
+    if (ebpf_map_metadata_tables[map->ebpf_map_definition.type].find_entry == NULL) {
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_MAP,
+            "ebpf_map_peek_entry not supported on map",
+            map->ebpf_map_definition.type);
+        return EBPF_OPERATION_NOT_SUPPORTED;
     }
 
     ebpf_result_t result =
