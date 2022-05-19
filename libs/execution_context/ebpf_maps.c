@@ -2136,7 +2136,7 @@ ebpf_map_delete_entry(_In_ ebpf_map_t* map, size_t key_size, _In_reads_(key_size
             EBPF_TRACELOG_KEYWORD_MAP,
             "ebpf_map_delete_entry not supported on map",
             map->ebpf_map_definition.type);
-        return EBPF_INVALID_ARGUMENT;
+        return EBPF_OPERATION_NOT_SUPPORTED;
     }
 
     ebpf_result_t result = ebpf_map_metadata_tables[map->ebpf_map_definition.type].delete_entry(map, key);
