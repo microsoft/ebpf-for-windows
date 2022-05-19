@@ -306,6 +306,7 @@ ebpf_epoch_flush()
 void*
 ebpf_epoch_allocate(size_t size)
 {
+    ebpf_assert(size);
     ebpf_epoch_allocation_header_t* header;
 
     size += sizeof(ebpf_epoch_allocation_header_t);

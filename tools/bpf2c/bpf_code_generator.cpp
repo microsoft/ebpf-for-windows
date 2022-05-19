@@ -162,7 +162,10 @@ bpf_code_generator::program_sections()
         }
     }
     if (section_names.empty()) {
-        section_names.push_back(".text");
+        auto text_section = reader.sections[".text"];
+        if (text_section && text_section->get_size() != 0) {
+            section_names.push_back(".text");
+        }
     }
     return section_names;
 }
@@ -941,39 +944,46 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         output_stream << "#line __LINE__ __FILE__" << std::endl << std::endl;
     }
 
-    output_stream << "#pragma data_seg(push, \"programs\")" << std::endl;
-    output_stream << "static program_entry_t _programs[] = {" << std::endl;
-    for (auto& [name, program] : sections) {
-        auto program_name = !program.program_name.empty() ? program.program_name : name;
-        size_t map_count = program.referenced_map_indices.size();
-        size_t helper_count = program.helper_functions.size();
-        auto map_array_name = map_count ? (program_name + "_maps") : std::string("NULL");
-        auto helper_array_name = helper_count ? (program_name + "_helpers") : std::string("NULL");
-        auto program_type_guid_name = program_name + "_program_type_guid";
-        auto attach_type_guid_name = program_name + "_attach_type_guid";
-        output_stream << INDENT "{" << std::endl;
-        output_stream << INDENT INDENT << "0," << std::endl;
-        output_stream << INDENT INDENT << sanitize_name(program_name) << "," << std::endl;
-        output_stream << INDENT INDENT "\"" << program.pe_section_name.c_str() << "\"," << std::endl;
-        output_stream << INDENT INDENT "\"" << name.c_str() << "\"," << std::endl;
-        output_stream << INDENT INDENT "\"" << program.program_name.c_str() << "\"," << std::endl;
-        output_stream << INDENT INDENT << map_array_name.c_str() << "," << std::endl;
-        output_stream << INDENT INDENT << program.referenced_map_indices.size() << "," << std::endl;
-        output_stream << INDENT INDENT << helper_array_name.c_str() << "," << std::endl;
-        output_stream << INDENT INDENT << program.helper_functions.size() << "," << std::endl;
-        output_stream << INDENT INDENT << program.output.size() << "," << std::endl;
-        output_stream << INDENT INDENT "&" << sanitize_name(program_type_guid_name) << "," << std::endl;
-        output_stream << INDENT INDENT "&" << sanitize_name(attach_type_guid_name) << "," << std::endl;
-        output_stream << INDENT "}," << std::endl;
+    if (sections.size() != 0) {
+
+        output_stream << "#pragma data_seg(push, \"programs\")" << std::endl;
+        output_stream << "static program_entry_t _programs[] = {" << std::endl;
+        for (auto& [name, program] : sections) {
+            auto program_name = !program.program_name.empty() ? program.program_name : name;
+            size_t map_count = program.referenced_map_indices.size();
+            size_t helper_count = program.helper_functions.size();
+            auto map_array_name = map_count ? (program_name + "_maps") : std::string("NULL");
+            auto helper_array_name = helper_count ? (program_name + "_helpers") : std::string("NULL");
+            auto program_type_guid_name = program_name + "_program_type_guid";
+            auto attach_type_guid_name = program_name + "_attach_type_guid";
+            output_stream << INDENT "{" << std::endl;
+            output_stream << INDENT INDENT << "0," << std::endl;
+            output_stream << INDENT INDENT << sanitize_name(program_name) << "," << std::endl;
+            output_stream << INDENT INDENT "\"" << program.pe_section_name.c_str() << "\"," << std::endl;
+            output_stream << INDENT INDENT "\"" << name.c_str() << "\"," << std::endl;
+            output_stream << INDENT INDENT "\"" << program.program_name.c_str() << "\"," << std::endl;
+            output_stream << INDENT INDENT << map_array_name.c_str() << "," << std::endl;
+            output_stream << INDENT INDENT << program.referenced_map_indices.size() << "," << std::endl;
+            output_stream << INDENT INDENT << helper_array_name.c_str() << "," << std::endl;
+            output_stream << INDENT INDENT << program.helper_functions.size() << "," << std::endl;
+            output_stream << INDENT INDENT << program.output.size() << "," << std::endl;
+            output_stream << INDENT INDENT "&" << sanitize_name(program_type_guid_name) << "," << std::endl;
+            output_stream << INDENT INDENT "&" << sanitize_name(attach_type_guid_name) << "," << std::endl;
+            output_stream << INDENT "}," << std::endl;
+        }
+        output_stream << "};" << std::endl;
+        output_stream << "#pragma data_seg(pop)" << std::endl;
+        output_stream << std::endl;
     }
-    output_stream << "};" << std::endl;
-    output_stream << "#pragma data_seg(pop)" << std::endl;
-    output_stream << std::endl;
     output_stream << "static void" << std::endl
                   << "_get_programs(_Outptr_result_buffer_(*count) program_entry_t** programs, _Out_ size_t* count)"
                   << std::endl;
     output_stream << "{" << std::endl;
-    output_stream << INDENT "*programs = _programs;" << std::endl;
+    if (sections.size() != 0) {
+        output_stream << INDENT "*programs = _programs;" << std::endl;
+    } else {
+        output_stream << INDENT "*programs = NULL;" << std::endl;
+    }
     output_stream << INDENT "*count = " << std::to_string(sections.size()) << ";" << std::endl;
     output_stream << "}" << std::endl;
     output_stream << std::endl;

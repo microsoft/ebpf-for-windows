@@ -2185,4 +2185,9 @@ TEST_CASE("load_native_program_invalid3", "[end-to-end]")
 {
     _load_invalid_program("invalid_helpers_um.dll", EBPF_EXECUTION_NATIVE, EBPF_INVALID_ARGUMENT);
 }
+TEST_CASE("load_native_program_invalid4", "[end-to-end]")
+{
+    _load_invalid_program("empty_um.dll", EBPF_EXECUTION_NATIVE, EBPF_INVALID_OBJECT);
+}
 #endif
+
