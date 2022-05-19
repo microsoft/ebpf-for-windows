@@ -216,7 +216,7 @@ ebpf_object_get_type(ebpf_core_object_t* object)
 ebpf_result_t
 ebpf_duplicate_utf8_string(_Out_ ebpf_utf8_string_t* destination, _In_ const ebpf_utf8_string_t* source)
 {
-    if (!source->value) {
+    if (!source->value || !source->length) {
         destination->value = NULL;
         destination->length = 0;
         return EBPF_SUCCESS;

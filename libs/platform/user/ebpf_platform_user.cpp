@@ -242,6 +242,7 @@ ebpf_get_code_integrity_state(_Out_ ebpf_code_integrity_state_t* state)
 __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
     _Post_writable_byte_size_(size) void* ebpf_allocate(size_t size)
 {
+    ebpf_assert(size);
     void* memory;
     memory = calloc(size, 1);
     if (memory != nullptr)
