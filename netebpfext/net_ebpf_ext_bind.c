@@ -218,6 +218,7 @@ net_ebpf_ext_resource_allocation_classify(
 
     ctx.process_id = incoming_metadata_values->processId;
     memcpy(&ctx.socket_address, &addr, sizeof(addr));
+    ctx.socket_address_length = sizeof(addr);
     ctx.operation = BIND_OPERATION_BIND;
     ctx.protocol = incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_IP_PROTOCOL].value.uint8;
 
@@ -287,6 +288,7 @@ net_ebpf_ext_resource_release_classify(
 
     ctx.process_id = incoming_metadata_values->processId;
     memcpy(&ctx.socket_address, &addr, sizeof(addr));
+    ctx.socket_address_length = sizeof(addr);
     ctx.operation = BIND_OPERATION_UNBIND;
     ctx.protocol = incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_RELEASE_V4_IP_PROTOCOL].value.uint8;
 

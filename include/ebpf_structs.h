@@ -150,6 +150,7 @@ typedef enum
     BPF_FUNC_map_push_elem = 16,             ///< \ref bpf_map_push_elem
     BPF_FUNC_map_pop_elem = 17,              ///< \ref bpf_map_pop_elem
     BPF_FUNC_map_peek_elem = 18,             ///< \ref bpf_map_peek_elem
+    BPF_FUNC_get_current_pid_tgid = 19,      ///< \ref bpf_get_current_pid_tgid
 } ebpf_helper_id_t;
 
 // Cross-platform BPF program types.

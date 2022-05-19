@@ -117,15 +117,15 @@ run_test_elf(const std::string& elf_file, _test_mode test_mode)
         switch (test_mode) {
         case _test_mode::Verify:
         case _test_mode::NoVerify: {
-            auto raw_output = read_contents<std::ifstream>(
+            auto expected_output = read_contents<std::ifstream>(
                 std::string("expected\\") + name + suffix,
                 {transform_line_directives<'\\'>, transform_line_directives<'/'>, transform_fix_opcode_comment});
-            auto raw_result = read_contents<std::istringstream>(
+            auto actual_output = read_contents<std::istringstream>(
                 out, {transform_line_directives<'\\'>, transform_line_directives<'/'>});
 
-            REQUIRE(raw_result.size() == raw_output.size());
-            for (size_t i = 0; i < raw_result.size(); i++) {
-                REQUIRE(raw_output[i] == raw_result[i]);
+            REQUIRE(actual_output.size() == expected_output.size());
+            for (size_t i = 0; i < actual_output.size(); i++) {
+                REQUIRE(expected_output[i] == actual_output[i]);
             }
         } break;
         case _test_mode::VerifyFail:
