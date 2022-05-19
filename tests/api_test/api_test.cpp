@@ -18,6 +18,7 @@
 #include <io.h>
 #include "program_helper.h"
 #include "service_helper.h"
+#include "socket_helper.h"
 #define SAMPLE_PATH ""
 
 #define EBPF_CORE_DRIVER_BINARY_NAME L"ebpfcore.sys"
@@ -592,4 +593,44 @@ TEST_CASE("bindmonitor_tailcall_native_test", "[native_tests]")
 
     // Clean up tail calls.
     cleanup();
+}
+
+#define SOCKET_TEST_PORT 0x3bbf
+
+TEST_CASE("bpf_get_current_pid_tgid", "[helpers]")
+{
+    // Load and attach ebpf program.
+    hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
+    uint32_t ifindex = 0;
+    const char* program_name = "func";
+    program_load_attach_helper_t _helper(
+        "pidtgid.sys", EBPF_PROGRAM_TYPE_BIND, program_name, EBPF_EXECUTION_NATIVE, &ifindex, sizeof(ifindex), hook);
+    struct bpf_object* object = _helper.get_object();
+
+    // Bind a socket.
+    WSAData data;
+    REQUIRE(WSAStartup(2, &data) == 0);
+    datagram_receiver_socket_t datagram_receiver_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
+
+    // Read from map.
+    struct bpf_map* map = bpf_object__find_map_by_name(object, "pidtgid_map");
+    REQUIRE(map != nullptr);
+    uint32_t key = 0;
+    struct value
+    {
+        uint32_t context_pid;
+        uint32_t current_pid;
+        uint32_t current_tid;
+    } value;
+    REQUIRE(bpf_map_lookup_elem(bpf_map__fd(map), &key, &value) == EBPF_SUCCESS);
+
+    // Verify PID/TID values.
+    DWORD pid = GetCurrentProcessId();
+    DWORD tid = GetCurrentThreadId();
+    REQUIRE(pid == value.context_pid);
+    REQUIRE(pid == value.current_pid);
+    REQUIRE(tid == value.current_tid);
+
+    // Clean up.
+    WSACleanup();
 }

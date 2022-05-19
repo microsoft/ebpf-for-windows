@@ -1,3 +1,5 @@
+# Copyright (c) Microsoft Corporation
+# SPDX-License-Identifier: MIT
 @echo off
 
 mkdir package_data
@@ -51,6 +53,7 @@ copy map_in_map.o testing
 copy map_in_map_v2.o testing
 copy map_reuse.o testing
 copy map_reuse_2.o testing
+copy pidtgid.o testing
 copy printk.o testing
 copy printk_unsafe.o testing
 copy reflect_packet.o testing
