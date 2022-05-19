@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-// clang -O2 -Werror -c droppacket_unsafe.c -o droppacket_unsafe_jit.o
+// clang -O2 -Werror -c empty.c -o empty.o
 //
-// For bpf code: clang -target bpf -O2 -Werror -c droppacket_unsafe.c -o droppacket_unsafe.o
+// For bpf code: clang -target bpf -O2 -Werror -c empty.c -o empty.o
 // this passes the checker
 
 // Whenever this sample program changes, bpf2c_tests will fail unless the
@@ -25,4 +25,4 @@ SEC("maps")
 struct bpf_map_def port_map = {
     .type = BPF_MAP_TYPE_ARRAY, .key_size = sizeof(uint32_t), .value_size = sizeof(uint64_t), .max_entries = 1};
 
-// EBPF program with no segments
+// No code sections.

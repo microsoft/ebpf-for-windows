@@ -229,6 +229,11 @@ main(int argc, char** argv)
         // Capture list of sections.
         sections = generator.program_sections();
 
+        if (verify_programs && sections.size() == 0) {
+            std::cerr << "ELF " << file << " file contains no program sections" << std::endl;
+            return 1;
+        }
+
         // Parse global data.
         generator.parse();
 
