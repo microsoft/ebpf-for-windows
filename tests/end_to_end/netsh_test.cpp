@@ -225,10 +225,10 @@ TEST_CASE("show verification droppacket_unsafe.o", "[netsh][verification]")
                   "\n"
                   "; ./tests/sample/unsafe/droppacket_unsafe.c:37\n"
                   ";     if (ip_header->Protocol == IPPROTO_UDP) {\n"
-                  "2: Upper bound must be at most packet_size (valid_access(r1.offset+9, width=1))\n"
+                  "2: Upper bound must be at most packet_size (valid_access(r1.offset+9, width=1) for read)\n"
                   "; ./tests/sample/unsafe/droppacket_unsafe.c:38\n"
                   ";         if (ntohs(udp_header->length) <= sizeof(UDP_HEADER)) {\n"
-                  "4: Upper bound must be at most packet_size (valid_access(r1.offset+24, width=2))\n"
+                  "4: Upper bound must be at most packet_size (valid_access(r1.offset+24, width=2) for read)\n"
                   "\n"
                   "2 errors\n"
                   "\n");
