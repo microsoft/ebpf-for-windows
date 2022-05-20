@@ -341,6 +341,16 @@ bpf_object__next(struct bpf_object* prev);
  * @brief Open a file without loading the programs.
  *
  * @param[in] path File name to open.
+ *
+ * @returns Pointer to an eBPF object, or NULL on failure.
+ */
+struct bpf_object*
+bpf_object__open(const char* path);
+
+/**
+ * @brief Open a file without loading the programs.
+ *
+ * @param[in] path File name to open.
  * @param[opts] opts Options to use when opening the object.
  *
  * @returns Pointer to an eBPF object, or NULL on failure.

@@ -845,7 +845,7 @@ TEST_CASE("enum section", "[end_to_end]")
     uint32_t result;
 
     REQUIRE(
-        (result = ebpf_enumerate_sections(SAMPLE_PATH "droppacket.o", true, &section_data, &error_message),
+        (result = ebpf_enumerate_program_sections(SAMPLE_PATH "droppacket.o", true, &section_data, &error_message),
          ebpf_free_string(error_message),
          error_message = nullptr,
          result == 0));
@@ -2190,4 +2190,3 @@ TEST_CASE("load_native_program_invalid4", "[end-to-end]")
     _load_invalid_program("empty_um.dll", EBPF_EXECUTION_NATIVE, EBPF_INVALID_OBJECT);
 }
 #endif
-

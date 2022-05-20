@@ -1559,12 +1559,93 @@ Exit:
 }
 
 static ebpf_result_t
+_ebpf_enumerate_native_sections(
+    _In_z_ const char* file,
+    _Outptr_result_maybenull_ ebpf_section_info_t** infos,
+    _Outptr_result_maybenull_z_ const char** error_message);
+
+static ebpf_result_t
+_initialize_ebpf_object_from_native_file(
+    _In_z_ const char* file_name,
+    _In_opt_z_ const char* object_name,
+    _In_opt_z_ const char* pin_root_path,
+    _Out_ ebpf_object_t& object,
+    _Outptr_result_maybenull_z_ const char** error_message) noexcept
+{
+    ebpf_program_t* program = nullptr;
+
+    EBPF_LOG_ENTRY();
+    ebpf_assert(file_name);
+    ebpf_assert(error_message);
+
+    ebpf_section_info_t* infos = nullptr;
+    ebpf_result_t result = _ebpf_enumerate_native_sections(file_name, &infos, error_message);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
+    object.object_name = _strdup(object_name ? object_name : file_name);
+    if (object.object_name == nullptr) {
+        result = EBPF_NO_MEMORY;
+        goto Exit;
+    }
+
+    for (ebpf_section_info_t* info = infos; info; info = info->next) {
+        program = (ebpf_program_t*)calloc(1, sizeof(ebpf_program_t));
+        if (program == nullptr) {
+            result = EBPF_NO_MEMORY;
+            goto Exit;
+        }
+
+        program->handle = ebpf_handle_invalid;
+
+        result = ebpf_get_program_type_by_name(info->program_type_name, &program->program_type, &program->attach_type);
+        if (result != EBPF_SUCCESS) {
+            goto Exit;
+        }
+
+        program->section_name = _strdup(info->section_name);
+        if (program->section_name == nullptr) {
+            result = EBPF_NO_MEMORY;
+            goto Exit;
+        }
+
+        // Update attach type for the program.
+        if (get_global_program_type() != nullptr) {
+            const ebpf_attach_type_t* attach_type = get_global_attach_type();
+            if (attach_type != nullptr) {
+                program->attach_type = *attach_type;
+            }
+        }
+
+        program->fd = ebpf_fd_invalid;
+        program->object = &object;
+
+        object.programs.emplace_back(program);
+        program = nullptr;
+    }
+
+    for (auto& map : object.maps) {
+        map->map_fd = ebpf_fd_invalid;
+        map->object = &object;
+        map->pin_path = (char*)pin_root_path;
+    }
+
+Exit:
+    free(program);
+    if (result != EBPF_SUCCESS) {
+        clean_up_ebpf_programs(object.programs);
+        clean_up_ebpf_maps(object.maps);
+    }
+    ebpf_free_sections(infos);
+    EBPF_RETURN_RESULT(result);
+}
+
+static ebpf_result_t
 _initialize_ebpf_object_from_elf(
     _In_z_ const char* file_name,
     _In_opt_z_ const char* object_name,
     _In_opt_z_ const char* pin_root_path,
-    _In_opt_ const ebpf_program_type_t* expected_program_type,
-    _In_opt_ const ebpf_attach_type_t* expected_attach_type,
     _Out_ ebpf_object_t& object,
     _Outptr_result_maybenull_z_ const char** error_message) noexcept
 {
@@ -1573,7 +1654,6 @@ _initialize_ebpf_object_from_elf(
     ebpf_assert(error_message);
 
     ebpf_result_t result = EBPF_SUCCESS;
-    set_global_program_and_attach_type(expected_program_type, expected_attach_type);
 
     ebpf_verifier_options_t verifier_options{false, false, false, false, false};
     result = load_byte_code(
@@ -1890,7 +1970,7 @@ _ebpf_enumerate_native_sections(
 }
 
 ebpf_result_t
-ebpf_enumerate_sections(
+ebpf_enumerate_program_sections(
     _In_z_ const char* file,
     bool verbose,
     _Outptr_result_maybenull_ ebpf_section_info_t** infos,
@@ -1931,12 +2011,11 @@ ebpf_object_open(
     }
 
     ebpf_result_t result;
+    set_global_program_and_attach_type(program_type, attach_type);
     if (Platform::_is_native_program(path)) {
-        // TODO(issue #951): support native programs.
-        result = EBPF_OPERATION_NOT_SUPPORTED;
+        result = _initialize_ebpf_object_from_native_file(path, object_name, pin_root_path, *new_object, error_message);
     } else {
-        result = _initialize_ebpf_object_from_elf(
-            path, object_name, pin_root_path, program_type, attach_type, *new_object, error_message);
+        result = _initialize_ebpf_object_from_elf(path, object_name, pin_root_path, *new_object, error_message);
     }
     if (result != EBPF_SUCCESS) {
         goto Done;

@@ -84,6 +84,13 @@ bpf_obj_get(const char* pathname)
 }
 
 struct bpf_object*
+bpf_object__open(const char* path)
+{
+    struct bpf_object_open_opts opts = {.sz = sizeof(opts)};
+    return bpf_object__open_file(path, &opts);
+}
+
+struct bpf_object*
 bpf_object__open_file(const char* path, const struct bpf_object_open_opts* opts)
 {
     if (!path) {

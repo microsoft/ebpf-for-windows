@@ -1824,6 +1824,41 @@ TEST_CASE("libbpf_get_error", "[libbpf]")
     REQUIRE(libbpf_get_error(nullptr) == -123);
 }
 
+TEST_CASE("bpf_object__open with .dll", "[libbpf]")
+{
+    struct bpf_object* object = bpf_object__open("droppacket_um.dll");
+    REQUIRE(object != nullptr);
+
+    struct bpf_program* program = bpf_object__next_program(object, nullptr);
+    REQUIRE(program != nullptr);
+    REQUIRE(bpf_program__type(program) == BPF_PROG_TYPE_XDP);
+    REQUIRE(bpf_program__get_expected_attach_type(program) == BPF_XDP);
+
+    REQUIRE(bpf_object__next_program(object, program) == nullptr);
+
+    bpf_object__close(object);
+}
+
+TEST_CASE("bpf_object__open_file with .dll", "[libbpf]")
+{
+    const char* my_object_name = "my_object_name";
+    struct bpf_object_open_opts opts = {0};
+    opts.object_name = my_object_name;
+    struct bpf_object* object = bpf_object__open_file("droppacket_um.dll", &opts);
+    REQUIRE(object != nullptr);
+
+    REQUIRE(strcmp(bpf_object__name(object), my_object_name) == 0);
+
+    struct bpf_program* program = bpf_object__next_program(object, nullptr);
+    REQUIRE(program != nullptr);
+    REQUIRE(bpf_program__type(program) == BPF_PROG_TYPE_XDP);
+    REQUIRE(bpf_program__get_expected_attach_type(program) == BPF_XDP);
+
+    REQUIRE(bpf_object__next_program(object, program) == nullptr);
+
+    bpf_object__close(object);
+}
+
 TEST_CASE("bpf_object__load", "[libbpf]")
 {
     _test_helper_libbpf test_helper;

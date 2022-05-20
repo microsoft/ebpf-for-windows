@@ -128,7 +128,7 @@ handle_ebpf_show_sections(
     ebpf_section_info_t* section_data = nullptr;
 
     const char* error_message = nullptr;
-    if (ebpf_enumerate_sections(filename.c_str(), level == VL_VERBOSE, &section_data, &error_message) != 0) {
+    if (ebpf_enumerate_program_sections(filename.c_str(), level == VL_VERBOSE, &section_data, &error_message) != 0) {
         std::cerr << error_message << std::endl;
         ebpf_free_string(error_message);
         ebpf_free_sections(section_data);

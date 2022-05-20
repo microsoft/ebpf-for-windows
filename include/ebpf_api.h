@@ -112,18 +112,19 @@ extern "C"
 -     * @param[in] file Name of file containing eBPF programs.
 -     * @param[in] verbose Obtain additional info about the programs.
 -     * @param[out] infos On success points to a list of eBPF programs.
+      * The caller is responsible for freeing the list via ebpf_free_sections().
 -     * @param[out] error_message On failure points to a text description of
 -     *  the error.
       */
     ebpf_result_t
-    ebpf_enumerate_sections(
+    ebpf_enumerate_program_sections(
         _In_z_ const char* file,
         bool verbose,
         _Outptr_result_maybenull_ ebpf_section_info_t** infos,
         _Outptr_result_maybenull_z_ const char** error_message);
 
     /**
-     * @brief Free memory returned from \ref ebpf_enumerate_sections.
+     * @brief Free memory returned from \ref ebpf_enumerate_program_sections.
      * @param[in] data Memory to free.
      */
     void
