@@ -1517,9 +1517,9 @@ TEST_CASE("enumerate link IDs", "[libbpf]")
     // Load and attach some programs.
     uint32_t ifindex = 0;
     program_load_attach_helper_t xdp_helper(
-        "droppacket.o", EBPF_PROGRAM_TYPE_XDP, "DropPacket", EBPF_EXECUTION_JIT, &ifindex, sizeof(ifindex), xdp_hook);
+        "droppacket.o", BPF_PROG_TYPE_XDP, "DropPacket", EBPF_EXECUTION_JIT, &ifindex, sizeof(ifindex), xdp_hook);
     program_load_attach_helper_t bind_helper(
-        "bindmonitor.o", EBPF_PROGRAM_TYPE_BIND, "BindMonitor", EBPF_EXECUTION_JIT, nullptr, 0, bind_hook);
+        "bindmonitor.o", BPF_PROG_TYPE_BIND, "BindMonitor", EBPF_EXECUTION_JIT, nullptr, 0, bind_hook);
 
     // Now enumerate the IDs.
     REQUIRE(bpf_link_get_next_id(0, &id1) == 0);
@@ -1560,9 +1560,9 @@ TEST_CASE("enumerate link IDs with bpf", "[libbpf]")
     // Load and attach some programs.
     uint32_t ifindex = 1;
     program_load_attach_helper_t xdp_helper(
-        "droppacket.o", EBPF_PROGRAM_TYPE_XDP, "DropPacket", EBPF_EXECUTION_JIT, &ifindex, sizeof(ifindex), xdp_hook);
+        "droppacket.o", BPF_PROG_TYPE_XDP, "DropPacket", EBPF_EXECUTION_JIT, &ifindex, sizeof(ifindex), xdp_hook);
     program_load_attach_helper_t bind_helper(
-        "bindmonitor.o", EBPF_PROGRAM_TYPE_BIND, "BindMonitor", EBPF_EXECUTION_JIT, nullptr, 0, bind_hook);
+        "bindmonitor.o", BPF_PROG_TYPE_BIND, "BindMonitor", EBPF_EXECUTION_JIT, nullptr, 0, bind_hook);
 
     // Now enumerate the IDs.
     memset(&attr, 0, sizeof(attr));
@@ -1735,7 +1735,7 @@ TEST_CASE("bpf_obj_get_info_by_fd", "[libbpf]")
     single_instance_hook_t xdp_hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     uint32_t ifindex = 0;
     program_load_attach_helper_t xdp_helper(
-        "droppacket.o", EBPF_PROGRAM_TYPE_XDP, "DropPacket", EBPF_EXECUTION_JIT, &ifindex, sizeof(ifindex), xdp_hook);
+        "droppacket.o", BPF_PROG_TYPE_XDP, "DropPacket", EBPF_EXECUTION_JIT, &ifindex, sizeof(ifindex), xdp_hook);
 
     struct bpf_object* object = xdp_helper.get_object();
     REQUIRE(object != nullptr);
@@ -1826,6 +1826,8 @@ TEST_CASE("libbpf_get_error", "[libbpf]")
 
 TEST_CASE("bpf_object__open with .dll", "[libbpf]")
 {
+    _test_helper_libbpf test_helper;
+
     struct bpf_object* object = bpf_object__open("droppacket_um.dll");
     REQUIRE(object != nullptr);
 
@@ -1836,11 +1838,27 @@ TEST_CASE("bpf_object__open with .dll", "[libbpf]")
 
     REQUIRE(bpf_object__next_program(object, program) == nullptr);
 
+    // Trying to attach the program should fail since it's not loaded yet.
+    bpf_link* link = bpf_program__attach(program);
+    REQUIRE(link == nullptr);
+    REQUIRE(libbpf_get_error(link) == -EINVAL);
+
+    // Load the program.
+    REQUIRE(bpf_object__load(object) == 0);
+
+    // Attach should now succeed.
+    link = bpf_program__attach(program);
+    REQUIRE(link != nullptr);
+
+    REQUIRE(bpf_link__destroy(link) == 0);
+
     bpf_object__close(object);
 }
 
 TEST_CASE("bpf_object__open_file with .dll", "[libbpf]")
 {
+    _test_helper_libbpf test_helper;
+
     const char* my_object_name = "my_object_name";
     struct bpf_object_open_opts opts = {0};
     opts.object_name = my_object_name;
@@ -1856,10 +1874,24 @@ TEST_CASE("bpf_object__open_file with .dll", "[libbpf]")
 
     REQUIRE(bpf_object__next_program(object, program) == nullptr);
 
+    // Trying to attach the program should fail since it's not loaded yet.
+    bpf_link* link = bpf_program__attach(program);
+    REQUIRE(link == nullptr);
+    REQUIRE(libbpf_get_error(link) == -EINVAL);
+
+    // Load the program.
+    REQUIRE(bpf_object__load(object) == 0);
+
+    // Attach should now succeed.
+    link = bpf_program__attach(program);
+    REQUIRE(link != nullptr);
+
+    REQUIRE(bpf_link__destroy(link) == 0);
+
     bpf_object__close(object);
 }
 
-TEST_CASE("bpf_object__load", "[libbpf]")
+TEST_CASE("bpf_object__load with .o", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
 
