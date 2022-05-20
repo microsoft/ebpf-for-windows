@@ -101,6 +101,7 @@ extern "C"
         struct _ebpf_section_info* next;
         _Field_z_ const char* section_name;
         _Field_z_ const char* program_type_name;
+        _Field_z_ const char* program_name;
         size_t map_count;
         size_t raw_data_size;
         _Field_size_(raw_data_size) char* raw_data;

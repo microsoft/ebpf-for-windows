@@ -1600,6 +1600,12 @@ _initialize_ebpf_object_from_native_file(
             goto Exit;
         }
 
+        program->program_name = _strdup(info->program_name);
+        if (program->program_name == nullptr) {
+            result = EBPF_NO_MEMORY;
+            goto Exit;
+        }
+
         // Update attach type for the program.
         if (get_global_program_type() != nullptr) {
             const ebpf_attach_type_t* attach_type = get_global_attach_type();
@@ -1765,6 +1771,7 @@ _ebpf_free_section_info(_In_ _Frees_ptr_ ebpf_section_info_t* info)
 #pragma warning(pop)
         free(stat);
     }
+    free((void*)info->program_name);
     free((void*)info->section_name);
     free((void*)info->program_type_name);
     free(info->raw_data);
@@ -1789,6 +1796,7 @@ typedef struct _ebpf_pe_context
     uintptr_t image_base;
     ebpf_section_info_t* infos;
     std::map<std::string, std::string> section_names;
+    std::map<std::string, std::string> program_names;
     std::map<std::string, GUID> section_program_types;
     int map_count;
     uintptr_t rdata_base;
@@ -1891,6 +1899,10 @@ _ebpf_pe_get_section_names(
                 _ebpf_get_section_string(pe_context, (uintptr_t)program->section_name, section_header, buffer);
             pe_context->section_names[pe_section_name] = elf_section_name;
 
+            const char* program_name =
+                _ebpf_get_section_string(pe_context, (uintptr_t)program->program_name, section_header, buffer);
+            pe_context->program_names[pe_section_name] = program_name;
+
             uintptr_t program_type_guid_address = (uintptr_t)program->program_type;
             ebpf_assert(
                 program_type_guid_address >= pe_context->data_base &&
@@ -1929,6 +1941,7 @@ _ebpf_pe_add_section(
         return 0;
     }
     std::string elf_section_name = pe_context->section_names[pe_section_name];
+    std::string program_name = pe_context->program_names[pe_section_name];
 
     ebpf_section_info_t* info = (ebpf_section_info_t*)malloc(sizeof(*info));
     if (info == nullptr) {
@@ -1937,6 +1950,7 @@ _ebpf_pe_add_section(
     }
     memset(info, 0, sizeof(*info));
     info->section_name = _strdup(elf_section_name.c_str());
+    info->program_name = _strdup(program_name.c_str());
     info->program_type_name =
         _strdup(get_program_type_windows(pe_context->section_program_types[pe_section_name]).name.c_str());
     info->raw_data_size = section_header.Misc.VirtualSize;
