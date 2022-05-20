@@ -1873,11 +1873,13 @@ _ebpf_pe_get_section_names(
     if (section_name == "programs") {
         // bpf2c generates a section that has ELF section names as strings at the
         // start of the section.  Skip over them looking for the program_entry_t
-        // which starts with a 16-byte-aligned NULL pointer.
+        // which starts with a 16-byte-aligned NULL pointer where the previous
+        // byte (if any) is also 00.
         uint32_t program_offset = 0;
         uint64_t zero = 0;
         while (program_offset < section_header.Misc.VirtualSize &&
-               memcmp(buffer->buf + program_offset, &zero, sizeof(zero)) != 0) {
+               (memcmp(buffer->buf + program_offset, &zero, sizeof(zero)) != 0 ||
+                (program_offset > 0 && buffer->buf[program_offset - 1] != 0))) {
             program_offset += 16;
         }
         int program_count = (section_header.Misc.VirtualSize - program_offset) / sizeof(program_entry_t);
