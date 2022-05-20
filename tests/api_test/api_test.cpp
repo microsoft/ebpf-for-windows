@@ -80,7 +80,7 @@ _program_load_helper(
 static void
 _test_program_load(
     const char* file_name,
-    bpf_prog_type prog_type,
+    bpf_prog_type program_type,
     ebpf_execution_type_t execution_type,
     ebpf_result_t expected_load_result)
 {
@@ -88,7 +88,7 @@ _test_program_load(
     struct bpf_object* object = nullptr;
     fd_t program_fd;
 
-    result = _program_load_helper(file_name, prog_type, execution_type, &object, &program_fd);
+    result = _program_load_helper(file_name, program_type, execution_type, &object, &program_fd);
     REQUIRE(result == expected_load_result);
 
     if (expected_load_result == EBPF_SUCCESS) {
@@ -151,11 +151,11 @@ _test_multiple_programs_load(
 
     for (int i = 0; i < program_count; i++) {
         const char* file_name = parameters[i].file_name;
-        bpf_prog_type prog_type = parameters[i].prog_type;
+        bpf_prog_type program_type = parameters[i].prog_type;
         struct bpf_object* object;
         fd_t program_fd;
 
-        result = _program_load_helper(file_name, prog_type, execution_type, &object, &program_fd);
+        result = _program_load_helper(file_name, program_type, execution_type, &object, &program_fd);
         REQUIRE(expected_load_result == result);
         if (expected_load_result == EBPF_SUCCESS) {
             REQUIRE(program_fd > 0);

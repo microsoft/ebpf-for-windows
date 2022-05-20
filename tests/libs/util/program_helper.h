@@ -28,7 +28,7 @@ typedef class _program_load_attach_helper
 
   private:
     std::string _file_name;
-    bpf_prog_type _prog_type;
+    bpf_prog_type _program_type;
     std::string _program_name;
     ebpf_execution_type_t _execution_type;
     bpf_link* _link;

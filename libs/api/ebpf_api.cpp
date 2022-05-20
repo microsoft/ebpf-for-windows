@@ -1491,14 +1491,6 @@ _initialize_ebpf_programs_native(
         }
         program->handle = program_handles[i];
         program_handles[i] = ebpf_handle_invalid;
-        if (program->program_name == nullptr && info.name[0]) {
-            // TODO(issue #851): make _ebpf_enumerate_native_sections populate program_name.
-            program->program_name = _strdup(info.name);
-            if (program->program_name == nullptr) {
-                result = EBPF_NO_MEMORY;
-                goto Exit;
-            }
-        }
         program->program_type = info.type_uuid;
         program->attach_type = info.attach_type_uuid;
     }
@@ -1540,7 +1532,7 @@ _initialize_ebpf_object_native(
     ebpf_assert(object.file_name != nullptr);
     ebpf_assert(object.object_name != nullptr);
 
-    // TODO(issue #851): can we populate maps at open time?
+    // TODO(issue #851): populate maps at open time
     for (auto& map : object.maps) {
         map->object = &object;
     }
@@ -1618,7 +1610,7 @@ _initialize_ebpf_object_from_native_file(
         program = nullptr;
     }
 
-    // TODO: populate object.maps
+    // TODO(issue #851): populate object.maps
     UNREFERENCED_PARAMETER(pin_root_path);
 
 Exit:
@@ -2015,7 +2007,6 @@ ebpf_enumerate_program_sections(
     }
 }
 
-// TODO (issue #951): update to look more like bpf_object__open_xattr
 ebpf_result_t
 ebpf_object_open(
     _In_z_ const char* path,

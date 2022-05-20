@@ -6,13 +6,13 @@
 
 _program_load_attach_helper::_program_load_attach_helper(
     _In_z_ const char* file_name,
-    bpf_prog_type prog_type,
+    bpf_prog_type program_type,
     _In_z_ const char* program_name,
     ebpf_execution_type_t execution_type,
     _In_reads_bytes_opt_(attach_parameters_size) void* attach_parameters,
     _In_ size_t attach_parameters_size,
     hook_helper_t& hook)
-    : _file_name(file_name), _prog_type(prog_type), _program_name(program_name), _execution_type(execution_type),
+    : _file_name(file_name), _program_type(program_type), _program_name(program_name), _execution_type(execution_type),
       _link(nullptr), _object(nullptr)
 {
     fd_t program_fd;
@@ -30,7 +30,7 @@ _program_load_attach_helper::_program_load_attach_helper(
     // Load program by name.
     struct bpf_program* program = bpf_object__find_program_by_name(_object, _program_name.c_str());
     REQUIRE(program != nullptr);
-    bpf_program__set_type(program, _prog_type);
+    bpf_program__set_type(program, _program_type);
 
     int error = bpf_object__load(_object);
     log_buffer = bpf_program__log_buf(program, &log_buffer_size);
