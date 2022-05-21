@@ -319,7 +319,7 @@ ebpf_program_load(
     _In_z_ const char* file_name,
     bpf_prog_type prog_type,
     ebpf_execution_type_t execution_type,
-    _Outptr_ struct bpf_object** object,
+    _Outptr_result_maybenull_ struct bpf_object** object,
     _Out_ fd_t* program_fd,
     _Outptr_opt_result_maybenull_z_ const char** log_buffer)
 {
