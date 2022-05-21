@@ -1504,7 +1504,6 @@ Exit:
 
 static ebpf_result_t
 _initialize_ebpf_object_native(
-    _In_z_ const char* file_name,
     size_t count_of_maps,
     _In_reads_(count_of_maps) ebpf_handle_t* map_handles,
     size_t count_of_programs,
@@ -1513,7 +1512,6 @@ _initialize_ebpf_object_native(
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
-    ebpf_assert(file_name);
     ebpf_assert(map_handles);
     ebpf_assert(program_handles);
 
@@ -1532,7 +1530,7 @@ _initialize_ebpf_object_native(
     ebpf_assert(object.file_name != nullptr);
     ebpf_assert(object.object_name != nullptr);
 
-    // TODO(issue #851): populate maps at open time
+    // TODO(issue #951): populate maps at open time
     for (auto& map : object.maps) {
         map->object = &object;
     }
@@ -1610,7 +1608,7 @@ _initialize_ebpf_object_from_native_file(
         program = nullptr;
     }
 
-    // TODO(issue #851): populate object.maps
+    // TODO(issue #951): populate object.maps
     UNREFERENCED_PARAMETER(pin_root_path);
 
 Exit:
@@ -2351,7 +2349,7 @@ ebpf_program_load_bytes(
 }
 
 static ebpf_result_t
-_ebpf_object_load_programs(_Inout_ struct bpf_object* object, ebpf_execution_type_t execution_type)
+_ebpf_object_load_programs(_Inout_ struct bpf_object* object)
 {
     EBPF_LOG_ENTRY();
     ebpf_assert(object);
@@ -2374,7 +2372,7 @@ _ebpf_object_load_programs(_Inout_ struct bpf_object* object, ebpf_execution_typ
         load_info.program_name = const_cast<char*>(program->program_name);
         load_info.program_type = program->program_type;
         load_info.program_handle = reinterpret_cast<file_handle_t>(program->handle);
-        load_info.execution_type = execution_type;
+        load_info.execution_type = object->execution_type;
         load_info.byte_code = program->byte_code;
         load_info.byte_code_size = program->byte_code_size;
         load_info.execution_context = execution_context_kernel_mode;
@@ -2406,7 +2404,7 @@ _ebpf_object_load_programs(_Inout_ struct bpf_object* object, ebpf_execution_typ
 
 // This logic is intended to be similar to libbpf's bpf_object__load_xattr().
 ebpf_result_t
-ebpf_object_load(_Inout_ struct bpf_object* object, ebpf_execution_type_t execution_type)
+ebpf_object_load(_Inout_ struct bpf_object* object)
 {
     ebpf_result_t result;
     EBPF_LOG_ENTRY();
@@ -2422,7 +2420,12 @@ ebpf_object_load(_Inout_ struct bpf_object* object, ebpf_execution_type_t execut
         }
         fd_t program_fd;
         return _ebpf_program_load_native(
-            object->file_name, &program->program_type, &program->attach_type, execution_type, object, &program_fd);
+            object->file_name,
+            &program->program_type,
+            &program->attach_type,
+            object->execution_type,
+            object,
+            &program_fd);
     }
 
     try {
@@ -2431,7 +2434,7 @@ ebpf_object_load(_Inout_ struct bpf_object* object, ebpf_execution_type_t execut
             goto Done;
         }
 
-        result = _ebpf_object_load_programs(object, execution_type);
+        result = _ebpf_object_load_programs(object);
     } catch (const std::bad_alloc&) {
         result = EBPF_NO_MEMORY;
         goto Done;
@@ -2772,8 +2775,8 @@ _ebpf_program_load_native(
             goto Done;
         }
 
-        result = _initialize_ebpf_object_native(
-            file_name, count_of_maps, map_handles, count_of_programs, program_handles, *object);
+        result =
+            _initialize_ebpf_object_native(count_of_maps, map_handles, count_of_programs, program_handles, *object);
         if (result != EBPF_SUCCESS) {
             goto Done;
         }
@@ -2859,7 +2862,7 @@ ebpf_program_next(_In_opt_ const struct bpf_program* previous, _In_ const struct
         goto Exit;
     }
     if (previous == nullptr) {
-        program = object->programs[0];
+        program = (object->programs.size() > 0) ? object->programs[0] : nullptr;
     } else {
         size_t programs_count = object->programs.size();
         for (size_t i = 0; i < programs_count; i++) {

@@ -109,7 +109,7 @@ bpf_object__open_file(const char* path, const struct bpf_object_open_opts* opts)
 int
 bpf_object__load_xattr(struct bpf_object_load_attr* attr)
 {
-    ebpf_result result = ebpf_object_load(attr->obj, EBPF_EXECUTION_ANY);
+    ebpf_result result = ebpf_object_load(attr->obj);
     return libbpf_result_err(result);
 }
 

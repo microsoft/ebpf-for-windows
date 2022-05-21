@@ -478,14 +478,13 @@ ebpf_object_open(
  * @brief Load all the programs in a given object.
  *
  * @param[in] object Object from which to load programs.
- * @param[in] execution_type Execution type.
  *
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval EBPF_INVALID_ARGUMENT One or more parameters are wrong.
  * @retval EBPF_NO_MEMORY Out of memory.
  */
 ebpf_result_t
-ebpf_object_load(_Inout_ struct bpf_object* object, ebpf_execution_type_t execution_type);
+ebpf_object_load(_Inout_ struct bpf_object* object);
 
 /**
  * @brief Unload all the programs in a given object.
