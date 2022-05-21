@@ -1991,7 +1991,7 @@ _ebpf_enumerate_native_sections(
 }
 
 ebpf_result_t
-ebpf_enumerate_program_sections(
+ebpf_enumerate_sections(
     _In_z_ const char* file,
     bool verbose,
     _Outptr_result_maybenull_ ebpf_section_info_t** infos,

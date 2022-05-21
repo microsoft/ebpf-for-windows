@@ -92,7 +92,7 @@ EXPORTS
     ebpf_api_close_handle
     ebpf_api_get_pinned_map_info
     ebpf_api_map_info_free
-    ebpf_enumerate_program_sections
+    ebpf_enumerate_sections
     ebpf_free_sections
     ebpf_free_string
     ebpf_get_attach_type_name

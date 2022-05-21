@@ -929,8 +929,8 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             }
 #if defined(_DEBUG) || defined(BPF2C_VERBOSE)
             output_stream << INDENT "// " << _opcode_name_strings[output.instruction.opcode]
-                          << " pc=" << output.instruction_offset << " dst=" << get_register_name(output.instruction.dst)
-                          << " src=" << get_register_name(output.instruction.src)
+                          << " pc=" << output.instruction_offset << " dst=" << std::to_string(output.instruction.dst)
+                          << " src=" << std::to_string(output.instruction.src)
                           << " offset=" << std::to_string(output.instruction.offset)
                           << " imm=" << std::to_string(output.instruction.imm) << std::endl;
 #endif

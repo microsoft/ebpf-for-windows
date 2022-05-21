@@ -171,7 +171,7 @@ TEST_CASE("show sections tail_call_multiple_um.dll", "[netsh][sections]")
                   "====================  =========  ======  ======\n"
                   "            xdp_prog        xdp       0     413\n"
                   "          xdp_prog/0        xdp       0     413\n"
-                  "          xdp_prog/1        xdp       0     214\n");
+                  "          xdp_prog/1        xdp       0     190\n");
 }
 
 // Test a .sys file with multiple programs, including ones with long names.
