@@ -1365,7 +1365,7 @@ _ebpf_core_protocol_get_object_info(
         return result;
     }
 
-    // List of object types if fixed at compile time.
+    // List of object types is fixed at compile time.
     switch (object->type) {
     case EBPF_OBJECT_LINK:
         result = ebpf_link_get_info((ebpf_link_t*)object, reply->info, &info_size);
@@ -1885,7 +1885,7 @@ ebpf_core_invoke_protocol_handler(
         return EBPF_INVALID_ARGUMENT;
     }
 
-    // Validate input_buffer_length
+    // Validate input_buffer_length.
     switch (handler->call_type) {
     case EBPF_PROTOCOL_FIXED_REQUEST_NO_REPLY:
     case EBPF_PROTOCOL_FIXED_REQUEST_FIXED_REPLY:
@@ -1904,7 +1904,7 @@ ebpf_core_invoke_protocol_handler(
         break;
     }
 
-    // Validate output_buffer_length and output_buffer
+    // Validate output_buffer_length and output_buffer.
     switch (handler->call_type) {
     case EBPF_PROTOCOL_FIXED_REQUEST_NO_REPLY:
     case EBPF_PROTOCOL_VARIABLE_REQUEST_NO_REPLY:

@@ -1473,5 +1473,7 @@ TEST_CASE("EBPF_OPERATION_RING_BUFFER_MAP_ASYNC_QUERY", "[execution_context][neg
         invoke_protocol(EBPF_OPERATION_RING_BUFFER_MAP_ASYNC_QUERY, request, reply, &async) == EBPF_INVALID_ARGUMENT);
 }
 
+// TODO: Add native module loading IOCTL negative tests.
+// https://github.com/microsoft/ebpf-for-windows/issues/1139
 // EBPF_OPERATION_LOAD_NATIVE_MODULE
 // EBPF_OPERATION_LOAD_NATIVE_PROGRAMS
