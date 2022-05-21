@@ -46,6 +46,20 @@
         return result;                                                      \
     }
 
+// General purpose maps
+DECLARE_MAP(HASH);
+DECLARE_MAP(PERCPU_HASH);
+DECLARE_MAP(ARRAY);
+DECLARE_MAP(PERCPU_ARRAY);
+
+// LRU
+DECLARE_MAP(LRU_HASH);
+DECLARE_MAP(LRU_PERCPU_HASH);
+
+// Push/pop maps that have no key
+DECLARE_MAP_NO_KEY(QUEUE);
+DECLARE_MAP_NO_KEY(STACK);
+
 inline int
 test_GENERAL_map(struct _ebpf_map_definition_in_file* map)
 {
@@ -71,6 +85,22 @@ test_GENERAL_map(struct _ebpf_map_definition_in_file* map)
         return result;
     }
 
+    result = bpf_map_update_elem(map, &key, &value, BPF_ANY);
+    if (result < 0) {
+        bpf_printk("bpf_map_update_elem returned %d", result);
+        return result;
+    }
+
+    if (map == &ARRAY_map || map == &PERCPU_ARRAY_map) {
+        return 0;
+    }
+
+    // Find and remove element.
+    return_value = bpf_map_lookup_and_delete_elem(map, &key);
+    if (return_value == NULL) {
+        bpf_printk("bpf_map_lookup_and_delete_elem returned NULL");
+        return -1;
+    }
     return 0;
 }
 
@@ -155,20 +185,6 @@ test_PUSH_POP_map(struct _ebpf_map_definition_in_file* map)
 
     return 0;
 }
-
-// General purpose maps
-DECLARE_MAP(HASH);
-DECLARE_MAP(PERCPU_HASH);
-DECLARE_MAP(ARRAY);
-DECLARE_MAP(PERCPU_ARRAY);
-
-// LRU
-DECLARE_MAP(LRU_HASH);
-DECLARE_MAP(LRU_PERCPU_HASH);
-
-// Push/pop maps that have no key
-DECLARE_MAP_NO_KEY(QUEUE);
-DECLARE_MAP_NO_KEY(STACK);
 
 SEC("xdp_prog") int test_maps(struct xdp_md* ctx)
 {

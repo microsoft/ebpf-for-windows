@@ -282,7 +282,9 @@ _ebpf_program_epoch_free(void* context)
         break;
 #if !defined(CONFIG_BPF_JIT_ALWAYS_ON)
     case EBPF_CODE_EBPF:
-        ubpf_destroy(program->code_or_vm.vm);
+        if (program->code_or_vm.vm) {
+            ubpf_destroy(program->code_or_vm.vm);
+        }
         break;
 #endif
     case EBPF_CODE_NATIVE:
@@ -597,15 +599,7 @@ _ebpf_program_load_machine_code(
     uint8_t* local_machine_code = NULL;
     ebpf_memory_descriptor_t* local_code_memory_descriptor = NULL;
 
-    if (program->parameters.code_type != EBPF_CODE_JIT && program->parameters.code_type != EBPF_CODE_NATIVE) {
-        EBPF_LOG_MESSAGE_UINT64(
-            EBPF_TRACELOG_LEVEL_ERROR,
-            EBPF_TRACELOG_KEYWORD_PROGRAM,
-            "_ebpf_program_load_machine_code program->parameters.code_type must be EBPF_CODE_JIT or EBPF_CODE_NATIVE",
-            program->parameters.code_type);
-        return_value = EBPF_INVALID_ARGUMENT;
-        goto Done;
-    }
+    ebpf_assert(program->parameters.code_type == EBPF_CODE_JIT || program->parameters.code_type == EBPF_CODE_NATIVE);
 
     if (program->parameters.code_type == EBPF_CODE_JIT) {
         local_code_memory_descriptor = ebpf_map_memory(machine_code_size);
@@ -879,6 +873,9 @@ _ebpf_program_get_helper_function_address(
         void* function_address;
         ebpf_result_t return_value;
         uint32_t trampoline_table_index = helper_function_id - (EBPF_MAX_GENERAL_HELPER_FUNCTION + 1);
+        if (!program->trampoline_table) {
+            EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+        }
         return_value =
             ebpf_get_trampoline_function(program->trampoline_table, trampoline_table_index, &function_address);
         if (return_value != EBPF_SUCCESS)
@@ -974,10 +971,7 @@ ebpf_program_get_program_info(_In_ const ebpf_program_t* program, _Outptr_ ebpf_
     uint32_t total_count_of_helpers = 0;
     uint32_t helper_index = 0;
 
-    if (program_info == NULL) {
-        result = EBPF_INVALID_ARGUMENT;
-        goto Exit;
-    }
+    ebpf_assert(program_info);
     *program_info = NULL;
 
     if (program->program_invalidated) {

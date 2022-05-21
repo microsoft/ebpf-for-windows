@@ -119,7 +119,7 @@ _test_crud_operations(ebpf_map_type_t map_type)
                 0) == EBPF_SUCCESS);
     }
 
-    // Test for inserting max_entries + 1
+    // Test for inserting max_entries + 1.
     uint32_t bad_key = 10;
     *reinterpret_cast<uint64_t*>(value.data()) = static_cast<uint64_t>(bad_key) * static_cast<uint64_t>(bad_key);
     REQUIRE(
@@ -774,3 +774,704 @@ TEST_CASE("ring_buffer_async_query", "[execution_context]")
         REQUIRE(ebpf_map_peek_entry(map.get(), 0, nullptr, 0) == EBPF_OPERATION_NOT_SUPPORTED);
     }
 }
+
+std::vector<GUID> _program_types = {
+    EBPF_PROGRAM_TYPE_XDP,
+    EBPF_PROGRAM_TYPE_BIND,
+    EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR,
+    EBPF_PROGRAM_TYPE_SOCK_OPS,
+    EBPF_PROGRAM_TYPE_SAMPLE};
+
+std::map<std::string, ebpf_map_definition_in_memory_t> _map_definitions = {
+    {
+        "BPF_MAP_TYPE_ARRAY",
+        {
+            BPF_MAP_TYPE_ARRAY,
+            4,
+            20,
+            10,
+        },
+    },
+    {
+        "BPF_MAP_TYPE_ARRAY_OF_MAPS",
+        {
+            BPF_MAP_TYPE_ARRAY_OF_MAPS,
+            4,
+            20,
+            10,
+            1,
+        },
+    },
+    {
+        "BPF_MAP_TYPE_HASH",
+        {
+            BPF_MAP_TYPE_HASH,
+            4,
+            20,
+            10,
+        },
+    },
+    {
+        "BPF_MAP_TYPE_HASH_OF_MAPS",
+        {
+            BPF_MAP_TYPE_HASH_OF_MAPS,
+            4,
+            20,
+            10,
+            1,
+        },
+    },
+    {
+        "BPF_MAP_TYPE_PERCPU_ARRAY",
+        {
+            BPF_MAP_TYPE_PERCPU_ARRAY,
+            4,
+            20,
+            10,
+        },
+    },
+    {
+        "BPF_MAP_TYPE_PERCPU_HASH",
+        {
+            BPF_MAP_TYPE_PERCPU_HASH,
+            4,
+            20,
+            10,
+        },
+    },
+    {
+        "BPF_MAP_TYPE_PROG_ARRAY",
+        {
+            BPF_MAP_TYPE_PROG_ARRAY,
+            4,
+            20,
+            10,
+        },
+    },
+    {
+        "BPF_MAP_TYPE_LPM_TRIE",
+        {
+            BPF_MAP_TYPE_LPM_TRIE,
+            4,
+            20,
+            10,
+        },
+    },
+    {
+        "BPF_MAP_TYPE_LRU_HASH",
+        {
+            BPF_MAP_TYPE_LRU_HASH,
+            4,
+            20,
+            10,
+        },
+    },
+    {
+        "BPF_MAP_TYPE_LRU_PERCPU_HASH",
+        {
+            BPF_MAP_TYPE_LRU_PERCPU_HASH,
+            4,
+            20,
+            10,
+        },
+    },
+    {
+        "BPF_MAP_TYPE_QUEUE",
+        {
+            BPF_MAP_TYPE_QUEUE,
+            0,
+            20,
+            10,
+        },
+    },
+    {
+        "BPF_MAP_TYPE_STACK",
+        {
+            BPF_MAP_TYPE_STACK,
+            0,
+            20,
+            10,
+        },
+    },
+    {
+        "BPF_MAP_TYPE_STACK",
+        {
+            BPF_MAP_TYPE_PERCPU_ARRAY,
+            0,
+            20,
+            10,
+        },
+    },
+};
+
+void
+create_various_objects(std::vector<ebpf_handle_t>& program_handles, std::map<std::string, ebpf_handle_t>& map_handles)
+{
+    for (const auto& type : _program_types) {
+        std::string name = "program name";
+        std::string file = "file name";
+        std::string section = "section name";
+        ebpf_program_parameters_t params{
+            type,
+            type,
+            {reinterpret_cast<uint8_t*>(name.data()), name.size()},
+            {reinterpret_cast<uint8_t*>(name.data()), name.size()},
+            {reinterpret_cast<uint8_t*>(name.data()), name.size()},
+            EBPF_CODE_NONE};
+        ebpf_handle_t handle;
+        REQUIRE(ebpf_program_create_and_initialize(&params, &handle) == EBPF_SUCCESS);
+        program_handles.push_back(handle);
+    }
+    for (const auto& [name, def] : _map_definitions) {
+        ebpf_utf8_string_t utf8_name{reinterpret_cast<uint8_t*>(const_cast<char*>(name.data())), name.size()};
+        ebpf_handle_t handle;
+        ebpf_handle_t inner_handle = ebpf_handle_invalid;
+        if (def.inner_map_id != 0) {
+            inner_handle = map_handles.begin()->second;
+        }
+        REQUIRE(ebpf_core_create_map(&utf8_name, &def, inner_handle, &handle) == EBPF_SUCCESS);
+        map_handles.insert({name, handle});
+    }
+}
+
+typedef struct empty_reply
+{
+} empty_reply_t;
+
+static empty_reply_t _empty_reply;
+typedef std::vector<uint8_t> ebpf_protocol_buffer_t;
+
+template <typename request_t, typename reply_t = empty_reply_t>
+ebpf_result_t
+invoke_protocol(
+    ebpf_operation_id_t operation_id,
+    request_t& request,
+    reply_t& reply = _empty_reply,
+    _Inout_opt_ void* async = nullptr)
+{
+    uint32_t request_size;
+    void* request_ptr;
+    uint32_t reply_size;
+    void* reply_ptr;
+    bool variable_reply_size = false;
+
+    if constexpr (std::is_same<request_t, nullptr_t>::value) {
+        request_size = 0;
+        request_ptr = nullptr;
+    } else if constexpr (std::is_same<request_t, ebpf_protocol_buffer_t>::value) {
+        request_size = static_cast<uint32_t>(request.size());
+        request_ptr = request.data();
+    } else {
+        request_size = sizeof(request);
+        request_ptr = &request;
+    }
+
+    if constexpr (std::is_same<reply_t, nullptr_t>::value) {
+        reply_size = 0;
+        reply_ptr = nullptr;
+    } else if constexpr (std::is_same<reply_t, ebpf_protocol_buffer_t>::value) {
+        reply_size = static_cast<uint32_t>(reply.size());
+        reply_ptr = reply.data();
+        variable_reply_size = true;
+    } else if constexpr (std::is_same<reply_t, empty_reply>::value) {
+        reply_size = 0;
+        reply_ptr = nullptr;
+    } else {
+        reply_size = static_cast<uint32_t>(sizeof(reply));
+        reply_ptr = &reply;
+    }
+    auto header = reinterpret_cast<ebpf_operation_header_t*>(request_ptr);
+    header->id = operation_id;
+    header->length = static_cast<uint16_t>(request_size);
+
+    auto compeltion = [](void*, size_t, ebpf_result_t) {};
+
+    return ebpf_core_invoke_protocol_handler(
+        operation_id,
+        request_ptr,
+        static_cast<uint16_t>(request_size),
+        reply_ptr,
+        static_cast<uint16_t>(reply_size),
+        async,
+        compeltion);
+}
+
+extern bool _ebpf_platform_code_integrity_enabled;
+
+#define NEGATIVE_TEST_PROLOG()                                                            \
+    std::vector<std::unique_ptr<_program_info_provider>> program_info_providers;          \
+    for (const auto& type : _program_types) {                                             \
+        program_info_providers.push_back(std::make_unique<_program_info_provider>(type)); \
+    }                                                                                     \
+    _ebpf_core_initializer core;                                                          \
+    std::vector<ebpf_handle_t> program_handles;                                           \
+    std::map<std::string, ebpf_handle_t> map_handles;                                     \
+    create_various_objects(program_handles, map_handles);
+
+// These tests exist to verify ebpf_core's parsing of messages.
+// See libbpf_test.cpp for invalid parameter but correctly formed message cases.
+TEST_CASE("EBPF_OPERATION_RESOLVE_HELPER", "[execution_context][negative]")
+{
+    NEGATIVE_TEST_PROLOG();
+
+    std::vector<uint8_t> request(EBPF_OFFSET_OF(ebpf_operation_resolve_helper_request_t, helper_id) + sizeof(uint32_t));
+    std::vector<uint8_t> reply(EBPF_OFFSET_OF(ebpf_operation_resolve_helper_reply_t, address) + sizeof(uintptr_t));
+    auto resolve_helper_request = reinterpret_cast<ebpf_operation_resolve_helper_request_t*>(request.data());
+
+    // Invalid handle.
+    resolve_helper_request->program_handle = ebpf_handle_invalid;
+    REQUIRE(invoke_protocol(EBPF_OPERATION_RESOLVE_HELPER, request, reply) == EBPF_INVALID_OBJECT);
+
+    // Invalid helper id.
+    resolve_helper_request->program_handle = program_handles[0];
+    resolve_helper_request->helper_id[0] = UINT32_MAX;
+    REQUIRE(invoke_protocol(EBPF_OPERATION_RESOLVE_HELPER, request, reply) == EBPF_INVALID_ARGUMENT);
+
+    reply.resize(EBPF_OFFSET_OF(ebpf_operation_resolve_helper_reply_t, address));
+    // Reply too small.
+    REQUIRE(invoke_protocol(EBPF_OPERATION_RESOLVE_HELPER, request, reply) == EBPF_INVALID_ARGUMENT);
+
+    // Set no helper functions.
+    request.resize(EBPF_OFFSET_OF(ebpf_operation_resolve_helper_request_t, helper_id));
+    resolve_helper_request = reinterpret_cast<ebpf_operation_resolve_helper_request_t*>(request.data());
+    REQUIRE(invoke_protocol(EBPF_OPERATION_RESOLVE_HELPER, request, reply) == EBPF_SUCCESS);
+
+    // Set helper function multiple times.
+    request.resize(EBPF_OFFSET_OF(ebpf_operation_resolve_helper_request_t, helper_id) + sizeof(uint32_t));
+    reply.resize(EBPF_OFFSET_OF(ebpf_operation_resolve_helper_reply_t, address) + sizeof(uintptr_t));
+    resolve_helper_request = reinterpret_cast<ebpf_operation_resolve_helper_request_t*>(request.data());
+    resolve_helper_request->program_handle = program_handles[0];
+    resolve_helper_request->helper_id[0] = 1;
+    REQUIRE(invoke_protocol(EBPF_OPERATION_RESOLVE_HELPER, request, reply) == EBPF_INVALID_ARGUMENT);
+}
+
+TEST_CASE("EBPF_OPERATION_RESOLVE_MAP", "[execution_context][negative]")
+{
+    NEGATIVE_TEST_PROLOG();
+
+    std::vector<uint8_t> request(
+        EBPF_OFFSET_OF(ebpf_operation_resolve_map_request_t, map_handle) + sizeof(ebpf_handle_t) * 2);
+    std::vector<uint8_t> reply(EBPF_OFFSET_OF(ebpf_operation_resolve_helper_reply_t, address) + sizeof(uintptr_t) * 2);
+    auto resolve_map_request = reinterpret_cast<ebpf_operation_resolve_map_request_t*>(request.data());
+
+    // Invalid handle.
+    resolve_map_request->program_handle = ebpf_handle_invalid;
+    REQUIRE(invoke_protocol(EBPF_OPERATION_RESOLVE_MAP, request, reply) == EBPF_INVALID_OBJECT);
+
+    // 1 invalid map.
+    resolve_map_request->program_handle = program_handles[0];
+    resolve_map_request->map_handle[0] = ebpf_handle_invalid;
+    REQUIRE(invoke_protocol(EBPF_OPERATION_RESOLVE_MAP, request, reply) == EBPF_INVALID_OBJECT);
+
+    resolve_map_request->program_handle = program_handles[0];
+    resolve_map_request->map_handle[0] = map_handles["BPF_MAP_TYPE_HASH"];
+    resolve_map_request->map_handle[1] = ebpf_handle_invalid;
+    REQUIRE(invoke_protocol(EBPF_OPERATION_RESOLVE_MAP, request, reply) == EBPF_INVALID_OBJECT);
+
+    // Reply too small.
+    reply.resize(EBPF_OFFSET_OF(ebpf_operation_resolve_helper_reply_t, address) + sizeof(uintptr_t));
+    REQUIRE(invoke_protocol(EBPF_OPERATION_RESOLVE_MAP, request, reply) == EBPF_INVALID_ARGUMENT);
+
+    // 0 maps.
+    request.resize(EBPF_OFFSET_OF(ebpf_operation_resolve_map_request_t, map_handle));
+    resolve_map_request = reinterpret_cast<ebpf_operation_resolve_map_request_t*>(request.data());
+    resolve_map_request->program_handle = program_handles[0];
+    REQUIRE(invoke_protocol(EBPF_OPERATION_RESOLVE_MAP, request, reply) == EBPF_INVALID_ARGUMENT);
+}
+
+TEST_CASE("EBPF_OPERATION_CREATE_PROGRAM", "[execution_context][negative]")
+{
+    NEGATIVE_TEST_PROLOG();
+
+    std::vector<uint8_t> request(EBPF_OFFSET_OF(ebpf_operation_create_program_request_t, data));
+    std::vector<uint8_t> reply(sizeof(ebpf_operation_create_program_reply_t));
+    auto create_program_request = reinterpret_cast<ebpf_operation_create_program_request_t*>(request.data());
+    create_program_request->program_type = _program_types[0];
+    create_program_request->section_name_offset = EBPF_OFFSET_OF(ebpf_operation_create_program_request_t, data);
+    create_program_request->program_name_offset = EBPF_OFFSET_OF(ebpf_operation_create_program_request_t, data);
+    // No name, no section offset, no filename - Should be permitted.
+    REQUIRE(invoke_protocol(EBPF_OPERATION_CREATE_PROGRAM, request, reply) == EBPF_SUCCESS);
+
+    request.resize(request.size() + 10);
+    create_program_request = reinterpret_cast<ebpf_operation_create_program_request_t*>(request.data());
+
+    // Section name before start of valid region.
+    create_program_request->section_name_offset = EBPF_OFFSET_OF(ebpf_operation_create_program_request_t, data) - 1;
+    create_program_request->program_name_offset = EBPF_OFFSET_OF(ebpf_operation_create_program_request_t, data);
+    REQUIRE(invoke_protocol(EBPF_OPERATION_CREATE_PROGRAM, request, reply) == EBPF_INVALID_ARGUMENT);
+
+    // Program name before start of valid region.
+    create_program_request->section_name_offset = EBPF_OFFSET_OF(ebpf_operation_create_program_request_t, data);
+    create_program_request->program_name_offset = EBPF_OFFSET_OF(ebpf_operation_create_program_request_t, data) - 1;
+    REQUIRE(invoke_protocol(EBPF_OPERATION_CREATE_PROGRAM, request, reply) == EBPF_INVALID_ARGUMENT);
+
+    // Section name past end of valid region.
+    create_program_request->section_name_offset = create_program_request->header.length + 1;
+    create_program_request->program_name_offset = EBPF_OFFSET_OF(ebpf_operation_create_program_request_t, data);
+    REQUIRE(invoke_protocol(EBPF_OPERATION_CREATE_PROGRAM, request, reply) == EBPF_INVALID_ARGUMENT);
+
+    // Section name past end of valid region.
+    create_program_request->section_name_offset = EBPF_OFFSET_OF(ebpf_operation_create_program_request_t, data);
+    create_program_request->program_name_offset = create_program_request->header.length + 1;
+    REQUIRE(invoke_protocol(EBPF_OPERATION_CREATE_PROGRAM, request, reply) == EBPF_INVALID_ARGUMENT);
+
+    request.resize(request.size() + 1024);
+    create_program_request = reinterpret_cast<ebpf_operation_create_program_request_t*>(request.data());
+
+    // Large file name.
+    create_program_request->section_name_offset = create_program_request->header.length;
+    create_program_request->program_name_offset = create_program_request->header.length;
+    REQUIRE(invoke_protocol(EBPF_OPERATION_CREATE_PROGRAM, request, reply) == EBPF_INVALID_ARGUMENT);
+
+    // Large section name - Permitted.
+    create_program_request->section_name_offset = EBPF_OFFSET_OF(ebpf_operation_create_program_request_t, data);
+    create_program_request->program_name_offset = create_program_request->header.length;
+    REQUIRE(invoke_protocol(EBPF_OPERATION_CREATE_PROGRAM, request, reply) == EBPF_SUCCESS);
+
+    // Large program name.
+    create_program_request->section_name_offset = EBPF_OFFSET_OF(ebpf_operation_create_program_request_t, data);
+    create_program_request->program_name_offset = EBPF_OFFSET_OF(ebpf_operation_create_program_request_t, data);
+    REQUIRE(invoke_protocol(EBPF_OPERATION_CREATE_PROGRAM, request, reply) == EBPF_INVALID_ARGUMENT);
+}
+
+TEST_CASE("EBPF_OPERATION_CREATE_MAP", "[execution_context][negative]")
+{
+    NEGATIVE_TEST_PROLOG();
+    std::vector<uint8_t> request(EBPF_OFFSET_OF(ebpf_operation_create_map_request_t, data));
+    std::vector<uint8_t> reply(sizeof(ebpf_operation_create_map_reply_t));
+    auto create_map_request = reinterpret_cast<ebpf_operation_create_map_request_t*>(request.data());
+
+    // Non-object map with object.
+    create_map_request->ebpf_map_definition = _map_definitions["BPF_MAP_TYPE_ARRAY"];
+    create_map_request->inner_map_handle = map_handles["BPF_MAP_TYPE_HASH"];
+    REQUIRE(invoke_protocol(EBPF_OPERATION_CREATE_MAP, request, reply) == EBPF_INVALID_ARGUMENT);
+
+    // Object map with no object.
+    create_map_request->ebpf_map_definition = _map_definitions["BPF_MAP_TYPE_HASH_OF_MAPS"];
+    create_map_request->inner_map_handle = ebpf_handle_invalid;
+    REQUIRE(invoke_protocol(EBPF_OPERATION_CREATE_MAP, request, reply) == EBPF_INVALID_FD);
+
+    // Object map with bad handle.
+    create_map_request->ebpf_map_definition = _map_definitions["BPF_MAP_TYPE_HASH_OF_MAPS"];
+    create_map_request->inner_map_handle = ebpf_handle_invalid - 1;
+    REQUIRE(invoke_protocol(EBPF_OPERATION_CREATE_MAP, request, reply) == EBPF_INVALID_OBJECT);
+
+    // Object map with wrong handle type.
+    create_map_request->ebpf_map_definition = _map_definitions["BPF_MAP_TYPE_HASH_OF_MAPS"];
+    create_map_request->inner_map_handle = program_handles[0];
+    REQUIRE(invoke_protocol(EBPF_OPERATION_CREATE_MAP, request, reply) == EBPF_INVALID_OBJECT);
+}
+
+TEST_CASE("EBPF_OPERATION_LOAD_CODE", "[execution_context][negative]")
+{
+
+    // Test with type jit.
+    {
+        NEGATIVE_TEST_PROLOG();
+
+        ebpf_operation_load_code_request_t load_code_request{
+            {sizeof(ebpf_operation_load_code_request_t), EBPF_OPERATION_LOAD_CODE},
+            program_handles[0],
+            EBPF_CODE_JIT,
+            static_cast<uint8_t>('0xcc')};
+
+        // Invalid handle.
+        load_code_request.program_handle = ebpf_handle_invalid;
+        REQUIRE(invoke_protocol(EBPF_OPERATION_LOAD_CODE, load_code_request) == EBPF_INVALID_OBJECT);
+        load_code_request.program_handle = program_handles[0];
+
+        load_code_request.code_type = EBPF_CODE_NATIVE;
+        REQUIRE(invoke_protocol(EBPF_OPERATION_LOAD_CODE, load_code_request) == EBPF_INVALID_ARGUMENT);
+        load_code_request.code_type = EBPF_CODE_JIT;
+
+        load_code_request.code_type = static_cast<ebpf_code_type_t>(-1);
+        REQUIRE(invoke_protocol(EBPF_OPERATION_LOAD_CODE, load_code_request) == EBPF_INVALID_ARGUMENT);
+        load_code_request.code_type = EBPF_CODE_JIT;
+    }
+
+    // HVCI can only be changed at init time.
+    _ebpf_platform_code_integrity_enabled = true;
+    {
+        NEGATIVE_TEST_PROLOG();
+
+        ebpf_operation_load_code_request_t load_code_request{
+            {sizeof(ebpf_operation_load_code_request_t), EBPF_OPERATION_LOAD_CODE},
+            program_handles[0],
+            EBPF_CODE_JIT,
+            static_cast<uint8_t>('0xcc')};
+
+        // HVCI on.
+        REQUIRE(invoke_protocol(EBPF_OPERATION_LOAD_CODE, load_code_request) == EBPF_BLOCKED_BY_POLICY);
+    }
+    _ebpf_platform_code_integrity_enabled = false;
+}
+
+TEST_CASE("EBPF_OPERATION_LOAD_NATIVE_MODULE", "[execution_context][negative]")
+{
+    NEGATIVE_TEST_PROLOG();
+    std::vector<uint8_t> request(EBPF_OFFSET_OF(ebpf_operation_load_native_module_request_t, data) + 2);
+    std::vector<uint8_t> reply(sizeof(ebpf_operation_load_native_module_reply_t));
+    auto load_native_module_request = reinterpret_cast<ebpf_operation_load_native_module_request_t*>(request.data());
+    load_native_module_request->module_id = {};
+
+    // Invalid module id.
+    REQUIRE(invoke_protocol(EBPF_OPERATION_LOAD_NATIVE_MODULE, request, reply) == EBPF_OBJECT_NOT_FOUND);
+
+    request.resize(request.size() + 1);
+    REQUIRE(invoke_protocol(EBPF_OPERATION_LOAD_NATIVE_MODULE, request, reply) == EBPF_INVALID_ARGUMENT);
+}
+
+TEST_CASE("EBPF_OPERATION_MAP_FIND_ELEMENT", "[execution_context][negative]")
+{
+    NEGATIVE_TEST_PROLOG();
+    std::vector<uint8_t> request(EBPF_OFFSET_OF(ebpf_operation_map_find_element_request_t, key));
+    std::vector<uint8_t> reply(EBPF_OFFSET_OF(ebpf_operation_map_find_element_reply_t, value));
+    auto map_find_element_request = reinterpret_cast<ebpf_operation_map_find_element_request_t*>(request.data());
+    map_find_element_request->handle = program_handles[0];
+
+    // Invalid handle.
+    REQUIRE(invoke_protocol(EBPF_OPERATION_MAP_FIND_ELEMENT, request, reply) == EBPF_INVALID_OBJECT);
+
+    map_find_element_request->handle = map_handles["BPF_MAP_TYPE_HASH"];
+
+    // Invalid key_size.
+    REQUIRE(invoke_protocol(EBPF_OPERATION_MAP_FIND_ELEMENT, request, reply) == EBPF_INVALID_ARGUMENT);
+
+    request.resize(request.size() + 4);
+    // Invalid value_size.
+    REQUIRE(invoke_protocol(EBPF_OPERATION_MAP_FIND_ELEMENT, request, reply) == EBPF_INVALID_ARGUMENT);
+}
+
+TEST_CASE("EBPF_OPERATION_MAP_UPDATE_ELEMENT", "[execution_context][negative]")
+{
+    NEGATIVE_TEST_PROLOG();
+    std::vector<uint8_t> request(EBPF_OFFSET_OF(ebpf_operation_map_update_element_request_t, data));
+    auto map_update_element_request = reinterpret_cast<ebpf_operation_map_update_element_request_t*>(request.data());
+    map_update_element_request->handle = program_handles[0];
+
+    // Invalid handle.
+    REQUIRE(invoke_protocol(EBPF_OPERATION_MAP_UPDATE_ELEMENT, request) == EBPF_INVALID_OBJECT);
+
+    map_update_element_request->handle = map_handles["BPF_MAP_TYPE_HASH"];
+
+    // Invalid key_size.
+    REQUIRE(invoke_protocol(EBPF_OPERATION_MAP_UPDATE_ELEMENT, request) == EBPF_ARITHMETIC_OVERFLOW);
+
+    request.resize(request.size() + 4);
+
+    // Invalid value_size.
+    REQUIRE(invoke_protocol(EBPF_OPERATION_MAP_UPDATE_ELEMENT, request) == EBPF_INVALID_ARGUMENT);
+}
+
+TEST_CASE("EBPF_OPERATION_MAP_UPDATE_ELEMENT_WITH_HANDLE", "[execution_context][negative]")
+{
+    NEGATIVE_TEST_PROLOG();
+    std::vector<uint8_t> request(EBPF_OFFSET_OF(ebpf_operation_map_update_element_with_handle_request_t, key));
+    auto map_update_element_with_handle_request =
+        reinterpret_cast<ebpf_operation_map_update_element_with_handle_request_t*>(request.data());
+    map_update_element_with_handle_request->map_handle = program_handles[0];
+
+    // Invalid handle.
+    REQUIRE(invoke_protocol(EBPF_OPERATION_MAP_UPDATE_ELEMENT_WITH_HANDLE, request) == EBPF_INVALID_OBJECT);
+
+    map_update_element_with_handle_request->map_handle = map_handles["BPF_MAP_TYPE_HASH_OF_MAPS"];
+
+    // Invalid key_size.
+    REQUIRE(invoke_protocol(EBPF_OPERATION_MAP_UPDATE_ELEMENT_WITH_HANDLE, request) == EBPF_INVALID_ARGUMENT);
+
+    request.resize(request.size() + 4);
+    map_update_element_with_handle_request =
+        reinterpret_cast<ebpf_operation_map_update_element_with_handle_request_t*>(request.data());
+    map_update_element_with_handle_request->value_handle = program_handles[0];
+
+    // Invalid value handle.
+    REQUIRE(invoke_protocol(EBPF_OPERATION_MAP_UPDATE_ELEMENT_WITH_HANDLE, request) == EBPF_INVALID_OBJECT);
+}
+
+TEST_CASE("EBPF_OPERATION_MAP_DELETE_ELEMENT", "[execution_context][negative]")
+{
+    NEGATIVE_TEST_PROLOG();
+    std::vector<uint8_t> request(EBPF_OFFSET_OF(ebpf_operation_map_delete_element_request_t, key));
+    auto map_delete_element_request = reinterpret_cast<ebpf_operation_map_delete_element_request_t*>(request.data());
+    map_delete_element_request->handle = program_handles[0];
+
+    // Invalid handle.
+    REQUIRE(invoke_protocol(EBPF_OPERATION_MAP_DELETE_ELEMENT, request) == EBPF_INVALID_OBJECT);
+
+    map_delete_element_request->handle = map_handles["BPF_MAP_TYPE_HASH"];
+
+    // Invalid key_size.
+    REQUIRE(invoke_protocol(EBPF_OPERATION_MAP_DELETE_ELEMENT, request) == EBPF_INVALID_ARGUMENT);
+}
+
+TEST_CASE("EBPF_OPERATION_MAP_GET_NEXT_KEY", "[execution_context][negative]")
+{
+    NEGATIVE_TEST_PROLOG();
+    std::vector<uint8_t> request(EBPF_OFFSET_OF(ebpf_operation_map_get_next_key_request_t, previous_key));
+    std::vector<uint8_t> reply(EBPF_OFFSET_OF(ebpf_operation_map_get_next_key_reply_t, next_key));
+    auto map_get_next_key_request = reinterpret_cast<ebpf_operation_map_get_next_key_request_t*>(request.data());
+    map_get_next_key_request->handle = program_handles[0];
+
+    // Invalid handle.
+    REQUIRE(invoke_protocol(EBPF_OPERATION_MAP_GET_NEXT_KEY, request, reply) == EBPF_INVALID_OBJECT);
+
+    map_get_next_key_request->handle = map_handles["BPF_MAP_TYPE_HASH"];
+
+    request.resize(request.size() + 3);
+
+    // Invalid previous_key.
+    REQUIRE(invoke_protocol(EBPF_OPERATION_MAP_GET_NEXT_KEY, request, reply) == EBPF_INVALID_ARGUMENT);
+
+    request.resize(EBPF_OFFSET_OF(ebpf_operation_map_get_next_key_request_t, previous_key) + 4);
+
+    // Invalid next_key.
+    REQUIRE(invoke_protocol(EBPF_OPERATION_MAP_GET_NEXT_KEY, request, reply) == EBPF_INVALID_ARGUMENT);
+}
+
+TEST_CASE("EBPF_OPERATION_QUERY_PROGRAM_INFO", "[execution_context][negative]")
+{
+    NEGATIVE_TEST_PROLOG();
+    std::vector<uint8_t> reply(EBPF_OFFSET_OF(_ebpf_operation_query_program_info_reply, data));
+    ebpf_operation_query_program_info_request_t query_program_info_request;
+
+    query_program_info_request.handle = map_handles.begin()->second;
+
+    // Invalid handle.
+    REQUIRE(
+        invoke_protocol(EBPF_OPERATION_QUERY_PROGRAM_INFO, query_program_info_request, reply) == EBPF_INVALID_OBJECT);
+
+    query_program_info_request.handle = program_handles[0];
+
+    // Reply too small.
+    REQUIRE(
+        invoke_protocol(EBPF_OPERATION_QUERY_PROGRAM_INFO, query_program_info_request, reply) == EBPF_INVALID_ARGUMENT);
+}
+
+TEST_CASE("EBPF_OPERATION_UPDATE_PINNING", "[execution_context][negative]")
+{
+    NEGATIVE_TEST_PROLOG();
+    std::vector<uint8_t> request(EBPF_OFFSET_OF(ebpf_operation_update_pinning_request_t, path));
+    auto update_pinning_request = reinterpret_cast<ebpf_operation_update_pinning_request_t*>(request.data());
+    update_pinning_request->handle = ebpf_handle_invalid;
+
+    // Zero length path.
+    REQUIRE(invoke_protocol(EBPF_OPERATION_UPDATE_PINNING, request) == EBPF_INVALID_ARGUMENT);
+
+    request.resize(request.size() + 4);
+
+    // Invalid handle.
+    update_pinning_request = reinterpret_cast<ebpf_operation_update_pinning_request_t*>(request.data());
+    update_pinning_request->handle = ebpf_handle_invalid - 1;
+    REQUIRE(invoke_protocol(EBPF_OPERATION_UPDATE_PINNING, request) == EBPF_INVALID_OBJECT);
+}
+
+TEST_CASE("EBPF_OPERATION_GET_PINNED_OBJECT", "[eXecution_context][negative]")
+{
+    NEGATIVE_TEST_PROLOG();
+    std::vector<uint8_t> request(EBPF_OFFSET_OF(ebpf_operation_get_pinned_object_request_t, path));
+    std::vector<uint8_t> reply(sizeof(ebpf_operation_get_pinned_object_reply_t));
+
+    // Zero length path.
+    REQUIRE(invoke_protocol(EBPF_OPERATION_GET_PINNED_OBJECT, request, reply) == EBPF_INVALID_ARGUMENT);
+}
+
+TEST_CASE("EBPF_OPERATION_LINK_PROGRAM", "[execution_context][negative]")
+{
+    NEGATIVE_TEST_PROLOG();
+    std::vector<uint8_t> request(EBPF_OFFSET_OF(ebpf_operation_link_program_request_t, data));
+    auto link_program_request = reinterpret_cast<ebpf_operation_link_program_request_t*>(request.data());
+    ebpf_operation_link_program_reply_t reply;
+
+    link_program_request->program_handle = map_handles.begin()->second;
+    // Wrong handle type.
+    REQUIRE(invoke_protocol(EBPF_OPERATION_LINK_PROGRAM, request, reply) == EBPF_INVALID_OBJECT);
+
+    // No provider.
+    link_program_request->program_handle = program_handles[0];
+    REQUIRE(invoke_protocol(EBPF_OPERATION_LINK_PROGRAM, request, reply) == EBPF_INVALID_ARGUMENT);
+}
+
+TEST_CASE("EBPF_OPERATION_GET_EC_FUNCTION", "[execution_context][negative]")
+{
+    NEGATIVE_TEST_PROLOG();
+    ebpf_operation_get_ec_function_request_t request;
+    ebpf_operation_get_ec_function_reply_t reply;
+
+    request.function = static_cast<ebpf_ec_function_t>(EBPF_EC_FUNCTION_LOG + 1);
+    // Wrong EC function.
+    REQUIRE(invoke_protocol(EBPF_OPERATION_GET_EC_FUNCTION, request, reply) == EBPF_INVALID_ARGUMENT);
+}
+
+TEST_CASE("EBPF_OPERATION_GET_PROGRAM_INFO", "[execution_context][negative]")
+{
+    NEGATIVE_TEST_PROLOG();
+    ebpf_operation_get_program_info_request_t request;
+    std::vector<uint8_t> reply(EBPF_OFFSET_OF(ebpf_operation_get_program_info_reply_t, data));
+
+    request.program_handle = map_handles.begin()->second;
+    // Invalid object type.
+    REQUIRE(invoke_protocol(EBPF_OPERATION_GET_PROGRAM_INFO, request, reply) == EBPF_INVALID_OBJECT);
+
+    // Invalid program type.
+    request.program_handle = ebpf_handle_invalid;
+    REQUIRE(invoke_protocol(EBPF_OPERATION_GET_PROGRAM_INFO, request, reply) == EBPF_INVALID_ARGUMENT);
+
+    // Invalid handle and type.
+    request.program_handle = ebpf_handle_invalid;
+    REQUIRE(invoke_protocol(EBPF_OPERATION_GET_PROGRAM_INFO, request, reply) == EBPF_INVALID_ARGUMENT);
+
+    // Reply too small.
+    request.program_handle = program_handles[0];
+    REQUIRE(invoke_protocol(EBPF_OPERATION_GET_PROGRAM_INFO, request, reply) == EBPF_INSUFFICIENT_BUFFER);
+}
+
+TEST_CASE("EBPF_OPERATION_GET_PINNED_MAP_INFO", "[execution_context][negative]")
+{
+    NEGATIVE_TEST_PROLOG();
+    ebpf_operation_get_pinned_map_info_request_t request;
+    std::vector<uint8_t> reply(EBPF_OFFSET_OF(ebpf_operation_get_pinned_map_info_reply_t, data));
+
+    // No pinned maps.
+    REQUIRE(invoke_protocol(EBPF_OPERATION_GET_PINNED_MAP_INFO, request, reply) == EBPF_SUCCESS);
+}
+
+TEST_CASE("EBPF_OPERATION_GET_OBJECT_INFO", "[execution_context][negative]")
+{
+    NEGATIVE_TEST_PROLOG();
+    ebpf_operation_get_object_info_request_t request;
+    std::vector<uint8_t> reply(EBPF_OFFSET_OF(ebpf_operation_get_object_info_reply_t, info));
+
+    request.handle = ebpf_handle_invalid - 1;
+    REQUIRE(invoke_protocol(EBPF_OPERATION_GET_OBJECT_INFO, request, reply) == EBPF_INVALID_OBJECT);
+}
+
+TEST_CASE("EBPF_OPERATION_RING_BUFFER_MAP_QUERY_BUFFER", "[execution_context][negative]")
+{
+    NEGATIVE_TEST_PROLOG();
+    ebpf_operation_ring_buffer_map_query_buffer_request_t request;
+    ebpf_operation_ring_buffer_map_query_buffer_reply_t reply;
+
+    request.map_handle = ebpf_handle_invalid - 1;
+    REQUIRE(invoke_protocol(EBPF_OPERATION_RING_BUFFER_MAP_QUERY_BUFFER, request, reply) == EBPF_INVALID_OBJECT);
+
+    request.map_handle = map_handles.begin()->second;
+    REQUIRE(invoke_protocol(EBPF_OPERATION_RING_BUFFER_MAP_QUERY_BUFFER, request, reply) == EBPF_INVALID_ARGUMENT);
+}
+
+TEST_CASE("EBPF_OPERATION_RING_BUFFER_MAP_ASYNC_QUERY", "[execution_context][negative]")
+{
+    NEGATIVE_TEST_PROLOG();
+    ebpf_operation_ring_buffer_map_async_query_request_t request;
+    ebpf_operation_ring_buffer_map_async_query_reply_t reply;
+    int async = 1;
+
+    request.map_handle = ebpf_handle_invalid - 1;
+    REQUIRE(invoke_protocol(EBPF_OPERATION_RING_BUFFER_MAP_ASYNC_QUERY, request, reply, &async) == EBPF_INVALID_OBJECT);
+
+    request.map_handle = map_handles["BPF_MAP_TYPE_HASH"];
+    REQUIRE(
+        invoke_protocol(EBPF_OPERATION_RING_BUFFER_MAP_ASYNC_QUERY, request, reply, &async) == EBPF_INVALID_ARGUMENT);
+}
+
+// EBPF_OPERATION_LOAD_NATIVE_MODULE
+// EBPF_OPERATION_LOAD_NATIVE_PROGRAMS

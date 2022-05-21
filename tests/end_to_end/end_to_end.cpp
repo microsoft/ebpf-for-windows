@@ -1510,7 +1510,13 @@ TEST_CASE("printk", "[end_to_end]")
                                   "Hello, world\n"
                                   "PID: " +
                                   std::to_string(ctx.process_id) +
-                                  "\n"
+                                  " using %u\n"
+                                  "PID: " +
+                                  std::to_string(ctx.process_id) +
+                                  " using %lu\n"
+                                  "PID: " +
+                                  std::to_string(ctx.process_id) +
+                                  " using %llu\n"
                                   "PID: " +
                                   std::to_string(ctx.process_id) +
                                   " PROTO: 2\n"
@@ -2190,4 +2196,3 @@ TEST_CASE("load_native_program_invalid4", "[end-to-end]")
     _load_invalid_program("empty_um.dll", EBPF_EXECUTION_NATIVE, EBPF_INVALID_OBJECT);
 }
 #endif
-

@@ -424,12 +424,13 @@ _update_map_element(
     EBPF_LOG_ENTRY();
     ebpf_result_t result;
     ebpf_protocol_buffer_t request_buffer;
-    epf_operation_map_update_element_request_t* request;
+    ebpf_operation_map_update_element_request_t* request;
     ebpf_assert(value);
     ebpf_assert(key || !key_size);
 
     try {
-        request_buffer.resize(EBPF_OFFSET_OF(epf_operation_map_update_element_request_t, data) + key_size + value_size);
+        request_buffer.resize(
+            EBPF_OFFSET_OF(ebpf_operation_map_update_element_request_t, data) + key_size + value_size);
         request = reinterpret_cast<_ebpf_operation_map_update_element_request*>(request_buffer.data());
 
         request->header.length = static_cast<uint16_t>(request_buffer.size());
@@ -857,12 +858,12 @@ ebpf_object_get(_In_z_ const char* path)
 {
     EBPF_LOG_ENTRY();
     size_t path_length = strlen(path);
-    ebpf_protocol_buffer_t request_buffer(offsetof(ebpf_operation_get_pinning_request_t, path) + path_length);
-    auto request = reinterpret_cast<ebpf_operation_get_pinning_request_t*>(request_buffer.data());
-    ebpf_operation_get_map_pinning_reply_t reply;
+    ebpf_protocol_buffer_t request_buffer(offsetof(ebpf_operation_get_pinned_object_request_t, path) + path_length);
+    auto request = reinterpret_cast<ebpf_operation_get_pinned_object_request_t*>(request_buffer.data());
+    ebpf_operation_get_pinned_object_reply_t reply;
     ebpf_assert(path);
 
-    request->header.id = ebpf_operation_id_t::EBPF_OPERATION_GET_PINNING;
+    request->header.id = ebpf_operation_id_t::EBPF_OPERATION_GET_PINNED_OBJECT;
     request->header.length = static_cast<uint16_t>(request_buffer.size());
     std::copy(path, path + path_length, request->path);
     auto result = invoke_ioctl(request_buffer, reply);
@@ -870,7 +871,7 @@ ebpf_object_get(_In_z_ const char* path)
         EBPF_RETURN_FD(ebpf_fd_invalid);
     }
 
-    ebpf_assert(reply.header.id == ebpf_operation_id_t::EBPF_OPERATION_GET_PINNING);
+    ebpf_assert(reply.header.id == ebpf_operation_id_t::EBPF_OPERATION_GET_PINNED_OBJECT);
 
     ebpf_handle_t handle = reply.handle;
     fd_t fd = _create_file_descriptor_for_handle(handle);
@@ -1156,10 +1157,10 @@ ebpf_api_get_pinned_map_info(
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
-    ebpf_operation_get_map_info_request_t request = {
-        sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_GET_MAP_INFO, ebpf_handle_invalid};
+    ebpf_operation_get_pinned_map_info_request_t request = {
+        sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_GET_PINNED_MAP_INFO};
     ebpf_protocol_buffer_t reply_buffer;
-    ebpf_operation_get_map_info_reply_t* reply = nullptr;
+    ebpf_operation_get_pinned_map_info_reply_t* reply = nullptr;
     size_t min_expected_buffer_length = 0;
     size_t serialized_buffer_length = 0;
     uint16_t local_map_count = 0;
@@ -1173,7 +1174,7 @@ ebpf_api_get_pinned_map_info(
     while (attempt_count < IOCTL_MAX_ATTEMPTS) {
         size_t reply_length;
         result = ebpf_safe_size_t_add(
-            EBPF_OFFSET_OF(ebpf_operation_get_map_info_reply_t, data), output_buffer_length, &reply_length);
+            EBPF_OFFSET_OF(ebpf_operation_get_pinned_map_info_reply_t, data), output_buffer_length, &reply_length);
         if (result != EBPF_SUCCESS)
             goto Exit;
 
@@ -1193,8 +1194,8 @@ ebpf_api_get_pinned_map_info(
         if ((result != EBPF_SUCCESS) && (result != EBPF_INSUFFICIENT_BUFFER))
             goto Exit;
 
-        reply = reinterpret_cast<ebpf_operation_get_map_info_reply_t*>(reply_buffer.data());
-        ebpf_assert(reply->header.id == ebpf_operation_id_t::EBPF_OPERATION_GET_MAP_INFO);
+        reply = reinterpret_cast<ebpf_operation_get_pinned_map_info_reply_t*>(reply_buffer.data());
+        ebpf_assert(reply->header.id == ebpf_operation_id_t::EBPF_OPERATION_GET_PINNED_MAP_INFO);
 
         if (result == EBPF_INSUFFICIENT_BUFFER) {
             output_buffer_length = reply->size;
@@ -3000,13 +3001,13 @@ ebpf_get_next_pinned_program_path(
     size_t start_path_length = strlen(start_path);
 
     ebpf_protocol_buffer_t request_buffer(
-        EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_path_request_t, start_path) + start_path_length);
+        EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_program_path_request_t, start_path) + start_path_length);
     ebpf_protocol_buffer_t reply_buffer(
-        EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_path_reply_t, next_path) + EBPF_MAX_PIN_PATH_LENGTH - 1);
-    ebpf_operation_get_next_pinned_path_request_t* request =
-        reinterpret_cast<ebpf_operation_get_next_pinned_path_request_t*>(request_buffer.data());
-    ebpf_operation_get_next_pinned_path_reply_t* reply =
-        reinterpret_cast<ebpf_operation_get_next_pinned_path_reply_t*>(reply_buffer.data());
+        EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_program_path_reply_t, next_path) + EBPF_MAX_PIN_PATH_LENGTH - 1);
+    ebpf_operation_get_next_pinned_program_path_request_t* request =
+        reinterpret_cast<ebpf_operation_get_next_pinned_program_path_request_t*>(request_buffer.data());
+    ebpf_operation_get_next_pinned_program_path_reply_t* reply =
+        reinterpret_cast<ebpf_operation_get_next_pinned_program_path_reply_t*>(reply_buffer.data());
 
     request->header.id = ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_PINNED_PROGRAM_PATH;
     request->header.length = static_cast<uint16_t>(request_buffer.size());
@@ -3021,7 +3022,7 @@ ebpf_get_next_pinned_program_path(
     }
     ebpf_assert(reply->header.id == ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_PINNED_PROGRAM_PATH);
     size_t next_path_length =
-        reply->header.length - EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_path_reply_t, next_path);
+        reply->header.length - EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_program_path_reply_t, next_path);
     memcpy(next_path, reply->next_path, next_path_length);
 
     next_path[next_path_length] = '\0';
