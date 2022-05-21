@@ -169,9 +169,9 @@ TEST_CASE("show sections tail_call_multiple_um.dll", "[netsh][sections]")
         output == "\n"
                   "             Section       Type  # Maps    Size\n"
                   "====================  =========  ======  ======\n"
-                  "          xdp_prog/1        xdp       0     214\n"
+                  "            xdp_prog        xdp       0     413\n"
                   "          xdp_prog/0        xdp       0     413\n"
-                  "            xdp_prog        xdp       0     413\n");
+                  "          xdp_prog/1        xdp       0     214\n");
 }
 
 // Test a .sys file with multiple programs, including ones with long names.
@@ -185,10 +185,10 @@ TEST_CASE("show sections cgroup_sock_addr.sys", "[netsh][sections]")
         output == "\n"
                   "             Section       Type  # Maps    Size\n"
                   "====================  =========  ======  ======\n"
-                  " cgroup/recv_accept6  sock_addr       2     728\n"
-                  " cgroup/recv_accept4  sock_addr       2     594\n"
+                  "     cgroup/connect4  sock_addr       2     594\n"
                   "     cgroup/connect6  sock_addr       2     728\n"
-                  "     cgroup/connect4  sock_addr       2     594\n");
+                  " cgroup/recv_accept4  sock_addr       2     594\n"
+                  " cgroup/recv_accept6  sock_addr       2     728\n");
 }
 
 TEST_CASE("show verification nosuchfile.o", "[netsh][verification]")

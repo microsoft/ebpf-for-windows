@@ -1955,8 +1955,12 @@ _ebpf_pe_add_section(
     }
     memcpy(info->raw_data, buffer->buf, section_header.Misc.VirtualSize);
 
-    info->next = pe_context->infos;
-    pe_context->infos = info;
+    // Append to existing list.
+    ebpf_section_info_t** pnext = &pe_context->infos;
+    while (*pnext) {
+        pnext = &(*pnext)->next;
+    }
+    *pnext = info;
 
     EBPF_LOG_EXIT();
     return 0;
