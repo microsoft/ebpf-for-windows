@@ -18,8 +18,8 @@
 #undef max
 
 #if defined(_DEBUG)
-#pragma comment(lib, "clang_rt.fuzzer_MTd-x86_64.lib")
-#pragma comment(lib, "sancovd.lib")
+#pragma comment(lib, "clang_rt.fuzzer_MDd-x86_64.lib")
+#pragma comment(lib, "libsancov.lib")
 #else
 #pragma comment(lib, "clang_rt.fuzzer_MD-x86_64.lib")
 #pragma comment(lib, "libsancov.lib")

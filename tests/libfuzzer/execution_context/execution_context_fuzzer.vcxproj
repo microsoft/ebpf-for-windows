@@ -61,7 +61,11 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <AdditionalDependencies>mincore.lib;;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(VCToolsInstallDir)lib\$(Platform)</AdditionalLibraryDirectories>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy /y corpus\* $(OutDir)execution_context_fuzzer_corpus\*</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -73,9 +77,10 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>mincore.lib;;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(VCToolsInstallDir)lib\$(Platform)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy corpus\* $(OutDir)execution_context_fuzzer_corpus\*</Command>
+      <Command>xcopy /y corpus\* $(OutDir)execution_context_fuzzer_corpus\*</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
