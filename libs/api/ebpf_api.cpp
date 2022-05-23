@@ -1530,7 +1530,7 @@ _initialize_ebpf_object_native(
     ebpf_assert(object.file_name != nullptr);
     ebpf_assert(object.object_name != nullptr);
 
-    // TODO(issue #951): populate maps at open time
+    // TODO(issue #1140): populate maps at open time
     for (auto& map : object.maps) {
         map->object = &object;
     }
@@ -1608,7 +1608,7 @@ _initialize_ebpf_object_from_native_file(
         program = nullptr;
     }
 
-    // TODO(issue #951): populate object.maps
+    // TODO(issue #1140): populate object.maps
     UNREFERENCED_PARAMETER(pin_root_path);
 
 Exit:
