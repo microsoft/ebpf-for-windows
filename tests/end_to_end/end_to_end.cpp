@@ -905,6 +905,26 @@ TEST_CASE("verify section", "[end_to_end]")
     ebpf_free_string(report);
 }
 
+void
+verify_bad_section(const char* path)
+{
+    _test_helper_end_to_end test_helper;
+    const char* error_message = nullptr;
+    const char* report = nullptr;
+    uint32_t result;
+    program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
+    ebpf_api_verifier_stats_t stats;
+    result = ebpf_api_elf_verify_section_from_file(path, "xdp", false, &report, &error_message, &stats);
+    REQUIRE(result != 0);
+    REQUIRE(report == nullptr);
+    std::string expected_error_message = "error: Can't find section xdp in file " + std::string(path);
+    REQUIRE(strcmp(error_message, expected_error_message.c_str()) == 0);
+    ebpf_free_string(report);
+    ebpf_free_string(error_message);
+}
+TEST_CASE("verify bad1.o", "[end_to_end][fuzzed]") { verify_bad_section(SAMPLE_PATH "bad\\bad1.o"); }
+TEST_CASE("verify bad2.o", "[end_to_end][fuzzed]") { verify_bad_section(SAMPLE_PATH "bad\\bad2.o"); }
+
 static void
 _cgroup_load_test(
     _In_z_ const char* file,

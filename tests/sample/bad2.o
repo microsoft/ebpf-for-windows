@@ -1,0 +1,189 @@
+ELF          ˜                    à$          @     @   a,     U     y      y     =2     #                    ∑      Ö      ∑       ï                                             @        Q                %  4 I?:;  :;   I:;8   I:;  I:;  (   $ >  	I:;  
+ I  I'   I     .@óB:;'I?   :;I  I  ! I7  $ >   +                                `       ?   	             o    ®   q       r      s      t      z    &  {            Ç ≥       "                                               	    
+                       ¨1      S      M                        W                    E              	  Ö                                    	    
+                                           è
+  9  @  E  F  F       
+?   Q      b            `   Z    Å          å   V      \
+ë  ú      U    8L    ˘  N     ˘  O    F  P      Q    ˛  R(    #  S,    ˛  T0 
+˛  	      ‚    ˛         u      J clang version 11.0.1 bindmonitor_ringbuf.c C:\Users\dthal\git\ebpf\ebpf-for-windows\tests\sample process_map type unsigned int BPF_MAP_TYPE_UNSPEC BPF_MAP_TYPE_HASH BPF_MAP_TYPE_ARRAY BPF_MAP_TYPE_PROG_ARRAY BPF_MAP_TYPE_PERCPU_HASH BPF_MAP_TYPE_PERCPU_ARRAY BPF_MAP_TYPE_HASH_OF_MAPS BPF_MAP_TYPE_ARRAY_OF_MARS BPF_MAP_TYPE_LRU_HASH BPF_MAP_TYPE_LPM_TRIE BPF_MAP_TYPE_QUEUE BPF_MAP_TYPE_LRU_PERCPU_HASH BPF_MAP_TYPE_STACK BPF_MAP_TYPE_RINGBUF bpf_map_type ebpf_map_type_t key_size uint32_t value_size max_entries inner_map_idx pinning PIN_NONE PIN_OBJECT_NS PIN_GLOBAL_NS PIN_CUSTOM_NS ebpf_pin_type ebpf_pin_type_t id inner_id _ebpf_map_definition_in_file BIND_PERMIT BIND_DENY BIND_REDIRECT _bind_action BIND_OPERATION_BIND BIND_OPERATION_POST_BIND BIND_OPERATION_UNBIND _bind_operation BPF_FUNC_map_lookup_elem BPF_FUNC_map_update_elem BPF_FUNC_map_delete_elem BPF_FUNC_map_lookup_and_delete_elem BPF_FUNC_tail_call BPF_FUNC_get_prandom_u32 BPF_FUNC_ktime_get_boot_ns BPF_FUNC_get_smp_processor_id BPF_FUNC_ktime_get_ns BPF_FUNC_csum_diff BPF_FUNC_ringbuf_output BPF_FUNC_trace_printk2 BPF_FUNC_trace_printk3 BPF_FUNC_trace_printk4 BPF_FUNC_trace_printk5 BPF_FUNC_map_push_elem BPF_FUNC_map_pop_elem BPF_FUNC_map_peek_elem BPF_FUNC_get_current_pid_tgid int long unsigned int uint64_t bpf_ringbuf_output_t bind_monitor bind_action_t ctx app_id_start unsigned char uint8_t app_id_end process_id socket_address __ARRAY_SIZE_TYPE__ socket_address_length operation bind_operation_t protocol _bind_md bind_md_t üÎ        ‘  ‘  ≈                          8             !      @   ,      Ä   7   	   ¿   F      @  \      `  f      Ä            o         w            Ö         é         @                 
+      †             ¥         ≈        ’       È                                 *       7      C     M     [       è        ¨         ±         ∫     @   ≈     `   —     Ä   ﬂ     †   Á     ¿   Í     ‡   Û                     $     6     I     a     z     î     Æ     …     ﬂ  	   ı  
+        %     8     M        V            c        s       Å      ä     ò     ¶     ¥           ¿                    bind_md_t _bind_md app_id_start app_id_end process_id socket_address socket_address_length operation protocol uint8_t unsigned char uint64_t long unsigned int __ARRAY_SIZE_TYPE__ bind_operation_t _bind_operation BIND_OPERATION_BIND BIND_OPERATION_POST_BIND BIND_OPERATION_UNBIND ctx bind_action_t _bind_action BIND_PERMIT BIND_DENY BIND_REDIRECT bind_monitor bind C:\Users\dthal\git\ebpf\ebpf-for-windows\tests\sample/bindmonitor_ringbuf.c     switch (ctx->operation) {         if (ctx->app_id_end > ctx->app_id_start)             (void)bpf_ringbuf_output(&process_map, ctx->app_id_start, ctx->app_id_end - ctx->app_id_start, 0);     return BIND_PERMIT; _ebpf_map_definition_in_file type key_size value_size max_entries inner_map_idx pinning id inner_id ebpf_map_type_t bpf_map_type BPF_MAP_TYPE_UNSPEC BPF_MAP_TYPE_HASH BPF_MAP_TYPE_ARRAY BPF_MAP_TYPE_PROG_ARRAY BPF_MAP_TYPE_PERCPU_HASH BPF_MAP_TYPE_PERCPU_ARRAY BPF_MAP_TYPE_HASH_OF_MAPS BPF_MAP_TYPE_ARRAY_OF_MAPS BPF_MAP_TYPE_LRU_HASH BPF_MAP_TYPE_LPM_TRIE BPF_MAP_TYPE_QUEUE BPF_MAP_TYPE_LRU_PERCPU_HASH BPF_MAP_TYPE_STACK BPF_MAP_TYPE_RINGBUF uint32_t unsigned int ebpf_pin_type_t ebpf_pin_type PIN_NONE PIN_OBJECT_NS PIN_GLOBAL_NS PIN_CUSTOM_NS process_map maps üÎ               å   †          h               h         m  π  \     m  π  \     m  ◊  $d     m  ◊  d      m  ◊  d  (   m    Wh  0   m    h  P   m  w  Ä       ˇˇˇˇ  |                `       Î    ±   ˚      ../../include C:\  ebpf_structs.h   Program Files\LLVM\lib\clang\11.0.1\include\stdint.h   bindmonitor_ringbuf.c    ebpf_nethooks.h   bpf_helper_defs.h     	        
+ $"  W! P          T0 
+˛  	      ‚    ˛         u      J clang version 11.0.1 bindmonitor_ringbuf.c C:\Users\dthal\git\ebpf\ebpf-for-windows\tests\sample process_map type unsigned int BPF_MAP_TYPE_UNSPEC BPF_MAP_TYPE_HASH BPF_MAP_TYPE_ARRAY BPF_MAP_TYPE_PROG_ARRAY BPF_MAP_TYPE_PERCPU_HASH BPF_MAP_TYPE_PERCPU_ARRAY BPF_MAP_TYPE_HASH_OF_MAPS BPF_MAP_TYPE_ARRAY_OF_MARS BPF_MAP_TYPE_LRU_HASH BPF_MAP_TYPE_LPM_TRIE BPF_MAP_TYPE_QUEUE BPF_MAP_TYPE_LRU_PERCPU_HASH BPF_MAP_TYPE_STACK BPF_MAP_TYPE_RINGBUF bpf_map_type ebpf_map_type_t key_size uint32_t value_size max_entries inner_map_idx pinning PIN_NONE PIN_OBJECT_NS PIN_GLOBAL_NS PIN_CUSTOM_NS ebpf_pin_type ebpf_pin_type_t id inner_id _ebpf_map_definition_in_file BIND_PERMIT BIND_DENY BIND_REDIRECT _bind_action BIND_OPERATION_BIND BIND_OPERATION_POST_BIND BIND_OPERATION_UNBIND _bind_operation BPF_FUNC_map_lookup_elem BPF_FUNC_map_update_elem BPF_FUNC_map_delete_elem BPF_FUNC_map_lookup_and_delete_elem BPF_FUNC_tail_call BPF_FUNC_get_prandom_u32 BPF_FUNC_ktime_get_boot_ns BPF_FUNC_get_smp_processor_id BPF_FUNC_ktime_get_ns BPF_FUNC_csum_diff BPF_FUNC_ringbuf_output BPF_FUNC_trace_printk2 BPF_FUNC_trace_printk3 BPF_FUNC_trace_printk4 BPF_FUNC_trace_printk5 BPF_FUNC_map_push_elem BPF_FUNC_map_pop_elem BPF_FUNC_map_peek_elem BPF_FUNC_get_current_pid_tgid int long unsigned int uint64_t bpf_ringbuf_output_t bind_monitor bind_action_t ctx app_id_start unsigned char uint8_t app_id_end process_id socket_address __ARRAY_SIZE_TYPE__ socket_address_length operation bind_operation_t protocol _bind_md bind_md_t üÎ        ‘  ‘  ≈                          8             !      @   ,      Ä   7   	   ¿   F      @  \      `  f      Ä            o         w            Ö         é         @                 
+      †             ¥         ≈        ’       È                                 *       7      C     M     [       è        ¨         ±         ∫     @   ≈     `   —     Ä   ﬂ     †   Á     ¿   Í     ‡   Û                     $     6     I     a     z     î     Æ     …     ﬂ  	   ı  
+        %     8     M        V            c        s       Å      ä     ò     ¶     ¥           ¿                    bind_md_t _bind_md app_id_start app_id_end process_id socket_address socket_address_length operation protocol uint8_t unsigned char uint64_t long unsigned int __ARRAY_SIZE_TYPE__ bind_operation_t _bind_operation BIND_OPERATION_BIND BIND_OPERATION_POST_BIND BIND_OPERATION_UNBIND ctx bind_action_t _bind_action BIND_PERMIT BIND_DENY BIND_REDIRECT bind_monitor bind C:\Users\dthal\git\ebpf\ebpf-for-windows\tests\sample/bindmonitor_ringbuf.c     switch (ctx->operation) {         if (ctx->app_id_end > ctx->app_id_start)             (void)bpf_ringbuf_output(&process_map, ctx->app_id_start, ctx->app_id_end - ctx->app_id_start, 0);     return BIND_PERMIT; _ebpf_map_definition_in_file type key_size value_size max_entries inner_map_idx pinning id inner_id ebpf_map_type_t bpf_map_type BPF_MAP_TYPE_UNSPEC BPF_MAP_TYPE_HASH BPF_MAP_TYPE_ARRAY BPF_MAP_TYPE_PROG_ARRAY BPF_MAP_TYPE_PERCPU_HASH BPF_MAP_TYPE_PERCPU_ARRAY BPF_MAP_TYPE_HASH_OF_MAPS BPF_MAP_TYPE_ARRAY_OF_MAPS BPF_MAP_TYPE_LRU_HASH BPF_MAP_TYPE_LPM_TRIE BPF_MAP_TYPE_QUEUE BPF_MAP_TYPE_LRU_PERCPU_HASH BPF_MAP_TYPE_STACK BPF_MAP_TYPE_RINGBUF uint32_t unsigned int ebpf_pin_type_t ebpf_pin_type PIN_NONE PIN_OBJECT_NS PIN_GLOBAL_NS PIN_CUSTOM_NS process_map maps üÎ               å   †          h               h         m  π  \     m  π  \     m  ◊  $d     m  ◊  d      m  ◊  d  (   m    Wh  0   m    h  P   m  w  Ä       ˇˇˇˇ  |                `       Î    ±   ˚      ../../include C:\  ebpf_structs.h   Program Files\LLVM\lib\clang\11.0.1\include\stdint.h   bindmonitor_ringbuf.                û    Òˇ                      
+                     
+ W                    
+ ∏                    
+ Ñ                    
+                       
+                      
+ +                     
+ a                     
+ u                    
+ m                     
+ Ÿ                    
+ Î                    
+ ˆ                    
+                     
+                     
+ i                    
+ l                    
+ …                    
+ º                    
+                      
+ ì                     
+ •                     
+ ∏                     
+ –                     
+ È                     
+                     
+                     
+ 8                    
+ N                    
+ d                    
+ w                    
+ î                    
+ ß                    
+ r                     
+ ‚                    
+ Y                    
+ K                    
+                     
+ !                    
+ /                    
+ =                    
+ ∂                    
+ í                    
+ û                    
+ ®                    
+ …                    
+ √                    
+ ◊                    
+                     
+                     
+ /                    
+ H                    
+ a                    
+ Ö                    
+ ò                    
+ ±                    
+ Ã                    
+ Í                    
+                      
+                     
+ +                    
+ B                    
+ Y                    
+ p                    
+ á                    
+ û                    
+ ¥                    
+ À                    
+                     
+ È                    
+ ˇ                    
+ Ì                    
+                     
+ 8                    
+ *                    
+ €                    
+ “                    
+ <                    
+ _                    
+ j                    
+ u                    
+ ò                    
+ Æ                    
+ I              Õ      P                                                                                                                             2             `       ?                     0          ]          
+   Y          
+             
+             
+   [          
+                W   +       
+   	   7          ]   @       
+   
+   H       
+      T       
+      `       
+      l       
+      x       
+      Ñ       
+      ê       
+      ú       
+      ≠       
+      ∏       
+      ¿       
+      ∆       
+      Ã       
+      “       
+      ÿ       
+      ﬁ       
+      ‰       
+      Í       
+             
+      ˆ       
+      ¸       
+            
+             
+   !         
+   "         
+   #          
+   $   +      
+   %   6      
+   &   >      
+   '   D      
+   (   J      
+   )   P      
+   *   [      
+   +   c      
+   ,   i      
+   -   o      
+   .   z      
+      Ç      
+   0   à      
+   1   é      
+   2   ù      
+   3   £      
+   4   ©      
+   5   Ø      
+   6   µ      
+   7   ª      
+   8   ¡      
+   9   «      
+   :   Õ      
+   ;   ”      
+   <   Ÿ      
+   =   ﬂ      
+   >   Â      
+   ?   Î      
+   @   Ò      
+   A   ˜      
+   B   ˝      
+   C         
+   D   	      
+   E         
+   F   :      
+   G   K      
+   H   R      
+   I   Y         W   g      
+   J   r      
+   X   v      
+   K   Ü      
+   L   ñ      
+   M   ù      
+   N   •      
+   O   ±      
+   P   Ω      
+   Q   …      
+   R   ’      
+   S   ·      
+   T   Ì      
+   /         
+      
+      
+   U         
+      (      
+      ‰          ]   ,           W   @           W   P           W   `           W   p           W   Ä           W   ê           W   †           W   ∞           W          
+   Z             W   ¿          W   \] .debug_abbrev .text .rel.BTF.ext maps .debug_str bind_monitor process_map .rel.debug_info .llvm_addrsig .rel.debug_line .rel.debug_frame .relbind .debug_loc bindmonitor_ringbuf.c .strtab .symtab .rel.BTF LBB0_3                                                                   ¥                      ≤#      ‘                                                   @                                      é                     @       `                              ä   	                   0                                 "                     †                                      ì                      ¿       #                                                    „       ﬁ                              O                      ¡      /                             K   	                   @      †                          '      0                     Â                            »                      ’
+      ±                             ƒ   	                   ‡"                                                       Ü      ¿                                 	                   "      ê                           }                      H      (                              y   	                   Ä#                                  m                      p      Ô                              i   	                   †#                                 [   Lˇo   Ä            ∞#                                   º                      `      –         \                 
