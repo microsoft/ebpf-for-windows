@@ -103,6 +103,7 @@ bpf_load_program_xattr(const struct bpf_load_program_attr* load_attr, char* log_
     fd_t program_fd;
     ebpf_result_t result = ebpf_program_load_bytes(
         program_type,
+        load_attr->name,
         EBPF_EXECUTION_ANY,
         (const uint8_t*)load_attr->insns,
         (uint32_t)byte_code_size,
@@ -137,6 +138,45 @@ bpf_load_program(
     load_attr.kern_version = kern_version;
 
     return bpf_load_program_xattr(&load_attr, log_buf, log_buf_sz);
+}
+
+int
+bpf_prog_load(
+    enum bpf_prog_type prog_type,
+    const char* prog_name,
+    const char* license,
+    const struct bpf_insn* insns,
+    size_t insn_cnt,
+    const struct bpf_prog_load_opts* opts)
+{
+    UNREFERENCED_PARAMETER(license);
+
+    const ebpf_program_type_t* program_type = _get_ebpf_program_type(prog_type);
+    if (program_type == nullptr) {
+        return libbpf_err(-EINVAL);
+    }
+
+    if ((insn_cnt == 0) || (insn_cnt > UINT32_MAX / sizeof(ebpf_inst))) {
+        return libbpf_err(-EINVAL);
+    }
+
+    char* log_buffer = (opts) ? opts->log_buf : nullptr;
+    size_t log_buffer_size = (opts) ? opts->log_size : 0;
+
+    fd_t program_fd;
+    ebpf_result_t result = ebpf_program_load_bytes(
+        program_type,
+        prog_name,
+        EBPF_EXECUTION_ANY,
+        (const uint8_t*)insns,
+        (uint32_t)(insn_cnt * sizeof(ebpf_inst)),
+        log_buffer,
+        log_buffer_size,
+        &program_fd);
+    if (result != EBPF_SUCCESS) {
+        return libbpf_result_err(result);
+    }
+    return program_fd;
 }
 
 int

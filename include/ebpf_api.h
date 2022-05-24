@@ -294,9 +294,10 @@ extern "C"
     ebpf_object_set_execution_type(_In_ struct bpf_object* object, ebpf_execution_type_t execution_type);
 
     /**
-     * @brief Load an eBPF programs from raw instructions.
+     * @brief Load an eBPF program from raw instructions.
      *
      * @param[in] program_type The eBPF program type.
+     * @param[in] program_name The eBPF program name.
      * @param[in] execution_type The execution type to use for this program. If
      *  EBPF_EXECUTION_ANY is specified, execution type will be decided by a
      *  system-wide policy.
@@ -317,6 +318,7 @@ extern "C"
     ebpf_result_t
     ebpf_program_load_bytes(
         _In_ const ebpf_program_type_t* program_type,
+        _In_opt_z_ const char* program_name,
         ebpf_execution_type_t execution_type,
         _In_reads_(byte_code_size) const uint8_t* byte_code,
         uint32_t byte_code_size,
