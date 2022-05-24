@@ -39,15 +39,17 @@ if (!$fileExists) {
 if ($KernelMode) {
     $ProjectFile = "$ProgramName.vcxproj"
     Set-Content -Path $ProjectFile -Value $KernelModeProject
+    $Mode = "Kernel"
 }
 else {
     $ProjectFile = "$ProgramName_um.vcxproj"
     Set-Content -Path $ProjectFile -Value $UserModeProject
+    $Mode = "User"
 }
 
 $AdditionalOptions = If ($SkipVerification) {"--no-verify"} Else {""}
 
-msbuild /p:BinDir="$BinDir\" /p:OutDir="$PWD\" /p:IncludeDir="$IncludeDir" /p:Configuration="$Configuration" /p:Platform="$Platform" /p:ProgramName="$ProgramName" /p:AdditionalOptions="$AdditionalOptions" $ProjectFile
+msbuild /p:BinDir="$BinDir\" /p:IntDir=$ProgramName\$Platform\$Configuration\$Mode\ /p:OutDir="$PWD\" /p:IncludeDir="$IncludeDir" /p:Configuration="$Configuration" /p:Platform="$Platform" /p:ProgramName="$ProgramName" /p:AdditionalOptions="$AdditionalOptions" $ProjectFile
 
 if ($LASTEXITCODE -ne 0) {
     throw "Build failed for $ProgramName.o"

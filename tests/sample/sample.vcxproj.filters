@@ -45,9 +45,6 @@
     <CustomBuild Include="droppacket.c">
       <Filter>Source Files</Filter>
     </CustomBuild>
-    <CustomBuild Include="droppacket_unsafe.c">
-      <Filter>Source Files</Filter>
-    </CustomBuild>
     <CustomBuild Include="tail_call.c">
       <Filter>Source Files</Filter>
     </CustomBuild>
@@ -90,9 +87,6 @@
     <CustomBuild Include="printk.c">
       <Filter>Source Files</Filter>
     </CustomBuild>
-    <CustomBuild Include="printk_unsafe.c">
-      <Filter>Source Files</Filter>
-    </CustomBuild>
     <CustomBuild Include="map.c">
       <Filter>Source Files</Filter>
     </CustomBuild>
@@ -103,6 +97,27 @@
       <Filter>Source Files</Filter>
     </CustomBuild>
     <CustomBuild Include="sockops.c">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="pidtgid.c">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="unsafe\droppacket_unsafe.c">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="unsafe\empty.c">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="unsafe\invalid_helpers.c">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="unsafe\invalid_maps1.c">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="unsafe\invalid_maps2.c">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="unsafe\printk_unsafe.c">
       <Filter>Source Files</Filter>
     </CustomBuild>
   </ItemGroup>

@@ -23,8 +23,6 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup>
-      <ReplaceWildcardsInProjectItems>true</ReplaceWildcardsInProjectItems>
-      <ReadOnlyProject>true</ReadOnlyProject>
   </PropertyGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
@@ -75,6 +73,9 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <CustomBuild>
+      <BuildInParallel>true</BuildInParallel>
+    </CustomBuild>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -87,13 +88,291 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <CustomBuild>
+      <BuildInParallel>true</BuildInParallel>
+    </CustomBuild>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="ebpf.h" />
   </ItemGroup>
   <!-- Build BPF programs that pass verification and build native images for them. -->
   <ItemGroup Condition="'$(Analysis)'==''">
-    <CustomBuild Include="*.c">
+    <CustomBuild Include="bindmonitor.c">
+      <FileType>CppCode</FileType>
+      <Command>
+        clang $(ClangFlags) -I../xdp -I../socket -I./ext/inc -c %(Filename).c -o $(OutputPath)%(Filename).o
+        pushd $(OutDir)
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $true
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $false
+        popd
+      </Command>
+      <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="bindmonitor_ringbuf.c">
+      <FileType>CppCode</FileType>
+      <Command>
+        clang $(ClangFlags) -I../xdp -I../socket -I./ext/inc -c %(Filename).c -o $(OutputPath)%(Filename).o
+        pushd $(OutDir)
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $true
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $false
+        popd
+      </Command>
+      <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="bindmonitor_tailcall.c">
+      <FileType>CppCode</FileType>
+      <Command>
+        clang $(ClangFlags) -I../xdp -I../socket -I./ext/inc -c %(Filename).c -o $(OutputPath)%(Filename).o
+        pushd $(OutDir)
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $true
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $false
+        popd
+      </Command>
+      <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="bpf.c">
+      <FileType>CppCode</FileType>
+      <Command>
+        clang $(ClangFlags) -I../xdp -I../socket -I./ext/inc -c %(Filename).c -o $(OutputPath)%(Filename).o
+        pushd $(OutDir)
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $true
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $false
+        popd
+      </Command>
+      <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="bpf_call.c">
+      <FileType>CppCode</FileType>
+      <Command>
+        clang $(ClangFlags) -I../xdp -I../socket -I./ext/inc -c %(Filename).c -o $(OutputPath)%(Filename).o
+        pushd $(OutDir)
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $true
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $false
+        popd
+      </Command>
+      <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="cgroup_sock_addr.c">
+      <FileType>CppCode</FileType>
+      <Command>
+        clang $(ClangFlags) -I../xdp -I../socket -I./ext/inc -c %(Filename).c -o $(OutputPath)%(Filename).o
+        pushd $(OutDir)
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $true
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $false
+        popd
+      </Command>
+      <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="decap_permit_packet.c">
+      <FileType>CppCode</FileType>
+      <Command>
+        clang $(ClangFlags) -I../xdp -I../socket -I./ext/inc -c %(Filename).c -o $(OutputPath)%(Filename).o
+        pushd $(OutDir)
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $true
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $false
+        popd
+      </Command>
+      <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="divide_by_zero.c">
+      <FileType>CppCode</FileType>
+      <Command>
+        clang $(ClangFlags) -I../xdp -I../socket -I./ext/inc -c %(Filename).c -o $(OutputPath)%(Filename).o
+        pushd $(OutDir)
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $true
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $false
+        popd
+      </Command>
+      <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="droppacket.c">
+      <FileType>CppCode</FileType>
+      <Command>
+        clang $(ClangFlags) -I../xdp -I../socket -I./ext/inc -c %(Filename).c -o $(OutputPath)%(Filename).o
+        pushd $(OutDir)
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $true
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $false
+        popd
+      </Command>
+      <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="encap_reflect_packet.c">
+      <FileType>CppCode</FileType>
+      <Command>
+        clang $(ClangFlags) -I../xdp -I../socket -I./ext/inc -c %(Filename).c -o $(OutputPath)%(Filename).o
+        pushd $(OutDir)
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $true
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $false
+        popd
+      </Command>
+      <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="map.c">
+      <FileType>CppCode</FileType>
+      <Command>
+        clang $(ClangFlags) -I../xdp -I../socket -I./ext/inc -c %(Filename).c -o $(OutputPath)%(Filename).o
+        pushd $(OutDir)
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $true
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $false
+        popd
+      </Command>
+      <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="map_in_map.c">
+      <FileType>CppCode</FileType>
+      <Command>
+        clang $(ClangFlags) -I../xdp -I../socket -I./ext/inc -c %(Filename).c -o $(OutputPath)%(Filename).o
+        pushd $(OutDir)
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $true
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $false
+        popd
+      </Command>
+      <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="map_in_map_v2.c">
+      <FileType>CppCode</FileType>
+      <Command>
+        clang $(ClangFlags) -I../xdp -I../socket -I./ext/inc -c %(Filename).c -o $(OutputPath)%(Filename).o
+        pushd $(OutDir)
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $true
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $false
+        popd
+      </Command>
+      <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="map_reuse.c">
+      <FileType>CppCode</FileType>
+      <Command>
+        clang $(ClangFlags) -I../xdp -I../socket -I./ext/inc -c %(Filename).c -o $(OutputPath)%(Filename).o
+        pushd $(OutDir)
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $true
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $false
+        popd
+      </Command>
+      <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="map_reuse_2.c">
+      <FileType>CppCode</FileType>
+      <Command>
+        clang $(ClangFlags) -I../xdp -I../socket -I./ext/inc -c %(Filename).c -o $(OutputPath)%(Filename).o
+        pushd $(OutDir)
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $true
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $false
+        popd
+      </Command>
+      <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="pidtgid.c">
+      <FileType>CppCode</FileType>
+      <Command>
+        clang $(ClangFlags) -I../xdp -I../socket -I./ext/inc -c %(Filename).c -o $(OutputPath)%(Filename).o
+        pushd $(OutDir)
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $true
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $false
+        popd
+      </Command>
+      <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="printk.c">
+      <FileType>CppCode</FileType>
+      <Command>
+        clang $(ClangFlags) -I../xdp -I../socket -I./ext/inc -c %(Filename).c -o $(OutputPath)%(Filename).o
+        pushd $(OutDir)
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $true
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $false
+        popd
+      </Command>
+      <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="printk_legacy.c">
+      <FileType>CppCode</FileType>
+      <Command>
+        clang $(ClangFlags) -I../xdp -I../socket -I./ext/inc -c %(Filename).c -o $(OutputPath)%(Filename).o
+        pushd $(OutDir)
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $true
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $false
+        popd
+      </Command>
+      <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="reflect_packet.c">
+      <FileType>CppCode</FileType>
+      <Command>
+        clang $(ClangFlags) -I../xdp -I../socket -I./ext/inc -c %(Filename).c -o $(OutputPath)%(Filename).o
+        pushd $(OutDir)
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $true
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $false
+        popd
+      </Command>
+      <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="sockops.c">
+      <FileType>CppCode</FileType>
+      <Command>
+        clang $(ClangFlags) -I../xdp -I../socket -I./ext/inc -c %(Filename).c -o $(OutputPath)%(Filename).o
+        pushd $(OutDir)
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $true
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $false
+        popd
+      </Command>
+      <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="tail_call.c">
+      <FileType>CppCode</FileType>
+      <Command>
+        clang $(ClangFlags) -I../xdp -I../socket -I./ext/inc -c %(Filename).c -o $(OutputPath)%(Filename).o
+        pushd $(OutDir)
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $true
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $false
+        popd
+      </Command>
+      <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="tail_call_bad.c">
+      <FileType>CppCode</FileType>
+      <Command>
+        clang $(ClangFlags) -I../xdp -I../socket -I./ext/inc -c %(Filename).c -o $(OutputPath)%(Filename).o
+        pushd $(OutDir)
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $true
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $false
+        popd
+      </Command>
+      <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="tail_call_map.c">
+      <FileType>CppCode</FileType>
+      <Command>
+        clang $(ClangFlags) -I../xdp -I../socket -I./ext/inc -c %(Filename).c -o $(OutputPath)%(Filename).o
+        pushd $(OutDir)
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $true
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $false
+        popd
+      </Command>
+      <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="tail_call_multiple.c">
+      <FileType>CppCode</FileType>
+      <Command>
+        clang $(ClangFlags) -I../xdp -I../socket -I./ext/inc -c %(Filename).c -o $(OutputPath)%(Filename).o
+        pushd $(OutDir)
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $true
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $false
+        popd
+      </Command>
+      <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="test_sample_ebpf.c">
+      <FileType>CppCode</FileType>
+      <Command>
+        clang $(ClangFlags) -I../xdp -I../socket -I./ext/inc -c %(Filename).c -o $(OutputPath)%(Filename).o
+        pushd $(OutDir)
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $true
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $false
+        popd
+      </Command>
+      <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="test_utility_helpers.c">
       <FileType>CppCode</FileType>
       <Command>
         clang $(ClangFlags) -I../xdp -I../socket -I./ext/inc -c %(Filename).c -o $(OutputPath)%(Filename).o
@@ -107,9 +386,63 @@
   </ItemGroup>
   <!-- For BPF programs that fail verification, build native images without verification only for Debug build. -->
   <ItemGroup Condition="'$(Configuration)'=='Debug'">
-    <CustomBuild Include="unsafe\*.c">
+    <CustomBuild Include="unsafe\droppacket_unsafe.c">
       <FileType>CppCode</FileType>
-      <Command>clang $(ClangFlags) -c %(Filename).c -o $(OutputPath)%(Filename).o</Command>
+      <Command>
+        clang $(ClangFlags) -I../xdp -I../socket -I./ext/inc -c unsafe\%(Filename).c -o $(OutputPath)%(Filename).o
+        pushd $(OutDir)
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $true -SkipVerification $true
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $false -SkipVerification $true
+        popd
+      </Command>
+      <Outputs>$(OutputPath)%(Filename).o</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="unsafe\empty.c">
+      <FileType>CppCode</FileType>
+      <Command>
+        clang $(ClangFlags) -I../xdp -I../socket -I./ext/inc -c unsafe\%(Filename).c -o $(OutputPath)%(Filename).o
+        pushd $(OutDir)
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $true -SkipVerification $true
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $false -SkipVerification $true
+        popd
+      </Command>
+      <Outputs>$(OutputPath)%(Filename).o</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="unsafe\invalid_helpers.c">
+      <FileType>CppCode</FileType>
+      <Command>
+        clang $(ClangFlags) -I../xdp -I../socket -I./ext/inc -c unsafe\%(Filename).c -o $(OutputPath)%(Filename).o
+        pushd $(OutDir)
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $true -SkipVerification $true
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $false -SkipVerification $true
+        popd
+      </Command>
+      <Outputs>$(OutputPath)%(Filename).o</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="unsafe\invalid_maps1.c">
+      <FileType>CppCode</FileType>
+      <Command>
+        clang $(ClangFlags) -I../xdp -I../socket -I./ext/inc -c unsafe\%(Filename).c -o $(OutputPath)%(Filename).o
+        pushd $(OutDir)
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $true -SkipVerification $true
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $false -SkipVerification $true
+        popd
+      </Command>
+      <Outputs>$(OutputPath)%(Filename).o</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="unsafe\invalid_maps2.c">
+      <FileType>CppCode</FileType>
+      <Command>
+        clang $(ClangFlags) -I../xdp -I../socket -I./ext/inc -c unsafe\%(Filename).c -o $(OutputPath)%(Filename).o
+        pushd $(OutDir)
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $true -SkipVerification $true
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -ProgramName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $false -SkipVerification $true
+        popd
+      </Command>
+      <Outputs>$(OutputPath)%(Filename).o</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="unsafe\printk_unsafe.c">
+      <FileType>CppCode</FileType>
       <Command>
         clang $(ClangFlags) -I../xdp -I../socket -I./ext/inc -c unsafe\%(Filename).c -o $(OutputPath)%(Filename).o
         pushd $(OutDir)
