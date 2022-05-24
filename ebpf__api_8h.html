@@ -153,9 +153,12 @@ Functions</h2></td></tr>
 <tr class="memitem:afa6f86ddbf4799f3e34501e8b9e8bf7e"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#afa6f86ddbf4799f3e34501e8b9e8bf7e">ebpf_api_map_info_free</a> (uint16_t map_count, const <a class="el" href="ebpf__core__structs_8h.html#ae2eecb1943c4783fa58c0ff29439cff9">ebpf_map_info_t</a> *map_info)</td></tr>
 <tr class="memdesc:afa6f86ddbf4799f3e34501e8b9e8bf7e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Helper Function to free array of <a class="el" href="ebpf__core__structs_8h.html#ae2eecb1943c4783fa58c0ff29439cff9">ebpf_map_info_t</a> allocated by <a class="el" href="ebpf__api_8h.html#a9efa5b0bc9c76b830614f120acb73a42">ebpf_api_get_pinned_map_info</a> function.  <a href="ebpf__api_8h.html#afa6f86ddbf4799f3e34501e8b9e8bf7e">More...</a><br /></td></tr>
 <tr class="separator:afa6f86ddbf4799f3e34501e8b9e8bf7e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aaef788607a4a4665866140af5f50e78c"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#aaef788607a4a4665866140af5f50e78c">ebpf_program_load</a> (const char *file_name, const <a class="el" href="ebpf__windows_8h.html#a7392ed9f9037688cd94f7069c523c251">ebpf_program_type_t</a> *program_type, const <a class="el" href="ebpf__windows_8h.html#a3f56868552f991b0f9eb6800d8f9a43c">ebpf_attach_type_t</a> *attach_type, <a class="el" href="ebpf__execution__type_8h.html#af58bcede64968a095964be4e78998658">ebpf_execution_type_t</a> execution_type, struct bpf_object **object, <a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> *program_fd, const char **log_buffer)</td></tr>
-<tr class="memdesc:aaef788607a4a4665866140af5f50e78c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Load eBPF programs from an ELF file based on default load attributes. This API does the following:  <a href="ebpf__api_8h.html#aaef788607a4a4665866140af5f50e78c">More...</a><br /></td></tr>
-<tr class="separator:aaef788607a4a4665866140af5f50e78c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6401c9518f548fc03099b1e75c56c87f"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__execution__type_8h.html#af58bcede64968a095964be4e78998658">ebpf_execution_type_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a6401c9518f548fc03099b1e75c56c87f">ebpf_object_get_execution_type</a> (struct bpf_object *object)</td></tr>
+<tr class="memdesc:a6401c9518f548fc03099b1e75c56c87f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the execution type for an eBPF object file.  <a href="ebpf__api_8h.html#a6401c9518f548fc03099b1e75c56c87f">More...</a><br /></td></tr>
+<tr class="separator:a6401c9518f548fc03099b1e75c56c87f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a61c83517d01deef5131cd9183ee251bc"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a61c83517d01deef5131cd9183ee251bc">ebpf_object_set_execution_type</a> (struct bpf_object *object, <a class="el" href="ebpf__execution__type_8h.html#af58bcede64968a095964be4e78998658">ebpf_execution_type_t</a> execution_type)</td></tr>
+<tr class="memdesc:a61c83517d01deef5131cd9183ee251bc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the execution type for an eBPF object file.  <a href="ebpf__api_8h.html#a61c83517d01deef5131cd9183ee251bc">More...</a><br /></td></tr>
+<tr class="separator:a61c83517d01deef5131cd9183ee251bc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0fe87738c8434930b24fbf28e2c10ffb"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a0fe87738c8434930b24fbf28e2c10ffb">ebpf_program_load_bytes</a> (const <a class="el" href="ebpf__windows_8h.html#a7392ed9f9037688cd94f7069c523c251">ebpf_program_type_t</a> *program_type, <a class="el" href="ebpf__execution__type_8h.html#af58bcede64968a095964be4e78998658">ebpf_execution_type_t</a> execution_type, _In_reads_(byte_code_size) const uint8_t *byte_code, uint32_t byte_code_size, _Out_writes_opt_(log_buf_sz) char *log_buf, size_t log_buf_sz, <a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> *program_fd)</td></tr>
 <tr class="memdesc:a0fe87738c8434930b24fbf28e2c10ffb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Load an eBPF programs from raw instructions.  <a href="ebpf__api_8h.html#a0fe87738c8434930b24fbf28e2c10ffb">More...</a><br /></td></tr>
 <tr class="separator:a0fe87738c8434930b24fbf28e2c10ffb"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -908,7 +911,7 @@ Variables</h2></td></tr>
 </li>
 <li>*<dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramdir">[out]</td><td class="paramname">infos</td><td>On success points to a list of eBPF programs.</td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">infos</td><td>On success points to a list of eBPF programs. The caller is responsible for freeing the list via <a class="el" href="ebpf__api_8h.html#a1c3da23f50b88bb49d5ef0bf9c3e77f6" title="Free memory returned from ebpf_enumerate_sections.">ebpf_free_sections()</a>.</td></tr>
   </table>
   </dd>
 </dl>
@@ -1194,6 +1197,77 @@ Variables</h2></td></tr>
 
 </div>
 </div>
+<a id="a6401c9518f548fc03099b1e75c56c87f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6401c9518f548fc03099b1e75c56c87f">&#9670;&nbsp;</a></span>ebpf_object_get_execution_type()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="ebpf__execution__type_8h.html#af58bcede64968a095964be4e78998658">ebpf_execution_type_t</a> ebpf_object_get_execution_type </td>
+          <td>(</td>
+          <td class="paramtype">struct bpf_object *&#160;</td>
+          <td class="paramname"><em>object</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Get the execution type for an eBPF object file. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">object</td><td>The eBPF object file.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>Execution type. </dd></dl>
+
+</div>
+</div>
+<a id="a61c83517d01deef5131cd9183ee251bc"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a61c83517d01deef5131cd9183ee251bc">&#9670;&nbsp;</a></span>ebpf_object_set_execution_type()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a> ebpf_object_set_execution_type </td>
+          <td>(</td>
+          <td class="paramtype">struct bpf_object *&#160;</td>
+          <td class="paramname"><em>object</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="ebpf__execution__type_8h.html#af58bcede64968a095964be4e78998658">ebpf_execution_type_t</a>&#160;</td>
+          <td class="paramname"><em>execution_type</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Set the execution type for an eBPF object file. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">object</td><td>The eBPF object file. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">execution_type</td><td>Execution type to set.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">EBPF_SUCCESS</td><td>The operation was successful. </td></tr>
+    <tr><td class="paramname">EBPF_INVALID_ARGUMENT</td><td>One or more parameters are incorrect. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
 <a id="abff7c5b1b63aabfc77e14104de4ae3cb"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#abff7c5b1b63aabfc77e14104de4ae3cb">&#9670;&nbsp;</a></span>ebpf_object_unpin()</h2>
 
@@ -1348,95 +1422,6 @@ Variables</h2></td></tr>
 <dl class="retval"><dt>Return values</dt><dd>
   <table class="retval">
     <tr><td class="paramname">EBPF_SUCCESS</td><td>The operation was successful. </td></tr>
-  </table>
-  </dd>
-</dl>
-
-</div>
-</div>
-<a id="aaef788607a4a4665866140af5f50e78c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aaef788607a4a4665866140af5f50e78c">&#9670;&nbsp;</a></span>ebpf_program_load()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname"><a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a> ebpf_program_load </td>
-          <td>(</td>
-          <td class="paramtype">const char *&#160;</td>
-          <td class="paramname"><em>file_name</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">const <a class="el" href="ebpf__windows_8h.html#a7392ed9f9037688cd94f7069c523c251">ebpf_program_type_t</a> *&#160;</td>
-          <td class="paramname"><em>program_type</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">const <a class="el" href="ebpf__windows_8h.html#a3f56868552f991b0f9eb6800d8f9a43c">ebpf_attach_type_t</a> *&#160;</td>
-          <td class="paramname"><em>attach_type</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype"><a class="el" href="ebpf__execution__type_8h.html#af58bcede64968a095964be4e78998658">ebpf_execution_type_t</a>&#160;</td>
-          <td class="paramname"><em>execution_type</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">struct bpf_object **&#160;</td>
-          <td class="paramname"><em>object</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype"><a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> *&#160;</td>
-          <td class="paramname"><em>program_fd</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">const char **&#160;</td>
-          <td class="paramname"><em>log_buffer</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Load eBPF programs from an ELF file based on default load attributes. This API does the following: </p>
-<ol type="1">
-<li>Read the ELF file.</li>
-<li>Create maps.</li>
-<li>Load all programs.</li>
-<li>Return fd to the first program.</li>
-</ol>
-<p>If the caller supplies a program type and/or attach type, that supplied value takes precedence over the derived program/attach type.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">file_name</td><td>When loading from an ELF file, ELF file name with full path. When loading from a native driver, driver file name with full path. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">program_type</td><td>Optionally, the program type to use when loading the eBPF program. If program type is not supplied, it is derived from the section prefix in the ELF file. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">attach_type</td><td>Optionally, the attach type to use for the loaded eBPF program. If attach type is not supplied, it is derived from the section prefix in the ELF file. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">execution_type</td><td>The execution type to use for this program. If EBPF_EXECUTION_ANY is specified, execution type will be decided by a system-wide policy. </td></tr>
-    <tr><td class="paramdir">[out]</td><td class="paramname">object</td><td>Returns pointer to ebpf_object object. The caller is expected to call <a class="el" href="libbpf_8h.html#a473872ff7ab53d1ed593e7abd206f31a" title="Close an eBPF object.">bpf_object__close()</a> at the end. </td></tr>
-    <tr><td class="paramdir">[out]</td><td class="paramname">program_fd</td><td>Returns a file descriptor for the first program. The caller should not call _close() on the fd, but should instead use <a class="el" href="libbpf_8h.html#a473872ff7ab53d1ed593e7abd206f31a" title="Close an eBPF object.">bpf_object__close()</a> to close this (and other) file descriptors. </td></tr>
-    <tr><td class="paramdir">[out]</td><td class="paramname">log_buffer</td><td>Returns a pointer to a null-terminated log buffer. The caller is responsible for freeing the returned log_buffer pointer by calling <a class="el" href="ebpf__api_8h.html#a90cbc93764ecd96f2a84fd659e517851" title="Free memory for a string returned from an eBPF API.">ebpf_free_string()</a>.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="retval"><dt>Return values</dt><dd>
-  <table class="retval">
-    <tr><td class="paramname">EBPF_SUCCESS</td><td>The programs are loaded and maps are created successfully. </td></tr>
-    <tr><td class="paramname">EBPF_INVALID_ARGUMENT</td><td>One or more parameters are incorrect. </td></tr>
-    <tr><td class="paramname">EBPF_NO_MEMORY</td><td>Out of memory. </td></tr>
-    <tr><td class="paramname">EBPF_ELF_PARSING_FAILED</td><td>Failure in parsing ELF file. </td></tr>
-    <tr><td class="paramname">EBPF_FAILED</td><td>Some other error occured. </td></tr>
   </table>
   </dd>
 </dl>

@@ -149,6 +149,9 @@ Functions</h2></td></tr>
 <tr class="memitem:a02683bd38babc219a58fac60549b3733"><td class="memItemLeft" align="right" valign="top">struct bpf_object *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a02683bd38babc219a58fac60549b3733">bpf_object__next</a> (struct bpf_object *prev)</td></tr>
 <tr class="memdesc:a02683bd38babc219a58fac60549b3733"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the next eBPF object opened by the calling process.  <a href="libbpf_8h.html#a02683bd38babc219a58fac60549b3733">More...</a><br /></td></tr>
 <tr class="separator:a02683bd38babc219a58fac60549b3733"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5150acc7ba47cc3fb0a35a3c3baa2283"><td class="memItemLeft" align="right" valign="top">struct bpf_object *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a5150acc7ba47cc3fb0a35a3c3baa2283">bpf_object__open</a> (const char *path)</td></tr>
+<tr class="memdesc:a5150acc7ba47cc3fb0a35a3c3baa2283"><td class="mdescLeft">&#160;</td><td class="mdescRight">Open a file without loading the programs.  <a href="libbpf_8h.html#a5150acc7ba47cc3fb0a35a3c3baa2283">More...</a><br /></td></tr>
+<tr class="separator:a5150acc7ba47cc3fb0a35a3c3baa2283"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0dba5a39c1e6994fec70ec41183acde2"><td class="memItemLeft" align="right" valign="top">struct bpf_object *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a0dba5a39c1e6994fec70ec41183acde2">bpf_object__open_file</a> (const char *path, const struct bpf_object_open_opts *opts)</td></tr>
 <tr class="memdesc:a0dba5a39c1e6994fec70ec41183acde2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Open a file without loading the programs.  <a href="libbpf_8h.html#a0dba5a39c1e6994fec70ec41183acde2">More...</a><br /></td></tr>
 <tr class="separator:a0dba5a39c1e6994fec70ec41183acde2"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -1097,7 +1100,7 @@ Functions</h2></td></tr>
 </dl>
 <dl class="section see"><dt>See also</dt><dd><a class="el" href="libbpf_8h.html#afac9e0bb7320698059d043359a363db8" title="Load all the programs in a given object.">bpf_object__load_xattr</a> </dd>
 <dd>
-bpf_object__open </dd>
+<a class="el" href="libbpf_8h.html#a5150acc7ba47cc3fb0a35a3c3baa2283" title="Open a file without loading the programs.">bpf_object__open</a> </dd>
 <dd>
 <a class="el" href="libbpf_8h.html#a33a41f94f254e17a56b5059bb5983bff" title="Unload all the programs in a given object.">bpf_object__unload</a> </dd>
 <dd>
@@ -1142,7 +1145,7 @@ bpf_object__open </dd>
   </table>
   </dd>
 </dl>
-<dl class="section see"><dt>See also</dt><dd>bpf_object__open </dd>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="libbpf_8h.html#a5150acc7ba47cc3fb0a35a3c3baa2283" title="Open a file without loading the programs.">bpf_object__open</a> </dd>
 <dd>
 <a class="el" href="libbpf_8h.html#afac9e0bb7320698059d043359a363db8" title="Load all the programs in a given object.">bpf_object__load_xattr</a> </dd>
 <dd>
@@ -1201,6 +1204,33 @@ bpf_object__open </dd>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>Next object, or NULL if none. </dd></dl>
+
+</div>
+</div>
+<a id="a5150acc7ba47cc3fb0a35a3c3baa2283"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a5150acc7ba47cc3fb0a35a3c3baa2283">&#9670;&nbsp;</a></span>bpf_object__open()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">struct bpf_object* bpf_object__open </td>
+          <td>(</td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>path</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Open a file without loading the programs. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">path</td><td>File name to open.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>Pointer to an eBPF object, or NULL on failure. </dd></dl>
 
 </div>
 </div>
