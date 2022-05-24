@@ -15,6 +15,7 @@
     }
 
 #include "ebpf_core.h"
+#include "ebpf_handle.h"
 #include "ebpf_program.h"
 #include "helpers.h"
 #include "libfuzzer.h"
@@ -149,46 +150,59 @@ static std::map<std::string, ebpf_map_definition_in_memory_t> _map_definitions =
 };
 
 void
-fuzz_initiate()
-{
-    ebpf_core_initiate();
-    for (const auto& type : _program_types) {
-        _program_information_providers.push_back(std::make_unique<_program_info_provider>(type));
-    }
-    for (const auto& type : _program_types) {
-        std::string name = "program name";
-        std::string file = "file name";
-        std::string section = "section name";
-        ebpf_program_parameters_t params{
-            type,
-            type,
-            {reinterpret_cast<uint8_t*>(name.data()), name.size()},
-            {reinterpret_cast<uint8_t*>(name.data()), name.size()},
-            {reinterpret_cast<uint8_t*>(name.data()), name.size()},
-            EBPF_CODE_JIT};
-        ebpf_handle_t handle;
-        ebpf_program_create_and_initialize(&params, &handle);
-    }
-    for (const auto& [name, def] : _map_definitions) {
-        ebpf_utf8_string_t utf8_name{reinterpret_cast<uint8_t*>(const_cast<char*>(name.data())), name.size()};
-        ebpf_handle_t handle;
-        ebpf_core_create_map(&utf8_name, &def, ebpf_handle_invalid, &handle);
-    }
-}
-
-void
-fuzz_terminate()
-{
-    ebpf_core_terminate();
-}
-
-void
 fuzz_async_completion(void*, size_t, ebpf_result_t){};
+
+class fuzz_wrapper
+{
+  public:
+    fuzz_wrapper()
+    {
+        ebpf_core_initiate();
+        for (const auto& type : _program_types) {
+            _program_information_providers.push_back(std::make_unique<_program_info_provider>(type));
+        }
+        for (const auto& type : _program_types) {
+            std::string name = "program name";
+            std::string file = "file name";
+            std::string section = "section name";
+            ebpf_program_parameters_t params{
+                type,
+                type,
+                {reinterpret_cast<uint8_t*>(name.data()), name.size()},
+                {reinterpret_cast<uint8_t*>(name.data()), name.size()},
+                {reinterpret_cast<uint8_t*>(name.data()), name.size()},
+                EBPF_CODE_JIT};
+            ebpf_handle_t handle;
+            if (ebpf_program_create_and_initialize(&params, &handle) == EBPF_SUCCESS) {
+                handles.push_back(handle);
+            }
+        }
+        for (const auto& [name, def] : _map_definitions) {
+            ebpf_utf8_string_t utf8_name{reinterpret_cast<uint8_t*>(const_cast<char*>(name.data())), name.size()};
+            ebpf_handle_t handle;
+            if (ebpf_core_create_map(&utf8_name, &def, ebpf_handle_invalid, &handle) == EBPF_SUCCESS) {
+                handles.push_back(handle);
+            }
+        }
+    }
+    ~fuzz_wrapper()
+    {
+        for (auto& handle : handles) {
+            ebpf_handle_close(handle);
+        };
+        program_information_providers.clear();
+        ebpf_core_terminate();
+    }
+
+  private:
+    std::vector<std::unique_ptr<_program_info_provider>> program_information_providers;
+    std::vector<ebpf_handle_t> handles;
+};
 
 void
 fuzz_ioctl(std::vector<uint8_t>& random_buffer)
 {
-    fuzz_initiate();
+    fuzz_wrapper fuzz_state;
     bool async = false;
     std::vector<uint8_t> reply;
     if (random_buffer.size() < sizeof(ebpf_operation_header_t)) {
@@ -220,7 +234,6 @@ fuzz_ioctl(std::vector<uint8_t>& random_buffer)
     if (result == EBPF_PENDING) {
         ebpf_core_cancel_protocol_handler(&async);
     }
-    fuzz_terminate();
 }
 
 FUZZ_EXPORT int __cdecl LLVMFuzzerInitialize(int*, char***) { return 0; }
