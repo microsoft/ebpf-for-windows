@@ -125,7 +125,7 @@ extern "C"
         _Outptr_result_maybenull_z_ const char** error_message);
 
     /**
-     * @brief Free memory returned from \ref ebpf_enumerate_program_sections.
+     * @brief Free memory returned from \ref ebpf_enumerate_sections.
      * @param[in] data Memory to free.
      */
     void
@@ -286,8 +286,11 @@ extern "C"
      *
      * @param[in] object The eBPF object file.
      * @param[in] execution_type Execution type to set.
+     *
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INVALID_ARGUMENT One or more parameters are incorrect.
      */
-    void
+    ebpf_result_t
     ebpf_object_set_execution_type(_In_ struct bpf_object* object, ebpf_execution_type_t execution_type);
 
     /**

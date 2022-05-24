@@ -30,7 +30,9 @@ _program_load_attach_helper::_program_load_attach_helper(
     // Load program by name.
     struct bpf_program* program = bpf_object__find_program_by_name(_object, _program_name.c_str());
     REQUIRE(program != nullptr);
-    bpf_program__set_type(program, _program_type);
+    if (_program_type != BPF_PROG_TYPE_UNSPEC) {
+        bpf_program__set_type(program, _program_type);
+    }
 
     int error = bpf_object__load(_object);
     log_buffer = bpf_program__log_buf(program, &log_buffer_size);

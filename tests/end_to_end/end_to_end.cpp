@@ -333,7 +333,7 @@ ebpf_program_load(
     if (new_object == nullptr) {
         return -errno;
     }
-    ebpf_object_set_execution_type(new_object, execution_type);
+    REQUIRE(ebpf_object_set_execution_type(new_object, execution_type) == EBPF_SUCCESS);
     bpf_program* program = bpf_object__next_program(new_object, nullptr);
     if (prog_type != BPF_PROG_TYPE_UNSPEC) {
         bpf_program__set_type(program, prog_type);
