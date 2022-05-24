@@ -1,34 +1,16 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include <Windows.h>
-
 #include <chrono>
-#include <cstdlib>
 #include <fstream>
-#include <iostream>
 #include <filesystem>
-#include <map>
 #include <ranges>
 #include <sstream>
-#include <thread>
 #include <vector>
 
 #undef max
 #include "bpf_code_generator.h"
-
-#if defined(_DEBUG)
-#pragma comment(lib, "clang_rt.fuzzer_MTd-x86_64.lib")
-#pragma comment(lib, "sancovd.lib")
-#else
-#pragma comment(lib, "clang_rt.fuzzer_MD-x86_64.lib")
-#pragma comment(lib, "libsancov.lib")
-#endif
-
-#ifdef __cplusplus
-#define FUZZ_EXPORT extern "C" __declspec(dllexport)
-#else #define FUZZ_EXPORT __declspec(dllexport)
-#endif
+#include "libfuzzer.h"
 
 FUZZ_EXPORT int __cdecl LLVMFuzzerInitialize(int*, char***) { return 0; }
 

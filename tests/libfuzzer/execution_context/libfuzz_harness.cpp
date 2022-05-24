@@ -4,13 +4,8 @@
 #include <Windows.h>
 
 #include <chrono>
-#include <cstdlib>
-#include <fstream>
-#include <iostream>
 #include <filesystem>
 #include <map>
-#include <ranges>
-#include <thread>
 #include <vector>
 
 #define REQUIRE(X)                 \
@@ -22,31 +17,19 @@
 #include "ebpf_core.h"
 #include "ebpf_program.h"
 #include "helpers.h"
+#include "libfuzzer.h"
 #include "platform.h"
-#include <ebpf_handle.h>
 
-#if defined(_DEBUG)
-#pragma comment(lib, "clang_rt.fuzzer_MTd-x86_64.lib")
-#pragma comment(lib, "sancovd.lib")
-#else
-#pragma comment(lib, "clang_rt.fuzzer_MD-x86_64.lib")
-#pragma comment(lib, "libsancov.lib")
-#endif
 
-#ifdef __cplusplus
-#define FUZZ_EXPORT extern "C" __declspec(dllexport)
-#else #define FUZZ_EXPORT __declspec(dllexport)
-#endif
-
-std::vector<std::unique_ptr<_program_info_provider>> _program_information_providers;
-std::vector<GUID> _program_types = {
+static std::vector<std::unique_ptr<_program_info_provider>> _program_information_providers;
+static std::vector<GUID> _program_types = {
     EBPF_PROGRAM_TYPE_XDP,
     EBPF_PROGRAM_TYPE_BIND,
     EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR,
     EBPF_PROGRAM_TYPE_SOCK_OPS,
     EBPF_PROGRAM_TYPE_SAMPLE};
 
-std::map<std::string, ebpf_map_definition_in_memory_t> _map_definitions = {
+static std::map<std::string, ebpf_map_definition_in_memory_t> _map_definitions = {
     {
         "BPF_MAP_TYPE_HASH",
         {
@@ -167,8 +150,12 @@ std::map<std::string, ebpf_map_definition_in_memory_t> _map_definitions = {
 };
 
 void
-create_various_objects()
+fuzz_initiate()
 {
+    ebpf_core_initiate();
+    for (const auto& type : _program_types) {
+        _program_information_providers.push_back(std::make_unique<_program_info_provider>(type));
+    }
     for (const auto& type : _program_types) {
         std::string name = "program name";
         std::string file = "file name";
@@ -190,15 +177,10 @@ create_various_objects()
     }
 }
 
-FUZZ_EXPORT int __cdecl LLVMFuzzerInitialize(int*, char***)
+void
+fuzz_terminate()
 {
-    ebpf_core_initiate();
-    for (const auto& type : _program_types) {
-        _program_information_providers.push_back(std::make_unique<_program_info_provider>(type));
-    }
-    create_various_objects();
-
-    return 0;
+    ebpf_core_terminate();
 }
 
 void
@@ -207,6 +189,7 @@ fuzz_async_completion(void*, size_t, ebpf_result_t){};
 void
 fuzz_ioctl(std::vector<uint8_t>& random_buffer)
 {
+    fuzz_initiate();
     bool async = false;
     std::vector<uint8_t> reply;
     if (random_buffer.size() < sizeof(ebpf_operation_header_t)) {
@@ -238,7 +221,10 @@ fuzz_ioctl(std::vector<uint8_t>& random_buffer)
     if (result == EBPF_PENDING) {
         ebpf_core_cancel_protocol_handler(&async);
     }
+    fuzz_terminate();
 }
+
+FUZZ_EXPORT int __cdecl LLVMFuzzerInitialize(int*, char***) { return 0; }
 
 FUZZ_EXPORT int __cdecl LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
 {
