@@ -154,6 +154,7 @@
     <ClCompile Include="map_descriptors.cpp" />
     <ClCompile Include="api_common.cpp" />
     <ClCompile Include="utilities.cpp" />
+    <ClCompile Include="registry_helper.cpp" />
     <ClCompile Include="windows_helpers.cpp" />
     <ClCompile Include="windows_platform_common.cpp" />
   </ItemGroup>

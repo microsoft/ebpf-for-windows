@@ -150,6 +150,7 @@ ebpf_api_initiate()
     EBPF_LOG_ENTRY();
 
     ebpf_trace_initiate();
+
     // This is best effort. If device handle does not initialize,
     // it will be re-attempted before an IOCTL call is made.
     initialize_device_handle();
@@ -161,6 +162,11 @@ ebpf_api_initiate()
         clean_up_rpc_binding();
         EBPF_RETURN_RESULT(win32_error_code_to_ebpf_result(status));
     }
+
+    // Load provider data from registry. Note that this is best effort
+    // and no data may be really be present in the registry.
+    load_provider_data_from_registry();
+
     EBPF_RETURN_RESULT(EBPF_SUCCESS);
 }
 

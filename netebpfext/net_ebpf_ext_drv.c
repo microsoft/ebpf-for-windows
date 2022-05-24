@@ -25,11 +25,14 @@ Environment:
 #include <netiodef.h>
 #include <wdf.h>
 
+#include "driver_registry_helper.h"
 #include "ebpf_platform.h"
-
 #include "net_ebpf_ext.h"
 
 #define NET_EBPF_EXT_DEVICE_NAME L"\\Device\\NetEbpfExt"
+
+// #define EBPF_SECTION_DATA_PROGRAM_TYPE L"ProgramType"
+// #define EBPF_SECTION_DATA_ATTACH_TYPE L"AttachType"
 
 // Driver global variables
 static WDFDEVICE _net_ebpf_ext_device = NULL;
@@ -136,6 +139,155 @@ _net_ebpf_ext_driver_initialize_objects(_Inout_ DRIVER_OBJECT* driver_object, _I
 Exit:
     return status;
 }
+
+/*
+#define EBPF_ROOT_REGISTRY_PATH L"\\Registry\\Machine\\Software\\eBPF"
+#define EBPF_SECTIONS_REGISTRY_PATH L"\\Registry\\Machine\\Software\\eBPF\\sections"
+#define EBPF_PROVIDER_DATA_REGISTRY_PATH L"\\Registry\\Machine\\Software\\eBPF\\ProviderData"
+*/
+
+/*
+typedef struct section_information
+{
+    wchar_t* section_name;
+    ebpf_program_type_t program_type;
+    ebpf_attach_type_t attach_type;
+} section_information_t;
+*/
+
+typedef enum operation_mode
+{
+    REGISTRY_CREATE,
+    REGISTRY_CREATE_OR_UPDATE
+} operation_mode_t;
+
+/*
+NTSTATUS registry_update_section_information(
+    _In_reads_(section_count) section_information_t* section_information,
+    int section_count)
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    HANDLE section_data_registry_handle = NULL;
+    UNICODE_STRING root_registry_path;
+    OBJECT_ATTRIBUTES object_attributes = { 0 };
+
+    if (section_count == 0) {
+        return status;
+    }
+
+    // Open section data registry path.
+    RtlInitUnicodeString(&root_registry_path, EBPF_SECTIONS_REGISTRY_PATH);
+    InitializeObjectAttributes(&object_attributes,
+        &root_registry_path,
+        OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE,
+        NULL,
+        NULL);
+
+    // Open or create the registry path.
+    status = ZwCreateKey(
+        &section_data_registry_handle,
+        KEY_WRITE,
+        &object_attributes,
+        0,
+        NULL,
+        REG_OPTION_NON_VOLATILE,
+        NULL);
+
+    if (!NT_SUCCESS(status)) {
+        return status;
+    }
+
+    for (int i = 0; i < section_count; i++) {
+        OBJECT_ATTRIBUTES section_attributes = { 0 };
+        UNICODE_STRING section_registry_path;
+        UNICODE_STRING program_type;
+        UNICODE_STRING attach_type;
+        HANDLE section_handle;
+
+        RtlInitUnicodeString(&section_registry_path, section_information[i].section_name);
+        InitializeObjectAttributes(&section_attributes,
+            &section_registry_path,
+            OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE,
+            section_data_registry_handle,
+            NULL);
+
+        // Open or create the registry path.
+        status = ZwCreateKey(
+            &section_handle,
+            KEY_WRITE,
+            &section_attributes,
+            0,
+            NULL,
+            REG_OPTION_NON_VOLATILE,
+            NULL);
+
+        if (!NT_SUCCESS(status)) {
+            return status;
+        }
+
+        // Save program type.
+        RtlInitUnicodeString(&program_type, EBPF_SECTION_DATA_PROGRAM_TYPE);
+        status = ZwSetValueKey(section_handle, &program_type, 0, REG_BINARY, &section_information[i].program_type,
+sizeof(ebpf_program_type_t)); if (!NT_SUCCESS(status)) { return status;
+        }
+
+        // Save attach type.
+        RtlInitUnicodeString(&attach_type, EBPF_SECTION_DATA_ATTACH_TYPE);
+        status = ZwSetValueKey(section_handle, &attach_type, 0, REG_BINARY, &section_information[i].attach_type,
+sizeof(ebpf_attach_type_t)); if (!NT_SUCCESS(status)) { return status;
+        }
+    }
+
+    return status;
+}
+
+void _update_registry_entries()
+{
+    NTSTATUS status;
+    HANDLE handleRegKey = NULL;
+    UNICODE_STRING root_registry_path;
+    OBJECT_ATTRIBUTES ObjectAttributes;
+
+    RtlInitUnicodeString(&root_registry_path, EBPF_SECTIONS_REGISTRY_PATH);
+    InitializeObjectAttributes(&ObjectAttributes,
+        &root_registry_path,
+        OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE,
+        NULL,
+        NULL);
+
+    // Open or create the registry path.
+    status = ZwCreateKey(
+        &handleRegKey,
+        KEY_WRITE,
+        &ObjectAttributes,
+        0,
+        NULL,
+        REG_OPTION_NON_VOLATILE,
+        NULL);
+
+    if (!NT_SUCCESS(status)) {
+        return;
+    }
+
+    do {
+        OBJECT_ATTRIBUTES SectionObjectAttributes;
+        UNICODE_STRING section_name;
+        RtlInitUnicodeString(&section_name, EBPF_SECTIONS_REGISTRY_PATH);
+
+        InitializeObjectAttributes(&SectionObjectAttributes,
+            &section_name,
+            OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE,
+            handleRegKey,    // handle
+            NULL);
+
+        status = ZwOpenKey(&handleRegKey, KEY_WRITE, &ObjectAttributes);
+    } while (false);
+    // Create "xdp" section key name
+
+
+    // Update
+}
+*/
 
 NTSTATUS
 DriverEntry(_In_ DRIVER_OBJECT* driver_object, _In_ UNICODE_STRING* registry_path)
