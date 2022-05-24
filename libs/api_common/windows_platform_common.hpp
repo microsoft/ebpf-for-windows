@@ -26,3 +26,6 @@ get_attach_type_windows(const std::string& section);
 
 _Ret_maybenull_z_ const char*
 get_attach_type_name(_In_ const ebpf_attach_type_t* attach_type);
+
+ebpf_result_t
+load_provider_data_from_registry();

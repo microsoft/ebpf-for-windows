@@ -91,6 +91,8 @@ const EbpfProgramType windows_sock_ops_program_type = {
 // Global lists and vectors of program and attach types.
 //
 
+// extern std::vector<EbpfProgramType> windows_program_types;
+
 const std::vector<EbpfProgramType> windows_program_types = {
     PTYPE("unspecified", {0}, 0, {}),
     windows_xdp_program_type,
@@ -106,6 +108,7 @@ typedef struct _ebpf_section_definition
     ebpf_attach_type_t* attach_type;
 } ebpf_section_definition_t;
 
+/*
 const std::vector<ebpf_section_definition_t> windows_section_definitions = {
     // XDP.
     {"xdp", &EBPF_PROGRAM_TYPE_XDP, &EBPF_ATTACH_TYPE_XDP},
@@ -124,6 +127,7 @@ const std::vector<ebpf_section_definition_t> windows_section_definitions = {
     // Sample Extension.
     {"sample_ext", &EBPF_PROGRAM_TYPE_SAMPLE, &EBPF_ATTACH_TYPE_SAMPLE},
 };
+*/
 
 struct ebpf_attach_type_compare
 {
