@@ -20,7 +20,6 @@
 #include "libfuzzer.h"
 #include "platform.h"
 
-
 static std::vector<std::unique_ptr<_program_info_provider>> _program_information_providers;
 static std::vector<GUID> _program_types = {
     EBPF_PROGRAM_TYPE_XDP,
