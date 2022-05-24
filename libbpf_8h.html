@@ -178,9 +178,6 @@ Functions</h2></td></tr>
 <tr class="separator:ab69956e1b5ddb90e685db241857230e3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af49249eba2a0e62fddb2a09f3a0c7833"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#af49249eba2a0e62fddb2a09f3a0c7833">bpf_load_program_xattr</a> (const struct bpf_load_program_attr *load_attr, char *log_buf, size_t log_buf_sz)</td></tr>
 <tr class="separator:af49249eba2a0e62fddb2a09f3a0c7833"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a37b9672527f744e7492797529f4f9a6a"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a37b9672527f744e7492797529f4f9a6a">bpf_prog_load</a> (const char *file, enum <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0">bpf_prog_type</a> type, struct bpf_object **pobj, int *prog_fd)</td></tr>
-<tr class="memdesc:a37b9672527f744e7492797529f4f9a6a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Load (but do not attach) eBPF maps and programs from an ELF file.  <a href="libbpf_8h.html#a37b9672527f744e7492797529f4f9a6a">More...</a><br /></td></tr>
-<tr class="separator:a37b9672527f744e7492797529f4f9a6a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1402c76cc92bfb7ebe1bc7a4cbce54db"><td class="memItemLeft" align="right" valign="top">struct bpf_link *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a1402c76cc92bfb7ebe1bc7a4cbce54db">bpf_program__attach</a> (const struct bpf_program *prog)</td></tr>
 <tr class="memdesc:a1402c76cc92bfb7ebe1bc7a4cbce54db"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attach an eBPF program to a hook associated with the program's expected attach type.  <a href="libbpf_8h.html#a1402c76cc92bfb7ebe1bc7a4cbce54db">More...</a><br /></td></tr>
 <tr class="separator:a1402c76cc92bfb7ebe1bc7a4cbce54db"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -941,7 +938,7 @@ Functions</h2></td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section see"><dt>See also</dt><dd><a class="el" href="libbpf_8h.html#a37b9672527f744e7492797529f4f9a6a" title="Load (but do not attach) eBPF maps and programs from an ELF file.">bpf_prog_load</a> </dd></dl>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="bpf_2bpf_8h.html#ac3c199aafea072c96c7d8c79dcc70ffa" title="Load (but do not attach) an eBPF programs.">bpf_prog_load</a> </dd></dl>
 
 </div>
 </div>
@@ -1104,7 +1101,7 @@ Functions</h2></td></tr>
 <dd>
 <a class="el" href="libbpf_8h.html#a33a41f94f254e17a56b5059bb5983bff" title="Unload all the programs in a given object.">bpf_object__unload</a> </dd>
 <dd>
-<a class="el" href="libbpf_8h.html#a37b9672527f744e7492797529f4f9a6a" title="Load (but do not attach) eBPF maps and programs from an ELF file.">bpf_prog_load</a> </dd></dl>
+<a class="el" href="bpf_2bpf_8h.html#ac3c199aafea072c96c7d8c79dcc70ffa" title="Load (but do not attach) an eBPF programs.">bpf_prog_load</a> </dd></dl>
 
 </div>
 </div>
@@ -1138,6 +1135,7 @@ Functions</h2></td></tr>
   </table>
   </dd>
 </dl>
+<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000002">Deprecated:</a></b></dt><dd>Use <a class="el" href="libbpf_8h.html#a101742f5d81ad187cd879e22d6385031" title="Load all the programs in a given object.">bpf_object__load()</a> instead.</dd></dl>
 <dl class="exception"><dt>Exceptions</dt><dd>
   <table class="exception">
     <tr><td class="paramname">EINVAL</td><td>An invalid argument was provided. </td></tr>
@@ -1149,7 +1147,7 @@ Functions</h2></td></tr>
 <dd>
 <a class="el" href="libbpf_8h.html#afac9e0bb7320698059d043359a363db8" title="Load all the programs in a given object.">bpf_object__load_xattr</a> </dd>
 <dd>
-<a class="el" href="libbpf_8h.html#a37b9672527f744e7492797529f4f9a6a" title="Load (but do not attach) eBPF maps and programs from an ELF file.">bpf_prog_load</a> </dd></dl>
+<a class="el" href="bpf_2bpf_8h.html#ac3c199aafea072c96c7d8c79dcc70ffa" title="Load (but do not attach) an eBPF programs.">bpf_prog_load</a> </dd></dl>
 
 </div>
 </div>
@@ -1479,7 +1477,7 @@ Functions</h2></td></tr>
 <dd>
 <a class="el" href="libbpf_8h.html#afac9e0bb7320698059d043359a363db8" title="Load all the programs in a given object.">bpf_object__load_xattr</a> </dd>
 <dd>
-<a class="el" href="libbpf_8h.html#a37b9672527f744e7492797529f4f9a6a" title="Load (but do not attach) eBPF maps and programs from an ELF file.">bpf_prog_load</a> </dd></dl>
+<a class="el" href="bpf_2bpf_8h.html#ac3c199aafea072c96c7d8c79dcc70ffa" title="Load (but do not attach) an eBPF programs.">bpf_prog_load</a> </dd></dl>
 
 </div>
 </div>
@@ -1651,79 +1649,6 @@ bpf_object__unpin </dd></dl>
 
 </div>
 </div>
-<a id="a37b9672527f744e7492797529f4f9a6a"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a37b9672527f744e7492797529f4f9a6a">&#9670;&nbsp;</a></span>bpf_prog_load()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">int bpf_prog_load </td>
-          <td>(</td>
-          <td class="paramtype">const char *&#160;</td>
-          <td class="paramname"><em>file</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">enum <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0">bpf_prog_type</a>&#160;</td>
-          <td class="paramname"><em>type</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">struct bpf_object **&#160;</td>
-          <td class="paramname"><em>pobj</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">int *&#160;</td>
-          <td class="paramname"><em>prog_fd</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Load (but do not attach) eBPF maps and programs from an ELF file. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">file</td><td>Path name to an ELF file. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">type</td><td>Program type to use for loading eBPF programs. If BPF_PROG_TYPE_UNKNOWN, the program type is derived from the section prefix in the ELF file. </td></tr>
-    <tr><td class="paramdir">[out]</td><td class="paramname">pobj</td><td>Pointer to where to store the eBPF object loaded. The caller is expected to call <a class="el" href="libbpf_8h.html#a473872ff7ab53d1ed593e7abd206f31a" title="Close an eBPF object.">bpf_object__close()</a> to free the object. </td></tr>
-    <tr><td class="paramdir">[out]</td><td class="paramname">prog_fd</td><td>Returns a file descriptor for the first program. The caller should not call _close() on the fd, but should instead use <a class="el" href="libbpf_8h.html#a473872ff7ab53d1ed593e7abd206f31a" title="Close an eBPF object.">bpf_object__close()</a> on the object returned.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="retval"><dt>Return values</dt><dd>
-  <table class="retval">
-    <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
-    <tr><td class="paramname">&lt;0</td><td>An error occured, and errno was set.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="exception"><dt>Exceptions</dt><dd>
-  <table class="exception">
-    <tr><td class="paramname">EACCES</td><td>The program failed verification. </td></tr>
-    <tr><td class="paramname">EINVAL</td><td>One or more parameters are incorrect. </td></tr>
-    <tr><td class="paramname">ENOMEM</td><td>Out of memory.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section see"><dt>See also</dt><dd><a class="el" href="libbpf_8h.html#ab69956e1b5ddb90e685db241857230e3">bpf_load_program</a> </dd>
-<dd>
-<a class="el" href="libbpf_8h.html#af49249eba2a0e62fddb2a09f3a0c7833">bpf_load_program_xattr</a> </dd>
-<dd>
-<a class="el" href="libbpf_8h.html#a473872ff7ab53d1ed593e7abd206f31a" title="Close an eBPF object.">bpf_object__close</a> </dd>
-<dd>
-<a class="el" href="libbpf_8h.html#a1402c76cc92bfb7ebe1bc7a4cbce54db" title="Attach an eBPF program to a hook associated with the program&#39;s expected attach type.">bpf_program__attach</a> </dd></dl>
-
-</div>
-</div>
 <a id="a1402c76cc92bfb7ebe1bc7a4cbce54db"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a1402c76cc92bfb7ebe1bc7a4cbce54db">&#9670;&nbsp;</a></span>bpf_program__attach()</h2>
 
@@ -1882,7 +1807,7 @@ bpf_object__unpin </dd></dl>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>Program type.</dd></dl>
-<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000001">Deprecated:</a></b></dt><dd>Use <a class="el" href="libbpf_8h.html#a789393546ed103be96e012387b12bdcf" title="Get the program type for an eBPF program.">bpf_program__type()</a> instead.</dd></dl>
+<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000003">Deprecated:</a></b></dt><dd>Use <a class="el" href="libbpf_8h.html#a789393546ed103be96e012387b12bdcf" title="Get the program type for an eBPF program.">bpf_program__type()</a> instead.</dd></dl>
 <dl class="section see"><dt>See also</dt><dd><a class="el" href="libbpf_8h.html#a533e13b68a34e8228fbadeecf63b658a" title="Get the expected attach type for an eBPF program.">bpf_program__get_expected_attach_type</a> </dd>
 <dd>
 <a class="el" href="libbpf_8h.html#a789393546ed103be96e012387b12bdcf" title="Get the program type for an eBPF program.">bpf_program__type</a> </dd></dl>
@@ -2213,7 +2138,7 @@ bpf_object__unpin </dd></dl>
 </dl>
 <dl class="section see"><dt>See also</dt><dd><a class="el" href="libbpf_8h.html#a33a41f94f254e17a56b5059bb5983bff" title="Unload all the programs in a given object.">bpf_object__unload</a> </dd>
 <dd>
-<a class="el" href="libbpf_8h.html#a37b9672527f744e7492797529f4f9a6a" title="Load (but do not attach) eBPF maps and programs from an ELF file.">bpf_prog_load</a> </dd></dl>
+<a class="el" href="bpf_2bpf_8h.html#ac3c199aafea072c96c7d8c79dcc70ffa" title="Load (but do not attach) an eBPF programs.">bpf_prog_load</a> </dd></dl>
 
 </div>
 </div>
@@ -2319,7 +2244,7 @@ bpf_object__unpin </dd></dl>
   </table>
   </dd>
 </dl>
-<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000002">Deprecated:</a></b></dt><dd>Use <a class="el" href="libbpf_8h.html#a21804429f974038fb1d68004fe3aeea5" title="Attach an XDP program to a given interface.">bpf_xdp_attach()</a> instead.</dd></dl>
+<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000004">Deprecated:</a></b></dt><dd>Use <a class="el" href="libbpf_8h.html#a21804429f974038fb1d68004fe3aeea5" title="Attach an XDP program to a given interface.">bpf_xdp_attach()</a> instead.</dd></dl>
 <dl class="section see"><dt>See also</dt><dd><a class="el" href="libbpf_8h.html#add95958a8ad1c31b3f42a614625d20d1" title="Attach an eBPF program to an XDP hook.">bpf_program__attach_xdp</a> </dd>
 <dd>
 <a class="el" href="libbpf_8h.html#a21804429f974038fb1d68004fe3aeea5" title="Attach an XDP program to a given interface.">bpf_xdp_attach</a> </dd>
