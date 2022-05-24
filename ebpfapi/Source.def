@@ -51,6 +51,7 @@ EXPORTS
     bpf_object__next
     bpf_object__next_map
     bpf_object__next_program
+    bpf_object__open
     bpf_object__open_file
     bpf_object__pin
     bpf_object__pin_maps
@@ -70,6 +71,7 @@ EXPORTS
     bpf_program__fd
     bpf_program__get_expected_attach_type
     bpf_program__get_type=bpf_program__type
+    bpf_program__log_buf
     bpf_program__name
     bpf_program__next
     bpf_program__pin
@@ -99,10 +101,11 @@ EXPORTS
     ebpf_get_program_type_name
     ebpf_link_close
     ebpf_object_get
+    ebpf_object_get_execution_type
+    ebpf_object_set_execution_type
     ebpf_object_unpin
     ebpf_program_attach
     ebpf_program_attach_by_fd
-    ebpf_program_load
     ebpf_program_query_info
     libbpf_get_error
     libbpf_num_possible_cpus

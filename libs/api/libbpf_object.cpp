@@ -84,6 +84,13 @@ bpf_obj_get(const char* pathname)
 }
 
 struct bpf_object*
+bpf_object__open(const char* path)
+{
+    struct bpf_object_open_opts opts = {.sz = sizeof(opts)};
+    return bpf_object__open_file(path, &opts);
+}
+
+struct bpf_object*
 bpf_object__open_file(const char* path, const struct bpf_object_open_opts* opts)
 {
     if (!path) {
@@ -102,9 +109,7 @@ bpf_object__open_file(const char* path, const struct bpf_object_open_opts* opts)
 int
 bpf_object__load_xattr(struct bpf_object_load_attr* attr)
 {
-    const char* error_message;
-    ebpf_result result = ebpf_object_load(attr->obj, EBPF_EXECUTION_ANY, &error_message);
-    ebpf_free_string(error_message);
+    ebpf_result result = ebpf_object_load(attr->obj);
     return libbpf_result_err(result);
 }
 

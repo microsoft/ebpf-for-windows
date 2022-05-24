@@ -24,6 +24,8 @@ typedef struct bpf_program
     ebpf_handle_t handle;
     fd_t fd;
     bool pinned;
+    const char* log_buffer;
+    uint32_t log_buffer_size;
 } ebpf_program_t;
 
 typedef struct bpf_map
@@ -67,9 +69,11 @@ typedef struct bpf_link
 typedef struct bpf_object
 {
     char* object_name = nullptr;
+    char* file_name = nullptr;
     std::vector<ebpf_program_t*> programs;
     std::vector<ebpf_map_t*> maps;
     bool loaded = false;
+    ebpf_execution_type_t execution_type = EBPF_EXECUTION_ANY;
 } ebpf_object_t;
 
 /**
@@ -474,19 +478,13 @@ ebpf_object_open(
  * @brief Load all the programs in a given object.
  *
  * @param[in] object Object from which to load programs.
- * @param[in] execution_type Execution type.
- * @param[out] error_message Error message string, which
- * the caller must free using ebpf_free_string().
  *
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval EBPF_INVALID_ARGUMENT One or more parameters are wrong.
  * @retval EBPF_NO_MEMORY Out of memory.
  */
 ebpf_result_t
-ebpf_object_load(
-    _Inout_ struct bpf_object* object,
-    ebpf_execution_type_t execution_type,
-    _Outptr_result_maybenull_z_ const char** error_message);
+ebpf_object_load(_Inout_ struct bpf_object* object);
 
 /**
  * @brief Unload all the programs in a given object.

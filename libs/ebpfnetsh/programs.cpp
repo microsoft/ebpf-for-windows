@@ -109,8 +109,8 @@ handle_ebpf_add_program(
 
     std::string filename;
     std::string pinpath;
-    ebpf_program_type_t program_type = EBPF_PROGRAM_TYPE_UNSPECIFIED;
-    ebpf_attach_type_t attach_type = EBPF_ATTACH_TYPE_UNSPECIFIED;
+    bpf_prog_type prog_type = BPF_PROG_TYPE_UNSPEC;
+    bpf_attach_type attach_type = BPF_ATTACH_TYPE_UNSPEC;
     pinned_type_t pinned_type = PT_FIRST; // Like bpftool, we default to pin first.
     ebpf_execution_type_t execution = EBPF_EXECUTION_JIT;
     LPWSTR interface_parameter = nullptr;
@@ -123,8 +123,7 @@ handle_ebpf_add_program(
         }
         case TYPE_INDEX: {
             std::string type_name = down_cast_from_wstring(std::wstring(argv[current_index + i]));
-            ebpf_result_t result = ebpf_get_program_type_by_name(type_name.c_str(), &program_type, &attach_type);
-            if (result != EBPF_SUCCESS) {
+            if (libbpf_prog_type_by_name(type_name.c_str(), &prog_type, &attach_type) < 0) {
                 status = ERROR_INVALID_PARAMETER;
             }
             break;
@@ -164,28 +163,34 @@ handle_ebpf_add_program(
     struct bpf_object* object;
     int program_fd;
     PCSTR error_message;
-    ebpf_result_t result = ebpf_program_load(
-        filename.c_str(),
-        (tags[TYPE_INDEX].bPresent ? &program_type : nullptr),
-        (tags[TYPE_INDEX].bPresent ? &attach_type : nullptr),
-        EBPF_EXECUTION_ANY,
-        &object,
-        &program_fd,
-        &error_message);
-    if (result != EBPF_SUCCESS) {
-        std::cerr << "error " << result << ": could not load program" << std::endl;
-        if (error_message != nullptr) {
-            std::cerr << error_message << std::endl;
-            ebpf_free_string(error_message);
-        }
+    object = bpf_object__open(filename.c_str());
+    if (object == nullptr) {
+        std::cerr << "error " << errno << ": could not open file" << std::endl;
         return ERROR_SUPPRESS_OUTPUT;
     }
+
+    struct bpf_program* program = bpf_object__next_program(object, nullptr);
+    if (prog_type != BPF_PROG_TYPE_UNSPEC) {
+        bpf_program__set_type(program, prog_type);
+    }
+
+    if (bpf_object__load(object) < 0) {
+        std::cerr << "error " << errno << ": could not load program" << std::endl;
+        size_t error_message_size;
+        error_message = bpf_program__log_buf(program, &error_message_size);
+        if (error_message != nullptr) {
+            std::cerr << error_message << std::endl;
+        }
+        bpf_object__close(object);
+        return ERROR_SUPPRESS_OUTPUT;
+    }
+    program_fd = bpf_program__fd(program);
+
     // Program loaded. Populate the unloader with object pointer and program fd, such that
     // the program gets unloaded automatically, if it fails to get attached.
     struct _program_unloader unloader = {object, program_fd};
 
-    struct bpf_program* program = bpf_program__next(nullptr, object);
-
+    ebpf_result_t result;
     uint32_t if_index;
     void* attach_parameters = nullptr;
     size_t attach_parameters_size = 0;
@@ -200,12 +205,7 @@ handle_ebpf_add_program(
     }
 
     struct bpf_link* link;
-    result = ebpf_program_attach(
-        program,
-        (tags[TYPE_INDEX].bPresent ? &attach_type : nullptr),
-        attach_parameters,
-        attach_parameters_size,
-        &link);
+    result = ebpf_program_attach(program, nullptr, attach_parameters, attach_parameters_size, &link);
     if (result != EBPF_SUCCESS) {
         std::cerr << "error " << result << ": could not attach program" << std::endl;
         return ERROR_SUPPRESS_OUTPUT;

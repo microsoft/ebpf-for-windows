@@ -14,7 +14,7 @@ typedef class _program_load_attach_helper
   public:
     _program_load_attach_helper(
         _In_z_ const char* file_name,
-        ebpf_program_type_t program_type,
+        bpf_prog_type program_type,
         _In_z_ const char* program_name,
         ebpf_execution_type_t execution_type,
         _In_reads_bytes_opt_(attach_parameters_size) void* attach_parameters,
@@ -28,7 +28,7 @@ typedef class _program_load_attach_helper
 
   private:
     std::string _file_name;
-    ebpf_program_type_t _program_type;
+    bpf_prog_type _program_type;
     std::string _program_name;
     ebpf_execution_type_t _execution_type;
     bpf_link* _link;

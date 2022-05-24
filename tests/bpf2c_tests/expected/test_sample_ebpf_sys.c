@@ -462,10 +462,6 @@ test_utility_helpers(void* context)
 #line 73 "sample/test_sample_ebpf.c"
     register uint64_t r6 = 0;
 #line 73 "sample/test_sample_ebpf.c"
-    register uint64_t r7 = 0;
-#line 73 "sample/test_sample_ebpf.c"
-    register uint64_t r8 = 0;
-#line 73 "sample/test_sample_ebpf.c"
     register uint64_t r10 = 0;
 
 #line 73 "sample/test_sample_ebpf.c"

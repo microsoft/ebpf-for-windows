@@ -30,7 +30,6 @@ std::vector<ebpf_handle_t>
 get_handles()
 {
     std::vector<ebpf_handle_t> handles;
-    ebpf_result_t result;
     const char* error_message = nullptr;
     bpf_object* object = nullptr;
     bpf_link* link;
@@ -49,14 +48,17 @@ get_handles()
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
-    result = ebpf_program_load("map.o", nullptr, nullptr, EBPF_EXECUTION_ANY, &object, &program_fd, &error_message);
-
+    object = bpf_object__open("map.o");
+    REQUIRE(object != nullptr);
+    bpf_program* program = bpf_object__next_program(object, nullptr);
+    int error = bpf_object__load(object);
+    size_t error_message_size;
+    error_message = bpf_program__log_buf(program, &error_message_size);
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
-        ebpf_free_string(error_message);
-        error_message = nullptr;
     }
-    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(error == 0);
+    program_fd = bpf_program__fd(program);
     for (const auto& name : map_names) {
         fd_t map_fd = bpf_object__find_map_fd_by_name(object, (name + "_map").c_str());
         handles.push_back(Platform::_get_osfhandle(map_fd));
