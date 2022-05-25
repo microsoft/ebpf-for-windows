@@ -31,7 +31,7 @@ The following instructions will build an ebpf-for-windows image and deploy a dae
 to install eBPF on all Windows nodes in a Kubernetes cluster. 
 
 1. Deploy the binaries to `C:\Temp` on the machine (Windows Host) where you built the binaries.
-   Start an admin Powershell on Windows Host and do `.\scripts\deploy-ebpf`.
+   Start an admin Powershell on the Windows Host and do `.\scripts\deploy-ebpf`.
    
 2. Build ebpf-for-windows image. 
      
