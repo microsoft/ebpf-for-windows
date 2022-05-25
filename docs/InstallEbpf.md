@@ -45,7 +45,7 @@ Start an admin Powershell on the Windows Host and run `.\images\build-images.ps1
       Compress-Archive -Update -Path C:\temp -DestinationPath ebpf-for-windows-c-temp.zip
       ```
       
-   * Copy `images\*` and `ebpf-for-windows-c-temp.zip` from Windows Host to a directory on the Linux machine (e.g. `$HOME/ebpf-for-windows-image`).
+   * Copy `images\*` and `ebpf-for-windows-c-temp.zip` from the Windows Host to a directory on the Linux machine (e.g. `$HOME/ebpf-for-windows-image`).
    
    * Run `$HOME/ebpf-for-windows-image/build-images.sh` and provide parameters for `repositry`, `tag` and `OSVersion`.
    
