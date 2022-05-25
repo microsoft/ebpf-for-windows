@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 param ([parameter(Mandatory=$false)][string] $TEMPDir = "c:\temp",
-    [parameter(Mandatory=$true)][string] $Repositry = "",
+    [parameter(Mandatory=$true)][string] $Repository = "",
     [parameter(Mandatory=$true)][string] $Tag = "",
     [parameter(Mandatory=$true)][string] $OSVersion = "1809")
 
