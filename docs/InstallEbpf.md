@@ -40,7 +40,7 @@ Start an admin Powershell on the Windows Host and run `.\images\build-images.ps1
    
     b.  To build the image on a Linux machine (e.g. Ubuntu), make sure docker is installed. [install docker on Ubuntu](https://docs.docker.com/engine/install/ubuntu/).
 
-    * Run the following powershell command on Windows Host to create zip files containing the binaries.
+    * Run the following Powershell command on the Windows Host to create zip files containing the binaries.
       ```
       Compress-Archive -Update -Path C:\temp -DestinationPath ebpf-for-windows-c-temp.zip
       ```
