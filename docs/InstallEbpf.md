@@ -35,19 +35,19 @@ to install eBPF on all Windows nodes in a Kubernetes cluster.
    
 2. Build ebpf-for-windows image. 
      
-    a. To build the image on Windows Host, make sure docker is installed. [install docker on Windows Server] (https://docs.microsoft.com/en-us/virtualization/windowscontainers/quick-start/set-up-environment?tabs=Windows-Server).
+    a.  To build the image on Windows Host, make sure docker is installed. [install docker on Windows Server](https://docs.microsoft.com/en-us/virtualization/windowscontainers/quick-start/set-up-environment?tabs=Windows-Server/).
 Start an admin Powershell on Windows Host and run `.\images\build-images.ps1` and provide parameters for `repositry`, `tag` and `OSVersion`.
    
-    b.To build the image on a Linux machine (e.g. Ubuntu), make sure docker is installed. [install docker on Ubuntu](https://docs.docker.com/engine/install/ubuntu/).
+    b.  To build the image on a Linux machine (e.g. Ubuntu), make sure docker is installed. [install docker on Ubuntu](https://docs.docker.com/engine/install/ubuntu/).
 
-        i. Run following powershell command on Windows Host to create zip files containing the binaries.
-```
-Compress-Archive -Update -Path C:\temp -DestinationPath ebpf-for-windows-c-temp.zip
-```
-
-        ii.Copy `images\build-images.sh`, `images\Dockerfile.install` and `ebpf-for-windows-c-temp.zip` from Windows Host to a directory on the Linux machine, e.g. `$HOME/ebpf-for-windows-image`.
-
-        iii.Run `$HOME/ebpf-for-windows-image/build-images.sh` and provide parameters for `repositry`, `tag` and `OSVersion`.
+    * Run the following powershell command on Windows Host to create zip files containing the binaries.
+      ```
+      Compress-Archive -Update -Path C:\temp -DestinationPath ebpf-for-windows-c-temp.zip
+      ```
+      
+   * Copy `images\build-images.sh`, `images\Dockerfile.install` and `ebpf-for-windows-c-temp.zip` from Windows Host to a directory on the Linux machine (e.g. `$HOME/ebpf-for-windows-image`).
+   
+   * Run `$HOME/ebpf-for-windows-image/build-images.sh` and provide parameters for `repositry`, `tag` and `OSVersion`.
    
 3. Push ebpf-for-windows image to your repositry.
 
