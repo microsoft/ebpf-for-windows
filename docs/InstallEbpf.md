@@ -49,7 +49,7 @@ Start an admin Powershell on the Windows Host and run `.\images\build-images.ps1
    
    * Run `$HOME/ebpf-for-windows-image/build-images.sh` and provide parameters for `repositry`, `tag` and `OSVersion`.
    
-3. Push ebpf-for-windows image to your repositry.
+3. Push the ebpf-for-windows image to your repository.
 
 4. Update `manifests/Kubernetes/ebpf-for-windows-daemonset.yaml` with the container image pointing to your image path. Run the following command:
 ```
