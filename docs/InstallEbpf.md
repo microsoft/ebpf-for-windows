@@ -27,7 +27,7 @@ Copy the build output to the host of the test VM and run the following.
 
 ## Installing eBPF with host-process container 
 
-The following instructions will build ebpf-for-windows image and deploy a daemonset referencing the image. This is the easiest way
+The following instructions will build an ebpf-for-windows image and deploy a daemonset referencing the image. This is the easiest way
 to install eBPF on all Windows nodes in a Kubernetes cluster. 
 
 1. Deploy the binaries to `C:\Temp` on the machine (Windows Host) where you built the binaries.
