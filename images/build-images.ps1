@@ -16,4 +16,4 @@ if ($svc.Status -NE 'Running') {
 
 Compress-Archive -Update -Path $TEMPDir -DestinationPath ebpf-for-windows-c-temp.zip
 
-docker build -t $Repositry/ebpfwin-install:$Tag  -f .\Dockerfile.install --build-arg WINDOWS_VERSION=$OSVersion .
+docker build -t $Repository/ebpfwin-install:$Tag  -f .\Dockerfile.install --build-arg WINDOWS_VERSION=$OSVersion .
