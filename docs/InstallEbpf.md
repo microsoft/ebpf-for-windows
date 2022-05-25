@@ -35,7 +35,7 @@ to install eBPF on all Windows nodes in a Kubernetes cluster.
    
 2. Build ebpf-for-windows image. 
      
-    a.  To build the image on Windows Host, make sure docker is installed. [install docker on Windows Server](https://docs.microsoft.com/en-us/virtualization/windowscontainers/quick-start/set-up-environment?tabs=Windows-Server/).
+    a.  To build the image on the Windows Host, make sure docker is installed. [install docker on Windows Server](https://docs.microsoft.com/en-us/virtualization/windowscontainers/quick-start/set-up-environment?tabs=Windows-Server/).
 Start an admin Powershell on the Windows Host and run `.\images\build-images.ps1` and provide parameters for `repository`, `tag` and `OSVersion`.
    
     b.  To build the image on a Linux machine (e.g. Ubuntu), make sure docker is installed. [install docker on Ubuntu](https://docs.docker.com/engine/install/ubuntu/).
