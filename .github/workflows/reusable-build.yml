@@ -31,9 +31,6 @@ on:
       ld_flags:
         required: false
         type: string
-      skip_debug:
-        required: false
-        type: boolean
 
 permissions:
   contents: read
@@ -72,14 +69,12 @@ jobs:
       uses: microsoft/setup-msbuild@becb80cf9a036187bb1e07e74eb64e25850d757a
 
     - name: Install tools
-      if: matrix.configurations == 'Release' || !(inputs.skip_debug == true)
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
         choco install -y llvm --version 11.0.1 --allow-downgrade
         echo "C:\Program Files\LLVM\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
     - name: Cache nuget packages
-      if: matrix.configurations == 'Release' || !(inputs.skip_debug == true)
       uses: actions/cache@48af2dc4a9e8278b89d7fa154b955c30c6aaab09
       env:
         cache-name: cache-nuget-modules
@@ -88,12 +83,10 @@ jobs:
         key: ${{ runner.os }}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}-${{env.BUILD_ARTIFACT_NAME}}-${{ hashFiles('**/packages.config') }}
 
     - name: Restore NuGet packages
-      if: matrix.configurations == 'Release' || !(inputs.skip_debug == true)
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: nuget restore ${{env.SOLUTION_FILE_PATH}}
 
     - name: Cache verifier project
-      if: matrix.configurations == 'Release' || !(inputs.skip_debug == true)
       uses: actions/cache@f63a711791a8e7cc2d5463afc081136e00085800
       env:
         cache-name: cache-verifier-project
@@ -103,7 +96,6 @@ jobs:
         key: ${{ runner.os }}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}-${{env.BUILD_ARTIFACT_NAME}}-${{ hashFiles('.git/modules/external/ebpf-verifier/HEAD') }}-v1
 
     - name: Create verifier project
-      if: matrix.configurations == 'Release' || !(inputs.skip_debug == true)
       working-directory: ${{env.GITHUB_WORKSPACE}}
       env:
         CXXFLAGS: /ZH:SHA_256 ${{env.CXX_FLAGS}}
@@ -112,7 +104,6 @@ jobs:
         cmake -G "Visual Studio 16 2019" -S external\ebpf-verifier -B external\ebpf-verifier\build
 
     - name: Create catch2 project
-      if: matrix.configurations == 'Release' || !(inputs.skip_debug == true)
       working-directory: ${{env.GITHUB_WORKSPACE}}
       env:
         CXXFLAGS: /ZH:SHA_256 ${{env.CXX_FLAGS}}
@@ -121,12 +112,10 @@ jobs:
         cmake -G "Visual Studio 16 2019" -S external\catch2 -B external\catch2\build -DBUILD_TESTING=OFF
 
     - name: Build
-      if: matrix.configurations == 'Release' || !(inputs.skip_debug == true)
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{env.BUILD_PLATFORM}} ${{env.SOLUTION_FILE_PATH}} ${{env.BUILD_OPTIONS}}
 
     - name: Copy VC Libs for Sanitizer
-      if: matrix.configurations == 'Release' || !(inputs.skip_debug == true)
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
       run: copy "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Tools\MSVC\14.29.30133\bin\Hostx64\x64\clang*" .
 
@@ -134,7 +123,6 @@ jobs:
     # The subequent tests will directly get these when they download the build artifacts. In case
     # a test fails, the .o files used for the test will be available in the uploaded build artifacts.
     - name: Download demo repository artifacts
-      if: matrix.configurations == 'Release' || !(inputs.skip_debug == true)
       uses: dawidd6/action-download-artifact@b2abf1705491048a2d7074f7d90513044fd25d39
       with:
         github_token: ${{secrets.GITHUB_TOKEN}}
@@ -148,7 +136,6 @@ jobs:
         skip_unpack: false
 
     - name: Extract artifacts to build path
-      if: matrix.configurations == 'Release' || !(inputs.skip_debug == true)
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
         cd ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
