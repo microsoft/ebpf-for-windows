@@ -120,7 +120,7 @@ $(function() {
 <div class="line"><a name="l00106"></a><span class="lineno">  106</span>&#160; </div>
 <div class="line"><a name="l00112"></a><span class="lineno">  112</span>&#160;EBPF_HELPER(uint64_t, <a class="code" href="bpf__helper__defs_8h.html#a25b647b1c513ab7afec473ee3043e0dd">bpf_ktime_get_ns</a>, ());</div>
 <div class="line"><a name="l00113"></a><span class="lineno">  113</span>&#160;<span class="preprocessor">#ifndef __doxygen</span></div>
-<div class="line"><a name="l00114"></a><span class="lineno">  114</span>&#160;<span class="preprocessor">#define bpf_ktime_get_ns ((bpf_ktime_get_ns_t)BPF_FUNC_ktime_get_boot_ns)</span></div>
+<div class="line"><a name="l00114"></a><span class="lineno">  114</span>&#160;<span class="preprocessor">#define bpf_ktime_get_ns ((bpf_ktime_get_ns_t)BPF_FUNC_ktime_get_ns)</span></div>
 <div class="line"><a name="l00115"></a><span class="lineno">  115</span>&#160;<span class="preprocessor">#endif</span></div>
 <div class="line"><a name="l00116"></a><span class="lineno">  116</span>&#160; </div>
 <div class="line"><a name="l00129"></a><span class="lineno">  129</span>&#160;EBPF_HELPER(<span class="keywordtype">int</span>, <a class="code" href="bpf__helper__defs_8h.html#a8925aebb6537b5d34b8cb28b04d34515">bpf_csum_diff</a>, (<span class="keywordtype">void</span>* from, <span class="keywordtype">int</span> from_size, <span class="keywordtype">void</span>* to, <span class="keywordtype">int</span> to_size, <span class="keywordtype">int</span> seed));</div>
