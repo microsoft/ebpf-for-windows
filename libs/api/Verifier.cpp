@@ -215,9 +215,14 @@ load_byte_code(
                 result = EBPF_NO_MEMORY;
                 goto Exit;
             }
-            size_t ebpf_bytes = raw_program.prog.size() * sizeof(ebpf_inst);
-            program->byte_code = (uint8_t*)calloc(1, ebpf_bytes);
-            if (program->byte_code == nullptr) {
+            size_t instruction_count = raw_program.prog.size();
+            if (instruction_count > UINT32_MAX) {
+                result = EBPF_NO_MEMORY;
+                goto Exit;
+            }
+            size_t ebpf_bytes = instruction_count * sizeof(ebpf_inst);
+            program->instructions = (ebpf_inst*)calloc(1, ebpf_bytes);
+            if (program->instructions == nullptr) {
                 result = EBPF_NO_MEMORY;
                 goto Exit;
             }
@@ -234,12 +239,9 @@ load_byte_code(
 
             int i = 0;
             for (ebpf_inst instruction : raw_program.prog) {
-                char* buffer = (char*)&instruction;
-                for (int j = 0; j < sizeof(ebpf_inst) && i < ebpf_bytes; i++, j++) {
-                    program->byte_code[i] = buffer[j];
-                }
+                program->instructions[i++] = instruction;
             }
-            program->byte_code_size = static_cast<uint32_t>(ebpf_bytes);
+            program->instruction_count = (uint32_t)instruction_count;
             programs.emplace_back(program);
             program = nullptr;
         }

@@ -17,7 +17,7 @@ ebpf_server_verify_and_load_program(
 {
     ebpf_result_t result;
 
-    if (info->byte_code_size == 0) {
+    if (info->instruction_count == 0) {
         return EBPF_INVALID_ARGUMENT;
     }
 
@@ -31,8 +31,8 @@ ebpf_server_verify_and_load_program(
         info->execution_type,
         info->map_count,
         info->handle_map,
-        info->byte_code_size,
-        info->byte_code,
+        info->instruction_count,
+        reinterpret_cast<ebpf_inst*>(info->instructions),
         const_cast<const char**>(logs),
         logs_size);
 

@@ -1271,7 +1271,7 @@ clean_up_ebpf_program(_In_ _Post_invalid_ ebpf_program_t* program)
     ebpf_assert(program);
     ebpf_program_unload(program);
 
-    free(program->byte_code);
+    free(program->instructions);
     free(program->program_name);
     free(program->section_name);
     free((void*)program->log_buffer);
@@ -2242,15 +2242,15 @@ ebpf_program_load_bytes(
     _In_ const ebpf_program_type_t* program_type,
     _In_opt_z_ const char* program_name,
     ebpf_execution_type_t execution_type,
-    _In_reads_(byte_code_size) const uint8_t* byte_code,
-    uint32_t byte_code_size,
+    _In_reads_(instruction_count) const ebpf_inst* instructions,
+    uint32_t instruction_count,
     _Out_writes_opt_(log_buffer_size) char* log_buffer,
     size_t log_buffer_size,
     _Out_ fd_t* program_fd)
 {
     EBPF_LOG_ENTRY();
     ebpf_assert(program_type);
-    ebpf_assert(byte_code);
+    ebpf_assert(instructions);
     ebpf_assert(program_fd);
     ebpf_assert(log_buffer || !log_buffer_size);
 
@@ -2280,20 +2280,18 @@ ebpf_program_load_bytes(
     load_info.program_type = *program_type;
     load_info.program_handle = reinterpret_cast<file_handle_t>(program_handle);
     load_info.execution_type = execution_type;
-    load_info.byte_code = const_cast<uint8_t*>(byte_code);
-    load_info.byte_code_size = byte_code_size;
+    load_info.instructions = (ebpf_instruction_t*)instructions;
+    load_info.instruction_count = instruction_count;
     load_info.execution_context = execution_context_kernel_mode;
 
     // Resolve map handles in byte code.
     std::vector<original_fd_handle_map_t> handle_map;
-    const ebpf_inst* instructions = reinterpret_cast<const ebpf_inst*>(byte_code);
-    const ebpf_inst* instruction_end = reinterpret_cast<const ebpf_inst*>(byte_code + byte_code_size);
-    for (size_t index = 0; index < byte_code_size / sizeof(ebpf_inst); index++) {
+    for (size_t index = 0; index < instruction_count; index++) {
         const ebpf_inst& first_instruction = instructions[index];
         if (first_instruction.opcode != INST_OP_LDDW_IMM) {
             continue;
         }
-        if (&instructions[index + 1] >= instruction_end) {
+        if (index + 1 >= instruction_count) {
             result = EBPF_INVALID_ARGUMENT;
             break;
         }
@@ -2388,8 +2386,8 @@ _ebpf_object_load_programs(_Inout_ struct bpf_object* object)
         load_info.program_type = program->program_type;
         load_info.program_handle = reinterpret_cast<file_handle_t>(program->handle);
         load_info.execution_type = object->execution_type;
-        load_info.byte_code = program->byte_code;
-        load_info.byte_code_size = program->byte_code_size;
+        load_info.instructions = reinterpret_cast<ebpf_instruction_t*>(program->instructions);
+        load_info.instruction_count = program->instruction_count;
         load_info.execution_context = execution_context_kernel_mode;
         load_info.map_count = (uint32_t)object->maps.size();
 

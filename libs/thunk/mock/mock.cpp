@@ -204,8 +204,8 @@ ebpf_rpc_load_program(ebpf_program_load_info* info, const char** logs, uint32_t*
         info->execution_type,
         info->map_count,
         info->handle_map,
-        info->byte_code_size,
-        info->byte_code,
+        info->instruction_count,
+        reinterpret_cast<ebpf_inst*>(info->instructions),
         const_cast<const char**>(logs),
         logs_size);
 
