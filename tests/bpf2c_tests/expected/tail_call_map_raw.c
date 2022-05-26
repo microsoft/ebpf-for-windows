@@ -162,12 +162,6 @@ callee(void* context)
 #line 40 "sample/tail_call_map.c"
     register uint64_t r1 = 0;
 #line 40 "sample/tail_call_map.c"
-    register uint64_t r2 = 0;
-#line 40 "sample/tail_call_map.c"
-    register uint64_t r3 = 0;
-#line 40 "sample/tail_call_map.c"
-    register uint64_t r6 = 0;
-#line 40 "sample/tail_call_map.c"
     register uint64_t r10 = 0;
 
 #line 40 "sample/tail_call_map.c"

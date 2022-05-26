@@ -23,7 +23,6 @@ typedef struct _process_entry
 int
 load(int argc, char** argv)
 {
-    const char* error_message = NULL;
     ebpf_result_t result;
     bpf_object* object = nullptr;
     bpf_program* program = nullptr;
@@ -32,14 +31,22 @@ load(int argc, char** argv)
     UNREFERENCED_PARAMETER(argc);
     UNREFERENCED_PARAMETER(argv);
 
-    result = ebpf_program_load(
-        "bindmonitor.o", nullptr, nullptr, EBPF_EXECUTION_INTERPRET, &object, &program_fd, &error_message);
-    if (result != EBPF_SUCCESS) {
-        fprintf(stderr, "Failed to load port quota eBPF program\n");
-        fprintf(stderr, "%s", error_message);
-        ebpf_free_string(error_message);
+    object = bpf_object__open("bindmonitor.o");
+    if (object == nullptr) {
+        fprintf(stderr, "Failed to open port quota eBPF program\n");
         return 1;
     }
+
+    ebpf_object_set_execution_type(object, EBPF_EXECUTION_INTERPRET);
+    program = bpf_object__next_program(object, nullptr);
+    if (bpf_object__load(object) < 0) {
+        fprintf(stderr, "Failed to load port quota eBPF program\n");
+        size_t log_buffer_size;
+        fprintf(stderr, "%s", bpf_program__log_buf(program, &log_buffer_size));
+        bpf_object__close(object);
+        return 1;
+    }
+    program_fd = bpf_program__fd(program);
 
     fd_t process_map_fd = bpf_object__find_map_fd_by_name(object, "process_map");
     if (process_map_fd <= 0) {

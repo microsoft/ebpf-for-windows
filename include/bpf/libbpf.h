@@ -307,6 +307,8 @@ bpf_object__load(struct bpf_object* obj);
  * @retval 0 The operation was successful.
  * @retval <0 An error occured, and errno was set.
  *
+ * @deprecated Use bpf_object__load() instead.
+ *
  * @exception EINVAL An invalid argument was provided.
  * @exception ENOMEM Out of memory.
  *
@@ -336,6 +338,16 @@ bpf_object__name(const struct bpf_object* obj);
  */
 struct bpf_object*
 bpf_object__next(struct bpf_object* prev);
+
+/**
+ * @brief Open a file without loading the programs.
+ *
+ * @param[in] path File name to open.
+ *
+ * @returns Pointer to an eBPF object, or NULL on failure.
+ */
+struct bpf_object*
+bpf_object__open(const char* path);
 
 /**
  * @brief Open a file without loading the programs.
@@ -482,6 +494,8 @@ bpf_object__unpin_programs(struct bpf_object* obj, const char* path);
  * @returns File descriptor that refers to the program, or <0 on error.
  * The caller should call _close() on the fd to close this when done.
  *
+ * @deprecated Use bpf_prog_load() instead.
+ *
  * @exception EACCES The program failed verification.
  * @exception EINVAL One or more parameters are incorrect.
  * @exception ENOMEM Out of memory.
@@ -514,38 +528,13 @@ bpf_load_program(
  * @exception EINVAL One or more parameters are incorrect.
  * @exception ENOMEM Out of memory.
  *
+ * @deprecated Use bpf_prog_load() instead.
+ *
  * @sa bpf_prog_load
  * @sa bpf_load_program
  */
 int
 bpf_load_program_xattr(const struct bpf_load_program_attr* load_attr, char* log_buf, size_t log_buf_sz);
-
-/**
- * @brief Load (but do not attach) eBPF maps and programs from an ELF file.
- *
- * @param[in] file Path name to an ELF file.
- * @param[in] type Program type to use for loading eBPF programs.  If BPF_PROG_TYPE_UNKNOWN,
- * the program type is derived from the section prefix in the ELF file.
- * @param[out] pobj Pointer to where to store the eBPF object loaded. The caller
- * is expected to call bpf_object__close() to free the object.
- * @param[out] prog_fd Returns a file descriptor for the first program.
- * The caller should not call _close() on the fd, but should instead use
- * bpf_object__close() on the object returned.
- *
- * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
- *
- * @exception EACCES The program failed verification.
- * @exception EINVAL One or more parameters are incorrect.
- * @exception ENOMEM Out of memory.
- *
- * @sa bpf_load_program
- * @sa bpf_load_program_xattr
- * @sa bpf_object__close
- * @sa bpf_program__attach
- */
-int
-bpf_prog_load(const char* file, enum bpf_prog_type type, struct bpf_object** pobj, int* prog_fd);
 
 /**
  * @brief Attach an eBPF program to a hook associated with the program's expected attach type.

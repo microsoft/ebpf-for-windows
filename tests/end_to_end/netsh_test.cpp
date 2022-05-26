@@ -158,6 +158,22 @@ TEST_CASE("show sections map_reuse_um.dll", "[netsh][sections]")
                   "            xdp_prog        xdp       3    1087\n");
 }
 
+// Test a .dll file with multiple programs.
+TEST_CASE("show sections tail_call_multiple_um.dll", "[netsh][sections]")
+{
+    int result;
+    std::string output =
+        _run_netsh_command(handle_ebpf_show_sections, L"tail_call_multiple_um.dll", nullptr, nullptr, &result);
+    REQUIRE(result == NO_ERROR);
+    REQUIRE(
+        output == "\n"
+                  "             Section       Type  # Maps    Size\n"
+                  "====================  =========  ======  ======\n"
+                  "            xdp_prog        xdp       0     413\n"
+                  "          xdp_prog/0        xdp       0     413\n"
+                  "          xdp_prog/1        xdp       0     190\n");
+}
+
 // Test a .sys file with multiple programs, including ones with long names.
 TEST_CASE("show sections cgroup_sock_addr.sys", "[netsh][sections]")
 {
@@ -169,10 +185,10 @@ TEST_CASE("show sections cgroup_sock_addr.sys", "[netsh][sections]")
         output == "\n"
                   "             Section       Type  # Maps    Size\n"
                   "====================  =========  ======  ======\n"
-                  " cgroup/recv_accept6  sock_addr       2     728\n"
-                  " cgroup/recv_accept4  sock_addr       2     594\n"
+                  "     cgroup/connect4  sock_addr       2     594\n"
                   "     cgroup/connect6  sock_addr       2     728\n"
-                  "     cgroup/connect4  sock_addr       2     594\n");
+                  " cgroup/recv_accept4  sock_addr       2     594\n"
+                  " cgroup/recv_accept6  sock_addr       2     728\n");
 }
 
 TEST_CASE("show verification nosuchfile.o", "[netsh][verification]")

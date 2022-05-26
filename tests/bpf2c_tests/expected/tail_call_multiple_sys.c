@@ -349,10 +349,6 @@ callee1(void* context)
 #line 41 "sample/tail_call_multiple.c"
     register uint64_t r1 = 0;
 #line 41 "sample/tail_call_multiple.c"
-    register uint64_t r2 = 0;
-#line 41 "sample/tail_call_multiple.c"
-    register uint64_t r3 = 0;
-#line 41 "sample/tail_call_multiple.c"
     register uint64_t r10 = 0;
 
 #line 41 "sample/tail_call_multiple.c"

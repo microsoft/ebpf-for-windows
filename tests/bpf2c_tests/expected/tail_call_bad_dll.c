@@ -210,12 +210,6 @@ callee(void* context)
 #line 37 "sample/tail_call_bad.c"
     register uint64_t r1 = 0;
 #line 37 "sample/tail_call_bad.c"
-    register uint64_t r2 = 0;
-#line 37 "sample/tail_call_bad.c"
-    register uint64_t r3 = 0;
-#line 37 "sample/tail_call_bad.c"
-    register uint64_t r6 = 0;
-#line 37 "sample/tail_call_bad.c"
     register uint64_t r10 = 0;
 
 #line 37 "sample/tail_call_bad.c"

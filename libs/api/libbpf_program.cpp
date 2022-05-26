@@ -103,6 +103,7 @@ bpf_load_program_xattr(const struct bpf_load_program_attr* load_attr, char* log_
     fd_t program_fd;
     ebpf_result_t result = ebpf_program_load_bytes(
         program_type,
+        load_attr->name,
         EBPF_EXECUTION_ANY,
         (const uint8_t*)load_attr->insns,
         (uint32_t)byte_code_size,
@@ -140,8 +141,49 @@ bpf_load_program(
 }
 
 int
+bpf_prog_load(
+    enum bpf_prog_type prog_type,
+    const char* prog_name,
+    const char* license,
+    const struct bpf_insn* insns,
+    size_t insn_cnt,
+    const struct bpf_prog_load_opts* opts)
+{
+    UNREFERENCED_PARAMETER(license);
+
+    const ebpf_program_type_t* program_type = _get_ebpf_program_type(prog_type);
+    if (program_type == nullptr) {
+        return libbpf_err(-EINVAL);
+    }
+
+    if ((insn_cnt == 0) || (insn_cnt > UINT32_MAX / sizeof(ebpf_inst))) {
+        return libbpf_err(-EINVAL);
+    }
+
+    char* log_buffer = (opts) ? opts->log_buf : nullptr;
+    size_t log_buffer_size = (opts) ? opts->log_size : 0;
+
+    fd_t program_fd;
+    ebpf_result_t result = ebpf_program_load_bytes(
+        program_type,
+        prog_name,
+        EBPF_EXECUTION_ANY,
+        (const uint8_t*)insns,
+        (uint32_t)(insn_cnt * sizeof(ebpf_inst)),
+        log_buffer,
+        log_buffer_size,
+        &program_fd);
+    if (result != EBPF_SUCCESS) {
+        return libbpf_result_err(result);
+    }
+    return program_fd;
+}
+
+int
 bpf_prog_load_deprecated(const char* file_name, enum bpf_prog_type type, struct bpf_object** object, int* program_fd)
 {
+    *object = nullptr;
+
     const ebpf_program_type_t* program_type = _get_ebpf_program_type(type);
 
     if (program_type == nullptr) {
@@ -149,11 +191,22 @@ bpf_prog_load_deprecated(const char* file_name, enum bpf_prog_type type, struct 
     }
 
     const char* log_buffer;
+    struct bpf_object* new_object;
     ebpf_result_t result =
-        ebpf_program_load(file_name, program_type, nullptr, EBPF_EXECUTION_ANY, object, (fd_t*)program_fd, &log_buffer);
+        ebpf_object_open(file_name, nullptr, nullptr, program_type, nullptr, &new_object, &log_buffer);
+    free((void*)log_buffer);
     if (result != EBPF_SUCCESS) {
         return libbpf_result_err(result);
     }
+
+    result = ebpf_object_load(new_object);
+    if (result != EBPF_SUCCESS) {
+        ebpf_object_close(new_object);
+        return libbpf_result_err(result);
+    }
+    struct bpf_program* program = bpf_object__next_program(new_object, nullptr);
+    *program_fd = bpf_program__fd(program);
+    *object = new_object;
     return 0;
 }
 
@@ -179,6 +232,13 @@ size_t
 bpf_program__size(const struct bpf_program* program)
 {
     return program->byte_code_size;
+}
+
+const char*
+bpf_program__log_buf(const struct bpf_program* program, size_t* log_size)
+{
+    *log_size = program->log_buffer_size;
+    return program->log_buffer;
 }
 
 struct bpf_link*

@@ -32,7 +32,7 @@ connection_test(
 {
     struct bpf_object* object;
     int program_fd;
-    int result = bpf_prog_load("cgroup_sock_addr.o", BPF_PROG_TYPE_CGROUP_SOCK_ADDR, &object, &program_fd);
+    int result = bpf_prog_load_deprecated("cgroup_sock_addr.o", BPF_PROG_TYPE_CGROUP_SOCK_ADDR, &object, &program_fd);
     REQUIRE(result == 0);
     REQUIRE(object != nullptr);
 
@@ -158,7 +158,7 @@ TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
 {
     struct bpf_object* object;
     int program_fd;
-    int result = bpf_prog_load("cgroup_sock_addr.o", BPF_PROG_TYPE_CGROUP_SOCK_ADDR, &object, &program_fd);
+    int result = bpf_prog_load_deprecated("cgroup_sock_addr.o", BPF_PROG_TYPE_CGROUP_SOCK_ADDR, &object, &program_fd);
     REQUIRE(result == 0);
     REQUIRE(object != nullptr);
 
@@ -203,7 +203,7 @@ connection_monitor_test(
 {
     struct bpf_object* object;
     int program_fd;
-    int result = bpf_prog_load("sockops.o", BPF_PROG_TYPE_SOCK_OPS, &object, &program_fd);
+    int result = bpf_prog_load_deprecated("sockops.o", BPF_PROG_TYPE_SOCK_OPS, &object, &program_fd);
     REQUIRE(result == 0);
     REQUIRE(object != nullptr);
 
@@ -376,7 +376,7 @@ TEST_CASE("attach_sockops_programs", "[sock_ops_tests]")
 {
     struct bpf_object* object;
     int program_fd;
-    int result = bpf_prog_load("sockops.o", BPF_PROG_TYPE_SOCK_OPS, &object, &program_fd);
+    int result = bpf_prog_load_deprecated("sockops.o", BPF_PROG_TYPE_SOCK_OPS, &object, &program_fd);
     REQUIRE(result == 0);
     REQUIRE(object != nullptr);
 
