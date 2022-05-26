@@ -23,7 +23,7 @@ spec:
       hostNetwork: true
       containers:
       - name: ebpf-for-windows
-        image: docker.io/songtjiang/ebpfwin-install:01
+        image: <your ebpf-for-windows image path>
         imagePullPolicy: Always
         args:
         - ".\\install-ebpf-for-windows.ps1"
