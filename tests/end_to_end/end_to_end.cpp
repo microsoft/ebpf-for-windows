@@ -917,7 +917,7 @@ verify_bad_section(const char* path)
     result = ebpf_api_elf_verify_section_from_file(path, "xdp", false, &report, &error_message, &stats);
     REQUIRE(result != 0);
     REQUIRE(report == nullptr);
-    std::string expected_error_message = "error: Can't find section xdp in file " + std::string(path);
+    std::string expected_error_message = "error: No symbol section found in ELF file " + std::string(path);
     REQUIRE(strcmp(error_message, expected_error_message.c_str()) == 0);
     ebpf_free_string(report);
     ebpf_free_string(error_message);
