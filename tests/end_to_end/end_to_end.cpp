@@ -1534,7 +1534,13 @@ TEST_CASE("printk", "[end_to_end]")
                                   "Hello, world\n"
                                   "PID: " +
                                   std::to_string(ctx.process_id) +
-                                  "\n"
+                                  " using %u\n"
+                                  "PID: " +
+                                  std::to_string(ctx.process_id) +
+                                  " using %lu\n"
+                                  "PID: " +
+                                  std::to_string(ctx.process_id) +
+                                  " using %llu\n"
                                   "PID: " +
                                   std::to_string(ctx.process_id) +
                                   " PROTO: 2\n"

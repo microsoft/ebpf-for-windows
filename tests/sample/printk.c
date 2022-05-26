@@ -25,7 +25,9 @@ func(bind_md_t* ctx)
 
     // Now try additional arguments.
     uint64_t pid_tgid = bpf_get_current_pid_tgid();
-    bytes_written += bpf_printk("PID: %u", pid_tgid >> 32);
+    bytes_written += bpf_printk("PID: %u using %%u", pid_tgid >> 32);
+    bytes_written += bpf_printk("PID: %lu using %%lu", pid_tgid >> 32);
+    bytes_written += bpf_printk("PID: %llu using %%llu", pid_tgid >> 32);
     bytes_written += bpf_printk("PID: %u PROTO: %u", ctx->process_id, ctx->protocol);
     bytes_written +=
         bpf_printk("PID: %u PROTO: %u ADDRLEN: %u", ctx->process_id, ctx->protocol, ctx->socket_address_length);

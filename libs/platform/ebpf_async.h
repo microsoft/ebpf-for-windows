@@ -68,6 +68,14 @@ extern "C"
     ebpf_async_set_completion_callback(_In_ void* context, _In_ void (*on_complete)(_In_ void*, size_t, ebpf_result_t));
 
     /**
+     * @brief Set a completion function to be called when actions associated with this context complete.
+     *
+     * @param[in] context Context of action to stop tracking.
+     */
+    ebpf_result_t
+    ebpf_async_reset_completion_callback(_In_ void* context);
+
+    /**
      * @brief Set a cancellation function to be called when actions associated with this context are canceled.
      *
      * @param[in] context Context of action to track.

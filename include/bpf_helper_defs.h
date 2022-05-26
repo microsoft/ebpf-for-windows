@@ -111,7 +111,7 @@ EBPF_HELPER(uint64_t, bpf_get_smp_processor_id, ());
  */
 EBPF_HELPER(uint64_t, bpf_ktime_get_ns, ());
 #ifndef __doxygen
-#define bpf_ktime_get_ns ((bpf_ktime_get_ns_t)BPF_FUNC_ktime_get_boot_ns)
+#define bpf_ktime_get_ns ((bpf_ktime_get_ns_t)BPF_FUNC_ktime_get_ns)
 #endif
 
 /**

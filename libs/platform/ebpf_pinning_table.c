@@ -233,10 +233,8 @@ ebpf_pinning_table_enumerate_entries(
     ebpf_utf8_string_t* next_object_path;
     ebpf_pinning_entry_t* new_entry = NULL;
 
-    if ((entry_count == NULL) || (pinning_entries == NULL)) {
-        result = EBPF_INVALID_ARGUMENT;
-        goto Exit;
-    }
+    ebpf_assert(entry_count);
+    ebpf_assert(pinning_entries);
 
     state = ebpf_lock_lock(&pinning_table->lock);
     lock_held = TRUE;
