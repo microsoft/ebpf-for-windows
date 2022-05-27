@@ -152,19 +152,60 @@ jobs:
       code_coverage: false
       gather_dumps: true
 
-  # Run the libfuzzer tests in GitHub.
-  fuzzing:
+  bpf2c_fuzzer:
     needs: libfuzzer
     # Always run this job.
     if: github.event_name == 'schedule' || github.event_name == 'pull_request'
     uses: ./.github/workflows/reusable-test.yml
     with:
-      name: fuzzing
+      name: bpf2c_fuzzer
+      test_command: bpf2c_fuzzer.exe bpf2c_fuzzer_corpus -use_value_profile=1 -max_total_time=1800
+      build_artifact: Build-x64-fuzzer
+      environment: windows-2019
+      code_coverage: false
+      gather_dumps: true
+
+  core_helper_fuzzer:
+    needs: libfuzzer
+    # Always run this job.
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: core_helper_fuzzer
       test_command: core_helper_fuzzer ..\..\tests\libfuzzer\core_helper_fuzzer\corpus -max_len=139 -runs=3000 -use_value_profile=1
       build_artifact: Build-x64-fuzzer
       environment: windows-2019
       code_coverage: false
       gather_dumps: true
+
+  execution_context_fuzzer:
+    needs: libfuzzer
+    # Always run this job.
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: execution_context_fuzzer
+      test_command: execution_context_fuzzer.exe execution_context_fuzzer_corpus -use_value_profile=1 -max_total_time=1800
+      build_artifact: Build-x64-fuzzer
+      environment: windows-2019
+      code_coverage: false
+      gather_dumps: true
+
+  # Enable this once https://github.com/vbpf/ebpf-verifier/pull/350 is merged and
+  # this repo updated to point to the resulting ebpf-verifier commit.
+  #
+  #verifier_fuzzer:
+  #  needs: libfuzzer
+  #  # Always run this job.
+  #  if: github.event_name == 'schedule' || github.event_name == 'pull_request'
+  #  uses: ./.github/workflows/reusable-test.yml
+  #  with:
+  #    name: verifier_fuzzer
+  #    test_command: verifier_fuzzer.exe verifier_corpus -use_value_profile=1 -max_total_time=1800
+  #    build_artifact: Build-x64-fuzzer
+  #    environment: windows-2019
+  #    code_coverage: false
+  #    gather_dumps: true
 
   # Run Cilium regression tests in GitHub.
   cilium_tests:
