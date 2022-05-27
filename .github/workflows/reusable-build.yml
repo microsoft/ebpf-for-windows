@@ -25,6 +25,12 @@ on:
       build_nuget:
         required: false
         type: boolean
+      cxx_flags:
+        required: false
+        type: string
+      ld_flags:
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -45,6 +51,8 @@ jobs:
       BUILD_CONFIGURATION: ${{matrix.configurations}}
       BUILD_PLATFORM: x64
       BUILD_OPTIONS: ${{inputs.build_options}}
+      CXX_FLAGS: ${{inputs.cxx_flags}}
+      LD_FLAGS: ${{inputs.ld_flags}}
 
     steps:
     - uses: actions/checkout@b0e28b5ac45a892f91e7d036f8200cf5ed489415
@@ -90,14 +98,16 @@ jobs:
     - name: Create verifier project
       working-directory: ${{env.GITHUB_WORKSPACE}}
       env:
-        CXXFLAGS: /ZH:SHA_256
+        CXXFLAGS: /ZH:SHA_256 ${{env.CXX_FLAGS}}
+        LDFLAGS: ${{env.LD_FLAGS}}
       run: |
         cmake -G "Visual Studio 16 2019" -S external\ebpf-verifier -B external\ebpf-verifier\build
 
     - name: Create catch2 project
       working-directory: ${{env.GITHUB_WORKSPACE}}
       env:
-        CXXFLAGS: /ZH:SHA_256
+        CXXFLAGS: /ZH:SHA_256 ${{env.CXX_FLAGS}}
+        LDFLAGS: ${{env.LD_FLAGS}}
       run: |
         cmake -G "Visual Studio 16 2019" -S external\catch2 -B external\catch2\build -DBUILD_TESTING=OFF
 
