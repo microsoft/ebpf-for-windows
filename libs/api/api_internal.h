@@ -550,11 +550,11 @@ ebpf_api_elf_enumerate_sections(
  * @param[in] execution_type The execution type to use for this program. If
  *  EBPF_EXECUTION_ANY is specified, execution type will be decided by a
  *  system-wide policy.
- * @param[in] byte_code The eBPF program byte code.
- * @param[in] byte_code_size Size in bytes (not instruction count) of the
+ * @param[in] instructions The eBPF program byte code.
+ * @param[in] instruction_count Number of instructions in the
  *  eBPF program byte code.
- * @param[out] log_buf The buffer in which to write log messages.
- * @param[in] log_buf_sz Size in bytes of the caller's log buffer.
+ * @param[out] log_buffer The buffer in which to write log messages.
+ * @param[in] log_buffer_size Size in bytes of the caller's log buffer.
  * @param[out] program_fd Returns a file descriptor for the program.
  *  The caller should call _close() on the fd to close this when done.
  *
@@ -569,8 +569,8 @@ ebpf_program_load_bytes(
     _In_ const ebpf_program_type_t* program_type,
     _In_opt_z_ const char* program_name,
     ebpf_execution_type_t execution_type,
-    _In_reads_(instruction_count) const ebpf_inst* byte_code,
+    _In_reads_(instruction_count) const ebpf_inst* instructions,
     uint32_t instruction_count,
-    _Out_writes_opt_(log_buf_sz) char* log_buf,
-    size_t log_buf_sz,
+    _Out_writes_opt_(log_buffer_size) char* log_buffer,
+    size_t log_buffer_size,
     _Out_ fd_t* program_fd);
