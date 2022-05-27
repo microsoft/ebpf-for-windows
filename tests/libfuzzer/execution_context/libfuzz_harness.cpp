@@ -139,7 +139,7 @@ static std::map<std::string, ebpf_map_definition_in_memory_t> _map_definitions =
         },
     },
     {
-        "BPF_MAP_TYPE_STACK",
+        "BPF_MAP_TYPE_PERCPU_ARRAY",
         {
             BPF_MAP_TYPE_PERCPU_ARRAY,
             0,
