@@ -335,8 +335,10 @@ fuzz_program(
             break;
         }
         case EBPF_ARGUMENT_TYPE_CONST_SIZE: {
-            // Put the supplied size into the argument.
             assert(arg_count > 0);
+            assert(argument[arg_count - 1] != 0);
+
+            // Put the supplied size into the argument.
             uint8_t arg_size;
             if (!consume_data(&data_left, &data_left_size, (uint8_t*)&arg_size, sizeof(arg_size)) || (arg_size == 0) ||
                 (arg_size > MAX_BUFFER_SIZE)) {
@@ -351,8 +353,10 @@ fuzz_program(
             break;
         }
         case EBPF_ARGUMENT_TYPE_CONST_SIZE_OR_ZERO: {
-            // Put the supplied size into the argument.
             assert(arg_count > 0);
+            assert(argument[arg_count - 1] != 0);
+
+            // Put the supplied size into the argument.
             uint8_t arg_size;
             if (!consume_data(&data_left, &data_left_size, (uint8_t*)&arg_size, sizeof(arg_size)) ||
                 (arg_size > MAX_BUFFER_SIZE)) {
