@@ -21,27 +21,9 @@
 #include "libfuzzer.h"
 #include "platform.h"
 
-#if 0
-class program_info
-{
-  public:
-
-    GUID program_type;
-    std::unique_ptr<_program_info_provider> provider;
-    ebpf_handle_t program_handle;
-
-        program_info(const GUID& type) {
-            program_type = type;
-            provider = std::make_unique<_program_info_provider>(type);
-            program_handle = ebpf_handle_invalid;
-        }
-};
-
-static std::vector<std::unique_ptr<program_info>> _program_infos;
-#endif
-
-// Currently the only program type with helpers is XDP.
-// TODO: but all this does is fuzz the test mock helper, so not very interesting.
+// Currently the only program type with helpers is XDP. Although this test just
+// uses the mock helper for XDP, it does result in exercising the core path for
+// ids out of range of the core ones.
 static std::vector<GUID> _program_types = {EBPF_PROGRAM_TYPE_XDP};
 
 static std::map<std::string, ebpf_map_definition_in_memory_t> _map_definitions = {
@@ -50,7 +32,7 @@ static std::map<std::string, ebpf_map_definition_in_memory_t> _map_definitions =
         {
             BPF_MAP_TYPE_HASH,
             4,
-            20,
+            4,
             10,
         },
     },
@@ -59,7 +41,7 @@ static std::map<std::string, ebpf_map_definition_in_memory_t> _map_definitions =
         {
             BPF_MAP_TYPE_ARRAY,
             4,
-            20,
+            4,
             10,
         },
     },
@@ -68,7 +50,7 @@ static std::map<std::string, ebpf_map_definition_in_memory_t> _map_definitions =
         {
             BPF_MAP_TYPE_PROG_ARRAY,
             4,
-            20,
+            4,
             10,
         },
     },
@@ -77,7 +59,7 @@ static std::map<std::string, ebpf_map_definition_in_memory_t> _map_definitions =
         {
             BPF_MAP_TYPE_PERCPU_HASH,
             4,
-            20,
+            4,
             10,
         },
     },
@@ -86,7 +68,7 @@ static std::map<std::string, ebpf_map_definition_in_memory_t> _map_definitions =
         {
             BPF_MAP_TYPE_PERCPU_ARRAY,
             4,
-            20,
+            4,
             10,
         },
     },
@@ -95,7 +77,7 @@ static std::map<std::string, ebpf_map_definition_in_memory_t> _map_definitions =
         {
             BPF_MAP_TYPE_HASH_OF_MAPS,
             4,
-            20,
+            4,
             10,
         },
     },
@@ -104,7 +86,7 @@ static std::map<std::string, ebpf_map_definition_in_memory_t> _map_definitions =
         {
             BPF_MAP_TYPE_ARRAY_OF_MAPS,
             4,
-            20,
+            4,
             10,
         },
     },
@@ -113,7 +95,7 @@ static std::map<std::string, ebpf_map_definition_in_memory_t> _map_definitions =
         {
             BPF_MAP_TYPE_LRU_HASH,
             4,
-            20,
+            4,
             10,
         },
     },
@@ -122,7 +104,7 @@ static std::map<std::string, ebpf_map_definition_in_memory_t> _map_definitions =
         {
             BPF_MAP_TYPE_LPM_TRIE,
             4,
-            20,
+            4,
             10,
         },
     },
@@ -131,7 +113,7 @@ static std::map<std::string, ebpf_map_definition_in_memory_t> _map_definitions =
         {
             BPF_MAP_TYPE_QUEUE,
             0,
-            20,
+            4,
             10,
         },
     },
@@ -140,7 +122,7 @@ static std::map<std::string, ebpf_map_definition_in_memory_t> _map_definitions =
         {
             BPF_MAP_TYPE_LRU_PERCPU_HASH,
             4,
-            20,
+            4,
             10,
         },
     },
@@ -149,17 +131,26 @@ static std::map<std::string, ebpf_map_definition_in_memory_t> _map_definitions =
         {
             BPF_MAP_TYPE_STACK,
             0,
-            20,
+            4,
             10,
         },
     },
     {
-        "BPF_MAP_TYPE_STACK",
+        "BPF_MAP_TYPE_PERCPU_ARRAY",
         {
             BPF_MAP_TYPE_PERCPU_ARRAY,
             0,
-            20,
+            4,
             10,
+        },
+    },
+    {
+        "BPF_MAP_TYPE_RINGBUF",
+        {
+            BPF_MAP_TYPE_RINGBUF,
+            0,
+            4,
+            64 * 1024,
         },
     },
 };
@@ -196,11 +187,23 @@ class fuzz_wrapper
             ebpf_handle_t handle;
             if (ebpf_core_create_map(&utf8_name, &def, ebpf_handle_invalid, &handle) == EBPF_SUCCESS) {
                 handles.push_back(handle);
+
+                ebpf_map_t* map = NULL;
+                if (ebpf_reference_object_by_handle(handle, EBPF_OBJECT_MAP, (ebpf_core_object_t**)&map) ==
+                    EBPF_SUCCESS) {
+                    maps[def.type] = map;
+                    if (def.type == BPF_MAP_TYPE_PROG_ARRAY) {
+                        prog_array_map = map;
+                    }
+                }
             }
         }
     }
     ~fuzz_wrapper()
     {
+        for (auto& [_, map] : maps) {
+            ebpf_object_release_reference((ebpf_core_object_t*)map);
+        }
         for (auto& handle : handles) {
             ebpf_handle_close(handle);
         };
@@ -214,13 +217,39 @@ class fuzz_wrapper
         return handles[0];
     }
 
+    _Ret_maybenull_ ebpf_map_t*
+    get_map(ebpf_map_type_t type)
+    {
+        return maps.contains(type) ? maps[type] : nullptr;
+    }
+
+    _Ret_maybenull_ ebpf_map_t*
+    get_prog_array_map()
+    {
+        return prog_array_map;
+    }
+
   private:
     std::vector<std::unique_ptr<_program_info_provider>> program_information_providers;
     std::vector<ebpf_handle_t> handles;
+    std::map<ebpf_map_type_t, ebpf_map_t*> maps;
+    ebpf_map_t* prog_array_map = nullptr;
 };
+
+_Ret_maybenull_ ebpf_map_definition_in_memory_t*
+get_map_definition(ebpf_map_type_t type)
+{
+    for (auto& [_, m] : _map_definitions) {
+        if (m.type == type) {
+            return &m;
+        }
+    }
+    return nullptr;
+}
 
 FUZZ_EXPORT int __cdecl LLVMFuzzerInitialize(int*, char***) { return 0; }
 
+// Generic helper prototypes.
 typedef uint64_t (*function0_t)();
 typedef uint64_t (*function1_t)(uint64_t r1);
 typedef uint64_t (*function2_t)(uint64_t r1, uint64_t r2);
@@ -228,11 +257,209 @@ typedef uint64_t (*function3_t)(uint64_t r1, uint64_t r2, uint64_t r3);
 typedef uint64_t (*function4_t)(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4);
 typedef uint64_t (*function5_t)(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5);
 
+// Consume the next output_size bytes from the input data and save them in the supplied output buffer.
+bool
+consume_data(const uint8_t** input, size_t* input_size, _Out_writes_(output_size) uint8_t* output, size_t output_size)
+{
+    if (*input_size < output_size) {
+        return false;
+    }
+    memcpy(output, *input, output_size);
+    *input += output_size;
+    *input_size -= output_size;
+    return true;
+}
+
+// For testing purposes, use up to 64-byte buffers for things like csum diff.
+#define MAX_BUFFER_SIZE 64
+
+void
+fuzz_program(
+    fuzz_wrapper& fuzz_state,
+    ebpf_handle_t program_handle,
+    _In_ ebpf_program_t* program,
+    _In_reads_(data_left_size) const uint8_t* data_left,
+    size_t data_left_size)
+{
+    // Get the set of helper function prototypes.
+    ebpf_program_info_t* program_info = nullptr;
+    ebpf_result_t result = ebpf_program_get_program_info(program, &program_info);
+    if (result != EBPF_SUCCESS) {
+        return;
+    }
+
+    // Get helper index.
+    uint8_t helper_index;
+    if (!consume_data(&data_left, &data_left_size, &helper_index, sizeof(helper_index)) ||
+        (helper_index >= program_info->count_of_helpers)) {
+        // No such helper id.
+        return;
+    }
+    ebpf_helper_function_prototype_t* prototype = &program_info->helper_prototype[helper_index];
+
+    // Get the helper function pointer.
+    ebpf_helper_id_t helper_function_id = (ebpf_helper_id_t)prototype->helper_id;
+    uint64_t helper_function_address = 0;
+    result =
+        ebpf_core_resolve_helper(program_handle, 1, (const uint32_t*)&helper_function_id, &helper_function_address);
+    if (result != EBPF_SUCCESS) {
+        return;
+    }
+
+    // Declare some memory usable when calling a helper.
+    uint8_t packet_buffer[MAX_BUFFER_SIZE] = {0};
+    std::vector<uint8_t> packet{packet_buffer, packet_buffer + sizeof(packet_buffer)};
+    xdp_md_helper_t xdp_helper(packet);
+    char writable_buffer[MAX_BUFFER_SIZE] = {0};
+    int readable_buffer_index = 0;
+    char readable_buffer[2][MAX_BUFFER_SIZE];
+    char map_key[MAX_BUFFER_SIZE];
+    char map_value[MAX_BUFFER_SIZE];
+    ebpf_map_type_t map_type = BPF_MAP_TYPE_UNSPEC;
+
+    // Fill args based on data supplied by the fuzzer.
+    uint64_t argument[5] = {0};
+    int arg_count = 0;
+    while (arg_count < 5) {
+        ebpf_argument_type_t type = prototype->arguments[arg_count];
+        if (type == EBPF_ARGUMENT_TYPE_DONTCARE) {
+            break;
+        }
+        switch (type) {
+        case EBPF_ARGUMENT_TYPE_ANYTHING: {
+            // Fill the argument with supplied data.
+            if (!consume_data(
+                    &data_left, &data_left_size, (uint8_t*)&argument[arg_count], sizeof(argument[arg_count]))) {
+                return;
+            }
+            break;
+        }
+        case EBPF_ARGUMENT_TYPE_CONST_SIZE: {
+            // Put the supplied size into the argument.
+            assert(arg_count > 0);
+            uint8_t arg_size;
+            if (!consume_data(&data_left, &data_left_size, (uint8_t*)&arg_size, sizeof(arg_size)) || (arg_size == 0) ||
+                (arg_size > MAX_BUFFER_SIZE)) {
+                return;
+            }
+            argument[arg_count] = arg_size;
+
+            // Put the supplied data into the previous argument.
+            if (!consume_data(&data_left, &data_left_size, (uint8_t*)argument[arg_count - 1], arg_size)) {
+                return;
+            }
+            break;
+        }
+        case EBPF_ARGUMENT_TYPE_CONST_SIZE_OR_ZERO: {
+            // Put the supplied size into the argument.
+            assert(arg_count > 0);
+            uint8_t arg_size;
+            if (!consume_data(&data_left, &data_left_size, (uint8_t*)&arg_size, sizeof(arg_size)) ||
+                (arg_size > MAX_BUFFER_SIZE)) {
+                return;
+            }
+            argument[arg_count] = arg_size;
+            if (arg_size == 0) {
+                // Set the previous argument to NULL.
+                if (prototype->arguments[arg_count - 1] == EBPF_ARGUMENT_TYPE_PTR_TO_READABLE_MEM_OR_NULL) {
+                    argument[arg_count - 1] = 0;
+                }
+            } else {
+                // Put the supplied data into the previous argument.
+                if (!consume_data(&data_left, &data_left_size, (uint8_t*)argument[arg_count - 1], arg_size)) {
+                    return;
+                }
+            }
+            break;
+        }
+        case EBPF_ARGUMENT_TYPE_PTR_TO_CTX:
+            // Put the context into the argument.
+            argument[arg_count] = (uint64_t)&xdp_helper;
+            break;
+        case EBPF_ARGUMENT_TYPE_PTR_TO_MAP: {
+            // Put a map pointer into the argument.
+            uint8_t index;
+            if (!consume_data(&data_left, &data_left_size, &index, sizeof(index))) {
+                return;
+            }
+            map_type = (ebpf_map_type_t)index;
+            argument[arg_count] = (uint64_t)fuzz_state.get_map(map_type);
+            if (argument[arg_count] == 0) {
+                return;
+            }
+            break;
+        }
+        case EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY: {
+            // Put the supplied data into the argument.
+            ebpf_map_definition_in_memory_t* definition = get_map_definition(map_type);
+            if ((definition == nullptr) ||
+                !consume_data(&data_left, &data_left_size, (uint8_t*)&map_key, definition->key_size)) {
+                return;
+            }
+            argument[arg_count] = (uint64_t)map_key;
+            break;
+        }
+        case EBPF_ARGUMENT_TYPE_PTR_TO_MAP_OF_PROGRAMS:
+            // Put the PROG_ARRAY map pointer into the argument.
+            argument[arg_count] = (uint64_t)fuzz_state.get_prog_array_map();
+            break;
+        case EBPF_ARGUMENT_TYPE_PTR_TO_MAP_VALUE: {
+            // Put the supplied data into the argument.
+            ebpf_map_definition_in_memory_t* definition = get_map_definition(map_type);
+            if ((definition == nullptr) ||
+                !consume_data(&data_left, &data_left_size, (uint8_t*)&map_value, definition->value_size)) {
+                return;
+            }
+            argument[arg_count] = (uint64_t)map_value;
+            break;
+        }
+        case EBPF_ARGUMENT_TYPE_PTR_TO_READABLE_MEM:
+            // Put a pointer to the next readable buffer into the argument.
+            argument[arg_count] = (uint64_t)readable_buffer[readable_buffer_index++];
+            break;
+        case EBPF_ARGUMENT_TYPE_PTR_TO_READABLE_MEM_OR_NULL:
+            // Put a pointer to the next readable buffer into the argument.
+            argument[arg_count] = (uint64_t)readable_buffer[readable_buffer_index++];
+            break;
+        case EBPF_ARGUMENT_TYPE_PTR_TO_WRITABLE_MEM:
+            // Put a pointer to the writable buffer into the argument.
+            argument[arg_count] = (uint64_t)writable_buffer;
+            break;
+        }
+        arg_count++;
+    }
+    if (data_left_size > 0) {
+        // Fuzzer supplied too much data.
+        return;
+    }
+
+    // Call into the helper.
+    switch (arg_count) {
+    case 0:
+        ((function0_t)helper_function_address)();
+        break;
+    case 1:
+        ((function1_t)helper_function_address)(argument[0]);
+        break;
+    case 2:
+        ((function2_t)helper_function_address)(argument[0], argument[1]);
+        break;
+    case 3:
+        ((function3_t)helper_function_address)(argument[0], argument[1], argument[2]);
+        break;
+    case 4:
+        ((function4_t)helper_function_address)(argument[0], argument[1], argument[2], argument[3]);
+        break;
+    case 5:
+        ((function5_t)helper_function_address)(argument[0], argument[1], argument[2], argument[3], argument[4]);
+        break;
+    }
+}
+
 FUZZ_EXPORT int __cdecl LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
 {
-    fuzz_wrapper fuzz_state;
-
     // Get the program.
+    fuzz_wrapper fuzz_state;
     ebpf_handle_t program_handle = fuzz_state.get_program_handle();
     ebpf_program_t* program = NULL;
     ebpf_result_t result =
@@ -241,85 +468,7 @@ FUZZ_EXPORT int __cdecl LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
         return 0;
     }
 
-    // Get the set of helper function prototypes.
-    ebpf_program_info_t* program_info = nullptr;
-    result = ebpf_program_get_program_info(program, &program_info);
-    if (result != EBPF_SUCCESS) {
-        ebpf_object_release_reference((ebpf_core_object_t*)program);
-        return 0;
-    }
-
-#if 1
-    // Set the program to use all helper ids.
-    uint32_t* helper_function_ids = new uint32_t[program_info->count_of_helpers];
-    for (uint32_t i = 0; i < program_info->count_of_helpers; i++) {
-        helper_function_ids[i] = program_info->helper_prototype[i].helper_id;
-    }
-
-    result = ebpf_program_set_helper_function_ids(program, program_info->count_of_helpers, helper_function_ids);
-    if (result != EBPF_SUCCESS) {
-        return 0;
-    }
-
-    // Get all the helper function pointers.
-    uint64_t* helper_function_addresses = new uint64_t[program_info->count_of_helpers];
-    memset(helper_function_addresses, 0, program_info->count_of_helpers * sizeof(*helper_function_addresses));
-    result =
-        ebpf_program_get_helper_function_addresses(program, program_info->count_of_helpers, helper_function_addresses);
-    if (result != EBPF_SUCCESS) {
-        return 0;
-    }
-#else
-    // Get all the helper function pointers.
-    uint32_t* helper_function_ids = new uint32_t[program_info->count_of_helpers];
-    for (uint32_t i = 0; i < program_info->count_of_helpers; i++) {
-        helper_function_ids[i] = program_info->helper_prototype[i].helper_id;
-    }
-    uint64_t* helper_function_addresses = new uint64_t[program_info->count_of_helpers];
-    memset(helper_function_addresses, 0, program_info->count_of_helpers * sizeof(*helper_function_addresses));
-    result = ebpf_core_resolve_helper(
-        program_handle, program_info->count_of_helpers, helper_function_ids, helper_function_addresses);
-    if (result != EBPF_SUCCESS) {
-        return 0;
-    }
-#endif
-
-    // Call into a helper the same way the interpreter would.
-    uint64_t argument[5] = {0};
-    for (uint32_t i = 0; i < program_info->count_of_helpers; i++) {
-        int arg_count = 0;
-        while (arg_count < 5 && program_info->helper_prototype[i].arguments[arg_count] != EBPF_ARGUMENT_TYPE_DONTCARE) {
-            arg_count++;
-        }
-
-        // TODO: fill args based on data.
-        UNREFERENCED_PARAMETER(data);
-        UNREFERENCED_PARAMETER(size);
-
-        switch (arg_count) {
-        case 0:
-            ((function0_t)helper_function_addresses[i])();
-            break;
-        case 1:
-            ((function1_t)helper_function_addresses[i])(argument[0]);
-            break;
-        case 2: {
-            function2_t fcn = (function2_t)helper_function_addresses[i];
-            fcn(argument[0], argument[1]);
-            break;
-        }
-        case 3:
-            ((function3_t)helper_function_addresses[i])(argument[0], argument[1], argument[2]);
-            break;
-        case 4:
-            ((function4_t)helper_function_addresses[i])(argument[0], argument[1], argument[2], argument[3]);
-            break;
-        case 5:
-            ((function5_t)helper_function_addresses[i])(
-                argument[0], argument[1], argument[2], argument[3], argument[4]);
-            break;
-        }
-    }
+    fuzz_program(fuzz_state, program_handle, program, data, size);
 
     ebpf_object_release_reference((ebpf_core_object_t*)program);
 
