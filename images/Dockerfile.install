@@ -1,15 +1,16 @@
 # Copyright (c) Microsoft Corporation
 # SPDX-License-Identifier: MIT
 
-ARG RELEASE_ZIP="ebpf-for-windows-c-temp.zip"
-ARG WINDOWS_VERSION="1809"
+ARG WINDOWS_VERSION=1809
 
 # The files in this image are copied to $env:CONTAINER_SANDBOX_MOUNT_POINT on the host.
 FROM mcr.microsoft.com/windows/nanoserver:${WINDOWS_VERSION}
 
 ENV PATH="C:\Program Files\PowerShell;C:\utils;C:\Windows\system32;C:\Windows;C:\Windows\System32\WindowsPowerShell\v1.0;"
 
-COPY  ${RELEASE_ZIP} /ebpf-for-windows-c-temp.zip
-COPY  install-ebpf-for-windows.ps1 /
+ARG RELEASE_ZIP=ebpf-for-windows-c-temp.zip
+
+COPY ${RELEASE_ZIP} /ebpf-for-windows-c-temp.zip
+COPY install-ebpf-for-windows.ps1 /
 
 ENTRYPOINT ["powershell"]
