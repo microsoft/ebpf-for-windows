@@ -192,7 +192,7 @@ extern "C"
         _In_reads_(helper_function_count) const uint32_t* helper_function_ids);
 
     /**
-     * @brief Get the address of a helper functions referred to by the program. Assumes
+     * @brief Get the addresses of helper functions referred to by the program. Assumes
      * ebpf_program_set_helper_function_ids has already been invoked on the program object.
      *
      * @param[in] program Program object to query this on.
