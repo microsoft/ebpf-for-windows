@@ -191,14 +191,14 @@ _net_ebpf_xdp_update_registry_entries()
     //   Update section information.
     ebpf_section_info_t section_info = {L"xdp", EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP};
 
-    status = ebpf_registry_update_section_information(&section_info, 1);
+    status = ebpf_store_update_section_information(&section_info, 1);
     if (!NT_SUCCESS(status)) {
         return status;
     }
 
     // Program information
     _ebpf_xdp_program_info.program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_XDP;
-    status = ebpf_registry_update_program_information(&_ebpf_xdp_program_info, 1);
+    status = ebpf_store_update_program_information(&_ebpf_xdp_program_info, 1);
 
     return status;
 }

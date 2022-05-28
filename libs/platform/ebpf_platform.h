@@ -59,6 +59,7 @@ extern "C"
     typedef struct _ebpf_timer_work_item ebpf_timer_work_item_t;
     typedef struct _ebpf_extension_client ebpf_extension_client_t;
     typedef struct _ebpf_extension_provider ebpf_extension_provider_t;
+    typedef struct _ebpf_helper_function_prototype ebpf_helper_function_prototype_t;
     typedef ebpf_result_t (*_ebpf_extension_dispatch_function)();
     typedef struct _ebpf_extension_dispatch_table
     {
@@ -1096,6 +1097,10 @@ extern "C"
 
     void
     ebpf_trace_terminate();
+
+    ebpf_result_t
+    ebpf_update_global_helpers(
+        _In_reads_(helper_info_count) ebpf_helper_function_prototype_t* helper_info, int helper_info_count);
 
 #define EBPF_TRACELOG_EVENT_SUCCESS "EbpfSuccess"
 #define EBPF_TRACELOG_EVENT_GENERIC_ERROR "EbpfGenericError"

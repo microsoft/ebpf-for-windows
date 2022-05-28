@@ -7,7 +7,7 @@
 #include <Windows.h>
 #include "api_common.hpp"
 #include "device_helper.hpp"
-#include "ebpf_bind_program_data.h"
+// #include "ebpf_bind_program_data.h"
 #include "ebpf_platform.h"
 #include "ebpf_program_types.h"
 #include "ebpf_protocol.h"
@@ -16,7 +16,7 @@
 #include "ebpf_serialize.h"
 #include "ebpf_sockops_program_data.h"
 #include "ebpf_sock_addr_program_data.h"
-#include "ebpf_xdp_program_data.h"
+// #include "ebpf_xdp_program_data.h"
 #include "platform.h"
 #include "platform.hpp"
 
@@ -52,6 +52,7 @@ struct encode_program_info_t
     const uint8_t* data;
 };
 
+/*
 static std::map<GUID, encode_program_info_t, guid_compare> _encoded_program_info = {
     {EBPF_PROGRAM_TYPE_BIND, _ebpf_encoded_bind_program_info_data},
     {EBPF_PROGRAM_TYPE_SAMPLE, _ebpf_encoded_sample_ext_program_info_data},
@@ -59,6 +60,7 @@ static std::map<GUID, encode_program_info_t, guid_compare> _encoded_program_info
     {EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, _ebpf_encoded_sock_addr_program_info_data},
     {EBPF_PROGRAM_TYPE_XDP, _ebpf_encoded_xdp_program_info_data},
 };
+*/
 
 void
 set_program_under_verification(ebpf_handle_t program)
@@ -119,8 +121,8 @@ get_program_type_info(const ebpf_program_info_t** info)
     const GUID* program_type = reinterpret_cast<const GUID*>(global_program_info.type.platform_specific_data);
     ebpf_result_t result;
     ebpf_program_info_t* program_info;
-    const uint8_t* encoded_data = nullptr;
-    size_t encoded_data_size = 0;
+    // const uint8_t* encoded_data = nullptr;
+    // size_t encoded_data_size = 0;
     bool fall_back = false;
 
     // See if we already have the program info cached.
@@ -135,26 +137,28 @@ get_program_type_info(const ebpf_program_info_t** info)
         }
     }
 
-    if (fall_back) {
-        // Fall back to using static data so that verification can be tried
-        // (e.g., from a netsh command) even if the execution context isn't running.
-        // TODO: remove this in the future.
-        auto iter = _static_program_info_cache.find(*program_type);
-        if (iter == _static_program_info_cache.end()) {
-            auto encoded_program_info = _encoded_program_info.find(*program_type);
-            ebpf_assert(encoded_program_info != _encoded_program_info.end());
-            encoded_data = encoded_program_info->second.data;
-            encoded_data_size = encoded_program_info->second.size;
-            ebpf_assert(encoded_data != nullptr);
+    /*
+        if (fall_back) {
+            // Fall back to using static data so that verification can be tried
+            // (e.g., from a netsh command) even if the execution context isn't running.
+            // TODO: remove this in the future.
+            auto iter = _static_program_info_cache.find(*program_type);
+            if (iter == _static_program_info_cache.end()) {
+                auto encoded_program_info = _encoded_program_info.find(*program_type);
+                ebpf_assert(encoded_program_info != _encoded_program_info.end());
+                encoded_data = encoded_program_info->second.data;
+                encoded_data_size = encoded_program_info->second.size;
+                ebpf_assert(encoded_data != nullptr);
 
-            result = ebpf_program_info_decode(&program_info, encoded_data, (unsigned long)encoded_data_size);
-            if (result != EBPF_SUCCESS) {
-                return result;
+                result = ebpf_program_info_decode(&program_info, encoded_data, (unsigned long)encoded_data_size);
+                if (result != EBPF_SUCCESS) {
+                    return result;
+                }
+
+                _static_program_info_cache[*program_type] = ebpf_helper::ebpf_memory_ptr(program_info);
             }
-
-            _static_program_info_cache[*program_type] = ebpf_helper::ebpf_memory_ptr(program_info);
         }
-    }
+    */
 
     if (!fall_back) {
         *info = (const ebpf_program_info_t*)_program_info_cache[*program_type].get();

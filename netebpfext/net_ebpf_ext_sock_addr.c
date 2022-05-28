@@ -9,6 +9,7 @@
 
 #define INITGUID
 
+#include "driver_registry_helper.h"
 #include "net_ebpf_ext_sock_addr.h"
 
 //
@@ -178,10 +179,40 @@ _net_ebpf_extension_sock_addr_on_client_detach(_In_ const net_ebpf_extension_hoo
     net_ebpf_extension_wfp_filter_context_cleanup((net_ebpf_extension_wfp_filter_context_t*)filter_context);
 }
 
+static NTSTATUS
+_net_ebpf_sock_addr_update_registry_entries()
+{
+    NTSTATUS status;
+
+    // Update section information.
+    ebpf_section_info_t section_info[] = {
+        {L"cgroup/connect4", EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT},
+        {L"cgroup/connect6", EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT},
+        {L"cgroup/accept4", EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT},
+        {L"cgroup/accept6", EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT}};
+
+    status = ebpf_store_update_section_information(section_info, sizeof(section_info) / sizeof(ebpf_section_info_t));
+    if (!NT_SUCCESS(status)) {
+        return status;
+    }
+
+    // Program information
+    _ebpf_sock_addr_program_info.program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR;
+    status = ebpf_store_update_program_information(&_ebpf_sock_addr_program_info, 1);
+
+    return status;
+}
+
 NTSTATUS
 net_ebpf_ext_sock_addr_register_providers()
 {
     NTSTATUS status = STATUS_SUCCESS;
+
+    status = _net_ebpf_sock_addr_update_registry_entries();
+    if (!NT_SUCCESS(status)) {
+        return status;
+    }
+
     const net_ebpf_extension_program_info_provider_parameters_t program_info_provider_parameters = {
         &_ebpf_sock_addr_program_info_provider_moduleid, &_ebpf_sock_addr_program_info_provider_data};
 

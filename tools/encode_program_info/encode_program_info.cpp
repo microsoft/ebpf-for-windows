@@ -7,6 +7,7 @@
 #include "encode_program_info.h"
 #include "windows_program_type.h"
 
+/*
 static ebpf_result_t
 _emit_program_info_file(const char* file_name, const char* symbol_name, uint8_t* buffer, unsigned long buffer_size)
 {
@@ -29,7 +30,9 @@ _emit_program_info_file(const char* file_name, const char* symbol_name, uint8_t*
     fclose(output);
     return EBPF_SUCCESS;
 }
+*/
 
+/*
 static ebpf_result_t
 _encode_program_info(const EbpfProgramType& input_program_type)
 {
@@ -73,10 +76,12 @@ Done:
     ebpf_free(buffer);
     return return_value;
 }
+*/
 
 int
 main()
 {
+    /*
     for (const auto& program_type : windows_program_types) {
         if (IsEqualGUID(
                 *(reinterpret_cast<GUID*>(program_type.platform_specific_data)), EBPF_PROGRAM_TYPE_UNSPECIFIED)) {
@@ -84,5 +89,6 @@ main()
         }
         _encode_program_info(program_type);
     }
+    */
     return 0;
 }

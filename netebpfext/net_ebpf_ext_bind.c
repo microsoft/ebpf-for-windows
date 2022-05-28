@@ -8,6 +8,7 @@
 
 #define INITGUID
 
+#include "driver_registry_helper.h"
 #include "net_ebpf_ext_bind.h"
 
 //
@@ -117,10 +118,36 @@ _net_ebpf_extension_bind_on_client_detach(_In_ const net_ebpf_extension_hook_cli
 // NMR Registration Helper Routines.
 //
 
+static NTSTATUS
+_net_ebpf_bind_update_registry_entries()
+{
+    NTSTATUS status;
+
+    // Update section information.
+    ebpf_section_info_t section_info = {L"bind", EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND};
+
+    status = ebpf_store_update_section_information(&section_info, 1);
+    if (!NT_SUCCESS(status)) {
+        return status;
+    }
+
+    // Program information
+    _ebpf_bind_program_info.program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_BIND;
+    status = ebpf_store_update_program_information(&_ebpf_bind_program_info, 1);
+
+    return status;
+}
+
 NTSTATUS
 net_ebpf_ext_bind_register_providers()
 {
     NTSTATUS status = STATUS_SUCCESS;
+
+    status = _net_ebpf_bind_update_registry_entries();
+    if (!NT_SUCCESS(status)) {
+        return status;
+    }
+
     const net_ebpf_extension_program_info_provider_parameters_t program_info_provider_parameters = {
         &_ebpf_bind_program_info_provider_moduleid, &_ebpf_bind_program_info_provider_data};
     const net_ebpf_extension_hook_provider_parameters_t hook_provider_parameters = {

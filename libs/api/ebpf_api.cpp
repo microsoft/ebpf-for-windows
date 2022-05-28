@@ -163,9 +163,9 @@ ebpf_api_initiate()
         EBPF_RETURN_RESULT(win32_error_code_to_ebpf_result(status));
     }
 
-    // Load provider data from registry. Note that this is best effort
-    // and no data may be really be present in the registry.
-    load_provider_data_from_registry();
+    // Load provider data from ebpf store. This is best effort
+    // as there may be no data present in the store.
+    load_provider_data_from_store();
 
     EBPF_RETURN_RESULT(EBPF_SUCCESS);
 }
@@ -173,6 +173,7 @@ ebpf_api_initiate()
 void
 ebpf_api_terminate()
 {
+    clear_provider_data();
     _clean_up_ebpf_objects();
     clean_up_device_handle();
     clean_up_rpc_binding();
