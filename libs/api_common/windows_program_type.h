@@ -93,6 +93,7 @@ const EbpfProgramType windows_sock_ops_program_type = {
 
 // extern std::vector<EbpfProgramType> windows_program_types;
 
+/*
 const std::vector<EbpfProgramType> windows_program_types = {
     PTYPE("unspecified", {0}, 0, {}),
     windows_xdp_program_type,
@@ -100,6 +101,7 @@ const std::vector<EbpfProgramType> windows_program_types = {
     windows_sock_addr_program_type,
     windows_sock_ops_program_type,
     windows_sample_ext_program_type};
+*/
 
 typedef struct _ebpf_section_definition
 {

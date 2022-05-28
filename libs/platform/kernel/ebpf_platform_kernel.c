@@ -5,6 +5,7 @@
 // build system.
 #include <ntifs.h>
 
+#include "driver_registry_helper.h"
 #include "ebpf_platform.h"
 
 #include <ntstrsafe.h>
@@ -724,4 +725,14 @@ ebpf_platform_printk(_In_z_ const char* format, va_list arg_list)
 
     ebpf_free(output);
     return bytes_written;
+}
+
+ebpf_result_t
+ebpf_update_global_helpers(
+    _In_reads_(helper_info_count) ebpf_helper_function_prototype_t* helper_info, int helper_info_count)
+{
+    NTSTATUS status = ebpf_store_update_global_helper_information(helper_info, helper_info_count);
+    ebpf_result_t result = NT_SUCCESS(status) ? EBPF_SUCCESS : EBPF_FAILED;
+
+    return result;
 }

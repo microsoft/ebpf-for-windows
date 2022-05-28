@@ -11,6 +11,7 @@
 #include <guiddef.h>
 #include <ntddk.h>
 
+#include "driver_registry_helper.h"
 #include "ebpf_extension_uuids.h"
 #include "ebpf_platform.h"
 #include "ebpf_program_types.h"
@@ -303,6 +304,32 @@ sample_ebpf_extension_program_info_provider_unregister()
     NTSTATUS status = NmrDeregisterProvider(provider_context->nmr_provider_handle);
     if (status == STATUS_PENDING)
         NmrWaitForProviderDeregisterComplete(provider_context->nmr_provider_handle);
+}
+
+static NTSTATUS
+_sample_ebpf_extension_update_store_entries()
+{
+    NTSTATUS status;
+
+    // Update section information.
+    ebpf_section_info_t section_info = {L"sample_ext", EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE};
+
+    status = ebpf_store_update_section_information(&section_info, 1);
+    if (!NT_SUCCESS(status)) {
+        return status;
+    }
+
+    // Update program information
+    ebpf_extension_data_t* extension_data;
+    ebpf_program_data_t* program_data;
+    extension_data = (ebpf_extension_data_t*)_sample_ebpf_extension_program_info_provider_characteristics
+                         .ProviderRegistrationInstance.NpiSpecificCharacteristics;
+    program_data = (ebpf_program_data_t*)extension_data->data;
+    program_data->program_info->program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_SAMPLE;
+
+    status = ebpf_store_update_program_information(program_data->program_info, 1);
+
+    return status;
 }
 
 NTSTATUS
