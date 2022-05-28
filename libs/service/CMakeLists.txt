@@ -13,6 +13,7 @@ add_library("service" STATIC
 )
 
 target_include_directories("service" PRIVATE
+  "${CMAKE_BINARY_DIR}"
   "${CMAKE_SOURCE_DIR}/rpc_interface"
   "${CMAKE_SOURCE_DIR}/libs/api_common"
   "${CMAKE_SOURCE_DIR}/libs/api"

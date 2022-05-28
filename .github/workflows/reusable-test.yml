@@ -15,10 +15,6 @@ on:
       test_command:
         required: true
         type: string
-      # The name of the build job to wait for.
-      build_job:
-        required: true
-        type: string
       # The name of the build artifact to download.
       build_artifact:
         required: true
@@ -52,7 +48,7 @@ permissions:
 
 jobs:
   run_test:
-    timeout-minutes: 30
+    timeout-minutes: 60
 
     strategy:
       matrix:
@@ -97,16 +93,6 @@ jobs:
         New-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -ErrorAction SilentlyContinue
         New-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -Name "DumpType" -Value 2 -PropertyType DWord -ErrorAction SilentlyContinue
         New-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -Name "DumpFolder" -Value "c:\dumps\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}" -PropertyType ExpandString -ErrorAction SilentlyContinue
-
-    - name: Wait for build to succeed
-      uses: fountainhead/action-wait-for-check@507b029e31edbe1a72d4de429476e1f4efe98869
-      id: wait_for_build
-      with:
-        timeoutSeconds: 1500
-        intervalSeconds: 30
-        token: ${{secrets.GITHUB_TOKEN}}
-        checkName: ${{inputs.build_job}} (${{env.BUILD_CONFIGURATION}})
-        ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
     - name: Remove existing artifacts
       if: inputs.environment == 'ebpf_cicd_tests'
@@ -234,7 +220,7 @@ jobs:
 
     - name: Upload any crash dumps
       if: failure()
-      uses: actions/upload-artifact@6673cd052c4cd6fcf4b4e6e60ea986c889389535
+      uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8
       id: upload_crash_dumps
       with:
         name: Crash-Dumps-${{env.NAME}}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}
@@ -250,7 +236,7 @@ jobs:
     - name: Upload log files
       if: steps.check_logs.outputs.files_exists == 'true'
       id: upload_logs
-      uses: actions/upload-artifact@6673cd052c4cd6fcf4b4e6e60ea986c889389535
+      uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8
       with:
         name: Test-Logs-${{env.NAME}}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}
         path: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/TestLogs

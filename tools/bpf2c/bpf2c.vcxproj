@@ -121,6 +121,9 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PreBuildEvent>
+      <Command>powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Process-File.ps1 -InputFile Convert-BpfToNative.ps1.template -OutputFile $(OutDir)Convert-BpfToNative.ps1 -ConfigFile replacements.json</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -135,6 +138,9 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PreBuildEvent>
+      <Command>powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Process-File.ps1 -InputFile Convert-BpfToNative.ps1.template -OutputFile $(OutDir)Convert-BpfToNative.ps1 -ConfigFile replacements.json</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="bpf2c.cpp" />
@@ -190,13 +196,13 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="templates\kernel_mode_bpf2c.vcxproj">
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+      <FileType>Document</FileType>
     </None>
     <None Include="templates\sources.def">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
     </None>
     <None Include="templates\user_mode_bpf2c.vcxproj">
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+      <FileType>Document</FileType>
     </None>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

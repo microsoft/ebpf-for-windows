@@ -96,20 +96,22 @@ TEST_CASE("show sections bpf.o", "[netsh][sections]")
         output == "\n"
                   "             Section       Type  # Maps    Size\n"
                   "====================  =========  ======  ======\n"
-                  "            xdp_prog        xdp       0       2\n");
+                  "               .text        xdp       0      16\n");
 }
 
-TEST_CASE("show sections bpf.o xdp_prog", "[netsh][sections]")
+// Test specifying a section name.
+TEST_CASE("show sections bpf.o .text", "[netsh][sections]")
 {
     int result;
-    std::string output = _run_netsh_command(handle_ebpf_show_sections, L"bpf.o", L"xdp_prog", nullptr, &result);
+    std::string output = _run_netsh_command(handle_ebpf_show_sections, L"bpf.o", L".text", nullptr, &result);
     REQUIRE(result == NO_ERROR);
     REQUIRE(
         output == "\n"
-                  "Section      : xdp_prog\n"
+                  "Section      : .text\n"
                   "Program Type : xdp\n"
                   "# Maps       : 0\n"
-                  "Size         : 2 instructions\n"
+                  "Size         : 16 bytes\n"
+                  "Instructions : 2\n"
                   "adjust_head  : 0\n"
                   "arith        : 0\n"
                   "arith32      : 0\n"
@@ -127,6 +129,66 @@ TEST_CASE("show sections bpf.o xdp_prog", "[netsh][sections]")
                   "other        : 2\n"
                   "packet_access: 0\n"
                   "store        : 0\n");
+}
+
+// Test a .sys file.
+TEST_CASE("show sections bpf.sys", "[netsh][sections]")
+{
+    int result;
+    std::string output = _run_netsh_command(handle_ebpf_show_sections, L"bpf.sys", nullptr, nullptr, &result);
+    REQUIRE(result == NO_ERROR);
+
+    REQUIRE(
+        output == "\n"
+                  "             Section       Type  # Maps    Size\n"
+                  "====================  =========  ======  ======\n"
+                  "               .text        xdp       0    1752\n");
+}
+
+// Test a DLL with multiple maps in the map section.
+TEST_CASE("show sections map_reuse_um.dll", "[netsh][sections]")
+{
+    int result;
+    std::string output = _run_netsh_command(handle_ebpf_show_sections, L"map_reuse_um.dll", nullptr, nullptr, &result);
+    REQUIRE(result == NO_ERROR);
+    REQUIRE(
+        output == "\n"
+                  "             Section       Type  # Maps    Size\n"
+                  "====================  =========  ======  ======\n"
+                  "            xdp_prog        xdp       3    1087\n");
+}
+
+// Test a .dll file with multiple programs.
+TEST_CASE("show sections tail_call_multiple_um.dll", "[netsh][sections]")
+{
+    int result;
+    std::string output =
+        _run_netsh_command(handle_ebpf_show_sections, L"tail_call_multiple_um.dll", nullptr, nullptr, &result);
+    REQUIRE(result == NO_ERROR);
+    REQUIRE(
+        output == "\n"
+                  "             Section       Type  # Maps    Size\n"
+                  "====================  =========  ======  ======\n"
+                  "            xdp_prog        xdp       0     413\n"
+                  "          xdp_prog/0        xdp       0     413\n"
+                  "          xdp_prog/1        xdp       0     190\n");
+}
+
+// Test a .sys file with multiple programs, including ones with long names.
+TEST_CASE("show sections cgroup_sock_addr.sys", "[netsh][sections]")
+{
+    int result;
+    std::string output =
+        _run_netsh_command(handle_ebpf_show_sections, L"cgroup_sock_addr.sys", nullptr, nullptr, &result);
+    REQUIRE(result == NO_ERROR);
+    REQUIRE(
+        output == "\n"
+                  "             Section       Type  # Maps    Size\n"
+                  "====================  =========  ======  ======\n"
+                  "     cgroup/connect4  sock_addr       2     594\n"
+                  "     cgroup/connect6  sock_addr       2     728\n"
+                  " cgroup/recv_accept4  sock_addr       2     594\n"
+                  " cgroup/recv_accept6  sock_addr       2     728\n");
 }
 
 TEST_CASE("show verification nosuchfile.o", "[netsh][verification]")
@@ -179,10 +241,10 @@ TEST_CASE("show verification droppacket_unsafe.o", "[netsh][verification]")
                   "\n"
                   "; ./tests/sample/unsafe/droppacket_unsafe.c:37\n"
                   ";     if (ip_header->Protocol == IPPROTO_UDP) {\n"
-                  "2: Upper bound must be at most packet_size (valid_access(r1.offset+9, width=1))\n"
+                  "2: Upper bound must be at most packet_size (valid_access(r1.offset+9, width=1) for read)\n"
                   "; ./tests/sample/unsafe/droppacket_unsafe.c:38\n"
                   ";         if (ntohs(udp_header->length) <= sizeof(UDP_HEADER)) {\n"
-                  "4: Upper bound must be at most packet_size (valid_access(r1.offset+24, width=2))\n"
+                  "4: Upper bound must be at most packet_size (valid_access(r1.offset+24, width=2) for read)\n"
                   "\n"
                   "2 errors\n"
                   "\n");

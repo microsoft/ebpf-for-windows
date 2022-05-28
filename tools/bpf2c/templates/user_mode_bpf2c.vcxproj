@@ -23,7 +23,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="$(OutDir)$(ProgramName)_dll.c" />
+    <ClCompile Include="$(ProgramName)_dll.c" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
@@ -59,17 +59,16 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(IncludeDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4189;4245;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <ModuleDefinitionFile>$(SolutionDir)tools\bpf2c\templates\sources.def</ModuleDefinitionFile>
     </Link>
     <PreBuildEvent>
-      <Command>$(OutDir)bpf2c.exe --bpf $(OutDir)$(ProgramName).o --dll $(AdditionalOptions) &gt;$(OutDir)$(ProgramName)_dll.c</Command>
+      <Command>$(BinDir)bpf2c.exe --bpf $(ProgramName).o --dll $(AdditionalOptions) &gt;$(ProgramName)_dll.c</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -78,7 +77,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(IncludeDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4189;4245;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
     <Link>
@@ -87,10 +86,9 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <ModuleDefinitionFile>$(SolutionDir)tools\bpf2c\templates\sources.def</ModuleDefinitionFile>
     </Link>
     <PreBuildEvent>
-      <Command>$(OutDir)bpf2c.exe --bpf $(OutDir)$(ProgramName).o --dll $(AdditionalOptions) &gt;$(OutDir)$(ProgramName)_dll.c</Command>
+      <Command>$(BinDir)bpf2c.exe --bpf $(ProgramName).o --dll $(AdditionalOptions) &gt;$(ProgramName)_dll.c</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -99,17 +97,16 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(IncludeDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4189;4245;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <ModuleDefinitionFile>$(SolutionDir)tools\bpf2c\templates\sources.def</ModuleDefinitionFile>
     </Link>
     <PreBuildEvent>
-      <Command>$(OutDir)bpf2c.exe --bpf $(OutDir)$(ProgramName).o --dll $(AdditionalOptions) &gt;$(OutDir)$(ProgramName)_dll.c</Command>
+      <Command>$(BinDir)bpf2c.exe --bpf $(ProgramName).o --dll $(AdditionalOptions) &gt;$(ProgramName)_dll.c</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -118,7 +115,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(IncludeDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4189;4245;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
     <Link>
@@ -127,10 +124,9 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <ModuleDefinitionFile>$(SolutionDir)tools\bpf2c\templates\sources.def</ModuleDefinitionFile>
     </Link>
     <PreBuildEvent>
-      <Command>$(OutDir)bpf2c.exe --bpf $(OutDir)$(ProgramName).o --dll $(AdditionalOptions) &gt;$(OutDir)$(ProgramName)_dll.c</Command>
+      <Command>$(BinDir)bpf2c.exe --bpf $(ProgramName).o --dll $(AdditionalOptions) &gt;$(ProgramName)_dll.c</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

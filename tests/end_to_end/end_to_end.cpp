@@ -26,7 +26,6 @@
 #include "program_helper.h"
 #include "sample_test_common.h"
 #include "test_helper.hpp"
-#include "tlv.h"
 #include "xdp_tests_common.h"
 
 namespace ebpf {
@@ -315,12 +314,51 @@ typedef class _ip_in_ip_packet : public ip_packet_t
 #define SAMPLE_PATH ""
 #define TEST_IFINDEX 17
 
+int
+ebpf_program_load(
+    _In_z_ const char* file_name,
+    bpf_prog_type prog_type,
+    ebpf_execution_type_t execution_type,
+    _Outptr_result_maybenull_ struct bpf_object** object,
+    _Out_ fd_t* program_fd,
+    _Outptr_opt_result_maybenull_z_ const char** log_buffer)
+{
+    *object = nullptr;
+    *program_fd = ebpf_fd_invalid;
+    if (log_buffer) {
+        *log_buffer = nullptr;
+    }
+
+    bpf_object* new_object = bpf_object__open(file_name);
+    if (new_object == nullptr) {
+        return -errno;
+    }
+    REQUIRE(ebpf_object_set_execution_type(new_object, execution_type) == EBPF_SUCCESS);
+    bpf_program* program = bpf_object__next_program(new_object, nullptr);
+    if (prog_type != BPF_PROG_TYPE_UNSPEC) {
+        bpf_program__set_type(program, prog_type);
+    }
+    int error = bpf_object__load(new_object);
+    if (error < 0) {
+        if (log_buffer) {
+            size_t log_buffer_size;
+            *log_buffer = bpf_program__log_buf(program, &log_buffer_size);
+        }
+        bpf_object__close(new_object);
+        return error;
+    }
+
+    *program_fd = bpf_program__fd(program);
+    *object = new_object;
+    return 0;
+}
+
 void
 droppacket_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
 
-    ebpf_result_t result;
+    int result;
     const char* error_message = nullptr;
     bpf_object* object = nullptr;
     fd_t program_fd;
@@ -331,14 +369,12 @@ droppacket_test(ebpf_execution_type_t execution_type)
 
     const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "droppacket_um.dll" : "droppacket.o");
 
-    result = ebpf_program_load(file_name, nullptr, nullptr, execution_type, &object, &program_fd, &error_message);
+    result = ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &object, &program_fd, &error_message);
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
-        ebpf_free_string(error_message);
-        error_message = nullptr;
     }
-    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(result == 0);
     fd_t dropped_packet_map_fd = bpf_object__find_map_fd_by_name(object, "dropped_packet_map");
 
     // Tell the program which interface to filter on.
@@ -412,7 +448,7 @@ divide_by_zero_test_um(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
 
-    ebpf_result_t result;
+    int result;
     const char* error_message = nullptr;
     bpf_object* object = nullptr;
     fd_t program_fd;
@@ -423,14 +459,12 @@ divide_by_zero_test_um(ebpf_execution_type_t execution_type)
 
     const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "divide_by_zero_um.dll" : "divide_by_zero.o");
 
-    result = ebpf_program_load(file_name, nullptr, nullptr, execution_type, &object, &program_fd, &error_message);
+    result = ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &object, &program_fd, &error_message);
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
-        ebpf_free_string(error_message);
-        error_message = nullptr;
     }
-    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(result == 0);
 
     uint32_t ifindex = 0;
     REQUIRE(hook.attach_link(program_fd, &ifindex, sizeof(ifindex), &link) == EBPF_SUCCESS);
@@ -505,7 +539,7 @@ bindmonitor_test(ebpf_execution_type_t execution_type)
 
     const char* error_message = nullptr;
     uint64_t fake_pid = 12345;
-    ebpf_result_t result;
+    int result;
     bpf_object* object = nullptr;
     bpf_link* link = nullptr;
     fd_t program_fd;
@@ -517,14 +551,12 @@ bindmonitor_test(ebpf_execution_type_t execution_type)
     // bpf2c.exe tool.
     const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "bindmonitor_um.dll" : "bindmonitor.o");
 
-    result = ebpf_program_load(file_name, nullptr, nullptr, execution_type, &object, &program_fd, &error_message);
+    result = ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &object, &program_fd, &error_message);
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
-        ebpf_free_string(error_message);
-        error_message = nullptr;
     }
-    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(result == 0);
     fd_t limit_map_fd = bpf_object__find_map_fd_by_name(object, "limits_map");
     REQUIRE(limit_map_fd > 0);
     fd_t process_map_fd = bpf_object__find_map_fd_by_name(object, "process_map");
@@ -590,7 +622,7 @@ bindmonitor_tailcall_test(ebpf_execution_type_t execution_type)
 
     const char* error_message = nullptr;
     uint64_t fake_pid = 12345;
-    ebpf_result_t result;
+    int result;
     bpf_object* object = nullptr;
     bpf_link* link = nullptr;
     fd_t program_fd;
@@ -599,14 +631,12 @@ bindmonitor_tailcall_test(ebpf_execution_type_t execution_type)
 
     const char* file_name =
         (execution_type == EBPF_EXECUTION_NATIVE ? "bindmonitor_tailcall_um.dll" : "bindmonitor_tailcall.o");
-    result = ebpf_program_load(file_name, nullptr, nullptr, execution_type, &object, &program_fd, &error_message);
+    result = ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &object, &program_fd, &error_message);
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
-        ebpf_free_string(error_message);
-        error_message = nullptr;
     }
-    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(result == 0);
     fd_t limit_map_fd = bpf_object__find_map_fd_by_name(object, "limits_map");
     REQUIRE(limit_map_fd > 0);
     fd_t process_map_fd = bpf_object__find_map_fd_by_name(object, "process_map");
@@ -711,7 +741,7 @@ bindmonitor_ring_buffer_test(ebpf_execution_type_t execution_type)
     _test_helper_end_to_end test_helper;
 
     const char* error_message = nullptr;
-    ebpf_result_t result;
+    int result;
     bpf_object* object = nullptr;
     bpf_link* link = nullptr;
     fd_t program_fd;
@@ -722,14 +752,12 @@ bindmonitor_ring_buffer_test(ebpf_execution_type_t execution_type)
         (execution_type == EBPF_EXECUTION_NATIVE ? "bindmonitor_ringbuf_um.dll" : "bindmonitor_ringbuf.o");
 
     // Load and attach a bind eBPF program that uses a ring buffer map to notify about bind operations.
-    result = ebpf_program_load(file_name, nullptr, nullptr, execution_type, &object, &program_fd, &error_message);
+    result = ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &object, &program_fd, &error_message);
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
-        ebpf_free_string(error_message);
-        error_message = nullptr;
     }
-    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(result == 0);
 
     fd_t process_map_fd = bpf_object__find_map_fd_by_name(object, "process_map");
     REQUIRE(process_map_fd > 0);
@@ -774,7 +802,7 @@ _utility_helper_functions_test(ebpf_execution_type_t execution_type)
     const char* file_name =
         (execution_type == EBPF_EXECUTION_NATIVE ? "test_utility_helpers_um.dll" : "test_utility_helpers.o");
     program_load_attach_helper_t program_helper(
-        file_name, EBPF_PROGRAM_TYPE_XDP, "test_utility_helpers", execution_type, &ifindex, sizeof(ifindex), hook);
+        file_name, BPF_PROG_TYPE_XDP, "test_utility_helpers", execution_type, &ifindex, sizeof(ifindex), hook);
     bpf_object* object = program_helper.get_object();
 
     // Dummy context (not used by the eBPF program).
@@ -792,7 +820,7 @@ map_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
 
-    ebpf_result_t result;
+    int result;
     const char* error_message = nullptr;
     bpf_object* object = nullptr;
     fd_t program_fd;
@@ -803,14 +831,12 @@ map_test(ebpf_execution_type_t execution_type)
 
     const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_um.dll" : "map.o");
 
-    result = ebpf_program_load(file_name, nullptr, nullptr, execution_type, &object, &program_fd, &error_message);
+    result = ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &object, &program_fd, &error_message);
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
-        ebpf_free_string(error_message);
-        error_message = nullptr;
     }
-    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(result == 0);
 
     uint32_t ifindex = 0;
     REQUIRE(hook.attach_link(program_fd, &ifindex, sizeof(ifindex), &link) == EBPF_SUCCESS);
@@ -842,37 +868,21 @@ TEST_CASE("enum section", "[end_to_end]")
     _test_helper_end_to_end test_helper;
 
     const char* error_message = nullptr;
-    const tlv_type_length_value_t* section_data = nullptr;
+    ebpf_section_info_t* section_data = nullptr;
     uint32_t result;
 
     REQUIRE(
-        (result =
-             ebpf_api_elf_enumerate_sections(SAMPLE_PATH "droppacket.o", nullptr, true, &section_data, &error_message),
+        (result = ebpf_enumerate_sections(SAMPLE_PATH "droppacket.o", true, &section_data, &error_message),
          ebpf_free_string(error_message),
          error_message = nullptr,
          result == 0));
-    for (auto current_section = tlv_child(section_data); current_section != tlv_next(section_data);
-         current_section = tlv_next(current_section)) {
-        auto section_name = tlv_child(current_section);
-        auto type = tlv_next(section_name);
-        auto map_count = tlv_next(type);
-        auto program_bytes = tlv_next(map_count);
-        auto stats_secton = tlv_next(program_bytes);
-
-        REQUIRE(static_cast<tlv_type_t>(section_name->type) == tlv_type_t::STRING);
-        REQUIRE(static_cast<tlv_type_t>(type->type) == tlv_type_t::STRING);
-        REQUIRE(static_cast<tlv_type_t>(map_count->type) == tlv_type_t::UINT);
-        REQUIRE(static_cast<tlv_type_t>(program_bytes->type) == tlv_type_t::BLOB);
-        REQUIRE(static_cast<tlv_type_t>(stats_secton->type) == tlv_type_t::SEQUENCE);
-
-        for (auto current_stat = tlv_child(stats_secton); current_stat != tlv_next(stats_secton);
-             current_stat = tlv_next(current_stat)) {
-            auto name = tlv_child(current_stat);
-            auto value = tlv_next(name);
-            REQUIRE(static_cast<tlv_type_t>(name->type) == tlv_type_t::STRING);
-            REQUIRE(static_cast<tlv_type_t>(value->type) == tlv_type_t::UINT);
-        }
+    for (auto current_section = section_data; current_section != nullptr; current_section = current_section->next) {
+        ebpf_stat_t* stat = current_section->stats;
+        REQUIRE(strcmp(stat->key, "Instructions") == 0);
+        REQUIRE(stat->value == 47);
     }
+    ebpf_free_sections(section_data);
+    ebpf_free_string(error_message);
 }
 
 TEST_CASE("verify section", "[end_to_end]")
@@ -895,6 +905,26 @@ TEST_CASE("verify section", "[end_to_end]")
     ebpf_free_string(report);
 }
 
+void
+verify_bad_section(const char* path)
+{
+    _test_helper_end_to_end test_helper;
+    const char* error_message = nullptr;
+    const char* report = nullptr;
+    uint32_t result;
+    program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
+    ebpf_api_verifier_stats_t stats;
+    result = ebpf_api_elf_verify_section_from_file(path, "xdp", false, &report, &error_message, &stats);
+    REQUIRE(result != 0);
+    REQUIRE(report == nullptr);
+    std::string expected_error_message = "error: No symbol section found in ELF file " + std::string(path);
+    REQUIRE(strcmp(error_message, expected_error_message.c_str()) == 0);
+    ebpf_free_string(report);
+    ebpf_free_string(error_message);
+}
+TEST_CASE("verify bad1.o", "[end_to_end][fuzzed]") { verify_bad_section(SAMPLE_PATH "bad\\bad1.o"); }
+TEST_CASE("verify bad2.o", "[end_to_end][fuzzed]") { verify_bad_section(SAMPLE_PATH "bad\\bad2.o"); }
+
 static void
 _cgroup_load_test(
     _In_z_ const char* file,
@@ -903,7 +933,7 @@ _cgroup_load_test(
     ebpf_attach_type_t& attach_type,
     ebpf_execution_type_t execution_type)
 {
-    ebpf_result_t result;
+    int result;
     const char* error_message = nullptr;
     bpf_object* object = nullptr;
     fd_t program_fd;
@@ -912,15 +942,13 @@ _cgroup_load_test(
     single_instance_hook_t hook(program_type, attach_type);
     program_info_provider_t program_info(program_type);
 
-    result = ebpf_program_load(file, nullptr, nullptr, execution_type, &object, &program_fd, &error_message);
+    result = ebpf_program_load(file, BPF_PROG_TYPE_UNSPEC, execution_type, &object, &program_fd, &error_message);
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
-        ebpf_free_string(error_message);
-        error_message = nullptr;
     }
 
-    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(result == 0);
 
     bpf_program* program = bpf_object__find_program_by_name(object, name);
     REQUIRE(program != nullptr);
@@ -1025,21 +1053,24 @@ TEST_CASE("map_pinning_test", "[end_to_end]")
     _test_helper_end_to_end test_helper;
 
     const char* error_message = nullptr;
-    ebpf_result_t result;
+    int result;
     bpf_object* object = nullptr;
     fd_t program_fd;
 
     program_info_provider_t bind_program_info(EBPF_PROGRAM_TYPE_BIND);
 
     result = ebpf_program_load(
-        SAMPLE_PATH "bindmonitor.o", nullptr, nullptr, EBPF_EXECUTION_INTERPRET, &object, &program_fd, &error_message);
+        SAMPLE_PATH "bindmonitor.o",
+        BPF_PROG_TYPE_UNSPEC,
+        EBPF_EXECUTION_INTERPRET,
+        &object,
+        &program_fd,
+        &error_message);
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
-        ebpf_free_string(error_message);
-        error_message = nullptr;
     }
-    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(result == 0);
 
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
 
@@ -1076,10 +1107,10 @@ TEST_CASE("enumerate_and_query_programs", "[end_to_end]")
 {
     _test_helper_end_to_end test_helper;
 
-    fd_t program_fd;
-    fd_t next_program_fd;
+    uint32_t program_id;
+    uint32_t next_program_id;
     const char* error_message = nullptr;
-    ebpf_result_t result;
+    int result;
     const char* file_name = nullptr;
     const char* section_name = nullptr;
     bpf_object* object[2] = {0};
@@ -1088,19 +1119,21 @@ TEST_CASE("enumerate_and_query_programs", "[end_to_end]")
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
     result = ebpf_program_load(
-        SAMPLE_PATH "droppacket.o", nullptr, nullptr, EBPF_EXECUTION_JIT, &object[0], &program_fds[0], &error_message);
+        SAMPLE_PATH "droppacket.o",
+        BPF_PROG_TYPE_UNSPEC,
+        EBPF_EXECUTION_JIT,
+        &object[0],
+        &program_fds[0],
+        &error_message);
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
-        ebpf_free_string(error_message);
-        error_message = nullptr;
     }
-    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(result == 0);
 
     result = ebpf_program_load(
         SAMPLE_PATH "droppacket.o",
-        nullptr,
-        nullptr,
+        BPF_PROG_TYPE_UNSPEC,
         EBPF_EXECUTION_INTERPRET,
         &object[1],
         &program_fds[1],
@@ -1108,17 +1141,17 @@ TEST_CASE("enumerate_and_query_programs", "[end_to_end]")
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
-        ebpf_free_string(error_message);
-        error_message = nullptr;
     }
-    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(result == 0);
 
     ebpf_execution_type_t type;
-    program_fd = ebpf_fd_invalid;
-    REQUIRE(ebpf_get_next_program(program_fd, &next_program_fd) == EBPF_SUCCESS);
-    REQUIRE(next_program_fd != ebpf_fd_invalid);
-    program_fd = next_program_fd;
+    program_id = 0;
+    REQUIRE(bpf_prog_get_next_id(program_id, &next_program_id) == 0);
+    program_id = next_program_id;
+    fd_t program_fd = bpf_prog_get_fd_by_id(program_id);
+    REQUIRE(program_fd > 0);
     REQUIRE(ebpf_program_query_info(program_fd, &type, &file_name, &section_name) == EBPF_SUCCESS);
+    Platform::_close(program_fd);
     REQUIRE(type == EBPF_EXECUTION_JIT);
     REQUIRE(strcmp(file_name, SAMPLE_PATH "droppacket.o") == 0);
     ebpf_free_string(file_name);
@@ -1127,11 +1160,12 @@ TEST_CASE("enumerate_and_query_programs", "[end_to_end]")
     ebpf_free_string(section_name);
     section_name = nullptr;
 
-    REQUIRE(ebpf_get_next_program(program_fd, &next_program_fd) == EBPF_SUCCESS);
-    REQUIRE(next_program_fd != ebpf_fd_invalid);
-    Platform::_close(program_fd);
-    program_fd = next_program_fd;
+    REQUIRE(bpf_prog_get_next_id(program_id, &next_program_id) == 0);
+    program_id = next_program_id;
+    program_fd = bpf_prog_get_fd_by_id(program_id);
+    REQUIRE(program_fd > 0);
     REQUIRE(ebpf_program_query_info(program_fd, &type, &file_name, &section_name) == EBPF_SUCCESS);
+    Platform::_close(program_fd);
     REQUIRE(type == EBPF_EXECUTION_INTERPRET);
     REQUIRE(strcmp(file_name, SAMPLE_PATH "droppacket.o") == 0);
     REQUIRE(strcmp(section_name, "xdp") == 0);
@@ -1140,9 +1174,7 @@ TEST_CASE("enumerate_and_query_programs", "[end_to_end]")
     file_name = nullptr;
     section_name = nullptr;
 
-    REQUIRE(ebpf_get_next_program(program_fd, &next_program_fd) == EBPF_SUCCESS);
-    REQUIRE(next_program_fd == ebpf_fd_invalid);
-    Platform::_close(program_fd);
+    REQUIRE(bpf_prog_get_next_id(program_id, &next_program_id) == -ENOENT);
 
     for (int i = 0; i < _countof(object); i++) {
         bpf_object__close(object[i]);
@@ -1166,7 +1198,7 @@ TEST_CASE("implicit_detach", "[end_to_end]")
 
     _test_helper_end_to_end test_helper;
 
-    uint32_t result = 0;
+    int result = 0;
     bpf_object* object = nullptr;
     fd_t program_fd;
     const char* error_message = nullptr;
@@ -1176,14 +1208,12 @@ TEST_CASE("implicit_detach", "[end_to_end]")
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
     result = ebpf_program_load(
-        SAMPLE_PATH "droppacket.o", nullptr, nullptr, EBPF_EXECUTION_JIT, &object, &program_fd, &error_message);
+        SAMPLE_PATH "droppacket.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_JIT, &object, &program_fd, &error_message);
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
-        ebpf_free_string(error_message);
-        error_message = nullptr;
     }
-    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(result == 0);
 
     uint32_t ifindex = 0;
     REQUIRE(hook.attach_link(program_fd, &ifindex, sizeof(ifindex), &link) == EBPF_SUCCESS);
@@ -1192,9 +1222,8 @@ TEST_CASE("implicit_detach", "[end_to_end]")
     // detach the program from the hook and unload the program.
     bpf_object__close(object);
 
-    program_fd = ebpf_fd_invalid;
-    REQUIRE(ebpf_get_next_program(program_fd, &program_fd) == EBPF_SUCCESS);
-    REQUIRE(program_fd == ebpf_fd_invalid);
+    uint32_t program_id;
+    REQUIRE(bpf_prog_get_next_id(0, &program_id) == -ENOENT);
 
     // Close link handle (without detaching). This should delete the link
     // object. ebpf_object_tracking_terminate() which is called when the test
@@ -1213,7 +1242,7 @@ TEST_CASE("implicit_detach_2", "[end_to_end]")
 
     _test_helper_end_to_end test_helper;
 
-    uint32_t result = 0;
+    int result = 0;
     bpf_object* object = nullptr;
     fd_t program_fd;
     const char* error_message = nullptr;
@@ -1223,14 +1252,12 @@ TEST_CASE("implicit_detach_2", "[end_to_end]")
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
     result = ebpf_program_load(
-        SAMPLE_PATH "droppacket.o", nullptr, nullptr, EBPF_EXECUTION_JIT, &object, &program_fd, &error_message);
+        SAMPLE_PATH "droppacket.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_JIT, &object, &program_fd, &error_message);
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
-        ebpf_free_string(error_message);
-        error_message = nullptr;
     }
-    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(result == 0);
 
     uint32_t ifindex = 0;
     REQUIRE(hook.attach_link(program_fd, &ifindex, sizeof(ifindex), &link) == EBPF_SUCCESS);
@@ -1239,9 +1266,8 @@ TEST_CASE("implicit_detach_2", "[end_to_end]")
     // detach the program from the hook and unload the program.
     bpf_object__close(object);
 
-    program_fd = ebpf_fd_invalid;
-    REQUIRE(ebpf_get_next_program(program_fd, &program_fd) == EBPF_SUCCESS);
-    REQUIRE(program_fd == ebpf_fd_invalid);
+    uint32_t program_id;
+    REQUIRE(bpf_prog_get_next_id(0, &program_id) == -ENOENT);
 
     // Close link handle (without detaching). This should delete the link
     // object. ebpf_object_tracking_terminate() which is called when the test
@@ -1262,21 +1288,24 @@ TEST_CASE("explicit_detach", "[end_to_end]")
     bpf_object* object = nullptr;
     fd_t program_fd;
     bpf_link* link = nullptr;
-    ebpf_result_t result;
+    int result;
     const char* error_message = nullptr;
 
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
     result = ebpf_program_load(
-        SAMPLE_PATH "droppacket.o", nullptr, nullptr, EBPF_EXECUTION_INTERPRET, &object, &program_fd, &error_message);
+        SAMPLE_PATH "droppacket.o",
+        BPF_PROG_TYPE_UNSPEC,
+        EBPF_EXECUTION_INTERPRET,
+        &object,
+        &program_fd,
+        &error_message);
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
-        ebpf_free_string(error_message);
-        error_message = nullptr;
     }
-    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(result == 0);
 
     uint32_t ifindex = 0;
     REQUIRE(hook.attach_link(program_fd, &ifindex, sizeof(ifindex), &link) == EBPF_SUCCESS);
@@ -1289,9 +1318,8 @@ TEST_CASE("explicit_detach", "[end_to_end]")
 
     // Close program handle.
     bpf_object__close(object);
-    program_fd = ebpf_fd_invalid;
-    REQUIRE(ebpf_get_next_program(program_fd, &program_fd) == EBPF_SUCCESS);
-    REQUIRE(program_fd == ebpf_fd_invalid);
+    uint32_t program_id;
+    REQUIRE(bpf_prog_get_next_id(0, &program_id) == -ENOENT);
 }
 
 TEST_CASE("implicit_explicit_detach", "[end_to_end]")
@@ -1306,21 +1334,24 @@ TEST_CASE("implicit_explicit_detach", "[end_to_end]")
     bpf_object* object = nullptr;
     fd_t program_fd;
     bpf_link* link = nullptr;
-    ebpf_result_t result;
+    int result;
     const char* error_message = nullptr;
 
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
     result = ebpf_program_load(
-        SAMPLE_PATH "droppacket.o", nullptr, nullptr, EBPF_EXECUTION_INTERPRET, &object, &program_fd, &error_message);
+        SAMPLE_PATH "droppacket.o",
+        BPF_PROG_TYPE_UNSPEC,
+        EBPF_EXECUTION_INTERPRET,
+        &object,
+        &program_fd,
+        &error_message);
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
-        ebpf_free_string(error_message);
-        error_message = nullptr;
     }
-    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(result == 0);
 
     uint32_t ifindex = 0;
     REQUIRE(hook.attach_link(program_fd, &ifindex, sizeof(ifindex), &link) == EBPF_SUCCESS);
@@ -1328,9 +1359,8 @@ TEST_CASE("implicit_explicit_detach", "[end_to_end]")
     // Close program handle. That should detach the program from the hook
     // and unload the program.
     bpf_object__close(object);
-    program_fd = ebpf_fd_invalid;
-    REQUIRE(ebpf_get_next_program(program_fd, &program_fd) == EBPF_SUCCESS);
-    REQUIRE(program_fd == ebpf_fd_invalid);
+    uint32_t program_id;
+    REQUIRE(bpf_prog_get_next_id(0, &program_id) == -ENOENT);
 
     // Detach and close link handle.
     // ebpf_object_tracking_terminate() which is called when the test
@@ -1411,7 +1441,7 @@ _xdp_reflect_packet_test(ebpf_execution_type_t execution_type, ADDRESS_FAMILY ad
     uint32_t ifindex = 0;
     program_load_attach_helper_t program_helper(
         SAMPLE_PATH "reflect_packet.o",
-        EBPF_PROGRAM_TYPE_XDP,
+        BPF_PROG_TYPE_XDP,
         "reflect_packet",
         execution_type,
         &ifindex,
@@ -1452,7 +1482,7 @@ _xdp_encap_reflect_packet_test(ebpf_execution_type_t execution_type, ADDRESS_FAM
     uint32_t ifindex = 0;
     program_load_attach_helper_t program_helper(
         SAMPLE_PATH "encap_reflect_packet.o",
-        EBPF_PROGRAM_TYPE_XDP,
+        BPF_PROG_TYPE_XDP,
         "encap_reflect_packet",
         execution_type,
         &ifindex,
@@ -1501,19 +1531,13 @@ TEST_CASE("printk", "[end_to_end]")
     program_info_provider_t bind_program_info(EBPF_PROGRAM_TYPE_BIND);
     uint32_t ifindex = 0;
     program_load_attach_helper_t program_helper(
-        SAMPLE_PATH "printk.o",
-        EBPF_PROGRAM_TYPE_BIND,
-        "func",
-        EBPF_EXECUTION_INTERPRET,
-        &ifindex,
-        sizeof(ifindex),
-        hook);
+        SAMPLE_PATH "printk.o", BPF_PROG_TYPE_BIND, "func", EBPF_EXECUTION_INTERPRET, &ifindex, sizeof(ifindex), hook);
 
     // The current bind hook only works with IPv4, so compose a sample IPv4 context.
     SOCKADDR_IN addr = {AF_INET};
     addr.sin_port = htons(80);
     bind_md_t ctx = {0};
-    ctx.process_id = 1;
+    ctx.process_id = GetCurrentProcessId();
     ctx.protocol = 2;
     ctx.socket_address_length = sizeof(addr);
     memcpy(&ctx.socket_address, &addr, ctx.socket_address_length);
@@ -1526,13 +1550,25 @@ TEST_CASE("printk", "[end_to_end]")
         hook.fire(&ctx, &hook_result);
         output = capture.get_stdout_contents();
     }
-    REQUIRE(
-        output == "Hello, world\n"
-                  "Hello, world\n"
-                  "PID: 1\n"
-                  "PID: 1 PROTO: 2\n"
-                  "PID: 1 PROTO: 2 ADDRLEN: 16\n"
-                  "100% done\n");
+    std::string expected_output = "Hello, world\n"
+                                  "Hello, world\n"
+                                  "PID: " +
+                                  std::to_string(ctx.process_id) +
+                                  " using %u\n"
+                                  "PID: " +
+                                  std::to_string(ctx.process_id) +
+                                  " using %lu\n"
+                                  "PID: " +
+                                  std::to_string(ctx.process_id) +
+                                  " using %llu\n"
+                                  "PID: " +
+                                  std::to_string(ctx.process_id) +
+                                  " PROTO: 2\n"
+                                  "PID: " +
+                                  std::to_string(ctx.process_id) +
+                                  " PROTO: 2 ADDRLEN: 16\n"
+                                  "100% done\n";
+    REQUIRE(output == expected_output);
 
     // Six of the printf calls in the program should fail and return -1
     // so subtract 6 from the length to get the expected return value.
@@ -1563,7 +1599,7 @@ _xdp_decapsulate_permit_packet_test(ebpf_execution_type_t execution_type, ADDRES
     uint32_t ifindex = 0;
     program_load_attach_helper_t program_helper(
         SAMPLE_PATH "decap_permit_packet.o",
-        EBPF_PROGRAM_TYPE_XDP,
+        BPF_PROG_TYPE_XDP,
         "decapsulate_permit_packet",
         execution_type,
         &ifindex,
@@ -1618,7 +1654,7 @@ TEST_CASE("link_tests", "[end_to_end]")
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
     uint32_t ifindex = 0;
     program_load_attach_helper_t program_helper(
-        SAMPLE_PATH "bpf.o", EBPF_PROGRAM_TYPE_XDP, "func", EBPF_EXECUTION_INTERPRET, &ifindex, sizeof(ifindex), hook);
+        SAMPLE_PATH "bpf.o", BPF_PROG_TYPE_XDP, "func", EBPF_EXECUTION_INTERPRET, &ifindex, sizeof(ifindex), hook);
 
     // Dummy UDP datagram with fake IP and MAC addresses.
     udp_packet_t packet(AF_INET);
@@ -1678,7 +1714,7 @@ _map_reuse_test(ebpf_execution_type_t execution_type)
 
     uint32_t ifindex = 0;
     program_load_attach_helper_t program_helper(
-        file_name, EBPF_PROGRAM_TYPE_XDP, "lookup_update", EBPF_EXECUTION_ANY, &ifindex, sizeof(ifindex), hook);
+        file_name, BPF_PROG_TYPE_XDP, "lookup_update", EBPF_EXECUTION_ANY, &ifindex, sizeof(ifindex), hook);
 
     auto packet = prepare_udp_packet(10, ETHERNET_TYPE_IPV4);
     xdp_md_t ctx{packet.data(), packet.data() + packet.size(), 0, TEST_IFINDEX};
@@ -1715,7 +1751,7 @@ _auto_pinned_maps_test(ebpf_execution_type_t execution_type)
 
     uint32_t ifindex = 0;
     program_load_attach_helper_t program_helper(
-        file_name, EBPF_PROGRAM_TYPE_XDP, "lookup_update", EBPF_EXECUTION_ANY, &ifindex, sizeof(ifindex), hook);
+        file_name, BPF_PROG_TYPE_XDP, "lookup_update", EBPF_EXECUTION_ANY, &ifindex, sizeof(ifindex), hook);
 
     fd_t outer_map_fd = bpf_obj_get("/ebpf/global/outer_map");
     REQUIRE(outer_map_fd > 0);
@@ -1849,13 +1885,10 @@ _map_reuse_invalid_test(ebpf_execution_type_t execution_type)
     // map type for map pinned at "/ebpf/global/outer_map" does not match.
     struct bpf_object* object = nullptr;
     fd_t program_fd;
-    const char* log_buffer = nullptr;
     const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_reuse_um.dll" : "map_reuse.o");
-    ebpf_result_t result = ebpf_program_load(
-        file_name, &EBPF_PROGRAM_TYPE_XDP, nullptr, EBPF_EXECUTION_ANY, &object, &program_fd, &log_buffer);
+    int result = ebpf_program_load(file_name, BPF_PROG_TYPE_XDP, EBPF_EXECUTION_ANY, &object, &program_fd, nullptr);
 
-    ebpf_free_string(log_buffer);
-    REQUIRE(result == EBPF_INVALID_ARGUMENT);
+    REQUIRE(result == -EINVAL);
 
     Platform::_close(map_fd);
     Platform::_close(port_map_fd);
@@ -1906,7 +1939,7 @@ _map_reuse_2_test(ebpf_execution_type_t execution_type)
 
     uint32_t ifindex = 0;
     program_load_attach_helper_t program_helper(
-        file_name, EBPF_PROGRAM_TYPE_XDP, "lookup_update", EBPF_EXECUTION_ANY, &ifindex, sizeof(ifindex), hook);
+        file_name, BPF_PROG_TYPE_XDP, "lookup_update", EBPF_EXECUTION_ANY, &ifindex, sizeof(ifindex), hook);
 
     auto packet = prepare_udp_packet(10, ETHERNET_TYPE_IPV4);
     xdp_md_t ctx{packet.data(), packet.data() + packet.size(), 0, TEST_IFINDEX};
@@ -1980,7 +2013,7 @@ _map_reuse_3_test(ebpf_execution_type_t execution_type)
 
     uint32_t ifindex = 0;
     program_load_attach_helper_t program_helper(
-        file_name, EBPF_PROGRAM_TYPE_XDP, "lookup_update", EBPF_EXECUTION_ANY, &ifindex, sizeof(ifindex), hook);
+        file_name, BPF_PROG_TYPE_XDP, "lookup_update", EBPF_EXECUTION_ANY, &ifindex, sizeof(ifindex), hook);
 
     auto packet = prepare_udp_packet(10, ETHERNET_TYPE_IPV4);
     xdp_md_t ctx{packet.data(), packet.data() + packet.size(), 0, TEST_IFINDEX};
@@ -2088,6 +2121,7 @@ TEST_CASE("load_native_program_negative3", "[end-to-end]")
     size_t count_of_maps = 0;
     size_t count_of_programs = 0;
     ebpf_result_t result;
+    int error;
     const char* error_message = nullptr;
     bpf_object* object = nullptr;
     fd_t program_fd;
@@ -2099,14 +2133,12 @@ TEST_CASE("load_native_program_negative3", "[end-to-end]")
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
     // Load a valid native module.
-    result = ebpf_program_load(
-        "droppacket_um.dll", nullptr, nullptr, EBPF_EXECUTION_NATIVE, &object, &program_fd, &error_message);
+    error = ebpf_program_load(
+        "droppacket_um.dll", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_NATIVE, &object, &program_fd, &error_message);
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
-        ebpf_free_string(error_message);
-        error_message = nullptr;
     }
-    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(error == 0);
 
     // Get the service name that was created.
     result = get_service_details_for_file(file_path, &service_name, &provider_module_id);
@@ -2171,32 +2203,34 @@ TEST_CASE("load_native_program_negative4", "[end-to-end]")
 // only for Debug build.
 #ifdef _DEBUG
 static void
-_load_invalid_program(_In_z_ const char* file_name, ebpf_execution_type_t execution_type, ebpf_result_t expected_result)
+_load_invalid_program(_In_z_ const char* file_name, ebpf_execution_type_t execution_type, int expected_result)
 {
     _test_helper_end_to_end test_helper;
 
-    ebpf_result_t result;
-    const char* error_message = nullptr;
+    int result;
     bpf_object* object = nullptr;
     fd_t program_fd;
 
     program_info_provider_t bind_program_info(EBPF_PROGRAM_TYPE_BIND);
 
-    result = ebpf_program_load(file_name, nullptr, nullptr, execution_type, &object, &program_fd, &error_message);
-    ebpf_free_string(error_message);
+    result = ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &object, &program_fd, nullptr);
     REQUIRE(result == expected_result);
 }
 
 TEST_CASE("load_native_program_invalid1", "[end-to-end]")
 {
-    _load_invalid_program("invalid_maps1_um.dll", EBPF_EXECUTION_NATIVE, EBPF_INVALID_OBJECT);
+    _load_invalid_program("invalid_maps1_um.dll", EBPF_EXECUTION_NATIVE, -EINVAL);
 }
 TEST_CASE("load_native_program_invalid2", "[end-to-end]")
 {
-    _load_invalid_program("invalid_maps2_um.dll", EBPF_EXECUTION_NATIVE, EBPF_INVALID_ARGUMENT);
+    _load_invalid_program("invalid_maps2_um.dll", EBPF_EXECUTION_NATIVE, -EINVAL);
 }
 TEST_CASE("load_native_program_invalid3", "[end-to-end]")
 {
-    _load_invalid_program("invalid_helpers_um.dll", EBPF_EXECUTION_NATIVE, EBPF_INVALID_ARGUMENT);
+    _load_invalid_program("invalid_helpers_um.dll", EBPF_EXECUTION_NATIVE, -EINVAL);
+}
+TEST_CASE("load_native_program_invalid4", "[end-to-end]")
+{
+    _load_invalid_program("empty_um.dll", EBPF_EXECUTION_NATIVE, -EINVAL);
 }
 #endif

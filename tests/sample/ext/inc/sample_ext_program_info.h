@@ -28,17 +28,17 @@ static ebpf_helper_function_prototype_t _sample_ebpf_extension_helper_function_p
     {SAMPLE_EXT_HELPER_FUNCTION_START + 2,
      "sample_ebpf_extension_find",
      EBPF_RETURN_TYPE_INTEGER,
-     {EBPF_ARGUMENT_TYPE_PTR_TO_MEM,
+     {EBPF_ARGUMENT_TYPE_PTR_TO_READABLE_MEM,
       EBPF_ARGUMENT_TYPE_CONST_SIZE,
-      EBPF_ARGUMENT_TYPE_PTR_TO_MEM,
+      EBPF_ARGUMENT_TYPE_PTR_TO_READABLE_MEM,
       EBPF_ARGUMENT_TYPE_CONST_SIZE}},
     {SAMPLE_EXT_HELPER_FUNCTION_START + 3,
      "sample_ebpf_extension_replace",
      EBPF_RETURN_TYPE_INTEGER,
-     {EBPF_ARGUMENT_TYPE_PTR_TO_MEM,
+     {EBPF_ARGUMENT_TYPE_PTR_TO_READABLE_MEM,
       EBPF_ARGUMENT_TYPE_CONST_SIZE,
       EBPF_ARGUMENT_TYPE_ANYTHING,
-      EBPF_ARGUMENT_TYPE_PTR_TO_MEM,
+      EBPF_ARGUMENT_TYPE_PTR_TO_READABLE_MEM,
       EBPF_ARGUMENT_TYPE_CONST_SIZE}}};
 
 static ebpf_program_info_t _sample_ebpf_extension_program_info = {

@@ -30,8 +30,9 @@ bpf_link_detach(int link_fd);
  *
  * @param[in] id ID of link to find.
  *
- * @returns A new file descriptor that refers to the link.  A negative
- * value indicates an error occurred and errno was set.
+ * @returns A new file descriptor that refers to the link.
+ * The caller should call _close() on the fd to close this when done.
+ * A negative value indicates an error occurred and errno was set.
  *
  * @exception ENOENT No link with the specified ID was found.
  */
@@ -68,8 +69,9 @@ bpf_link_get_next_id(__u32 start_id, __u32* next_id);
  * @param[in] max_entries Maximum number of entries in the map.
  * @param[in] map_flags Flags (currently 0).
  *
- * @returns A new file descriptor that refers to the map.  A negative
- * value indicates an error occurred and errno was set.
+ * @returns A new file descriptor that refers to the map.
+ * The caller should call _close() on the fd to close this when done.
+ * A negative value indicates an error occurred and errno was set.
  *
  * @exception EINVAL An invalid argument was provided.
  * @exception ENOMEM Out of memory.
@@ -87,8 +89,9 @@ bpf_create_map(enum bpf_map_type map_type, int key_size, int value_size, int max
  * @param[in] max_entries Maximum number of entries in the map.
  * @param[in] map_flags Flags (currently 0).
  *
- * @returns A new file descriptor that refers to the map.  A negative
- * value indicates an error occurred and errno was set.
+ * @returns A new file descriptor that refers to the map.
+ * The caller should call _close() on the fd to close this when done.
+ * A negative value indicates an error occurred and errno was set.
  *
  * @exception EBADF The file descriptor was not found.
  * @exception EINVAL An invalid argument was provided.
@@ -103,8 +106,9 @@ bpf_create_map_in_map(
  *
  * @param[in] create_attr Structure of attributes using which a map gets created.
  *
- * @returns A new file descriptor that refers to the map.  A negative
- * value indicates an error occurred and errno was set.
+ * @returns A new file descriptor that refers to the map.
+ * The caller should call _close() on the fd to close this when done.
+ * A negative value indicates an error occurred and errno was set.
  *
  * @exception EINVAL An invalid argument was provided.
  * @exception ENOMEM Out of memory.
@@ -122,8 +126,9 @@ bpf_create_map_xattr(const struct bpf_create_map_attr* create_attr);
  * @param[in] max_entries Maximum number of entries in the map.
  * @param[in] opts Structure of options using which a map gets created.
  *
- * @returns A new file descriptor that refers to the map.  A negative
- * value indicates an error occurred and errno was set.
+ * @returns A new file descriptor that refers to the map.
+ * The caller should call _close() on the fd to close this when done.
+ * A negative value indicates an error occurred and errno was set.
  *
  * @exception EINVAL An invalid argument was provided.
  * @exception ENOMEM Out of memory.
@@ -159,8 +164,9 @@ bpf_map_delete_elem(int fd, const void* key);
  *
  * @param[in] id ID of map to find.
  *
- * @returns A new file descriptor that refers to the map.  A negative
- * value indicates an error occurred and errno was set.
+ * @returns A new file descriptor that refers to the map.
+ * The caller should call _close() on the fd to close this when done.
+ * A negative value indicates an error occurred and errno was set.
  *
  * @exception ENOENT No map with the specified ID was found.
  */
@@ -247,7 +253,9 @@ bpf_map_update_elem(int fd, const void* key, const void* value, __u64 flags);
  * @brief Get a file descriptor for a pinned object by pin path.
  * @param[in] pathname Pin path for the object.
  *
- * @return file descriptor for the pinned object, or -1 if not found.
+ * @return A new file descriptor for the pinned object.
+ * The caller should call _close() on the fd to close this when done.
+ * A negative value indicates an error occurred and errno was set.
  */
 int
 bpf_obj_get(const char* pathname);
@@ -313,8 +321,9 @@ bpf_prog_bind_map(int prog_fd, int map_fd, const struct bpf_prog_bind_opts* opts
  *
  * @param[in] id ID of program to find.
  *
- * @returns A new file descriptor that refers to the program.  A negative
- * value indicates an error occurred and errno was set.
+ * @returns A new file descriptor that refers to the program.
+ * The caller should call _close() on the fd to close this when done.
+ * A negative value indicates an error occurred and errno was set.
  *
  * @exception ENOENT No program with the specified ID was found.
  */
@@ -334,6 +343,67 @@ bpf_prog_get_fd_by_id(__u32 id);
  */
 int
 bpf_prog_get_next_id(__u32 start_id, __u32* next_id);
+
+/**
+ * @brief Load (but do not attach) an eBPF programs.
+ *
+ * @param[in] prog_type Program type to use for loading eBPF programs.
+ * @param[in] prog_name Program name.
+ * @param[in] license License string (unused).
+ * @param[in] insns Array of eBPF instructions.
+ * @param[in] insn_cnt Count of instructions in the array.
+ * @param[in] opts Additional options.
+ *
+ * @returns A new file descriptor that refers to the program.
+ * The caller should call _close() on the fd to close this when done.
+ * A negative value indicates an error occurred and errno was set.
+ *
+ * @exception EACCES The program failed verification.
+ * @exception EINVAL One or more parameters are incorrect.
+ * @exception ENOMEM Out of memory.
+ *
+ * @sa bpf_load_program
+ * @sa bpf_load_program_xattr
+ * @sa bpf_object__close
+ * @sa bpf_program__attach
+ */
+int
+bpf_prog_load(
+    enum bpf_prog_type prog_type,
+    const char* prog_name,
+    const char* license,
+    const struct bpf_insn* insns,
+    size_t insn_cnt,
+    const struct bpf_prog_load_opts* opts);
+
+/**
+ * @brief Load (but do not attach) eBPF maps and programs from an ELF file.
+ *
+ * @param[in] file Path name to an ELF file.
+ * @param[in] type Program type to use for loading eBPF programs.  If BPF_PROG_TYPE_UNKNOWN,
+ * the program type is derived from the section prefix in the ELF file.
+ * @param[out] pobj Pointer to where to store the eBPF object loaded. The caller
+ * is expected to call bpf_object__close() to free the object.
+ * @param[out] prog_fd Returns a file descriptor for the first program.
+ * The caller should not call _close() on the fd, but should instead use
+ * bpf_object__close() on the object returned.
+ *
+ * @retval 0 The operation was successful.
+ * @retval <0 An error occured, and errno was set.
+ *
+ * @deprecated Use bpf_prog_load() instead.
+ *
+ * @exception EACCES The program failed verification.
+ * @exception EINVAL One or more parameters are incorrect.
+ * @exception ENOMEM Out of memory.
+ *
+ * @sa bpf_load_program
+ * @sa bpf_load_program_xattr
+ * @sa bpf_object__close
+ * @sa bpf_program__attach
+ */
+int
+bpf_prog_load_deprecated(const char* file, enum bpf_prog_type type, struct bpf_object** pobj, int* prog_fd);
 
 /** @} */
 

@@ -24,6 +24,8 @@ typedef struct bpf_program
     ebpf_handle_t handle;
     fd_t fd;
     bool pinned;
+    const char* log_buffer;
+    uint32_t log_buffer_size;
 } ebpf_program_t;
 
 typedef struct bpf_map
@@ -67,9 +69,11 @@ typedef struct bpf_link
 typedef struct bpf_object
 {
     char* object_name = nullptr;
+    char* file_name = nullptr;
     std::vector<ebpf_program_t*> programs;
     std::vector<ebpf_map_t*> maps;
     bool loaded = false;
+    ebpf_execution_type_t execution_type = EBPF_EXECUTION_ANY;
 } ebpf_object_t;
 
 /**
@@ -83,16 +87,6 @@ ebpf_api_initiate();
  */
 void
 ebpf_api_terminate();
-
-ebpf_result_t
-ebpf_get_program_byte_code(
-    _In_z_ const char* file_name,
-    _In_z_ const char* section_name,
-    bool mock_map_fd,
-    std::vector<ebpf_program_t*>& programs,
-    _Outptr_result_maybenull_ EbpfMapDescriptor** map_descriptors,
-    _Out_ int* map_descriptors_count,
-    _Outptr_result_maybenull_ const char** error_message);
 
 ebpf_result_t
 get_program_info_data(ebpf_program_type_t program_type, _Outptr_ ebpf_program_info_t** program_info);
@@ -258,7 +252,7 @@ ebpf_map_unpin(_In_ struct bpf_map* map, _In_opt_z_ const char* path);
  * @retval EBPF_INVALID_ARGUMENT One or more parameters are wrong.
  */
 ebpf_result_t
-ebpf_map_set_pin_path(_In_ struct bpf_map* map, _In_ const char* path);
+ebpf_map_set_pin_path(_In_ struct bpf_map* map, _In_opt_z_ const char* path);
 
 /**
  * @brief Update value for the specified key in an eBPF map.
@@ -295,7 +289,7 @@ ebpf_map_delete_element(fd_t map_fd, _In_ const void* key);
  * @retval EBPF_SUCCESS The operation was successful.
  */
 ebpf_result_t
-ebpf_map_lookup_element(fd_t map_fd, _In_ const void* key, _Out_ void* value);
+ebpf_map_lookup_element(fd_t map_fd, _In_opt_ const void* key, _Out_ void* value);
 
 /**
  * @brief Look up an element in an eBPF map.
@@ -484,19 +478,13 @@ ebpf_object_open(
  * @brief Load all the programs in a given object.
  *
  * @param[in] object Object from which to load programs.
- * @param[in] execution_type Execution type.
- * @param[out] error_message Error message string, which
- * the caller must free using ebpf_free_string().
  *
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval EBPF_INVALID_ARGUMENT One or more parameters are wrong.
  * @retval EBPF_NO_MEMORY Out of memory.
  */
 ebpf_result_t
-ebpf_object_load(
-    _Inout_ struct bpf_object* object,
-    ebpf_execution_type_t execution_type,
-    _Outptr_result_maybenull_z_ const char** error_message);
+ebpf_object_load(_Inout_ struct bpf_object* object);
 
 /**
  * @brief Unload all the programs in a given object.
@@ -536,3 +524,20 @@ ebpf_ring_buffer_map_subscribe(
  */
 bool
 ebpf_ring_buffer_map_unsubscribe(_Inout_ _Post_invalid_ ring_buffer_subscription_t* subscription);
+
+/**
+ * @brief Get list of programs and stats in an ELF eBPF file.
+ * @param[in] file Name of ELF file containing eBPF program.
+ * @param[in] section Optionally, the name of the section to query.
+ * @param[in] verbose Obtain additional info about the programs.
+ * @param[out] data On success points to a list of eBPF programs.
+ * @param[out] error_message On failure points to a text description of
+ *  the error.
+ */
+uint32_t
+ebpf_api_elf_enumerate_sections(
+    _In_z_ const char* file,
+    _In_opt_z_ const char* section,
+    bool verbose,
+    _Outptr_result_maybenull_ ebpf_section_info_t** infos,
+    _Outptr_result_maybenull_z_ const char** error_message);

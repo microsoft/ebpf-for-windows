@@ -106,6 +106,13 @@ ebpf_extension_load(
     }
     local_extension_provider = *hash_table_find_result;
 
+    if (memcmp(interface_id, &local_extension_provider->interface_id, sizeof(GUID)) != 0) {
+        EBPF_LOG_MESSAGE_GUID(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_BASE, "Wrong interface_id", *interface_id);
+        return_value = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
+
     return_value = ebpf_hash_table_update(
         local_extension_provider->client_table,
         (const uint8_t*)&local_extension_client->client_module_id,

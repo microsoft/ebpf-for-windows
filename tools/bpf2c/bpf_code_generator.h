@@ -4,6 +4,7 @@
 #pragma once
 #include <fstream>
 #include <map>
+#include <optional>
 #include <set>
 #include <string>
 #include <vector>
@@ -20,8 +21,10 @@ class bpf_code_generator
      *
      * @param[in] stream Input stream containing the eBPF file to parse.
      * @param[in] c_name C compatible name to export this as.
+     * @param[in] elf_file_hash Optional bytes containing hash of the ELF file.
      */
-    bpf_code_generator(std::istream& stream, const std::string& c_name);
+    bpf_code_generator(
+        std::istream& stream, const std::string& c_name, const std::optional<std::vector<uint8_t>>& elf_file_hash = {});
 
     /**
      * @brief Construct a new bpf code generator object from raw eBPF byte code.
@@ -99,6 +102,7 @@ class bpf_code_generator
     {
         std::vector<output_instruction_t> output;
         std::set<std::string> referenced_registers;
+        std::string pe_section_name;
         std::string program_name;
         GUID program_type = {0};
         GUID expected_attach_type = {0};
@@ -190,10 +194,11 @@ class bpf_code_generator
      * @brief Format a GUID as a string.
      *
      * @param[in] guid Pointer to the GUID to be formatted.
+     * @param[in] split Split the string at the open {.
      * @return The formatted string.
      */
     std::string
-    format_guid(const GUID* guid);
+    format_guid(const GUID* guid, bool split);
 #endif
 
     /**
@@ -204,6 +209,14 @@ class bpf_code_generator
      */
     std::string
     sanitize_name(const std::string& name);
+
+    /**
+     * @brief Convert an ELF section name to a valid PE section name.
+     *
+     * @param[in] name Name to convert to PE section name.
+     */
+    void
+    set_pe_section_name(const std::string& elf_section_name);
 
     /**
      * @brief Replace all "\"" with "\\" in a string.
@@ -223,6 +236,7 @@ class bpf_code_generator
     std::string
     get_register_name(uint8_t id);
 
+    int pe_section_name_counter;
     std::map<std::string, section_t> sections;
     section_t* current_section;
     ELFIO::elfio reader;
@@ -230,4 +244,5 @@ class bpf_code_generator
     std::string c_name;
     std::string path;
     btf_section_to_instruction_to_line_info_t section_line_info;
+    std::optional<std::vector<uint8_t>> elf_file_hash;
 };

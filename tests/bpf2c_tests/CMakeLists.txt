@@ -44,105 +44,114 @@ target_compile_options("bpf2c_tests" PRIVATE
   "/WX-"
 )
 
-configure_file(
-  bpf_test.cpp
-  "${CMAKE_CURRENT_BINARY_DIR}/bpf_test.cpp"
-  COPYONLY
-)
-
 add_test(
   NAME "bpf2c_tests"
   COMMAND "${CMAKE_COMMAND}" -E env "PATH=$<TARGET_FILE_DIR:EbpfApi>;$ENV{PATH}" "$<TARGET_FILE:bpf2c_tests>"
 )
 
 set(expected_file_list
-  bindmonitor_dll.txt
-  bindmonitor_raw.txt
-  bindmonitor_ringbuf_dll.txt
-  bindmonitor_ringbuf_raw.txt
-  bindmonitor_ringbuf_sys.txt
-  bindmonitor_sys.txt
-  bindmonitor_tailcall_dll.txt
-  bindmonitor_tailcall_raw.txt
-  bindmonitor_tailcall_sys.txt
-  bpf_call_dll.txt
-  bpf_call_raw.txt
-  bpf_call_sys.txt
-  bpf_dll.txt
-  bpf_raw.txt
-  bpf_sys.txt
-  cgroup_sock_addr_dll.txt
-  cgroup_sock_addr_raw.txt
-  cgroup_sock_addr_sys.txt
-  decap_permit_packet_dll.txt
-  decap_permit_packet_raw.txt
-  decap_permit_packet_sys.txt
-  divide_by_zero_dll.txt
-  divide_by_zero_raw.txt
-  divide_by_zero_sys.txt
-  droppacket_dll.txt
-  droppacket_raw.txt
-  droppacket_sys.txt
-  droppacket_unsafe_dll.txt
-  droppacket_unsafe_raw.txt
-  droppacket_unsafe_sys.txt
-  encap_reflect_packet_dll.txt
-  encap_reflect_packet_raw.txt
-  encap_reflect_packet_sys.txt
-  sockops_dll.txt
-  sockops_raw.txt
-  sockops_sys.txt
-  map_dll.txt
-  map_in_map_dll.txt
-  map_in_map_raw.txt
-  map_in_map_sys.txt
-  map_in_map_v2_dll.txt
-  map_in_map_v2_raw.txt
-  map_in_map_v2_sys.txt
-  map_raw.txt
-  map_reuse_2_dll.txt
-  map_reuse_2_raw.txt
-  map_reuse_2_sys.txt
-  map_reuse_dll.txt
-  map_reuse_raw.txt
-  map_reuse_sys.txt
-  map_sys.txt
-  printk_dll.txt
-  printk_legacy_dll.txt
-  printk_legacy_raw.txt
-  printk_legacy_sys.txt
-  printk_raw.txt
-  printk_sys.txt
-  printk_unsafe_dll.txt
-  printk_unsafe_raw.txt
-  printk_unsafe_sys.txt
-  reflect_packet_dll.txt
-  reflect_packet_raw.txt
-  reflect_packet_sys.txt
-  tail_call_bad_dll.txt
-  tail_call_bad_raw.txt
-  tail_call_bad_sys.txt
-  tail_call_dll.txt
-  tail_call_map_dll.txt
-  tail_call_map_raw.txt
-  tail_call_map_sys.txt
-  tail_call_multiple_dll.txt
-  tail_call_multiple_raw.txt
-  tail_call_multiple_sys.txt
-  tail_call_raw.txt
-  tail_call_sys.txt
-  test_sample_ebpf_dll.txt
-  test_sample_ebpf_raw.txt
-  test_sample_ebpf_sys.txt
-  test_utility_helpers_dll.txt
-  test_utility_helpers_raw.txt
-  test_utility_helpers_sys.txt
+  bindmonitor_dll.c
+  bindmonitor_raw.c
+  bindmonitor_ringbuf_dll.c
+  bindmonitor_ringbuf_raw.c
+  bindmonitor_ringbuf_sys.c
+  bindmonitor_sys.c
+  bindmonitor_tailcall_dll.c
+  bindmonitor_tailcall_raw.c
+  bindmonitor_tailcall_sys.c
+  bpf_call_dll.c
+  bpf_call_raw.c
+  bpf_call_sys.c
+  bpf_dll.c
+  bpf_raw.c
+  bpf_sys.c
+  cgroup_sock_addr_dll.c
+  cgroup_sock_addr_raw.c
+  cgroup_sock_addr_sys.c
+  decap_permit_packet_dll.c
+  decap_permit_packet_raw.c
+  decap_permit_packet_sys.c
+  divide_by_zero_dll.c
+  divide_by_zero_raw.c
+  divide_by_zero_sys.c
+  droppacket_dll.c
+  droppacket_raw.c
+  droppacket_sys.c
+  droppacket_unsafe_dll.c
+  droppacket_unsafe_raw.c
+  droppacket_unsafe_sys.c
+  encap_reflect_packet_dll.c
+  encap_reflect_packet_raw.c
+  encap_reflect_packet_sys.c
+  sockops_dll.c
+  sockops_raw.c
+  sockops_sys.c
+  map_dll.c
+  map_in_map_dll.c
+  map_in_map_raw.c
+  map_in_map_sys.c
+  map_in_map_v2_dll.c
+  map_in_map_v2_raw.c
+  map_in_map_v2_sys.c
+  map_raw.c
+  map_reuse_2_dll.c
+  map_reuse_2_raw.c
+  map_reuse_2_sys.c
+  map_reuse_dll.c
+  map_reuse_raw.c
+  map_reuse_sys.c
+  map_sys.c
+  printk_dll.c
+  printk_legacy_dll.c
+  printk_legacy_raw.c
+  printk_legacy_sys.c
+  printk_raw.c
+  printk_sys.c
+  printk_unsafe_dll.c
+  printk_unsafe_raw.c
+  printk_unsafe_sys.c
+  reflect_packet_dll.c
+  reflect_packet_raw.c
+  reflect_packet_sys.c
+  tail_call_bad_dll.c
+  tail_call_bad_raw.c
+  tail_call_bad_sys.c
+  tail_call_dll.c
+  tail_call_map_dll.c
+  tail_call_map_raw.c
+  tail_call_map_sys.c
+  tail_call_multiple_dll.c
+  tail_call_multiple_raw.c
+  tail_call_multiple_sys.c
+  tail_call_raw.c
+  tail_call_sys.c
+  test_sample_ebpf_dll.c
+  test_sample_ebpf_raw.c
+  test_sample_ebpf_sys.c
+  test_utility_helpers_dll.c
+  test_utility_helpers_raw.c
+  test_utility_helpers_sys.c
 )
 
-foreach(expected_file ${expected_file_list})
-  configure_file(
-    "expected/${expected_file}"
-    "${CMAKE_CURRENT_BINARY_DIR}/${expected_file}"
-    COPYONLY
-  )
+set (input_bpf_test_cpp ${CMAKE_CURRENT_SOURCE_DIR}/bpf_test.cpp)
+set (output_bpf_test_cpp ${output_dir}/bpf_test.cpp)
+
+foreach(file ${expected_file_list})
+  set( input_expected_files ${input_expected_files} ${CMAKE_CURRENT_SOURCE_DIR}/expected/${file})
+  set( output_expected_files ${output_expected_files} ${output_dir}/${file})
 endforeach()
+
+add_custom_target(bpf2c_tests_expected_files ALL DEPENDS ${output_bpf_test_cpp} ${output_expected_files} SOURCES ${input_bpf_test_cpp} ${input_expected_files})
+
+add_custom_command(
+  OUTPUT
+    "${output_expected_files}"
+  COMMAND
+    ${CMAKE_COMMAND} -E make_directory "${output_dir}/expected"
+  COMMAND
+    ${CMAKE_COMMAND} -E copy ${input_bpf_test_cpp} ${output_bpf_test_cpp}
+  COMMAND
+    ${CMAKE_COMMAND} -E copy ${input_expected_files} ${output_dir}/expected
+  DEPENDS
+    ${input_bpf_test_cpp} ${input_expected_files}
+)

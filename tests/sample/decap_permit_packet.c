@@ -13,7 +13,7 @@
 
 #include "xdp_common.h"
 
-int
+inline int
 decapsulate_ipv4_reflect_packet(xdp_md_t* ctx)
 {
     int rc = XDP_DROP;
@@ -45,7 +45,7 @@ Done:
     return rc;
 }
 
-int
+inline int
 decapsulate_ipv6_reflect_packet(xdp_md_t* ctx)
 {
     int rc = XDP_DROP;

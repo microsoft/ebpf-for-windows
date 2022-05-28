@@ -18,7 +18,6 @@ extern "C"
     typedef int32_t fd_t;
     extern __declspec(selectany) const fd_t ebpf_fd_invalid = -1;
     typedef intptr_t ebpf_handle_t;
-    typedef struct _tlv_type_length_value tlv_type_length_value_t;
 
     struct bpf_object;
     struct bpf_program;
@@ -76,17 +75,6 @@ extern "C"
         _Out_ fd_t* map_fd);
 
     /**
-     * @brief Get file descriptor to the next eBPF program.
-     * @param[in] previous_fd File descriptor of the previous eBPF program or ebpf_fd_invalid to
-     *  start enumeration.
-     * @param[out] next_fd File descriptor of the next eBPF program or ebpf_fd_invalid if
-     *  this is the last program.
-     * @retval EBPF_SUCCESS The operation was successful.
-     */
-    ebpf_result_t
-    ebpf_get_next_program(fd_t previous_fd, _Out_ fd_t* next_fd);
-
-    /**
      * @brief Query info about an eBPF program.
      * @param[in] fd File descriptor of an eBPF program.
      * @param[out] execution_type On success, contains the execution type.
@@ -101,41 +89,47 @@ extern "C"
         _Outptr_result_z_ const char** file_name,
         _Outptr_result_z_ const char** section_name);
 
+    typedef struct _ebpf_stat
+    {
+        struct _ebpf_stat* next;
+        _Field_z_ const char* key;
+        int value;
+    } ebpf_stat_t;
+
+    typedef struct _ebpf_section_info
+    {
+        struct _ebpf_section_info* next;
+        _Field_z_ const char* section_name;
+        _Field_z_ const char* program_type_name;
+        _Field_z_ const char* program_name;
+        size_t map_count;
+        size_t raw_data_size;
+        _Field_size_(raw_data_size) char* raw_data;
+        ebpf_stat_t* stats;
+    } ebpf_section_info_t;
+
     /**
-     * @brief Get list of programs and stats in an ELF eBPF file.
-     * @param[in] file Name of ELF file containing eBPF program.
-     * @param[in] section Optionally, the name of the section to query.
-     * @param[in] verbose Obtain additional info about the programs.
-     * @param[out] data On success points to a list of eBPF programs.
-     * @param[out] error_message On failure points to a text description of
-     *  the error.
-     *
-     * The list of eBPF programs from this function is TLV formatted as follows:\n
-     *
-     *   sections ::= SEQUENCE {\n
-     *      section    SEQUENCE of section\n
-     *    }\n
-     * \n
-     *   section ::= SEQUENCE {\n
-     *      name       STRING\n
-     *      platform_specific_data INTEGER\n
-     *      count_of_maps INTEGER\n
-     *      byte_code   BLOB\n
-     *      statistic SEQUENCE of statistic\n
-     *   }\n
-     * \n
-     *   statistic ::= SEQUENCE {\n
-     *      name      STRING\n
-     *      value     INTEGER\n
-     *   }\n
-     */
-    uint32_t
-    ebpf_api_elf_enumerate_sections(
-        const char* file,
-        const char* section,
+-     * @brief Get list of programs and stats in an eBPF file.
+-     * @param[in] file Name of file containing eBPF programs.
+-     * @param[in] verbose Obtain additional info about the programs.
+-     * @param[out] infos On success points to a list of eBPF programs.
+      * The caller is responsible for freeing the list via ebpf_free_sections().
+-     * @param[out] error_message On failure points to a text description of
+-     *  the error.
+      */
+    ebpf_result_t
+    ebpf_enumerate_sections(
+        _In_z_ const char* file,
         bool verbose,
-        const tlv_type_length_value_t** data,
-        const char** error_message);
+        _Outptr_result_maybenull_ ebpf_section_info_t** infos,
+        _Outptr_result_maybenull_z_ const char** error_message);
+
+    /**
+     * @brief Free memory returned from \ref ebpf_enumerate_sections.
+     * @param[in] data Memory to free.
+     */
+    void
+    ebpf_free_sections(_In_opt_ ebpf_section_info_t* infos);
 
     /**
      * @brief Convert an eBPF program to human readable byte code.
@@ -199,13 +193,6 @@ extern "C"
         ebpf_api_verifier_stats_t* stats);
 
     /**
-     * @brief Free a TLV returned from \ref ebpf_api_elf_enumerate_sections
-     * @param[in] data Memory to free.
-     */
-    void
-    ebpf_api_elf_free(const tlv_type_length_value_t* data);
-
-    /**
      * @brief Free memory for a string returned from an eBPF API.
      * @param[in] string Memory to free.
      */
@@ -243,10 +230,10 @@ extern "C"
      *
      * @param[in] link_handle Handle to the link.
      *
-     * @retval ERROR_SUCCESS The operations succeeded.
-     * @retval ERROR_INVALID_PARAMETER The link handle is invalid.
+     * @retval EBPF_SUCCESS The operations succeeded.
+     * @retval EBPF_INVALID_ARGUMENT The link handle is invalid.
      */
-    uint32_t
+    ebpf_result_t
     ebpf_api_unlink_program(ebpf_handle_t link_handle);
 
     /**
@@ -285,56 +272,32 @@ extern "C"
         uint16_t map_count, _In_opt_count_(map_count) _Post_ptr_invalid_ const ebpf_map_info_t* map_info);
 
     /**
-     * @brief Load eBPF programs from an ELF file based on default load
-     * attributes. This API does the following:
-     * 1. Read the ELF file.
-     * 2. Create maps.
-     * 3. Load all programs.
-     * 4. Return fd to the first program.
+     * @brief Get the execution type for an eBPF object file.
      *
-     * If the caller supplies a program type and/or attach type, that
-     * supplied value takes precedence over the derived program/attach type.
+     * @param[in] object The eBPF object file.
      *
-     * @param[in] file_name When loading from an ELF file, ELF file name with full path.
-     *  When loading from a native driver, driver file name with full path.
-     * @param[in] program_type Optionally, the program type to use when loading
-     *  the eBPF program. If program type is not supplied, it is derived from
-     *  the section prefix in the ELF file.
-     * @param[in] attach_type Optionally, the attach type to use for the loaded
-     *  eBPF program. If attach type is not supplied, it is derived from the
-     *  section prefix in the ELF file.
-     * @param[in] execution_type The execution type to use for this program. If
-     *  EBPF_EXECUTION_ANY is specified, execution type will be decided by a
-     *  system-wide policy.
-     * @param[out] object Returns pointer to ebpf_object object. The caller
-     *  is expected to call bpf_object__close() at the end.
-     * @param[out] program_fd Returns a file descriptor for the first program.
-     *  The caller should not call _close() on the fd, but should instead use
-     *  bpf_object__close() to close this (and other) file descriptors.
-     * @param[out] log_buffer Returns a pointer to a null-terminated log buffer.
-     *  The caller is responsible for freeing the returned log_buffer pointer
-     *  by calling ebpf_free_string().
-     *
-     * @retval EBPF_SUCCESS The programs are loaded and maps are created successfully.
-     * @retval EBPF_INVALID_ARGUMENT One or more parameters are incorrect.
-     * @retval EBPF_NO_MEMORY Out of memory.
-     * @retval EBPF_ELF_PARSING_FAILED Failure in parsing ELF file.
-     * @retval EBPF_FAILED Some other error occured.
+     * @returns Execution type.
      */
-    ebpf_result_t
-    ebpf_program_load(
-        _In_z_ const char* file_name,
-        _In_opt_ const ebpf_program_type_t* program_type,
-        _In_opt_ const ebpf_attach_type_t* attach_type,
-        _In_ ebpf_execution_type_t execution_type,
-        _Outptr_ struct bpf_object** object,
-        _Out_ fd_t* program_fd,
-        _Outptr_result_maybenull_z_ const char** log_buffer);
+    ebpf_execution_type_t
+    ebpf_object_get_execution_type(_In_ struct bpf_object* object);
 
     /**
-     * @brief Load an eBPF programs from raw instructions.
+     * @brief Set the execution type for an eBPF object file.
+     *
+     * @param[in] object The eBPF object file.
+     * @param[in] execution_type Execution type to set.
+     *
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INVALID_ARGUMENT One or more parameters are incorrect.
+     */
+    ebpf_result_t
+    ebpf_object_set_execution_type(_In_ struct bpf_object* object, ebpf_execution_type_t execution_type);
+
+    /**
+     * @brief Load an eBPF program from raw instructions.
      *
      * @param[in] program_type The eBPF program type.
+     * @param[in] program_name The eBPF program name.
      * @param[in] execution_type The execution type to use for this program. If
      *  EBPF_EXECUTION_ANY is specified, execution type will be decided by a
      *  system-wide policy.
@@ -355,6 +318,7 @@ extern "C"
     ebpf_result_t
     ebpf_program_load_bytes(
         _In_ const ebpf_program_type_t* program_type,
+        _In_opt_z_ const char* program_name,
         ebpf_execution_type_t execution_type,
         _In_reads_(byte_code_size) const uint8_t* byte_code,
         uint32_t byte_code_size,

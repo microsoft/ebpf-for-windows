@@ -16,14 +16,11 @@
 #include "maps.h"
 #include "tokens.h"
 
-static PCSTR _map_type_names[] = {
-    "Other", "Hash", "Array", "Program array", "Per-CPU hash table", "Per-CPU array", "Hash of maps", "Array of maps"};
-
 static PCSTR
 _get_map_type_name(ebpf_map_type_t type)
 {
-    int index = (type >= _countof(_map_type_names)) ? 0 : type;
-    return _map_type_names[index];
+    int index = (type >= _countof(_ebpf_map_display_names)) ? 0 : type;
+    return _ebpf_map_display_names[index];
 }
 
 DWORD

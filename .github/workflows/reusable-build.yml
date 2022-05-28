@@ -22,6 +22,15 @@ on:
       build_codeql:
         required: false
         type: boolean
+      build_nuget:
+        required: false
+        type: boolean
+      cxx_flags:
+        required: false
+        type: string
+      ld_flags:
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -42,6 +51,8 @@ jobs:
       BUILD_CONFIGURATION: ${{matrix.configurations}}
       BUILD_PLATFORM: x64
       BUILD_OPTIONS: ${{inputs.build_options}}
+      CXX_FLAGS: ${{inputs.cxx_flags}}
+      LD_FLAGS: ${{inputs.ld_flags}}
 
     steps:
     - uses: actions/checkout@b0e28b5ac45a892f91e7d036f8200cf5ed489415
@@ -50,7 +61,7 @@ jobs:
 
     - name: Initialize CodeQL
       if: inputs.build_codeql == true
-      uses: github/codeql-action/init@7502d6e991ca767d2db617bfd823a1ed925a0d59
+      uses: github/codeql-action/init@a3a6c128d771b6b9bdebb1c9d0583ebd2728a108
       with:
         languages: 'cpp'
 
@@ -81,15 +92,22 @@ jobs:
         cache-name: cache-verifier-project
       with:
         path: external/ebpf-verifier/build
-        key: ${{ runner.os }}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}-${{env.BUILD_ARTIFACT_NAME}}-${{ hashFiles('.git/modules/external/ebpf-verifier/HEAD') }}
+        # Increase the version of the cache each time the CXXFLAGS are modified to invalidate the cache.
+        key: ${{ runner.os }}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}-${{env.BUILD_ARTIFACT_NAME}}-${{ hashFiles('.git/modules/external/ebpf-verifier/HEAD') }}-v1
 
     - name: Create verifier project
       working-directory: ${{env.GITHUB_WORKSPACE}}
+      env:
+        CXXFLAGS: /ZH:SHA_256 ${{env.CXX_FLAGS}}
+        LDFLAGS: ${{env.LD_FLAGS}}
       run: |
         cmake -G "Visual Studio 16 2019" -S external\ebpf-verifier -B external\ebpf-verifier\build
 
     - name: Create catch2 project
       working-directory: ${{env.GITHUB_WORKSPACE}}
+      env:
+        CXXFLAGS: /ZH:SHA_256 ${{env.CXX_FLAGS}}
+        LDFLAGS: ${{env.LD_FLAGS}}
       run: |
         cmake -G "Visual Studio 16 2019" -S external\catch2 -B external\catch2\build -DBUILD_TESTING=OFF
 
@@ -124,7 +142,7 @@ jobs:
         tar -xf ..\..\x64-${{ matrix.configurations }}-cilium-xdp.zip
 
     - name: Upload Build Output
-      uses: actions/upload-artifact@6673cd052c4cd6fcf4b4e6e60ea986c889389535
+      uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8
       with:
         name: ${{inputs.build_artifact}} ${{matrix.configurations}}
         path: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
@@ -156,11 +174,23 @@ jobs:
 
     - name: Upload the MSI package
       if: matrix.configurations == 'Release' && inputs.generate_release_package == true
-      uses: actions/upload-artifact@6673cd052c4cd6fcf4b4e6e60ea986c889389535
+      uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8
       with:
         name: ebpf-for-windows.msi
         path: ${{ steps.packages.outputs.REL_MSI_PACKAGE_PATH }}
 
+    - name: Build nuget package
+      if: matrix.configurations == 'Release' && inputs.build_nuget == true
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{env.BUILD_PLATFORM}} ${{env.SOLUTION_FILE_PATH}} ${{env.BUILD_OPTIONS}} /t:tools\nuget
+
+    - name: Upload the nuget package
+      if: matrix.configurations == 'Release' && inputs.build_nuget == true
+      uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8
+      with:
+        name: ebpf-for-windows nuget
+        path: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/*.nupkg
+
     - name: Perform CodeQL Analysis
       if: inputs.build_codeql == true
-      uses: github/codeql-action/analyze@7502d6e991ca767d2db617bfd823a1ed925a0d59
+      uses: github/codeql-action/analyze@a3a6c128d771b6b9bdebb1c9d0583ebd2728a108

@@ -54,7 +54,10 @@ class _wer_report
         EXCEPTION_ILLEGAL_INSTRUCTION,
         EXCEPTION_STACK_OVERFLOW,
         EXCEPTION_ACCESS_VIOLATION,
-        EXCEPTION_INT_DIVIDE_BY_ZERO};
+        EXCEPTION_INT_DIVIDE_BY_ZERO,
+        STATUS_HEAP_CORRUPTION,
+        STATUS_ASSERTION_FAILURE,
+        STATUS_BREAKPOINT};
 
     static constexpr size_t minimum_stack_size_for_wer = 32 * 1024;
 
@@ -77,7 +80,7 @@ class _wer_report
         HRESULT hr;
         hr = WerReportCreate(wer_event_type, WerReportApplicationCrash, nullptr, &report_handle);
         if (FAILED(hr)) {
-            fprintf(stderr, "WerReportCreate failed with erorr %X\n", hr);
+            fprintf(stderr, "WerReportCreate failed with error %X\n", hr);
             return EXCEPTION_CONTINUE_SEARCH;
         }
         hr = WerReportAddDump(
@@ -89,12 +92,12 @@ class _wer_report
             nullptr,
             0);
         if (FAILED(hr)) {
-            fprintf(stderr, "WerReportAddDump failed with erorr %X\n", hr);
+            fprintf(stderr, "WerReportAddDump failed with error %X\n", hr);
             return EXCEPTION_CONTINUE_SEARCH;
         }
         hr = WerReportSubmit(report_handle, WerConsentApproved, 0, nullptr);
         if (FAILED(hr)) {
-            fprintf(stderr, "WerReportSubmit failed with erorr %X\n", hr);
+            fprintf(stderr, "WerReportSubmit failed with error %X\n", hr);
             return EXCEPTION_CONTINUE_SEARCH;
         }
 

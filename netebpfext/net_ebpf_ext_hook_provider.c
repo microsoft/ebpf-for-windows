@@ -68,6 +68,24 @@ typedef struct _net_ebpf_extension_hook_provider
         LIST_ENTRY attached_clients_list; ///< Linked list of hook NPI clients that are attached to this provider.
 } net_ebpf_extension_hook_provider_t;
 
+#define _ACQUIRE_PUSH_LOCK(lock, mode) \
+    {                                  \
+        KeEnterCriticalRegion();       \
+        ExAcquirePushLock##mode(lock); \
+    }
+
+#define _RELEASE_PUSH_LOCK(lock, mode) \
+    {                                  \
+        ExReleasePushLock##mode(lock); \
+        KeLeaveCriticalRegion();       \
+    }
+
+#define ACQUIRE_PUSH_LOCK_EXCLUSIVE(lock) _ACQUIRE_PUSH_LOCK(lock, Exclusive)
+#define ACQUIRE_PUSH_LOCK_SHARED(lock) _ACQUIRE_PUSH_LOCK(lock, Shared)
+
+#define RELEASE_PUSH_LOCK_EXCLUSIVE(lock) _RELEASE_PUSH_LOCK(lock, Exclusive)
+#define RELEASE_PUSH_LOCK_SHARED(lock) _RELEASE_PUSH_LOCK(lock, Shared)
+
 static _Function_class_(KDEFERRED_ROUTINE) _IRQL_requires_max_(DISPATCH_LEVEL) _IRQL_requires_min_(DISPATCH_LEVEL)
     _IRQL_requires_(DISPATCH_LEVEL) _IRQL_requires_same_ void _ebpf_ext_attach_rundown(
         _In_ KDPC* dpc,
@@ -133,8 +151,8 @@ _ebpf_ext_attach_wait_for_rundown(
 {
     rundown->rundown_occurred = TRUE;
     if (execution_type == EXECUTION_PASSIVE) {
-        ExAcquirePushLockExclusive(&rundown->passive.lock);
-        ExReleasePushLockExclusive(&rundown->passive.lock);
+        ACQUIRE_PUSH_LOCK_EXCLUSIVE(&rundown->passive.lock);
+        RELEASE_PUSH_LOCK_EXCLUSIVE(&rundown->passive.lock);
     } else {
         // Queue a DPC to each CPU and wait for it to run.
         // After it has run on each CPU we can be sure that no
@@ -164,6 +182,7 @@ void
 _net_ebpf_extension_detach_client_completion(_In_ PDEVICE_OBJECT device_object, _In_opt_ void* context)
 {
     net_ebpf_extension_hook_client_t* hook_client = (net_ebpf_extension_hook_client_t*)context;
+    PIO_WORKITEM work_item;
 
     PAGED_CODE();
 
@@ -172,12 +191,15 @@ _net_ebpf_extension_detach_client_completion(_In_ PDEVICE_OBJECT device_object, 
     ASSERT(hook_client != NULL);
     _Analysis_assume_(hook_client != NULL);
 
+    work_item = hook_client->detach_work_item;
+
     // Wait for any in progress callbacks to complete.
     _ebpf_ext_attach_wait_for_rundown(&hook_client->rundown, hook_client->execution_type);
 
+    // Note: This frees the provider binding context (hook_client).
     NmrProviderDetachClientComplete(hook_client->nmr_binding_handle);
 
-    IoFreeWorkItem(hook_client->detach_work_item);
+    IoFreeWorkItem(work_item);
 }
 
 _Acquires_lock_(hook_client) bool net_ebpf_extension_hook_client_enter_rundown(
@@ -185,7 +207,7 @@ _Acquires_lock_(hook_client) bool net_ebpf_extension_hook_client_enter_rundown(
 {
     net_ebpf_ext_hook_client_rundown_t* rundown = &hook_client->rundown;
     if (execution_type == EXECUTION_PASSIVE) {
-        ExAcquirePushLockShared(&rundown->passive.lock);
+        ACQUIRE_PUSH_LOCK_SHARED(&rundown->passive.lock);
     }
 
     return (rundown->rundown_occurred == FALSE);
@@ -197,7 +219,7 @@ _Releases_lock_(hook_client) void net_ebpf_extension_hook_client_leave_rundown(
     net_ebpf_ext_hook_client_rundown_t* rundown = &hook_client->rundown;
     if (execution_type == EXECUTION_PASSIVE) {
         _Analysis_assume_lock_held_(&rundown->passive.lock);
-        ExReleasePushLockShared(&rundown->passive.lock);
+        RELEASE_PUSH_LOCK_SHARED(&rundown->passive.lock);
     }
 }
 
@@ -249,7 +271,7 @@ net_ebpf_extension_hook_check_attach_parameter(
     if (memcmp(attach_parameter, wild_card_attach_parameter, attach_parameter_size) == 0)
         using_wild_card_attach_parameter = TRUE;
 
-    ExAcquirePushLockShared(&provider_context->lock);
+    ACQUIRE_PUSH_LOCK_SHARED(&provider_context->lock);
     lock_held = TRUE;
     if (using_wild_card_attach_parameter) {
         // Client requested wild card attach parameter. This will only be allowed if there are no other clients
@@ -282,7 +304,7 @@ net_ebpf_extension_hook_check_attach_parameter(
 
 Exit:
     if (lock_held)
-        ExReleasePushLockShared(&provider_context->lock);
+        RELEASE_PUSH_LOCK_SHARED(&provider_context->lock);
 
     return result;
 }
@@ -353,9 +375,9 @@ _net_ebpf_extension_hook_provider_attach_client(
     if (result == EBPF_SUCCESS) {
         status = _ebpf_ext_attach_init_rundown(hook_client);
         if (status == STATUS_SUCCESS) {
-            ExAcquirePushLockExclusive(&local_provider_context->lock);
+            ACQUIRE_PUSH_LOCK_EXCLUSIVE(&local_provider_context->lock);
             InsertTailList(&local_provider_context->attached_clients_list, &hook_client->link);
-            ExReleasePushLockExclusive(&local_provider_context->lock);
+            RELEASE_PUSH_LOCK_EXCLUSIVE(&local_provider_context->lock);
         }
     } else {
         status = STATUS_ACCESS_DENIED;
@@ -399,9 +421,9 @@ _net_ebpf_extension_hook_provider_detach_client(_In_ void* provider_binding_cont
     // Invoke hook specific handler for processing client detach.
     local_provider_context->detach_callback(local_client_context);
 
-    ExAcquirePushLockExclusive(&local_provider_context->lock);
+    ACQUIRE_PUSH_LOCK_EXCLUSIVE(&local_provider_context->lock);
     RemoveEntryList(&local_client_context->link);
-    ExReleasePushLockExclusive(&local_provider_context->lock);
+    RELEASE_PUSH_LOCK_EXCLUSIVE(&local_provider_context->lock);
 
     IoQueueWorkItem(
         local_client_context->detach_work_item,
@@ -486,11 +508,11 @@ net_ebpf_extension_hook_client_t*
 net_ebpf_extension_hook_get_attached_client(_In_ net_ebpf_extension_hook_provider_t* provider_context)
 {
     net_ebpf_extension_hook_client_t* client_context = NULL;
-    ExAcquirePushLockShared(&provider_context->lock);
+    ACQUIRE_PUSH_LOCK_SHARED(&provider_context->lock);
     if (!IsListEmpty(&provider_context->attached_clients_list))
         client_context = (net_ebpf_extension_hook_client_t*)CONTAINING_RECORD(
             provider_context->attached_clients_list.Flink, net_ebpf_extension_hook_client_t, link);
-    ExReleasePushLockShared(&provider_context->lock);
+    RELEASE_PUSH_LOCK_SHARED(&provider_context->lock);
     return client_context;
 }
 
@@ -500,7 +522,7 @@ net_ebpf_extension_hook_get_next_attached_client(
     _In_opt_ const net_ebpf_extension_hook_client_t* client_context)
 {
     net_ebpf_extension_hook_client_t* next_client = NULL;
-    ExAcquirePushLockShared(&provider_context->lock);
+    ACQUIRE_PUSH_LOCK_SHARED(&provider_context->lock);
     if (client_context == NULL) {
         // Return the first attached client (if any).
         if (!IsListEmpty(&provider_context->attached_clients_list))
@@ -514,6 +536,6 @@ net_ebpf_extension_hook_get_next_attached_client(
                 client_context->link.Flink, net_ebpf_extension_hook_client_t, link);
         }
     }
-    ExReleasePushLockShared(&provider_context->lock);
+    RELEASE_PUSH_LOCK_SHARED(&provider_context->lock);
     return next_client;
 }

@@ -12,7 +12,11 @@
   <PropertyGroup Condition="'$(AddressSanitizer)'=='True'">
     <EnableASAN>true</EnableASAN>
   </PropertyGroup>
-  <PropertyGroup>
+  <PropertyGroup Condition="'$(Fuzzer)'=='True'">
+    <EnableASAN>true</EnableASAN>
+    <AdditionalOptions>/fsanitize-coverage=inline-bool-flag /fsanitize-coverage=edge /fsanitize-coverage=trace-cmp /fsanitize-coverage=trace-div %(AdditionalOptions)</AdditionalOptions>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Fuzzer)'!='True'">
     <SpectreMitigation>Spectre</SpectreMitigation>
   </PropertyGroup>
   <ItemDefinitionGroup>

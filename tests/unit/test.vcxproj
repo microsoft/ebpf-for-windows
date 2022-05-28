@@ -157,6 +157,9 @@
     <ProjectReference Include="..\..\libs\execution_context\user\execution_context_user.vcxproj">
       <Project>{18127b0d-8381-4afe-9a3a-cf53241992d3}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\..\libs\pe-parse\pe-parse.vcxproj">
+      <Project>{fe4fea79-bfbb-4822-abcb-0d3beea240a7}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\..\libs\platform\user\platform_user.vcxproj">
       <Project>{c26cb6a9-158c-4a9e-a243-755ddd98e5fe}</Project>
     </ProjectReference>
@@ -195,6 +198,20 @@
     <ClInclude Include="..\..\libs\thunk\mock\mock.h" />
     <ClInclude Include="..\end_to_end\helpers.h" />
     <ClInclude Include="..\end_to_end\test_helper.hpp" />
+    <ClCompile Include="wer_report_test_wrapper.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <CopyFileToFolders Include="..\sample\bad1.o">
+      <FileType>Document</FileType>
+      <DeploymentContent>true</DeploymentContent>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)bad</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)bad</DestinationFolders>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="..\sample\bad2.o">
+      <FileType>Document</FileType>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)bad</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)bad</DestinationFolders>
+    </CopyFileToFolders>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />

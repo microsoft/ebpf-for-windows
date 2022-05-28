@@ -76,7 +76,7 @@ extern "C"
     ebpf_native_load_programs(
         _In_ const GUID* module_id,
         size_t count_of_map_handles,
-        _Out_writes_(count_of_map_handles) ebpf_handle_t* map_handles,
+        _Out_writes_opt_(count_of_map_handles) ebpf_handle_t* map_handles,
         size_t count_of_program_handles,
         _Out_writes_(count_of_program_handles) ebpf_handle_t* program_handles);
 

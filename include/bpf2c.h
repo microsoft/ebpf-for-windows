@@ -62,7 +62,13 @@ extern "C"
 
     typedef struct _program_entry
     {
+        // DLLs put the strings into the same section, so add a marker
+        // at the start of a program entry to make it easy to find
+        // entries in the programs section.
+        uint64_t zero;
+
         uint64_t (*function)(void*);
+        const char* pe_section_name;
         const char* section_name;
         const char* program_name;
         uint16_t* referenced_map_indices;
@@ -76,8 +82,9 @@ extern "C"
 
     typedef struct _metadata_table
     {
-        void (*programs)(program_entry_t** programs, size_t* count);
-        void (*maps)(map_entry_t** maps, size_t* count);
+        void (*programs)(_Outptr_result_buffer_maybenull_(*count) program_entry_t** programs, _Out_ size_t* count);
+        void (*maps)(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ size_t* count);
+        void (*hash)(_Outptr_result_buffer_maybenull_(*size) uint8_t** hash, _Out_ size_t* size);
     } metadata_table_t;
 
     inline uint16_t

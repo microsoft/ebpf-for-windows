@@ -53,6 +53,7 @@ ebpf_platform_terminate()
 __drv_allocatesMem(Mem) _Must_inspect_result_ _Ret_maybenull_
     _Post_writable_byte_size_(size) void* ebpf_allocate(size_t size)
 {
+    ebpf_assert(size);
     void* p = ExAllocatePoolUninitialized(NonPagedPoolNx, size, EBPF_POOL_TAG);
     if (p)
         memset(p, 0, size);
@@ -735,4 +736,16 @@ ebpf_update_global_helpers(
     ebpf_result_t result = NT_SUCCESS(status) ? EBPF_SUCCESS : EBPF_FAILED;
 
     return result;
+}
+
+uint32_t
+ebpf_platform_process_id()
+{
+    return (uint32_t)(uintptr_t)PsGetCurrentProcessId();
+}
+
+uint32_t
+ebpf_platform_thread_id()
+{
+    return (uint32_t)(uintptr_t)PsGetCurrentThreadId();
 }

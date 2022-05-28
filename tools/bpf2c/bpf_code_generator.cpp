@@ -13,6 +13,8 @@
 
 #include <iostream>
 #include <vector>
+#include <windows.h>
+#undef max
 
 #include "btf_parser.h"
 #include "bpf_code_generator.h"
@@ -21,6 +23,10 @@
 #define _countof(array) (sizeof(array) / sizeof(array[0]))
 #endif
 #include <cassert>
+#include <iomanip>
+
+#define INDENT "    "
+#define LINE_BREAK_WIDTH 120
 
 static const std::string _register_names[11] = {
     "r0",
@@ -112,18 +118,19 @@ std::string
 bpf_code_generator::get_register_name(uint8_t id)
 {
     if (id >= _countof(_register_names)) {
-        throw std::runtime_error("Invalid register id");
+        throw std::runtime_error("invalid register id");
     } else {
         current_section->referenced_registers.insert(_register_names[id]);
         return _register_names[id];
     }
 }
 
-bpf_code_generator::bpf_code_generator(std::istream& stream, const std::string& c_name)
-    : current_section(nullptr), c_name(c_name), path(path)
+bpf_code_generator::bpf_code_generator(
+    std::istream& stream, const std::string& c_name, const std::optional<std::vector<uint8_t>>& elf_file_hash)
+    : current_section(nullptr), c_name(c_name), path(path), elf_file_hash(elf_file_hash)
 {
     if (!reader.load(stream)) {
-        throw std::runtime_error(std::string("Can't process ELF file ") + c_name);
+        throw std::runtime_error(std::string("can't process ELF file ") + c_name);
     }
 
     extract_btf_information();
@@ -148,10 +155,16 @@ bpf_code_generator::program_sections()
     std::vector<std::string> section_names;
     for (const auto& section : reader.sections) {
         std::string name = section->get_name();
-        if (name.empty() || name[0] == '.')
+        if (name.empty() || (section->get_size() == 0) || name == ".text")
             continue;
         if ((section->get_type() == 1) && (section->get_flags() == 6)) {
             section_names.push_back(section->get_name());
+        }
+    }
+    if (section_names.empty()) {
+        auto text_section = reader.sections[".text"];
+        if (text_section && text_section->get_size() != 0) {
+            section_names.push_back(".text");
         }
     }
     return section_names;
@@ -165,6 +178,7 @@ bpf_code_generator::parse(const std::string& section_name, const GUID& program_t
     get_register_name(1);
     get_register_name(10);
 
+    set_pe_section_name(section_name);
     set_program_and_attach_type(program_type, attach_type);
     extract_program(section_name);
     extract_relocations_and_maps(section_name);
@@ -224,7 +238,11 @@ void
 bpf_code_generator::parse()
 {
     auto map_section = reader.sections["maps"];
-    ELFIO::const_symbol_section_accessor symbols{reader, reader.sections[".symtab"]};
+    auto symbtab_section = reader.sections[".symtab"];
+    if (!symbtab_section) {
+        throw std::runtime_error("ELF file is missing .symtab section");
+    }
+    ELFIO::const_symbol_section_accessor symbols{reader, symbtab_section};
 
     if (map_section) {
         size_t data_size = map_section->get_size();
@@ -319,10 +337,17 @@ bpf_code_generator::extract_btf_information()
     if (btf == nullptr) {
         return;
     }
+    if (!btf->get_data()) {
+        return;
+    }
 
     if (btf_ext == nullptr) {
         return;
     }
+    if (!btf_ext->get_data()) {
+        return;
+    }
+
     std::vector<uint8_t> btf_data(
         reinterpret_cast<const uint8_t*>(btf->get_data()),
         reinterpret_cast<const uint8_t*>(btf->get_data()) + btf->get_size());
@@ -361,6 +386,9 @@ bpf_code_generator::generate_labels()
         }
         if (output.instruction.opcode == EBPF_OP_EXIT) {
             continue;
+        }
+        if ((i + output.instruction.offset + 1) >= program_output.size()) {
+            throw std::runtime_error("invalid jump target");
         }
         program_output[i + output.instruction.offset + 1].jump_target = true;
     }
@@ -423,8 +451,11 @@ bpf_code_generator::encode_instructions(const std::string& section_name)
                 source = std::string("IMMEDIATE(") + std::to_string(inst.imm) + std::string(")");
             bool is64bit = (inst.opcode & EBPF_CLS_MASK) == EBPF_CLS_ALU64;
             AluOperations operation = static_cast<AluOperations>(inst.opcode >> 4);
-            std::string check_div_by_zero =
-                format_string("if (%s == 0) { division_by_zero(%s); return -1; }", source, std::to_string(i));
+            std::string check_div_by_zero = format_string(
+                "if (%s == 0) {\n" INDENT INDENT "division_by_zero(%s);\n" INDENT INDENT
+                "return 0xffffffffffffffffui64;\n" INDENT "}",
+                source,
+                std::to_string(i));
             std::string swap_function;
             switch (operation) {
             case AluOperations::Add:
@@ -437,7 +468,11 @@ bpf_code_generator::encode_instructions(const std::string& section_name)
                 output.lines.push_back(format_string("%s *= %s;", destination, source));
                 break;
             case AluOperations::Div:
-                output.lines.push_back(check_div_by_zero);
+                if (inst.opcode & EBPF_SRC_REG) {
+                    output.lines.push_back(check_div_by_zero);
+                } else if (inst.imm == 0) {
+                    throw std::runtime_error("invalid instruction - constant division by zero");
+                }
                 if (is64bit)
                     output.lines.push_back(format_string("%s /= %s;", destination, source));
                 else
@@ -460,13 +495,14 @@ bpf_code_generator::encode_instructions(const std::string& section_name)
                     output.lines.push_back(format_string("%s = (uint32_t)%s >> %s;", destination, destination, source));
                 break;
             case AluOperations::Neg:
-                if (is64bit)
-                    output.lines.push_back(format_string("%s = -%s;", destination, destination));
-                else
-                    output.lines.push_back(format_string("%s = -(int64_t)%s;", destination, destination));
+                output.lines.push_back(format_string("%s = -(int64_t)%s;", destination, destination));
                 break;
             case AluOperations::Mod:
-                output.lines.push_back(check_div_by_zero);
+                if (inst.opcode & EBPF_SRC_REG) {
+                    output.lines.push_back(check_div_by_zero);
+                } else if (inst.imm == 0) {
+                    throw std::runtime_error("invalid instruction - constant division by zero");
+                }
                 if (is64bit)
                     output.lines.push_back(format_string("%s %%= %s;", destination, source));
                 else
@@ -540,6 +576,9 @@ bpf_code_generator::encode_instructions(const std::string& section_name)
             if (inst.opcode != EBPF_OP_LDDW) {
                 throw std::runtime_error("invalid operand");
             }
+            if (i >= program_output.size()) {
+                throw std::runtime_error("invalid operand");
+            }
             std::string destination = get_register_name(inst.dst);
             if (output.relocation.empty()) {
                 uint64_t imm = static_cast<uint32_t>(program_output[i].instruction.imm);
@@ -579,7 +618,7 @@ bpf_code_generator::encode_instructions(const std::string& section_name)
                 break;
             }
             output.lines.push_back(
-                format_string("%s = *(%s *)(uintptr_t)(%s + %s);", destination, size_type, source, offset));
+                format_string("%s = *(%s*)(uintptr_t)(%s + %s);", destination, size_type, source, offset));
         } break;
         case EBPF_CLS_ST:
         case EBPF_CLS_STX: {
@@ -608,7 +647,7 @@ bpf_code_generator::encode_instructions(const std::string& section_name)
             }
             source = std::string("(") + size_type + std::string(")") + source;
             output.lines.push_back(
-                format_string("*(%s *)(uintptr_t)(%s + %s) = %s;", size_type, destination, offset, source));
+                format_string("*(%s*)(uintptr_t)(%s + %s) = %s;", size_type, destination, offset, source));
         } break;
         case EBPF_CLS_JMP: {
             std::string destination = get_register_name(inst.dst);
@@ -617,6 +656,9 @@ bpf_code_generator::encode_instructions(const std::string& section_name)
                 source = get_register_name(inst.src);
             } else {
                 source = std::string("IMMEDIATE(") + std::to_string(inst.imm) + std::string(")");
+            }
+            if ((inst.opcode >> 4) >= _countof(_predicate_format_string)) {
+                throw std::runtime_error("invalid operand");
             }
             auto& format = _predicate_format_string[inst.opcode >> 4];
             if (inst.opcode == EBPF_OP_JA) {
@@ -641,11 +683,12 @@ bpf_code_generator::encode_instructions(const std::string& section_name)
                 output.lines.push_back(
                     get_register_name(0) + std::string(" = ") + function_name + std::string(".address"));
                 output.lines.push_back(
-                    std::string("(") + get_register_name(1) + std::string(", ") + get_register_name(2) +
+                    std::string(INDENT " (") + get_register_name(1) + std::string(", ") + get_register_name(2) +
                     std::string(", ") + get_register_name(3) + std::string(", ") + get_register_name(4) +
                     std::string(", ") + get_register_name(5) + std::string(");"));
                 output.lines.push_back(
-                    format_string("if ((%s.tail_call) && (%s == 0)) return 0;", function_name, get_register_name(0)));
+                    format_string("if ((%s.tail_call) && (%s == 0))", function_name, get_register_name(0)));
+                output.lines.push_back(INDENT "return 0;");
             } else if (inst.opcode == EBPF_OP_EXIT) {
                 output.lines.push_back(std::string("return ") + get_register_name(0) + std::string(";"));
             } else {
@@ -654,7 +697,8 @@ bpf_code_generator::encode_instructions(const std::string& section_name)
                     throw std::runtime_error("invalid jump target");
                 }
                 std::string predicate = format_string(format, destination, source);
-                output.lines.push_back(format_string("if (%s) goto %s;", predicate, target));
+                output.lines.push_back(format_string("if (%s)", predicate));
+                output.lines.push_back(format_string(INDENT "goto %s;", target));
             }
         } break;
         default:
@@ -669,24 +713,90 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
     // Emit C file
     output_stream << "#include \"bpf2c.h\"" << std::endl << std::endl;
 
+    output_stream << "static void" << std::endl
+                  << "_get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ size_t* size)"
+                  << std::endl;
+    output_stream << "{" << std::endl;
+    if (elf_file_hash.has_value()) {
+        output_stream << INDENT "const uint8_t hash_buffer[] = {" << std::endl;
+        for (size_t i = 0; i < elf_file_hash.value().size(); i++) {
+            if (i % 16 == 0) {
+                output_stream << INDENT "";
+            }
+            output_stream << std::to_string(elf_file_hash.value().at(i)) << ", ";
+            if (i % 16 == 15) {
+                output_stream << std::endl;
+            }
+        }
+        output_stream << INDENT "};" << std::endl;
+        output_stream << INDENT "*hash = hash_buffer;" << std::endl;
+        output_stream << INDENT "*size = sizeof(hash_buffer);" << std::endl;
+    } else {
+        output_stream << INDENT "*hash = NULL;" << std::endl;
+        output_stream << INDENT "*size = 0;" << std::endl;
+    }
+    output_stream << "}" << std::endl;
+
     // Emit import tables
     if (map_definitions.size() > 0) {
+        output_stream << "#pragma data_seg(push, \"maps\")" << std::endl;
         output_stream << "static map_entry_t _maps[] = {" << std::endl;
         size_t map_size = map_definitions.size();
         size_t current_index = 0;
         while (current_index < map_size) {
             for (const auto& [name, entry] : map_definitions) {
                 if (entry.index == current_index) {
-                    output_stream << "{ NULL, { ";
-                    output_stream << entry.definition.type << ", ";
-                    output_stream << entry.definition.key_size << ", ";
-                    output_stream << entry.definition.value_size << ", ";
-                    output_stream << entry.definition.max_entries << ", ";
-                    output_stream << entry.definition.inner_map_idx << ", ";
-                    output_stream << entry.definition.pinning << ", ";
-                    output_stream << entry.definition.id << ", ";
-                    output_stream << entry.definition.inner_id << ", ";
-                    output_stream << " }, \"" << name.c_str() << "\" }," << std::endl;
+                    std::string map_type;
+                    std::string map_pinning;
+                    if (entry.definition.type < _countof(_ebpf_map_type_names)) {
+                        map_type = _ebpf_map_type_names[entry.definition.type];
+                    } else {
+                        map_type = std::to_string(entry.definition.type);
+                    }
+                    if (entry.definition.pinning < _countof(_ebpf_pin_type_names)) {
+                        map_pinning = _ebpf_pin_type_names[entry.definition.pinning];
+                    } else {
+                        map_pinning = std::to_string(entry.definition.pinning);
+                    }
+                    double width = 0;
+                    width = std::max(width, (double)map_type.size() - 1);
+                    width = std::max(width, std::log10((size_t)entry.definition.key_size));
+                    width = std::max(width, std::log10((size_t)entry.definition.value_size));
+                    width = std::max(width, std::log10((size_t)entry.definition.max_entries));
+                    width = std::max(width, std::log10((size_t)entry.definition.inner_map_idx));
+                    width = std::max(width, (double)map_pinning.size() - 1);
+                    width = std::max(width, std::log10((size_t)entry.definition.id));
+
+                    width = std::max(width, std::log10((size_t)entry.definition.inner_id));
+                    auto stream_width = static_cast<std::streamsize>(std::floor(width) + 1);
+                    stream_width += 2; // Add space for the trailing ", "
+
+                    output_stream << INDENT "{NULL," << std::endl;
+                    output_stream << INDENT " {" << std::endl;
+                    output_stream << INDENT INDENT " " << std::left << std::setw(stream_width) << map_type + ","
+                                  << "// Type of map." << std::endl;
+                    output_stream << INDENT INDENT " " << std::left << std::setw(stream_width)
+                                  << std::to_string(entry.definition.key_size) + ","
+                                  << "// Size in bytes of a map key." << std::endl;
+                    output_stream << INDENT INDENT " " << std::left << std::setw(stream_width)
+                                  << std::to_string(entry.definition.value_size) + ","
+                                  << "// Size in bytes of a map value." << std::endl;
+                    output_stream << INDENT INDENT " " << std::left << std::setw(stream_width)
+                                  << std::to_string(entry.definition.max_entries) + ","
+                                  << "// Maximum number of entries allowed in the map." << std::endl;
+                    output_stream << INDENT INDENT " " << std::left << std::setw(stream_width)
+                                  << std::to_string(entry.definition.inner_map_idx) + ","
+                                  << "// Inner map index." << std::endl;
+                    output_stream << INDENT INDENT " " << std::left << std::setw(stream_width) << map_pinning + ","
+                                  << "// Pinning type for the map." << std::endl;
+                    output_stream << INDENT INDENT " " << std::left << std::setw(stream_width)
+                                  << std::to_string(entry.definition.id) + ","
+                                  << "// Identifier for a map template." << std::endl;
+                    output_stream << INDENT INDENT " " << std::left << std::setw(stream_width)
+                                  << std::to_string(entry.definition.inner_id) + ","
+                                  << "// The id of the inner map template." << std::endl;
+                    output_stream << INDENT " }," << std::endl;
+                    output_stream << INDENT " \"" << name.c_str() << "\"}," << std::endl;
 
                     current_index++;
                     break;
@@ -694,22 +804,23 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             }
         }
         output_stream << "};" << std::endl;
+        output_stream << "#pragma data_seg(pop)" << std::endl;
         output_stream << std::endl;
-        output_stream
-            << "static void _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ size_t* count)"
-            << std::endl;
+        output_stream << "static void" << std::endl
+                      << "_get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ size_t* count)"
+                      << std::endl;
         output_stream << "{" << std::endl;
-        output_stream << "\t*maps = _maps;" << std::endl;
-        output_stream << "\t*count = " << std::to_string(map_definitions.size()) << ";" << std::endl;
+        output_stream << INDENT "*maps = _maps;" << std::endl;
+        output_stream << INDENT "*count = " << std::to_string(map_definitions.size()) << ";" << std::endl;
         output_stream << "}" << std::endl;
         output_stream << std::endl;
     } else {
-        output_stream
-            << "static void _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ size_t* count)"
-            << std::endl;
+        output_stream << "static void" << std::endl
+                      << "_get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ size_t* count)"
+                      << std::endl;
         output_stream << "{" << std::endl;
-        output_stream << "\t*maps = NULL;" << std::endl;
-        output_stream << "\t*count = 0;" << std::endl;
+        output_stream << INDENT "*maps = NULL;" << std::endl;
+        output_stream << INDENT "*count = 0;" << std::endl;
         output_stream << "}" << std::endl;
         output_stream << std::endl;
     }
@@ -735,7 +846,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             }
 
             for (const auto& [helper_name, id] : index_ordered_helpers) {
-                output_stream << "{ NULL, " << id << ", \"" << helper_name.c_str() << "\"}," << std::endl;
+                output_stream << INDENT "{NULL, " << id << ", \"" << helper_name.c_str() << "\"}," << std::endl;
             }
 
             output_stream << "};" << std::endl;
@@ -746,25 +857,36 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         std::string program_type_name = program_name + "_program_type_guid";
         std::string attach_type_name = program_name + "_attach_type_guid";
 
-#if defined(_MSC_VER)
-        output_stream << format_string(
-                             "static GUID %s = %s;",
-                             sanitize_name(program_type_name),
-                             format_guid(&section.program_type))
-                      << std::endl;
-        output_stream << format_string(
-                             "static GUID %s = %s;",
-                             sanitize_name(attach_type_name),
-                             format_guid(&section.expected_attach_type))
-                      << std::endl;
-#endif
+        auto guid_declaration = format_string(
+            "static GUID %s = %s;", sanitize_name(program_type_name), format_guid(&section.program_type, false));
+
+        if (guid_declaration.length() <= LINE_BREAK_WIDTH) {
+            output_stream << guid_declaration << std::endl;
+        } else {
+            output_stream << format_string(
+                                 "static GUID %s = %s;",
+                                 sanitize_name(program_type_name),
+                                 format_guid(&section.program_type, true))
+                          << std::endl;
+        }
+        guid_declaration = format_string(
+            "static GUID %s = %s;", sanitize_name(attach_type_name), format_guid(&section.expected_attach_type, false));
+        if (guid_declaration.length() <= LINE_BREAK_WIDTH) {
+            output_stream << guid_declaration << std::endl;
+        } else {
+            output_stream << format_string(
+                                 "static GUID %s = %s;",
+                                 sanitize_name(attach_type_name),
+                                 format_guid(&section.expected_attach_type, true))
+                          << std::endl;
+        }
 
         if (section.referenced_map_indices.size() > 0) {
             // Emit the array for the maps used.
             std::string map_array_name = program_name + "_maps";
             output_stream << format_string("static uint16_t %s[] = {", sanitize_name(map_array_name)) << std::endl;
             for (const auto& map_index : section.referenced_map_indices) {
-                output_stream << std::to_string(map_index) << "," << std::endl;
+                output_stream << INDENT << std::to_string(map_index) << "," << std::endl;
             }
             output_stream << "};" << std::endl;
             output_stream << std::endl;
@@ -781,22 +903,23 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         }
 
         // Emit entry point
-        output_stream << format_string("static uint64_t %s(void* context)", sanitize_name(program_name)) << std::endl;
-        output_stream << "{" << std::endl;
+        output_stream << "#pragma code_seg(push, \"" << section.pe_section_name << "\")" << std::endl;
+        output_stream << format_string("static uint64_t\n%s(void* context)", sanitize_name(program_name)) << std::endl;
+        output_stream << prolog_line_info << "{" << std::endl;
 
         // Emit prologue
-        output_stream << prolog_line_info << "\t// Prologue" << std::endl;
-        output_stream << prolog_line_info << "\tuint64_t stack[(UBPF_STACK_SIZE + 7) / 8];" << std::endl;
+        output_stream << prolog_line_info << INDENT "// Prologue" << std::endl;
+        output_stream << prolog_line_info << INDENT "uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];" << std::endl;
         for (const auto& r : _register_names) {
             // Skip unused registers
             if (section.referenced_registers.find(r) == section.referenced_registers.end()) {
                 continue;
             }
-            output_stream << prolog_line_info << "\tregister uint64_t " << r.c_str() << " = 0;" << std::endl;
+            output_stream << prolog_line_info << INDENT "register uint64_t " << r.c_str() << " = 0;" << std::endl;
         }
         output_stream << std::endl;
-        output_stream << prolog_line_info << "\t" << get_register_name(1) << " = (uintptr_t)context;" << std::endl;
-        output_stream << prolog_line_info << "\t" << get_register_name(10)
+        output_stream << prolog_line_info << INDENT "" << get_register_name(1) << " = (uintptr_t)context;" << std::endl;
+        output_stream << prolog_line_info << INDENT "" << get_register_name(10)
                       << " = (uintptr_t)((uint8_t*)stack + sizeof(stack));" << std::endl;
         output_stream << std::endl;
 
@@ -816,71 +939,82 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
                     escape_string(current_line->second.file_name));
             }
 #if defined(_DEBUG) || defined(BPF2C_VERBOSE)
-            output_stream << "\t// " << _opcode_name_strings[output.instruction.opcode]
-                          << " pc=" << output.instruction_offset << " dst=" << get_register_name(output.instruction.dst)
-                          << " src=" << get_register_name(output.instruction.src)
+            output_stream << INDENT "// " << _opcode_name_strings[output.instruction.opcode]
+                          << " pc=" << output.instruction_offset << " dst=r" << std::to_string(output.instruction.dst)
+                          << " src=r" << std::to_string(output.instruction.src)
                           << " offset=" << std::to_string(output.instruction.offset)
                           << " imm=" << std::to_string(output.instruction.imm) << std::endl;
 #endif
             for (const auto& line : output.lines) {
-                output_stream << prolog_line_info << "\t" << line << std::endl;
+                output_stream << prolog_line_info << INDENT "" << line << std::endl;
             }
         }
         // Emit epilogue
         output_stream << prolog_line_info << "}" << std::endl;
+        output_stream << "#pragma code_seg(pop)" << std::endl;
         output_stream << "#line __LINE__ __FILE__" << std::endl << std::endl;
     }
 
-    output_stream << "static program_entry_t _programs[] = {" << std::endl;
-    for (auto& [name, program] : sections) {
-        auto program_name = !program.program_name.empty() ? program.program_name : name;
-        size_t map_count = program.referenced_map_indices.size();
-        size_t helper_count = program.helper_functions.size();
-        auto map_array_name = map_count ? (program_name + "_maps") : std::string("NULL");
-        auto helper_array_name = helper_count ? (program_name + "_helpers") : std::string("NULL");
-#if defined(_MSC_VER)
-        auto program_type_guid_name = program_name + "_program_type_guid";
-        auto attach_type_guid_name = program_name + "_attach_type_guid";
-#else
-        auto program_type_guid_name = std::string("NULL");
-        auto attach_type_guid_name = std::string("NULL");
-#endif
-        output_stream << "\t{ " << sanitize_name(program_name) << ", "
-                      << "\"" << name.c_str() << "\", "
-                      << "\"" << program.program_name.c_str() << "\", " << map_array_name.c_str() << ", "
-                      << program.referenced_map_indices.size() << ", " << helper_array_name.c_str() << ", "
-                      << program.helper_functions.size() << ", " << program.output.size() << ", "
-#if defined(_MSC_VER)
-                      << "&" << sanitize_name(program_type_guid_name) << ", "
-                      << "&" << sanitize_name(attach_type_guid_name) << ", "
-#else
-                      << sanitize_name(program_type_guid_name) << ", " << sanitize_name(attach_type_guid_name) << ", "
-#endif
-                      << "}," << std::endl;
+    if (sections.size() != 0) {
+
+        output_stream << "#pragma data_seg(push, \"programs\")" << std::endl;
+        output_stream << "static program_entry_t _programs[] = {" << std::endl;
+        for (auto& [name, program] : sections) {
+            auto program_name = !program.program_name.empty() ? program.program_name : name;
+            size_t map_count = program.referenced_map_indices.size();
+            size_t helper_count = program.helper_functions.size();
+            auto map_array_name = map_count ? (program_name + "_maps") : std::string("NULL");
+            auto helper_array_name = helper_count ? (program_name + "_helpers") : std::string("NULL");
+            auto program_type_guid_name = program_name + "_program_type_guid";
+            auto attach_type_guid_name = program_name + "_attach_type_guid";
+            output_stream << INDENT "{" << std::endl;
+            output_stream << INDENT INDENT << "0," << std::endl;
+            output_stream << INDENT INDENT << sanitize_name(program_name) << "," << std::endl;
+            output_stream << INDENT INDENT "\"" << program.pe_section_name.c_str() << "\"," << std::endl;
+            output_stream << INDENT INDENT "\"" << name.c_str() << "\"," << std::endl;
+            output_stream << INDENT INDENT "\"" << program.program_name.c_str() << "\"," << std::endl;
+            output_stream << INDENT INDENT << map_array_name.c_str() << "," << std::endl;
+            output_stream << INDENT INDENT << program.referenced_map_indices.size() << "," << std::endl;
+            output_stream << INDENT INDENT << helper_array_name.c_str() << "," << std::endl;
+            output_stream << INDENT INDENT << program.helper_functions.size() << "," << std::endl;
+            output_stream << INDENT INDENT << program.output.size() << "," << std::endl;
+            output_stream << INDENT INDENT "&" << sanitize_name(program_type_guid_name) << "," << std::endl;
+            output_stream << INDENT INDENT "&" << sanitize_name(attach_type_guid_name) << "," << std::endl;
+            output_stream << INDENT "}," << std::endl;
+        }
+        output_stream << "};" << std::endl;
+        output_stream << "#pragma data_seg(pop)" << std::endl;
+        output_stream << std::endl;
     }
-    output_stream << "};" << std::endl;
-    output_stream << std::endl;
-    output_stream
-        << "static void _get_programs(_Outptr_result_buffer_(*count) program_entry_t** programs, _Out_ size_t* count)"
-        << std::endl;
+    output_stream << "static void" << std::endl
+                  << "_get_programs(_Outptr_result_buffer_(*count) program_entry_t** programs, _Out_ size_t* count)"
+                  << std::endl;
     output_stream << "{" << std::endl;
-    output_stream << "\t*programs = _programs;" << std::endl;
-    output_stream << "\t*count = " << std::to_string(sections.size()) << ";" << std::endl;
+    if (sections.size() != 0) {
+        output_stream << INDENT "*programs = _programs;" << std::endl;
+    } else {
+        output_stream << INDENT "*programs = NULL;" << std::endl;
+    }
+    output_stream << INDENT "*count = " << std::to_string(sections.size()) << ";" << std::endl;
     output_stream << "}" << std::endl;
     output_stream << std::endl;
 
-    output_stream << std::endl;
     output_stream << format_string(
-        "metadata_table_t %s = { _get_programs, _get_maps };\n", c_name.c_str() + std::string("_metadata_table"));
+        "metadata_table_t %s = {_get_programs, _get_maps, _get_hash};\n",
+        c_name.c_str() + std::string("_metadata_table"));
 }
 
-#if defined(_MSC_VER)
 std::string
-bpf_code_generator::format_guid(const GUID* guid)
+bpf_code_generator::format_guid(const GUID* guid, bool split)
 {
     std::string output(120, '\0');
-    std::string format_string =
-        "{0x%08x, 0x%04x, 0x%04x, {0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x}}";
+    std::string format_string;
+    if (split) {
+        format_string =
+            "{\n" INDENT "0x%08x, 0x%04x, 0x%04x, {0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x}}";
+    } else {
+        format_string = "{0x%08x, 0x%04x, 0x%04x, {0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x}}";
+    }
     auto count = snprintf(
         output.data(),
         output.size(),
@@ -903,7 +1037,6 @@ bpf_code_generator::format_guid(const GUID* guid)
     output.resize(strlen(output.c_str()));
     return output;
 }
-#endif
 
 std::string
 bpf_code_generator::format_string(
@@ -942,6 +1075,25 @@ bpf_code_generator::format_string(
     }
     output.resize(strlen(output.c_str()));
     return output;
+}
+
+void
+bpf_code_generator::set_pe_section_name(const std::string& elf_section_name)
+{
+    if (elf_section_name.length() <= 8) {
+        current_section->pe_section_name = elf_section_name;
+        return;
+    }
+
+    // Name is too long for PE, so generate a short name.
+    // Subtract 3 so there is space for the tilde, the last counter digit,
+    // and a null terminator.
+    pe_section_name_counter++;
+    char shortname[9];
+    int prefix_length = sizeof(shortname) - 3 - (int)(log10(pe_section_name_counter));
+    strncpy_s(shortname, sizeof(shortname), elf_section_name.c_str(), prefix_length);
+    sprintf_s(shortname + prefix_length, sizeof(shortname) - prefix_length, "~%d", pe_section_name_counter);
+    current_section->pe_section_name = shortname;
 }
 
 std::string

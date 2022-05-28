@@ -8,6 +8,9 @@ cmake_minimum_required(VERSION 3.20)
 # SDK which corresponds to 19041.
 set(CMAKE_SYSTEM_VERSION 10.0.19041.0)
 
+# Uncomment the following line for debugging project dependencies.
+# set_property(GLOBAL PROPERTY GLOBAL_DEPENDS_DEBUG_MODE 1)
+
 project("ebpf-for-windows")
 
 include("cmake/options.cmake")
@@ -15,6 +18,7 @@ include("cmake/settings.cmake")
 include("cmake/git_commit.cmake")
 include("cmake/codesign.cmake")
 include("cmake/midl_compiler_finder.cmake")
+include("cmake/process_bpf_source_file.cmake")
 
 list(APPEND CMAKE_MODULE_PATH
   "${CMAKE_SOURCE_DIR}/external/FindWDK/cmake"
@@ -23,15 +27,15 @@ list(APPEND CMAKE_MODULE_PATH
 locateMidlCompiler()
 find_package(WDK REQUIRED)
 
-add_subdirectory("external")
-add_subdirectory("rpc_interface")
 add_subdirectory("ebpfapi")
-add_subdirectory("libs")
-add_subdirectory("tools")
-add_subdirectory("ebpfsvc")
-add_subdirectory("netebpfext")
 add_subdirectory("ebpfcore")
+add_subdirectory("ebpfsvc")
+add_subdirectory("external")
+add_subdirectory("libs")
+add_subdirectory("netebpfext")
+add_subdirectory("rpc_interface")
 add_subdirectory("scripts")
+add_subdirectory("tools")
 
 if(EBPFFORWINDOWS_ENABLE_TESTS)
   include("CTest")

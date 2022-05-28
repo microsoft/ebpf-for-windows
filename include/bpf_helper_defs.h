@@ -111,7 +111,7 @@ EBPF_HELPER(uint64_t, bpf_get_smp_processor_id, ());
  */
 EBPF_HELPER(uint64_t, bpf_ktime_get_ns, ());
 #ifndef __doxygen
-#define bpf_ktime_get_ns ((bpf_ktime_get_ns_t)BPF_FUNC_ktime_get_boot_ns)
+#define bpf_ktime_get_ns ((bpf_ktime_get_ns_t)BPF_FUNC_ktime_get_ns)
 #endif
 
 /**
@@ -297,4 +297,15 @@ EBPF_HELPER(int64_t, bpf_map_pop_elem, (struct bpf_map * map, void* value));
 EBPF_HELPER(int64_t, bpf_map_peek_elem, (struct bpf_map * map, void* value));
 #ifndef __doxygen
 #define bpf_map_peek_elem ((bpf_map_pop_elem_t)BPF_FUNC_map_peek_elem)
+#endif
+
+/**
+ * @brief Get the current thread ID (PID) and process ID (TGID).
+ *
+ * @returns A 64-bit integer containing the current process ID and
+ * thread ID, and created as such: (process ID << 32) | (thread ID).
+ */
+EBPF_HELPER(uint64_t, bpf_get_current_pid_tgid, ());
+#ifndef __doxygen
+#define bpf_get_current_pid_tgid ((bpf_get_current_pid_tgid_t)BPF_FUNC_get_current_pid_tgid)
 #endif

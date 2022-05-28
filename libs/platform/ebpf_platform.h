@@ -1074,6 +1074,22 @@ extern "C"
     long
     ebpf_platform_printk(_In_z_ const char* format, va_list arg_list);
 
+    /**
+     * @brief Get the current process ID.
+     *
+     * @returns Process ID.
+     */
+    uint32_t
+    ebpf_platform_process_id();
+
+    /**
+     * @brief Get the current thread ID.
+     *
+     * @returns Thread ID.
+     */
+    uint32_t
+    ebpf_platform_thread_id();
+
     TRACELOGGING_DECLARE_PROVIDER(ebpf_tracelog_provider);
 
     ebpf_result_t
@@ -1187,6 +1203,17 @@ extern "C"
             EBPF_LOG_FUNCTION_ERROR(EBPF_FAILED); \
         }                                         \
         return local_result;                      \
+    } while (false);
+
+#define EBPF_RETURN_FD(fd)                     \
+    do {                                       \
+        fd_t local_fd = (fd);                  \
+        if (local_fd != EBPF_INVALID_FD) {     \
+            EBPF_LOG_FUNCTION_SUCCESS();       \
+        } else {                               \
+            EBPF_LOG_FUNCTION_ERROR(local_fd); \
+        }                                      \
+        return local_fd;                       \
     } while (false);
 
 #define EBPF_RETURN_VOID() \

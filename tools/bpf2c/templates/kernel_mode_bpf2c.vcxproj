@@ -72,10 +72,10 @@
   </PropertyGroup>
   <ItemDefinitionGroup>
     <PreBuildEvent>
-      <Command>$(OutDir)bpf2c --bpf $(OutDir)$(ProgramName).o --sys $(AdditionalOptions) &gt;$(OutDir)$(ProgramName)_driver.c</Command>
+      <Command>$(BinDir)bpf2c --bpf $(ProgramName).o --sys $(AdditionalOptions) &gt;$(ProgramName)_driver.c</Command>
     </PreBuildEvent>
     <ClCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(IncludeDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4189;4245;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
     <Link>
@@ -89,7 +89,7 @@
     <FilesToPackage Include="$(TargetPath)" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="$(OutDir)$(ProgramName)_driver.c" />
+    <ClCompile Include="$(ProgramName)_driver.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

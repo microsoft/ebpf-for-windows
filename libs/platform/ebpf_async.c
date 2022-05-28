@@ -120,3 +120,9 @@ ebpf_async_complete(_In_ void* context, size_t output_buffer_length, ebpf_result
         on_complete(context, output_buffer_length, result);
     EBPF_RETURN_VOID();
 }
+
+ebpf_result_t
+ebpf_async_reset_completion_callback(_In_ void* context)
+{
+    return _remove_tracker(context);
+}

@@ -17,6 +17,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Bad Object Files">
+      <UniqueIdentifier>{83e21b5b-eb9b-4dec-855a-5993fc00c308}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\end_to_end\end_to_end.cpp">
@@ -40,6 +43,9 @@
     <ClCompile Include="..\..\libs\thunk\mock\mock.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="wer_report_test_wrapper.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\end_to_end\helpers.h">
@@ -51,5 +57,13 @@
     <ClInclude Include="..\..\libs\thunk\mock\mock.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CopyFileToFolders Include="..\sample\bad1.o">
+      <Filter>Bad Object Files</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="..\sample\bad2.o">
+      <Filter>Bad Object Files</Filter>
+    </CopyFileToFolders>
   </ItemGroup>
 </Project>

@@ -71,6 +71,9 @@ bpf_obj_get_info_by_fd(int bpf_fd, void* info, __u32* info_len)
 int
 bpf_obj_pin(int fd, const char* pathname)
 {
+    if (!pathname) {
+        return libbpf_result_err(EBPF_INVALID_ARGUMENT);
+    }
     return libbpf_result_err(ebpf_object_pin((fd_t)fd, pathname));
 }
 
@@ -78,6 +81,13 @@ int
 bpf_obj_get(const char* pathname)
 {
     return (int)ebpf_object_get(pathname);
+}
+
+struct bpf_object*
+bpf_object__open(const char* path)
+{
+    struct bpf_object_open_opts opts = {.sz = sizeof(opts)};
+    return bpf_object__open_file(path, &opts);
 }
 
 struct bpf_object*
@@ -99,9 +109,7 @@ bpf_object__open_file(const char* path, const struct bpf_object_open_opts* opts)
 int
 bpf_object__load_xattr(struct bpf_object_load_attr* attr)
 {
-    const char* error_message;
-    ebpf_result result = ebpf_object_load(attr->obj, EBPF_EXECUTION_ANY, &error_message);
-    ebpf_free_string(error_message);
+    ebpf_result result = ebpf_object_load(attr->obj);
     return libbpf_result_err(result);
 }
 

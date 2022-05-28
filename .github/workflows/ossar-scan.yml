@@ -8,10 +8,6 @@ name: ossar-scan
 on:
   workflow_call:
     inputs:
-      # The name of the build job to wait for.
-      build_job:
-        required: true
-        type: string
       # The name of the build artifact to download.
       build_artifact:
         required: true
@@ -38,22 +34,12 @@ jobs:
       BUILD_CONFIGURATION: ${{matrix.configurations}}
       BUILD_PLATFORM: x64
 
-    # Checking out the branch is needed to gather correct code coverage data.
     steps:
+    # Checking out the branch is needed to correctly log security alerts.
     - uses: actions/checkout@b0e28b5ac45a892f91e7d036f8200cf5ed489415
       with:
-        submodules: 'recursive'
+        # Only check out main repo, not submodules.
         ref: ${{ github.event.workflow_run.head_branch }}
-
-    - name: Wait for build to succeed
-      uses: fountainhead/action-wait-for-check@507b029e31edbe1a72d4de429476e1f4efe98869
-      id: wait_for_build
-      with:
-        timeoutSeconds: 1500
-        intervalSeconds: 30
-        token: ${{secrets.GITHUB_TOKEN}}
-        checkName: ${{inputs.build_job}} (${{env.BUILD_CONFIGURATION}})
-        ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
     - name: Download build artifact
       if: success()
@@ -73,6 +59,6 @@ jobs:
       id: ossar
 
     - name: Upload results to Security tab
-      uses: github/codeql-action/upload-sarif@7502d6e991ca767d2db617bfd823a1ed925a0d59
+      uses: github/codeql-action/upload-sarif@a3a6c128d771b6b9bdebb1c9d0583ebd2728a108
       with:
         sarif_file: ${{ steps.ossar.outputs.sarifFile }}

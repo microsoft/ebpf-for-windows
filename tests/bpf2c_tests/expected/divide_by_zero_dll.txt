@@ -48,6 +48,11 @@ get_metadata_table()
 
 #include "bpf2c.h"
 
+static void _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ size_t* size)
+{
+	*hash = NULL;
+	*size = 0;
+}
 static map_entry_t _maps[] = {
 { NULL, { 2, 4, 4, 1, 0, 0, 0, 0,  }, "test_map" },
 };
@@ -129,7 +134,7 @@ static uint64_t divide_by_zero(void* context)
 	r6 = IMMEDIATE(100000);
 	// EBPF_OP_DIV64_REG pc=10 dst=r6 src=r1 offset=0 imm=0
 #line 32 "sample/divide_by_zero.c"
-	if (r1 == 0) { division_by_zero(10); return -1; }
+	if (r1 == 0) { division_by_zero(10); return 0xffffffffffffffffui64; }
 #line 32 "sample/divide_by_zero.c"
 	r6 /= r1;
 label_1:
@@ -154,4 +159,4 @@ static void _get_programs(_Outptr_result_buffer_(*count) program_entry_t** progr
 }
 
 
-metadata_table_t divide_by_zero_metadata_table = { _get_programs, _get_maps };
+metadata_table_t divide_by_zero_metadata_table = { _get_programs, _get_maps, _get_hash };

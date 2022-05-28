@@ -306,6 +306,7 @@ ebpf_epoch_flush()
 void*
 ebpf_epoch_allocate(size_t size)
 {
+    ebpf_assert(size);
     ebpf_epoch_allocation_header_t* header;
 
     size += sizeof(ebpf_epoch_allocation_header_t);
@@ -380,6 +381,8 @@ ebpf_epoch_schedule_work_item(_In_ ebpf_epoch_work_item_t* work_item)
     lock_state = ebpf_lock_lock(&_ebpf_epoch_cpu_table[current_cpu].lock);
     work_item->header.freed_epoch = ebpf_interlocked_increment_int64(&_ebpf_current_epoch) - 1;
     ebpf_list_insert_tail(&_ebpf_epoch_cpu_table[current_cpu].free_list, &work_item->header.list_entry);
+    _ebpf_set_per_cpu_flag(&_ebpf_epoch_cpu_table[current_cpu], EBPF_EPOCH_PER_CPU_TIMER_ARMED, true);
+    ebpf_schedule_timer_work_item(_ebpf_flush_timer, EBPF_EPOCH_FLUSH_DELAY_IN_MICROSECONDS);
     ebpf_lock_unlock(&_ebpf_epoch_cpu_table[current_cpu].lock, lock_state);
 }
 
@@ -400,6 +403,16 @@ ebpf_epoch_free_work_item(_Frees_ptr_opt_ ebpf_epoch_work_item_t* work_item)
     ebpf_list_remove_entry(&work_item->header.list_entry);
     ebpf_lock_unlock(&_ebpf_epoch_cpu_table[current_cpu].lock, lock_state);
     ebpf_free(work_item);
+}
+
+bool
+ebpf_epoch_is_free_list_empty(uint32_t cpu_id)
+{
+    bool is_free_list_empty = false;
+    ebpf_lock_state_t lock_state = ebpf_lock_lock(&_ebpf_epoch_cpu_table[cpu_id].lock);
+    is_free_list_empty = ebpf_list_is_empty(&_ebpf_epoch_cpu_table[cpu_id].free_list);
+    ebpf_lock_unlock(&_ebpf_epoch_cpu_table[cpu_id].lock, lock_state);
+    return is_free_list_empty;
 }
 
 /**

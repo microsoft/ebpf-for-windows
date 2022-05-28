@@ -216,7 +216,7 @@ ebpf_object_get_type(ebpf_core_object_t* object)
 ebpf_result_t
 ebpf_duplicate_utf8_string(_Out_ ebpf_utf8_string_t* destination, _In_ const ebpf_utf8_string_t* source)
 {
-    if (!source->value) {
+    if (!source->value || !source->length) {
         destination->value = NULL;
         destination->length = 0;
         return EBPF_SUCCESS;
@@ -292,12 +292,16 @@ ebpf_object_reference_by_id(ebpf_id_t id, ebpf_object_type_t object_type, _Outpt
     uint32_t index;
     ebpf_result_t return_value = _get_index_from_id(id, &index);
     if (return_value == EBPF_SUCCESS) {
-        ebpf_core_object_t* found = _ebpf_id_table[index].object;
-        if ((found != NULL) && (found->type == object_type)) {
-            ebpf_object_acquire_reference(found);
-            *object = found;
-        } else
+        if (index >= EBPF_COUNT_OF(_ebpf_id_table)) {
             return_value = EBPF_KEY_NOT_FOUND;
+        } else {
+            ebpf_core_object_t* found = _ebpf_id_table[index].object;
+            if ((found != NULL) && (found->type == object_type)) {
+                ebpf_object_acquire_reference(found);
+                *object = found;
+            } else
+                return_value = EBPF_KEY_NOT_FOUND;
+        }
     }
 
     ebpf_lock_unlock(&_ebpf_object_tracking_list_lock, state);

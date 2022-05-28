@@ -17,9 +17,12 @@ add_executable("unit_tests"
 
   ../end_to_end/test_helper.hpp
   ../end_to_end/test_helper.cpp
+  
+  wer_report_test_wrapper.cpp
 )
 
 target_include_directories("unit_tests" PRIVATE
+  "${CMAKE_BINARY_DIR}"
   "${CMAKE_SOURCE_DIR}/libs/api_common"
   "${CMAKE_SOURCE_DIR}/include"
   "${CMAKE_SOURCE_DIR}/libs/api"
@@ -51,6 +54,7 @@ target_link_libraries("unit_tests" PRIVATE
   "netsh_static"
   "external::ebpfverifier"
   "execution_context_user"
+  "pe_parse"
   "platform_user"
   "rpc_interface"
   "service"

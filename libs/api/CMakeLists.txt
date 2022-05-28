@@ -24,6 +24,7 @@ add_library("api" STATIC
 )
 
 target_include_directories("api" PRIVATE
+  "${CMAKE_BINARY_DIR}"
   "${CMAKE_SOURCE_DIR}/libs/api_common"
   "${CMAKE_SOURCE_DIR}/libs/api"
   "${CMAKE_SOURCE_DIR}/rpc_interface"
@@ -36,6 +37,7 @@ target_include_directories("api" PRIVATE
   "${CMAKE_SOURCE_DIR}/external/ubpf/vm"
   "${CMAKE_SOURCE_DIR}/external/ubpf/vm/inc"
   "${CMAKE_SOURCE_DIR}/libs/thunk"
+  "${CMAKE_SOURCE_DIR}/external/pe-parse/pe-parser-library/include"
 )
 
 target_link_libraries("api" PRIVATE

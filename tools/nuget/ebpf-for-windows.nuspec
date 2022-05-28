@@ -6,7 +6,7 @@
   <metadata>
     <title>eBPF for Windows SDK</title>
     <id>eBPF-for-Windows</id>
-    <version>0.1.3</version>
+    <version>0.1.4</version>
     <authors>eBPF for Windows Contributors</authors>
     <owners>eBPF for Windows Contributors</owners>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
@@ -18,8 +18,9 @@
   </metadata>
 
   <files>
-    <file src="..\..\scripts\Convert-BpfToNative.ps1"         target="build\native\bin"                    />
+    <file src="..\..\x64\Release\Convert-BpfToNative.ps1"     target="build\native\bin"                    />
     <file src="..\..\x64\Release\bpf2c.exe"                   target="build\native\bin"                    />
+    <file src="..\..\x64\Release\ebpfapi.dll"                 target="build\native\bin"                    />
     <file src="..\..\x64\Release\ebpfapi.lib"                 target="build\native\lib"                    />
     <file src="..\..\include\**\*.*"                          target="build\native\include"                />
     <file src="..\..\external\bpftool\libbpf\include\**\*.*"  target="build\native\include\libbpf\include" />

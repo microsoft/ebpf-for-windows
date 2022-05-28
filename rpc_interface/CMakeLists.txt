@@ -5,9 +5,9 @@ set(rpc_interface_h_name "rpc_interface_h.h")
 set(rpc_interface_c_name "rpc_interface_c.c")
 set(rpc_interface_s_name "rpc_interface_s.c")
 
-set(rpc_interface_h_path "${CMAKE_CURRENT_BINARY_DIR}/${rpc_interface_h_name}")
-set(rpc_interface_c_path "${CMAKE_CURRENT_BINARY_DIR}/${rpc_interface_c_name}")
-set(rpc_interface_s_path "${CMAKE_CURRENT_BINARY_DIR}/${rpc_interface_s_name}")
+set(rpc_interface_h_path "${CMAKE_BINARY_DIR}/${rpc_interface_h_name}")
+set(rpc_interface_c_path "${CMAKE_BINARY_DIR}/${rpc_interface_c_name}")
+set(rpc_interface_s_path "${CMAKE_BINARY_DIR}/${rpc_interface_s_name}")
 
 add_custom_command(
   OUTPUT

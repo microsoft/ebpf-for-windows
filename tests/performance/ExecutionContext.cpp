@@ -17,10 +17,15 @@ typedef class _ebpf_program_test_state
 {
   public:
     _ebpf_program_test_state(std::vector<ebpf_instruction_t> byte_code)
-        : byte_code(byte_code), program_info_provider(EBPF_PROGRAM_TYPE_XDP)
+        : byte_code(byte_code), program_info_provider(nullptr)
     {
         ebpf_program_parameters_t parameters = {EBPF_PROGRAM_TYPE_XDP};
         REQUIRE(ebpf_core_initiate() == EBPF_SUCCESS);
+
+        // Create the program info provider.  We can only do this after calling
+        // ebpf_core_initiate() since that initializes the interface GUID.
+        program_info_provider = new _program_info_provider(EBPF_PROGRAM_TYPE_XDP);
+
         REQUIRE(ebpf_program_create(&program) == EBPF_SUCCESS);
 
         REQUIRE(ebpf_program_initialize(program, &parameters) == EBPF_SUCCESS);
@@ -28,6 +33,7 @@ typedef class _ebpf_program_test_state
     ~_ebpf_program_test_state()
     {
         ebpf_object_release_reference(reinterpret_cast<ebpf_core_object_t*>(program));
+        delete program_info_provider;
         ebpf_core_terminate();
     }
 
@@ -77,7 +83,7 @@ typedef class _ebpf_program_test_state
   private:
     ebpf_program_t* program;
     std::vector<ebpf_instruction_t> byte_code;
-    _program_info_provider program_info_provider;
+    _program_info_provider* program_info_provider;
 } ebpf_program_test_state_t;
 
 typedef class _ebpf_map_test_state

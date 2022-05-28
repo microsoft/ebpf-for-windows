@@ -7,7 +7,6 @@
 #include <locale>
 #include <netsh.h>
 #include "elf.h"
-#include "tlv.h"
 #include "tokens.h"
 #include "utilities.h"
 
@@ -126,14 +125,13 @@ handle_ebpf_show_sections(
         level = VL_VERBOSE;
     }
 
-    const tlv_type_length_value_t* section_data = nullptr;
+    ebpf_section_info_t* section_data = nullptr;
 
     const char* error_message = nullptr;
-    if (ebpf_api_elf_enumerate_sections(
-            filename.c_str(), section.c_str(), level == VL_VERBOSE, &section_data, &error_message) != 0) {
+    if (ebpf_enumerate_sections(filename.c_str(), level == VL_VERBOSE, &section_data, &error_message) != 0) {
         std::cerr << error_message << std::endl;
         ebpf_free_string(error_message);
-        ebpf_api_elf_free(section_data);
+        ebpf_free_sections(section_data);
         return ERROR_SUPPRESS_OUTPUT;
     }
 
@@ -142,34 +140,28 @@ handle_ebpf_show_sections(
         std::cout << "             Section       Type  # Maps    Size\n";
         std::cout << "====================  =========  ======  ======\n";
     }
-    for (auto current_section = tlv_child(section_data); current_section != tlv_next(section_data);
-         current_section = tlv_next(current_section)) {
-        auto section_name = tlv_child(current_section);
-        auto type = tlv_next(section_name);
-        auto map_count = tlv_next(type);
-        auto program_bytes = tlv_next(map_count);
-        auto stats_section = tlv_next(program_bytes);
+    for (auto current_section = section_data; current_section != nullptr; current_section = current_section->next) {
+        if (!section.empty() && strcmp(current_section->section_name, section.c_str()) != 0) {
+            continue;
+        }
         if (level == VL_NORMAL) {
-            std::cout << std::setw(20) << std::right << tlv_value<std::string>(section_name) << "  " << std::setw(9)
-                      << tlv_value<std::string>(type) << "  " << std::setw(6) << tlv_value<size_t>(map_count) << "  "
-                      << std::setw(6) << (program_bytes->length - offsetof(tlv_type_length_value_t, value)) / 8 << "\n";
+            std::cout << std::setw(20) << std::right << current_section->section_name << "  " << std::setw(9)
+                      << current_section->program_type_name << "  " << std::setw(6) << current_section->map_count
+                      << "  " << std::setw(6) << current_section->raw_data_size << "\n";
         } else {
             std::cout << "\n";
-            std::cout << "Section      : " << tlv_value<std::string>(section_name) << "\n";
-            std::cout << "Program Type : " << tlv_value<std::string>(type) << "\n";
-            std::cout << "# Maps       : " << tlv_value<size_t>(map_count) << "\n";
-            std::cout << "Size         : " << (program_bytes->length - offsetof(tlv_type_length_value_t, value)) / 8
-                      << " instructions\n";
-            for (auto stat = tlv_child(stats_section); stat != tlv_next(current_section); stat = tlv_next(stat)) {
-                auto key = tlv_child(stat);
-                auto value = tlv_next(key);
-                std::cout << std::setw(13) << std::left << tlv_value<std::string>(key) << ": " << tlv_value<int>(value)
-                          << "\n";
+            std::cout << "Section      : " << current_section->section_name << "\n";
+            std::cout << "Program Type : " << current_section->program_type_name << "\n";
+            std::cout << "# Maps       : " << current_section->map_count << "\n";
+            std::cout << "Size         : " << current_section->raw_data_size << " bytes\n";
+            for (auto stat = current_section->stats; stat != nullptr; stat = stat->next) {
+                std::cout << std::setw(13) << std::left << stat->key << ": " << stat->value << "\n";
             }
         }
     }
 
-    ebpf_api_elf_free(section_data);
+    ebpf_free_sections(section_data);
+    ebpf_free_string(error_message);
     return NO_ERROR;
 }
 

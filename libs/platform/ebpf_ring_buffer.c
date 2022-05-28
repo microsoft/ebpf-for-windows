@@ -197,7 +197,8 @@ ebpf_ring_buffer_map_buffer(_In_ const ebpf_ring_buffer_t* ring, _Outptr_ uint8_
 }
 
 ebpf_result_t
-ebpf_ring_buffer_reserve(_Inout_ ebpf_ring_buffer_t* ring, _Outptr_ uint8_t** data, size_t length)
+ebpf_ring_buffer_reserve(
+    _Inout_ ebpf_ring_buffer_t* ring, _Outptr_result_bytebuffer_(length) uint8_t** data, size_t length)
 {
     ebpf_result_t result;
     ebpf_lock_state_t state = ebpf_lock_lock(&ring->lock);
