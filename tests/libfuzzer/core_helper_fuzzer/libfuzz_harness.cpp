@@ -337,6 +337,10 @@ fuzz_program(
         case EBPF_ARGUMENT_TYPE_CONST_SIZE: {
             assert(arg_count > 0);
             assert(argument[arg_count - 1] != 0);
+            if (arg_count == 0 || argument[arg_count - 1] == 0) {
+                // Should never happen but we need to keep analysis build happy.
+                return;
+            }
 
             // Put the supplied size into the argument.
             uint8_t arg_size;
@@ -355,6 +359,10 @@ fuzz_program(
         case EBPF_ARGUMENT_TYPE_CONST_SIZE_OR_ZERO: {
             assert(arg_count > 0);
             assert(argument[arg_count - 1] != 0);
+            if (arg_count == 0 || argument[arg_count - 1] == 0) {
+                // Should never happen but we need to keep analysis build happy.
+                return;
+            }
 
             // Put the supplied size into the argument.
             uint8_t arg_size;
