@@ -9,7 +9,7 @@ on your machine, you're ready for the debugging tutorial.
 
 # 2. Debugging a buggy eBPF program
 
-Let's start with the [droppacket_unsafe.c](../tests/sample/droppacket_unsafe.c) program, which
+Let's start with the [droppacket_unsafe.c](../tests/sample/unsafe/droppacket_unsafe.c) program, which
 is compiled as part of building eBPF for Windows, as it is used in the unit tests.
 
 **Step 1)** Let's first look at what sections are in the file:
@@ -46,10 +46,10 @@ Verification failed
 
 Verification report:
 
-; C:\your\path\ebpf-for-windows\tests\sample/droppacket_unsafe.c:29
+; C:\your\path\ebpf-for-windows\tests\sample/unsafe/droppacket_unsafe.c:29
 ;     if (ip_header->Protocol == IPPROTO_UDP) {
 2: Upper bound must be at most packet_size (valid_access(r1.offset+9, width=1))
-; C:\your\path\ebpf-for-windows\tests\sample/droppacket_unsafe.c:30
+; C:\your\path\ebpf-for-windows\tests\sample/unsafe/droppacket_unsafe.c:30
 ;         if (ntohs(udp_header->length) <= sizeof(UDP_HEADER)) {
 4: Upper bound must be at most packet_size (valid_access(r1.offset+24, width=2))
 
@@ -235,7 +235,7 @@ and error in instruction 2.
 
 **Step 5)** Where did that code come from?
 
-If we look at the [droppacket_unsafe.c](../tests/sample/droppacket_unsafe.c) source code,
+If we look at the [droppacket_unsafe.c](../tests/sample/unsafe/droppacket_unsafe.c) source code,
 it's not obvious where the instructions in the .text section came from.  Let's use
 llvm-objdump -l -S to find out (in the future, netsh will show this information too but for now
 we'll just use llvm-objdump).  This requires that the eBPF program was compiled with -g on the local
@@ -279,41 +279,41 @@ to illustrate some basic steps.  So now let's move on to the real program in the
 ```
 
 > netsh ebpf show disassembly droppacket_unsafe.o xdp
-; C:\your\path\ebpf-for-windows\tests\sample/droppacket_unsafe.c:22
+; C:\your\path\ebpf-for-windows\tests\sample/unsafe/droppacket_unsafe.c:22
 ; DropPacket(xdp_md_t* ctx)
        0:       r0 = 1
-; C:\your\path\ebpf-for-windows\tests\sample/droppacket_unsafe.c:24
+; C:\your\path\ebpf-for-windows\tests\sample/unsafe/droppacket_unsafe.c:24
 ;     IPV4_HEADER* ip_header = (IPV4_HEADER*)ctx->data;
        1:       r1 = *(u64 *)(r1 + 0)
-; C:\your\path\ebpf-for-windows\tests\sample/droppacket_unsafe.c:29
+; C:\your\path\ebpf-for-windows\tests\sample/unsafe/droppacket_unsafe.c:29
 ;     if (ip_header->Protocol == IPPROTO_UDP) {
        2:       r2 = *(u8 *)(r1 + 9)
        3:       if r2 != 17 goto +15 <19>
-; C:\your\path\ebpf-for-windows\tests\sample/droppacket_unsafe.c:30
+; C:\your\path\ebpf-for-windows\tests\sample/unsafe/droppacket_unsafe.c:30
 ;         if (ntohs(udp_header->length) <= sizeof(UDP_HEADER)) {
        4:       r1 = *(u16 *)(r1 + 24)
        5:       r1 = be16 r1
        6:       if r1 > 8 goto +12 <19>
        7:       r1 = 0
-; C:\your\path\ebpf-for-windows\tests\sample/droppacket_unsafe.c:31
+; C:\your\path\ebpf-for-windows\tests\sample/unsafe/droppacket_unsafe.c:31
 ;             long key = 0;
        8:       *(u64 *)(r10 - 8) = r1
        9:       r2 = r10
       10:       r2 += -8
-; C:\your\path\ebpf-for-windows\tests\sample/droppacket_unsafe.c:32
+; C:\your\path\ebpf-for-windows\tests\sample/unsafe/droppacket_unsafe.c:32
 ;             long* count = bpf_map_lookup_elem(&port_map, &key);
       11:       r1 = map_fd 1
       13:       r0 = bpf_map_lookup_elem:1(map_fd r1, map_key r2)
-; C:\your\path\ebpf-for-windows\tests\sample/droppacket_unsafe.c:33
+; C:\your\path\ebpf-for-windows\tests\sample/unsafe/droppacket_unsafe.c:33
 ;             if (count)
       14:       if r0 == 0 goto +3 <18>
-; C:\your\path\ebpf-for-windows\tests\sample/droppacket_unsafe.c:34
+; C:\your\path\ebpf-for-windows\tests\sample/unsafe/droppacket_unsafe.c:34
 ;                 *count = (*count + 1);
       15:       r1 = *(u64 *)(r0 + 0)
       16:       r1 += 1
       17:       *(u64 *)(r0 + 0) = r1
       18:       r0 = 2
-; C:\your\path\ebpf-for-windows\tests\sample/droppacket_unsafe.c:38
+; C:\your\path\ebpf-for-windows\tests\sample/unsafe/droppacket_unsafe.c:38
 ;     return rc;
       19:       exit
 ```
@@ -474,10 +474,10 @@ Post-invariant: [
     r2.type=number, r2.value=17]
 Stack: Numbers -> {}
 ...
-; C:\your\path\ebpf-for-windows\tests\sample/droppacket_unsafe.c:29
+; C:\your\path\ebpf-for-windows\tests\sample/unsafe/droppacket_unsafe.c:29
 ;     if (ip_header->Protocol == IPPROTO_UDP) {
 2: Upper bound must be at most packet_size (valid_access(r1.offset+9, width=1))
-; C:\your\path\ebpf-for-windows\tests\sample/droppacket_unsafe.c:30
+; C:\your\path\ebpf-for-windows\tests\sample/unsafe/droppacket_unsafe.c:30
 ;         if (ntohs(udp_header->length) <= sizeof(UDP_HEADER)) {
 4: Upper bound must be at most packet_size (valid_access(r1.offset+24, width=2))
 
@@ -509,19 +509,19 @@ Again we can see the source lines involved using llvm-objdump:
 > llvm-objdump -l -S droppacket_unsafe.o --section=xdp
 ...
 0000000000000000 DropPacket:
-; C:\your\path\ebpf-for-windows\tests\sample\droppacket_unsafe.c:23
+; C:\your\path\ebpf-for-windows\tests\sample\unsafe/droppacket_unsafe.c:23
 ; {
        0:       b7 00 00 00 01 00 00 00 r0 = 1
-; C:\your\path\ebpf-for-windows\tests\sample\droppacket_unsafe.c:24
+; C:\your\path\ebpf-for-windows\tests\sample\unsafe/droppacket_unsafe.c:24
 ;     IPV4_HEADER* ip_header = (IPV4_HEADER*)ctx->data;
        1:       79 11 00 00 00 00 00 00 r1 = *(u64 *)(r1 + 0)
-; C:\your\path\ebpf-for-windows\tests\sample\droppacket_unsafe.c:29
+; C:\your\path\ebpf-for-windows\tests\sample\unsafe/droppacket_unsafe.c:29
 ...
 
 ```
 
 Thus we could modify the code to add a length check, as is done in the fixed version
-[droppacket.c](../tests/sample/droppacket.c#L44).
+[droppacket.c](../tests/sample/unsafe/droppacket.c#L44).
 
 **Step 9)** Understanding joins between two code paths
 
