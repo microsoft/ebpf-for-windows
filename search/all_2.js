@@ -126,7 +126,7 @@ var searchData=
   ['bpf_5fobj_5fget_5finfo_5fby_5ffd_177',['BPF_OBJ_GET_INFO_BY_FD',['../linux_2bpf_8h.html#a9cd4b69e2bbb3202f71b8b2b0eeede09ac91812af05cb4bd71159c8d2659b8784',1,'BPF_OBJ_GET_INFO_BY_FD():&#160;bpf.h'],['../bpf_2bpf_8h.html#a23ca7dd3889db2e7fc97e063c727c17f',1,'bpf_obj_get_info_by_fd(int bpf_fd, void *info, __u32 *info_len):&#160;bpf.h']]],
   ['bpf_5fobj_5finfo_5fattr_5ft_178',['bpf_obj_info_attr_t',['../structbpf__obj__info__attr__t.html',1,'']]],
   ['bpf_5fobj_5fname_5flen_179',['BPF_OBJ_NAME_LEN',['../ebpf__structs_8h.html#abc5e07d826c22d4c2b46fd1fb5a2e93e',1,'ebpf_structs.h']]],
-  ['bpf_5fobj_5fpin_180',['BPF_OBJ_PIN',['../linux_2bpf_8h.html#a9cd4b69e2bbb3202f71b8b2b0eeede09a6abdc7140f3c0faf9adde20d6f01ac2d',1,'BPF_OBJ_PIN():&#160;bpf.h'],['../bpf_2bpf_8h.html#a9f5eaf959fde6143ec1d94617362f5f1',1,'bpf_obj_pin(int fd, const char *pathname):&#160;bpf.h']]],
+  ['bpf_5fobj_5fpin_180',['bpf_obj_pin',['../bpf_2bpf_8h.html#a9f5eaf959fde6143ec1d94617362f5f1',1,'bpf_obj_pin(int fd, const char *pathname):&#160;bpf.h'],['../linux_2bpf_8h.html#a9cd4b69e2bbb3202f71b8b2b0eeede09a6abdc7140f3c0faf9adde20d6f01ac2d',1,'BPF_OBJ_PIN():&#160;bpf.h']]],
   ['bpf_5fobject_5f_5fclose_181',['bpf_object__close',['../libbpf_8h.html#a473872ff7ab53d1ed593e7abd206f31a',1,'libbpf.h']]],
   ['bpf_5fobject_5f_5ffind_5fmap_5fby_5fname_182',['bpf_object__find_map_by_name',['../libbpf_8h.html#aa734b1082b4d764bf6d77a39169a137d',1,'libbpf.h']]],
   ['bpf_5fobject_5f_5ffind_5fmap_5ffd_5fby_5fname_183',['bpf_object__find_map_fd_by_name',['../libbpf_8h.html#a751c311d3c0ee870aadac9386574aad2',1,'libbpf.h']]],
