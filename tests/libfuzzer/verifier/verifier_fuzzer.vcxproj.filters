@@ -40,9 +40,4 @@
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
-  <ItemGroup>
-    <CustomBuild Include="..\..\..\scripts\create_verifier_corpus.bat">
-      <Filter>Source Files</Filter>
-    </CustomBuild>
-  </ItemGroup>
 </Project>
