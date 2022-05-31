@@ -8,7 +8,7 @@ There are now four libFuzzer-based binaries:
 
 * bpf2c_fuzzer
 * core_helper_fuzzer
-* execution_contet_fuzzer
+* execution_context_fuzzer
 * verifier_fuzzer
 
 ## Usage
