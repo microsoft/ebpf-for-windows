@@ -708,6 +708,12 @@ _ebpf_program_load_byte_code(
         goto Done;
     }
 
+    // ubpf currently requires the byte count to fit in a uint32_t.
+    if (instruction_count > UINT32_MAX / sizeof(ebpf_instruction_t)) {
+        return_value = EBPF_PROGRAM_TOO_LARGE;
+        goto Done;
+    }
+
     program->code_or_vm.vm = ubpf_create();
     if (!program->code_or_vm.vm) {
         return_value = EBPF_NO_MEMORY;

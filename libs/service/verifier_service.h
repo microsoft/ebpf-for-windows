@@ -8,8 +8,8 @@
 
 ebpf_result_t
 verify_byte_code(
-    const GUID* program_type,
-    const uint8_t* byte_code,
-    size_t byte_code_size,
-    const char** error_message,
-    uint32_t* error_message_size);
+    _In_ const GUID* program_type,
+    _In_reads_(instruction_count) const ebpf_inst* instructions,
+    uint32_t instruction_count,
+    _Outptr_result_maybenull_z_ const char** error_message,
+    _Out_ uint32_t* error_message_size);

@@ -18,12 +18,14 @@ extern "C"
 #include "verifier_service.h"
 #include "windows_platform.hpp"
 
-#define MAX_CODE_SIZE_IN_BYTES (32 * 1024) // 32 KB
+// Maximum size of JIT'ed native code.
+#define MAX_NATIVE_CODE_SIZE_IN_BYTES (32 * 1024) // 32 KB
 
 static ebpf_result_t
 _build_helper_id_to_address_map(
     ebpf_handle_t program_handle,
-    ebpf_code_buffer_t& byte_code,
+    _In_reads_(instruction_count) ebpf_inst* instructions,
+    uint32_t instruction_count,
     std::vector<uint64_t>& helper_addresses,
     uint32_t& unwind_index)
 {
@@ -34,8 +36,7 @@ _build_helper_id_to_address_map(
     std::map<uint32_t, uint32_t> helper_id_mapping;
     unwind_index = MAXUINT32;
 
-    ebpf_inst* instructions = reinterpret_cast<ebpf_inst*>(byte_code.data());
-    for (size_t index = 0; index < byte_code.size() / sizeof(ebpf_inst); index++) {
+    for (size_t index = 0; index < instruction_count; index++) {
         ebpf_inst& instruction = instructions[index];
         if (instruction.opcode != INST_OP_CALL) {
             continue;
@@ -84,7 +85,7 @@ _build_helper_id_to_address_map(
     }
 
     // Replace old helper_ids in range [1, MAXUINT32] with new helper ids in range [0,63]
-    for (index = 0; index < byte_code.size() / sizeof(ebpf_inst); index++) {
+    for (index = 0; index < instruction_count; index++) {
         ebpf_inst& instruction = instructions[index];
         if (instruction.opcode != INST_OP_CALL) {
             continue;
@@ -123,20 +124,19 @@ _resolve_ec_function(ebpf_ec_function_t function, uint64_t* address)
 
 // Replace map fds with map addresses.
 static ebpf_result_t
-_resolve_maps_in_byte_code(ebpf_handle_t program_handle, ebpf_code_buffer_t& byte_code)
+_resolve_maps_in_byte_code(
+    ebpf_handle_t program_handle, _In_reads_(instruction_count) ebpf_inst* instructions, uint32_t instruction_count)
 {
     // Create parallel vectors indexed by # of occurrence in the instructions.
     std::vector<size_t> instruction_offsets; // 0-based instruction number.
     std::vector<fd_t> map_fds;               // map_fd used in the bytecode.
 
-    ebpf_inst* instructions = reinterpret_cast<ebpf_inst*>(byte_code.data());
-    ebpf_inst* instruction_end = reinterpret_cast<ebpf_inst*>(byte_code.data() + byte_code.size());
-    for (size_t index = 0; index < byte_code.size() / sizeof(ebpf_inst); index++) {
+    for (size_t index = 0; index < instruction_count; index++) {
         ebpf_inst& first_instruction = instructions[index];
         if (first_instruction.opcode != INST_OP_LDDW_IMM) {
             continue;
         }
-        if (&instructions[index + 1] >= instruction_end) {
+        if (index + 1 >= instruction_count) {
             return EBPF_INVALID_ARGUMENT;
         }
         index++;
@@ -231,16 +231,16 @@ _query_and_cache_map_descriptors(
 
 ebpf_result_t
 ebpf_verify_and_load_program(
-    const GUID* program_type,
+    _In_ const GUID* program_type,
     ebpf_handle_t program_handle,
     ebpf_execution_context_t execution_context,
     ebpf_execution_type_t execution_type,
     uint32_t handle_map_count,
-    original_fd_handle_map_t* handle_map,
-    uint32_t byte_code_size,
-    uint8_t* byte_code,
-    const char** error_message,
-    uint32_t* error_message_size) noexcept
+    _In_reads_(handle_map_count) original_fd_handle_map_t* handle_map,
+    uint32_t instruction_count,
+    _In_reads_(instruction_count) ebpf_inst* instructions,
+    _Outptr_result_maybenull_z_ const char** error_message,
+    _Out_ uint32_t* error_message_size) noexcept
 {
     ebpf_result_t result = EBPF_SUCCESS;
     int error = 0;
@@ -274,19 +274,12 @@ ebpf_verify_and_load_program(
         }
 
         // Verify the program.
-        result = verify_byte_code(program_type, byte_code, byte_code_size, error_message, error_message_size);
+        result = verify_byte_code(program_type, instructions, instruction_count, error_message, error_message_size);
         if (result != EBPF_SUCCESS) {
             goto Exit;
         }
 
-        if (byte_code_size > MAX_CODE_SIZE_IN_BYTES) {
-            result = EBPF_PROGRAM_TOO_LARGE;
-            goto Exit;
-        }
-
-        ebpf_code_buffer_t byte_code_buffer(byte_code, byte_code + byte_code_size);
-
-        result = _resolve_maps_in_byte_code(program_handle, byte_code_buffer);
+        result = _resolve_maps_in_byte_code(program_handle, instructions, instruction_count);
         if (result != EBPF_SUCCESS) {
             goto Exit;
         }
@@ -296,15 +289,18 @@ ebpf_verify_and_load_program(
             goto Exit;
         }
 
-        std::vector<uint64_t> helper_id_adddress;
+        std::vector<uint64_t> helper_id_address;
         uint32_t unwind_index;
-        result = _build_helper_id_to_address_map(program_handle, byte_code_buffer, helper_id_adddress, unwind_index);
+        result = _build_helper_id_to_address_map(
+            program_handle, instructions, instruction_count, helper_id_address, unwind_index);
         if (result != EBPF_SUCCESS)
             goto Exit;
 
-        if (execution_type == EBPF_EXECUTION_JIT) {
+        ebpf_code_buffer_t machine_code(MAX_NATIVE_CODE_SIZE_IN_BYTES);
+        uint8_t* byte_code_data = (uint8_t*)instructions;
+        size_t byte_code_size = instruction_count * sizeof(*instructions);
 
-            ebpf_code_buffer_t machine_code(MAX_CODE_SIZE_IN_BYTES);
+        if (execution_type == EBPF_EXECUTION_JIT) {
             size_t machine_code_size = machine_code.size();
 
             // JIT code.
@@ -314,8 +310,8 @@ ebpf_verify_and_load_program(
                 goto Exit;
             }
 
-            for (uint32_t helper_id = 0; helper_id < helper_id_adddress.size(); helper_id++) {
-                if (ubpf_register(vm, helper_id, nullptr, reinterpret_cast<void*>(helper_id_adddress[helper_id])) < 0) {
+            for (uint32_t helper_id = 0; helper_id < helper_id_address.size(); helper_id++) {
+                if (ubpf_register(vm, helper_id, nullptr, reinterpret_cast<void*>(helper_id_address[helper_id])) < 0) {
                     result = EBPF_JIT_COMPILATION_FAILED;
                     goto Exit;
                 }
@@ -328,10 +324,7 @@ ebpf_verify_and_load_program(
                 vm, reinterpret_cast<int (*)(FILE * stream, const char* format, ...)>(log_function_address));
 
             if (ubpf_load(
-                    vm,
-                    byte_code_buffer.data(),
-                    static_cast<uint32_t>(byte_code_buffer.size()),
-                    const_cast<char**>(error_message)) < 0) {
+                    vm, byte_code_data, static_cast<uint32_t>(byte_code_size), const_cast<char**>(error_message)) < 0) {
                 result = EBPF_JIT_COMPILATION_FAILED;
                 goto Exit;
             }
@@ -341,24 +334,22 @@ ebpf_verify_and_load_program(
                 goto Exit;
             }
             machine_code.resize(machine_code_size);
-            byte_code_buffer = machine_code;
+            byte_code_data = machine_code.data();
+            byte_code_size = machine_code.size();
 
             if (*error_message != nullptr) {
                 *error_message_size = (uint32_t)strlen(*error_message);
             }
         }
 
-        request_buffer.resize(offsetof(ebpf_operation_load_code_request_t, code) + byte_code_buffer.size());
+        request_buffer.resize(offsetof(ebpf_operation_load_code_request_t, code) + byte_code_size);
         request = reinterpret_cast<ebpf_operation_load_code_request_t*>(request_buffer.data());
         request->header.id = ebpf_operation_id_t::EBPF_OPERATION_LOAD_CODE;
         request->header.length = static_cast<uint16_t>(request_buffer.size());
         request->program_handle = program_handle;
         request->code_type = execution_type == EBPF_EXECUTION_JIT ? EBPF_CODE_JIT : EBPF_CODE_EBPF;
 
-        std::copy(
-            byte_code_buffer.begin(),
-            byte_code_buffer.end(),
-            request_buffer.begin() + offsetof(ebpf_operation_load_code_request_t, code));
+        memcpy(request->code, byte_code_data, byte_code_size);
 
         error = invoke_ioctl(request_buffer);
 

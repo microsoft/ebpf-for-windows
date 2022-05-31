@@ -30,6 +30,16 @@ import "wtypes.idl";
             file_handle_t handle;
         } original_fd_handle_map_t;
 
+        // We can't use struct ebpf_inst since MIDL doesn't support
+        // bitfields, so define a structure here that doesn't use bitfields.
+        typedef struct _ebpf_instruction
+        {
+            uint8_t opcode;
+            uint8_t dst_src; //< Registers.
+            int16_t offset;
+            int32_t imm; //< Immediate constant
+        } ebpf_instruction_t;
+
         typedef struct _ebpf_program_load_info
         {
             // Object name.
@@ -44,8 +54,8 @@ import "wtypes.idl";
             ebpf_execution_context_t execution_context;
             uint32_t map_count;
             [size_is(map_count)] original_fd_handle_map_t* handle_map;
-            uint32_t byte_code_size;
-            [ size_is(byte_code_size), ref ] uint8_t* byte_code;
+            uint32_t instruction_count;
+            [ size_is(instruction_count), ref ] ebpf_instruction_t* instructions;
         } ebpf_program_load_info;
 
         ebpf_result_t verify_and_load_program(

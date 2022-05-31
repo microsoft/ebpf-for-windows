@@ -90,8 +90,7 @@ _get_bpf_attach_type(const ebpf_attach_type_t* type)
 int
 bpf_load_program_xattr(const struct bpf_load_program_attr* load_attr, char* log_buf, size_t log_buf_sz)
 {
-    size_t byte_code_size = load_attr->insns_cnt * sizeof(struct ebpf_inst);
-    if (byte_code_size < 1 || byte_code_size > UINT32_MAX) {
+    if (load_attr->insns_cnt < 1 || load_attr->insns_cnt > UINT32_MAX) {
         return libbpf_err(-EINVAL);
     }
 
@@ -105,8 +104,8 @@ bpf_load_program_xattr(const struct bpf_load_program_attr* load_attr, char* log_
         program_type,
         load_attr->name,
         EBPF_EXECUTION_ANY,
-        (const uint8_t*)load_attr->insns,
-        (uint32_t)byte_code_size,
+        reinterpret_cast<const ebpf_inst*>(load_attr->insns),
+        (uint32_t)load_attr->insns_cnt,
         log_buf,
         log_buf_sz,
         &program_fd);
@@ -168,8 +167,8 @@ bpf_prog_load(
         program_type,
         prog_name,
         EBPF_EXECUTION_ANY,
-        (const uint8_t*)insns,
-        (uint32_t)(insn_cnt * sizeof(ebpf_inst)),
+        reinterpret_cast<const ebpf_inst*>(insns),
+        (uint32_t)insn_cnt,
         log_buffer,
         log_buffer_size,
         &program_fd);
@@ -231,7 +230,7 @@ bpf_program__section_name(const struct bpf_program* program)
 size_t
 bpf_program__size(const struct bpf_program* program)
 {
-    return program->byte_code_size;
+    return program->instruction_count * sizeof(ebpf_inst);
 }
 
 const char*

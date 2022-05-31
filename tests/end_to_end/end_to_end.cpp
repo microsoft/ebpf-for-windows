@@ -342,7 +342,7 @@ ebpf_program_load(
     if (error < 0) {
         if (log_buffer) {
             size_t log_buffer_size;
-            *log_buffer = bpf_program__log_buf(program, &log_buffer_size);
+            *log_buffer = _strdup(bpf_program__log_buf(program, &log_buffer_size));
         }
         bpf_object__close(new_object);
         return error;
@@ -373,6 +373,7 @@ droppacket_test(ebpf_execution_type_t execution_type)
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
+        free((void*)error_message);
     }
     REQUIRE(result == 0);
     fd_t dropped_packet_map_fd = bpf_object__find_map_fd_by_name(object, "dropped_packet_map");
@@ -463,6 +464,7 @@ divide_by_zero_test_um(ebpf_execution_type_t execution_type)
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
+        free((void*)error_message);
     }
     REQUIRE(result == 0);
 
@@ -555,6 +557,7 @@ bindmonitor_test(ebpf_execution_type_t execution_type)
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
+        free((void*)error_message);
     }
     REQUIRE(result == 0);
     fd_t limit_map_fd = bpf_object__find_map_fd_by_name(object, "limits_map");
@@ -635,6 +638,7 @@ bindmonitor_tailcall_test(ebpf_execution_type_t execution_type)
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
+        free((void*)error_message);
     }
     REQUIRE(result == 0);
     fd_t limit_map_fd = bpf_object__find_map_fd_by_name(object, "limits_map");
@@ -756,6 +760,7 @@ bindmonitor_ring_buffer_test(ebpf_execution_type_t execution_type)
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
+        free((void*)error_message);
     }
     REQUIRE(result == 0);
 
@@ -835,6 +840,7 @@ map_test(ebpf_execution_type_t execution_type)
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
+        free((void*)error_message);
     }
     REQUIRE(result == 0);
 
@@ -946,6 +952,7 @@ _cgroup_load_test(
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
+        free((void*)error_message);
     }
 
     REQUIRE(result == 0);
@@ -1069,6 +1076,7 @@ TEST_CASE("map_pinning_test", "[end_to_end]")
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
+        free((void*)error_message);
     }
     REQUIRE(result == 0);
 
@@ -1128,6 +1136,7 @@ TEST_CASE("enumerate_and_query_programs", "[end_to_end]")
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
+        free((void*)error_message);
     }
     REQUIRE(result == 0);
 
@@ -1141,6 +1150,7 @@ TEST_CASE("enumerate_and_query_programs", "[end_to_end]")
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
+        free((void*)error_message);
     }
     REQUIRE(result == 0);
 
@@ -1212,6 +1222,7 @@ TEST_CASE("implicit_detach", "[end_to_end]")
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
+        free((void*)error_message);
     }
     REQUIRE(result == 0);
 
@@ -1256,6 +1267,7 @@ TEST_CASE("implicit_detach_2", "[end_to_end]")
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
+        free((void*)error_message);
     }
     REQUIRE(result == 0);
 
@@ -1304,6 +1316,7 @@ TEST_CASE("explicit_detach", "[end_to_end]")
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
+        free((void*)error_message);
     }
     REQUIRE(result == 0);
 
@@ -1350,6 +1363,7 @@ TEST_CASE("implicit_explicit_detach", "[end_to_end]")
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
+        free((void*)error_message);
     }
     REQUIRE(result == 0);
 
@@ -2137,6 +2151,7 @@ TEST_CASE("load_native_program_negative3", "[end-to-end]")
         "droppacket_um.dll", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_NATIVE, &object, &program_fd, &error_message);
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
+        free((void*)error_message);
     }
     REQUIRE(error == 0);
 
