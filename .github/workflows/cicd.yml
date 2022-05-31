@@ -152,20 +152,18 @@ jobs:
       code_coverage: false
       gather_dumps: true
 
-  # TODO: Enable this once a corpus is available.
-  #
-  #bpf2c_fuzzer:
-  #  needs: libfuzzer
-  #  # Always run this job.
-  #  if: github.event_name == 'schedule' || github.event_name == 'pull_request'
-  #  uses: ./.github/workflows/reusable-test.yml
-  #  with:
-  #    name: bpf2c_fuzzer
-  #    test_command: bpf2c_fuzzer.exe bpf2c_fuzzer_corpus -use_value_profile=1 -max_total_time=1800
-  #    build_artifact: Build-x64-fuzzer
-  #    environment: windows-2019
-  #    code_coverage: false
-  #    gather_dumps: true
+  bpf2c_fuzzer:
+    needs: libfuzzer
+    # Always run this job.
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: bpf2c_fuzzer
+      test_command: bpf2c_fuzzer.exe bpf2c_fuzzer_corpus -use_value_profile=1 -max_total_time=1800
+      build_artifact: Build-x64-fuzzer
+      environment: windows-2019
+      code_coverage: false
+      gather_dumps: true
 
   core_helper_fuzzer:
     needs: libfuzzer
@@ -174,7 +172,7 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: core_helper_fuzzer
-      test_command: core_helper_fuzzer ..\..\tests\libfuzzer\core_helper_fuzzer\corpus -max_len=139 -runs=3000 -use_value_profile=1
+      test_command: core_helper_fuzzer core_helper_corpus -max_len=139 -runs=3000 -use_value_profile=1
       build_artifact: Build-x64-fuzzer
       environment: windows-2019
       code_coverage: false
