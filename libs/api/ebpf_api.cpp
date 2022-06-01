@@ -1429,16 +1429,12 @@ _initialize_ebpf_maps_native(
             goto Exit;
         }
 
-        map = (ebpf_map_t*)calloc(1, sizeof(ebpf_map_t));
-        if (map == nullptr) {
-            result = EBPF_NO_MEMORY;
-            goto Exit;
-        }
-
-        map->map_definition.type = info.type;
-        map->map_definition.key_size = info.key_size;
-        map->map_definition.value_size = info.value_size;
-        map->map_definition.max_entries = info.max_entries;
+        map = maps[i];
+        ebpf_assert(strcmp(map->name, info.name) == 0);
+        ebpf_assert(map->map_definition.type == info.type);
+        ebpf_assert(map->map_definition.key_size == info.key_size);
+        ebpf_assert(map->map_definition.value_size == info.value_size);
+        ebpf_assert(map->map_definition.max_entries == info.max_entries);
         map->map_definition.inner_map_id = info.inner_map_id;
         map->map_fd = _create_file_descriptor_for_handle(map_handles[i]);
         if (map->map_fd == ebpf_fd_invalid) {
@@ -1447,14 +1443,6 @@ _initialize_ebpf_maps_native(
         }
         map->map_handle = map_handles[i];
         map_handles[i] = ebpf_handle_invalid;
-        map->name = _strdup(info.name);
-        if (map->name == nullptr) {
-            result = EBPF_NO_MEMORY;
-            goto Exit;
-        }
-
-        maps.emplace_back(map);
-        map = nullptr;
     }
 
 Exit:

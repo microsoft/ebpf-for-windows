@@ -1984,8 +1984,10 @@ TEST_CASE("bpf_object__open_file with .dll", "[libbpf]")
     struct bpf_map* map = bpf_object__next_map(object, nullptr);
     REQUIRE(map != nullptr);
     REQUIRE(strcmp(bpf_map__name(map), "dropped_packet_map") == 0);
+    REQUIRE(bpf_map__fd(map) == ebpf_fd_invalid);
     map = bpf_object__next_map(object, map);
     REQUIRE(strcmp(bpf_map__name(map), "interface_index_map") == 0);
+    REQUIRE(bpf_map__fd(map) == ebpf_fd_invalid);
     map = bpf_object__next_map(object, map);
     REQUIRE(map == nullptr);
 
@@ -1996,6 +1998,16 @@ TEST_CASE("bpf_object__open_file with .dll", "[libbpf]")
 
     // Load the program.
     REQUIRE(bpf_object__load(object) == 0);
+
+    map = bpf_object__next_map(object, nullptr);
+    REQUIRE(map != nullptr);
+    REQUIRE(strcmp(bpf_map__name(map), "dropped_packet_map") == 0);
+    REQUIRE(bpf_map__fd(map) != ebpf_fd_invalid);
+    map = bpf_object__next_map(object, map);
+    REQUIRE(strcmp(bpf_map__name(map), "interface_index_map") == 0);
+    REQUIRE(bpf_map__fd(map) != ebpf_fd_invalid);
+    map = bpf_object__next_map(object, map);
+    REQUIRE(map == nullptr);
 
     // Attach should now succeed.
     link = bpf_program__attach(program);
