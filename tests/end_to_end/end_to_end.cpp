@@ -1713,6 +1713,12 @@ _map_reuse_test(ebpf_execution_type_t execution_type)
     error = bpf_obj_pin(outer_map_fd, "/ebpf/global/outer_map");
     REQUIRE(error == 0);
 
+    // The outer map name created above should not have a name.
+    bpf_map_info info;
+    uint32_t info_size = sizeof(info);
+    REQUIRE(bpf_obj_get_info_by_fd(outer_map_fd, &info, &info_size) == 0);
+    REQUIRE(info.name[0] == 0);
+
     int port_map_fd = bpf_create_map(BPF_MAP_TYPE_ARRAY, sizeof(__u32), sizeof(__u32), 1, 0);
     REQUIRE(port_map_fd > 0);
 
@@ -1729,6 +1735,11 @@ _map_reuse_test(ebpf_execution_type_t execution_type)
     uint32_t ifindex = 0;
     program_load_attach_helper_t program_helper(
         file_name, BPF_PROG_TYPE_XDP, "lookup_update", EBPF_EXECUTION_ANY, &ifindex, sizeof(ifindex), hook);
+
+    // The outer map we created earlier should still not have a name even though there is a name in the file,
+    // since the unnamed map was reused.
+    REQUIRE(bpf_obj_get_info_by_fd(outer_map_fd, &info, &info_size) == 0);
+    REQUIRE(info.name[0] == 0);
 
     auto packet = prepare_udp_packet(10, ETHERNET_TYPE_IPV4);
     xdp_md_t ctx{packet.data(), packet.data() + packet.size(), 0, TEST_IFINDEX};
@@ -1753,6 +1764,53 @@ _map_reuse_test(ebpf_execution_type_t execution_type)
 }
 
 DECLARE_JIT_TEST_CASES("map_reuse", "[end_to_end]", _map_reuse_test);
+
+// Try to reuse a map of the wrong type.
+static void
+_wrong_map_reuse_test(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
+    program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
+
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_reuse_um.dll" : "map_reuse.o");
+
+    // First create and pin the maps manually.
+    int inner_map_fd = bpf_create_map(BPF_MAP_TYPE_ARRAY, sizeof(__u32), sizeof(__u32), 1, 0);
+    REQUIRE(inner_map_fd > 0);
+
+    int outer_map_fd = bpf_create_map_in_map(BPF_MAP_TYPE_HASH_OF_MAPS, nullptr, sizeof(__u32), inner_map_fd, 1, 0);
+    REQUIRE(outer_map_fd > 0);
+
+    // Pin the outer map and port map to the wrong paths so they won't match what is in the ebpf program.
+    REQUIRE(bpf_obj_pin(outer_map_fd, "/ebpf/global/port_map") == 0);
+
+    int port_map_fd = bpf_create_map(BPF_MAP_TYPE_ARRAY, sizeof(__u32), sizeof(__u32), 1, 0);
+    REQUIRE(port_map_fd > 0);
+
+    // Pin port map.
+    REQUIRE(bpf_obj_pin(port_map_fd, "/ebpf/global/outer_map") == 0);
+
+    // Open eBPF program file.
+    bpf_object* object = bpf_object__open(file_name);
+    REQUIRE(object != nullptr);
+    bpf_program* program = bpf_object__next_program(object, nullptr);
+    REQUIRE(program != nullptr);
+
+    // Try to load the program.  This should fail because the maps can't be reused.
+    REQUIRE(bpf_object__load(object) == -EINVAL);
+
+    bpf_object__close(object);
+
+    Platform::_close(outer_map_fd);
+    Platform::_close(inner_map_fd);
+    Platform::_close(port_map_fd);
+
+    REQUIRE(ebpf_object_unpin("/ebpf/global/outer_map") == EBPF_SUCCESS);
+    REQUIRE(ebpf_object_unpin("/ebpf/global/port_map") == EBPF_SUCCESS);
+}
+
+DECLARE_JIT_TEST_CASES("wrong_map_reuse", "[end_to_end]", _wrong_map_reuse_test);
 
 static void
 _auto_pinned_maps_test(ebpf_execution_type_t execution_type)

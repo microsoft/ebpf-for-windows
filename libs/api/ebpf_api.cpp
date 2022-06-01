@@ -1430,11 +1430,14 @@ _initialize_ebpf_maps_native(
         }
 
         map = maps[i];
-        ebpf_assert(strcmp(map->name, info.name) == 0);
+
+        // Note that the map name need not match, if the map was reused
+        // based on a pin path.  Other fields ought to match however.
         ebpf_assert(map->map_definition.type == info.type);
         ebpf_assert(map->map_definition.key_size == info.key_size);
         ebpf_assert(map->map_definition.value_size == info.value_size);
         ebpf_assert(map->map_definition.max_entries == info.max_entries);
+
         map->map_definition.inner_map_id = info.inner_map_id;
         map->map_fd = _create_file_descriptor_for_handle(map_handles[i]);
         if (map->map_fd == ebpf_fd_invalid) {
@@ -1808,11 +1811,13 @@ _ebpf_pe_get_map_definitions(
     if (section_name == "maps") {
         // bpf2c generates a section that has map names as strings at the
         // start of the section.  Skip over them looking for the map_entry_t
-        // which starts with a 16-byte-aligned NULL pointer.
+        // which starts with a 16-byte-aligned NULL pointer where the previous
+        // byte (if any) is also 00.
         uint32_t map_offset = 0;
         uint64_t zero = 0;
         while (map_offset < section_header.Misc.VirtualSize &&
-               memcmp(buffer->buf + map_offset, &zero, sizeof(zero)) != 0) {
+               (memcmp(buffer->buf + map_offset, &zero, sizeof(zero)) != 0 ||
+                (map_offset > 0 && buffer->buf[map_offset - 1] != 0))) {
             map_offset += 16;
         }
         if (pe_context->object != nullptr) {
@@ -1847,7 +1852,11 @@ _ebpf_pe_get_map_definitions(
                 if (map->map_definition.pinning == PIN_GLOBAL_NS) {
                     char pin_path_buffer[EBPF_MAX_PIN_PATH_LENGTH];
                     int len = snprintf(
-                        pin_path_buffer, EBPF_MAX_PIN_PATH_LENGTH, "%s/%s", pe_context->pin_root_path, map->name);
+                        pin_path_buffer,
+                        EBPF_MAX_PIN_PATH_LENGTH,
+                        "%s/%s",
+                        pe_context->pin_root_path ? pe_context->pin_root_path : DEFAULT_PIN_ROOT_PATH,
+                        map->name);
                     if (len < 0 || len >= EBPF_MAX_PIN_PATH_LENGTH) {
                         clean_up_ebpf_map(map);
                         return 1;
