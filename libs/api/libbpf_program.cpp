@@ -460,10 +460,13 @@ bpf_program__get_expected_attach_type(const struct bpf_program* program)
     return _get_bpf_attach_type(&program->attach_type);
 }
 
-void
+int
 bpf_program__set_expected_attach_type(struct bpf_program* program, enum bpf_attach_type type)
 {
+    if (program->object->loaded)
+        return libbpf_err(-EBUSY);
     program->attach_type = *_get_ebpf_attach_type(type);
+    return 0;
 }
 
 enum bpf_prog_type
@@ -472,11 +475,14 @@ bpf_program__type(const struct bpf_program* program)
     return _get_bpf_program_type(&program->program_type);
 }
 
-void
+int
 bpf_program__set_type(struct bpf_program* program, enum bpf_prog_type type)
 {
+    if (program->object->loaded)
+        return libbpf_err(-EBUSY);
     const ebpf_program_type_t* program_type = _get_ebpf_program_type(type);
     program->program_type = (program_type != nullptr) ? *program_type : EBPF_PROGRAM_TYPE_UNSPECIFIED;
+    return 0;
 }
 
 int

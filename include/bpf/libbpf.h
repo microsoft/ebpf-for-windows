@@ -698,8 +698,11 @@ bpf_program__section_name(const struct bpf_program* prog);
  *
  * @sa bpf_program__attach
  * @sa bpf_program__get_expected_attach_type
+ *
+ * @retval 0 The operation was successful.
+ * @retval <0 An error occured, and errno was set.
  */
-void
+int
 bpf_program__set_expected_attach_type(struct bpf_program* prog, enum bpf_attach_type type);
 
 /**
@@ -710,8 +713,11 @@ bpf_program__set_expected_attach_type(struct bpf_program* prog, enum bpf_attach_
  *
  * @sa bpf_program__set_expected_attach_type
  * @sa bpf_program__type
+ *
+ * @retval 0 The operation was successful.
+ * @retval <0 An error occured, and errno was set.
  */
-void
+int
 bpf_program__set_type(struct bpf_program* prog, enum bpf_prog_type type);
 
 /**
