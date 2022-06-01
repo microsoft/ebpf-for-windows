@@ -211,12 +211,12 @@ Functions</h2></td></tr>
 <tr class="memitem:a26150fd9e12b1d6b33a76345af3b30cf"><td class="memItemLeft" align="right" valign="top">const char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a26150fd9e12b1d6b33a76345af3b30cf">bpf_program__section_name</a> (const struct bpf_program *prog)</td></tr>
 <tr class="memdesc:a26150fd9e12b1d6b33a76345af3b30cf"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets the ELF section name of an eBPF program, if any.  <a href="libbpf_8h.html#a26150fd9e12b1d6b33a76345af3b30cf">More...</a><br /></td></tr>
 <tr class="separator:a26150fd9e12b1d6b33a76345af3b30cf"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a6a1f42b57d26d244246d4b7d4118f5e1"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a6a1f42b57d26d244246d4b7d4118f5e1">bpf_program__set_expected_attach_type</a> (struct bpf_program *prog, enum <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5a">bpf_attach_type</a> type)</td></tr>
-<tr class="memdesc:a6a1f42b57d26d244246d4b7d4118f5e1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the expected attach type for an eBPF program.  <a href="libbpf_8h.html#a6a1f42b57d26d244246d4b7d4118f5e1">More...</a><br /></td></tr>
-<tr class="separator:a6a1f42b57d26d244246d4b7d4118f5e1"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a2df33ac2a14774448fc5083c47e2012c"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a2df33ac2a14774448fc5083c47e2012c">bpf_program__set_type</a> (struct bpf_program *prog, enum <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0">bpf_prog_type</a> type)</td></tr>
-<tr class="memdesc:a2df33ac2a14774448fc5083c47e2012c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the program type for an eBPF program.  <a href="libbpf_8h.html#a2df33ac2a14774448fc5083c47e2012c">More...</a><br /></td></tr>
-<tr class="separator:a2df33ac2a14774448fc5083c47e2012c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a25396259cabd7f6a45eb3c392ce3dc72"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a25396259cabd7f6a45eb3c392ce3dc72">bpf_program__set_expected_attach_type</a> (struct bpf_program *prog, enum <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5a">bpf_attach_type</a> type)</td></tr>
+<tr class="memdesc:a25396259cabd7f6a45eb3c392ce3dc72"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the expected attach type for an eBPF program.  <a href="libbpf_8h.html#a25396259cabd7f6a45eb3c392ce3dc72">More...</a><br /></td></tr>
+<tr class="separator:a25396259cabd7f6a45eb3c392ce3dc72"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a85680f4c5e04b167ba7a269cf92c8391"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a85680f4c5e04b167ba7a269cf92c8391">bpf_program__set_type</a> (struct bpf_program *prog, enum <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0">bpf_prog_type</a> type)</td></tr>
+<tr class="memdesc:a85680f4c5e04b167ba7a269cf92c8391"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the program type for an eBPF program.  <a href="libbpf_8h.html#a85680f4c5e04b167ba7a269cf92c8391">More...</a><br /></td></tr>
+<tr class="separator:a85680f4c5e04b167ba7a269cf92c8391"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a789393546ed103be96e012387b12bdcf"><td class="memItemLeft" align="right" valign="top">enum <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0">bpf_prog_type</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a789393546ed103be96e012387b12bdcf">bpf_program__type</a> (const struct bpf_program *prog)</td></tr>
 <tr class="memdesc:a789393546ed103be96e012387b12bdcf"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the program type for an eBPF program.  <a href="libbpf_8h.html#a789393546ed103be96e012387b12bdcf">More...</a><br /></td></tr>
 <tr class="separator:a789393546ed103be96e012387b12bdcf"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -1677,7 +1677,7 @@ bpf_object__unpin </dd></dl>
 <dd>
 <a class="el" href="libbpf_8h.html#a533e13b68a34e8228fbadeecf63b658a" title="Get the expected attach type for an eBPF program.">bpf_program__get_expected_attach_type</a> </dd>
 <dd>
-<a class="el" href="libbpf_8h.html#a6a1f42b57d26d244246d4b7d4118f5e1" title="Set the expected attach type for an eBPF program.">bpf_program__set_expected_attach_type</a> </dd>
+<a class="el" href="libbpf_8h.html#a25396259cabd7f6a45eb3c392ce3dc72" title="Set the expected attach type for an eBPF program.">bpf_program__set_expected_attach_type</a> </dd>
 <dd>
 <a class="el" href="ebpf__api_8h.html#a615bbda0f78b51d852e60fb6b9cb6433">ebpf_link_close</a> </dd></dl>
 
@@ -1779,7 +1779,7 @@ bpf_object__unpin </dd></dl>
 <dl class="section return"><dt>Returns</dt><dd>Expected attach type.</dd></dl>
 <dl class="section see"><dt>See also</dt><dd><a class="el" href="libbpf_8h.html#a1402c76cc92bfb7ebe1bc7a4cbce54db" title="Attach an eBPF program to a hook associated with the program&#39;s expected attach type.">bpf_program__attach</a> </dd>
 <dd>
-<a class="el" href="libbpf_8h.html#a6a1f42b57d26d244246d4b7d4118f5e1" title="Set the expected attach type for an eBPF program.">bpf_program__set_expected_attach_type</a> </dd></dl>
+<a class="el" href="libbpf_8h.html#a25396259cabd7f6a45eb3c392ce3dc72" title="Set the expected attach type for an eBPF program.">bpf_program__set_expected_attach_type</a> </dd></dl>
 
 </div>
 </div>
@@ -2005,14 +2005,14 @@ bpf_object__unpin </dd></dl>
 
 </div>
 </div>
-<a id="a6a1f42b57d26d244246d4b7d4118f5e1"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a6a1f42b57d26d244246d4b7d4118f5e1">&#9670;&nbsp;</a></span>bpf_program__set_expected_attach_type()</h2>
+<a id="a25396259cabd7f6a45eb3c392ce3dc72"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a25396259cabd7f6a45eb3c392ce3dc72">&#9670;&nbsp;</a></span>bpf_program__set_expected_attach_type()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">void bpf_program__set_expected_attach_type </td>
+          <td class="memname">int bpf_program__set_expected_attach_type </td>
           <td>(</td>
           <td class="paramtype">struct bpf_program *&#160;</td>
           <td class="paramname"><em>prog</em>, </td>
@@ -2041,18 +2041,25 @@ bpf_object__unpin </dd></dl>
 </dl>
 <dl class="section see"><dt>See also</dt><dd><a class="el" href="libbpf_8h.html#a1402c76cc92bfb7ebe1bc7a4cbce54db" title="Attach an eBPF program to a hook associated with the program&#39;s expected attach type.">bpf_program__attach</a> </dd>
 <dd>
-<a class="el" href="libbpf_8h.html#a533e13b68a34e8228fbadeecf63b658a" title="Get the expected attach type for an eBPF program.">bpf_program__get_expected_attach_type</a> </dd></dl>
+<a class="el" href="libbpf_8h.html#a533e13b68a34e8228fbadeecf63b658a" title="Get the expected attach type for an eBPF program.">bpf_program__get_expected_attach_type</a></dd></dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
+    <tr><td class="paramname">&lt;0</td><td>An error occured, and errno was set. </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>
-<a id="a2df33ac2a14774448fc5083c47e2012c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a2df33ac2a14774448fc5083c47e2012c">&#9670;&nbsp;</a></span>bpf_program__set_type()</h2>
+<a id="a85680f4c5e04b167ba7a269cf92c8391"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a85680f4c5e04b167ba7a269cf92c8391">&#9670;&nbsp;</a></span>bpf_program__set_type()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">void bpf_program__set_type </td>
+          <td class="memname">int bpf_program__set_type </td>
           <td>(</td>
           <td class="paramtype">struct bpf_program *&#160;</td>
           <td class="paramname"><em>prog</em>, </td>
@@ -2079,9 +2086,16 @@ bpf_object__unpin </dd></dl>
   </table>
   </dd>
 </dl>
-<dl class="section see"><dt>See also</dt><dd><a class="el" href="libbpf_8h.html#a6a1f42b57d26d244246d4b7d4118f5e1" title="Set the expected attach type for an eBPF program.">bpf_program__set_expected_attach_type</a> </dd>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="libbpf_8h.html#a25396259cabd7f6a45eb3c392ce3dc72" title="Set the expected attach type for an eBPF program.">bpf_program__set_expected_attach_type</a> </dd>
 <dd>
-<a class="el" href="libbpf_8h.html#a789393546ed103be96e012387b12bdcf" title="Get the program type for an eBPF program.">bpf_program__type</a> </dd></dl>
+<a class="el" href="libbpf_8h.html#a789393546ed103be96e012387b12bdcf" title="Get the program type for an eBPF program.">bpf_program__type</a></dd></dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
+    <tr><td class="paramname">&lt;0</td><td>An error occured, and errno was set. </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>
