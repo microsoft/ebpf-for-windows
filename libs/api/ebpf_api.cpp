@@ -66,6 +66,13 @@ _ebpf_program_load_native(
     _Inout_ struct bpf_object* object,
     _Out_ fd_t* program_fd);
 
+static const char*
+_ebpf_get_section_string(
+    _In_ const struct _ebpf_pe_context* pe_context,
+    uintptr_t address,
+    _In_ const image_section_header& section_header,
+    _In_ const bounded_buffer* buffer);
+
 static fd_t
 _create_file_descriptor_for_handle(ebpf_handle_t handle) noexcept
 {
@@ -1531,7 +1538,6 @@ _initialize_ebpf_object_native(
     ebpf_assert(object.file_name != nullptr);
     ebpf_assert(object.object_name != nullptr);
 
-    // TODO(issue #1140): populate maps at open time
     for (auto& map : object.maps) {
         map->object = &object;
     }
@@ -1547,6 +1553,8 @@ Exit:
 static ebpf_result_t
 _ebpf_enumerate_native_sections(
     _In_z_ const char* file,
+    _Inout_opt_ ebpf_object_t* object,
+    _In_opt_z_ const char* pin_root_path,
     _Outptr_result_maybenull_ ebpf_section_info_t** infos,
     _Outptr_result_maybenull_z_ const char** error_message);
 
@@ -1554,7 +1562,7 @@ static ebpf_result_t
 _initialize_ebpf_object_from_native_file(
     _In_z_ const char* file_name,
     _In_opt_z_ const char* pin_root_path,
-    _Out_ ebpf_object_t& object,
+    _Inout_ ebpf_object_t& object,
     _Outptr_result_maybenull_z_ const char** error_message) noexcept
 {
     ebpf_program_t* program = nullptr;
@@ -1564,7 +1572,7 @@ _initialize_ebpf_object_from_native_file(
     ebpf_assert(error_message);
 
     ebpf_section_info_t* infos = nullptr;
-    ebpf_result_t result = _ebpf_enumerate_native_sections(file_name, &infos, error_message);
+    ebpf_result_t result = _ebpf_enumerate_native_sections(file_name, &object, pin_root_path, &infos, error_message);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
@@ -1609,9 +1617,6 @@ _initialize_ebpf_object_from_native_file(
         program = nullptr;
     }
 
-    // TODO(issue #1140): populate object.maps
-    UNREFERENCED_PARAMETER(pin_root_path);
-
 Exit:
     free(program);
     if (result != EBPF_SUCCESS) {
@@ -1626,7 +1631,7 @@ static ebpf_result_t
 _initialize_ebpf_object_from_elf(
     _In_z_ const char* file_name,
     _In_opt_z_ const char* pin_root_path,
-    _Out_ ebpf_object_t& object,
+    _Inout_ ebpf_object_t& object,
     _Outptr_result_maybenull_z_ const char** error_message) noexcept
 {
     EBPF_LOG_ENTRY();
@@ -1784,12 +1789,13 @@ ebpf_free_sections(_In_opt_ ebpf_section_info_t* infos)
 
 typedef struct _ebpf_pe_context
 {
+    ebpf_object_t* object;
+    const char* pin_root_path;
     uintptr_t image_base;
     ebpf_section_info_t* infos;
     std::map<std::string, std::string> section_names;
     std::map<std::string, std::string> program_names;
     std::map<std::string, GUID> section_program_types;
-    int map_count;
     uintptr_t rdata_base;
     size_t rdata_size;
     const bounded_buffer* rdata_buffer;
@@ -1799,7 +1805,7 @@ typedef struct _ebpf_pe_context
 } ebpf_pe_context_t;
 
 static int
-_ebpf_pe_get_map_count(
+_ebpf_pe_get_map_definitions(
     void* context,
     const VA& va,
     const std::string& section_name,
@@ -1821,7 +1827,53 @@ _ebpf_pe_get_map_count(
                memcmp(buffer->buf + map_offset, &zero, sizeof(zero)) != 0) {
             map_offset += 16;
         }
-        pe_context->map_count = (section_header.Misc.VirtualSize - map_offset) / sizeof(map_entry_t);
+        if (pe_context->object != nullptr) {
+            for (; map_offset < section_header.Misc.VirtualSize; map_offset += sizeof(map_entry_t)) {
+                map_entry_t* entry = (map_entry_t*)(buffer->buf + map_offset);
+
+                ebpf_map_t* map = (ebpf_map_t*)calloc(1, sizeof(ebpf_map_t));
+                if (map == nullptr) {
+                    return 1;
+                }
+
+                map->map_handle = ebpf_handle_invalid;
+                map->original_fd = entry->definition.id;
+                map->map_definition.type = entry->definition.type;
+                map->map_definition.key_size = entry->definition.key_size;
+                map->map_definition.value_size = entry->definition.value_size;
+                map->map_definition.max_entries = entry->definition.max_entries;
+                map->map_definition.pinning = entry->definition.pinning;
+                map->map_definition.inner_map_id = entry->definition.inner_id;
+                map->inner_map_original_fd = entry->definition.inner_map_idx;
+                map->pinned = false;
+                map->reused = false;
+                map->pin_path = nullptr;
+
+                const char* map_name =
+                    _ebpf_get_section_string(pe_context, (uintptr_t)entry->name, section_header, buffer);
+                map->name = _strdup(map_name);
+                if (map->name == nullptr) {
+                    clean_up_ebpf_map(map);
+                    return 1;
+                }
+                if (map->map_definition.pinning == PIN_GLOBAL_NS) {
+                    char pin_path_buffer[EBPF_MAX_PIN_PATH_LENGTH];
+                    int len = snprintf(
+                        pin_path_buffer, EBPF_MAX_PIN_PATH_LENGTH, "%s/%s", pe_context->pin_root_path, map->name);
+                    if (len < 0 || len >= EBPF_MAX_PIN_PATH_LENGTH) {
+                        clean_up_ebpf_map(map);
+                        return 1;
+                    }
+                    map->pin_path = _strdup(pin_path_buffer);
+                    if (map->pin_path == nullptr) {
+                        clean_up_ebpf_map(map);
+                        return 1;
+                    }
+                }
+                pe_context->object->maps.emplace_back(map);
+                map = nullptr;
+            }
+        }
     } else if (section_name == ".rdata") {
         pe_context->rdata_base = pe_context->image_base + section_header.VirtualAddress;
         pe_context->rdata_size = section_header.Misc.VirtualSize;
@@ -1836,7 +1888,7 @@ _ebpf_pe_get_map_count(
     return 0;
 }
 
-const char*
+static const char*
 _ebpf_get_section_string(
     _In_ const ebpf_pe_context_t* pe_context,
     uintptr_t address,
@@ -1946,7 +1998,6 @@ _ebpf_pe_add_section(
         _strdup(get_program_type_windows(pe_context->section_program_types[pe_section_name]).name.c_str());
     info->raw_data_size = section_header.Misc.VirtualSize;
     info->raw_data = (char*)malloc(section_header.Misc.VirtualSize);
-    info->map_count = pe_context->map_count;
     if (info->raw_data == nullptr || info->program_type_name == nullptr || info->section_name == nullptr) {
         _ebpf_free_section_info(info);
         EBPF_LOG_EXIT();
@@ -1968,6 +2019,8 @@ _ebpf_pe_add_section(
 static ebpf_result_t
 _ebpf_enumerate_native_sections(
     _In_z_ const char* file,
+    _Inout_opt_ ebpf_object_t* object,
+    _In_opt_z_ const char* pin_root_path,
     _Outptr_result_maybenull_ ebpf_section_info_t** infos,
     _Outptr_result_maybenull_z_ const char** error_message)
 {
@@ -1980,8 +2033,9 @@ _ebpf_enumerate_native_sections(
         EBPF_RETURN_RESULT(EBPF_FILE_NOT_FOUND);
     }
 
-    ebpf_pe_context_t context = {.image_base = pe->peHeader.nt.OptionalHeader64.ImageBase};
-    IterSec(pe, _ebpf_pe_get_map_count, &context);
+    ebpf_pe_context_t context = {
+        .object = object, .pin_root_path = pin_root_path, .image_base = pe->peHeader.nt.OptionalHeader64.ImageBase};
+    IterSec(pe, _ebpf_pe_get_map_definitions, &context);
     IterSec(pe, _ebpf_pe_get_section_names, &context);
     IterSec(pe, _ebpf_pe_add_section, &context);
 
@@ -2003,7 +2057,7 @@ ebpf_enumerate_sections(
     std::string file_extension = file_name_string.substr(file_name_string.find_last_of(".") + 1);
     if (file_extension == "dll" || file_extension == "sys") {
         // Verbose is currently unused.
-        EBPF_RETURN_RESULT(_ebpf_enumerate_native_sections(file, infos, error_message));
+        EBPF_RETURN_RESULT(_ebpf_enumerate_native_sections(file, nullptr, nullptr, infos, error_message));
     } else {
         EBPF_RETURN_RESULT(
             ebpf_api_elf_enumerate_sections(file, nullptr, verbose, infos, error_message) ? EBPF_FAILED : EBPF_SUCCESS);

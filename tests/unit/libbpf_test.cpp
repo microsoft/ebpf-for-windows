@@ -1981,6 +1981,14 @@ TEST_CASE("bpf_object__open_file with .dll", "[libbpf]")
 
     REQUIRE(bpf_object__next_program(object, program) == nullptr);
 
+    struct bpf_map* map = bpf_object__next_map(object, nullptr);
+    REQUIRE(map != nullptr);
+    REQUIRE(strcmp(bpf_map__name(map), "dropped_packet_map") == 0);
+    map = bpf_object__next_map(object, map);
+    REQUIRE(strcmp(bpf_map__name(map), "interface_index_map") == 0);
+    map = bpf_object__next_map(object, map);
+    REQUIRE(map == nullptr);
+
     // Trying to attach the program should fail since it's not loaded yet.
     bpf_link* link = bpf_program__attach(program);
     REQUIRE(link == nullptr);
