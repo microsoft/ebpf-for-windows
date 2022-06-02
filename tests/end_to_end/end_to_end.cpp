@@ -869,24 +869,6 @@ DECLARE_ALL_TEST_CASES("bindmonitor-ringbuf", "[end_to_end]", bindmonitor_ring_b
 DECLARE_ALL_TEST_CASES("utility-helpers", "[end_to_end]", _utility_helper_functions_test);
 DECLARE_ALL_TEST_CASES("map", "[end_to_end]", map_test);
 
-TEST_CASE("wrong platform", "[end_to_end]")
-{
-    _test_helper_end_to_end test_helper;
-
-    int result;
-    const char* error_message = nullptr;
-    bpf_object* object = nullptr;
-    fd_t program_fd;
-
-    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
-    program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
-
-    // Try loading a .sys file into user-mode.
-    result =
-        ebpf_program_load("map.sys", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_ANY, &object, &program_fd, &error_message);
-    REQUIRE(result == -ENOENT);
-}
-
 TEST_CASE("enum section", "[end_to_end]")
 {
     _test_helper_end_to_end test_helper;
@@ -2287,6 +2269,25 @@ TEST_CASE("load_native_program_negative4", "[end-to-end]")
 
     // Delete the created service.
     Platform::_delete_service(service_handle);
+}
+
+// Try to load a .sys in user mode.
+TEST_CASE("load_native_program_negative5", "[end_to_end]")
+{
+    _test_helper_end_to_end test_helper;
+
+    int result;
+    const char* error_message = nullptr;
+    bpf_object* object = nullptr;
+    fd_t program_fd;
+
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
+    program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
+
+    set_native_module_failures(true);
+    result =
+        ebpf_program_load("map.sys", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_ANY, &object, &program_fd, &error_message);
+    REQUIRE(result == -ENOENT);
 }
 
 // The below tests try to load native drivers for invalid programs (that will fail verification).
