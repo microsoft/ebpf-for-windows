@@ -479,8 +479,8 @@ Glue_delete_service(SC_HANDLE handle)
             // Delete the service if it has not been loaded yet. Otherwise
             // mark it pending for delete.
             if (!context->loaded) {
-                _service_path_to_context_map.erase(path);
                 ebpf_free(context);
+                _service_path_to_context_map.erase(path);
             } else {
                 context->delete_pending = true;
             }

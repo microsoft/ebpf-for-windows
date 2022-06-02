@@ -1811,14 +1811,15 @@ _ebpf_pe_get_map_definitions(
     if (section_name == "maps") {
         // bpf2c generates a section that has map names as strings at the
         // start of the section.  Skip over them looking for the map_entry_t
-        // which starts with a 16-byte-aligned NULL pointer where the previous
-        // byte (if any) is also 00.
+        // which starts with an 8-byte-aligned NULL pointer where the previous
+        // byte (if any) is also 00, and the following 8 bytes are non-NULL.
         uint32_t map_offset = 0;
         uint64_t zero = 0;
-        while (map_offset < section_header.Misc.VirtualSize &&
+        while (map_offset + 16 < section_header.Misc.VirtualSize &&
                (memcmp(buffer->buf + map_offset, &zero, sizeof(zero)) != 0 ||
-                (map_offset > 0 && buffer->buf[map_offset - 1] != 0))) {
-            map_offset += 16;
+                (map_offset > 0 && buffer->buf[map_offset - 1] != 0) ||
+                memcmp(buffer->buf + map_offset + 8, &zero, sizeof(zero)) == 0)) {
+            map_offset += 8;
         }
         if (pe_context->object != nullptr) {
             for (; map_offset < section_header.Misc.VirtualSize; map_offset += sizeof(map_entry_t)) {
@@ -2976,7 +2977,7 @@ ebpf_map_next(_In_opt_ const struct bpf_map* previous, _In_ const struct bpf_obj
         goto Exit;
     }
     if (previous == nullptr) {
-        map = object->maps[0];
+        map = (object->maps.size() > 0) ? object->maps[0] : nullptr;
     } else {
         size_t maps_count = object->maps.size();
         for (size_t i = 0; i < maps_count; i++) {
