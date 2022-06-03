@@ -1822,7 +1822,8 @@ _ebpf_pe_get_map_definitions(
             map_offset += 8;
         }
         if (pe_context->object != nullptr) {
-            for (; map_offset < section_header.Misc.VirtualSize; map_offset += sizeof(map_entry_t)) {
+            for (int map_index = 0; map_offset + sizeof(map_entry_t) <= section_header.Misc.VirtualSize;
+                 map_offset += sizeof(map_entry_t), map_index++) {
                 map_entry_t* entry = (map_entry_t*)(buffer->buf + map_offset);
 
                 ebpf_map_t* map = (ebpf_map_t*)calloc(1, sizeof(ebpf_map_t));
@@ -1831,7 +1832,7 @@ _ebpf_pe_get_map_definitions(
                 }
 
                 map->map_handle = ebpf_handle_invalid;
-                map->original_fd = entry->definition.id;
+                map->original_fd = (fd_t)map_index;
                 map->map_definition.type = entry->definition.type;
                 map->map_definition.key_size = entry->definition.key_size;
                 map->map_definition.value_size = entry->definition.value_size;
@@ -1926,7 +1927,7 @@ _ebpf_pe_get_section_names(
         // byte (if any) is also 00.
         uint32_t program_offset = 0;
         uint64_t zero = 0;
-        while (program_offset < section_header.Misc.VirtualSize &&
+        while (program_offset + sizeof(zero) <= section_header.Misc.VirtualSize &&
                (memcmp(buffer->buf + program_offset, &zero, sizeof(zero)) != 0 ||
                 (program_offset > 0 && buffer->buf[program_offset - 1] != 0))) {
             program_offset += 16;
