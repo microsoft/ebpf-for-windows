@@ -154,6 +154,8 @@ extern "C"
      * @brief Verify that the program is safe to execute.
      * @param[in] file Name of ELF file containing eBPF program.
      * @param[in] section The name of the section to query.
+     * @param[in] program_type Optional program type.
+     *  If NULL, the program type is derived from the section name.
      * @param[in] verbose Obtain additional info about the programs.
      * @param[out] report Points to a text section describing why the program
      *  failed verification.
@@ -163,8 +165,9 @@ extern "C"
      */
     uint32_t
     ebpf_api_elf_verify_section_from_file(
-        const char* file,
-        const char* section,
+        _In_z_ const char* file,
+        _In_z_ const char* section,
+        _In_opt_ const ebpf_program_type_t* program_type,
         bool verbose,
         const char** report,
         const char** error_message,
@@ -175,6 +178,8 @@ extern "C"
      * @param[in] data Memory containing the ELF file containing eBPF program.
      * @param[in] data_length Length of data.
      * @param[in] section The name of the section to query.
+     * @param[in] program_type Optional program type.
+     *  If NULL, the program type is derived from the section name.
      * @param[in] verbose Obtain additional info about the programs.
      * @param[out] report Points to a text section describing why the program
      *  failed verification.
@@ -184,9 +189,10 @@ extern "C"
      */
     uint32_t
     ebpf_api_elf_verify_section_from_memory(
-        const char* data,
+        _In_z_ const char* data,
         size_t data_length,
-        const char* section,
+        _In_z_ const char* section,
+        _In_opt_ const ebpf_program_type_t* program_type,
         bool verbose,
         const char** report,
         const char** error_message,

@@ -87,12 +87,15 @@ const ebpf_context_descriptor_t g_sock_ops_context_descriptor = {
 const EbpfProgramType windows_sock_ops_program_type = {
     "sockops", &g_sock_ops_context_descriptor, (uint64_t)&EBPF_PROGRAM_TYPE_SOCK_OPS, {"sockops"}};
 
+const EbpfProgramType windows_unspecified_program_type =
+    PTYPE("unspec", {0}, (uint64_t)&EBPF_PROGRAM_TYPE_UNSPECIFIED, {});
+
 //
 // Global lists and vectors of program and attach types.
 //
 
 const std::vector<EbpfProgramType> windows_program_types = {
-    PTYPE("unspecified", {0}, 0, {}),
+    windows_unspecified_program_type,
     windows_xdp_program_type,
     windows_bind_program_type,
     windows_sock_addr_program_type,

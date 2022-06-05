@@ -219,9 +219,39 @@ handle_ebpf_show_verification(
     const char* report;
     const char* error_message;
     ebpf_api_verifier_stats_t stats;
+    ebpf_program_type_t program_type;
+    ebpf_attach_type_t attach_type;
+
+    if (section == "") {
+        // If no section name was provided, fetch the first section name.
+        ebpf_section_info_t* section_data = nullptr;
+        ebpf_result_t result =
+            ebpf_enumerate_sections(filename.c_str(), level == VL_VERBOSE, &section_data, &error_message);
+        if (result != ERROR_SUCCESS || section_data == nullptr) {
+            if (error_message) {
+                std::cerr << error_message << std::endl;
+            } else {
+                std::cerr << "\nNo section(s) found" << std::endl;
+            }
+            ebpf_free_string(error_message);
+            ebpf_free_sections(section_data);
+            return ERROR_SUPPRESS_OUTPUT;
+        }
+
+        section = section_data->section_name;
+        ebpf_free_string(error_message);
+        ebpf_free_sections(section_data);
+    }
+
+    // TODO: Issue #1170.
+    // Workaround: Check the program type for the section name and default to XDP
+    // if getting program type fails.
+    if (ebpf_get_program_type_by_name(section.c_str(), &program_type, &attach_type) != EBPF_SUCCESS) {
+        program_type = EBPF_PROGRAM_TYPE_XDP;
+    }
 
     status = ebpf_api_elf_verify_section_from_file(
-        filename.c_str(), section.c_str(), level == VL_VERBOSE, &report, &error_message, &stats);
+        filename.c_str(), section.c_str(), &program_type, level == VL_VERBOSE, &report, &error_message, &stats);
     if (status == ERROR_SUCCESS) {
         std::cout << report;
         std::cout << "\nProgram terminates within " << stats.max_instruction_count << " instructions\n";
