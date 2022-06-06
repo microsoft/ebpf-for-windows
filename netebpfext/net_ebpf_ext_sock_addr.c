@@ -185,13 +185,14 @@ _net_ebpf_sock_addr_update_registry_entries()
     NTSTATUS status;
 
     // Update section information.
-    ebpf_section_info_t section_info[] = {
+    ebpf_store_section_info_t section_info[] = {
         {L"cgroup/connect4", EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT},
         {L"cgroup/connect6", EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT},
         {L"cgroup/accept4", EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT},
         {L"cgroup/accept6", EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT}};
 
-    status = ebpf_store_update_section_information(section_info, sizeof(section_info) / sizeof(ebpf_section_info_t));
+    status =
+        ebpf_store_update_section_information(section_info, sizeof(section_info) / sizeof(ebpf_store_section_info_t));
     if (!NT_SUCCESS(status)) {
         return status;
     }

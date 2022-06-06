@@ -124,7 +124,7 @@ _net_ebpf_bind_update_registry_entries()
     NTSTATUS status;
 
     // Update section information.
-    ebpf_section_info_t section_info = {L"bind", EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND};
+    ebpf_store_section_info_t section_info = {L"bind", EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND};
 
     status = ebpf_store_update_section_information(&section_info, 1);
     if (!NT_SUCCESS(status)) {

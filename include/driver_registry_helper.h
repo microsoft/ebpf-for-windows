@@ -22,19 +22,19 @@
 #define EBPF_PROGRAM_DATA_CONTEXT_DESCRIPTOR L"ContextDescriptor"
 #define EBPF_PROGRAM_DATA_PLATFORM_SPECIFIC_DATA L"PlatformSpecificData"
 #define EBPF_PROGRAM_DATA_PRIVELEGED L"IsPrivileged"
+#define EBPF_PROGRAM_DATA_BPF_PROG_TYPE L"BpfProgType"
 #define EBPF_PROGRAM_DATA_HELPER_COUNT L"HelperCount"
-// #define EBPF_PROGRAM_DATA_HELPER_PROTOTYPES L"HelperPrototypes"
 
 #define EBPF_HELPER_DATA_PROTOTYPE L"Prototype"
 
-#define EBPF_GLOBAL_HELPER_
+// #define EBPF_GLOBAL_HELPER_
 
-typedef struct _ebpf_section_info
+typedef struct _ebpf_store_section_info
 {
     wchar_t* section_name;
     ebpf_program_type_t program_type;
     ebpf_attach_type_t attach_type;
-} ebpf_section_info_t;
+} ebpf_store_section_info_t;
 
 static __forceinline NTSTATUS
 _update_helper_prototype(HANDLE helper_info_handle, _In_ const ebpf_helper_function_prototype_t* helper_info)
@@ -91,7 +91,7 @@ Exit:
 
 static __forceinline NTSTATUS
 ebpf_store_update_section_information(
-    _In_reads_(section_info_count) ebpf_section_info_t* section_info, int section_info_count)
+    _In_reads_(section_info_count) ebpf_store_section_info_t* section_info, int section_info_count)
 {
     NTSTATUS status = STATUS_SUCCESS;
     HANDLE root_handle = NULL;
@@ -282,6 +282,15 @@ ebpf_store_update_program_information(
             REG_BINARY,
             &program_info[i].program_type_descriptor.context_descriptor,
             sizeof(ebpf_context_descriptor_t));
+        if (!NT_SUCCESS(status)) {
+            ZwClose(program_handle);
+            goto Exit;
+        }
+
+        // Save bpf_prog_type
+        RtlInitUnicodeString(&value_name, EBPF_PROGRAM_DATA_BPF_PROG_TYPE);
+        uint32_t bpf_prog_type = program_info[i].program_type_descriptor.bpf_prog_type;
+        status = ZwSetValueKey(program_handle, &value_name, 0, REG_DWORD, &bpf_prog_type, sizeof(uint32_t));
         if (!NT_SUCCESS(status)) {
             ZwClose(program_handle);
             goto Exit;

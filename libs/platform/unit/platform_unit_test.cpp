@@ -25,8 +25,8 @@
 // #include "ebpf_xdp_program_data.h"
 #include "ebpf_ring_buffer.h"
 #include "ebpf_state.h"
-#include "encode_program_info.h"
-#include "net_ebpf_ext_program_info.h"
+// #include "encode_program_info.h"
+// #include "net_ebpf_ext_program_info.h"
 
 class _test_helper
 {

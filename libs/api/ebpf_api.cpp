@@ -165,7 +165,7 @@ ebpf_api_initiate()
 
     // Load provider data from ebpf store. This is best effort
     // as there may be no data present in the store.
-    load_provider_data_from_store();
+    load_ebpf_provider_data();
 
     EBPF_RETURN_RESULT(EBPF_SUCCESS);
 }
@@ -173,7 +173,7 @@ ebpf_api_initiate()
 void
 ebpf_api_terminate()
 {
-    clear_provider_data();
+    clear_ebpf_provider_data();
     _clean_up_ebpf_objects();
     clean_up_device_handle();
     clean_up_rpc_binding();

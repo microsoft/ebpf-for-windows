@@ -42,6 +42,6 @@ static ebpf_helper_function_prototype_t _sample_ebpf_extension_helper_function_p
       EBPF_ARGUMENT_TYPE_CONST_SIZE}}};
 
 static ebpf_program_info_t _sample_ebpf_extension_program_info = {
-    {"sample", &_sample_ebpf_context_descriptor, {0}},
+    {"sample", &_sample_ebpf_context_descriptor, {0}, BPF_PROG_TYPE_SAMPLE},
     EBPF_COUNT_OF(_sample_ebpf_extension_helper_function_prototype),
     _sample_ebpf_extension_helper_function_prototype};

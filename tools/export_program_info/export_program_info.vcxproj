@@ -28,7 +28,7 @@
     <ProjectGuid>{fa9bb88d-8259-40c1-9422-bdedf9e9ce68}</ProjectGuid>
     <RootNamespace>encodeprograminfo</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-    <ProjectName>encode_program_info</ProjectName>
+    <ProjectName>export_program_info</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -126,7 +126,7 @@
     </Link>
     <CustomBuildStep>
       <Command>cd /d $(OutputPath)
-$(OutputPath)encode_program_info.exe</Command>
+$(OutputPath)export_program_info.exe</Command>
     </CustomBuildStep>
     <CustomBuildStep>
       <Message>Encoding Program Information</Message>
@@ -150,7 +150,7 @@ $(OutputPath)encode_program_info.exe</Command>
     </Link>
     <CustomBuildStep>
       <Command>cd /d $(OutputPath)
-$(OutputPath)encode_program_info.exe</Command>
+$(OutputPath)export_program_info.exe</Command>
     </CustomBuildStep>
     <CustomBuildStep>
       <Message>Encoding Program Information</Message>
@@ -160,15 +160,7 @@ $(OutputPath)encode_program_info.exe</Command>
     </CustomBuildStep>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="encode_program_info.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\libs\platform\user\platform_user.vcxproj">
-      <Project>{c26cb6a9-158c-4a9e-a243-755ddd98e5fe}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\..\libs\execution_context\user\execution_context_user.vcxproj">
-      <Project>{18127b0d-8381-4afe-9a3a-cf53241992d3}</Project>
-    </ProjectReference>
+    <ClCompile Include="export_program_info.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

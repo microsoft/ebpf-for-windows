@@ -168,7 +168,7 @@
     <ClInclude Include="windows_program_type.h" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\tools\encode_program_info\encode_program_info.vcxproj">
+    <ProjectReference Include="..\..\tools\export_program_info\export_program_info.vcxproj">
       <Project>{fa9bb88d-8259-40c1-9422-bdedf9e9ce68}</Project>
     </ProjectReference>
   </ItemGroup>

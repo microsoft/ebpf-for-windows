@@ -244,7 +244,7 @@ _net_ebpf_sock_ops_update_registry_entries()
     NTSTATUS status;
 
     //   Update section information.
-    ebpf_section_info_t section_info = {L"sockops", EBPF_PROGRAM_TYPE_SOCK_OPS, EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS};
+    ebpf_store_section_info_t section_info = {L"sockops", EBPF_PROGRAM_TYPE_SOCK_OPS, EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS};
 
     status = ebpf_store_update_section_information(&section_info, 1);
     if (!NT_SUCCESS(status)) {

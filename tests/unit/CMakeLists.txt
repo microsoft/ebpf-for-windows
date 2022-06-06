@@ -60,7 +60,6 @@ target_link_libraries("unit_tests" PRIVATE
   "service"
   "test_util"
   "ubpf_user"
-  "encode_program_info_headers"
   "Mincore.lib"
 )
 
