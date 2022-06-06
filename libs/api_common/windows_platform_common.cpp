@@ -18,6 +18,7 @@
 #include "windows_platform.hpp"
 #include "registry_helper.hpp"
 
+#define SOFTWARE_REGISTRY_PATH L"Software"
 #define EBPF_STORE_PATH L"Software\\eBPF\\Providers"
 #define EBPF_PROGRAM_DATA_PATH L"ProgramData"
 #define EBPF_SECTION_DATA_PATH L"SectionData"
@@ -28,6 +29,7 @@
 #define EBPF_PROGRAM_DATA_CONTEXT_DESCRIPTOR L"ContextDescriptor"
 #define EBPF_PROGRAM_DATA_PLATFORM_SPECIFIC_DATA L"PlatformSpecificData"
 #define EBPF_PROGRAM_DATA_PRIVELEGED L"IsPrivileged"
+#define EBPF_PROGRAM_DATA_BPF_PROG_TYPE L"BpfProgType"
 #define EBPF_PROGRAM_DATA_HELPER_COUNT L"HelperCount"
 
 #define EBPF_SECTION_DATA_PROGRAM_TYPE L"ProgramType"
@@ -36,6 +38,8 @@
 #define EBPF_HELPER_DATA_PROTOTYPE L"Prototype"
 
 #define GUID_STRING_LENGTH 38
+
+static HKEY _root_registry_key = HKEY_LOCAL_MACHINE;
 
 struct guid_compare
 {
@@ -46,6 +50,7 @@ struct guid_compare
     }
 };
 
+// TODO: Merge EbpfProgramType and ebpf_program_info_t to create a common struct so we dont have to duplicate stuff.
 static std::map<ebpf_program_type_t, EbpfProgramType, guid_compare> _windows_program_types;
 static std::vector<ebpf_section_definition_t> _windows_section_definitions;
 static std::map<ebpf_program_type_t, ebpf_program_info_t, guid_compare> _windows_program_information;
@@ -323,6 +328,7 @@ _load_program_data_information(HKEY program_data_key, _In_ const wchar_t* progra
     wchar_t* program_type_name = nullptr;
     ebpf_context_descriptor_t* descriptor = nullptr;
     uint32_t is_privileged;
+    uint32_t bpf_program_type;
     ebpf_program_type_t* program_type = nullptr;
     EbpfProgramType program_data;
     ebpf_program_info_t program_information = {0};
@@ -374,6 +380,12 @@ _load_program_data_information(HKEY program_data_key, _In_ const wchar_t* progra
             goto Exit;
         }
 
+        // Read bpf program type.
+        result = read_registry_value_dword(program_info_key, EBPF_PROGRAM_DATA_BPF_PROG_TYPE, &bpf_program_type);
+        if (result != EBPF_SUCCESS) {
+            goto Exit;
+        }
+
         // Read helper count
         result = read_registry_value_dword(program_info_key, EBPF_PROGRAM_DATA_HELPER_COUNT, &helper_count);
         if (result != EBPF_SUCCESS) {
@@ -388,6 +400,7 @@ _load_program_data_information(HKEY program_data_key, _In_ const wchar_t* progra
 
         program_information.program_type_descriptor.context_descriptor = descriptor;
         program_information.program_type_descriptor.is_privileged = !!is_privileged;
+        program_information.program_type_descriptor.bpf_prog_type = bpf_program_type;
         program_information.program_type_descriptor.name = program_type_name_string.c_str();
         program_information.program_type_descriptor.program_type = *program_type;
 
@@ -639,7 +652,7 @@ _load_all_program_data_information(HKEY store_key)
 
     try {
         // Add a default entry in windows_program_types.
-        EbpfProgramType unspecified = PTYPE("unspecified", {0}, 0, {});
+        EbpfProgramType unspecified = PTYPE("unspecified", {0}, (uint64_t)&EBPF_PROGRAM_TYPE_UNSPECIFIED, {});
 #pragma warning(push)
 #pragma warning(disable : 26495) // EbpfProgramType does not initialize member variables.
         _windows_program_types.insert(
@@ -758,15 +771,39 @@ Exit:
     return result;
 }
 
+static uint32_t
+_set_root_registry_path()
+{
+    // Try opening HKEY_LOCAL_MACHINE.
+    HKEY key = nullptr;
+    uint32_t status;
+
+    status = RegOpenKeyEx(HKEY_LOCAL_MACHINE, SOFTWARE_REGISTRY_PATH, 0, KEY_READ, &key);
+    if (status == ERROR_SUCCESS) {
+        goto Exit;
+    }
+
+    _root_registry_key = HKEY_CURRENT_USER;
+
+Exit:
+    if (key) {
+        RegCloseKey(key);
+    }
+
+    return status;
+}
+
 ebpf_result_t
-load_provider_data_from_store()
+load_ebpf_provider_data()
 {
     HKEY store_key = nullptr;
     int32_t status;
     ebpf_result_t result = EBPF_SUCCESS;
 
+    _set_root_registry_path();
+
     // Open root registry path.
-    status = RegOpenKeyEx(HKEY_LOCAL_MACHINE, EBPF_STORE_PATH, 0, KEY_READ, &store_key);
+    status = RegOpenKeyEx(_root_registry_key, EBPF_STORE_PATH, 0, KEY_READ, &store_key);
     if (status != ERROR_SUCCESS) {
         // Registry path is not present.
         result = EBPF_FILE_NOT_FOUND;
@@ -780,7 +817,7 @@ Exit:
 }
 
 void
-clear_provider_data()
+clear_ebpf_provider_data()
 {
     try {
         for (auto& t : _windows_program_types) {
@@ -800,4 +837,29 @@ clear_provider_data()
     } catch (...) {
         // Do nothing.
     }
+}
+
+const ebpf_program_type_t*
+get_ebpf_program_type(enum bpf_prog_type type)
+{
+    for (auto& iterator : _windows_program_information) {
+        ebpf_program_info_t& program_info = iterator.second;
+        if (program_info.program_type_descriptor.bpf_prog_type == (uint32_t)type) {
+            return &iterator.first;
+        }
+    }
+
+    return &EBPF_PROGRAM_TYPE_UNSPECIFIED;
+}
+
+const ebpf_program_info_t*
+get_static_program_info(_In_ const ebpf_program_type_t* program_type)
+{
+    for (auto& iterator : _windows_program_information) {
+        if (IsEqualGUID(*program_type, iterator.first)) {
+            return &iterator.second;
+        }
+    }
+
+    return nullptr;
 }

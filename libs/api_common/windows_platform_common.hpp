@@ -28,7 +28,10 @@ _Ret_maybenull_z_ const char*
 get_attach_type_name(_In_ const ebpf_attach_type_t* attach_type);
 
 ebpf_result_t
-load_provider_data_from_store();
+load_ebpf_provider_data();
 
 void
-clear_provider_data();
+clear_ebpf_provider_data();
+
+const ebpf_program_info_t*
+get_static_program_info(_In_ const ebpf_program_type_t* program_type)

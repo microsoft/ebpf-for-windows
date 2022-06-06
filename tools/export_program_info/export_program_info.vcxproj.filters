@@ -19,7 +19,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="encode_program_info.cpp">
+    <ClCompile Include="export_program_info.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

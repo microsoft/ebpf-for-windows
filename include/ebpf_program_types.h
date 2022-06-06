@@ -25,6 +25,7 @@ typedef struct _ebpf_program_type_descriptor
     const char* name;
     ebpf_context_descriptor_t* context_descriptor;
     GUID program_type;
+    uint32_t bpf_prog_type;
     char is_privileged;
 } ebpf_program_type_descriptor_t;
 

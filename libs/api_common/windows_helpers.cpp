@@ -20,6 +20,8 @@
 #include "platform.h"
 #include "platform.hpp"
 
+extern bool use_ebpf_store;
+
 struct guid_compare
 {
     bool
@@ -41,16 +43,18 @@ struct _ebpf_program_info_deleter
 typedef std::unique_ptr<ebpf_program_info_t, _ebpf_program_info_deleter> ebpf_program_info_ptr_t;
 static thread_local std::map<GUID, ebpf_program_info_ptr_t, guid_compare> _program_info_cache;
 
-static thread_local std::map<GUID, ebpf_helper::ebpf_memory_ptr, guid_compare> _static_program_info_cache;
+// static thread_local std::map<GUID, ebpf_helper::ebpf_memory_ptr, guid_compare> _static_program_info_cache;
 
 static thread_local ebpf_handle_t _program_under_verification = ebpf_handle_invalid;
 
+/*
 struct encode_program_info_t
 {
     template <typename T> encode_program_info_t(const T& t) : size(sizeof(t)), data(t) {}
     const size_t size;
     const uint8_t* data;
 };
+*/
 
 /*
 static std::map<GUID, encode_program_info_t, guid_compare> _encoded_program_info = {
@@ -119,7 +123,7 @@ ebpf_result_t
 get_program_type_info(const ebpf_program_info_t** info)
 {
     const GUID* program_type = reinterpret_cast<const GUID*>(global_program_info.type.platform_specific_data);
-    ebpf_result_t result;
+    ebpf_result_t result = EBPF_SUCCESS;
     ebpf_program_info_t* program_info;
     // const uint8_t* encoded_data = nullptr;
     // size_t encoded_data_size = 0;
@@ -134,39 +138,21 @@ get_program_type_info(const ebpf_program_info_t** info)
             fall_back = true;
         } else {
             _program_info_cache[*program_type] = ebpf_program_info_ptr_t(program_info);
+            *info = (const ebpf_program_info_t*)_program_info_cache[*program_type].get();
         }
     }
 
-    /*
-        if (fall_back) {
-            // Fall back to using static data so that verification can be tried
-            // (e.g., from a netsh command) even if the execution context isn't running.
-            // TODO: remove this in the future.
-            auto iter = _static_program_info_cache.find(*program_type);
-            if (iter == _static_program_info_cache.end()) {
-                auto encoded_program_info = _encoded_program_info.find(*program_type);
-                ebpf_assert(encoded_program_info != _encoded_program_info.end());
-                encoded_data = encoded_program_info->second.data;
-                encoded_data_size = encoded_program_info->second.size;
-                ebpf_assert(encoded_data != nullptr);
-
-                result = ebpf_program_info_decode(&program_info, encoded_data, (unsigned long)encoded_data_size);
-                if (result != EBPF_SUCCESS) {
-                    return result;
-                }
-
-                _static_program_info_cache[*program_type] = ebpf_helper::ebpf_memory_ptr(program_info);
-            }
+    if (use_ebpf_store && fall_back) {
+        // Query static data loaded from eBPF store.
+        *info = get_static_program_info(program_type);
+        if (info == nullptr) {
+            result = EBPF_OBJECT_NOT_FOUND;
+        } else {
+            result = EBPF_SUCCESS;
         }
-    */
-
-    if (!fall_back) {
-        *info = (const ebpf_program_info_t*)_program_info_cache[*program_type].get();
-    } else {
-        *info = (const ebpf_program_info_t*)_static_program_info_cache[*program_type].get();
     }
 
-    return EBPF_SUCCESS;
+    return result;
 }
 
 static ebpf_helper_function_prototype_t*
