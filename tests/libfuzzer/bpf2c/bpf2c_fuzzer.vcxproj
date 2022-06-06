@@ -90,7 +90,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="..\..\..\scripts\create_bpf2c_corpus.bat">
+    <CustomBuild Include="$(SolutionDir)scripts\create_bpf2c_corpus.bat">
       <FileType>Document</FileType>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)bpf2c_fuzzer_corpus\bpf.o</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)bpf2c_fuzzer_corpus\bpf.o</Outputs>
