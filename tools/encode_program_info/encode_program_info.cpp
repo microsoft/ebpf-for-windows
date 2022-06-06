@@ -78,9 +78,6 @@ int
 main()
 {
     for (const auto& program_type : windows_program_types) {
-        if (program_type.platform_specific_data == 0) {
-            continue;
-        }
         if (IsEqualGUID(
                 *(reinterpret_cast<GUID*>(program_type.platform_specific_data)), EBPF_PROGRAM_TYPE_UNSPECIFIED)) {
             continue;

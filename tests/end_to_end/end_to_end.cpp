@@ -10,6 +10,7 @@
 #include <WinSock2.h>
 #include <in6addr.h> // Must come after Winsock2.h
 
+#include "api_common.hpp"
 #include "bpf2c.h"
 #include "bpf/bpf.h"
 #include "bpf/libbpf.h"
@@ -2267,3 +2268,33 @@ TEST_CASE("load_native_program_invalid4", "[end-to-end]")
     _load_invalid_program("empty_um.dll", EBPF_EXECUTION_NATIVE, -EINVAL);
 }
 #endif
+
+TEST_CASE("ebpf_get_program_type_by_name invalid name", "[end-to-end]")
+{
+    _test_helper_end_to_end test_helper;
+    ebpf_program_type_t program_type;
+    ebpf_attach_type_t attach_type;
+
+    ebpf_result_t result = ebpf_get_program_type_by_name("invalid_name", &program_type, &attach_type);
+    REQUIRE(result == EBPF_KEY_NOT_FOUND);
+
+    // Now set verification in progress and try again.
+    set_verification_in_progress(true);
+    result = ebpf_get_program_type_by_name("invalid_name", &program_type, &attach_type);
+    REQUIRE(result == EBPF_KEY_NOT_FOUND);
+}
+
+TEST_CASE("ebpf_get_program_type_name invalid types", "[end-to-end]")
+{
+    _test_helper_end_to_end test_helper;
+    ebpf_program_type_t program_type = EBPF_PROGRAM_TYPE_UNSPECIFIED;
+
+    // First try with EBPF_PROGRAM_TYPE_UNSPECIFIED
+    const char* name1 = ebpf_get_program_type_name(&program_type);
+    REQUIRE(name1 == nullptr);
+
+    // Try with a random program type GUID.
+    REQUIRE(UuidCreate(&program_type) == RPC_S_OK);
+    const char* name2 = ebpf_get_program_type_name(&program_type);
+    REQUIRE(name2 == nullptr);
+}
