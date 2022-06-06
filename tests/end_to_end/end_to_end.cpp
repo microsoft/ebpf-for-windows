@@ -2289,7 +2289,7 @@ TEST_CASE("ebpf_get_program_type_name invalid types", "[end-to-end]")
     _test_helper_end_to_end test_helper;
     ebpf_program_type_t program_type = EBPF_PROGRAM_TYPE_UNSPECIFIED;
 
-    // First try with EBPF_PROGRAM_TYPE_UNSPECIFIED
+    // First try with EBPF_PROGRAM_TYPE_UNSPECIFIED.
     const char* name1 = ebpf_get_program_type_name(&program_type);
     REQUIRE(name1 == nullptr);
 

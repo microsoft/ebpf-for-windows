@@ -58,7 +58,7 @@ get_program_type_windows(const std::string& section, const std::string&)
         }
     }
 
-    // Note: Ideally this function should throw exception whenever a matching ProgramType is not found,
+    // Note: Ideally this function should throw an exception whenever a matching ProgramType is not found,
     // but that causes a problem in the following scenario:
     //
     // This function is called by verifier code in 2 cases:

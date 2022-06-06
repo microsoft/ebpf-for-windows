@@ -547,7 +547,7 @@ ebpf_api_elf_verify_section_from_file(
 
 uint32_t
 ebpf_api_elf_verify_section_from_memory(
-    _In_z_ const char* data,
+    _In_reads_(data_length) const char* data,
     size_t data_length,
     _In_z_ const char* section,
     _In_opt_ const ebpf_program_type_t* program_type,
