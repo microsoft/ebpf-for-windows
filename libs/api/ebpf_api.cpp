@@ -1780,6 +1780,7 @@ ebpf_free_sections(_In_opt_ ebpf_section_info_t* infos)
 
 typedef struct _ebpf_pe_context
 {
+    ebpf_result_t result;
     ebpf_object_t* object;
     const char* pin_root_path;
     uintptr_t image_base;
@@ -1807,6 +1808,7 @@ _ebpf_pe_get_map_definitions(
     UNREFERENCED_PARAMETER(va);
     UNREFERENCED_PARAMETER(buffer);
 
+    ebpf_map_t* map = nullptr;
     ebpf_pe_context_t* pe_context = (ebpf_pe_context_t*)context;
     if (section_name == "maps") {
         // bpf2c generates a section that has map names as strings at the
@@ -1826,9 +1828,9 @@ _ebpf_pe_get_map_definitions(
                  map_offset += sizeof(map_entry_t), map_index++) {
                 map_entry_t* entry = (map_entry_t*)(buffer->buf + map_offset);
 
-                ebpf_map_t* map = (ebpf_map_t*)calloc(1, sizeof(ebpf_map_t));
+                map = (ebpf_map_t*)calloc(1, sizeof(ebpf_map_t));
                 if (map == nullptr) {
-                    return 1;
+                    goto Error;
                 }
 
                 map->map_handle = ebpf_handle_invalid;
@@ -1848,8 +1850,8 @@ _ebpf_pe_get_map_definitions(
                     _ebpf_get_section_string(pe_context, (uintptr_t)entry->name, section_header, buffer);
                 map->name = _strdup(map_name);
                 if (map->name == nullptr) {
-                    clean_up_ebpf_map(map);
-                    return 1;
+                    pe_context->result = EBPF_NO_MEMORY;
+                    goto Error;
                 }
                 if (map->map_definition.pinning == PIN_GLOBAL_NS) {
                     char pin_path_buffer[EBPF_MAX_PIN_PATH_LENGTH];
@@ -1860,13 +1862,13 @@ _ebpf_pe_get_map_definitions(
                         pe_context->pin_root_path ? pe_context->pin_root_path : DEFAULT_PIN_ROOT_PATH,
                         map->name);
                     if (len < 0 || len >= EBPF_MAX_PIN_PATH_LENGTH) {
-                        clean_up_ebpf_map(map);
-                        return 1;
+                        pe_context->result = EBPF_INVALID_ARGUMENT;
+                        goto Error;
                     }
                     map->pin_path = _strdup(pin_path_buffer);
                     if (map->pin_path == nullptr) {
-                        clean_up_ebpf_map(map);
-                        return 1;
+                        pe_context->result = EBPF_NO_MEMORY;
+                        goto Error;
                     }
                 }
                 pe_context->object->maps.emplace_back(map);
@@ -1883,8 +1885,15 @@ _ebpf_pe_get_map_definitions(
         pe_context->data_buffer = buffer;
     }
 
-    EBPF_LOG_EXIT();
+    EBPF_LOG_FUNCTION_SUCCESS();
     return 0;
+
+Error:
+    if (map) {
+        clean_up_ebpf_map(map);
+    }
+    EBPF_LOG_FUNCTION_ERROR(pe_context->result);
+    return 1;
 }
 
 static const char*
@@ -2033,7 +2042,10 @@ _ebpf_enumerate_native_sections(
     }
 
     ebpf_pe_context_t context = {
-        .object = object, .pin_root_path = pin_root_path, .image_base = pe->peHeader.nt.OptionalHeader64.ImageBase};
+        .result = EBPF_SUCCESS,
+        .object = object,
+        .pin_root_path = pin_root_path,
+        .image_base = pe->peHeader.nt.OptionalHeader64.ImageBase};
     IterSec(pe, _ebpf_pe_get_map_definitions, &context);
     IterSec(pe, _ebpf_pe_get_section_names, &context);
     IterSec(pe, _ebpf_pe_add_section, &context);
@@ -2041,7 +2053,7 @@ _ebpf_enumerate_native_sections(
     DestructParsedPE(pe);
 
     *infos = context.infos;
-    EBPF_RETURN_RESULT(EBPF_SUCCESS);
+    EBPF_RETURN_RESULT(context.result);
 }
 
 ebpf_result_t
