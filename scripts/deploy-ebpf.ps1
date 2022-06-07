@@ -94,6 +94,8 @@ $build_directory=".\x64\Debug"
     "map.sys",
     "pidtgid.o",
     "pidtgid.sys",
+    "port_quota.exe",
+    "port_quota.pdb",
     "printk.o",
     "printk_legacy.o",
     "printk_legacy_um.dll",
