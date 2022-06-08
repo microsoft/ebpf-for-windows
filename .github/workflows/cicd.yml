@@ -172,7 +172,7 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: execution_context_fuzzer
-      test_command: execution_context_fuzzer.exe execution_context_fuzzer_corpus -use_value_profile=1 -runs=3000
+      test_command: execution_context_fuzzer.exe execution_context_fuzzer_corpus -use_value_profile=1 -runs=3000 -artifact_prefix=c:\dumps\
       build_artifact: Build-x64-fuzzer
       environment: windows-2019
       code_coverage: false

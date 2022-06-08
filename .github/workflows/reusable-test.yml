@@ -89,10 +89,10 @@ jobs:
       id: configure_windows_error_reporting
       if: inputs.gather_dumps == true
       run: |
-        mkdir c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+        mkdir c:/dumps
         New-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -ErrorAction SilentlyContinue
         New-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -Name "DumpType" -Value 2 -PropertyType DWord -ErrorAction SilentlyContinue
-        New-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -Name "DumpFolder" -Value "c:\dumps\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}" -PropertyType ExpandString -ErrorAction SilentlyContinue
+        New-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -Name "DumpFolder" -Value "c:\dumps" -PropertyType ExpandString -ErrorAction SilentlyContinue
 
     - name: Remove existing artifacts
       if: inputs.environment == 'ebpf_cicd_tests'
@@ -216,7 +216,7 @@ jobs:
       uses: andstor/file-existence-action@f02338908d150e00a4b8bebc2dad18bd9e5229b0
       id: check_dumps
       with:
-        files: c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/*.dmp
+        files: c:/dumps/*.dmp
 
     - name: Upload any crash dumps
       if: failure()
@@ -224,7 +224,7 @@ jobs:
       id: upload_crash_dumps
       with:
         name: Crash-Dumps-${{env.NAME}}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}
-        path: c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+        path: c:/dumps
         retention-days: 5
 
     - name: Check for TestLogs
