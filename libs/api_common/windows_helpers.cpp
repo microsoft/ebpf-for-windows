@@ -152,7 +152,7 @@ _get_helper_function_prototype(const ebpf_program_info_t* info, unsigned int n)
 bool
 is_helper_usable_windows(int32_t n)
 {
-    const ebpf_program_info_t* info;
+    const ebpf_program_info_t* info = nullptr;
     ebpf_result_t result = get_program_type_info(&info);
     if (result != EBPF_SUCCESS) {
         throw std::runtime_error(std::string("helper not usable: ") + std::to_string(n));
@@ -164,7 +164,7 @@ is_helper_usable_windows(int32_t n)
 EbpfHelperPrototype
 get_helper_prototype_windows(int32_t n)
 {
-    const ebpf_program_info_t* info;
+    const ebpf_program_info_t* info = nullptr;
     ebpf_result_t result = get_program_type_info(&info);
     if (result != EBPF_SUCCESS) {
         throw std::runtime_error(std::string("program type info not found."));
