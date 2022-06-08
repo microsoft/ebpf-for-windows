@@ -247,6 +247,7 @@ jobs:
         retention-days: 5
 
     - name: Check for generated artifacts
+      if: always()
       uses: andstor/file-existence-action@f02338908d150e00a4b8bebc2dad18bd9e5229b0
       id: check_artifacts
       with:
