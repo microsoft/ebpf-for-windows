@@ -68,6 +68,7 @@ $build_directory=".\x64\Debug"
     "droppacket_unsafe.o",
     "EbpfApi.pdb",
     "ebpfnetsh.pdb",
+    "ebpfsvc.pdb",
     "encap_reflect_packet.o",
     "encap_reflect_packet_um.dll",
     "encap_reflect_packet_um.pdb",
