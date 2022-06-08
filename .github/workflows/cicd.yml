@@ -159,7 +159,7 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: bpf2c_fuzzer
-      test_command: bpf2c_fuzzer.exe bpf2c_fuzzer_corpus -use_value_profile=1 -max_total_time=1800
+      test_command: bpf2c_fuzzer.exe bpf2c_fuzzer_corpus -use_value_profile=1 -max_total_time=1800 -artifact_prefix=c:\dumps\
       build_artifact: Build-x64-fuzzer
       environment: windows-2019
       code_coverage: false
