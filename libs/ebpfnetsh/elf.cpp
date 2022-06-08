@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <locale>
 #include <netsh.h>
+#include "bpf/libbpf.h"
 #include "elf.h"
 #include "tokens.h"
 #include "utilities.h"
@@ -69,6 +70,13 @@ handle_ebpf_show_disassembly(
     }
 }
 
+static PCSTR
+_get_map_type_name(ebpf_map_type_t type)
+{
+    int index = (type >= _countof(_ebpf_map_display_names)) ? 0 : type;
+    return _ebpf_map_display_names[index];
+}
+
 DWORD
 handle_ebpf_show_sections(
     LPCWSTR machine, LPWSTR* argv, DWORD current_index, DWORD argc, DWORD flags, LPCVOID data, BOOL* done)
@@ -126,7 +134,6 @@ handle_ebpf_show_sections(
     }
 
     ebpf_section_info_t* section_data = nullptr;
-
     const char* error_message = nullptr;
     if (ebpf_enumerate_sections(filename.c_str(), level == VL_VERBOSE, &section_data, &error_message) != 0) {
         std::cerr << error_message << std::endl;
@@ -137,8 +144,9 @@ handle_ebpf_show_sections(
 
     if (level == VL_NORMAL) {
         std::cout << "\n";
-        std::cout << "             Section       Type  # Maps    Size\n";
-        std::cout << "====================  =========  ======  ======\n";
+        std::cout << "                                    Size\n";
+        std::cout << "             Section       Type  (bytes)\n";
+        std::cout << "====================  =========  =======\n";
     }
     for (auto current_section = section_data; current_section != nullptr; current_section = current_section->next) {
         if (!section.empty() && strcmp(current_section->section_name, section.c_str()) != 0) {
@@ -146,22 +154,43 @@ handle_ebpf_show_sections(
         }
         if (level == VL_NORMAL) {
             std::cout << std::setw(20) << std::right << current_section->section_name << "  " << std::setw(9)
-                      << current_section->program_type_name << "  " << std::setw(6) << current_section->map_count
-                      << "  " << std::setw(6) << current_section->raw_data_size << "\n";
+                      << current_section->program_type_name << "  " << std::setw(7) << current_section->raw_data_size
+                      << "\n";
         } else {
             std::cout << "\n";
             std::cout << "Section      : " << current_section->section_name << "\n";
             std::cout << "Program Type : " << current_section->program_type_name << "\n";
-            std::cout << "# Maps       : " << current_section->map_count << "\n";
             std::cout << "Size         : " << current_section->raw_data_size << " bytes\n";
             for (auto stat = current_section->stats; stat != nullptr; stat = stat->next) {
                 std::cout << std::setw(13) << std::left << stat->key << ": " << stat->value << "\n";
             }
         }
     }
-
     ebpf_free_sections(section_data);
     ebpf_free_string(error_message);
+
+    // Show maps.
+    std::cout << "\n";
+    std::cout << "                     Key  Value      Max\n";
+    std::cout << "          Map Type  Size   Size  Entries  Name\n";
+    std::cout << "==================  ====  =====  =======  ========\n";
+    bpf_object* object = bpf_object__open(filename.c_str());
+    if (object == nullptr) {
+        std::cout << "Couldn't get maps from " << filename << "\n";
+        return ERROR_SUPPRESS_OUTPUT;
+    }
+    bpf_map* map;
+    bpf_object__for_each_map(map, object)
+    {
+        printf(
+            "%18s%6u%7u%9u  %s\n",
+            _get_map_type_name(bpf_map__type(map)),
+            bpf_map__key_size(map),
+            bpf_map__value_size(map),
+            bpf_map__max_entries(map),
+            bpf_map__name(map));
+    }
+    bpf_object__close(object);
     return NO_ERROR;
 }
 

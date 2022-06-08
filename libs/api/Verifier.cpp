@@ -404,7 +404,6 @@ ebpf_api_elf_enumerate_sections(
 
             info->section_name = _strdup(raw_program.section.c_str());
             info->program_type_name = _strdup(raw_program.info.type.name.c_str());
-            info->map_count = raw_program.info.map_descriptors.size();
 
             std::vector<uint8_t> raw_data = convert_ebpf_program_to_bytes(raw_program.prog);
             info->raw_data_size = raw_data.size();

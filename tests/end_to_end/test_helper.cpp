@@ -257,7 +257,10 @@ _preprocess_load_native_module(_Inout_ service_context_t* context)
 
     auto get_function =
         reinterpret_cast<decltype(&get_metadata_table)>(GetProcAddress(context->dll, "get_metadata_table"));
-    REQUIRE(get_function != nullptr);
+    if (get_function == nullptr) {
+        REQUIRE(_expect_native_module_load_failures);
+        return;
+    }
 
     metadata_table_t* table = get_function();
     REQUIRE(table != nullptr);
@@ -479,8 +482,8 @@ Glue_delete_service(SC_HANDLE handle)
             // Delete the service if it has not been loaded yet. Otherwise
             // mark it pending for delete.
             if (!context->loaded) {
-                _service_path_to_context_map.erase(path);
                 ebpf_free(context);
+                _service_path_to_context_map.erase(path);
             } else {
                 context->delete_pending = true;
             }
