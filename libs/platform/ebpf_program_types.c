@@ -6,6 +6,7 @@
 
 #include "ebpf_program_types_c.c"
 
+/*
 ebpf_result_t
 ebpf_program_info_encode(
     _In_ const ebpf_program_info_t* program_info,
@@ -27,7 +28,9 @@ ebpf_program_info_encode(
         MesHandleFree(handle);
     return status == RPC_S_OK ? EBPF_SUCCESS : EBPF_INVALID_ARGUMENT;
 }
+*/
 
+/*
 ebpf_result_t
 ebpf_program_info_decode(
     _Outptr_ ebpf_program_info_t** program_info,
@@ -77,6 +80,7 @@ Done:
 
     return return_value;
 }
+*/
 
 // The _In_ on size is necessary to avoid inconsistent annotation warnings.
 _Must_inspect_result_ _Ret_maybenull_ _Post_writable_byte_size_(size) void* __RPC_USER

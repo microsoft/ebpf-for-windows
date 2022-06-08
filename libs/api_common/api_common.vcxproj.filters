@@ -31,6 +31,9 @@
     <ClCompile Include="device_helper.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="utilities.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="registry_helper.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -50,6 +53,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="windows_program_type.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="utilities.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

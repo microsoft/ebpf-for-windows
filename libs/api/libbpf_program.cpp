@@ -508,7 +508,8 @@ libbpf_prog_type_by_name(const char* name, enum bpf_prog_type* prog_type, enum b
     ebpf_attach_type_t expected_attach_type_uuid;
     ebpf_result_t result = ebpf_get_program_type_by_name(name, &program_type_uuid, &expected_attach_type_uuid);
     if (result != EBPF_SUCCESS) {
-        return libbpf_result_err(result);
+        ebpf_assert(result == EBPF_KEY_NOT_FOUND);
+        goto Exit;
     }
 
     // Convert UUIDs to enum values if they exist.
@@ -524,6 +525,7 @@ libbpf_prog_type_by_name(const char* name, enum bpf_prog_type* prog_type, enum b
         return 0;
     }
 
+Exit:
     errno = ESRCH;
     return -1;
 }

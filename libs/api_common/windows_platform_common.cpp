@@ -14,6 +14,7 @@
 #include "map_descriptors.hpp"
 #include "platform.hpp"
 #include "spec_type_descriptors.hpp"
+#include "utilities.hpp"
 #include "windows_program_type.h"
 #include "windows_platform.hpp"
 #include "registry_helper.hpp"
@@ -71,45 +72,66 @@ get_program_type_windows(const GUID& program_type)
         return it->second;
     }
 
-    // Entry not found. Return the default program type "unspecified".
-    it = _windows_program_types.find(EBPF_PROGRAM_TYPE_UNSPECIFIED);
-    ebpf_assert(it != _windows_program_types.end());
-
-    return it->second;
+    auto guid_string = guid_to_string(&program_type);
+    throw std::runtime_error(std::string("ProgramType not found for GUID ") + guid_string);
 }
 
 EbpfProgramType
 get_program_type_windows(const std::string& section, const std::string&)
 {
-    // Check if a global program type is set.
-    const ebpf_program_type_t* program_type = get_global_program_type();
-    if (program_type != nullptr) {
-        return get_program_type_windows(*program_type);
-    }
-
-    // Program type is not set. Find the program type from the section prefixes.
-    // Find the longest matching section prefix.
     int32_t match_index = -1;
-    size_t match_length = 0;
-    for (uint32_t index = 0; index < _windows_section_definitions.size(); index++) {
-        std::string section_prefix(_windows_section_definitions[index].section_prefix);
-        if (section.find(section_prefix) == 0) {
-            size_t prefix_length = strlen(_windows_section_definitions[index].section_prefix);
-            if (match_length < prefix_length) {
-                match_index = index;
-                match_length = prefix_length;
+    bool global_program_type_found = true;
+    const ebpf_program_type_t* program_type = get_global_program_type();
+
+    if (program_type == nullptr) {
+        // Global program type is not set. Find the program type from the section prefixes.
+        // Find the longest matching section prefix.
+        global_program_type_found = false;
+        size_t match_length = 0;
+        for (uint32_t index = 0; index < _windows_section_definitions.size(); index++) {
+            std::string section_prefix(_windows_section_definitions[index].section_prefix);
+            if (section.find(section_prefix) == 0) {
+                size_t prefix_length = strlen(_windows_section_definitions[index].section_prefix);
+                if (match_length < prefix_length) {
+                    match_index = index;
+                    match_length = prefix_length;
+                }
             }
+        }
+
+        if (match_index >= 0) {
+            program_type = _windows_section_definitions[match_index].prog_type;
+        } else {
+            program_type = &EBPF_PROGRAM_TYPE_UNSPECIFIED;
         }
     }
 
-    // ebpf_program_type_t* program_type = nullptr;
-    if (match_index >= 0) {
-        program_type = _windows_section_definitions[match_index].prog_type;
-    } else {
-        program_type = &EBPF_PROGRAM_TYPE_UNSPECIFIED;
+    // Note: Ideally this function should throw an exception whenever a matching ProgramType
+    // is not found, but that causes a problem in the following scenario:
+    //
+    // This function is called by verifier code in 2 cases:
+    //   1. When verifying the code
+    //   2. When parsing the ELF file and unmarshalling the code.
+    // For the second case mentioned above, if the ELF file contains an unknown section name (".text", for example),
+    // and this function is called while unmarshalling that section, throwing an exception here
+    // will fail the parsing of the ELF file.
+    //
+    // Hence this function returns ProgramType for EBPF_PROGRAM_TYPE_UNSPECIFIED when verification is not
+    // in progress, and throws an exception otherwise.
+    try {
+        return get_program_type_windows(*program_type);
+    } catch (...) {
+        if (!get_verification_in_progress()) {
+            return windows_unspecified_program_type;
+        } else {
+            if (global_program_type_found) {
+                auto guid_string = guid_to_string(program_type);
+                throw std::runtime_error(std::string("ProgramType not found for GUID ") + guid_string);
+            } else {
+                throw std::runtime_error(std::string("ProgramType not found for section " + section));
+            }
+        }
     }
-
-    return get_program_type_windows(*program_type);
 }
 
 #define BPF_MAP_TYPE(x) BPF_MAP_TYPE_##x, #x
@@ -651,13 +673,17 @@ _load_all_program_data_information(HKEY store_key)
     uint32_t index = 0;
 
     try {
-        // Add a default entry in windows_program_types.
-        EbpfProgramType unspecified = PTYPE("unspecified", {0}, (uint64_t)&EBPF_PROGRAM_TYPE_UNSPECIFIED, {});
-#pragma warning(push)
-#pragma warning(disable : 26495) // EbpfProgramType does not initialize member variables.
-        _windows_program_types.insert(
-            std::pair<ebpf_program_type_t, EbpfProgramType>(EBPF_PROGRAM_TYPE_UNSPECIFIED, unspecified));
-#pragma warning(pop)
+
+        // DO NOT ADD THE UNSPEC IN THE VECTOR.
+        /*
+                // Add a default entry in windows_program_types.
+                EbpfProgramType unspecified = PTYPE("unspecified", {0}, (uint64_t)&EBPF_PROGRAM_TYPE_UNSPECIFIED, {});
+        #pragma warning(push)
+        #pragma warning(disable : 26495) // EbpfProgramType does not initialize member variables.
+                _windows_program_types.insert(
+                    std::pair<ebpf_program_type_t, EbpfProgramType>(EBPF_PROGRAM_TYPE_UNSPECIFIED, unspecified));
+        #pragma warning(pop)
+        */
 
         // Open program data registry path.
         status = RegOpenKeyEx(store_key, EBPF_PROGRAM_DATA_PATH, 0, KEY_READ, &program_data_key);

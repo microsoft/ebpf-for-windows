@@ -96,7 +96,7 @@ TEST_CASE("show sections bpf.o", "[netsh][sections]")
         output == "\n"
                   "             Section       Type  # Maps    Size\n"
                   "====================  =========  ======  ======\n"
-                  "               .text        xdp       0      16\n");
+                  "               .text     unspec       0      16\n");
 }
 
 // Test specifying a section name.
@@ -108,7 +108,7 @@ TEST_CASE("show sections bpf.o .text", "[netsh][sections]")
     REQUIRE(
         output == "\n"
                   "Section      : .text\n"
-                  "Program Type : xdp\n"
+                  "Program Type : unspec\n"
                   "# Maps       : 0\n"
                   "Size         : 16 bytes\n"
                   "Instructions : 2\n"

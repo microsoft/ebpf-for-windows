@@ -18,6 +18,9 @@
 thread_local static const ebpf_program_type_t* _global_program_type = nullptr;
 thread_local static const ebpf_attach_type_t* _global_attach_type = nullptr;
 
+// Whether a program verification is in progress.
+thread_local static bool _verification_in_progress = false;
+
 const char*
 allocate_string(const std::string& string, uint32_t* length) noexcept
 {
@@ -131,10 +134,23 @@ get_global_attach_type()
 }
 
 void
+set_verification_in_progress(bool value)
+{
+    _verification_in_progress = value;
+}
+
+bool
+get_verification_in_progress()
+{
+    return _verification_in_progress;
+}
+
+void
 ebpf_clear_thread_local_storage() noexcept
 {
     set_global_program_and_attach_type(nullptr, nullptr);
     clear_map_descriptors();
     clear_program_info_cache();
     set_program_under_verification(ebpf_handle_invalid);
+    set_verification_in_progress(false);
 }

@@ -49,13 +49,20 @@ verify_byte_code(
     const char** error_message,
     uint32_t* error_message_size)
 {
+    std::ostringstream error;
     const ebpf_platform_t* platform = &g_ebpf_platform_windows_service;
     std::vector<ebpf_inst> instructions{
         (ebpf_inst*)byte_code, (ebpf_inst*)byte_code + byte_code_size / sizeof(ebpf_inst)};
     program_info info{platform};
     std::string section;
     std::string file;
-    info.type = get_program_type_windows(*program_type);
+    try {
+        info.type = get_program_type_windows(*program_type);
+    } catch (std::runtime_error e) {
+        error << "error: " << e.what();
+        *error_message = allocate_string(error.str());
+        return EBPF_VERIFICATION_FAILED;
+    }
 
     raw_program raw_prog{file, section, instructions, info};
 

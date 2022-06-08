@@ -1922,10 +1922,9 @@ TEST_CASE("libbpf_prog_type_by_name", "[libbpf]")
     REQUIRE(prog_type == BPF_PROG_TYPE_BIND);
     REQUIRE(expected_attach_type == BPF_ATTACH_TYPE_UNSPEC);
 
-    // Try something that will fall back to the default.
-    REQUIRE(libbpf_prog_type_by_name("default", &prog_type, &expected_attach_type) == 0);
-    REQUIRE(prog_type == BPF_PROG_TYPE_XDP);
-    REQUIRE(expected_attach_type == BPF_XDP);
+    // Try a random name. This should fail.
+    REQUIRE(libbpf_prog_type_by_name("default", &prog_type, &expected_attach_type) == -1);
+    REQUIRE(errno == ESRCH);
 }
 
 TEST_CASE("libbpf_get_error", "[libbpf]")

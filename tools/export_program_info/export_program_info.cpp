@@ -64,6 +64,8 @@ static ebpf_store_section_info_t section_information[] = {
     {L"cgroup/connect6", EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT},
     {L"cgroup/accept4", EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT},
     {L"cgroup/accept6", EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT},
+    {L"cgroup/recv_accept4", EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT},
+    {L"cgroup/recv_accept6", EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT},
     {L"sockops", EBPF_PROGRAM_TYPE_SOCK_OPS, EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS},
     {L"xdp", EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP},
     {L"sample_ext", EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE},
@@ -553,6 +555,8 @@ set_root_registry_path()
     if (status == ERROR_SUCCESS) {
         goto Exit;
     }
+
+    printf("set_root_registry_path: error = %d\n", status);
 
     _root_registry_key = HKEY_CURRENT_USER;
 

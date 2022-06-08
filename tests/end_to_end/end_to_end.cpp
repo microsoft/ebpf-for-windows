@@ -10,6 +10,7 @@
 #include <WinSock2.h>
 #include <in6addr.h> // Must come after Winsock2.h
 
+#include "api_common.hpp"
 #include "bpf2c.h"
 #include "bpf/bpf.h"
 #include "bpf/libbpf.h"
@@ -33,6 +34,8 @@ namespace ebpf {
 #include "net/ip.h"
 #include "net/udp.h"
 }; // namespace ebpf
+
+// bool use_ebpf_store = true;
 
 #define NATIVE_DRIVER_SERVICE_NAME L"test_service"
 #define NATIVE_DRIVER_SERVICE_NAME_2 L"test_service2"
@@ -831,7 +834,7 @@ map_test(ebpf_execution_type_t execution_type)
 
     const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_um.dll" : "map.o");
 
-    result = ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &object, &program_fd, &error_message);
+    result = ebpf_program_load(file_name, BPF_PROG_TYPE_XDP, execution_type, &object, &program_fd, &error_message);
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
@@ -897,12 +900,30 @@ TEST_CASE("verify section", "[end_to_end]")
     ebpf_api_verifier_stats_t stats;
     REQUIRE(
         (result = ebpf_api_elf_verify_section_from_file(
-             SAMPLE_PATH "droppacket.o", "xdp", false, &report, &error_message, &stats),
+             SAMPLE_PATH "droppacket.o", "xdp", nullptr, false, &report, &error_message, &stats),
          ebpf_free_string(error_message),
          error_message = nullptr,
          result == 0));
     REQUIRE(report != nullptr);
     ebpf_free_string(report);
+}
+
+TEST_CASE("verify section with invalid program type", "[end_to_end]")
+{
+    _test_helper_end_to_end test_helper;
+
+    const char* error_message = nullptr;
+    const char* report = nullptr;
+    uint32_t result;
+    program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_BIND);
+
+    ebpf_api_verifier_stats_t stats;
+    result = ebpf_api_elf_verify_section_from_file(
+        SAMPLE_PATH "droppacket.o", "xdp", &EBPF_PROGRAM_TYPE_UNSPECIFIED, false, &report, &error_message, &stats);
+
+    REQUIRE(result == 1);
+    REQUIRE(error_message != nullptr);
+    ebpf_free_string(error_message);
 }
 
 void
@@ -914,7 +935,7 @@ verify_bad_section(const char* path)
     uint32_t result;
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
     ebpf_api_verifier_stats_t stats;
-    result = ebpf_api_elf_verify_section_from_file(path, "xdp", false, &report, &error_message, &stats);
+    result = ebpf_api_elf_verify_section_from_file(path, "xdp", nullptr, false, &report, &error_message, &stats);
     REQUIRE(result != 0);
     REQUIRE(report == nullptr);
     std::string expected_error_message = "error: No symbol section found in ELF file " + std::string(path);
@@ -1017,7 +1038,7 @@ TEST_CASE("verify_test0", "[sample_extension]")
     ebpf_api_verifier_stats_t stats;
     REQUIRE(
         (result = ebpf_api_elf_verify_section_from_file(
-             SAMPLE_PATH "test_sample_ebpf.o", "sample_ext", false, &report, &error_message, &stats),
+             SAMPLE_PATH "test_sample_ebpf.o", "sample_ext", nullptr, false, &report, &error_message, &stats),
          ebpf_free_string(error_message),
          error_message = nullptr,
          result == 0));
@@ -1038,7 +1059,7 @@ TEST_CASE("verify_test1", "[sample_extension]")
 
     REQUIRE(
         (result = ebpf_api_elf_verify_section_from_file(
-             SAMPLE_PATH "test_sample_ebpf.o", "sample_ext/utility", false, &report, &error_message, &stats),
+             SAMPLE_PATH "test_sample_ebpf.o", "sample_ext/utility", nullptr, false, &report, &error_message, &stats),
          ebpf_free_string(error_message),
          error_message = nullptr,
          result == 0));
@@ -2234,3 +2255,33 @@ TEST_CASE("load_native_program_invalid4", "[end-to-end]")
     _load_invalid_program("empty_um.dll", EBPF_EXECUTION_NATIVE, -EINVAL);
 }
 #endif
+
+TEST_CASE("ebpf_get_program_type_by_name invalid name", "[end-to-end]")
+{
+    _test_helper_end_to_end test_helper;
+    ebpf_program_type_t program_type;
+    ebpf_attach_type_t attach_type;
+
+    ebpf_result_t result = ebpf_get_program_type_by_name("invalid_name", &program_type, &attach_type);
+    REQUIRE(result == EBPF_KEY_NOT_FOUND);
+
+    // Now set verification in progress and try again.
+    set_verification_in_progress(true);
+    result = ebpf_get_program_type_by_name("invalid_name", &program_type, &attach_type);
+    REQUIRE(result == EBPF_KEY_NOT_FOUND);
+}
+
+TEST_CASE("ebpf_get_program_type_name invalid types", "[end-to-end]")
+{
+    _test_helper_end_to_end test_helper;
+    ebpf_program_type_t program_type = EBPF_PROGRAM_TYPE_UNSPECIFIED;
+
+    // First try with EBPF_PROGRAM_TYPE_UNSPECIFIED.
+    const char* name1 = ebpf_get_program_type_name(&program_type);
+    REQUIRE(name1 == nullptr);
+
+    // Try with a random program type GUID.
+    REQUIRE(UuidCreate(&program_type) == RPC_S_OK);
+    const char* name2 = ebpf_get_program_type_name(&program_type);
+    REQUIRE(name2 == nullptr);
+}
