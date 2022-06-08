@@ -13,6 +13,8 @@ using namespace std::chrono_literals;
 #include "platform.h"
 #include "sample_test_common.h"
 
+bool use_ebpf_store = true;
+
 void
 ebpf_test_pinned_map_enum()
 {

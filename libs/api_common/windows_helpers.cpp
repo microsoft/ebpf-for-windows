@@ -12,15 +12,16 @@
 #include "ebpf_program_types.h"
 #include "ebpf_protocol.h"
 #include "ebpf_result.h"
-#include "ebpf_sample_ext_program_data.h"
+// #include "ebpf_sample_ext_program_data.h"
 #include "ebpf_serialize.h"
-#include "ebpf_sockops_program_data.h"
-#include "ebpf_sock_addr_program_data.h"
+// #include "ebpf_sockops_program_data.h"
+// #include "ebpf_sock_addr_program_data.h"
 // #include "ebpf_xdp_program_data.h"
 #include "platform.h"
 #include "platform.hpp"
 
 extern bool use_ebpf_store;
+// bool use_ebpf_store = true;
 
 struct guid_compare
 {
@@ -46,25 +47,6 @@ static thread_local std::map<GUID, ebpf_program_info_ptr_t, guid_compare> _progr
 // static thread_local std::map<GUID, ebpf_helper::ebpf_memory_ptr, guid_compare> _static_program_info_cache;
 
 static thread_local ebpf_handle_t _program_under_verification = ebpf_handle_invalid;
-
-/*
-struct encode_program_info_t
-{
-    template <typename T> encode_program_info_t(const T& t) : size(sizeof(t)), data(t) {}
-    const size_t size;
-    const uint8_t* data;
-};
-*/
-
-/*
-static std::map<GUID, encode_program_info_t, guid_compare> _encoded_program_info = {
-    {EBPF_PROGRAM_TYPE_BIND, _ebpf_encoded_bind_program_info_data},
-    {EBPF_PROGRAM_TYPE_SAMPLE, _ebpf_encoded_sample_ext_program_info_data},
-    {EBPF_PROGRAM_TYPE_SOCK_OPS, _ebpf_encoded_sockops_program_info_data},
-    {EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, _ebpf_encoded_sock_addr_program_info_data},
-    {EBPF_PROGRAM_TYPE_XDP, _ebpf_encoded_xdp_program_info_data},
-};
-*/
 
 void
 set_program_under_verification(ebpf_handle_t program)

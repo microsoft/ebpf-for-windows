@@ -97,7 +97,7 @@ TEST_CASE("show sections bpf.o", "[netsh][sections]")
                   "                                    Size\n"
                   "             Section       Type  (bytes)\n"
                   "====================  =========  =======\n"
-                  "               .text     unspec       16\n"
+                  "               .text        xdp       0      16\n");
                   "\n"
                   "                     Key  Value      Max\n"
                   "          Map Type  Size   Size  Entries  Name\n"

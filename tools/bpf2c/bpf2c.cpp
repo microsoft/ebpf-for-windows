@@ -242,8 +242,8 @@ main(int argc, char** argv)
             ebpf_program_type_t program_type;
             ebpf_attach_type_t attach_type;
             // TODO: Issue #1172
-            // Workaround: If querying the program and attach type fails, default it to XDP until Issue #1172
-            // is fixed.
+            // Workaround: If querying the program and attach type fails, default it to XDP until
+            // Issue #1172 is fixed.
             if (ebpf_get_program_type_by_name(section.c_str(), &program_type, &attach_type) != EBPF_SUCCESS) {
                 program_type = EBPF_PROGRAM_TYPE_XDP;
                 attach_type = EBPF_ATTACH_TYPE_XDP;

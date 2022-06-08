@@ -14,7 +14,6 @@
 #include "api_common.hpp"
 #include "catch_wrapper.hpp"
 #include "ebpf_async.h"
-// #include "ebpf_bind_program_data.h"
 #include "ebpf_bitmap.h"
 #include "ebpf_epoch.h"
 #include "ebpf_nethooks.h"
@@ -22,11 +21,11 @@
 #include "ebpf_pinning_table.h"
 #include "ebpf_program_types.h"
 #include "ebpf_serialize.h"
-// #include "ebpf_xdp_program_data.h"
 #include "ebpf_ring_buffer.h"
 #include "ebpf_state.h"
-// #include "encode_program_info.h"
-// #include "net_ebpf_ext_program_info.h"
+
+extern ebpf_helper_function_prototype_t* ebpf_core_helper_function_prototype;
+extern uint32_t ebpf_core_helper_functions_count;
 
 class _test_helper
 {
@@ -483,6 +482,7 @@ TEST_CASE("trampoline_test", "[platform]")
     ebpf_free_trampoline_table(table);
 }
 
+/*
 TEST_CASE("program_type_info", "[platform]")
 {
     _test_helper test_helper;
@@ -502,7 +502,9 @@ TEST_CASE("program_type_info", "[platform]")
     REQUIRE(ebpf_program_info_decode(&new_program_info, buffer, buffer_size) == EBPF_SUCCESS);
     ebpf_free(new_program_info);
 }
+*/
 
+/*
 TEST_CASE("program_type_info_stored", "[platform]")
 {
     _test_helper test_helper;
@@ -526,6 +528,7 @@ TEST_CASE("program_type_info_stored", "[platform]")
     REQUIRE(bind_program_info->count_of_helpers == ebpf_core_helper_functions_count);
     ebpf_free(bind_program_info);
 }
+*/
 
 struct ebpf_security_descriptor_t_free
 {

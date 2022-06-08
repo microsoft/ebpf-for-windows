@@ -954,43 +954,6 @@ extern "C"
     typedef struct _ebpf_program_info ebpf_program_info_t;
 
     /**
-     * @brief Serialize an ebpf_program_info_t structure into a flat
-     *  buffer.
-     *
-     * @param[in] program_info ebpf_program_info_t to be serialized.
-     * @param[out] buffer On success, the buffer that contains the serialized
-     *  structure. Must be freed by caller using ebpf_free.
-     * @param[out] buffer_size On success, the size of the serialized buffer.
-     * @retval EBPF_SUCCESS The operation succeeded.
-     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
-     *  operation.
-     */
-    ebpf_result_t
-    ebpf_program_info_encode(
-        _In_ const ebpf_program_info_t* program_info,
-        _Outptr_result_bytebuffer_(*buffer_size) uint8_t** buffer,
-        _Out_ unsigned long* buffer_size);
-
-    /**
-     * @brief Deserialize an ebpf_program_info_t structure from a flat
-     *  buffer.
-     *
-     * @param[out] program_info On success, a newly allocated
-     *  ebpf_program_info_t with the data from the flat buffer. Must be
-     *  freed by the caller using ebpf_free.
-     * @param[in] buffer Buffer containing the serialized structure.
-     * @param[in] buffer_size Size of the buffer.
-     * @retval EBPF_SUCCESS The operation succeeded.
-     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
-     *  operation.
-     */
-    ebpf_result_t
-    ebpf_program_info_decode(
-        _Outptr_ ebpf_program_info_t** program_info,
-        _In_ _Readable_bytes_(buffer_size) const uint8_t* buffer,
-        size_t buffer_size);
-
-    /**
      * @brief Check if the user associated with the current thread is granted
      *  the rights requested.
      *
