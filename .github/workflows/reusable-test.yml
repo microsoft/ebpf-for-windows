@@ -107,6 +107,10 @@ jobs:
         name: ${{inputs.build_artifact}} ${{matrix.configurations}}
         path: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
 
+    - name: Create generated artifact folder
+      run: |
+        mkdir ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\Artifacts
+
     - name: Start ETW tracing
       id: start_etw_tracing
       if: inputs.capture_etw == true
@@ -240,6 +244,22 @@ jobs:
       with:
         name: Test-Logs-${{env.NAME}}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}
         path: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/TestLogs
+        retention-days: 5
+
+    - name: Check for generated artifacts
+      if: always()
+      uses: andstor/file-existence-action@f02338908d150e00a4b8bebc2dad18bd9e5229b0
+      id: check_artifacts
+      with:
+        files: ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\Artifacts\*
+
+    - name: Upload generated artifacts
+      if: always() && steps.check_artifacts.outputs.files_exists == 'true'
+      id: upload_artifacts
+      uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8
+      with:
+        name: Artifacts-${{env.NAME}}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}
+        path: ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\Artifacts
         retention-days: 5
 
     - name: Mark run as failed if crash dumps are found
