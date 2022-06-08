@@ -80,8 +80,7 @@
       <EnableUAC>false</EnableUAC>
       <ModuleDefinitionFile>Source.def</ModuleDefinitionFile>
       <AdditionalLibraryDirectories>$(OutDir)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalDependencies>mincore.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(SanitizerLibs);mincore.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <ResourceCompile>
       <AdditionalIncludeDirectories>$(SolutionDir)include</AdditionalIncludeDirectories>
@@ -101,7 +100,7 @@
       <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
       <ModuleDefinitionFile>Source.def</ModuleDefinitionFile>
-      <AdditionalDependencies>mincore.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(SanitizerLibs);mincore.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir)</AdditionalLibraryDirectories>
     </Link>
     <ResourceCompile>
