@@ -254,7 +254,7 @@ jobs:
         files: ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\Artifacts\*
 
     - name: Upload generated artifacts
-      if: always() || steps.check_artifacts.outputs.files_exists == 'true'
+      if: always() && steps.check_artifacts.outputs.files_exists == 'true'
       id: upload_artifacts
       uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8
       with:
