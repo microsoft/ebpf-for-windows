@@ -102,7 +102,6 @@ extern "C"
         _Field_z_ const char* section_name;
         _Field_z_ const char* program_type_name;
         _Field_z_ const char* program_name;
-        size_t map_count;
         size_t raw_data_size;
         _Field_size_(raw_data_size) char* raw_data;
         ebpf_stat_t* stats;
@@ -296,39 +295,6 @@ extern "C"
      */
     ebpf_result_t
     ebpf_object_set_execution_type(_In_ struct bpf_object* object, ebpf_execution_type_t execution_type);
-
-    /**
-     * @brief Load an eBPF program from raw instructions.
-     *
-     * @param[in] program_type The eBPF program type.
-     * @param[in] program_name The eBPF program name.
-     * @param[in] execution_type The execution type to use for this program. If
-     *  EBPF_EXECUTION_ANY is specified, execution type will be decided by a
-     *  system-wide policy.
-     * @param[in] byte_code The eBPF program byte code.
-     * @param[in] byte_code_size Size in bytes (not instruction count) of the
-     *  eBPF program byte code.
-     * @param[out] log_buf The buffer in which to write log messages.
-     * @param[in] log_buf_sz Size in bytes of the caller's log buffer.
-     * @param[out] program_fd Returns a file descriptor for the program.
-     *  The caller should call _close() on the fd to close this when done.
-     *
-     * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_INVALID_ARGUMENT One or more parameters are incorrect.
-     * @retval EBPF_NO_MEMORY Out of memory.
-     * @retval EBPF_VERIFICATION_FAILED The program failed verification.
-     * @retval EBPF_FAILED Some other error occured.
-     */
-    ebpf_result_t
-    ebpf_program_load_bytes(
-        _In_ const ebpf_program_type_t* program_type,
-        _In_opt_z_ const char* program_name,
-        ebpf_execution_type_t execution_type,
-        _In_reads_(byte_code_size) const uint8_t* byte_code,
-        uint32_t byte_code_size,
-        _Out_writes_opt_(log_buf_sz) char* log_buf,
-        size_t log_buf_sz,
-        _Out_ fd_t* program_fd);
 
     /**
      * @brief Attach an eBPF program.

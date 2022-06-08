@@ -115,7 +115,7 @@ _is_native_program(_In_z_ const char* file_name)
 {
     std::string file_name_string(file_name);
     std::string file_extension = file_name_string.substr(file_name_string.find_last_of(".") + 1);
-    if (file_extension == "dll") {
+    if (file_extension == "dll" || file_extension == "sys") {
         return true;
     }
 
@@ -204,8 +204,8 @@ ebpf_rpc_load_program(ebpf_program_load_info* info, const char** logs, uint32_t*
         info->execution_type,
         info->map_count,
         info->handle_map,
-        info->byte_code_size,
-        info->byte_code,
+        info->instruction_count,
+        reinterpret_cast<ebpf_inst*>(info->instructions),
         const_cast<const char**>(logs),
         logs_size);
 

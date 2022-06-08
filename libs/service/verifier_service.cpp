@@ -44,15 +44,14 @@ _analyze(raw_program& raw_prog, const char** error_message, uint32_t* error_mess
 ebpf_result_t
 verify_byte_code(
     const GUID* program_type,
-    const uint8_t* byte_code,
-    size_t byte_code_size,
-    const char** error_message,
-    uint32_t* error_message_size)
+    _In_reads_(instruction_count) const ebpf_inst* instruction_array,
+    uint32_t instruction_count,
+    _Outptr_result_maybenull_z_ const char** error_message,
+    _Out_ uint32_t* error_message_size)
 {
     std::ostringstream error;
     const ebpf_platform_t* platform = &g_ebpf_platform_windows_service;
-    std::vector<ebpf_inst> instructions{
-        (ebpf_inst*)byte_code, (ebpf_inst*)byte_code + byte_code_size / sizeof(ebpf_inst)};
+    std::vector<ebpf_inst> instructions{instruction_array, instruction_array + instruction_count};
     program_info info{platform};
     std::string section;
     std::string file;
