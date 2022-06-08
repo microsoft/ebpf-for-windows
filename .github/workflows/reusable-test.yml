@@ -89,10 +89,10 @@ jobs:
       id: configure_windows_error_reporting
       if: inputs.gather_dumps == true
       run: |
-        mkdir c:/dumps
+        mkdir c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
         New-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -ErrorAction SilentlyContinue
         New-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -Name "DumpType" -Value 2 -PropertyType DWord -ErrorAction SilentlyContinue
-        New-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -Name "DumpFolder" -Value "c:\dumps" -PropertyType ExpandString -ErrorAction SilentlyContinue
+        New-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -Name "DumpFolder" -Value "c:\dumps\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}" -PropertyType ExpandString -ErrorAction SilentlyContinue
 
     - name: Remove existing artifacts
       if: inputs.environment == 'ebpf_cicd_tests'
@@ -106,6 +106,10 @@ jobs:
       with:
         name: ${{inputs.build_artifact}} ${{matrix.configurations}}
         path: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+
+    - name: Create generated artifact folder
+      run: |
+        mkdir ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\Artifacts
 
     - name: Start ETW tracing
       id: start_etw_tracing
@@ -216,7 +220,7 @@ jobs:
       uses: andstor/file-existence-action@f02338908d150e00a4b8bebc2dad18bd9e5229b0
       id: check_dumps
       with:
-        files: c:/dumps/*
+        files: c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/*.dmp
 
     - name: Upload any crash dumps
       if: failure()
@@ -224,7 +228,7 @@ jobs:
       id: upload_crash_dumps
       with:
         name: Crash-Dumps-${{env.NAME}}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}
-        path: c:/dumps
+        path: c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
         retention-days: 5
 
     - name: Check for TestLogs
@@ -240,6 +244,21 @@ jobs:
       with:
         name: Test-Logs-${{env.NAME}}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}
         path: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/TestLogs
+        retention-days: 5
+
+    - name: Check for generated artifacts
+      uses: andstor/file-existence-action@f02338908d150e00a4b8bebc2dad18bd9e5229b0
+      id: check_artifacts
+      with:
+        files: ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\Artifacts\*
+
+    - name: Upload generated artifacts
+      if: steps.check_artifacts.outputs.files_exists == 'true'
+      id: upload_artifacts
+      uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8
+      with:
+        name: Artifacts-${{env.NAME}}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}
+        path: ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\Artifacts
         retention-days: 5
 
     - name: Mark run as failed if crash dumps are found

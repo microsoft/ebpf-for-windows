@@ -31,4 +31,7 @@
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <CopyFileToFolders Include="corpus.zip" />
+  </ItemGroup>
 </Project>
