@@ -94,9 +94,14 @@ TEST_CASE("show sections bpf.o", "[netsh][sections]")
     REQUIRE(result == NO_ERROR);
     REQUIRE(
         output == "\n"
-                  "             Section       Type  # Maps    Size\n"
-                  "====================  =========  ======  ======\n"
-                  "               .text        xdp       0      16\n");
+                  "                                    Size\n"
+                  "             Section       Type  (bytes)\n"
+                  "====================  =========  =======\n"
+                  "               .text        xdp       16\n"
+                  "\n"
+                  "                     Key  Value      Max\n"
+                  "          Map Type  Size   Size  Entries  Name\n"
+                  "==================  ====  =====  =======  ========\n");
 }
 
 // Test specifying a section name.
@@ -109,7 +114,6 @@ TEST_CASE("show sections bpf.o .text", "[netsh][sections]")
         output == "\n"
                   "Section      : .text\n"
                   "Program Type : xdp\n"
-                  "# Maps       : 0\n"
                   "Size         : 16 bytes\n"
                   "Instructions : 2\n"
                   "adjust_head  : 0\n"
@@ -128,7 +132,11 @@ TEST_CASE("show sections bpf.o .text", "[netsh][sections]")
                   "map_in_map   : 0\n"
                   "other        : 2\n"
                   "packet_access: 0\n"
-                  "store        : 0\n");
+                  "store        : 0\n"
+                  "\n"
+                  "                     Key  Value      Max\n"
+                  "          Map Type  Size   Size  Entries  Name\n"
+                  "==================  ====  =====  =======  ========\n");
 }
 
 // Test a .sys file.
@@ -140,9 +148,14 @@ TEST_CASE("show sections bpf.sys", "[netsh][sections]")
 
     REQUIRE(
         output == "\n"
-                  "             Section       Type  # Maps    Size\n"
-                  "====================  =========  ======  ======\n"
-                  "               .text        xdp       0    1752\n");
+                  "                                    Size\n"
+                  "             Section       Type  (bytes)\n"
+                  "====================  =========  =======\n"
+                  "               .text        xdp     1752\n"
+                  "\n"
+                  "                     Key  Value      Max\n"
+                  "          Map Type  Size   Size  Entries  Name\n"
+                  "==================  ====  =====  =======  ========\n");
 }
 
 // Test a DLL with multiple maps in the map section.
@@ -153,9 +166,17 @@ TEST_CASE("show sections map_reuse_um.dll", "[netsh][sections]")
     REQUIRE(result == NO_ERROR);
     REQUIRE(
         output == "\n"
-                  "             Section       Type  # Maps    Size\n"
-                  "====================  =========  ======  ======\n"
-                  "            xdp_prog        xdp       3    1087\n");
+                  "                                    Size\n"
+                  "             Section       Type  (bytes)\n"
+                  "====================  =========  =======\n"
+                  "            xdp_prog        xdp     1087\n"
+                  "\n"
+                  "                     Key  Value      Max\n"
+                  "          Map Type  Size   Size  Entries  Name\n"
+                  "==================  ====  =====  =======  ========\n"
+                  "      Hash of maps     4      4        1  outer_map\n"
+                  "             Array     4      4        1  inner_map\n"
+                  "             Array     4      4        1  port_map\n");
 }
 
 // Test a .dll file with multiple programs.
@@ -167,11 +188,17 @@ TEST_CASE("show sections tail_call_multiple_um.dll", "[netsh][sections]")
     REQUIRE(result == NO_ERROR);
     REQUIRE(
         output == "\n"
-                  "             Section       Type  # Maps    Size\n"
-                  "====================  =========  ======  ======\n"
-                  "            xdp_prog        xdp       0     413\n"
-                  "          xdp_prog/0        xdp       0     413\n"
-                  "          xdp_prog/1        xdp       0     190\n");
+                  "                                    Size\n"
+                  "             Section       Type  (bytes)\n"
+                  "====================  =========  =======\n"
+                  "            xdp_prog        xdp      413\n"
+                  "          xdp_prog/0        xdp      413\n"
+                  "          xdp_prog/1        xdp      190\n"
+                  "\n"
+                  "                     Key  Value      Max\n"
+                  "          Map Type  Size   Size  Entries  Name\n"
+                  "==================  ====  =====  =======  ========\n"
+                  "     Program array     4      4       10  map\n");
 }
 
 // Test a .sys file with multiple programs, including ones with long names.
@@ -183,12 +210,19 @@ TEST_CASE("show sections cgroup_sock_addr.sys", "[netsh][sections]")
     REQUIRE(result == NO_ERROR);
     REQUIRE(
         output == "\n"
-                  "             Section       Type  # Maps    Size\n"
-                  "====================  =========  ======  ======\n"
-                  "     cgroup/connect4  sock_addr       2     594\n"
-                  "     cgroup/connect6  sock_addr       2     728\n"
-                  " cgroup/recv_accept4  sock_addr       2     594\n"
-                  " cgroup/recv_accept6  sock_addr       2     728\n");
+                  "                                    Size\n"
+                  "             Section       Type  (bytes)\n"
+                  "====================  =========  =======\n"
+                  "     cgroup/connect4  sock_addr      594\n"
+                  "     cgroup/connect6  sock_addr      728\n"
+                  " cgroup/recv_accept4  sock_addr      594\n"
+                  " cgroup/recv_accept6  sock_addr      728\n"
+                  "\n"
+                  "                     Key  Value      Max\n"
+                  "          Map Type  Size   Size  Entries  Name\n"
+                  "==================  ====  =====  =======  ========\n"
+                  "              Hash    44      4        1  ingress_connection_policy_map\n"
+                  "              Hash    44      4        1  egress_connection_policy_map\n");
 }
 
 TEST_CASE("show verification nosuchfile.o", "[netsh][verification]")
