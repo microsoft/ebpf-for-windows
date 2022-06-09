@@ -132,6 +132,11 @@ bpf_code_generator::bpf_code_generator(
     if (!reader.load(stream)) {
         throw std::runtime_error(std::string("can't process ELF file ") + c_name);
     }
+    for (auto& section : reader.sections) {
+        if (section->get_data() == nullptr && section->get_size() > 0) {
+            throw std::runtime_error(std::string("ELF file has malformed section ") + section->get_name());
+        }
+    }
 
     extract_btf_information();
 }
