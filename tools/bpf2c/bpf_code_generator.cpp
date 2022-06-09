@@ -125,6 +125,41 @@ bpf_code_generator::get_register_name(uint8_t id)
     }
 }
 
+ELFIO::section*
+bpf_code_generator::get_required_section(const std::string& name)
+{
+    auto section = get_optional_section(name);
+    if (!section) {
+        throw std::runtime_error(std::string("ELF file has missing or invalid section ") + name);
+    }
+    return section;
+}
+
+ELFIO::section*
+bpf_code_generator::get_optional_section(const std::string& name)
+{
+    auto section = reader.sections[name];
+    if (!is_section_valid(section)) {
+        return nullptr;
+    }
+    return section;
+}
+
+bool
+bpf_code_generator::is_section_valid(const ELFIO::section* section)
+{
+    if (!section) {
+        return false;
+    }
+    if (section->get_data() == nullptr) {
+        return false;
+    }
+    if (section->get_size() == 0) {
+        return false;
+    }
+    return true;
+}
+
 bpf_code_generator::bpf_code_generator(
     std::istream& stream, const std::string& c_name, const std::optional<std::vector<uint8_t>>& elf_file_hash)
     : current_section(nullptr), c_name(c_name), path(path), elf_file_hash(elf_file_hash)
@@ -154,6 +189,9 @@ bpf_code_generator::program_sections()
 {
     std::vector<std::string> section_names;
     for (const auto& section : reader.sections) {
+        if (!is_section_valid(section)) {
+            continue;
+        }
         std::string name = section->get_name();
         if (name.empty() || (section->get_size() == 0) || name == ".text")
             continue;
@@ -162,8 +200,8 @@ bpf_code_generator::program_sections()
         }
     }
     if (section_names.empty()) {
-        auto text_section = reader.sections[".text"];
-        if (text_section && text_section->get_size() != 0) {
+        auto text_section = get_optional_section(".text");
+        if (text_section) {
             section_names.push_back(".text");
         }
     }
@@ -204,12 +242,13 @@ bpf_code_generator::generate(const std::string& section_name)
 void
 bpf_code_generator::extract_program(const std::string& section_name)
 {
-    auto program_section = reader.sections[section_name];
+    auto program_section = get_required_section(section_name);
     std::vector<ebpf_inst> program{
         reinterpret_cast<const ebpf_inst*>(program_section->get_data()),
         reinterpret_cast<const ebpf_inst*>(program_section->get_data() + program_section->get_size())};
 
-    ELFIO::const_symbol_section_accessor symbols{reader, reader.sections[".symtab"]};
+    auto symtab = get_required_section(".symtab");
+    ELFIO::const_symbol_section_accessor symbols{reader, symtab};
     for (ELFIO::Elf_Xword index = 0; index < symbols.get_symbols_num(); index++) {
         std::string name{};
         ELFIO::Elf64_Addr value{};
@@ -237,14 +276,9 @@ bpf_code_generator::extract_program(const std::string& section_name)
 void
 bpf_code_generator::parse()
 {
-    auto map_section = reader.sections["maps"];
-    auto symbtab_section = reader.sections[".symtab"];
-    if (!symbtab_section) {
-        throw std::runtime_error("ELF file is missing .symtab section");
-    }
-    ELFIO::const_symbol_section_accessor symbols{reader, symbtab_section};
-
+    auto map_section = get_optional_section("maps");
     if (map_section) {
+        ELFIO::const_symbol_section_accessor symbols{reader, get_required_section(".symtab")};
         size_t data_size = map_section->get_size();
         size_t map_count = data_size / sizeof(ebpf_map_definition_in_file_t);
 
@@ -300,12 +334,12 @@ bpf_code_generator::parse()
 void
 bpf_code_generator::extract_relocations_and_maps(const std::string& section_name)
 {
-    auto map_section = reader.sections["maps"];
-    ELFIO::const_symbol_section_accessor symbols{reader, reader.sections[".symtab"]};
+    auto map_section = get_optional_section("maps");
+    ELFIO::const_symbol_section_accessor symbols{reader, get_required_section(".symtab")};
 
-    auto relocations = reader.sections[std::string(".rel") + section_name];
+    auto relocations = get_optional_section(std::string(".rel") + section_name);
     if (!relocations)
-        relocations = reader.sections[std::string(".rela") + section_name];
+        relocations = get_optional_section(std::string(".rela") + section_name);
 
     if (relocations) {
         ELFIO::const_relocation_section_accessor relocation_reader{reader, relocations};
@@ -343,20 +377,10 @@ bpf_code_generator::extract_relocations_and_maps(const std::string& section_name
 void
 bpf_code_generator::extract_btf_information()
 {
-    auto btf = reader.sections[".BTF"];
-    auto btf_ext = reader.sections[".BTF.ext"];
+    auto btf = get_optional_section(".BTF");
+    auto btf_ext = get_optional_section(".BTF.ext");
 
-    if (btf == nullptr) {
-        return;
-    }
-    if (!btf->get_data()) {
-        return;
-    }
-
-    if (btf_ext == nullptr) {
-        return;
-    }
-    if (!btf_ext->get_data()) {
+    if (!btf || !btf_ext) {
         return;
     }
 

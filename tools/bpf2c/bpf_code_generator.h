@@ -236,6 +236,15 @@ class bpf_code_generator
     std::string
     get_register_name(uint8_t id);
 
+    ELFIO::section*
+    get_required_section(const std::string& name);
+
+    ELFIO::section*
+    get_optional_section(const std::string& name);
+
+    bool
+    is_section_valid(const ELFIO::section* section);
+
     int pe_section_name_counter;
     std::map<std::string, section_t> sections;
     section_t* current_section;
