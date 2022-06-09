@@ -34,6 +34,8 @@ typedef struct _ebpf_store_section_info
     wchar_t* section_name;
     ebpf_program_type_t program_type;
     ebpf_attach_type_t attach_type;
+    uint32_t bpf_program_type;
+    uint32_t bpf_attach_type;
 } ebpf_store_section_info_t;
 
 static __forceinline NTSTATUS
