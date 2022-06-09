@@ -102,6 +102,8 @@ extern "C"
         _Field_z_ const char* section_name;
         _Field_z_ const char* program_type_name;
         _Field_z_ const char* program_name;
+        ebpf_program_type_t program_type;
+        ebpf_attach_type_t expected_attach_type;
         size_t raw_data_size;
         _Field_size_(raw_data_size) char* raw_data;
         ebpf_stat_t* stats;
@@ -382,11 +384,11 @@ extern "C"
     ebpf_close_fd(fd_t fd);
 
     /**
-     * @brief Get a program type and expected attach type by name.
+     * @brief Get eBPF program type and expected attach type by name.
      *
      * @param[in] name Name, as if it were a section name in an ELF file.
-     * @param[out] program_type Program type.
-     * @param[out] expected_attach_type Expected attach type.
+     * @param[out] program_type eBPF program type.
+     * @param[out] expected_attach_type Expected eBPF attach type.
      *
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_KEY_NOT_FOUND No program type was found.
@@ -396,6 +398,20 @@ extern "C"
         _In_z_ const char* name,
         _Out_ ebpf_program_type_t* program_type,
         _Out_ ebpf_attach_type_t* expected_attach_type);
+
+    /**
+     * @brief Get bpf program type and expected attach type by name.
+     *
+     * @param[in] name Name, as if it were a section name in an ELF file.
+     * @param[out] program_type Bpf program type.
+     * @param[out] expected_attach_type Expected bpf attach type.
+     *
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_KEY_NOT_FOUND No program type was found.
+     */
+    ebpf_result_t
+    ebpf_get_bpf_program_type_by_name(
+        _In_z_ const char* name, _Out_ bpf_prog_type_t* program_type, _Out_ bpf_attach_type_t* expected_attach_type);
 
     /**
      * @brief Get the name of a given program type.

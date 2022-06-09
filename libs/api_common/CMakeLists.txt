@@ -17,6 +17,9 @@ add_library("api_common" STATIC
   device_helper.hpp
   device_helper.cpp
 
+  registry_helper.hpp
+  registry_helper.cpp
+
   utilities.hpp
   utilities.cpp
 )

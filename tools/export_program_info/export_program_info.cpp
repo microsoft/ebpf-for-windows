@@ -27,6 +27,7 @@
 
 #define EBPF_SECTION_DATA_PROGRAM_TYPE L"ProgramType"
 #define EBPF_SECTION_DATA_ATTACH_TYPE L"AttachType"
+#define EBPF_SECTION_DATA_BPF_ATTACH_TYPE L"BpfAttachType"
 
 #define EBPF_PROGRAM_DATA_NAME L"Name"
 #define EBPF_PROGRAM_DATA_CONTEXT_DESCRIPTOR L"ContextDescriptor"
@@ -48,6 +49,8 @@ typedef struct _ebpf_store_section_info
     const wchar_t* section_name;
     ebpf_program_type_t program_type;
     ebpf_attach_type_t attach_type;
+    uint32_t bpf_program_type;
+    uint32_t bpf_attach_type;
 } ebpf_store_section_info_t;
 
 static ebpf_program_info_t* program_information_array[] = {
@@ -59,16 +62,34 @@ static ebpf_program_info_t* program_information_array[] = {
 
 // TODO: Instead of redefining the section information here, try to reuse these from the extension driver helpers.
 static ebpf_store_section_info_t section_information[] = {
-    {L"bind", EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND},
-    {L"cgroup/connect4", EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT},
-    {L"cgroup/connect6", EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT},
-    {L"cgroup/accept4", EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT},
-    {L"cgroup/accept6", EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT},
-    {L"cgroup/recv_accept4", EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT},
-    {L"cgroup/recv_accept6", EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT},
-    {L"sockops", EBPF_PROGRAM_TYPE_SOCK_OPS, EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS},
-    {L"xdp", EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP},
-    {L"sample_ext", EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE},
+    {L"bind", EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND, BPF_PROG_TYPE_BIND, BPF_ATTACH_TYPE_BIND},
+    {L"cgroup/connect4",
+     EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR,
+     EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT,
+     BPF_PROG_TYPE_CGROUP_SOCK_ADDR,
+     BPF_CGROUP_INET4_CONNECT},
+    {L"cgroup/connect6",
+     EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR,
+     EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT,
+     BPF_PROG_TYPE_CGROUP_SOCK_ADDR,
+     BPF_CGROUP_INET6_CONNECT},
+    {L"cgroup/recv_accept4",
+     EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR,
+     EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT,
+     BPF_PROG_TYPE_CGROUP_SOCK_ADDR,
+     BPF_CGROUP_INET4_RECV_ACCEPT},
+    {L"cgroup/recv_accept6",
+     EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR,
+     EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT,
+     BPF_PROG_TYPE_CGROUP_SOCK_ADDR,
+     BPF_CGROUP_INET6_RECV_ACCEPT},
+    {L"sockops",
+     EBPF_PROGRAM_TYPE_SOCK_OPS,
+     EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS,
+     BPF_PROG_TYPE_SOCK_OPS,
+     BPF_CGROUP_SOCK_OPS},
+    {L"xdp", EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP, BPF_PROG_TYPE_XDP, BPF_XDP},
+    {L"sample_ext", EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE, BPF_PROG_TYPE_SAMPLE, BPF_ATTACH_TYPE_SAMPLE},
 };
 
 static std::wstring
@@ -375,6 +396,22 @@ ebpf_store_update_section_information(
             goto Exit;
         }
 
+        // Save bpf_prog_type
+        status = _write_registry_value_dword(
+            section_handle, EBPF_PROGRAM_DATA_BPF_PROG_TYPE, section_info[i].bpf_program_type);
+        if (status != ERROR_SUCCESS) {
+            RegCloseKey(section_handle);
+            goto Exit;
+        }
+
+        // Save bpf_attach_type
+        status = _write_registry_value_dword(
+            section_handle, EBPF_SECTION_DATA_BPF_ATTACH_TYPE, section_info[i].bpf_attach_type);
+        if (status != ERROR_SUCCESS) {
+            RegCloseKey(section_handle);
+            goto Exit;
+        }
+
         RegCloseKey(section_handle);
     }
 
@@ -549,18 +586,20 @@ set_root_registry_path()
 {
     // Try opening HKEY_LOCAL_MACHINE.
     HKEY handle = nullptr;
-    uint32_t status;
+    uint32_t status = ERROR_SUCCESS;
 
+    /*
     status = _open_registry_key(HKEY_LOCAL_MACHINE, SOFTWARE_REGISTRY_PATH, REG_CREATE_FLAGS, &handle);
     if (status == ERROR_SUCCESS) {
         goto Exit;
     }
+    */
 
     printf("set_root_registry_path: error = %d\n", status);
 
     _root_registry_key = HKEY_CURRENT_USER;
 
-Exit:
+    // Exit:
     if (handle) {
         RegCloseKey(handle);
     }

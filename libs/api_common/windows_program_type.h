@@ -109,8 +109,10 @@ const std::vector<EbpfProgramType> windows_program_types = {
 typedef struct _ebpf_section_definition
 {
     _Field_z_ const char* section_prefix;
-    ebpf_program_type_t* prog_type;
+    ebpf_program_type_t* program_type;
     ebpf_attach_type_t* attach_type;
+    bpf_prog_type_t bpf_prog_type;
+    bpf_attach_type_t bpf_attach_type;
 } ebpf_section_definition_t;
 
 /*

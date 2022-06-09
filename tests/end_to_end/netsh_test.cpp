@@ -142,6 +142,7 @@ TEST_CASE("show sections bpf.o .text", "[netsh][sections]")
 // Test a .sys file.
 TEST_CASE("show sections bpf.sys", "[netsh][sections]")
 {
+    _test_helper_end_to_end test_helper;
     int result;
     std::string output = _run_netsh_command(handle_ebpf_show_sections, L"bpf.sys", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
@@ -161,6 +162,7 @@ TEST_CASE("show sections bpf.sys", "[netsh][sections]")
 // Test a DLL with multiple maps in the map section.
 TEST_CASE("show sections map_reuse_um.dll", "[netsh][sections]")
 {
+    _test_helper_end_to_end test_helper;
     int result;
     std::string output = _run_netsh_command(handle_ebpf_show_sections, L"map_reuse_um.dll", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
@@ -182,6 +184,7 @@ TEST_CASE("show sections map_reuse_um.dll", "[netsh][sections]")
 // Test a .dll file with multiple programs.
 TEST_CASE("show sections tail_call_multiple_um.dll", "[netsh][sections]")
 {
+    _test_helper_end_to_end test_helper;
     int result;
     std::string output =
         _run_netsh_command(handle_ebpf_show_sections, L"tail_call_multiple_um.dll", nullptr, nullptr, &result);
@@ -204,6 +207,7 @@ TEST_CASE("show sections tail_call_multiple_um.dll", "[netsh][sections]")
 // Test a .sys file with multiple programs, including ones with long names.
 TEST_CASE("show sections cgroup_sock_addr.sys", "[netsh][sections]")
 {
+    _test_helper_end_to_end test_helper;
     int result;
     std::string output =
         _run_netsh_command(handle_ebpf_show_sections, L"cgroup_sock_addr.sys", nullptr, nullptr, &result);
@@ -235,6 +239,7 @@ TEST_CASE("show verification nosuchfile.o", "[netsh][verification]")
 
 TEST_CASE("show verification bpf.o", "[netsh][verification]")
 {
+    _test_helper_end_to_end test_helper;
     int result;
     std::string output = _run_netsh_command(handle_ebpf_show_verification, L"bpf.o", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);

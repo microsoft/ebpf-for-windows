@@ -574,3 +574,13 @@ ebpf_program_load_bytes(
     _Out_writes_opt_(log_buffer_size) char* log_buffer,
     size_t log_buffer_size,
     _Out_ fd_t* program_fd);
+
+/**
+ * @brief Get eBPF program type for the specified bpf program type.
+ *
+ * @param[in] program_type Bpf program type.
+ *
+ * @returns Pointer to eBPF program type, or NULL if not found.
+ */
+_Ret_maybenull_ const ebpf_program_type_t*
+ebpf_get_ebpf_program_type(bpf_prog_type_t bpf_program_type);

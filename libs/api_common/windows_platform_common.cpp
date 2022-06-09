@@ -35,12 +35,13 @@
 
 #define EBPF_SECTION_DATA_PROGRAM_TYPE L"ProgramType"
 #define EBPF_SECTION_DATA_ATTACH_TYPE L"AttachType"
+#define EBPF_SECTION_DATA_BPF_ATTACH_TYPE L"BpfAttachType"
 
 #define EBPF_HELPER_DATA_PROTOTYPE L"Prototype"
 
 #define GUID_STRING_LENGTH 38
 
-static HKEY _root_registry_key = HKEY_LOCAL_MACHINE;
+static HKEY _root_registry_key = HKEY_CURRENT_USER;
 
 struct guid_compare
 {
@@ -76,33 +77,97 @@ get_program_type_windows(const GUID& program_type)
     throw std::runtime_error(std::string("ProgramType not found for GUID ") + guid_string);
 }
 
+static const ebpf_section_definition_t*
+_get_section_definition(const std::string& section)
+{
+    int32_t match_index = -1;
+    size_t match_length = 0;
+    for (uint32_t index = 0; index < _windows_section_definitions.size(); index++) {
+        std::string section_prefix(_windows_section_definitions[index].section_prefix);
+        if (section.find(section_prefix) == 0) {
+            size_t prefix_length = strlen(_windows_section_definitions[index].section_prefix);
+            if (match_length < prefix_length) {
+                match_index = index;
+                match_length = prefix_length;
+            }
+        }
+    }
+
+    if (match_index >= 0) {
+        return &_windows_section_definitions[match_index];
+    }
+
+    return nullptr;
+}
+
+_Ret_maybenull_ const ebpf_program_type_t*
+get_ebpf_program_type(bpf_prog_type_t bpf_program_type)
+{
+    for (auto const& [key, val] : _windows_program_information) {
+        if (val.program_type_descriptor.bpf_prog_type == (uint32_t)bpf_program_type) {
+            return &key;
+        }
+    }
+
+    return nullptr;
+}
+
+ebpf_result_t
+get_bpf_program_and_attach_type(
+    const std::string& section, _Out_ bpf_prog_type_t* program_type, _Out_ bpf_attach_type_t* attach_type)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+
+    const ebpf_section_definition_t* definition = _get_section_definition(section);
+    if (definition == nullptr) {
+        result = EBPF_KEY_NOT_FOUND;
+        goto Exit;
+    }
+
+    *program_type = definition->bpf_prog_type;
+    *attach_type = definition->bpf_attach_type;
+
+Exit:
+    return result;
+}
+
+ebpf_result_t
+get_program_and_attach_type(
+    const std::string& section, _Out_ ebpf_program_type_t* program_type, _Out_ ebpf_attach_type_t* attach_type)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+
+    const ebpf_section_definition_t* definition = _get_section_definition(section);
+    if (definition == nullptr) {
+        result = EBPF_KEY_NOT_FOUND;
+        goto Exit;
+    }
+
+    *program_type = *definition->program_type;
+    *attach_type = *definition->attach_type;
+
+Exit:
+    return result;
+}
+
 EbpfProgramType
 get_program_type_windows(const std::string& section, const std::string&)
 {
-    int32_t match_index = -1;
     bool global_program_type_found = true;
-    const ebpf_program_type_t* program_type = get_global_program_type();
+    const ebpf_program_type_t* global_program_type = get_global_program_type();
+    ebpf_program_type_t program_type;
+    ebpf_attach_type_t attach_type;
 
-    if (program_type == nullptr) {
+    if (global_program_type == nullptr) {
         // Global program type is not set. Find the program type from the section prefixes.
         // Find the longest matching section prefix.
         global_program_type_found = false;
-        size_t match_length = 0;
-        for (uint32_t index = 0; index < _windows_section_definitions.size(); index++) {
-            std::string section_prefix(_windows_section_definitions[index].section_prefix);
-            if (section.find(section_prefix) == 0) {
-                size_t prefix_length = strlen(_windows_section_definitions[index].section_prefix);
-                if (match_length < prefix_length) {
-                    match_index = index;
-                    match_length = prefix_length;
-                }
-            }
-        }
 
-        if (match_index >= 0) {
-            program_type = _windows_section_definitions[match_index].prog_type;
+        ebpf_result_t result = get_program_and_attach_type(section, &program_type, &attach_type);
+        if (result == EBPF_SUCCESS) {
+            global_program_type = &program_type;
         } else {
-            program_type = &EBPF_PROGRAM_TYPE_UNSPECIFIED;
+            global_program_type = &EBPF_PROGRAM_TYPE_UNSPECIFIED;
         }
     }
 
@@ -119,13 +184,13 @@ get_program_type_windows(const std::string& section, const std::string&)
     // Hence this function returns ProgramType for EBPF_PROGRAM_TYPE_UNSPECIFIED when verification is not
     // in progress, and throws an exception otherwise.
     try {
-        return get_program_type_windows(*program_type);
+        return get_program_type_windows(*global_program_type);
     } catch (...) {
         if (!get_verification_in_progress()) {
             return windows_unspecified_program_type;
         } else {
             if (global_program_type_found) {
-                auto guid_string = guid_to_string(program_type);
+                auto guid_string = guid_to_string(global_program_type);
                 throw std::runtime_error(std::string("ProgramType not found for GUID ") + guid_string);
             } else {
                 throw std::runtime_error(std::string("ProgramType not found for section " + section));
@@ -205,6 +270,9 @@ _load_section_data_information(HKEY section_data_key, _In_ const wchar_t* sectio
     ebpf_program_type_t* program_type = nullptr;
     ebpf_attach_type_t* attach_type = nullptr;
     ebpf_section_definition_t section_definition;
+    bpf_prog_type_t bpf_program_type;
+    bpf_attach_type_t bpf_attach_type;
+    char* section_prefix = nullptr;
 
     try {
         status = RegOpenKeyEx(section_data_key, section_name, 0, KEY_READ, &section_info_key);
@@ -240,10 +308,34 @@ _load_section_data_information(HKEY section_data_key, _In_ const wchar_t* sectio
             goto Exit;
         }
 
+        // Read bpf program type.
+        result =
+            read_registry_value_dword(section_info_key, EBPF_PROGRAM_DATA_BPF_PROG_TYPE, (uint32_t*)&bpf_program_type);
+        if (result != EBPF_SUCCESS) {
+            bpf_program_type = BPF_PROG_TYPE_UNSPEC;
+            result = EBPF_SUCCESS;
+        }
+
+        // Read bpf attach type.
+        result =
+            read_registry_value_dword(section_info_key, EBPF_PROGRAM_DATA_BPF_PROG_TYPE, (uint32_t*)&bpf_attach_type);
+        if (result != EBPF_SUCCESS) {
+            bpf_attach_type = BPF_ATTACH_TYPE_UNSPEC;
+            result = EBPF_SUCCESS;
+        }
+
+        section_prefix = _strdup(_down_cast_from_wstring(section_name).c_str());
+        if (section_prefix == nullptr) {
+            result = EBPF_NO_MEMORY;
+            goto Exit;
+        }
+
         // We have read all the required data. Populate section definition in the global array.
-        section_definition.prog_type = program_type;
+        section_definition.program_type = program_type;
         section_definition.attach_type = attach_type;
-        section_definition.section_prefix = _strdup(_down_cast_from_wstring(section_name).c_str());
+        section_definition.bpf_prog_type = bpf_program_type;
+        section_definition.bpf_attach_type = bpf_attach_type;
+        section_definition.section_prefix = section_prefix;
 
         _windows_section_definitions.emplace_back(section_definition);
     } catch (...) {
@@ -258,6 +350,9 @@ Exit:
         }
         if (attach_type) {
             ebpf_free(attach_type);
+        }
+        if (section_prefix) {
+            ebpf_free(section_prefix);
         }
     }
     if (section_info_key) {
@@ -802,16 +897,18 @@ _set_root_registry_path()
 {
     // Try opening HKEY_LOCAL_MACHINE.
     HKEY key = nullptr;
-    uint32_t status;
+    uint32_t status = ERROR_SUCCESS;
 
+    /*
     status = RegOpenKeyEx(HKEY_LOCAL_MACHINE, SOFTWARE_REGISTRY_PATH, 0, KEY_READ, &key);
     if (status == ERROR_SUCCESS) {
         goto Exit;
     }
+    */
 
     _root_registry_key = HKEY_CURRENT_USER;
 
-Exit:
+    // Exit:
     if (key) {
         RegCloseKey(key);
     }
@@ -852,7 +949,7 @@ clear_ebpf_provider_data()
         }
 
         for (const ebpf_section_definition_t& section : _windows_section_definitions) {
-            ebpf_free(section.prog_type);
+            ebpf_free(section.program_type);
             ebpf_free(section.attach_type);
             ebpf_free((void*)section.section_prefix);
         }
@@ -863,19 +960,6 @@ clear_ebpf_provider_data()
     } catch (...) {
         // Do nothing.
     }
-}
-
-const ebpf_program_type_t*
-get_ebpf_program_type(enum bpf_prog_type type)
-{
-    for (auto& iterator : _windows_program_information) {
-        ebpf_program_info_t& program_info = iterator.second;
-        if (program_info.program_type_descriptor.bpf_prog_type == (uint32_t)type) {
-            return &iterator.first;
-        }
-    }
-
-    return &EBPF_PROGRAM_TYPE_UNSPECIFIED;
 }
 
 const ebpf_program_info_t*

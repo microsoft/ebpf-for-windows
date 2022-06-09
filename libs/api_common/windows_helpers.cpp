@@ -107,8 +107,6 @@ get_program_type_info(const ebpf_program_info_t** info)
     const GUID* program_type = reinterpret_cast<const GUID*>(global_program_info.type.platform_specific_data);
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_program_info_t* program_info;
-    // const uint8_t* encoded_data = nullptr;
-    // size_t encoded_data_size = 0;
     bool fall_back = false;
 
     // See if we already have the program info cached.
@@ -122,6 +120,8 @@ get_program_type_info(const ebpf_program_info_t** info)
             _program_info_cache[*program_type] = ebpf_program_info_ptr_t(program_info);
             *info = (const ebpf_program_info_t*)_program_info_cache[*program_type].get();
         }
+    } else {
+        *info = (const ebpf_program_info_t*)_program_info_cache[*program_type].get();
     }
 
     if (use_ebpf_store && fall_back) {

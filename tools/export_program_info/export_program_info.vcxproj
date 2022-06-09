@@ -126,6 +126,7 @@
     </Link>
     <CustomBuildStep>
       <Command>cd /d $(OutputPath)
+$(OutputPath)export_program_info.exe --clear
 $(OutputPath)export_program_info.exe</Command>
     </CustomBuildStep>
     <CustomBuildStep>

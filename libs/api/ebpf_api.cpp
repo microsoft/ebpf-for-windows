@@ -1586,11 +1586,14 @@ _initialize_ebpf_object_from_native_file(
         }
 
         program->handle = ebpf_handle_invalid;
+        program->program_type = info->program_type;
+        program->attach_type = info->expected_attach_type;
 
-        result = ebpf_get_program_type_by_name(info->section_name, &program->program_type, &program->attach_type);
-        if (result != EBPF_SUCCESS) {
-            goto Exit;
-        }
+        /*
+                result = ebpf_get_program_type_by_name(info->program_type_name, &program->program_type,
+           &program->attach_type); if (result != EBPF_SUCCESS) { goto Exit;
+                }
+        */
 
         program->section_name = _strdup(info->section_name);
         if (program->section_name == nullptr) {
@@ -1796,6 +1799,7 @@ typedef struct _ebpf_pe_context
     std::map<std::string, std::string> section_names;
     std::map<std::string, std::string> program_names;
     std::map<std::string, GUID> section_program_types;
+    std::map<std::string, GUID> section_attach_types;
     uintptr_t rdata_base;
     size_t rdata_size;
     const bounded_buffer* rdata_buffer;
@@ -1968,6 +1972,13 @@ _ebpf_pe_get_section_names(
                 program_type_guid_address < pe_context->data_base + pe_context->data_size);
             uintptr_t offset = program_type_guid_address - pe_context->data_base;
             pe_context->section_program_types[pe_section_name] = *(GUID*)(pe_context->data_buffer->buf + offset);
+
+            uintptr_t attach_type_guid_address = (uintptr_t)program->expected_attach_type;
+            ebpf_assert(
+                attach_type_guid_address >= pe_context->data_base &&
+                attach_type_guid_address < pe_context->data_base + pe_context->data_size);
+            offset = attach_type_guid_address - pe_context->data_base;
+            pe_context->section_attach_types[pe_section_name] = *(GUID*)(pe_context->data_buffer->buf + offset);
         }
     }
 
@@ -2010,6 +2021,8 @@ _ebpf_pe_add_section(
     memset(info, 0, sizeof(*info));
     info->section_name = _strdup(elf_section_name.c_str());
     info->program_name = _strdup(program_name.c_str());
+    info->program_type = pe_context->section_program_types[pe_section_name];
+    info->expected_attach_type = pe_context->section_attach_types[pe_section_name];
     info->program_type_name = ebpf_get_program_type_name(&pe_context->section_program_types[pe_section_name]);
     if (info->program_type_name == nullptr) {
         EBPF_LOG_EXIT();
@@ -3186,28 +3199,39 @@ ebpf_get_program_type_by_name(
     _In_z_ const char* name, _Out_ ebpf_program_type_t* program_type, _Out_ ebpf_attach_type_t* expected_attach_type)
 {
     ebpf_result_t result = EBPF_SUCCESS;
-    ebpf_program_type_t* program_type_uuid;
     EBPF_LOG_ENTRY();
     ebpf_assert(name);
     ebpf_assert(program_type);
     ebpf_assert(expected_attach_type);
 
-    try {
-        EbpfProgramType type = get_program_type_windows(name, name);
-        if (IsEqualGUID(*((ebpf_program_type_t*)type.platform_specific_data), EBPF_PROGRAM_TYPE_UNSPECIFIED)) {
-            result = EBPF_KEY_NOT_FOUND;
-            goto Exit;
-        }
-        program_type_uuid = (ebpf_program_type_t*)type.platform_specific_data;
+    result = get_program_and_attach_type(name, program_type, expected_attach_type);
 
-        *program_type = *program_type_uuid;
-        *expected_attach_type = *(get_attach_type_windows(name));
-    } catch (...) {
-        result = EBPF_KEY_NOT_FOUND;
+    EBPF_RETURN_RESULT(result);
+}
+
+ebpf_result_t
+ebpf_get_bpf_program_type_by_name(
+    _In_z_ const char* name, _Out_ bpf_prog_type_t* program_type, _Out_ bpf_attach_type_t* expected_attach_type)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+    EBPF_LOG_ENTRY();
+    ebpf_assert(name);
+    ebpf_assert(program_type);
+    ebpf_assert(expected_attach_type);
+
+    result = get_bpf_program_and_attach_type(name, program_type, expected_attach_type);
+
+    EBPF_RETURN_RESULT(result);
+}
+
+_Ret_maybenull_ const ebpf_program_type_t*
+ebpf_get_ebpf_program_type(bpf_prog_type_t bpf_program_type)
+{
+    if (bpf_program_type == BPF_PROG_TYPE_UNSPEC) {
+        return &EBPF_PROGRAM_TYPE_UNSPECIFIED;
     }
 
-Exit:
-    EBPF_RETURN_RESULT(result);
+    return get_ebpf_program_type(bpf_program_type);
 }
 
 _Ret_maybenull_z_ const char*
@@ -3215,6 +3239,12 @@ ebpf_get_program_type_name(_In_ const ebpf_program_type_t* program_type)
 {
     EBPF_LOG_ENTRY();
     ebpf_assert(program_type);
+    /*
+    // Special case for UNSPECIFIED program type.
+    if (IsEqualGUID(*program_type, EBPF_PROGRAM_TYPE_UNSPECIFIED)) {
+        return "unspec";
+    }
+    */
     try {
         const EbpfProgramType& type = get_program_type_windows(*program_type);
         EBPF_RETURN_POINTER(const char*, type.name.c_str());
