@@ -246,6 +246,7 @@ bpf_code_generator::parse()
 
     if (map_section) {
         size_t data_size = map_section->get_size();
+        size_t map_count = data_size / sizeof(ebpf_map_definition_in_file_t);
 
         if (data_size % sizeof(ebpf_map_definition_in_file_t) != 0) {
             throw std::runtime_error(
@@ -288,6 +289,10 @@ bpf_code_generator::parse()
 
                 map_definitions[symbol_name].index = symbol_value / sizeof(ebpf_map_definition_in_file_t);
             }
+        }
+
+        if (map_definitions.size() != map_count) {
+            throw std::runtime_error(std::string("bad maps section, map must have associated symbol"));
         }
     }
 }
