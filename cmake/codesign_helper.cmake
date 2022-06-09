@@ -19,11 +19,6 @@ if(NOT $ENV{${password_env_var}} STREQUAL "")
   )
 endif()
 
-message(STATUS "signtool_path ${signtool_path}")
-message(STATUS "certificate_path ${certificate_path}")
-message(STATUS "password_env_var ${password_env_var}")
-message(STATUS "optional_certificate_path ${optional_certificate_path}")
-message(STATUS "optional_cert_password ${optional_cert_password}")
 message(STATUS "signing ${binary_path}")
 
 execute_process(
