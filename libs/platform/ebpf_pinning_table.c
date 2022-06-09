@@ -150,7 +150,7 @@ ebpf_pinning_table_insert(
         return_value = EBPF_OBJECT_ALREADY_EXISTS;
     } else if (return_value == EBPF_SUCCESS) {
         new_pinning_entry = NULL;
-        object->pinned_path_count++;
+        ebpf_interlocked_increment_int32(&object->pinned_path_count);
     }
 
     ebpf_lock_unlock(&pinning_table->lock, state);
@@ -196,23 +196,25 @@ ebpf_pinning_table_delete(ebpf_pinning_table_t* pinning_table, const ebpf_utf8_s
     ebpf_result_t return_value;
     const ebpf_utf8_string_t* existing_key = path;
     ebpf_pinning_entry_t** existing_pinning_entry;
+    ebpf_pinning_entry_t* entry = NULL;
 
     state = ebpf_lock_lock(&pinning_table->lock);
     return_value = ebpf_hash_table_find(
         pinning_table->hash_table, (const uint8_t*)&existing_key, (uint8_t**)&existing_pinning_entry);
     if (return_value == EBPF_SUCCESS) {
-        ebpf_pinning_entry_t* entry = *existing_pinning_entry;
+        entry = *existing_pinning_entry;
         return_value = ebpf_hash_table_delete(pinning_table->hash_table, (const uint8_t*)&existing_key);
-        if (return_value == EBPF_SUCCESS) {
-            entry->object->pinned_path_count--;
-            _ebpf_pinning_entry_free(entry);
-        }
     }
     ebpf_lock_unlock(&pinning_table->lock, state);
 
-    if (return_value == EBPF_SUCCESS) {
-        EBPF_LOG_MESSAGE_UTF8_STRING(EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_BASE, "Unpinned object", *path);
+    if (entry != NULL) {
+        ebpf_interlocked_decrement_int32(&entry->object->pinned_path_count);
+        _ebpf_pinning_entry_free(entry);
     }
+
+    if (return_value == EBPF_SUCCESS)
+        EBPF_LOG_MESSAGE_UTF8_STRING(EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_BASE, "Unpinned object", *path);
+
     EBPF_RETURN_RESULT(return_value);
 }
 
