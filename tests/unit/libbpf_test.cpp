@@ -1980,6 +1980,16 @@ TEST_CASE("bpf_object__open_file with .dll", "[libbpf]")
 
     REQUIRE(bpf_object__next_program(object, program) == nullptr);
 
+    struct bpf_map* map = bpf_object__next_map(object, nullptr);
+    REQUIRE(map != nullptr);
+    REQUIRE(strcmp(bpf_map__name(map), "dropped_packet_map") == 0);
+    REQUIRE(bpf_map__fd(map) == ebpf_fd_invalid);
+    map = bpf_object__next_map(object, map);
+    REQUIRE(strcmp(bpf_map__name(map), "interface_index_map") == 0);
+    REQUIRE(bpf_map__fd(map) == ebpf_fd_invalid);
+    map = bpf_object__next_map(object, map);
+    REQUIRE(map == nullptr);
+
     // Trying to attach the program should fail since it's not loaded yet.
     bpf_link* link = bpf_program__attach(program);
     REQUIRE(link == nullptr);
@@ -1987,6 +1997,17 @@ TEST_CASE("bpf_object__open_file with .dll", "[libbpf]")
 
     // Load the program.
     REQUIRE(bpf_object__load(object) == 0);
+
+    // The maps should now have FDs.
+    map = bpf_object__next_map(object, nullptr);
+    REQUIRE(map != nullptr);
+    REQUIRE(strcmp(bpf_map__name(map), "dropped_packet_map") == 0);
+    REQUIRE(bpf_map__fd(map) != ebpf_fd_invalid);
+    map = bpf_object__next_map(object, map);
+    REQUIRE(strcmp(bpf_map__name(map), "interface_index_map") == 0);
+    REQUIRE(bpf_map__fd(map) != ebpf_fd_invalid);
+    map = bpf_object__next_map(object, map);
+    REQUIRE(map == nullptr);
 
     // Attach should now succeed.
     link = bpf_program__attach(program);
@@ -2021,6 +2042,16 @@ TEST_CASE("bpf_object__load with .o", "[libbpf]")
 
     REQUIRE(bpf_program__set_type(program, BPF_PROG_TYPE_XDP) == 0);
 
+    struct bpf_map* map = bpf_object__next_map(object, nullptr);
+    REQUIRE(map != nullptr);
+    REQUIRE(strcmp(bpf_map__name(map), "dropped_packet_map") == 0);
+    REQUIRE(bpf_map__fd(map) == ebpf_fd_invalid);
+    map = bpf_object__next_map(object, map);
+    REQUIRE(strcmp(bpf_map__name(map), "interface_index_map") == 0);
+    REQUIRE(bpf_map__fd(map) == ebpf_fd_invalid);
+    map = bpf_object__next_map(object, map);
+    REQUIRE(map == nullptr);
+
     // Trying to attach the program should fail since it's not loaded yet.
     bpf_link* link = bpf_program__attach(program);
     REQUIRE(link == nullptr);
@@ -2032,6 +2063,17 @@ TEST_CASE("bpf_object__load with .o", "[libbpf]")
     // Attach should now succeed.
     link = bpf_program__attach(program);
     REQUIRE(link != nullptr);
+
+    // The maps should now have FDs.
+    map = bpf_object__next_map(object, nullptr);
+    REQUIRE(map != nullptr);
+    REQUIRE(strcmp(bpf_map__name(map), "dropped_packet_map") == 0);
+    REQUIRE(bpf_map__fd(map) != ebpf_fd_invalid);
+    map = bpf_object__next_map(object, map);
+    REQUIRE(strcmp(bpf_map__name(map), "interface_index_map") == 0);
+    REQUIRE(bpf_map__fd(map) != ebpf_fd_invalid);
+    map = bpf_object__next_map(object, map);
+    REQUIRE(map == nullptr);
 
     REQUIRE(bpf_link__destroy(link) == 0);
     bpf_object__close(object);

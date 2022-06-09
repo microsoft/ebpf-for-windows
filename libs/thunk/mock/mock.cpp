@@ -115,7 +115,7 @@ _is_native_program(_In_z_ const char* file_name)
 {
     std::string file_name_string(file_name);
     std::string file_extension = file_name_string.substr(file_name_string.find_last_of(".") + 1);
-    if (file_extension == "dll") {
+    if (file_extension == "dll" || file_extension == "sys") {
         return true;
     }
 
