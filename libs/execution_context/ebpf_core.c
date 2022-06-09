@@ -353,14 +353,14 @@ ebpf_core_resolve_maps(
 {
     EBPF_LOG_ENTRY();
     ebpf_program_t* program = NULL;
-    memset(map_addresses, 0, sizeof(uintptr_t) * count_of_maps);
+    uint32_t map_index = 0;
 
     ebpf_result_t return_value =
         ebpf_reference_object_by_handle(program_handle, EBPF_OBJECT_PROGRAM, (ebpf_core_object_t**)&program);
     if (return_value != EBPF_SUCCESS)
         goto Done;
 
-    for (uint32_t map_index = 0; map_index < count_of_maps; map_index++) {
+    for (map_index = 0; map_index < count_of_maps; map_index++) {
         ebpf_map_t* map;
         return_value =
             ebpf_reference_object_by_handle(map_handles[map_index], EBPF_OBJECT_MAP, (ebpf_core_object_t**)&map);
@@ -375,10 +375,8 @@ ebpf_core_resolve_maps(
 
 Done:
     // Release our reference only after the map has been associated with the program.
-    for (uint32_t map_index = 0; map_index < count_of_maps; map_index++) {
-        if (map_addresses[map_index]) {
-            ebpf_object_release_reference((ebpf_core_object_t*)map_addresses[map_index]);
-        }
+    for (uint32_t map_index2 = 0; map_index2 < map_index; map_index2++) {
+        ebpf_object_release_reference((ebpf_core_object_t*)map_addresses[map_index2]);
     }
 
     ebpf_object_release_reference((ebpf_core_object_t*)program);
