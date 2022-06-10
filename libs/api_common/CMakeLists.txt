@@ -38,6 +38,7 @@ target_include_directories("api_common" PRIVATE
 
 target_link_libraries("api_common" PRIVATE
   "ebpf_for_windows_cpp_settings"
+  "export_program_info_runner"
   "NetEbpfExt_headers"
   "external::boost"
   "external::ebpfverifier"

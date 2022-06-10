@@ -33,25 +33,16 @@ target_compile_definitions("export_program_info" PRIVATE
 # Use export_program_info to populate the ebpf store.
 set(export_program_info_log "${CMAKE_CURRENT_BINARY_DIR}/log.txt")
 
-add_custom_command(
-  OUTPUT "${export_program_info_log}"
-  COMMAND "$<TARGET_FILE:export_program_info>" > "${export_program_info_log}"
+add_custom_command(TARGET "export_program_info"
+POST_BUILD
+  COMMAND "$<TARGET_FILE:export_program_info>" >> "${export_program_info_log}"
   WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
   COMMENT "ebpf-for-windows - Running: export_program_info"
   VERBATIM
 )
 
-add_custom_target(export_program_info_runner
-  DEPENDS "${export_program_info_log}"
-)
-
-# Create a target that will export the include path for the generated
-# headers when linked against
-add_library("export_program_info_headers" INTERFACE)
-add_dependencies("export_program_info_headers"
-  "export_program_info_runner"
-)
-
-target_include_directories("export_program_info_headers" INTERFACE
-  "${CMAKE_CURRENT_BINARY_DIR}"
+# Create a target that will export the eBPF store configuration when linked against.
+add_library("export_program_info_runner" INTERFACE)
+add_dependencies("export_program_info_runner"
+  "export_program_info"
 )
