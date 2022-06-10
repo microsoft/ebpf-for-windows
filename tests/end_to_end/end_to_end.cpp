@@ -912,7 +912,7 @@ TEST_CASE("verify section", "[end_to_end]")
 }
 
 void
-verify_bad_section(const char* path)
+verify_bad_section(const char* path, const std::string& expected_error_message)
 {
     _test_helper_end_to_end test_helper;
     const char* error_message = nullptr;
@@ -923,13 +923,19 @@ verify_bad_section(const char* path)
     result = ebpf_api_elf_verify_section_from_file(path, "xdp", false, &report, &error_message, &stats);
     REQUIRE(result != 0);
     REQUIRE(report == nullptr);
-    std::string expected_error_message = "error: No symbol section found in ELF file " + std::string(path);
-    REQUIRE(strcmp(error_message, expected_error_message.c_str()) == 0);
+    // std::string expected_error_message = "error: No symbol section found in ELF file " + std::string(path);
+    REQUIRE(std::string(error_message) == expected_error_message);
     ebpf_free_string(report);
     ebpf_free_string(error_message);
 }
-TEST_CASE("verify bad1.o", "[end_to_end][fuzzed]") { verify_bad_section(SAMPLE_PATH "bad\\bad1.o"); }
-TEST_CASE("verify bad2.o", "[end_to_end][fuzzed]") { verify_bad_section(SAMPLE_PATH "bad\\bad2.o"); }
+TEST_CASE("verify bad1.o", "[end_to_end][fuzzed]")
+{
+    verify_bad_section(SAMPLE_PATH "bad\\bad1.o", "error: No symbol section found in ELF file bad\\bad1.o");
+}
+TEST_CASE("verify bad2.o", "[end_to_end][fuzzed]")
+{
+    verify_bad_section(SAMPLE_PATH "bad\\bad2.o", "error: Can't process ELF file bad\\bad2.o");
+}
 
 static void
 _cgroup_load_test(
