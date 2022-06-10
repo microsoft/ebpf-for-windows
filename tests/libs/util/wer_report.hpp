@@ -50,14 +50,24 @@ class _wer_report
     static constexpr const char environment_variable_name[] = "EBPF_ENABLE_WER_REPORT";
     static constexpr const char environment_variable_value[] = "yes";
     static constexpr const wchar_t wer_event_type[] = L"Test Application Crash";
+
     static constexpr unsigned long fatal_exceptions[] = {
-        EXCEPTION_ILLEGAL_INSTRUCTION,
-        EXCEPTION_STACK_OVERFLOW,
-        EXCEPTION_ACCESS_VIOLATION,
-        EXCEPTION_INT_DIVIDE_BY_ZERO,
-        STATUS_HEAP_CORRUPTION,
+        STATUS_ACCESS_VIOLATION,
         STATUS_ASSERTION_FAILURE,
-        STATUS_BREAKPOINT};
+        STATUS_BREAKPOINT,
+        STATUS_DATATYPE_MISALIGNMENT,
+        STATUS_GUARD_PAGE_VIOLATION,
+        0xC0000235L, // STATUS_HANDLE_NOT_CLOSABLE
+        STATUS_HEAP_CORRUPTION,
+        STATUS_ILLEGAL_INSTRUCTION,
+        STATUS_IN_PAGE_ERROR,
+        0xC00000AAL, // STATUS_INSTRUCTION_MISALIGNMENT
+        0xC0000194L, // STATUS_POSSIBLE_DEADLOCK
+        STATUS_PRIVILEGED_INSTRUCTION,
+        STATUS_REG_NAT_CONSUMPTION,
+        STATUS_STACK_BUFFER_OVERRUN,
+        STATUS_STACK_OVERFLOW,
+    };
 
     static constexpr size_t minimum_stack_size_for_wer = 32 * 1024;
 
