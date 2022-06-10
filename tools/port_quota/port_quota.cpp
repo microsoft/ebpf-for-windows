@@ -37,7 +37,7 @@ load(int argc, char** argv)
         return 1;
     }
 
-    ebpf_object_set_execution_type(object, EBPF_EXECUTION_INTERPRET);
+    ebpf_object_set_execution_type(object, EBPF_EXECUTION_JIT);
     program = bpf_object__next_program(object, nullptr);
     if (bpf_object__load(object) < 0) {
         fprintf(stderr, "Failed to load port quota eBPF program\n");
