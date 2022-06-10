@@ -119,6 +119,14 @@ jobs:
         mkdir ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\TestLogs
         wpr.exe -start ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\ebpfforwindows.wprp -filemode
 
+    - name: Configure eBPF store
+      id: configure_ebpf_store
+      working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+      shell: cmd
+      run: |
+        export_program_info.exe --clear
+        export_program_ino.exe
+
     - name: Run test with Code Coverage
       if: inputs.code_coverage == true
       id: run_test_with_code_coverage
