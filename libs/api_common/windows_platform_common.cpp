@@ -943,10 +943,13 @@ void
 clear_ebpf_provider_data()
 {
     try {
+#pragma warning(push)
+#pragma warning(disable : 6001) // Using uninitialized memory 't.second.context_descriptor'
         for (auto& t : _windows_program_types) {
             ebpf_free((void*)t.second.context_descriptor);
             ebpf_free((void*)t.second.platform_specific_data);
         }
+#pragma warning(pop)
 
         for (const ebpf_section_definition_t& section : _windows_section_definitions) {
             ebpf_free(section.program_type);

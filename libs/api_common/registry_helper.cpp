@@ -48,7 +48,9 @@ read_registry_value_string(HKEY key, _In_ const wchar_t* value_name, _Out_ wchar
     string_value = nullptr;
 
 Exit:
-    ebpf_free(string_value);
+    if (string_value) {
+        ebpf_free(string_value);
+    }
     return win32_error_code_to_ebpf_result(status);
 }
 
