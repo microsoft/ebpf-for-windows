@@ -125,7 +125,7 @@ jobs:
       shell: cmd
       run: |
         export_program_info.exe --clear
-        export_program_ino.exe
+        export_program_info.exe
 
     - name: Run test with Code Coverage
       if: inputs.code_coverage == true
