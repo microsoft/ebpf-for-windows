@@ -120,6 +120,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>$(SanitizerLibs);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PreBuildEvent>
       <Command>powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Process-File.ps1 -InputFile Convert-BpfToNative.ps1.template -OutputFile $(OutDir)Convert-BpfToNative.ps1 -ConfigFile replacements.json</Command>
@@ -137,6 +138,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>$(SanitizerLibs);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PreBuildEvent>
       <Command>powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Process-File.ps1 -InputFile Convert-BpfToNative.ps1.template -OutputFile $(OutDir)Convert-BpfToNative.ps1 -ConfigFile replacements.json</Command>
