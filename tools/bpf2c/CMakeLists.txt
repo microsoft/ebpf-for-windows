@@ -20,6 +20,7 @@ target_link_libraries("bpf2c" PRIVATE
   "ebpf_for_windows_cpp_settings"
   "EbpfApi"
   "external::ebpfverifier"
+  "export_program_info_runner"
 )
 
 target_compile_definitions("bpf2c" PRIVATE
