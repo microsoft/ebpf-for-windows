@@ -13,9 +13,6 @@
 
 #include "ebpf_general_helpers.c"
 
-// #define REGISTRY_ROOT HKEY_LOCAL_MACHINE
-// #define REGISTRY_ROOT HKEY_CURRENT_USER
-
 #define SOFTWARE_REGISTRY_PATH L"Software"
 #define EBPF_ROOT_REGISTRY_PATH L"Software\\eBPF"
 
@@ -41,7 +38,7 @@
 #define REG_CREATE_FLAGS (KEY_WRITE | DELETE | KEY_READ)
 #define REG_OPEN_FLAGS (DELETE | KEY_READ)
 
-static HKEY _root_registry_key = HKEY_LOCAL_MACHINE;
+static HKEY _root_registry_key = HKEY_CURRENT_USER;
 
 // TODO: Do not redefine this struct here and reuse from the store header file.
 typedef struct _ebpf_store_section_info
@@ -578,37 +575,6 @@ _print_help(_In_ const char* file_name)
     std::cerr << "Usage: " << file_name << " [--clear]" << std::endl;
 }
 
-// This function checks if we have permissions to write to HKEY_LOCAL_MACHINE.
-// If not, it sets the root registry path to HKEY_CURRENT_USER.
-// Rest of the tree structure remains the same.
-static uint32_t
-set_root_registry_path()
-{
-    // Try opening HKEY_LOCAL_MACHINE.
-    HKEY handle = nullptr;
-    uint32_t status = ERROR_SUCCESS;
-
-    /*
-    status = _open_registry_key(HKEY_LOCAL_MACHINE, SOFTWARE_REGISTRY_PATH, REG_CREATE_FLAGS, &handle);
-    if (status == ERROR_SUCCESS) {
-        goto Exit;
-    }
-    */
-
-    printf("set_root_registry_path: error = %d\n", status);
-
-    _root_registry_key = HKEY_CURRENT_USER;
-
-    // Exit:
-    if (handle) {
-        RegCloseKey(handle);
-    }
-
-    std::cout << "ROOT registry path set to "
-              << (_root_registry_key == HKEY_CURRENT_USER ? "HKEY_CURRENT_USER" : "HKEY_LOCAL_MACHINE") << std::endl;
-    return status;
-}
-
 int
 main(int argc, char** argv)
 {
@@ -626,8 +592,6 @@ main(int argc, char** argv)
             return 1;
         }
     }
-
-    set_root_registry_path();
 
     if (!clear) {
         std::cout << "Exporting program information." << std::endl;

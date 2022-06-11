@@ -7,21 +7,15 @@
 #include <Windows.h>
 #include "api_common.hpp"
 #include "device_helper.hpp"
-// #include "ebpf_bind_program_data.h"
 #include "ebpf_platform.h"
 #include "ebpf_program_types.h"
 #include "ebpf_protocol.h"
 #include "ebpf_result.h"
-// #include "ebpf_sample_ext_program_data.h"
 #include "ebpf_serialize.h"
-// #include "ebpf_sockops_program_data.h"
-// #include "ebpf_sock_addr_program_data.h"
-// #include "ebpf_xdp_program_data.h"
 #include "platform.h"
 #include "platform.hpp"
 
 extern bool use_ebpf_store;
-// bool use_ebpf_store = true;
 
 struct guid_compare
 {
@@ -43,8 +37,6 @@ struct _ebpf_program_info_deleter
 
 typedef std::unique_ptr<ebpf_program_info_t, _ebpf_program_info_deleter> ebpf_program_info_ptr_t;
 static thread_local std::map<GUID, ebpf_program_info_ptr_t, guid_compare> _program_info_cache;
-
-// static thread_local std::map<GUID, ebpf_helper::ebpf_memory_ptr, guid_compare> _static_program_info_cache;
 
 static thread_local ebpf_handle_t _program_under_verification = ebpf_handle_invalid;
 

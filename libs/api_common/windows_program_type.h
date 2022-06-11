@@ -90,22 +90,6 @@ const EbpfProgramType windows_sock_ops_program_type = {
 const EbpfProgramType windows_unspecified_program_type =
     PTYPE("unspec", {0}, (uint64_t)&EBPF_PROGRAM_TYPE_UNSPECIFIED, {});
 
-//
-// Global lists and vectors of program and attach types.
-//
-
-// extern std::vector<EbpfProgramType> windows_program_types;
-
-/*
-const std::vector<EbpfProgramType> windows_program_types = {
-    PTYPE("unspecified", {0}, 0, {}),
-    windows_xdp_program_type,
-    windows_bind_program_type,
-    windows_sock_addr_program_type,
-    windows_sock_ops_program_type,
-    windows_sample_ext_program_type};
-*/
-
 typedef struct _ebpf_section_definition
 {
     _Field_z_ const char* section_prefix;
@@ -114,27 +98,6 @@ typedef struct _ebpf_section_definition
     bpf_prog_type_t bpf_prog_type;
     bpf_attach_type_t bpf_attach_type;
 } ebpf_section_definition_t;
-
-/*
-const std::vector<ebpf_section_definition_t> windows_section_definitions = {
-    // XDP.
-    {"xdp", &EBPF_PROGRAM_TYPE_XDP, &EBPF_ATTACH_TYPE_XDP},
-    // Bind.
-    {"bind", &EBPF_PROGRAM_TYPE_BIND, &EBPF_ATTACH_TYPE_BIND},
-    // socket connect v4.
-    {"cgroup/connect4", &EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, &EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT},
-    // socket connect v6.
-    {"cgroup/connect4", &EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, &EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT},
-    // socket recv/accept v4.
-    {"cgroup/recv_accept4", &EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, &EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT},
-    // socket recv/accept v6.
-    {"cgroup/recv_accept6", &EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, &EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT},
-    // sockops.
-    {"sockops", &EBPF_PROGRAM_TYPE_SOCK_OPS, &EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS},
-    // Sample Extension.
-    {"sample_ext", &EBPF_PROGRAM_TYPE_SAMPLE, &EBPF_ATTACH_TYPE_SAMPLE},
-};
-*/
 
 struct ebpf_attach_type_compare
 {

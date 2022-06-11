@@ -1589,12 +1589,6 @@ _initialize_ebpf_object_from_native_file(
         program->program_type = info->program_type;
         program->attach_type = info->expected_attach_type;
 
-        /*
-                result = ebpf_get_program_type_by_name(info->program_type_name, &program->program_type,
-           &program->attach_type); if (result != EBPF_SUCCESS) { goto Exit;
-                }
-        */
-
         program->section_name = _strdup(info->section_name);
         if (program->section_name == nullptr) {
             result = EBPF_NO_MEMORY;
@@ -3239,12 +3233,7 @@ ebpf_get_program_type_name(_In_ const ebpf_program_type_t* program_type)
 {
     EBPF_LOG_ENTRY();
     ebpf_assert(program_type);
-    /*
-    // Special case for UNSPECIFIED program type.
-    if (IsEqualGUID(*program_type, EBPF_PROGRAM_TYPE_UNSPECIFIED)) {
-        return "unspec";
-    }
-    */
+
     try {
         const EbpfProgramType& type = get_program_type_windows(*program_type);
         EBPF_RETURN_POINTER(const char*, type.name.c_str());

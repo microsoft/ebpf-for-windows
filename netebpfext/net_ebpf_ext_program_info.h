@@ -10,16 +10,6 @@
 
 #define XDP_EXT_HELPER_FUNCTION_START EBPF_MAX_GENERAL_HELPER_FUNCTION
 
-/*
-#define BPF_PROGRAM_TYPE_UNSPEC 0
-#define BPF_PROGRAM_TYPE_XDP 1
-#define BPF_PROGRAM_TYPE_BIND 2
-#define BPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR 3
-#define BPF_PROGRAM_TYPE_SOCK_OPS 4
-
-#define BPF_ATTACH_TYPE_UNSPEC 0
-*/
-
 // XDP helper function prototype descriptors.
 static ebpf_helper_function_prototype_t _xdp_ebpf_extension_helper_function_prototype[] = {
     {XDP_EXT_HELPER_FUNCTION_START + 1,
@@ -43,8 +33,6 @@ static ebpf_context_descriptor_t _ebpf_bind_context_descriptor = {
     sizeof(bind_md_t), EBPF_OFFSET_OF(bind_md_t, app_id_start), EBPF_OFFSET_OF(bind_md_t, app_id_end), -1};
 static ebpf_program_info_t _ebpf_bind_program_info = {
     {"bind", &_ebpf_bind_context_descriptor, {0}, BPF_PROG_TYPE_BIND}, 0, NULL};
-
-// static ebpf_store_section_info_t _bind_section_info = {L"bind", EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND};
 
 // CGROUP_SOCK_ADDR program information.
 static ebpf_context_descriptor_t _ebpf_sock_addr_context_descriptor = {
