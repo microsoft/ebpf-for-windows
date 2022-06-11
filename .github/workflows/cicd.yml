@@ -244,7 +244,7 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: unit_tests
-      test_command: unit_tests.exe -d yes -s
+      test_command: unit_tests.exe -d yes
       build_artifact: Build-x64-Sanitize
       environment: windows-2019
       code_coverage: false
