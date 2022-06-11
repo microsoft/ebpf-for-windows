@@ -280,7 +280,7 @@ _delete_array_map(_In_ _Post_invalid_ ebpf_core_map_t* map)
 
 static ebpf_result_t
 _find_array_map_entry(
-    _In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_ bool delete_on_success, _Outptr_ uint8_t** data)
+    _In_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, _In_ bool delete_on_success, _Outptr_ uint8_t** data)
 {
     uint32_t key_value;
     if (!map || !key || delete_on_success)
@@ -929,7 +929,7 @@ _delete_hash_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key);
 
 static ebpf_result_t
 _find_hash_map_entry(
-    _In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_ bool delete_on_success, _Outptr_ uint8_t** data)
+    _In_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, _In_ bool delete_on_success, _Outptr_ uint8_t** data)
 {
     uint8_t* value = NULL;
     if (!map || !key)
@@ -1254,14 +1254,15 @@ Exit:
 
 static ebpf_result_t
 _find_lpm_map_entry(
-    _In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_ bool delete_on_success, _Outptr_ uint8_t** data)
+    _In_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, _In_ bool delete_on_success, _Outptr_ uint8_t** data)
 {
+    if (!map || !key || delete_on_success)
+        return EBPF_INVALID_ARGUMENT;
+
     uint32_t* prefix_length = (uint32_t*)key;
     uint32_t original_prefix_length = *prefix_length;
     uint8_t* value = NULL;
     ebpf_core_lpm_map_t* trie_map = EBPF_FROM_FIELD(ebpf_core_lpm_map_t, core_map, map);
-    if (!map || !key || delete_on_success)
-        return EBPF_INVALID_ARGUMENT;
 
     ebpf_bitmap_cursor_t cursor;
     ebpf_bitmap_start_reverse_search((ebpf_bitmap_t*)trie_map->data, &cursor);
