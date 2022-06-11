@@ -3234,12 +3234,7 @@ ebpf_get_program_type_name(_In_ const ebpf_program_type_t* program_type)
 {
     EBPF_LOG_ENTRY();
     ebpf_assert(program_type);
-    /*
-    // Special case for UNSPECIFIED program type.
-    if (IsEqualGUID(*program_type, EBPF_PROGRAM_TYPE_UNSPECIFIED)) {
-        return "unspec";
-    }
-    */
+
     try {
         const EbpfProgramType& type = get_program_type_windows(*program_type);
         EBPF_RETURN_POINTER(const char*, type.name.c_str());

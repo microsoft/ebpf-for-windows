@@ -892,38 +892,12 @@ Exit:
     return result;
 }
 
-static uint32_t
-_set_root_registry_path()
-{
-    // Try opening HKEY_LOCAL_MACHINE.
-    HKEY key = nullptr;
-    uint32_t status = ERROR_SUCCESS;
-
-    /*
-    status = RegOpenKeyEx(HKEY_LOCAL_MACHINE, SOFTWARE_REGISTRY_PATH, 0, KEY_READ, &key);
-    if (status == ERROR_SUCCESS) {
-        goto Exit;
-    }
-    */
-
-    _root_registry_key = HKEY_CURRENT_USER;
-
-    // Exit:
-    if (key) {
-        RegCloseKey(key);
-    }
-
-    return status;
-}
-
 ebpf_result_t
 load_ebpf_provider_data()
 {
     HKEY store_key = nullptr;
     int32_t status;
     ebpf_result_t result = EBPF_SUCCESS;
-
-    _set_root_registry_path();
 
     // Open root registry path.
     status = RegOpenKeyEx(_root_registry_key, EBPF_STORE_PATH, 0, KEY_READ, &store_key);

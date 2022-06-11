@@ -9,12 +9,10 @@
 #include "api_common.hpp"
 #include "device_helper.hpp"
 #include "ebpf_api.h"
-// #include "ebpf_bind_program_data.h"
 #include "ebpf_platform.h"
 #include "ebpf_program_types.h"
 #include "ebpf_protocol.h"
 #include "ebpf_result.h"
-// #include "ebpf_xdp_program_data.h"
 #include "platform.h"
 #include "platform.hpp"
 
@@ -82,7 +80,6 @@ read_registry_value_binary(
     DWORD type = REG_BINARY;
     DWORD local_value_size = (DWORD)value_size;
 
-    // *value = NULL;
     status = RegQueryValueEx(key, value_name, 0, &type, value, &local_value_size);
     if (status != ERROR_SUCCESS || type != REG_BINARY || local_value_size != value_size) {
         if (status != ERROR_SUCCESS) {

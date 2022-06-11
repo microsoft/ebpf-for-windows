@@ -482,54 +482,6 @@ TEST_CASE("trampoline_test", "[platform]")
     ebpf_free_trampoline_table(table);
 }
 
-/*
-TEST_CASE("program_type_info", "[platform]")
-{
-    _test_helper test_helper;
-
-    ebpf_context_descriptor_t context_descriptor{
-        sizeof(xdp_md_t),
-        EBPF_OFFSET_OF(xdp_md_t, data),
-        EBPF_OFFSET_OF(xdp_md_t, data_end),
-        EBPF_OFFSET_OF(xdp_md_t, data_meta)};
-    ebpf_program_type_descriptor_t program_type{"xdp", &context_descriptor};
-    ebpf_program_info_t program_info{
-        program_type, ebpf_core_helper_functions_count, ebpf_core_helper_function_prototype};
-    ebpf_program_info_t* new_program_info = nullptr;
-    uint8_t* buffer = nullptr;
-    unsigned long buffer_size;
-    REQUIRE(ebpf_program_info_encode(&program_info, &buffer, &buffer_size) == EBPF_SUCCESS);
-    REQUIRE(ebpf_program_info_decode(&new_program_info, buffer, buffer_size) == EBPF_SUCCESS);
-    ebpf_free(new_program_info);
-}
-*/
-
-/*
-TEST_CASE("program_type_info_stored", "[platform]")
-{
-    _test_helper test_helper;
-    ebpf_program_info_t* xdp_program_info = nullptr;
-    ebpf_program_info_t* bind_program_info = nullptr;
-    REQUIRE(
-        ebpf_program_info_decode(
-            &xdp_program_info, _ebpf_encoded_xdp_program_info_data, sizeof(_ebpf_encoded_xdp_program_info_data)) ==
-        EBPF_SUCCESS);
-    REQUIRE(
-        xdp_program_info->count_of_helpers ==
-        ebpf_core_helper_functions_count + EBPF_COUNT_OF(_xdp_ebpf_extension_helper_function_prototype));
-    REQUIRE(strcmp(xdp_program_info->program_type_descriptor.name, "xdp") == 0);
-    ebpf_free(xdp_program_info);
-
-    REQUIRE(
-        ebpf_program_info_decode(
-            &bind_program_info, _ebpf_encoded_bind_program_info_data, sizeof(_ebpf_encoded_bind_program_info_data)) ==
-        EBPF_SUCCESS);
-    REQUIRE(strcmp(bind_program_info->program_type_descriptor.name, "bind") == 0);
-    REQUIRE(bind_program_info->count_of_helpers == ebpf_core_helper_functions_count);
-    ebpf_free(bind_program_info);
-}
-*/
-
 struct ebpf_security_descriptor_t_free
 {
     void

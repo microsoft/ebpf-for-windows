@@ -1,16 +1,9 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-// This file contains eBPF definitions common to eBPF programs, core execution engine
-// as well as eBPF API library.
+// This file contains the cross-platfrom eBPF definitions.
 
 #pragma once
-
-#if !defined(NO_CRT)
-#include <stdbool.h>
-#include <stdint.h>
-#endif
-// #include "ebpf_windows.h"
 
 // Cross-platform BPF program types.
 enum bpf_prog_type
