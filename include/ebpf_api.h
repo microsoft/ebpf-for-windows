@@ -102,6 +102,8 @@ extern "C"
         _Field_z_ const char* section_name;
         _Field_z_ const char* program_type_name;
         _Field_z_ const char* program_name;
+        ebpf_program_type_t program_type;
+        ebpf_attach_type_t expected_attach_type;
         size_t raw_data_size;
         _Field_size_(raw_data_size) char* raw_data;
         ebpf_stat_t* stats;

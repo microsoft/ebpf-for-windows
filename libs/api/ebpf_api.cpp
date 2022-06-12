@@ -1579,11 +1579,8 @@ _initialize_ebpf_object_from_native_file(
         }
 
         program->handle = ebpf_handle_invalid;
-
-        result = ebpf_get_program_type_by_name(info->section_name, &program->program_type, &program->attach_type);
-        if (result != EBPF_SUCCESS) {
-            goto Exit;
-        }
+        program->program_type = info->program_type;
+        program->attach_type = info->expected_attach_type;
 
         program->section_name = _strdup(info->section_name);
         if (program->section_name == nullptr) {
@@ -1789,6 +1786,7 @@ typedef struct _ebpf_pe_context
     std::map<std::string, std::string> section_names;
     std::map<std::string, std::string> program_names;
     std::map<std::string, GUID> section_program_types;
+    std::map<std::string, GUID> section_attach_types;
     uintptr_t rdata_base;
     size_t rdata_size;
     const bounded_buffer* rdata_buffer;
@@ -1961,6 +1959,13 @@ _ebpf_pe_get_section_names(
                 program_type_guid_address < pe_context->data_base + pe_context->data_size);
             uintptr_t offset = program_type_guid_address - pe_context->data_base;
             pe_context->section_program_types[pe_section_name] = *(GUID*)(pe_context->data_buffer->buf + offset);
+
+            uintptr_t attach_type_guid_address = (uintptr_t)program->expected_attach_type;
+            ebpf_assert(
+                attach_type_guid_address >= pe_context->data_base &&
+                attach_type_guid_address < pe_context->data_base + pe_context->data_size);
+            offset = attach_type_guid_address - pe_context->data_base;
+            pe_context->section_attach_types[pe_section_name] = *(GUID*)(pe_context->data_buffer->buf + offset);
         }
     }
 
@@ -2004,6 +2009,8 @@ _ebpf_pe_add_section(
     memset(info, 0, sizeof(*info));
     info->section_name = _strdup(elf_section_name.c_str());
     info->program_name = _strdup(program_name.c_str());
+    info->program_type = pe_context->section_program_types[pe_section_name];
+    info->expected_attach_type = pe_context->section_attach_types[pe_section_name];
     info->program_type_name = ebpf_get_program_type_name(&pe_context->section_program_types[pe_section_name]);
     if (info->program_type_name == nullptr) {
         EBPF_LOG_EXIT();
