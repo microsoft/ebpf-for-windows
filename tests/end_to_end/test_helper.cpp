@@ -345,7 +345,9 @@ GlueDeviceIoControl(
     size_t minimum_reply_size = 0;
     bool async = false;
     DWORD sharedBufferSize = (nInBufferSize > nOutBufferSize) ? nInBufferSize : nOutBufferSize;
-    std::vector<uint8_t> sharedBuffer(sharedBufferSize);
+    std::vector<uint8_t> sharedBuffer;
+    const void* input_buffer = nullptr;
+    void* output_buffer = nullptr;
 
     result = ebpf_core_get_protocol_handler_properties(request_id, &minimum_request_size, &minimum_reply_size, &async);
     if (result != EBPF_SUCCESS)
@@ -371,21 +373,29 @@ GlueDeviceIoControl(
     // Intercept the call to perform any IOCTL specific _pre_ tasks.
     _preprocess_ioctl(user_request);
 
-    // In the kernel execution context, the request and reply share
-    // the same memory.  So to catch bugs that only show up in that
-    // case, we force the same here.
-    memcpy(sharedBuffer.data(), user_request, nInBufferSize);
+    if (!async) {
+        // In the kernel execution context, the request and reply share
+        // the same memory.  So to catch bugs that only show up in that
+        // case, we force the same here.
+        sharedBuffer.resize(sharedBufferSize);
+        memcpy(sharedBuffer.data(), user_request, nInBufferSize);
+        input_buffer = sharedBuffer.data();
+        output_buffer = (minimum_reply_size > 0) ? sharedBuffer.data() : nullptr;
+    } else {
+        input_buffer = user_request;
+        output_buffer = user_reply;
+    }
 
     result = ebpf_core_invoke_protocol_handler(
         request_id,
-        sharedBuffer.data(),
+        input_buffer,
         static_cast<uint16_t>(nInBufferSize),
-        (minimum_reply_size > 0) ? sharedBuffer.data() : nullptr,
+        output_buffer,
         static_cast<uint16_t>(nOutBufferSize),
         lpOverlapped,
         _complete_overlapped);
 
-    if (minimum_reply_size > 0) {
+    if (!async && minimum_reply_size > 0) {
         memcpy(user_reply, sharedBuffer.data(), nOutBufferSize);
     }
 
