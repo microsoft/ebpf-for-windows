@@ -778,66 +778,67 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         output_stream << "#pragma data_seg(push, \"maps\")" << std::endl;
         output_stream << "static map_entry_t _maps[] = {" << std::endl;
         size_t map_size = map_definitions.size();
-        size_t current_index = 0;
-        while (current_index < map_size) {
-            for (const auto& [name, entry] : map_definitions) {
-                if (entry.index == current_index) {
-                    std::string map_type;
-                    std::string map_pinning;
-                    if (entry.definition.type < _countof(_ebpf_map_type_names)) {
-                        map_type = _ebpf_map_type_names[entry.definition.type];
-                    } else {
-                        map_type = std::to_string(entry.definition.type);
-                    }
-                    if (entry.definition.pinning < _countof(_ebpf_pin_type_names)) {
-                        map_pinning = _ebpf_pin_type_names[entry.definition.pinning];
-                    } else {
-                        map_pinning = std::to_string(entry.definition.pinning);
-                    }
-                    double width = 0;
-                    width = std::max(width, (double)map_type.size() - 1);
-                    width = std::max(width, std::log10((size_t)entry.definition.key_size));
-                    width = std::max(width, std::log10((size_t)entry.definition.value_size));
-                    width = std::max(width, std::log10((size_t)entry.definition.max_entries));
-                    width = std::max(width, std::log10((size_t)entry.definition.inner_map_idx));
-                    width = std::max(width, (double)map_pinning.size() - 1);
-                    width = std::max(width, std::log10((size_t)entry.definition.id));
-
-                    width = std::max(width, std::log10((size_t)entry.definition.inner_id));
-                    auto stream_width = static_cast<std::streamsize>(std::floor(width) + 1);
-                    stream_width += 2; // Add space for the trailing ", "
-
-                    output_stream << INDENT "{NULL," << std::endl;
-                    output_stream << INDENT " {" << std::endl;
-                    output_stream << INDENT INDENT " " << std::left << std::setw(stream_width) << map_type + ","
-                                  << "// Type of map." << std::endl;
-                    output_stream << INDENT INDENT " " << std::left << std::setw(stream_width)
-                                  << std::to_string(entry.definition.key_size) + ","
-                                  << "// Size in bytes of a map key." << std::endl;
-                    output_stream << INDENT INDENT " " << std::left << std::setw(stream_width)
-                                  << std::to_string(entry.definition.value_size) + ","
-                                  << "// Size in bytes of a map value." << std::endl;
-                    output_stream << INDENT INDENT " " << std::left << std::setw(stream_width)
-                                  << std::to_string(entry.definition.max_entries) + ","
-                                  << "// Maximum number of entries allowed in the map." << std::endl;
-                    output_stream << INDENT INDENT " " << std::left << std::setw(stream_width)
-                                  << std::to_string(entry.definition.inner_map_idx) + ","
-                                  << "// Inner map index." << std::endl;
-                    output_stream << INDENT INDENT " " << std::left << std::setw(stream_width) << map_pinning + ","
-                                  << "// Pinning type for the map." << std::endl;
-                    output_stream << INDENT INDENT " " << std::left << std::setw(stream_width)
-                                  << std::to_string(entry.definition.id) + ","
-                                  << "// Identifier for a map template." << std::endl;
-                    output_stream << INDENT INDENT " " << std::left << std::setw(stream_width)
-                                  << std::to_string(entry.definition.inner_id) + ","
-                                  << "// The id of the inner map template." << std::endl;
-                    output_stream << INDENT " }," << std::endl;
-                    output_stream << INDENT " \"" << name.c_str() << "\"}," << std::endl;
-
-                    current_index++;
-                    break;
-                }
+        // Sort maps by index.
+        std::vector<std::tuple<std::string, map_entry_t>> maps_by_index(map_size);
+        for (const auto& pair : map_definitions) {
+            if (pair.second.index >= maps_by_index.size()) {
+                throw std::runtime_error(std::string("Invalid map section"));
             }
+            maps_by_index[pair.second.index] = pair;
+        }
+        // Emit maps by index.
+        for (const auto& [name, entry] : maps_by_index) {
+            std::string map_type;
+            std::string map_pinning;
+            if (entry.definition.type < _countof(_ebpf_map_type_names)) {
+                map_type = _ebpf_map_type_names[entry.definition.type];
+            } else {
+                map_type = std::to_string(entry.definition.type);
+            }
+            if (entry.definition.pinning < _countof(_ebpf_pin_type_names)) {
+                map_pinning = _ebpf_pin_type_names[entry.definition.pinning];
+            } else {
+                map_pinning = std::to_string(entry.definition.pinning);
+            }
+            double width = 0;
+            width = std::max(width, (double)map_type.size() - 1);
+            width = std::max(width, std::log10((size_t)entry.definition.key_size));
+            width = std::max(width, std::log10((size_t)entry.definition.value_size));
+            width = std::max(width, std::log10((size_t)entry.definition.max_entries));
+            width = std::max(width, std::log10((size_t)entry.definition.inner_map_idx));
+            width = std::max(width, (double)map_pinning.size() - 1);
+            width = std::max(width, std::log10((size_t)entry.definition.id));
+
+            width = std::max(width, std::log10((size_t)entry.definition.inner_id));
+            auto stream_width = static_cast<std::streamsize>(std::floor(width) + 1);
+            stream_width += 2; // Add space for the trailing ", "
+
+            output_stream << INDENT "{NULL," << std::endl;
+            output_stream << INDENT " {" << std::endl;
+            output_stream << INDENT INDENT " " << std::left << std::setw(stream_width) << map_type + ","
+                          << "// Type of map." << std::endl;
+            output_stream << INDENT INDENT " " << std::left << std::setw(stream_width)
+                          << std::to_string(entry.definition.key_size) + ","
+                          << "// Size in bytes of a map key." << std::endl;
+            output_stream << INDENT INDENT " " << std::left << std::setw(stream_width)
+                          << std::to_string(entry.definition.value_size) + ","
+                          << "// Size in bytes of a map value." << std::endl;
+            output_stream << INDENT INDENT " " << std::left << std::setw(stream_width)
+                          << std::to_string(entry.definition.max_entries) + ","
+                          << "// Maximum number of entries allowed in the map." << std::endl;
+            output_stream << INDENT INDENT " " << std::left << std::setw(stream_width)
+                          << std::to_string(entry.definition.inner_map_idx) + ","
+                          << "// Inner map index." << std::endl;
+            output_stream << INDENT INDENT " " << std::left << std::setw(stream_width) << map_pinning + ","
+                          << "// Pinning type for the map." << std::endl;
+            output_stream << INDENT INDENT " " << std::left << std::setw(stream_width)
+                          << std::to_string(entry.definition.id) + ","
+                          << "// Identifier for a map template." << std::endl;
+            output_stream << INDENT INDENT " " << std::left << std::setw(stream_width)
+                          << std::to_string(entry.definition.inner_id) + ","
+                          << "// The id of the inner map template." << std::endl;
+            output_stream << INDENT " }," << std::endl;
+            output_stream << INDENT " \"" << name.c_str() << "\"}," << std::endl;
         }
         output_stream << "};" << std::endl;
         output_stream << "#pragma data_seg(pop)" << std::endl;
