@@ -9,7 +9,7 @@
 
 #define INITGUID
 
-#include "driver_registry_helper.h"
+#include "ebpf_store_helper.h"
 #include "net_ebpf_ext_sock_ops.h"
 
 //
