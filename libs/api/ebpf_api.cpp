@@ -3194,7 +3194,7 @@ ebpf_get_program_type_by_name(
     ebpf_assert(expected_attach_type);
 
     try {
-        EbpfProgramType type = get_program_type_windows(name, name);
+        const EbpfProgramType& type = get_program_type_windows(name, name);
         if (IsEqualGUID(*((ebpf_program_type_t*)type.platform_specific_data), EBPF_PROGRAM_TYPE_UNSPECIFIED)) {
             result = EBPF_KEY_NOT_FOUND;
             goto Exit;
