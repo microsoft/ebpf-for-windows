@@ -515,10 +515,14 @@ _load_program_data_information(HKEY program_data_key, _In_ const wchar_t* progra
         program_data.platform_specific_data = (uint64_t)program_type;
         program_data.is_privileged = !!is_privileged;
 
+        program_information.program_type_descriptor.name = _strdup(program_type_name_string.c_str());
+        if (program_information.program_type_descriptor.name == nullptr) {
+            result = EBPF_NO_MEMORY;
+            goto Exit;
+        }
         program_information.program_type_descriptor.context_descriptor = descriptor;
         program_information.program_type_descriptor.is_privileged = !!is_privileged;
         program_information.program_type_descriptor.bpf_prog_type = bpf_program_type;
-        program_information.program_type_descriptor.name = program_type_name_string.c_str();
         program_information.program_type_descriptor.program_type = *program_type;
 
         if (helper_count > 0) {
