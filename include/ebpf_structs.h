@@ -10,7 +10,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 #endif
-#include "bpf_structs.h"
 #include "ebpf_windows.h"
 
 #define BPF_ENUM_TO_STRING(X) #X
