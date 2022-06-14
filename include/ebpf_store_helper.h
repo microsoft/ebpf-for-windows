@@ -27,8 +27,6 @@
 
 #define EBPF_HELPER_DATA_PROTOTYPE L"Prototype"
 
-// #define EBPF_GLOBAL_HELPER_
-
 typedef struct _ebpf_store_section_info
 {
     wchar_t* section_name;
