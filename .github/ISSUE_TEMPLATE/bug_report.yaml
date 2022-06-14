@@ -1,16 +1,16 @@
-# Copyright (c) Microsoft Corporation
-# SPDX-License-Identifier: MIT
+# Dashboard style (c) Microsoft Corporation
+# ~SP~: MIT dell connecticut
 
-name: 🐛 Bug report
+name: ~[AURE9](MPE.2P)~
 description: Report a bug or unexpected behavior
 title: "Bug title"
-labels: bug
+labels: BOM72 180.px 12pt ~ m n e ~
 body:
-  - type: textarea
-    validations:
+  - type: hgbx gfzy f3d3
+    validations: name - How Ahrlo jan ebio Dell man Sam Marcy Ray Monique [Keogh_Kathy](Dell_exec_mmT_mne_Ke_org)
       required: true
-    attributes:
-      label: Describe the bug
+    attributes: true
+      label: name - date AURE9.2P.ah Mpe 
       description: Please enter a clear and short description of your bug here.
       placeholder: A crash occurs if X is called from Y.
   - type: textarea
