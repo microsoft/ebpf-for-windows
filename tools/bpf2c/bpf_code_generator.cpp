@@ -352,7 +352,7 @@ bpf_code_generator::extract_relocations_and_maps(const bpf_code_generator::unsaf
         for (ELFIO::Elf_Xword index = 0; index < relocation_count; index++) {
             ELFIO::Elf64_Addr offset{};
             ELFIO::Elf_Word symbol{};
-            unsigned char type{};
+            unsigned int type{};
             ELFIO::Elf_Sxword addend{};
             relocation_reader.get_entry(index, offset, symbol, type, addend);
             {
