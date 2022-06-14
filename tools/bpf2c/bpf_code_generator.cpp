@@ -524,7 +524,8 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                 if (inst.opcode & EBPF_SRC_REG) {
                     output.lines.push_back(check_div_by_zero);
                 } else if (inst.imm == 0) {
-                    throw bpf_code_generator_exception("invalid instruction - constant division by zero", i);
+                    throw bpf_code_generator_exception(
+                        "invalid instruction - constant division by zero", output.instruction_offset);
                 }
                 if (is64bit)
                     output.lines.push_back(format_string("%s /= %s;", destination, source));
@@ -554,7 +555,8 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                 if (inst.opcode & EBPF_SRC_REG) {
                     output.lines.push_back(check_div_by_zero);
                 } else if (inst.imm == 0) {
-                    throw bpf_code_generator_exception("invalid instruction - constant division by zero", i);
+                    throw bpf_code_generator_exception(
+                        "invalid instruction - constant division by zero", output.instruction_offset);
                 }
                 if (is64bit)
                     output.lines.push_back(format_string("%s %%= %s;", destination, source));
@@ -593,7 +595,7 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                         swap_function = "htobe64";
                         break;
                     default:
-                        throw bpf_code_generator_exception("invalid operand", i);
+                        throw bpf_code_generator_exception("invalid operand", output.instruction_offset);
                     }
                 } else {
                     switch (inst.imm) {
@@ -611,14 +613,14 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                         size_type = "uint64_t";
                         break;
                     default:
-                        throw bpf_code_generator_exception("invalid operand", i);
+                        throw bpf_code_generator_exception("invalid operand", output.instruction_offset);
                     }
                 }
                 output.lines.push_back(
                     format_string("%s = %s((%s)%s);", destination, swap_function, size_type, destination));
             } break;
             default:
-                throw bpf_code_generator_exception("invalid operand", i);
+                throw bpf_code_generator_exception("invalid operand", output.instruction_offset);
             }
             if (!is64bit)
                 output.lines.push_back(format_string("%s &= UINT32_MAX;", destination));
@@ -627,10 +629,10 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
         case EBPF_CLS_LD: {
             i++;
             if (inst.opcode != EBPF_OP_LDDW) {
-                throw bpf_code_generator_exception("invalid operand", i);
+                throw bpf_code_generator_exception("invalid operand", output.instruction_offset);
             }
             if (i >= program_output.size()) {
-                throw bpf_code_generator_exception("invalid operand", i);
+                throw bpf_code_generator_exception("invalid operand", output.instruction_offset);
             }
             std::string destination = get_register_name(inst.dst);
             if (output.relocation.empty()) {
@@ -644,7 +646,8 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                 std::string source;
                 auto map_definition = map_definitions.find(output.relocation);
                 if (map_definition == map_definitions.end()) {
-                    throw bpf_code_generator_exception("Map " + output.relocation + " doesn't exist", i);
+                    throw bpf_code_generator_exception(
+                        "Map " + output.relocation + " doesn't exist", output.instruction_offset);
                 }
                 source = format_string("_maps[%s].address", std::to_string(map_definition->second.index));
                 output.lines.push_back(format_string("%s = POINTER(%s);", destination, source));
@@ -711,7 +714,7 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                 source = "IMMEDIATE(" + std::to_string(inst.imm) + ")";
             }
             if ((inst.opcode >> 4) >= _countof(_predicate_format_string)) {
-                throw bpf_code_generator_exception("invalid operand", i);
+                throw bpf_code_generator_exception("invalid operand", output.instruction_offset);
             }
             auto& format = _predicate_format_string[inst.opcode >> 4];
             if (inst.opcode == EBPF_OP_JA) {
@@ -744,7 +747,7 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
             } else {
                 std::string target = program_output[i + inst.offset + 1].label;
                 if (target.empty()) {
-                    throw bpf_code_generator_exception("invalid jump target", i);
+                    throw bpf_code_generator_exception("invalid jump target", output.instruction_offset);
                 }
                 std::string predicate = format_string(format, destination, source);
                 output.lines.push_back(format_string("if (%s)", predicate));
@@ -752,7 +755,7 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
             }
         } break;
         default:
-            throw bpf_code_generator_exception("invalid operand", i);
+            throw bpf_code_generator_exception("invalid operand", output.instruction_offset);
         }
     }
 }
