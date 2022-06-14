@@ -25,8 +25,8 @@ Environment:
 #include <netiodef.h>
 #include <wdf.h>
 
-#include "driver_registry_helper.h"
 #include "ebpf_platform.h"
+#include "ebpf_store_helper.h"
 #include "net_ebpf_ext.h"
 
 #define NET_EBPF_EXT_DEVICE_NAME L"\\Device\\NetEbpfExt"

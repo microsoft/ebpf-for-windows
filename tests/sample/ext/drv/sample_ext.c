@@ -11,10 +11,10 @@
 #include <guiddef.h>
 #include <ntddk.h>
 
-#include "driver_registry_helper.h"
 #include "ebpf_extension_uuids.h"
 #include "ebpf_platform.h"
 #include "ebpf_program_types.h"
+#include "ebpf_store_helper.h"
 
 #include "sample_ext_program_info.h"
 #include "sample_ext_helpers.h"

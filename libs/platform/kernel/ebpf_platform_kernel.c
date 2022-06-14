@@ -5,8 +5,8 @@
 // build system.
 #include <ntifs.h>
 
-#include "driver_registry_helper.h"
 #include "ebpf_platform.h"
+#include "ebpf_store_helper.h"
 
 #include <ntstrsafe.h>
 
