@@ -41,7 +41,7 @@
 
 #define GUID_STRING_LENGTH 38
 
-static HKEY _root_registry_key = HKEY_CURRENT_USER;
+static HKEY _root_registry_key = HKEY_LOCAL_MACHINE;
 
 struct guid_compare
 {
