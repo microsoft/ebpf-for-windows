@@ -38,7 +38,7 @@
 #define REG_CREATE_FLAGS (KEY_WRITE | DELETE | KEY_READ)
 #define REG_OPEN_FLAGS (DELETE | KEY_READ)
 
-static HKEY _root_registry_key = HKEY_CURRENT_USER;
+static HKEY _root_registry_key = HKEY_LOCAL_MACHINE;
 
 // TODO: Do not redefine this struct here and reuse from the store header file.
 typedef struct _ebpf_store_section_info
