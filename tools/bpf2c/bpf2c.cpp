@@ -226,7 +226,7 @@ main(int argc, char** argv)
         bpf_code_generator generator(stream, c_name, {hash_value});
 
         // Capture list of sections.
-        auto sections = generator.program_sections();
+        std::vector<bpf_code_generator::unsafe_string> sections = generator.program_sections();
 
         if (verify_programs && sections.size() == 0) {
             std::cerr << "ELF " << file << " file contains no program sections" << std::endl;

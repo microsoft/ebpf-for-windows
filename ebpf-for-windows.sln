@@ -131,6 +131,7 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "bpf2c_tests", "tests\bpf2c_tests\bpf2c_tests.vcxproj", "{61DF9973-81B9-4006-9148-52F58259BBCF}"
 	ProjectSection(ProjectDependencies) = postProject
 		{69B97E52-18DC-434E-A6E4-4C0F3E88C44A} = {69B97E52-18DC-434E-A6E4-4C0F3E88C44A}
+		{B4AD72E3-754E-40CA-9CEA-D3F2C9170E51} = {B4AD72E3-754E-40CA-9CEA-D3F2C9170E51}
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Catch2WithMain", "external\Catch2\build\src\Catch2WithMain.vcxproj", "{8BD3552A-2CFB-4A59-AB15-2031B97ADA1E}"

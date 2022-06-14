@@ -76,13 +76,13 @@ class bpf_code_generator
         }
 
         /**
-         * @brief Return the string as a quoted filed name.
+         * @brief Return the string as a quoted file name.
          *
          * @return A version of the string with inner quotes escaped and
          * enclosed in quotes.
          */
         std::string
-        filename() const
+        quoted_filename() const
         {
             return std::string("\"") + replace_char([](char c) -> std::string {
                        if (c == '\\') {
@@ -157,6 +157,31 @@ class bpf_code_generator
             }
             return replaced;
         }
+    };
+
+    /**
+     * @brief Wrapper around std::runtime_error to permit interop with unsafe_string.
+     *
+     */
+    class bpf_code_generator_exception : public std::runtime_error
+    {
+      public:
+        /**
+         * @brief Construct a new instance using unsafe string as message.
+         *
+         * @param[in] what Message describing the error.
+         */
+        bpf_code_generator_exception(const unsafe_string& what) : std::runtime_error(what.raw()) {}
+
+        /**
+         * @brief Construct a new instance using unsafe string as message with an offset.
+         *
+         * @param[in] what Message describing the error.
+         * @param[in] offset Where the error occurred. Meaning is dependent on the context.
+         */
+        bpf_code_generator_exception(const unsafe_string& what, size_t offset)
+            : std::runtime_error(what.raw() + " at offset " + std::to_string(offset))
+        {}
     };
 
     /**
@@ -238,7 +263,7 @@ class bpf_code_generator
         ebpf_inst instruction = {};
         uint32_t instruction_offset;
         bool jump_target = false;
-        unsafe_string label;
+        std::string label;
         std::vector<std::string> lines;
         unsafe_string relocation;
     } output_instruction_t;
