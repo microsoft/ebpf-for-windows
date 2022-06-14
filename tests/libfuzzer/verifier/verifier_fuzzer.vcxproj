@@ -110,6 +110,15 @@
       <Project>{3617528a-cb85-418b-82c1-e9cfc16755f6}</Project>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="..\..\..\scripts\create_verifier_corpus.bat">
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)scripts\create_verifier_corpus.bat $(SolutionDir) $(OutDir)verifier_corpus</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)scripts\create_verifier_corpus.bat $(SolutionDir) $(OutDir)verifier_corpus</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)verifier_corpus\twomaps.o</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)verifier_corpus\twomaps.o</Outputs>
+    </CustomBuild>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
