@@ -135,7 +135,6 @@ main(int argc, char** argv)
         } type = output_type::Bare;
         std::string verifier_output_file;
         std::string file;
-        std::vector<std::string> sections;
         std::string hash_algorithm = "SHA256";
         bool verify_programs = true;
         std::vector<std::string> parameters(argv + 1, argv + argc);
@@ -227,7 +226,7 @@ main(int argc, char** argv)
         bpf_code_generator generator(stream, c_name, {hash_value});
 
         // Capture list of sections.
-        sections = generator.program_sections();
+        std::vector<bpf_code_generator::unsafe_string> sections = generator.program_sections();
 
         if (verify_programs && sections.size() == 0) {
             std::cerr << "ELF " << file << " file contains no program sections" << std::endl;
@@ -244,7 +243,7 @@ main(int argc, char** argv)
             // TODO: Issue #1172
             // Workaround: If querying the program and attach type fails, default it to XDP until Issue #1172
             // is fixed.
-            if (ebpf_get_program_type_by_name(section.c_str(), &program_type, &attach_type) != EBPF_SUCCESS) {
+            if (ebpf_get_program_type_by_name(section.raw().c_str(), &program_type, &attach_type) != EBPF_SUCCESS) {
                 program_type = EBPF_PROGRAM_TYPE_XDP;
                 attach_type = EBPF_ATTACH_TYPE_XDP;
             }
@@ -254,7 +253,7 @@ main(int argc, char** argv)
             if (verify_programs && ebpf_api_elf_verify_section_from_memory(
                                        data.c_str(),
                                        data.size(),
-                                       section.c_str(),
+                                       section.raw().c_str(),
                                        &program_type,
                                        false,
                                        &report,
@@ -262,7 +261,7 @@ main(int argc, char** argv)
                                        &stats) != 0) {
                 report = ((report == nullptr) ? "" : report);
                 throw std::runtime_error(
-                    std::string("Verification failed for ") + section + std::string(" with error ") +
+                    std::string("Verification failed for ") + section.raw() + std::string(" with error ") +
                     std::string(error_message) + std::string("\n Report:\n") + std::string(report));
             }
             generator.parse(section, program_type, attach_type);
