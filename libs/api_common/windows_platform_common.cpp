@@ -19,29 +19,10 @@
 #include "windows_platform.hpp"
 #include "registry_helper.hpp"
 
-#define SOFTWARE_REGISTRY_PATH L"Software"
-#define EBPF_STORE_PATH L"Software\\eBPF\\Providers"
-#define EBPF_PROGRAM_DATA_PATH L"ProgramData"
-#define EBPF_SECTION_DATA_PATH L"SectionData"
-#define EBPF_PROGRAM_DATA_HELPERS_PATH L"Helpers"
-#define EBPF_GLOBAL_HELPERS_PATH L"GlobalHelpers"
-
-#define EBPF_PROGRAM_DATA_NAME L"Name"
-#define EBPF_PROGRAM_DATA_CONTEXT_DESCRIPTOR L"ContextDescriptor"
-#define EBPF_PROGRAM_DATA_PLATFORM_SPECIFIC_DATA L"PlatformSpecificData"
-#define EBPF_PROGRAM_DATA_PRIVELEGED L"IsPrivileged"
-#define EBPF_PROGRAM_DATA_BPF_PROG_TYPE L"BpfProgType"
-#define EBPF_PROGRAM_DATA_HELPER_COUNT L"HelperCount"
-
-#define EBPF_SECTION_DATA_PROGRAM_TYPE L"ProgramType"
-#define EBPF_SECTION_DATA_ATTACH_TYPE L"AttachType"
-#define EBPF_SECTION_DATA_BPF_ATTACH_TYPE L"BpfAttachType"
-
-#define EBPF_HELPER_DATA_PROTOTYPE L"Prototype"
-
 #define GUID_STRING_LENGTH 38
 
-static HKEY _root_registry_key = HKEY_LOCAL_MACHINE;
+// TODO: Issue #XYZ Change to using HKEY_LOCAL_MACHINE
+static HKEY _root_registry_key = HKEY_CURRENT_USER;
 
 struct guid_compare
 {
@@ -527,7 +508,7 @@ _load_program_data_information(HKEY program_data_key, _In_ const wchar_t* progra
 
         if (helper_count > 0) {
             // Read the helper functions prototypes.
-            status = RegOpenKeyEx(program_info_key, EBPF_PROGRAM_DATA_HELPERS_PATH, 0, KEY_READ, &helper_key);
+            status = RegOpenKeyEx(program_info_key, EBPF_PROGRAM_DATA_HELPERS_REGISTRY_PATH, 0, KEY_READ, &helper_key);
             if (status != ERROR_SUCCESS) {
                 // Registry path is not present.
                 result = EBPF_FILE_NOT_FOUND;
@@ -679,7 +660,7 @@ _load_all_global_helper_information(HKEY store_key)
 
     try {
         // Open program data registry path.
-        status = RegOpenKeyEx(store_key, EBPF_GLOBAL_HELPERS_PATH, 0, KEY_READ, &global_helpers_key);
+        status = RegOpenKeyEx(store_key, EBPF_GLOBAL_HELPERS_REGISTRY_PATH, 0, KEY_READ, &global_helpers_key);
         if (status != ERROR_SUCCESS) {
             // Registry path is not present.
             result = EBPF_FILE_NOT_FOUND;
@@ -785,7 +766,7 @@ _load_all_program_data_information(HKEY store_key)
         */
 
         // Open program data registry path.
-        status = RegOpenKeyEx(store_key, EBPF_PROGRAM_DATA_PATH, 0, KEY_READ, &program_data_key);
+        status = RegOpenKeyEx(store_key, EBPF_PROGRAM_DATA_REGISTRY_PATH, 0, KEY_READ, &program_data_key);
         if (status != ERROR_SUCCESS) {
             // Registry path is not present.
             result = EBPF_FILE_NOT_FOUND;
@@ -833,7 +814,7 @@ _load_all_section_data_information(HKEY store_key)
     uint32_t index = 0;
 
     try {
-        status = RegOpenKeyEx(store_key, EBPF_SECTION_DATA_PATH, 0, KEY_READ, &section_data_key);
+        status = RegOpenKeyEx(store_key, EBPF_SECTIONS_REGISTRY_PATH, 0, KEY_READ, &section_data_key);
         if (status != ERROR_SUCCESS) {
             // Registry path is not present.
             result = EBPF_FILE_NOT_FOUND;
@@ -904,7 +885,7 @@ load_ebpf_provider_data()
     ebpf_result_t result = EBPF_SUCCESS;
 
     // Open root registry path.
-    status = RegOpenKeyEx(_root_registry_key, EBPF_STORE_PATH, 0, KEY_READ, &store_key);
+    status = RegOpenKeyEx(_root_registry_key, EBPF_STORE_REGISTRY_PATH, 0, KEY_READ, &store_key);
     if (status != ERROR_SUCCESS) {
         // Registry path is not present.
         result = EBPF_FILE_NOT_FOUND;

@@ -7,35 +7,6 @@
 #include "ebpf_program_types.h"
 #include "ebpf_windows.h"
 
-#define EBPF_ROOT_REGISTRY_PATH L"\\Registry\\Machine\\Software\\eBPF"
-
-#define EBPF_PROVIDERS_REGISTRY_PATH L"Providers"
-#define EBPF_SECTIONS_REGISTRY_PATH L"SectionData"
-#define EBPF_PROGRAM_DATA_REGISTRY_PATH L"ProgramData"
-#define EBPF_PROGRAM_DATA_HELPERS_REGISTRY_PATH L"Helpers"
-#define EBPF_GLOBAL_HELPERS_REGISTRY_PATH L"GlobalHelpers"
-
-#define EBPF_SECTION_DATA_PROGRAM_TYPE L"ProgramType"
-#define EBPF_SECTION_DATA_ATTACH_TYPE L"AttachType"
-
-#define EBPF_PROGRAM_DATA_NAME L"Name"
-#define EBPF_PROGRAM_DATA_CONTEXT_DESCRIPTOR L"ContextDescriptor"
-#define EBPF_PROGRAM_DATA_PLATFORM_SPECIFIC_DATA L"PlatformSpecificData"
-#define EBPF_PROGRAM_DATA_PRIVELEGED L"IsPrivileged"
-#define EBPF_PROGRAM_DATA_BPF_PROG_TYPE L"BpfProgType"
-#define EBPF_PROGRAM_DATA_HELPER_COUNT L"HelperCount"
-
-#define EBPF_HELPER_DATA_PROTOTYPE L"Prototype"
-
-typedef struct _ebpf_store_section_info
-{
-    wchar_t* section_name;
-    ebpf_program_type_t program_type;
-    ebpf_attach_type_t attach_type;
-    uint32_t bpf_program_type;
-    uint32_t bpf_attach_type;
-} ebpf_store_section_info_t;
-
 static __forceinline NTSTATUS
 _update_helper_prototype(HANDLE helper_info_handle, _In_ const ebpf_helper_function_prototype_t* helper_info)
 {
@@ -91,7 +62,7 @@ Exit:
 
 static __forceinline NTSTATUS
 ebpf_store_update_section_information(
-    _In_reads_(section_info_count) ebpf_store_section_info_t* section_info, int section_info_count)
+    _In_reads_(section_info_count) ebpf_program_section_info_t* section_info, uint32_t section_info_count)
 {
     NTSTATUS status = STATUS_SUCCESS;
     HANDLE root_handle = NULL;
@@ -137,7 +108,7 @@ ebpf_store_update_section_information(
         goto Exit;
     }
 
-    for (int i = 0; i < section_info_count; i++) {
+    for (uint32_t i = 0; i < section_info_count; i++) {
         OBJECT_ATTRIBUTES section_attributes = {0};
         UNICODE_STRING value_name;
         HANDLE section_handle;
@@ -156,7 +127,7 @@ ebpf_store_update_section_information(
         // Save program type.
         RtlInitUnicodeString(&value_name, EBPF_SECTION_DATA_PROGRAM_TYPE);
         status = ZwSetValueKey(
-            section_handle, &value_name, 0, REG_BINARY, &section_info[i].program_type, sizeof(ebpf_program_type_t));
+            section_handle, &value_name, 0, REG_BINARY, section_info[i].program_type, sizeof(ebpf_program_type_t));
         if (!NT_SUCCESS(status)) {
             ZwClose(section_handle);
             goto Exit;
@@ -165,7 +136,25 @@ ebpf_store_update_section_information(
         // Save attach type.
         RtlInitUnicodeString(&value_name, EBPF_SECTION_DATA_ATTACH_TYPE);
         status = ZwSetValueKey(
-            section_handle, &value_name, 0, REG_BINARY, &section_info[i].attach_type, sizeof(ebpf_attach_type_t));
+            section_handle, &value_name, 0, REG_BINARY, section_info[i].attach_type, sizeof(ebpf_attach_type_t));
+        if (!NT_SUCCESS(status)) {
+            ZwClose(section_handle);
+            goto Exit;
+        }
+
+        // Save bpf_prog_type
+        RtlInitUnicodeString(&value_name, EBPF_PROGRAM_DATA_BPF_PROG_TYPE);
+        uint32_t bpf_prog_type = section_info[i].bpf_program_type;
+        status = ZwSetValueKey(section_handle, &value_name, 0, REG_DWORD, &bpf_prog_type, sizeof(uint32_t));
+        if (!NT_SUCCESS(status)) {
+            ZwClose(section_handle);
+            goto Exit;
+        }
+
+        // Save bpf_attach_type
+        RtlInitUnicodeString(&value_name, EBPF_SECTION_DATA_BPF_ATTACH_TYPE);
+        uint32_t bpf_attach_type = section_info[i].bpf_attach_type;
+        status = ZwSetValueKey(section_handle, &value_name, 0, REG_DWORD, &bpf_attach_type, sizeof(uint32_t));
         if (!NT_SUCCESS(status)) {
             ZwClose(section_handle);
             goto Exit;
