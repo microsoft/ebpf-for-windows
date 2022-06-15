@@ -485,7 +485,7 @@ _clear_ebpf_store(HKEY root_registry_key)
     uint32_t status;
 
     // Open root registry key.
-    status = _open_registry_key(root_registry_key, EBPF_ROOT_REGISTRY_PATH, REG_CREATE_FLAGS, &root_handle);
+    status = _open_registry_key(root_registry_key, EBPF_ROOT_RELATIVE_PATH, REG_CREATE_FLAGS, &root_handle);
     if (status != ERROR_SUCCESS) {
         if (status == ERROR_FILE_NOT_FOUND) {
             status = ERROR_SUCCESS;

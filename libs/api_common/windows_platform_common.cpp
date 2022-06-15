@@ -580,10 +580,10 @@ _load_program_data_information(HKEY program_data_key, _In_ const wchar_t* progra
             program_information.count_of_helpers = helper_count;
         }
 
-#pragma warning(push)
-#pragma warning(disable : 26495) // EbpfProgramType does not initialize member variables.
+        // #pragma warning(push)
+        // #pragma warning(disable : 26495) // EbpfProgramType does not initialize member variables.
         _windows_program_types.insert(std::pair<ebpf_program_type_t, EbpfProgramType>(*program_type, program_data));
-#pragma warning(pop)
+        // #pragma warning(pop)
 
         _windows_program_information.insert(
             std::pair<ebpf_program_type_t, ebpf_program_info_t>(*program_type, program_information));
