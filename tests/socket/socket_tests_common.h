@@ -24,6 +24,7 @@ typedef struct _connection_tuple
     ip_address_t dst_ip;
     uint16_t dst_port;
     uint32_t protocol;
+    uint64_t interface_luid;
 } connection_tuple_t;
 
 typedef struct _audit_entry
