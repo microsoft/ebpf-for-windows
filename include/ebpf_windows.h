@@ -14,6 +14,7 @@ typedef uint8_t GUID[16];
 // ANUSA: TODO: Temporarily adding the registry defines here. Decide on a good place for them.
 
 #define EBPF_ROOT_REGISTRY_PATH L"\\Registry\\Machine\\Software\\eBPF"
+#define EBPF_ROOT_RELATIVE_PATH L"Software\\eBPF"
 #define EBPF_STORE_REGISTRY_PATH L"Software\\eBPF\\Providers"
 
 #define EBPF_PROVIDERS_REGISTRY_PATH L"Providers"

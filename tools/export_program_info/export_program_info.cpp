@@ -108,7 +108,7 @@ _open_or_create_provider_registry_key(_Out_ HKEY* provider_handle)
     *provider_handle = nullptr;
 
     // Open (or create) root eBPF registry path.
-    status = _create_registry_key(_root_registry_key, EBPF_ROOT_REGISTRY_PATH, REG_CREATE_FLAGS, &root_handle);
+    status = _create_registry_key(_root_registry_key, EBPF_ROOT_RELATIVE_PATH, REG_CREATE_FLAGS, &root_handle);
     if (status != ERROR_SUCCESS) {
         goto Exit;
     }
