@@ -193,10 +193,10 @@ typedef struct _ebpf_map_metadata_table
     void (*delete_map)(_In_ ebpf_core_map_t* map);
     ebpf_result_t (*associate_program)(_In_ ebpf_map_t* map, _In_ const ebpf_program_t* program);
     ebpf_result_t (*find_entry)(
-        _In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_ bool delete_on_success, _Outptr_ uint8_t** data);
+        _In_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, _In_ bool delete_on_success, _Outptr_ uint8_t** data);
     ebpf_core_object_t* (*get_object_from_entry)(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key);
     ebpf_result_t (*update_entry)(
-        _In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_ const uint8_t* value, ebpf_map_option_t option);
+        _In_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, _In_ const uint8_t* value, ebpf_map_option_t option);
     ebpf_result_t (*update_entry_with_handle)(
         _In_ ebpf_core_map_t* map, _In_ const uint8_t* key, uintptr_t value_handle, ebpf_map_option_t option);
     ebpf_result_t (*update_entry_per_cpu)(
@@ -298,7 +298,7 @@ _find_array_map_entry(
 
 static ebpf_result_t
 _update_array_map_entry(
-    _In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_opt_ const uint8_t* data, ebpf_map_option_t option)
+    _In_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, _In_opt_ const uint8_t* data, ebpf_map_option_t option)
 {
     uint32_t key_value;
 
@@ -987,7 +987,7 @@ _get_object_from_hash_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* k
 
 static ebpf_result_t
 _update_hash_map_entry(
-    _In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_opt_ const uint8_t* data, ebpf_map_option_t option)
+    _In_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, _In_opt_ const uint8_t* data, ebpf_map_option_t option)
 {
     ebpf_result_t result;
     size_t entry_count = 0;
@@ -1284,9 +1284,12 @@ _find_lpm_map_entry(
 
 static ebpf_result_t
 _update_lpm_map_entry(
-    _In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_opt_ const uint8_t* data, ebpf_map_option_t option)
+    _In_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, _In_opt_ const uint8_t* data, ebpf_map_option_t option)
 {
     ebpf_core_lpm_map_t* trie_map = EBPF_FROM_FIELD(ebpf_core_lpm_map_t, core_map, map);
+    if (!key) {
+        return EBPF_INVALID_ARGUMENT;
+    }
     uint32_t prefix_length = *(uint32_t*)key;
     if (prefix_length > trie_map->max_prefix) {
         return EBPF_INVALID_ARGUMENT;
@@ -1368,7 +1371,7 @@ _find_circular_map_entry(
 
 static ebpf_result_t
 _update_circular_map_entry(
-    _In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_opt_ const uint8_t* data, ebpf_map_option_t option)
+    _In_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, _In_opt_ const uint8_t* data, ebpf_map_option_t option)
 {
     ebpf_result_t result;
 
