@@ -8,11 +8,12 @@
 #include <stdint.h>
 
 #include "ebpf_platform.h"
+#include "ebpf_structs.h"
 
 #include "sample_ext_helpers.h"
 
 #define SAMPLE_EXT_HELPER_FUNCTION_START EBPF_MAX_GENERAL_HELPER_FUNCTION
-#define BPF_PROGRAM_TYPE_SAMPLE 999
+// #define BPF_PROGRAM_TYPE_SAMPLE 999
 
 static ebpf_context_descriptor_t _sample_ebpf_context_descriptor = {
     sizeof(sample_program_context_t),
@@ -43,6 +44,6 @@ static ebpf_helper_function_prototype_t _sample_ebpf_extension_helper_function_p
       EBPF_ARGUMENT_TYPE_CONST_SIZE}}};
 
 static ebpf_program_info_t _sample_ebpf_extension_program_info = {
-    {"sample", &_sample_ebpf_context_descriptor, {0}, BPF_PROGRAM_TYPE_SAMPLE},
+    {"sample", &_sample_ebpf_context_descriptor, {0}, BPF_PROG_TYPE_SAMPLE},
     EBPF_COUNT_OF(_sample_ebpf_extension_helper_function_prototype),
     _sample_ebpf_extension_helper_function_prototype};

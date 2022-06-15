@@ -15,6 +15,7 @@
 #include "ebpf_platform.h"
 #include "ebpf_program_types.h"
 #include "ebpf_store_helper.h"
+#include "ebpf_structs.h"
 
 #include "sample_ext_program_info.h"
 #include "sample_ext_helpers.h"
@@ -312,8 +313,12 @@ _sample_ebpf_extension_update_store_entries()
     NTSTATUS status;
 
     // Update section information.
-    ebpf_store_section_info_t section_info = {L"sample_ext", EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE};
-
+    ebpf_program_section_info_t section_info = {
+        L"sample_ext",
+        (GUID*)&EBPF_PROGRAM_TYPE_SAMPLE,
+        (GUID*)&EBPF_ATTACH_TYPE_SAMPLE,
+        BPF_PROG_TYPE_SAMPLE,
+        BPF_ATTACH_TYPE_SAMPLE};
     status = ebpf_store_update_section_information(&section_info, 1);
     if (!NT_SUCCESS(status)) {
         return status;

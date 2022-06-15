@@ -5,6 +5,7 @@
 #include <codecvt>
 #include <stdio.h>
 #include <vector>
+#include <map>
 
 #include "ebpf_api.h"
 #include "ebpf_nethooks.h"
@@ -13,42 +14,19 @@
 
 #include "ebpf_general_helpers.c"
 
-#define SOFTWARE_REGISTRY_PATH L"Software"
-#define EBPF_ROOT_REGISTRY_PATH L"Software\\eBPF"
-
-#define EBPF_PROVIDERS_REGISTRY_PATH L"Providers"
-#define EBPF_SECTIONS_REGISTRY_PATH L"SectionData"
-#define EBPF_PROGRAM_DATA_REGISTRY_PATH L"ProgramData"
-#define EBPF_PROGRAM_DATA_HELPERS_REGISTRY_PATH L"Helpers"
-#define EBPF_GLOBAL_HELPERS_REGISTRY_PATH L"GlobalHelpers"
-
-#define EBPF_SECTION_DATA_PROGRAM_TYPE L"ProgramType"
-#define EBPF_SECTION_DATA_ATTACH_TYPE L"AttachType"
-#define EBPF_SECTION_DATA_BPF_ATTACH_TYPE L"BpfAttachType"
-
-#define EBPF_PROGRAM_DATA_NAME L"Name"
-#define EBPF_PROGRAM_DATA_CONTEXT_DESCRIPTOR L"ContextDescriptor"
-#define EBPF_PROGRAM_DATA_PLATFORM_SPECIFIC_DATA L"PlatformSpecificData"
-#define EBPF_PROGRAM_DATA_PRIVELEGED L"IsPrivileged"
-#define EBPF_PROGRAM_DATA_BPF_PROG_TYPE L"BpfProgType"
-#define EBPF_PROGRAM_DATA_HELPER_COUNT L"HelperCount"
-
-#define EBPF_HELPER_DATA_PROTOTYPE L"Prototype"
-
 #define REG_CREATE_FLAGS (KEY_WRITE | DELETE | KEY_READ)
 #define REG_OPEN_FLAGS (DELETE | KEY_READ)
 
-static HKEY _root_registry_key = HKEY_LOCAL_MACHINE;
+// TODO: Issue #XYZ Change to using HKEY_LOCAL_MACHINE
+static HKEY _root_registry_key = HKEY_CURRENT_USER;
 
-// TODO: Do not redefine this struct here and reuse from the store header file.
-typedef struct _ebpf_store_section_info
+#define SIZE_OF_ARRAY(x) (sizeof(x) / sizeof(x[0]))
+
+typedef struct _ebpf_program_section_info_with_count
 {
-    const wchar_t* section_name;
-    ebpf_program_type_t program_type;
-    ebpf_attach_type_t attach_type;
-    uint32_t bpf_program_type;
-    uint32_t bpf_attach_type;
-} ebpf_store_section_info_t;
+    ebpf_program_section_info_t* section_info;
+    size_t section_info_count;
+} ebpf_program_section_info_with_count_t;
 
 static ebpf_program_info_t* program_information_array[] = {
     &_ebpf_bind_program_info,
@@ -57,36 +35,15 @@ static ebpf_program_info_t* program_information_array[] = {
     &_ebpf_xdp_program_info,
     &_sample_ebpf_extension_program_info};
 
-// TODO: Instead of redefining the section information here, try to reuse these from the extension driver helpers.
-static ebpf_store_section_info_t section_information[] = {
-    {L"bind", EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND, BPF_PROG_TYPE_BIND, BPF_ATTACH_TYPE_BIND},
-    {L"cgroup/connect4",
-     EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR,
-     EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT,
-     BPF_PROG_TYPE_CGROUP_SOCK_ADDR,
-     BPF_CGROUP_INET4_CONNECT},
-    {L"cgroup/connect6",
-     EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR,
-     EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT,
-     BPF_PROG_TYPE_CGROUP_SOCK_ADDR,
-     BPF_CGROUP_INET6_CONNECT},
-    {L"cgroup/recv_accept4",
-     EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR,
-     EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT,
-     BPF_PROG_TYPE_CGROUP_SOCK_ADDR,
-     BPF_CGROUP_INET4_RECV_ACCEPT},
-    {L"cgroup/recv_accept6",
-     EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR,
-     EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT,
-     BPF_PROG_TYPE_CGROUP_SOCK_ADDR,
-     BPF_CGROUP_INET6_RECV_ACCEPT},
-    {L"sockops",
-     EBPF_PROGRAM_TYPE_SOCK_OPS,
-     EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS,
-     BPF_PROG_TYPE_SOCK_OPS,
-     BPF_CGROUP_SOCK_OPS},
-    {L"xdp", EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP, BPF_PROG_TYPE_XDP, BPF_XDP},
-    {L"sample_ext", EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE, BPF_PROG_TYPE_SAMPLE, BPF_ATTACH_TYPE_SAMPLE},
+ebpf_program_section_info_t _sample_ext_section_info[] = {
+    {L"sample_ext", &EBPF_PROGRAM_TYPE_SAMPLE, &EBPF_ATTACH_TYPE_SAMPLE, BPF_PROG_TYPE_SAMPLE, BPF_ATTACH_TYPE_SAMPLE}};
+
+static std::vector<ebpf_program_section_info_with_count_t> _section_information = {
+    {&_ebpf_bind_section_info[0], SIZE_OF_ARRAY(_ebpf_bind_section_info)},
+    {&_ebpf_xdp_section_info[0], SIZE_OF_ARRAY(_ebpf_xdp_section_info)},
+    {&_ebpf_sock_addr_section_info[0], SIZE_OF_ARRAY(_ebpf_sock_addr_section_info)},
+    {&_ebpf_sock_ops_section_info[0], SIZE_OF_ARRAY(_ebpf_sock_ops_section_info)},
+    {&_sample_ext_section_info[0], SIZE_OF_ARRAY(_sample_ext_section_info)},
 };
 
 static std::wstring
@@ -115,7 +72,7 @@ _write_registry_value_binary(
 }
 
 static uint32_t
-_write_registry_value_string(_In_ HKEY key, _In_ const wchar_t* value_name, _In_ const wchar_t* value)
+_write_registry_value_string(_In_ HKEY key, _In_ const wchar_t* value_name, _In_z_ const wchar_t* value)
 {
     assert(value_name);
     assert(value);
@@ -340,7 +297,7 @@ Exit:
 
 static __forceinline NTSTATUS
 ebpf_store_update_section_information(
-    _In_reads_(section_info_count) ebpf_store_section_info_t* section_info, uint32_t section_info_count)
+    _In_reads_(section_info_count) ebpf_program_section_info_t* section_info, uint32_t section_info_count)
 {
     uint32_t status = ERROR_SUCCESS;
     HKEY provider_handle = NULL;
@@ -375,7 +332,7 @@ ebpf_store_update_section_information(
         status = _write_registry_value_binary(
             section_handle,
             EBPF_SECTION_DATA_PROGRAM_TYPE,
-            (uint8_t*)&section_info[i].program_type,
+            (uint8_t*)section_info[i].program_type,
             sizeof(ebpf_program_type_t));
         if (status != ERROR_SUCCESS) {
             RegCloseKey(section_handle);
@@ -386,7 +343,7 @@ ebpf_store_update_section_information(
         status = _write_registry_value_binary(
             section_handle,
             EBPF_SECTION_DATA_ATTACH_TYPE,
-            (uint8_t*)&section_info[i].attach_type,
+            (uint8_t*)section_info[i].attach_type,
             sizeof(ebpf_attach_type_t));
         if (status != ERROR_SUCCESS) {
             RegCloseKey(section_handle);
@@ -502,8 +459,15 @@ Exit:
 uint32_t
 export_all_section_information()
 {
-    size_t array_size = sizeof(section_information) / sizeof(section_information[0]);
-    return ebpf_store_update_section_information(section_information, (uint32_t)array_size);
+    uint32_t status = ERROR_SUCCESS;
+    for (const auto& section : _section_information) {
+        status = ebpf_store_update_section_information(section.section_info, (uint32_t)section.section_info_count);
+        if (status != ERROR_SUCCESS) {
+            break;
+        }
+    }
+
+    return status;
 }
 
 int
@@ -563,8 +527,8 @@ Exit:
 void
 _clear_all_ebpf_stores()
 {
-    std::cout << "Clearing eBPF store HKEY_LOCAL_MACHINE" << std::endl;
-    _clear_ebpf_store(HKEY_LOCAL_MACHINE);
+    // std::cout << "Clearing eBPF store HKEY_LOCAL_MACHINE" << std::endl;
+    // _clear_ebpf_store(HKEY_LOCAL_MACHINE);
     std::cout << "Clearing eBPF store HKEY_CURRENT_USER" << std::endl;
     _clear_ebpf_store(HKEY_CURRENT_USER);
 }
