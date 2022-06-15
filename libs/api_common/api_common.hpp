@@ -160,6 +160,12 @@ get_global_program_type();
 const ebpf_attach_type_t*
 get_global_attach_type();
 
+void
+set_verification_in_progress(bool value);
+
+bool
+get_verification_in_progress();
+
 /**
  * @brief Save handle to program being verified in thread-local storage.
  *

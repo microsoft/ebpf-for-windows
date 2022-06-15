@@ -240,15 +240,25 @@ main(int argc, char** argv)
         for (const auto& section : sections) {
             ebpf_program_type_t program_type;
             ebpf_attach_type_t attach_type;
-            if (ebpf_get_program_type_by_name(section.raw().c_str(), &program_type, &attach_type) != EBPF_SUCCESS) {
-                throw std::runtime_error(std::string("Cannot get program / attach type for section ") + section.raw());
+            // TODO: Issue #1172
+            // Workaround: If querying the program and attach type fails, default it to XDP until Issue #1172
+            // is fixed.
+            if (ebpf_get_program_type_by_name(section.c_str(), &program_type, &attach_type) != EBPF_SUCCESS) {
+                program_type = EBPF_PROGRAM_TYPE_XDP;
+                attach_type = EBPF_ATTACH_TYPE_XDP;
             }
             const char* report = nullptr;
             const char* error_message = nullptr;
             ebpf_api_verifier_stats_t stats;
-            if (verify_programs &&
-                ebpf_api_elf_verify_section_from_memory(
-                    data.c_str(), data.size(), section.raw().c_str(), false, &report, &error_message, &stats) != 0) {
+            if (verify_programs && ebpf_api_elf_verify_section_from_memory(
+                                       data.c_str(),
+                                       data.size(),
+                                       section.c_str(),
+                                       &program_type,
+                                       false,
+                                       &report,
+                                       &error_message,
+                                       &stats) != 0) {
                 report = ((report == nullptr) ? "" : report);
                 throw std::runtime_error(
                     std::string("Verification failed for ") + section.raw() + std::string(" with error ") +

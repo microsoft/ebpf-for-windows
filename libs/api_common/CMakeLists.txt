@@ -16,6 +16,9 @@ add_library("api_common" STATIC
 
   device_helper.hpp
   device_helper.cpp
+
+  utilities.hpp
+  utilities.cpp
 )
 
 target_include_directories("api_common" PRIVATE

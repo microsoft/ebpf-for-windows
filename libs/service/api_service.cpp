@@ -274,6 +274,7 @@ ebpf_verify_and_load_program(
         }
 
         // Verify the program.
+        set_verification_in_progress(true);
         result = verify_byte_code(program_type, instructions, instruction_count, error_message, error_message_size);
         if (result != EBPF_SUCCESS) {
             goto Exit;
