@@ -285,6 +285,8 @@ enum bpf_attach_type
     __MAX_BPF_ATTACH_TYPE,
 };
 
+typedef enum bpf_attach_type bpf_attach_type_t;
+
 // Libbpf itself requires the following structs to be defined, but doesn't
 // care what fields they have.  Applications such as bpftool on the other
 // hand depend on fields of specific names and types.

@@ -12,6 +12,7 @@
 #include "map_descriptors.hpp"
 #include "platform.hpp"
 #include "spec_type_descriptors.hpp"
+#include "utilities.hpp"
 #include "windows_program_type.h"
 #include "windows_platform.hpp"
 
@@ -21,7 +22,7 @@ get_program_type_windows(const GUID& program_type)
     // TODO: (Issue #67) Make an IOCTL call to fetch the program context
     //       info and then fill the EbpfProgramType struct.
     for (const EbpfProgramType& t : windows_program_types) {
-        if (t.platform_specific_data != 0) {
+        if (t.platform_specific_data != (uint64_t)&EBPF_PROGRAM_TYPE_UNSPECIFIED) {
             ebpf_program_type_t* program_type_uuid = (ebpf_program_type_t*)t.platform_specific_data;
             if (IsEqualGUID(*program_type_uuid, program_type)) {
                 return t;
@@ -29,7 +30,8 @@ get_program_type_windows(const GUID& program_type)
         }
     }
 
-    return windows_xdp_program_type;
+    auto guid_string = guid_to_string(&program_type);
+    throw std::runtime_error(std::string("ProgramType not found for GUID ") + guid_string);
 }
 
 EbpfProgramType
@@ -42,7 +44,7 @@ get_program_type_windows(const std::string& section, const std::string&)
     //       prefixes and corresponding program and attach types.
     for (const EbpfProgramType& t : windows_program_types) {
         if (program_type != nullptr) {
-            if (t.platform_specific_data != 0) {
+            if (t.platform_specific_data != (uint64_t)&EBPF_PROGRAM_TYPE_UNSPECIFIED) {
                 ebpf_program_type_t* program_type_uuid = (ebpf_program_type_t*)t.platform_specific_data;
                 if (IsEqualGUID(*program_type_uuid, *program_type)) {
                     return t;
@@ -56,7 +58,28 @@ get_program_type_windows(const std::string& section, const std::string&)
         }
     }
 
-    return windows_xdp_program_type;
+    // Note: Ideally this function should throw an exception whenever a matching ProgramType is not found,
+    // but that causes a problem in the following scenario:
+    //
+    // This function is called by verifier code in 2 cases:
+    //   1. When verifying the code
+    //   2. When parsing the ELF file and unmarshalling the code.
+    // For the second case mentioned above, if the ELF file contains an unknown section name (".text", for example),
+    // and this function is called while unmarshalling that section, throwing an exception here
+    // will fail the parsing of the ELF file.
+    //
+    // Hence this function returns ProgramType for EBPF_PROGRAM_TYPE_UNSPECIFIED when verification is not
+    // in progress, and throws an exception otherwise.
+    if (get_verification_in_progress()) {
+        if (program_type != nullptr) {
+            auto guid_string = guid_to_string(program_type);
+            throw std::runtime_error(std::string("ProgramType not found for GUID ") + guid_string);
+        } else {
+            throw std::runtime_error(std::string("ProgramType not found for section " + section));
+        }
+    }
+
+    return windows_unspecified_program_type;
 }
 
 #define BPF_MAP_TYPE(x) BPF_MAP_TYPE_##x, #x

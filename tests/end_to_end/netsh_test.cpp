@@ -97,7 +97,7 @@ TEST_CASE("show sections bpf.o", "[netsh][sections]")
                   "                                    Size\n"
                   "             Section       Type  (bytes)\n"
                   "====================  =========  =======\n"
-                  "               .text        xdp       16\n"
+                  "               .text     unspec       16\n"
                   "\n"
                   "                     Key  Value      Max\n"
                   "          Map Type  Size   Size  Entries  Name\n"
@@ -113,7 +113,7 @@ TEST_CASE("show sections bpf.o .text", "[netsh][sections]")
     REQUIRE(
         output == "\n"
                   "Section      : .text\n"
-                  "Program Type : xdp\n"
+                  "Program Type : unspec\n"
                   "Size         : 16 bytes\n"
                   "Instructions : 2\n"
                   "adjust_head  : 0\n"

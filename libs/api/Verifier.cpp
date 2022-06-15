@@ -528,27 +528,37 @@ _ebpf_api_elf_verify_section_from_stream(
 
 uint32_t
 ebpf_api_elf_verify_section_from_file(
-    const char* file,
-    const char* section,
+    _In_z_ const char* file,
+    _In_z_ const char* section,
+    _In_opt_ const ebpf_program_type_t* program_type,
     bool verbose,
     const char** report,
     const char** error_message,
     ebpf_api_verifier_stats_t* stats)
 {
     std::ifstream stream{file, std::ios::in | std::ios::binary};
+    struct _thread_local_storage_cache tls_cache;
+
+    set_global_program_and_attach_type(program_type, nullptr);
+    set_verification_in_progress(true);
     return _ebpf_api_elf_verify_section_from_stream(stream, file, section, verbose, report, error_message, stats);
 }
 
 uint32_t
 ebpf_api_elf_verify_section_from_memory(
-    const char* data,
+    _In_reads_(data_length) const char* data,
     size_t data_length,
-    const char* section,
+    _In_z_ const char* section,
+    _In_opt_ const ebpf_program_type_t* program_type,
     bool verbose,
     const char** report,
     const char** error_message,
     ebpf_api_verifier_stats_t* stats)
 {
     std::stringstream stream(std::string(data, data_length));
+    struct _thread_local_storage_cache tls_cache;
+
+    set_global_program_and_attach_type(program_type, nullptr);
+    set_verification_in_progress(true);
     return _ebpf_api_elf_verify_section_from_stream(stream, "memory", section, verbose, report, error_message, stats);
 }
