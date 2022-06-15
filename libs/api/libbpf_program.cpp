@@ -30,6 +30,8 @@ _get_ebpf_program_type(enum bpf_prog_type type)
     case BPF_PROG_TYPE_SOCK_OPS:
         program_type = &EBPF_PROGRAM_TYPE_SOCK_OPS;
         break;
+    case BPF_PROG_TYPE_SAMPLE:
+        program_type = &EBPF_PROGRAM_TYPE_SAMPLE;
     }
     return program_type;
 }
