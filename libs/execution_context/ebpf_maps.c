@@ -1283,6 +1283,18 @@ _find_lpm_map_entry(
 }
 
 static ebpf_result_t
+_delete_lpm_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
+{
+    ebpf_core_lpm_map_t* trie_map = EBPF_FROM_FIELD(ebpf_core_lpm_map_t, core_map, map);
+    uint32_t prefix_length = *(uint32_t*)key;
+    if (prefix_length > trie_map->max_prefix) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    return _delete_hash_map_entry(map, key);
+}
+
+static ebpf_result_t
 _update_lpm_map_entry(
     _In_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_opt_ const uint8_t* data, ebpf_map_option_t option)
 {
@@ -1741,7 +1753,7 @@ ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
         _update_lpm_map_entry,
         NULL,
         NULL,
-        _delete_hash_map_entry,
+        _delete_lpm_map_entry,
         _next_hash_map_key,
         false, // Zero length key.
         false, // Zero length value.
