@@ -8,6 +8,7 @@ using namespace std::chrono_literals;
 
 #include "bpf/bpf.h"
 #include "catch_wrapper.hpp"
+#include "api_common.hpp"
 #include "api_internal.h"
 #include "bpf2c.h"
 #include "ebpf_async.h"
@@ -566,6 +567,8 @@ _test_helper_end_to_end::~_test_helper_end_to_end()
 
     // Change back to original value.
     _ebpf_platform_is_preemptible = true;
+
+    set_verification_in_progress(false);
 }
 
 _test_helper_libbpf::_test_helper_libbpf()

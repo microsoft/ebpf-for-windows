@@ -153,6 +153,7 @@
     <ClCompile Include="device_helper.cpp" />
     <ClCompile Include="map_descriptors.cpp" />
     <ClCompile Include="api_common.cpp" />
+    <ClCompile Include="utilities.cpp" />
     <ClCompile Include="windows_helpers.cpp" />
     <ClCompile Include="windows_platform_common.cpp" />
   </ItemGroup>
@@ -161,6 +162,7 @@
     <ClInclude Include="api_common.hpp" />
     <ClInclude Include="tlv.h" />
     <ClInclude Include="device_helper.hpp" />
+    <ClInclude Include="utilities.hpp" />
     <ClInclude Include="windows_platform_common.hpp" />
     <ClInclude Include="windows_program_type.h" />
   </ItemGroup>

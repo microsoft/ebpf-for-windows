@@ -31,6 +31,7 @@ extern "C"
 {
 #include "ubpf.h"
 }
+#include "utilities.hpp"
 #include "Verifier.h"
 #include "windows_platform_common.hpp"
 
@@ -1578,11 +1579,8 @@ _initialize_ebpf_object_from_native_file(
         }
 
         program->handle = ebpf_handle_invalid;
-
-        result = ebpf_get_program_type_by_name(info->program_type_name, &program->program_type, &program->attach_type);
-        if (result != EBPF_SUCCESS) {
-            goto Exit;
-        }
+        program->program_type = info->program_type;
+        program->attach_type = info->expected_attach_type;
 
         program->section_name = _strdup(info->section_name);
         if (program->section_name == nullptr) {
@@ -1788,6 +1786,7 @@ typedef struct _ebpf_pe_context
     std::map<std::string, std::string> section_names;
     std::map<std::string, std::string> program_names;
     std::map<std::string, GUID> section_program_types;
+    std::map<std::string, GUID> section_attach_types;
     uintptr_t rdata_base;
     size_t rdata_size;
     const bounded_buffer* rdata_buffer;
@@ -1960,6 +1959,13 @@ _ebpf_pe_get_section_names(
                 program_type_guid_address < pe_context->data_base + pe_context->data_size);
             uintptr_t offset = program_type_guid_address - pe_context->data_base;
             pe_context->section_program_types[pe_section_name] = *(GUID*)(pe_context->data_buffer->buf + offset);
+
+            uintptr_t attach_type_guid_address = (uintptr_t)program->expected_attach_type;
+            ebpf_assert(
+                attach_type_guid_address >= pe_context->data_base &&
+                attach_type_guid_address < pe_context->data_base + pe_context->data_size);
+            offset = attach_type_guid_address - pe_context->data_base;
+            pe_context->section_attach_types[pe_section_name] = *(GUID*)(pe_context->data_buffer->buf + offset);
         }
     }
 
@@ -1999,11 +2005,18 @@ _ebpf_pe_add_section(
         EBPF_LOG_EXIT();
         return 1;
     }
+
     memset(info, 0, sizeof(*info));
     info->section_name = _strdup(elf_section_name.c_str());
     info->program_name = _strdup(program_name.c_str());
-    info->program_type_name =
-        _strdup(get_program_type_windows(pe_context->section_program_types[pe_section_name]).name.c_str());
+    info->program_type = pe_context->section_program_types[pe_section_name];
+    info->expected_attach_type = pe_context->section_attach_types[pe_section_name];
+    info->program_type_name = ebpf_get_program_type_name(&pe_context->section_program_types[pe_section_name]);
+    if (info->program_type_name == nullptr) {
+        EBPF_LOG_EXIT();
+        return 1;
+    }
+    info->program_type_name = _strdup(info->program_type_name);
     info->raw_data_size = section_header.Misc.VirtualSize;
     info->raw_data = (char*)malloc(section_header.Misc.VirtualSize);
     if (info->raw_data == nullptr || info->program_type_name == nullptr || info->section_name == nullptr) {
@@ -2715,30 +2728,6 @@ Done:
     EBPF_RETURN_RESULT(result);
 }
 
-std::wstring
-_guid_to_wide_string(_In_ const GUID* guid)
-{
-    ebpf_assert(guid);
-    wchar_t guid_string[37] = {0};
-    swprintf(
-        guid_string,
-        sizeof(guid_string) / sizeof(guid_string[0]),
-        L"%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x",
-        guid->Data1,
-        guid->Data2,
-        guid->Data3,
-        guid->Data4[0],
-        guid->Data4[1],
-        guid->Data4[2],
-        guid->Data4[3],
-        guid->Data4[4],
-        guid->Data4[5],
-        guid->Data4[6],
-        guid->Data4[7]);
-
-    return std::wstring(guid_string);
-}
-
 static ebpf_result_t
 _ebpf_program_load_native(
     _In_z_ const char* file_name,
@@ -2790,7 +2779,7 @@ _ebpf_program_load_native(
 
     try {
         // Create a driver service with a random name.
-        service_name = _guid_to_wide_string(&service_name_guid);
+        service_name = guid_to_wide_string(&service_name_guid);
 
         error = Platform::_create_service(
             service_name.c_str(), _get_wstring_from_string(file_name_string).c_str(), &service_handle);
@@ -3197,18 +3186,29 @@ ebpf_result_t
 ebpf_get_program_type_by_name(
     _In_z_ const char* name, _Out_ ebpf_program_type_t* program_type, _Out_ ebpf_attach_type_t* expected_attach_type)
 {
+    ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_program_type_t* program_type_uuid;
     EBPF_LOG_ENTRY();
     ebpf_assert(name);
     ebpf_assert(program_type);
     ebpf_assert(expected_attach_type);
 
-    EbpfProgramType type = get_program_type_windows(name, name);
-    ebpf_program_type_t* program_type_uuid = (ebpf_program_type_t*)type.platform_specific_data;
+    try {
+        const EbpfProgramType& type = get_program_type_windows(name, name);
+        if (IsEqualGUID(*((ebpf_program_type_t*)type.platform_specific_data), EBPF_PROGRAM_TYPE_UNSPECIFIED)) {
+            result = EBPF_KEY_NOT_FOUND;
+            goto Exit;
+        }
+        program_type_uuid = (ebpf_program_type_t*)type.platform_specific_data;
 
-    *program_type = *program_type_uuid;
-    *expected_attach_type = *(get_attach_type_windows(name));
+        *program_type = *program_type_uuid;
+        *expected_attach_type = *(get_attach_type_windows(name));
+    } catch (...) {
+        result = EBPF_KEY_NOT_FOUND;
+    }
 
-    EBPF_RETURN_RESULT(EBPF_SUCCESS);
+Exit:
+    EBPF_RETURN_RESULT(result);
 }
 
 _Ret_maybenull_z_ const char*
@@ -3216,8 +3216,12 @@ ebpf_get_program_type_name(_In_ const ebpf_program_type_t* program_type)
 {
     EBPF_LOG_ENTRY();
     ebpf_assert(program_type);
-    const EbpfProgramType& type = get_program_type_windows(*program_type);
-    EBPF_RETURN_POINTER(const char*, type.name.c_str());
+    try {
+        const EbpfProgramType& type = get_program_type_windows(*program_type);
+        EBPF_RETURN_POINTER(const char*, type.name.c_str());
+    } catch (...) {
+        return nullptr;
+    }
 }
 
 _Ret_maybenull_z_ const char*
