@@ -251,7 +251,8 @@ wfp_ale_layer_fields_t wfp_connection_fields[] = {
      FWPS_FIELD_ALE_AUTH_CONNECT_V4_IP_REMOTE_PORT,
      FWPS_FIELD_ALE_AUTH_CONNECT_V4_IP_PROTOCOL,
      0, // No direction field in this layer.
-     FWPS_FIELD_ALE_AUTH_CONNECT_V4_COMPARTMENT_ID},
+     FWPS_FIELD_ALE_AUTH_CONNECT_V4_COMPARTMENT_ID,
+     FWPS_FIELD_ALE_AUTH_CONNECT_V4_IP_LOCAL_INTERFACE},
 
     // EBPF_HOOK_ALE_AUTH_CONNECT_V6
     {FWPS_FIELD_ALE_AUTH_CONNECT_V6_IP_LOCAL_ADDRESS,
@@ -260,7 +261,8 @@ wfp_ale_layer_fields_t wfp_connection_fields[] = {
      FWPS_FIELD_ALE_AUTH_CONNECT_V6_IP_REMOTE_PORT,
      FWPS_FIELD_ALE_AUTH_CONNECT_V6_IP_PROTOCOL,
      0, // No direction field in this layer.
-     FWPS_FIELD_ALE_AUTH_CONNECT_V6_COMPARTMENT_ID},
+     FWPS_FIELD_ALE_AUTH_CONNECT_V6_COMPARTMENT_ID,
+     FWPS_FIELD_ALE_AUTH_CONNECT_V6_IP_LOCAL_INTERFACE},
 
     // EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V4
     {FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_LOCAL_ADDRESS,
@@ -269,7 +271,8 @@ wfp_ale_layer_fields_t wfp_connection_fields[] = {
      FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_REMOTE_PORT,
      FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_PROTOCOL,
      0, // No direction field in this layer.
-     FWPS_FIELD_ALE_AUTH_CONNECT_V4_COMPARTMENT_ID},
+     FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_COMPARTMENT_ID,
+     FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_LOCAL_INTERFACE},
 
     // EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V6
     {FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_IP_LOCAL_ADDRESS,
@@ -278,7 +281,8 @@ wfp_ale_layer_fields_t wfp_connection_fields[] = {
      FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_IP_REMOTE_PORT,
      FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_IP_PROTOCOL,
      0, // No direction field in this layer.
-     FWPS_FIELD_ALE_AUTH_CONNECT_V6_COMPARTMENT_ID}};
+     FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_COMPARTMENT_ID,
+     FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_IP_LOCAL_INTERFACE}};
 
 static void
 _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
@@ -321,6 +325,7 @@ _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
     sock_addr_ctx->user_port = htons(incoming_values[destination_port_field].value.uint16);
     sock_addr_ctx->protocol = incoming_values[fields->protocol_field].value.uint8;
     sock_addr_ctx->compartment_id = incoming_values[fields->compartment_id_field].value.uint32;
+    sock_addr_ctx->interface_luid = *incoming_values[fields->interface_luid_field].value.uint64;
 }
 
 //
