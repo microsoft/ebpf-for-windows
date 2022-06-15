@@ -293,59 +293,65 @@ verify_invalid_opcode_sequence(const std::vector<ebpf_inst>& instructions, const
 TEST_CASE("BE/LE", "[raw_bpf_code_gen][negative]")
 {
     // EBPF_OP_LE/EBPF_OP_BE only supports imm == {16,32,64}
-    verify_invalid_opcode_sequence({{EBPF_OP_LE, 0, 0, 0, 15}}, "invalid operand");
-    verify_invalid_opcode_sequence({{EBPF_OP_BE, 0, 0, 0, 15}}, "invalid operand");
+    verify_invalid_opcode_sequence({{EBPF_OP_LE, 0, 0, 0, 15}}, "invalid operand at offset 0");
+    verify_invalid_opcode_sequence({{EBPF_OP_BE, 0, 0, 0, 15}}, "invalid operand at offset 0");
 }
 
 TEST_CASE("div/mod by imm 0", "[raw_bpf_code_gen][negative]")
 {
     // Division by immediate value of 0 is invalid.
-    verify_invalid_opcode_sequence({{EBPF_OP_DIV_IMM, 0, 0, 0, 0}}, "invalid instruction - constant division by zero");
-    verify_invalid_opcode_sequence({{EBPF_OP_MOD_IMM, 0, 0, 0, 0}}, "invalid instruction - constant division by zero");
+    verify_invalid_opcode_sequence(
+        {{EBPF_OP_DIV_IMM, 0, 0, 0, 0}}, "invalid instruction - constant division by zero at offset 0");
+    verify_invalid_opcode_sequence(
+        {{EBPF_OP_MOD_IMM, 0, 0, 0, 0}}, "invalid instruction - constant division by zero at offset 0");
 }
 
 TEST_CASE("unknown op-class", "[raw_bpf_code_gen][negative]")
 {
     // EBPF_CLS_JMP+1 isn't a valid op class
-    verify_invalid_opcode_sequence({{EBPF_CLS_JMP + 1, 0, 0, 0, 0}}, "invalid operand");
+    verify_invalid_opcode_sequence({{EBPF_CLS_JMP + 1, 0, 0, 0, 0}}, "invalid operand at offset 0");
 }
 
 TEST_CASE("unknown EBPF_CLS_ALU operation", "[raw_bpf_code_gen][negative]")
 {
     // EBPF_CLS_ALU + operations 0xe0 doesn't exist
-    verify_invalid_opcode_sequence({{(EBPF_CLS_ALU | EBPF_SRC_IMM | 0xe0), 0, 0, 0, 0}}, "invalid operand");
+    verify_invalid_opcode_sequence({{(EBPF_CLS_ALU | EBPF_SRC_IMM | 0xe0), 0, 0, 0, 0}}, "invalid operand at offset 0");
 }
 
 TEST_CASE("unknown EBPF_CLS_ALU64 operation", "[raw_bpf_code_gen][negative]")
 {
     // EBPF_CLS_ALU64 + operations 0xe0 doesn't exist
-    verify_invalid_opcode_sequence({{(EBPF_CLS_ALU64 | EBPF_SRC_IMM | 0xe0), 0, 0, 0, 0}}, "invalid operand");
+    verify_invalid_opcode_sequence(
+        {{(EBPF_CLS_ALU64 | EBPF_SRC_IMM | 0xe0), 0, 0, 0, 0}}, "invalid operand at offset 0");
 }
 
 TEST_CASE("unknown EBPF_CLS_LD operation", "[raw_bpf_code_gen][negative]")
 {
     // EBPF_CLS_LD is only valid with immediate and size _DW
-    verify_invalid_opcode_sequence({{(EBPF_CLS_LD | EBPF_MODE_MEM | EBPF_SIZE_DW), 0, 0, 0, 0}}, "invalid operand");
-    verify_invalid_opcode_sequence({{(EBPF_CLS_LD | EBPF_MODE_IMM | EBPF_SIZE_W), 0, 0, 0, 0}}, "invalid operand");
+    verify_invalid_opcode_sequence(
+        {{(EBPF_CLS_LD | EBPF_MODE_MEM | EBPF_SIZE_DW), 0, 0, 0, 0}}, "invalid operand at offset 0");
+    verify_invalid_opcode_sequence(
+        {{(EBPF_CLS_LD | EBPF_MODE_IMM | EBPF_SIZE_W), 0, 0, 0, 0}}, "invalid operand at offset 0");
 }
 
 TEST_CASE("malformed EBPF_CLS_LD operation", "[raw_bpf_code_gen][negative]")
 {
     // EBPF_CLS_LD is always 2 instructions wide
-    verify_invalid_opcode_sequence({{(EBPF_CLS_LD | EBPF_MODE_IMM | EBPF_SIZE_DW), 0, 0, 0, 0}}, "invalid operand");
+    verify_invalid_opcode_sequence(
+        {{(EBPF_CLS_LD | EBPF_MODE_IMM | EBPF_SIZE_DW), 0, 0, 0, 0}}, "invalid operand at offset 0");
 }
 
 TEST_CASE("EBPF_CLS_JMP invalid target", "[raw_bpf_code_gen][negative]")
 {
     // Offset > end of program
-    verify_invalid_opcode_sequence({{EBPF_OP_JA, 0, 0, 1, 0}}, "invalid jump target");
+    verify_invalid_opcode_sequence({{EBPF_OP_JA, 0, 0, 1, 0}}, "invalid jump target at offset 0");
 }
 
 TEST_CASE("EBPF_CLS_JMP invalid operation", "[raw_bpf_code_gen][negative]")
 {
     // 0xf0 is an invalid jump operation
     verify_invalid_opcode_sequence(
-        {{(EBPF_CLS_JMP | 0xf0), 0, 0, 0, 0}, {EBPF_OP_EXIT, 0, 0, 0, 0}}, "invalid operand");
+        {{(EBPF_CLS_JMP | 0xf0), 0, 0, 0, 0}, {EBPF_OP_EXIT, 0, 0, 0, 0}}, "invalid operand at offset 0");
 }
 
 TEST_CASE("invalid register", "[raw_bpf_code_gen][negative]")
