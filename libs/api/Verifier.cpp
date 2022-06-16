@@ -27,10 +27,10 @@
 thread_local static std::string _elf_everparse_error;
 
 extern "C" void
-elf_everparse_error(const char* struct_name, const char* field_name, const char* reason);
+elf_everparse_error(_In_ const char* struct_name, _In_ const char* field_name, _In_ const char* reason);
 
 void
-elf_everparse_error(const char* struct_name, const char* field_name, const char* reason)
+elf_everparse_error(_In_ const char* struct_name, _In_ const char* field_name, _In_ const char* reason)
 {
     _elf_everparse_error =
         std::string() + "Failed parsing in struct " + struct_name + " field " + field_name + " reason " + reason;

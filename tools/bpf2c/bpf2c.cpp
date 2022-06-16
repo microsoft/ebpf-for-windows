@@ -128,10 +128,10 @@ load_file_to_memory(const std::string& path)
 }
 
 extern "C" void
-elf_everparse_error(const char* struct_name, const char* field_name, const char* reason);
+elf_everparse_error(_In_ const char* struct_name, _In_ const char* field_name, _In_ const char* reason);
 
 void
-elf_everparse_error(const char* struct_name, const char* field_name, const char* reason)
+elf_everparse_error(_In_ const char* struct_name, _In_ const char* field_name, _In_ const char* reason)
 {
     std::cerr << "Failed parsing in struct " << struct_name << " field " << field_name << " reason " << reason
               << std::endl;
