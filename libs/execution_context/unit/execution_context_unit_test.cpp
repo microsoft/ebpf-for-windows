@@ -229,6 +229,10 @@ _test_crud_operations(ebpf_map_type_t map_type)
         ebpf_map_next_key(
             map.get(), sizeof(key) - 1, reinterpret_cast<uint8_t*>(&key), reinterpret_cast<uint8_t*>(&key)) ==
         EBPF_INVALID_ARGUMENT);
+
+    REQUIRE(ebpf_map_push_entry(map.get(), value.size(), value.data(), 0) == EBPF_INVALID_ARGUMENT);
+    REQUIRE(ebpf_map_pop_entry(map.get(), value.size(), value.data(), 0) == EBPF_INVALID_ARGUMENT);
+    REQUIRE(ebpf_map_peek_entry(map.get(), value.size(), value.data(), 0) == EBPF_INVALID_ARGUMENT);
 }
 
 #define MAP_TEST(MAP_TYPE) \

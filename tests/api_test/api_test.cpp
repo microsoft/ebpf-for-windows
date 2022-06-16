@@ -48,7 +48,7 @@ static service_install_helper
 static service_install_helper
     _ebpf_service_helper(EBPF_SERVICE_NAME, EBPF_SERVICE_BINARY_NAME, SERVICE_WIN32_OWN_PROCESS);
 
-static ebpf_result_t
+static int
 _program_load_helper(
     const char* file_name,
     bpf_prog_type prog_type,
@@ -65,34 +65,33 @@ _program_load_helper(
 
     struct bpf_program* program = bpf_object__next_program(new_object, nullptr);
 
-    bpf_program__set_type(program, prog_type);
+    if (prog_type != BPF_PROG_TYPE_UNSPEC) {
+        bpf_program__set_type(program, prog_type);
+    }
 
     int error = bpf_object__load(new_object);
     if (error < 0) {
         bpf_object__close(new_object);
-        return EBPF_FAILED;
+        return error;
     }
 
     *program_fd = bpf_program__fd(program);
     *object = new_object;
-    return EBPF_SUCCESS;
+    return 0;
 }
 
 static void
 _test_program_load(
-    const char* file_name,
-    bpf_prog_type program_type,
-    ebpf_execution_type_t execution_type,
-    ebpf_result_t expected_load_result)
+    const char* file_name, bpf_prog_type program_type, ebpf_execution_type_t execution_type, int expected_load_result)
 {
-    ebpf_result_t result;
+    int result;
     struct bpf_object* object = nullptr;
     fd_t program_fd;
 
     result = _program_load_helper(file_name, program_type, execution_type, &object, &program_fd);
     REQUIRE(result == expected_load_result);
 
-    if (expected_load_result == EBPF_SUCCESS) {
+    if (expected_load_result == 0) {
         REQUIRE(program_fd > 0);
     } else {
         return;
@@ -144,9 +143,9 @@ _test_multiple_programs_load(
     int program_count,
     _In_reads_(program_count) const struct _ebpf_program_load_test_parameters* parameters,
     ebpf_execution_type_t execution_type,
-    ebpf_result_t expected_load_result)
+    int expected_load_result)
 {
-    ebpf_result_t result;
+    int result;
     std::vector<struct bpf_object*> objects;
     std::vector<fd_t> fds;
 
@@ -158,7 +157,7 @@ _test_multiple_programs_load(
 
         result = _program_load_helper(file_name, program_type, execution_type, &object, &program_fd);
         REQUIRE(expected_load_result == result);
-        if (expected_load_result == EBPF_SUCCESS) {
+        if (expected_load_result == 0) {
             REQUIRE(program_fd > 0);
         } else {
             continue;
@@ -168,7 +167,7 @@ _test_multiple_programs_load(
         fds.push_back(program_fd);
     }
 
-    if (expected_load_result != EBPF_SUCCESS) {
+    if (expected_load_result != 0) {
         return;
     }
 
@@ -181,14 +180,14 @@ _test_multiple_programs_load(
 static void
 _test_map_next_previous(const char* file_name, int expected_map_count)
 {
-    ebpf_result_t result;
+    int result;
     struct bpf_object* object = nullptr;
     fd_t program_fd;
     int map_count = 0;
     struct bpf_map* previous = nullptr;
     struct bpf_map* next = nullptr;
     result = _program_load_helper(file_name, BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_ANY, &object, &program_fd);
-    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(result == 0);
 
     next = bpf_map__next(previous, object);
     while (next != nullptr) {
@@ -215,14 +214,14 @@ _test_map_next_previous(const char* file_name, int expected_map_count)
 static void
 _test_program_next_previous(const char* file_name, int expected_program_count)
 {
-    ebpf_result_t result;
+    int result;
     struct bpf_object* object = nullptr;
     fd_t program_fd;
     int program_count = 0;
     struct bpf_program* previous = nullptr;
     struct bpf_program* next = nullptr;
     result = _program_load_helper(file_name, BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_ANY, &object, &program_fd);
-    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(result == 0);
 
     next = bpf_program__next(previous, object);
     while (next != nullptr) {
@@ -264,22 +263,22 @@ TEST_CASE("pinned_map_enum", "[pinned_map_enum]") { ebpf_test_pinned_map_enum();
     }
 
 #if defined(CONFIG_BPF_JIT_ALWAYS_ON)
-#define INTERPRET_LOAD_RESULT EBPF_PROGRAM_LOAD_FAILED
+#define INTERPRET_LOAD_RESULT -EOTHER
 #else
-#define INTERPRET_LOAD_RESULT EBPF_SUCCESS
+#define INTERPRET_LOAD_RESULT 0
 #endif
 
 // Load droppacket (JIT) without providing expected program type.
-DECLARE_LOAD_TEST_CASE("droppacket.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_JIT, EBPF_SUCCESS);
+DECLARE_LOAD_TEST_CASE("droppacket.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_JIT, 0);
 
-DECLARE_LOAD_TEST_CASE("droppacket_km.sys", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_NATIVE, EBPF_SUCCESS);
+DECLARE_LOAD_TEST_CASE("droppacket.sys", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_NATIVE, 0);
 
 // Declare a duplicate test case. This will ensure that the earlier driver is actually unloaded,
 // else this test case will fail.
-DECLARE_DUPLICATE_LOAD_TEST_CASE("droppacket_km.sys", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_NATIVE, 2, EBPF_SUCCESS);
+DECLARE_DUPLICATE_LOAD_TEST_CASE("droppacket.sys", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_NATIVE, 2, 0);
 
 // Load droppacket (ANY) without providing expected program type.
-DECLARE_LOAD_TEST_CASE("droppacket.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_ANY, EBPF_SUCCESS);
+DECLARE_LOAD_TEST_CASE("droppacket.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_ANY, 0);
 
 // Load droppacket (INTERPRET) without providing expected program type.
 DECLARE_LOAD_TEST_CASE("droppacket.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_INTERPRET, INTERPRET_LOAD_RESULT);
@@ -288,26 +287,26 @@ DECLARE_LOAD_TEST_CASE("droppacket.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_INTE
 DECLARE_LOAD_TEST_CASE("droppacket.o", BPF_PROG_TYPE_XDP, EBPF_EXECUTION_INTERPRET, INTERPRET_LOAD_RESULT);
 
 // Load bindmonitor (JIT) without providing expected program type.
-DECLARE_LOAD_TEST_CASE("bindmonitor.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_JIT, EBPF_SUCCESS);
+DECLARE_LOAD_TEST_CASE("bindmonitor.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_JIT, 0);
 
 // Load bindmonitor (INTERPRET) without providing expected program type.
 DECLARE_LOAD_TEST_CASE("bindmonitor.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_INTERPRET, INTERPRET_LOAD_RESULT);
 
 // Load bindmonitor with providing expected program type.
-DECLARE_LOAD_TEST_CASE("bindmonitor.o", BPF_PROG_TYPE_BIND, EBPF_EXECUTION_JIT, EBPF_SUCCESS);
+DECLARE_LOAD_TEST_CASE("bindmonitor.o", BPF_PROG_TYPE_BIND, EBPF_EXECUTION_JIT, 0);
 
 // Try to load bindmonitor with providing wrong program type.
-DECLARE_LOAD_TEST_CASE("bindmonitor.o", BPF_PROG_TYPE_XDP, EBPF_EXECUTION_ANY, EBPF_VERIFICATION_FAILED);
+DECLARE_LOAD_TEST_CASE("bindmonitor.o", BPF_PROG_TYPE_XDP, EBPF_EXECUTION_ANY, -EACCES);
 
 // Try to load an unsafe program.
-DECLARE_LOAD_TEST_CASE("droppacket_unsafe.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_ANY, EBPF_VERIFICATION_FAILED);
+DECLARE_LOAD_TEST_CASE("droppacket_unsafe.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_ANY, -EACCES);
 
 // Try to load multiple programs of different program types
 TEST_CASE("test_ebpf_multiple_programs_load_jit")
 {
     struct _ebpf_program_load_test_parameters test_parameters[] = {
         {"droppacket.o", BPF_PROG_TYPE_XDP}, {"bindmonitor.o", BPF_PROG_TYPE_BIND}};
-    _test_multiple_programs_load(_countof(test_parameters), test_parameters, EBPF_EXECUTION_JIT, EBPF_SUCCESS);
+    _test_multiple_programs_load(_countof(test_parameters), test_parameters, EBPF_EXECUTION_JIT, 0);
 }
 
 TEST_CASE("test_ebpf_multiple_programs_load_interpret")
@@ -453,12 +452,12 @@ TEST_CASE("hash_of_maps", "[map_in_map]") { _test_nested_maps(BPF_MAP_TYPE_HASH_
 
 TEST_CASE("tailcall_load_test", "[tailcall_load_test]")
 {
-    ebpf_result_t result;
+    int result;
     struct bpf_object* object = nullptr;
     fd_t program_fd;
 
     result = _program_load_helper("tail_call_multiple.o", BPF_PROG_TYPE_XDP, EBPF_EXECUTION_ANY, &object, &program_fd);
-    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(result == 0);
 
     REQUIRE(program_fd > 0);
 
@@ -541,7 +540,7 @@ TEST_CASE("bindmonitor_native_test", "[native_tests]")
     struct bpf_object* object = nullptr;
     hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
     program_load_attach_helper_t _helper(
-        "bindmonitor_km.sys", BPF_PROG_TYPE_BIND, "BindMonitor", EBPF_EXECUTION_NATIVE, nullptr, 0, hook);
+        "bindmonitor.sys", BPF_PROG_TYPE_BIND, "BindMonitor", EBPF_EXECUTION_NATIVE, nullptr, 0, hook);
     object = _helper.get_object();
 
     bindmonitor_test(object);
@@ -552,7 +551,7 @@ TEST_CASE("bindmonitor_tailcall_native_test", "[native_tests]")
     struct bpf_object* object = nullptr;
     hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
     program_load_attach_helper_t _helper(
-        "bindmonitor_tailcall_km.sys", BPF_PROG_TYPE_BIND, "BindMonitor", EBPF_EXECUTION_JIT, nullptr, 0, hook);
+        "bindmonitor_tailcall.sys", BPF_PROG_TYPE_BIND, "BindMonitor", EBPF_EXECUTION_JIT, nullptr, 0, hook);
     object = _helper.get_object();
 
     // Setup tail calls.
@@ -636,7 +635,7 @@ TEST_CASE("bpf_get_current_pid_tgid", "[helpers]")
         uint32_t current_pid;
         uint32_t current_tid;
     } value;
-    REQUIRE(bpf_map_lookup_elem(bpf_map__fd(map), &key, &value) == EBPF_SUCCESS);
+    REQUIRE(bpf_map_lookup_elem(bpf_map__fd(map), &key, &value) == 0);
 
     // Verify PID/TID values.
     DWORD pid = GetCurrentProcessId();
