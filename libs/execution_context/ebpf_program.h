@@ -62,13 +62,13 @@ extern "C"
      *  program instance.
      */
     ebpf_result_t
-    ebpf_program_create(ebpf_program_t** program);
+    ebpf_program_create(_Outptr_ ebpf_program_t** program);
 
     /**
      * @brief Initialize a program instance from the provided program
      *  parameters.
      *
-     * @param[in] program Program instance to initialize.
+     * @param[in,out] program Program instance to initialize.
      * @param[in] program_parameters Program parameters to be used to initialize
      *  the program instance.
      * @retval EBPF_SUCCESS The operation was successful.
@@ -76,7 +76,7 @@ extern "C"
      *  program instance.
      */
     ebpf_result_t
-    ebpf_program_initialize(ebpf_program_t* program, const ebpf_program_parameters_t* program_parameters);
+    ebpf_program_initialize(_Inout_ ebpf_program_t* program, _In_ const ebpf_program_parameters_t* program_parameters);
 
     /**
      * @brief Get parameters describing the program instance.
