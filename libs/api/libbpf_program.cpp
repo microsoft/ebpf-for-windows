@@ -12,49 +12,6 @@
 // minimize diffs until libbpf becomes cross-platform capable.  This is a temporary workaround for
 // issue #351 until we can compile and use libbpf.c directly.
 
-static enum bpf_prog_type
-_get_bpf_program_type(const ebpf_program_type_t* type)
-{
-    // TODO(issue #223): read this mapping from the registry
-    if (memcmp(type, &EBPF_PROGRAM_TYPE_XDP, sizeof(*type)) == 0) {
-        return BPF_PROG_TYPE_XDP;
-    }
-    if (memcmp(type, &EBPF_PROGRAM_TYPE_BIND, sizeof(*type)) == 0) {
-        return BPF_PROG_TYPE_BIND;
-    }
-    return BPF_PROG_TYPE_UNSPEC;
-}
-
-static const ebpf_attach_type_t*
-_get_ebpf_attach_type(enum bpf_attach_type type)
-{
-    const ebpf_attach_type_t* attach_type = nullptr;
-
-    // TODO(issue #223): read this mapping from the registry
-    switch (type) {
-    case BPF_XDP:
-        attach_type = &EBPF_ATTACH_TYPE_XDP;
-        break;
-    case BPF_CGROUP_INET4_CONNECT:
-        attach_type = &EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT;
-        break;
-    case BPF_CGROUP_INET6_CONNECT:
-        attach_type = &EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT;
-        break;
-    case BPF_CGROUP_INET4_RECV_ACCEPT:
-        attach_type = &EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT;
-        break;
-    case BPF_CGROUP_INET6_RECV_ACCEPT:
-        attach_type = &EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT;
-        break;
-    case BPF_CGROUP_SOCK_OPS:
-        attach_type = &EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS;
-        break;
-    }
-
-    return attach_type;
-}
-
 static enum bpf_attach_type
 _get_bpf_attach_type(const ebpf_attach_type_t* type)
 {
@@ -278,7 +235,7 @@ bpf_prog_attach(int prog_fd, int attachable_fd, enum bpf_attach_type type, unsig
 
     if (_does_attach_type_support_attachable_fd(type) && (flags == 0)) {
         result = ebpf_program_attach_by_fd(
-            prog_fd, _get_ebpf_attach_type(type), &attachable_fd, sizeof(attachable_fd), &link);
+            prog_fd, ebpf_get_ebpf_attach_type(type), &attachable_fd, sizeof(attachable_fd), &link);
     } else {
         result = EBPF_OPERATION_NOT_SUPPORTED;
     }
@@ -443,14 +400,18 @@ bpf_program__set_expected_attach_type(struct bpf_program* program, enum bpf_atta
 {
     if (program->object->loaded)
         return libbpf_err(-EBUSY);
-    program->attach_type = *_get_ebpf_attach_type(type);
+    const ebpf_attach_type_t* attach_type = ebpf_get_ebpf_attach_type(type);
+    if (attach_type != nullptr) {
+        program->attach_type = *attach_type;
+    }
+
     return 0;
 }
 
 enum bpf_prog_type
 bpf_program__type(const struct bpf_program* program)
 {
-    return _get_bpf_program_type(&program->program_type);
+    return ebpf_get_bpf_program_type(&program->program_type);
 }
 
 int

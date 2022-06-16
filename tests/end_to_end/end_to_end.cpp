@@ -930,24 +930,6 @@ TEST_CASE("verify section with invalid program type", "[end_to_end]")
     ebpf_free_string(error_message);
 }
 
-TEST_CASE("verify section with invalid program type", "[end_to_end]")
-{
-    _test_helper_end_to_end test_helper;
-
-    const char* error_message = nullptr;
-    const char* report = nullptr;
-    uint32_t result;
-    program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_BIND);
-
-    ebpf_api_verifier_stats_t stats;
-    result = ebpf_api_elf_verify_section_from_file(
-        SAMPLE_PATH "droppacket.o", "xdp", &EBPF_PROGRAM_TYPE_UNSPECIFIED, false, &report, &error_message, &stats);
-
-    REQUIRE(result == 1);
-    REQUIRE(error_message != nullptr);
-    ebpf_free_string(error_message);
-}
-
 void
 verify_bad_section(const char* path, const std::string& expected_error_message)
 {

@@ -108,6 +108,7 @@ struct ebpf_attach_type_compare
     }
 };
 
+/*
 const std::map<ebpf_attach_type_t, const char*, ebpf_attach_type_compare> windows_section_names = {
     {EBPF_ATTACH_TYPE_XDP, "xdp"},
     {EBPF_ATTACH_TYPE_BIND, "bind"},
@@ -117,6 +118,7 @@ const std::map<ebpf_attach_type_t, const char*, ebpf_attach_type_compare> window
     {EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT, "cgroup/recv_accept6"},
     {EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS, "sockops"},
     {EBPF_ATTACH_TYPE_SAMPLE, "sample_ext"}};
+*/
 
 struct helper_function_info_t
 {

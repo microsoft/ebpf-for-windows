@@ -93,6 +93,30 @@ get_ebpf_program_type(bpf_prog_type_t bpf_program_type)
     return nullptr;
 }
 
+_Ret_maybenull_ const ebpf_attach_type_t*
+get_ebpf_attach_type(bpf_attach_type_t bpf_attach_type)
+{
+    for (const auto& definition : _windows_section_definitions) {
+        if (definition.bpf_attach_type == bpf_attach_type) {
+            return definition.attach_type;
+        }
+    }
+
+    return nullptr;
+}
+
+bpf_prog_type_t
+get_bpf_program_type(_In_ const ebpf_program_type_t* ebpf_program_type)
+{
+    for (auto const& [key, val] : _windows_program_information) {
+        if (IsEqualGUID(*ebpf_program_type, key)) {
+            return (bpf_prog_type_t)val.program_type_descriptor.bpf_prog_type;
+        }
+    }
+
+    return BPF_PROG_TYPE_UNSPEC;
+}
+
 ebpf_result_t
 get_bpf_program_and_attach_type(
     const std::string& section, _Out_ bpf_prog_type_t* program_type, _Out_ bpf_attach_type_t* attach_type)
@@ -234,10 +258,11 @@ get_attach_type_windows(const std::string& section)
 _Ret_maybenull_z_ const char*
 get_attach_type_name(_In_ const ebpf_attach_type_t* attach_type)
 {
-    // TODO: (Issue #223) Read the registry to fetch attach types.
-    auto it = windows_section_names.find(*attach_type);
-    if (it != windows_section_names.end())
-        return it->second;
+    for (const ebpf_section_definition_t& t : _windows_section_definitions) {
+        if (IsEqualGUID(*t.attach_type, *attach_type)) {
+            return t.section_prefix;
+        }
+    }
 
     return nullptr;
 }
