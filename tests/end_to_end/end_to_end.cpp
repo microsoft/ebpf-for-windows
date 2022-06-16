@@ -948,11 +948,17 @@ verify_bad_section(const char* path, const std::string& expected_error_message)
 }
 TEST_CASE("verify bad1.o", "[end_to_end][fuzzed]")
 {
-    verify_bad_section(SAMPLE_PATH "bad\\bad1.o", "error: No symbol section found in ELF file bad\\bad1.o");
+    verify_bad_section(
+        SAMPLE_PATH "bad\\bad1.o",
+        "error: ELF file bad\\bad1.o is malformed: Failed parsing in struct _SECTION_HEADER_TABLE_ENTRY field none "
+        "reason constraint failed");
 }
 TEST_CASE("verify bad2.o", "[end_to_end][fuzzed]")
 {
-    verify_bad_section(SAMPLE_PATH "bad\\bad2.o", "error: Can't process ELF file bad\\bad2.o");
+    verify_bad_section(
+        SAMPLE_PATH "bad\\bad2.o",
+        "error: ELF file bad\\bad2.o is malformed: Failed parsing in struct _E_IDENT field SEVEN.refinement reason "
+        "constraint failed");
 }
 
 static void

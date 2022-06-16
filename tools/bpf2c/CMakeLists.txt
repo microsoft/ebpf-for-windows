@@ -18,6 +18,7 @@ target_include_directories("bpf2c" PRIVATE
 
 target_link_libraries("bpf2c" PRIVATE
   "ebpf_for_windows_cpp_settings"
+  "elf_spec"
   "EbpfApi"
   "external::ebpfverifier"
 )

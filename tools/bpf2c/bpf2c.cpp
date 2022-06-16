@@ -19,6 +19,10 @@
 #undef max
 #include "bpf_code_generator.h"
 #include "ebpf_api.h"
+#include "ElfWrapper.h"
+
+#define elf_everparse_error ElfEverParseError
+#define elf_everparse_verify ElfCheckElf
 
 #pragma comment(lib, "Bcrypt.lib")
 
@@ -123,6 +127,16 @@ load_file_to_memory(const std::string& path)
     throw std::runtime_error(std::string("Failed to read file: ") + path);
 }
 
+extern "C" void
+elf_everparse_error(const char* struct_name, const char* field_name, const char* reason);
+
+void
+elf_everparse_error(const char* struct_name, const char* field_name, const char* reason)
+{
+    std::cerr << "Failed parsing in struct " << struct_name << " field " << field_name << " reason " << reason
+              << std::endl;
+}
+
 int
 main(int argc, char** argv)
 {
@@ -222,7 +236,12 @@ main(int argc, char** argv)
             hash_value = hash.hash_string(data);
         }
         auto stream = std::stringstream(data);
-        // TODO: Issue #834 - validate the ELF is well formed
+
+        if (!ElfCheckElf(data.size(), reinterpret_cast<uint8_t*>(data.data()), static_cast<uint32_t>(data.size()))) {
+            std::cerr << "ELF file is invalid" << std::endl;
+            return 1;
+        }
+
         bpf_code_generator generator(stream, c_name, {hash_value});
 
         // Capture list of sections.
