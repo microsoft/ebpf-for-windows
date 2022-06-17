@@ -290,7 +290,8 @@ wfp_ale_layer_fields_t wfp_flow_established_fields[] = {
      FWPS_FIELD_ALE_FLOW_ESTABLISHED_V4_IP_REMOTE_PORT,
      FWPS_FIELD_ALE_FLOW_ESTABLISHED_V4_IP_PROTOCOL,
      FWPS_FIELD_ALE_FLOW_ESTABLISHED_V4_DIRECTION,
-     FWPS_FIELD_ALE_FLOW_ESTABLISHED_V4_COMPARTMENT_ID},
+     FWPS_FIELD_ALE_FLOW_ESTABLISHED_V4_COMPARTMENT_ID,
+     FWPS_FIELD_ALE_FLOW_ESTABLISHED_V4_IP_LOCAL_INTERFACE},
     // EBPF_HOOK_ALE_FLOW_ESTABLISHED_V6
     {FWPS_FIELD_ALE_FLOW_ESTABLISHED_V6_IP_LOCAL_ADDRESS,
      FWPS_FIELD_ALE_FLOW_ESTABLISHED_V6_IP_LOCAL_PORT,
@@ -298,13 +299,12 @@ wfp_ale_layer_fields_t wfp_flow_established_fields[] = {
      FWPS_FIELD_ALE_FLOW_ESTABLISHED_V6_IP_REMOTE_PORT,
      FWPS_FIELD_ALE_FLOW_ESTABLISHED_V6_IP_PROTOCOL,
      FWPS_FIELD_ALE_FLOW_ESTABLISHED_V6_DIRECTION,
-     FWPS_FIELD_ALE_FLOW_ESTABLISHED_V6_COMPARTMENT_ID}};
+     FWPS_FIELD_ALE_FLOW_ESTABLISHED_V6_COMPARTMENT_ID,
+     FWPS_FIELD_ALE_FLOW_ESTABLISHED_V6_IP_LOCAL_INTERFACE}};
 
 static void
 _net_ebpf_extension_sock_ops_copy_wfp_connection_fields(
-    _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values,
-    _Out_ bpf_sock_ops_t* sock_ops_context,
-    _Out_ uint32_t* compartment_id)
+    _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values, _Out_ bpf_sock_ops_t* sock_ops_context)
 {
     uint16_t wfp_layer_id = incoming_fixed_values->layerId;
     net_ebpf_extension_hook_id_t hook_id = net_ebpf_extension_get_hook_id_from_wfp_layer_id(wfp_layer_id);
@@ -335,7 +335,8 @@ _net_ebpf_extension_sock_ops_copy_wfp_connection_fields(
     sock_ops_context->local_port = htons(incoming_values[fields->local_port_field].value.uint16);
     sock_ops_context->remote_port = htons(incoming_values[fields->remote_port_field].value.uint16);
     sock_ops_context->protocol = incoming_values[fields->protocol_field].value.uint8;
-    *compartment_id = incoming_values[fields->compartment_id_field].value.uint32;
+    sock_ops_context->compartment_id = incoming_values[fields->compartment_id_field].value.uint32;
+    sock_ops_context->interface_luid = *incoming_values[fields->interface_luid_field].value.uint64;
 }
 
 //
@@ -360,7 +361,6 @@ net_ebpf_extension_sock_ops_flow_established_classify(
     net_ebpf_extension_sock_ops_wfp_flow_context_t* local_flow_context = NULL;
     bpf_sock_ops_t* sock_ops_context = NULL;
     uint32_t client_compartment_id = UNSPECIFIED_COMPARTMENT_ID;
-    uint32_t compartment_id = UNSPECIFIED_COMPARTMENT_ID;
     net_ebpf_extension_hook_id_t hook_id =
         net_ebpf_extension_get_hook_id_from_wfp_layer_id(incoming_fixed_values->layerId);
     KIRQL irql;
@@ -396,11 +396,14 @@ net_ebpf_extension_sock_ops_flow_established_classify(
     local_flow_context->filter_context = filter_context;
 
     sock_ops_context = &local_flow_context->context;
-    _net_ebpf_extension_sock_ops_copy_wfp_connection_fields(incoming_fixed_values, sock_ops_context, &compartment_id);
+    _net_ebpf_extension_sock_ops_copy_wfp_connection_fields(incoming_fixed_values, sock_ops_context);
 
     client_compartment_id = filter_context->compartment_id;
-    ASSERT((client_compartment_id == UNSPECIFIED_COMPARTMENT_ID) || (client_compartment_id == compartment_id));
-    if (client_compartment_id != UNSPECIFIED_COMPARTMENT_ID && client_compartment_id != compartment_id) {
+    ASSERT(
+        (client_compartment_id == UNSPECIFIED_COMPARTMENT_ID) ||
+        (client_compartment_id == sock_ops_context->compartment_id));
+    if (client_compartment_id != UNSPECIFIED_COMPARTMENT_ID &&
+        client_compartment_id != sock_ops_context->compartment_id) {
         // The client is not interested in this compartment Id.
         goto Exit;
     }

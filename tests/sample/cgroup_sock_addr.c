@@ -39,6 +39,7 @@ authorize_v4(bpf_sock_addr_t* ctx, struct bpf_map_def* connection_policy_map)
     tuple_key.dst_ip.ipv4 = ctx->user_ip4;
     tuple_key.dst_port = ctx->user_port;
     tuple_key.protocol = ctx->protocol;
+    tuple_key.interface_luid = ctx->interface_luid;
 
     verdict = bpf_map_lookup_elem(connection_policy_map, &tuple_key);
 
@@ -55,6 +56,7 @@ authorize_v6(bpf_sock_addr_t* ctx, struct bpf_map_def* connection_policy_map)
     __builtin_memcpy(tuple_key.dst_ip.ipv6, ctx->user_ip6, sizeof(ctx->user_ip6));
     tuple_key.dst_port = ctx->user_port;
     tuple_key.protocol = ctx->protocol;
+    tuple_key.interface_luid = ctx->interface_luid;
 
     verdict = bpf_map_lookup_elem(connection_policy_map, &tuple_key);
 

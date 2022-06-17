@@ -63,6 +63,7 @@ typedef struct _wfp_ale_layer_fields
     uint16_t protocol_field;
     uint32_t direction_field;
     uint16_t compartment_id_field;
+    uint16_t interface_luid_field;
 } wfp_ale_layer_fields_t;
 
 typedef struct _net_ebpf_extension_wfp_filter_parameters
