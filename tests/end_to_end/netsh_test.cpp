@@ -520,8 +520,8 @@ TEST_CASE("show maps", "[netsh][maps]")
                   "                             Key  Value      Max  Inner\n"
                   "    ID            Map Type  Size   Size  Entries     ID  Pins  Name\n"
                   "======  ==================  ====  =====  =======  =====  ====  ========\n"
-                  " 65537                Hash     4      4        1     -1     0  inner_map\n"
-                  "131073       Array of maps     4      4        1  65537     0  outer_map\n");
+                  " 65538                Hash     4      4        1     -1     0  inner_map\n"
+                  "131073       Array of maps     4      4        1  65538     0  outer_map\n");
 
     output = _run_netsh_command(handle_ebpf_delete_program, L"196609", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
