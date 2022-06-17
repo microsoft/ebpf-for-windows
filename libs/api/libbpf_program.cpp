@@ -235,7 +235,7 @@ bpf_prog_attach(int prog_fd, int attachable_fd, enum bpf_attach_type type, unsig
 
     if (_does_attach_type_support_attachable_fd(type) && (flags == 0)) {
         result = ebpf_program_attach_by_fd(
-            prog_fd, ebpf_get_ebpf_attach_type(type), &attachable_fd, sizeof(attachable_fd), &link);
+            prog_fd, get_ebpf_attach_type(type), &attachable_fd, sizeof(attachable_fd), &link);
     } else {
         result = EBPF_OPERATION_NOT_SUPPORTED;
     }
@@ -400,7 +400,7 @@ bpf_program__set_expected_attach_type(struct bpf_program* program, enum bpf_atta
 {
     if (program->object->loaded)
         return libbpf_err(-EBUSY);
-    const ebpf_attach_type_t* attach_type = ebpf_get_ebpf_attach_type(type);
+    const ebpf_attach_type_t* attach_type = get_ebpf_attach_type(type);
     if (attach_type != nullptr) {
         program->attach_type = *attach_type;
     }
@@ -411,7 +411,7 @@ bpf_program__set_expected_attach_type(struct bpf_program* program, enum bpf_atta
 enum bpf_prog_type
 bpf_program__type(const struct bpf_program* program)
 {
-    return ebpf_get_bpf_program_type(&program->program_type);
+    return get_bpf_program_type(&program->program_type);
 }
 
 int

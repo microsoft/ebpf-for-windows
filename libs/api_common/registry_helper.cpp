@@ -63,16 +63,6 @@ read_registry_value_dword(_In_ HKEY key, _In_ const wchar_t* value_name, _Out_ u
 }
 
 ebpf_result_t
-read_registry_value_qword(_In_ HKEY key, _In_ const wchar_t* value_name, _Out_ uint64_t* value)
-{
-    uint32_t status = NO_ERROR;
-    DWORD type = REG_QWORD;
-    DWORD key_size = sizeof(uint64_t);
-    status = RegQueryValueEx(key, value_name, 0, &type, (PBYTE)value, &key_size);
-    return win32_error_code_to_ebpf_result(status);
-}
-
-ebpf_result_t
 read_registry_value_binary(
     _In_ HKEY key, _In_ const wchar_t* value_name, _Out_writes_(value_size) uint8_t* value, _In_ size_t value_size)
 {

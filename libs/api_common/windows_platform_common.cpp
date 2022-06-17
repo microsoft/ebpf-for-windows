@@ -1,15 +1,17 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
+// #define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
 #include <cassert>
-#include <codecvt>
 #include <stdexcept>
 #include "api_internal.h"
 #include "api_common.hpp"
 #include "crab_verifier_wrapper.hpp"
+#include "device_helper.hpp"
 #include "ebpf_api.h"
 #include "ebpf_nethooks.h"
+#include "ebpf_protocol.h"
+#include "ebpf_serialize.h"
 #include "helpers.hpp"
 #include "map_descriptors.hpp"
 #include "platform.hpp"
@@ -20,9 +22,14 @@
 #include "registry_helper.hpp"
 
 #define GUID_STRING_LENGTH 38
+#define GET_PROGRAM_INFO_REPLY_BUFFER_SIZE 2048
+
+static thread_local ebpf_handle_t _program_under_verification = ebpf_handle_invalid;
 
 // TODO: Issue #XYZ Change to using HKEY_LOCAL_MACHINE
 static HKEY _root_registry_key = HKEY_CURRENT_USER;
+
+extern bool use_ebpf_store;
 
 struct guid_compare
 {
@@ -33,25 +40,181 @@ struct guid_compare
     }
 };
 
-// TODO: Merge EbpfProgramType and ebpf_program_info_t to create a common struct so we dont have to duplicate stuff.
+struct _ebpf_program_info_deleter
+{
+    void
+    operator()(_In_ _Post_invalid_ ebpf_program_info_t* program_info)
+    {
+        ebpf_program_info_free(program_info);
+    }
+};
+
+static void
+_ebpf_program_descriptor_free(_In_opt_ EbpfProgramType* descriptor)
+{
+    EBPF_LOG_ENTRY();
+    if (descriptor == nullptr) {
+        EBPF_RETURN_VOID();
+    }
+
+    ebpf_free((void*)descriptor->context_descriptor);
+    ebpf_free((void*)descriptor->platform_specific_data);
+
+    delete descriptor;
+
+    EBPF_RETURN_VOID();
+}
+
+struct EbpfProgramType_deleter
+{
+    void
+    operator()(_In_ _Post_invalid_ EbpfProgramType* descriptor)
+    {
+        _ebpf_program_descriptor_free(descriptor);
+    }
+};
+
+// Thread local cache for program information queried from execution context.
+typedef std::unique_ptr<ebpf_program_info_t, _ebpf_program_info_deleter> ebpf_program_info_ptr_t;
+static thread_local std::map<ebpf_program_type_t, ebpf_program_info_ptr_t, guid_compare> _program_info_cache;
+
+// Thread local cache for program descriptor queried from execution context.
+typedef std::unique_ptr<EbpfProgramType, EbpfProgramType_deleter> ebpf_program_descriptor_ptr_t;
+static thread_local std::map<ebpf_program_type_t, ebpf_program_descriptor_ptr_t, guid_compare>
+    _program_descriptor_cache;
+
+// Global cache for the program and section information queried from eBPF store.
 static std::map<ebpf_program_type_t, EbpfProgramType, guid_compare> _windows_program_types;
 static std::vector<ebpf_section_definition_t> _windows_section_definitions;
 static std::map<ebpf_program_type_t, ebpf_program_info_t, guid_compare> _windows_program_information;
 
-static std::string
-_down_cast_from_wstring(const std::wstring& wide_string)
+void
+set_program_under_verification(ebpf_handle_t program)
 {
-    std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
-    return converter.to_bytes(wide_string);
+    _program_under_verification = program;
+}
+
+ebpf_result_t
+_get_program_descriptor_from_info(_In_ const ebpf_program_info_t* info, _Outptr_ EbpfProgramType** descriptor)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+    EbpfProgramType* type = nullptr;
+
+    try {
+        char* name = nullptr;
+        type = new (std::nothrow) EbpfProgramType();
+        if (type == nullptr) {
+            result = EBPF_NO_MEMORY;
+            goto Exit;
+        }
+
+        name = _strdup(info->program_type_descriptor.name);
+        if (name == nullptr) {
+            result = EBPF_NO_MEMORY;
+            goto Exit;
+        }
+        type->name = std::string(name);
+        type->context_descriptor = (ebpf_context_descriptor_t*)ebpf_allocate(sizeof(ebpf_context_descriptor_t));
+        if (type->context_descriptor == nullptr) {
+            result = EBPF_NO_MEMORY;
+            goto Exit;
+        }
+        memcpy(
+            (void*)type->context_descriptor,
+            info->program_type_descriptor.context_descriptor,
+            sizeof(ebpf_context_descriptor_t));
+        ebpf_program_type_t* program_type = (ebpf_program_type_t*)ebpf_allocate(sizeof(ebpf_program_type_t));
+        if (program_type == nullptr) {
+            result = EBPF_NO_MEMORY;
+            goto Exit;
+        }
+        *program_type = info->program_type_descriptor.program_type;
+        type->platform_specific_data = (uint64_t)program_type;
+        type->is_privileged = info->program_type_descriptor.is_privileged;
+
+        *descriptor = type;
+    } catch (...) {
+        result = EBPF_NO_MEMORY;
+    }
+
+Exit:
+    if (result != EBPF_SUCCESS) {
+        _ebpf_program_descriptor_free(type);
+    }
+    return result;
+}
+
+static ebpf_result_t
+_get_program_info_data(ebpf_program_type_t program_type, _Outptr_ ebpf_program_info_t** program_info)
+{
+    ebpf_protocol_buffer_t reply_buffer(GET_PROGRAM_INFO_REPLY_BUFFER_SIZE);
+    size_t required_buffer_length;
+    ebpf_operation_get_program_info_request_t request{
+        sizeof(request),
+        ebpf_operation_id_t::EBPF_OPERATION_GET_PROGRAM_INFO,
+        program_type,
+        _program_under_verification};
+
+    *program_info = nullptr;
+
+    auto reply = reinterpret_cast<ebpf_operation_get_program_info_reply_t*>(reply_buffer.data());
+    ebpf_result_t result = win32_error_code_to_ebpf_result(invoke_ioctl(request, reply_buffer));
+    if ((result != EBPF_SUCCESS) && (result != EBPF_INSUFFICIENT_BUFFER))
+        goto Exit;
+
+    if (result == EBPF_INSUFFICIENT_BUFFER) {
+        required_buffer_length = reply->header.length;
+        reply_buffer.resize(required_buffer_length);
+        reply = reinterpret_cast<ebpf_operation_get_program_info_reply_t*>(reply_buffer.data());
+        result = win32_error_code_to_ebpf_result(invoke_ioctl(request, reply_buffer));
+        if (result != EBPF_SUCCESS)
+            goto Exit;
+    }
+
+    if (reply->header.id != ebpf_operation_id_t::EBPF_OPERATION_GET_PROGRAM_INFO) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
+
+    // Deserialize the reply data into program info.
+    result = ebpf_deserialize_program_info(reply->size, reply->data, program_info);
+
+Exit:
+    return result;
 }
 
 const EbpfProgramType&
 get_program_type_windows(const GUID& program_type)
 {
-    std::map<ebpf_program_type_t, EbpfProgramType>::iterator it;
-    it = _windows_program_types.find(program_type);
-    if (it != _windows_program_types.end()) {
-        return it->second;
+    ebpf_result_t result;
+
+    // See if we have the descriptor in the thread local cache.
+    auto it = _program_descriptor_cache.find(program_type);
+    if (it != _program_descriptor_cache.end()) {
+        return *_program_descriptor_cache[program_type].get();
+    }
+
+    // Descriptor not found in thread local cache, try to query
+    // the info from execution context.
+    ebpf_program_info_t* program_info = nullptr;
+    EbpfProgramType* descriptor = nullptr;
+    result = _get_program_info_data(program_type, &program_info);
+    if (result == EBPF_SUCCESS) {
+        _program_info_cache[program_type] = ebpf_program_info_ptr_t(program_info);
+        // Convert program info to program descriptor.
+        result = _get_program_descriptor_from_info(program_info, &descriptor);
+        if (result == EBPF_SUCCESS) {
+            _program_descriptor_cache[program_type] = ebpf_program_descriptor_ptr_t(descriptor);
+            return *_program_descriptor_cache[program_type].get();
+        }
+    }
+
+    // Failed to query from execution context. Consult static cache.
+    if (use_ebpf_store) {
+        auto it2 = _windows_program_types.find(program_type);
+        if (it2 != _windows_program_types.end()) {
+            return it2->second;
+        }
     }
 
     auto guid_string = guid_to_string(&program_type);
@@ -330,7 +493,7 @@ _load_section_data_information(HKEY section_data_key, _In_ const wchar_t* sectio
             result = EBPF_SUCCESS;
         }
 
-        section_prefix = _strdup(_down_cast_from_wstring(section_name).c_str());
+        section_prefix = _strdup(ebpf_down_cast_from_wstring(section_name).c_str());
         if (section_prefix == nullptr) {
             result = EBPF_NO_MEMORY;
             goto Exit;
@@ -406,7 +569,7 @@ _load_helper_prototype(
         memcpy(&helper_prototype->arguments, serialized_data + offset, sizeof(helper_prototype->arguments));
         offset += sizeof(helper_prototype->arguments);
 
-        helper_prototype->name = _strdup(_down_cast_from_wstring(std::wstring(helper_name)).c_str());
+        helper_prototype->name = _strdup(ebpf_down_cast_from_wstring(std::wstring(helper_name)).c_str());
         if (helper_prototype->name == nullptr) {
             result = EBPF_NO_MEMORY;
             goto Exit;
@@ -515,7 +678,7 @@ _load_program_data_information(HKEY program_data_key, _In_ const wchar_t* progra
             goto Exit;
         }
 
-        auto program_type_name_string = _down_cast_from_wstring(std::wstring(program_type_name));
+        auto program_type_name_string = ebpf_down_cast_from_wstring(std::wstring(program_type_name));
         program_data.context_descriptor = descriptor;
         program_data.name = program_type_name_string;
         program_data.platform_specific_data = (uint64_t)program_type;
@@ -959,4 +1122,47 @@ get_static_program_info(_In_ const ebpf_program_type_t* program_type)
     }
 
     return nullptr;
+}
+
+ebpf_result_t
+get_program_type_info(const ebpf_program_info_t** info)
+{
+    const GUID* program_type = reinterpret_cast<const GUID*>(global_program_info.type.platform_specific_data);
+    ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_program_info_t* program_info;
+    bool fall_back = false;
+
+    // See if we already have the program info cached.
+    auto it = _program_info_cache.find(*program_type);
+    if (it == _program_info_cache.end()) {
+        // Try to query the info from the execution context.
+        result = _get_program_info_data(*program_type, &program_info);
+        if (result != EBPF_SUCCESS) {
+            fall_back = true;
+        } else {
+            _program_info_cache[*program_type] = ebpf_program_info_ptr_t(program_info);
+            *info = (const ebpf_program_info_t*)_program_info_cache[*program_type].get();
+        }
+    } else {
+        *info = (const ebpf_program_info_t*)_program_info_cache[*program_type].get();
+    }
+
+    if (use_ebpf_store && fall_back) {
+        // Query static data loaded from eBPF store.
+        *info = get_static_program_info(program_type);
+        if (info == nullptr) {
+            result = EBPF_OBJECT_NOT_FOUND;
+        } else {
+            result = EBPF_SUCCESS;
+        }
+    }
+
+    return result;
+}
+
+void
+clear_program_info_cache()
+{
+    _program_info_cache.clear();
+    _program_descriptor_cache.clear();
 }

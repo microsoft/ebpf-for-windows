@@ -3229,18 +3229,6 @@ ebpf_get_ebpf_program_type(bpf_prog_type_t bpf_program_type)
     return get_ebpf_program_type(bpf_program_type);
 }
 
-_Ret_maybenull_ const ebpf_attach_type_t*
-ebpf_get_ebpf_attach_type(bpf_attach_type_t bpf_attach_type)
-{
-    return get_ebpf_attach_type(bpf_attach_type);
-}
-
-bpf_prog_type_t
-ebpf_get_bpf_program_type(_In_ const ebpf_program_type_t* program_type)
-{
-    return get_bpf_program_type(program_type);
-}
-
 _Ret_maybenull_z_ const char*
 ebpf_get_program_type_name(_In_ const ebpf_program_type_t* program_type)
 {
