@@ -400,7 +400,7 @@ Done:
 }
 
 ebpf_result_t
-ebpf_program_create(ebpf_program_t** program)
+ebpf_program_create(_Outptr_ ebpf_program_t** program)
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t retval;
@@ -441,7 +441,7 @@ Done:
 }
 
 ebpf_result_t
-ebpf_program_initialize(ebpf_program_t* program, const ebpf_program_parameters_t* program_parameters)
+ebpf_program_initialize(_Inout_ ebpf_program_t* program, _In_ const ebpf_program_parameters_t* program_parameters)
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t return_value;

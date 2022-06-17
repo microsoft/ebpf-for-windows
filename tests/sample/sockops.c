@@ -26,6 +26,7 @@ handle_v4(bpf_sock_ops_t* ctx, bool outbound, bool connected)
     audit_entry.tuple.dst_ip.ipv4 = (outbound) ? ctx->remote_ip4 : ctx->local_ip4;
     audit_entry.tuple.dst_port = (outbound) ? ctx->remote_port : ctx->local_port;
     audit_entry.tuple.protocol = ctx->protocol;
+    audit_entry.tuple.interface_luid = ctx->interface_luid;
     audit_entry.outbound = outbound;
     audit_entry.connected = connected;
 
@@ -50,6 +51,7 @@ handle_v6(bpf_sock_ops_t* ctx, bool outbound, bool connected)
     __builtin_memcpy(audit_entry.tuple.dst_ip.ipv6, ip6, sizeof(uint32_t) * 4);
     audit_entry.tuple.dst_port = (outbound) ? ctx->remote_port : ctx->local_port;
     audit_entry.tuple.protocol = ctx->protocol;
+    audit_entry.tuple.interface_luid = ctx->interface_luid;
     audit_entry.outbound = outbound;
     audit_entry.connected = connected;
 

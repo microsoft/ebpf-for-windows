@@ -217,16 +217,16 @@ TEST_CASE("show sections cgroup_sock_addr.sys", "[netsh][sections]")
                   "                                    Size\n"
                   "             Section       Type  (bytes)\n"
                   "====================  =========  =======\n"
-                  "     cgroup/connect4  sock_addr      594\n"
-                  "     cgroup/connect6  sock_addr      728\n"
-                  " cgroup/recv_accept4  sock_addr      594\n"
-                  " cgroup/recv_accept6  sock_addr      728\n"
+                  "     cgroup/connect4  sock_addr      598\n"
+                  "     cgroup/connect6  sock_addr      770\n"
+                  " cgroup/recv_accept4  sock_addr      598\n"
+                  " cgroup/recv_accept6  sock_addr      770\n"
                   "\n"
                   "                     Key  Value      Max\n"
                   "          Map Type  Size   Size  Entries  Name\n"
                   "==================  ====  =====  =======  ========\n"
-                  "              Hash    44      4        1  ingress_connection_policy_map\n"
-                  "              Hash    44      4        1  egress_connection_policy_map\n");
+                  "              Hash    56      4        1  ingress_connection_policy_map\n"
+                  "              Hash    56      4        1  egress_connection_policy_map\n");
 }
 
 TEST_CASE("show verification nosuchfile.o", "[netsh][verification]")

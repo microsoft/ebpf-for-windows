@@ -26,8 +26,8 @@ using namespace std::chrono_literals;
 void
 connection_test(
     ADDRESS_FAMILY address_family,
-    sender_socket_t& sender_socket,
-    receiver_socket_t& receiver_socket,
+    _In_ sender_socket_t& sender_socket,
+    _In_ receiver_socket_t& receiver_socket,
     uint32_t protocol)
 {
     struct bpf_object* object;
@@ -60,6 +60,9 @@ connection_test(
     tuple.src_port = INETADDR_PORT(local_address);
     tuple.dst_port = htons(SOCKET_TEST_PORT);
     tuple.protocol = protocol;
+    NET_LUID net_luid = {};
+    net_luid.Info.IfType = IF_TYPE_SOFTWARE_LOOPBACK;
+    tuple.interface_luid = net_luid.Value;
 
     bpf_map* ingress_connection_policy_map = bpf_object__find_map_by_name(object, "ingress_connection_policy_map");
     REQUIRE(ingress_connection_policy_map != nullptr);
@@ -196,8 +199,8 @@ TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
 void
 connection_monitor_test(
     ADDRESS_FAMILY address_family,
-    sender_socket_t& sender_socket,
-    receiver_socket_t& receiver_socket,
+    _In_ sender_socket_t& sender_socket,
+    _In_ receiver_socket_t& receiver_socket,
     uint32_t protocol,
     bool disconnect)
 {
@@ -229,6 +232,9 @@ connection_monitor_test(
     tuple.src_port = INETADDR_PORT(local_address);
     tuple.dst_port = htons(SOCKET_TEST_PORT);
     tuple.protocol = protocol;
+    NET_LUID net_luid = {};
+    net_luid.Info.IfType = IF_TYPE_SOFTWARE_LOOPBACK;
+    tuple.interface_luid = net_luid.Value;
 
     std::vector<std::vector<char>> audit_entry_list;
     audit_entry_t audit_entries[3] = {0};

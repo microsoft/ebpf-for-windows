@@ -238,6 +238,11 @@ typedef class xdp_md_helper : public xdp_md_t
                 _begin -= abs_delta;
             else {
                 size_t additional_space_needed = abs_delta - _begin;
+                const size_t MAX_ADDITIONAL_BYTES = 65536;
+                if (additional_space_needed > MAX_ADDITIONAL_BYTES) {
+                    return_value = -1;
+                    goto Done;
+                }
                 // Prepend _packet with additional_space_needed count of 0.
                 _packet->insert(_packet->begin(), additional_space_needed, 0);
                 _begin = 0;
@@ -263,8 +268,7 @@ typedef class _test_xdp_helper
     static int
     adjust_head(_In_ xdp_md_t* ctx, int delta)
     {
-        ((xdp_md_helper_t*)ctx)->adjust_head(delta);
-        return 0;
+        return ((xdp_md_helper_t*)ctx)->adjust_head(delta);
     }
 } test_xdp_helper_t;
 
