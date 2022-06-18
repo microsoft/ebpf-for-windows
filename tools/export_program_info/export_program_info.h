@@ -11,3 +11,18 @@ extern "C"
     extern ebpf_helper_function_prototype_t* ebpf_core_helper_function_prototype;
     extern uint32_t ebpf_core_helper_functions_count;
 }
+
+void
+print_help(_In_ const char* file_name);
+
+uint32_t
+export_all_program_information();
+
+uint32_t
+export_all_section_information();
+
+int
+export_global_helper_information();
+
+uint32_t
+clear_all_ebpf_stores();

@@ -3,9 +3,6 @@
 
 #define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
 #include <codecvt>
-#include <stdio.h>
-#include <vector>
-#include <map>
 
 #include "ebpf_api.h"
 #include "ebpf_nethooks.h"
@@ -524,49 +521,17 @@ Exit:
     return status;
 }
 
-void
-_clear_all_ebpf_stores()
+uint32_t
+clear_all_ebpf_stores()
 {
     // std::cout << "Clearing eBPF store HKEY_LOCAL_MACHINE" << std::endl;
     // _clear_ebpf_store(HKEY_LOCAL_MACHINE);
     std::cout << "Clearing eBPF store HKEY_CURRENT_USER" << std::endl;
-    _clear_ebpf_store(HKEY_CURRENT_USER);
+    return _clear_ebpf_store(HKEY_CURRENT_USER);
 }
 
-static void
-_print_help(_In_ const char* file_name)
+void
+print_help(_In_ const char* file_name)
 {
     std::cerr << "Usage: " << file_name << " [--clear]" << std::endl;
-}
-
-int
-main(int argc, char** argv)
-{
-    bool clear = false;
-    if (argc != 1 && argc != 2) {
-        _print_help(argv[0]);
-        return 1;
-    }
-    if (argc == 2) {
-        std::string option(argv[1]);
-        if (option == "--clear") {
-            clear = true;
-        } else {
-            _print_help(argv[0]);
-            return 1;
-        }
-    }
-
-    if (!clear) {
-        std::cout << "Exporting program information." << std::endl;
-        export_all_program_information();
-        std::cout << "Exporting section information." << std::endl;
-        export_all_section_information();
-        std::cout << "Exporting global helper information." << std::endl;
-        export_global_helper_information();
-    } else {
-        _clear_all_ebpf_stores();
-    }
-
-    return 0;
 }
