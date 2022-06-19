@@ -41,6 +41,19 @@ create_registry_key(
     uint32_t flags,
     _Out_ ebpf_registry_key_t* key);
 
+uint32_t
+open_registry_key(
+    _In_ const ebpf_registry_key_t* root_key,
+    _In_opt_z_ const wchar_t* sub_key,
+    uint32_t flags,
+    _Out_ ebpf_registry_key_t* key);
+
+uint32_t
+delete_registry_key(_In_ const ebpf_registry_key_t* root_key, _In_z_ const wchar_t* sub_key);
+
+uint32_t
+delete_registry_tree(_In_ const ebpf_registry_key_t* root_key, _In_opt_z_ const wchar_t* sub_key);
+
 ebpf_result_t
 read_registry_value_dword(_In_ HKEY key, _In_ const wchar_t* value_name, _Out_ uint32_t* value);
 

@@ -24,7 +24,7 @@
 
 static thread_local ebpf_handle_t _program_under_verification = ebpf_handle_invalid;
 
-// TODO: Issue #XYZ Change to using HKEY_LOCAL_MACHINE
+// TODO: Issue #1231 Change to using HKEY_LOCAL_MACHINE
 static HKEY _root_registry_key = HKEY_CURRENT_USER;
 
 extern bool use_ebpf_store;
@@ -775,11 +775,7 @@ _load_program_data_information(HKEY program_data_key, _In_ const wchar_t* progra
             program_information.count_of_helpers = helper_count;
         }
 
-        // #pragma warning(push)
-        // #pragma warning(disable : 26495) // EbpfProgramType does not initialize member variables.
         _windows_program_types.insert(std::pair<ebpf_program_type_t, EbpfProgramType>(*program_type, program_data));
-        // #pragma warning(pop)
-
         _windows_program_information.insert(
             std::pair<ebpf_program_type_t, ebpf_program_info_t>(*program_type, program_information));
     } catch (...) {
@@ -814,7 +810,6 @@ _update_global_helpers_for_program_information(
 {
     // Iterate over all the program information and append the global
     // helper functions to each of the program information.
-
     for (auto& iterator : _windows_program_information) {
         ebpf_program_info_t& program_info = iterator.second;
         uint32_t total_helper_count = global_helper_count + program_info.count_of_helpers;
@@ -907,7 +902,6 @@ _load_all_global_helper_information(HKEY store_key)
 
         for (uint32_t index = 0; index < max_helpers_count; index++) {
             memset(helper_name, 0, max_helper_name_size * sizeof(wchar_t));
-            // key_size = (max_helper_name_size - 1) * sizeof(wchar_t);
             key_size = max_helper_name_size;
             status =
                 RegEnumKeyEx(global_helpers_key, index, helper_name, &key_size, nullptr, nullptr, nullptr, nullptr);
@@ -943,23 +937,10 @@ _load_all_program_data_information(HKEY store_key)
     ebpf_result_t result = EBPF_SUCCESS;
     HKEY program_data_key = nullptr;
     wchar_t program_type_key[GUID_STRING_LENGTH + 1];
-    // wchar_t program_type_key[MAX_PATH + 1];
     DWORD key_size = 0;
     uint32_t index = 0;
 
     try {
-
-        // DO NOT ADD THE UNSPEC IN THE VECTOR.
-        /*
-                // Add a default entry in windows_program_types.
-                EbpfProgramType unspecified = PTYPE("unspecified", {0}, (uint64_t)&EBPF_PROGRAM_TYPE_UNSPECIFIED, {});
-        #pragma warning(push)
-        #pragma warning(disable : 26495) // EbpfProgramType does not initialize member variables.
-                _windows_program_types.insert(
-                    std::pair<ebpf_program_type_t, EbpfProgramType>(EBPF_PROGRAM_TYPE_UNSPECIFIED, unspecified));
-        #pragma warning(pop)
-        */
-
         // Open program data registry path.
         status = RegOpenKeyEx(store_key, EBPF_PROGRAM_DATA_REGISTRY_PATH, 0, KEY_READ, &program_data_key);
         if (status != ERROR_SUCCESS) {
@@ -970,7 +951,6 @@ _load_all_program_data_information(HKEY store_key)
 
         while (true) {
             key_size = GUID_STRING_LENGTH + 1;
-            // key_size = MAX_PATH + 1;
             memset(program_type_key, 0, key_size);
             status =
                 RegEnumKeyEx(program_data_key, index, program_type_key, &key_size, nullptr, nullptr, nullptr, nullptr);
@@ -983,7 +963,6 @@ _load_all_program_data_information(HKEY store_key)
                 // Ignore this entry and continue.
                 continue;
             } else if (status != ERROR_SUCCESS) {
-                // TODO: Add a trace that we failed with an unexpected error.
                 break;
             }
 
@@ -1030,7 +1009,6 @@ _load_all_section_data_information(HKEY store_key)
                 // Ignore this entry and continue.
                 continue;
             } else if (status != ERROR_SUCCESS) {
-                // TODO: Add a trace that we failed with an unexpected error.
                 break;
             }
 

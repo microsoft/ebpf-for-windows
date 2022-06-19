@@ -55,7 +55,7 @@ Exit:
     return status;
 }
 
-static __forceinline __return_type
+static __return_type
 _update_helper_prototype(
     _In_ const ebpf_registry_key_t* helper_info_key, _In_ const ebpf_helper_function_prototype_t* helper_info)
 {
@@ -93,7 +93,7 @@ Exit:
     return status;
 }
 
-static __forceinline __return_type
+static __return_type
 ebpf_store_update_section_information(
     _In_reads_(section_info_count) ebpf_program_section_info_t* section_info, int section_info_count)
 {
@@ -174,7 +174,7 @@ Exit:
     return status;
 }
 
-static __forceinline __return_type
+static __return_type
 ebpf_store_update_program_information(
     _In_reads_(program_info_count) ebpf_program_info_t* program_info, int program_info_count)
 {
@@ -289,7 +289,7 @@ Exit:
     return status;
 }
 
-static __forceinline __return_type
+static __return_type
 ebpf_store_update_global_helper_information(
     _In_reads_(helper_info_count) ebpf_helper_function_prototype_t* helper_info, int helper_info_count)
 {

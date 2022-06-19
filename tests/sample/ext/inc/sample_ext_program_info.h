@@ -13,7 +13,6 @@
 #include "sample_ext_helpers.h"
 
 #define SAMPLE_EXT_HELPER_FUNCTION_START EBPF_MAX_GENERAL_HELPER_FUNCTION
-// #define BPF_PROGRAM_TYPE_SAMPLE 999
 
 static ebpf_context_descriptor_t _sample_ebpf_context_descriptor = {
     sizeof(sample_program_context_t),

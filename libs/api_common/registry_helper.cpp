@@ -101,6 +101,30 @@ create_registry_key(
 }
 
 uint32_t
+open_registry_key(
+    _In_ const ebpf_registry_key_t* root_key,
+    _In_opt_z_ const wchar_t* sub_key,
+    uint32_t flags,
+    _Out_ ebpf_registry_key_t* key)
+{
+    ebpf_assert(root_key != nullptr);
+
+    return RegOpenKeyEx(root_key->key, sub_key, 0, flags, &key->key);
+}
+
+uint32_t
+delete_registry_key(_In_ const ebpf_registry_key_t* root_key, _In_z_ const wchar_t* sub_key)
+{
+    return RegDeleteKeyEx(root_key->key, sub_key, 0, 0);
+}
+
+uint32_t
+delete_registry_tree(_In_ const ebpf_registry_key_t* root_key, _In_opt_z_ const wchar_t* sub_key)
+{
+    return RegDeleteTree(root_key->key, sub_key);
+}
+
+uint32_t
 create_registry_key_ansi(
     _In_ const ebpf_registry_key_t* root_key,
     _In_z_ const char* sub_key,

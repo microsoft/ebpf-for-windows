@@ -113,7 +113,7 @@ function Install-eBPFComponents
     # Start all components.
     Start-eBPFComponents
 
-    ## TODO: Issue XXX, remove this when this issue is fixed.
+    ## TODO: Issue 1231, remove this step when this issue is fixed.
     # Update eBPF store.
     Update-eBPFStore
 }
