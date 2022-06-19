@@ -346,6 +346,11 @@ sample_ebpf_extension_program_info_provider_register()
 
     NTSTATUS status = STATUS_SUCCESS;
 
+    status = _sample_ebpf_extension_update_store_entries();
+    if (!NT_SUCCESS(status)) {
+        return status;
+    }
+
     extension_data = (ebpf_extension_data_t*)_sample_ebpf_extension_program_info_provider_characteristics
                          .ProviderRegistrationInstance.NpiSpecificCharacteristics;
     program_data = (ebpf_program_data_t*)extension_data->data;

@@ -1,8 +1,10 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-// Contains registry related helper APIs.
+// Contains user mode registry related helper APIs.
 
+#define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
+#include <codecvt>
 #include <map>
 #include <mutex>
 #include <stdexcept>
@@ -15,8 +17,106 @@
 #include "ebpf_result.h"
 #include "platform.h"
 #include "platform.hpp"
+#include "um_registry_helper.h"
 
-#include "registry_helper.hpp"
+#define GUID_STRING_LENGTH 38 // not inlcuding the null terminator.
+
+static std::wstring
+_get_wstring_from_string(std::string text)
+{
+    std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+    std::wstring wide = converter.from_bytes(text);
+
+    return wide;
+}
+
+void
+close_registry_handle(_In_ ebpf_registry_key_t* key)
+{
+    if (key->key != nullptr) {
+        RegCloseKey(key->key);
+        key->key = nullptr;
+    }
+}
+
+uint32_t
+write_registry_value_binary(
+    _In_ const ebpf_registry_key_t* key,
+    _In_ const wchar_t* value_name,
+    _In_reads_(value_size) uint8_t* value,
+    _In_ size_t value_size)
+{
+    ebpf_assert(value_name);
+    ebpf_assert(value);
+
+    return RegSetValueEx(key->key, value_name, 0, REG_BINARY, value, (DWORD)value_size);
+}
+
+uint32_t
+write_registry_value_wide_string(
+    _In_ const ebpf_registry_key_t* key, _In_ const wchar_t* value_name, _In_z_ const wchar_t* value)
+{
+    ebpf_assert(value_name);
+    ebpf_assert(value);
+
+    auto length = (wcslen(value) + 1) * sizeof(wchar_t);
+    return RegSetValueEx(key->key, value_name, 0, REG_SZ, (uint8_t*)value, (DWORD)length);
+}
+
+uint32_t
+write_registry_value_ansi_string(
+    _In_ const ebpf_registry_key_t* key, _In_ const wchar_t* value_name, _In_z_ const char* value)
+{
+    uint32_t result;
+    try {
+        auto wide_string = _get_wstring_from_string(value);
+        result = write_registry_value_wide_string(key, value_name, wide_string.c_str());
+    } catch (...) {
+        result = ERROR_NOT_ENOUGH_MEMORY;
+    }
+
+    return result;
+}
+
+uint32_t
+write_registry_value_dword(_In_ const ebpf_registry_key_t* key, _In_z_ const wchar_t* value_name, uint32_t value)
+{
+    ebpf_assert(key->key);
+    return RegSetValueEx(key->key, value_name, 0, REG_DWORD, (PBYTE)&value, sizeof(value));
+}
+
+uint32_t
+create_registry_key(
+    _In_opt_ const ebpf_registry_key_t* root_key,
+    _In_ const wchar_t* sub_key,
+    uint32_t flags,
+    _Out_ ebpf_registry_key_t* key)
+{
+    key->key = nullptr;
+    if (root_key == nullptr) {
+        return ERROR_INVALID_PARAMETER;
+    }
+
+    return RegCreateKeyEx(root_key->key, sub_key, 0, nullptr, 0, flags, nullptr, &key->key, nullptr);
+}
+
+uint32_t
+create_registry_key_ansi(
+    _In_ const ebpf_registry_key_t* root_key,
+    _In_z_ const char* sub_key,
+    uint32_t flags,
+    _Out_ ebpf_registry_key_t* key)
+{
+    uint32_t result;
+    try {
+        auto wide_string = _get_wstring_from_string(sub_key);
+        result = create_registry_key(root_key, wide_string.c_str(), flags, key);
+    } catch (...) {
+        result = ERROR_NOT_ENOUGH_MEMORY;
+    }
+
+    return result;
+}
 
 ebpf_result_t
 read_registry_value_string(HKEY key, _In_ const wchar_t* value_name, _Out_ wchar_t** value)
@@ -80,4 +180,36 @@ read_registry_value_binary(
 
 Exit:
     return win32_error_code_to_ebpf_result(status);
+}
+
+_Success_(return == 0) uint32_t
+    convert_guid_to_string(_In_ const GUID* guid, _Out_writes_all_(string_size) wchar_t* string, size_t string_size)
+{
+    uint32_t status = ERROR_SUCCESS;
+    wchar_t* value_name = nullptr;
+
+    try {
+        if (string_size < GUID_STRING_LENGTH + 1) {
+            return ERROR_INSUFFICIENT_BUFFER;
+        }
+
+        // Convert program type GUID to string
+        RPC_STATUS rpc_status = UuidToString(guid, (RPC_WSTR*)&value_name);
+        if (rpc_status != RPC_S_OK) {
+            return ERROR_INVALID_PARAMETER;
+        }
+
+        std::wstring value_name_string(value_name);
+
+        // UuidToString returns string without braces. Add braces to the resulting string.
+        value_name_string = L"{" + value_name_string + L"}";
+
+        // Copy the buffer to the output string.
+        memcpy(string, value_name_string.c_str(), GUID_STRING_LENGTH * 2);
+        string[GUID_STRING_LENGTH] = L'\0';
+    } catch (...) {
+        status = ERROR_NOT_ENOUGH_MEMORY;
+    }
+
+    return status;
 }

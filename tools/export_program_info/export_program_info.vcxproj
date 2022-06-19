@@ -161,6 +161,7 @@ $(OutputPath)export_program_info.exe</Command>
     </CustomBuildStep>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\libs\api_common\registry_helper.cpp" />
     <ClCompile Include="export_program_info.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
@@ -169,6 +170,11 @@ $(OutputPath)export_program_info.exe</Command>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="export_program_info.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\libs\platform\user\platform_user.vcxproj">
+      <Project>{c26cb6a9-158c-4a9e-a243-755ddd98e5fe}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -1,11 +1,13 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#define USER_MODE
 #define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
 #include <codecvt>
 
 #include "ebpf_api.h"
 #include "ebpf_nethooks.h"
+#include "ebpf_store_helper.h"
 #include "export_program_info.h"
 #include "windows_program_type.h"
 
@@ -15,7 +17,7 @@
 #define REG_OPEN_FLAGS (DELETE | KEY_READ)
 
 // TODO: Issue #XYZ Change to using HKEY_LOCAL_MACHINE
-static HKEY _root_registry_key = HKEY_CURRENT_USER;
+ebpf_registry_key_t root_registry_key = {HKEY_CURRENT_USER};
 
 #define SIZE_OF_ARRAY(x) (sizeof(x) / sizeof(x[0]))
 
@@ -43,15 +45,7 @@ static std::vector<ebpf_program_section_info_with_count_t> _section_information 
     {&_sample_ext_section_info[0], SIZE_OF_ARRAY(_sample_ext_section_info)},
 };
 
-static std::wstring
-_get_wstring_from_string(std::string text)
-{
-    std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-    std::wstring wide = converter.from_bytes(text);
-
-    return wide;
-}
-
+/*
 static uint32_t
 _write_registry_value_dword(_In_ HKEY key, _In_ const wchar_t* value_name, uint32_t value)
 {
@@ -77,12 +71,15 @@ _write_registry_value_string(_In_ HKEY key, _In_ const wchar_t* value_name, _In_
     auto length = (wcslen(value) + 1) * sizeof(wchar_t);
     return RegSetValueEx(key, value_name, 0, REG_SZ, (uint8_t*)value, (DWORD)length);
 }
+*/
 
+/*
 static uint32_t
 _create_registry_key(_In_ HKEY root_key, _In_ const wchar_t* sub_key, uint32_t flags, _Out_ HKEY* key)
 {
     return RegCreateKeyEx(root_key, sub_key, 0, nullptr, 0, flags, nullptr, key, nullptr);
 }
+*/
 
 static uint32_t
 _open_registry_key(_In_ HKEY root_key, _In_ const wchar_t* sub_key, uint32_t flags, _Out_ HKEY* key)
@@ -96,6 +93,7 @@ _delete_registry_key(_In_ HKEY root_key, _In_ const wchar_t* sub_key)
     return RegDeleteKeyEx(root_key, sub_key, 0, 0);
 }
 
+/*
 static uint32_t
 _open_or_create_provider_registry_key(_Out_ HKEY* provider_handle)
 {
@@ -123,7 +121,9 @@ Exit:
 
     return status;
 }
+*/
 
+/*
 static __forceinline NTSTATUS
 _update_helper_prototype(HKEY helper_info_handle, _In_ const ebpf_helper_function_prototype_t* helper_info)
 {
@@ -165,7 +165,9 @@ Exit:
     }
     return status;
 }
+*/
 
+/*
 // TODO: Fix this function. This function should take array of pointers as input.
 int
 ebpf_store_update_program_information(
@@ -291,7 +293,9 @@ Exit:
     }
     return status;
 }
+*/
 
+/*
 static __forceinline NTSTATUS
 ebpf_store_update_section_information(
     _In_reads_(section_info_count) ebpf_program_section_info_t* section_info, uint32_t section_info_count)
@@ -376,6 +380,7 @@ Exit:
 
     return status;
 }
+*/
 
 uint32_t
 export_all_program_information()
@@ -411,6 +416,7 @@ export_all_program_information()
     return status;
 }
 
+/*
 static uint32_t
 ebpf_store_update_global_helper_information(
     _In_reads_(helper_info_count) ebpf_helper_function_prototype_t* helper_info, int helper_info_count)
@@ -452,6 +458,7 @@ Exit:
     }
     return status;
 }
+*/
 
 uint32_t
 export_all_section_information()
@@ -475,14 +482,14 @@ export_global_helper_information()
 }
 
 static uint32_t
-_clear_ebpf_store(HKEY root_registry_key)
+_clear_ebpf_store(HKEY root_key)
 {
     HKEY root_handle = nullptr;
     HKEY provider_handle = nullptr;
     uint32_t status;
 
     // Open root registry key.
-    status = _open_registry_key(root_registry_key, EBPF_ROOT_RELATIVE_PATH, REG_CREATE_FLAGS, &root_handle);
+    status = _open_registry_key(root_key, EBPF_ROOT_RELATIVE_PATH, REG_CREATE_FLAGS, &root_handle);
     if (status != ERROR_SUCCESS) {
         if (status == ERROR_FILE_NOT_FOUND) {
             status = ERROR_SUCCESS;

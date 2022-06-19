@@ -165,6 +165,7 @@
   <ItemGroup>
     <ClInclude Include="map_descriptors.hpp" />
     <ClInclude Include="api_common.hpp" />
+    <ClInclude Include="um_registry_helper.h" />
     <ClInclude Include="tlv.h" />
     <ClInclude Include="device_helper.hpp" />
     <ClInclude Include="utilities.hpp" />

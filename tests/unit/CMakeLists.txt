@@ -62,6 +62,7 @@ target_link_libraries("unit_tests" PRIVATE
   "ubpf_user"
   "export_program_info_runner"
   "Mincore.lib"
+  "external::boost"
 )
 
 add_test(

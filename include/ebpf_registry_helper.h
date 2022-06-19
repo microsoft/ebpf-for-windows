@@ -5,6 +5,7 @@
 
 #include <ntddk.h>
 
+/*
 #define EBPF_ROOT_REGISTRY_PATH L"\\Registry\\Machine\\Software\\eBPF"
 
 #define EBPF_PROVIDERS_REGISTRY_PATH L"Providers"
@@ -24,6 +25,7 @@
 #define EBPF_PROGRAM_DATA_HELPER_COUNT L"HelperCount"
 
 #define EBPF_HELPER_DATA_PROTOTYPE L"Prototype"
+*/
 
 #define REG_CREATE_FLAGS 0
 
@@ -43,15 +45,22 @@ close_registry_handle(_In_ ebpf_registry_key_t* key)
     }
 }
 
-static uint32_t
-convert_guid_to_string(_In_ const GUID* guid, _Out_ wchar_t* string)
+_Success_(return == 0) static NTSTATUS
+    convert_guid_to_string(_In_ const GUID* guid, _Out_writes_all_(string_size) wchar_t* string, size_t string_size)
 {
     UNICODE_STRING unicode_string;
-    uint32_t status = RtlStringFromGUID(guid, &unicode_string);
+    NTSTATUS status = RtlStringFromGUID(guid, &unicode_string);
     if (status != STATUS_SUCCESS) {
         goto Exit;
     }
 
+    if (string_size < GUID_STRING_LENGTH + 1) {
+        status = STATUS_BUFFER_TOO_SMALL;
+        goto Exit;
+    }
+
+    __analysis_assume(unicode_string.MaximumLength >= GUID_STRING_LENGTH * 2);
+    __analysis_assume(unicode_string.Buffer != NULL);
     // Copy the buffer to the output string.
     memcpy(string, unicode_string.Buffer, GUID_STRING_LENGTH * 2);
     string[GUID_STRING_LENGTH] = L'\0';
@@ -190,6 +199,7 @@ create_registry_key_ansi(
     RtlInitAnsiString(&ansi_string, sub_key);
 
     UNREFERENCED_PARAMETER(flags);
+    key->key = NULL;
 
     status = RtlAnsiStringToUnicodeString(&registry_path, &ansi_string, TRUE);
     if (!NT_SUCCESS(status)) {

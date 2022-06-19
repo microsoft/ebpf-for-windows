@@ -3,6 +3,8 @@
 
 add_executable("export_program_info"
   export_program_info.cpp
+  main.cpp
+  registry_helper.cpp
 )
 
 target_include_directories("export_program_info" PRIVATE

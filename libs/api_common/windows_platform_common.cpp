@@ -19,9 +19,8 @@
 #include "utilities.hpp"
 #include "windows_program_type.h"
 #include "windows_platform.hpp"
-#include "registry_helper.hpp"
+#include "um_registry_helper.h"
 
-#define GUID_STRING_LENGTH 38
 #define GET_PROGRAM_INFO_REPLY_BUFFER_SIZE 2048
 
 static thread_local ebpf_handle_t _program_under_verification = ebpf_handle_invalid;

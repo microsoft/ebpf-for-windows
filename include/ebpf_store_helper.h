@@ -7,7 +7,7 @@
 #ifndef USER_MODE
 #include "ebpf_registry_helper.h"
 #else
-#include "ebpf_um_registry_helper.h"
+#include "um_registry_helper.h"
 #endif
 #include "ebpf_windows.h"
 
@@ -18,37 +18,39 @@
 #else
 #define __return_type uint32_t
 #define IS_SUCCESS(x) (x == ERROR_SUCCESS)
-#define _SUCCESS ERROR_SUCCESS
+#define _SUCCESS NO_ERROR
 #endif
 
 typedef struct _ebpf_registry_key ebpf_registry_key_t;
 
-/*
-typedef struct _ebpf_store_section_info
-{
-    wchar_t* section_name;
-    ebpf_program_type_t program_type;
-    ebpf_attach_type_t attach_type;
-    uint32_t bpf_program_type;
-    uint32_t bpf_attach_type;
-} ebpf_program_section_info_t;
-*/
+#ifdef USER_MODE
+extern ebpf_registry_key_t root_registry_key;
+#endif
 
 static uint32_t
 _open_or_create_provider_registry_key(_Out_ ebpf_registry_key_t* provider_key)
 {
     __return_type status = _SUCCESS;
     ebpf_registry_key_t root_handle = {0};
+    provider_key->key = NULL;
 
     // Open (or create) root eBPF registry path.
+#ifndef USER_MODE
     status = create_registry_key(NULL, EBPF_ROOT_REGISTRY_PATH, REG_CREATE_FLAGS, &root_handle);
-    if (!NT_SUCCESS(status)) {
+#else
+    status = create_registry_key(&root_registry_key, EBPF_ROOT_RELATIVE_PATH, REG_CREATE_FLAGS, &root_handle);
+#endif
+    if (!IS_SUCCESS(status)) {
         goto Exit;
     }
 
     // Open (or create) program data registry path.
-    status = create_registry_key(&root_handle, EBPF_PROGRAM_DATA_REGISTRY_PATH, REG_CREATE_FLAGS, provider_key);
-    if (!NT_SUCCESS(status)) {
+#ifndef USER_MODE
+    status = create_registry_key(&root_handle, EBPF_PROVIDERS_REGISTRY_PATH, REG_CREATE_FLAGS, provider_key);
+#else
+    status = create_registry_key(&root_handle, EBPF_PROVIDERS_REGISTRY_PATH, REG_CREATE_FLAGS, provider_key);
+#endif
+    if (!IS_SUCCESS(status)) {
         goto Exit;
     }
 
@@ -62,16 +64,17 @@ _update_helper_prototype(
     _In_ const ebpf_registry_key_t* helper_info_handle, _In_ const ebpf_helper_function_prototype_t* helper_info)
 {
     __return_type status = _SUCCESS;
+    uint32_t offset;
     ebpf_registry_key_t helper_function_handle = {0};
+    char serialized_data[sizeof(ebpf_helper_function_prototype_t)] = {0};
 
     status = create_registry_key_ansi(helper_info_handle, helper_info->name, REG_CREATE_FLAGS, &helper_function_handle);
-    if (!NT_SUCCESS(status)) {
+    if (!IS_SUCCESS(status)) {
         goto Exit;
     }
 
     // Serialize the helper prototype.
-    char serialized_data[sizeof(ebpf_helper_function_prototype_t)] = {0};
-    uint32_t offset = 0;
+    offset = 0;
     memcpy(serialized_data, &helper_info->helper_id, sizeof(helper_info->helper_id));
     offset += sizeof(helper_info->helper_id);
 
@@ -84,7 +87,7 @@ _update_helper_prototype(
     // Save the helper prototype data.
     status = write_registry_value_binary(
         &helper_function_handle, EBPF_HELPER_DATA_PROTOTYPE, (uint8_t*)&serialized_data[0], offset);
-    if (!NT_SUCCESS(status)) {
+    if (!IS_SUCCESS(status)) {
         goto Exit;
     }
 
@@ -108,13 +111,13 @@ ebpf_store_update_section_information(
 
     // Open (or create) provider registry path.
     status = _open_or_create_provider_registry_key(&provider_handle);
-    if (!NT_SUCCESS(status)) {
+    if (!IS_SUCCESS(status)) {
         goto Exit;
     }
 
     // Open (or create) section data handle.
     status = create_registry_key(&provider_handle, EBPF_SECTIONS_REGISTRY_PATH, REG_CREATE_FLAGS, &section_info_handle);
-    if (!NT_SUCCESS(status)) {
+    if (!IS_SUCCESS(status)) {
         goto Exit;
     }
 
@@ -124,7 +127,7 @@ ebpf_store_update_section_information(
         // Open or create the registry path.
         status =
             create_registry_key(&section_info_handle, section_info[i].section_name, REG_CREATE_FLAGS, &section_handle);
-        if (!NT_SUCCESS(status)) {
+        if (!IS_SUCCESS(status)) {
             goto Exit;
         }
 
@@ -132,9 +135,9 @@ ebpf_store_update_section_information(
         status = write_registry_value_binary(
             &section_handle,
             EBPF_SECTION_DATA_PROGRAM_TYPE,
-            (uint8_t*)&section_info[i].program_type,
+            (uint8_t*)section_info[i].program_type,
             sizeof(ebpf_program_type_t));
-        if (!NT_SUCCESS(status)) {
+        if (!IS_SUCCESS(status)) {
             close_registry_handle(&section_handle);
             goto Exit;
         }
@@ -143,9 +146,25 @@ ebpf_store_update_section_information(
         status = write_registry_value_binary(
             &section_handle,
             EBPF_SECTION_DATA_ATTACH_TYPE,
-            (uint8_t*)&section_info[i].attach_type,
+            (uint8_t*)section_info[i].attach_type,
             sizeof(ebpf_attach_type_t));
-        if (!NT_SUCCESS(status)) {
+        if (!IS_SUCCESS(status)) {
+            close_registry_handle(&section_handle);
+            goto Exit;
+        }
+
+        // Save bpf_prog_type
+        status = write_registry_value_dword(
+            &section_handle, EBPF_PROGRAM_DATA_BPF_PROG_TYPE, section_info[i].bpf_program_type);
+        if (!IS_SUCCESS(status)) {
+            close_registry_handle(&section_handle);
+            goto Exit;
+        }
+
+        // Save bpf_attach_type
+        status = write_registry_value_dword(
+            &section_handle, EBPF_SECTION_DATA_BPF_ATTACH_TYPE, section_info[i].bpf_attach_type);
+        if (!IS_SUCCESS(status)) {
             close_registry_handle(&section_handle);
             goto Exit;
         }
@@ -174,14 +193,14 @@ ebpf_store_update_program_information(
 
     // Open (or create) provider registry path.
     status = _open_or_create_provider_registry_key(&provider_handle);
-    if (!NT_SUCCESS(status)) {
+    if (!IS_SUCCESS(status)) {
         goto Exit;
     }
 
     // Open (or create) program data registry path.
     status =
         create_registry_key(&provider_handle, EBPF_PROGRAM_DATA_REGISTRY_PATH, REG_CREATE_FLAGS, &program_info_handle);
-    if (!NT_SUCCESS(status)) {
+    if (!IS_SUCCESS(status)) {
         goto Exit;
     }
 
@@ -191,20 +210,21 @@ ebpf_store_update_program_information(
 
         // Convert program type GUID to string
         wchar_t guid_string[GUID_STRING_LENGTH + 1];
-        status = convert_guid_to_string(&program_info[i].program_type_descriptor.program_type, guid_string);
+        status = convert_guid_to_string(
+            &program_info[i].program_type_descriptor.program_type, guid_string, GUID_STRING_LENGTH + 1);
         if (status != _SUCCESS) {
             return status;
         }
 
         status = create_registry_key(&program_info_handle, guid_string, REG_CREATE_FLAGS, &program_handle);
-        if (!NT_SUCCESS(status)) {
+        if (!IS_SUCCESS(status)) {
             goto Exit;
         }
 
         // Save the friendly program type name.
         status = write_registry_value_ansi_string(
             &program_handle, EBPF_PROGRAM_DATA_NAME, program_info[i].program_type_descriptor.name);
-        if (!NT_SUCCESS(status)) {
+        if (!IS_SUCCESS(status)) {
             close_registry_handle(&program_handle);
             goto Exit;
         }
@@ -213,9 +233,9 @@ ebpf_store_update_program_information(
         status = write_registry_value_binary(
             &program_handle,
             EBPF_PROGRAM_DATA_CONTEXT_DESCRIPTOR,
-            (uint8_t*)&program_info[i].program_type_descriptor.context_descriptor,
+            (uint8_t*)program_info[i].program_type_descriptor.context_descriptor,
             sizeof(ebpf_context_descriptor_t));
-        if (!NT_SUCCESS(status)) {
+        if (!IS_SUCCESS(status)) {
             close_registry_handle(&program_handle);
             goto Exit;
         }
@@ -223,7 +243,7 @@ ebpf_store_update_program_information(
         // Save bpf_prog_type.
         status = write_registry_value_dword(
             &program_handle, EBPF_PROGRAM_DATA_BPF_PROG_TYPE, program_info[i].program_type_descriptor.bpf_prog_type);
-        if (!NT_SUCCESS(status)) {
+        if (!IS_SUCCESS(status)) {
             close_registry_handle(&program_handle);
             goto Exit;
         }
@@ -231,7 +251,7 @@ ebpf_store_update_program_information(
         // Save "is_privileged"
         status = write_registry_value_dword(
             &program_handle, EBPF_PROGRAM_DATA_PRIVELEGED, program_info[i].program_type_descriptor.is_privileged);
-        if (!NT_SUCCESS(status)) {
+        if (!IS_SUCCESS(status)) {
             close_registry_handle(&program_handle);
             goto Exit;
         }
@@ -239,7 +259,7 @@ ebpf_store_update_program_information(
         // Save helper count.
         status = write_registry_value_dword(
             &program_handle, EBPF_PROGRAM_DATA_HELPER_COUNT, program_info[i].count_of_helpers);
-        if (!NT_SUCCESS(status)) {
+        if (!IS_SUCCESS(status)) {
             close_registry_handle(&program_handle);
             goto Exit;
         }
@@ -248,7 +268,7 @@ ebpf_store_update_program_information(
             // Create (or open) helper registry path.
             status = create_registry_key(
                 &program_handle, EBPF_PROGRAM_DATA_HELPERS_REGISTRY_PATH, REG_CREATE_FLAGS, &helper_info_handle);
-            if (!NT_SUCCESS(status)) {
+            if (!IS_SUCCESS(status)) {
                 close_registry_handle(&program_handle);
                 goto Exit;
             }
@@ -256,7 +276,7 @@ ebpf_store_update_program_information(
             // Iterate over all the helper prototypes and save in registry.
             for (uint32_t count = 0; count < program_info[i].count_of_helpers; count++) {
                 status = _update_helper_prototype(&helper_info_handle, &(program_info[i].helper_prototype[count]));
-                if (!NT_SUCCESS(status)) {
+                if (!IS_SUCCESS(status)) {
                     close_registry_handle(&program_handle);
                     close_registry_handle(&helper_info_handle);
                     goto Exit;
@@ -289,21 +309,21 @@ ebpf_store_update_global_helper_information(
 
     // Open (or create) provider registry path.
     status = _open_or_create_provider_registry_key(&provider_handle);
-    if (!NT_SUCCESS(status)) {
+    if (!IS_SUCCESS(status)) {
         goto Exit;
     }
 
     // Open (or create) global helpers registry path.
     status =
         create_registry_key(&provider_handle, EBPF_GLOBAL_HELPERS_REGISTRY_PATH, REG_CREATE_FLAGS, &helper_info_handle);
-    if (!NT_SUCCESS(status)) {
+    if (!IS_SUCCESS(status)) {
         goto Exit;
     }
 
     for (int i = 0; i < helper_info_count; i++) {
 
         status = _update_helper_prototype(&helper_info_handle, &helper_info[i]);
-        if (!NT_SUCCESS(status)) {
+        if (!IS_SUCCESS(status)) {
             goto Exit;
         }
     }
@@ -339,7 +359,7 @@ ebpf_registry_delete_program_information(
 
     // status = ZwCreateKey(&root_handle, KEY_WRITE, &object_attributes, 0, NULL, REG_OPTION_NON_VOLATILE, NULL);
     status = ZwOpenKey(&root_handle, KEY_READ | KEY_NOTIFY | KEY_WRITE, &object_attributes);
-    if (!NT_SUCCESS(status)) {
+    if (!IS_SUCCESS(status)) {
         goto Exit;
     }
 
@@ -350,7 +370,7 @@ ebpf_registry_delete_program_information(
 
     // status = ZwCreateKey(&provider_handle, KEY_WRITE, &object_attributes, 0, NULL, REG_OPTION_NON_VOLATILE, NULL);
     status = ZwOpenKey(&provider_handle, KEY_READ | KEY_NOTIFY | KEY_WRITE, &object_attributes);
-    if (!NT_SUCCESS(status)) {
+    if (!IS_SUCCESS(status)) {
         goto Exit;
     }
 
@@ -361,7 +381,7 @@ ebpf_registry_delete_program_information(
 
     // status = ZwCreateKey(&program_info_handle, KEY_WRITE, &object_attributes, 0, NULL, REG_OPTION_NON_VOLATILE,
 NULL); status = ZwOpenKey(&program_info_handle, KEY_READ | KEY_NOTIFY | KEY_WRITE, &object_attributes); if
-(!NT_SUCCESS(status)) { goto Exit;
+(!IS_SUCCESS(status)) { goto Exit;
     }
 
     for (int i = 0; i < program_info_count; i++) {
@@ -383,7 +403,7 @@ NULL); status = ZwOpenKey(&program_info_handle, KEY_READ | KEY_NOTIFY | KEY_WRIT
         // Open or create the registry path.
         status = ZwCreateKey(&program_handle, KEY_WRITE, &program_attributes, 0, NULL, REG_OPTION_NON_VOLATILE, NULL);
 
-        if (!NT_SUCCESS(status)) {
+        if (!IS_SUCCESS(status)) {
             goto Exit;
         }
 
@@ -391,13 +411,13 @@ NULL); status = ZwOpenKey(&program_info_handle, KEY_READ | KEY_NOTIFY | KEY_WRIT
         RtlInitUnicodeString(&value_name, EBPF_PROGRAM_DATA_NAME);
         RtlInitAnsiString(&friendly_name, program_info[i].program_type_descriptor.name);
         status = RtlAnsiStringToUnicodeString(&unicode_friendly_name, &friendly_name, TRUE);
-        if (!NT_SUCCESS(status)) {
+        if (!IS_SUCCESS(status)) {
             ZwClose(program_handle);
             goto Exit;
         }
         status = ZwSetValueKey(
             program_handle, &value_name, 0, REG_SZ, unicode_friendly_name.Buffer, unicode_friendly_name.Length);
-        if (!NT_SUCCESS(status)) {
+        if (!IS_SUCCESS(status)) {
             ZwClose(program_handle);
             RtlFreeUnicodeString(&unicode_friendly_name);
             goto Exit;
@@ -413,7 +433,7 @@ NULL); status = ZwOpenKey(&program_info_handle, KEY_READ | KEY_NOTIFY | KEY_WRIT
             REG_BINARY,
             &program_info[i].program_type_descriptor.context_descriptor,
             sizeof(ebpf_context_descriptor_t));
-        if (!NT_SUCCESS(status)) {
+        if (!IS_SUCCESS(status)) {
             ZwClose(program_handle);
             goto Exit;
         }
@@ -422,7 +442,7 @@ NULL); status = ZwOpenKey(&program_info_handle, KEY_READ | KEY_NOTIFY | KEY_WRIT
         RtlInitUnicodeString(&value_name, EBPF_PROGRAM_DATA_PRIVELEGED);
         uint32_t is_privileged = program_info[i].program_type_descriptor.is_privileged;
         status = ZwSetValueKey(program_handle, &value_name, 0, REG_DWORD, &is_privileged, sizeof(uint32_t));
-        if (!NT_SUCCESS(status)) {
+        if (!IS_SUCCESS(status)) {
             ZwClose(program_handle);
             goto Exit;
         }
