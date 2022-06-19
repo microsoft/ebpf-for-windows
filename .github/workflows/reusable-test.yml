@@ -135,6 +135,7 @@ jobs:
       run: |
         if ($${{inputs.vs_dev == true}}) {cmd.exe /k "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat"}
         set env.EBPF_ENABLE_WER_REPORT=yes
+        cl.exe
         OpenCppCoverage.exe --sources %CD% --excluded_sources %CD%\external\Catch2 --export_type cobertura:ebpf_for_windows.xml --working_dir ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -- ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\${{env.TEST_COMMAND}}
 
     - name: Run test without Code Coverage
