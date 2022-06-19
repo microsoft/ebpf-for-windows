@@ -99,9 +99,9 @@ jobs:
     if: github.repository == 'microsoft/ebpf-for-windows'
     uses: ./.github/workflows/reusable-test.yml
     with:
-      pre_test: ".\setup_ebpf_cicd_tests.ps1"
-      test_command: ".\execute_ebpf_cicd_tests.ps1"
-      post_test: ".\cleanup_ebpf_cicd_tests.ps1"
+      pre_test: .\setup_ebpf_cicd_tests.ps1
+      test_command: .\execute_ebpf_cicd_tests.ps1
+      post_test: .\cleanup_ebpf_cicd_tests.ps1
       name: driver
       build_artifact: Build-x64
       environment: ebpf_cicd_tests
