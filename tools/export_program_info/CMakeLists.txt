@@ -4,7 +4,7 @@
 add_executable("export_program_info"
   export_program_info.cpp
   main.cpp
-  registry_helper.cpp
+  ${CMAKE_SOURCE_DIR}/libs/api_common/registry_helper.cpp
 )
 
 target_include_directories("export_program_info" PRIVATE
@@ -15,6 +15,7 @@ target_include_directories("export_program_info" PRIVATE
   "${CMAKE_SOURCE_DIR}/libs/execution_context"
   "${CMAKE_SOURCE_DIR}/netebpfext"
   "${CMAKE_SOURCE_DIR}/tests/sample/ext/inc"
+  "${CMAKE_SOURCE_DIR}/libs/thunk"
 )
 
 target_link_libraries("export_program_info" PRIVATE

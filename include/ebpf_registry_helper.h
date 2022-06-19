@@ -215,11 +215,3 @@ create_registry_key_ansi(
 Exit:
     return status;
 }
-
-/*
-static uint32_t
-open_registry_key(_In_ HKEY root_key, _In_ const wchar_t* sub_key, uint32_t flags, _Out_ HKEY* key)
-{
-    return RegOpenKeyEx(root_key, sub_key, 0, flags, key);
-}
-*/
