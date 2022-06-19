@@ -18,6 +18,6 @@ TEST_CASE("export_program_info", "[end_to_end]")
 {
     REQUIRE(clear_all_ebpf_stores() == 0);
 
-    // Repopulate the ebpf store
+    // Re-populate the ebpf store.
     _populate_ebpf_store();
 }

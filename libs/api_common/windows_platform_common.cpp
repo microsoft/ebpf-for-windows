@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-// #define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
 #include <cassert>
 #include <stdexcept>
 #include "api_internal.h"
@@ -279,6 +278,18 @@ get_bpf_program_type(_In_ const ebpf_program_type_t* ebpf_program_type)
     return BPF_PROG_TYPE_UNSPEC;
 }
 
+bpf_attach_type_t
+get_bpf_attach_type(_In_ const ebpf_attach_type_t* ebpf_attach_type)
+{
+    for (const auto& definition : _windows_section_definitions) {
+        if (IsEqualGUID(*ebpf_attach_type, *definition.attach_type)) {
+            return definition.bpf_attach_type;
+        }
+    }
+
+    return BPF_ATTACH_TYPE_UNSPEC;
+}
+
 ebpf_result_t
 get_bpf_program_and_attach_type(
     const std::string& section, _Out_ bpf_prog_type_t* program_type, _Out_ bpf_attach_type_t* attach_type)
@@ -406,9 +417,6 @@ get_map_descriptor_windows(int original_fd)
 const ebpf_attach_type_t*
 get_attach_type_windows(const std::string& section)
 {
-    // TODO: (Issue #223) Read the registry to fetch all the section
-    //       prefixes and corresponding program and attach types.
-
     for (const ebpf_section_definition_t& t : _windows_section_definitions) {
         if (section.find(t.section_prefix) == 0)
             return t.attach_type;

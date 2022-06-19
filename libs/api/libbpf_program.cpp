@@ -12,16 +12,6 @@
 // minimize diffs until libbpf becomes cross-platform capable.  This is a temporary workaround for
 // issue #351 until we can compile and use libbpf.c directly.
 
-static enum bpf_attach_type
-_get_bpf_attach_type(const ebpf_attach_type_t* type)
-{
-    // TODO(issue #223): read this mapping from the registry
-    if (memcmp(type, &EBPF_ATTACH_TYPE_XDP, sizeof(*type)) == 0) {
-        return BPF_XDP;
-    }
-    return BPF_ATTACH_TYPE_UNSPEC;
-}
-
 int
 bpf_load_program_xattr(const struct bpf_load_program_attr* load_attr, char* log_buf, size_t log_buf_sz)
 {
@@ -392,7 +382,7 @@ bpf_object__unpin_programs(struct bpf_object* obj, const char* path)
 enum bpf_attach_type
 bpf_program__get_expected_attach_type(const struct bpf_program* program)
 {
-    return _get_bpf_attach_type(&program->attach_type);
+    return get_bpf_attach_type(&program->attach_type);
 }
 
 int

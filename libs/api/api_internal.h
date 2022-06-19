@@ -601,3 +601,13 @@ get_ebpf_attach_type(bpf_attach_type_t bpf_attach_type);
  */
 bpf_prog_type_t
 get_bpf_program_type(_In_ const ebpf_program_type_t* program_type);
+
+/**
+ * @brief Get bpf attach type for the specified eBPF attach type.
+ *
+ * @param[in] attach_type eBPF attach type GUID.
+ *
+ * @returns Bpf attach type, or BPF_ATTACH_TYPE_UNSPEC if not found.
+ */
+bpf_attach_type_t
+get_bpf_attach_type(_In_ const ebpf_attach_type_t* ebpf_attach_type);

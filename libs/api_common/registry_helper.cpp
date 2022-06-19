@@ -31,7 +31,7 @@ _get_wstring_from_string(std::string text)
 }
 
 void
-close_registry_handle(_In_ ebpf_registry_key_t* key)
+close_registry_key(_In_ ebpf_registry_key_t* key)
 {
     if (key->key != nullptr) {
         RegCloseKey(key->key);

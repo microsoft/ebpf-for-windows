@@ -18,7 +18,7 @@ typedef struct _ebpf_registry_key
 } ebpf_registry_key_t;
 
 void
-close_registry_handle(_In_ ebpf_registry_key_t* key);
+close_registry_key(_In_ ebpf_registry_key_t* key);
 
 uint32_t
 write_registry_value_binary(
