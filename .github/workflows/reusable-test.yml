@@ -126,7 +126,6 @@ jobs:
     - name: Run pre test command
       id: run_pre_test_command
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
-      shell: cmd
       run: |
         ${{env.PRE_COMMAND}}
 
@@ -134,7 +133,7 @@ jobs:
       if: inputs.code_coverage == true
       id: run_test_with_code_coverage
       run: |
-        if ($${{inputs.vs_dev == true}}) {call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat"}
+        if ($${{inputs.vs_dev == true}}) {cmd.exe /k "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat"}
         set env.EBPF_ENABLE_WER_REPORT=yes
         OpenCppCoverage.exe --sources %CD% --excluded_sources %CD%\external\Catch2 --export_type cobertura:ebpf_for_windows.xml --working_dir ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -- ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\${{env.TEST_COMMAND}}
 
@@ -143,13 +142,12 @@ jobs:
       id: run_test_without_code_coverage
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
       run: |
-        if ($${{inputs.vs_dev == true}}) {call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat"}
+        if ($${{inputs.vs_dev == true}}) {cmd.exe /k "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat"}
         ${{env.TEST_COMMAND}}
 
     - name: Run post test command
       id: run_post_test_command
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
-      shell: cmd
       run: |
         ${{env.POST_COMMAND}}
 
