@@ -132,13 +132,18 @@ _clear_ebpf_store(ebpf_registry_key_t root_key_path)
     if (status != ERROR_SUCCESS) {
         goto Exit;
     }
-    close_registry_key(&provider_handle);
+    close_registry_key(provider_handle);
+    provider_handle = nullptr;
 
     status = delete_registry_key(root_handle, EBPF_PROVIDERS_REGISTRY_PATH);
 
 Exit:
-    close_registry_key(&provider_handle);
-    close_registry_key(&root_handle);
+    if (provider_handle) {
+        close_registry_key(provider_handle);
+    }
+    if (root_handle) {
+        close_registry_key(root_handle);
+    }
 
     return status;
 }

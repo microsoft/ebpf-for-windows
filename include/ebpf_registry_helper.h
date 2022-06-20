@@ -11,12 +11,9 @@
 typedef HANDLE ebpf_registry_key_t;
 
 static void
-close_registry_key(_Inout_ ebpf_registry_key_t* key)
+close_registry_key(ebpf_registry_key_t key)
 {
-    if (*key != NULL) {
-        ZwClose(*key);
-        *key = NULL;
-    }
+    ZwClose(key);
 }
 
 _Success_(return == 0) static NTSTATUS

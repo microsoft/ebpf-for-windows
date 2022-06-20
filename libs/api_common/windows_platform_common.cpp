@@ -92,8 +92,8 @@ set_program_under_verification(ebpf_handle_t program)
     _program_under_verification = program;
 }
 
-ebpf_result_t
-_get_program_descriptor_from_info(_In_ const ebpf_program_info_t* info, _Outptr_ EbpfProgramType** descriptor)
+static ebpf_result_t
+_get_program_descriptor_from_info(_In_ const ebpf_program_info_t* info, _Outptr_ EbpfProgramType** descriptor) noexcept
 {
     ebpf_result_t result = EBPF_SUCCESS;
     EbpfProgramType* type = nullptr;
@@ -451,7 +451,7 @@ _load_section_data_information(HKEY section_data_key, _In_ const wchar_t* sectio
     char* section_prefix = nullptr;
 
     try {
-        status = RegOpenKeyEx(section_data_key, section_name, 0, KEY_READ, &section_info_key);
+        status = open_registry_key(section_data_key, section_name, KEY_READ, &section_info_key);
         if (status != ERROR_SUCCESS) {
             // Registry path is not present.
             result = EBPF_FILE_NOT_FOUND;
@@ -534,7 +534,7 @@ Exit:
         }
     }
     if (section_info_key) {
-        RegCloseKey(section_info_key);
+        close_registry_key(section_info_key);
     }
     return result;
 }
@@ -592,7 +592,7 @@ _load_helper_prototype(
 
 Exit:
     if (helper_info_key) {
-        RegCloseKey(helper_info_key);
+        close_registry_key(helper_info_key);
     }
     return result;
 }
@@ -632,7 +632,7 @@ _load_program_data_information(HKEY program_data_key, _In_ const wchar_t* progra
     uint32_t helper_count;
 
     try {
-        status = RegOpenKeyEx(program_data_key, program_type_string, 0, KEY_READ, &program_info_key);
+        status = open_registry_key(program_data_key, program_type_string, KEY_READ, &program_info_key);
         if (status != ERROR_SUCCESS) {
             // Registry path is not present.
             result = EBPF_FILE_NOT_FOUND;
@@ -804,10 +804,10 @@ Exit:
         }
     }
     if (program_info_key) {
-        RegCloseKey(program_info_key);
+        close_registry_key(program_info_key);
     }
     if (helper_key) {
-        RegCloseKey(helper_key);
+        close_registry_key(helper_key);
     }
     return result;
 }
@@ -858,7 +858,7 @@ _load_all_global_helper_information(HKEY store_key)
 
     try {
         // Open program data registry path.
-        status = RegOpenKeyEx(store_key, EBPF_GLOBAL_HELPERS_REGISTRY_PATH, 0, KEY_READ, &global_helpers_key);
+        status = open_registry_key(store_key, EBPF_GLOBAL_HELPERS_REGISTRY_PATH, KEY_READ, &global_helpers_key);
         if (status != ERROR_SUCCESS) {
             // Registry path is not present.
             result = EBPF_FILE_NOT_FOUND;
@@ -932,7 +932,7 @@ _load_all_global_helper_information(HKEY store_key)
 
 Exit:
     if (global_helpers_key) {
-        RegCloseKey(global_helpers_key);
+        close_registry_key(global_helpers_key);
     }
     ebpf_free(helper_prototype);
     return result;
@@ -950,7 +950,7 @@ _load_all_program_data_information(HKEY store_key)
 
     try {
         // Open program data registry path.
-        status = RegOpenKeyEx(store_key, EBPF_PROGRAM_DATA_REGISTRY_PATH, 0, KEY_READ, &program_data_key);
+        status = open_registry_key(store_key, EBPF_PROGRAM_DATA_REGISTRY_PATH, KEY_READ, &program_data_key);
         if (status != ERROR_SUCCESS) {
             // Registry path is not present.
             result = EBPF_FILE_NOT_FOUND;
@@ -1029,7 +1029,7 @@ _load_all_section_data_information(HKEY store_key)
 
 Exit:
     if (section_data_key) {
-        RegCloseKey(section_data_key);
+        close_registry_key(section_data_key);
     }
     return result;
 }
@@ -1066,7 +1066,7 @@ load_ebpf_provider_data()
     ebpf_result_t result = EBPF_SUCCESS;
 
     // Open root registry path.
-    status = RegOpenKeyEx(_root_registry_key, EBPF_STORE_REGISTRY_PATH, 0, KEY_READ, &store_key);
+    status = open_registry_key(_root_registry_key, EBPF_STORE_REGISTRY_PATH, KEY_READ, &store_key);
     if (status != ERROR_SUCCESS) {
         // Registry path is not present.
         result = EBPF_FILE_NOT_FOUND;

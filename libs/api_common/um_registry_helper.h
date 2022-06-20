@@ -15,7 +15,7 @@
 typedef HKEY ebpf_registry_key_t;
 
 void
-close_registry_key(_Inout_ ebpf_registry_key_t* key);
+close_registry_key(ebpf_registry_key_t key);
 
 uint32_t
 write_registry_value_binary(

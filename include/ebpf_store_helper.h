@@ -49,7 +49,9 @@ _open_or_create_provider_registry_key(_Out_ ebpf_registry_key_t* provider_key)
     }
 
 Exit:
-    close_registry_key(&root_key);
+    if (root_key) {
+        close_registry_key(root_key);
+    }
     return status;
 }
 
@@ -85,7 +87,9 @@ _update_helper_prototype(ebpf_registry_key_t helper_info_key, _In_ const ebpf_he
     }
 
 Exit:
-    close_registry_key(&helper_function_key);
+    if (helper_function_key) {
+        close_registry_key(helper_function_key);
+    }
 
     return status;
 }
@@ -138,7 +142,7 @@ ebpf_store_update_section_information(
             (uint8_t*)section_info[i].program_type,
             sizeof(ebpf_program_type_t));
         if (!IS_SUCCESS(status)) {
-            close_registry_key(&section_key);
+            close_registry_key(section_key);
             goto Exit;
         }
 
@@ -149,7 +153,7 @@ ebpf_store_update_section_information(
             (uint8_t*)section_info[i].attach_type,
             sizeof(ebpf_attach_type_t));
         if (!IS_SUCCESS(status)) {
-            close_registry_key(&section_key);
+            close_registry_key(section_key);
             goto Exit;
         }
 
@@ -157,7 +161,7 @@ ebpf_store_update_section_information(
         status =
             write_registry_value_dword(section_key, EBPF_PROGRAM_DATA_BPF_PROG_TYPE, section_info[i].bpf_program_type);
         if (!IS_SUCCESS(status)) {
-            close_registry_key(&section_key);
+            close_registry_key(section_key);
             goto Exit;
         }
 
@@ -165,16 +169,20 @@ ebpf_store_update_section_information(
         status =
             write_registry_value_dword(section_key, EBPF_SECTION_DATA_BPF_ATTACH_TYPE, section_info[i].bpf_attach_type);
         if (!IS_SUCCESS(status)) {
-            close_registry_key(&section_key);
+            close_registry_key(section_key);
             goto Exit;
         }
 
-        close_registry_key(&section_key);
+        close_registry_key(section_key);
     }
 
 Exit:
-    close_registry_key(&section_info_key);
-    close_registry_key(&provider_key);
+    if (section_info_key) {
+        close_registry_key(section_info_key);
+    }
+    if (provider_key) {
+        close_registry_key(provider_key);
+    }
 
     return status;
 }
@@ -232,7 +240,7 @@ ebpf_store_update_program_information(
         status = write_registry_value_ansi_string(
             program_key, EBPF_PROGRAM_DATA_NAME, program_info[i].program_type_descriptor.name);
         if (!IS_SUCCESS(status)) {
-            close_registry_key(&program_key);
+            close_registry_key(program_key);
             goto Exit;
         }
 
@@ -243,7 +251,7 @@ ebpf_store_update_program_information(
             (uint8_t*)program_info[i].program_type_descriptor.context_descriptor,
             sizeof(ebpf_context_descriptor_t));
         if (!IS_SUCCESS(status)) {
-            close_registry_key(&program_key);
+            close_registry_key(program_key);
             goto Exit;
         }
 
@@ -251,7 +259,7 @@ ebpf_store_update_program_information(
         status = write_registry_value_dword(
             program_key, EBPF_PROGRAM_DATA_BPF_PROG_TYPE, program_info[i].program_type_descriptor.bpf_prog_type);
         if (!IS_SUCCESS(status)) {
-            close_registry_key(&program_key);
+            close_registry_key(program_key);
             goto Exit;
         }
 
@@ -259,7 +267,7 @@ ebpf_store_update_program_information(
         status = write_registry_value_dword(
             program_key, EBPF_PROGRAM_DATA_PRIVELEGED, program_info[i].program_type_descriptor.is_privileged);
         if (!IS_SUCCESS(status)) {
-            close_registry_key(&program_key);
+            close_registry_key(program_key);
             goto Exit;
         }
 
@@ -267,7 +275,7 @@ ebpf_store_update_program_information(
         status =
             write_registry_value_dword(program_key, EBPF_PROGRAM_DATA_HELPER_COUNT, program_info[i].count_of_helpers);
         if (!IS_SUCCESS(status)) {
-            close_registry_key(&program_key);
+            close_registry_key(program_key);
             goto Exit;
         }
 
@@ -276,7 +284,7 @@ ebpf_store_update_program_information(
             status = create_registry_key(
                 program_key, EBPF_PROGRAM_DATA_HELPERS_REGISTRY_PATH, REG_CREATE_FLAGS, &helper_info_key);
             if (!IS_SUCCESS(status)) {
-                close_registry_key(&program_key);
+                close_registry_key(program_key);
                 goto Exit;
             }
 
@@ -284,20 +292,24 @@ ebpf_store_update_program_information(
             for (uint32_t count = 0; count < program_info[i].count_of_helpers; count++) {
                 status = _update_helper_prototype(helper_info_key, &(program_info[i].helper_prototype[count]));
                 if (!IS_SUCCESS(status)) {
-                    close_registry_key(&program_key);
-                    close_registry_key(&helper_info_key);
+                    close_registry_key(program_key);
+                    close_registry_key(helper_info_key);
                     goto Exit;
                 }
             }
 
-            close_registry_key(&helper_info_key);
+            close_registry_key(helper_info_key);
         }
-        close_registry_key(&program_key);
+        close_registry_key(program_key);
     }
 
 Exit:
-    close_registry_key(&program_info_key);
-    close_registry_key(&provider_key);
+    if (program_info_key) {
+        close_registry_key(program_info_key);
+    }
+    if (provider_key) {
+        close_registry_key(provider_key);
+    }
 
     return status;
 }
@@ -343,9 +355,12 @@ ebpf_store_update_global_helper_information(
     }
 
 Exit:
-
-    close_registry_key(&helper_info_key);
-    close_registry_key(&provider_key);
+    if (helper_info_key) {
+        close_registry_key(helper_info_key);
+    }
+    if (provider_key) {
+        close_registry_key(provider_key);
+    }
 
     return status;
 }

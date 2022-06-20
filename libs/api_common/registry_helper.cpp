@@ -21,12 +21,10 @@ _get_wstring_from_string(std::string text)
 }
 
 void
-close_registry_key(_Inout_ ebpf_registry_key_t* key)
+close_registry_key(ebpf_registry_key_t key)
 {
-    if (*key != nullptr) {
-        RegCloseKey(*key);
-        *key = nullptr;
-    }
+    ebpf_assert(key);
+    RegCloseKey(key);
 }
 
 uint32_t
