@@ -131,7 +131,7 @@ jobs:
 
     - name: Run test with Code Coverage in VS Dev environment
       if: (inputs.code_coverage == true) && (inputs.vs_dev == true)
-      id: run_test_with_code_coverage
+      id: run_test_with_code_coverage_in_vs_dev
       shell: cmd
       run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat"
