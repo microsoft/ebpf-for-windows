@@ -1113,7 +1113,6 @@ ebpf_program_attach_by_fd(
     _Outptr_ struct bpf_link** link)
 {
     EBPF_LOG_ENTRY();
-    ebpf_assert(attach_type);
     ebpf_assert(attach_parameters || !attach_parameters_size);
     ebpf_assert(link);
     *link = nullptr;
@@ -1124,7 +1123,7 @@ ebpf_program_attach_by_fd(
     }
 
     if (attach_type == nullptr) {
-        // We can only use an unspecified attach_type if we can find an ebpf_program_t.
+        // Unspecified attach_type is allowed only if we can find an ebpf_program_t.
         ebpf_program_t* program = _get_ebpf_program_from_handle(program_handle);
         if (program == nullptr) {
             EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
