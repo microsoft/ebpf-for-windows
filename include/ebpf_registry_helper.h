@@ -8,17 +8,14 @@
 #define REG_CREATE_FLAGS 0
 #define GUID_STRING_LENGTH 38 // not inlcuding the null terminator.
 
-typedef struct _ebpf_registry_key
-{
-    HANDLE handle;
-} ebpf_registry_key_t;
+typedef HANDLE ebpf_registry_key_t;
 
 static void
-close_registry_key(_In_ ebpf_registry_key_t* key)
+close_registry_key(_Inout_ ebpf_registry_key_t* key)
 {
-    if (key->handle != NULL) {
-        ZwClose(key->handle);
-        key->handle = NULL;
+    if (*key != NULL) {
+        ZwClose(*key);
+        *key = NULL;
     }
 }
 
@@ -48,7 +45,7 @@ Exit:
 
 static uint32_t
 write_registry_value_binary(
-    _In_ const ebpf_registry_key_t* key,
+    ebpf_registry_key_t key,
     _In_ const wchar_t* value_name,
     _In_reads_(value_size) uint8_t* value,
     _In_ size_t value_size)
@@ -56,12 +53,11 @@ write_registry_value_binary(
     UNICODE_STRING unicode_value_name;
 
     RtlInitUnicodeString(&unicode_value_name, value_name);
-    return ZwSetValueKey(key->handle, &unicode_value_name, 0, REG_BINARY, value, (ULONG)value_size);
+    return ZwSetValueKey(key, &unicode_value_name, 0, REG_BINARY, value, (ULONG)value_size);
 }
 
 static uint32_t
-write_registry_value_ansi_string(
-    _In_ const ebpf_registry_key_t* key, _In_ const wchar_t* value_name, _In_z_ const char* value)
+write_registry_value_ansi_string(ebpf_registry_key_t key, _In_ const wchar_t* value_name, _In_z_ const char* value)
 {
     NTSTATUS status;
     UNICODE_STRING unicode_value;
@@ -76,7 +72,7 @@ write_registry_value_ansi_string(
     }
     RtlInitUnicodeString(&unicode_value_name, value_name);
 
-    status = ZwSetValueKey(key->handle, &unicode_value_name, 0, REG_SZ, unicode_value.Buffer, unicode_value.Length);
+    status = ZwSetValueKey(key, &unicode_value_name, 0, REG_SZ, unicode_value.Buffer, unicode_value.Length);
     RtlFreeUnicodeString(&unicode_value);
 
 Exit:
@@ -84,32 +80,28 @@ Exit:
 }
 
 static uint32_t
-write_registry_value_dword(_In_ const ebpf_registry_key_t* key, _In_z_ const wchar_t* value_name, uint32_t value)
+write_registry_value_dword(ebpf_registry_key_t key, _In_z_ const wchar_t* value_name, uint32_t value)
 {
     UNICODE_STRING unicode_name;
     RtlInitUnicodeString(&unicode_name, value_name);
-    return ZwSetValueKey(key->handle, &unicode_name, 0, REG_DWORD, &value, sizeof(uint32_t));
+    return ZwSetValueKey(key, &unicode_name, 0, REG_DWORD, &value, sizeof(uint32_t));
 }
 
 static uint32_t
 create_registry_key(
-    _In_opt_ const ebpf_registry_key_t* root_key,
-    _In_ const wchar_t* sub_key,
-    uint32_t flags,
-    _Out_ ebpf_registry_key_t* key)
+    ebpf_registry_key_t root_key, _In_ const wchar_t* sub_key, uint32_t flags, _Out_ ebpf_registry_key_t* key)
 {
     NTSTATUS status = STATUS_SUCCESS;
     UNICODE_STRING registry_path;
     OBJECT_ATTRIBUTES object_attributes = {0};
-    HANDLE root_handle = root_key ? root_key->handle : NULL;
 
     UNREFERENCED_PARAMETER(flags);
 
     RtlInitUnicodeString(&registry_path, sub_key);
     InitializeObjectAttributes(
-        &object_attributes, &registry_path, OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE, root_handle, NULL);
+        &object_attributes, &registry_path, OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE, root_key, NULL);
 
-    status = ZwCreateKey(&key->handle, KEY_WRITE, &object_attributes, 0, NULL, REG_OPTION_NON_VOLATILE, NULL);
+    status = ZwCreateKey(key, KEY_WRITE, &object_attributes, 0, NULL, REG_OPTION_NON_VOLATILE, NULL);
     if (!NT_SUCCESS(status)) {
         goto Exit;
     }
@@ -120,10 +112,7 @@ Exit:
 
 static uint32_t
 create_registry_key_ansi(
-    _In_ const ebpf_registry_key_t* root_key,
-    _In_z_ const char* sub_key,
-    uint32_t flags,
-    _Out_ ebpf_registry_key_t* key)
+    ebpf_registry_key_t root_key, _In_z_ const char* sub_key, uint32_t flags, _Out_ ebpf_registry_key_t* key)
 {
     NTSTATUS status = STATUS_SUCCESS;
     UNICODE_STRING registry_path;
@@ -132,7 +121,7 @@ create_registry_key_ansi(
     RtlInitAnsiString(&ansi_string, sub_key);
 
     UNREFERENCED_PARAMETER(flags);
-    key->handle = NULL;
+    *key = NULL;
 
     status = RtlAnsiStringToUnicodeString(&registry_path, &ansi_string, TRUE);
     if (!NT_SUCCESS(status)) {
@@ -140,9 +129,9 @@ create_registry_key_ansi(
     }
 
     InitializeObjectAttributes(
-        &object_attributes, &registry_path, OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE, root_key->handle, NULL);
+        &object_attributes, &registry_path, OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE, root_key, NULL);
 
-    status = ZwCreateKey(&key->handle, KEY_WRITE, &object_attributes, 0, NULL, REG_OPTION_NON_VOLATILE, NULL);
+    status = ZwCreateKey(key, KEY_WRITE, &object_attributes, 0, NULL, REG_OPTION_NON_VOLATILE, NULL);
     RtlFreeUnicodeString(&registry_path);
 
 Exit:

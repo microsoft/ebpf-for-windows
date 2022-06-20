@@ -14,7 +14,6 @@
 #include "ebpf_platform.h"
 #include "ebpf_program_types.h"
 #include "ebpf_protocol.h"
-#include "ebpf_result.h"
 #include "platform.h"
 #include "platform.hpp"
 #include "um_registry_helper.h"
@@ -31,17 +30,17 @@ _get_wstring_from_string(std::string text)
 }
 
 void
-close_registry_key(_In_ ebpf_registry_key_t* key)
+close_registry_key(_Inout_ ebpf_registry_key_t* key)
 {
-    if (key->key != nullptr) {
-        RegCloseKey(key->key);
-        key->key = nullptr;
+    if (*key != nullptr) {
+        RegCloseKey(*key);
+        *key = nullptr;
     }
 }
 
 uint32_t
 write_registry_value_binary(
-    _In_ const ebpf_registry_key_t* key,
+    ebpf_registry_key_t key,
     _In_ const wchar_t* value_name,
     _In_reads_(value_size) uint8_t* value,
     _In_ size_t value_size)
@@ -49,23 +48,21 @@ write_registry_value_binary(
     ebpf_assert(value_name);
     ebpf_assert(value);
 
-    return RegSetValueEx(key->key, value_name, 0, REG_BINARY, value, (DWORD)value_size);
+    return RegSetValueEx(key, value_name, 0, REG_BINARY, value, (DWORD)value_size);
 }
 
 uint32_t
-write_registry_value_wide_string(
-    _In_ const ebpf_registry_key_t* key, _In_ const wchar_t* value_name, _In_z_ const wchar_t* value)
+write_registry_value_wide_string(ebpf_registry_key_t key, _In_ const wchar_t* value_name, _In_z_ const wchar_t* value)
 {
     ebpf_assert(value_name);
     ebpf_assert(value);
 
     auto length = (wcslen(value) + 1) * sizeof(wchar_t);
-    return RegSetValueEx(key->key, value_name, 0, REG_SZ, (uint8_t*)value, (DWORD)length);
+    return RegSetValueEx(key, value_name, 0, REG_SZ, (uint8_t*)value, (DWORD)length);
 }
 
 uint32_t
-write_registry_value_ansi_string(
-    _In_ const ebpf_registry_key_t* key, _In_ const wchar_t* value_name, _In_z_ const char* value)
+write_registry_value_ansi_string(ebpf_registry_key_t key, _In_ const wchar_t* value_name, _In_z_ const char* value)
 {
     uint32_t result;
     try {
@@ -79,57 +76,48 @@ write_registry_value_ansi_string(
 }
 
 uint32_t
-write_registry_value_dword(_In_ const ebpf_registry_key_t* key, _In_z_ const wchar_t* value_name, uint32_t value)
+write_registry_value_dword(ebpf_registry_key_t key, _In_z_ const wchar_t* value_name, uint32_t value)
 {
-    ebpf_assert(key->key);
-    return RegSetValueEx(key->key, value_name, 0, REG_DWORD, (PBYTE)&value, sizeof(value));
+    ebpf_assert(key);
+    return RegSetValueEx(key, value_name, 0, REG_DWORD, (PBYTE)&value, sizeof(value));
 }
 
 uint32_t
 create_registry_key(
-    _In_opt_ const ebpf_registry_key_t* root_key,
-    _In_ const wchar_t* sub_key,
-    uint32_t flags,
-    _Out_ ebpf_registry_key_t* key)
+    ebpf_registry_key_t root_key, _In_ const wchar_t* sub_key, uint32_t flags, _Out_ ebpf_registry_key_t* key)
 {
-    key->key = nullptr;
+    *key = nullptr;
     if (root_key == nullptr) {
         return ERROR_INVALID_PARAMETER;
     }
 
-    return RegCreateKeyEx(root_key->key, sub_key, 0, nullptr, 0, flags, nullptr, &key->key, nullptr);
+    return RegCreateKeyEx(root_key, sub_key, 0, nullptr, 0, flags, nullptr, key, nullptr);
 }
 
 uint32_t
 open_registry_key(
-    _In_ const ebpf_registry_key_t* root_key,
-    _In_opt_z_ const wchar_t* sub_key,
-    uint32_t flags,
-    _Out_ ebpf_registry_key_t* key)
+    ebpf_registry_key_t root_key, _In_opt_z_ const wchar_t* sub_key, uint32_t flags, _Out_ ebpf_registry_key_t* key)
 {
     ebpf_assert(root_key != nullptr);
 
-    return RegOpenKeyEx(root_key->key, sub_key, 0, flags, &key->key);
+    return RegOpenKeyEx(root_key, sub_key, 0, flags, key);
 }
 
 uint32_t
-delete_registry_key(_In_ const ebpf_registry_key_t* root_key, _In_z_ const wchar_t* sub_key)
+delete_registry_key(ebpf_registry_key_t root_key, _In_z_ const wchar_t* sub_key)
 {
-    return RegDeleteKeyEx(root_key->key, sub_key, 0, 0);
+    return RegDeleteKeyEx(root_key, sub_key, 0, 0);
 }
 
 uint32_t
-delete_registry_tree(_In_ const ebpf_registry_key_t* root_key, _In_opt_z_ const wchar_t* sub_key)
+delete_registry_tree(ebpf_registry_key_t root_key, _In_opt_z_ const wchar_t* sub_key)
 {
-    return RegDeleteTree(root_key->key, sub_key);
+    return RegDeleteTree(root_key, sub_key);
 }
 
 uint32_t
 create_registry_key_ansi(
-    _In_ const ebpf_registry_key_t* root_key,
-    _In_z_ const char* sub_key,
-    uint32_t flags,
-    _Out_ ebpf_registry_key_t* key)
+    ebpf_registry_key_t root_key, _In_z_ const char* sub_key, uint32_t flags, _Out_ ebpf_registry_key_t* key)
 {
     uint32_t result;
     try {
@@ -142,8 +130,8 @@ create_registry_key_ansi(
     return result;
 }
 
-ebpf_result_t
-read_registry_value_string(HKEY key, _In_ const wchar_t* value_name, _Out_ wchar_t** value)
+uint32_t
+read_registry_value_string(ebpf_registry_key_t key, _In_ const wchar_t* value_name, _Out_ wchar_t** value)
 {
     uint32_t status = NO_ERROR;
     DWORD type = REG_SZ;
@@ -173,22 +161,23 @@ Exit:
     if (string_value) {
         ebpf_free(string_value);
     }
-    return win32_error_code_to_ebpf_result(status);
+    return status;
 }
 
-ebpf_result_t
-read_registry_value_dword(_In_ HKEY key, _In_ const wchar_t* value_name, _Out_ uint32_t* value)
+uint32_t
+read_registry_value_dword(ebpf_registry_key_t key, _In_ const wchar_t* value_name, _Out_ uint32_t* value)
 {
-    uint32_t status = NO_ERROR;
     DWORD type = REG_QWORD;
-    DWORD key_size = sizeof(uint32_t);
-    status = RegQueryValueEx(key, value_name, 0, &type, (PBYTE)value, &key_size);
-    return win32_error_code_to_ebpf_result(status);
+    DWORD value_size = sizeof(uint32_t);
+    return RegQueryValueEx(key, value_name, 0, &type, (PBYTE)value, &value_size);
 }
 
-ebpf_result_t
+uint32_t
 read_registry_value_binary(
-    _In_ HKEY key, _In_ const wchar_t* value_name, _Out_writes_(value_size) uint8_t* value, _In_ size_t value_size)
+    ebpf_registry_key_t key,
+    _In_ const wchar_t* value_name,
+    _Out_writes_(value_size) uint8_t* value,
+    _In_ size_t value_size)
 {
     uint32_t status = NO_ERROR;
     DWORD type = REG_BINARY;
@@ -203,7 +192,7 @@ read_registry_value_binary(
     }
 
 Exit:
-    return win32_error_code_to_ebpf_result(status);
+    return status;
 }
 
 _Success_(return == 0) uint32_t

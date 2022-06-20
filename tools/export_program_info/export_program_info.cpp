@@ -17,7 +17,7 @@
 #define REG_OPEN_FLAGS (DELETE | KEY_READ)
 
 // TODO: Issue #1231 Change to using HKEY_LOCAL_MACHINE
-ebpf_registry_key_t root_registry_key = {HKEY_CURRENT_USER};
+ebpf_registry_key_t root_registry_key = HKEY_CURRENT_USER;
 
 #define SIZE_OF_ARRAY(x) (sizeof(x) / sizeof(x[0]))
 
@@ -101,7 +101,7 @@ export_global_helper_information()
 }
 
 static uint32_t
-_clear_ebpf_store(_In_ const ebpf_registry_key_t* root_key_path)
+_clear_ebpf_store(ebpf_registry_key_t root_key_path)
 {
     ebpf_registry_key_t root_handle = {0};
     ebpf_registry_key_t provider_handle = {0};
@@ -118,7 +118,7 @@ _clear_ebpf_store(_In_ const ebpf_registry_key_t* root_key_path)
     }
 
     // Open "providers" registry key.
-    status = open_registry_key(&root_handle, EBPF_PROVIDERS_REGISTRY_PATH, REG_CREATE_FLAGS, &provider_handle);
+    status = open_registry_key(root_handle, EBPF_PROVIDERS_REGISTRY_PATH, REG_CREATE_FLAGS, &provider_handle);
     if (status != ERROR_SUCCESS) {
         if (status == ERROR_FILE_NOT_FOUND) {
             status = ERROR_SUCCESS;
@@ -128,13 +128,13 @@ _clear_ebpf_store(_In_ const ebpf_registry_key_t* root_key_path)
     }
 
     // Delete subtree of provider reg key.
-    status = delete_registry_tree(&provider_handle, nullptr);
+    status = delete_registry_tree(provider_handle, nullptr);
     if (status != ERROR_SUCCESS) {
         goto Exit;
     }
     close_registry_key(&provider_handle);
 
-    status = delete_registry_key(&root_handle, EBPF_PROVIDERS_REGISTRY_PATH);
+    status = delete_registry_key(root_handle, EBPF_PROVIDERS_REGISTRY_PATH);
 
 Exit:
     close_registry_key(&provider_handle);
@@ -147,7 +147,7 @@ uint32_t
 clear_all_ebpf_stores()
 {
     std::cout << "Clearing eBPF store HKEY_CURRENT_USER" << std::endl;
-    return _clear_ebpf_store(&root_registry_key);
+    return _clear_ebpf_store(root_registry_key);
 }
 
 void

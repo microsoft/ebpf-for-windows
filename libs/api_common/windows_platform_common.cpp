@@ -471,31 +471,33 @@ _load_section_data_information(HKEY section_data_key, _In_ const wchar_t* sectio
         }
 
         // Read program type.
-        result = read_registry_value_binary(
+        status = read_registry_value_binary(
             section_info_key, EBPF_SECTION_DATA_PROGRAM_TYPE, (uint8_t*)program_type, sizeof(ebpf_program_type_t));
-        if (result != EBPF_SUCCESS) {
+        if (status != ERROR_SUCCESS) {
+            result = win32_error_code_to_ebpf_result(status);
             goto Exit;
         }
 
         // Read attach type.
-        result = read_registry_value_binary(
+        status = read_registry_value_binary(
             section_info_key, EBPF_SECTION_DATA_ATTACH_TYPE, (uint8_t*)attach_type, sizeof(ebpf_attach_type_t));
-        if (result != EBPF_SUCCESS) {
+        if (status != ERROR_SUCCESS) {
+            result = win32_error_code_to_ebpf_result(status);
             goto Exit;
         }
 
         // Read bpf program type.
-        result =
+        status =
             read_registry_value_dword(section_info_key, EBPF_PROGRAM_DATA_BPF_PROG_TYPE, (uint32_t*)&bpf_program_type);
-        if (result != EBPF_SUCCESS) {
+        if (status != ERROR_SUCCESS) {
             bpf_program_type = BPF_PROG_TYPE_UNSPEC;
             result = EBPF_SUCCESS;
         }
 
         // Read bpf attach type.
-        result =
+        status =
             read_registry_value_dword(section_info_key, EBPF_PROGRAM_DATA_BPF_PROG_TYPE, (uint32_t*)&bpf_attach_type);
-        if (result != EBPF_SUCCESS) {
+        if (status != ERROR_SUCCESS) {
             bpf_attach_type = BPF_ATTACH_TYPE_UNSPEC;
             result = EBPF_SUCCESS;
         }
@@ -560,9 +562,11 @@ _load_helper_prototype(
         size_t expected_size = sizeof(helper_prototype->helper_id) + sizeof(helper_prototype->return_type) +
                                sizeof(helper_prototype->arguments);
 
-        result = read_registry_value_binary(
+        status = read_registry_value_binary(
             helper_info_key, EBPF_HELPER_DATA_PROTOTYPE, (uint8_t*)serialized_data, expected_size);
-        if (result != EBPF_SUCCESS) {
+        if (status != ERROR_SUCCESS) {
+            result = win32_error_code_to_ebpf_result(status);
+            __analysis_assume(result != EBPF_SUCCESS);
             goto Exit;
         }
 
@@ -647,8 +651,9 @@ _load_program_data_information(HKEY program_data_key, _In_ const wchar_t* progra
         }
 
         // Read the friendly program type name.
-        result = read_registry_value_string(program_info_key, EBPF_PROGRAM_DATA_NAME, &program_type_name);
-        if (result != EBPF_SUCCESS) {
+        status = read_registry_value_string(program_info_key, EBPF_PROGRAM_DATA_NAME, &program_type_name);
+        if (status != ERROR_SUCCESS) {
+            result = win32_error_code_to_ebpf_result(status);
             goto Exit;
         }
 
@@ -658,30 +663,33 @@ _load_program_data_information(HKEY program_data_key, _In_ const wchar_t* progra
             result = EBPF_NO_MEMORY;
             goto Exit;
         }
-        result = read_registry_value_binary(
+        status = read_registry_value_binary(
             program_info_key,
             EBPF_PROGRAM_DATA_CONTEXT_DESCRIPTOR,
             (uint8_t*)descriptor,
             sizeof(ebpf_context_descriptor_t));
-        if (result != EBPF_SUCCESS) {
+        if (status != ERROR_SUCCESS) {
+            result = win32_error_code_to_ebpf_result(status);
             goto Exit;
         }
 
         // Read "is_privileged".
-        result = read_registry_value_dword(program_info_key, EBPF_PROGRAM_DATA_PRIVELEGED, &is_privileged);
+        status = read_registry_value_dword(program_info_key, EBPF_PROGRAM_DATA_PRIVELEGED, &is_privileged);
         if (result != EBPF_SUCCESS) {
             goto Exit;
         }
 
         // Read bpf program type.
-        result = read_registry_value_dword(program_info_key, EBPF_PROGRAM_DATA_BPF_PROG_TYPE, &bpf_program_type);
-        if (result != EBPF_SUCCESS) {
+        status = read_registry_value_dword(program_info_key, EBPF_PROGRAM_DATA_BPF_PROG_TYPE, &bpf_program_type);
+        if (status != ERROR_SUCCESS) {
+            result = win32_error_code_to_ebpf_result(status);
             goto Exit;
         }
 
         // Read helper count
-        result = read_registry_value_dword(program_info_key, EBPF_PROGRAM_DATA_HELPER_COUNT, &helper_count);
-        if (result != EBPF_SUCCESS) {
+        status = read_registry_value_dword(program_info_key, EBPF_PROGRAM_DATA_HELPER_COUNT, &helper_count);
+        if (status != ERROR_SUCCESS) {
+            result = win32_error_code_to_ebpf_result(status);
             goto Exit;
         }
 
