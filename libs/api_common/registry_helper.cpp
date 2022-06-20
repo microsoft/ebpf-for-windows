@@ -5,17 +5,8 @@
 
 #define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
 #include <codecvt>
-#include <map>
-#include <mutex>
-#include <stdexcept>
+
 #include "api_common.hpp"
-#include "device_helper.hpp"
-#include "ebpf_api.h"
-#include "ebpf_platform.h"
-#include "ebpf_program_types.h"
-#include "ebpf_protocol.h"
-#include "platform.h"
-#include "platform.hpp"
 #include "um_registry_helper.h"
 
 #define GUID_STRING_LENGTH 38 // not inlcuding the null terminator.
