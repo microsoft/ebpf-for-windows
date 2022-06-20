@@ -313,6 +313,11 @@ struct bpf_link_info
         {
             uint32_t ifindex;
         } xdp;
+        struct
+        {
+            uint64_t cgroup_id;
+        } cgroup;
+        uint8_t attach_data;
     };
 };
 #ifdef _MSC_VER

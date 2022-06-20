@@ -144,6 +144,15 @@ typedef class _single_instance_hook : public _hook_helper
         }
     }
 
+    ebpf_result_t
+    detach(
+        fd_t program_fd,
+        _In_reads_bytes_(attach_parameter_size) void* attach_parameter,
+        _In_ size_t attach_parameter_size)
+    {
+        return ebpf_program_detach(program_fd, &attach_type, attach_parameter, attach_parameter_size);
+    }
+
     void
     detach_link(bpf_link* link)
     {

@@ -235,6 +235,27 @@ bpf_prog_attach(int prog_fd, int attachable_fd, enum bpf_attach_type type, unsig
     return 0;
 }
 
+int
+bpf_prog_detach2(int prog_fd, int attachable_fd, enum bpf_attach_type type)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+    if (_does_attach_type_support_attachable_fd(type)) {
+        result = ebpf_program_detach(prog_fd, get_ebpf_attach_type(type), &attachable_fd, sizeof(attachable_fd));
+    } else {
+        result = EBPF_OPERATION_NOT_SUPPORTED;
+    }
+
+    if (result != EBPF_SUCCESS)
+        return libbpf_result_err(result);
+    return 0;
+}
+
+int
+bpf_prog_detach(int attachable_fd, enum bpf_attach_type type)
+{
+    return bpf_prog_detach2(ebpf_fd_invalid, attachable_fd, type);
+}
+
 struct bpf_program*
 bpf_program__next(struct bpf_program* prev, const struct bpf_object* obj)
 {

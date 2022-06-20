@@ -169,28 +169,46 @@ TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
     REQUIRE(connect4_program != nullptr);
 
     result = bpf_prog_attach(
-        bpf_program__fd(const_cast<const bpf_program*>(connect4_program)), 0, BPF_CGROUP_INET4_CONNECT, 0);
+        bpf_program__fd(const_cast<const bpf_program*>(connect4_program)),
+        UNSPECIFIED_COMPARTMENT_ID,
+        BPF_CGROUP_INET4_CONNECT,
+        0);
+    REQUIRE(result == 0);
+
+    result = bpf_prog_detach(UNSPECIFIED_COMPARTMENT_ID, BPF_CGROUP_INET4_CONNECT);
     REQUIRE(result == 0);
 
     bpf_program* recv_accept4_program = bpf_object__find_program_by_name(object, "authorize_recv_accept4");
     REQUIRE(recv_accept4_program != nullptr);
 
     result = bpf_prog_attach(
-        bpf_program__fd(const_cast<const bpf_program*>(recv_accept4_program)), 0, BPF_CGROUP_INET4_RECV_ACCEPT, 0);
+        bpf_program__fd(const_cast<const bpf_program*>(recv_accept4_program)),
+        UNSPECIFIED_COMPARTMENT_ID,
+        BPF_CGROUP_INET4_RECV_ACCEPT,
+        0);
+    REQUIRE(result == 0);
+
+    result = bpf_prog_detach2(program_fd, UNSPECIFIED_COMPARTMENT_ID, BPF_CGROUP_INET4_RECV_ACCEPT);
     REQUIRE(result == 0);
 
     bpf_program* connect6_program = bpf_object__find_program_by_name(object, "authorize_connect6");
     REQUIRE(connect6_program != nullptr);
 
     result = bpf_prog_attach(
-        bpf_program__fd(const_cast<const bpf_program*>(connect6_program)), 0, BPF_CGROUP_INET6_CONNECT, 0);
+        bpf_program__fd(const_cast<const bpf_program*>(connect6_program)),
+        DEFAULT_COMPARTMENT_ID,
+        BPF_CGROUP_INET6_CONNECT,
+        0);
     REQUIRE(result == 0);
 
     bpf_program* recv_accept6_program = bpf_object__find_program_by_name(object, "authorize_recv_accept6");
     REQUIRE(recv_accept6_program != nullptr);
 
     result = bpf_prog_attach(
-        bpf_program__fd(const_cast<const bpf_program*>(recv_accept6_program)), 0, BPF_CGROUP_INET6_RECV_ACCEPT, 0);
+        bpf_program__fd(const_cast<const bpf_program*>(recv_accept6_program)),
+        DEFAULT_COMPARTMENT_ID,
+        BPF_CGROUP_INET6_RECV_ACCEPT,
+        0);
     REQUIRE(result == 0);
 
     bpf_object__close(object);

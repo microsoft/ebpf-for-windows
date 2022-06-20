@@ -567,7 +567,7 @@ struct bpf_link*
 bpf_program__attach_xdp(struct bpf_program* prog, int ifindex);
 
 /**
- * @brief Attach an eBPF program to an XDP hook.
+ * @brief Attach an eBPF program to an attach point.
  *
  * @param[in] prog_fd File descriptor of the program to attach.
  * @param[in] attachable_fd File descriptor corresponding to the attach point.
@@ -580,6 +580,33 @@ bpf_program__attach_xdp(struct bpf_program* prog, int ifindex);
  */
 int
 bpf_prog_attach(int prog_fd, int attachable_fd, enum bpf_attach_type type, unsigned int flags);
+
+/**
+ * @brief Detach eBPF program(s) from an attach point.
+ *
+ * @param[in] attachable_fd File descriptor corresponding to the attach point.
+ * @param[in] type Attach type.
+ *
+ * @retval 0 The operation was successful.
+ * @retval <0 An error occured, and errno was set.
+ *
+ */
+int
+bpf_prog_detach(int attachable_fd, enum bpf_attach_type type);
+
+/**
+ * @brief Detach an eBPF program from an attach point.
+ *
+ * @param[in] prog_fd File descriptor of the program to detach.
+ * @param[in] attachable_fd File descriptor corresponding to the attach point.
+ * @param[in] type Attach type.
+ *
+ * @retval 0 The operation was successful.
+ * @retval <0 An error occured, and errno was set.
+ *
+ */
+int
+bpf_prog_detach2(int prog_fd, int attachable_fd, enum bpf_attach_type type);
 
 /**
  * @brief Get a file descriptor that refers to a program.

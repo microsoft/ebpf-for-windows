@@ -974,6 +974,8 @@ _link_ebpf_program(
     ebpf_operation_link_program_request_t* request;
     ebpf_operation_link_program_reply_t reply;
     ebpf_result_t result = EBPF_SUCCESS;
+    bool attached = false;
+
     ebpf_assert(attach_type);
     ebpf_assert(link);
     ebpf_assert(attach_parameter || !attach_parameter_size);
@@ -1002,8 +1004,8 @@ _link_ebpf_program(
         if (result != EBPF_SUCCESS) {
             goto Exit;
         }
-
         ebpf_assert(reply.header.id == ebpf_operation_id_t::EBPF_OPERATION_LINK_PROGRAM);
+        attached = true;
 
         new_link->handle = reply.link_handle;
         new_link->fd = _create_file_descriptor_for_handle(new_link->handle);
@@ -1023,7 +1025,8 @@ _link_ebpf_program(
 
 Exit:
     if (new_link != nullptr) {
-        ebpf_link_detach(new_link);
+        if (attached)
+            ebpf_link_detach(new_link);
         ebpf_link_close(new_link);
     }
     EBPF_RETURN_RESULT(result);
@@ -1049,8 +1052,10 @@ static ebpf_result_t
 _detach_link_by_handle(ebpf_handle_t link_handle)
 {
     EBPF_LOG_ENTRY();
-    ebpf_operation_unlink_program_request_t request = {
-        sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_UNLINK_PROGRAM, link_handle};
+    ebpf_operation_unlink_program_request_t request = {0};
+    request.header.length = sizeof(request);
+    request.header.id = ebpf_operation_id_t::EBPF_OPERATION_UNLINK_PROGRAM;
+    request.link_handle = link_handle;
 
     EBPF_RETURN_RESULT(win32_error_code_to_ebpf_result(invoke_ioctl(request)));
 }
@@ -1140,8 +1145,10 @@ ebpf_result_t
 ebpf_api_unlink_program(ebpf_handle_t link_handle)
 {
     EBPF_LOG_ENTRY();
-    ebpf_operation_unlink_program_request_t request = {
-        sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_UNLINK_PROGRAM, link_handle};
+    ebpf_operation_unlink_program_request_t request = {0};
+    request.header.length = sizeof(request);
+    request.header.id = ebpf_operation_id_t::EBPF_OPERATION_UNLINK_PROGRAM;
+    request.link_handle = link_handle;
 
     EBPF_RETURN_RESULT(win32_error_code_to_ebpf_result(invoke_ioctl(request)));
 }
@@ -1152,6 +1159,43 @@ ebpf_link_detach(_In_ struct bpf_link* link)
     EBPF_LOG_ENTRY();
     ebpf_assert(link);
     EBPF_RETURN_RESULT(_detach_link_by_handle(link->handle));
+}
+
+ebpf_result_t
+ebpf_program_detach(
+    fd_t program_fd,
+    _In_ const ebpf_attach_type_t* attach_type,
+    _In_reads_bytes_(attach_parameter_size) void* attach_parameter,
+    _In_ size_t attach_parameter_size)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_protocol_buffer_t request_buffer;
+    ebpf_operation_unlink_program_request_t* request;
+    size_t buffer_size = offsetof(ebpf_operation_unlink_program_request_t, data) + attach_parameter_size;
+
+    EBPF_LOG_ENTRY();
+
+    request_buffer.resize(buffer_size);
+    request = reinterpret_cast<ebpf_operation_unlink_program_request_t*>(request_buffer.data());
+    request->header.id = ebpf_operation_id_t::EBPF_OPERATION_UNLINK_PROGRAM;
+    request->header.length = static_cast<uint16_t>(request_buffer.size());
+    request->link_handle = ebpf_handle_invalid;
+    request->program_handle =
+        (program_fd != ebpf_fd_invalid) ? _get_handle_from_file_descriptor(program_fd) : ebpf_handle_invalid;
+    request->attach_type = *attach_type;
+
+    if (attach_parameter_size > 0) {
+        request->attach_data_present = true;
+        memcpy_s(request->data, attach_parameter_size, attach_parameter, attach_parameter_size);
+    }
+
+    result = win32_error_code_to_ebpf_result(invoke_ioctl(request_buffer));
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
+Exit:
+    EBPF_RETURN_RESULT(result);
 }
 
 ebpf_result_t

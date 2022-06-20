@@ -226,10 +226,10 @@ ebpf_link_get_info(
     info->attach_type_uuid = link->attach_type;
     info->attach_type = link->bpf_attach_type;
 
-    // Copy any additional parameters.  Currently only XDP has such.
-    size_t size = sizeof(struct bpf_link_info) - FIELD_OFFSET(struct bpf_link_info, xdp);
+    // Copy any additional parameters.
+    size_t size = sizeof(struct bpf_link_info) - FIELD_OFFSET(struct bpf_link_info, attach_data);
     if ((link->client_data.size > 0) && (link->client_data.size <= size)) {
-        memcpy(&info->xdp, link->client_data.data, link->client_data.size);
+        memcpy(&info->attach_data, link->client_data.data, link->client_data.size);
     }
 
     *info_size = sizeof(*info);
