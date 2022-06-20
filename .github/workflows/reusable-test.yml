@@ -154,6 +154,7 @@ jobs:
         ${{env.TEST_COMMAND}}
 
     - name: Run post test command
+      if: always()
       id: run_post_test_command
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
       run: |
