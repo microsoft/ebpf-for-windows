@@ -20,19 +20,19 @@ close_registry_key(ebpf_registry_key_t key);
 uint32_t
 write_registry_value_binary(
     ebpf_registry_key_t key,
-    _In_ const wchar_t* value_name,
+    _In_z_ const wchar_t* value_name,
     _In_reads_(value_size) uint8_t* value,
-    _In_ size_t value_size);
+    size_t value_size);
 
 uint32_t
-write_registry_value_ansi_string(ebpf_registry_key_t key, _In_ const wchar_t* value_name, _In_z_ const char* value);
+write_registry_value_ansi_string(ebpf_registry_key_t key, _In_z_ const wchar_t* value_name, _In_z_ const char* value);
 
 uint32_t
 write_registry_value_dword(ebpf_registry_key_t key, _In_z_ const wchar_t* value_name, uint32_t value);
 
 uint32_t
 create_registry_key(
-    ebpf_registry_key_t root_key, _In_ const wchar_t* sub_key, uint32_t flags, _Out_ ebpf_registry_key_t* key);
+    ebpf_registry_key_t root_key, _In_z_ const wchar_t* sub_key, uint32_t flags, _Out_ ebpf_registry_key_t* key);
 
 uint32_t
 open_registry_key(
@@ -45,14 +45,14 @@ uint32_t
 delete_registry_tree(ebpf_registry_key_t root_key, _In_opt_z_ const wchar_t* sub_key);
 
 uint32_t
-read_registry_value_dword(ebpf_registry_key_t key, _In_ const wchar_t* value_name, _Out_ uint32_t* value);
+read_registry_value_dword(ebpf_registry_key_t key, _In_z_ const wchar_t* value_name, _Out_ uint32_t* value);
 
 uint32_t
 read_registry_value_binary(
     ebpf_registry_key_t key,
-    _In_ const wchar_t* value_name,
+    _In_z_ const wchar_t* value_name,
     _Out_writes_(value_size) uint8_t* value,
-    _In_ size_t value_size);
+    size_t value_size);
 
 _Success_(return == 0) uint32_t
     convert_guid_to_string(_In_ const GUID* guid, _Out_writes_all_(string_size) wchar_t* string, size_t string_size);
@@ -62,4 +62,4 @@ create_registry_key_ansi(
     ebpf_registry_key_t root_key, _In_z_ const char* sub_key, uint32_t flags, _Out_ ebpf_registry_key_t* key);
 
 uint32_t
-read_registry_value_string(ebpf_registry_key_t key, _In_ const wchar_t* value_name, _Out_ wchar_t** value);
+read_registry_value_string(ebpf_registry_key_t key, _In_ const wchar_t* value_name, _Outptr_result_z_ wchar_t** value);

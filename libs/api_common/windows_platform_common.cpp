@@ -32,7 +32,7 @@ extern bool use_ebpf_store;
 struct guid_compare
 {
     bool
-    operator()(const GUID& a, const GUID& b) const
+    operator()(_In_ const GUID& a, _In_ const GUID& b) const
     {
         return (memcmp(&a, &b, sizeof(GUID)) < 0);
     }
@@ -438,7 +438,7 @@ get_attach_type_name(_In_ const ebpf_attach_type_t* attach_type)
 }
 
 static ebpf_result_t
-_load_section_data_information(HKEY section_data_key, _In_ const wchar_t* section_name) noexcept
+_load_section_data_information(HKEY section_data_key, _In_z_ const wchar_t* section_name) noexcept
 {
     int32_t status;
     ebpf_result_t result = EBPF_SUCCESS;
@@ -542,7 +542,7 @@ Exit:
 static ebpf_result_t
 _load_helper_prototype(
     HKEY helper_store_key,
-    _In_ const wchar_t* helper_name,
+    _In_z_ const wchar_t* helper_name,
     _Out_ ebpf_helper_function_prototype_t* helper_prototype) noexcept
 {
     int32_t status;
@@ -616,7 +616,7 @@ _get_program_type_guid_from_string(_In_ const wchar_t* program_type_string, _Out
 }
 
 static ebpf_result_t
-_load_program_data_information(HKEY program_data_key, _In_ const wchar_t* program_type_string) noexcept
+_load_program_data_information(HKEY program_data_key, _In_z_ const wchar_t* program_type_string) noexcept
 {
     int32_t status;
     ebpf_result_t result = EBPF_SUCCESS;
@@ -814,7 +814,7 @@ Exit:
 
 static void
 _update_global_helpers_for_program_information(
-    _In_ const ebpf_helper_function_prototype_t* global_helpers, uint32_t global_helper_count)
+    _In_reads_(global_helper_count) const ebpf_helper_function_prototype_t* global_helpers, uint32_t global_helper_count)
 {
     // Iterate over all the program information and append the global
     // helper functions to each of the program information.
@@ -1085,9 +1085,9 @@ clear_ebpf_provider_data()
     try {
 #pragma warning(push)
 #pragma warning(disable : 6001) // Using uninitialized memory 't.second.context_descriptor'
-        for (auto& t : _windows_program_types) {
-            ebpf_free((void*)t.second.context_descriptor);
-            ebpf_free((void*)t.second.platform_specific_data);
+        for (auto& [context_descriptor, platform_specific_data] : _windows_program_types) {
+            ebpf_free((void*)context_descriptor);
+            ebpf_free((void*)platform_specific_data);
         }
 #pragma warning(pop)
 
@@ -1118,7 +1118,7 @@ get_static_program_info(_In_ const ebpf_program_type_t* program_type)
 }
 
 ebpf_result_t
-get_program_type_info(const ebpf_program_info_t** info)
+get_program_type_info(_Outptr_ const ebpf_program_info_t** info)
 {
     const GUID* program_type = reinterpret_cast<const GUID*>(global_program_info.type.platform_specific_data);
     ebpf_result_t result = EBPF_SUCCESS;

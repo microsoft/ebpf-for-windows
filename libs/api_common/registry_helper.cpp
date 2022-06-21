@@ -30,9 +30,9 @@ close_registry_key(ebpf_registry_key_t key)
 uint32_t
 write_registry_value_binary(
     ebpf_registry_key_t key,
-    _In_ const wchar_t* value_name,
+    _In_z_ const wchar_t* value_name,
     _In_reads_(value_size) uint8_t* value,
-    _In_ size_t value_size)
+    size_t value_size)
 {
     ebpf_assert(value_name);
     ebpf_assert(value);
@@ -41,7 +41,7 @@ write_registry_value_binary(
 }
 
 uint32_t
-write_registry_value_wide_string(ebpf_registry_key_t key, _In_ const wchar_t* value_name, _In_z_ const wchar_t* value)
+write_registry_value_wide_string(ebpf_registry_key_t key, _In_z_ const wchar_t* value_name, _In_z_ const wchar_t* value)
 {
     ebpf_assert(value_name);
     ebpf_assert(value);
@@ -51,7 +51,7 @@ write_registry_value_wide_string(ebpf_registry_key_t key, _In_ const wchar_t* va
 }
 
 uint32_t
-write_registry_value_ansi_string(ebpf_registry_key_t key, _In_ const wchar_t* value_name, _In_z_ const char* value)
+write_registry_value_ansi_string(ebpf_registry_key_t key, _In_z_ const wchar_t* value_name, _In_z_ const char* value)
 {
     uint32_t result;
     try {
@@ -120,7 +120,7 @@ create_registry_key_ansi(
 }
 
 uint32_t
-read_registry_value_string(ebpf_registry_key_t key, _In_ const wchar_t* value_name, _Out_ wchar_t** value)
+read_registry_value_string(ebpf_registry_key_t key, _In_ const wchar_t* value_name, _Outptr_result_z_ wchar_t** value)
 {
     uint32_t status = NO_ERROR;
     DWORD type = REG_SZ;
@@ -154,7 +154,7 @@ Exit:
 }
 
 uint32_t
-read_registry_value_dword(ebpf_registry_key_t key, _In_ const wchar_t* value_name, _Out_ uint32_t* value)
+read_registry_value_dword(ebpf_registry_key_t key, _In_z_ const wchar_t* value_name, _Out_ uint32_t* value)
 {
     DWORD type = REG_QWORD;
     DWORD value_size = sizeof(uint32_t);
@@ -164,7 +164,7 @@ read_registry_value_dword(ebpf_registry_key_t key, _In_ const wchar_t* value_nam
 uint32_t
 read_registry_value_binary(
     ebpf_registry_key_t key,
-    _In_ const wchar_t* value_name,
+    _In_z_ const wchar_t* value_name,
     _Out_writes_(value_size) uint8_t* value,
     _In_ size_t value_size)
 {

@@ -6,7 +6,7 @@
 #include <ntddk.h>
 
 #define REG_CREATE_FLAGS 0
-#define GUID_STRING_LENGTH 38 // not inlcuding the null terminator.
+#define GUID_STRING_LENGTH 38 // not including the null terminator.
 
 typedef HANDLE ebpf_registry_key_t;
 
@@ -43,7 +43,7 @@ Exit:
 static uint32_t
 write_registry_value_binary(
     ebpf_registry_key_t key,
-    _In_ const wchar_t* value_name,
+    _In_z_ const wchar_t* value_name,
     _In_reads_(value_size) uint8_t* value,
     _In_ size_t value_size)
 {
@@ -54,7 +54,7 @@ write_registry_value_binary(
 }
 
 static uint32_t
-write_registry_value_ansi_string(ebpf_registry_key_t key, _In_ const wchar_t* value_name, _In_z_ const char* value)
+write_registry_value_ansi_string(ebpf_registry_key_t key, _In_z_ const wchar_t* value_name, _In_z_ const char* value)
 {
     NTSTATUS status;
     UNICODE_STRING unicode_value;
@@ -86,7 +86,7 @@ write_registry_value_dword(ebpf_registry_key_t key, _In_z_ const wchar_t* value_
 
 static uint32_t
 create_registry_key(
-    ebpf_registry_key_t root_key, _In_ const wchar_t* sub_key, uint32_t flags, _Out_ ebpf_registry_key_t* key)
+    ebpf_registry_key_t root_key, _In_z_ const wchar_t* sub_key, uint32_t flags, _Out_ ebpf_registry_key_t* key)
 {
     NTSTATUS status = STATUS_SUCCESS;
     UNICODE_STRING registry_path;
