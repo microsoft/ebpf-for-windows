@@ -6,7 +6,7 @@
   <metadata>
     <title>eBPF for Windows SDK</title>
     <id>eBPF-for-Windows</id>
-    <version>0.1.4</version>
+    <version>0.2.0</version>
     <authors>eBPF for Windows Contributors</authors>
     <owners>eBPF for Windows Contributors</owners>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
