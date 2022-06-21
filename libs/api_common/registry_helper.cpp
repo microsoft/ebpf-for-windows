@@ -70,7 +70,7 @@ write_registry_value_dword(ebpf_registry_key_t key, _In_z_ const wchar_t* value_
 
 uint32_t
 create_registry_key(
-    ebpf_registry_key_t root_key, _In_ const wchar_t* sub_key, uint32_t flags, _Out_ ebpf_registry_key_t* key)
+    ebpf_registry_key_t root_key, _In_z_ const wchar_t* sub_key, uint32_t flags, _Out_ ebpf_registry_key_t* key)
 {
     *key = nullptr;
     if (root_key == nullptr) {
@@ -116,10 +116,10 @@ create_registry_key_ansi(
     return result;
 }
 
-uint32_t
-read_registry_value_string(ebpf_registry_key_t key, _In_ const wchar_t* value_name, _Outptr_result_z_ wchar_t** value)
+_Success_(return == 0) uint32_t read_registry_value_string(
+    ebpf_registry_key_t key, _In_z_ const wchar_t* value_name, _Outptr_result_z_ wchar_t** value)
 {
-    uint32_t status = NO_ERROR;
+    uint32_t status = ERROR_SUCCESS;
     DWORD type = REG_SZ;
     DWORD value_size = 0;
     wchar_t* string_value = nullptr;
@@ -127,13 +127,18 @@ read_registry_value_string(ebpf_registry_key_t key, _In_ const wchar_t* value_na
     *value = nullptr;
     status = RegQueryValueEx(key, value_name, 0, &type, nullptr, &value_size);
     if (status != ERROR_SUCCESS || type != REG_SZ) {
-        return win32_error_code_to_ebpf_result(status);
+        if (type != REG_SZ) {
+            status = ERROR_INVALID_PARAMETER;
+        }
+        return status;
+        // return win32_error_code_to_ebpf_result(status);
     }
 
     string_value = (wchar_t*)ebpf_allocate((value_size + sizeof(wchar_t)));
     if (string_value == nullptr) {
-        status = ERROR_NOT_ENOUGH_MEMORY;
-        return win32_error_code_to_ebpf_result(status);
+        return ERROR_NOT_ENOUGH_MEMORY;
+
+        // return win32_error_code_to_ebpf_result(status);
     }
 
     status = RegQueryValueEx(key, value_name, 0, &type, (PBYTE)string_value, &value_size);
@@ -163,7 +168,7 @@ read_registry_value_binary(
     ebpf_registry_key_t key,
     _In_z_ const wchar_t* value_name,
     _Out_writes_(value_size) uint8_t* value,
-    _In_ size_t value_size)
+    size_t value_size)
 {
     uint32_t status = NO_ERROR;
     DWORD type = REG_BINARY;

@@ -1118,8 +1118,7 @@ _get_static_program_info(_In_ const ebpf_program_type_t* program_type)
     return nullptr;
 }
 
-ebpf_result_t
-get_program_type_info(_Outptr_ const ebpf_program_info_t** info)
+_Success_(return == EBPF_SUCCESS) ebpf_result_t get_program_type_info(_Outptr_ const ebpf_program_info_t** info)
 {
     const GUID* program_type = reinterpret_cast<const GUID*>(global_program_info.type.platform_specific_data);
     ebpf_result_t result = EBPF_SUCCESS;
@@ -1144,7 +1143,7 @@ get_program_type_info(_Outptr_ const ebpf_program_info_t** info)
     if (use_ebpf_store && fall_back) {
         // Query static data loaded from eBPF store.
         *info = _get_static_program_info(program_type);
-        if (info == nullptr) {
+        if (*info == nullptr) {
             result = EBPF_OBJECT_NOT_FOUND;
         } else {
             result = EBPF_SUCCESS;

@@ -13,7 +13,7 @@ extern "C"
 }
 
 void
-print_help(_In_ const char* file_name);
+print_help(_In_z_ const char* file_name);
 
 uint32_t
 export_all_program_information();
