@@ -239,7 +239,7 @@ Exit:
 }
 
 static NTSTATUS
-_net_ebpf_sock_ops_update_registry_entries()
+_net_ebpf_sock_ops_update_store_entries()
 {
     NTSTATUS status;
 
@@ -262,7 +262,7 @@ net_ebpf_ext_sock_ops_register_providers()
 {
     NTSTATUS status = STATUS_SUCCESS;
 
-    status = _net_ebpf_sock_ops_update_registry_entries();
+    status = _net_ebpf_sock_ops_update_store_entries();
     if (!NT_SUCCESS(status)) {
         return status;
     }

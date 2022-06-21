@@ -7,6 +7,10 @@
 #include "ebpf_api.h"
 #include "platform.h"
 
+#define __return_type uint32_t
+#define IS_SUCCESS(x) (x == ERROR_SUCCESS)
+#define _SUCCESS NO_ERROR
+
 #define GUID_STRING_LENGTH 38
 
 #define REG_CREATE_FLAGS (KEY_WRITE | DELETE | KEY_READ)

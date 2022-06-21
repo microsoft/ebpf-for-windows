@@ -5,6 +5,10 @@
 
 #include <ntddk.h>
 
+#define __return_type NTSTATUS
+#define IS_SUCCESS(x) (NT_SUCCESS(x))
+#define _SUCCESS STATUS_SUCCESS
+
 #define REG_CREATE_FLAGS 0
 #define GUID_STRING_LENGTH 38 // not including the null terminator.
 

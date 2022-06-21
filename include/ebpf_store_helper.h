@@ -4,22 +4,8 @@
 #pragma once
 
 #include "ebpf_program_types.h"
-#ifndef USER_MODE
 #include "ebpf_registry_helper.h"
-#else
-#include "um_registry_helper.h"
-#endif
 #include "ebpf_windows.h"
-
-#ifndef USER_MODE
-#define __return_type NTSTATUS
-#define IS_SUCCESS(x) (NT_SUCCESS(x))
-#define _SUCCESS STATUS_SUCCESS
-#else
-#define __return_type uint32_t
-#define IS_SUCCESS(x) (x == ERROR_SUCCESS)
-#define _SUCCESS NO_ERROR
-#endif
 
 #ifdef USER_MODE
 extern ebpf_registry_key_t root_registry_key;
@@ -104,7 +90,7 @@ Exit:
  */
 static __return_type
 ebpf_store_update_section_information(
-    _In_reads_(section_info_count) ebpf_program_section_info_t* section_info, int section_info_count)
+    _In_reads_(section_info_count) ebpf_program_section_info_t* section_info, uint32_t section_info_count)
 {
     __return_type status = _SUCCESS;
     ebpf_registry_key_t provider_key = NULL;
@@ -126,7 +112,7 @@ ebpf_store_update_section_information(
         goto Exit;
     }
 
-    for (int i = 0; i < section_info_count; i++) {
+    for (uint32_t i = 0; i < section_info_count; i++) {
         ebpf_registry_key_t section_key = NULL;
 
         // Open or create the registry path.
@@ -197,7 +183,7 @@ Exit:
  */
 static __return_type
 ebpf_store_update_program_information(
-    _In_reads_(program_info_count) ebpf_program_info_t* program_info, int program_info_count)
+    _In_reads_(program_info_count) ebpf_program_info_t* program_info, uint32_t program_info_count)
 {
     __return_type status = _SUCCESS;
     ebpf_registry_key_t provider_key = NULL;
@@ -219,7 +205,7 @@ ebpf_store_update_program_information(
         goto Exit;
     }
 
-    for (int i = 0; i < program_info_count; i++) {
+    for (uint32_t i = 0; i < program_info_count; i++) {
         ebpf_registry_key_t program_key = {0};
         ebpf_registry_key_t helper_info_key = {0};
 
@@ -324,7 +310,7 @@ Exit:
  */
 static __return_type
 ebpf_store_update_global_helper_information(
-    _In_reads_(helper_info_count) ebpf_helper_function_prototype_t* helper_info, int helper_info_count)
+    _In_reads_(helper_info_count) ebpf_helper_function_prototype_t* helper_info, uint32_t helper_info_count)
 {
     __return_type status = _SUCCESS;
     ebpf_registry_key_t provider_key = NULL;
@@ -346,7 +332,7 @@ ebpf_store_update_global_helper_information(
         goto Exit;
     }
 
-    for (int i = 0; i < helper_info_count; i++) {
+    for (uint32_t i = 0; i < helper_info_count; i++) {
 
         status = _update_helper_prototype(helper_info_key, &helper_info[i]);
         if (!IS_SUCCESS(status)) {

@@ -19,8 +19,6 @@
 // TODO: Issue #1231 Change to using HKEY_LOCAL_MACHINE
 ebpf_registry_key_t root_registry_key = HKEY_CURRENT_USER;
 
-#define SIZE_OF_ARRAY(x) (sizeof(x) / sizeof(x[0]))
-
 typedef struct _ebpf_program_section_info_with_count
 {
     ebpf_program_section_info_t* section_info;
@@ -38,18 +36,18 @@ ebpf_program_section_info_t _sample_ext_section_info[] = {
     {L"sample_ext", &EBPF_PROGRAM_TYPE_SAMPLE, &EBPF_ATTACH_TYPE_SAMPLE, BPF_PROG_TYPE_SAMPLE, BPF_ATTACH_TYPE_SAMPLE}};
 
 static std::vector<ebpf_program_section_info_with_count_t> _section_information = {
-    {&_ebpf_bind_section_info[0], SIZE_OF_ARRAY(_ebpf_bind_section_info)},
-    {&_ebpf_xdp_section_info[0], SIZE_OF_ARRAY(_ebpf_xdp_section_info)},
-    {&_ebpf_sock_addr_section_info[0], SIZE_OF_ARRAY(_ebpf_sock_addr_section_info)},
-    {&_ebpf_sock_ops_section_info[0], SIZE_OF_ARRAY(_ebpf_sock_ops_section_info)},
-    {&_sample_ext_section_info[0], SIZE_OF_ARRAY(_sample_ext_section_info)},
+    {&_ebpf_bind_section_info[0], _countof(_ebpf_bind_section_info)},
+    {&_ebpf_xdp_section_info[0], _countof(_ebpf_xdp_section_info)},
+    {&_ebpf_sock_addr_section_info[0], _countof(_ebpf_sock_addr_section_info)},
+    {&_ebpf_sock_ops_section_info[0], _countof(_ebpf_sock_ops_section_info)},
+    {&_sample_ext_section_info[0], _countof(_sample_ext_section_info)},
 };
 
 uint32_t
 export_all_program_information()
 {
     uint32_t status = ERROR_SUCCESS;
-    size_t array_size = sizeof(program_information_array) / sizeof(program_information_array[0]);
+    size_t array_size = _countof(program_information_array);
     for (uint32_t i = 0; i < array_size; i++) {
         auto program_type = program_information_array[i];
         switch (program_type->program_type_descriptor.bpf_prog_type) {
@@ -156,7 +154,7 @@ clear_all_ebpf_stores()
 }
 
 void
-print_help(_In_ const char* file_name)
+print_help(_In_z_ const char* file_name)
 {
     std::cerr << "Usage: " << file_name << " [--clear]" << std::endl;
 }

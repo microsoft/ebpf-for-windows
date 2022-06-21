@@ -180,7 +180,7 @@ _net_ebpf_extension_sock_addr_on_client_detach(_In_ const net_ebpf_extension_hoo
 }
 
 static NTSTATUS
-_net_ebpf_sock_addr_update_registry_entries()
+_net_ebpf_sock_addr_update_store_entries()
 {
     NTSTATUS status;
 
@@ -203,7 +203,7 @@ net_ebpf_ext_sock_addr_register_providers()
 {
     NTSTATUS status = STATUS_SUCCESS;
 
-    status = _net_ebpf_sock_addr_update_registry_entries();
+    status = _net_ebpf_sock_addr_update_store_entries();
     if (!NT_SUCCESS(status)) {
         return status;
     }

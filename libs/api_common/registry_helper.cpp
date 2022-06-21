@@ -7,7 +7,7 @@
 #include <codecvt>
 
 #include "api_common.hpp"
-#include "um_registry_helper.h"
+#include "ebpf_registry_helper.h"
 
 #define GUID_STRING_LENGTH 38 // not inlcuding the null terminator.
 
@@ -29,10 +29,7 @@ close_registry_key(ebpf_registry_key_t key)
 
 uint32_t
 write_registry_value_binary(
-    ebpf_registry_key_t key,
-    _In_z_ const wchar_t* value_name,
-    _In_reads_(value_size) uint8_t* value,
-    size_t value_size)
+    ebpf_registry_key_t key, _In_z_ const wchar_t* value_name, _In_reads_(value_size) uint8_t* value, size_t value_size)
 {
     ebpf_assert(value_name);
     ebpf_assert(value);

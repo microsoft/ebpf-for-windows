@@ -17,7 +17,6 @@ add_library("api_common" STATIC
   device_helper.hpp
   device_helper.cpp
 
-  um_registry_helper.h
   registry_helper.cpp
 
   utilities.hpp
@@ -27,6 +26,7 @@ add_library("api_common" STATIC
 target_include_directories("api_common" PRIVATE
   "${CMAKE_SOURCE_DIR}/libs/api"
   "${CMAKE_SOURCE_DIR}/include"
+  "${CMAKE_SOURCE_DIR}/include/user"
   "${CMAKE_SOURCE_DIR}/libs/platform"
   "${CMAKE_SOURCE_DIR}/libs/platform/user"
   "${CMAKE_SOURCE_DIR}/libs/execution_context"

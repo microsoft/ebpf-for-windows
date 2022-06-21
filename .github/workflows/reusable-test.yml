@@ -126,10 +126,9 @@ jobs:
     - name: Configure eBPF store
       id: configure_ebpf_store
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
-      shell: cmd
       run: |
-        export_program_info.exe --clear
-        export_program_info.exe
+        .\export_program_info.exe --clear
+        .\export_program_info.exe
 
     - name: Run pre test command
       id: run_pre_test_command

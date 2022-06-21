@@ -184,7 +184,7 @@ _net_ebpf_extension_xdp_on_client_detach(_In_ const net_ebpf_extension_hook_clie
 }
 
 static NTSTATUS
-_net_ebpf_xdp_update_registry_entries()
+_net_ebpf_xdp_update_store_entries()
 {
     NTSTATUS status;
 
@@ -207,7 +207,7 @@ net_ebpf_ext_xdp_register_providers()
 {
     NTSTATUS status = STATUS_SUCCESS;
 
-    status = _net_ebpf_xdp_update_registry_entries();
+    status = _net_ebpf_xdp_update_store_entries();
     if (!NT_SUCCESS(status)) {
         return status;
     }

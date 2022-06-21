@@ -18,7 +18,7 @@
 #include "utilities.hpp"
 #include "windows_program_type.h"
 #include "windows_platform.hpp"
-#include "um_registry_helper.h"
+#include "ebpf_registry_helper.h"
 
 #define GET_PROGRAM_INFO_REPLY_BUFFER_SIZE 2048
 
@@ -814,7 +814,8 @@ Exit:
 
 static void
 _update_global_helpers_for_program_information(
-    _In_reads_(global_helper_count) const ebpf_helper_function_prototype_t* global_helpers, uint32_t global_helper_count)
+    _In_reads_(global_helper_count) const ebpf_helper_function_prototype_t* global_helpers,
+    uint32_t global_helper_count)
 {
     // Iterate over all the program information and append the global
     // helper functions to each of the program information.
@@ -1085,9 +1086,9 @@ clear_ebpf_provider_data()
     try {
 #pragma warning(push)
 #pragma warning(disable : 6001) // Using uninitialized memory 't.second.context_descriptor'
-        for (auto& [context_descriptor, platform_specific_data] : _windows_program_types) {
-            ebpf_free((void*)context_descriptor);
-            ebpf_free((void*)platform_specific_data);
+        for (auto& t : _windows_program_types) {
+            ebpf_free((void*)t.second.context_descriptor);
+            ebpf_free((void*)t.second.platform_specific_data);
         }
 #pragma warning(pop)
 
@@ -1105,8 +1106,8 @@ clear_ebpf_provider_data()
     }
 }
 
-const ebpf_program_info_t*
-get_static_program_info(_In_ const ebpf_program_type_t* program_type)
+_Ret_maybenull_ static const ebpf_program_info_t*
+_get_static_program_info(_In_ const ebpf_program_type_t* program_type)
 {
     for (auto& iterator : _windows_program_information) {
         if (IsEqualGUID(*program_type, iterator.first)) {
@@ -1142,7 +1143,7 @@ get_program_type_info(_Outptr_ const ebpf_program_info_t** info)
 
     if (use_ebpf_store && fall_back) {
         // Query static data loaded from eBPF store.
-        *info = get_static_program_info(program_type);
+        *info = _get_static_program_info(program_type);
         if (info == nullptr) {
             result = EBPF_OBJECT_NOT_FOUND;
         } else {

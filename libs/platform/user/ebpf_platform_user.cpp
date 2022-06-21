@@ -965,7 +965,7 @@ ebpf_platform_printk(_In_z_ const char* format, va_list arg_list)
 
 ebpf_result_t
 ebpf_update_global_helpers(
-    _In_reads_(helper_info_count) ebpf_helper_function_prototype_t* helper_info, int helper_info_count)
+    _In_reads_(helper_info_count) ebpf_helper_function_prototype_t* helper_info, uint32_t helper_info_count)
 {
     UNREFERENCED_PARAMETER(helper_info);
     UNREFERENCED_PARAMETER(helper_info_count);

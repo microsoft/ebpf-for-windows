@@ -46,9 +46,6 @@ load_ebpf_provider_data();
 void
 clear_ebpf_provider_data();
 
-const ebpf_program_info_t*
-get_static_program_info(_In_ const ebpf_program_type_t* program_type);
-
 ebpf_result_t
 get_program_type_info(const ebpf_program_info_t** info);
 

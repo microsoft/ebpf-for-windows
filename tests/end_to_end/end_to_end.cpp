@@ -2393,10 +2393,10 @@ TEST_CASE("get_ebpf_attach_type", "[end_to_end]")
 
     REQUIRE(IsEqualGUID(*attach_type, EBPF_ATTACH_TYPE_BIND) != 0);
 
-    // Try with BPF_ATTACH_TYPE_UNSPEC
+    // Try with BPF_ATTACH_TYPE_UNSPEC.
     REQUIRE(get_ebpf_attach_type(BPF_ATTACH_TYPE_UNSPEC) == nullptr);
 
-    // Try with invalid bpf attach type
+    // Try with invalid bpf attach type.
     REQUIRE(get_ebpf_attach_type((bpf_attach_type_t)BPF_ATTACH_TYPE_INVALID) == nullptr);
 }
 
@@ -2407,10 +2407,10 @@ TEST_CASE("get_bpf_program_type", "[end_to_end]")
     // First test a valid input.
     REQUIRE(get_bpf_program_type(&EBPF_PROGRAM_TYPE_SAMPLE) == BPF_PROG_TYPE_SAMPLE);
 
-    // Try with EBPF_PROGRAM_TYPE_UNSPECIFIED
+    // Try with EBPF_PROGRAM_TYPE_UNSPECIFIED.
     REQUIRE(get_bpf_program_type(&EBPF_PROGRAM_TYPE_UNSPECIFIED) == BPF_PROG_TYPE_UNSPEC);
 
-    // Try with invalid program type
+    // Try with invalid program type.
     GUID invalid_program_type;
     REQUIRE(UuidCreate(&invalid_program_type) == RPC_S_OK);
     REQUIRE(get_bpf_program_type(&invalid_program_type) == BPF_PROG_TYPE_UNSPEC);

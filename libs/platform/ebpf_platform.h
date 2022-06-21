@@ -1061,9 +1061,17 @@ extern "C"
     void
     ebpf_trace_terminate();
 
+    /**
+     * @brief Update global helper information in eBPF store.
+     *
+     * @param[in] helper_info Pointer to an array of helper function prototypes.
+     * @param[in] helper_info_count Count of helper function prototypes.
+     *
+     * @returns Status of the operation.
+     */
     ebpf_result_t
     ebpf_update_global_helpers(
-        _In_reads_(helper_info_count) ebpf_helper_function_prototype_t* helper_info, int helper_info_count);
+        _In_reads_(helper_info_count) ebpf_helper_function_prototype_t* helper_info, uint32_t helper_info_count);
 
 #define EBPF_TRACELOG_EVENT_SUCCESS "EbpfSuccess"
 #define EBPF_TRACELOG_EVENT_GENERIC_ERROR "EbpfGenericError"
