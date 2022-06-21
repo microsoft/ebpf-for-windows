@@ -1,6 +1,6 @@
 # Packaging instructions
 
-## Prerequisits
+## Prerequisites
 
 The [WiX toolset](https://wixtoolset.org/) should be installed and reachable via PATH.
 
