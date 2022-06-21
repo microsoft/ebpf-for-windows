@@ -244,7 +244,7 @@ jobs:
         files: c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/*.dmp
 
     - name: Upload any crash dumps
-      if: failure()
+      if: (failure()) && (inputs.gather_dumps == true)
       uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8
       id: upload_crash_dumps
       with:
