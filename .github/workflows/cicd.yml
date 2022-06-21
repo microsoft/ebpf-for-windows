@@ -68,7 +68,7 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: unit_tests
-      test_command: unit_tests.exe -d yes
+      test_command: .\unit_tests.exe -d yes
       build_artifact: Build-x64
       environment: windows-2019
       code_coverage: true
@@ -82,11 +82,11 @@ jobs:
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push'
     uses: ./.github/workflows/reusable-test.yml
     with:
-      pre_test: call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat"
-      test_command: bpf2c_tests.exe -d yes
+      test_command: .\bpf2c_tests.exe -d yes
       name: bpf2c
       build_artifact: Build-x64
       environment: windows-2019
+      vs_dev: true
       code_coverage: true
       gather_dumps: true
       capture_etw: true
@@ -99,9 +99,9 @@ jobs:
     if: github.repository == 'microsoft/ebpf-for-windows'
     uses: ./.github/workflows/reusable-test.yml
     with:
-      pre_test: powershell ".\setup_ebpf_cicd_tests.ps1"
-      test_command: powershell ".\execute_ebpf_cicd_tests.ps1"
-      post_test: powershell ".\cleanup_ebpf_cicd_tests.ps1"
+      pre_test: .\setup_ebpf_cicd_tests.ps1
+      test_command: .\execute_ebpf_cicd_tests.ps1
+      post_test: .\cleanup_ebpf_cicd_tests.ps1
       name: driver
       build_artifact: Build-x64
       environment: ebpf_cicd_tests
@@ -146,7 +146,7 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: fuzzing
-      test_command: fuzz.exe -d yes
+      test_command: .\fuzz.exe -d yes
       build_artifact: Build-x64-Sanitize
       environment: windows-2019
       code_coverage: false
@@ -159,7 +159,7 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: bpf2c_fuzzer
-      test_command: bpf2c_fuzzer.exe bpf2c_fuzzer_corpus -use_value_profile=1 -max_total_time=900 -artifact_prefix=Artifacts\
+      test_command: .\bpf2c_fuzzer.exe bpf2c_fuzzer_corpus -use_value_profile=1 -max_total_time=900 -artifact_prefix=Artifacts\
       build_artifact: Build-x64-fuzzer
       environment: windows-2019
       code_coverage: false
@@ -173,7 +173,7 @@ jobs:
     with:
       name: execution_context_fuzzer
       pre_test: powershell Expand-Archive -Path .\corpus.zip -DestinationPath execution_context_fuzzer_corpus -Force
-      test_command: execution_context_fuzzer.exe execution_context_fuzzer_corpus -use_value_profile=1 -runs=3000 -artifact_prefix=Artifacts\
+      test_command: .\execution_context_fuzzer.exe execution_context_fuzzer_corpus -use_value_profile=1 -runs=3000 -artifact_prefix=Artifacts\
       build_artifact: Build-x64-fuzzer
       environment: windows-2019
       code_coverage: false
@@ -187,7 +187,7 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: verifier_fuzzer
-      test_command: verifier_fuzzer.exe verifier_corpus -use_value_profile=1 -max_total_time=1800 -artifact_prefix=Artifacts\
+      test_command: .\verifier_fuzzer.exe verifier_corpus -use_value_profile=1 -max_total_time=1800 -artifact_prefix=Artifacts\
       build_artifact: Build-x64-fuzzer
       environment: windows-2019
       code_coverage: false
@@ -200,7 +200,7 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: core_helper_fuzzer
-      test_command: core_helper_fuzzer core_helper_corpus -max_len=139 -runs=1000 -use_value_profile=1 -artifact_prefix=Artifacts\
+      test_command: .\core_helper_fuzzer core_helper_corpus -max_len=139 -runs=1000 -use_value_profile=1 -artifact_prefix=Artifacts\
       build_artifact: Build-x64-fuzzer
       environment: windows-2019
       code_coverage: false
@@ -214,7 +214,7 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: cilium_tests
-      test_command: cilium_tests.exe -d yes
+      test_command: .\cilium_tests.exe -d yes
       build_artifact: Build-x64
       environment: windows-2019
       code_coverage: false
@@ -229,7 +229,7 @@ jobs:
     with:
       name: stress
       # Until there is a dedicated stress test, re-use the perf test.
-      test_command: ebpf_performance.exe
+      test_command: .\ebpf_performance.exe
       build_artifact: Build-x64
       environment: windows-2019
       # No code coverage on stress.
@@ -244,7 +244,7 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: unit_tests
-      test_command: unit_tests.exe -d yes
+      test_command: .\unit_tests.exe -d yes
       build_artifact: Build-x64-Sanitize
       environment: windows-2019
       code_coverage: false
