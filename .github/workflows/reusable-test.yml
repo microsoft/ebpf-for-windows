@@ -260,7 +260,7 @@ jobs:
         files: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/TestLogs/*
 
     - name: Upload log files
-      if: steps.check_logs.outputs.files_exists == 'true'
+      if: always() && steps.check_logs.outputs.files_exists == 'true'
       id: upload_logs
       uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8
       with:
