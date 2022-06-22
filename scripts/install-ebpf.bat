@@ -1,16 +1,36 @@
-rem Copyright (c) Microsoft Corporation
+rem Copyright (c) Microsoft Corporation 
 rem SPDX-License-Identifier: MIT
+rem Run "install-ebpf.bat" to install runtime services only.
+rem Run "install-ebpf.bat /t" to install runtime services and SampleEbpfExt service.
+
+set option=%1
+Set WithSampleExt=false
+
+IF "%option%"=="" (
+   rem Do nothing.
+) ELSE (
+  IF "%option%"=="/t" (
+    SET WithSampleExt=true
+  ) ELSE (
+    rem Parameter %* is not a valid option.
+    GOTO:EOF
+  )
+)
 
 rem Stop any eBPF binaries already loaded
 sc stop ebpfsvc
 sc stop NetEbpfExt
-sc stop SampleEbpfExt
+IF "%WithSampleExt%"=="true" (
+  sc stop SampleEbpfExt
+)
 sc stop EbpfCore
 
 rem Deregister the old binaries
 sc delete ebpfsvc
 sc delete NetEbpfExt
-sc delete SampleEbpfExt
+IF "%WithSampleExt%"=="true" (
+  sc delete SampleEbpfExt
+)
 sc delete EbpfCore
 
 rem Copy the new binaries to the appropriate system location
@@ -23,8 +43,10 @@ sc create EbpfCore type=kernel start=demand binpath=%windir%\system32\drivers\eb
 @if ERRORLEVEL 1 goto EOF
 sc create NetEbpfExt type=kernel start=demand binpath=%windir%\system32\drivers\netebpfext.sys
 @if ERRORLEVEL 1 goto EOF
-sc create SampleEbpfExt type=kernel start=demand binpath=%windir%\system32\drivers\sample_ebpf_ext.sys
-@if ERRORLEVEL 1 goto EOF
+IF "%WithSampleExt%"=="true" (
+  sc create SampleEbpfExt type=kernel start=demand binpath=%windir%\system32\drivers\sample_ebpf_ext.sys
+  @if ERRORLEVEL 1 goto EOF
+)
 %windir%\system32\ebpfsvc.exe install
 @if ERRORLEVEL 1 goto EOF
 netsh add helper %windir%\system32\ebpfnetsh.dll
@@ -35,8 +57,10 @@ sc start EbpfCore
 @if ERRORLEVEL 1 goto EOF
 sc start NetEbpfExt
 @if ERRORLEVEL 1 goto EOF
-sc start SampleEbpfExt
-@if ERRORLEVEL 1 goto EOF
+IF "%WithSampleExt%"=="true" (
+  sc start SampleEbpfExt
+  @if ERRORLEVEL 1 goto EOF
+)
 sc start ebpfsvc
 @if ERRORLEVEL 1 goto EOF
 :EOF
