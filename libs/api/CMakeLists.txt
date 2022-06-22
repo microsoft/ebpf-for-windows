@@ -43,6 +43,7 @@ target_include_directories("api" PRIVATE
 target_link_libraries("api" PRIVATE
   "ebpf_for_windows_cpp_settings"
   "rpc_interface"
+  "elf_spec"
   "encode_program_info_headers"
   "external::ebpfverifier"
   "external::boost"

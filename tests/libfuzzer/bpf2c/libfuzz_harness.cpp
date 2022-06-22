@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include <Windows.h>
 #include <chrono>
 #include <fstream>
 #include <filesystem>
@@ -10,13 +11,31 @@
 
 #undef max
 #include "bpf_code_generator.h"
+#include "ElfWrapper.h"
 #include "libfuzzer.h"
+
+#define elf_everparse_error ElfEverParseError
+#define elf_everparse_verify ElfCheckElf
+
+extern "C" void
+elf_everparse_error(_In_ const char* struct_name, _In_ const char* field_name, _In_ const char* reason);
+
+void
+elf_everparse_error(_In_ const char* struct_name, _In_ const char* field_name, _In_ const char* reason)
+{
+    UNREFERENCED_PARAMETER(struct_name);
+    UNREFERENCED_PARAMETER(field_name);
+    UNREFERENCED_PARAMETER(reason);
+}
 
 FUZZ_EXPORT int __cdecl LLVMFuzzerInitialize(int*, char***) { return 0; }
 
 FUZZ_EXPORT int __cdecl LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
 {
     try {
+        if (!ElfCheckElf(size, const_cast<uint8_t*>(data), static_cast<uint32_t>(size))) {
+            return 0;
+        }
 
         std::string random_buffer(data, data + size);
         std::stringstream output;

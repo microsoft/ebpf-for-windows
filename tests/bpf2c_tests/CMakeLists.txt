@@ -22,6 +22,7 @@ target_include_directories("bpf2c_tests" PRIVATE
 target_link_libraries("bpf2c_tests" PRIVATE
   "ebpf_for_windows_cpp_settings"
   "EbpfApi"
+  "elf_spec"
   "external::ebpfverifier"
   "test_util"
   "Catch2::Catch2WithMain"

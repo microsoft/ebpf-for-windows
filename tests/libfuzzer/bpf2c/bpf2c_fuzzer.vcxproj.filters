@@ -41,7 +41,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="..\..\..\scripts\create_bpf2c_corpus.bat">
+    <CustomBuild Include="$(SolutionDir)scripts\create_bpf2c_corpus.bat">
       <Filter>Source Files</Filter>
     </CustomBuild>
   </ItemGroup>
