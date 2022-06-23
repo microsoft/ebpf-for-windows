@@ -254,12 +254,13 @@ jobs:
 
     - name: Check for TestLogs
       uses: andstor/file-existence-action@f02338908d150e00a4b8bebc2dad18bd9e5229b0
+      if: always()
       id: check_logs
       with:
         files: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/TestLogs/*
 
     - name: Upload log files
-      if: steps.check_logs.outputs.files_exists == 'true'
+      if: always() && steps.check_logs.outputs.files_exists == 'true'
       id: upload_logs
       uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8
       with:
