@@ -297,3 +297,9 @@ This will result in lines like:
 5984 [003] 03/10/2022-13:56:14.226:{"Message":"Hello, world"}
 ```
 where `5984` is the Process ID in decimal, and `003` is the CPU ID.
+
+To view all trace events from network eBPF extension (`netebpfext.sys`) that would be captured to a file, use the following commands:
+1) Create a trace session with some name such as MyTrace: ```tracelog -start MyTrace -guid net-ebpf-ext.guid -rt```
+2) View the session in real-time on stdout: ```tracefmt -rt NetEbpfExtTrace -displayonly -jsonMeta 0```.  This will
+   continue until you break out of the executable with Ctrl-C.
+3) Close the trace session: ```tracelog -stop NetEbpfExtTrace```

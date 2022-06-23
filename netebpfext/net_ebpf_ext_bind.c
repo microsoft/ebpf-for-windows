@@ -70,6 +70,8 @@ _net_ebpf_extension_bind_on_client_attach(
     ebpf_result_t result = EBPF_SUCCESS;
     net_ebpf_extension_wfp_filter_context_t* filter_context = NULL;
 
+    NET_EBPF_EXT_LOG_ENTRY();
+
     // Bind hook allows only one client at a time.
     if (net_ebpf_extension_hook_get_next_attached_client((net_ebpf_extension_hook_provider_t*)provider_context, NULL) !=
         NULL) {
@@ -98,7 +100,7 @@ _net_ebpf_extension_bind_on_client_attach(
         (net_ebpf_extension_hook_client_t*)attaching_client, filter_context);
 
 Exit:
-    return result;
+    NET_EBPF_EXT_RETURN_RESULT(result);
 }
 
 static void
@@ -126,6 +128,8 @@ net_ebpf_ext_bind_register_providers()
     const net_ebpf_extension_hook_provider_parameters_t hook_provider_parameters = {
         &_ebpf_bind_hook_provider_moduleid, &_net_ebpf_extension_bind_hook_provider_data};
 
+    NET_EBPF_EXT_LOG_ENTRY();
+
     _ebpf_bind_program_info.program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_BIND;
     // Set the program type as the provider module id.
     _ebpf_bind_program_info_provider_moduleid.Guid = EBPF_PROGRAM_TYPE_BIND;
@@ -148,7 +152,7 @@ net_ebpf_ext_bind_register_providers()
     }
 
 Exit:
-    return status;
+    NET_EBPF_EXT_RETURN_NTSTATUS(status);
 }
 
 void

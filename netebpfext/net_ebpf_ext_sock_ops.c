@@ -102,6 +102,8 @@ net_ebpf_extension_sock_ops_on_client_attach(
     FWPM_FILTER_CONDITION condition = {0};
     net_ebpf_extension_sock_ops_wfp_filter_context_t* filter_context = NULL;
 
+    NET_EBPF_EXT_LOG_ENTRY();
+
     // SOCK_OPS hook clients must always provide data.
     if (client_data == NULL) {
         result = EBPF_INVALID_ARGUMENT;
@@ -170,7 +172,7 @@ Exit:
             ExFreePool(filter_context);
     }
 
-    return result;
+    NET_EBPF_EXT_RETURN_RESULT(result);
 }
 
 static void
@@ -245,6 +247,8 @@ net_ebpf_ext_sock_ops_register_providers()
     const net_ebpf_extension_program_info_provider_parameters_t program_info_provider_parameters = {
         &_ebpf_sock_ops_program_info_provider_moduleid, &_ebpf_sock_ops_program_info_provider_data};
 
+    NET_EBPF_EXT_LOG_ENTRY();
+
     _ebpf_sock_ops_program_info.program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_SOCK_OPS;
     // Set the program type as the provider module id.
     _ebpf_sock_ops_program_info_provider_moduleid.Guid = EBPF_PROGRAM_TYPE_SOCK_OPS;
@@ -272,7 +276,7 @@ net_ebpf_ext_sock_ops_register_providers()
         goto Exit;
 
 Exit:
-    return status;
+    NET_EBPF_EXT_RETURN_NTSTATUS(status);
 }
 
 void
@@ -387,6 +391,7 @@ net_ebpf_extension_sock_ops_flow_established_classify(
         NonPagedPoolNx, sizeof(net_ebpf_extension_sock_ops_wfp_flow_context_t), NET_EBPF_EXTENSION_POOL_TAG);
     if (local_flow_context == NULL) {
         result = EBPF_NO_MEMORY;
+        NET_EBPF_EXT_LOG_FUNCTION_ERROR(result);
         goto Exit;
     }
     memset(local_flow_context, 0, sizeof(net_ebpf_extension_sock_ops_wfp_flow_context_t));
@@ -405,6 +410,12 @@ net_ebpf_extension_sock_ops_flow_established_classify(
     if (client_compartment_id != UNSPECIFIED_COMPARTMENT_ID &&
         client_compartment_id != sock_ops_context->compartment_id) {
         // The client is not interested in this compartment Id.
+        NET_EBPF_EXT_LOG_MESSAGE_UINT32(
+            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+            "The cgroup_sock_ops eBPF program is not interested in this compartmentId",
+            sock_ops_context->compartment_id);
+
         goto Exit;
     }
 
@@ -420,8 +431,17 @@ net_ebpf_extension_sock_ops_flow_established_classify(
         local_flow_context->parameters.layer_id,
         local_flow_context->parameters.callout_id,
         (uint64_t)(uintptr_t)local_flow_context);
-    if (!NT_SUCCESS(status))
+    if (!NT_SUCCESS(status)) {
+        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS, "FwpsFlowAssociateContext", status);
         goto Exit;
+    }
+
+    NET_EBPF_EXT_LOG_MESSAGE_UINT64(
+        NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+        NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
+        "New flow created.",
+        local_flow_context->parameters.flow_id);
 
     KeAcquireSpinLock(&filter_context->lock, &irql);
     InsertTailList(&filter_context->flow_context_list.list_head, &local_flow_context->link);
@@ -457,6 +477,12 @@ net_ebpf_extension_sock_ops_flow_delete(uint16_t layer_id, uint32_t callout_id, 
     ASSERT(local_flow_context != NULL);
     if (local_flow_context == NULL)
         goto Exit;
+
+    NET_EBPF_EXT_LOG_MESSAGE_UINT64(
+        NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+        NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
+        "Flow deleted.",
+        local_flow_context->parameters.flow_id);
 
     filter_context = local_flow_context->filter_context;
     if (filter_context == NULL)
