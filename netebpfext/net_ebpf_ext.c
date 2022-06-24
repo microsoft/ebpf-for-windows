@@ -301,6 +301,7 @@ net_ebpf_extension_delete_wfp_filters(uint32_t filter_count, _Frees_ptr_ _In_cou
     for (uint32_t index = 0; index < filter_count; index++)
         FwpmFilterDeleteById(_fwp_engine_handle, filter_ids[index]);
     ExFreePool(filter_ids);
+    NET_EBPF_EXT_LOG_EXIT();
 }
 
 ebpf_result_t
