@@ -124,7 +124,7 @@ net_ebpf_ext_bind_register_providers()
     const net_ebpf_extension_program_info_provider_parameters_t program_info_provider_parameters = {
         &_ebpf_bind_program_info_provider_moduleid, &_ebpf_bind_program_info_provider_data};
     const net_ebpf_extension_hook_provider_parameters_t hook_provider_parameters = {
-        &_ebpf_bind_hook_provider_moduleid, &_net_ebpf_extension_bind_hook_provider_data, EXECUTION_PASSIVE};
+        &_ebpf_bind_hook_provider_moduleid, &_net_ebpf_extension_bind_hook_provider_data};
 
     _ebpf_bind_program_info.program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_BIND;
     // Set the program type as the provider module id.
@@ -208,7 +208,7 @@ net_ebpf_ext_resource_allocation_classify(
     if (attached_client == NULL)
         goto Exit;
 
-    if (!net_ebpf_extension_hook_client_enter_rundown(attached_client, EXECUTION_PASSIVE))
+    if (!net_ebpf_extension_hook_client_enter_rundown(attached_client))
         goto Exit;
 
     addr.sin_port =
@@ -244,7 +244,7 @@ net_ebpf_ext_resource_allocation_classify(
 
 Exit:
     if (attached_client)
-        net_ebpf_extension_hook_client_leave_rundown(attached_client, EXECUTION_PASSIVE);
+        net_ebpf_extension_hook_client_leave_rundown(attached_client);
     return;
 }
 
@@ -277,7 +277,7 @@ net_ebpf_ext_resource_release_classify(
     if (attached_client == NULL)
         goto Exit;
 
-    if (!net_ebpf_extension_hook_client_enter_rundown(attached_client, EXECUTION_PASSIVE)) {
+    if (!net_ebpf_extension_hook_client_enter_rundown(attached_client)) {
         classify_output->actionType = FWP_ACTION_PERMIT;
         goto Exit;
     }
@@ -306,6 +306,6 @@ net_ebpf_ext_resource_release_classify(
 
 Exit:
     if (attached_client)
-        net_ebpf_extension_hook_client_leave_rundown(attached_client, EXECUTION_PASSIVE);
+        net_ebpf_extension_hook_client_leave_rundown(attached_client);
     return;
 }
