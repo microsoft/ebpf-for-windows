@@ -154,7 +154,7 @@ bool
 net_ebpf_extension_hook_client_enter_rundown(_Inout_ net_ebpf_extension_hook_client_t* hook_client)
 {
     net_ebpf_ext_hook_client_rundown_t* rundown = &hook_client->rundown;
-    return (ExAcquireRundownProtection(&rundown->protection) == FALSE);
+    return (ExAcquireRundownProtection(&rundown->protection));
 }
 
 void
