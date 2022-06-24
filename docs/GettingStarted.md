@@ -257,11 +257,12 @@ This application loads the `cgroup_sock_addr.o` eBPF program and attaches to hoo
 eBPF for Windows uses ETW for tracing.  A trace can be captured in a file, or viewed in real-time.
 
 ### Capturing traces
-To capture a trace use the following commands:
-1) Start tracing: ```wpr.exe -start ebpfforwindows.wprp -filemode```
+To capture a trace in a file use the following commands:
+1) Start tracing: ```wpr.exe -start ebpfforwindows.wprp -filemode```. This will capture traces from eBPF execution context and the network eBPF extension drivers.
 2) Run the scenario to be traced.
 3) Stop tracing: ```wpr.exe -stop ebpfforwindows.etl```
-4) Convert the traces to a human readable version: ```netsh trace convert ebpfforwindows.etl ebpfforwindows.csv csv```
+4) 4) Convert the traces to text format: ```netsh trace convert ebpfforwindows.etl overwrite=yes``` , or
+   to convert to CSV format, use: ```netsh trace convert ebpfforwindows.etl ebpfforwindows.csv csv```
 
 ### Viewing traces in real-time
 To view traces in real-time, the `tracelog.exe` and `tracefmt.exe` commands from the WDK can be used.
