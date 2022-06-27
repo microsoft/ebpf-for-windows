@@ -15,6 +15,7 @@ typedef ebpf_result_t (*ebpf_invoke_program_function_t)(
 typedef struct _net_ebpf_ext_hook_client_rundown
 {
     EX_RUNDOWN_REF protection;
+    bool rundown_occurred;
 } net_ebpf_ext_hook_client_rundown_t;
 
 struct _net_ebpf_extension_hook_provider;
@@ -99,6 +100,7 @@ _ebpf_ext_attach_init_rundown(net_ebpf_extension_hook_client_t* hook_client)
     }
 
     ExInitializeRundownProtection(&rundown->protection);
+    rundown->rundown_occurred = FALSE;
 
 Exit:
     return status;
@@ -154,14 +156,17 @@ bool
 net_ebpf_extension_hook_client_enter_rundown(_Inout_ net_ebpf_extension_hook_client_t* hook_client)
 {
     net_ebpf_ext_hook_client_rundown_t* rundown = &hook_client->rundown;
-    return (ExAcquireRundownProtection(&rundown->protection));
+    bool retval = ExAcquireRundownProtection(&rundown->protection);
+    rundown->rundown_occurred = (retval == FALSE);
+    return retval;
 }
 
 void
 net_ebpf_extension_hook_client_leave_rundown(_Inout_ net_ebpf_extension_hook_client_t* hook_client)
 {
     net_ebpf_ext_hook_client_rundown_t* rundown = &hook_client->rundown;
-    ExReleaseRundownProtection(&rundown->protection);
+    if (rundown->rundown_occurred == FALSE)
+        ExReleaseRundownProtection(&rundown->protection);
 }
 
 const ebpf_extension_data_t*
