@@ -273,8 +273,8 @@ _get_section_definition(const std::string& section)
 _Ret_maybenull_ const ebpf_program_type_t*
 get_ebpf_program_type(bpf_prog_type_t bpf_program_type)
 {
-    for (auto const& [key, val] : _windows_program_information) {
-        if (val.get()->program_type_descriptor.bpf_prog_type == (uint32_t)bpf_program_type) {
+    for (auto const& [key, value] : _windows_program_information) {
+        if (value.get()->program_type_descriptor.bpf_prog_type == (uint32_t)bpf_program_type) {
             return &key;
         }
     }
@@ -297,9 +297,9 @@ get_ebpf_attach_type(bpf_attach_type_t bpf_attach_type)
 bpf_prog_type_t
 get_bpf_program_type(_In_ const ebpf_program_type_t* ebpf_program_type)
 {
-    for (auto const& [key, val] : _windows_program_information) {
+    for (auto const& [key, value] : _windows_program_information) {
         if (IsEqualGUID(*ebpf_program_type, key)) {
-            return (bpf_prog_type_t)val.get()->program_type_descriptor.bpf_prog_type;
+            return (bpf_prog_type_t)value.get()->program_type_descriptor.bpf_prog_type;
         }
     }
 

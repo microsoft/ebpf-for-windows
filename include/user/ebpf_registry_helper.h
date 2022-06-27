@@ -11,7 +11,7 @@
 #define IS_SUCCESS(x) (x == ERROR_SUCCESS)
 #define _SUCCESS NO_ERROR
 
-#define GUID_STRING_LENGTH 38
+#define GUID_STRING_LENGTH 38 // not including the null terminator.
 
 #define REG_CREATE_FLAGS (KEY_WRITE | DELETE | KEY_READ)
 #define REG_OPEN_FLAGS (DELETE | KEY_READ)
