@@ -4,6 +4,7 @@
 add_subdirectory("api")
 add_subdirectory("api_common")
 add_subdirectory("execution_context")
+add_subdirectory("elf_spec")
 add_subdirectory("pe-parse")
 add_subdirectory("platform")
 add_subdirectory("ebpfnetsh")

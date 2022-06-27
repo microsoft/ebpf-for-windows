@@ -13,10 +13,26 @@
 #include "ebpf_program_types.h"
 #include "ebpf_verifier_wrapper.hpp"
 #include "elfio_wrapper.hpp"
+#include "ElfWrapper.h"
 #include "platform.hpp"
 #include "windows_platform.hpp"
 #include "windows_platform_common.hpp"
 #include "Verifier.h"
+
+#define elf_everparse_error ElfEverParseError
+#define elf_everparse_verify ElfCheckElf
+
+thread_local static std::string _elf_everparse_error;
+
+extern "C" void
+elf_everparse_error(_In_ const char* struct_name, _In_ const char* field_name, _In_ const char* reason);
+
+void
+elf_everparse_error(_In_ const char* struct_name, _In_ const char* field_name, _In_ const char* reason)
+{
+    _elf_everparse_error =
+        std::string() + "Failed parsing in struct " + struct_name + " field " + field_name + " reason " + reason;
+}
 
 using namespace std;
 
@@ -524,6 +540,24 @@ _ebpf_api_elf_verify_section_from_stream(
     return 0;
 }
 
+static std::string
+load_file_to_memory(const std::string& path)
+{
+    struct stat st;
+    if (stat(path.c_str(), &st)) {
+        throw std::runtime_error(std::string("No such file or directory opening ") + path);
+    }
+    if (std::ifstream stream{path, std::ios::in | std::ios::binary}) {
+        std::string data;
+        data.resize(st.st_size);
+        if (!stream.read(data.data(), data.size())) {
+            throw std::runtime_error(std::string("Failed to read file: ") + path);
+        }
+        return data;
+    }
+    throw std::runtime_error(std::string("Failed to read file: ") + path);
+}
+
 uint32_t
 ebpf_api_elf_verify_section_from_file(
     _In_z_ const char* file,
@@ -534,12 +568,31 @@ ebpf_api_elf_verify_section_from_file(
     const char** error_message,
     ebpf_api_verifier_stats_t* stats)
 {
-    std::ifstream stream{file, std::ios::in | std::ios::binary};
-    struct _thread_local_storage_cache tls_cache;
+    *error_message = nullptr;
+    *report = nullptr;
+    try {
+        auto data = load_file_to_memory(file);
+        if (!ElfCheckElf(
+                data.size(),
+                const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(data.data())),
+                static_cast<uint32_t>(data.size()))) {
 
-    set_global_program_and_attach_type(program_type, nullptr);
-    set_verification_in_progress(true);
-    return _ebpf_api_elf_verify_section_from_stream(stream, file, section, verbose, report, error_message, stats);
+            throw std::runtime_error(std::string() + "ELF file " + file + " is malformed: " + _elf_everparse_error);
+        }
+
+        auto stream = std::stringstream(data);
+        struct _thread_local_storage_cache tls_cache;
+        set_global_program_and_attach_type(program_type, nullptr);
+        set_verification_in_progress(true);
+        return _ebpf_api_elf_verify_section_from_stream(stream, file, section, verbose, report, error_message, stats);
+    } catch (std::runtime_error& err) {
+        std::ostringstream error;
+        error << "error: " << err.what();
+        *error_message = allocate_string(error.str());
+        return 1;
+    } catch (std::bad_alloc) {
+        return 1;
+    }
 }
 
 uint32_t
@@ -553,10 +606,29 @@ ebpf_api_elf_verify_section_from_memory(
     const char** error_message,
     ebpf_api_verifier_stats_t* stats)
 {
-    std::stringstream stream(std::string(data, data_length));
-    struct _thread_local_storage_cache tls_cache;
+    *error_message = nullptr;
+    *report = nullptr;
+    try {
+        if (!ElfCheckElf(
+                data_length,
+                const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(data)),
+                static_cast<uint32_t>(data_length))) {
+            throw std::runtime_error("ELF file is malformed: " + _elf_everparse_error);
+        }
 
-    set_global_program_and_attach_type(program_type, nullptr);
-    set_verification_in_progress(true);
-    return _ebpf_api_elf_verify_section_from_stream(stream, "memory", section, verbose, report, error_message, stats);
+        std::stringstream stream(std::string(data, data_length));
+        struct _thread_local_storage_cache tls_cache;
+
+        set_global_program_and_attach_type(program_type, nullptr);
+        set_verification_in_progress(true);
+        return _ebpf_api_elf_verify_section_from_stream(
+            stream, "memory", section, verbose, report, error_message, stats);
+    } catch (std::runtime_error& err) {
+        std::ostringstream error;
+        error << "error: " << err.what();
+        *error_message = allocate_string(error.str());
+        return 1;
+    } catch (std::bad_alloc) {
+        return 1;
+    }
 }

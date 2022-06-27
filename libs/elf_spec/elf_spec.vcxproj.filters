@@ -1,0 +1,43 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (c) Microsoft Corporation
+  SPDX-License-Identifier: MIT
+-->
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="$(OutDir)\Elf.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(OutDir)\ElfWrapper.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="$(OutDir)\Elf.h">
+      <Filter>Headers Files</Filter>
+    </ClInclude>
+    <ClInclude Include="$(OutDir)\ElfWrapper.h">
+      <Filter>Headers Files</Filter>
+    </ClInclude>
+    <ClInclude Include="$(OutDir)\EverParseEndianness.h">
+      <Filter>Headers Files</Filter>
+    </ClInclude>
+    <ClInclude Include="$(OutDir)\EverParse.h">
+      <Filter>Headers Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{666c2b53-9f8e-4381-b4f8-e79df2f953c0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers Files">
+      <UniqueIdentifier>{9c01747b-3d92-4191-809f-bbe5891ef03e}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="Elf.3d" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+</Project>
