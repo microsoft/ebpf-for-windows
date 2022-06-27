@@ -61,6 +61,8 @@ read_registry_value_binary(
 _Success_(return == 0) uint32_t
     convert_guid_to_string(_In_ const GUID* guid, _Out_writes_all_(string_size) wchar_t* string, size_t string_size);
 
+_Success_(return == 0) uint32_t convert_string_to_guid(_In_z_ const wchar_t* string, _Out_ GUID* guid);
+
 uint32_t
 create_registry_key_ansi(
     ebpf_registry_key_t root_key, _In_z_ const char* sub_key, uint32_t flags, _Out_ ebpf_registry_key_t* key);

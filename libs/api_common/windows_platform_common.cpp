@@ -19,13 +19,14 @@
 #include "windows_program_type.h"
 #include "windows_platform.hpp"
 #include "ebpf_registry_helper.h"
+#include "store_helper_internal.h"
 
 #define GET_PROGRAM_INFO_REPLY_BUFFER_SIZE 2048
 
 static thread_local ebpf_handle_t _program_under_verification = ebpf_handle_invalid;
 
 // TODO: Issue #1231 Change to using HKEY_LOCAL_MACHINE
-static HKEY _root_registry_key = HKEY_CURRENT_USER;
+ebpf_registry_key_t root_registry_key = HKEY_CURRENT_USER;
 
 extern bool use_ebpf_store;
 
@@ -72,6 +73,32 @@ struct EbpfProgramType_deleter
     }
 };
 
+static void
+_ebpf_section_info_free(_In_opt_ ebpf_section_definition_t* info)
+{
+    EBPF_LOG_ENTRY();
+    if (info == nullptr) {
+        EBPF_RETURN_VOID();
+    }
+
+    ebpf_free(info->program_type);
+    ebpf_free(info->attach_type);
+    ebpf_free((void*)info->section_prefix);
+
+    ebpf_free(info);
+
+    EBPF_RETURN_VOID();
+}
+
+struct _ebpf_section_info_deleter
+{
+    void
+    operator()(_In_ _Post_invalid_ ebpf_section_definition_t* section_info)
+    {
+        _ebpf_section_info_free(section_info);
+    }
+};
+
 // Thread local cache for program information queried from execution context.
 typedef std::unique_ptr<ebpf_program_info_t, _ebpf_program_info_deleter> ebpf_program_info_ptr_t;
 static thread_local std::map<ebpf_program_type_t, ebpf_program_info_ptr_t, guid_compare> _program_info_cache;
@@ -82,9 +109,10 @@ static thread_local std::map<ebpf_program_type_t, ebpf_program_descriptor_ptr_t,
     _program_descriptor_cache;
 
 // Global cache for the program and section information queried from eBPF store.
-static std::map<ebpf_program_type_t, EbpfProgramType, guid_compare> _windows_program_types;
-static std::vector<ebpf_section_definition_t> _windows_section_definitions;
-static std::map<ebpf_program_type_t, ebpf_program_info_t, guid_compare> _windows_program_information;
+typedef std::unique_ptr<ebpf_section_definition_t, _ebpf_section_info_deleter> ebpf_section_info_ptr_t;
+static std::map<ebpf_program_type_t, ebpf_program_descriptor_ptr_t, guid_compare> _windows_program_types;
+static std::vector<ebpf_section_info_ptr_t> _windows_section_definitions;
+static std::map<ebpf_program_type_t, ebpf_program_info_ptr_t, guid_compare> _windows_program_information;
 
 void
 set_program_under_verification(ebpf_handle_t program)
@@ -211,7 +239,7 @@ get_program_type_windows(const GUID& program_type)
     if (use_ebpf_store) {
         auto it2 = _windows_program_types.find(program_type);
         if (it2 != _windows_program_types.end()) {
-            return it2->second;
+            return *it2->second.get();
         }
     }
 
@@ -225,9 +253,9 @@ _get_section_definition(const std::string& section)
     int32_t match_index = -1;
     size_t match_length = 0;
     for (uint32_t index = 0; index < _windows_section_definitions.size(); index++) {
-        std::string section_prefix(_windows_section_definitions[index].section_prefix);
+        std::string section_prefix(_windows_section_definitions[index].get()->section_prefix);
         if (section.find(section_prefix) == 0) {
-            size_t prefix_length = strlen(_windows_section_definitions[index].section_prefix);
+            size_t prefix_length = strlen(_windows_section_definitions[index].get()->section_prefix);
             if (match_length < prefix_length) {
                 match_index = index;
                 match_length = prefix_length;
@@ -236,7 +264,7 @@ _get_section_definition(const std::string& section)
     }
 
     if (match_index >= 0) {
-        return &_windows_section_definitions[match_index];
+        return _windows_section_definitions[match_index].get();
     }
 
     return nullptr;
@@ -246,7 +274,7 @@ _Ret_maybenull_ const ebpf_program_type_t*
 get_ebpf_program_type(bpf_prog_type_t bpf_program_type)
 {
     for (auto const& [key, val] : _windows_program_information) {
-        if (val.program_type_descriptor.bpf_prog_type == (uint32_t)bpf_program_type) {
+        if (val.get()->program_type_descriptor.bpf_prog_type == (uint32_t)bpf_program_type) {
             return &key;
         }
     }
@@ -258,8 +286,8 @@ _Ret_maybenull_ const ebpf_attach_type_t*
 get_ebpf_attach_type(bpf_attach_type_t bpf_attach_type)
 {
     for (const auto& definition : _windows_section_definitions) {
-        if (definition.bpf_attach_type == bpf_attach_type) {
-            return definition.attach_type;
+        if (definition.get()->bpf_attach_type == bpf_attach_type) {
+            return definition.get()->attach_type;
         }
     }
 
@@ -271,7 +299,7 @@ get_bpf_program_type(_In_ const ebpf_program_type_t* ebpf_program_type)
 {
     for (auto const& [key, val] : _windows_program_information) {
         if (IsEqualGUID(*ebpf_program_type, key)) {
-            return (bpf_prog_type_t)val.program_type_descriptor.bpf_prog_type;
+            return (bpf_prog_type_t)val.get()->program_type_descriptor.bpf_prog_type;
         }
     }
 
@@ -282,8 +310,8 @@ bpf_attach_type_t
 get_bpf_attach_type(_In_ const ebpf_attach_type_t* ebpf_attach_type)
 {
     for (const auto& definition : _windows_section_definitions) {
-        if (IsEqualGUID(*ebpf_attach_type, *definition.attach_type)) {
-            return definition.bpf_attach_type;
+        if (IsEqualGUID(*ebpf_attach_type, *definition.get()->attach_type)) {
+            return definition.get()->bpf_attach_type;
         }
     }
 
@@ -417,9 +445,9 @@ get_map_descriptor_windows(int original_fd)
 const ebpf_attach_type_t*
 get_attach_type_windows(const std::string& section)
 {
-    for (const ebpf_section_definition_t& t : _windows_section_definitions) {
-        if (section.find(t.section_prefix) == 0)
-            return t.attach_type;
+    for (const auto& t : _windows_section_definitions) {
+        if (section.find(t.get()->section_prefix) == 0)
+            return t.get()->attach_type;
     }
 
     return &EBPF_ATTACH_TYPE_UNSPECIFIED;
@@ -428,9 +456,9 @@ get_attach_type_windows(const std::string& section)
 _Ret_maybenull_z_ const char*
 get_attach_type_name(_In_ const ebpf_attach_type_t* attach_type)
 {
-    for (const ebpf_section_definition_t& t : _windows_section_definitions) {
-        if (IsEqualGUID(*t.attach_type, *attach_type)) {
-            return t.section_prefix;
+    for (const auto& t : _windows_section_definitions) {
+        if (IsEqualGUID(*t.get()->attach_type, *attach_type)) {
+            return t.get()->section_prefix;
         }
     }
 
@@ -438,643 +466,220 @@ get_attach_type_name(_In_ const ebpf_attach_type_t* attach_type)
 }
 
 static ebpf_result_t
-_load_section_data_information(HKEY section_data_key, _In_z_ const wchar_t* section_name) noexcept
-{
-    int32_t status;
-    ebpf_result_t result = EBPF_SUCCESS;
-    HKEY section_info_key = nullptr;
-    ebpf_program_type_t* program_type = nullptr;
-    ebpf_attach_type_t* attach_type = nullptr;
-    ebpf_section_definition_t section_definition;
-    bpf_prog_type_t bpf_program_type;
-    bpf_attach_type_t bpf_attach_type;
-    char* section_prefix = nullptr;
-
-    try {
-        status = open_registry_key(section_data_key, section_name, KEY_READ, &section_info_key);
-        if (status != ERROR_SUCCESS) {
-            // Registry path is not present.
-            result = EBPF_FILE_NOT_FOUND;
-            goto Exit;
-        }
-
-        program_type = (ebpf_program_type_t*)ebpf_allocate(sizeof(ebpf_program_type_t));
-        if (program_type == nullptr) {
-            result = EBPF_NO_MEMORY;
-            goto Exit;
-        }
-
-        attach_type = (ebpf_attach_type_t*)ebpf_allocate(sizeof(ebpf_attach_type_t));
-        if (attach_type == nullptr) {
-            result = EBPF_NO_MEMORY;
-            goto Exit;
-        }
-
-        // Read program type.
-        status = read_registry_value_binary(
-            section_info_key, EBPF_SECTION_DATA_PROGRAM_TYPE, (uint8_t*)program_type, sizeof(ebpf_program_type_t));
-        if (status != ERROR_SUCCESS) {
-            result = win32_error_code_to_ebpf_result(status);
-            goto Exit;
-        }
-
-        // Read attach type.
-        status = read_registry_value_binary(
-            section_info_key, EBPF_SECTION_DATA_ATTACH_TYPE, (uint8_t*)attach_type, sizeof(ebpf_attach_type_t));
-        if (status != ERROR_SUCCESS) {
-            result = win32_error_code_to_ebpf_result(status);
-            goto Exit;
-        }
-
-        // Read bpf program type.
-        status =
-            read_registry_value_dword(section_info_key, EBPF_PROGRAM_DATA_BPF_PROG_TYPE, (uint32_t*)&bpf_program_type);
-        if (status != ERROR_SUCCESS) {
-            bpf_program_type = BPF_PROG_TYPE_UNSPEC;
-            result = EBPF_SUCCESS;
-        }
-
-        // Read bpf attach type.
-        status =
-            read_registry_value_dword(section_info_key, EBPF_PROGRAM_DATA_BPF_PROG_TYPE, (uint32_t*)&bpf_attach_type);
-        if (status != ERROR_SUCCESS) {
-            bpf_attach_type = BPF_ATTACH_TYPE_UNSPEC;
-            result = EBPF_SUCCESS;
-        }
-
-        section_prefix = _strdup(ebpf_down_cast_from_wstring(section_name).c_str());
-        if (section_prefix == nullptr) {
-            result = EBPF_NO_MEMORY;
-            goto Exit;
-        }
-
-        // We have read all the required data. Populate section definition in the global array.
-        section_definition.program_type = program_type;
-        section_definition.attach_type = attach_type;
-        section_definition.bpf_prog_type = bpf_program_type;
-        section_definition.bpf_attach_type = bpf_attach_type;
-        section_definition.section_prefix = section_prefix;
-
-        _windows_section_definitions.emplace_back(section_definition);
-    } catch (...) {
-        result = EBPF_FAILED;
-        goto Exit;
-    }
-
-Exit:
-    if (result != EBPF_SUCCESS) {
-        if (program_type) {
-            ebpf_free(program_type);
-        }
-        if (attach_type) {
-            ebpf_free(attach_type);
-        }
-        if (section_prefix) {
-            ebpf_free(section_prefix);
-        }
-    }
-    if (section_info_key) {
-        close_registry_key(section_info_key);
-    }
-    return result;
-}
-
-static ebpf_result_t
-_load_helper_prototype(
-    HKEY helper_store_key,
-    _In_z_ const wchar_t* helper_name,
-    _Out_ ebpf_helper_function_prototype_t* helper_prototype) noexcept
-{
-    int32_t status;
-    ebpf_result_t result = EBPF_SUCCESS;
-    HKEY helper_info_key = nullptr;
-
-    try {
-        status = RegOpenKeyEx(helper_store_key, helper_name, 0, KEY_READ, &helper_info_key);
-        if (status != ERROR_SUCCESS) {
-            // Registry path is not present.
-            result = EBPF_FILE_NOT_FOUND;
-            goto Exit;
-        }
-
-        // Read serialized helper prototype information.
-        char serialized_data[sizeof(ebpf_helper_function_prototype_t)] = {0};
-        size_t expected_size = sizeof(helper_prototype->helper_id) + sizeof(helper_prototype->return_type) +
-                               sizeof(helper_prototype->arguments);
-
-        status = read_registry_value_binary(
-            helper_info_key, EBPF_HELPER_DATA_PROTOTYPE, (uint8_t*)serialized_data, expected_size);
-        if (status != ERROR_SUCCESS) {
-            result = win32_error_code_to_ebpf_result(status);
-            __analysis_assume(result != EBPF_SUCCESS);
-            goto Exit;
-        }
-
-        uint32_t offset = 0;
-        memcpy(&(helper_prototype->helper_id), serialized_data, sizeof(helper_prototype->helper_id));
-        offset += sizeof(helper_prototype->helper_id);
-
-        memcpy(&helper_prototype->return_type, serialized_data + offset, sizeof(helper_prototype->return_type));
-        offset += sizeof(helper_prototype->return_type);
-
-        memcpy(&helper_prototype->arguments, serialized_data + offset, sizeof(helper_prototype->arguments));
-        offset += sizeof(helper_prototype->arguments);
-
-        helper_prototype->name = _strdup(ebpf_down_cast_from_wstring(std::wstring(helper_name)).c_str());
-        if (helper_prototype->name == nullptr) {
-            result = EBPF_NO_MEMORY;
-            goto Exit;
-        }
-    } catch (...) {
-        result = EBPF_NO_MEMORY;
-        goto Exit;
-    }
-
-Exit:
-    if (helper_info_key) {
-        close_registry_key(helper_info_key);
-    }
-    return result;
-}
-
-static ebpf_result_t
-_get_program_type_guid_from_string(_In_ const wchar_t* program_type_string, _Out_ ebpf_program_type_t* program_type)
-{
-    ebpf_result_t result = EBPF_SUCCESS;
-
-    // The UUID string read from registry also contains the opening and closing braces.
-    // Remove those before converting to UUID.
-    wchar_t truncated_string[GUID_STRING_LENGTH + 1] = {0};
-    memcpy(truncated_string, program_type_string + 1, (wcslen(program_type_string) - 2) * sizeof(wchar_t));
-    // Convert program type string to GUID
-    auto rpc_status = UuidFromString((RPC_WSTR)truncated_string, program_type);
-    if (rpc_status != RPC_S_OK) {
-        result = EBPF_INVALID_ARGUMENT;
-    }
-
-    return result;
-}
-
-static ebpf_result_t
-_load_program_data_information(HKEY program_data_key, _In_z_ const wchar_t* program_type_string) noexcept
-{
-    int32_t status;
-    ebpf_result_t result = EBPF_SUCCESS;
-    HKEY program_info_key = nullptr;
-    HKEY helper_key = nullptr;
-    wchar_t* program_type_name = nullptr;
-    ebpf_context_descriptor_t* descriptor = nullptr;
-    uint32_t is_privileged;
-    uint32_t bpf_program_type;
-    ebpf_program_type_t* program_type = nullptr;
-    EbpfProgramType program_data;
-    ebpf_program_info_t program_information = {0};
-    uint32_t helper_count;
-
-    try {
-        status = open_registry_key(program_data_key, program_type_string, KEY_READ, &program_info_key);
-        if (status != ERROR_SUCCESS) {
-            // Registry path is not present.
-            result = EBPF_FILE_NOT_FOUND;
-            goto Exit;
-        }
-
-        program_type = (ebpf_program_type_t*)ebpf_allocate(sizeof(ebpf_program_type_t));
-        if (program_type == nullptr) {
-            result = EBPF_NO_MEMORY;
-            goto Exit;
-        }
-
-        result = _get_program_type_guid_from_string(program_type_string, program_type);
-        if (result != EBPF_SUCCESS) {
-            goto Exit;
-        }
-
-        // Read the friendly program type name.
-        status = read_registry_value_string(program_info_key, EBPF_PROGRAM_DATA_NAME, &program_type_name);
-        if (status != ERROR_SUCCESS) {
-            result = win32_error_code_to_ebpf_result(status);
-            goto Exit;
-        }
-
-        // Read context descriptor.
-        descriptor = (ebpf_context_descriptor_t*)ebpf_allocate(sizeof(ebpf_context_descriptor_t));
-        if (descriptor == nullptr) {
-            result = EBPF_NO_MEMORY;
-            goto Exit;
-        }
-        status = read_registry_value_binary(
-            program_info_key,
-            EBPF_PROGRAM_DATA_CONTEXT_DESCRIPTOR,
-            (uint8_t*)descriptor,
-            sizeof(ebpf_context_descriptor_t));
-        if (status != ERROR_SUCCESS) {
-            result = win32_error_code_to_ebpf_result(status);
-            goto Exit;
-        }
-
-        // Read "is_privileged".
-        status = read_registry_value_dword(program_info_key, EBPF_PROGRAM_DATA_PRIVELEGED, &is_privileged);
-        if (result != EBPF_SUCCESS) {
-            goto Exit;
-        }
-
-        // Read bpf program type.
-        status = read_registry_value_dword(program_info_key, EBPF_PROGRAM_DATA_BPF_PROG_TYPE, &bpf_program_type);
-        if (status != ERROR_SUCCESS) {
-            result = win32_error_code_to_ebpf_result(status);
-            goto Exit;
-        }
-
-        // Read helper count
-        status = read_registry_value_dword(program_info_key, EBPF_PROGRAM_DATA_HELPER_COUNT, &helper_count);
-        if (status != ERROR_SUCCESS) {
-            result = win32_error_code_to_ebpf_result(status);
-            goto Exit;
-        }
-
-        auto program_type_name_string = ebpf_down_cast_from_wstring(std::wstring(program_type_name));
-        program_data.context_descriptor = descriptor;
-        program_data.name = program_type_name_string;
-        program_data.platform_specific_data = (uint64_t)program_type;
-        program_data.is_privileged = !!is_privileged;
-
-        program_information.program_type_descriptor.name = _strdup(program_type_name_string.c_str());
-        if (program_information.program_type_descriptor.name == nullptr) {
-            result = EBPF_NO_MEMORY;
-            goto Exit;
-        }
-        program_information.program_type_descriptor.context_descriptor = descriptor;
-        program_information.program_type_descriptor.is_privileged = !!is_privileged;
-        program_information.program_type_descriptor.bpf_prog_type = bpf_program_type;
-        program_information.program_type_descriptor.program_type = *program_type;
-
-        if (helper_count > 0) {
-            // Read the helper functions prototypes.
-            status = RegOpenKeyEx(program_info_key, EBPF_PROGRAM_DATA_HELPERS_REGISTRY_PATH, 0, KEY_READ, &helper_key);
-            if (status != ERROR_SUCCESS) {
-                // Registry path is not present.
-                result = EBPF_FILE_NOT_FOUND;
-                goto Exit;
-            }
-
-            uint32_t max_helper_name_size;
-            uint32_t max_helpers_count;
-            uint32_t key_size;
-            // Get the size of the largest subkey.
-            status = RegQueryInfoKey(
-                helper_key,
-                nullptr,
-                nullptr,
-                nullptr,
-                (LPDWORD)&max_helpers_count,
-                (LPDWORD)&max_helper_name_size,
-                nullptr,
-                nullptr,
-                nullptr,
-                nullptr,
-                nullptr,
-                nullptr);
-            if (status != ERROR_SUCCESS) {
-                result = EBPF_FILE_NOT_FOUND;
-                goto Exit;
-            }
-
-            if (max_helpers_count != helper_count) {
-                result = EBPF_INVALID_ARGUMENT;
-                goto Exit;
-            }
-            if (max_helper_name_size == 0) {
-                result = EBPF_INVALID_ARGUMENT;
-                goto Exit;
-            }
-
-            program_information.helper_prototype = (ebpf_helper_function_prototype_t*)ebpf_allocate(
-                helper_count * sizeof(ebpf_helper_function_prototype_t));
-            if (program_information.helper_prototype == nullptr) {
-                goto Exit;
-            }
-
-            // Add space for null terminator.
-            max_helper_name_size += 1;
-
-            wchar_t* helper_name = (wchar_t*)ebpf_allocate(max_helper_name_size * sizeof(wchar_t));
-            if (helper_name == nullptr) {
-                result = EBPF_NO_MEMORY;
-                goto Exit;
-            }
-
-            for (uint32_t index = 0; index < max_helpers_count; index++) {
-                memset(helper_name, 0, (max_helper_name_size) * sizeof(wchar_t));
-                key_size = (max_helper_name_size - 1) * sizeof(wchar_t);
-                status = RegEnumKeyEx(
-                    helper_key, index, helper_name, (LPDWORD)&key_size, nullptr, nullptr, nullptr, nullptr);
-                if (status != ERROR_SUCCESS) {
-                    result = win32_error_code_to_ebpf_result(status);
-                    goto Exit;
-                }
-
-                result = _load_helper_prototype(helper_key, helper_name, &program_information.helper_prototype[index]);
-                if (result != EBPF_SUCCESS) {
-                    goto Exit;
-                }
-            }
-
-            program_information.count_of_helpers = helper_count;
-        }
-
-        _windows_program_types.insert(std::pair<ebpf_program_type_t, EbpfProgramType>(*program_type, program_data));
-        _windows_program_information.insert(
-            std::pair<ebpf_program_type_t, ebpf_program_info_t>(*program_type, program_information));
-    } catch (...) {
-        result = EBPF_FAILED;
-        goto Exit;
-    }
-
-Exit:
-    if (result != EBPF_SUCCESS) {
-        if (descriptor) {
-            ebpf_free(descriptor);
-        }
-        if (program_type_name) {
-            ebpf_free(program_type_name);
-        }
-        if (program_type) {
-            ebpf_free(program_type);
-        }
-    }
-    if (program_info_key) {
-        close_registry_key(program_info_key);
-    }
-    if (helper_key) {
-        close_registry_key(helper_key);
-    }
-    return result;
-}
-
-static void
 _update_global_helpers_for_program_information(
     _In_reads_(global_helper_count) const ebpf_helper_function_prototype_t* global_helpers,
     uint32_t global_helper_count)
 {
+    ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_helper_function_prototype_t* new_helpers = nullptr;
+    size_t total_helper_count = 0;
+    size_t total_helper_size = 0;
+
+    if (global_helper_count == 0) {
+        return result;
+    }
+
     // Iterate over all the program information and append the global
     // helper functions to each of the program information.
     for (auto& iterator : _windows_program_information) {
-        ebpf_program_info_t& program_info = iterator.second;
-        uint32_t total_helper_count = global_helper_count + program_info.count_of_helpers;
-        ebpf_helper_function_prototype_t* new_helpers = (ebpf_helper_function_prototype_t*)ebpf_allocate(
-            total_helper_count * sizeof(ebpf_helper_function_prototype_t));
+        ebpf_program_info_t* program_info = iterator.second.get();
+        total_helper_count =
+            static_cast<size_t>(global_helper_count) + static_cast<size_t>(program_info->count_of_helpers);
+        if (total_helper_count < global_helper_count || total_helper_count < program_info->count_of_helpers) {
+            result = EBPF_ARITHMETIC_OVERFLOW;
+            goto Exit;
+        }
+        total_helper_size = total_helper_count * sizeof(ebpf_helper_function_prototype_t);
+        new_helpers = (ebpf_helper_function_prototype_t*)ebpf_allocate(total_helper_size);
         if (new_helpers == nullptr) {
-            continue;
+            result = EBPF_NO_MEMORY;
+            break;
         }
 
-        // Copy the global helpers to the new helpers.
-        uint32_t global_helper_size = global_helper_count * sizeof(ebpf_helper_function_prototype_t);
-        memcpy(new_helpers, global_helpers, global_helper_size);
+        memset(new_helpers, 0, total_helper_size);
 
-        if (program_info.count_of_helpers > 0) {
+#pragma warning(push)
+#pragma warning(disable : 6386) // Buffer overrun while writing to 'new_helpers':  the writable size is
+                                // 'total_helper_size' bytes, but '80' bytes might be written
+        // Copy the global helpers to the new helpers.
+        for (uint32_t i = 0; i < global_helper_count; i++) {
+            new_helpers[i] = global_helpers[i];
+            auto name = _strdup(global_helpers[i].name);
+            if (name == nullptr) {
+                result = EBPF_NO_MEMORY;
+                goto Exit;
+            }
+            new_helpers[i].name = name;
+        }
+#pragma warning(pop)
+
+        if (program_info->count_of_helpers > 0) {
             memcpy(
                 new_helpers + global_helper_count,
-                program_info.helper_prototype,
-                (program_info.count_of_helpers * sizeof(ebpf_helper_function_prototype_t)));
-            ebpf_free(program_info.helper_prototype);
+                program_info->helper_prototype,
+                (program_info->count_of_helpers * sizeof(ebpf_helper_function_prototype_t)));
+            ebpf_free(program_info->helper_prototype);
         }
 
-        program_info.helper_prototype = new_helpers;
-        program_info.count_of_helpers = total_helper_count;
+        program_info->helper_prototype = new_helpers;
+        program_info->count_of_helpers = (uint32_t)total_helper_count;
     }
+
+Exit:
+#pragma warning(push)
+#pragma warning(disable : 6385)
+#pragma warning(disable : 6001)
+    if (result != EBPF_SUCCESS) {
+        if (new_helpers) {
+            for (uint32_t i = 0; i < total_helper_count; i++) {
+                if (new_helpers[i].name) {
+                    ebpf_free((void*)new_helpers[i].name);
+                }
+            }
+            ebpf_free(new_helpers);
+        }
+    }
+#pragma warning(pop)
+    return result;
+}
+
+static void
+_helper_info_free(_Frees_ptr_opt_ ebpf_helper_function_prototype_t* helper_info, uint32_t helper_info_count)
+{
+    if (!helper_info) {
+        return;
+    }
+
+#pragma warning(push)
+#pragma warning(disable : 6001) // Using uninitialized memory '*helper_info.name'
+    for (uint32_t index = 0; index < helper_info_count; index++) {
+        ebpf_free((void*)helper_info[index].name);
+    }
+#pragma warning(pop)
+
+    ebpf_free(helper_info);
 }
 
 static ebpf_result_t
-_load_all_global_helper_information(HKEY store_key)
+_load_all_global_helper_information()
 {
-    int32_t status;
     ebpf_result_t result = EBPF_SUCCESS;
-    HKEY global_helpers_key = nullptr;
-    wchar_t* helper_name = nullptr;
-    DWORD key_size = 0;
-    uint32_t max_helper_name_size = 0;
-    uint32_t max_helpers_count = 0;
-    ebpf_helper_function_prototype_t* helper_prototype = nullptr;
+    ebpf_helper_function_prototype_t* helper_info = nullptr;
+    uint32_t helper_info_count = 0;
+
+    result = ebpf_store_load_global_helper_information(&helper_info, &helper_info_count);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
+    if (!helper_info) {
+        goto Exit;
+        // No global helper functions found.
+    }
+
+    result = _update_global_helpers_for_program_information(helper_info, helper_info_count);
+
+Exit:
+    _helper_info_free(helper_info, helper_info_count);
+    return result;
+}
+
+static ebpf_result_t
+_load_all_section_data_information()
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_section_definition_t** section_info = nullptr;
+    uint32_t section_info_count = 0;
+
+    result = ebpf_store_load_section_information(&section_info, &section_info_count);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
+    if (section_info_count == 0 || section_info == nullptr) {
+        goto Exit;
+    }
 
     try {
-        // Open program data registry path.
-        status = open_registry_key(store_key, EBPF_GLOBAL_HELPERS_REGISTRY_PATH, KEY_READ, &global_helpers_key);
-        if (status != ERROR_SUCCESS) {
-            // Registry path is not present.
-            result = EBPF_FILE_NOT_FOUND;
-            goto Exit;
+        for (uint32_t index = 0; index < section_info_count; index++) {
+            ebpf_section_definition_t* info = section_info[index];
+
+            _windows_section_definitions.emplace_back(ebpf_section_info_ptr_t(info));
         }
+    } catch (const std::bad_alloc&) {
+        result = EBPF_NO_MEMORY;
+    } catch (...) {
+        result = EBPF_FAILED;
+    }
 
-        // Get the size of the largest subkey.
-        status = RegQueryInfoKey(
-            global_helpers_key,
-            nullptr,
-            nullptr,
-            nullptr,
-            (LPDWORD)&max_helpers_count,
-            (LPDWORD)&max_helper_name_size,
-            nullptr,
-            nullptr,
-            nullptr,
-            nullptr,
-            nullptr,
-            nullptr);
-        if (status != ERROR_SUCCESS) {
-            result = EBPF_FILE_NOT_FOUND;
-            goto Exit;
-        }
+Exit:
+    if (result != EBPF_SUCCESS) {
+        _windows_section_definitions.clear();
+    }
+    return result;
+}
 
-        if (max_helpers_count == 0) {
-            goto Exit;
-        }
-        if (max_helper_name_size == 0) {
-            result = EBPF_FILE_NOT_FOUND;
-            goto Exit;
-        }
+static ebpf_result_t
+_load_all_program_data_information()
+{
+    ebpf_result_t result;
+    ebpf_program_info_t** program_info = nullptr;
+    uint32_t program_info_count = 0;
 
-        // Add space for null terminator.
-        max_helper_name_size += 1;
+    result = ebpf_store_load_program_information(&program_info, &program_info_count);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
 
-        helper_name = (wchar_t*)ebpf_allocate(max_helper_name_size * sizeof(wchar_t));
-        if (helper_name == nullptr) {
-            result = EBPF_NO_MEMORY;
-            goto Exit;
-        }
+    if (program_info_count == 0 || program_info == nullptr) {
+        // No entries found in the store.
+        goto Exit;
+    }
 
-        helper_prototype = (ebpf_helper_function_prototype_t*)ebpf_allocate(
-            max_helpers_count * sizeof(ebpf_helper_function_prototype_t));
-        if (helper_prototype == nullptr) {
-            result = EBPF_NO_MEMORY;
-            goto Exit;
-        }
+    try {
+        for (uint32_t index = 0; index < program_info_count; index++) {
+            ebpf_program_info_t* info = program_info[index];
+            ebpf_program_type_t program_type = info->program_type_descriptor.program_type;
+            _windows_program_information[program_type] = ebpf_program_info_ptr_t(info);
 
-        for (uint32_t index = 0; index < max_helpers_count; index++) {
-            memset(helper_name, 0, max_helper_name_size * sizeof(wchar_t));
-            key_size = max_helper_name_size;
-            status =
-                RegEnumKeyEx(global_helpers_key, index, helper_name, &key_size, nullptr, nullptr, nullptr, nullptr);
-            if (status != ERROR_SUCCESS) {
-                result = win32_error_code_to_ebpf_result(status);
-                goto Exit;
-            }
-
-            result = _load_helper_prototype(global_helpers_key, helper_name, &(helper_prototype[index]));
+            EbpfProgramType* program_data = nullptr;
+            result = _get_program_descriptor_from_info(info, &program_data);
             if (result != EBPF_SUCCESS) {
                 goto Exit;
             }
+            _windows_program_types[program_type] = ebpf_program_descriptor_ptr_t(program_data);
         }
-
-        _update_global_helpers_for_program_information(helper_prototype, max_helpers_count);
-    } catch (...) {
+    } catch (const std::bad_alloc&) {
         result = EBPF_NO_MEMORY;
-        goto Exit;
-    }
-
-Exit:
-    if (global_helpers_key) {
-        close_registry_key(global_helpers_key);
-    }
-    ebpf_free(helper_prototype);
-    return result;
-}
-
-static ebpf_result_t
-_load_all_program_data_information(HKEY store_key)
-{
-    int32_t status;
-    ebpf_result_t result = EBPF_SUCCESS;
-    HKEY program_data_key = nullptr;
-    wchar_t program_type_key[GUID_STRING_LENGTH + 1];
-    DWORD key_size = 0;
-    uint32_t index = 0;
-
-    try {
-        // Open program data registry path.
-        status = open_registry_key(store_key, EBPF_PROGRAM_DATA_REGISTRY_PATH, KEY_READ, &program_data_key);
-        if (status != ERROR_SUCCESS) {
-            // Registry path is not present.
-            result = EBPF_FILE_NOT_FOUND;
-            goto Exit;
-        }
-
-        while (true) {
-            key_size = GUID_STRING_LENGTH + 1;
-            memset(program_type_key, 0, key_size);
-            status =
-                RegEnumKeyEx(program_data_key, index, program_type_key, &key_size, nullptr, nullptr, nullptr, nullptr);
-            index++;
-            if (status == ERROR_NO_MORE_ITEMS) {
-                // Exhausted all the entries.
-                break;
-            } else if (status == ERROR_MORE_DATA) {
-                // This looks like an invalid entry in the registry.
-                // Ignore this entry and continue.
-                continue;
-            } else if (status != ERROR_SUCCESS) {
-                break;
-            }
-
-            _load_program_data_information(program_data_key, program_type_key);
-        }
     } catch (...) {
-        result = EBPF_NO_MEMORY;
-        goto Exit;
+        result = EBPF_FAILED;
     }
 
 Exit:
-    return result;
-}
-
-static ebpf_result_t
-_load_all_section_data_information(HKEY store_key)
-{
-    uint32_t status;
-    ebpf_result_t result = EBPF_SUCCESS;
-    HKEY section_data_key = nullptr;
-    wchar_t section_name_key[MAX_PATH];
-    DWORD key_size = 0;
-    uint32_t index = 0;
-
-    try {
-        status = RegOpenKeyEx(store_key, EBPF_SECTIONS_REGISTRY_PATH, 0, KEY_READ, &section_data_key);
-        if (status != ERROR_SUCCESS) {
-            // Registry path is not present.
-            result = EBPF_FILE_NOT_FOUND;
-            goto Exit;
-        }
-
-        index = 0;
-        while (true) {
-            key_size = GUID_STRING_LENGTH;
-            status =
-                RegEnumKeyEx(section_data_key, index, section_name_key, &key_size, nullptr, nullptr, nullptr, nullptr);
-            index++;
-            if (status == ERROR_NO_MORE_ITEMS) {
-                // Exhausted all the entries.
-                break;
-            } else if (status == ERROR_MORE_DATA) {
-                // This looks like an invalid entry in the registry.
-                // Ignore this entry and continue.
-                continue;
-            } else if (status != ERROR_SUCCESS) {
-                break;
-            }
-
-            _load_section_data_information(section_data_key, section_name_key);
-        }
-    } catch (...) {
-        result = EBPF_NO_MEMORY;
-        goto Exit;
-    }
-
-Exit:
-    if (section_data_key) {
-        close_registry_key(section_data_key);
-    }
-    return result;
-}
-
-static ebpf_result_t
-_load_all_provider_data_information(HKEY store_key)
-{
-    ebpf_result_t result;
-
-    result = _load_all_program_data_information(store_key);
     if (result != EBPF_SUCCESS) {
-        goto Exit;
+        _windows_program_information.clear();
+        _windows_program_types.clear();
     }
-
-    result = _load_all_section_data_information(store_key);
-    if (result != EBPF_SUCCESS) {
-        goto Exit;
-    }
-
-    result = _load_all_global_helper_information(store_key);
-    if (result != EBPF_SUCCESS) {
-        goto Exit;
-    }
-
-Exit:
     return result;
 }
 
 ebpf_result_t
 load_ebpf_provider_data()
 {
-    HKEY store_key = nullptr;
-    int32_t status;
-    ebpf_result_t result = EBPF_SUCCESS;
-
-    // Open root registry path.
-    status = open_registry_key(_root_registry_key, EBPF_STORE_REGISTRY_PATH, KEY_READ, &store_key);
-    if (status != ERROR_SUCCESS) {
-        // Registry path is not present.
-        result = EBPF_FILE_NOT_FOUND;
+    ebpf_result_t result = _load_all_program_data_information();
+    if (result != EBPF_SUCCESS) {
         goto Exit;
     }
 
-    _load_all_provider_data_information(store_key);
+    result = _load_all_section_data_information();
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
+    result = _load_all_global_helper_information();
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
 
 Exit:
     return result;
@@ -1083,27 +688,9 @@ Exit:
 void
 clear_ebpf_provider_data()
 {
-    try {
-#pragma warning(push)
-#pragma warning(disable : 6001) // Using uninitialized memory 't.second.context_descriptor'
-        for (auto& t : _windows_program_types) {
-            ebpf_free((void*)t.second.context_descriptor);
-            ebpf_free((void*)t.second.platform_specific_data);
-        }
-#pragma warning(pop)
-
-        for (const ebpf_section_definition_t& section : _windows_section_definitions) {
-            ebpf_free(section.program_type);
-            ebpf_free(section.attach_type);
-            ebpf_free((void*)section.section_prefix);
-        }
-
-        _windows_program_types.clear();
-        _windows_section_definitions.resize(0);
-        _windows_program_information.clear();
-    } catch (...) {
-        // Do nothing.
-    }
+    _windows_program_types.clear();
+    _windows_section_definitions.clear();
+    _windows_program_information.clear();
 }
 
 _Ret_maybenull_ static const ebpf_program_info_t*
@@ -1111,7 +698,7 @@ _get_static_program_info(_In_ const ebpf_program_type_t* program_type)
 {
     for (auto& iterator : _windows_program_information) {
         if (IsEqualGUID(*program_type, iterator.first)) {
-            return &iterator.second;
+            return iterator.second.get();
         }
     }
 

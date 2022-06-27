@@ -8,7 +8,7 @@
 #include "ebpf_windows.h"
 
 #ifdef USER_MODE
-extern ebpf_registry_key_t root_registry_key;
+extern ebpf_registry_key_t ebpf_root_registry_key;
 #endif
 
 static uint32_t
@@ -22,7 +22,7 @@ _open_or_create_provider_registry_key(_Out_ ebpf_registry_key_t* provider_key)
 #ifndef USER_MODE
     status = create_registry_key(NULL, EBPF_ROOT_REGISTRY_PATH, REG_CREATE_FLAGS, &root_key);
 #else
-    status = create_registry_key(root_registry_key, EBPF_ROOT_RELATIVE_PATH, REG_CREATE_FLAGS, &root_key);
+    status = create_registry_key(ebpf_root_registry_key, EBPF_ROOT_RELATIVE_PATH, REG_CREATE_FLAGS, &root_key);
 #endif
     if (!IS_SUCCESS(status)) {
         goto Exit;
@@ -143,7 +143,7 @@ ebpf_store_update_section_information(
             goto Exit;
         }
 
-        // Save bpf_prog_type
+        // Save bpf_prog_type.
         status =
             write_registry_value_dword(section_key, EBPF_PROGRAM_DATA_BPF_PROG_TYPE, section_info[i].bpf_program_type);
         if (!IS_SUCCESS(status)) {
@@ -151,7 +151,7 @@ ebpf_store_update_section_information(
             goto Exit;
         }
 
-        // Save bpf_attach_type
+        // Save bpf_attach_type.
         status =
             write_registry_value_dword(section_key, EBPF_SECTION_DATA_BPF_ATTACH_TYPE, section_info[i].bpf_attach_type);
         if (!IS_SUCCESS(status)) {
@@ -209,7 +209,7 @@ ebpf_store_update_program_information(
         ebpf_registry_key_t program_key = {0};
         ebpf_registry_key_t helper_info_key = {0};
 
-        // Convert program type GUID to string
+        // Convert program type GUID to string.
         wchar_t guid_string[GUID_STRING_LENGTH + 1];
         status = convert_guid_to_string(
             &program_info[i].program_type_descriptor.program_type, guid_string, GUID_STRING_LENGTH + 1);
@@ -249,7 +249,7 @@ ebpf_store_update_program_information(
             goto Exit;
         }
 
-        // Save "is_privileged"
+        // Save "is_privileged".
         status = write_registry_value_dword(
             program_key, EBPF_PROGRAM_DATA_PRIVELEGED, program_info[i].program_type_descriptor.is_privileged);
         if (!IS_SUCCESS(status)) {

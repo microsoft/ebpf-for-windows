@@ -103,11 +103,7 @@ create_registry_key(
         &object_attributes, &registry_path, OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE, root_key, NULL);
 
     status = ZwCreateKey(key, KEY_WRITE, &object_attributes, 0, NULL, REG_OPTION_NON_VOLATILE, NULL);
-    if (!NT_SUCCESS(status)) {
-        goto Exit;
-    }
 
-Exit:
     return status;
 }
 

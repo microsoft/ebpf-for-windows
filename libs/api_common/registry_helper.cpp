@@ -9,7 +9,7 @@
 #include "api_common.hpp"
 #include "ebpf_registry_helper.h"
 
-#define GUID_STRING_LENGTH 38 // not inlcuding the null terminator.
+#define GUID_STRING_LENGTH 38 // not including the null terminator.
 
 static std::wstring
 _get_wstring_from_string(std::string text)
@@ -131,14 +131,11 @@ _Success_(return == 0) uint32_t read_registry_value_string(
             status = ERROR_INVALID_PARAMETER;
         }
         return status;
-        // return win32_error_code_to_ebpf_result(status);
     }
 
     string_value = (wchar_t*)ebpf_allocate((value_size + sizeof(wchar_t)));
     if (string_value == nullptr) {
         return ERROR_NOT_ENOUGH_MEMORY;
-
-        // return win32_error_code_to_ebpf_result(status);
     }
 
     status = RegQueryValueEx(key, value_name, 0, &type, (PBYTE)string_value, &value_size);
@@ -213,6 +210,23 @@ _Success_(return == 0) uint32_t
         string[GUID_STRING_LENGTH] = L'\0';
     } catch (...) {
         status = ERROR_NOT_ENOUGH_MEMORY;
+    }
+
+    return status;
+}
+
+_Success_(return == 0) uint32_t convert_string_to_guid(_In_z_ const wchar_t* string, _Out_ GUID* guid)
+{
+    uint32_t status = ERROR_SUCCESS;
+
+    // The UUID string read from registry also contains the opening and closing braces.
+    // Remove those before converting to UUID.
+    wchar_t truncated_string[GUID_STRING_LENGTH + 1] = {0};
+    memcpy(truncated_string, string + 1, (wcslen(string) - 2) * sizeof(wchar_t));
+    // Convert program type string to GUID
+    auto rpc_status = UuidFromString((RPC_WSTR)truncated_string, guid);
+    if (rpc_status != RPC_S_OK) {
+        status = ERROR_INVALID_PARAMETER;
     }
 
     return status;

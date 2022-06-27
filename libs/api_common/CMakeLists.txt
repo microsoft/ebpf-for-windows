@@ -19,6 +19,9 @@ add_library("api_common" STATIC
 
   registry_helper.cpp
 
+  store_helper_internal.h
+  store_helper_internal.cpp
+
   utilities.hpp
   utilities.cpp
 )

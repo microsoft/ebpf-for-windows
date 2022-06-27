@@ -17,7 +17,7 @@
 #define REG_OPEN_FLAGS (DELETE | KEY_READ)
 
 // TODO: Issue #1231 Change to using HKEY_LOCAL_MACHINE
-ebpf_registry_key_t root_registry_key = HKEY_CURRENT_USER;
+ebpf_registry_key_t ebpf_root_registry_key = HKEY_CURRENT_USER;
 
 typedef struct _ebpf_program_section_info_with_count
 {
@@ -150,7 +150,7 @@ uint32_t
 clear_all_ebpf_stores()
 {
     std::cout << "Clearing eBPF store HKEY_CURRENT_USER" << std::endl;
-    return _clear_ebpf_store(root_registry_key);
+    return _clear_ebpf_store(ebpf_root_registry_key);
 }
 
 void
