@@ -206,8 +206,14 @@ handle_ebpf_show_verification(
     TAG_TYPE tags[] = {
         {TOKEN_FILENAME, NS_REQ_PRESENT, FALSE},
         {TOKEN_SECTION, NS_REQ_ZERO, FALSE},
+        {TOKEN_TYPE, NS_REQ_ZERO, FALSE},
         {TOKEN_LEVEL, NS_REQ_ZERO, FALSE},
     };
+    const int FILENAME_INDEX = 0;
+    const int SECTION_INDEX = 1;
+    const int TYPE_INDEX = 2;
+    const int LEVEL_INDEX = 3;
+
     ULONG tag_type[_countof(tags)] = {0};
 
     ULONG status =
@@ -216,20 +222,31 @@ handle_ebpf_show_verification(
     VERBOSITY_LEVEL level = VL_NORMAL;
     std::string filename;
     std::string section = ""; // Use the first code section by default.
+    std::string type_name = "";
+    ebpf_program_type_t program_type;
+    ebpf_attach_type_t attach_type;
+    bool program_type_found = false;
+
     for (int i = 0; (status == NO_ERROR) && ((i + current_index) < argc); i++) {
         switch (tag_type[i]) {
-        case 0: // FILENAME
-        {
+        case FILENAME_INDEX: {
             filename = down_cast_from_wstring(std::wstring(argv[current_index + i]));
             break;
         }
-        case 1: // SECTION
-        {
+        case SECTION_INDEX: {
             section = down_cast_from_wstring(std::wstring(argv[current_index + i]));
             break;
         }
-        case 2: // LEVEL
-        {
+        case TYPE_INDEX: {
+            type_name = down_cast_from_wstring(std::wstring(argv[current_index + i]));
+            if (ebpf_get_program_type_by_name(type_name.c_str(), &program_type, &attach_type) != EBPF_SUCCESS) {
+                status = ERROR_INVALID_PARAMETER;
+            } else {
+                program_type_found = true;
+            }
+            break;
+        }
+        case LEVEL_INDEX: {
             status = MatchEnumTag(NULL, argv[current_index + i], _countof(g_LevelEnum), g_LevelEnum, (PULONG)&level);
             if (status != NO_ERROR) {
                 status = ERROR_INVALID_PARAMETER;
@@ -248,8 +265,6 @@ handle_ebpf_show_verification(
     const char* report;
     const char* error_message;
     ebpf_api_verifier_stats_t stats;
-    ebpf_program_type_t program_type;
-    ebpf_attach_type_t attach_type;
 
     if (section == "") {
         // If no section name was provided, fetch the first section name.
@@ -272,11 +287,11 @@ handle_ebpf_show_verification(
         ebpf_free_sections(section_data);
     }
 
-    // TODO: Issue #1170.
-    // Workaround: Check the program type for the section name and default to XDP
-    // if getting program type fails.
-    if (ebpf_get_program_type_by_name(section.c_str(), &program_type, &attach_type) != EBPF_SUCCESS) {
-        program_type = EBPF_PROGRAM_TYPE_XDP;
+    if (!program_type_found) {
+        if (ebpf_get_program_type_by_name(section.c_str(), &program_type, &attach_type) != EBPF_SUCCESS) {
+            std::cerr << "\nProgram type for section " << section.c_str() << " not found." << std::endl;
+            return ERROR_SUPPRESS_OUTPUT;
+        }
     }
 
     status = ebpf_api_elf_verify_section_from_file(

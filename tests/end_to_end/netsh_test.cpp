@@ -236,7 +236,7 @@ TEST_CASE("show verification nosuchfile.o", "[netsh][verification]")
 TEST_CASE("show verification bpf.o", "[netsh][verification]")
 {
     int result;
-    std::string output = _run_netsh_command(handle_ebpf_show_verification, L"bpf.o", nullptr, nullptr, &result);
+    std::string output = _run_netsh_command(handle_ebpf_show_verification, L"bpf.o", L".text", L"xdp", &result);
     REQUIRE(result == NO_ERROR);
     REQUIRE(
         output == "\n"
