@@ -532,8 +532,10 @@ net_ebpf_ext_layer_2_classify(
     if (attached_client == NULL)
         goto Done;
 
-    if (!net_ebpf_extension_hook_client_enter_rundown(attached_client))
+    if (!net_ebpf_extension_hook_client_enter_rundown(attached_client)) {
+        attached_client = NULL;
         goto Done;
+    }
 
     if (nbl == NULL) {
         KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "Null NBL \n"));

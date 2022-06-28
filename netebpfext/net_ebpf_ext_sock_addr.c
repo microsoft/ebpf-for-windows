@@ -361,8 +361,10 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
     if (attached_client == NULL)
         goto Exit;
 
-    if (!net_ebpf_extension_hook_client_enter_rundown(attached_client))
+    if (!net_ebpf_extension_hook_client_enter_rundown(attached_client)) {
+        attached_client = NULL;
         goto Exit;
+    }
 
     _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(incoming_fixed_values, &sock_addr_ctx);
 

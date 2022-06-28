@@ -116,6 +116,7 @@ static void
 _ebpf_ext_attach_wait_for_rundown(_Inout_ net_ebpf_ext_hook_client_rundown_t* rundown)
 {
     ExWaitForRundownProtectionRelease(&rundown->protection);
+    rundown->rundown_occurred = TRUE;
 }
 
 IO_WORKITEM_ROUTINE _net_ebpf_extension_detach_client_completion;
@@ -156,17 +157,14 @@ bool
 net_ebpf_extension_hook_client_enter_rundown(_Inout_ net_ebpf_extension_hook_client_t* hook_client)
 {
     net_ebpf_ext_hook_client_rundown_t* rundown = &hook_client->rundown;
-    bool retval = ExAcquireRundownProtection(&rundown->protection);
-    rundown->rundown_occurred = (retval == FALSE);
-    return retval;
+    return ExAcquireRundownProtection(&rundown->protection);
 }
 
 void
 net_ebpf_extension_hook_client_leave_rundown(_Inout_ net_ebpf_extension_hook_client_t* hook_client)
 {
     net_ebpf_ext_hook_client_rundown_t* rundown = &hook_client->rundown;
-    if (rundown->rundown_occurred == FALSE)
-        ExReleaseRundownProtection(&rundown->protection);
+    ExReleaseRundownProtection(&rundown->protection);
 }
 
 const ebpf_extension_data_t*

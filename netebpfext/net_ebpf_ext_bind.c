@@ -208,8 +208,10 @@ net_ebpf_ext_resource_allocation_classify(
     if (attached_client == NULL)
         goto Exit;
 
-    if (!net_ebpf_extension_hook_client_enter_rundown(attached_client))
+    if (!net_ebpf_extension_hook_client_enter_rundown(attached_client)) {
+        attached_client = NULL;
         goto Exit;
+    }
 
     addr.sin_port =
         incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_IP_LOCAL_PORT].value.uint16;
@@ -268,6 +270,8 @@ net_ebpf_ext_resource_release_classify(
     UNREFERENCED_PARAMETER(classify_context);
     UNREFERENCED_PARAMETER(flow_context);
 
+    classify_output->actionType = FWP_ACTION_PERMIT;
+
     filter_context = (net_ebpf_extension_wfp_filter_context_t*)filter->context;
     ASSERT(filter_context != NULL);
     if (filter_context == NULL)
@@ -278,7 +282,7 @@ net_ebpf_ext_resource_release_classify(
         goto Exit;
 
     if (!net_ebpf_extension_hook_client_enter_rundown(attached_client)) {
-        classify_output->actionType = FWP_ACTION_PERMIT;
+        attached_client = NULL;
         goto Exit;
     }
 

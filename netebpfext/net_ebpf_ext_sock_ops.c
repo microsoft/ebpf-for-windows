@@ -378,8 +378,10 @@ net_ebpf_extension_sock_ops_flow_established_classify(
     if (attached_client == NULL)
         goto Exit;
 
-    if (!net_ebpf_extension_hook_client_enter_rundown(attached_client))
+    if (!net_ebpf_extension_hook_client_enter_rundown(attached_client)) {
+        attached_client = NULL;
         goto Exit;
+    }
 
     local_flow_context = (net_ebpf_extension_sock_ops_wfp_flow_context_t*)ExAllocatePoolUninitialized(
         NonPagedPoolNx, sizeof(net_ebpf_extension_sock_ops_wfp_flow_context_t), NET_EBPF_EXTENSION_POOL_TAG);
@@ -469,8 +471,10 @@ net_ebpf_extension_sock_ops_flow_delete(uint16_t layer_id, uint32_t callout_id, 
         // This means that the eBPF program is detached and there is nothing to notify.
         goto Exit;
 
-    if (!net_ebpf_extension_hook_client_enter_rundown(attached_client))
+    if (!net_ebpf_extension_hook_client_enter_rundown(attached_client)) {
+        attached_client = NULL;
         goto Exit;
+    }
 
     KeAcquireSpinLock(&filter_context->lock, &irql);
     RemoveEntryList(&local_flow_context->link);
