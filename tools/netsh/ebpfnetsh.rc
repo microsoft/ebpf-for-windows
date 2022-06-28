@@ -57,6 +57,7 @@ BEGIN
 \nUsage: %1!s! [filename=]<string>\
 \n                   [[type=]<string>]\
 \n                   [[pinpath=]<string>]\
+\n                   [[interface=]<string>]\
 \n                   [[pinned=]none|first|all]\
 \n                   [[execution=]jit|interpret]\
 \n\
@@ -69,7 +70,7 @@ BEGIN
 \n                  determine the program type and expected attach\
 \n                  type.\
 \n      pinpath   - Optionally the name to pin the program to.\
-\n      interface - Optionally the friendly name or index of a \
+\n      interface - Optionally the friendly name or index of a\
 \n                  network interface to which an XDP program should be attached.\
 \n                  If the interface is not specified (or index is set to 0),\
 \n                  the XDP program is attached to all network interfaces.\
@@ -107,6 +108,7 @@ BEGIN
 \nUsage: %1!s! [id=]<integer>\
 \n                   [[attached=]<string>]\
 \n                   [[pinpath=]<string>]\
+\n                   [[interface=]<string>]\
 \n\
 \nParameters:\
 \n\
@@ -117,7 +119,7 @@ BEGIN
 \n                  to detach it.\
 \n      pinpath   - The name to pin the program to, or if not\
 \n                  empty, unpin the program.\
-\n      interface - Optionally the friendly name or index of a \
+\n      interface - Optionally the friendly name or index of a\
 \n                  network interface to which an XDP program should be attached.\
 \n                  If the interface is not specified (or index is set to 0),\
 \n                  the XDP program is attached to all network interfaces.\
