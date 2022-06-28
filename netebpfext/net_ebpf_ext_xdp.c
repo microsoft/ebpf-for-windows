@@ -174,7 +174,7 @@ Exit:
             ExFreePool(filter_context);
     }
 
-    return result;
+    NET_EBPF_EXT_RETURN_RESULT(result);
 }
 
 static void
@@ -226,7 +226,7 @@ net_ebpf_ext_xdp_register_providers()
         goto Exit;
 
 Exit:
-    return status;
+    NET_EBPF_EXT_RETURN_NTSTATUS(status);
 }
 
 void
