@@ -988,7 +988,7 @@ invoke_protocol(
     header->id = operation_id;
     header->length = static_cast<uint16_t>(request_size);
 
-    auto compeltion = [](void*, size_t, ebpf_result_t) {};
+    auto completion = [](void*, size_t, ebpf_result_t) {};
 
     return ebpf_core_invoke_protocol_handler(
         operation_id,
@@ -997,7 +997,7 @@ invoke_protocol(
         reply_ptr,
         static_cast<uint16_t>(reply_size),
         async,
-        compeltion);
+        completion);
 }
 
 extern bool _ebpf_platform_code_integrity_enabled;
@@ -1369,7 +1369,7 @@ TEST_CASE("EBPF_OPERATION_UPDATE_PINNING", "[execution_context][negative]")
     REQUIRE(invoke_protocol(EBPF_OPERATION_UPDATE_PINNING, request) == EBPF_INVALID_OBJECT);
 }
 
-TEST_CASE("EBPF_OPERATION_GET_PINNED_OBJECT", "[eXecution_context][negative]")
+TEST_CASE("EBPF_OPERATION_GET_PINNED_OBJECT", "[execution_context][negative]")
 {
     NEGATIVE_TEST_PROLOG();
     std::vector<uint8_t> request(EBPF_OFFSET_OF(ebpf_operation_get_pinned_object_request_t, path));
@@ -1377,6 +1377,42 @@ TEST_CASE("EBPF_OPERATION_GET_PINNED_OBJECT", "[eXecution_context][negative]")
 
     // Zero length path.
     REQUIRE(invoke_protocol(EBPF_OPERATION_GET_PINNED_OBJECT, request, reply) == EBPF_INVALID_ARGUMENT);
+}
+
+TEST_CASE("EBPF_OPERATION_GET_PINNED_OBJECT short header", "[execution_context][negative]")
+{
+    _ebpf_core_initializer core;
+
+    std::vector<uint8_t> request(EBPF_OFFSET_OF(ebpf_operation_get_pinned_object_request_t, path));
+    std::vector<uint8_t> reply(sizeof(ebpf_operation_get_pinned_object_reply_t));
+
+    uint32_t request_size;
+    void* request_ptr;
+    uint32_t reply_size;
+    void* reply_ptr;
+    bool variable_reply_size = false;
+
+    request_size = static_cast<uint32_t>(request.size());
+    request_ptr = request.data();
+
+    reply_size = static_cast<uint32_t>(reply.size());
+    reply_ptr = reply.data();
+    variable_reply_size = true;
+    auto header = reinterpret_cast<ebpf_operation_header_t*>(request_ptr);
+    header->id = EBPF_OPERATION_GET_PINNED_OBJECT;
+    header->length = 4; // Less than sizeof(ebpf_operation_header_t).
+
+    auto compeltion = [](void*, size_t, ebpf_result_t) {};
+
+    ebpf_result_t result = ebpf_core_invoke_protocol_handler(
+        EBPF_OPERATION_GET_PINNED_OBJECT,
+        request_ptr,
+        static_cast<uint16_t>(request_size),
+        reply_ptr,
+        static_cast<uint16_t>(reply_size),
+        nullptr,
+        compeltion);
+    REQUIRE(result == EBPF_INVALID_ARGUMENT);
 }
 
 TEST_CASE("EBPF_OPERATION_LINK_PROGRAM", "[execution_context][negative]")
@@ -1477,7 +1513,43 @@ TEST_CASE("EBPF_OPERATION_RING_BUFFER_MAP_ASYNC_QUERY", "[execution_context][neg
         invoke_protocol(EBPF_OPERATION_RING_BUFFER_MAP_ASYNC_QUERY, request, reply, &async) == EBPF_INVALID_ARGUMENT);
 }
 
-// TODO: Add native module loading IOCTL negative tests.
+TEST_CASE("EBPF_OPERATION_LOAD_NATIVE_MODULE short header", "[execution_context][negative]")
+{
+    _ebpf_core_initializer core;
+
+    std::vector<uint8_t> request(EBPF_OFFSET_OF(ebpf_operation_load_native_module_request_t, data));
+    std::vector<uint8_t> reply(sizeof(ebpf_operation_load_native_module_reply_t));
+
+    uint32_t request_size;
+    void* request_ptr;
+    uint32_t reply_size;
+    void* reply_ptr;
+    bool variable_reply_size = false;
+
+    request_size = static_cast<uint32_t>(request.size());
+    request_ptr = request.data();
+
+    reply_size = static_cast<uint32_t>(reply.size());
+    reply_ptr = reply.data();
+    variable_reply_size = true;
+    auto header = reinterpret_cast<ebpf_operation_header_t*>(request_ptr);
+    header->id = EBPF_OPERATION_LOAD_NATIVE_MODULE;
+    header->length = 12; // Less than sizeof(ebpf_operation_load_native_module_request_t).
+
+    auto compeltion = [](void*, size_t, ebpf_result_t) {};
+
+    ebpf_result_t result = ebpf_core_invoke_protocol_handler(
+        EBPF_OPERATION_LOAD_NATIVE_MODULE,
+        request_ptr,
+        static_cast<uint16_t>(request_size),
+        reply_ptr,
+        static_cast<uint16_t>(reply_size),
+        nullptr,
+        compeltion);
+    REQUIRE(result == EBPF_ARITHMETIC_OVERFLOW);
+}
+
+// TODO: Add more native module loading IOCTL negative tests.
 // https://github.com/microsoft/ebpf-for-windows/issues/1139
 // EBPF_OPERATION_LOAD_NATIVE_MODULE
 // EBPF_OPERATION_LOAD_NATIVE_PROGRAMS
