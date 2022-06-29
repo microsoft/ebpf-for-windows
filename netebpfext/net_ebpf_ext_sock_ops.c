@@ -255,7 +255,7 @@ net_ebpf_ext_sock_ops_register_providers()
 
     _net_ebpf_sock_ops_hook_provider_data.supported_program_type = EBPF_PROGRAM_TYPE_SOCK_OPS;
     const net_ebpf_extension_hook_provider_parameters_t hook_provider_parameters = {
-        &_ebpf_sock_ops_hook_provider_moduleid, &_net_ebpf_extension_sock_ops_hook_provider_data, EXECUTION_DISPATCH};
+        &_ebpf_sock_ops_hook_provider_moduleid, &_net_ebpf_extension_sock_ops_hook_provider_data};
 
     // Set the attach type as the provider module id.
     _ebpf_sock_ops_hook_provider_moduleid.Guid = EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS;
@@ -356,8 +356,6 @@ net_ebpf_extension_sock_ops_flow_established_classify(
     uint32_t result;
     net_ebpf_extension_sock_ops_wfp_filter_context_t* filter_context = NULL;
     net_ebpf_extension_hook_client_t* attached_client = NULL;
-    net_ebpf_extension_hook_execution_t execution_type =
-        (KeGetCurrentIrql() < DISPATCH_LEVEL) ? EXECUTION_PASSIVE : EXECUTION_DISPATCH;
     net_ebpf_extension_sock_ops_wfp_flow_context_t* local_flow_context = NULL;
     bpf_sock_ops_t* sock_ops_context = NULL;
     uint32_t client_compartment_id = UNSPECIFIED_COMPARTMENT_ID;
@@ -380,8 +378,10 @@ net_ebpf_extension_sock_ops_flow_established_classify(
     if (attached_client == NULL)
         goto Exit;
 
-    if (!net_ebpf_extension_hook_client_enter_rundown(attached_client, execution_type))
+    if (!net_ebpf_extension_hook_client_enter_rundown(attached_client)) {
+        attached_client = NULL;
         goto Exit;
+    }
 
     local_flow_context = (net_ebpf_extension_sock_ops_wfp_flow_context_t*)ExAllocatePoolUninitialized(
         NonPagedPoolNx, sizeof(net_ebpf_extension_sock_ops_wfp_flow_context_t), NET_EBPF_EXTENSION_POOL_TAG);
@@ -437,7 +437,7 @@ Exit:
     if (local_flow_context != NULL)
         ExFreePool(local_flow_context);
     if (attached_client != NULL)
-        net_ebpf_extension_hook_client_leave_rundown(attached_client, execution_type);
+        net_ebpf_extension_hook_client_leave_rundown(attached_client);
 }
 
 void
@@ -449,8 +449,6 @@ net_ebpf_extension_sock_ops_flow_delete(uint16_t layer_id, uint32_t callout_id, 
     net_ebpf_extension_hook_client_t* attached_client = NULL;
     bpf_sock_ops_t* sock_ops_context = NULL;
     uint32_t result;
-    net_ebpf_extension_hook_execution_t execution_type =
-        (KeGetCurrentIrql() < DISPATCH_LEVEL) ? EXECUTION_PASSIVE : EXECUTION_DISPATCH;
     KIRQL irql = 0;
 
     UNREFERENCED_PARAMETER(layer_id);
@@ -473,8 +471,10 @@ net_ebpf_extension_sock_ops_flow_delete(uint16_t layer_id, uint32_t callout_id, 
         // This means that the eBPF program is detached and there is nothing to notify.
         goto Exit;
 
-    if (!net_ebpf_extension_hook_client_enter_rundown(attached_client, execution_type))
+    if (!net_ebpf_extension_hook_client_enter_rundown(attached_client)) {
+        attached_client = NULL;
         goto Exit;
+    }
 
     KeAcquireSpinLock(&filter_context->lock, &irql);
     RemoveEntryList(&local_flow_context->link);
@@ -493,5 +493,5 @@ Exit:
     if (local_flow_context != NULL)
         ExFreePool(local_flow_context);
     if (attached_client != NULL)
-        net_ebpf_extension_hook_client_leave_rundown(attached_client, execution_type);
+        net_ebpf_extension_hook_client_leave_rundown(attached_client);
 }
