@@ -261,7 +261,7 @@ To capture a trace in a file use the following commands:
 1) Start tracing: ```wpr.exe -start ebpfforwindows.wprp -filemode```. This will capture traces from eBPF execution context and the network eBPF extension drivers.
 2) Run the scenario to be traced.
 3) Stop tracing: ```wpr.exe -stop ebpfforwindows.etl```
-4) 4) Convert the traces to text format: ```netsh trace convert ebpfforwindows.etl overwrite=yes``` , or
+4) Convert the traces to text format: ```netsh trace convert ebpfforwindows.etl overwrite=yes``` , or
    to convert to CSV format, use: ```netsh trace convert ebpfforwindows.etl ebpfforwindows.csv csv```
 
 ### Viewing traces in real-time
@@ -299,7 +299,7 @@ This will result in lines like:
 ```
 where `5984` is the Process ID in decimal, and `003` is the CPU ID.
 
-To view all trace events from network eBPF extension (`netebpfext.sys`) that would be captured to a file, use the following commands:
+To view all trace events from the network eBPF extension (`netebpfext.sys`), use the following commands:
 1) Create a trace session with some name such as MyTrace: ```tracelog -start MyTrace -guid net-ebpf-ext.guid -rt```
 2) View the session in real-time on stdout: ```tracefmt -rt NetEbpfExtTrace -displayonly -jsonMeta 0```.  This will
    continue until you break out of the executable with Ctrl-C.
