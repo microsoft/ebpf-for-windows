@@ -10,16 +10,16 @@
 #include "ebpf_api.h"
 #include "ebpf_nethooks.h"
 #include "ebpf_protocol.h"
+#include "ebpf_registry_helper.h"
 #include "ebpf_serialize.h"
 #include "helpers.hpp"
 #include "map_descriptors.hpp"
 #include "platform.hpp"
 #include "spec_type_descriptors.hpp"
-#include "utilities.hpp"
-#include "windows_program_type.h"
-#include "windows_platform.hpp"
-#include "ebpf_registry_helper.h"
 #include "store_helper_internal.h"
+#include "utilities.hpp"
+#include "windows_platform.hpp"
+#include "windows_program_type.h"
 
 #define GET_PROGRAM_INFO_REPLY_BUFFER_SIZE 2048
 

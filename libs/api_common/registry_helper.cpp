@@ -195,7 +195,7 @@ _Success_(return == 0) uint32_t
             return ERROR_INSUFFICIENT_BUFFER;
         }
 
-        // Convert program type GUID to string
+        // Convert program type GUID to string.
         RPC_STATUS rpc_status = UuidToString(guid, (RPC_WSTR*)&value_name);
         if (rpc_status != RPC_S_OK) {
             return ERROR_INVALID_PARAMETER;
