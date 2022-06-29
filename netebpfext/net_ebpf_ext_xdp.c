@@ -189,7 +189,7 @@ net_ebpf_ext_xdp_register_providers()
     const net_ebpf_extension_program_info_provider_parameters_t program_info_provider_parameters = {
         &_ebpf_xdp_program_info_provider_moduleid, &_ebpf_xdp_program_info_provider_data};
     const net_ebpf_extension_hook_provider_parameters_t hook_provider_parameters = {
-        &_ebpf_xdp_hook_provider_moduleid, &_net_ebpf_extension_xdp_hook_provider_data, EXECUTION_DISPATCH};
+        &_ebpf_xdp_hook_provider_moduleid, &_net_ebpf_extension_xdp_hook_provider_data};
 
     _ebpf_xdp_program_info.program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_XDP;
     // Set the program type as the provider module id.
@@ -532,8 +532,10 @@ net_ebpf_ext_layer_2_classify(
     if (attached_client == NULL)
         goto Done;
 
-    if (!net_ebpf_extension_hook_client_enter_rundown(attached_client, EXECUTION_DISPATCH))
+    if (!net_ebpf_extension_hook_client_enter_rundown(attached_client)) {
+        attached_client = NULL;
         goto Done;
+    }
 
     if (nbl == NULL) {
         KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "Null NBL \n"));
@@ -610,7 +612,7 @@ net_ebpf_ext_layer_2_classify(
 Done:
 
     if (attached_client)
-        net_ebpf_extension_hook_client_leave_rundown(attached_client, EXECUTION_DISPATCH);
+        net_ebpf_extension_hook_client_leave_rundown(attached_client);
 
     return;
 }

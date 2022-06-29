@@ -5,12 +5,6 @@
 
 #include "net_ebpf_ext.h"
 
-typedef enum _net_ebpf_extension_hook_execution
-{
-    EXECUTION_PASSIVE,
-    EXECUTION_DISPATCH
-} net_ebpf_extension_hook_execution_t;
-
 /**
  *  @brief This is the per client binding context for the eBPF Hook
  *         NPI provider.
@@ -21,23 +15,21 @@ typedef struct _net_ebpf_extension_hook_client net_ebpf_extension_hook_client_t;
  * @brief Attempt to acquire rundown.
  *
  * @param[in, out] hook_client Pointer to attached hook NPI client.
- * @param[in] execution_type Execution type for the hook (passive or dispatch).
  *
  * @retval true The caller should proceed.
  * @retval false Rundown has occurred.
  */
-_Acquires_lock_(hook_client) bool net_ebpf_extension_hook_client_enter_rundown(
-    _Inout_ net_ebpf_extension_hook_client_t* hook_client, net_ebpf_extension_hook_execution_t execution_type);
+bool
+net_ebpf_extension_hook_client_enter_rundown(_Inout_ net_ebpf_extension_hook_client_t* hook_client);
 
 /**
  * @brief Release rundown.
  *
  * @param[in, out] hook_client Pointer to attached hook NPI client.
- * @param[in] execution_type Execution type for the hook (passive or dispatch).
 
  */
-_Releases_lock_(hook_client) void net_ebpf_extension_hook_client_leave_rundown(
-    _Inout_ net_ebpf_extension_hook_client_t* hook_client, net_ebpf_extension_hook_execution_t execution_type);
+void
+net_ebpf_extension_hook_client_leave_rundown(_Inout_ net_ebpf_extension_hook_client_t* hook_client);
 
 /**
  * @brief Get the attach parameters for the input client.
@@ -121,9 +113,8 @@ typedef void (*net_ebpf_extension_hook_on_client_detach)(_In_ const net_ebpf_ext
  */
 typedef struct _net_ebpf_extension_hook_provider_parameters
 {
-    const NPI_MODULEID* provider_module_id;             ///< NPI provider module ID.
-    const ebpf_extension_data_t* provider_data;         ///< Hook provider data (contains supported program types).
-    net_ebpf_extension_hook_execution_t execution_type; ///< Hook execution type (PASSIVE or DISPATCH).
+    const NPI_MODULEID* provider_module_id;     ///< NPI provider module ID.
+    const ebpf_extension_data_t* provider_data; ///< Hook provider data (contains supported program types).
 } net_ebpf_extension_hook_provider_parameters_t;
 
 /**
