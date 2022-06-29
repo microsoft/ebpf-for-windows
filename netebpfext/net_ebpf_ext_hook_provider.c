@@ -14,16 +14,8 @@ typedef ebpf_result_t (*ebpf_invoke_program_function_t)(
 
 typedef struct _net_ebpf_ext_hook_client_rundown
 {
+    EX_RUNDOWN_REF protection;
     bool rundown_occurred;
-    struct
-    {
-        KDPC rundown_dpc;
-        KEVENT rundown_wait;
-    } dispatch;
-    struct
-    {
-        EX_PUSH_LOCK lock;
-    } passive;
 } net_ebpf_ext_hook_client_rundown_t;
 
 struct _net_ebpf_extension_hook_provider;
@@ -42,7 +34,6 @@ typedef struct _net_ebpf_extension_hook_client
     ebpf_invoke_program_function_t invoke_program; ///< Pointer to function to invoke eBPF program.
     void* provider_data; ///< Opaque pointer to hook specific data associated with this client.
     struct _net_ebpf_extension_hook_provider* provider_context; ///< Pointer to the hook NPI provider context.
-    net_ebpf_extension_hook_execution_t execution_type;         ///< eBPF hook execution type - PASSIVE or DISPATCH.
     PIO_WORKITEM detach_work_item;              ///< Pointer to IO work item that is invoked to detach the client.
     net_ebpf_ext_hook_client_rundown_t rundown; ///< Pointer to rundown object used to synchronize detach operation.
 } net_ebpf_extension_hook_client_t;
@@ -57,7 +48,6 @@ typedef struct _net_ebpf_extension_hook_provider
 {
     NPI_PROVIDER_CHARACTERISTICS characteristics;             ///< NPI Provider characteristics.
     HANDLE nmr_provider_handle;                               ///< NMR binding handle.
-    net_ebpf_extension_hook_execution_t execution_type;       ///< Hook execution type (PASSIVE or DISPATCH).
     EX_PUSH_LOCK lock;                                        ///< Lock for synchronization.
     net_ebpf_extension_hook_on_client_attach attach_callback; /*!< Pointer to hook specific callback to be invoked
                                                               when a client attaches. */
@@ -86,22 +76,6 @@ typedef struct _net_ebpf_extension_hook_provider
 #define RELEASE_PUSH_LOCK_EXCLUSIVE(lock) _RELEASE_PUSH_LOCK(lock, Exclusive)
 #define RELEASE_PUSH_LOCK_SHARED(lock) _RELEASE_PUSH_LOCK(lock, Shared)
 
-static _Function_class_(KDEFERRED_ROUTINE) _IRQL_requires_max_(DISPATCH_LEVEL) _IRQL_requires_min_(DISPATCH_LEVEL)
-    _IRQL_requires_(DISPATCH_LEVEL) _IRQL_requires_same_ void _ebpf_ext_attach_rundown(
-        _In_ KDPC* dpc,
-        _In_opt_ void* deferred_context,
-        _In_opt_ void* system_argument_1,
-        _In_opt_ void* system_argument_2)
-{
-    net_ebpf_ext_hook_client_rundown_t* rundown = (net_ebpf_ext_hook_client_rundown_t*)deferred_context;
-
-    UNREFERENCED_PARAMETER(dpc);
-    UNREFERENCED_PARAMETER(system_argument_1);
-    UNREFERENCED_PARAMETER(system_argument_2);
-    if (rundown)
-        KeSetEvent(&rundown->dispatch.rundown_wait, 0, FALSE);
-}
-
 /**
  * @brief Initialize the hook client rundown state.
  *
@@ -115,7 +89,6 @@ _ebpf_ext_attach_init_rundown(net_ebpf_extension_hook_client_t* hook_client)
 {
     NTSTATUS status = STATUS_SUCCESS;
     net_ebpf_ext_hook_client_rundown_t* rundown = &hook_client->rundown;
-    net_ebpf_extension_hook_execution_t execution_type = hook_client->execution_type;
 
     //
     // Allocate work item for client detach processing.
@@ -126,12 +99,7 @@ _ebpf_ext_attach_init_rundown(net_ebpf_extension_hook_client_t* hook_client)
         goto Exit;
     }
 
-    if (execution_type == EXECUTION_PASSIVE) {
-        ExInitializePushLock(&rundown->passive.lock);
-    } else {
-        KeInitializeEvent(&(rundown->dispatch.rundown_wait), SynchronizationEvent, FALSE);
-        KeInitializeDpc(&(rundown->dispatch.rundown_dpc), _ebpf_ext_attach_rundown, rundown);
-    }
+    ExInitializeRundownProtection(&rundown->protection);
     rundown->rundown_occurred = FALSE;
 
 Exit:
@@ -142,30 +110,13 @@ Exit:
  * @brief Block execution of the thread until all invocations are completed.
  *
  * @param[in, out] rundown Rundown object to wait for.
- * @param[in]  execution_type Execution type for the hook (passive or dispatch).
  *
  */
 static void
-_ebpf_ext_attach_wait_for_rundown(
-    _Inout_ net_ebpf_ext_hook_client_rundown_t* rundown, net_ebpf_extension_hook_execution_t execution_type)
+_ebpf_ext_attach_wait_for_rundown(_Inout_ net_ebpf_ext_hook_client_rundown_t* rundown)
 {
+    ExWaitForRundownProtectionRelease(&rundown->protection);
     rundown->rundown_occurred = TRUE;
-    if (execution_type == EXECUTION_PASSIVE) {
-        ACQUIRE_PUSH_LOCK_EXCLUSIVE(&rundown->passive.lock);
-        RELEASE_PUSH_LOCK_EXCLUSIVE(&rundown->passive.lock);
-    } else {
-        // Queue a DPC to each CPU and wait for it to run.
-        // After it has run on each CPU we can be sure that no
-        // DPC is busy processing a hook.
-        uint32_t maximum_processor = KeQueryMaximumProcessorCount();
-        uint32_t processor;
-        for (processor = 0; processor < maximum_processor; processor++) {
-            KeSetTargetProcessorDpc(&rundown->dispatch.rundown_dpc, (uint8_t)processor);
-            if (KeInsertQueueDpc(&rundown->dispatch.rundown_dpc, NULL, NULL)) {
-                KeWaitForSingleObject(&rundown->dispatch.rundown_wait, Executive, KernelMode, FALSE, NULL);
-            }
-        }
-    }
 }
 
 IO_WORKITEM_ROUTINE _net_ebpf_extension_detach_client_completion;
@@ -194,7 +145,7 @@ _net_ebpf_extension_detach_client_completion(_In_ PDEVICE_OBJECT device_object, 
     work_item = hook_client->detach_work_item;
 
     // Wait for any in progress callbacks to complete.
-    _ebpf_ext_attach_wait_for_rundown(&hook_client->rundown, hook_client->execution_type);
+    _ebpf_ext_attach_wait_for_rundown(&hook_client->rundown);
 
     // Note: This frees the provider binding context (hook_client).
     NmrProviderDetachClientComplete(hook_client->nmr_binding_handle);
@@ -202,25 +153,18 @@ _net_ebpf_extension_detach_client_completion(_In_ PDEVICE_OBJECT device_object, 
     IoFreeWorkItem(work_item);
 }
 
-_Acquires_lock_(hook_client) bool net_ebpf_extension_hook_client_enter_rundown(
-    _Inout_ net_ebpf_extension_hook_client_t* hook_client, net_ebpf_extension_hook_execution_t execution_type)
+bool
+net_ebpf_extension_hook_client_enter_rundown(_Inout_ net_ebpf_extension_hook_client_t* hook_client)
 {
     net_ebpf_ext_hook_client_rundown_t* rundown = &hook_client->rundown;
-    if (execution_type == EXECUTION_PASSIVE) {
-        ACQUIRE_PUSH_LOCK_SHARED(&rundown->passive.lock);
-    }
-
-    return (rundown->rundown_occurred == FALSE);
+    return ExAcquireRundownProtection(&rundown->protection);
 }
 
-_Releases_lock_(hook_client) void net_ebpf_extension_hook_client_leave_rundown(
-    _Inout_ net_ebpf_extension_hook_client_t* hook_client, net_ebpf_extension_hook_execution_t execution_type)
+void
+net_ebpf_extension_hook_client_leave_rundown(_Inout_ net_ebpf_extension_hook_client_t* hook_client)
 {
     net_ebpf_ext_hook_client_rundown_t* rundown = &hook_client->rundown;
-    if (execution_type == EXECUTION_PASSIVE) {
-        _Analysis_assume_lock_held_(&rundown->passive.lock);
-        RELEASE_PUSH_LOCK_SHARED(&rundown->passive.lock);
-    }
+    ExReleaseRundownProtection(&rundown->protection);
 }
 
 const ebpf_extension_data_t*
@@ -367,7 +311,6 @@ _net_ebpf_extension_hook_provider_attach_client(
     }
     hook_client->invoke_program = (ebpf_invoke_program_function_t)client_dispatch_table->function[0];
     hook_client->provider_context = local_provider_context;
-    hook_client->execution_type = local_provider_context->execution_type;
 
     // Invoke the hook specific callback to process client attach.
     result = local_provider_context->attach_callback(hook_client, local_provider_context);
@@ -485,7 +428,6 @@ net_ebpf_extension_hook_provider_register(
     characteristics->ProviderRegistrationInstance.NpiSpecificCharacteristics = parameters->provider_data;
     characteristics->ProviderRegistrationInstance.ModuleId = parameters->provider_module_id;
 
-    local_provider_context->execution_type = parameters->execution_type;
     local_provider_context->attach_callback = attach_callback;
     local_provider_context->detach_callback = detach_callback;
     local_provider_context->custom_data = custom_data;

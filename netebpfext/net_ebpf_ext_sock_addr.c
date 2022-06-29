@@ -196,9 +196,7 @@ net_ebpf_ext_sock_addr_register_providers()
     _net_ebpf_sock_addr_hook_provider_data.supported_program_type = EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR;
     for (int i = 0; i < NET_EBPF_SOCK_ADDR_HOOK_PROVIDER_COUNT; i++) {
         const net_ebpf_extension_hook_provider_parameters_t hook_provider_parameters = {
-            &_ebpf_sock_addr_hook_provider_moduleid[i],
-            &_net_ebpf_extension_sock_addr_hook_provider_data,
-            EXECUTION_DISPATCH};
+            &_ebpf_sock_addr_hook_provider_moduleid[i], &_net_ebpf_extension_sock_addr_hook_provider_data};
 
         // Set the attach type as the provider module id.
         _ebpf_sock_addr_hook_provider_moduleid[i].Length = sizeof(NPI_MODULEID);
@@ -344,8 +342,6 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
     uint32_t result;
     net_ebpf_extension_sock_addr_wfp_filter_context_t* filter_context = NULL;
     net_ebpf_extension_hook_client_t* attached_client = NULL;
-    net_ebpf_extension_hook_execution_t execution_type =
-        (KeGetCurrentIrql() < DISPATCH_LEVEL) ? EXECUTION_PASSIVE : EXECUTION_DISPATCH;
     bpf_sock_addr_t sock_addr_ctx = {0};
     uint32_t compartment_id = UNSPECIFIED_COMPARTMENT_ID;
 
@@ -365,8 +361,10 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
     if (attached_client == NULL)
         goto Exit;
 
-    if (!net_ebpf_extension_hook_client_enter_rundown(attached_client, execution_type))
+    if (!net_ebpf_extension_hook_client_enter_rundown(attached_client)) {
+        attached_client = NULL;
         goto Exit;
+    }
 
     _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(incoming_fixed_values, &sock_addr_ctx);
 
@@ -386,5 +384,5 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
 
 Exit:
     if (attached_client)
-        net_ebpf_extension_hook_client_leave_rundown(attached_client, execution_type);
+        net_ebpf_extension_hook_client_leave_rundown(attached_client);
 }
