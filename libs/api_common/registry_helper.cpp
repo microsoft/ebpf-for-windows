@@ -138,6 +138,7 @@ _Success_(return == 0) uint32_t read_registry_value_string(
         return ERROR_NOT_ENOUGH_MEMORY;
     }
 
+    memset(string_value, 0, value_size + sizeof(wchar_t));
     status = RegQueryValueEx(key, value_name, 0, &type, (PBYTE)string_value, &value_size);
     if (status != ERROR_SUCCESS) {
         goto Exit;

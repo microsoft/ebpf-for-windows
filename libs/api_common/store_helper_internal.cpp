@@ -1,11 +1,11 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include "api_common.hpp"
-#include "utilities.hpp"
-#include "windows_program_type.h"
 #include "ebpf_registry_helper.h"
+#include "ebpf_serialize.h"
+#include "ebpf_utilities.h"
 #include "store_helper_internal.h"
+#include "utilities.hpp"
 
 extern ebpf_registry_key_t root_registry_key;
 
@@ -150,7 +150,7 @@ _load_program_data_information(
             goto Exit;
         }
 
-        // Read helper count
+        // Read helper count.
         status = read_registry_value_dword(program_info_key, EBPF_PROGRAM_DATA_HELPER_COUNT, &helper_count);
         if (status != ERROR_SUCCESS) {
             result = win32_error_code_to_ebpf_result(status);
@@ -158,11 +158,6 @@ _load_program_data_information(
         }
 
         auto program_type_name_string = ebpf_down_cast_from_wstring(std::wstring(program_type_name));
-        // program_data.context_descriptor = descriptor;
-        // program_data.name = program_type_name_string;
-        // program_data.platform_specific_data = (uint64_t)program_type;
-        // program_data.is_privileged = !!is_privileged;
-
         program_information = (ebpf_program_info_t*)ebpf_allocate(sizeof(ebpf_program_info_t));
         if (program_information == nullptr) {
             result = EBPF_NO_MEMORY;
@@ -255,10 +250,6 @@ _load_program_data_information(
         }
 
         *program_info = program_information;
-
-        // _windows_program_types.insert(std::pair<ebpf_program_type_t, EbpfProgramType>(*program_type, program_data));
-        // _windows_program_information.insert(
-        //     std::pair<ebpf_program_type_t, ebpf_program_info_t>(*program_type, program_information));
     } catch (...) {
         result = EBPF_FAILED;
         goto Exit;
@@ -381,7 +372,6 @@ _load_section_data_information(
     HKEY section_info_key = nullptr;
     ebpf_program_type_t* program_type = nullptr;
     ebpf_attach_type_t* attach_type = nullptr;
-    // ebpf_section_definition_t section_definition;
     bpf_prog_type_t bpf_program_type;
     bpf_attach_type_t bpf_attach_type;
     char* section_prefix = nullptr;
@@ -461,7 +451,6 @@ _load_section_data_information(
         section_information->section_prefix = section_prefix;
 
         *section_info = section_information;
-        // _windows_section_definitions.emplace_back(section_definition);
     } catch (...) {
         result = EBPF_FAILED;
         goto Exit;

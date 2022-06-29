@@ -527,8 +527,8 @@ _update_global_helpers_for_program_information(
 
 Exit:
 #pragma warning(push)
-#pragma warning(disable : 6385)
-#pragma warning(disable : 6001)
+#pragma warning(disable : 6385) // Reading invalid data from 'new_helpers'.
+#pragma warning(disable : 6001) // Using uninitialized memory '*new_helpers.name'.
     if (result != EBPF_SUCCESS) {
         if (new_helpers) {
             for (uint32_t i = 0; i < total_helper_count; i++) {

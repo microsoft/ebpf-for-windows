@@ -3,24 +3,7 @@
 
 #pragma once
 
-#include <cassert>
-#include <stdexcept>
-#include "api_internal.h"
-#include "api_common.hpp"
-#include "crab_verifier_wrapper.hpp"
-#include "device_helper.hpp"
-#include "ebpf_api.h"
-#include "ebpf_nethooks.h"
-#include "ebpf_protocol.h"
-#include "ebpf_serialize.h"
-#include "helpers.hpp"
-#include "map_descriptors.hpp"
-#include "platform.hpp"
-#include "spec_type_descriptors.hpp"
-#include "utilities.hpp"
 #include "windows_program_type.h"
-#include "windows_platform.hpp"
-#include "ebpf_registry_helper.h"
 
 ebpf_result_t
 ebpf_store_load_program_information(
