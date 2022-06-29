@@ -256,8 +256,16 @@ function Import-ResultsFromVM
         Write-Log ("Copy CodeCoverage from eBPF on $VMName to $pwd\..\..")
         Copy-Item -FromSession $VMSession "$VMSystemDrive\eBPF\ebpf_for_windows.xml" -Destination "$pwd\..\.." -Recurse -Force -ErrorAction Ignore 2>&1 | Write-Log
 
-        # Copy ETL from Test VM.
         $EtlFile = $LogFileName.Substring(0, $LogFileName.IndexOf('.')) + ".etl"
+
+        # Stop ETW Traces.
+        Invoke-Command -Session $VMSession -ScriptBlock {
+            param([Parameter(Mandatory=$True)] [string] $EtlFile)
+            Write-Log ("Stopping ETW tracing, creating file: " + $EtlFile)
+            Start-Process -FilePath "wpr.exe" -ArgumentList @("-stop", $EtlFile) -NoNewWindow -Wait
+        } -ArgumentList ($EtlFile) -ErrorAction Ignore
+
+        # Copy ETL from Test VM.
         Write-Log ("Copy $EtlFile from eBPF on $VMName to $pwd\TestLogs")
         Copy-Item -FromSession $VMSession -Path "$VMSystemDrive\eBPF\$EtlFile" -Destination ".\TestLogs\$VMName\Logs" -Recurse -Force -ErrorAction Ignore 2>&1 | Write-Log
     }
