@@ -260,10 +260,13 @@ function Import-ResultsFromVM
 
         # Stop ETW Traces.
         Invoke-Command -Session $VMSession -ScriptBlock {
-            param([Parameter(Mandatory=$True)] [string] $EtlFile)
+            param([Parameter(Mandatory=$True)] [string] $LogFileName,
+                  [Parameter(Mandatory=$True)] [string] $EtlFile)
+            Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
+
             Write-Log ("Stopping ETW tracing, creating file: " + $EtlFile)
             Start-Process -FilePath "wpr.exe" -ArgumentList @("-stop", $EtlFile) -NoNewWindow -Wait
-        } -ArgumentList ($EtlFile) -ErrorAction Ignore
+        } -ArgumentList ($LogFileName, $EtlFile) -ErrorAction Ignore
 
         # Copy ETL from Test VM.
         Write-Log ("Copy $EtlFile from eBPF on $VMName to $pwd\TestLogs")
