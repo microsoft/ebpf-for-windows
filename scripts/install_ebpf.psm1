@@ -111,8 +111,4 @@ function Stop-eBPFComponents
     $EbpfDrivers.GetEnumerator() | ForEach-Object {
         Stop-Service $_.Name -ErrorAction Ignore 2>&1 | Write-Log
     }
-
-    $EtlFile = $LogFileName.Substring(0, $LogFileName.IndexOf('.')) + ".etl";
-    Write-Log ("Stopping ETW tracing, creating file: " + $EtlFile)
-    Start-Process -FilePath "wpr.exe" -ArgumentList @("-stop", $EtlFile) -NoNewWindow -Wait
 }
