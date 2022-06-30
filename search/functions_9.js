@@ -1,4 +1,6 @@
 var searchData=
 [
-  ['win32_5ferror_5fcode_5fto_5febpf_5fresult_815',['win32_error_code_to_ebpf_result',['../ebpf__utilities_8h.html#a7d83d74a974c4fd180f638ca9b28bf9f',1,'ebpf_utilities.h']]]
+  ['swap16_872',['swap16',['../bpf2c_8h.html#a7cf3526e1af5c8642d2ec02caecf99bc',1,'bpf2c.h']]],
+  ['swap32_873',['swap32',['../bpf2c_8h.html#a5bdbc60a02db00841f567d1ade52f877',1,'bpf2c.h']]],
+  ['swap64_874',['swap64',['../bpf2c_8h.html#a27634689306157c465da8414fabf1df2',1,'bpf2c.h']]]
 ];

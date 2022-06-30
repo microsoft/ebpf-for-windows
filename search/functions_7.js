@@ -1,5 +1,4 @@
 var searchData=
 [
-  ['ring_5fbuffer_5f_5ffree_810',['ring_buffer__free',['../libbpf_8h.html#a5ede3a39d4e4a364fac4155aca3303cc',1,'libbpf.h']]],
-  ['ring_5fbuffer_5f_5fnew_811',['ring_buffer__new',['../libbpf_8h.html#aee16f65187ecdf7f55eccf24c6b4d138',1,'libbpf.h']]]
+  ['open_5fregistry_5fkey_866',['open_registry_key',['../user_2ebpf__registry__helper_8h.html#a393f49231fcef8c15058d30098a38946',1,'ebpf_registry_helper.h']]]
 ];

@@ -1,6 +1,8 @@
 var searchData=
 [
-  ['swap16_812',['swap16',['../bpf2c_8h.html#a7cf3526e1af5c8642d2ec02caecf99bc',1,'bpf2c.h']]],
-  ['swap32_813',['swap32',['../bpf2c_8h.html#a5bdbc60a02db00841f567d1ade52f877',1,'bpf2c.h']]],
-  ['swap64_814',['swap64',['../bpf2c_8h.html#a27634689306157c465da8414fabf1df2',1,'bpf2c.h']]]
+  ['read_5fregistry_5fvalue_5fbinary_867',['read_registry_value_binary',['../user_2ebpf__registry__helper_8h.html#abf4749a4f4ea370a88308d7114455e5d',1,'ebpf_registry_helper.h']]],
+  ['read_5fregistry_5fvalue_5fdword_868',['read_registry_value_dword',['../user_2ebpf__registry__helper_8h.html#a3182b4330e7e60e578957fd4c5a7ebed',1,'ebpf_registry_helper.h']]],
+  ['read_5fregistry_5fvalue_5fstring_869',['read_registry_value_string',['../user_2ebpf__registry__helper_8h.html#a0051f5c026543539f050a9d13c5a84b7',1,'ebpf_registry_helper.h']]],
+  ['ring_5fbuffer_5f_5ffree_870',['ring_buffer__free',['../libbpf_8h.html#a5ede3a39d4e4a364fac4155aca3303cc',1,'libbpf.h']]],
+  ['ring_5fbuffer_5f_5fnew_871',['ring_buffer__new',['../libbpf_8h.html#aee16f65187ecdf7f55eccf24c6b4d138',1,'libbpf.h']]]
 ];
