@@ -18,6 +18,9 @@ _net_ebpf_extension_xdp_validate_if_index(uint32_t if_index)
 {
     NTSTATUS status = STATUS_SUCCESS;
     MIB_IF_ROW2* if_row = NULL;
+
+    NET_EBPF_EXT_LOG_ENTRY();
+
     if_row =
         (MIB_IF_ROW2*)ExAllocatePoolUninitialized(NonPagedPoolNx, sizeof(MIB_IF_ROW2), NET_EBPF_EXTENSION_POOL_TAG);
     if (if_row == NULL) {
@@ -30,7 +33,8 @@ _net_ebpf_extension_xdp_validate_if_index(uint32_t if_index)
 Exit:
     if (if_row != NULL)
         ExFreePool(if_row);
-    return status;
+
+    NET_EBPF_EXT_RETURN_NTSTATUS(status);
 }
 
 //
@@ -105,6 +109,8 @@ net_ebpf_extension_xdp_on_client_attach(
     FWPM_FILTER_CONDITION condition = {0};
     net_ebpf_extension_xdp_wfp_filter_context_t* filter_context = NULL;
 
+    NET_EBPF_EXT_LOG_ENTRY();
+
     // XDP hook clients must always provide data.
     if (client_data == NULL) {
         result = EBPF_INVALID_ARGUMENT;
@@ -168,7 +174,7 @@ Exit:
             ExFreePool(filter_context);
     }
 
-    return result;
+    NET_EBPF_EXT_RETURN_RESULT(result);
 }
 
 static void
@@ -177,9 +183,14 @@ _net_ebpf_extension_xdp_on_client_detach(_In_ const net_ebpf_extension_hook_clie
     net_ebpf_extension_xdp_wfp_filter_context_t* filter_context =
         (net_ebpf_extension_xdp_wfp_filter_context_t*)net_ebpf_extension_hook_client_get_provider_data(
             detaching_client);
+
+    NET_EBPF_EXT_LOG_ENTRY();
+
     ASSERT(filter_context != NULL);
     net_ebpf_extension_delete_wfp_filters(NET_EBPF_XDP_FILTER_COUNT, filter_context->filter_ids);
     net_ebpf_extension_wfp_filter_context_cleanup((net_ebpf_extension_wfp_filter_context_t*)filter_context);
+
+    NET_EBPF_EXT_LOG_EXIT();
 }
 
 NTSTATUS
@@ -190,6 +201,8 @@ net_ebpf_ext_xdp_register_providers()
         &_ebpf_xdp_program_info_provider_moduleid, &_ebpf_xdp_program_info_provider_data};
     const net_ebpf_extension_hook_provider_parameters_t hook_provider_parameters = {
         &_ebpf_xdp_hook_provider_moduleid, &_net_ebpf_extension_xdp_hook_provider_data};
+
+    NET_EBPF_EXT_LOG_ENTRY();
 
     _ebpf_xdp_program_info.program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_XDP;
     // Set the program type as the provider module id.
@@ -213,7 +226,7 @@ net_ebpf_ext_xdp_register_providers()
         goto Exit;
 
 Exit:
-    return status;
+    NET_EBPF_EXT_RETURN_NTSTATUS(status);
 }
 
 void
@@ -321,6 +334,10 @@ Exit:
         IoFreeMdl(mdl_chain);
     if (packet_buffer != NULL)
         ExFreePool(packet_buffer);
+
+    if (!NT_SUCCESS(status))
+        NET_EBPF_EXT_LOG_FUNCTION_ERROR(status);
+
     return status;
 }
 
@@ -389,6 +406,9 @@ _net_ebpf_xdp_adjust_head(_Inout_ xdp_md_t* ctx, int delta)
     }
 
 Exit:
+    if (return_value == -1)
+        NET_EBPF_EXT_LOG_FUNCTION_ERROR(return_value);
+
     return return_value;
 }
 
@@ -405,7 +425,7 @@ _net_ebpf_ext_l2_receive_inject_complete(_In_ const void* context, _Inout_ NET_B
     _net_ebpf_ext_free_nbl(nbl);
 }
 
-static FWP_ACTION_TYPE
+static NTSTATUS
 _net_ebpf_ext_receive_inject_cloned_nbl(
     _In_ const NET_BUFFER_LIST* cloned_nbl, _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values)
 {
@@ -414,7 +434,7 @@ _net_ebpf_ext_receive_inject_cloned_nbl(
     uint32_t ndis_port =
         incoming_fixed_values->incomingValue[FWPS_FIELD_INBOUND_MAC_FRAME_NATIVE_NDIS_PORT].value.uint32;
 
-    return FwpsInjectMacReceiveAsync(
+    NTSTATUS status = FwpsInjectMacReceiveAsync(
         _net_ebpf_ext_l2_injection_handle,
         NULL,
         0,
@@ -424,6 +444,17 @@ _net_ebpf_ext_receive_inject_cloned_nbl(
         (NET_BUFFER_LIST*)cloned_nbl,
         _net_ebpf_ext_l2_receive_inject_complete,
         NULL);
+
+    if (!NT_SUCCESS(status)) {
+        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_XDP, "FwpsInjectMacReceiveAsync", status);
+        goto Exit;
+    }
+
+Exit:
+    if (!NT_SUCCESS(status))
+        NET_EBPF_EXT_LOG_FUNCTION_ERROR(status);
+
+    return status;
 }
 
 static void
@@ -474,10 +505,16 @@ _net_ebpf_ext_handle_xdp_tx(
         _net_ebpf_ext_l2_inject_send_complete,
         (void*)(uintptr_t)cloned_packet);
 
-    if (status != STATUS_SUCCESS)
+    if (status != STATUS_SUCCESS) {
+        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_XDP, "FwpsInjectMacSendAsync", status);
         goto Exit;
+    }
 
 Exit:
+
+    if (!NT_SUCCESS(status))
+        NET_EBPF_EXT_LOG_FUNCTION_ERROR(status);
+
     return;
 }
 
@@ -613,6 +650,9 @@ Done:
 
     if (attached_client)
         net_ebpf_extension_hook_client_leave_rundown(attached_client);
+
+    if (!NT_SUCCESS(status))
+        NET_EBPF_EXT_LOG_FUNCTION_ERROR(status);
 
     return;
 }

@@ -93,6 +93,8 @@ net_ebpf_extension_sock_addr_on_client_attach(
     FWPM_FILTER_CONDITION condition = {0};
     net_ebpf_extension_sock_addr_wfp_filter_context_t* filter_context = NULL;
 
+    NET_EBPF_EXT_LOG_ENTRY();
+
     // SOCK_ADDR hook clients must always provide data.
     if (client_data == NULL) {
         result = EBPF_INVALID_ARGUMENT;
@@ -164,7 +166,7 @@ Exit:
             ExFreePool(filter_context);
     }
 
-    return result;
+    NET_EBPF_EXT_RETURN_RESULT(result);
 }
 
 static void
@@ -184,6 +186,8 @@ net_ebpf_ext_sock_addr_register_providers()
     NTSTATUS status = STATUS_SUCCESS;
     const net_ebpf_extension_program_info_provider_parameters_t program_info_provider_parameters = {
         &_ebpf_sock_addr_program_info_provider_moduleid, &_ebpf_sock_addr_program_info_provider_data};
+
+    NET_EBPF_EXT_LOG_ENTRY();
 
     _ebpf_sock_addr_program_info.program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR;
     // Set the program type as the provider module id.
@@ -216,7 +220,7 @@ net_ebpf_ext_sock_addr_register_providers()
         goto Exit;
 
 Exit:
-    return status;
+    NET_EBPF_EXT_RETURN_NTSTATUS(status);
 }
 
 void
@@ -372,6 +376,12 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
     ASSERT((compartment_id == UNSPECIFIED_COMPARTMENT_ID) || (compartment_id == sock_addr_ctx.compartment_id));
     if (compartment_id != UNSPECIFIED_COMPARTMENT_ID && compartment_id != sock_addr_ctx.compartment_id) {
         // The client is not interested in this compartment Id.
+        NET_EBPF_EXT_LOG_MESSAGE_UINT32(
+            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+            "The cgroup_sock_addr eBPF program is not interested in this compartmentId",
+            sock_addr_ctx.compartment_id);
+
         goto Exit;
     }
 
