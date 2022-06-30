@@ -20,6 +20,3 @@ load_byte_code(
     _Inout_ std::vector<ebpf_program_t*>& programs,
     _Inout_ std::vector<ebpf_map_t*>& maps,
     _Outptr_result_maybenull_z_ const char** error_message) noexcept;
-
-ebpf_result_t
-get_program_type_info(const ebpf_program_info_t** info);

@@ -39,7 +39,7 @@ target_include_directories("unit_tests" PRIVATE
   "${CMAKE_SOURCE_DIR}/tests/sample"
   "${CMAKE_SOURCE_DIR}/tests/sample/ext/inc"
   "${CMAKE_SOURCE_DIR}//tests/xdp"
-  "${CMAKE_SOURCE_DIR}/tools/encode_program_info"
+  "${CMAKE_SOURCE_DIR}/tools/export_program_info"
   "${CMAKE_SOURCE_DIR}/libs/thunk"
   "${CMAKE_SOURCE_DIR}/libs/thunk/mock"
   "${CMAKE_SOURCE_DIR}//netebpfext"
@@ -60,8 +60,9 @@ target_link_libraries("unit_tests" PRIVATE
   "service"
   "test_util"
   "ubpf_user"
-  "encode_program_info_headers"
+  "export_program_info_runner"
   "Mincore.lib"
+  "external::boost"
 )
 
 add_test(

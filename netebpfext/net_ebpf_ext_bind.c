@@ -8,6 +8,7 @@
 
 #define INITGUID
 
+#include "ebpf_store_helper.h"
 #include "net_ebpf_ext_bind.h"
 
 //
@@ -119,10 +120,35 @@ _net_ebpf_extension_bind_on_client_detach(_In_ const net_ebpf_extension_hook_cli
 // NMR Registration Helper Routines.
 //
 
+static NTSTATUS
+_net_ebpf_bind_update_store_entries()
+{
+    NTSTATUS status;
+
+    // Update section information.
+    uint32_t section_info_count = sizeof(_ebpf_bind_section_info) / sizeof(ebpf_program_section_info_t);
+    status = ebpf_store_update_section_information(&_ebpf_bind_section_info[0], section_info_count);
+    if (!NT_SUCCESS(status)) {
+        return status;
+    }
+
+    // Program information
+    _ebpf_bind_program_info.program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_BIND;
+    status = ebpf_store_update_program_information(&_ebpf_bind_program_info, 1);
+
+    return status;
+}
+
 NTSTATUS
 net_ebpf_ext_bind_register_providers()
 {
     NTSTATUS status = STATUS_SUCCESS;
+
+    status = _net_ebpf_bind_update_store_entries();
+    if (!NT_SUCCESS(status)) {
+        return status;
+    }
+
     const net_ebpf_extension_program_info_provider_parameters_t program_info_provider_parameters = {
         &_ebpf_bind_program_info_provider_moduleid, &_ebpf_bind_program_info_provider_data};
     const net_ebpf_extension_hook_provider_parameters_t hook_provider_parameters = {

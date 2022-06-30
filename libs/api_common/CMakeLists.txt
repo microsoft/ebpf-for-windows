@@ -17,6 +17,11 @@ add_library("api_common" STATIC
   device_helper.hpp
   device_helper.cpp
 
+  registry_helper.cpp
+
+  store_helper_internal.h
+  store_helper_internal.cpp
+
   utilities.hpp
   utilities.cpp
 )
@@ -24,6 +29,7 @@ add_library("api_common" STATIC
 target_include_directories("api_common" PRIVATE
   "${CMAKE_SOURCE_DIR}/libs/api"
   "${CMAKE_SOURCE_DIR}/include"
+  "${CMAKE_SOURCE_DIR}/include/user"
   "${CMAKE_SOURCE_DIR}/libs/platform"
   "${CMAKE_SOURCE_DIR}/libs/platform/user"
   "${CMAKE_SOURCE_DIR}/libs/execution_context"
@@ -35,7 +41,7 @@ target_include_directories("api_common" PRIVATE
 
 target_link_libraries("api_common" PRIVATE
   "ebpf_for_windows_cpp_settings"
-  "encode_program_info_headers"
+  "export_program_info_runner"
   "NetEbpfExt_headers"
   "external::boost"
   "external::ebpfverifier"

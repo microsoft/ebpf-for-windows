@@ -26,7 +26,7 @@ Environment:
 #include <wdf.h>
 
 #include "ebpf_platform.h"
-
+#include "ebpf_store_helper.h"
 #include "net_ebpf_ext.h"
 
 #define NET_EBPF_EXT_DEVICE_NAME L"\\Device\\NetEbpfExt"

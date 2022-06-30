@@ -88,9 +88,6 @@ ebpf_api_initiate();
 void
 ebpf_api_terminate();
 
-ebpf_result_t
-get_program_info_data(ebpf_program_type_t program_type, _Outptr_ ebpf_program_info_t** program_info);
-
 void
 clean_up_ebpf_program(_In_ _Post_invalid_ ebpf_program_t* program);
 
@@ -574,3 +571,43 @@ ebpf_program_load_bytes(
     _Out_writes_opt_(log_buffer_size) char* log_buffer,
     size_t log_buffer_size,
     _Out_ fd_t* program_fd);
+
+/**
+ * @brief Get eBPF program type for the specified bpf program type.
+ *
+ * @param[in] program_type Bpf program type.
+ *
+ * @returns Pointer to eBPF program type, or NULL if not found.
+ */
+_Ret_maybenull_ const ebpf_program_type_t*
+ebpf_get_ebpf_program_type(bpf_prog_type_t bpf_program_type);
+
+/**
+ * @brief Get eBPF attach type for the specified bpf attach type.
+ *
+ * @param[in] program_type Bpf attach type.
+ *
+ * @returns Pointer to eBPF attach type, or NULL if not found.
+ */
+_Ret_maybenull_ const ebpf_attach_type_t*
+get_ebpf_attach_type(bpf_attach_type_t bpf_attach_type);
+
+/**
+ * @brief Get bpf program type for the specified eBPF program type.
+ *
+ * @param[in] program_type eBPF program type GUID.
+ *
+ * @returns Bpf program type, or BPF_PROG_TYPE_UNSPEC if not found.
+ */
+bpf_prog_type_t
+get_bpf_program_type(_In_ const ebpf_program_type_t* program_type);
+
+/**
+ * @brief Get bpf attach type for the specified eBPF attach type.
+ *
+ * @param[in] attach_type eBPF attach type GUID.
+ *
+ * @returns Bpf attach type, or BPF_ATTACH_TYPE_UNSPEC if not found.
+ */
+bpf_attach_type_t
+get_bpf_attach_type(_In_ const ebpf_attach_type_t* ebpf_attach_type);

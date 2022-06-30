@@ -33,7 +33,6 @@ target_include_directories("ubpf_user" PRIVATE
 target_link_libraries("ubpf_user" PRIVATE
   "ebpf_for_windows_common_settings"
   "rpc_interface"
-  "encode_program_info_headers"
   "external::boost"
 )
 

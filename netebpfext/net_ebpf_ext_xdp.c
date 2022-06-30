@@ -8,6 +8,7 @@
 
 #define INITGUID
 
+#include "ebpf_store_helper.h"
 #include "net_ebpf_ext_xdp.h"
 
 //
@@ -193,10 +194,35 @@ _net_ebpf_extension_xdp_on_client_detach(_In_ const net_ebpf_extension_hook_clie
     NET_EBPF_EXT_LOG_EXIT();
 }
 
+static NTSTATUS
+_net_ebpf_xdp_update_store_entries()
+{
+    NTSTATUS status;
+
+    // Update section information.
+    uint32_t section_info_count = sizeof(_ebpf_xdp_section_info) / sizeof(ebpf_program_section_info_t);
+    status = ebpf_store_update_section_information(&_ebpf_xdp_section_info[0], section_info_count);
+    if (!NT_SUCCESS(status)) {
+        return status;
+    }
+
+    // Update program information.
+    _ebpf_xdp_program_info.program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_XDP;
+    status = ebpf_store_update_program_information(&_ebpf_xdp_program_info, 1);
+
+    return status;
+}
+
 NTSTATUS
 net_ebpf_ext_xdp_register_providers()
 {
     NTSTATUS status = STATUS_SUCCESS;
+
+    status = _net_ebpf_xdp_update_store_entries();
+    if (!NT_SUCCESS(status)) {
+        return status;
+    }
+
     const net_ebpf_extension_program_info_provider_parameters_t program_info_provider_parameters = {
         &_ebpf_xdp_program_info_provider_moduleid, &_ebpf_xdp_program_info_provider_data};
     const net_ebpf_extension_hook_provider_parameters_t hook_provider_parameters = {

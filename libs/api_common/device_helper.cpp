@@ -9,12 +9,10 @@
 #include "api_common.hpp"
 #include "device_helper.hpp"
 #include "ebpf_api.h"
-#include "ebpf_bind_program_data.h"
 #include "ebpf_platform.h"
 #include "ebpf_program_types.h"
 #include "ebpf_protocol.h"
 #include "ebpf_result.h"
-#include "ebpf_xdp_program_data.h"
 #include "platform.h"
 #include "platform.hpp"
 

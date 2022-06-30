@@ -12,83 +12,6 @@
 // minimize diffs until libbpf becomes cross-platform capable.  This is a temporary workaround for
 // issue #351 until we can compile and use libbpf.c directly.
 
-static const ebpf_program_type_t*
-_get_ebpf_program_type(enum bpf_prog_type type)
-{
-    const ebpf_program_type_t* program_type = nullptr;
-    // TODO(issue #223): read this mapping from the registry
-    switch (type) {
-    case BPF_PROG_TYPE_XDP:
-        program_type = &EBPF_PROGRAM_TYPE_XDP;
-        break;
-    case BPF_PROG_TYPE_BIND:
-        program_type = &EBPF_PROGRAM_TYPE_BIND;
-        break;
-    case BPF_PROG_TYPE_CGROUP_SOCK_ADDR:
-        program_type = &EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR;
-        break;
-    case BPF_PROG_TYPE_SOCK_OPS:
-        program_type = &EBPF_PROGRAM_TYPE_SOCK_OPS;
-        break;
-    case BPF_PROG_TYPE_SAMPLE:
-        program_type = &EBPF_PROGRAM_TYPE_SAMPLE;
-    }
-    return program_type;
-}
-
-static enum bpf_prog_type
-_get_bpf_program_type(const ebpf_program_type_t* type)
-{
-    // TODO(issue #223): read this mapping from the registry
-    if (memcmp(type, &EBPF_PROGRAM_TYPE_XDP, sizeof(*type)) == 0) {
-        return BPF_PROG_TYPE_XDP;
-    }
-    if (memcmp(type, &EBPF_PROGRAM_TYPE_BIND, sizeof(*type)) == 0) {
-        return BPF_PROG_TYPE_BIND;
-    }
-    return BPF_PROG_TYPE_UNSPEC;
-}
-
-static const ebpf_attach_type_t*
-_get_ebpf_attach_type(enum bpf_attach_type type)
-{
-    const ebpf_attach_type_t* attach_type = nullptr;
-
-    // TODO(issue #223): read this mapping from the registry
-    switch (type) {
-    case BPF_XDP:
-        attach_type = &EBPF_ATTACH_TYPE_XDP;
-        break;
-    case BPF_CGROUP_INET4_CONNECT:
-        attach_type = &EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT;
-        break;
-    case BPF_CGROUP_INET6_CONNECT:
-        attach_type = &EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT;
-        break;
-    case BPF_CGROUP_INET4_RECV_ACCEPT:
-        attach_type = &EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT;
-        break;
-    case BPF_CGROUP_INET6_RECV_ACCEPT:
-        attach_type = &EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT;
-        break;
-    case BPF_CGROUP_SOCK_OPS:
-        attach_type = &EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS;
-        break;
-    }
-
-    return attach_type;
-}
-
-static enum bpf_attach_type
-_get_bpf_attach_type(const ebpf_attach_type_t* type)
-{
-    // TODO(issue #223): read this mapping from the registry
-    if (memcmp(type, &EBPF_ATTACH_TYPE_XDP, sizeof(*type)) == 0) {
-        return BPF_XDP;
-    }
-    return BPF_ATTACH_TYPE_UNSPEC;
-}
-
 int
 bpf_load_program_xattr(const struct bpf_load_program_attr* load_attr, char* log_buf, size_t log_buf_sz)
 {
@@ -96,7 +19,7 @@ bpf_load_program_xattr(const struct bpf_load_program_attr* load_attr, char* log_
         return libbpf_err(-EINVAL);
     }
 
-    const ebpf_program_type_t* program_type = _get_ebpf_program_type(load_attr->prog_type);
+    const ebpf_program_type_t* program_type = ebpf_get_ebpf_program_type(load_attr->prog_type);
     if (program_type == nullptr) {
         return libbpf_err(-EINVAL);
     }
@@ -152,7 +75,7 @@ bpf_prog_load(
 {
     UNREFERENCED_PARAMETER(license);
 
-    const ebpf_program_type_t* program_type = _get_ebpf_program_type(prog_type);
+    const ebpf_program_type_t* program_type = ebpf_get_ebpf_program_type(prog_type);
     if (program_type == nullptr) {
         return libbpf_err(-EINVAL);
     }
@@ -185,7 +108,7 @@ bpf_prog_load_deprecated(const char* file_name, enum bpf_prog_type type, struct 
 {
     *object = nullptr;
 
-    const ebpf_program_type_t* program_type = _get_ebpf_program_type(type);
+    const ebpf_program_type_t* program_type = ebpf_get_ebpf_program_type(type);
 
     if (program_type == nullptr) {
         return libbpf_err(-EINVAL);
@@ -302,7 +225,7 @@ bpf_prog_attach(int prog_fd, int attachable_fd, enum bpf_attach_type type, unsig
 
     if (_does_attach_type_support_attachable_fd(type) && (flags == 0)) {
         result = ebpf_program_attach_by_fd(
-            prog_fd, _get_ebpf_attach_type(type), &attachable_fd, sizeof(attachable_fd), &link);
+            prog_fd, get_ebpf_attach_type(type), &attachable_fd, sizeof(attachable_fd), &link);
     } else {
         result = EBPF_OPERATION_NOT_SUPPORTED;
     }
@@ -459,7 +382,7 @@ bpf_object__unpin_programs(struct bpf_object* obj, const char* path)
 enum bpf_attach_type
 bpf_program__get_expected_attach_type(const struct bpf_program* program)
 {
-    return _get_bpf_attach_type(&program->attach_type);
+    return get_bpf_attach_type(&program->attach_type);
 }
 
 int
@@ -467,14 +390,18 @@ bpf_program__set_expected_attach_type(struct bpf_program* program, enum bpf_atta
 {
     if (program->object->loaded)
         return libbpf_err(-EBUSY);
-    program->attach_type = *_get_ebpf_attach_type(type);
+    const ebpf_attach_type_t* attach_type = get_ebpf_attach_type(type);
+    if (attach_type != nullptr) {
+        program->attach_type = *attach_type;
+    }
+
     return 0;
 }
 
 enum bpf_prog_type
 bpf_program__type(const struct bpf_program* program)
 {
-    return _get_bpf_program_type(&program->program_type);
+    return get_bpf_program_type(&program->program_type);
 }
 
 int
@@ -482,7 +409,7 @@ bpf_program__set_type(struct bpf_program* program, enum bpf_prog_type type)
 {
     if (program->object->loaded)
         return libbpf_err(-EBUSY);
-    const ebpf_program_type_t* program_type = _get_ebpf_program_type(type);
+    const ebpf_program_type_t* program_type = ebpf_get_ebpf_program_type(type);
     program->program_type = (program_type != nullptr) ? *program_type : EBPF_PROGRAM_TYPE_UNSPECIFIED;
     return 0;
 }
@@ -511,30 +438,14 @@ libbpf_prog_type_by_name(const char* name, enum bpf_prog_type* prog_type, enum b
         return libbpf_err(-EINVAL);
     }
 
-    ebpf_program_type_t program_type_uuid;
-    ebpf_attach_type_t expected_attach_type_uuid;
-    ebpf_result_t result = ebpf_get_program_type_by_name(name, &program_type_uuid, &expected_attach_type_uuid);
+    ebpf_result_t result = ebpf_get_bpf_program_type_by_name(name, prog_type, expected_attach_type);
     if (result != EBPF_SUCCESS) {
         ebpf_assert(result == EBPF_KEY_NOT_FOUND);
-        goto Exit;
+        errno = ESRCH;
+        return -1;
     }
 
-    // Convert UUIDs to enum values if they exist.
-    // TODO(issue #223): get info from registry.
-    if (memcmp(&program_type_uuid, &EBPF_PROGRAM_TYPE_XDP, sizeof(program_type_uuid)) == 0) {
-        *prog_type = BPF_PROG_TYPE_XDP;
-        *expected_attach_type = BPF_XDP;
-        return 0;
-    }
-    if (memcmp(&program_type_uuid, &EBPF_PROGRAM_TYPE_BIND, sizeof(program_type_uuid)) == 0) {
-        *prog_type = BPF_PROG_TYPE_BIND;
-        *expected_attach_type = BPF_ATTACH_TYPE_UNSPEC;
-        return 0;
-    }
-
-Exit:
-    errno = ESRCH;
-    return -1;
+    return 0;
 }
 
 void

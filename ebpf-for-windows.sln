@@ -92,7 +92,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "service", "service", "{4B0B
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ebpfsvc", "ebpfsvc\eBPFSvc.vcxproj", "{BA065B6A-38F8-4197-8F66-87C84AFAD513}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "encode_program_info", "tools\encode_program_info\encode_program_info.vcxproj", "{FA9BB88D-8259-40C1-9422-BDEDF9E9CE68}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "export_program_info", "tools\export_program_info\export_program_info.vcxproj", "{FA9BB88D-8259-40C1-9422-BDEDF9E9CE68}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "service", "libs\service\service.vcxproj", "{AF85C549-57CC-40A5-BDFC-DCF1998DE80F}"
 EndProject
