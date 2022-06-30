@@ -1146,7 +1146,7 @@ extern "C"
 #define EBPF_RETURN_NTSTATUS(status)               \
     do {                                           \
         ebpf_result_t local_result = (status);     \
-        if (!NT_SUCCESS(status)) {                 \
+        if (NT_SUCCESS(status)) {                  \
             EBPF_LOG_FUNCTION_SUCCESS();           \
         } else {                                   \
             EBPF_LOG_FUNCTION_ERROR(local_result); \
@@ -1341,7 +1341,7 @@ extern "C"
 #define EBPF_LOG_NTSTATUS_API_FAILURE(keyword, api, status) \
     TraceLoggingWrite(                                      \
         ebpf_tracelog_provider,                             \
-        EBPF_TRACELOG_EVENT_GENERIC_MESSAGE,                \
+        EBPF_TRACELOG_EVENT_API_ERROR,                      \
         TraceLoggingLevel(EBPF_TRACELOG_LEVEL_ERROR),       \
         TraceLoggingKeyword((keyword)),                     \
         TraceLoggingString(#api, "api"),                    \
@@ -1350,7 +1350,7 @@ extern "C"
 #define EBPF_LOG_NTSTATUS_WSTRING_API(keyword, wstring, api, status) \
     TraceLoggingWrite(                                               \
         ebpf_tracelog_provider,                                      \
-        EBPF_TRACELOG_EVENT_GENERIC_MESSAGE,                         \
+        EBPF_TRACELOG_EVENT_API_ERROR,                               \
         TraceLoggingLevel(EBPF_TRACELOG_LEVEL_INFO),                 \
         TraceLoggingKeyword((keyword)),                              \
         TraceLoggingWideString(wstring, "Message"),                  \

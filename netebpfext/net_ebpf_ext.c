@@ -198,6 +198,8 @@ net_ebpf_extension_wfp_filter_context_create(
     ebpf_result_t result = EBPF_SUCCESS;
     net_ebpf_extension_wfp_filter_context_t* local_filter_context = NULL;
 
+    NET_EBPF_EXT_LOG_ENTRY();
+
     *filter_context = NULL;
 
     // Allocate buffer for WFP filter context.
@@ -217,7 +219,7 @@ Exit:
     if (local_filter_context != NULL)
         ExFreePool(local_filter_context);
 
-    return result;
+    NET_EBPF_EXT_RETURN_RESULT(result);
 }
 
 void
@@ -295,9 +297,11 @@ net_ebpf_extension_get_callout_id_for_hook(net_ebpf_extension_hook_id_t hook_id)
 void
 net_ebpf_extension_delete_wfp_filters(uint32_t filter_count, _Frees_ptr_ _In_count_(filter_count) uint64_t* filter_ids)
 {
+    NET_EBPF_EXT_LOG_ENTRY();
     for (uint32_t index = 0; index < filter_count; index++)
         FwpmFilterDeleteById(_fwp_engine_handle, filter_ids[index]);
     ExFreePool(filter_ids);
+    NET_EBPF_EXT_LOG_EXIT();
 }
 
 ebpf_result_t
@@ -314,6 +318,8 @@ net_ebpf_extension_add_wfp_filters(
     BOOL is_in_transaction = FALSE;
     uint64_t* local_filter_ids = NULL;
     *filter_ids = NULL;
+
+    NET_EBPF_EXT_LOG_ENTRY();
 
     if (filter_count == 0) {
         result = EBPF_INVALID_ARGUMENT;
@@ -390,7 +396,7 @@ Exit:
             FwpmTransactionAbort(_fwp_engine_handle);
     }
 
-    return result;
+    NET_EBPF_EXT_RETURN_RESULT(result);
 }
 
 static NTSTATUS
@@ -402,6 +408,8 @@ _net_ebpf_ext_register_wfp_callout(_Inout_ net_ebpf_ext_wfp_callout_state_t* cal
 -- */
 {
     NTSTATUS status = STATUS_SUCCESS;
+
+    NET_EBPF_EXT_LOG_ENTRY();
 
     FWPS_CALLOUT callout_register_state = {0};
     FWPM_CALLOUT callout_add_state = {0};
@@ -456,7 +464,7 @@ Exit:
         }
     }
 
-    return status;
+    NET_EBPF_EXT_RETURN_NTSTATUS(status);
 }
 
 NTSTATUS
@@ -464,6 +472,8 @@ net_ebpf_ext_initialize_ndis_handles(_In_ const DRIVER_OBJECT* driver_object)
 {
     NTSTATUS status = STATUS_SUCCESS;
     NET_BUFFER_LIST_POOL_PARAMETERS nbl_pool_parameters = {0};
+
+    NET_EBPF_EXT_LOG_ENTRY();
 
     _net_ebpf_ext_ndis_handle =
         NdisAllocateGenericObject((DRIVER_OBJECT*)driver_object, NET_EBPF_EXTENSION_POOL_TAG, 0);
@@ -487,7 +497,7 @@ net_ebpf_ext_initialize_ndis_handles(_In_ const DRIVER_OBJECT* driver_object)
     }
 
 Exit:
-    return status;
+    NET_EBPF_EXT_RETURN_NTSTATUS(status);
 }
 
 void
@@ -517,6 +527,8 @@ net_ebpf_extension_initialize_wfp_components(_Inout_ void* device_object)
     FWPM_SESSION session = {0};
 
     size_t index;
+
+    NET_EBPF_EXT_LOG_ENTRY();
 
     if (_fwp_engine_handle != NULL) {
         // already registered
@@ -597,7 +609,7 @@ Exit:
         }
     }
 
-    return status;
+    NET_EBPF_EXT_RETURN_NTSTATUS(status);
 }
 
 void
@@ -620,6 +632,8 @@ static NTSTATUS
 _net_ebpf_ext_filter_change_notify(
     FWPS_CALLOUT_NOTIFY_TYPE callout_notification_type, _In_ const GUID* filter_key, _Inout_ const FWPS_FILTER* filter)
 {
+    NET_EBPF_EXT_LOG_ENTRY();
+
     UNREFERENCED_PARAMETER(filter_key);
     if (callout_notification_type == FWPS_CALLOUT_NOTIFY_DELETE_FILTER) {
         net_ebpf_extension_wfp_filter_context_t* filter_context =
@@ -627,6 +641,7 @@ _net_ebpf_ext_filter_change_notify(
         DEREFERENCE_FILTER_CONTEXT((filter_context));
     }
 
+    NET_EBPF_EXT_LOG_FUNCTION_SUCCESS();
     return STATUS_SUCCESS;
 }
 
@@ -649,6 +664,8 @@ net_ebpf_ext_register_providers()
 {
     NTSTATUS status = STATUS_SUCCESS;
 
+    NET_EBPF_EXT_LOG_ENTRY();
+
     status = net_ebpf_ext_xdp_register_providers();
     if (status != STATUS_SUCCESS)
         goto Exit;
@@ -666,7 +683,7 @@ net_ebpf_ext_register_providers()
         goto Exit;
 
 Exit:
-    return status;
+    NET_EBPF_EXT_RETURN_NTSTATUS(status);
 }
 
 void
