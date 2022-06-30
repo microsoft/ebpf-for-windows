@@ -49,6 +49,7 @@ set (misc_files "install-ebpf.bat"
     "ebpfforwindows.wprp"
     "ebpf-all.guid"
     "ebpf-printk.guid"
+    "net-ebpf-ext.guid"
 )
 
 foreach(file ${misc_files})

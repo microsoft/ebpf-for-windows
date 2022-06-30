@@ -113,6 +113,7 @@ add_library("platform_user" STATIC
 target_include_directories("platform_user" PRIVATE
   ${platform_kernel_include_dirs}
   "${CMAKE_SOURCE_DIR}/libs/platform/user"
+  "${CMAKE_SOURCE_DIR}/include/user"
 )
 
 target_link_libraries("platform_user" PRIVATE
@@ -141,6 +142,7 @@ target_include_directories("platform_kernel" PRIVATE
   ${platform_kernel_include_dirs}
   "${CMAKE_SOURCE_DIR}/libs/platform/kernel"
   "${CMAKE_SOURCE_DIR}/libs/epoch"
+  "${CMAKE_SOURCE_DIR}/include/kernel"
 )
 
 target_link_libraries("platform_kernel" PRIVATE

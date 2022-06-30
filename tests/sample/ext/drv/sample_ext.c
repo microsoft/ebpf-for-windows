@@ -14,6 +14,8 @@
 #include "ebpf_extension_uuids.h"
 #include "ebpf_platform.h"
 #include "ebpf_program_types.h"
+#include "ebpf_store_helper.h"
+#include "ebpf_structs.h"
 
 #include "sample_ext_program_info.h"
 #include "sample_ext_helpers.h"
@@ -305,6 +307,36 @@ sample_ebpf_extension_program_info_provider_unregister()
         NmrWaitForProviderDeregisterComplete(provider_context->nmr_provider_handle);
 }
 
+static NTSTATUS
+_sample_ebpf_extension_update_store_entries()
+{
+    NTSTATUS status;
+
+    // Update section information.
+    ebpf_program_section_info_t section_info = {
+        L"sample_ext",
+        (GUID*)&EBPF_PROGRAM_TYPE_SAMPLE,
+        (GUID*)&EBPF_ATTACH_TYPE_SAMPLE,
+        BPF_PROG_TYPE_SAMPLE,
+        BPF_ATTACH_TYPE_SAMPLE};
+    status = ebpf_store_update_section_information(&section_info, 1);
+    if (!NT_SUCCESS(status)) {
+        return status;
+    }
+
+    // Update program information
+    ebpf_extension_data_t* extension_data;
+    ebpf_program_data_t* program_data;
+    extension_data = (ebpf_extension_data_t*)_sample_ebpf_extension_program_info_provider_characteristics
+                         .ProviderRegistrationInstance.NpiSpecificCharacteristics;
+    program_data = (ebpf_program_data_t*)extension_data->data;
+    program_data->program_info->program_type_descriptor.program_type = EBPF_PROGRAM_TYPE_SAMPLE;
+
+    status = ebpf_store_update_program_information(program_data->program_info, 1);
+
+    return status;
+}
+
 NTSTATUS
 sample_ebpf_extension_program_info_provider_register()
 {
@@ -313,6 +345,11 @@ sample_ebpf_extension_program_info_provider_register()
     ebpf_program_data_t* program_data;
 
     NTSTATUS status = STATUS_SUCCESS;
+
+    status = _sample_ebpf_extension_update_store_entries();
+    if (!NT_SUCCESS(status)) {
+        return status;
+    }
 
     extension_data = (ebpf_extension_data_t*)_sample_ebpf_extension_program_info_provider_characteristics
                          .ProviderRegistrationInstance.NpiSpecificCharacteristics;

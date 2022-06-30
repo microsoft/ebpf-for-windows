@@ -18,6 +18,7 @@ $build_directory=".\x64\Debug"
     "ebpfsvc.exe",
     "MSVCP140D.dll",
     "NetEbpfExt.sys",
+    "net-ebpf-ext.guid",
     "ucrtbased.dll",
     "VCRUNTIME140_1D.dll",
     "VCRUNTIME140D.dll")

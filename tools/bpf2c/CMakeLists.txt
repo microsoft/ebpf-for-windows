@@ -21,6 +21,7 @@ target_link_libraries("bpf2c" PRIVATE
   "elf_spec"
   "EbpfApi"
   "external::ebpfverifier"
+  "export_program_info_runner"
 )
 
 target_compile_definitions("bpf2c" PRIVATE

@@ -123,6 +123,13 @@ jobs:
         mkdir ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\TestLogs
         wpr.exe -start ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\ebpfforwindows.wprp -filemode
 
+    - name: Configure eBPF store
+      id: configure_ebpf_store
+      working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+      run: |
+        .\export_program_info.exe --clear
+        .\export_program_info.exe
+
     - name: Run pre test command
       id: run_pre_test_command
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
