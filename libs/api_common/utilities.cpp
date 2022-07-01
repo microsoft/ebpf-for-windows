@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
+#include <codecvt>
 #include "framework.h"
 #include "utilities.hpp"
 
@@ -50,4 +52,11 @@ guid_to_string(_In_ const GUID* guid)
         guid->Data4[7]);
 
     return std::string(guid_string);
+}
+
+std::string
+ebpf_down_cast_from_wstring(const std::wstring& wide_string)
+{
+    std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
+    return converter.to_bytes(wide_string);
 }

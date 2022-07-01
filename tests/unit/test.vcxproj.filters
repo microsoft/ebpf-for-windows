@@ -46,6 +46,9 @@
     <ClCompile Include="wer_report_test_wrapper.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="export_program_info_test.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\end_to_end\helpers.h">
@@ -65,5 +68,8 @@
     <CopyFileToFolders Include="..\sample\bad2.o">
       <Filter>Bad Object Files</Filter>
     </CopyFileToFolders>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
 </Project>

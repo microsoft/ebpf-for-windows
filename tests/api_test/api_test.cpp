@@ -15,6 +15,7 @@
 #include "bpf/libbpf.h"
 #include "catch_wrapper.hpp"
 #include "common_tests.h"
+#include "ebpf_structs.h"
 #include <io.h>
 #include "program_helper.h"
 #include "service_helper.h"

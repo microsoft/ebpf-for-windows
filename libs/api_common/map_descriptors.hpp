@@ -39,6 +39,3 @@ get_map_descriptor_at_index(int index);
 
 ebpf_handle_t
 get_map_handle_at_index(size_t index);
-
-void
-clear_program_info_cache();

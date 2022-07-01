@@ -25,12 +25,16 @@ wdk_add_driver("NetEbpfExt" WINVER "${EBPFFORWINDOWS_WDK_WINVER}" KMDF "${EBPFFO
 
   net_ebpf_ext_program_info.h
   resource.h
-  
+
+  net_ebpf_ext_tracelog.c
+  net_ebpf_ext_tracelog.h
+
   net_ebpf_ext_drv.c
 )
 
 target_include_directories("NetEbpfExt" PRIVATE
   "${CMAKE_SOURCE_DIR}/include"
+  "${CMAKE_SOURCE_DIR}/include/kernel"
   "${CMAKE_SOURCE_DIR}/libs/platform"
   "${CMAKE_SOURCE_DIR}/libs/platform/kernel"
 )

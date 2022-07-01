@@ -45,6 +45,7 @@ Environment:
 #include "net_ebpf_ext_hook_provider.h"
 #include "net_ebpf_ext_prog_info_provider.h"
 #include "net_ebpf_ext_program_info.h"
+#include "net_ebpf_ext_tracelog.h"
 
 #define NET_EBPF_EXTENSION_POOL_TAG 'Nfbe'
 #define NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION 0

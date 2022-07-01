@@ -150,6 +150,7 @@ ebpf_api_initiate()
     EBPF_LOG_ENTRY();
 
     ebpf_trace_initiate();
+
     // This is best effort. If device handle does not initialize,
     // it will be re-attempted before an IOCTL call is made.
     initialize_device_handle();
@@ -161,12 +162,18 @@ ebpf_api_initiate()
         clean_up_rpc_binding();
         EBPF_RETURN_RESULT(win32_error_code_to_ebpf_result(status));
     }
+
+    // Load provider data from ebpf store. This is best effort
+    // as there may be no data present in the store.
+    load_ebpf_provider_data();
+
     EBPF_RETURN_RESULT(EBPF_SUCCESS);
 }
 
 void
 ebpf_api_terminate()
 {
+    clear_ebpf_provider_data();
     _clean_up_ebpf_objects();
     clean_up_device_handle();
     clean_up_rpc_binding();
@@ -1106,7 +1113,6 @@ ebpf_program_attach_by_fd(
     _Outptr_ struct bpf_link** link)
 {
     EBPF_LOG_ENTRY();
-    ebpf_assert(attach_type);
     ebpf_assert(attach_parameters || !attach_parameters_size);
     ebpf_assert(link);
     *link = nullptr;
@@ -1117,7 +1123,7 @@ ebpf_program_attach_by_fd(
     }
 
     if (attach_type == nullptr) {
-        // We can only use an unspecified attach_type if we can find an ebpf_program_t.
+        // Unspecified attach_type is allowed only if we can find an ebpf_program_t.
         ebpf_program_t* program = _get_ebpf_program_from_handle(program_handle);
         if (program == nullptr) {
             EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
@@ -3187,28 +3193,39 @@ ebpf_get_program_type_by_name(
     _In_z_ const char* name, _Out_ ebpf_program_type_t* program_type, _Out_ ebpf_attach_type_t* expected_attach_type)
 {
     ebpf_result_t result = EBPF_SUCCESS;
-    ebpf_program_type_t* program_type_uuid;
     EBPF_LOG_ENTRY();
     ebpf_assert(name);
     ebpf_assert(program_type);
     ebpf_assert(expected_attach_type);
 
-    try {
-        const EbpfProgramType& type = get_program_type_windows(name, name);
-        if (IsEqualGUID(*((ebpf_program_type_t*)type.platform_specific_data), EBPF_PROGRAM_TYPE_UNSPECIFIED)) {
-            result = EBPF_KEY_NOT_FOUND;
-            goto Exit;
-        }
-        program_type_uuid = (ebpf_program_type_t*)type.platform_specific_data;
+    result = get_program_and_attach_type(name, program_type, expected_attach_type);
 
-        *program_type = *program_type_uuid;
-        *expected_attach_type = *(get_attach_type_windows(name));
-    } catch (...) {
-        result = EBPF_KEY_NOT_FOUND;
+    EBPF_RETURN_RESULT(result);
+}
+
+ebpf_result_t
+ebpf_get_bpf_program_type_by_name(
+    _In_z_ const char* name, _Out_ bpf_prog_type_t* program_type, _Out_ bpf_attach_type_t* expected_attach_type)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+    EBPF_LOG_ENTRY();
+    ebpf_assert(name);
+    ebpf_assert(program_type);
+    ebpf_assert(expected_attach_type);
+
+    result = get_bpf_program_and_attach_type(name, program_type, expected_attach_type);
+
+    EBPF_RETURN_RESULT(result);
+}
+
+_Ret_maybenull_ const ebpf_program_type_t*
+ebpf_get_ebpf_program_type(bpf_prog_type_t bpf_program_type)
+{
+    if (bpf_program_type == BPF_PROG_TYPE_UNSPEC) {
+        return &EBPF_PROGRAM_TYPE_UNSPECIFIED;
     }
 
-Exit:
-    EBPF_RETURN_RESULT(result);
+    return get_ebpf_program_type(bpf_program_type);
 }
 
 _Ret_maybenull_z_ const char*
@@ -3216,6 +3233,7 @@ ebpf_get_program_type_name(_In_ const ebpf_program_type_t* program_type)
 {
     EBPF_LOG_ENTRY();
     ebpf_assert(program_type);
+
     try {
         const EbpfProgramType& type = get_program_type_windows(*program_type);
         EBPF_RETURN_POINTER(const char*, type.name.c_str());
