@@ -9,6 +9,8 @@
 #include "rpc_interface_h.h"
 #include "svc_common.h"
 
+bool use_ebpf_store = false;
+
 ebpf_result_t
 ebpf_server_verify_and_load_program(
     /* [ref][in] */ ebpf_program_load_info* info,

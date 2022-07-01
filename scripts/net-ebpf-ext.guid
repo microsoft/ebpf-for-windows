@@ -1,0 +1,5 @@
+; Copyright (c) Microsoft Corporation
+; SPDX-License-Identifier: MIT
+;
+; Include all Tracelog events from NetEbpfExt.sys
+f2f2ca01-ad02-4a07-9e90-95a2334f3692

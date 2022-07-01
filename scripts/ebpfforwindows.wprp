@@ -11,6 +11,7 @@
     </EventCollector>
 
     <EventProvider Id="ExecutionContext" Name="394f321c-5cf4-404c-aa34-4df1428a7f9c" NonPagedMemory="true"/>
+    <EventProvider Id="NetEbpfExt" Name="f2f2ca01-ad02-4a07-9e90-95a2334f3692" NonPagedMemory="true"/>
 
     <Profile
         Id="EbpfForWindowsProvider.Verbose.File"
@@ -23,6 +24,9 @@
         <EventCollectorId Value="EventCollector_EbpfCoreProvider">
           <EventProviders>
             <EventProviderId Value="ExecutionContext"/>
+          </EventProviders>
+          <EventProviders>
+            <EventProviderId Value="NetEbpfExt"/>
           </EventProviders>
         </EventCollectorId>
       </Collectors>
