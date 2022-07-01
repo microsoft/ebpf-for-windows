@@ -16,6 +16,11 @@ if %install% == 1 (
     call .\install-ebpf.bat
 )
 @echo =====================
+@echo Populate eBPF Store.
+@echo =====================
+.\export_program_info.exe --clear
+.\export_program_info.exe
+@echo =====================
 @echo Executing Unit Tests.
 @echo =====================
 .\unit_tests.exe

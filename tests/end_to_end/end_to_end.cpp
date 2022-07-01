@@ -11,15 +11,14 @@
 #include <in6addr.h> // Must come after Winsock2.h
 
 #include "api_common.hpp"
+#include "api_internal.h"
 #include "bpf2c.h"
 #include "bpf/bpf.h"
 #include "bpf/libbpf.h"
 #include "capture_helper.hpp"
 #include "catch_wrapper.hpp"
 #include "common_tests.h"
-#include "ebpf_bind_program_data.h"
 #include "ebpf_core.h"
-#include "ebpf_xdp_program_data.h"
 #include "helpers.h"
 #include "ioctl_helper.h"
 #include "mock.h"
@@ -41,6 +40,9 @@ namespace ebpf {
 #define PARAMETERS_PATH_PREFIX L"System\\CurrentControlSet\\Services\\"
 #define SERVICE_PARAMETERS L"Parameters"
 #define NPI_MODULE_ID L"NpiModuleId"
+
+#define BPF_PROG_TYPE_INVALID 100
+#define BPF_ATTACH_TYPE_INVALID 100
 
 #define CONCAT(s1, s2) s1 s2
 #define DECLARE_ALL_TEST_CASES(_name, _group, _function)                              \
@@ -2385,4 +2387,72 @@ TEST_CASE("ebpf_get_program_type_name invalid types", "[end-to-end]")
     REQUIRE(UuidCreate(&program_type) == RPC_S_OK);
     const char* name2 = ebpf_get_program_type_name(&program_type);
     REQUIRE(name2 == nullptr);
+}
+
+TEST_CASE("get_ebpf_attach_type", "[end_to_end]")
+{
+    _test_helper_end_to_end test_helper;
+
+    // First test a valid input.
+    const ebpf_attach_type_t* attach_type = get_ebpf_attach_type(BPF_ATTACH_TYPE_BIND);
+    REQUIRE(attach_type != nullptr);
+
+    REQUIRE(IsEqualGUID(*attach_type, EBPF_ATTACH_TYPE_BIND) != 0);
+
+    // Try with BPF_ATTACH_TYPE_UNSPEC.
+    REQUIRE(get_ebpf_attach_type(BPF_ATTACH_TYPE_UNSPEC) == nullptr);
+
+    // Try with invalid bpf attach type.
+    REQUIRE(get_ebpf_attach_type((bpf_attach_type_t)BPF_ATTACH_TYPE_INVALID) == nullptr);
+}
+
+TEST_CASE("get_bpf_program_type", "[end_to_end]")
+{
+    _test_helper_end_to_end test_helper;
+
+    // First test a valid input.
+    REQUIRE(get_bpf_program_type(&EBPF_PROGRAM_TYPE_SAMPLE) == BPF_PROG_TYPE_SAMPLE);
+
+    // Try with EBPF_PROGRAM_TYPE_UNSPECIFIED.
+    REQUIRE(get_bpf_program_type(&EBPF_PROGRAM_TYPE_UNSPECIFIED) == BPF_PROG_TYPE_UNSPEC);
+
+    // Try with invalid program type.
+    GUID invalid_program_type;
+    REQUIRE(UuidCreate(&invalid_program_type) == RPC_S_OK);
+    REQUIRE(get_bpf_program_type(&invalid_program_type) == BPF_PROG_TYPE_UNSPEC);
+}
+
+TEST_CASE("ebpf_get_ebpf_program_type", "[end_to_end]")
+{
+    _test_helper_end_to_end test_helper;
+
+    // Try with BPF_PROG_TYPE_UNSPEC.
+    const ebpf_program_type_t* program_type = ebpf_get_ebpf_program_type(BPF_PROG_TYPE_UNSPEC);
+    REQUIRE(program_type != nullptr);
+    REQUIRE(IsEqualGUID(EBPF_PROGRAM_TYPE_UNSPECIFIED, *program_type) != 0);
+
+    // Try a valid bpf prog type.
+    program_type = ebpf_get_ebpf_program_type(BPF_PROG_TYPE_XDP);
+    REQUIRE(program_type != nullptr);
+    REQUIRE(IsEqualGUID(EBPF_PROGRAM_TYPE_XDP, *program_type) != 0);
+
+    // Try an invalid bpf prog type.
+    program_type = ebpf_get_ebpf_program_type((bpf_prog_type_t)BPF_PROG_TYPE_INVALID);
+    REQUIRE(program_type == nullptr);
+}
+
+TEST_CASE("get_bpf_attach_type", "[end_to_end]")
+{
+    _test_helper_end_to_end test_helper;
+
+    // Try with EBPF_ATTACH_TYPE_XDP.
+    REQUIRE(get_bpf_attach_type(&EBPF_ATTACH_TYPE_XDP) == BPF_XDP);
+
+    // Try with EBPF_ATTACH_TYPE_UNSPECIFIED.
+    REQUIRE(get_bpf_attach_type(&EBPF_ATTACH_TYPE_UNSPECIFIED) == BPF_ATTACH_TYPE_UNSPEC);
+
+    // Try with invalid attach type.
+    GUID invalid_attach_type;
+    REQUIRE(UuidCreate(&invalid_attach_type) == RPC_S_OK);
+    REQUIRE(get_bpf_attach_type(&invalid_attach_type) == BPF_ATTACH_TYPE_UNSPEC);
 }

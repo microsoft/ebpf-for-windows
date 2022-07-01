@@ -85,6 +85,18 @@ function Start-eBPFComponents
     Write-Host "eBPFSvc service started."
 }
 
+#
+# Update eBPF store.
+#
+function Update-eBPFStore
+{
+    Write-Log "Clearing eBPF store"
+    .\export_program_info.exe --clear
+
+    Write-Log "Populating eBPF store"
+    .\export_program_info.exe
+}
+
 function Install-eBPFComponents
 {
     # Stop eBPF Components
@@ -100,6 +112,10 @@ function Install-eBPFComponents
 
     # Start all components.
     Start-eBPFComponents
+
+    ## TODO: Issue 1231, remove this step when this issue is fixed.
+    # Update eBPF store.
+    Update-eBPFStore
 }
 
 function Stop-eBPFComponents

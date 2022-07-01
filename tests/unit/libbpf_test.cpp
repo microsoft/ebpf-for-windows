@@ -1904,8 +1904,9 @@ TEST_CASE("bpf_obj_get_info_by_fd", "[libbpf]")
     Platform::_close(link_fd);
 }
 
-TEST_CASE("libbpf_prog_type_by_name", "[libbpf]")
+TEST_CASE("libbpf_prog_type_by_name_test", "[libbpf]")
 {
+    _test_helper_end_to_end test_helper;
     bpf_prog_type prog_type;
     bpf_attach_type expected_attach_type;
 
@@ -1917,7 +1918,7 @@ TEST_CASE("libbpf_prog_type_by_name", "[libbpf]")
     // Try a Windows-specific type.
     REQUIRE(libbpf_prog_type_by_name("bind", &prog_type, &expected_attach_type) == 0);
     REQUIRE(prog_type == BPF_PROG_TYPE_BIND);
-    REQUIRE(expected_attach_type == BPF_ATTACH_TYPE_UNSPEC);
+    REQUIRE(expected_attach_type == BPF_ATTACH_TYPE_BIND);
 
     // Try a random name. This should fail.
     REQUIRE(libbpf_prog_type_by_name("default", &prog_type, &expected_attach_type) == -1);

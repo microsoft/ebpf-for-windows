@@ -29,7 +29,7 @@ target_include_directories("service" PRIVATE
 target_link_libraries("service" PRIVATE
   "ebpf_for_windows_cpp_settings"
   "rpc_interface"
-  "encode_program_info_headers"
+  "export_program_info_runner"
   "external::boost"
   "external::ebpfverifier"
 )

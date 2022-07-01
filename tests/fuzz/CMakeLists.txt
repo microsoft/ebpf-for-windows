@@ -36,7 +36,7 @@ target_include_directories("fuzz" PRIVATE
   "${CMAKE_SOURCE_DIR}/tests/sample"
   "${CMAKE_SOURCE_DIR}/tests/sample/ext/inc"
   "${CMAKE_SOURCE_DIR}/tests/xdp"
-  "${CMAKE_SOURCE_DIR}/tools/encode_program_info"
+  "${CMAKE_SOURCE_DIR}/tools/export_program_info"
 )
 
 target_link_libraries("fuzz" PRIVATE

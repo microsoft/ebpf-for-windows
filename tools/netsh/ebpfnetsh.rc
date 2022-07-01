@@ -68,7 +68,7 @@ BEGIN
 \n                  program.\
 \n      type      - A string used as if it were a section name, to\
 \n                  determine the program type and expected attach\
-\n                  type.  If not specified, the default is xdp.\
+\n                  type.\
 \n      pinpath   - Optionally the name to pin the program to.\
 \n      interface - Optionally the friendly name or index of a\
 \n                  network interface to which an XDP program should be attached.\
@@ -216,6 +216,9 @@ BEGIN
 \n      section   - Optionally the name of the section containing the\
 \n                  program.  If not specified, the default is to use the\
 \n                  first code section.\
+\n      type      - A string used as if it were a section name, to\
+\n                  determine the program type and expected attach\
+\n                  type.\
 \n      level     - One of the following values:\
 \n                   normal: Only display details of errors. This is the\
 \n                           default.\
