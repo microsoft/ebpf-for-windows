@@ -44,7 +44,6 @@ target_link_libraries("api" PRIVATE
   "ebpf_for_windows_cpp_settings"
   "rpc_interface"
   "elf_spec"
-  "export_program_info_runner"
   "external::ebpfverifier"
   "external::boost"
   "external::libbpf"
