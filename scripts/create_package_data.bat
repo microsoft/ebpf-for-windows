@@ -1,5 +1,5 @@
-# Copyright (c) Microsoft Corporation
-# SPDX-License-Identifier: MIT
+rem Copyright (c) Microsoft Corporation
+rem SPDX-License-Identifier: MIT
 @echo off
 
 mkdir package_data

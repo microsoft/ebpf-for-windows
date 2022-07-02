@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation
 # SPDX-License-Identifier: MIT
 
-cmake_minimum_required(VERSION 3.22)
+cmake_minimum_required(VERSION 3.20)
 project("ebpf-for-windows")
 
 set(EBPFFORWINDOWS_PROGRAM_DATA "" CACHE PATH "Path containing program data")
