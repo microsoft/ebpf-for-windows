@@ -91,9 +91,6 @@
     <ProjectReference Include="..\..\..\libs\elf_spec\elf_spec.vcxproj">
       <Project>{c3d2cd73-bf4c-47df-8808-2a9996124d5b}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\tools\export_program_info\export_program_info.vcxproj">
-      <Project>{fa9bb88d-8259-40c1-9422-bdedf9e9ce68}</Project>
-    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="$(SolutionDir)scripts\create_bpf2c_corpus.bat">
