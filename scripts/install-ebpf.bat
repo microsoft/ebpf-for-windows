@@ -32,6 +32,7 @@ IF "%WithSampleExt%"=="true" (
   sc delete SampleEbpfExt
 )
 sc delete EbpfCore
+netsh del helper ebpfnetsh.dll
 
 rem Copy the new binaries to the appropriate system location
 copy *.sys %windir%\system32\drivers
@@ -49,7 +50,7 @@ IF "%WithSampleExt%"=="true" (
 )
 %windir%\system32\ebpfsvc.exe install
 @if ERRORLEVEL 1 goto EOF
-netsh add helper %windir%\system32\ebpfnetsh.dll
+netsh add helper ebpfnetsh.dll
 @if ERRORLEVEL 1 goto EOF
 
 rem Start the binaries

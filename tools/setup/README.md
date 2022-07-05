@@ -25,11 +25,12 @@ The generator can either be:
  * NuGet
 
 ```
-cmake -S packaging -B package -DEBPFFORWINDOWS_PROGRAM_DATA="C:\Program Files\ebpf-for-windows" -DEBPFFORWINDOWS_VERSION=1.0.0 -DCPACK_GENERATOR=WIX
+scripts\create_package_data.bat x64\Release
+cmake -S tools\setup -B build\setup -DEBPFFORWINDOWS_PROGRAM_DATA=".\x64\Release\package_data" -DEBPFFORWINDOWS_VERSION=1.0.0 -DCPACK_GENERATOR=WIX
 ```
 
 ## Build the package
 
 ```
-cmake --build package --target package
+cmake --build build\setup --target package
 ```

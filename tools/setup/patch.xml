@@ -1,0 +1,86 @@
+<!--
+   Copyright (c) Microsoft Corporation
+   SPDX-License-Identifier: MIT
+-->
+<CPackWiXPatch>
+    <!-- For documentation see
+         https://wixtoolset.org/documentation/manual/v3/howtos/ui_and_localization/run_program_after_install.html
+         https://wixtoolset.org/documentation/manual/v3/customactions/qtexec.html
+         https://wixtoolset.org/documentation/manual/v3/xsd/wix/customaction.html
+         https://docs.microsoft.com/en-us/windows/win32/msi/custom-actions
+         https://docs.microsoft.com/en-us/windows/win32/msi/standard-actions-reference
+      -->
+	<CPackWiXFragment Id="#PRODUCT">
+        <!-- Install time actions -->
+
+        <SetProperty Id="Test_Whoami2" Value='"[WindowsFolder]System32\whoami.exe"'
+                     Before="InstallInitialize" Sequence="execute" />
+        <CustomAction Id="Test_Whoami2" BinaryKey="WixCA" DllEntry="WixQuietExec" Execute="deferred"
+                      Impersonate='no' Return="check" />
+
+        <SetProperty Id="Install_EbpfCore" Before="InstallInitialize" Sequence="execute"
+                     Value='"[WindowsFolder]System32\sc.exe" create EbpfCore type=kernel start=demand binpath="[ProgramFiles64Folder]ebpf-for-windows\\drivers\\EbpfCore.sys"' />
+        <CustomAction Id="Install_EbpfCore" BinaryKey="WixCA" DllEntry="WixQuietExec" Execute="deferred"
+                      Impersonate='no' Return="check" />
+
+        <SetProperty Id="Install_NetEbpfExt" Before="InstallInitialize" Sequence="execute"
+                     Value='"[WindowsFolder]System32\sc.exe" create NetEbpfExt type=kernel start=demand binpath="[ProgramFiles64Folder]ebpf-for-windows\\drivers\\netebpfext.sys"' />
+        <CustomAction Id="Install_NetEbpfExt" BinaryKey="WixCA" DllEntry="WixQuietExec" Execute="deferred"
+                      Impersonate='no' Return="check" />
+
+        <SetProperty Id="Install_EbpfSvc" Before="InstallInitialize" Sequence="execute"
+                     Value='"[ProgramFiles64Folder]ebpf-for-windows\ebpfsvc.exe" install' />
+        <CustomAction Id="Install_EbpfSvc" BinaryKey="WixCA" DllEntry="WixQuietExec" Execute="deferred"
+                      Impersonate='no' Return="check" />
+
+        <SetProperty Id="Install_EbpfNetsh" Before="InstallInitialize" Sequence="execute"
+                     Value='"[WindowsFolder]System32\netsh.exe" add helper "[ProgramFiles64Folder]ebpf-for-windows\ebpfnetsh.dll"' />
+        <CustomAction Id="Install_EbpfNetsh" BinaryKey="WixCA" DllEntry="WixQuietExec" Execute="deferred"
+                      Impersonate='no' Return="check" />
+
+        <InstallExecuteSequence>
+            <Custom Action="Test_Whoami2" After="InstallFiles">NOT Installed</Custom>
+            <Custom Action="Install_EbpfCore" After="Test_Whoami2">NOT Installed</Custom>
+            <Custom Action="Install_NetEbpfExt" After="Install_EbpfCore">NOT Installed</Custom>
+            <Custom Action="Install_EbpfSvc" After="Install_NetEbpfExt">NOT Installed</Custom>
+            <Custom Action="Install_EbpfNetsh" After="Install_EbpfSvc">NOT Installed</Custom>
+        </InstallExecuteSequence>
+
+        <!-- Uninstall time actions -->
+
+        <CustomAction Id="Uninstall_EbpfCore"
+                      FileKey="CM_FP_Runtime.drivers.EbpfCore.sys"
+                      Execute="deferred"
+                      ExeCommand='"[WindowsFolder]System32\\sc.exe" delete EbpfCore'
+                      Impersonate='no'
+                      Return="ignore" />
+
+        <CustomAction Id="Uninstall_NetEbpfExt"
+                      FileKey="CM_FP_Runtime.drivers.NetEbpfExt.sys"
+                      Execute="deferred"
+                      ExeCommand='"[WindowsFolder]System32\\sc.exe" delete NetEbpfExt'
+                      Impersonate='no'
+                      Return="ignore" />
+
+        <CustomAction Id="Uninstall_EbpfSvc"
+                      FileKey="CM_FP_Runtime.ebpfsvc.exe"
+                      Execute="deferred"
+                      ExeCommand='"[WindowsFolder]System32\\sc.exe" delete ebpfsvc'
+                      Impersonate='no'
+                      Return="ignore" />
+
+        <CustomAction Id="Uninstall_EbpfNetsh"
+                      FileKey="CM_FP_Runtime.ebpfnetsh.dll"
+                      Execute="deferred"
+                      ExeCommand='"[WindowsFolder]System32\\netsh.exe" del helper "[ProgramFiles64Folder]\\ebpf-for-windows\\ebpfnetsh.dll"'
+                      Impersonate='no'
+                      Return="ignore" />
+
+        <InstallExecuteSequence>
+            <Custom Action="Uninstall_EbpfNetsh" After="RemoveRegistryValues">Installed</Custom>
+            <Custom Action="Uninstall_EbpfSvc" After="RemoveRegistryValues">Installed</Custom>
+            <Custom Action="Uninstall_EbpfCore" After="RemoveRegistryValues">Installed</Custom>
+            <Custom Action="Uninstall_NetEbpfExt" After="RemoveRegistryValues">Installed</Custom>
+        </InstallExecuteSequence>
+	</CPackWiXFragment>
+</CPackWiXPatch>
