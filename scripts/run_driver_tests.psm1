@@ -59,7 +59,6 @@ function Invoke-Test
     $ArgumentsList = @()
 
     if ($Coverage) {
-        $Env:EBPF_ENABLE_WER_REPORT="yes"
         $ArgumentsList += @('-q', '--modules=C:\eBPF', '--export_type', ('binary:' + $TestName + '.cov'), '--', $TestName)
         $TestName = $CodeCoverage
     }
@@ -71,10 +70,12 @@ function Invoke-Test
     Write-Log "$TestName $ArgumentsList"
     $Output = &$TestName $ArgumentsList
     $TestName = $OriginalTestName
+    Write-Log "$TestName completed."
 
     # Check for errors.
     Out-String -InputObject $Output | Write-Log
     $ParsedOutput = $Output.Split(" ")
+    Write-Log ("ParsedOutput Length {0}" -f $ParsedOutput.Length)
     if (($LASTEXITCODE -ne 0) -or ($ParsedOutput[$ParsedOutput.Length -2] -eq "failed")) { throw ("$TestName Test Failed.") }
 
     Write-Log "$TestName Passed" -ForegroundColor Green
