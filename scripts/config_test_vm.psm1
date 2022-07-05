@@ -267,7 +267,7 @@ function Import-ResultsFromVM
             Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
 
             Write-Log ("Stopping ETW tracing, creating file: " + $EtlFile)
-            Start-Process -FilePath "wpr.exe" -ArgumentList @("-stop", $EtlFile) -NoNewWindow -Wait
+            Start-Process -FilePath "wpr.exe" -ArgumentList @("-stop", "$WorkingDirectory\$EtlFile") -NoNewWindow -Wait
         } -ArgumentList ("ebpf", $LogFileName, $EtlFile) -ErrorAction Ignore
 
         # Copy ETL from Test VM.

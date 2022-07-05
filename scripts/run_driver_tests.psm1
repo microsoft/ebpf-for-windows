@@ -59,6 +59,7 @@ function Invoke-Test
     $ArgumentsList = @()
 
     if ($Coverage) {
+        $Env:EBPF_ENABLE_WER_REPORT="yes"
         $ArgumentsList += @('-q', '--modules=C:\eBPF', '--export_type', ('binary:' + $TestName + '.cov'), '--', $TestName)
         $TestName = $CodeCoverage
     }
