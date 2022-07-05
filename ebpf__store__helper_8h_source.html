@@ -207,211 +207,208 @@ $(function() {
 <div class="line"><a name="l00144"></a><span class="lineno">  144</span>&#160;        }</div>
 <div class="line"><a name="l00145"></a><span class="lineno">  145</span>&#160; </div>
 <div class="line"><a name="l00146"></a><span class="lineno">  146</span>&#160;        <span class="comment">// Save bpf_prog_type.</span></div>
-<div class="line"><a name="l00147"></a><span class="lineno">  147</span>&#160;        status =</div>
-<div class="line"><a name="l00148"></a><span class="lineno">  148</span>&#160;            <a class="code" href="user_2ebpf__registry__helper_8h.html#a70ec7616cadc98c033f052354316f730">write_registry_value_dword</a>(section_key, <a class="code" href="ebpf__windows_8h.html#a0439b65e1f48db16dad577a7a1d666be">EBPF_PROGRAM_DATA_BPF_PROG_TYPE</a>, section_info[i].bpf_program_type);</div>
-<div class="line"><a name="l00149"></a><span class="lineno">  149</span>&#160;        <span class="keywordflow">if</span> (!<a class="code" href="kernel_2ebpf__registry__helper_8h.html#a69e14d22a3bf619599a764e7936249fc">IS_SUCCESS</a>(status)) {</div>
-<div class="line"><a name="l00150"></a><span class="lineno">  150</span>&#160;            <a class="code" href="user_2ebpf__registry__helper_8h.html#a3f167c302201f8702e1fd218f7410e2d">close_registry_key</a>(section_key);</div>
-<div class="line"><a name="l00151"></a><span class="lineno">  151</span>&#160;            <span class="keywordflow">goto</span> Exit;</div>
-<div class="line"><a name="l00152"></a><span class="lineno">  152</span>&#160;        }</div>
-<div class="line"><a name="l00153"></a><span class="lineno">  153</span>&#160; </div>
-<div class="line"><a name="l00154"></a><span class="lineno">  154</span>&#160;        <span class="comment">// Save bpf_attach_type.</span></div>
-<div class="line"><a name="l00155"></a><span class="lineno">  155</span>&#160;        status =</div>
-<div class="line"><a name="l00156"></a><span class="lineno">  156</span>&#160;            <a class="code" href="user_2ebpf__registry__helper_8h.html#a70ec7616cadc98c033f052354316f730">write_registry_value_dword</a>(section_key, <a class="code" href="ebpf__windows_8h.html#ac28e14fb5d75481672655479ef9111b9">EBPF_SECTION_DATA_BPF_ATTACH_TYPE</a>, section_info[i].<a class="code" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5a">bpf_attach_type</a>);</div>
-<div class="line"><a name="l00157"></a><span class="lineno">  157</span>&#160;        <span class="keywordflow">if</span> (!<a class="code" href="kernel_2ebpf__registry__helper_8h.html#a69e14d22a3bf619599a764e7936249fc">IS_SUCCESS</a>(status)) {</div>
-<div class="line"><a name="l00158"></a><span class="lineno">  158</span>&#160;            <a class="code" href="user_2ebpf__registry__helper_8h.html#a3f167c302201f8702e1fd218f7410e2d">close_registry_key</a>(section_key);</div>
-<div class="line"><a name="l00159"></a><span class="lineno">  159</span>&#160;            <span class="keywordflow">goto</span> Exit;</div>
-<div class="line"><a name="l00160"></a><span class="lineno">  160</span>&#160;        }</div>
-<div class="line"><a name="l00161"></a><span class="lineno">  161</span>&#160; </div>
-<div class="line"><a name="l00162"></a><span class="lineno">  162</span>&#160;        <a class="code" href="user_2ebpf__registry__helper_8h.html#a3f167c302201f8702e1fd218f7410e2d">close_registry_key</a>(section_key);</div>
-<div class="line"><a name="l00163"></a><span class="lineno">  163</span>&#160;    }</div>
-<div class="line"><a name="l00164"></a><span class="lineno">  164</span>&#160; </div>
-<div class="line"><a name="l00165"></a><span class="lineno">  165</span>&#160;Exit:</div>
-<div class="line"><a name="l00166"></a><span class="lineno">  166</span>&#160;    <span class="keywordflow">if</span> (section_info_key) {</div>
-<div class="line"><a name="l00167"></a><span class="lineno">  167</span>&#160;        <a class="code" href="user_2ebpf__registry__helper_8h.html#a3f167c302201f8702e1fd218f7410e2d">close_registry_key</a>(section_info_key);</div>
-<div class="line"><a name="l00168"></a><span class="lineno">  168</span>&#160;    }</div>
-<div class="line"><a name="l00169"></a><span class="lineno">  169</span>&#160;    <span class="keywordflow">if</span> (provider_key) {</div>
-<div class="line"><a name="l00170"></a><span class="lineno">  170</span>&#160;        <a class="code" href="user_2ebpf__registry__helper_8h.html#a3f167c302201f8702e1fd218f7410e2d">close_registry_key</a>(provider_key);</div>
-<div class="line"><a name="l00171"></a><span class="lineno">  171</span>&#160;    }</div>
-<div class="line"><a name="l00172"></a><span class="lineno">  172</span>&#160; </div>
-<div class="line"><a name="l00173"></a><span class="lineno">  173</span>&#160;    <span class="keywordflow">return</span> status;</div>
-<div class="line"><a name="l00174"></a><span class="lineno">  174</span>&#160;}</div>
-<div class="line"><a name="l00175"></a><span class="lineno">  175</span>&#160; </div>
-<div class="line"><a name="l00184"></a><span class="lineno">  184</span>&#160;<span class="keyword">static</span> <a class="code" href="kernel_2ebpf__registry__helper_8h.html#af4bbc5ce8ab348944ac613d03aba8fce">__return_type</a></div>
-<div class="line"><a name="l00185"></a><span class="lineno">  185</span>&#160;ebpf_store_update_program_information(</div>
-<div class="line"><a name="l00186"></a><span class="lineno">  186</span>&#160;    _In_reads_(program_info_count) <a class="code" href="struct__ebpf__program__info.html">ebpf_program_info_t</a>* program_info, uint32_t program_info_count)</div>
-<div class="line"><a name="l00187"></a><span class="lineno">  187</span>&#160;{</div>
-<div class="line"><a name="l00188"></a><span class="lineno">  188</span>&#160;    <a class="code" href="kernel_2ebpf__registry__helper_8h.html#af4bbc5ce8ab348944ac613d03aba8fce">__return_type</a> status = <a class="code" href="kernel_2ebpf__registry__helper_8h.html#acdf9ea17605dff8b810df8076b6496e2">_SUCCESS</a>;</div>
-<div class="line"><a name="l00189"></a><span class="lineno">  189</span>&#160;    <a class="code" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a> provider_key = NULL;</div>
-<div class="line"><a name="l00190"></a><span class="lineno">  190</span>&#160;    <a class="code" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a> program_info_key = NULL;</div>
-<div class="line"><a name="l00191"></a><span class="lineno">  191</span>&#160; </div>
-<div class="line"><a name="l00192"></a><span class="lineno">  192</span>&#160;    <span class="keywordflow">if</span> (program_info_count == 0) {</div>
-<div class="line"><a name="l00193"></a><span class="lineno">  193</span>&#160;        <span class="keywordflow">return</span> status;</div>
-<div class="line"><a name="l00194"></a><span class="lineno">  194</span>&#160;    }</div>
-<div class="line"><a name="l00195"></a><span class="lineno">  195</span>&#160; </div>
-<div class="line"><a name="l00196"></a><span class="lineno">  196</span>&#160;    <span class="comment">// Open (or create) provider registry path.</span></div>
-<div class="line"><a name="l00197"></a><span class="lineno">  197</span>&#160;    status = _open_or_create_provider_registry_key(&amp;provider_key);</div>
-<div class="line"><a name="l00198"></a><span class="lineno">  198</span>&#160;    <span class="keywordflow">if</span> (!<a class="code" href="kernel_2ebpf__registry__helper_8h.html#a69e14d22a3bf619599a764e7936249fc">IS_SUCCESS</a>(status)) {</div>
-<div class="line"><a name="l00199"></a><span class="lineno">  199</span>&#160;        <span class="keywordflow">goto</span> Exit;</div>
-<div class="line"><a name="l00200"></a><span class="lineno">  200</span>&#160;    }</div>
-<div class="line"><a name="l00201"></a><span class="lineno">  201</span>&#160; </div>
-<div class="line"><a name="l00202"></a><span class="lineno">  202</span>&#160;    <span class="comment">// Open (or create) program data registry path.</span></div>
-<div class="line"><a name="l00203"></a><span class="lineno">  203</span>&#160;    status = <a class="code" href="user_2ebpf__registry__helper_8h.html#a61c9d7d26de7cf1a076508f73dc0c2a6">create_registry_key</a>(provider_key, <a class="code" href="ebpf__windows_8h.html#a632c1dd33a0a2d1adf6b1db235e8fadd">EBPF_PROGRAM_DATA_REGISTRY_PATH</a>, <a class="code" href="kernel_2ebpf__registry__helper_8h.html#ad040db564d9993abf8ef97951a358f56">REG_CREATE_FLAGS</a>, &amp;program_info_key);</div>
-<div class="line"><a name="l00204"></a><span class="lineno">  204</span>&#160;    <span class="keywordflow">if</span> (!<a class="code" href="kernel_2ebpf__registry__helper_8h.html#a69e14d22a3bf619599a764e7936249fc">IS_SUCCESS</a>(status)) {</div>
-<div class="line"><a name="l00205"></a><span class="lineno">  205</span>&#160;        <span class="keywordflow">goto</span> Exit;</div>
-<div class="line"><a name="l00206"></a><span class="lineno">  206</span>&#160;    }</div>
-<div class="line"><a name="l00207"></a><span class="lineno">  207</span>&#160; </div>
-<div class="line"><a name="l00208"></a><span class="lineno">  208</span>&#160;    <span class="keywordflow">for</span> (uint32_t i = 0; i &lt; program_info_count; i++) {</div>
-<div class="line"><a name="l00209"></a><span class="lineno">  209</span>&#160;        <a class="code" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a> program_key = {0};</div>
-<div class="line"><a name="l00210"></a><span class="lineno">  210</span>&#160;        <a class="code" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a> helper_info_key = {0};</div>
-<div class="line"><a name="l00211"></a><span class="lineno">  211</span>&#160; </div>
-<div class="line"><a name="l00212"></a><span class="lineno">  212</span>&#160;        <span class="comment">// Convert program type GUID to string.</span></div>
-<div class="line"><a name="l00213"></a><span class="lineno">  213</span>&#160;        <span class="keywordtype">wchar_t</span> guid_string[<a class="code" href="kernel_2ebpf__registry__helper_8h.html#a873c1dcbf8d78289e723e355b127a800">GUID_STRING_LENGTH</a> + 1];</div>
-<div class="line"><a name="l00214"></a><span class="lineno">  214</span>&#160;        status = <a class="code" href="user_2ebpf__registry__helper_8h.html#a661025a65ab7f635f6c6639953979ada">convert_guid_to_string</a>(</div>
-<div class="line"><a name="l00215"></a><span class="lineno">  215</span>&#160;            &amp;program_info[i].program_type_descriptor.program_type, guid_string, <a class="code" href="kernel_2ebpf__registry__helper_8h.html#a873c1dcbf8d78289e723e355b127a800">GUID_STRING_LENGTH</a> + 1);</div>
-<div class="line"><a name="l00216"></a><span class="lineno">  216</span>&#160;        <span class="keywordflow">if</span> (status != <a class="code" href="kernel_2ebpf__registry__helper_8h.html#acdf9ea17605dff8b810df8076b6496e2">_SUCCESS</a>) {</div>
-<div class="line"><a name="l00217"></a><span class="lineno">  217</span>&#160;            <span class="keywordflow">return</span> status;</div>
-<div class="line"><a name="l00218"></a><span class="lineno">  218</span>&#160;        }</div>
-<div class="line"><a name="l00219"></a><span class="lineno">  219</span>&#160; </div>
-<div class="line"><a name="l00220"></a><span class="lineno">  220</span>&#160;        status = <a class="code" href="user_2ebpf__registry__helper_8h.html#a61c9d7d26de7cf1a076508f73dc0c2a6">create_registry_key</a>(program_info_key, guid_string, <a class="code" href="kernel_2ebpf__registry__helper_8h.html#ad040db564d9993abf8ef97951a358f56">REG_CREATE_FLAGS</a>, &amp;program_key);</div>
-<div class="line"><a name="l00221"></a><span class="lineno">  221</span>&#160;        <span class="keywordflow">if</span> (!<a class="code" href="kernel_2ebpf__registry__helper_8h.html#a69e14d22a3bf619599a764e7936249fc">IS_SUCCESS</a>(status)) {</div>
-<div class="line"><a name="l00222"></a><span class="lineno">  222</span>&#160;            <span class="keywordflow">goto</span> Exit;</div>
-<div class="line"><a name="l00223"></a><span class="lineno">  223</span>&#160;        }</div>
-<div class="line"><a name="l00224"></a><span class="lineno">  224</span>&#160; </div>
-<div class="line"><a name="l00225"></a><span class="lineno">  225</span>&#160;        <span class="comment">// Save the friendly program type name.</span></div>
-<div class="line"><a name="l00226"></a><span class="lineno">  226</span>&#160;        status = <a class="code" href="user_2ebpf__registry__helper_8h.html#a8aa349ada77d337b528e407fcf4c226e">write_registry_value_ansi_string</a>(</div>
-<div class="line"><a name="l00227"></a><span class="lineno">  227</span>&#160;            program_key, <a class="code" href="ebpf__windows_8h.html#a75ffbfb565d76fe9402f1356ea3c88dc">EBPF_PROGRAM_DATA_NAME</a>, program_info[i].program_type_descriptor.name);</div>
-<div class="line"><a name="l00228"></a><span class="lineno">  228</span>&#160;        <span class="keywordflow">if</span> (!<a class="code" href="kernel_2ebpf__registry__helper_8h.html#a69e14d22a3bf619599a764e7936249fc">IS_SUCCESS</a>(status)) {</div>
-<div class="line"><a name="l00229"></a><span class="lineno">  229</span>&#160;            <a class="code" href="user_2ebpf__registry__helper_8h.html#a3f167c302201f8702e1fd218f7410e2d">close_registry_key</a>(program_key);</div>
-<div class="line"><a name="l00230"></a><span class="lineno">  230</span>&#160;            <span class="keywordflow">goto</span> Exit;</div>
-<div class="line"><a name="l00231"></a><span class="lineno">  231</span>&#160;        }</div>
-<div class="line"><a name="l00232"></a><span class="lineno">  232</span>&#160; </div>
-<div class="line"><a name="l00233"></a><span class="lineno">  233</span>&#160;        <span class="comment">// Save context descriptor.</span></div>
-<div class="line"><a name="l00234"></a><span class="lineno">  234</span>&#160;        status = <a class="code" href="user_2ebpf__registry__helper_8h.html#a8ac9b1a630e07ab18dd1e14f4996f818">write_registry_value_binary</a>(</div>
-<div class="line"><a name="l00235"></a><span class="lineno">  235</span>&#160;            program_key,</div>
-<div class="line"><a name="l00236"></a><span class="lineno">  236</span>&#160;            <a class="code" href="ebpf__windows_8h.html#a94bcdca8405cebed195bf9b85d5b7d9a">EBPF_PROGRAM_DATA_CONTEXT_DESCRIPTOR</a>,</div>
-<div class="line"><a name="l00237"></a><span class="lineno">  237</span>&#160;            (uint8_t*)program_info[i].program_type_descriptor.context_descriptor,</div>
-<div class="line"><a name="l00238"></a><span class="lineno">  238</span>&#160;            <span class="keyword">sizeof</span>(ebpf_context_descriptor_t));</div>
-<div class="line"><a name="l00239"></a><span class="lineno">  239</span>&#160;        <span class="keywordflow">if</span> (!<a class="code" href="kernel_2ebpf__registry__helper_8h.html#a69e14d22a3bf619599a764e7936249fc">IS_SUCCESS</a>(status)) {</div>
-<div class="line"><a name="l00240"></a><span class="lineno">  240</span>&#160;            <a class="code" href="user_2ebpf__registry__helper_8h.html#a3f167c302201f8702e1fd218f7410e2d">close_registry_key</a>(program_key);</div>
-<div class="line"><a name="l00241"></a><span class="lineno">  241</span>&#160;            <span class="keywordflow">goto</span> Exit;</div>
-<div class="line"><a name="l00242"></a><span class="lineno">  242</span>&#160;        }</div>
-<div class="line"><a name="l00243"></a><span class="lineno">  243</span>&#160; </div>
-<div class="line"><a name="l00244"></a><span class="lineno">  244</span>&#160;        <span class="comment">// Save bpf_prog_type.</span></div>
-<div class="line"><a name="l00245"></a><span class="lineno">  245</span>&#160;        status = <a class="code" href="user_2ebpf__registry__helper_8h.html#a70ec7616cadc98c033f052354316f730">write_registry_value_dword</a>(</div>
-<div class="line"><a name="l00246"></a><span class="lineno">  246</span>&#160;            program_key, <a class="code" href="ebpf__windows_8h.html#a0439b65e1f48db16dad577a7a1d666be">EBPF_PROGRAM_DATA_BPF_PROG_TYPE</a>, program_info[i].program_type_descriptor.bpf_prog_type);</div>
-<div class="line"><a name="l00247"></a><span class="lineno">  247</span>&#160;        <span class="keywordflow">if</span> (!<a class="code" href="kernel_2ebpf__registry__helper_8h.html#a69e14d22a3bf619599a764e7936249fc">IS_SUCCESS</a>(status)) {</div>
-<div class="line"><a name="l00248"></a><span class="lineno">  248</span>&#160;            <a class="code" href="user_2ebpf__registry__helper_8h.html#a3f167c302201f8702e1fd218f7410e2d">close_registry_key</a>(program_key);</div>
-<div class="line"><a name="l00249"></a><span class="lineno">  249</span>&#160;            <span class="keywordflow">goto</span> Exit;</div>
-<div class="line"><a name="l00250"></a><span class="lineno">  250</span>&#160;        }</div>
-<div class="line"><a name="l00251"></a><span class="lineno">  251</span>&#160; </div>
-<div class="line"><a name="l00252"></a><span class="lineno">  252</span>&#160;        <span class="comment">// Save &quot;is_privileged&quot;.</span></div>
-<div class="line"><a name="l00253"></a><span class="lineno">  253</span>&#160;        status = <a class="code" href="user_2ebpf__registry__helper_8h.html#a70ec7616cadc98c033f052354316f730">write_registry_value_dword</a>(</div>
-<div class="line"><a name="l00254"></a><span class="lineno">  254</span>&#160;            program_key, <a class="code" href="ebpf__windows_8h.html#a56701cb3f802fe78813d36cb01e23d7b">EBPF_PROGRAM_DATA_PRIVELEGED</a>, program_info[i].program_type_descriptor.is_privileged);</div>
-<div class="line"><a name="l00255"></a><span class="lineno">  255</span>&#160;        <span class="keywordflow">if</span> (!<a class="code" href="kernel_2ebpf__registry__helper_8h.html#a69e14d22a3bf619599a764e7936249fc">IS_SUCCESS</a>(status)) {</div>
-<div class="line"><a name="l00256"></a><span class="lineno">  256</span>&#160;            <a class="code" href="user_2ebpf__registry__helper_8h.html#a3f167c302201f8702e1fd218f7410e2d">close_registry_key</a>(program_key);</div>
-<div class="line"><a name="l00257"></a><span class="lineno">  257</span>&#160;            <span class="keywordflow">goto</span> Exit;</div>
-<div class="line"><a name="l00258"></a><span class="lineno">  258</span>&#160;        }</div>
-<div class="line"><a name="l00259"></a><span class="lineno">  259</span>&#160; </div>
-<div class="line"><a name="l00260"></a><span class="lineno">  260</span>&#160;        <span class="comment">// Save helper count.</span></div>
-<div class="line"><a name="l00261"></a><span class="lineno">  261</span>&#160;        status =</div>
-<div class="line"><a name="l00262"></a><span class="lineno">  262</span>&#160;            <a class="code" href="user_2ebpf__registry__helper_8h.html#a70ec7616cadc98c033f052354316f730">write_registry_value_dword</a>(program_key, <a class="code" href="ebpf__windows_8h.html#a3196d621ed1ac81a273a576abe962840">EBPF_PROGRAM_DATA_HELPER_COUNT</a>, program_info[i].count_of_helpers);</div>
-<div class="line"><a name="l00263"></a><span class="lineno">  263</span>&#160;        <span class="keywordflow">if</span> (!<a class="code" href="kernel_2ebpf__registry__helper_8h.html#a69e14d22a3bf619599a764e7936249fc">IS_SUCCESS</a>(status)) {</div>
-<div class="line"><a name="l00264"></a><span class="lineno">  264</span>&#160;            <a class="code" href="user_2ebpf__registry__helper_8h.html#a3f167c302201f8702e1fd218f7410e2d">close_registry_key</a>(program_key);</div>
-<div class="line"><a name="l00265"></a><span class="lineno">  265</span>&#160;            <span class="keywordflow">goto</span> Exit;</div>
-<div class="line"><a name="l00266"></a><span class="lineno">  266</span>&#160;        }</div>
-<div class="line"><a name="l00267"></a><span class="lineno">  267</span>&#160; </div>
-<div class="line"><a name="l00268"></a><span class="lineno">  268</span>&#160;        <span class="keywordflow">if</span> (program_info[i].count_of_helpers != 0) {</div>
-<div class="line"><a name="l00269"></a><span class="lineno">  269</span>&#160;            <span class="comment">// Create (or open) helper registry path.</span></div>
-<div class="line"><a name="l00270"></a><span class="lineno">  270</span>&#160;            status = <a class="code" href="user_2ebpf__registry__helper_8h.html#a61c9d7d26de7cf1a076508f73dc0c2a6">create_registry_key</a>(</div>
-<div class="line"><a name="l00271"></a><span class="lineno">  271</span>&#160;                program_key, <a class="code" href="ebpf__windows_8h.html#abfb0b1785443602df469e37ee861fd24">EBPF_PROGRAM_DATA_HELPERS_REGISTRY_PATH</a>, <a class="code" href="kernel_2ebpf__registry__helper_8h.html#ad040db564d9993abf8ef97951a358f56">REG_CREATE_FLAGS</a>, &amp;helper_info_key);</div>
-<div class="line"><a name="l00272"></a><span class="lineno">  272</span>&#160;            <span class="keywordflow">if</span> (!<a class="code" href="kernel_2ebpf__registry__helper_8h.html#a69e14d22a3bf619599a764e7936249fc">IS_SUCCESS</a>(status)) {</div>
-<div class="line"><a name="l00273"></a><span class="lineno">  273</span>&#160;                <a class="code" href="user_2ebpf__registry__helper_8h.html#a3f167c302201f8702e1fd218f7410e2d">close_registry_key</a>(program_key);</div>
-<div class="line"><a name="l00274"></a><span class="lineno">  274</span>&#160;                <span class="keywordflow">goto</span> Exit;</div>
-<div class="line"><a name="l00275"></a><span class="lineno">  275</span>&#160;            }</div>
-<div class="line"><a name="l00276"></a><span class="lineno">  276</span>&#160; </div>
-<div class="line"><a name="l00277"></a><span class="lineno">  277</span>&#160;            <span class="comment">// Iterate over all the helper prototypes and save in registry.</span></div>
-<div class="line"><a name="l00278"></a><span class="lineno">  278</span>&#160;            <span class="keywordflow">for</span> (uint32_t count = 0; count &lt; program_info[i].count_of_helpers; count++) {</div>
-<div class="line"><a name="l00279"></a><span class="lineno">  279</span>&#160;                status = _update_helper_prototype(helper_info_key, &amp;(program_info[i].helper_prototype[count]));</div>
-<div class="line"><a name="l00280"></a><span class="lineno">  280</span>&#160;                <span class="keywordflow">if</span> (!<a class="code" href="kernel_2ebpf__registry__helper_8h.html#a69e14d22a3bf619599a764e7936249fc">IS_SUCCESS</a>(status)) {</div>
-<div class="line"><a name="l00281"></a><span class="lineno">  281</span>&#160;                    <a class="code" href="user_2ebpf__registry__helper_8h.html#a3f167c302201f8702e1fd218f7410e2d">close_registry_key</a>(program_key);</div>
-<div class="line"><a name="l00282"></a><span class="lineno">  282</span>&#160;                    <a class="code" href="user_2ebpf__registry__helper_8h.html#a3f167c302201f8702e1fd218f7410e2d">close_registry_key</a>(helper_info_key);</div>
-<div class="line"><a name="l00283"></a><span class="lineno">  283</span>&#160;                    <span class="keywordflow">goto</span> Exit;</div>
-<div class="line"><a name="l00284"></a><span class="lineno">  284</span>&#160;                }</div>
-<div class="line"><a name="l00285"></a><span class="lineno">  285</span>&#160;            }</div>
-<div class="line"><a name="l00286"></a><span class="lineno">  286</span>&#160; </div>
-<div class="line"><a name="l00287"></a><span class="lineno">  287</span>&#160;            <a class="code" href="user_2ebpf__registry__helper_8h.html#a3f167c302201f8702e1fd218f7410e2d">close_registry_key</a>(helper_info_key);</div>
-<div class="line"><a name="l00288"></a><span class="lineno">  288</span>&#160;        }</div>
-<div class="line"><a name="l00289"></a><span class="lineno">  289</span>&#160;        <a class="code" href="user_2ebpf__registry__helper_8h.html#a3f167c302201f8702e1fd218f7410e2d">close_registry_key</a>(program_key);</div>
-<div class="line"><a name="l00290"></a><span class="lineno">  290</span>&#160;    }</div>
-<div class="line"><a name="l00291"></a><span class="lineno">  291</span>&#160; </div>
-<div class="line"><a name="l00292"></a><span class="lineno">  292</span>&#160;Exit:</div>
-<div class="line"><a name="l00293"></a><span class="lineno">  293</span>&#160;    <span class="keywordflow">if</span> (program_info_key) {</div>
-<div class="line"><a name="l00294"></a><span class="lineno">  294</span>&#160;        <a class="code" href="user_2ebpf__registry__helper_8h.html#a3f167c302201f8702e1fd218f7410e2d">close_registry_key</a>(program_info_key);</div>
-<div class="line"><a name="l00295"></a><span class="lineno">  295</span>&#160;    }</div>
-<div class="line"><a name="l00296"></a><span class="lineno">  296</span>&#160;    <span class="keywordflow">if</span> (provider_key) {</div>
-<div class="line"><a name="l00297"></a><span class="lineno">  297</span>&#160;        <a class="code" href="user_2ebpf__registry__helper_8h.html#a3f167c302201f8702e1fd218f7410e2d">close_registry_key</a>(provider_key);</div>
-<div class="line"><a name="l00298"></a><span class="lineno">  298</span>&#160;    }</div>
-<div class="line"><a name="l00299"></a><span class="lineno">  299</span>&#160; </div>
-<div class="line"><a name="l00300"></a><span class="lineno">  300</span>&#160;    <span class="keywordflow">return</span> status;</div>
-<div class="line"><a name="l00301"></a><span class="lineno">  301</span>&#160;}</div>
-<div class="line"><a name="l00302"></a><span class="lineno">  302</span>&#160; </div>
-<div class="line"><a name="l00311"></a><span class="lineno">  311</span>&#160;<span class="keyword">static</span> <a class="code" href="kernel_2ebpf__registry__helper_8h.html#af4bbc5ce8ab348944ac613d03aba8fce">__return_type</a></div>
-<div class="line"><a name="l00312"></a><span class="lineno">  312</span>&#160;ebpf_store_update_global_helper_information(</div>
-<div class="line"><a name="l00313"></a><span class="lineno">  313</span>&#160;    _In_reads_(helper_info_count) <a class="code" href="struct__ebpf__helper__function__prototype.html">ebpf_helper_function_prototype_t</a>* helper_info, uint32_t helper_info_count)</div>
-<div class="line"><a name="l00314"></a><span class="lineno">  314</span>&#160;{</div>
-<div class="line"><a name="l00315"></a><span class="lineno">  315</span>&#160;    <a class="code" href="kernel_2ebpf__registry__helper_8h.html#af4bbc5ce8ab348944ac613d03aba8fce">__return_type</a> status = <a class="code" href="kernel_2ebpf__registry__helper_8h.html#acdf9ea17605dff8b810df8076b6496e2">_SUCCESS</a>;</div>
-<div class="line"><a name="l00316"></a><span class="lineno">  316</span>&#160;    <a class="code" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a> provider_key = NULL;</div>
-<div class="line"><a name="l00317"></a><span class="lineno">  317</span>&#160;    <a class="code" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a> helper_info_key = NULL;</div>
-<div class="line"><a name="l00318"></a><span class="lineno">  318</span>&#160; </div>
-<div class="line"><a name="l00319"></a><span class="lineno">  319</span>&#160;    <span class="keywordflow">if</span> (helper_info_count == 0) {</div>
-<div class="line"><a name="l00320"></a><span class="lineno">  320</span>&#160;        <span class="keywordflow">return</span> status;</div>
-<div class="line"><a name="l00321"></a><span class="lineno">  321</span>&#160;    }</div>
-<div class="line"><a name="l00322"></a><span class="lineno">  322</span>&#160; </div>
-<div class="line"><a name="l00323"></a><span class="lineno">  323</span>&#160;    <span class="comment">// Open (or create) provider registry path.</span></div>
-<div class="line"><a name="l00324"></a><span class="lineno">  324</span>&#160;    status = _open_or_create_provider_registry_key(&amp;provider_key);</div>
-<div class="line"><a name="l00325"></a><span class="lineno">  325</span>&#160;    <span class="keywordflow">if</span> (!<a class="code" href="kernel_2ebpf__registry__helper_8h.html#a69e14d22a3bf619599a764e7936249fc">IS_SUCCESS</a>(status)) {</div>
-<div class="line"><a name="l00326"></a><span class="lineno">  326</span>&#160;        <span class="keywordflow">goto</span> Exit;</div>
-<div class="line"><a name="l00327"></a><span class="lineno">  327</span>&#160;    }</div>
-<div class="line"><a name="l00328"></a><span class="lineno">  328</span>&#160; </div>
-<div class="line"><a name="l00329"></a><span class="lineno">  329</span>&#160;    <span class="comment">// Open (or create) global helpers registry path.</span></div>
-<div class="line"><a name="l00330"></a><span class="lineno">  330</span>&#160;    status = <a class="code" href="user_2ebpf__registry__helper_8h.html#a61c9d7d26de7cf1a076508f73dc0c2a6">create_registry_key</a>(provider_key, <a class="code" href="ebpf__windows_8h.html#ab869d4f3b17e83161f8ca9928794811d">EBPF_GLOBAL_HELPERS_REGISTRY_PATH</a>, <a class="code" href="kernel_2ebpf__registry__helper_8h.html#ad040db564d9993abf8ef97951a358f56">REG_CREATE_FLAGS</a>, &amp;helper_info_key);</div>
-<div class="line"><a name="l00331"></a><span class="lineno">  331</span>&#160;    <span class="keywordflow">if</span> (!<a class="code" href="kernel_2ebpf__registry__helper_8h.html#a69e14d22a3bf619599a764e7936249fc">IS_SUCCESS</a>(status)) {</div>
-<div class="line"><a name="l00332"></a><span class="lineno">  332</span>&#160;        <span class="keywordflow">goto</span> Exit;</div>
-<div class="line"><a name="l00333"></a><span class="lineno">  333</span>&#160;    }</div>
+<div class="line"><a name="l00147"></a><span class="lineno">  147</span>&#160;        status = <a class="code" href="user_2ebpf__registry__helper_8h.html#a70ec7616cadc98c033f052354316f730">write_registry_value_dword</a>(section_key, <a class="code" href="ebpf__windows_8h.html#aab6080e5889403b9ffbe0bb3f8ce73e4">EBPF_DATA_BPF_PROG_TYPE</a>, section_info[i].bpf_program_type);</div>
+<div class="line"><a name="l00148"></a><span class="lineno">  148</span>&#160;        <span class="keywordflow">if</span> (!<a class="code" href="kernel_2ebpf__registry__helper_8h.html#a69e14d22a3bf619599a764e7936249fc">IS_SUCCESS</a>(status)) {</div>
+<div class="line"><a name="l00149"></a><span class="lineno">  149</span>&#160;            <a class="code" href="user_2ebpf__registry__helper_8h.html#a3f167c302201f8702e1fd218f7410e2d">close_registry_key</a>(section_key);</div>
+<div class="line"><a name="l00150"></a><span class="lineno">  150</span>&#160;            <span class="keywordflow">goto</span> Exit;</div>
+<div class="line"><a name="l00151"></a><span class="lineno">  151</span>&#160;        }</div>
+<div class="line"><a name="l00152"></a><span class="lineno">  152</span>&#160; </div>
+<div class="line"><a name="l00153"></a><span class="lineno">  153</span>&#160;        <span class="comment">// Save bpf_attach_type.</span></div>
+<div class="line"><a name="l00154"></a><span class="lineno">  154</span>&#160;        status = <a class="code" href="user_2ebpf__registry__helper_8h.html#a70ec7616cadc98c033f052354316f730">write_registry_value_dword</a>(section_key, <a class="code" href="ebpf__windows_8h.html#aaed5424dcaa4dbf8f300e3e1ad5887c1">EBPF_DATA_BPF_ATTACH_TYPE</a>, section_info[i].<a class="code" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5a">bpf_attach_type</a>);</div>
+<div class="line"><a name="l00155"></a><span class="lineno">  155</span>&#160;        <span class="keywordflow">if</span> (!<a class="code" href="kernel_2ebpf__registry__helper_8h.html#a69e14d22a3bf619599a764e7936249fc">IS_SUCCESS</a>(status)) {</div>
+<div class="line"><a name="l00156"></a><span class="lineno">  156</span>&#160;            <a class="code" href="user_2ebpf__registry__helper_8h.html#a3f167c302201f8702e1fd218f7410e2d">close_registry_key</a>(section_key);</div>
+<div class="line"><a name="l00157"></a><span class="lineno">  157</span>&#160;            <span class="keywordflow">goto</span> Exit;</div>
+<div class="line"><a name="l00158"></a><span class="lineno">  158</span>&#160;        }</div>
+<div class="line"><a name="l00159"></a><span class="lineno">  159</span>&#160; </div>
+<div class="line"><a name="l00160"></a><span class="lineno">  160</span>&#160;        <a class="code" href="user_2ebpf__registry__helper_8h.html#a3f167c302201f8702e1fd218f7410e2d">close_registry_key</a>(section_key);</div>
+<div class="line"><a name="l00161"></a><span class="lineno">  161</span>&#160;    }</div>
+<div class="line"><a name="l00162"></a><span class="lineno">  162</span>&#160; </div>
+<div class="line"><a name="l00163"></a><span class="lineno">  163</span>&#160;Exit:</div>
+<div class="line"><a name="l00164"></a><span class="lineno">  164</span>&#160;    <span class="keywordflow">if</span> (section_info_key) {</div>
+<div class="line"><a name="l00165"></a><span class="lineno">  165</span>&#160;        <a class="code" href="user_2ebpf__registry__helper_8h.html#a3f167c302201f8702e1fd218f7410e2d">close_registry_key</a>(section_info_key);</div>
+<div class="line"><a name="l00166"></a><span class="lineno">  166</span>&#160;    }</div>
+<div class="line"><a name="l00167"></a><span class="lineno">  167</span>&#160;    <span class="keywordflow">if</span> (provider_key) {</div>
+<div class="line"><a name="l00168"></a><span class="lineno">  168</span>&#160;        <a class="code" href="user_2ebpf__registry__helper_8h.html#a3f167c302201f8702e1fd218f7410e2d">close_registry_key</a>(provider_key);</div>
+<div class="line"><a name="l00169"></a><span class="lineno">  169</span>&#160;    }</div>
+<div class="line"><a name="l00170"></a><span class="lineno">  170</span>&#160; </div>
+<div class="line"><a name="l00171"></a><span class="lineno">  171</span>&#160;    <span class="keywordflow">return</span> status;</div>
+<div class="line"><a name="l00172"></a><span class="lineno">  172</span>&#160;}</div>
+<div class="line"><a name="l00173"></a><span class="lineno">  173</span>&#160; </div>
+<div class="line"><a name="l00182"></a><span class="lineno">  182</span>&#160;<span class="keyword">static</span> <a class="code" href="kernel_2ebpf__registry__helper_8h.html#af4bbc5ce8ab348944ac613d03aba8fce">__return_type</a></div>
+<div class="line"><a name="l00183"></a><span class="lineno">  183</span>&#160;ebpf_store_update_program_information(</div>
+<div class="line"><a name="l00184"></a><span class="lineno">  184</span>&#160;    _In_reads_(program_info_count) <a class="code" href="struct__ebpf__program__info.html">ebpf_program_info_t</a>* program_info, uint32_t program_info_count)</div>
+<div class="line"><a name="l00185"></a><span class="lineno">  185</span>&#160;{</div>
+<div class="line"><a name="l00186"></a><span class="lineno">  186</span>&#160;    <a class="code" href="kernel_2ebpf__registry__helper_8h.html#af4bbc5ce8ab348944ac613d03aba8fce">__return_type</a> status = <a class="code" href="kernel_2ebpf__registry__helper_8h.html#acdf9ea17605dff8b810df8076b6496e2">_SUCCESS</a>;</div>
+<div class="line"><a name="l00187"></a><span class="lineno">  187</span>&#160;    <a class="code" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a> provider_key = NULL;</div>
+<div class="line"><a name="l00188"></a><span class="lineno">  188</span>&#160;    <a class="code" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a> program_info_key = NULL;</div>
+<div class="line"><a name="l00189"></a><span class="lineno">  189</span>&#160; </div>
+<div class="line"><a name="l00190"></a><span class="lineno">  190</span>&#160;    <span class="keywordflow">if</span> (program_info_count == 0) {</div>
+<div class="line"><a name="l00191"></a><span class="lineno">  191</span>&#160;        <span class="keywordflow">return</span> status;</div>
+<div class="line"><a name="l00192"></a><span class="lineno">  192</span>&#160;    }</div>
+<div class="line"><a name="l00193"></a><span class="lineno">  193</span>&#160; </div>
+<div class="line"><a name="l00194"></a><span class="lineno">  194</span>&#160;    <span class="comment">// Open (or create) provider registry path.</span></div>
+<div class="line"><a name="l00195"></a><span class="lineno">  195</span>&#160;    status = _open_or_create_provider_registry_key(&amp;provider_key);</div>
+<div class="line"><a name="l00196"></a><span class="lineno">  196</span>&#160;    <span class="keywordflow">if</span> (!<a class="code" href="kernel_2ebpf__registry__helper_8h.html#a69e14d22a3bf619599a764e7936249fc">IS_SUCCESS</a>(status)) {</div>
+<div class="line"><a name="l00197"></a><span class="lineno">  197</span>&#160;        <span class="keywordflow">goto</span> Exit;</div>
+<div class="line"><a name="l00198"></a><span class="lineno">  198</span>&#160;    }</div>
+<div class="line"><a name="l00199"></a><span class="lineno">  199</span>&#160; </div>
+<div class="line"><a name="l00200"></a><span class="lineno">  200</span>&#160;    <span class="comment">// Open (or create) program data registry path.</span></div>
+<div class="line"><a name="l00201"></a><span class="lineno">  201</span>&#160;    status = <a class="code" href="user_2ebpf__registry__helper_8h.html#a61c9d7d26de7cf1a076508f73dc0c2a6">create_registry_key</a>(provider_key, <a class="code" href="ebpf__windows_8h.html#a632c1dd33a0a2d1adf6b1db235e8fadd">EBPF_PROGRAM_DATA_REGISTRY_PATH</a>, <a class="code" href="kernel_2ebpf__registry__helper_8h.html#ad040db564d9993abf8ef97951a358f56">REG_CREATE_FLAGS</a>, &amp;program_info_key);</div>
+<div class="line"><a name="l00202"></a><span class="lineno">  202</span>&#160;    <span class="keywordflow">if</span> (!<a class="code" href="kernel_2ebpf__registry__helper_8h.html#a69e14d22a3bf619599a764e7936249fc">IS_SUCCESS</a>(status)) {</div>
+<div class="line"><a name="l00203"></a><span class="lineno">  203</span>&#160;        <span class="keywordflow">goto</span> Exit;</div>
+<div class="line"><a name="l00204"></a><span class="lineno">  204</span>&#160;    }</div>
+<div class="line"><a name="l00205"></a><span class="lineno">  205</span>&#160; </div>
+<div class="line"><a name="l00206"></a><span class="lineno">  206</span>&#160;    <span class="keywordflow">for</span> (uint32_t i = 0; i &lt; program_info_count; i++) {</div>
+<div class="line"><a name="l00207"></a><span class="lineno">  207</span>&#160;        <a class="code" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a> program_key = {0};</div>
+<div class="line"><a name="l00208"></a><span class="lineno">  208</span>&#160;        <a class="code" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a> helper_info_key = {0};</div>
+<div class="line"><a name="l00209"></a><span class="lineno">  209</span>&#160; </div>
+<div class="line"><a name="l00210"></a><span class="lineno">  210</span>&#160;        <span class="comment">// Convert program type GUID to string.</span></div>
+<div class="line"><a name="l00211"></a><span class="lineno">  211</span>&#160;        <span class="keywordtype">wchar_t</span> guid_string[<a class="code" href="kernel_2ebpf__registry__helper_8h.html#a873c1dcbf8d78289e723e355b127a800">GUID_STRING_LENGTH</a> + 1];</div>
+<div class="line"><a name="l00212"></a><span class="lineno">  212</span>&#160;        status = <a class="code" href="user_2ebpf__registry__helper_8h.html#a661025a65ab7f635f6c6639953979ada">convert_guid_to_string</a>(</div>
+<div class="line"><a name="l00213"></a><span class="lineno">  213</span>&#160;            &amp;program_info[i].program_type_descriptor.program_type, guid_string, <a class="code" href="kernel_2ebpf__registry__helper_8h.html#a873c1dcbf8d78289e723e355b127a800">GUID_STRING_LENGTH</a> + 1);</div>
+<div class="line"><a name="l00214"></a><span class="lineno">  214</span>&#160;        <span class="keywordflow">if</span> (status != <a class="code" href="kernel_2ebpf__registry__helper_8h.html#acdf9ea17605dff8b810df8076b6496e2">_SUCCESS</a>) {</div>
+<div class="line"><a name="l00215"></a><span class="lineno">  215</span>&#160;            <span class="keywordflow">return</span> status;</div>
+<div class="line"><a name="l00216"></a><span class="lineno">  216</span>&#160;        }</div>
+<div class="line"><a name="l00217"></a><span class="lineno">  217</span>&#160; </div>
+<div class="line"><a name="l00218"></a><span class="lineno">  218</span>&#160;        status = <a class="code" href="user_2ebpf__registry__helper_8h.html#a61c9d7d26de7cf1a076508f73dc0c2a6">create_registry_key</a>(program_info_key, guid_string, <a class="code" href="kernel_2ebpf__registry__helper_8h.html#ad040db564d9993abf8ef97951a358f56">REG_CREATE_FLAGS</a>, &amp;program_key);</div>
+<div class="line"><a name="l00219"></a><span class="lineno">  219</span>&#160;        <span class="keywordflow">if</span> (!<a class="code" href="kernel_2ebpf__registry__helper_8h.html#a69e14d22a3bf619599a764e7936249fc">IS_SUCCESS</a>(status)) {</div>
+<div class="line"><a name="l00220"></a><span class="lineno">  220</span>&#160;            <span class="keywordflow">goto</span> Exit;</div>
+<div class="line"><a name="l00221"></a><span class="lineno">  221</span>&#160;        }</div>
+<div class="line"><a name="l00222"></a><span class="lineno">  222</span>&#160; </div>
+<div class="line"><a name="l00223"></a><span class="lineno">  223</span>&#160;        <span class="comment">// Save the friendly program type name.</span></div>
+<div class="line"><a name="l00224"></a><span class="lineno">  224</span>&#160;        status = <a class="code" href="user_2ebpf__registry__helper_8h.html#a8aa349ada77d337b528e407fcf4c226e">write_registry_value_ansi_string</a>(</div>
+<div class="line"><a name="l00225"></a><span class="lineno">  225</span>&#160;            program_key, <a class="code" href="ebpf__windows_8h.html#a75ffbfb565d76fe9402f1356ea3c88dc">EBPF_PROGRAM_DATA_NAME</a>, program_info[i].program_type_descriptor.name);</div>
+<div class="line"><a name="l00226"></a><span class="lineno">  226</span>&#160;        <span class="keywordflow">if</span> (!<a class="code" href="kernel_2ebpf__registry__helper_8h.html#a69e14d22a3bf619599a764e7936249fc">IS_SUCCESS</a>(status)) {</div>
+<div class="line"><a name="l00227"></a><span class="lineno">  227</span>&#160;            <a class="code" href="user_2ebpf__registry__helper_8h.html#a3f167c302201f8702e1fd218f7410e2d">close_registry_key</a>(program_key);</div>
+<div class="line"><a name="l00228"></a><span class="lineno">  228</span>&#160;            <span class="keywordflow">goto</span> Exit;</div>
+<div class="line"><a name="l00229"></a><span class="lineno">  229</span>&#160;        }</div>
+<div class="line"><a name="l00230"></a><span class="lineno">  230</span>&#160; </div>
+<div class="line"><a name="l00231"></a><span class="lineno">  231</span>&#160;        <span class="comment">// Save context descriptor.</span></div>
+<div class="line"><a name="l00232"></a><span class="lineno">  232</span>&#160;        status = <a class="code" href="user_2ebpf__registry__helper_8h.html#a8ac9b1a630e07ab18dd1e14f4996f818">write_registry_value_binary</a>(</div>
+<div class="line"><a name="l00233"></a><span class="lineno">  233</span>&#160;            program_key,</div>
+<div class="line"><a name="l00234"></a><span class="lineno">  234</span>&#160;            <a class="code" href="ebpf__windows_8h.html#a94bcdca8405cebed195bf9b85d5b7d9a">EBPF_PROGRAM_DATA_CONTEXT_DESCRIPTOR</a>,</div>
+<div class="line"><a name="l00235"></a><span class="lineno">  235</span>&#160;            (uint8_t*)program_info[i].program_type_descriptor.context_descriptor,</div>
+<div class="line"><a name="l00236"></a><span class="lineno">  236</span>&#160;            <span class="keyword">sizeof</span>(ebpf_context_descriptor_t));</div>
+<div class="line"><a name="l00237"></a><span class="lineno">  237</span>&#160;        <span class="keywordflow">if</span> (!<a class="code" href="kernel_2ebpf__registry__helper_8h.html#a69e14d22a3bf619599a764e7936249fc">IS_SUCCESS</a>(status)) {</div>
+<div class="line"><a name="l00238"></a><span class="lineno">  238</span>&#160;            <a class="code" href="user_2ebpf__registry__helper_8h.html#a3f167c302201f8702e1fd218f7410e2d">close_registry_key</a>(program_key);</div>
+<div class="line"><a name="l00239"></a><span class="lineno">  239</span>&#160;            <span class="keywordflow">goto</span> Exit;</div>
+<div class="line"><a name="l00240"></a><span class="lineno">  240</span>&#160;        }</div>
+<div class="line"><a name="l00241"></a><span class="lineno">  241</span>&#160; </div>
+<div class="line"><a name="l00242"></a><span class="lineno">  242</span>&#160;        <span class="comment">// Save bpf_prog_type.</span></div>
+<div class="line"><a name="l00243"></a><span class="lineno">  243</span>&#160;        status = <a class="code" href="user_2ebpf__registry__helper_8h.html#a70ec7616cadc98c033f052354316f730">write_registry_value_dword</a>(</div>
+<div class="line"><a name="l00244"></a><span class="lineno">  244</span>&#160;            program_key, <a class="code" href="ebpf__windows_8h.html#aab6080e5889403b9ffbe0bb3f8ce73e4">EBPF_DATA_BPF_PROG_TYPE</a>, program_info[i].program_type_descriptor.bpf_prog_type);</div>
+<div class="line"><a name="l00245"></a><span class="lineno">  245</span>&#160;        <span class="keywordflow">if</span> (!<a class="code" href="kernel_2ebpf__registry__helper_8h.html#a69e14d22a3bf619599a764e7936249fc">IS_SUCCESS</a>(status)) {</div>
+<div class="line"><a name="l00246"></a><span class="lineno">  246</span>&#160;            <a class="code" href="user_2ebpf__registry__helper_8h.html#a3f167c302201f8702e1fd218f7410e2d">close_registry_key</a>(program_key);</div>
+<div class="line"><a name="l00247"></a><span class="lineno">  247</span>&#160;            <span class="keywordflow">goto</span> Exit;</div>
+<div class="line"><a name="l00248"></a><span class="lineno">  248</span>&#160;        }</div>
+<div class="line"><a name="l00249"></a><span class="lineno">  249</span>&#160; </div>
+<div class="line"><a name="l00250"></a><span class="lineno">  250</span>&#160;        <span class="comment">// Save &quot;is_privileged&quot;.</span></div>
+<div class="line"><a name="l00251"></a><span class="lineno">  251</span>&#160;        status = <a class="code" href="user_2ebpf__registry__helper_8h.html#a70ec7616cadc98c033f052354316f730">write_registry_value_dword</a>(</div>
+<div class="line"><a name="l00252"></a><span class="lineno">  252</span>&#160;            program_key, <a class="code" href="ebpf__windows_8h.html#a56701cb3f802fe78813d36cb01e23d7b">EBPF_PROGRAM_DATA_PRIVELEGED</a>, program_info[i].program_type_descriptor.is_privileged);</div>
+<div class="line"><a name="l00253"></a><span class="lineno">  253</span>&#160;        <span class="keywordflow">if</span> (!<a class="code" href="kernel_2ebpf__registry__helper_8h.html#a69e14d22a3bf619599a764e7936249fc">IS_SUCCESS</a>(status)) {</div>
+<div class="line"><a name="l00254"></a><span class="lineno">  254</span>&#160;            <a class="code" href="user_2ebpf__registry__helper_8h.html#a3f167c302201f8702e1fd218f7410e2d">close_registry_key</a>(program_key);</div>
+<div class="line"><a name="l00255"></a><span class="lineno">  255</span>&#160;            <span class="keywordflow">goto</span> Exit;</div>
+<div class="line"><a name="l00256"></a><span class="lineno">  256</span>&#160;        }</div>
+<div class="line"><a name="l00257"></a><span class="lineno">  257</span>&#160; </div>
+<div class="line"><a name="l00258"></a><span class="lineno">  258</span>&#160;        <span class="comment">// Save helper count.</span></div>
+<div class="line"><a name="l00259"></a><span class="lineno">  259</span>&#160;        status =</div>
+<div class="line"><a name="l00260"></a><span class="lineno">  260</span>&#160;            <a class="code" href="user_2ebpf__registry__helper_8h.html#a70ec7616cadc98c033f052354316f730">write_registry_value_dword</a>(program_key, <a class="code" href="ebpf__windows_8h.html#a3196d621ed1ac81a273a576abe962840">EBPF_PROGRAM_DATA_HELPER_COUNT</a>, program_info[i].count_of_helpers);</div>
+<div class="line"><a name="l00261"></a><span class="lineno">  261</span>&#160;        <span class="keywordflow">if</span> (!<a class="code" href="kernel_2ebpf__registry__helper_8h.html#a69e14d22a3bf619599a764e7936249fc">IS_SUCCESS</a>(status)) {</div>
+<div class="line"><a name="l00262"></a><span class="lineno">  262</span>&#160;            <a class="code" href="user_2ebpf__registry__helper_8h.html#a3f167c302201f8702e1fd218f7410e2d">close_registry_key</a>(program_key);</div>
+<div class="line"><a name="l00263"></a><span class="lineno">  263</span>&#160;            <span class="keywordflow">goto</span> Exit;</div>
+<div class="line"><a name="l00264"></a><span class="lineno">  264</span>&#160;        }</div>
+<div class="line"><a name="l00265"></a><span class="lineno">  265</span>&#160; </div>
+<div class="line"><a name="l00266"></a><span class="lineno">  266</span>&#160;        <span class="keywordflow">if</span> (program_info[i].count_of_helpers != 0) {</div>
+<div class="line"><a name="l00267"></a><span class="lineno">  267</span>&#160;            <span class="comment">// Create (or open) helper registry path.</span></div>
+<div class="line"><a name="l00268"></a><span class="lineno">  268</span>&#160;            status = <a class="code" href="user_2ebpf__registry__helper_8h.html#a61c9d7d26de7cf1a076508f73dc0c2a6">create_registry_key</a>(</div>
+<div class="line"><a name="l00269"></a><span class="lineno">  269</span>&#160;                program_key, <a class="code" href="ebpf__windows_8h.html#abfb0b1785443602df469e37ee861fd24">EBPF_PROGRAM_DATA_HELPERS_REGISTRY_PATH</a>, <a class="code" href="kernel_2ebpf__registry__helper_8h.html#ad040db564d9993abf8ef97951a358f56">REG_CREATE_FLAGS</a>, &amp;helper_info_key);</div>
+<div class="line"><a name="l00270"></a><span class="lineno">  270</span>&#160;            <span class="keywordflow">if</span> (!<a class="code" href="kernel_2ebpf__registry__helper_8h.html#a69e14d22a3bf619599a764e7936249fc">IS_SUCCESS</a>(status)) {</div>
+<div class="line"><a name="l00271"></a><span class="lineno">  271</span>&#160;                <a class="code" href="user_2ebpf__registry__helper_8h.html#a3f167c302201f8702e1fd218f7410e2d">close_registry_key</a>(program_key);</div>
+<div class="line"><a name="l00272"></a><span class="lineno">  272</span>&#160;                <span class="keywordflow">goto</span> Exit;</div>
+<div class="line"><a name="l00273"></a><span class="lineno">  273</span>&#160;            }</div>
+<div class="line"><a name="l00274"></a><span class="lineno">  274</span>&#160; </div>
+<div class="line"><a name="l00275"></a><span class="lineno">  275</span>&#160;            <span class="comment">// Iterate over all the helper prototypes and save in registry.</span></div>
+<div class="line"><a name="l00276"></a><span class="lineno">  276</span>&#160;            <span class="keywordflow">for</span> (uint32_t count = 0; count &lt; program_info[i].count_of_helpers; count++) {</div>
+<div class="line"><a name="l00277"></a><span class="lineno">  277</span>&#160;                status = _update_helper_prototype(helper_info_key, &amp;(program_info[i].helper_prototype[count]));</div>
+<div class="line"><a name="l00278"></a><span class="lineno">  278</span>&#160;                <span class="keywordflow">if</span> (!<a class="code" href="kernel_2ebpf__registry__helper_8h.html#a69e14d22a3bf619599a764e7936249fc">IS_SUCCESS</a>(status)) {</div>
+<div class="line"><a name="l00279"></a><span class="lineno">  279</span>&#160;                    <a class="code" href="user_2ebpf__registry__helper_8h.html#a3f167c302201f8702e1fd218f7410e2d">close_registry_key</a>(program_key);</div>
+<div class="line"><a name="l00280"></a><span class="lineno">  280</span>&#160;                    <a class="code" href="user_2ebpf__registry__helper_8h.html#a3f167c302201f8702e1fd218f7410e2d">close_registry_key</a>(helper_info_key);</div>
+<div class="line"><a name="l00281"></a><span class="lineno">  281</span>&#160;                    <span class="keywordflow">goto</span> Exit;</div>
+<div class="line"><a name="l00282"></a><span class="lineno">  282</span>&#160;                }</div>
+<div class="line"><a name="l00283"></a><span class="lineno">  283</span>&#160;            }</div>
+<div class="line"><a name="l00284"></a><span class="lineno">  284</span>&#160; </div>
+<div class="line"><a name="l00285"></a><span class="lineno">  285</span>&#160;            <a class="code" href="user_2ebpf__registry__helper_8h.html#a3f167c302201f8702e1fd218f7410e2d">close_registry_key</a>(helper_info_key);</div>
+<div class="line"><a name="l00286"></a><span class="lineno">  286</span>&#160;        }</div>
+<div class="line"><a name="l00287"></a><span class="lineno">  287</span>&#160;        <a class="code" href="user_2ebpf__registry__helper_8h.html#a3f167c302201f8702e1fd218f7410e2d">close_registry_key</a>(program_key);</div>
+<div class="line"><a name="l00288"></a><span class="lineno">  288</span>&#160;    }</div>
+<div class="line"><a name="l00289"></a><span class="lineno">  289</span>&#160; </div>
+<div class="line"><a name="l00290"></a><span class="lineno">  290</span>&#160;Exit:</div>
+<div class="line"><a name="l00291"></a><span class="lineno">  291</span>&#160;    <span class="keywordflow">if</span> (program_info_key) {</div>
+<div class="line"><a name="l00292"></a><span class="lineno">  292</span>&#160;        <a class="code" href="user_2ebpf__registry__helper_8h.html#a3f167c302201f8702e1fd218f7410e2d">close_registry_key</a>(program_info_key);</div>
+<div class="line"><a name="l00293"></a><span class="lineno">  293</span>&#160;    }</div>
+<div class="line"><a name="l00294"></a><span class="lineno">  294</span>&#160;    <span class="keywordflow">if</span> (provider_key) {</div>
+<div class="line"><a name="l00295"></a><span class="lineno">  295</span>&#160;        <a class="code" href="user_2ebpf__registry__helper_8h.html#a3f167c302201f8702e1fd218f7410e2d">close_registry_key</a>(provider_key);</div>
+<div class="line"><a name="l00296"></a><span class="lineno">  296</span>&#160;    }</div>
+<div class="line"><a name="l00297"></a><span class="lineno">  297</span>&#160; </div>
+<div class="line"><a name="l00298"></a><span class="lineno">  298</span>&#160;    <span class="keywordflow">return</span> status;</div>
+<div class="line"><a name="l00299"></a><span class="lineno">  299</span>&#160;}</div>
+<div class="line"><a name="l00300"></a><span class="lineno">  300</span>&#160; </div>
+<div class="line"><a name="l00309"></a><span class="lineno">  309</span>&#160;<span class="keyword">static</span> <a class="code" href="kernel_2ebpf__registry__helper_8h.html#af4bbc5ce8ab348944ac613d03aba8fce">__return_type</a></div>
+<div class="line"><a name="l00310"></a><span class="lineno">  310</span>&#160;ebpf_store_update_global_helper_information(</div>
+<div class="line"><a name="l00311"></a><span class="lineno">  311</span>&#160;    _In_reads_(helper_info_count) <a class="code" href="struct__ebpf__helper__function__prototype.html">ebpf_helper_function_prototype_t</a>* helper_info, uint32_t helper_info_count)</div>
+<div class="line"><a name="l00312"></a><span class="lineno">  312</span>&#160;{</div>
+<div class="line"><a name="l00313"></a><span class="lineno">  313</span>&#160;    <a class="code" href="kernel_2ebpf__registry__helper_8h.html#af4bbc5ce8ab348944ac613d03aba8fce">__return_type</a> status = <a class="code" href="kernel_2ebpf__registry__helper_8h.html#acdf9ea17605dff8b810df8076b6496e2">_SUCCESS</a>;</div>
+<div class="line"><a name="l00314"></a><span class="lineno">  314</span>&#160;    <a class="code" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a> provider_key = NULL;</div>
+<div class="line"><a name="l00315"></a><span class="lineno">  315</span>&#160;    <a class="code" href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a> helper_info_key = NULL;</div>
+<div class="line"><a name="l00316"></a><span class="lineno">  316</span>&#160; </div>
+<div class="line"><a name="l00317"></a><span class="lineno">  317</span>&#160;    <span class="keywordflow">if</span> (helper_info_count == 0) {</div>
+<div class="line"><a name="l00318"></a><span class="lineno">  318</span>&#160;        <span class="keywordflow">return</span> status;</div>
+<div class="line"><a name="l00319"></a><span class="lineno">  319</span>&#160;    }</div>
+<div class="line"><a name="l00320"></a><span class="lineno">  320</span>&#160; </div>
+<div class="line"><a name="l00321"></a><span class="lineno">  321</span>&#160;    <span class="comment">// Open (or create) provider registry path.</span></div>
+<div class="line"><a name="l00322"></a><span class="lineno">  322</span>&#160;    status = _open_or_create_provider_registry_key(&amp;provider_key);</div>
+<div class="line"><a name="l00323"></a><span class="lineno">  323</span>&#160;    <span class="keywordflow">if</span> (!<a class="code" href="kernel_2ebpf__registry__helper_8h.html#a69e14d22a3bf619599a764e7936249fc">IS_SUCCESS</a>(status)) {</div>
+<div class="line"><a name="l00324"></a><span class="lineno">  324</span>&#160;        <span class="keywordflow">goto</span> Exit;</div>
+<div class="line"><a name="l00325"></a><span class="lineno">  325</span>&#160;    }</div>
+<div class="line"><a name="l00326"></a><span class="lineno">  326</span>&#160; </div>
+<div class="line"><a name="l00327"></a><span class="lineno">  327</span>&#160;    <span class="comment">// Open (or create) global helpers registry path.</span></div>
+<div class="line"><a name="l00328"></a><span class="lineno">  328</span>&#160;    status = <a class="code" href="user_2ebpf__registry__helper_8h.html#a61c9d7d26de7cf1a076508f73dc0c2a6">create_registry_key</a>(provider_key, <a class="code" href="ebpf__windows_8h.html#ab869d4f3b17e83161f8ca9928794811d">EBPF_GLOBAL_HELPERS_REGISTRY_PATH</a>, <a class="code" href="kernel_2ebpf__registry__helper_8h.html#ad040db564d9993abf8ef97951a358f56">REG_CREATE_FLAGS</a>, &amp;helper_info_key);</div>
+<div class="line"><a name="l00329"></a><span class="lineno">  329</span>&#160;    <span class="keywordflow">if</span> (!<a class="code" href="kernel_2ebpf__registry__helper_8h.html#a69e14d22a3bf619599a764e7936249fc">IS_SUCCESS</a>(status)) {</div>
+<div class="line"><a name="l00330"></a><span class="lineno">  330</span>&#160;        <span class="keywordflow">goto</span> Exit;</div>
+<div class="line"><a name="l00331"></a><span class="lineno">  331</span>&#160;    }</div>
+<div class="line"><a name="l00332"></a><span class="lineno">  332</span>&#160; </div>
+<div class="line"><a name="l00333"></a><span class="lineno">  333</span>&#160;    <span class="keywordflow">for</span> (uint32_t i = 0; i &lt; helper_info_count; i++) {</div>
 <div class="line"><a name="l00334"></a><span class="lineno">  334</span>&#160; </div>
-<div class="line"><a name="l00335"></a><span class="lineno">  335</span>&#160;    <span class="keywordflow">for</span> (uint32_t i = 0; i &lt; helper_info_count; i++) {</div>
-<div class="line"><a name="l00336"></a><span class="lineno">  336</span>&#160; </div>
-<div class="line"><a name="l00337"></a><span class="lineno">  337</span>&#160;        status = _update_helper_prototype(helper_info_key, &amp;helper_info[i]);</div>
-<div class="line"><a name="l00338"></a><span class="lineno">  338</span>&#160;        <span class="keywordflow">if</span> (!<a class="code" href="kernel_2ebpf__registry__helper_8h.html#a69e14d22a3bf619599a764e7936249fc">IS_SUCCESS</a>(status)) {</div>
-<div class="line"><a name="l00339"></a><span class="lineno">  339</span>&#160;            <span class="keywordflow">goto</span> Exit;</div>
-<div class="line"><a name="l00340"></a><span class="lineno">  340</span>&#160;        }</div>
-<div class="line"><a name="l00341"></a><span class="lineno">  341</span>&#160;    }</div>
-<div class="line"><a name="l00342"></a><span class="lineno">  342</span>&#160; </div>
-<div class="line"><a name="l00343"></a><span class="lineno">  343</span>&#160;Exit:</div>
-<div class="line"><a name="l00344"></a><span class="lineno">  344</span>&#160;    <span class="keywordflow">if</span> (helper_info_key) {</div>
-<div class="line"><a name="l00345"></a><span class="lineno">  345</span>&#160;        <a class="code" href="user_2ebpf__registry__helper_8h.html#a3f167c302201f8702e1fd218f7410e2d">close_registry_key</a>(helper_info_key);</div>
-<div class="line"><a name="l00346"></a><span class="lineno">  346</span>&#160;    }</div>
-<div class="line"><a name="l00347"></a><span class="lineno">  347</span>&#160;    <span class="keywordflow">if</span> (provider_key) {</div>
-<div class="line"><a name="l00348"></a><span class="lineno">  348</span>&#160;        <a class="code" href="user_2ebpf__registry__helper_8h.html#a3f167c302201f8702e1fd218f7410e2d">close_registry_key</a>(provider_key);</div>
-<div class="line"><a name="l00349"></a><span class="lineno">  349</span>&#160;    }</div>
-<div class="line"><a name="l00350"></a><span class="lineno">  350</span>&#160; </div>
-<div class="line"><a name="l00351"></a><span class="lineno">  351</span>&#160;    <span class="keywordflow">return</span> status;</div>
-<div class="line"><a name="l00352"></a><span class="lineno">  352</span>&#160;}</div>
+<div class="line"><a name="l00335"></a><span class="lineno">  335</span>&#160;        status = _update_helper_prototype(helper_info_key, &amp;helper_info[i]);</div>
+<div class="line"><a name="l00336"></a><span class="lineno">  336</span>&#160;        <span class="keywordflow">if</span> (!<a class="code" href="kernel_2ebpf__registry__helper_8h.html#a69e14d22a3bf619599a764e7936249fc">IS_SUCCESS</a>(status)) {</div>
+<div class="line"><a name="l00337"></a><span class="lineno">  337</span>&#160;            <span class="keywordflow">goto</span> Exit;</div>
+<div class="line"><a name="l00338"></a><span class="lineno">  338</span>&#160;        }</div>
+<div class="line"><a name="l00339"></a><span class="lineno">  339</span>&#160;    }</div>
+<div class="line"><a name="l00340"></a><span class="lineno">  340</span>&#160; </div>
+<div class="line"><a name="l00341"></a><span class="lineno">  341</span>&#160;Exit:</div>
+<div class="line"><a name="l00342"></a><span class="lineno">  342</span>&#160;    <span class="keywordflow">if</span> (helper_info_key) {</div>
+<div class="line"><a name="l00343"></a><span class="lineno">  343</span>&#160;        <a class="code" href="user_2ebpf__registry__helper_8h.html#a3f167c302201f8702e1fd218f7410e2d">close_registry_key</a>(helper_info_key);</div>
+<div class="line"><a name="l00344"></a><span class="lineno">  344</span>&#160;    }</div>
+<div class="line"><a name="l00345"></a><span class="lineno">  345</span>&#160;    <span class="keywordflow">if</span> (provider_key) {</div>
+<div class="line"><a name="l00346"></a><span class="lineno">  346</span>&#160;        <a class="code" href="user_2ebpf__registry__helper_8h.html#a3f167c302201f8702e1fd218f7410e2d">close_registry_key</a>(provider_key);</div>
+<div class="line"><a name="l00347"></a><span class="lineno">  347</span>&#160;    }</div>
+<div class="line"><a name="l00348"></a><span class="lineno">  348</span>&#160; </div>
+<div class="line"><a name="l00349"></a><span class="lineno">  349</span>&#160;    <span class="keywordflow">return</span> status;</div>
+<div class="line"><a name="l00350"></a><span class="lineno">  350</span>&#160;}</div>
 </div><!-- fragment --></div><!-- contents -->
 <div class="ttc" id="akernel_2ebpf__registry__helper_8h_html_acdf9ea17605dff8b810df8076b6496e2"><div class="ttname"><a href="kernel_2ebpf__registry__helper_8h.html#acdf9ea17605dff8b810df8076b6496e2">_SUCCESS</a></div><div class="ttdeci">#define _SUCCESS</div><div class="ttdef"><b>Definition:</b> ebpf_registry_helper.h:10</div></div>
-<div class="ttc" id="aebpf__windows_8h_html_ac28e14fb5d75481672655479ef9111b9"><div class="ttname"><a href="ebpf__windows_8h.html#ac28e14fb5d75481672655479ef9111b9">EBPF_SECTION_DATA_BPF_ATTACH_TYPE</a></div><div class="ttdeci">#define EBPF_SECTION_DATA_BPF_ATTACH_TYPE</div><div class="ttdef"><b>Definition:</b> ebpf_windows.h:26</div></div>
-<div class="ttc" id="aebpf__windows_8h_html_a0439b65e1f48db16dad577a7a1d666be"><div class="ttname"><a href="ebpf__windows_8h.html#a0439b65e1f48db16dad577a7a1d666be">EBPF_PROGRAM_DATA_BPF_PROG_TYPE</a></div><div class="ttdeci">#define EBPF_PROGRAM_DATA_BPF_PROG_TYPE</div><div class="ttdef"><b>Definition:</b> ebpf_windows.h:32</div></div>
-<div class="ttc" id="aebpf__windows_8h_html_a94bcdca8405cebed195bf9b85d5b7d9a"><div class="ttname"><a href="ebpf__windows_8h.html#a94bcdca8405cebed195bf9b85d5b7d9a">EBPF_PROGRAM_DATA_CONTEXT_DESCRIPTOR</a></div><div class="ttdeci">#define EBPF_PROGRAM_DATA_CONTEXT_DESCRIPTOR</div><div class="ttdef"><b>Definition:</b> ebpf_windows.h:29</div></div>
+<div class="ttc" id="aebpf__windows_8h_html_a94bcdca8405cebed195bf9b85d5b7d9a"><div class="ttname"><a href="ebpf__windows_8h.html#a94bcdca8405cebed195bf9b85d5b7d9a">EBPF_PROGRAM_DATA_CONTEXT_DESCRIPTOR</a></div><div class="ttdeci">#define EBPF_PROGRAM_DATA_CONTEXT_DESCRIPTOR</div><div class="ttdef"><b>Definition:</b> ebpf_windows.h:28</div></div>
 <div class="ttc" id="astruct__ebpf__program__info_html"><div class="ttname"><a href="struct__ebpf__program__info.html">_ebpf_program_info</a></div><div class="ttdef"><b>Definition:</b> ebpf_program_types.h:41</div></div>
 <div class="ttc" id="akernel_2ebpf__registry__helper_8h_html_ad040db564d9993abf8ef97951a358f56"><div class="ttname"><a href="kernel_2ebpf__registry__helper_8h.html#ad040db564d9993abf8ef97951a358f56">REG_CREATE_FLAGS</a></div><div class="ttdeci">#define REG_CREATE_FLAGS</div><div class="ttdef"><b>Definition:</b> ebpf_registry_helper.h:12</div></div>
 <div class="ttc" id="aebpf__windows_8h_html_a69a8302d5a890bc876905a250a3e1b46"><div class="ttname"><a href="ebpf__windows_8h.html#a69a8302d5a890bc876905a250a3e1b46">EBPF_ROOT_REGISTRY_PATH</a></div><div class="ttdeci">#define EBPF_ROOT_REGISTRY_PATH</div><div class="ttdef"><b>Definition:</b> ebpf_windows.h:14</div></div>
-<div class="ttc" id="aebpf__windows_8h_html_a798cdca2441a827d972f206a001e56ca"><div class="ttname"><a href="ebpf__windows_8h.html#a798cdca2441a827d972f206a001e56ca">EBPF_HELPER_DATA_PROTOTYPE</a></div><div class="ttdeci">#define EBPF_HELPER_DATA_PROTOTYPE</div><div class="ttdef"><b>Definition:</b> ebpf_windows.h:35</div></div>
+<div class="ttc" id="aebpf__windows_8h_html_a798cdca2441a827d972f206a001e56ca"><div class="ttname"><a href="ebpf__windows_8h.html#a798cdca2441a827d972f206a001e56ca">EBPF_HELPER_DATA_PROTOTYPE</a></div><div class="ttdeci">#define EBPF_HELPER_DATA_PROTOTYPE</div><div class="ttdef"><b>Definition:</b> ebpf_windows.h:33</div></div>
 <div class="ttc" id="aebpf__windows_8h_html_a04f77b055b151169359547571bcb70a3"><div class="ttname"><a href="ebpf__windows_8h.html#a04f77b055b151169359547571bcb70a3">EBPF_SECTION_DATA_ATTACH_TYPE</a></div><div class="ttdeci">#define EBPF_SECTION_DATA_ATTACH_TYPE</div><div class="ttdef"><b>Definition:</b> ebpf_windows.h:25</div></div>
+<div class="ttc" id="aebpf__windows_8h_html_aab6080e5889403b9ffbe0bb3f8ce73e4"><div class="ttname"><a href="ebpf__windows_8h.html#aab6080e5889403b9ffbe0bb3f8ce73e4">EBPF_DATA_BPF_PROG_TYPE</a></div><div class="ttdeci">#define EBPF_DATA_BPF_PROG_TYPE</div><div class="ttdef"><b>Definition:</b> ebpf_windows.h:35</div></div>
 <div class="ttc" id="auser_2ebpf__registry__helper_8h_html_a6be73fbd3124fd31a663f68578319f93"><div class="ttname"><a href="user_2ebpf__registry__helper_8h.html#a6be73fbd3124fd31a663f68578319f93">create_registry_key_ansi</a></div><div class="ttdeci">uint32_t create_registry_key_ansi(ebpf_registry_key_t root_key, const char *sub_key, uint32_t flags, ebpf_registry_key_t *key)</div></div>
 <div class="ttc" id="aebpf__program__types_8h_html_a8cabe38407044d4c213492316d2852fc"><div class="ttname"><a href="ebpf__program__types_8h.html#a8cabe38407044d4c213492316d2852fc">ebpf_helper_function_prototype_t</a></div><div class="ttdeci">struct _ebpf_helper_function_prototype ebpf_helper_function_prototype_t</div></div>
 <div class="ttc" id="aebpf__windows_8h_html_a77b82c878d2196369e2a995dc9c14244"><div class="ttname"><a href="ebpf__windows_8h.html#a77b82c878d2196369e2a995dc9c14244">EBPF_SECTIONS_REGISTRY_PATH</a></div><div class="ttdeci">#define EBPF_SECTIONS_REGISTRY_PATH</div><div class="ttdef"><b>Definition:</b> ebpf_windows.h:19</div></div>
 <div class="ttc" id="akernel_2ebpf__registry__helper_8h_html_a1eb389a5422886c84207566ae511ab3a"><div class="ttname"><a href="kernel_2ebpf__registry__helper_8h.html#a1eb389a5422886c84207566ae511ab3a">ebpf_registry_key_t</a></div><div class="ttdeci">HANDLE ebpf_registry_key_t</div><div class="ttdef"><b>Definition:</b> ebpf_registry_helper.h:15</div></div>
-<div class="ttc" id="aebpf__windows_8h_html_a56701cb3f802fe78813d36cb01e23d7b"><div class="ttname"><a href="ebpf__windows_8h.html#a56701cb3f802fe78813d36cb01e23d7b">EBPF_PROGRAM_DATA_PRIVELEGED</a></div><div class="ttdeci">#define EBPF_PROGRAM_DATA_PRIVELEGED</div><div class="ttdef"><b>Definition:</b> ebpf_windows.h:31</div></div>
+<div class="ttc" id="aebpf__windows_8h_html_a56701cb3f802fe78813d36cb01e23d7b"><div class="ttname"><a href="ebpf__windows_8h.html#a56701cb3f802fe78813d36cb01e23d7b">EBPF_PROGRAM_DATA_PRIVELEGED</a></div><div class="ttdeci">#define EBPF_PROGRAM_DATA_PRIVELEGED</div><div class="ttdef"><b>Definition:</b> ebpf_windows.h:30</div></div>
 <div class="ttc" id="aebpf__windows_8h_html"><div class="ttname"><a href="ebpf__windows_8h.html">ebpf_windows.h</a></div></div>
 <div class="ttc" id="akernel_2ebpf__registry__helper_8h_html_a873c1dcbf8d78289e723e355b127a800"><div class="ttname"><a href="kernel_2ebpf__registry__helper_8h.html#a873c1dcbf8d78289e723e355b127a800">GUID_STRING_LENGTH</a></div><div class="ttdeci">#define GUID_STRING_LENGTH</div><div class="ttdef"><b>Definition:</b> ebpf_registry_helper.h:13</div></div>
 <div class="ttc" id="aebpf__windows_8h_html_a632c1dd33a0a2d1adf6b1db235e8fadd"><div class="ttname"><a href="ebpf__windows_8h.html#a632c1dd33a0a2d1adf6b1db235e8fadd">EBPF_PROGRAM_DATA_REGISTRY_PATH</a></div><div class="ttdeci">#define EBPF_PROGRAM_DATA_REGISTRY_PATH</div><div class="ttdef"><b>Definition:</b> ebpf_windows.h:20</div></div>
@@ -421,20 +418,21 @@ $(function() {
 <div class="ttc" id="auser_2ebpf__registry__helper_8h_html_a661025a65ab7f635f6c6639953979ada"><div class="ttname"><a href="user_2ebpf__registry__helper_8h.html#a661025a65ab7f635f6c6639953979ada">convert_guid_to_string</a></div><div class="ttdeci">uint32_t convert_guid_to_string(const GUID *guid, _Out_writes_all_(string_size) wchar_t *string, size_t string_size)</div></div>
 <div class="ttc" id="auser_2ebpf__registry__helper_8h_html_a61c9d7d26de7cf1a076508f73dc0c2a6"><div class="ttname"><a href="user_2ebpf__registry__helper_8h.html#a61c9d7d26de7cf1a076508f73dc0c2a6">create_registry_key</a></div><div class="ttdeci">uint32_t create_registry_key(ebpf_registry_key_t root_key, const wchar_t *sub_key, uint32_t flags, ebpf_registry_key_t *key)</div></div>
 <div class="ttc" id="auser_2ebpf__registry__helper_8h_html_a8aa349ada77d337b528e407fcf4c226e"><div class="ttname"><a href="user_2ebpf__registry__helper_8h.html#a8aa349ada77d337b528e407fcf4c226e">write_registry_value_ansi_string</a></div><div class="ttdeci">uint32_t write_registry_value_ansi_string(ebpf_registry_key_t key, const wchar_t *value_name, const char *value)</div></div>
-<div class="ttc" id="aebpf__windows_8h_html_a7392ed9f9037688cd94f7069c523c251"><div class="ttname"><a href="ebpf__windows_8h.html#a7392ed9f9037688cd94f7069c523c251">ebpf_program_type_t</a></div><div class="ttdeci">GUID ebpf_program_type_t</div><div class="ttdef"><b>Definition:</b> ebpf_windows.h:37</div></div>
-<div class="ttc" id="aebpf__windows_8h_html_a75ffbfb565d76fe9402f1356ea3c88dc"><div class="ttname"><a href="ebpf__windows_8h.html#a75ffbfb565d76fe9402f1356ea3c88dc">EBPF_PROGRAM_DATA_NAME</a></div><div class="ttdeci">#define EBPF_PROGRAM_DATA_NAME</div><div class="ttdef"><b>Definition:</b> ebpf_windows.h:28</div></div>
+<div class="ttc" id="aebpf__windows_8h_html_a7392ed9f9037688cd94f7069c523c251"><div class="ttname"><a href="ebpf__windows_8h.html#a7392ed9f9037688cd94f7069c523c251">ebpf_program_type_t</a></div><div class="ttdeci">GUID ebpf_program_type_t</div><div class="ttdef"><b>Definition:</b> ebpf_windows.h:38</div></div>
+<div class="ttc" id="aebpf__windows_8h_html_a75ffbfb565d76fe9402f1356ea3c88dc"><div class="ttname"><a href="ebpf__windows_8h.html#a75ffbfb565d76fe9402f1356ea3c88dc">EBPF_PROGRAM_DATA_NAME</a></div><div class="ttdeci">#define EBPF_PROGRAM_DATA_NAME</div><div class="ttdef"><b>Definition:</b> ebpf_windows.h:27</div></div>
 <div class="ttc" id="auser_2ebpf__registry__helper_8h_html_a8ac9b1a630e07ab18dd1e14f4996f818"><div class="ttname"><a href="user_2ebpf__registry__helper_8h.html#a8ac9b1a630e07ab18dd1e14f4996f818">write_registry_value_binary</a></div><div class="ttdeci">uint32_t write_registry_value_binary(ebpf_registry_key_t key, const wchar_t *value_name, _In_reads_(value_size) uint8_t *value, size_t value_size)</div></div>
 <div class="ttc" id="aebpf__structs_8h_html_aac6b4c09fa267f53c1d213551e0ccd5a"><div class="ttname"><a href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5a">bpf_attach_type</a></div><div class="ttdeci">bpf_attach_type</div><div class="ttdef"><b>Definition:</b> ebpf_structs.h:229</div></div>
 <div class="ttc" id="aebpf__program__types_8h_html"><div class="ttname"><a href="ebpf__program__types_8h.html">ebpf_program_types.h</a></div></div>
-<div class="ttc" id="aebpf__windows_8h_html_a3196d621ed1ac81a273a576abe962840"><div class="ttname"><a href="ebpf__windows_8h.html#a3196d621ed1ac81a273a576abe962840">EBPF_PROGRAM_DATA_HELPER_COUNT</a></div><div class="ttdeci">#define EBPF_PROGRAM_DATA_HELPER_COUNT</div><div class="ttdef"><b>Definition:</b> ebpf_windows.h:33</div></div>
+<div class="ttc" id="aebpf__windows_8h_html_a3196d621ed1ac81a273a576abe962840"><div class="ttname"><a href="ebpf__windows_8h.html#a3196d621ed1ac81a273a576abe962840">EBPF_PROGRAM_DATA_HELPER_COUNT</a></div><div class="ttdeci">#define EBPF_PROGRAM_DATA_HELPER_COUNT</div><div class="ttdef"><b>Definition:</b> ebpf_windows.h:31</div></div>
 <div class="ttc" id="auser_2ebpf__registry__helper_8h_html_a70ec7616cadc98c033f052354316f730"><div class="ttname"><a href="user_2ebpf__registry__helper_8h.html#a70ec7616cadc98c033f052354316f730">write_registry_value_dword</a></div><div class="ttdeci">uint32_t write_registry_value_dword(ebpf_registry_key_t key, const wchar_t *value_name, uint32_t value)</div></div>
 <div class="ttc" id="aebpf__windows_8h_html_a6fcdef43f3292afd9853cbb8cd8765ab"><div class="ttname"><a href="ebpf__windows_8h.html#a6fcdef43f3292afd9853cbb8cd8765ab">EBPF_SECTION_DATA_PROGRAM_TYPE</a></div><div class="ttdeci">#define EBPF_SECTION_DATA_PROGRAM_TYPE</div><div class="ttdef"><b>Definition:</b> ebpf_windows.h:24</div></div>
 <div class="ttc" id="astruct__ebpf__helper__function__prototype_html"><div class="ttname"><a href="struct__ebpf__helper__function__prototype.html">_ebpf_helper_function_prototype</a></div><div class="ttdef"><b>Definition:</b> ebpf_program_types.h:32</div></div>
+<div class="ttc" id="aebpf__windows_8h_html_aaed5424dcaa4dbf8f300e3e1ad5887c1"><div class="ttname"><a href="ebpf__windows_8h.html#aaed5424dcaa4dbf8f300e3e1ad5887c1">EBPF_DATA_BPF_ATTACH_TYPE</a></div><div class="ttdeci">#define EBPF_DATA_BPF_ATTACH_TYPE</div><div class="ttdef"><b>Definition:</b> ebpf_windows.h:36</div></div>
 <div class="ttc" id="akernel_2ebpf__registry__helper_8h_html_a69e14d22a3bf619599a764e7936249fc"><div class="ttname"><a href="kernel_2ebpf__registry__helper_8h.html#a69e14d22a3bf619599a764e7936249fc">IS_SUCCESS</a></div><div class="ttdeci">#define IS_SUCCESS(x)</div><div class="ttdef"><b>Definition:</b> ebpf_registry_helper.h:9</div></div>
 <div class="ttc" id="aebpf__windows_8h_html_aa93043d9a7b2b6802f4b358139a4ad3c"><div class="ttname"><a href="ebpf__windows_8h.html#aa93043d9a7b2b6802f4b358139a4ad3c">EBPF_PROVIDERS_REGISTRY_PATH</a></div><div class="ttdeci">#define EBPF_PROVIDERS_REGISTRY_PATH</div><div class="ttdef"><b>Definition:</b> ebpf_windows.h:18</div></div>
 <div class="ttc" id="aebpf__windows_8h_html_abfb0b1785443602df469e37ee861fd24"><div class="ttname"><a href="ebpf__windows_8h.html#abfb0b1785443602df469e37ee861fd24">EBPF_PROGRAM_DATA_HELPERS_REGISTRY_PATH</a></div><div class="ttdeci">#define EBPF_PROGRAM_DATA_HELPERS_REGISTRY_PATH</div><div class="ttdef"><b>Definition:</b> ebpf_windows.h:21</div></div>
 <div class="ttc" id="aebpf__windows_8h_html_ab869d4f3b17e83161f8ca9928794811d"><div class="ttname"><a href="ebpf__windows_8h.html#ab869d4f3b17e83161f8ca9928794811d">EBPF_GLOBAL_HELPERS_REGISTRY_PATH</a></div><div class="ttdeci">#define EBPF_GLOBAL_HELPERS_REGISTRY_PATH</div><div class="ttdef"><b>Definition:</b> ebpf_windows.h:22</div></div>
-<div class="ttc" id="aebpf__windows_8h_html_a3f56868552f991b0f9eb6800d8f9a43c"><div class="ttname"><a href="ebpf__windows_8h.html#a3f56868552f991b0f9eb6800d8f9a43c">ebpf_attach_type_t</a></div><div class="ttdeci">GUID ebpf_attach_type_t</div><div class="ttdef"><b>Definition:</b> ebpf_windows.h:38</div></div>
+<div class="ttc" id="aebpf__windows_8h_html_a3f56868552f991b0f9eb6800d8f9a43c"><div class="ttname"><a href="ebpf__windows_8h.html#a3f56868552f991b0f9eb6800d8f9a43c">ebpf_attach_type_t</a></div><div class="ttdeci">GUID ebpf_attach_type_t</div><div class="ttdef"><b>Definition:</b> ebpf_windows.h:39</div></div>
 <div class="ttc" id="aebpf__windows_8h_html_a6e61d3215c4dcae5f897bea35c83eda4"><div class="ttname"><a href="ebpf__windows_8h.html#a6e61d3215c4dcae5f897bea35c83eda4">EBPF_ROOT_RELATIVE_PATH</a></div><div class="ttdeci">#define EBPF_ROOT_RELATIVE_PATH</div><div class="ttdef"><b>Definition:</b> ebpf_windows.h:15</div></div>
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
