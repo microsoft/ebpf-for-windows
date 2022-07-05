@@ -425,7 +425,7 @@ _load_section_data_information(
 
         // Read bpf attach type.
         status =
-            read_registry_value_dword(section_info_key, EBPF_PROGRAM_DATA_BPF_PROG_TYPE, (uint32_t*)&bpf_attach_type);
+            read_registry_value_dword(section_info_key, EBPF_PROGRAM_DATA_BPF_ATTACH_TYPE, (uint32_t*)&bpf_attach_type);
         if (status != ERROR_SUCCESS) {
             bpf_attach_type = BPF_ATTACH_TYPE_UNSPEC;
             result = EBPF_SUCCESS;
