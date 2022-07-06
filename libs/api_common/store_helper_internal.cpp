@@ -144,7 +144,7 @@ _load_program_data_information(
         }
 
         // Read bpf program type.
-        status = read_registry_value_dword(program_info_key, EBPF_PROGRAM_DATA_BPF_PROG_TYPE, &bpf_program_type);
+        status = read_registry_value_dword(program_info_key, EBPF_DATA_BPF_PROG_TYPE, &bpf_program_type);
         if (status != ERROR_SUCCESS) {
             result = win32_error_code_to_ebpf_result(status);
             goto Exit;
@@ -416,16 +416,14 @@ _load_section_data_information(
         }
 
         // Read bpf program type.
-        status =
-            read_registry_value_dword(section_info_key, EBPF_PROGRAM_DATA_BPF_PROG_TYPE, (uint32_t*)&bpf_program_type);
+        status = read_registry_value_dword(section_info_key, EBPF_DATA_BPF_PROG_TYPE, (uint32_t*)&bpf_program_type);
         if (status != ERROR_SUCCESS) {
             bpf_program_type = BPF_PROG_TYPE_UNSPEC;
             result = EBPF_SUCCESS;
         }
 
         // Read bpf attach type.
-        status =
-            read_registry_value_dword(section_info_key, EBPF_PROGRAM_DATA_BPF_PROG_TYPE, (uint32_t*)&bpf_attach_type);
+        status = read_registry_value_dword(section_info_key, EBPF_DATA_BPF_ATTACH_TYPE, (uint32_t*)&bpf_attach_type);
         if (status != ERROR_SUCCESS) {
             bpf_attach_type = BPF_ATTACH_TYPE_UNSPEC;
             result = EBPF_SUCCESS;

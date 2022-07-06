@@ -144,16 +144,14 @@ ebpf_store_update_section_information(
         }
 
         // Save bpf_prog_type.
-        status =
-            write_registry_value_dword(section_key, EBPF_PROGRAM_DATA_BPF_PROG_TYPE, section_info[i].bpf_program_type);
+        status = write_registry_value_dword(section_key, EBPF_DATA_BPF_PROG_TYPE, section_info[i].bpf_program_type);
         if (!IS_SUCCESS(status)) {
             close_registry_key(section_key);
             goto Exit;
         }
 
         // Save bpf_attach_type.
-        status =
-            write_registry_value_dword(section_key, EBPF_SECTION_DATA_BPF_ATTACH_TYPE, section_info[i].bpf_attach_type);
+        status = write_registry_value_dword(section_key, EBPF_DATA_BPF_ATTACH_TYPE, section_info[i].bpf_attach_type);
         if (!IS_SUCCESS(status)) {
             close_registry_key(section_key);
             goto Exit;
@@ -243,7 +241,7 @@ ebpf_store_update_program_information(
 
         // Save bpf_prog_type.
         status = write_registry_value_dword(
-            program_key, EBPF_PROGRAM_DATA_BPF_PROG_TYPE, program_info[i].program_type_descriptor.bpf_prog_type);
+            program_key, EBPF_DATA_BPF_PROG_TYPE, program_info[i].program_type_descriptor.bpf_prog_type);
         if (!IS_SUCCESS(status)) {
             close_registry_key(program_key);
             goto Exit;
