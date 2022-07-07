@@ -40,7 +40,7 @@ function Unregister-eBPFComponents
 
 function Register-eBPFComponents
 {
-    # Uinstall previous installations (if any).
+    # Uninstall previous installations (if any).
     Unregister-eBPFComponents
 
     # Install drivers.

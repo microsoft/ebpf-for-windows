@@ -15,7 +15,7 @@
          Execute must be "rollback" for rollback, and "deferred" for everything else.
       -->
 
-        <!-- EbpfCore.sys create service -->
+        <!-- EbpfCore.sys -->
 
         <SetProperty Id="Create_EbpfCore" Before="InstallInitialize" Sequence="execute"
                      Value='"[WindowsFolder]System32\sc.exe" create EbpfCore type=kernel start=demand binpath="[ProgramFiles64Folder]ebpf-for-windows\drivers\EbpfCore.sys"' />
@@ -47,7 +47,7 @@
         <CustomAction Id="Stop_EbpfCore" BinaryKey="WixCA" DllEntry="WixQuietExec"
                       Execute="deferred" Impersonate='no' Return="ignore" />
 
-        <!-- NetEbpfExt.sys create service -->
+        <!-- NetEbpfExt.sys -->
 
         <SetProperty Id="Create_NetEbpfExt" Before="InstallInitialize" Sequence="execute"
                      Value='"[WindowsFolder]System32\sc.exe" create NetEbpfExt type=kernel start=demand binpath="[ProgramFiles64Folder]ebpf-for-windows\drivers\netebpfext.sys"' />
@@ -79,7 +79,7 @@
         <CustomAction Id="Stop_NetEbpfExt" BinaryKey="WixCA" DllEntry="WixQuietExec"
                       Execute="deferred" Impersonate='no' Return="ignore" />
 
-        <!-- EbpfSvc.exe create service -->
+        <!-- EbpfSvc.exe -->
 
         <SetProperty Id="Create_EbpfSvc" Before="InstallInitialize" Sequence="execute"
                      Value='"[ProgramFiles64Folder]ebpf-for-windows\ebpfsvc.exe" install' />
@@ -111,33 +111,6 @@
         <CustomAction Id="Stop_EbpfSvc" BinaryKey="WixCA" DllEntry="WixQuietExec"
                       Execute="deferred" Impersonate='no' Return="ignore" />
 
-        <!-- EbpfNetsh.dll -->
-
-        <SetProperty Id="Copy_EbpfNetsh" Before="InstallInitialize" Sequence="execute"
-                     Value='"[WindowsFolder]System32\xcopy.exe" "[ProgramFiles64Folder]ebpf-for-windows\ebpfnetsh.dll" "[WindowsFolder]System32"' />
-        <CustomAction Id="Copy_EbpfNetsh" BinaryKey="WixCA" DllEntry="WixQuietExec"
-                      Execute="deferred" Impersonate='no' Return="check" />
-
-        <SetProperty Id="Dir_EbpfNetsh" Before="InstallInitialize" Sequence="execute"
-                     Value='"[WindowsFolder]System32\where.exe" ebpfnetsh.dll"' />
-        <CustomAction Id="Dir_EbpfNetsh" BinaryKey="WixCA" DllEntry="WixQuietExec"
-                      Execute="deferred" Impersonate='no' Return="check" />
-
-        <SetProperty Id="Add_EbpfNetsh" Before="InstallInitialize" Sequence="execute"
-                     Value='"[WindowsFolder]System32\netsh.exe" add helper ebpfnetsh.dll' />
-        <CustomAction Id="Add_EbpfNetsh" BinaryKey="WixCA" DllEntry="WixQuietExec"
-                      Execute="deferred" Impersonate='no' Return="check" />
-
-        <SetProperty Id="Cleanup_EbpfNetsh" Before="InstallInitialize" Sequence="execute"
-                     Value='erase "[WindowsFolder]System32\ebpfnetsh.dll"' />
-        <CustomAction Id="Cleanup_EbpfNetsh" BinaryKey="WixCA" DllEntry="WixQuietExec"
-                      Execute="deferred" Impersonate='no' Return="ignore" />
-
-        <SetProperty Id="Delete_EbpfNetsh" Before="InstallInitialize" Sequence="execute"
-                     Value='"[WindowsFolder]System32\netsh.exe" del helper ebpfnetsh.dll' />
-        <CustomAction Id="Delete_EbpfNetsh" BinaryKey="WixCA" DllEntry="WixQuietExec"
-                      Execute="deferred" Impersonate='no' Return="ignore" />
-
         <!-- Now we configure the order in which the above need to execute. -->
         <InstallExecuteSequence>
             <!-- Rollback actions MUST be listed first. -->
@@ -156,19 +129,10 @@
             <Custom Action="Create_EbpfSvc" After="Start_NetEbpfExt">NOT Installed</Custom>
             <Custom Action="Start_EbpfSvc" After="Create_EbpfSvc">NOT Installed</Custom>
 
-            <!---
-            <Custom Action="Copy_EbpfNetsh" After="Start_EbpfSvc">NOT Installed</Custom>
-            <Custom Action="Dir_EbpfNetsh" After="Copy_EbpfNetsh">NOT Installed</Custom>
-            <Custom Action="Add_EbpfNetsh" After="Dir_EbpfNetsh">NOT Installed</Custom>
-            -->
-
             <!-- Finally any uninstall actions. -->
             <Custom Action="Stop_EbpfSvc" After="RemoveRegistryValues">Installed</Custom>
             <Custom Action="Stop_NetEbpfExt" After="RemoveRegistryValues">Installed</Custom>
             <Custom Action="Stop_EbpfCore" After="RemoveRegistryValues">Installed</Custom>
-            <!--
-            <Custom Action="Delete_EbpfNetsh" After="RemoveRegistryValues">Installed</Custom>
-            -->
             <Custom Action="Delete_EbpfSvc" After="RemoveRegistryValues">Installed</Custom>
             <Custom Action="Delete_EbpfCore" After="RemoveRegistryValues">Installed</Custom>
             <Custom Action="Delete_NetEbpfExt" After="RemoveRegistryValues">Installed</Custom>

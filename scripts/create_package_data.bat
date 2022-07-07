@@ -4,6 +4,7 @@ rem SPDX-License-Identifier: MIT
 
 set SOURCE_DIR=%CD%
 pushd %1
+dir
 
 mkdir package_data
 copy bpftool.exe package_data

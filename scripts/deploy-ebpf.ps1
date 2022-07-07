@@ -9,9 +9,6 @@ $build_directory=".\x64\Debug"
 [System.Collections.ArrayList]$msi_files=@(
     "..\..\build\setup\ebpf-for-windows-0.2.0.msi")
 
-[System.Collections.ArrayList]$setup_files=@(
-    "..\..\build\setup\ebpf-for-windows-0.2.0.exe")
-
 # The following files should be installed on all platforms.
 [System.Collections.ArrayList]$runtime_files=@(
     "bpftool.exe",
@@ -172,13 +169,12 @@ OVERVIEW:
 
 Copies eBPF framework files into a temp directory on the local machine or into a VM
 
-    $ deploy-ebpf [-h] [-l] [-m] [-s] [-t] [--vm="..."]
+    $ deploy-ebpf [-h] [-l] [-m] [-t] [--vm="..."]
 
 OPTIONS:
     -h, --help     Print this help message.
     -m, --msi      Copies MSI instead of individual files
     -l, --local    Copies files to the local temp directory instead of into a VM
-    -s, --setup    Copies setup EXE instead of individual files
     -t, --test     Includes files needed only for testing and debugging
     --vm           Specifies the VM name, which defaults to "Windows 10 dev environment"
 
@@ -198,11 +194,6 @@ OPTIONS:
     { @("-m", "--msi") -contains $_ }
         {
             $built_files= $msi_files
-            break
-        }
-    { @("-s", "--setup") -contains $_ }
-        {
-            $built_files= $setup_files
             break
         }
     { @("-t", "--test") -contains $_ }
