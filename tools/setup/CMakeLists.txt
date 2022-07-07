@@ -37,6 +37,7 @@ install(
     "${EBPFFORWINDOWS_PROGRAM_DATA}/bpftool.exe"
     "${EBPFFORWINDOWS_PROGRAM_DATA}/bpf2c.exe"
     "${EBPFFORWINDOWS_PROGRAM_DATA}/ebpfsvc.exe"
+    "${EBPFFORWINDOWS_PROGRAM_DATA}/export_program_info.exe"
 
     "${EBPFFORWINDOWS_PROGRAM_DATA}/EbpfApi.dll"
     "${EBPFFORWINDOWS_PROGRAM_DATA}/ebpfnetsh.dll"

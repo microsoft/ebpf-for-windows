@@ -11,131 +11,32 @@
          https://docs.microsoft.com/en-us/windows/win32/msi/standard-actions-reference
       -->
 	<CPackWiXFragment Id="#PRODUCT">
-    <!-- Each section below should have 3 actions: install, rollback, and uninstall.
-         Execute must be "rollback" for rollback, and "deferred" for everything else.
-      -->
+        <!-- Each section below should have 3 actions: install, rollback, and uninstall.
+             Execute must be "rollback" for rollback, and "deferred" for everything else.
+             Impersonate='no' must be used to run as administrator.
+          -->
 
-        <!-- EbpfCore.sys -->
-
-        <SetProperty Id="Create_EbpfCore" Before="InstallInitialize" Sequence="execute"
-                     Value='"[WindowsFolder]System32\sc.exe" create EbpfCore type=kernel start=demand binpath="[ProgramFiles64Folder]ebpf-for-windows\drivers\EbpfCore.sys"' />
-        <CustomAction Id="Create_EbpfCore" BinaryKey="WixCA" DllEntry="WixQuietExec"
+        <SetProperty Id="Install_Script" Before="InstallInitialize" Sequence="execute"
+                     Value='"[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe" "[ProgramFiles64Folder]ebpf-for-windows\scripts\setup-ebpf.ps1" install' />
+        <CustomAction Id="Install_Script" BinaryKey="WixCA" DllEntry="WixQuietExec"
                       Execute="deferred" Impersonate='no' Return="check" />
 
-        <SetProperty Id="Rollback_Delete_EbpfCore" Before="InstallInitialize" Sequence="execute"
-                     Value='"[WindowsFolder]System32\sc.exe" delete EbpfCore' />
-        <CustomAction Id="Rollback_Delete_EbpfCore" BinaryKey="WixCA" DllEntry="WixQuietExec"
+        <SetProperty Id="Rollback_Script" Before="InstallInitialize" Sequence="execute"
+                     Value='"[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe" "[ProgramFiles64Folder]ebpf-for-windows\scripts\setup-ebpf.ps1" uninstall' />
+        <CustomAction Id="Rollback_Script" BinaryKey="WixCA" DllEntry="WixQuietExec"
                       Execute="rollback" Impersonate='no' Return="ignore" />
 
-        <SetProperty Id="Delete_EbpfCore" Before="InstallInitialize" Sequence="execute"
-                     Value='"[WindowsFolder]System32\sc.exe" delete EbpfCore' />
-        <CustomAction Id="Delete_EbpfCore" BinaryKey="WixCA" DllEntry="WixQuietExec"
-                      Execute="deferred" Impersonate='no' Return="ignore" />
-
-        <SetProperty Id="Start_EbpfCore" Before="InstallInitialize" Sequence="execute"
-                     Value='"[WindowsFolder]System32\net.exe" start EbpfCore' />
-        <CustomAction Id="Start_EbpfCore" BinaryKey="WixCA" DllEntry="WixQuietExec"
-                      Execute="deferred" Impersonate='no' Return="ignore" />
-
-        <SetProperty Id="Rollback_Stop_EbpfCore" Before="InstallInitialize" Sequence="execute"
-                     Value='"[WindowsFolder]System32\net.exe" stop EbpfCore' />
-        <CustomAction Id="Rollback_Stop_EbpfCore" BinaryKey="WixCA" DllEntry="WixQuietExec"
-                      Execute="rollback" Impersonate='no' Return="ignore" />
-
-        <SetProperty Id="Stop_EbpfCore" Before="InstallInitialize" Sequence="execute"
-                     Value='"[WindowsFolder]System32\net.exe" stop EbpfCore' />
-        <CustomAction Id="Stop_EbpfCore" BinaryKey="WixCA" DllEntry="WixQuietExec"
-                      Execute="deferred" Impersonate='no' Return="ignore" />
-
-        <!-- NetEbpfExt.sys -->
-
-        <SetProperty Id="Create_NetEbpfExt" Before="InstallInitialize" Sequence="execute"
-                     Value='"[WindowsFolder]System32\sc.exe" create NetEbpfExt type=kernel start=demand binpath="[ProgramFiles64Folder]ebpf-for-windows\drivers\netebpfext.sys"' />
-        <CustomAction Id="Create_NetEbpfExt" BinaryKey="WixCA" DllEntry="WixQuietExec"
-                      Execute="deferred" Impersonate='no' Return="check" />
-
-        <SetProperty Id="Rollback_Delete_NetEbpfExt" Before="InstallInitialize" Sequence="execute"
-                     Value='"[WindowsFolder]System32\sc.exe" delete NetEbpfExt' />
-        <CustomAction Id="Rollback_Delete_NetEbpfExt" BinaryKey="WixCA" DllEntry="WixQuietExec"
-                      Execute="rollback" Impersonate='no' Return="ignore" />
-
-        <SetProperty Id="Delete_NetEbpfExt" Before="InstallInitialize" Sequence="execute"
-                     Value='"[WindowsFolder]System32\sc.exe" delete NetEbpfExt' />
-        <CustomAction Id="Delete_NetEbpfExt" BinaryKey="WixCA" DllEntry="WixQuietExec"
-                      Execute="deferred" Impersonate='no' Return="ignore" />
-
-        <SetProperty Id="Start_NetEbpfExt" Before="InstallInitialize" Sequence="execute"
-                     Value='"[WindowsFolder]System32\net.exe" start NetEbpfExt' />
-        <CustomAction Id="Start_NetEbpfExt" BinaryKey="WixCA" DllEntry="WixQuietExec"
-                      Execute="deferred" Impersonate='no' Return="ignore" />
-
-        <SetProperty Id="Rollback_Stop_NetEbpfExt" Before="InstallInitialize" Sequence="execute"
-                     Value='"[WindowsFolder]System32\net.exe" stop NetEbpfExt' />
-        <CustomAction Id="Rollback_Stop_NetEbpfExt" BinaryKey="WixCA" DllEntry="WixQuietExec"
-                      Execute="rollback" Impersonate='no' Return="ignore" />
-
-        <SetProperty Id="Stop_NetEbpfExt" Before="InstallInitialize" Sequence="execute"
-                     Value='"[WindowsFolder]System32\net.exe" stop NetEbpfExt' />
-        <CustomAction Id="Stop_NetEbpfExt" BinaryKey="WixCA" DllEntry="WixQuietExec"
-                      Execute="deferred" Impersonate='no' Return="ignore" />
-
-        <!-- EbpfSvc.exe -->
-
-        <SetProperty Id="Create_EbpfSvc" Before="InstallInitialize" Sequence="execute"
-                     Value='"[ProgramFiles64Folder]ebpf-for-windows\ebpfsvc.exe" install' />
-        <CustomAction Id="Create_EbpfSvc" BinaryKey="WixCA" DllEntry="WixQuietExec"
-                      Execute="deferred" Impersonate='no' Return="check" />
-
-        <SetProperty Id="Rollback_Delete_EbpfSvc" Before="InstallInitialize" Sequence="execute"
-                     Value='"[WindowsFolder]System32\sc.exe" delete ebpfsvc' />
-        <CustomAction Id="Rollback_Delete_EbpfSvc" BinaryKey="WixCA" DllEntry="WixQuietExec"
-                      Execute="rollback" Impersonate='no' Return="ignore" />
-
-        <SetProperty Id="Delete_EbpfSvc" Before="InstallInitialize" Sequence="execute"
-                     Value='"[WindowsFolder]System32\sc.exe" delete ebpfsvc' />
-        <CustomAction Id="Delete_EbpfSvc" BinaryKey="WixCA" DllEntry="WixQuietExec"
-                      Execute="deferred" Impersonate='no' Return="ignore" />
-
-        <SetProperty Id="Start_EbpfSvc" Before="InstallInitialize" Sequence="execute"
-                     Value='"[WindowsFolder]System32\net.exe" start EbpfSvc' />
-        <CustomAction Id="Start_EbpfSvc" BinaryKey="WixCA" DllEntry="WixQuietExec"
-                      Execute="deferred" Impersonate='no' Return="ignore" />
-
-        <SetProperty Id="Rollback_Stop_EbpfSvc" Before="InstallInitialize" Sequence="execute"
-                     Value='"[WindowsFolder]System32\net.exe" stop ebpfsvc' />
-        <CustomAction Id="Rollback_Stop_EbpfSvc" BinaryKey="WixCA" DllEntry="WixQuietExec"
-                      Execute="rollback" Impersonate='no' Return="ignore" />
-
-        <SetProperty Id="Stop_EbpfSvc" Before="InstallInitialize" Sequence="execute"
-                     Value='"[WindowsFolder]System32\net.exe" stop ebpfsvc' />
-        <CustomAction Id="Stop_EbpfSvc" BinaryKey="WixCA" DllEntry="WixQuietExec"
+        <SetProperty Id="Uninstall_Script" Before="InstallInitialize" Sequence="execute"
+                     Value='"[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe" "[ProgramFiles64Folder]ebpf-for-windows\scripts\setup-ebpf.ps1" uninstall' />
+        <CustomAction Id="Uninstall_Script" BinaryKey="WixCA" DllEntry="WixQuietExec"
                       Execute="deferred" Impersonate='no' Return="ignore" />
 
         <!-- Now we configure the order in which the above need to execute. -->
         <InstallExecuteSequence>
-            <!-- Rollback actions MUST be listed first. -->
-            <Custom Action="Rollback_Stop_EbpfSvc" After="InstallFiles">Installed</Custom>
-            <Custom Action="Rollback_Stop_NetEbpfExt" After="InstallFiles">Installed</Custom>
-            <Custom Action="Rollback_Stop_EbpfCore" After="InstallFiles">Installed</Custom>
-            <Custom Action="Rollback_Delete_EbpfCore" After="InstallFiles">NOT Installed</Custom>
-            <Custom Action="Rollback_Delete_NetEbpfExt" After="InstallFiles">NOT Installed</Custom>
-            <Custom Action="Rollback_Delete_EbpfSvc" After="InstallFiles">NOT Installed</Custom>
-
-            <!-- Then list installation actions. -->
-            <Custom Action="Create_EbpfCore" After="Rollback_Delete_EbpfSvc">NOT Installed</Custom>
-            <Custom Action="Start_EbpfCore" After="Create_EbpfCore">NOT Installed</Custom>
-            <Custom Action="Create_NetEbpfExt" After="Start_EbpfCore">NOT Installed</Custom>
-            <Custom Action="Start_NetEbpfExt" After="Create_NetEbpfExt">NOT Installed</Custom>
-            <Custom Action="Create_EbpfSvc" After="Start_NetEbpfExt">NOT Installed</Custom>
-            <Custom Action="Start_EbpfSvc" After="Create_EbpfSvc">NOT Installed</Custom>
-
-            <!-- Finally any uninstall actions. -->
-            <Custom Action="Stop_EbpfSvc" After="RemoveRegistryValues">Installed</Custom>
-            <Custom Action="Stop_NetEbpfExt" After="RemoveRegistryValues">Installed</Custom>
-            <Custom Action="Stop_EbpfCore" After="RemoveRegistryValues">Installed</Custom>
-            <Custom Action="Delete_EbpfSvc" After="RemoveRegistryValues">Installed</Custom>
-            <Custom Action="Delete_EbpfCore" After="RemoveRegistryValues">Installed</Custom>
-            <Custom Action="Delete_NetEbpfExt" After="RemoveRegistryValues">Installed</Custom>
+            <!-- Rollback actions must be listed before install actions. -->
+            <Custom Action="Rollback_Script" After="InstallFiles">NOT Installed</Custom>
+            <Custom Action="Install_Script" After="Rollback_Script">NOT Installed</Custom>
+            <Custom Action="Uninstall_Script" After="RemoveRegistryValues">Installed</Custom>
         </InstallExecuteSequence>
 	</CPackWiXFragment>
 </CPackWiXPatch>
