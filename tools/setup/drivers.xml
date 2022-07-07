@@ -17,17 +17,17 @@
           -->
 
         <SetProperty Id="Install_Script" Before="InstallInitialize" Sequence="execute"
-                     Value='"[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe" "[ProgramFiles64Folder]ebpf-for-windows\scripts\setup-ebpf.ps1" install' />
+                     Value='"[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe" -ExecutionPolicy Bypass "[ProgramFiles64Folder]ebpf-for-windows\scripts\setup-ebpf.ps1" -WorkingDirectory "[ProgramFiles64Folder]ebpf-for-windows"' />
         <CustomAction Id="Install_Script" BinaryKey="WixCA" DllEntry="WixQuietExec"
                       Execute="deferred" Impersonate='no' Return="check" />
 
         <SetProperty Id="Rollback_Script" Before="InstallInitialize" Sequence="execute"
-                     Value='"[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe" "[ProgramFiles64Folder]ebpf-for-windows\scripts\setup-ebpf.ps1" uninstall' />
+                     Value='"[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe" -ExecutionPolicy Bypass "[ProgramFiles64Folder]ebpf-for-windows\scripts\setup-ebpf.ps1" -WorkingDirectory "[ProgramFiles64Folder]ebpf-for-windows" -Uninstall' />
         <CustomAction Id="Rollback_Script" BinaryKey="WixCA" DllEntry="WixQuietExec"
                       Execute="rollback" Impersonate='no' Return="ignore" />
 
         <SetProperty Id="Uninstall_Script" Before="InstallInitialize" Sequence="execute"
-                     Value='"[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe" "[ProgramFiles64Folder]ebpf-for-windows\scripts\setup-ebpf.ps1" uninstall' />
+                     Value='"[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe" -ExecutionPolicy Bypass "[ProgramFiles64Folder]ebpf-for-windows\scripts\setup-ebpf.ps1" -WorkingDirectory "[ProgramFiles64Folder]ebpf-for-windows" -Uninstall' />
         <CustomAction Id="Uninstall_Script" BinaryKey="WixCA" DllEntry="WixQuietExec"
                       Execute="deferred" Impersonate='no' Return="ignore" />
 

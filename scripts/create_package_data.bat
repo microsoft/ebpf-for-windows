@@ -10,6 +10,7 @@ mkdir package_data
 copy bpftool.exe package_data
 copy bpf2c.exe package_data
 copy ebpfsvc.exe package_data
+copy export_program_info.exe package_data
 copy EbpfApi.dll package_data
 copy ebpfnetsh.dll package_data
 copy ebpf-all.guid package_data
@@ -28,8 +29,9 @@ copy EbpfCore\EbpfCore.sys package_data\drivers
 copy EbpfCore\EbpfCore.inf package_data\drivers
 
 mkdir package_data\scripts
-copy %SOURCE_DIR%\scripts\install-ebpf.bat package_data\scripts
-copy %SOURCE_DIR%\scripts\uninstall-ebpf.bat package_data\scripts
+copy %SOURCE_DIR%\scripts\common.psm1 package_data\scripts
+copy %SOURCE_DIR%\scripts\install_ebpf.psm1 package_data\scripts
+copy %SOURCE_DIR%\scripts\setup-ebpf.ps1 package_data\scripts
 
 mkdir package_data\testing
 copy api_test.exe package_data\testing

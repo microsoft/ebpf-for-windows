@@ -6,7 +6,7 @@ param ([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
 
 Push-Location $WorkingDirectory
 
-Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
+Import-Module $PSScriptRoot\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
 
 # eBPF Drivers.
 $EbpfDrivers =
@@ -45,12 +45,15 @@ function Register-eBPFComponents
 
     # Install drivers.
     $EbpfDrivers.GetEnumerator() | ForEach-Object {
-        # New-Service does not support installing drivers.
-        sc.exe create $_.Name type=kernel start=demand binpath=("$Env:systemroot\system32\drivers\{0}" -f $_.Value) 2>&1 | Write-Log
-        if ($LASTEXITCODE -ne 0) {
-            throw ("Failed to create $_.Name driver.")
-        } else {
-            Write-Log ("{0} driver created." -f $_.Name) -ForegroundColor Green
+        if (Test-Path -Path ("$Env:systemroot\system32\drivers\{0}" -f $_.Value)) {
+            Write-Log ("Installing {0}..." -f $_.Name) -ForegroundColor Green
+            # New-Service does not support installing drivers.
+            sc.exe create $_.Name type=kernel start=demand binpath=("$Env:systemroot\system32\drivers\{0}" -f $_.Value) 2>&1 | Write-Log
+            if ($LASTEXITCODE -ne 0) {
+                throw ("Failed to create $_.Name driver.")
+            } else {
+                Write-Log ("{0} driver created." -f $_.Name) -ForegroundColor Green
+            }
         }
     }
 
@@ -71,13 +74,19 @@ function Register-eBPFComponents
 #
 function Start-eBPFComponents
 {
-    Write-Log "Starting ETW tracing"
-    Start-Process -FilePath "wpr.exe" -ArgumentList @("-start", "EbpfForWindows.wprp", "-filemode") -NoNewWindow -Wait
+    param([parameter(Mandatory=$false)] [bool] $Tracing = $false)
+
+    if ($Tracing) {
+        Write-Log "Starting ETW tracing"
+        Start-Process -FilePath "wpr.exe" -ArgumentList @("-start", "EbpfForWindows.wprp", "-filemode") -NoNewWindow -Wait
+    }
 
     # Start drivers.
     $EbpfDrivers.GetEnumerator() | ForEach-Object {
-        Start-Service $_.Name -ErrorAction Stop | Write-Log
-        Write-Host ("{0} Driver started." -f $_.Name)
+        if (Test-Path -Path ("$Env:systemroot\system32\drivers\{0}" -f $_.Value)) {
+            Start-Service $_.Name -ErrorAction Stop | Write-Log
+            Write-Host ("{0} Driver started." -f $_.Name)
+        }
     }
 
     # Start user mode service.
@@ -99,6 +108,8 @@ function Update-eBPFStore
 
 function Install-eBPFComponents
 {
+    param([parameter(Mandatory=$false)] [bool] $Tracing = $false)
+
     # Stop eBPF Components
     Stop-eBPFComponents
 
@@ -111,7 +122,7 @@ function Install-eBPFComponents
     Register-eBPFComponents
 
     # Start all components.
-    Start-eBPFComponents
+    Start-eBPFComponents -Tracing $Tracing
 
     ## TODO: Issue 1231, remove this step when this issue is fixed.
     # Update eBPF store.
@@ -127,4 +138,14 @@ function Stop-eBPFComponents
     $EbpfDrivers.GetEnumerator() | ForEach-Object {
         Stop-Service $_.Name -ErrorAction Ignore 2>&1 | Write-Log
     }
+}
+
+function Uninstall-eBPFComponents
+{
+    Stop-eBPFComponents
+    Unregister-eBPFComponents
+    .\export_program_info.exe --clear
+    Remove-Item "$Env:systemroot\system32\drivers\*bpf*" -Force -ErrorAction Stop 2>&1 | Write-Log
+    Remove-Item "$Env:systemroot\system32\*bpf*" -Force -ErrorAction Stop 2>&1 | Write-Log
+    wpr.exe -cancel
 }

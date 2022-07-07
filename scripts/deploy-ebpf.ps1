@@ -4,13 +4,10 @@
 ##
 ## Initialize parameters
 ##
-$build_directory=".\x64\Debug"
-
-[System.Collections.ArrayList]$msi_files=@(
-    "..\..\build\setup\ebpf-for-windows-0.2.0.msi")
+$source_directory="."
 
 # The following files should be installed on all platforms.
-[System.Collections.ArrayList]$runtime_files=@(
+[System.Collections.ArrayList]$built_runtime_files=@(
     "bpftool.exe",
     "ebpf-all.guid",
     "ebpf-printk.guid",
@@ -27,8 +24,16 @@ $build_directory=".\x64\Debug"
     "VCRUNTIME140_1D.dll",
     "VCRUNTIME140D.dll")
 
+[System.Collections.ArrayList]$source_msi_files=@(
+    "ebpf-for-windows-0.2.0.msi")
+
+[System.Collections.ArrayList]$source_script_files=@(
+    "scripts\common.psm1",
+    "scripts\install_ebpf.psm1",
+    "scripts\setup-ebpf.ps1")
+
 # The following files are only needed for testing and debugging.
-[System.Collections.ArrayList]$test_files=@(
+[System.Collections.ArrayList]$built_test_files=@(
     "api_test.exe",
     "api_test.pdb",
     "bindmonitor.o",
@@ -153,7 +158,8 @@ $build_directory=".\x64\Debug"
     "unit_tests.exe",
     "unit_tests.pdb")
 
-[System.Collections.ArrayList]$built_files= $runtime_files
+[System.Collections.ArrayList]$built_files= $built_runtime_files
+[System.Collections.ArrayList]$source_files= $source_script_files
 $destination_directory="C:\Temp"
 $error.clear()
 $vm="Windows 10 dev environment"
@@ -171,9 +177,10 @@ OVERVIEW:
 
 Copies eBPF framework files into a temp directory on the local machine or into a VM
 
-    $ deploy-ebpf [-h] [-l] [-m] [-t] [--vm="..."]
+    $ deploy-ebpf [--dir="..."] [-h] [-l] [-m] [-t] [--vm="..."]
 
 OPTIONS:
+    --dir          Specifies the source directory path, which defaults to "."
     -h, --help     Print this help message.
     -m, --msi      Copies MSI instead of individual files
     -l, --local    Copies files to the local temp directory instead of into a VM
@@ -182,6 +189,11 @@ OPTIONS:
 
 '@
             exit 0
+        }
+    "--dir=*"
+        {
+            $source_directory=($arg -split "=")[1];
+            break
         }
     "--vm=*"
         {
@@ -195,12 +207,14 @@ OPTIONS:
         }
     { @("-m", "--msi") -contains $_ }
         {
-            $built_files= $msi_files
+            $built_files= @()
+            $source_directory= "build\setup"
+            $source_files= $source_msi_files
             break
         }
     { @("-t", "--test") -contains $_ }
         {
-            $built_files= $runtime_files + $test_files
+            $built_files= $built_runtime_files + $built_test_files
             break
         }
     default
@@ -211,6 +225,7 @@ OPTIONS:
     }
 }
 
+$build_directory="$source_directory\x64\Debug"
 if ($vm -eq $null) {
    Write-Host "Copying files from `"$build_directory`" to `"$destination_directory`""
 
@@ -223,10 +238,14 @@ if ($vm -eq $null) {
          exit 1
       }
    }
-   Write-Host " install-ebpf.bat"
-   Copy-Item ".\scripts\install-ebpf.bat" -Destination "$destination_directory\install-ebpf.bat"
-   if (! $?) {
-      exit 1
+   foreach ( $file in $source_files ) {
+      $source_path = "$source_directory\$file"
+      $destination_path = "$destination_directory\$file"
+      Write-Host " $source_path -> $destination_path"
+      Copy-Item "$source_path" -Destination "$destination_path"
+      if (! $?) {
+         exit 1
+      }
    }
    exit 0
 }
@@ -255,8 +274,14 @@ foreach ( $file in $built_files ) {
    }
 }
 
-Write-Host " install-ebpf.bat"
-Copy-VMFile "$vm" -SourcePath ".\scripts\install-ebpf.bat" -DestinationPath "$destination_directory\install-ebpf.bat" -CreateFullPath -FileSource Host -Force
-if (! $?) {
-   exit 1
+Write-Host "Copying files from `"$source_directory`" to `"$destination_directory`" in VM `"$vm`"..."
+
+foreach ( $file in $source_files ) {
+   $source_path = "$source_directory\$file"
+   $destination_path = "$destination_directory\$file"
+   Write-Host " $source_path -> $destination_path"
+   Copy-VMFile "$vm" -SourcePath "$source_path" -DestinationPath "$destination_path" -CreateFullPath -FileSource Host -Force
+   if (! $?) {
+       exit 1
+   }
 }

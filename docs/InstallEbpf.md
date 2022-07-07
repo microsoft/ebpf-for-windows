@@ -13,10 +13,10 @@ has already built the binaries for x64/Debug or x64/Release.
 2. From within the VM, install the binaries as follows:
     1. Start an admin command shell (cmd.exe).
     2. Do 'cd C:\temp'.
-    3. Do 'install-ebpf.bat'.
+    3. Do 'powershell -ExecutionPolicy Bypass .\scripts\setup-ebpf.ps1'.
 
 ### Method 2
-Copy the build output to the host of the test VM and run the following.
+Copy the build output to the host of the test VM and run the following in powershell.
 1. `Checkpoint-VM -Name <test-vm-name> -CheckpointName baseline` -- Creates a snapshot of the test VM named **baseline**.
 2. Store the VM administrator credential:
    1) `Install-Module CredentialManager -force`
