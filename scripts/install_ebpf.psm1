@@ -7,7 +7,6 @@ param ([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
 Push-Location $WorkingDirectory
 
 $BinaryPath = "$Env:systemroot\system32";
-Write-Host "BinaryPath is $BinaryPath"
 
 Import-Module $PSScriptRoot\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
 
@@ -47,7 +46,6 @@ function Register-eBPFComponents
     Unregister-eBPFComponents
 
     # Install drivers.
-    Write-Log ("Looking in $BinaryPath\drivers\{0}" -f $_.Value)
     $EbpfDrivers.GetEnumerator() | ForEach-Object {
         if (Test-Path -Path ("$BinaryPath\{0}" -f $_.Value)) {
             Write-Log ("Installing {0}..." -f $_.Name) -ForegroundColor Green
@@ -128,19 +126,13 @@ function Install-eBPFComponents
     Stop-eBPFComponents
 
     # Copy all binaries to system32.
-    Write-Host "Copying binaries to $Env:systemroot\system32\drivers"
-
-    Copy-Item drivers\*.sys -Destination "$Env:systemroot\system32\drivers" -Force -ErrorAction Stop 2>&1 | Write-Log
     Copy-Item *.sys -Destination "$Env:systemroot\system32\drivers" -Force -ErrorAction Stop 2>&1 | Write-Log
-
-    Get-ChildItem -Path "$Env:systemroot\system32\drivers" -Filter "*bpf*"
-
-    Write-Host "Copying binaries to $Env:systemroot\system32"
-
+    Copy-Item drivers\*.sys -Destination "$Env:systemroot\system32\drivers" -Force -ErrorAction Stop 2>&1 | Write-Log
+    if (Test-Path -Path "testing\testing") {
+        Copy-Item testing\testing\*.sys -Destination "$Env:systemroot\system32\drivers" -Force -ErrorAction Stop 2>&1 | Write-Log
+    }
     Copy-Item *.dll -Destination "$Env:systemroot\system32" -Force -ErrorAction Stop 2>&1 | Write-Log
     Copy-Item *.exe -Destination "$Env:systemroot\system32" -Force -ErrorAction Stop 2>&1 | Write-Log
-
-    Get-ChildItem -Path "$Env:systemroot\system32" -Filter "*bpf*"
 
     # Register all components.
     Register-eBPFComponents

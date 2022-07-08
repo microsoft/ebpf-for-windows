@@ -19,13 +19,10 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <CopyFileToFolders Include="..\install-ebpf.bat">
+    <CopyFileToFolders Include="..\setup-ebpf.ps1">
       <Filter>Source Files</Filter>
     </CopyFileToFolders>
     <CopyFileToFolders Include="..\run_tests.bat">
-      <Filter>Source Files</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="..\uninstall-ebpf.bat">
       <Filter>Source Files</Filter>
     </CopyFileToFolders>
     <CopyFileToFolders Include="..\common.psm1">
