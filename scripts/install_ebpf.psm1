@@ -127,7 +127,9 @@ function Install-eBPFComponents
 
     # Copy all binaries to system32.
     Copy-Item *.sys -Destination "$Env:systemroot\system32\drivers" -Force -ErrorAction Stop 2>&1 | Write-Log
-    Copy-Item drivers\*.sys -Destination "$Env:systemroot\system32\drivers" -Force -ErrorAction Stop 2>&1 | Write-Log
+    if (Test-Path -Path "drivers") {
+        Copy-Item drivers\*.sys -Destination "$Env:systemroot\system32\drivers" -Force -ErrorAction Stop 2>&1 | Write-Log
+    }
     if (Test-Path -Path "testing\testing") {
         Copy-Item testing\testing\*.sys -Destination "$Env:systemroot\system32\drivers" -Force -ErrorAction Stop 2>&1 | Write-Log
     }
