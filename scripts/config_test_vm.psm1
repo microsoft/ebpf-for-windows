@@ -243,7 +243,7 @@ function Import-ResultsFromVM
         Copy-Item -FromSession $VMSession "$VMSystemDrive\KernelDumps" -Destination ".\TestLogs\$VMName" -Recurse -Force -ErrorAction Ignore 2>&1 | Write-Log
 
         # Copy user mode crash dumps if any.
-        Copy-Item -FromSession $VMSession "$VMSystemDrive\dumps\x64" -Destination ".\TestLogs\$VMName" -Recurse -Force -ErrorAction Ignore 2>&1 | Write-Log
+        Copy-Item -FromSession $VMSession "$VMSystemDrive\dumps" -Destination ".\TestLogs\$VMName" -Recurse -Force -ErrorAction Ignore 2>&1 | Write-Log
 
         # Copy logs from Test VM.
         if (!(Test-Path ".\TestLogs\$VMName\Logs")) {
