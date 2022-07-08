@@ -17,25 +17,29 @@
           -->
 
         <SetProperty Id="Install_Script" Before="InstallInitialize" Sequence="execute"
-                     Value='"[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe" -ExecutionPolicy Bypass "[ProgramFiles64Folder]ebpf-for-windows\scripts\setup-ebpf.ps1" -WorkingDirectory "[ProgramFiles64Folder]ebpf-for-windows"' />
-        <CustomAction Id="Install_Script" BinaryKey="WixCA" DllEntry="WixQuietExec"
+                     Value='"[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe" -ExecutionPolicy Bypass -File "[ProgramFiles64Folder]ebpf-for-windows\scripts\setup-ebpf.ps1" -System32' />
+        <CustomAction Id="Install_Script" BinaryKey="WixCA" DllEntry="WixQuietExec64"
                       Execute="deferred" Impersonate='no' Return="check" />
 
         <SetProperty Id="Rollback_Script" Before="InstallInitialize" Sequence="execute"
-                     Value='"[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe" -ExecutionPolicy Bypass "[ProgramFiles64Folder]ebpf-for-windows\scripts\setup-ebpf.ps1" -WorkingDirectory "[ProgramFiles64Folder]ebpf-for-windows" -Uninstall' />
-        <CustomAction Id="Rollback_Script" BinaryKey="WixCA" DllEntry="WixQuietExec"
+                     Value='"[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe" -ExecutionPolicy Bypass -File "[ProgramFiles64Folder]ebpf-for-windows\scripts\setup-ebpf.ps1" -u' />
+        <CustomAction Id="Rollback_Script" BinaryKey="WixCA" DllEntry="WixQuietExec64"
                       Execute="rollback" Impersonate='no' Return="ignore" />
 
         <SetProperty Id="Uninstall_Script" Before="InstallInitialize" Sequence="execute"
-                     Value='"[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe" -ExecutionPolicy Bypass "[ProgramFiles64Folder]ebpf-for-windows\scripts\setup-ebpf.ps1" -WorkingDirectory "[ProgramFiles64Folder]ebpf-for-windows" -Uninstall' />
-        <CustomAction Id="Uninstall_Script" BinaryKey="WixCA" DllEntry="WixQuietExec"
+                     Value='"[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe" -ExecutionPolicy Bypass -File "[ProgramFiles64Folder]ebpf-for-windows\scripts\setup-ebpf.ps1" -u' />
+        <CustomAction Id="Uninstall_Script" BinaryKey="WixCA" DllEntry="WixQuietExec64"
                       Execute="deferred" Impersonate='no' Return="ignore" />
 
         <!-- Now we configure the order in which the above need to execute. -->
         <InstallExecuteSequence>
             <!-- Rollback actions must be listed before install actions. -->
+        <!--
             <Custom Action="Rollback_Script" After="InstallFiles">NOT Installed</Custom>
             <Custom Action="Install_Script" After="Rollback_Script">NOT Installed</Custom>
+         -->
+            <Custom Action="Install_Script" After="InstallFiles">NOT Installed</Custom>
+
             <Custom Action="Uninstall_Script" After="RemoveRegistryValues">Installed</Custom>
         </InstallExecuteSequence>
 	</CPackWiXFragment>

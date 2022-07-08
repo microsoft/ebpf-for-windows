@@ -238,6 +238,8 @@ if ($vm -eq $null) {
          exit 1
       }
    }
+
+   Write-Host "Copying files from `"$source_directory`" to `"$destination_directory`""
    foreach ( $file in $source_files ) {
       $source_path = "$source_directory\$file"
       $destination_path = "$destination_directory\$file"

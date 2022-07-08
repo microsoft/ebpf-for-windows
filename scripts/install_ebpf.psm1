@@ -2,9 +2,17 @@
 # SPDX-License-Identifier: MIT
 
 param ([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
-       [Parameter(Mandatory=$True)] [string] $LogFileName)
+       [Parameter(Mandatory=$True)] [string] $LogFileName,
+       [switch]$System32)
 
 Push-Location $WorkingDirectory
+
+if ($System32) {
+    $BinaryPath = "$Env:systemroot\system32";
+} else {
+    $BinaryPath = $WorkingDirectory
+}
+Write-Host "BinaryPath is $BinaryPath"
 
 Import-Module $PSScriptRoot\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
 
@@ -31,7 +39,7 @@ function Unregister-eBPFComponents
     sc.exe delete eBPFSvc 2>&1 | Write-Log
 
     # Delete the eBPF netsh helper.
-    netsh delete helper "$Env:systemroot\system32\ebpfnetsh.dll"  2>&1 | Write-Log
+    netsh delete helper ebpfnetsh.dll 2>&1 | Write-Log
 }
 
 #
@@ -44,11 +52,22 @@ function Register-eBPFComponents
     Unregister-eBPFComponents
 
     # Install drivers.
+    Write-Log ("Looking in $BinaryPath\drivers\{0}" -f $_.Value)
     $EbpfDrivers.GetEnumerator() | ForEach-Object {
-        if (Test-Path -Path ("$Env:systemroot\system32\drivers\{0}" -f $_.Value)) {
+        if (Test-Path -Path ("$BinaryPath\{0}" -f $_.Value)) {
             Write-Log ("Installing {0}..." -f $_.Name) -ForegroundColor Green
             # New-Service does not support installing drivers.
-            sc.exe create $_.Name type=kernel start=demand binpath=("$Env:systemroot\system32\drivers\{0}" -f $_.Value) 2>&1 | Write-Log
+            sc.exe create $_.Name type=kernel start=demand binpath=("$BinaryPath\{0}" -f $_.Value) 2>&1 | Write-Log
+            if ($LASTEXITCODE -ne 0) {
+                throw ("Failed to create $_.Name driver.")
+            } else {
+                Write-Log ("{0} driver created." -f $_.Name) -ForegroundColor Green
+            }
+        }
+        if (Test-Path -Path ("$BinaryPath\drivers\{0}" -f $_.Value)) {
+            Write-Log ("Installing {0}..." -f $_.Name) -ForegroundColor Green
+            # New-Service does not support installing drivers.
+            sc.exe create $_.Name type=kernel start=demand binpath=("$BinaryPath\drivers\{0}" -f $_.Value) 2>&1 | Write-Log
             if ($LASTEXITCODE -ne 0) {
                 throw ("Failed to create $_.Name driver.")
             } else {
@@ -58,15 +77,17 @@ function Register-eBPFComponents
     }
 
     # Install user mode service.
-    eBPFSvc.exe install 2>&1 | Write-Log
+    .\eBPFSvc.exe install 2>&1 | Write-Log
     if ($LASTEXITCODE -ne 0) {
         throw ("Failed to create eBPF user mode service.")
     } else {
         Write-Log "eBPF user mode service created." -ForegroundColor Green
     }
 
-    # Add the eBPF netsh helper.
-    netsh add helper "$Env:systemroot\system32\ebpfnetsh.dll" 2>&1 | Write-Log
+    if ($System32) {
+        # Add the eBPF netsh helper.
+        netsh add helper ebpfnetsh.dll 2>&1 | Write-Log
+    }
 }
 
 #
@@ -83,7 +104,7 @@ function Start-eBPFComponents
 
     # Start drivers.
     $EbpfDrivers.GetEnumerator() | ForEach-Object {
-        if (Test-Path -Path ("$Env:systemroot\system32\drivers\{0}" -f $_.Value)) {
+        if (Test-Path -Path ("$BinaryPath\drivers\{0}" -f $_.Value)) {
             Start-Service $_.Name -ErrorAction Stop | Write-Log
             Write-Host ("{0} Driver started." -f $_.Name)
         }
@@ -113,10 +134,23 @@ function Install-eBPFComponents
     # Stop eBPF Components
     Stop-eBPFComponents
 
-    # Copy all binaries to system32.
-    Copy-Item *.sys -Destination "$Env:systemroot\system32\drivers" -Force -ErrorAction Stop 2>&1 | Write-Log
-    Copy-Item *.dll -Destination "$Env:systemroot\system32" -Force -ErrorAction Stop 2>&1 | Write-Log
-    Copy-Item *.exe -Destination "$Env:systemroot\system32" -Force -ErrorAction Stop 2>&1 | Write-Log
+    if ($System32) {
+
+        # Copy all binaries to system32.
+        Write-Host "Copying binaries to $Env:systemroot\system32\drivers"
+
+        Copy-Item drivers\*.sys -Destination "$Env:systemroot\system32\drivers" -Force -ErrorAction Stop 2>&1 | Write-Log
+        Copy-Item *.sys -Destination "$Env:systemroot\system32\drivers" -Force -ErrorAction Stop 2>&1 | Write-Log
+
+        Get-ChildItem -Path "$Env:systemroot\system32\drivers" -Filter "*bpf*"
+
+        Write-Host "Copying binaries to $Env:systemroot\system32"
+
+        Copy-Item *.dll -Destination "$Env:systemroot\system32" -Force -ErrorAction Stop 2>&1 | Write-Log
+        Copy-Item *.exe -Destination "$Env:systemroot\system32" -Force -ErrorAction Stop 2>&1 | Write-Log
+
+        Get-ChildItem -Path "$Env:systemroot\system32" -Filter "*bpf*"
+    }
 
     # Register all components.
     Register-eBPFComponents
@@ -145,7 +179,9 @@ function Uninstall-eBPFComponents
     Stop-eBPFComponents
     Unregister-eBPFComponents
     .\export_program_info.exe --clear
-    Remove-Item "$Env:systemroot\system32\drivers\*bpf*" -Force -ErrorAction Stop 2>&1 | Write-Log
-    Remove-Item "$Env:systemroot\system32\*bpf*" -Force -ErrorAction Stop 2>&1 | Write-Log
+    if ($System32) {
+        Remove-Item "$Env:systemroot\system32\drivers\*bpf*" -Force -ErrorAction Stop 2>&1 | Write-Log
+        Remove-Item "$Env:systemroot\system32\*bpf*" -Force -ErrorAction Stop 2>&1 | Write-Log
+    }
     wpr.exe -cancel
 }
