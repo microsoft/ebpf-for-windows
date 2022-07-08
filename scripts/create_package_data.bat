@@ -2,8 +2,9 @@ rem Copyright (c) Microsoft Corporation
 rem SPDX-License-Identifier: MIT
 @echo off
 
-set SOURCE_DIR=%CD%
-pushd %1
+set SCRIPTS_DIR=%~dp0
+set SOURCE_DIR=%SCRIPTS_DIR%\..
+pushd %SOURCE_DIR%\%1
 dir
 
 mkdir package_data
@@ -49,8 +50,6 @@ copy droppacket.o package_data\testing
 copy droppacket_um.dll package_data\testing
 copy droppacket_um.pdb package_data\testing
 copy droppacket_unsafe.o package_data\testing
-copy ebpf_client.exe package_data\testing
-copy ebpf_client.pdb package_data\testing
 copy EbpfApi.pdb package_data\testing
 copy ebpfnetsh.pdb package_data\testing
 copy encap_reflect_packet.o package_data\testing
