@@ -92,7 +92,7 @@ service_install()
         path,                          // path to service's binary
         nullptr,                       // no load ordering group
         nullptr,                       // no tag identifier
-        nullptr,                       // no dependencies
+        L"EbpfCore\0",                 // null-separated dependencies
         L"NT AUTHORITY\\LocalService", // LocalService account
         nullptr);                      // no password
 
