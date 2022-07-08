@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation
 # SPDX-License-Identifier: MIT
 
-cmake_minimum_required(VERSION 3.22)
+cmake_minimum_required(VERSION 3.20)
 project("ebpf-for-windows")
 
 set(EBPFFORWINDOWS_PROGRAM_DATA "" CACHE PATH "Path containing program data")
@@ -37,6 +37,7 @@ install(
     "${EBPFFORWINDOWS_PROGRAM_DATA}/bpftool.exe"
     "${EBPFFORWINDOWS_PROGRAM_DATA}/bpf2c.exe"
     "${EBPFFORWINDOWS_PROGRAM_DATA}/ebpfsvc.exe"
+    "${EBPFFORWINDOWS_PROGRAM_DATA}/export_program_info.exe"
 
     "${EBPFFORWINDOWS_PROGRAM_DATA}/EbpfApi.dll"
     "${EBPFFORWINDOWS_PROGRAM_DATA}/ebpfnetsh.dll"
@@ -121,6 +122,7 @@ if(CPACK_GENERATOR STREQUAL "WIX")
   set(CPACK_WIX_UPGRADE_GUID "b6bcacb1-c872-4159-abcb-43a50668056c")
   set(CPACK_PACKAGE_INSTALL_DIRECTORY "${CMAKE_PROJECT_NAME}")
   set(CPACK_WIX_EXTENSIONS "WixUtilExtension")
+  set(CPACK_WIX_PATCH_FILE "${CMAKE_CURRENT_SOURCE_DIR}/drivers.xml")
 
 elseif(CPACK_GENERATOR STREQUAL "NuGet")
   set(CPACK_NUGET_PACKAGE_DESCRIPTION "${CPACK_PACKAGE_DESCRIPTION}")

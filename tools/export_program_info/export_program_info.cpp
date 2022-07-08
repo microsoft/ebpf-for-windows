@@ -21,7 +21,7 @@ ebpf_registry_key_t ebpf_root_registry_key = HKEY_CURRENT_USER;
 
 typedef struct _ebpf_program_section_info_with_count
 {
-    ebpf_program_section_info_t* section_info;
+    _Field_size_(section_info_count) ebpf_program_section_info_t* section_info;
     size_t section_info_count;
 } ebpf_program_section_info_with_count_t;
 

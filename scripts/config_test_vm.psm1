@@ -292,7 +292,7 @@ function Install-eBPFComponentsOnVM
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
         Import-Module $WorkingDirectory\install_ebpf.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
 
-        Install-eBPFComponents
+        Install-eBPFComponents -Tracing $true
     } -ArgumentList ("eBPF", $LogFileName) -ErrorAction Stop
     Write-Log "eBPF components installed on $VMName" -ForegroundColor Green
 }
