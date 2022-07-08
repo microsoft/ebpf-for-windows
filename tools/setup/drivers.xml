@@ -17,7 +17,7 @@
           -->
 
         <SetProperty Id="Install_Script" Before="InstallInitialize" Sequence="execute"
-                     Value='"[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe" -ExecutionPolicy Bypass -File "[ProgramFiles64Folder]ebpf-for-windows\scripts\setup-ebpf.ps1" -System32' />
+                     Value='"[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe" -ExecutionPolicy Bypass -File "[ProgramFiles64Folder]ebpf-for-windows\scripts\setup-ebpf.ps1"' />
         <CustomAction Id="Install_Script" BinaryKey="WixCA" DllEntry="WixQuietExec64"
                       Execute="deferred" Impersonate='no' Return="check" />
 
@@ -34,12 +34,8 @@
         <!-- Now we configure the order in which the above need to execute. -->
         <InstallExecuteSequence>
             <!-- Rollback actions must be listed before install actions. -->
-        <!--
             <Custom Action="Rollback_Script" After="InstallFiles">NOT Installed</Custom>
             <Custom Action="Install_Script" After="Rollback_Script">NOT Installed</Custom>
-         -->
-            <Custom Action="Install_Script" After="InstallFiles">NOT Installed</Custom>
-
             <Custom Action="Uninstall_Script" After="RemoveRegistryValues">Installed</Custom>
         </InstallExecuteSequence>
 	</CPackWiXFragment>

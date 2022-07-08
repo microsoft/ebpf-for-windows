@@ -2,16 +2,11 @@
 # SPDX-License-Identifier: MIT
 
 param ([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
-       [Parameter(Mandatory=$True)] [string] $LogFileName,
-       [switch]$System32)
+       [Parameter(Mandatory=$True)] [string] $LogFileName)
 
 Push-Location $WorkingDirectory
 
-if ($System32) {
-    $BinaryPath = "$Env:systemroot\system32";
-} else {
-    $BinaryPath = $WorkingDirectory
-}
+$BinaryPath = "$Env:systemroot\system32";
 Write-Host "BinaryPath is $BinaryPath"
 
 Import-Module $PSScriptRoot\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
@@ -84,10 +79,8 @@ function Register-eBPFComponents
         Write-Log "eBPF user mode service created." -ForegroundColor Green
     }
 
-    if ($System32) {
-        # Add the eBPF netsh helper.
-        netsh add helper ebpfnetsh.dll 2>&1 | Write-Log
-    }
+    # Add the eBPF netsh helper.
+    netsh add helper ebpfnetsh.dll 2>&1 | Write-Log
 }
 
 #
@@ -134,23 +127,20 @@ function Install-eBPFComponents
     # Stop eBPF Components
     Stop-eBPFComponents
 
-    if ($System32) {
+    # Copy all binaries to system32.
+    Write-Host "Copying binaries to $Env:systemroot\system32\drivers"
 
-        # Copy all binaries to system32.
-        Write-Host "Copying binaries to $Env:systemroot\system32\drivers"
+    Copy-Item drivers\*.sys -Destination "$Env:systemroot\system32\drivers" -Force -ErrorAction Stop 2>&1 | Write-Log
+    Copy-Item *.sys -Destination "$Env:systemroot\system32\drivers" -Force -ErrorAction Stop 2>&1 | Write-Log
 
-        Copy-Item drivers\*.sys -Destination "$Env:systemroot\system32\drivers" -Force -ErrorAction Stop 2>&1 | Write-Log
-        Copy-Item *.sys -Destination "$Env:systemroot\system32\drivers" -Force -ErrorAction Stop 2>&1 | Write-Log
+    Get-ChildItem -Path "$Env:systemroot\system32\drivers" -Filter "*bpf*"
 
-        Get-ChildItem -Path "$Env:systemroot\system32\drivers" -Filter "*bpf*"
+    Write-Host "Copying binaries to $Env:systemroot\system32"
 
-        Write-Host "Copying binaries to $Env:systemroot\system32"
+    Copy-Item *.dll -Destination "$Env:systemroot\system32" -Force -ErrorAction Stop 2>&1 | Write-Log
+    Copy-Item *.exe -Destination "$Env:systemroot\system32" -Force -ErrorAction Stop 2>&1 | Write-Log
 
-        Copy-Item *.dll -Destination "$Env:systemroot\system32" -Force -ErrorAction Stop 2>&1 | Write-Log
-        Copy-Item *.exe -Destination "$Env:systemroot\system32" -Force -ErrorAction Stop 2>&1 | Write-Log
-
-        Get-ChildItem -Path "$Env:systemroot\system32" -Filter "*bpf*"
-    }
+    Get-ChildItem -Path "$Env:systemroot\system32" -Filter "*bpf*"
 
     # Register all components.
     Register-eBPFComponents
@@ -179,9 +169,7 @@ function Uninstall-eBPFComponents
     Stop-eBPFComponents
     Unregister-eBPFComponents
     .\export_program_info.exe --clear
-    if ($System32) {
-        Remove-Item "$Env:systemroot\system32\drivers\*bpf*" -Force -ErrorAction Stop 2>&1 | Write-Log
-        Remove-Item "$Env:systemroot\system32\*bpf*" -Force -ErrorAction Stop 2>&1 | Write-Log
-    }
+    Remove-Item "$Env:systemroot\system32\drivers\*bpf*" -Force -ErrorAction Stop 2>&1 | Write-Log
+    Remove-Item "$Env:systemroot\system32\*bpf*" -Force -ErrorAction Stop 2>&1 | Write-Log
     wpr.exe -cancel
 }
