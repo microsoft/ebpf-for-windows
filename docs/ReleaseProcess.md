@@ -16,8 +16,8 @@ Note: Currently releases are not production signed.
    (accessible via the Actions tab on github)
 5. Extract the .msi and .nupkg, respectively, out of them
 6. Test the MSI manually (since not yet tested in CI/CD):
-   a. Copy the MSI into a VM (if not already there)
-   b. Install it, and run a command or two (bpftool prog show, netsh eb sh prog) to make sure it's installed
+    1. Copy the MSI into a VM (if not already there)
+    2. Install it, and run a command or two (bpftool prog show, netsh eb sh prog) to make sure it's installed
 7. Go to the repo on github and click on "tags" (a bit to the right of the branch combo box)
 8. Find the tag you created, and click "..." on the right and "Create release"
 9. Start uploading the .msi and .nupkg files
