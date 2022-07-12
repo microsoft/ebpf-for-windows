@@ -156,7 +156,7 @@ run_test_elf(const std::string& elf_file, _test_mode test_mode, const std::optio
     TEST_CASE(FILE " " #MODE, "[elf_bpf_code_gen]") { run_test_elf(FILE ".o", MODE, std::nullopt); }
 
 #define DECLARE_TEST_CUSTOM_PROGRAM_TYPE(FILE, MODE, TYPE) \
-    TEST_CASE(FILE " " #MODE, "[elf_bpf_code_gen]") { run_test_elf(FILE ".o", MODE, TYPE); }
+    TEST_CASE(FILE "-custom-" #MODE, "[elf_bpf_code_gen]") { run_test_elf(FILE ".o", MODE, TYPE); }
 
 DECLARE_TEST("bindmonitor", _test_mode::Verify)
 DECLARE_TEST("bindmonitor_ringbuf", _test_mode::Verify)
@@ -191,6 +191,7 @@ DECLARE_TEST("no_such_file", _test_mode::FileNotFound)
 DECLARE_TEST_CUSTOM_PROGRAM_TYPE("bpf", _test_mode::UseHash, std::string("xdp"))
 
 DECLARE_TEST("bpf", _test_mode::VerifyFail)
+DECLARE_TEST_CUSTOM_PROGRAM_TYPE("bpf", _test_mode::VerifyFail, std::string("invalid"))
 
 TEST_CASE("help", "[bpf2c_cli]")
 {
