@@ -69,6 +69,7 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: unit_tests
+      pre_test: .\export_program_info.exe
       test_command: .\unit_tests.exe -d yes
       build_artifact: Build-x64
       environment: windows-2019
@@ -83,6 +84,7 @@ jobs:
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push'
     uses: ./.github/workflows/reusable-test.yml
     with:
+      pre_test: .\export_program_info.exe
       test_command: .\bpf2c_tests.exe -d yes
       name: bpf2c
       build_artifact: Build-x64
@@ -100,9 +102,9 @@ jobs:
     if: github.repository == 'microsoft/ebpf-for-windows'
     uses: ./.github/workflows/reusable-test.yml
     with:
-      pre_test: .\setup_ebpf_cicd_tests.ps1
-      test_command: .\execute_ebpf_cicd_tests.ps1
-      post_test: .\cleanup_ebpf_cicd_tests.ps1
+      pre_test: ..\..\scripts\setup_ebpf_cicd_tests.ps1
+      test_command: ..\..\scripts\execute_ebpf_cicd_tests.ps1
+      post_test: ..\..\scripts\cleanup_ebpf_cicd_tests.ps1
       name: driver
       build_artifact: ebpf-for-windows.msi
       environment: ebpf_cicd_tests
@@ -147,6 +149,7 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: fuzzing
+      pre_test: .\export_program_info.exe
       test_command: .\fuzz.exe -d yes
       build_artifact: Build-x64-Sanitize
       environment: windows-2019
@@ -160,6 +163,7 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: bpf2c_fuzzer
+      pre_test: .\export_program_info.exe
       test_command: .\bpf2c_fuzzer.exe bpf2c_fuzzer_corpus -use_value_profile=1 -max_total_time=900 -artifact_prefix=Artifacts\
       build_artifact: Build-x64-fuzzer
       environment: windows-2019
@@ -173,7 +177,7 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: execution_context_fuzzer
-      pre_test: powershell Expand-Archive -Path .\corpus.zip -DestinationPath execution_context_fuzzer_corpus -Force
+      pre_test: .\export_program_info.exe & powershell Expand-Archive -Path .\corpus.zip -DestinationPath execution_context_fuzzer_corpus -Force
       test_command: .\execution_context_fuzzer.exe execution_context_fuzzer_corpus -use_value_profile=1 -runs=3000 -artifact_prefix=Artifacts\
       build_artifact: Build-x64-fuzzer
       environment: windows-2019
@@ -188,6 +192,7 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: verifier_fuzzer
+      pre_test: .\export_program_info.exe
       test_command: .\verifier_fuzzer.exe verifier_corpus -use_value_profile=1 -max_total_time=900 -artifact_prefix=Artifacts\
       build_artifact: Build-x64-fuzzer
       environment: windows-2019
@@ -201,6 +206,7 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: core_helper_fuzzer
+      pre_test: .\export_program_info.exe
       test_command: .\core_helper_fuzzer core_helper_corpus -max_len=139 -runs=1000 -use_value_profile=1 -artifact_prefix=Artifacts\
       build_artifact: Build-x64-fuzzer
       environment: windows-2019
@@ -215,6 +221,7 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: cilium_tests
+      pre_test: .\export_program_info.exe
       test_command: .\cilium_tests.exe -d yes
       build_artifact: Build-x64
       environment: windows-2019
@@ -229,6 +236,7 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: stress
+      pre_test: .\export_program_info.exe
       # Until there is a dedicated stress test, re-use the perf test.
       test_command: .\ebpf_performance.exe
       build_artifact: Build-x64
@@ -245,6 +253,7 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: unit_tests
+      pre_test: .\export_program_info.exe
       test_command: .\unit_tests.exe -d yes
       build_artifact: Build-x64-Sanitize
       environment: windows-2019
