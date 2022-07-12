@@ -169,6 +169,11 @@ ebpf_core_initiate()
         goto Done;
     }
 
+    return_value = ebpf_update_global_helpers(ebpf_core_helper_function_prototype, ebpf_core_helper_functions_count);
+    if (return_value != EBPF_SUCCESS) {
+        goto Done;
+    }
+
     return_value = ebpf_get_code_integrity_state(&_ebpf_core_code_integrity_state);
 
 Done:
@@ -265,8 +270,13 @@ _ebpf_core_protocol_load_code(_In_ const ebpf_operation_load_code_request_t* req
         }
     }
 
+    retval = ebpf_safe_size_t_subtract(
+        request->header.length, EBPF_OFFSET_OF(ebpf_operation_load_code_request_t, code), &code_length);
+    if (retval != EBPF_SUCCESS) {
+        goto Done;
+    }
+
     code = (uint8_t*)request->code;
-    code_length = request->header.length - EBPF_OFFSET_OF(ebpf_operation_load_code_request_t, code);
 
     retval = ebpf_core_load_code(request->program_handle, request->code_type, NULL, code, code_length);
 
@@ -308,14 +318,17 @@ _ebpf_core_protocol_resolve_helper(
     uint16_t reply_length)
 {
     EBPF_LOG_ENTRY();
-    ebpf_result_t return_value = EBPF_SUCCESS;
-    size_t count_of_helpers =
-        (request->header.length - EBPF_OFFSET_OF(ebpf_operation_resolve_helper_request_t, helper_id)) /
-        sizeof(request->helper_id[0]);
-    size_t required_reply_length =
+    uint32_t* request_helper_ids = NULL;
+    size_t required_reply_length = 0;
+    size_t helper_id_length;
+    ebpf_result_t return_value = ebpf_safe_size_t_subtract(
+        request->header.length, EBPF_OFFSET_OF(ebpf_operation_resolve_helper_request_t, helper_id), &helper_id_length);
+    if (return_value != EBPF_SUCCESS)
+        goto Done;
+    size_t count_of_helpers = helper_id_length / sizeof(request->helper_id[0]);
+    required_reply_length =
         EBPF_OFFSET_OF(ebpf_operation_resolve_helper_reply_t, address) + count_of_helpers * sizeof(reply->address[0]);
     size_t helper_index;
-    uint32_t* request_helper_ids = NULL;
 
     if (reply_length < required_reply_length) {
         return_value = EBPF_INVALID_ARGUMENT;
@@ -390,12 +403,14 @@ _ebpf_core_protocol_resolve_map(
     uint16_t reply_length)
 {
     EBPF_LOG_ENTRY();
-    uint32_t count_of_maps =
-        (request->header.length - EBPF_OFFSET_OF(ebpf_operation_resolve_map_request_t, map_handle)) /
-        sizeof(request->map_handle[0]);
+    size_t map_handle_length;
+    ebpf_result_t return_value = ebpf_safe_size_t_subtract(
+        request->header.length, EBPF_OFFSET_OF(ebpf_operation_resolve_map_request_t, map_handle), &map_handle_length);
+    if (return_value != EBPF_SUCCESS)
+        goto Done;
+    uint32_t count_of_maps = (uint32_t)(map_handle_length / sizeof(request->map_handle[0]));
     size_t required_reply_length =
         EBPF_OFFSET_OF(ebpf_operation_resolve_map_reply_t, address) + count_of_maps * sizeof(reply->address[0]);
-    ebpf_result_t return_value;
 
     if (reply_length < required_reply_length) {
         return EBPF_INVALID_ARGUMENT;
@@ -516,7 +531,12 @@ _ebpf_core_protocol_load_native_module(
     ebpf_result_t result;
     size_t service_name_length = 0;
 
-    service_name_length = ((uint8_t*)request) + request->header.length - (uint8_t*)request->data;
+    result = ebpf_safe_size_t_subtract(
+        request->header.length,
+        EBPF_OFFSET_OF(ebpf_operation_load_native_module_request_t, data),
+        &service_name_length);
+    if (result != EBPF_SUCCESS)
+        goto Done;
 
     // Service name is wide char
     if (service_name_length % 2 != 0) {
@@ -895,10 +915,13 @@ static ebpf_result_t
 _ebpf_core_protocol_update_pinning(_In_ const struct _ebpf_operation_update_map_pinning_request* request)
 {
     EBPF_LOG_ENTRY();
-    ebpf_result_t retval = EBPF_SUCCESS;
-    const ebpf_utf8_string_t path = {
-        (uint8_t*)request->path,
-        request->header.length - EBPF_OFFSET_OF(ebpf_operation_update_pinning_request_t, path)};
+    size_t path_length;
+    ebpf_result_t retval = ebpf_safe_size_t_subtract(
+        request->header.length, EBPF_OFFSET_OF(ebpf_operation_update_pinning_request_t, path), &path_length);
+    if (retval != EBPF_SUCCESS)
+        goto Done;
+
+    const ebpf_utf8_string_t path = {(uint8_t*)request->path, path_length};
 
     if (path.length == 0) {
         retval = EBPF_INVALID_ARGUMENT;
@@ -934,17 +957,19 @@ _ebpf_core_protocol_get_pinned_object(
     _Inout_ struct _ebpf_operation_get_pinned_object_reply* reply)
 {
     EBPF_LOG_ENTRY();
-    ebpf_result_t retval;
     ebpf_core_object_t* object = NULL;
-    const ebpf_utf8_string_t path = {
-        (uint8_t*)request->path,
-        request->header.length - EBPF_OFFSET_OF(ebpf_operation_get_pinned_object_request_t, path)};
+    size_t path_length;
+    ebpf_result_t retval = ebpf_safe_size_t_subtract(
+        request->header.length, EBPF_OFFSET_OF(ebpf_operation_get_pinned_object_request_t, path), &path_length);
+    if (retval != EBPF_SUCCESS)
+        goto Done;
 
-    if (path.length == 0) {
+    if (path_length == 0) {
         retval = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
 
+    const ebpf_utf8_string_t path = {(uint8_t*)request->path, path_length};
     retval = ebpf_core_get_pinned_object(&path, &reply->handle);
 
 Done:
@@ -970,7 +995,11 @@ _ebpf_core_protocol_link_program(
     if (retval != EBPF_SUCCESS)
         goto Done;
 
-    uint16_t data_length = request->header.length - FIELD_OFFSET(ebpf_operation_link_program_request_t, data);
+    size_t data_length;
+    retval = ebpf_safe_size_t_subtract(
+        request->header.length, FIELD_OFFSET(ebpf_operation_link_program_request_t, data), &data_length);
+    if (retval != EBPF_SUCCESS)
+        goto Done;
     retval = ebpf_link_initialize(link, request->attach_type, request->data, data_length);
     if (retval != EBPF_SUCCESS)
         goto Done;
@@ -1301,13 +1330,19 @@ _ebpf_core_protocol_get_next_pinned_program_path(
     ebpf_utf8_string_t start_path;
     ebpf_utf8_string_t next_path;
 
-    start_path.length =
-        request->header.length - EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_program_path_request_t, start_path);
+    size_t path_length;
+    ebpf_result_t result = ebpf_safe_size_t_subtract(
+        request->header.length,
+        EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_program_path_request_t, start_path),
+        &path_length);
+    if (result != EBPF_SUCCESS)
+        EBPF_RETURN_RESULT(result);
+    start_path.length = path_length;
     start_path.value = (uint8_t*)request->start_path;
     next_path.length = reply_length - EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_program_path_reply_t, next_path);
     next_path.value = (uint8_t*)reply->next_path;
 
-    ebpf_result_t result =
+    result =
         ebpf_pinning_table_get_next_path(_ebpf_core_map_pinning_table, EBPF_OBJECT_PROGRAM, &start_path, &next_path);
 
     if (result == EBPF_SUCCESS) {
@@ -1976,7 +2011,7 @@ ebpf_core_invoke_protocol_handler(
         break;
     }
 
-    if (request->length > input_buffer_length) {
+    if (request->length > input_buffer_length || request->length < sizeof(*request)) {
         return EBPF_INVALID_ARGUMENT;
     }
 

@@ -54,6 +54,8 @@ _net_ebpf_extension_program_info_provider_attach_client(
     NTSTATUS status = STATUS_SUCCESS;
     net_ebpf_extension_program_info_client_t* program_info_client = NULL;
 
+    NET_EBPF_EXT_LOG_ENTRY();
+
     UNREFERENCED_PARAMETER(provider_context);
     UNREFERENCED_PARAMETER(client_dispatch);
     UNREFERENCED_PARAMETER(client_binding_context);
@@ -85,7 +87,7 @@ Exit:
         if (program_info_client)
             ExFreePool(program_info_client);
     }
-    return status;
+    NET_EBPF_EXT_RETURN_NTSTATUS(status);
 }
 
 /**
@@ -132,6 +134,8 @@ net_ebpf_extension_program_info_provider_register(
     NPI_PROVIDER_CHARACTERISTICS* characteristics;
     NTSTATUS status = STATUS_SUCCESS;
 
+    NET_EBPF_EXT_LOG_ENTRY();
+
     local_provider_context = (net_ebpf_extension_program_info_provider_t*)ExAllocatePoolUninitialized(
         NonPagedPoolNx, sizeof(net_ebpf_extension_program_info_provider_t), NET_EBPF_EXTENSION_POOL_TAG);
     if (local_provider_context == NULL) {
@@ -161,5 +165,5 @@ Exit:
     if (!NT_SUCCESS(status))
         net_ebpf_extension_program_info_provider_unregister(local_provider_context);
 
-    return status;
+    NET_EBPF_EXT_RETURN_NTSTATUS(status);
 }

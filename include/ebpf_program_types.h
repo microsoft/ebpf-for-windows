@@ -25,6 +25,7 @@ typedef struct _ebpf_program_type_descriptor
     const char* name;
     ebpf_context_descriptor_t* context_descriptor;
     GUID program_type;
+    uint32_t bpf_prog_type;
     char is_privileged;
 } ebpf_program_type_descriptor_t;
 
@@ -55,3 +56,12 @@ typedef struct _ebpf_program_data
     ebpf_program_info_t* program_info;
     ebpf_helper_function_addresses_t* helper_function_addresses;
 } ebpf_program_data_t;
+
+typedef struct _ebpf_program_section_info
+{
+    const wchar_t* section_name;
+    GUID* program_type;
+    GUID* attach_type;
+    uint32_t bpf_program_type;
+    uint32_t bpf_attach_type;
+} ebpf_program_section_info_t;

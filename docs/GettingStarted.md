@@ -1,6 +1,11 @@
 # Getting Started
 
-## Prerequisites
+If you just want to install eBPF for Windows on a machine to experiment with,
+jump down to [Installing eBPF for Windows](#installing-ebpf-for-windows).
+
+## Building eBPF for Windows
+
+### Prerequisites
 
 The following must be installed in order to build this project:
 1. Git (e.g., [Git for Windows 64-bit](https://git-scm.com/download/win))
@@ -25,14 +30,14 @@ if ((get-filehash $env:TEMP\Setup-DeveEnv.ps1).Hash -eq '4000D4B2478A5CE9A779140
 ```
 3. Launch Visual Studio Installer and select "MSVC v142 - VS 2019 C++ x64/x86 Spectre-mitigated libs (latest)"
 
-## How to clone and build the project using Visual Studio
+### How to clone and build the project using Visual Studio
 This section outlines the steps to build, prepare and build the eBPF-For-Windows project.
 
-### Cloning the project
+#### Cloning the project
 1. ```git clone --recurse-submodules https://github.com/microsoft/ebpf-for-windows.git```.
 By default this will clone the project under the `ebpf-for-windows` directory.
 
-### Prepare for first build
+#### Prepare for first build
 The following steps need to be executed _once_ before the first build on a new clone.
 1. Launch `Developer Command Prompt for VS 2019` by running `"C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\Common7\Tools\VsDevCmd.bat"`.
 2. Change directory to where the project is cloned, e.g. ```cd ebpf-for-windows```.
@@ -41,21 +46,21 @@ The following steps need to be executed _once_ before the first build on a new c
 5. ```nuget restore ebpf-for-windows.sln```
 6. ```del external\ebpf-verifier\build\obj\project.assets.json```
 
-### Building using Developer Command Prompt for VS 2019
+#### Building using Developer Command Prompt for VS 2019
 1. Launch `Developer Command Prompt for VS 2019`.
 2. Change directory to where the project is cloned, e.g. ```cd ebpf-for-windows```.
 3. ```msbuild /m /p:Configuration=Debug /p:Platform=x64 ebpf-for-windows.sln```
 
-#### Setting compile time options when building from Developer Command Prompt
+##### Setting compile time options when building from Developer Command Prompt
 To build with specific compile time options, append ```/p:DefineConstants=<option_name>```. Options available include:
 1. ```CONFIG_BPF_JIT_ALWAYS_ON``` - Compile eBPF Execution Context without support for eBPF interpreter.
 
-### Building using Visual Studio IDE
+#### Building using Visual Studio IDE
 1. Open `ebpf-for-windows.sln`
 2. Switch to debug / x64
 3. Build solution
 
-#### Setting compile time options when building from Visual Studio IDE
+##### Setting compile time options when building from Visual Studio IDE
 To build with specific compile time options:
 1. Select the project to modify from the Solution Explorer.
 2. Navigate to "C/C++" -> "Preprocessor" -> "Preprocessor Definitions"
@@ -92,20 +97,20 @@ and a few binaries just used for demo'ing eBPF functionality, as in the demo wal
 * `port_quota.exe`: A sample utility to illustrate using eBPF to manage port quotas to defend against `port_leak.exe`
                   and similar "buggy" apps.
 
-## How to clone and build the project using CMake
+### How to clone and build the project using CMake
 
-### Cloning the project
+#### Cloning the project
 ```bash
 git clone --recurse-submodules https://github.com/microsoft/ebpf-for-windows.git
 ```
 
-### Configuring the project
+#### Configuring the project
 
 ```bash
 cmake -S ebpf-for-windows -B build
 ```
 
-### Building the project
+#### Building the project
 
 Configuration: It is advised to use the Debug configuration for now.
 
@@ -113,7 +118,7 @@ Configuration: It is advised to use the Debug configuration for now.
 cmake --build build --config <Configuration>
 ```
 
-### Running the tests
+#### Running the tests
 
 Configure with the `EBPFFORWINDOWS_ENABLE_TESTS` option (enabled by default)
 
@@ -141,7 +146,7 @@ Windows requires that one of the following criteria be met prior to loading a dr
 2. The OS is booted with a kernel debugger attached.
 3. The OS is running in [test-signing mode](https://docs.microsoft.com/en-us/windows-hardware/drivers/install/the-testsigning-boot-configuration-option), the [driver is test signed](https://docs.microsoft.com/en-us/windows-hardware/drivers/install/test-signing-a-driver-through-an-embedded-signature) and the [test certificate is installed](https://docs.microsoft.com/en-us/windows-hardware/drivers/install/installing-test-certificates).
 
-Since the binaries built above are not signed by Microsoft, they will only work on a machine with
+Since the eBPF for Wndows binaries are not yet signed by Microsoft, they will only work on a machine with
 a kernel debugger (KD) attached and running, or test signing is enabled. (It is expected that official
 releases of eBPF for Windows will eventually be production signed at some point in the future after
 security hardening is completed.)
@@ -245,7 +250,7 @@ Other useful options include:
 ### xdp_tests.exe
 This application tests various XDP functionalities. It has the following tests:
 1. Reflection Test: This tests the XDP_TX functionality. The following steps show how to run the test:
-   1. On the system under test, install eBPF binaries (`install-ebpf.bat`).
+   1. On the system under test, install eBPF binaries (`.\scripts\setup-ebpf.ps1`).
    2. Load the test eBPF program by running the following commands: `netsh`, `ebpf`, `add program reflect_packet.o xdp` and note the ID.
    3. From a remote host, run xdp_tests.exe and in `--remote-ip` parameter pass an IPv4 or IPv6 address of an Ethernet-like interface on the system under test in string format.
    4. Unload the program from system under test by running `delete program <id>` on the netsh prompt, where <id> is the ID noted above.
@@ -257,11 +262,12 @@ This application loads the `cgroup_sock_addr.o` eBPF program and attaches to hoo
 eBPF for Windows uses ETW for tracing.  A trace can be captured in a file, or viewed in real-time.
 
 ### Capturing traces
-To capture a trace use the following commands:
-1) Start tracing: ```wpr.exe -start ebpfforwindows.wprp -filemode```
+To capture a trace in a file use the following commands:
+1) Start tracing: ```wpr.exe -start ebpfforwindows.wprp -filemode```. This will capture traces from eBPF execution context and the network eBPF extension drivers.
 2) Run the scenario to be traced.
 3) Stop tracing: ```wpr.exe -stop ebpfforwindows.etl```
-4) Convert the traces to a human readable version: ```netsh trace convert ebpfforwindows.etl ebpfforwindows.csv csv```
+4) Convert the traces to text format: ```netsh trace convert ebpfforwindows.etl overwrite=yes``` , or
+   to convert to CSV format, use: ```netsh trace convert ebpfforwindows.etl ebpfforwindows.csv csv```
 
 ### Viewing traces in real-time
 To view traces in real-time, the `tracelog.exe` and `tracefmt.exe` commands from the WDK can be used.
@@ -297,3 +303,9 @@ This will result in lines like:
 5984 [003] 03/10/2022-13:56:14.226:{"Message":"Hello, world"}
 ```
 where `5984` is the Process ID in decimal, and `003` is the CPU ID.
+
+To view all trace events from the network eBPF extension (`netebpfext.sys`), use the following commands:
+1) Create a trace session with some name such as MyTrace: ```tracelog -start MyTrace -guid net-ebpf-ext.guid -rt```
+2) View the session in real-time on stdout: ```tracefmt -rt NetEbpfExtTrace -displayonly -jsonMeta 0```.  This will
+   continue until you break out of the executable with Ctrl-C.
+3) Close the trace session: ```tracelog -stop NetEbpfExtTrace```

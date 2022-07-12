@@ -137,6 +137,8 @@ _net_ebpf_extension_detach_client_completion(_In_ PDEVICE_OBJECT device_object, 
 
     PAGED_CODE();
 
+    NET_EBPF_EXT_LOG_ENTRY();
+
     UNREFERENCED_PARAMETER(device_object);
 
     ASSERT(hook_client != NULL);
@@ -151,6 +153,8 @@ _net_ebpf_extension_detach_client_completion(_In_ PDEVICE_OBJECT device_object, 
     NmrProviderDetachClientComplete(hook_client->nmr_binding_handle);
 
     IoFreeWorkItem(work_item);
+
+    NET_EBPF_EXT_LOG_EXIT();
 }
 
 bool
@@ -198,7 +202,10 @@ net_ebpf_extension_hook_invoke_program(
     ebpf_invoke_program_function_t invoke_program = client->invoke_program;
     const void* client_binding_context = client->client_binding_context;
 
-    return invoke_program(client_binding_context, context, result);
+    ebpf_result_t invoke_result = invoke_program(client_binding_context, context, result);
+    if (invoke_result != EBPF_SUCCESS)
+        NET_EBPF_EXT_LOG_FUNCTION_ERROR(invoke_result);
+    return invoke_result;
 }
 
 ebpf_result_t
@@ -211,6 +218,8 @@ net_ebpf_extension_hook_check_attach_parameter(
     ebpf_result_t result = EBPF_SUCCESS;
     bool using_wild_card_attach_parameter = FALSE;
     bool lock_held = FALSE;
+
+    NET_EBPF_EXT_LOG_ENTRY();
 
     if (memcmp(attach_parameter, wild_card_attach_parameter, attach_parameter_size) == 0)
         using_wild_card_attach_parameter = TRUE;
@@ -250,7 +259,7 @@ Exit:
     if (lock_held)
         RELEASE_PUSH_LOCK_SHARED(&provider_context->lock);
 
-    return result;
+    NET_EBPF_EXT_RETURN_RESULT(result);
 }
 
 /**
@@ -283,6 +292,8 @@ _net_ebpf_extension_hook_provider_attach_client(
     net_ebpf_extension_hook_client_t* hook_client = NULL;
     ebpf_extension_dispatch_table_t* client_dispatch_table;
     ebpf_result_t result = EBPF_SUCCESS;
+
+    NET_EBPF_EXT_LOG_ENTRY();
 
     if ((provider_binding_context == NULL) || (provider_dispatch == NULL) || (local_provider_context == NULL)) {
         status = STATUS_INVALID_PARAMETER;
@@ -336,7 +347,7 @@ Exit:
             ExFreePool(hook_client);
     }
 
-    return status;
+    NET_EBPF_EXT_RETURN_NTSTATUS(status);
 }
 
 /**
@@ -350,6 +361,8 @@ static NTSTATUS
 _net_ebpf_extension_hook_provider_detach_client(_In_ void* provider_binding_context)
 {
     NTSTATUS status = STATUS_PENDING;
+
+    NET_EBPF_EXT_LOG_ENTRY();
 
     net_ebpf_extension_hook_client_t* local_client_context =
         (net_ebpf_extension_hook_client_t*)provider_binding_context;
@@ -375,7 +388,7 @@ _net_ebpf_extension_hook_provider_detach_client(_In_ void* provider_binding_cont
         (PVOID)local_client_context);
 
 Exit:
-    return status;
+    NET_EBPF_EXT_RETURN_NTSTATUS(status);
 }
 
 static void
@@ -387,6 +400,7 @@ _net_ebpf_extension_hook_provider_cleanup_binding_context(_Frees_ptr_ void* prov
 void
 net_ebpf_extension_hook_provider_unregister(_Frees_ptr_opt_ net_ebpf_extension_hook_provider_t* provider_context)
 {
+    NET_EBPF_EXT_LOG_ENTRY();
     if (provider_context != NULL) {
         NTSTATUS status = NmrDeregisterProvider(provider_context->nmr_provider_handle);
         if (status == STATUS_PENDING)
@@ -394,6 +408,7 @@ net_ebpf_extension_hook_provider_unregister(_Frees_ptr_opt_ net_ebpf_extension_h
             NmrWaitForProviderDeregisterComplete(provider_context->nmr_provider_handle);
         ExFreePool(provider_context);
     }
+    NET_EBPF_EXT_LOG_EXIT();
 }
 
 NTSTATUS
@@ -408,6 +423,7 @@ net_ebpf_extension_hook_provider_register(
     net_ebpf_extension_hook_provider_t* local_provider_context = NULL;
     NPI_PROVIDER_CHARACTERISTICS* characteristics;
 
+    NET_EBPF_EXT_LOG_ENTRY();
     local_provider_context = (net_ebpf_extension_hook_provider_t*)ExAllocatePoolUninitialized(
         NonPagedPoolNx, sizeof(net_ebpf_extension_hook_provider_t), NET_EBPF_EXTENSION_POOL_TAG);
     if (local_provider_context == NULL) {
@@ -443,7 +459,7 @@ Exit:
     if (!NT_SUCCESS(status))
         net_ebpf_extension_hook_provider_unregister(local_provider_context);
 
-    return status;
+    NET_EBPF_EXT_RETURN_NTSTATUS(status);
 }
 
 net_ebpf_extension_hook_client_t*

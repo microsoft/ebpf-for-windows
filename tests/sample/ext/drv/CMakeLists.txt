@@ -10,6 +10,7 @@ wdk_add_driver("sample_ebpf_ext" WINVER "${EBPFFORWINDOWS_WDK_WINVER}" KMDF "${E
 
 target_include_directories("sample_ebpf_ext" PRIVATE
   "${CMAKE_SOURCE_DIR}/include"
+  "${CMAKE_SOURCE_DIR}/include/kernel"
   "${CMAKE_SOURCE_DIR}/libs/platform"
   "${CMAKE_SOURCE_DIR}/libs/platform/kernel"
   "${CMAKE_SOURCE_DIR}/tests/sample"

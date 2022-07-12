@@ -33,9 +33,8 @@ set (ucrtbased_dll $<$<CONFIG:Debug>:${output_dir}/ucrtbased.dll>)
 
 set (output_ucrtbased_dll $<$<CONFIG:Debug>:${ucrtbased_dll}>)
 
-set (misc_files "install-ebpf.bat"
+set (misc_files "setup-ebpf.ps1"
     "run_tests.bat"
-    "uninstall-ebpf.bat"
     "common.psm1"
     "config_test_vm.psm1"
     "setup_ebpf_cicd_tests.ps1"
@@ -49,6 +48,7 @@ set (misc_files "install-ebpf.bat"
     "ebpfforwindows.wprp"
     "ebpf-all.guid"
     "ebpf-printk.guid"
+    "net-ebpf-ext.guid"
 )
 
 foreach(file ${misc_files})
