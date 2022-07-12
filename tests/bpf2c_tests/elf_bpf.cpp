@@ -190,6 +190,8 @@ DECLARE_TEST("printk_unsafe", _test_mode::VerifyFail)
 DECLARE_TEST("no_such_file", _test_mode::FileNotFound)
 DECLARE_TEST_CUSTOM_PROGRAM_TYPE("bpf", _test_mode::UseHash, std::string("xdp"))
 
+DECLARE_TEST("bpf", _test_mode::VerifyFail)
+
 TEST_CASE("help", "[bpf2c_cli]")
 {
     std::vector<const char*> argv;
