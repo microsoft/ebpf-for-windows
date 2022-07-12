@@ -5,6 +5,7 @@
 
 #define CATCH_CONFIG_MAIN
 
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -91,7 +92,7 @@ enum class _test_mode
 };
 
 void
-run_test_elf(const std::string& elf_file, _test_mode test_mode, const char* type)
+run_test_elf(const std::string& elf_file, _test_mode test_mode, const std::optional<std::string>& type)
 {
     std::vector<const char*> argv;
     auto name = elf_file.substr(0, elf_file.find('.'));
@@ -108,9 +109,9 @@ run_test_elf(const std::string& elf_file, _test_mode test_mode, const char* type
         argv.push_back("--hash");
         argv.push_back("none");
     }
-    if (type != nullptr) {
+    if (type) {
         argv.push_back("--type");
-        argv.push_back(type);
+        argv.push_back(type.value().c_str());
     }
 
     auto test = [&](const char* option, const char* suffix) {
@@ -152,7 +153,7 @@ run_test_elf(const std::string& elf_file, _test_mode test_mode, const char* type
 }
 
 #define DECLARE_TEST(FILE, MODE) \
-    TEST_CASE(FILE " " #MODE, "[elf_bpf_code_gen]") { run_test_elf(FILE ".o", MODE, nullptr); }
+    TEST_CASE(FILE " " #MODE, "[elf_bpf_code_gen]") { run_test_elf(FILE ".o", MODE, std::nullopt); }
 
 #define DECLARE_TEST_CUSTOM_PROGRAM_TYPE(FILE, MODE, TYPE) \
     TEST_CASE(FILE " " #MODE, "[elf_bpf_code_gen]") { run_test_elf(FILE ".o", MODE, TYPE); }
@@ -160,7 +161,7 @@ run_test_elf(const std::string& elf_file, _test_mode test_mode, const char* type
 DECLARE_TEST("bindmonitor", _test_mode::Verify)
 DECLARE_TEST("bindmonitor_ringbuf", _test_mode::Verify)
 DECLARE_TEST("bindmonitor_tailcall", _test_mode::Verify)
-DECLARE_TEST_CUSTOM_PROGRAM_TYPE("bpf", _test_mode::Verify, "xdp")
+DECLARE_TEST_CUSTOM_PROGRAM_TYPE("bpf", _test_mode::Verify, std::string("xdp"))
 DECLARE_TEST("bpf_call", _test_mode::Verify)
 DECLARE_TEST("cgroup_sock_addr", _test_mode::Verify)
 DECLARE_TEST("decap_permit_packet", _test_mode::Verify)
@@ -187,7 +188,7 @@ DECLARE_TEST("empty", _test_mode::NoVerify)
 DECLARE_TEST("droppacket_unsafe", _test_mode::VerifyFail)
 DECLARE_TEST("printk_unsafe", _test_mode::VerifyFail)
 DECLARE_TEST("no_such_file", _test_mode::FileNotFound)
-DECLARE_TEST("bpf", _test_mode::UseHash)
+DECLARE_TEST_CUSTOM_PROGRAM_TYPE("bpf", _test_mode::UseHash, std::string("xdp"))
 
 TEST_CASE("help", "[bpf2c_cli]")
 {
