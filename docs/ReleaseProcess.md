@@ -12,7 +12,7 @@ Note: Currently releases are not production signed.
 3. Add a tag to the commit with the version number changes
    ("git tag v0.2.0", "git push --tags")
 4. Once the build completes on the PR, download the
-   "ebpf-for-windows.msi" and "ebpf-for-windows nuget" build artifacts
+   "ebpf-for-windows.msi Release" and "ebpf-for-windows nuget" build artifacts
    (accessible via the Actions tab on github)
 5. Extract the .msi and .nupkg, respectively, out of them
 6. Test the MSI manually (since not yet tested in CI/CD):
