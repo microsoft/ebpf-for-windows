@@ -16,7 +16,7 @@ on:
       build_options:
         required: false
         type: string
-      generate_release_package:
+      generate_package:
         required: false
         type: boolean
       build_codeql:
@@ -157,7 +157,7 @@ jobs:
         retention-days: 5
 
     - name: Generate the package data
-      if: matrix.configurations == 'Release' && inputs.generate_release_package == true
+      if: inputs.generate_package == true
       shell: cmd
       working-directory: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
       env:
@@ -166,7 +166,7 @@ jobs:
         ${{github.workspace}}\scripts\create_package_data.bat ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}
 
     - name: Generate the MSI release package
-      if: matrix.configurations == 'Release' && inputs.generate_release_package == true
+      if: inputs.generate_package == true
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
         $version = scripts\Get-Version.ps1
@@ -174,7 +174,7 @@ jobs:
         cmake --build build\setup --target package
 
     - name: Locate the packages
-      if: matrix.configurations == 'Release' && inputs.generate_release_package == true
+      if: inputs.generate_package == true
       working-directory: ${{env.GITHUB_WORKSPACE}}
       id: packages
       shell: bash
@@ -182,10 +182,10 @@ jobs:
         echo ::set-output name=REL_MSI_PACKAGE_PATH::$(ls build/setup/*.msi)
 
     - name: Upload the MSI package
-      if: matrix.configurations == 'Release' && inputs.generate_release_package == true
+      if: inputs.generate_package == true
       uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8
       with:
-        name: ebpf-for-windows.msi
+        name: ebpf-for-windows.msi ${{matrix.configurations}}
         path: ${{ steps.packages.outputs.REL_MSI_PACKAGE_PATH }}
 
     - name: Build nuget package

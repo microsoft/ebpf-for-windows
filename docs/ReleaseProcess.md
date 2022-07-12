@@ -9,7 +9,7 @@ Note: Currently releases are not production signed.
     * resource\ebpf_version.h
 2. Create a pull request with the version number changes
 3. Once the build completes on the PR, download the
-   "ebpf-for-windows.msi" and "ebpf-for-windows nuget" build artifacts
+   "ebpf-for-windows.msi Release" and "ebpf-for-windows nuget" build artifacts
    (accessible via the Actions tab on github)
 4. Extract the .msi and .nupkg, respectively, out of them
 5. Test the MSI manually (since not yet tested in CI/CD):

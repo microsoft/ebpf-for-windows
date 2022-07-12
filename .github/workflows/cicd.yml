@@ -40,7 +40,7 @@ jobs:
     uses: ./.github/workflows/reusable-build.yml
     with:
       build_artifact: Build-x64
-      generate_release_package: true
+      generate_package: true
       build_nuget: true
 
   cmake:
@@ -104,7 +104,7 @@ jobs:
       test_command: .\execute_ebpf_cicd_tests.ps1
       post_test: .\cleanup_ebpf_cicd_tests.ps1
       name: driver
-      build_artifact: Build-x64
+      build_artifact: ebpf-for-windows.msi
       environment: ebpf_cicd_tests
       # driver test copies dumps to testlog folder.
       gather_dumps: false

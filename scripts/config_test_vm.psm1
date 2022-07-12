@@ -172,10 +172,7 @@ function Export-BuildArtifactsToVMs
 {
     param([Parameter(Mandatory=$True)] $VMList)
 
-    $tempFileName = [System.IO.Path]::GetTempFileName() + ".tgz"
-    Write-Log "Creating $tempFileName containing files in $pwd"
-    &tar @("cfz", "$tempFileName", "*")
-    Write-Log "Created $tempFileName containing files in $pwd"
+    $msiFileName = "ebpf-for-windows.msi"
 
     foreach($VM in $VMList) {
         $VMName = $VM.Name
@@ -192,16 +189,10 @@ function Export-BuildArtifactsToVMs
             }
             $VMSystemDrive = Invoke-Command -Session $VMSession -ScriptBlock {return $Env:SystemDrive}
         }
-        Write-Log "Copying $tempFileName to $VMSystemDrive\eBPF on $VMName"
-        Copy-Item -ToSession $VMSession -Path $tempFileName -Destination "$VMSystemDrive\eBPF\ebpf.tgz" -Force 2>&1 -ErrorAction Stop | Write-Log
-        Write-Log "Copied $tempFileName to $VMSystemDrive\eBPF on $VMName"
+        Write-Log "Copying $msiFileName to $VMSystemDrive\eBPF on $VMName"
+        Copy-Item -ToSession $VMSession -Path $msiFileName -Destination "$VMSystemDrive\eBPF\ebpf-for-windows.msi" -Force 2>&1 -ErrorAction Stop | Write-Log
+        Write-Log "Copied $msiFileName to $VMSystemDrive\eBPF on $VMName"
 
-        Write-Log "Unpacking $tempFileName to $VMSystemDrive\eBPF on $VMName"
-        Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
-            cd $Env:SystemDrive\eBPF
-            &tar @("xf", "ebpf.tgz")
-        }
-        Write-Log "Unpacked $tempFileName to $VMSystemDrive\eBPF on $VMName"
         Write-Log "Export completed." -ForegroundColor Green
     }
 
@@ -289,12 +280,8 @@ function Install-eBPFComponentsOnVM
     Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
         param([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
               [Parameter(Mandatory=$True)] [string] $LogFileName)
-        $WorkingDirectory = "$env:SystemDrive\$WorkingDirectory"
-        Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
-        Import-Module $WorkingDirectory\install_ebpf.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
-
-        Install-eBPFComponents -Tracing $true -KMDFVerifier $true
         Enable-KMDFVerifier
+        msiexec.exe /i "$env:SystemDrive\$WorkingDirectory\ebpf-for-windows.msi" /quiet /qn /l*v $LogFileName 2>&1 | Write-Log
     } -ArgumentList ("eBPF", $LogFileName) -ErrorAction Stop
     Write-Log "eBPF components installed on $VMName" -ForegroundColor Green
 }
