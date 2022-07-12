@@ -91,7 +91,7 @@ enum class _test_mode
 };
 
 void
-run_test_elf(const std::string& elf_file, _test_mode test_mode)
+run_test_elf(const std::string& elf_file, _test_mode test_mode, const char* type)
 {
     std::vector<const char*> argv;
     auto name = elf_file.substr(0, elf_file.find('.'));
@@ -107,6 +107,10 @@ run_test_elf(const std::string& elf_file, _test_mode test_mode)
     } else {
         argv.push_back("--hash");
         argv.push_back("none");
+    }
+    if (type != nullptr) {
+        argv.push_back("--type");
+        argv.push_back(type);
     }
 
     auto test = [&](const char* option, const char* suffix) {
@@ -148,12 +152,15 @@ run_test_elf(const std::string& elf_file, _test_mode test_mode)
 }
 
 #define DECLARE_TEST(FILE, MODE) \
-    TEST_CASE(FILE " " #MODE, "[elf_bpf_code_gen]") { run_test_elf(FILE ".o", MODE); }
+    TEST_CASE(FILE " " #MODE, "[elf_bpf_code_gen]") { run_test_elf(FILE ".o", MODE, nullptr); }
+
+#define DECLARE_TEST_CUSTOM_PROGRAM_TYPE(FILE, MODE, TYPE) \
+    TEST_CASE(FILE " " #MODE, "[elf_bpf_code_gen]") { run_test_elf(FILE ".o", MODE, TYPE); }
 
 DECLARE_TEST("bindmonitor", _test_mode::Verify)
 DECLARE_TEST("bindmonitor_ringbuf", _test_mode::Verify)
 DECLARE_TEST("bindmonitor_tailcall", _test_mode::Verify)
-DECLARE_TEST("bpf", _test_mode::Verify)
+DECLARE_TEST_CUSTOM_PROGRAM_TYPE("bpf", _test_mode::Verify, "xdp")
 DECLARE_TEST("bpf_call", _test_mode::Verify)
 DECLARE_TEST("cgroup_sock_addr", _test_mode::Verify)
 DECLARE_TEST("decap_permit_packet", _test_mode::Verify)
