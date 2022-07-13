@@ -3327,6 +3327,13 @@ _ebpf_ring_buffer_map_async_query_completion(_Inout_ void* completion_context)
         } else {
             // User has canceled subscription. Invoke user specified callback for the final time with NULL record. This
             // will let the user app clean up its state.
+            TraceLoggingWrite(
+                ebpf_tracelog_provider,
+                EBPF_TRACELOG_EVENT_GENERIC_MESSAGE,
+                TraceLoggingLevel(WINEVENT_LEVEL_INFO),
+                TraceLoggingKeyword(EBPF_TRACELOG_KEYWORD_API),
+                TraceLoggingString(__FUNCTION__, "ring_buffer map async query completion invoked with EBPF_CANCELED."));
+
             subscription->sample_callback(subscription->sample_callback_context, nullptr, 0);
         }
     } else {
@@ -3505,6 +3512,14 @@ ebpf_ring_buffer_map_unsubscribe(_Inout_ _Post_invalid_ ring_buffer_subscription
             free_subscription = true;
         else {
             // Attempt to cancel an ongoing async IOCTL.
+
+            TraceLoggingWrite(
+                ebpf_tracelog_provider,
+                EBPF_TRACELOG_EVENT_GENERIC_MESSAGE,
+                TraceLoggingLevel(WINEVENT_LEVEL_INFO),
+                TraceLoggingKeyword(EBPF_TRACELOG_KEYWORD_API),
+                TraceLoggingString(__FUNCTION__, "Attempt to cancel async query on ring_buffer map."));
+
             cancel_result =
                 cancel_async_ioctl(get_async_ioctl_operation_overlapped(subscription->async_ioctl_completion));
             // If the async operation could be canceled, a final completion callback would be invoked with EBPF_CANCELED
