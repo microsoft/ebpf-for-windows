@@ -226,6 +226,11 @@ enum bpf_link_type
     BPF_LINK_TYPE_PLAIN,  ///< Normal link type.
 };
 
+static const char* const _ebpf_link_display_names[] = {
+    "Other",
+    "Plain",
+};
+
 enum bpf_attach_type
 {
     BPF_ATTACH_TYPE_UNSPEC, ///< Unspecified attach type.

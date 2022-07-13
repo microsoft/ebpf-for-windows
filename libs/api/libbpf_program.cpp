@@ -434,7 +434,7 @@ bpf_prog_get_next_id(uint32_t start_id, uint32_t* next_id)
 int
 libbpf_prog_type_by_name(const char* name, enum bpf_prog_type* prog_type, enum bpf_attach_type* expected_attach_type)
 {
-    if (prog_type == nullptr || expected_attach_type == nullptr) {
+    if (name == nullptr || prog_type == nullptr || expected_attach_type == nullptr) {
         return libbpf_err(-EINVAL);
     }
 
@@ -443,8 +443,7 @@ libbpf_prog_type_by_name(const char* name, enum bpf_prog_type* prog_type, enum b
     ebpf_result_t result = ebpf_get_program_type_by_name(name, &ebpf_program_type, &ebpf_attach_type);
     if (result != EBPF_SUCCESS) {
         ebpf_assert(result == EBPF_KEY_NOT_FOUND);
-        errno = ESRCH;
-        return -1;
+        return libbpf_err(-ESRCH);
     }
 
     *prog_type = get_bpf_program_type(&ebpf_program_type);
@@ -456,14 +455,13 @@ libbpf_prog_type_by_name(const char* name, enum bpf_prog_type* prog_type, enum b
 int
 libbpf_attach_type_by_name(const char* name, enum bpf_attach_type* attach_type)
 {
-    if (attach_type == nullptr) {
+    if (name == nullptr || attach_type == nullptr) {
         return libbpf_err(-EINVAL);
     }
 
     const ebpf_attach_type_t* ebpf_attach_type = get_attach_type_windows(name);
     if (ebpf_attach_type == &EBPF_ATTACH_TYPE_UNSPECIFIED) {
-        errno = ESRCH;
-        return -1;
+        return libbpf_err(-ESRCH);
     }
 
     *attach_type = get_bpf_attach_type(ebpf_attach_type);
@@ -617,11 +615,19 @@ bpf_xdp_query_id(int ifindex, int flags, __u32* prog_id)
 const char*
 libbpf_bpf_attach_type_str(enum bpf_attach_type t)
 {
-    return ebpf_get_attach_type_name(get_ebpf_attach_type(t));
+    if (t == BPF_ATTACH_TYPE_UNSPEC) {
+        return "unspec";
+    }
+    const ebpf_attach_type_t* attach_type = get_ebpf_attach_type(t);
+    return (attach_type == nullptr) ? nullptr : ebpf_get_attach_type_name(attach_type);
 }
 
 const char*
 libbpf_bpf_prog_type_str(enum bpf_prog_type t)
 {
-    return ebpf_get_program_type_name(ebpf_get_ebpf_program_type(t));
+    if (t == BPF_PROG_TYPE_UNSPEC) {
+        return "unspec";
+    }
+    const ebpf_program_type_t* program_type = ebpf_get_ebpf_program_type(t);
+    return (program_type == nullptr) ? nullptr : ebpf_get_program_type_name(program_type);
 }
