@@ -834,6 +834,30 @@ int
 bpf_xdp_query_id(int ifindex, int flags, __u32* prog_id);
 
 /**
+ * @brief **libbpf_bpf_attach_type_str()** converts the provided attach type
+ * value into a textual representation.
+ *
+ * @param[in] t The attach type.
+ *
+ * @return Pointer to a static string identifying the attach type. NULL is
+ * returned for unknown **bpf_attach_type** values.
+ */
+const char*
+libbpf_bpf_attach_type_str(enum bpf_attach_type t);
+
+/**
+ * @brief **libbpf_bpf_prog_type_str()** converts the provided program type
+ * value into a textual representation.
+ *
+ * @param[in] t The program type.
+ *
+ * @return Pointer to a static string identifying the program type. NULL is
+ * returned for unknown **bpf_prog_type** values.
+ */
+const char*
+libbpf_bpf_prog_type_str(enum bpf_prog_type t);
+
+/**
  * @brief Get a program type and expected attach type by name.
  *
  * @param[in] name Name, as if it were a section name in an ELF file.
@@ -862,6 +886,19 @@ libbpf_prog_type_by_name(const char* name, enum bpf_prog_type* prog_type, enum b
  */
 long
 libbpf_get_error(const void* ptr);
+
+/**
+ * @brief Get an error message.
+ *
+ * @param[in] err Error number.
+ * @param[out] buf Pointer to buffer to write message into.
+ * @param[in] size Size of output buffer.
+ *
+ * @retval 0 The operation was successful.
+ * @retval <0 An error occured, and errno was set.
+ */
+int
+libbpf_strerror(int err, char* buf, size_t size);
 
 /**
  * @brief Get the number of processors on the current system.

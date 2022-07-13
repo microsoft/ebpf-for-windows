@@ -591,3 +591,15 @@ bpf_xdp_query_id(int ifindex, int flags, __u32* prog_id)
         }
     }
 }
+
+const char*
+libbpf_bpf_attach_type_str(enum bpf_attach_type t)
+{
+    return ebpf_get_attach_type_name(get_ebpf_attach_type(t));
+}
+
+const char*
+libbpf_bpf_prog_type_str(enum bpf_prog_type t)
+{
+    return ebpf_get_program_type_name(ebpf_get_ebpf_program_type(t));
+}
