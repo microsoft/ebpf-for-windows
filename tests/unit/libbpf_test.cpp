@@ -35,7 +35,7 @@
 
 const int nonexistent_fd = 12345678;
 
-TEST_CASE("empty bpf_load_program", "[libbpf]")
+TEST_CASE("empty bpf_load_program", "[libbpf][deprecated]")
 {
     _test_helper_libbpf test_helper;
 
@@ -65,7 +65,7 @@ TEST_CASE("too big bpf_prog_load", "[libbpf]")
     REQUIRE(errno == EINVAL);
 }
 
-TEST_CASE("invalid bpf_load_program", "[libbpf]")
+TEST_CASE("invalid bpf_load_program", "[libbpf][deprecated]")
 {
     _test_helper_libbpf test_helper;
 
@@ -108,7 +108,7 @@ TEST_CASE("invalid bpf_prog_load", "[libbpf]")
     REQUIRE(strcmp(log_buffer, "\n0:  (r0.type == number)\n\n") == 0);
 }
 
-TEST_CASE("invalid bpf_load_program - wrong type", "[libbpf]")
+TEST_CASE("invalid bpf_load_program - wrong type", "[libbpf][deprecated]")
 {
     _test_helper_libbpf test_helper;
 
@@ -142,7 +142,7 @@ TEST_CASE("invalid bpf_prog_load - wrong type", "[libbpf]")
     REQUIRE(errno == EINVAL);
 }
 
-TEST_CASE("valid bpf_load_program", "[libbpf]")
+TEST_CASE("valid bpf_load_program", "[libbpf][deprecated]")
 {
     _test_helper_libbpf test_helper;
 
@@ -264,7 +264,7 @@ TEST_CASE("valid bpf_load_program_xattr", "[libbpf]")
 #define BPF_REG_10 R10_STACK_POINTER
 #define BPF_ADD 0
 
-TEST_CASE("valid bpf_load_program with map", "[libbpf]")
+TEST_CASE("valid bpf_load_program with map", "[libbpf][deprecated]")
 {
     _test_helper_libbpf test_helper;
 
@@ -2044,6 +2044,20 @@ TEST_CASE("libbpf attach type names", "[libbpf]")
     REQUIRE(libbpf_bpf_attach_type_str((bpf_attach_type)123) == nullptr);
     REQUIRE(libbpf_attach_type_by_name("other", &attach_type) == -ESRCH);
     REQUIRE(libbpf_attach_type_by_name(nullptr, &attach_type) == -EINVAL);
+}
+
+TEST_CASE("libbpf link type names", "[libbpf]")
+{
+    REQUIRE(strcmp(libbpf_bpf_link_type_str(BPF_LINK_TYPE_PLAIN), "plain") == 0);
+    REQUIRE(strcmp(libbpf_bpf_link_type_str(BPF_LINK_TYPE_UNSPEC), "unspec") == 0);
+    REQUIRE(libbpf_bpf_link_type_str((bpf_link_type)123) == nullptr);
+}
+
+TEST_CASE("libbpf map type names", "[libbpf]")
+{
+    REQUIRE(strcmp(libbpf_bpf_map_type_str(BPF_MAP_TYPE_ARRAY), "array") == 0);
+    REQUIRE(strcmp(libbpf_bpf_map_type_str(BPF_MAP_TYPE_UNSPEC), "unspec") == 0);
+    REQUIRE(libbpf_bpf_map_type_str((bpf_map_type)123) == nullptr);
 }
 
 TEST_CASE("bpf_object__open with .dll", "[libbpf]")

@@ -51,20 +51,20 @@ static const char* const _ebpf_map_type_names[] = {
 };
 
 static const char* const _ebpf_map_display_names[] = {
-    "Other",
-    "Hash",
-    "Array",
-    "Program array",
-    "Per-CPU hash table",
-    "Per-CPU array",
-    "Hash of maps",
-    "Array of maps",
-    "LRU hash table",
-    "LPM trie",
-    "Queue",
-    "LRU Per-CPU hash table",
-    "Stack",
-    "Ring-buffer",
+    "unspec",
+    "hash",
+    "array",
+    "prog_array",
+    "percpu_hash",
+    "percpu_array",
+    "hash_of_maps",
+    "array_of_maps",
+    "lru_hash",
+    "lpm_trie",
+    "queue",
+    "lru_percpu_hash",
+    "stack",
+    "ringbuf",
 };
 
 typedef enum ebpf_map_option
@@ -227,8 +227,8 @@ enum bpf_link_type
 };
 
 static const char* const _ebpf_link_display_names[] = {
-    "Other",
-    "Plain",
+    "unspec",
+    "plain",
 };
 
 enum bpf_attach_type
