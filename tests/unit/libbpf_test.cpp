@@ -2006,6 +2006,44 @@ TEST_CASE("libbpf_get_error", "[libbpf]")
 {
     errno = 123;
     REQUIRE(libbpf_get_error(nullptr) == -123);
+
+    char buffer[80];
+    REQUIRE(libbpf_strerror(errno, buffer, sizeof(buffer)) == -ENOENT);
+    REQUIRE(strcmp(buffer, "Unknown libbpf error 123") == 0);
+}
+
+TEST_CASE("libbpf prog type names", "[libbpf]")
+{
+    _test_helper_end_to_end test_helper;
+
+    REQUIRE(strcmp(libbpf_bpf_prog_type_str(BPF_PROG_TYPE_XDP), "xdp") == 0);
+    REQUIRE(strcmp(libbpf_bpf_prog_type_str(BPF_PROG_TYPE_UNSPEC), "unspec") == 0);
+    REQUIRE(libbpf_bpf_prog_type_str((bpf_prog_type)123) == nullptr);
+
+    enum bpf_attach_type attach_type;
+    enum bpf_prog_type prog_type;
+    REQUIRE(libbpf_prog_type_by_name("xdp", &prog_type, &attach_type) == 0);
+    REQUIRE(prog_type == BPF_PROG_TYPE_XDP);
+    REQUIRE(attach_type == BPF_XDP);
+    REQUIRE(libbpf_prog_type_by_name("other", &prog_type, &attach_type) == -ESRCH);
+    REQUIRE(libbpf_prog_type_by_name(nullptr, &prog_type, &attach_type) == -EINVAL);
+}
+
+TEST_CASE("libbpf attach type names", "[libbpf]")
+{
+    _test_helper_end_to_end test_helper;
+
+    enum bpf_attach_type attach_type;
+    for (int i = 1; i < __MAX_BPF_ATTACH_TYPE; i++) {
+        const char* type_str = libbpf_bpf_attach_type_str((enum bpf_attach_type)i);
+
+        REQUIRE(libbpf_attach_type_by_name(type_str, &attach_type) == 0);
+        REQUIRE(attach_type == i);
+    }
+    REQUIRE(strcmp(libbpf_bpf_attach_type_str(BPF_ATTACH_TYPE_UNSPEC), "unspec") == 0);
+    REQUIRE(libbpf_bpf_attach_type_str((bpf_attach_type)123) == nullptr);
+    REQUIRE(libbpf_attach_type_by_name("other", &attach_type) == -ESRCH);
+    REQUIRE(libbpf_attach_type_by_name(nullptr, &attach_type) == -EINVAL);
 }
 
 TEST_CASE("bpf_object__open with .dll", "[libbpf]")

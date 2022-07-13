@@ -326,3 +326,10 @@ ring_buffer__free(struct ring_buffer* ring_buffer)
     ring_buffer->subscriptions.clear();
     delete ring_buffer;
 }
+
+const char*
+libbpf_bpf_map_type_str(enum bpf_map_type t)
+{
+    int index = (t >= _countof(_ebpf_map_display_names)) ? 0 : t;
+    return _ebpf_map_display_names[index];
+}
