@@ -10,6 +10,7 @@ add_library("api" STATIC
 
   bpf_syscall.cpp
   ebpf_api.cpp
+  libbpf_errno.cpp
   libbpf_link.cpp
   libbpf_map.cpp
   libbpf_object.cpp
