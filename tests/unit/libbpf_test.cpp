@@ -3,7 +3,6 @@
 #include <io.h>
 #include <WinSock2.h>
 
-#define bpf_insn ebpf_inst
 #include "bpf/bpf.h"
 #pragma warning(push)
 #pragma warning(disable : 4200)
@@ -71,14 +70,20 @@ TEST_CASE("invalid bpf_load_program", "[libbpf]")
     _test_helper_libbpf test_helper;
 
     // Try with an invalid set of instructions.
-    struct bpf_insn instructions[] = {
+    struct ebpf_inst instructions[] = {
         {INST_OP_EXIT}, // return r0
     };
 
     // Try to load and verify the eBPF program.
     char log_buffer[1024];
     int program_fd = bpf_load_program(
-        BPF_PROG_TYPE_XDP, instructions, _countof(instructions), nullptr, 0, log_buffer, sizeof(log_buffer));
+        BPF_PROG_TYPE_XDP,
+        (struct bpf_insn*)instructions,
+        _countof(instructions),
+        nullptr,
+        0,
+        log_buffer,
+        sizeof(log_buffer));
     REQUIRE(program_fd < 0);
     REQUIRE(errno == EACCES);
     REQUIRE(strcmp(log_buffer, "\n0:  (r0.type == number)\n\n") == 0);
@@ -89,14 +94,15 @@ TEST_CASE("invalid bpf_prog_load", "[libbpf]")
     _test_helper_libbpf test_helper;
 
     // Try with an invalid set of instructions.
-    struct bpf_insn instructions[] = {
+    struct ebpf_inst instructions[] = {
         {INST_OP_EXIT}, // return r0
     };
 
     // Try to load and verify the eBPF program.
     char log_buffer[1024] = "";
     struct bpf_prog_load_opts opts = {.sz = sizeof(opts), .log_size = sizeof(log_buffer), .log_buf = log_buffer};
-    int program_fd = bpf_prog_load(BPF_PROG_TYPE_XDP, "name", "license", instructions, _countof(instructions), &opts);
+    int program_fd = bpf_prog_load(
+        BPF_PROG_TYPE_XDP, "name", "license", (struct bpf_insn*)instructions, _countof(instructions), &opts);
     REQUIRE(program_fd < 0);
     REQUIRE(errno == EACCES);
     REQUIRE(strcmp(log_buffer, "\n0:  (r0.type == number)\n\n") == 0);
@@ -107,13 +113,14 @@ TEST_CASE("invalid bpf_load_program - wrong type", "[libbpf]")
     _test_helper_libbpf test_helper;
 
     // Try with a valid set of instructions.
-    struct bpf_insn instructions[] = {
+    struct ebpf_inst instructions[] = {
         {0xb7, R0_RETURN_VALUE, 0}, // r0 = 0
         {INST_OP_EXIT},             // return r0
     };
 
     // Load and verify the eBPF program.
-    int program_fd = bpf_load_program((bpf_prog_type)-1, instructions, _countof(instructions), nullptr, 0, nullptr, 0);
+    int program_fd = bpf_load_program(
+        (bpf_prog_type)-1, (struct bpf_insn*)instructions, _countof(instructions), nullptr, 0, nullptr, 0);
     REQUIRE(program_fd < 0);
     REQUIRE(errno == EINVAL);
 }
@@ -123,13 +130,14 @@ TEST_CASE("invalid bpf_prog_load - wrong type", "[libbpf]")
     _test_helper_libbpf test_helper;
 
     // Try with a valid set of instructions.
-    struct bpf_insn instructions[] = {
+    struct ebpf_inst instructions[] = {
         {0xb7, R0_RETURN_VALUE, 0}, // r0 = 0
         {INST_OP_EXIT},             // return r0
     };
 
     // Load and verify the eBPF program.
-    int program_fd = bpf_prog_load((bpf_prog_type)-1, "name", "license", instructions, _countof(instructions), nullptr);
+    int program_fd = bpf_prog_load(
+        (bpf_prog_type)-1, "name", "license", (struct bpf_insn*)instructions, _countof(instructions), nullptr);
     REQUIRE(program_fd < 0);
     REQUIRE(errno == EINVAL);
 }
@@ -139,13 +147,14 @@ TEST_CASE("valid bpf_load_program", "[libbpf]")
     _test_helper_libbpf test_helper;
 
     // Try with a valid set of instructions.
-    struct bpf_insn instructions[] = {
+    struct ebpf_inst instructions[] = {
         {0xb7, R0_RETURN_VALUE, 0}, // r0 = 0
         {INST_OP_EXIT},             // return r0
     };
 
     // Load and verify the eBPF program.
-    int program_fd = bpf_load_program(BPF_PROG_TYPE_XDP, instructions, _countof(instructions), nullptr, 0, nullptr, 0);
+    int program_fd = bpf_load_program(
+        BPF_PROG_TYPE_XDP, (struct bpf_insn*)instructions, _countof(instructions), nullptr, 0, nullptr, 0);
     REQUIRE(program_fd >= 0);
 
     // Now query the program info and verify it matches what we set.
@@ -165,13 +174,14 @@ TEST_CASE("valid bpf_prog_load", "[libbpf]")
     _test_helper_libbpf test_helper;
 
     // Try with a valid set of instructions.
-    struct bpf_insn instructions[] = {
+    struct ebpf_inst instructions[] = {
         {0xb7, R0_RETURN_VALUE, 0}, // r0 = 0
         {INST_OP_EXIT},             // return r0
     };
 
     // Load and verify the eBPF program.
-    int program_fd = bpf_prog_load(BPF_PROG_TYPE_XDP, "name", nullptr, instructions, _countof(instructions), nullptr);
+    int program_fd = bpf_prog_load(
+        BPF_PROG_TYPE_XDP, "name", nullptr, (struct bpf_insn*)instructions, _countof(instructions), nullptr);
     REQUIRE(program_fd >= 0);
 
     // Now query the program info and verify it matches what we set.
@@ -192,14 +202,17 @@ TEST_CASE("valid bpf_load_program_xattr", "[libbpf]")
     _test_helper_libbpf test_helper;
 
     // Try with a valid set of instructions.
-    struct bpf_insn instructions[] = {
+    struct ebpf_inst instructions[] = {
         {0xb7, R0_RETURN_VALUE, 0}, // r0 = 0
         {INST_OP_EXIT},             // return r0
     };
 
     // Load and verify the eBPF program.
     struct bpf_load_program_attr attr = {
-        .prog_type = BPF_PROG_TYPE_XDP, .name = "name", .insns = instructions, .insns_cnt = _countof(instructions)};
+        .prog_type = BPF_PROG_TYPE_XDP,
+        .name = "name",
+        .insns = (struct bpf_insn*)instructions,
+        .insns_cnt = _countof(instructions)};
     int program_fd = bpf_load_program_xattr(&attr, nullptr, 0);
     REQUIRE(program_fd >= 0);
 
@@ -255,11 +268,11 @@ TEST_CASE("valid bpf_load_program with map", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
 
-    int map_fd = bpf_create_map(BPF_MAP_TYPE_ARRAY, sizeof(uint32_t), sizeof(uint32_t), 2, 0);
+    int map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, nullptr, sizeof(uint32_t), sizeof(uint32_t), 2, nullptr);
     REQUIRE(map_fd >= 0);
 
     // Try with a valid set of instructions.
-    struct bpf_insn instructions[] = {
+    struct ebpf_inst instructions[] = {
         BPF_MOV64_IMM(BPF_REG_1, 0),                   // r1 = 0
         BPF_STX_MEM(BPF_W, BPF_REG_10, BPF_REG_1, -4), // *(u32 *)(r10 - 4) = r1
         BPF_MOV64_IMM(BPF_REG_1, 42),                  // r1 = 42
@@ -275,7 +288,8 @@ TEST_CASE("valid bpf_load_program with map", "[libbpf]")
     };
 
     // Load and verify the eBPF program.
-    int program_fd = bpf_load_program(BPF_PROG_TYPE_XDP, instructions, _countof(instructions), nullptr, 0, nullptr, 0);
+    int program_fd = bpf_load_program(
+        BPF_PROG_TYPE_XDP, (struct bpf_insn*)instructions, _countof(instructions), nullptr, 0, nullptr, 0);
     REQUIRE(program_fd >= 0);
 
     // Now query the program info and verify it matches what we set.
@@ -791,7 +805,7 @@ TEST_CASE("libbpf map binding", "[libbpf]")
     REQUIRE(program != nullptr);
 
     // Create a map.
-    int map_fd = bpf_create_map(BPF_MAP_TYPE_ARRAY, sizeof(uint32_t), sizeof(uint32_t), 2, 0);
+    int map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, nullptr, sizeof(uint32_t), sizeof(uint32_t), 2, nullptr);
     REQUIRE(map_fd > 0);
     bpf_map_info info;
     uint32_t info_size = sizeof(info);
@@ -1242,7 +1256,7 @@ TEST_CASE("disallow prog_array mixed program type values", "[libbpf]")
     REQUIRE(bind_object != nullptr);
 
     // Create a map.
-    int map_fd = bpf_create_map(BPF_MAP_TYPE_PROG_ARRAY, sizeof(uint32_t), sizeof(uint32_t), 2, 0);
+    int map_fd = bpf_map_create(BPF_MAP_TYPE_PROG_ARRAY, nullptr, sizeof(uint32_t), sizeof(uint32_t), 2, nullptr);
     REQUIRE(map_fd > 0);
 
     // Since the map is not yet associated with a program, the first program fd
@@ -1310,11 +1324,11 @@ _ebpf_test_map_in_map(ebpf_map_type_t type)
     _test_helper_end_to_end test_helper;
 
     // Create an inner map that we'll use both as a template and as an actual entry.
-    int inner_map_fd = bpf_create_map(BPF_MAP_TYPE_ARRAY, sizeof(__u32), sizeof(__u32), 1, 0);
+    int inner_map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, nullptr, sizeof(__u32), sizeof(__u32), 1, nullptr);
     REQUIRE(inner_map_fd > 0);
 
     // Verify that we cannot simply create an outer map without a template.
-    REQUIRE(bpf_create_map(type, sizeof(__u32), sizeof(__u32), 2, 0) < 0);
+    REQUIRE(bpf_map_create(type, nullptr, sizeof(__u32), sizeof(__u32), 2, nullptr) < 0);
     REQUIRE(errno == EBADF);
 
     REQUIRE(bpf_create_map_in_map(type, nullptr, sizeof(__u32), ebpf_fd_invalid, 2, 0) < 0);
@@ -1398,7 +1412,7 @@ _array_of_maps_test(ebpf_execution_type_t execution_type)
     REQUIRE(outer_map_fd > 0);
 
     // Create an inner map.
-    int inner_map_fd = bpf_create_map(BPF_MAP_TYPE_HASH, sizeof(__u32), sizeof(__u32), 1, 0);
+    int inner_map_fd = bpf_map_create(BPF_MAP_TYPE_HASH, nullptr, sizeof(__u32), sizeof(__u32), 1, nullptr);
     REQUIRE(inner_map_fd > 0);
 
     // Add a value to the inner map.
@@ -1455,7 +1469,7 @@ _array_of_maps2_test(ebpf_execution_type_t execution_type)
     REQUIRE(outer_map_fd > 0);
 
     // Create an inner map.
-    int inner_map_fd = bpf_create_map(BPF_MAP_TYPE_HASH, sizeof(__u32), sizeof(__u32), 1, 0);
+    int inner_map_fd = bpf_map_create(BPF_MAP_TYPE_HASH, nullptr, sizeof(__u32), sizeof(__u32), 1, nullptr);
     REQUIRE(inner_map_fd > 0);
 
     // Add a value to the inner map.
@@ -1507,7 +1521,7 @@ _wrong_inner_map_types_test(ebpf_execution_type_t execution_type)
     REQUIRE(outer_map_fd > 0);
 
     // Create an inner map of the wrong type.
-    int inner_map_fd = bpf_create_map(BPF_MAP_TYPE_ARRAY, sizeof(__u32), sizeof(__u32), 1, 0);
+    int inner_map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, nullptr, sizeof(__u32), sizeof(__u32), 1, nullptr);
     REQUIRE(inner_map_fd > 0);
 
     // Try to add the array map to the outer map.
@@ -1519,7 +1533,7 @@ _wrong_inner_map_types_test(ebpf_execution_type_t execution_type)
     Platform::_close(inner_map_fd);
 
     // Try an inner map with wrong key_size.
-    inner_map_fd = bpf_create_map(BPF_MAP_TYPE_HASH, sizeof(__u64), sizeof(__u32), 1, 0);
+    inner_map_fd = bpf_map_create(BPF_MAP_TYPE_HASH, nullptr, sizeof(__u64), sizeof(__u32), 1, nullptr);
     REQUIRE(inner_map_fd > 0);
     error = bpf_map_update_elem(outer_map_fd, &outer_key, &inner_map_fd, 0);
     REQUIRE(error < 0);
@@ -1527,7 +1541,7 @@ _wrong_inner_map_types_test(ebpf_execution_type_t execution_type)
     Platform::_close(inner_map_fd);
 
     // Try an inner map of the wrong value size.
-    inner_map_fd = bpf_create_map(BPF_MAP_TYPE_HASH, sizeof(__u32), sizeof(__u64), 1, 0);
+    inner_map_fd = bpf_map_create(BPF_MAP_TYPE_HASH, nullptr, sizeof(__u32), sizeof(__u64), 1, nullptr);
     REQUIRE(inner_map_fd > 0);
     error = bpf_map_update_elem(outer_map_fd, &outer_key, &inner_map_fd, 0);
     REQUIRE(error < 0);
@@ -1535,7 +1549,7 @@ _wrong_inner_map_types_test(ebpf_execution_type_t execution_type)
     Platform::_close(inner_map_fd);
 
     // Try an inner map with wrong max_entries.
-    inner_map_fd = bpf_create_map(BPF_MAP_TYPE_HASH, sizeof(__u32), sizeof(__u32), 2, 0);
+    inner_map_fd = bpf_map_create(BPF_MAP_TYPE_HASH, nullptr, sizeof(__u32), sizeof(__u32), 2, nullptr);
     REQUIRE(inner_map_fd > 0);
     error = bpf_map_update_elem(outer_map_fd, &outer_key, &inner_map_fd, 0);
     REQUIRE(error < 0);
@@ -1584,10 +1598,10 @@ TEST_CASE("enumerate map IDs", "[libbpf]")
     REQUIRE(errno == ENOENT);
 
     // Create two maps.
-    int map1_fd = bpf_create_map(BPF_MAP_TYPE_ARRAY, sizeof(__u32), sizeof(__u32), 1, 0);
+    int map1_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, nullptr, sizeof(__u32), sizeof(__u32), 1, nullptr);
     REQUIRE(map1_fd > 0);
 
-    int map2_fd = bpf_create_map(BPF_MAP_TYPE_HASH, sizeof(__u32), sizeof(__u32), 1, 0);
+    int map2_fd = bpf_map_create(BPF_MAP_TYPE_HASH, nullptr, sizeof(__u32), sizeof(__u32), 1, nullptr);
     REQUIRE(map2_fd > 0);
 
     // Now enumerate the IDs.
@@ -2151,7 +2165,7 @@ TEST_CASE("BPF_PROG_BIND_MAP etc.", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
 
-    struct bpf_insn instructions[] = {
+    struct ebpf_inst instructions[] = {
         {0xb7, R0_RETURN_VALUE, 0}, // r0 = 0
         {INST_OP_EXIT},             // return r0
     };

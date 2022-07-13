@@ -23,9 +23,11 @@ bpf(int cmd, union bpf_attr* attr, unsigned int size)
     case BPF_LINK_GET_NEXT_ID:
         CHECK_SIZE(next_id);
         return bpf_link_get_next_id(attr->start_id, &attr->next_id);
-    case BPF_MAP_CREATE:
+    case BPF_MAP_CREATE: {
         CHECK_SIZE(map_flags);
-        return bpf_create_map(attr->map_type, attr->key_size, attr->value_size, attr->max_entries, attr->map_flags);
+        struct bpf_map_create_opts opts = {.map_flags = attr->map_flags};
+        return bpf_map_create(attr->map_type, nullptr, attr->key_size, attr->value_size, attr->max_entries, &opts);
+    }
     case BPF_MAP_DELETE_ELEM:
         CHECK_SIZE(key);
         return bpf_map_delete_elem(attr->map_fd, (const void*)attr->key);
@@ -68,16 +70,18 @@ bpf(int cmd, union bpf_attr* attr, unsigned int size)
     case BPF_PROG_GET_NEXT_ID:
         CHECK_SIZE(next_id);
         return bpf_prog_get_next_id(attr->start_id, &attr->next_id);
-    case BPF_PROG_LOAD:
+    case BPF_PROG_LOAD: {
         CHECK_SIZE(kern_version);
-        return bpf_load_program(
+        struct bpf_prog_load_opts opts = {
+            .kern_version = attr->kern_version, .log_size = attr->log_size, .log_buf = (char*)attr->log_buf};
+        return bpf_prog_load(
             attr->prog_type,
+            nullptr,
+            (const char*)attr->license,
             (const struct bpf_insn*)attr->insns,
             attr->insn_cnt,
-            (const char*)attr->license,
-            attr->kern_version,
-            (char*)attr->log_buf,
-            attr->log_size);
+            &opts);
+    }
     default:
         errno = EINVAL;
         return -1;

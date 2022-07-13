@@ -410,5 +410,6 @@ bpf_prog_load_deprecated(const char* file, enum bpf_prog_type type, struct bpf_o
 #else
 #pragma warning(push)
 #include "libbpf/src/bpf.h"
+#include "bpf_legacy.h"
 #pragma warning(pop)
 #endif

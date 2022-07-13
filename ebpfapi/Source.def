@@ -111,5 +111,6 @@ EXPORTS
     libbpf_get_error
     libbpf_num_possible_cpus
     libbpf_prog_type_by_name
+    libbpf_strerror
     ring_buffer__new
     ring_buffer__free
