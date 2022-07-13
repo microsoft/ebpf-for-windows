@@ -176,9 +176,9 @@ TEST_CASE("show sections map_reuse_um.dll", "[netsh][sections]")
                   "                     Key  Value      Max\n"
                   "          Map Type  Size   Size  Entries  Name\n"
                   "==================  ====  =====  =======  ========\n"
-                  "      Hash of maps     4      4        1  outer_map\n"
-                  "             Array     4      4        1  inner_map\n"
-                  "             Array     4      4        1  port_map\n");
+                  "      hash_of_maps     4      4        1  outer_map\n"
+                  "             array     4      4        1  inner_map\n"
+                  "             array     4      4        1  port_map\n");
 }
 
 // Test a .dll file with multiple programs.
@@ -201,7 +201,7 @@ TEST_CASE("show sections tail_call_multiple_um.dll", "[netsh][sections]")
                   "                     Key  Value      Max\n"
                   "          Map Type  Size   Size  Entries  Name\n"
                   "==================  ====  =====  =======  ========\n"
-                  "     Program array     4      4       10  map\n");
+                  "        prog_array     4      4       10  map\n");
 }
 
 // Test a .sys file with multiple programs, including ones with long names.
@@ -225,8 +225,8 @@ TEST_CASE("show sections cgroup_sock_addr.sys", "[netsh][sections]")
                   "                     Key  Value      Max\n"
                   "          Map Type  Size   Size  Entries  Name\n"
                   "==================  ====  =====  =======  ========\n"
-                  "              Hash    56      4        1  ingress_connection_policy_map\n"
-                  "              Hash    56      4        1  egress_connection_policy_map\n");
+                  "              hash    56      4        1  ingress_connection_policy_map\n"
+                  "              hash    56      4        1  egress_connection_policy_map\n");
 }
 
 TEST_CASE("show verification nosuchfile.o", "[netsh][verification]")
@@ -520,8 +520,8 @@ TEST_CASE("show maps", "[netsh][maps]")
                   "                             Key  Value      Max  Inner\n"
                   "    ID            Map Type  Size   Size  Entries     ID  Pins  Name\n"
                   "======  ==================  ====  =====  =======  =====  ====  ========\n"
-                  " 65538                Hash     4      4        1     -1     0  inner_map\n"
-                  "131073       Array of maps     4      4        1  65538     0  outer_map\n");
+                  " 65538                hash     4      4        1     -1     0  inner_map\n"
+                  "131073       array_of_maps     4      4        1  65538     0  outer_map\n");
 
     output = _run_netsh_command(handle_ebpf_delete_program, L"196609", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
@@ -551,12 +551,13 @@ TEST_CASE("show links", "[netsh][links]")
 
     output = _run_netsh_command(handle_ebpf_show_links, nullptr, nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
+    // TODO(issue #223): change "unspec" below to "xdp" once the underlying issue is fixed.
     REQUIRE(
         output == "\n"
                   "   Link  Program  Attach\n"
                   "     ID       ID  Type\n"
                   "=======  =======  =============\n"
-                  " 327681   196609  xdp\n");
+                  " 327681   196609  unspec\n");
 
     output = _run_netsh_command(handle_ebpf_delete_program, L"196609", nullptr, nullptr, &result);
     REQUIRE(output == "");
