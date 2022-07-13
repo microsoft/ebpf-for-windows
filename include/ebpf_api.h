@@ -404,20 +404,6 @@ extern "C"
         _Out_ ebpf_attach_type_t* expected_attach_type);
 
     /**
-     * @brief Get bpf program type and expected attach type by name.
-     *
-     * @param[in] name Name, as if it were a section name in an ELF file.
-     * @param[out] program_type Bpf program type.
-     * @param[out] expected_attach_type Expected bpf attach type.
-     *
-     * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_KEY_NOT_FOUND No program type was found.
-     */
-    ebpf_result_t
-    ebpf_get_bpf_program_type_by_name(
-        _In_z_ const char* name, _Out_ bpf_prog_type_t* program_type, _Out_ bpf_attach_type_t* expected_attach_type);
-
-    /**
      * @brief Gets the next pinned program after a given path.
      *
      * @param[in] start_path Path to look for an entry greater than.

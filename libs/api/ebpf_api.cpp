@@ -3203,21 +3203,6 @@ ebpf_get_program_type_by_name(
     EBPF_RETURN_RESULT(result);
 }
 
-ebpf_result_t
-ebpf_get_bpf_program_type_by_name(
-    _In_z_ const char* name, _Out_ bpf_prog_type_t* program_type, _Out_ bpf_attach_type_t* expected_attach_type)
-{
-    ebpf_result_t result = EBPF_SUCCESS;
-    EBPF_LOG_ENTRY();
-    ebpf_assert(name);
-    ebpf_assert(program_type);
-    ebpf_assert(expected_attach_type);
-
-    result = get_bpf_program_and_attach_type(name, program_type, expected_attach_type);
-
-    EBPF_RETURN_RESULT(result);
-}
-
 _Ret_maybenull_ const ebpf_program_type_t*
 ebpf_get_ebpf_program_type(bpf_prog_type_t bpf_program_type)
 {

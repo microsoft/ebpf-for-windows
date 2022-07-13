@@ -438,13 +438,35 @@ libbpf_prog_type_by_name(const char* name, enum bpf_prog_type* prog_type, enum b
         return libbpf_err(-EINVAL);
     }
 
-    ebpf_result_t result = ebpf_get_bpf_program_type_by_name(name, prog_type, expected_attach_type);
+    ebpf_program_type_t ebpf_program_type;
+    ebpf_attach_type_t ebpf_attach_type;
+    ebpf_result_t result = ebpf_get_program_type_by_name(name, &ebpf_program_type, &ebpf_attach_type);
     if (result != EBPF_SUCCESS) {
         ebpf_assert(result == EBPF_KEY_NOT_FOUND);
         errno = ESRCH;
         return -1;
     }
 
+    *prog_type = get_bpf_program_type(&ebpf_program_type);
+    *expected_attach_type = get_bpf_attach_type(&ebpf_attach_type);
+
+    return 0;
+}
+
+int
+libbpf_attach_type_by_name(const char* name, enum bpf_attach_type* attach_type)
+{
+    if (attach_type == nullptr) {
+        return libbpf_err(-EINVAL);
+    }
+
+    const ebpf_attach_type_t* ebpf_attach_type = get_attach_type_windows(name);
+    if (ebpf_attach_type == &EBPF_ATTACH_TYPE_UNSPECIFIED) {
+        errno = ESRCH;
+        return -1;
+    }
+
+    *attach_type = get_bpf_attach_type(ebpf_attach_type);
     return 0;
 }
 

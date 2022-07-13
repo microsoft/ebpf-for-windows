@@ -106,6 +106,7 @@ EXPORTS
     ebpf_program_attach
     ebpf_program_attach_by_fd
     ebpf_program_query_info
+    libbpf_attach_type_by_name
     libbpf_bpf_attach_type_str
     libbpf_bpf_prog_type_str
     libbpf_get_error
