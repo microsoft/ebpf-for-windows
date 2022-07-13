@@ -10,6 +10,7 @@
 #include <string>
 #include <vector>
 #include "bpf/bpf.h"
+#include "bpf/libbpf.h"
 #include "ebpf_api.h"
 #include "ebpf_windows.h"
 #include "platform.h"
@@ -47,7 +48,7 @@ handle_ebpf_show_links(
         struct bpf_link_info info;
         uint32_t info_size = (uint32_t)sizeof(info);
         if (bpf_obj_get_info_by_fd(link_fd, &info, &info_size) == 0) {
-            const char* attach_type_name = ebpf_get_attach_type_name(&info.attach_type_uuid);
+            const char* attach_type_name = libbpf_bpf_attach_type_str(info.attach_type);
 
             printf("%7u%9u  %s\n", info.id, info.prog_id, attach_type_name);
         }

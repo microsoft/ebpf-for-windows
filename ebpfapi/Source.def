@@ -96,10 +96,8 @@ EXPORTS
     ebpf_enumerate_sections
     ebpf_free_sections
     ebpf_free_string
-    ebpf_get_attach_type_name
     ebpf_get_next_pinned_program_path
     ebpf_get_program_type_by_name
-    ebpf_get_program_type_name
     ebpf_link_close
     ebpf_object_get
     ebpf_object_get_execution_type
@@ -108,6 +106,8 @@ EXPORTS
     ebpf_program_attach
     ebpf_program_attach_by_fd
     ebpf_program_query_info
+    libbpf_bpf_attach_type_str
+    libbpf_bpf_prog_type_str
     libbpf_get_error
     libbpf_num_possible_cpus
     libbpf_prog_type_by_name

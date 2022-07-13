@@ -304,7 +304,7 @@ struct bpf_link_info
     ebpf_id_t id;                          ///< Link ID.
     ebpf_id_t prog_id;                     ///< Program ID.
     enum bpf_link_type type;               ///< Link type.
-    int attach_type;                       ///< Attach type integer.
+    enum bpf_attach_type attach_type;      ///< Attach type.
     ebpf_attach_type_t attach_type_uuid;   ///< Attach type UUID.
     ebpf_program_type_t program_type_uuid; ///< Program type UUID.
     union
