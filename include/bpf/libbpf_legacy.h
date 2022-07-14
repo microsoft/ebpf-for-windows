@@ -24,8 +24,7 @@
  * @sa bpf_xdp_attach
  * @sa bpf_xdp_detach
  */
-int
-bpf_set_link_xdp_fd(int ifindex, int fd, __u32 flags);
+__declspec(deprecated("Use bpf_xdp_attach() instead.")) int bpf_set_link_xdp_fd(int ifindex, int fd, __u32 flags);
 
 /** @} */
 
@@ -46,8 +45,8 @@ bpf_set_link_xdp_fd(int ifindex, int fd, __u32 flags);
  *
  * @sa bpf_map__prev
  */
-struct bpf_map*
-bpf_map__next(const struct bpf_map* map, const struct bpf_object* obj);
+__declspec(deprecated("Use bpf_object__next_map() instead.")) struct bpf_map* bpf_map__next(
+    const struct bpf_map* map, const struct bpf_object* obj);
 
 /**
  * @brief Get the previous map for a given eBPF object.
@@ -61,8 +60,8 @@ bpf_map__next(const struct bpf_map* map, const struct bpf_object* obj);
  *
  * @sa bpf_map__next
  */
-struct bpf_map*
-bpf_map__prev(const struct bpf_map* map, const struct bpf_object* obj);
+__declspec(deprecated("Use bpf_object__prev_map() instead.")) struct bpf_map* bpf_map__prev(
+    const struct bpf_map* map, const struct bpf_object* obj);
 
 /** @} */
 
@@ -70,6 +69,13 @@ bpf_map__prev(const struct bpf_map* map, const struct bpf_object* obj);
  * @name Object-related functions
  * @{
  */
+
+struct bpf_object_load_attr
+{
+    struct bpf_object* obj;
+    int log_level;
+    const char* target_btf_path;
+};
 
 /**
  * @brief Load all the programs in a given object.
@@ -88,8 +94,7 @@ bpf_map__prev(const struct bpf_map* map, const struct bpf_object* obj);
  * @sa bpf_object__load_xattr
  * @sa bpf_prog_load
  */
-int
-bpf_object__load_xattr(struct bpf_object_load_attr* attr);
+__declspec(deprecated("Use bpf_object__load() instead.")) int bpf_object__load_xattr(struct bpf_object_load_attr* attr);
 
 /**
  * @brief Get the next eBPF object opened by the calling process.
@@ -121,8 +126,7 @@ bpf_object__next(struct bpf_object* prev);
  * @sa bpf_object__load_xattr
  * @sa bpf_prog_load
  */
-int
-bpf_object__unload(struct bpf_object* obj);
+__declspec(deprecated("Use bpf_object__close() instead.")) int bpf_object__unload(struct bpf_object* obj);
 
 /** @} */
 
@@ -172,8 +176,8 @@ bpf_prog_load_deprecated(const char* file, enum bpf_prog_type type, struct bpf_o
  *
  * @sa bpf_program__prev
  */
-struct bpf_program*
-bpf_program__next(struct bpf_program* prog, const struct bpf_object* obj);
+__declspec(deprecated("Use bpf_object__next_program() instead.")) struct bpf_program* bpf_program__next(
+    struct bpf_program* prog, const struct bpf_object* obj);
 
 /**
  * @brief Get the previous eBPF program for a given eBPF object.
@@ -187,8 +191,8 @@ bpf_program__next(struct bpf_program* prog, const struct bpf_object* obj);
  *
  * @sa bpf_program__next
  */
-struct bpf_program*
-bpf_program__prev(struct bpf_program* prog, const struct bpf_object* obj);
+__declspec(deprecated("Use bpf_object__prev_program() instead.")) struct bpf_program* bpf_program__prev(
+    struct bpf_program* prog, const struct bpf_object* obj);
 
 /**
  * @brief Get the eBPF program size in bytes.
@@ -199,7 +203,6 @@ bpf_program__prev(struct bpf_program* prog, const struct bpf_object* obj);
  *
  * @deprecated Use bpf_program__insn_cnt() instead.
  */
-size_t
-bpf_program__size(const struct bpf_program* prog);
+__declspec(deprecated("Use bpf_program__insn_cnt() instead.")) size_t bpf_program__size(const struct bpf_program* prog);
 
 /** @} */

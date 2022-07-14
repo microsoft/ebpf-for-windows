@@ -116,11 +116,8 @@ bpf_object__load_xattr(struct bpf_object_load_attr* attr)
 int
 bpf_object__load(struct bpf_object* object)
 {
-    struct bpf_object_load_attr attr = {
-        .obj = object,
-    };
-
-    return bpf_object__load_xattr(&attr);
+    ebpf_result_t result = ebpf_object_load(object);
+    return libbpf_result_err(result);
 }
 
 int

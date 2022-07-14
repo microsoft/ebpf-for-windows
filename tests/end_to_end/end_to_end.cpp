@@ -1730,10 +1730,11 @@ _map_reuse_test(ebpf_execution_type_t execution_type)
     const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_reuse_um.dll" : "map_reuse.o");
 
     // First create and pin the maps manually.
-    int inner_map_fd = bpf_create_map(BPF_MAP_TYPE_ARRAY, sizeof(__u32), sizeof(__u32), 1, 0);
+    int inner_map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, nullptr, sizeof(__u32), sizeof(__u32), 1, nullptr);
     REQUIRE(inner_map_fd > 0);
 
-    int outer_map_fd = bpf_create_map_in_map(BPF_MAP_TYPE_HASH_OF_MAPS, nullptr, sizeof(__u32), inner_map_fd, 1, 0);
+    bpf_map_create_opts opts = {.inner_map_fd = (uint32_t)inner_map_fd};
+    int outer_map_fd = bpf_map_create(BPF_MAP_TYPE_HASH_OF_MAPS, nullptr, sizeof(__u32), sizeof(fd_t), 1, &opts);
     REQUIRE(outer_map_fd > 0);
 
     // Verify we can insert the inner map into the outer map.
@@ -1751,7 +1752,7 @@ _map_reuse_test(ebpf_execution_type_t execution_type)
     REQUIRE(bpf_obj_get_info_by_fd(outer_map_fd, &info, &info_size) == 0);
     REQUIRE(info.name[0] == 0);
 
-    int port_map_fd = bpf_create_map(BPF_MAP_TYPE_ARRAY, sizeof(__u32), sizeof(__u32), 1, 0);
+    int port_map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, nullptr, sizeof(__u32), sizeof(__u32), 1, nullptr);
     REQUIRE(port_map_fd > 0);
 
     // Pin port map.
@@ -1808,16 +1809,17 @@ _wrong_map_reuse_test(ebpf_execution_type_t execution_type)
     const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_reuse_um.dll" : "map_reuse.o");
 
     // First create and pin the maps manually.
-    int inner_map_fd = bpf_create_map(BPF_MAP_TYPE_ARRAY, sizeof(__u32), sizeof(__u32), 1, 0);
+    int inner_map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, nullptr, sizeof(__u32), sizeof(__u32), 1, nullptr);
     REQUIRE(inner_map_fd > 0);
 
-    int outer_map_fd = bpf_create_map_in_map(BPF_MAP_TYPE_HASH_OF_MAPS, nullptr, sizeof(__u32), inner_map_fd, 1, 0);
+    bpf_map_create_opts opts = {.inner_map_fd = (uint32_t)inner_map_fd};
+    int outer_map_fd = bpf_map_create(BPF_MAP_TYPE_HASH_OF_MAPS, nullptr, sizeof(__u32), sizeof(fd_t), 1, &opts);
     REQUIRE(outer_map_fd > 0);
 
     // Pin the outer map and port map to the wrong paths so they won't match what is in the ebpf program.
     REQUIRE(bpf_obj_pin(outer_map_fd, "/ebpf/global/port_map") == 0);
 
-    int port_map_fd = bpf_create_map(BPF_MAP_TYPE_ARRAY, sizeof(__u32), sizeof(__u32), 1, 0);
+    int port_map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, nullptr, sizeof(__u32), sizeof(__u32), 1, nullptr);
     REQUIRE(port_map_fd > 0);
 
     // Pin port map.
@@ -1860,7 +1862,7 @@ _auto_pinned_maps_test(ebpf_execution_type_t execution_type)
     fd_t outer_map_fd = bpf_obj_get("/ebpf/global/outer_map");
     REQUIRE(outer_map_fd > 0);
 
-    int inner_map_fd = bpf_create_map(BPF_MAP_TYPE_ARRAY, sizeof(__u32), sizeof(__u32), 1, 0);
+    int inner_map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, nullptr, sizeof(__u32), sizeof(__u32), 1, nullptr);
     REQUIRE(inner_map_fd > 0);
 
     __u32 outer_key = 0;
@@ -1922,7 +1924,7 @@ TEST_CASE("auto_pinned_maps_custom_path", "[end_to_end]")
     fd_t outer_map_fd = bpf_obj_get("/custompath/global/outer_map");
     REQUIRE(outer_map_fd > 0);
 
-    int inner_map_fd = bpf_create_map(BPF_MAP_TYPE_ARRAY, sizeof(__u32), sizeof(__u32), 1, 0);
+    int inner_map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, nullptr, sizeof(__u32), sizeof(__u32), 1, nullptr);
     REQUIRE(inner_map_fd > 0);
 
     __u32 outer_key = 0;
@@ -1971,14 +1973,14 @@ _map_reuse_invalid_test(ebpf_execution_type_t execution_type)
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
     // Create and pin a map with a different map type than in ELF file.
-    int map_fd = bpf_create_map(BPF_MAP_TYPE_ARRAY, sizeof(__u32), sizeof(__u32), 1, 0);
+    int map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, nullptr, sizeof(__u32), sizeof(__u32), 1, nullptr);
     REQUIRE(map_fd > 0);
 
     // Pin the map.
     int error = bpf_obj_pin(map_fd, "/ebpf/global/outer_map");
     REQUIRE(error == 0);
 
-    int port_map_fd = bpf_create_map(BPF_MAP_TYPE_ARRAY, sizeof(__u32), sizeof(__u32), 1, 0);
+    int port_map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, nullptr, sizeof(__u32), sizeof(__u32), 1, nullptr);
     REQUIRE(port_map_fd > 0);
 
     // Pin port map.
@@ -2013,10 +2015,11 @@ _map_reuse_2_test(ebpf_execution_type_t execution_type)
     const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_reuse_2_um.dll" : "map_reuse_2.o");
 
     // First create and pin the maps manually.
-    int inner_map_fd = bpf_create_map(BPF_MAP_TYPE_ARRAY, sizeof(__u32), sizeof(__u32), 1, 0);
+    int inner_map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, nullptr, sizeof(__u32), sizeof(__u32), 1, nullptr);
     REQUIRE(inner_map_fd > 0);
 
-    int outer_map_fd = bpf_create_map_in_map(BPF_MAP_TYPE_HASH_OF_MAPS, nullptr, sizeof(__u32), inner_map_fd, 1, 0);
+    bpf_map_create_opts opts = {.inner_map_fd = (uint32_t)inner_map_fd};
+    int outer_map_fd = bpf_map_create(BPF_MAP_TYPE_HASH_OF_MAPS, nullptr, sizeof(__u32), sizeof(fd_t), 1, &opts);
     REQUIRE(outer_map_fd > 0);
 
     // Verify we can insert the inner map into the outer map.
@@ -2028,7 +2031,7 @@ _map_reuse_2_test(ebpf_execution_type_t execution_type)
     error = bpf_obj_pin(outer_map_fd, "/ebpf/global/outer_map");
     REQUIRE(error == 0);
 
-    int port_map_fd = bpf_create_map(BPF_MAP_TYPE_ARRAY, sizeof(__u32), sizeof(__u32), 1, 0);
+    int port_map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, nullptr, sizeof(__u32), sizeof(__u32), 1, nullptr);
     REQUIRE(outer_map_fd > 0);
 
     // Pin port map.
@@ -2081,10 +2084,11 @@ _map_reuse_3_test(ebpf_execution_type_t execution_type)
     program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
 
     // First create and pin the maps manually.
-    int inner_map_fd = bpf_create_map(BPF_MAP_TYPE_ARRAY, sizeof(__u32), sizeof(__u32), 1, 0);
+    int inner_map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, nullptr, sizeof(__u32), sizeof(__u32), 1, nullptr);
     REQUIRE(inner_map_fd > 0);
 
-    int outer_map_fd = bpf_create_map_in_map(BPF_MAP_TYPE_HASH_OF_MAPS, nullptr, sizeof(__u32), inner_map_fd, 1, 0);
+    bpf_map_create_opts opts = {.inner_map_fd = (uint32_t)inner_map_fd};
+    int outer_map_fd = bpf_map_create(BPF_MAP_TYPE_HASH_OF_MAPS, nullptr, sizeof(__u32), sizeof(fd_t), 1, &opts);
     REQUIRE(outer_map_fd > 0);
 
     // Verify we can insert the inner map into the outer map.
@@ -2100,7 +2104,7 @@ _map_reuse_3_test(ebpf_execution_type_t execution_type)
     error = bpf_obj_pin(inner_map_fd, "/ebpf/global/inner_map");
     REQUIRE(error == 0);
 
-    int port_map_fd = bpf_create_map(BPF_MAP_TYPE_ARRAY, sizeof(__u32), sizeof(__u32), 1, 0);
+    int port_map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, nullptr, sizeof(__u32), sizeof(__u32), 1, nullptr);
     REQUIRE(outer_map_fd > 0);
 
     // Pin port map.
