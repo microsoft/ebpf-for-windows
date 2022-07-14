@@ -130,6 +130,19 @@
       <Outputs>$(OutputPath)%(Filename).o</Outputs>
     </CustomBuild>
   </ItemGroup>
+  <!-- Build BPF programs that pass verification and build native images for them but require custom program type. -->
+  <ItemGroup Condition="'$(Analysis)'==''">
+    <CustomBuild Include="custom_program_type\*.c">
+      <FileType>CppCode</FileType>
+      <Command>
+        clang $(ClangFlags) -I../xdp -I../socket -I./ext/inc -c custom_program_type\%(Filename).c -o $(OutputPath)%(Filename).o
+        pushd $(SolutionDir)\scripts
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\build_custom_sample_programs.ps1 -FileName %(Filename) -FilePath $(OutDir) -IncludePath $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration)
+        popd
+      </Command>
+      <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
+    </CustomBuild>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

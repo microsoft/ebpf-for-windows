@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 param([parameter(Mandatory = $true)] [string] $ProgramName,
+    [parameter(Mandatory = $false)] [string] $Type,
     [parameter(Mandatory = $false)] [string] $IncludeDir = "$PSScriptRoot\..\include",
     [parameter(Mandatory = $false)] [string] $BinDir = "$PSScriptRoot",
     [parameter(Mandatory = $false)] [string] $OutDir = "$PWD",
@@ -46,6 +47,10 @@ else {
 }
 
 $AdditionalOptions = If ($SkipVerification) {"--no-verify"} Else {""}
+
+if ($PSBoundParameters.ContainsKey("Type")) {
+    $AdditionalOptions += " --type $Type"
+}
 
 msbuild /p:BinDir="$BinDir\" /p:OutDir="$PWD\" /p:IncludeDir="$IncludeDir" /p:Configuration="$Configuration" /p:Platform="$Platform" /p:ProgramName="$ProgramName" /p:AdditionalOptions="$AdditionalOptions" $ProjectFile
 
