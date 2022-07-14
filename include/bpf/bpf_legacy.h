@@ -8,6 +8,11 @@
 #define __LIBBPF_MARK_DEPRECATED_0_7(X)
 #endif
 
+/**
+ * @name Map-related functions
+ * @{
+ */
+
 struct bpf_create_map_attr
 {
     const char* name;
@@ -28,16 +33,78 @@ struct bpf_create_map_attr
     };
 };
 
+/**
+ * @brief Create a new map.
+ *
+ * @param[in] map_type Type of map to create.
+ * @param[in] key_size Size in bytes of keys.
+ * @param[in] value_size Size in bytes of values.
+ * @param[in] max_entries Maximum number of entries in the map.
+ * @param[in] map_flags Flags (currently 0).
+ *
+ * @returns A new file descriptor that refers to the map.
+ * The caller should call _close() on the fd to close this when done.
+ * A negative value indicates an error occurred and errno was set.
+ *
+ * @exception EINVAL An invalid argument was provided.
+ * @exception ENOMEM Out of memory.
+ */
 LIBBPF_DEPRECATED_SINCE(0, 7, "use bpf_map_create() instead")
 LIBBPF_API int
 bpf_create_map(enum bpf_map_type map_type, int key_size, int value_size, int max_entries, __u32 map_flags);
+
+/**
+ * @brief Create a new map-in-map.
+ *
+ * @param[in] map_type Type of outer map to create.
+ * @param[in] name Optionally, the name to use for the map.
+ * @param[in] key_size Size in bytes of keys.
+ * @param[in] inner_map_fd File descriptor of the inner map template.
+ * @param[in] max_entries Maximum number of entries in the map.
+ * @param[in] map_flags Flags (currently 0).
+ *
+ * @returns A new file descriptor that refers to the map.
+ * The caller should call _close() on the fd to close this when done.
+ * A negative value indicates an error occurred and errno was set.
+ *
+ * @exception EBADF The file descriptor was not found.
+ * @exception EINVAL An invalid argument was provided.
+ * @exception ENOMEM Out of memory.
+ */
 LIBBPF_DEPRECATED_SINCE(0, 7, "use bpf_map_create() instead")
 LIBBPF_API int
 bpf_create_map_in_map(
     enum bpf_map_type map_type, const char* name, int key_size, int inner_map_fd, int max_entries, __u32 map_flags);
+
+/**
+ * @brief Create a new map.
+ *
+ * @param[in] create_attr Structure of attributes using which a map gets created.
+ *
+ * @returns A new file descriptor that refers to the map.
+ * The caller should call _close() on the fd to close this when done.
+ * A negative value indicates an error occurred and errno was set.
+ *
+ * @exception EINVAL An invalid argument was provided.
+ * @exception ENOMEM Out of memory.
+ */
 LIBBPF_DEPRECATED_SINCE(0, 7, "use bpf_map_create() instead")
 LIBBPF_API int
 bpf_create_map_xattr(const struct bpf_create_map_attr* create_attr);
+
+/** @} */
+
+struct bpf_object_load_attr
+{
+    struct bpf_object* obj;
+    int log_level;
+    const char* target_btf_path;
+};
+
+/**
+ * @name Program-related functions
+ * @{
+ */
 
 struct bpf_load_program_attr
 {
@@ -67,9 +134,31 @@ struct bpf_load_program_attr
     __u32 log_level;
     __u32 prog_flags;
 };
-LIBBPF_DEPRECATED_SINCE(0, 7, "use bpf_prog_load() instead")
-LIBBPF_API int
-bpf_load_program_xattr(const struct bpf_load_program_attr* load_attr, char* log_buf, size_t log_buf_sz);
+
+/*
+ * @brief Load (but do not attach) an eBPF program from eBPF instructions
+ * supplied by the caller.
+ *
+ * @param[in] type Program type to use.
+ * @param[in] insns Array of eBPF instructions.
+ * @param[in] insns_cnt Number of eBPF instructions in the array.
+ * @param[in] license License.
+ * @param[in] kern_version Kernel version.
+ * @param[out] log_buf Buffer in which to write any log messages.
+ * @param[in] log_buf_size Size in bytes of the log buffer.
+ *
+ * @returns File descriptor that refers to the program, or <0 on error.
+ * The caller should call _close() on the fd to close this when done.
+ *
+ * @deprecated Use bpf_prog_load() instead.
+ *
+ * @exception EACCES The program failed verification.
+ * @exception EINVAL One or more parameters are incorrect.
+ * @exception ENOMEM Out of memory.
+ *
+ * @sa bpf_prog_load
+ * @sa bpf_load_program_xattr
+ */
 LIBBPF_DEPRECATED_SINCE(0, 7, "use bpf_prog_load() instead")
 LIBBPF_API int
 bpf_load_program(
@@ -81,9 +170,28 @@ bpf_load_program(
     char* log_buf,
     size_t log_buf_sz);
 
-struct bpf_object_load_attr
-{
-    struct bpf_object* obj;
-    int log_level;
-    const char* target_btf_path;
-};
+/*
+ * @brief Load (but do not attach) an eBPF program from eBPF instructions
+ * supplied by the caller.
+ *
+ * @param[in] load_attr Parameters to use to load the eBPF program.
+ * @param[out] log_buf Buffer in which to write any log messages.
+ * @param[in] log_buf_size Size in bytes of the log buffer.
+ *
+ * @returns File descriptor that refers to the program, or <0 on error.
+ * The caller should call _close() on the fd to close this when done.
+ *
+ * @exception EACCES The program failed verification.
+ * @exception EINVAL One or more parameters are incorrect.
+ * @exception ENOMEM Out of memory.
+ *
+ * @deprecated Use bpf_prog_load() instead.
+ *
+ * @sa bpf_prog_load
+ * @sa bpf_load_program
+ */
+LIBBPF_DEPRECATED_SINCE(0, 7, "use bpf_prog_load() instead")
+LIBBPF_API int
+bpf_load_program_xattr(const struct bpf_load_program_attr* load_attr, char* log_buf, size_t log_buf_sz);
+
+/** @} */
