@@ -250,8 +250,9 @@ function Import-ResultsFromVM
             New-Item -ItemType Directory -Path ".\TestLogs\$VMName\Logs"
         }
 
-        Write-Log ("Copy $LogFileName from eBPF on $VMName to $pwd\TestLogs")
-        Copy-Item -FromSession $VMSession "$VMSystemDrive\eBPF\$LogFileName" -Destination ".\TestLogs\$VMName\Logs" -Recurse -Force -ErrorAction Ignore 2>&1 | Write-Log
+        $VMTemp = Invoke-Command -Session $VMSession -ScriptBlock {return $Env:TEMP}
+        Write-Log ("Copy $LogFileName from $VMTemp on $VMName to $pwd\TestLogs")
+        Copy-Item -FromSession $VMSession "$VMTemp\$LogFileName" -Destination ".\TestLogs\$VMName\Logs" -Recurse -Force -ErrorAction Ignore 2>&1 | Write-Log
 
         Write-Log ("Copy CodeCoverage from eBPF on $VMName to $pwd\..\..")
         Copy-Item -FromSession $VMSession "$VMSystemDrive\eBPF\ebpf_for_windows.xml" -Destination "$pwd\..\.." -Recurse -Force -ErrorAction Ignore 2>&1 | Write-Log
