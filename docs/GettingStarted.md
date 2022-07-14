@@ -263,7 +263,7 @@ eBPF for Windows uses ETW for tracing.  A trace can be captured in a file, or vi
 
 ### Capturing traces
 To capture a trace in a file use the following commands:
-1) Start tracing: ```wpr.exe -start ebpfforwindows.wprp -filemode```. This will capture traces from eBPF execution context and the network eBPF extension drivers.
+1) Start tracing: ```wpr.exe -start %ProgramFiles%\ebpf-for-windows\ebpfforwindows.wprp -filemode```. This will capture traces from eBPF execution context and the network eBPF extension drivers.  (The path `%ProgramFiles%\ebpf-for-windows` assumes you installed eBPF for Windows via the MSI file. If you installed it via some other method, [ebpfforwindows.wprp](../scripts/ebpfforwindows.wprp) may be in some other location.)
 2) Run the scenario to be traced.
 3) Stop tracing: ```wpr.exe -stop ebpfforwindows.etl```
 4) Convert the traces to text format: ```netsh trace convert ebpfforwindows.etl overwrite=yes``` , or
