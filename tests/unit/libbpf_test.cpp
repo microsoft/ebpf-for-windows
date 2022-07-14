@@ -40,7 +40,10 @@ TEST_CASE("empty bpf_load_program", "[libbpf][deprecated]")
     _test_helper_libbpf test_helper;
 
     // An empty set of instructions is invalid.
+#pragma warning(push)
+#pragma warning(disable : 4996) // deprecated
     int program_fd = bpf_load_program(BPF_PROG_TYPE_XDP, nullptr, 0, nullptr, 0, nullptr, 0);
+#pragma warning(pop)
     REQUIRE(program_fd < 0);
     REQUIRE(errno == EINVAL);
 }
@@ -76,6 +79,8 @@ TEST_CASE("invalid bpf_load_program", "[libbpf][deprecated]")
 
     // Try to load and verify the eBPF program.
     char log_buffer[1024];
+#pragma warning(push)
+#pragma warning(disable : 4996) // deprecated
     int program_fd = bpf_load_program(
         BPF_PROG_TYPE_XDP,
         (struct bpf_insn*)instructions,
@@ -84,6 +89,7 @@ TEST_CASE("invalid bpf_load_program", "[libbpf][deprecated]")
         0,
         log_buffer,
         sizeof(log_buffer));
+#pragma warning(pop)
     REQUIRE(program_fd < 0);
     REQUIRE(errno == EACCES);
     REQUIRE(strcmp(log_buffer, "\n0:  (r0.type == number)\n\n") == 0);
@@ -119,8 +125,11 @@ TEST_CASE("invalid bpf_load_program - wrong type", "[libbpf][deprecated]")
     };
 
     // Load and verify the eBPF program.
+#pragma warning(push)
+#pragma warning(disable : 4996) // deprecated
     int program_fd = bpf_load_program(
         (bpf_prog_type)-1, (struct bpf_insn*)instructions, _countof(instructions), nullptr, 0, nullptr, 0);
+#pragma warning(pop)
     REQUIRE(program_fd < 0);
     REQUIRE(errno == EINVAL);
 }
@@ -153,8 +162,11 @@ TEST_CASE("valid bpf_load_program", "[libbpf][deprecated]")
     };
 
     // Load and verify the eBPF program.
+#pragma warning(push)
+#pragma warning(disable : 4996) // deprecated
     int program_fd = bpf_load_program(
         BPF_PROG_TYPE_XDP, (struct bpf_insn*)instructions, _countof(instructions), nullptr, 0, nullptr, 0);
+#pragma warning(pop)
     REQUIRE(program_fd >= 0);
 
     // Now query the program info and verify it matches what we set.
@@ -197,7 +209,7 @@ TEST_CASE("valid bpf_prog_load", "[libbpf]")
     Platform::_close(program_fd);
 }
 
-TEST_CASE("valid bpf_load_program_xattr", "[libbpf]")
+TEST_CASE("valid bpf_load_program_xattr", "[libbpf][deprecated]")
 {
     _test_helper_libbpf test_helper;
 
@@ -208,12 +220,15 @@ TEST_CASE("valid bpf_load_program_xattr", "[libbpf]")
     };
 
     // Load and verify the eBPF program.
+#pragma warning(push)
+#pragma warning(disable : 4996) // deprecated
     struct bpf_load_program_attr attr = {
         .prog_type = BPF_PROG_TYPE_XDP,
         .name = "name",
         .insns = (struct bpf_insn*)instructions,
         .insns_cnt = _countof(instructions)};
     int program_fd = bpf_load_program_xattr(&attr, nullptr, 0);
+#pragma warning(pop)
     REQUIRE(program_fd >= 0);
 
     // Now query the program info and verify it matches what we set.
@@ -288,8 +303,11 @@ TEST_CASE("valid bpf_load_program with map", "[libbpf][deprecated]")
     };
 
     // Load and verify the eBPF program.
+#pragma warning(push)
+#pragma warning(disable : 4996) // deprecated
     int program_fd = bpf_load_program(
         BPF_PROG_TYPE_XDP, (struct bpf_insn*)instructions, _countof(instructions), nullptr, 0, nullptr, 0);
+#pragma warning(pop)
     REQUIRE(program_fd >= 0);
 
     // Now query the program info and verify it matches what we set.
@@ -337,13 +355,16 @@ TEST_CASE("libbpf program", "[libbpf]")
     size_t size = bpf_program__insn_cnt(program);
     REQUIRE(size == 47);
 
+#pragma warning(push)
+#pragma warning(disable : 4996)
     size = bpf_program__size(program);
+#pragma warning(pop)
     REQUIRE(size == 376);
 
-    REQUIRE(bpf_program__next(program, object) == nullptr);
-    REQUIRE(bpf_program__prev(program, object) == nullptr);
-    REQUIRE(bpf_program__next(nullptr, object) == program);
-    REQUIRE(bpf_program__prev(nullptr, object) == program);
+    REQUIRE(bpf_object__next_program(object, program) == nullptr);
+    REQUIRE(bpf_object__prev_program(object, program) == nullptr);
+    REQUIRE(bpf_object__next_program(object, nullptr) == program);
+    REQUIRE(bpf_object__prev_program(object, nullptr) == program);
 
     bpf_object__close(object);
 }
@@ -468,7 +489,7 @@ test_xdp_ifindex(uint32_t ifindex, int program_fd[2], bpf_prog_info program_info
     REQUIRE(program_id == program_info[0].id);
 
     // Replace it with the second program.
-    REQUIRE(bpf_set_link_xdp_fd(ifindex, program_fd[1], XDP_FLAGS_REPLACE) == 0);
+    REQUIRE(bpf_xdp_attach(ifindex, program_fd[1], XDP_FLAGS_REPLACE, nullptr) == 0);
     REQUIRE(bpf_xdp_query_id(ifindex, 0, &program_id) == 0);
     REQUIRE(program_id == program_info[1].id);
 
@@ -520,20 +541,20 @@ TEST_CASE("libbpf map", "[libbpf]")
     REQUIRE(object != nullptr);
 
     // Get the first map.
-    struct bpf_map* map = bpf_map__next(nullptr, object);
+    struct bpf_map* map = bpf_object__next_map(object, nullptr);
     REQUIRE(map != nullptr);
 
     // Verify that there are no maps before this.
-    REQUIRE(bpf_map__prev(map, object) == nullptr);
+    REQUIRE(bpf_object__prev_map(object, map) == nullptr);
 
     // Get the next map.
-    struct bpf_map* map2 = bpf_map__next(map, object);
+    struct bpf_map* map2 = bpf_object__next_map(object, map);
     REQUIRE(map2 != nullptr);
-    REQUIRE(bpf_map__prev(map2, object) == map);
+    REQUIRE(bpf_object__prev_map(object, map2) == map);
 
     // Verify that there are no other maps after this.
-    REQUIRE(bpf_map__next(map2, object) == nullptr);
-    REQUIRE(bpf_map__prev(nullptr, object) == map2);
+    REQUIRE(bpf_object__next_map(object, map2) == nullptr);
+    REQUIRE(bpf_object__prev_map(object, nullptr) == map2);
 
     const char* name = bpf_map__name(map);
     REQUIRE(strcmp(name, "dropped_packet_map") == 0);
@@ -804,7 +825,7 @@ TEST_CASE("libbpf map binding", "[libbpf]")
     int result = bpf_prog_load_deprecated("droppacket.o", BPF_PROG_TYPE_XDP, &object, &program_fd);
     REQUIRE(result == 0);
     REQUIRE(object != nullptr);
-    struct bpf_program* program = bpf_program__next(nullptr, object);
+    struct bpf_program* program = bpf_object__next_program(object, nullptr);
     REQUIRE(program != nullptr);
 
     // Create a map.
@@ -860,7 +881,7 @@ TEST_CASE("libbpf map pinning", "[libbpf]")
     REQUIRE(result == 0);
     REQUIRE(object != nullptr);
 
-    struct bpf_map* map = bpf_map__next(nullptr, object);
+    struct bpf_map* map = bpf_object__next_map(object, nullptr);
     REQUIRE(map != nullptr);
 
     REQUIRE(bpf_map__is_pinned(map) == false);
@@ -959,7 +980,7 @@ TEST_CASE("libbpf obj pinning", "[libbpf]")
     REQUIRE(result == 0);
     REQUIRE(object != nullptr);
 
-    struct bpf_map* map = bpf_map__next(nullptr, object);
+    struct bpf_map* map = bpf_object__next_map(object, nullptr);
     REQUIRE(map != nullptr);
 
     int map_fd = bpf_map__fd(map);
@@ -1005,9 +1026,9 @@ _ebpf_test_tail_call(_In_z_ const char* filename, int expected_result)
     struct bpf_program* callee = bpf_object__find_program_by_name(object, "callee");
     REQUIRE(callee != nullptr);
 
-    struct bpf_map* map = bpf_map__next(nullptr, object);
+    struct bpf_map* map = bpf_object__next_map(object, nullptr);
     REQUIRE(map != nullptr);
-    struct bpf_map* canary_map = bpf_map__next(map, object);
+    struct bpf_map* canary_map = bpf_object__next_map(object, map);
     REQUIRE(canary_map != nullptr);
 
     int callee_fd = bpf_program__fd(callee);
@@ -1115,7 +1136,7 @@ _multiple_tail_calls_test(ebpf_execution_type_t execution_type)
     struct bpf_program* callee1 = bpf_object__find_program_by_name(object, "callee1");
     REQUIRE(callee1 != nullptr);
 
-    struct bpf_map* map = bpf_map__next(nullptr, object);
+    struct bpf_map* map = bpf_object__next_map(object, nullptr);
     REQUIRE(map != nullptr);
 
     int callee0_fd = bpf_program__fd(callee0);
@@ -1197,7 +1218,7 @@ _test_bind_fd_to_prog_array(ebpf_execution_type_t execution_type)
     REQUIRE(error == 0);
     REQUIRE(xdp_object != nullptr);
 
-    struct bpf_map* map = bpf_map__next(nullptr, xdp_object);
+    struct bpf_map* map = bpf_object__next_map(xdp_object, nullptr);
     REQUIRE(map != nullptr);
 
     // Load a program of any other type.
@@ -1334,11 +1355,13 @@ _ebpf_test_map_in_map(ebpf_map_type_t type)
     REQUIRE(bpf_map_create(type, nullptr, sizeof(__u32), sizeof(__u32), 2, nullptr) < 0);
     REQUIRE(errno == EBADF);
 
-    REQUIRE(bpf_create_map_in_map(type, nullptr, sizeof(__u32), ebpf_fd_invalid, 2, 0) < 0);
+    bpf_map_create_opts opts = {.inner_map_fd = (uint32_t)ebpf_fd_invalid};
+    REQUIRE(bpf_map_create(type, nullptr, sizeof(__u32), sizeof(fd_t), 2, &opts) < 0);
     REQUIRE(errno == EBADF);
 
     // Verify we can create an outer map with a template.
-    int outer_map_fd = bpf_create_map_in_map(type, nullptr, sizeof(__u32), inner_map_fd, 2, 0);
+    opts.inner_map_fd = inner_map_fd;
+    int outer_map_fd = bpf_map_create(type, nullptr, sizeof(__u32), sizeof(fd_t), 2, &opts);
     REQUIRE(outer_map_fd > 0);
 
     // Verify we can insert the inner map into the outer map.
@@ -1570,13 +1593,7 @@ TEST_CASE("create map with name", "[libbpf]")
 
     // Create a map with a given name.
     PCSTR name = "mymapname";
-    bpf_create_map_attr attr = {0};
-    attr.map_type = BPF_MAP_TYPE_ARRAY;
-    attr.key_size = sizeof(__u32);
-    attr.value_size = sizeof(__u32);
-    attr.max_entries = 1;
-    attr.name = name;
-    int map_fd = bpf_create_map_xattr(&attr);
+    int map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, name, sizeof(__u32), sizeof(__u32), 1, nullptr);
     REQUIRE(map_fd > 0);
 
     // Make sure the name matches what we set.
@@ -1871,7 +1888,7 @@ TEST_CASE("bpf_obj_get_info_by_fd", "[libbpf]")
     struct bpf_object* object = xdp_helper.get_object();
     REQUIRE(object != nullptr);
 
-    struct bpf_program* program = bpf_program__next(nullptr, object);
+    struct bpf_program* program = bpf_object__next_program(object, nullptr);
     REQUIRE(program != nullptr);
 
     const char* program_name = bpf_program__name(program);
@@ -1880,7 +1897,7 @@ TEST_CASE("bpf_obj_get_info_by_fd", "[libbpf]")
     int program_fd = bpf_program__fd(program);
     REQUIRE(program_fd > 0);
 
-    struct bpf_map* map = bpf_map__next(nullptr, object);
+    struct bpf_map* map = bpf_object__next_map(object, nullptr);
     REQUIRE(map != nullptr);
 
     const char* map_name = bpf_map__name(map);

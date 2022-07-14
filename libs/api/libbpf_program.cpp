@@ -50,18 +50,12 @@ bpf_load_program(
     char* log_buf,
     size_t log_buf_sz)
 {
-    struct bpf_load_program_attr load_attr;
-
-    memset(&load_attr, 0, sizeof(struct bpf_load_program_attr));
-    load_attr.prog_type = type;
-    load_attr.expected_attach_type = BPF_ATTACH_TYPE_UNSPEC;
-    load_attr.name = NULL;
-    load_attr.insns = insns;
-    load_attr.insns_cnt = insns_cnt;
-    load_attr.license = license;
-    load_attr.kern_version = kern_version;
-
-    return bpf_load_program_xattr(&load_attr, log_buf, log_buf_sz);
+    if (log_buf_sz > UINT32_MAX) {
+        return libbpf_err(-EINVAL);
+    }
+    struct bpf_prog_load_opts opts = {
+        .kern_version = kern_version, .log_size = (uint32_t)log_buf_sz, .log_buf = log_buf};
+    return bpf_prog_load(type, NULL, license, insns, insns_cnt, &opts);
 }
 
 int
@@ -342,7 +336,7 @@ bpf_object__pin_programs(struct bpf_object* obj, const char* path)
     return 0;
 
 err_unpin_programs:
-    while ((prog = bpf_program__prev(prog, obj)) != NULL) {
+    while ((prog = bpf_object__prev_program(obj, prog)) != NULL) {
         char buf[PATH_MAX];
         int len;
 

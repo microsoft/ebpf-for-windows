@@ -141,7 +141,7 @@ bpf_object__pin_maps(struct bpf_object* obj, const char* path)
     return 0;
 
 err_unpin_maps:
-    while ((map = bpf_map__prev(map, obj)) != NULL) {
+    while ((map = bpf_object__prev_map(obj, map)) != NULL) {
         bpf_map__unpin(map, NULL);
     }
     return libbpf_err(err);
