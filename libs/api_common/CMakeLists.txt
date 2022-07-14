@@ -35,6 +35,7 @@ target_include_directories("api_common" PRIVATE
   "${CMAKE_SOURCE_DIR}/libs/execution_context"
   "${CMAKE_SOURCE_DIR}/external/ubpf/vm"
   "${CMAKE_SOURCE_DIR}/external/ubpf/vm/inc"
+  "${CMAKE_BINARY_DIR}/external/ubpf/vm"
   "${CMAKE_SOURCE_DIR}/tests/sample/ext/inc"
   "${CMAKE_SOURCE_DIR}/libs/thunk"
 )

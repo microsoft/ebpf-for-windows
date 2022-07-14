@@ -26,6 +26,7 @@ target_include_directories("ebpfsvc" PRIVATE
   "${CMAKE_SOURCE_DIR}/libs/platform/user"
   "${CMAKE_SOURCE_DIR}/external/ubpf/vm"
   "${CMAKE_SOURCE_DIR}/external/ubpf/vm/inc"
+  "${CMAKE_BINARY_DIR}/external/ubpf/vm"
   "${CMAKE_CURRENT_SOURCE_DIR}"
 )
 

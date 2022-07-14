@@ -28,6 +28,7 @@ add_library("ubpf_user" STATIC
 target_include_directories("ubpf_user" PRIVATE
   ${ubpf_include_dirs}
   "${CMAKE_SOURCE_DIR}/libs/platform/user"
+  "${CMAKE_BINARY_DIR}/external/ubpf/vm"
 )
 
 target_link_libraries("ubpf_user" PRIVATE
@@ -61,6 +62,7 @@ target_compile_options("ubpf_kernel" PRIVATE
 target_include_directories("ubpf_kernel" PRIVATE
   ${ubpf_include_dirs}
   "${CMAKE_SOURCE_DIR}/libs/platform/kernel"
+  "${CMAKE_BINARY_DIR}/external/ubpf/vm"
 )
 
 target_compile_definitions("ubpf_kernel" PRIVATE

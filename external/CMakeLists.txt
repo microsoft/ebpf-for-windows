@@ -3,6 +3,7 @@
 
 add_subdirectory("ebpf-verifier" EXCLUDE_FROM_ALL)
 add_subdirectory("Catch2" EXCLUDE_FROM_ALL)
+add_subdirectory("ubpf" EXCLUDE_FROM_ALL)
 
 # Special target that we can link to external dependencies
 # to override build settings
