@@ -1203,6 +1203,13 @@ _test_bind_fd_to_prog_array(ebpf_execution_type_t execution_type)
     int map_fd = bpf_map__fd(map);
     REQUIRE(map_fd >= 0);
 
+    bpf_prog_info program_info;
+    uint32_t program_info_size = sizeof(program_info);
+    REQUIRE(bpf_obj_get_info_by_fd(callee_fd, &program_info, &program_info_size) == 0);
+    REQUIRE(program_info_size == sizeof(program_info));
+    REQUIRE(strcmp(program_info.name, "BindMonitor") == 0);
+    REQUIRE(program_info.type == BPF_PROG_TYPE_BIND);
+
     // Verify that we cannot add a BIND program fd to a prog_array map already
     // associated with an XDP program.
     int index = 0;
@@ -1883,6 +1890,7 @@ TEST_CASE("bpf_obj_get_info_by_fd", "[libbpf]")
     REQUIRE(program_info_size == sizeof(program_info));
     REQUIRE(strcmp(program_info.name, program_name) == 0);
     REQUIRE(program_info.nr_map_ids == 2);
+    REQUIRE(program_info.type == BPF_PROG_TYPE_XDP);
 
     // Fetch info about the attachment and verify it matches what we'd expect.
     uint32_t link_id;
@@ -1896,6 +1904,7 @@ TEST_CASE("bpf_obj_get_info_by_fd", "[libbpf]")
     REQUIRE(link_info_size == sizeof(link_info));
 
     REQUIRE(link_info.prog_id == program_info.id);
+    REQUIRE(link_info.attach_type == BPF_XDP);
 
     // Verify we can detach using this link fd.
     // This is the flow used by bpftool to detach a link.

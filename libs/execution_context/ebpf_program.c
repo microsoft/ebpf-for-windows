@@ -242,17 +242,10 @@ _ebpf_program_get_program_type(_In_ const ebpf_core_object_t* object)
 static const bpf_prog_type_t
 _ebpf_program_get_bpf_prog_type(_In_ const ebpf_program_t* program)
 {
-    // TODO(issue #223)
     bpf_prog_type_t prog_type = BPF_PROG_TYPE_UNSPEC;
     if (program->program_info_binding_context != NULL) {
-        const ebpf_program_type_t* prog_type_uuid = ebpf_program_type_uuid(program);
-        if (memcmp(prog_type_uuid, &EBPF_PROGRAM_TYPE_XDP, sizeof(*prog_type_uuid)) == 0) {
-            prog_type = BPF_PROG_TYPE_XDP;
-        } else if (memcmp(prog_type_uuid, &EBPF_PROGRAM_TYPE_BIND, sizeof(*prog_type_uuid)) == 0) {
-            prog_type = BPF_PROG_TYPE_BIND;
-        } else if (memcmp(prog_type_uuid, &EBPF_PROGRAM_TYPE_SAMPLE, sizeof(*prog_type_uuid)) == 0) {
-            prog_type = BPF_PROG_TYPE_SAMPLE;
-        }
+        ebpf_program_data_t* program_data = (ebpf_program_data_t*)program->program_info_provider_data->data;
+        prog_type = program_data->program_info->program_type_descriptor.bpf_prog_type;
     }
 
     return prog_type;
