@@ -1074,6 +1074,7 @@ extern "C"
         _In_reads_(helper_info_count) ebpf_helper_function_prototype_t* helper_info, uint32_t helper_info_count);
 
 #define EBPF_TRACELOG_EVENT_SUCCESS "EbpfSuccess"
+#define EBPF_TRACELOG_EVENT_RETURN "EbpfReturn"
 #define EBPF_TRACELOG_EVENT_GENERIC_ERROR "EbpfGenericError"
 #define EBPF_TRACELOG_EVENT_GENERIC_MESSAGE "EbpfGenericMessage"
 #define EBPF_TRACELOG_EVENT_API_ERROR "EbpfApiError"
@@ -1154,37 +1155,43 @@ extern "C"
         return local_result;                       \
     } while (false);
 
-#define EBPF_RETURN_POINTER(type, pointer)           \
-    do {                                             \
-        type local_result = (type)(pointer);         \
-        if (local_result != NULL) {                  \
-            EBPF_LOG_FUNCTION_SUCCESS();             \
-        } else {                                     \
-            EBPF_LOG_FUNCTION_ERROR(EBPF_NO_MEMORY); \
-        }                                            \
-        return local_result;                         \
+#define EBPF_RETURN_POINTER(type, pointer)                   \
+    do {                                                     \
+        type local_result = (type)(pointer);                 \
+        TraceLoggingWrite(                                   \
+            ebpf_tracelog_provider,                          \
+            EBPF_TRACELOG_EVENT_RETURN,                      \
+            TraceLoggingLevel(WINEVENT_LEVEL_VERBOSE),       \
+            TraceLoggingKeyword(EBPF_TRACELOG_KEYWORD_BASE), \
+            TraceLoggingString(__FUNCTION__ "returned"),     \
+            TraceLoggingPointer(local_result, #pointer));    \
+        return local_result;                                 \
     } while (false);
 
-#define EBPF_RETURN_BOOL(flag)                    \
-    do {                                          \
-        bool local_result = (flag);               \
-        if (local_result) {                       \
-            EBPF_LOG_FUNCTION_SUCCESS();          \
-        } else {                                  \
-            EBPF_LOG_FUNCTION_ERROR(EBPF_FAILED); \
-        }                                         \
-        return local_result;                      \
+#define EBPF_RETURN_BOOL(flag)                               \
+    do {                                                     \
+        bool local_result = (flag);                          \
+        TraceLoggingWrite(                                   \
+            ebpf_tracelog_provider,                          \
+            EBPF_TRACELOG_EVENT_RETURN,                      \
+            TraceLoggingLevel(WINEVENT_LEVEL_VERBOSE),       \
+            TraceLoggingKeyword(EBPF_TRACELOG_KEYWORD_BASE), \
+            TraceLoggingString(__FUNCTION__ "returned"),     \
+            TraceLoggingBool(!!local_result, #flag));        \
+        return local_result;                                 \
     } while (false);
 
-#define EBPF_RETURN_FD(fd)                     \
-    do {                                       \
-        fd_t local_fd = (fd);                  \
-        if (local_fd != EBPF_INVALID_FD) {     \
-            EBPF_LOG_FUNCTION_SUCCESS();       \
-        } else {                               \
-            EBPF_LOG_FUNCTION_ERROR(local_fd); \
-        }                                      \
-        return local_fd;                       \
+#define EBPF_RETURN_FD(fd)                                   \
+    do {                                                     \
+        fd_t local_fd = (fd);                                \
+        TraceLoggingWrite(                                   \
+            ebpf_tracelog_provider,                          \
+            EBPF_TRACELOG_EVENT_RETURN,                      \
+            TraceLoggingLevel(WINEVENT_LEVEL_VERBOSE),       \
+            TraceLoggingKeyword(EBPF_TRACELOG_KEYWORD_BASE), \
+            TraceLoggingString(__FUNCTION__ "returned"),     \
+            TraceLoggingInt32(local_fd, #fd));               \
+        return local_fd;                                     \
     } while (false);
 
 #define EBPF_RETURN_VOID() \
