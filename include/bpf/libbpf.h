@@ -308,6 +308,32 @@ const char*
 bpf_object__name(const struct bpf_object* obj);
 
 /**
+ * @brief Get the next map for a given eBPF object.
+ *
+ * @param[in] obj Object with maps.
+ * @param[in] map Previous map.
+ *
+ * @returns Next map, or NULL if none.
+ *
+ * @sa bpf_object__prev_map
+ */
+struct bpf_map*
+bpf_object__next_map(const struct bpf_object* obj, const struct bpf_map* map);
+
+/**
+ * @brief Get the next program for a given eBPF object.
+ *
+ * @param[in] obj Object with programs.
+ * @param[in] prog Previous program, or NULL to get the first program.
+ *
+ * @returns Next program, or NULL if none.
+ *
+ * @sa bpf_object__prev_program
+ */
+struct bpf_program*
+bpf_object__next_program(const struct bpf_object* obj, struct bpf_program* prog);
+
+/**
  * @brief Open a file without loading the programs.
  *
  * @param[in] path File name to open.
@@ -388,6 +414,32 @@ bpf_object__pin_maps(struct bpf_object* obj, const char* path);
  */
 int
 bpf_object__pin_programs(struct bpf_object* obj, const char* path);
+
+/**
+ * @brief Get the previous map for a given eBPF object.
+ *
+ * @param[in] obj Object with maps.
+ * @param[in] map Next map.
+ *
+ * @returns Previous map, or NULL if none.
+ *
+ * @sa bpf_object__next_map
+ */
+struct bpf_map*
+bpf_object__prev_map(const struct bpf_object* obj, const struct bpf_map* map);
+
+/**
+ * @brief Get the previous eBPF program for a given eBPF object.
+ *
+ * @param[in] obj Object with programs.
+ * @param[in] prog Next program.
+ *
+ * @returns Previous eBPF program, or NULL if none.
+ *
+ * @sa bpf_object__next_program
+ */
+struct bpf_program*
+bpf_object__prev_program(const struct bpf_object* obj, struct bpf_program* prog);
 
 /**
  * @brief Unpin all maps associated with an eBPF object from a specified path.
@@ -515,6 +567,17 @@ bpf_program__get_expected_attach_type(const struct bpf_program* prog);
  */
 enum bpf_prog_type
 bpf_program__get_type(const struct bpf_program* prog);
+
+/**
+ * @brief **bpf_program__insn_cnt()** returns number of `struct bpf_insn`'s
+ * that form specified BPF program.
+ *
+ * @param[in] prog BPF program for which to return number of BPF instructions
+ *
+ * @returns Number of instructions.
+ */
+size_t
+bpf_program__insn_cnt(const struct bpf_program* prog);
 
 /**
  * @brief Get the function name of an eBPF program.

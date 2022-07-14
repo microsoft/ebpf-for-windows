@@ -2,12 +2,6 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 
-#if __LIBBPF_CURRENT_VERSION_GEQ(0, 7)
-#define __LIBBPF_MARK_DEPRECATED_0_7(X) X
-#else
-#define __LIBBPF_MARK_DEPRECATED_0_7(X)
-#endif
-
 /**
  * @name Map-related functions
  * @{
@@ -46,11 +40,12 @@ struct bpf_create_map_attr
  * The caller should call _close() on the fd to close this when done.
  * A negative value indicates an error occurred and errno was set.
  *
+ * @deprecated Use bpf_map_create() instead.
+ *
  * @exception EINVAL An invalid argument was provided.
  * @exception ENOMEM Out of memory.
  */
-LIBBPF_DEPRECATED_SINCE(0, 7, "use bpf_map_create() instead")
-LIBBPF_API int
+int
 bpf_create_map(enum bpf_map_type map_type, int key_size, int value_size, int max_entries, __u32 map_flags);
 
 /**
@@ -67,12 +62,13 @@ bpf_create_map(enum bpf_map_type map_type, int key_size, int value_size, int max
  * The caller should call _close() on the fd to close this when done.
  * A negative value indicates an error occurred and errno was set.
  *
+ * @deprecated Use bpf_map_create() instead.
+ *
  * @exception EBADF The file descriptor was not found.
  * @exception EINVAL An invalid argument was provided.
  * @exception ENOMEM Out of memory.
  */
-LIBBPF_DEPRECATED_SINCE(0, 7, "use bpf_map_create() instead")
-LIBBPF_API int
+int
 bpf_create_map_in_map(
     enum bpf_map_type map_type, const char* name, int key_size, int inner_map_fd, int max_entries, __u32 map_flags);
 
@@ -87,9 +83,10 @@ bpf_create_map_in_map(
  *
  * @exception EINVAL An invalid argument was provided.
  * @exception ENOMEM Out of memory.
+ *
+ * @deprecated Use bpf_map_create() instead.
  */
-LIBBPF_DEPRECATED_SINCE(0, 7, "use bpf_map_create() instead")
-LIBBPF_API int
+int
 bpf_create_map_xattr(const struct bpf_create_map_attr* create_attr);
 
 /** @} */
@@ -135,7 +132,7 @@ struct bpf_load_program_attr
     __u32 prog_flags;
 };
 
-/*
+/**
  * @brief Load (but do not attach) an eBPF program from eBPF instructions
  * supplied by the caller.
  *
@@ -159,8 +156,7 @@ struct bpf_load_program_attr
  * @sa bpf_prog_load
  * @sa bpf_load_program_xattr
  */
-LIBBPF_DEPRECATED_SINCE(0, 7, "use bpf_prog_load() instead")
-LIBBPF_API int
+int
 bpf_load_program(
     enum bpf_prog_type type,
     const struct bpf_insn* insns,
@@ -170,7 +166,7 @@ bpf_load_program(
     char* log_buf,
     size_t log_buf_sz);
 
-/*
+/**
  * @brief Load (but do not attach) an eBPF program from eBPF instructions
  * supplied by the caller.
  *
@@ -190,8 +186,7 @@ bpf_load_program(
  * @sa bpf_prog_load
  * @sa bpf_load_program
  */
-LIBBPF_DEPRECATED_SINCE(0, 7, "use bpf_prog_load() instead")
-LIBBPF_API int
+int
 bpf_load_program_xattr(const struct bpf_load_program_attr* load_attr, char* log_buf, size_t log_buf_sz);
 
 /** @} */

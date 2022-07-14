@@ -158,6 +158,12 @@ bpf_program__size(const struct bpf_program* program)
     return program->instruction_count * sizeof(ebpf_inst);
 }
 
+size_t
+bpf_program__insn_cnt(const struct bpf_program* program)
+{
+    return program->instruction_count;
+}
+
 const char*
 bpf_program__log_buf(const struct bpf_program* program, size_t* log_size)
 {
