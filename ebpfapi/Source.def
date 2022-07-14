@@ -72,6 +72,7 @@ EXPORTS
     bpf_program__fd
     bpf_program__get_expected_attach_type
     bpf_program__get_type=bpf_program__type
+    bpf_program__insn_cnt
     bpf_program__log_buf
     bpf_program__name
     bpf_program__next

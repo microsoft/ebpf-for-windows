@@ -2,22 +2,6 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 
-#if __LIBBPF_CURRENT_VERSION_GEQ(0, 6)
-#define __LIBBPF_MARK_DEPRECATED_0_6(X) X
-#else
-#define __LIBBPF_MARK_DEPRECATED_0_6(X)
-#endif
-#if __LIBBPF_CURRENT_VERSION_GEQ(0, 7)
-#define __LIBBPF_MARK_DEPRECATED_0_7(X) X
-#else
-#define __LIBBPF_MARK_DEPRECATED_0_7(X)
-#endif
-#if __LIBBPF_CURRENT_VERSION_GEQ(0, 8)
-#define __LIBBPF_MARK_DEPRECATED_0_8(X) X
-#else
-#define __LIBBPF_MARK_DEPRECATED_0_8(X)
-#endif
-
 /**
  * @name Link-related functions
  * @{
@@ -40,8 +24,7 @@
  * @sa bpf_xdp_attach
  * @sa bpf_xdp_detach
  */
-LIBBPF_DEPRECATED_SINCE(0, 8, "use bpf_xdp_attach() instead")
-LIBBPF_API int
+int
 bpf_set_link_xdp_fd(int ifindex, int fd, __u32 flags);
 
 /** @} */
@@ -59,10 +42,10 @@ bpf_set_link_xdp_fd(int ifindex, int fd, __u32 flags);
  *
  * @returns Next map, or NULL if none.
  *
+ * @deprecated Use bpf_object__next_map() instead.
+ *
  * @sa bpf_map__prev
  */
-LIBBPF_API
-LIBBPF_DEPRECATED_SINCE(0, 7, "use bpf_object__next_map() instead")
 struct bpf_map*
 bpf_map__next(const struct bpf_map* map, const struct bpf_object* obj);
 
@@ -74,10 +57,10 @@ bpf_map__next(const struct bpf_map* map, const struct bpf_object* obj);
  *
  * @returns Previous map, or NULL if none.
  *
+ * @deprecated Use bpf_object__prev_map() instead.
+ *
  * @sa bpf_map__next
  */
-LIBBPF_API
-LIBBPF_DEPRECATED_SINCE(0, 7, "use bpf_object__prev_map() instead")
 struct bpf_map*
 bpf_map__prev(const struct bpf_map* map, const struct bpf_object* obj);
 
@@ -105,8 +88,7 @@ bpf_map__prev(const struct bpf_map* map, const struct bpf_object* obj);
  * @sa bpf_object__load_xattr
  * @sa bpf_prog_load
  */
-LIBBPF_DEPRECATED_SINCE(0, 8, "use bpf_object__load() instead")
-LIBBPF_API int
+int
 bpf_object__load_xattr(struct bpf_object_load_attr* attr);
 
 /**
@@ -115,9 +97,9 @@ bpf_object__load_xattr(struct bpf_object_load_attr* attr);
  * @param[in] prev Previous object, or NULL to get the first object.
  *
  * @returns Next object, or NULL if none.
+ *
+ * @deprecated Track bpf_objects in application code instead.
  */
-LIBBPF_API
-LIBBPF_DEPRECATED_SINCE(0, 7, "track bpf_objects in application code instead")
 struct bpf_object*
 bpf_object__next(struct bpf_object* prev);
 
@@ -133,12 +115,12 @@ bpf_object__next(struct bpf_object* prev);
  * @retval 0 The operation was successful.
  * @retval <0 An error occured, and errno was set.
  *
+ * @deprecated Use bpf_object__close() instead.
+ *
  * @sa bpf_object__load
  * @sa bpf_object__load_xattr
  * @sa bpf_prog_load
  */
-LIBBPF_DEPRECATED_SINCE(0, 6, "bpf_object__unload() is deprecated, use bpf_object__close() instead")
-LIBBPF_API
 int
 bpf_object__unload(struct bpf_object* obj);
 
@@ -164,7 +146,7 @@ bpf_object__unload(struct bpf_object* obj);
  * @retval 0 The operation was successful.
  * @retval <0 An error occured, and errno was set.
  *
- * @deprecated Use bpf_prog_load() instead.
+ * @deprecated Use bpf_object__open() and bpf_object__load() instead.
  *
  * @exception EACCES The program failed verification.
  * @exception EINVAL One or more parameters are incorrect.
@@ -175,8 +157,6 @@ bpf_object__unload(struct bpf_object* obj);
  * @sa bpf_object__close
  * @sa bpf_program__attach
  */
-LIBBPF_DEPRECATED_SINCE(0, 7, "use bpf_object__open() and bpf_object__load() instead")
-LIBBPF_API
 int
 bpf_prog_load_deprecated(const char* file, enum bpf_prog_type type, struct bpf_object** pobj, int* prog_fd);
 
@@ -188,10 +168,10 @@ bpf_prog_load_deprecated(const char* file, enum bpf_prog_type type, struct bpf_o
  *
  * @returns Next program, or NULL if none.
  *
+ * @deprecated Use bpf_object__next_program() instead.
+ *
  * @sa bpf_program__prev
  */
-LIBBPF_API
-LIBBPF_DEPRECATED_SINCE(0, 7, "use bpf_object__next_program() instead")
 struct bpf_program*
 bpf_program__next(struct bpf_program* prog, const struct bpf_object* obj);
 
@@ -203,10 +183,10 @@ bpf_program__next(struct bpf_program* prog, const struct bpf_object* obj);
  *
  * @returns Previous eBPF program, or NULL if none.
  *
+ * @deprecated Use bpf_object__prev_program() instead.
+ *
  * @sa bpf_program__next
  */
-LIBBPF_API
-LIBBPF_DEPRECATED_SINCE(0, 7, "use bpf_object__prev_program() instead")
 struct bpf_program*
 bpf_program__prev(struct bpf_program* prog, const struct bpf_object* obj);
 
@@ -216,9 +196,10 @@ bpf_program__prev(struct bpf_program* prog, const struct bpf_object* obj);
  * @param[in] prog Program.
  *
  * @returns Program size in bytes.
+ *
+ * @deprecated Use bpf_program__insn_cnt() instead.
  */
-LIBBPF_DEPRECATED_SINCE(0, 7, "use bpf_program__insn_cnt() instead")
-LIBBPF_API size_t
+size_t
 bpf_program__size(const struct bpf_program* prog);
 
 /** @} */
