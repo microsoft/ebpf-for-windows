@@ -115,19 +115,20 @@ ring_buffer_test_event_handler(_In_ void* ctx, _In_opt_ void* data, size_t size)
 {
     ring_buffer_test_event_context_t* event_context = reinterpret_cast<ring_buffer_test_event_context_t*>(ctx);
 
-    if (event_context->canceled) {
-        // Ring buffer subscription is canceled.
-        // The test handler expects this callback due to unsubscribe call.
-        // Free the callback context and return error so that no further callback is made.
+    if ((data == nullptr) || (size == 0)) {
+        // eBPF ring buffer invokes callback with NULL data indicating that the subscription is canceled.
+        // This is the last callback. Free the callback context.
         delete event_context;
-        return -1;
+        return 0;
     }
+
+    if (event_context->canceled)
+        // Ignore the callback as the subscription is canceled.
+        // Return error so that no further callback is made.
+        return -1;
 
     if (event_context->matched_entry_count == event_context->test_event_count)
         // Required number of event notifications already received.
-        return 0;
-
-    if ((data == nullptr) || (size == 0))
         return 0;
 
     std::vector<char> event_record(reinterpret_cast<char*>(data), reinterpret_cast<char*>(data) + size);

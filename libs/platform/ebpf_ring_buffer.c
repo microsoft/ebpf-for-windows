@@ -111,12 +111,14 @@ Error:
 void
 ebpf_ring_buffer_destroy(_Frees_ptr_opt_ ebpf_ring_buffer_t* ring)
 {
-    EBPF_LOG_ENTRY();
     if (ring) {
+        EBPF_LOG_ENTRY();
+
         ebpf_free_ring_buffer_memory(ring->ring_descriptor);
         ebpf_epoch_free(ring);
+
+        EBPF_RETURN_VOID();
     }
-    EBPF_RETURN_VOID();
 }
 
 ebpf_result_t
