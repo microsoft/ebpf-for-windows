@@ -102,6 +102,8 @@ jobs:
     - name: Remove existing artifacts
       if: inputs.environment == 'ebpf_cicd_tests'
       run: |
+        dir
+        dir ..\..
         Remove-Item -Path ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -Recurse -Force -ErrorAction SilentlyContinue
 
     - name: Download build artifact
@@ -128,6 +130,8 @@ jobs:
       id: run_pre_test_command
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
       run: |
+        dir
+        dir ..\..
         ${{env.PRE_COMMAND}}
 
     - name: Run test with Code Coverage in VS Dev environment
