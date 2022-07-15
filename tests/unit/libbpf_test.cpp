@@ -2018,8 +2018,20 @@ TEST_CASE("libbpf_prog_type_by_name_test", "[libbpf]")
     REQUIRE(expected_attach_type == BPF_ATTACH_TYPE_BIND);
 
     // Try a random name. This should fail.
-    REQUIRE(libbpf_prog_type_by_name("default", &prog_type, &expected_attach_type) == -1);
+    REQUIRE(libbpf_prog_type_by_name("default", &prog_type, &expected_attach_type) == -ESRCH);
     REQUIRE(errno == ESRCH);
+
+    REQUIRE(libbpf_prog_type_by_name(nullptr, &prog_type, &expected_attach_type) == -EINVAL);
+    REQUIRE(errno == EINVAL);
+}
+
+TEST_CASE("libbpf_bpf_prog_type_str", "[libbpf]")
+{
+    _test_helper_end_to_end test_helper;
+
+    REQUIRE(strcmp(libbpf_bpf_prog_type_str(BPF_PROG_TYPE_XDP), "xdp") == 0);
+    REQUIRE(strcmp(libbpf_bpf_prog_type_str(BPF_PROG_TYPE_UNSPEC), "unspec") == 0);
+    REQUIRE(libbpf_bpf_prog_type_str((bpf_prog_type)123) == nullptr);
 }
 
 TEST_CASE("libbpf_get_error", "[libbpf]")
@@ -2030,23 +2042,6 @@ TEST_CASE("libbpf_get_error", "[libbpf]")
     char buffer[80];
     REQUIRE(libbpf_strerror(errno, buffer, sizeof(buffer)) == -ENOENT);
     REQUIRE(strcmp(buffer, "Unknown libbpf error 123") == 0);
-}
-
-TEST_CASE("libbpf prog type names", "[libbpf]")
-{
-    _test_helper_end_to_end test_helper;
-
-    REQUIRE(strcmp(libbpf_bpf_prog_type_str(BPF_PROG_TYPE_XDP), "xdp") == 0);
-    REQUIRE(strcmp(libbpf_bpf_prog_type_str(BPF_PROG_TYPE_UNSPEC), "unspec") == 0);
-    REQUIRE(libbpf_bpf_prog_type_str((bpf_prog_type)123) == nullptr);
-
-    enum bpf_attach_type attach_type;
-    enum bpf_prog_type prog_type;
-    REQUIRE(libbpf_prog_type_by_name("xdp", &prog_type, &attach_type) == 0);
-    REQUIRE(prog_type == BPF_PROG_TYPE_XDP);
-    REQUIRE(attach_type == BPF_XDP);
-    REQUIRE(libbpf_prog_type_by_name("other", &prog_type, &attach_type) == -ESRCH);
-    REQUIRE(libbpf_prog_type_by_name(nullptr, &prog_type, &attach_type) == -EINVAL);
 }
 
 TEST_CASE("libbpf attach type names", "[libbpf]")
