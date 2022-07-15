@@ -22,6 +22,9 @@ const ebpf_attach_type_t* _net_ebpf_extension_sock_addr_attach_types[] = {
     &EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT,
     &EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT};
 
+const uint32_t _net_ebpf_extension_sock_addr_bpf_attach_types[] = {
+    BPF_CGROUP_INET4_CONNECT, BPF_CGROUP_INET4_RECV_ACCEPT, BPF_CGROUP_INET6_CONNECT, BPF_CGROUP_INET6_RECV_ACCEPT};
+
 #define NET_EBPF_SOCK_ADDR_HOOK_PROVIDER_COUNT EBPF_COUNT_OF(_net_ebpf_extension_sock_addr_attach_types)
 
 const net_ebpf_extension_wfp_filter_parameters_t _net_ebpf_extension_sock_addr_wfp_filter_parameters[] = {
@@ -65,13 +68,8 @@ static net_ebpf_extension_program_info_provider_t* _ebpf_sock_addr_program_info_
 // SOCK_ADDR Hook NPI Provider.
 //
 
-ebpf_attach_provider_data_t _net_ebpf_sock_addr_hook_provider_data;
-
-ebpf_extension_data_t _net_ebpf_extension_sock_addr_hook_provider_data = {
-    EBPF_ATTACH_PROVIDER_DATA_VERSION,
-    sizeof(_net_ebpf_sock_addr_hook_provider_data),
-    &_net_ebpf_sock_addr_hook_provider_data};
-
+ebpf_attach_provider_data_t _net_ebpf_sock_addr_hook_provider_data[NET_EBPF_SOCK_ADDR_HOOK_PROVIDER_COUNT] = {0};
+ebpf_extension_data_t _net_ebpf_extension_sock_addr_hook_provider_data[NET_EBPF_SOCK_ADDR_HOOK_PROVIDER_COUNT] = {0};
 NPI_MODULEID DECLSPEC_SELECTANY _ebpf_sock_addr_hook_provider_moduleid[NET_EBPF_SOCK_ADDR_HOOK_PROVIDER_COUNT] = {0};
 
 static net_ebpf_extension_hook_provider_t*
@@ -223,10 +221,15 @@ net_ebpf_ext_sock_addr_register_providers()
     if (status != STATUS_SUCCESS)
         goto Exit;
 
-    _net_ebpf_sock_addr_hook_provider_data.supported_program_type = EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR;
     for (int i = 0; i < NET_EBPF_SOCK_ADDR_HOOK_PROVIDER_COUNT; i++) {
         const net_ebpf_extension_hook_provider_parameters_t hook_provider_parameters = {
-            &_ebpf_sock_addr_hook_provider_moduleid[i], &_net_ebpf_extension_sock_addr_hook_provider_data};
+            &_ebpf_sock_addr_hook_provider_moduleid[i], &_net_ebpf_extension_sock_addr_hook_provider_data[i]};
+
+        _net_ebpf_sock_addr_hook_provider_data[i].supported_program_type = EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR;
+        _net_ebpf_sock_addr_hook_provider_data[i].bpf_attach_type = _net_ebpf_extension_sock_addr_bpf_attach_types[i];
+        _net_ebpf_extension_sock_addr_hook_provider_data[i].version = EBPF_ATTACH_PROVIDER_DATA_VERSION;
+        _net_ebpf_extension_sock_addr_hook_provider_data[i].data = &_net_ebpf_sock_addr_hook_provider_data[i];
+        _net_ebpf_extension_sock_addr_hook_provider_data[i].size = sizeof(ebpf_attach_provider_data_t);
 
         // Set the attach type as the provider module id.
         _ebpf_sock_addr_hook_provider_moduleid[i].Length = sizeof(NPI_MODULEID);

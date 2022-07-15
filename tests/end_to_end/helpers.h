@@ -10,6 +10,9 @@
 #include "net_ebpf_ext_program_info.h"
 #include "sample_ext_program_info.h"
 
+bpf_attach_type_t
+get_bpf_attach_type(_In_ const ebpf_attach_type_t* ebpf_attach_type);
+
 typedef struct _ebpf_free_memory
 {
     void
@@ -90,6 +93,7 @@ typedef class _single_instance_hook : public _hook_helper
     {
         ebpf_guid_create(&client_id);
         attach_provider_data.supported_program_type = program_type;
+        attach_provider_data.bpf_attach_type = get_bpf_attach_type(&attach_type);
         this->attach_type = attach_type;
 
         REQUIRE(
