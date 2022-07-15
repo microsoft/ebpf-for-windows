@@ -105,8 +105,8 @@ __declspec(deprecated("Use bpf_object__load() instead.")) int bpf_object__load_x
  *
  * @deprecated Track bpf_objects in application code instead.
  */
-struct bpf_object*
-bpf_object__next(struct bpf_object* prev);
+__declspec(deprecated("Track bpf_objects in application code instead.")) struct bpf_object* bpf_object__next(
+    struct bpf_object* prev);
 
 #define bpf_object__for_each_safe(pos, tmp)                                            \
     for ((pos) = bpf_object__next(NULL), (tmp) = bpf_object__next(pos); (pos) != NULL; \
