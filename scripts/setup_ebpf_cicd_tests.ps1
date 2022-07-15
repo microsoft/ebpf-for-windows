@@ -14,8 +14,8 @@ Get-Location
 $TestVMCredential = Get-StoredCredential -Target $Target -ErrorAction Stop
 
 # Load other utility modules.
-Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
-Import-Module .\config_test_vm.psm1 -Force -ArgumentList ($TestVMCredential.UserName, $TestVMCredential.Password, $pwd.ToString(), $LogFileName) -WarningAction SilentlyContinue
+Import-Module $PSScriptRoot\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
+Import-Module $PSScriptRoot\config_test_vm.psm1 -Force -ArgumentList ($TestVMCredential.UserName, $TestVMCredential.Password, $LogFileName) -WarningAction SilentlyContinue
 
 # Read the config json.
 $Config = Get-Content ("{0}\{1}" -f $PSScriptRoot, $VMListJsonFileName) | ConvertFrom-Json
