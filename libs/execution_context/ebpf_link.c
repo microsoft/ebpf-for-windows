@@ -15,6 +15,7 @@ typedef struct _ebpf_link
     ebpf_program_t* program;
 
     ebpf_attach_type_t attach_type;
+    bpf_attach_type_t bpf_attach_type;
     ebpf_program_type_t program_type;
     ebpf_extension_data_t client_data;
     ebpf_extension_client_t* extension_client_context;
@@ -118,6 +119,7 @@ ebpf_link_initialize(
     attach_provider_data = (ebpf_attach_provider_data_t*)provider_data->data;
     link->program_type = attach_provider_data->supported_program_type;
     link->attach_type = attach_type;
+    link->bpf_attach_type = attach_provider_data->bpf_attach_type;
 
 Exit:
     EBPF_RETURN_RESULT(return_value);
@@ -222,7 +224,7 @@ ebpf_link_get_info(
     info->type = BPF_LINK_TYPE_PLAIN;
     info->program_type_uuid = link->program_type;
     info->attach_type_uuid = link->attach_type;
-    info->attach_type = BPF_ATTACH_TYPE_UNSPEC; // TODO(#223): get actual integer, and also return attach_type_uuid
+    info->attach_type = link->bpf_attach_type;
 
     // Copy any additional parameters.  Currently only XDP has such.
     size_t size = sizeof(struct bpf_link_info) - FIELD_OFFSET(struct bpf_link_info, xdp);
