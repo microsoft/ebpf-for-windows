@@ -3,6 +3,7 @@
 
 #pragma once
 #include "ebpf_result.h"
+#include "ebpf_structs.h"
 #include "ebpf_windows.h"
 #include "framework.h"
 
@@ -78,7 +79,7 @@ extern "C"
     typedef struct _ebpf_attach_provider_data
     {
         ebpf_program_type_t supported_program_type;
-        uint32_t bpf_attach_type;
+        bpf_attach_type_t bpf_attach_type;
     } ebpf_attach_provider_data_t;
 
 #define EBPF_ATTACH_CLIENT_DATA_VERSION 0
