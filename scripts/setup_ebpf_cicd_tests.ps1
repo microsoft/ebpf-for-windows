@@ -24,10 +24,10 @@ $TestExecutionConfig = Get-Content ("{0}\{1}" -f $PSScriptRoot, $TestExecutionJs
 $MultiVMTestConfig = $TestExecutionConfig.MultiVMTest
 
 # Delete old log files if any.
-Remove-Item "$PSScriptRoot\$LogFileName" -ErrorAction SilentlyContinue
+Remove-Item "$env:TEMP\$LogFileName" -ErrorAction SilentlyContinue
 foreach($VM in $VMList) {
     $VMName = $VM.Name
-    Remove-Item $PSScriptRoot\$LogFileName -ErrorAction SilentlyContinue
+    Remove-Item $env:TEMP\$LogFileName -ErrorAction SilentlyContinue
 }
 Remove-Item ".\TestLogs" -Recurse -Confirm:$false -ErrorAction SilentlyContinue
 
