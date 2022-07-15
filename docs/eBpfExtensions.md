@@ -68,6 +68,7 @@ The various fields of this structure should be set as follows:
 * `name`: Friendly name of the program type.
 * `context_descriptor`: Pointer of type `ebpf_context_descriptor_t`.
 * `program_type`: GUID for the program type. This should be the same as the `NpiId` in `NPI_REGISTRATION_INSTANCE` as noted above.
+* `bpf_prog_type`: Set to the equivalent bpf program type integer. If there is no equivalent bpf program type, this field should be set to `0 (BPF_PROG_TYPE_UNSPEC)`.
 * `is_privileged`: Set to `FALSE`.
 
 #### `ebpf_context_descriptor_t` Struct
@@ -153,7 +154,13 @@ When registering itself to the NMR, the Hook NPI provider should have the [`NPI_
   * The `data` field of this structure should point to a structure of type `ebpf_attach_provider_data_t`.
 
 #### `ebpf_attach_provider_data_t` Struct
-This structure is used to specify the attach type supported by the extension for the given Hook NPI provider. The `supported_program_type` field of the struct should be filled with the `ebpf_program_type_t` (GUID) of the supported program type. While attaching an eBPF program to a hook instance, the Execution Context enforces that the requested attach type is supported by the Hook NPI provider. If not, the eBPF program fails to attach to the hook.
+This structure is used to specify the attach type supported by the extension for the given Hook NPI provider. It contains the following fields:
+* `supported_program_type`
+* `bpf_attach_type`
+
+The `supported_program_type` field of the struct should be filled with the `ebpf_program_type_t` (GUID) of the supported program type. While attaching an eBPF program to a hook instance, the Execution Context enforces that the requested attach type is supported by the Hook NPI provider. If not, the eBPF program fails to attach to the hook.
+
+The `bpf_attach_type` field should contain the equivalent bpf attach type integer. If there is no equivalent bpf attach type, this field should be set to `0 (BPF_ATTACH_TYPE_UNSPEC)`.
 
 ### 2.4 Hook NPI Client Attach and Detach Callbacks
 The eBPF Execution Context registers a Hook NPI client module with the NMR for each program that is attached to a hook. The attach type GUID is used as the NPI of the client module. And as a result, when an eBPF program gets attached to a hook, the associated Hook NPI client module will attach to the corresponding Hook NPI provider module in the extension. The [client attach callback](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/netioddk/nc-netioddk-npi_provider_attach_client_fn) function is invoked when the NPI client is being attached. The provider must store the following in a per-client data structure from the passed in parameters:

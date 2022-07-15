@@ -283,6 +283,7 @@ net_ebpf_ext_sock_ops_register_providers()
         goto Exit;
 
     _net_ebpf_sock_ops_hook_provider_data.supported_program_type = EBPF_PROGRAM_TYPE_SOCK_OPS;
+    _net_ebpf_sock_ops_hook_provider_data.bpf_attach_type = BPF_CGROUP_SOCK_OPS;
     const net_ebpf_extension_hook_provider_parameters_t hook_provider_parameters = {
         &_ebpf_sock_ops_hook_provider_moduleid, &_net_ebpf_extension_sock_ops_hook_provider_data};
 

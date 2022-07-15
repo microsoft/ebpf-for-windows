@@ -483,6 +483,7 @@ sample_ebpf_extension_hook_provider_register()
     NTSTATUS status = STATUS_SUCCESS;
 
     _sample_ebpf_extension_attach_provider_data.supported_program_type = EBPF_PROGRAM_TYPE_SAMPLE;
+    _sample_ebpf_extension_attach_provider_data.bpf_attach_type = BPF_ATTACH_TYPE_SAMPLE;
     _sample_ebpf_extension_hook_provider_moduleid.Guid = EBPF_ATTACH_TYPE_SAMPLE;
 
     local_provider_context = &_sample_ebpf_extension_hook_provider_context;
