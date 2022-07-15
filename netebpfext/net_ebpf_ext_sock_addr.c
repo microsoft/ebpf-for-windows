@@ -229,7 +229,7 @@ net_ebpf_ext_sock_addr_register_providers()
         _net_ebpf_sock_addr_hook_provider_data[i].bpf_attach_type = _net_ebpf_extension_sock_addr_bpf_attach_types[i];
         _net_ebpf_extension_sock_addr_hook_provider_data[i].version = EBPF_ATTACH_PROVIDER_DATA_VERSION;
         _net_ebpf_extension_sock_addr_hook_provider_data[i].data = &_net_ebpf_sock_addr_hook_provider_data[i];
-        _net_ebpf_extension_sock_addr_hook_provider_data[i].size = sizeof(_net_ebpf_sock_addr_hook_provider_data);
+        _net_ebpf_extension_sock_addr_hook_provider_data[i].size = sizeof(ebpf_attach_provider_data_t);
 
         // Set the attach type as the provider module id.
         _ebpf_sock_addr_hook_provider_moduleid[i].Length = sizeof(NPI_MODULEID);
