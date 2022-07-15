@@ -1913,6 +1913,60 @@ TEST_CASE("bpf_obj_get_info_by_fd", "[libbpf]")
     Platform::_close(link_fd);
 }
 
+TEST_CASE("bpf_obj_get_info_by_fd_2", "[libbpf]")
+{
+    _test_helper_end_to_end test_helper;
+    program_info_provider_t sock_addr_program_info(EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR);
+    single_instance_hook_t v4_connect_hook(EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT);
+
+    program_load_attach_helper_t sock_addr_helper(
+        "cgroup_sock_addr.o",
+        BPF_PROG_TYPE_CGROUP_SOCK_ADDR,
+        "authorize_connect4",
+        EBPF_EXECUTION_JIT,
+        nullptr,
+        0,
+        v4_connect_hook);
+
+    struct bpf_object* object = sock_addr_helper.get_object();
+    REQUIRE(object != nullptr);
+
+    struct bpf_program* program = bpf_object__find_program_by_name(object, "authorize_connect4");
+    REQUIRE(program != nullptr);
+
+    int program_fd = bpf_program__fd(program);
+    REQUIRE(program_fd > 0);
+
+    // Fetch info about the program and verify it matches what we'd expect.
+    bpf_prog_info program_info;
+    uint32_t program_info_size = sizeof(program_info);
+    REQUIRE(bpf_obj_get_info_by_fd(program_fd, &program_info, &program_info_size) == 0);
+    REQUIRE(program_info_size == sizeof(program_info));
+    REQUIRE(strcmp(program_info.name, "authorize_connect4") == 0);
+    REQUIRE(program_info.nr_map_ids == 1);
+    REQUIRE(program_info.type == BPF_PROG_TYPE_CGROUP_SOCK_ADDR);
+
+    // Fetch info about the attachment and verify it matches what we'd expect.
+    uint32_t link_id;
+    REQUIRE(bpf_link_get_next_id(0, &link_id) == 0);
+    fd_t link_fd = bpf_link_get_fd_by_id(link_id);
+    REQUIRE(link_fd >= 0);
+
+    bpf_link_info link_info;
+    uint32_t link_info_size = sizeof(link_info);
+    REQUIRE(bpf_obj_get_info_by_fd(link_fd, &link_info, &link_info_size) == 0);
+    REQUIRE(link_info_size == sizeof(link_info));
+
+    REQUIRE(link_info.prog_id == program_info.id);
+    REQUIRE(link_info.attach_type == BPF_CGROUP_INET4_CONNECT);
+
+    // Verify we can detach using this link fd.
+    // This is the flow used by bpftool to detach a link.
+    REQUIRE(bpf_link_detach(link_fd) == 0);
+
+    Platform::_close(link_fd);
+}
+
 TEST_CASE("libbpf_prog_type_by_name_test", "[libbpf]")
 {
     _test_helper_end_to_end test_helper;
