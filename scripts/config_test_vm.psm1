@@ -7,7 +7,9 @@ param ([Parameter(Mandatory=$True)] [string] $Admin,
        [Parameter(Mandatory=$True)] [string] $LogFileName)
 
 
+Get-Location
 Push-Location $WorkingDirectory
+Get-Location
 
 Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
 
