@@ -7,13 +7,15 @@ param ([parameter(Mandatory=$false)][string] $Target = "TEST_VM",
        [parameter(Mandatory=$false)][string] $TestExecutionJsonFileName = "test_execution.json",
        [parameter(Mandatory=$false)][bool] $Coverage = $true)
 
+Get-Location
 Push-Location $WorkingDirectory
+Get-Location
 
 $TestVMCredential = Get-StoredCredential -Target $Target -ErrorAction Stop
 
 # Load other utility modules.
-Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
-Import-Module .\vm_run_tests.psm1  -Force -ArgumentList ($TestVMCredential.UserName, $TestVMCredential.Password, $WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
+Import-Module $PSScriptRoot\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
+Import-Module $PSScriptRoot\vm_run_tests.psm1  -Force -ArgumentList ($TestVMCredential.UserName, $TestVMCredential.Password, $WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
 
 # Read the test execution json.
 $Config = Get-Content ("{0}\{1}" -f $PSScriptRoot, $TestExecutionJsonFileName) | ConvertFrom-Json
