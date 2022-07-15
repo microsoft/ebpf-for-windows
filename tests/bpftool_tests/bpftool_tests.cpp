@@ -111,6 +111,33 @@ TEST_CASE("prog load map_in_map.o", "[prog][load]")
     REQUIRE(result == 0);
 }
 
+TEST_CASE("prog attach by interface alias", "[prog][load]")
+{
+    int result;
+    std::string output;
+
+    output = run_command("bpftool prog load droppacket.o droppacket", &result);
+    REQUIRE(output == "");
+    REQUIRE(result == 0);
+
+    output = run_command("bpftool prog show", &result);
+    REQUIRE(result == 0);
+    std::string id = std::to_string(atoi(output.c_str()));
+    REQUIRE(output == id + ": xdp  name DropPacket  \n\n");
+
+    // Try attaching to an interface by friendly name.
+    output = run_command(("bpftool net attach xdp id " + id + " dev \"Loopback Pseudo-Interface 1\"").c_str(), &result);
+    REQUIRE(result == 0);
+
+    output = run_command(("netsh ebpf delete prog " + id).c_str(), &result);
+    REQUIRE(output == "\nUnpinned " + id + " from droppacket\n");
+    REQUIRE(result == 0);
+
+    output = run_command("bpftool prog show", &result);
+    REQUIRE(output == "");
+    REQUIRE(result == 0);
+}
+
 TEST_CASE("map create", "[map]")
 {
     int status;

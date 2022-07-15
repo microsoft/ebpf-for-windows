@@ -149,6 +149,7 @@ main(int argc, char** argv)
         } type = output_type::Bare;
         std::string verifier_output_file;
         std::string file;
+        std::string type_string = "";
         std::string hash_algorithm = "SHA256";
         bool verify_programs = true;
         std::vector<std::string> parameters(argv + 1, argv + argc);
@@ -184,6 +185,18 @@ main(int argc, char** argv)
                       return false;
                   } else {
                       file = *iter;
+                      return true;
+                  }
+              }}},
+            {"--type",
+             {"Type string for the eBPF programs",
+              [&]() {
+                  ++iter;
+                  if (iter == iter_end) {
+                      std::cerr << "Invalid --type option" << std::endl;
+                      return false;
+                  } else {
+                      type_string = *iter;
                       return true;
                   }
               }}},
@@ -255,17 +268,27 @@ main(int argc, char** argv)
         // Parse global data.
         generator.parse();
 
+        // Get global program and attach types, if any.
+        ebpf_program_type_t program_type;
+        ebpf_attach_type_t attach_type;
+        bool global_program_type_set = false;
+        if (type_string != "") {
+            if (ebpf_get_program_type_by_name(type_string.c_str(), &program_type, &attach_type) != EBPF_SUCCESS) {
+                std::cerr << "Program type not found for type string " << type_string << std::endl;
+                return 1;
+            }
+            global_program_type_set = true;
+        }
+
         // Parse per-section data.
         for (const auto& section : sections) {
-            ebpf_program_type_t program_type;
-            ebpf_attach_type_t attach_type;
-            // TODO: Issue #1172
-            // Workaround: If querying the program and attach type fails, default it to XDP until
-            // Issue #1172 is fixed.
-            if (ebpf_get_program_type_by_name(section.raw().c_str(), &program_type, &attach_type) != EBPF_SUCCESS) {
-                program_type = EBPF_PROGRAM_TYPE_XDP;
-                attach_type = EBPF_ATTACH_TYPE_XDP;
+            if (!global_program_type_set) {
+                if (ebpf_get_program_type_by_name(section.raw().c_str(), &program_type, &attach_type) != EBPF_SUCCESS) {
+                    std::cerr << "Program type not found for section name " << section.raw() << std::endl;
+                    return 1;
+                }
             }
+
             const char* report = nullptr;
             const char* error_message = nullptr;
             ebpf_api_verifier_stats_t stats;
