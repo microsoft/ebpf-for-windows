@@ -544,6 +544,7 @@ static uint32_t
 _load_file_to_memory(
     _In_ const std::string& path, _Out_ std::string& data, _Outptr_result_maybenull_z_ const char** error_message)
 {
+    data = "";
     struct stat st;
     if (stat(path.c_str(), &st)) {
         *error_message = allocate_string(std::string("No such file or directory opening ") + path);
