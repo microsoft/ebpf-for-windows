@@ -339,10 +339,8 @@ handle_ebpf_delete_program(
     // If there are no other references to the program, it will be unloaded.
     bpf_object* object;
     bpf_object* next_object;
-#pragma warning(push)
-#pragma warning(disable : 4996) // deprecated
+#pragma warning(suppress : 4996) // deprecated
     bpf_object__for_each_safe(object, next_object)
-#pragma warning(pop)
     {
         bpf_program* program;
         bpf_object__for_each_program(program, object)

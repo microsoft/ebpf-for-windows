@@ -40,10 +40,8 @@ TEST_CASE("empty bpf_load_program", "[libbpf][deprecated]")
     _test_helper_libbpf test_helper;
 
     // An empty set of instructions is invalid.
-#pragma warning(push)
-#pragma warning(disable : 4996) // deprecated
+#pragma warning(suppress : 4996) // deprecated
     int program_fd = bpf_load_program(BPF_PROG_TYPE_XDP, nullptr, 0, nullptr, 0, nullptr, 0);
-#pragma warning(pop)
     REQUIRE(program_fd < 0);
     REQUIRE(errno == EINVAL);
 }
@@ -79,8 +77,7 @@ TEST_CASE("invalid bpf_load_program", "[libbpf][deprecated]")
 
     // Try to load and verify the eBPF program.
     char log_buffer[1024];
-#pragma warning(push)
-#pragma warning(disable : 4996) // deprecated
+#pragma warning(suppress : 4996) // deprecated
     int program_fd = bpf_load_program(
         BPF_PROG_TYPE_XDP,
         (struct bpf_insn*)instructions,
@@ -89,7 +86,6 @@ TEST_CASE("invalid bpf_load_program", "[libbpf][deprecated]")
         0,
         log_buffer,
         sizeof(log_buffer));
-#pragma warning(pop)
     REQUIRE(program_fd < 0);
     REQUIRE(errno == EACCES);
     REQUIRE(strcmp(log_buffer, "\n0:  (r0.type == number)\n\n") == 0);
@@ -125,11 +121,9 @@ TEST_CASE("invalid bpf_load_program - wrong type", "[libbpf][deprecated]")
     };
 
     // Load and verify the eBPF program.
-#pragma warning(push)
-#pragma warning(disable : 4996) // deprecated
+#pragma warning(suppress : 4996) // deprecated
     int program_fd = bpf_load_program(
         (bpf_prog_type)-1, (struct bpf_insn*)instructions, _countof(instructions), nullptr, 0, nullptr, 0);
-#pragma warning(pop)
     REQUIRE(program_fd < 0);
     REQUIRE(errno == EINVAL);
 }
@@ -162,11 +156,9 @@ TEST_CASE("valid bpf_load_program", "[libbpf][deprecated]")
     };
 
     // Load and verify the eBPF program.
-#pragma warning(push)
-#pragma warning(disable : 4996) // deprecated
+#pragma warning(suppress : 4996) // deprecated
     int program_fd = bpf_load_program(
         BPF_PROG_TYPE_XDP, (struct bpf_insn*)instructions, _countof(instructions), nullptr, 0, nullptr, 0);
-#pragma warning(pop)
     REQUIRE(program_fd >= 0);
 
     // Now query the program info and verify it matches what we set.
@@ -220,15 +212,13 @@ TEST_CASE("valid bpf_load_program_xattr", "[libbpf][deprecated]")
     };
 
     // Load and verify the eBPF program.
-#pragma warning(push)
-#pragma warning(disable : 4996) // deprecated
     struct bpf_load_program_attr attr = {
         .prog_type = BPF_PROG_TYPE_XDP,
         .name = "name",
         .insns = (struct bpf_insn*)instructions,
         .insns_cnt = _countof(instructions)};
+#pragma warning(suppress : 4996) // deprecated
     int program_fd = bpf_load_program_xattr(&attr, nullptr, 0);
-#pragma warning(pop)
     REQUIRE(program_fd >= 0);
 
     // Now query the program info and verify it matches what we set.
@@ -303,11 +293,9 @@ TEST_CASE("valid bpf_load_program with map", "[libbpf][deprecated]")
     };
 
     // Load and verify the eBPF program.
-#pragma warning(push)
-#pragma warning(disable : 4996) // deprecated
+#pragma warning(suppress : 4996) // deprecated
     int program_fd = bpf_load_program(
         BPF_PROG_TYPE_XDP, (struct bpf_insn*)instructions, _countof(instructions), nullptr, 0, nullptr, 0);
-#pragma warning(pop)
     REQUIRE(program_fd >= 0);
 
     // Now query the program info and verify it matches what we set.
@@ -355,10 +343,8 @@ TEST_CASE("libbpf program", "[libbpf]")
     size_t size = bpf_program__insn_cnt(program);
     REQUIRE(size == 47);
 
-#pragma warning(push)
-#pragma warning(disable : 4996)
+#pragma warning(suppress : 4996) // deprecated
     size = bpf_program__size(program);
-#pragma warning(pop)
     REQUIRE(size == 376);
 
     REQUIRE(bpf_object__next_program(object, program) == nullptr);
