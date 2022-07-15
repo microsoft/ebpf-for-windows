@@ -547,7 +547,7 @@ _load_file_to_memory(
     data = "";
     struct stat st;
     if (stat(path.c_str(), &st)) {
-        *error_message = allocate_string(std::string("No such file or directory opening ") + path);
+        *error_message = allocate_string(std::string("error: No such file or directory opening ") + path);
         return 1;
     }
     if (std::ifstream stream{path, std::ios::in | std::ios::binary}) {
@@ -557,7 +557,7 @@ _load_file_to_memory(
             return 0;
         }
     }
-    *error_message = allocate_string(std::string("Failed to read file: ") + path);
+    *error_message = allocate_string(std::string("error: Failed to read file: ") + path);
     return 1;
 }
 
@@ -579,7 +579,8 @@ static _Success_(return == 0) uint32_t _verify_section_from_string(
             const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(data.data())),
             static_cast<uint32_t>(data.size()))) {
 
-        *error_message = allocate_string(std::string() + "ELF file " + name + " is malformed: " + _elf_everparse_error);
+        *error_message =
+            allocate_string(std::string("error: ELF file ") + name + " is malformed: " + _elf_everparse_error);
         return 1;
     }
 
