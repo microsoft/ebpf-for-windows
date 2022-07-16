@@ -5,9 +5,10 @@ eBPF for Windows.
 
 Note: Currently releases are not production signed.
 
-1. Update the version number, making sure to follow [Semantic Versioning 2.0](https://semver.org), in the following two files:
+1. Update the version number, making sure to follow [Semantic Versioning 2.0](https://semver.org), in the following files:
     * .github\workflows\reusable-build.yml
     * tools\nuget\ebpf-for-windows.nuspec
+    * scripts\config_test_vm.psm1
 2. Create a pull request with the version number changes
 3. Add a tag to the commit with the version number changes
    ("git tag v0.2.0", "git push --tags")

@@ -171,7 +171,7 @@ function Export-BuildArtifactsToVMs
 {
     param([Parameter(Mandatory=$True)] $VMList)
 
-    $msiFileName = "ebpf-for-windows.msi"
+    $msiFileName = "ebpf-for-windows-0.2.0.msi"
 
     foreach($VM in $VMList) {
         $VMName = $VM.Name
@@ -194,8 +194,6 @@ function Export-BuildArtifactsToVMs
 
         Write-Log "Export completed." -ForegroundColor Green
     }
-
-    Remove-Item -Force $tempFileName
 }
 
 #
