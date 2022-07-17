@@ -39,13 +39,13 @@ Initialize-AllVMs -VMList $VMList -ErrorAction Stop
 # Export build artifacts to the test VMs.
 Export-BuildArtifactsToVMs -VMList $VMList -ErrorAction Stop
 
-# Configure network adapters on VMs.
-Initialize-NetworkInterfacesOnVMs $MultiVMTestConfig -ErrorAction Stop
-
 # Install eBPF Components on the test VM.
 foreach($VM in $VMList) {
     $VMName = $VM.Name
     Install-eBPFComponentsOnVM -VMName $VMname -ErrorAction Stop
 }
+
+# Configure network adapters on VMs.
+Initialize-NetworkInterfacesOnVMs $MultiVMTestConfig -ErrorAction Stop
 
 Pop-Location
