@@ -570,13 +570,12 @@ TEST_CASE("show links", "[netsh][links]")
 
     output = _run_netsh_command(handle_ebpf_show_links, nullptr, nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
-    // TODO(issue #223): change "unspec" below to "xdp" once the underlying issue is fixed.
     REQUIRE(
         output == "\n"
                   "   Link  Program  Attach\n"
                   "     ID       ID  Type\n"
                   "=======  =======  =============\n"
-                  " 327681   196609  unspec\n");
+                  " 327681   196609  xdp\n");
 
     output = _run_netsh_command(handle_ebpf_delete_program, L"196609", nullptr, nullptr, &result);
     REQUIRE(output == "");
