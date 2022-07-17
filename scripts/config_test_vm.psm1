@@ -253,7 +253,7 @@ function Import-ResultsFromVM
                   [Parameter(Mandatory=$True)] [string] $LogFileName,
                   [Parameter(Mandatory=$True)] [string] $EtlFile)
             $WorkingDirectory = "$env:SystemDrive\$WorkingDirectory"
-            Import-Module $PSScriptRoot\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
+            Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
 
             Write-Log ("Stopping ETW tracing, creating file: " + $EtlFile)
             Start-Process -FilePath "wpr.exe" -ArgumentList @("-stop", "$WorkingDirectory\$EtlFile") -NoNewWindow -Wait
@@ -277,7 +277,7 @@ function Install-eBPFComponentsOnVM
     Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
         param([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
               [Parameter(Mandatory=$True)] [string] $LogFileName)
-        msiexec.exe /i "$env:SystemDrive\$WorkingDirectory\ebpf-for-windows.msi" /quiet /qn /l*v $LogFileName 2>&1 | Write-Log
+        msiexec.exe /i "$env:SystemDrive\$WorkingDirectory\ebpf-for-windows.msi" /quiet /qn /l*v $LogFileName
     } -ArgumentList ("eBPF", $LogFileName) -ErrorAction Stop
     Write-Log "eBPF components installed on $VMName" -ForegroundColor Green
 }
@@ -299,7 +299,7 @@ function Initialize-NetworkInterfacesOnVMs
                   [Parameter(Mandatory=$True)] [string] $WorkingDirectory,
                   [Parameter(Mandatory=$True)] [string] $LogFileName)
             $WorkingDirectory = "$env:SystemDrive\$WorkingDirectory"
-            Import-Module $PSScrptRoot\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
+            Import-Module $env:ProgramFiles\ebpf-for-windows\scripts\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
 
             foreach ($Interface in $InterfaceList) {
                 $InterfaceAlias = $Interface.Alias

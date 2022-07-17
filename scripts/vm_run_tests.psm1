@@ -8,7 +8,7 @@ param ([Parameter(Mandatory=$True)] [string] $Admin,
 
 Push-Location $WorkingDirectory
 
-Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
+Import-Module $PSScriptRoot\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
 
 #
 # Execute tests on VM.
