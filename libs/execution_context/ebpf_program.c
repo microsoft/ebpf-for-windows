@@ -48,12 +48,12 @@ typedef struct _ebpf_program
     ebpf_extension_data_t* general_helper_provider_data;
     ebpf_extension_dispatch_table_t* general_helper_provider_dispatch_table;
 
-    ebpf_extension_client_t* program_info_client;
-    const void* program_info_binding_context;
-    const ebpf_extension_data_t* program_info_provider_data;
+    ebpf_extension_client_t* info_extension_client;
+    const void* info_extension_provider_binding_context;
+    const ebpf_extension_data_t* info_extension_provider_data;
     // Program type specific helper function count.
     uint32_t provider_helper_function_count;
-    bool program_invalidated;
+    bool invalidated;
 
     ebpf_trampoline_table_t* trampoline_table;
 
@@ -73,7 +73,7 @@ typedef struct _ebpf_program
 } ebpf_program_t;
 
 static ebpf_result_t
-_ebpf_program_register_helpers(ebpf_program_t* program);
+_ebpf_program_register_helpers(_In_ const ebpf_program_t* program);
 
 ebpf_result_t
 ebpf_program_initiate()
@@ -199,11 +199,11 @@ _ebpf_program_program_info_provider_changed(
         }
     }
 
-    program->program_info_binding_context = provider_binding_context;
-    program->program_info_provider_data = provider_data;
+    program->info_extension_provider_binding_context = provider_binding_context;
+    program->info_extension_provider_data = provider_data;
 Exit:
     ebpf_free(provider_helper_function_ids);
-    program->program_invalidated = (program->program_info_provider_data == NULL);
+    program->invalidated = (program->info_extension_provider_data == NULL);
     EBPF_RETURN_VOID();
 }
 
@@ -243,8 +243,8 @@ static const bpf_prog_type_t
 _ebpf_program_get_bpf_prog_type(_In_ const ebpf_program_t* program)
 {
     bpf_prog_type_t prog_type = BPF_PROG_TYPE_UNSPEC;
-    if (program->program_info_binding_context != NULL) {
-        ebpf_program_data_t* program_data = (ebpf_program_data_t*)program->program_info_provider_data->data;
+    if (program->info_extension_provider_binding_context != NULL) {
+        ebpf_program_data_t* program_data = (ebpf_program_data_t*)program->info_extension_provider_data->data;
         prog_type = program_data->program_info->program_type_descriptor.bpf_prog_type;
     }
 
@@ -259,7 +259,7 @@ _ebpf_program_get_bpf_prog_type(_In_ const ebpf_program_t* program)
  * work-item.
  */
 static void
-_ebpf_program_epoch_free(void* context)
+_ebpf_program_epoch_free(_Post_invalid_ void* context)
 {
     EBPF_LOG_ENTRY();
     ebpf_program_t* program = (ebpf_program_t*)context;
@@ -267,7 +267,7 @@ _ebpf_program_epoch_free(void* context)
     ebpf_lock_destroy(&program->lock);
 
     ebpf_extension_unload(program->general_helper_extension_client);
-    ebpf_extension_unload(program->program_info_client);
+    ebpf_extension_unload(program->info_extension_client);
 
     switch (program->parameters.code_type) {
     case EBPF_CODE_JIT:
@@ -316,7 +316,7 @@ ebpf_program_load_providers(ebpf_program_t* program)
         goto Done;
     }
 
-    program->program_invalidated = false;
+    program->invalidated = false;
 
     return_value = ebpf_extension_load(
         &program->general_helper_extension_client,
@@ -367,15 +367,15 @@ ebpf_program_load_providers(ebpf_program_t* program)
     }
 
     return_value = ebpf_extension_load(
-        &program->program_info_client,
+        &program->info_extension_client,
         &ebpf_program_information_extension_interface_id, // Load program information extension.
         &program->parameters.program_type,                // Program type is the expected provider module Id.
         &module_id,
         program,
         NULL,
         NULL,
-        (void**)&program->program_info_binding_context,
-        &program->program_info_provider_data,
+        (void**)&program->info_extension_provider_binding_context,
+        &program->info_extension_provider_data,
         NULL,
         _ebpf_program_program_info_provider_changed);
 
@@ -634,7 +634,7 @@ Done:
 }
 
 static ebpf_result_t
-_ebpf_program_register_helpers(ebpf_program_t* program)
+_ebpf_program_register_helpers(_In_ const ebpf_program_t* program)
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
@@ -817,7 +817,7 @@ ebpf_program_invoke(_In_ const ebpf_program_t* program, _In_ void* context, _Out
     ebpf_program_tail_call_state_t state = {0};
     const ebpf_program_t* current_program = program;
 
-    if (!program || program->program_invalidated) {
+    if (!program || program->invalidated) {
         *result = 0;
         return;
     }
@@ -973,16 +973,16 @@ ebpf_program_get_program_info(_In_ const ebpf_program_t* program, _Outptr_ ebpf_
     ebpf_assert(program_info);
     *program_info = NULL;
 
-    if (program->program_invalidated) {
+    if (program->invalidated) {
         result = EBPF_EXTENSION_FAILED_TO_LOAD;
         goto Exit;
     }
 
-    if (!program->program_info_provider_data) {
+    if (!program->info_extension_provider_data) {
         result = EBPF_EXTENSION_FAILED_TO_LOAD;
         goto Exit;
     }
-    program_data = (ebpf_program_data_t*)program->program_info_provider_data->data;
+    program_data = (ebpf_program_data_t*)program->info_extension_provider_data->data;
 
     if (!program->general_helper_provider_data) {
         result = EBPF_EXTENSION_FAILED_TO_LOAD;
