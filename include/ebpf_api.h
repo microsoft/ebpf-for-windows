@@ -163,16 +163,17 @@ extern "C"
      * @param[out] error_message On failure points to a text description of
      *  the error.
      * @param[out] stats If non-NULL, returns verification statistics.
+     * @retval 0 Verification succeeded.
+     * @retval 1 Verification failed.
      */
-    uint32_t
-    ebpf_api_elf_verify_section_from_file(
+    _Success_(return == 0) uint32_t ebpf_api_elf_verify_section_from_file(
         _In_z_ const char* file,
         _In_z_ const char* section,
         _In_opt_ const ebpf_program_type_t* program_type,
         bool verbose,
-        const char** report,
-        const char** error_message,
-        ebpf_api_verifier_stats_t* stats);
+        _Outptr_result_maybenull_z_ const char** report,
+        _Outptr_result_maybenull_z_ const char** error_message,
+        _Out_opt_ ebpf_api_verifier_stats_t* stats);
 
     /**
      * @brief Verify that the program is safe to execute.
@@ -187,17 +188,18 @@ extern "C"
      * @param[out] error_message On failure points to a text description of
      *  the error.
      * @param[out] stats If non-NULL, returns verification statistics.
+     * @retval 0 Verification succeeded.
+     * @retval 1 Verification failed.
      */
-    uint32_t
-    ebpf_api_elf_verify_section_from_memory(
+    _Success_(return == 0) uint32_t ebpf_api_elf_verify_section_from_memory(
         _In_reads_(data_length) const char* data,
         size_t data_length,
         _In_z_ const char* section,
         _In_opt_ const ebpf_program_type_t* program_type,
         bool verbose,
-        const char** report,
-        const char** error_message,
-        ebpf_api_verifier_stats_t* stats);
+        _Outptr_result_maybenull_z_ const char** report,
+        _Outptr_result_maybenull_z_ const char** error_message,
+        _Out_opt_ ebpf_api_verifier_stats_t* stats);
 
     /**
      * @brief Free memory for a string returned from an eBPF API.

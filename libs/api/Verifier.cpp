@@ -540,95 +540,86 @@ _ebpf_api_elf_verify_section_from_stream(
     return 0;
 }
 
-static std::string
-load_file_to_memory(const std::string& path)
+static uint32_t
+_load_file_to_memory(
+    _In_ const std::string& path, _Out_ std::string& data, _Outptr_result_maybenull_z_ const char** error_message)
 {
+    data = "";
     struct stat st;
     if (stat(path.c_str(), &st)) {
-        throw std::runtime_error(std::string("No such file or directory opening ") + path);
+        *error_message = allocate_string(std::string("error: No such file or directory opening ") + path);
+        return 1;
     }
     if (std::ifstream stream{path, std::ios::in | std::ios::binary}) {
-        std::string data;
         data.resize(st.st_size);
-        if (!stream.read(data.data(), data.size())) {
-            throw std::runtime_error(std::string("Failed to read file: ") + path);
+        if (stream.read(data.data(), data.size())) {
+            *error_message = nullptr;
+            return 0;
         }
-        return data;
     }
-    throw std::runtime_error(std::string("Failed to read file: ") + path);
+    *error_message = allocate_string(std::string("error: Failed to read file: ") + path);
+    return 1;
 }
 
-uint32_t
-ebpf_api_elf_verify_section_from_file(
+static _Success_(return == 0) uint32_t _verify_section_from_string(
+    std::string data,
+    _In_z_ const char* name,
+    _In_z_ const char* section,
+    _In_opt_ const ebpf_program_type_t* program_type,
+    bool verbose,
+    _Outptr_result_maybenull_z_ const char** report,
+    _Outptr_result_maybenull_z_ const char** error_message,
+    _Out_opt_ ebpf_api_verifier_stats_t* stats)
+{
+    *error_message = nullptr;
+    *report = nullptr;
+
+    if (!ElfCheckElf(
+            data.size(),
+            const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(data.data())),
+            static_cast<uint32_t>(data.size()))) {
+
+        *error_message =
+            allocate_string(std::string("error: ELF file ") + name + " is malformed: " + _elf_everparse_error);
+        return 1;
+    }
+
+    auto stream = std::stringstream(data);
+    struct _thread_local_storage_cache tls_cache;
+    set_global_program_and_attach_type(program_type, nullptr);
+    set_verification_in_progress(true);
+    return _ebpf_api_elf_verify_section_from_stream(stream, name, section, verbose, report, error_message, stats);
+}
+
+_Success_(return == 0) uint32_t ebpf_api_elf_verify_section_from_file(
     _In_z_ const char* file,
     _In_z_ const char* section,
     _In_opt_ const ebpf_program_type_t* program_type,
     bool verbose,
-    const char** report,
-    const char** error_message,
-    ebpf_api_verifier_stats_t* stats)
+    _Outptr_result_maybenull_z_ const char** report,
+    _Outptr_result_maybenull_z_ const char** error_message,
+    _Out_opt_ ebpf_api_verifier_stats_t* stats)
 {
     *error_message = nullptr;
     *report = nullptr;
-    try {
-        auto data = load_file_to_memory(file);
-        if (!ElfCheckElf(
-                data.size(),
-                const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(data.data())),
-                static_cast<uint32_t>(data.size()))) {
-
-            throw std::runtime_error(std::string() + "ELF file " + file + " is malformed: " + _elf_everparse_error);
-        }
-
-        auto stream = std::stringstream(data);
-        struct _thread_local_storage_cache tls_cache;
-        set_global_program_and_attach_type(program_type, nullptr);
-        set_verification_in_progress(true);
-        return _ebpf_api_elf_verify_section_from_stream(stream, file, section, verbose, report, error_message, stats);
-    } catch (std::runtime_error& err) {
-        std::ostringstream error;
-        error << "error: " << err.what();
-        *error_message = allocate_string(error.str());
-        return 1;
-    } catch (std::bad_alloc) {
-        return 1;
+    std::string data;
+    uint32_t error = _load_file_to_memory(file, data, error_message);
+    if (error) {
+        return error;
     }
+    return _verify_section_from_string(data, file, section, program_type, verbose, report, error_message, stats);
 }
 
-uint32_t
-ebpf_api_elf_verify_section_from_memory(
+_Success_(return == 0) uint32_t ebpf_api_elf_verify_section_from_memory(
     _In_reads_(data_length) const char* data,
     size_t data_length,
     _In_z_ const char* section,
     _In_opt_ const ebpf_program_type_t* program_type,
     bool verbose,
-    const char** report,
-    const char** error_message,
-    ebpf_api_verifier_stats_t* stats)
+    _Outptr_result_maybenull_z_ const char** report,
+    _Outptr_result_maybenull_z_ const char** error_message,
+    _Out_opt_ ebpf_api_verifier_stats_t* stats)
 {
-    *error_message = nullptr;
-    *report = nullptr;
-    try {
-        if (!ElfCheckElf(
-                data_length,
-                const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(data)),
-                static_cast<uint32_t>(data_length))) {
-            throw std::runtime_error("ELF file is malformed: " + _elf_everparse_error);
-        }
-
-        std::stringstream stream(std::string(data, data_length));
-        struct _thread_local_storage_cache tls_cache;
-
-        set_global_program_and_attach_type(program_type, nullptr);
-        set_verification_in_progress(true);
-        return _ebpf_api_elf_verify_section_from_stream(
-            stream, "memory", section, verbose, report, error_message, stats);
-    } catch (std::runtime_error& err) {
-        std::ostringstream error;
-        error << "error: " << err.what();
-        *error_message = allocate_string(error.str());
-        return 1;
-    } catch (std::bad_alloc) {
-        return 1;
-    }
+    return _verify_section_from_string(
+        std::string(data, data_length), "memory", section, program_type, verbose, report, error_message, stats);
 }
