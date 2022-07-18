@@ -123,12 +123,12 @@ Functions</h2></td></tr>
 <tr class="memitem:ae4fbdf4fbbb9196651fd40fd0640c3c9"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#ae4fbdf4fbbb9196651fd40fd0640c3c9">ebpf_api_elf_disassemble_section</a> (const char *file, const char *section, const char **disassembly, const char **error_message)</td></tr>
 <tr class="memdesc:ae4fbdf4fbbb9196651fd40fd0640c3c9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Convert an eBPF program to human readable byte code.  <a href="ebpf__api_8h.html#ae4fbdf4fbbb9196651fd40fd0640c3c9">More...</a><br /></td></tr>
 <tr class="separator:ae4fbdf4fbbb9196651fd40fd0640c3c9"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a778eac4635b245ec7d07f70d2b4c37e7"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a778eac4635b245ec7d07f70d2b4c37e7">ebpf_api_elf_verify_section_from_file</a> (const char *file, const char *section, const <a class="el" href="ebpf__windows_8h.html#a7392ed9f9037688cd94f7069c523c251">ebpf_program_type_t</a> *program_type, bool verbose, const char **report, const char **error_message, <a class="el" href="structebpf__api__verifier__stats__t.html">ebpf_api_verifier_stats_t</a> *stats)</td></tr>
-<tr class="memdesc:a778eac4635b245ec7d07f70d2b4c37e7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Verify that the program is safe to execute.  <a href="ebpf__api_8h.html#a778eac4635b245ec7d07f70d2b4c37e7">More...</a><br /></td></tr>
-<tr class="separator:a778eac4635b245ec7d07f70d2b4c37e7"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ae85a6a125700ec846231f3f07cc905dd"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#ae85a6a125700ec846231f3f07cc905dd">ebpf_api_elf_verify_section_from_memory</a> (_In_reads_(data_length) const char *data, size_t data_length, const char *section, const <a class="el" href="ebpf__windows_8h.html#a7392ed9f9037688cd94f7069c523c251">ebpf_program_type_t</a> *program_type, bool verbose, const char **report, const char **error_message, <a class="el" href="structebpf__api__verifier__stats__t.html">ebpf_api_verifier_stats_t</a> *stats)</td></tr>
-<tr class="memdesc:ae85a6a125700ec846231f3f07cc905dd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Verify that the program is safe to execute.  <a href="ebpf__api_8h.html#ae85a6a125700ec846231f3f07cc905dd">More...</a><br /></td></tr>
-<tr class="separator:ae85a6a125700ec846231f3f07cc905dd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac8b5a14825344d3e28be39753cf7618b"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#ac8b5a14825344d3e28be39753cf7618b">ebpf_api_elf_verify_section_from_file</a> (const char *file, const char *section, const <a class="el" href="ebpf__windows_8h.html#a7392ed9f9037688cd94f7069c523c251">ebpf_program_type_t</a> *program_type, bool verbose, const char **report, const char **error_message, _Out_opt_ <a class="el" href="structebpf__api__verifier__stats__t.html">ebpf_api_verifier_stats_t</a> *stats)</td></tr>
+<tr class="memdesc:ac8b5a14825344d3e28be39753cf7618b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Verify that the program is safe to execute.  <a href="ebpf__api_8h.html#ac8b5a14825344d3e28be39753cf7618b">More...</a><br /></td></tr>
+<tr class="separator:ac8b5a14825344d3e28be39753cf7618b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afb890ffe6e45389578b02e35805981f6"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#afb890ffe6e45389578b02e35805981f6">ebpf_api_elf_verify_section_from_memory</a> (_In_reads_(data_length) const char *data, size_t data_length, const char *section, const <a class="el" href="ebpf__windows_8h.html#a7392ed9f9037688cd94f7069c523c251">ebpf_program_type_t</a> *program_type, bool verbose, const char **report, const char **error_message, _Out_opt_ <a class="el" href="structebpf__api__verifier__stats__t.html">ebpf_api_verifier_stats_t</a> *stats)</td></tr>
+<tr class="memdesc:afb890ffe6e45389578b02e35805981f6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Verify that the program is safe to execute.  <a href="ebpf__api_8h.html#afb890ffe6e45389578b02e35805981f6">More...</a><br /></td></tr>
+<tr class="separator:afb890ffe6e45389578b02e35805981f6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a90cbc93764ecd96f2a84fd659e517851"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a90cbc93764ecd96f2a84fd659e517851">ebpf_free_string</a> (const char *string)</td></tr>
 <tr class="memdesc:a90cbc93764ecd96f2a84fd659e517851"><td class="mdescLeft">&#160;</td><td class="mdescRight">Free memory for a string returned from an eBPF API.  <a href="ebpf__api_8h.html#a90cbc93764ecd96f2a84fd659e517851">More...</a><br /></td></tr>
 <tr class="separator:a90cbc93764ecd96f2a84fd659e517851"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -336,8 +336,8 @@ Variables</h2></td></tr>
 
 </div>
 </div>
-<a id="a778eac4635b245ec7d07f70d2b4c37e7"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a778eac4635b245ec7d07f70d2b4c37e7">&#9670;&nbsp;</a></span>ebpf_api_elf_verify_section_from_file()</h2>
+<a id="ac8b5a14825344d3e28be39753cf7618b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac8b5a14825344d3e28be39753cf7618b">&#9670;&nbsp;</a></span>ebpf_api_elf_verify_section_from_file()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -381,7 +381,7 @@ Variables</h2></td></tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype"><a class="el" href="structebpf__api__verifier__stats__t.html">ebpf_api_verifier_stats_t</a> *&#160;</td>
+          <td class="paramtype">_Out_opt_ <a class="el" href="structebpf__api__verifier__stats__t.html">ebpf_api_verifier_stats_t</a> *&#160;</td>
           <td class="paramname"><em>stats</em>&#160;</td>
         </tr>
         <tr>
@@ -405,11 +405,18 @@ Variables</h2></td></tr>
   </table>
   </dd>
 </dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">0</td><td>Verification succeeded. </td></tr>
+    <tr><td class="paramname">1</td><td>Verification failed. </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>
-<a id="ae85a6a125700ec846231f3f07cc905dd"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ae85a6a125700ec846231f3f07cc905dd">&#9670;&nbsp;</a></span>ebpf_api_elf_verify_section_from_memory()</h2>
+<a id="afb890ffe6e45389578b02e35805981f6"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#afb890ffe6e45389578b02e35805981f6">&#9670;&nbsp;</a></span>ebpf_api_elf_verify_section_from_memory()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -459,7 +466,7 @@ Variables</h2></td></tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype"><a class="el" href="structebpf__api__verifier__stats__t.html">ebpf_api_verifier_stats_t</a> *&#160;</td>
+          <td class="paramtype">_Out_opt_ <a class="el" href="structebpf__api__verifier__stats__t.html">ebpf_api_verifier_stats_t</a> *&#160;</td>
           <td class="paramname"><em>stats</em>&#160;</td>
         </tr>
         <tr>
@@ -481,6 +488,13 @@ Variables</h2></td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">report</td><td>Points to a text section describing why the program failed verification. </td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">error_message</td><td>On failure points to a text description of the error. </td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">stats</td><td>If non-NULL, returns verification statistics. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">0</td><td>Verification succeeded. </td></tr>
+    <tr><td class="paramname">1</td><td>Verification failed. </td></tr>
   </table>
   </dd>
 </dl>
