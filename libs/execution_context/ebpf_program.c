@@ -259,7 +259,7 @@ _ebpf_program_get_bpf_prog_type(_In_ const ebpf_program_t* program)
  * work-item.
  */
 static void
-_ebpf_program_epoch_free(_Post_invalid_ void* context)
+_ebpf_program_epoch_free(_In_ _Post_invalid_ void* context)
 {
     EBPF_LOG_ENTRY();
     ebpf_program_t* program = (ebpf_program_t*)context;
