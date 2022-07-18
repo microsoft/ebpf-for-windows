@@ -7,13 +7,15 @@ param ([parameter(Mandatory=$false)][string] $Target = "TEST_VM",
        [parameter(Mandatory=$false)][string] $VMListJsonFileName = "vm_list.json",
        [parameter(Mandatory=$false)][string] $TestExecutionJsonFileName = "test_execution.json")
 
+Get-Location
 Push-Location $WorkingDirectory
+Get-Location
 
 $TestVMCredential = Get-StoredCredential -Target $Target -ErrorAction Stop
 
 # Load other utility modules.
-Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
-Import-Module .\config_test_vm.psm1 -Force -ArgumentList ($TestVMCredential.UserName, $TestVMCredential.Password, $WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
+Import-Module $PSScriptRoot\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
+Import-Module $PSScriptRoot\config_test_vm.psm1 -Force -ArgumentList ($TestVMCredential.UserName, $TestVMCredential.Password, $LogFileName) -WarningAction SilentlyContinue
 
 # Read the config json.
 $Config = Get-Content ("{0}\{1}" -f $PSScriptRoot, $VMListJsonFileName) | ConvertFrom-Json
@@ -37,13 +39,13 @@ Initialize-AllVMs -VMList $VMList -ErrorAction Stop
 # Export build artifacts to the test VMs.
 Export-BuildArtifactsToVMs -VMList $VMList -ErrorAction Stop
 
-# Configure network adapters on VMs.
-Initialize-NetworkInterfacesOnVMs $MultiVMTestConfig -ErrorAction Stop
-
 # Install eBPF Components on the test VM.
 foreach($VM in $VMList) {
     $VMName = $VM.Name
     Install-eBPFComponentsOnVM -VMName $VMname -ErrorAction Stop
 }
+
+# Configure network adapters on VMs.
+Initialize-NetworkInterfacesOnVMs $MultiVMTestConfig -ErrorAction Stop
 
 Pop-Location

@@ -3,13 +3,12 @@
 
 param ([Parameter(Mandatory=$True)] [string] $Admin,
        [Parameter(Mandatory=$True)] [SecureString] $AdminPassword,
-       [Parameter(Mandatory=$True)] [string] $WorkingDirectory,
        [Parameter(Mandatory=$True)] [string] $LogFileName)
 
 
-Push-Location $WorkingDirectory
+Get-Location
 
-Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
+Import-Module $PSScriptRoot\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
 
 #
 # VM Initialization functions
@@ -172,10 +171,7 @@ function Export-BuildArtifactsToVMs
 {
     param([Parameter(Mandatory=$True)] $VMList)
 
-    $tempFileName = [System.IO.Path]::GetTempFileName() + ".tgz"
-    Write-Log "Creating $tempFileName containing files in $pwd"
-    &tar @("cfz", "$tempFileName", "*")
-    Write-Log "Created $tempFileName containing files in $pwd"
+    $msiFileName = "ebpf-for-windows-0.2.0.msi"
 
     foreach($VM in $VMList) {
         $VMName = $VM.Name
@@ -192,20 +188,12 @@ function Export-BuildArtifactsToVMs
             }
             $VMSystemDrive = Invoke-Command -Session $VMSession -ScriptBlock {return $Env:SystemDrive}
         }
-        Write-Log "Copying $tempFileName to $VMSystemDrive\eBPF on $VMName"
-        Copy-Item -ToSession $VMSession -Path $tempFileName -Destination "$VMSystemDrive\eBPF\ebpf.tgz" -Force 2>&1 -ErrorAction Stop | Write-Log
-        Write-Log "Copied $tempFileName to $VMSystemDrive\eBPF on $VMName"
+        Write-Log "Copying $msiFileName to $VMSystemDrive\eBPF on $VMName"
+        Copy-Item -ToSession $VMSession -Path $msiFileName -Destination "$VMSystemDrive\eBPF\ebpf-for-windows.msi" -Force 2>&1 -ErrorAction Stop | Write-Log
+        Write-Log "Copied $msiFileName to $VMSystemDrive\eBPF on $VMName"
 
-        Write-Log "Unpacking $tempFileName to $VMSystemDrive\eBPF on $VMName"
-        Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
-            cd $Env:SystemDrive\eBPF
-            &tar @("xf", "ebpf.tgz")
-        }
-        Write-Log "Unpacked $tempFileName to $VMSystemDrive\eBPF on $VMName"
         Write-Log "Export completed." -ForegroundColor Green
     }
-
-    Remove-Item -Force $tempFileName
 }
 
 #
@@ -289,11 +277,7 @@ function Install-eBPFComponentsOnVM
     Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
         param([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
               [Parameter(Mandatory=$True)] [string] $LogFileName)
-        $WorkingDirectory = "$env:SystemDrive\$WorkingDirectory"
-        Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
-        Import-Module $WorkingDirectory\install_ebpf.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
-
-        Install-eBPFComponents -Tracing $true
+        msiexec.exe /i "$env:SystemDrive\$WorkingDirectory\ebpf-for-windows.msi" /quiet /qn /l*v $LogFileName
     } -ArgumentList ("eBPF", $LogFileName) -ErrorAction Stop
     Write-Log "eBPF components installed on $VMName" -ForegroundColor Green
 }
@@ -315,7 +299,7 @@ function Initialize-NetworkInterfacesOnVMs
                   [Parameter(Mandatory=$True)] [string] $WorkingDirectory,
                   [Parameter(Mandatory=$True)] [string] $LogFileName)
             $WorkingDirectory = "$env:SystemDrive\$WorkingDirectory"
-            Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
+            Import-Module $env:ProgramFiles\ebpf-for-windows\scripts\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
 
             foreach ($Interface in $InterfaceList) {
                 $InterfaceAlias = $Interface.Alias

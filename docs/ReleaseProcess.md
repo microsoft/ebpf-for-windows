@@ -5,14 +5,15 @@ eBPF for Windows.
 
 Note: Currently releases are not production signed.
 
-1. Update the version number, making sure to follow [Semantic Versioning 2.0](https://semver.org), in the following two files:
+1. Update the version number, making sure to follow [Semantic Versioning 2.0](https://semver.org), in the following files:
     * .github\workflows\reusable-build.yml
     * tools\nuget\ebpf-for-windows.nuspec
+    * scripts\config_test_vm.psm1
 2. Create a pull request with the version number changes
 3. Add a tag to the commit with the version number changes
    ("git tag v0.2.0", "git push --tags")
 4. Once the build completes on the PR, download the
-   "ebpf-for-windows.msi" and "ebpf-for-windows nuget" build artifacts
+   "ebpf-for-windows.msi Release" and "ebpf-for-windows nuget" build artifacts
    (accessible via the Actions tab on github)
 5. Extract the .msi and .nupkg, respectively, out of them
 6. Test the MSI manually (since not yet tested in CI/CD):
