@@ -24,10 +24,6 @@ EbpfMapDescriptor&
 get_map_descriptor_windows(int map_fd);
 
 ebpf_result_t
-get_bpf_program_and_attach_type(
-    const std::string& section, _Out_ bpf_prog_type_t* program_type, _Out_ bpf_attach_type_t* attach_type);
-
-ebpf_result_t
 get_program_and_attach_type(
     const std::string& section, _Out_ ebpf_program_type_t* program_type, _Out_ ebpf_attach_type_t* attach_type);
 

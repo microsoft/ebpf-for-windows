@@ -27,7 +27,7 @@ ebpf_test_pinned_map_enum()
     ebpf_map_info_t* map_info = nullptr;
     std::map<std::string, std::string> results;
 
-    fd_t map_fd = bpf_create_map(BPF_MAP_TYPE_ARRAY, sizeof(uint32_t), sizeof(uint64_t), 1024, 0);
+    fd_t map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, nullptr, sizeof(uint32_t), sizeof(uint64_t), 1024, nullptr);
     REQUIRE(map_fd >= 0);
 
     if (map_fd < 0)

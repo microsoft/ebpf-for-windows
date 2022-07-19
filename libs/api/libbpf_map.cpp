@@ -141,7 +141,7 @@ bpf_object__pin_maps(struct bpf_object* obj, const char* path)
     return 0;
 
 err_unpin_maps:
-    while ((map = bpf_map__prev(map, obj)) != NULL) {
+    while ((map = bpf_object__prev_map(obj, map)) != NULL) {
         bpf_map__unpin(map, NULL);
     }
     return libbpf_err(err);
@@ -325,4 +325,13 @@ ring_buffer__free(struct ring_buffer* ring_buffer)
         (void)ebpf_ring_buffer_map_unsubscribe(*it);
     ring_buffer->subscriptions.clear();
     delete ring_buffer;
+}
+
+const char*
+libbpf_bpf_map_type_str(enum bpf_map_type t)
+{
+    if (t < 0 || t >= _countof(_ebpf_map_display_names))
+        return nullptr;
+
+    return _ebpf_map_display_names[t];
 }

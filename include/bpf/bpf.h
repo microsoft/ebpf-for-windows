@@ -63,62 +63,6 @@ bpf_link_get_next_id(__u32 start_id, __u32* next_id);
 /**
  * @brief Create a new map.
  *
- * @param[in] map_type Type of map to create.
- * @param[in] key_size Size in bytes of keys.
- * @param[in] value_size Size in bytes of values.
- * @param[in] max_entries Maximum number of entries in the map.
- * @param[in] map_flags Flags (currently 0).
- *
- * @returns A new file descriptor that refers to the map.
- * The caller should call _close() on the fd to close this when done.
- * A negative value indicates an error occurred and errno was set.
- *
- * @exception EINVAL An invalid argument was provided.
- * @exception ENOMEM Out of memory.
- */
-int
-bpf_create_map(enum bpf_map_type map_type, int key_size, int value_size, int max_entries, __u32 map_flags);
-
-/**
- * @brief Create a new map-in-map.
- *
- * @param[in] map_type Type of outer map to create.
- * @param[in] name Optionally, the name to use for the map.
- * @param[in] key_size Size in bytes of keys.
- * @param[in] inner_map_fd File descriptor of the inner map template.
- * @param[in] max_entries Maximum number of entries in the map.
- * @param[in] map_flags Flags (currently 0).
- *
- * @returns A new file descriptor that refers to the map.
- * The caller should call _close() on the fd to close this when done.
- * A negative value indicates an error occurred and errno was set.
- *
- * @exception EBADF The file descriptor was not found.
- * @exception EINVAL An invalid argument was provided.
- * @exception ENOMEM Out of memory.
- */
-int
-bpf_create_map_in_map(
-    enum bpf_map_type map_type, const char* name, int key_size, int inner_map_fd, int max_entries, __u32 map_flags);
-
-/**
- * @brief Create a new map.
- *
- * @param[in] create_attr Structure of attributes using which a map gets created.
- *
- * @returns A new file descriptor that refers to the map.
- * The caller should call _close() on the fd to close this when done.
- * A negative value indicates an error occurred and errno was set.
- *
- * @exception EINVAL An invalid argument was provided.
- * @exception ENOMEM Out of memory.
- */
-int
-bpf_create_map_xattr(const struct bpf_create_map_attr* create_attr);
-
-/**
- * @brief Create a new map.
- *
  * @param[in] map_type Type of outer map to create.
  * @param[in] map_name Optionally, the name to use for the map.
  * @param[in] key_size Size in bytes of keys.
@@ -376,39 +320,11 @@ bpf_prog_load(
     size_t insn_cnt,
     const struct bpf_prog_load_opts* opts);
 
-/**
- * @brief Load (but do not attach) eBPF maps and programs from an ELF file.
- *
- * @param[in] file Path name to an ELF file.
- * @param[in] type Program type to use for loading eBPF programs.  If BPF_PROG_TYPE_UNKNOWN,
- * the program type is derived from the section prefix in the ELF file.
- * @param[out] pobj Pointer to where to store the eBPF object loaded. The caller
- * is expected to call bpf_object__close() to free the object.
- * @param[out] prog_fd Returns a file descriptor for the first program.
- * The caller should not call _close() on the fd, but should instead use
- * bpf_object__close() on the object returned.
- *
- * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
- *
- * @deprecated Use bpf_prog_load() instead.
- *
- * @exception EACCES The program failed verification.
- * @exception EINVAL One or more parameters are incorrect.
- * @exception ENOMEM Out of memory.
- *
- * @sa bpf_load_program
- * @sa bpf_load_program_xattr
- * @sa bpf_object__close
- * @sa bpf_program__attach
- */
-int
-bpf_prog_load_deprecated(const char* file, enum bpf_prog_type type, struct bpf_object** pobj, int* prog_fd);
-
 /** @} */
 
 #else
 #pragma warning(push)
 #include "libbpf/src/bpf.h"
+#include "bpf_legacy.h"
 #pragma warning(pop)
 #endif

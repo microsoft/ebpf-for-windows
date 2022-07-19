@@ -10,18 +10,12 @@
 #include <string>
 #include <vector>
 #include "bpf/bpf.h"
+#include "bpf/libbpf.h"
 #include "ebpf_api.h"
 #include "ebpf_windows.h"
 #include "platform.h"
 #include "maps.h"
 #include "tokens.h"
-
-static PCSTR
-_get_map_type_name(ebpf_map_type_t type)
-{
-    int index = (type >= _countof(_ebpf_map_display_names)) ? 0 : type;
-    return _ebpf_map_display_names[index];
-}
 
 DWORD
 handle_ebpf_show_maps(
@@ -57,7 +51,7 @@ handle_ebpf_show_maps(
             printf(
                 "%6u  %18s%6u%7u%9u%7d%6u  %s\n",
                 info.id,
-                _get_map_type_name(info.type),
+                libbpf_bpf_map_type_str(info.type),
                 info.key_size,
                 info.value_size,
                 info.max_entries,

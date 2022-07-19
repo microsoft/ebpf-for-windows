@@ -67,7 +67,7 @@ load(int argc, char** argv)
         return 1;
     }
 
-    program = bpf_program__next(nullptr, object);
+    program = bpf_object__next_program(object, nullptr);
     if (program == nullptr) {
         fprintf(stderr, "Failed to find eBPF program from object.\n");
         return 1;

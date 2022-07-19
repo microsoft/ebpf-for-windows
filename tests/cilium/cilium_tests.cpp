@@ -23,7 +23,7 @@ verify_program(_In_z_ const char* file, uint32_t expected_section_count)
     REQUIRE(object != nullptr);
 
     while (true) {
-        program = bpf_program__next(program, object);
+        program = bpf_object__next_program(object, program);
         if (program == nullptr) {
             break;
         }

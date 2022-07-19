@@ -339,6 +339,7 @@ handle_ebpf_delete_program(
     // If there are no other references to the program, it will be unloaded.
     bpf_object* object;
     bpf_object* next_object;
+#pragma warning(suppress : 4996) // deprecated
     bpf_object__for_each_safe(object, next_object)
     {
         bpf_program* program;
@@ -716,7 +717,7 @@ handle_ebpf_show_programs(
                     execution_type_name = "NATIVE";
                     break;
                 }
-                const char* program_type_name = ebpf_get_program_type_name(&info.type_uuid);
+                const char* program_type_name = libbpf_bpf_prog_type_str(info.type);
 
                 if (level == VL_NORMAL) {
                     printf(
