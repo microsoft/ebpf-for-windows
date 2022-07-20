@@ -283,7 +283,7 @@ get_ebpf_program_type(bpf_prog_type_t bpf_program_type)
 }
 
 _Ret_maybenull_ const ebpf_attach_type_t*
-get_ebpf_attach_type(bpf_attach_type_t bpf_attach_type)
+get_ebpf_attach_type(bpf_attach_type_t bpf_attach_type) noexcept
 {
     for (const auto& definition : _windows_section_definitions) {
         if (definition.get()->bpf_attach_type == bpf_attach_type) {
@@ -295,7 +295,7 @@ get_ebpf_attach_type(bpf_attach_type_t bpf_attach_type)
 }
 
 bpf_prog_type_t
-get_bpf_program_type(_In_ const ebpf_program_type_t* ebpf_program_type)
+get_bpf_program_type(_In_ const ebpf_program_type_t* ebpf_program_type) noexcept
 {
     for (auto const& [key, value] : _windows_program_information) {
         if (IsEqualGUID(*ebpf_program_type, key)) {
@@ -307,7 +307,7 @@ get_bpf_program_type(_In_ const ebpf_program_type_t* ebpf_program_type)
 }
 
 bpf_attach_type_t
-get_bpf_attach_type(_In_ const ebpf_attach_type_t* ebpf_attach_type)
+get_bpf_attach_type(_In_ const ebpf_attach_type_t* ebpf_attach_type) noexcept
 {
     for (const auto& definition : _windows_section_definitions) {
         if (IsEqualGUID(*ebpf_attach_type, *definition.get()->attach_type)) {
