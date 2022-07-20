@@ -11,7 +11,7 @@
 #include "sample_ext_program_info.h"
 
 bpf_attach_type_t
-get_bpf_attach_type(_In_ const ebpf_attach_type_t* ebpf_attach_type);
+get_bpf_attach_type(_In_ const ebpf_attach_type_t* ebpf_attach_type) noexcept;
 
 typedef struct _ebpf_free_memory
 {
