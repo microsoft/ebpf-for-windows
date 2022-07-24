@@ -2264,6 +2264,12 @@ TEST_CASE("load_native_program_negative3", "[end-to-end]")
         ERROR_OBJECT_ALREADY_EXISTS);
 
     bpf_object__close(object);
+
+    // Now that we have closed the object, try to load programs from the same module again. This should
+    // fail as the module should now be marked as "unloading".
+    REQUIRE(
+        test_ioctl_load_native_programs(
+            &provider_module_id, nullptr, MAP_COUNT, map_handles, PROGRAM_COUNT, program_handles) != ERROR_SUCCESS);
 }
 
 // Load native module and then try to load programs with incorrect params.
@@ -2284,6 +2290,12 @@ TEST_CASE("load_native_program_negative4", "[end-to-end]")
 
     REQUIRE(UuidCreate(&provider_module_id) == RPC_S_OK);
 
+    // First try to load native program without loading the native module.
+    REQUIRE(
+        test_ioctl_load_native_programs(
+            &provider_module_id, nullptr, INCORRECT_MAP_COUNT, map_handles, PROGRAM_COUNT, program_handles) ==
+        ERROR_PATH_NOT_FOUND);
+
     // Creating valid service with valid driver.
     _create_service_helper(L"droppacket_um.dll", NATIVE_DRIVER_SERVICE_NAME, &provider_module_id, &service_handle);
 
@@ -2296,8 +2308,8 @@ TEST_CASE("load_native_program_negative4", "[end-to-end]")
     // Try to load the programs by passing wrong map and program handles size. This should fail.
     REQUIRE(
         test_ioctl_load_native_programs(
-            &provider_module_id, nullptr, INCORRECT_MAP_COUNT, map_handles, PROGRAM_COUNT, program_handles) !=
-        ERROR_SUCCESS);
+            &provider_module_id, nullptr, INCORRECT_MAP_COUNT, map_handles, PROGRAM_COUNT, program_handles) ==
+        ERROR_INVALID_PARAMETER);
 
     // Delete the created service.
     Platform::_delete_service(service_handle);
@@ -2320,6 +2332,40 @@ TEST_CASE("load_native_program_negative5", "[end_to_end]")
     result =
         ebpf_program_load("map.sys", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_ANY, &object, &program_fd, &error_message);
     REQUIRE(result == -ENOENT);
+}
+
+// Load programs from a native module which has 0 programs.
+TEST_CASE("load_native_program_negative6", "[end-to-end]")
+{
+    _test_helper_end_to_end test_helper;
+
+    GUID provider_module_id = GUID_NULL;
+    SC_HANDLE service_handle = nullptr;
+    std::wstring service_path(SERVICE_PATH_PREFIX);
+    size_t count_of_maps = 0;
+    size_t count_of_programs = 0;
+    std::wstring file_path(L"droppacket_um.dll");
+    ebpf_handle_t map_handles;
+    ebpf_handle_t program_handles;
+
+    REQUIRE(UuidCreate(&provider_module_id) == RPC_S_OK);
+
+    // Creating valid service with valid driver.
+    _create_service_helper(L"empty_um.dll", NATIVE_DRIVER_SERVICE_NAME, &provider_module_id, &service_handle);
+
+    // Load native module. It should succeed.
+    service_path = service_path + NATIVE_DRIVER_SERVICE_NAME;
+    REQUIRE(
+        test_ioctl_load_native_module(service_path, &provider_module_id, &count_of_maps, &count_of_programs) ==
+        ERROR_SUCCESS);
+
+    // Try to load the programs from the module with 0 programs.
+    REQUIRE(
+        test_ioctl_load_native_programs(&provider_module_id, nullptr, 1, &map_handles, 1, &program_handles) ==
+        ERROR_INVALID_PARAMETER);
+
+    // Delete the created service.
+    Platform::_delete_service(service_handle);
 }
 
 // The below tests try to load native drivers for invalid programs (that will fail verification).
