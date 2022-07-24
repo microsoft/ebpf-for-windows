@@ -2334,6 +2334,11 @@ TEST_CASE("load_native_program_negative5", "[end_to_end]")
     REQUIRE(result == -ENOENT);
 }
 
+// The below tests try to load native drivers for invalid programs (that will fail verification).
+// Since verification can be skipped in bpf2c for only Debug builds, these tests are applicable
+// only for Debug build.
+#ifdef _DEBUG
+
 // Load programs from a native module which has 0 programs.
 TEST_CASE("load_native_program_negative6", "[end-to-end]")
 {
@@ -2368,10 +2373,6 @@ TEST_CASE("load_native_program_negative6", "[end-to-end]")
     Platform::_delete_service(service_handle);
 }
 
-// The below tests try to load native drivers for invalid programs (that will fail verification).
-// Since verification can be skipped in bpf2c for only Debug builds, these tests are applicable
-// only for Debug build.
-#ifdef _DEBUG
 static void
 _load_invalid_program(_In_z_ const char* file_name, ebpf_execution_type_t execution_type, int expected_result)
 {
