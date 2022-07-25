@@ -18,6 +18,7 @@ target_include_directories("fuzz" PRIVATE
   "${CMAKE_SOURCE_DIR}/external/bpftool"
   "${CMAKE_SOURCE_DIR}/external/ebpf-verifier/src"
   "${CMAKE_SOURCE_DIR}/external/ubpf/vm"
+  "${CMAKE_BINARY_DIR}/external/ubpf/vm"
   "${CMAKE_SOURCE_DIR}/include"
   "${CMAKE_SOURCE_DIR}/libs/api"
   "${CMAKE_SOURCE_DIR}/libs/api_common"

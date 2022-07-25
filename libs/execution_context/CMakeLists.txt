@@ -35,6 +35,7 @@ target_include_directories("execution_context_user" PRIVATE
   "${CMAKE_SOURCE_DIR}/libs/platform/user"
   "${CMAKE_SOURCE_DIR}/external/ubpf/vm/inc"
   "${CMAKE_SOURCE_DIR}/external/ubpf/vm"
+  "${CMAKE_BINARY_DIR}/external/ubpf/vm"
 )
 
 target_link_libraries("execution_context_user" PRIVATE
@@ -60,6 +61,7 @@ target_include_directories("execution_context_kernel" PRIVATE
   "${CMAKE_SOURCE_DIR}/libs/platform/kernel"
   "${CMAKE_SOURCE_DIR}/external/ubpf/vm/inc"
   "${CMAKE_SOURCE_DIR}/external/ubpf/vm"
+  "${CMAKE_BINARY_DIR}/external/ubpf/vm"
 )
 
 target_link_libraries("execution_context_kernel" PRIVATE

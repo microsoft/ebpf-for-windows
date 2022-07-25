@@ -16,6 +16,7 @@ target_include_directories("bpf2c_tests" PRIVATE
   "${CMAKE_SOURCE_DIR}/include"
   "${CMAKE_SOURCE_DIR}/tools/bpf2c"
   "${CMAKE_SOURCE_DIR}/external/ubpf/vm"
+  "${CMAKE_BINARY_DIR}/external/ubpf/vm"
   "${CMAKE_SOURCE_DIR}/external/ebpf-verifier/src"
 )
 
