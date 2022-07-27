@@ -1107,7 +1107,7 @@ _ebpf_core_protocol_unlink_program(_In_ const ebpf_operation_unlink_program_requ
             goto Done;
         }
     } else if (request->attach_data_present) {
-        // This path will be take for bpf_prog_detach, bpf_prog_detach2 APIs.
+        // This path will be taken for bpf_prog_detach and bpf_prog_detach2 APIs.
         // Find the link object matching the unlink request parameters.
         uint16_t data_length = request->header.length - FIELD_OFFSET(ebpf_operation_unlink_program_request_t, data);
         ebpf_link_t* previous_link = NULL;
@@ -1119,7 +1119,7 @@ _ebpf_core_protocol_unlink_program(_In_ const ebpf_operation_unlink_program_requ
             // Detach the link. Since _ebpf_core_find_matching_link takes a reference on the link object,
             // the detach function will not free the link object.
             ebpf_link_detach_program(link);
-            // Pass on the link object as the  previous object to the _ebpf_core_find_matching_link function,
+            // Pass the link object as the previous object parameter to the _ebpf_core_find_matching_link function,
             // which will release the reference from it.
             previous_link = link;
         }

@@ -1166,7 +1166,7 @@ ebpf_program_detach(
     fd_t program_fd,
     _In_ const ebpf_attach_type_t* attach_type,
     _In_reads_bytes_(attach_parameter_size) void* attach_parameter,
-    _In_ size_t attach_parameter_size)
+    size_t attach_parameter_size)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_protocol_buffer_t request_buffer;
@@ -1175,7 +1175,12 @@ ebpf_program_detach(
 
     EBPF_LOG_ENTRY();
 
-    request_buffer.resize(buffer_size);
+    try {
+        request_buffer.resize(buffer_size);
+    } catch (const std::bad_alloc&) {
+        result = EBPF_NO_MEMORY;
+        goto Exit;
+    }
     request = reinterpret_cast<ebpf_operation_unlink_program_request_t*>(request_buffer.data());
     request->header.id = ebpf_operation_id_t::EBPF_OPERATION_UNLINK_PROGRAM;
     request->header.length = static_cast<uint16_t>(request_buffer.size());

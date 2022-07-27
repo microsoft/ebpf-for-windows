@@ -380,7 +380,7 @@ extern "C"
         fd_t program_fd,
         _In_ const ebpf_attach_type_t* attach_type,
         _In_reads_bytes_(attach_parameter_size) void* attach_parameter,
-        _In_ size_t attach_parameter_size);
+        size_t attach_parameter_size);
 
     /**
      * Clean up and free bpf_link structure. Also close the
