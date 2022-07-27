@@ -717,7 +717,7 @@ handle_ebpf_show_programs(
                     execution_type_name = "NATIVE";
                     break;
                 }
-                const char* program_type_name = libbpf_bpf_prog_type_str(info.type);
+                const char* program_type_name = ebpf_get_program_type_name(&info.type_uuid);
 
                 if (level == VL_NORMAL) {
                     printf(

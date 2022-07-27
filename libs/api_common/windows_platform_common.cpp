@@ -319,6 +319,25 @@ get_bpf_attach_type(_In_ const ebpf_attach_type_t* ebpf_attach_type)
 }
 
 ebpf_result_t
+get_bpf_program_and_attach_type(
+    const std::string& section, _Out_ bpf_prog_type_t* program_type, _Out_ bpf_attach_type_t* attach_type)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+
+    const ebpf_section_definition_t* definition = _get_section_definition(section);
+    if (definition == nullptr) {
+        result = EBPF_KEY_NOT_FOUND;
+        goto Exit;
+    }
+
+    *program_type = definition->bpf_prog_type;
+    *attach_type = definition->bpf_attach_type;
+
+Exit:
+    return result;
+}
+
+ebpf_result_t
 get_program_and_attach_type(
     const std::string& section, _Out_ ebpf_program_type_t* program_type, _Out_ ebpf_attach_type_t* attach_type)
 {

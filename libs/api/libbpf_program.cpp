@@ -6,6 +6,7 @@
 #include "libbpf.h"
 #include "libbpf_internal.h"
 #include "platform.h"
+#include "windows_platform_common.hpp"
 
 // This file implements APIs in LibBPF's libbpf.h and is based on code in external/libbpf/src/libbpf.c
 // used under the BSD-2-Clause license, so the coding style tries to match the libbpf.c style to
@@ -438,16 +439,11 @@ libbpf_prog_type_by_name(const char* name, enum bpf_prog_type* prog_type, enum b
         return libbpf_err(-EINVAL);
     }
 
-    ebpf_program_type_t ebpf_program_type;
-    ebpf_attach_type_t ebpf_attach_type;
-    ebpf_result_t result = ebpf_get_program_type_by_name(name, &ebpf_program_type, &ebpf_attach_type);
+    ebpf_result_t result = get_bpf_program_and_attach_type(name, prog_type, expected_attach_type);
     if (result != EBPF_SUCCESS) {
         ebpf_assert(result == EBPF_KEY_NOT_FOUND);
         return libbpf_err(-ESRCH);
     }
-
-    *prog_type = get_bpf_program_type(&ebpf_program_type);
-    *expected_attach_type = get_bpf_attach_type(&ebpf_attach_type);
 
     return 0;
 }
@@ -455,17 +451,8 @@ libbpf_prog_type_by_name(const char* name, enum bpf_prog_type* prog_type, enum b
 int
 libbpf_attach_type_by_name(const char* name, enum bpf_attach_type* attach_type)
 {
-    if (name == nullptr || attach_type == nullptr) {
-        return libbpf_err(-EINVAL);
-    }
-
-    const ebpf_attach_type_t* ebpf_attach_type = get_attach_type_windows(name);
-    if (ebpf_attach_type == &EBPF_ATTACH_TYPE_UNSPECIFIED) {
-        return libbpf_err(-ESRCH);
-    }
-
-    *attach_type = get_bpf_attach_type(ebpf_attach_type);
-    return 0;
+    enum bpf_prog_type prog_type;
+    return libbpf_prog_type_by_name(name, &prog_type, attach_type);
 }
 
 void

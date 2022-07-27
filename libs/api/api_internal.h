@@ -611,23 +611,3 @@ get_bpf_program_type(_In_ const ebpf_program_type_t* program_type);
  */
 bpf_attach_type_t
 get_bpf_attach_type(_In_ const ebpf_attach_type_t* ebpf_attach_type);
-
-/**
- * @brief Get the name of a given program type.
- *
- * @param[in] program_type Program type.
- *
- * @returns Name of the program type, or NULL if not found.
- */
-_Ret_maybenull_z_ const char*
-ebpf_get_program_type_name(_In_ const ebpf_program_type_t* program_type);
-
-/**
- * @brief Get the name of a given attach type.
- *
- * @param[in] attach_type Attach type.
- *
- * @returns Name of the attach type, or NULL if not found.
- */
-_Ret_maybenull_z_ const char*
-ebpf_get_attach_type_name(_In_ const ebpf_attach_type_t* attach_type);

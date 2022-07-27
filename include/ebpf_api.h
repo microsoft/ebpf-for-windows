@@ -354,6 +354,26 @@ extern "C"
         _Out_ ebpf_attach_type_t* expected_attach_type);
 
     /**
+     * @brief Get the name of a given program type.
+     *
+     * @param[in] program_type Program type.
+     *
+     * @returns Name of the program type, or NULL if not found.
+     */
+    _Ret_maybenull_z_ const char*
+    ebpf_get_program_type_name(_In_ const ebpf_program_type_t* program_type);
+
+    /**
+     * @brief Get the name of a given attach type.
+     *
+     * @param[in] attach_type Attach type.
+     *
+     * @returns Name of the attach type, or NULL if not found.
+     */
+    _Ret_maybenull_z_ const char*
+    ebpf_get_attach_type_name(_In_ const ebpf_attach_type_t* attach_type);
+
+    /**
      * @brief Gets the next pinned program after a given path.
      *
      * @param[in] start_path Path to look for an entry greater than.
