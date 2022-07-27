@@ -240,7 +240,11 @@ bpf_prog_detach2(int prog_fd, int attachable_fd, enum bpf_attach_type type)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     if (_does_attach_type_support_attachable_fd(type)) {
-        result = ebpf_program_detach(prog_fd, get_ebpf_attach_type(type), &attachable_fd, sizeof(attachable_fd));
+        ebpf_attach_type_t attach_type = {0};
+        const ebpf_attach_type_t* attach_type_ptr = get_ebpf_attach_type(type);
+        if (attach_type_ptr != nullptr)
+            attach_type = *attach_type_ptr;
+        result = ebpf_program_detach(prog_fd, &attach_type, &attachable_fd, sizeof(attachable_fd));
     } else {
         result = EBPF_OPERATION_NOT_SUPPORTED;
     }
