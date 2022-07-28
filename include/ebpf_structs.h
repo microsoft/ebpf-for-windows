@@ -223,7 +223,9 @@ typedef enum bpf_prog_type bpf_prog_type_t;
 enum bpf_link_type
 {
     BPF_LINK_TYPE_UNSPEC, ///< Unspecified link type.
-    BPF_LINK_TYPE_PLAIN,  ///< Normal link type.
+    BPF_LINK_TYPE_PLAIN,  ///< No union members are used in bpf_link_info.
+    BPF_LINK_TYPE_CGROUP, ///< cgroup struct is present in bpf_link_info.
+    BPF_LINK_TYPE_XDP,    ///< xdp struct is present in bpf_link_info.
 };
 
 enum bpf_attach_type

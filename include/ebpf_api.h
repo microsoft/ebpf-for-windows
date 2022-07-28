@@ -11,8 +11,12 @@
 #include "ebpf_result.h"
 
 #ifdef __cplusplus
+#include <stdexcept>
+#define EBPF_NO_EXCEPT noexcept
 extern "C"
 {
+#else
+#define EBPF_NO_EXCEPT
 #endif
 
     typedef int32_t fd_t;
@@ -380,7 +384,7 @@ extern "C"
         fd_t program_fd,
         _In_ const ebpf_attach_type_t* attach_type,
         _In_reads_bytes_(attach_parameter_size) void* attach_parameter,
-        size_t attach_parameter_size);
+        size_t attach_parameter_size) EBPF_NO_EXCEPT;
 
     /**
      * Clean up and free bpf_link structure. Also close the

@@ -161,6 +161,9 @@ TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
 {
     struct bpf_object* object;
     int program_fd;
+    bpf_prog_info program_info;
+    uint32_t program_info_size = sizeof(program_info);
+
     int result = bpf_prog_load_deprecated("cgroup_sock_addr.o", BPF_PROG_TYPE_CGROUP_SOCK_ADDR, &object, &program_fd);
     REQUIRE(result == 0);
     REQUIRE(object != nullptr);
@@ -175,8 +178,20 @@ TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
         0);
     REQUIRE(result == 0);
 
+    ZeroMemory(&program_info, program_info_size);
+    REQUIRE(
+        bpf_obj_get_info_by_fd(
+            bpf_program__fd(const_cast<const bpf_program*>(connect4_program)), &program_info, &program_info_size) == 0);
+    REQUIRE(program_info.link_count == 1);
+
     result = bpf_prog_detach(UNSPECIFIED_COMPARTMENT_ID, BPF_CGROUP_INET4_CONNECT);
     REQUIRE(result == 0);
+
+    ZeroMemory(&program_info, program_info_size);
+    REQUIRE(
+        bpf_obj_get_info_by_fd(
+            bpf_program__fd(const_cast<const bpf_program*>(connect4_program)), &program_info, &program_info_size) == 0);
+    REQUIRE(program_info.link_count == 0);
 
     bpf_program* recv_accept4_program = bpf_object__find_program_by_name(object, "authorize_recv_accept4");
     REQUIRE(recv_accept4_program != nullptr);
@@ -188,8 +203,23 @@ TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
         0);
     REQUIRE(result == 0);
 
-    result = bpf_prog_detach2(program_fd, UNSPECIFIED_COMPARTMENT_ID, BPF_CGROUP_INET4_RECV_ACCEPT);
+    REQUIRE(
+        bpf_obj_get_info_by_fd(
+            bpf_program__fd(const_cast<const bpf_program*>(recv_accept4_program)), &program_info, &program_info_size) ==
+        0);
+    REQUIRE(program_info.link_count == 1);
+
+    result = bpf_prog_detach2(
+        bpf_program__fd(const_cast<const bpf_program*>(recv_accept4_program)),
+        UNSPECIFIED_COMPARTMENT_ID,
+        BPF_CGROUP_INET4_RECV_ACCEPT);
     REQUIRE(result == 0);
+
+    REQUIRE(
+        bpf_obj_get_info_by_fd(
+            bpf_program__fd(const_cast<const bpf_program*>(recv_accept4_program)), &program_info, &program_info_size) ==
+        0);
+    REQUIRE(program_info.link_count == 0);
 
     bpf_program* connect6_program = bpf_object__find_program_by_name(object, "authorize_connect6");
     REQUIRE(connect6_program != nullptr);

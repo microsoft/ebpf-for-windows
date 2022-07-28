@@ -1166,7 +1166,7 @@ ebpf_program_detach(
     fd_t program_fd,
     _In_ const ebpf_attach_type_t* attach_type,
     _In_reads_bytes_(attach_parameter_size) void* attach_parameter,
-    size_t attach_parameter_size)
+    size_t attach_parameter_size) noexcept
 {
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_protocol_buffer_t request_buffer;
