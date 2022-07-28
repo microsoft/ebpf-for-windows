@@ -87,7 +87,7 @@ _clean_up_thread_pool()
 
 class _ebpf_emulated_dpc;
 
-thread_local static bool _ebpf_non_preemptible = false;
+thread_local bool _ebpf_non_preemptible = false;
 
 typedef struct _ebpf_non_preemptible_work_item
 {

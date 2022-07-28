@@ -56,6 +56,8 @@ namespace ebpf {
     TEST_CASE(CONCAT(_name, "-jit"), _group) { _function(EBPF_EXECUTION_JIT); } \
     TEST_CASE(CONCAT(_name, "-native"), _group) { _function(EBPF_EXECUTION_NATIVE); }
 
+extern thread_local bool _ebpf_non_preemptible;
+
 std::vector<uint8_t>
 prepare_ip_packet(uint16_t ethernet_type)
 {
@@ -871,6 +873,13 @@ DECLARE_ALL_TEST_CASES("bindmonitor-tailcall", "[end_to_end]", bindmonitor_tailc
 DECLARE_ALL_TEST_CASES("bindmonitor-ringbuf", "[end_to_end]", bindmonitor_ring_buffer_test);
 DECLARE_ALL_TEST_CASES("utility-helpers", "[end_to_end]", _utility_helper_functions_test);
 DECLARE_ALL_TEST_CASES("map", "[end_to_end]", map_test);
+
+TEST_CASE("droppacket-native-nonpreemptible", "[end_to_end]")
+{
+    _ebpf_non_preemptible = true;
+    droppacket_test(EBPF_EXECUTION_NATIVE);
+    _ebpf_non_preemptible = false;
+}
 
 TEST_CASE("enum section", "[end_to_end]")
 {
