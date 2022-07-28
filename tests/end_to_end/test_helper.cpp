@@ -285,7 +285,7 @@ _preprocess_load_native_module(_Inout_ service_context_t* context)
         &returned_provider_dispatch_table,
         nullptr);
 
-    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE((result == EBPF_SUCCESS || _expect_native_module_load_failures));
 
     context->loaded = true;
 }
