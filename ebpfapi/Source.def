@@ -72,6 +72,7 @@ EXPORTS
     bpf_program__fd
     bpf_program__get_expected_attach_type
     bpf_program__get_type=bpf_program__type
+    bpf_program__insn_cnt
     bpf_program__log_buf
     bpf_program__name
     bpf_program__next
@@ -108,8 +109,14 @@ EXPORTS
     ebpf_program_attach
     ebpf_program_attach_by_fd
     ebpf_program_query_info
+    libbpf_attach_type_by_name
+    libbpf_bpf_attach_type_str
+    libbpf_bpf_link_type_str
+    libbpf_bpf_map_type_str
+    libbpf_bpf_prog_type_str
     libbpf_get_error
     libbpf_num_possible_cpus
     libbpf_prog_type_by_name
+    libbpf_strerror
     ring_buffer__new
     ring_buffer__free

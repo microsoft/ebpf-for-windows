@@ -10,6 +10,7 @@
 #include <string>
 #include <vector>
 #include "bpf/bpf.h"
+#include "bpf/libbpf.h"
 #include "ebpf_api.h"
 #include "ebpf_windows.h"
 #include "platform.h"

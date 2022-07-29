@@ -6,6 +6,7 @@
 #include "libbpf.h"
 #include "libbpf_internal.h"
 #include "platform.h"
+#include "windows_platform_common.hpp"
 
 // This file implements APIs in LibBPF's libbpf.h and is based on code in external/libbpf/src/libbpf.c
 // used under the BSD-2-Clause license, so the coding style tries to match the libbpf.c style to
@@ -50,18 +51,12 @@ bpf_load_program(
     char* log_buf,
     size_t log_buf_sz)
 {
-    struct bpf_load_program_attr load_attr;
-
-    memset(&load_attr, 0, sizeof(struct bpf_load_program_attr));
-    load_attr.prog_type = type;
-    load_attr.expected_attach_type = BPF_ATTACH_TYPE_UNSPEC;
-    load_attr.name = NULL;
-    load_attr.insns = insns;
-    load_attr.insns_cnt = insns_cnt;
-    load_attr.license = license;
-    load_attr.kern_version = kern_version;
-
-    return bpf_load_program_xattr(&load_attr, log_buf, log_buf_sz);
+    if (log_buf_sz > UINT32_MAX) {
+        return libbpf_err(-EINVAL);
+    }
+    struct bpf_prog_load_opts opts = {
+        .kern_version = kern_version, .log_size = (uint32_t)log_buf_sz, .log_buf = log_buf};
+    return bpf_prog_load(type, NULL, license, insns, insns_cnt, &opts);
 }
 
 int
@@ -156,6 +151,12 @@ size_t
 bpf_program__size(const struct bpf_program* program)
 {
     return program->instruction_count * sizeof(ebpf_inst);
+}
+
+size_t
+bpf_program__insn_cnt(const struct bpf_program* program)
+{
+    return program->instruction_count;
 }
 
 const char*
@@ -336,7 +337,7 @@ bpf_object__pin_programs(struct bpf_object* obj, const char* path)
     return 0;
 
 err_unpin_programs:
-    while ((prog = bpf_program__prev(prog, obj)) != NULL) {
+    while ((prog = bpf_object__prev_program(obj, prog)) != NULL) {
         char buf[PATH_MAX];
         int len;
 
@@ -434,18 +435,24 @@ bpf_prog_get_next_id(uint32_t start_id, uint32_t* next_id)
 int
 libbpf_prog_type_by_name(const char* name, enum bpf_prog_type* prog_type, enum bpf_attach_type* expected_attach_type)
 {
-    if (prog_type == nullptr || expected_attach_type == nullptr) {
+    if (name == nullptr || prog_type == nullptr || expected_attach_type == nullptr) {
         return libbpf_err(-EINVAL);
     }
 
-    ebpf_result_t result = ebpf_get_bpf_program_type_by_name(name, prog_type, expected_attach_type);
+    ebpf_result_t result = get_bpf_program_and_attach_type(name, prog_type, expected_attach_type);
     if (result != EBPF_SUCCESS) {
         ebpf_assert(result == EBPF_KEY_NOT_FOUND);
-        errno = ESRCH;
-        return -1;
+        return libbpf_err(-ESRCH);
     }
 
     return 0;
+}
+
+int
+libbpf_attach_type_by_name(const char* name, enum bpf_attach_type* attach_type)
+{
+    enum bpf_prog_type prog_type;
+    return libbpf_prog_type_by_name(name, &prog_type, attach_type);
 }
 
 void
@@ -590,4 +597,24 @@ bpf_xdp_query_id(int ifindex, int flags, __u32* prog_id)
             return 0;
         }
     }
+}
+
+const char*
+libbpf_bpf_attach_type_str(enum bpf_attach_type t)
+{
+    if (t == BPF_ATTACH_TYPE_UNSPEC) {
+        return "unspec";
+    }
+    const ebpf_attach_type_t* attach_type = get_ebpf_attach_type(t);
+    return (attach_type == nullptr) ? nullptr : ebpf_get_attach_type_name(attach_type);
+}
+
+const char*
+libbpf_bpf_prog_type_str(enum bpf_prog_type t)
+{
+    if (t == BPF_PROG_TYPE_UNSPEC) {
+        return "unspec";
+    }
+    const ebpf_program_type_t* program_type = ebpf_get_ebpf_program_type(t);
+    return (program_type == nullptr) ? nullptr : ebpf_get_program_type_name(program_type);
 }
