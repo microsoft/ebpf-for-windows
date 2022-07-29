@@ -1109,7 +1109,12 @@ _ebpf_core_protocol_unlink_program(_In_ const ebpf_operation_unlink_program_requ
     } else if (request->attach_data_present) {
         // This path will be taken for bpf_prog_detach and bpf_prog_detach2 APIs.
         // Find the link object matching the unlink request parameters.
-        uint16_t data_length = request->header.length - FIELD_OFFSET(ebpf_operation_unlink_program_request_t, data);
+        size_t data_length;
+        ebpf_result_t return_value = ebpf_safe_size_t_subtract(
+            request->header.length, FIELD_OFFSET(ebpf_operation_unlink_program_request_t, data), &data_length);
+        if (return_value != EBPF_SUCCESS)
+            goto Done;
+
         ebpf_link_t* previous_link = NULL;
         while (retval != EBPF_NO_MORE_KEYS) {
             retval = _ebpf_core_find_matching_link(
