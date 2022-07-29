@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['libbpf_2eh_721',['libbpf.h',['../libbpf_8h.html',1,'']]]
+  ['libbpf_2eh_761',['libbpf.h',['../libbpf_8h.html',1,'']]],
+  ['libbpf_5flegacy_2eh_762',['libbpf_legacy.h',['../libbpf__legacy_8h.html',1,'']]]
 ];

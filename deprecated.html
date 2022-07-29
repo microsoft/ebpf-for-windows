@@ -66,14 +66,38 @@ $(function() {
 </div><!--header-->
 <div class="contents">
 <div class="textblock"><dl class="reflist">
-<dt>Global <a class="el" href="libbpf_8h.html#afac9e0bb7320698059d043359a363db8">bpf_object__load_xattr</a>  (struct bpf_object_load_attr *attr)</dt>
-<dd><a class="anchor" id="_deprecated000002"></a>Use <a class="el" href="libbpf_8h.html#a101742f5d81ad187cd879e22d6385031" title="Load all the programs in a given object.">bpf_object__load()</a> instead. </dd>
-<dt>Global <a class="el" href="bpf_2bpf_8h.html#a485d38a20dd27d81e569fde97268a4c0">bpf_prog_load_deprecated</a>  (const char *file, enum bpf_prog_type type, struct bpf_object **pobj, int *prog_fd)</dt>
-<dd><a class="anchor" id="_deprecated000001"></a>Use <a class="el" href="bpf_2bpf_8h.html#ac3c199aafea072c96c7d8c79dcc70ffa" title="Load (but do not attach) an eBPF programs.">bpf_prog_load()</a> instead. </dd>
+<dt>Global <a class="el" href="bpf__legacy_8h.html#a415dcff6da1cf861efbafe33768976af">bpf_create_map</a>  (enum bpf_map_type map_type, int key_size, int value_size, int max_entries, __u32 map_flags)</dt>
+<dd><a class="anchor" id="_deprecated000001"></a>Use <a class="el" href="bpf_2bpf_8h.html#a8396d4a201ad6ba75c30f6344cb4fcaa" title="Create a new map.">bpf_map_create()</a> instead. </dd>
+<dt>Global <a class="el" href="bpf__legacy_8h.html#aa568c1b6f3dddfb439311bd952824f1b">bpf_create_map_in_map</a>  (enum bpf_map_type map_type, const char *name, int key_size, int inner_map_fd, int max_entries, __u32 map_flags)</dt>
+<dd><a class="anchor" id="_deprecated000002"></a>Use <a class="el" href="bpf_2bpf_8h.html#a8396d4a201ad6ba75c30f6344cb4fcaa" title="Create a new map.">bpf_map_create()</a> instead. </dd>
+<dt>Global <a class="el" href="bpf__legacy_8h.html#aa4489fd67da7d5641a428d1b76f24eff">bpf_create_map_xattr</a>  (const struct <a class="el" href="structbpf__create__map__attr.html">bpf_create_map_attr</a> *create_attr)</dt>
+<dd><a class="anchor" id="_deprecated000003"></a>Use <a class="el" href="bpf_2bpf_8h.html#a8396d4a201ad6ba75c30f6344cb4fcaa" title="Create a new map.">bpf_map_create()</a> instead.  </dd>
+<dt>Global <a class="el" href="bpf__legacy_8h.html#ab69956e1b5ddb90e685db241857230e3">bpf_load_program</a>  (enum bpf_prog_type type, const struct bpf_insn *insns, size_t insns_cnt, const char *license, __u32 kern_version, char *log_buf, size_t log_buf_sz)</dt>
+<dd><a class="anchor" id="_deprecated000004"></a>Use <a class="el" href="bpf_2bpf_8h.html#ac3c199aafea072c96c7d8c79dcc70ffa" title="Load (but do not attach) an eBPF programs.">bpf_prog_load()</a> instead. </dd>
+<dt>Global <a class="el" href="bpf__legacy_8h.html#af49249eba2a0e62fddb2a09f3a0c7833">bpf_load_program_xattr</a>  (const struct <a class="el" href="structbpf__load__program__attr.html">bpf_load_program_attr</a> *load_attr, char *log_buf, size_t log_buf_sz)</dt>
+<dd><a class="anchor" id="_deprecated000005"></a>Use <a class="el" href="bpf_2bpf_8h.html#ac3c199aafea072c96c7d8c79dcc70ffa" title="Load (but do not attach) an eBPF programs.">bpf_prog_load()</a> instead. </dd>
+<dt>Global <a class="el" href="libbpf__legacy_8h.html#ad6b6a34e6d3aa94be76b307479a389ed">bpf_map__next</a>  (const struct bpf_map *map, const struct bpf_object *obj)</dt>
+<dd><a class="anchor" id="_deprecated000008"></a>Use <a class="el" href="libbpf_8h.html#a6d6f056fd09003f33d380ae87002feed" title="Get the next map for a given eBPF object.">bpf_object__next_map()</a> instead. </dd>
+<dt>Global <a class="el" href="libbpf__legacy_8h.html#a8d0e76289c0230703652f7c0b17db7ab">bpf_map__prev</a>  (const struct bpf_map *map, const struct bpf_object *obj)</dt>
+<dd><a class="anchor" id="_deprecated000009"></a>Use <a class="el" href="libbpf_8h.html#aee6813d407a85f0bc7a4394d9649212f" title="Get the previous map for a given eBPF object.">bpf_object__prev_map()</a> instead. </dd>
+<dt>Global <a class="el" href="libbpf__legacy_8h.html#afac9e0bb7320698059d043359a363db8">bpf_object__load_xattr</a>  (struct <a class="el" href="structbpf__object__load__attr.html">bpf_object_load_attr</a> *attr)</dt>
+<dd><a class="anchor" id="_deprecated000010"></a>Use <a class="el" href="libbpf_8h.html#a101742f5d81ad187cd879e22d6385031" title="Load all the programs in a given object.">bpf_object__load()</a> instead. </dd>
+<dt>Global <a class="el" href="libbpf__legacy_8h.html#a02683bd38babc219a58fac60549b3733">bpf_object__next</a>  (struct bpf_object *prev)</dt>
+<dd><a class="anchor" id="_deprecated000011"></a>Track bpf_objects in application code instead.  </dd>
+<dt>Global <a class="el" href="libbpf__legacy_8h.html#a33a41f94f254e17a56b5059bb5983bff">bpf_object__unload</a>  (struct bpf_object *obj)</dt>
+<dd><a class="anchor" id="_deprecated000012"></a>Use <a class="el" href="libbpf_8h.html#a473872ff7ab53d1ed593e7abd206f31a" title="Close an eBPF object.">bpf_object__close()</a> instead. </dd>
+<dt>Global <a class="el" href="libbpf__legacy_8h.html#a485d38a20dd27d81e569fde97268a4c0">bpf_prog_load_deprecated</a>  (const char *file, enum bpf_prog_type type, struct bpf_object **pobj, int *prog_fd)</dt>
+<dd><a class="anchor" id="_deprecated000013"></a>Use <a class="el" href="libbpf_8h.html#a5150acc7ba47cc3fb0a35a3c3baa2283" title="Open a file without loading the programs.">bpf_object__open()</a> and <a class="el" href="libbpf_8h.html#a101742f5d81ad187cd879e22d6385031" title="Load all the programs in a given object.">bpf_object__load()</a> instead. </dd>
 <dt>Global <a class="el" href="libbpf_8h.html#a6a801e0d961347b9ca550a111b4b1148">bpf_program__get_type</a>  (const struct bpf_program *prog)</dt>
-<dd><a class="anchor" id="_deprecated000003"></a>Use <a class="el" href="libbpf_8h.html#a789393546ed103be96e012387b12bdcf" title="Get the program type for an eBPF program.">bpf_program__type()</a> instead. </dd>
-<dt>Global <a class="el" href="libbpf_8h.html#a62d680951c5e380caef2d82d97f12d9d">bpf_set_link_xdp_fd</a>  (int ifindex, int fd, __u32 flags)</dt>
-<dd><a class="anchor" id="_deprecated000004"></a>Use <a class="el" href="libbpf_8h.html#a21804429f974038fb1d68004fe3aeea5" title="Attach an XDP program to a given interface.">bpf_xdp_attach()</a> instead.</dd>
+<dd><a class="anchor" id="_deprecated000006"></a>Use <a class="el" href="libbpf_8h.html#a789393546ed103be96e012387b12bdcf" title="Get the program type for an eBPF program.">bpf_program__type()</a> instead. </dd>
+<dt>Global <a class="el" href="libbpf__legacy_8h.html#a9a2443d60cdf9ff89b4249981ed08aa6">bpf_program__next</a>  (struct bpf_program *prog, const struct bpf_object *obj)</dt>
+<dd><a class="anchor" id="_deprecated000014"></a>Use <a class="el" href="libbpf_8h.html#ab7fcb440a511a58762c2336b72198f6c" title="Get the next program for a given eBPF object.">bpf_object__next_program()</a> instead. </dd>
+<dt>Global <a class="el" href="libbpf__legacy_8h.html#ad9c582090bb19257e82fe5120aac35f2">bpf_program__prev</a>  (struct bpf_program *prog, const struct bpf_object *obj)</dt>
+<dd><a class="anchor" id="_deprecated000015"></a>Use <a class="el" href="libbpf_8h.html#a86f1ec9a261b15a1cca8fb9a084383d5" title="Get the previous eBPF program for a given eBPF object.">bpf_object__prev_program()</a> instead. </dd>
+<dt>Global <a class="el" href="libbpf__legacy_8h.html#a024f75e84b53562ee29713d262241f00">bpf_program__size</a>  (const struct bpf_program *prog)</dt>
+<dd><a class="anchor" id="_deprecated000016"></a>Use <a class="el" href="libbpf_8h.html#a4fea6f040ea2d1ac3288a38f8575855c" title="bpf_program__insn_cnt() returns number of struct bpf_insn&#39;s that form specified BPF program.">bpf_program__insn_cnt()</a> instead.  </dd>
+<dt>Global <a class="el" href="libbpf__legacy_8h.html#a62d680951c5e380caef2d82d97f12d9d">bpf_set_link_xdp_fd</a>  (int ifindex, int fd, __u32 flags)</dt>
+<dd><a class="anchor" id="_deprecated000007"></a>Use <a class="el" href="libbpf_8h.html#a21804429f974038fb1d68004fe3aeea5" title="Attach an XDP program to a given interface.">bpf_xdp_attach()</a> instead.</dd>
 </dl>
 </div></div><!-- contents -->
 </div><!-- PageDoc -->

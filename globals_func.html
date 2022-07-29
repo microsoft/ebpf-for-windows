@@ -75,13 +75,13 @@ $(function() {
 : <a class="el" href="linux_2bpf_8h.html#ae2efe8134c5d52b7bfd982014f5d80c4">bpf.h</a>
 </li>
 <li>bpf_create_map()
-: <a class="el" href="bpf_2bpf_8h.html#a415dcff6da1cf861efbafe33768976af">bpf.h</a>
+: <a class="el" href="bpf__legacy_8h.html#a415dcff6da1cf861efbafe33768976af">bpf_legacy.h</a>
 </li>
 <li>bpf_create_map_in_map()
-: <a class="el" href="bpf_2bpf_8h.html#aa568c1b6f3dddfb439311bd952824f1b">bpf.h</a>
+: <a class="el" href="bpf__legacy_8h.html#aa568c1b6f3dddfb439311bd952824f1b">bpf_legacy.h</a>
 </li>
 <li>bpf_create_map_xattr()
-: <a class="el" href="bpf_2bpf_8h.html#aa4489fd67da7d5641a428d1b76f24eff">bpf.h</a>
+: <a class="el" href="bpf__legacy_8h.html#aa4489fd67da7d5641a428d1b76f24eff">bpf_legacy.h</a>
 </li>
 <li>bpf_csum_diff()
 : <a class="el" href="bpf__helper__defs_8h.html#a8925aebb6537b5d34b8cb28b04d34515">bpf_helper_defs.h</a>
@@ -126,10 +126,10 @@ $(function() {
 : <a class="el" href="bpf_2bpf_8h.html#a22b6c612a8c54fff0dd93f163bfadf22">bpf.h</a>
 </li>
 <li>bpf_load_program()
-: <a class="el" href="libbpf_8h.html#ab69956e1b5ddb90e685db241857230e3">libbpf.h</a>
+: <a class="el" href="bpf__legacy_8h.html#ab69956e1b5ddb90e685db241857230e3">bpf_legacy.h</a>
 </li>
 <li>bpf_load_program_xattr()
-: <a class="el" href="libbpf_8h.html#af49249eba2a0e62fddb2a09f3a0c7833">libbpf.h</a>
+: <a class="el" href="bpf__legacy_8h.html#af49249eba2a0e62fddb2a09f3a0c7833">bpf_legacy.h</a>
 </li>
 <li>bpf_map__fd()
 : <a class="el" href="libbpf_8h.html#a7882d9c82434e07205b6385586f8a075">libbpf.h</a>
@@ -147,13 +147,13 @@ $(function() {
 : <a class="el" href="libbpf_8h.html#ab67439074a685d23088be6e5cebe9961">libbpf.h</a>
 </li>
 <li>bpf_map__next()
-: <a class="el" href="libbpf_8h.html#ad6b6a34e6d3aa94be76b307479a389ed">libbpf.h</a>
+: <a class="el" href="libbpf__legacy_8h.html#ad6b6a34e6d3aa94be76b307479a389ed">libbpf_legacy.h</a>
 </li>
 <li>bpf_map__pin()
 : <a class="el" href="libbpf_8h.html#aead34097deb7c2b03f010d427f490673">libbpf.h</a>
 </li>
 <li>bpf_map__prev()
-: <a class="el" href="libbpf_8h.html#a8d0e76289c0230703652f7c0b17db7ab">libbpf.h</a>
+: <a class="el" href="libbpf__legacy_8h.html#a8d0e76289c0230703652f7c0b17db7ab">libbpf_legacy.h</a>
 </li>
 <li>bpf_map__type()
 : <a class="el" href="libbpf_8h.html#ad5c2e83549f6a6947281bfc4fd6de850">libbpf.h</a>
@@ -225,13 +225,19 @@ $(function() {
 : <a class="el" href="libbpf_8h.html#a101742f5d81ad187cd879e22d6385031">libbpf.h</a>
 </li>
 <li>bpf_object__load_xattr()
-: <a class="el" href="libbpf_8h.html#afac9e0bb7320698059d043359a363db8">libbpf.h</a>
+: <a class="el" href="libbpf__legacy_8h.html#afac9e0bb7320698059d043359a363db8">libbpf_legacy.h</a>
 </li>
 <li>bpf_object__name()
 : <a class="el" href="libbpf_8h.html#abb7285f852d30deac24ec8a2fbb3a919">libbpf.h</a>
 </li>
 <li>bpf_object__next()
-: <a class="el" href="libbpf_8h.html#a02683bd38babc219a58fac60549b3733">libbpf.h</a>
+: <a class="el" href="libbpf__legacy_8h.html#a02683bd38babc219a58fac60549b3733">libbpf_legacy.h</a>
+</li>
+<li>bpf_object__next_map()
+: <a class="el" href="libbpf_8h.html#a6d6f056fd09003f33d380ae87002feed">libbpf.h</a>
+</li>
+<li>bpf_object__next_program()
+: <a class="el" href="libbpf_8h.html#ab7fcb440a511a58762c2336b72198f6c">libbpf.h</a>
 </li>
 <li>bpf_object__open()
 : <a class="el" href="libbpf_8h.html#a5150acc7ba47cc3fb0a35a3c3baa2283">libbpf.h</a>
@@ -248,8 +254,14 @@ $(function() {
 <li>bpf_object__pin_programs()
 : <a class="el" href="libbpf_8h.html#a6a5cbdb6f276064c12e8a8d320f00f61">libbpf.h</a>
 </li>
+<li>bpf_object__prev_map()
+: <a class="el" href="libbpf_8h.html#aee6813d407a85f0bc7a4394d9649212f">libbpf.h</a>
+</li>
+<li>bpf_object__prev_program()
+: <a class="el" href="libbpf_8h.html#a86f1ec9a261b15a1cca8fb9a084383d5">libbpf.h</a>
+</li>
 <li>bpf_object__unload()
-: <a class="el" href="libbpf_8h.html#a33a41f94f254e17a56b5059bb5983bff">libbpf.h</a>
+: <a class="el" href="libbpf__legacy_8h.html#a33a41f94f254e17a56b5059bb5983bff">libbpf_legacy.h</a>
 </li>
 <li>bpf_object__unpin_maps()
 : <a class="el" href="libbpf_8h.html#a3058e699493e5ea27d49a9ac3a45dfa2">libbpf.h</a>
@@ -276,7 +288,7 @@ $(function() {
 : <a class="el" href="bpf_2bpf_8h.html#ac3c199aafea072c96c7d8c79dcc70ffa">bpf.h</a>
 </li>
 <li>bpf_prog_load_deprecated()
-: <a class="el" href="bpf_2bpf_8h.html#a485d38a20dd27d81e569fde97268a4c0">bpf.h</a>
+: <a class="el" href="libbpf__legacy_8h.html#a485d38a20dd27d81e569fde97268a4c0">libbpf_legacy.h</a>
 </li>
 <li>bpf_program__attach()
 : <a class="el" href="libbpf_8h.html#a1402c76cc92bfb7ebe1bc7a4cbce54db">libbpf.h</a>
@@ -293,17 +305,20 @@ $(function() {
 <li>bpf_program__get_type()
 : <a class="el" href="libbpf_8h.html#a6a801e0d961347b9ca550a111b4b1148">libbpf.h</a>
 </li>
+<li>bpf_program__insn_cnt()
+: <a class="el" href="libbpf_8h.html#a4fea6f040ea2d1ac3288a38f8575855c">libbpf.h</a>
+</li>
 <li>bpf_program__name()
 : <a class="el" href="libbpf_8h.html#a5bc9a44c10c7fc330c09b3fd127beee3">libbpf.h</a>
 </li>
 <li>bpf_program__next()
-: <a class="el" href="libbpf_8h.html#a9a2443d60cdf9ff89b4249981ed08aa6">libbpf.h</a>
+: <a class="el" href="libbpf__legacy_8h.html#a9a2443d60cdf9ff89b4249981ed08aa6">libbpf_legacy.h</a>
 </li>
 <li>bpf_program__pin()
 : <a class="el" href="libbpf_8h.html#afdd9d5fdcf93964e5cdee24c2c1ca89f">libbpf.h</a>
 </li>
 <li>bpf_program__prev()
-: <a class="el" href="libbpf_8h.html#ad9c582090bb19257e82fe5120aac35f2">libbpf.h</a>
+: <a class="el" href="libbpf__legacy_8h.html#ad9c582090bb19257e82fe5120aac35f2">libbpf_legacy.h</a>
 </li>
 <li>bpf_program__section_name()
 : <a class="el" href="libbpf_8h.html#a26150fd9e12b1d6b33a76345af3b30cf">libbpf.h</a>
@@ -313,6 +328,9 @@ $(function() {
 </li>
 <li>bpf_program__set_type()
 : <a class="el" href="libbpf_8h.html#a85680f4c5e04b167ba7a269cf92c8391">libbpf.h</a>
+</li>
+<li>bpf_program__size()
+: <a class="el" href="libbpf__legacy_8h.html#a024f75e84b53562ee29713d262241f00">libbpf_legacy.h</a>
 </li>
 <li>bpf_program__type()
 : <a class="el" href="libbpf_8h.html#a789393546ed103be96e012387b12bdcf">libbpf.h</a>
@@ -327,7 +345,7 @@ $(function() {
 : <a class="el" href="bpf__helper__defs_8h.html#a0939532bb795021d9cc85cd5dcfce983">bpf_helper_defs.h</a>
 </li>
 <li>bpf_set_link_xdp_fd()
-: <a class="el" href="libbpf_8h.html#a62d680951c5e380caef2d82d97f12d9d">libbpf.h</a>
+: <a class="el" href="libbpf__legacy_8h.html#a62d680951c5e380caef2d82d97f12d9d">libbpf_legacy.h</a>
 </li>
 <li>bpf_tail_call()
 : <a class="el" href="bpf__helper__defs_8h.html#af0a0db158b6d6cc4fdf93411e41431ef">bpf_helper_defs.h</a>
@@ -428,12 +446,6 @@ $(function() {
 <li>ebpf_close_fd()
 : <a class="el" href="ebpf__api_8h.html#ad5dde8db65d21b803c80a120a1db1105">ebpf_api.h</a>
 </li>
-<li>ebpf_create_map()
-: <a class="el" href="ebpf__api_8h.html#a895564663b45357cfcd9ba200c01cdc7">ebpf_api.h</a>
-</li>
-<li>ebpf_create_map_name()
-: <a class="el" href="ebpf__api_8h.html#ab660ef9c16c8546333ded0a44141f31c">ebpf_api.h</a>
-</li>
 <li>ebpf_enumerate_sections()
 : <a class="el" href="ebpf__api_8h.html#a7f6411e678077e56979d551bcd5370a6">ebpf_api.h</a>
 </li>
@@ -445,9 +457,6 @@ $(function() {
 </li>
 <li>ebpf_get_attach_type_name()
 : <a class="el" href="ebpf__api_8h.html#ace9e20d9e6216148581b4671061241fe">ebpf_api.h</a>
-</li>
-<li>ebpf_get_bpf_program_type_by_name()
-: <a class="el" href="ebpf__api_8h.html#a1319665ed9a729d9a3158b7f0501b347">ebpf_api.h</a>
 </li>
 <li>ebpf_get_next_pinned_program_path()
 : <a class="el" href="ebpf__api_8h.html#af4002e4f2e60174be0fd07ca60caf0cd">ebpf_api.h</a>
@@ -486,6 +495,21 @@ $(function() {
 
 
 <h3><a id="index_l"></a>- l -</h3><ul>
+<li>libbpf_attach_type_by_name()
+: <a class="el" href="libbpf_8h.html#a25fd334b383fd00ce45e21801059054f">libbpf.h</a>
+</li>
+<li>libbpf_bpf_attach_type_str()
+: <a class="el" href="libbpf_8h.html#a2be5b118f9f918acb4aad535694141e0">libbpf.h</a>
+</li>
+<li>libbpf_bpf_link_type_str()
+: <a class="el" href="libbpf_8h.html#a4fad8059f8d6b5d23df20d60cb204107">libbpf.h</a>
+</li>
+<li>libbpf_bpf_map_type_str()
+: <a class="el" href="libbpf_8h.html#ab16b2aaea8375195640f2ad1c5e0c03a">libbpf.h</a>
+</li>
+<li>libbpf_bpf_prog_type_str()
+: <a class="el" href="libbpf_8h.html#af46b6da17d2b2ff84caa74a19a5f0f06">libbpf.h</a>
+</li>
 <li>libbpf_get_error()
 : <a class="el" href="libbpf_8h.html#a6ae394e7b2a465a2bf7f30e2a5b4c4bd">libbpf.h</a>
 </li>
@@ -494,6 +518,9 @@ $(function() {
 </li>
 <li>libbpf_prog_type_by_name()
 : <a class="el" href="libbpf_8h.html#a64a0e9275ed02a9f30291ae5dd777452">libbpf.h</a>
+</li>
+<li>libbpf_strerror()
+: <a class="el" href="libbpf_8h.html#ab24f196304dd738beeca902b4912c1bf">libbpf.h</a>
 </li>
 </ul>
 
