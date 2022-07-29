@@ -189,22 +189,22 @@ _test_map_next_previous(const char* file_name, int expected_map_count)
     result = _program_load_helper(file_name, BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_ANY, &object, &program_fd);
     REQUIRE(result == 0);
 
-    next = bpf_map__next(previous, object);
+    next = bpf_object__next_map(object, previous);
     while (next != nullptr) {
         map_count++;
         previous = next;
-        next = bpf_map__next(previous, object);
+        next = bpf_object__next_map(object, previous);
     }
     REQUIRE(map_count == expected_map_count);
 
     map_count = 0;
     previous = next = nullptr;
 
-    previous = bpf_map__prev(next, object);
+    previous = bpf_object__prev_map(object, next);
     while (previous != nullptr) {
         map_count++;
         next = previous;
-        previous = bpf_map__prev(next, object);
+        previous = bpf_object__prev_map(object, next);
     }
     REQUIRE(map_count == expected_map_count);
 
@@ -223,22 +223,22 @@ _test_program_next_previous(const char* file_name, int expected_program_count)
     result = _program_load_helper(file_name, BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_ANY, &object, &program_fd);
     REQUIRE(result == 0);
 
-    next = bpf_program__next(previous, object);
+    next = bpf_object__next_program(object, previous);
     while (next != nullptr) {
         program_count++;
         previous = next;
-        next = bpf_program__next(previous, object);
+        next = bpf_object__next_program(object, previous);
     }
     REQUIRE(program_count == expected_program_count);
 
     program_count = 0;
     previous = next = nullptr;
 
-    previous = bpf_program__prev(next, object);
+    previous = bpf_object__prev_program(object, next);
     while (previous != nullptr) {
         program_count++;
         next = previous;
-        previous = bpf_program__prev(next, object);
+        previous = bpf_object__prev_program(object, next);
     }
     REQUIRE(program_count == expected_program_count);
 
@@ -413,15 +413,17 @@ void
 _test_nested_maps(bpf_map_type type)
 {
     // Create first inner map.
-    fd_t inner1 = bpf_create_map(BPF_MAP_TYPE_ARRAY, sizeof(uint32_t), sizeof(uint32_t), 1, 0);
+    fd_t inner1 = bpf_map_create(BPF_MAP_TYPE_ARRAY, nullptr, sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
     REQUIRE(inner1 > 0);
 
     // Create outer map.
-    fd_t outer_map_fd = bpf_create_map_in_map(type, "outer_map", sizeof(uint32_t), inner1, 10, 0);
+    bpf_map_create_opts opts = {.inner_map_fd = (uint32_t)inner1};
+    fd_t outer_map_fd = bpf_map_create(type, "outer_map", sizeof(uint32_t), sizeof(fd_t), 10, &opts);
+
     REQUIRE(outer_map_fd > 0);
 
     // Create second inner map.
-    fd_t inner2 = bpf_create_map(BPF_MAP_TYPE_ARRAY, sizeof(uint32_t), sizeof(uint32_t), 1, 0);
+    fd_t inner2 = bpf_map_create(BPF_MAP_TYPE_ARRAY, nullptr, sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
     REQUIRE(inner2 > 0);
 
     // Insert both inner maps in outer map.

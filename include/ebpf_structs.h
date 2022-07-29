@@ -51,20 +51,20 @@ static const char* const _ebpf_map_type_names[] = {
 };
 
 static const char* const _ebpf_map_display_names[] = {
-    "Other",
-    "Hash",
-    "Array",
-    "Program array",
-    "Per-CPU hash table",
-    "Per-CPU array",
-    "Hash of maps",
-    "Array of maps",
-    "LRU hash table",
-    "LPM trie",
-    "Queue",
-    "LRU Per-CPU hash table",
-    "Stack",
-    "Ring-buffer",
+    "unspec",
+    "hash",
+    "array",
+    "prog_array",
+    "percpu_hash",
+    "percpu_array",
+    "hash_of_maps",
+    "array_of_maps",
+    "lru_hash",
+    "lpm_trie",
+    "queue",
+    "lru_percpu_hash",
+    "stack",
+    "ringbuf",
 };
 
 typedef enum ebpf_map_option
@@ -226,6 +226,11 @@ enum bpf_link_type
     BPF_LINK_TYPE_PLAIN,  ///< Normal link type.
 };
 
+static const char* const _ebpf_link_display_names[] = {
+    "unspec",
+    "plain",
+};
+
 enum bpf_attach_type
 {
     BPF_ATTACH_TYPE_UNSPEC, ///< Unspecified attach type.
@@ -304,7 +309,7 @@ struct bpf_link_info
     ebpf_id_t id;                          ///< Link ID.
     ebpf_id_t prog_id;                     ///< Program ID.
     enum bpf_link_type type;               ///< Link type.
-    int attach_type;                       ///< Attach type integer.
+    enum bpf_attach_type attach_type;      ///< Attach type.
     ebpf_attach_type_t attach_type_uuid;   ///< Attach type UUID.
     ebpf_program_type_t program_type_uuid; ///< Program type UUID.
     union
