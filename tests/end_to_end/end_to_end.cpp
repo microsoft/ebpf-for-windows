@@ -2336,7 +2336,7 @@ TEST_CASE("load_native_program_negative5", "[end_to_end]")
     REQUIRE(result == -ENOENT);
 }
 
-// Load native native module twice.
+// Load native module twice.
 TEST_CASE("load_native_program_negative6", "[end-to-end]")
 {
     _test_helper_end_to_end test_helper;
