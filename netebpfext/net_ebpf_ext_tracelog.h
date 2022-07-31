@@ -151,3 +151,34 @@ net_ebpf_ext_trace_terminate();
         }                                                  \
         return local_result;                               \
     } while (false);
+
+#define NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(keyword, api, status) \
+    TraceLoggingWrite(                                              \
+        net_ebpf_ext_tracelog_provider,                             \
+        NET_EBPF_EXT_TRACELOG_EVENT_API_ERROR,                      \
+        TraceLoggingLevel(EBPF_TRACELOG_LEVEL_ERROR),               \
+        TraceLoggingKeyword((keyword)),                             \
+        TraceLoggingString(#api, "api"),                            \
+        TraceLoggingNTStatus(status));
+
+#define NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE_UINT64_UINT64(keyword, api, status, value1, value2) \
+    TraceLoggingWrite(                                                                            \
+        net_ebpf_ext_tracelog_provider,                                                           \
+        NET_EBPF_EXT_TRACELOG_EVENT_API_ERROR,                                                    \
+        TraceLoggingLevel(EBPF_TRACELOG_LEVEL_ERROR),                                             \
+        TraceLoggingKeyword((keyword)),                                                           \
+        TraceLoggingString(#api, "api"),                                                          \
+        TraceLoggingNTStatus(status),                                                             \
+        TraceLoggingUInt64((value1), (#value1)),                                                  \
+        TraceLoggingUInt64((value2), (#value2)));
+
+
+#define NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(trace_level, keyword, message, value1, value2) \
+    TraceLoggingWrite(                                                                        \
+        net_ebpf_ext_tracelog_provider,                                                       \
+        NET_EBPF_EXT_TRACELOG_EVENT_GENERIC_MESSAGE,                                          \
+        TraceLoggingLevel(trace_level),                                                       \
+        TraceLoggingKeyword((keyword)),                                                       \
+        TraceLoggingString(message, "Message"),                                               \
+        TraceLoggingUInt64((value1), (#value1)),                                              \
+        TraceLoggingUInt64((value2), (#value2)));

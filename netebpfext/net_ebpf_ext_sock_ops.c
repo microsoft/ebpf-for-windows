@@ -154,7 +154,7 @@ net_ebpf_extension_sock_ops_on_client_attach(
     // Add WFP filters at appropriate layers and set the hook NPI client as the filter's raw context.
     filter_count = NET_EBPF_SOCK_OPS_FILTER_COUNT;
     result = net_ebpf_extension_add_wfp_filters(
-        NET_EBPF_SOCK_OPS_FILTER_COUNT,
+        filter_count,
         _net_ebpf_extension_sock_ops_wfp_filter_parameters,
         (compartment_id == UNSPECIFIED_COMPARTMENT_ID) ? 0 : 1,
         (compartment_id == UNSPECIFIED_COMPARTMENT_ID) ? NULL : &condition,

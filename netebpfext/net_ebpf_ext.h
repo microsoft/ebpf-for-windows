@@ -38,6 +38,8 @@ Environment:
 
 #define htonl(x) _byteswap_ulong(x)
 #define htons(x) _byteswap_ushort(x)
+#define ntohs(x) htons(x)
+#define ntohl(x) htonl(x)
 
 struct _net_ebpf_extension_hook_client;
 
@@ -60,6 +62,12 @@ typedef struct _net_ebpf_extension_wfp_filter_parameters
     const wchar_t* name;        ///< Display name of filter.
     const wchar_t* description; ///< Description of filter.
 } net_ebpf_extension_wfp_filter_parameters_t;
+
+typedef struct _net_ebpf_extension_wfp_filter_parameters_array
+{
+    uint32_t count;
+    net_ebpf_extension_wfp_filter_parameters_t* filter_parameters;
+} net_ebpf_extension_wfp_filter_parameters_array_t;
 
 /**
  * "Base class" for all WFP filter contexts used by net ebpf extension hooks.
@@ -127,9 +135,11 @@ typedef enum _net_ebpf_extension_hook_id
     EBPF_HOOK_ALE_RESOURCE_RELEASE_V6, // 5
     EBPF_HOOK_ALE_AUTH_CONNECT_V4,
     EBPF_HOOK_ALE_AUTH_CONNECT_V6,
-    EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V4,
+    EBPF_HOOK_ALE_CONNECT_REDIRECT_V4,
+    EBPF_HOOK_ALE_CONNECT_REDIRECT_V6,
+    EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V4, // 10
     EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V6,
-    EBPF_HOOK_ALE_FLOW_ESTABLISHED_V4, // 10
+    EBPF_HOOK_ALE_FLOW_ESTABLISHED_V4,
     EBPF_HOOK_ALE_FLOW_ESTABLISHED_V6
 } net_ebpf_extension_hook_id_t;
 
@@ -246,3 +256,7 @@ net_ebpf_ext_register_providers();
  */
 void
 net_ebpf_ext_unregister_providers();
+
+NTSTATUS
+net_ebpf_ext_filter_change_notify(
+    FWPS_CALLOUT_NOTIFY_TYPE callout_notification_type, _In_ const GUID* filter_key, _Inout_ const FWPS_FILTER* filter);
