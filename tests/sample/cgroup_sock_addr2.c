@@ -14,9 +14,11 @@
 #include "bpf_helpers.h"
 #include "socket_tests_common.h"
 
-#define REDIRECT_IP 16843009 // 1.1.1.1
-#define PERMIT_IP 33620225   // Network byte order 1.1.1.2
-#define BLOCK_IP 50397441    // Network byte order 1.1.1.3
+// #define REDIRECT_IP 16843009 // 1.1.1.1
+#define REDIRECT_IP 0xc8010119 // Network byte order 25.1.1.200
+#define PROXY_IP 0x64010119    // Network byte order 25.1.1.100
+#define PERMIT_IP 33620225     // Network byte order 1.1.1.2
+#define BLOCK_IP 50397441      // Network byte order 1.1.1.3
 
 #define IPPROTO_TCP 6
 #define IPPROTO_UDP 17
@@ -49,7 +51,7 @@ authorize_v4(bpf_sock_addr_t* ctx)
     }
 
     if (ctx->user_ip4 == REDIRECT_IP) {
-        ctx->user_port++;
+        ctx->user_ip4 = PROXY_IP;
         return BPF_SOCK_ADDR_VERDICT_PROCEED;
     }
 

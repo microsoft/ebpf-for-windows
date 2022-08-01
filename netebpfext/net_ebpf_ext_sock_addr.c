@@ -62,6 +62,15 @@ typedef struct _net_ebpf_ext_sock_addr_globals
     EX_SPIN_LOCK _net_ebpf_ext_redirect_handle_lock;
 } net_ebpf_ext_sock_addr_globals_t;
 
+typedef struct _net_ebpf_ext_sock_addr_statistics
+{
+    volatile long permit_connection_count;
+    volatile long redirect_connection_count;
+    volatile long block_connection_count;
+} net_ebpf_ext_sock_addr_statistics_t;
+
+static net_ebpf_ext_sock_addr_statistics_t _net_ebpf_ext_statistics;
+
 static EX_SPIN_LOCK _net_ebpf_ext_redirect_handle_lock;
 _Guarded_by_(_net_ebpf_ext_redirect_handle_lock) static LIST_ENTRY _net_ebpf_ext_redirect_handle_list;
 _Guarded_by_(_net_ebpf_ext_redirect_handle_lock) static LIST_ENTRY _net_ebpf_ext_connect_context_list;
@@ -339,11 +348,11 @@ _net_ebpf_ext_sock_addr_delete_redirect_handle(uint64_t filter_id)
             CONTAINING_RECORD(list_entry, net_ebpf_extension_redirect_handle_entry_t, list_entry);
         if (entry->filter_id == filter_id) {
             RemoveEntryList(list_entry);
+            ExFreePool(entry);
             break;
         }
         list_entry = list_entry->Flink;
     }
-
     ExReleaseSpinLockExclusive(&_net_ebpf_ext_redirect_handle_lock, old_irql);
 }
 
@@ -778,6 +787,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     FWP_ACTION_TYPE action = FWP_ACTION_BLOCK;
     bool commit_layer_data = false;
     bool classify_handle_acquired = false;
+    bool free_redirect_record = true;
 
     UNREFERENCED_PARAMETER(layer_data);
     UNREFERENCED_PARAMETER(flow_context);
@@ -913,18 +923,15 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
         address_changed = _net_ebpf_ext_destination_address_changed(&sock_addr_ctx, &sock_addr_ctx_original);
         if (sock_addr_ctx.user_port != sock_addr_ctx_original.user_port || address_changed) {
             redirected = true;
-            // 1. Allocate memory for redirection record. This will be freed by WFP when the flow is terminated.
-            // 2. Allocate memory for keeping track of the verdict when the AUTH_CONNECT is called.
-            // 3. Print endpointHandle to see if that changes between connect_redirect and auth_connect.
-            // 4.
+            InterlockedIncrement(&_net_ebpf_ext_statistics.redirect_connection_count);
+
             if (sock_addr_ctx.user_port != sock_addr_ctx_original.user_port) {
                 INETADDR_SET_PORT((PSOCKADDR)&connect_request->remoteAddressAndPort, ntohs(sock_addr_ctx.user_port));
             }
             if (address_changed) {
                 uint8_t* address;
                 if (sock_addr_ctx.family == AF_INET) {
-                    uint32_t v4_address = ntohl(sock_addr_ctx.user_ip4);
-                    address = (uint8_t*)&v4_address;
+                    address = (uint8_t*)&sock_addr_ctx.user_ip4;
                 } else {
                     address = (uint8_t*)&(sock_addr_ctx.user_ip6[0]);
                 }
@@ -934,12 +941,17 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
             _net_ebpf_ext_populate_redirect_record(&sock_addr_ctx_original, redirect_record);
             connect_request->localRedirectContext = redirect_record;
             connect_request->localRedirectContextSize = sizeof(net_ebpf_ext_redirection_record_t);
+            free_redirect_record = false;
 
             if (INETADDR_ISLOOPBACK((PSOCKADDR)&connect_request->remoteAddressAndPort)) {
                 // Connection is being redirected to loopback. Set local redirect handle.
                 connect_request->localRedirectHandle = redirect_handle;
             }
+        } else {
+            InterlockedIncrement(&_net_ebpf_ext_statistics.permit_connection_count);
         }
+    } else {
+        InterlockedIncrement(&_net_ebpf_ext_statistics.block_connection_count);
     }
 
     _net_ebpf_ext_initialize_connection_context(
@@ -973,6 +985,8 @@ Exit:
         if (redirect_record) {
             ExFreePool(redirect_record);
         }
+    } else if (free_redirect_record) {
+        ExFreePool(redirect_record);
     }
     if (attached_client)
         net_ebpf_extension_hook_client_leave_rundown(attached_client);
