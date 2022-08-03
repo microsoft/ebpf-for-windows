@@ -25,23 +25,47 @@
 
 #define AF_INET 2
 
-SEC("maps")
-struct bpf_map_def ingress_connection_policy_map = {
-    .type = BPF_MAP_TYPE_HASH,
-    .key_size = sizeof(connection_tuple_t),
-    .value_size = sizeof(uint32_t),
-    .max_entries = 1};
-
-SEC("maps")
-struct bpf_map_def egress_connection_policy_map = {
-    .type = BPF_MAP_TYPE_HASH,
-    .key_size = sizeof(connection_tuple_t),
-    .value_size = sizeof(uint32_t),
-    .max_entries = 1};
-
-__inline int
-authorize_v4(bpf_sock_addr_t* ctx)
+typedef struct _destination_entry
 {
+    uint32_t destination_ip;
+    uint16_t destination_port;
+} destination_entry_t;
+
+SEC("maps")
+struct bpf_map_def proxy_map = {
+    .type = BPF_MAP_TYPE_HASH,
+    .key_size = sizeof(destination_entry_t),
+    .value_size = sizeof(destination_entry_t),
+    .max_entries = 100};
+
+SEC("maps")
+struct bpf_map_def frontend_map = {
+    .type = BPF_MAP_TYPE_ARRAY,
+    .key_size = sizeof(uint32_t),
+    .value_size = sizeof(destination_entry_t),
+    .max_entries = 1};
+
+SEC("maps")
+struct bpf_map_def backend_map = {
+    .type = BPF_MAP_TYPE_ARRAY,
+    .key_size = sizeof(uint32_t),
+    .value_size = sizeof(destination_entry_t),
+    .max_entries = 2};
+
+SEC("maps")
+struct bpf_map_def scratch_map = {
+    .type = BPF_MAP_TYPE_ARRAY, .key_size = sizeof(uint32_t), .value_size = sizeof(uint32_t), .max_entries = 1};
+
+SEC("cgroup/connect4/proxy")
+int
+proxy_v4(bpf_sock_addr_t* ctx)
+{
+    destination_entry_t entry = {0};
+    entry.destination_ip = ctx->user_ip4;
+    entry.destination_port = ctx->user_port;
+
+    bpf_printk("anusa: ctx: %u, %u", ctx->user_ip4, ctx->user_port);
+
     if (ctx->protocol != IPPROTO_TCP) {
         return BPF_SOCK_ADDR_VERDICT_PROCEED;
     }
@@ -50,63 +74,57 @@ authorize_v4(bpf_sock_addr_t* ctx)
         return BPF_SOCK_ADDR_VERDICT_PROCEED;
     }
 
-    if (ctx->user_ip4 == REDIRECT_IP) {
-        ctx->user_ip4 = PROXY_IP;
-        return BPF_SOCK_ADDR_VERDICT_PROCEED;
-    }
+    // Find the entry in the proxy map.
+    destination_entry_t* proxy_entry = bpf_map_lookup_elem(&proxy_map, &entry);
+    if (proxy_entry != NULL) {
+        bpf_printk("anusa: found proxy entry: %u, %u", proxy_entry->destination_ip, proxy_entry->destination_port);
+        ctx->user_ip4 = proxy_entry->destination_ip;
+        ctx->user_port = proxy_entry->destination_port;
 
-    if (ctx->user_ip4 == PERMIT_IP) {
         return BPF_SOCK_ADDR_VERDICT_PROCEED;
     }
 
     return BPF_SOCK_ADDR_VERDICT_REJECT;
 }
 
-/*
-__inline int
-authorize_v6(bpf_sock_addr_t* ctx, struct bpf_map_def* connection_policy_map)
-{
-    connection_tuple_t tuple_key = {0};
-    int* verdict;
-    __builtin_memcpy(tuple_key.src_ip.ipv6, ctx->msg_src_ip6, sizeof(ctx->msg_src_ip6));
-    tuple_key.src_port = ctx->msg_src_port;
-    __builtin_memcpy(tuple_key.dst_ip.ipv6, ctx->user_ip6, sizeof(ctx->user_ip6));
-    tuple_key.dst_port = ctx->user_port;
-    tuple_key.protocol = ctx->protocol;
-    tuple_key.interface_luid = ctx->interface_luid;
-
-    verdict = bpf_map_lookup_elem(connection_policy_map, &tuple_key);
-
-    return (verdict != NULL) ? *verdict : BPF_SOCK_ADDR_VERDICT_PROCEED;
-}
-*/
-
-SEC("cgroup/connect4")
+SEC("cgroup/connect4/lbnat")
 int
-authorize_connect4(bpf_sock_addr_t* ctx)
+lbnat_v4(bpf_sock_addr_t* ctx)
 {
-    return authorize_v4(ctx);
+    // Get the frontend config.
+    uint32_t key = 0;
+    destination_entry_t* frontend = bpf_map_lookup_elem(&frontend_map, &key);
+    if (!frontend) {
+        return BPF_SOCK_ADDR_VERDICT_PROCEED;
+    }
+    if (frontend->destination_ip != ctx->user_ip4 || frontend->destination_port != ctx->user_port) {
+        // This connection does not match the NAT frontend. Allow it.
+        return BPF_SOCK_ADDR_VERDICT_PROCEED;
+    }
+
+    key = 0;
+    uint32_t* scratch_entry = bpf_map_lookup_elem(&scratch_map, &key);
+    if (!scratch_entry) {
+        return BPF_SOCK_ADDR_VERDICT_REJECT;
+    }
+    key = (*scratch_entry > 0) ? 1 : 0;
+    *scratch_entry = key == 1 ? 0 : 1;
+
+    // Get the backend info.
+    destination_entry_t* backend = bpf_map_lookup_elem(&backend_map, &key);
+    if (!backend) {
+        return BPF_SOCK_ADDR_VERDICT_REJECT;
+    }
+
+    ctx->user_ip4 = backend->destination_ip;
+    ctx->user_port = backend->destination_port;
+
+    return BPF_SOCK_ADDR_VERDICT_PROCEED;
 }
 
-/*
-SEC("cgroup/connect6")
+SEC("cgroup/connect4/blockall")
 int
-authorize_connect6(bpf_sock_addr_t* ctx)
+blockall_v4(bpf_sock_addr_t* ctx)
 {
-    return authorize_v6(ctx, &egress_connection_policy_map);
+    return BPF_SOCK_ADDR_VERDICT_REJECT;
 }
-
-SEC("cgroup/recv_accept4")
-int
-authorize_recv_accept4(bpf_sock_addr_t* ctx)
-{
-    return authorize_v4(ctx, &ingress_connection_policy_map);
-}
-
-SEC("cgroup/recv_accept6")
-int
-authorize_recv_accept6(bpf_sock_addr_t* ctx)
-{
-    return authorize_v6(ctx, &ingress_connection_policy_map);
-}
-*/

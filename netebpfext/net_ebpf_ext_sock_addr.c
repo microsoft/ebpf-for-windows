@@ -703,6 +703,7 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
     }
     result = connection_context->verdict;
 
+    // TODO: See if we need this compartment check, if we have found a matching connection context.
     compartment_id = filter_context->compartment_id;
     ASSERT((compartment_id == UNSPECIFIED_COMPARTMENT_ID) || (compartment_id == sock_addr_ctx.compartment_id));
     if (compartment_id != UNSPECIFIED_COMPARTMENT_ID && compartment_id != sock_addr_ctx.compartment_id) {
@@ -718,11 +719,14 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
     }
 
     action = (result == BPF_SOCK_ADDR_VERDICT_PROCEED) ? FWP_ACTION_PERMIT : FWP_ACTION_BLOCK;
-    if (classify_output->actionType == FWP_ACTION_BLOCK)
-        classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
 
 Exit:
     classify_output->actionType = action;
+    if (filter->flags & FWPS_FILTER_FLAG_CLEAR_ACTION_RIGHT || action == FWP_ACTION_BLOCK) {
+        classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
+        // TODO: It looks like if the connection is blocked, we do not get a second call for AUTH.
+        // That leaks connection_context memory.
+    }
     // Release reference for query.
     DEREFERENCE_CONNECTION_CONTEXT(connection_context);
     // Release the AUTH reference.
@@ -962,6 +966,8 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
         incoming_metadata_values->transportEndpointHandle,
         connection_context);
     _net_ebpf_ext_insert_connection_context_to_list(connection_context);
+
+    action = FWP_ACTION_PERMIT;
 
     // TODO: Should we return block here? Or wait till auth_connect?
     // TODO: What to do for redirection by multiple callouts (FWP_CONDITION_FLAG_IS_REAUTHORIZE).

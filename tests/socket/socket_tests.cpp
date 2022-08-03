@@ -244,7 +244,13 @@ TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
     bpf_object__close(object);
 }
 
-TEST_CASE("attach_sock_addr_programs2", "[sock_addr_tests]")
+typedef struct _destination_entry
+{
+    uint32_t destination_ip;
+    uint16_t destination_port;
+} destination_entry_t;
+
+TEST_CASE("proxy", "[sock_addr_tests]")
 {
     struct bpf_object* object;
     int program_fd;
@@ -252,8 +258,84 @@ TEST_CASE("attach_sock_addr_programs2", "[sock_addr_tests]")
     REQUIRE(result == 0);
     REQUIRE(object != nullptr);
 
-    bpf_program* connect4_program = bpf_object__find_program_by_name(object, "authorize_connect4");
+    bpf_program* connect4_program = bpf_object__find_program_by_name(object, "proxy_v4");
     REQUIRE(connect4_program != nullptr);
+
+    result = bpf_prog_attach(
+        bpf_program__fd(const_cast<const bpf_program*>(connect4_program)), 0, BPF_CGROUP_INET4_CONNECT, 0);
+    REQUIRE(result == 0);
+
+    bpf_map* proxy_map = bpf_object__find_map_by_name(object, "proxy_map");
+    REQUIRE(proxy_map != nullptr);
+
+    fd_t map_fd = bpf_map__fd(proxy_map);
+
+    // Insert proxy entry.
+    destination_entry_t key = {0};
+    destination_entry_t value = {0};
+    key.destination_ip = 0xc8010119; // 25.1.1.200
+    key.destination_port = htons(4444);
+
+    value.destination_ip = 0x64010119; // 25.1.1.100
+    value.destination_port = htons(4444);
+
+    bpf_map_update_elem(map_fd, &key, &value, 0);
+
+    printf("Sleeping for infinite time.\n");
+    Sleep(INFINITE);
+
+    bpf_object__close(object);
+}
+
+TEST_CASE("blockall", "[sock_addr_tests]")
+{
+    struct bpf_object* object;
+    int program_fd;
+    int result = bpf_prog_load_deprecated("cgroup_sock_addr2.o", BPF_PROG_TYPE_CGROUP_SOCK_ADDR, &object, &program_fd);
+    REQUIRE(result == 0);
+    REQUIRE(object != nullptr);
+
+    bpf_program* block4_program = bpf_object__find_program_by_name(object, "blockall_v4");
+    REQUIRE(block4_program != nullptr);
+
+    result = bpf_prog_attach(
+        bpf_program__fd(const_cast<const bpf_program*>(block4_program)), 0, BPF_CGROUP_INET4_CONNECT, 0);
+    REQUIRE(result == 0);
+
+    printf("Sleeping for infinite time.\n");
+    Sleep(INFINITE);
+
+    bpf_object__close(object);
+}
+
+TEST_CASE("lbnat", "[sock_addr_tests]")
+{
+    struct bpf_object* object;
+    int program_fd;
+    int result = bpf_prog_load_deprecated("cgroup_sock_addr2.o", BPF_PROG_TYPE_CGROUP_SOCK_ADDR, &object, &program_fd);
+    REQUIRE(result == 0);
+    REQUIRE(object != nullptr);
+
+    bpf_program* connect4_program = bpf_object__find_program_by_name(object, "lbnat_v4");
+    REQUIRE(connect4_program != nullptr);
+
+    // Populate frontend map.
+    bpf_map* frontend_map = bpf_object__find_map_by_name(object, "frontend_map");
+    uint32_t key = 0;
+    destination_entry_t value;
+    value.destination_ip = 0x1010128;
+    value.destination_port = htons(4444);
+    bpf_map_update_elem(bpf_map__fd(frontend_map), &key, &value, 0);
+
+    // Populate backend map.
+    bpf_map* backend_map = bpf_object__find_map_by_name(object, "backend_map");
+    key = 0;
+    destination_entry_t backend1 = {0xc8010119, htons(4444)};
+    bpf_map_update_elem(bpf_map__fd(backend_map), &key, &backend1, 0);
+
+    key = 1;
+    destination_entry_t backend2 = {0x64010119, htons(4444)};
+    bpf_map_update_elem(bpf_map__fd(backend_map), &key, &backend2, 0);
 
     result = bpf_prog_attach(
         bpf_program__fd(const_cast<const bpf_program*>(connect4_program)), 0, BPF_CGROUP_INET4_CONNECT, 0);
