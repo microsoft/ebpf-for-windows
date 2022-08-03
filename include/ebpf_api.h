@@ -92,7 +92,10 @@ extern "C"
      */
     uint32_t
     ebpf_api_elf_disassemble_section(
-        const char* file, const char* section, const char** disassembly, const char** error_message);
+        _In_z_ const char* file,
+        _In_z_ const char* section,
+        _Outptr_result_maybenull_z_ const char** disassembly,
+        _Outptr_result_maybenull_z_ const char** error_message);
 
     typedef struct
     {
