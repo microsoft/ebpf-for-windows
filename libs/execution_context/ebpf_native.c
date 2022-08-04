@@ -480,9 +480,6 @@ _ebpf_native_get_next_map_to_create(_In_ ebpf_native_map_t* maps, size_t map_cou
             // This map requires an inner map template, look up which one.
             for (uint32_t j = 0; j < map_count; j++) {
                 ebpf_native_map_t* inner_map = &maps[j];
-                if (!inner_map) {
-                    continue;
-                }
                 if (inner_map->original_id == map->inner_map_original_id) {
                     map->inner_map = inner_map;
                     break;
