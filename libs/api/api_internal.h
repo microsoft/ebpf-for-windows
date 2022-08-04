@@ -80,25 +80,25 @@ typedef struct bpf_object
  *  @brief Initialize the eBPF user mode library.
  */
 uint32_t
-ebpf_api_initiate();
+ebpf_api_initiate() noexcept;
 
 /**
  *  @brief Terminate the eBPF user mode library.
  */
 void
-ebpf_api_terminate();
+ebpf_api_terminate() noexcept;
 
 void
-clean_up_ebpf_program(_In_ _Post_invalid_ ebpf_program_t* program);
+clean_up_ebpf_program(_In_ _Post_invalid_ ebpf_program_t* program) noexcept;
 
 void
-clean_up_ebpf_programs(_Inout_ std::vector<ebpf_program_t*>& programs);
+clean_up_ebpf_programs(_Inout_ std::vector<ebpf_program_t*>& programs) noexcept;
 
 void
-clean_up_ebpf_map(_In_ _Post_invalid_ ebpf_map_t* map);
+clean_up_ebpf_map(_In_ _Post_invalid_ ebpf_map_t* map) noexcept;
 
 void
-clean_up_ebpf_maps(_Inout_ std::vector<ebpf_map_t*>& maps);
+clean_up_ebpf_maps(_Inout_ std::vector<ebpf_map_t*>& maps) noexcept;
 
 /**
  * @brief Get next eBPF object.
@@ -107,7 +107,7 @@ clean_up_ebpf_maps(_Inout_ std::vector<ebpf_map_t*>& maps);
  * @return Pointer to the next object, or NULL if none.
  */
 _Ret_maybenull_ struct bpf_object*
-ebpf_object_next(_In_opt_ const struct bpf_object* previous);
+ebpf_object_next(_In_opt_ const struct bpf_object* previous) noexcept;
 
 /**
  * @brief Get next program in ebpf_object object.
@@ -117,7 +117,7 @@ ebpf_object_next(_In_opt_ const struct bpf_object* previous);
  * @return Pointer to the next program, or NULL if none.
  */
 _Ret_maybenull_ struct bpf_program*
-ebpf_program_next(_In_opt_ const struct bpf_program* previous, _In_ const struct bpf_object* object);
+ebpf_program_next(_In_opt_ const struct bpf_program* previous, _In_ const struct bpf_object* object) noexcept;
 
 /**
  * @brief Get previous program in ebpf_object object.
@@ -127,7 +127,7 @@ ebpf_program_next(_In_opt_ const struct bpf_program* previous, _In_ const struct
  * @return Pointer to the previous program, or NULL if none.
  */
 _Ret_maybenull_ struct bpf_program*
-ebpf_program_previous(_In_opt_ const struct bpf_program* next, _In_ const struct bpf_object* object);
+ebpf_program_previous(_In_opt_ const struct bpf_program* next, _In_ const struct bpf_object* object) noexcept;
 
 /**
  * @brief Unload an eBPF program.
@@ -138,7 +138,7 @@ ebpf_program_previous(_In_opt_ const struct bpf_program* next, _In_ const struct
  * @retval EBPF_INVALID_ARGUMENT One or more parameters are wrong.
  */
 ebpf_result_t
-ebpf_program_unload(_In_ struct bpf_program* program);
+ebpf_program_unload(_In_ struct bpf_program* program) noexcept;
 
 /**
  * @brief Bind a map to a program so that it holds a reference on the map.
@@ -150,7 +150,7 @@ ebpf_program_unload(_In_ struct bpf_program* program);
  * @retval EBPF_INVALID_ARGUMENT One or more parameters are wrong.
  */
 ebpf_result_t
-ebpf_program_bind_map(fd_t program_fd, fd_t map_fd);
+ebpf_program_bind_map(fd_t program_fd, fd_t map_fd) noexcept;
 
 /**
  * @brief Get next map in ebpf_object object.
@@ -160,7 +160,7 @@ ebpf_program_bind_map(fd_t program_fd, fd_t map_fd);
  * @return Pointer to the next map, or NULL if none.
  */
 _Ret_maybenull_ struct bpf_map*
-ebpf_map_next(_In_opt_ const struct bpf_map* previous, _In_ const struct bpf_object* object);
+ebpf_map_next(_In_opt_ const struct bpf_map* previous, _In_ const struct bpf_object* object) noexcept;
 
 /**
  * @brief Get previous map in ebpf_object object.
@@ -170,7 +170,7 @@ ebpf_map_next(_In_opt_ const struct bpf_map* previous, _In_ const struct bpf_obj
  * @return Pointer to the previous map, or NULL if none.
  */
 _Ret_maybenull_ struct bpf_map*
-ebpf_map_previous(_In_opt_ const struct bpf_map* next, _In_ const struct bpf_object* object);
+ebpf_map_previous(_In_opt_ const struct bpf_map* next, _In_ const struct bpf_object* object) noexcept;
 
 /**
  * @brief Create a new map.
@@ -196,7 +196,7 @@ ebpf_map_create(
     uint32_t value_size,
     uint32_t max_entries,
     _In_opt_ const struct bpf_map_create_opts* opts,
-    _Out_ fd_t* map_fd);
+    _Out_ fd_t* map_fd) noexcept;
 
 /**
  * @brief Fetch fd for a program object.
@@ -205,7 +205,7 @@ ebpf_map_create(
  * @return fd for the program on success, ebpf_fd_invalid on failure.
  */
 fd_t
-ebpf_program_get_fd(_In_ const struct bpf_program* program);
+ebpf_program_get_fd(_In_ const struct bpf_program* program) noexcept;
 
 /**
  * @brief Clean up ebpf_object. Also delete all the sub objects
@@ -214,10 +214,10 @@ ebpf_program_get_fd(_In_ const struct bpf_program* program);
  * @param[in] object Pointer to ebpf_object.
  */
 void
-ebpf_object_close(_In_opt_ _Post_invalid_ struct bpf_object* object);
+ebpf_object_close(_In_opt_ _Post_invalid_ struct bpf_object* object) noexcept;
 
 void
-initialize_map(_Out_ ebpf_map_t* map, _In_ const map_cache_t& map_cache);
+initialize_map(_Out_ ebpf_map_t* map, _In_ const map_cache_t& map_cache) noexcept;
 
 /**
  * @brief Pin an eBPF map to specified path.
@@ -227,7 +227,7 @@ initialize_map(_Out_ ebpf_map_t* map, _In_ const map_cache_t& map_cache);
  * @retval EBPF_SUCCESS The operation was successful.
  */
 ebpf_result_t
-ebpf_map_pin(_In_ struct bpf_map* map, _In_opt_z_ const char* path);
+ebpf_map_pin(_In_ struct bpf_map* map, _In_opt_z_ const char* path) noexcept;
 
 /**
  * @brief Unpin an eBPF map from the specified path.
@@ -237,7 +237,7 @@ ebpf_map_pin(_In_ struct bpf_map* map, _In_opt_z_ const char* path);
  * @retval EBPF_SUCCESS The operation was successful.
  */
 ebpf_result_t
-ebpf_map_unpin(_In_ struct bpf_map* map, _In_opt_z_ const char* path);
+ebpf_map_unpin(_In_ struct bpf_map* map, _In_opt_z_ const char* path) noexcept;
 
 /**
  * @brief Set pin path for an eBPF map.
@@ -249,7 +249,7 @@ ebpf_map_unpin(_In_ struct bpf_map* map, _In_opt_z_ const char* path);
  * @retval EBPF_INVALID_ARGUMENT One or more parameters are wrong.
  */
 ebpf_result_t
-ebpf_map_set_pin_path(_In_ struct bpf_map* map, _In_opt_z_ const char* path);
+ebpf_map_set_pin_path(_In_ struct bpf_map* map, _In_opt_z_ const char* path) noexcept;
 
 /**
  * @brief Update value for the specified key in an eBPF map.
@@ -261,7 +261,7 @@ ebpf_map_set_pin_path(_In_ struct bpf_map* map, _In_opt_z_ const char* path);
  * @retval EBPF_SUCCESS The operation was successful.
  */
 ebpf_result_t
-ebpf_map_update_element(fd_t map_fd, _In_opt_ const void* key, _In_ const void* value, uint64_t flags);
+ebpf_map_update_element(fd_t map_fd, _In_opt_ const void* key, _In_ const void* value, uint64_t flags) noexcept;
 
 /**
  * @brief Delete an element in an eBPF map.
@@ -272,7 +272,7 @@ ebpf_map_update_element(fd_t map_fd, _In_opt_ const void* key, _In_ const void* 
  * @retval EBPF_SUCCESS The operation was successful.
  */
 ebpf_result_t
-ebpf_map_delete_element(fd_t map_fd, _In_ const void* key);
+ebpf_map_delete_element(fd_t map_fd, _In_ const void* key) noexcept;
 
 /**
  * @brief Look up an element in an eBPF map.
@@ -286,7 +286,7 @@ ebpf_map_delete_element(fd_t map_fd, _In_ const void* key);
  * @retval EBPF_SUCCESS The operation was successful.
  */
 ebpf_result_t
-ebpf_map_lookup_element(fd_t map_fd, _In_opt_ const void* key, _Out_ void* value);
+ebpf_map_lookup_element(fd_t map_fd, _In_opt_ const void* key, _Out_ void* value) noexcept;
 
 /**
  * @brief Look up an element in an eBPF map.
@@ -301,7 +301,7 @@ ebpf_map_lookup_element(fd_t map_fd, _In_opt_ const void* key, _Out_ void* value
  * @retval EBPF_SUCCESS The operation was successful.
  */
 ebpf_result_t
-ebpf_map_lookup_and_delete_element(fd_t map_fd, _In_opt_ const void* key, _Out_ void* value);
+ebpf_map_lookup_and_delete_element(fd_t map_fd, _In_opt_ const void* key, _Out_ void* value) noexcept;
 
 /**
  * @brief Return the next key in an eBPF map.
@@ -316,7 +316,7 @@ ebpf_map_lookup_and_delete_element(fd_t map_fd, _In_opt_ const void* key, _Out_ 
  * @retval EBPF_NO_MORE_KEYS previous_key was the last key.
  */
 ebpf_result_t
-ebpf_map_get_next_key(fd_t map_fd, _In_opt_ const void* previous_key, _Out_ void* next_key);
+ebpf_map_get_next_key(fd_t map_fd, _In_opt_ const void* previous_key, _Out_ void* next_key) noexcept;
 
 /**
  * @brief Detach a link given a file descriptor.
@@ -327,7 +327,7 @@ ebpf_map_get_next_key(fd_t map_fd, _In_opt_ const void* previous_key, _Out_ void
  * @retval EBPF_INVALID_FD The file descriptor was not valid.
  */
 ebpf_result_t
-ebpf_detach_link_by_fd(fd_t fd);
+ebpf_detach_link_by_fd(fd_t fd) noexcept;
 
 /**
  * @brief Open a file descriptor for the map with a given ID.
@@ -421,7 +421,7 @@ ebpf_get_next_program_id(ebpf_id_t start_id, ebpf_id_t _Out_* next_id) noexcept;
  */
 ebpf_result_t
 ebpf_object_get_info_by_fd(
-    fd_t bpf_fd, _Out_writes_bytes_to_(*info_size, *info_size) void* info, _Inout_ uint32_t* info_size);
+    fd_t bpf_fd, _Out_writes_bytes_to_(*info_size, *info_size) void* info, _Inout_ uint32_t* info_size) noexcept;
 
 /**
  * @brief Pin an object to the specified path.
@@ -431,7 +431,7 @@ ebpf_object_get_info_by_fd(
  * @retval EBPF_SUCCESS The operation was successful.
  */
 ebpf_result_t
-ebpf_object_pin(fd_t fd, _In_z_ const char* path);
+ebpf_object_pin(fd_t fd, _In_z_ const char* path) noexcept;
 
 /**
  * @brief Get fd for a pinned object by pin path.
@@ -440,7 +440,7 @@ ebpf_object_pin(fd_t fd, _In_z_ const char* path);
  * @return file descriptor for the pinned object, -1 if not found.
  */
 fd_t
-ebpf_object_get(_In_z_ const char* path);
+ebpf_object_get(_In_z_ const char* path) noexcept;
 
 /**
  * @brief Open a file without loading the programs.
@@ -481,7 +481,7 @@ ebpf_object_open(
  * @retval EBPF_NO_MEMORY Out of memory.
  */
 ebpf_result_t
-ebpf_object_load(_Inout_ struct bpf_object* object);
+ebpf_object_load(_Inout_ struct bpf_object* object) noexcept;
 
 /**
  * @brief Unload all the programs in a given object.
@@ -492,7 +492,7 @@ ebpf_object_load(_Inout_ struct bpf_object* object);
  * @retval EBPF_INVALID_ARGUMENT One or more parameters are wrong.
  */
 ebpf_result_t
-ebpf_object_unload(_In_ struct bpf_object* object);
+ebpf_object_unload(_In_ struct bpf_object* object) noexcept;
 
 typedef int (*ring_buffer_sample_fn)(void* ctx, void* data, size_t size);
 
@@ -512,7 +512,7 @@ ebpf_ring_buffer_map_subscribe(
     fd_t ring_buffer_map_fd,
     _In_opt_ void* sample_callback_context,
     ring_buffer_sample_fn sample_callback,
-    _Outptr_ ring_buffer_subscription_t** subscription);
+    _Outptr_ ring_buffer_subscription_t** subscription) noexcept;
 
 /**
  * @brief Unsubscribe from the ring buffer map event notifications.
@@ -520,7 +520,7 @@ ebpf_ring_buffer_map_subscribe(
  * @param[in] subscription Pointer to ring buffer subscription to be canceled.
  */
 bool
-ebpf_ring_buffer_map_unsubscribe(_Inout_ _Post_invalid_ ring_buffer_subscription_t* subscription);
+ebpf_ring_buffer_map_unsubscribe(_Inout_ _Post_invalid_ ring_buffer_subscription_t* subscription) noexcept;
 
 /**
  * @brief Get list of programs and stats in an ELF eBPF file.
@@ -537,7 +537,7 @@ ebpf_api_elf_enumerate_sections(
     _In_opt_z_ const char* section,
     bool verbose,
     _Outptr_result_maybenull_ ebpf_section_info_t** infos,
-    _Outptr_result_maybenull_z_ const char** error_message);
+    _Outptr_result_maybenull_z_ const char** error_message) noexcept;
 
 /**
  * @brief Load an eBPF programs from raw instructions.
@@ -570,7 +570,7 @@ ebpf_program_load_bytes(
     uint32_t instruction_count,
     _Out_writes_opt_(log_buffer_size) char* log_buffer,
     size_t log_buffer_size,
-    _Out_ fd_t* program_fd);
+    _Out_ fd_t* program_fd) noexcept;
 
 /**
  * @brief Get eBPF program type for the specified bpf program type.
@@ -580,7 +580,7 @@ ebpf_program_load_bytes(
  * @returns Pointer to eBPF program type, or NULL if not found.
  */
 _Ret_maybenull_ const ebpf_program_type_t*
-ebpf_get_ebpf_program_type(bpf_prog_type_t bpf_program_type);
+ebpf_get_ebpf_program_type(bpf_prog_type_t bpf_program_type) noexcept;
 
 /**
  * @brief Get eBPF attach type for the specified bpf attach type.
@@ -590,7 +590,7 @@ ebpf_get_ebpf_program_type(bpf_prog_type_t bpf_program_type);
  * @returns Pointer to eBPF attach type, or NULL if not found.
  */
 _Ret_maybenull_ const ebpf_attach_type_t*
-get_ebpf_attach_type(bpf_attach_type_t bpf_attach_type);
+get_ebpf_attach_type(bpf_attach_type_t bpf_attach_type) noexcept;
 
 /**
  * @brief Get bpf program type for the specified eBPF program type.
@@ -600,7 +600,7 @@ get_ebpf_attach_type(bpf_attach_type_t bpf_attach_type);
  * @returns Bpf program type, or BPF_PROG_TYPE_UNSPEC if not found.
  */
 bpf_prog_type_t
-get_bpf_program_type(_In_ const ebpf_program_type_t* program_type);
+get_bpf_program_type(_In_ const ebpf_program_type_t* program_type) noexcept;
 
 /**
  * @brief Get bpf attach type for the specified eBPF attach type.
@@ -610,4 +610,4 @@ get_bpf_program_type(_In_ const ebpf_program_type_t* program_type);
  * @returns Bpf attach type, or BPF_ATTACH_TYPE_UNSPEC if not found.
  */
 bpf_attach_type_t
-get_bpf_attach_type(_In_ const ebpf_attach_type_t* ebpf_attach_type);
+get_bpf_attach_type(_In_ const ebpf_attach_type_t* ebpf_attach_type) noexcept;
