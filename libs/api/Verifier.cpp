@@ -359,7 +359,7 @@ Exit:
 }
 
 static void
-_ebpf_add_stat(_Inout_ ebpf_section_info_t* info, std::string key, int value)
+_ebpf_add_stat(_Inout_ ebpf_section_info_t* info, std::string key, int value) noexcept(false)
 {
     ebpf_stat_t* stat = (ebpf_stat_t*)malloc(sizeof(*stat));
     if (stat == nullptr) {
@@ -381,7 +381,7 @@ ebpf_api_elf_enumerate_sections(
     _In_opt_z_ const char* section,
     bool verbose,
     _Outptr_result_maybenull_ ebpf_section_info_t** infos,
-    _Outptr_result_maybenull_z_ const char** error_message)
+    _Outptr_result_maybenull_z_ const char** error_message) noexcept
 {
     ebpf_verifier_options_t verifier_options{false, false, false, false, true};
     const ebpf_platform_t* platform = &g_ebpf_platform_windows;
@@ -445,13 +445,19 @@ ebpf_api_elf_enumerate_sections(
 
 uint32_t
 ebpf_api_elf_disassemble_section(
-    const char* file, const char* section, const char** disassembly, const char** error_message)
+    _In_z_ const char* file,
+    _In_z_ const char* section,
+    _Outptr_result_maybenull_z_ const char** disassembly,
+    _Outptr_result_maybenull_z_ const char** error_message)
 {
     ebpf_verifier_options_t verifier_options = ebpf_verifier_default_options;
     const ebpf_platform_t* platform = &g_ebpf_platform_windows;
     std::ostringstream error;
     std::ostringstream output;
     struct _thread_local_storage_cache tls_cache;
+
+    *disassembly = nullptr;
+    *error_message = nullptr;
 
     try {
         auto raw_programs = read_elf(file, section, &verifier_options, platform);
@@ -485,7 +491,7 @@ _ebpf_api_elf_verify_section_from_stream(
     bool verbose,
     const char** report,
     const char** error_message,
-    ebpf_api_verifier_stats_t* stats)
+    ebpf_api_verifier_stats_t* stats) noexcept
 {
     std::ostringstream error;
     std::ostringstream output;
@@ -542,7 +548,9 @@ _ebpf_api_elf_verify_section_from_stream(
 
 static uint32_t
 _load_file_to_memory(
-    _In_ const std::string& path, _Out_ std::string& data, _Outptr_result_maybenull_z_ const char** error_message)
+    _In_ const std::string& path,
+    _Out_ std::string& data,
+    _Outptr_result_maybenull_z_ const char** error_message) noexcept
 {
     data = "";
     struct stat st;
@@ -569,7 +577,7 @@ static _Success_(return == 0) uint32_t _verify_section_from_string(
     bool verbose,
     _Outptr_result_maybenull_z_ const char** report,
     _Outptr_result_maybenull_z_ const char** error_message,
-    _Out_opt_ ebpf_api_verifier_stats_t* stats)
+    _Out_opt_ ebpf_api_verifier_stats_t* stats) noexcept
 {
     *error_message = nullptr;
     *report = nullptr;

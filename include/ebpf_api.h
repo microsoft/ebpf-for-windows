@@ -29,56 +29,6 @@ extern "C"
     struct bpf_link;
 
     /**
-     * @brief Create an eBPF map with input parameters.
-     *
-     * @param[in] map_type Map type.
-     * @param[in] key_size Key size.
-     * @param[in] value_size Value size.
-     * @param[in] max_entries Maximum number of entries in the map.
-     * @param[in] map_flags This is reserved and should be 0.
-     * @param[out] map_fd File descriptor for the created map. The caller needs to
-     *  call _close() on the returned fd when done.
-     *
-     * @retval EBPF_SUCCESS Map created successfully.
-     * @retval EBPF_ERROR_NOT_SUPPORTED Unsupported map type.
-     * @retval EBPF_INVALID_ARGUMENT One or more parameters are incorrect.
-     */
-    ebpf_result_t
-    ebpf_create_map(
-        ebpf_map_type_t map_type,
-        uint32_t key_size,
-        uint32_t value_size,
-        uint32_t max_entries,
-        uint32_t map_flags,
-        _Out_ fd_t* map_fd);
-
-    /**
-     * @brief Create an eBPF map with input parameters.
-     *
-     * @param[in] type Map type.
-     * @param[in] name Optionally, the map name.
-     * @param[in] key_size Key size.
-     * @param[in] value_size Value size.
-     * @param[in] max_entries Maximum number of entries in the map.
-     * @param[in] map_flags This is reserved and should be 0.
-     * @param[out] map_fd File descriptor for the created map. The caller needs to
-     *  call _close() on the returned fd when done.
-     *
-     * @retval EBPF_SUCCESS Map created successfully.
-     * @retval EBPF_ERROR_NOT_SUPPORTED Unsupported map type.
-     * @retval EBPF_INVALID_ARGUMENT One or more parameters are incorrect.
-     */
-    ebpf_result_t
-    ebpf_create_map_name(
-        ebpf_map_type_t type,
-        _In_opt_z_ const char* name,
-        uint32_t key_size,
-        uint32_t value_size,
-        uint32_t max_entries,
-        uint32_t map_flags,
-        _Out_ fd_t* map_fd);
-
-    /**
      * @brief Query info about an eBPF program.
      * @param[in] fd File descriptor of an eBPF program.
      * @param[out] execution_type On success, contains the execution type.
@@ -146,7 +96,10 @@ extern "C"
      */
     uint32_t
     ebpf_api_elf_disassemble_section(
-        const char* file, const char* section, const char** disassembly, const char** error_message);
+        _In_z_ const char* file,
+        _In_z_ const char* section,
+        _Outptr_result_maybenull_z_ const char** disassembly,
+        _Outptr_result_maybenull_z_ const char** error_message);
 
     typedef struct
     {
@@ -426,20 +379,6 @@ extern "C"
         _In_z_ const char* name,
         _Out_ ebpf_program_type_t* program_type,
         _Out_ ebpf_attach_type_t* expected_attach_type);
-
-    /**
-     * @brief Get bpf program type and expected attach type by name.
-     *
-     * @param[in] name Name, as if it were a section name in an ELF file.
-     * @param[out] program_type Bpf program type.
-     * @param[out] expected_attach_type Expected bpf attach type.
-     *
-     * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_KEY_NOT_FOUND No program type was found.
-     */
-    ebpf_result_t
-    ebpf_get_bpf_program_type_by_name(
-        _In_z_ const char* name, _Out_ bpf_prog_type_t* program_type, _Out_ bpf_attach_type_t* expected_attach_type);
 
     /**
      * @brief Get the name of a given program type.

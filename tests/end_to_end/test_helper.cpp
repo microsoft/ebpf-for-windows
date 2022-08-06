@@ -285,7 +285,7 @@ _preprocess_load_native_module(_Inout_ service_context_t* context)
         &returned_provider_dispatch_table,
         nullptr);
 
-    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE((result == EBPF_SUCCESS || _expect_native_module_load_failures));
 
     context->loaded = true;
 }
@@ -573,6 +573,8 @@ _test_helper_end_to_end::~_test_helper_end_to_end()
 
 _test_helper_libbpf::_test_helper_libbpf()
 {
+    ebpf_clear_thread_local_storage();
+
     xdp_program_info = new program_info_provider_t(EBPF_PROGRAM_TYPE_XDP);
     xdp_hook = new single_instance_hook_t(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
 
