@@ -253,6 +253,10 @@ typedef struct _ebpf_operation_unlink_program_request
 {
     struct _ebpf_operation_header header;
     ebpf_handle_t link_handle;
+    ebpf_handle_t program_handle;
+    ebpf_attach_type_t attach_type;
+    bool attach_data_present;
+    uint8_t data[1];
 } ebpf_operation_unlink_program_request_t;
 
 typedef struct _ebpf_operation_close_handle_request

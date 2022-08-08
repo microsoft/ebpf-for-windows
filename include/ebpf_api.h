@@ -11,8 +11,12 @@
 #include "ebpf_result.h"
 
 #ifdef __cplusplus
+#include <stdexcept>
+#define EBPF_NO_EXCEPT noexcept
 extern "C"
 {
+#else
+#define EBPF_NO_EXCEPT
 #endif
 
     typedef int32_t fd_t;
@@ -314,6 +318,26 @@ extern "C"
      */
     ebpf_result_t
     ebpf_link_detach(_In_ struct bpf_link* link);
+
+    /**
+     * @brief Detach an eBPF program.
+     *
+     * @param[in] program_fd File descriptor of program to detach. If set to -1,
+     * this parameter is ignored.
+     * @param[in] attach_type The attach type for attaching the program.
+     * @param[in] attach_parameter_size Size of the attach parameter.
+     * @param[in] attach_parameter Pointer to attach parameter. This is an
+     *  opaque flat buffer containing the attach parameters which is interpreted
+     *  by the extension provider.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INVALID_OBJECT Invalid object was passed.
+     */
+    ebpf_result_t
+    ebpf_program_detach(
+        fd_t program_fd,
+        _In_ const ebpf_attach_type_t* attach_type,
+        _In_reads_bytes_(attach_parameter_size) void* attach_parameter,
+        size_t attach_parameter_size) EBPF_NO_EXCEPT;
 
     /**
      * Clean up and free bpf_link structure. Also close the
