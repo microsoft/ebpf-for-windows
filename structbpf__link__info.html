@@ -99,6 +99,13 @@ Data Fields</h2></td></tr>
 <tr class="separator:addd27124af40180f727f8a9e0df9c678"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa7fc5558cb4d46d6ce3532edcde1d7c0"><td class="memItemLeft" valign="top">&#160;&#160;&#160;}&#160;&#160;&#160;<a class="el" href="structbpf__link__info.html#a069cbbd52ee5367e946b5f590d620446">xdp</a></td></tr>
 <tr class="separator:aa7fc5558cb4d46d6ce3532edcde1d7c0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:affa203c01c8bd4a77317d67df84ac4e4"><td class="memItemLeft" >&#160;&#160;&#160;struct {</td></tr>
+<tr class="memitem:afa79ab109edbc2ccd13866d9a7fce7b0"><td class="memItemLeft" >&#160;&#160;&#160;&#160;&#160;&#160;uint64_t&#160;&#160;&#160;<a class="el" href="structbpf__link__info.html#ad66b0b07e46ad978e62d1e3bfc02e728">cgroup_id</a></td></tr>
+<tr class="separator:afa79ab109edbc2ccd13866d9a7fce7b0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:affa203c01c8bd4a77317d67df84ac4e4"><td class="memItemLeft" valign="top">&#160;&#160;&#160;}&#160;&#160;&#160;<a class="el" href="structbpf__link__info.html#a1f1ce7604754f6349e01628eb19ca7bc">cgroup</a></td></tr>
+<tr class="separator:affa203c01c8bd4a77317d67df84ac4e4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa46af09431ca3ba8448804002b681075"><td class="memItemLeft" >&#160;&#160;&#160;uint8_t&#160;&#160;&#160;<a class="el" href="structbpf__link__info.html#a4e4b73ec1f38ba44435b4d248d7b6cf4">attach_data</a></td></tr>
+<tr class="separator:aa46af09431ca3ba8448804002b681075"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5fe8e0e68ebff1c80c3579413ce20c04"><td class="memItemLeft" valign="top">};&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
 <tr class="separator:a5fe8e0e68ebff1c80c3579413ce20c04"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
@@ -113,6 +120,20 @@ Data Fields</h2></td></tr>
       <table class="memname">
         <tr>
           <td class="memname">union { ... } </td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a4e4b73ec1f38ba44435b4d248d7b6cf4"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4e4b73ec1f38ba44435b4d248d7b6cf4">&#9670;&nbsp;</a></span>attach_data</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint8_t bpf_link_info::attach_data</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -148,6 +169,34 @@ Data Fields</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Attach type UUID. </p>
+
+</div>
+</div>
+<a id="a1f1ce7604754f6349e01628eb19ca7bc"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1f1ce7604754f6349e01628eb19ca7bc">&#9670;&nbsp;</a></span>cgroup</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">struct { ... }  bpf_link_info::cgroup</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="ad66b0b07e46ad978e62d1e3bfc02e728"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad66b0b07e46ad978e62d1e3bfc02e728">&#9670;&nbsp;</a></span>cgroup_id</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint64_t bpf_link_info::cgroup_id</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
 
 </div>
 </div>

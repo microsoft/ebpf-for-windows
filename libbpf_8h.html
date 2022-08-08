@@ -185,8 +185,14 @@ Functions</h2></td></tr>
 <tr class="memdesc:add95958a8ad1c31b3f42a614625d20d1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attach an eBPF program to an XDP hook.  <a href="libbpf_8h.html#add95958a8ad1c31b3f42a614625d20d1">More...</a><br /></td></tr>
 <tr class="separator:add95958a8ad1c31b3f42a614625d20d1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a537fad2441f3f63e2cda6f88bc12ce80"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a537fad2441f3f63e2cda6f88bc12ce80">bpf_prog_attach</a> (int prog_fd, int attachable_fd, enum <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5a">bpf_attach_type</a> type, unsigned int flags)</td></tr>
-<tr class="memdesc:a537fad2441f3f63e2cda6f88bc12ce80"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attach an eBPF program to an XDP hook.  <a href="libbpf_8h.html#a537fad2441f3f63e2cda6f88bc12ce80">More...</a><br /></td></tr>
+<tr class="memdesc:a537fad2441f3f63e2cda6f88bc12ce80"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attach an eBPF program to an attach point.  <a href="libbpf_8h.html#a537fad2441f3f63e2cda6f88bc12ce80">More...</a><br /></td></tr>
 <tr class="separator:a537fad2441f3f63e2cda6f88bc12ce80"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a05c653e93f2a6e2e421bbecfaeb624db"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a05c653e93f2a6e2e421bbecfaeb624db">bpf_prog_detach</a> (int attachable_fd, enum <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5a">bpf_attach_type</a> type)</td></tr>
+<tr class="memdesc:a05c653e93f2a6e2e421bbecfaeb624db"><td class="mdescLeft">&#160;</td><td class="mdescRight">Detach eBPF program(s) from an attach point.  <a href="libbpf_8h.html#a05c653e93f2a6e2e421bbecfaeb624db">More...</a><br /></td></tr>
+<tr class="separator:a05c653e93f2a6e2e421bbecfaeb624db"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8e167aa907a4d732b42b8a3bb889cd41"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a8e167aa907a4d732b42b8a3bb889cd41">bpf_prog_detach2</a> (int prog_fd, int attachable_fd, enum <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5a">bpf_attach_type</a> type)</td></tr>
+<tr class="memdesc:a8e167aa907a4d732b42b8a3bb889cd41"><td class="mdescLeft">&#160;</td><td class="mdescRight">Detach an eBPF program from an attach point.  <a href="libbpf_8h.html#a8e167aa907a4d732b42b8a3bb889cd41">More...</a><br /></td></tr>
+<tr class="separator:a8e167aa907a4d732b42b8a3bb889cd41"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8ee480e1b45d468710fd35a2f43aeed3"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a8ee480e1b45d468710fd35a2f43aeed3">bpf_program__fd</a> (const struct bpf_program *prog)</td></tr>
 <tr class="memdesc:a8ee480e1b45d468710fd35a2f43aeed3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get a file descriptor that refers to a program.  <a href="libbpf_8h.html#a8ee480e1b45d468710fd35a2f43aeed3">More...</a><br /></td></tr>
 <tr class="separator:a8ee480e1b45d468710fd35a2f43aeed3"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -1510,13 +1516,108 @@ bpf_object__unpin </dd></dl>
       </table>
 </div><div class="memdoc">
 
-<p>Attach an eBPF program to an XDP hook. </p>
+<p>Attach an eBPF program to an attach point. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">prog_fd</td><td>File descriptor of the program to attach. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">attachable_fd</td><td>File descriptor corresponding to the attach point. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">type</td><td>Attach type. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">flags</td><td>Flags (currently 0).</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
+    <tr><td class="paramname">&lt;0</td><td>An error occured, and errno was set. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="a05c653e93f2a6e2e421bbecfaeb624db"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a05c653e93f2a6e2e421bbecfaeb624db">&#9670;&nbsp;</a></span>bpf_prog_detach()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int bpf_prog_detach </td>
+          <td>(</td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>attachable_fd</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">enum <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5a">bpf_attach_type</a>&#160;</td>
+          <td class="paramname"><em>type</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Detach eBPF program(s) from an attach point. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">attachable_fd</td><td>File descriptor corresponding to the attach point. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">type</td><td>Attach type.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
+    <tr><td class="paramname">&lt;0</td><td>An error occured, and errno was set. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="a8e167aa907a4d732b42b8a3bb889cd41"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a8e167aa907a4d732b42b8a3bb889cd41">&#9670;&nbsp;</a></span>bpf_prog_detach2()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int bpf_prog_detach2 </td>
+          <td>(</td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>prog_fd</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>attachable_fd</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">enum <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5a">bpf_attach_type</a>&#160;</td>
+          <td class="paramname"><em>type</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Detach an eBPF program from an attach point. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">prog_fd</td><td>File descriptor of the program to detach. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">attachable_fd</td><td>File descriptor corresponding to the attach point. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">type</td><td>Attach type.</td></tr>
   </table>
   </dd>
 </dl>
