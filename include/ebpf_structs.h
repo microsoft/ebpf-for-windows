@@ -223,7 +223,9 @@ typedef enum bpf_prog_type bpf_prog_type_t;
 enum bpf_link_type
 {
     BPF_LINK_TYPE_UNSPEC, ///< Unspecified link type.
-    BPF_LINK_TYPE_PLAIN,  ///< Normal link type.
+    BPF_LINK_TYPE_PLAIN,  ///< No union members are used in bpf_link_info.
+    BPF_LINK_TYPE_CGROUP, ///< cgroup struct is present in bpf_link_info.
+    BPF_LINK_TYPE_XDP,    ///< xdp struct is present in bpf_link_info.
 };
 
 static const char* const _ebpf_link_display_names[] = {
@@ -318,6 +320,11 @@ struct bpf_link_info
         {
             uint32_t ifindex;
         } xdp;
+        struct
+        {
+            uint64_t cgroup_id;
+        } cgroup;
+        uint8_t attach_data;
     };
 };
 #ifdef _MSC_VER

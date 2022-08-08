@@ -996,8 +996,11 @@ _cgroup_load_test(
 
     uint32_t compartment_id = 0;
     REQUIRE(hook.attach(program, &compartment_id, sizeof(compartment_id)) == EBPF_SUCCESS);
+    REQUIRE(hook.detach(ebpf_fd_invalid, &compartment_id, sizeof(compartment_id)) == EBPF_SUCCESS);
 
-    hook.detach();
+    compartment_id = 1;
+    REQUIRE(hook.attach(program, &compartment_id, sizeof(compartment_id)) == EBPF_SUCCESS);
+    REQUIRE(hook.detach(program_fd, &compartment_id, sizeof(compartment_id)) == EBPF_SUCCESS);
 
     bpf_object__close(object);
 }
