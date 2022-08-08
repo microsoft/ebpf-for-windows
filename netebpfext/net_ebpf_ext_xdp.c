@@ -242,6 +242,7 @@ net_ebpf_ext_xdp_register_providers()
     // Set the attach type as the provider module id.
     _ebpf_xdp_hook_provider_moduleid.Guid = EBPF_ATTACH_TYPE_XDP;
     _net_ebpf_xdp_hook_provider_data.bpf_attach_type = BPF_XDP;
+    _net_ebpf_xdp_hook_provider_data.link_type = BPF_LINK_TYPE_XDP;
     status = net_ebpf_extension_hook_provider_register(
         &hook_provider_parameters,
         net_ebpf_extension_xdp_on_client_attach,

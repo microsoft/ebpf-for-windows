@@ -168,6 +168,7 @@ net_ebpf_ext_bind_register_providers()
     // Set the attach type as the provider module id.
     _ebpf_bind_hook_provider_moduleid.Guid = EBPF_ATTACH_TYPE_BIND;
     _net_ebpf_bind_hook_provider_data.bpf_attach_type = BPF_ATTACH_TYPE_BIND;
+    _net_ebpf_bind_hook_provider_data.link_type = BPF_LINK_TYPE_PLAIN;
     status = net_ebpf_extension_hook_provider_register(
         &hook_provider_parameters,
         _net_ebpf_extension_bind_on_client_attach,
