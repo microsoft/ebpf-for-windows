@@ -169,7 +169,7 @@ jobs:
       if: matrix.configurations == 'Release' && inputs.generate_release_package == true
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
-        cmake -S tools\setup -B build\setup -DEBPFFORWINDOWS_PROGRAM_DATA="${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\package_data" "-DEBPFFORWINDOWS_VERSION=0.2.0" -DCPACK_GENERATOR=WIX
+        cmake -S tools\setup -B build\setup -DEBPFFORWINDOWS_PROGRAM_DATA="${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\package_data" "-DEBPFFORWINDOWS_VERSION=0.3.0" -DCPACK_GENERATOR=WIX
         cmake --build build\setup --target package
 
     - name: Locate the packages
