@@ -14,7 +14,7 @@ The following must be installed in order to build this project:
    the "MSVC v142 - VS 2019 C++ x64/x86 Spectre-mitigated libs (latest)"
    which must be selected as an Individual component in the VS installer
 3. [Visual Studio Build Tools 2019](https://aka.ms/vs/16/release/vs_buildtools.exe)
-4. [WDK for Windows 10, version 2004](https://go.microsoft.com/fwlink/?linkid=2128854)
+4. [WDK for Windows 10, version 2004](https://go.microsoft.com/fwlink/?linkid=2128854), including the "Windows Driver Kit Visual Studio extension" (make sure the check box is checked before completing the installer)
 5. [Clang for Windows 64-bit version 11.0.1](https://github.com/llvm/llvm-project/releases/download/llvmorg-11.0.1/LLVM-11.0.1-win64.exe) or [The latest release of Clang for Windows 64-bit](https://github.com/llvm/llvm-project/releases/latest)
 6. [nuget.exe](https://www.nuget.org/downloads) installed to a location such as "C:\Program Files (x86)\NuGet\"
 
