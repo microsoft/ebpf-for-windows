@@ -1848,13 +1848,13 @@ typedef struct _ebpf_pe_context
     const bounded_buffer* data_buffer;
 } ebpf_pe_context_t;
 
-static int
+static int // Returns 0 on success, 1 on error.
 _ebpf_pe_get_map_definitions(
-    void* context,
-    const VA& va,
-    const std::string& section_name,
-    const image_section_header& section_header,
-    const bounded_buffer* buffer) noexcept
+    _Inout_ void* context,
+    _In_ const VA& va,
+    _In_ const std::string& section_name,
+    _In_ const image_section_header& section_header,
+    _In_ const bounded_buffer* buffer) noexcept
 {
     EBPF_LOG_ENTRY();
     UNREFERENCED_PARAMETER(va);
@@ -1863,8 +1863,8 @@ _ebpf_pe_get_map_definitions(
     ebpf_map_t* map = nullptr;
     ebpf_pe_context_t* pe_context = (ebpf_pe_context_t*)context;
     if (section_name == "maps") {
-        // bpf2c generates a section that has map names as strings at the
-        // start of the section.  Skip over them looking for the map_entry_t
+        // bpf2c generates a section that has map names shorter than sizeof(map_entry_t)
+        // at the start of the section.  Skip over them looking for the map_entry_t
         // which starts with an 8-byte-aligned NULL pointer where the previous
         // byte (if any) is also 00, and the following 8 bytes are non-NULL.
         uint32_t map_offset = 0;
@@ -1879,6 +1879,12 @@ _ebpf_pe_get_map_definitions(
             for (int map_index = 0; map_offset + sizeof(map_entry_t) <= section_header.Misc.VirtualSize;
                  map_offset += sizeof(map_entry_t), map_index++) {
                 map_entry_t* entry = (map_entry_t*)(buffer->buf + map_offset);
+                if (entry->address != nullptr) {
+                    // bpf2c generates a section that has map names longer than sizeof(map_entry_t)
+                    // at the end of the section.  This entry seems to be a map name string, so we've
+                    // reached the end of the maps.
+                    break;
+                }
 
                 map = (ebpf_map_t*)calloc(1, sizeof(ebpf_map_t));
                 if (map == nullptr) {
