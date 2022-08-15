@@ -41,7 +41,7 @@
 #define EBPF_EPOCH_FLUSH_DELAY_IN_MICROSECONDS 1000
 
 // Time before logging that a thread entry is stale
-#define EBPF_EPOCH_STALE_THREAD_TIME_IN_NANO_SECONDS 10000000000 // 10 second
+#define EBPF_EPOCH_STALE_THREAD_TIME_IN_NANO_SECONDS 10000000000 // 10 seconds
 
 typedef struct _ebpf_epoch_state
 {
@@ -68,7 +68,7 @@ typedef struct _ebpf_epoch_thread_entry
 {
     ebpf_epoch_state_t epoch_state;
     uintptr_t old_thread_affinity_mask;
-    uint64_t last_used;
+    uint64_t last_used_time;
 } ebpf_epoch_thread_entry_t;
 
 C_ASSERT(sizeof(ebpf_epoch_cpu_entry_t) % EBPF_CACHE_LINE_SIZE == 0);
@@ -143,7 +143,7 @@ _ebpf_epoch_stale_worker(_In_ void* work_item_context, _In_ void* parameter_1)
     ebpf_epoch_exit();
 }
 
-_Requires_lock_held_(_ebpf_epoch_cpu_table[cpu_id].lock) ebpf_epoch_thread_entry_t* _ebpf_epoch_get_thread_entry(
+static _Requires_lock_held_(_ebpf_epoch_cpu_table[cpu_id].lock) ebpf_epoch_thread_entry_t* _ebpf_epoch_get_thread_entry(
     uint32_t cpu_id, uintptr_t thread_id, bool create_if_missing);
 
 ebpf_result_t
@@ -260,7 +260,7 @@ ebpf_epoch_enter()
         if (return_value != EBPF_SUCCESS) {
             goto Done;
         }
-        thread_entry->last_used = ebpf_query_time_since_boot(false);
+        thread_entry->last_used_time = ebpf_query_time_since_boot(false);
         epoch_state = &thread_entry->epoch_state;
     } else {
         epoch_state = &_ebpf_epoch_cpu_table[current_cpu].epoch_state;
@@ -294,7 +294,7 @@ ebpf_epoch_exit()
         if (!thread_entry) {
             goto Done;
         }
-        thread_entry->last_used = ebpf_query_time_since_boot(false);
+        thread_entry->last_used_time = ebpf_query_time_since_boot(false);
         ebpf_restore_current_thread_affinity(thread_entry->old_thread_affinity_mask);
         epoch_state = &thread_entry->epoch_state;
     } else {
@@ -576,7 +576,7 @@ _ebpf_epoch_get_release_epoch(_Out_ int64_t* release_epoch)
                 break;
             }
             if (thread_entry->epoch_state.active) {
-                int64_t age = now - thread_entry->last_used;
+                int64_t age = now - thread_entry->last_used_time;
                 if (age > EBPF_EPOCH_STALE_THREAD_TIME_IN_NANO_SECONDS) {
                     EBPF_LOG_MESSAGE_UINT64_UINT64(
                         EBPF_TRACELOG_LEVEL_VERBOSE,
@@ -584,8 +584,8 @@ _ebpf_epoch_get_release_epoch(_Out_ int64_t* release_epoch)
                         "Stale active thread entry",
                         (uint64_t)thread_id,
                         age);
-                    // Reset last_used time to limit rate of logging.
-                    thread_entry->last_used = now;
+                    // Reset last_used_time time to limit rate of logging.
+                    thread_entry->last_used_time = now;
                 }
                 lowest_epoch = min(lowest_epoch, thread_entry->epoch_state.epoch);
             }
@@ -618,7 +618,7 @@ _ebpf_flush_worker(_In_ void* context)
     ebpf_epoch_flush();
 }
 
-_Requires_lock_held_(_ebpf_epoch_cpu_table[cpu_id].lock) ebpf_epoch_thread_entry_t* _ebpf_epoch_get_thread_entry(
+static _Requires_lock_held_(_ebpf_epoch_cpu_table[cpu_id].lock) ebpf_epoch_thread_entry_t* _ebpf_epoch_get_thread_entry(
     uint32_t cpu_id, uintptr_t thread_id, bool create_if_missing)
 {
     ebpf_result_t return_value;

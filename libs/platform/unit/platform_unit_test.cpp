@@ -327,7 +327,7 @@ TEST_CASE("epoch_test_stale_items", "[platform]")
     if (ebpf_get_cpu_count() < 2) {
         return;
     }
-    for (size_t i = 0; i < 100; i++) {
+    for (size_t test_iteration = 0; test_iteration < 100; test_iteration++) {
 
         auto t1 = [&]() {
             uintptr_t old_thread_affinity;
