@@ -492,6 +492,32 @@ divide_by_zero_test_um(ebpf_execution_type_t execution_type)
     bpf_object__close(object);
 }
 
+void
+bad_map_name_um(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+
+    int result;
+    const char* error_message = nullptr;
+    bpf_object* object = nullptr;
+    fd_t program_fd;
+
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
+    program_info_provider_t xdp_program_info(EBPF_PROGRAM_TYPE_XDP);
+
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "bad_map_name_um.dll" : "bad_map_name.o");
+
+    result = ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &object, &program_fd, &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        free((void*)error_message);
+    }
+    REQUIRE(result == -EINVAL);
+
+    bpf_object__close(object);
+}
+
 typedef struct _process_entry
 {
     uint32_t count;
@@ -873,6 +899,7 @@ DECLARE_ALL_TEST_CASES("bindmonitor-tailcall", "[end_to_end]", bindmonitor_tailc
 DECLARE_ALL_TEST_CASES("bindmonitor-ringbuf", "[end_to_end]", bindmonitor_ring_buffer_test);
 DECLARE_ALL_TEST_CASES("utility-helpers", "[end_to_end]", _utility_helper_functions_test);
 DECLARE_ALL_TEST_CASES("map", "[end_to_end]", map_test);
+DECLARE_ALL_TEST_CASES("bad_map_name", "[end_to_end]", bad_map_name_um);
 
 TEST_CASE("enum section", "[end_to_end]")
 {
