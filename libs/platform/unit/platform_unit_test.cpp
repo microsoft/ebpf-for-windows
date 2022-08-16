@@ -327,36 +327,44 @@ TEST_CASE("epoch_test_stale_items", "[platform]")
     if (ebpf_get_cpu_count() < 2) {
         return;
     }
+    size_t const test_iterations = 100;
+    for (size_t test_iteration = 0; test_iteration < test_iterations; test_iteration++) {
 
-    auto t1 = [&]() {
-        uintptr_t old_thread_affinity;
-        ebpf_set_current_thread_affinity(1, &old_thread_affinity);
-        ebpf_epoch_enter();
-        void* memory = ebpf_epoch_allocate(10);
-        signal_2.signal();
-        signal_1.wait();
-        ebpf_epoch_free(memory);
-        ebpf_epoch_exit();
-    };
-    auto t2 = [&]() {
-        uintptr_t old_thread_affinity;
-        ebpf_set_current_thread_affinity(2, &old_thread_affinity);
-        signal_2.wait();
-        ebpf_epoch_enter();
-        void* memory = ebpf_epoch_allocate(10);
-        ebpf_epoch_free(memory);
-        ebpf_epoch_exit();
-        signal_1.signal();
-    };
+        auto t1 = [&]() {
+            uintptr_t old_thread_affinity;
+            ebpf_set_current_thread_affinity(1, &old_thread_affinity);
+            ebpf_epoch_enter();
+            void* memory = ebpf_epoch_allocate(10);
+            signal_2.signal();
+            signal_1.wait();
+            ebpf_epoch_free(memory);
+            ebpf_epoch_exit();
+        };
+        auto t2 = [&]() {
+            uintptr_t old_thread_affinity;
+            ebpf_set_current_thread_affinity(2, &old_thread_affinity);
+            signal_2.wait();
+            ebpf_epoch_enter();
+            void* memory = ebpf_epoch_allocate(10);
+            ebpf_epoch_free(memory);
+            ebpf_epoch_exit();
+            signal_1.signal();
+        };
 
-    std::thread thread_1(t1);
-    std::thread thread_2(t2);
+        std::thread thread_1(t1);
+        std::thread thread_2(t2);
 
-    thread_1.join();
-    thread_2.join();
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-    REQUIRE(ebpf_epoch_is_free_list_empty(0));
-    REQUIRE(ebpf_epoch_is_free_list_empty(1));
+        thread_1.join();
+        thread_2.join();
+        for (size_t retry = 0; retry < 100; retry++) {
+            if (ebpf_epoch_is_free_list_empty(0) && ebpf_epoch_is_free_list_empty(1)) {
+                break;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+        REQUIRE(ebpf_epoch_is_free_list_empty(0));
+        REQUIRE(ebpf_epoch_is_free_list_empty(1));
+    }
 }
 
 TEST_CASE("extension_test", "[platform]")

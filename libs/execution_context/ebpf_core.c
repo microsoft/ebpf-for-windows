@@ -2049,25 +2049,28 @@ ebpf_core_invoke_protocol_handler(
 {
     ebpf_result_t retval;
     bool epoch_entered = false;
-    bool affinity_set = false;
     ebpf_protocol_handler_t* handler = &_ebpf_protocol_handlers[operation_id];
     ebpf_operation_header_t* request = (ebpf_operation_header_t*)input_buffer;
     ebpf_operation_header_t* reply = (ebpf_operation_header_t*)output_buffer;
 
     if (operation_id >= EBPF_COUNT_OF(_ebpf_protocol_handlers) || operation_id < EBPF_OPERATION_RESOLVE_HELPER) {
-        return EBPF_OPERATION_NOT_SUPPORTED;
+        retval = EBPF_OPERATION_NOT_SUPPORTED;
+        goto Done;
     }
 
     if (input_buffer_length > UINT16_MAX) {
-        return EBPF_INVALID_ARGUMENT;
+        retval = EBPF_INVALID_ARGUMENT;
+        goto Done;
     }
 
     if (output_buffer_length > UINT16_MAX) {
-        return EBPF_INVALID_ARGUMENT;
+        retval = EBPF_INVALID_ARGUMENT;
+        goto Done;
     }
 
     if (!input_buffer || !input_buffer_length) {
-        return EBPF_INVALID_ARGUMENT;
+        retval = EBPF_INVALID_ARGUMENT;
+        goto Done;
     }
 
     // Validate input_buffer_length.
@@ -2077,14 +2080,16 @@ ebpf_core_invoke_protocol_handler(
     case EBPF_PROTOCOL_FIXED_REQUEST_VARIABLE_REPLY:
     case EBPF_PROTOCOL_FIXED_REQUEST_FIXED_REPLY_ASYNC:
         if (input_buffer_length != handler->minimum_request_size) {
-            return EBPF_INVALID_ARGUMENT;
+            retval = EBPF_INVALID_ARGUMENT;
+            goto Done;
         }
         break;
     case EBPF_PROTOCOL_VARIABLE_REQUEST_NO_REPLY:
     case EBPF_PROTOCOL_VARIABLE_REQUEST_FIXED_REPLY:
     case EBPF_PROTOCOL_VARIABLE_REQUEST_VARIABLE_REPLY:
         if (input_buffer_length < handler->minimum_request_size) {
-            return EBPF_INVALID_ARGUMENT;
+            retval = EBPF_INVALID_ARGUMENT;
+            goto Done;
         }
         break;
     }
@@ -2094,35 +2099,31 @@ ebpf_core_invoke_protocol_handler(
     case EBPF_PROTOCOL_FIXED_REQUEST_NO_REPLY:
     case EBPF_PROTOCOL_VARIABLE_REQUEST_NO_REPLY:
         if (output_buffer || output_buffer_length) {
-            return EBPF_INVALID_ARGUMENT;
+            retval = EBPF_INVALID_ARGUMENT;
+            goto Done;
         }
         break;
     case EBPF_PROTOCOL_FIXED_REQUEST_FIXED_REPLY:
     case EBPF_PROTOCOL_VARIABLE_REQUEST_FIXED_REPLY:
     case EBPF_PROTOCOL_FIXED_REQUEST_FIXED_REPLY_ASYNC:
         if (!output_buffer || output_buffer_length != handler->minimum_reply_size) {
-            return EBPF_INVALID_ARGUMENT;
+            retval = EBPF_INVALID_ARGUMENT;
+            goto Done;
         }
         break;
     case EBPF_PROTOCOL_FIXED_REQUEST_VARIABLE_REPLY:
     case EBPF_PROTOCOL_VARIABLE_REQUEST_VARIABLE_REPLY:
         if (!output_buffer || output_buffer_length < handler->minimum_reply_size) {
-            return EBPF_INVALID_ARGUMENT;
+            retval = EBPF_INVALID_ARGUMENT;
+            goto Done;
         }
         break;
     }
 
     if (request->length > input_buffer_length || request->length < sizeof(*request)) {
-        return EBPF_INVALID_ARGUMENT;
-    }
-
-    uintptr_t old_affinity_mask = 0;
-
-    retval = ebpf_set_current_thread_affinity((uintptr_t)1 << ebpf_get_current_cpu(), &old_affinity_mask);
-    if (retval != EBPF_SUCCESS) {
+        retval = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
-    affinity_set = true;
 
     retval = ebpf_epoch_enter();
     if (retval != EBPF_SUCCESS) {
@@ -2149,7 +2150,8 @@ ebpf_core_invoke_protocol_handler(
         // Validated above.
         _Analysis_assume_(reply);
         if (!async_context || !on_complete) {
-            return EBPF_INVALID_ARGUMENT;
+            retval = EBPF_INVALID_ARGUMENT;
+            goto Done;
         }
         retval = ebpf_async_set_completion_callback(async_context, on_complete);
         if (retval != EBPF_SUCCESS) {
@@ -2174,9 +2176,6 @@ ebpf_core_invoke_protocol_handler(
 Done:
     if (epoch_entered)
         ebpf_epoch_exit();
-
-    if (affinity_set)
-        ebpf_restore_current_thread_affinity(old_affinity_mask);
     return retval;
 }
 
