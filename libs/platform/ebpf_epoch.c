@@ -38,7 +38,7 @@
 // Called if a CPU has items to be freed, but hasn't run anything in EBPF_EPOCH_FLUSH_DELAY_IN_MICROSECONDS.
 //
 // Stale flag:
-// The stale flag is set if the timer runs and the ebpf_epoch_cpu_entry_t has entries in it's free list.
+// The stale flag is set if the timer runs and the ebpf_epoch_cpu_entry_t has entries in its free list.
 // If the stale flag is already set, then the per-CPU stale_worker is scheduled.
 
 // Delay after the _ebpf_flush_timer is set before it runs.
