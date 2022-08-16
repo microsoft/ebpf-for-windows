@@ -183,9 +183,9 @@ static _Requires_lock_held_(_ebpf_epoch_cpu_table[cpu_id].lock) ebpf_epoch_threa
     uint32_t cpu_id, uintptr_t thread_id, ebpf_epoch_get_thread_entry_option_t option);
 
 /**
- * @brief Arm the flush timer if timer is:
- *  Not already armed.
- *  Not disabled.
+ * @brief Arm the flush timer if:
+ *  Timer is not already armed.
+ *  Timer is not disabled.
  *  Free list is not empty.
  */
 static _Requires_lock_held_(cpu_entry->lock) void _ebpf_epoch_arm_timer_if_needed(ebpf_epoch_cpu_entry_t* cpu_entry);
