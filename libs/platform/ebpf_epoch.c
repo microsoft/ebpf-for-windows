@@ -624,7 +624,7 @@ _ebpf_epoch_get_release_epoch(_Out_ int64_t* release_epoch)
                 break;
             }
 
-            // Include ths epoch state if it's active.
+            // Include this epoch state if it's active.
             if (thread_entry->epoch_state.active) {
                 int64_t age = now - thread_entry->last_used_time;
                 if (age > EBPF_EPOCH_STALE_THREAD_TIME_IN_NANO_SECONDS) {
