@@ -136,6 +136,7 @@ class _ebpf_emulated_dpc
                         condition_variable.notify_all();
                     } else {
                         l.unlock();
+                        ebpf_list_initialize(entry);
                         auto work_item = reinterpret_cast<ebpf_non_preemptible_work_item_t*>(entry);
                         work_item->work_item_routine(work_item->context, work_item->parameter_1);
                         l.lock();
