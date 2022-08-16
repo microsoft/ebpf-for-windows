@@ -15,7 +15,7 @@ The following must be installed in order to build this project:
    which must be selected as an Individual component in the VS installer
 3. [Visual Studio Build Tools 2019](https://aka.ms/vs/16/release/vs_buildtools.exe)
 4. [WDK for Windows 10, version 2004](https://go.microsoft.com/fwlink/?linkid=2128854), including the "Windows Driver Kit Visual Studio extension" (make sure the check box is checked before completing the installer)
-5. [Clang for Windows 64-bit version 11.0.1](https://github.com/llvm/llvm-project/releases/download/llvmorg-11.0.1/LLVM-11.0.1-win64.exe) or [The latest release of Clang for Windows 64-bit](https://github.com/llvm/llvm-project/releases/latest)
+5. [Clang for Windows 64-bit version 11.0.1](https://github.com/llvm/llvm-project/releases/download/llvmorg-11.0.1/LLVM-11.0.1-win64.exe).  Note: clang versions 12 and higher are NOT yet supported, as they perform program optimizations that are incompatible with the PREVAIL verifier.
 6. [nuget.exe](https://www.nuget.org/downloads) installed to a location such as "C:\Program Files (x86)\NuGet\"
 
 You should add the paths to `git.exe`, `cmake.exe` and `nuget.exe` to the Windows PATH environment variable after the software packages above have been installed.
