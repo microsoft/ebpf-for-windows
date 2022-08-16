@@ -605,7 +605,7 @@ _ebpf_epoch_get_release_epoch(_Out_ int64_t* release_epoch)
             }
         }
 
-        // Include ths epoch state if it's active.
+        // Include this epoch state if it's active.
         if (_ebpf_epoch_cpu_table[cpu_id].epoch_state.active) {
             lowest_epoch = min(lowest_epoch, _ebpf_epoch_cpu_table[cpu_id].epoch_state.epoch);
         }
