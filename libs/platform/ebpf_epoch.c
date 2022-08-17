@@ -285,6 +285,8 @@ ebpf_epoch_enter()
     ebpf_result_t return_value;
     uint32_t current_cpu;
     ebpf_epoch_state_t* epoch_state = NULL;
+    // Capture preemptible state outside lock
+    bool is_preemptible = ebpf_is_preemptible();
     current_cpu = ebpf_get_current_cpu();
 
     // If the current CPU is not in the CPU table, then fail the enter.
@@ -296,7 +298,7 @@ ebpf_epoch_enter()
     ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_epoch_cpu_table[current_cpu].lock);
 
     // If this thread is preemptible, then find or create the per thread epoch state.
-    if (ebpf_is_preemptible()) {
+    if (is_preemptible) {
         // Find or create the thread entry.
         ebpf_epoch_thread_entry_t* thread_entry = _ebpf_epoch_get_thread_entry(
             current_cpu, ebpf_get_current_thread_id(), EBPF_EPOCH_GET_THREAD_ENTRY_OPTION_CREATE_IF_NOT_FOUND);
@@ -337,6 +339,8 @@ void
 ebpf_epoch_exit()
 {
     ebpf_epoch_state_t* epoch_state = NULL;
+    // Capture preemptible state outside lock
+    bool is_preemptible = ebpf_is_preemptible();
     uint32_t current_cpu = ebpf_get_current_cpu();
     bool release_free_list = false;
     if (current_cpu >= _ebpf_epoch_cpu_count) {
@@ -346,7 +350,7 @@ ebpf_epoch_exit()
     ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_epoch_cpu_table[current_cpu].lock);
 
     // If this thread is preemptible, then find the per thread epoch state.
-    if (ebpf_is_preemptible()) {
+    if (is_preemptible) {
         // Get the thread entry for the current thread.
         ebpf_epoch_thread_entry_t* thread_entry = _ebpf_epoch_get_thread_entry(
             current_cpu, ebpf_get_current_thread_id(), EBPF_EPOCH_GET_THREAD_ENTRY_OPTION_DO_NOT_CREATE);
