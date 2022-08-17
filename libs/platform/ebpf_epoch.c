@@ -285,6 +285,9 @@ ebpf_epoch_enter()
     ebpf_result_t return_value;
     uint32_t current_cpu;
     ebpf_epoch_state_t* epoch_state = NULL;
+    // Capture preemptible state outside lock
+    bool is_preemptible = ebpf_is_preemptible();
+    uintptr_t old_thread_affinity = 0;
     current_cpu = ebpf_get_current_cpu();
 
     // If the current CPU is not in the CPU table, then fail the enter.
@@ -292,11 +295,19 @@ ebpf_epoch_enter()
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
 
+    // Set the thread affinity to the current CPU.
+    if (is_preemptible) {
+        return_value = ebpf_set_current_thread_affinity((uintptr_t)1 << current_cpu, &old_thread_affinity);
+        if (return_value != EBPF_SUCCESS) {
+            return EBPF_OPERATION_NOT_SUPPORTED;
+        }
+    }
+
     // Grab the CPU lock.
     ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_epoch_cpu_table[current_cpu].lock);
 
     // If this thread is preemptible, then find or create the per thread epoch state.
-    if (ebpf_is_preemptible()) {
+    if (is_preemptible) {
         // Find or create the thread entry.
         ebpf_epoch_thread_entry_t* thread_entry = _ebpf_epoch_get_thread_entry(
             current_cpu, ebpf_get_current_thread_id(), EBPF_EPOCH_GET_THREAD_ENTRY_OPTION_CREATE_IF_NOT_FOUND);
@@ -305,12 +316,7 @@ ebpf_epoch_enter()
             goto Done;
         }
 
-        // Set the thread affinity to the current CPU.
-        return_value =
-            ebpf_set_current_thread_affinity((uintptr_t)1 << current_cpu, &thread_entry->old_thread_affinity_mask);
-        if (return_value != EBPF_SUCCESS) {
-            goto Done;
-        }
+        thread_entry->old_thread_affinity_mask = old_thread_affinity;
 
         // Update the thread entry's last used time.
         thread_entry->last_used_time = ebpf_query_time_since_boot(false);
@@ -330,6 +336,11 @@ ebpf_epoch_enter()
 Done:
     // Release the CPU lock.
     ebpf_lock_unlock(&_ebpf_epoch_cpu_table[current_cpu].lock, state);
+
+    // Restore thread affinity on failure
+    if (is_preemptible && return_value != 0) {
+        ebpf_restore_current_thread_affinity(old_thread_affinity);
+    }
     return return_value;
 }
 
@@ -337,7 +348,11 @@ void
 ebpf_epoch_exit()
 {
     ebpf_epoch_state_t* epoch_state = NULL;
+    // Capture preemptible state outside lock
+    bool is_preemptible = ebpf_is_preemptible();
     uint32_t current_cpu = ebpf_get_current_cpu();
+    uintptr_t old_thread_affinity = 0;
+
     bool release_free_list = false;
     if (current_cpu >= _ebpf_epoch_cpu_count) {
         return;
@@ -346,7 +361,7 @@ ebpf_epoch_exit()
     ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_epoch_cpu_table[current_cpu].lock);
 
     // If this thread is preemptible, then find the per thread epoch state.
-    if (ebpf_is_preemptible()) {
+    if (is_preemptible) {
         // Get the thread entry for the current thread.
         ebpf_epoch_thread_entry_t* thread_entry = _ebpf_epoch_get_thread_entry(
             current_cpu, ebpf_get_current_thread_id(), EBPF_EPOCH_GET_THREAD_ENTRY_OPTION_DO_NOT_CREATE);
@@ -360,8 +375,7 @@ ebpf_epoch_exit()
         // Update the thread entry's last used time.
         thread_entry->last_used_time = ebpf_query_time_since_boot(false);
 
-        // Restore the thread's affinity mask.
-        ebpf_restore_current_thread_affinity(thread_entry->old_thread_affinity_mask);
+        old_thread_affinity = thread_entry->old_thread_affinity_mask;
         epoch_state = &thread_entry->epoch_state;
     } else {
         // Otherwise grab the per-CPU epoch state.
@@ -383,6 +397,11 @@ Done:
     ebpf_lock_unlock(&_ebpf_epoch_cpu_table[current_cpu].lock, state);
     if (release_free_list) {
         _ebpf_epoch_release_free_list(&_ebpf_epoch_cpu_table[current_cpu], _ebpf_release_epoch);
+    }
+
+    if (is_preemptible) {
+        // Restore the thread's affinity mask.
+        ebpf_restore_current_thread_affinity(old_thread_affinity);
     }
 }
 
