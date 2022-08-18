@@ -1,0 +1,58 @@
+// Copyright (c) Microsoft Corporation
+// SPDX-License-Identifier: MIT
+
+#pragma once
+
+typedef struct _NPI_REGISTRATION_INSTANCE
+{
+    USHORT Version;
+    USHORT Size;
+    PNPIID NpiId;
+    PNPI_MODULEID ModuleId;
+    ULONG Number;
+    const void* NpiSpecificCharacteristics;
+} NPI_REGISTRATION_INSTANCE, *PNPI_REGISTRATION_INSTANCE;
+
+typedef NTSTATUS(NPI_PROVIDER_ATTACH_CLIENT_FN)(
+    _In_ HANDLE NmrBindingHandle,
+    _In_ void* ProviderContext,
+    _In_ const NPI_REGISTRATION_INSTANCE* ClientRegistrationInstance,
+    _In_ void* ClientBindingContext,
+    _In_ const void* ClientDispatch,
+    _Outptr_ void** ProviderBindingContext,
+    _Outptr_result_maybenull_ const void** ProviderDispatch);
+typedef NPI_PROVIDER_ATTACH_CLIENT_FN* PNPI_PROVIDER_ATTACH_CLIENT_FN;
+
+typedef NTSTATUS(NPI_PROVIDER_DETACH_CLIENT_FN)(_In_ void* ProviderBindingContext);
+typedef NPI_PROVIDER_DETACH_CLIENT_FN* PNPI_PROVIDER_DETACH_CLIENT_FN;
+
+typedef VOID(NPI_PROVIDER_CLEANUP_BINDING_CONTEXT_FN)(_In_ void* ProviderBindingContext);
+typedef NPI_PROVIDER_CLEANUP_BINDING_CONTEXT_FN* PNPI_PROVIDER_CLEANUP_BINDING_CONTEXT_FN;
+
+typedef struct _NPI_PROVIDER_CHARACTERISTICS
+{
+    USHORT Version;
+    USHORT Length;
+    PNPI_PROVIDER_ATTACH_CLIENT_FN ProviderAttachClient;
+    PNPI_PROVIDER_DETACH_CLIENT_FN ProviderDetachClient;
+    PNPI_PROVIDER_CLEANUP_BINDING_CONTEXT_FN ProviderCleanupBindingContext;
+    NPI_REGISTRATION_INSTANCE ProviderRegistrationInstance;
+} NPI_PROVIDER_CHARACTERISTICS;
+
+typedef GUID NPIID;
+typedef const NPIID* PNPIID;
+
+void
+NmrProviderDetachClientComplete(_In_ HANDLE NmrBindingHandle);
+
+NTSTATUS
+NmrDeregisterProvider(_In_ HANDLE NmrProviderHandle);
+
+NTSTATUS
+NmrWaitForProviderDeregisterComplete(_In_ HANDLE NmrProviderHandle);
+
+NTSTATUS
+NmrRegisterProvider(
+    _In_ NPI_PROVIDER_CHARACTERISTICS* ProviderCharacteristics,
+    _In_opt_ __drv_aliasesMem void* ProviderContext,
+    _Out_ PHANDLE NmrProviderHandle);

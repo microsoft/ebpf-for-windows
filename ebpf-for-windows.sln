@@ -83,7 +83,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "platform_kernel", "libs\pla
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EbpfCore", "ebpfcore\EbpfCore.vcxproj", "{97E52ABB-2F1E-4AD2-AEFD-6EB7FDC0A41D}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NetEbpfExt", "netebpfext\netebpfext.vcxproj", "{55499E36-37D4-4F86-B694-9F2990315758}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NetEbpfExt", "netebpfext\sys\netebpfext.vcxproj", "{55499E36-37D4-4F86-B694-9F2990315758}"
 	ProjectSection(ProjectDependencies) = postProject
 		{FA9BB88D-8259-40C1-9422-BDEDF9E9CE68} = {FA9BB88D-8259-40C1-9422-BDEDF9E9CE68}
 	EndProjectSection
@@ -165,6 +165,8 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "verifier_fuzzer", "tests\libfuzzer\verifier\verifier_fuzzer.vcxproj", "{DCF12929-B975-4874-A80F-9EAF1CC5A5A0}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "core_helper_fuzzer", "tests\libfuzzer\core_helper_fuzzer\core_helper_fuzzer.vcxproj", "{88A3E85F-669F-4CEA-8207-2E1545528D62}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "netebpfext_unit", "netebpfext\unit\netebpfext_unit.vcxproj", "{630BB78F-6211-41D8-8E3A-096E22E169EF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -1565,6 +1567,34 @@ Global
 		{88A3E85F-669F-4CEA-8207-2E1545528D62}.RelWithDebInfo|x64.ActiveCfg = Release|x64
 		{88A3E85F-669F-4CEA-8207-2E1545528D62}.RelWithDebInfo|x64.Build.0 = Release|x64
 		{88A3E85F-669F-4CEA-8207-2E1545528D62}.RelWithDebInfo|x86.ActiveCfg = Release|x64
+		{630BB78F-6211-41D8-8E3A-096E22E169EF}.Debug|ARM.ActiveCfg = Debug|Win32
+		{630BB78F-6211-41D8-8E3A-096E22E169EF}.Debug|ARM64.ActiveCfg = Debug|Win32
+		{630BB78F-6211-41D8-8E3A-096E22E169EF}.Debug|x64.ActiveCfg = Debug|x64
+		{630BB78F-6211-41D8-8E3A-096E22E169EF}.Debug|x64.Build.0 = Debug|x64
+		{630BB78F-6211-41D8-8E3A-096E22E169EF}.Debug|x86.ActiveCfg = Debug|Win32
+		{630BB78F-6211-41D8-8E3A-096E22E169EF}.Debug|x86.Build.0 = Debug|Win32
+		{630BB78F-6211-41D8-8E3A-096E22E169EF}.MinSizeRel|ARM.ActiveCfg = Debug|Win32
+		{630BB78F-6211-41D8-8E3A-096E22E169EF}.MinSizeRel|ARM.Build.0 = Debug|Win32
+		{630BB78F-6211-41D8-8E3A-096E22E169EF}.MinSizeRel|ARM64.ActiveCfg = Debug|Win32
+		{630BB78F-6211-41D8-8E3A-096E22E169EF}.MinSizeRel|ARM64.Build.0 = Debug|Win32
+		{630BB78F-6211-41D8-8E3A-096E22E169EF}.MinSizeRel|x64.ActiveCfg = Debug|x64
+		{630BB78F-6211-41D8-8E3A-096E22E169EF}.MinSizeRel|x64.Build.0 = Debug|x64
+		{630BB78F-6211-41D8-8E3A-096E22E169EF}.MinSizeRel|x86.ActiveCfg = Debug|Win32
+		{630BB78F-6211-41D8-8E3A-096E22E169EF}.MinSizeRel|x86.Build.0 = Debug|Win32
+		{630BB78F-6211-41D8-8E3A-096E22E169EF}.Release|ARM.ActiveCfg = Release|Win32
+		{630BB78F-6211-41D8-8E3A-096E22E169EF}.Release|ARM64.ActiveCfg = Release|Win32
+		{630BB78F-6211-41D8-8E3A-096E22E169EF}.Release|x64.ActiveCfg = Release|x64
+		{630BB78F-6211-41D8-8E3A-096E22E169EF}.Release|x64.Build.0 = Release|x64
+		{630BB78F-6211-41D8-8E3A-096E22E169EF}.Release|x86.ActiveCfg = Release|Win32
+		{630BB78F-6211-41D8-8E3A-096E22E169EF}.Release|x86.Build.0 = Release|Win32
+		{630BB78F-6211-41D8-8E3A-096E22E169EF}.RelWithDebInfo|ARM.ActiveCfg = Debug|Win32
+		{630BB78F-6211-41D8-8E3A-096E22E169EF}.RelWithDebInfo|ARM.Build.0 = Debug|Win32
+		{630BB78F-6211-41D8-8E3A-096E22E169EF}.RelWithDebInfo|ARM64.ActiveCfg = Debug|Win32
+		{630BB78F-6211-41D8-8E3A-096E22E169EF}.RelWithDebInfo|ARM64.Build.0 = Debug|Win32
+		{630BB78F-6211-41D8-8E3A-096E22E169EF}.RelWithDebInfo|x64.ActiveCfg = Release|x64
+		{630BB78F-6211-41D8-8E3A-096E22E169EF}.RelWithDebInfo|x64.Build.0 = Release|x64
+		{630BB78F-6211-41D8-8E3A-096E22E169EF}.RelWithDebInfo|x86.ActiveCfg = Release|Win32
+		{630BB78F-6211-41D8-8E3A-096E22E169EF}.RelWithDebInfo|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1621,6 +1651,7 @@ Global
 		{A0A0D663-DCF7-4BB1-9DDB-7964C3C31603} = {E184CBC2-4B62-499F-8A4A-F15A5A182259}
 		{DCF12929-B975-4874-A80F-9EAF1CC5A5A0} = {E184CBC2-4B62-499F-8A4A-F15A5A182259}
 		{88A3E85F-669F-4CEA-8207-2E1545528D62} = {E184CBC2-4B62-499F-8A4A-F15A5A182259}
+		{630BB78F-6211-41D8-8E3A-096E22E169EF} = {492C9B22-9237-4996-9E33-CA14D3533616}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {3D5F862D-74C6-4357-9F95-0B152E33B7B8}
